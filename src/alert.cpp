@@ -829,16 +829,68 @@ namespace libtorrent {
 	listen_failed_alert::listen_failed_alert(
 		aux::stack_allocator& alloc
 		, std::string const& iface
-		, tcp::endpoint const& ep
+		, libtorrent::address const& listen_addr
+		, int listen_port
 		, int op
 		, error_code const& ec
 		, socket_type_t t)
 		: error(ec)
 		, operation(op)
 		, sock_type(t)
-		, endpoint(ep)
+		, address(listen_addr)
+		, port(listen_port)
+#ifndef TORRENT_NO_DEPRECATE
+		, endpoint(listen_addr, listen_port)
+#endif
 		, m_alloc(alloc)
 		, m_interface_idx(alloc.copy_string(iface))
+	{}
+
+	listen_failed_alert::listen_failed_alert(
+		aux::stack_allocator& alloc
+		, std::string const& iface
+		, tcp::endpoint const& ep
+		, int op
+		, error_code const& ec
+		, socket_type_t t)
+		: listen_failed_alert(alloc
+			, iface
+			, ep.address()
+			, ep.port()
+			, op
+			, ec
+			, t)
+	{}
+
+	listen_failed_alert::listen_failed_alert(
+		aux::stack_allocator& alloc
+		, std::string const& iface
+		, udp::endpoint const& ep
+		, int op
+		, error_code const& ec
+		, socket_type_t t)
+		: listen_failed_alert(alloc
+			, iface
+			, ep.address()
+			, ep.port()
+			, op
+			, ec
+			, t)
+	{}
+
+	listen_failed_alert::listen_failed_alert(
+		aux::stack_allocator& alloc
+		, std::string const& iface
+		, int op
+		, error_code const& ec
+		, socket_type_t t)
+		: listen_failed_alert(alloc
+			, iface
+			, libtorrent::address()
+			, 0
+			, op
+			, ec
+			, t)
 	{}
 
 	char const* listen_failed_alert::listen_interface() const
@@ -861,7 +913,7 @@ namespace libtorrent {
 		};
 		char ret[300];
 		std::snprintf(ret, sizeof(ret), "listening on %s (device: %s) failed: [%s] [%s] %s"
-			, print_endpoint(endpoint).c_str()
+			, print_endpoint(address, port).c_str()
 			, listen_interface()
 			, op_str[operation]
 			, sock_type_str[sock_type]
@@ -916,9 +968,33 @@ namespace libtorrent {
 	}
 
 	listen_succeeded_alert::listen_succeeded_alert(aux::stack_allocator&
-		, tcp::endpoint const& ep, socket_type_t t)
-		: endpoint(ep)
+		, libtorrent::address const& listen_addr
+		, int listen_port
+		, socket_type_t t)
+		: address(listen_addr)
+		, port(listen_port)
+#ifndef TORRENT_NO_DEPRECATE
+		, endpoint(listen_addr, listen_port)
+#endif
 		, sock_type(t)
+	{}
+
+	listen_succeeded_alert::listen_succeeded_alert(aux::stack_allocator& alloc
+		, tcp::endpoint const& ep
+		, socket_type_t t)
+		: listen_succeeded_alert(alloc
+			, ep.address()
+			, ep.port()
+			, t)
+	{}
+
+	listen_succeeded_alert::listen_succeeded_alert(aux::stack_allocator& alloc
+		, udp::endpoint const& ep
+		, socket_type_t t)
+		: listen_succeeded_alert(alloc
+			, ep.address()
+			, ep.port()
+			, t)
 	{}
 
 	std::string listen_succeeded_alert::message() const
@@ -926,7 +1002,7 @@ namespace libtorrent {
 		char const* type_str[] = { "TCP", "SSL/TCP", "UDP", "i2p", "socks5", "SSL/uTP" };
 		char ret[200];
 		std::snprintf(ret, sizeof(ret), "successfully listening on [%s] %s"
-			, type_str[sock_type], print_endpoint(endpoint).c_str());
+			, type_str[sock_type], print_endpoint(address, port).c_str());
 		return ret;
 	}
 

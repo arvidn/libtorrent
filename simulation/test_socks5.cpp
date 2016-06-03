@@ -200,8 +200,8 @@ TORRENT_TEST(socks4_tcp_listen_alert)
 			{
 				if (a->sock_type == listen_succeeded_alert::socks5)
 				{
-					TEST_EQUAL(a->endpoint.address(), addr("50.50.50.50"));
-					TEST_EQUAL(a->endpoint.port(), 6881);
+					TEST_EQUAL(a->address, addr("50.50.50.50"));
+					TEST_EQUAL(a->port, 6881);
 					listen_alert = true;
 				}
 			}
@@ -230,8 +230,8 @@ TORRENT_TEST(socks5_tcp_listen_alert)
 			{
 				if (a->sock_type == listen_succeeded_alert::socks5)
 				{
-					TEST_EQUAL(a->endpoint.address(), addr("50.50.50.50"));
-					TEST_EQUAL(a->endpoint.port(), 6881);
+					TEST_EQUAL(a->address, addr("50.50.50.50"));
+					TEST_EQUAL(a->port, 6881);
 					listen_alert = true;
 				}
 			}
@@ -267,7 +267,7 @@ TORRENT_TEST(socks5_tcp_announce)
 			{
 				if (a->sock_type == listen_succeeded_alert::socks5)
 				{
-					alert_port = a->endpoint.port();
+					alert_port = a->port;
 				}
 			}
 		},

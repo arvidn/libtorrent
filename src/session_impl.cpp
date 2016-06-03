@@ -1897,7 +1897,7 @@ namespace aux {
 					if (m_alerts.should_post<listen_failed_alert>())
 					{
 						m_alerts.emplace_alert<listen_failed_alert>(device
-							, tcp::endpoint(), listen_failed_alert::enum_if, ec
+							, listen_failed_alert::enum_if, ec
 							, listen_failed_alert::tcp);
 					}
 					continue;
@@ -1964,7 +1964,7 @@ namespace aux {
 							: listen_succeeded_alert::udp;
 
 						m_alerts.emplace_alert<listen_succeeded_alert>(
-							tcp::endpoint(udp_ep.address(), udp_ep.port()), socket_type);
+							udp_ep, socket_type);
 					}
 				}
 			}
@@ -2066,7 +2066,7 @@ namespace aux {
 			if (e == boost::asio::error::operation_aborted) return;
 			if (m_alerts.should_post<listen_failed_alert>())
 				m_alerts.emplace_alert<listen_failed_alert>("socks5"
-					, tcp::endpoint(), listen_failed_alert::accept, e
+					, listen_failed_alert::accept, e
 					, listen_failed_alert::socks5);
 			return;
 		}
@@ -2099,7 +2099,7 @@ namespace aux {
 		{
 			if (m_alerts.should_post<listen_failed_alert>())
 				m_alerts.emplace_alert<listen_failed_alert>("socks5"
-					, tcp::endpoint(), listen_failed_alert::accept, e
+					, listen_failed_alert::accept, e
 					, listen_failed_alert::socks5);
 			return;
 		}
@@ -2188,7 +2188,6 @@ namespace aux {
 			if (m_alerts.should_post<listen_failed_alert>())
 			{
 				m_alerts.emplace_alert<listen_failed_alert>("i2p"
-					, tcp::endpoint()
 					, listen_failed_alert::accept
 					, e, listen_failed_alert::i2p);
 			}
