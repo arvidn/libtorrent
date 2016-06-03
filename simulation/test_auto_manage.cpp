@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "settings.hpp"
+#include "utils.hpp"
 #include "create_torrent.hpp"
 #include "simulator/simulator.hpp"
 #include "simulator/utils.hpp"
@@ -48,14 +49,6 @@ const int num_torrents = 10;
 namespace lt = libtorrent;
 
 using sim::asio::ip::address_v4;
-
-std::unique_ptr<sim::asio::io_service> make_io_service(sim::simulation& sim, int i)
-{
-	char ep[30];
-	std::snprintf(ep, sizeof(ep), "50.0.%d.%d", (i + 1) >> 8, (i + 1) & 0xff);
-	return std::unique_ptr<sim::asio::io_service>(new sim::asio::io_service(
-		sim, asio::ip::address_v4::from_string(ep)));
-}
 
 // this is the general template for these tests. create the session with custom
 // settings (Settings), set up the test, by adding torrents with certain

@@ -53,9 +53,11 @@ struct fake_peer
 	fake_peer(simulation& sim, char const* ip)
 		: m_ios(sim, asio::ip::address::from_string(ip))
 		, m_acceptor(m_ios)
-		, m_in_socket(m_ios)
-		, m_out_socket(m_ios)
-		, m_tripped(false)
+		, m_socket(m_ios)
+		, m_info_hash(0)
+		, m_accepted(false)
+		, m_connected(false)
+		, m_disconnected(false)
 	{
 		boost::system::error_code ec;
 		m_acceptor.open(asio::ip::tcp::v4(), ec);
@@ -65,37 +67,46 @@ struct fake_peer
 		m_acceptor.listen(10, ec);
 		TEST_CHECK(!ec);
 
-		m_acceptor.async_accept(m_in_socket, [&] (boost::system::error_code const& ec)
+		m_acceptor.async_accept(m_socket, [&] (boost::system::error_code const& ec)
 		{
-			// TODO: ideally we would kick off a read on the socket to verify that
-			// we received a bittorrent handshake
-			if (!ec) m_tripped = true;
+			using namespace std::placeholders;
+			if (ec) return;
+
+			asio::async_read(m_socket, asio::mutable_buffers_1(&m_out_buffer[0], 68)
+				, std::bind(&fake_peer::read_handshake, this, _1, _2));
+
+			m_accepted = true;
 		});
 	}
 
 	void close()
 	{
 		m_acceptor.close();
-		m_in_socket.close();
-		m_out_socket.close();
+		m_socket.close();
 	}
 
 	void connect_to(asio::ip::tcp::endpoint ep, lt::sha1_hash const& ih)
 	{
 		using namespace std::placeholders;
 
+		m_info_hash = ih;
+
 		boost::system::error_code ec;
-		m_out_socket.async_connect(ep, std::bind(&fake_peer::write_handshake
+		m_socket.async_connect(ep, std::bind(&fake_peer::write_handshake
 			, this, _1, ih));
 	}
 
-	bool tripped() const { return m_tripped; }
+	bool accepted() const { return m_accepted; }
+	bool connected() const { return m_connected; }
+	bool disconnected() const { return m_disconnected; }
 
 private:
 
 	void write_handshake(boost::system::error_code const& ec, lt::sha1_hash ih)
 	{
-		asio::ip::tcp::endpoint ep = m_out_socket.remote_endpoint();
+		using namespace std::placeholders;
+
+		asio::ip::tcp::endpoint ep = m_socket.remote_endpoint();
 		std::printf("fake_peer::connect (%s) -> (%d) %s\n"
 			, lt::print_endpoint(ep).c_str(), ec.value()
 			, ec.message().c_str());
@@ -108,43 +119,140 @@ private:
 		memcpy(m_out_buffer, handshake, len);
 		memcpy(&m_out_buffer[28], ih.data(), 20);
 
-		asio::async_write(m_out_socket, asio::const_buffers_1(&m_out_buffer[0]
-			, len), [=](boost::system::error_code const& ec, size_t bytes_transferred)
+		asio::async_write(m_socket, asio::const_buffers_1(&m_out_buffer[0]
+			, len), [this, ep](boost::system::error_code const& ec, size_t bytes_transferred)
 		{
 			std::printf("fake_peer::write_handshake(%s) -> (%d) %s\n"
 				, lt::print_endpoint(ep).c_str(), ec.value()
 				, ec.message().c_str());
-			this->m_out_socket.close();
+			asio::async_read(m_socket, asio::mutable_buffers_1(&m_out_buffer[0], 68)
+				, std::bind(&fake_peer::read_handshake, this, _1, _2));
 		});
+	}
+
+	void read_handshake(lt::error_code const& ec, size_t bytes_transferred)
+	{
+		using namespace std::placeholders;
+
+		std::printf("fake_peer::read_handshake -> (%d) %s\n"
+			, ec.value(), ec.message().c_str());
+		if (ec)
+		{
+			m_socket.close();
+			return;
+		}
+
+		if (memcmp(&m_out_buffer[0], "\x13" "BitTorrent protocol", 20) != 0)
+		{
+			std::printf("  invalid protocol specifier\n");
+			m_socket.close();
+			return;
+		}
+
+		// if this peer accepted an incoming connection, we don't know what the
+		// info hash is supposed to be
+		if (!m_info_hash.is_all_zeros()
+			&& memcmp(&m_out_buffer[28], m_info_hash.data(), 20) != 0)
+		{
+			std::printf("  invalid info hash\n");
+			m_socket.close();
+			return;
+		}
+
+		m_connected = true;
+
+		// keep reading until we receie EOF, then set m_disconnected = true
+		m_socket.async_read_some(asio::mutable_buffers_1(&m_out_buffer[0]
+			, sizeof(m_out_buffer))
+			, std::bind(&fake_peer::on_read, this, _1, _2));
+	}
+
+	void on_read(lt::error_code const& ec, size_t bytes_transferred)
+	{
+		using namespace std::placeholders;
+
+		std::printf("fake_peer::on_read -> (%d) %s\n"
+			, ec.value(), ec.message().c_str());
+		if (ec)
+		{
+			std::printf("  closing\n");
+			m_disconnected = true;
+			m_socket.close();
+			return;
+		}
+
+		m_socket.async_read_some(asio::mutable_buffers_1(&m_out_buffer[0]
+			, sizeof(m_out_buffer))
+			, std::bind(&fake_peer::on_read, this, _1, _2));
 	}
 
 	char m_out_buffer[300];
 
 	asio::io_service m_ios;
 	asio::ip::tcp::acceptor m_acceptor;
-	asio::ip::tcp::socket m_in_socket;
-	asio::ip::tcp::socket m_out_socket;
-	bool m_tripped;
+	asio::ip::tcp::socket m_socket;
+	lt::sha1_hash m_info_hash;
+
+	// set to true if this peer received an incoming connection
+	// if this is an outgoing connection, this will always be false
+	bool m_accepted;
+
+	// set to true if this peer completed a bittorrent handshake
+	bool m_connected;
+
+	// set to true if this peer has been disconnected by the other end
+	bool m_disconnected;
 };
 
-inline void add_fake_peers(lt::torrent_handle h)
+inline void add_fake_peer(lt::torrent_handle& h, int const i)
+{
+	char ep[30];
+	std::snprintf(ep, sizeof(ep), "60.0.0.%d", i);
+	h.connect_peer(lt::tcp::endpoint(
+		lt::address_v4::from_string(ep), 6881));
+}
+
+inline void add_fake_peers(lt::torrent_handle& h, int const n = 5)
 {
 	// add the fake peers
-	for (int i = 0; i < 5; ++i)
+	for (int i = 0; i < n; ++i)
 	{
-		char ep[30];
-		std::snprintf(ep, sizeof(ep), "60.0.0.%d", i);
-		h.connect_peer(lt::tcp::endpoint(
-			lt::address_v4::from_string(ep), 6881));
+		add_fake_peer(h, i);
 	}
 }
 
-inline void check_tripped(std::array<fake_peer*, 5>& test_peers, std::array<bool, 5> expected)
+template<unsigned long N>
+void check_accepted(std::array<fake_peer*, N>& test_peers
+	, std::array<bool, N> expected)
 {
 	int idx = 0;
 	for (auto p : test_peers)
 	{
-		TEST_EQUAL(p->tripped(), expected[idx]);
+		TEST_EQUAL(p->accepted(), expected[idx]);
+		++idx;
+	}
+}
+
+template<unsigned long N>
+void check_connected(std::array<fake_peer*, N>& test_peers
+	, std::array<bool, N> expected)
+{
+	int idx = 0;
+	for (auto p : test_peers)
+	{
+		TEST_EQUAL(p->connected(), expected[idx]);
+		++idx;
+	}
+}
+
+template<unsigned long N>
+void check_disconnected(std::array<fake_peer*, N>& test_peers
+	, std::array<bool, N> expected)
+{
+	int idx = 0;
+	for (auto p : test_peers)
+	{
+		TEST_EQUAL(p->disconnected(), expected[idx]);
 		++idx;
 	}
 }

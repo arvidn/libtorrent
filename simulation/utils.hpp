@@ -50,6 +50,9 @@ void filter_ips(lt::session& ses);
 void set_cache_size(lt::session& ses, int val);
 int get_cache_size(lt::session& ses);
 
+std::unique_ptr<sim::asio::io_service> make_io_service(
+	sim::simulation& sim, int i);
+
 enum flags_t
 {
 	ipv6 = 1,

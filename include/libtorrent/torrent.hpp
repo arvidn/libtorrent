@@ -173,7 +173,7 @@ namespace libtorrent
 	struct TORRENT_EXTRA_EXPORT torrent_hot_members
 	{
 		torrent_hot_members(aux::session_interface& ses
-			, add_torrent_params const& p, int block_size);
+			, add_torrent_params const& p, int block_size, bool session_paused);
 
 	protected:
 		// the piece picker. This is allocated lazily. When we don't
@@ -225,6 +225,10 @@ namespace libtorrent
 		// is true if this torrent has allows having peers
 		bool m_paused:1;
 
+		// is true if the session is paused, in which case the torrent is
+		// effectively paused as well.
+		bool m_session_paused:1;
+
 		// this is set when the torrent is in share-mode
 		bool m_share_mode:1;
 
@@ -274,7 +278,7 @@ namespace libtorrent
 	public:
 
 		torrent(aux::session_interface& ses, int block_size
-			, int seq, add_torrent_params const& p
+			, int seq, bool session_paused, add_torrent_params const& p
 			, sha1_hash const& info_hash);
 		~torrent();
 
@@ -458,6 +462,7 @@ namespace libtorrent
 			flag_graceful_pause = 1,
 			flag_clear_disk_cache = 2
 		};
+		void set_session_paused(bool b);
 		void set_paused(bool b, int flags = flag_clear_disk_cache);
 		void set_announce_to_dht(bool b) { m_announce_to_dht = b; }
 		void set_announce_to_trackers(bool b) { m_announce_to_trackers = b; }

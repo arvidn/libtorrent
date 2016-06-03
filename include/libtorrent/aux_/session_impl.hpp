@@ -369,7 +369,7 @@ namespace libtorrent
 				, int protocol, error_code const& ec, int nat_transport);
 
 			bool is_aborted() const override { return m_abort; }
-			bool is_paused() const override { return m_paused; }
+			bool is_paused() const { return m_paused; }
 
 			void pause();
 			void resume();

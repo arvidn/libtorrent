@@ -168,13 +168,15 @@ namespace libtorrent
 #endif
 
 	torrent_hot_members::torrent_hot_members(aux::session_interface& ses
-		, add_torrent_params const& p, int block_size)
+		, add_torrent_params const& p, int const block_size
+		, bool const session_paused)
 		: m_ses(ses)
 		, m_complete(0xffffff)
 		, m_upload_mode((p.flags & add_torrent_params::flag_upload_mode) != 0)
 		, m_connections_initialized(false)
 		, m_abort(false)
 		, m_paused((p.flags & add_torrent_params::flag_paused) != 0)
+		, m_session_paused(session_paused)
 		, m_share_mode((p.flags & add_torrent_params::flag_share_mode) != 0)
 		, m_have_all(false)
 		, m_graceful_pause_mode(false)
@@ -186,11 +188,12 @@ namespace libtorrent
 
 	torrent::torrent(
 		aux::session_interface& ses
-		, int block_size
-		, int seq
+		, int const block_size
+		, int const seq
+		, bool const session_paused
 		, add_torrent_params const& p
 		, sha1_hash const& info_hash)
-		: torrent_hot_members(ses, p, block_size)
+		: torrent_hot_members(ses, p, block_size, session_paused)
 		, m_total_uploaded(0)
 		, m_total_downloaded(0)
 		, m_tracker_timer(ses.get_io_service())
@@ -322,19 +325,18 @@ namespace libtorrent
 		bool const multi_file = m_torrent_file->is_valid()
 				&& m_torrent_file->num_files() > 1;
 
-		for (std::vector<std::string>::const_iterator i = p.url_seeds.begin()
-			, end(p.url_seeds.end()); i != end; ++i)
+		for (auto const& u : p.url_seeds)
 		{
-			m_web_seeds.push_back(web_seed_t(*i, web_seed_entry::url_seed));
+			m_web_seeds.push_back(web_seed_t(u, web_seed_entry::url_seed));
 
 			// correct URLs to end with a "/" for multi-file torrents
 			std::string& url = m_web_seeds.back().url;
 			if (multi_file && url[url.size()-1] != '/') url += '/';
 		}
-		for (std::vector<std::string>::const_iterator i = p.http_seeds.begin()
-			, end(p.http_seeds.end()); i != end; ++i)
+
+		for (auto const& e : p.http_seeds)
 		{
-			m_web_seeds.push_back(web_seed_t(*i, web_seed_entry::http_seed));
+			m_web_seeds.push_back(web_seed_t(e, web_seed_entry::http_seed));
 		}
 
 		// --- TRACKERS ---
@@ -346,14 +348,12 @@ namespace libtorrent
 		}
 
 		int tier = 0;
-		std::vector<int>::const_iterator tier_iter = p.tracker_tiers.begin();
-		for (std::vector<std::string>::const_iterator i = p.trackers.begin()
-			, end(p.trackers.end()); i != end; ++i)
+		auto tier_iter = p.tracker_tiers.begin();
+		for (announce_entry e : p.trackers)
 		{
 			if (tier_iter != p.tracker_tiers.end())
 				tier = *tier_iter++;
 
-			announce_entry e(*i);
 			e.fail_limit = 0;
 			e.source = announce_entry::source_magnet_link;
 			e.tier = tier;
@@ -8941,7 +8941,7 @@ namespace libtorrent
 			&& !has_error()
 			&& !m_abort
 			&& !m_graceful_pause_mode
-			&& !m_ses.is_paused();
+			&& !m_session_paused;
 	}
 
 	void torrent::flush_cache()
@@ -8972,7 +8972,7 @@ namespace libtorrent
 
 	bool torrent::is_paused() const
 	{
-		return m_paused || m_ses.is_paused() || m_graceful_pause_mode;
+		return m_paused || m_session_paused || m_graceful_pause_mode;
 	}
 
 	void torrent::pause(bool graceful)
@@ -9028,9 +9028,15 @@ namespace libtorrent
 		if (is_finished())
 			m_finished_time += m_ses.session_time() - m_became_finished;
 
+		m_announce_to_dht = false;
+		m_announce_to_trackers = false;
+		m_announce_to_lsd = false;
+
 		state_updated();
 		update_want_peers();
 		update_want_scrape();
+		update_gauge();
+		update_state_list();
 
 #ifndef TORRENT_DISABLE_LOGGING
 		log_to_all_peers("pausing");
@@ -9055,7 +9061,7 @@ namespace libtorrent
 			// files and flush all cached data
 			if (m_storage.get() && clear_disk_cache)
 			{
-				TORRENT_ASSERT(m_storage);
+				// the torrent_paused alert will be posted from on_torrent_paused
 				m_ses.disk_thread().async_stop_torrent(m_storage.get()
 					, std::bind(&torrent::on_torrent_paused, shared_from_this(), _1));
 			}
@@ -9073,10 +9079,8 @@ namespace libtorrent
 			// and choke all remaining peers to prevent responding to new
 			// requests
 			std::vector<peer_connection*> to_disconnect;
-			for (peer_iterator i = m_connections.begin();
-				i != m_connections.end(); ++i)
+			for (peer_connection* p : m_connections)
 			{
-				peer_connection* p = *i;
 				TORRENT_ASSERT(p->associated_torrent().lock().get() == this);
 
 				if (p->is_disconnecting()) continue;
@@ -9095,10 +9099,9 @@ namespace libtorrent
 
 				to_disconnect.push_back(p);
 			}
-			for (peer_iterator i = to_disconnect.begin(); i != to_disconnect.end(); ++i)
-			{
-				peer_connection* p = *i;
 
+			for (peer_connection* p : to_disconnect)
+			{
 				// since we're currently in graceful pause mode, the last peer to
 				// disconnect (assuming all peers end up begin disconnected here)
 				// will post the torrent_paused_alert
@@ -9146,6 +9149,18 @@ namespace libtorrent
 		set_need_save_resume();
 	}
 
+	void torrent::set_session_paused(bool const b)
+	{
+		if (m_session_paused == b) return;
+		bool const paused_before = is_paused();
+		m_session_paused = b;
+
+		if (paused_before == is_paused()) return;
+
+		if (b) do_pause();
+		else do_resume();
+	}
+
 	void torrent::set_paused(bool b, int flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -9174,32 +9189,16 @@ namespace libtorrent
 			return;
 		}
 
+		bool const paused_before = is_paused();
+
 		m_paused = b;
-		if (!m_ses.is_paused())
-			m_graceful_pause_mode = (flags & flag_graceful_pause) ? true : false;
 
-		if (b)
-		{
-			m_announce_to_dht = false;
-			m_announce_to_trackers = false;
-			m_announce_to_lsd = false;
-		}
+		if (paused_before == is_paused()) return;
 
-		update_gauge();
-		update_want_scrape();
-		update_want_peers();
-		update_state_list();
-		state_updated();
+		m_graceful_pause_mode = (flags & flag_graceful_pause) ? true : false;
 
-		if (b)
-		{
-			do_pause((flags & flag_clear_disk_cache) != 0);
-		}
-		else
-		{
-			do_resume();
-		}
-
+		if (b) do_pause((flags & flag_clear_disk_cache) != 0);
+		else do_resume();
 	}
 
 	void torrent::resume()
@@ -9216,7 +9215,7 @@ namespace libtorrent
 		m_announce_to_trackers = true;
 		m_announce_to_lsd = true;
 		m_paused = false;
-		if (!m_ses.is_paused()) m_graceful_pause_mode = false;
+		if (!m_session_paused) m_graceful_pause_mode = false;
 
 		update_gauge();
 
@@ -9265,6 +9264,9 @@ namespace libtorrent
 		update_want_peers();
 		update_want_tick();
 		update_want_scrape();
+		update_gauge();
+
+		if (should_check_files()) start_checking();
 
 		if (m_state == torrent_status::checking_files) return;
 
@@ -9837,8 +9839,8 @@ namespace libtorrent
 			return;
 
 		// now, pick one of the rarest pieces to download
-		int pick = random() % rarest_pieces.size();
-		bool was_finished = is_finished();
+		int const pick = random() % rarest_pieces.size();
+		bool const was_finished = is_finished();
 		m_picker->set_piece_priority(rarest_pieces[pick], 1);
 		update_gauge();
 		update_peer_interest(was_finished);

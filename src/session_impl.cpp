@@ -851,11 +851,9 @@ namespace aux {
 		session_log(" *** session paused ***");
 #endif
 		m_paused = true;
-		for (torrent_map::iterator i = m_torrents.begin()
-			, end(m_torrents.end()); i != end; ++i)
+		for (auto& te : m_torrents)
 		{
-			torrent& t = *i->second;
-			t.do_pause();
+			te.second->set_session_paused(true);
 		}
 	}
 
@@ -865,12 +863,10 @@ namespace aux {
 
 		if (!m_paused) return;
 		m_paused = false;
-		for (torrent_map::iterator i = m_torrents.begin()
-			, end(m_torrents.end()); i != end; ++i)
+
+		for (auto& te : m_torrents)
 		{
-			torrent& t = *i->second;
-			t.do_resume();
-			if (t.should_check_files()) t.start_checking();
+			te.second->set_session_paused(false);
 		}
 	}
 
@@ -3293,7 +3289,7 @@ namespace aux {
 		// scrape paused torrents that are auto managed
 		// (unless the session is paused)
 		// --------------------------------------------------------------
-		if (!is_paused())
+		if (!m_paused)
 		{
 			INVARIANT_CHECK;
 			--m_auto_scrape_time_scaler;
@@ -3663,8 +3659,6 @@ namespace aux {
 					t->log_to_all_peers("auto manager starting (inactive) torrent");
 #endif
 				t->set_paused(false);
-				t->update_gauge();
-				t->update_want_peers();
 				continue;
 			}
 
@@ -3681,8 +3675,6 @@ namespace aux {
 					t->log_to_all_peers("auto manager starting torrent");
 #endif
 				t->set_paused(false);
-				t->update_gauge();
-				t->update_want_peers();
 				continue;
 			}
 
@@ -3696,8 +3688,6 @@ namespace aux {
 			t->set_announce_to_dht(false);
 			t->set_announce_to_trackers(false);
 			t->set_announce_to_lsd(false);
-			t->update_gauge();
-			t->update_want_peers();
 		}
 	}
 
@@ -3715,7 +3705,7 @@ namespace aux {
 		m_last_auto_manage = time_now();
 		m_need_auto_manage = false;
 
-		if (is_paused()) return;
+		if (m_paused) return;
 
 		// make copies of the lists of torrents that we want to consider for auto
 		// management. We need copies because they will be sorted.
@@ -4908,7 +4898,8 @@ namespace aux {
 		int queue_pos = ++m_max_queue_pos;
 
 		torrent_ptr = boost::make_shared<torrent>(boost::ref(*this)
-			, 16 * 1024, queue_pos, boost::cref(params), boost::cref(params.info_hash));
+			, 16 * 1024, queue_pos, m_paused
+			, boost::cref(params), boost::cref(params.info_hash));
 
 		return torrent_ptr;
 	}
