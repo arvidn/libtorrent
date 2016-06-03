@@ -39,6 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
+#include <libtorrent/kademlia/node_id.hpp>
+
 #include <libtorrent/socket.hpp>
 #include <libtorrent/sha1_hash.hpp>
 #include <libtorrent/address.hpp>
@@ -59,6 +61,9 @@ namespace dht
 		boost::int32_t peers;
 		boost::int32_t immutable_data;
 		boost::int32_t mutable_data;
+
+		// This member function set the counters to zero.
+		void reset();
 	};
 
 	// The DHT storage interface is a pure virtual class that can
@@ -87,6 +92,13 @@ namespace dht
 		//
 		virtual size_t num_peers() const = 0;
 #endif
+
+		// This member function notifies the list of all node's ids
+		// of each DHT running inside libtorrent. It's advisable
+		// that the concrete implementation keeps a copy of this list
+		// for an eventual prioritization when deleting an element
+		// to make room for a new one.
+		virtual void update_node_ids(std::vector<node_id> const& ids) = 0;
 
 		// This function retrieve the peers tracked by the DHT
 		// corresponding to the given info_hash. You can specify if
@@ -207,11 +219,9 @@ namespace dht
 		virtual ~dht_storage_interface() {}
 	};
 
-	typedef boost::function<dht_storage_interface*(sha1_hash const& id
-		, dht_settings const& settings)> dht_storage_constructor_type;
+	typedef boost::function<dht_storage_interface*(dht_settings const& settings)> dht_storage_constructor_type;
 
-	TORRENT_EXPORT dht_storage_interface* dht_default_storage_constructor(sha1_hash const& id
-		, dht_settings const& settings);
+	TORRENT_EXPORT dht_storage_interface* dht_default_storage_constructor(dht_settings const& settings);
 
 } } // namespace libtorrent::dht
 

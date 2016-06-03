@@ -991,6 +991,7 @@ namespace libtorrent
 			mutable int m_next_port;
 
 #ifndef TORRENT_DISABLE_DHT
+			boost::shared_ptr<dht::dht_storage_interface> m_dht_storage;
 			boost::shared_ptr<dht::dht_tracker> m_dht;
 			dht_settings m_dht_settings;
 			dht::dht_storage_constructor_type m_dht_storage_constructor;

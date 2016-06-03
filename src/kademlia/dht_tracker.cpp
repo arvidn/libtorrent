@@ -98,14 +98,15 @@ namespace libtorrent { namespace dht
 		, send_fun_t const& send_fun
 		, dht_settings const& settings
 		, counters& cnt
-		, dht_storage_constructor_type storage_constructor
+		, dht_storage_interface& storage
 		, entry const& state)
 		: m_counters(cnt)
+		, m_storage(storage)
 		, m_dht(udp::v4(), this, settings, extract_node_id(state, "node-id")
-			, observer, cnt, m_nodes, storage_constructor)
+			, observer, cnt, m_nodes, storage)
 #if TORRENT_USE_IPV6
 		, m_dht6(udp::v6(), this, settings, extract_node_id(state, "node-id6")
-			, observer, cnt, m_nodes, storage_constructor)
+			, observer, cnt, m_nodes, storage)
 #endif
 		, m_send_fun(send_fun)
 		, m_log(observer)
@@ -129,6 +130,8 @@ namespace libtorrent { namespace dht
 		m_nodes.insert(std::make_pair(m_dht6.protocol_family_name(), &m_dht6));
 #endif
 
+		update_storage_node_ids();
+
 #ifndef TORRENT_DISABLE_LOGGING
 		m_log->log(dht_logger::tracker, "starting IPv4 DHT tracker with node id: %s"
 			, to_hex(m_dht.nid().to_string()).c_str());
@@ -144,6 +147,10 @@ namespace libtorrent { namespace dht
 	void dht_tracker::update_node_id()
 	{
 		m_dht.update_node_id();
+#if TORRENT_USE_IPV6
+		m_dht6.update_node_id();
+#endif
+		update_storage_node_ids();
 	}
 
 	// defined in node.cpp
@@ -208,19 +215,19 @@ namespace libtorrent { namespace dht
 #ifndef TORRENT_NO_DEPRECATE
 	void dht_tracker::dht_status(session_status& s)
 	{
-		m_dht.status(s);
+		m_dht.status(s); //TODO: What to do with m_dht6?
 	}
 #endif
 
 	void dht_tracker::dht_status(std::vector<dht_routing_bucket>& table
 		, std::vector<dht_lookup>& requests)
 	{
-		m_dht.status(table, requests);
+		m_dht.status(table, requests); //TODO: What to do with m_dht6?
 	}
 
 	void dht_tracker::update_stats_counters(counters& c) const
 	{
-		m_dht.update_stats_counters(c);
+		m_dht.update_stats_counters(c); //TODO: What to do with m_dht6?
 	}
 
 	void dht_tracker::connection_timeout(node& n, error_code const& e)
@@ -266,10 +273,22 @@ namespace libtorrent { namespace dht
 		m_key_refresh_timer.async_wait(std::bind(&dht_tracker::refresh_key, self(), _1));
 
 		m_dht.new_write_key();
+#if TORRENT_USE_IPV6
 		m_dht6.new_write_key();
+#endif
 #ifndef TORRENT_DISABLE_LOGGING
 		m_log->log(dht_logger::tracker, "*** new write key***");
 #endif
+	}
+
+	void dht_tracker::update_storage_node_ids()
+	{
+		std::vector<sha1_hash> ids;
+		ids.push_back(m_dht.nid());
+#if TORRENT_USE_IPV6
+		ids.push_back(m_dht6.nid());
+#endif
+		m_storage.update_node_ids(ids);
 	}
 
 /*

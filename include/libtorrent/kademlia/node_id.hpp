@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define NODE_ID_HPP
 
 #include <algorithm>
+#include <vector>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/cstdint.hpp>
@@ -63,6 +64,7 @@ bool TORRENT_EXTRA_EXPORT compare_ref(node_id const& n1, node_id const& n2, node
 // after the shared bit prefix of ``n1`` and ``n2``.
 // if the first bits are different, that's 160.
 int TORRENT_EXTRA_EXPORT distance_exp(node_id const& n1, node_id const& n2);
+int TORRENT_EXTRA_EXPORT min_distance_exp(node_id const& n1, std::vector<node_id> const& ids);
 
 node_id TORRENT_EXTRA_EXPORT generate_id(address const& external_ip);
 node_id TORRENT_EXTRA_EXPORT generate_random_id();

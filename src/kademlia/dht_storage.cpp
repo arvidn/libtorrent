@@ -59,8 +59,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/item.hpp>
 #include <libtorrent/kademlia/node_id.hpp>
 
-#include <string.h> // for memset
-
 namespace libtorrent {
 namespace dht {
 namespace
@@ -154,15 +152,15 @@ namespace
 	// less important to keep
 	struct immutable_item_comparator
 	{
-		immutable_item_comparator(node_id const& our_id) : m_our_id(our_id) {}
+		immutable_item_comparator(std::vector<node_id> const& node_ids) : m_node_ids(node_ids) {}
 		immutable_item_comparator(immutable_item_comparator const& c)
-			: m_our_id(c.m_our_id) {}
+			: m_node_ids(c.m_node_ids) {}
 
 		bool operator() (std::pair<node_id, dht_immutable_item> const& lhs
 			, std::pair<node_id, dht_immutable_item> const& rhs) const
 		{
-			int l_distance = distance_exp(lhs.first, m_our_id);
-			int r_distance = distance_exp(rhs.first, m_our_id);
+			int l_distance = min_distance_exp(lhs.first, m_node_ids);
+			int r_distance = min_distance_exp(rhs.first, m_node_ids);
 
 			// this is a score taking the popularity (number of announcers) and the
 			// fit, in terms of distance from ideal storing node, into account.
@@ -178,8 +176,20 @@ namespace
 		// explicitly disallow assignment, to silence msvc warning
 		immutable_item_comparator& operator=(immutable_item_comparator const&);
 
-		node_id const& m_our_id;
+		std::vector<node_id> const& m_node_ids;
 	};
+
+	// picks the least important one (i.e. the one
+	// the fewest peers are announcing, and farthest
+	// from our node IDs)
+	template<class Item>
+	typename std::map<node_id, Item>::const_iterator pick_least_important_item(
+		std::vector<node_id> const& node_ids, std::map<node_id, Item> const& table)
+	{
+		return std::min_element(table.begin()
+			, table.end()
+			, immutable_item_comparator(node_ids));
+	}
 
 	class dht_default_storage final : public dht_storage_interface, boost::noncopyable
 	{
@@ -189,11 +199,10 @@ namespace
 
 	public:
 
-		dht_default_storage(sha1_hash const& id, dht_settings const& settings)
-			: m_id(id)
-			, m_settings(settings)
+		dht_default_storage(dht_settings const& settings)
+			: m_settings(settings)
 		{
-			memset(&m_counters, 0, sizeof(m_counters));
+			m_counters.reset();
 		}
 
 		~dht_default_storage() {}
@@ -207,6 +216,10 @@ namespace
 			return ret;
 		}
 #endif
+		void update_node_ids(std::vector<node_id> const& ids) override
+		{
+			m_node_ids = ids;
+		}
 
 		bool get_peers(sha1_hash const& info_hash
 			, bool noseed, bool scrape
@@ -355,12 +368,8 @@ namespace
 				// make sure we don't add too many items
 				if (int(m_immutable_table.size()) >= m_settings.max_dht_items)
 				{
-					// delete the least important one (i.e. the one
-					// the fewest peers are announcing, and farthest
-					// from our node ID)
-					dht_immutable_table_t::iterator j = std::min_element(m_immutable_table.begin()
-						, m_immutable_table.end()
-						, immutable_item_comparator(m_id));
+					auto j = pick_least_important_item(m_node_ids
+						, m_immutable_table);
 
 					TORRENT_ASSERT(j != m_immutable_table.end());
 					free(j->second.value);
@@ -425,13 +434,8 @@ namespace
 				// make sure we don't add too many items
 				if (int(m_mutable_table.size()) >= m_settings.max_dht_items)
 				{
-					// delete the least important one (i.e. the one
-					// the fewest peers are announcing)
-					dht_mutable_table_t::iterator j = std::min_element(m_mutable_table.begin()
-						, m_mutable_table.end()
-						, [] (dht_mutable_table_t::value_type const& lhs
-							, dht_mutable_table_t::value_type const& rhs)
-						{ return lhs.second.num_announcers < rhs.second.num_announcers; });
+					auto j = pick_least_important_item(m_node_ids
+						, m_mutable_table);
 
 					TORRENT_ASSERT(j != m_mutable_table.end());
 					free(j->second.value);
@@ -542,10 +546,10 @@ namespace
 		}
 
 	private:
-		sha1_hash m_id;
 		dht_settings const& m_settings;
 		dht_storage_counters m_counters;
 
+		std::vector<node_id> m_node_ids;
 		table_t m_map;
 		dht_immutable_table_t m_immutable_table;
 		dht_mutable_table_t m_mutable_table;
@@ -568,10 +572,17 @@ namespace
 	};
 }
 
-dht_storage_interface* dht_default_storage_constructor(sha1_hash const& id
-	, dht_settings const& settings)
+void dht_storage_counters::reset()
 {
-	return new dht_default_storage(id, settings);
+	torrents = 0;
+	peers = 0;
+	immutable_data = 0;
+	mutable_data = 0;
+}
+
+dht_storage_interface* dht_default_storage_constructor(dht_settings const& settings)
+{
+	return new dht_default_storage(settings);
 }
 
 } } // namespace libtorrent::dht
