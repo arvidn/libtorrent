@@ -471,7 +471,7 @@ restart_response:
 
 		// first, read the chunk length
 		*chunk_size = strtoll(pos, 0, 16);
-		if (chunk_size < 0) return true;
+		if (*chunk_size < 0) return true;
 
 		if (*chunk_size != 0)
 		{
