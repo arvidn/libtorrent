@@ -51,7 +51,7 @@ namespace libtorrent
 	bool numeric(char c) { return c >= '0' && c <= '9'; }
 
 	// finds the end of an integer and verifies that it looks valid this does
-	// not detect all overflows, just the ones that are an order of magnitued
+	// not detect all overflows, just the ones that are an order of magnitude
 	// beyond. Exact overflow checking is done when the integer value is queried
 	// from a bdecode_node.
 	char const* check_integer(char const* start, char const* end
@@ -105,7 +105,7 @@ namespace libtorrent
 		stack_frame(int const t): token(t), state(0) {}
 		// this is an index into m_tokens
 		std::uint32_t token:31;
-		// this is used for doctionaries to indicate whether we're
+		// this is used for dictionaries to indicate whether we're
 		// reading a key or a vale. 0 means key 1 is value
 		std::uint32_t state:1;
 	};
@@ -129,7 +129,7 @@ namespace libtorrent
 
 
 	// fills in 'val' with what the string between start and the
-	// first occurance of the delimiter is interpreted as an int.
+	// first occurrence of the delimiter is interpreted as an int.
 	// return the pointer to the delimiter, or 0 if there is a
 	// parse error. val should be initialized to zero
 	char const* parse_int(char const* start, char const* end, char delimiter
@@ -803,7 +803,7 @@ namespace libtorrent
 						&& stack[sp-1].state == 1)
 					{
 						// this means we're parsing a dictionary and about to parse a
-						// value associated with a key. Instad, we got a termination
+						// value associated with a key. Instead, we got a termination
 						TORRENT_FAIL_BDECODE(bdecode_errors::expected_value);
 					}
 

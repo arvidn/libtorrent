@@ -743,22 +743,11 @@ void node::status(std::vector<dht_routing_bucket>& table
 	}
 }
 
-// TODO: in the future, this function should update all the
-// dht related counter. For now, it just update the storage
-// related ones.
-void node::update_stats_counters(counters& c) const
+boost::tuple<int, int, int> node::get_stats_counters() const
 {
-	const dht_storage_counters& dht_cnt = m_storage.counters();
-	c.set_value(counters::dht_torrents, dht_cnt.torrents);
-	c.set_value(counters::dht_peers, dht_cnt.peers);
-	c.set_value(counters::dht_immutable_data, dht_cnt.immutable_data);
-	c.set_value(counters::dht_mutable_data, dht_cnt.mutable_data);
-
 	int nodes, replacements;
 	boost::tie(nodes, replacements, boost::tuples::ignore) = size();
-	c.set_value(counters::dht_nodes, nodes);
-	c.set_value(counters::dht_node_cache, replacements);
-	c.set_value(counters::dht_allocated_observers, m_rpc.num_allocated_observers());
+	return boost::make_tuple(nodes, replacements, m_rpc.num_allocated_observers());
 }
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -768,9 +757,7 @@ void node::status(session_status& s)
 	std::lock_guard<std::mutex> l(m_mutex);
 
 	m_table.status(s);
-	s.dht_torrents = int(m_storage.num_torrents());
-	s.active_requests.clear();
-	s.dht_total_allocations = m_rpc.num_allocated_observers();
+	s.dht_total_allocations += m_rpc.num_allocated_observers();
 	for (std::set<traversal_algorithm*>::iterator i = m_running_requests.begin()
 		, end(m_running_requests.end()); i != end; ++i)
 	{

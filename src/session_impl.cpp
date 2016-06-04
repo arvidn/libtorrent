@@ -5606,10 +5606,7 @@ namespace aux {
 			m_dht.reset();
 		}
 
-		if (m_dht_storage)
-		{
-			m_dht_storage.reset();
-		}
+		m_dht_storage.reset();
 	}
 
 	void session_impl::set_dht_settings(dht_settings const& settings)

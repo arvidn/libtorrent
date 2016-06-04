@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/aux_/time.hpp"
+#include "libtorrent/session_status.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/hex.hpp" // to_hex
@@ -87,6 +88,16 @@ namespace libtorrent { namespace dht
 		if (nid == NULL || nid->type() != entry::string_t || nid->string().length() != 20)
 			return (node_id::min)();
 		return node_id(nid->string().c_str());
+	}
+
+	void add_dht_counters(node const& dht, counters& c)
+	{
+		int nodes, replacements, allocated_observers;
+		boost::tie(nodes, replacements, allocated_observers) = dht.get_stats_counters();
+
+		c.inc_stats_counter(counters::dht_nodes, nodes);
+		c.inc_stats_counter(counters::dht_node_cache, replacements);
+		c.inc_stats_counter(counters::dht_allocated_observers, allocated_observers);
 	}
 
 	} // anonymous namespace
@@ -215,19 +226,47 @@ namespace libtorrent { namespace dht
 #ifndef TORRENT_NO_DEPRECATE
 	void dht_tracker::dht_status(session_status& s)
 	{
-		m_dht.status(s); //TODO: What to do with m_dht6?
+		s.dht_torrents += int(m_storage.num_torrents());
+
+		s.dht_nodes = 0;
+		s.dht_node_cache = 0;
+		s.dht_global_nodes = 0;
+		s.dht_torrents = 0;
+		s.active_requests.clear();
+		s.dht_total_allocations = 0;
+
+		m_dht.status(s);
+#if TORRENT_USE_IPV6
+		m_dht6.status(s);
+#endif
 	}
 #endif
 
 	void dht_tracker::dht_status(std::vector<dht_routing_bucket>& table
 		, std::vector<dht_lookup>& requests)
 	{
-		m_dht.status(table, requests); //TODO: What to do with m_dht6?
+		m_dht.status(table, requests);
+#if TORRENT_USE_IPV6
+		m_dht6.status(table, requests);
+#endif
 	}
 
 	void dht_tracker::update_stats_counters(counters& c) const
 	{
-		m_dht.update_stats_counters(c); //TODO: What to do with m_dht6?
+		const dht_storage_counters& dht_cnt = m_storage.counters();
+		c.set_value(counters::dht_torrents, dht_cnt.torrents);
+		c.set_value(counters::dht_peers, dht_cnt.peers);
+		c.set_value(counters::dht_immutable_data, dht_cnt.immutable_data);
+		c.set_value(counters::dht_mutable_data, dht_cnt.mutable_data);
+
+		c.set_value(counters::dht_nodes, 0);
+		c.set_value(counters::dht_node_cache, 0);
+		c.set_value(counters::dht_allocated_observers, 0);
+
+		add_dht_counters(m_dht, c);
+#if TORRENT_USE_IPV6
+		add_dht_counters(m_dht6, c);
+#endif
 	}
 
 	void dht_tracker::connection_timeout(node& n, error_code const& e)
