@@ -508,7 +508,7 @@ void do_test_dht(address(&rand_addr)())
 	mock_socket s;
 	obs observer;
 	counters cnt;
-	boost::scoped_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
+	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
 	udp::endpoint source(rand_addr(), 20);
 	std::map<std::string, node*> nodes;
 	dht::node node(source.protocol(), &s, sett
@@ -1426,7 +1426,7 @@ void do_test_dht(address(&rand_addr)())
 	g_sent_packets.clear();
 	do
 	{
-		boost::scoped_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
+		std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
 		dht::node node(udp::v4(), &s, sett, (node_id::min)(), &observer, cnt, nodes, *dht_storage);
 
 		udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
@@ -1498,7 +1498,7 @@ void do_test_dht(address(&rand_addr)())
 	g_sent_packets.clear();
 	do
 	{
-		boost::scoped_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
+		std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
 		dht::node_id target = to_hash("1234876923549721020394873245098347598635");
 		dht::node node(udp::v4(), &s, sett, (node_id::min)(), &observer, cnt, nodes, *dht_storage);
 
@@ -1595,7 +1595,7 @@ void do_test_dht(address(&rand_addr)())
 	g_sent_packets.clear();
 	do
 	{
-		boost::scoped_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
+		std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
 		dht::node node(udp::v4(), &s, sett, (node_id::min)(), &observer, cnt, nodes, *dht_storage);
 
 		udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
@@ -1642,7 +1642,7 @@ void do_test_dht(address(&rand_addr)())
 	g_sent_packets.clear();
 	do
 	{
-		boost::scoped_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
+		std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
 		dht::node node(udp::v4(), &s, sett, (node_id::min)(), &observer, cnt, nodes, *dht_storage);
 
 		udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
@@ -1730,7 +1730,7 @@ void do_test_dht(address(&rand_addr)())
 		// set the branching factor to k to make this a little easier
 		int old_branching = sett.search_branching;
 		sett.search_branching = 8;
-		boost::scoped_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
+		std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
 		dht::node node(udp::v4(), &s, sett, (node_id::min)(), &observer, cnt, nodes, *dht_storage);
 		enum { num_test_nodes = 8 };
 		node_entry nodes[num_test_nodes] =
@@ -1831,7 +1831,7 @@ void do_test_dht(address(&rand_addr)())
 		// set the branching factor to k to make this a little easier
 		int old_branching = sett.search_branching;
 		sett.search_branching = 8;
-		boost::scoped_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
+		std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
 		dht::node node(udp::v4(), &s, sett, (node_id::min)(), &observer, cnt, nodes, *dht_storage);
 		enum { num_test_nodes = 8 };
 		node_entry nodes[num_test_nodes] =
@@ -1934,7 +1934,7 @@ void do_test_dht(address(&rand_addr)())
 		// set the branching factor to k to make this a little easier
 		int old_branching = sett.search_branching;
 		sett.search_branching = 8;
-		boost::scoped_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
+		std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
 		dht::node node(udp::v4(), &s, sett, (node_id::min)(), &observer, cnt, nodes, *dht_storage);
 		sha1_hash target = hasher(public_key, item_pk_len).final();
 		enum { num_test_nodes = 9 }; // we need K + 1 nodes to create the failing sequence
@@ -2031,7 +2031,7 @@ TORRENT_TEST(dht_dual_stack)
 	obs observer;
 	counters cnt;
 	std::map<std::string, node*> nodes;
-	boost::scoped_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
+	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
 	dht::node node4(udp::v4(), &s, sett, node_id(0), &observer, cnt, nodes, *dht_storage);
 	dht::node node6(udp::v6(), &s, sett, node_id(0), &observer, cnt, nodes, *dht_storage);
 	nodes.insert(std::make_pair("n4", &node4));
@@ -2492,7 +2492,7 @@ TORRENT_TEST(read_only_node)
 	counters cnt;
 	std::map<std::string, node*> nodes;
 
-	boost::scoped_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
+	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
 	dht::node node(udp::v4(), &s, sett, node_id(0), &observer, cnt, nodes, *dht_storage);
 	udp::endpoint source(address::from_string("10.0.0.1"), 20);
 	bdecode_node response;
@@ -2582,7 +2582,7 @@ TORRENT_TEST(invalid_error_msg)
 	counters cnt;
 	std::map<std::string, node*> nodes;
 
-	boost::scoped_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
+	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
 	dht::node node(udp::v4(), &s, sett, node_id(0), &observer, cnt, nodes, *dht_storage);
 	udp::endpoint source(address::from_string("10.0.0.1"), 20);
 
@@ -2623,7 +2623,7 @@ TORRENT_TEST(rpc_invalid_error_msg)
 
 	dht::routing_table table(node_id(), udp::v4(), 8, sett, &observer);
 	dht::rpc_manager rpc(node_id(), sett, table, &s, &observer);
-	boost::scoped_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
+	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
 	dht::node node(udp::v4(), &s, sett, node_id(0), &observer, cnt, nodes, *dht_storage);
 
 	udp::endpoint source(address::from_string("10.0.0.1"), 20);

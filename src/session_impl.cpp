@@ -5571,8 +5571,7 @@ namespace aux {
 		// postpone starting the DHT if we're still resolving the DHT router
 		if (m_outstanding_router_lookups > 0) return;
 
-		m_dht_storage = boost::shared_ptr<dht::dht_storage_interface>(
-			m_dht_storage_constructor(m_dht_settings));
+		m_dht_storage = m_dht_storage_constructor(m_dht_settings);
 		m_dht = boost::make_shared<dht::dht_tracker>(
 			static_cast<dht_observer*>(this)
 			, boost::ref(m_io_service)

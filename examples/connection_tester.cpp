@@ -830,7 +830,7 @@ void generate_data(char const* path, torrent_info const& ti)
 	params.pool = &fp;
 	params.mode = storage_mode_sparse;
 
-	boost::scoped_ptr<storage_interface> st(default_storage_constructor(params));
+	std::unique_ptr<storage_interface> st(default_storage_constructor(params));
 
 	{
 		storage_error error;

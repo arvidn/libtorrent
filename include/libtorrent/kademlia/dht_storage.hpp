@@ -219,9 +219,11 @@ namespace dht
 		virtual ~dht_storage_interface() {}
 	};
 
-	typedef boost::function<dht_storage_interface*(dht_settings const& settings)> dht_storage_constructor_type;
+	using dht_storage_constructor_type
+		= boost::function<std::unique_ptr<dht_storage_interface>(dht_settings const& settings)>;
 
-	TORRENT_EXPORT dht_storage_interface* dht_default_storage_constructor(dht_settings const& settings);
+	TORRENT_EXPORT std::unique_ptr<dht_storage_interface>
+		dht_default_storage_constructor(dht_settings const& settings);
 
 } } // namespace libtorrent::dht
 

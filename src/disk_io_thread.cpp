@@ -829,14 +829,13 @@ namespace libtorrent
 	{
 		if (storage)
 		{
-			boost::unordered_set<cached_piece_entry*> const& pieces = storage->cached_pieces();
+			auto const& pieces = storage->cached_pieces();
 			std::vector<int> piece_index;
 			piece_index.reserve(pieces.size());
-			for (boost::unordered_set<cached_piece_entry*>::const_iterator i = pieces.begin()
-				, end(pieces.end()); i != end; ++i)
+			for (auto const& p : pieces)
 			{
-				if ((*i)->get_storage() != storage) continue;
-				piece_index.push_back((*i)->piece);
+				if (p->get_storage() != storage) continue;
+				piece_index.push_back(p->piece);
 			}
 
 			for (std::vector<int>::iterator i = piece_index.begin()
@@ -856,11 +855,10 @@ namespace libtorrent
 			// keeping pieces or blocks alive
 			if ((flags & flush_delete_cache) && (flags & flush_expect_clear))
 			{
-				boost::unordered_set<cached_piece_entry*> const& storage_pieces = storage->cached_pieces();
-				for (boost::unordered_set<cached_piece_entry*>::const_iterator i = storage_pieces.begin()
-					, end(storage_pieces.end()); i != end; ++i)
+				auto const& storage_pieces = storage->cached_pieces();
+				for (auto p : storage_pieces)
 				{
-					cached_piece_entry* pe = m_disk_cache.find_piece(storage, (*i)->piece);
+					cached_piece_entry* pe = m_disk_cache.find_piece(storage, p->piece);
 					TORRENT_PIECE_ASSERT(pe->num_dirty == 0, pe);
 				}
 			}
@@ -2036,11 +2034,10 @@ namespace libtorrent
 		std::unique_lock<std::mutex> l(m_cache_mutex);
 
 		jobqueue_t jobs;
-		boost::unordered_set<cached_piece_entry*> const& cache = storage->cached_pieces();
+		auto const& cache = storage->cached_pieces();
 
 		// note that i is incremented in the body!
-		for (boost::unordered_set<cached_piece_entry*>::const_iterator i = cache.begin()
-			, end(cache.end()); i != end; )
+		for (auto i = cache.begin(), end(cache.end()); i != end; )
 		{
 			jobqueue_t temp;
 			if (m_disk_cache.evict_piece(*(i++), temp))
@@ -2548,7 +2545,7 @@ namespace libtorrent
 		add_torrent_params tmp;
 		if (rd == NULL) rd = &tmp;
 
-		boost::scoped_ptr<std::vector<std::string> > links(j->d.links);
+		std::unique_ptr<std::vector<std::string> > links(j->d.links);
 		return j->storage->check_fastresume(*rd, links.get(), j->error);
 	}
 
@@ -2794,17 +2791,15 @@ namespace libtorrent
 			{
 				ret->pieces.reserve(storage->num_pieces());
 
-				for (boost::unordered_set<cached_piece_entry*>::iterator i
-					= storage->cached_pieces().begin(), end(storage->cached_pieces().end());
-					i != end; ++i)
+				for (auto pe : storage->cached_pieces())
 				{
-					TORRENT_ASSERT((*i)->storage.get() == storage);
+					TORRENT_ASSERT(pe->storage.get() == storage);
 
-					if ((*i)->cache_state == cached_piece_entry::read_lru2_ghost
-						|| (*i)->cache_state == cached_piece_entry::read_lru1_ghost)
+					if (pe->cache_state == cached_piece_entry::read_lru2_ghost
+						|| pe->cache_state == cached_piece_entry::read_lru1_ghost)
 						continue;
 					ret->pieces.push_back(cached_piece_info());
-					get_cache_info_impl(ret->pieces.back(), *i, block_size);
+					get_cache_info_impl(ret->pieces.back(), pe, block_size);
 				}
 			}
 			else
@@ -2922,7 +2917,7 @@ namespace libtorrent
 
 	int disk_io_thread::do_file_priority(disk_io_job* j, jobqueue_t& /* completed_jobs */ )
 	{
-		boost::scoped_ptr<std::vector<boost::uint8_t> > p(j->buffer.priorities);
+		std::unique_ptr<std::vector<boost::uint8_t> > p(j->buffer.priorities);
 		j->storage->get_storage_impl()->set_file_priority(*p, j->error);
 		return 0;
 	}

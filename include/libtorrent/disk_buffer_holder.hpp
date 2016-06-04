@@ -62,7 +62,7 @@ namespace libtorrent
 		~buffer_allocator_interface() {}
 	};
 
-	// The disk buffer holder acts like a ``scoped_ptr`` that frees a disk buffer
+	// The disk buffer holder acts like a ``unique_ptr`` that frees a disk buffer
 	// when it's destructed, unless it's released. ``release`` returns the disk
 	// buffer and transfers ownership and responsibility to free it to the caller.
 	// 

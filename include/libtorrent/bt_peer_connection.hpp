@@ -392,7 +392,7 @@ private:
 		// initialized during write_pe1_2_dhkey, and destroyed on
 		// creation of m_enc_handler. Cannot reinitialize once
 		// initialized.
-		boost::scoped_ptr<dh_key_exchange> m_dh_key_exchange;
+		std::unique_ptr<dh_key_exchange> m_dh_key_exchange;
 
 		// used during an encrypted handshake then moved
 		// into m_enc_handler if rc4 encryption is negotiated
@@ -411,7 +411,7 @@ private:
 		// (incoming only) synchronize hash with remote peer, holds
 		// the sync hash (hash("req1",secret)). Destroyed after the
 		// sync step.
-		boost::scoped_ptr<sha1_hash> m_sync_hash;
+		std::unique_ptr<sha1_hash> m_sync_hash;
 #endif // #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 
 		static const message_handler m_message_handler[num_supported_messages];
