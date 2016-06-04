@@ -90,6 +90,16 @@ namespace libtorrent { namespace dht
 		return node_id(nid->string().c_str());
 	}
 
+	void add_dht_counters(node const& dht, counters& c)
+	{
+		int nodes, replacements, allocated_observers;
+		boost::tie(nodes, replacements, allocated_observers) = dht.get_stats_counters();
+
+		c.inc_stats_counter(counters::dht_nodes, nodes);
+		c.inc_stats_counter(counters::dht_node_cache, replacements);
+		c.inc_stats_counter(counters::dht_allocated_observers, allocated_observers);
+	}
+
 	} // anonymous namespace
 
 	// class that puts the networking and the kademlia node in a single
@@ -253,9 +263,9 @@ namespace libtorrent { namespace dht
 		c.set_value(counters::dht_node_cache, 0);
 		c.set_value(counters::dht_allocated_observers, 0);
 
-		m_dht.update_stats_counters(c);
+		add_dht_counters(m_dht, c);
 #if TORRENT_USE_IPV6
-		m_dht6.update_stats_counters(c);
+		add_dht_counters(m_dht6, c);
 #endif
 	}
 

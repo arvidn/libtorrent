@@ -743,13 +743,11 @@ void node::status(std::vector<dht_routing_bucket>& table
 	}
 }
 
-void node::update_stats_counters(counters& c) const
+boost::tuple<int, int, int> node::get_stats_counters() const
 {
 	int nodes, replacements;
 	boost::tie(nodes, replacements, boost::tuples::ignore) = size();
-	c.inc_stats_counter(counters::dht_nodes, nodes);
-	c.inc_stats_counter(counters::dht_node_cache, replacements);
-	c.inc_stats_counter(counters::dht_allocated_observers, m_rpc.num_allocated_observers());
+	return boost::make_tuple(nodes, replacements, m_rpc.num_allocated_observers());
 }
 
 #ifndef TORRENT_NO_DEPRECATE

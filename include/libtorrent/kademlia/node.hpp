@@ -195,7 +195,7 @@ public:
 	void status(std::vector<dht_routing_bucket>& table
 		, std::vector<dht_lookup>& requests);
 
-	void update_stats_counters(counters& c) const;
+	boost::tuple<int, int, int> get_stats_counters() const;
 
 #ifndef TORRENT_NO_DEPRECATE
 	void status(libtorrent::session_status& s);

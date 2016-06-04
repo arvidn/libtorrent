@@ -177,6 +177,11 @@ void routing_table::status(session_status& s) const
 	boost::tie(dht_nodes, dht_node_cache, ignore) = size();
 	s.dht_nodes += dht_nodes;
 	s.dht_node_cache += dht_node_cache;
+	// TODO: arvidn note
+	// when it's across IPv4 and IPv6, adding (dht_global_nodes) would
+	// make sense. in the future though, where we may have one DHT node
+	// per external interface (which may be multiple of the same address
+	// family), then it becomes a bit trickier
 	s.dht_global_nodes += num_global_nodes();
 
 	for (table_t::const_iterator i = m_buckets.begin()
