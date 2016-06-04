@@ -64,10 +64,13 @@ tuple<int, int, bool> feed_bytes(http_parser& parser, char const* str)
 			ret.get<1>() += protocol;
 			ret.get<2>() |= error;
 //			std::cerr << payload << ", " << protocol << ", " << chunk_size << std::endl;
-			TORRENT_ASSERT(payload + protocol == chunk_size);
+			TORRENT_ASSERT(payload + protocol == chunk_size || error);
 		}
-		TEST_CHECK(prev == make_tuple(0, 0, false) || ret == prev);
-		TEST_EQUAL(ret.get<0>() + ret.get<1>(), strlen(str));
+		if (!ret.get<2>())
+		{
+			TEST_CHECK(prev == make_tuple(0, 0, false) || ret == prev);
+			TEST_EQUAL(ret.get<0>() + ret.get<1>(), strlen(str));
+		}
 		prev = ret;
 	}
 	return ret;
@@ -316,29 +319,6 @@ int test_main()
 		TEST_EQUAL(parser.headers().find("test2")->second, "bar");
 	}
 
-	// test chunked encoding
-
-	parser.reset();
-
-	char const* chunked_input =
-		"HTTP/1.1 200 OK\r\n"
-		"Transfer-Encoding: chunked\r\n"
-		"Content-Type: text/plain\r\n"
-		"\r\n"
-		"4\r\ntest\r\n4\r\n1234\r\n10\r\n0123456789abcdef\r\n"
-		"0\r\n\r\n";
-	received = feed_bytes(parser, chunked_input);
-
-	TEST_EQUAL(strlen(chunked_input), 24 + 94)
-	TEST_CHECK(received == make_tuple(24, 94, false));
-	TEST_CHECK(parser.finished());
-
-	char mutable_buffer[100];
-	memcpy(mutable_buffer, parser.get_body().begin, parser.get_body().left());
-	int len = parser.collapse_chunk_headers(mutable_buffer, parser.get_body().left());
-
-	TEST_CHECK(std::equal(mutable_buffer, mutable_buffer + len, "test12340123456789abcdef"));
-
 	// test url parsing
 
 	error_code ec;
@@ -391,6 +371,116 @@ int test_main()
 
 	TEST_EQUAL(resolve_redirect_location("http://example.com/a/b", "http://test.com/d")
 		, "http://test.com/d");
+
+	char const* chunked_input =
+		"HTTP/1.1 200 OK\r\n"
+		"Transfer-Encoding: chunked\r\n"
+		"Content-Type: text/plain\r\n"
+		"\r\n"
+		"4\r\ntest\r\n4\r\n1234\r\n10\r\n0123456789abcdef\r\n"
+		"0\r\n\r\n";
+
+{
+	http_parser parser;
+	boost::tuple<int, int, bool> const received
+		= feed_bytes(parser, chunked_input);
+
+	TEST_EQUAL(strlen(chunked_input), 24 + 94)
+	TEST_CHECK(received == make_tuple(24, 94, false));
+	TEST_CHECK(parser.finished());
+
+	char mutable_buffer[100];
+	memcpy(mutable_buffer, parser.get_body().begin, parser.get_body().left());
+	int len = parser.collapse_chunk_headers(mutable_buffer, parser.get_body().left());
+
+	TEST_CHECK(std::equal(mutable_buffer, mutable_buffer + len, "test12340123456789abcdef"));
+}
+
+{
+	char const* chunked_input =
+		"HTTP/1.1 200 OK\r\n"
+		"Transfer-Encoding: chunked\r\n"
+		"Content-Length: -45345\r\n"
+		"\r\n";
+
+	http_parser parser;
+	boost::tuple<int, int, bool> const received
+		= feed_bytes(parser, chunked_input);
+
+	TEST_CHECK(boost::get<2>(received) == true);
+}
+
+{
+	char const* chunked_input =
+		"HTTP/1.1 200 OK\r\n"
+		"Transfer-Encoding: chunked\r\n"
+		"\r\n"
+		"-53465234545\r\n"
+		"foobar";
+
+	http_parser parser;
+	boost::tuple<int, int, bool> const received
+		= feed_bytes(parser, chunked_input);
+
+	TEST_CHECK(boost::get<2>(received) == true);
+}
+
+{
+	char const* chunked_input =
+		"HTTP/1.1 206 OK\n"
+		"Content-Range: bYTes -3-4\n"
+		"\n";
+
+	http_parser parser;
+	boost::tuple<int, int, bool> const received
+		= feed_bytes(parser, chunked_input);
+
+	TEST_CHECK(boost::get<2>(received) == true);
+}
+
+{
+	char const* chunked_input =
+		"HTTP/1.1 206 OK\n"
+		"Content-Range: bYTes 3--434\n"
+		"\n";
+
+	http_parser parser;
+	boost::tuple<int, int, bool> const received
+		= feed_bytes(parser, chunked_input);
+
+	TEST_CHECK(boost::get<2>(received) == true);
+}
+
+{
+	boost::uint8_t const invalid_chunked_input[] = {
+		0x48, 0x6f, 0x54, 0x50, 0x2f, 0x31, 0x2e, 0x31, // HoTP/1.1 200 OK
+		0x20, 0x32, 0x30, 0x30, 0x20, 0x4f, 0x4b, 0x0d, // Cont-Length: 20
+		0x0a, 0x43, 0x6f, 0x6e, 0x74, 0x2d, 0x4c, 0x65, // Contente: tn
+		0x6e, 0x67, 0x74, 0x68, 0x3a, 0x20, 0x32, 0x30, // Transfer-Encoding: chunked
+		0x0d, 0x0a, 0x43, 0x6f, 0x6e, 0x74, 0x65, 0x6e, //
+		0x74, 0x65, 0x3a, 0x20, 0x74, 0x6e, 0x0d, 0x0a, //
+		0x54, 0x72, 0x61, 0x6e, 0x73, 0x66, 0x65, 0x72, //
+		0x2d, 0x45, 0x6e, 0x63, 0x6f, 0x64, 0x69, 0x6e, // -89abc9abcdef
+		0x67, 0x3a, 0x20, 0x63, 0x68, 0x75, 0x6e, 0x6b, // �
+		0x65, 0x64, 0x0d, 0x0a, 0x0d, 0x0d, 0x0a, 0x0d, // T����������def
+		0x0a, 0x0a, 0x2d, 0x38, 0x39, 0x61, 0x62, 0x63, // �
+		0x39, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x0d, // T�����������est-headyr: foobar
+		0x0a, 0xd6, 0x0d, 0x0a, 0x54, 0xbd, 0xbd, 0xbd,
+		0xbd, 0xbd, 0xbd, 0xbd, 0xbd, 0xbd, 0xbd, 0x64,
+		0x65, 0x66, 0x0d, 0x0a, 0xd6, 0x0d, 0x0a, 0x54,
+		0xbd, 0xbd, 0xbd, 0xbd, 0xbd, 0xbd, 0xbd, 0xbd,
+		0xbd, 0xbd, 0xbd, 0x65, 0x73, 0x74, 0x2d, 0x68,
+		0x65, 0x61, 0x64, 0x79, 0x72, 0x3a, 0x20, 0x66,
+		0x6f, 0x6f, 0x62, 0x61, 0x72, 0x0d, 0x0a, 0x0d,
+		0x0a, 0x00
+	};
+
+	http_parser parser;
+	boost::tuple<int, int, bool> const received
+		= feed_bytes(parser, reinterpret_cast<char const*>(invalid_chunked_input));
+
+	TEST_CHECK(boost::get<2>(received) == true);
+}
 
 	return 0;
 }

@@ -151,6 +151,7 @@ restart_response:
 		if (m_state == read_status)
 		{
 			TORRENT_ASSERT(!m_finished);
+			TORRENT_ASSERT(pos <= recv_buffer.end);
 			char const* newline = std::find(pos, recv_buffer.end, '\n');
 			// if we don't have a full line yet, wait.
 			if (newline == recv_buffer.end)
@@ -171,6 +172,7 @@ restart_response:
 
 			char const* line = pos;
 			++newline;
+			TORRENT_ASSERT(newline >= pos);
 			int incoming = int(newline - pos);
 			m_recv_pos += incoming;
 			boost::get<1>(ret) += newline - (m_recv_buffer.begin + start_pos);
@@ -204,6 +206,7 @@ restart_response:
 		if (m_state == read_header)
 		{
 			TORRENT_ASSERT(!m_finished);
+			TORRENT_ASSERT(pos <= recv_buffer.end);
 			char const* newline = std::find(pos, recv_buffer.end, '\n');
 			std::string line;
 
@@ -254,6 +257,12 @@ restart_response:
 				if (name == "content-length")
 				{
 					m_content_length = strtoll(value.c_str(), 0, 10);
+					if (m_content_length < 0)
+					{
+						m_state = error_state;
+						error = true;
+						return ret;
+					}
 				}
 				else if (name == "connection")
 				{
@@ -271,12 +280,24 @@ restart_response:
 					if (string_begins_no_case("bytes ", ptr)) ptr += 6;
 					char* end;
 					m_range_start = strtoll(ptr, &end, 10);
+					if (m_range_start < 0)
+					{
+						m_state = error_state;
+						error = true;
+						return ret;
+					}
 					if (end == ptr) success = false;
 					else if (*end != '-') success = false;
 					else
 					{
 						ptr = end + 1;
 						m_range_end = strtoll(ptr, &end, 10);
+						if (m_range_end < 0)
+						{
+							m_state = error_state;
+							error = true;
+							return ret;
+						}
 						if (end == ptr) success = false;
 					}
 
@@ -295,6 +316,7 @@ restart_response:
 				}
 
 				TORRENT_ASSERT(m_recv_pos <= recv_buffer.left());
+				TORRENT_ASSERT(pos <= recv_buffer.end);
 				newline = std::find(pos, recv_buffer.end, '\n');
 			}
 			boost::get<1>(ret) += newline - (m_recv_buffer.begin + start_pos);
@@ -324,6 +346,12 @@ restart_response:
 					int header_size;
 					if (parse_chunk_header(buf, &chunk_size, &header_size))
 					{
+						if (chunk_size < 0)
+						{
+							m_state = error_state;
+							error = true;
+							return ret;
+						}
 						if (chunk_size > 0)
 						{
 							std::pair<size_type, size_type> chunk_range(m_cur_chunk_end + header_size
@@ -396,6 +424,7 @@ restart_response:
 	bool http_parser::parse_chunk_header(buffer::const_interval buf
 		, size_type* chunk_size, int* header_size)
 	{
+		TORRENT_ASSERT(buf.begin <= buf.end);
 		char const* pos = buf.begin;
 
 		// ignore one optional new-line. This is since each chunk
@@ -406,6 +435,7 @@ restart_response:
 		if (pos < buf.end && pos[0] == '\n') ++pos;
 		if (pos == buf.end) return false;
 
+		TORRENT_ASSERT(pos <= buf.end);
 		char const* newline = std::find(pos, buf.end, '\n');
 		if (newline == buf.end) return false;
 		++newline;
@@ -418,6 +448,8 @@ restart_response:
 
 		// first, read the chunk length
 		*chunk_size = strtoll(pos, 0, 16);
+		if (*chunk_size < 0) return true;
+
 		if (*chunk_size != 0)
 		{
 			*header_size = newline - buf.begin;

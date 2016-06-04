@@ -296,7 +296,7 @@ namespace libtorrent
 		// alos be stored in resume data. If you want the save path saved in
 		// the resume data to be used, you need to set the
 		// flag_use_resume_save_path flag.
-		//
+		// 
 		// .. note::
 		// 	On windows this path (and other paths) are interpreted as UNC
 		// 	paths. This means they must use backslashes as directory separators
