@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "settings.hpp"
 #include "utils.hpp"
 #include "simulator/utils.hpp"
+#include "setup_transfer.hpp" // for addr()
 
 #include "libtorrent/alert.hpp"
 #include "libtorrent/alert_types.hpp"

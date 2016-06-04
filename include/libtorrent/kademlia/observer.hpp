@@ -146,7 +146,7 @@ private:
 
 	node_id m_id;
 
-	TORRENT_UNION addr_t
+	union addr_t
 	{
 #if TORRENT_USE_IPV6
 		address_v6::bytes_type v6;

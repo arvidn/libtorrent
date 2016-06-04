@@ -941,11 +941,11 @@ namespace libtorrent
 
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
 #define TORRENT_SEPARATOR_CHAR '\\'
-		bool need_sep = branch[branch.size()-1] != '\\'
+		bool const need_sep = branch[branch.size()-1] != '\\'
 			&& branch[branch.size()-1] != '/';
 #else
 #define TORRENT_SEPARATOR_CHAR '/'
-		bool need_sep = branch[branch.size()-1] != '/';
+		bool const need_sep = branch[branch.size()-1] != '/';
 #endif
 
 		if (need_sep) branch += TORRENT_SEPARATOR_CHAR;
@@ -960,10 +960,10 @@ namespace libtorrent
 
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
 #define TORRENT_SEPARATOR "\\"
-		bool need_sep = lhs[lhs.size()-1] != '\\' && lhs[lhs.size()-1] != '/';
+		bool const need_sep = lhs[lhs.size()-1] != '\\' && lhs[lhs.size()-1] != '/';
 #else
 #define TORRENT_SEPARATOR "/"
-		bool need_sep = lhs[lhs.size()-1] != '/';
+		bool const need_sep = lhs[lhs.size()-1] != '/';
 #endif
 		std::string ret;
 		int target_size = int(lhs.size() + rhs.size() + 2);

@@ -53,8 +53,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-#define MAX_SYMLINK_PATH 200
-
 namespace libtorrent
 {
 
@@ -96,6 +94,8 @@ namespace libtorrent
 #ifndef TORRENT_WINDOWS
 		std::string get_symlink_path_impl(char const* path)
 		{
+			constexpr int MAX_SYMLINK_PATH = 200;
+
 			char buf[MAX_SYMLINK_PATH];
 			std::string f = convert_to_native(path);
 			int char_read = readlink(f.c_str(),buf,MAX_SYMLINK_PATH);

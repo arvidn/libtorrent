@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/ip_filter.hpp"
+#include "setup_transfer.hpp" // for addr()
 #include <boost/utility.hpp>
 
 #include "test.hpp"
@@ -57,10 +58,6 @@ bool compare(ip_range<Addr> const& lhs
 		&& lhs.flags == rhs.flags;
 }
 
-#define IP(x) address::from_string(x, ec)
-#define IP4(x) address_v4::from_string(x, ec)
-#define IP6(x) address_v6::from_string(x, ec)
-
 template <class T>
 void test_rules_invariant(std::vector<ip_range<T> > const& r, ip_filter const& f)
 {
@@ -71,13 +68,13 @@ void test_rules_invariant(std::vector<ip_range<T> > const& r, ip_filter const& f
 	error_code ec;
 	if (sizeof(r.front().first) == sizeof(address_v4))
 	{
-		TEST_CHECK(r.front().first == IP("0.0.0.0"));
-		TEST_CHECK(r.back().last == IP("255.255.255.255"));
+		TEST_CHECK(r.front().first == addr("0.0.0.0"));
+		TEST_CHECK(r.back().last == addr("255.255.255.255"));
 	}
 	else
 	{
-		TEST_CHECK(r.front().first == IP("::0"));
-		TEST_CHECK(r.back().last == IP("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"));
+		TEST_CHECK(r.front().first == addr("::0"));
+		TEST_CHECK(r.back().last == addr("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"));
 	}
 
 	for (iterator i(r.begin()), j(boost::next(r.begin()))
@@ -99,15 +96,15 @@ TORRENT_TEST(ip_filter)
 	// **** test joining of ranges at the end ****
 	ip_range<address_v4> expected1[] =
 	{
-		{IP4("0.0.0.0"), IP4("0.255.255.255"), 0}
-		, {IP4("1.0.0.0"), IP4("3.0.0.0"), ip_filter::blocked}
-		, {IP4("3.0.0.1"), IP4("255.255.255.255"), 0}
+		{addr4("0.0.0.0"), addr4("0.255.255.255"), 0}
+		, {addr4("1.0.0.0"), addr4("3.0.0.0"), ip_filter::blocked}
+		, {addr4("3.0.0.1"), addr4("255.255.255.255"), 0}
 	};
 
 	{
 		ip_filter f;
-		f.add_rule(IP("1.0.0.0"), IP("2.0.0.0"), ip_filter::blocked);
-		f.add_rule(IP("2.0.0.1"), IP("3.0.0.0"), ip_filter::blocked);
+		f.add_rule(addr("1.0.0.0"), addr("2.0.0.0"), ip_filter::blocked);
+		f.add_rule(addr("2.0.0.1"), addr("3.0.0.0"), ip_filter::blocked);
 
 #if TORRENT_USE_IPV6
 		range = boost::get<0>(f.export_filter());
@@ -125,8 +122,8 @@ TORRENT_TEST(ip_filter)
 
 	{
 		ip_filter f;
-		f.add_rule(IP("2.0.0.1"), IP("3.0.0.0"), ip_filter::blocked);
-		f.add_rule(IP("1.0.0.0"), IP("2.0.0.0"), ip_filter::blocked);
+		f.add_rule(addr("2.0.0.1"), addr("3.0.0.0"), ip_filter::blocked);
+		f.add_rule(addr("1.0.0.0"), addr("2.0.0.0"), ip_filter::blocked);
 
 #if TORRENT_USE_IPV6
 		range = boost::get<0>(f.export_filter());
@@ -145,8 +142,8 @@ TORRENT_TEST(ip_filter)
 
 	{
 		ip_filter f;
-		f.add_rule(IP("2.0.0.1"), IP("3.0.0.0"), ip_filter::blocked);
-		f.add_rule(IP("1.0.0.0"), IP("2.4.0.0"), ip_filter::blocked);
+		f.add_rule(addr("2.0.0.1"), addr("3.0.0.0"), ip_filter::blocked);
+		f.add_rule(addr("1.0.0.0"), addr("2.4.0.0"), ip_filter::blocked);
 
 #if TORRENT_USE_IPV6
 		range = boost::get<0>(f.export_filter());
@@ -165,8 +162,8 @@ TORRENT_TEST(ip_filter)
 
 	{
 		ip_filter f;
-		f.add_rule(IP("1.0.0.0"), IP("2.4.0.0"), ip_filter::blocked);
-		f.add_rule(IP("2.0.0.1"), IP("3.0.0.0"), ip_filter::blocked);
+		f.add_rule(addr("1.0.0.0"), addr("2.4.0.0"), ip_filter::blocked);
+		f.add_rule(addr("2.0.0.1"), addr("3.0.0.0"), ip_filter::blocked);
 
 #if TORRENT_USE_IPV6
 		range = boost::get<0>(f.export_filter());
@@ -185,12 +182,12 @@ TORRENT_TEST(ip_filter)
 
 	{
 		ip_filter f;
-		f.add_rule(IP("1.0.0.0"), IP("2.0.0.0"), ip_filter::blocked);
-		f.add_rule(IP("3.0.0.0"), IP("4.0.0.0"), ip_filter::blocked);
-		f.add_rule(IP("5.0.0.0"), IP("6.0.0.0"), ip_filter::blocked);
-		f.add_rule(IP("7.0.0.0"), IP("8.0.0.0"), ip_filter::blocked);
+		f.add_rule(addr("1.0.0.0"), addr("2.0.0.0"), ip_filter::blocked);
+		f.add_rule(addr("3.0.0.0"), addr("4.0.0.0"), ip_filter::blocked);
+		f.add_rule(addr("5.0.0.0"), addr("6.0.0.0"), ip_filter::blocked);
+		f.add_rule(addr("7.0.0.0"), addr("8.0.0.0"), ip_filter::blocked);
 
-		f.add_rule(IP("1.0.1.0"), IP("9.0.0.0"), ip_filter::blocked);
+		f.add_rule(addr("1.0.1.0"), addr("9.0.0.0"), ip_filter::blocked);
 
 #if TORRENT_USE_IPV6
 		range = boost::get<0>(f.export_filter());
@@ -202,9 +199,9 @@ TORRENT_TEST(ip_filter)
 		TEST_CHECK(range.size() == 3);
 		ip_range<address_v4> expected[] =
 		{
-			{IP4("0.0.0.0"), IP4("0.255.255.255"), 0}
-			, {IP4("1.0.0.0"), IP4("9.0.0.0"), ip_filter::blocked}
-			, {IP4("9.0.0.1"), IP4("255.255.255.255"), 0}
+			{addr4("0.0.0.0"), addr4("0.255.255.255"), 0}
+			, {addr4("1.0.0.0"), addr4("9.0.0.0"), ip_filter::blocked}
+			, {addr4("9.0.0.1"), addr4("255.255.255.255"), 0}
 		};
 
 		TEST_CHECK(std::equal(range.begin(), range.end(), expected, &compare<address_v4>));
@@ -215,12 +212,12 @@ TORRENT_TEST(ip_filter)
 
 	{
 		ip_filter f;
-		f.add_rule(IP("1.0.0.0"), IP("2.0.0.0"), ip_filter::blocked);
-		f.add_rule(IP("3.0.0.0"), IP("4.0.0.0"), ip_filter::blocked);
-		f.add_rule(IP("5.0.0.0"), IP("6.0.0.0"), ip_filter::blocked);
-		f.add_rule(IP("7.0.0.0"), IP("8.0.0.0"), ip_filter::blocked);
+		f.add_rule(addr("1.0.0.0"), addr("2.0.0.0"), ip_filter::blocked);
+		f.add_rule(addr("3.0.0.0"), addr("4.0.0.0"), ip_filter::blocked);
+		f.add_rule(addr("5.0.0.0"), addr("6.0.0.0"), ip_filter::blocked);
+		f.add_rule(addr("7.0.0.0"), addr("8.0.0.0"), ip_filter::blocked);
 
-		f.add_rule(IP("0.0.1.0"), IP("7.0.4.0"), ip_filter::blocked);
+		f.add_rule(addr("0.0.1.0"), addr("7.0.4.0"), ip_filter::blocked);
 
 #if TORRENT_USE_IPV6
 		range = boost::get<0>(f.export_filter());
@@ -232,9 +229,9 @@ TORRENT_TEST(ip_filter)
 		TEST_CHECK(range.size() == 3);
 		ip_range<address_v4> expected[] =
 		{
-			{IP4("0.0.0.0"), IP4("0.0.0.255"), 0}
-			, {IP4("0.0.1.0"), IP4("8.0.0.0"), ip_filter::blocked}
-			, {IP4("8.0.0.1"), IP4("255.255.255.255"), 0}
+			{addr4("0.0.0.0"), addr4("0.0.0.255"), 0}
+			, {addr4("0.0.1.0"), addr4("8.0.0.0"), ip_filter::blocked}
+			, {addr4("8.0.0.1"), addr4("255.255.255.255"), 0}
 		};
 
 		TEST_CHECK(std::equal(range.begin(), range.end(), expected, &compare<address_v4>));
@@ -247,15 +244,15 @@ TORRENT_TEST(ip_filter)
 
 	ip_range<address_v6> expected2[] =
 	{
-		{IP6("::0"), IP6("0:ffff:ffff:ffff:ffff:ffff:ffff:ffff"), 0}
-		, {IP6("1::"), IP6("3::"), ip_filter::blocked}
-		, {IP6("3::1"), IP6("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"), 0}
+		{addr6("::0"), addr6("0:ffff:ffff:ffff:ffff:ffff:ffff:ffff"), 0}
+		, {addr6("1::"), addr6("3::"), ip_filter::blocked}
+		, {addr6("3::1"), addr6("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"), 0}
 	};
 
 	{
 		ip_filter f;
-		f.add_rule(IP("2::1"), IP("3::"), ip_filter::blocked);
-		f.add_rule(IP("1::"), IP("2::"), ip_filter::blocked);
+		f.add_rule(addr("2::1"), addr("3::"), ip_filter::blocked);
+		f.add_rule(addr("1::"), addr("2::"), ip_filter::blocked);
 
 		std::vector<ip_range<address_v6> > range;
 		range = boost::get<1>(f.export_filter());

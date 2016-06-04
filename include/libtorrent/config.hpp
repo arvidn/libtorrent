@@ -87,11 +87,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #elif defined __SUNPRO_CC
 
-// SunPRO seems to have an overly-strict
-// definition of POD types and doesn't
-// seem to allow std::array in unions
-#define TORRENT_BROKEN_UNIONS 1
-
 #define TORRENT_COMPLETE_TYPES_REQUIRED 1
 
 // ======= MSVC =========
@@ -103,10 +98,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 // class X needs to have dll-interface to be used by clients of class Y
 #pragma warning(disable:4251)
-
-#if (defined(_MSC_VER) && _MSC_VER < 1310)
-#define TORRENT_COMPLETE_TYPES_REQUIRED 1
-#endif
 
 // deprecation markup is only enabled when libtorrent
 // headers are included by clients, not while building
@@ -386,10 +377,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_LOCALE 0
 #endif
 
-#ifndef TORRENT_BROKEN_UNIONS
-#define TORRENT_BROKEN_UNIONS 0
-#endif
-
 #ifndef TORRENT_USE_WSTRING
 #if !defined BOOST_NO_STD_WSTRING
 #define TORRENT_USE_WSTRING 1
@@ -486,25 +473,6 @@ POSSIBILITY OF SUCH DAMAGE.
 // if this is not divisible by 8, we're wasting space
 #  define TORRENT_WRITE_HANDLER_MAX_SIZE 336
 # endif
-#endif
-
-#if defined _MSC_VER && _MSC_VER <= 1200
-// this is here to provide a standard-conforming for
-// keyword for old versions of msvc. The pragmas are
-// there to silence the warning it produces by using
-// a constant as conditional
-#define for \
-	__pragma( warning(push) ) \
-	__pragma( warning(disable:4127) ) \
-	if (false) {} else \
-	__pragma( warning(pop) )
-	for
-#endif
-
-#if TORRENT_BROKEN_UNIONS
-#define TORRENT_UNION struct
-#else
-#define TORRENT_UNION union
 #endif
 
 #if defined __GNUC__

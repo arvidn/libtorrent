@@ -934,3 +934,30 @@ tcp::endpoint ep(char const* ip, int port)
 	TEST_CHECK(!ec);
 	return ret;
 }
+
+libtorrent::address addr(char const* ip)
+{
+	lt::error_code ec;
+	auto ret = lt::address::from_string(ip, ec);
+	TEST_CHECK(!ec);
+	return ret;
+}
+
+libtorrent::address_v4 addr4(char const* ip)
+{
+	lt::error_code ec;
+	auto ret = lt::address_v4::from_string(ip, ec);
+	TEST_CHECK(!ec);
+	return ret;
+}
+
+#if TORRENT_USE_IPV6
+libtorrent::address_v6 addr6(char const* ip)
+{
+	lt::error_code ec;
+	auto ret = lt::address_v6::from_string(ip, ec);
+	TEST_CHECK(!ec);
+	return ret;
+}
+#endif
+

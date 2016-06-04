@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "simulator/utils.hpp"
 #include "setup_swarm.hpp"
 #include "utils.hpp"
+#include "setup_transfer.hpp" // for addr()
 
 using namespace sim;
 

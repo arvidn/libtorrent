@@ -107,6 +107,11 @@ EXPORT void stop_proxy(int port);
 EXPORT void stop_all_proxies();
 
 EXPORT libtorrent::tcp::endpoint ep(char const* ip, int port);
+EXPORT libtorrent::address addr(char const* ip);
+EXPORT libtorrent::address_v4 addr4(char const* ip);
+#if TORRENT_USE_IPV6
+EXPORT libtorrent::address_v6 addr6(char const* ip);
+#endif
 
 #endif
 

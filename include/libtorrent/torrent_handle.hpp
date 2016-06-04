@@ -101,7 +101,7 @@ namespace libtorrent
 		};
 
 	private:
-		TORRENT_UNION addr_t
+		union addr_t
 		{
 			address_v4::bytes_type v4;
 #if TORRENT_USE_IPV6
