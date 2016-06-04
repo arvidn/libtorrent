@@ -171,9 +171,13 @@ void routing_table::status(std::vector<dht_routing_bucket>& s) const
 // TODO: 2 use the non deprecated function instead of this one
 void routing_table::status(session_status& s) const
 {
+	int dht_nodes;
+	int dht_node_cache;
 	int ignore;
-	boost::tie(s.dht_nodes, s.dht_node_cache, ignore) = size();
-	s.dht_global_nodes = num_global_nodes();
+	boost::tie(dht_nodes, dht_node_cache, ignore) = size();
+	s.dht_nodes += dht_nodes;
+	s.dht_node_cache += dht_node_cache;
+	s.dht_global_nodes += num_global_nodes();
 
 	for (table_t::const_iterator i = m_buckets.begin()
 		, end(m_buckets.end()); i != end; ++i)

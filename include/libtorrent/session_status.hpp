@@ -47,7 +47,7 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 	// holds counters and gauges for the uTP sockets
 	// deprecated in 1.1 in favor of session_stats counters, which is a more
-	// flexible, extensible and perfromant mechanism for stats.
+	// flexible, extensible and performant mechanism for stats.
 	struct TORRENT_EXPORT utp_status
 	{
 		// gauges. These are snapshots of the number of
@@ -76,7 +76,7 @@ namespace libtorrent
 
 	// contains session wide state and counters
 	// deprecated in 1.1 in favor of session_stats counters, which is a more
-	// flexible, extensible and perfromant mechanism for stats.
+	// flexible, extensible and performant mechanism for stats.
 	struct TORRENT_EXPORT session_status
 	{
 		// false as long as no incoming connections have been
@@ -164,7 +164,7 @@ namespace libtorrent
 		// tells the number of
 		// seconds until the next optimistic unchoke change and the start of the next
 		// unchoke interval. These numbers may be reset prematurely if a peer that is
-		// unchoked disconnects or becomes notinterested.
+		// unchoked disconnects or becomes not interested.
 		int optimistic_unchoke_counter;
 		int unchoke_counter;
 

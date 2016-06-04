@@ -314,9 +314,9 @@ TORRENT_TEST(update_node_ids)
 	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
 	TEST_CHECK(s.get() != NULL);
 
-	node_id n1 = to_hash("0000000000000000000000000000000000000200");
-	node_id n2 = to_hash("0000000000000000000000000000000000000400");
-	node_id n3 = to_hash("0000000000000000000000000000000000000800");
+	node_id const n1 = to_hash("0000000000000000000000000000000000000200");
+	node_id const n2 = to_hash("0000000000000000000000000000000000000400");
+	node_id const n3 = to_hash("0000000000000000000000000000000000000800");
 
 	std::vector<node_id> node_ids;
 	node_ids.push_back(n1);
