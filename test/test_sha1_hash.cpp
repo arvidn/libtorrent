@@ -32,14 +32,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "libtorrent/sha1_hash.hpp"
-#include "libtorrent/hex.hpp" // to_hex, from_hex
+#include "libtorrent/hex.hpp" // from_hex
 
 using namespace libtorrent;
 
 static sha1_hash to_hash(char const* s)
 {
 	sha1_hash ret;
-	from_hex(s, 40, (char*)&ret[0]);
+	aux::from_hex(s, 40, (char*)&ret[0]);
 	return ret;
 }
 

@@ -711,7 +711,7 @@ namespace libtorrent
 				}
 				if (binary_string)
 				{
-					out += to_hex(string());
+					out += aux::to_hex(string());
 					out += "\n";
 				}
 				else
@@ -744,7 +744,7 @@ namespace libtorrent
 					}
 					for (int j = 0; j < indent+1; ++j) out += " ";
 					out += "[";
-					if (binary_string) out += to_hex(i->first);
+					if (binary_string) out += aux::to_hex(i->first);
 					else out += i->first;
 					out += "]";
 

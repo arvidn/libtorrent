@@ -32,17 +32,19 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "settings.hpp"
+#include "setup_transfer.hpp" // for ep()
 #include "libtorrent/config.hpp"
 #include "libtorrent/kademlia/node.hpp" // for verify_message
 #include "libtorrent/kademlia/dht_storage.hpp"
 
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/address.hpp"
-#include "libtorrent/hex.hpp" // to_hex, from_hex
 #include "libtorrent/aux_/time.hpp"
 
 #include "simulator/simulator.hpp"
+
 #include <functional>
+#include <sstream>
 
 using namespace libtorrent;
 using namespace libtorrent::dht;
@@ -67,8 +69,10 @@ namespace
 	}
 
 	sha1_hash to_hash(char const *s) {
+		std::stringstream hash(s);
 		sha1_hash ret;
-		from_hex(s, 40, (char *) &ret[0]);
+		hash >> ret;
+		TORRENT_ASSERT(!hash.fail());
 		return ret;
 	}
 }
@@ -117,10 +121,10 @@ TORRENT_TEST(dht_storage_counters)
 	sha1_hash n3 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee403");
 	sha1_hash n4 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee404");
 
-	tcp::endpoint p1 = tcp::endpoint(address::from_string("124.31.75.21"), 1);
-	tcp::endpoint p2 = tcp::endpoint(address::from_string("124.31.75.22"), 1);
-	tcp::endpoint p3 = tcp::endpoint(address::from_string("124.31.75.23"), 1);
-	tcp::endpoint p4 = tcp::endpoint(address::from_string("124.31.75.24"), 1);
+	tcp::endpoint const p1 = ep("124.31.75.21", 1);
+	tcp::endpoint const p2 = ep("124.31.75.22", 1);
+	tcp::endpoint const p3 = ep("124.31.75.23", 1);
+	tcp::endpoint const p4 = ep("124.31.75.24", 1);
 
 	s->announce_peer(n1, p1, "torrent_name", false);
 	s->announce_peer(n2, p2, "torrent_name1", false);

@@ -60,7 +60,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/socket_io.hpp"
-#include "libtorrent/hex.hpp" // to_hex, from_hex
+#include "libtorrent/hex.hpp" // to_hex
 #endif
 
 using namespace std::placeholders;
@@ -227,8 +227,8 @@ namespace
 					m_torrent.debug_log(" BANNING PEER [ p: %d | b: %d | c: %s"
 						" | hash1: %s | hash2: %s | ip: %s ]"
 						, b.piece_index, b.block_index, client
-						, to_hex(i->second.digest.to_string()).c_str()
-						, to_hex(e.digest.to_string()).c_str()
+						, aux::to_hex(i->second.digest.to_string()).c_str()
+						, aux::to_hex(e.digest.to_string()).c_str()
 						, print_endpoint(p->ip()).c_str());
 #endif
 					m_torrent.ban_peer(p);
@@ -253,7 +253,7 @@ namespace
 			m_torrent.debug_log(" STORE BLOCK CRC [ p: %d | b: %d | c: %s"
 				" | digest: %s | ip: %s ]"
 				, b.piece_index, b.block_index, client
-				, to_hex(e.digest.to_string()).c_str()
+				, aux::to_hex(e.digest.to_string()).c_str()
 				, print_address(p->ip().address()).c_str());
 #endif
 		}
@@ -297,8 +297,8 @@ namespace
 			m_torrent.debug_log(" BANNING PEER [ p: %d | b: %d | c: %s"
 				" | ok_digest: %s | bad_digest: %s | ip: %s ]"
 				, b.first.piece_index, b.first.block_index, client
-				, to_hex(ok_digest.to_string()).c_str()
-				, to_hex(b.second.digest.to_string()).c_str()
+				, aux::to_hex(ok_digest.to_string()).c_str()
+				, aux::to_hex(b.second.digest.to_string()).c_str()
 				, print_address(p->ip().address()).c_str());
 #endif
 			m_torrent.ban_peer(p);

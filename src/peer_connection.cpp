@@ -51,7 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdarg> // for va_start, va_end
 #include <cstdio> // for vsnprintf
 #include "libtorrent/socket_io.hpp"
-#include "libtorrent/hex.hpp" // to_hex, from_hex
+#include "libtorrent/hex.hpp" // to_hex
 #endif
 
 #include "libtorrent/peer_connection.hpp"
@@ -1203,7 +1203,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 			if (t)
 				peer_log(peer_log_alert::info, "ATTACH"
-					, "Delay loaded torrent: %s:", to_hex(ih.to_string()).c_str());
+					, "Delay loaded torrent: %s:", aux::to_hex(ih.to_string()).c_str());
 #endif
 		}
 
@@ -1213,7 +1213,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "ATTACH"
 				, "couldn't find a torrent with the given info_hash: %s torrents:"
-				, to_hex(ih.to_string()).c_str());
+				, aux::to_hex(ih.to_string()).c_str());
 #endif
 
 #ifndef TORRENT_DISABLE_DHT
@@ -2690,7 +2690,7 @@ namespace libtorrent
 		peer_log(peer_log_alert::incoming_message, "PIECE", "piece: %d s: %x l: %x ds: %d qs: %d q: %d hash: %s"
 			, p.piece, p.start, p.length, statistics().download_rate()
 			, int(m_desired_queue_size), int(m_download_queue.size())
-			, to_hex(h.final().to_string()).c_str());
+			, aux::to_hex(h.final().to_string()).c_str());
 #endif
 
 		if (p.length == 0)

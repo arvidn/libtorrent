@@ -43,16 +43,16 @@ namespace libtorrent
 	std::ostream& operator<<(std::ostream& os, sha1_hash const& peer)
 	{
 		char out[sha1_hash::size * 2 + 1];
-		to_hex(peer.data(), sha1_hash::size, out);
+		aux::to_hex(peer.data(), sha1_hash::size, out);
 		return os << out;
 	}
 
 	// read 40 hexadecimal digits from an istream into a sha1_hash
 	std::istream& operator>>(std::istream& is, sha1_hash& peer)
 	{
-		char hex[sha1_hash::size];
-		is.read(hex, sha1_hash::size);
-		if (!from_hex(hex, sha1_hash::size, peer.data()))
+		char hex[sha1_hash::size * 2];
+		is.read(hex, sha1_hash::size * 2);
+		if (!aux::from_hex(hex, sha1_hash::size * 2, peer.data()))
 			is.setstate(std::ios_base::failbit);
 		return is;
 	}

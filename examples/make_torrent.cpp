@@ -39,7 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/file.hpp"
 #include "libtorrent/file_pool.hpp"
-#include "libtorrent/hex.hpp" // for from_hex
 #include "libtorrent/aux_/max_path.hpp" // for TORRENT_MAX_PATH
 
 #include <functional>
@@ -307,8 +306,10 @@ int main(int argc, char* argv[])
 						print_usage();
 						return 1;
 					}
+					std::stringstream hash(argv[i]);
 					sha1_hash ih;
-					if (!from_hex(argv[i], 40, (char*)&ih[0]))
+					hash >> ih;
+					if (hash.fail())
 					{
 						std::fprintf(stderr, "invalid info-hash for -S\n");
 						print_usage();

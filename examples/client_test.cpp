@@ -63,7 +63,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/read_resume_data.hpp"
-#include "libtorrent/hex.hpp" // for to_hex, from_hex
 
 #include "torrent_view.hpp"
 #include "session_view.hpp"
@@ -187,6 +186,13 @@ std::vector<libtorrent::dht_routing_bucket> dht_routing_table;
 
 torrent_view view;
 session_view ses_view;
+
+std::string to_hex(lt::sha1_hash const& s)
+{
+	std::stringstream ret;
+	ret << s;
+	return ret.str();
+}
 
 int load_file(std::string const& filename, std::vector<char>& v
 	, libtorrent::error_code& ec, int limit = 8000000)
@@ -869,7 +875,7 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 	if (torrent_need_cert_alert* p = alert_cast<torrent_need_cert_alert>(a))
 	{
 		torrent_handle h = p->handle;
-		std::string base_name = path_append("certificates", to_hex(h.info_hash().to_string()));
+		std::string base_name = path_append("certificates", to_hex(h.info_hash()));
 		std::string cert = base_name + ".pem";
 		std::string priv = base_name + "_key.pem";
 
@@ -948,7 +954,7 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 			std::vector<char> buffer;
 			bencode(std::back_inserter(buffer), te);
 			sha1_hash hash = ti->info_hash();
-			std::string filename = ti->name() + "." + to_hex(hash.to_string()) + ".torrent";
+			std::string filename = ti->name() + "." + to_hex(hash) + ".torrent";
 			filename = path_append(monitor_dir, filename);
 			save_file(filename, buffer);
 
@@ -1230,35 +1236,6 @@ int main(int argc, char* argv[])
 
 	for (int i = 1; i < argc; ++i)
 	{
-		if (argv[i][0] != '-')
-		{
-			// match it against the <hash>@<tracker> format
-			if (strlen(argv[i]) > 45
-				&& ::is_hex(argv[i], 40)
-				&& (strncmp(argv[i] + 40, "@http://", 8) == 0
-					|| strncmp(argv[i] + 40, "@udp://", 7) == 0))
-			{
-				sha1_hash info_hash;
-				from_hex(argv[i], 40, (char*)&info_hash[0]);
-
-				add_torrent_params p;
-				if (seed_mode) p.flags |= add_torrent_params::flag_seed_mode;
-				if (disable_storage) p.storage = disabled_storage_constructor;
-				if (share_mode) p.flags |= add_torrent_params::flag_share_mode;
-				p.trackers.push_back(argv[i] + 41);
-				p.info_hash = info_hash;
-				p.save_path = save_path;
-				p.storage_mode = (storage_mode_t)allocation_mode;
-				p.flags &= ~add_torrent_params::flag_duplicate_is_error;
-				p.flags |= add_torrent_params::flag_pinned;
-				magnet_links.push_back(p);
-				continue;
-			}
-
-			torrents.push_back(argv[i]);
-			continue;
-		}
-
 		if (std::strcmp(argv[i], "--list-settings") == 0)
 		{
 			// print all libtorrent settings and exit
@@ -1458,7 +1435,7 @@ int main(int argc, char* argv[])
 				if (ec) continue;
 
 				std::string filename = path_append(save_path, path_append(".resume"
-					, to_hex(tmp.info_hash.to_string()) + ".resume"));
+					, to_hex(tmp.info_hash) + ".resume"));
 
 				std::vector<char> resume_data;
 				load_file(filename, resume_data, ec);
@@ -1603,7 +1580,7 @@ int main(int argc, char* argv[])
 						if (ec) continue;
 
 						std::string filename = path_append(save_path, path_append(".resume"
-								, to_hex(tmp.info_hash.to_string()) + ".resume"));
+								, to_hex(tmp.info_hash) + ".resume"));
 
 						std::vector<char> resume_data;
 						load_file(filename, resume_data, ec);

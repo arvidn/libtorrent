@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <functional>
 #include "libtorrent/address.hpp"
+#include "libtorrent/socket.hpp"
 
 namespace libtorrent
 {

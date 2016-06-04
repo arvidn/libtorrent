@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/hex.hpp" // to_hex, from_hex
+#include "libtorrent/hex.hpp" // to_hex
 
 enum flags_t
 {
@@ -87,7 +87,7 @@ void test_read_piece(int flags)
 	boost::shared_ptr<torrent_info> ti(new torrent_info(&buf[0], int(buf.size()), ec));
 
 	std::fprintf(stderr, "generated torrent: %s tmp1_read_piece/test_torrent\n"
-		, to_hex(ti->info_hash().to_string()).c_str());
+		, aux::to_hex(ti->info_hash().to_string()).c_str());
 
 	const int mask = alert::all_categories
 		& ~(alert::progress_notification

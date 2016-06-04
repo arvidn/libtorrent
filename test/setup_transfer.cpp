@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for supports_ipv6()
-#include "libtorrent/hex.hpp" // to_hex, from_hex
+#include "libtorrent/hex.hpp" // to_hex
 
 #include <boost/tuple/tuple.hpp>
 #include <functional>
@@ -767,7 +767,7 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 			remove_all(combine_path("tmp3" + suffix, "temporary"), ec);
 		}
 		char ih_hex[41];
-		to_hex((char const*)&t->info_hash()[0], 20, ih_hex);
+		aux::to_hex((char const*)&t->info_hash()[0], 20, ih_hex);
 		std::fprintf(stderr, "generated torrent: %s tmp1%s/temporary\n", ih_hex, suffix.c_str());
 	}
 	else
@@ -930,5 +930,7 @@ void stop_web_server()
 tcp::endpoint ep(char const* ip, int port)
 {
 	error_code ec;
-	return tcp::endpoint(address::from_string(ip, ec), port);
+	tcp::endpoint ret(address::from_string(ip, ec), port);
+	TEST_CHECK(!ec);
+	return ret;
 }

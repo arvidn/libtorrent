@@ -100,7 +100,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_manager.hpp"
 #include "libtorrent/disk_interface.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for is_ip_address
-#include "libtorrent/hex.hpp" // to_hex, from_hex
+#include "libtorrent/hex.hpp" // to_hex
 // TODO: factor out cache_status to its own header
 #include "libtorrent/disk_io_thread.hpp" // for cache_status
 
@@ -3280,7 +3280,7 @@ namespace libtorrent
 			i != resp.peers.end(); ++i)
 		{
 			debug_log("  %16s %5d %s %s", i->hostname.c_str(), i->port
-				, i->pid.is_all_zeros()?"":to_hex(i->pid.to_string()).c_str()
+				, i->pid.is_all_zeros()?"":aux::to_hex(i->pid.to_string()).c_str()
 				, identify_client(i->pid).c_str());
 		}
 		for (std::vector<ipv4_peer_entry>::const_iterator i = resp.peers4.begin();
@@ -7039,7 +7039,7 @@ namespace libtorrent
 			if (is_ssl_torrent())
 			{
 				// for ssl sockets, set the hostname
-				std::string host_name = to_hex(m_torrent_file->info_hash().to_string());
+				std::string host_name = aux::to_hex(m_torrent_file->info_hash().to_string());
 
 #define CASE(t) case socket_type_int_impl<ssl_stream<t> >::value: \
 	s->get<ssl_stream<t> >()->set_host_name(host_name); break;

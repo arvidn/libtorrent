@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include <libtorrent/hex.hpp> // to_hex, from_hex
+#include <libtorrent/hex.hpp> // to_hex
 #include "libtorrent/kademlia/routing_table.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for cidr_distance
 #include "libtorrent/session_status.hpp"
@@ -267,7 +267,7 @@ void routing_table::print_state(std::ostream& os) const
 		"number of nodes per bucket:\n"
 		, m_bucket_size
 		, num_global_nodes()
-		, to_hex(m_id.to_string()).c_str());
+		, aux::to_hex(m_id.to_string()).c_str());
 	if (cursor > buf.size() - 500) buf.resize(buf.size() * 3 / 2);
 
 	int idx = 0;
@@ -329,7 +329,7 @@ void routing_table::print_state(std::ostream& os) const
 			cursor += std::snprintf(&buf[cursor], buf.size() - cursor
 				, " prefix: %2x id: %s"
 				, ((id[0] & top_mask) >> mask_shift)
-				, to_hex(j->id.to_string()).c_str());
+				, aux::to_hex(j->id.to_string()).c_str());
 
 			if (j->rtt == 0xffff)
 			{
@@ -663,7 +663,7 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
 				char hex_id[41];
-				to_hex(reinterpret_cast<char const*>(&e.id[0]), 20, hex_id);
+				aux::to_hex(reinterpret_cast<char const*>(&e.id[0]), 20, hex_id);
 				m_log->log(dht_logger::routing_table, "ignoring node (duplicate IP): %s %s"
 					, hex_id, print_address(e.addr()).c_str());
 #endif
@@ -767,9 +767,9 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 		// it claims a different node-ID. Ignore this to avoid attacks
 #ifndef TORRENT_DISABLE_LOGGING
 		char hex_id1[41];
-		to_hex(e.id.data(), 20, hex_id1);
+		aux::to_hex(e.id.data(), 20, hex_id1);
 		char hex_id2[41];
-		to_hex(j->id.data(), 20, hex_id2);
+		aux::to_hex(j->id.data(), 20, hex_id2);
 		m_log->log(dht_logger::routing_table, "ignoring node: %s %s existing node: %s %s"
 			, hex_id1, print_address(e.addr()).c_str()
 			, hex_id2, print_address(j->addr()).c_str());
@@ -959,7 +959,7 @@ ip_ok:
 			if (m_log)
 			{
 				char hex_id[41];
-				to_hex(e.id.data(), sha1_hash::size, hex_id);
+				aux::to_hex(e.id.data(), sha1_hash::size, hex_id);
 				m_log->log(dht_logger::routing_table, "replacing node with higher RTT: %s %s"
 					, hex_id, print_address(e.addr()).c_str());
 			}
@@ -1167,7 +1167,7 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 
 #ifndef TORRENT_DISABLE_LOGGING
 		char hex_id[41];
-		to_hex(nid.data(), 20, hex_id);
+		aux::to_hex(nid.data(), 20, hex_id);
 		m_log->log(dht_logger::routing_table, "NODE FAILED id: %s ip: %s fails: %d pinged: %d up-time: %d"
 			, hex_id, print_endpoint(j->ep()).c_str()
 			, int(j->fail_count())
@@ -1188,7 +1188,7 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 
 #ifndef TORRENT_DISABLE_LOGGING
 		char hex_id[41];
-		to_hex(nid.data(), 20, hex_id);
+		aux::to_hex(nid.data(), 20, hex_id);
 		m_log->log(dht_logger::routing_table, "NODE FAILED id: %s ip: %s fails: %d pinged: %d up-time: %d"
 			, hex_id, print_endpoint(j->ep()).c_str()
 			, int(j->fail_count())

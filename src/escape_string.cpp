@@ -63,7 +63,9 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	// defined in hex.cpp
-	extern const char hex_chars[];
+	namespace aux {
+		extern const char hex_chars[];
+	}
 
 	std::string unescape_string(std::string const& s, error_code& ec)
 	{
@@ -122,7 +124,7 @@ namespace libtorrent
 
 	// http://www.ietf.org/rfc/rfc2396.txt
 	// section 2.3
-	static const char unreserved_chars[] =
+	static char const unreserved_chars[] =
 		// when determining if a url needs encoding
 		// % should be ok
 		"%+"
@@ -135,8 +137,10 @@ namespace libtorrent
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 		"0123456789";
 
+	namespace {
+
 	// the offset is used to ignore the first characters in the unreserved_chars table.
-	static std::string escape_string_impl(const char* str, int len, int offset)
+	std::string escape_string_impl(const char* str, int len, int offset)
 	{
 		TORRENT_ASSERT(str != 0);
 		TORRENT_ASSERT(len >= 0);
@@ -153,13 +157,15 @@ namespace libtorrent
 			else
 			{
 				ret += '%';
-				ret += hex_chars[boost::uint8_t(*str) >> 4];
-				ret += hex_chars[boost::uint8_t(*str) & 15];
+				ret += aux::hex_chars[boost::uint8_t(*str) >> 4];
+				ret += aux::hex_chars[boost::uint8_t(*str) & 15];
 			}
 			++str;
 		}
 		return ret;
 	}
+
+	} // anonymous namespace
 
 	std::string escape_string(const char* str, int len)
 	{
@@ -263,7 +269,7 @@ namespace libtorrent
 
 	std::string base64encode(const std::string& s)
 	{
-		static const char base64_table[] =
+		static char const base64_table[] =
 		{
 			'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
 			'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
@@ -315,14 +321,14 @@ namespace libtorrent
 
 	std::string base32encode(std::string const& s, int flags)
 	{
-		static const char base32_table_canonical[] =
+		static char const base32_table_canonical[] =
 		{
 			'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
 			'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
 			'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
 			'Y', 'Z', '2', '3', '4', '5', '6', '7'
 		};
-		static const char base32_table_lowercase[] =
+		static char const base32_table_lowercase[] =
 		{
 			'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h',
 			'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p',

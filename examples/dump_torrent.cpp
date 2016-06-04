@@ -39,7 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/magnet_uri.hpp"
-#include "libtorrent/hex.hpp" // for to_hex, from_hex
 
 int load_file(std::string const& filename, std::vector<char>& v
 	, libtorrent::error_code& ec, int limit = 8000000)
@@ -175,8 +174,8 @@ int main(int argc, char* argv[])
 		std::printf("%2d: %s\n", i->tier, i->url.c_str());
 	}
 
-	char ih[41];
-	to_hex((char const*)&t.info_hash()[0], 20, ih);
+	std::stringstream ih;
+	ih << t.info_hash();
 	std::printf("number of pieces: %d\n"
 		"piece length: %d\n"
 		"info hash: %s\n"
@@ -188,7 +187,7 @@ int main(int argc, char* argv[])
 		"files:\n"
 		, t.num_pieces()
 		, t.piece_length()
-		, ih
+		, ih.str().c_str()
 		, t.comment().c_str()
 		, t.creator().c_str()
 		, make_magnet_uri(t).c_str()
@@ -197,9 +196,12 @@ int main(int argc, char* argv[])
 	file_storage const& st = t.files();
 	for (int i = 0; i < st.num_files(); ++i)
 	{
-		int first = st.map_file(i, 0, 0).piece;
-		int last = st.map_file(i, (std::max)(boost::int64_t(st.file_size(i))-1, boost::int64_t(0)), 0).piece;
-		int flags = st.file_flags(i);
+		int const first = st.map_file(i, 0, 0).piece;
+		int const last = st.map_file(i, (std::max)(boost::int64_t(st.file_size(i))-1, boost::int64_t(0)), 0).piece;
+		int const flags = st.file_flags(i);
+		std::stringstream file_hash;
+		if (!st.hash(i).is_all_zeros())
+			file_hash << st.hash(i);
 		std::printf(" %8" PRIx64 " %11" PRId64 " %c%c%c%c [ %5d, %5d ] %7u %s %s %s%s\n"
 			, st.file_offset(i)
 			, st.file_size(i)
@@ -209,7 +211,7 @@ int main(int argc, char* argv[])
 			, ((flags & file_storage::flag_symlink)?'l':'-')
 			, first, last
 			, boost::uint32_t(st.mtime(i))
-			, st.hash(i) != sha1_hash(0) ? to_hex(st.hash(i).to_string()).c_str() : ""
+			, file_hash.str().c_str()
 			, st.file_path(i).c_str()
 			, (flags & file_storage::flag_symlink) ? "-> " : ""
 			, (flags & file_storage::flag_symlink) ? st.symlink(i).c_str() : "");

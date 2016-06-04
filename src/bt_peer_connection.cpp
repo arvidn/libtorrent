@@ -50,7 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
-#include "libtorrent/hex.hpp" // to_hex, from_hex
+#include "libtorrent/hex.hpp" // to_hex
 #endif
 
 #include "libtorrent/bt_peer_connection.hpp"
@@ -861,14 +861,14 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 		{
 			char hex_pid[41];
-			to_hex(m_our_peer_id.data(), 20, hex_pid);
+			aux::to_hex(m_our_peer_id.data(), 20, hex_pid);
 			hex_pid[40] = 0;
 			peer_log(peer_log_alert::outgoing, "HANDSHAKE"
 				, "sent peer_id: %s client: %s"
 				, hex_pid, identify_client(m_our_peer_id).c_str());
 		}
 		peer_log(peer_log_alert::outgoing_message, "HANDSHAKE"
-			, "ih: %s", to_hex(ih.to_string()).c_str());
+			, "ih: %s", aux::to_hex(ih.to_string()).c_str());
 #endif
 		send_buffer(handshake, sizeof(handshake));
 
@@ -3405,7 +3405,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 			{
 				char hex_pid[41];
-				to_hex(recv_buffer.begin, 20, hex_pid);
+				aux::to_hex(recv_buffer.begin, 20, hex_pid);
 				hex_pid[40] = 0;
 				char ascii_pid[21];
 				ascii_pid[20] = 0;

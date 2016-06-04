@@ -182,8 +182,7 @@ TORRENT_TEST(dht_dual_stack_get_peers)
 		{
 			if (lt::dht_get_peers_reply_alert const* p = lt::alert_cast<lt::dht_get_peers_reply_alert>(a))
 			{
-				std::vector<lt::tcp::endpoint> peers;
-				p->peers(peers);
+				std::vector<lt::tcp::endpoint> peers = p->peers();
 				for (lt::tcp::endpoint const& peer : peers)
 				{
 					// TODO: verify that the endpoint matches the session's

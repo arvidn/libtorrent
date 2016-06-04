@@ -35,9 +35,9 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	namespace detail {
+	namespace aux {
 
-	TORRENT_EXTRA_EXPORT int hex_to_int(char in)
+	int hex_to_int(char in)
 	{
 		if (in >= '0' && in <= '9') return int(in) - '0';
 		if (in >= 'A' && in <= 'F') return int(in) - 'A' + 10;
@@ -45,7 +45,7 @@ namespace libtorrent
 		return -1;
 	}
 
-	TORRENT_EXTRA_EXPORT bool is_hex(char const *in, int len)
+	bool is_hex(char const *in, int len)
 	{
 		for (char const* end = in + len; in < end; ++in)
 		{
@@ -55,28 +55,26 @@ namespace libtorrent
 		return true;
 	}
 
-	} // detail namespace
-
-	TORRENT_EXPORT bool from_hex(char const *in, int len, char* out)
+	bool from_hex(char const *in, int len, char* out)
 	{
 		for (char const* end = in + len; in < end; ++in, ++out)
 		{
-			int t = detail::hex_to_int(*in);
+			int t = aux::hex_to_int(*in);
 			if (t == -1) return false;
 			*out = t << 4;
 			++in;
-			t = detail::hex_to_int(*in);
+			t = aux::hex_to_int(*in);
 			if (t == -1) return false;
 			*out |= t & 15;
 		}
 		return true;
 	}
 
-	extern const char hex_chars[];
+	extern char const hex_chars[];
 
-	const char hex_chars[] = "0123456789abcdef";
+	char const hex_chars[] = "0123456789abcdef";
 
-	TORRENT_EXPORT std::string to_hex(std::string const& s)
+	std::string to_hex(std::string const& s)
 	{
 		std::string ret;
 		for (std::string::const_iterator i = s.begin(); i != s.end(); ++i)
@@ -87,7 +85,7 @@ namespace libtorrent
 		return ret;
 	}
 
-	TORRENT_EXPORT void to_hex(char const *in, int len, char* out)
+	void to_hex(char const *in, int len, char* out)
 	{
 		for (char const* end = in + len; in < end; ++in)
 		{
@@ -96,6 +94,8 @@ namespace libtorrent
 		}
 		*out = '\0';
 	}
+
+	} // aux namespace
 
 }
 

@@ -47,6 +47,10 @@ using namespace libtorrent;
 using namespace std::placeholders;
 namespace lt = libtorrent;
 
+// TODO: don't use internal functions to libtorrent
+using libtorrent::aux::from_hex;
+using libtorrent::aux::to_hex;
+
 #ifdef TORRENT_DISABLE_DHT
 
 int main(int argc, char* argv[])
@@ -278,7 +282,7 @@ int main(int argc, char* argv[])
 	{
 		++argv;
 		--argc;
-	
+
 		if (argc < 1) usage();
 
 		if (strlen(argv[0]) != 40)

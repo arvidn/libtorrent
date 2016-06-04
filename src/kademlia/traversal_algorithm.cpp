@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/aux_/time.hpp>
 
 #ifndef TORRENT_DISABLE_LOGGING
-#include <libtorrent/hex.hpp> // to_hex, from_hex
+#include <libtorrent/hex.hpp> // to_hex
 #endif
 
 #include <functional>
@@ -100,7 +100,7 @@ traversal_algorithm::traversal_algorithm(
 	if (get_node().observer())
 	{
 		char hex_target[41];
-		to_hex(reinterpret_cast<char const*>(&target[0]), 20, hex_target);
+		aux::to_hex(reinterpret_cast<char const*>(&target[0]), 20, hex_target);
 		get_node().observer()->log(dht_logger::traversal, "[%p] NEW target: %s k: %d"
 			, static_cast<void*>(this), hex_target, int(m_node.m_table.bucket_size()));
 	}
@@ -181,7 +181,7 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 			if (get_node().observer())
 			{
 				char hex_id[41];
-				to_hex(reinterpret_cast<char const*>(&o->id()[0]), 20, hex_id);
+				aux::to_hex(reinterpret_cast<char const*>(&o->id()[0]), 20, hex_id);
 				get_node().observer()->log(dht_logger::traversal
 					, "[%p] traversal DUPLICATE node. id: %s addr: %s type: %s"
 					, static_cast<void*>(this), hex_id, print_address(o->target_addr()).c_str(), name());
@@ -200,7 +200,7 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 		if (get_node().observer())
 		{
 			char hex_id[41];
-			to_hex(reinterpret_cast<char const*>(&id[0]), 20, hex_id);
+			aux::to_hex(reinterpret_cast<char const*>(&id[0]), 20, hex_id);
 			get_node().observer()->log(dht_logger::traversal
 				, "[%p] ADD id: %s addr: %s distance: %d invoke-count: %d type: %s"
 				, static_cast<void*>(this), hex_id, print_endpoint(addr).c_str()
@@ -332,7 +332,7 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 		if (get_node().observer())
 		{
 			char hex_id[41];
-			to_hex(reinterpret_cast<char const*>(&o->id()[0]), 20, hex_id);
+			aux::to_hex(reinterpret_cast<char const*>(&o->id()[0]), 20, hex_id);
 			get_node().observer()->log(dht_logger::traversal
 				, "[%p] 1ST_TIMEOUT id: %s distance: %d addr: %s branch-factor: %d "
 				"invoke-count: %d type: %s"
@@ -354,7 +354,7 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 		if (get_node().observer())
 		{
 			char hex_id[41];
-			to_hex(reinterpret_cast<char const*>(&o->id()[0]), 20, hex_id);
+			aux::to_hex(reinterpret_cast<char const*>(&o->id()[0]), 20, hex_id);
 			get_node().observer()->log(dht_logger::traversal
 				, "[%p] TIMEOUT id: %s distance: %d addr: %s branch-factor: %d "
 				"invoke-count: %d type: %s"
@@ -402,7 +402,7 @@ void traversal_algorithm::done()
 		{
 			TORRENT_ASSERT(o->flags & observer::flag_queried);
 			char hex_id[41];
-			to_hex(reinterpret_cast<char const*>(&o->id()[0]), 20, hex_id);
+			aux::to_hex(reinterpret_cast<char const*>(&o->id()[0]), 20, hex_id);
 			get_node().observer()->log(dht_logger::traversal
 				, "[%p] id: %s distance: %d addr: %s"
 				, static_cast<void*>(this), hex_id, closest_target
@@ -482,7 +482,7 @@ bool traversal_algorithm::add_requests()
 		if (get_node().observer())
 		{
 			char hex_id[41];
-			to_hex(reinterpret_cast<char const*>(&o->id()[0]), 20, hex_id);
+			aux::to_hex(reinterpret_cast<char const*>(&o->id()[0]), 20, hex_id);
 			get_node().observer()->log(dht_logger::traversal
 				, "[%p] INVOKE nodes-left: %d top-invoke-count: %d "
 				"invoke-count: %d branch-factor: %d "
@@ -590,7 +590,7 @@ void traversal_observer::reply(msg const& m)
 	{
 		bdecode_node nid = r.dict_find_string("id");
 		char hex_id[41];
-		to_hex(nid.string_ptr(), 20, hex_id);
+		aux::to_hex(nid.string_ptr(), 20, hex_id);
 		get_observer()->log(dht_logger::traversal
 			, "[%p] RESPONSE id: %s invoke-count: %d addr: %s type: %s"
 			, static_cast<void*>(algorithm()), hex_id, algorithm()->invoke_count()
