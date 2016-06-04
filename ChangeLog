@@ -21,6 +21,7 @@
 
 1.1.1 release
 
+	* fixed crash on invalid input in http_parser
 	* upgraded to libtommath 1.0
 	* fixed parsing of IPv6 endpoint with invalid port character separator
 	* added limited support for new x.pe parameter from BEP 9

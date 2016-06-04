@@ -313,7 +313,7 @@ namespace libtorrent
 		std::string name;
 
 		// the path where the torrent is or will be stored.
-		//
+		// 
 		// .. note::
 		// 	On windows this path (and other paths) are interpreted as UNC
 		// 	paths. This means they must use backslashes as directory separators
@@ -366,6 +366,12 @@ namespace libtorrent
 
 		// flags controlling aspects of this torrent and how it's added. See
 		// flags_t for details.
+		// 
+		// .. note::
+		// 	The ``flags`` field is initialized with default flags by the
+		// 	constructor. In order to preserve default behavior when clearing or
+		// 	setting other flags, make sure to bitwise OR or in a flag or bitwise
+		// 	AND the inverse of a flag to clear it.
 		boost::uint64_t flags;
 
 		// set this to the info hash of the torrent to add in case the info-hash
