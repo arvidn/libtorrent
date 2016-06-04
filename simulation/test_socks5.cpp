@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "simulator/http_server.hpp"
 #include "settings.hpp"
 #include "create_torrent.hpp"
+#include "setup_transfer.hpp" // for addr()
 #include "simulator/simulator.hpp"
 #include "setup_swarm.hpp"
 #include "utils.hpp"

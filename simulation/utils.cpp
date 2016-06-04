@@ -117,11 +117,6 @@ void set_proxy(lt::session& ses, int proxy_type, int flags, bool proxy_peer_conn
 	ses.apply_settings(p);
 }
 
-lt::address addr(char const* str)
-{
-	return lt::address::from_string(str);
-}
-
 void print_alerts(lt::session& ses
 	, std::function<void(lt::session&, lt::alert const*)> on_alert)
 {
