@@ -52,8 +52,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#define CCONTROL_TARGET 100
-
 namespace libtorrent
 {
 #ifndef TORRENT_UTP_LOG_ENABLE
