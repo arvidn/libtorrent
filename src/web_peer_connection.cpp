@@ -831,7 +831,7 @@ void web_peer_connection::on_receive(error_code const& error
 				buffer::const_interval chunk_start = recv_buffer;
 				chunk_start.begin += m_chunk_pos;
 				TORRENT_ASSERT(chunk_start.begin[0] == '\r'
-					|| detail::is_hex(chunk_start.begin, 1));
+					|| aux::is_hex(chunk_start.begin, 1));
 				bool ret = m_parser.parse_chunk_header(chunk_start, &chunk_size, &header_size);
 				if (!ret)
 				{

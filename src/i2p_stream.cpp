@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/string_util.hpp"
 #include "libtorrent/settings_pack.hpp"
-#include "libtorrent/hex.hpp"
+#include "libtorrent/hex.hpp" // for to_hex
 
 #if TORRENT_USE_I2P
 
@@ -133,7 +133,7 @@ namespace libtorrent
 		char tmp[20];
 		std::generate(tmp, tmp + sizeof(tmp), &std::rand);
 		m_session_id.resize(sizeof(tmp)*2);
-		to_hex(tmp, 20, &m_session_id[0]);
+		aux::to_hex(tmp, 20, &m_session_id[0]);
 
 		m_sam_socket.reset(new i2p_stream(m_io_service));
 		m_sam_socket->set_proxy(m_hostname, m_port);

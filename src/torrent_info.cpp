@@ -49,7 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/announce_entry.hpp"
-#include "libtorrent/hex.hpp" // to_hex, from_hex
+#include "libtorrent/hex.hpp" // to_hex
 
 #ifndef TORRENT_NO_DEPRECATE
 #include "libtorrent/lazy_entry.hpp"
@@ -1190,7 +1190,7 @@ namespace libtorrent
 		std::string name;
 		sanitize_append_path_element(name, name_ent.string_ptr()
 			, name_ent.string_length());
-		if (name.empty()) name = to_hex(m_info_hash.to_string());
+		if (name.empty()) name = aux::to_hex(m_info_hash.to_string());
 
 		// extract file list
 		bdecode_node files_node = info.dict_find_list("files");

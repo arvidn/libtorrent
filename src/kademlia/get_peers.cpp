@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/performance_counters.hpp>
 
 #ifndef TORRENT_DISABLE_LOGGING
-#include <libtorrent/hex.hpp> // to_hex, from_hex
+#include <libtorrent/hex.hpp> // to_hex
 #endif
 
 namespace libtorrent { namespace dht
@@ -84,7 +84,7 @@ void get_peers_observer::reply(msg const& m)
 					, algorithm()->invoke_count()
 					, algorithm()->branch_factor()
 					, print_endpoint(m.addr).c_str()
-					, to_hex(id.string_value()).c_str()
+					, aux::to_hex(id.string_value()).c_str()
 					, distance_exp(algorithm()->target(), node_id(id.string_ptr()))
 					, int((end - peers) / 6));
 			}
@@ -106,7 +106,7 @@ void get_peers_observer::reply(msg const& m)
 					, algorithm()->invoke_count()
 					, algorithm()->branch_factor()
 					, print_endpoint(m.addr).c_str()
-					, to_hex(id.string_value()).c_str()
+					, aux::to_hex(id.string_value()).c_str()
 					, distance_exp(algorithm()->target(), node_id(id.string_ptr()))
 					, int(n.list_size()));
 			}

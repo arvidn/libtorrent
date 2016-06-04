@@ -47,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/stack_allocator.hpp"
 #include "libtorrent/piece_picker.hpp" // for piece_block
-#include "libtorrent/hex.hpp" // to_hex, from_hex
+#include "libtorrent/hex.hpp" // to_hex
 
 #include "libtorrent/aux_/escape_string.hpp" // for convert_from_native
 #include "libtorrent/aux_/max_path.hpp" // for TORRENT_MAX_PATH
@@ -75,7 +75,7 @@ namespace libtorrent {
 			else
 			{
 				char msg[41];
-				to_hex(t->info_hash().data(), 20, msg);
+				aux::to_hex(t->info_hash().data(), 20, msg);
 				m_name_idx = alloc.copy_string(msg);
 			}
 		}
@@ -1137,7 +1137,7 @@ namespace libtorrent {
 	{
 		error_code ec;
 		char ih_hex[41];
-		to_hex(info_hash.data(), 20, ih_hex);
+		aux::to_hex(info_hash.data(), 20, ih_hex);
 		char msg[200];
 		std::snprintf(msg, sizeof(msg), "incoming dht announce: %s:%u (%s)"
 			, ip.to_string(ec).c_str(), port, ih_hex);
@@ -1152,7 +1152,7 @@ namespace libtorrent {
 	std::string dht_get_peers_alert::message() const
 	{
 		char ih_hex[41];
-		to_hex(info_hash.data(), 20, ih_hex);
+		aux::to_hex(info_hash.data(), 20, ih_hex);
 		char msg[200];
 		std::snprintf(msg, sizeof(msg), "incoming dht get_peers: %s", ih_hex);
 		return msg;
@@ -1378,7 +1378,7 @@ namespace libtorrent {
 		if (params.ti) torrent_name = params.ti->name().c_str();
 		else if (!params.name.empty()) torrent_name = params.name.c_str();
 		else if (!params.url.empty()) torrent_name = params.url.c_str();
-		else to_hex(params.info_hash.data(), 20, info_hash);
+		else aux::to_hex(params.info_hash.data(), 20, info_hash);
 
 		if (error)
 		{
@@ -1480,8 +1480,8 @@ namespace libtorrent {
 	{
 		char msg[200];
 		std::snprintf(msg, sizeof(msg), " torrent changed info-hash from: %s to %s"
-			, to_hex(old_ih.to_string()).c_str()
-			, to_hex(new_ih.to_string()).c_str());
+			, aux::to_hex(old_ih.to_string()).c_str()
+			, aux::to_hex(new_ih.to_string()).c_str());
 		return torrent_alert::message() + msg;
 	}
 #endif
@@ -1547,7 +1547,7 @@ namespace libtorrent {
 	{
 		char msg[1050];
 		std::snprintf(msg, sizeof(msg), "DHT immutable item %s [ %s ]"
-			, to_hex(target.to_string()).c_str()
+			, aux::to_hex(target.to_string()).c_str()
 			, item.to_string().c_str());
 		return msg;
 	}
@@ -1568,7 +1568,7 @@ namespace libtorrent {
 	{
 		char msg[1050];
 		std::snprintf(msg, sizeof(msg), "DHT mutable item (key=%s salt=%s seq=%" PRId64 " %s) [ %s ]"
-			, to_hex(std::string(&key[0], 32)).c_str()
+			, aux::to_hex(std::string(&key[0], 32)).c_str()
 			, salt.c_str()
 			, seq
 			, authoritative ? "auth" : "non-auth"
@@ -1603,8 +1603,8 @@ namespace libtorrent {
 		{
 			std::snprintf(msg, sizeof(msg), "DHT put complete (success=%d key=%s sig=%s salt=%s seq=%" PRId64 ")"
 				, num_success
-				, to_hex(std::string(&public_key[0], 32)).c_str()
-				, to_hex(std::string(&signature[0], 64)).c_str()
+				, aux::to_hex(std::string(&public_key[0], 32)).c_str()
+				, aux::to_hex(std::string(&signature[0], 64)).c_str()
 				, salt.c_str()
 				, seq);
 			return msg;
@@ -1612,7 +1612,7 @@ namespace libtorrent {
 
 		std::snprintf(msg, sizeof(msg), "DHT put commplete (success=%d hash=%s)"
 			, num_success
-			, to_hex(target.to_string()).c_str());
+			, aux::to_hex(target.to_string()).c_str());
 		return msg;
 	}
 
@@ -1644,10 +1644,10 @@ namespace libtorrent {
 		if (obfuscated_info_hash != info_hash)
 		{
 			std::snprintf(obf, sizeof(obf), " [obfuscated: %s]"
-			, to_hex(obfuscated_info_hash.to_string()).c_str());
+			, aux::to_hex(obfuscated_info_hash.to_string()).c_str());
 		}
 		std::snprintf(msg, sizeof(msg), "outgoing dht get_peers : %s%s -> %s"
-			, to_hex(info_hash.to_string()).c_str()
+			, aux::to_hex(info_hash.to_string()).c_str()
 			, obf
 			, print_endpoint(ip).c_str());
 		return msg;
@@ -1949,7 +1949,7 @@ namespace libtorrent {
 	std::string dht_get_peers_reply_alert::message() const
 	{
 		char ih_hex[41];
-		to_hex(info_hash.data(), 20, ih_hex);
+		aux::to_hex(info_hash.data(), 20, ih_hex);
 		char msg[200];
 		std::snprintf(msg, sizeof(msg), "incoming dht get_peers reply: %s, peers %d", ih_hex, m_num_peers);
 		return msg;

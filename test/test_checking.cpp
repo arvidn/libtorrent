@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/stat.h> // for chmod
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/torrent_status.hpp"
-#include "libtorrent/hex.hpp" // to_hex, from_hex
+#include "libtorrent/hex.hpp" // to_hex
 
 static const int file_sizes[] =
 { 5, 16 - 5, 16000, 17, 10, 8000, 8000, 1,1,1,1,1,100,1,1,1,1,100,1,1,1,1,1,1
@@ -117,7 +117,7 @@ void test_checking(int flags = read_only_files)
 	boost::shared_ptr<torrent_info> ti(new torrent_info(&buf[0], int(buf.size()), ec));
 
 	std::fprintf(stderr, "generated torrent: %s tmp1_checking/test_torrent_dir\n"
-		, to_hex(ti->info_hash().to_string()).c_str());
+		, aux::to_hex(ti->info_hash().to_string()).c_str());
 
 	// truncate every file in half
 	if (flags & incomplete_files)

@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/aux_/escape_string.hpp" // for convert_path_to_posix
-#include "libtorrent/hex.hpp" // to_hex, from_hex
+#include "libtorrent/hex.hpp" // to_hex
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/make_shared.hpp>
@@ -728,7 +728,7 @@ TORRENT_TEST(parse_torrents)
 				, (flags & file_storage::flag_symlink)?'l':'-'
 				, first, last
 				, boost::uint32_t(fs.mtime(i))
-				, fs.hash(i) != sha1_hash(0) ? to_hex(fs.hash(i).to_string()).c_str() : ""
+				, fs.hash(i) != sha1_hash(0) ? aux::to_hex(fs.hash(i).to_string()).c_str() : ""
 				, fs.file_path(i).c_str()
 				, flags & file_storage::flag_symlink ? "-> ": ""
 				, flags & file_storage::flag_symlink ? fs.symlink(i).c_str() : "");

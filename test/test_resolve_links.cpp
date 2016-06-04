@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/resolve_links.hpp"
 #include "libtorrent/file.hpp" // for combine_path
-#include "libtorrent/hex.hpp" // to_hex, from_hex
+#include "libtorrent/hex.hpp" // to_hex
 #include <boost/make_shared.hpp>
 #include <functional>
 
@@ -121,7 +121,7 @@ TORRENT_TEST(resolve_links)
 			{
 				TORRENT_ASSERT(i < fs.num_files());
 				std::fprintf(stderr, "%s --> %s : %d\n", fs.file_name(i).c_str()
-					, links[i].ti ? to_hex(links[i].ti->info_hash()
+					, links[i].ti ? aux::to_hex(links[i].ti->info_hash()
 						.to_string()).c_str() : "", links[i].file_idx);
 			}
 		}

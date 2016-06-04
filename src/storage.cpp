@@ -76,7 +76,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/alloca.hpp"
 #include "libtorrent/stat_cache.hpp"
-#include "libtorrent/hex.hpp" // to_hex, from_hex
+#include "libtorrent/hex.hpp" // to_hex
 // for convert_to_wstring and convert_to_native
 #include "libtorrent/aux_/escape_string.hpp"
 
@@ -409,7 +409,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_files.num_files() > 0);
 		m_save_path = complete(params.path);
 		m_part_file_name = "." + (params.info
-			? to_hex(params.info->info_hash().to_string())
+			? aux::to_hex(params.info->info_hash().to_string())
 			: params.files->name()) + ".parts";
 	}
 

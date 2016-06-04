@@ -50,7 +50,7 @@ namespace libtorrent
 		std::string ret;
 		sha1_hash const& ih = handle.info_hash();
 		ret += "magnet:?xt=urn:btih:";
-		ret += to_hex(ih.to_string());
+		ret += aux::to_hex(ih.to_string());
 
 		torrent_status st = handle.status(torrent_handle::query_name);
 		if (!st.name.empty())
@@ -82,7 +82,7 @@ namespace libtorrent
 		std::string ret;
 		sha1_hash const& ih = info.info_hash();
 		ret += "magnet:?xt=urn:btih:";
-		ret += to_hex(ih.to_string());
+		ret += aux::to_hex(ih.to_string());
 
 		std::string const& name = info.name();
 
@@ -158,7 +158,7 @@ namespace libtorrent
 
 		if (btih.compare(0, 9, "urn:btih:") != 0) return torrent_handle();
 
-		if (btih.size() == 40 + 9) from_hex(&btih[9], 40, params.info_hash.data());
+		if (btih.size() == 40 + 9) aux::from_hex(&btih[9], 40, params.info_hash.data());
 		else params.info_hash.assign(base32decode(btih.substr(9)));
 
 		return ses.add_torrent(params);
@@ -265,7 +265,7 @@ namespace libtorrent
 #endif
 
 		sha1_hash info_hash;
-		if (btih.size() == 40 + 9) from_hex(&btih[9], 40, info_hash.data());
+		if (btih.size() == 40 + 9) aux::from_hex(&btih[9], 40, info_hash.data());
 		else if (btih.size() == 32 + 9)
 		{
 			std::string ih = base32decode(btih.substr(9));

@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/random.hpp"
 #include "libtorrent/ed25519.hpp"
-#include "libtorrent/hex.hpp" // to_hex, from_hex
+#include "libtorrent/hex.hpp" // from_hex
 
 #include "libtorrent/kademlia/dht_storage.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
@@ -68,9 +68,10 @@ namespace
 		return sett;
 	}
 
-	static sha1_hash to_hash(char const *s) {
+	sha1_hash to_hash(char const *s) {
+		std::stringstream hash(s);
 		sha1_hash ret;
-		from_hex(s, 40, (char *) &ret[0]);
+		hash >> ret;
 		return ret;
 	}
 

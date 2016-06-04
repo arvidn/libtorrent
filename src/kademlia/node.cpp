@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
-#include "libtorrent/hex.hpp" // to_hex, from_hex
+#include "libtorrent/hex.hpp" // to_hex
 #endif
 
 #include "libtorrent/io.hpp"
@@ -359,7 +359,7 @@ namespace
 		if (node.observer())
 		{
 			char hex_ih[41];
-			to_hex(reinterpret_cast<char const*>(&ih[0]), 20, hex_ih);
+			aux::to_hex(reinterpret_cast<char const*>(&ih[0]), 20, hex_ih);
 			node.observer()->log(dht_logger::node, "sending announce_peer [ ih: %s "
 				" p: %d nodes: %d ]", hex_ih, listen_port, int(v.size()));
 		}
@@ -449,7 +449,7 @@ void node::announce(sha1_hash const& info_hash, int listen_port, int flags
 	if (m_observer)
 	{
 		char hex_ih[41];
-		to_hex(reinterpret_cast<char const*>(&info_hash[0]), 20, hex_ih);
+		aux::to_hex(reinterpret_cast<char const*>(&info_hash[0]), 20, hex_ih);
 		m_observer->log(dht_logger::node, "announcing [ ih: %s p: %d ]"
 			, hex_ih, listen_port);
 	}
@@ -483,7 +483,7 @@ void node::get_item(sha1_hash const& target
 	if (m_observer)
 	{
 		char hex_target[41];
-		to_hex(reinterpret_cast<char const*>(&target[0]), 20, hex_target);
+		aux::to_hex(reinterpret_cast<char const*>(&target[0]), 20, hex_target);
 		m_observer->log(dht_logger::node, "starting get for [ hash: %s ]"
 			, hex_target);
 	}
@@ -501,7 +501,7 @@ void node::get_item(char const* pk, std::string const& salt
 	if (m_observer)
 	{
 		char hex_key[65];
-		to_hex(pk, 32, hex_key);
+		aux::to_hex(pk, 32, hex_key);
 		m_observer->log(dht_logger::node, "starting get for [ key: %s ]", hex_key);
 	}
 #endif
@@ -540,7 +540,7 @@ void node::put_item(sha1_hash const& target, entry const& data, boost::function<
 	if (m_observer)
 	{
 		char hex_target[41];
-		to_hex(target.data(), 20, hex_target);
+		aux::to_hex(target.data(), 20, hex_target);
 		m_observer->log(dht_logger::node, "starting get for [ hash: %s ]"
 			, hex_target);
 	}
@@ -566,7 +566,7 @@ void node::put_item(char const* pk, std::string const& salt
 	if (m_observer)
 	{
 		char hex_key[65];
-		to_hex(pk, 32, hex_key);
+		aux::to_hex(pk, 32, hex_key);
 		m_observer->log(dht_logger::node, "starting get for [ key: %s ]", hex_key);
 	}
 	#endif
@@ -1041,9 +1041,9 @@ void node::incoming_request(msg const& m, entry& e)
 
 //		std::fprintf(stderr, "%s PUT target: %s salt: %s key: %s\n"
 //			, mutable_put ? "mutable":"immutable"
-//			, to_hex(target.to_string()).c_str()
+//			, aux::to_hex(target.to_string()).c_str()
 //			, salt.second > 0 ? std::string(salt.first, salt.second).c_str() : ""
-//			, pk ? to_hex(std::string(pk, 32)).c_str() : "");
+//			, pk ? aux::to_hex(std::string(pk, 32)).c_str() : "");
 
 		// verify the write-token. tokens are only valid to write to
 		// specific target hashes. it must match the one we got a "get" for
@@ -1147,7 +1147,7 @@ void node::incoming_request(msg const& m, entry& e)
 
 //		std::fprintf(stderr, "%s GET target: %s\n"
 //			, msg_keys[1] ? "mutable":"immutable"
-//			, to_hex(target.to_string()).c_str());
+//			, aux::to_hex(target.to_string()).c_str());
 
 		reply["token"] = generate_token(m.addr, msg_keys[1].string_ptr());
 

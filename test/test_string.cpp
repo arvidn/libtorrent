@@ -53,13 +53,13 @@ TORRENT_TEST(string)
 
 	char const* str = "0123456789012345678901234567890123456789";
 	char bin[20];
-	TEST_CHECK(from_hex(str, 40, bin));
+	TEST_CHECK(aux::from_hex(str, 40, bin));
 	char hex[41];
-	to_hex(bin, 20, hex);
+	aux::to_hex(bin, 20, hex);
 	TEST_CHECK(strcmp(hex, str) == 0);
 
-	TEST_CHECK(to_hex("\x55\x73") == "5573");
-	TEST_CHECK(to_hex("\xaB\xd0") == "abd0");
+	TEST_CHECK(aux::to_hex("\x55\x73") == "5573");
+	TEST_CHECK(aux::to_hex("\xaB\xd0") == "abd0");
 
 	// test is_space
 
@@ -206,16 +206,16 @@ TORRENT_TEST(string)
 	{
 		bool hex = strchr(hex_chars, i) != NULL;
 		char c = i;
-		TEST_EQUAL(detail::is_hex(&c, 1), hex);
+		TEST_EQUAL(aux::is_hex(&c, 1), hex);
 	}
 
-	TEST_EQUAL(detail::hex_to_int('0'), 0);
-	TEST_EQUAL(detail::hex_to_int('7'), 7);
-	TEST_EQUAL(detail::hex_to_int('a'), 10);
-	TEST_EQUAL(detail::hex_to_int('f'), 15);
-	TEST_EQUAL(detail::hex_to_int('b'), 11);
-	TEST_EQUAL(detail::hex_to_int('t'), -1);
-	TEST_EQUAL(detail::hex_to_int('g'), -1);
+	TEST_EQUAL(aux::hex_to_int('0'), 0);
+	TEST_EQUAL(aux::hex_to_int('7'), 7);
+	TEST_EQUAL(aux::hex_to_int('a'), 10);
+	TEST_EQUAL(aux::hex_to_int('f'), 15);
+	TEST_EQUAL(aux::hex_to_int('b'), 11);
+	TEST_EQUAL(aux::hex_to_int('t'), -1);
+	TEST_EQUAL(aux::hex_to_int('g'), -1);
 
 	std::string path = "a\\b\\c";
 	convert_path_to_posix(path);

@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent_info.hpp" // for announce_entry
 #include "libtorrent/announce_entry.hpp"
-#include "libtorrent/hex.hpp" // to_hex, from_hex
+#include "libtorrent/hex.hpp" // to_hex
 
 using namespace libtorrent;
 namespace lt = libtorrent;
@@ -177,7 +177,7 @@ TORRENT_TEST(magnet)
 		std::fprintf(stderr, "3: %s\n", trackers[2].url.c_str());
 	}
 
-	TEST_EQUAL(to_hex(t.info_hash().to_string()), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
+	TEST_EQUAL(aux::to_hex(t.info_hash().to_string()), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
 
 	p1 = s->abort();
 	s.reset(new lt::session());

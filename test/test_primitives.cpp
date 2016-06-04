@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/socket_io.hpp" // for print_endpoint
 #include "libtorrent/announce_entry.hpp"
-#include "libtorrent/hex.hpp" // to_hex, from_hex
+#include "libtorrent/hex.hpp" // from_hex
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -44,7 +44,7 @@ using namespace libtorrent;
 sha1_hash to_hash(char const* s)
 {
 	sha1_hash ret;
-	from_hex(s, 40, (char*)&ret[0]);
+	aux::from_hex(s, 40, (char*)&ret[0]);
 	return ret;
 }
 
