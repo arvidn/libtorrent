@@ -106,7 +106,7 @@ TORRENT_TEST(dht_rate_limit)
 
 	counters cnt;
 	entry state;
-	boost::scoped_ptr<lt::dht::dht_storage_interface> dht_storage(dht::dht_default_storage_constructor(dhtsett));
+	std::unique_ptr<lt::dht::dht_storage_interface> dht_storage(dht::dht_default_storage_constructor(dhtsett));
 	boost::shared_ptr<lt::dht::dht_tracker> dht = boost::make_shared<lt::dht::dht_tracker>(
 		&o, boost::ref(dht_ios), std::bind(&udp_socket::send, &sock, _1, _2, _3, _4)
 		, dhtsett, cnt, *dht_storage, state);
