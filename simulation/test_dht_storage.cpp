@@ -75,6 +75,19 @@ namespace
 		TORRENT_ASSERT(!hash.fail());
 		return ret;
 	}
+
+	std::unique_ptr<dht_storage_interface> create_default_dht_storage(
+		dht_settings const& sett)
+	{
+		std::unique_ptr<dht_default_storage> s(dht_default_storage_constructor(sett));
+		TEST_CHECK(s.get() != NULL);
+
+		std::vector<node_id> node_ids;
+		node_ids.push_back(to_hash("0000000000000000000000000000000000000200"));
+		s->update_node_ids(node_ids);
+
+		return s;
+	}
 }
 
 void timer_tick(boost::shared_ptr<dht_storage_interface> s
@@ -106,20 +119,17 @@ void test_expiration(high_resolution_clock::duration const& expiry_time
 	sim.run(ec);
 }
 
-#endif // TORRENT_DISABLE_DHT
-
 TORRENT_TEST(dht_storage_counters)
 {
-#ifndef TORRENT_DISABLE_DHT
 	dht_settings sett = test_settings();
-	boost::shared_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
+	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
 	TEST_CHECK(s.get() != NULL);
 
-	sha1_hash n1 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee401");
-	sha1_hash n2 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee402");
-	sha1_hash n3 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee403");
-	sha1_hash n4 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee404");
+	sha1_hash const n1 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee401");
+	sha1_hash const n2 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee402");
+	sha1_hash const n3 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee403");
+	sha1_hash const n4 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee404");
 
 	tcp::endpoint const p1 = ep("124.31.75.21", 1);
 	tcp::endpoint const p2 = ep("124.31.75.22", 1);
@@ -162,6 +172,6 @@ TORRENT_TEST(dht_storage_counters)
 	c.immutable_data = 0;
 	c.mutable_data = 0;
 	test_expiration(hours(1), s, c); // test expiration of everything after 3 hours
-#endif // TORRENT_DISABLE_DHT
 }
 
+#endif // TORRENT_DISABLE_DHT
