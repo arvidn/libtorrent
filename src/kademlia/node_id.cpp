@@ -31,11 +31,9 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <algorithm>
-#include <limits>
 
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/node_entry.hpp"
-#include "libtorrent/hasher.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for is_local et.al
 #include "libtorrent/socket_io.hpp" // for hash_address
@@ -73,18 +71,12 @@ int distance_exp(node_id const& n1, node_id const& n2)
 
 int min_distance_exp(node_id const& n1, std::vector<node_id> const& ids)
 {
-	// specialized for cases of 0, 1 and 2 for performance reasons
-	if (ids.size() == 0) return 0;
-	if (ids.size() == 1) return distance_exp(n1, ids[0]);
-	if (ids.size() == 2)
-		return std::min(distance_exp(n1, ids[0]), distance_exp(n1, ids[1]));
+	TORRENT_ASSERT(ids.size() > 0);
 
-	int min = std::numeric_limits<int>::max();
-	for (const auto &node_id : ids)
+	int min = 160; // see distance_exp for the why of this constant
+	for (auto const& node_id : ids)
 	{
-		int d = distance_exp(n1, node_id);
-		if (d < min)
-			min = d;
+		min = std::min(min, distance_exp(n1, node_id));
 	}
 
 	return min;
