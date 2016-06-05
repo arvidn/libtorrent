@@ -1334,8 +1334,8 @@ namespace libtorrent
 	};
 
 	// This alert is posted when the listen port succeeds to be opened on a
-	// particular interface. ``endpoint`` is the endpoint that successfully
-	// was opened for listening.
+	// particular interface. ``address`` and ``port`` is the endpoint that
+	// successfully was opened for listening.
 	struct TORRENT_EXPORT listen_succeeded_alert final : alert
 	{
 		enum socket_type_t { tcp, tcp_ssl, udp, i2p, socks5, utp_ssl };

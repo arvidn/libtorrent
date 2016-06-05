@@ -88,7 +88,7 @@ namespace
 	}
 }
 
-void timer_tick(boost::shared_ptr<dht_storage_interface> s
+void timer_tick(std::unique_ptr<dht_storage_interface> s
 	, dht_storage_counters const& c
 	, boost::system::error_code const& ec)
 {
@@ -102,7 +102,7 @@ void timer_tick(boost::shared_ptr<dht_storage_interface> s
 }
 
 void test_expiration(high_resolution_clock::duration const& expiry_time
-	, boost::shared_ptr<dht_storage_interface> s
+	, std::unique_ptr<dht_storage_interface> s
 	, dht_storage_counters const& c)
 {
 	default_config cfg;
