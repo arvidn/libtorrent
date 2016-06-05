@@ -222,7 +222,7 @@ void run_storage_tests(boost::shared_ptr<torrent_info> info
 	p.files = &fs;
 	p.pool = &fp;
 	p.mode = storage_mode;
-	boost::scoped_ptr<storage_interface> s(new default_storage(p));
+	std::unique_ptr<storage_interface> s(new default_storage(p));
 	s->m_settings = &set;
 
 	storage_error ec;

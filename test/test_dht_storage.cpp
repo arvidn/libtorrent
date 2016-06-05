@@ -77,7 +77,8 @@ namespace
 
 	bool g_storage_constructor_invoked = false;
 
-	dht_storage_interface* dht_custom_storage_constructor(dht_settings const& settings)
+	std::unique_ptr<dht_storage_interface> dht_custom_storage_constructor(
+		dht_settings const& settings)
 	{
 		g_storage_constructor_invoked = true;
 		return dht_default_storage_constructor(settings);
@@ -92,7 +93,7 @@ const sha1_hash n4 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee404");
 TORRENT_TEST(announce_peer)
 {
 	dht_settings sett = test_settings();
-	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
+	std::unique_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
 	TEST_CHECK(s.get() != NULL);
 
 	entry peers;
@@ -121,7 +122,7 @@ TORRENT_TEST(announce_peer)
 TORRENT_TEST(put_immutable_item)
 {
 	dht_settings sett = test_settings();
-	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
+	std::unique_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
 	TEST_CHECK(s.get() != NULL);
 
 	entry item;
@@ -151,7 +152,7 @@ TORRENT_TEST(put_immutable_item)
 TORRENT_TEST(counters)
 {
 	dht_settings sett = test_settings();
-	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
+	std::unique_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
 
 	TEST_CHECK(s.get() != NULL);
 
@@ -240,7 +241,7 @@ TORRENT_TEST(peer_limit)
 {
 	dht_settings sett = test_settings();
 	sett.max_peers = 42;
-	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
+	std::unique_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
 	TEST_CHECK(s.get() != NULL);
 
 	for (int i = 0; i < 200; ++i)
@@ -258,7 +259,7 @@ TORRENT_TEST(torrent_limit)
 {
 	dht_settings sett = test_settings();
 	sett.max_torrents = 42;
-	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
+	std::unique_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
 	TEST_CHECK(s.get() != NULL);
 
 	for (int i = 0; i < 200; ++i)
@@ -276,7 +277,7 @@ TORRENT_TEST(immutable_item_limit)
 {
 	dht_settings sett = test_settings();
 	sett.max_dht_items = 42;
-	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
+	std::unique_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
 	TEST_CHECK(s.get() != NULL);
 
 	for (int i = 0; i < 200; ++i)
@@ -293,7 +294,7 @@ TORRENT_TEST(mutable_item_limit)
 {
 	dht_settings sett = test_settings();
 	sett.max_dht_items = 42;
-	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
+	std::unique_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
 	TEST_CHECK(s.get() != NULL);
 
 	char public_key[item_pk_len];
@@ -311,7 +312,7 @@ TORRENT_TEST(mutable_item_limit)
 TORRENT_TEST(update_node_ids)
 {
 	dht_settings sett = test_settings();
-	boost::scoped_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
+	std::unique_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
 	TEST_CHECK(s.get() != NULL);
 
 	node_id const n1 = to_hash("0000000000000000000000000000000000000200");

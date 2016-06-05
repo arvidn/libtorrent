@@ -35,19 +35,19 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <vector>
 #include <mutex>
+#include <atomic>
+#include <unordered_set>
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #include <sys/types.h>
 #include <boost/function/function2.hpp>
 #include <boost/function/function0.hpp>
 #include <boost/limits.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
-#include <boost/scoped_ptr.hpp>
-#include <boost/unordered_set.hpp>
-#include <atomic>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -436,7 +436,7 @@ namespace libtorrent
 
 		void need_partfile();
 
-		boost::scoped_ptr<file_storage> m_mapped_files;
+		std::unique_ptr<file_storage> m_mapped_files;
 		file_storage const& m_files;
 
 		// in order to avoid calling stat() on each file multiple times
@@ -458,7 +458,7 @@ namespace libtorrent
 		file_pool& m_pool;
 
 		// used for skipped files
-		boost::scoped_ptr<part_file> m_part_file;
+		std::unique_ptr<part_file> m_part_file;
 
 		// this is a bitfield with one bit per file. A bit being set means
 		// we've written to that file previously. If we do write to a file
@@ -546,11 +546,11 @@ namespace libtorrent
 		void remove_piece(cached_piece_entry* p);
 		bool has_piece(cached_piece_entry const* p) const;
 		int num_pieces() const { return int(m_cached_pieces.size()); }
-		boost::unordered_set<cached_piece_entry*> const& cached_pieces() const
+		std::unordered_set<cached_piece_entry*> const& cached_pieces() const
 		{ return m_cached_pieces; }
 	private:
 		// these are cached pieces belonging to this storage
-		boost::unordered_set<cached_piece_entry*> m_cached_pieces;
+		std::unordered_set<cached_piece_entry*> m_cached_pieces;
 	};
 
 	class TORRENT_EXTRA_EXPORT piece_manager
@@ -609,7 +609,7 @@ namespace libtorrent
 #endif
 		file_storage const& m_files;
 
-		boost::scoped_ptr<storage_interface> m_storage;
+		std::unique_ptr<storage_interface> m_storage;
 
 		// the reason for this to be a void pointer
 		// is to avoid creating a dependency on the

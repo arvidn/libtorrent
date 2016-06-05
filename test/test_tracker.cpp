@@ -324,7 +324,7 @@ TORRENT_TEST(udp_tracker)
 	pack.set_bool(settings_pack::announce_to_all_tiers, true);
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48875");
 
-	boost::scoped_ptr<lt::session> s(new lt::session(pack));
+	std::unique_ptr<lt::session> s(new lt::session(pack));
 
 	error_code ec;
 	remove_all("tmp1_tracker", ec);
@@ -398,7 +398,7 @@ TORRENT_TEST(http_peers)
 	pack.set_int(settings_pack::tracker_receive_timeout, 1);
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:39775");
 
-	boost::scoped_ptr<lt::session> s(new lt::session(pack));
+	std::unique_ptr<lt::session> s(new lt::session(pack));
 
 	error_code ec;
 	remove_all("tmp2_tracker", ec);
@@ -472,7 +472,7 @@ void test_proxy(bool proxy_trackers)
 	pack.set_int(settings_pack::proxy_port, 4444);
 	pack.set_bool(settings_pack::proxy_tracker_connections, proxy_trackers);
 
-	boost::scoped_ptr<lt::session> s(new lt::session(pack));
+	std::unique_ptr<lt::session> s(new lt::session(pack));
 
 	error_code ec;
 	remove_all("tmp2_tracker", ec);

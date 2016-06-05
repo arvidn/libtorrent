@@ -1659,14 +1659,11 @@ void block_cache::check_invariant() const
 		}
 	}
 
-	for (std::set<piece_manager*>::iterator i = storages.begin()
-		, end(storages.end()); i != end; ++i)
+	for (auto s : storages)
 	{
-		for (boost::unordered_set<cached_piece_entry*>::iterator j = (*i)->cached_pieces().begin()
-			, end2((*i)->cached_pieces().end()); j != end2; ++j)
+		for (auto pe : s->cached_pieces())
 		{
-			cached_piece_entry* pe = *j;
-			TORRENT_PIECE_ASSERT(pe->storage.get() == *i, pe);
+			TORRENT_PIECE_ASSERT(pe->storage.get() == s, pe);
 		}
 	}
 
