@@ -82,9 +82,7 @@ namespace
 		std::unique_ptr<dht_default_storage> s(dht_default_storage_constructor(sett));
 		TEST_CHECK(s.get() != NULL);
 
-		std::vector<node_id> node_ids;
-		node_ids.push_back(to_hash("0000000000000000000000000000000000000200"));
-		s->update_node_ids(node_ids);
+		s->update_node_ids({to_hash("0000000000000000000000000000000000000200")});
 
 		return s;
 	}
