@@ -1514,15 +1514,15 @@ int main(int argc, char* argv[])
 				{
 					// escape code, read another character
 #ifdef _WIN32
-					c = _getch();
+					int c2 = _getch();
 #else
-					c = getc(stdin);
-					if (c == EOF) { break; }
-					if (c != '[') continue;
-					c = getc(stdin);
+					int c2 = getc(stdin);
+					if (c2 == EOF) { break; }
+					if (c2 != '[') continue;
+					c2 = getc(stdin);
 #endif
-					if (c == EOF) break;
-					if (c == LEFT_ARROW)
+					if (c2 == EOF) break;
+					if (c2 == LEFT_ARROW)
 					{
 						// arrow left
 						int filter = view.filter();
@@ -1533,7 +1533,7 @@ int main(int argc, char* argv[])
 							h = view.get_active_handle();
 						}
 					}
-					else if (c == RIGHT_ARROW)
+					else if (c2 == RIGHT_ARROW)
 					{
 						// arrow right
 						int filter = view.filter();
@@ -1544,13 +1544,13 @@ int main(int argc, char* argv[])
 							h = view.get_active_handle();
 						}
 					}
-					else if (c == UP_ARROW)
+					else if (c2 == UP_ARROW)
 					{
 						// arrow up
 						view.arrow_up();
 						h = view.get_active_handle();
 					}
-					else if (c == DOWN_ARROW)
+					else if (c2 == DOWN_ARROW)
 					{
 						// arrow down
 						view.arrow_down();
