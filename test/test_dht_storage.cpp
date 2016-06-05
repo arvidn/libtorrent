@@ -88,7 +88,7 @@ namespace
 		dht_settings const& sett)
 	{
 		std::unique_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
-		TEST_CHECK(s.get() != NULL);
+		TEST_CHECK(s.get() != nullptr);
 
 		s->update_node_ids({to_hash("0000000000000000000000000000000000000200")});
 
