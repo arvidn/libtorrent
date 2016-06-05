@@ -8722,7 +8722,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (m_auto_managed == a) return;
-		bool checking_files = should_check_files();
+		bool const checking_files = should_check_files();
 		m_auto_managed = a;
 		update_gauge();
 		update_want_scrape();
@@ -8940,7 +8940,6 @@ namespace libtorrent
 			&& !m_paused
 			&& !has_error()
 			&& !m_abort
-			&& !m_graceful_pause_mode
 			&& !m_session_paused;
 	}
 
@@ -8972,7 +8971,7 @@ namespace libtorrent
 
 	bool torrent::is_paused() const
 	{
-		return m_paused || m_session_paused || m_graceful_pause_mode;
+		return m_paused || m_session_paused;
 	}
 
 	void torrent::pause(bool graceful)
@@ -9193,6 +9192,8 @@ namespace libtorrent
 
 		m_paused = b;
 
+		// the session may still be paused, in which case
+		// the effective state of the torrent did not change
 		if (paused_before == is_paused()) return;
 
 		m_graceful_pause_mode = (flags & flag_graceful_pause) ? true : false;
@@ -9221,8 +9222,6 @@ namespace libtorrent
 
 		// we need to save this new state
 		set_need_save_resume();
-
-		update_want_scrape();
 
 		do_resume();
 	}

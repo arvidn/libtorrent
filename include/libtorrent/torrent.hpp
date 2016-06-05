@@ -240,7 +240,7 @@ namespace libtorrent
 
 		// set to true when this torrent has been paused but
 		// is waiting to finish all current download requests
-		// before actually closing all connections, When in graceful pause mode,
+		// before actually closing all connections, when in graceful pause mode,
 		// m_paused is also true.
 		bool m_graceful_pause_mode:1;
 
@@ -480,7 +480,7 @@ namespace libtorrent
 		int seeding_time() const;
 
 		bool is_paused() const;
-		bool is_torrent_paused() const { return m_paused || m_graceful_pause_mode; }
+		bool is_torrent_paused() const { return m_paused; }
 		void force_recheck();
 		void save_resume_data(int flags);
 
