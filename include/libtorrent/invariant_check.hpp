@@ -84,3 +84,4 @@ namespace libtorrent
 #endif
 
 #endif // TORRENT_INVARIANT_ACCESS_HPP_INCLUDED
+
