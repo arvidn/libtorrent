@@ -42,7 +42,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/byteswap.hpp"
 
+#if TORRENT_USE_IOSTREAM
 #include <iosfwd>
+#endif // TORRENT_USE_IOSTREAM
 
 #ifdef max
 #undef max
@@ -255,11 +257,15 @@ namespace libtorrent
 		return ret;
 	}
 
+#if TORRENT_USE_IOSTREAM
+
 	// print a sha1_hash object to an ostream as 40 hexadecimal digits
 	TORRENT_EXPORT std::ostream& operator<<(std::ostream& os, sha1_hash const& peer);
 
 	// read 40 hexadecimal digits from an istream into a sha1_hash
 	TORRENT_EXPORT std::istream& operator>>(std::istream& is, sha1_hash& peer);
+
+#endif // TORRENT_USE_IOSTREAM
 }
 
 namespace std {

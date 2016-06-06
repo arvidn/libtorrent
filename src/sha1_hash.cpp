@@ -34,11 +34,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/cpuid.hpp"
 #include "libtorrent/hex.hpp" // to_hex, from_hex
 
+#if TORRENT_USE_IOSTREAM
 #include <iostream>
 #include <iomanip>
+#endif // TORRENT_USE_IOSTREAM
 
 namespace libtorrent
 {
+#if TORRENT_USE_IOSTREAM
+
 	// print a sha1_hash object to an ostream as 40 hexadecimal digits
 	std::ostream& operator<<(std::ostream& os, sha1_hash const& peer)
 	{
@@ -56,6 +60,8 @@ namespace libtorrent
 			is.setstate(std::ios_base::failbit);
 		return is;
 	}
+
+#endif // TORRENT_USE_IOSTREAM
 
 	int sha1_hash::count_leading_zeroes() const
 	{
