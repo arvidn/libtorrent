@@ -103,6 +103,7 @@ const unsigned long siocgifmtu = SIOCGIFMTU;
 namespace libtorrent { namespace
 {
 
+#if !defined TORRENT_BUILD_SIMULATOR
 	address inaddr_to_address(in_addr const* ina, int len = 4)
 	{
 		typedef boost::asio::ip::address_v4::bytes_type bytes_t;
@@ -132,7 +133,6 @@ namespace libtorrent { namespace
 #endif
 	}
 
-#if !defined TORRENT_BUILD_SIMULATOR
 	address sockaddr_to_address(sockaddr const* sin, int assume_family = -1)
 	{
 		if (sin->sa_family == AF_INET || assume_family == AF_INET)
