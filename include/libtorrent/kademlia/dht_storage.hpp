@@ -76,6 +76,8 @@ namespace dht
 	// libtorrent comes with one built-in storage implementation:
 	// ``dht_default_storage`` (private non-accessible class). Its
 	// constructor function is called dht_default_storage_constructor().
+	// You should know that if this storage becomes full of DHT items,
+	// the current implementation could degrade in performance.
 	//
 	struct TORRENT_EXPORT dht_storage_interface
 	{

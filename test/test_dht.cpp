@@ -2712,8 +2712,6 @@ TORRENT_TEST(node_id_min_distance_exp)
 
 	std::vector<node_id> ids;
 
-	TEST_EQUAL(min_distance_exp(sha1_hash::min(), ids), 0);
-
 	ids.push_back(n1);
 
 	TEST_EQUAL(min_distance_exp(sha1_hash::min(), ids), 1);

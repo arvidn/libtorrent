@@ -83,18 +83,28 @@ namespace
 		g_storage_constructor_invoked = true;
 		return dht_default_storage_constructor(settings);
 	}
+
+	std::unique_ptr<dht_storage_interface> create_default_dht_storage(
+		dht_settings const& sett)
+	{
+		std::unique_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
+		TEST_CHECK(s.get() != nullptr);
+
+		s->update_node_ids({to_hash("0000000000000000000000000000000000000200")});
+
+		return s;
+	}
 }
 
-const sha1_hash n1 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee401");
-const sha1_hash n2 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee402");
-const sha1_hash n3 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee403");
-const sha1_hash n4 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee404");
+sha1_hash const n1 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee401");
+sha1_hash const n2 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee402");
+sha1_hash const n3 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee403");
+sha1_hash const n4 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee404");
 
 TORRENT_TEST(announce_peer)
 {
 	dht_settings sett = test_settings();
-	std::unique_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
-	TEST_CHECK(s.get() != NULL);
+	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
 	entry peers;
 	s->get_peers(n1, false, false, peers);
@@ -102,10 +112,10 @@ TORRENT_TEST(announce_peer)
 	TEST_CHECK(peers["n"].string().empty())
 	TEST_CHECK(peers["values"].list().empty());
 
-	tcp::endpoint p1 = ep("124.31.75.21", 1);
-	tcp::endpoint p2 = ep("124.31.75.22", 1);
-	tcp::endpoint p3 = ep("124.31.75.23", 1);
-	tcp::endpoint p4 = ep("124.31.75.24", 1);
+	tcp::endpoint const p1 = ep("124.31.75.21", 1);
+	tcp::endpoint const p2 = ep("124.31.75.22", 1);
+	tcp::endpoint const p3 = ep("124.31.75.23", 1);
+	tcp::endpoint const p4 = ep("124.31.75.24", 1);
 
 	s->announce_peer(n1, p1, "torrent_name", false);
 	s->get_peers(n1, false, false, peers);
@@ -122,8 +132,7 @@ TORRENT_TEST(announce_peer)
 TORRENT_TEST(put_immutable_item)
 {
 	dht_settings sett = test_settings();
-	std::unique_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
-	TEST_CHECK(s.get() != NULL);
+	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
 	entry item;
 	bool r = s->get_immutable_item(n4, item);
@@ -152,22 +161,20 @@ TORRENT_TEST(put_immutable_item)
 TORRENT_TEST(counters)
 {
 	dht_settings sett = test_settings();
-	std::unique_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
+	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
-	TEST_CHECK(s.get() != NULL);
-
-	sha1_hash n1 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee401");
-	sha1_hash n2 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee402");
-	sha1_hash n3 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee403");
-	sha1_hash n4 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee404");
+	sha1_hash const n1 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee401");
+	sha1_hash const n2 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee402");
+	sha1_hash const n3 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee403");
+	sha1_hash const n4 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee404");
 
 	TEST_EQUAL(s->counters().peers, 0);
 	TEST_EQUAL(s->counters().torrents, 0);
 
-	tcp::endpoint p1 = ep("124.31.75.21", 1);
-	tcp::endpoint p2 = ep("124.31.75.22", 1);
-	tcp::endpoint p3 = ep("124.31.75.23", 1);
-	tcp::endpoint p4 = ep("124.31.75.24", 1);
+	tcp::endpoint const p1 = ep("124.31.75.21", 1);
+	tcp::endpoint const p2 = ep("124.31.75.22", 1);
+	tcp::endpoint const p3 = ep("124.31.75.23", 1);
+	tcp::endpoint const p4 = ep("124.31.75.24", 1);
 
 	s->announce_peer(n1, p1, "torrent_name", false);
 	TEST_EQUAL(s->counters().peers, 1);
@@ -241,8 +248,7 @@ TORRENT_TEST(peer_limit)
 {
 	dht_settings sett = test_settings();
 	sett.max_peers = 42;
-	std::unique_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
-	TEST_CHECK(s.get() != NULL);
+	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
 	for (int i = 0; i < 200; ++i)
 	{
@@ -259,8 +265,7 @@ TORRENT_TEST(torrent_limit)
 {
 	dht_settings sett = test_settings();
 	sett.max_torrents = 42;
-	std::unique_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
-	TEST_CHECK(s.get() != NULL);
+	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
 	for (int i = 0; i < 200; ++i)
 	{
@@ -277,8 +282,7 @@ TORRENT_TEST(immutable_item_limit)
 {
 	dht_settings sett = test_settings();
 	sett.max_dht_items = 42;
-	std::unique_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
-	TEST_CHECK(s.get() != NULL);
+	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
 	for (int i = 0; i < 200; ++i)
 	{
@@ -294,8 +298,7 @@ TORRENT_TEST(mutable_item_limit)
 {
 	dht_settings sett = test_settings();
 	sett.max_dht_items = 42;
-	std::unique_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
-	TEST_CHECK(s.get() != NULL);
+	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
 	char public_key[item_pk_len];
 	char signature[item_sig_len];
@@ -329,9 +332,9 @@ TORRENT_TEST(update_node_ids)
 	dht_storage_counters cnt;
 	bool r;
 
-	sha1_hash h1 = to_hash("0000000000000000000000000000000000010200");
-	sha1_hash h2 = to_hash("0000000000000000000000000000000100000400");
-	sha1_hash h3 = to_hash("0000000000000000000000010000000000000800");
+	sha1_hash const h1 = to_hash("0000000000000000000000000000000000010200");
+	sha1_hash const h2 = to_hash("0000000000000000000000000000000100000400");
+	sha1_hash const h3 = to_hash("0000000000000000000000010000000000000800");
 
 	TEST_EQUAL(min_distance_exp(h1, node_ids), 16);
 	TEST_EQUAL(min_distance_exp(h2, node_ids), 32);

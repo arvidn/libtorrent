@@ -30,6 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#ifndef TORRENT_DISABLE_DHT
+
 #include "test.hpp"
 #include "settings.hpp"
 #include "setup_transfer.hpp" // for ep()
@@ -56,15 +58,13 @@ using sim::default_config;
 
 using namespace std::placeholders;
 
-#ifndef TORRENT_DISABLE_DHT
-
 namespace
 {
 	dht_settings test_settings() {
 		dht_settings sett;
 		sett.max_torrents = 2;
 		sett.max_dht_items = 2;
-		sett.item_lifetime = seconds(120 * 60).count();
+		sett.item_lifetime = int(seconds(120 * 60).count());
 		return sett;
 	}
 
@@ -75,9 +75,20 @@ namespace
 		TORRENT_ASSERT(!hash.fail());
 		return ret;
 	}
+
+	std::unique_ptr<dht_storage_interface> create_default_dht_storage(
+		dht_settings const& sett)
+	{
+		std::unique_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
+		TEST_CHECK(s.get() != nullptr);
+
+		s->update_node_ids({to_hash("0000000000000000000000000000000000000200")});
+
+		return s;
+	}
 }
 
-void timer_tick(boost::shared_ptr<dht_storage_interface> s
+void timer_tick(dht_storage_interface* s
 	, dht_storage_counters const& c
 	, boost::system::error_code const& ec)
 {
@@ -91,7 +102,7 @@ void timer_tick(boost::shared_ptr<dht_storage_interface> s
 }
 
 void test_expiration(high_resolution_clock::duration const& expiry_time
-	, boost::shared_ptr<dht_storage_interface> s
+	, std::unique_ptr<dht_storage_interface>& s
 	, dht_storage_counters const& c)
 {
 	default_config cfg;
@@ -100,26 +111,23 @@ void test_expiration(high_resolution_clock::duration const& expiry_time
 
 	sim::asio::high_resolution_timer timer(ios);
 	timer.expires_from_now(expiry_time);
-	timer.async_wait(std::bind(&timer_tick, s, c, _1));
+	timer.async_wait(std::bind(&timer_tick, s.get(), c, _1));
 
 	boost::system::error_code ec;
 	sim.run(ec);
 }
 
-#endif // TORRENT_DISABLE_DHT
-
 TORRENT_TEST(dht_storage_counters)
 {
-#ifndef TORRENT_DISABLE_DHT
 	dht_settings sett = test_settings();
-	boost::shared_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
+	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
-	TEST_CHECK(s.get() != NULL);
+	TEST_CHECK(s.get() != nullptr);
 
-	sha1_hash n1 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee401");
-	sha1_hash n2 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee402");
-	sha1_hash n3 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee403");
-	sha1_hash n4 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee404");
+	sha1_hash const n1 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee401");
+	sha1_hash const n2 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee402");
+	sha1_hash const n3 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee403");
+	sha1_hash const n4 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee404");
 
 	tcp::endpoint const p1 = ep("124.31.75.21", 1);
 	tcp::endpoint const p2 = ep("124.31.75.22", 1);
@@ -162,6 +170,6 @@ TORRENT_TEST(dht_storage_counters)
 	c.immutable_data = 0;
 	c.mutable_data = 0;
 	test_expiration(hours(1), s, c); // test expiration of everything after 3 hours
-#endif // TORRENT_DISABLE_DHT
 }
 
+#endif // TORRENT_DISABLE_DHT
