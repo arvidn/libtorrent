@@ -30,6 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#ifndef TORRENT_DISABLE_DHT
+
 #include "test.hpp"
 #include "settings.hpp"
 #include "setup_transfer.hpp" // for ep()
@@ -56,15 +58,13 @@ using sim::default_config;
 
 using namespace std::placeholders;
 
-#ifndef TORRENT_DISABLE_DHT
-
 namespace
 {
 	dht_settings test_settings() {
 		dht_settings sett;
 		sett.max_torrents = 2;
 		sett.max_dht_items = 2;
-		sett.item_lifetime = seconds(120 * 60).count();
+		sett.item_lifetime = int(seconds(120 * 60).count());
 		return sett;
 	}
 
@@ -88,7 +88,7 @@ namespace
 	}
 }
 
-void timer_tick(std::unique_ptr<dht_storage_interface>& s
+void timer_tick(dht_storage_interface* s
 	, dht_storage_counters const& c
 	, boost::system::error_code const& ec)
 {
@@ -111,7 +111,7 @@ void test_expiration(high_resolution_clock::duration const& expiry_time
 
 	sim::asio::high_resolution_timer timer(ios);
 	timer.expires_from_now(expiry_time);
-	timer.async_wait(std::bind(&timer_tick, s, c, _1));
+	timer.async_wait(std::bind(&timer_tick, s.get(), c, _1));
 
 	boost::system::error_code ec;
 	sim.run(ec);
@@ -122,7 +122,7 @@ TORRENT_TEST(dht_storage_counters)
 	dht_settings sett = test_settings();
 	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
-	TEST_CHECK(s.get() != NULL);
+	TEST_CHECK(s.get() != nullptr);
 
 	sha1_hash const n1 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee401");
 	sha1_hash const n2 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee402");
