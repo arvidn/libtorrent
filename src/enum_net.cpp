@@ -132,6 +132,7 @@ namespace libtorrent { namespace
 #endif
 	}
 
+#if !defined TORRENT_BUILD_SIMULATOR
 	address sockaddr_to_address(sockaddr const* sin, int assume_family = -1)
 	{
 		if (sin->sa_family == AF_INET || assume_family == AF_INET)
@@ -231,7 +232,8 @@ namespace libtorrent { namespace
 //		}
 		return true;
 	}
-#endif
+#endif // TORRENT_USE_NETLINK
+#endif // !BUILD_SIMULATOR
 
 #if TORRENT_USE_SYSCTL && !defined TORRENT_BUILD_SIMULATOR
 #ifdef TORRENT_OS2
