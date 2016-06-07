@@ -580,10 +580,10 @@ namespace libtorrent
 			return;
 		}
 
-		int num_allowed_pieces = m_settings.get_int(settings_pack::allowed_fast_set_size);
+		int const num_allowed_pieces = m_settings.get_int(settings_pack::allowed_fast_set_size);
 		if (num_allowed_pieces == 0) return;
 
-		int num_pieces = t->torrent_file().num_pieces();
+		int const num_pieces = t->torrent_file().num_pieces();
 
 		if (num_allowed_pieces >= num_pieces)
 		{
