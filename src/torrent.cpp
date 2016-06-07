@@ -1837,7 +1837,7 @@ namespace libtorrent
 #endif
 		}
 
-		m_block_size_shift = root2((std::min)(int(block_size()), m_torrent_file->piece_length()));
+		m_block_size_shift = root2((std::min)(block_size(), m_torrent_file->piece_length()));
 
 		if (m_torrent_file->num_pieces() > piece_picker::max_pieces)
 		{
@@ -2317,12 +2317,12 @@ namespace libtorrent
 
 		if (j->ret == piece_manager::fatal_disk_error)
 		{
+			m_resume_data.reset();
 			handle_disk_error(j);
 			auto_managed(false);
 			pause();
 			set_state(torrent_status::checking_files);
 			if (should_check_files()) start_checking();
-			m_resume_data.reset();
 			return;
 		}
 
@@ -2505,8 +2505,7 @@ namespace libtorrent
 				}
 
 				// parse unfinished pieces
-				int num_blocks_per_piece =
-					static_cast<int>(torrent_file().piece_length()) / block_size();
+				int num_blocks_per_piece = torrent_file().piece_length() / block_size();
 
 				if (bdecode_node unfinished_ent
 					= m_resume_data->node.dict_find_list("unfinished"))
