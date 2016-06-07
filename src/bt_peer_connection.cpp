@@ -3111,25 +3111,6 @@ namespace libtorrent
 			bytes_transferred = 0;
 			TORRENT_ASSERT(m_encrypted);
 
-			if (is_outgoing() && t->ready_for_connections())
-			{
-				write_bitfield();
-#ifndef TORRENT_DISABLE_DHT
-				if (m_supports_dht_port && m_ses.has_dht())
-					write_dht_port(m_ses.external_udp_port());
-#endif
-
-				// if we don't have any pieces, don't do any preemptive
-				// unchoking at all.
-				if (t->num_have() > 0)
-				{
-					// if the peer is ignoring unchoke slots, or if we have enough
-					// unused slots, unchoke this peer right away, to save a round-trip
-					// in case it's interested.
-					maybe_unchoke_this_peer();
-				}
-			}
-
 			// decrypt remaining received bytes
 			if (m_rc4_encrypted)
 			{
