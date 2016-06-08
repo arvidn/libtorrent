@@ -1,5 +1,6 @@
 1.1.1 release
 
+	* fix issue where FAST extension messages were not used during handshake
 	* fixed crash on invalid input in http_parser
 	* upgraded to libtommath 1.0
 	* fixed parsing of IPv6 endpoint with invalid port character separator
