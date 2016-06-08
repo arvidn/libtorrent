@@ -223,7 +223,7 @@ namespace libtorrent
 		void write_dont_have(int index) override;
 		void write_piece(peer_request const& r, disk_buffer_holder& buffer) override;
 		void write_keepalive() override;
-		void write_handshake(bool plain_handshake = false);
+		void write_handshake();
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void write_extensions();
 		void write_upload_only();
@@ -242,7 +242,7 @@ namespace libtorrent
 		void write_reject_request(peer_request const&) override;
 		void write_allow_fast(int piece) override;
 		void write_suggest(int piece) override;
-		
+
 		void on_connected() override;
 		void on_metadata() override;
 

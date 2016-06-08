@@ -270,14 +270,20 @@ void do_handshake(tcp::socket& s, sha1_hash const& ih, char* buffer)
 	// check for fast extension support
 	TEST_CHECK(extensions[7] & 0x4);
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
 	// check for extension protocol support
-	TEST_CHECK(extensions[5] & 0x10);
+	bool const lt_extension_protocol = (extensions[5] & 0x10) != 0;
+#ifndef TORRENT_DISABLE_EXTENSIONS
+	TEST_CHECK(lt_extension_protocol == true);
+#else
+	TEST_CHECK(lt_extension_protocol == false);
 #endif
 
-#ifndef TORRENT_DISABLE_DHT
 	// check for DHT support
-	TEST_CHECK(extensions[7] & 0x1);
+	bool const dht_support = (extensions[7] & 0x1) != 0;
+#ifndef TORRENT_DISABLE_DHT
+	TEST_CHECK(dht_support == true);
+#else
+	TEST_CHECK(dht_support == false);
 #endif
 
 	TEST_CHECK(std::memcmp(buffer + 28, ih.begin(), 20) == 0);
@@ -399,7 +405,8 @@ entry read_ut_metadata_msg(tcp::socket& s, char* recv_buffer, int size)
 }
 
 boost::shared_ptr<torrent_info> setup_peer(tcp::socket& s, sha1_hash& ih
-	, boost::shared_ptr<lt::session>& ses, torrent_handle* th = NULL)
+	, boost::shared_ptr<lt::session>& ses, bool incoming = true
+	, int flags = 0, torrent_handle* th = NULL)
 {
 	boost::shared_ptr<torrent_info> t = ::create_torrent();
 	ih = t->info_hash();
@@ -410,12 +417,17 @@ boost::shared_ptr<torrent_info> setup_peer(tcp::socket& s, sha1_hash& ih
 	sett.set_bool(settings_pack::enable_natpmp, false);
 	sett.set_bool(settings_pack::enable_lsd, false);
 	sett.set_bool(settings_pack::enable_dht, false);
+	sett.set_int(settings_pack::in_enc_policy, settings_pack::pe_disabled);
+	sett.set_int(settings_pack::out_enc_policy, settings_pack::pe_disabled);
+	sett.set_bool(settings_pack::enable_outgoing_utp, false);
+	sett.set_bool(settings_pack::enable_incoming_utp, false);
 	ses.reset(new lt::session(sett, lt::session::add_default_plugins));
 
 	error_code ec;
 	add_torrent_params p;
 	p.flags &= ~add_torrent_params::flag_paused;
 	p.flags &= ~add_torrent_params::flag_auto_managed;
+	p.flags |= flags;
 	p.ti = t;
 	p.save_path = "./tmp1_fast";
 
@@ -426,12 +438,29 @@ boost::shared_ptr<torrent_info> setup_peer(tcp::socket& s, sha1_hash& ih
 	if (th) *th = ret;
 
 	// wait for the torrent to be ready
-	wait_for_downloading(*ses, "ses");
+	if ((flags & add_torrent_params::flag_seed_mode) == 0)
+	{
+		wait_for_downloading(*ses, "ses");
+	}
 
-	int const port = ses->listen_port();
-	std::fprintf(stderr, "listen port: %d\n", port);
-	s.connect(tcp::endpoint(address::from_string("127.0.0.1", ec), port), ec);
-	if (ec) TEST_ERROR(ec.message());
+	if (incoming)
+	{
+		s.connect(tcp::endpoint(address::from_string("127.0.0.1", ec), ses->listen_port()), ec);
+		if (ec) TEST_ERROR(ec.message());
+	}
+	else
+	{
+		tcp::acceptor l(s.get_io_service());
+		l.open(tcp::v4());
+		l.bind(tcp::endpoint(address_v4::from_string("127.0.0.1")
+			, 3000 + rand() % 60000));
+		l.listen();
+		tcp::endpoint addr = l.local_endpoint();
+
+		ret.connect_peer(addr);
+		print_session_log(*ses);
+		l.accept(s);
+	}
 
 	print_session_log(*ses);
 
@@ -705,7 +734,7 @@ TORRENT_TEST(dont_have)
 	boost::shared_ptr<lt::session> ses;
 	io_service ios;
 	tcp::socket s(ios);
-	boost::shared_ptr<torrent_info> ti = setup_peer(s, ih, ses, &th);
+	boost::shared_ptr<torrent_info> ti = setup_peer(s, ih, ses, true, 0, &th);
 
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);
@@ -872,6 +901,55 @@ TORRENT_TEST(invalid_request)
 	req.start = 0;
 	req.length = 0x4000;
 	send_request(s, req);
+}
+
+void have_all_test(bool const incoming)
+{
+	sha1_hash ih;
+	boost::shared_ptr<lt::session> ses;
+	io_service ios;
+	tcp::socket s(ios);
+	setup_peer(s, ih, ses, incoming, add_torrent_params::flag_seed_mode);
+
+	char recv_buffer[1000];
+	do_handshake(s, ih, recv_buffer);
+	print_session_log(*ses);
+
+	// expect to receive a have-all (not a bitfield)
+	// since we advertised support for FAST extensions
+	for (;;)
+	{
+		int const len = read_message(s, recv_buffer, sizeof(recv_buffer));
+		if (len == -1)
+		{
+			TEST_ERROR("failed to receive have-all despite advertising support for FAST");
+			break;
+		}
+		print_message(recv_buffer, len);
+		int const msg = recv_buffer[0];
+		if (msg == 0xe) // have-all
+		{
+			// success!
+			break;
+		}
+		if (msg == 5) // bitfield
+		{
+			TEST_ERROR("received bitfield from seed despite advertising support for FAST");
+			break;
+		}
+	}
+}
+
+TORRENT_TEST(outgoing_have_all)
+{
+	std::cerr << "\n === test outgoing have-all ===\n" << std::endl;
+	have_all_test(true);
+}
+
+TORRENT_TEST(incoming_have_all)
+{
+	std::cerr << "\n === test outgoing have-all ===\n" << std::endl;
+	have_all_test(false);
 }
 
 #endif // TORRENT_DISABLE_EXTENSIONS
