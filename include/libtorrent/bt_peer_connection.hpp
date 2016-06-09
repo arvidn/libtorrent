@@ -356,6 +356,10 @@ private:
 		// and can send bittorrent messages
 		bool m_sent_handshake:1;
 
+		// set to true once we send the allowed-fast messages. This is
+		// only done once per connection
+		bool m_sent_allowed_fast:1;
+
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		// this is set to true after the encryption method has been
 		// successfully negotiated (either plaintext or rc4), to signal

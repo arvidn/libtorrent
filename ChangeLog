@@ -1,5 +1,6 @@
 1.1.1 release
 
+	* optimize allow-fast logic
 	* fix issue where FAST extension messages were not used during handshake
 	* fixed crash on invalid input in http_parser
 	* upgraded to libtommath 1.0
