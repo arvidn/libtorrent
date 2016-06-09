@@ -169,7 +169,7 @@ TORRENT_TEST(allow_fast_stress)
 	int const num_pieces = 50000;
 	lt::add_torrent_params params = create_torrent(0, false, num_pieces);
 
-	run_fake_peer_test(params, [] (lt::settings_pack& pack) {
+	run_fake_peer_test(params, [&] (lt::settings_pack& pack) {
 		pack.set_int(lt::settings_pack::allowed_fast_set_size, num_pieces - 1);
 	}
 	, [&] (lt::session& ses, lt::alert const* a, fake_peer& p1)
