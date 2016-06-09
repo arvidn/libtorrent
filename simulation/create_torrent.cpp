@@ -46,7 +46,8 @@ std::string save_path(int idx)
 	return path;
 }
 
-lt::add_torrent_params create_torrent(int idx, bool seed)
+lt::add_torrent_params create_torrent(int const idx, bool const seed
+	, int const num_pieces)
 {
 	// TODO: if we want non-seeding torrents, that could be a bit cheaper to
 	// create
@@ -60,7 +61,7 @@ lt::add_torrent_params create_torrent(int idx, bool seed)
 	if (ec) fprintf(stderr, "failed to create directory: \"%s\": %s\n"
 		, path.c_str(), ec.message().c_str());
 	std::ofstream file(lt::combine_path(path, name).c_str());
-	params.ti = ::create_torrent(&file, name, 0x4000, 9 + idx, false);
+	params.ti = ::create_torrent(&file, name, 0x4000, num_pieces + idx, false);
 	file.close();
 
 	// by setting the save path to a dummy path, it won't be seeding
