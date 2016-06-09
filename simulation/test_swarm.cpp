@@ -392,7 +392,6 @@ TORRENT_TEST(delete_partfile)
 // outgoing connections
 // TODO: add test that makes sure a torrent in graceful pause mode won't accept
 // incoming connections
-// TODO: test allow-fast
 // TODO: test the different storage allocation modes
 // TODO: test contiguous buffers
 

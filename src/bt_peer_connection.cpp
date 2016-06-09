@@ -168,6 +168,7 @@ namespace libtorrent
 		, m_supports_fast(false)
 		, m_sent_bitfield(false)
 		, m_sent_handshake(false)
+		, m_sent_allowed_fast(false)
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		, m_encrypted(false)
 		, m_rc4_encrypted(false)
@@ -423,6 +424,10 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		if (!m_supports_fast) return;
+
+#ifndef TORRENT_DISABLE_LOGGING
+		peer_log(peer_log_alert::outgoing_message, "ALLOWED_FAST", "%d", piece);
+#endif
 
 		TORRENT_ASSERT(m_sent_handshake);
 		TORRENT_ASSERT(m_sent_bitfield);
@@ -1008,6 +1013,15 @@ namespace libtorrent
 			return;
 		}
 		if (!m_recv_buffer.packet_finished()) return;
+
+		// we defer sending the allowed set until the peer says it's interested in
+		// us. This saves some bandwidth and allows us to omit messages for pieces
+		// that the peer already has
+		if (!m_sent_allowed_fast && m_supports_fast)
+		{
+			m_sent_allowed_fast = true;
+			send_allowed_set();
+		}
 
 		incoming_interested();
 	}
@@ -2140,13 +2154,11 @@ namespace libtorrent
 		else if (m_supports_fast && t->is_seed() && !m_settings.get_bool(settings_pack::lazy_bitfields))
 		{
 			write_have_all();
-			send_allowed_set();
 			return;
 		}
 		else if (m_supports_fast && t->num_have() == 0)
 		{
 			write_have_none();
-			send_allowed_set();
 			return;
 		}
 		else if (t->num_have() == 0)
@@ -2261,9 +2273,6 @@ namespace libtorrent
 			}
 			// TODO: if we're finished, send upload_only message
 		}
-
-		if (m_supports_fast)
-			send_allowed_set();
 	}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS

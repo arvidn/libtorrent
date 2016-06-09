@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <array>
 #include <cstdio> // for snprintf
 
+#include <functional>
 #include "test.hpp"
 #include "simulator/simulator.hpp"
 #include "libtorrent/session.hpp"
@@ -43,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/torrent_info.hpp"
+#include "libtorrent/io.hpp"
 
 using namespace sim;
 
@@ -100,21 +102,56 @@ struct fake_peer
 	bool connected() const { return m_connected; }
 	bool disconnected() const { return m_disconnected; }
 
+	void send_interested()
+	{
+		m_send_buffer.resize(m_send_buffer.size() + 5);
+		char* ptr = m_send_buffer.data() + m_send_buffer.size() - 5;
+
+		lt::detail::write_uint32(1, ptr);
+		lt::detail::write_uint8(2, ptr);
+	}
+
+	void send_bitfield(std::vector<bool> const& pieces)
+	{
+		int const bytes = (pieces.size() + 7) / 8;
+		m_send_buffer.resize(m_send_buffer.size() + 5 + bytes);
+		char* ptr = m_send_buffer.data() + m_send_buffer.size() - 5 - bytes;
+
+		lt::detail::write_uint32(1 + bytes, ptr);
+		lt::detail::write_uint8(5, ptr);
+
+		boost::uint8_t b = 0;
+		int cnt = 7;
+		for (std::vector<bool>::const_iterator i = pieces.begin()
+			, end(pieces.end()); i != end; ++i)
+		{
+			if (*i) b |= 1 << cnt;
+			--cnt;
+			if (cnt < 0)
+			{
+				lt::detail::write_uint8(b, ptr);
+				b = 0;
+				cnt = 7;
+			}
+		}
+		lt::detail::write_uint8(b, ptr);
+	}
+
 private:
 
-	void write_handshake(boost::system::error_code const& ec, lt::sha1_hash ih)
+	void write_handshake(boost::system::error_code const& ec
+		, lt::sha1_hash ih)
 	{
 		using namespace std::placeholders;
 
-		asio::ip::tcp::endpoint ep = m_socket.remote_endpoint();
+		asio::ip::tcp::endpoint const ep = m_out_socket.remote_endpoint();
 		std::printf("fake_peer::connect (%s) -> (%d) %s\n"
 			, lt::print_endpoint(ep).c_str(), ec.value()
 			, ec.message().c_str());
 		static char const handshake[]
 		= "\x13" "BitTorrent protocol\0\0\0\0\0\0\0\x04"
 			"                    " // space for info-hash
-			"aaaaaaaaaaaaaaaaaaaa" // peer-id
-			"\0\0\0\x01\x02"; // interested
+			"aaaaaaaaaaaaaaaaaaaa"; // peer-id
 		int const len = sizeof(handshake) - 1;
 		memcpy(m_out_buffer, handshake, len);
 		memcpy(&m_out_buffer[28], ih.data(), 20);
@@ -125,8 +162,17 @@ private:
 			std::printf("fake_peer::write_handshake(%s) -> (%d) %s\n"
 				, lt::print_endpoint(ep).c_str(), ec.value()
 				, ec.message().c_str());
-			asio::async_read(m_socket, asio::mutable_buffers_1(&m_out_buffer[0], 68)
-				, std::bind(&fake_peer::read_handshake, this, _1, _2));
+			if (!m_send_buffer.empty())
+			{
+				asio::async_write(m_socket, asio::const_buffers_1(
+					m_send_buffer.data(), m_send_buffer.size())
+					, std::bind(&fake_peer::write_send_buffer, this, _1, _2));
+			}
+			else
+			{
+				asio::async_read(m_socket, asio::mutable_buffers_1(&m_out_buffer[0], 68)
+					, std::bind(&fake_peer::read_handshake, this, _1, _2));
+			}
 		});
 	}
 
@@ -186,6 +232,16 @@ private:
 			, std::bind(&fake_peer::on_read, this, _1, _2));
 	}
 
+	void write_send_buffer(boost::system::error_code const& ec
+		, size_t bytes_transferred)
+	{
+		printf("fake_peer::write_send_buffer() -> (%d) %s\n"
+			, ec.value(), ec.message().c_str());
+
+		asio::async_read(m_socket, asio::mutable_buffers_1(&m_out_buffer[0], 68)
+			, std::bind(&fake_peer::read_handshake, this, _1, _2));
+	}
+
 	char m_out_buffer[300];
 
 	asio::io_service m_ios;
@@ -202,6 +258,8 @@ private:
 
 	// set to true if this peer has been disconnected by the other end
 	bool m_disconnected;
+
+	std::vector<char> m_send_buffer;
 };
 
 inline void add_fake_peer(lt::torrent_handle& h, int const i)
