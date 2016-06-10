@@ -496,12 +496,12 @@ variant test_debug : debug
 	: <crypto>openssl <logging>on <disk-stats>on
 	  <allocator>debug
 	  <invariant-checks>full <boost-link>shared
-	  <export-extra>on <debug-iterators>on <threading>multi
+	  <export-extra>on <debug-iterators>on <threading>multi <asserts>on
 	;
 variant test_barebones : debug
 	: <ipv6>off <dht>off <extensions>off <logging>off <boost-link>shared
 	  <deprecated-functions>off <invariant-checks>off
-	  <export-extra>on <debug-iterators>on <threading>multi
+	  <export-extra>on <debug-iterators>on <threading>multi <asserts>on
 	;
 
 # required for openssl on windows
