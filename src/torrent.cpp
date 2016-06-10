@@ -2186,13 +2186,12 @@ namespace libtorrent
 
 		if (j->ret == piece_manager::fatal_disk_error)
 		{
-			m_resume_data.reset();
+			m_add_torrent_params.reset();
 			handle_disk_error(j);
 			auto_managed(false);
 			pause();
 			set_state(torrent_status::checking_files);
 			if (should_check_files()) start_checking();
-			m_add_torrent_params.reset();
 			return;
 		}
 

@@ -144,7 +144,7 @@ private:
 	{
 		using namespace std::placeholders;
 
-		asio::ip::tcp::endpoint const ep = m_out_socket.remote_endpoint();
+		asio::ip::tcp::endpoint const ep = m_socket.remote_endpoint();
 		std::printf("fake_peer::connect (%s) -> (%d) %s\n"
 			, lt::print_endpoint(ep).c_str(), ec.value()
 			, ec.message().c_str());
@@ -235,6 +235,8 @@ private:
 	void write_send_buffer(boost::system::error_code const& ec
 		, size_t bytes_transferred)
 	{
+		using namespace std::placeholders;
+
 		printf("fake_peer::write_send_buffer() -> (%d) %s\n"
 			, ec.value(), ec.message().c_str());
 
