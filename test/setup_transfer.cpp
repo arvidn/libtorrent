@@ -109,7 +109,7 @@ sha1_hash rand_hash()
 address rand_v6()
 {
 	address_v6::bytes_type bytes;
-	for (int i = 0; i < int(bytes.size()); ++i) bytes[i] = rand();
+	for (int i = 0; i < int(bytes.size()); ++i) bytes[i] = lt::random();
 	return address_v6(bytes);
 }
 #endif
@@ -591,7 +591,7 @@ boost::shared_ptr<T> clone_ptr(boost::shared_ptr<T> const& ptr)
 }
 
 unsigned char random_byte()
-{ return std::rand() & 0xff; }
+{ return lt::random() & 0xff; }
 
 void create_random_files(std::string const& path, const int file_sizes[], int num_files)
 {
