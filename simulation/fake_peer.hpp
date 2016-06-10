@@ -137,6 +137,41 @@ struct fake_peer
 		lt::detail::write_uint8(b, ptr);
 	}
 
+	void send_interested()
+	{
+		m_send_buffer.resize(m_send_buffer.size() + 5);
+		char* ptr = m_send_buffer.data() + m_send_buffer.size() - 5;
+
+		lt::detail::write_uint32(1, ptr);
+		lt::detail::write_uint8(2, ptr);
+	}
+
+	void send_bitfield(std::vector<bool> const& pieces)
+	{
+		int const bytes = (pieces.size() + 7) / 8;
+		m_send_buffer.resize(m_send_buffer.size() + 5 + bytes);
+		char* ptr = m_send_buffer.data() + m_send_buffer.size() - 5 - bytes;
+
+		lt::detail::write_uint32(1 + bytes, ptr);
+		lt::detail::write_uint8(5, ptr);
+
+		boost::uint8_t b = 0;
+		int cnt = 7;
+		for (std::vector<bool>::const_iterator i = pieces.begin()
+			, end(pieces.end()); i != end; ++i)
+		{
+			if (*i) b |= 1 << cnt;
+			--cnt;
+			if (cnt < 0)
+			{
+				lt::detail::write_uint8(b, ptr);
+				b = 0;
+				cnt = 7;
+			}
+		}
+		lt::detail::write_uint8(b, ptr);
+	}
+
 private:
 
 	void write_handshake(boost::system::error_code const& ec
