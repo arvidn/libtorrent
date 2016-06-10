@@ -362,6 +362,7 @@ namespace
 			, char const* buf, int size
 			, address const& addr) override
 		{
+			TORRENT_ASSERT(!m_node_ids.empty());
 			dht_immutable_table_t::iterator i = m_immutable_table.find(target);
 			if (i == m_immutable_table.end())
 			{
@@ -427,6 +428,7 @@ namespace
 			, char const* salt, int salt_size
 			, address const& addr) override
 		{
+			TORRENT_ASSERT(!m_node_ids.empty());
 			dht_mutable_table_t::iterator i = m_mutable_table.find(target);
 			if (i == m_mutable_table.end())
 			{
