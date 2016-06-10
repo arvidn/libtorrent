@@ -509,6 +509,7 @@ void do_test_dht(address(&rand_addr)())
 	obs observer;
 	counters cnt;
 	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
+	dht_storage->update_node_ids({node_id(0)});
 	udp::endpoint source(rand_addr(), 20);
 	std::map<std::string, node*> nodes;
 	dht::node node(source.protocol(), &s, sett
@@ -1427,7 +1428,8 @@ void do_test_dht(address(&rand_addr)())
 	do
 	{
 		std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
-		dht::node node(udp::v4(), &s, sett, (node_id::min)(), &observer, cnt, nodes, *dht_storage);
+		dht_storage->update_node_ids({node_id::min()});
+		dht::node node(udp::v4(), &s, sett, node_id::min(), &observer, cnt, nodes, *dht_storage);
 
 		udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
 		std::vector<udp::endpoint> nodesv;
@@ -1499,8 +1501,9 @@ void do_test_dht(address(&rand_addr)())
 	do
 	{
 		std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
+		dht_storage->update_node_ids({node_id::min()});
 		dht::node_id target = to_hash("1234876923549721020394873245098347598635");
-		dht::node node(udp::v4(), &s, sett, (node_id::min)(), &observer, cnt, nodes, *dht_storage);
+		dht::node node(udp::v4(), &s, sett, node_id::min(), &observer, cnt, nodes, *dht_storage);
 
 		udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
 		node.m_table.add_node(initial_node);
@@ -1596,7 +1599,8 @@ void do_test_dht(address(&rand_addr)())
 	do
 	{
 		std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
-		dht::node node(udp::v4(), &s, sett, (node_id::min)(), &observer, cnt, nodes, *dht_storage);
+		dht_storage->update_node_ids({node_id::min()});
+		dht::node node(udp::v4(), &s, sett, node_id::min(), &observer, cnt, nodes, *dht_storage);
 
 		udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
 		node.m_table.add_node(initial_node);
@@ -1643,7 +1647,8 @@ void do_test_dht(address(&rand_addr)())
 	do
 	{
 		std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
-		dht::node node(udp::v4(), &s, sett, (node_id::min)(), &observer, cnt, nodes, *dht_storage);
+		dht_storage->update_node_ids({node_id::min()});
+		dht::node node(udp::v4(), &s, sett, node_id::min(), &observer, cnt, nodes, *dht_storage);
 
 		udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
 		node.m_table.add_node(initial_node);
@@ -1731,7 +1736,8 @@ void do_test_dht(address(&rand_addr)())
 		int old_branching = sett.search_branching;
 		sett.search_branching = 8;
 		std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
-		dht::node node(udp::v4(), &s, sett, (node_id::min)(), &observer, cnt, nodes, *dht_storage);
+		dht_storage->update_node_ids({node_id::min()});
+		dht::node node(udp::v4(), &s, sett, node_id::min(), &observer, cnt, nodes, *dht_storage);
 		enum { num_test_nodes = 8 };
 		node_entry nodes[num_test_nodes] =
 			{ node_entry(items[0].target, udp::endpoint(address_v4::from_string("1.1.1.1"), 1231))
@@ -1832,7 +1838,8 @@ void do_test_dht(address(&rand_addr)())
 		int old_branching = sett.search_branching;
 		sett.search_branching = 8;
 		std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
-		dht::node node(udp::v4(), &s, sett, (node_id::min)(), &observer, cnt, nodes, *dht_storage);
+		dht_storage->update_node_ids({node_id::min()});
+		dht::node node(udp::v4(), &s, sett, node_id::min(), &observer, cnt, nodes, *dht_storage);
 		enum { num_test_nodes = 8 };
 		node_entry nodes[num_test_nodes] =
 			{ node_entry(items[0].target, udp::endpoint(address_v4::from_string("1.1.1.1"), 1231))
@@ -1935,7 +1942,8 @@ void do_test_dht(address(&rand_addr)())
 		int old_branching = sett.search_branching;
 		sett.search_branching = 8;
 		std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
-		dht::node node(udp::v4(), &s, sett, (node_id::min)(), &observer, cnt, nodes, *dht_storage);
+		dht_storage->update_node_ids({node_id::min()});
+		dht::node node(udp::v4(), &s, sett, node_id::min(), &observer, cnt, nodes, *dht_storage);
 		sha1_hash target = hasher(public_key, item_pk_len).final();
 		enum { num_test_nodes = 9 }; // we need K + 1 nodes to create the failing sequence
 		node_entry nodes[num_test_nodes] =
@@ -2032,6 +2040,7 @@ TORRENT_TEST(dht_dual_stack)
 	counters cnt;
 	std::map<std::string, node*> nodes;
 	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
+	dht_storage->update_node_ids({node_id(0)});
 	dht::node node4(udp::v4(), &s, sett, node_id(0), &observer, cnt, nodes, *dht_storage);
 	dht::node node6(udp::v6(), &s, sett, node_id(0), &observer, cnt, nodes, *dht_storage);
 	nodes.insert(std::make_pair("n4", &node4));
@@ -2493,6 +2502,7 @@ TORRENT_TEST(read_only_node)
 	std::map<std::string, node*> nodes;
 
 	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
+	dht_storage->update_node_ids({node_id(0)});
 	dht::node node(udp::v4(), &s, sett, node_id(0), &observer, cnt, nodes, *dht_storage);
 	udp::endpoint source(address::from_string("10.0.0.1"), 20);
 	bdecode_node response;
@@ -2583,6 +2593,7 @@ TORRENT_TEST(invalid_error_msg)
 	std::map<std::string, node*> nodes;
 
 	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
+	dht_storage->update_node_ids({node_id(0)});
 	dht::node node(udp::v4(), &s, sett, node_id(0), &observer, cnt, nodes, *dht_storage);
 	udp::endpoint source(address::from_string("10.0.0.1"), 20);
 
@@ -2624,6 +2635,7 @@ TORRENT_TEST(rpc_invalid_error_msg)
 	dht::routing_table table(node_id(), udp::v4(), 8, sett, &observer);
 	dht::rpc_manager rpc(node_id(), sett, table, &s, &observer);
 	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
+	dht_storage->update_node_ids({node_id(0)});
 	dht::node node(udp::v4(), &s, sett, node_id(0), &observer, cnt, nodes, *dht_storage);
 
 	udp::endpoint source(address::from_string("10.0.0.1"), 20);
