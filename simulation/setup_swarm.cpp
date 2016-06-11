@@ -155,11 +155,22 @@ int completed_pieces(lt::session& ses)
 namespace {
 bool should_print(lt::alert* a)
 {
+	using namespace libtorrent;
+
+#ifndef TORRENT_DISABLE_LOGGING
 	if (auto pla = alert_cast<peer_log_alert>(a))
 	{
 		if (pla->direction != peer_log_alert::incoming_message
 			&& pla->direction != peer_log_alert::outgoing_message)
 			return false;
+	}
+#endif
+	if (alert_cast<session_stats_alert>(a)
+		|| alert_cast<piece_finished_alert>(a)
+		|| alert_cast<block_finished_alert>(a)
+		|| alert_cast<block_downloading_alert>(a))
+	{
+		return false;
 	}
 	return true;
 }

@@ -152,11 +152,20 @@ std::map<std::string, boost::int64_t> get_counters(libtorrent::session& s)
 namespace {
 bool should_print(lt::alert* a)
 {
+#ifndef TORRENT_DISABLE_LOGGING
 	if (auto pla = alert_cast<peer_log_alert>(a))
 	{
 		if (pla->direction != peer_log_alert::incoming_message
 			&& pla->direction != peer_log_alert::outgoing_message)
 			return false;
+	}
+#endif
+	if (alert_cast<session_stats_alert>(a)
+		|| alert_cast<piece_finished_alert>(a)
+		|| alert_cast<block_finished_alert>(a)
+		|| alert_cast<block_downloading_alert>(a))
+	{
+		return false;
 	}
 	return true;
 }
@@ -292,9 +301,7 @@ bool print_alerts(lt::session& ses, char const* name
 		{
 			std::fprintf(stderr, "%s: %s: [%s] (%s): %s\n", time_now_string(), name, (*i)->what(), print_endpoint(p->ip).c_str(), p->message().c_str());
 		}
-		else if ((*i)->message() != "block downloading"
-			&& (*i)->message() != "block finished"
-			&& (*i)->message() != "piece finished"
+		else if (should_print(*i)
 			&& !no_output)
 		{
 			std::fprintf(stderr, "%s: %s: [%s] %s\n", time_now_string(), name, (*i)->what(), (*i)->message().c_str());
