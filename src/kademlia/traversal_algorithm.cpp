@@ -280,9 +280,8 @@ void traversal_algorithm::traverse(node_id const& id, udp::endpoint addr)
 
 void traversal_algorithm::finished(observer_ptr o)
 {
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 	auto i = std::find(m_results.begin(), m_results.end(), o);
-
 	TORRENT_ASSERT(i != m_results.end() || m_results.size() == 100);
 #endif
 

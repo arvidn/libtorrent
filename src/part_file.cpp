@@ -293,6 +293,8 @@ namespace libtorrent
 
 		// not implemented
 		TORRENT_ASSERT_FAIL();
+		ec.assign(boost::system::errc::operation_not_supported
+			, boost::system::generic_category());
 	}
 
 	void part_file::export_file(file& f, boost::int64_t offset, boost::int64_t size, error_code& ec)

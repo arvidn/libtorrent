@@ -64,10 +64,6 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth = 0, void*
 TORRENT_EXPORT void assert_print(char const* fmt, ...) TORRENT_FORMAT(1,2);
 
 // internal
-#if (TORRENT_USE_ASSERTS || defined TORRENT_ASIO_DEBUGGING) \
-	&& !defined TORRENT_PRODUCTION_ASSERTS
-TORRENT_NO_RETURN
-#endif
 TORRENT_EXPORT void assert_fail(const char* expr, int line
 	, char const* file, char const* function, char const* val, int kind = 0);
 
