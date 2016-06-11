@@ -149,7 +149,18 @@ std::map<std::string, boost::int64_t> get_counters(libtorrent::session& s)
 		ret[metrics[i].name] = sa->values[metrics[i].value_index];
 	return ret;
 }
-
+namespace {
+bool should_print(lt::alert* a)
+{
+	if (auto pla = alert_cast<peer_log_alert>(a))
+	{
+		if (pla->direction != peer_log_alert::incoming_message
+			&& pla->direction != peer_log_alert::outgoing_message)
+			return false;
+	}
+	return true;
+}
+}
 alert const* wait_for_alert(lt::session& ses, int type, char const* name)
 {
 	time_point end = libtorrent::clock_type::now() + seconds(10);
@@ -166,8 +177,11 @@ alert const* wait_for_alert(lt::session& ses, int type, char const* name)
 		for (std::vector<alert*>::iterator i = alerts.begin()
 			, end(alerts.end()); i != end; ++i)
 		{
-			std::fprintf(stderr, "%s: %s: [%s] %s\n", time_now_string(), name
-				, (*i)->what(), (*i)->message().c_str());
+			if (should_print(*i))
+			{
+				std::fprintf(stderr, "%s: %s: [%s] %s\n", time_now_string(), name
+					, (*i)->what(), (*i)->message().c_str());
+			}
 			if ((*i)->type() == type && !ret)
 			{
 				ret = *i;
