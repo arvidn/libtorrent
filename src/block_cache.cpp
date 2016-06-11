@@ -1341,7 +1341,7 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 		TORRENT_ASSERT(iov[i].iov_base);
 
 #ifdef TORRENT_DEBUG_BUFFERS
-		TORRENT_PIECE_ASSERT(is_disk_buffer((char*)iov[i].iov_base), pe);
+		TORRENT_PIECE_ASSERT(is_disk_buffer(static_cast<char*>(iov[i].iov_base)), pe);
 #endif
 
 		if (pe->blocks[block].buf && (flags & blocks_inc_refcount))

@@ -3043,10 +3043,11 @@ namespace libtorrent
 		TORRENT_ASSERT(p.start == j->d.io.offset);
 		TORRENT_ASSERT(picker.num_peers(block_finished) == 0);
 
-		if (j->ret == -1 && j->error.ec == boost::system::errc::operation_canceled)
+		if (j->ret == -1
+			&& j->error.ec == boost::system::errc::operation_canceled)
 		{
-			TORRENT_ASSERT(false); // how do we get here?
 			picker.mark_as_canceled(block_finished, peer_info_struct());
+			TORRENT_ASSERT(false); // how do we get here?
 			return;
 		}
 //		fprintf(stderr, "peer_connection mark_as_finished peer: %p piece: %d block: %d\n"

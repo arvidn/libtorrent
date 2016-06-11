@@ -85,7 +85,7 @@ namespace
 		tcp::endpoint const& m_ep;
 	};
 
-#if TORRENT_USE_ASSERTS
+#ifndef TORRENT_DISABLE_INVARIANT_CHECKS
 	struct match_peer_connection
 	{
 		match_peer_connection(peer_connection_interface const& c) : m_conn(c) {}
@@ -98,7 +98,9 @@ namespace
 
 		peer_connection_interface const& m_conn;
 	};
+#endif
 
+#if TORRENT_USE_ASSERTS
 	struct match_peer_connection_or_endpoint
 	{
 		match_peer_connection_or_endpoint(peer_connection_interface const& c) : m_conn(c) {}

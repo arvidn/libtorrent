@@ -282,7 +282,7 @@ void traversal_algorithm::traverse(node_id const& id, udp::endpoint addr)
 
 void traversal_algorithm::finished(observer_ptr o)
 {
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 	std::vector<observer_ptr>::iterator i = std::find(
 		m_results.begin(), m_results.end(), o);
 
