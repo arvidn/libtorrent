@@ -54,6 +54,18 @@ namespace lt = libtorrent;
 
 const int connect_socks = 2;
 
+std::string make_ep_string(char const* address, bool const is_v6
+	, char const* port)
+{
+	std::string ret;
+	if (is_v6) ret += '[';
+	ret += address;
+	if (is_v6) ret += ']';
+	ret += ':';
+	ret += port;
+	return ret;
+}
+
 template <typename Setup, typename HandleAlerts, typename Test>
 void run_test(
 	Setup const& setup
@@ -98,13 +110,13 @@ void run_test(
 	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_disabled);
 	pack.set_int(settings_pack::allowed_enc_level, settings_pack::pe_plaintext);
 
-	pack.set_str(settings_pack::listen_interfaces, peer0_ip[use_ipv6] + std::string(":6881"));
+	pack.set_str(settings_pack::listen_interfaces, make_ep_string(peer0_ip[use_ipv6], use_ipv6, "6881"));
 
 	// create session
 	std::shared_ptr<lt::session> ses[2];
 	ses[0] = std::make_shared<lt::session>(pack, ios0);
 
-	pack.set_str(settings_pack::listen_interfaces, peer1_ip[use_ipv6] + std::string(":6881"));
+	pack.set_str(settings_pack::listen_interfaces, make_ep_string(peer1_ip[use_ipv6], use_ipv6, "6881"));
 	ses[1] = std::make_shared<lt::session>(pack, ios1);
 
 	setup(*ses[0], *ses[1]);
