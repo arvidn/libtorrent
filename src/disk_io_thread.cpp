@@ -3264,12 +3264,14 @@ namespace libtorrent
 
 		abort_jobs();
 
+		TORRENT_ASSERT(m_magic == 0x1337);
+
 		// release the io_service to allow the run() call to return
 		// we do this once we stop posting new callbacks to it.
 		COMPLETE_ASYNC("disk_io_thread::work");
 		w.reset();
-
-		TORRENT_ASSERT(m_magic == 0x1337);
+		// at this point, the disk_io_thread object may have been destructed.
+		// the call to w.reset() above is what synchronizes with the main thread
 	}
 
 	void disk_io_thread::abort_jobs()
