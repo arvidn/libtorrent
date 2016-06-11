@@ -125,7 +125,6 @@ test-suite libtorrent :
 		test_sliding_average.cpp
 		test_socket_io.cpp
 #		test_random.cpp
-		test_utf8.cpp
 		test_gzip.cpp
 		test_bitfield.cpp
 		test_part_file.cpp
@@ -142,7 +141,6 @@ test-suite libtorrent :
 		test_bencoding.cpp
 		test_bdecode.cpp
 		test_http_parser.cpp
-		test_string.cpp
 		test_xml.cpp
 		test_ip_filter.cpp
 		test_hasher.cpp
@@ -157,6 +155,10 @@ test-suite libtorrent :
 		test_enum_net.cpp
 		test_linked_list.cpp
 		test_file_progress.cpp ]
+
+	[ run test_string.cpp
+		test_utf8.cpp
+		]
 
 	[ run test_receive_buffer.cpp ]
 	[ run test_alert_manager.cpp ]
