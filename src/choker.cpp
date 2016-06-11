@@ -359,7 +359,7 @@ namespace libtorrent
 				, end(peers.end()); i != end; ++i)
 			{
 				peer_connection const& p = **i;
-				int rate = int(p.uploaded_in_last_round()
+				int const rate = int(p.uploaded_in_last_round()
 					* 1000 / total_milliseconds(unchoke_interval));
 
 				if (rate < rate_threshold) break;
@@ -383,7 +383,7 @@ namespace libtorrent
 		if (sett.get_int(settings_pack::seed_choking_algorithm)
 			== settings_pack::round_robin)
 		{
-			int pieces = sett.get_int(settings_pack::seeding_piece_quota);
+			int const pieces = sett.get_int(settings_pack::seeding_piece_quota);
 
 			std::partial_sort(peers.begin(), peers.begin()
 				+ (std::min)(upload_slots, int(peers.size())), peers.end()
@@ -405,12 +405,12 @@ namespace libtorrent
 		}
 		else
 		{
-			TORRENT_ASSERT(false);
-
-			int pieces = sett.get_int(settings_pack::seeding_piece_quota);
+			int const pieces = sett.get_int(settings_pack::seeding_piece_quota);
 			std::partial_sort(peers.begin(), peers.begin()
 				+ (std::min)(upload_slots, int(peers.size())), peers.end()
 				, boost::bind(&unchoke_compare_rr, _1, _2, pieces));
+
+			TORRENT_ASSERT(false);
 		}
 
 		return upload_slots;
