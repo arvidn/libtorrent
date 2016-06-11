@@ -245,10 +245,6 @@ TORRENT_EXPORT void assert_print(char const* fmt, ...)
 #endif
 }
 
-#ifdef __clang__
-#pragma clang diagnostic ignored "-Wno-missing-noreturn"
-#endif
-
 TORRENT_EXPORT void assert_fail(char const* expr, int line
 	, char const* file, char const* function, char const* value, int kind)
 {
@@ -300,10 +296,6 @@ TORRENT_EXPORT void assert_fail(char const* expr, int line
 	abort();
 #endif
 }
-
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
 
 #elif !TORRENT_USE_ASSERTS
 
