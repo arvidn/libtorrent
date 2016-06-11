@@ -245,6 +245,13 @@ TORRENT_EXPORT void assert_print(char const* fmt, ...)
 #endif
 }
 
+// we deliberately don't want asserts to be marked as no-return, since that
+// would trigger warnings in debug builds of any code coming after the assert
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-noreturn"
+#endif
+
 TORRENT_EXPORT void assert_fail(char const* expr, int line
 	, char const* file, char const* function, char const* value, int kind)
 {
@@ -296,6 +303,10 @@ TORRENT_EXPORT void assert_fail(char const* expr, int line
 	abort();
 #endif
 }
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 #elif !TORRENT_USE_ASSERTS
 
