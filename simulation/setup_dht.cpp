@@ -99,6 +99,7 @@ struct dht_node final : lt::dht::udp_socket_interface
 		, m_add_dead_nodes(flags & dht_network::add_dead_nodes)
 		, m_ipv6(flags & dht_network::bind_ipv6)
 	{
+		m_dht_storage->update_node_ids({id_from_addr(m_io_service.get_ips().front())});
 		error_code ec;
 		sock().open(m_ipv6 ? asio::ip::udp::v6() : asio::ip::udp::v4());
 		sock().bind(asio::ip::udp::endpoint(

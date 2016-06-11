@@ -152,6 +152,30 @@ int completed_pieces(lt::session& ses)
 	return h.status().num_pieces;
 }
 
+namespace {
+bool should_print(lt::alert* a)
+{
+	using namespace libtorrent;
+
+#ifndef TORRENT_DISABLE_LOGGING
+	if (auto pla = alert_cast<peer_log_alert>(a))
+	{
+		if (pla->direction != peer_log_alert::incoming_message
+			&& pla->direction != peer_log_alert::outgoing_message)
+			return false;
+	}
+#endif
+	if (alert_cast<session_stats_alert>(a)
+		|| alert_cast<piece_finished_alert>(a)
+		|| alert_cast<block_finished_alert>(a)
+		|| alert_cast<block_downloading_alert>(a))
+	{
+		return false;
+	}
+	return true;
+}
+}
+
 void utp_only(lt::settings_pack& p)
 {
 	using namespace libtorrent;
@@ -327,10 +351,14 @@ void setup_swarm(int num_nodes
 
 					// only print alerts from the session under test
 					lt::time_duration d = a->timestamp() - start_time;
-					boost::uint32_t millis = lt::duration_cast<lt::milliseconds>(d).count();
-					std::printf("%4d.%03d: %-25s %s\n", millis / 1000, millis % 1000
-						, a->what()
-						, a->message().c_str());
+					boost::uint32_t const millis = lt::duration_cast<lt::milliseconds>(d).count();
+
+					if (should_print(a))
+					{
+						std::printf("%4d.%03d: %-25s %s\n", millis / 1000, millis % 1000
+							, a->what()
+							, a->message().c_str());
+					}
 
 					// if a torrent was added save the torrent handle
 					if (lt::add_torrent_alert* at = lt::alert_cast<lt::add_torrent_alert>(a))

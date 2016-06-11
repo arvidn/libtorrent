@@ -109,7 +109,7 @@ sha1_hash rand_hash()
 address rand_v6()
 {
 	address_v6::bytes_type bytes;
-	for (int i = 0; i < int(bytes.size()); ++i) bytes[i] = rand();
+	for (int i = 0; i < int(bytes.size()); ++i) bytes[i] = lt::random();
 	return address_v6(bytes);
 }
 #endif
@@ -149,7 +149,27 @@ std::map<std::string, boost::int64_t> get_counters(libtorrent::session& s)
 		ret[metrics[i].name] = sa->values[metrics[i].value_index];
 	return ret;
 }
-
+namespace {
+bool should_print(lt::alert* a)
+{
+#ifndef TORRENT_DISABLE_LOGGING
+	if (auto pla = alert_cast<peer_log_alert>(a))
+	{
+		if (pla->direction != peer_log_alert::incoming_message
+			&& pla->direction != peer_log_alert::outgoing_message)
+			return false;
+	}
+#endif
+	if (alert_cast<session_stats_alert>(a)
+		|| alert_cast<piece_finished_alert>(a)
+		|| alert_cast<block_finished_alert>(a)
+		|| alert_cast<block_downloading_alert>(a))
+	{
+		return false;
+	}
+	return true;
+}
+}
 alert const* wait_for_alert(lt::session& ses, int type, char const* name)
 {
 	time_point end = libtorrent::clock_type::now() + seconds(10);
@@ -166,8 +186,11 @@ alert const* wait_for_alert(lt::session& ses, int type, char const* name)
 		for (std::vector<alert*>::iterator i = alerts.begin()
 			, end(alerts.end()); i != end; ++i)
 		{
-			std::fprintf(stderr, "%s: %s: [%s] %s\n", time_now_string(), name
-				, (*i)->what(), (*i)->message().c_str());
+			if (should_print(*i))
+			{
+				std::fprintf(stderr, "%s: %s: [%s] %s\n", time_now_string(), name
+					, (*i)->what(), (*i)->message().c_str());
+			}
 			if ((*i)->type() == type && !ret)
 			{
 				ret = *i;
@@ -278,9 +301,7 @@ bool print_alerts(lt::session& ses, char const* name
 		{
 			std::fprintf(stderr, "%s: %s: [%s] (%s): %s\n", time_now_string(), name, (*i)->what(), print_endpoint(p->ip).c_str(), p->message().c_str());
 		}
-		else if ((*i)->message() != "block downloading"
-			&& (*i)->message() != "block finished"
-			&& (*i)->message() != "piece finished"
+		else if (should_print(*i)
 			&& !no_output)
 		{
 			std::fprintf(stderr, "%s: %s: [%s] %s\n", time_now_string(), name, (*i)->what(), (*i)->message().c_str());
@@ -591,7 +612,7 @@ boost::shared_ptr<T> clone_ptr(boost::shared_ptr<T> const& ptr)
 }
 
 unsigned char random_byte()
-{ return std::rand() & 0xff; }
+{ return lt::random() & 0xff; }
 
 void create_random_files(std::string const& path, const int file_sizes[], int num_files)
 {
