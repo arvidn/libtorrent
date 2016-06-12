@@ -44,9 +44,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma GCC diagnostic ignored "-Wshadow"
 #pragma GCC diagnostic ignored "-Wunused-variable"
 #pragma GCC diagnostic ignored "-Wpedantic"
+#if __GNUC__ >= 6
 #pragma GCC diagnostic ignored "-Wshift-overflow"
 #pragma GCC diagnostic ignored "-Wshift-count-overflow"
 #pragma GCC diagnostic ignored "-Wshift-count-negative"
+#endif
 #endif
 
 #ifdef __clang__
