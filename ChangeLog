@@ -1,3 +1,4 @@
+	* fixed inverted priority of incoming piece suggestions
 	* fixed crash on invalid input in http_parser
 	* added a new "preformatted" type to bencode entry variant type
 	* fix division by zero in super-seeding logic

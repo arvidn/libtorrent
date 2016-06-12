@@ -1439,10 +1439,14 @@ namespace libtorrent
 				return;
 		}
 
-		if (int(m_suggested_pieces.size()) > m_ses.m_settings.max_suggest_pieces)
-			m_suggested_pieces.erase(m_suggested_pieces.begin());
+		// the piece picker will prioritize the pieces from the beginning to end.
+		// the later the suggestion is received, the higher priority we should
+		// ascribe to it, so we need to insert suggestions at the front of the
+		// queue.
+		if (int(m_suggested_pieces.size()) >= m_ses.m_settings.max_suggest_pieces)
+			m_suggested_pieces.resize(m_ses.m_settings.max_suggest_pieces - 1);
 
-		m_suggested_pieces.push_back(index);
+		m_suggested_pieces.insert(m_suggested_pieces.begin(), index);
 
 #ifdef TORRENT_VERBOSE_LOGGING
 		peer_log("** SUGGEST_PIECE [ piece: %d added to set: %d ]", index, int(m_suggested_pieces.size()));
