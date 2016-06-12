@@ -226,10 +226,14 @@ namespace libtorrent
 			listen_interface_t iface;
 			iface.ssl = false;
 
+#if !TORRENT_USE_IPV6
 			bool ipv6 = false;
+#endif
 			if (in[start] == '[')
 			{
+#if !TORRENT_USE_IPV6
 				ipv6 = true;
+#endif
 				++start;
 				// IPv6 address
 				while (start < in.size() && in[start] != ']')
