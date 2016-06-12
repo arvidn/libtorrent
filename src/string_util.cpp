@@ -214,44 +214,89 @@ namespace libtorrent
 		out.clear();
 
 		std::string::size_type start = 0;
-		std::string::size_type end = 0;
 
 		while (start < in.size())
 		{
 			// skip leading spaces
-			while (start < in.size()
-				&& is_space(in[start]))
+			while (start < in.size() && is_space(in[start]))
 				++start;
 
-			end = in.find_first_of(',', start);
-			if (end == std::string::npos) end = in.size();
+			if (start == in.size()) return;
 
-			std::string::size_type colon = in.find_last_of(':', end);
+			listen_interface_t iface;
+			iface.ssl = false;
 
-			if (colon != std::string::npos && colon > start)
+#if !TORRENT_USE_IPV6
+			bool ipv6 = false;
+#endif
+			if (in[start] == '[')
 			{
-				listen_interface_t iface;
+#if !TORRENT_USE_IPV6
+				ipv6 = true;
+#endif
+				++start;
+				// IPv6 address
+				while (start < in.size() && in[start] != ']')
+					iface.device += in[start++];
 
-				std::string port_string = in.substr(colon + 1, end - colon - 1);
-				iface.ssl = !port_string.empty() && port_string[port_string.size()-1] == 's';
-				iface.port = atoi(port_string.c_str());
+				// skip to the colon
+				while (start < in.size() && in[start] != ':')
+					++start;
+			}
+			else
+			{
+				// consume device name
+				while (start < in.size() && !is_space(in[start]) && in[start] != ':')
+					iface.device += in[start++];
+			}
 
-				// skip trailing spaces
-				std::string::size_type soft_end = colon;
-				while (soft_end > start
-					&& is_space(in[soft_end-1]))
-					--soft_end;
+			// skip spaces
+			while (start < in.size() && is_space(in[start]))
+				++start;
 
-				// in case this is an IPv6 address, strip off the square brackets
-				// to make it more easily parseable into an ip::address
-				if (in[start] == '[') ++start;
-				if (soft_end > start && in[soft_end-1] == ']') --soft_end;
+			if (start == in.size() || in[start] != ':') return;
+			++start; // skip colon
 
-				iface.device = in.substr(start, soft_end - start);
+			// skip spaces
+			while (start < in.size() && is_space(in[start]))
+				++start;
+
+			// consume port
+			std::string port;
+			while (start < in.size() && is_digit(in[start]) && in[start] != ',')
+				port += in[start++];
+
+			if (port.empty()) iface.port = -1;
+			else iface.port = std::atoi(port.c_str());
+
+			// skip spaces
+			while (start < in.size() && is_space(in[start]))
+				++start;
+
+			// consume potential SSL 's'
+			if (start < in.size() && in[start] == 's')
+			{
+				iface.ssl = true;
+				++start;
+			}
+
+			// skip until end or comma
+			while (start < in.size() && in[start] != ',')
+				++start;
+
+			if (iface.port >= 0
+#if !TORRENT_USE_IPV6
+				&& ipv6 == false
+#endif
+				)
+			{
 				out.push_back(iface);
 			}
 
-			start = end + 1;
+			// skip the comma
+			if (start < in.size() && in[start] == ',')
+				++start;
+
 		}
 	}
 
