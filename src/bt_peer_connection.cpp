@@ -336,6 +336,12 @@ namespace libtorrent
 #endif
 
 		if (!m_sent_handshake) return;
+
+		// we're still waiting to fully handshake with this peer. At the end of
+		// the handshake we'll send the bitfield and dht port anyway. It's too
+		// early to do now
+		if (m_state < read_peer_id) return;
+
 		if (m_sent_bitfield) return;
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
