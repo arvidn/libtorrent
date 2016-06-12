@@ -226,8 +226,10 @@ namespace libtorrent
 			listen_interface_t iface;
 			iface.ssl = false;
 
+			bool ipv6 = false;
 			if (in[start] == '[')
 			{
+				ipv6 = true;
 				++start;
 				// IPv6 address
 				while (start < in.size() && in[start] != ']')
@@ -278,7 +280,11 @@ namespace libtorrent
 			while (start < in.size() && in[start] != ',')
 				++start;
 
-			if (iface.port >= 0)
+			if (iface.port >= 0
+#if !TORRENT_USE_IPV6
+				&& ipv6 == false
+#endif
+				)
 			{
 				out.push_back(iface);
 			}
