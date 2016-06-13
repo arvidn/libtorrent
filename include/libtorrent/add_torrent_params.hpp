@@ -105,7 +105,7 @@ namespace libtorrent
 		{}
 
 		// values for the ``flags`` field
-		enum flags_t
+		enum flags_t : boost::uint64_t
 		{
 			// If ``flag_seed_mode`` is set, libtorrent will assume that all files
 			// are present for this torrent and that they all match the hashes in
@@ -123,22 +123,6 @@ namespace libtorrent
 			// If resume data is passed in with this torrent, the seed mode saved
 			// in there will override the seed mode you set here.
 			flag_seed_mode = 0x001,
-
-#ifndef TORRENT_NO_DEPRECATE
-			// If ``flag_override_resume_data`` is set, flags set for this torrent
-			// in this ``add_torrent_params`` object will take precedence over
-			// whatever states are saved in the resume data. For instance, the
-			// ``paused``, ``auto_managed``, ``sequential_download``, ``seed_mode``,
-			// ``super_seeding``, ``max_uploads``, ``max_connections``,
-			// ``upload_limit`` and ``download_limit`` are all affected by this
-			// flag. The intention of this flag is to have any field in
-			// add_torrent_params configuring the torrent override the corresponding
-			// configuration from the resume file, with the one exception of save
-			// resume data, which has its own flag (for historic reasons).
-			// If this flag is set, but file_priorities is empty, file priorities
-			// are still loaded from the resume data, if present.
-			flag_override_resume_data = 0x002,
-#endif
 
 			// If ``flag_upload_mode`` is set, the torrent will be initialized in
 			// upload-mode, which means it will not make any piece requests. This
@@ -206,17 +190,6 @@ namespace libtorrent
 			flag_auto_managed = 0x040,
 			flag_duplicate_is_error = 0x080,
 
-#ifndef TORRENT_NO_DEPRECATE
-			// defaults to on and specifies whether tracker URLs loaded from
-			// resume data should be added to the trackers in the torrent or
-			// replace the trackers. When replacing trackers (i.e. this flag is not
-			// set), any trackers passed in via add_torrent_params are also
-			// replaced by any trackers in the resume data. The default behavior is
-			// to have the resume data override the .torrent file _and_ the
-			// trackers added in add_torrent_params.
-			flag_merge_resume_trackers = 0x100,
-#endif
-
 			// on by default and means that this torrent will be part of state
 			// updates when calling post_torrent_updates().
 			flag_update_subscribe = 0x200,
@@ -232,19 +205,63 @@ namespace libtorrent
 			// the torrent handle immediately after adding it.
 			flag_sequential_download = 0x800,
 
-#ifndef TORRENT_NO_DEPRECATE
-			// if this flag is set, the save path from the resume data file, if
-			// present, is honored. This defaults to not being set, in which
-			// case the save_path specified in add_torrent_params is always used.
-			flag_use_resume_save_path = 0x1000,
-#endif
-
 			// indicates that this torrent should never be unloaded from RAM, even
 			// if unloading torrents are allowed in general. Setting this makes
 			// the torrent exempt from loading/unloading management.
-			flag_pinned = 0x2000,
+			flag_pinned = 0x1000,
+
+			// the stop when ready flag. Setting this flag is equivalent to calling
+			// torrent_handle::stop_when_ready() immediately after the torrent is
+			// added.
+			flag_stop_when_ready = 0x2000,
+
+			// when this flag is set, the tracker list in the add_torrent_params
+			// object override any trackers from the torrent file. If the flag is
+			// not set, the trackers from the add_torrent_params object will be
+			// added to the list of trackers used by the torrent.
+			flag_override_trackers = 0x4000,
+
+			// If this flag is set, the web seeds from the add_torrent_params
+			// object will override any web seeds in the torrent file. If it's not
+			// set, web seeds in the add_torrent_params object will be added to the
+			// list of web seeds used by the torrent.
+			flag_override_web_seeds = 0x8000,
+
+			// if this flag is set (which it is by default) the torrent will be
+			// considered needing to save its resume data immediately as it's
+			// added. New torrents that don't have any resume data should do that.
+			// This flag is cleared by a successful call to read_resume_data()
+			flag_need_save_resume = 0x10000,
 
 #ifndef TORRENT_NO_DEPRECATE
+			// If ``flag_override_resume_data`` is set, flags set for this torrent
+			// in this ``add_torrent_params`` object will take precedence over
+			// whatever states are saved in the resume data. For instance, the
+			// ``paused``, ``auto_managed``, ``sequential_download``, ``seed_mode``,
+			// ``super_seeding``, ``max_uploads``, ``max_connections``,
+			// ``upload_limit`` and ``download_limit`` are all affected by this
+			// flag. The intention of this flag is to have any field in
+			// add_torrent_params configuring the torrent override the corresponding
+			// configuration from the resume file, with the one exception of save
+			// resume data, which has its own flag (for historic reasons).
+			// If this flag is set, but file_priorities is empty, file priorities
+			// are still loaded from the resume data, if present.
+			flag_override_resume_data = 0x20000,
+
+			// defaults to on and specifies whether tracker URLs loaded from
+			// resume data should be added to the trackers in the torrent or
+			// replace the trackers. When replacing trackers (i.e. this flag is not
+			// set), any trackers passed in via add_torrent_params are also
+			// replaced by any trackers in the resume data. The default behavior is
+			// to have the resume data override the .torrent file _and_ the
+			// trackers added in add_torrent_params.
+			flag_merge_resume_trackers = 0x40000,
+
+			// if this flag is set, the save path from the resume data file, if
+			// present, is honored. This defaults to not being set, in which
+			// case the save_path specified in add_torrent_params is always used.
+			flag_use_resume_save_path = 0x80000,
+
 			// defaults to on and specifies whether web seed URLs loaded from
 			// resume data should be added to the ones in the torrent file or
 			// replace them. No distinction is made between the two different kinds
@@ -253,31 +270,8 @@ namespace libtorrent
 			// add_torrent_params are also replaced. The default behavior is to
 			// have any web seeds in the resume data take precedence over whatever
 			// is passed in here as well as the .torrent file.
-			flag_merge_resume_http_seeds = 0x2000,
+			flag_merge_resume_http_seeds = 0x100000,
 #endif
-
-			// the stop when ready flag. Setting this flag is equivalent to calling
-			// torrent_handle::stop_when_ready() immediately after the torrent is
-			// added.
-			flag_stop_when_ready = 0x4000,
-
-			// when this flag is set, the tracker list in the add_torrent_params
-			// object override any trackers from the torrent file. If the flag is
-			// not set, the trackers from the add_torrent_params object will be
-			// added to the list of trackers used by the torrent.
-			flag_override_trackers = 0x8000,
-
-			// If this flag is set, the web seeds from the add_torrent_params
-			// object will override any web seeds in the torrent file. If it's not
-			// set, web seeds in the add_torrent_params object will be added to the
-			// list of web seeds used by the torrent.
-			flag_override_web_seeds = 0x10000,
-
-			// if this flag is set (which it is by default) the torrent will be
-			// considered needing to save its resume data immediately as it's
-			// added. New torrents that don't have any resume data should do that.
-			// This flag is cleared by a successful call to read_resume_data()
-			flag_need_save_resume = 0x20000,
 
 			// internal
 			default_flags = flag_pinned | flag_update_subscribe
@@ -292,6 +286,7 @@ namespace libtorrent
 		// filled in by the constructor and should be left untouched. It is used
 		// for forward binary compatibility.
 		int version;
+
 		// torrent_info object with the torrent to add. Unless the url or
 		// info_hash is set, this is required to be initialized.
 		boost::shared_ptr<torrent_info> ti;
