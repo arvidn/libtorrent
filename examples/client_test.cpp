@@ -1236,6 +1236,12 @@ int main(int argc, char* argv[])
 
 	for (int i = 1; i < argc; ++i)
 	{
+		if (argv[i][0] != '-')
+		{
+			torrents.push_back(argv[i]);
+			continue;
+		}
+
 		if (std::strcmp(argv[i], "--list-settings") == 0)
 		{
 			// print all libtorrent settings and exit
@@ -1411,26 +1417,22 @@ int main(int argc, char* argv[])
 	}
 #endif
 
-	for (std::vector<add_torrent_params>::iterator i = magnet_links.begin()
-		, end(magnet_links.end()); i != end; ++i)
-	{
-		ses.async_add_torrent(*i);
-	}
+	for (auto const& magnet : magnet_links)
+		ses.async_add_torrent(magnet);
 
-	for (std::vector<std::string>::iterator i = torrents.begin()
-		, end(torrents.end()); i != end; ++i)
+	for (auto const& i : torrents)
 	{
-		if (std::strstr(i->c_str(), "http://") == i->c_str()
-			|| std::strstr(i->c_str(), "https://") == i->c_str()
-			|| std::strstr(i->c_str(), "magnet:") == i->c_str())
+		if (std::strstr(i.c_str(), "http://") == i.c_str()
+			|| std::strstr(i.c_str(), "https://") == i.c_str()
+			|| std::strstr(i.c_str(), "magnet:") == i.c_str())
 		{
 			add_torrent_params p;
 
-			if (std::strstr(i->c_str(), "magnet:") == i->c_str())
+			if (std::strstr(i.c_str(), "magnet:") == i.c_str())
 			{
 				add_torrent_params tmp;
 				ec.clear();
-				parse_magnet_uri(*i, tmp, ec);
+				parse_magnet_uri(i, tmp, ec);
 
 				if (ec) continue;
 
@@ -1452,15 +1454,15 @@ int main(int argc, char* argv[])
 			if (share_mode) p.flags |= add_torrent_params::flag_share_mode;
 			p.save_path = save_path;
 			p.storage_mode = (storage_mode_t)allocation_mode;
-			p.url = *i;
+			p.url = i;
 
-			std::printf("adding URL: %s\n", i->c_str());
+			std::printf("adding URL: %s\n", i.c_str());
 			ses.async_add_torrent(p);
 			continue;
 		}
 
 		// if it's a torrent file, open it as usual
-		add_torrent(ses, files, i->c_str());
+		add_torrent(ses, files, i.c_str());
 	}
 
 	// main loop
