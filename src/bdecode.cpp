@@ -103,7 +103,7 @@ namespace libtorrent
 		stack_frame(int t): token(t), state(0) {}
 		// this is an index into m_tokens
 		boost::uint32_t token:31;
-		// this is used for doctionaries to indicate whether we're
+		// this is used for dictionaries to indicate whether we're
 		// reading a key or a vale. 0 means key 1 is value
 		boost::uint32_t state:1;
 	};
@@ -801,7 +801,7 @@ namespace libtorrent
 						&& stack[sp-1].state == 1)
 					{
 						// this means we're parsing a dictionary and about to parse a
-						// value associated with a key. Instad, we got a termination
+						// value associated with a key. Instead, we got a termination
 						TORRENT_FAIL_BDECODE(bdecode_errors::expected_value);
 					}
 
