@@ -265,7 +265,7 @@ namespace libtorrent
 			// add_torrent_params are also replaced. The default behavior is to
 			// have any web seeds in the resume data take precedence over whatever
 			// is passed in here as well as the .torrent file.
-			flag_merge_resume_http_seeds = 0x2000,
+			flag_merge_resume_http_seeds = 0x8000,
 
 			// the stop when ready flag. Setting this flag is equivalent to calling
 			// torrent_handle::stop_when_ready() immediately after the torrent is

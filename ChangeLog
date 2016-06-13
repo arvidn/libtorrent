@@ -1,5 +1,6 @@
 1.1.1 release
 
+	* fixed bug related to flag_merge_resume_http_seeds flag in add_torrent_params
 	* fixed inverted priority of incoming piece suggestions
 	* optimize allow-fast logic
 	* fix issue where FAST extension messages were not used during handshake
