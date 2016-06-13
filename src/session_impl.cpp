@@ -4785,6 +4785,14 @@ retry:
 		add_torrent_params params = p;
 		boost::shared_ptr<torrent> const torrent_ptr = add_torrent_impl(params, ec);
 
+		torrent_handle const handle(torrent_ptr);
+		m_alerts.emplace_alert<add_torrent_alert>(handle, params, ec);
+
+		if (!torrent_ptr) return handle;
+
+		// params.info_hash should have been initialized by add_torrent_impl()
+		TORRENT_ASSERT(params.info_hash != sha1_hash(0));
+
 		// --- PEERS --- (delete when merged to master)
 		std::vector<tcp::endpoint> peers;
 		parse_magnet_uri_peers(p.url, peers);
@@ -4797,14 +4805,6 @@ retry:
 
 		if (!peers.empty())
 			torrent_ptr->update_want_peers();
-
-		torrent_handle const handle(torrent_ptr);
-		m_alerts.emplace_alert<add_torrent_alert>(handle, params, ec);
-
-		if (!torrent_ptr) return handle;
-
-		// params.info_hash should have been initialized by add_torrent_impl()
-		TORRENT_ASSERT(params.info_hash != sha1_hash(0));
 
 		if (m_alerts.should_post<torrent_added_alert>())
 			m_alerts.emplace_alert<torrent_added_alert>(handle);
@@ -6405,7 +6405,7 @@ retry:
 
 	void session_impl::on_trigger_auto_manage()
 	{
-		assert(m_pending_auto_manage);
+		TORRENT_ASSERT(m_pending_auto_manage);
 		if (!m_need_auto_manage || m_abort)
 		{
 			m_pending_auto_manage = false;

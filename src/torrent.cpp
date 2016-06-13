@@ -2001,7 +2001,7 @@ namespace libtorrent
 			}
 			// ugly edge case where padfiles are not used they way they're
 			// supposed to be. i.e. added back-to back or at the end
-			if (int(pb.block_index) == blocks_per_piece) { pb.block_index = 0; ++pb.piece_index; }
+			if (pb.block_index == blocks_per_piece) { pb.block_index = 0; ++pb.piece_index; }
 			if (pr.length > 0 && ((i+1 != fs.num_files() && fs.pad_file_at(i+1))
 				|| i + 1 == fs.num_files()))
 			{
@@ -3875,10 +3875,10 @@ namespace libtorrent
 		file_storage const& fs = m_torrent_file->files();
 		int piece_size = m_torrent_file->piece_size(p.piece_index);
 		int offset = p.block_index * block_size();
-		if (m_padding == 0) return (std::min)(piece_size - offset, int(block_size()));
+		if (m_padding == 0) return (std::min)(piece_size - offset, block_size());
 
 		std::vector<file_slice> files = fs.map_block(
-			p.piece_index, offset, (std::min)(piece_size - offset, int(block_size())));
+			p.piece_index, offset, (std::min)(piece_size - offset, block_size()));
 		int ret = 0;
 		for (std::vector<file_slice>::iterator i = files.begin()
 			, end(files.end()); i != end; ++i)
@@ -3886,7 +3886,7 @@ namespace libtorrent
 			if (fs.pad_file_at(i->file_index)) continue;
 			ret += i->size;
 		}
-		TORRENT_ASSERT(ret <= (std::min)(piece_size - offset, int(block_size())));
+		TORRENT_ASSERT(ret <= (std::min)(piece_size - offset, block_size()));
 		return ret;
 	}
 
@@ -8631,7 +8631,7 @@ namespace libtorrent
 
 	// this will move the tracker with the given index
 	// to a prioritized position in the list (move it towards
-	// the begining) and return the new index to the tracker.
+	// the beginning) and return the new index to the tracker.
 	int torrent::prioritize_tracker(int index)
 	{
 		INVARIANT_CHECK;
@@ -8832,7 +8832,7 @@ namespace libtorrent
 		TORRENT_ASSERT(index >= 0);
 		TORRENT_ASSERT(index < m_torrent_file->num_files());
 
-		// stoage may be NULL during shutdown
+		// storage may be NULL during shutdown
 		if (!m_storage.get())
 		{
 			if (alerts().should_post<file_rename_failed_alert>())
