@@ -266,7 +266,7 @@ void setup_swarm(int num_nodes
 	lt::deadline_timer timer(ios);
 
 	lt::error_code ec;
-	int swarm_id = test_counter();
+	int const swarm_id = test_counter();
 	std::string path = save_path(swarm_id, 0);
 	lt::create_directory(path, ec);
 	if (ec) std::fprintf(stderr, "failed to create directory: \"%s\": %s\n"

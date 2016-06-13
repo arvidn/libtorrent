@@ -74,6 +74,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/linked_list.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/aux_/file_progress.hpp"
+#include "libtorrent/aux_/suggest_piece.hpp"
 
 #if TORRENT_COMPLETE_TYPES_REQUIRED
 #include "libtorrent/peer_connection.hpp"
@@ -374,7 +375,6 @@ namespace libtorrent
 		void add_piece(int piece, char const* data, int flags = 0);
 		void on_disk_write_complete(disk_io_job const* j
 			, peer_request p);
-		void on_disk_cache_complete(disk_io_job const* j);
 		void on_disk_tick_done(disk_io_job const* j);
 
 		void schedule_storage_tick();
@@ -659,12 +659,8 @@ namespace libtorrent
 		void get_peer_info(std::vector<peer_info>* v);
 		void get_download_queue(std::vector<partial_piece_info>* queue) const;
 
-		void add_suggest_piece(int piece);
 		void update_suggest_piece(int index, int change);
 		void update_auto_sequential();
-
-		void refresh_suggest_pieces();
-		void do_refresh_suggest_pieces();
 
 // --------------------------------------------
 		// TRACKER MANAGEMENT
@@ -734,16 +730,6 @@ namespace libtorrent
 		// PIECE MANAGEMENT
 
 		void recalc_share_mode();
-
-		struct suggest_piece_t
-		{
-			int piece_index;
-			int num_peers;
-			bool operator<(suggest_piece_t const& p) const { return num_peers < p.num_peers; }
-		};
-
-		std::vector<suggest_piece_t> const& get_suggested_pieces() const
-		{ return m_suggested_pieces; }
 
 		bool super_seeding() const
 		{
@@ -1105,11 +1091,18 @@ namespace libtorrent
 		void set_ssl_cert_buffer(std::string const& certificate
 			, std::string const& private_key
 			, std::string const& dh_params);
-		boost::asio::ssl::context* ssl_ctx() const { return m_ssl_ctx.get(); } 
+		boost::asio::ssl::context* ssl_ctx() const { return m_ssl_ctx.get(); }
 #endif
 
 		int num_time_critical_pieces() const
 		{ return int(m_time_critical_pieces.size()); }
+
+		int get_suggest_pieces(std::vector<int>& p, bitfield const& bits
+			, int const n)
+		{
+			return m_suggest_pieces.get_pieces(p, bits, n);
+		}
+		void add_suggest_piece(int index);
 
 	private:
 
@@ -1233,12 +1226,12 @@ namespace libtorrent
 		// this object is used to track download progress of individual files
 		aux::file_progress m_file_progress;
 
-		// these are the pieces we're currently
-		// suggesting to peers.
-		std::vector<suggest_piece_t> m_suggested_pieces;
+		// a queue of the most recent low-availability pieces we accessed on disk.
+		// These are good candidates for suggesting other peers to request from
+		// us.
+		aux::suggest_piece m_suggest_pieces;
 
 		std::vector<announce_entry> m_trackers;
-		// this is an index into m_trackers
 
 		// this list is sorted by time_critical_piece::deadline
 		std::vector<time_critical_piece> m_time_critical_pieces;
@@ -1518,9 +1511,7 @@ namespace libtorrent
 		// the number of unchoked peers in this torrent
 		unsigned int m_num_uploads:24;
 
-		// when this is set, second_tick will perform the actual
-		// work of refreshing the suggest pieces
-		bool m_need_suggest_pieces_refresh:1;
+		// 1 bit here
 
 		// this is set to true when the torrent starts up
 		// The first tracker response, when this is true,
