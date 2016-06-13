@@ -1580,10 +1580,14 @@ namespace libtorrent
 				return;
 		}
 
+		// the piece picker will prioritize the pieces from the beginning to end.
+		// the later the suggestion is received, the higher priority we should
+		// ascribe to it, so we need to insert suggestions at the front of the
+		// queue.
 		if (int(m_suggested_pieces.size()) > m_settings.get_int(settings_pack::max_suggest_pieces))
-			m_suggested_pieces.erase(m_suggested_pieces.begin());
+			m_suggested_pieces.resize(m_settings.get_int(settings_pack::max_suggest_pieces) - 1);
 
-		m_suggested_pieces.push_back(index);
+		m_suggested_pieces.insert(m_suggested_pieces.begin(), index);
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, "SUGGEST_PIECE", "piece: %d added to set: %d"
