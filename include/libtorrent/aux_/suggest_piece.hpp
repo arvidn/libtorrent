@@ -99,9 +99,9 @@ struct suggest_piece
 			m_priority_pieces.erase(it);
 		}
 
-		if (m_priority_pieces.size() >= max_queue_size)
+		if (int(m_priority_pieces.size()) >= max_queue_size)
 		{
-			int const to_remove = m_priority_pieces.size() - max_queue_size + 1;
+			int const to_remove = int(m_priority_pieces.size()) - max_queue_size + 1;
 			m_priority_pieces.erase(m_priority_pieces.begin()
 				, m_priority_pieces.begin() + to_remove);
 		}
