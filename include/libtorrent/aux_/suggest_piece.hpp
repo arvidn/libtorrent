@@ -57,7 +57,7 @@ struct suggest_piece
 		// is we add any piece to the result (p), the farther back the better.
 		// the prioritization in p is the same, which means we have to first push
 		// back and then reverse the items we put there.
-		for (int i = m_priority_pieces.size()-1; i >= 0; --i)
+		for (int i = int(m_priority_pieces.size())-1; i >= 0; --i)
 		{
 			int const piece = m_priority_pieces[i];
 			if (bits.get_bit(piece)) continue;
