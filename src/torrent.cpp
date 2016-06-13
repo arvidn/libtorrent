@@ -7117,7 +7117,7 @@ namespace libtorrent
 			// some sanity checking. Maybe we shouldn't be in seed mode anymore
 			bdecode_node pieces = rd.dict_find("pieces");
 			if (pieces && pieces.type() == bdecode_node::string_t
-				&& int(pieces.string_length()) == m_torrent_file->num_pieces())
+				&& pieces.string_length() == m_torrent_file->num_pieces())
 			{
 				char const* pieces_str = pieces.string_ptr();
 				for (int i = 0, end(pieces.string_length()); i < end; ++i)

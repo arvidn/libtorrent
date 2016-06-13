@@ -965,7 +965,7 @@ namespace libtorrent
 		bdecode_node slots = rd.dict_find_list("slots");
 		if (slots)
 		{
-			if (int(slots.list_size()) == m_files.num_pieces())
+			if (slots.list_size() == m_files.num_pieces())
 			{
 				seed = true;
 				for (int i = 0; i < slots.list_size(); ++i)
@@ -978,7 +978,7 @@ namespace libtorrent
 		}
 		else if (bdecode_node pieces = rd.dict_find_string("pieces"))
 		{
-			if (int(pieces.string_length()) == m_files.num_pieces())
+			if (pieces.string_length() == m_files.num_pieces())
 			{
 				seed = true;
 				char const* p = pieces.string_ptr();
