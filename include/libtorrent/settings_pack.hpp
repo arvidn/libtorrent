@@ -234,11 +234,15 @@ namespace libtorrent
 			// Default is false.
 			send_redundant_have,
 
+#ifndef TORRENT_NO_DEPRECATE
 			// if this is true, outgoing bitfields will never be fuil. If the
 			// client is seed, a few bits will be set to 0, and later filled in
 			// with have messages. This is to prevent certain ISPs from stopping
 			// people from seeding.
 			lazy_bitfields,
+#else
+			deprecated12,
+#endif
 
 			// ``use_dht_as_fallback`` determines how the DHT is used. If this is
 			// true, the DHT will only be used for torrents where all trackers in

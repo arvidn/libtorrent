@@ -87,7 +87,6 @@ TORRENT_TEST(sparse_pack)
 
 	TEST_EQUAL(pack.has_val(settings_pack::send_redundant_have), true);
 	TEST_EQUAL(pack.has_val(settings_pack::user_agent), false);
-	TEST_EQUAL(pack.has_val(settings_pack::lazy_bitfields), false);
 	TEST_EQUAL(pack.get_bool(settings_pack::send_redundant_have), true);
 }
 
@@ -124,14 +123,12 @@ TORRENT_TEST(clear)
 
 	TEST_EQUAL(pack.has_val(settings_pack::send_redundant_have), true);
 	TEST_EQUAL(pack.has_val(settings_pack::user_agent), false);
-	TEST_EQUAL(pack.has_val(settings_pack::lazy_bitfields), false);
 	TEST_EQUAL(pack.get_bool(settings_pack::send_redundant_have), true);
 
 	pack.clear();
 
 	TEST_EQUAL(pack.has_val(settings_pack::send_redundant_have), false);
 	TEST_EQUAL(pack.has_val(settings_pack::user_agent), false);
-	TEST_EQUAL(pack.has_val(settings_pack::lazy_bitfields), false);
 }
 
 TORRENT_TEST(duplicates)
