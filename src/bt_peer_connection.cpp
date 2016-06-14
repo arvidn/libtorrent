@@ -133,33 +133,6 @@ namespace libtorrent
 	} // anonymous namespace
 #endif
 
-	const bt_peer_connection::message_handler
-	bt_peer_connection::m_message_handler[] =
-	{
-		&bt_peer_connection::on_choke,
-		&bt_peer_connection::on_unchoke,
-		&bt_peer_connection::on_interested,
-		&bt_peer_connection::on_not_interested,
-		&bt_peer_connection::on_have,
-		&bt_peer_connection::on_bitfield,
-		&bt_peer_connection::on_request,
-		&bt_peer_connection::on_piece,
-		&bt_peer_connection::on_cancel,
-		&bt_peer_connection::on_dht_port,
-		0, 0, 0,
-		// FAST extension messages
-		&bt_peer_connection::on_suggest_piece,
-		&bt_peer_connection::on_have_all,
-		&bt_peer_connection::on_have_none,
-		&bt_peer_connection::on_reject_request,
-		&bt_peer_connection::on_allowed_fast,
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		0, 0,
-		&bt_peer_connection::on_extended
-#endif
-	};
-
-
 	bt_peer_connection::bt_peer_connection(peer_connection_args const& pack
 		, peer_id const& pid)
 		: peer_connection(pack)
@@ -1534,8 +1507,8 @@ namespace libtorrent
 		// ignore invalid messages
 		if (recv_buffer.left() < 2) return;
 
-		int msg_type = detail::read_uint8(ptr);
-		int addr_type = detail::read_uint8(ptr);
+		int const msg_type = detail::read_uint8(ptr);
+		int const addr_type = detail::read_uint8(ptr);
 
 		tcp::endpoint ep;
 
@@ -1941,7 +1914,7 @@ namespace libtorrent
 	}
 #endif // TORRENT_DISABLE_EXTENSIONS
 
-	bool bt_peer_connection::dispatch_message(int received)
+	bool bt_peer_connection::dispatch_message(int const received)
 	{
 		INVARIANT_CHECK;
 
@@ -1962,58 +1935,74 @@ namespace libtorrent
 		if (m_settings.get_bool(settings_pack::support_merkle_torrents)
 			&& packet_type == 250) packet_type = msg_piece;
 
-		if (packet_type < 0
-			|| packet_type >= num_supported_messages
-			|| m_message_handler[packet_type] == 0)
-		{
-#ifndef TORRENT_DISABLE_EXTENSIONS
-			for (extension_list_t::iterator i = m_extensions.begin()
-				, end(m_extensions.end()); i != end; ++i)
-			{
-				if ((*i)->on_unknown_message(m_recv_buffer.packet_size(), packet_type
-					, buffer::const_interval(recv_buffer.begin+1
-					, recv_buffer.end)))
-					return m_recv_buffer.packet_finished();
-			}
-#endif
-
-			received_bytes(0, received);
-			disconnect(errors::invalid_message, op_bittorrent);
-			return m_recv_buffer.packet_finished();
-		}
-
-		TORRENT_ASSERT(m_message_handler[packet_type] != 0);
-
 #if TORRENT_USE_ASSERTS
-		boost::int64_t cur_payload_dl = statistics().last_payload_downloaded();
-		boost::int64_t cur_protocol_dl = statistics().last_protocol_downloaded();
+		boost::int64_t const cur_payload_dl = statistics().last_payload_downloaded();
+		boost::int64_t const cur_protocol_dl = statistics().last_protocol_downloaded();
 #endif
 
-		// call the correct handler for this packet type
-		(this->*m_message_handler[packet_type])(received);
+		// call the handler for this packet type
+		switch (packet_type)
+		{
+			// original BitTorrent message
+			case msg_choke: on_choke(received); break;
+			case msg_unchoke: on_unchoke(received); break;
+			case msg_interested: on_interested(received); break;
+			case msg_not_interested: on_not_interested(received); break;
+			case msg_have: on_have(received); break;
+			case msg_bitfield: on_bitfield(received); break;
+			case msg_request: on_request(received); break;
+			case msg_piece: on_piece(received); break;
+			case msg_cancel: on_cancel(received); break;
+
+			// DHT extension
+			case msg_dht_port: on_dht_port(received); break;
+
+			// FAST extension messages
+			case msg_suggest_piece: on_suggest_piece(received); break;
+			case msg_have_all: on_have_all(received); break;
+			case msg_have_none: on_have_none(received); break;
+			case msg_reject_request: on_reject_request(received); break;
+			case msg_allowed_fast: on_allowed_fast(received); break;
+#ifndef TORRENT_DISABLE_EXTENSIONS
+			case msg_extended: on_extended(received); break;
+#endif
+			default:
+			{
+#ifndef TORRENT_DISABLE_EXTENSIONS
+				for (extension_list_t::iterator i = m_extensions.begin()
+					, end(m_extensions.end()); i != end; ++i)
+				{
+					if ((*i)->on_unknown_message(m_recv_buffer.packet_size(), packet_type
+						, buffer::const_interval(recv_buffer.begin+1
+							, recv_buffer.end)))
+						return m_recv_buffer.packet_finished();
+				}
+#endif
+				received_bytes(0, received);
+				disconnect(errors::invalid_message, op_bittorrent);
+				return m_recv_buffer.packet_finished();
+			}
+		}
 
 #if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT(statistics().last_payload_downloaded() - cur_payload_dl >= 0);
 		TORRENT_ASSERT(statistics().last_protocol_downloaded() - cur_protocol_dl >= 0);
-		boost::int64_t stats_diff = statistics().last_payload_downloaded() - cur_payload_dl +
-			statistics().last_protocol_downloaded() - cur_protocol_dl;
+		boost::int64_t const stats_diff = statistics().last_payload_downloaded()
+			- cur_payload_dl + statistics().last_protocol_downloaded()
+			- cur_protocol_dl;
 		TORRENT_ASSERT(stats_diff == received);
 #endif
 
-		bool finished = m_recv_buffer.packet_finished();
+		bool const finished = m_recv_buffer.packet_finished();
 
 		if (finished)
 		{
 			// count this packet in the session stats counters
-			int counter = counters::num_incoming_extended;
-			if (packet_type <= msg_dht_port)
-				counter = counters::num_incoming_choke + packet_type;
-			else if (packet_type <= msg_allowed_fast)
-				counter = counters::num_incoming_suggest + packet_type;
-			else if (packet_type <= msg_extended)
-				counter = counters::num_incoming_extended;
-			else
-				TORRENT_ASSERT_FAIL();
+			int const counter = (packet_type <= msg_dht_port)
+				? counters::num_incoming_choke + packet_type
+				: (packet_type <= msg_allowed_fast)
+				? counters::num_incoming_suggest + packet_type
+				: counters::num_incoming_extended;
 
 			stats_counters().inc_stats_counter(counter);
 		}
