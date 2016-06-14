@@ -134,13 +134,6 @@ namespace libtorrent
 			// (``cache_size``). Any existing file with the same name will be
 			// replaced.
 			// 
-			// Since this setting sets a hard upper limit on cache usage, it
-			// cannot be combined with
-			// ``settings_pack::contiguous_recv_buffer``, since that feature
-			// treats the ``cache_size`` setting as a soft (but still pretty hard)
-			// limit. The result of combining the two is peers being disconnected
-			// after failing to allocate more disk buffers.
-			// 
 			// This feature requires the ``mmap`` system call, on systems that
 			// don't have ``mmap`` this setting is ignored.
 			mmap_cache,
@@ -546,6 +539,7 @@ namespace libtorrent
 			// feet.
 			lock_files,
 
+#ifndef TORRENT_NO_DEPRECATE
 			// ``contiguous_recv_buffer`` determines whether or not libtorrent
 			// should receive data from peers into a contiguous intermediate
 			// buffer, to then copy blocks into disk buffers from, or to make many
@@ -558,6 +552,9 @@ namespace libtorrent
 			// seeding to peers, since that's when it provides performance
 			// improvements.
 			contiguous_recv_buffer,
+#else
+			deprecated15,
+#endif
 
 			// when true, web seeds sending bad data will be banned
 			ban_web_seeds,

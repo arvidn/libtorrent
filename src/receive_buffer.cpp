@@ -53,69 +53,16 @@ int receive_buffer::max_receive()
 boost::asio::mutable_buffer receive_buffer::reserve(int size)
 {
 	TORRENT_ASSERT(size > 0);
-	TORRENT_ASSERT(!m_disk_recv_buffer);
+	TORRENT_ASSERT(m_recv_pos >= 0);
 	// this is unintuitive, but we used to use m_recv_pos in this function when
 	// we should have used m_recv_end. perhaps they always happen to be equal
 	TORRENT_ASSERT(m_recv_pos == m_recv_end);
-
-	m_recv_buffer.resize(m_recv_end + size);
-	return boost::asio::buffer(&m_recv_buffer[0] + m_recv_end, size);
-}
-
-int receive_buffer::reserve(std::array<boost::asio::mutable_buffer, 2>& vec, int size)
-{
-	TORRENT_ASSERT(size > 0);
-	TORRENT_ASSERT(m_recv_pos >= 0);
-	TORRENT_ASSERT(m_packet_size > 0);
 
 	// normalize() must be called before receiving more data
 	TORRENT_ASSERT(m_recv_start == 0);
 
-	// this is unintuitive, but we used to use m_recv_pos in this function when
-	// we should have used m_recv_end. perhaps they always happen to be equal
-	TORRENT_ASSERT(m_recv_pos == m_recv_end);
-
-	int num_bufs = -1;
-	int const regular_buf_size = regular_buffer_size();
-
-	if (int(m_recv_buffer.size()) < regular_buf_size)
-		m_recv_buffer.resize(round_up8(regular_buf_size));
-
-	if (!m_disk_recv_buffer || regular_buf_size >= m_recv_end + size)
-	{
-		// only receive into regular buffer
-		TORRENT_ASSERT(m_recv_end + size <= int(m_recv_buffer.size()));
-		vec[0] = boost::asio::buffer(&m_recv_buffer[0] + m_recv_end, size);
-		TORRENT_ASSERT(boost::asio::buffer_size(vec[0]) > 0);
-		num_bufs = 1;
-	}
-	else if (m_recv_end >= regular_buf_size)
-	{
-		// only receive into disk buffer
-		TORRENT_ASSERT(m_recv_end - regular_buf_size >= 0);
-		TORRENT_ASSERT(m_recv_end - regular_buf_size + size <= m_disk_recv_buffer_size);
-		vec[0] = boost::asio::buffer(m_disk_recv_buffer.get() + m_recv_end - regular_buf_size, size);
-		TORRENT_ASSERT(boost::asio::buffer_size(vec[0]) > 0);
-		num_bufs = 1;
-	}
-	else
-	{
-		// receive into both regular and disk buffer
-		TORRENT_ASSERT(size + m_recv_end > regular_buf_size);
-		TORRENT_ASSERT(m_recv_end < regular_buf_size);
-		TORRENT_ASSERT(size - regular_buf_size
-			+ m_recv_end <= m_disk_recv_buffer_size);
-
-		vec[0] = boost::asio::buffer(&m_recv_buffer[0] + m_recv_end
-			, regular_buf_size - m_recv_end);
-		vec[1] = boost::asio::buffer(m_disk_recv_buffer.get()
-			, size - regular_buf_size + m_recv_end);
-		TORRENT_ASSERT(boost::asio::buffer_size(vec[0])
-			+ boost::asio::buffer_size(vec[1])> 0);
-		num_bufs = 2;
-	}
-
-	return num_bufs;
+	m_recv_buffer.resize(m_recv_end + size);
+	return boost::asio::buffer(&m_recv_buffer[0] + m_recv_end, size);
 }
 
 int receive_buffer::advance_pos(int bytes)
@@ -199,83 +146,25 @@ buffer::interval receive_buffer::mutable_buffer()
 		TORRENT_ASSERT(m_recv_pos == 0);
 		return buffer::interval(0,0);
 	}
-	TORRENT_ASSERT(!m_disk_recv_buffer);
-	TORRENT_ASSERT(m_disk_recv_buffer_size == 0);
-	int rcv_pos = (std::min)(m_recv_pos, int(m_recv_buffer.size()));
+	int const rcv_pos = (std::min)(m_recv_pos, int(m_recv_buffer.size()));
 	return buffer::interval(&m_recv_buffer[0] + m_recv_start
 		, &m_recv_buffer[0] + m_recv_start + rcv_pos);
 }
 
-// TODO: 2 should this take a std::array<..., 2> instead? it could return the
-// number of buffers added, just like reserve.
-void receive_buffer::mutable_buffers(std::vector<boost::asio::mutable_buffer>& vec, int const bytes)
+boost::asio::mutable_buffer receive_buffer::mutable_buffers(int const bytes)
 {
 	namespace asio = boost::asio;
 
 	// bytes is the number of bytes we just received, and m_recv_pos has
 	// already been adjusted for these bytes. The receive pos immediately
 	// before we received these bytes was (m_recv_pos - bytes)
-
 	int const last_recv_pos = m_recv_pos - bytes;
 	TORRENT_ASSERT(bytes <= m_recv_pos);
 
-	// the number of bytes in the current packet that are being received into a
-	// regular receive buffer (as opposed to a disk cache buffer)
-	int const regular_buf_size = regular_buffer_size();
-
-	TORRENT_ASSERT(regular_buf_size >= 0);
-	if (!m_disk_recv_buffer || regular_buf_size >= m_recv_pos)
-	{
-		// we just received into a regular disk buffer
-		vec.push_back(asio::mutable_buffer(&m_recv_buffer[0] + m_recv_start
-			+ last_recv_pos, bytes));
-	}
-	else if (last_recv_pos >= regular_buf_size)
-	{
-		// we only received into a disk buffer
-		vec.push_back(asio::mutable_buffer(m_disk_recv_buffer.get()
-			+ last_recv_pos - regular_buf_size, bytes));
-	}
-	else
-	{
-		// we received into a regular and a disk buffer
-		TORRENT_ASSERT(last_recv_pos < regular_buf_size);
-		TORRENT_ASSERT(m_recv_pos > regular_buf_size);
-		vec.push_back(asio::mutable_buffer(&m_recv_buffer[0] + m_recv_start + last_recv_pos
-			, regular_buf_size - last_recv_pos));
-		vec.push_back(asio::mutable_buffer(m_disk_recv_buffer.get()
-			, m_recv_pos - regular_buf_size));
-	}
-
-#if TORRENT_USE_ASSERTS
-	int vec_bytes = 0;
-	for (std::vector<asio::mutable_buffer>::iterator i = vec.begin();
-		i != vec.end(); ++i)
-		vec_bytes += int(boost::asio::buffer_size(*i));
-	TORRENT_ASSERT(vec_bytes == bytes);
-#endif
+	return asio::mutable_buffer(&m_recv_buffer[0] + m_recv_start
+			+ last_recv_pos, bytes);
 }
 #endif
-
-void receive_buffer::assign_disk_buffer(char* buffer, int size)
-{
-	TORRENT_ASSERT(m_packet_size > 0);
-	assert_no_disk_buffer();
-	m_disk_recv_buffer.reset(buffer);
-	if (m_disk_recv_buffer)
-		m_disk_recv_buffer_size = size;
-}
-
-char* receive_buffer::release_disk_buffer()
-{
-	if (!m_disk_recv_buffer) return 0;
-
-	TORRENT_ASSERT(m_disk_recv_buffer_size <= m_recv_end);
-	TORRENT_ASSERT(m_recv_start <= m_recv_end - m_disk_recv_buffer_size);
-	m_recv_end -= m_disk_recv_buffer_size;
-	m_disk_recv_buffer_size = 0;
-	return m_disk_recv_buffer.release();
-}
 
 // the purpose of this function is to free up and cut off all messages
 // in the receive buffer that have been parsed and processed.
@@ -370,7 +259,6 @@ void crypto_receive_buffer::crypto_reset(int packet_size)
 	TORRENT_ASSERT(crypto_packet_finished());
 	TORRENT_ASSERT(m_recv_pos == INT_MAX || m_recv_pos == m_connection_buffer.pos());
 	TORRENT_ASSERT(m_recv_pos == INT_MAX || m_connection_buffer.pos_at_end());
-	TORRENT_ASSERT(!m_connection_buffer.has_disk_buffer());
 
 	if (packet_size == 0)
 	{
@@ -417,16 +305,13 @@ buffer::const_interval crypto_receive_buffer::get() const
 	return recv_buffer;
 }
 
-void crypto_receive_buffer::mutable_buffers(
-	std::vector<boost::asio::mutable_buffer>& vec
-	, std::size_t bytes_transfered)
+boost::asio::mutable_buffer crypto_receive_buffer::mutable_buffers(
+	std::size_t const bytes)
 {
-	int pending_decryption = int(bytes_transfered);
-	if (m_recv_pos != INT_MAX)
-	{
-		pending_decryption = m_connection_buffer.packet_size() - m_recv_pos;
-	}
-	m_connection_buffer.mutable_buffers(vec, pending_decryption);
+	int const pending_decryption = (m_recv_pos != INT_MAX)
+		? m_connection_buffer.packet_size() - m_recv_pos
+		: int(bytes);
+	return m_connection_buffer.mutable_buffers(pending_decryption);
 }
 #endif // TORRENT_DISABLE_ENCRYPTION
 

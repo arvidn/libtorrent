@@ -748,8 +748,6 @@ namespace libtorrent
 		virtual int hit_send_barrier(std::vector<boost::asio::mutable_buffer>&)
 		{ return INT_MAX; }
 
-		bool allocate_disk_receive_buffer(int disk_buffer_size);
-
 		void attach_to_torrent(sha1_hash const& ih);
 
 		bool verify_piece(peer_request const& p) const;
