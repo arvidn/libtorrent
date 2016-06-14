@@ -208,8 +208,6 @@ namespace libtorrent
 		void on_extended_handshake();
 #endif
 
-		typedef void (bt_peer_connection::*message_handler)(int received);
-
 		// the following functions appends messages
 		// to the send buffer
 		void write_choke() override;
@@ -417,8 +415,6 @@ private:
 		// sync step.
 		std::unique_ptr<sha1_hash> m_sync_hash;
 #endif // #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-
-		static const message_handler m_message_handler[num_supported_messages];
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		// used to disconnect peer if sync points are not found within
