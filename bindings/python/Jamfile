@@ -152,6 +152,9 @@ my-python-extension libtorrent
     <toolset>darwin:<cxxflags>-Wno-deprecated-declarations
     <toolset>darwin:<cxxflags>-Wno-unused-command-line-argument
     <conditional>@libtorrent_linking
+  : # default-build
+    <warnings>all
+    <warnings-as-errors>on
   : # usage-requirements
     <suppress-import-lib>false
   ;
