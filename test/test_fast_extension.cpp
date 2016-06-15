@@ -680,7 +680,7 @@ TORRENT_TEST(suggest_order)
 	suggested.push_back(3);
 
 	std::for_each(suggested.begin(), suggested.end()
-		, boost::bind(&send_suggest_piece, boost::ref(s), _1));
+		, std::bind(&send_suggest_piece, boost::ref(s), _1));
 	print_session_log(*ses);
 
 	send_unchoke(s);
