@@ -120,8 +120,6 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 
 	void reset(int packet_size);
 
-	bool can_recv_contiguous(int /*size*/) const { return true; }
-
 #if TORRENT_USE_INVARIANT_CHECKS
 	void check_invariant() const
 	{
@@ -227,15 +225,6 @@ struct crypto_receive_buffer
 	int advance_pos(int bytes);
 
 	buffer::const_interval get() const;
-
-	bool can_recv_contiguous(int /*size*/) const
-	{
-		// TODO: Detect when the start of the next crpyto packet is aligned
-		// with the start of piece data and the crpyto packet is at least
-		// as large as the piece data. With a little extra work
-		// we could receive directly into a disk buffer in that case.
-		return m_recv_pos == INT_MAX;
-	}
 
 	boost::asio::mutable_buffer mutable_buffers(std::size_t bytes);
 
