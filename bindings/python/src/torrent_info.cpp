@@ -113,10 +113,10 @@ namespace
 
     int get_tier(announce_entry const& ae) { return ae.tier; }
     void set_tier(announce_entry& ae, int v) { ae.tier = v; }
-    bool get_fail_limit(announce_entry const& ae) { return ae.fail_limit; }
+    int get_fail_limit(announce_entry const& ae) { return ae.fail_limit; }
     void set_fail_limit(announce_entry& ae, int l) { ae.fail_limit = l; }
-    bool get_fails(announce_entry const& ae) { return ae.fails; }
-    bool get_source(announce_entry const& ae) { return ae.source; }
+    int get_fails(announce_entry const& ae) { return ae.fails; }
+    int get_source(announce_entry const& ae) { return ae.source; }
     bool get_verified(announce_entry const& ae) { return ae.verified; }
     bool get_updating(announce_entry const& ae) { return ae.updating; }
     bool get_start_sent(announce_entry const& ae) { return ae.start_sent; }
