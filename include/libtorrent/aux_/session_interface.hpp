@@ -124,7 +124,7 @@ namespace libtorrent { namespace aux
 	};
 #endif // TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 
-	// TOOD: 2 make this interface a lot smaller. It could be split up into
+	// TODO: 2 make this interface a lot smaller. It could be split up into
 	// several smaller interfaces. Each subsystem could then limit the size
 	// of the mock object to test it.
 	struct TORRENT_EXTRA_EXPORT session_interface

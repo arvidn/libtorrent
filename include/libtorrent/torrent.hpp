@@ -862,7 +862,7 @@ namespace libtorrent
 		void on_inactivity_tick(error_code const& ec);
 
 
-		// calculate the instantaneuos inactive state (the externally facing
+		// calculate the instantaneous inactive state (the externally facing
 		// inactive state is not instantaneous, but low-pass filtered)
 		bool is_inactive_internal() const;
 

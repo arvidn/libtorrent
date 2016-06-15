@@ -623,7 +623,7 @@ TORRENT_TEST(reject_suggest)
 
 		using namespace libtorrent::detail;
 		char* ptr = recv_buffer + 1;
-		int piece = read_int32(ptr);
+		int const piece = read_int32(ptr);
 
 		std::vector<int>::iterator i = std::find(suggested.begin()
 			, suggested.end(), piece);
@@ -648,6 +648,66 @@ TORRENT_TEST(reject_suggest)
 			TEST_ERROR(ec.message());
 			break;
 		}
+	}
+	print_session_log(*ses);
+	TEST_CHECK(fail_counter > 0);
+
+	s.close();
+	test_sleep(500);
+	print_session_log(*ses);
+}
+
+TORRENT_TEST(suggest_order)
+{
+	std::cerr << "\n === test suggest ===\n" << std::endl;
+
+	sha1_hash ih;
+	boost::shared_ptr<lt::session> ses;
+	io_service ios;
+	tcp::socket s(ios);
+	setup_peer(s, ih, ses);
+
+	char recv_buffer[1000];
+	do_handshake(s, ih, recv_buffer);
+	print_session_log(*ses);
+	send_have_all(s);
+	print_session_log(*ses);
+
+	std::vector<int> suggested;
+	suggested.push_back(0);
+	suggested.push_back(1);
+	suggested.push_back(2);
+	suggested.push_back(3);
+
+	std::for_each(suggested.begin(), suggested.end()
+		, boost::bind(&send_suggest_piece, boost::ref(s), _1));
+	print_session_log(*ses);
+
+	send_unchoke(s);
+	print_session_log(*ses);
+
+	int fail_counter = 100;
+	while (!suggested.empty() && fail_counter > 0)
+	{
+		print_session_log(*ses);
+		int len = read_message(s, recv_buffer, sizeof(recv_buffer));
+		if (len == -1) break;
+		print_message(recv_buffer, len);
+		int msg = recv_buffer[0];
+		fail_counter--;
+
+		// we're just interested in requests
+		if (msg != 0x6) continue;
+
+		using namespace libtorrent::detail;
+		char* ptr = recv_buffer + 1;
+		int const piece = read_int32(ptr);
+
+		// make sure we receive the requests inverse order of sending the suggest
+		// messages. The last suggest should be the highest priority
+		int const expected_piece = suggested.back();
+		suggested.pop_back();
+		TEST_EQUAL(piece, expected_piece);
 	}
 	print_session_log(*ses);
 	TEST_CHECK(fail_counter > 0);

@@ -1309,7 +1309,7 @@ namespace aux {
 
 		int loaded_limit = m_settings.get_int(settings_pack::active_loaded_limit);
 
-		// 0 means unlimited, never evict enything
+		// 0 means unlimited, never evict anything
 		if (loaded_limit == 0) return;
 
 		if (m_torrent_lru.size() > loaded_limit)
@@ -1333,7 +1333,7 @@ namespace aux {
 
 		int loaded_limit = m_settings.get_int(settings_pack::active_loaded_limit);
 
-		// 0 means unlimited, never evict enything
+		// 0 means unlimited, never evict anything
 		if (loaded_limit == 0) return;
 
 		// if the torrent we're ignoring (i.e. making room for), allow
@@ -1374,6 +1374,7 @@ namespace aux {
 		// we wouldn't be loading the torrent if it was already
 		// in the LRU (and loaded)
 		TORRENT_ASSERT(t->next == NULL && t->prev == NULL && m_torrent_lru.front() != t);
+		TORRENT_ASSERT(m_user_load_torrent);
 
 		// now, load t into RAM
 		std::vector<char> buffer;
@@ -6007,7 +6008,7 @@ namespace aux {
 
 	void session_impl::update_user_agent()
 	{
-		// replace all occurances of '\n' with ' '.
+		// replace all occurrences of '\n' with ' '.
 		std::string agent = m_settings.get_str(settings_pack::user_agent);
 		std::string::iterator i = agent.begin();
 		while ((i = std::find(i, agent.end(), '\n'))
@@ -6129,7 +6130,7 @@ namespace aux {
 
 	void session_impl::on_trigger_auto_manage()
 	{
-		assert(m_pending_auto_manage);
+		TORRENT_ASSERT(m_pending_auto_manage);
 		if (!m_need_auto_manage || m_abort)
 		{
 			m_pending_auto_manage = false;
