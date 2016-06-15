@@ -1667,7 +1667,7 @@ void utp_socket_impl::write_payload(std::uint8_t* ptr, int size)
 	for (std::vector<iovec_t>::iterator j = m_write_buffer.begin()
 		, end(m_write_buffer.end()); j != end; ++j)
 	{
-		TORRENT_ASSERT(std::numeric_limits<int>::max() - i->len > write_buffer_size);
+		TORRENT_ASSERT(std::numeric_limits<int>::max() - j->len > write_buffer_size);
 		write_buffer_size += j->len;
 	}
 	TORRENT_ASSERT(m_write_buffer_size == write_buffer_size);
