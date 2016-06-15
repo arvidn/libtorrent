@@ -13,6 +13,12 @@
 using namespace boost::python;
 using namespace libtorrent;
 
+#ifdef _msc_ver
+#pragma warning(push)
+// warning c4996: x: was declared deprecated
+#pragma warning( disable : 4996 )
+#endif
+
 bytes get_buffer(read_piece_alert const& rpa)
 {
     return rpa.buffer ? bytes(rpa.buffer.get(), rpa.size)
@@ -850,3 +856,8 @@ void bind_alert()
         ;
 
 }
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+

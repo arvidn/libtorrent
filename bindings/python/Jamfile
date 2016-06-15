@@ -85,11 +85,11 @@ rule libtorrent_linking ( properties * )
     # (the static build of libpthread is not position independent)
     if <boost-link>shared in $(properties) || <target-os>linux in $(properties)
     {
-        result += <library>boost_python/<link>shared ;
+        result += <library>boost_python/<link>shared/<warnings>off ;
     }
     else
     {
-        result += <library>boost_python/<link>static ;
+        result += <library>boost_python/<link>static/<warnings>off ;
     }
 
     if <libtorrent-link>shared in $(properties)
@@ -127,7 +127,7 @@ rule my-python-extension ( name : sources * : requirements * : default-build * :
 my-python-extension libtorrent
   : # sources
     src/module.cpp
-    src/big_number.cpp
+    src/sha1_hash.cpp
     src/converters.cpp
     src/create_torrent.cpp
     src/fingerprint.cpp

@@ -11,6 +11,12 @@
 using namespace boost::python;
 using namespace libtorrent;
 
+#ifdef _msc_ver
+#pragma warning(push)
+// warning c4996: x: was declared deprecated
+#pragma warning( disable : 4996 )
+#endif
+
 namespace
 {
     void set_hash(create_torrent& c, int p, bytes const& b)
@@ -151,7 +157,7 @@ void bind_create_torrent()
     file_entry (file_storage::*at)(int) const = &file_storage::at;
 #endif
 
-	 // TODO: 3 move this to its own file
+    // TODO: 3 move this to its own file
     class_<file_storage>("file_storage")
         .def("is_valid", &file_storage::is_valid)
         .def("add_file", add_file0, (arg("path"), arg("size"), arg("flags") = 0, arg("mtime") = 0, arg("linkpath") = ""))
@@ -236,3 +242,8 @@ void bind_create_torrent()
     def("set_piece_hashes", set_piece_hashes_callback);
 
 }
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+

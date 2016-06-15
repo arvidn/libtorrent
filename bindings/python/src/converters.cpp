@@ -130,7 +130,7 @@ struct list_to_vector
             std::vector<T> >*)data)->storage.bytes;
 
         std::vector<T> p;
-        int const size = PyList_Size(x);
+        int const size = int(PyList_Size(x));
         p.reserve(size);
         for (int i = 0; i < size; ++i)
         {

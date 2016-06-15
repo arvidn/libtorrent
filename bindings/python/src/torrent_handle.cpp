@@ -18,6 +18,12 @@
 using namespace boost::python;
 using namespace libtorrent;
 
+#ifdef _msc_ver
+#pragma warning(push)
+// warning c4996: x: was declared deprecated
+#pragma warning( disable : 4996 )
+#endif
+
 namespace
 {
 
@@ -285,7 +291,7 @@ list get_download_queue(torrent_handle& handle)
             block_info["block_size"] = i->blocks[k].block_size;
             block_info["peer"] = boost::python::make_tuple(
                 i->blocks[k].peer().address().to_string()
-					 , i->blocks[k].peer().port());
+                , i->blocks[k].peer().port());
             block_list.append(block_info);
         }
         partial_piece["blocks"] = block_list;
@@ -298,7 +304,7 @@ list get_download_queue(torrent_handle& handle)
 
 void set_metadata(torrent_handle& handle, std::string const& buf)
 {
-   handle.set_metadata(buf.c_str(), buf.size());
+   handle.set_metadata(buf.c_str(), int(buf.size()));
 }
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -489,3 +495,8 @@ void bind_torrent_handle()
         .value("dont_replace", dont_replace)
     ;
 }
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
