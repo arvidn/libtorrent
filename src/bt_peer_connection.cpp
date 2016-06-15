@@ -1161,43 +1161,19 @@ namespace libtorrent
 					disconnect(errors::packet_too_large, op_bittorrent, 2);
 					return;
 				}
-
-				m_recv_buffer.assert_no_disk_buffer();
-				if (!m_settings.get_bool(settings_pack::contiguous_recv_buffer) &&
-					m_recv_buffer.can_recv_contiguous(m_recv_buffer.packet_size() - 13 - list_size))
-				{
-					if (!allocate_disk_receive_buffer(m_recv_buffer.packet_size() - 13 - list_size))
-					{
-						received_bytes(0, received);
-						return;
-					}
-				}
 			}
 		}
 		else
 		{
 			if (recv_pos == 1)
 			{
-				m_recv_buffer.assert_no_disk_buffer();
-
 				if (m_recv_buffer.packet_size() - 9 > t->block_size())
 				{
 					disconnect(errors::packet_too_large, op_bittorrent, 2);
 					return;
 				}
-
-				if (!m_settings.get_bool(settings_pack::contiguous_recv_buffer) &&
-					m_recv_buffer.can_recv_contiguous(m_recv_buffer.packet_size() - 9))
-				{
-					if (!allocate_disk_receive_buffer(m_recv_buffer.packet_size() - 9))
-					{
-						received_bytes(0, received);
-						return;
-					}
-				}
 			}
 		}
-		TORRENT_ASSERT(m_settings.get_bool(settings_pack::contiguous_recv_buffer) || m_recv_buffer.has_disk_buffer() || m_recv_buffer.packet_size() == 9);
 		// classify the received data as protocol chatter
 		// or data payload for the statistics
 		int piece_bytes = 0;
@@ -1269,8 +1245,6 @@ namespace libtorrent
 			if (is_disconnecting()) return;
 		}
 
-		TORRENT_ASSERT(m_settings.get_bool(settings_pack::contiguous_recv_buffer) || m_recv_buffer.has_disk_buffer() || m_recv_buffer.packet_size() == header_size);
-
 		incoming_piece_fragment(piece_bytes);
 		if (!m_recv_buffer.packet_finished()) return;
 
@@ -1317,16 +1291,7 @@ namespace libtorrent
 			}
 		}
 
-		char* disk_buffer = m_recv_buffer.release_disk_buffer();
-		if (disk_buffer)
-		{
-			disk_buffer_holder holder(m_allocator, disk_buffer);
-			incoming_piece(p, holder);
-		}
-		else
-		{
-			incoming_piece(p, recv_buffer.begin + header_size);
-		}
+		incoming_piece(p, recv_buffer.begin + header_size);
 	}
 
 	// -----------------------------

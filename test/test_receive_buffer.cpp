@@ -36,22 +36,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-struct allocator : buffer_allocator_interface
-{
-	void free_disk_buffer(char*) {}
-	char* allocate_disk_buffer(char const*) { TORRENT_ASSERT_FAIL(); return NULL; }
-	char* allocate_disk_buffer(bool&
-		, boost::shared_ptr<disk_observer>
-		, char const*) { TORRENT_ASSERT_FAIL(); return NULL; }
-	char* async_allocate_disk_buffer(char const*
-		, boost::function<void(char*)> const&) { TORRENT_ASSERT_FAIL(); return NULL; }
-	void reclaim_block(block_cache_reference ref) {}
-};
-
 TORRENT_TEST(recv_buffer_init)
 {
-	allocator a;
-	receive_buffer b(a);
+	receive_buffer b;
 
 	b.cut(0, 10);
 
@@ -64,17 +51,12 @@ TORRENT_TEST(recv_buffer_init)
 
 TORRENT_TEST(recv_buffer_pos_at_end_false)
 {
-	allocator a;
-	receive_buffer b(a);
+	receive_buffer b;
 
 	b.cut(0, 1000);
 	// allocate some space to receive into
-	std::array<boost::asio::mutable_buffer, 2> vec;
-	int num_bufs = b.reserve(vec, 1000);
-
-	// since we don't have a disk buffer, there should only be a single
-	// range/buffer
-	TEST_EQUAL(num_bufs, 1);
+	boost::asio::mutable_buffer vec
+		= b.reserve(1000);
 
 	b.received(1000);
 	b.advance_pos(999);
@@ -84,13 +66,10 @@ TORRENT_TEST(recv_buffer_pos_at_end_false)
 
 TORRENT_TEST(recv_buffer_pos_at_end_true)
 {
-	allocator a;
-	receive_buffer b(a);
+	receive_buffer b;
 	b.cut(0, 1000);
 	b.reserve(1000);
-	std::array<boost::asio::mutable_buffer, 2> vec;
-	int num_bufs = b.reserve(vec, 1000);
-	TEST_EQUAL(num_bufs, 1);
+	boost::asio::mutable_buffer vec = b.reserve(1000);
 	b.received(1000);
 	b.advance_pos(1000);
 	TEST_EQUAL(b.pos_at_end(), true);
@@ -98,14 +77,11 @@ TORRENT_TEST(recv_buffer_pos_at_end_true)
 
 TORRENT_TEST(recv_buffer_packet_finished)
 {
-	allocator a;
-	receive_buffer b(a);
+	receive_buffer b;
 	// packet_size = 10
 	b.cut(0, 10);
 	b.reserve(1000);
-	std::array<boost::asio::mutable_buffer, 2> vec;
-	int num_bufs = b.reserve(vec, 1000);
-	TEST_EQUAL(num_bufs, 1);
+	boost::asio::mutable_buffer vec = b.reserve(1000);
 	b.received(1000);
 
 	for (int i = 0; i < 10; ++i)
@@ -116,39 +92,11 @@ TORRENT_TEST(recv_buffer_packet_finished)
 	TEST_EQUAL(b.packet_finished(), true);
 }
 
-TORRENT_TEST(recv_buffer_disk_buffer)
-{
-	char disk_buffer; // fake disk buffer pointer
-
-	allocator a;
-	receive_buffer b(a);
-	b.reserve(1000);
-	b.cut(0, 1000); // packet size = 1000
-	std::array<boost::asio::mutable_buffer, 2> vec;
-	b.assign_disk_buffer(&disk_buffer, 137);
-	int const num_bufs = b.reserve(vec, 1000);
-	TEST_EQUAL(num_bufs, 2);
-
-	// regular buffer   disk buffer
-	// -----------------======
-	//
-	// |----------------------| 1000
-	//                  |-----| 137
-	// |----------------|    863
-
-	TEST_EQUAL(boost::asio::buffer_size(vec[0]), 863);
-	// cppcheck-suppress arrayIndexOutOfBounds
-	TEST_EQUAL(boost::asio::buffer_size(vec[1]), 137);
-}
-
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 
-TORRENT_TEST(recv_buffer_mutable_buffers_regular_and_disk)
+TORRENT_TEST(recv_buffer_mutable_buffers)
 {
-	char disk_buffer; // fake disk buffer pointer
-
-	allocator a;
-	receive_buffer b(a);
+	receive_buffer b;
 	b.reserve(1100);
 	b.cut(0, 100); // packet size = 100
 	b.received(1100);
@@ -157,99 +105,22 @@ TORRENT_TEST(recv_buffer_mutable_buffers_regular_and_disk)
 	TEST_EQUAL(packet_transferred, 100);
 	// the next packet is 1000, and we're done with the first 100 bytes now
 	b.cut(100, 1000); // packet size = 1000
-	// and it has a disk buffer
-	b.assign_disk_buffer(&disk_buffer, 137);
-	std::vector<boost::asio::mutable_buffer> vec;
 	packet_transferred = b.advance_pos(999);
 	TEST_EQUAL(packet_transferred, 999);
-	b.mutable_buffers(vec, 999);
-	TEST_EQUAL(vec.size(), 2);
+	boost::asio::mutable_buffer vec = b.mutable_buffers(999);
 
 	// previous packet
 	//   |
-	//   v   regular buffer   disk buffer
-	// - - - -----------------======
-	//       ^
-	//       |
-	// m_recv_start
-
-	//       |----------------------| 1000 packet size
-	//                        |-----| 137 disk buffer
-	//       |----------------|    863 regular buffer
-
-	TEST_EQUAL(boost::asio::buffer_size(vec[0]), 863);
-	TEST_EQUAL(boost::asio::buffer_size(vec[1]), 137 - 1);
-	TEST_EQUAL(boost::asio::buffer_size(vec[0])
-		+ boost::asio::buffer_size(vec[1]), 999);
-}
-
-TORRENT_TEST(recv_buffer_mutable_buffers_regular_only)
-{
-	allocator a;
-	receive_buffer b(a);
-	b.reserve(1100);
-	b.cut(0, 100); // packet size = 100
-	b.received(1100);
-	int packet_transferred = b.advance_pos(1100);
-	// this is just the first packet
-	TEST_EQUAL(packet_transferred, 100);
-	// the next packet is 1000, and we're done with the first 100 bytes now
-	b.cut(100, 1000); // packet size = 1000
-	std::vector<boost::asio::mutable_buffer> vec;
-	packet_transferred = b.advance_pos(999);
-	TEST_EQUAL(packet_transferred, 999);
-	b.mutable_buffers(vec, 999);
-	TEST_EQUAL(vec.size(), 1);
-
-	// previous packet
-	//   |
-	//   v   regular buffer
+	//   v   buffer
 	// - - - -----------------------
 	//       ^
 	//       |
 	// m_recv_start
 
 	//       |----------------------| 1000 packet size
-	//       |---------------------|  999 regular buffer
+	//       |---------------------|  999 buffer
 
-	TEST_EQUAL(boost::asio::buffer_size(vec[0]), 999);
-}
-
-TORRENT_TEST(recv_buffer_mutable_buffers_disk)
-{
-	char disk_buffer; // fake disk buffer pointer
-
-	allocator a;
-	receive_buffer b(a);
-	b.reserve(1100);
-	b.cut(0, 100); // packet size = 100
-	b.received(1100);
-	int packet_transferred = b.advance_pos(1100);
-	// this is just the first packet
-	TEST_EQUAL(packet_transferred, 100);
-	// the next packet is 1000, and we're done with the first 100 bytes now
-	b.cut(100, 1000); // packet size = 1000
-	// and it has a disk buffer
-	b.assign_disk_buffer(&disk_buffer, 1000);
-	std::vector<boost::asio::mutable_buffer> vec;
-	packet_transferred = b.advance_pos(999);
-	TEST_EQUAL(packet_transferred, 999);
-	b.mutable_buffers(vec, 999);
-	TEST_EQUAL(vec.size(), 1);
-
-	// previous packet
-	//   |
-	//   v   disk buffer
-	// - - - =======================
-	//       ^
-	//       |
-	// m_recv_start
-
-	//       |----------------------| 1000 packet size
-	//       |----------------------| 999 disk buffer
-
-	TEST_EQUAL(boost::asio::buffer_size(vec[0]), 999);
-	TEST_EQUAL(boost::asio::buffer_cast<char*>(vec[0]), &disk_buffer);
+	TEST_EQUAL(boost::asio::buffer_size(vec), 999);
 }
 
 #endif

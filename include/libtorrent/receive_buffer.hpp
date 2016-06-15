@@ -44,14 +44,12 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 {
 	friend struct crypto_receive_buffer;
 
-	receive_buffer(buffer_allocator_interface& allocator)
+	receive_buffer()
 		: m_recv_start(0)
 		, m_recv_end(0)
 		, m_recv_pos(0)
 		, m_packet_size(0)
 		, m_soft_packet_size(0)
-		, m_disk_recv_buffer_size(0)
-		, m_disk_recv_buffer(allocator, 0)
 	{}
 
 	int packet_size() const { return m_packet_size; }
@@ -66,18 +64,15 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 
 	bool packet_finished() const { return m_packet_size <= m_recv_pos; }
 	int pos() const { return m_recv_pos; }
-	int capacity() const { return int(m_recv_buffer.capacity()) + m_disk_recv_buffer_size; }
+	int capacity() const { return int(m_recv_buffer.capacity()); }
 
 	int regular_buffer_size() const
 	{
 		TORRENT_ASSERT(m_packet_size > 0);
-		return m_packet_size - m_disk_recv_buffer_size;
+		return m_packet_size;
 	}
 
-	// regular buffer only
 	boost::asio::mutable_buffer reserve(int size);
-	// with possible disk buffer usage
-	int reserve(std::array<boost::asio::mutable_buffer, 2>& vec, int size);
 
 	// tell the buffer we just received more bytes at the end of it. This will
 	// advance the end cursor
@@ -85,8 +80,7 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 	{
 		TORRENT_ASSERT(m_packet_size > 0);
 		m_recv_end += bytes_transferred;
-		TORRENT_ASSERT(m_recv_pos <= int(m_recv_buffer.size()
-			+ m_disk_recv_buffer_size));
+		TORRENT_ASSERT(m_recv_pos <= int(m_recv_buffer.size()));
 	}
 
 	// tell the buffer we consumed some bytes of it. This will advance the read
@@ -114,25 +108,10 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 	// returns the entire regular buffer
 	// should only be used during the handshake
 	buffer::interval mutable_buffer();
+
 	// returns the last 'bytes' from the receive buffer
-	void mutable_buffers(std::vector<boost::asio::mutable_buffer>& vec, int bytes);
+	boost::asio::mutable_buffer mutable_buffers(int bytes);
 #endif
-
-	void free_disk_buffer()
-	{
-		m_disk_recv_buffer.reset();
-		m_disk_recv_buffer_size = 0;
-	}
-
-	bool has_disk_buffer() const { return m_disk_recv_buffer; }
-	void assert_no_disk_buffer() const
-	{
-		TORRENT_ASSERT(!m_disk_recv_buffer);
-		TORRENT_ASSERT(m_disk_recv_buffer_size == 0);
-	}
-
-	void assign_disk_buffer(char* buffer, int size);
-	char* release_disk_buffer();
 
 	// the purpose of this function is to free up and cut off all messages
 	// in the receive buffer that have been parsed and processed.
@@ -141,13 +120,10 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 
 	void reset(int packet_size);
 
-	bool can_recv_contiguous(int /*size*/) const { return true; }
-
 #if TORRENT_USE_INVARIANT_CHECKS
 	void check_invariant() const
 	{
 		TORRENT_ASSERT(m_recv_end >= m_recv_start);
-		TORRENT_ASSERT(bool(m_disk_recv_buffer) == (m_disk_recv_buffer_size > 0));
 	}
 #endif
 
@@ -175,12 +151,6 @@ private:
 	//                          beyond this point is garbage)
 	// m_recv_buffer
 
-	// when not using contiguous receive buffers, there
-	// may be a disk_recv_buffer in the mix as well. Whenever
-	// m_disk_recv_buffer_size > 0 (and presumably also
-	// m_disk_recv_buffer != NULL) the disk buffer is imagined
-	// to be appended to the receive buffer right after m_recv_end.
-
 	// the start of the logical receive buffer
 	int m_recv_start;
 
@@ -202,15 +172,7 @@ private:
 	// have sent to it
 	int m_soft_packet_size;
 
-	int m_disk_recv_buffer_size;
-
 	buffer m_recv_buffer;
-
-	// if this peer is receiving a piece, this
-	// points to a disk buffer that the data is
-	// read into. This eliminates a memcopy from
-	// the receive buffer into the disk buffer
-	disk_buffer_holder m_disk_recv_buffer;
 };
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
@@ -222,16 +184,13 @@ private:
 struct crypto_receive_buffer
 {
 	crypto_receive_buffer(receive_buffer& next)
-	: m_recv_pos(INT_MAX)
-	, m_packet_size(0)
-	, m_soft_packet_size(0)
-	, m_connection_buffer(next)
+		: m_recv_pos(INT_MAX)
+		, m_packet_size(0)
+		, m_soft_packet_size(0)
+		, m_connection_buffer(next)
 	{}
 
 	buffer::interval mutable_buffer() { return m_connection_buffer.mutable_buffer(); }
-	char* release_disk_buffer() { return m_connection_buffer.release_disk_buffer(); }
-	bool has_disk_buffer() const { return m_connection_buffer.has_disk_buffer(); }
-	void assert_no_disk_buffer() const { m_connection_buffer.assert_no_disk_buffer(); }
 
 	bool packet_finished() const;
 
@@ -267,17 +226,7 @@ struct crypto_receive_buffer
 
 	buffer::const_interval get() const;
 
-	bool can_recv_contiguous(int /*size*/) const
-	{
-		// TODO: Detect when the start of the next crpyto packet is aligned
-		// with the start of piece data and the crpyto packet is at least
-		// as large as the piece data. With a little extra work
-		// we could receive directly into a disk buffer in that case.
-		return m_recv_pos == INT_MAX;
-	}
-
-	void mutable_buffers(std::vector<boost::asio::mutable_buffer>& vec
-		, std::size_t bytes_transfered);
+	boost::asio::mutable_buffer mutable_buffers(std::size_t bytes);
 
 private:
 	// explicitly disallow assignment, to silence msvc warning

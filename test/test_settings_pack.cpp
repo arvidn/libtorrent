@@ -97,7 +97,9 @@ TORRENT_TEST(test_name)
 	TEST_EQUAL(setting_by_name(#n), settings_pack:: n) \
 	TEST_CHECK(strcmp(name_for_setting(settings_pack:: n), #n) == 0)
 
+#ifndef TORRENT_NO_DEPRECATE
 	TEST_NAME(contiguous_recv_buffer);
+#endif
 	TEST_NAME(choking_algorithm);
 	TEST_NAME(seeding_piece_quota);
 #ifndef TORRENT_NO_DEPRECATE

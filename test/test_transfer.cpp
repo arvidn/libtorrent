@@ -357,6 +357,7 @@ void cleanup()
 	remove_all("tmp2_transfer_moved", ec);
 }
 
+#ifndef TORRENT_NO_DEPRECATE
 TORRENT_TEST(no_contiguous_buffers)
 {
 	using namespace libtorrent;
@@ -368,6 +369,7 @@ TORRENT_TEST(no_contiguous_buffers)
 
 	cleanup();
 }
+#endif
 
 	// test with all kinds of proxies
 TORRENT_TEST(socks5_pw)

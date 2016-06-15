@@ -195,7 +195,7 @@ namespace libtorrent
 		SET(apply_ip_filter_to_trackers, true, 0),
 		SET(use_disk_read_ahead, true, 0),
 		SET(lock_files, false, 0),
-		SET(contiguous_recv_buffer, true, 0),
+		DEPRECATED_SET(contiguous_recv_buffer, true, 0),
 		SET(ban_web_seeds, true, 0),
 		SET_NOPREV(allow_partial_disk_writes, true, 0),
 		SET(force_proxy, false, &session_impl::update_force_proxy),

@@ -77,10 +77,12 @@ namespace libtorrent
 {
 	TORRENT_EXPORT void min_memory_usage(settings_pack& set)
 	{
+#ifndef TORRENT_NO_DEPRECATE
 		// receive data directly into disk buffers
 		// this yields more system calls to read() and
 		// kqueue(), but saves RAM.
 		set.set_bool(settings_pack::contiguous_recv_buffer, false);
+#endif
 
 		set.set_int(settings_pack::disk_io_write_mode, settings_pack::disable_os_cache);
 		set.set_int(settings_pack::disk_io_read_mode, settings_pack::disable_os_cache);

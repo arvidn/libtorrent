@@ -141,7 +141,6 @@ void web_peer_connection::disconnect(error_code const& ec
 
 		// prevent the peer from trying to send anything more
 		m_send_buffer.clear();
-		m_recv_buffer.free_disk_buffer();
 
 		// when the web server closed our write-end of the socket (i.e. its
 		// read-end), if it's an HTTP 1.0 server. we will stop sending more

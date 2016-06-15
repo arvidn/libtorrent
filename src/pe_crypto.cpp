@@ -179,7 +179,7 @@ namespace libtorrent
 		if (recv_buffer.crypto_packet_finished())
 		{
 			std::vector<boost::asio::mutable_buffer> wr_buf;
-			recv_buffer.mutable_buffers(wr_buf, bytes_transferred);
+			wr_buf.push_back(recv_buffer.mutable_buffers(bytes_transferred));
 			int packet_size = 0;
 			int produce = int(bytes_transferred);
 			m_dec_handler->decrypt(wr_buf, consume, produce, packet_size);

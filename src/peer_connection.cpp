@@ -123,7 +123,6 @@ namespace libtorrent
 		, m_peer_info(pack.peerinfo)
 		, m_counters(*pack.stats_counters)
 		, m_num_pieces(0)
-		, m_recv_buffer(*pack.allocator)
 		, m_max_out_request_queue(m_settings.get_int(settings_pack::max_out_request_queue))
 		, m_remote(pack.endp)
 		, m_disk_thread(*pack.disk_thread)
@@ -2644,8 +2643,6 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 
-		m_recv_buffer.assert_no_disk_buffer();
-
 		// we're not receiving any block right now
 		m_receiving_block = piece_block::invalid;
 
@@ -4114,7 +4111,6 @@ namespace libtorrent
 			// make sure we free up all send buffers that are owned
 			// by the disk thread
 			m_send_buffer.clear();
-			m_recv_buffer.free_disk_buffer();
 		}
 
 		// we cannot do this in a constructor
@@ -4513,59 +4509,6 @@ namespace libtorrent
 
 		error_code ec;
 		p.local_endpoint = get_socket()->local_endpoint(ec);
-	}
-
-	// allocates a disk buffer of size 'disk_buffer_size' and replaces the
-	// end of the current receive buffer with it. i.e. the receive pos
-	// must be <= packet_size - disk_buffer_size
-	// the disk buffer can be accessed through release_disk_receive_buffer()
-	// when it is queried, the responsibility to free it is transferred
-	// to the caller
-	bool peer_connection::allocate_disk_receive_buffer(int disk_buffer_size)
-	{
-		TORRENT_ASSERT(is_single_thread());
-		INVARIANT_CHECK;
-
-		m_recv_buffer.assert_no_disk_buffer();
-		TORRENT_ASSERT(m_recv_buffer.pos() <= m_recv_buffer.packet_size() - disk_buffer_size);
-		TORRENT_ASSERT(disk_buffer_size <= 16 * 1024);
-
-		if (disk_buffer_size == 0) return true;
-
-		if (disk_buffer_size > 16 * 1024)
-		{
-			disconnect(errors::invalid_piece_size, op_bittorrent, 2);
-			return false;
-		}
-
-		// first free the old buffer
-		m_recv_buffer.free_disk_buffer();
-		// then allocate a new one
-
-		bool exceeded = false;
-		m_recv_buffer.assign_disk_buffer(
-			m_allocator.allocate_disk_buffer(exceeded, self(), "receive buffer")
-			, disk_buffer_size);
-
-		if (!m_recv_buffer.has_disk_buffer())
-		{
-			disconnect(errors::no_memory, op_alloc_recvbuf);
-			return false;
-		}
-
-		// to understand why m_outstanding_writing_bytes is here, see comment by
-		// the other call to allocate_disk_buffer()
-		if (exceeded && m_outstanding_writing_bytes > 0)
-		{
-#ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, "DISK", "exceeded disk buffer watermark");
-#endif
-			if ((m_channel_state[download_channel] & peer_info::bw_disk) == 0)
-				m_counters.inc_stats_counter(counters::num_peers_down_disk);
-			m_channel_state[download_channel] |= peer_info::bw_disk;
-		}
-
-		return true;
 	}
 
 	void peer_connection::superseed_piece(int replace_piece, int new_piece)
@@ -5750,13 +5693,10 @@ namespace libtorrent
 
 		int max_receive = m_recv_buffer.max_receive();
 
-		std::array<boost::asio::mutable_buffer, 2> vec;
-		int num_bufs = 0;
 		// only apply the contiguous receive buffer when we don't have any
 		// outstanding requests. When we're likely to receive pieces, we'll
 		// save more time from avoiding copying data from the socket
-		if ((m_settings.get_bool(settings_pack::contiguous_recv_buffer)
-			|| m_download_queue.empty()) && !m_recv_buffer.has_disk_buffer())
+		if (m_download_queue.empty())
 		{
 			if (s == read_sync)
 			{
@@ -5788,7 +5728,7 @@ namespace libtorrent
 			return 0;
 		}
 
-		num_bufs = m_recv_buffer.reserve(vec, max_receive);
+		boost::asio::mutable_buffer const vec = m_recv_buffer.reserve(max_receive);
 
 		if (s == read_async)
 		{
@@ -5801,33 +5741,14 @@ namespace libtorrent
 
 			// utp sockets aren't thread safe...
 			ADD_OUTSTANDING_ASYNC("peer_connection::on_receive_data");
-			if (num_bufs == 1)
-			{
-				TORRENT_ASSERT(boost::asio::buffer_size(vec[0]) > 0);
-				m_socket->async_read_some(
-					boost::asio::mutable_buffers_1(vec[0]), make_read_handler(
-						std::bind(&peer_connection::on_receive_data, self(), _1, _2)));
-			}
-			else
-			{
-				TORRENT_ASSERT(boost::asio::buffer_size(vec[0])
-					+ boost::asio::buffer_size(vec[1])> 0);
-				m_socket->async_read_some(
-					vec, make_read_handler(
-						std::bind(&peer_connection::on_receive_data, self(), _1, _2)));
-			}
+			m_socket->async_read_some(
+				boost::asio::mutable_buffers_1(vec), make_read_handler(
+					std::bind(&peer_connection::on_receive_data, self(), _1, _2)));
 			return 0;
 		}
 
-		size_t ret = 0;
-		if (num_bufs == 1)
-		{
-			ret = m_socket->read_some(boost::asio::mutable_buffers_1(vec[0]), ec);
-		}
-		else
-		{
-			ret = m_socket->read_some(vec, ec);
-		}
+		size_t const ret = m_socket->read_some(boost::asio::mutable_buffers_1(vec), ec);
+
 		// this is weird. You would imagine read_some() would do this
 		if (ret == 0 && !ec) ec = boost::asio::error::eof;
 
@@ -6454,7 +6375,6 @@ namespace libtorrent
 			// make sure we free up all send buffers that are owned
 			// by the disk thread
 			m_send_buffer.clear();
-			m_recv_buffer.free_disk_buffer();
 			return;
 		}
 

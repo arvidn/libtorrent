@@ -1,3 +1,4 @@
+	* removed option to disable contiguous receive buffers
 	* deprecated public to_hex() and from_hex() functions
 	* separated address and port fields in listen alerts
 	* added support for parsing new x.pe parameter from BEP 9
