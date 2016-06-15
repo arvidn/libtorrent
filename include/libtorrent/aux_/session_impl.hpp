@@ -929,14 +929,6 @@ namespace libtorrent
 			// torrents.
 			int m_auto_scrape_time_scaler;
 
-			// the index of the torrent that we'll
-			// refresh the next time
-			int m_next_suggest_torrent;
-
-			// this is a counter of the number of seconds until
-			// the next time the suggest pieces are refreshed
-			int m_suggest_timer;
-
 			// statistics gathered from all torrents.
 			stat m_stat;
 

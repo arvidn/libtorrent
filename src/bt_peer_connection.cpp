@@ -317,6 +317,7 @@ namespace libtorrent
 		if (m_state < read_peer_id) return;
 
 		if (m_sent_bitfield) return;
+
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 		write_bitfield();
@@ -483,7 +484,7 @@ namespace libtorrent
 
 	bool bt_peer_connection::in_handshake() const
 	{
-		return m_state < read_packet_size;
+		return !m_sent_handshake;
 	}
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
@@ -1046,7 +1047,7 @@ namespace libtorrent
 		buffer::const_interval recv_buffer = m_recv_buffer.get();
 
 		const char* ptr = recv_buffer.begin + 1;
-		int index = detail::read_int32(ptr);
+		int const index = detail::read_int32(ptr);
 
 		incoming_have(index);
 	}
@@ -1372,7 +1373,7 @@ namespace libtorrent
 		buffer::const_interval recv_buffer = m_recv_buffer.get();
 
 		const char* ptr = recv_buffer.begin + 1;
-		int piece = detail::read_uint32(ptr);
+		int const piece = detail::read_uint32(ptr);
 		incoming_suggest(piece);
 	}
 
@@ -2134,13 +2135,6 @@ namespace libtorrent
 
 		const int num_pieces = t->torrent_file().num_pieces();
 		TORRENT_ASSERT(num_pieces > 0);
-		if (num_pieces <= 0)
-		{
-#ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, "BITFIELD", "not sending bitfield, num_pieces == 0");
-#endif
-			return;
-		}
 
 		int lazy_pieces[50];
 		int num_lazy_pieces = 0;
@@ -2421,7 +2415,10 @@ namespace libtorrent
 		TORRENT_ASSERT(index >= 0);
 		TORRENT_ASSERT(index < associated_torrent().lock()->torrent_file().num_pieces());
 		TORRENT_ASSERT(m_sent_handshake);
-		TORRENT_ASSERT(m_sent_bitfield);
+
+		// if we haven't sent the bitfield yet, this piece should be included in
+		// there instead
+		if (!m_sent_bitfield) return;
 
 		char msg[] = {0,0,0,5,msg_have,0,0,0,0};
 		char* ptr = msg + 5;

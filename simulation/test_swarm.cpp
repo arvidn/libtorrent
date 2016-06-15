@@ -125,27 +125,42 @@ TORRENT_TEST(session_stats)
 
 TORRENT_TEST(suggest)
 {
-	setup_swarm(2, swarm_test::download
+	int num_suggests = 0;
+	setup_swarm(10, swarm_test::upload
 		// add session
 		, [](lt::settings_pack& pack) {
 			pack.set_int(settings_pack::suggest_mode, settings_pack::suggest_read_cache);
+			pack.set_int(settings_pack::max_suggest_pieces, 10);
 		}
 		// add torrent
 		, [](lt::add_torrent_params& params) {}
 		// on alert
-		, [](lt::alert const* a, lt::session& ses) {}
+		, [&num_suggests](lt::alert const* a, lt::session& ses) {
+			if (auto pl = alert_cast<peer_log_alert>(a))
+			{
+				if (pl->direction == peer_log_alert::outgoing_message
+					&& pl->event_type == std::string("SUGGEST"))
+				{
+					++num_suggests;
+				}
+			}
+		}
 		// terminate
 		, [](int ticks, lt::session& ses) -> bool
 		{
-			if (ticks > 80)
+			if (ticks > 500)
 			{
-				TEST_ERROR("timeout");
 				return true;
 			}
-			if (!is_seed(ses)) return false;
-			std::printf("completed in %d ticks\n", ticks);
-			return true;
+			return false;
 		});
+
+	// for now, just make sure we send any suggests at all. This feature is
+	// experimental and it's not entirely clear it's correct or how to verify
+	// that it does what it's supposed to do.
+	// perhaps a better way would be to look at piece upload distribution over
+	// time
+	TEST_CHECK(num_suggests > 0);
 }
 
 TORRENT_TEST(utp_only)

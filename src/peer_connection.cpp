@@ -176,7 +176,6 @@ namespace libtorrent
 		, m_upload_only(false)
 		, m_bitfield_received(false)
 		, m_no_download(false)
-		, m_sent_suggests(false)
 		, m_holepunch_mode(false)
 		, m_peer_choked(true)
 		, m_have_all(false)
@@ -677,16 +676,13 @@ namespace libtorrent
 			i = m_allowed_fast.erase(i);
 		}
 
-		for (std::vector<int>::iterator i = m_suggested_pieces.begin();
-			i != m_suggested_pieces.end();)
-		{
-			if (*i < m_num_pieces)
-			{
-				++i;
-				continue;
-			}
-			i = m_suggested_pieces.erase(i);
-		}
+		// remove any piece suggested to us whose index is invalid
+		// now that we know how many pieces there are
+		m_suggested_pieces.erase(
+			std::remove_if(m_suggested_pieces.begin(), m_suggested_pieces.end()
+				, [=](int const p) { return p >= m_num_pieces; })
+			, m_suggested_pieces.end());
+
 		on_metadata();
 		if (m_disconnecting) return;
 	}
@@ -904,7 +900,7 @@ namespace libtorrent
 			++peer_info_struct()->fast_reconnects;
 	}
 
-	void peer_connection::received_piece(int index)
+	void peer_connection::received_piece(int const index)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		// dont announce during handshake
@@ -941,23 +937,21 @@ namespace libtorrent
 #endif
 	}
 
-	void peer_connection::announce_piece(int index)
+	void peer_connection::announce_piece(int const index)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		// dont announce during handshake
 		if (in_handshake()) return;
 
-		if (has_piece(index))
+		// optimization, don't send have messages
+		// to peers that already have the piece
+		if (!m_settings.get_bool(settings_pack::send_redundant_have)
+			&& has_piece(index))
 		{
-			// optimization, don't send have messages
-			// to peers that already have the piece
-			if (!m_settings.get_bool(settings_pack::send_redundant_have))
-			{
 #ifndef TORRENT_DISABLE_LOGGING
-				peer_log(peer_log_alert::outgoing_message, "HAVE", "piece: %d SUPRESSED", index);
+			peer_log(peer_log_alert::outgoing_message, "HAVE", "piece: %d SUPRESSED", index);
 #endif
-				return;
-			}
+			return;
 		}
 
 		if (disconnect_if_redundant()) return;
@@ -1526,7 +1520,7 @@ namespace libtorrent
 	// ------- SUGGEST PIECE -------
 	// -----------------------------
 
-	void peer_connection::incoming_suggest(int index)
+	void peer_connection::incoming_suggest(int const index)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -1789,7 +1783,7 @@ namespace libtorrent
 	// ----------- HAVE ------------
 	// -----------------------------
 
-	void peer_connection::incoming_have(int index)
+	void peer_connection::incoming_have(int const index)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -1810,6 +1804,17 @@ namespace libtorrent
 		// if we haven't received a bitfield, it was
 		// probably omitted, which is the same as 'have_none'
 		if (!m_bitfield_received) incoming_have_none();
+
+		// if this peer is choked, there's no point in sending suggest messages to
+		// it. They would just be out-of-date by the time we unchoke the peer
+		// anyway.
+		if (m_settings.get_int(settings_pack::suggest_mode) == settings_pack::suggest_read_cache
+			&& !is_choked()
+			&& std::any_of(m_suggest_pieces.begin(), m_suggest_pieces.end()
+				, [=](int const idx) { return idx == index; }))
+		{
+			send_piece_suggestions(2);
+		}
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::incoming_message, "HAVE", "piece: %d", index);
@@ -3668,6 +3673,8 @@ namespace libtorrent
 			m_counters.inc_stats_counter(counters::num_peers_up_unchoked_optimistic, -1);
 		}
 
+		std::vector<int>().swap(m_suggest_pieces);
+
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::outgoing_message, "CHOKE");
 #endif
@@ -3716,22 +3723,12 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t->ready_for_connections()) return false;
 
-		if (!m_sent_suggests)
+		if (m_settings.get_int(settings_pack::suggest_mode)
+			== settings_pack::suggest_read_cache)
 		{
-			std::vector<torrent::suggest_piece_t> const& ret
-				= t->get_suggested_pieces();
-
-			for (std::vector<torrent::suggest_piece_t>::const_iterator i = ret.begin()
-				, end(ret.end()); i != end; ++i)
-			{
-				TORRENT_ASSERT(i->piece_index >= 0);
-				// this can happen if a piece fail to be
-				// flushed to disk for whatever reason
-				if (!t->has_piece_passed(i->piece_index)) continue;
-				send_suggest(i->piece_index);
-			}
-
-			m_sent_suggests = true;
+			// immediately before unchoking this peer, we should send some
+			// suggested pieces for it to request
+			send_piece_suggestions(2);
 		}
 
 		m_last_unchoke = aux::time_now();
@@ -3795,16 +3792,38 @@ namespace libtorrent
 #endif
 	}
 
-	void peer_connection::send_suggest(int piece)
+	void peer_connection::send_piece_suggestions(int const num)
+	{
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		TORRENT_ASSERT(t);
+
+		int const new_suggestions = t->get_suggest_pieces(m_suggest_pieces
+			, m_have_piece, num);
+
+		// higher priority pieces are farther back in the vector, the last
+		// suggested piece to be received is the highest priority, so send the
+		// highest priority piece last.
+		for (auto i = m_suggest_pieces.end() - new_suggestions;
+			i != m_suggest_pieces.end(); ++i)
+		{
+			send_suggest(*i);
+		}
+		int const max = m_settings.get_int(settings_pack::max_suggest_pieces);
+		if (m_suggest_pieces.size() > max)
+		{
+			int const to_erase = m_suggest_pieces.size() - max;
+			m_suggest_pieces.erase(m_suggest_pieces.begin()
+				, m_suggest_pieces.begin() + to_erase);
+		}
+	}
+
+	void peer_connection::send_suggest(int const piece)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		if (m_connecting) return;
-		if (in_handshake()) return;
+		if (m_connecting || in_handshake()) return;
 
 		// don't suggest a piece that the peer already has
-		// don't suggest anything to a peer that isn't interested
-		if (has_piece(piece) || !m_peer_interested)
-			return;
+		if (has_piece(piece)) return;
 
 		// we cannot suggest a piece we don't have!
 #if TORRENT_USE_ASSERTS
@@ -3815,18 +3834,6 @@ namespace libtorrent
 			TORRENT_ASSERT(piece >= 0 && piece < t->torrent_file().num_pieces());
 		}
 #endif
-
-
-		if (m_sent_suggested_pieces.empty())
-		{
-			boost::shared_ptr<torrent> t = m_torrent.lock();
-			m_sent_suggested_pieces.resize(t->torrent_file().num_pieces(), false);
-		}
-
-		TORRENT_ASSERT(piece >= 0 && piece < m_sent_suggested_pieces.size());
-
-		if (m_sent_suggested_pieces[piece]) return;
-		m_sent_suggested_pieces.set_bit(piece);
 
 		write_suggest(piece);
 	}
@@ -3855,7 +3862,7 @@ namespace libtorrent
 		if (int(m_download_queue.size()) >= m_desired_queue_size
 			|| t->upload_mode()) return;
 
-		bool empty_download_queue = m_download_queue.empty();
+		bool const empty_download_queue = m_download_queue.empty();
 
 		while (!m_request_queue.empty()
 			&& (int(m_download_queue.size()) < m_desired_queue_size
@@ -5259,7 +5266,7 @@ namespace libtorrent
 		// 0: success, piece passed hash check
 		// -1: disk failure
 
-		int disk_rtt = int(total_microseconds(clock_type::now() - issue_time));
+		int const disk_rtt = int(total_microseconds(clock_type::now() - issue_time));
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, "FILE_ASYNC_READ_COMPLETE"
@@ -5308,6 +5315,15 @@ namespace libtorrent
 		// otherwise the disk thread will hang, waiting for the network
 		// thread to be done with it
 		disk_buffer_holder buffer(m_allocator, *j);
+
+		if (t && m_settings.get_int(settings_pack::suggest_mode)
+			== settings_pack::suggest_read_cache)
+		{
+			// tell the torrent that we just read a block from this piece.
+			// if this piece is low-availability, it's now a candidate for being
+			// suggested to other peers
+			t->add_suggest_piece(r.piece);
+		}
 
 		if (m_disconnecting) return;
 

@@ -745,6 +745,8 @@ namespace libtorrent
 		virtual void on_sent(error_code const& error
 			, std::size_t bytes_transferred) = 0;
 
+		void send_piece_suggestions(int num);
+
 		virtual int hit_send_barrier(std::vector<boost::asio::mutable_buffer>&)
 		{ return INT_MAX; }
 
@@ -974,9 +976,11 @@ namespace libtorrent
 		aux::handler_storage<TORRENT_READ_HANDLER_MAX_SIZE> m_read_handler_storage;
 		aux::handler_storage<TORRENT_WRITE_HANDLER_MAX_SIZE> m_write_handler_storage;
 
-		// we have suggested these pieces to the peer
-		// don't suggest it again
-		bitfield m_sent_suggested_pieces;
+		// these are pieces we have recently sent suggests for to this peer.
+		// it just serves as a queue to remember what we've sent, to avoid
+		// re-sending suggests for the same piece
+		// i.e. outgoing suggest pieces
+		std::vector<int> m_suggest_pieces;
 
 		// the pieces we will send to the peer
 		// if requested (regardless of choke state)
@@ -991,8 +995,9 @@ namespace libtorrent
 		// requested (regardless of choke state)
 		std::vector<int> m_allowed_fast;
 
-		// pieces that has been suggested to be
-		// downloaded from this peer
+		// pieces that has been suggested to be downloaded from this peer
+		// i.e. incoming suggestions
+		// TODO: 2 this should really be a circular buffer
 		std::vector<int> m_suggested_pieces;
 
 		// the time when this peer last saw a complete copy
@@ -1164,8 +1169,7 @@ namespace libtorrent
 		// pick any pieces from this peer
 		bool m_no_download:1;
 
-		// set to true when we've sent the first round of suggests
-		bool m_sent_suggests:1;
+		// 1 bit
 
 		// set to true while we're trying to holepunch
 		bool m_holepunch_mode:1;

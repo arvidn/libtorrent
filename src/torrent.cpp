@@ -249,7 +249,6 @@ namespace libtorrent
 		, m_max_uploads((1<<24)-1)
 		, m_save_resume_flags(0)
 		, m_num_uploads(0)
-		, m_need_suggest_pieces_refresh(false)
 		, m_need_connect_boost(true)
 		, m_lsd_seq(0)
 		, m_magnet_link(false)
@@ -1255,8 +1254,10 @@ namespace libtorrent
 		TORRENT_ASSERT(!m_have_all);
 
 		m_picker.reset(new piece_picker());
-		int blocks_per_piece = (m_torrent_file->piece_length() + block_size() - 1) / block_size();
-		int blocks_in_last_piece = ((m_torrent_file->total_size() % m_torrent_file->piece_length())
+		int const blocks_per_piece
+			= (m_torrent_file->piece_length() + block_size() - 1) / block_size();
+		int const blocks_in_last_piece
+			= ((m_torrent_file->total_size() % m_torrent_file->piece_length())
 			+ block_size() - 1) / block_size();
 		m_picker->init(blocks_per_piece, blocks_in_last_piece, m_torrent_file->num_pieces());
 
@@ -1372,20 +1373,6 @@ namespace libtorrent
 
 		picker().mark_as_finished(block_finished, 0);
 		maybe_done_flushing();
-	}
-
-	void torrent::on_disk_cache_complete(disk_io_job const* j)
-	{
-		TORRENT_ASSERT(have_piece(j->piece));
-
-		dec_refcount("cache_piece");
-
-		if (j->ret < 0) return;
-
-		// suggest this piece to all peers
-		for (peer_iterator i = m_connections.begin();
-			i != m_connections.end(); ++i)
-			(*i)->send_suggest(j->piece);
 	}
 
 	void torrent::on_disk_tick_done(disk_io_job const* j)
@@ -4008,6 +3995,21 @@ namespace libtorrent
 
 	}
 
+	void torrent::add_suggest_piece(int const index)
+	{
+		TORRENT_ASSERT(settings().get_int(settings_pack::suggest_mode)
+			== settings_pack::suggest_read_cache);
+
+		// when we care about suggest mode, we keep the piece picker
+		// around to track piece availability
+		need_picker();
+		int const peers = std::max(num_peers(), 1);
+		int const availability = m_picker->get_availability(index) * 100 / peers;
+
+		m_suggest_pieces.add_piece(index, availability
+			, settings().get_int(settings_pack::max_suggest_pieces));
+	}
+
 	// this is called once we have completely downloaded piece
 	// 'index', its hash has been verified. It's also called
 	// during initial file check when we find a piece whose hash
@@ -4083,15 +4085,6 @@ namespace libtorrent
 			p->update_interest();
 		}
 
-		if (settings().get_int(settings_pack::suggest_mode) == settings_pack::suggest_read_cache)
-		{
-			// we just got a new piece. Chances are that it's actually the
-			// rarest piece (since we're likely to download pieces rarest first)
-			// if it's rarer than any other piece that we currently suggest, insert
-			// it in the suggest set and pop the last one out
-			add_suggest_piece(index);
-		}
-
 		set_need_save_resume();
 		state_updated();
 
@@ -4148,6 +4141,16 @@ namespace libtorrent
 		inc_stats_counter(counters::num_piece_passed);
 
 		remove_time_critical_piece(index, true);
+
+		if (settings().get_int(settings_pack::suggest_mode)
+			== settings_pack::suggest_read_cache)
+		{
+			// we just got a new piece. Chances are that it's actually the
+			// rarest piece (since we're likely to download pieces rarest first)
+			// if it's rarer than any other piece that we currently suggest, insert
+			// it in the suggest set and pop the last one out
+			add_suggest_piece(index);
+		}
 
 		std::vector<torrent_peer*> downloaders;
 		m_picker->get_downloaders(downloaders, index);
@@ -4475,7 +4478,6 @@ namespace libtorrent
 		{
 			torrent_peer* pp = peer->peer_info_struct();
 			m_picker->inc_refcount(index, pp);
-			update_suggest_piece(index, 1);
 		}
 #ifdef TORRENT_DEBUG
 		else
@@ -4493,7 +4495,6 @@ namespace libtorrent
 			TORRENT_ASSERT(bits.size() == torrent_file().num_pieces());
 			torrent_peer* pp = peer->peer_info_struct();
 			m_picker->inc_refcount(bits, pp);
-			refresh_suggest_pieces();
 		}
 #ifdef TORRENT_DEBUG
 		else
@@ -4525,7 +4526,6 @@ namespace libtorrent
 			TORRENT_ASSERT(bits.size() == torrent_file().num_pieces());
 			torrent_peer* pp = peer->peer_info_struct();
 			m_picker->dec_refcount(bits, pp);
-			// TODO: update suggest_piece?
 		}
 #ifdef TORRENT_DEBUG
 		else
@@ -4541,7 +4541,6 @@ namespace libtorrent
 		{
 			torrent_peer* pp = peer->peer_info_struct();
 			m_picker->dec_refcount(index, pp);
-			update_suggest_piece(index, -1);
 		}
 #ifdef TORRENT_DEBUG
 		else
@@ -4549,153 +4548,6 @@ namespace libtorrent
 			TORRENT_ASSERT(is_seed() || !m_have_all);
 		}
 #endif
-	}
-
-	void torrent::add_suggest_piece(int index)
-	{
-		// it would be nice if we would keep track of piece
-		// availability even when we're a seed, for
-		// the suggest piece feature
-		if (!has_picker()) return;
-
-		int num_peers = m_picker->get_availability(index);
-
-		TORRENT_ASSERT(has_piece_passed(index));
-
-		// in order to avoid unnecessary churn in the suggested pieces
-		// the new piece has to beat the existing piece by at least one
-		// peer in availability.
-		// m_suggested_pieces is sorted by rarity, the last element
-		// should have the most peers (num_peers).
-		if (m_suggested_pieces.empty()
-			|| num_peers < m_suggested_pieces[m_suggested_pieces.size()-1].num_peers - 1)
-		{
-			suggest_piece_t sp;
-			sp.piece_index = index;
-			sp.num_peers = num_peers;
-
-			auto range = std::equal_range(m_suggested_pieces.begin(), m_suggested_pieces.end(), sp);
-
-			// make sure this piece isn't already in the suggested set.
-			// if it is, just ignore it
-			auto i = std::find_if(range.first, range.second
-				, [index] (suggest_piece_t const& p) { return p.piece_index == index; });
-			if (i != range.second) return;
-
-			m_suggested_pieces.insert(range.second, sp);
-			if (m_suggested_pieces.size() > 0)
-				m_suggested_pieces.pop_back();
-
-			// tell all peers about this new suggested piece
-			for (peer_iterator p = m_connections.begin()
-				, end(m_connections.end()); p != end; ++p)
-			{
-				(*p)->send_suggest(index);
-			}
-
-			refresh_suggest_pieces();
-		}
-	}
-
-	void torrent::update_suggest_piece(int index, int change)
-	{
-		for (std::vector<suggest_piece_t>::iterator i = m_suggested_pieces.begin()
-			, end(m_suggested_pieces.end()); i != end; ++i)
-		{
-			if (i->piece_index != index) continue;
-
-			i->num_peers += change;
-			if (change > 0)
-				std::stable_sort(i, end);
-			else if (change < 0)
-				std::stable_sort(m_suggested_pieces.begin(), i + 1);
-		}
-
-		if (!m_suggested_pieces.empty() && m_suggested_pieces[0].num_peers > m_connections.size() * 2 / 3)
-		{
-			// the rarest piece we have in the suggest set is not very
-			// rare anymore. at least 2/3 of the peers has it now. Refresh
-			refresh_suggest_pieces();
-		}
-	}
-
-	void torrent::refresh_suggest_pieces()
-	{
-		m_need_suggest_pieces_refresh = true;
-	}
-
-	void torrent::do_refresh_suggest_pieces()
-	{
-		m_need_suggest_pieces_refresh = false;
-
-		if (settings().get_int(settings_pack::suggest_mode)
-			== settings_pack::no_piece_suggestions)
-			return;
-
-		if (!valid_metadata()) return;
-
-		boost::shared_ptr<torrent> t = shared_from_this();
-		TORRENT_ASSERT(t);
-		cache_status cs;
-		m_ses.disk_thread().get_cache_info(&cs, m_storage.get() == NULL, m_storage.get());
-
-		// remove write cache entries
-		cs.pieces.erase(std::remove_if(cs.pieces.begin(), cs.pieces.end()
-			, [] (cached_piece_info const& cp) { return cp.kind == cached_piece_info::write_cache; } )
-			, cs.pieces.end());
-
-		std::vector<suggest_piece_t>& pieces = m_suggested_pieces;
-		pieces.clear();
-		pieces.reserve(cs.pieces.size());
-
-		// sort in decending order, to get most recently used first
-		std::sort(cs.pieces.begin(), cs.pieces.end()
-			, [] (cached_piece_info const& lhs, cached_piece_info const& rhs)
-			{ return lhs.last_use >= rhs.last_use; });
-
-		for (std::vector<cached_piece_info>::iterator i = cs.pieces.begin()
-			, end(cs.pieces.end()); i != end; ++i)
-		{
-			TORRENT_ASSERT(i->storage == m_storage.get());
-			if (!has_piece_passed(i->piece)) continue;
-			suggest_piece_t p;
-			p.piece_index = i->piece;
-			if (has_picker())
-			{
-				p.num_peers = m_picker->get_availability(i->piece);
-			}
-			else
-			{
-				// TODO: really, we should just keep the picker around
-				// in this case to maintain the availability counters
-				p.num_peers = 0;
-				for (const_peer_iterator j = m_connections.begin()
-					, end2(m_connections.end()); j != end2; ++j)
-				{
-					peer_connection* peer = *j;
-					if (peer->has_piece(p.piece_index)) ++p.num_peers;
-				}
-			}
-			pieces.push_back(p);
-		}
-
-		// sort by rarity (stable, to maintain sort
-		// by last use)
-		std::stable_sort(pieces.begin(), pieces.end());
-
-		// only suggest half of the pieces
-		pieces.resize(pieces.size() / 2);
-
-		// send new suggests to peers
-		// the peers will filter out pieces we've
-		// already suggested to them
-		for (std::vector<suggest_piece_t>::iterator i = pieces.begin()
-			, end(pieces.end()); i != end; ++i)
-		{
-			for (peer_iterator p = m_connections.begin();
-				p != m_connections.end(); ++p)
-				(*p)->send_suggest(i->piece_index);
-		}
 	}
 
 	void torrent::abort()
@@ -7878,7 +7730,8 @@ namespace libtorrent
 		// still need the piece picker, to keep track
 		// of availability counts for pieces
 		if (m_picker->is_seeding()
-			&& settings().get_int(settings_pack::suggest_mode) != settings_pack::suggest_read_cache)
+			&& settings().get_int(settings_pack::suggest_mode)
+				!= settings_pack::suggest_read_cache)
 		{
 			// no need for the piece picker anymore
 			m_picker.reset();
@@ -9511,8 +9364,6 @@ namespace libtorrent
 
 			return;
 		}
-		if (m_need_suggest_pieces_refresh)
-			do_refresh_suggest_pieces();
 
 		if (settings().get_bool(settings_pack::rate_limit_ip_overhead))
 		{
