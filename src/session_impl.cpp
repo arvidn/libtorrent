@@ -638,7 +638,7 @@ namespace aux {
 		for (auto& ext : m_ses_extensions)
 		{
 			TORRENT_TRY {
-				ext->save_state(*eptr);
+				ext.first->save_state(*eptr);
 			} TORRENT_CATCH(std::exception&) {}
 		}
 #endif
@@ -785,7 +785,7 @@ namespace aux {
 		for (auto& ext : m_ses_extensions)
 		{
 			TORRENT_TRY {
-				ext->load_state(*e);
+				ext.first->load_state(*e);
 			} TORRENT_CATCH(std::exception&) {}
 		}
 #endif
@@ -811,35 +811,23 @@ namespace aux {
 
 		boost::shared_ptr<plugin> p(new session_plugin_wrapper(ext));
 
-		m_ses_extensions.push_back(p);
-		m_session_extension_features |= p->implemented_features();
+		add_ses_extension(p, false);
 	}
 
-	void session_impl::add_ses_extension(boost::shared_ptr<plugin> ext)
+	void session_impl::add_ses_extension(boost::shared_ptr<plugin> ext, bool no_wrap)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT_VAL(ext, ext);
 
-		m_ses_extensions.push_back(ext);
-		m_alerts.add_extension(ext);
-		ext->added(session_handle(this));
-		m_session_extension_features |= ext->implemented_features();
+		boost::uint32_t features = ext->implemented_features();
+		m_ses_extensions.push_back({ext, features});
+		m_session_extension_features |= features;
 
-		// get any DHT queries the plugin would like to handle
-		// and record them in m_extension_dht_queries for lookup
-		// later
-		dht_extensions_t dht_ext;
-		ext->register_dht_extensions(dht_ext);
-		for (dht_extensions_t::iterator e = dht_ext.begin();
-			e != dht_ext.end(); ++e)
+		if (no_wrap)
 		{
-			TORRENT_ASSERT(e->first.size() <= max_dht_query_length);
-			if (e->first.size() > max_dht_query_length) continue;
-			extension_dht_query registration;
-			registration.query_len = uint8_t(e->first.size());
-			std::copy(e->first.begin(), e->first.end(), registration.query.begin());
-			registration.handler = e->second;
-			m_extension_dht_queries.push_back(registration);
+			if (features & plugin::alert_feature)
+				m_alerts.add_extension(ext);
+			ext->added(session_handle(this));
 		}
 	}
 
@@ -3145,7 +3133,8 @@ namespace aux {
 			for (auto& ext : m_ses_extensions)
 			{
 				TORRENT_TRY {
-					ext->on_tick();
+					if (ext.second & plugin::tick_feature)
+						ext.first->on_tick();
 				} TORRENT_CATCH(std::exception&) {}
 			}
 		}
@@ -3842,7 +3831,8 @@ namespace aux {
 			}
 			for (auto& e : m_ses_extensions)
 			{
-				if (e->on_optimistic_unchoke(peers))
+				if ((e.second & plugin::optimistic_unchoke_feature) != 0
+					&& e.first->on_optimistic_unchoke(peers))
 					break;
 			}
 			// then convert back to the internal torrent_peer pointers
@@ -4234,7 +4224,7 @@ namespace aux {
 		for (auto& e : m_ses_extensions)
 		{
 			add_torrent_params p;
-			if (e->on_unknown_torrent(info_hash, peer_connection_handle(pc->self()), p))
+			if (e.first->on_unknown_torrent(info_hash, peer_connection_handle(pc->self()), p))
 			{
 				error_code ec;
 				torrent_handle handle = add_torrent(p, ec);
@@ -4632,7 +4622,7 @@ namespace aux {
 	{
 		for (auto& e : m_ses_extensions)
 		{
-			boost::shared_ptr<torrent_plugin> tp(e->new_torrent(
+			boost::shared_ptr<torrent_plugin> tp(e.first->new_torrent(
 				torrent_ptr->get_handle(), userdata));
 			if (tp) torrent_ptr->add_extension(tp);
 		}
@@ -6618,15 +6608,15 @@ namespace aux {
 		, dht::msg const& request, entry& response)
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		if (query_len > max_dht_query_length) return false;
-
-		for (m_extension_dht_queries_t::iterator i = m_extension_dht_queries.begin();
-			i != m_extension_dht_queries.end(); ++i)
+		if (m_session_extension_features & plugin::dht_request_feature)
 		{
-			if (query_len == i->query_len
-				&& memcmp(i->query.data(), query, query_len) == 0
-				&& i->handler(request.addr, request.message, response))
-				return true;
+			for (auto& ext : m_ses_extensions)
+			{
+				if ((ext.second & plugin::dht_request_feature) != 0
+					&& ext.first->on_dht_request(query, query_len
+						, request.addr, request.message, response))
+					return true;
+			}
 		}
 #else
 		TORRENT_UNUSED(query);

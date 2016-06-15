@@ -611,7 +611,7 @@ namespace libtorrent
 	void session_handle::add_extension(boost::shared_ptr<plugin> ext)
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		async_call(&session_impl::add_ses_extension, ext);
+		async_call(&session_impl::add_ses_extension, ext, true);
 #else
 		TORRENT_UNUSED(ext);
 #endif
