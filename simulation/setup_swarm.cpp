@@ -199,7 +199,7 @@ void setup_swarm(int num_nodes
 	, std::function<void(lt::settings_pack&)> new_session
 	, std::function<void(lt::add_torrent_params&)> add_torrent
 	, std::function<void(lt::alert const*, lt::session&)> on_alert
-	, std::function<int(int, lt::session&)> terminate)
+	, std::function<bool(int, lt::session&)> terminate)
 {
 	dsl_config network_cfg;
 	sim::simulation sim{network_cfg};
@@ -214,7 +214,7 @@ void setup_swarm(int num_nodes
 	, std::function<void(lt::settings_pack&)> new_session
 	, std::function<void(lt::add_torrent_params&)> add_torrent
 	, std::function<void(lt::alert const*, lt::session&)> on_alert
-	, std::function<int(int, lt::session&)> terminate)
+	, std::function<bool(int, lt::session&)> terminate)
 {
 	lt::settings_pack pack = settings();
 
@@ -234,7 +234,7 @@ void setup_swarm(int num_nodes
 	, std::function<void(lt::settings_pack&)> new_session
 	, std::function<void(lt::add_torrent_params&)> add_torrent
 	, std::function<void(lt::alert const*, lt::session&)> on_alert
-	, std::function<int(int, lt::session&)> terminate)
+	, std::function<bool(int, lt::session&)> terminate)
 {
 	setup_swarm(num_nodes, type, sim
 		, default_settings
@@ -255,7 +255,7 @@ void setup_swarm(int num_nodes
 	, std::function<void(lt::settings_pack&)> new_session
 	, std::function<void(lt::add_torrent_params&)> add_torrent
 	, std::function<void(lt::alert const*, lt::session&)> on_alert
-	, std::function<int(int, lt::session&)> terminate)
+	, std::function<bool(int, lt::session&)> terminate)
 {
 	asio::io_service ios(sim);
 	lt::time_point start_time(lt::clock_type::now());
@@ -351,7 +351,8 @@ void setup_swarm(int num_nodes
 
 					// only print alerts from the session under test
 					lt::time_duration d = a->timestamp() - start_time;
-					std::uint32_t const millis = lt::duration_cast<lt::milliseconds>(d).count();
+					std::uint32_t const millis = std::uint32_t(
+						lt::duration_cast<lt::milliseconds>(d).count());
 
 					if (should_print(a))
 					{

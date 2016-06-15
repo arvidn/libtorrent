@@ -117,7 +117,7 @@ TORRENT_TEST(dht_bootstrap)
 		{
 			if (lt::dht_stats_alert const* p = lt::alert_cast<lt::dht_stats_alert>(a))
 			{
-				routing_table_depth = p->routing_table.size();
+				routing_table_depth = int(p->routing_table.size());
 				int c = 0;
 				for (auto const& b : p->routing_table)
 				{

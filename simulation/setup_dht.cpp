@@ -82,7 +82,7 @@ namespace {
 struct dht_node final : lt::dht::udp_socket_interface
 {
 	dht_node(sim::simulation& sim, lt::dht_settings const& sett, lt::counters& cnt
-		, int idx, std::uint32_t flags)
+		, int const idx, std::uint32_t const flags)
 		: m_io_service(sim, (flags & dht_network::bind_ipv6) ? addr6_from_int(idx) : addr_from_int(idx))
 		, m_dht_storage(lt::dht::dht_default_storage_constructor(sett))
 #if LIBSIMULATOR_USE_MOVE
@@ -96,8 +96,8 @@ struct dht_node final : lt::dht::udp_socket_interface
 			, this, sett, id_from_addr(m_io_service.get_ips().front())
 			, nullptr, cnt, std::map<std::string, lt::dht::node*>(), *m_dht_storage))
 #endif
-		, m_add_dead_nodes(flags & dht_network::add_dead_nodes)
-		, m_ipv6(flags & dht_network::bind_ipv6)
+		, m_add_dead_nodes((flags & dht_network::add_dead_nodes) != 0)
+		, m_ipv6((flags & dht_network::bind_ipv6) != 0)
 	{
 		m_dht_storage->update_node_ids({id_from_addr(m_io_service.get_ips().front())});
 		error_code ec;

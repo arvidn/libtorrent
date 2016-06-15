@@ -113,7 +113,7 @@ struct fake_peer
 
 	void send_bitfield(std::vector<bool> const& pieces)
 	{
-		int const bytes = (pieces.size() + 7) / 8;
+		int const bytes = (int(pieces.size()) + 7) / 8;
 		m_send_buffer.resize(m_send_buffer.size() + 5 + bytes);
 		char* ptr = m_send_buffer.data() + m_send_buffer.size() - 5 - bytes;
 
