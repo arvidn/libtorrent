@@ -36,12 +36,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/disk_io_job.hpp" // for block_cache_reference
-#include <algorithm>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/shared_ptr.hpp>
-#include <boost/function.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -69,7 +67,7 @@ namespace libtorrent
 	// 
 	// ``get()`` returns the pointer without transferring ownership. If
 	// this buffer has been released, ``get()`` will return nullptr.
-	struct TORRENT_EXPORT disk_buffer_holder
+	struct TORRENT_EXTRA_EXPORT disk_buffer_holder
 	{
 		// internal
 		disk_buffer_holder(buffer_allocator_interface& alloc, char* buf);
@@ -126,4 +124,3 @@ namespace libtorrent
 }
 
 #endif
-
