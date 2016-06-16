@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/allocator.hpp"
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/sliding_average.hpp"
+#include "libtorrent/disk_io_thread_pool.hpp"
 #include "libtorrent/disk_io_job.hpp"
 #include "libtorrent/disk_job_pool.hpp"
 #include "libtorrent/block_cache.hpp"
@@ -294,7 +295,7 @@ namespace libtorrent
 		~disk_io_thread();
 
 		void set_settings(settings_pack const* sett, alert_manager& alerts);
-		void set_num_threads(int i, bool wait = true);
+		void set_num_threads(int i);
 
 		void abort(bool wait);
 
@@ -385,8 +386,7 @@ namespace libtorrent
 			hasher_thread
 		};
 
-		void thread_fun(int thread_id, thread_type_t type
-			, boost::shared_ptr<io_service::work> w);
+		void thread_fun(thread_type_t type, io_service::work w);
 
 		virtual file_pool& files() override { return m_file_pool; }
 
@@ -434,6 +434,31 @@ namespace libtorrent
 
 	private:
 
+		struct job_queue : pool_thread_interface
+		{
+			job_queue(disk_io_thread& owner, thread_type_t type)
+				: m_owner(owner), m_type(type)
+			{}
+
+			virtual void notify_all() override
+			{
+				m_job_cond.notify_all();
+			}
+
+			virtual void thread_fun(io_service::work work) override
+			{ m_owner.thread_fun(m_type, work); }
+
+			disk_io_thread& m_owner;
+			thread_type_t const m_type;
+
+			// used to wake up the disk IO thread when there are new
+			// jobs on the job queue (m_queued_jobs)
+			std::condition_variable m_job_cond;
+
+			// jobs queued for servicing
+			jobqueue_t m_queued_jobs;
+		};
+
 		enum return_value_t
 		{
 			// the do_* functions can return this to indicate the disk
@@ -444,6 +469,10 @@ namespace libtorrent
 			// queue and try again later
 			retry_job = -201
 		};
+
+		// returns true if the thread should exit
+		static bool wait_for_job(job_queue& jobq, disk_io_thread_pool& threads
+			, std::unique_lock<std::mutex>& l);
 
 		void add_completed_job(disk_io_job* j);
 		void add_completed_jobs(jobqueue_t& jobs);
@@ -515,10 +544,11 @@ namespace libtorrent
 		void immediate_execute();
 		void abort_jobs();
 
-		// this is a counter which is atomically incremented
-		// by each thread as it's started up, in order to
-		// assign a unique id to each thread
-		std::atomic<int> m_num_threads;
+		// returns the maximum number of threads
+		// the actual number of threads may be less
+		int num_threads() const;
+		job_queue& queue_for_job(disk_io_job* j);
+		disk_io_thread_pool& pool_for_job(disk_io_job* j);
 
 		// set to true once we start shutting down
 		std::atomic<bool> m_abort;
@@ -528,8 +558,16 @@ namespace libtorrent
 		// shutting down. This last thread is responsible for cleanup
 		std::atomic<int> m_num_running_threads;
 
-		// the actual threads running disk jobs
-		std::vector<std::thread> m_threads;
+		// std::mutex to protect the m_generic_io_jobs and m_hash_io_jobs lists
+		mutable std::mutex m_job_mutex;
+
+		// most jobs are posted to m_generic_io_jobs
+		// but hash jobs are posted to m_hash_io_jobs if m_hash_threads
+		// has a non-zero maximum thread count
+		job_queue m_generic_io_jobs;
+		disk_io_thread_pool m_generic_threads;
+		job_queue m_hash_io_jobs;
+		disk_io_thread_pool m_hash_threads;
 
 		aux::session_settings m_settings;
 
@@ -578,22 +616,6 @@ namespace libtorrent
 		// posted on this in order to have them execute in
 		// the main thread.
 		io_service& m_ios;
-
-		// used to wake up the disk IO thread when there are new
-		// jobs on the job queue (m_queued_jobs)
-		std::condition_variable m_job_cond;
-
-		// std::mutex to protect the m_queued_jobs list
-		mutable std::mutex m_job_mutex;
-
-		// jobs queued for servicing
-		jobqueue_t m_queued_jobs;
-
-		// when using more than 2 threads, this is
-		// used for just hashing jobs, just for threads
-		// dedicated to do hashing
-		std::condition_variable m_hash_job_cond;
-		jobqueue_t m_queued_hash_jobs;
 
 		// used to rate limit disk performance warnings
 		time_point m_last_disk_aio_performance_warning;

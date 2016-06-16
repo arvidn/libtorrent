@@ -38,6 +38,7 @@ nobase_include_HEADERS = \
   disk_interface.hpp           \
   disk_io_job.hpp              \
   disk_io_thread.hpp           \
+  disk_io_thread_pool.hpp      \
   disk_observer.hpp            \
   disk_job_pool.hpp            \
   ed25519.hpp                  \

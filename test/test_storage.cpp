@@ -477,7 +477,7 @@ void test_check_files(std::string const& test_path
 	ios.reset();
 	run_until(ios, done);
 
-	io.set_num_threads(0);
+	io.abort(true);
 }
 
 // TODO: 2 split this test up into smaller parts
