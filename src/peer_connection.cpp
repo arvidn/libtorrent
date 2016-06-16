@@ -2675,7 +2675,8 @@ namespace libtorrent
 		for (extension_list_t::iterator i = m_extensions.begin()
 			, end(m_extensions.end()); i != end; ++i)
 		{
-			if ((*i)->on_piece(p, data))
+			block_cache_reference ref = data.ref();
+			if ((*i)->on_piece(p, data.get(), ref.piece, ref.block))
 			{
 #if TORRENT_USE_ASSERTS
 				TORRENT_ASSERT(m_received_in_piece == p.length);

@@ -426,7 +426,7 @@ namespace libtorrent
 		virtual bool on_allowed_fast(int /*index*/) { return false; }
 		virtual bool on_request(peer_request const&) { return false; }
 		virtual bool on_piece(peer_request const& /*piece*/
-			, disk_buffer_holder& /*data*/) { return false; }
+			, char* /*buf*/, int /*piece*/, int /*block*/) { return false; }
 		virtual bool on_cancel(peer_request const&) { return false; }
 		virtual bool on_reject(peer_request const&) { return false; }
 		virtual bool on_suggest(int /*index*/) { return false; }
