@@ -189,6 +189,14 @@ namespace libtorrent
 		{
 			// the size of each allocation that is chained in the send buffer
 			enum { send_buffer_size_impl = 128 };
+			// plugin feature-index key map
+			enum
+			{
+				plugins_all_idx = 0, // to store all plugins
+				plugins_optimistic_unchoke_idx = 1, // optimistic_unchoke_feature
+				plugins_tick_idx = 2, // tick_feature
+				plugins_dht_request_idx = 3 // dht_request_feature
+			};
 
 #if TORRENT_USE_INVARIANT_CHECKS
 			friend class libtorrent::invariant_access;
@@ -1153,11 +1161,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			// this is a list to allow extensions to potentially remove themselves.
-			std::vector<std::pair<boost::shared_ptr<plugin>, boost::uint32_t>> m_ses_extensions;
-
-			// the union of all session extensions' implemented_features(). This is
-			// used to exclude callbacks to the session extensions.
-			boost::uint32_t m_session_extension_features;
+			std::array<std::vector<boost::shared_ptr<plugin>>, 4> m_ses_extensions;
 #endif
 
 			// if this function is set, it indicates that torrents are allowed
