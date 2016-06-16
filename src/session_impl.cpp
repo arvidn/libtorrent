@@ -6675,7 +6675,7 @@ namespace aux {
 		m_disk_thread.reclaim_block(ref);
 	}
 
-	char* session_impl::allocate_disk_buffer(char const* category)
+	disk_buffer_holder session_impl::allocate_disk_buffer(char const* category)
 	{
 		return m_disk_thread.allocate_disk_buffer(category);
 	}
@@ -6685,7 +6685,7 @@ namespace aux {
 		m_disk_thread.free_disk_buffer(buf);
 	}
 
-	char* session_impl::allocate_disk_buffer(bool& exceeded
+	disk_buffer_holder session_impl::allocate_disk_buffer(bool& exceeded
 		, boost::shared_ptr<disk_observer> o
 		, char const* category)
 	{

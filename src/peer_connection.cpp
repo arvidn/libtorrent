@@ -2611,9 +2611,10 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(is_single_thread());
 		bool exceeded = false;
-		char* buffer = m_allocator.allocate_disk_buffer(exceeded, self(), "receive buffer");
+		disk_buffer_holder buffer
+			= m_allocator.allocate_disk_buffer(exceeded, self(), "receive buffer");
 
-		if (buffer == 0)
+		if (!buffer)
 		{
 			disconnect(errors::no_memory, op_alloc_recvbuf);
 			return;
@@ -2635,12 +2636,11 @@ namespace libtorrent
 #endif
 		}
 
-		disk_buffer_holder holder(m_allocator, buffer);
-		std::memcpy(buffer, data, p.length);
-		incoming_piece(p, holder);
+		std::memcpy(buffer.get(), data, p.length);
+		incoming_piece(p, std::move(buffer));
 	}
 
-	void peer_connection::incoming_piece(peer_request const& p, disk_buffer_holder& data)
+	void peer_connection::incoming_piece(peer_request const& p, disk_buffer_holder data)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -2849,7 +2849,7 @@ namespace libtorrent
 			return;
 		}
 		t->inc_refcount("async_write");
-		m_disk_thread.async_write(&t->storage(), p, data
+		m_disk_thread.async_write(&t->storage(), p, std::move(data)
 			, std::bind(&peer_connection::on_disk_write_complete
 			, self(), _1, p, t));
 
@@ -5359,7 +5359,7 @@ namespace libtorrent
 		{
 			t->add_suggest_piece(r.piece);
 		}
-		write_piece(r, buffer);
+		write_piece(r, std::move(buffer));
 	}
 
 	void peer_connection::assign_bandwidth(int channel, int amount)

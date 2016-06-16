@@ -303,7 +303,7 @@ namespace libtorrent
 			, boost::function<void(disk_io_job const*)> const& handler, void* requester
 			, int flags = 0) override;
 		void async_write(piece_manager* storage, peer_request const& r
-			, disk_buffer_holder& buffer
+			, disk_buffer_holder buffer
 			, boost::function<void(disk_io_job const*)> const& handler
 			, int flags = 0) override;
 		void async_hash(piece_manager* storage, int piece, int flags
@@ -354,14 +354,14 @@ namespace libtorrent
 		// implements buffer_allocator_interface
 		void reclaim_block(block_cache_reference ref) override;
 		void free_disk_buffer(char* buf) override { m_disk_cache.free_buffer(buf); }
-		char* allocate_disk_buffer(char const* category) override
+		disk_buffer_holder allocate_disk_buffer(char const* category) override
 		{
 			bool exceed = false;
 			return allocate_disk_buffer(exceed, boost::shared_ptr<disk_observer>(), category);
 		}
 
 		void trigger_cache_trim();
-		char* allocate_disk_buffer(bool& exceeded, boost::shared_ptr<disk_observer> o
+		disk_buffer_holder allocate_disk_buffer(bool& exceeded, boost::shared_ptr<disk_observer> o
 			, char const* category) override;
 
 		bool exceeded_cache_use() const

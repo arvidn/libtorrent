@@ -49,13 +49,14 @@ namespace libtorrent
 {
 	struct disk_io_thread;
 	struct disk_observer;
+	struct disk_buffer_holder;
 
 	struct TORRENT_EXTRA_EXPORT buffer_allocator_interface
 	{
-		virtual char* allocate_disk_buffer(char const* category) = 0;
 		virtual void free_disk_buffer(char* b) = 0;
 		virtual void reclaim_block(block_cache_reference ref) = 0;
-		virtual char* allocate_disk_buffer(bool& exceeded
+		virtual disk_buffer_holder allocate_disk_buffer(char const* category) = 0;
+		virtual disk_buffer_holder allocate_disk_buffer(bool& exceeded
 			, boost::shared_ptr<disk_observer> o
 			, char const* category) = 0;
 	protected:
@@ -66,14 +67,18 @@ namespace libtorrent
 	// when it's destructed, unless it's released. ``release`` returns the disk
 	// buffer and transfers ownership and responsibility to free it to the caller.
 	// 
-	// A disk buffer is freed by passing it to ``session_impl::free_disk_buffer()``.
-	// 
-	// ``get()`` returns the pointer without transferring responsibility. If
-	// this buffer has been released, ``buffer()`` will return 0.
+	// ``get()`` returns the pointer without transferring ownership. If
+	// this buffer has been released, ``get()`` will return nullptr.
 	struct TORRENT_EXPORT disk_buffer_holder
 	{
 		// internal
 		disk_buffer_holder(buffer_allocator_interface& alloc, char* buf);
+
+		disk_buffer_holder& operator=(disk_buffer_holder&&);
+		disk_buffer_holder(disk_buffer_holder&&);
+
+		disk_buffer_holder& operator=(disk_buffer_holder const&) = delete;
+		disk_buffer_holder(disk_buffer_holder const&) = delete;
 
 		// construct a buffer holder that will free the held buffer
 		// using a disk buffer pool directly (there's only one
@@ -82,7 +87,7 @@ namespace libtorrent
 
 		// frees any unreleased disk buffer held by this object
 		~disk_buffer_holder();
-		
+
 		// return the held disk buffer and clear it from the
 		// holder. The responsibility to free it is passed on
 		// to the caller
@@ -100,25 +105,20 @@ namespace libtorrent
 		// swap pointers of two disk buffer holders.
 		void swap(disk_buffer_holder& h)
 		{
-			TORRENT_ASSERT(&h.m_allocator == &m_allocator);
+			TORRENT_ASSERT(h.m_allocator == m_allocator);
 			std::swap(h.m_buf, m_buf);
 			std::swap(h.m_ref, m_ref);
 		}
 
 		block_cache_reference ref() const { return m_ref; }
 
-		typedef char* (disk_buffer_holder::*unspecified_bool_type)();
-
-		// internal
-		operator unspecified_bool_type() const
-		{ return m_buf == 0? 0: &disk_buffer_holder::release; }
+		// implicitly convertible to true if the object is currently holding a
+		// buffer
+		explicit operator bool() const { return m_buf; }
 
 	private:
-		// non-copyable
-		disk_buffer_holder& operator=(disk_buffer_holder const&);
-		disk_buffer_holder(disk_buffer_holder const*);
 
-		buffer_allocator_interface& m_allocator;
+		buffer_allocator_interface* m_allocator;
 		char* m_buf;
 		block_cache_reference m_ref;
 	};
