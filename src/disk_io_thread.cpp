@@ -1590,7 +1590,7 @@ namespace libtorrent
 	}
 
 	void disk_io_thread::async_write(piece_manager* storage, peer_request const& r
-		, disk_buffer_holder& buffer
+		, disk_buffer_holder buffer
 		, boost::function<void(disk_io_job const*)> const& handler
 		, int flags)
 	{
@@ -1672,24 +1672,28 @@ namespace libtorrent
 
 		// if the buffer was successfully added to the cache
 		// our holder should no longer own it
-		if (dpe) buffer.release();
-
-		if (dpe && dpe->outstanding_flush == 0)
+		if (dpe)
 		{
-			dpe->outstanding_flush = 1;
-			l.unlock();
+			buffer.release();
 
-			// the block and write job were successfully inserted
-			// into the cache. Now, see if we should trigger a flush
-			j = allocate_job(disk_io_job::flush_hashed);
-			j->storage = storage->shared_from_this();
-			j->piece = r.piece;
-			j->flags = flags;
-			add_job(j);
+			if (dpe->outstanding_flush == 0)
+			{
+				dpe->outstanding_flush = 1;
+				l.unlock();
+
+				// the block and write job were successfully inserted
+				// into the cache. Now, see if we should trigger a flush
+				j = allocate_job(disk_io_job::flush_hashed);
+				j->storage = storage->shared_from_this();
+				j->piece = r.piece;
+				j->flags = flags;
+				add_job(j);
+			}
+
+			// if we added the block (regardless of whether we also
+			// issued a flush job or not), we're done.
+			return;
 		}
-		// if we added the block (regardless of whether we also
-		// issued a flush job or not), we're done.
-		if (dpe) return;
 		l.unlock();
 
 		add_job(j);
@@ -3330,12 +3334,12 @@ namespace libtorrent
 		submit_jobs();
 	}
 
-	char* disk_io_thread::allocate_disk_buffer(bool& exceeded
+	disk_buffer_holder disk_io_thread::allocate_disk_buffer(bool& exceeded
 		, boost::shared_ptr<disk_observer> o
 		, char const* category)
 	{
 		char* ret = m_disk_cache.allocate_buffer(exceeded, o, category);
-		return ret;
+		return disk_buffer_holder(*this, ret);
 	}
 
 	void disk_io_thread::add_completed_job(disk_io_job* j)

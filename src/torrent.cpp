@@ -1299,15 +1299,14 @@ namespace libtorrent
 				continue;
 
 			p.length = (std::min)(piece_size - p.start, int(block_size()));
-			char* buffer = m_ses.allocate_disk_buffer("add piece");
+			disk_buffer_holder buffer = m_ses.allocate_disk_buffer("add piece");
 			// out of memory
-			if (buffer == 0)
+			if (!buffer)
 			{
 				picker().dec_refcount(piece, 0);
 				return;
 			}
-			disk_buffer_holder holder(m_ses, buffer);
-			std::memcpy(buffer, data + p.start, p.length);
+			std::memcpy(buffer.get(), data + p.start, p.length);
 
 			if (!need_loaded())
 			{
@@ -1316,7 +1315,7 @@ namespace libtorrent
 				return;
 			}
 			inc_refcount("add_piece");
-			m_ses.disk_thread().async_write(&storage(), p, holder
+			m_ses.disk_thread().async_write(&storage(), p, std::move(buffer)
 				, std::bind(&torrent::on_disk_write_complete
 				, shared_from_this(), _1, p));
 			piece_block block(piece, i);

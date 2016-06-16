@@ -2472,7 +2472,7 @@ namespace libtorrent
 
 	} // anonymous namespace
 
-	void bt_peer_connection::write_piece(peer_request const& r, disk_buffer_holder& buffer)
+	void bt_peer_connection::write_piece(peer_request const& r, disk_buffer_holder buffer)
 	{
 		INVARIANT_CHECK;
 
@@ -2532,7 +2532,7 @@ namespace libtorrent
 			send_buffer(msg, 13);
 		}
 
-		if (buffer.ref().storage == 0)
+		if (buffer.ref().storage == nullptr)
 		{
 			append_send_buffer(buffer.get(), r.length
 				, &buffer_free_disk_buf, &m_allocator);

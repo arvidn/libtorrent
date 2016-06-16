@@ -56,7 +56,7 @@ namespace libtorrent
 			, boost::function<void(disk_io_job const*)> const& handler, void* requester
 			, int flags = 0) = 0;
 		virtual void async_write(piece_manager* storage, peer_request const& r
-			, disk_buffer_holder& buffer
+			, disk_buffer_holder buffer
 			, boost::function<void(disk_io_job const*)> const& handler
 			, int flags = 0) = 0;
 		virtual void async_hash(piece_manager* storage, int piece, int flags

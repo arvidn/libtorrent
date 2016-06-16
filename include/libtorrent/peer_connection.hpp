@@ -574,7 +574,7 @@ namespace libtorrent
 		void incoming_dont_have(int piece_index);
 		void incoming_bitfield(bitfield const& bits);
 		void incoming_request(peer_request const& r);
-		void incoming_piece(peer_request const& p, disk_buffer_holder& data);
+		void incoming_piece(peer_request const& p, disk_buffer_holder data);
 		void incoming_piece(peer_request const& p, char const* data);
 		void incoming_piece_fragment(int bytes);
 		void start_receive_piece(peer_request const& r);
@@ -730,7 +730,7 @@ namespace libtorrent
 		virtual void write_have(int index) = 0;
 		virtual void write_dont_have(int index) = 0;
 		virtual void write_keepalive() = 0;
-		virtual void write_piece(peer_request const& r, disk_buffer_holder& buffer) = 0;
+		virtual void write_piece(peer_request const& r, disk_buffer_holder buffer) = 0;
 		virtual void write_suggest(int piece) = 0;
 		virtual void write_bitfield() = 0;
 
