@@ -180,7 +180,6 @@ namespace libtorrent
 	struct peer_request;
 	class entry;
 	struct bdecode_node;
-	struct disk_buffer_holder;
 	struct bitfield;
 	class alert;
 	struct torrent_plugin;
