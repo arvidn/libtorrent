@@ -114,7 +114,7 @@ namespace libtorrent
 
 		// implicitly convertible to true if the object is currently holding a
 		// buffer
-		explicit operator bool() const { return m_buf; }
+		explicit operator bool() const { return m_buf != nullptr; }
 
 	private:
 
