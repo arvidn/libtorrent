@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/http_tracker_connection.hpp" // for parse_tracker_response
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/announce_entry.hpp"
+#include "libtorrent/torrent.hpp"
 
 #include <fstream>
 
@@ -427,7 +428,7 @@ TORRENT_TEST(http_peers)
 	// we expect to have certain peers in our peer list now
 	// these peers are hard coded in web_server.py
 	std::vector<peer_list_entry> peers;
-	h.get_full_peer_list(peers);
+	h.native_handle()->get_full_peer_list(&peers);
 
 	std::set<tcp::endpoint> expected_peers;
 	expected_peers.insert(tcp::endpoint(address_v4::from_string("65.65.65.65"), 16962));
