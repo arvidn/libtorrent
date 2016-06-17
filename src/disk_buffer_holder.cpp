@@ -31,8 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/disk_buffer_holder.hpp"
-#include "libtorrent/aux_/session_impl.hpp"
-#include "libtorrent/disk_io_thread.hpp"
+#include "libtorrent/storage.hpp" // for piece_manager
 
 namespace libtorrent
 {
@@ -105,4 +104,3 @@ namespace libtorrent
 
 	disk_buffer_holder::~disk_buffer_holder() { reset(); }
 }
-
