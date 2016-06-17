@@ -90,7 +90,7 @@ void run_test(Setup const& setup
 
 	// set up a timer to fire later, to verify everything we expected to happen
 	// happened
-	sim::timer t(sim, lt::seconds(100), [&](boost::system::error_code const& ec)
+	sim::timer t(sim, lt::seconds(100), [&](boost::system::error_code const&)
 	{
 		std::fprintf(stderr, "shutting down\n");
 		// shut down
@@ -111,14 +111,14 @@ TORRENT_TEST(socks5_tcp_accept)
 		{
 			set_proxy(ses, settings_pack::socks5);
 		},
-		[&](lt::session& ses, lt::alert const* alert) {
+		[&](lt::session&, lt::alert const* alert) {
 			if (auto* a = lt::alert_cast<lt::incoming_connection_alert>(alert))
 			{
 				TEST_EQUAL(a->socket_type, 2);
 				incoming_connection = true;
 			}
 		},
-		[](sim::simulation& sim, lt::session& ses
+		[](sim::simulation& sim, lt::session&
 			, boost::shared_ptr<lt::torrent_info> ti)
 		{
 			// test connecting to the client via its socks5 listen port
@@ -126,12 +126,12 @@ TORRENT_TEST(socks5_tcp_accept)
 			fake_peer peer1(sim, "60.0.0.0");
 			fake_peer peer2(sim, "60.0.0.1");
 
-			sim::timer t1(sim, lt::seconds(2), [&](boost::system::error_code const& ec)
+			sim::timer t1(sim, lt::seconds(2), [&](boost::system::error_code const&)
 			{
 				peer1.connect_to(tcp::endpoint(addr("50.50.50.50"), 6881), ti->info_hash());
 			});
 
-			sim::timer t2(sim, lt::seconds(3), [&](boost::system::error_code const& ec)
+			sim::timer t2(sim, lt::seconds(3), [&](boost::system::error_code const&)
 			{
 				peer2.connect_to(tcp::endpoint(addr("50.50.50.50"), 6881), ti->info_hash());
 			});
@@ -152,7 +152,7 @@ TORRENT_TEST(socks4_tcp_accept)
 		{
 			set_proxy(ses, settings_pack::socks4);
 		},
-		[&](lt::session& ses, lt::alert const* alert) {
+		[&](lt::session&, lt::alert const* alert) {
 			if (auto* a = lt::alert_cast<lt::incoming_connection_alert>(alert))
 			{
 				TEST_EQUAL(a->socket_type, 2);
@@ -160,12 +160,12 @@ TORRENT_TEST(socks4_tcp_accept)
 				incoming_connection = true;
 			}
 		},
-		[](sim::simulation& sim, lt::session& ses
+		[](sim::simulation& sim, lt::session&
 			, boost::shared_ptr<lt::torrent_info> ti)
 		{
 			fake_peer peer1(sim, "60.0.0.0");
 
-			sim::timer t1(sim, lt::seconds(2), [&](boost::system::error_code const& ec)
+			sim::timer t1(sim, lt::seconds(2), [&](boost::system::error_code const&)
 			{
 				peer1.connect_to(tcp::endpoint(addr("50.50.50.50"), 6881), ti->info_hash());
 			});
@@ -188,7 +188,7 @@ TORRENT_TEST(socks4_tcp_listen_alert)
 		{
 			set_proxy(ses, settings_pack::socks4);
 		},
-		[&](lt::session& ses, lt::alert const* alert) {
+		[&](lt::session&, lt::alert const* alert) {
 			if (auto* a = lt::alert_cast<lt::listen_succeeded_alert>(alert))
 			{
 				if (a->sock_type == listen_succeeded_alert::socks5)
@@ -199,7 +199,7 @@ TORRENT_TEST(socks4_tcp_listen_alert)
 				}
 			}
 		},
-		[](sim::simulation& sim, lt::session& ses
+		[](sim::simulation& sim, lt::session&
 			, boost::shared_ptr<lt::torrent_info> ti)
 		{
 			sim.run();
@@ -218,7 +218,7 @@ TORRENT_TEST(socks5_tcp_listen_alert)
 		{
 			set_proxy(ses, settings_pack::socks5);
 		},
-		[&](lt::session& ses, lt::alert const* alert) {
+		[&](lt::session&, lt::alert const* alert) {
 			if (auto* a = lt::alert_cast<lt::listen_succeeded_alert>(alert))
 			{
 				if (a->sock_type == listen_succeeded_alert::socks5)
@@ -229,7 +229,7 @@ TORRENT_TEST(socks5_tcp_listen_alert)
 				}
 			}
 		},
-		[](sim::simulation& sim, lt::session& ses
+		[](sim::simulation& sim, lt::session&
 			, boost::shared_ptr<lt::torrent_info> ti)
 		{
 			sim.run();
@@ -255,7 +255,7 @@ TORRENT_TEST(socks5_tcp_announce)
 			params.save_path = ".";
 			ses.async_add_torrent(params);
 		},
-		[&alert_port](lt::session& ses, lt::alert const* alert) {
+		[&alert_port](lt::session&, lt::alert const* alert) {
 			if (auto* a = lt::alert_cast<lt::listen_succeeded_alert>(alert))
 			{
 				if (a->sock_type == listen_succeeded_alert::socks5)
@@ -264,7 +264,7 @@ TORRENT_TEST(socks5_tcp_announce)
 				}
 			}
 		},
-		[&tracker_port](sim::simulation& sim, lt::session& ses
+		[&tracker_port](sim::simulation& sim, lt::session&
 			, boost::shared_ptr<lt::torrent_info> ti)
 		{
 			sim::asio::io_service web_server(sim, address_v4::from_string("2.2.2.2"));

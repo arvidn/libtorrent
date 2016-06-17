@@ -90,7 +90,7 @@ namespace
 
 void timer_tick(dht_storage_interface* s
 	, dht_storage_counters const& c
-	, boost::system::error_code const& ec)
+	, boost::system::error_code const&)
 {
 	libtorrent::aux::update_time_now();
 	s->tick();

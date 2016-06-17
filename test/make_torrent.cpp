@@ -134,7 +134,7 @@ boost::shared_ptr<libtorrent::torrent_info> make_test_torrent(
 		hasher h;
 		int const piece_size = (i < num_pieces - 1) ? piece_length : total_size - (num_pieces - 1) * piece_length;
 
-		char const data = i;
+		char const data = char(i & 0xff);
 		char const zero = 0;
 		for (int o = 0; o < piece_size; ++o, ++torrent_offset)
 		{
@@ -186,7 +186,7 @@ void generate_files(libtorrent::torrent_info const& ti, std::string const& path
 		int const piece_size = ti.piece_size(i);
 		buffer.resize(ti.piece_length());
 
-		std::uint8_t const data = alternate_data ? 255 - i : i;
+		std::uint8_t const data = std::uint8_t((alternate_data ? 255 - i : i) & 0xff);
 		for (int o = 0; o < piece_size; ++o)
 		{
 			memcpy(&buffer[o], &data, 1);

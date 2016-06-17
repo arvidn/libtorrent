@@ -149,7 +149,6 @@ LONG WINAPI seh_exception_handler(LPEXCEPTION_POINTERS p)
 	output_test_log_to_terminal();
 
 	exit(code);
-	return EXCEPTION_EXECUTE_HANDLER;
 }
 
 #else

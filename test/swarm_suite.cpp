@@ -43,6 +43,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp"
 #include "swarm_suite.hpp"
 
+#ifdef _MSC_VER
+#pragma warning(push)
+// warning C4706: assignment within conditional expression
+#pragma warning( disable : 4706 )
+#endif
+
 void test_swarm(int flags)
 {
 	using namespace libtorrent;
@@ -236,4 +242,7 @@ void test_swarm(int flags)
 	remove_all("tmp3_swarm", ec);
 }
 
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 

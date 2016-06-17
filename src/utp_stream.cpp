@@ -1024,7 +1024,7 @@ void utp_stream::add_write_buffer(void const* buf, size_t len)
 		, end(m_impl->m_write_buffer.end()); i != end; ++i)
 	{
 		TORRENT_ASSERT(std::numeric_limits<int>::max() - i->len > write_buffer_size);
-		write_buffer_size += i->len;
+		write_buffer_size += int(i->len);
 	}
 	TORRENT_ASSERT(m_impl->m_write_buffer_size == write_buffer_size);
 #endif
@@ -1038,7 +1038,7 @@ void utp_stream::add_write_buffer(void const* buf, size_t len)
 		, end(m_impl->m_write_buffer.end()); i != end; ++i)
 	{
 		TORRENT_ASSERT(std::numeric_limits<int>::max() - i->len > write_buffer_size);
-		write_buffer_size += i->len;
+		write_buffer_size += int(i->len);
 	}
 	TORRENT_ASSERT(m_impl->m_write_buffer_size == write_buffer_size);
 #endif
@@ -1629,7 +1629,7 @@ void utp_socket_impl::write_payload(std::uint8_t* ptr, int size)
 		, end(m_write_buffer.end()); i != end; ++i)
 	{
 		TORRENT_ASSERT(std::numeric_limits<int>::max() - i->len > write_buffer_size);
-		write_buffer_size += i->len;
+		write_buffer_size += int(i->len);
 	}
 	TORRENT_ASSERT(m_write_buffer_size == write_buffer_size);
 #endif
@@ -1668,7 +1668,7 @@ void utp_socket_impl::write_payload(std::uint8_t* ptr, int size)
 		, end(m_write_buffer.end()); j != end; ++j)
 	{
 		TORRENT_ASSERT(std::numeric_limits<int>::max() - j->len > write_buffer_size);
-		write_buffer_size += j->len;
+		write_buffer_size += int(j->len);
 	}
 	TORRENT_ASSERT(m_write_buffer_size == write_buffer_size);
 #endif

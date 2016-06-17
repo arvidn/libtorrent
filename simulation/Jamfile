@@ -7,15 +7,24 @@ use-project /libtorrent_test : ../test ;
 use-project /libsimulator : libsimulator ;
 
 # TODO: create another library with the libtorrent simulator utilities
+lib libtorrent_simulator
+	: # sources
+	setup_swarm.cpp
+	setup_dht.cpp
+	create_torrent.cpp
+	utils.cpp
+	: # requirements
+	<simulator>on
+	<library>/torrent//torrent/<export-extra>on
+	<library>/libtorrent_test//libtorrent_test
+	;
+
 project
 	: requirements
 	<simulator>on
 	<library>/torrent//torrent/<export-extra>on
 	<library>/libtorrent_test//libtorrent_test
-	<source>setup_swarm.cpp
-	<source>setup_dht.cpp
-	<source>create_torrent.cpp
-	<source>utils.cpp
+	<library>libtorrent_simulator
 	: default-build
 	<threading>multi
 	<invariant-checks>full

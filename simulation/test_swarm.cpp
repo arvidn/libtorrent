@@ -46,15 +46,15 @@ TORRENT_TEST(seed_mode)
 	// with seed mode
 	setup_swarm(2, swarm_test::upload
 		// add session
-		, [](lt::settings_pack& pack) {}
+		, [](lt::settings_pack&) {}
 		// add torrent
 		, [](lt::add_torrent_params& params) {
 			params.flags |= add_torrent_params::flag_seed_mode;
 		}
 		// on alert
-		, [](lt::alert const* a, lt::session& ses) {}
+		, [](lt::alert const*, lt::session&) {}
 		// terminate
-		, [](int ticks, lt::session& ses) -> bool
+		, [](int, lt::session&) -> bool
 		{ return true; });
 }
 
@@ -62,11 +62,11 @@ TORRENT_TEST(plain)
 {
 	setup_swarm(2, swarm_test::download
 		// add session
-		, [](lt::settings_pack& pack) {}
+		, [](lt::settings_pack&) {}
 		// add torrent
-		, [](lt::add_torrent_params& params) {}
+		, [](lt::add_torrent_params&) {}
 		// on alert
-		, [](lt::alert const* a, lt::session& ses) {}
+		, [](lt::alert const*, lt::session&) {}
 		// terminate
 		, [](int ticks, lt::session& ses) -> bool
 		{
@@ -93,11 +93,11 @@ TORRENT_TEST(session_stats)
 
 	setup_swarm(2, swarm_test::download
 		// add session
-		, [](lt::settings_pack& pack) {}
+		, [](lt::settings_pack&) {}
 		// add torrent
-		, [](lt::add_torrent_params& params) {}
+		, [](lt::add_torrent_params&) {}
 		// on alert
-		, [=](lt::alert const* a, lt::session& ses)
+		, [=](lt::alert const* a, lt::session&)
 		{
 			auto const* ss = lt::alert_cast<session_stats_alert>(a);
 			if (!ss) return;
@@ -133,9 +133,9 @@ TORRENT_TEST(suggest)
 			pack.set_int(settings_pack::max_suggest_pieces, 10);
 		}
 		// add torrent
-		, [](lt::add_torrent_params& params) {}
+		, [](lt::add_torrent_params&) {}
 		// on alert
-		, [&num_suggests](lt::alert const* a, lt::session& ses) {
+		, [&num_suggests](lt::alert const* a, lt::session&) {
 			if (auto pl = alert_cast<peer_log_alert>(a))
 			{
 				if (pl->direction == peer_log_alert::outgoing_message
@@ -146,7 +146,7 @@ TORRENT_TEST(suggest)
 			}
 		}
 		// terminate
-		, [](int ticks, lt::session& ses) -> bool
+		, [](int ticks, lt::session&) -> bool
 		{
 			if (ticks > 500)
 			{
@@ -174,9 +174,9 @@ TORRENT_TEST(utp_only)
 			pack.set_bool(settings_pack::enable_outgoing_tcp, false);
 		}
 		// add torrent
-		, [](lt::add_torrent_params& params) {}
+		, [](lt::add_torrent_params&) {}
 		// on alert
-		, [](lt::alert const* a, lt::session& ses) {}
+		, [](lt::alert const* a, lt::session&) {}
 		// terminate
 		, [](int ticks, lt::session& ses) -> bool
 		{
@@ -204,7 +204,7 @@ void test_stop_start_download(swarm_test type, bool graceful)
 			pack.set_int(settings_pack::min_reconnect_time, 0);
 		}
 		// add torrent
-		, [](lt::add_torrent_params& params) {
+		, [](lt::add_torrent_params&) {
 
 		}
 		// on alert
@@ -275,11 +275,11 @@ TORRENT_TEST(stop_start_download_graceful_no_peers)
 
 	setup_swarm(1, swarm_test::download
 		// add session
-		, [](lt::settings_pack& pack) {}
+		, [](lt::settings_pack&) {}
 		// add torrent
-		, [](lt::add_torrent_params& params) {}
+		, [](lt::add_torrent_params&) {}
 		// on alert
-		, [&](lt::alert const* a, lt::session& ses) {
+		, [&](lt::alert const* a, lt::session&) {
 			if (auto tp = lt::alert_cast<lt::torrent_paused_alert>(a))
 			{
 				TEST_EQUAL(resumed, false);
@@ -327,11 +327,11 @@ TORRENT_TEST(shutdown)
 {
 	setup_swarm(2, swarm_test::download
 		// add session
-		, [](lt::settings_pack& pack) {}
+		, [](lt::settings_pack&) {}
 		// add torrent
-		, [](lt::add_torrent_params& params) {}
+		, [](lt::add_torrent_params&) {}
 		// on alert
-		, [](lt::alert const* a, lt::session& ses) {}
+		, [](lt::alert const* a, lt::session&) {}
 		// terminate
 		, [](int ticks, lt::session& ses) -> bool
 		{
@@ -347,11 +347,11 @@ TORRENT_TEST(delete_files)
 
 	setup_swarm(2, swarm_test::download
 		// add session
-		, [](lt::settings_pack& pack) {}
+		, [](lt::settings_pack&) {}
 		// add torrent
-		, [](lt::add_torrent_params& params) {}
+		, [](lt::add_torrent_params&) {}
 		// on alert
-		, [](lt::alert const* a, lt::session& ses) {}
+		, [](lt::alert const* a, lt::session&) {}
 		// terminate
 		, [&save_path](int ticks, lt::session& ses) -> bool
 		{
@@ -379,11 +379,11 @@ TORRENT_TEST(delete_partfile)
 	std::string save_path;
 	setup_swarm(2, swarm_test::download
 		// add session
-		, [](lt::settings_pack& pack) {}
+		, [](lt::settings_pack&) {}
 		// add torrent
-		, [](lt::add_torrent_params& params) {}
+		, [](lt::add_torrent_params&) {}
 		// on alert
-		, [](lt::alert const* a, lt::session& ses) {}
+		, [](lt::alert const* a, lt::session&) {}
 		// terminate
 		, [&save_path](int ticks, lt::session& ses) -> bool
 		{

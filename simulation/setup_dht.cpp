@@ -59,12 +59,12 @@ namespace {
 	lt::time_point start_time;
 
 	// this is the IP address assigned to node 'idx'
-	asio::ip::address addr_from_int(int idx)
+	asio::ip::address addr_from_int(int /* idx */)
 	{
 		return asio::ip::address_v4(lt::random());
 	}
 
-	asio::ip::address addr6_from_int(int idx)
+	asio::ip::address addr6_from_int(int /* idx */)
 	{
 		asio::ip::address_v6::bytes_type bytes;
 		for (uint8_t& b : bytes) b = uint8_t(lt::random());

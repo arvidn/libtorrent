@@ -95,7 +95,7 @@ int get_cache_size(lt::session& ses)
 		}
 	}
 	TEST_CHECK(cache_size < std::numeric_limits<int>::max());
-	return cache_size;
+	return int(cache_size);
 }
 
 void set_proxy(lt::session& ses, int proxy_type, int flags, bool proxy_peer_connections)

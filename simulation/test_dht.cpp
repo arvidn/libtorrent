@@ -113,7 +113,7 @@ TORRENT_TEST(dht_bootstrap)
 		// add torrent
 		, [](lt::add_torrent_params& params) {}
 		// on alert
-		, [&](lt::alert const* a, lt::session& ses)
+		, [&](lt::alert const* a, lt::session&)
 		{
 			if (lt::dht_stats_alert const* p = lt::alert_cast<lt::dht_stats_alert>(a))
 			{
@@ -178,7 +178,7 @@ TORRENT_TEST(dht_dual_stack_get_peers)
 		// add torrent
 		, [](lt::add_torrent_params& params) {}
 		// on alert
-		, [&](lt::alert const* a, lt::session& ses)
+		, [&](lt::alert const* a, lt::session&)
 		{
 			if (lt::dht_get_peers_reply_alert const* p = lt::alert_cast<lt::dht_get_peers_reply_alert>(a))
 			{
@@ -239,7 +239,7 @@ TORRENT_TEST(dht_dual_stack_immutable_item)
 		// add torrent
 		, [](lt::add_torrent_params& params) {}
 		// on alert
-		, [&](lt::alert const* a, lt::session& ses)
+		, [&](lt::alert const* a, lt::session&)
 		{
 			if (lt::dht_immutable_item_alert const* p = lt::alert_cast<lt::dht_immutable_item_alert>(a))
 			{
@@ -297,7 +297,7 @@ TORRENT_TEST(dht_dual_stack_mutable_item)
 		// add torrent
 		, [](lt::add_torrent_params& params) {}
 		// on alert
-		, [&](lt::alert const* a, lt::session& ses)
+		, [&](lt::alert const* a, lt::session&)
 		{
 			if (lt::dht_mutable_item_alert const* p = lt::alert_cast<lt::dht_mutable_item_alert>(a))
 			{
