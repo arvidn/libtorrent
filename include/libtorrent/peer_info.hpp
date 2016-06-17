@@ -162,7 +162,7 @@ namespace libtorrent
 			// connect via the NAT holepunch mechanism.
 			holepunched = 0x8000,
 
-			// indicates that this socket is runnin on top of the
+			// indicates that this socket is running on top of the
 			// I2P transport.
 			i2p_socket = 0x10000,
 
@@ -416,7 +416,7 @@ namespace libtorrent
 	};
 
 	// internal
-	struct TORRENT_EXPORT peer_list_entry
+	struct TORRENT_EXTRA_EXPORT peer_list_entry
 	{
 		// internal
 		enum flags_t

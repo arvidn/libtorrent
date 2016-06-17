@@ -43,7 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
 #include <boost/weak_ptr.hpp>
-#include <boost/cstdint.hpp>
 
 #ifndef TORRENT_NO_DEPRECATE
 // for deprecated force_reannounce
@@ -242,12 +241,8 @@ namespace libtorrent
 		// add_torrent_params. Perhaps those flags should have a more generic
 		// name.
 
-		// TODO: 4 remove some of these friends
-		friend class invariant_access;
 		friend struct aux::session_impl;
-		friend class session;
 		friend struct session_handle;
-		friend struct feed;
 		friend class torrent;
 		friend std::size_t hash_value(torrent_handle const& th);
 
@@ -298,8 +293,11 @@ namespace libtorrent
 		// otherwise.
 		bool have_piece(int piece) const;
 
+#ifndef TORRENT_NO_DEPRECATE
 		// internal
+		TORRENT_DEPRECATED
 		void get_full_peer_list(std::vector<peer_list_entry>& v) const;
+#endif
 
 		// takes a reference to a vector that will be cleared and filled with one
 		// entry for each peer connected to this torrent, given the handle is

@@ -238,7 +238,7 @@ TORRENT_TEST(added_peers)
 	torrent_handle h = ses.add_torrent(p);
 
 	std::vector<peer_list_entry> v;
-	h.get_full_peer_list(v);
+	h.native_handle()->get_full_peer_list(&v);
 	TEST_EQUAL(v.size(), 2);
 }
 

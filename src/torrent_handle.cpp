@@ -682,11 +682,13 @@ namespace libtorrent
 		async_call(&torrent::set_super_seeding, on);
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	void torrent_handle::get_full_peer_list(std::vector<peer_list_entry>& v) const
 	{
 		auto vp = &v;
 		sync_call(&torrent::get_full_peer_list, vp);
 	}
+#endif
 
 	void torrent_handle::get_peer_info(std::vector<peer_info>& v) const
 	{
