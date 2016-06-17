@@ -871,12 +871,9 @@ namespace libtorrent
 			, std::string const& private_key
 			, std::string const& dh_params);
 
-#ifndef TORRENT_NO_DEPRECATE
 		// Returns the storage implementation for this torrent. This depends on the
 		// storage constructor function that was passed to add_torrent.
-		TORRENT_DEPRECATED
 		storage_interface* get_storage_impl() const;
-#endif
 
 		// Returns a pointer to the torrent_info object associated with this
 		// torrent. The torrent_info object may be a copy of the internal object.
