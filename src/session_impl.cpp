@@ -808,10 +808,10 @@ namespace aux {
 
 		boost::shared_ptr<plugin> p(new session_plugin_wrapper(ext));
 
-		add_ses_extension(p, false);
+		add_ses_extension(p);
 	}
 
-	void session_impl::add_ses_extension(boost::shared_ptr<plugin> ext, bool no_wrap)
+	void session_impl::add_ses_extension(boost::shared_ptr<plugin> ext)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT_VAL(ext, ext);
@@ -820,18 +820,15 @@ namespace aux {
 
 		m_ses_extensions[plugins_all_idx].push_back(ext);
 
-		if (no_wrap)
-		{
-			if (features & plugin::optimistic_unchoke_feature)
-				m_ses_extensions[plugins_optimistic_unchoke_idx].push_back(ext);
-			if (features & plugin::tick_feature)
-				m_ses_extensions[plugins_tick_idx].push_back(ext);
-			if (features & plugin::dht_request_feature)
-				m_ses_extensions[plugins_dht_request_idx].push_back(ext);
-			if (features & plugin::alert_feature)
-				m_alerts.add_extension(ext);
-			ext->added(session_handle(this));
-		}
+		if (features & plugin::optimistic_unchoke_feature)
+			m_ses_extensions[plugins_optimistic_unchoke_idx].push_back(ext);
+		if (features & plugin::tick_feature)
+			m_ses_extensions[plugins_tick_idx].push_back(ext);
+		if (features & plugin::dht_request_feature)
+			m_ses_extensions[plugins_dht_request_idx].push_back(ext);
+		if (features & plugin::alert_feature)
+			m_alerts.add_extension(ext);
+		ext->added(session_handle(this));
 	}
 
 #endif // TORRENT_DISABLE_EXTENSIONS
