@@ -816,18 +816,18 @@ namespace aux {
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT_VAL(ext, ext);
 
-		boost::uint32_t features = ext->implemented_features();
+		boost::uint32_t const features = ext->implemented_features();
 
 		m_ses_extensions[plugins_all_idx].push_back(ext);
-		if (features & plugin::optimistic_unchoke_feature)
-			m_ses_extensions[plugins_optimistic_unchoke_idx].push_back(ext);
-		if (features & plugin::tick_feature)
-			m_ses_extensions[plugins_tick_idx].push_back(ext);
-		if (features & plugin::dht_request_feature)
-			m_ses_extensions[plugins_dht_request_idx].push_back(ext);
 
 		if (no_wrap)
 		{
+			if (features & plugin::optimistic_unchoke_feature)
+				m_ses_extensions[plugins_optimistic_unchoke_idx].push_back(ext);
+			if (features & plugin::tick_feature)
+				m_ses_extensions[plugins_tick_idx].push_back(ext);
+			if (features & plugin::dht_request_feature)
+				m_ses_extensions[plugins_dht_request_idx].push_back(ext);
 			if (features & plugin::alert_feature)
 				m_alerts.add_extension(ext);
 			ext->added(session_handle(this));

@@ -217,6 +217,10 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(
 				torrent_handle const&, void*)> ext);
+			// the `no_wrap` argument is to indicate that the plugin is actually
+			// a full plugin implementation from the user or an internal wrap
+			// derived from a function, see `session_plugin_wrapper` in compilation
+			// unit
 			void add_ses_extension(boost::shared_ptr<plugin> ext, bool no_wrap);
 #endif
 #if TORRENT_USE_ASSERTS
