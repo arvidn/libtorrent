@@ -424,8 +424,16 @@ namespace libtorrent
 		virtual bool on_have_none() { return false; }
 		virtual bool on_allowed_fast(int /*index*/) { return false; }
 		virtual bool on_request(peer_request const&) { return false; }
+
+		// This function is called when the peer connection is receiving
+		// a piece. ``buf`` points (non-owning pointer) to the data in an
+		// internal immutable disk buffer. The length of the data is specified
+		// in the ``length`` member of the ``piece`` parameter.
+		// returns true to indicate that the piece is handled and the
+		// rest of the logic should be ignored.
 		virtual bool on_piece(peer_request const& /*piece*/
-			, char* /*buf*/) { return false; }
+			, char const* /*buf*/) { return false; }
+
 		virtual bool on_cancel(peer_request const&) { return false; }
 		virtual bool on_reject(peer_request const&) { return false; }
 		virtual bool on_suggest(int /*index*/) { return false; }
