@@ -1,14 +1,20 @@
 language: cpp
 
-os:
-  - linux
-  - osx
-
-env:
-  - variant=test_release coverage=1 docs=1
-  - variant=test_debug sim=1
-  - variant=test_barebones
-  - analyze=1
+matrix:
+  include:
+    - env: variant=test_release coverage=1
+    - env: variant=test_debug sim=1
+    - env: variant=test_barebones
+    - env: analyze=1
+    - os: osx
+      osx_image: xcode6.4
+      env: variant=test_release docs=1
+    - os: osx
+      osx_image: xcode6.4
+      env: variant=test_debug
+    - os: osx
+      osx_image: xcode6.4
+      env: variant=test_barebones
 
 git:
   submodules: false

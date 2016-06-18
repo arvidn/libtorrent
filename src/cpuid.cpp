@@ -30,9 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/config.hpp"
-#include <cstring>
-
 #include "libtorrent/aux_/cpuid.hpp"
 
 #if defined _MSC_VER && TORRENT_HAS_SSE
@@ -89,5 +86,3 @@ namespace libtorrent { namespace aux
 	bool sse42_support = supports_sse42();
 	bool mmx_support = supports_mmx();
 } }
-
-
