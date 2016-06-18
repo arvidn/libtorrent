@@ -174,7 +174,7 @@ namespace libtorrent
 			{
 				// on error
 				*ec = j->error.ec;
-				iothread->set_num_threads(0);
+				iothread->abort(true);
 				return;
 			}
 			t->set_hash(j->piece, sha1_hash(j->d.piece_hash));

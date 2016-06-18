@@ -160,6 +160,7 @@ namespace libtorrent
 		, m_outstanding_reclaim_message(false)
 #if TORRENT_USE_ASSERTS
 		, m_magic(0x1337)
+		, m_jobs_aborted(false)
 #endif
 	{
 		ADD_OUTSTANDING_ASYNC("disk_io_thread::work");
@@ -196,16 +197,23 @@ namespace libtorrent
 
 	void disk_io_thread::abort(bool wait)
 	{
-		m_abort = true;
-		if (num_threads() == 0)
+		// abuse the job mutex to make setting m_abort and checking the thread count atomic
+		// see also the comment in thread_fun
+		std::unique_lock<std::mutex> l(m_job_mutex);
+		if (m_abort.exchange(true)) return;
+		bool const no_threads = m_num_running_threads == 0;
+		l.unlock();
+
+		if (no_threads)
 		{
 			abort_jobs();
 		}
-		else
-		{
-			m_generic_threads.abort(wait);
-			m_hash_threads.abort(wait);
-		}
+
+		// even if there are no threads it doesn't hurt to abort the pools
+		// it prevents threads from being started after an abort which is a good
+		// defensive programming measure
+		m_generic_threads.abort(wait);
+		m_hash_threads.abort(wait);
 	}
 
 	// TODO: 1 it would be nice to have the number of threads be set dynamically
@@ -3195,10 +3203,12 @@ namespace libtorrent
 
 		DLOG("started disk thread %s\n", thread_id_str.str().c_str());
 
+		std::unique_lock<std::mutex> l(m_job_mutex);
+		if (m_abort) return;
+
 		++m_num_running_threads;
 		m_stats_counters.inc_stats_counter(counters::num_running_threads, 1);
 
-		std::unique_lock<std::mutex> l(m_job_mutex);
 		for (;;)
 		{
 			disk_io_job* j = 0;
@@ -3229,7 +3239,6 @@ namespace libtorrent
 
 			l.lock();
 		}
-		l.unlock();
 
 		// do cleanup in the last running thread
 		// if we're not aborting, that means we just configured the thread pool to
@@ -3243,6 +3252,12 @@ namespace libtorrent
 			TORRENT_ASSERT(m_magic == 0x1337);
 			return;
 		}
+
+		// it is important to hold the job mutex while calling try_thread_exit()
+		// and continue to hold it until checking m_abort above so that abort()
+		// doesn't inadvertently trigger the code below when it thinks there are no
+		// more disk I/O threads running
+		l.unlock();
 
 		// at this point, there are no queued jobs left. However, main
 		// thread is still running and may still have peer_connections
@@ -3281,6 +3296,7 @@ namespace libtorrent
 	void disk_io_thread::abort_jobs()
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
+		TORRENT_ASSERT(!m_jobs_aborted.exchange(true));
 
 		jobqueue_t jobs;
 		m_disk_cache.clear(jobs);
