@@ -556,7 +556,8 @@ namespace libtorrent
 		// this is a counter of how many threads are currently running.
 		// it's used to identify the last thread still running while
 		// shutting down. This last thread is responsible for cleanup
-		std::atomic<int> m_num_running_threads;
+		// must hold the job mutex to access
+		int m_num_running_threads;
 
 		// std::mutex to protect the m_generic_io_jobs and m_hash_io_jobs lists
 		mutable std::mutex m_job_mutex;
