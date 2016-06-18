@@ -67,7 +67,7 @@ TORRENT_TEST(plain)
 			ses.add_extension(&create_lt_trackers_plugin);
 		}
 		// add session
-		, [](lt::settings_pack& pack) {}
+		, [](lt::settings_pack&) {}
 		// add torrent
 		, [](lt::add_torrent_params& params) {
 
@@ -80,7 +80,7 @@ TORRENT_TEST(plain)
 			params.trackers.clear();
 		}
 		// on alert
-		, [&](lt::alert const* a, lt::session& ses) {
+		, [&](lt::alert const* a, lt::session&) {
 			if (alert_cast<lt::peer_connect_alert>(a))
 				connected = true;
 		}
@@ -121,7 +121,7 @@ TORRENT_TEST(no_metadata)
 			ses.add_extension(&create_lt_trackers_plugin);
 		}
 		// add session
-		, [](lt::settings_pack& pack) {}
+		, [](lt::settings_pack&) {}
 		// add torrent
 		, [](lt::add_torrent_params& params) {
 
@@ -139,12 +139,12 @@ TORRENT_TEST(no_metadata)
 			params.ti.reset();
 		}
 		// on alert
-		, [&](lt::alert const* a, lt::session& ses) {
+		, [&](lt::alert const* a, lt::session&) {
 			if (alert_cast<lt::peer_connect_alert>(a))
 				connected = true;
 		}
 		// terminate
-		, [](int ticks, lt::session& ses) -> bool {
+		, [](int const ticks, lt::session& ses) -> bool {
 			if (ticks < 10)
 				return false;
 			TEST_EQUAL(ses.get_torrents()[0].trackers().size(), 0);

@@ -590,7 +590,7 @@ TORRENT_TEST(paused_checking)
 TORRENT_TEST(stop_when_ready)
 {
 	run_test(
-		[](settings_pack& sett) {},
+		[](settings_pack&) {},
 
 		[](lt::session& ses) {
 			// add torrents

@@ -46,7 +46,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "make_proxy_settings.hpp"
 
 #include <iostream>
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/crc.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 using namespace libtorrent;
 using namespace sim;
@@ -125,7 +127,7 @@ boost::shared_ptr<http_connection> test_request(io_service& ios
 	auto h = boost::make_shared<http_connection>(ios
 		, res
 		, [=](error_code const& ec, http_parser const& parser
-			, char const* data, const int size, http_connection& c)
+			, char const* data, const int size, http_connection&)
 		{
 			std::printf("RESPONSE: %s\n", url.c_str());
 			++*handler_called;
@@ -359,7 +361,7 @@ void run_test(lt::aux::proxy_settings ps, std::string url, int expect_size, int 
 
 	http.register_handler("/redirect"
 		, [&data_buffer,&counters](std::string method, std::string req
-		, std::map<std::string, std::string>& headers)
+		, std::map<std::string, std::string>&)
 	{
 		++counters[redirect_req];
 		TEST_EQUAL(method, "GET");
@@ -370,7 +372,7 @@ void run_test(lt::aux::proxy_settings ps, std::string url, int expect_size, int 
 
 	http.register_handler("/relative/redirect"
 		, [&data_buffer,&counters](std::string method, std::string req
-		, std::map<std::string, std::string>& headers)
+		, std::map<std::string, std::string>&)
 	{
 		++counters[rel_redirect_req];
 		TEST_EQUAL(method, "GET");
@@ -381,7 +383,7 @@ void run_test(lt::aux::proxy_settings ps, std::string url, int expect_size, int 
 
 	http.register_handler("/infinite/redirect"
 		, [&data_buffer,&counters](std::string method, std::string req
-		, std::map<std::string, std::string>& headers)
+		, std::map<std::string, std::string>&)
 	{
 		++counters[inf_redirect_req];
 		TEST_EQUAL(method, "GET");
@@ -462,7 +464,8 @@ void test_proxy_failure(lt::settings_pack::proxy_type_t proxy_type)
 		, std::map<std::string, std::string>& headers)
 	{
 		print_http_header(headers);
-		TEST_CHECK(false && "we're not supposed to get here!");
+		// we're not supposed to get here
+		TEST_CHECK(false);
 		return sim::send_response(200, "OK", 1337).append(data_buffer, 1337);
 	});
 

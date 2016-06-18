@@ -68,7 +68,7 @@ TORRENT_TEST(plain)
 		// on alert
 		, [](lt::alert const*, lt::session&) {}
 		// terminate
-		, [](int ticks, lt::session& ses) -> bool
+		, [](int const ticks, lt::session& ses) -> bool
 		{
 			if (ticks > 80)
 			{
@@ -108,7 +108,7 @@ TORRENT_TEST(session_stats)
 			TEST_EQUAL(ss->values[incoming_extended_idx], 1);
 		}
 		// terminate
-		, [](int ticks, lt::session& ses) -> bool
+		, [](int const ticks, lt::session& ses) -> bool
 		{
 			ses.post_session_stats();
 			if (ticks > 80)
@@ -146,7 +146,7 @@ TORRENT_TEST(suggest)
 			}
 		}
 		// terminate
-		, [](int ticks, lt::session&) -> bool
+		, [](int const ticks, lt::session&) -> bool
 		{
 			if (ticks > 500)
 			{
@@ -176,9 +176,9 @@ TORRENT_TEST(utp_only)
 		// add torrent
 		, [](lt::add_torrent_params&) {}
 		// on alert
-		, [](lt::alert const* a, lt::session&) {}
+		, [](lt::alert const*, lt::session&) {}
 		// terminate
-		, [](int ticks, lt::session& ses) -> bool
+		, [](int const ticks, lt::session& ses) -> bool
 		{
 			if (ticks > 80)
 			{
@@ -222,7 +222,7 @@ void test_stop_start_download(swarm_test type, bool graceful)
 			}
 		}
 		// terminate
-		, [&](int ticks, lt::session& ses) -> bool
+		, [&](int const ticks, lt::session& ses) -> bool
 		{
 			if (paused_once == false)
 			{
@@ -289,7 +289,7 @@ TORRENT_TEST(stop_start_download_graceful_no_peers)
 			}
 		}
 		// terminate
-		, [&](int ticks, lt::session& ses) -> bool
+		, [&](int const ticks, lt::session& ses) -> bool
 		{
 			if (paused_once == false
 				&& ticks == 6)
@@ -331,9 +331,9 @@ TORRENT_TEST(shutdown)
 		// add torrent
 		, [](lt::add_torrent_params&) {}
 		// on alert
-		, [](lt::alert const* a, lt::session&) {}
+		, [](lt::alert const*, lt::session&) {}
 		// terminate
-		, [](int ticks, lt::session& ses) -> bool
+		, [](int, lt::session& ses) -> bool
 		{
 			if (completed_pieces(ses) == 0) return false;
 			TEST_EQUAL(is_seed(ses), false);
@@ -351,9 +351,9 @@ TORRENT_TEST(delete_files)
 		// add torrent
 		, [](lt::add_torrent_params&) {}
 		// on alert
-		, [](lt::alert const* a, lt::session&) {}
+		, [](lt::alert const*, lt::session&) {}
 		// terminate
-		, [&save_path](int ticks, lt::session& ses) -> bool
+		, [&save_path](int, lt::session& ses) -> bool
 		{
 			if (completed_pieces(ses) == 0) return false;
 
@@ -385,7 +385,7 @@ TORRENT_TEST(delete_partfile)
 		// on alert
 		, [](lt::alert const* a, lt::session&) {}
 		// terminate
-		, [&save_path](int ticks, lt::session& ses) -> bool
+		, [&save_path](int, lt::session& ses) -> bool
 		{
 			if (completed_pieces(ses) == 0) return false;
 

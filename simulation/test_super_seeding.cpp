@@ -47,7 +47,7 @@ TORRENT_TEST(super_seeding)
 			params.flags |= add_torrent_params::flag_super_seeding;
 		}
 		// on alert
-		, [](lt::alert const* a, lt::session&) {}
+		, [](lt::alert const*, lt::session&) {}
 		// terminate
 		, [](int, lt::session&) -> bool
 		{ return true; });

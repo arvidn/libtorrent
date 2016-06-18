@@ -93,7 +93,7 @@ TORRENT_TEST(optimistic_unchoke)
 
 	print_alerts(*ses);
 
-	sim::timer t(sim, lt::seconds(0), [&](boost::system::error_code const& ec)
+	sim::timer t(sim, lt::seconds(0), [&](boost::system::error_code const&)
 	{
 		for (int i = 0; i < num_nodes; ++i)
 		{
@@ -103,7 +103,7 @@ TORRENT_TEST(optimistic_unchoke)
 			io_service.push_back(std::make_shared<sim::asio::io_service>(
 				std::ref(sim), addr(ep)));
 			peers.push_back(std::make_shared<peer_conn>(std::ref(*io_service.back())
-				, [&,i](int msg, char const* bug, int len)
+				, [&,i](int msg, char const* /* buf */, int /* len */)
 				{
 					choke_state& cs = peer_choke_state[i];
 					if (msg == 0)
@@ -132,7 +132,8 @@ TORRENT_TEST(optimistic_unchoke)
 					char const* msg_str[] = {"choke", "unchoke"};
 
 					lt::time_duration d = lt::clock_type::now() - start_time;
-					std::uint32_t millis = lt::duration_cast<lt::milliseconds>(d).count();
+					std::uint32_t const millis = boost::uint32_t(
+						lt::duration_cast<lt::milliseconds>(d).count());
 					printf("\x1b[35m%4d.%03d: [%d] %s (%d ms)\x1b[0m\n"
 						, millis / 1000, millis % 1000, i, msg_str[msg]
 						, int(lt::duration_cast<lt::milliseconds>(cs.unchoke_duration).count()));
@@ -143,7 +144,7 @@ TORRENT_TEST(optimistic_unchoke)
 		}
 	});
 
-	sim::timer t2(sim, test_duration, [&](boost::system::error_code const& ec)
+	sim::timer t2(sim, test_duration, [&](boost::system::error_code const&)
 	{
 		for (auto& p : peers)
 		{

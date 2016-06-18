@@ -108,10 +108,9 @@ TORRENT_TEST(dht_bootstrap)
 
 	setup_swarm(1, swarm_test::download, sim
 		// add session
-		, [](lt::settings_pack& pack) {
-		}
+		, [](lt::settings_pack&) {}
 		// add torrent
-		, [](lt::add_torrent_params& params) {}
+		, [](lt::add_torrent_params&) {}
 		// on alert
 		, [&](lt::alert const* a, lt::session&)
 		{
@@ -173,10 +172,10 @@ TORRENT_TEST(dht_dual_stack_get_peers)
 
 	setup_swarm(1, swarm_test::download, sim
 		// add session
-		, [](lt::settings_pack& pack) {
+		, [](lt::settings_pack&) {
 		}
 		// add torrent
-		, [](lt::add_torrent_params& params) {}
+		, [](lt::add_torrent_params&) {}
 		// on alert
 		, [&](lt::alert const* a, lt::session&)
 		{
@@ -234,10 +233,10 @@ TORRENT_TEST(dht_dual_stack_immutable_item)
 
 	setup_swarm(1, swarm_test::download, sim
 		// add session
-		, [](lt::settings_pack& pack) {
+		, [](lt::settings_pack&) {
 		}
 		// add torrent
-		, [](lt::add_torrent_params& params) {}
+		, [](lt::add_torrent_params&) {}
 		// on alert
 		, [&](lt::alert const* a, lt::session&)
 		{
@@ -292,10 +291,10 @@ TORRENT_TEST(dht_dual_stack_mutable_item)
 
 	setup_swarm(1, swarm_test::download, sim
 		// add session
-		, [](lt::settings_pack& pack) {
+		, [](lt::settings_pack&) {
 		}
 		// add torrent
-		, [](lt::add_torrent_params& params) {}
+		, [](lt::add_torrent_params&) {}
 		// on alert
 		, [&](lt::alert const* a, lt::session&)
 		{

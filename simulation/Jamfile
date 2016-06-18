@@ -30,8 +30,6 @@ project
 	<invariant-checks>full
 	<debug-iterators>on
 	<picker-debugging>on
-	<warnings>all
-	<warnings-as-errors>on
 	;
 
 alias libtorrent-sims :

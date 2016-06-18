@@ -94,7 +94,7 @@ void test_interval(int interval)
 			params.trackers.push_back("http://2.2.2.2:8080/announce");
 		}
 		// on alert
-		, [&](lt::alert const* a, lt::session& ses) {
+		, [&](lt::alert const* a, lt::session&) {
 
 			if (lt::alert_cast<lt::tracker_announce_alert>(a))
 			{
@@ -105,7 +105,7 @@ void test_interval(int interval)
 			}
 		}
 		// terminate
-		, [](int ticks, lt::session& ses) -> bool { return ticks > duration; });
+		, [](int const ticks, lt::session&) -> bool { return ticks > duration; });
 
 	TEST_EQUAL(announce_alerts.size(), announces.size());
 
@@ -168,8 +168,8 @@ TORRENT_TEST(event_completed)
 		{
 			if (completion == -1 && is_seed(ses))
 			{
-				completion = chrono::duration_cast<lt::seconds>(
-					lt::clock_type::now() - start).count();
+				completion = int(chrono::duration_cast<lt::seconds>(
+					lt::clock_type::now() - start).count());
 			}
 
 			return ticks > duration;
@@ -269,7 +269,8 @@ void on_alert_notify(lt::session* ses)
 		for (lt::alert* a : alerts)
 		{
 			lt::time_duration d = a->timestamp().time_since_epoch();
-			std::uint32_t millis = lt::duration_cast<lt::milliseconds>(d).count();
+			std::uint32_t const millis = std::uint32_t(
+				lt::duration_cast<lt::milliseconds>(d).count());
 			std::printf("%4d.%03d: %s\n", millis / 1000, millis % 1000,
 				a->message().c_str());
 		}

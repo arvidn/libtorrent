@@ -101,7 +101,7 @@ sha1_hash rand_hash()
 {
 	sha1_hash ret;
 	for (int i = 0; i < 20; ++i)
-		ret[i] = lt::random();
+		ret[i] = boost::uint8_t(lt::random() & 0xff);
 	return ret;
 }
 
@@ -109,7 +109,8 @@ sha1_hash rand_hash()
 address rand_v6()
 {
 	address_v6::bytes_type bytes;
-	for (int i = 0; i < int(bytes.size()); ++i) bytes[i] = lt::random();
+	for (int i = 0; i < int(bytes.size()); ++i)
+		bytes[i] = boost::uint8_t(lt::random() & 0xff);
 	return address_v6(bytes);
 }
 #endif
@@ -172,28 +173,27 @@ bool should_print(lt::alert* a)
 }
 alert const* wait_for_alert(lt::session& ses, int type, char const* name)
 {
-	time_point end = libtorrent::clock_type::now() + seconds(10);
+	time_point end_time = libtorrent::clock_type::now() + seconds(10);
 	while (true)
 	{
 		time_point now = clock_type::now();
-		if (now > end) return NULL;
+		if (now > end_time) return NULL;
 
 		alert const* ret = NULL;
 
-		ses.wait_for_alert(end - now);
+		ses.wait_for_alert(end_time - now);
 		std::vector<alert*> alerts;
 		ses.pop_alerts(&alerts);
-		for (std::vector<alert*>::iterator i = alerts.begin()
-			, end(alerts.end()); i != end; ++i)
+		for (auto a : alerts)
 		{
-			if (should_print(*i))
+			if (should_print(a))
 			{
 				std::fprintf(stderr, "%s: %s: [%s] %s\n", time_now_string(), name
-					, (*i)->what(), (*i)->message().c_str());
+					, a->what(), a->message().c_str());
 			}
-			if ((*i)->type() == type && !ret)
+			if (a->type() == type && !ret)
 			{
-				ret = *i;
+				ret = a;
 			}
 		}
 		if (ret) return ret;
@@ -294,22 +294,22 @@ bool print_alerts(lt::session& ses, char const* name
 	if (!handles.empty()) h = handles[0];
 	std::vector<alert*> alerts;
 	ses.pop_alerts(&alerts);
-	for (std::vector<alert*>::iterator i = alerts.begin(); i != alerts.end(); ++i)
+	for (auto a : alerts)
 	{
-		if (predicate && predicate(*i)) ret = true;
-		if (peer_disconnected_alert const* p = alert_cast<peer_disconnected_alert>(*i))
+		if (predicate && predicate(a)) ret = true;
+		if (peer_disconnected_alert const* p = alert_cast<peer_disconnected_alert>(a))
 		{
-			std::fprintf(stderr, "%s: %s: [%s] (%s): %s\n", time_now_string(), name, (*i)->what(), print_endpoint(p->ip).c_str(), p->message().c_str());
+			std::fprintf(stderr, "%s: %s: [%s] (%s): %s\n", time_now_string(), name, (a)->what(), print_endpoint(p->ip).c_str(), p->message().c_str());
 		}
-		else if (should_print(*i)
+		else if (should_print(a)
 			&& !no_output)
 		{
-			std::fprintf(stderr, "%s: %s: [%s] %s\n", time_now_string(), name, (*i)->what(), (*i)->message().c_str());
+			std::fprintf(stderr, "%s: %s: [%s] %s\n", time_now_string(), name, (a)->what(), (a)->message().c_str());
 		}
 
-		TEST_CHECK(alert_cast<fastresume_rejected_alert>(*i) == 0 || allow_failed_fastresume);
+		TEST_CHECK(alert_cast<fastresume_rejected_alert>(a) == 0 || allow_failed_fastresume);
 /*
-		peer_error_alert const* pea = alert_cast<peer_error_alert>(*i);
+		peer_error_alert const* pea = alert_cast<peer_error_alert>(a);
 		if (pea)
 		{
 			std::fprintf(stderr, "%s: peer error: %s\n", time_now_string(), pea->error.message().c_str());
@@ -327,7 +327,7 @@ bool print_alerts(lt::session& ses, char const* name
 		}
 */
 
-		invalid_request_alert const* ira = alert_cast<invalid_request_alert>(*i);
+		invalid_request_alert const* ira = alert_cast<invalid_request_alert>(a);
 		if (ira)
 		{
 			std::fprintf(stderr, "peer error: %s\n", ira->message().c_str());
@@ -555,7 +555,8 @@ int start_proxy(int proxy_type)
 		tcp::socket s(ios);
 		s.open(tcp::v4(), ec);
 		if (ec) break;
-		s.bind(tcp::endpoint(address::from_string("127.0.0.1"), port), ec);
+		s.bind(tcp::endpoint(address::from_string("127.0.0.1")
+			, boost::uint16_t(port)), ec);
 	} while (ec);
 
 
@@ -627,7 +628,6 @@ void create_random_files(std::string const& path, const int file_sizes[], int nu
 		std::snprintf(dirname, sizeof(dirname), "test_dir%d", i / 5);
 
 		std::string full_path = combine_path(path, dirname);
-		error_code ec;
 		create_directory(full_path, ec);
 		full_path = combine_path(full_path, filename);
 
@@ -875,7 +875,7 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 		std::fprintf(stderr, "%s: ses1: connecting peer port: %d\n"
 			, time_now_string(), port);
 		tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec)
-			, port));
+			, boost::uint16_t(port)));
 
 		if (ses3)
 		{
@@ -897,11 +897,11 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 
 			std::fprintf(stderr, "ses3: connecting peer port: %d\n", port);
 			tor3.connect_peer(tcp::endpoint(
-					address::from_string("127.0.0.1", ec), port));
+					address::from_string("127.0.0.1", ec), boost::uint16_t(port)));
 			std::fprintf(stderr, "ses3: connecting peer port: %d\n", port2);
 				tor3.connect_peer(tcp::endpoint(
 					address::from_string("127.0.0.1", ec)
-					, port2));
+					, boost::uint16_t(port2)));
 		}
 	}
 
@@ -922,7 +922,8 @@ int start_web_server(bool ssl, bool chunked_encoding, bool keepalive)
 		tcp::socket s(ios);
 		s.open(tcp::v4(), ec);
 		if (ec) break;
-		s.bind(tcp::endpoint(address::from_string("127.0.0.1"), port), ec);
+		s.bind(tcp::endpoint(address::from_string("127.0.0.1")
+			, boost::uint16_t(port)), ec);
 	} while (ec);
 
 	char buf[200];
@@ -951,7 +952,7 @@ void stop_web_server()
 tcp::endpoint ep(char const* ip, int port)
 {
 	error_code ec;
-	tcp::endpoint ret(address::from_string(ip, ec), port);
+	tcp::endpoint ret(address::from_string(ip, ec), boost::uint16_t(port));
 	TEST_CHECK(!ec);
 	return ret;
 }

@@ -36,12 +36,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/proxy_settings.hpp"
 
 inline libtorrent::aux::proxy_settings make_proxy_settings(
-	libtorrent::settings_pack::proxy_type_t proxy_type)
+	libtorrent::settings_pack::proxy_type_t const proxy_type)
 {
 	using namespace libtorrent;
 
 	aux::proxy_settings ps;
-	ps.type = proxy_type;
+	ps.type = boost::uint8_t(proxy_type);
 	ps.proxy_hostnames = false;
 	// this IP and ports are specific to test_http_connection.cpp
 	if (proxy_type != settings_pack::none)

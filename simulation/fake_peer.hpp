@@ -157,7 +157,8 @@ private:
 		memcpy(&m_out_buffer[28], ih.data(), 20);
 
 		asio::async_write(m_socket, asio::const_buffers_1(&m_out_buffer[0]
-			, len), [this, ep](boost::system::error_code const& ec, size_t bytes_transferred)
+			, len), [this, ep](boost::system::error_code const& ec
+			, size_t /* bytes_transferred */)
 		{
 			std::printf("fake_peer::write_handshake(%s) -> (%d) %s\n"
 				, lt::print_endpoint(ep).c_str(), ec.value()
@@ -176,7 +177,7 @@ private:
 		});
 	}
 
-	void read_handshake(lt::error_code const& ec, size_t bytes_transferred)
+	void read_handshake(lt::error_code const& ec, size_t /* bytes_transferred */)
 	{
 		using namespace std::placeholders;
 
@@ -213,7 +214,7 @@ private:
 			, std::bind(&fake_peer::on_read, this, _1, _2));
 	}
 
-	void on_read(lt::error_code const& ec, size_t bytes_transferred)
+	void on_read(lt::error_code const& ec, size_t /* bytes_transferred */)
 	{
 		using namespace std::placeholders;
 
@@ -233,7 +234,7 @@ private:
 	}
 
 	void write_send_buffer(boost::system::error_code const& ec
-		, size_t bytes_transferred)
+		, size_t /* bytes_transferred */)
 	{
 		using namespace std::placeholders;
 
