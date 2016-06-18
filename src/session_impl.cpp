@@ -207,14 +207,14 @@ namespace aux {
 	{
 		// set the default peer_class_filter to use the local peer class
 		// for peers on local networks
-		boost::uint32_t lfilter = 1 << m_local_peer_class;
-		boost::uint32_t gfilter = 1 << m_global_class;
+		std::uint32_t lfilter = 1 << m_local_peer_class;
+		std::uint32_t gfilter = 1 << m_global_class;
 
 		struct class_mapping
 		{
 			char const* first;
 			char const* last;
-			boost::uint32_t filter;
+			std::uint32_t filter;
 		};
 
 		static const class_mapping v4_classes[] =
@@ -586,7 +586,7 @@ namespace aux {
 		m_host_resolver.async_resolve(host, flags, h);
 	}
 
-	void session_impl::save_state(entry* eptr, boost::uint32_t flags) const
+	void session_impl::save_state(entry* eptr, std::uint32_t flags) const
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -647,7 +647,7 @@ namespace aux {
 	}
 
 	void session_impl::load_state(bdecode_node const* e
-		, boost::uint32_t const flags = 0xffffffff)
+		, std::uint32_t const flags = 0xffffffff)
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -816,7 +816,7 @@ namespace aux {
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT_VAL(ext, ext);
 
-		boost::uint32_t const features = ext->implemented_features();
+		std::uint32_t const features = ext->implemented_features();
 
 		m_ses_extensions[plugins_all_idx].push_back(ext);
 
@@ -1189,7 +1189,7 @@ namespace aux {
 
 	void session_impl::set_peer_classes(peer_class_set* s, address const& a, int st)
 	{
-		boost::uint32_t peer_class_mask = m_peer_class_filter.access(a);
+		std::uint32_t peer_class_mask = m_peer_class_filter.access(a);
 
 		// assign peer class based on socket type
 		static const int mapping[] = { 0, 0, 0, 0, 1, 4, 2, 2, 2, 3};
@@ -2610,7 +2610,7 @@ namespace aux {
 
 #ifdef TORRENT_USE_OPENSSL
 		// add the current time to the PRNG, to add more unpredictability
-		boost::uint64_t now = clock_type::now().time_since_epoch().count();
+		std::uint64_t now = clock_type::now().time_since_epoch().count();
 		// assume 12 bits of entropy (i.e. about 8 milliseconds)
 		RAND_add(&now, 8, 1.5);
 #endif
@@ -2750,7 +2750,7 @@ namespace aux {
 		}
 		if (connection_limit_factor == 0) connection_limit_factor = 100;
 
-		boost::uint64_t limit = m_settings.get_int(settings_pack::connections_limit);
+		std::uint64_t limit = m_settings.get_int(settings_pack::connections_limit);
 		limit = limit * 100 / connection_limit_factor;
 
 		// don't allow more connections than the max setting
@@ -3108,7 +3108,7 @@ namespace aux {
 		m_last_second_tick = now;
 		m_tick_residual += tick_interval_ms - 1000;
 
-		boost::int32_t const stime = session_time();
+		std::int32_t const stime = session_time();
 		if (stime > 65000)
 		{
 			// we're getting close to the point where our timestamps
@@ -3181,7 +3181,7 @@ namespace aux {
 							int total_peers = num_peers[0][i] + num_peers[1][i];
 							// this are 64 bits since it's multiplied by the number
 							// of peers, which otherwise might overflow an int
-							boost::uint64_t rate = stat_rate[i];
+							std::uint64_t rate = stat_rate[i];
 							tcp_channel[i].throttle((std::max)(int(rate * num_peers[0][i] / total_peers), lower_limit[i]));
 						}
 					}
@@ -3398,7 +3398,7 @@ namespace aux {
 
 	namespace {
 	// returns the index of the first set bit.
-	int log2(boost::uint32_t v)
+	int log2(std::uint32_t v)
 	{
 // http://graphics.stanford.edu/~seander/bithacks.html#IntegerLogDeBruijn
 		static const int MultiplyDeBruijnBitPosition[32] =
@@ -3413,7 +3413,7 @@ namespace aux {
 		v |= v >> 8;
 		v |= v >> 16;
 
-		return MultiplyDeBruijnBitPosition[boost::uint32_t(v * 0x07C4ACDDU) >> 27];
+		return MultiplyDeBruijnBitPosition[std::uint32_t(v * 0x07C4ACDDU) >> 27];
 	}
 
 	} // anonymous namespace
@@ -3877,7 +3877,7 @@ namespace aux {
 				{
 					pi->optimistically_unchoked = true;
 					m_stats_counters.inc_stats_counter(counters::num_peers_up_unchoked_optimistic);
-					pi->last_optimistically_unchoked = boost::uint16_t(session_time());
+					pi->last_optimistically_unchoked = std::uint16_t(session_time());
 #ifndef TORRENT_DISABLE_LOGGING
 					p->peer_log(peer_log_alert::info, "OPTIMISTIC UNCHOKE"
 						, "session-time: %d", pi->last_optimistically_unchoked);
@@ -4448,7 +4448,7 @@ namespace aux {
 
 	void session_impl::get_torrent_status(std::vector<torrent_status>* ret
 		, boost::function<bool(torrent_status const&)> const& pred
-		, boost::uint32_t flags) const
+		, std::uint32_t flags) const
 	{
 		for (torrent_map::const_iterator i
 			= m_torrents.begin(), end(m_torrents.end());
@@ -4463,7 +4463,7 @@ namespace aux {
 	}
 
 	void session_impl::refresh_torrent_status(std::vector<torrent_status>* ret
-		, boost::uint32_t flags) const
+		, std::uint32_t flags) const
 	{
 		for (std::vector<torrent_status>::iterator i
 			= ret->begin(), end(ret->end()); i != end; ++i)
@@ -4474,7 +4474,7 @@ namespace aux {
 		}
 	}
 
-	void session_impl::post_torrent_updates(boost::uint32_t flags)
+	void session_impl::post_torrent_updates(std::uint32_t flags)
 	{
 		INVARIANT_CHECK;
 
@@ -5242,7 +5242,7 @@ namespace aux {
 		}
 	}
 
-	boost::uint16_t session_impl::listen_port() const
+	std::uint16_t session_impl::listen_port() const
 	{
 		// if peer connections are set up to be received over a socks
 		// proxy, and it's the same one as we're using for the tracker
@@ -5260,7 +5260,7 @@ namespace aux {
 
 	// TODO: 2 this function should be removed and users need to deal with the
 	// more generic case of having multiple ssl ports
-	boost::uint16_t session_impl::ssl_listen_port() const
+	std::uint16_t session_impl::ssl_listen_port() const
 	{
 #ifdef TORRENT_USE_OPENSSL
 		// if peer connections are set up to be received over a socks
@@ -5713,7 +5713,7 @@ namespace aux {
 		{
 			std::array<char, 64> sig = i.sig();
 			std::array<char, 32> pk = i.pk();
-			boost::uint64_t seq = i.seq();
+			std::uint64_t seq = i.seq();
 			std::string salt = i.salt();
 
 			if (alerts.should_post<dht_put_alert>())
@@ -5722,12 +5722,12 @@ namespace aux {
 
 		void put_mutable_callback(dht::item& i
 			, boost::function<void(entry&, std::array<char,64>&
-				, boost::uint64_t&, std::string const&)> cb)
+				, std::uint64_t&, std::string const&)> cb)
 		{
 			entry value = i.value();
 			std::array<char, 64> sig = i.sig();
 			std::array<char, 32> pk = i.pk();
-			boost::uint64_t seq = i.seq();
+			std::uint64_t seq = i.seq();
 			std::string salt = i.salt();
 			cb(value, sig, seq, salt);
 			i.assign(value, salt, seq, pk.data(), sig.data());
@@ -5758,7 +5758,7 @@ namespace aux {
 
 	void session_impl::dht_put_mutable_item(std::array<char, 32> key
 		, boost::function<void(entry&, std::array<char,64>&
-		, boost::uint64_t&, std::string const&)> cb
+		, std::uint64_t&, std::string const&)> cb
 		, std::string salt)
 	{
 		if (!m_dht) return;
@@ -5815,7 +5815,7 @@ namespace aux {
 			time_point m = min_time();
 			if (!_wakeups.empty()) m = _wakeups[0].timestamp;
 			time_point prev = m;
-			boost::uint64_t prev_csw = 0;
+			std::uint64_t prev_csw = 0;
 			if (!_wakeups.empty()) prev_csw = _wakeups[0].context_switches;
 			std::fprintf(f, "abs. time\trel. time\tctx switch\tidle-wakeup\toperation\n");
 			for (int i = 0; i < _wakeups.size(); ++i)
@@ -6004,7 +6004,7 @@ namespace aux {
 
 	void session_impl::update_queued_disk_bytes()
 	{
-		boost::uint64_t cache_size = m_settings.get_int(settings_pack::cache_size);
+		std::uint64_t cache_size = m_settings.get_int(settings_pack::cache_size);
 		if (m_settings.get_int(settings_pack::max_queued_disk_bytes) / 16 / 1024
 			> cache_size / 2
 			&& cache_size > 5

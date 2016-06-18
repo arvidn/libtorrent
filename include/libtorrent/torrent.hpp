@@ -203,7 +203,7 @@ namespace libtorrent
 
 		// the scrape data from the tracker response, this
 		// is optional and may be 0xffffff
-		boost::uint32_t m_complete:24;
+		std::uint32_t m_complete:24;
 
 		// set to true when this torrent may not download anything
 		bool m_upload_mode:1;
@@ -251,16 +251,16 @@ namespace libtorrent
 		bool m_state_subscription:1;
 
 		// the maximum number of connections for this torrent
-		boost::uint32_t m_max_connections:24;
+		std::uint32_t m_max_connections:24;
 
 		// the size of a request block
 		// each piece is divided into these
 		// blocks when requested. The block size is
 		// 1 << m_block_size_shift
-		boost::uint32_t m_block_size_shift:5;
+		std::uint32_t m_block_size_shift:5;
 
 		// the state of this torrent (queued, checking, downloading, etc.)
-		boost::uint32_t m_state:3;
+		std::uint32_t m_state:3;
 
 		std::unique_ptr<peer_list> m_peer_list;
 	};
@@ -430,10 +430,10 @@ namespace libtorrent
 		std::string name() const;
 
 		stat statistics() const { return m_stat; }
-		boost::int64_t bytes_left() const;
+		std::int64_t bytes_left() const;
 		int block_bytes_wanted(piece_block const& p) const;
 		void bytes_done(torrent_status& st, bool accurate) const;
-		boost::int64_t quantized_bytes_done() const;
+		std::int64_t quantized_bytes_done() const;
 
 		void sent_bytes(int bytes_payload, int bytes_protocol);
 		void received_bytes(int bytes_payload, int bytes_protocol);
@@ -537,13 +537,13 @@ namespace libtorrent
 		void clear_time_critical();
 		void update_piece_priorities();
 
-		void status(torrent_status* st, boost::uint32_t flags);
+		void status(torrent_status* st, std::uint32_t flags);
 
 		// this torrent changed state, if the user is subscribing to
 		// it, add it to the m_state_updates list in session_impl
 		void state_updated();
 
-		void file_progress(std::vector<boost::int64_t>& fp, int flags = 0);
+		void file_progress(std::vector<std::int64_t>& fp, int flags = 0);
 
 #ifndef TORRENT_NO_DEPRECATE
 		void use_interface(std::string net_interface);
@@ -693,7 +693,7 @@ namespace libtorrent
 
 		// generate the tracker key for this torrent.
 		// The key is passed to http trackers as ``&key=``.
-		boost::uint32_t tracker_key() const;
+		std::uint32_t tracker_key() const;
 
 		// if we need a connect boost, connect some peers
 		// immediately
@@ -706,11 +706,11 @@ namespace libtorrent
 		// forcefully sets next_announce to the current time
 		void force_tracker_request(time_point, int tracker_idx);
 		void scrape_tracker(int idx, bool user_triggered);
-		void announce_with_tracker(boost::uint8_t e
+		void announce_with_tracker(std::uint8_t e
 			= tracker_request::none);
 		int seconds_since_last_scrape() const
 		{
-			return m_last_scrape == (std::numeric_limits<boost::int16_t>::min)()
+			return m_last_scrape == (std::numeric_limits<std::int16_t>::min)()
 				? -1 : int(m_ses.session_time() - m_last_scrape);
 		}
 
@@ -1160,8 +1160,8 @@ namespace libtorrent
 
 		// all time totals of uploaded and downloaded payload
 		// stored in resume data
-		boost::int64_t m_total_uploaded;
-		boost::int64_t m_total_downloaded;
+		std::int64_t m_total_uploaded;
+		std::int64_t m_total_downloaded;
 
 		// if this pointer is 0, the torrent is in
 		// a state where the metadata hasn't been
@@ -1221,7 +1221,7 @@ namespace libtorrent
 		// ever changed, this remains empty. Any unallocated slot
 		// implicitly means the file has priority 1.
 		// TODO: this wastes 5 bits per file
-		std::vector<boost::uint8_t> m_file_priority;
+		std::vector<std::uint8_t> m_file_priority;
 
 		// this object is used to track download progress of individual files
 		aux::file_progress m_file_progress;
@@ -1332,11 +1332,11 @@ namespace libtorrent
 	private:
 
 		// m_num_verified = m_verified.count()
-		boost::uint32_t m_num_verified;
+		std::uint32_t m_num_verified;
 
 		// this timestamp is kept in session-time, to
 		// make it fit in 16 bits
-		boost::uint16_t m_last_saved_resume;
+		std::uint16_t m_last_saved_resume;
 
 		// if this torrent is running, this was the time
 		// when it was started. This is used to have a
@@ -1346,15 +1346,15 @@ namespace libtorrent
 		// in session-time. see session_impl for details.
 		// the reference point is stepped forward every 4
 		// hours to keep the timestamps fit in 16 bits
-		boost::uint16_t m_started;
+		std::uint16_t m_started;
 
 		// if we're a seed, this is the session time
 		// timestamp of when we became one
-		boost::uint16_t m_became_seed;
+		std::uint16_t m_became_seed;
 
 		// if we're finished, this is the session time
 		// timestamp of when we finished
-		boost::uint16_t m_became_finished;
+		std::uint16_t m_became_finished;
 
 		// when checking, this is the first piece we have not
 		// issued a hash job for
@@ -1374,15 +1374,15 @@ namespace libtorrent
 		int m_error_file;
 
 		// the average time it takes to download one time critical piece
-		boost::uint32_t m_average_piece_time;
+		std::uint32_t m_average_piece_time;
 
 		// the average piece download time deviation
-		boost::uint32_t m_piece_time_deviation;
+		std::uint32_t m_piece_time_deviation;
 
 		// the number of bytes that has been
 		// downloaded that failed the hash-test
-		boost::uint32_t m_total_failed_bytes;
-		boost::uint32_t m_total_redundant_bytes;
+		std::uint32_t m_total_failed_bytes;
+		std::uint32_t m_total_redundant_bytes;
 
 		// the sequence number for this torrent, this is a
 		// monotonically increasing number for each added torrent
@@ -1390,14 +1390,14 @@ namespace libtorrent
 
 		// for torrents who have a bandwidth limit, this is != 0
 		// and refers to a peer_class in the session.
-		boost::uint16_t m_peer_class;
+		std::uint16_t m_peer_class;
 
 		// of all peers in m_connections, this is the number
 		// of peers that are outgoing and still waiting to
 		// complete the connection. This is used to possibly
 		// kick out these connections when we get incoming
 		// connections (if we've reached the connection limit)
-		boost::uint16_t m_num_connecting;
+		std::uint16_t m_num_connecting;
 
 		// ==============================
 		// The following members are specifically
@@ -1408,7 +1408,7 @@ namespace libtorrent
 
 		// the session time timestamp of when we entered upload mode
 		// if we're currently in upload-mode
-		boost::uint16_t m_upload_mode_time;
+		std::uint16_t m_upload_mode_time;
 
 		// true when this torrent should anncounce to
 		// trackers
@@ -1449,7 +1449,7 @@ namespace libtorrent
 		unsigned int m_active_time:24;
 
 		// the index to the last tracker that worked
-		boost::int8_t m_last_working_tracker;
+		std::int8_t m_last_working_tracker;
 
 // ----
 
@@ -1504,7 +1504,7 @@ namespace libtorrent
 
 		// these are the flags sent in on a call to save_resume_data
 		// we need to save them to check them in write_resume_data
-		boost::uint8_t m_save_resume_flags;
+		std::uint8_t m_save_resume_flags;
 
 // ----
 
@@ -1522,7 +1522,7 @@ namespace libtorrent
 
 		// rotating sequence number for LSD announces sent out.
 		// used to only use IP broadcast for every 8th lsd announce
-		boost::uint8_t m_lsd_seq:3;
+		std::uint8_t m_lsd_seq:3;
 
 		// this is set to true if the torrent was started without
 		// metadata. It is used to save metadata in the resume file
@@ -1543,18 +1543,18 @@ namespace libtorrent
 // ----
 
 		// the number of bytes of padding files
-		boost::uint32_t m_padding:24;
+		std::uint32_t m_padding:24;
 
 		// this is the priority of the torrent. The higher
 		// the value is, the more bandwidth is assigned to
 		// the torrent's peers
-		boost::uint32_t m_priority:8;
+		std::uint32_t m_priority:8;
 
 // ----
 
 		// the scrape data from the tracker response, this
 		// is optional and may be 0xffffff
-		boost::uint32_t m_incomplete:24;
+		std::uint32_t m_incomplete:24;
 
 
 		// true when the torrent should announce to
@@ -1597,16 +1597,16 @@ namespace libtorrent
 		// the timestamp of the last piece passed for this torrent specified in
 		// session_time. This is signed because it must be able to represent time
 		// before the session started
-		boost::int16_t m_last_download;
+		std::int16_t m_last_download;
 
 		// the number of peer connections to seeds. This should be the same as
 		// counting the peer connections that say true for is_seed()
-		boost::uint16_t m_num_seeds;
+		std::uint16_t m_num_seeds;
 
 		// the timestamp of the last byte uploaded from this torrent specified in
 		// session_time. This is signed because it must be able to represent time
 		// before the session started.
-		boost::int16_t m_last_upload;
+		std::int16_t m_last_upload;
 
 		// this is a second count-down to when we should tick the
 		// storage for this torrent. Ticking the storage is used
@@ -1614,7 +1614,7 @@ namespace libtorrent
 		// other deferred flushing. Any disk operation starts this
 		// counter (unless it's already counting down). 0 means no
 		// ticking is needed.
-		boost::uint8_t m_storage_tick;
+		std::uint8_t m_storage_tick;
 
 // ----
 
@@ -1627,7 +1627,7 @@ namespace libtorrent
 
 		enum { no_gauge_state = 0xf };
 		// the current stats gauge this torrent counts against
-		boost::uint32_t m_current_gauge_state:4;
+		std::uint32_t m_current_gauge_state:4;
 
 		// set to true while moving the storage
 		bool m_moving_storage:1;
@@ -1646,7 +1646,7 @@ namespace libtorrent
 		// the timestamp of the last scrape request to one of the trackers in
 		// this torrent specified in session_time. This is signed because it must
 		// be able to represent time before the session started
-		boost::int16_t m_last_scrape;
+		std::int16_t m_last_scrape;
 
 // ----
 

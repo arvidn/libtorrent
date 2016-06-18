@@ -49,7 +49,7 @@ namespace libtorrent
 		int rest = size() & 31;
 		if (rest > 0)
 		{
-			boost::uint32_t mask = aux::host_to_network(0xffffffff << (32-rest));
+			std::uint32_t mask = aux::host_to_network(0xffffffff << (32-rest));
 			if ((m_buf[words] & mask) != mask) return false;
 		}
 		return true;
@@ -77,13 +77,13 @@ namespace libtorrent
 
 		for (int i = 0; i < words; ++i)
 		{
-			boost::uint32_t v = m_buf[i];
+			std::uint32_t v = m_buf[i];
 			// from:
 			// http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
 			static const int S[] = {1, 2, 4, 8, 16}; // Magic Binary Numbers
 			static const int B[] = {0x55555555, 0x33333333, 0x0F0F0F0F, 0x00FF00FF, 0x0000FFFF};
 
-			boost::uint32_t c = v - ((v >> 1) & B[0]);
+			std::uint32_t c = v - ((v >> 1) & B[0]);
 			c = ((c >> S[1]) & B[1]) + (c & B[1]);
 			c = ((c >> S[2]) + c) & B[2];
 			c = ((c >> S[3]) + c) & B[3];
@@ -141,7 +141,7 @@ namespace libtorrent
 
 		if (m_buf)
 		{
-			boost::uint32_t* tmp = static_cast<boost::uint32_t*>(std::realloc(m_buf-1, (b+1) * 4));
+			std::uint32_t* tmp = static_cast<std::uint32_t*>(std::realloc(m_buf-1, (b+1) * 4));
 #ifndef BOOST_NO_EXCEPTIONS
 			if (tmp == NULL) throw std::bad_alloc();
 #endif
@@ -151,7 +151,7 @@ namespace libtorrent
 		else
 		{
 			// +1 because the first word is the size (in bits)
-			boost::uint32_t* tmp = static_cast<boost::uint32_t*>(std::malloc((b+1) * 4));
+			std::uint32_t* tmp = static_cast<std::uint32_t*>(std::malloc((b+1) * 4));
 #ifndef BOOST_NO_EXCEPTIONS
 			if (tmp == NULL) throw std::bad_alloc();
 #endif

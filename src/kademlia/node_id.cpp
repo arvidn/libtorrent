@@ -82,15 +82,15 @@ int min_distance_exp(node_id const& n1, std::vector<node_id> const& ids)
 	return min;
 }
 
-node_id generate_id_impl(address const& ip_, boost::uint32_t r)
+node_id generate_id_impl(address const& ip_, std::uint32_t r)
 {
-	boost::uint8_t* ip = 0;
+	std::uint8_t* ip = 0;
 
-	static const boost::uint8_t v4mask[] = { 0x03, 0x0f, 0x3f, 0xff };
+	static const std::uint8_t v4mask[] = { 0x03, 0x0f, 0x3f, 0xff };
 #if TORRENT_USE_IPV6
-	static const boost::uint8_t v6mask[] = { 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f, 0xff };
+	static const std::uint8_t v6mask[] = { 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f, 0xff };
 #endif
-	boost::uint8_t const* mask = 0;
+	std::uint8_t const* mask = 0;
 	int num_octets = 0;
 
 	address_v4::bytes_type b4;
@@ -118,15 +118,15 @@ node_id generate_id_impl(address const& ip_, boost::uint32_t r)
 	ip[0] |= (r & 0x7) << 5;
 
 	// this is the crc32c (Castagnoli) polynomial
-	boost::uint32_t c;
+	std::uint32_t c;
 	if (num_octets == 4)
 	{
-		c = crc32c_32(*reinterpret_cast<boost::uint32_t*>(ip));
+		c = crc32c_32(*reinterpret_cast<std::uint32_t*>(ip));
 	}
 	else
 	{
 		TORRENT_ASSERT(num_octets == 8);
-		c = crc32c(reinterpret_cast<boost::uint64_t*>(ip), 1);
+		c = crc32c(reinterpret_cast<std::uint64_t*>(ip), 1);
 	}
 	node_id id;
 
@@ -140,13 +140,13 @@ node_id generate_id_impl(address const& ip_, boost::uint32_t r)
 	return id;
 }
 
-static boost::uint32_t secret = 0;
+static std::uint32_t secret = 0;
 
 void make_id_secret(node_id& in)
 {
 	if (secret == 0) secret = (random() % 0xfffffffe) + 1;
 
-	boost::uint32_t rand = random();
+	std::uint32_t rand = random();
 
 	// generate the last 4 bytes as a "signature" of the previous 4 bytes. This
 	// lets us verify whether a hash came from this function or not in the future.

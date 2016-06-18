@@ -146,7 +146,7 @@ void test_transfer(lt::session& ses, boost::shared_ptr<torrent_info> torrent_fil
 	std::vector<announce_entry> empty;
 	th.replace_trackers(empty);
 
-	const boost::int64_t total_size = torrent_file->total_size();
+	const std::int64_t total_size = torrent_file->total_size();
 
 	file_storage const& fs = torrent_file->files();
 	int pad_file_size = 0;
@@ -157,7 +157,7 @@ void test_transfer(lt::session& ses, boost::shared_ptr<torrent_info> torrent_fil
 	}
 
 	peer_disconnects = 0;
-	std::map<std::string, boost::int64_t> cnt = get_counters(ses);
+	std::map<std::string, std::int64_t> cnt = get_counters(ses);
 
 	for (int i = 0; i < 40; ++i)
 	{

@@ -514,11 +514,11 @@ namespace libtorrent
 		error_code ec;
 
 		// the file the error occurred on
-		boost::int32_t file:24;
+		std::int32_t file:24;
 
 		// A code from file_operation_t enum, indicating what
 		// kind of operation failed.
-		boost::uint32_t operation:8;
+		std::uint32_t operation:8;
 
 		enum file_operation_t {
 			none,

@@ -183,7 +183,7 @@ struct msg_args
 	msg_args& seq(int s)
 	{ a["seq"] = s; return *this; }
 
-	msg_args& cas(boost::int64_t c)
+	msg_args& cas(std::int64_t c)
 	{ a["cas"] = c; return *this; }
 
 	msg_args& nid(sha1_hash const& n)
@@ -1102,7 +1102,7 @@ void do_test_dht(address(&rand_addr)())
 		// === test CAS put ===
 
 		// this is the sequence number we expect to be there
-		boost::uint64_t cas = seq;
+		std::uint64_t cas = seq;
 
 		// increment sequence number
 		++seq;
@@ -1362,7 +1362,7 @@ void do_test_dht(address(&rand_addr)())
 
 		int rs[] = { 1,86,22,65,90 };
 
-		boost::uint8_t prefixes[][3] =
+		std::uint8_t prefixes[][3] =
 		{
 			{ 0x5f, 0xbf, 0xbf },
 			{ 0x5a, 0x3c, 0xe9 },
@@ -2417,7 +2417,7 @@ TORRENT_TEST(routing_table_extended)
 
 	// we can't add the nodes in straight 0,1,2,3 order. That way the routing
 	// table would get unbalanced and intermediate nodes would be dropped
-	std::vector<boost::uint8_t> node_id_prefix;
+	std::vector<std::uint8_t> node_id_prefix;
 	node_id_prefix.reserve(256);
 	for (int i = 0; i < 256; ++i) node_id_prefix.push_back(i);
 	std::random_shuffle(node_id_prefix.begin(), node_id_prefix.end());
@@ -2451,7 +2451,7 @@ TORRENT_TEST(routing_table_set_id)
 
 	// we can't add the nodes in straight 0,1,2,3 order. That way the routing
 	// table would get unbalanced and intermediate nodes would be dropped
-	std::vector<boost::uint8_t> node_id_prefix;
+	std::vector<std::uint8_t> node_id_prefix;
 	node_id_prefix.reserve(256);
 	for (int i = 0; i < 256; ++i) node_id_prefix.push_back(i);
 	std::random_shuffle(node_id_prefix.begin(), node_id_prefix.end());

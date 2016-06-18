@@ -72,11 +72,11 @@ struct TORRENT_EXTRA_EXPORT node_entry
 	union_endpoint endpoint;
 
 	// the average RTT of this node
-	boost::uint16_t rtt;
+	std::uint16_t rtt;
 
 	// the number of times this node has failed to
 	// respond in a row
-	boost::uint8_t timeout_count;
+	std::uint8_t timeout_count;
 };
 
 } } // namespace libtorrent::dht

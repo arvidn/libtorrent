@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 namespace lt = libtorrent;
 
-void test_running_torrent(boost::shared_ptr<torrent_info> info, boost::int64_t file_size)
+void test_running_torrent(boost::shared_ptr<torrent_info> info, std::int64_t file_size)
 {
 	settings_pack pack;
 	pack.set_int(settings_pack::alert_mask, alert::storage_notification);
@@ -56,7 +56,7 @@ void test_running_torrent(boost::shared_ptr<torrent_info> info, boost::int64_t f
 	pack.set_int(settings_pack::max_retry_port_bind, 10);
 	lt::session ses(pack);
 
-	std::vector<boost::uint8_t> zeroes;
+	std::vector<std::uint8_t> zeroes;
 	zeroes.resize(1000, 0);
 	add_torrent_params p;
 	p.flags &= ~add_torrent_params::flag_paused;
@@ -249,7 +249,7 @@ TORRENT_TEST(torrent)
 		remove("test_torrent_dir2/tmp2");
 		remove("test_torrent_dir2/tmp3");
 		file_storage fs;
-		boost::int64_t file_size = 256 * 1024;
+		std::int64_t file_size = 256 * 1024;
 		fs.add_file("test_torrent_dir2/tmp1", file_size);
 		fs.add_file("test_torrent_dir2/tmp2", file_size);
 		fs.add_file("test_torrent_dir2/tmp3", file_size);

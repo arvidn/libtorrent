@@ -179,7 +179,7 @@ namespace libtorrent
 
 		// parse out connection ID and look for existing
 		// connections. If found, forward to the utp_stream.
-		boost::uint16_t id = ph->connection_id;
+		std::uint16_t id = ph->connection_id;
 
 		// first test to see if it's the same socket as last time
 		// in most cases it is
@@ -308,7 +308,7 @@ namespace libtorrent
 		m_drained_event.push_back(s);
 	}
 
-	void utp_socket_manager::remove_socket(boost::uint16_t id)
+	void utp_socket_manager::remove_socket(std::uint16_t id)
 	{
 		socket_map_t::iterator i = m_utp_sockets.find(id);
 		if (i == m_utp_sockets.end()) return;
@@ -328,8 +328,8 @@ namespace libtorrent
 
 	utp_socket_impl* utp_socket_manager::new_utp_socket(utp_stream* str)
 	{
-		boost::uint16_t send_id = 0;
-		boost::uint16_t recv_id = 0;
+		std::uint16_t send_id = 0;
+		std::uint16_t recv_id = 0;
 		if (m_new_connection != -1)
 		{
 			send_id = m_new_connection;

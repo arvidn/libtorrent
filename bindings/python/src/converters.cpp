@@ -152,7 +152,7 @@ void bind_converters()
     to_python_converter<lt::udp::endpoint, endpoint_to_tuple<lt::udp::endpoint> >();
     to_python_converter<std::vector<std::string>, vector_to_list<std::string> >();
     to_python_converter<std::vector<int>, vector_to_list<int> >();
-    to_python_converter<std::vector<boost::uint8_t>, vector_to_list<boost::uint8_t> >();
+    to_python_converter<std::vector<std::uint8_t>, vector_to_list<std::uint8_t> >();
     to_python_converter<std::vector<lt::tcp::endpoint>, vector_to_list<lt::tcp::endpoint> >();
     to_python_converter<std::vector<lt::udp::endpoint>, vector_to_list<lt::udp::endpoint> >();
     to_python_converter<std::vector<std::pair<std::string, int> >, vector_to_list<std::pair<std::string, int> > >();
@@ -163,7 +163,7 @@ void bind_converters()
     tuple_to_endpoint<lt::tcp::endpoint>();
     tuple_to_endpoint<lt::udp::endpoint>();
     list_to_vector<int>();
-    list_to_vector<boost::uint8_t>();
+    list_to_vector<std::uint8_t>();
     list_to_vector<std::string>();
     list_to_vector<lt::tcp::endpoint>();
     list_to_vector<lt::udp::endpoint>();

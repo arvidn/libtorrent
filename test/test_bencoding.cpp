@@ -586,7 +586,7 @@ TORRENT_TEST(lazy_entry)
 	// test parse_int
 	{
 		char b[] = "1234567890e";
-		boost::int64_t val = 0;
+		std::int64_t val = 0;
 		bdecode_errors::error_code_enum ec;
 		char const* e = parse_int(b, b + sizeof(b)-1, 'e', val, ec);
 		TEST_EQUAL(val, 1234567890);
@@ -596,7 +596,7 @@ TORRENT_TEST(lazy_entry)
 	// test invalid digit
 	{
 		char b[] = "0o";
-		boost::int64_t val = 0;
+		std::int64_t val = 0;
 		bdecode_errors::error_code_enum ec;
 		char const* e = parse_int(b, b + sizeof(b)-1, 'e', val, ec);
 		TEST_EQUAL(ec, bdecode_errors::expected_digit);
@@ -605,7 +605,7 @@ TORRENT_TEST(lazy_entry)
 
 	{
 		char b[] = "9223372036854775808:";
-		boost::int64_t val = 0;
+		std::int64_t val = 0;
 		bdecode_errors::error_code_enum ec;
 		char const* e = parse_int(b, b + sizeof(b)-1, ':', val, ec);
 		TEST_CHECK(ec == bdecode_errors::overflow);
@@ -614,7 +614,7 @@ TORRENT_TEST(lazy_entry)
 
 	{
 		char b[] = "928";
-		boost::int64_t val = 0;
+		std::int64_t val = 0;
 		bdecode_errors::error_code_enum ec;
 		char const* e = parse_int(b, b + sizeof(b)-1, ':', val, ec);
 		TEST_CHECK(ec == bdecode_errors::expected_colon);

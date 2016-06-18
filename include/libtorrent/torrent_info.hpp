@@ -110,7 +110,7 @@ namespace libtorrent
 		headers_t extra_headers;
 
 		// The type of web seed (see type_t)
-		boost::uint8_t type;
+		std::uint8_t type;
 	};
 
 	// TODO: there may be some opportunities to optimize the size if torrent_info.
@@ -314,7 +314,7 @@ namespace libtorrent
 		// argument and gives you the exact size of that piece. It will always be
 		// the same as ``piece_length()`` except in the case of the last piece,
 		// which may be smaller.
-		boost::int64_t total_size() const { return m_files.total_size(); }
+		std::int64_t total_size() const { return m_files.total_size(); }
 		int piece_length() const { return m_files.piece_length(); }
 		int num_pieces() const { return m_files.num_pieces(); }
 
@@ -345,7 +345,7 @@ namespace libtorrent
 		reverse_file_iterator rend_files() const { return m_files.rend_deprecated(); }
 
 		TORRENT_DEPRECATED
-		file_iterator file_at_offset(boost::int64_t offset) const
+		file_iterator file_at_offset(std::int64_t offset) const
 		{ return m_files.file_at_offset_deprecated(offset); }
 
 		TORRENT_DEPRECATED
@@ -359,7 +359,7 @@ namespace libtorrent
 		// This function will map a piece index, a byte offset within that piece
 		// and a size (in bytes) into the corresponding files with offsets where
 		// that data for that piece is supposed to be stored. See file_slice.
-		std::vector<file_slice> map_block(int piece, boost::int64_t offset, int size) const
+		std::vector<file_slice> map_block(int piece, std::int64_t offset, int size) const
 		{
 			TORRENT_ASSERT(is_loaded());
 			return m_files.map_block(piece, offset, size);
@@ -373,7 +373,7 @@ namespace libtorrent
 		// ``file_offset`` + ``size`` is not allowed to be greater than the file
 		// size. ``file_index`` must refer to a valid file, i.e. it cannot be >=
 		// ``num_files()``.
-		peer_request map_file(int file, boost::int64_t offset, int size) const
+		peer_request map_file(int file, std::int64_t offset, int size) const
 		{
 			TORRENT_ASSERT(is_loaded());
 			return m_files.map_file(file, offset, size);
@@ -609,11 +609,11 @@ namespace libtorrent
 		sha1_hash m_info_hash;
 
 		// the number of bytes in m_info_section
-		boost::uint32_t m_info_section_size;
+		std::uint32_t m_info_section_size;
 
 		// the index to the first leaf. This is where the hash for the
 		// first piece is stored
-		boost::uint32_t m_merkle_first_leaf:24;
+		std::uint32_t m_merkle_first_leaf:24;
 
 		// this is used when creating a torrent. If there's
 		// only one file there are cases where it's impossible

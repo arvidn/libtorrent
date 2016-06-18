@@ -62,7 +62,7 @@ namespace libtorrent
 		if (m_limit == 0) return;
 		m_quota_left += (m_limit * dt_milliseconds + 500) / 1000;
 		if (m_quota_left > m_limit * 3) m_quota_left = m_limit * 3;
-		distribute_quota = int((std::max)(m_quota_left, boost::int64_t(0)));
+		distribute_quota = int((std::max)(m_quota_left, std::int64_t(0)));
 	}
 
 	// this is used when connections disconnect with

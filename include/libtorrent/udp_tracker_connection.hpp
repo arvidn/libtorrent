@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <mutex>
 
 #include <boost/shared_ptr.hpp>
-#include <boost/cstdint.hpp>
+#include <cstdint>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -70,7 +70,7 @@ namespace libtorrent
 		void start();
 		void close();
 
-		boost::uint32_t transaction_id() const { return m_transaction_id; }
+		std::uint32_t transaction_id() const { return m_transaction_id; }
 
 	private:
 
@@ -118,7 +118,7 @@ namespace libtorrent
 
 		struct connection_cache_entry
 		{
-			boost::int64_t connection_id;
+			std::int64_t connection_id;
 			time_point expires;
 		};
 
@@ -127,11 +127,11 @@ namespace libtorrent
 
 		udp::endpoint m_target;
 
-		boost::uint32_t m_transaction_id;
+		std::uint32_t m_transaction_id;
 		int m_attempts;
 
 		// action_t
-		boost::uint8_t m_state;
+		std::uint8_t m_state;
 
 		bool m_abort;
 	};

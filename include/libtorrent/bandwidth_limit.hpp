@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/integer_traits.hpp>
-#include <boost/cstdint.hpp>
+#include <cstdint>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -92,11 +92,11 @@ private:
 
 	// this is the amount of bandwidth we have
 	// been assigned without using yet.
-	boost::int64_t m_quota_left;
+	std::int64_t m_quota_left;
 
 	// the limit is the number of bytes
 	// per second we are allowed to use.
-	boost::int64_t m_limit;
+	std::int64_t m_limit;
 };
 
 }

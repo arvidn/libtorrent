@@ -384,7 +384,7 @@ namespace libtorrent
 
 		aux::array_view<const char> ptr = buf;
 		int const action = read_int32(ptr);
-		boost::uint32_t const transaction = read_uint32(ptr);
+		std::uint32_t const transaction = read_uint32(ptr);
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (cb) cb->debug_log("*** UDP_TRACKER_PACKET [ action: %d ]", action);
@@ -440,7 +440,7 @@ namespace libtorrent
 
 	void udp_tracker_connection::update_transaction_id()
 	{
-		boost::uint32_t new_tid;
+		std::uint32_t new_tid;
 
 		// don't use 0, because that has special meaning (unintialized)
 		do {
@@ -464,7 +464,7 @@ namespace libtorrent
 
 		// reset transaction
 		update_transaction_id();
-		boost::uint64_t const connection_id = read_int64(buf);
+		std::uint64_t const connection_id = read_int64(buf);
 
 		std::lock_guard<std::mutex> l(m_cache_mutex);
 		connection_cache_entry& cce = m_connection_cache[m_target.address()];
@@ -653,7 +653,7 @@ namespace libtorrent
 
 		restart_read_timeout();
 		int const action = aux::read_int32(buf);
-		boost::uint32_t const transaction = read_uint32(buf);
+		std::uint32_t const transaction = read_uint32(buf);
 
 		if (transaction != m_transaction_id)
 		{

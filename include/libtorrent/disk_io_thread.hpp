@@ -182,7 +182,7 @@ namespace libtorrent
 
 		// the number of bytes queued for writing, including bytes
 		// submitted to the OS for writing, but not yet complete
-		mutable boost::int64_t queued_bytes;
+		mutable std::int64_t queued_bytes;
 
 		// the number of 16 KiB blocks currently in the disk cache (both read and write).
 		// This includes both read and write cache.
@@ -334,7 +334,7 @@ namespace libtorrent
 			, boost::function<void(disk_io_job const*)> const& handler
 			= boost::function<void(disk_io_job const*)>()) override;
 		void async_set_file_priority(piece_manager* storage
-			, std::vector<boost::uint8_t> const& prio
+			, std::vector<std::uint8_t> const& prio
 			, boost::function<void(disk_io_job const*)> const& handler) override;
 		void async_load_torrent(add_torrent_params* params
 			, boost::function<void(disk_io_job const*)> const& handler) override;
@@ -528,7 +528,7 @@ namespace libtorrent
 			// used for asserts and only applies for fence jobs
 			flush_expect_clear = 8
 		};
-		void flush_cache(piece_manager* storage, boost::uint32_t flags, jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l);
+		void flush_cache(piece_manager* storage, std::uint32_t flags, jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l);
 		void flush_expired_write_blocks(jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l);
 		void flush_piece(cached_piece_entry* pe, int flags, jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l);
 

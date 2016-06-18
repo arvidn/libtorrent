@@ -31,7 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <string>
-#include <boost/cstdint.hpp>
+#include <cstdint>
 #include <random>
 #include <cinttypes> // for PRId64 et.al.
 
@@ -82,9 +82,9 @@ char const* invalid_utf8_sequences[] =
 "\xed\xaf\xbf\xed\xbf\xbf",
 };
 
-boost::int64_t g_seed;
+std::int64_t g_seed;
 
-void print_ascii_number(std::string& output, boost::int64_t val)
+void print_ascii_number(std::string& output, std::int64_t val)
 {
 	const bool overflow = g_seed == 1;
 	const bool underflow = g_seed == 2;
@@ -138,7 +138,7 @@ void print_string(std::string& output, std::string str)
 		static mt19937 random_engine(str_seed);
 		uniform_int_distribution<> d(0, 255);
 		for (int i = 0; i < int(str.size()); ++i)
-			str[i] = boost::uint8_t(d(random_engine));
+			str[i] = std::uint8_t(d(random_engine));
 
 		print_ascii_number(output, str.size());
 		output += ':';
@@ -166,7 +166,7 @@ void print_terminate(std::string& output)
 	if (!unterminated) output += 'e';
 }
 
-void print_int(std::string& output, boost::int64_t value)
+void print_int(std::string& output, std::int64_t value)
 {
 	const bool double_int = g_seed == 1;
 	g_seed -= 1;

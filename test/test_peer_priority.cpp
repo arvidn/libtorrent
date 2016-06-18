@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-boost::uint32_t hash_buffer(char const* buf, int len)
+std::uint32_t hash_buffer(char const* buf, int len)
 {
 	boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
 	crc.process_block(buf, buf + len);
@@ -50,7 +50,7 @@ TORRENT_TEST(peer_priority)
 {
 
 	// when the IP is the same, we hash the ports, sorted
-	boost::uint32_t p = peer_priority(
+	std::uint32_t p = peer_priority(
 		tcp::endpoint(address::from_string("230.12.123.3"), 0x4d2)
 		, tcp::endpoint(address::from_string("230.12.123.3"), 0x12c));
 	TEST_EQUAL(p, hash_buffer("\x01\x2c\x04\xd2", 4));

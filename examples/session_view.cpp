@@ -108,9 +108,9 @@ void session_view::render()
 		, color(to_string(int(m_cnt[0][m_queued_reads_idx]), 3), col_red).c_str()
 		, color(to_string(int(m_cnt[0][m_queued_writes_idx]), 3), col_green).c_str()
 		, int((m_cnt[0][m_blocks_written_idx] - m_cnt[0][m_write_ops_idx]) * 100
-			/ (std::max)(boost::uint64_t(1), m_cnt[0][m_blocks_written_idx]))
+			/ (std::max)(std::uint64_t(1), m_cnt[0][m_blocks_written_idx]))
 		, int(m_cnt[0][m_cache_hit_idx] * 100
-			/ (std::max)(boost::uint64_t(1), m_cnt[0][m_num_blocks_read_idx]))
+			/ (std::max)(std::uint64_t(1), m_cnt[0][m_num_blocks_read_idx]))
 		, add_suffix(m_cnt[0][m_writes_cache_idx] * 16 * 1024).c_str()
 		, add_suffix(m_cnt[0][m_reads_cache_idx] * 16 * 1024).c_str()
 		, add_suffix(m_cnt[0][m_blocks_in_use_idx] * 16 * 1024).c_str()
@@ -189,8 +189,8 @@ void session_view::render()
 	}
 }
 
-void session_view::update_counters(boost::uint64_t* stats_counters
-	, int num_cnt, boost::uint64_t t)
+void session_view::update_counters(std::uint64_t* stats_counters
+	, int num_cnt, std::uint64_t t)
 {
 	// only update the previous counters if there's been enough
 	// time since it was last updated

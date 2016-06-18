@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 #include <string>
-#include <boost/cstdint.hpp>
+#include <cstdint>
 #include <boost/limits.hpp>
 #include <array> // for std::array
 
@@ -50,8 +50,8 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT bool is_alpha(char c);
 
 	TORRENT_EXTRA_EXPORT
-		std::array<char, 4+std::numeric_limits<boost::int64_t>::digits10>
-		to_string(boost::int64_t n);
+		std::array<char, 4+std::numeric_limits<std::int64_t>::digits10>
+		to_string(std::int64_t n);
 
 	// internal
 	inline bool is_digit(char c)

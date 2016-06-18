@@ -91,14 +91,14 @@ namespace libtorrent
 		return r;
 	}
 
-	void session_handle::save_state(entry& e, boost::uint32_t flags) const
+	void session_handle::save_state(entry& e, std::uint32_t flags) const
 	{
 		entry* ep = &e;
 		sync_call(&session_impl::save_state, ep, flags);
 	}
 
 	void session_handle::load_state(bdecode_node const& e
-		, boost::uint32_t const flags)
+		, std::uint32_t const flags)
 	{
 		// this needs to be synchronized since the lifespan
 		// of e is tied to the caller
@@ -107,19 +107,19 @@ namespace libtorrent
 
 	void session_handle::get_torrent_status(std::vector<torrent_status>* ret
 		, boost::function<bool(torrent_status const&)> const& pred
-		, boost::uint32_t flags) const
+		, std::uint32_t flags) const
 	{
 		auto predr = std::ref(pred);
 		sync_call(&session_impl::get_torrent_status, ret, predr, flags);
 	}
 
 	void session_handle::refresh_torrent_status(std::vector<torrent_status>* ret
-		, boost::uint32_t flags) const
+		, std::uint32_t flags) const
 	{
 		sync_call(&session_impl::refresh_torrent_status, ret, flags);
 	}
 
-	void session_handle::post_torrent_updates(boost::uint32_t flags)
+	void session_handle::post_torrent_updates(std::uint32_t flags)
 	{
 		async_call(&session_impl::post_torrent_updates, flags);
 	}
@@ -250,7 +250,7 @@ namespace libtorrent
 				if (!resume_data.file_priorities.empty())
 					atp.file_priorities = resume_data.file_priorities;
 
-				boost::uint64_t const mask =
+				std::uint64_t const mask =
 					add_torrent_params::flag_seed_mode
 					| add_torrent_params::flag_super_seeding
 					| add_torrent_params::flag_auto_managed
@@ -535,7 +535,7 @@ namespace libtorrent
 
 	void session_handle::dht_put_item(std::array<char, 32> key
 		, boost::function<void(entry&, std::array<char,64>&
-		, boost::uint64_t&, std::string const&)> cb
+		, std::uint64_t&, std::string const&)> cb
 		, std::string salt)
 	{
 #ifndef TORRENT_DISABLE_DHT
@@ -630,7 +630,7 @@ namespace libtorrent
 #endif // TORRENT_USE_WSTRING
 
 	void session_handle::load_state(entry const& ses_state
-		, boost::uint32_t const flags)
+		, std::uint32_t const flags)
 	{
 		if (ses_state.type() == entry::undefined_t) return;
 		std::vector<char> buf;
@@ -658,7 +658,7 @@ namespace libtorrent
 	}
 
 	void session_handle::load_state(lazy_entry const& ses_state
-		, boost::uint32_t const flags)
+		, std::uint32_t const flags)
 	{
 		if (ses_state.type() == lazy_entry::none_t) return;
 		std::pair<char const*, int> buf = ses_state.data_section();
@@ -1050,14 +1050,14 @@ namespace libtorrent
 		return sync_call_ret<size_t>(&session_impl::set_alert_queue_size_limit, queue_size_limit_);
 	}
 
-	void session_handle::set_alert_mask(boost::uint32_t m)
+	void session_handle::set_alert_mask(std::uint32_t m)
 	{
 		settings_pack p;
 		p.set_int(settings_pack::alert_mask, m);
 		apply_settings(p);
 	}
 
-	boost::uint32_t session_handle::get_alert_mask() const
+	std::uint32_t session_handle::get_alert_mask() const
 	{
 		return get_settings().get_int(settings_pack::alert_mask);
 	}

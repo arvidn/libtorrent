@@ -128,7 +128,7 @@ namespace libtorrent
 #if TORRENT_USE_IPV6
 		TORRENT_TRY {
 			if (!addr.is_v6()) return false;
-			boost::uint8_t teredo_prefix[] = {0x20, 0x01, 0, 0};
+			std::uint8_t teredo_prefix[] = {0x20, 0x01, 0, 0};
 			address_v6::bytes_type b = addr.to_v6().to_bytes();
 			return memcmp(&b[0], teredo_prefix, 4) == 0;
 		} TORRENT_CATCH(std::exception&) { return false; }

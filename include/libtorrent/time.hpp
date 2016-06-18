@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/cstdint.hpp>
+#include <cstdint>
 
 #include <chrono>
 
@@ -72,15 +72,15 @@ namespace libtorrent {
 	inline time_point max_time() { return (time_point::max)(); }
 
 	template<class T>
-	boost::int64_t total_seconds(T td)
+	std::int64_t total_seconds(T td)
 	{ return duration_cast<seconds>(td).count(); }
 
 	template<class T>
-	boost::int64_t total_milliseconds(T td)
+	std::int64_t total_milliseconds(T td)
 	{ return duration_cast<milliseconds>(td).count(); }
 
 	template<class T>
-	boost::int64_t total_microseconds(T td)
+	std::int64_t total_microseconds(T td)
 	{ return duration_cast<microseconds>(td).count(); }
 
 }

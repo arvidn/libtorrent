@@ -66,7 +66,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <list>
 #include <string>
 #include <stdexcept>
-#include <boost/cstdint.hpp>
+#include <cstdint>
 #include <boost/config.hpp>
 #if TORRENT_USE_IOSTREAM
 #include <iosfwd>
@@ -99,7 +99,7 @@ namespace libtorrent
 		typedef std::map<std::string, entry> dictionary_type;
 		typedef std::string string_type;
 		typedef std::list<entry> list_type;
-		typedef boost::int64_t integer_type;
+		typedef std::int64_t integer_type;
 		typedef std::vector<char> preformatted_type;
 
 		// the types an entry can have
@@ -280,14 +280,14 @@ namespace libtorrent
 		// that the ABI is the same for debug builds and release builds. It
 		// appears to be very hard to match debug builds with debug versions of
 		// libtorrent
-		boost::uint8_t m_type:7;
+		std::uint8_t m_type:7;
 
 	public:
 		// in debug mode this is set to false by bdecode to indicate that the
 		// program has not yet queried the type of this entry, and should not
 		// assume that it has a certain type. This is asserted in the accessor
 		// functions. This does not apply if exceptions are used.
-		mutable boost::uint8_t m_type_queried:1;
+		mutable std::uint8_t m_type_queried:1;
 	};
 
 	namespace detail

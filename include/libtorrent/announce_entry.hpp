@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <string>
-#include <boost/cstdint.hpp>
+#include <cstdint>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -112,15 +112,15 @@ namespace libtorrent
 		int scrape_downloaded;
 
 		// the tier this tracker belongs to
-		boost::uint8_t tier;
+		std::uint8_t tier;
 
 		// the max number of failures to announce to this tracker in
 		// a row, before this tracker is not used anymore. 0 means unlimited
-		boost::uint8_t fail_limit;
+		std::uint8_t fail_limit;
 
 		// the number of times in a row we have failed to announce to this
 		// tracker.
-		boost::uint8_t fails:7;
+		std::uint8_t fails:7;
 
 		// true while we're waiting for a response from the tracker.
 		bool updating:1;
@@ -140,7 +140,7 @@ namespace libtorrent
 		};
 
 		// a bitmask specifying which sources we got this tracker from.
-		boost::uint8_t source:4;
+		std::uint8_t source:4;
 
 		// set to true the first time we receive a valid response
 		// from this tracker.

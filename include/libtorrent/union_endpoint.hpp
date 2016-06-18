@@ -151,7 +151,7 @@ namespace libtorrent
 		}
 
 		union_address addr;
-		boost::uint16_t port;
+		std::uint16_t port;
 	};
 }
 

@@ -212,9 +212,9 @@ namespace libtorrent
 
 		// start off with 4 kilobytes and grow
 		// if needed
-		boost::uint32_t destlen = 4096;
+		std::uint32_t destlen = 4096;
 		int ret = 0;
-		boost::uint32_t srclen = size - header_len;
+		std::uint32_t srclen = size - header_len;
 		in += header_len;
 
 		do
@@ -234,14 +234,14 @@ namespace libtorrent
 			// case we fail
 			if (ret == 1) // 1:  output space exhausted before completing inflate
 			{
-				if (destlen == boost::uint32_t(maximum_size))
+				if (destlen == std::uint32_t(maximum_size))
 				{
 					ec = gzip_errors::inflated_data_too_large;
 					return;
 				}
 
 				destlen *= 2;
-				if (destlen > boost::uint32_t(maximum_size))
+				if (destlen > std::uint32_t(maximum_size))
 					destlen = maximum_size;
 			}
 		} while (ret == 1);

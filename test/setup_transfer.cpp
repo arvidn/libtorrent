@@ -79,7 +79,7 @@ namespace lt = libtorrent;
 #include <conio.h>
 #endif
 
-boost::uint32_t g_addr = 0x92343023;
+std::uint32_t g_addr = 0x92343023;
 
 void init_rand_address()
 {
@@ -114,7 +114,7 @@ address rand_v6()
 }
 #endif
 
-static boost::uint16_t g_port = 0;
+static std::uint16_t g_port = 0;
 
 tcp::endpoint rand_tcp_ep()
 {
@@ -129,12 +129,12 @@ udp::endpoint rand_udp_ep(libtorrent::address(&rand_addr)())
 	return udp::endpoint(rand_addr(), g_port + 1024);
 }
 
-std::map<std::string, boost::int64_t> get_counters(libtorrent::session& s)
+std::map<std::string, std::int64_t> get_counters(libtorrent::session& s)
 {
 	using namespace libtorrent;
 	s.post_session_stats();
 
-	std::map<std::string, boost::int64_t> ret;
+	std::map<std::string, std::int64_t> ret;
 	alert const* a = wait_for_alert(s, session_stats_alert::alert_type
 		, "get_counters()");
 
@@ -429,7 +429,7 @@ void test_sleep(int milliseconds)
 #if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
 	Sleep(milliseconds);
 #elif defined TORRENT_BEOS
-	snooze_until(system_time() + boost::int64_t(milliseconds) * 1000, B_SYSTEM_TIMEBASE);
+	snooze_until(system_time() + std::int64_t(milliseconds) * 1000, B_SYSTEM_TIMEBASE);
 #else
 	usleep(milliseconds * 1000);
 #endif
@@ -635,7 +635,7 @@ void create_random_files(std::string const& path, const int file_sizes[], int nu
 		file f(full_path, file::write_only, ec);
 		if (ec) std::fprintf(stderr, "failed to create file \"%s\": (%d) %s\n"
 			, full_path.c_str(), ec.value(), ec.message().c_str());
-		boost::int64_t offset = 0;
+		std::int64_t offset = 0;
 		while (to_write > 0)
 		{
 			int s = (std::min)(to_write, 300000);

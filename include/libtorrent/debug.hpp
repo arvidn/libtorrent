@@ -80,7 +80,7 @@ namespace libtorrent
 	struct wakeup_t
 	{
 		time_point timestamp;
-		boost::uint64_t context_switches;
+		std::uint64_t context_switches;
 		char const* operation;
 	};
 	extern std::deque<wakeup_t> _wakeups;

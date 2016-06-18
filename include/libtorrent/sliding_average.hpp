@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SLIDING_AVERAGE_HPP_INCLUDED
 #define TORRENT_SLIDING_AVERAGE_HPP_INCLUDED
 
-#include <boost/cstdint.hpp>
+#include <cstdint>
 #include <cstdlib> // for std::abs
 
 namespace libtorrent
@@ -109,7 +109,7 @@ struct average_accumulator
 	}
 
 	int m_num_samples;
-	boost::uint64_t m_sample_sum;
+	std::uint64_t m_sample_sum;
 };
 
 }

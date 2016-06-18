@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <set>
 
-#include <boost/cstdint.hpp>
+#include <cstdint>
 #include <boost/utility.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <array>
@@ -221,7 +221,7 @@ public:
 	// been pinged and confirmed up
 	boost::tuple<int, int, int> size() const;
 
-	boost::int64_t num_global_nodes() const;
+	std::int64_t num_global_nodes() const;
 
 	// the number of bits down we have full buckets
 	// i.e. essentially the number of full buckets

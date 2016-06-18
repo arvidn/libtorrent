@@ -1557,7 +1557,7 @@ namespace libtorrent {
 	dht_mutable_item_alert::dht_mutable_item_alert(aux::stack_allocator&
 		, std::array<char, 32> k
 		, std::array<char, 64> sig
-		, boost::uint64_t sequence
+		, std::uint64_t sequence
 		, std::string const& s
 		, entry const& i
 		, bool a)
@@ -1586,7 +1586,7 @@ namespace libtorrent {
 		, std::array<char, 32> key
 		, std::array<char, 64> sig
 		, std::string s
-		, boost::uint64_t sequence_number
+		, std::uint64_t sequence_number
 		, int n)
 		: target(0)
 		, public_key(key)
@@ -2020,7 +2020,7 @@ namespace libtorrent {
 #ifndef TORRENT_DISABLE_LOGGING
 
 	picker_log_alert::picker_log_alert(aux::stack_allocator& alloc, torrent_handle const& h
-		, tcp::endpoint const& ep, peer_id const& peer_id, boost::uint32_t flags
+		, tcp::endpoint const& ep, peer_id const& peer_id, std::uint32_t flags
 		, piece_block const* blocks, int num_blocks)
 		: peer_alert(alloc, h, ep, peer_id)
 		, picker_flags(flags)
@@ -2066,7 +2066,7 @@ namespace libtorrent {
 
 		std::string ret = peer_alert::message();
 
-		boost::uint32_t flags = picker_flags;
+		std::uint32_t flags = picker_flags;
 		int idx = 0;
 		ret += " picker_log [ ";
 		for (; flags != 0; flags >>= 1, ++idx)

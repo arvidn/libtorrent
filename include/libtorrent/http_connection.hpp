@@ -222,7 +222,7 @@ private:
 	// used for DNS lookups
 	int m_resolve_flags;
 
-	boost::uint16_t m_port;
+	std::uint16_t m_port;
 
 	// bottled means that the handler is called once, when
 	// everything is received (and buffered in memory).

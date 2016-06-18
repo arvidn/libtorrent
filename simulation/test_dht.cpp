@@ -320,7 +320,7 @@ TORRENT_TEST(dht_dual_stack_mutable_item)
 					, (unsigned char*)sk.data(), seed.data());
 
 				ses.dht_put_item(pk, [&](lt::entry& item, std::array<char, 64>& sig
-					, boost::uint64_t& seq, std::string const& salt)
+					, std::uint64_t& seq, std::string const& salt)
 				{
 					item = "mutable item";
 					seq = 1;

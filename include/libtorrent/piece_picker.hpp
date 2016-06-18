@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/cstdint.hpp>
+#include <cstdint>
 #include <boost/tuple/tuple.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -157,8 +157,8 @@ namespace libtorrent
 
 		struct downloading_piece
 		{
-			downloading_piece() : index((std::numeric_limits<boost::uint32_t>::max)())
-				, info_idx((std::numeric_limits<boost::uint16_t>::max)())
+			downloading_piece() : index((std::numeric_limits<std::uint32_t>::max)())
+				, info_idx((std::numeric_limits<std::uint16_t>::max)())
 				, finished(0)
 				, passed_hash_check(0)
 				, writing(0)
@@ -169,16 +169,16 @@ namespace libtorrent
 			bool operator<(downloading_piece const& rhs) const { return index < rhs.index; }
 
 			// the index of the piece
-			boost::uint32_t index;
+			std::uint32_t index;
 
 			// info about each block in this piece. this is an index into the
 			// m_block_info array, when multiplied by m_blocks_per_piece.
 			// The m_blocks_per_piece following entries contain information about
 			// all blocks in this piece.
-			boost::uint16_t info_idx;
+			std::uint16_t info_idx;
 
 			// the number of blocks in the finished state
-			boost::uint16_t finished:15;
+			std::uint16_t finished:15;
 
 			// set to true when the hash check job
 			// returns with a valid hash for this piece.
@@ -186,10 +186,10 @@ namespace libtorrent
 			// since it might not have been written to
 			// disk. This is not set of locked is
 			// set.
-			boost::uint16_t passed_hash_check:1;
+			std::uint16_t passed_hash_check:1;
 
 			// the number of blocks in the writing state
-			boost::uint16_t writing:15;
+			std::uint16_t writing:15;
 
 			// when this is set, blocks from this piece may
 			// not be picked. This is used when the hash check
@@ -198,14 +198,14 @@ namespace libtorrent
 			// remaining state. Once this synchronization is
 			// done, restore_piece() is called to clear the
 			// locked flag.
-			boost::uint16_t locked:1;
+			std::uint16_t locked:1;
 
 			// the number of blocks in the requested state
-			boost::uint16_t requested:15;
+			std::uint16_t requested:15;
 
 			// set to true while there is an outstanding
 			// hash check for this piece
-			boost::uint16_t outstanding_hash_check:1;
+			std::uint16_t outstanding_hash_check:1;
 		};
 
 		piece_picker();
@@ -294,7 +294,7 @@ namespace libtorrent
 		// this feature is used by web_peer_connection to request larger blocks
 		// at a time to mitigate limited pipelining and lack of keep-alive
 		// (i.e. higher overhead per request).
-		boost::uint32_t pick_pieces(bitfield const& pieces
+		std::uint32_t pick_pieces(bitfield const& pieces
 			, std::vector<piece_block>& interesting_blocks, int num_blocks
 			, int prefer_contiguous_blocks, torrent_peer* peer
 			, int options, std::vector<int> const& suggested_pieces
@@ -455,10 +455,10 @@ namespace libtorrent
 		// functor that compares indices on downloading_pieces
 		struct has_index
 		{
-			has_index(int i): index(boost::uint32_t(i)) { TORRENT_ASSERT(i >= 0); }
+			has_index(int i): index(std::uint32_t(i)) { TORRENT_ASSERT(i >= 0); }
 			bool operator()(const downloading_piece& p) const
 			{ return p.index == index; }
-			boost::uint32_t index;
+			std::uint32_t index;
 		};
 
 		int blocks_in_last_piece() const
@@ -578,9 +578,9 @@ namespace libtorrent
 			// the number of peers that has this piece
 			// (availability)
 #ifdef TORRENT_OPTIMIZE_MEMORY_USAGE
-			boost::uint32_t peer_count : 9;
+			std::uint32_t peer_count : 9;
 #else
-			boost::uint32_t peer_count : 16;
+			std::uint32_t peer_count : 16;
 #endif
 
 			// one of the enums from state_t. This indicates whether this piece
@@ -593,7 +593,7 @@ namespace libtorrent
 			// as piece_downloading, it just saves space to also indicate that it
 			// has a bit lower priority. The reverse bit is only relevant if the
 			// state is piece_downloading.
-			boost::uint32_t download_state : 3;
+			std::uint32_t download_state : 3;
 
 			// TODO: 2 having 8 priority levels is probably excessive. It should
 			// probably be changed to 3 levels + dont-download
@@ -606,13 +606,13 @@ namespace libtorrent
 			// 5 is mid priority
 			// 6 is high priority
 			// 7 is high priority
-			boost::uint32_t piece_priority : 3;
+			std::uint32_t piece_priority : 3;
 
 			// index in to the piece_info vector
 #ifdef TORRENT_OPTIMIZE_MEMORY_USAGE
-			boost::uint32_t index : 17;
+			std::uint32_t index : 17;
 #else
-			boost::uint32_t index;
+			std::uint32_t index;
 #endif
 
 #ifdef TORRENT_DEBUG_REFCOUNTS
@@ -620,7 +620,7 @@ namespace libtorrent
 			std::set<const torrent_peer*> have_peers;
 #endif
 
-			enum : boost::uint32_t
+			enum : std::uint32_t
 			{
 				// index is set to this to indicate that we have the
 				// piece. There is no entry for the piece in the
@@ -796,10 +796,10 @@ namespace libtorrent
 		// in here, when multiplied by m_blocks_per_piece is the index to the
 		// first block in the range that's free to use by a new downloading_piece.
 		// this is a free-list.
-		std::vector<boost::uint16_t> m_free_block_infos;
+		std::vector<std::uint16_t> m_free_block_infos;
 
-		boost::uint16_t m_blocks_per_piece;
-		boost::uint16_t m_blocks_in_last_piece;
+		std::uint16_t m_blocks_per_piece;
+		std::uint16_t m_blocks_in_last_piece;
 
 		// the number of filtered pieces that we don't already
 		// have. total_number_of_pieces - number_of_pieces_we_have

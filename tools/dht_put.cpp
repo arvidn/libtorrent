@@ -112,7 +112,7 @@ alert* wait_for_alert(lt::session& s, int alert_type)
 	return ret;
 }
 
-void put_string(entry& e, std::array<char, 64>& sig, boost::uint64_t& seq
+void put_string(entry& e, std::array<char, 64>& sig, std::uint64_t& seq
 	, std::string const& salt, char const* public_key, char const* private_key
 	, char const* str)
 {

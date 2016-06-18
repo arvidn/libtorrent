@@ -47,7 +47,7 @@ namespace
 
 struct test_plugin : plugin
 {
-	virtual boost::uint32_t implemented_features()
+	virtual std::uint32_t implemented_features()
 	{
 		return plugin::dht_request_feature;
 	}

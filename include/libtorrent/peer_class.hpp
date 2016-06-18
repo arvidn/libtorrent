@@ -41,13 +41,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <string>
 #include <boost/smart_ptr.hpp>
-#include <boost/cstdint.hpp>
+#include <cstdint>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {
-	typedef boost::uint16_t peer_class_t;
+	typedef std::uint16_t peer_class_t;
 
 	struct peer_class_info
 	{

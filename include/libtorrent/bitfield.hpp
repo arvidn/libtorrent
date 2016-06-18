@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstring> // for memset and memcpy
 #include <cstdlib> // for malloc, free and realloc
-#include <boost/cstdint.hpp> // uint32_t
+#include <cstdint> // uint32_t
 #include <algorithm> // for min()
 
 namespace libtorrent
@@ -154,7 +154,7 @@ namespace libtorrent
 
 		void swap(bitfield& rhs)
 		{
-			boost::uint32_t* tmp = m_buf;
+			std::uint32_t* tmp = m_buf;
 			m_buf = rhs.m_buf;
 			rhs.m_buf = tmp;
 		}
@@ -214,10 +214,10 @@ namespace libtorrent
 					bit <<= 1;
 				}
 			}
-			const_iterator(boost::uint32_t const* ptr, int offset)
+			const_iterator(std::uint32_t const* ptr, int offset)
 				: buf(ptr), bit(0x80000000 >> offset) {}
-			boost::uint32_t const* buf;
-			boost::uint32_t bit;
+			std::uint32_t const* buf;
+			std::uint32_t bit;
 		};
 
 		const_iterator begin() const { return const_iterator(m_buf, 0); }
@@ -262,7 +262,7 @@ namespace libtorrent
 		// number of bits. For this purpose, the m_buf actually points
 		// the element 1, not 0. To access the size (in bits), access
 		// m_buf[-1]
-		boost::uint32_t* m_buf;
+		std::uint32_t* m_buf;
 	};
 
 }

@@ -47,7 +47,7 @@ public:
 
 	void got_data(bdecode_node const& v,
 		char const* pk,
-		boost::uint64_t seq,
+		std::uint64_t seq,
 		char const* sig);
 
 	// for immutable itms

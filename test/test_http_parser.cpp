@@ -235,7 +235,7 @@ TORRENT_TEST(http_parser)
 	TEST_CHECK(parser.header("content-type") == "text/plain");
 	TEST_CHECK(atoi(parser.header("content-length").c_str()) == 20);
 	TEST_CHECK(parser.chunked_encoding());
-	typedef std::pair<boost::int64_t, boost::int64_t> chunk_range;
+	typedef std::pair<std::int64_t, std::int64_t> chunk_range;
 	std::vector<chunk_range> cmp;
 	cmp.push_back(chunk_range(96, 100));
 	cmp.push_back(chunk_range(106, 122));
@@ -268,7 +268,7 @@ TORRENT_TEST(http_parser)
 	received = feed_bytes(parser, web_seed_response);
 
 	TEST_CHECK(received == make_tuple(5, int(strlen(web_seed_response) - 5), false));
-	TEST_CHECK(parser.content_range() == (std::pair<boost::int64_t, boost::int64_t>(0, 4)));
+	TEST_CHECK(parser.content_range() == (std::pair<std::int64_t, std::int64_t>(0, 4)));
 	TEST_CHECK(parser.content_length() == 5);
 
 	parser.reset();
@@ -334,7 +334,7 @@ TORRENT_TEST(http_parser)
 	{
 		// test chunked encoding parser
 		char const chunk_header1[] = "f;this is a comment\r\n";
-		boost::int64_t chunk_size;
+		std::int64_t chunk_size;
 		int header_size;
 		bool ret = parser.parse_chunk_header(buffer::const_interval(chunk_header1, chunk_header1 + 10)
 			, &chunk_size, &header_size);
@@ -539,7 +539,7 @@ TORRENT_TEST(invalid_content_range_end)
 
 TORRENT_TEST(invalid_chunk_afl)
 {
-	boost::uint8_t const invalid_chunked_input[] = {
+	std::uint8_t const invalid_chunked_input[] = {
 		0x48, 0x6f, 0x54, 0x50, 0x2f, 0x31, 0x2e, 0x31, // HoTP/1.1 200 OK
 		0x20, 0x32, 0x30, 0x30, 0x20, 0x4f, 0x4b, 0x0d, // Cont-Length: 20
 		0x0a, 0x43, 0x6f, 0x6e, 0x74, 0x2d, 0x4c, 0x65, // Contente: tn

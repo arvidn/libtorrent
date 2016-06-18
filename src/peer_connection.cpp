@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/cstdint.hpp>
+#include <cstdint>
 
 #ifdef TORRENT_DEBUG
 #include <set>
@@ -625,7 +625,7 @@ namespace libtorrent
 		for (;;)
 		{
 			char const* p = hash.data();
-			for (int i = 0; i < hash.size / sizeof(boost::uint32_t); ++i)
+			for (int i = 0; i < hash.size / sizeof(std::uint32_t); ++i)
 			{
 				++loops;
 				int const piece = detail::read_uint32(p) % num_pieces;
@@ -890,7 +890,7 @@ namespace libtorrent
 		if (!peer_info_struct() || peer_info_struct()->fast_reconnects > 1)
 			return;
 		m_fast_reconnect = r;
-		peer_info_struct()->last_connected = boost::uint16_t(m_ses.session_time());
+		peer_info_struct()->last_connected = std::uint16_t(m_ses.session_time());
 		int rewind = m_settings.get_int(settings_pack::min_reconnect_time)
 			* m_settings.get_int(settings_pack::max_failcount);
 		if (peer_info_struct()->last_connected < rewind) peer_info_struct()->last_connected = 0;
@@ -1039,7 +1039,7 @@ namespace libtorrent
 			+ m_queued_time_critical * t->block_size() * 1000) / rate);
 	}
 
-	void peer_connection::add_stat(boost::int64_t downloaded, boost::int64_t uploaded)
+	void peer_connection::add_stat(std::int64_t downloaded, std::int64_t uploaded)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		m_statistics.add_stat(downloaded, uploaded);
@@ -1319,7 +1319,7 @@ namespace libtorrent
 		TORRENT_ASSERT(!m_torrent.expired());
 	}
 
-	boost::uint32_t peer_connection::peer_rank() const
+	std::uint32_t peer_connection::peer_rank() const
 	{
 		TORRENT_ASSERT(is_single_thread());
 		return m_peer_info == NULL ? 0
@@ -2853,11 +2853,11 @@ namespace libtorrent
 			, std::bind(&peer_connection::on_disk_write_complete
 			, self(), _1, p, t));
 
-		boost::uint64_t write_queue_size = m_counters.inc_stats_counter(
+		std::uint64_t write_queue_size = m_counters.inc_stats_counter(
 			counters::queued_write_bytes, p.length);
 		m_outstanding_writing_bytes += p.length;
 
-		boost::uint64_t max_queue_size = m_settings.get_int(
+		std::uint64_t max_queue_size = m_settings.get_int(
 			settings_pack::max_queued_disk_bytes);
 		if (write_queue_size > max_queue_size
 			&& write_queue_size - p.length < max_queue_size
@@ -2912,8 +2912,8 @@ namespace libtorrent
 						// we have a connection. now, what is the current
 						// download rate from this peer, and how many blocks
 						// do we have left to download?
-						boost::int64_t rate = peer->connection->statistics().download_payload_rate();
-						boost::int64_t bytes_left = boost::int64_t(st.requested) * t->block_size();
+						std::int64_t rate = peer->connection->statistics().download_payload_rate();
+						std::int64_t bytes_left = std::int64_t(st.requested) * t->block_size();
 						// the settings unit is milliseconds, so calculate the
 						// number of milliseconds worth of bytes left in the piece
 						if (rate > 1000
@@ -4509,7 +4509,7 @@ namespace libtorrent
 #else
 			p.progress = float(p.pieces.count()) / float(p.pieces.size());
 #endif
-			p.progress_ppm = boost::uint64_t(p.pieces.count()) * 1000000 / p.pieces.size();
+			p.progress_ppm = std::uint64_t(p.pieces.count()) * 1000000 / p.pieces.size();
 		}
 
 		p.estimated_reciprocation_rate = m_est_reciprocation_rate;
@@ -4923,13 +4923,13 @@ namespace libtorrent
 		// update once every minute
 		if (now - m_remote_dl_update >= seconds(60))
 		{
-			boost::int64_t piece_size = t->torrent_file().piece_length();
+			std::int64_t piece_size = t->torrent_file().piece_length();
 
 			if (m_remote_dl_rate > 0)
 				m_remote_dl_rate = int((m_remote_dl_rate * 2 / 3)
-					+ ((boost::int64_t(m_remote_pieces_dled) * piece_size / 3) / 60));
+					+ ((std::int64_t(m_remote_pieces_dled) * piece_size / 3) / 60));
 			else
-				m_remote_dl_rate = int(boost::int64_t(m_remote_pieces_dled)
+				m_remote_dl_rate = int(std::int64_t(m_remote_pieces_dled)
 					* piece_size / 60);
 
 			m_remote_pieces_dled = 0;
@@ -5405,14 +5405,14 @@ namespace libtorrent
 		{
 			return (std::max)((std::max)(m_outstanding_bytes
 				, m_recv_buffer.packet_bytes_remaining()) + 30
-				, int(boost::int64_t(m_statistics.download_rate()) * 2
+				, int(std::int64_t(m_statistics.download_rate()) * 2
 					/ (1000 / tick_interval)));
 		}
 		else
 		{
 			return (std::max)((std::max)(m_reading_bytes
 				, m_send_buffer.size())
-				, int((boost::int64_t(m_statistics.upload_rate()) * 2
+				, int((std::int64_t(m_statistics.upload_rate()) * 2
 					* tick_interval) / 1000));
 		}
 	}
@@ -6064,8 +6064,8 @@ namespace libtorrent
 // TODO: The stats checks can not be honored when authenticated encryption is in use
 // because we may have encrypted data which we cannot authenticate yet
 #if 0
-				boost::int64_t cur_payload_dl = m_statistics.last_payload_downloaded();
-				boost::int64_t cur_protocol_dl = m_statistics.last_protocol_downloaded();
+				std::int64_t cur_payload_dl = m_statistics.last_payload_downloaded();
+				std::int64_t cur_protocol_dl = m_statistics.last_protocol_downloaded();
 #endif
 				sub_transferred = m_recv_buffer.advance_pos(bytes);
 				on_receive(error, sub_transferred);
@@ -6075,7 +6075,7 @@ namespace libtorrent
 #if 0
 				TORRENT_ASSERT(m_statistics.last_payload_downloaded() - cur_payload_dl >= 0);
 				TORRENT_ASSERT(m_statistics.last_protocol_downloaded() - cur_protocol_dl >= 0);
-				boost::int64_t stats_diff = m_statistics.last_payload_downloaded() - cur_payload_dl +
+				std::int64_t stats_diff = m_statistics.last_payload_downloaded() - cur_payload_dl +
 					m_statistics.last_protocol_downloaded() - cur_protocol_dl;
 				TORRENT_ASSERT(stats_diff == int(sub_transferred));
 #endif
@@ -6182,7 +6182,7 @@ namespace libtorrent
 
 #ifdef TORRENT_USE_OPENSSL
 		// add this RTT to the PRNG seed, to add more unpredictability
-		boost::uint64_t now = total_microseconds(completed - m_connect);
+		std::uint64_t now = total_microseconds(completed - m_connect);
 		// assume 12 bits of entropy (i.e. about 8 milliseconds)
 		RAND_add(&now, 8, 1.5);
 #endif
@@ -6354,7 +6354,7 @@ namespace libtorrent
 			, end(m_download_queue.end()); i != end; ++i)
 		{
 			if (i->send_buffer_offset == pending_block::not_in_buffer) continue;
-			boost::int32_t offset = i->send_buffer_offset;
+			std::int32_t offset = i->send_buffer_offset;
 			offset -= int(bytes_transferred);
 			if (offset < 0)
 				i->send_buffer_offset = pending_block::not_in_buffer;
@@ -6400,14 +6400,14 @@ namespace libtorrent
 		m_last_sent = now;
 
 #if TORRENT_USE_ASSERTS
-		boost::int64_t cur_payload_ul = m_statistics.last_payload_uploaded();
-		boost::int64_t cur_protocol_ul = m_statistics.last_protocol_uploaded();
+		std::int64_t cur_payload_ul = m_statistics.last_payload_uploaded();
+		std::int64_t cur_protocol_ul = m_statistics.last_protocol_uploaded();
 #endif
 		on_sent(error, bytes_transferred);
 #if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT(m_statistics.last_payload_uploaded() - cur_payload_ul >= 0);
 		TORRENT_ASSERT(m_statistics.last_protocol_uploaded() - cur_protocol_ul >= 0);
-		boost::int64_t stats_diff = m_statistics.last_payload_uploaded() - cur_payload_ul
+		std::int64_t stats_diff = m_statistics.last_payload_uploaded() - cur_payload_ul
 			+ m_statistics.last_protocol_uploaded() - cur_protocol_ul;
 		TORRENT_ASSERT(stats_diff == int(bytes_transferred));
 #endif

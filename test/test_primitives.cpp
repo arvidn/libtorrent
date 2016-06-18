@@ -154,7 +154,7 @@ TORRENT_TEST(primitives)
 TORRENT_TEST(printf_int64)
 {
 	char buffer[100];
-	boost::int64_t val = 345678901234567ll;
+	std::int64_t val = 345678901234567ll;
 	std::snprintf(buffer, sizeof(buffer), "%" PRId64 " %s", val, "end");
 	TEST_EQUAL(buffer, std::string("345678901234567 end"))
 }
@@ -162,7 +162,7 @@ TORRENT_TEST(printf_int64)
 TORRENT_TEST(printf_uint64)
 {
 	char buffer[100];
-	boost::uint64_t val = 18446744073709551615ull;
+	std::uint64_t val = 18446744073709551615ull;
 	std::snprintf(buffer, sizeof(buffer), "%" PRIu64 " %s", val, "end");
 	TEST_EQUAL(buffer, std::string("18446744073709551615 end"))
 }

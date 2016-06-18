@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/pool/pool.hpp>
 #include <boost/detail/atomic_count.hpp>
 #include <boost/intrusive_ptr.hpp>
-#include <boost/cstdint.hpp>
+#include <cstdint>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -117,10 +117,10 @@ struct TORRENT_EXTRA_EXPORT observer : boost::noncopyable
 	void set_id(node_id const& id);
 	node_id const& id() const { return m_id; }
 
-	void set_transaction_id(boost::uint16_t tid)
+	void set_transaction_id(std::uint16_t tid)
 	{ m_transaction_id = tid; }
 
-	boost::uint16_t transaction_id() const
+	std::uint16_t transaction_id() const
 	{ return m_transaction_id; }
 
 	enum {
@@ -155,12 +155,12 @@ private:
 	} m_addr;
 
 	// reference counter for intrusive_ptr
-	mutable boost::uint16_t m_refs;
+	mutable std::uint16_t m_refs;
 
-	boost::uint16_t m_port;
+	std::uint16_t m_port;
 
 	// the transaction ID for this call
-	boost::uint16_t m_transaction_id;
+	std::uint16_t m_transaction_id;
 public:
 	unsigned char flags;
 

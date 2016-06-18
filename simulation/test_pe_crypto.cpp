@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 namespace lt = libtorrent;
 
-char const* pe_policy(boost::uint8_t policy)
+char const* pe_policy(std::uint8_t policy)
 {
 	if (policy == settings_pack::pe_disabled) return "disabled";
 	else if (policy == settings_pack::pe_enabled) return "enabled";

@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/noncopyable.hpp>
 #include <array>
 #include <boost/optional.hpp>
-#include <boost/cstdint.hpp>
+#include <cstdint>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -118,7 +118,7 @@ namespace libtorrent
 		{
 			int file_index;
 			int length;
-			boost::int64_t start;
+			std::int64_t start;
 		};
 		std::deque<file_request_t> m_file_requests;
 

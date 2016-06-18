@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_PACKET_BUFFER_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
-#include <boost/cstdint.hpp>
+#include <cstdint>
 #include <cstddef>
 
 namespace libtorrent
@@ -69,7 +69,7 @@ namespace libtorrent
 	class TORRENT_EXTRA_EXPORT packet_buffer_impl
 	{
 	public:
-		typedef boost::uint32_t index_type;
+		typedef std::uint32_t index_type;
 
 		packet_buffer_impl();
 		~packet_buffer_impl();

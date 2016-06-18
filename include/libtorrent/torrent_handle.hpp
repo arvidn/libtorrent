@@ -108,7 +108,7 @@ namespace libtorrent
 #endif
 		} addr;
 
-		boost::uint16_t port;
+		std::uint16_t port;
 	public:
 
 		// The peer is the ip address of the peer this block was downloaded from.
@@ -346,7 +346,7 @@ namespace libtorrent
 		// 
 		// By default everything is included. The flags you can use to decide
 		// what to *include* are defined in the status_flags_t enum.
-		torrent_status status(boost::uint32_t flags = 0xffffffff) const;
+		torrent_status status(std::uint32_t flags = 0xffffffff) const;
 
 		// ``get_download_queue()`` takes a non-const reference to a vector which
 		// it will fill with information about pieces that are partially
@@ -444,7 +444,7 @@ namespace libtorrent
 		// fully downloaded and passed the hash check count. When specifying
 		// piece granularity, the operation is a lot cheaper, since libtorrent
 		// already keeps track of this internally and no calculation is required.
-		void file_progress(std::vector<boost::int64_t>& progress, int flags = 0) const;
+		void file_progress(std::vector<std::int64_t>& progress, int flags = 0) const;
 
 		// This function fills in the passed in vector with status about files
 		// that are open for this torrent. Any file that is not open in this
@@ -1266,12 +1266,12 @@ namespace libtorrent
 		bool operator<(const torrent_handle& h) const
 		{ return m_torrent.lock() < h.m_torrent.lock(); }
 
-		boost::uint32_t id() const
+		std::uint32_t id() const
 		{
 			uintptr_t ret = reinterpret_cast<uintptr_t>(m_torrent.lock().get());
 			// a torrent object is about 1024 bytes, so
 			// it's safe to shift 11 bits
-			return boost::uint32_t(ret >> 11);
+			return std::uint32_t(ret >> 11);
 		}
 
 		// This function is intended only for use by plugins and the alert

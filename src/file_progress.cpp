@@ -68,13 +68,13 @@ namespace libtorrent { namespace aux
 		// initialize the progress of each file
 
 		int const piece_size = fs.piece_length();
-		boost::uint64_t off = 0;
-		boost::uint64_t const total_size = fs.total_size();
+		std::uint64_t off = 0;
+		std::uint64_t const total_size = fs.total_size();
 		int file_index = 0;
 		for (int piece = 0; piece < num_pieces; ++piece, off += piece_size)
 		{
 			TORRENT_ASSERT(file_index < fs.num_files());
-			boost::int64_t file_offset = off - fs.file_offset(file_index);
+			std::int64_t file_offset = off - fs.file_offset(file_index);
 			TORRENT_ASSERT(file_offset >= 0);
 			while (file_offset >= fs.file_size(file_index))
 			{
@@ -91,12 +91,12 @@ namespace libtorrent { namespace aux
 			m_have_pieces.set_bit(piece);
 #endif
 
-			int size = (std::min)(boost::uint64_t(piece_size), total_size - off);
+			int size = (std::min)(std::uint64_t(piece_size), total_size - off);
 			TORRENT_ASSERT(size >= 0);
 
 			while (size)
 			{
-				int add = (std::min)(boost::int64_t(size), fs.file_size(file_index) - file_offset);
+				int add = (std::min)(std::int64_t(size), fs.file_size(file_index) - file_offset);
 				TORRENT_ASSERT(add >= 0);
 				m_file_progress[file_index] += add;
 
@@ -115,7 +115,7 @@ namespace libtorrent { namespace aux
 		}
 	}
 
-	void file_progress::export_progress(std::vector<boost::int64_t> &fp)
+	void file_progress::export_progress(std::vector<std::int64_t> &fp)
 	{
 		INVARIANT_CHECK;
 		fp.resize(m_file_progress.size(), 0);
@@ -125,7 +125,7 @@ namespace libtorrent { namespace aux
 	void file_progress::clear()
 	{
 		INVARIANT_CHECK;
-		std::vector<boost::uint64_t>().swap(m_file_progress);
+		std::vector<std::uint64_t>().swap(m_file_progress);
 #if TORRENT_USE_INVARIANT_CHECKS && defined TORRENT_DEBUG
 		m_have_pieces.clear();
 #endif
@@ -147,16 +147,16 @@ namespace libtorrent { namespace aux
 #endif
 
 		int const piece_size = fs.piece_length();
-		boost::int64_t off = boost::int64_t(index) * piece_size;
+		std::int64_t off = std::int64_t(index) * piece_size;
 		int file_index = fs.file_index_at_offset(off);
 		int size = fs.piece_size(index);
 		for (; size > 0; ++file_index)
 		{
-			boost::int64_t file_offset = off - fs.file_offset(file_index);
+			std::int64_t file_offset = off - fs.file_offset(file_index);
 			TORRENT_ASSERT(file_index != fs.num_files());
 			TORRENT_ASSERT(file_offset <= fs.file_size(file_index));
 			int add = (std::min)(fs.file_size(file_index)
-				- file_offset, boost::int64_t(size));
+				- file_offset, std::int64_t(size));
 			m_file_progress[file_index] += add;
 
 			TORRENT_ASSERT(m_file_progress[file_index]
@@ -186,7 +186,7 @@ namespace libtorrent { namespace aux
 		if (m_file_progress.empty()) return;
 
 		int index = 0;
-		for (boost::uint64_t progress : m_file_progress)
+		for (std::uint64_t progress : m_file_progress)
 		{
 			TORRENT_ASSERT(progress <= m_file_sizes[index++]);
 		}

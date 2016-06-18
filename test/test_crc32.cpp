@@ -37,14 +37,14 @@ TORRENT_TEST(crc32)
 {
 	using namespace libtorrent;
 
-	boost::uint32_t out;
+	std::uint32_t out;
 
-	boost::uint32_t in1 = 0x5aa5feef;
+	std::uint32_t in1 = 0x5aa5feef;
 	out = crc32c_32(in1);
 
 	TEST_EQUAL(out, htonl(0xd5b9e35e));
 
-	boost::uint64_t buf[4];
+	std::uint64_t buf[4];
 	memcpy(buf, "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
 		"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 32);
 

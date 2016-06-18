@@ -105,7 +105,7 @@ namespace libtorrent
 		{}
 
 		// values for the ``flags`` field
-		enum flags_t : boost::uint64_t
+		enum flags_t : std::uint64_t
 		{
 			// If ``flag_seed_mode`` is set, libtorrent will assume that all files
 			// are present for this torrent and that they all match the hashes in
@@ -335,7 +335,7 @@ namespace libtorrent
 		// can be set to control the initial file priorities when adding a
 		// torrent. The semantics are the same as for
 		// ``torrent_handle::prioritize_files()``.
-		std::vector<boost::uint8_t> file_priorities;
+		std::vector<std::uint8_t> file_priorities;
 
 		// torrent extension construction functions can be added to this vector
 		// to have them be added immediately when the torrent is constructed.
@@ -367,7 +367,7 @@ namespace libtorrent
 		// 	constructor. In order to preserve default behavior when clearing or
 		// 	setting other flags, make sure to bitwise OR or in a flag or bitwise
 		// 	AND the inverse of a flag to clear it.
-		boost::uint64_t flags;
+		std::uint64_t flags;
 
 		// set this to the info hash of the torrent to add in case the info-hash
 		// is the only known property of the torrent. i.e. you don't have a
@@ -390,8 +390,8 @@ namespace libtorrent
 
 		// the total number of bytes uploaded and downloaded by this torrent so
 		// far.
-		boost::int64_t total_uploaded;
-		boost::int64_t total_downloaded;
+		std::int64_t total_uploaded;
+		std::int64_t total_downloaded;
 
 		// the number of seconds this torrent has spent in started, finished and
 		// seeding state so far, respectively.
@@ -466,7 +466,7 @@ namespace libtorrent
 		// element in the vector represent the piece with the same index. If you
 		// set both file- and piece priorities, file priorities will take
 		// precedence.
-		std::vector<boost::uint8_t> piece_priorities;
+		std::vector<std::uint8_t> piece_priorities;
 
 		// if this is a merkle tree torrent, and you're seeding, this field must
 		// be set. It is all the hashes in the binary tree, with the root as the

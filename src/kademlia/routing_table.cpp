@@ -54,23 +54,23 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/cstdint.hpp>
+#include <cstdint>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-using boost::uint8_t;
+using std::uint8_t;
 using namespace std::placeholders;
 
 #if BOOST_VERSION <= 104700
 namespace boost {
 	size_t hash_value(libtorrent::address_v4::bytes_type ip)
 	{
-		return boost::hash_value(*reinterpret_cast<boost::uint32_t*>(&ip[0]));
+		return boost::hash_value(*reinterpret_cast<std::uint32_t*>(&ip[0]));
 	}
 
 	size_t hash_value(libtorrent::address_v6::bytes_type ip)
 	{
-		return boost::hash_value(*reinterpret_cast<boost::uint64_t*>(&ip[0]));
+		return boost::hash_value(*reinterpret_cast<std::uint64_t*>(&ip[0]));
 	}
 }
 #endif
@@ -218,7 +218,7 @@ boost::tuple<int, int, int> routing_table::size() const
 	return boost::make_tuple(nodes, replacements, confirmed);
 }
 
-boost::int64_t routing_table::num_global_nodes() const
+std::int64_t routing_table::num_global_nodes() const
 {
 	int deepest_bucket = 0;
 	int deepest_size = 0;
@@ -233,8 +233,8 @@ boost::int64_t routing_table::num_global_nodes() const
 
 	if (deepest_bucket == 0) return 1 + deepest_size;
 
-	if (deepest_size < m_bucket_size / 2) return (boost::int64_t(1) << deepest_bucket) * m_bucket_size;
-	else return (boost::int64_t(2) << deepest_bucket) * deepest_size;
+	if (deepest_size < m_bucket_size / 2) return (std::int64_t(1) << deepest_bucket) * m_bucket_size;
+	else return (std::int64_t(2) << deepest_bucket) * deepest_size;
 }
 
 int routing_table::depth() const
@@ -322,7 +322,7 @@ void routing_table::print_state(std::ostream& os) const
 			, end2(i->live_nodes.end()); j != end2; ++j)
 		{
 			int bucket_size_limit = bucket_limit(bucket_index);
-			boost::uint32_t top_mask = bucket_size_limit - 1;
+			std::uint32_t top_mask = bucket_size_limit - 1;
 			int mask_shift = 0;
 			TORRENT_ASSERT_VAL(bucket_size_limit > 0, bucket_size_limit);
 			while ((top_mask & 0x80) == 0)
@@ -387,7 +387,7 @@ void routing_table::print_state(std::ostream& os) const
 		// we have all the lower bits set in (bucket_size_limit-1)
 		// but we want the left-most bits to be set. Shift it
 		// until the MSB is set
-		boost::uint32_t top_mask = bucket_size_limit - 1;
+		std::uint32_t top_mask = bucket_size_limit - 1;
 		int mask_shift = 0;
 		TORRENT_ASSERT_VAL(bucket_size_limit > 0, bucket_size_limit);
 		while ((top_mask & 0x80) == 0)
@@ -519,14 +519,14 @@ bool compare_ip_cidr(address const& lhs, address const& rhs)
 	{
 		// if IPv6 addresses is in the same /64, they're too close and we won't
 		// trust the second one
-		boost::uint64_t lhs_ip;
+		std::uint64_t lhs_ip;
 		memcpy(&lhs_ip, lhs.to_v6().to_bytes().data(), 8);
-		boost::uint64_t rhs_ip;
+		std::uint64_t rhs_ip;
 		memcpy(&rhs_ip, rhs.to_v6().to_bytes().data(), 8);
 
 		// since the condition we're looking for is all the first  bits being
 		// zero, there's no need to byte-swap into host byte order here.
-		boost::uint64_t const mask = lhs_ip ^ rhs_ip;
+		std::uint64_t const mask = lhs_ip ^ rhs_ip;
 		return mask == 0;
 	}
 	else
@@ -534,7 +534,7 @@ bool compare_ip_cidr(address const& lhs, address const& rhs)
 	{
 		// if IPv4 addresses is in the same /24, they're too close and we won't
 		// trust the second one
-		boost::uint32_t const mask
+		std::uint32_t const mask
 			= lhs.to_v4().to_ulong() ^ rhs.to_v4().to_ulong();
 		return mask <= 0x000000ff;
 	}
@@ -861,7 +861,7 @@ ip_ok:
 		// the data someone is looking for, make sure there is an affinity
 		// towards having a good spread of node IDs in each bucket
 
-		boost::uint32_t mask = bucket_size_limit - 1;
+		std::uint32_t mask = bucket_size_limit - 1;
 		int mask_shift = 0;
 		TORRENT_ASSERT_VAL(mask > 0, mask);
 		while ((mask & 0x80) == 0)

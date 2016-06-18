@@ -223,7 +223,7 @@ namespace libtorrent
 		TORRENT_ASSERT(downloading_iter == m_downloads[download_state].end()
 			|| downloading_iter->index != piece);
 		TORRENT_ASSERT(block_index >= 0);
-		TORRENT_ASSERT(block_index < (std::numeric_limits<boost::uint16_t>::max)());
+		TORRENT_ASSERT(block_index < (std::numeric_limits<std::uint16_t>::max)());
 		ret.info_idx = block_index;
 		TORRENT_ASSERT(int(ret.info_idx) * m_blocks_per_piece
 			+ m_blocks_per_piece <= int(m_block_info.size()));
@@ -1913,7 +1913,7 @@ namespace libtorrent
 	// the return value is a combination of picker_log_alert::picker_flags_t,
 	// indicating which path throught the picker we took to arrive at the
 	// returned block picks.
-	boost::uint32_t piece_picker::pick_pieces(bitfield const& pieces
+	std::uint32_t piece_picker::pick_pieces(bitfield const& pieces
 		, std::vector<piece_block>& interesting_blocks, int num_blocks
 		, int prefer_contiguous_blocks, torrent_peer* peer
 		, int options, std::vector<int> const& suggested_pieces
@@ -1922,7 +1922,7 @@ namespace libtorrent
 		) const
 	{
 		TORRENT_ASSERT(peer == 0 || peer->in_use);
-		boost::uint32_t ret = 0;
+		std::uint32_t ret = 0;
 
 		// prevent the number of partial pieces to grow indefinitely
 		// make this scale by the number of peers we have. For large

@@ -84,8 +84,8 @@ namespace libtorrent
 				{
 					// assume Latin-1
 					wide.clear();
-					std::copy(reinterpret_cast<boost::uint8_t const*>(*src_start)
-						,reinterpret_cast<boost::uint8_t const*>(src_end)
+					std::copy(reinterpret_cast<std::uint8_t const*>(*src_start)
+						,reinterpret_cast<std::uint8_t const*>(src_end)
 						, std::back_inserter(wide));
 					return static_cast<utf8_conv_result_t>(ret);
 				}
@@ -113,8 +113,8 @@ namespace libtorrent
 				{
 					// assume Latin-1
 					wide.clear();
-					std::copy(reinterpret_cast<boost::uint8_t const*>(*src_start)
-						, reinterpret_cast<boost::uint8_t const*>(src_end)
+					std::copy(reinterpret_cast<std::uint8_t const*>(*src_start)
+						, reinterpret_cast<std::uint8_t const*>(src_end)
 						, std::back_inserter(wide));
 					return static_cast<utf8_conv_result_t>(ret);
 				}

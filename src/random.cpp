@@ -44,29 +44,29 @@ namespace libtorrent
 
 #ifdef TORRENT_BUILD_SIMULATOR
 
-	boost::uint32_t random()
+	std::uint32_t random()
 	{
 		// make sure random numbers are deterministic. Seed with a fixed number
 		static mt19937 random_engine(4040);
-		return uniform_int_distribution<boost::uint32_t>(0
-			, (std::numeric_limits<boost::uint32_t>::max)())(random_engine);
+		return uniform_int_distribution<std::uint32_t>(0
+			, (std::numeric_limits<std::uint32_t>::max)())(random_engine);
 	}
 
 #else
 
-	boost::uint32_t random()
+	std::uint32_t random()
 	{
 		// TODO: versions prior to msvc-14 (visual studio 2015) do
 		// not generate thread safe initialization of statics
 		static random_device dev;
 		static mt19937 random_engine(dev());
-		return uniform_int_distribution<boost::uint32_t>(0
-			, (std::numeric_limits<boost::uint32_t>::max)())(random_engine);
+		return uniform_int_distribution<std::uint32_t>(0
+			, (std::numeric_limits<std::uint32_t>::max)())(random_engine);
 	}
 
 #endif // TORRENT_BUILD_SIMULATOR
 
-	boost::uint32_t randint(int i)
+	std::uint32_t randint(int i)
 	{
 		return random() % i;
 	}

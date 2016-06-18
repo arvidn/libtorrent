@@ -775,7 +775,7 @@ namespace libtorrent
 		TORRENT_ASSERT(i);
 		c.set_peer_info(i);
 		TORRENT_ASSERT(i->connection == 0);
-		c.add_stat(boost::int64_t(i->prev_amount_download) << 10, boost::int64_t(i->prev_amount_upload) << 10);
+		c.add_stat(std::int64_t(i->prev_amount_download) << 10, std::int64_t(i->prev_amount_upload) << 10);
 
 		i->prev_amount_download = 0;
 		i->prev_amount_upload = 0;
@@ -1386,8 +1386,8 @@ namespace libtorrent
 		int rhs_rank = source_rank(rhs->source);
 		if (lhs_rank != rhs_rank) return lhs_rank > rhs_rank;
 
-		boost::uint32_t lhs_peer_rank = lhs->rank(external, external_port);
-		boost::uint32_t rhs_peer_rank = rhs->rank(external, external_port);
+		std::uint32_t lhs_peer_rank = lhs->rank(external, external_port);
+		std::uint32_t rhs_peer_rank = rhs->rank(external, external_port);
 		if (lhs_peer_rank > rhs_peer_rank) return true;
 		return false;
 	}

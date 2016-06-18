@@ -47,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/noncopyable.hpp>
 #include <array>
 #include <boost/optional.hpp>
-#include <boost/cstdint.hpp>
+#include <cstdint>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -112,7 +112,7 @@ namespace libtorrent
 
 		// the number of bytes left to receive of the response we're
 		// currently parsing
-		boost::int64_t m_response_left;
+		std::int64_t m_response_left;
 
 		// this is the offset inside the current receive
 		// buffer where the next chunk header will be.
@@ -120,7 +120,7 @@ namespace libtorrent
 		// parsed. It does not necessarily point to a valid
 		// offset in the receive buffer, if we haven't received
 		// it yet. This offset never includes the HTTP header
-		boost::int64_t m_chunk_pos;
+		std::int64_t m_chunk_pos;
 
 		// this is the number of bytes we've already received
 		// from the next chunk header we're waiting for

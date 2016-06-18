@@ -102,7 +102,7 @@ namespace libtorrent
 		// outgoing connection : hash ('keyA',S,SKEY)
 		// incoming connection : hash ('keyB',S,SKEY)
 
-		std::array<boost::uint8_t, 96> secret_buf;
+		std::array<std::uint8_t, 96> secret_buf;
 		mp::export_bits(secret, secret_buf.begin(), 8);
 
 		if (outgoing) h.update(keyA, 4); else h.update(keyB, 4);
@@ -225,7 +225,7 @@ namespace libtorrent
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 
-		boost::uint8_t out_policy = m_settings.get_int(settings_pack::out_enc_policy);
+		std::uint8_t out_policy = m_settings.get_int(settings_pack::out_enc_policy);
 
 #ifdef TORRENT_USE_OPENSSL
 		// never try an encrypted connection when already using SSL
@@ -552,7 +552,7 @@ namespace libtorrent
 		hasher h;
 		sha1_hash const& info_hash = t->torrent_file().info_hash();
 		key_t const secret_key = m_dh_key_exchange->get_secret();
-		std::array<boost::uint8_t, 96> secret;
+		std::array<std::uint8_t, 96> secret;
 		mp::export_bits(secret_key, secret.begin(), 8);
 
 		int pad_size = random() % 512;
@@ -597,7 +597,7 @@ namespace libtorrent
 		// write the verification constant and crypto field
 		int encrypt_size = sizeof(msg) - 512 + pad_size - 40;
 
-		boost::uint8_t crypto_provide = m_settings.get_int(settings_pack::allowed_enc_level);
+		std::uint8_t crypto_provide = m_settings.get_int(settings_pack::allowed_enc_level);
 
 		// this is an invalid setting, but let's just make the best of the situation
 		if ((crypto_provide & settings_pack::pe_both) == 0)
@@ -1129,7 +1129,7 @@ namespace libtorrent
 
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
-		bool merkle = static_cast<boost::uint8_t>(recv_buffer.begin[0]) == 250;
+		bool merkle = static_cast<std::uint8_t>(recv_buffer.begin[0]) == 250;
 		if (merkle)
 		{
 			if (recv_pos == 1)
@@ -1584,7 +1584,7 @@ namespace libtorrent
 			} break;
 			case hp_failed:
 			{
-				boost::uint32_t error = detail::read_uint32(ptr);
+				std::uint32_t error = detail::read_uint32(ptr);
 #ifndef TORRENT_DISABLE_LOGGING
 				error_code ec;
 				char const* err_msg[] = {"no such peer", "not connected", "no support", "no self"};
@@ -1810,9 +1810,9 @@ namespace libtorrent
 		// upload_only
 		if (bdecode_node m = root.dict_find_dict("m"))
 		{
-			m_upload_only_id = boost::uint8_t(m.dict_find_int_value("upload_only", 0));
-			m_holepunch_id = boost::uint8_t(m.dict_find_int_value("ut_holepunch", 0));
-			m_dont_have_id = boost::uint8_t(m.dict_find_int_value("lt_donthave", 0));
+			m_upload_only_id = std::uint8_t(m.dict_find_int_value("upload_only", 0));
+			m_holepunch_id = std::uint8_t(m.dict_find_int_value("ut_holepunch", 0));
+			m_dont_have_id = std::uint8_t(m.dict_find_int_value("lt_donthave", 0));
 		}
 
 		// there is supposed to be a remote listen port
@@ -1827,7 +1827,7 @@ namespace libtorrent
 		// there should be a version too
 		// but where do we put that info?
 
-		int last_seen_complete = boost::uint8_t(root.dict_find_int_value("complete_ago", -1));
+		int last_seen_complete = std::uint8_t(root.dict_find_int_value("complete_ago", -1));
 		if (last_seen_complete >= 0) set_last_seen_complete(last_seen_complete);
 
 		std::string client_info = root.dict_find_string_value("v");
@@ -1896,14 +1896,14 @@ namespace libtorrent
 		buffer::const_interval recv_buffer = m_recv_buffer.get();
 
 		TORRENT_ASSERT(recv_buffer.left() >= 1);
-		int packet_type = static_cast<boost::uint8_t>(recv_buffer[0]);
+		int packet_type = static_cast<std::uint8_t>(recv_buffer[0]);
 
 		if (m_settings.get_bool(settings_pack::support_merkle_torrents)
 			&& packet_type == 250) packet_type = msg_piece;
 
 #if TORRENT_USE_ASSERTS
-		boost::int64_t const cur_payload_dl = statistics().last_payload_downloaded();
-		boost::int64_t const cur_protocol_dl = statistics().last_protocol_downloaded();
+		std::int64_t const cur_payload_dl = statistics().last_payload_downloaded();
+		std::int64_t const cur_protocol_dl = statistics().last_protocol_downloaded();
 #endif
 
 		// call the handler for this packet type
@@ -1953,7 +1953,7 @@ namespace libtorrent
 #if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT(statistics().last_payload_downloaded() - cur_payload_dl >= 0);
 		TORRENT_ASSERT(statistics().last_protocol_downloaded() - cur_protocol_dl >= 0);
-		boost::int64_t const stats_diff = statistics().last_payload_downloaded()
+		std::int64_t const stats_diff = statistics().last_payload_downloaded()
 			- cur_payload_dl + statistics().last_protocol_downloaded()
 			- cur_protocol_dl;
 		TORRENT_ASSERT(stats_diff == received);
@@ -2158,7 +2158,7 @@ namespace libtorrent
 
 		const int packet_size = (num_pieces + 7) / 8 + 5;
 
-		boost::uint8_t* msg = TORRENT_ALLOCA(boost::uint8_t, packet_size);
+		std::uint8_t* msg = TORRENT_ALLOCA(std::uint8_t, packet_size);
 		if (msg == 0) return; // out of memory
 		unsigned char* ptr = msg;
 
@@ -2590,8 +2590,8 @@ namespace libtorrent
 				((sub_transferred = int(m_recv_buffer.advance_pos(int(bytes_transferred)))) > 0))
 			{
 	#if TORRENT_USE_ASSERTS
-				boost::int64_t cur_payload_dl = m_statistics.last_payload_downloaded();
-				boost::int64_t cur_protocol_dl = m_statistics.last_protocol_downloaded();
+				std::int64_t cur_payload_dl = m_statistics.last_payload_downloaded();
+				std::int64_t cur_protocol_dl = m_statistics.last_protocol_downloaded();
 	#endif
 				on_receive_impl(sub_transferred);
 				bytes_transferred -= sub_transferred;
@@ -2600,7 +2600,7 @@ namespace libtorrent
 	#if TORRENT_USE_ASSERTS
 				TORRENT_ASSERT(m_statistics.last_payload_downloaded() - cur_payload_dl >= 0);
 				TORRENT_ASSERT(m_statistics.last_protocol_downloaded() - cur_protocol_dl >= 0);
-				boost::int64_t stats_diff = m_statistics.last_payload_downloaded() - cur_payload_dl +
+				std::int64_t stats_diff = m_statistics.last_payload_downloaded() - cur_payload_dl +
 					m_statistics.last_protocol_downloaded() - cur_protocol_dl;
 				TORRENT_ASSERT(stats_diff == int(sub_transferred));
 	#endif
@@ -2641,7 +2641,7 @@ namespace libtorrent
 
 			// read dh key, generate shared secret
 			m_dh_key_exchange->compute_secret(
-				reinterpret_cast<boost::uint8_t const*>(recv_buffer.begin));
+				reinterpret_cast<std::uint8_t const*>(recv_buffer.begin));
 
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "ENCRYPTION", "received DH key");
@@ -2704,7 +2704,7 @@ namespace libtorrent
 				hasher h;
 
 				// compute synchash (hash('req1',S))
-				std::array<boost::uint8_t, 96> buffer;
+				std::array<std::uint8_t, 96> buffer;
 				mp::export_bits(m_dh_key_exchange->get_secret(), buffer.begin(), 8);
 				h.update("req1", 4);
 				h.update(reinterpret_cast<char const*>(buffer.data()), buffer.size());
@@ -2917,7 +2917,7 @@ namespace libtorrent
 
 			recv_buffer = m_recv_buffer.get();
 
-			boost::uint32_t crypto_field = detail::read_uint32(recv_buffer.begin);
+			std::uint32_t crypto_field = detail::read_uint32(recv_buffer.begin);
 
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "ENCRYPTION", "crypto %s : [%s%s ]"
@@ -2930,13 +2930,13 @@ namespace libtorrent
 			{
 				// select a crypto method
 				int allowed_encryption = m_settings.get_int(settings_pack::allowed_enc_level);
-				boost::uint32_t crypto_select = crypto_field & allowed_encryption;
+				std::uint32_t crypto_select = crypto_field & allowed_encryption;
 
 				// when prefer_rc4 is set, keep the most significant bit
 				// otherwise keep the least significant one
 				if (m_settings.get_bool(settings_pack::prefer_rc4))
 				{
-					boost::uint32_t mask = (std::numeric_limits<boost::uint32_t>::max)();
+					std::uint32_t mask = (std::numeric_limits<std::uint32_t>::max)();
 					while (crypto_select & (mask << 1))
 					{
 						mask <<= 1;
@@ -2945,7 +2945,7 @@ namespace libtorrent
 				}
 				else
 				{
-					boost::uint32_t mask = (std::numeric_limits<boost::uint32_t>::max)();
+					std::uint32_t mask = (std::numeric_limits<std::uint32_t>::max)();
 					while (crypto_select & (mask >> 1))
 					{
 						mask >>= 1;
@@ -3521,8 +3521,8 @@ namespace libtorrent
 				return;
 			}
 #if TORRENT_USE_ASSERTS
-			boost::int64_t cur_payload_dl = statistics().last_payload_downloaded();
-			boost::int64_t cur_protocol_dl = statistics().last_protocol_downloaded();
+			std::int64_t cur_payload_dl = statistics().last_payload_downloaded();
+			std::int64_t cur_protocol_dl = statistics().last_protocol_downloaded();
 #endif
 			if (dispatch_message(int(bytes_transferred)))
 			{
@@ -3533,9 +3533,9 @@ namespace libtorrent
 #if TORRENT_USE_ASSERTS
 			TORRENT_ASSERT(statistics().last_payload_downloaded() - cur_payload_dl >= 0);
 			TORRENT_ASSERT(statistics().last_protocol_downloaded() - cur_protocol_dl >= 0);
-			boost::int64_t stats_diff = statistics().last_payload_downloaded() - cur_payload_dl +
+			std::int64_t stats_diff = statistics().last_payload_downloaded() - cur_payload_dl +
 				statistics().last_protocol_downloaded() - cur_protocol_dl;
-			TORRENT_ASSERT(stats_diff == boost::int64_t(bytes_transferred));
+			TORRENT_ASSERT(stats_diff == std::int64_t(bytes_transferred));
 			TORRENT_ASSERT(!m_recv_buffer.packet_finished());
 #endif
 			return;

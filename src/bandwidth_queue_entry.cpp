@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/cstdint.hpp>
+#include <cstdint>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -66,7 +66,7 @@ namespace libtorrent
 		{
 			if (channel[j]->throttle() == 0) continue;
 			if (channel[j]->tmp == 0) continue;
-			quota = (std::min)(int(boost::int64_t(channel[j]->distribute_quota)
+			quota = (std::min)(int(std::int64_t(channel[j]->distribute_quota)
 				* priority / channel[j]->tmp), quota);
 		}
 		assigned += quota;

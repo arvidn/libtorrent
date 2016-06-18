@@ -63,10 +63,10 @@ TORRENT_TEST(init)
 		aux::file_progress fp;
 		fp.init(picker, fs);
 
-		std::vector<boost::int64_t> vec;
+		std::vector<std::int64_t> vec;
 		fp.export_progress(vec);
 
-		boost::uint64_t sum = 0;
+		std::uint64_t sum = 0;
 		for (int i = 0; i < int(vec.size()); ++i)
 			sum += vec[i];
 
@@ -92,13 +92,13 @@ TORRENT_TEST(init2)
 		picker.init(4, fs.total_size() % 4, fs.num_pieces());
 		picker.we_have(idx);
 
-		std::vector<boost::int64_t> vec;
+		std::vector<std::int64_t> vec;
 		aux::file_progress fp;
 
 		fp.init(picker, fs);
 		fp.export_progress(vec);
 
-		boost::uint64_t sum = 0;
+		std::uint64_t sum = 0;
 		for (int i = 0; i < int(vec.size()); ++i)
 			sum += vec[i];
 

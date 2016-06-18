@@ -128,7 +128,7 @@ namespace libtorrent
 						continue;
 					}
 					if (!numeric(t)) TORRENT_FAIL_BDECODE(bdecode_errors::expected_digit);
-					boost::int64_t len = t - '0';
+					std::int64_t len = t - '0';
 					bdecode_errors::error_code_enum e = bdecode_errors::no_error;
 					start = parse_int(start, end, ':', len, e);
 					if (e)
@@ -200,7 +200,7 @@ namespace libtorrent
 					if (!numeric(t))
 						TORRENT_FAIL_BDECODE(bdecode_errors::expected_value);
 
-					boost::int64_t len = t - '0';
+					std::int64_t len = t - '0';
 					bdecode_errors::error_code_enum e = bdecode_errors::no_error;
 					start = parse_int(start, end, ':', len, e);
 					if (e)
@@ -235,10 +235,10 @@ namespace libtorrent
 			return m_data.list[0].m_len;
 	}
 
-	boost::int64_t lazy_entry::int_value() const
+	std::int64_t lazy_entry::int_value() const
 	{
 		TORRENT_ASSERT(m_type == int_t);
-		boost::int64_t val = 0;
+		std::int64_t val = 0;
 		bool negative = false;
 		if (*m_data.start == '-') negative = true;
 		bdecode_errors::error_code_enum ec = bdecode_errors::no_error;
@@ -364,8 +364,8 @@ namespace libtorrent
 		return e;
 	}
 
-	boost::int64_t lazy_entry::dict_find_int_value(char const* name
-		, boost::int64_t default_val) const
+	std::int64_t lazy_entry::dict_find_int_value(char const* name
+		, std::int64_t default_val) const
 	{
 		lazy_entry const* e = dict_find(name);
 		if (e == 0 || e->type() != lazy_entry::int_t) return default_val;
@@ -460,7 +460,7 @@ namespace libtorrent
 		return e->string_pstr();
 	}
 
-	boost::int64_t lazy_entry::list_int_value_at(int i, boost::int64_t default_val) const
+	std::int64_t lazy_entry::list_int_value_at(int i, std::int64_t default_val) const
 	{
 		lazy_entry const* e = list_at(i);
 		if (e == 0 || e->type() != lazy_entry::int_t) return default_val;
@@ -524,7 +524,7 @@ namespace libtorrent
 			break;
 		case lazy_entry::int_t:
 		{
-			boost::int64_t val = e.int_value();
+			std::int64_t val = e.int_value();
 			while (val > 0)
 			{
 				++line_len;
@@ -553,7 +553,7 @@ namespace libtorrent
 			else
 			{
 				char tmp[5];
-				std::snprintf(tmp, sizeof(tmp), "\\x%02x", boost::uint8_t(str[i]));
+				std::snprintf(tmp, sizeof(tmp), "\\x%02x", std::uint8_t(str[i]));
 				ret += tmp;
 			}
 		}

@@ -92,10 +92,10 @@ namespace libtorrent
 
 	struct file_status
 	{
-		boost::int64_t file_size;
-		boost::uint64_t atime;
-		boost::uint64_t mtime;
-		boost::uint64_t ctime;
+		std::int64_t file_size;
+		std::uint64_t atime;
+		std::uint64_t mtime;
+		std::uint64_t ctime;
 		enum {
 #if defined TORRENT_WINDOWS
 			fifo = 0x1000, // named pipe (fifo)
@@ -130,7 +130,7 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT void remove(std::string const& f, error_code& ec);
 	TORRENT_EXTRA_EXPORT bool exists(std::string const& f, error_code& ec);
 	TORRENT_EXTRA_EXPORT bool exists(std::string const& f);
-	TORRENT_EXTRA_EXPORT boost::int64_t file_size(std::string const& f);
+	TORRENT_EXTRA_EXPORT std::int64_t file_size(std::string const& f);
 	TORRENT_EXTRA_EXPORT bool is_directory(std::string const& f
 		, error_code& ec);
 	TORRENT_EXTRA_EXPORT void recursive_copy(std::string const& old_path
@@ -182,7 +182,7 @@ namespace libtorrent
 		~directory();
 		void next(error_code& ec);
 		std::string file() const;
-		boost::uint64_t inode() const;
+		std::uint64_t inode() const;
 		bool done() const { return m_done; }
 	private:
 #ifdef TORRENT_WINDOWS
@@ -311,25 +311,25 @@ namespace libtorrent
 		bool open(std::string const& p, int m, error_code& ec);
 		bool is_open() const;
 		void close();
-		bool set_size(boost::int64_t size, error_code& ec);
+		bool set_size(std::int64_t size, error_code& ec);
 
 		int open_mode() const { return m_open_mode; }
 
-		boost::int64_t writev(boost::int64_t file_offset, iovec_t const* bufs, int num_bufs
+		std::int64_t writev(std::int64_t file_offset, iovec_t const* bufs, int num_bufs
 			, error_code& ec, int flags = 0);
-		boost::int64_t readv(boost::int64_t file_offset, iovec_t const* bufs, int num_bufs
+		std::int64_t readv(std::int64_t file_offset, iovec_t const* bufs, int num_bufs
 			, error_code& ec, int flags = 0);
 
-		boost::int64_t get_size(error_code& ec) const;
+		std::int64_t get_size(error_code& ec) const;
 
 		// return the offset of the first byte that
 		// belongs to a data-region
-		boost::int64_t sparse_end(boost::int64_t start) const;
+		std::int64_t sparse_end(std::int64_t start) const;
 
 		handle_type native_handle() const { return m_file_handle; }
 
 #ifdef TORRENT_DISK_STATS
-		boost::uint32_t file_id() const { return m_file_id; }
+		std::uint32_t file_id() const { return m_file_id; }
 #endif
 
 #ifdef TORRENT_DEBUG_FILE_LEAKS
@@ -340,7 +340,7 @@ namespace libtorrent
 
 		handle_type m_file_handle;
 #ifdef TORRENT_DISK_STATS
-		boost::uint32_t m_file_id;
+		std::uint32_t m_file_id;
 #endif
 
 		int m_open_mode;

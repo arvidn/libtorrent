@@ -46,7 +46,7 @@ namespace libtorrent { namespace dht
 
 void get_item::got_data(bdecode_node const& v,
 	char const* pk,
-	boost::uint64_t seq,
+	std::uint64_t seq,
 	char const* sig)
 {
 	// we received data!
@@ -186,7 +186,7 @@ void get_item_observer::reply(msg const& m)
 {
 	char const* pk = NULL;
 	char const* sig = NULL;
-	boost::uint64_t seq = 0;
+	std::uint64_t seq = 0;
 
 	bdecode_node r = m.message.dict_find_dict("r");
 	if (!r)

@@ -166,7 +166,7 @@ namespace libtorrent { namespace
 		{
 			m_metadata_progress += received;
 			m_metadata_size = total_size;
-			m_torrent.set_progress_ppm(boost::int64_t(m_metadata_progress) * 1000000 / m_metadata_size);
+			m_torrent.set_progress_ppm(std::int64_t(m_metadata_progress) * 1000000 / m_metadata_size);
 		}
 */
 		void on_piece_pass(int) override
@@ -485,7 +485,7 @@ namespace libtorrent { namespace
 
 		void failed_hash_check(time_point const& now)
 		{
-			m_request_limit = now + seconds(20 + (boost::int64_t(random()) * 50) / UINT_MAX);
+			m_request_limit = now + seconds(20 + (std::int64_t(random()) * 50) / UINT_MAX);
 		}
 
 	private:

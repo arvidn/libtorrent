@@ -128,7 +128,7 @@ namespace
 	struct dht_mutable_item : dht_immutable_item
 	{
 		char sig[item_sig_len];
-		boost::int64_t seq;
+		std::int64_t seq;
 		ed25519_public_key key;
 		char* salt;
 		int salt_size;
@@ -393,7 +393,7 @@ namespace
 		}
 
 		bool get_mutable_item_seq(sha1_hash const& target
-			, boost::int64_t& seq) const override
+			, std::int64_t& seq) const override
 		{
 			dht_mutable_table_t::const_iterator i = m_mutable_table.find(target);
 			if (i == m_mutable_table.end()) return false;
@@ -403,7 +403,7 @@ namespace
 		}
 
 		bool get_mutable_item(sha1_hash const& target
-			, boost::int64_t seq, bool force_fill
+			, std::int64_t seq, bool force_fill
 			, entry& item) const override
 		{
 			dht_mutable_table_t::const_iterator i = m_mutable_table.find(target);
@@ -423,7 +423,7 @@ namespace
 		void put_mutable_item(sha1_hash const& target
 			, char const* buf, int size
 			, char const* sig
-			, boost::int64_t seq
+			, std::int64_t seq
 			, char const* pk
 			, char const* salt, int salt_size
 			, address const& addr) override

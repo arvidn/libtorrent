@@ -31,10 +31,10 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
-#include <boost/cstdint.hpp>
+#include <cstdint>
 
 namespace libtorrent
 {
-	boost::uint32_t TORRENT_EXTRA_EXPORT random();
-	boost::uint32_t TORRENT_EXTRA_EXPORT randint(int i);
+	std::uint32_t TORRENT_EXTRA_EXPORT random();
+	std::uint32_t TORRENT_EXTRA_EXPORT randint(int i);
 }

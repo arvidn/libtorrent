@@ -113,8 +113,8 @@ namespace libtorrent
 		// The ``flags`` argument is used to filter which parts of the session
 		// state to save or load. By default, all state is saved/restored (except
 		// for the individual torrents). see save_state_flags_t
-		void save_state(entry& e, boost::uint32_t flags = 0xffffffff) const;
-		void load_state(bdecode_node const& e, boost::uint32_t flags = 0xffffffff);
+		void save_state(entry& e, std::uint32_t flags = 0xffffffff) const;
+		void load_state(bdecode_node const& e, std::uint32_t flags = 0xffffffff);
 
 		// .. note::
 		// 	these calls are potentially expensive and won't scale well with
@@ -143,9 +143,9 @@ namespace libtorrent
 		// a valid torrent are ignored.
 		void get_torrent_status(std::vector<torrent_status>* ret
 			, boost::function<bool(torrent_status const&)> const& pred
-			, boost::uint32_t flags = 0) const;
+			, std::uint32_t flags = 0) const;
 		void refresh_torrent_status(std::vector<torrent_status>* ret
-			, boost::uint32_t flags = 0) const;
+			, std::uint32_t flags = 0) const;
 
 		// This functions instructs the session to post the state_update_alert,
 		// containing the status of all torrents whose state changed since the
@@ -155,7 +155,7 @@ namespace libtorrent
 		// included. This flag is on by default. See add_torrent_params.
 		// the ``flags`` argument is the same as for torrent_handle::status().
 		// see torrent_handle::status_flags_t.
-		void post_torrent_updates(boost::uint32_t flags = 0xffffffff);
+		void post_torrent_updates(std::uint32_t flags = 0xffffffff);
 
 		// This function will post a session_stats_alert object, containing a
 		// snapshot of the performance counters from the internals of libtorrent.
@@ -389,7 +389,7 @@ namespace libtorrent
 		// 	To generate the signature, you may want to use the
 		// 	``sign_mutable_item`` function.
 		//
-		// boost::uint64_t& seq
+		// std::uint64_t& seq
 		// 	current sequence number. May be zero if there is no current value.
 		// 	The function is expected to set this to the new sequence number of
 		// 	the value that is to be stored. Sequence numbers must be monotonically
@@ -411,7 +411,7 @@ namespace libtorrent
 		// calling the callback in between is convenient.
 		void dht_put_item(std::array<char, 32> key
 			, boost::function<void(entry&, std::array<char,64>&
-			, boost::uint64_t&, std::string const&)> cb
+			, std::uint64_t&, std::string const&)> cb
 			, std::string salt = std::string());
 
 		void dht_get_peers(sha1_hash const& info_hash);
@@ -518,13 +518,13 @@ namespace libtorrent
 		// use load_state and save_state instead
 		TORRENT_DEPRECATED
 		void load_state(entry const& ses_state
-			, boost::uint32_t flags = 0xffffffff);
+			, std::uint32_t flags = 0xffffffff);
 		TORRENT_DEPRECATED
 		entry state() const;
 		// deprecated in 1.1
 		TORRENT_DEPRECATED
 		void load_state(lazy_entry const& ses_state
-			, boost::uint32_t flags = 0xffffffff);
+			, std::uint32_t flags = 0xffffffff);
 #endif // TORRENT_NO_DEPRECATE
 
 		// Sets a filter that will be used to reject and accept incoming as well
@@ -960,9 +960,9 @@ namespace libtorrent
 		//
 		// See category_t enum for options.
 		TORRENT_DEPRECATED
-		void set_alert_mask(boost::uint32_t m);
+		void set_alert_mask(std::uint32_t m);
 		TORRENT_DEPRECATED
-		boost::uint32_t get_alert_mask() const;
+		std::uint32_t get_alert_mask() const;
 
 		// Starts and stops Local Service Discovery. This service will broadcast
 		// the infohashes of all the non-private torrents on the local network to

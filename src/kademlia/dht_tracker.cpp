@@ -549,7 +549,7 @@ namespace libtorrent { namespace dht
 
 			// these are class A networks not available to the public
 			// if we receive messages from here, that seems suspicious
-			static boost::uint8_t const class_a[] = { 3, 6, 7, 9, 11, 19, 21, 22, 25
+			static std::uint8_t const class_a[] = { 3, 6, 7, 9, 11, 19, 21, 22, 25
 				, 26, 28, 29, 30, 33, 34, 48, 51, 56 };
 
 			int num = sizeof(class_a)/sizeof(class_a[0]);
@@ -671,7 +671,7 @@ namespace libtorrent { namespace dht
 		m_last_tick = now;
 
 		// add any new quota we've accrued since last time
-		m_send_quota += boost::uint64_t(m_settings.upload_rate_limit)
+		m_send_quota += std::uint64_t(m_settings.upload_rate_limit)
 			* total_microseconds(delta) / 1000000;
 
 		// allow 3 seconds worth of burst

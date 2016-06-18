@@ -188,7 +188,7 @@ namespace libtorrent
 		op_end = 2
 	};
 
-	void write_access_log(boost::uint64_t offset, boost::uint32_t fileid, int flags, time_point timestamp)
+	void write_access_log(std::uint64_t offset, std::uint32_t fileid, int flags, time_point timestamp)
 	{
 		if (g_access_log == NULL) return;
 
@@ -201,7 +201,7 @@ namespace libtorrent
 		char* ptr = event;
 		detail::write_uint64(timestamp.time_since_epoch().count(), ptr);
 		detail::write_uint64(offset, ptr);
-		detail::write_uint64(static_cast<boost::uint64_t>(event_id++), ptr);
+		detail::write_uint64(static_cast<std::uint64_t>(event_id++), ptr);
 		detail::write_uint32(fileid, ptr);
 		detail::write_uint8(flags, ptr);
 
@@ -226,7 +226,7 @@ namespace libtorrent
 		{}
 
 		int file_op(int const file_index
-			, boost::int64_t const file_offset
+			, std::int64_t const file_offset
 			, int const size
 			, file::iovec_t const* bufs, storage_error& ec)
 			override final
@@ -269,7 +269,7 @@ namespace libtorrent
 			if (ec) return -1;
 
 			// please ignore the adjusted_offset. It's just file_offset.
-			boost::int64_t adjusted_offset =
+			std::int64_t adjusted_offset =
 #ifndef TORRENT_NO_DEPRECATE
 				m_storage.files().file_base_deprecated(file_index) +
 #endif
@@ -317,7 +317,7 @@ namespace libtorrent
 		{}
 
 		int file_op(int const file_index
-			, boost::int64_t const file_offset
+			, std::int64_t const file_offset
 			, int const size
 			, file::iovec_t const* bufs, storage_error& ec)
 			override final
@@ -357,7 +357,7 @@ namespace libtorrent
 			if (ec) return -1;
 
 			// please ignore the adjusted_offset. It's just file_offset.
-			boost::int64_t adjusted_offset =
+			std::int64_t adjusted_offset =
 #ifndef TORRENT_NO_DEPRECATE
 				m_storage.files().file_base_deprecated(file_index) +
 #endif
@@ -432,7 +432,7 @@ namespace libtorrent
 			, m_files.num_pieces(), m_files.piece_length()));
 	}
 
-	void default_storage::set_file_priority(std::vector<boost::uint8_t> const& prio, storage_error& ec)
+	void default_storage::set_file_priority(std::vector<std::uint8_t> const& prio, storage_error& ec)
 	{
 		// extend our file priorities in case it's truncated
 		// the default assumed priority is 1
@@ -540,7 +540,7 @@ namespace libtorrent
 			if (files().pad_file_at(file_index)) continue;
 
 			error_code err;
-			boost::int64_t size = m_stat_cache.get_filesize(file_index, files()
+			std::int64_t size = m_stat_cache.get_filesize(file_index, files()
 				, m_save_path, err);
 
 			if (err && err != boost::system::errc::no_such_file_or_directory)
@@ -613,7 +613,7 @@ namespace libtorrent
 		std::string file_path;
 		for (int i = 0; i < files().num_files(); ++i)
 		{
-			boost::int64_t sz = m_stat_cache.get_filesize(
+			std::int64_t sz = m_stat_cache.get_filesize(
 				i, files(), m_save_path, ec.ec);
 
 			if (sz < 0)
@@ -890,7 +890,7 @@ namespace libtorrent
 
 			int const file_index = f[0].file_index;
 			error_code error;
-			boost::int64_t const size = m_stat_cache.get_filesize(f[0].file_index
+			std::int64_t const size = m_stat_cache.get_filesize(f[0].file_index
 				, fs, m_save_path, error);
 
 			if (size < 0)
@@ -1136,11 +1136,11 @@ namespace libtorrent
 		TORRENT_ASSERT(files.is_loaded());
 
 		// find the file iterator and file offset
-		boost::uint64_t torrent_offset = piece * boost::uint64_t(files.piece_length()) + offset;
+		std::uint64_t torrent_offset = piece * std::uint64_t(files.piece_length()) + offset;
 		int file_index = files.file_index_at_offset(torrent_offset);
 		TORRENT_ASSERT(torrent_offset >= files.file_offset(file_index));
 		TORRENT_ASSERT(torrent_offset < files.file_offset(file_index) + files.file_size(file_index));
-		boost::int64_t file_offset = torrent_offset - files.file_offset(file_index);
+		std::int64_t file_offset = torrent_offset - files.file_offset(file_index);
 
 		// the number of bytes left before this read or write operation is
 		// completely satisfied.
@@ -1365,7 +1365,7 @@ namespace libtorrent
 		{
 		public:
 			virtual bool has_any_file(storage_error&) override { return false; }
-			virtual void set_file_priority(std::vector<boost::uint8_t> const&
+			virtual void set_file_priority(std::vector<std::uint8_t> const&
 				, storage_error&) override {}
 			virtual void rename_file(int, std::string const&, storage_error&) override {}
 			virtual void release_files(storage_error&) override {}
@@ -1427,7 +1427,7 @@ namespace libtorrent
 			}
 
 			virtual bool has_any_file(storage_error&) override { return false; }
-			virtual void set_file_priority(std::vector<boost::uint8_t> const& /* prio */
+			virtual void set_file_priority(std::vector<std::uint8_t> const& /* prio */
 				, storage_error&) override {}
 			virtual int move_storage(std::string const& /* save_path */
 				, int /* flags */, storage_error&) override { return 0; }

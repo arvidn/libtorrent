@@ -87,9 +87,9 @@ void resolve_links::match(boost::shared_ptr<const torrent_info> const& ti
 		if ((fs.file_offset(i) % piece_size) != 0) continue;
 		if (fs.pad_file_at(i)) continue;
 
-		boost::int64_t file_size = fs.file_size(i);
+		std::int64_t file_size = fs.file_size(i);
 
-		typedef boost::unordered_multimap<boost::int64_t, int>::iterator iterator;
+		typedef boost::unordered_multimap<std::int64_t, int>::iterator iterator;
 		iterator iter = m_file_sizes.find(file_size);
 
 		// we don't have a file whose size matches, look at the next one

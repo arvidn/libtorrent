@@ -68,7 +68,7 @@ namespace libtorrent
 		int ret = 0;
 		for (int i = 0; i < number_size; ++i)
 		{
-			boost::uint32_t v = aux::network_to_host(m_number[i]);
+			std::uint32_t v = aux::network_to_host(m_number[i]);
 			if (v == 0)
 			{
 				ret += 32;
@@ -101,7 +101,7 @@ namespace libtorrent
 			v |= v >> 16;
 
 			return ret + MultiplyDeBruijnBitPosition[
-				static_cast<boost::uint32_t>(v * 0x07C4ACDDU) >> 27];
+				static_cast<std::uint32_t>(v * 0x07C4ACDDU) >> 27];
 #endif
 		}
 		return ret;
@@ -120,9 +120,9 @@ namespace libtorrent
 		if (num_words > 0)
 		{
 			std::memmove(m_number, m_number + num_words
-				, (number_size - num_words) * sizeof(boost::uint32_t));
+				, (number_size - num_words) * sizeof(std::uint32_t));
 			std::memset(m_number + (number_size - num_words)
-				, 0, num_words * sizeof(boost::uint32_t));
+				, 0, num_words * sizeof(std::uint32_t));
 			n -= num_words * 32;
 		}
 		if (n > 0)
@@ -157,8 +157,8 @@ namespace libtorrent
 		if (num_words > 0)
 		{
 			std::memmove(m_number + num_words
-				, m_number, (number_size - num_words) * sizeof(boost::uint32_t));
-			std::memset(m_number, 0, num_words * sizeof(boost::uint32_t));
+				, m_number, (number_size - num_words) * sizeof(std::uint32_t));
+			std::memset(m_number, 0, num_words * sizeof(std::uint32_t));
 			n -= num_words * 32;
 		}
 		if (n > 0)

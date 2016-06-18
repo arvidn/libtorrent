@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
-#include <boost/cstdint.hpp>
+#include <cstdint>
 #include <boost/weak_ptr.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/unordered_map.hpp>
@@ -138,20 +138,20 @@ namespace libtorrent
 
 		boost::shared_ptr<const ip_filter> filter;
 
-		boost::int64_t downloaded;
-		boost::int64_t uploaded;
-		boost::int64_t left;
-		boost::int64_t corrupt;
-		boost::int64_t redundant;
-		boost::uint16_t listen_port;
+		std::int64_t downloaded;
+		std::int64_t uploaded;
+		std::int64_t left;
+		std::int64_t corrupt;
+		std::int64_t redundant;
+		std::uint16_t listen_port;
 
 		// values from event_t
-		boost::uint8_t event;
+		std::uint8_t event;
 
 		// values from kind_t
-		boost::uint8_t kind;
+		std::uint8_t kind;
 
-		boost::uint32_t key;
+		std::uint32_t key;
 		int num_want;
 #if TORRENT_USE_IPV6
 		address_v6 ipv6;
@@ -300,7 +300,7 @@ namespace libtorrent
 			, boost::weak_ptr<request_callback> r);
 
 		void update_transaction_id(boost::shared_ptr<udp_tracker_connection> c
-			, boost::uint64_t tid);
+			, std::uint64_t tid);
 
 		boost::shared_ptr<request_callback> requester() const;
 		virtual ~tracker_connection() {}
@@ -384,7 +384,7 @@ namespace libtorrent
 
 		void update_transaction_id(
 			boost::shared_ptr<udp_tracker_connection> c
-			, boost::uint64_t tid);
+			, std::uint64_t tid);
 
 		aux::session_settings const& settings() const { return m_settings; }
 		resolver_interface& host_resolver() { return m_host_resolver; }
@@ -400,7 +400,7 @@ namespace libtorrent
 		// maps transactionid to the udp_tracker_connection
 		// These must use shared_ptr to avoid a dangling reference
 		// if a connection is erased while a timeout event is in the queue
-		typedef boost::unordered_map<boost::uint32_t
+		typedef boost::unordered_map<std::uint32_t
 			, boost::shared_ptr<udp_tracker_connection> > udp_conns_t;
 		udp_conns_t m_udp_conns;
 

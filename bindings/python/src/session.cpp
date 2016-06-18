@@ -252,7 +252,7 @@ namespace
                 p.dht_nodes.push_back(extract<std::pair<std::string, int> >(l[i]));
         }
         if (params.has_key("flags"))
-            p.flags = extract<boost::uint64_t>(params["flags"]);
+            p.flags = extract<std::uint64_t>(params["flags"]);
         if (params.has_key("trackerid"))
             p.trackerid = extract<std::string>(params["trackerid"]);
         if (params.has_key("url"))
@@ -267,7 +267,7 @@ namespace
             list l = extract<list>(params["file_priorities"]);
             int n = boost::python::len(l);
             for(int i = 0; i < n; i++)
-                p.file_priorities.push_back(extract<boost::uint8_t>(l[i]));
+                p.file_priorities.push_back(extract<std::uint8_t>(l[i]));
             p.file_priorities.clear();
         }
     }
@@ -392,7 +392,7 @@ namespace
     void load_country_db(lt::session& s, std::string file) {}
 #endif
 
-    entry save_state(lt::session const& s, boost::uint32_t flags)
+    entry save_state(lt::session const& s, std::uint32_t flags)
     {
         allow_threading_guard guard;
         entry e;
@@ -417,7 +417,7 @@ namespace
         return ret;
     }
 
-	void load_state(lt::session& ses, entry const& st, boost::uint32_t flags)
+	void load_state(lt::session& ses, entry const& st, std::uint32_t flags)
 	{
 		allow_threading_guard guard;
 
@@ -439,7 +439,7 @@ namespace
         ses.dht_get_item(public_key, salt);
     }
 
-    void put_string(entry& e, std::array<char, 64>& sig, boost::uint64_t& seq,
+    void put_string(entry& e, std::array<char, 64>& sig, std::uint64_t& seq,
                     std::string const& salt, std::string public_key, std::string private_key,
                     std::string data)
     {
@@ -693,7 +693,7 @@ void bind_session()
         )
 #ifndef TORRENT_NO_DEPRECATE
         .def(
-            init<fingerprint, int, boost::uint32_t>((
+            init<fingerprint, int, std::uint32_t>((
                 arg("fingerprint")=fingerprint("LT",0,1,0,0)
                 , arg("flags")=lt::session::start_default_features | lt::session::add_default_plugins
                 , arg("alert_mask")=int(alert::error_notification)))

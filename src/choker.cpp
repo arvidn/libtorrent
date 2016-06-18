@@ -62,8 +62,8 @@ namespace libtorrent
 			return prio1 > prio2;
 
 		// compare how many bytes they've sent us
-		boost::int64_t c1;
-		boost::int64_t c2;
+		std::int64_t c1;
+		std::int64_t c2;
 		c1 = lhs->downloaded_in_last_round();
 		c2 = rhs->downloaded_in_last_round();
 
@@ -125,8 +125,8 @@ namespace libtorrent
 			return prio1 > prio2;
 
 		// compare how many bytes they've sent us
-		boost::int64_t c1;
-		boost::int64_t c2;
+		std::int64_t c1;
+		std::int64_t c2;
 		c1 = lhs->downloaded_in_last_round();
 		c2 = rhs->downloaded_in_last_round();
 
@@ -167,8 +167,8 @@ namespace libtorrent
 			return prio1 > prio2;
 
 		// compare how many bytes they've sent us
-		boost::int64_t c1;
-		boost::int64_t c2;
+		std::int64_t c1;
+		std::int64_t c2;
 		c1 = lhs->downloaded_in_last_round();
 		c2 = rhs->downloaded_in_last_round();
 
@@ -212,8 +212,8 @@ namespace libtorrent
 	bool upload_rate_compare(peer_connection const* lhs
 		, peer_connection const* rhs)
 	{
-		boost::int64_t c1;
-		boost::int64_t c2;
+		std::int64_t c1;
+		std::int64_t c2;
 
 		c1 = lhs->uploaded_in_last_round();
 		c2 = rhs->uploaded_in_last_round();
@@ -228,7 +228,7 @@ namespace libtorrent
 	bool bittyrant_unchoke_compare(peer_connection const* lhs
 		, peer_connection const* rhs)
 	{
-		boost::int64_t d1, d2, u1, u2;
+		std::int64_t d1, d2, u1, u2;
 
 		// first compare how many bytes they've sent us
 		d1 = lhs->downloaded_in_last_round();
@@ -241,8 +241,8 @@ namespace libtorrent
 		d1 *= lhs->get_priority(peer_connection::upload_channel);
 		d2 *= rhs->get_priority(peer_connection::upload_channel);
 
-		d1 = d1 * 1000 / (std::max)(boost::int64_t(1), u1);
-		d2 = d2 * 1000 / (std::max)(boost::int64_t(1), u2);
+		d1 = d1 * 1000 / (std::max)(std::int64_t(1), u1);
+		d2 = d2 * 1000 / (std::max)(std::int64_t(1), u2);
 		if (d1 > d2) return true;
 		if (d1 < d2) return false;
 

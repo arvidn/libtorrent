@@ -45,17 +45,17 @@ namespace libtorrent
 	// calculate the priority of a peer based on its address. One of the
 	// endpoint should be our own. The priority is symmetric, so it doesn't
 	// matter which is which
-	TORRENT_EXTRA_EXPORT boost::uint32_t peer_priority(
+	TORRENT_EXTRA_EXPORT std::uint32_t peer_priority(
 		tcp::endpoint e1, tcp::endpoint e2);
 
 	struct TORRENT_EXTRA_EXPORT torrent_peer
 	{
-		torrent_peer(boost::uint16_t port, bool connectable, int src);
+		torrent_peer(std::uint16_t port, bool connectable, int src);
 
-		boost::uint64_t total_download() const;
-		boost::uint64_t total_upload() const;
+		std::uint64_t total_download() const;
+		std::uint64_t total_upload() const;
 
-		boost::uint32_t rank(external_ip const& external, int external_port) const;
+		std::uint32_t rank(external_ip const& external, int external_port) const;
 
 		libtorrent::address address() const;
 		char const* dest() const;
@@ -79,8 +79,8 @@ namespace libtorrent
 		// with byte-precision, they specify the number
 		// of kiB. i.e. shift left 10 bits to compare to
 		// byte counters.
-		boost::uint32_t prev_amount_upload;
-		boost::uint32_t prev_amount_download;
+		std::uint32_t prev_amount_upload;
+		std::uint32_t prev_amount_download;
 
 		// if the torrent_peer is connected now, this
 		// will refer to a valid peer_connection
@@ -89,7 +89,7 @@ namespace libtorrent
 		// as computed by hashing our IP with the remote
 		// IP of this peer
 		// calculated lazily
-		mutable boost::uint32_t peer_rank;
+		mutable std::uint32_t peer_rank;
 
 		// the time when this torrent_peer was optimistically unchoked
 		// the last time. in seconds since session was created
@@ -97,19 +97,19 @@ namespace libtorrent
 		// when the session time reaches 18 hours, it jumps back by
 		// 9 hours, and all peers' times are updated to be
 		// relative to that new time offset
-		boost::uint16_t last_optimistically_unchoked;
+		std::uint16_t last_optimistically_unchoked;
 
 		// the time when the torrent_peer connected to us
 		// or disconnected if it isn't connected right now
 		// in number of seconds since session was created
-		boost::uint16_t last_connected;
+		std::uint16_t last_connected;
 
 		// the port this torrent_peer is or was connected on
-		boost::uint16_t port;
+		std::uint16_t port;
 
 		// the number of times this torrent_peer has been
 		// part of a piece that failed the hash check
-		boost::uint8_t hashfails;
+		std::uint8_t hashfails;
 
 		// the number of failed connection attempts
 		// this torrent_peer has

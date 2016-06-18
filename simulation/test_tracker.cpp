@@ -71,7 +71,7 @@ void test_interval(int interval)
 		, [&announces,interval,start](std::string method, std::string req
 		, std::map<std::string, std::string>&)
 	{
-		boost::uint32_t seconds = chrono::duration_cast<lt::seconds>(
+		std::uint32_t seconds = chrono::duration_cast<lt::seconds>(
 			lt::clock_type::now() - start).count();
 		announces.push_back(seconds);
 
@@ -97,7 +97,7 @@ void test_interval(int interval)
 
 			if (lt::alert_cast<lt::tracker_announce_alert>(a))
 			{
-				boost::uint32_t seconds = chrono::duration_cast<lt::seconds>(
+				std::uint32_t seconds = chrono::duration_cast<lt::seconds>(
 					a->timestamp() - start).count();
 
 				announce_alerts.push_back(seconds);
@@ -268,7 +268,7 @@ void on_alert_notify(lt::session* ses)
 		for (lt::alert* a : alerts)
 		{
 			lt::time_duration d = a->timestamp().time_since_epoch();
-			boost::uint32_t millis = lt::duration_cast<lt::milliseconds>(d).count();
+			std::uint32_t millis = lt::duration_cast<lt::milliseconds>(d).count();
 			std::printf("%4d.%03d: %s\n", millis / 1000, millis % 1000,
 				a->message().c_str());
 		}

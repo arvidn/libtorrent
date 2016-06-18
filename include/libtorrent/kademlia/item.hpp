@@ -54,7 +54,7 @@ sha1_hash TORRENT_EXTRA_EXPORT item_target_id(std::pair<char const*, int> salt
 bool TORRENT_EXTRA_EXPORT verify_mutable_item(
 	std::pair<char const*, int> v
 	, std::pair<char const*, int> salt
-	, boost::uint64_t seq
+	, std::uint64_t seq
 	, char const* pk
 	, char const* sig);
 
@@ -70,7 +70,7 @@ bool TORRENT_EXTRA_EXPORT verify_mutable_item(
 void TORRENT_EXPORT sign_mutable_item(
 	std::pair<char const*, int> v
 	, std::pair<char const*, int> salt
-	, boost::uint64_t seq
+	, std::uint64_t seq
 	, char const* pk
 	, char const* sk
 	, char* sig);
@@ -90,7 +90,7 @@ public:
 	item(entry const& v) { assign(v); }
 	item(entry const& v
 		, std::pair<char const*, int> salt
-		, boost::uint64_t seq, char const* pk, char const* sk);
+		, std::uint64_t seq, char const* pk, char const* sk);
 	item(bdecode_node const& v) { assign(v); }
 
 	void assign(entry const& v)
@@ -99,15 +99,15 @@ public:
 			, 0), 0, NULL, NULL);
 	}
 	void assign(entry const& v, std::pair<char const*, int> salt
-		, boost::uint64_t seq, char const* pk, char const* sk);
+		, std::uint64_t seq, char const* pk, char const* sk);
 	void assign(bdecode_node const& v)
 	{
 		assign(v, std::pair<char const*, int>(static_cast<char const*>(NULL)
 			, 0), 0, NULL, NULL);
 	}
 	bool assign(bdecode_node const& v, std::pair<char const*, int> salt
-		, boost::uint64_t seq, char const* pk, char const* sig);
-	void assign(entry const& v, std::string salt, boost::uint64_t seq
+		, std::uint64_t seq, char const* pk, char const* sig);
+	void assign(entry const& v, std::string salt, std::uint64_t seq
 		, char const* pk, char const* sig);
 
 	void clear() { m_value = entry(); }
@@ -120,7 +120,7 @@ public:
 	{ return m_pk; }
 	std::array<char, item_sig_len> const& sig() const
 	{ return m_sig; }
-	boost::uint64_t seq() const { return m_seq; }
+	std::uint64_t seq() const { return m_seq; }
 	std::string const& salt() const { return m_salt; }
 
 private:
@@ -128,7 +128,7 @@ private:
 	std::string m_salt;
 	std::array<char, item_pk_len> m_pk;
 	std::array<char, item_sig_len> m_sig;
-	boost::uint64_t m_seq;
+	std::uint64_t m_seq;
 	bool m_mutable;
 };
 

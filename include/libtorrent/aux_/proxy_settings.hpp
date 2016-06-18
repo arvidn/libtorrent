@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 
 #include <string>
-#include <boost/cstdint.hpp>
+#include <cstdint>
 
 namespace libtorrent {
 struct settings_pack;
@@ -118,10 +118,10 @@ namespace aux {
 
 		// tells libtorrent what kind of proxy server it is. See proxy_type
 		// enum for options
-		boost::uint8_t type;
+		std::uint8_t type;
 
 		// the port the proxy server is running on
-		boost::uint16_t port;
+		std::uint16_t port;
 
 		// defaults to true. It means that hostnames should be attempted to be
 		// resolved through the proxy instead of using the local DNS service.

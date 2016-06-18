@@ -343,7 +343,7 @@ void run_test(lt::aux::proxy_settings ps, std::string url, int expect_size, int 
 		unsigned char trailer[8] = { 0, 0, 0, 0, 0x39, 0x05, 0x00, 0x00 };
 		boost::crc_32_type crc;
 		crc.process_bytes(data_buffer, 1337);
-		boost::uint32_t checksum = crc.checksum();
+		std::uint32_t checksum = crc.checksum();
 		trailer[0] = checksum >> 24;
 		trailer[1] = (checksum >> 16) & 0xff;
 		trailer[2] = (checksum >> 8) & 0xff;

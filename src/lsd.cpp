@@ -252,7 +252,7 @@ void lsd::on_announce(udp::endpoint const& from, char* buf
 	{
 		// we expect it to be hexadecimal
 		// if it isn't, it's not our cookie anyway
-		boost::int32_t cookie = strtol(cookie_iter->second.c_str(), NULL, 16);
+		std::int32_t cookie = strtol(cookie_iter->second.c_str(), NULL, 16);
 		if (cookie == m_cookie)
 		{
 #ifndef TORRENT_DISABLE_LOGGING

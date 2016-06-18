@@ -120,7 +120,7 @@ struct fake_peer
 		lt::detail::write_uint32(1 + bytes, ptr);
 		lt::detail::write_uint8(5, ptr);
 
-		boost::uint8_t b = 0;
+		std::uint8_t b = 0;
 		int cnt = 7;
 		for (std::vector<bool>::const_iterator i = pieces.begin()
 			, end(pieces.end()); i != end; ++i)
