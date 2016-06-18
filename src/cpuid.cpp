@@ -30,6 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/config.hpp"
 #include "libtorrent/aux_/cpuid.hpp"
 
 #if defined _MSC_VER && TORRENT_HAS_SSE

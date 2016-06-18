@@ -704,8 +704,6 @@ local usage-requirements =
 	<define>BOOST_ASIO_ENABLE_CANCELIO
 # make sure asio uses std::chrono
 	<define>BOOST_ASIO_HAS_STD_CHRONO
-# this works around a bug in asio in boost-1.39
-	<define>BOOST_ASIO_HASH_MAP_BUCKETS=1021
 	<conditional>@linking
 # these compiler settings just makes the compiler standard conforming
 	<toolset>msvc:<cflags>/Zc:wchar_t
