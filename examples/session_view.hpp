@@ -2,7 +2,7 @@
 #define SESSION_VIEW_HPP_
 
 #include "libtorrent/session_stats.hpp"
-#include <boost/cstdint.hpp>
+#include <cstdint>
 
 namespace lt = libtorrent;
 
