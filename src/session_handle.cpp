@@ -637,7 +637,7 @@ namespace libtorrent
 		bencode(std::back_inserter(buf), ses_state);
 		bdecode_node e;
 		error_code ec;
-#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS || !defined BOOST_NO_EXCEPTIONS
+#if TORRENT_USE_ASSERTS || !defined BOOST_NO_EXCEPTIONS
 		int ret =
 #endif
 		bdecode(&buf[0], &buf[0] + buf.size(), e, ec);
@@ -664,7 +664,7 @@ namespace libtorrent
 		std::pair<char const*, int> buf = ses_state.data_section();
 		bdecode_node e;
 		error_code ec;
-#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS || !defined BOOST_NO_EXCEPTIONS
+#if TORRENT_USE_ASSERTS || !defined BOOST_NO_EXCEPTIONS
 		int ret =
 #endif
 		bdecode(buf.first, buf.first + buf.second, e, ec);

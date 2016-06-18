@@ -66,7 +66,7 @@ void put_data::set_targets(std::vector<std::pair<node_entry, std::string> > cons
 		observer_ptr o(new (ptr) put_data_observer(this, i->first.ep()
 			, i->first.id, i->second));
 
-	#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
+	#if TORRENT_USE_ASSERTS
 		o->m_in_constructor = false;
 	#endif
 		m_results.push_back(o);
