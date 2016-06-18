@@ -204,7 +204,8 @@ void run_suite(std::string const& protocol
 	// only run the tests to handle NX_DOMAIN if we have a proper internet
 	// connection that doesn't inject false DNS responses (like Comcast does)
 	hostent* h = gethostbyname("non-existent-domain.se");
-	std::printf("gethostbyname(\"non-existent-domain.se\") = %p. h_errno = %d\n", h, h_errno);
+	std::printf("gethostbyname(\"non-existent-domain.se\") = %p. h_errno = %d\n"
+		, static_cast<void*>(h), h_errno);
 	if (h == 0 && h_errno == HOST_NOT_FOUND)
 	{
 		run_test(protocol + "://non-existent-domain.se/non-existing-file", -1, -1, 0, err(), ps);

@@ -94,7 +94,7 @@ void run_metadata_test(int flags)
 
 	setup_swarm(2, (flags & reverse) ? swarm_test::upload : swarm_test::download
 		// add session
-		, [](lt::settings_pack& pack) {}
+		, [](lt::settings_pack&) {}
 		// add torrent
 		, [](lt::add_torrent_params& params) {
 			// we want to add the torrent via magnet link

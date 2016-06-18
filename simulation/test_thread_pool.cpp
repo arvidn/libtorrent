@@ -132,7 +132,7 @@ TORRENT_TEST(disk_io_thread_pool_idle_reaping)
 	// the thread will be killed the second time the reaper runs and we need
 	// to wait one extra minute to make sure the check runs after the reaper
 	idle_delay.expires_from_now(std::chrono::minutes(3));
-	idle_delay.async_wait([&](lt::error_code ec)
+	idle_delay.async_wait([&](lt::error_code const&)
 	{
 		// this is a kludge to work around a race between the thread
 		// exiting and checking the number of threads
@@ -148,7 +148,7 @@ TORRENT_TEST(disk_io_thread_pool_idle_reaping)
 	// now kill the rest
 	threads.set_active_threads(0);
 	idle_delay.expires_from_now(std::chrono::minutes(3));
-	idle_delay.async_wait([&](lt::error_code ec)
+	idle_delay.async_wait([&](lt::error_code const&)
 	{
 		// see comment above about this kludge
 		threads.wait_for_thread_exit(0);

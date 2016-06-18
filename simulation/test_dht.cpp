@@ -108,16 +108,15 @@ TORRENT_TEST(dht_bootstrap)
 
 	setup_swarm(1, swarm_test::download, sim
 		// add session
-		, [](lt::settings_pack& pack) {
-		}
+		, [](lt::settings_pack&) {}
 		// add torrent
-		, [](lt::add_torrent_params& params) {}
+		, [](lt::add_torrent_params&) {}
 		// on alert
-		, [&](lt::alert const* a, lt::session& ses)
+		, [&](lt::alert const* a, lt::session&)
 		{
 			if (lt::dht_stats_alert const* p = lt::alert_cast<lt::dht_stats_alert>(a))
 			{
-				routing_table_depth = p->routing_table.size();
+				routing_table_depth = int(p->routing_table.size());
 				int c = 0;
 				for (auto const& b : p->routing_table)
 				{
@@ -173,12 +172,12 @@ TORRENT_TEST(dht_dual_stack_get_peers)
 
 	setup_swarm(1, swarm_test::download, sim
 		// add session
-		, [](lt::settings_pack& pack) {
+		, [](lt::settings_pack&) {
 		}
 		// add torrent
-		, [](lt::add_torrent_params& params) {}
+		, [](lt::add_torrent_params&) {}
 		// on alert
-		, [&](lt::alert const* a, lt::session& ses)
+		, [&](lt::alert const* a, lt::session&)
 		{
 			if (lt::dht_get_peers_reply_alert const* p = lt::alert_cast<lt::dht_get_peers_reply_alert>(a))
 			{
@@ -234,12 +233,12 @@ TORRENT_TEST(dht_dual_stack_immutable_item)
 
 	setup_swarm(1, swarm_test::download, sim
 		// add session
-		, [](lt::settings_pack& pack) {
+		, [](lt::settings_pack&) {
 		}
 		// add torrent
-		, [](lt::add_torrent_params& params) {}
+		, [](lt::add_torrent_params&) {}
 		// on alert
-		, [&](lt::alert const* a, lt::session& ses)
+		, [&](lt::alert const* a, lt::session&)
 		{
 			if (lt::dht_immutable_item_alert const* p = lt::alert_cast<lt::dht_immutable_item_alert>(a))
 			{
@@ -292,12 +291,12 @@ TORRENT_TEST(dht_dual_stack_mutable_item)
 
 	setup_swarm(1, swarm_test::download, sim
 		// add session
-		, [](lt::settings_pack& pack) {
+		, [](lt::settings_pack&) {
 		}
 		// add torrent
-		, [](lt::add_torrent_params& params) {}
+		, [](lt::add_torrent_params&) {}
 		// on alert
-		, [&](lt::alert const* a, lt::session& ses)
+		, [&](lt::alert const* a, lt::session&)
 		{
 			if (lt::dht_mutable_item_alert const* p = lt::alert_cast<lt::dht_mutable_item_alert>(a))
 			{
@@ -327,7 +326,8 @@ TORRENT_TEST(dht_dual_stack_mutable_item)
 					std::vector<char> v;
 					lt::bencode(std::back_inserter(v), item);
 					lt::dht::sign_mutable_item(
-						std::make_pair(v.data(), v.size()), std::make_pair(salt.data(), salt.size())
+						std::make_pair(v.data(), int(v.size()))
+						, std::make_pair(salt.data(), int(salt.size()))
 						, seq, pk.data(), sk.data(), sig.data());
 					put_count++;
 				});

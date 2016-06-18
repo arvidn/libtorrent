@@ -48,11 +48,11 @@ TORRENT_TEST(status_timers)
 
 	setup_swarm(1, swarm_test::upload
 		// add session
-		, [](lt::settings_pack& pack) {}
+		, [](lt::settings_pack&) {}
 		// add torrent
-		, [](lt::add_torrent_params& params) {}
+		, [](lt::add_torrent_params&) {}
 		// on alert
-		, [&](lt::alert const* a, lt::session& ses) {
+		, [&](lt::alert const* a, lt::session&) {
 			if (auto ta = alert_cast<torrent_added_alert>(a))
 			{
 				TEST_CHECK(!handle.is_valid());
@@ -61,7 +61,7 @@ TORRENT_TEST(status_timers)
 			}
 		}
 		// terminate
-		, [&](int ticks, lt::session& ses) -> bool
+		, [&](int ticks, lt::session&) -> bool
 		{
 
 			// simulate 20 hours of uptime. Currently, the session_time and internal
@@ -75,7 +75,7 @@ TORRENT_TEST(status_timers)
 			if ((ticks % 3600) == 0)
 			{
 				lt::time_point now = lt::clock_type::now();
-				int since_start = total_seconds(now - start_time) - 1;
+				int const since_start = int(total_seconds(now - start_time) - 1);
 				torrent_status st = handle.status();
 				TEST_EQUAL(st.active_time, since_start);
 				TEST_EQUAL(st.seeding_time, since_start);
@@ -115,9 +115,9 @@ TORRENT_TEST(alert_order)
 			sett.set_int(settings_pack::alert_mask, alert::all_categories);
 		}
 		// add torrent
-		, [](lt::add_torrent_params& params) {}
+		, [](lt::add_torrent_params ) {}
 		// on alert
-		, [&](lt::alert const* a, lt::session& ses) {
+		, [&](lt::alert const* a, lt::session&) {
 			if (auto ta = alert_cast<add_torrent_alert>(a))
 			{
 				TEST_EQUAL(received_add_torrent_alert, false);
@@ -133,7 +133,7 @@ TORRENT_TEST(alert_order)
 			}
 		}
 		// terminate
-		, [&](int ticks, lt::session& ses) -> bool
+		, [&](int ticks, lt::session&) -> bool
 		{ return ticks > 10; }
 	);
 

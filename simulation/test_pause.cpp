@@ -95,7 +95,7 @@ void run_test(Setup const& setup, Torrent const& torrent
 	});
 
 	sim::timer t1(sim, lt::seconds(5)
-		, [&](boost::system::error_code const& ec)
+		, [&](boost::system::error_code const&)
 	{
 		test(*ses, h, test_peers);
 	});
@@ -103,7 +103,7 @@ void run_test(Setup const& setup, Torrent const& torrent
 	// set up a timer to fire later, to verify everything we expected to happen
 	// happened
 	sim::timer t2(sim, lt::seconds(10)
-		, [&](boost::system::error_code const& ec)
+		, [&](boost::system::error_code const&)
 	{
 		check(*ses, h, test_peers);
 
@@ -119,19 +119,19 @@ void run_test(Setup const& setup, Torrent const& torrent
 TORRENT_TEST(torrent_paused_disconnect)
 {
 	run_test(
-		[](lt::session& ses) {},
-		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>& test_peers) {
+		[](lt::session&) {},
+		[](lt::session&, lt::torrent_handle h, std::array<fake_peer*, 3>& test_peers) {
 			add_fake_peers(h, 3);
 		},
 
-		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>& test_peers) {
+		[](lt::session&, lt::torrent_handle h, std::array<fake_peer*, 3>& test_peers) {
 			check_accepted(test_peers, {{true, true, true}});
 			check_connected(test_peers, {{true, true, true}});
 			check_disconnected(test_peers, {{false, false, false}});
 			h.pause();
 		},
 
-		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>& test_peers) {
+		[](lt::session&, lt::torrent_handle h, std::array<fake_peer*, 3>& test_peers) {
 			check_disconnected(test_peers, {{true, true, true}});
 			TEST_EQUAL(h.status().paused, true);
 		});
@@ -141,8 +141,8 @@ TORRENT_TEST(torrent_paused_disconnect)
 TORRENT_TEST(session_paused_disconnect)
 {
 	run_test(
-		[](lt::session& ses) {},
-		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>& test_peers) {
+		[](lt::session&) {},
+		[](lt::session&, lt::torrent_handle h, std::array<fake_peer*, 3>&) {
 			add_fake_peers(h, 3);
 		},
 
@@ -153,7 +153,7 @@ TORRENT_TEST(session_paused_disconnect)
 			ses.pause();
 		},
 
-		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>& test_peers) {
+		[](lt::session&, lt::torrent_handle h, std::array<fake_peer*, 3>& test_peers) {
 			check_disconnected(test_peers, {{true, true, true}});
 
 			// the torrent isn't paused, the session is
@@ -167,15 +167,15 @@ TORRENT_TEST(paused_session_add_torrent)
 {
 	run_test(
 		[](lt::session& ses) { ses.pause(); },
-		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>& test_peers) {
+		[](lt::session&, lt::torrent_handle h, std::array<fake_peer*, 3>&) {
 			add_fake_peers(h, 3);
 		},
 
-		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>& test_peers) {
+		[](lt::session&, lt::torrent_handle, std::array<fake_peer*, 3>& test_peers) {
 			check_accepted(test_peers, {{false, false, false}});
 		},
 
-		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>& test_peers) {
+		[](lt::session&, lt::torrent_handle h, std::array<fake_peer*, 3>&) {
 			// the torrent isn't paused, the session is
 			TEST_EQUAL(h.status().paused, false);
 		});
@@ -185,18 +185,18 @@ TORRENT_TEST(paused_session_add_torrent)
 TORRENT_TEST(paused_torrent_add_peers)
 {
 	run_test(
-		[](lt::session& ses) {},
-		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>& test_peers) {
+		[](lt::session&) {},
+		[](lt::session&, lt::torrent_handle h, std::array<fake_peer*, 3>&) {
 			h.pause();
 
 			add_fake_peers(h, 3);
 		},
 
-		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>& test_peers) {
+		[](lt::session&, lt::torrent_handle, std::array<fake_peer*, 3>& test_peers) {
 			check_accepted(test_peers, {{false, false, false}});
 		},
 
-		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>& test_peers) {
+		[](lt::session&, lt::torrent_handle h, std::array<fake_peer*, 3>&) {
 			TEST_EQUAL(h.status().paused, true);
 		});
 }
@@ -205,15 +205,15 @@ TORRENT_TEST(paused_torrent_add_peers)
 TORRENT_TEST(torrent_paused_alert)
 {
 	run_test(
-		[](lt::session& ses) {},
-		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>& test_peers) {},
+		[](lt::session&) {},
+		[](lt::session&, lt::torrent_handle, std::array<fake_peer*, 3>&) {},
 
-		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>& test_peers) {
+		[](lt::session&, lt::torrent_handle h, std::array<fake_peer*, 3>&) {
 			TEST_EQUAL(h.status().paused, false);
 			h.pause();
 		},
 
-		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>& test_peers) {
+		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>&) {
 			TEST_EQUAL(h.status().paused, true);
 
 			std::vector<lt::alert*> alerts;
@@ -240,15 +240,15 @@ TORRENT_TEST(torrent_paused_alert)
 TORRENT_TEST(session_paused_alert)
 {
 	run_test(
-		[](lt::session& ses) {},
-		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>& test_peers) {},
+		[](lt::session&) {},
+		[](lt::session&, lt::torrent_handle, std::array<fake_peer*, 3>&) {},
 
-		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>& test_peers) {
+		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>&) {
 			TEST_EQUAL(h.status().paused, false);
 			ses.pause();
 		},
 
-		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>& test_peers) {
+		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>&) {
 			TEST_EQUAL(h.status().paused, false);
 
 			std::vector<lt::alert*> alerts;
@@ -276,18 +276,18 @@ TORRENT_TEST(session_paused_alert)
 TORRENT_TEST(session_pause_resume)
 {
 	run_test(
-		[](lt::session& ses) {},
-		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>& test_peers) {
+		[](lt::session&) {},
+		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>&) {
 			TEST_EQUAL(h.status().paused, false);
 			ses.pause();
 		},
 
-		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>& test_peers) {
+		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>&) {
 			TEST_EQUAL(h.status().paused, false);
 			ses.resume();
 		},
 
-		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>& test_peers) {
+		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>&) {
 			TEST_EQUAL(h.status().paused, false);
 
 			std::vector<lt::alert*> alerts;
@@ -315,8 +315,8 @@ TORRENT_TEST(session_pause_resume)
 TORRENT_TEST(session_pause_resume_connect)
 {
 	run_test(
-		[](lt::session& ses) {},
-		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>& test_peers) {
+		[](lt::session&) {},
+		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>&) {
 			TEST_EQUAL(h.status().paused, false);
 			ses.pause();
 			add_fake_peers(h, 3);
@@ -328,7 +328,7 @@ TORRENT_TEST(session_pause_resume_connect)
 			ses.resume();
 		},
 
-		[](lt::session& ses, lt::torrent_handle h, std::array<fake_peer*, 3>& test_peers) {
+		[](lt::session&, lt::torrent_handle h, std::array<fake_peer*, 3>& test_peers) {
 			TEST_EQUAL(h.status().paused, false);
 
 			check_accepted(test_peers, {{true, true, true}});

@@ -6,7 +6,6 @@ use-project /libtorrent_test : ../test ;
 
 use-project /libsimulator : libsimulator ;
 
-# TODO: create another library with the libtorrent simulator utilities
 project
 	: requirements
 	<simulator>on

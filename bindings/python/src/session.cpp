@@ -33,6 +33,12 @@
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
+#ifdef _MSC_VER
+#pragma warning(push)
+// warning C4996: X: was declared deprecated
+#pragma warning( disable : 4996 )
+#endif
+
 using namespace boost::python;
 using namespace libtorrent;
 namespace lt = libtorrent;
@@ -102,7 +108,7 @@ namespace
 	void make_settings_pack(lt::settings_pack& p, dict const& sett_dict)
 	{
 		list iterkeys = (list)sett_dict.keys();
-		int const len = boost::python::len(iterkeys);
+		int const len = int(boost::python::len(iterkeys));
 		for (int i = 0; i < len; i++)
 		{
 			std::string const key = extract<std::string>(iterkeys[i]);
@@ -239,7 +245,7 @@ namespace
         if (params.has_key("trackers"))
         {
             list l = extract<list>(params["trackers"]);
-            int n = boost::python::len(l);
+            int const n = int(boost::python::len(l));
             for(int i = 0; i < n; i++)
                 p.trackers.push_back(extract<std::string>(l[i]));
         }
@@ -247,7 +253,7 @@ namespace
         if (params.has_key("dht_nodes"))
         {
             list l = extract<list>(params["dht_nodes"]);
-            int n = boost::python::len(l);
+            int const n = int(boost::python::len(l));
             for(int i = 0; i < n; i++)
                 p.dht_nodes.push_back(extract<std::pair<std::string, int> >(l[i]));
         }
@@ -265,7 +271,7 @@ namespace
         if (params.has_key("file_priorities"))
         {
             list l = extract<list>(params["file_priorities"]);
-            int n = boost::python::len(l);
+            int const n = int(boost::python::len(l));
             for(int i = 0; i < n; i++)
                 p.file_priorities.push_back(extract<std::uint8_t>(l[i]));
             p.file_priorities.clear();
@@ -449,8 +455,8 @@ namespace
         std::vector<char> buf;
         bencode(std::back_inserter(buf), e);
         ++seq;
-        sign_mutable_item(std::pair<char const*, int>(&buf[0], buf.size())
-                          , std::pair<char const*, int>(&salt[0], salt.size())
+        sign_mutable_item(std::pair<char const*, int>(&buf[0], int(buf.size()))
+                          , std::pair<char const*, int>(&salt[0], int(salt.size()))
                           , seq, public_key.c_str(), private_key.c_str(), sig.data());
     }
 
@@ -470,7 +476,7 @@ namespace
     add_torrent_params read_resume_data_wrapper(bytes const& b)
     {
         error_code ec;
-        add_torrent_params p = read_resume_data(&b.arr[0], b.arr.size(), ec);
+        add_torrent_params p = read_resume_data(&b.arr[0], int(b.arr.size()), ec);
 #ifndef BOOST_NO_EXCEPTIONS
         if (ec) throw system_error(ec);
 #endif
@@ -874,4 +880,8 @@ void bind_session()
     scope().attr("create_ut_pex_plugin") = "ut_pex";
     scope().attr("create_smart_ban_plugin") = "smart_ban";
 }
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 

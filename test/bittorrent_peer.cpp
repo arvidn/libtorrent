@@ -101,7 +101,7 @@ void peer_conn::on_connect(error_code const& ec)
 		, std::bind(&peer_conn::on_handshake, this, h, _1, _2));
 }
 
-void peer_conn::on_handshake(char* h, error_code const& ec, size_t bytes_transferred)
+void peer_conn::on_handshake(char* h, error_code const& ec, size_t)
 {
 	free(h);
 	if (ec)
@@ -115,7 +115,7 @@ void peer_conn::on_handshake(char* h, error_code const& ec, size_t bytes_transfe
 		, std::bind(&peer_conn::on_handshake2, this, _1, _2));
 }
 
-void peer_conn::on_handshake2(error_code const& ec, size_t bytes_transferred)
+void peer_conn::on_handshake2(error_code const& ec, size_t)
 {
 	if (ec)
 	{
@@ -173,7 +173,7 @@ void peer_conn::write_have_all()
 	}
 }
 
-void peer_conn::on_have_all_sent(error_code const& ec, size_t bytes_transferred)
+void peer_conn::on_have_all_sent(error_code const& ec, size_t)
 {
 	if (ec)
 	{
@@ -247,7 +247,7 @@ bool peer_conn::write_request()
 	return true;
 }
 
-void peer_conn::on_req_sent(char* m, error_code const& ec, size_t bytes_transferred)
+void peer_conn::on_req_sent(char* m, error_code const& ec, size_t)
 {
 	free(m);
 	if (ec)
@@ -307,7 +307,7 @@ void peer_conn::work_download()
 		, std::bind(&peer_conn::on_msg_length, this, _1, _2));
 }
 
-void peer_conn::on_msg_length(error_code const& ec, size_t bytes_transferred)
+void peer_conn::on_msg_length(error_code const& ec, size_t)
 {
 	using namespace libtorrent::detail;
 

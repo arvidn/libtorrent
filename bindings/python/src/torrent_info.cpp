@@ -16,6 +16,12 @@
 #include "libtorrent/announce_entry.hpp"
 #include "bytes.hpp"
 
+#ifdef _MSC_VER
+#pragma warning(push)
+// warning C4996: X: was declared deprecated
+#pragma warning( disable : 4996 )
+#endif
+
 using namespace boost::python;
 using namespace libtorrent;
 
@@ -84,7 +90,7 @@ namespace
     void set_merkle_tree(torrent_info& ti, list hashes)
     {
         std::vector<sha1_hash> h;
-        for (int i = 0, e = len(hashes); i < e; ++i)
+        for (int i = 0, e = int(len(hashes)); i < e; ++i)
             h.push_back(sha1_hash(bytes(extract<bytes>(hashes[i])).arr));
 
         ti.set_merkle_tree(h);
@@ -313,4 +319,8 @@ void bind_torrent_info()
     boost::python::register_ptr_to_python<boost::shared_ptr<const torrent_info> >();
 #endif
 }
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 

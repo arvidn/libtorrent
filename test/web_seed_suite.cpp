@@ -76,7 +76,7 @@ static char const* proxy_name[] = {"", "_socks4", "_socks5", "_socks5_pw", "_htt
 
 // proxy: 0=none, 1=socks4, 2=socks5, 3=socks5_pw 4=http 5=http_pw
 void test_transfer(lt::session& ses, boost::shared_ptr<torrent_info> torrent_file
-	, int proxy, int port, char const* protocol, bool url_seed
+	, int proxy, char const* protocol, bool url_seed
 	, bool chunked_encoding, bool test_ban, bool keepalive, bool proxy_peers)
 {
 	using namespace libtorrent;
@@ -259,7 +259,6 @@ void test_transfer(lt::session& ses, boost::shared_ptr<torrent_info> torrent_fil
 
 	if (!test_ban)
 	{
-		file_storage const& fs = torrent_file->files();
 		for (int i = 0; i < fs.num_files(); ++i)
 		{
 			bool const expect = !fs.pad_file_at(i);
@@ -409,13 +408,13 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed
 			pack.set_bool(settings_pack::enable_dht, false);
 			libtorrent::session ses(pack, 0);
 
-			test_transfer(ses, torrent_file, proxy, port, protocol, test_url_seed
+			test_transfer(ses, torrent_file, proxy, protocol, test_url_seed
 				, chunked_encoding, test_ban, keepalive, proxy_peers);
 
 			if (test_url_seed && test_rename)
 			{
 				torrent_file->rename_file(0, combine_path(save_path, combine_path("torrent_dir", "renamed_test1")));
-				test_transfer(ses, torrent_file, 0, port, protocol, test_url_seed
+				test_transfer(ses, torrent_file, 0, protocol, test_url_seed
 					, chunked_encoding, test_ban, keepalive, proxy_peers);
 			}
 		}

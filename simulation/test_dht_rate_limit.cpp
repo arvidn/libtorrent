@@ -54,8 +54,8 @@ using namespace std::placeholders;
 
 struct obs : dht::dht_observer
 {
-	virtual void set_external_address(address const& addr
-		, address const& source) override
+	virtual void set_external_address(address const& /* addr */
+		, address const& /* source */) override
 	{}
 	virtual address external_address(udp proto) override
 	{
@@ -64,10 +64,11 @@ struct obs : dht::dht_observer
 		else
 			return address_v6();
 	}
-	virtual void get_peers(sha1_hash const& ih) override {}
-	virtual void outgoing_get_peers(sha1_hash const& target
-		, sha1_hash const& sent_target, udp::endpoint const& ep) override {}
-	virtual void announce(sha1_hash const& ih, address const& addr, int port) override {}
+	virtual void get_peers(sha1_hash const&) override {}
+	virtual void outgoing_get_peers(sha1_hash const& /* target */
+		, sha1_hash const& /* sent_target */, udp::endpoint const& /* ep */) override {}
+	virtual void announce(sha1_hash const& /* ih */
+		, address const& /* addr */, int /* port */) override {}
 	virtual void log(dht_logger::module_t l, char const* fmt, ...) override
 	{
 		va_list v;
@@ -76,10 +77,12 @@ struct obs : dht::dht_observer
 		va_end(v);
 		puts("\n");
 	}
-	virtual void log_packet(message_direction_t dir, char const* pkt, int len
-		, udp::endpoint node) override {}
-	virtual bool on_dht_request(char const* query, int query_len
-		, dht::msg const& request, entry& response) override { return false; }
+	virtual void log_packet(message_direction_t /* dir */
+		, char const* /* pkt */, int /* len */
+		, udp::endpoint /* node */) override {}
+	virtual bool on_dht_request(char const* /* query */, int /* query_len */
+		, dht::msg const& /* request */, entry& /* response */) override
+	{ return false; }
 };
 
 #endif // #if !defined TORRENT_DISABLE_DHT
@@ -113,13 +116,13 @@ TORRENT_TEST(dht_rate_limit)
 
 	bool stop = false;
 	std::function<void(error_code const&, size_t)> on_read
-		= [&](error_code const& ec, size_t bytes)
+		= [&](error_code const& ec, size_t const /* bytes */)
 	{
 		if (ec) return;
 		udp_socket::packet p;
 		error_code err;
-		int const num = sock.read(lt::aux::array_view<udp_socket::packet>(&p, 1), err);
-		if (num) dht->incoming_packet(p.from, p.data.data(), p.data.size());
+		int const num = int(sock.read(lt::aux::array_view<udp_socket::packet>(&p, 1), err));
+		if (num) dht->incoming_packet(p.from, p.data.data(), int(p.data.size()));
 		if (stop || err) return;
 		sock.async_read(on_read);
 	};
@@ -133,13 +136,13 @@ TORRENT_TEST(dht_rate_limit)
 	sender_sock.bind(udp::endpoint(address_v4(), 4444));
 	sender_sock.io_control(udp::socket::non_blocking_io(true));
 	asio::high_resolution_timer timer(sender_ios);
-	std::function<void(error_code const&)> sender_tick = [&](error_code const& ec)
+	std::function<void(error_code const&)> sender_tick = [&](error_code const&)
 	{
 		if (num_packets_sent == num_packets)
 		{
 			// we're done. shut down (a second from now, to let the dust settle)
 			timer.expires_from_now(chrono::seconds(1));
-			timer.async_wait([&](error_code const& ec)
+			timer.async_wait([&](error_code const&)
 			{
 				dht->stop();
 				stop = true;
@@ -165,11 +168,11 @@ TORRENT_TEST(dht_rate_limit)
 	int num_packets_received = 0;
 	char buffer[1500];
 	std::function<void(error_code const&, std::size_t)> on_receive
-		= [&](error_code const& ec, std::size_t bytes)
+		= [&](error_code const& ec, std::size_t const bytes)
 	{
 		if (ec) return;
 
-		num_bytes_received += bytes;
+		num_bytes_received += int(bytes);
 		++num_packets_received;
 
 		sender_sock.async_receive_from(asio::mutable_buffers_1(buffer, sizeof(buffer))

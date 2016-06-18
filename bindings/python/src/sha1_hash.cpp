@@ -11,7 +11,7 @@
 long get_hash(boost::python::object o)
 {
     using namespace boost::python;
-    return PyObject_Hash(str(o).ptr());
+    return long(PyObject_Hash(str(o).ptr()));
 }
 
 using namespace libtorrent;

@@ -84,7 +84,7 @@ int get_cache_size(lt::session& ses)
 	ses.post_session_stats();
 	std::vector<alert*> alerts;
 	ses.pop_alerts(&alerts);
-	int cache_size = -1;
+	boost::int64_t cache_size = -1;
 	for (auto const a : alerts)
 	{
 		if (auto const* st = alert_cast<session_stats_alert>(a))
@@ -94,7 +94,8 @@ int get_cache_size(lt::session& ses)
 			break;
 		}
 	}
-	return cache_size;
+	TEST_CHECK(cache_size < std::numeric_limits<int>::max());
+	return int(cache_size);
 }
 
 void set_proxy(lt::session& ses, int proxy_type, int flags, bool proxy_peer_connections)

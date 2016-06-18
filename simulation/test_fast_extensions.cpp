@@ -77,7 +77,7 @@ void run_fake_peer_test(
 	});
 
 	sim::timer t(sim, lt::seconds(1)
-		, [&](boost::system::error_code const& ec)
+		, [&](boost::system::error_code const&)
 	{
 		ses->set_alert_notify([]{});
 		// shut down
@@ -109,7 +109,7 @@ TORRENT_TEST(allow_fast)
 		run_fake_peer_test(params, [] (lt::settings_pack& pack) {
 			pack.set_int(lt::settings_pack::allowed_fast_set_size, 13);
 		}
-		, [&] (lt::session& ses, lt::alert const* a, fake_peer& p1)
+		, [&] (lt::session&, lt::alert const* a, fake_peer& p1)
 		{
 			if (auto at = lt::alert_cast<lt::add_torrent_alert>(a))
 			{
@@ -172,7 +172,7 @@ TORRENT_TEST(allow_fast_stress)
 	run_fake_peer_test(params, [&] (lt::settings_pack& pack) {
 		pack.set_int(lt::settings_pack::allowed_fast_set_size, num_pieces - 1);
 	}
-	, [&] (lt::session& ses, lt::alert const* a, fake_peer& p1)
+	, [&] (lt::session&, lt::alert const* a, fake_peer& p1)
 	{
 		if (auto at = lt::alert_cast<lt::add_torrent_alert>(a))
 		{

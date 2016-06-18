@@ -84,7 +84,8 @@ void run_test(Setup const& setup
 		on_alert(ses, a);
 	});
 
-	sim::timer t(sim, lt::seconds(60), [&](boost::system::error_code const& ec)
+	sim::timer t(sim, lt::seconds(60)
+		, [&](boost::system::error_code const&)
 	{
 		test(*ses, test_peers);
 
@@ -126,7 +127,7 @@ TORRENT_TEST(apply_ip_filter)
 			ses.async_add_torrent(params);
 		},
 
-		[&](lt::session& ses, lt::alert const* a)
+		[&](lt::session&, lt::alert const* a)
 		{
 			if (auto at = lt::alert_cast<lt::add_torrent_alert>(a))
 			{
@@ -135,7 +136,7 @@ TORRENT_TEST(apply_ip_filter)
 			}
 		},
 
-		[](lt::session& ses, std::array<fake_peer*, 5>& test_peers)
+		[](lt::session&, std::array<fake_peer*, 5>& test_peers)
 		{
 			check_accepted(test_peers, {{false, false, false, true, true}} );
 		}
@@ -168,7 +169,7 @@ TORRENT_TEST(update_ip_filter)
 			}
 		},
 
-		[](lt::session& ses, std::array<fake_peer*, 5>& test_peers)
+		[](lt::session&, std::array<fake_peer*, 5>& test_peers)
 		{
 			check_accepted(test_peers, {{false, false, false, true, true}} );
 		}
@@ -191,7 +192,7 @@ TORRENT_TEST(apply_ip_filter_to_torrent)
 			ses.async_add_torrent(params);
 		},
 
-		[&](lt::session& ses, lt::alert const* a)
+		[&](lt::session&, lt::alert const* a)
 		{
 			if (auto at = lt::alert_cast<lt::add_torrent_alert>(a))
 			{
@@ -200,7 +201,7 @@ TORRENT_TEST(apply_ip_filter_to_torrent)
 			}
 		},
 
-		[](lt::session& ses, std::array<fake_peer*, 5>& test_peers)
+		[](lt::session&, std::array<fake_peer*, 5>& test_peers)
 		{
 			// since the IP filter didn't apply to this torrent, it should have hit
 			// all peers
@@ -230,8 +231,8 @@ TORRENT_TEST(ip_filter_trackers)
 			ses.async_add_torrent(params);
 		},
 
-		[](lt::session& ses, lt::alert const* a) {},
-		[](lt::session& ses, std::array<fake_peer*, 5>& test_peers)
+		[](lt::session&, lt::alert const*) {},
+		[](lt::session&, std::array<fake_peer*, 5>& test_peers)
 		{
 			check_accepted(test_peers, {{false, false, false, true, true}} );
 		}

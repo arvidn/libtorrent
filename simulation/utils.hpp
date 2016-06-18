@@ -61,5 +61,5 @@ void set_proxy(lt::session& ses, int proxy_type, int flags = 0
 
 void print_alerts(lt::session& ses
 	, std::function<void(lt::session&, lt::alert const*)> on_alert
-		= [](lt::session& ses, lt::alert const* a) {});
+		= [](lt::session&, lt::alert const*) {});
 
