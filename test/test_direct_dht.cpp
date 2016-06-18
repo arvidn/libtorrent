@@ -47,15 +47,16 @@ namespace
 
 struct test_plugin : plugin
 {
-	virtual void register_dht_extensions(dht_extensions_t& ext)
+	virtual boost::uint32_t implemented_features()
 	{
-		ext.push_back(dht_extensions_t::value_type("test_good", &good_response));
+		return plugin::dht_request_feature;
 	}
 
-	static bool good_response(udp::endpoint const& source
-		, bdecode_node const& request, entry& response)
+	virtual bool on_dht_request(char const* /* query */, int const /* query_len */
+		, udp::endpoint const& /* source */, bdecode_node const& message
+		, entry& response)
 	{
-		if (request.dict_find_string_value("q") == "test_good")
+		if (message.dict_find_string_value("q") == "test_good")
 		{
 			response["r"]["good"] = 1;
 			return true;

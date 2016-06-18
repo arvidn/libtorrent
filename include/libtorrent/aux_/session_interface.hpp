@@ -293,7 +293,7 @@ namespace libtorrent { namespace aux
 			// when recalculating auto-managed torrents. started auto managed
 			// torrents that are inactive are not part of these lists, because they
 			// are not considered for auto managing (they are left started
-			// unconditionallty)
+			// unconditionally)
 			torrent_downloading_auto_managed,
 			torrent_seeding_auto_managed,
 			torrent_checking_auto_managed,

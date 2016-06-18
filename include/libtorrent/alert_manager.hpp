@@ -167,7 +167,7 @@ namespace libtorrent {
 		aux::stack_allocator m_allocations[2];
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		std::list<boost::shared_ptr<plugin> > m_ses_extensions;
+		std::list<boost::shared_ptr<plugin>> m_ses_extensions;
 #endif
 	};
 }

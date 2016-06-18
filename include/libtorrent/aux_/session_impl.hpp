@@ -189,8 +189,14 @@ namespace libtorrent
 		{
 			// the size of each allocation that is chained in the send buffer
 			enum { send_buffer_size_impl = 128 };
-			// maximum length of query names which can be registered by extensions
-			enum { max_dht_query_length = 15 };
+			// plugin feature-index key map
+			enum
+			{
+				plugins_all_idx = 0, // to store all plugins
+				plugins_optimistic_unchoke_idx = 1, // optimistic_unchoke_feature
+				plugins_tick_idx = 2, // tick_feature
+				plugins_dht_request_idx = 3 // dht_request_feature
+			};
 
 #if TORRENT_USE_INVARIANT_CHECKS
 			friend class libtorrent::invariant_access;
@@ -1155,22 +1161,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			// this is a list to allow extensions to potentially remove themselves.
-			std::vector<boost::shared_ptr<plugin> > m_ses_extensions;
-
-			// the union of all session extensions' implemented_features(). This is
-			// used to exclude callbacks to the session extensions.
-			boost::uint32_t m_session_extension_features;
-
-			// std::string could be used for the query names if only all common
-			// implementations used SSO *glares at gcc*
-			struct extension_dht_query
-			{
-				boost::uint8_t query_len;
-				std::array<char, max_dht_query_length> query;
-				dht_extension_handler_t handler;
-			};
-			typedef std::vector<extension_dht_query> m_extension_dht_queries_t;
-			m_extension_dht_queries_t m_extension_dht_queries;
+			std::array<std::vector<boost::shared_ptr<plugin>>, 4> m_ses_extensions;
 #endif
 
 			// if this function is set, it indicates that torrents are allowed

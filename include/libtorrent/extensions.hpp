@@ -187,14 +187,6 @@ namespace libtorrent
 	struct peer_connection_handle;
 	struct torrent_handle;
 
-	// Functions of this type are called to handle incoming DHT requests
-	typedef boost::function<bool(udp::endpoint const& source
-		, bdecode_node const& request, entry& response)> dht_extension_handler_t;
-
-	// Map of query strings to handlers. Note that query strings are limited to 15 bytes.
-	// see max_dht_query_length
-	typedef std::vector<std::pair<std::string, dht_extension_handler_t> > dht_extensions_t;
-
 	// this is the base class for a session plugin. One primary feature
 	// is that it is notified of all torrents that are added to the session,
 	// and can add its own torrent_plugins.
@@ -213,7 +205,15 @@ namespace libtorrent
 			optimistic_unchoke_feature = 1,
 
 			// include this bit if your plugin needs to have on_tick() called
-			tick_feature = 2
+			tick_feature = 2,
+
+			// include this bit if your plugin needs to have on_dht_request()
+			// called
+			dht_request_feature = 4,
+
+			// include this bit if your plugin needs to have on_alert()
+			// called
+			alert_feature = 8,
 		};
 
 		// This function is expected to return a bitmask indicating which features
@@ -238,11 +238,17 @@ namespace libtorrent
 		// called when plugin is added to a session
 		virtual void added(session_handle) {}
 
-		// called after a plugin is added
-		// allows the plugin to register DHT requests it would like to handle
-		virtual void register_dht_extensions(dht_extensions_t&) {}
+		// called when a dht request is received.
+		// If your plugin expects this to be called, make sure to include the flag
+		// ``dht_request_feature`` in the return value from implemented_features().
+		virtual bool on_dht_request(char const* /* query */, int const /* query_len */
+			, udp::endpoint const& /* source */, bdecode_node const& /* message */
+			, entry& /* response */)
+		{ return false; }
 
-		// called when an alert is posted alerts that are filtered are not posted
+		// called when an alert is posted alerts that are filtered are not posted.
+		// If your plugin expects this to be called, make sure to include the flag
+		// ``alert_feature`` in the return value from implemented_features().
 		virtual void on_alert(alert const*) {}
 
 		// return true if the add_torrent_params should be added
@@ -250,7 +256,9 @@ namespace libtorrent
 			, peer_connection_handle const& /* pc */, add_torrent_params& /* p */)
 		{ return false; }
 
-		// called once per second
+		// called once per second.
+		// If your plugin expects this to be called, make sure to include the flag
+		// ``tick_feature`` in the return value from implemented_features().
 		virtual void on_tick() {}
 
 		// called when choosing peers to optimistically unchoke. peer's will be

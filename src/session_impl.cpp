@@ -396,9 +396,6 @@ namespace aux {
 		, m_download_connect_attempts(0)
 		, m_next_scrape_torrent(0)
 		, m_tick_residual(0)
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		, m_session_extension_features(0)
-#endif
 		, m_deferred_submit_disk_jobs(false)
 		, m_pending_auto_manage(false)
 		, m_need_auto_manage(false)
@@ -635,7 +632,7 @@ namespace aux {
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto& ext : m_ses_extensions)
+		for (auto& ext : m_ses_extensions[plugins_all_idx])
 		{
 			TORRENT_TRY {
 				ext->save_state(*eptr);
@@ -782,7 +779,7 @@ namespace aux {
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto& ext : m_ses_extensions)
+		for (auto& ext : m_ses_extensions[plugins_all_idx])
 		{
 			TORRENT_TRY {
 				ext->load_state(*e);
@@ -811,8 +808,7 @@ namespace aux {
 
 		boost::shared_ptr<plugin> p(new session_plugin_wrapper(ext));
 
-		m_ses_extensions.push_back(p);
-		m_session_extension_features |= p->implemented_features();
+		add_ses_extension(p);
 	}
 
 	void session_impl::add_ses_extension(boost::shared_ptr<plugin> ext)
@@ -820,27 +816,19 @@ namespace aux {
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT_VAL(ext, ext);
 
-		m_ses_extensions.push_back(ext);
-		m_alerts.add_extension(ext);
-		ext->added(session_handle(this));
-		m_session_extension_features |= ext->implemented_features();
+		boost::uint32_t const features = ext->implemented_features();
 
-		// get any DHT queries the plugin would like to handle
-		// and record them in m_extension_dht_queries for lookup
-		// later
-		dht_extensions_t dht_ext;
-		ext->register_dht_extensions(dht_ext);
-		for (dht_extensions_t::iterator e = dht_ext.begin();
-			e != dht_ext.end(); ++e)
-		{
-			TORRENT_ASSERT(e->first.size() <= max_dht_query_length);
-			if (e->first.size() > max_dht_query_length) continue;
-			extension_dht_query registration;
-			registration.query_len = uint8_t(e->first.size());
-			std::copy(e->first.begin(), e->first.end(), registration.query.begin());
-			registration.handler = e->second;
-			m_extension_dht_queries.push_back(registration);
-		}
+		m_ses_extensions[plugins_all_idx].push_back(ext);
+
+		if (features & plugin::optimistic_unchoke_feature)
+			m_ses_extensions[plugins_optimistic_unchoke_idx].push_back(ext);
+		if (features & plugin::tick_feature)
+			m_ses_extensions[plugins_tick_idx].push_back(ext);
+		if (features & plugin::dht_request_feature)
+			m_ses_extensions[plugins_dht_request_idx].push_back(ext);
+		if (features & plugin::alert_feature)
+			m_alerts.add_extension(ext);
+		ext->added(session_handle(this));
 	}
 
 #endif // TORRENT_DISABLE_EXTENSIONS
@@ -3140,14 +3128,11 @@ namespace aux {
 		}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		if (m_session_extension_features & plugin::tick_feature)
+		for (auto& ext : m_ses_extensions[plugins_tick_idx])
 		{
-			for (auto& ext : m_ses_extensions)
-			{
-				TORRENT_TRY {
-					ext->on_tick();
-				} TORRENT_CATCH(std::exception&) {}
-			}
+			TORRENT_TRY {
+				ext->on_tick();
+			} TORRENT_CATCH(std::exception&) {}
 		}
 #endif
 
@@ -3828,7 +3813,8 @@ namespace aux {
 			, opt_unchoke.end(), &last_optimistic_unchoke_cmp);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		if (m_session_extension_features & plugin::optimistic_unchoke_feature)
+		auto const& plugins = m_ses_extensions[plugins_optimistic_unchoke_idx];
+		if (plugins.size() > 0)
 		{
 			// if there is an extension that wants to reorder the optimistic
 			// unchoke peers, first convert the vector into one containing
@@ -3840,7 +3826,7 @@ namespace aux {
 			{
 				peers.push_back(peer_connection_handle(static_cast<peer_connection*>((*i)->connection)->self()));
 			}
-			for (auto& e : m_ses_extensions)
+			for (auto& e : plugins)
 			{
 				if (e->on_optimistic_unchoke(peers))
 					break;
@@ -4231,7 +4217,7 @@ namespace aux {
 		, peer_connection* pc)
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto& e : m_ses_extensions)
+		for (auto& e : m_ses_extensions[plugins_all_idx])
 		{
 			add_torrent_params p;
 			if (e->on_unknown_torrent(info_hash, peer_connection_handle(pc->self()), p))
@@ -4630,7 +4616,7 @@ namespace aux {
 	void session_impl::add_extensions_to_torrent(
 		boost::shared_ptr<torrent> const& torrent_ptr, void* userdata)
 	{
-		for (auto& e : m_ses_extensions)
+		for (auto& e : m_ses_extensions[plugins_all_idx])
 		{
 			boost::shared_ptr<torrent_plugin> tp(e->new_torrent(
 				torrent_ptr->get_handle(), userdata));
@@ -6618,14 +6604,10 @@ namespace aux {
 		, dht::msg const& request, entry& response)
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		if (query_len > max_dht_query_length) return false;
-
-		for (m_extension_dht_queries_t::iterator i = m_extension_dht_queries.begin();
-			i != m_extension_dht_queries.end(); ++i)
+		for (auto& ext : m_ses_extensions[plugins_dht_request_idx])
 		{
-			if (query_len == i->query_len
-				&& memcmp(i->query.data(), query, query_len) == 0
-				&& i->handler(request.addr, request.message, response))
+			if (ext->on_dht_request(query, query_len
+				, request.addr, request.message, response))
 				return true;
 		}
 #else
