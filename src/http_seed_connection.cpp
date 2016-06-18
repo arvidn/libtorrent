@@ -251,7 +251,7 @@ namespace libtorrent
 				boost::tie(payload, protocol) = m_parser.incoming(recv_buffer, parse_error);
 				received_bytes(0, protocol);
 				bytes_transferred -= protocol;
-#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 				if (payload > front_request.length) payload = front_request.length;
 #endif
 

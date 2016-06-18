@@ -851,7 +851,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_abort);
 		TORRENT_ASSERT(prev == NULL && next == NULL);
 
-#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		for (int i = 0; i < aux::session_interface::num_torrent_lists; ++i)
 		{
 			if (!m_links[i].in_list()) continue;
@@ -8115,7 +8115,7 @@ namespace libtorrent
 			TORRENT_ASSERT(m_info_hash == m_torrent_file->info_hash());
 		}
 
-#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		for (int i = 0; i < aux::session_interface::num_torrent_lists; ++i)
 		{
 			if (!m_links[i].in_list()) continue;
@@ -11107,7 +11107,7 @@ namespace libtorrent
 
 		st->state = static_cast<torrent_status::state_t>(m_state);
 
-#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		if (st->state == torrent_status::finished
 			|| st->state == torrent_status::seeding)
 		{

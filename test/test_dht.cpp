@@ -2652,7 +2652,7 @@ TORRENT_TEST(rpc_invalid_error_msg)
 			node, node_id()));
 
 	observer_ptr o(new (rpc.allocate_observer()) null_observer(algo, source, node_id()));
-#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	o->m_in_constructor = false;
 #endif
 	rpc.invoke(req, source, o);

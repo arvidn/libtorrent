@@ -563,7 +563,7 @@ namespace libtorrent
 		// info_hash
 		std::copy(tracker_req().info_hash.begin(), tracker_req().info_hash.end()
 			, view.data());
-#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT(view.size() == 20);
 #endif
 

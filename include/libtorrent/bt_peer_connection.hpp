@@ -440,7 +440,7 @@ private:
 		char m_reserved_bits[8];
 #endif
 
-#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		bool m_in_constructor;
 #endif
 

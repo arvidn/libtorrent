@@ -383,7 +383,7 @@ namespace
 			void* ptr = node.m_rpc.allocate_observer();
 			if (ptr == 0) return;
 			observer_ptr o(new (ptr) announce_observer(algo, i->first.ep(), i->first.id));
-#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			o->m_in_constructor = false;
 #endif
 			entry e;
@@ -470,7 +470,7 @@ void node::direct_request(udp::endpoint ep, entry& e
 	void* ptr = m_rpc.allocate_observer();
 	if (ptr == 0) return;
 	observer_ptr o(new (ptr) direct_observer(algo, ep, (node_id::min)()));
-#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	o->m_in_constructor = false;
 #endif
 	m_rpc.invoke(e, ep, o);
@@ -690,7 +690,7 @@ void node::send_single_refresh(udp::endpoint const& ep, int bucket
 	boost::intrusive_ptr<traversal_algorithm> algo(
 		new traversal_algorithm(*this, (node_id::min)()));
 	observer_ptr o(new (ptr) ping_observer(algo, ep, id));
-#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	o->m_in_constructor = false;
 #endif
 	entry e;

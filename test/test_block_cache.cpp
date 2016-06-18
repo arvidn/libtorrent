@@ -79,7 +79,7 @@ struct test_storage_impl : storage_interface
 
 static void nop() {}
 
-#if defined TORRENT_DEBUG || TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 #define INITIALIZE_JOB(j) j.in_use = true;
 #else
 #define INITIALIZE_JOB(j)

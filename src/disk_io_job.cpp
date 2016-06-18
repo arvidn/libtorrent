@@ -43,7 +43,7 @@ namespace libtorrent
 		, action(read)
 		, ret(0)
 		, flags(0)
-#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		, in_use(false)
 		, job_posted(false)
 		, callback_called(false)

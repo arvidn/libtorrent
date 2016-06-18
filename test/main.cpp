@@ -102,10 +102,9 @@ LONG WINAPI seh_exception_handler(LPEXCEPTION_POINTERS p)
 {
 	char stack_text[10000];
 
-#if (defined TORRENT_DEBUG && TORRENT_USE_ASSERTS) \
+#if TORRENT_USE_ASSERTS \
 	|| defined TORRENT_ASIO_DEBUGGING \
 	|| defined TORRENT_PROFILE_CALLS \
-	|| defined TORRENT_RELEASE_ASSERTS \
 	|| defined TORRENT_DEBUG_BUFFERS
 	print_backtrace(stack_text, sizeof(stack_text), 30
 		, p->ContextRecord);
@@ -159,10 +158,9 @@ void sig_handler(int sig)
 {
 	char stack_text[10000];
 
-#if (defined TORRENT_DEBUG && TORRENT_USE_ASSERTS) \
+#if TORRENT_USE_ASSERTS \
 	|| defined TORRENT_ASIO_DEBUGGING \
 	|| defined TORRENT_PROFILE_CALLS \
-	|| defined TORRENT_RELEASE_ASSERTS \
 	|| defined TORRENT_DEBUG_BUFFERS
 	print_backtrace(stack_text, sizeof(stack_text), 30);
 #elif defined __FUNCTION__

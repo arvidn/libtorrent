@@ -58,7 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bt_peer_connection.hpp"
 #endif
 
-#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 #include "libtorrent/socket_io.hpp" // for print_endpoint
 #endif
 

@@ -34,10 +34,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#if (defined TORRENT_DEBUG && TORRENT_USE_ASSERTS) \
+#if TORRENT_USE_ASSERTS \
 	|| defined TORRENT_ASIO_DEBUGGING \
 	|| defined TORRENT_PROFILE_CALLS \
-	|| defined TORRENT_RELEASE_ASSERTS \
 	|| defined TORRENT_DEBUG_BUFFERS
 
 #include <string>

@@ -130,7 +130,7 @@ namespace libtorrent
 			TORRENT_ASSERT(to_process == 0);
 		}
 
-#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		to_process = 0;
 		for (std::vector<boost::asio::mutable_buffer>::iterator i = iovec.begin();
 			i != iovec.end(); ++i)
@@ -154,7 +154,7 @@ namespace libtorrent
 				m_send_barriers.pop_front();
 			}
 
-#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 			if (next_barrier != INT_MAX)
 			{
 				int overhead = 0;

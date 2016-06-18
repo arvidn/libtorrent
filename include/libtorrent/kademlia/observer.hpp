@@ -73,7 +73,7 @@ struct TORRENT_EXTRA_EXPORT observer : boost::noncopyable
 		, flags(0)
 	{
 		TORRENT_ASSERT(a);
-#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 		m_in_constructor = true;
 		m_was_sent = false;
 		m_was_abandoned = false;
@@ -164,7 +164,7 @@ private:
 public:
 	unsigned char flags;
 
-#if defined TORRENT_DEBUG || defined TORRENT_RELEASE_ASSERTS
+#if TORRENT_USE_ASSERTS
 	bool m_in_constructor:1;
 	bool m_was_sent:1;
 	bool m_was_abandoned:1;
