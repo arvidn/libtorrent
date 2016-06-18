@@ -116,13 +116,13 @@ TORRENT_TEST(dht_rate_limit)
 
 	bool stop = false;
 	std::function<void(error_code const&, size_t)> on_read
-		= [&](error_code const& ec, size_t bytes)
+		= [&](error_code const& ec, size_t const /* bytes */)
 	{
 		if (ec) return;
 		udp_socket::packet p;
 		error_code err;
-		int const num = sock.read(lt::aux::array_view<udp_socket::packet>(&p, 1), err);
-		if (num) dht->incoming_packet(p.from, p.data.data(), p.data.size());
+		int const num = int(sock.read(lt::aux::array_view<udp_socket::packet>(&p, 1), err));
+		if (num) dht->incoming_packet(p.from, p.data.data(), int(p.data.size()));
 		if (stop || err) return;
 		sock.async_read(on_read);
 	};
@@ -168,7 +168,7 @@ TORRENT_TEST(dht_rate_limit)
 	int num_packets_received = 0;
 	char buffer[1500];
 	std::function<void(error_code const&, std::size_t)> on_receive
-		= [&](error_code const& ec, std::size_t bytes)
+		= [&](error_code const& ec, std::size_t const bytes)
 	{
 		if (ec) return;
 

@@ -326,7 +326,8 @@ TORRENT_TEST(dht_dual_stack_mutable_item)
 					std::vector<char> v;
 					lt::bencode(std::back_inserter(v), item);
 					lt::dht::sign_mutable_item(
-						std::make_pair(v.data(), v.size()), std::make_pair(salt.data(), salt.size())
+						std::make_pair(v.data(), int(v.size()))
+						, std::make_pair(salt.data(), int(salt.size()))
 						, seq, pk.data(), sk.data(), sig.data());
 					put_count++;
 				});

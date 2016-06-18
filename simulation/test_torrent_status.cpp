@@ -75,7 +75,7 @@ TORRENT_TEST(status_timers)
 			if ((ticks % 3600) == 0)
 			{
 				lt::time_point now = lt::clock_type::now();
-				int since_start = total_seconds(now - start_time) - 1;
+				int const since_start = int(total_seconds(now - start_time) - 1);
 				torrent_status st = handle.status();
 				TEST_EQUAL(st.active_time, since_start);
 				TEST_EQUAL(st.seeding_time, since_start);
