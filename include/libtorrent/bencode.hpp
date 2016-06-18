@@ -331,7 +331,7 @@ namespace libtorrent
 			// ----------------------------------------------
 			// string
 			default:
-				if (is_digit(boost::uint8_t(*in)))
+				if (is_digit(std::uint8_t(*in)))
 				{
 					std::string len_s = read_until(in, end, ':', err);
 					if (err)

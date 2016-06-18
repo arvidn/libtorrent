@@ -114,7 +114,7 @@ namespace libtorrent
 #if TORRENT_HAVE_MMAP
 		if (m_cache_pool)
 		{
-			munmap(m_cache_pool, boost::uint64_t(m_max_use) * 0x4000);
+			munmap(m_cache_pool, std::uint64_t(m_max_use) * 0x4000);
 			m_cache_pool = 0;
 			// attempt to make MacOS not flush this to disk, making close()
 			// block for a long time
@@ -125,7 +125,7 @@ namespace libtorrent
 #endif
 	}
 
-	boost::uint32_t disk_buffer_pool::num_to_evict(int num_needed)
+	std::uint32_t disk_buffer_pool::num_to_evict(int num_needed)
 	{
 		int ret = 0;
 
@@ -172,7 +172,7 @@ namespace libtorrent
 		if (m_cache_pool)
 		{
 			return buffer >= m_cache_pool && buffer < m_cache_pool
-				+ boost::uint64_t(m_max_use) * 0x4000;
+				+ std::uint64_t(m_max_use) * 0x4000;
 		}
 #endif
 
@@ -273,7 +273,7 @@ namespace libtorrent
 				m_trigger_cache_trim();
 			}
 			if (m_free_list.empty()) return 0;
-			boost::uint64_t slot_index = m_free_list.back();
+			std::uint64_t slot_index = m_free_list.back();
 			m_free_list.pop_back();
 			ret = m_cache_pool + (slot_index * 0x4000);
 			TORRENT_ASSERT(is_disk_buffer(ret, l));
@@ -387,7 +387,7 @@ namespace libtorrent
 			int const cache_size = sett.get_int(settings_pack::cache_size);
 			if (cache_size < 0)
 			{
-				boost::uint64_t phys_ram = total_physical_ram();
+				std::uint64_t phys_ram = total_physical_ram();
 				if (phys_ram == 0) m_max_use = 1024;
 				else
 				{
@@ -400,9 +400,9 @@ namespace libtorrent
 					// a 20th of everything exceeding 1 GiB
 					// and a 10th of everything below a GiB
 
-					boost::int64_t const gb = 1024 * 1024 * 1024;
+					std::int64_t const gb = 1024 * 1024 * 1024;
 
-					boost::int64_t result = 0;
+					std::int64_t result = 0;
 					if (phys_ram > 4 * gb)
 					{
 						result += (phys_ram - 4 * gb) / 30;
@@ -457,7 +457,7 @@ namespace libtorrent
 		if (m_cache_pool && sett.get_str(settings_pack::mmap_cache).empty())
 		{
 			TORRENT_ASSERT(m_in_use == 0);
-			munmap(m_cache_pool, boost::uint64_t(m_max_use) * 0x4000);
+			munmap(m_cache_pool, std::uint64_t(m_max_use) * 0x4000);
 			m_cache_pool = 0;
 			// attempt to make MacOS not flush this to disk, making close()
 			// block for a long time
@@ -483,8 +483,8 @@ namespace libtorrent
 #ifndef MAP_NOCACHE
 #define MAP_NOCACHE 0
 #endif
-				ftruncate(m_cache_fd, boost::uint64_t(m_max_use) * 0x4000);
-				m_cache_pool = static_cast<char*>(mmap(0, boost::uint64_t(m_max_use) * 0x4000, PROT_READ | PROT_WRITE
+				ftruncate(m_cache_fd, std::uint64_t(m_max_use) * 0x4000);
+				m_cache_pool = static_cast<char*>(mmap(0, std::uint64_t(m_max_use) * 0x4000, PROT_READ | PROT_WRITE
 					, MAP_SHARED | MAP_NOCACHE, m_cache_fd, 0));
 				if (intptr_t(m_cache_pool) == -1)
 				{
@@ -522,7 +522,7 @@ namespace libtorrent
 		if (m_cache_pool)
 		{
 			TORRENT_ASSERT(buf >= m_cache_pool);
-			TORRENT_ASSERT(buf <  m_cache_pool + boost::uint64_t(m_max_use) * 0x4000);
+			TORRENT_ASSERT(buf <  m_cache_pool + std::uint64_t(m_max_use) * 0x4000);
 			int slot_index = (buf - m_cache_pool) / 0x4000;
 			m_free_list.push_back(slot_index);
 #if defined MADV_FREE

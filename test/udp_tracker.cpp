@@ -86,8 +86,8 @@ struct udp_tracker
 
 		char* ptr = buffer;
 		detail::read_uint64(ptr);
-		boost::uint32_t const action = detail::read_uint32(ptr);
-		boost::uint32_t const transaction_id = detail::read_uint32(ptr);
+		std::uint32_t const action = detail::read_uint32(ptr);
+		std::uint32_t const transaction_id = detail::read_uint32(ptr);
 
 		error_code e;
 

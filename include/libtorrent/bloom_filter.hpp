@@ -40,15 +40,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/cstdint.hpp>
+#include <cstdint>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {
-	TORRENT_EXTRA_EXPORT void set_bits(boost::uint8_t const* b, boost::uint8_t* bits, int len);
-	TORRENT_EXTRA_EXPORT bool has_bits(boost::uint8_t const* b, boost::uint8_t const* bits, int len);
-	TORRENT_EXTRA_EXPORT int count_zero_bits(boost::uint8_t const* bits, int len);
+	TORRENT_EXTRA_EXPORT void set_bits(std::uint8_t const* b, std::uint8_t* bits, int len);
+	TORRENT_EXTRA_EXPORT bool has_bits(std::uint8_t const* b, std::uint8_t const* bits, int len);
+	TORRENT_EXTRA_EXPORT int count_zero_bits(std::uint8_t const* bits, int len);
 
 	template <int N>
 	struct bloom_filter
@@ -77,7 +77,7 @@ namespace libtorrent
 		bloom_filter() { clear(); }
 
 	private:
-		boost::uint8_t bits[N];
+		std::uint8_t bits[N];
 	};
 
 }

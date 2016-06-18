@@ -222,7 +222,7 @@ namespace libtorrent
 		// callbacks may still be called even if the corresponding feature is not
 		// specified in the return value here. See feature_flags_t for possible
 		// flags to return.
-		virtual boost::uint32_t implemented_features() { return 0; }
+		virtual std::uint32_t implemented_features() { return 0; }
 
 		// this is called by the session every time a new torrent is added.
 		// The ``torrent*`` points to the internal torrent object created

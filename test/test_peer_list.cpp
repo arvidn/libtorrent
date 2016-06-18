@@ -103,7 +103,7 @@ struct mock_peer_connection
 	virtual torrent_peer* peer_info_struct() const override { return m_tp; }
 	virtual void set_peer_info(torrent_peer* pi) override { m_tp = pi; }
 	virtual bool is_outgoing() const override { return m_outgoing; }
-	virtual void add_stat(boost::int64_t downloaded, boost::int64_t uploaded) override
+	virtual void add_stat(std::int64_t downloaded, std::int64_t uploaded) override
 	{ m_stat.add_stat(downloaded, uploaded); }
 	virtual bool fast_reconnect() const override { return true; }
 	virtual bool is_choked() const override { return m_choked; }

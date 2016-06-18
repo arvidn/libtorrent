@@ -69,7 +69,7 @@ namespace libtorrent
 	public:
 		// internal
 		// the number of bytes of the number
-		static const int size = number_size * sizeof(boost::uint32_t);
+		static const int size = number_size * sizeof(std::uint32_t);
 
 		// constructs an all-zero sha1-hash
 		sha1_hash() { clear(); }
@@ -149,8 +149,8 @@ namespace libtorrent
 		{
 			for (int i = 0; i < number_size; ++i)
 			{
-				boost::uint32_t const lhs = aux::network_to_host(m_number[i]);
-				boost::uint32_t const rhs = aux::network_to_host(n.m_number[i]);
+				std::uint32_t const lhs = aux::network_to_host(m_number[i]);
+				std::uint32_t const rhs = aux::network_to_host(n.m_number[i]);
 				if (lhs < rhs) return true;
 				if (lhs > rhs) return false;
 			}
@@ -209,30 +209,30 @@ namespace libtorrent
 		}
 
 		// accessors for specific bytes
-		boost::uint8_t& operator[](int i)
+		std::uint8_t& operator[](int i)
 		{
 			TORRENT_ASSERT(i >= 0 && i < size);
-			return reinterpret_cast<boost::uint8_t*>(m_number)[i];
+			return reinterpret_cast<std::uint8_t*>(m_number)[i];
 		}
-		boost::uint8_t const& operator[](int i) const
+		std::uint8_t const& operator[](int i) const
 		{
 			TORRENT_ASSERT(i >= 0 && i < size);
-			return reinterpret_cast<boost::uint8_t const*>(m_number)[i];
+			return reinterpret_cast<std::uint8_t const*>(m_number)[i];
 		}
 
-		using const_iterator = boost::uint8_t const*;
-		using iterator = boost::uint8_t*;
+		using const_iterator = std::uint8_t const*;
+		using iterator = std::uint8_t*;
 
 		// start and end iterators for the hash. The value type
-		// of these iterators is ``boost::uint8_t``.
+		// of these iterators is ``std::uint8_t``.
 		const_iterator begin() const
-		{ return reinterpret_cast<boost::uint8_t const*>(m_number); }
+		{ return reinterpret_cast<std::uint8_t const*>(m_number); }
 		const_iterator end() const
-		{ return reinterpret_cast<boost::uint8_t const*>(m_number) + size; }
+		{ return reinterpret_cast<std::uint8_t const*>(m_number) + size; }
 		iterator begin()
-		{ return reinterpret_cast<boost::uint8_t*>(m_number); }
+		{ return reinterpret_cast<std::uint8_t*>(m_number); }
 		iterator end()
-		{ return reinterpret_cast<boost::uint8_t*>(m_number) + size; }
+		{ return reinterpret_cast<std::uint8_t*>(m_number) + size; }
 
 		// return a copy of the 20 bytes representing the sha1-hash as a std::string.
 		// It's still a binary string with 20 binary characters.
@@ -244,7 +244,7 @@ namespace libtorrent
 
 	private:
 
-		boost::uint32_t m_number[number_size];
+		std::uint32_t m_number[number_size];
 
 	};
 

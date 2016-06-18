@@ -174,7 +174,7 @@ namespace libtorrent { namespace aux
 		virtual port_filter const& get_port_filter() const = 0;
 		virtual void ban_ip(address addr) = 0;
 
-		virtual boost::uint16_t session_time() const = 0;
+		virtual std::uint16_t session_time() const = 0;
 
 		virtual bool is_aborted() const = 0;
 		virtual int num_uploads() const = 0;
@@ -210,8 +210,8 @@ namespace libtorrent { namespace aux
 
 		virtual void deferred_submit_jobs() = 0;
 
-		virtual boost::uint16_t listen_port() const = 0;
-		virtual boost::uint16_t ssl_listen_port() const = 0;
+		virtual std::uint16_t listen_port() const = 0;
+		virtual std::uint16_t ssl_listen_port() const = 0;
 
 		// load the specified torrent. also evict one torrent, except
 		// for the one specified, if we are at the limit of loaded torrents

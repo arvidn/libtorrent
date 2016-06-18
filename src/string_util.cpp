@@ -51,13 +51,13 @@ namespace libtorrent
 
 	// lexical_cast's result depends on the locale. We need
 	// a well defined result
-	std::array<char, 4 + std::numeric_limits<boost::int64_t>::digits10>
-		to_string(boost::int64_t n)
+	std::array<char, 4 + std::numeric_limits<std::int64_t>::digits10>
+		to_string(std::int64_t n)
 	{
-		std::array<char, 4 + std::numeric_limits<boost::int64_t>::digits10> ret;
+		std::array<char, 4 + std::numeric_limits<std::int64_t>::digits10> ret;
 		char *p = &ret.back();
 		*p = '\0';
-		boost::uint64_t un = n;
+		std::uint64_t un = n;
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4146 ) /* warning C4146: unary minus operator applied to unsigned type */

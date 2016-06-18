@@ -157,8 +157,8 @@ namespace libtorrent
 			else
 			{
 				ret += '%';
-				ret += aux::hex_chars[boost::uint8_t(*str) >> 4];
-				ret += aux::hex_chars[boost::uint8_t(*str) & 15];
+				ret += aux::hex_chars[std::uint8_t(*str) >> 4];
+				ret += aux::hex_chars[std::uint8_t(*str) & 15];
 			}
 			++str;
 		}

@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/cstdint.hpp>
+#include <cstdint>
 #include <boost/make_shared.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -49,10 +49,10 @@ namespace libtorrent
 {
 	namespace
 	{
-		void apply_flag(boost::uint64_t& current_flags
+		void apply_flag(std::uint64_t& current_flags
 			, bdecode_node const& n
 			, char const* name
-			, boost::uint64_t const flag)
+			, std::uint64_t const flag)
 		{
 			if (n.dict_find_int_value(name, 0) == 0)
 			{

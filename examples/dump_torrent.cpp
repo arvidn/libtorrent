@@ -197,7 +197,7 @@ int main(int argc, char* argv[])
 	for (int i = 0; i < st.num_files(); ++i)
 	{
 		int const first = st.map_file(i, 0, 0).piece;
-		int const last = st.map_file(i, (std::max)(boost::int64_t(st.file_size(i))-1, boost::int64_t(0)), 0).piece;
+		int const last = st.map_file(i, (std::max)(std::int64_t(st.file_size(i))-1, std::int64_t(0)), 0).piece;
 		int const flags = st.file_flags(i);
 		std::stringstream file_hash;
 		if (!st.hash(i).is_all_zeros())
@@ -210,7 +210,7 @@ int main(int argc, char* argv[])
 			, ((flags & file_storage::flag_hidden)?'h':'-')
 			, ((flags & file_storage::flag_symlink)?'l':'-')
 			, first, last
-			, boost::uint32_t(st.mtime(i))
+			, std::uint32_t(st.mtime(i))
 			, file_hash.str().c_str()
 			, st.file_path(i).c_str()
 			, (flags & file_storage::flag_symlink) ? "-> " : ""

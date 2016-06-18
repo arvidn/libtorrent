@@ -395,14 +395,14 @@ namespace libtorrent
 		, error_code& ec)
 	{
 		if (dict.type() != bdecode_node::dict_t) return false;
-		boost::int64_t file_size = dict.dict_find_int_value("length", -1);
+		std::int64_t file_size = dict.dict_find_int_value("length", -1);
 		if (file_size < 0)
 		{
 			ec = errors::torrent_invalid_length;
 			return false;
 		}
 
-		boost::int64_t mtime = dict.dict_find_int_value("mtime", 0);
+		std::int64_t mtime = dict.dict_find_int_value("mtime", 0);
 
 		std::string path = root_dir;
 		std::string path_element;
@@ -461,7 +461,7 @@ namespace libtorrent
 		}
 
 		// bitcomet pad file
-		boost::uint32_t file_flags = 0;
+		std::uint32_t file_flags = 0;
 		if (path.find("_____padding_file_") != std::string::npos)
 			file_flags = file_storage::flag_pad_file;
 
@@ -582,7 +582,7 @@ namespace libtorrent
 		ec.clear();
 		file f;
 		if (!f.open(filename, file::read_only, ec)) return -1;
-		boost::int64_t s = f.get_size(ec);
+		std::int64_t s = f.get_size(ec);
 		if (ec) return -1;
 		if (s > limit)
 		{
@@ -592,7 +592,7 @@ namespace libtorrent
 		v.resize(std::size_t(s));
 		if (s == 0) return 0;
 		file::iovec_t b = {&v[0], size_t(s) };
-		boost::int64_t read = f.readv(0, &b, 1, ec);
+		std::int64_t read = f.readv(0, &b, 1, ec);
 		if (read != s) return -3;
 		if (ec) return -3;
 		return 0;
@@ -668,7 +668,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		std::unordered_set<boost::uint32_t> files;
+		std::unordered_set<std::uint32_t> files;
 
 		std::string empty_str;
 
@@ -679,7 +679,7 @@ namespace libtorrent
 		{
 			// as long as this file already exists
 			// increase the counter
-			boost::uint32_t h = m_files.file_path_hash(i, empty_str);
+			std::uint32_t h = m_files.file_path_hash(i, empty_str);
 			if (!files.insert(h).second)
 			{
 				// This filename appears to already exist!
@@ -1109,7 +1109,7 @@ namespace libtorrent
 		swap(m_merkle_tree, ti.m_merkle_tree);
 		std::swap(m_info_section_size, ti.m_info_section_size);
 
-		boost::uint32_t tmp;
+		std::uint32_t tmp;
 		SWAP(tmp, m_merkle_first_leaf, ti.m_merkle_first_leaf);
 
 		bool tmp2;
@@ -1150,7 +1150,7 @@ namespace libtorrent
 		h.update(section.first, section.second);
 		m_info_hash = h.final();
 
-		if (section.second >= (std::numeric_limits<boost::uint32_t>::max)())
+		if (section.second >= (std::numeric_limits<std::uint32_t>::max)())
 		{
 			ec = errors::metadata_too_large;
 			return false;
@@ -1538,7 +1538,7 @@ namespace libtorrent
 		}
 
 		// extract creation date
-		boost::int64_t cd = torrent_file.dict_find_int_value("creation date", -1);
+		std::int64_t cd = torrent_file.dict_find_int_value("creation date", -1);
 		if (cd >= 0)
 		{
 			m_creation_date = long(cd);

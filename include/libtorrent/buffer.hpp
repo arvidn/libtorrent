@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm> // for std::swap
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/cstdint.hpp>
+#include <cstdint>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
@@ -172,9 +172,9 @@ public:
 
 	void resize(std::size_t n)
 	{
-		TORRENT_ASSERT(n < std::numeric_limits<boost::uint32_t>::max());
+		TORRENT_ASSERT(n < std::numeric_limits<std::uint32_t>::max());
 		reserve(n);
-		m_size = boost::uint32_t(n);
+		m_size = std::uint32_t(n);
 	}
 
 	void insert(char* point, char const* first, char const* last)
@@ -204,9 +204,9 @@ public:
 		}
 		std::memmove(b, e, m_begin + m_size - e);
 		TORRENT_ASSERT(e >= b);
-		TORRENT_ASSERT(uintptr_t(e - b) <= std::numeric_limits<boost::uint32_t>::max());
+		TORRENT_ASSERT(uintptr_t(e - b) <= std::numeric_limits<std::uint32_t>::max());
 		TORRENT_ASSERT(uintptr_t(e - b) <= m_size);
-		m_size -= boost::uint32_t(e - b);
+		m_size -= std::uint32_t(e - b);
 	}
 
 	void clear() { m_size = 0; }
@@ -223,7 +223,7 @@ public:
 		if (tmp == NULL) throw std::bad_alloc();
 #endif
 		m_begin = tmp;
-		m_capacity = boost::uint32_t(n);
+		m_capacity = std::uint32_t(n);
 	}
 
 	bool empty() const { return m_size == 0; }
@@ -244,8 +244,8 @@ public:
 	}
 private:
 	char* m_begin;
-	boost::uint32_t m_size;
-	boost::uint32_t m_capacity;
+	std::uint32_t m_size;
+	std::uint32_t m_capacity;
 };
 
 

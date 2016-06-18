@@ -310,7 +310,7 @@ std::string password_callback(int length, boost::asio::ssl::context::password_pu
 struct attack_t
 {
 	// flags controlling the connection attempt
-	boost::uint32_t flags;
+	std::uint32_t flags;
 	// whether or not we expect to be able to connect
 	bool expect;
 };
@@ -344,7 +344,7 @@ attack_t attacks[] =
 const int num_attacks = sizeof(attacks)/sizeof(attacks[0]);
 
 bool try_connect(libtorrent::session& ses1, int port
-	, boost::shared_ptr<torrent_info> const& t, boost::uint32_t flags)
+	, boost::shared_ptr<torrent_info> const& t, std::uint32_t flags)
 {
 	using boost::asio::ssl::context;
 

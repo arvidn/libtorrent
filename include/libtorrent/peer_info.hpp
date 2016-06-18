@@ -61,8 +61,8 @@ namespace libtorrent
 		// the total number of bytes downloaded from and uploaded to this peer.
 		// These numbers do not include the protocol chatter, but only the
 		// payload data.
-		boost::int64_t total_download;
-		boost::int64_t total_upload;
+		std::int64_t total_download;
+		std::int64_t total_upload;
 
 		// the time since we last sent a request to this peer and since any
 		// transfer occurred with this peer
@@ -183,7 +183,7 @@ namespace libtorrent
 
 		// tells you in which state the peer is in. It is set to
 		// any combination of the peer_flags_t enum.
-		boost::uint32_t flags;
+		std::uint32_t flags;
 
 		// the flags indicating which sources a peer can
 		// have come from. A peer may have been seen from
@@ -213,7 +213,7 @@ namespace libtorrent
 
 		// a combination of flags describing from which sources this peer
 		// was received. See peer_source_flags.
-		boost::uint32_t source;
+		std::uint32_t source;
 
 		// the current upload and download speed we have to and from this peer
 		// (including any protocol messages). updated about once per second
@@ -410,7 +410,7 @@ namespace libtorrent
 		// but this member says how much *extra* free upload this peer has got.
 		// If it is a negative number it means that this was a peer from which we
 		// have got this amount of free download.
-		boost::int64_t load_balancing;
+		std::int64_t load_balancing;
 #endif
 
 	};
@@ -429,9 +429,9 @@ namespace libtorrent
 		// internal
 		int flags;
 		// internal
-		boost::uint8_t failcount;
+		std::uint8_t failcount;
 		// internal
-		boost::uint8_t source;
+		std::uint8_t source;
 	};
 
 }

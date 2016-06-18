@@ -1049,7 +1049,7 @@ void node::incoming_request(msg const& m, entry& e)
 		else
 		{
 			// mutable put, we must verify the signature
-			boost::int64_t const seq = msg_keys[2].int_value();
+			std::int64_t const seq = msg_keys[2].int_value();
 
 			if (seq < 0)
 			{
@@ -1069,7 +1069,7 @@ void node::incoming_request(msg const& m, entry& e)
 
 			TORRENT_ASSERT(item_sig_len == msg_keys[4].string_length());
 
-			boost::int64_t item_seq;
+			std::int64_t item_seq;
 			if (!m_storage.get_mutable_item_seq(target, item_seq))
 			{
 				m_storage.put_mutable_item(target

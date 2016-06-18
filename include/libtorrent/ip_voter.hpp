@@ -76,9 +76,9 @@ namespace libtorrent
 			// this is the actual external address
 			address addr;
 			// a bitmask of sources the reporters have come from
-			boost::uint16_t sources;
+			std::uint16_t sources;
 			// the total number of votes for this IP
-			boost::uint16_t num_votes;
+			std::uint16_t num_votes;
 		};
 
 		// this is a bloom filter of all the IPs that have

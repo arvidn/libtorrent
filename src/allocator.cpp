@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/allocator.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp" // for print_backtrace
-#include <boost/cstdint.hpp>
+#include <cstdint>
 
 #if defined TORRENT_BEOS
 #include <kernel/OS.h>
@@ -65,7 +65,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 struct alloc_header
 {
-	boost::int64_t size;
+	std::int64_t size;
 	int magic;
 	char stack[3072];
 };

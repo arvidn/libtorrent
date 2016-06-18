@@ -350,12 +350,12 @@ namespace libtorrent
 	}
 #endif
 
-	void torrent_handle::file_progress(std::vector<boost::int64_t>& progress, int flags) const
+	void torrent_handle::file_progress(std::vector<std::int64_t>& progress, int flags) const
 	{
 		sync_call(&torrent::file_progress, std::ref(progress), flags);
 	}
 
-	torrent_status torrent_handle::status(boost::uint32_t flags) const
+	torrent_status torrent_handle::status(std::uint32_t flags) const
 	{
 		torrent_status st;
 		sync_call(&torrent::status, &st, flags);

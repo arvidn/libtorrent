@@ -60,18 +60,18 @@ namespace libtorrent
 
 		// These are monotonically increasing
 		// and cumulative counters for their respective event.
-		boost::uint64_t packet_loss;
-		boost::uint64_t timeout;
-		boost::uint64_t packets_in;
-		boost::uint64_t packets_out;
-		boost::uint64_t fast_retransmit;
-		boost::uint64_t packet_resend;
-		boost::uint64_t samples_above_target;
-		boost::uint64_t samples_below_target;
-		boost::uint64_t payload_pkts_in;
-		boost::uint64_t payload_pkts_out;
-		boost::uint64_t invalid_pkts_in;
-		boost::uint64_t redundant_pkts_in;
+		std::uint64_t packet_loss;
+		std::uint64_t timeout;
+		std::uint64_t packets_in;
+		std::uint64_t packets_out;
+		std::uint64_t fast_retransmit;
+		std::uint64_t packet_resend;
+		std::uint64_t samples_above_target;
+		std::uint64_t samples_below_target;
+		std::uint64_t payload_pkts_in;
+		std::uint64_t payload_pkts_out;
+		std::uint64_t invalid_pkts_in;
+		std::uint64_t redundant_pkts_in;
 	};
 
 	// contains session wide state and counters
@@ -92,8 +92,8 @@ namespace libtorrent
 
 		// the total number of bytes downloaded and
 		// uploaded to and from all torrents. This also includes all the protocol overhead.
-		boost::int64_t total_download;
-		boost::int64_t total_upload;
+		std::int64_t total_download;
+		std::int64_t total_upload;
 
 		// the rate of the payload
 		// down- and upload only.
@@ -103,38 +103,38 @@ namespace libtorrent
 		// the total transfers of payload
 		// only. The payload does not include the bittorrent protocol overhead, but only parts of the
 		// actual files to be downloaded.
-		boost::int64_t total_payload_download;
-		boost::int64_t total_payload_upload;
+		std::int64_t total_payload_download;
+		std::int64_t total_payload_upload;
 
 		// the estimated TCP/IP overhead in each direction.
 		int ip_overhead_upload_rate;
 		int ip_overhead_download_rate;
-		boost::int64_t total_ip_overhead_download;
-		boost::int64_t total_ip_overhead_upload;
+		std::int64_t total_ip_overhead_download;
+		std::int64_t total_ip_overhead_upload;
 
 		// the upload and download rate used by DHT traffic. Also the total number
 		// of bytes sent and received to and from the DHT.
 		int dht_upload_rate;
 		int dht_download_rate;
-		boost::int64_t total_dht_download;
-		boost::int64_t total_dht_upload;
+		std::int64_t total_dht_download;
+		std::int64_t total_dht_upload;
 
 		// the upload and download rate used by tracker traffic. Also the total number
 		// of bytes sent and received to and from trackers.
 		int tracker_upload_rate;
 		int tracker_download_rate;
-		boost::int64_t total_tracker_download;
-		boost::int64_t total_tracker_upload;
+		std::int64_t total_tracker_download;
+		std::int64_t total_tracker_upload;
 
 		// the number of bytes that has been received more than once.
 		// This can happen if a request from a peer times out and is requested from a different
 		// peer, and then received again from the first one. To make this lower, increase the
 		// ``request_timeout`` and the ``piece_timeout`` in the session settings.
-		boost::int64_t total_redundant_bytes;
+		std::int64_t total_redundant_bytes;
 
 		// the number of bytes that was downloaded which later failed
 		// the hash-check.
-		boost::int64_t total_failed_bytes;
+		std::int64_t total_failed_bytes;
 
 		// the total number of peer connections this session has. This includes
 		// incoming connections that still hasn't sent their handshake or outgoing connections
@@ -189,7 +189,7 @@ namespace libtorrent
 
 		// an estimation of the total number of nodes in the DHT
 		// network.
-		boost::int64_t dht_global_nodes;
+		std::int64_t dht_global_nodes;
 
 		// a vector of the currently running DHT lookups.
 		std::vector<dht_lookup> active_requests;

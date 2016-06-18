@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/cstdint.hpp>
+#include <cstdint>
 #include <limits>
 
 #if TORRENT_USE_RLIMIT
@@ -94,16 +94,16 @@ namespace libtorrent
 #endif
 	}
 
-	boost::uint64_t total_physical_ram()
+	std::uint64_t total_physical_ram()
 	{
 #if defined TORRENT_BUILD_SIMULATOR
-		return boost::uint64_t(4) * 1024 * 1024 * 1024;
+		return std::uint64_t(4) * 1024 * 1024 * 1024;
 #else
 		// figure out how much physical RAM there is in
 		// this machine. This is used for automatically
 		// sizing the disk cache size when it's set to
 		// automatic.
-		boost::uint64_t ret = 0;
+		std::uint64_t ret = 0;
 
 #ifdef TORRENT_BSD
 #ifdef HW_MEMSIZE

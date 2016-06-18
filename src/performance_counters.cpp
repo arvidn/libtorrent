@@ -78,7 +78,7 @@ namespace libtorrent {
 		return *this;
 	}
 
-	boost::int64_t counters::operator[](int i) const
+	std::int64_t counters::operator[](int i) const
 	{
 		TORRENT_ASSERT(i >= 0);
 		TORRENT_ASSERT(i < num_counters);
@@ -93,7 +93,7 @@ namespace libtorrent {
 
 	// the argument specifies which counter to
 	// increment or decrement
-	boost::int64_t counters::inc_stats_counter(int c, boost::int64_t value)
+	std::int64_t counters::inc_stats_counter(int c, std::int64_t value)
 	{
 		// if c >= num_stats_counters, it means it's not
 		// a monotonically increasing counter, but a gauge
@@ -103,7 +103,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(c < num_counters);
 
 #ifdef ATOMIC_LLONG_LOCK_FREE
-		boost::int64_t pv = m_stats_counter[c].fetch_add(value, std::memory_order_relaxed);
+		std::int64_t pv = m_stats_counter[c].fetch_add(value, std::memory_order_relaxed);
 		TORRENT_ASSERT(pv + value >= 0);
 		return pv + value;
 #else
@@ -115,7 +115,7 @@ namespace libtorrent {
 
 	// ratio is a vaue between 0 and 100 representing the percentage the value
 	// is blended in at.
-	void counters::blend_stats_counter(int c, boost::int64_t value, int ratio)
+	void counters::blend_stats_counter(int c, std::int64_t value, int ratio)
 	{
 		TORRENT_ASSERT(c >= num_stats_counters);
 		TORRENT_ASSERT(c < num_counters);
@@ -123,8 +123,8 @@ namespace libtorrent {
 		TORRENT_ASSERT(ratio <= 100);
 
 #ifdef ATOMIC_LLONG_LOCK_FREE
-		boost::int64_t current = m_stats_counter[c].load(std::memory_order_relaxed);
-		boost::int64_t new_value = (current * (100-ratio) + value * ratio) / 100;
+		std::int64_t current = m_stats_counter[c].load(std::memory_order_relaxed);
+		std::int64_t new_value = (current * (100-ratio) + value * ratio) / 100;
 
 		while (!m_stats_counter[c].compare_exchange_weak(current, new_value
 			, std::memory_order_relaxed))
@@ -133,12 +133,12 @@ namespace libtorrent {
 		}
 #else
 		std::lock_guard<std::mutex> l(m_mutex);
-		boost::int64_t current = m_stats_counter[c];
+		std::int64_t current = m_stats_counter[c];
 		m_stats_counter[c] = (current * (100-ratio) + value * ratio) / 100;
 #endif
 	}
 
-	void counters::set_value(int c, boost::int64_t value)
+	void counters::set_value(int c, std::int64_t value)
 	{
 		TORRENT_ASSERT(c >= 0);
 		TORRENT_ASSERT(c < num_counters);

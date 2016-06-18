@@ -325,7 +325,7 @@ namespace libtorrent
 		TORRENT_SOCKTYPE_FORWARD(close(ec))
 	}
 
-	void socket_type::set_close_reason(boost::uint16_t code)
+	void socket_type::set_close_reason(std::uint16_t code)
 	{
 		switch (m_type)
 		{
@@ -341,7 +341,7 @@ namespace libtorrent
 		}
 	}
 
-	boost::uint16_t socket_type::get_close_reason()
+	std::uint16_t socket_type::get_close_reason()
 	{
 		switch (m_type)
 		{

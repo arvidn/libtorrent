@@ -61,7 +61,7 @@ struct TORRENT_EXTRA_EXPORT bandwidth_manager
 #endif
 
 	int queue_size() const;
-	boost::int64_t queued_bytes() const;
+	std::int64_t queued_bytes() const;
 	
 	// non prioritized means that, if there's a line for bandwidth,
 	// others will cut in front of the non-prioritized peers.
@@ -83,7 +83,7 @@ private:
 	typedef std::vector<bw_request> queue_t;
 	queue_t m_queue;
 	// the number of bytes all the requests in queue are for
-	boost::int64_t m_queued_bytes;
+	std::int64_t m_queued_bytes;
 
 	// this is the channel within the consumers
 	// that bandwidth is assigned to (upload or download)

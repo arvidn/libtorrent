@@ -634,10 +634,10 @@ namespace libtorrent { namespace
 		// these are vectors to save memory and keep the items close
 		// together for performance. Inserting and removing is relatively
 		// cheap since the lists' size is limited
-		typedef std::vector<std::pair<address_v4::bytes_type, boost::uint16_t> > peers4_t;
+		typedef std::vector<std::pair<address_v4::bytes_type, std::uint16_t> > peers4_t;
 		peers4_t m_peers;
 #if TORRENT_USE_IPV6
-		typedef std::vector<std::pair<address_v6::bytes_type, boost::uint16_t> > peers6_t;
+		typedef std::vector<std::pair<address_v6::bytes_type, std::uint16_t> > peers6_t;
 		peers6_t m_peers6;
 #endif
 		// the last pex messages we received

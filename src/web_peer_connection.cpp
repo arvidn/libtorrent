@@ -332,7 +332,7 @@ void web_peer_connection::write_request(peer_request const& r)
 	{
 		file_request_t file_req;
 		file_req.file_index = 0;
-		file_req.start = boost::int64_t(req.piece) * info.piece_length()
+		file_req.start = std::int64_t(req.piece) * info.piece_length()
 			+ req.start;
 		file_req.length = req.length;
 
@@ -455,11 +455,11 @@ namespace {
 		return ret;
 	}
 
-	boost::tuple<boost::int64_t, boost::int64_t> get_range(
+	boost::tuple<std::int64_t, std::int64_t> get_range(
 		http_parser const& parser, error_code& ec)
 	{
-		boost::int64_t range_start;
-		boost::int64_t range_end;
+		std::int64_t range_start;
+		std::int64_t range_end;
 		if (parser.status_code() == 206)
 		{
 			boost::tie(range_start, range_end) = parser.content_range();
@@ -485,7 +485,7 @@ namespace {
 				ec = errors::no_content_length;
 			}
 		}
-		return boost::tuple<boost::int64_t, boost::int64_t>(range_start, range_end);
+		return boost::tuple<std::int64_t, std::int64_t>(range_start, range_end);
 	}
 }
 
@@ -754,8 +754,8 @@ void web_peer_connection::on_receive(error_code const& error
 		// despite the HTTP range being inclusive, range_start and range_end are
 		// exclusive to fit better into C++. i.e. range_end points one byte past
 		// the end of the payload
-		boost::int64_t range_start;
-		boost::int64_t range_end;
+		std::int64_t range_start;
+		std::int64_t range_end;
 		error_code ec;
 		boost::tie(range_start, range_end) = get_range(m_parser, ec);
 		if (ec)
@@ -826,7 +826,7 @@ void web_peer_connection::on_receive(error_code const& error
 				TORRENT_ASSERT(m_chunk_pos == 0);
 
 				int header_size = 0;
-				boost::int64_t chunk_size = 0;
+				std::int64_t chunk_size = 0;
 				buffer::const_interval chunk_start = recv_buffer;
 				chunk_start.begin += m_chunk_pos;
 				TORRENT_ASSERT(chunk_start.begin[0] == '\r'
@@ -1060,7 +1060,7 @@ void web_peer_connection::handle_padfile()
 		// a request for this since it most likely doesn't exist on
 		// the web server anyway. Just pretend that we received a
 		// bunch of zeroes here and pop it again
-		boost::int64_t file_size = m_file_requests.front().length;
+		std::int64_t file_size = m_file_requests.front().length;
 
 		// in theory the pad file can span multiple bocks, hence the loop
 		while (file_size > 0)
@@ -1069,7 +1069,7 @@ void web_peer_connection::handle_padfile()
 			TORRENT_ASSERT(m_piece.size() < front_request.length);
 
 			int pad_size = int((std::min)(file_size
-					, boost::int64_t(front_request.length - m_piece.size())));
+					, std::int64_t(front_request.length - m_piece.size())));
 			TORRENT_ASSERT(pad_size > 0);
 			file_size -= pad_size;
 

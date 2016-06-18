@@ -265,16 +265,16 @@ namespace libtorrent
 		, m_deleted(false)
 		, m_pinned((p.flags & add_torrent_params::flag_pinned) != 0)
 		, m_should_be_loaded(true)
-		, m_last_download((std::numeric_limits<boost::int16_t>::min)())
+		, m_last_download((std::numeric_limits<std::int16_t>::min)())
 		, m_num_seeds(0)
-		, m_last_upload((std::numeric_limits<boost::int16_t>::min)())
+		, m_last_upload((std::numeric_limits<std::int16_t>::min)())
 		, m_storage_tick(0)
 		, m_auto_managed((p.flags & add_torrent_params::flag_auto_managed) != 0)
 		, m_current_gauge_state(no_gauge_state)
 		, m_moving_storage(false)
 		, m_inactive(false)
 		, m_downloaded(0xffffff)
-		, m_last_scrape((std::numeric_limits<boost::int16_t>::min)())
+		, m_last_scrape((std::numeric_limits<std::int16_t>::min)())
 		, m_progress_ppm(0)
 	{
 		// we cannot log in the constructor, because it relies on shared_from_this
@@ -1551,7 +1551,7 @@ namespace libtorrent
 		// this is needed for openssl < 1.0 to decrypt keys created by openssl 1.0+
 		OpenSSL_add_all_algorithms();
 
-		boost::uint64_t now = clock_type::now().time_since_epoch().count();
+		std::uint64_t now = clock_type::now().time_since_epoch().count();
 		// assume 9 bits of entropy (i.e. about 1 millisecond)
 		RAND_add(&now, 8, 1.125);
 		RAND_add(&info_hash()[0], 20, 3);
@@ -1838,7 +1838,7 @@ namespace libtorrent
 			if (fs.pad_file_at(i)) ++num_pad_files;
 
 			if (!fs.pad_file_at(i) || fs.file_size(i) == 0) continue;
-			m_padding += boost::uint32_t(fs.file_size(i));
+			m_padding += std::uint32_t(fs.file_size(i));
 
 			// TODO: instead of creating the picker up front here,
 			// maybe this whole section should move to need_picker()
@@ -2539,7 +2539,7 @@ namespace libtorrent
 
 				// skip this file by updating m_checking_piece to the first piece following it
 				file_storage const& st = m_torrent_file->files();
-				boost::uint64_t file_size = st.file_size(j->error.file);
+				std::uint64_t file_size = st.file_size(j->error.file);
 				int last = st.map_file(j->error.file, file_size, 0).piece;
 				if (m_checking_piece < last)
 				{
@@ -2570,7 +2570,7 @@ namespace libtorrent
 			}
 		}
 
-		m_progress_ppm = boost::int64_t(m_num_checked_pieces) * 1000000 / torrent_file().num_pieces();
+		m_progress_ppm = std::int64_t(m_num_checked_pieces) * 1000000 / torrent_file().num_pieces();
 
 		// we're using the piece hashes here, we need the torrent to be loaded
 		if (!need_loaded())
@@ -2850,7 +2850,7 @@ namespace libtorrent
 
 #endif
 
-	void torrent::announce_with_tracker(boost::uint8_t e)
+	void torrent::announce_with_tracker(std::uint8_t e)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -3591,7 +3591,7 @@ namespace libtorrent
 		update_want_peers();
 	}
 
-	boost::int64_t torrent::bytes_left() const
+	std::int64_t torrent::bytes_left() const
 	{
 		// if we don't have the metadata yet, we
 		// cannot tell how big the torrent is.
@@ -3600,7 +3600,7 @@ namespace libtorrent
 			- quantized_bytes_done();
 	}
 
-	boost::int64_t torrent::quantized_bytes_done() const
+	std::int64_t torrent::quantized_bytes_done() const
 	{
 //		INVARIANT_CHECK;
 
@@ -3617,8 +3617,8 @@ namespace libtorrent
 
 		const int last_piece = m_torrent_file->num_pieces() - 1;
 
-		boost::int64_t total_done
-			= boost::uint64_t(m_picker->num_passed()) * m_torrent_file->piece_length();
+		std::int64_t total_done
+			= std::uint64_t(m_picker->num_passed()) * m_torrent_file->piece_length();
 
 		// if we have the last piece, we have to correct
 		// the amount we have, since the first calculation
@@ -3672,7 +3672,7 @@ namespace libtorrent
 		if (!valid_metadata() || m_torrent_file->num_pieces() == 0)
 			return;
 
-		TORRENT_ASSERT(st.total_wanted >= boost::int64_t(m_torrent_file->piece_length())
+		TORRENT_ASSERT(st.total_wanted >= std::int64_t(m_torrent_file->piece_length())
 			* (m_torrent_file->num_pieces() - 1));
 
 		const int last_piece = m_torrent_file->num_pieces() - 1;
@@ -3696,11 +3696,11 @@ namespace libtorrent
 		}
 
 		TORRENT_ASSERT(num_have() >= m_picker->num_have_filtered());
-		st.total_wanted_done = boost::int64_t(num_passed() - m_picker->num_have_filtered())
+		st.total_wanted_done = std::int64_t(num_passed() - m_picker->num_have_filtered())
 			* piece_size;
 		TORRENT_ASSERT(st.total_wanted_done >= 0);
 
-		st.total_done = boost::int64_t(num_passed()) * piece_size;
+		st.total_done = std::int64_t(num_passed()) * piece_size;
 		// if num_passed() == num_pieces(), we should be a seed, and taken the
 		// branch above
 		TORRENT_ASSERT(num_passed() <= m_torrent_file->num_pieces());
@@ -3714,7 +3714,7 @@ namespace libtorrent
 			TORRENT_ASSERT(st.total_wanted >= 0);
 			--num_filtered_pieces;
 		}
-		st.total_wanted -= boost::int64_t(num_filtered_pieces) * piece_size;
+		st.total_wanted -= std::int64_t(num_filtered_pieces) * piece_size;
 		TORRENT_ASSERT(st.total_wanted >= 0);
 
 		// if we have the last piece, we have to correct
@@ -4733,7 +4733,7 @@ namespace libtorrent
 	}
 #endif
 
-	boost::uint32_t torrent::tracker_key() const
+	std::uint32_t torrent::tracker_key() const
 	{
 		uintptr_t self = reinterpret_cast<uintptr_t>(this);
 		uintptr_t ses = reinterpret_cast<uintptr_t>(&m_ses);
@@ -5269,7 +5269,7 @@ namespace libtorrent
 		if (m_torrent_file->num_pieces() == 0) return;
 
 		bool need_update = false;
-		boost::int64_t position = 0;
+		std::int64_t position = 0;
 		int piece_length = m_torrent_file->piece_length();
 		// initialize the piece priorities to 0, then only allow
 		// setting higher priorities
@@ -5279,8 +5279,8 @@ namespace libtorrent
 		{
 			if (i >= fs.num_files()) break;
 
-			boost::int64_t start = position;
-			boost::int64_t size = m_torrent_file->files().file_size(i);
+			std::int64_t start = position;
+			std::int64_t size = m_torrent_file->files().file_size(i);
 			if (size == 0) continue;
 			position += size;
 			int file_prio;
@@ -5438,7 +5438,7 @@ namespace libtorrent
 
 		if (int(bitmask.size()) != m_torrent_file->num_files()) return;
 
-		boost::int64_t position = 0;
+		std::int64_t position = 0;
 
 		if (m_torrent_file->num_pieces())
 		{
@@ -5448,7 +5448,7 @@ namespace libtorrent
 			std::vector<bool> piece_filter(m_torrent_file->num_pieces(), true);
 			for (int i = 0; i < int(bitmask.size()); ++i)
 			{
-				boost::int64_t start = position;
+				std::int64_t start = position;
 				position += m_torrent_file->files().file_size(i);
 				// is the file selected for download?
 				if (!bitmask[i])
@@ -6263,8 +6263,8 @@ namespace libtorrent
 			web->peer_info.in_use = true;
 #endif
 
-			c->add_stat(boost::int64_t(web->peer_info.prev_amount_download) << 10
-				, boost::int64_t(web->peer_info.prev_amount_upload) << 10);
+			c->add_stat(std::int64_t(web->peer_info.prev_amount_download) << 10
+				, std::int64_t(web->peer_info.prev_amount_upload) << 10);
 			web->peer_info.prev_amount_download = 0;
 			web->peer_info.prev_amount_upload = 0;
 #ifndef TORRENT_DISABLE_LOGGING
@@ -6930,8 +6930,8 @@ namespace libtorrent
 			c->m_in_constructor = false;
 #endif
 
-			c->add_stat(boost::int64_t(peerinfo->prev_amount_download) << 10
-				, boost::int64_t(peerinfo->prev_amount_upload) << 10);
+			c->add_stat(std::int64_t(peerinfo->prev_amount_download) << 10
+				, std::int64_t(peerinfo->prev_amount_upload) << 10);
 			peerinfo->prev_amount_download = 0;
 			peerinfo->prev_amount_upload = 0;
 
@@ -7190,7 +7190,7 @@ namespace libtorrent
 		}
 		if (connection_limit_factor == 0) connection_limit_factor = 100;
 
-		boost::uint64_t limit = boost::uint64_t(m_max_connections) * 100 / connection_limit_factor;
+		std::uint64_t limit = std::uint64_t(m_max_connections) * 100 / connection_limit_factor;
 
 		bool maybe_replace_peer = false;
 
@@ -7562,12 +7562,12 @@ namespace libtorrent
 			return lhs->on_parole();
 
 		// prefer to disconnect peers that send data at a lower rate
-		boost::int64_t lhs_transferred = lhs->statistics().total_payload_download();
-		boost::int64_t rhs_transferred = rhs->statistics().total_payload_download();
+		std::int64_t lhs_transferred = lhs->statistics().total_payload_download();
+		std::int64_t rhs_transferred = rhs->statistics().total_payload_download();
 
 		time_point now = aux::time_now();
-		boost::int64_t lhs_time_connected = total_seconds(now - lhs->connected_time());
-		boost::int64_t rhs_time_connected = total_seconds(now - rhs->connected_time());
+		std::int64_t lhs_time_connected = total_seconds(now - lhs->connected_time());
+		std::int64_t rhs_time_connected = total_seconds(now - rhs->connected_time());
 
 		lhs_transferred /= lhs_time_connected + 1;
 		rhs_transferred /= (rhs_time_connected + 1);
@@ -8278,7 +8278,7 @@ namespace libtorrent
 		}
 #endif
 
-		boost::int64_t total_done = quantized_bytes_done();
+		std::int64_t total_done = quantized_bytes_done();
 		if (m_torrent_file->is_valid())
 		{
 			if (is_seed())
@@ -8602,8 +8602,8 @@ namespace libtorrent
 
 	int clamped_subtract_s16(int a, int b)
 	{
-		if (a + (std::numeric_limits<boost::int16_t>::min)() < b)
-			return (std::numeric_limits<boost::int16_t>::min)();
+		if (a + (std::numeric_limits<std::int16_t>::min)() < b)
+			return (std::numeric_limits<std::int16_t>::min)();
 		return a - b;
 	}
 
@@ -8685,13 +8685,13 @@ namespace libtorrent
 
 		int ret = 0;
 
-		boost::int64_t const fin_time = finished_time();
-		boost::int64_t const download_time = int(active_time()) - fin_time;
+		std::int64_t const fin_time = finished_time();
+		std::int64_t const download_time = int(active_time()) - fin_time;
 
 		// if we haven't yet met the seed limits, set the seed_ratio_not_met
 		// flag. That will make this seed prioritized
 		// downloaded may be 0 if the torrent is 0-sized
-		boost::int64_t downloaded = (std::max)(m_total_downloaded, m_torrent_file->total_size());
+		std::int64_t downloaded = (std::max)(m_total_downloaded, m_torrent_file->total_size());
 		if (fin_time < s.get_int(settings_pack::seed_time_limit)
 			&& (download_time > 1
 				&& fin_time * 100 / download_time < s.get_int(settings_pack::seed_time_ratio_limit))
@@ -8753,7 +8753,7 @@ namespace libtorrent
 
 		m_need_save_resume_data = false;
 		m_last_saved_resume = m_ses.session_time();
-		m_save_resume_flags = boost::uint8_t(flags);
+		m_save_resume_flags = std::uint8_t(flags);
 		state_updated();
 
 		if (!need_loaded())
@@ -9628,7 +9628,7 @@ namespace libtorrent
 		int num_downloaded_pieces = (std::max)(m_picker->num_have()
 			, pieces_in_torrent - m_picker->num_filtered());
 
-		if (boost::int64_t(num_downloaded_pieces) * m_torrent_file->piece_length()
+		if (std::int64_t(num_downloaded_pieces) * m_torrent_file->piece_length()
 			* settings().get_int(settings_pack::share_mode_target) > m_total_uploaded
 			&& num_downloaded_pieces > 0)
 			return;
@@ -10637,18 +10637,18 @@ namespace libtorrent
 		fp.resize(m_torrent_file->num_files(), 1.f);
 		if (is_seed()) return;
 
-		std::vector<boost::int64_t> progress;
+		std::vector<std::int64_t> progress;
 		file_progress(progress);
 		for (int i = 0; i < m_torrent_file->num_files(); ++i)
 		{
-			boost::int64_t file_size = m_torrent_file->files().file_size(i);
+			std::int64_t file_size = m_torrent_file->files().file_size(i);
 			if (file_size == 0) fp[i] = 1.f;
 			else fp[i] = float(progress[i]) / file_size;
 		}
 	}
 #endif
 
-	void torrent::file_progress(std::vector<boost::int64_t>& fp, int flags)
+	void torrent::file_progress(std::vector<std::int64_t>& fp, int flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		if (!valid_metadata())
@@ -10704,14 +10704,14 @@ namespace libtorrent
 		for (std::vector<piece_picker::downloading_piece>::const_iterator
 			i = q.begin(), end(q.end()); i != end; ++i)
 		{
-			boost::int64_t offset = boost::int64_t(i->index) * m_torrent_file->piece_length();
+			std::int64_t offset = std::int64_t(i->index) * m_torrent_file->piece_length();
 			int file = fs.file_index_at_offset(offset);
 			int num_blocks = m_picker->blocks_in_piece(i->index);
 			piece_picker::block_info const* info = m_picker->blocks_for_piece(*i);
 			for (int k = 0; k < num_blocks; ++k)
 			{
 				TORRENT_ASSERT(file < fs.num_files());
-				TORRENT_ASSERT(offset == boost::int64_t(i->index) * m_torrent_file->piece_length()
+				TORRENT_ASSERT(offset == std::int64_t(i->index) * m_torrent_file->piece_length()
 					+ k * block_size());
 				TORRENT_ASSERT(offset < m_torrent_file->total_size());
 				while (offset >= fs.file_offset(file) + fs.file_size(file))
@@ -10720,7 +10720,7 @@ namespace libtorrent
 				}
 				TORRENT_ASSERT(file < fs.num_files());
 
-				boost::int64_t block = block_size();
+				std::int64_t block = block_size();
 
 				if (info[k].state == piece_picker::block_info::state_none)
 				{
@@ -10756,7 +10756,7 @@ namespace libtorrent
 					while (block > 0)
 					{
 						TORRENT_ASSERT(offset <= fs.file_offset(file) + fs.file_size(file));
-						boost::int64_t slice = (std::min)(fs.file_offset(file) + fs.file_size(file) - offset
+						std::int64_t slice = (std::min)(fs.file_offset(file) + fs.file_size(file) - offset
 							, block);
 						fp[file] += slice;
 						offset += slice;
@@ -10773,7 +10773,7 @@ namespace libtorrent
 						}
 					}
 					offset += left_over;
-					TORRENT_ASSERT(offset == boost::int64_t(i->index) * m_torrent_file->piece_length()
+					TORRENT_ASSERT(offset == std::int64_t(i->index) * m_torrent_file->piece_length()
 						+ (k+1) * block_size());
 				}
 				else
@@ -10950,7 +10950,7 @@ namespace libtorrent
 		m_links[aux::session_interface::torrent_state_updates].insert(list, this);
 	}
 
-	void torrent::status(torrent_status* st, boost::uint32_t flags)
+	void torrent::status(torrent_status* st, std::uint32_t flags)
 	{
 		INVARIANT_CHECK;
 
@@ -10988,7 +10988,7 @@ namespace libtorrent
 		st->added_time = m_added_time;
 		st->completed_time = m_completed_time;
 
-		st->last_scrape = m_last_scrape == (std::numeric_limits<boost::int16_t>::min)() ? -1
+		st->last_scrape = m_last_scrape == (std::numeric_limits<std::int16_t>::min)() ? -1
 			: clamped_subtract(m_ses.session_time(), m_last_scrape);
 
 		st->share_mode = m_share_mode;
@@ -11020,9 +11020,9 @@ namespace libtorrent
 		st->finished_time = finished_time();
 		st->active_time = active_time();
 		st->seeding_time = seeding_time();
-		st->time_since_upload = m_last_upload == (std::numeric_limits<boost::int16_t>::min)() ? -1
+		st->time_since_upload = m_last_upload == (std::numeric_limits<std::int16_t>::min)() ? -1
 			: clamped_subtract(m_ses.session_time(), m_last_upload);
-		st->time_since_download = m_last_download == (std::numeric_limits<boost::int16_t>::min)() ? -1
+		st->time_since_download = m_last_download == (std::numeric_limits<std::int16_t>::min)() ? -1
 			: clamped_subtract(m_ses.session_time(), m_last_download);
 
 		st->storage_mode = static_cast<storage_mode_t>(m_storage_mode);

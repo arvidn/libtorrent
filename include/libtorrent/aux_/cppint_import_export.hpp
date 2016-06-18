@@ -180,12 +180,12 @@ namespace boost {
       namespace detail {
 
          template <class Backend>
-         boost::uintmax_t extract_bits(const Backend& val, unsigned location, unsigned count, const mpl::false_& tag)
+         std::uintmax_t extract_bits(const Backend& val, unsigned location, unsigned count, const mpl::false_& tag)
          {
             unsigned limb = location / (sizeof(limb_type) * CHAR_BIT);
             unsigned shift = location % (sizeof(limb_type) * CHAR_BIT);
-            boost::uintmax_t result = 0;
-            boost::uintmax_t mask = count == std::numeric_limits<boost::uintmax_t>::digits ? ~static_cast<boost::uintmax_t>(0) : (static_cast<boost::uintmax_t>(1u) << count) - 1;
+            std::uintmax_t result = 0;
+            std::uintmax_t mask = count == std::numeric_limits<std::uintmax_t>::digits ? ~static_cast<std::uintmax_t>(0) : (static_cast<std::uintmax_t>(1u) << count) - 1;
             if(count > (sizeof(limb_type) * CHAR_BIT - shift))
             {
                result = extract_bits(val, location + sizeof(limb_type) * CHAR_BIT - shift, count - sizeof(limb_type) * CHAR_BIT + shift, tag);
@@ -197,10 +197,10 @@ namespace boost {
          }
 
          template <class Backend>
-         inline boost::uintmax_t extract_bits(const Backend& val, unsigned location, unsigned count, const mpl::true_&)
+         inline std::uintmax_t extract_bits(const Backend& val, unsigned location, unsigned count, const mpl::true_&)
          {
-            boost::uintmax_t result = *val.limbs();
-            boost::uintmax_t mask = count == std::numeric_limits<boost::uintmax_t>::digits ? ~static_cast<boost::uintmax_t>(0) : (static_cast<boost::uintmax_t>(1u) << count) - 1;
+            std::uintmax_t result = *val.limbs();
+            std::uintmax_t mask = count == std::numeric_limits<std::uintmax_t>::digits ? ~static_cast<std::uintmax_t>(0) : (static_cast<std::uintmax_t>(1u) << count) - 1;
             return (result >> location) & mask;
          }
 

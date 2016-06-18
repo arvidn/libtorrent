@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_AUX_IO_HPP_INCLUDED
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/cstdint.hpp>
+#include <cstdint>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <string>
@@ -56,7 +56,7 @@ namespace libtorrent { namespace aux
 		for (int i = 0; i < int(sizeof(T)); ++i)
 		{
 			ret <<= 8;
-			ret |= static_cast<boost::uint8_t>(view[i]);
+			ret |= static_cast<std::uint8_t>(view[i]);
 		}
 		view = view.cut_first(sizeof(T));
 		return ret;
@@ -78,68 +78,68 @@ namespace libtorrent { namespace aux
 	// -- adaptors
 
 	template <typename Byte>
-	boost::int64_t read_int64(array_view<Byte>& view)
-	{ return read_impl(view, type<boost::int64_t>()); }
+	std::int64_t read_int64(array_view<Byte>& view)
+	{ return read_impl(view, type<std::int64_t>()); }
 
 	template <typename Byte>
-	boost::uint64_t read_uint64(array_view<Byte>& view)
-	{ return read_impl(view, type<boost::uint64_t>()); }
+	std::uint64_t read_uint64(array_view<Byte>& view)
+	{ return read_impl(view, type<std::uint64_t>()); }
 
 	template <typename Byte>
-	boost::uint32_t read_uint32(array_view<Byte>& view)
-	{ return read_impl(view, type<boost::uint32_t>()); }
+	std::uint32_t read_uint32(array_view<Byte>& view)
+	{ return read_impl(view, type<std::uint32_t>()); }
 
 	template <typename Byte>
-	boost::int32_t read_int32(array_view<Byte>& view)
-	{ return read_impl(view, type<boost::int32_t>()); }
+	std::int32_t read_int32(array_view<Byte>& view)
+	{ return read_impl(view, type<std::int32_t>()); }
 
 	template <typename Byte>
-	boost::int16_t read_int16(array_view<Byte>& view)
-	{ return read_impl(view, type<boost::int16_t>()); }
+	std::int16_t read_int16(array_view<Byte>& view)
+	{ return read_impl(view, type<std::int16_t>()); }
 
 	template <typename Byte>
-	boost::uint16_t read_uint16(array_view<Byte>& view)
-	{ return read_impl(view, type<boost::uint16_t>()); }
+	std::uint16_t read_uint16(array_view<Byte>& view)
+	{ return read_impl(view, type<std::uint16_t>()); }
 
 	template <typename Byte>
-	boost::int8_t read_int8(array_view<Byte>& view)
-	{ return read_impl(view, type<boost::int8_t>()); }
+	std::int8_t read_int8(array_view<Byte>& view)
+	{ return read_impl(view, type<std::int8_t>()); }
 
 	template <typename Byte>
-	boost::uint8_t read_uint8(array_view<Byte>& view)
-	{ return read_impl(view, type<boost::uint8_t>()); }
+	std::uint8_t read_uint8(array_view<Byte>& view)
+	{ return read_impl(view, type<std::uint8_t>()); }
 
 
 	template <typename Byte>
-	void write_uint64(boost::uint64_t val, array_view<Byte>& view)
+	void write_uint64(std::uint64_t val, array_view<Byte>& view)
 	{ write_impl(val, view); }
 
 	template <typename Byte>
-	void write_int64(boost::int64_t val, array_view<Byte>& view)
+	void write_int64(std::int64_t val, array_view<Byte>& view)
 	{ write_impl(val, view); }
 
 	template <typename Byte>
-	void write_uint32(boost::uint32_t val, array_view<Byte>& view)
+	void write_uint32(std::uint32_t val, array_view<Byte>& view)
 	{ write_impl(val, view); }
 
 	template <typename Byte>
-	void write_int32(boost::int32_t val, array_view<Byte>& view)
+	void write_int32(std::int32_t val, array_view<Byte>& view)
 	{ write_impl(val, view); }
 
 	template <typename Byte>
-	void write_uint16(boost::uint16_t val, array_view<Byte>& view)
+	void write_uint16(std::uint16_t val, array_view<Byte>& view)
 	{ write_impl(val, view); }
 
 	template <typename Byte>
-	void write_int16(boost::int16_t val, array_view<Byte>& view)
+	void write_int16(std::int16_t val, array_view<Byte>& view)
 	{ write_impl(val, view); }
 
 	template <typename Byte>
-	void write_uint8(boost::uint8_t val, array_view<Byte>& view)
+	void write_uint8(std::uint8_t val, array_view<Byte>& view)
 	{ write_impl(val, view); }
 
 	template <typename Byte>
-	void write_int8(boost::int8_t val, array_view<Byte>& view)
+	void write_int8(std::int8_t val, array_view<Byte>& view)
 	{ write_impl(val, view); }
 
 	template<typename Byte>

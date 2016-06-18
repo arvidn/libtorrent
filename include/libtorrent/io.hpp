@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_IO_HPP_INCLUDED
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/cstdint.hpp>
+#include <cstdint>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <string>
@@ -57,22 +57,22 @@ namespace libtorrent
 			for (int i = 0; i < int(sizeof(T)); ++i)
 			{
 				ret <<= 8;
-				ret |= static_cast<boost::uint8_t>(*start);
+				ret |= static_cast<std::uint8_t>(*start);
 				++start;
 			}
 			return ret;
 		}
 
 		template <class InIt>
-		boost::uint8_t read_impl(InIt& start, type<boost::uint8_t>)
+		std::uint8_t read_impl(InIt& start, type<std::uint8_t>)
 		{
-			return static_cast<boost::uint8_t>(*start++);
+			return static_cast<std::uint8_t>(*start++);
 		}
 
 		template <class InIt>
-		boost::int8_t read_impl(InIt& start, type<boost::int8_t>)
+		std::int8_t read_impl(InIt& start, type<std::int8_t>)
 		{
-			return static_cast<boost::int8_t>(*start++);
+			return static_cast<std::int8_t>(*start++);
 		}
 
 		template <class T, class OutIt>
@@ -88,68 +88,68 @@ namespace libtorrent
 		// -- adaptors
 
 		template <class InIt>
-		boost::int64_t read_int64(InIt& start)
-		{ return read_impl(start, type<boost::int64_t>()); }
+		std::int64_t read_int64(InIt& start)
+		{ return read_impl(start, type<std::int64_t>()); }
 
 		template <class InIt>
-		boost::uint64_t read_uint64(InIt& start)
-		{ return read_impl(start, type<boost::uint64_t>()); }
+		std::uint64_t read_uint64(InIt& start)
+		{ return read_impl(start, type<std::uint64_t>()); }
 
 		template <class InIt>
-		boost::uint32_t read_uint32(InIt& start)
-		{ return read_impl(start, type<boost::uint32_t>()); }
+		std::uint32_t read_uint32(InIt& start)
+		{ return read_impl(start, type<std::uint32_t>()); }
 
 		template <class InIt>
-		boost::int32_t read_int32(InIt& start)
-		{ return read_impl(start, type<boost::int32_t>()); }
+		std::int32_t read_int32(InIt& start)
+		{ return read_impl(start, type<std::int32_t>()); }
 
 		template <class InIt>
-		boost::int16_t read_int16(InIt& start)
-		{ return read_impl(start, type<boost::int16_t>()); }
+		std::int16_t read_int16(InIt& start)
+		{ return read_impl(start, type<std::int16_t>()); }
 
 		template <class InIt>
-		boost::uint16_t read_uint16(InIt& start)
-		{ return read_impl(start, type<boost::uint16_t>()); }
+		std::uint16_t read_uint16(InIt& start)
+		{ return read_impl(start, type<std::uint16_t>()); }
 
 		template <class InIt>
-		boost::int8_t read_int8(InIt& start)
-		{ return read_impl(start, type<boost::int8_t>()); }
+		std::int8_t read_int8(InIt& start)
+		{ return read_impl(start, type<std::int8_t>()); }
 
 		template <class InIt>
-		boost::uint8_t read_uint8(InIt& start)
-		{ return read_impl(start, type<boost::uint8_t>()); }
+		std::uint8_t read_uint8(InIt& start)
+		{ return read_impl(start, type<std::uint8_t>()); }
 
 
 		template <class OutIt>
-		void write_uint64(boost::uint64_t val, OutIt& start)
+		void write_uint64(std::uint64_t val, OutIt& start)
 		{ write_impl(val, start); }
 
 		template <class OutIt>
-		void write_int64(boost::int64_t val, OutIt& start)
+		void write_int64(std::int64_t val, OutIt& start)
 		{ write_impl(val, start); }
 
 		template <class OutIt>
-		void write_uint32(boost::uint32_t val, OutIt& start)
+		void write_uint32(std::uint32_t val, OutIt& start)
 		{ write_impl(val, start); }
 
 		template <class OutIt>
-		void write_int32(boost::int32_t val, OutIt& start)
+		void write_int32(std::int32_t val, OutIt& start)
 		{ write_impl(val, start); }
 
 		template <class OutIt>
-		void write_uint16(boost::uint16_t val, OutIt& start)
+		void write_uint16(std::uint16_t val, OutIt& start)
 		{ write_impl(val, start); }
 
 		template <class OutIt>
-		void write_int16(boost::int16_t val, OutIt& start)
+		void write_int16(std::int16_t val, OutIt& start)
 		{ write_impl(val, start); }
 
 		template <class OutIt>
-		void write_uint8(boost::uint8_t val, OutIt& start)
+		void write_uint8(std::uint8_t val, OutIt& start)
 		{ write_impl(val, start); }
 
 		template <class OutIt>
-		void write_int8(boost::int8_t val, OutIt& start)
+		void write_int8(std::int8_t val, OutIt& start)
 		{ write_impl(val, start); }
 
 		inline int write_string(std::string const& str, char*& start)

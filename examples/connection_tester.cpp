@@ -61,9 +61,9 @@ using namespace libtorrent::detail; // for write_* and read_*
 
 using namespace std::placeholders;
 
-void generate_block(boost::uint32_t* buffer, int piece, int start, int length)
+void generate_block(std::uint32_t* buffer, int piece, int start, int length)
 {
-	boost::uint32_t fill = (piece << 8) | ((start / 0x4000) & 0xff);
+	std::uint32_t fill = (piece << 8) | ((start / 0x4000) & 0xff);
 	for (int i = 0; i < length / 4; ++i)
 	{
 		buffer[i] = fill;
@@ -109,7 +109,7 @@ void sleep_ms(int milliseconds)
 #if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
 	Sleep(milliseconds);
 #elif defined TORRENT_BEOS
-	snooze_until(system_time() + boost::int64_t(milliseconds) * 1000, B_SYSTEM_TIMEBASE);
+	snooze_until(system_time() + std::int64_t(milliseconds) * 1000, B_SYSTEM_TIMEBASE);
 #else
 	usleep(milliseconds * 1000);
 #endif
@@ -207,8 +207,8 @@ struct peer_conn
 
 	tcp::socket s;
 	char write_buf_proto[100];
-	boost::uint32_t write_buffer[17*1024/4];
-	boost::uint32_t buffer[17*1024/4];
+	std::uint32_t write_buffer[17*1024/4];
+	std::uint32_t buffer[17*1024/4];
 	int read_pos;
 	int corruption_counter;
 
@@ -425,8 +425,8 @@ struct peer_conn
 		std::snprintf(tmp, sizeof(tmp), fmt, ec.message().c_str());
 		int time = int(total_milliseconds(end_time - start_time));
 		if (time == 0) time = 1;
-		float up = (boost::int64_t(blocks_sent) * 0x4000) / time / 1000.f;
-		float down = (boost::int64_t(blocks_received) * 0x4000) / time / 1000.f;
+		float up = (std::int64_t(blocks_sent) * 0x4000) / time / 1000.f;
+		float down = (std::int64_t(blocks_received) * 0x4000) / time / 1000.f;
 		error_code e;
 
 		char ep_str[200];
@@ -665,8 +665,8 @@ struct peer_conn
 
 	bool verify_piece(int piece, int start, char const* ptr, int size)
 	{
-		boost::uint32_t* buf = (boost::uint32_t*)ptr;
-		boost::uint32_t fill = (piece << 8) | ((start / 0x4000) & 0xff);
+		std::uint32_t* buf = (std::uint32_t*)ptr;
+		std::uint32_t fill = (piece << 8) | ((start / 0x4000) & 0xff);
 		for (int i = 0; i < size / 4; ++i)
 		{
 			if (buf[i] != fill)
@@ -760,7 +760,7 @@ void print_usage()
 void hasher_thread(libtorrent::create_torrent* t, int start_piece, int end_piece, int piece_size, bool print)
 {
 	if (print) std::fprintf(stderr, "\n");
-	boost::uint32_t piece[0x4000 / 4];
+	std::uint32_t piece[0x4000 / 4];
 	for (int i = start_piece; i < end_piece; ++i)
 	{
 		hasher ph;
@@ -783,17 +783,17 @@ void generate_torrent(std::vector<char>& buf, int size, int num_files
 	// 1 MiB piece size
 	const int piece_size = 1024 * 1024;
 	const int num_pieces = size;
-	const boost::int64_t total_size = boost::int64_t(piece_size) * num_pieces;
+	const std::int64_t total_size = std::int64_t(piece_size) * num_pieces;
 
-	boost::int64_t s = total_size;
+	std::int64_t s = total_size;
 	int i = 0;
-	boost::int64_t file_size = total_size / num_files;
+	std::int64_t file_size = total_size / num_files;
 	while (s > 0)
 	{
 		char b[100];
 		std::snprintf(b, sizeof(b), "%s/stress_test%d", torrent_name, i);
 		++i;
-		fs.add_file(b, (std::min)(s, boost::int64_t(file_size)));
+		fs.add_file(b, (std::min)(s, std::int64_t(file_size)));
 		s -= file_size;
 		file_size += 200;
 	}
@@ -837,7 +837,7 @@ void generate_data(char const* path, torrent_info const& ti)
 		st->initialize(error);
 	}
 
-	boost::uint32_t piece[0x4000 / 4];
+	std::uint32_t piece[0x4000 / 4];
 	for (int i = 0; i < ti.num_pieces(); ++i)
 	{
 		for (int j = 0; j < ti.piece_size(i); j += 0x4000)
@@ -972,7 +972,7 @@ int main(int argc, char* argv[])
 			{
 				char file_name[100];
 				std::snprintf(file_name, sizeof(file_name), "%s-%d/file-%d", torrent_file, i, j);
-				fs.add_file(file_name, boost::int64_t(j + i + 1) * 251);
+				fs.add_file(file_name, std::int64_t(j + i + 1) * 251);
 			}
 			// 1 MiB piece size
 			const int piece_size = 1024 * 1024;
@@ -1029,12 +1029,12 @@ int main(int argc, char* argv[])
 		std::fprintf(stderr, "ERROR RESOLVING %s: %s\n", destination_ip, ec.message().c_str());
 		return 1;
 	}
-	tcp::endpoint ep(addr, boost::uint16_t(destination_port));
+	tcp::endpoint ep(addr, std::uint16_t(destination_port));
 
 #if !defined __APPLE__
 	// apparently darwin doesn't seems to let you bind to
 	// loopback on any other IP than 127.0.0.1
-	boost::uint32_t const ip = addr.to_ulong();
+	std::uint32_t const ip = addr.to_ulong();
 	if ((ip & 0xff000000) == 0x7f000000)
 	{
 		local_bind = true;
@@ -1077,8 +1077,8 @@ int main(int argc, char* argv[])
 
 	float up = 0.f;
 	float down = 0.f;
-	boost::uint64_t total_sent = 0;
-	boost::uint64_t total_received = 0;
+	std::uint64_t total_sent = 0;
+	std::uint64_t total_received = 0;
 
 	for (std::vector<peer_conn*>::iterator i = conns.begin()
 		, end(conns.end()); i != end; ++i)
@@ -1087,8 +1087,8 @@ int main(int argc, char* argv[])
 		int time = int(total_milliseconds(p->end_time - p->start_time));
 		if (time == 0) time = 1;
 		total_sent += p->blocks_sent;
-		up += (boost::int64_t(p->blocks_sent) * 0x4000) / time / 1000.f;
-		down += (boost::int64_t(p->blocks_received) * 0x4000) / time / 1000.f;
+		up += (std::int64_t(p->blocks_sent) * 0x4000) / time / 1000.f;
+		down += (std::int64_t(p->blocks_received) * 0x4000) / time / 1000.f;
 		delete p;
 	}
 

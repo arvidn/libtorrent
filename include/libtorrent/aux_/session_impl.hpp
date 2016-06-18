@@ -335,7 +335,7 @@ namespace libtorrent
 
 			void dht_put_mutable_item(std::array<char, 32> key
 				, boost::function<void(entry&, std::array<char,64>&
-				, boost::uint64_t&, std::string const&)> cb
+				, std::uint64_t&, std::string const&)> cb
 				, std::string salt = std::string());
 
 			void dht_get_peers(sha1_hash const& info_hash);
@@ -430,10 +430,10 @@ namespace libtorrent
 
 			void get_torrent_status(std::vector<torrent_status>* ret
 				, boost::function<bool(torrent_status const&)> const& pred
-				, boost::uint32_t flags) const;
+				, std::uint32_t flags) const;
 			void refresh_torrent_status(std::vector<torrent_status>* ret
-				, boost::uint32_t flags) const;
-			void post_torrent_updates(boost::uint32_t flags);
+				, std::uint32_t flags) const;
+			void post_torrent_updates(std::uint32_t flags);
 			void post_session_stats();
 			void post_dht_stats();
 
@@ -496,8 +496,8 @@ namespace libtorrent
 
 			void set_peer_id(peer_id const& id);
 			void set_key(int key);
-			boost::uint16_t listen_port() const override;
-			boost::uint16_t ssl_listen_port() const override;
+			std::uint16_t listen_port() const override;
+			std::uint16_t ssl_listen_port() const override;
 
 			alert_manager& alerts() override { return m_alerts; }
 			disk_interface& disk_thread() override { return m_disk_thread; }
@@ -509,8 +509,8 @@ namespace libtorrent
 
 			void announce_lsd(sha1_hash const& ih, int port, bool broadcast = false) override;
 
-			void save_state(entry* e, boost::uint32_t flags) const;
-			void load_state(bdecode_node const* e, boost::uint32_t flags);
+			void save_state(entry* e, std::uint32_t flags) const;
+			void load_state(bdecode_node const* e, std::uint32_t flags);
 
 			bool has_connection(peer_connection* p) const override;
 			void insert_peer(boost::shared_ptr<peer_connection> const& c) override;
@@ -885,10 +885,10 @@ namespace libtorrent
 			// when as a socks proxy is used for peers, also
 			// listen for incoming connections on a socks connection
 			boost::shared_ptr<socket_type> m_socks_listen_socket;
-			boost::uint16_t m_socks_listen_port;
+			std::uint16_t m_socks_listen_port;
 
 			// round-robin index into m_outgoing_interfaces
-			mutable boost::uint8_t m_interface_index;
+			mutable std::uint8_t m_interface_index;
 
 			void open_new_incoming_socks_connection();
 
@@ -961,16 +961,16 @@ namespace libtorrent
 			void recalculate_optimistic_unchoke_slots();
 
 			time_point m_created;
-			boost::uint16_t session_time() const override
+			std::uint16_t session_time() const override
 			{
 				// +1 is here to make it possible to distinguish uninitialized (to
 				// 0) timestamps and timestamps of things that happened during the
 				// first second after the session was constructed
-				boost::int64_t const ret = total_seconds(aux::time_now()
+				std::int64_t const ret = total_seconds(aux::time_now()
 					- m_created) + 1;
 				TORRENT_ASSERT(ret >= 0);
-				TORRENT_ASSERT(ret <= (std::numeric_limits<boost::uint16_t>::max)());
-				return static_cast<boost::uint16_t>(ret);
+				TORRENT_ASSERT(ret <= (std::numeric_limits<std::uint16_t>::max)());
+				return static_cast<std::uint16_t>(ret);
 			}
 
 			time_point m_last_tick;
@@ -1144,7 +1144,7 @@ namespace libtorrent
 			// this keeps the timers more accurate over time
 			// as a kind of "leap second" to adjust for the
 			// accumulated error
-			boost::uint16_t m_tick_residual;
+			std::uint16_t m_tick_residual;
 
 #ifndef TORRENT_DISABLE_LOGGING
 			virtual void session_log(char const* fmt, ...) const override TORRENT_FORMAT(2,3);

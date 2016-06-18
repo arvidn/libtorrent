@@ -91,7 +91,7 @@ namespace libtorrent
 		void subscribe_writable(utp_socket_impl* s);
 
 		// internal, used by utp_stream
-		void remove_socket(boost::uint16_t id);
+		void remove_socket(std::uint16_t id);
 
 		utp_socket_impl* new_utp_socket(utp_stream* str);
 		int gain_factor() const { return m_sett.get_int(settings_pack::utp_gain_factor); }
@@ -132,7 +132,7 @@ namespace libtorrent
 		incoming_utp_callback_t m_cb;
 
 		// replace with a hash-map
-		typedef std::multimap<boost::uint16_t, utp_socket_impl*> socket_map_t;
+		typedef std::multimap<std::uint16_t, utp_socket_impl*> socket_map_t;
 		socket_map_t m_utp_sockets;
 
 		// this is a list of sockets that needs to send an ack.

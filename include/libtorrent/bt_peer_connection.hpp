@@ -47,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/noncopyable.hpp>
 #include <array>
 #include <boost/optional.hpp>
-#include <boost/cstdint.hpp>
+#include <cstdint>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -330,7 +330,7 @@ private:
 #endif
 
 		// state of on_receive. one of the enums in state_t
-		boost::uint8_t m_state;
+		std::uint8_t m_state;
 
 		// this is set to true if the handshake from
 		// the peer indicated that it supports the
@@ -425,17 +425,17 @@ private:
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		// the message ID for upload only message
 		// 0 if not supported
-		boost::uint8_t m_upload_only_id;
+		std::uint8_t m_upload_only_id;
 
 		// the message ID for holepunch messages
-		boost::uint8_t m_holepunch_id;
+		std::uint8_t m_holepunch_id;
 
 		// the message ID for don't-have message
-		boost::uint8_t m_dont_have_id;
+		std::uint8_t m_dont_have_id;
 
 		// the message ID for share mode message
 		// 0 if not supported
-		boost::uint8_t m_share_mode_id;
+		std::uint8_t m_share_mode_id;
 
 		char m_reserved_bits[8];
 #endif

@@ -57,10 +57,10 @@ namespace dht
 	// This structure hold the relevant counters for the storage
 	struct TORRENT_EXPORT dht_storage_counters
 	{
-		boost::int32_t torrents;
-		boost::int32_t peers;
-		boost::int32_t immutable_data;
-		boost::int32_t mutable_data;
+		std::int32_t torrents;
+		std::int32_t peers;
+		std::int32_t immutable_data;
+		std::int32_t mutable_data;
 
 		// This member function set the counters to zero.
 		void reset();
@@ -173,7 +173,7 @@ namespace dht
 		// inside the out parameter seq.
 		//
 		virtual bool get_mutable_item_seq(sha1_hash const& target
-			, boost::int64_t& seq) const = 0;
+			, std::int64_t& seq) const = 0;
 
 		// This function retrieves the mutable stored in the DHT.
 		//
@@ -189,7 +189,7 @@ namespace dht
 		// inside the (entry) out parameter item.
 		//
 		virtual bool get_mutable_item(sha1_hash const& target
-			, boost::int64_t seq, bool force_fill
+			, std::int64_t seq, bool force_fill
 			, entry& item) const = 0;
 
 		// Store the item's data. This layer is only for storage.
@@ -203,7 +203,7 @@ namespace dht
 		virtual void put_mutable_item(sha1_hash const& target
 			, char const* buf, int size
 			, char const* sig
-			, boost::int64_t seq
+			, std::int64_t seq
 			, char const* pk
 			, char const* salt, int salt_size
 			, address const& addr) = 0;

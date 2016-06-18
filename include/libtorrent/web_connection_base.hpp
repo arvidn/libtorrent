@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/noncopyable.hpp>
 #include <array>
 #include <boost/optional.hpp>
-#include <boost/cstdint.hpp>
+#include <cstdint>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 

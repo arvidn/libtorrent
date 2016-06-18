@@ -266,8 +266,8 @@ void peer_conn::close(char const* fmt, error_code const& ec)
 	std::snprintf(tmp, sizeof(tmp), fmt, ec.message().c_str());
 	int time = int(total_milliseconds(end_time - start_time));
 	if (time == 0) time = 1;
-	float up = (boost::int64_t(blocks_sent) * 0x4000) / time / 1000.f;
-	float down = (boost::int64_t(blocks_received) * 0x4000) / time / 1000.f;
+	float up = (std::int64_t(blocks_sent) * 0x4000) / time / 1000.f;
+	float down = (std::int64_t(blocks_received) * 0x4000) / time / 1000.f;
 	error_code e;
 
 	char ep_str[200];
@@ -512,8 +512,8 @@ void peer_conn::on_message(error_code const& ec, size_t bytes_transferred)
 /*
 bool peer_conn::verify_piece(int piece, int start, char const* ptr, int size)
 {
-	boost::uint32_t* buf = (boost::uint32_t*)ptr;
-	boost::uint32_t fill = (piece << 8) | ((start / 0x4000) & 0xff);
+	std::uint32_t* buf = (std::uint32_t*)ptr;
+	std::uint32_t fill = (piece << 8) | ((start / 0x4000) & 0xff);
 	for (int i = 0; i < size / 4; ++i)
 	{
 		if (buf[i] != fill)

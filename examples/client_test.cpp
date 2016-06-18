@@ -75,7 +75,7 @@ void sleep_ms(int milliseconds)
 #if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
 	Sleep(milliseconds);
 #elif defined TORRENT_BEOS
-	snooze_until(system_time() + boost::int64_t(milliseconds) * 1000, B_SYSTEM_TIMEBASE);
+	snooze_until(system_time() + std::int64_t(milliseconds) * 1000, B_SYSTEM_TIMEBASE);
 #else
 	usleep(milliseconds * 1000);
 #endif
@@ -1003,7 +1003,7 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 					int peer_port = atoi(port);
 					error_code ec;
 					if (peer_port > 0)
-						h.connect_peer(tcp::endpoint(address::from_string(ip, ec), boost::uint16_t(peer_port)));
+						h.connect_peer(tcp::endpoint(address::from_string(ip, ec), std::uint16_t(peer_port)));
 				}
 			}
 
@@ -2015,7 +2015,7 @@ int main(int argc, char* argv[])
 
 			if (print_file_progress && s.has_metadata)
 			{
-				std::vector<boost::int64_t> file_progress;
+				std::vector<std::int64_t> file_progress;
 				h.file_progress(file_progress);
 				std::vector<pool_file_status> file_status;
 				h.file_status(file_status);

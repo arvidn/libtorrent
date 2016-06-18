@@ -198,7 +198,7 @@ namespace libtorrent
 		TORRENT_DEPRECATED
 		session(fingerprint const& print
 			, int flags = start_default_features | add_default_plugins
-			, boost::uint32_t alert_mask = alert::error_notification)
+			, std::uint32_t alert_mask = alert::error_notification)
 			: session_handle(NULL)
 		{
 			TORRENT_CFG();

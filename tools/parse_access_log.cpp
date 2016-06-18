@@ -52,9 +52,9 @@ void print_usage()
 
 struct file_op
 {
-	boost::uint64_t timestamp;
-	boost::uint64_t offset;
-	boost::uint8_t event;
+	std::uint64_t timestamp;
+	std::uint64_t offset;
+	std::uint8_t event;
 };
 
 int main(int argc, char* argv[])
@@ -76,10 +76,10 @@ int main(int argc, char* argv[])
 	FILE* reads_elev_file = std::fopen("reads_elevator.log", "w+");
 
 
-	typedef std::map<boost::uint32_t, file_op> op_map;
+	typedef std::map<std::uint32_t, file_op> op_map;
 	op_map outstanding_ops;
 
-	boost::uint64_t first_timestamp = 0;
+	std::uint64_t first_timestamp = 0;
 
 	for (;;)
 	{
@@ -91,7 +91,7 @@ int main(int argc, char* argv[])
 		file_op op;
 		op.timestamp = read_uint64(ptr);
 		op.offset = read_uint64(ptr);
-		boost::uint32_t event_id = read_uint32(ptr);
+		std::uint32_t event_id = read_uint32(ptr);
 		op.event = read_uint8(ptr);
 
 		if (first_timestamp == 0) first_timestamp = op.timestamp;

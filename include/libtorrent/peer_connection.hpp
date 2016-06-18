@@ -75,7 +75,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/noncopyable.hpp>
 #include <array>
 #include <boost/optional.hpp>
-#include <boost/cstdint.hpp>
+#include <cstdint>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -113,7 +113,7 @@ namespace libtorrent
 		// request_time field is set to the current time.
 		// if the request has not been written to the send buffer, this field
 		// remains not_in_buffer.
-		boost::uint32_t send_buffer_offset:29;
+		std::uint32_t send_buffer_offset:29;
 
 		// if any of these are set to true, this block
 		// is not allocated
@@ -121,14 +121,14 @@ namespace libtorrent
 		// other peers to pick. This may be caused by
 		// it either timing out or being received
 		// unexpectedly from the peer
-		boost::uint32_t not_wanted:1;
-		boost::uint32_t timed_out:1;
+		std::uint32_t not_wanted:1;
+		std::uint32_t timed_out:1;
 
 		// the busy flag is set if the block was
 		// requested from another peer when this
 		// request was queued. We only allow a single
 		// busy request at a time in each peer's queue
-		boost::uint32_t busy:1;
+		std::uint32_t busy:1;
 
 		bool operator==(pending_block const& b)
 		{
@@ -377,7 +377,7 @@ namespace libtorrent
 		bool ignore_stats() const { return m_ignore_stats; }
 		void ignore_stats(bool b) { m_ignore_stats = b; }
 
-		boost::uint32_t peer_rank() const;
+		std::uint32_t peer_rank() const;
 
 		void fast_reconnect(bool r);
 		bool fast_reconnect() const { return m_fast_reconnect; }
@@ -455,7 +455,7 @@ namespace libtorrent
 		{ return m_torrent; }
 
 		stat const& statistics() const { return m_statistics; }
-		void add_stat(boost::int64_t downloaded, boost::int64_t uploaded);
+		void add_stat(std::int64_t downloaded, std::int64_t uploaded);
 		void sent_bytes(int bytes_payload, int bytes_protocol);
 		void received_bytes(int bytes_payload, int bytes_protocol);
 		void trancieve_ip_packet(int bytes, bool ipv6);
@@ -683,13 +683,13 @@ namespace libtorrent
 		time_t last_seen_complete() const { return m_last_seen_complete; }
 		void set_last_seen_complete(int ago) { m_last_seen_complete = time(0) - ago; }
 
-		boost::int64_t uploaded_in_last_round() const
+		std::int64_t uploaded_in_last_round() const
 		{ return m_statistics.total_payload_upload() - m_uploaded_at_last_round; }
 
-		boost::int64_t downloaded_in_last_round() const
+		std::int64_t downloaded_in_last_round() const
 		{ return m_statistics.total_payload_download() - m_downloaded_at_last_round; }
 
-		boost::int64_t uploaded_since_unchoked() const
+		std::int64_t uploaded_since_unchoked() const
 		{ return m_statistics.total_payload_upload() - m_uploaded_at_last_unchoke; }
 
 		// the time we last unchoked this peer
@@ -950,8 +950,8 @@ namespace libtorrent
 		// measure the number of bytes transferred during
 		// an unchoke cycle, to unchoke peers the more bytes
 		// they sent us
-		boost::int64_t m_downloaded_at_last_round;
-		boost::int64_t m_uploaded_at_last_round;
+		std::int64_t m_downloaded_at_last_round;
+		std::int64_t m_uploaded_at_last_round;
 
 		// this is the number of bytes we had uploaded the
 		// last time this peer was unchoked. This does not
@@ -959,13 +959,13 @@ namespace libtorrent
 		// track upload across rounds, for the full duration of
 		// the peer being unchoked. Specifically, it's used
 		// for the round-robin unchoke algorithm.
-		boost::int64_t m_uploaded_at_last_unchoke;
+		std::int64_t m_uploaded_at_last_unchoke;
 
 		// the number of payload bytes downloaded last second tick
-		boost::int32_t m_downloaded_last_second;
+		std::int32_t m_downloaded_last_second;
 
 		// the number of payload bytes uploaded last second tick
-		boost::int32_t m_uploaded_last_second;
+		std::int32_t m_uploaded_last_second;
 
 		// the number of bytes that the other
 		// end has to send us in order to respond
@@ -989,7 +989,7 @@ namespace libtorrent
 		// a sent-piece counter for the allowed fast set
 		// to avoid exploitation. Each slot is a counter
 		// for one of the pieces from the allowed-fast set
-		std::vector<boost::uint16_t> m_accept_fast_piece_cnt;
+		std::vector<std::uint16_t> m_accept_fast_piece_cnt;
 
 		// the pieces the peer will send us if
 		// requested (regardless of choke state)
@@ -1100,7 +1100,7 @@ namespace libtorrent
 		// the number of request we should queue up
 		// at the remote end.
 		// TODO: 2 rename this target queue size
-		boost::uint16_t m_desired_queue_size;
+		std::uint16_t m_desired_queue_size;
 
 		// if set to non-zero, this peer will always prefer
 		// to request entire n pieces, rather than blocks.
@@ -1108,19 +1108,19 @@ namespace libtorrent
 		// if it is 0, the download rate limit setting
 		// will be used to determine if whole pieces
 		// are preferred.
-		boost::uint8_t m_prefer_contiguous_blocks;
+		std::uint8_t m_prefer_contiguous_blocks;
 
 		// this is the number of times this peer has had
 		// a request rejected because of a disk I/O failure.
 		// once this reaches a certain threshold, the
 		// peer is disconnected in order to avoid infinite
 		// loops of consistent failures
-		boost::uint8_t m_disk_read_failures;
+		std::uint8_t m_disk_read_failures;
 
 		// this is used in seed mode whenever we trigger a hash check
 		// for a piece, before we read it. It's used to throttle
 		// the hash checks to just a few per peer at a time.
-		boost::uint8_t m_outstanding_piece_verification:3;
+		std::uint8_t m_outstanding_piece_verification:3;
 
 		// is true if it was we that connected to the peer
 		// and false if we got an incoming connection

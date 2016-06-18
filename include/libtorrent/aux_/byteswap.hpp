@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/cstdint.hpp>
+#include <cstdint>
 
 #ifdef TORRENT_WINDOWS
 #include <winsock2.h>
@@ -55,16 +55,16 @@ namespace aux {
 
 // these need to be within the disabled warnings because on OSX
 // the htonl and ntohl macros cause lots of old-style case warnings
-inline boost::uint32_t host_to_network(boost::uint32_t x)
+inline std::uint32_t host_to_network(std::uint32_t x)
 { return htonl(x); }
 
-inline boost::uint32_t network_to_host(boost::uint32_t x)
+inline std::uint32_t network_to_host(std::uint32_t x)
 { return ntohl(x); }
 
-inline boost::uint16_t host_to_network(boost::uint16_t x)
+inline std::uint16_t host_to_network(std::uint16_t x)
 { return htons(x); }
 
-inline boost::uint16_t network_to_host(boost::uint16_t x)
+inline std::uint16_t network_to_host(std::uint16_t x)
 { return ntohs(x); }
 
 }

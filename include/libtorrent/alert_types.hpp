@@ -1893,7 +1893,7 @@ namespace libtorrent
 		// interpret these values throughout the process' runtime.
 		//
 		// For more information, see the session-statistics_ section.
-		boost::uint64_t values[counters::num_counters];
+		std::uint64_t values[counters::num_counters];
 	};
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -1975,7 +1975,7 @@ namespace libtorrent
 		dht_mutable_item_alert(aux::stack_allocator& alloc
 			, std::array<char, 32> k
 			, std::array<char, 64> sig
-			, boost::uint64_t sequence
+			, std::uint64_t sequence
 			, std::string const& s
 			, entry const& i
 			, bool a);
@@ -1996,7 +1996,7 @@ namespace libtorrent
 		std::array<char, 64> signature;
 
 		// the sequence number of this item
-		boost::uint64_t seq;
+		std::uint64_t seq;
 
 		// the salt, if any, used to lookup and store this item. If no
 		// salt was used, this is an empty string
@@ -2018,7 +2018,7 @@ namespace libtorrent
 		dht_put_alert(aux::stack_allocator& alloc, std::array<char, 32> key
 			, std::array<char, 64> sig
 			, std::string s
-			, boost::uint64_t sequence_number
+			, std::uint64_t sequence_number
 			, int n);
 
 		TORRENT_DEFINE_ALERT(dht_put_alert, 76)
@@ -2035,7 +2035,7 @@ namespace libtorrent
 		std::array<char, 32> public_key;
 		std::array<char, 64> signature;
 		std::string salt;
-		boost::uint64_t seq;
+		std::uint64_t seq;
 
 		// DHT put operation usually writes item to k nodes, maybe the node
 		// is stale so no response, or the node doesn't support 'put', or the
@@ -2414,7 +2414,7 @@ namespace libtorrent
 
 		// internal
 		picker_log_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, tcp::endpoint const& ep, peer_id const& peer_id, boost::uint32_t flags
+			, tcp::endpoint const& ep, peer_id const& peer_id, std::uint32_t flags
 			, piece_block const* blocks, int num_blocks);
 
 		TORRENT_DEFINE_ALERT(picker_log_alert, 89)
@@ -2450,7 +2450,7 @@ namespace libtorrent
 
 		// this is a bitmask of which features were enabled for this particular
 		// pick. The bits are defined in the picker_flags_t enum.
-		boost::uint32_t picker_flags;
+		std::uint32_t picker_flags;
 
 		std::vector<piece_block> blocks() const;
 

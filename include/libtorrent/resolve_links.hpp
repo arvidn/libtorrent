@@ -79,7 +79,7 @@ namespace libtorrent
 		std::vector<link_t> m_links;
 
 		// maps file size to file index, in m_torrent_file
-		boost::unordered_multimap<boost::int64_t, int> m_file_sizes;
+		boost::unordered_multimap<std::int64_t, int> m_file_sizes;
 	};
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 

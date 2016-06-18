@@ -100,7 +100,7 @@ namespace
         return bytes(ti.metadata().get(), ti.metadata_size());
     }
 
-    list map_block(torrent_info& ti, int piece, boost::int64_t offset, int size)
+    list map_block(torrent_info& ti, int piece, std::int64_t offset, int size)
     {
        std::vector<file_slice> p = ti.map_block(piece, offset, size);
        list result;
@@ -124,9 +124,9 @@ namespace
     bool get_send_stats(announce_entry const& ae) { return ae.send_stats; }
 
 #if !defined TORRENT_NO_DEPRECATE
-    boost::int64_t get_size(file_entry const& fe) { return fe.size; }
-    boost::int64_t get_offset(file_entry const& fe) { return fe.offset; }
-    boost::int64_t get_file_base(file_entry const& fe) { return fe.file_base; }
+    std::int64_t get_size(file_entry const& fe) { return fe.size; }
+    std::int64_t get_offset(file_entry const& fe) { return fe.offset; }
+    std::int64_t get_file_base(file_entry const& fe) { return fe.file_base; }
     void set_file_base(file_entry& fe, int b) { fe.file_base = b; }
     bool get_pad_file(file_entry const& fe) { return fe.pad_file; }
     bool get_executable_attribute(file_entry const& fe) { return fe.executable_attribute; }

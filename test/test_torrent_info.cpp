@@ -718,7 +718,7 @@ TORRENT_TEST(parse_torrents)
 		for (int i = 0; i < fs.num_files(); ++i)
 		{
 			int first = ti->map_file(i, 0, 0).piece;
-			int last = ti->map_file(i, (std::max)(fs.file_size(i)-1, boost::int64_t(0)), 0).piece;
+			int last = ti->map_file(i, (std::max)(fs.file_size(i)-1, std::int64_t(0)), 0).piece;
 			int flags = fs.file_flags(i);
 			std::fprintf(stderr, "  %11" PRId64 " %c%c%c%c [ %4d, %4d ] %7u %s %s %s%s\n"
 				, fs.file_size(i)
@@ -727,7 +727,7 @@ TORRENT_TEST(parse_torrents)
 				, (flags & file_storage::flag_hidden)?'h':'-'
 				, (flags & file_storage::flag_symlink)?'l':'-'
 				, first, last
-				, boost::uint32_t(fs.mtime(i))
+				, std::uint32_t(fs.mtime(i))
 				, fs.hash(i) != sha1_hash(0) ? aux::to_hex(fs.hash(i).to_string()).c_str() : ""
 				, fs.file_path(i).c_str()
 				, flags & file_storage::flag_symlink ? "-> ": ""

@@ -206,8 +206,8 @@ TORRENT_TEST(file_path_hash)
 
 	std::fprintf(stderr, "path: %s\n", fs.file_path(0).c_str());
 	std::fprintf(stderr, "file: %s\n", fs.file_path(1).c_str());
-	boost::uint32_t file_hash0 = fs.file_path_hash(0, "a");
-	boost::uint32_t file_hash1 = fs.file_path_hash(1, "a");
+	std::uint32_t file_hash0 = fs.file_path_hash(0, "a");
+	std::uint32_t file_hash1 = fs.file_path_hash(1, "a");
 	TEST_EQUAL(file_hash0, file_hash1);
 }
 

@@ -69,8 +69,8 @@ namespace libtorrent
 	TORRENT_EXPORT void set_utp_stream_logging(bool enable);
 #endif
 
-	TORRENT_EXTRA_EXPORT bool compare_less_wrap(boost::uint32_t lhs
-		, boost::uint32_t rhs, boost::uint32_t mask);
+	TORRENT_EXTRA_EXPORT bool compare_less_wrap(std::uint32_t lhs
+		, std::uint32_t rhs, std::uint32_t mask);
 
 	struct utp_socket_manager;
 
@@ -113,12 +113,12 @@ namespace libtorrent
 		char m_storage[sizeof(T)];
 	};
 
-	typedef big_endian_int<boost::uint64_t> be_uint64;
-	typedef big_endian_int<boost::uint32_t> be_uint32;
-	typedef big_endian_int<boost::uint16_t> be_uint16;
-	typedef big_endian_int<boost::int64_t> be_int64;
-	typedef big_endian_int<boost::int32_t> be_int32;
-	typedef big_endian_int<boost::int16_t> be_int16;
+	typedef big_endian_int<std::uint64_t> be_uint64;
+	typedef big_endian_int<std::uint32_t> be_uint32;
+	typedef big_endian_int<std::uint16_t> be_uint16;
+	typedef big_endian_int<std::int64_t> be_int64;
+	typedef big_endian_int<std::int32_t> be_int32;
+	typedef big_endian_int<std::int16_t> be_int16;
 
 /*
 	uTP header from BEP 29
@@ -164,8 +164,8 @@ struct utp_header
 
 struct utp_socket_impl;
 
-utp_socket_impl* construct_utp_impl(boost::uint16_t recv_id
-	, boost::uint16_t send_id, void* userdata
+utp_socket_impl* construct_utp_impl(std::uint16_t recv_id
+	, std::uint16_t send_id, void* userdata
 	, utp_socket_manager* sm);
 void detach_utp_impl(utp_socket_impl* s);
 void delete_utp_impl(utp_socket_impl* s);
@@ -174,9 +174,9 @@ void tick_utp_impl(utp_socket_impl* s, time_point now);
 void utp_init_mtu(utp_socket_impl* s, int link_mtu, int utp_mtu);
 bool utp_incoming_packet(utp_socket_impl* s, aux::array_view<char const> p
 	, udp::endpoint const& ep, time_point receive_time);
-bool utp_match(utp_socket_impl* s, udp::endpoint const& ep, boost::uint16_t id);
+bool utp_match(utp_socket_impl* s, udp::endpoint const& ep, std::uint16_t id);
 udp::endpoint utp_remote_endpoint(utp_socket_impl* s);
-boost::uint16_t utp_receive_id(utp_socket_impl* s);
+std::uint16_t utp_receive_id(utp_socket_impl* s);
 int utp_socket_state(utp_socket_impl const* s);
 void utp_send_ack(utp_socket_impl* s);
 void utp_socket_drained(utp_socket_impl* s);
@@ -249,8 +249,8 @@ public:
 	void close();
 	void close(error_code const& /*ec*/) { close(); }
 
-	void set_close_reason(boost::uint16_t code);
-	boost::uint16_t get_close_reason();
+	void set_close_reason(std::uint16_t code);
+	std::uint16_t get_close_reason();
 
 	bool is_open() const { return m_open; }
 
@@ -260,7 +260,7 @@ public:
 	static void on_write(void* self, size_t bytes_transferred
 		, error_code const& ec, bool kill);
 	static void on_connect(void* self, error_code const& ec, bool kill);
-	static void on_close_reason(void* self, boost::uint16_t reason);
+	static void on_close_reason(void* self, std::uint16_t reason);
 
 	void add_read_buffer(void* buf, size_t len);
 	void issue_read();
@@ -498,7 +498,7 @@ private:
 	io_service& m_io_service;
 	utp_socket_impl* m_impl;
 
-	boost::uint16_t m_incoming_close_reason;
+	std::uint16_t m_incoming_close_reason;
 
 	// this field requires another 8 bytes (including padding)
 	bool m_open;

@@ -137,7 +137,7 @@ namespace libtorrent
 		using receive_buffer = std::array<char, 1500>;
 		std::unique_ptr<receive_buffer> m_buf;
 
-		boost::uint16_t m_bind_port;
+		std::uint16_t m_bind_port;
 
 		aux::proxy_settings m_proxy_settings;
 

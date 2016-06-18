@@ -624,7 +624,7 @@ namespace libtorrent
 		if (!failed)
 		{
 			TORRENT_PIECE_ASSERT(!error, pe);
-			boost::uint32_t write_time = total_microseconds(clock_type::now() - start_time);
+			std::uint32_t write_time = total_microseconds(clock_type::now() - start_time);
 			m_write_time.add_sample(write_time / num_blocks);
 
 			m_stats_counters.inc_stats_counter(counters::num_blocks_written, num_blocks);
@@ -791,7 +791,7 @@ namespace libtorrent
 		}
 	}
 
-	void disk_io_thread::flush_cache(piece_manager* storage, boost::uint32_t flags
+	void disk_io_thread::flush_cache(piece_manager* storage, std::uint32_t flags
 		, jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l)
 	{
 		if (storage)
@@ -1159,7 +1159,7 @@ namespace libtorrent
 
 		if (!j->error.ec)
 		{
-			boost::uint32_t read_time = total_microseconds(clock_type::now() - start_time);
+			std::uint32_t read_time = total_microseconds(clock_type::now() - start_time);
 			m_read_time.add_sample(read_time);
 
 			m_stats_counters.inc_stats_counter(counters::num_read_back);
@@ -1210,7 +1210,7 @@ namespace libtorrent
 		}
 
 		// this is the offset that's aligned to block boundaries
-		boost::int64_t adjusted_offset = j->d.io.offset & ~(block_size-1);
+		std::int64_t adjusted_offset = j->d.io.offset & ~(block_size-1);
 
 		// if this is the last piece, adjust the size of the
 		// last buffer to match up
@@ -1232,7 +1232,7 @@ namespace libtorrent
 
 		if (!j->error.ec)
 		{
-			boost::uint32_t const read_time = total_microseconds(clock_type::now() - start_time);
+			std::uint32_t const read_time = total_microseconds(clock_type::now() - start_time);
 			m_read_time.add_sample(read_time / iov_len);
 
 			m_stats_counters.inc_stats_counter(counters::num_blocks_read, iov_len);
@@ -1395,7 +1395,7 @@ namespace libtorrent
 
 		if (!j->error.ec)
 		{
-			boost::uint32_t write_time = total_microseconds(clock_type::now() - start_time);
+			std::uint32_t write_time = total_microseconds(clock_type::now() - start_time);
 			m_write_time.add_sample(write_time);
 
 			m_stats_counters.inc_stats_counter(counters::num_blocks_written);
@@ -1963,7 +1963,7 @@ namespace libtorrent
 	}
 
 	void disk_io_thread::async_set_file_priority(piece_manager* storage
-		, std::vector<boost::uint8_t> const& prios
+		, std::vector<std::uint8_t> const& prios
 		, boost::function<void(disk_io_job const*)> const& handler)
 	{
 #ifdef TORRENT_DEBUG
@@ -1972,7 +1972,7 @@ namespace libtorrent
 		storage->assert_torrent_refcount();
 #endif
 
-		std::vector<boost::uint8_t>* p = new std::vector<boost::uint8_t>(prios);
+		std::vector<std::uint8_t>* p = new std::vector<std::uint8_t>(prios);
 
 		disk_io_job* j = allocate_job(disk_io_job::file_priority);
 		j->storage = storage->shared_from_this();
@@ -2114,7 +2114,7 @@ namespace libtorrent
 			ph->offset += size;
 		}
 
-		boost::uint64_t hash_time = total_microseconds(clock_type::now() - start_time);
+		std::uint64_t hash_time = total_microseconds(clock_type::now() - start_time);
 
 		l.lock();
 
@@ -2203,7 +2203,7 @@ namespace libtorrent
 
 			if (!j->error.ec)
 			{
-				boost::uint32_t const read_time = total_microseconds(clock_type::now() - start_time);
+				std::uint32_t const read_time = total_microseconds(clock_type::now() - start_time);
 				m_read_time.add_sample(read_time);
 
 				m_stats_counters.inc_stats_counter(counters::num_blocks_read);
@@ -2411,7 +2411,7 @@ namespace libtorrent
 
 				if (!j->error.ec)
 				{
-					boost::uint32_t read_time = total_microseconds(clock_type::now() - start_time);
+					std::uint32_t read_time = total_microseconds(clock_type::now() - start_time);
 					m_read_time.add_sample(read_time);
 
 					m_stats_counters.inc_stats_counter(counters::num_read_back);
@@ -2634,7 +2634,7 @@ namespace libtorrent
 
 			if (!j->error.ec)
 			{
-				boost::uint32_t read_time = total_microseconds(clock_type::now() - start_time);
+				std::uint32_t read_time = total_microseconds(clock_type::now() - start_time);
 				m_read_time.add_sample(read_time);
 
 				m_stats_counters.inc_stats_counter(counters::num_blocks_read);
@@ -2720,11 +2720,11 @@ namespace libtorrent
 		ret->writes = m_stats_counters[counters::num_write_ops];
 		ret->reads = m_stats_counters[counters::num_read_ops];
 
-		int num_read_jobs = (std::max)(boost::int64_t(1)
+		int num_read_jobs = (std::max)(std::int64_t(1)
 			, m_stats_counters[counters::num_read_ops]);
-		int num_write_jobs = (std::max)(boost::int64_t(1)
+		int num_write_jobs = (std::max)(std::int64_t(1)
 			, m_stats_counters[counters::num_write_ops]);
-		int num_hash_jobs = (std::max)(boost::int64_t(1)
+		int num_hash_jobs = (std::max)(std::int64_t(1)
 			, m_stats_counters[counters::num_blocks_hashed]);
 
 		ret->average_read_time = m_stats_counters[counters::disk_read_time] / num_read_jobs;
@@ -2890,7 +2890,7 @@ namespace libtorrent
 
 	int disk_io_thread::do_file_priority(disk_io_job* j, jobqueue_t& /* completed_jobs */ )
 	{
-		std::unique_ptr<std::vector<boost::uint8_t> > p(j->buffer.priorities);
+		std::unique_ptr<std::vector<std::uint8_t> > p(j->buffer.priorities);
 		j->storage->get_storage_impl()->set_file_priority(*p, j->error);
 		return 0;
 	}

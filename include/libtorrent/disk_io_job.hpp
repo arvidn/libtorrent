@@ -155,7 +155,7 @@ namespace libtorrent
 			char* disk_block;
 			char* string;
 			add_torrent_params const* check_resume_data;
-			std::vector<boost::uint8_t>* priorities;
+			std::vector<std::uint8_t>* priorities;
 			torrent_info* torrent_file;
 			int delete_options;
 		} buffer;
@@ -200,27 +200,27 @@ namespace libtorrent
 			// job is still holding a reference to. The end of
 			// the range of blocks a hash jobs holds references
 			// to is always the last block in the piece.
-			boost::uint32_t offset;
+			std::uint32_t offset;
 
 			// number of bytes 'buffer' points to. Used for read & write
-			boost::uint16_t buffer_size;
+			std::uint16_t buffer_size;
 			} io;
 		} d;
 
 		// arguments used for read and write
 		// the piece this job applies to
-		boost::uint32_t piece:24;
+		std::uint32_t piece:24;
 
 		// the type of job this is
-		boost::uint32_t action:8;
+		std::uint32_t action:8;
 
 		enum { operation_failed = -1 };
 
 		// return value of operation
-		boost::int32_t ret;
+		std::int32_t ret;
 
 		// flags controlling this job
-		boost::uint8_t flags;
+		std::uint8_t flags;
 
 #if TORRENT_USE_ASSERTS
 		bool in_use:1;

@@ -255,7 +255,7 @@ namespace libtorrent
 
 	void tracker_manager::update_transaction_id(
 		boost::shared_ptr<udp_tracker_connection> c
-		, boost::uint64_t tid)
+		, std::uint64_t tid)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		m_udp_conns.erase(c->transaction_id());
@@ -327,10 +327,10 @@ namespace libtorrent
 		// the first word is the action, if it's not [0, 3]
 		// it's not a valid udp tracker response
 		aux::array_view<const char> ptr = buf;
-		boost::uint32_t const action = aux::read_uint32(ptr);
+		std::uint32_t const action = aux::read_uint32(ptr);
 		if (action > 3) return false;
 
-		boost::uint32_t const transaction = aux::read_uint32(ptr);
+		std::uint32_t const transaction = aux::read_uint32(ptr);
 		udp_conns_t::iterator const i = m_udp_conns.find(transaction);
 
 		if (i == m_udp_conns.end())
@@ -365,10 +365,10 @@ namespace libtorrent
 		// the first word is the action, if it's not [0, 3]
 		// it's not a valid udp tracker response
 		aux::array_view<const char> ptr = buf;
-		boost::uint32_t const action = aux::read_uint32(ptr);
+		std::uint32_t const action = aux::read_uint32(ptr);
 		if (action > 3) return false;
 
-		boost::uint32_t const transaction = aux::read_uint32(ptr);
+		std::uint32_t const transaction = aux::read_uint32(ptr);
 		udp_conns_t::iterator const i = m_udp_conns.find(transaction);
 
 		if (i == m_udp_conns.end())

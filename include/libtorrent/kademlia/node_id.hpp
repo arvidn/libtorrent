@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/cstdint.hpp>
+#include <cstdint>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/config.hpp"
@@ -71,7 +71,7 @@ node_id TORRENT_EXTRA_EXPORT generate_random_id();
 void TORRENT_EXTRA_EXPORT make_id_secret(node_id& in);
 node_id TORRENT_EXTRA_EXPORT generate_secret_id();
 bool TORRENT_EXTRA_EXPORT verify_secret_id(node_id const& nid);
-node_id TORRENT_EXTRA_EXPORT generate_id_impl(address const& ip_, boost::uint32_t r);
+node_id TORRENT_EXTRA_EXPORT generate_id_impl(address const& ip_, std::uint32_t r);
 
 bool TORRENT_EXTRA_EXPORT verify_id(node_id const& nid, address const& source_ip);
 bool TORRENT_EXTRA_EXPORT matching_prefix(node_entry const& n, int mask, int prefix, int bucket_index);

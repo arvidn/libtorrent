@@ -113,7 +113,7 @@ POSSIBILITY OF SUCH DAMAGE.
 //		virtual bool verify_resume_data(add_torrent_params const& rd
 //			, std::vector<std::string> const* links
 //			, storage_error& error) { return false; }
-//		virtual boost::int64_t physical_offset(int piece, int offset)
+//		virtual std::int64_t physical_offset(int piece, int offset)
 //		{ return piece * m_files.piece_length() + offset; };
 //		virtual sha1_hash hash_for_slot(int piece, partial_hash& ph, int piece_size)
 //		{
@@ -262,7 +262,7 @@ namespace libtorrent
 		// change the priorities of files. This is a fenced job and is
 		// guaranteed to be the only running function on this storage
 		// when called
-		virtual void set_file_priority(std::vector<boost::uint8_t> const& prio
+		virtual void set_file_priority(std::vector<std::uint8_t> const& prio
 			, storage_error& ec) = 0;
 
 		// This function should move all the files belonging to the storage to
@@ -402,7 +402,7 @@ namespace libtorrent
 		void finalize_file(int file, storage_error& ec) override;
 #endif
 		virtual bool has_any_file(storage_error& ec) override;
-		virtual void set_file_priority(std::vector<boost::uint8_t> const& prio
+		virtual void set_file_priority(std::vector<std::uint8_t> const& prio
 			, storage_error& ec) override;
 		virtual void rename_file(int index, std::string const& new_filename
 			, storage_error& ec) override;
@@ -449,7 +449,7 @@ namespace libtorrent
 		file_handle open_file(int file, int mode, storage_error& ec) const;
 		file_handle open_file_impl(int file, int mode, error_code& ec) const;
 
-		std::vector<boost::uint8_t> m_file_priority;
+		std::vector<std::uint8_t> m_file_priority;
 		std::string m_save_path;
 		std::string m_part_file_name;
 		// the file pool is typically stored in
@@ -624,7 +624,7 @@ namespace libtorrent
 	// what to do when it's actually touching the file
 	struct fileop
 	{
-		virtual int file_op(int const file_index, boost::int64_t const file_offset, int const size
+		virtual int file_op(int const file_index, std::int64_t const file_offset, int const size
 			, file::iovec_t const* bufs, storage_error& ec) = 0;
 	};
 

@@ -186,7 +186,7 @@ void generate_files(libtorrent::torrent_info const& ti, std::string const& path
 		int const piece_size = ti.piece_size(i);
 		buffer.resize(ti.piece_length());
 
-		boost::uint8_t const data = alternate_data ? 255 - i : i;
+		std::uint8_t const data = alternate_data ? 255 - i : i;
 		for (int o = 0; o < piece_size; ++o)
 		{
 			memcpy(&buffer[o], &data, 1);

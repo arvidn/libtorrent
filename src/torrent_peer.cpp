@@ -43,7 +43,7 @@ namespace libtorrent
 {
 	namespace {
 
-		void apply_mask(boost::uint8_t* b, boost::uint8_t const* mask, int size)
+		void apply_mask(std::uint8_t* b, std::uint8_t const* mask, int size)
 		{
 			for (int i = 0; i < size; ++i)
 			{
@@ -72,18 +72,18 @@ namespace libtorrent
 	//   always be of the same address family
 	//
 	// * all IP addresses are in network byte order when hashed
-	boost::uint32_t peer_priority(tcp::endpoint e1, tcp::endpoint e2)
+	std::uint32_t peer_priority(tcp::endpoint e1, tcp::endpoint e2)
 	{
 		TORRENT_ASSERT(e1.address().is_v4() == e2.address().is_v4());
 
 		using std::swap;
 
-		boost::uint32_t ret;
+		std::uint32_t ret;
 		if (e1.address() == e2.address())
 		{
 			if (e1.port() > e2.port())
 				swap(e1, e2);
-			boost::uint32_t p;
+			std::uint32_t p;
 #if defined BOOST_BIG_ENDIAN
 			p = e1.port() << 16;
 			p |= e2.port();
@@ -98,7 +98,7 @@ namespace libtorrent
 #if TORRENT_USE_IPV6
 		else if (e1.address().is_v6())
 		{
-			static const boost::uint8_t v6mask[][8] = {
+			static const std::uint8_t v6mask[][8] = {
 				{ 0xff, 0xff, 0xff, 0xff, 0x55, 0x55, 0x55, 0x55 },
 				{ 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x55, 0x55 },
 				{ 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }
@@ -111,7 +111,7 @@ namespace libtorrent
 				: memcmp(&b1[0], &b2[0], 6) ? 1 : 2;
 			apply_mask(&b1[0], v6mask[mask], 8);
 			apply_mask(&b2[0], v6mask[mask], 8);
-			boost::uint64_t addrbuf[4];
+			std::uint64_t addrbuf[4];
 			memcpy(&addrbuf[0], &b1[0], 16);
 			memcpy(&addrbuf[2], &b2[0], 16);
 			ret = crc32c(addrbuf, 4);
@@ -119,7 +119,7 @@ namespace libtorrent
 #endif
 		else
 		{
-			static const boost::uint8_t v4mask[][4] = {
+			static const std::uint8_t v4mask[][4] = {
 				{ 0xff, 0xff, 0x55, 0x55 },
 				{ 0xff, 0xff, 0xff, 0x55 },
 				{ 0xff, 0xff, 0xff, 0xff }
@@ -132,7 +132,7 @@ namespace libtorrent
 				: memcmp(&b1[0], &b2[0], 3) ? 1 : 2;
 			apply_mask(&b1[0], v4mask[mask], 4);
 			apply_mask(&b2[0], v4mask[mask], 4);
-			boost::uint64_t addrbuf;
+			std::uint64_t addrbuf;
 			memcpy(&addrbuf, &b1[0], 4);
 			memcpy(reinterpret_cast<char*>(&addrbuf) + 4, &b2[0], 4);
 			ret = crc32c(&addrbuf, 1);
@@ -141,7 +141,7 @@ namespace libtorrent
 		return ret;
 	}
 
-	torrent_peer::torrent_peer(boost::uint16_t port_, bool conn, int src)
+	torrent_peer::torrent_peer(std::uint16_t port_, bool conn, int src)
 		: prev_amount_upload(0)
 		, prev_amount_download(0)
 		, connection(0)
@@ -183,7 +183,7 @@ namespace libtorrent
 		TORRENT_ASSERT((src & 0xff) == src);
 	}
 
-	boost::uint32_t torrent_peer::rank(external_ip const& external, int external_port) const
+	std::uint32_t torrent_peer::rank(external_ip const& external, int external_port) const
 	{
 //TODO: how do we deal with our external address changing?
 		if (peer_rank == 0)
@@ -204,7 +204,7 @@ namespace libtorrent
 	}
 #endif
 
-	boost::uint64_t torrent_peer::total_download() const
+	std::uint64_t torrent_peer::total_download() const
 	{
 		if (connection != 0)
 		{
@@ -213,11 +213,11 @@ namespace libtorrent
 		}
 		else
 		{
-			return boost::uint64_t(prev_amount_download) << 10;
+			return std::uint64_t(prev_amount_download) << 10;
 		}
 	}
 
-	boost::uint64_t torrent_peer::total_upload() const
+	std::uint64_t torrent_peer::total_upload() const
 	{
 		if (connection != 0)
 		{
@@ -226,7 +226,7 @@ namespace libtorrent
 		}
 		else
 		{
-			return boost::uint64_t(prev_amount_upload) << 10;
+			return std::uint64_t(prev_amount_upload) << 10;
 		}
 	}
 

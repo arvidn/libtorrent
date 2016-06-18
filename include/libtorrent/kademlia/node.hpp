@@ -54,7 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/assert.hpp>
 #include <libtorrent/bloom_filter.hpp>
 
-#include <boost/cstdint.hpp>
+#include <cstdint>
 #include <boost/ref.hpp>
 
 #include "libtorrent/socket.hpp"
@@ -127,7 +127,7 @@ public:
 	node_id const& nid() const { return m_id; }
 
 	boost::tuple<int, int, int> size() const { return m_table.size(); }
-	boost::int64_t num_global_nodes() const
+	std::int64_t num_global_nodes() const
 	{ return m_table.num_global_nodes(); }
 
 #ifndef TORRENT_NO_DEPRECATE

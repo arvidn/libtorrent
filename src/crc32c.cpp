@@ -44,12 +44,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	boost::uint32_t crc32c_32(boost::uint32_t v)
+	std::uint32_t crc32c_32(std::uint32_t v)
 	{
 #if TORRENT_HAS_SSE
 		if (aux::sse42_support)
 		{
-			boost::uint32_t ret = 0xffffffff;
+			std::uint32_t ret = 0xffffffff;
 #ifdef __GNUC__
 			// we can't use these because then we'd have to tell
 			// -msse4.2 to gcc on the command line
@@ -69,14 +69,14 @@ namespace libtorrent
 		return crc.checksum();
 	}
 
-	boost::uint32_t crc32c(boost::uint64_t const* buf, int num_words)
+	std::uint32_t crc32c(std::uint64_t const* buf, int num_words)
 	{
 #if TORRENT_HAS_SSE
 		if (aux::sse42_support)
 		{
 #if defined _M_AMD64 || defined __x86_64__ \
 	|| defined __x86_64 || defined _M_X64 || defined __amd64__
-			boost::uint64_t ret = 0xffffffff;
+			std::uint64_t ret = 0xffffffff;
 			for (int i = 0; i < num_words; ++i)
 			{
 #ifdef __GNUC__
@@ -90,10 +90,10 @@ namespace libtorrent
 				ret = _mm_crc32_u64(ret, buf[i]);
 #endif
 			}
-			return boost::uint32_t(ret) ^ 0xffffffff;
+			return std::uint32_t(ret) ^ 0xffffffff;
 #else
-			boost::uint32_t ret = 0xffffffff;
-			boost::uint32_t const* buf0 = reinterpret_cast<boost::uint32_t const*>(buf);
+			std::uint32_t ret = 0xffffffff;
+			std::uint32_t const* buf0 = reinterpret_cast<std::uint32_t const*>(buf);
 			for (int i = 0; i < num_words; ++i)
 			{
 #ifdef __GNUC__

@@ -118,7 +118,7 @@ namespace libtorrent
 		}
 
 		void add_files_impl(file_storage& fs, std::string const& p
-			, std::string const& l, boost::function<bool(std::string)> pred, boost::uint32_t flags)
+			, std::string const& l, boost::function<bool(std::string)> pred, std::uint32_t flags)
 		{
 			std::string f = combine_path(p, l);
 			if (!pred(f)) return;
@@ -201,7 +201,7 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 
 	void add_files(file_storage& fs, std::wstring const& wfile
-		, boost::function<bool(std::string)> p, boost::uint32_t flags)
+		, boost::function<bool(std::string)> p, std::uint32_t flags)
 	{
 		std::string utf8;
 		wchar_utf8(wfile, utf8);
@@ -210,7 +210,7 @@ namespace libtorrent
 	}
 
 	void add_files(file_storage& fs
-		, std::wstring const& wfile, boost::uint32_t flags)
+		, std::wstring const& wfile, std::uint32_t flags)
 	{
 		std::string utf8;
 		wchar_utf8(wfile, utf8);
@@ -237,12 +237,12 @@ namespace libtorrent
 #endif
 
 	void add_files(file_storage& fs, std::string const& file
-		, boost::function<bool(std::string)> p, boost::uint32_t flags)
+		, boost::function<bool(std::string)> p, std::uint32_t flags)
 	{
 		add_files_impl(fs, parent_path(complete(file)), filename(file), p, flags);
 	}
 
-	void add_files(file_storage& fs, std::string const& file, boost::uint32_t flags)
+	void add_files(file_storage& fs, std::string const& file, std::uint32_t flags)
 	{
 		add_files_impl(fs, parent_path(complete(file)), filename(file)
 			, default_pred, flags);

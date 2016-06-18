@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/cstdint.hpp>
+#include <cstdint>
 #include <atomic>
 #include <mutex>
 #include <array>
@@ -441,11 +441,11 @@ namespace libtorrent
 		counters& operator=(counters const&);
 
 		// returns the new value
-		boost::int64_t inc_stats_counter(int c, boost::int64_t value = 1);
-		boost::int64_t operator[](int i) const;
+		std::int64_t inc_stats_counter(int c, std::int64_t value = 1);
+		std::int64_t operator[](int i) const;
 
-		void set_value(int c, boost::int64_t value);
-		void blend_stats_counter(int c, boost::int64_t value, int ratio);
+		void set_value(int c, std::int64_t value);
+		void blend_stats_counter(int c, std::int64_t value, int ratio);
 
 	private:
 
@@ -454,12 +454,12 @@ namespace libtorrent
 		// of the counters per thread and collect them at convenient
 		// synchronization points
 #ifdef ATOMIC_LLONG_LOCK_FREE
-		std::array<std::atomic<boost::int64_t>, num_counters> m_stats_counter;
+		std::array<std::atomic<std::int64_t>, num_counters> m_stats_counter;
 #else
 		// if the atomic type is't lock-free, use a single lock instead, for
 		// the whole array
 		mutable std::mutex m_mutex;
-		std::array<boost::int64_t, num_counters> m_stats_counter;
+		std::array<std::int64_t, num_counters> m_stats_counter;
 #endif
 	};
 }

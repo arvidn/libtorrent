@@ -245,7 +245,7 @@ namespace libtorrent
 		torrent_peer* m_locked_peer;
 
 		// the number of seeds in the torrent_peer list
-		boost::uint32_t m_num_seeds:31;
+		std::uint32_t m_num_seeds:31;
 
 		// this was the state of the torrent the
 		// last time we recalculated the number of
@@ -255,7 +255,7 @@ namespace libtorrent
 		// this state. Every time m_torrent->is_finished()
 		// is different from this state, we need to
 		// recalculate the connect candidates.
-		boost::uint32_t m_finished:1;
+		std::uint32_t m_finished:1;
 
 		// since the torrent_peer list can grow too large
 		// to scan all of it, start at this index

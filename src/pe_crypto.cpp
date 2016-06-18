@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/cstdint.hpp>
+#include <cstdint>
 #include <boost/multiprecision/integer.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
 
@@ -78,7 +78,7 @@ namespace libtorrent
 	}
 
 	// compute shared secret given remote public key
-	void dh_key_exchange::compute_secret(boost::uint8_t const* remote_pubkey)
+	void dh_key_exchange::compute_secret(std::uint8_t const* remote_pubkey)
 	{
 		TORRENT_ASSERT(remote_pubkey);
 		key_t key;
@@ -91,7 +91,7 @@ namespace libtorrent
 		// shared_secret = (remote_pubkey ^ local_secret) % prime
 		m_dh_shared_secret = mp::powm(remote_pubkey, m_dh_local_secret, dh_prime);
 
-		std::array<boost::uint8_t, 96> buffer;
+		std::array<std::uint8_t, 96> buffer;
 		mp::export_bits(m_dh_shared_secret, buffer.begin(), 8);
 
 		// calculate the xor mask for the obfuscated hash

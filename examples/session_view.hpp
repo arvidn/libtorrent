@@ -2,7 +2,7 @@
 #define SESSION_VIEW_HPP_
 
 #include "libtorrent/session_stats.hpp"
-#include <boost/cstdint.hpp>
+#include <cstdint>
 
 namespace lt = libtorrent;
 
@@ -21,8 +21,8 @@ struct session_view
 	void print_utp_stats(bool p) { m_print_utp_stats = p; }
 	bool print_utp_stats() const { return m_print_utp_stats; }
 
-	void update_counters(boost::uint64_t* stats_counters, int num_cnt
-		, boost::uint64_t t);
+	void update_counters(std::uint64_t* stats_counters, int num_cnt
+		, std::uint64_t t);
 
 private:
 
@@ -31,11 +31,11 @@ private:
 
 	// there are two sets of counters. the current one and the last one. This
 	// is used to calculate rates
-	std::vector<boost::uint64_t> m_cnt[2];
+	std::vector<std::uint64_t> m_cnt[2];
 
 	// the timestamps of the counters in m_cnt[0] and m_cnt[1]
 	// respectively. The timestamps are microseconds since session start
-	boost::uint64_t m_timestamp[2];
+	std::uint64_t m_timestamp[2];
 
 	bool m_print_utp_stats;
 

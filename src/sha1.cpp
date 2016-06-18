@@ -17,8 +17,8 @@ changelog at the end of the file.
 
 #include <boost/detail/endian.hpp> // for BIG_ENDIAN and LITTLE_ENDIAN macros
 
-typedef boost::uint32_t u32;
-typedef boost::uint8_t u8;
+typedef std::uint32_t u32;
+typedef std::uint8_t u8;
 
 namespace libtorrent
 {

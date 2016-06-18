@@ -78,7 +78,7 @@ namespace libtorrent
 
 		// read remote_pubkey, generate and store shared secret in
 		// m_dh_shared_secret.
-		void compute_secret(boost::uint8_t const* remote_pubkey);
+		void compute_secret(std::uint8_t const* remote_pubkey);
 		void compute_secret(key_t const& remote_pubkey);
 
 		key_t const& get_secret() const { return m_dh_shared_secret; }

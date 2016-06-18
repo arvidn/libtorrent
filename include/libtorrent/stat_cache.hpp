@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 #include <string>
-#include <boost/cstdint.hpp>
+#include <cstdint>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -56,7 +56,7 @@ namespace libtorrent
 
 		// returns the size of the file unless an error occurs, in which case ec
 		// is set to indicate the error
-		boost::int64_t get_filesize(int i, file_storage const& fs
+		std::int64_t get_filesize(int i, file_storage const& fs
 			, std::string const& save_path, error_code& ec);
 
 		void set_dirty(int i);
@@ -71,7 +71,7 @@ namespace libtorrent
 		};
 
 		// internal
-		void set_cache(int i, boost::int64_t size);
+		void set_cache(int i, std::int64_t size);
 		void set_error(int i, error_code const& ec);
 
 	private:
@@ -82,14 +82,14 @@ namespace libtorrent
 
 		struct stat_cache_t
 		{
-			stat_cache_t(boost::int64_t s): file_size(s) {}
+			stat_cache_t(std::int64_t s): file_size(s) {}
 
 			// the size of the file. Negative values have special meaning. -1 means
 			// not-in-cache (i.e. there's no data for this file in the cache).
 			// lower values (larger negative values) indicate that an error
 			// occurred while stat()ing the file. The positive value is an index
 			// into m_errors, that recorded the actual error.
-			boost::int64_t file_size;
+			std::int64_t file_size;
 		};
 
 		// one entry per file

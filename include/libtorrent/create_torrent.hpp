@@ -395,9 +395,9 @@ namespace libtorrent
 	// The ``flags`` argument should be the same as the flags passed to the `create_torrent`_
 	// constructor.
 	TORRENT_EXPORT void add_files(file_storage& fs, std::string const& file
-		, boost::function<bool(std::string)> p, boost::uint32_t flags = 0);
+		, boost::function<bool(std::string)> p, std::uint32_t flags = 0);
 	TORRENT_EXPORT void add_files(file_storage& fs, std::string const& file
-		, boost::uint32_t flags = 0);
+		, std::uint32_t flags = 0);
 	
 	// This function will assume that the files added to the torrent file exists at path
 	// ``p``, read those files and hash the content and set the hashes in the ``create_torrent``
@@ -440,11 +440,11 @@ namespace libtorrent
 
 	TORRENT_DEPRECATED
 	TORRENT_EXPORT void add_files(file_storage& fs, std::wstring const& wfile
-		, boost::function<bool(std::string)> p, boost::uint32_t flags = 0);
+		, boost::function<bool(std::string)> p, std::uint32_t flags = 0);
 
 	TORRENT_DEPRECATED
 	TORRENT_EXPORT void add_files(file_storage& fs, std::wstring const& wfile
-		, boost::uint32_t flags = 0);
+		, std::uint32_t flags = 0);
 	
 	TORRENT_DEPRECATED
 	TORRENT_EXPORT void set_piece_hashes(create_torrent& t, std::wstring const& p

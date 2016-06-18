@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/unordered_set.hpp>
-#include <boost/cstdint.hpp>
+#include <cstdint>
 #include <boost/shared_ptr.hpp>
 #include <boost/shared_array.hpp>
 #include <list>
@@ -140,7 +140,7 @@ namespace libtorrent
 		// all references are gone and refcount reaches 0. The buf
 		// pointer in this struct doesn't count as a reference and
 		// is always the last to be cleared
-		boost::uint32_t refcount:30;
+		std::uint32_t refcount:30;
 
 		// if this is true, this block needs to be written to
 		// disk before it's freed. Typically all blocks in a piece
@@ -148,13 +148,13 @@ namespace libtorrent
 		// (read-ahead cache). Once blocks are written to disk, the
 		// dirty flag is cleared and effectively turns the block
 		// into a read cache block
-		boost::uint32_t dirty:1;
+		std::uint32_t dirty:1;
 
 		// pending means that this buffer has not yet been filled in
 		// with valid data. There's an outstanding read job for this.
 		// If the dirty flag is set, it means there's an outstanding
 		// write job to write this block.
-		boost::uint32_t pending:1;
+		std::uint32_t pending:1;
 
 #if TORRENT_USE_ASSERTS
 		// this many of the references are held by hashing operations
@@ -223,38 +223,38 @@ namespace libtorrent
 		//TODO: make this 32 bits and to count seconds since the block cache was created
 		time_point expire;
 
-		boost::uint64_t piece:22;
+		std::uint64_t piece:22;
 
 		// the number of dirty blocks in this piece
-		boost::uint64_t num_dirty:14;
+		std::uint64_t num_dirty:14;
 
 		// the number of blocks in the cache for this piece
-		boost::uint64_t num_blocks:14;
+		std::uint64_t num_blocks:14;
 
 		// the total number of blocks in this piece (and the number
 		// of elements in the blocks array)
-		boost::uint64_t blocks_in_piece:14;
+		std::uint64_t blocks_in_piece:14;
 
 		// ---- 64 bit boundary ----
 
 		// while we have an outstanding async hash operation
 		// working on this piece, 'hashing' is set to 1
 		// When the operation returns, this is set to 0.
-		boost::uint32_t hashing:1;
+		std::uint32_t hashing:1;
 
 		// if we've completed at least one hash job on this
 		// piece, and returned it. This is set to one
-		boost::uint32_t hashing_done:1;
+		std::uint32_t hashing_done:1;
 
 		// if this is true, whenever refcount hits 0,
 		// this piece should be deleted
-		boost::uint32_t marked_for_deletion:1;
+		std::uint32_t marked_for_deletion:1;
 
 		// this is set to true once we flush blocks past
 		// the hash cursor. Once this happens, there's
 		// no point in keeping cache blocks around for
 		// it in avoid_readback mode
-		boost::uint32_t need_readback:1;
+		std::uint32_t need_readback:1;
 
 		// indicates which LRU list this piece is chained into
 		enum cache_state_t
@@ -290,17 +290,17 @@ namespace libtorrent
 			num_lrus
 		};
 
-		boost::uint32_t cache_state:3;
+		std::uint32_t cache_state:3;
 
 		// this is the number of threads that are currently holding
 		// a reference to this piece. A piece may not be removed from
 		// the cache while this is > 0
-		boost::uint32_t piece_refcount:7;
+		std::uint32_t piece_refcount:7;
 
 		// if this is set to one, it means there is an outstanding
 		// flush_hashed job for this piece, and there's no need to
 		// issue another one.
-		boost::uint32_t outstanding_flush:1;
+		std::uint32_t outstanding_flush:1;
 
 		// as long as there is a read operation outstanding on this
 		// piece, this is set to 1. Otherwise 0.
@@ -308,15 +308,15 @@ namespace libtorrent
 		// the same blocks at the same time. If a new read job is
 		// added when this is 1, that new job should be hung on the
 		// read job queue (read_jobs).
-		boost::uint32_t outstanding_read:1;
+		std::uint32_t outstanding_read:1;
 
 		// the number of blocks that have >= 1 refcount
-		boost::uint32_t pinned:16;
+		std::uint32_t pinned:16;
 
 		// ---- 32 bit boundary ---
 
 		// the sum of all refcounts in all blocks
-		boost::uint32_t refcount;
+		std::uint32_t refcount;
 
 #if TORRENT_USE_ASSERTS
 		// the number of times this piece has finished hashing
@@ -517,21 +517,21 @@ namespace libtorrent
 		int m_max_volatile_blocks;
 
 		// the number of blocks (buffers) allocated by volatile pieces.
-		boost::uint32_t m_volatile_size;
+		std::uint32_t m_volatile_size;
 
 		// the number of blocks in the cache
 		// that are in the read cache
-		boost::uint32_t m_read_cache_size;
+		std::uint32_t m_read_cache_size;
 
 		// the number of blocks in the cache
 		// that are in the write cache
-		boost::uint32_t m_write_cache_size;
+		std::uint32_t m_write_cache_size;
 
 		// the number of blocks that are currently sitting
 		// in peer's send buffers. If two peers are sending
 		// the same block, it counts as 2, even though there're
 		// no buffer duplication
-		boost::uint32_t m_send_buffer_blocks;
+		std::uint32_t m_send_buffer_blocks;
 
 		// the number of blocks with a refcount > 0, i.e.
 		// they may not be evicted

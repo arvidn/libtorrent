@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/limits.hpp>
 #include <boost/utility.hpp>
-#include <boost/cstdint.hpp>
+#include <cstdint>
 #include <boost/tuple/tuple.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -65,7 +65,7 @@ struct ip_range
 {
 	Addr first;
 	Addr last;
-	boost::uint32_t flags;
+	std::uint32_t flags;
 };
 
 namespace detail
@@ -80,7 +80,7 @@ namespace detail
 	}
 
 	template<>
-	inline boost::uint16_t zero<boost::uint16_t>() { return 0; }
+	inline std::uint16_t zero<std::uint16_t>() { return 0; }
 
 	template<class Addr>
 	Addr plus_one(Addr const& a)
@@ -98,7 +98,7 @@ namespace detail
 		return tmp;
 	}
 
-	inline boost::uint16_t plus_one(boost::uint16_t val) { return val + 1; }
+	inline std::uint16_t plus_one(std::uint16_t val) { return val + 1; }
 	
 	template<class Addr>
 	Addr minus_one(Addr const& a)
@@ -116,7 +116,7 @@ namespace detail
 		return tmp;
 	}
 
-	inline boost::uint16_t minus_one(boost::uint16_t val) { return val - 1; }
+	inline std::uint16_t minus_one(std::uint16_t val) { return val - 1; }
 
 	template<class Addr>
 	Addr max_addr()
@@ -128,8 +128,8 @@ namespace detail
 	}
 
 	template<>
-	inline boost::uint16_t max_addr<boost::uint16_t>()
-	{ return (std::numeric_limits<boost::uint16_t>::max)(); }
+	inline std::uint16_t max_addr<std::uint16_t>()
+	{ return (std::numeric_limits<std::uint16_t>::max)(); }
 
 	// this is the generic implementation of
 	// a filter for a specific address type.
@@ -158,8 +158,8 @@ namespace detail
 			TORRENT_ASSERT(j != m_access_list.begin());
 			TORRENT_ASSERT(j != i);
 
-			boost::uint32_t first_access = i->access;
-			boost::uint32_t last_access = boost::prior(j)->access;
+			std::uint32_t first_access = i->access;
+			std::uint32_t last_access = boost::prior(j)->access;
 
 			if (i->start != first && first_access != flags)
 			{
@@ -179,7 +179,7 @@ namespace detail
 				// we can do this const-cast because we know that the new
 				// start address will keep the set correctly ordered
 				const_cast<Addr&>(i->start) = first;
-				const_cast<boost::uint32_t&>(i->access) = flags;
+				const_cast<std::uint32_t&>(i->access) = flags;
 			}
 			else if (first_access != flags)
 			{
@@ -200,7 +200,7 @@ namespace detail
 			TORRENT_ASSERT(!m_access_list.empty());
 		}
 
-		boost::uint32_t access(Addr const& addr) const
+		std::uint32_t access(Addr const& addr) const
 		{
 			TORRENT_ASSERT(!m_access_list.empty());
 			typename range_t::const_iterator i = m_access_list.upper_bound(addr);
@@ -247,7 +247,7 @@ namespace detail
 			Addr start;
 			// the end of the range is implicit
 			// and given by the next entry in the set
-			boost::uint32_t access;
+			std::uint32_t access;
 		};
 
 		typedef std::set<range> range_t;
@@ -287,7 +287,7 @@ struct TORRENT_EXPORT ip_filter
 	// 
 	// This means that in a case of overlapping ranges, the last one applied takes
 	// precedence.
-	void add_rule(address first, address last, boost::uint32_t flags);
+	void add_rule(address first, address last, std::uint32_t flags);
 
 	// Returns the access permissions for the given address (``addr``). The permission
 	// can currently be 0 or ``ip_filter::blocked``. The complexity of this operation
@@ -340,16 +340,16 @@ public:
 	// set the flags for the specified port range (``first``, ``last``) to
 	// ``flags`` overwriting any existing rule for those ports. The range
 	// is inclusive, i.e. the port ``last`` also has the flag set on it.
-	void add_rule(boost::uint16_t first, boost::uint16_t last, boost::uint32_t flags);
+	void add_rule(std::uint16_t first, std::uint16_t last, std::uint32_t flags);
 
 	// test the specified port (``port``) for whether it is blocked
 	// or not. The returned value is the flags set for this port.
 	// see acces_flags.
-	int access(boost::uint16_t port) const;
+	int access(std::uint16_t port) const;
 
 private:
 
-	detail::filter_impl<boost::uint16_t> m_filter;
+	detail::filter_impl<std::uint16_t> m_filter;
 
 };
 

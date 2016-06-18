@@ -413,7 +413,7 @@ namespace libtorrent
 			ec.assign(errors::invalid_tracker_response, get_libtorrent_category());
 			return false;
 		}
-		ret.port = boost::uint16_t(i.int_value());
+		ret.port = std::uint16_t(i.int_value());
 
 		return true;
 	}

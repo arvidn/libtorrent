@@ -76,7 +76,7 @@ namespace libtorrent
 		return int(m_queue.size());
 	}
 
-	boost::int64_t bandwidth_manager::queued_bytes() const
+	std::int64_t bandwidth_manager::queued_bytes() const
 	{
 		return m_queued_bytes;
 	}
@@ -124,7 +124,7 @@ namespace libtorrent
 #if TORRENT_USE_INVARIANT_CHECKS
 	void bandwidth_manager::check_invariant() const
 	{
-		boost::int64_t queued = 0;
+		std::int64_t queued = 0;
 		for (queue_t::const_iterator i = m_queue.begin()
 			, end(m_queue.end()); i != end; ++i)
 		{
@@ -141,7 +141,7 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 
-		boost::int64_t dt_milliseconds = total_milliseconds(dt);
+		std::int64_t dt_milliseconds = total_milliseconds(dt);
 		if (dt_milliseconds > 3000) dt_milliseconds = 3000;
 
 		// for each bandwidth channel, call update_quota(dt)

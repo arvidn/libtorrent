@@ -172,7 +172,7 @@ namespace
 		return WAIT_FAILED;
 	}
 
-	int preadv(HANDLE fd, libtorrent::file::iovec_t const* bufs, int num_bufs, boost::int64_t file_offset)
+	int preadv(HANDLE fd, libtorrent::file::iovec_t const* bufs, int num_bufs, std::int64_t file_offset)
 	{
 		OVERLAPPED* ol = TORRENT_ALLOCA(OVERLAPPED, num_bufs);
 		memset(ol, 0, sizeof(OVERLAPPED) * num_bufs);
@@ -242,7 +242,7 @@ done:
 		return ret;
 	}
 
-	int pwritev(HANDLE fd, libtorrent::file::iovec_t const* bufs, int num_bufs, boost::int64_t file_offset)
+	int pwritev(HANDLE fd, libtorrent::file::iovec_t const* bufs, int num_bufs, std::int64_t file_offset)
 	{
 		OVERLAPPED* ol = TORRENT_ALLOCA(OVERLAPPED, num_bufs);
 		memset(ol, 0, sizeof(OVERLAPPED) * num_bufs);
@@ -357,8 +357,8 @@ namespace libtorrent
 
 	time_t file_time_to_posix(FILETIME f)
 	{
-		const boost::uint64_t posix_time_offset = 11644473600LL;
-		boost::uint64_t ft = (boost::uint64_t(f.dwHighDateTime) << 32)
+		const std::uint64_t posix_time_offset = 11644473600LL;
+		std::uint64_t ft = (std::uint64_t(f.dwHighDateTime) << 32)
 			| f.dwLowDateTime;
 
 		// windows filetime is specified in 100 nanoseconds resolution.
@@ -411,7 +411,7 @@ namespace libtorrent
 			return;
 		}
 
-		s->file_size = (boost::uint64_t(data.nFileSizeHigh) << 32) | data.nFileSizeLow;
+		s->file_size = (std::uint64_t(data.nFileSizeHigh) << 32) | data.nFileSizeLow;
 		s->ctime = file_time_to_posix(data.ftCreationTime);
 		s->atime = file_time_to_posix(data.ftLastAccessTime);
 		s->mtime = file_time_to_posix(data.ftLastWriteTime);
@@ -1058,7 +1058,7 @@ namespace libtorrent
 	}
 #endif
 
-	boost::int64_t file_size(std::string const& f)
+	std::int64_t file_size(std::string const& f)
 	{
 		error_code ec;
 		file_status s;
@@ -1236,7 +1236,7 @@ namespace libtorrent
 #endif
 	}
 
-	boost::uint64_t directory::inode() const
+	std::uint64_t directory::inode() const
 	{
 #ifdef TORRENT_WINDOWS
 		return m_inode;
@@ -1369,9 +1369,9 @@ namespace libtorrent
 #ifdef TORRENT_DISK_STATS
 	namespace
 	{
-		boost::uint32_t silly_hash(std::string const& str)
+		std::uint32_t silly_hash(std::string const& str)
 		{
-			boost::uint32_t ret = 1;
+			std::uint32_t ret = 1;
 			for (int i = 0; i < str.size(); ++i)
 			{
 				if (str[i] == 0) continue;
@@ -1739,7 +1739,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 #endif // TORRENT_USE_PREADV
 
 	template <class Fun>
-	boost::int64_t iov(Fun f, handle_type fd, boost::int64_t file_offset, file::iovec_t const* bufs_in
+	std::int64_t iov(Fun f, handle_type fd, std::int64_t file_offset, file::iovec_t const* bufs_in
 		, int num_bufs_in, error_code& ec)
 	{
 		file::iovec_t const* bufs = bufs_in;
@@ -1848,7 +1848,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 	// this has to be thread safe and atomic. i.e. on posix systems it has to be
 	// turned into a series of pread() calls
-	boost::int64_t file::readv(boost::int64_t file_offset, iovec_t const* bufs, int num_bufs
+	std::int64_t file::readv(std::int64_t file_offset, iovec_t const* bufs, int num_bufs
 		, error_code& ec, int flags)
 	{
 		if (m_file_handle == INVALID_HANDLE_VALUE)
@@ -1904,7 +1904,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	// This has to be thread safe, i.e. atomic.
 	// that means, on posix this has to be turned into a series of
 	// pwrite() calls
-	boost::int64_t file::writev(boost::int64_t file_offset, iovec_t const* bufs, int num_bufs
+	std::int64_t file::writev(std::int64_t file_offset, iovec_t const* bufs, int num_bufs
 		, error_code& ec, int flags)
 	{
 		if (m_file_handle == INVALID_HANDLE_VALUE)
@@ -2039,7 +2039,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		return ret;
 	}
 
-	void set_file_valid_data(HANDLE f, boost::int64_t size)
+	void set_file_valid_data(HANDLE f, std::int64_t size)
 	{
 		typedef BOOL (WINAPI *SetFileValidData_t)(HANDLE, LONGLONG);
 		static SetFileValidData_t pSetFileValidData = NULL;
@@ -2069,7 +2069,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	}
 #endif
 
-	bool file::set_size(boost::int64_t s, error_code& ec)
+	bool file::set_size(std::int64_t s, error_code& ec)
 	{
 		TORRENT_ASSERT(is_open());
 		TORRENT_ASSERT(s >= 0);
@@ -2229,7 +2229,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		return true;
 	}
 
-	boost::int64_t file::get_size(error_code& ec) const
+	std::int64_t file::get_size(error_code& ec) const
 	{
 #ifdef TORRENT_WINDOWS
 		LARGE_INTEGER file_size;
@@ -2250,7 +2250,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 #endif
 	}
 
-	boost::int64_t file::sparse_end(boost::int64_t start) const
+	std::int64_t file::sparse_end(std::int64_t start) const
 	{
 #ifdef TORRENT_WINDOWS
 
@@ -2266,7 +2266,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		DWORD bytes_returned = 0;
 		FILE_ALLOCATED_RANGE_BUFFER in;
 		error_code ec;
-		boost::int64_t file_size = get_size(ec);
+		std::int64_t file_size = get_size(ec);
 		if (ec) return start;
 
 		in.FileOffset.QuadPart = start;
@@ -2293,7 +2293,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 #elif defined SEEK_DATA
 		// this is supported on solaris
-		boost::int64_t ret = lseek(native_handle(), start, SEEK_DATA);
+		std::int64_t ret = lseek(native_handle(), start, SEEK_DATA);
 		if (ret < 0) return start;
 		return start;
 #else

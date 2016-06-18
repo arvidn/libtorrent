@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/aux_/proxy_settings.hpp"
 
-#include <boost/cstdint.hpp>
+#include <cstdint>
 #include <string>
 #include <vector>
 #include <utility>
@@ -1544,14 +1544,14 @@ namespace libtorrent
 		// control the settings for incoming
 		// and outgoing connections respectively.
 		// see enc_policy enum for the available options.
-		boost::uint8_t out_enc_policy;
-		boost::uint8_t in_enc_policy;
+		std::uint8_t out_enc_policy;
+		std::uint8_t in_enc_policy;
 
 		// determines the encryption level of the
 		// connections.  This setting will adjust which encryption scheme is
 		// offered to the other peer, as well as which encryption scheme is
 		// selected by the client. See enc_level enum for options.
-		boost::uint8_t allowed_enc_level;
+		std::uint8_t allowed_enc_level;
 
 		// if the allowed encryption level is both, setting this to
 		// true will prefer rc4 if both methods are offered, plaintext

@@ -91,10 +91,10 @@
 #include "libtorrent/config.hpp"
 // these are standard C types, but they might
 // not be available in c++
-#include <boost/cstdint.hpp>
-typedef boost::uint32_t UTF32;
-typedef boost::uint16_t UTF16;
-typedef boost::uint8_t  UTF8;
+#include <stdint.h>
+typedef uint32_t UTF32;
+typedef uint16_t UTF16;
+typedef uint8_t  UTF8;
 extern "C" {
 #else
 #define TORRENT_EXTRA_EXPORT

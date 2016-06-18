@@ -126,7 +126,7 @@ TORRENT_TEST(bitfield)
 	TEST_CHECK(test1.all_set() == true);
 	TEST_CHECK(test1.count() == 101);
 
-	boost::uint8_t b1[] = { 0x08, 0x10 };
+	std::uint8_t b1[] = { 0x08, 0x10 };
 	test1.assign((char*)b1, 14);
 	print_bitfield(test1);
 	TEST_EQUAL(test1.count(), 2);
@@ -149,12 +149,12 @@ TORRENT_TEST(bitfield)
 	TEST_EQUAL(test1.get_bit(1), false);
 	TEST_EQUAL(test1.get_bit(2), true);
 
-	boost::uint8_t b2[] = { 0x08, 0x10, 0xff, 0xff, 0xff, 0xff, 0xf, 0xc, 0x7f };
+	std::uint8_t b2[] = { 0x08, 0x10, 0xff, 0xff, 0xff, 0xff, 0xf, 0xc, 0x7f };
 	test1.assign((char*)b2, 72);
 	print_bitfield(test1);
 	TEST_EQUAL(test1.count(), 47);
 
-	boost::uint8_t b3[] = { 0x08, 0x10, 0xff, 0xff, 0xff, 0xff, 0xf, 0xc };
+	std::uint8_t b3[] = { 0x08, 0x10, 0xff, 0xff, 0xff, 0xff, 0xf, 0xc };
 	test1.assign((char*)b3, 64);
 	print_bitfield(test1);
 	TEST_EQUAL(test1.count(), 40);
@@ -166,7 +166,7 @@ TORRENT_TEST(bitfield)
 	}
 
 	// test alignment
-	boost::uint32_t buffer[4];
+	std::uint32_t buffer[4];
 	char* b = (char*)buffer;
 
 	for (int i = 0; i < 4; ++i)

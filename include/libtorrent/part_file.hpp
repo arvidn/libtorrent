@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <mutex>
 #include <boost/unordered_map.hpp>
-#include <boost/cstdint.hpp>
+#include <cstdint>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -62,8 +62,8 @@ namespace libtorrent
 
 		void move_partfile(std::string const& path, error_code& ec);
 
-		void import_file(file& f, boost::int64_t offset, boost::int64_t size, error_code& ec);
-		void export_file(file& f, boost::int64_t offset, boost::int64_t size, error_code& ec);
+		void import_file(file& f, std::int64_t offset, std::int64_t size, error_code& ec);
+		void export_file(file& f, std::int64_t offset, std::int64_t size, error_code& ec);
 
 		// flush the metadata
 		void flush_metadata(error_code& ec);

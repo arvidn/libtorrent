@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <unordered_map>
 
-#include <boost/cstdint.hpp>
+#include <cstdint>
 #include <boost/pool/pool.hpp>
 #include <boost/function/function3.hpp>
 
@@ -105,7 +105,7 @@ public:
 
 private:
 
-	boost::uint32_t calc_connection_id(udp::endpoint addr);
+	std::uint32_t calc_connection_id(udp::endpoint addr);
 
 	mutable boost::pool<> m_pool_allocator;
 
@@ -118,8 +118,8 @@ private:
 	routing_table& m_table;
 	time_point m_timer;
 	node_id m_our_id;
-	boost::uint32_t m_allocated_observers:31;
-	boost::uint32_t m_destructing:1;
+	std::uint32_t m_allocated_observers:31;
+	std::uint32_t m_destructing:1;
 };
 
 } } // namespace libtorrent::dht

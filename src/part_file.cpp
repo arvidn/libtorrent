@@ -94,7 +94,7 @@ namespace libtorrent
 		if (!ec)
 		{
 			// parse header
-			boost::scoped_array<boost::uint32_t> header(new boost::uint32_t[m_header_size]);
+			boost::scoped_array<std::uint32_t> header(new std::uint32_t[m_header_size]);
 			file::iovec_t b = {header.get(), size_t(m_header_size) };
 			int n = m_file.readv(0, &b, 1, ec);
 			if (ec) return;
@@ -188,7 +188,7 @@ namespace libtorrent
 
 		l.unlock();
 
-		boost::int64_t slot_offset = boost::int64_t(m_header_size) + boost::int64_t(slot) * m_piece_size;
+		std::int64_t slot_offset = std::int64_t(m_header_size) + std::int64_t(slot) * m_piece_size;
 		return m_file.writev(slot_offset + offset, bufs, num_bufs, ec);
 	}
 
@@ -213,7 +213,7 @@ namespace libtorrent
 
 		l.unlock();
 
-		boost::int64_t slot_offset = boost::int64_t(m_header_size) + boost::int64_t(slot) * m_piece_size;
+		std::int64_t slot_offset = std::int64_t(m_header_size) + std::int64_t(slot) * m_piece_size;
 		return m_file.readv(slot_offset + offset, bufs, num_bufs, ec);
 	}
 
@@ -283,8 +283,8 @@ namespace libtorrent
 		m_path = path;
 	}
 
-	void part_file::import_file(file& f, boost::int64_t offset
-		, boost::int64_t size, error_code& ec)
+	void part_file::import_file(file& f, std::int64_t offset
+		, std::int64_t size, error_code& ec)
 	{
 		TORRENT_UNUSED(f);
 		TORRENT_UNUSED(offset);
@@ -297,7 +297,7 @@ namespace libtorrent
 			, boost::system::generic_category());
 	}
 
-	void part_file::export_file(file& f, boost::int64_t offset, boost::int64_t size, error_code& ec)
+	void part_file::export_file(file& f, std::int64_t offset, std::int64_t size, error_code& ec)
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 
@@ -306,8 +306,8 @@ namespace libtorrent
 
 		boost::scoped_array<char> buf;
 
-		boost::int64_t piece_offset = offset - boost::int64_t(piece) * m_piece_size;
-		boost::int64_t file_offset = 0;
+		std::int64_t piece_offset = offset - std::int64_t(piece) * m_piece_size;
+		std::int64_t file_offset = 0;
 		for (; piece < end; ++piece)
 		{
 			boost::unordered_map<int, int>::iterator i = m_piece_map.find(piece);
@@ -320,8 +320,8 @@ namespace libtorrent
 
 				if (!buf) buf.reset(new char[m_piece_size]);
 
-				boost::int64_t const slot_offset = boost::int64_t(m_header_size)
-					+ boost::int64_t(slot) * m_piece_size;
+				std::int64_t const slot_offset = std::int64_t(m_header_size)
+					+ std::int64_t(slot) * m_piece_size;
 
 				// don't hold the lock during disk I/O
 				l.unlock();
@@ -393,7 +393,7 @@ namespace libtorrent
 		open_file(file::read_write, ec);
 		if (ec) return;
 
-		boost::scoped_array<boost::uint32_t> header(new boost::uint32_t[m_header_size]);
+		boost::scoped_array<std::uint32_t> header(new std::uint32_t[m_header_size]);
 
 		using namespace libtorrent::detail;
 

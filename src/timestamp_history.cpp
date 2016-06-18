@@ -40,10 +40,10 @@ enum
 	TIME_MASK = 0xffffffff
 };
 // defined in utp_stream.cpp
-bool compare_less_wrap(boost::uint32_t lhs, boost::uint32_t rhs
-	, boost::uint32_t mask);
+bool compare_less_wrap(std::uint32_t lhs, std::uint32_t rhs
+	, std::uint32_t mask);
 
-boost::uint32_t timestamp_history::add_sample(boost::uint32_t sample, bool step)
+std::uint32_t timestamp_history::add_sample(std::uint32_t sample, bool step)
 {
 	if (!initialized())
 	{
@@ -70,7 +70,7 @@ boost::uint32_t timestamp_history::add_sample(boost::uint32_t sample, bool step)
 		m_history[m_index] = sample;
 	}
 
-	boost::uint32_t ret = sample - m_base;
+	std::uint32_t ret = sample - m_base;
 
 	// don't step base delay history unless we have at least 120
 	// samples. Anything less would suggest that the connection is

@@ -48,7 +48,7 @@ namespace libtorrent { namespace dht
 namespace
 {
 	enum { canonical_length = 1200 };
-	int canonical_string(std::pair<char const*, int> v, boost::uint64_t seq
+	int canonical_string(std::pair<char const*, int> v, std::uint64_t seq
 		, std::pair<char const*, int> salt, char out[canonical_length])
 	{
 		// v must be valid bencoding!
@@ -99,7 +99,7 @@ sha1_hash item_target_id(std::pair<char const*, int> salt
 bool verify_mutable_item(
 	std::pair<char const*, int> v
 	, std::pair<char const*, int> salt
-	, boost::uint64_t seq
+	, std::uint64_t seq
 	, char const* pk
 	, char const* sig)
 {
@@ -121,7 +121,7 @@ bool verify_mutable_item(
 void sign_mutable_item(
 	std::pair<char const*, int> v
 	, std::pair<char const*, int> salt
-	, boost::uint64_t seq
+	, std::uint64_t seq
 	, char const* pk
 	, char const* sk
 	, char* sig)
@@ -147,13 +147,13 @@ item::item(char const* pk, std::string const& salt)
 
 item::item(entry const& v
 	, std::pair<char const*, int> salt
-	, boost::uint64_t seq, char const* pk, char const* sk)
+	, std::uint64_t seq, char const* pk, char const* sk)
 {
 	assign(v, salt, seq, pk, sk);
 }
 
 void item::assign(entry const& v, std::pair<char const*, int> salt
-	, boost::uint64_t seq, char const* pk, char const* sk)
+	, std::uint64_t seq, char const* pk, char const* sk)
 {
 	m_value = v;
 	if (pk && sk)
@@ -174,7 +174,7 @@ void item::assign(entry const& v, std::pair<char const*, int> salt
 
 bool item::assign(bdecode_node const& v
 	, std::pair<char const*, int> salt
-	, boost::uint64_t seq, char const* pk, char const* sig)
+	, std::uint64_t seq, char const* pk, char const* sig)
 {
 	TORRENT_ASSERT(v.data_section().second <= 1000);
 	if (pk && sig)
@@ -197,7 +197,7 @@ bool item::assign(bdecode_node const& v
 	return true;
 }
 
-void item::assign(entry const& v, std::string salt, boost::uint64_t seq
+void item::assign(entry const& v, std::string salt, std::uint64_t seq
 	, char const* pk, char const* sig)
 {
 #if TORRENT_USE_ASSERTS

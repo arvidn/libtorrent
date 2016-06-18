@@ -88,12 +88,12 @@ namespace libtorrent
 
 		void release_memory();
 
-		boost::uint32_t in_use() const
+		std::uint32_t in_use() const
 		{
 			std::unique_lock<std::mutex> l(m_pool_mutex);
 			return m_in_use;
 		}
-		boost::uint32_t num_to_evict(int num_needed = 0);
+		std::uint32_t num_to_evict(int num_needed = 0);
 		bool exceeded_max_size() const { return m_exceeded_max_size; }
 
 		void set_settings(aux::session_settings const& sett, error_code& ec);

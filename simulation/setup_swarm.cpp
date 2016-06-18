@@ -351,7 +351,7 @@ void setup_swarm(int num_nodes
 
 					// only print alerts from the session under test
 					lt::time_duration d = a->timestamp() - start_time;
-					boost::uint32_t const millis = lt::duration_cast<lt::milliseconds>(d).count();
+					std::uint32_t const millis = lt::duration_cast<lt::milliseconds>(d).count();
 
 					if (should_print(a))
 					{

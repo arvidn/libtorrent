@@ -85,7 +85,7 @@ namespace
 
 list file_progress(torrent_handle& handle, int flags)
 {
-    std::vector<boost::int64_t> p;
+    std::vector<std::int64_t> p;
 
     {
         allow_threading_guard guard;
@@ -99,7 +99,7 @@ list file_progress(torrent_handle& handle, int flags)
 
     list result;
 
-    for (std::vector<boost::int64_t>::iterator i(p.begin()), e(p.end()); i != e; ++i)
+    for (std::vector<std::int64_t>::iterator i(p.begin()), e(p.end()); i != e; ++i)
         result.append(*i);
 
     return result;

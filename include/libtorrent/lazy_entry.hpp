@@ -167,7 +167,7 @@ namespace libtorrent
 		}
 
 		// requires the type to be an integer. return the integer value
-		boost::int64_t int_value() const;
+		std::int64_t int_value() const;
 
 		// internal
 		void construct_string(char const* start, int length);
@@ -244,8 +244,8 @@ namespace libtorrent
 		// if this is a dictionary, look for a key ``name`` whose value
 		// is an int. If such key exist, return a pointer to its value,
 		// otherwise NULL.
-		boost::int64_t dict_find_int_value(char const* name
-			, boost::int64_t default_val = 0) const;
+		std::int64_t dict_find_int_value(char const* name
+			, std::int64_t default_val = 0) const;
 		lazy_entry const* dict_find_int(char const* name) const;
 
 		// these functions require that ``this`` is a dictionary.
@@ -306,7 +306,7 @@ namespace libtorrent
 		// (this->type() == list_t). returns the integer value at
 		// index ``i``. If the element at ``i`` is not an integer
 		// ``default_val`` is returned, which defaults to 0.
-		boost::int64_t list_int_value_at(int i, boost::int64_t default_val = 0) const;
+		std::int64_t list_int_value_at(int i, std::int64_t default_val = 0) const;
 
 		// if this is a list, return the number of items in it.
 		int list_size() const
@@ -347,7 +347,7 @@ namespace libtorrent
 		void swap(lazy_entry& e)
 		{
 			using std::swap;
-			boost::uint32_t tmp = e.m_type;
+			std::uint32_t tmp = e.m_type;
 			e.m_type = m_type;
 			m_type = tmp;
 			tmp = e.m_size;
@@ -378,12 +378,12 @@ namespace libtorrent
 
 		// the number of bytes this entry extends in the
 		// bencoded buffer
-		boost::uint32_t m_len;
+		std::uint32_t m_len;
 
 		// if list or dictionary, the number of items
-		boost::uint32_t m_size:29;
+		std::uint32_t m_size:29;
 		// element type (dict, list, int, string)
-		boost::uint32_t m_type:3;
+		std::uint32_t m_type:3;
 
 		// non-copyable
 		lazy_entry(lazy_entry const&);
@@ -404,7 +404,7 @@ namespace libtorrent
 
 	// defined in bdecode.cpp
 	TORRENT_EXTRA_EXPORT char const* parse_int(char const* start
-		, char const* end, char delimiter, boost::int64_t& val
+		, char const* end, char delimiter, std::int64_t& val
 		, bdecode_errors::error_code_enum& ec);
 
 }

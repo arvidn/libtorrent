@@ -66,8 +66,8 @@
 note by Arvid Norberg.
 This file was turned into a .cpp file in order to
 be able to take advantage of boost's cstdint.hpp file
-All "short" has been replaced with boost::int16_t
-and all "long" with boost::int32_t according to the
+All "short" has been replaced with std::int16_t
+and all "long" with std::int32_t according to the
 type width assuptions in the comment above.
 */
 
@@ -75,7 +75,7 @@ type width assuptions in the comment above.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <setjmp.h>             /* for setjmp(), longjmp(), and jmp_buf */
-#include <boost/cstdint.hpp>    /* for types with size guarantees */
+#include <cstdint>    /* for types with size guarantees */
 #include "libtorrent/puff.hpp"  /* prototype for puff() */
 
 #define local static            /* for local function definitions */
@@ -95,13 +95,13 @@ type width assuptions in the comment above.
 struct state {
     /* output state */
     unsigned char *out;         /* output buffer */
-    boost::uint32_t outlen;       /* available space at out */
-    boost::uint32_t outcnt;       /* bytes written to out so far */
+    std::uint32_t outlen;       /* available space at out */
+    std::uint32_t outcnt;       /* bytes written to out so far */
 
     /* input state */
     const unsigned char *in;          /* input buffer */
-    boost::uint32_t inlen;        /* available input at in */
-    boost::uint32_t incnt;        /* bytes read so far */
+    std::uint32_t inlen;        /* available input at in */
+    std::uint32_t incnt;        /* bytes read so far */
     int bitbuf;                 /* bit buffer */
     int bitcnt;                 /* number of bits in bit buffer */
 
@@ -122,13 +122,13 @@ struct state {
  */
 local int bits(struct state *s, int need)
 {
-	boost::int32_t val;           /* bit accumulator (can use up to 20 bits) */
+	std::int32_t val;           /* bit accumulator (can use up to 20 bits) */
 
     /* load at least need bits into val */
     val = s->bitbuf;
     while (s->bitcnt < need) {
         if (s->incnt == s->inlen) longjmp(s->env, 1);   /* out of input */
-        val |= (boost::int32_t)(s->in[s->incnt++]) << s->bitcnt;  /* load eight bits */
+        val |= (std::int32_t)(s->in[s->incnt++]) << s->bitcnt;  /* load eight bits */
         s->bitcnt += 8;
     }
 
@@ -198,8 +198,8 @@ local int stored(struct state *s)
  * seen in the function decode() below.
  */
 struct huffman {
-    boost::int16_t *count;       /* number of symbols of each length */
-    boost::int16_t *symbol;      /* canonically ordered symbols */
+    std::int16_t *count;       /* number of symbols of each length */
+    std::int16_t *symbol;      /* canonically ordered symbols */
 };
 
 /*
@@ -263,7 +263,7 @@ local int decode(struct state *s, struct huffman *h)
     int index;          /* index of first code of length len in symbol table */
     int bitbuf;         /* bits from stream */
     int left;           /* bits left in next or left to process */
-	 boost::int16_t *next;        /* next number of codes */
+	 std::int16_t *next;        /* next number of codes */
 
     bitbuf = s->bitbuf;
     left = s->bitcnt;
@@ -328,12 +328,12 @@ local int decode(struct state *s, struct huffman *h)
  * - Within a given code length, the symbols are kept in ascending order for
  *   the code bits definition.
  */
-local int construct(struct huffman *h, boost::int16_t *length, int n)
+local int construct(struct huffman *h, std::int16_t *length, int n)
 {
     int symbol;         /* current symbol when stepping through length[] */
     int len;            /* current length when stepping through h->count[] */
     int left;           /* number of possible codes left of current length */
-	 boost::int16_t offs[MAXBITS+1];      /* offsets in symbol table for each length */
+	 std::int16_t offs[MAXBITS+1];      /* offsets in symbol table for each length */
 
     /* count number of codes of each length */
     for (len = 0; len <= MAXBITS; len++)
@@ -430,17 +430,17 @@ local int codes(struct state *s,
     int symbol;         /* decoded symbol */
     int len;            /* length for copy */
     unsigned dist;      /* distance for copy */
-    static const boost::int16_t lens[29] = { /* Size base for length codes 257..285 */
+    static const std::int16_t lens[29] = { /* Size base for length codes 257..285 */
         3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31,
         35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258};
-    static const boost::int16_t lext[29] = { /* Extra bits for length codes 257..285 */
+    static const std::int16_t lext[29] = { /* Extra bits for length codes 257..285 */
         0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2,
         3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0};
-    static const boost::int16_t dists[30] = { /* Offset base for distance codes 0..29 */
+    static const std::int16_t dists[30] = { /* Offset base for distance codes 0..29 */
         1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193,
         257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145,
         8193, 12289, 16385, 24577};
-    static const boost::int16_t dext[30] = { /* Extra bits for distance codes 0..29 */
+    static const std::int16_t dext[30] = { /* Extra bits for distance codes 0..29 */
         0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6,
         7, 7, 8, 8, 9, 9, 10, 10, 11, 11,
         12, 12, 13, 13};
@@ -514,15 +514,15 @@ local int codes(struct state *s,
 local int fixed(struct state *s)
 {
     static int virgin = 1;
-    static boost::int16_t lencnt[MAXBITS+1], lensym[FIXLCODES];
-    static boost::int16_t distcnt[MAXBITS+1], distsym[MAXDCODES];
+    static std::int16_t lencnt[MAXBITS+1], lensym[FIXLCODES];
+    static std::int16_t distcnt[MAXBITS+1], distsym[MAXDCODES];
     static struct huffman lencode = {lencnt, lensym};
     static struct huffman distcode = {distcnt, distsym};
 
     /* build fixed huffman tables if first call (may not be thread safe) */
     if (virgin) {
         int symbol;
-        boost::int16_t lengths[FIXLCODES];
+        std::int16_t lengths[FIXLCODES];
 
         /* literal/length table */
         for (symbol = 0; symbol < 144; symbol++)
@@ -637,12 +637,12 @@ local int dynamic(struct state *s)
     int nlen, ndist, ncode;             /* number of lengths in descriptor */
     int index;                          /* index of lengths[] */
     int err;                            /* construct() return value */
-    boost::int16_t lengths[MAXCODES];            /* descriptor code lengths */
-    boost::int16_t lencnt[MAXBITS+1], lensym[MAXLCODES];         /* lencode memory */
-    boost::int16_t distcnt[MAXBITS+1], distsym[MAXDCODES];       /* distcode memory */
+    std::int16_t lengths[MAXCODES];            /* descriptor code lengths */
+    std::int16_t lencnt[MAXBITS+1], lensym[MAXLCODES];         /* lencode memory */
+    std::int16_t distcnt[MAXBITS+1], distsym[MAXDCODES];       /* distcode memory */
     struct huffman lencode = {lencnt, lensym};          /* length code */
     struct huffman distcode = {distcnt, distsym};       /* distance code */
-    static const boost::int16_t order[19] =      /* permutation of code length codes */
+    static const std::int16_t order[19] =      /* permutation of code length codes */
         {16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15};
 
     /* get number of lengths in each table, check lengths */
@@ -747,9 +747,9 @@ local int dynamic(struct state *s)
  *   expected values to check.
  */
 int puff(unsigned char *dest,           /* pointer to destination pointer */
-         boost::uint32_t *destlen,        /* amount of output space */
+         std::uint32_t *destlen,        /* amount of output space */
          const unsigned char *source,         /* pointer to source data pointer */
-         boost::uint32_t *sourcelen)      /* amount of input available */
+         std::uint32_t *sourcelen)      /* amount of input available */
 {
     struct state s;             /* input/output state */
     int err;                    /* return value */
@@ -798,9 +798,9 @@ int puff(unsigned char *dest,           /* pointer to destination pointer */
 #include <sys/types.h>
 #include <sys/stat.h>
 
-local unsigned char *yank(char *name, boost::uint32_t *len)
+local unsigned char *yank(char *name, std::uint32_t *len)
 {
-    boost::uint32_t size;
+    std::uint32_t size;
     unsigned char *buf;
     FILE *in;
     struct stat s;
@@ -808,7 +808,7 @@ local unsigned char *yank(char *name, boost::uint32_t *len)
     *len = 0;
     if (stat(name, &s)) return NULL;
     if ((s.st_mode & S_IFMT) != S_IFREG) return NULL;
-    size = (boost::uint32_t)(s.st_size);
+    size = (std::uint32_t)(s.st_size);
     if (size == 0 || (off_t)size != s.st_size) return NULL;
     in = fopen(name, "r");
     if (in == NULL) return NULL;
@@ -826,7 +826,7 @@ int main(int argc, char **argv)
 {
     int ret;
     unsigned char *source;
-    boost::uint32_t len, sourcelen, destlen;
+    std::uint32_t len, sourcelen, destlen;
 
     if (argc < 2) return 2;
     source = yank(argv[1], &len);
