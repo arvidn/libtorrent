@@ -639,6 +639,7 @@ namespace libtorrent
 		bool m_outstanding_reclaim_message;
 #if TORRENT_USE_ASSERTS
 		int m_magic;
+		std::atomic<bool> m_jobs_aborted;
 #endif
 	};
 }
