@@ -103,7 +103,7 @@ namespace libtorrent
 		m_xor_mask = h.final();
 	}
 
-	std::tuple<int, std::vector<boost::asio::const_buffer>>
+	std::tuple<int, aux::array_view<boost::asio::const_buffer>>
 	encryption_handler::encrypt(
 		aux::array_view<boost::asio::mutable_buffer> iovec)
 	{
@@ -146,8 +146,8 @@ namespace libtorrent
 		}
 
 		int next_barrier = 0;
-		std::vector<const_buffer> out_iovec;
-		bool process_barrier = iovec.size() == 0;
+		aux::array_view<const_buffer> out_iovec;
+		bool process_barrier = num_bufs == 0;
 		if (!process_barrier)
 		{
 			std::tie(next_barrier, out_iovec)
@@ -185,7 +185,7 @@ namespace libtorrent
 			for (int i = 0; i < num_bufs; ++i)
 				bufs[i].~mutable_buffer();
 		}
-		return std::make_tuple(next_barrier, std::move(out_iovec));
+		return std::make_tuple(next_barrier, out_iovec);
 	}
 
 	int encryption_handler::decrypt(crypto_receive_buffer& recv_buffer
@@ -283,11 +283,11 @@ namespace libtorrent
 		encrypt(vec);
 	}
 
-	std::tuple<int, std::vector<boost::asio::const_buffer>>
+	std::tuple<int, aux::array_view<boost::asio::const_buffer>>
 	rc4_handler::encrypt(aux::array_view<boost::asio::mutable_buffer> bufs)
 	{
 		using namespace boost::asio;
-		std::vector<boost::asio::const_buffer> empty;
+		aux::array_view<boost::asio::const_buffer> empty;
 		if (!m_encrypt) return std::make_tuple(0, empty);
 		if (bufs.size() == 0) return std::make_tuple(0, empty);
 

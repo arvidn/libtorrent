@@ -70,8 +70,14 @@ namespace libtorrent { namespace aux {
 
 		size_t size() const { return m_len; }
 		T* data() const { return m_ptr; }
+
+		using iterator = T*;
+		using reverse_iterator = std::reverse_iterator<T*>;
+
 		T* begin() const { return m_ptr; }
 		T* end() const { return m_ptr + m_len; }
+		reverse_iterator rbegin() const { return reverse_iterator(end()); }
+		reverse_iterator rend() const { return reverse_iterator(begin()); }
 
 		T& front() const { TORRENT_ASSERT(m_len > 0); return m_ptr[0]; }
 		T& back() const { TORRENT_ASSERT(m_len > 0); return m_ptr[m_len-1]; }

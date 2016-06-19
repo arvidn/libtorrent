@@ -159,9 +159,9 @@ namespace libtorrent
 		void on_receive_impl(std::size_t bytes_transferred);
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-		// next_barrier
+		// next_barrier, buffers-to-prepend
 		virtual
-		std::tuple<int, std::vector<boost::asio::const_buffer>>
+		std::tuple<int, aux::array_view<boost::asio::const_buffer>>
 		hit_send_barrier(aux::array_view<boost::asio::mutable_buffer> iovec) override;
 #endif
 

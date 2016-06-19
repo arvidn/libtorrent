@@ -99,7 +99,7 @@ namespace libtorrent
 
 	struct encryption_handler
 	{
-		std::tuple<int, std::vector<boost::asio::const_buffer>>
+		std::tuple<int, aux::array_view<boost::asio::const_buffer>>
 		encrypt(aux::array_view<boost::asio::mutable_buffer> iovec);
 
 		int decrypt(crypto_receive_buffer& recv_buffer
@@ -144,7 +144,7 @@ namespace libtorrent
 		void set_incoming_key(unsigned char const* key, int len) override;
 		void set_outgoing_key(unsigned char const* key, int len) override;
 
-		std::tuple<int, std::vector<boost::asio::const_buffer>>
+		std::tuple<int, aux::array_view<boost::asio::const_buffer>>
 		encrypt(aux::array_view<boost::asio::mutable_buffer> buf) override;
 
 		void decrypt(aux::array_view<boost::asio::mutable_buffer> buf

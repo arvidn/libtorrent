@@ -750,9 +750,9 @@ namespace libtorrent
 		void send_piece_suggestions(int num);
 
 		virtual
-		std::tuple<int, std::vector<boost::asio::const_buffer>>
+		std::tuple<int, aux::array_view<boost::asio::const_buffer>>
 		hit_send_barrier(aux::array_view<boost::asio::mutable_buffer> /* iovec */)
-		{ return std::make_tuple(INT_MAX, std::vector<boost::asio::const_buffer>()); }
+		{ return std::make_tuple(INT_MAX, aux::array_view<boost::asio::const_buffer>()); }
 
 		void attach_to_torrent(sha1_hash const& ih);
 

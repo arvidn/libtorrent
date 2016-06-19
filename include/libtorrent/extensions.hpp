@@ -188,14 +188,6 @@ namespace libtorrent
 	struct peer_connection_handle;
 	struct torrent_handle;
 
-	// Functions of this type are called to handle incoming DHT requests
-	using dht_extension_handler_t = boost::function<bool(udp::endpoint const& source
-		, bdecode_node const& request, entry& response)>;
-
-	// Map of query strings to handlers. Note that query strings are limited to 15 bytes.
-	// see max_dht_query_length
-	using dht_extensions_t = std::vector<std::pair<std::string, dht_extension_handler_t> >;
-
 	// this is the base class for a session plugin. One primary feature
 	// is that it is notified of all torrents that are added to the session,
 	// and can add its own torrent_plugins.
@@ -511,8 +503,12 @@ namespace libtorrent
 		// are now ready to be sent to the lower layer. This must be at least
 		// as large as the number of bytes passed in and may be larger if there
 		// is additional data to be inserted at the head of the send buffer.
-		// The additional data is returned as the second tupled value
-		virtual std::tuple<int, std::vector<boost::asio::const_buffer>>
+		// The additional data is returned as the second tupled value. Any
+		// returned buffer as well as the iovec itself, to be prepended to the
+		// send buffer, must be owned by the crypto plugin and guaranteed to stay
+		// alive until the crypto_plugin is destructed or this function is called
+		// again.
+		virtual std::tuple<int, aux::array_view<boost::asio::const_buffer>>
 		encrypt(aux::array_view<boost::asio::mutable_buffer> /*send_vec*/) = 0;
 
 		// decrypt the provided buffers.
