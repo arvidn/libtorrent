@@ -2113,7 +2113,7 @@ namespace libtorrent
 			if (piece >= 0) superseed_piece(-1, piece);
 			return;
 		}
-		else if (m_supports_fast && t->is_seed() && !m_settings.get_bool(settings_pack::lazy_bitfields))
+		else if (m_supports_fast && t->is_seed())
 		{
 			write_have_all();
 			return;
@@ -2135,26 +2135,6 @@ namespace libtorrent
 
 		const int num_pieces = t->torrent_file().num_pieces();
 		TORRENT_ASSERT(num_pieces > 0);
-
-		int lazy_pieces[50];
-		int num_lazy_pieces = 0;
-		int lazy_piece = 0;
-
-		if (t->is_seed() && m_settings.get_bool(settings_pack::lazy_bitfields)
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-			&& !m_encrypted
-#endif
-			)
-		{
-			num_lazy_pieces = (std::min)(50, num_pieces / 10);
-			if (num_lazy_pieces < 1) num_lazy_pieces = 1;
-			for (int i = 0; i < num_pieces; ++i)
-			{
-				if (int(random() % (num_pieces - i)) >= num_lazy_pieces - lazy_piece) continue;
-				lazy_pieces[lazy_piece++] = i;
-			}
-			TORRENT_ASSERT(lazy_piece == num_lazy_pieces);
-		}
 
 		const int packet_size = (num_pieces + 7) / 8 + 5;
 
@@ -2189,8 +2169,6 @@ namespace libtorrent
 				}
 			}
 		}
-		for (int c = 0; c < num_lazy_pieces; ++c)
-			msg[5 + lazy_pieces[c] / 8] &= ~(0x80 >> (lazy_pieces[c] & 7));
 
 		// add predictive pieces to the bitfield as well, since we won't
 		// announce them again
@@ -2199,7 +2177,6 @@ namespace libtorrent
 			msg[5 + *i / 8] |= (0x80 >> (*i & 7));
 
 #ifndef TORRENT_DISABLE_LOGGING
-
 		std::string bitfield_string;
 		bitfield_string.resize(num_pieces);
 		for (int k = 0; k < num_pieces; ++k)
@@ -2215,19 +2192,6 @@ namespace libtorrent
 		send_buffer(reinterpret_cast<char const*>(msg), packet_size);
 
 		stats_counters().inc_stats_counter(counters::num_outgoing_bitfield);
-
-		if (num_lazy_pieces > 0)
-		{
-			for (int i = 0; i < num_lazy_pieces; ++i)
-			{
-#ifndef TORRENT_DISABLE_LOGGING
-				peer_log(peer_log_alert::outgoing_message, "HAVE"
-					, "piece: %d", lazy_pieces[i]);
-#endif
-				write_have(lazy_pieces[i]);
-			}
-			// TODO: if we're finished, send upload_only message
-		}
 	}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -2277,24 +2241,19 @@ namespace libtorrent
 		if (t->last_seen_complete() > 0) complete_ago = t->time_since_complete();
 		handshake["complete_ago"] = complete_ago;
 
-		// if we're using lazy bitfields or if we're super seeding, don't say
-		// we're upload only, since it might make peers disconnect. don't tell
-		// anyone we're upload only when in share mode, we want to stay connected
-		// to seeds. if we're super seeding, we don't want to make peers think
-		// that we only have a single piece and is upload only, since they might
-		// disconnect immediately when they have downloaded a single piece,
-		// although we'll make another piece available. If we don't have
-		// metadata, we also need to suppress saying we're upload-only. If we do,
-		// we may be disconnected before we receive the metadata.
+		// if we're super seeding, don't say we're upload only, since it might
+		// make peers disconnect. don't tell anyone we're upload only when in
+		// share mode, we want to stay connected to seeds. if we're super seeding,
+		// we don't want to make peers think that we only have a single piece and
+		// is upload only, since they might disconnect immediately when they have
+		// downloaded a single piece, although we'll make another piece available.
+		// If we don't have metadata, we also need to suppress saying we're
+		// upload-only. If we do, we may be disconnected before we receive the
+		// metadata.
 		if (t->is_upload_only()
 			&& !t->share_mode()
 			&& t->valid_metadata()
-			&& !t->super_seeding()
-			&& (!m_settings.get_bool(settings_pack::lazy_bitfields)
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-			|| m_encrypted
-#endif
-			))
+			&& !t->super_seeding())
 		{
 			handshake["upload_only"] = 1;
 		}
