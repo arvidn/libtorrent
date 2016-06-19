@@ -1,3 +1,4 @@
+	* remove lazy-bitfield feature
 	* simplified suggest-read-cache feature to not depend on disk threads
 	* removed option to disable contiguous receive buffers
 	* deprecated public to_hex() and from_hex() functions
