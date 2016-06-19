@@ -3532,7 +3532,7 @@ namespace libtorrent
 			peer_log(peer_log_alert::outgoing, "SEND_BARRIER"
 				, "encrypted block s = %d", next_barrier);
 #endif
-		return { next_barrier, out_iovec };
+		return std::make_tuple(next_barrier, std::move(out_iovec));
 	}
 #endif
 

@@ -185,7 +185,7 @@ namespace libtorrent
 			for (int i = 0; i < num_bufs; ++i)
 				bufs[i].~mutable_buffer();
 		}
-		return { next_barrier, out_iovec };
+		return std::make_tuple(next_barrier, std::move(out_iovec));
 	}
 
 	int encryption_handler::decrypt(crypto_receive_buffer& recv_buffer
@@ -288,8 +288,8 @@ namespace libtorrent
 	{
 		using namespace boost::asio;
 		std::vector<boost::asio::const_buffer> empty;
-		if (!m_encrypt) return { 0, empty};
-		if (bufs.size() == 0) return  { 0, empty};
+		if (!m_encrypt) return std::make_tuple(0, empty);
+		if (bufs.size() == 0) return std::make_tuple(0, empty);
 
 		int bytes_processed = 0;
 		for (auto& buf : bufs)
@@ -303,7 +303,7 @@ namespace libtorrent
 			bytes_processed += len;
 			rc4_encrypt(pos, len, &m_rc4_outgoing);
 		}
-		return { bytes_processed, empty};
+		return std::make_tuple(bytes_processed, empty);
 	}
 
 	void rc4_handler::decrypt(aux::array_view<boost::asio::mutable_buffer> bufs
