@@ -455,14 +455,14 @@ namespace {
 		return ret;
 	}
 
-	boost::tuple<std::int64_t, std::int64_t> get_range(
+	std::tuple<std::int64_t, std::int64_t> get_range(
 		http_parser const& parser, error_code& ec)
 	{
 		std::int64_t range_start;
 		std::int64_t range_end;
 		if (parser.status_code() == 206)
 		{
-			boost::tie(range_start, range_end) = parser.content_range();
+			std::tie(range_start, range_end) = parser.content_range();
 			if (range_start < 0 || range_end < range_start)
 			{
 				ec = errors::invalid_range;
@@ -485,7 +485,7 @@ namespace {
 				ec = errors::no_content_length;
 			}
 		}
-		return boost::tuple<std::int64_t, std::int64_t>(range_start, range_end);
+		return std::tuple<std::int64_t, std::int64_t>(range_start, range_end);
 	}
 }
 
@@ -581,7 +581,7 @@ void web_peer_connection::handle_redirect(int bytes_left)
 	{
 		// we should not try this server again.
 		t->remove_web_seed_conn(this, errors::missing_location, op_bittorrent, 2);
-		m_web = NULL;
+		m_web = nullptr;
 		TORRENT_ASSERT(is_disconnecting());
 		return;
 	}
@@ -614,7 +614,7 @@ void web_peer_connection::handle_redirect(int bytes_left)
 		if (i == std::string::npos)
 		{
 			t->remove_web_seed_conn(this, errors::invalid_redirection, op_bittorrent, 2);
-			m_web = NULL;
+			m_web = nullptr;
 			TORRENT_ASSERT(is_disconnecting());
 			return;
 		}
@@ -630,7 +630,7 @@ void web_peer_connection::handle_redirect(int bytes_left)
 #endif
 	t->add_web_seed(location, web_seed_entry::url_seed, m_external_auth, m_extra_headers);
 	t->remove_web_seed_conn(this, errors::redirecting, op_bittorrent, 2);
-	m_web = NULL;
+	m_web = nullptr;
 	TORRENT_ASSERT(is_disconnecting());
 	return;
 }
@@ -667,7 +667,7 @@ void web_peer_connection::on_receive(error_code const& error
 		if (!header_finished)
 		{
 			bool failed = false;
-			boost::tie(payload, protocol) = m_parser.incoming(recv_buffer, failed);
+			std::tie(payload, protocol) = m_parser.incoming(recv_buffer, failed);
 			received_bytes(0, protocol);
 			TORRENT_ASSERT(int(recv_buffer.left()) >= protocol);
 
@@ -757,13 +757,13 @@ void web_peer_connection::on_receive(error_code const& error
 		std::int64_t range_start;
 		std::int64_t range_end;
 		error_code ec;
-		boost::tie(range_start, range_end) = get_range(m_parser, ec);
+		std::tie(range_start, range_end) = get_range(m_parser, ec);
 		if (ec)
 		{
 			received_bytes(0, recv_buffer.left());
 			// we should not try this server again.
 			t->remove_web_seed_conn(this, ec, op_bittorrent, 2);
-			m_web = NULL;
+			m_web = nullptr;
 			TORRENT_ASSERT(is_disconnecting());
 			return;
 		}

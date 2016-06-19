@@ -91,23 +91,23 @@ namespace libtorrent
 		} FILE_IO_PRIORITY_HINT_INFO_LOCAL;
 
 		typedef BOOL (WINAPI *SetFileInformationByHandle_t)(HANDLE hFile, FILE_INFO_BY_HANDLE_CLASS_LOCAL FileInformationClass, LPVOID lpFileInformation, DWORD dwBufferSize);
-		static SetFileInformationByHandle_t SetFileInformationByHandle = NULL;
+		static SetFileInformationByHandle_t SetFileInformationByHandle = nullptr;
 
 		static bool failed_kernel_load = false;
 
 		if (failed_kernel_load) return;
 
-		if (SetFileInformationByHandle == NULL)
+		if (SetFileInformationByHandle == nullptr)
 		{
 			HMODULE kernel32 = LoadLibraryA("kernel32.dll");
-			if (kernel32 == NULL)
+			if (kernel32 == nullptr)
 			{
 				failed_kernel_load = true;
 				return;
 			}
 
 			SetFileInformationByHandle = (SetFileInformationByHandle_t)GetProcAddress(kernel32, "SetFileInformationByHandle");
-			if (SetFileInformationByHandle == NULL)
+			if (SetFileInformationByHandle == nullptr)
 			{
 				failed_kernel_load = true;
 				return;

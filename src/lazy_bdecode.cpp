@@ -228,7 +228,7 @@ namespace libtorrent
 	int lazy_entry::capacity() const
 	{
 		TORRENT_ASSERT(m_type == dict_t || m_type == list_t);
-		if (m_data.list == NULL) return 0;
+		if (m_data.list == nullptr) return 0;
 		if (m_type == dict_t)
 			return m_data.dict[0].val.m_len;
 		else
@@ -253,18 +253,18 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_type == dict_t);
 		TORRENT_ASSERT(m_size <= this->capacity());
-		if (m_data.dict == NULL)
+		if (m_data.dict == nullptr)
 		{
 			int capacity = lazy_entry_dict_init;
 			m_data.dict = new (std::nothrow) lazy_dict_entry[capacity+1];
-			if (m_data.dict == NULL) return NULL;
+			if (m_data.dict == nullptr) return nullptr;
 			m_data.dict[0].val.m_len = capacity;
 		}
 		else if (m_size == this->capacity())
 		{
 			int capacity = this->capacity() * lazy_entry_grow_factor / 100;
 			lazy_dict_entry* tmp = new (std::nothrow) lazy_dict_entry[capacity+1];
-			if (tmp == NULL) return NULL;
+			if (tmp == nullptr) return nullptr;
 			std::memcpy(tmp, m_data.dict, sizeof(lazy_dict_entry) * (m_size + 1));
 			for (int i = 0; i < int(m_size); ++i) m_data.dict[i+1].val.release();
 
@@ -312,7 +312,7 @@ namespace libtorrent
 
 	namespace
 	{
-		// str1 is null-terminated
+		// str1 is nullptr-terminated
 		// str2 is not, str2 is len2 chars
 		bool string_equal(char const* str1, char const* str2, int len2)
 		{
@@ -422,7 +422,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_type == list_t);
 		TORRENT_ASSERT(m_size <= this->capacity());
-		if (m_data.start == NULL)
+		if (m_data.start == nullptr)
 		{
 			int capacity = lazy_entry_list_init;
 			m_data.list = new (std::nothrow) lazy_entry[capacity+1];
@@ -433,7 +433,7 @@ namespace libtorrent
 		{
 			int capacity = this->capacity() * lazy_entry_grow_factor / 100;
 			lazy_entry* tmp = new (std::nothrow) lazy_entry[capacity+1];
-			if (tmp == NULL) return NULL;
+			if (tmp == nullptr) return nullptr;
 			std::memcpy(tmp, m_data.list, sizeof(lazy_entry) * (m_size+1));
 			for (int i = 0; i < int(m_size); ++i) m_data.list[i+1].release();
 
@@ -479,7 +479,7 @@ namespace libtorrent
 				break;
 			default: break;
 		}
-		m_data.start = NULL;
+		m_data.start = nullptr;
 		m_size = 0;
 		m_type = none_t;
 	}

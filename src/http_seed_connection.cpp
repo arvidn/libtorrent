@@ -248,7 +248,7 @@ namespace libtorrent
 				bool parse_error = false;
 				int protocol = 0;
 				int payload = 0;
-				boost::tie(payload, protocol) = m_parser.incoming(recv_buffer, parse_error);
+				std::tie(payload, protocol) = m_parser.incoming(recv_buffer, parse_error);
 				received_bytes(0, protocol);
 				bytes_transferred -= protocol;
 #if TORRENT_USE_ASSERTS

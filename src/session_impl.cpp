@@ -53,20 +53,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if TORRENT_USE_RLIMIT
 
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wlong-long"
-#endif // __GNUC__
-
 #include <sys/resource.h>
-
 // capture this here where warnings are disabled (the macro generates warnings)
 const rlim_t rlim_infinity = RLIM_INFINITY;
-
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif // __GNUC__
-
 #endif // TORRENT_USE_RLIMIT
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -378,7 +367,7 @@ namespace aux {
 			std::bind(&session_impl::send_udp_packet, this, false, _1, _2, _3, _4)
 			, std::bind(&session_impl::incoming_connection, this, _1)
 			, m_io_service
-			, m_settings, m_stats_counters, NULL)
+			, m_settings, m_stats_counters, nullptr)
 #ifdef TORRENT_USE_OPENSSL
 		, m_ssl_utp_socket_manager(
 			std::bind(&session_impl::send_udp_packet, this, true, _1, _2, _3, _4)
@@ -1242,14 +1231,14 @@ namespace aux {
 		bool new_torrent = false;
 
 		// if t is the only torrent in the LRU list, both
-		// its prev and next links will be NULL, even though
+		// its prev and next links will be nullptr, even though
 		// it's already in the list. Cover this case by also
 		// checking to see if it's the first item
-		if (t->next != NULL || t->prev != NULL || m_torrent_lru.front() == t)
+		if (t->next != nullptr || t->prev != nullptr || m_torrent_lru.front() == t)
 		{
 #ifdef TORRENT_DEBUG
 			torrent* i = m_torrent_lru.front();
-			while (i != NULL && i != t) i = i->next;
+			while (i != nullptr && i != t) i = i->next;
 			TORRENT_ASSERT(i == t);
 #endif
 
@@ -1285,11 +1274,11 @@ namespace aux {
 		// if it's already evicted, there's nothing to do
 		if (!t->is_loaded() || !t->should_be_loaded()) return;
 
-		TORRENT_ASSERT(t->next != NULL || t->prev != NULL || m_torrent_lru.front() == t);
+		TORRENT_ASSERT(t->next != nullptr || t->prev != nullptr || m_torrent_lru.front() == t);
 
 #if defined TORRENT_DEBUG && defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		torrent* i = m_torrent_lru.front();
-		while (i != NULL && i != t) i = i->next;
+		while (i != nullptr && i != t) i = i->next;
 		TORRENT_ASSERT(i == t);
 #endif
 
@@ -1324,11 +1313,11 @@ namespace aux {
 
 		// if the torrent we're ignoring (i.e. making room for), allow
 		// one more torrent in the list.
-		if (ignore->next != NULL || ignore->prev != NULL || m_torrent_lru.front() == ignore)
+		if (ignore->next != nullptr || ignore->prev != nullptr || m_torrent_lru.front() == ignore)
 		{
 #ifdef TORRENT_DEBUG
 			torrent* i = m_torrent_lru.front();
-			while (i != NULL && i != ignore) i = i->next;
+			while (i != nullptr && i != ignore) i = i->next;
 			TORRENT_ASSERT(i == ignore);
 #endif
 			++loaded_limit;
@@ -1343,7 +1332,7 @@ namespace aux {
 			if (i == ignore)
 			{
 				i = i->next;
-				if (i == NULL) break;
+				if (i == nullptr) break;
 			}
 			m_stats_counters.inc_stats_counter(counters::torrent_evicted_counter);
 			TORRENT_ASSERT(i->is_pinned() == false);
@@ -1359,7 +1348,7 @@ namespace aux {
 
 		// we wouldn't be loading the torrent if it was already
 		// in the LRU (and loaded)
-		TORRENT_ASSERT(t->next == NULL && t->prev == NULL && m_torrent_lru.front() != t);
+		TORRENT_ASSERT(t->next == nullptr && t->prev == nullptr && m_torrent_lru.front() != t);
 		TORRENT_ASSERT(m_user_load_torrent);
 
 		// now, load t into RAM
@@ -2025,7 +2014,7 @@ namespace aux {
 
 		m_socks_listen_socket = boost::make_shared<socket_type>(boost::ref(m_io_service));
 		bool const ret = instantiate_connection(m_io_service, proxy()
-			, *m_socks_listen_socket, NULL, NULL, false, false);
+			, *m_socks_listen_socket, nullptr, nullptr, false, false);
 		TORRENT_ASSERT_VAL(ret, ret);
 		TORRENT_UNUSED(ret);
 
@@ -2152,7 +2141,7 @@ namespace aux {
 
 		m_i2p_listen_socket = boost::shared_ptr<socket_type>(new socket_type(m_io_service));
 		bool ret = instantiate_connection(m_io_service, m_i2p_conn.proxy()
-			, *m_i2p_listen_socket, NULL, NULL, true, false);
+			, *m_i2p_listen_socket, nullptr, nullptr, true, false);
 		TORRENT_ASSERT_VAL(ret, ret);
 		TORRENT_UNUSED(ret);
 
@@ -2744,7 +2733,7 @@ namespace aux {
 		for (int i = 0; i < pcs.num_classes(); ++i)
 		{
 			int pc = pcs.class_at(i);
-			if (m_classes.at(pc) == NULL) continue;
+			if (m_classes.at(pc) == nullptr) continue;
 			int f = m_classes.at(pc)->connection_limit_factor;
 			if (connection_limit_factor < f) connection_limit_factor = f;
 		}
@@ -3447,7 +3436,7 @@ namespace aux {
 
 	bool session_impl::has_dht() const
 	{
-		return m_dht.get() != NULL;
+		return m_dht.get() != nullptr;
 	}
 
 	void session_impl::prioritize_dht(boost::weak_ptr<torrent> t)
@@ -3976,20 +3965,20 @@ namespace aux {
 			if (m_next_finished_connect_torrent >= int(want_peers_finished.size()))
 				m_next_finished_connect_torrent = 0;
 
-			torrent* t = NULL;
+			torrent* t = nullptr;
 			// there are prioritized torrents. Pick one of those
 			while (!m_prio_torrents.empty())
 			{
 				t = m_prio_torrents.front().first.lock().get();
 				--m_prio_torrents.front().second;
 				if (m_prio_torrents.front().second > 0
-					&& t != NULL
+					&& t != nullptr
 					&& t->want_peers()) break;
 				m_prio_torrents.pop_front();
-				t = NULL;
+				t = nullptr;
 			}
 
-			if (t == NULL)
+			if (t == nullptr)
 			{
 				if ((m_download_connect_attempts >= m_settings.get_int(
 						settings_pack::connect_seed_every_n_download)
@@ -4355,7 +4344,7 @@ namespace aux {
 		obfuscated ^= xor_mask;
 
 		torrent_map::iterator i = m_obfuscated_torrents.find(obfuscated);
-		if (i == m_obfuscated_torrents.end()) return NULL;
+		if (i == m_obfuscated_torrents.end()) return nullptr;
 		return i->second.get();
 	}
 #endif
@@ -5033,10 +5022,10 @@ namespace aux {
 		}
 
 		if (m_torrent_lru.size() > 0
-			&& (t.prev != NULL || t.next != NULL || m_torrent_lru.front() == &t))
+			&& (t.prev != nullptr || t.next != nullptr || m_torrent_lru.front() == &t))
 			m_torrent_lru.erase(&t);
 
-		TORRENT_ASSERT(t.prev == NULL && t.next == NULL);
+		TORRENT_ASSERT(t.prev == nullptr && t.next == nullptr);
 
 		tptr->update_gauge();
 
@@ -5810,7 +5799,7 @@ namespace aux {
 
 #if defined TORRENT_ASIO_DEBUGGING
 		FILE* f = fopen("wakeups.log", "w+");
-		if (f != NULL)
+		if (f != nullptr)
 		{
 			time_point m = min_time();
 			if (!_wakeups.empty()) m = _wakeups[0].timestamp;
@@ -5845,8 +5834,8 @@ namespace aux {
 		{
 			list_node<torrent>* tmp = i;
 			i = i->next;
-			tmp->next = NULL;
-			tmp->prev = NULL;
+			tmp->next = nullptr;
+			tmp->prev = nullptr;
 		}
 #endif
 
@@ -6142,7 +6131,7 @@ namespace aux {
 		if (!m_dht)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			session_log("not starting DHT announce timer: m_dht == NULL");
+			session_log("not starting DHT announce timer: m_dht == nullptr");
 #endif
 			return;
 		}
@@ -6373,10 +6362,10 @@ namespace aux {
 		{
 			pop_alerts();
 			if (m_alert_pointers.empty())
-				return NULL;
+				return nullptr;
 		}
 
-		if (m_alert_pointers.empty()) return NULL;
+		if (m_alert_pointers.empty()) return nullptr;
 
 		// clone here to be backwards compatible, to make the client delete the
 		// alert object

@@ -42,7 +42,7 @@ namespace libtorrent { namespace aux {
 	template <typename T>
 	struct array_view
 	{
-		array_view() : m_ptr(NULL), m_len(0) {}
+		array_view() : m_ptr(nullptr), m_len(0) {}
 
 		// T -> const T conversion constructor
 		template <typename U, typename

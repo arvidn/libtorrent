@@ -85,7 +85,7 @@ namespace libtorrent { namespace dht
 	{
 		if (e.type() != entry::dictionary_t) return (node_id::min)();
 		entry const* nid = e.find_key(key);
-		if (nid == NULL || nid->type() != entry::string_t || nid->string().length() != 20)
+		if (nid == nullptr || nid->type() != entry::string_t || nid->string().length() != 20)
 			return (node_id::min)();
 		return node_id(nid->string().c_str());
 	}
@@ -93,7 +93,7 @@ namespace libtorrent { namespace dht
 	void add_dht_counters(node const& dht, counters& c)
 	{
 		int nodes, replacements, allocated_observers;
-		boost::tie(nodes, replacements, allocated_observers) = dht.get_stats_counters();
+		std::tie(nodes, replacements, allocated_observers) = dht.get_stats_counters();
 
 		c.inc_stats_counter(counters::dht_nodes, nodes);
 		c.inc_stats_counter(counters::dht_node_cache, replacements);
@@ -345,9 +345,10 @@ namespace libtorrent { namespace dht
 	void dht_tracker::get_peers(sha1_hash const& ih
 		, boost::function<void(std::vector<tcp::endpoint> const&)> f)
 	{
-		m_dht.get_peers(ih, f, NULL, false);
+		boost::function<void(std::vector<std::pair<node_entry, std::string> > const&)> empty;
+		m_dht.get_peers(ih, f, empty, false);
 #if TORRENT_USE_IPV6
-		m_dht6.get_peers(ih, f, NULL, false);
+		m_dht6.get_peers(ih, f, empty, false);
 #endif
 	}
 

@@ -753,7 +753,7 @@ void do_test_dht(address(&rand_addr)())
 	// verify that we reject invalid node IDs
 	// this is now an invalid node-id for 'source'
 	nid[0] = 0x18;
-	int nodes_num = node.size().get<0>();
+	int nodes_num = std::get<0>(node.size());
 	send_dht_request(node, "find_node", source, &response
 		, msg_args().target("0101010101010101010101010101010101010101").nid(nid));
 
@@ -781,7 +781,7 @@ void do_test_dht(address(&rand_addr)())
 	}
 
 	// a node with invalid node-id shouldn't be added to routing table.
-	TEST_EQUAL(node.size().get<0>(), nodes_num);
+	TEST_EQUAL(std::get<0>(node.size()), nodes_num);
 
 	// now the node-id is valid.
 	if (source.protocol() == udp::v4())
@@ -813,7 +813,7 @@ void do_test_dht(address(&rand_addr)())
 		std::fprintf(stderr, "   invalid error response: %s\n", error_string);
 	}
 	// node with valid node-id should be added to routing table.
-	TEST_EQUAL(node.size().get<0>(), nodes_num + 1);
+	TEST_EQUAL(std::get<0>(node.size()), nodes_num + 1);
 
 	sett.enforce_node_id = false;
 
@@ -1183,7 +1183,7 @@ void do_test_dht(address(&rand_addr)())
 		const int bucket_size = 10;
 		dht::routing_table table(id, source.protocol(), bucket_size, s, &observer);
 		std::vector<node_entry> nodes;
-		TEST_EQUAL(table.size().get<0>(), 0);
+		TEST_EQUAL(std::get<0>(table.size()), 0);
 
 		node_id tmp = id;
 		node_id diff = to_hash("15764f7459456a9453f8719b09547c11d5f34061");
@@ -1206,7 +1206,7 @@ void do_test_dht(address(&rand_addr)())
 		table.node_seen(tmp, udp::endpoint(node_addr, 4), 10);
 		table.find_node(id, nodes, 0, 10);
 		TEST_EQUAL(table.bucket_size(0), 1);
-		TEST_EQUAL(table.size().get<0>(), 1);
+		TEST_EQUAL(std::get<0>(table.size()), 1);
 		TEST_EQUAL(nodes.size(), 1);
 		if (!nodes.empty())
 		{
@@ -1295,7 +1295,7 @@ void do_test_dht(address(&rand_addr)())
 		}
 		std::printf("active buckets: %d\n", table.num_active_buckets());
 		TEST_EQUAL(table.num_active_buckets(), 10);
-		TEST_CHECK(table.size().get<0>() >= 10 * 10);
+		TEST_CHECK(std::get<0>(table.size()) >= 10 * 10);
 		//#error test num_global_nodes
 		//#error test need_refresh
 
@@ -2517,7 +2517,7 @@ TORRENT_TEST(read_only_node)
 	TEST_EQUAL(response.type(), bdecode_node::none_t);
 
 	// also, the sender shouldn't be added to routing table.
-	TEST_EQUAL(node.size().get<0>(), 0);
+	TEST_EQUAL(std::get<0>(node.size()), 0);
 
 	// for outgoing requests, read_only node will add 'ro' key (value == 1)
 	// in top-level of request.
@@ -2550,7 +2550,7 @@ TORRENT_TEST(read_only_node)
 	TEST_EQUAL(parsed[3].int_value(), 1);
 
 	// should have one node now, which is 4.4.4.4:1234
-	TEST_EQUAL(node.size().get<0>(), 1);
+	TEST_EQUAL(std::get<0>(node.size()), 1);
 
 	// now, disable read_only, try again.
 	g_sent_packets.clear();
@@ -2558,7 +2558,7 @@ TORRENT_TEST(read_only_node)
 
 	send_dht_request(node, "get", source, &response);
 	// sender should be added to routing table, there are 2 nodes now.
-	TEST_EQUAL(node.size().get<0>(), 2);
+	TEST_EQUAL(std::get<0>(node.size()), 2);
 
 	g_sent_packets.clear();
 	target = generate_next();
@@ -2757,7 +2757,7 @@ TORRENT_TEST(dht_verify_node_address)
 	const int bucket_size = 10;
 	dht::routing_table table(id, udp::v4(), bucket_size, s, &observer);
 	std::vector<node_entry> nodes;
-	TEST_EQUAL(table.size().get<0>(), 0);
+	TEST_EQUAL(std::get<0>(table.size()), 0);
 
 	node_id tmp = id;
 	node_id diff = to_hash("15764f7459456a9453f8719b09547c11d5f34061");
@@ -2765,7 +2765,7 @@ TORRENT_TEST(dht_verify_node_address)
 	add_and_replace(tmp, diff);
 	table.node_seen(tmp, udp::endpoint(address::from_string("4.4.4.4"), 4), 10);
 	table.find_node(id, nodes, 0, 10);
-	TEST_EQUAL(table.size().get<0>(), 1);
+	TEST_EQUAL(std::get<0>(table.size()), 1);
 	TEST_EQUAL(nodes.size(), 1);
 
 	// incorrect data, wrong id
@@ -2773,7 +2773,7 @@ TORRENT_TEST(dht_verify_node_address)
 		, udp::endpoint(address::from_string("4.4.4.4"), 4), 10);
 	table.find_node(id, nodes, 0, 10);
 
-	TEST_EQUAL(table.size().get<0>(), 1);
+	TEST_EQUAL(std::get<0>(table.size()), 1);
 	TEST_EQUAL(nodes.size(), 1);
 
 	// incorrect data, wrong IP
@@ -2781,7 +2781,7 @@ TORRENT_TEST(dht_verify_node_address)
 		, udp::endpoint(address::from_string("4.4.4.6"), 4), 10);
 	table.find_node(id, nodes, 0, 10);
 
-	TEST_EQUAL(table.size().get<0>(), 1);
+	TEST_EQUAL(std::get<0>(table.size()), 1);
 	TEST_EQUAL(nodes.size(), 1);
 }
 

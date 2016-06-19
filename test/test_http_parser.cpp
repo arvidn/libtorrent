@@ -34,21 +34,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/http_parser.hpp"
 #include "libtorrent/parse_url.hpp"
 
-#include <boost/tuple/tuple.hpp>
-#include <boost/tuple/tuple_comparison.hpp>
+#include <tuple>
 
 using namespace libtorrent;
-using boost::tuple;
-using boost::make_tuple;
-using boost::tie;
 
-tuple<int, int, bool> feed_bytes(http_parser& parser, char const* str)
+std::tuple<int, int, bool> feed_bytes(http_parser& parser, char const* str)
 {
-	tuple<int, int, bool> ret(0, 0, false);
-	tuple<int, int, bool> prev(0, 0, false);
+	std::tuple<int, int, bool> ret(0, 0, false);
+	std::tuple<int, int, bool> prev(0, 0, false);
 	for (int chunks = 1; chunks < 70; ++chunks)
 	{
-		ret = make_tuple(0, 0, false);
+		ret = std::make_tuple(0, 0, false);
 		parser.reset();
 		buffer::const_interval recv_buf(str, str);
 		for (; *str;)
@@ -58,17 +54,17 @@ tuple<int, int, bool> feed_bytes(http_parser& parser, char const* str)
 			recv_buf.end += chunk_size;
 			int payload, protocol;
 			bool error = false;
-			tie(payload, protocol) = parser.incoming(recv_buf, error);
-			ret.get<0>() += payload;
-			ret.get<1>() += protocol;
-			ret.get<2>() |= error;
+			std::tie(payload, protocol) = parser.incoming(recv_buf, error);
+			std::get<0>(ret) += payload;
+			std::get<1>(ret) += protocol;
+			std::get<2>(ret) |= error;
 //			std::cerr << payload << ", " << protocol << ", " << chunk_size << std::endl;
-			TORRENT_ASSERT(payload + protocol == chunk_size || ret.get<2>());
+			TORRENT_ASSERT(payload + protocol == chunk_size || std::get<2>(ret));
 		}
-		TEST_CHECK(prev == make_tuple(0, 0, false) || ret == prev || ret.get<2>());
-		if (!ret.get<2>())
+		TEST_CHECK(prev == std::make_tuple(0, 0, false) || ret == prev || std::get<2>(ret));
+		if (!std::get<2>(ret))
 		{
-			TEST_EQUAL(ret.get<0>() + ret.get<1>(), int(strlen(str)));
+			TEST_EQUAL(std::get<0>(ret) + std::get<1>(ret), int(strlen(str)));
 		}
 
 		prev = ret;
@@ -80,7 +76,7 @@ TORRENT_TEST(http_parser)
 {
 	// HTTP request parser
 	http_parser parser;
-	boost::tuple<int, int, bool> received;
+	std::tuple<int, int, bool> received;
 
 	received = feed_bytes(parser
 		, "HTTP/1.1 200 OK\r\n"
@@ -89,7 +85,7 @@ TORRENT_TEST(http_parser)
 		"\r\n"
 		"test");
 
-	TEST_CHECK(received == make_tuple(4, 64, false));
+	TEST_CHECK(received == std::make_tuple(4, 64, false));
 	TEST_CHECK(parser.finished());
 	TEST_CHECK(std::equal(parser.get_body().begin, parser.get_body().end, "test"));
 	TEST_CHECK(parser.header("content-type") == "text/plain");
@@ -111,7 +107,7 @@ TORRENT_TEST(http_parser)
 
 	received = feed_bytes(parser, upnp_response);
 
-	TEST_CHECK(received == make_tuple(0, int(strlen(upnp_response)), false));
+	TEST_CHECK(received == std::make_tuple(0, int(strlen(upnp_response)), false));
 	TEST_CHECK(parser.get_body().left() == 0);
 	TEST_CHECK(parser.header("st") == "upnp:rootdevice");
 	TEST_CHECK(parser.header("location")
@@ -132,7 +128,7 @@ TORRENT_TEST(http_parser)
 
 	received = feed_bytes(parser, http1_response);
 
-	TEST_CHECK(received == make_tuple(0, int(strlen(http1_response)), false));
+	TEST_CHECK(received == std::make_tuple(0, int(strlen(http1_response)), false));
 	TEST_CHECK(parser.get_body().left() == 0);
 	TEST_CHECK(parser.header("date") == "Fri, 02 Jan 1970 08:10:38 GMT");
 	TEST_EQUAL(parser.connection_close(), true);
@@ -148,7 +144,7 @@ TORRENT_TEST(http_parser)
 
 	received = feed_bytes(parser, close_response);
 
-	TEST_CHECK(received == make_tuple(0, int(strlen(close_response)), false));
+	TEST_CHECK(received == std::make_tuple(0, int(strlen(close_response)), false));
 	TEST_CHECK(parser.get_body().left() == 0);
 	TEST_CHECK(parser.header("date") == "Fri, 02 Jan 1970 08:10:38 GMT");
 	TEST_EQUAL(parser.connection_close(), true);
@@ -164,7 +160,7 @@ TORRENT_TEST(http_parser)
 
 	received = feed_bytes(parser, keep_alive_response);
 
-	TEST_CHECK(received == make_tuple(0, int(strlen(keep_alive_response)), false));
+	TEST_CHECK(received == std::make_tuple(0, int(strlen(keep_alive_response)), false));
 	TEST_CHECK(parser.get_body().left() == 0);
 	TEST_CHECK(parser.header("date") == "Fri, 02 Jan 1970 08:10:38 GMT");
 	TEST_EQUAL(parser.connection_close(), false);
@@ -184,7 +180,7 @@ TORRENT_TEST(http_parser)
 
 	received = feed_bytes(parser, upnp_notify);
 
-	TEST_CHECK(received == make_tuple(0, int(strlen(upnp_notify)), false));
+	TEST_CHECK(received == std::make_tuple(0, int(strlen(upnp_notify)), false));
 	TEST_CHECK(parser.method() == "notify");
 	TEST_CHECK(parser.path() == "*");
 
@@ -199,7 +195,7 @@ TORRENT_TEST(http_parser)
 
 	received = feed_bytes(parser, bt_lsd);
 
-	TEST_CHECK(received == make_tuple(0, int(strlen(bt_lsd)), false));
+	TEST_CHECK(received == std::make_tuple(0, int(strlen(bt_lsd)), false));
 	TEST_CHECK(parser.method() == "bt-search");
 	TEST_CHECK(parser.path() == "*");
 	TEST_CHECK(atoi(parser.header("port").c_str()) == 6881);
@@ -226,8 +222,8 @@ TORRENT_TEST(http_parser)
 
 	received = feed_bytes(parser, chunked_test);
 
-	std::printf("payload: %d protocol: %d\n", received.get<0>(), received.get<1>());
-	TEST_CHECK(received == make_tuple(20, int(strlen(chunked_test)) - 20, false));
+	std::printf("payload: %d protocol: %d\n", std::get<0>(received), std::get<1>(received));
+	TEST_CHECK(received == std::make_tuple(20, int(strlen(chunked_test)) - 20, false));
 	TEST_CHECK(parser.finished());
 	TEST_CHECK(std::equal(parser.get_body().begin, parser.get_body().end
 		, "4\r\ntest\r\n10\r\n0123456789abcdef"));
@@ -251,7 +247,7 @@ TORRENT_TEST(http_parser)
 
 	received = feed_bytes(parser, tracker_response);
 
-	TEST_CHECK(received == make_tuple(5, int(strlen(tracker_response) - 5), false));
+	TEST_CHECK(received == std::make_tuple(5, int(strlen(tracker_response) - 5), false));
 	TEST_CHECK(parser.get_body().left() == 5);
 
 	parser.reset();
@@ -267,7 +263,7 @@ TORRENT_TEST(http_parser)
 
 	received = feed_bytes(parser, web_seed_response);
 
-	TEST_CHECK(received == make_tuple(5, int(strlen(web_seed_response) - 5), false));
+	TEST_CHECK(received == std::make_tuple(5, int(strlen(web_seed_response) - 5), false));
 	TEST_CHECK(parser.content_range() == (std::pair<std::int64_t, std::int64_t>(0, 4)));
 	TEST_CHECK(parser.content_length() == 5);
 
@@ -283,7 +279,7 @@ TORRENT_TEST(http_parser)
 
 	received = feed_bytes(parser, invalid_range_response);
 
-	TEST_CHECK(received.get<2>() == true);
+	TEST_CHECK(std::get<2>(received) == true);
 
 	parser.reset();
 
@@ -297,7 +293,7 @@ TORRENT_TEST(http_parser)
 
 	received = feed_bytes(parser, invalid_status_response);
 
-	TEST_CHECK(received.get<2>() == true);
+	TEST_CHECK(std::get<2>(received) == true);
 
 	parser.reset();
 
@@ -311,7 +307,7 @@ TORRENT_TEST(http_parser)
 
 	received = feed_bytes(parser, invalid_status_response2);
 
-	TEST_CHECK(received.get<2>() == true);
+	TEST_CHECK(std::get<2>(received) == true);
 
 	parser.reset();
 
@@ -328,7 +324,7 @@ TORRENT_TEST(http_parser)
 
 	received = feed_bytes(parser, one_hundred_response);
 
-	TEST_CHECK(received == make_tuple(4, int(strlen(one_hundred_response) - 4), false));
+	TEST_CHECK(received == std::make_tuple(4, int(strlen(one_hundred_response) - 4), false));
 	TEST_EQUAL(parser.content_length(), 4);
 
 	{
@@ -365,26 +361,26 @@ TORRENT_TEST(http_parser)
 
 	error_code ec;
 	TEST_CHECK(parse_url_components("http://foo:bar@host.com:80/path/to/file", ec)
-		== make_tuple("http", "foo:bar", "host.com", 80, "/path/to/file"));
+		== std::make_tuple("http", "foo:bar", "host.com", 80, "/path/to/file"));
 
 	TEST_CHECK(parse_url_components("http://host.com/path/to/file", ec)
-		== make_tuple("http", "", "host.com", -1, "/path/to/file"));
+		== std::make_tuple("http", "", "host.com", -1, "/path/to/file"));
 
 	TEST_CHECK(parse_url_components("ftp://host.com:21/path/to/file", ec)
-		== make_tuple("ftp", "", "host.com", 21, "/path/to/file"));
+		== std::make_tuple("ftp", "", "host.com", 21, "/path/to/file"));
 
 	TEST_CHECK(parse_url_components("http://host.com/path?foo:bar@foo:", ec)
-		== make_tuple("http", "", "host.com", -1, "/path?foo:bar@foo:"));
+		== std::make_tuple("http", "", "host.com", -1, "/path?foo:bar@foo:"));
 
 	TEST_CHECK(parse_url_components("http://192.168.0.1/path/to/file", ec)
-		== make_tuple("http", "", "192.168.0.1", -1, "/path/to/file"));
+		== std::make_tuple("http", "", "192.168.0.1", -1, "/path/to/file"));
 
 	TEST_CHECK(parse_url_components("http://[2001:ff00::1]:42/path/to/file", ec)
-		== make_tuple("http", "", "2001:ff00::1", 42, "/path/to/file"));
+		== std::make_tuple("http", "", "2001:ff00::1", 42, "/path/to/file"));
 
 	// leading spaces are supposed to be stripped
 	TEST_CHECK(parse_url_components(" \thttp://[2001:ff00::1]:42/path/to/file", ec)
-		== make_tuple("http", "", "2001:ff00::1", 42, "/path/to/file"));
+		== std::make_tuple("http", "", "2001:ff00::1", 42, "/path/to/file"));
 
 	parse_url_components("http://[2001:ff00::1:42/path/to/file", ec);
 	TEST_CHECK(ec == error_code(errors::expected_close_bracket_in_address));
@@ -464,11 +460,11 @@ TORRENT_TEST(chunked_encoding)
 		"0\r\n\r\n";
 
 	http_parser parser;
-	boost::tuple<int, int, bool> const received
+	std::tuple<int, int, bool> const received
 		= feed_bytes(parser, chunked_input);
 
 	TEST_EQUAL(strlen(chunked_input), 24 + 94)
-	TEST_CHECK(received == make_tuple(24, 94, false));
+	TEST_CHECK(received == std::make_tuple(24, 94, false));
 	TEST_CHECK(parser.finished());
 
 	char mutable_buffer[100];
@@ -487,10 +483,10 @@ TORRENT_TEST(invalid_content_length)
 		"\r\n";
 
 	http_parser parser;
-	boost::tuple<int, int, bool> const received
+	std::tuple<int, int, bool> const received
 		= feed_bytes(parser, chunked_input);
 
-	TEST_CHECK(boost::get<2>(received) == true);
+	TEST_CHECK(std::get<2>(received) == true);
 }
 
 TORRENT_TEST(invalid_chunked)
@@ -503,10 +499,10 @@ TORRENT_TEST(invalid_chunked)
 		"foobar";
 
 	http_parser parser;
-	boost::tuple<int, int, bool> const received
+	std::tuple<int, int, bool> const received
 		= feed_bytes(parser, chunked_input);
 
-	TEST_CHECK(boost::get<2>(received) == true);
+	TEST_CHECK(std::get<2>(received) == true);
 }
 
 TORRENT_TEST(invalid_content_range_start)
@@ -517,10 +513,10 @@ TORRENT_TEST(invalid_content_range_start)
 		"\n";
 
 	http_parser parser;
-	boost::tuple<int, int, bool> const received
+	std::tuple<int, int, bool> const received
 		= feed_bytes(parser, chunked_input);
 
-	TEST_CHECK(boost::get<2>(received) == true);
+	TEST_CHECK(std::get<2>(received) == true);
 }
 
 TORRENT_TEST(invalid_content_range_end)
@@ -531,10 +527,10 @@ TORRENT_TEST(invalid_content_range_end)
 		"\n";
 
 	http_parser parser;
-	boost::tuple<int, int, bool> const received
+	std::tuple<int, int, bool> const received
 		= feed_bytes(parser, chunked_input);
 
-	TEST_CHECK(boost::get<2>(received) == true);
+	TEST_CHECK(std::get<2>(received) == true);
 }
 
 TORRENT_TEST(invalid_chunk_afl)
@@ -563,9 +559,9 @@ TORRENT_TEST(invalid_chunk_afl)
 	};
 
 	http_parser parser;
-	boost::tuple<int, int, bool> const received
+	std::tuple<int, int, bool> const received
 		= feed_bytes(parser, reinterpret_cast<char const*>(invalid_chunked_input));
 
-	TEST_CHECK(boost::get<2>(received) == true);
+	TEST_CHECK(std::get<2>(received) == true);
 }
 

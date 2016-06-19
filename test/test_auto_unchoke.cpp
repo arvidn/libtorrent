@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/ip_filter.hpp"
-#include <boost/tuple/tuple.hpp>
+#include <tuple>
 #include <iostream>
 
 #include "test.hpp"
@@ -95,7 +95,7 @@ void test_swarm()
 	torrent_handle tor2;
 	torrent_handle tor3;
 
-	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true, false, true, "_unchoke");	
+	std::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true, false, true, "_unchoke");	
 
 	std::map<std::string, std::int64_t> cnt = get_counters(ses1);
 

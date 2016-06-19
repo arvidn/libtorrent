@@ -35,11 +35,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <vector>
 #include <set>
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
 #include <boost/weak_ptr.hpp>
@@ -48,7 +47,6 @@ POSSIBILITY OF SUCH DAMAGE.
 // for deprecated force_reannounce
 #include <boost/date_time/posix_time/posix_time_duration.hpp>
 #endif
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/address.hpp"
@@ -878,7 +876,7 @@ namespace libtorrent
 		// Returns a pointer to the torrent_info object associated with this
 		// torrent. The torrent_info object may be a copy of the internal object.
 		// If the torrent doesn't have metadata, the pointer will not be
-		// initialized (i.e. a NULL pointer). The torrent may be in a state
+		// initialized (i.e. a nullptr pointer). The torrent may be in a state
 		// without metadata only if it was started without a .torrent file, e.g.
 		// by using the libtorrent extension of just supplying a tracker and
 		// info-hash.

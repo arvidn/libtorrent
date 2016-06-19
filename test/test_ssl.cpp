@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/tuple/tuple.hpp>
+#include <tuple>
 
 #include <boost/asio/connect.hpp>
 
@@ -59,7 +59,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 using namespace libtorrent;
-using boost::tuples::ignore;
+using std::ignore;
 
 int const alert_mask = alert::all_categories
 & ~alert::progress_notification
@@ -195,7 +195,7 @@ void test_ssl(int test_idx, bool use_utp)
 	ssl_peer_disconnects = 0;
 	peer_errors = 0;
 
-	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
+	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
 		, true, false, false, "_ssl", 16 * 1024, &t, false, &addp, true);
 
 	if (test.seed_has_cert)

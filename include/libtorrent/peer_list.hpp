@@ -68,9 +68,9 @@ namespace libtorrent
 			, max_peerlist_size(1000)
 			, min_reconnect_time(60)
 			, loop_counter(0)
-			, ip(NULL), port(0)
+			, ip(nullptr), port(0)
 			, max_failcount(3)
-			, peer_allocator(NULL)
+			, peer_allocator(nullptr)
 		{}
 		bool is_paused;
 		bool is_finished;
@@ -236,7 +236,7 @@ namespace libtorrent
 
 		peers_t m_peers;
 
-		// this should be NULL for the most part. It's set
+		// this should be nullptr for the most part. It's set
 		// to point to a valid torrent_peer object if that
 		// object needs to be kept alive. If we ever feel
 		// like removing a torrent_peer from m_peers, we

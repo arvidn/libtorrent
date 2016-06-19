@@ -471,7 +471,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 		std::string protocol;
 		std::string auth;
 		// we don't have this device in our list. Add it
-		boost::tie(protocol, auth, d.hostname, d.port, d.path)
+		std::tie(protocol, auth, d.hostname, d.port, d.path)
 			= parse_url_components(d.url, ec);
 		if (d.port == -1) d.port = protocol == "http" ? 80 : 443;
 
@@ -533,7 +533,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 			m.protocol = j->protocol;
 			d.mapping.push_back(m);
 		}
-		boost::tie(i, boost::tuples::ignore) = m_devices.insert(d);
+		std::tie(i, std::ignore) = m_devices.insert(d);
 	}
 
 
@@ -953,7 +953,7 @@ void upnp::on_upnp_xml(error_code const& e
 	error_code ec;
 	if (!d.control_url.empty() && d.control_url[0] == '/')
 	{
-		boost::tie(protocol, auth, d.hostname, d.port, d.path)
+		std::tie(protocol, auth, d.hostname, d.port, d.path)
 			= parse_url_components(d.url, ec);
 		if (d.port == -1) d.port = protocol == "http" ? 80 : 443;
 		d.control_url = protocol + "://" + d.hostname + ":"
@@ -969,7 +969,7 @@ void upnp::on_upnp_xml(error_code const& e
 		log(msg);
 	}
 
-	boost::tie(protocol, auth, d.hostname, d.port, d.path)
+	std::tie(protocol, auth, d.hostname, d.port, d.path)
 		= parse_url_components(d.control_url, ec);
 	if (d.port == -1) d.port = protocol == "http" ? 80 : 443;
 

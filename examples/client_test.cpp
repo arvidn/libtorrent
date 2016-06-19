@@ -199,7 +199,7 @@ int load_file(std::string const& filename, std::vector<char>& v
 {
 	ec.clear();
 	FILE* f = std::fopen(filename.c_str(), "rb");
-	if (f == NULL)
+	if (f == nullptr)
 	{
 		ec.assign(errno, boost::system::system_category());
 		return -1;
@@ -616,7 +616,7 @@ std::string path_to_url(std::string f)
 		if (f[i] == '\\') ret.push_back('/');
 		else
 #endif
-		if (std::strchr(unreserved, f[i]) != NULL) ret.push_back(f[i]);
+		if (std::strchr(unreserved, f[i]) != nullptr) ret.push_back(f[i]);
 		else
 		{
 			ret.push_back('%');
@@ -837,7 +837,7 @@ void print_alert(libtorrent::alert const* a, std::string& str)
 int save_file(std::string const& filename, std::vector<char>& v)
 {
 	FILE* f = std::fopen(filename.c_str(), "wb");
-	if (f == NULL)
+	if (f == nullptr)
 		return -1;
 
 	int w = int(std::fwrite(&v[0], 1, v.size(), f));
@@ -996,7 +996,7 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 			if (!peer.empty())
 			{
 				char* port = (char*) strrchr((char*)peer.c_str(), ':');
-				if (port != NULL)
+				if (port != nullptr)
 				{
 					*port++ = 0;
 					char const* ip = peer.c_str();
@@ -1258,7 +1258,7 @@ int main(int argc, char* argv[])
 		}
 
 		// maybe this is an assignment of a libtorrent setting
-		if (argv[i][1] == '-' && strchr(argv[i], '=') != NULL)
+		if (argv[i][1] == '-' && strchr(argv[i], '=') != nullptr)
 		{
 			char const* equal = strchr(argv[i], '=');
 			char const* start = argv[i]+2;
@@ -1301,7 +1301,7 @@ int main(int argc, char* argv[])
 		// if there's a flag but no argument following, ignore it
 		if (argc == i) continue;
 		char const* arg = argv[i+1];
-		if (arg == NULL) arg = "";
+		if (arg == nullptr) arg = "";
 
 		switch (argv[i][1])
 		{

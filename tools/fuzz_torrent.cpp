@@ -292,7 +292,7 @@ int load_file(std::string const& filename, std::vector<char>& v
 {
 	ec.clear();
 	FILE* f = fopen(filename.c_str(), "rb");
-	if (f == NULL)
+	if (f == nullptr)
 	{
 		ec.assign(errno, boost::system::system_category());
 		return -1;

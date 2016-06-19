@@ -95,7 +95,7 @@ namespace libtorrent
 		char* get() const { return m_buf; }
 
 		// set the holder object to hold the specified buffer
-		// (or NULL by default). If it's already holding a
+		// (or nullptr by default). If it's already holding a
 		// disk buffer, it will first be freed.
 		void reset(char* buf = 0);
 		void reset(disk_io_job const& j);

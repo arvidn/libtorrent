@@ -415,7 +415,7 @@ namespace libtorrent
 		// sha1-hash for that piece and ``info_hash()`` returns the 20-bytes
 		// sha1-hash for the info-section of the torrent file.
 		// ``hash_for_piece_ptr()`` returns a pointer to the 20 byte sha1 digest
-		// for the piece. Note that the string is not null-terminated.
+		// for the piece. Note that the string is not nullptr-terminated.
 		int piece_size(int index) const { return m_files.piece_size(index); }
 		sha1_hash hash_for_piece(int index) const;
 		char const* hash_for_piece_ptr(int index) const
@@ -498,7 +498,7 @@ namespace libtorrent
 
 		// This function looks up keys from the info-dictionary of the loaded
 		// torrent file. It can be used to access extension values put in the
-		// .torrent file. If the specified key cannot be found, it returns NULL.
+		// .torrent file. If the specified key cannot be found, it returns nullptr.
 		bdecode_node info(char const* key) const;
 
 		// swap the content of this and ``ti```.
@@ -566,7 +566,7 @@ namespace libtorrent
 		// these or strings of the "collections" key from the torrent file. The
 		// pointers point directly into the info_section buffer and when copied,
 		// these pointers must be corrected to point into the new buffer. The
-		// int is the length of the string. Strings are not NULL-terminated.
+		// int is the length of the string. Strings are not nullptr-terminated.
 		std::vector<std::pair<char const*, int> > m_collections;
 
 		// these are the collections from outside of the info-dict. These are

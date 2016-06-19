@@ -98,7 +98,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // ``torrent_handle::add_extension()``.
 // 
 // The function should return a ``boost::shared_ptr<torrent_plugin>`` which
-// may or may not be 0. If it is a null pointer, the extension is simply ignored
+// may or may not be 0. If it is a nullptr pointer, the extension is simply ignored
 // for this torrent. If it is a valid pointer (to a class inheriting
 // ``torrent_plugin``), it will be associated with this torrent and callbacks
 // will be made on torrent events.

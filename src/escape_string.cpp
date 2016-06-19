@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <mutex>
 #include <cstring>
 #include <array>
+#include <tuple>
 
 #ifdef TORRENT_WINDOWS
 #ifndef WIN32_LEAN_AND_MEAN
@@ -225,7 +226,7 @@ namespace libtorrent
 		std::string protocol, host, auth, path;
 		int port;
 		error_code ec;
-		boost::tie(protocol, auth, host, port, path) = parse_url_components(url, ec);
+		std::tie(protocol, auth, host, port, path) = parse_url_components(url, ec);
 		if (ec) return url;
 
 		// first figure out if this url contains unencoded characters
@@ -335,13 +336,13 @@ namespace libtorrent
 			'q', 'r', 's', 't', 'u', 'v', 'w', 'x',
 			'y', 'z', '2', '3', '4', '5', '6', '7'
 		};
-		const char *base32_table = 0 != (flags & string::lowercase) ? base32_table_lowercase : base32_table_canonical;
+		char const *base32_table = 0 != (flags & string::lowercase) ? base32_table_lowercase : base32_table_canonical;
 
-		int input_output_mapping[] = {0, 2, 4, 5, 7, 8};
-		
-		unsigned char inbuf[5];
-		unsigned char outbuf[8];
-	
+		static int const input_output_mapping[] = {0, 2, 4, 5, 7, 8};
+
+		std::uint8_t inbuf[5];
+		std::uint8_t outbuf[8];
+
 		std::string ret;
 		for (std::string::const_iterator i = s.begin(); i != s.end();)
 		{
@@ -568,7 +569,7 @@ namespace libtorrent
 		libtorrent::utf8_wchar(s, ws);
 		std::string ret;
 		ret.resize(ws.size() * 4 + 1);
-		std::size_t size = WideCharToMultiByte(CP_ACP, 0, ws.c_str(), -1, &ret[0], int(ret.size()), NULL, NULL);
+		std::size_t size = WideCharToMultiByte(CP_ACP, 0, ws.c_str(), -1, &ret[0], int(ret.size()), nullptr, nullptr);
 		if (size == std::size_t(-1)) return s;
 		if (size != 0 && ret[size - 1] == '\0') --size;
 		ret.resize(size);

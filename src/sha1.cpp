@@ -15,7 +15,9 @@ changelog at the end of the file.
 
 #include "libtorrent/sha1.hpp"
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/detail/endian.hpp> // for BIG_ENDIAN and LITTLE_ENDIAN macros
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 typedef std::uint32_t u32;
 typedef std::uint8_t u8;
@@ -192,7 +194,7 @@ void SHA1_init(sha_ctx* context)
 void SHA1_update(sha_ctx* context, u8 const* data, u32 len)
 {
 	// GCC standard defines for endianness
-	// test with: cpp -dM /dev/null
+	// test with: cpp -dM /dev/nullptr
 #if defined BOOST_BIG_ENDIAN
 	internal_update<big_endian_blk0>(context, data, len);
 #elif defined BOOST_LITTLE_ENDIAN

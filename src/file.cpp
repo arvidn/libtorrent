@@ -183,9 +183,9 @@ namespace
 		{
 			ol[i].OffsetHigh = file_offset >> 32;
 			ol[i].Offset = file_offset & 0xffffffff;
-			ol[i].hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+			ol[i].hEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
 			h[i] = ol[i].hEvent;
-			if (h[i] == NULL)
+			if (h[i] == nullptr)
 			{
 				// we failed to create the event, roll-back and return an error
 				for (int j = 0; j < i; ++j) CloseHandle(h[i]);
@@ -253,9 +253,9 @@ done:
 		{
 			ol[i].OffsetHigh = file_offset >> 32;
 			ol[i].Offset = file_offset & 0xffffffff;
-			ol[i].hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+			ol[i].hEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
 			h[i] = ol[i].hEvent;
-			if (h[i] == NULL)
+			if (h[i] == nullptr)
 			{
 				// we failed to create the event, roll-back and return an error
 				for (int j = 0; j < i; ++j) CloseHandle(h[i]);
@@ -393,7 +393,7 @@ namespace libtorrent
 
 		// in order to open a directory, we need the FILE_FLAG_BACKUP_SEMANTICS
 		HANDLE h = CreateFile_(f.c_str(), 0, FILE_SHARE_DELETE | FILE_SHARE_READ
-			| FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+			| FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
 
 		if (h == INVALID_HANDLE_VALUE)
 		{
@@ -528,7 +528,7 @@ namespace libtorrent
 		std::string n_exist = convert_to_native(file);
 		std::string n_link = convert_to_native(link);
 #endif
-		BOOL ret = CreateHardLink_(n_link.c_str(), n_exist.c_str(), NULL);
+		BOOL ret = CreateHardLink_(n_link.c_str(), n_exist.c_str(), nullptr);
 		if (ret)
 		{
 			ec.clear();
@@ -779,7 +779,7 @@ namespace libtorrent
 #endif
 		char const* ext = strrchr(f.c_str(), '.');
 		// if we don't have an extension, just return f
-		if (ext == 0 || ext == &f[0] || (slash != NULL && ext < slash)) return f;
+		if (ext == 0 || ext == &f[0] || (slash != nullptr && ext < slash)) return f;
 		return f.substr(0, ext - &f[0]);
 	}
 
@@ -1591,7 +1591,7 @@ namespace libtorrent
 			return false;
 
 		overlapped_t ol;
-		if (ol.ol.hEvent == NULL) return false;
+		if (ol.ol.hEvent == nullptr) return false;
 
 #ifndef FSCTL_QUERY_ALLOCATED_RANGES
 typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
@@ -1990,15 +1990,15 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			PTOKEN_PRIVILEGES PreviousState,
 			PDWORD ReturnLength);
 
-		static OpenProcessToken_t pOpenProcessToken = NULL;
-		static LookupPrivilegeValue_t pLookupPrivilegeValue = NULL;
-		static AdjustTokenPrivileges_t pAdjustTokenPrivileges = NULL;
+		static OpenProcessToken_t pOpenProcessToken = nullptr;
+		static LookupPrivilegeValue_t pLookupPrivilegeValue = nullptr;
+		static AdjustTokenPrivileges_t pAdjustTokenPrivileges = nullptr;
 		static bool failed_advapi = false;
 
-		if (pOpenProcessToken == NULL && !failed_advapi)
+		if (pOpenProcessToken == nullptr && !failed_advapi)
 		{
 			HMODULE advapi = LoadLibraryA("advapi32");
-			if (advapi == NULL)
+			if (advapi == nullptr)
 			{
 				failed_advapi = true;
 				return false;
@@ -2006,9 +2006,9 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			pOpenProcessToken = (OpenProcessToken_t)GetProcAddress(advapi, "OpenProcessToken");
 			pLookupPrivilegeValue = (LookupPrivilegeValue_t)GetProcAddress(advapi, "LookupPrivilegeValueA");
 			pAdjustTokenPrivileges = (AdjustTokenPrivileges_t)GetProcAddress(advapi, "AdjustTokenPrivileges");
-			if (pOpenProcessToken == NULL
-				|| pLookupPrivilegeValue == NULL
-				|| pAdjustTokenPrivileges == NULL)
+			if (pOpenProcessToken == nullptr
+				|| pLookupPrivilegeValue == nullptr
+				|| pAdjustTokenPrivileges == nullptr)
 			{
 				failed_advapi = true;
 				return false;
@@ -2021,7 +2021,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			return false;
 
 		TOKEN_PRIVILEGES privs;
-		if (!pLookupPrivilegeValue(NULL, "SeManageVolumePrivilege"
+		if (!pLookupPrivilegeValue(nullptr, "SeManageVolumePrivilege"
 			, &privs.Privileges[0].Luid))
 		{
 			CloseHandle(token);
@@ -2031,7 +2031,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		privs.PrivilegeCount = 1;
 		privs.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
 
-		bool ret = pAdjustTokenPrivileges(token, FALSE, &privs, 0, NULL, NULL)
+		bool ret = pAdjustTokenPrivileges(token, FALSE, &privs, 0, nullptr, nullptr)
 			&& GetLastError() == ERROR_SUCCESS;
 
 		CloseHandle(token);
@@ -2042,19 +2042,19 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	void set_file_valid_data(HANDLE f, std::int64_t size)
 	{
 		typedef BOOL (WINAPI *SetFileValidData_t)(HANDLE, LONGLONG);
-		static SetFileValidData_t pSetFileValidData = NULL;
+		static SetFileValidData_t pSetFileValidData = nullptr;
 		static bool failed_kernel32 = false;
 
-		if (pSetFileValidData == NULL && !failed_kernel32)
+		if (pSetFileValidData == nullptr && !failed_kernel32)
 		{
 			HMODULE k32 = LoadLibraryA("kernel32");
-			if (k32 == NULL)
+			if (k32 == nullptr)
 			{
 				failed_kernel32 = true;
 				return;
 			}
 			pSetFileValidData = (SetFileValidData_t)GetProcAddress(k32, "SetFileValidData");
-			if (pSetFileValidData == NULL)
+			if (pSetFileValidData == nullptr)
 			{
 				failed_kernel32 = true;
 				return;
@@ -2109,11 +2109,11 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 				, LPVOID lpFileInformation
 				, DWORD dwBufferSize);
 
-			static GetFileInformationByHandleEx_t GetFileInformationByHandleEx_ = NULL;
+			static GetFileInformationByHandleEx_t GetFileInformationByHandleEx_ = nullptr;
 
 			static bool failed_kernel32 = false;
 
-			if ((GetFileInformationByHandleEx_ == NULL) && !failed_kernel32)
+			if ((GetFileInformationByHandleEx_ == nullptr) && !failed_kernel32)
 			{
 				HMODULE kernel32 = LoadLibraryA("kernel32.dll");
 				if (kernel32)
@@ -2357,7 +2357,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		for (std::set<file_handle*>::iterator i = global_file_handles.begin()
 			, end(global_file_handles.end()); i != end; ++i)
 		{
-			TORRENT_ASSERT(*i != NULL);
+			TORRENT_ASSERT(*i != nullptr);
 			if (!*i) continue;
 			file_handle const& h = **i;
 			if (!h) continue;

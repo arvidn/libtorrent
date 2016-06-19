@@ -38,6 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <vector>
 #include <string>
+#include <array>
+#include <cstdint>
 
 #include "libtorrent/debug.hpp"
 
@@ -45,9 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/smart_ptr.hpp>
 #include <boost/noncopyable.hpp>
-#include <array>
 #include <boost/optional.hpp>
-#include <cstdint>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -296,7 +296,7 @@ public:
 		// peer_connection functions of the same names
 		virtual void append_const_send_buffer(char const* buffer, int size
 			, chained_buffer::free_buffer_fun destructor = &nop
-			, void* userdata = NULL, block_cache_reference ref
+			, void* userdata = nullptr, block_cache_reference ref
 			= block_cache_reference()) override;
 
 private:

@@ -56,18 +56,18 @@ namespace libtorrent
 		// The constructor taking a pointer ``b`` and ``bits`` copies a bitfield
 		// from the specified buffer, and ``bits`` number of bits (rounded up to
 		// the nearest byte boundary).
-		bitfield(): m_buf(NULL) {}
-		bitfield(int bits): m_buf(NULL)
+		bitfield(): m_buf(nullptr) {}
+		bitfield(int bits): m_buf(nullptr)
 		{ resize(bits); }
-		bitfield(int bits, bool val): m_buf(NULL)
+		bitfield(int bits, bool val): m_buf(nullptr)
 		{ resize(bits, val); }
-		bitfield(char const* b, int bits): m_buf(NULL)
+		bitfield(char const* b, int bits): m_buf(nullptr)
 		{ assign(b, bits); }
-		bitfield(bitfield const& rhs): m_buf(NULL)
+		bitfield(bitfield const& rhs): m_buf(nullptr)
 		{ assign(rhs.data(), rhs.size()); }
 #if __cplusplus > 199711L
 		bitfield(bitfield&& rhs): m_buf(rhs.m_buf)
-		{ rhs.m_buf = NULL; }
+		{ rhs.m_buf = nullptr; }
 #endif
 
 		// hidden
@@ -126,7 +126,7 @@ namespace libtorrent
 		// returns the size of the bitfield in bits.
 		int size() const
 		{
-			return m_buf == NULL ? 0 : int(m_buf[-1]);
+			return m_buf == nullptr ? 0 : int(m_buf[-1]);
 		}
 
 		int num_words() const
@@ -135,7 +135,7 @@ namespace libtorrent
 		}
 
 		// returns true if the bitfield has zero size.
-		bool empty() const { return m_buf == NULL ? true : m_buf[-1] == 0; }
+		bool empty() const { return m_buf == nullptr ? true : m_buf[-1] == 0; }
 
 		// returns a pointer to the internal buffer of the bitfield.
 		char const* data() const { return reinterpret_cast<char const*>(m_buf); }
@@ -255,7 +255,7 @@ namespace libtorrent
 		void dealloc()
 		{
 			if (m_buf) std::free(m_buf-1);
-			m_buf = NULL;
+			m_buf = nullptr;
 		}
 
 		// the first element is not part of the bitfield, it's the

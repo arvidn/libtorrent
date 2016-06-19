@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/tuple/tuple.hpp>
+#include <tuple>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -91,8 +91,8 @@ namespace libtorrent
 		int port;
 		error_code ec;
 
-		using boost::tuples::ignore;
-		boost::tie(protocol, ignore, hostname, port, ignore)
+		using std::ignore;
+		std::tie(protocol, ignore, hostname, port, ignore)
 			= parse_url_components(tracker_req().url, ec);
 		if (port == -1) port = protocol == "http" ? 80 : 443;
 
@@ -743,8 +743,8 @@ namespace libtorrent
 
 		std::string request_string;
 		error_code ec;
-		using boost::tuples::ignore;
-		boost::tie(ignore, ignore, ignore, ignore, request_string)
+		using std::ignore;
+		std::tie(ignore, ignore, ignore, ignore, request_string)
 			= parse_url_components(req.url, ec);
 		if (ec) request_string.clear();
 

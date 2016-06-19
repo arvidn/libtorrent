@@ -184,8 +184,8 @@ void get_item::done()
 
 void get_item_observer::reply(msg const& m)
 {
-	char const* pk = NULL;
-	char const* sig = NULL;
+	char const* pk = nullptr;
+	char const* sig = nullptr;
 	std::uint64_t seq = 0;
 
 	bdecode_node r = m.message.dict_find_dict("r");

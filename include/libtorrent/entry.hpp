@@ -60,19 +60,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <map>
 #include <list>
 #include <string>
 #include <stdexcept>
 #include <cstdint>
-#include <boost/config.hpp>
 #if TORRENT_USE_IOSTREAM
 #include <iosfwd>
 #endif
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/error_code.hpp"
@@ -231,10 +226,8 @@ namespace libtorrent
 		// throw ``system_error``.
 		entry& operator[](char const* key);
 		entry& operator[](std::string const& key);
-#ifndef BOOST_NO_EXCEPTIONS
 		const entry& operator[](char const* key) const;
 		const entry& operator[](std::string const& key) const;
-#endif
 
 		// These functions requires the entry to be a dictionary, if it isn't
 		// they will throw ``system_error``.

@@ -33,17 +33,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_FILE_STORAGE_HPP_INCLUDED
 #define TORRENT_FILE_STORAGE_HPP_INCLUDED
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <string>
 #include <vector>
 #include <unordered_set>
 #include <ctime>
-
 #include <cstdint>
-#include <boost/unordered_set.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/peer_request.hpp"
@@ -136,7 +131,7 @@ namespace libtorrent
 			, hidden_attribute(false)
 			, executable_attribute(false)
 			, symlink_attribute(false)
-			, name(NULL)
+			, name(nullptr)
 			, path_index(-1)
 		{}
 
@@ -171,10 +166,10 @@ namespace libtorrent
 		std::uint64_t size:48;
 
 		// the number of characters in the name. If this is
-		// name_is_owned, name is null terminated and owned by this object
+		// name_is_owned, name is nullptr terminated and owned by this object
 		// (i.e. it should be freed in the destructor). If
 		// the len is not name_is_owned, the name pointer doesn not belong
-		// to this object, and it's not null terminated
+		// to this object, and it's not nullptr terminated
 		std::uint64_t name_len:12;
 		std::uint64_t pad_file:1;
 		std::uint64_t hidden_attribute:1;
@@ -183,7 +178,7 @@ namespace libtorrent
 
 		// make it available for logging
 	private:
-		// This string is not necessarily null terminated!
+		// This string is not necessarily nullptr terminated!
 		// that's why it's private, to keep people away from it
 		char const* name;
 	public:
@@ -273,7 +268,7 @@ namespace libtorrent
 		// to ``filehash``, which is an optional pointer to a 20 byte binary
 		// SHA-1 hash of the file.
 		// 
-		// if ``filename`` is NULL, the filename from ``path`` is used and not
+		// if ``filename`` is nullptr, the filename from ``path`` is used and not
 		// borrowed. In this case ``filename_len`` is ignored.
 		// 
 		// The ``path`` argument is the full path (in the torrent file) to
@@ -314,7 +309,7 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 		TORRENT_DEPRECATED
-		void add_file(file_entry const& fe, char const* filehash = NULL);
+		void add_file(file_entry const& fe, char const* filehash = nullptr);
 
 #if TORRENT_USE_WSTRING
 		// all wstring APIs are deprecated since 0.16.11
@@ -540,7 +535,7 @@ namespace libtorrent
 		int file_index_at_offset(std::int64_t offset) const;
 
 		// low-level function. returns a pointer to the internal storage for
-		// the filename. This string may not be null terminated!
+		// the filename. This string may not be nullptr terminated!
 		// the ``file_name_len()`` function returns the length of the filename.
 		char const* file_name_ptr(int index) const;
 		int file_name_len(int index) const;

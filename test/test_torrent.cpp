@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/peer_info.hpp"
-#include <boost/tuple/tuple.hpp>
+#include <tuple>
 #include <boost/make_shared.hpp>
 #include <iostream>
 

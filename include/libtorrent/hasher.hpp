@@ -37,11 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <cstdint>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #ifdef TORRENT_USE_GCRYPT
 #include <gcrypt.h>

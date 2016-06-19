@@ -34,14 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_HETEROGENEOUS_QUEUE_HPP_INCLUDED
 
 #include <vector>
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <cstdint>
-#include <boost/utility/enable_if.hpp>
-#include <boost/type_traits/is_base_of.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <type_traits>
 
 #include "libtorrent/assert.hpp"
 
@@ -51,14 +45,14 @@ namespace libtorrent {
 	struct heterogeneous_queue
 	{
 		heterogeneous_queue()
-			: m_storage(NULL)
+			: m_storage(nullptr)
 			, m_capacity(0)
 			, m_size(0)
 			, m_num_items(0)
 		{}
 
 		template <class U, typename... Args>
-		typename boost::enable_if<boost::is_base_of<T, U>, U&>::type
+		typename std::enable_if<std::is_base_of<T, U>::value, U&>::type
 		emplace_back(Args&&... args)
 		{
 			// the size of the type rounded up to pointer alignment
@@ -133,7 +127,7 @@ namespace libtorrent {
 
 		T* front()
 		{
-			if (m_size == 0) return NULL;
+			if (m_size == 0) return nullptr;
 
 			TORRENT_ASSERT(m_size > 1);
 			uintptr_t* ptr = m_storage;

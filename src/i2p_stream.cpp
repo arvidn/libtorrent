@@ -309,7 +309,7 @@ namespace libtorrent
 		error_code invalid_response(i2p_error::parse_failed
 			, get_i2p_category());
 
-		// null-terminate the string and parse it
+		// nullptr-terminate the string and parse it
 		m_buffer.push_back(0);
 		char* ptr = &m_buffer[0];
 		char* next = ptr;

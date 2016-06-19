@@ -406,7 +406,7 @@ namespace libtorrent
 
 		std::string path = root_dir;
 		std::string path_element;
-		char const* filename = NULL;
+		char const* filename = nullptr;
 		int filename_len = 0;
 
 		if (top_level)
@@ -481,7 +481,7 @@ namespace libtorrent
 		}
 
 		bdecode_node fh = dict.dict_find_string("sha1");
-		char const* filehash = NULL;
+		char const* filehash = nullptr;
 		if (fh && fh.string_length() == 20)
 			filehash = fh.string_ptr() + info_ptr_diff;
 
@@ -506,7 +506,7 @@ namespace libtorrent
 				, filename_len) != 0)
 		{
 			// if the filename was sanitized and differ, clear it to just use path
-			filename = NULL;
+			filename = nullptr;
 			filename_len = 0;
 		}
 

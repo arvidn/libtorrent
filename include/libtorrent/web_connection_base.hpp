@@ -35,21 +35,19 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/debug.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <ctime>
 #include <algorithm>
 #include <vector>
 #include <deque>
 #include <string>
+#include <array>
+#include <cstdint>
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/smart_ptr.hpp>
 #include <boost/weak_ptr.hpp>
 #include <boost/noncopyable.hpp>
-#include <array>
 #include <boost/optional.hpp>
-#include <cstdint>
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/buffer.hpp"

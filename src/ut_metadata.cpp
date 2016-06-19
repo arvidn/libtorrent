@@ -139,7 +139,7 @@ namespace libtorrent { namespace
 
 		buffer::const_interval metadata() const
 		{
-			if (!m_torrent.need_loaded()) return buffer::const_interval(NULL, NULL);
+			if (!m_torrent.need_loaded()) return buffer::const_interval(nullptr, nullptr);
 			TORRENT_ASSERT(m_torrent.valid_metadata());
 			if (!m_metadata)
 			{

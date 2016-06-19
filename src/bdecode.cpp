@@ -110,7 +110,7 @@ namespace libtorrent
 		std::uint32_t state:1;
 	};
 
-	// str1 is null-terminated
+	// str1 is nullptr-terminated
 	// str2 is not, str2 is len2 chars
 	bool string_equal(char const* str1, char const* str2, int len2)
 	{
@@ -212,7 +212,7 @@ namespace libtorrent
 
 	bdecode_node::bdecode_node()
 		: m_root_tokens(0)
-		, m_buffer(NULL)
+		, m_buffer(nullptr)
 		, m_buffer_size(0)
 		, m_token_idx(-1)
 		, m_last_index(-1)
@@ -262,7 +262,7 @@ namespace libtorrent
 		, m_last_token(-1)
 		, m_size(-1)
 	{
-		TORRENT_ASSERT(tokens != NULL);
+		TORRENT_ASSERT(tokens != nullptr);
 		TORRENT_ASSERT(idx >= 0);
 	}
 
@@ -279,7 +279,7 @@ namespace libtorrent
 	void bdecode_node::clear()
 	{
 		m_tokens.clear();
-		m_root_tokens = NULL;
+		m_root_tokens = nullptr;
 		m_token_idx = -1;
 		m_size = -1;
 		m_last_index = -1;
@@ -780,7 +780,7 @@ namespace libtorrent
 						// in order to gracefully terminate the tree,
 						// make sure the end of the previous token is set correctly
 						if (error_pos) *error_pos = start - orig_start;
-						error_pos = NULL;
+						error_pos = nullptr;
 						start = int_start;
 						TORRENT_FAIL_BDECODE(e);
 					}

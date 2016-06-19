@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cctype>
 #include <algorithm>
-#include <stdlib.h>
+#include <cstdlib>
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/http_parser.hpp"
@@ -65,20 +65,20 @@ namespace libtorrent
 		if (location.empty()) return referrer;
 
 		error_code ec;
-		using boost::tuples::ignore;
-		boost::tie(ignore, ignore, ignore, ignore, ignore)
+		using std::ignore;
+		std::tie(ignore, ignore, ignore, ignore, ignore)
 			= parse_url_components(location, ec);
 
 		// if location is a full URL, just return it
 		if (!ec) return location;
-	
+
 		// otherwise it's likely to be just the path, or a relative path
 		std::string url = referrer;
 
 		if (location[0] == '/')
 		{
 			// it's an absolute path. replace the path component of
-			// referrer with location. 
+			// referrer with location.
 
 			// first skip the url scheme of the referer
 			std::size_t i = url.find("://");
@@ -150,11 +150,11 @@ namespace libtorrent
 		, m_finished(false)
 	{}
 
-	boost::tuple<int, int> http_parser::incoming(
+	std::tuple<int, int> http_parser::incoming(
 		buffer::const_interval recv_buffer, bool& error)
 	{
 		TORRENT_ASSERT(recv_buffer.left() >= m_recv_buffer.left());
-		boost::tuple<int, int> ret(0, 0);
+		std::tuple<int, int> ret(0, 0);
 		int start_pos = m_recv_buffer.left();
 
 		// early exit if there's nothing new in the receive buffer
@@ -179,7 +179,7 @@ restart_response:
 			// if we don't have a full line yet, wait.
 			if (newline == recv_buffer.end)
 			{
-				boost::get<1>(ret) += m_recv_buffer.left() - start_pos;
+				std::get<1>(ret) += m_recv_buffer.left() - start_pos;
 				return ret;
 			}
 
@@ -198,7 +198,7 @@ restart_response:
 			TORRENT_ASSERT(newline >= pos);
 			int incoming = int(newline - pos);
 			m_recv_pos += incoming;
-			boost::get<1>(ret) += newline - (m_recv_buffer.begin + start_pos);
+			std::get<1>(ret) += newline - (m_recv_buffer.begin + start_pos);
 			pos = newline;
 
 			m_protocol = read_until(line, ' ', line_end);
@@ -342,7 +342,7 @@ restart_response:
 				TORRENT_ASSERT(pos <= recv_buffer.end);
 				newline = std::find(pos, recv_buffer.end, '\n');
 			}
-			boost::get<1>(ret) += newline - (m_recv_buffer.begin + start_pos);
+			std::get<1>(ret) += newline - (m_recv_buffer.begin + start_pos);
 		}
 
 		if (m_state == read_body)
@@ -361,7 +361,7 @@ restart_response:
 					{
 						TORRENT_ASSERT(payload < (std::numeric_limits<int>::max)());
 						m_recv_pos += payload;
-						boost::get<0>(ret) += int(payload);
+						std::get<0>(ret) += int(payload);
 						incoming -= int(payload);
 					}
 					buffer::const_interval buf(recv_buffer.begin + m_cur_chunk_end, recv_buffer.end);
@@ -409,13 +409,13 @@ restart_response:
 					}
 					m_chunk_header_size += header_size;
 					m_recv_pos += header_size;
-					boost::get<1>(ret) += header_size;
+					std::get<1>(ret) += header_size;
 					incoming -= header_size;
 				}
 				if (incoming > 0)
 				{
 					m_recv_pos += incoming;
-					boost::get<0>(ret) += incoming;
+					std::get<0>(ret) += incoming;
 //					incoming = 0;
 				}
 			}
@@ -432,7 +432,7 @@ restart_response:
 
 				TORRENT_ASSERT(incoming >= 0);
 				m_recv_pos += incoming;
-				boost::get<0>(ret) += incoming;
+				std::get<0>(ret) += incoming;
 			}
 
 			if (m_content_length >= 0

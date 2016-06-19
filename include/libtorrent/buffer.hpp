@@ -29,19 +29,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef LIBTORRENT_BUFFER_HPP
-#define LIBTORRENT_BUFFER_HPP
+#ifndef TORRENT_BUFFER_HPP_INCLUDED
+#define TORRENT_BUFFER_HPP_INCLUDED
 
 #include <cstring>
 #include <limits> // for numeric_limits
-#include "libtorrent/invariant_check.hpp"
-#include "libtorrent/assert.hpp"
 #include <cstdlib> // malloc/free/realloc
 #include <algorithm> // for std::swap
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <cstdint>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
+#include "libtorrent/invariant_check.hpp"
+#include "libtorrent/assert.hpp"
 
 namespace libtorrent {
 
@@ -135,7 +133,7 @@ public:
 		, m_size(b.m_size)
 		, m_capacity(b.m_capacity)
 	{
-		b.m_begin = NULL;
+		b.m_begin = nullptr;
 		b.m_size = b.m_capacity = 0;
 	}
 
@@ -146,7 +144,7 @@ public:
 		m_begin = b.m_begin;
 		m_size = b.m_size;
 		m_capacity = b.m_capacity;
-		b.m_begin = NULL;
+		b.m_begin = nullptr;
 		b.m_size = b.m_capacity = 0;
 		return *this;
 	}
@@ -220,7 +218,7 @@ public:
 
 		char* tmp = static_cast<char*>(std::realloc(m_begin, n));
 #ifndef BOOST_NO_EXCEPTIONS
-		if (tmp == NULL) throw std::bad_alloc();
+		if (tmp == nullptr) throw std::bad_alloc();
 #endif
 		m_begin = tmp;
 		m_capacity = std::uint32_t(n);
@@ -251,5 +249,5 @@ private:
 
 }
 
-#endif // LIBTORRENT_BUFFER_HPP
+#endif // BTORRENT_BUFFER_HPP_INCLUDED
 

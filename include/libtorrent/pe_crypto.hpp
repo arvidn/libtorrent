@@ -118,7 +118,7 @@ namespace libtorrent
 
 		bool is_recv_plaintext() const
 		{
-			return m_dec_handler.get() == NULL;
+			return m_dec_handler.get() == nullptr;
 		}
 
 	private:

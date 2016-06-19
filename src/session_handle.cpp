@@ -772,7 +772,7 @@ namespace libtorrent
 	{
 		settings_pack p;
 		std::string interfaces_str;
-		if (net_interface == NULL || strlen(net_interface) == 0)
+		if (net_interface == nullptr || strlen(net_interface) == 0)
 			net_interface = "0.0.0.0";
 
 		interfaces_str = print_endpoint(tcp::endpoint(address::from_string(net_interface, ec), port_range.first));

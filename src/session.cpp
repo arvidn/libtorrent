@@ -320,7 +320,7 @@ namespace libtorrent
 
 	void session::start(int flags, settings_pack const& pack, io_service* ios)
 	{
-		bool const internal_executor = ios == NULL;
+		bool const internal_executor = ios == nullptr;
 
 		if (internal_executor)
 		{

@@ -185,7 +185,7 @@ namespace libtorrent
 				iothread->async_hash(storage.get(), *piece_counter
 					, disk_io_job::sequential_access
 					, std::bind(&on_hash, _1, t, storage, iothread
-					, piece_counter, completed_piece, f, ec), NULL);
+					, piece_counter, completed_piece, f, ec), nullptr);
 				++(*piece_counter);
 			}
 			else
@@ -280,7 +280,7 @@ namespace libtorrent
 
 		storage_params params;
 		params.files = &t.files();
-		params.mapped_files = NULL;
+		params.mapped_files = nullptr;
 		params.path = path;
 		params.pool = &disk_thread.files();
 		params.mode = storage_mode_sparse;
@@ -307,7 +307,7 @@ namespace libtorrent
 		{
 			disk_thread.async_hash(storage.get(), i, disk_io_job::sequential_access
 				, std::bind(&on_hash, _1, &t, storage, &disk_thread
-				, &piece_counter, &completed_piece, &f, &ec), NULL);
+				, &piece_counter, &completed_piece, &f, &ec), nullptr);
 			++piece_counter;
 			if (piece_counter >= t.num_pieces()) break;
 		}

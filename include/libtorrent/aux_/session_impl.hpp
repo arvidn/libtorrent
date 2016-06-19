@@ -160,7 +160,7 @@ namespace libtorrent
 
 		// the actual sockets (TCP listen socket and UDP socket)
 		// An entry does not necessarily have a UDP or TCP socket. One of these
-		// pointers may be null!
+		// pointers may be nullptr!
 		// These must be shared_ptr to avoid a dangling reference if an
 		// incoming packet is in the event queue when the socket is erased
 		boost::shared_ptr<tcp::acceptor> sock;
@@ -518,7 +518,7 @@ namespace libtorrent
 			proxy_settings proxy() const override;
 
 #ifndef TORRENT_DISABLE_DHT
-			bool is_dht_running() const { return (m_dht.get() != NULL); }
+			bool is_dht_running() const { return (m_dht.get() != nullptr); }
 			int external_udp_port() const override
 			{
 				for (std::list<listen_socket_t>::const_iterator i = m_listen_sockets.begin()
@@ -633,7 +633,7 @@ namespace libtorrent
 			virtual bool verify_bound_address(address const& addr, bool utp
 				, error_code& ec) override;
 
-			bool has_lsd() const override { return m_lsd.get() != NULL; }
+			bool has_lsd() const override { return m_lsd.get() != nullptr; }
 
 			std::vector<block_info>& block_info_storage() override { return m_block_info_storage; }
 

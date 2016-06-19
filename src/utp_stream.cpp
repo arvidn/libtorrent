@@ -66,7 +66,7 @@ static struct utp_logger
 	FILE* utp_log_file;
 	std::mutex utp_log_mutex;
 
-	utp_logger() : utp_log_file(NULL) {}
+	utp_logger() : utp_log_file(nullptr) {}
 	~utp_logger()
 	{
 		if (utp_log_file) fclose(utp_log_file);
@@ -76,7 +76,7 @@ static struct utp_logger
 TORRENT_FORMAT(1, 2)
 void utp_log(char const* fmt, ...)
 {
-	if (log_file_holder.utp_log_file == NULL) return;
+	if (log_file_holder.utp_log_file == nullptr) return;
 
 	std::lock_guard<std::mutex> lock(log_file_holder.utp_log_mutex);
 	static time_point start = clock_type::now();
@@ -88,23 +88,23 @@ void utp_log(char const* fmt, ...)
 }
 
 bool is_utp_stream_logging() {
-	return log_file_holder.utp_log_file != NULL;
+	return log_file_holder.utp_log_file != nullptr;
 }
 
 void set_utp_stream_logging(bool enable) {
 	if (enable)
 	{
-		if (log_file_holder.utp_log_file == NULL)
+		if (log_file_holder.utp_log_file == nullptr)
 		{
 			log_file_holder.utp_log_file = fopen("utp.log", "w+");
 		}
 	}
 	else
 	{
-		if (log_file_holder.utp_log_file != NULL)
+		if (log_file_holder.utp_log_file != nullptr)
 		{
 			FILE* f = log_file_holder.utp_log_file;
-			log_file_holder.utp_log_file = NULL;
+			log_file_holder.utp_log_file = nullptr;
 			fclose(f);
 		}
 	}
@@ -264,7 +264,7 @@ struct utp_socket_impl
 		, void* userdata, utp_socket_manager* sm)
 		: m_sm(sm)
 		, m_userdata(userdata)
-		, m_nagle_packet(NULL)
+		, m_nagle_packet(nullptr)
 		, m_read_handler(false)
 		, m_write_handler(false)
 		, m_connect_handler(false)
@@ -428,7 +428,7 @@ public:
 	// buffers. Buffers that empty are erased from the vector.
 	std::vector<iovec_t> m_write_buffer;
 
-	// if this is non NULL, it's a packet. This packet was held off because
+	// if this is non nullptr, it's a packet. This packet was held off because
 	// of NAGLE. We couldn't send it immediately. It's left
 	// here to accrue more bytes before we send it.
 	packet* m_nagle_packet;
@@ -686,7 +686,7 @@ public:
 	bool m_cwnd_full:1;
 
 	// this is set to one if the current read operation
-	// has a null-buffer. i.e. we're not reading into a user-provided
+	// has a nullptr-buffer. i.e. we're not reading into a user-provided
 	// buffer, we're just signalling when there's something
 	// to read from our internal receive buffer
 	bool m_null_buffers:1;
@@ -922,7 +922,7 @@ void utp_stream::on_close_reason(void* self, std::uint16_t close_reason)
 	utp_stream* s = static_cast<utp_stream*>(self);
 
 	// it's possible the socket has been unlinked already, in which case m_impl
-	// will be NULL
+	// will be nullptr
 	if (s->m_impl)
 		s->m_incoming_close_reason = close_reason;
 }
@@ -1233,7 +1233,7 @@ utp_socket_impl::~utp_socket_impl()
 	}
 
 	free(m_nagle_packet);
-	m_nagle_packet = NULL;
+	m_nagle_packet = nullptr;
 }
 
 bool utp_socket_impl::should_delete() const
@@ -1723,7 +1723,7 @@ void utp_socket_impl::remove_sack_header(packet* p)
 
 struct holder
 {
-	holder(char* buf = NULL): m_buf(buf) {}
+	holder(char* buf = nullptr): m_buf(buf) {}
 	~holder() { free(m_buf); }
 
 	void reset(char* buf)
@@ -1735,7 +1735,7 @@ struct holder
 	char* release()
 	{
 		char* ret = m_buf;
-		m_buf = NULL;
+		m_buf = nullptr;
 		return ret;
 	}
 
@@ -1876,9 +1876,9 @@ bool utp_socket_impl::send_pkt(int const flags)
 
 	int packet_size = header_size + payload_size;
 
-	packet* p = NULL;
-	std::uint8_t* ptr = NULL;
-	utp_header* h = NULL;
+	packet* p = nullptr;
+	std::uint8_t* ptr = nullptr;
+	utp_header* h = nullptr;
 
 #if TORRENT_USE_ASSERTS
 	bool stack_alloced = false;
@@ -1988,7 +1988,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 
 		// clear the nagle packet pointer and fall through
 		// sending p
-		m_nagle_packet = NULL;
+		m_nagle_packet = nullptr;
 
 		packet_size = p->size;
 		payload_size = p->size - p->header_size;
@@ -2024,7 +2024,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 			"adv_wnd:%d in-flight:%d mtu:%d effective_mtu:%d\n"
 			, static_cast<void*>(this), m_write_buffer_size, int(m_cwnd >> 16)
 			, m_adv_wnd, m_bytes_in_flight, m_mtu, effective_mtu);
-		TORRENT_ASSERT(m_nagle_packet == NULL);
+		TORRENT_ASSERT(m_nagle_packet == nullptr);
 		TORRENT_ASSERT(h->seq_nr == m_seq_nr);
 		m_nagle_packet = p;
 		buf_holder.release();
@@ -2134,7 +2134,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 	{
 		// if we're sending a payload packet, there should not
 		// be a nagle packet waiting for more data
-		TORRENT_ASSERT(m_nagle_packet == NULL);
+		TORRENT_ASSERT(m_nagle_packet == nullptr);
 
 #if !TORRENT_UT_SEQ
 		// if the other end closed the connection immediately
@@ -2511,7 +2511,7 @@ bool utp_socket_impl::cancel_handlers(error_code const& ec, bool kill)
 	bool ret = m_read_handler || m_write_handler || m_connect_handler;
 
 	// calling the callbacks with m_userdata being 0 will just crash
-	TORRENT_ASSERT((ret && m_userdata != NULL) || !ret);
+	TORRENT_ASSERT((ret && m_userdata != nullptr) || !ret);
 
 	bool read = m_read_handler;
 	bool write = m_write_handler;

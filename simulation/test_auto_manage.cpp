@@ -632,7 +632,7 @@ TORRENT_TEST(stop_when_ready)
 				}
 				// there should not have been any announces. the torrent should have
 				// been stopped *before* announcing.
-				TEST_CHECK(alert_cast<tracker_announce_alert>(a) == NULL);
+				TEST_CHECK(alert_cast<tracker_announce_alert>(a) == nullptr);
 			}
 
 			for (torrent_handle const& h : ses.get_torrents())

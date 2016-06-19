@@ -33,14 +33,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef RPC_MANAGER_HPP
 #define RPC_MANAGER_HPP
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <unordered_map>
-
 #include <cstdint>
-#include <boost/pool/pool.hpp>
-#include <boost/function/function3.hpp>
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/pool/pool.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <libtorrent/socket.hpp>

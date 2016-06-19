@@ -37,12 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp" // for time_point
 #include "libtorrent/error_code.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <string>
 #include <cstdint>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {

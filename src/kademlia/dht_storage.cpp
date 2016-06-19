@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/tuple/tuple.hpp>
+#include <tuple>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -382,7 +382,7 @@ namespace
 				to_add.size = size;
 				memcpy(to_add.value, buf, size);
 
-				boost::tie(i, boost::tuples::ignore) = m_immutable_table.insert(
+				std::tie(i, std::ignore) = m_immutable_table.insert(
 					std::make_pair(target, to_add));
 				m_counters.immutable_data += 1;
 			}
@@ -449,7 +449,7 @@ namespace
 				to_add.value = static_cast<char*>(malloc(size));
 				to_add.size = size;
 				to_add.seq = seq;
-				to_add.salt = NULL;
+				to_add.salt = nullptr;
 				to_add.salt_size = 0;
 				if (salt_size > 0)
 				{
@@ -461,7 +461,7 @@ namespace
 				memcpy(to_add.value, buf, size);
 				memcpy(&to_add.key, pk, sizeof(to_add.key));
 
-				boost::tie(i, boost::tuples::ignore) = m_mutable_table.insert(
+				std::tie(i, std::ignore) = m_mutable_table.insert(
 					std::make_pair(target, to_add));
 				m_counters.mutable_data += 1;
 			}

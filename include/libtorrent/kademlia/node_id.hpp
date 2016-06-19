@@ -34,10 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 #include <vector>
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <cstdint>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/peer_id.hpp"

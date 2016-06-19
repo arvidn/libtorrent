@@ -83,7 +83,7 @@ void usage()
 
 alert* wait_for_alert(lt::session& s, int alert_type)
 {
-	alert* ret = NULL;
+	alert* ret = nullptr;
 	bool found = false;
 	while (!found)
 	{
@@ -140,7 +140,7 @@ void bootstrap(lt::session& s)
 int dump_key(char *filename)
 {
 	FILE* f = std::fopen(filename, "rb+");
-	if (f == NULL)
+	if (f == nullptr)
 	{
 		std::fprintf(stderr, "failed to open file \"%s\": (%d) %s\n"
 			, filename, errno, strerror(errno));
@@ -174,7 +174,7 @@ int generate_key(char* filename)
 	ed25519_create_seed(seed);
 
 	FILE* f = std::fopen(filename, "wb+");
-	if (f == NULL)
+	if (f == nullptr)
 	{
 		std::fprintf(stderr, "failed to open file for writing \"%s\": (%d) %s\n"
 			, filename, errno, strerror(errno));
@@ -195,7 +195,7 @@ int generate_key(char* filename)
 void load_dht_state(lt::session& s)
 {
 	FILE* f = std::fopen(".dht", "rb");
-	if (f == NULL) return;
+	if (f == nullptr) return;
 
 	fseek(f, 0, SEEK_END);
 	int size = ftell(f);
@@ -230,7 +230,7 @@ int save_dht_state(lt::session& s)
 	std::vector<char> state;
 	bencode(std::back_inserter(state), e);
 	FILE* f = std::fopen(".dht", "wb+");
-	if (f == NULL)
+	if (f == nullptr)
 	{
 		std::fprintf(stderr, "failed to open file .dht for writing");
 		return 1;
@@ -337,7 +337,7 @@ int main(int argc, char* argv[])
 		if (argc < 1) usage();
 
 		FILE* f = std::fopen(argv[0], "rb+");
-		if (f == NULL)
+		if (f == nullptr)
 		{
 			std::fprintf(stderr, "failed to open file \"%s\": (%d) %s\n"
 				, argv[0], errno, strerror(errno));

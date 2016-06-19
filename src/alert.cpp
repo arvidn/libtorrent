@@ -813,7 +813,7 @@ namespace libtorrent {
 		static char const* const protocol_str[] = {"TCP", "UDP"};
 
 		static char const* const socket_type_str[] = {
-			"null",
+			"nullptr",
 			"TCP",
 			"Socks5/TCP",
 			"HTTP",
@@ -1909,7 +1909,7 @@ namespace libtorrent {
 
 		// ignore errors here. This is best-effort. It may be a broken encoding
 		// but at least we'll print the valid parts
-		bdecode(pkt_buf(), pkt_buf() + pkt_size(), print, ec, NULL, 100, 100);
+		bdecode(pkt_buf(), pkt_buf() + pkt_size(), print, ec, nullptr, 100, 100);
 
 		std::string msg = print_entry(print, true);
 

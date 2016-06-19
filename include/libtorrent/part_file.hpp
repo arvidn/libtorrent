@@ -30,15 +30,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <string>
 #include <vector>
 #include <mutex>
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
 #include <cstdint>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/file.hpp"
@@ -109,7 +105,7 @@ namespace libtorrent
 		bool m_dirty_metadata;
 
 		// maps a piece index to the part-file slot it is stored in
-		boost::unordered_map<int, int> m_piece_map;
+		std::unordered_map<int, int> m_piece_map;
 
 		// this is the file handle to the part file
 		file m_file;

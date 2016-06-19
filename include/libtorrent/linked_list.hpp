@@ -68,7 +68,7 @@ namespace libtorrent
 	template <typename T>
 	struct linked_list
 	{
-		linked_list(): m_first(NULL), m_last(NULL), m_size(0) {}
+		linked_list(): m_first(nullptr), m_last(nullptr), m_size(0) {}
 
 		list_iterator<T> iterate() const
 		{ return list_iterator<T>(m_first); }

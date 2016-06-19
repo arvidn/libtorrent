@@ -55,7 +55,7 @@ int load_file(std::string const& filename, std::vector<char>& v, libtorrent::err
 {
 	ec.clear();
 	FILE* f = std::fopen(filename.c_str(), "rb");
-	if (f == NULL)
+	if (f == nullptr)
 	{
 		ec.assign(errno, boost::system::system_category());
 		return -1;
@@ -145,12 +145,12 @@ bool file_filter(std::string const& f)
 	char const* sep = strrchr(first, '/');
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
 	char const* altsep = strrchr(first, '\\');
-	if (sep == NULL || altsep > sep) sep = altsep;
+	if (sep == nullptr || altsep > sep) sep = altsep;
 #endif
 	// if there is no parent path, just set 'sep'
 	// to point to the filename.
 	// if there is a parent path, skip the '/' character
-	if (sep == NULL) sep = first;
+	if (sep == nullptr) sep = first;
 	else ++sep;
 
 	// return false if the first character of the filename is a .
@@ -405,7 +405,7 @@ int main(int argc, char* argv[])
 		FILE* output = stdout;
 		if (!outfile.empty())
 			output = std::fopen(outfile.c_str(), "wb+");
-		if (output == NULL)
+		if (output == nullptr)
 		{
 			std::fprintf(stderr, "failed to open file \"%s\": (%d) %s\n"
 				, outfile.c_str(), errno, std::strerror(errno));
@@ -419,7 +419,7 @@ int main(int argc, char* argv[])
 		if (!merklefile.empty())
 		{
 			output = std::fopen(merklefile.c_str(), "wb+");
-			if (output == NULL)
+			if (output == nullptr)
 			{
 				std::fprintf(stderr, "failed to open file \"%s\": (%d) %s\n"
 					, merklefile.c_str(), errno, std::strerror(errno));

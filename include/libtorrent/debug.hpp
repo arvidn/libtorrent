@@ -103,7 +103,7 @@ namespace libtorrent
 
 			// skip the stack frame of 'add_outstanding_async'
 			char* ptr = strchr(stack_text, '\n');
-			if (ptr != NULL) ++ptr;
+			if (ptr != nullptr) ++ptr;
 			else ptr = stack_text;
 			a.stack = ptr;
 		}

@@ -33,12 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_BANDWIDTH_CHANNEL_HPP_INCLUDED
 #define TORRENT_BANDWIDTH_CHANNEL_HPP_INCLUDED
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/integer_traits.hpp>
 #include <cstdint>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <limits>
 
 #include "libtorrent/assert.hpp"
 
@@ -47,7 +43,7 @@ namespace libtorrent {
 // member of peer_connection
 struct TORRENT_EXTRA_EXPORT bandwidth_channel
 {
-	static const int inf = boost::integer_traits<int>::const_max;
+	static constexpr int inf = std::numeric_limits<int>::max();
 
 	bandwidth_channel();
 
@@ -55,7 +51,7 @@ struct TORRENT_EXTRA_EXPORT bandwidth_channel
 	void throttle(int limit);
 	int throttle() const
 	{
-		TORRENT_ASSERT_VAL(m_limit < INT_MAX, m_limit);
+		TORRENT_ASSERT_VAL(m_limit < inf, m_limit);
 		return int(m_limit);
 	}
 

@@ -30,11 +30,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <cstdint>
-#include <boost/make_shared.hpp>
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/make_shared.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/bdecode.hpp"

@@ -232,7 +232,7 @@ namespace libtorrent
 		{
 			iov[i].iov_base = allocate_buffer_impl(l, "pending read");
 			iov[i].iov_len = block_size();
-			if (iov[i].iov_base == NULL)
+			if (iov[i].iov_base == nullptr)
 			{
 				// uh oh. We failed to allocate the buffer!
 				// we need to roll back and free all the buffers
@@ -302,7 +302,7 @@ namespace libtorrent
 				ret = page_aligned_allocator::malloc(m_block_size);
 			}
 #endif
-			if (ret == NULL)
+			if (ret == nullptr)
 			{
 				m_exceeded_max_size = true;
 				m_trigger_cache_trim();

@@ -246,7 +246,7 @@ namespace libtorrent { namespace
 				std::string hostname;
 				int port;
 				std::string path;
-				boost::tie(protocol, auth, hostname, port, path)
+				std::tie(protocol, auth, hostname, port, path)
 					= parse_url_components(e.url, err);
 				if (err) continue;
 

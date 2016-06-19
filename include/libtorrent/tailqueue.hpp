@@ -71,7 +71,7 @@ namespace libtorrent
 //#error boost::enable_if< is_base<T, tailqueue_node<T> > >
 	struct TORRENT_EXTRA_EXPORT tailqueue
 	{
-		tailqueue(): m_first(NULL), m_last(NULL), m_size(0) {}
+		tailqueue(): m_first(nullptr), m_last(nullptr), m_size(0) {}
 
 		tailqueue_iterator<const T> iterate() const
 		{ return tailqueue_iterator<const T>(m_first); }

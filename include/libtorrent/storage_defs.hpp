@@ -61,8 +61,8 @@ namespace libtorrent
 	// see default_storage::default_storage()
 	struct TORRENT_EXPORT storage_params
 	{
-		storage_params(): files(NULL), mapped_files(NULL), pool(NULL)
-			, mode(storage_mode_sparse), priorities(NULL), info(NULL) {}
+		storage_params(): files(nullptr), mapped_files(nullptr), pool(nullptr)
+			, mode(storage_mode_sparse), priorities(nullptr), info(nullptr) {}
 		file_storage const* files;
 		file_storage const* mapped_files; // optional
 		std::string path;

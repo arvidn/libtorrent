@@ -33,17 +33,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/platform_util.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <cstdint>
 #include <limits>
 
-#if TORRENT_USE_RLIMIT
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wlong-long"
-#endif // __GNUC__
+#if TORRENT_USE_RLIMIT
 
 #include <sys/resource.h>
 
@@ -51,10 +46,6 @@ POSSIBILITY OF SUCH DAMAGE.
 const rlim_t rlimit_as = RLIMIT_AS;
 const rlim_t rlimit_nofile = RLIMIT_NOFILE;
 const rlim_t rlim_infinity = RLIM_INFINITY;
-
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif // __GNUC__
 
 #endif // TORRENT_USE_RLIMIT
 
@@ -115,7 +106,7 @@ namespace libtorrent
 		int mib[2] = { CTL_HW, HW_PHYSMEM };
 #endif
 		size_t len = sizeof(ret);
-		if (sysctl(mib, 2, &ret, &len, NULL, 0) != 0)
+		if (sysctl(mib, 2, &ret, &len, nullptr, 0) != 0)
 			ret = 0;
 #elif defined TORRENT_WINDOWS
 		MEMORYSTATUSEX ms;

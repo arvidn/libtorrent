@@ -151,7 +151,7 @@ namespace
 			for (std::vector<torrent_peer*>::iterator i = downloaders.begin()
 				, end(downloaders.end()); i != end; ++i)
 			{
-				if (*i != NULL)
+				if (*i != nullptr)
 				{
 					// for very sad and involved reasons, this read need to force a copy out of the cache
 					// since the piece has failed, this block is very likely to be replaced with a newly
@@ -278,13 +278,13 @@ namespace
 			std::pair<peer_list::iterator, peer_list::iterator> range
 				= m_torrent.find_peers(a);
 			if (range.first == range.second) return;
-			torrent_peer* p = NULL;
+			torrent_peer* p = nullptr;
 			for (; range.first != range.second; ++range.first)
 			{
 				if (b.second.peer != *range.first) continue;
 				p = *range.first;
 			}
-			if (p == NULL) return;
+			if (p == nullptr) return;
 
 #ifndef TORRENT_DISABLE_LOGGING
 			char const* client = "-";

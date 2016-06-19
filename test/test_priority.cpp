@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/read_resume_data.hpp"
-#include <boost/tuple/tuple.hpp>
+#include <tuple>
 #include <functional>
 
 #include "test.hpp"
@@ -49,7 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 namespace lt = libtorrent;
-using boost::tuples::ignore;
+using std::ignore;
 
 const int mask = alert::all_categories & ~(alert::performance_warning | alert::stats_notification);
 
@@ -132,7 +132,7 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 	peer_disconnects = 0;
 
 	// test using piece sizes smaller than 16kB
-	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
+	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
 		, true, false, true, "_priority", 8 * 1024, &t, false, 0);
 
 	int num_pieces = tor2.torrent_file()->num_pieces();

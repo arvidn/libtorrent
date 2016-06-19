@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/tuple/tuple.hpp>
+#include <tuple>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -343,7 +343,7 @@ namespace libtorrent
 						{
 							torrent_peer* p = info[j].peer;
 							TORRENT_ASSERT(p->in_use);
-							TORRENT_ASSERT(p->connection == NULL
+							TORRENT_ASSERT(p->connection == nullptr
 								|| static_cast<peer_connection*>(p->connection)->m_in_use);
 						}
 					}
@@ -483,7 +483,7 @@ namespace libtorrent
 						if (!info[j].peer) continue;
 						torrent_peer* p = info[j].peer;
 						TORRENT_ASSERT(p->in_use);
-						TORRENT_ASSERT(p->connection == NULL
+						TORRENT_ASSERT(p->connection == nullptr
 							|| static_cast<peer_connection*>(p->connection)->m_in_use);
 					}
 #endif
@@ -2239,7 +2239,7 @@ namespace libtorrent
 					TORRENT_ASSERT(m_piece_map[piece].downloading() == false);
 
 					int start, end;
-					boost::tie(start, end) = expand_piece(piece
+					std::tie(start, end) = expand_piece(piece
 						, prefer_contiguous_blocks, pieces, options);
 					TORRENT_ASSERT(end - start > 0);
 					for (int k = start; k < end; ++k)
@@ -2565,7 +2565,7 @@ get_out:
 	// and downloading blocks from this piece. Active means having a connection.
 	// TODO: 2 the first_block returned here is the largest free range, not
 	// the first-fit range, which would be better
-	boost::tuple<bool, bool, int, int> piece_picker::requested_from(
+	std::tuple<bool, bool, int, int> piece_picker::requested_from(
 		piece_picker::downloading_piece const& p
 		, int num_blocks_in_piece, torrent_peer* peer) const
 	{
@@ -2606,7 +2606,7 @@ get_out:
 			max_contiguous = contiguous_blocks;
 			first_block = num_blocks_in_piece - contiguous_blocks;
 		}
-		return boost::make_tuple(exclusive, exclusive_active, max_contiguous
+		return std::make_tuple(exclusive, exclusive_active, max_contiguous
 			, first_block);
 	}
 
@@ -2667,7 +2667,7 @@ get_out:
 		else
 		{
 			int start, end;
-			boost::tie(start, end) = expand_piece(piece, prefer_contiguous_blocks
+			std::tie(start, end) = expand_piece(piece, prefer_contiguous_blocks
 				, pieces, options);
 			for (int k = start; k < end; ++k)
 			{
@@ -2716,7 +2716,7 @@ get_out:
 		// used to report back the largest contiguous block run
 		int contiguous_blocks;
 		int first_block;
-		boost::tie(exclusive, exclusive_active, contiguous_blocks, first_block)
+		std::tie(exclusive, exclusive_active, contiguous_blocks, first_block)
 			= requested_from(dp, num_blocks_in_piece, peer);
 
 		// no need in picking from the largest contiguous block run unless
@@ -3531,7 +3531,7 @@ get_out:
 
 			// peers may have been disconnected in between mark_as_writing
 			// and mark_as_finished. When a peer disconnects, its m_peer_info
-			// pointer is set to NULL. If so, preserve the previous peer
+			// pointer is set to nullptr. If so, preserve the previous peer
 			// pointer, instead of forgetting who we downloaded this block from
 			if (info.state != block_info::state_writing || peer != 0)
 				info.peer = peer;
@@ -3596,7 +3596,7 @@ get_out:
 
 		if (state == piece_pos::piece_open)
 		{
-			for (int i = 0; i < num_blocks; ++i) d.push_back(NULL);
+			for (int i = 0; i < num_blocks; ++i) d.push_back(nullptr);
 			return;
 		}
 
@@ -3624,7 +3624,7 @@ get_out:
 		block_info const* binfo = blocks_for_piece(*i);
 		TORRENT_ASSERT(binfo[block.block_index].piece_index == block.piece_index);
 		if (binfo[block.block_index].state == block_info::state_none)
-			return NULL;
+			return nullptr;
 
 		torrent_peer* peer = binfo[block.block_index].peer;
 		TORRENT_ASSERT(peer == 0 || static_cast<torrent_peer*>(peer)->in_use);
