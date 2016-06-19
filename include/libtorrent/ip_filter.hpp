@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 #include <tuple>
 #include <iterator> // for next
+#include <limits>
 
 #include "libtorrent/address.hpp"
 #include "libtorrent/assert.hpp"

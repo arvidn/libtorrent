@@ -71,8 +71,6 @@ struct routing_table_node
 	bucket_t live_nodes;
 };
 
-namespace {
-
 struct ipv4_hash
 {
 	using argument_type = address_v4::bytes_type;
@@ -94,7 +92,6 @@ struct ipv6_hash
 	}
 };
 #endif
-}
 
 struct ip_set
 {
