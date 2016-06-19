@@ -515,7 +515,7 @@ namespace libtorrent
 			return;
 		}
 
-		int pad_size = random() % 512;
+		int const pad_size = random() % 512;
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, "ENCRYPTION", "pad size: %d", pad_size);
@@ -523,7 +523,7 @@ namespace libtorrent
 
 		char msg[dh_key_len + 512];
 		char* ptr = msg;
-		int buf_size = dh_key_len + pad_size;
+		int const buf_size = dh_key_len + pad_size;
 
 		mp::export_bits(m_dh_key_exchange->get_local_key()
 			, reinterpret_cast<std::uint8_t*>(ptr), 8);
@@ -610,8 +610,7 @@ namespace libtorrent
 #endif
 
 		write_pe_vc_cryptofield(ptr, encrypt_size, crypto_provide, pad_size);
-		std::vector<boost::asio::mutable_buffer> vec;
-		vec.push_back(boost::asio::mutable_buffer(ptr, encrypt_size));
+		boost::asio::mutable_buffer vec(ptr, encrypt_size);
 		m_rc4->encrypt(vec);
 		send_buffer(msg, sizeof(msg) - 512 + pad_size);
 	}
@@ -626,14 +625,13 @@ namespace libtorrent
 		TORRENT_ASSERT(crypto_select == 0x02 || crypto_select == 0x01);
 		TORRENT_ASSERT(!m_sent_handshake);
 
-		int pad_size = random() % 512;
+		int const pad_size = random() % 512;
 
-		const int buf_size = 8 + 4 + 2 + pad_size;
+		int const buf_size = 8 + 4 + 2 + pad_size;
 		char msg[512 + 8 + 4 + 2];
 		write_pe_vc_cryptofield(msg, sizeof(msg), crypto_select, pad_size);
 
-		std::vector<boost::asio::mutable_buffer> vec;
-		vec.push_back(boost::asio::mutable_buffer(msg, buf_size));
+		boost::asio::mutable_buffer vec(msg, buf_size);
 		m_rc4->encrypt(vec);
 		send_buffer(msg, buf_size);
 
@@ -649,8 +647,10 @@ namespace libtorrent
 #endif
 	}
 
-	void bt_peer_connection::write_pe_vc_cryptofield(char* write_buf, int len
-		, int crypto_field, int pad_size)
+	void bt_peer_connection::write_pe_vc_cryptofield(char* write_buf
+		, int const len
+		, int const crypto_field
+		, int const pad_size)
 	{
 		INVARIANT_CHECK;
 #if !TORRENT_USE_ASSERTS
@@ -682,15 +682,15 @@ namespace libtorrent
 			detail::write_uint16(handshake_len, write_buf); // len(IA)
 	}
 
-	int bt_peer_connection::get_syncoffset(char const* src, int src_size,
-		char const* target, int target_size) const
+	int bt_peer_connection::get_syncoffset(char const* src, int const src_size
+		, char const* target, int const target_size) const
 	{
 		TORRENT_ASSERT(target_size >= src_size);
 		TORRENT_ASSERT(src_size > 0);
 		TORRENT_ASSERT(src);
 		TORRENT_ASSERT(target);
 
-		int traverse_limit = target_size - src_size;
+		int const traverse_limit = target_size - src_size;
 
 		// TODO: this could be optimized using knuth morris pratt
 		for (int i = 0; i < traverse_limit; ++i)
@@ -700,40 +700,16 @@ namespace libtorrent
 				return i;
 		}
 
-		// Partial sync
-//		for (int i = 0; i < target_size; ++i)
-//		{
-//			// first is iterator in src[] at which mismatch occurs
-//			// second is iterator in target[] at which mismatch occurs
-//			std::pair<const char*, const char*> ret;
-//			int src_sync_size;
-//			if (i > traverse_limit) // partial sync test
-//			{
-//				ret = std::mismatch(src, src + src_size - (i - traverse_limit), &target[i]);
-//				src_sync_size = ret.first - src;
-//				if (src_sync_size == (src_size - (i - traverse_limit)))
-//					return i;
-//			}
-//			else // complete sync test
-//			{
-//				ret = std::mismatch(src, src + src_size, &target[i]);
-//				src_sync_size = ret.first - src;
-//				if (src_sync_size == src_size)
-//					return i;
-//			}
-//		}
-
 		// no complete sync
 		return -1;
 	}
 
-	void bt_peer_connection::rc4_decrypt(char* pos, int len)
+	void bt_peer_connection::rc4_decrypt(char* const pos, int const len)
 	{
-		std::vector<boost::asio::mutable_buffer> vec;
-		vec.push_back(boost::asio::mutable_buffer(pos, len));
 		int consume = 0;
 		int produce = len;
 		int packet_size = 0;
+		boost::asio::mutable_buffer vec(pos, len);
 		m_rc4->decrypt(vec, consume, produce, packet_size);
 	}
 
@@ -2194,9 +2170,8 @@ namespace libtorrent
 
 		// add predictive pieces to the bitfield as well, since we won't
 		// announce them again
-		for (std::vector<int>::const_iterator i = t->predictive_pieces().begin()
-			, end(t->predictive_pieces().end()); i != end; ++i)
-			msg[5 + *i / 8] |= (0x80 >> (*i & 7));
+		for (int p : t->predictive_pieces())
+			msg[5 + p / 8] |= (0x80 >> (p & 7));
 
 #ifndef TORRENT_DISABLE_LOGGING
 
@@ -2572,7 +2547,7 @@ namespace libtorrent
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		if (!m_enc_handler.is_recv_plaintext())
 		{
-			int consumed = m_enc_handler.decrypt(m_recv_buffer, bytes_transferred);
+			int const consumed = m_enc_handler.decrypt(m_recv_buffer, bytes_transferred);
 	#ifndef TORRENT_DISABLE_LOGGING
 			if (consumed + bytes_transferred > 0)
 				peer_log(peer_log_alert::incoming_message, "ENCRYPTION"
@@ -3015,7 +2990,7 @@ namespace libtorrent
 			bytes_transferred = 0;
 			if (!m_recv_buffer.packet_finished()) return;
 
-			int pad_size = is_outgoing() ? m_recv_buffer.packet_size() : m_recv_buffer.packet_size() - 2;
+			int const pad_size = is_outgoing() ? m_recv_buffer.packet_size() : m_recv_buffer.packet_size() - 2;
 
 			buffer::interval wr_buf = m_recv_buffer.mutable_buffer();
 			rc4_decrypt(wr_buf.begin, m_recv_buffer.packet_size());
@@ -3521,8 +3496,8 @@ namespace libtorrent
 				return;
 			}
 #if TORRENT_USE_ASSERTS
-			std::int64_t cur_payload_dl = statistics().last_payload_downloaded();
-			std::int64_t cur_protocol_dl = statistics().last_protocol_downloaded();
+			std::int64_t const cur_payload_dl = statistics().last_payload_downloaded();
+			std::int64_t const cur_protocol_dl = statistics().last_protocol_downloaded();
 #endif
 			if (dispatch_message(int(bytes_transferred)))
 			{
@@ -3533,7 +3508,7 @@ namespace libtorrent
 #if TORRENT_USE_ASSERTS
 			TORRENT_ASSERT(statistics().last_payload_downloaded() - cur_payload_dl >= 0);
 			TORRENT_ASSERT(statistics().last_protocol_downloaded() - cur_protocol_dl >= 0);
-			std::int64_t stats_diff = statistics().last_payload_downloaded() - cur_payload_dl +
+			std::int64_t const stats_diff = statistics().last_payload_downloaded() - cur_payload_dl +
 				statistics().last_protocol_downloaded() - cur_protocol_dl;
 			TORRENT_ASSERT(stats_diff == std::int64_t(bytes_transferred));
 			TORRENT_ASSERT(!m_recv_buffer.packet_finished());
@@ -3545,15 +3520,19 @@ namespace libtorrent
 	}
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-	int bt_peer_connection::hit_send_barrier(std::vector<boost::asio::mutable_buffer>& iovec)
+	std::tuple<int, std::vector<boost::asio::const_buffer>>
+	bt_peer_connection::hit_send_barrier(
+		aux::array_view<boost::asio::mutable_buffer> iovec)
 	{
-		int next_barrier = m_enc_handler.encrypt(iovec);
+		int next_barrier;
+		std::vector<boost::asio::const_buffer> out_iovec;
+		std::tie(next_barrier, out_iovec) = m_enc_handler.encrypt(iovec);
 #ifndef TORRENT_DISABLE_LOGGING
 		if (next_barrier != 0)
 			peer_log(peer_log_alert::outgoing, "SEND_BARRIER"
 				, "encrypted block s = %d", next_barrier);
 #endif
-		return next_barrier;
+		return { next_barrier, out_iovec };
 	}
 #endif
 
@@ -3626,7 +3605,8 @@ namespace libtorrent
 		TORRENT_ASSERT( (bool(m_state != read_pe_dhkey) || m_dh_key_exchange.get())
 				|| !is_outgoing());
 
-		TORRENT_ASSERT(!m_rc4_encrypted || (!m_encrypted && m_rc4) || (m_encrypted && !m_enc_handler.is_send_plaintext()));
+		TORRENT_ASSERT(!m_rc4_encrypted || (!m_encrypted && m_rc4)
+			|| (m_encrypted && !m_enc_handler.is_send_plaintext()));
 #endif
 		if (!in_handshake())
 		{

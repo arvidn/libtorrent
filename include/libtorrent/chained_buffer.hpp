@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	// TODO: 2 this type should probably be renamed to send_buffer
 	struct TORRENT_EXTRA_EXPORT chained_buffer : private single_threaded
 	{
 		chained_buffer(): m_bytes(0), m_capacity(0)
@@ -67,6 +68,9 @@ namespace libtorrent
 		{
 			free_buffer_fun free_fun;
 			void* userdata;
+			// TODO: 2 the pointers here should probably be const, since
+			// they're not supposed to be mutated once inserted into the send
+			// buffer
 			char* buf; // the first byte of the buffer
 			char* start; // the first byte to send/receive in the buffer
 			int size; // the total size of the buffer

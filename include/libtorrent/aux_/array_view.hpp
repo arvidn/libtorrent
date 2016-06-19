@@ -46,11 +46,12 @@ namespace libtorrent { namespace aux {
 
 		// T -> const T conversion constructor
 		template <typename U, typename
-			= std::enable_if<std::is_convertible<U, T>::value>
+			= std::enable_if<std::is_convertible<U*, T*>::value>
 			>
 		array_view(array_view<U> const& v)
 			: m_ptr(v.data()), m_len(v.size()) {}
 
+		array_view(T& p) : m_ptr(&p), m_len(1) {}
 		array_view(T* p, int l) : m_ptr(p), m_len(l)
 		{
 			TORRENT_ASSERT(l >= 0);

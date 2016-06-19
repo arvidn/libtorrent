@@ -5510,15 +5510,18 @@ namespace libtorrent
 		{
 			std::vector<boost::asio::mutable_buffer> vec;
 			m_send_buffer.build_mutable_iovec(m_send_buffer.size(), vec);
-			int next_barrier = hit_send_barrier(vec);
-			for (std::vector<boost::asio::mutable_buffer>::reverse_iterator i = vec.rbegin();
-				i != vec.rend(); ++i)
+			int next_barrier;
+			std::vector<boost::asio::const_buffer> inject_vec;
+			std::tie(next_barrier, inject_vec) = hit_send_barrier(vec);
+			for (auto i = inject_vec.rbegin(); i != inject_vec.rend(); ++i)
 			{
-				m_send_buffer.prepend_buffer(boost::asio::buffer_cast<char*>(*i)
-					, int(boost::asio::buffer_size(*i))
-					, int(boost::asio::buffer_size(*i))
-					, &nop
-					, NULL);
+				int const size = boost::asio::buffer_size(*i);
+				// this const_cast is a here because chained_buffer need to be
+				// fixed.
+				char* ptr = const_cast<char*>(
+					boost::asio::buffer_cast<char const*>(*i));
+				m_send_buffer.prepend_buffer(ptr
+					, size, size, &nop, nullptr);
 			}
 			set_send_barrier(next_barrier);
 		}
@@ -5530,7 +5533,7 @@ namespace libtorrent
 			return;
 		}
 
-		int quota_left = m_quota[upload_channel];
+		int const quota_left = m_quota[upload_channel];
 
 		if (m_send_buffer.empty()
 			&& m_reading_bytes > 0

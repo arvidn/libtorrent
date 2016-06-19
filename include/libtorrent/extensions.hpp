@@ -173,6 +173,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/sha1_hash.hpp" // for sha1_hash
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/session_handle.hpp"
+#include "libtorrent/aux_/array_view.hpp"
 
 namespace libtorrent
 {
@@ -186,6 +187,14 @@ namespace libtorrent
 	struct add_torrent_params;
 	struct peer_connection_handle;
 	struct torrent_handle;
+
+	// Functions of this type are called to handle incoming DHT requests
+	using dht_extension_handler_t = boost::function<bool(udp::endpoint const& source
+		, bdecode_node const& request, entry& response)>;
+
+	// Map of query strings to handlers. Note that query strings are limited to 15 bytes.
+	// see max_dht_query_length
+	using dht_extensions_t = std::vector<std::pair<std::string, dht_extension_handler_t> >;
 
 	// this is the base class for a session plugin. One primary feature
 	// is that it is notified of all torrents that are added to the session,
@@ -502,9 +511,9 @@ namespace libtorrent
 		// are now ready to be sent to the lower layer. This must be at least
 		// as large as the number of bytes passed in and may be larger if there
 		// is additional data to be inserted at the head of the send buffer.
-		// The additional data is retrieved from the passed in vector. The
-		// vector must be cleared if no additional data is to be inserted.
-		virtual int encrypt(std::vector<boost::asio::mutable_buffer>& /*send_vec*/) = 0;
+		// The additional data is returned as the second tupled value
+		virtual std::tuple<int, std::vector<boost::asio::const_buffer>>
+		encrypt(aux::array_view<boost::asio::mutable_buffer> /*send_vec*/) = 0;
 
 		// decrypt the provided buffers.
 		// consume is set to the number of bytes which should be trimmed from the
@@ -515,7 +524,7 @@ namespace libtorrent
 		//
 		// packet_size is set to the minimum number of bytes which must be read to
 		// advance the next step of decryption. default is 0
-		virtual void decrypt(std::vector<boost::asio::mutable_buffer>& /*receive_vec*/
+		virtual void decrypt(aux::array_view<boost::asio::mutable_buffer> /*receive_vec*/
 			, int& /* consume */, int& /*produce*/, int& /*packet_size*/) = 0;
 	};
 }
