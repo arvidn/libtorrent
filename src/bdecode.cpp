@@ -110,7 +110,7 @@ namespace libtorrent
 		std::uint32_t state:1;
 	};
 
-	// str1 is nullptr-terminated
+	// str1 is 0-terminated
 	// str2 is not, str2 is len2 chars
 	bool string_equal(char const* str1, char const* str2, int len2)
 	{

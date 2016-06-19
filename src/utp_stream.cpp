@@ -686,7 +686,7 @@ public:
 	bool m_cwnd_full:1;
 
 	// this is set to one if the current read operation
-	// has a nullptr-buffer. i.e. we're not reading into a user-provided
+	// has a null_buffer. i.e. we're not reading into a user-provided
 	// buffer, we're just signalling when there's something
 	// to read from our internal receive buffer
 	bool m_null_buffers:1;

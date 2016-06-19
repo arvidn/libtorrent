@@ -876,7 +876,7 @@ namespace libtorrent
 		// Returns a pointer to the torrent_info object associated with this
 		// torrent. The torrent_info object may be a copy of the internal object.
 		// If the torrent doesn't have metadata, the pointer will not be
-		// initialized (i.e. a nullptr pointer). The torrent may be in a state
+		// initialized (i.e. a nullptr). The torrent may be in a state
 		// without metadata only if it was started without a .torrent file, e.g.
 		// by using the libtorrent extension of just supplying a tracker and
 		// info-hash.

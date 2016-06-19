@@ -96,10 +96,10 @@ namespace libtorrent
 
 	// searches for separator in the string 'last'. the pointer last points to
 	// is set to point to the first character following the separator.
-	// returns a pointer to a nullptr terminated string starting at last, ending
+	// returns a pointer to a 0-terminated string starting at last, ending
 	// at the separator (the string is mutated to replace the separator with
 	// a '\0' character). If there is no separator, but the end of the string,
-	// the pointer next points to is set to the last nullptr terminator, which will
+	// the pointer next points to is set to the last 0-terminator, which will
 	// make the following invocation return nullptr, to indicate the end of the
 	// string.
 	TORRENT_EXTRA_EXPORT char* string_tokenize(char* last, char sep, char** next);

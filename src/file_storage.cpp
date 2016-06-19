@@ -271,7 +271,7 @@ namespace libtorrent
 
 	// if borrow_chars >= 0, don't take ownership over n, just
 	// point to it. It points to borrow_chars number of characters.
-	// if borrow_chars == -1, n is a nullptr terminated string that
+	// if borrow_chars == -1, n is a 0-terminated string that
 	// should be copied 
 	void internal_file_entry::set_name(char const* n, bool borrow_string, int string_len)
 	{

@@ -415,7 +415,7 @@ namespace libtorrent
 		// sha1-hash for that piece and ``info_hash()`` returns the 20-bytes
 		// sha1-hash for the info-section of the torrent file.
 		// ``hash_for_piece_ptr()`` returns a pointer to the 20 byte sha1 digest
-		// for the piece. Note that the string is not nullptr-terminated.
+		// for the piece. Note that the string is not 0-terminated.
 		int piece_size(int index) const { return m_files.piece_size(index); }
 		sha1_hash hash_for_piece(int index) const;
 		char const* hash_for_piece_ptr(int index) const
@@ -566,7 +566,7 @@ namespace libtorrent
 		// these or strings of the "collections" key from the torrent file. The
 		// pointers point directly into the info_section buffer and when copied,
 		// these pointers must be corrected to point into the new buffer. The
-		// int is the length of the string. Strings are not nullptr-terminated.
+		// int is the length of the string. Strings are not 0-terminated.
 		std::vector<std::pair<char const*, int> > m_collections;
 
 		// these are the collections from outside of the info-dict. These are

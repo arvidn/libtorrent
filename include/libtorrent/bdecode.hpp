@@ -295,7 +295,7 @@ struct TORRENT_EXPORT bdecode_node
 
 	// Functions with the ``dict_`` prefix operates on dictionaries. They are
 	// only valid if ``type()`` == ``dict_t``. In case a key you're looking up
-	// contains a 0 byte, you cannot use the nullptr-terminated string overloads,
+	// contains a 0 byte, you cannot use the 0-terminated string overloads,
 	// but have to use ``std::string`` instead. ``dict_find_list`` will return a
 	// valid ``bdecode_node`` if the key is found _and_ it is a list. Otherwise
 	// it will return a default-constructed bdecode_node.
@@ -322,7 +322,7 @@ struct TORRENT_EXPORT bdecode_node
 	std::int64_t int_value() const;
 
 	// these functions are only valid if ``type()`` == ``string_t``. They return
-	// the string values. Note that ``string_ptr()`` is *not* nullptr-terminated.
+	// the string values. Note that ``string_ptr()`` is *not* 0-terminated.
 	// ``string_length()`` returns the number of bytes in the string.
 	std::string string_value() const;
 	char const* string_ptr() const;

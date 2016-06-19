@@ -166,10 +166,10 @@ namespace libtorrent
 		std::uint64_t size:48;
 
 		// the number of characters in the name. If this is
-		// name_is_owned, name is nullptr terminated and owned by this object
+		// name_is_owned, name is 0-terminated and owned by this object
 		// (i.e. it should be freed in the destructor). If
 		// the len is not name_is_owned, the name pointer doesn not belong
-		// to this object, and it's not nullptr terminated
+		// to this object, and it's not 0-terminated
 		std::uint64_t name_len:12;
 		std::uint64_t pad_file:1;
 		std::uint64_t hidden_attribute:1;
@@ -178,7 +178,7 @@ namespace libtorrent
 
 		// make it available for logging
 	private:
-		// This string is not necessarily nullptr terminated!
+		// This string is not necessarily 0-terminated!
 		// that's why it's private, to keep people away from it
 		char const* name;
 	public:
@@ -535,7 +535,7 @@ namespace libtorrent
 		int file_index_at_offset(std::int64_t offset) const;
 
 		// low-level function. returns a pointer to the internal storage for
-		// the filename. This string may not be nullptr terminated!
+		// the filename. This string may not be 0-terminated!
 		// the ``file_name_len()`` function returns the length of the filename.
 		char const* file_name_ptr(int index) const;
 		int file_name_len(int index) const;

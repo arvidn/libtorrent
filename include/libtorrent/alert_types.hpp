@@ -142,7 +142,7 @@ namespace libtorrent
 		virtual int category() const override { return static_category; }
 		virtual std::string message() const override;
 
-		// returns a nullptr-terminated string of the tracker's URL
+		// returns a 0-terminated string of the tracker's URL
 		char const* tracker_url() const;
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -668,7 +668,7 @@ namespace libtorrent
 		static const int static_category = alert::peer_notification;
 		virtual std::string message() const override;
 
-		// a nullptr-terminated string of the low-level operation that failed, or nullptr if
+		// a 0-terminated string of the low-level operation that failed, or nullptr if
 		// there was no low level disk operation.
 		int operation;
 
@@ -1507,7 +1507,7 @@ namespace libtorrent
 		// If the error happened to a specific file, this returns the path to it.
 		char const* file_path() const;
 
-		// If the error happened in a disk operation. a nullptr-terminated string of
+		// If the error happened in a disk operation. a 0-terminated string of
 		// the name of that operation. ``operation`` is nullptr otherwise.
 		char const* operation;
 

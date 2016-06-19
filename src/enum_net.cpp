@@ -468,7 +468,7 @@ namespace libtorrent
 				{
 					ifreq req;
 					memset(&req, 0, sizeof(req));
-					// -1 to leave a nullptr terminator
+					// -1 to leave a 0-terminator
 					strncpy(req.ifr_name, iface.name, IF_NAMESIZE - 1);
 
 					// ignore errors here. This is best-effort
@@ -529,7 +529,7 @@ namespace libtorrent
 
 				ifreq req;
 				memset(&req, 0, sizeof(req));
-				// -1 to leave a nullptr terminator
+				// -1 to leave a 0-terminator
 				strncpy(req.ifr_name, item.ifr_name, IF_NAMESIZE - 1);
 				if (ioctl(s, siocgifmtu, &req) < 0)
 				{

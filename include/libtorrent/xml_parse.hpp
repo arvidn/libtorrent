@@ -66,7 +66,7 @@ namespace libtorrent
 	//   , char const* val, int val_len)
 	// name is element or attribute name
 	// val is attribute value
-	// neither string is nullptr terminated, but their lengths are specified via
+	// neither string is 0-terminated, but their lengths are specified via
 	// name_len and val_len respectively
 	TORRENT_EXTRA_EXPORT void xml_parse(char const* p, char const* end
 		, boost::function<void(int,char const*,int,char const*,int)> callback);

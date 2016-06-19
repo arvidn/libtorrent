@@ -95,24 +95,24 @@ namespace libtorrent
 		, lazy_entry& ret, int depth_limit = 1000, int item_limit = 1000000);
 #endif
 
-	// this is a string that is not nullptr-terminated. Instead it
+	// this is a string that is not 0-terminated. Instead it
 	// comes with a length, specified in bytes. This is particularly
 	// useful when parsing bencoded structures, because strings are
-	// not nullptr-terminated internally, and requiring nullptr termination
+	// not 0-terminated internally, and requiring 0-termination
 	// would require copying the string.
 	//
 	// see lazy_entry::string_pstr().
 	struct TORRENT_EXPORT pascal_string
 	{
 		// construct a string pointing to the characters at ``p``
-		// of length ``l`` characters. No nullptr termination is required.
+		// of length ``l`` characters. No 0-termination is required.
 		pascal_string(char const* p, int l): len(l), ptr(p) {}
 
 		// the number of characters in the string.
 		int len;
 
 		// the pointer to the first character in the string. This is
-		// not nullptr terminated, but instead consult the ``len`` field
+		// not 0-terminated, but instead consult the ``len`` field
 		// to know how many characters follow.
 		char const* ptr;
 
@@ -172,7 +172,7 @@ namespace libtorrent
 		// internal
 		void construct_string(char const* start, int length);
 
-		// the string is not nullptr-terminated!
+		// the string is not 0-terminated!
 		// use string_length() to determine how many bytes
 		// are part of the string.
 		char const* string_ptr() const
@@ -181,7 +181,7 @@ namespace libtorrent
 			return m_data.start;
 		}
 
-		// this will return a nullptr terminated string
+		// this will return a 0-terminated string
 		// it will write to the source buffer!
 		char const* string_cstr() const
 		{
