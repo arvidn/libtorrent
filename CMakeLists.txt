@@ -275,8 +275,6 @@ endif()
 include_directories(${Boost_INCLUDE_DIRS})
 target_link_libraries(torrent-rasterbar ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
-# this works around a bug in asio in boost-1.39
-add_definitions(-DBOOST_ASIO_HASH_MAP_BUCKETS=1021 )
 add_definitions(-DBOOST_ASIO_HAS_STD_CHRONO=1 )
 
 if (WIN32)

@@ -79,10 +79,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #  define TORRENT_DEPRECATED __attribute__ ((deprecated))
 # endif
 
-# if __GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ <= 8)
-#  define TORRENT_NO_ATOMIC_DURATION 1
-# endif
-
 // ======= SUNPRO =========
 
 #elif defined __SUNPRO_CC
@@ -92,9 +88,6 @@ POSSIBILITY OF SUCH DAMAGE.
 // ======= MSVC =========
 
 #elif defined BOOST_MSVC
-
-#pragma warning(disable: 4258)
-#pragma warning(disable: 4251)
 
 // class X needs to have dll-interface to be used by clients of class Y
 #pragma warning(disable:4251)
@@ -437,12 +430,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_NO_FPU
 #define TORRENT_NO_FPU 0
-#endif
-
-// defined to 1 if the compiler does not support putting
-// std::chrono::time_point in a std::atomic (which it's supposed to)
-#ifndef TORRENT_NO_ATOMIC_DURATION
-#define TORRENT_NO_ATOMIC_DURATION 0
 #endif
 
 #ifndef TORRENT_USE_IOSTREAM

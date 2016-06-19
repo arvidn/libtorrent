@@ -35,8 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/utp_socket_manager.hpp"
 #include "libtorrent/instantiate_connection.hpp"
-#include <boost/shared_ptr.hpp>
-#include <stdexcept>
 
 namespace libtorrent
 {
