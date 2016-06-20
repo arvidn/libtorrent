@@ -749,7 +749,6 @@ namespace libtorrent
 			out += "<preformatted>\n";
 			break;
 		case undefined_t:
-		default:
 			out += "<uninitialized>\n";
 		}
 	}
