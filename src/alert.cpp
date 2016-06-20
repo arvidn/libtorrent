@@ -813,7 +813,7 @@ namespace libtorrent {
 		static char const* const protocol_str[] = {"TCP", "UDP"};
 
 		static char const* const socket_type_str[] = {
-			"nullptr",
+			"null",
 			"TCP",
 			"Socks5/TCP",
 			"HTTP",

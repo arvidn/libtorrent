@@ -39,8 +39,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/peer_info.hpp"
 #include <tuple>
-#include <boost/make_shared.hpp>
 #include <iostream>
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/make_shared.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "test.hpp"
 #include "setup_transfer.hpp"

@@ -43,8 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <tuple>
-
 #include <boost/asio/connect.hpp>
 
 #ifdef TORRENT_USE_OPENSSL
@@ -54,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <functional>
+#include <tuple>
 #include <fstream>
 #include <iostream>
 

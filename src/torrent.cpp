@@ -4161,7 +4161,7 @@ namespace libtorrent
 		// these torrent_peer pointers are owned by m_peer_list and they may be
 		// invalidated if a peer disconnects. We cannot keep them across any
 		// significant operations, but we should use them right away
-		// ignore nullptr pointers
+		// ignore nullptrs
 		std::remove_copy(downloaders.begin(), downloaders.end()
 			, std::inserter(peers, peers.begin()), static_cast<torrent_peer*>(0));
 

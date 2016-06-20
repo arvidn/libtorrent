@@ -95,7 +95,7 @@ namespace libtorrent
 		}
 
 		// copies 20 bytes from the pointer provided, into the sha1-hash.
-		// The passed in string MUST be at least 20 bytes. nullptr terminators
+		// The passed in string MUST be at least 20 bytes. 0-terminators
 		// are ignored, ``s`` is treated like a raw memory buffer.
 		explicit sha1_hash(char const* s)
 		{

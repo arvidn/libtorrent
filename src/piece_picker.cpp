@@ -36,12 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <numeric>
 #include <limits>
 #include <functional>
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <tuple>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/bitfield.hpp"

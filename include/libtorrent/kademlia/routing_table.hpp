@@ -41,8 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <array>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/utility.hpp>
-#include <boost/noncopyable.hpp>
+//#include <boost/utility.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <libtorrent/kademlia/node_id.hpp>
@@ -146,18 +145,21 @@ namespace impl
 
 TORRENT_EXTRA_EXPORT bool compare_ip_cidr(address const& lhs, address const& rhs);
 
-class TORRENT_EXTRA_EXPORT routing_table : boost::noncopyable
+class TORRENT_EXTRA_EXPORT routing_table
 {
 public:
 	// TODO: 3 to improve memory locality and scanning performance, turn the
 	// routing table into a single vector with boundaries for the nodes instead.
 	// Perhaps replacement nodes should be in a separate vector.
-	typedef std::vector<routing_table_node> table_t;
+	using table_t = std::vector<routing_table_node>;
 
 	routing_table(node_id const& id, udp proto
 		, int bucket_size
 		, dht_settings const& settings
 		, dht_logger* log);
+
+	routing_table(routing_table const&) = delete;
+	routing_table& operator=(routing_table const&) = delete;
 
 #ifndef TORRENT_NO_DEPRECATE
 	void status(session_status& s) const;

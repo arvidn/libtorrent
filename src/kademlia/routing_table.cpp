@@ -771,10 +771,10 @@ ip_ok:
 	// can we split the bucket?
 	// only nodes that haven't failed can split the bucket, and we can only
 	// split the last bucket
-	bool const can_split = (boost::next(i) == m_buckets.end()
+	bool const can_split = (std::next(i) == m_buckets.end()
 		&& m_buckets.size() < 159)
 		&& e.fail_count() == 0
-		&& (i == m_buckets.begin() || boost::prior(i)->live_nodes.size() > 1);
+		&& (i == m_buckets.begin() || std::prev(i)->live_nodes.size() > 1);
 
 	// if there's room in the main bucket, just insert it
 	// if we can split the bucket (i.e. it's the last bucket) use the next

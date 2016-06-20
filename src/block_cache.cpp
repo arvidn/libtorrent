@@ -650,7 +650,7 @@ cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, int cache_
 		pe.cache_state = cache_state;
 		pe.last_requester = j->requester;
 		TORRENT_PIECE_ASSERT(pe.blocks, &pe);
-		if (!pe.blocks) return 0;
+		if (!pe.blocks) return nullptr;
 		p = const_cast<cached_piece_entry*>(&*m_pieces.insert(pe).first);
 
 		j->storage->add_piece(p);
@@ -1336,7 +1336,7 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 		TORRENT_PIECE_ASSERT(iov[i].iov_len == (std::min)(block_size()
 			, pe->storage->files()->piece_size(pe->piece) - block * block_size()), pe);
 
-		// no nullptr pointers allowed
+		// no nullptrs allowed
 		TORRENT_ASSERT(iov[i].iov_base);
 
 #ifdef TORRENT_DEBUG_BUFFERS
@@ -1893,7 +1893,7 @@ cached_piece_entry* block_cache::find_piece(piece_manager* st, int piece)
 	model.piece = piece;
 	iterator i = m_pieces.find(model);
 	TORRENT_ASSERT(i == m_pieces.end() || (i->storage.get() == st && i->piece == piece));
-	if (i == m_pieces.end()) return 0;
+	if (i == m_pieces.end()) return nullptr;
 	TORRENT_PIECE_ASSERT(i->in_use, &*i);
 
 #if TORRENT_USE_ASSERTS
