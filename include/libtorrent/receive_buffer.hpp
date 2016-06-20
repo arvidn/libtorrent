@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/buffer.hpp>
 #include <libtorrent/disk_buffer_holder.hpp>
 #include <boost/asio/buffer.hpp>
-#include <vector>
 
 namespace libtorrent {
 
@@ -110,7 +109,7 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 	buffer::interval mutable_buffer();
 
 	// returns the last 'bytes' from the receive buffer
-	boost::asio::mutable_buffer mutable_buffers(int bytes);
+	boost::asio::mutable_buffer mutable_buffer(int bytes);
 #endif
 
 	// the purpose of this function is to free up and cut off all messages
@@ -226,7 +225,7 @@ struct crypto_receive_buffer
 
 	buffer::const_interval get() const;
 
-	boost::asio::mutable_buffer mutable_buffers(std::size_t bytes);
+	boost::asio::mutable_buffer mutable_buffer(std::size_t bytes);
 
 private:
 	// explicitly disallow assignment, to silence msvc warning

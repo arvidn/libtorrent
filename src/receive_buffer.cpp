@@ -151,7 +151,7 @@ buffer::interval receive_buffer::mutable_buffer()
 		, &m_recv_buffer[0] + m_recv_start + rcv_pos);
 }
 
-boost::asio::mutable_buffer receive_buffer::mutable_buffers(int const bytes)
+boost::asio::mutable_buffer receive_buffer::mutable_buffer(int const bytes)
 {
 	namespace asio = boost::asio;
 
@@ -305,13 +305,13 @@ buffer::const_interval crypto_receive_buffer::get() const
 	return recv_buffer;
 }
 
-boost::asio::mutable_buffer crypto_receive_buffer::mutable_buffers(
+boost::asio::mutable_buffer crypto_receive_buffer::mutable_buffer(
 	std::size_t const bytes)
 {
 	int const pending_decryption = (m_recv_pos != INT_MAX)
 		? m_connection_buffer.packet_size() - m_recv_pos
 		: int(bytes);
-	return m_connection_buffer.mutable_buffers(pending_decryption);
+	return m_connection_buffer.mutable_buffer(pending_decryption);
 }
 #endif // TORRENT_DISABLE_ENCRYPTION
 

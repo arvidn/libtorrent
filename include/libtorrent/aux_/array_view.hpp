@@ -46,11 +46,12 @@ namespace libtorrent { namespace aux {
 
 		// T -> const T conversion constructor
 		template <typename U, typename
-			= std::enable_if<std::is_convertible<U, T>::value>
+			= std::enable_if<std::is_convertible<U*, T*>::value>
 			>
 		array_view(array_view<U> const& v)
 			: m_ptr(v.data()), m_len(v.size()) {}
 
+		array_view(T& p) : m_ptr(&p), m_len(1) {}
 		array_view(T* p, int l) : m_ptr(p), m_len(l)
 		{
 			TORRENT_ASSERT(l >= 0);
@@ -69,8 +70,14 @@ namespace libtorrent { namespace aux {
 
 		size_t size() const { return m_len; }
 		T* data() const { return m_ptr; }
+
+		using iterator = T*;
+		using reverse_iterator = std::reverse_iterator<T*>;
+
 		T* begin() const { return m_ptr; }
 		T* end() const { return m_ptr + m_len; }
+		reverse_iterator rbegin() const { return reverse_iterator(end()); }
+		reverse_iterator rend() const { return reverse_iterator(begin()); }
 
 		T& front() const { TORRENT_ASSERT(m_len > 0); return m_ptr[0]; }
 		T& back() const { TORRENT_ASSERT(m_len > 0); return m_ptr[m_len-1]; }

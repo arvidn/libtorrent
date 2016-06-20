@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/aux_/array_view.hpp"
 
 #include <list>
 #include <array>
@@ -98,8 +99,11 @@ namespace libtorrent
 
 	struct encryption_handler
 	{
-		int encrypt(std::vector<boost::asio::mutable_buffer>& iovec);
-		int decrypt(crypto_receive_buffer& recv_buffer, std::size_t& bytes_transferred);
+		std::tuple<int, aux::array_view<boost::asio::const_buffer>>
+		encrypt(aux::array_view<boost::asio::mutable_buffer> iovec);
+
+		int decrypt(crypto_receive_buffer& recv_buffer
+			, std::size_t& bytes_transferred);
 
 		bool switch_send_crypto(boost::shared_ptr<crypto_plugin> crypto
 			, int pending_encryption);
@@ -140,8 +144,10 @@ namespace libtorrent
 		void set_incoming_key(unsigned char const* key, int len) override;
 		void set_outgoing_key(unsigned char const* key, int len) override;
 
-		int encrypt(std::vector<boost::asio::mutable_buffer>& buf) override;
-		void decrypt(std::vector<boost::asio::mutable_buffer>& buf
+		std::tuple<int, aux::array_view<boost::asio::const_buffer>>
+		encrypt(aux::array_view<boost::asio::mutable_buffer> buf) override;
+
+		void decrypt(aux::array_view<boost::asio::mutable_buffer> buf
 			, int& consume
 			, int& produce
 			, int& packet_size) override;

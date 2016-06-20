@@ -173,6 +173,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/sha1_hash.hpp" // for sha1_hash
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/session_handle.hpp"
+#include "libtorrent/aux_/array_view.hpp"
 
 namespace libtorrent
 {
@@ -502,9 +503,13 @@ namespace libtorrent
 		// are now ready to be sent to the lower layer. This must be at least
 		// as large as the number of bytes passed in and may be larger if there
 		// is additional data to be inserted at the head of the send buffer.
-		// The additional data is retrieved from the passed in vector. The
-		// vector must be cleared if no additional data is to be inserted.
-		virtual int encrypt(std::vector<boost::asio::mutable_buffer>& /*send_vec*/) = 0;
+		// The additional data is returned as the second tupled value. Any
+		// returned buffer as well as the iovec itself, to be prepended to the
+		// send buffer, must be owned by the crypto plugin and guaranteed to stay
+		// alive until the crypto_plugin is destructed or this function is called
+		// again.
+		virtual std::tuple<int, aux::array_view<boost::asio::const_buffer>>
+		encrypt(aux::array_view<boost::asio::mutable_buffer> /*send_vec*/) = 0;
 
 		// decrypt the provided buffers.
 		// consume is set to the number of bytes which should be trimmed from the
@@ -515,7 +520,7 @@ namespace libtorrent
 		//
 		// packet_size is set to the minimum number of bytes which must be read to
 		// advance the next step of decryption. default is 0
-		virtual void decrypt(std::vector<boost::asio::mutable_buffer>& /*receive_vec*/
+		virtual void decrypt(aux::array_view<boost::asio::mutable_buffer> /*receive_vec*/
 			, int& /* consume */, int& /*produce*/, int& /*packet_size*/) = 0;
 	};
 }

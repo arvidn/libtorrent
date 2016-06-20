@@ -107,7 +107,7 @@ TORRENT_TEST(recv_buffer_mutable_buffers)
 	b.cut(100, 1000); // packet size = 1000
 	packet_transferred = b.advance_pos(999);
 	TEST_EQUAL(packet_transferred, 999);
-	boost::asio::mutable_buffer vec = b.mutable_buffers(999);
+	boost::asio::mutable_buffer vec = b.mutable_buffer(999);
 
 	// previous packet
 	//   |

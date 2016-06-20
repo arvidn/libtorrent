@@ -37,15 +37,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pe_crypto.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/random.hpp"
+#include "libtorrent/aux_/array_view.hpp"
 
 #include "setup_transfer.hpp"
 #include "test.hpp"
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 
-void test_enc_handler(libtorrent::crypto_plugin* a, libtorrent::crypto_plugin* b)
+namespace lt = libtorrent;
+
+void test_enc_handler(libtorrent::crypto_plugin& a, libtorrent::crypto_plugin& b)
 {
-	const int repcount = 128;
+	int const repcount = 128;
 	for (int rep = 0; rep < repcount; ++rep)
 	{
 		int const buf_len = rand() % (512 * 1024);
@@ -56,36 +59,48 @@ void test_enc_handler(libtorrent::crypto_plugin* a, libtorrent::crypto_plugin* b
 		std::copy(buf.begin(), buf.end(), cmp_buf.begin());
 
 		using namespace boost::asio;
-		std::vector<mutable_buffer> iovec;
-		iovec.push_back(mutable_buffer(&buf[0], buf_len));
-		a->encrypt(iovec);
-		TEST_CHECK(!std::equal(buf.begin(), buf.end(), cmp_buf.begin()));
-		TEST_CHECK(iovec.empty());
-		int consume = 0;
-		int produce = buf_len;
-		int packet_size = 0;
-		iovec.push_back(mutable_buffer(&buf[0], buf_len));
-		b->decrypt(iovec, consume, produce, packet_size);
-		TEST_CHECK(std::equal(buf.begin(), buf.end(), cmp_buf.begin()));
-		TEST_CHECK(iovec.empty());
-		TEST_EQUAL(consume, 0);
-		TEST_EQUAL(produce, buf_len);
-		TEST_EQUAL(packet_size, 0);
 
-		iovec.push_back(mutable_buffer(&buf[0], buf_len));
-		b->encrypt(iovec);
-		TEST_CHECK(!std::equal(buf.begin(), buf.end(), cmp_buf.begin()));
-		TEST_CHECK(iovec.empty());
-		consume = 0;
-		produce = buf_len;
-		packet_size = 0;
-		iovec.push_back(mutable_buffer(&buf[0], buf_len));
-		a->decrypt(iovec, consume, produce, packet_size);
-		TEST_CHECK(std::equal(buf.begin(), buf.end(), cmp_buf.begin()));
-		TEST_CHECK(iovec.empty());
-		TEST_EQUAL(consume, 0);
-		TEST_EQUAL(produce, buf_len);
-		TEST_EQUAL(packet_size, 0);
+		{
+			mutable_buffer iovec(&buf[0], buf_len);
+			int next_barrier;
+			lt::aux::array_view<const_buffer> iovec_out;
+			std::tie(next_barrier, iovec_out) = a.encrypt(iovec);
+			TEST_CHECK(buf != cmp_buf);
+			TEST_EQUAL(iovec_out.size(), 0);
+			TEST_EQUAL(next_barrier, buf_len);
+		}
+
+		{
+			int consume = 0;
+			int produce = buf_len;
+			int packet_size = 0;
+			mutable_buffer iovec(&buf[0], buf_len);
+			b.decrypt(iovec, consume, produce, packet_size);
+			TEST_CHECK(buf == cmp_buf);
+			TEST_EQUAL(consume, 0);
+			TEST_EQUAL(produce, buf_len);
+			TEST_EQUAL(packet_size, 0);
+		}
+
+		{
+			mutable_buffer iovec(&buf[0], buf_len);
+			int next_barrier;
+			lt::aux::array_view<const_buffer> iovec_out;
+			std::tie(next_barrier, iovec_out) = b.encrypt(iovec);
+			TEST_EQUAL(iovec_out.size(), 0);
+			TEST_CHECK(buf != cmp_buf);
+			TEST_EQUAL(next_barrier, buf_len);
+
+			int consume = 0;
+			int produce = buf_len;
+			int packet_size = 0;
+			mutable_buffer iovec2(&buf[0], buf_len);
+			a.decrypt(iovec2, consume, produce, packet_size);
+			TEST_CHECK(buf == cmp_buf);
+			TEST_EQUAL(consume, 0);
+			TEST_EQUAL(produce, buf_len);
+			TEST_EQUAL(packet_size, 0);
+		}
 	}
 }
 
@@ -134,7 +149,7 @@ TORRENT_TEST(rc4)
 	rc4_handler rc42;
 	rc42.set_incoming_key(&test1_key[0], 20);
 	rc42.set_outgoing_key(&test2_key[0], 20);
-	test_enc_handler(&rc41, &rc42);
+	test_enc_handler(rc41, rc42);
 }
 
 #else

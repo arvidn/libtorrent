@@ -61,19 +61,21 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/receive_buffer.hpp"
 #include "libtorrent/aux_/allocating_handler.hpp"
 #include "libtorrent/debug.hpp"
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include "libtorrent/aux_/array_view.hpp"
 
 #include <ctime>
 #include <algorithm>
 #include <vector>
 #include <string>
 #include <utility> // for std::forward
+#include <tuple> // for make_tuple
+#include <array>
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/smart_ptr.hpp>
 #include <boost/weak_ptr.hpp>
 #include <boost/noncopyable.hpp>
-#include <array>
 #include <boost/optional.hpp>
 #include <cstdint>
 
@@ -747,8 +749,10 @@ namespace libtorrent
 
 		void send_piece_suggestions(int num);
 
-		virtual int hit_send_barrier(std::vector<boost::asio::mutable_buffer>&)
-		{ return INT_MAX; }
+		virtual
+		std::tuple<int, aux::array_view<boost::asio::const_buffer>>
+		hit_send_barrier(aux::array_view<boost::asio::mutable_buffer> /* iovec */)
+		{ return std::make_tuple(INT_MAX, aux::array_view<boost::asio::const_buffer>()); }
 
 		void attach_to_torrent(sha1_hash const& ih);
 
