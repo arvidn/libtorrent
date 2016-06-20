@@ -178,10 +178,10 @@ namespace libtorrent
 	entry::integer_type& entry::integer()
 	{
 		if (m_type == undefined_t) construct(int_t);
-		if (m_type != int_t) throw_error();
 #ifdef BOOST_NO_EXCEPTIONS
 		TORRENT_ASSERT(m_type_queried);
 #endif
+		if (m_type != int_t) throw_error();
 		TORRENT_ASSERT(m_type == int_t);
 		return *reinterpret_cast<integer_type*>(&data);
 	}
@@ -199,10 +199,10 @@ namespace libtorrent
 	entry::string_type& entry::string()
 	{
 		if (m_type == undefined_t) construct(string_t);
-		if (m_type != string_t) throw_error();
 #ifdef BOOST_NO_EXCEPTIONS
 		TORRENT_ASSERT(m_type_queried);
 #endif
+		if (m_type != string_t) throw_error();
 		TORRENT_ASSERT(m_type == string_t);
 		return *reinterpret_cast<string_type*>(&data);
 	}
@@ -220,10 +220,10 @@ namespace libtorrent
 	entry::list_type& entry::list()
 	{
 		if (m_type == undefined_t) construct(list_t);
-		if (m_type != list_t) throw_error();
 #ifdef BOOST_NO_EXCEPTIONS
 		TORRENT_ASSERT(m_type_queried);
 #endif
+		if (m_type != list_t) throw_error();
 		TORRENT_ASSERT(m_type == list_t);
 		return *reinterpret_cast<list_type*>(&data);
 	}
@@ -241,10 +241,10 @@ namespace libtorrent
 	entry::dictionary_type& entry::dict()
 	{
 		if (m_type == undefined_t) construct(dictionary_t);
-		if (m_type != dictionary_t) throw_error();
 #ifdef BOOST_NO_EXCEPTIONS
 		TORRENT_ASSERT(m_type_queried);
 #endif
+		if (m_type != dictionary_t) throw_error();
 		TORRENT_ASSERT(m_type == dictionary_t);
 		return *reinterpret_cast<dictionary_type*>(&data);
 	}
@@ -262,10 +262,10 @@ namespace libtorrent
 	entry::preformatted_type& entry::preformatted()
 	{
 		if (m_type == undefined_t) construct(preformatted_t);
-		if (m_type != preformatted_t) throw_error();
 #ifdef BOOST_NO_EXCEPTIONS
 		TORRENT_ASSERT(m_type_queried);
 #endif
+		if (m_type != preformatted_t) throw_error();
 		TORRENT_ASSERT(m_type == preformatted_t);
 		return *reinterpret_cast<preformatted_type*>(&data);
 	}
@@ -503,7 +503,7 @@ namespace libtorrent
 
 	bool entry::operator==(entry const& e) const
 	{
-		if (m_type != e.m_type) return false;
+		if (type() != e.type()) return false;
 
 		switch (m_type)
 		{
@@ -682,7 +682,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(indent >= 0);
 		for (int i = 0; i < indent; ++i) out += " ";
-		switch (m_type)
+		switch (type())
 		{
 		case int_t:
 			out += libtorrent::to_string(integer()).data();
