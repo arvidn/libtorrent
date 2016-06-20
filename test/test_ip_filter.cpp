@@ -107,7 +107,7 @@ TORRENT_TEST(ip_filter)
 		f.add_rule(addr("2.0.0.1"), addr("3.0.0.0"), ip_filter::blocked);
 
 #if TORRENT_USE_IPV6
-		range = boost::get<0>(f.export_filter());
+		range = std::get<0>(f.export_filter());
 #else
 		range = f.export_filter();
 #endif
@@ -126,7 +126,7 @@ TORRENT_TEST(ip_filter)
 		f.add_rule(addr("1.0.0.0"), addr("2.0.0.0"), ip_filter::blocked);
 
 #if TORRENT_USE_IPV6
-		range = boost::get<0>(f.export_filter());
+		range = std::get<0>(f.export_filter());
 #else
 		range = f.export_filter();
 #endif
@@ -146,7 +146,7 @@ TORRENT_TEST(ip_filter)
 		f.add_rule(addr("1.0.0.0"), addr("2.4.0.0"), ip_filter::blocked);
 
 #if TORRENT_USE_IPV6
-		range = boost::get<0>(f.export_filter());
+		range = std::get<0>(f.export_filter());
 #else
 		range = f.export_filter();
 #endif
@@ -166,7 +166,7 @@ TORRENT_TEST(ip_filter)
 		f.add_rule(addr("2.0.0.1"), addr("3.0.0.0"), ip_filter::blocked);
 
 #if TORRENT_USE_IPV6
-		range = boost::get<0>(f.export_filter());
+		range = std::get<0>(f.export_filter());
 #else
 		range = f.export_filter();
 #endif
@@ -190,7 +190,7 @@ TORRENT_TEST(ip_filter)
 		f.add_rule(addr("1.0.1.0"), addr("9.0.0.0"), ip_filter::blocked);
 
 #if TORRENT_USE_IPV6
-		range = boost::get<0>(f.export_filter());
+		range = std::get<0>(f.export_filter());
 #else
 		range = f.export_filter();
 #endif
@@ -220,7 +220,7 @@ TORRENT_TEST(ip_filter)
 		f.add_rule(addr("0.0.1.0"), addr("7.0.4.0"), ip_filter::blocked);
 
 #if TORRENT_USE_IPV6
-		range = boost::get<0>(f.export_filter());
+		range = std::get<0>(f.export_filter());
 #else
 		range = f.export_filter();
 #endif
@@ -255,7 +255,7 @@ TORRENT_TEST(ip_filter)
 		f.add_rule(addr("1::"), addr("2::"), ip_filter::blocked);
 
 		std::vector<ip_range<address_v6> > range;
-		range = boost::get<1>(f.export_filter());
+		range = std::get<1>(f.export_filter());
 		test_rules_invariant(range, f);
 
 		TEST_EQUAL(range.size(), 3);

@@ -33,10 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_IO_HPP_INCLUDED
 #define TORRENT_IO_HPP_INCLUDED
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <cstdint>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include <string>
 #include <algorithm> // for copy
 #include <cstring> // for memcpy

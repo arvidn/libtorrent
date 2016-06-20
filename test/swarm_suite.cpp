@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/random.hpp"
 #include <iostream>
-#include <boost/tuple/tuple.hpp>
+#include <tuple>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -130,7 +130,7 @@ void test_swarm(int flags)
 	p.flags &= ~add_torrent_params::flag_auto_managed;
 	if (flags & seed_mode) p.flags |= add_torrent_params::flag_seed_mode;
 	// test using piece sizes smaller than 16kB
-	boost::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true
+	std::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true
 		, false, true, "_swarm", 8 * 1024, 0, flags & super_seeding, &p);
 
 	if (flags & time_critical)

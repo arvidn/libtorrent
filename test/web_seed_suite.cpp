@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "web_seed_suite.hpp"
 #include "make_torrent.hpp"
 
-#include <boost/tuple/tuple.hpp>
+#include <tuple>
 #include <boost/make_shared.hpp>
 #include <fstream>
 #include "setup_transfer.hpp"

@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/torrent_status.hpp"
 #include "libtorrent/hasher.hpp"
-#include <boost/tuple/tuple.hpp>
+#include <tuple>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -67,8 +67,8 @@ void test_lsd()
 	torrent_handle tor1;
 	torrent_handle tor2;
 
-	using boost::tuples::ignore;
-	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0, true, false, false, "_lsd"
+	using std::ignore;
+	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0, true, false, false, "_lsd"
 		, 16 * 1024, 0, false, 0, false);
 
 	for (int i = 0; i < 30; ++i)

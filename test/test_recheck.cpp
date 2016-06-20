@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/file.hpp"
 #include "libtorrent/error_code.hpp"
-#include <boost/tuple/tuple.hpp>
+#include <tuple>
 #include <functional>
 
 #include "test.hpp"

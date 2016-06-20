@@ -34,9 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_BANDWIDTH_QUEUE_ENTRY_HPP_INCLUDED
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <boost/shared_ptr.hpp>
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/bandwidth_limit.hpp"

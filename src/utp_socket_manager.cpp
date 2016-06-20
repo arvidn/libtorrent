@@ -225,7 +225,7 @@ namespace libtorrent
 			instantiate_connection(m_ios, aux::proxy_settings(), *c
 				, m_ssl_context, this, true, false);
 
-			utp_stream* str = NULL;
+			utp_stream* str = nullptr;
 #ifdef TORRENT_USE_OPENSSL
 			if (is_ssl(*c))
 				str = &c->get<ssl_stream<utp_stream> >()->next_layer();

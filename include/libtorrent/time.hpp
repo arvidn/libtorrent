@@ -35,17 +35,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <cstdint>
-
 #include <chrono>
 
 #if defined TORRENT_BUILD_SIMULATOR
 #include "simulator/simulator.hpp"
 #endif
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
 

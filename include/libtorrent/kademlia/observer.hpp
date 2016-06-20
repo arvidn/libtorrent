@@ -33,15 +33,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef OBSERVER_HPP
 #define OBSERVER_HPP
 
+#include <cstdint>
+
 #include <libtorrent/time.hpp>
 #include <libtorrent/address.hpp>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/pool/pool.hpp>
-#include <boost/detail/atomic_count.hpp>
 #include <boost/intrusive_ptr.hpp>
-#include <cstdint>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 

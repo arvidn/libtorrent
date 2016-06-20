@@ -734,7 +734,7 @@ namespace libtorrent
 			// since we'll mutate it
 			char* buf = static_cast<char*>(malloc(size));
 			memcpy(buf, buffer, size);
-			append_send_buffer(buf, size, &regular_c_free, NULL);
+			append_send_buffer(buf, size, &regular_c_free, nullptr);
 			destructor(const_cast<char*>(buffer), userdata, ref);
 		}
 		else

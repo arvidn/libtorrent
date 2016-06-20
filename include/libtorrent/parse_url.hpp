@@ -33,21 +33,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_PARSE_URL_HPP_INCLUDED
 #define TORRENT_PARSE_URL_HPP_INCLUDED
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/tuple/tuple.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-#include <string>
 #include "libtorrent/config.hpp"
+
+#include <tuple>
+#include <string>
+
 #include "libtorrent/error_code.hpp"
 
 namespace libtorrent
 {
 
 	// returns protocol, auth, hostname, port, path
-	TORRENT_EXTRA_EXPORT boost::tuple<std::string, std::string
+	TORRENT_EXTRA_EXPORT std::tuple<std::string, std::string
 		, std::string, int, std::string>
 		parse_url_components(std::string url, error_code& ec);
 

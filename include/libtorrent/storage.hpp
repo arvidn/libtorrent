@@ -294,7 +294,7 @@ namespace libtorrent
 		// on disk. If the resume data seems to be up-to-date, return true. If
 		// not, set ``error`` to a description of what mismatched and return false.
 		// 
-		// If the ``links`` pointer is non-null, it has the same number
+		// If the ``links`` pointer is non-nullptr, it has the same number
 		// of elements as there are files. Each element is either empty or contains
 		// the absolute path to a file identical to the corresponding file in this
 		// torrent. The storage must create hard links (or copy) those files. If
@@ -383,7 +383,7 @@ namespace libtorrent
 		friend struct read_fileop;
 	public:
 		// constructs the default_storage based on the give file_storage (fs).
-		// ``mapped`` is an optional argument (it may be NULL). If non-NULL it
+		// ``mapped`` is an optional argument (it may be nullptr). If non-nullptr it
 		// represents the file mapping that have been made to the torrent before
 		// adding it. That's where files are supposed to be saved and looked for
 		// on disk. ``save_path`` is the root save folder for this torrent.

@@ -125,7 +125,7 @@ namespace
 namespace libtorrent
 {
 	peer_list::peer_list()
-		: m_locked_peer(NULL)
+		: m_locked_peer(nullptr)
 		, m_num_seeds(0)
 		, m_finished(0)
 		, m_round_robin(0)
@@ -690,10 +690,10 @@ namespace libtorrent
 							c.disconnect(errors::duplicate_peer_id, op_bittorrent);
 							return false;
 						}
-						TORRENT_ASSERT(m_locked_peer == NULL);
+						TORRENT_ASSERT(m_locked_peer == nullptr);
 						m_locked_peer = i;
 						i->connection->disconnect(errors::duplicate_peer_id, op_bittorrent);
-						m_locked_peer = NULL;
+						m_locked_peer = nullptr;
 					}
 					else
 					{
@@ -709,10 +709,10 @@ namespace libtorrent
 							c.disconnect(errors::duplicate_peer_id, op_bittorrent);
 							return false;
 						}
-						TORRENT_ASSERT(m_locked_peer == NULL);
+						TORRENT_ASSERT(m_locked_peer == nullptr);
 						m_locked_peer = i;
 						i->connection->disconnect(errors::duplicate_peer_id, op_bittorrent);
-						m_locked_peer = NULL;
+						m_locked_peer = nullptr;
 					}
 				}
 			}
@@ -826,10 +826,10 @@ namespace libtorrent
 					// case will, since it was an incoming peer that just disconnected
 					// and we allow multiple connections per IP. Because of that,
 					// we need to make sure we don't let it do that, locking i
-					TORRENT_ASSERT(m_locked_peer == NULL);
+					TORRENT_ASSERT(m_locked_peer == nullptr);
 					m_locked_peer = p;
 					p->connection->disconnect(errors::duplicate_peer_id, op_bittorrent);
-					m_locked_peer = NULL;
+					m_locked_peer = nullptr;
 					erase_peer(p, state);
 					return false;
 				}
@@ -1028,7 +1028,7 @@ namespace libtorrent
 			// we don't have any info about this peer.
 			// add a new entry
 			p = state->peer_allocator->allocate_peer_entry(torrent_peer_allocator_interface::i2p_peer_type);
-			if (p == NULL) return NULL;
+			if (p == nullptr) return nullptr;
 			new (p) i2p_peer(destination, true, src);
 
 #if TORRENT_USE_ASSERTS
@@ -1054,7 +1054,7 @@ namespace libtorrent
 	}
 #endif // TORRENT_USE_I2P
 
-	// if this returns non-NULL, the torrent need to post status update
+	// if this returns non-nullptr, the torrent need to post status update
 	torrent_peer* peer_list::add_peer(tcp::endpoint const& remote, int src, char flags
 		, torrent_state* state)
 	{
@@ -1106,7 +1106,7 @@ namespace libtorrent
 			p = state->peer_allocator->allocate_peer_entry(
 				is_v6 ? torrent_peer_allocator_interface::ipv6_peer_type
 				: torrent_peer_allocator_interface::ipv4_peer_type);
-			if (p == NULL) return NULL;
+			if (p == nullptr) return nullptr;
 
 #if TORRENT_USE_IPV6
 			if (is_v6)
@@ -1162,7 +1162,7 @@ namespace libtorrent
 		if (m_candidate_cache.empty())
 		{
 			find_connect_candidates(m_candidate_cache, session_time, state);
-			if (m_candidate_cache.empty()) return NULL;
+			if (m_candidate_cache.empty()) return nullptr;
 		}
 
 		torrent_peer* p = m_candidate_cache.front();

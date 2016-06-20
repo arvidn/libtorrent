@@ -69,7 +69,7 @@ namespace libtorrent
 		: tracker_connection(man, req, ios, c)
 		, m_man(man)
 #if TORRENT_USE_I2P
-		, m_i2p_conn(NULL)
+		, m_i2p_conn(nullptr)
 #endif
 	{}
 
@@ -218,7 +218,7 @@ namespace libtorrent
 		aux::proxy_settings ps(settings);
 		m_tracker_connection->get(url, seconds(timeout)
 			, tracker_req().event == tracker_request::stopped ? 2 : 1
-			, ps.proxy_tracker_connections ? &ps : NULL
+			, ps.proxy_tracker_connections ? &ps : nullptr
 			, 5, settings.get_bool(settings_pack::anonymous_mode)
 				? "" : settings.get_str(settings_pack::user_agent)
 			, bind_interface()

@@ -67,7 +67,7 @@ peer_plugin const* peer_connection_handle::find_plugin(char const* type)
 	return pc->find_plugin(type);
 #else
 	TORRENT_UNUSED(type);
-	return NULL;
+	return nullptr;
 #endif
 }
 

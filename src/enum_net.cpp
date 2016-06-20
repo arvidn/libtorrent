@@ -310,7 +310,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		// determine address
 		rv.interface_address = sockaddr_to_address(ifa->ifa_addr);
 		// determine netmask
-		if (ifa->ifa_netmask != NULL)
+		if (ifa->ifa_netmask != nullptr)
 		{
 			rv.netmask = sockaddr_to_address(ifa->ifa_netmask);
 		}
@@ -468,7 +468,7 @@ namespace libtorrent
 				{
 					ifreq req;
 					memset(&req, 0, sizeof(req));
-					// -1 to leave a null terminator
+					// -1 to leave a 0-terminator
 					strncpy(req.ifr_name, iface.name, IF_NAMESIZE - 1);
 
 					// ignore errors here. This is best-effort
@@ -529,7 +529,7 @@ namespace libtorrent
 
 				ifreq req;
 				memset(&req, 0, sizeof(req));
-				// -1 to leave a null terminator
+				// -1 to leave a 0-terminator
 				strncpy(req.ifr_name, item.ifr_name, IF_NAMESIZE - 1);
 				if (ioctl(s, siocgifmtu, &req) < 0)
 				{
@@ -585,7 +585,7 @@ namespace libtorrent
 			GetAdaptersAddresses_t GetAdaptersAddresses = (GetAdaptersAddresses_t)GetProcAddress(
 				iphlp, "GetAdaptersAddresses");
 
-			if (GetAdaptersAddresses == NULL)
+			if (GetAdaptersAddresses == nullptr)
 			{
 				FreeLibrary(iphlp);
 				ec = error_code(boost::system::errc::not_supported, generic_category());
@@ -598,13 +598,13 @@ namespace libtorrent
 				= reinterpret_cast<IP_ADAPTER_ADDRESSES*>(&buffer[0]);
 
 			DWORD res = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER
-				| GAA_FLAG_SKIP_ANYCAST, NULL, adapter_addresses, &buf_size);
+				| GAA_FLAG_SKIP_ANYCAST, nullptr, adapter_addresses, &buf_size);
 			if (res == ERROR_BUFFER_OVERFLOW)
 			{
 				buffer.resize(buf_size);
 				adapter_addresses = reinterpret_cast<IP_ADAPTER_ADDRESSES*>(&buffer[0]);
 				res = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER
-					| GAA_FLAG_SKIP_ANYCAST, NULL, adapter_addresses, &buf_size);
+					| GAA_FLAG_SKIP_ANYCAST, nullptr, adapter_addresses, &buf_size);
 			}
 			if (res != NO_ERROR)
 			{
@@ -986,7 +986,7 @@ namespace libtorrent
 			iphlp, "FreeMibTable");
 		if (GetIpForwardTable2 && FreeMibTable)
 		{
-			MIB_IPFORWARD_TABLE2* routes = NULL;
+			MIB_IPFORWARD_TABLE2* routes = nullptr;
 			int res = GetIpForwardTable2(AF_UNSPEC, &routes);
 			if (res == NO_ERROR)
 			{
@@ -1026,7 +1026,7 @@ namespace libtorrent
 			return std::vector<ip_route>();
 		}
 
-		MIB_IPFORWARDTABLE* routes = NULL;
+		MIB_IPFORWARDTABLE* routes = nullptr;
 		ULONG out_buf_size = 0;
 		if (GetIpForwardTable(routes, &out_buf_size, FALSE) != ERROR_INSUFFICIENT_BUFFER)
 		{

@@ -37,12 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp" // for sha1_hash
 
 #include <cmath> // for log()
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <cstdint>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {

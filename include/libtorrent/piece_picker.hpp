@@ -41,13 +41,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <bitset>
 #include <utility>
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <cstdint>
-#include <boost/tuple/tuple.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <tuple>
 
 #ifdef TORRENT_DEBUG_REFCOUNTS
 #include <set>
@@ -477,7 +472,7 @@ namespace libtorrent
 
 		friend struct piece_pos;
 
-		boost::tuple<bool, bool, int, int> requested_from(
+		std::tuple<bool, bool, int, int> requested_from(
 			piece_picker::downloading_piece const& p
 			, int num_blocks_in_piece, torrent_peer* peer) const;
 

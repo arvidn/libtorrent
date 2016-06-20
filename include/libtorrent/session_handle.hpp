@@ -63,13 +63,13 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT session_handle
 	{
-		session_handle() : m_impl(NULL) {}
+		session_handle() : m_impl(nullptr) {}
 
 		session_handle(aux::session_impl* impl)
 			: m_impl(impl)
 		{}
 
-		bool is_valid() const { return m_impl != NULL; }
+		bool is_valid() const { return m_impl != nullptr; }
 
 		// TODO: 2 the ip filter should probably be saved here too
 
@@ -909,7 +909,7 @@ namespace libtorrent
 		// will pop it and the second will free it.
 		//
 		// If there is no alert in the queue and no alert arrives within the
-		// specified timeout, ``wait_for_alert`` returns NULL.
+		// specified timeout, ``wait_for_alert`` returns nullptr.
 		//
 		// In the python binding, ``wait_for_alert`` takes the number of
 		// milliseconds to wait as an integer.

@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define SETUP_TRANSFER_HPP
 
 #include "libtorrent/session.hpp"
-#include <boost/tuple/tuple.hpp>
+#include <tuple>
 #include "test.hpp"
 
 namespace libtorrent
@@ -88,7 +88,7 @@ EXPORT boost::shared_ptr<libtorrent::torrent_info> create_torrent(std::ostream* 
 	, char const* name = "temporary", int piece_size = 16 * 1024, int num_pieces = 13
 	, bool add_tracker = true, std::string ssl_certificate = "");
 
-EXPORT boost::tuple<libtorrent::torrent_handle
+EXPORT std::tuple<libtorrent::torrent_handle
 	, libtorrent::torrent_handle
 	, libtorrent::torrent_handle>
 setup_transfer(libtorrent::session* ses1, libtorrent::session* ses2

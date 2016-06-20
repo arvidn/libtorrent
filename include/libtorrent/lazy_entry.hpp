@@ -95,24 +95,24 @@ namespace libtorrent
 		, lazy_entry& ret, int depth_limit = 1000, int item_limit = 1000000);
 #endif
 
-	// this is a string that is not NULL-terminated. Instead it
+	// this is a string that is not 0-terminated. Instead it
 	// comes with a length, specified in bytes. This is particularly
 	// useful when parsing bencoded structures, because strings are
-	// not NULL-terminated internally, and requiring NULL termination
+	// not 0-terminated internally, and requiring 0-termination
 	// would require copying the string.
 	//
 	// see lazy_entry::string_pstr().
 	struct TORRENT_EXPORT pascal_string
 	{
 		// construct a string pointing to the characters at ``p``
-		// of length ``l`` characters. No NULL termination is required.
+		// of length ``l`` characters. No 0-termination is required.
 		pascal_string(char const* p, int l): len(l), ptr(p) {}
 
 		// the number of characters in the string.
 		int len;
 
 		// the pointer to the first character in the string. This is
-		// not NULL terminated, but instead consult the ``len`` field
+		// not 0-terminated, but instead consult the ``len`` field
 		// to know how many characters follow.
 		char const* ptr;
 
@@ -147,7 +147,7 @@ namespace libtorrent
 
 		// internal
 		lazy_entry() : m_begin(0), m_len(0), m_size(0), m_type(none_t)
-		{ m_data.start = NULL; }
+		{ m_data.start = nullptr; }
 
 		// tells you which specific type this lazy entry has.
 		// See entry_type_t. The type determines which subset of
@@ -172,7 +172,7 @@ namespace libtorrent
 		// internal
 		void construct_string(char const* start, int length);
 
-		// the string is not null-terminated!
+		// the string is not 0-terminated!
 		// use string_length() to determine how many bytes
 		// are part of the string.
 		char const* string_ptr() const
@@ -181,7 +181,7 @@ namespace libtorrent
 			return m_data.start;
 		}
 
-		// this will return a null terminated string
+		// this will return a 0-terminated string
 		// it will write to the source buffer!
 		char const* string_cstr() const
 		{
@@ -226,7 +226,7 @@ namespace libtorrent
 		void pop();
 
 		// if this is a dictionary, look for a key ``name``, and return
-		// a pointer to its value, or NULL if there is none.
+		// a pointer to its value, or nullptr if there is none.
 		lazy_entry* dict_find(char const* name);
 		lazy_entry const* dict_find(char const* name) const
 		{ return const_cast<lazy_entry*>(this)->dict_find(name); }
@@ -237,13 +237,13 @@ namespace libtorrent
 
 		// if this is a dictionary, look for a key ``name`` whose value
 		// is a string. If such key exist, return a pointer to
-		// its value, otherwise NULL.
+		// its value, otherwise nullptr.
 		std::string dict_find_string_value(char const* name) const;
 		pascal_string dict_find_pstr(char const* name) const;
 
 		// if this is a dictionary, look for a key ``name`` whose value
 		// is an int. If such key exist, return a pointer to its value,
-		// otherwise NULL.
+		// otherwise nullptr.
 		std::int64_t dict_find_int_value(char const* name
 			, std::int64_t default_val = 0) const;
 		lazy_entry const* dict_find_int(char const* name) const;
@@ -253,7 +253,7 @@ namespace libtorrent
 		// specified name in the dictionary. ``dict_find_dict`` only
 		// finds dictionaries and ``dict_find_list`` only finds lists.
 		// if no key with the corresponding value of the right type is
-		// found, NULL is returned.
+		// found, nullptr is returned.
 		lazy_entry const* dict_find_dict(char const* name) const;
 		lazy_entry const* dict_find_dict(std::string const& name) const;
 		lazy_entry const* dict_find_list(char const* name) const;
@@ -330,7 +330,7 @@ namespace libtorrent
 		// internal: releases ownership of any memory allocated
 		void release()
 		{
-			m_data.start = NULL;
+			m_data.start = nullptr;
 			m_size = 0;
 			m_type = none_t;
 		}

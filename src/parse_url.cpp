@@ -37,7 +37,7 @@ namespace libtorrent
 {
 
 	// returns protocol, auth, hostname, port, path
-	boost::tuple<std::string, std::string, std::string, int, std::string>
+	std::tuple<std::string, std::string, std::string, int, std::string>
 		parse_url_components(std::string url, error_code& ec)
 	{
 		std::string hostname; // hostname only
@@ -126,7 +126,7 @@ namespace libtorrent
 
 		start = end;
 exit:
-		return boost::make_tuple(protocol, auth, hostname, port
+		return std::make_tuple(protocol, auth, hostname, port
 			, std::string(start, url.end()));
 	}
 

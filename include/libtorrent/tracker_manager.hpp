@@ -39,14 +39,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <list>
 #include <utility>
+#include <cstdint>
+#include <tuple>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
-#include <cstdint>
 #include <boost/weak_ptr.hpp>
-#include <boost/tuple/tuple.hpp>
 #include <boost/unordered_map.hpp>
 #include <boost/function.hpp>
 

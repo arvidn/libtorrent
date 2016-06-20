@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/file.hpp"
-#include <boost/tuple/tuple.hpp>
+#include <tuple>
 #include <functional>
 
 #include "test.hpp"
@@ -47,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 namespace lt = libtorrent;
-using boost::tuples::ignore;
+using std::ignore;
 
 void test_transfer()
 {
@@ -102,7 +102,7 @@ void test_transfer()
 //	atp.storage = &disabled_storage_constructor;
 
 	// test using piece sizes smaller than 16kB
-	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
+	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
 		, true, false, true, "_utp", 0, &t, false, &atp);
 
 	const int timeout = 8;

@@ -806,16 +806,16 @@ local unsigned char *yank(char *name, std::uint32_t *len)
     struct stat s;
 
     *len = 0;
-    if (stat(name, &s)) return NULL;
-    if ((s.st_mode & S_IFMT) != S_IFREG) return NULL;
+    if (stat(name, &s)) return nullptr;
+    if ((s.st_mode & S_IFMT) != S_IFREG) return nullptr;
     size = (std::uint32_t)(s.st_size);
-    if (size == 0 || (off_t)size != s.st_size) return NULL;
+    if (size == 0 || (off_t)size != s.st_size) return nullptr;
     in = fopen(name, "r");
-    if (in == NULL) return NULL;
+    if (in == nullptr) return nullptr;
     buf = malloc(size);
-    if (buf != NULL && fread(buf, 1, size, in) != size) {
+    if (buf != nullptr && fread(buf, 1, size, in) != size) {
         free(buf);
-        buf = NULL;
+        buf = nullptr;
     }
     fclose(in);
     *len = size;
@@ -830,7 +830,7 @@ int main(int argc, char **argv)
 
     if (argc < 2) return 2;
     source = yank(argv[1], &len);
-    if (source == NULL) return 2;
+    if (source == nullptr) return 2;
     sourcelen = len;
     ret = puff(NIL, &destlen, source, &sourcelen);
     if (ret)

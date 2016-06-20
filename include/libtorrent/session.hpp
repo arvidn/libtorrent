@@ -166,10 +166,10 @@ namespace libtorrent
 		// pass 0 as the flags parameter.
 		session(settings_pack const& pack = settings_pack()
 			, int flags = start_default_features | add_default_plugins)
-			: session_handle(NULL)
+			: session_handle(nullptr)
 		{
 			TORRENT_CFG();
-			start(flags, pack, NULL);
+			start(flags, pack, nullptr);
 		}
 
 		// overload of the constructor that takes an external io_service to run
@@ -188,7 +188,7 @@ namespace libtorrent
 		session(settings_pack const& pack
 			, io_service& ios
 			, int flags = start_default_features | add_default_plugins)
-			: session_handle(NULL)
+			: session_handle(nullptr)
 		{
 			TORRENT_CFG();
 			start(flags, pack, &ios);
@@ -199,7 +199,7 @@ namespace libtorrent
 		session(fingerprint const& print
 			, int flags = start_default_features | add_default_plugins
 			, std::uint32_t alert_mask = alert::error_notification)
-			: session_handle(NULL)
+			: session_handle(nullptr)
 		{
 			TORRENT_CFG();
 			settings_pack pack;
@@ -213,7 +213,7 @@ namespace libtorrent
 				pack.set_bool(settings_pack::enable_dht, false);
 			}
 
-			start(flags, pack, NULL);
+			start(flags, pack, nullptr);
 		}
 
 		TORRENT_DEPRECATED
@@ -222,7 +222,7 @@ namespace libtorrent
 			, char const* listen_interface = "0.0.0.0"
 			, int flags = start_default_features | add_default_plugins
 			, int alert_mask = alert::error_notification)
-			: session_handle(NULL)
+			: session_handle(nullptr)
 		{
 			TORRENT_CFG();
 			TORRENT_ASSERT(listen_port_range.first > 0);
@@ -234,7 +234,7 @@ namespace libtorrent
 			pack.set_str(settings_pack::peer_fingerprint, print.to_string());
 			char if_string[100];
 
-			if (listen_interface == NULL) listen_interface = "0.0.0.0";
+			if (listen_interface == nullptr) listen_interface = "0.0.0.0";
 			std::snprintf(if_string, sizeof(if_string), "%s:%d", listen_interface, listen_port_range.first);
 			pack.set_str(settings_pack::listen_interfaces, if_string);
 
@@ -245,7 +245,7 @@ namespace libtorrent
 				pack.set_bool(settings_pack::enable_lsd, false);
 				pack.set_bool(settings_pack::enable_dht, false);
 			}
-			start(flags, pack, NULL);
+			start(flags, pack, nullptr);
 		}
 #endif // TORRENT_NO_DEPRECATE
 

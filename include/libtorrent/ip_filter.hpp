@@ -35,17 +35,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <set>
 #include <vector>
-
-#include <boost/limits.hpp>
-#include <boost/utility.hpp>
 #include <cstdint>
-#include <boost/tuple/tuple.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <tuple>
+#include <iterator> // for next
+#include <limits>
 
 #include "libtorrent/address.hpp"
 #include "libtorrent/assert.hpp"
@@ -159,13 +154,13 @@ namespace detail
 			TORRENT_ASSERT(j != i);
 
 			std::uint32_t first_access = i->access;
-			std::uint32_t last_access = boost::prior(j)->access;
+			std::uint32_t last_access = std::prev(j)->access;
 
 			if (i->start != first && first_access != flags)
 			{
 				i = m_access_list.insert(i, range(first, flags));
 			}
-			else if (i != m_access_list.begin() && boost::prior(i)->access == flags)
+			else if (i != m_access_list.begin() && std::prev(i)->access == flags)
 			{
 				--i;
 				first_access = i->access;
@@ -173,7 +168,7 @@ namespace detail
 			TORRENT_ASSERT(!m_access_list.empty());
 			TORRENT_ASSERT(i != m_access_list.end());
 
-			if (i != j) m_access_list.erase(boost::next(i), j);
+			if (i != j) m_access_list.erase(std::next(i), j);
 			if (i->start == first)
 			{
 				// we can do this const-cast because we know that the new
@@ -206,8 +201,8 @@ namespace detail
 			typename range_t::const_iterator i = m_access_list.upper_bound(addr);
 			if (i != m_access_list.begin()) --i;
 			TORRENT_ASSERT(i != m_access_list.end());
-			TORRENT_ASSERT(i->start <= addr && (boost::next(i) == m_access_list.end()
-				|| addr < boost::next(i)->start));
+			TORRENT_ASSERT(i->start <= addr && (std::next(i) == m_access_list.end()
+				|| addr < std::next(i)->start));
 			return i->access;
 		}
 
@@ -296,10 +291,10 @@ struct TORRENT_EXPORT ip_filter
 	int access(address const& addr) const;
 
 #if TORRENT_USE_IPV6
-	typedef boost::tuple<std::vector<ip_range<address_v4> >
-		, std::vector<ip_range<address_v6> > > filter_tuple_t;
+	using filter_tuple_t = std::tuple<std::vector<ip_range<address_v4> >
+		, std::vector<ip_range<address_v6> > >;
 #else
-	typedef std::vector<ip_range<address_v4> > filter_tuple_t;
+	using filter_tuple_t = std::vector<ip_range<address_v4> >;
 #endif
 
 	// This function will return the current state of the filter in the minimum number of

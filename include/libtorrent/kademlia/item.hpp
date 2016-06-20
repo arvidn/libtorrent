@@ -95,15 +95,15 @@ public:
 
 	void assign(entry const& v)
 	{
-		assign(v, std::pair<char const*, int>(static_cast<char const*>(NULL)
-			, 0), 0, NULL, NULL);
+		assign(v, std::pair<char const*, int>(static_cast<char const*>(nullptr)
+			, 0), 0, nullptr, nullptr);
 	}
 	void assign(entry const& v, std::pair<char const*, int> salt
 		, std::uint64_t seq, char const* pk, char const* sk);
 	void assign(bdecode_node const& v)
 	{
-		assign(v, std::pair<char const*, int>(static_cast<char const*>(NULL)
-			, 0), 0, NULL, NULL);
+		assign(v, std::pair<char const*, int>(static_cast<char const*>(nullptr)
+			, 0), 0, nullptr, nullptr);
 	}
 	bool assign(bdecode_node const& v, std::pair<char const*, int> salt
 		, std::uint64_t seq, char const* pk, char const* sig);

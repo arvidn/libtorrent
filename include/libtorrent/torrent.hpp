@@ -936,7 +936,7 @@ namespace libtorrent
 		int num_connect_candidates() const { return m_peer_list ? m_peer_list->num_connect_candidates() : 0; }
 
 		piece_manager& storage();
-		bool has_storage() const { return m_storage.get() != NULL; }
+		bool has_storage() const { return m_storage.get() != nullptr; }
 
 		torrent_info const& torrent_file() const
 		{ return *m_torrent_file; }
@@ -1004,7 +1004,7 @@ namespace libtorrent
 		bool are_files_checked() const
 		{ return m_files_checked; }
 		bool valid_storage() const
-		{ return m_storage.get() != NULL; }
+		{ return m_storage.get() != nullptr; }
 
 		// parses the info section from the given
 		// bencoded tree and moves the torrent

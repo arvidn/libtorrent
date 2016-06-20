@@ -115,7 +115,7 @@ namespace libtorrent
 		void* ret;
 #if TORRENT_USE_POSIX_MEMALIGN
 		if (posix_memalign(&ret, page_size(), bytes)
-			!= 0) ret = NULL;
+			!= 0) ret = nullptr;
 #elif TORRENT_USE_MEMALIGN
 		ret = memalign(page_size(), bytes);
 #elif defined TORRENT_WINDOWS
@@ -123,11 +123,11 @@ namespace libtorrent
 #elif defined TORRENT_BEOS
 		area_id id = create_area("", &ret, B_ANY_ADDRESS
 			, (bytes + page_size() - 1) & (page_size()-1), B_NO_LOCK, B_READ_AREA | B_WRITE_AREA);
-		if (id < B_OK) return NULL;
+		if (id < B_OK) return nullptr;
 #else
 		ret = valloc(size_t(bytes));
 #endif
-		if (ret == NULL) return NULL;
+		if (ret == nullptr) return nullptr;
 
 #ifdef TORRENT_DEBUG_BUFFERS
 		// make the two surrounding pages non-readable and -writable
@@ -137,7 +137,7 @@ namespace libtorrent
 		print_backtrace(h->stack, sizeof(h->stack));
 
 #ifdef TORRENT_WINDOWS
-#define mprotect(buf, size, prot) VirtualProtect(buf, size, prot, NULL)
+#define mprotect(buf, size, prot) VirtualProtect(buf, size, prot, nullptr)
 #define PROT_READ PAGE_READONLY
 #endif
 		mprotect(ret, page, PROT_READ);
@@ -162,7 +162,7 @@ namespace libtorrent
 #ifdef TORRENT_DEBUG_BUFFERS
 
 #ifdef TORRENT_WINDOWS
-#define mprotect(buf, size, prot) VirtualProtect(buf, size, prot, NULL)
+#define mprotect(buf, size, prot) VirtualProtect(buf, size, prot, nullptr)
 #define PROT_READ PAGE_READONLY
 #define PROT_WRITE PAGE_READWRITE
 #endif

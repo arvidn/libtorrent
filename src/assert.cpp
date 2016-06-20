@@ -207,7 +207,7 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth
 	if (!sym_initialized)
 	{
 		sym_initialized = true;
-		SymInitialize(p, NULL, true);
+		SymInitialize(p, nullptr, true);
 	}
 	SymRefreshModuleList(p);
 	for (int i = 0; i < size && len > 0; ++i)

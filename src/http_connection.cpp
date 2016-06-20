@@ -125,7 +125,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	error_code ec;
 	int port;
 
-	boost::tie(protocol, auth, hostname, port, path)
+	std::tie(protocol, auth, hostname, port, path)
 		= parse_url_components(url, ec);
 
 	if (auth.empty()) auth = auth_;
@@ -142,7 +142,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	if (ec)
 	{
 		m_timer.get_io_service().post(std::bind(&http_connection::callback
-			, me, ec, static_cast<char*>(NULL), 0));
+			, me, ec, static_cast<char*>(nullptr), 0));
 		return;
 	}
 
@@ -154,7 +154,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	{
 		error_code err(errors::unsupported_url_protocol);
 		m_timer.get_io_service().post(std::bind(&http_connection::callback
-			, me, err, static_cast<char*>(NULL), 0));
+			, me, err, static_cast<char*>(nullptr), 0));
 		return;
 	}
 
@@ -260,7 +260,7 @@ void http_connection::start(std::string const& hostname, int port
 	if (ec)
 	{
 		m_timer.get_io_service().post(std::bind(&http_connection::callback
-			, me, ec, static_cast<char*>(NULL), 0));
+			, me, ec, static_cast<char*>(nullptr), 0));
 		return;
 	}
 
@@ -298,7 +298,7 @@ void http_connection::start(std::string const& hostname, int port
 		if (is_i2p && i2p_conn->proxy().type != settings_pack::i2p_proxy)
 		{
 			m_timer.get_io_service().post(std::bind(&http_connection::callback
-				, me, error_code(errors::no_i2p_router, get_libtorrent_category()), static_cast<char*>(NULL), 0));
+				, me, error_code(errors::no_i2p_router, get_libtorrent_category()), static_cast<char*>(nullptr), 0));
 			return;
 		}
 #endif
@@ -339,7 +339,7 @@ void http_connection::start(std::string const& hostname, int port
 					if (ec)
 					{
 						m_timer.get_io_service().post(std::bind(&http_connection::callback
-								, me, ec, static_cast<char*>(NULL), 0));
+								, me, ec, static_cast<char*>(nullptr), 0));
 						return;
 					}
 				}
@@ -348,10 +348,10 @@ void http_connection::start(std::string const& hostname, int port
 		}
 #endif
 		// assume this is not a tracker connection. Tracker connections that
-		// shouldn't be subject to the proxy should pass in NULL as the proxy
+		// shouldn't be subject to the proxy should pass in nullptr as the proxy
 		// pointer.
 		instantiate_connection(m_timer.get_io_service()
-			, proxy ? *proxy : null_proxy, m_sock, userdata, NULL, false, false);
+			, proxy ? *proxy : null_proxy, m_sock, userdata, nullptr, false, false);
 
 		if (m_bind_addr != address_v4::any())
 		{
@@ -360,7 +360,7 @@ void http_connection::start(std::string const& hostname, int port
 			if (ec)
 			{
 				m_timer.get_io_service().post(std::bind(&http_connection::callback
-					, me, ec, static_cast<char*>(NULL), 0));
+					, me, ec, static_cast<char*>(nullptr), 0));
 				return;
 			}
 		}
@@ -369,7 +369,7 @@ void http_connection::start(std::string const& hostname, int port
 		if (ec)
 		{
 			m_timer.get_io_service().post(std::bind(&http_connection::callback
-				, me, ec, static_cast<char*>(NULL), 0));
+				, me, ec, static_cast<char*>(nullptr), 0));
 			return;
 		}
 

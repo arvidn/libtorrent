@@ -32,9 +32,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 
+#include <cstdint>
+#include <algorithm>
+#include <random>
+
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <cstdint>
 #include <boost/multiprecision/integer.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
 
@@ -45,9 +48,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-#include <algorithm>
-#include <random>
 
 #include "libtorrent/random.hpp"
 #include "libtorrent/alloca.hpp"

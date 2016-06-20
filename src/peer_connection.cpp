@@ -32,9 +32,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 #include <functional>
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <cstdint>
 
 #ifdef TORRENT_DEBUG
@@ -44,8 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifdef TORRENT_USE_OPENSSL
 #include <openssl/rand.h>
 #endif
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include <cstdarg> // for va_start, va_end
@@ -204,7 +199,7 @@ namespace libtorrent
 		m_superseed_piece[0] = -1;
 		m_superseed_piece[1] = -1;
 		boost::shared_ptr<torrent> t = m_torrent.lock();
-		// if t is NULL, we better not be connecting, since
+		// if t is nullptr, we better not be connecting, since
 		// we can't decrement the connecting counter
 		TORRENT_ASSERT(t || !m_connecting);
 		if (m_connecting && t) t->inc_num_connecting();
@@ -800,7 +795,7 @@ namespace libtorrent
 
 		// defensive
 		boost::shared_ptr<torrent> t = m_torrent.lock();
-		// if t is NULL, we better not be connecting, since
+		// if t is nullptr, we better not be connecting, since
 		// we can't decrement the connecting counter
 		TORRENT_ASSERT(t || !m_connecting);
 
@@ -1322,7 +1317,7 @@ namespace libtorrent
 	std::uint32_t peer_connection::peer_rank() const
 	{
 		TORRENT_ASSERT(is_single_thread());
-		return m_peer_info == NULL ? 0
+		return m_peer_info == nullptr ? 0
 			: m_peer_info->rank(m_ses.external_address(), m_ses.listen_port());
 	}
 
@@ -3662,7 +3657,7 @@ namespace libtorrent
 
 		if (m_choked)
 		{
-			TORRENT_ASSERT(m_peer_info == NULL
+			TORRENT_ASSERT(m_peer_info == nullptr
 				|| m_peer_info->optimistically_unchoked == false);
 			return false;
 		}
@@ -6190,7 +6185,7 @@ namespace libtorrent
 		RAND_add(&now, 8, 1.5);
 #endif
 
-		// if t is NULL, we better not be connecting, since
+		// if t is nullptr, we better not be connecting, since
 		// we can't decrement the connecting counter
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t || !m_connecting);

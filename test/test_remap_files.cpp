@@ -40,11 +40,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <fstream>
 #include <iostream>
-#include <boost/tuple/tuple.hpp>
+#include <tuple>
 
 using namespace libtorrent;
 namespace lt = libtorrent;
-using boost::tuples::ignore;
+using std::ignore;
 
 namespace {
 
@@ -145,7 +145,7 @@ void test_remap_files_gather(storage_mode_t storage_mode = storage_mode_sparse)
 	peer_disconnects = 0;
 
 	// test using piece sizes smaller than 16kB
-	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
+	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
 		, true, false, true, "_remap", 8 * 1024, &t, false, &params
 		, true, false, &t2);
 
@@ -289,7 +289,7 @@ void test_remap_files_scatter(storage_mode_t storage_mode = storage_mode_sparse)
 	peer_disconnects = 0;
 
 	// test using piece sizes smaller than 16kB
-	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
+	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
 		, true, false, true, "_remap2", 8 * 1024, &t, false, &params
 		, true, false, &t2);
 
@@ -453,7 +453,7 @@ void test_remap_files_prio(storage_mode_t storage_mode = storage_mode_sparse)
 	peer_disconnects = 0;
 
 	// test using piece sizes smaller than 16kB
-	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
+	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
 		, true, false, true, "_remap3", 8 * 1024, &t, false, &params
 		, true, false, &t2);
 

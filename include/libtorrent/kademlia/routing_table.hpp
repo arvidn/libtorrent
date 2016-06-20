@@ -33,18 +33,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef ROUTING_TABLE_HPP
 #define ROUTING_TABLE_HPP
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <vector>
 #include <set>
-
+#include <unordered_set>
 #include <cstdint>
-#include <boost/utility.hpp>
-#include <boost/tuple/tuple.hpp>
+#include <tuple>
 #include <array>
-#include <boost/noncopyable.hpp>
-#include <boost/unordered_set.hpp>
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+//#include <boost/utility.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <libtorrent/kademlia/node_id.hpp>
@@ -73,6 +70,28 @@ struct routing_table_node
 	bucket_t live_nodes;
 };
 
+struct ipv4_hash
+{
+	using argument_type = address_v4::bytes_type;
+	using result_type = std::size_t;
+	result_type operator()(argument_type const& ip) const
+	{
+		return std::hash<std::uint32_t>()(*reinterpret_cast<std::uint32_t const*>(&ip[0]));
+	}
+};
+
+#if TORRENT_USE_IPV6
+struct ipv6_hash
+{
+	using argument_type = address_v6::bytes_type;
+	using result_type = std::size_t;
+	result_type operator()(argument_type const& ip) const
+	{
+		return std::hash<std::uint64_t>()(*reinterpret_cast<std::uint64_t const*>(&ip[0]));
+	}
+};
+#endif
+
 struct ip_set
 {
 	void insert(address addr);
@@ -98,9 +117,9 @@ struct ip_set
 
 	// these must be multisets because there can be multiple routing table
 	// entries for a single IP when restrict_routing_ips is set to false
-	boost::unordered_multiset<address_v4::bytes_type> m_ip4s;
+	std::unordered_multiset<address_v4::bytes_type, ipv4_hash> m_ip4s;
 #if TORRENT_USE_IPV6
-	boost::unordered_multiset<address_v6::bytes_type> m_ip6s;
+	std::unordered_multiset<address_v6::bytes_type, ipv6_hash> m_ip6s;
 #endif
 };
 
@@ -126,18 +145,21 @@ namespace impl
 
 TORRENT_EXTRA_EXPORT bool compare_ip_cidr(address const& lhs, address const& rhs);
 
-class TORRENT_EXTRA_EXPORT routing_table : boost::noncopyable
+class TORRENT_EXTRA_EXPORT routing_table
 {
 public:
 	// TODO: 3 to improve memory locality and scanning performance, turn the
 	// routing table into a single vector with boundaries for the nodes instead.
 	// Perhaps replacement nodes should be in a separate vector.
-	typedef std::vector<routing_table_node> table_t;
+	using table_t = std::vector<routing_table_node>;
 
 	routing_table(node_id const& id, udp proto
 		, int bucket_size
 		, dht_settings const& settings
 		, dht_logger* log);
+
+	routing_table(routing_table const&) = delete;
+	routing_table& operator=(routing_table const&) = delete;
 
 #ifndef TORRENT_NO_DEPRECATE
 	void status(session_status& s) const;
@@ -219,7 +241,7 @@ public:
 	// returns the number of nodes in the main buckets, number of nodes in the
 	// replacement buckets and the number of nodes in the main buckets that have
 	// been pinged and confirmed up
-	boost::tuple<int, int, int> size() const;
+	std::tuple<int, int, int> size() const;
 
 	std::int64_t num_global_nodes() const;
 

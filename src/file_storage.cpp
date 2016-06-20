@@ -271,7 +271,7 @@ namespace libtorrent
 
 	// if borrow_chars >= 0, don't take ownership over n, just
 	// point to it. It points to borrow_chars number of characters.
-	// if borrow_chars == -1, n is a null terminated string that
+	// if borrow_chars == -1, n is a 0-terminated string that
 	// should be copied 
 	void internal_file_entry::set_name(char const* n, bool borrow_string, int string_len)
 	{
@@ -283,10 +283,10 @@ namespace libtorrent
 
 		// free the current string, before assigning the new one
 		if (name_len == name_is_owned) free(const_cast<char*>(name));
-		if (n == NULL)
+		if (n == nullptr)
 		{
 			TORRENT_ASSERT(borrow_string == false);
-			name = NULL;
+			name = nullptr;
 		}
 		else if (borrow_string)
 		{
@@ -316,7 +316,7 @@ namespace libtorrent
 
 		for (int i = 0; i < m_file_hashes.size(); ++i)
 		{
-			if (m_file_hashes[i] == NULL) continue;
+			if (m_file_hashes[i] == nullptr) continue;
 			m_file_hashes[i] += off;
 		}
 	}
@@ -331,7 +331,7 @@ namespace libtorrent
 		if (fe.executable_attribute) flags |= file_storage::flag_executable;
 		if (fe.symlink_attribute) flags |= file_storage::flag_symlink;
 
-		add_file_borrow(NULL, 0, fe.path, fe.size, flags, filehash, fe.mtime
+		add_file_borrow(nullptr, 0, fe.path, fe.size, flags, filehash, fe.mtime
 			, fe.symlink_path);
 	}
 
@@ -536,7 +536,7 @@ namespace libtorrent
 	void file_storage::add_file(std::string const& path, std::int64_t file_size
 		, int file_flags, std::time_t mtime, std::string const& symlink_path)
 	{
-		add_file_borrow(NULL, 0, path, file_size, file_flags, NULL, mtime
+		add_file_borrow(nullptr, 0, path, file_size, file_flags, nullptr, mtime
 			, symlink_path);
 	}
 
@@ -567,12 +567,12 @@ namespace libtorrent
 
 		// the last argument specified whether the function should also set
 		// the filename. If it does, it will copy the leaf filename from path.
-		// if filename is NULL, we should copy it. If it isn't, we're borrowing
+		// if filename is nullptr, we should copy it. If it isn't, we're borrowing
 		// it and we can save the copy by setting it after this call to
 		// update_path_index().
-		update_path_index(e, path, filename == NULL);
+		update_path_index(e, path, filename == nullptr);
 
-		// filename is allowed to be NULL, in which case we just use path
+		// filename is allowed to be nullptr, in which case we just use path
 		if (filename)
 			e.set_name(filename, true, filename_len);
 
@@ -933,7 +933,7 @@ namespace libtorrent
 		if (!m_file_hashes.empty())
 		{
 			TORRENT_ASSERT(m_file_hashes.size() == m_files.size());
-			if (int(m_file_hashes.size()) < index) m_file_hashes.resize(index + 1, NULL);
+			if (int(m_file_hashes.size()) < index) m_file_hashes.resize(index + 1, nullptr);
 			std::iter_swap(m_file_hashes.begin() + dst, m_file_hashes.begin() + index);
 		}
 #ifndef TORRENT_NO_DEPRECATE
@@ -1075,7 +1075,7 @@ namespace libtorrent
 		++pad_file_counter;
 
 		if (!m_mtime.empty()) m_mtime.resize(index + 1, 0);
-		if (!m_file_hashes.empty()) m_file_hashes.resize(index + 1, NULL);
+		if (!m_file_hashes.empty()) m_file_hashes.resize(index + 1, nullptr);
 #ifndef TORRENT_NO_DEPRECATE
 		if (!m_file_base.empty()) m_file_base.resize(index + 1, 0);
 #endif

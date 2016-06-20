@@ -82,7 +82,7 @@ namespace libtorrent
 
 		std::string protocol;
 		error_code ec;
-		boost::tie(protocol, m_basic_auth, m_host, m_port, m_path)
+		std::tie(protocol, m_basic_auth, m_host, m_port, m_path)
 			= parse_url_components(web.url, ec);
 		TORRENT_ASSERT(!ec);
 

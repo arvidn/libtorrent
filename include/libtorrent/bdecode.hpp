@@ -30,19 +30,18 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
+#ifndef TORRENT_BDECODE_HPP
+#define TORRENT_BDECODE_HPP
 
-#include <boost/system/error_code.hpp>
 #include <vector>
 #include <string>
 #include <cstdint>
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/system/error_code.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/assert.hpp"
-
-#ifndef TORRENT_BDECODE_HPP
-#define TORRENT_BDECODE_HPP
 
 /*
 
@@ -296,7 +295,7 @@ struct TORRENT_EXPORT bdecode_node
 
 	// Functions with the ``dict_`` prefix operates on dictionaries. They are
 	// only valid if ``type()`` == ``dict_t``. In case a key you're looking up
-	// contains a 0 byte, you cannot use the null-terminated string overloads,
+	// contains a 0 byte, you cannot use the 0-terminated string overloads,
 	// but have to use ``std::string`` instead. ``dict_find_list`` will return a
 	// valid ``bdecode_node`` if the key is found _and_ it is a list. Otherwise
 	// it will return a default-constructed bdecode_node.
@@ -323,7 +322,7 @@ struct TORRENT_EXPORT bdecode_node
 	std::int64_t int_value() const;
 
 	// these functions are only valid if ``type()`` == ``string_t``. They return
-	// the string values. Note that ``string_ptr()`` is *not* null-terminated.
+	// the string values. Note that ``string_ptr()`` is *not* 0-terminated.
 	// ``string_length()`` returns the number of bytes in the string.
 	std::string string_value() const;
 	char const* string_ptr() const;
@@ -390,7 +389,7 @@ TORRENT_EXPORT std::string print_entry(bdecode_node const& e
 // is specified by the ``start`` of the buffer as well as the ``end``, i.e. one
 // byte past the end. If the buffer fails to parse, the function returns a
 // non-zero value and fills in ``ec`` with the error code. The optional
-// argument ``error_pos``, if set to non-null, will be set to the byte offset
+// argument ``error_pos``, if set to non-nullptr, will be set to the byte offset
 // into the buffer where the parse failure occurred.
 // 
 // ``depth_limit`` specifies the max number of nested lists or dictionaries are
@@ -411,7 +410,7 @@ TORRENT_EXPORT std::string print_entry(bdecode_node const& e
 // produced by this function does not copy any data out of the buffer, but
 // simply produces references back into it.
 TORRENT_EXPORT int bdecode(char const* start, char const* end, bdecode_node& ret
-	, error_code& ec, int* error_pos = NULL, int depth_limit = 100
+	, error_code& ec, int* error_pos = nullptr, int depth_limit = 100
 	, int token_limit = 1000000);
 
 }

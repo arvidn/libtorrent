@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp"
 #include "test_utils.hpp"
 
-#include <boost/tuple/tuple.hpp>
+#include <tuple>
 #include <functional>
 
 #include <fstream>
@@ -52,7 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 namespace lt = libtorrent;
 
-using boost::tuples::ignore;
+using std::ignore;
 
 const int mask = alert::all_categories & ~(alert::performance_warning | alert::stats_notification);
 
@@ -247,7 +247,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 	peer_disconnects = 0;
 
 	// test using piece sizes smaller than 16kB
-	boost::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
+	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
 		, true, false, true, "_transfer", 8 * 1024, &t, false, test_disk_full?&addp:&params);
 
 	int num_pieces = tor2.torrent_file()->num_pieces();

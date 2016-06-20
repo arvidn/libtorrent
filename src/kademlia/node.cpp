@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/tuple/tuple.hpp>
+#include <tuple>
 #include <boost/function/function1.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -656,7 +656,7 @@ void node::tick()
 	}
 
 	node_entry const* ne = m_table.next_refresh();
-	if (ne == NULL) return;
+	if (ne == nullptr) return;
 
 	// this shouldn't happen
 	TORRENT_ASSERT(m_id != ne->id);
@@ -743,11 +743,11 @@ void node::status(std::vector<dht_routing_bucket>& table
 	}
 }
 
-boost::tuple<int, int, int> node::get_stats_counters() const
+std::tuple<int, int, int> node::get_stats_counters() const
 {
 	int nodes, replacements;
-	boost::tie(nodes, replacements, boost::tuples::ignore) = size();
-	return boost::make_tuple(nodes, replacements, m_rpc.num_allocated_observers());
+	std::tie(nodes, replacements, std::ignore) = size();
+	return std::make_tuple(nodes, replacements, m_rpc.num_allocated_observers());
 }
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -993,11 +993,11 @@ void node::incoming_request(msg const& m, entry& e)
 		bool mutable_put = (msg_keys[2] && msg_keys[3] && msg_keys[4]);
 
 		// public key (only set if it's a mutable put)
-		char const* pk = NULL;
+		char const* pk = nullptr;
 		if (msg_keys[3]) pk = msg_keys[3].string_ptr();
 
 		// signature (only set if it's a mutable put)
-		char const* sig = NULL;
+		char const* sig = nullptr;
 		if (msg_keys[4]) sig = msg_keys[4].string_ptr();
 
 		// pointer and length to the whole entry
@@ -1009,7 +1009,7 @@ void node::incoming_request(msg const& m, entry& e)
 			return;
 		}
 
-		std::pair<char const*, int> salt(static_cast<char const*>(NULL), 0);
+		std::pair<char const*, int> salt(static_cast<char const*>(nullptr), 0);
 		if (msg_keys[6])
 			salt = std::pair<char const*, int>(
 				msg_keys[6].string_ptr(), msg_keys[6].string_length());

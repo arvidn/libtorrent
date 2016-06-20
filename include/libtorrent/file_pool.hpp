@@ -95,7 +95,7 @@ namespace libtorrent
 		// release all files belonging to the specified storage_interface (``st``)
 		// the overload that takes ``file_index`` releases only the file with
 		// that index in storage ``st``.
-		void release(void* st = NULL);
+		void release(void* st = nullptr);
 		void release(void* st, int file_index);
 
 		// update the allowed number of open file handles to ``size``.

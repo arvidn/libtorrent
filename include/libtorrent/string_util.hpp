@@ -35,15 +35,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <vector>
 #include <string>
 #include <cstdint>
-#include <boost/limits.hpp>
+#include <limits>
 #include <array> // for std::array
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {
@@ -100,11 +96,11 @@ namespace libtorrent
 
 	// searches for separator in the string 'last'. the pointer last points to
 	// is set to point to the first character following the separator.
-	// returns a pointer to a null terminated string starting at last, ending
+	// returns a pointer to a 0-terminated string starting at last, ending
 	// at the separator (the string is mutated to replace the separator with
 	// a '\0' character). If there is no separator, but the end of the string,
-	// the pointer next points to is set to the last null terminator, which will
-	// make the following invocation return NULL, to indicate the end of the
+	// the pointer next points to is set to the last 0-terminator, which will
+	// make the following invocation return nullptr, to indicate the end of the
 	// string.
 	TORRENT_EXTRA_EXPORT char* string_tokenize(char* last, char sep, char** next);
 

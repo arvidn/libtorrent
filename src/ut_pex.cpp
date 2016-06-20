@@ -168,7 +168,7 @@ namespace libtorrent { namespace
 					if (!p->is_outgoing())
 					{
 						torrent_peer const* const pi = peer->peer_info_struct();
-						if (pi != NULL && pi->port > 0)
+						if (pi != nullptr && pi->port > 0)
 							remote.port(pi->port);
 					}
 
@@ -583,7 +583,7 @@ namespace libtorrent { namespace
 				if (!p->is_outgoing())
 				{
 					torrent_peer const* const pi = peer->peer_info_struct();
-					if (pi != NULL && pi->port > 0)
+					if (pi != nullptr && pi->port > 0)
 						remote.port(pi->port);
 				}
 

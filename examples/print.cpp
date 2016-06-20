@@ -466,7 +466,7 @@ void print(char const* buf)
 	{
 		if (*buf == '\033' && buf[1] == '[')
 		{
-			WriteFile(out, start, DWORD(buf - start), &written, NULL);
+			WriteFile(out, start, DWORD(buf - start), &written, nullptr);
 			buf += 2; // skip escape and '['
 			start = buf;
 			if (*buf == 0) break;
@@ -535,7 +535,7 @@ one_more:
 			++buf;
 		}
 	}
-	WriteFile(out, start, DWORD(buf - start), &written, NULL);
+	WriteFile(out, start, DWORD(buf - start), &written, nullptr);
 
 #else
 	fputs(buf, stdout);

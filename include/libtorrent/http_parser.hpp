@@ -37,20 +37,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <utility>
 #include <vector>
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <cstdint>
-#include <boost/tuple/tuple.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <tuple>
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/buffer.hpp"
 
 namespace libtorrent
 {
-	
 	// return true if the status code is 200, 206, or in the 300-400 range
 	TORRENT_EXTRA_EXPORT bool is_ok_status(int http_status);
 
@@ -83,7 +77,7 @@ namespace libtorrent
 		buffer::const_interval get_body() const;
 		bool header_finished() const { return m_state == read_body; }
 		bool finished() const { return m_finished; }
-		boost::tuple<int, int> incoming(buffer::const_interval recv_buffer
+		std::tuple<int, int> incoming(buffer::const_interval recv_buffer
 			, bool& error);
 		int body_start() const { return m_body_start_pos; }
 		std::int64_t content_length() const { return m_content_length; }

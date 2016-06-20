@@ -109,7 +109,7 @@ namespace libtorrent
 #ifdef TORRENT_NO_DEPRECATE
 #define SET(name, default_value, fun) { #name, fun, default_value }
 #define SET_NOPREV(name, default_value, fun) { #name, fun, default_value }
-#define DEPRECATED_SET(name, default_value, fun) { "", NULL, 0 }
+#define DEPRECATED_SET(name, default_value, fun) { "", nullptr, 0 }
 #else
 #define SET(name, default_value, fun) { #name, fun, default_value, offsetof(libtorrent::session_settings, name) }
 #define SET_NOPREV(name, default_value, fun) { #name, fun, default_value, 0 }
@@ -396,7 +396,7 @@ namespace libtorrent
 		{
 			std::string key;
 			bdecode_node val;
-			boost::tie(key, val) = settings.dict_at(i);
+			std::tie(key, val) = settings.dict_at(i);
 			switch (val.type())
 			{
 				case bdecode_node::dict_t:

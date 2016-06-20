@@ -37,14 +37,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/address.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/tuple/tuple.hpp>
-
+#include <tuple> // for tie
 #include <cstdlib> // for malloc
 #include <cstring> // for memmov/strcpy/strlen
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {
@@ -335,7 +330,7 @@ namespace libtorrent
 		{
 			*next = strchr(last + 1, '"');
 			// consume the actual separator as well.
-			if (*next != NULL)
+			if (*next != nullptr)
 				*next = strchr(*next, sep);
 		}
 		else
@@ -353,10 +348,10 @@ namespace libtorrent
 
 	bool is_i2p_url(std::string const& url)
 	{
-		using boost::tuples::ignore;
+		using std::ignore;
 		std::string hostname;
 		error_code ec;
-		boost::tie(ignore, ignore, hostname, ignore, ignore)
+		std::tie(ignore, ignore, hostname, ignore, ignore)
 			= parse_url_components(url, ec);
 		char const* top_domain = strrchr(hostname.c_str(), '.');
 		return top_domain && strcmp(top_domain, ".i2p") == 0;

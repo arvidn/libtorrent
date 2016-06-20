@@ -178,7 +178,7 @@ namespace libtorrent
 	static std::mutex disk_access_mutex;
 
 	// this is opened and closed by the disk_io_thread class
-	FILE* g_access_log = NULL;
+	FILE* g_access_log = nullptr;
 
 	enum access_log_flags_t
 	{
@@ -190,7 +190,7 @@ namespace libtorrent
 
 	void write_access_log(std::uint64_t offset, std::uint32_t fileid, int flags, time_point timestamp)
 	{
-		if (g_access_log == NULL) return;
+		if (g_access_log == nullptr) return;
 
 		// the event format in the log is:
 		// uint64_t timestamp (microseconds)
@@ -1321,23 +1321,23 @@ namespace libtorrent
 
 #ifdef TORRENT_DISK_STATS
 	bool default_storage::disk_write_access_log() {
-		return g_access_log != NULL;
+		return g_access_log != nullptr;
 	}
 
 	void default_storage::disk_write_access_log(bool enable) {
 		if (enable)
 		{
-			if (g_access_log == NULL)
+			if (g_access_log == nullptr)
 			{
 				g_access_log = fopen("file_access.log", "a+");
 			}
 		}
 		else
 		{
-			if (g_access_log != NULL)
+			if (g_access_log != nullptr)
 			{
 				FILE* f = g_access_log;
-				g_access_log = NULL;
+				g_access_log = nullptr;
 				fclose(f);
 			}
 		}
@@ -1541,7 +1541,7 @@ namespace libtorrent
 	// check if the fastresume data is up to date
 	// if it is, use it and return true. If it
 	// isn't return false and the full check
-	// will be run. If the links pointer is non-null, it has the same number
+	// will be run. If the links pointer is non-nullptr, it has the same number
 	// of elements as there are files. Each element is either empty or contains
 	// the absolute path to a file identical to the corresponding file in this
 	// torrent. The storage must create hard links (or copy) those files. If

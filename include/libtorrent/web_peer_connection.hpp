@@ -33,20 +33,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_WEB_PEER_CONNECTION_HPP_INCLUDED
 #define TORRENT_WEB_PEER_CONNECTION_HPP_INCLUDED
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <ctime>
 #include <algorithm>
 #include <vector>
 #include <deque>
 #include <string>
+#include <array>
+#include <cstdint>
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/smart_ptr.hpp>
 #include <boost/weak_ptr.hpp>
 #include <boost/noncopyable.hpp>
-#include <array>
 #include <boost/optional.hpp>
-#include <cstdint>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 

@@ -33,17 +33,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_UDP_TRACKER_CONNECTION_HPP_INCLUDED
 #define TORRENT_UDP_TRACKER_CONNECTION_HPP_INCLUDED
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <vector>
 #include <string>
 #include <utility>
 #include <ctime>
 #include <mutex>
-
-#include <boost/shared_ptr.hpp>
 #include <cstdint>
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/shared_ptr.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/udp_socket.hpp"

@@ -131,10 +131,10 @@ namespace libtorrent
 		const int b = (bits + 31) / 32;
 		if (bits == 0)
 		{
-			if (m_buf != NULL)
+			if (m_buf != nullptr)
 			{
 				std::free(m_buf-1);
-				m_buf = NULL;
+				m_buf = nullptr;
 			}
 			return;
 		}
@@ -143,7 +143,7 @@ namespace libtorrent
 		{
 			std::uint32_t* tmp = static_cast<std::uint32_t*>(std::realloc(m_buf-1, (b+1) * 4));
 #ifndef BOOST_NO_EXCEPTIONS
-			if (tmp == NULL) throw std::bad_alloc();
+			if (tmp == nullptr) throw std::bad_alloc();
 #endif
 			m_buf = tmp + 1;
 			m_buf[-1] = bits;
@@ -153,7 +153,7 @@ namespace libtorrent
 			// +1 because the first word is the size (in bits)
 			std::uint32_t* tmp = static_cast<std::uint32_t*>(std::malloc((b+1) * 4));
 #ifndef BOOST_NO_EXCEPTIONS
-			if (tmp == NULL) throw std::bad_alloc();
+			if (tmp == nullptr) throw std::bad_alloc();
 #endif
 			m_buf = tmp + 1;
 			m_buf[-1] = bits;

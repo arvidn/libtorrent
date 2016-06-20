@@ -69,7 +69,7 @@ namespace libtorrent
 	ip_filter::filter_tuple_t ip_filter::export_filter() const
 	{
 #if TORRENT_USE_IPV6
-		return boost::make_tuple(m_filter4.export_filter<address_v4>()
+		return std::make_tuple(m_filter4.export_filter<address_v4>()
 			, m_filter6.export_filter<address_v6>());
 #else
 		return m_filter4.export_filter<address_v4>();

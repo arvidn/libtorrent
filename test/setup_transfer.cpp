@@ -50,7 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp" // for supports_ipv6()
 #include "libtorrent/hex.hpp" // to_hex
 
-#include <boost/tuple/tuple.hpp>
+#include <tuple>
 #include <functional>
 #include <boost/make_shared.hpp>
 
@@ -715,7 +715,7 @@ boost::shared_ptr<torrent_info> create_torrent(std::ostream* file
 		&tmp[0], tmp.size(), boost::ref(ec), 0);
 }
 
-boost::tuple<torrent_handle, torrent_handle, torrent_handle>
+std::tuple<torrent_handle, torrent_handle, torrent_handle>
 setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 	, bool clear_files, bool use_metadata_transfer, bool connect_peers
 	, std::string suffix, int piece_size
@@ -811,7 +811,7 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 	if (ec)
 	{
 		std::fprintf(stderr, "ses1.add_torrent: %s\n", ec.message().c_str());
-		return boost::make_tuple(torrent_handle(), torrent_handle(), torrent_handle());
+		return std::make_tuple(torrent_handle(), torrent_handle(), torrent_handle());
 	}
 	tor1.super_seeding(super_seeding);
 
@@ -905,7 +905,7 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 		}
 	}
 
-	return boost::make_tuple(tor1, tor2, tor3);
+	return std::make_tuple(tor1, tor2, tor3);
 }
 
 pid_type web_server_pid = 0;

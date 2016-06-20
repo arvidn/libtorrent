@@ -849,7 +849,7 @@ namespace libtorrent
 	torrent::~torrent()
 	{
 		TORRENT_ASSERT(m_abort);
-		TORRENT_ASSERT(prev == NULL && next == NULL);
+		TORRENT_ASSERT(prev == nullptr && next == nullptr);
 
 #if TORRENT_USE_ASSERTS
 		for (int i = 0; i < aux::session_interface::num_torrent_lists; ++i)
@@ -1086,7 +1086,7 @@ namespace libtorrent
 			if (j->error.ec == boost::asio::error::operation_aborted)
 			{
 				if (has_picker())
-					picker().mark_as_canceled(block_finished, NULL);
+					picker().mark_as_canceled(block_finished, nullptr);
 			}
 			else
 			{
@@ -1701,7 +1701,7 @@ namespace libtorrent
 				lowest_rank = i;
 		}
 
-		if (lowest_rank == end()) return NULL;
+		if (lowest_rank == end()) return nullptr;
 		return *lowest_rank;
 	}
 
@@ -1958,7 +1958,7 @@ namespace libtorrent
 		inc_refcount("check_fastresume");
 		// async_check_files will gut links
 		m_ses.disk_thread().async_check_files(
-			m_storage.get(), m_add_torrent_params ? m_add_torrent_params.get() : NULL
+			m_storage.get(), m_add_torrent_params ? m_add_torrent_params.get() : nullptr
 			, links, std::bind(&torrent::on_resume_data_checked
 			, shared_from_this(), _1));
 #ifndef TORRENT_DISABLE_LOGGING
@@ -2050,7 +2050,7 @@ namespace libtorrent
 
 		// TOOD: should we store add_torrent_params::userdata
 		// in torrent just to have it available here?
-		m_ses.add_extensions_to_torrent(shared_from_this(), NULL);
+		m_ses.add_extensions_to_torrent(shared_from_this(), nullptr);
 
 		// and call on_load() on them
 		for (extension_list_t::iterator i = m_extensions.begin()
@@ -2142,7 +2142,7 @@ namespace libtorrent
 			if (p->type() != peer_connection::bittorrent_connection) continue;
 			if (p->remote() == ep) return static_cast<bt_peer_connection*>(p);
 		}
-		return NULL;
+		return nullptr;
 	}
 
 	peer_connection* torrent::find_peer(sha1_hash const& pid)
@@ -2409,7 +2409,7 @@ namespace libtorrent
 
 		std::vector<std::string> links;
 		inc_refcount("force_recheck");
-		m_ses.disk_thread().async_check_files(m_storage.get(), NULL
+		m_ses.disk_thread().async_check_files(m_storage.get(), nullptr
 			, links, std::bind(&torrent::on_force_recheck
 			, shared_from_this(), _1));
 	}
@@ -3335,7 +3335,7 @@ namespace libtorrent
 			i != resp.peers4.end(); ++i)
 		{
 			tcp::endpoint a(address_v4(i->ip), i->port);
-			need_update |= bool(add_peer(a, peer_info::tracker) != NULL);
+			need_update |= bool(add_peer(a, peer_info::tracker) != nullptr);
 		}
 
 #if TORRENT_USE_IPV6
@@ -3343,7 +3343,7 @@ namespace libtorrent
 			i != resp.peers6.end(); ++i)
 		{
 			tcp::endpoint a(address_v6(i->ip), i->port);
-			need_update |= bool(add_peer(a, peer_info::tracker) != NULL);
+			need_update |= bool(add_peer(a, peer_info::tracker) != nullptr);
 		}
 #endif
 		if (need_update) state_updated();
@@ -3457,7 +3457,7 @@ namespace libtorrent
 			torrent_peer* p = m_peer_list->connect_one_peer(m_ses.session_time(), &st);
 			peers_erased(st.erased);
 			inc_stats_counter(counters::connection_attempt_loops, st.loop_counter);
-			if (p == NULL)
+			if (p == nullptr)
 			{
 				update_want_peers();
 				continue;
@@ -4161,7 +4161,7 @@ namespace libtorrent
 		// these torrent_peer pointers are owned by m_peer_list and they may be
 		// invalidated if a peer disconnects. We cannot keep them across any
 		// significant operations, but we should use them right away
-		// ignore NULL pointers
+		// ignore nullptrs
 		std::remove_copy(downloaders.begin(), downloaders.end()
 			, std::inserter(peers, peers.begin()), static_cast<torrent_peer*>(0));
 
@@ -5175,7 +5175,7 @@ namespace libtorrent
 			m_file_priority[i] = 0;
 		}
 
-		// storage may be NULL during construction and shutdown
+		// storage may be nullptr during construction and shutdown
 		if (m_torrent_file->num_pieces() > 0 && m_storage)
 		{
 			inc_refcount("file_priority");
@@ -5214,7 +5214,7 @@ namespace libtorrent
 
 		if (!valid_metadata()) return;
 
-		// stoage may be NULL during shutdown
+		// stoage may be nullptr during shutdown
 		if (m_storage)
 		{
 			inc_refcount("file_priority");
@@ -5506,14 +5506,14 @@ namespace libtorrent
 			// if we find one, swap with the udp-tracker
 			error_code ec;
 			std::string udp_hostname;
-			using boost::tuples::ignore;
-			boost::tie(ignore, ignore, udp_hostname, ignore, ignore)
+			using std::ignore;
+			std::tie(ignore, ignore, udp_hostname, ignore, ignore)
 				= parse_url_components(i->url, ec);
 			for (std::vector<announce_entry>::iterator j = m_trackers.begin();
 				j != i; ++j)
 			{
 				std::string hostname;
-				boost::tie(ignore, ignore, hostname, ignore, ignore)
+				std::tie(ignore, ignore, hostname, ignore, ignore)
 					= parse_url_components(j->url, ec);
 				if (hostname != udp_hostname) continue;
 				if (j->url.substr(0, 6) == "udp://") continue;
@@ -5721,7 +5721,7 @@ namespace libtorrent
 		torrent_peer* pp = p->peer_info_struct();
 		if (ready_for_connections())
 		{
-			TORRENT_ASSERT(p->associated_torrent().lock().get() == NULL
+			TORRENT_ASSERT(p->associated_torrent().lock().get() == nullptr
 				|| p->associated_torrent().lock().get() == this);
 
 			if (p->is_seed())
@@ -5841,7 +5841,7 @@ namespace libtorrent
 		int port;
 		std::string path;
 		error_code ec;
-		boost::tie(protocol, auth, hostname, port, path)
+		std::tie(protocol, auth, hostname, port, path)
 			= parse_url_components(web->url, ec);
 		if (port == -1)
 		{
@@ -6019,11 +6019,11 @@ namespace libtorrent
 
 		tcp::endpoint a(addrs[0], port);
 
-		using boost::tuples::ignore;
+		using std::ignore;
 		std::string hostname;
 		error_code ec;
 		std::string protocol;
-		boost::tie(protocol, ignore, hostname, port, ignore)
+		std::tie(protocol, ignore, hostname, port, ignore)
 			= parse_url_components(web->url, ec);
 		if (port == -1) port = protocol == "http" ? 80 : 443;
 
@@ -6161,10 +6161,10 @@ namespace libtorrent
 			s->get<http_stream>()->set_no_connect(true);
 		}
 
-		using boost::tuples::ignore;
+		using std::ignore;
 		std::string hostname;
 		error_code ec;
-		boost::tie(ignore, ignore, hostname, ignore, ignore)
+		std::tie(ignore, ignore, hostname, ignore, ignore)
 			= parse_url_components(web->url, ec);
 		if (ec)
 		{
@@ -6837,7 +6837,7 @@ namespace libtorrent
 			// proxy it is configurable. When we use i2p, we want to always prox
 			// everything via i2p.
 			bool ret = instantiate_connection(m_ses.get_io_service()
-				, m_ses.i2p_proxy(), *s, NULL, NULL, false, false);
+				, m_ses.i2p_proxy(), *s, nullptr, nullptr, false, false);
 			(void)ret;
 			TORRENT_ASSERT(ret);
 			s->get<i2p_stream>()->set_destination(static_cast<i2p_peer*>(peerinfo)->destination);
@@ -6978,7 +6978,7 @@ namespace libtorrent
 		if (m_share_mode)
 			recalc_share_mode();
 
-		return peerinfo->connection != NULL;
+		return peerinfo->connection != nullptr;
 	}
 
 	bool torrent::set_metadata(char const* metadata_buf, int metadata_size)
@@ -7184,7 +7184,7 @@ namespace libtorrent
 		for (int i = 0; i < p->num_classes(); ++i)
 		{
 			int pc = p->class_at(i);
-			if (m_ses.peer_classes().at(pc) == NULL) continue;
+			if (m_ses.peer_classes().at(pc) == nullptr) continue;
 			int f = m_ses.peer_classes().at(pc)->connection_limit_factor;
 			if (connection_limit_factor < f) connection_limit_factor = f;
 		}
@@ -7288,7 +7288,7 @@ namespace libtorrent
 		TORRENT_ASSERT(p->remote() == p->get_socket()->remote_endpoint(ec) || ec);
 #endif
 
-		TORRENT_ASSERT(p->peer_info_struct() != NULL);
+		TORRENT_ASSERT(p->peer_info_struct() != nullptr);
 
 		// we need to do this after we've added the peer to the peer_list
 		// since that's when the peer is assigned its peer_info object,
@@ -7966,7 +7966,7 @@ namespace libtorrent
 		TORRENT_ASSERT(index >= 0);
 		TORRENT_ASSERT(index < m_torrent_file->num_files());
 
-		// storage may be NULL during shutdown
+		// storage may be nullptr during shutdown
 		if (!m_storage.get())
 		{
 			if (alerts().should_post<file_rename_failed_alert>())
@@ -8005,7 +8005,7 @@ namespace libtorrent
 			return;
 		}
 
-		// storage may be NULL during shutdown
+		// storage may be nullptr during shutdown
 		if (m_storage.get())
 		{
 #if TORRENT_USE_UNC_PATHS
@@ -8477,7 +8477,7 @@ namespace libtorrent
 		disconnect_all(errors::torrent_removed, op_bittorrent);
 		stop_announcing();
 
-		// storage may be NULL during shutdown
+		// storage may be nullptr during shutdown
 		if (m_storage.get())
 		{
 			TORRENT_ASSERT(m_storage);
@@ -8763,7 +8763,7 @@ namespace libtorrent
 			return;
 		}
 /*
-		// storage may be NULL during shutdown
+		// storage may be nullptr during shutdown
 		if (!m_storage)
 		{
 			TORRENT_ASSERT(m_abort);
@@ -8796,7 +8796,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(is_single_thread());
 
-		// storage may be NULL during shutdown
+		// storage may be nullptr during shutdown
 		if (!m_storage)
 		{
 			TORRENT_ASSERT(m_abort);
@@ -10362,7 +10362,7 @@ namespace libtorrent
 		peers_erased(st.erased);
 		inc_stats_counter(counters::connection_attempt_loops, st.loop_counter);
 
-		if (p == NULL)
+		if (p == nullptr)
 		{
 			update_want_peers();
 			return false;
@@ -10391,7 +10391,7 @@ namespace libtorrent
 			debug_log("add_peer() %s unsupported address family"
 				, adr.address().to_string(ec).c_str());
 #endif
-			return NULL;
+			return nullptr;
 		}
 #endif
 
@@ -10418,7 +10418,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			notify_extension_add_peer(adr, source, torrent_plugin::filtered);
 #endif
-			return NULL;
+			return nullptr;
 		}
 
 		if (m_ses.get_port_filter().access(adr.port()) & port_filter::blocked)
@@ -10429,7 +10429,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			notify_extension_add_peer(adr, source, torrent_plugin::filtered);
 #endif
-			return NULL;
+			return nullptr;
 		}
 
 #if TORRENT_USE_I2P
@@ -10440,7 +10440,7 @@ namespace libtorrent
 			if (alerts().should_post<peer_blocked_alert>())
 				alerts().emplace_alert<peer_blocked_alert>(get_handle()
 					, adr, peer_blocked_alert::i2p_mixed);
-			return NULL;
+			return nullptr;
 		}
 #endif
 
@@ -10452,7 +10452,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			notify_extension_add_peer(adr, source, torrent_plugin::filtered);
 #endif
-			return NULL;
+			return nullptr;
 		}
 
 		need_peer_list();
@@ -11168,7 +11168,7 @@ namespace libtorrent
 		st->num_seeds = num_seeds();
 		if ((flags & torrent_handle::query_distributed_copies) && m_picker.get())
 		{
-			boost::tie(st->distributed_full_copies, st->distributed_fraction) =
+			std::tie(st->distributed_full_copies, st->distributed_fraction) =
 				m_picker->distributed_copies();
 #if TORRENT_NO_FPU
 			st->distributed_copies = -1.f;

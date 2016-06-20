@@ -185,7 +185,7 @@ namespace libtorrent
 		int m_mtu_idx;
 
 		// this is  passed on to the instantiate connection
-		// if this is non-null it will create SSL connections over uTP
+		// if this is non-nullptr it will create SSL connections over uTP
 		void* m_ssl_context;
 	};
 }

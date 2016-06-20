@@ -38,9 +38,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <cstdint>
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #ifdef TORRENT_WINDOWS
 #include <winsock2.h>

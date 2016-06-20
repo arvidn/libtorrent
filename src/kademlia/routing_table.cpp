@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <numeric>
 #include <cstdio> // for snprintf
 #include <cinttypes> // for PRId64 et.al.
+#include <cstdint>
 
 #include "libtorrent/config.hpp"
 
@@ -52,28 +53,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/address.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <cstdint>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 using std::uint8_t;
 using namespace std::placeholders;
-
-#if BOOST_VERSION <= 104700
-namespace boost {
-	size_t hash_value(libtorrent::address_v4::bytes_type ip)
-	{
-		return boost::hash_value(*reinterpret_cast<std::uint32_t*>(&ip[0]));
-	}
-
-	size_t hash_value(libtorrent::address_v6::bytes_type ip)
-	{
-		return boost::hash_value(*reinterpret_cast<std::uint64_t*>(&ip[0]));
-	}
-}
-#endif
 
 namespace libtorrent { namespace dht
 {
@@ -174,7 +155,7 @@ void routing_table::status(session_status& s) const
 	int dht_nodes;
 	int dht_node_cache;
 	int ignore;
-	boost::tie(dht_nodes, dht_node_cache, ignore) = size();
+	std::tie(dht_nodes, dht_node_cache, ignore) = size();
 	s.dht_nodes += dht_nodes;
 	s.dht_node_cache += dht_node_cache;
 	// TODO: arvidn note
@@ -198,7 +179,7 @@ void routing_table::status(session_status& s) const
 }
 #endif
 
-boost::tuple<int, int, int> routing_table::size() const
+std::tuple<int, int, int> routing_table::size() const
 {
 	int nodes = 0;
 	int replacements = 0;
@@ -215,7 +196,7 @@ boost::tuple<int, int, int> routing_table::size() const
 
 		replacements += int(i->replacements.size());
 	}
-	return boost::make_tuple(nodes, replacements, confirmed);
+	return std::make_tuple(nodes, replacements, confirmed);
 }
 
 std::int64_t routing_table::num_global_nodes() const
@@ -443,7 +424,7 @@ node_entry const* routing_table::next_refresh()
 	// recent, return false. Otherwise return a random target ID that's close to
 	// a missing prefix for that bucket
 
-	node_entry* candidate = NULL;
+	node_entry* candidate = nullptr;
 
 	// this will have a bias towards pinging nodes close to us first.
 	int idx = int(m_buckets.size()) - 1;
@@ -463,7 +444,7 @@ node_entry const* routing_table::next_refresh()
 				goto out;
 			}
 
-			if (candidate == NULL || j->last_queried < candidate->last_queried)
+			if (candidate == nullptr || j->last_queried < candidate->last_queried)
 			{
 				candidate = &*j;
 			}
@@ -790,10 +771,10 @@ ip_ok:
 	// can we split the bucket?
 	// only nodes that haven't failed can split the bucket, and we can only
 	// split the last bucket
-	bool const can_split = (boost::next(i) == m_buckets.end()
+	bool const can_split = (std::next(i) == m_buckets.end()
 		&& m_buckets.size() < 159)
 		&& e.fail_count() == 0
-		&& (i == m_buckets.begin() || boost::prior(i)->live_nodes.size() > 1);
+		&& (i == m_buckets.begin() || std::prev(i)->live_nodes.size() > 1);
 
 	// if there's room in the main bucket, just insert it
 	// if we can split the bucket (i.e. it's the last bucket) use the next

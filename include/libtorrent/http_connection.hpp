@@ -146,7 +146,7 @@ private:
 		, error_code const& e);
 	void on_assign_bandwidth(error_code const& e);
 
-	void callback(error_code e, char* data = NULL, int size = 0);
+	void callback(error_code e, char* data = nullptr, int size = 0);
 
 	std::vector<char> m_recvbuffer;
 

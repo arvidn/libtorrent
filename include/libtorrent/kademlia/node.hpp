@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 #include <set>
 #include <mutex>
+#include <cstdint>
 
 #include <libtorrent/config.hpp>
 #include <libtorrent/kademlia/dht_storage.hpp>
@@ -53,9 +54,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/session_settings.hpp>
 #include <libtorrent/assert.hpp>
 #include <libtorrent/bloom_filter.hpp>
-
-#include <cstdint>
-#include <boost/ref.hpp>
 
 #include "libtorrent/socket.hpp"
 
@@ -126,7 +124,7 @@ public:
 
 	node_id const& nid() const { return m_id; }
 
-	boost::tuple<int, int, int> size() const { return m_table.size(); }
+	std::tuple<int, int, int> size() const { return m_table.size(); }
 	std::int64_t num_global_nodes() const
 	{ return m_table.num_global_nodes(); }
 
@@ -195,7 +193,7 @@ public:
 	void status(std::vector<dht_routing_bucket>& table
 		, std::vector<dht_lookup>& requests);
 
-	boost::tuple<int, int, int> get_stats_counters() const;
+	std::tuple<int, int, int> get_stats_counters() const;
 
 #ifndef TORRENT_NO_DEPRECATE
 	void status(libtorrent::session_status& s);

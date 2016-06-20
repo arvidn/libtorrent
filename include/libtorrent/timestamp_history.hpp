@@ -33,9 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TIMESTAMP_HISTORY_HPP
 #define TIMESTAMP_HISTORY_HPP
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <cstdint>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"

@@ -41,10 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/storage_defs.hpp" // for storage_mode_t
 #include "libtorrent/error_code.hpp" // for storage_mode_t
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <cstdint>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include <string>
 
 namespace libtorrent
@@ -249,7 +246,7 @@ namespace libtorrent
 		std::int64_t all_time_upload;
 		std::int64_t all_time_download;
 
-		// the posix-time when this torrent was added. i.e. what ``time(NULL)``
+		// the posix-time when this torrent was added. i.e. what ``time(nullptr)``
 		// returned at the time.
 		time_t added_time;
 

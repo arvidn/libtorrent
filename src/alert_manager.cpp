@@ -61,7 +61,7 @@ namespace libtorrent
 		if (!m_alerts[m_generation].empty())
 			return m_alerts[m_generation].front();
 
-		return NULL;
+		return nullptr;
 	}
 
 	void alert_manager::maybe_notify(alert* a, std::unique_lock<std::mutex>& lock)

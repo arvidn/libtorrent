@@ -70,6 +70,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <utility> // for std::forward
 #include <tuple> // for make_tuple
 #include <array>
+#include <cstdint>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -77,7 +78,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/weak_ptr.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/optional.hpp>
-#include <cstdint>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -309,7 +309,7 @@ namespace libtorrent
 		void set_peer_info(torrent_peer* pi)
 		{
 			TORRENT_ASSERT(m_peer_info == 0 || pi == 0 );
-			TORRENT_ASSERT(pi != NULL || m_disconnect_started);
+			TORRENT_ASSERT(pi != nullptr || m_disconnect_started);
 			m_peer_info = pi;
 		}
 
@@ -659,12 +659,12 @@ namespace libtorrent
 
 		void append_send_buffer(char* buffer, int size
 			, chained_buffer::free_buffer_fun destructor = &nop
-			, void* userdata = NULL, block_cache_reference ref
+			, void* userdata = nullptr, block_cache_reference ref
 			= block_cache_reference());
 
 		virtual void append_const_send_buffer(char const* buffer, int size
 			, chained_buffer::free_buffer_fun destructor = &nop
-			, void* userdata = NULL, block_cache_reference ref
+			, void* userdata = nullptr, block_cache_reference ref
 			= block_cache_reference());
 
 		int outstanding_bytes() const { return m_outstanding_bytes; }
