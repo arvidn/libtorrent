@@ -201,6 +201,7 @@ namespace libtorrent
 		, m_uuid(p.uuid)
 		, m_source_feed_url(p.source_feed_url)
 		, m_stats_counters(ses.stats_counters())
+		, m_check_fastresume_queued(false)
 		, m_storage_constructor(p.storage)
 		, m_added_time(time(0))
 		, m_completed_time(0)
@@ -2100,9 +2101,10 @@ namespace libtorrent
 		inc_refcount("check_fastresume");
 		// async_check_fastresume will gut links
 		m_ses.disk_thread().async_check_fastresume(
-			m_storage.get(), m_resume_data ? &m_resume_data->node : NULL
+			m_storage.get(), m_resume_data && !m_check_fastresume_queued ? &m_resume_data->node : NULL
 			, links, boost::bind(&torrent::on_resume_data_checked
 			, shared_from_this(), _1));
+		m_check_fastresume_queued = true;
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("init, async_check_fastresume");
 #endif

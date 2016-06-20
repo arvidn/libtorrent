@@ -1318,6 +1318,7 @@ namespace libtorrent
 
 		// used if there is any resume data
 		boost::scoped_ptr<resume_data_t> m_resume_data;
+		bool m_check_fastresume_queued;
 
 		// if the torrent is started without metadata, it may
 		// still be given a name until the metadata is received
