@@ -46,42 +46,8 @@ namespace libtorrent {
 class buffer
 {
 public:
-	struct interval
-	{
-	interval()
-		: begin(0)
-		, end(0)
-		{}
-
-	interval(char* b, char* e)
-		: begin(b)
-		, end(e)
-		{}
-
-		char operator[](int index) const
-		{
-			TORRENT_ASSERT(begin + index < end);
-			return begin[index];
-		}
-
-		int left() const
-		{
-			TORRENT_ASSERT(end >= begin);
-			TORRENT_ASSERT(end - begin < (std::numeric_limits<int>::max)());
-			return int(end - begin);
-		}
-
-		char* begin;
-		char* end;
-	};
-
 	struct const_interval
 	{
-	const_interval(interval const& i)
-		: begin(i.begin)
-		, end(i.end)
-		{}
-
 	const_interval(char const* b, char const* e)
 		: begin(b)
 		, end(e)
@@ -163,8 +129,6 @@ public:
 		std::free(m_begin);
 	}
 
-	buffer::interval data()
-	{ return interval(m_begin, m_begin + m_size); }
 	buffer::const_interval data() const
 	{ return const_interval(m_begin, m_begin + m_size); }
 
