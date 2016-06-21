@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <vector>
+#include <map>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
