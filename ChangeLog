@@ -1,5 +1,6 @@
 1.1.1 release
 
+	* fix bug in enum_net() for BSD and Mac
 	* fix bug in python binding of announce_entry
 	* fixed bug related to flag_merge_resume_http_seeds flag in add_torrent_params
 	* fixed inverted priority of incoming piece suggestions
