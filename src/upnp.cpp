@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstdlib>
 #include <cstdio> // for snprintf
+#include <cstdarg>
 #include <functional>
 
 using namespace std::placeholders;

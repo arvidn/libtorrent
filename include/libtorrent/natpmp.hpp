@@ -58,7 +58,7 @@ namespace libtorrent
 typedef boost::function<void(int, address, int, int, error_code const&)> portmap_callback_t;
 typedef boost::function<void(char const*)> log_callback_t;
 
-struct natpmp
+struct TORRENT_EXTRA_EXPORT natpmp
 	: boost::enable_shared_from_this<natpmp>
 	, single_threaded
 {
