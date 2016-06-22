@@ -99,7 +99,7 @@ script:
 # if we are building with code coverage, report it as soon as possible
   - cd test
   - 'if [ "$variant" != "" ]; then
-      bjam -j3 warnings-as-errors=on variant=$variant -l900 $toolset $target &&
+      bjam -j3 warnings-as-errors=on variant=$variant -l900 $toolset $target test_natpmp &&
       if [ "$coverage" == "1" ]; then
         codecov --root .. --gcov-exec gcov-5;
       fi;

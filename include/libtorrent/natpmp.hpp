@@ -135,7 +135,9 @@ private:
 	};
 
 	portmap_callback_t m_callback;
+#ifndef TORRENT_DISABLE_LOGGING
 	log_callback_t m_log_callback;
+#endif
 
 	std::vector<mapping_t> m_mappings;
 

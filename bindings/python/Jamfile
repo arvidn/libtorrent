@@ -154,7 +154,6 @@ my-python-extension libtorrent
     <conditional>@libtorrent_linking
   : # default-build
     <warnings>all
-    <warnings-as-errors>on
   : # usage-requirements
     <suppress-import-lib>false
   ;

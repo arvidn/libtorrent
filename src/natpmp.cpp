@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <cstdio> // for snprintf
+#include <cinttypes> // for PRId64 et.al.
 #include <cstdarg>
 #include <functional>
 
@@ -56,19 +57,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 #include "libtorrent/aux_/escape_string.hpp"
 
-//#define NATPMP_LOG
-
-#ifdef NATPMP_LOG
-#include <iostream>
-#endif
-
 using namespace libtorrent;
 using namespace std::placeholders;
 
 natpmp::natpmp(io_service& ios
 	, portmap_callback_t const& cb, log_callback_t const& lcb)
 	: m_callback(cb)
+#ifndef TORRENT_DISABLE_LOGGING
 	, m_log_callback(lcb)
+#endif
 	, m_currently_mapping(-1)
 	, m_retry_count(0)
 	, m_socket(ios)
@@ -78,6 +75,7 @@ natpmp::natpmp(io_service& ios
 	, m_disabled(false)
 	, m_abort(false)
 {
+	TORRENT_UNUSED(lcb);
 	// unfortunately async operations rely on the storage
 	// for this array not to be reallocated, by passing
 	// around pointers to its elements. so reserve size for now
@@ -225,7 +223,8 @@ void natpmp::delete_mapping(int index)
 	update_mapping(index);
 }
 
-int natpmp::add_mapping(protocol_type p, int external_port, int local_port)
+int natpmp::add_mapping(protocol_type p, int const external_port
+	, int const local_port)
 {
 	TORRENT_ASSERT(is_single_thread());
 
@@ -243,51 +242,33 @@ int natpmp::add_mapping(protocol_type p, int external_port, int local_port)
 	i->local_port = local_port;
 	i->action = mapping_t::action_add;
 
-	int mapping_index = i - m_mappings.begin();
-
-#ifdef NATPMP_LOG
-	time_point now = aux::time_now();
-	for (std::vector<mapping_t>::iterator m = m_mappings.begin()
-		, end(m_mappings.end()); m != end; ++m)
-	{
-		std::cout << " ADD MAPPING: " << mapping_index << " [ "
-			"proto: " << (i->protocol == none ? "none" : i->protocol == tcp ? "tcp" : "udp")
-			<< " port: " << i->external_port
-			<< " local-port: " << i->local_port
-			<< " action: " << (i->action == mapping_t::action_none ? "none" : i->action == mapping_t::action_add ? "add" : "delete")
-			<< " ttl: " << total_seconds(i->expires - now)
-			<< " ]" << std::endl;
-	}
+	int const mapping_index = i - m_mappings.begin();
+#ifndef TORRENT_DISABLE_LOGGING
+	natpmp::mapping_t const& m = *i;
+	log("add-mapping: proto: %s port: %d local-port: %d action: %s ttl: %" PRId64
+		, (m.protocol == none
+			? "none" : m.protocol == tcp ? "tcp" : "udp")
+		, m.external_port
+		, m.local_port
+		, (m.action == mapping_t::action_none
+			? "none" : m.action == mapping_t::action_add ? "add" : "delete")
+		, total_seconds(m.expires - aux::time_now()));
 #endif
 
 	update_mapping(mapping_index);
 	return mapping_index;
 }
 
-void natpmp::try_next_mapping(int i)
+void natpmp::try_next_mapping(int const i)
 {
 	TORRENT_ASSERT(is_single_thread());
-#ifdef NATPMP_LOG
-	time_point now = aux::time_now();
-	for (std::vector<mapping_t>::iterator m = m_mappings.begin()
-		, end(m_mappings.end()); m != end; ++m)
-	{
-		std::cout << "     " << (m - m_mappings.begin()) << " [ "
-			"proto: " << (m->protocol == none ? "none" : m->protocol == tcp ? "tcp" : "udp")
-			<< " port: " << m->external_port
-			<< " local-port: " << m->local_port
-			<< " action: " << (m->action == mapping_t::action_none ? "none" : m->action == mapping_t::action_add ? "add" : "delete")
-			<< " ttl: " << total_seconds(m->expires - now)
-			<< " ]" << std::endl;
-	}
-#endif
 	if (i < int(m_mappings.size()) - 1)
 	{
 		update_mapping(i + 1);
 		return;
 	}
 
-	std::vector<mapping_t>::iterator m = std::find_if(
+	std::vector<mapping_t>::iterator const m = std::find_if(
 		m_mappings.begin(), m_mappings.end()
 		, [] (mapping_t const& ma) { return ma.action != mapping_t::action_none; });
 
@@ -299,20 +280,13 @@ void natpmp::try_next_mapping(int i)
 			m_send_timer.cancel(ec);
 			m_socket.close(ec);
 		}
-#ifdef NATPMP_LOG
-		std::cout << "     done" << (m_abort?" shutting down":"") << std::endl;
-#endif
 		return;
 	}
-
-#ifdef NATPMP_LOG
-	std::cout << "     updating " << (m - m_mappings.begin()) << std::endl;
-#endif
 
 	update_mapping(m - m_mappings.begin());
 }
 
-void natpmp::update_mapping(int i)
+void natpmp::update_mapping(int const i)
 {
 	TORRENT_ASSERT(is_single_thread());
 	if (i == int(m_mappings.size()))
@@ -323,13 +297,22 @@ void natpmp::update_mapping(int i)
 			m_send_timer.cancel(ec);
 			m_socket.close(ec);
 		}
-#ifdef NATPMP_LOG
-		std::cout << "     done" << (m_abort?" shutting down":"") << std::endl;
-#endif
 		return;
 	}
 
-	natpmp::mapping_t& m = m_mappings[i];
+	natpmp::mapping_t const& m = m_mappings[i];
+
+#ifndef TORRENT_DISABLE_LOGGING
+	log("update-mapping: proto: %s port: %d local-port: %d action: %s ttl: %" PRId64
+		, (m.protocol == none
+			? "none" : m.protocol == tcp ? "tcp" : "udp")
+		, m.external_port
+		, m.local_port
+		, (m.action == mapping_t::action_none
+			? "none" : m.action == mapping_t::action_add ? "add" : "delete")
+		, total_seconds(m.expires - aux::time_now()));
+#endif
+
 	if (m.action == mapping_t::action_none
 		|| m.protocol == none)
 	{
@@ -346,7 +329,7 @@ void natpmp::update_mapping(int i)
 	}
 }
 
-void natpmp::send_map_request(int i)
+void natpmp::send_map_request(int const i)
 {
 	TORRENT_ASSERT(is_single_thread());
 	using namespace libtorrent::detail;
@@ -397,7 +380,7 @@ void natpmp::send_map_request(int i)
 	}
 }
 
-void natpmp::resend_request(int i, error_code const& e)
+void natpmp::resend_request(int const i, error_code const& e)
 {
 	TORRENT_ASSERT(is_single_thread());
 	COMPLETE_ASYNC("natpmp::resend_request");
@@ -594,20 +577,6 @@ void natpmp::update_expiration_timer()
 	if (m_abort) return;
 
 	time_point now = aux::time_now() + milliseconds(100);
-#ifdef NATPMP_LOG
-	std::cout << time_now_string() << " update_expiration_timer " << std::endl;
-	for (std::vector<mapping_t>::iterator i = m_mappings.begin()
-		, end(m_mappings.end()); i != end; ++i)
-	{
-	std::cout << "     " << (i - m_mappings.begin()) << " [ "
-			"proto: " << (i->protocol == none ? "none" : i->protocol == tcp ? "tcp" : "udp")
-			<< " port: " << i->external_port
-			<< " local-port: " << i->local_port
-			<< " action: " << (i->action == mapping_t::action_none ? "none" : i->action == mapping_t::action_add ? "add" : "delete")
-			<< " ttl: " << total_seconds(i->expires - now)
-			<< " ]" << std::endl;
-	}
-#endif
 	time_point min_expire = now + seconds(3600);
 	int min_index = -1;
 	for (std::vector<mapping_t>::iterator i = m_mappings.begin()
@@ -637,11 +606,9 @@ void natpmp::update_expiration_timer()
 
 	if (min_index >= 0)
 	{
-#ifdef NATPMP_LOG
-	std::cout << time_now_string() << " next expiration ["
-			" i: " << min_index
-			<< " ttl: " << total_seconds(min_expire - aux::time_now())
-			<< " ]" << std::endl;
+#ifndef TORRENT_DISABLE_LOGGING
+		log("next expiration [ idx: %d ttl: %" PRId64 " ]"
+			, min_index, total_seconds(min_expire - aux::time_now()));
 #endif
 		error_code ec;
 		if (m_next_refresh >= 0) m_refresh_timer.cancel(ec);
@@ -679,25 +646,11 @@ void natpmp::close_impl()
 #ifndef TORRENT_DISABLE_LOGGING
 	log("closing");
 #endif
-#ifdef NATPMP_LOG
-	std::cout << time_now_string() << " close" << std::endl;
-	time_point now = aux::time_now();
-#endif
 	if (m_disabled) return;
-	for (std::vector<mapping_t>::iterator i = m_mappings.begin()
-		, end(m_mappings.end()); i != end; ++i)
+	for (auto& m : m_mappings)
 	{
-#ifdef NATPMP_LOG
-	std::cout << "     " << (i - m_mappings.begin()) << " [ "
-			"proto: " << (i->protocol == none ? "none" : i->protocol == tcp ? "tcp" : "udp")
-			<< " port: " << i->external_port
-			<< " local-port: " << i->local_port
-			<< " action: " << (i->action == mapping_t::action_none ? "none" : i->action == mapping_t::action_add ? "add" : "delete")
-			<< " ttl: " << total_seconds(i->expires - now)
-			<< " ]" << std::endl;
-#endif
-		if (i->protocol == none) continue;
-		i->action = mapping_t::action_delete;
+		if (m.protocol == none) continue;
+		m.action = mapping_t::action_delete;
 	}
 	error_code ec;
 	m_refresh_timer.cancel(ec);

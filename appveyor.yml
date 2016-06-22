@@ -81,7 +81,7 @@ build_script:
 
 # test
 - cd %ROOT_DIRECTORY%\test
-- b2.exe --hash warnings-as-errors=on -j2 address-model=%model% win-tests %compiler% variant=%variant% picker-debugging=on link=shared linkflags=%linkflags% include=%include% testing.execute=off
+- b2.exe --hash warnings-as-errors=on -j2 address-model=%model% win-tests test_upnp test_natpmp %compiler% variant=%variant% picker-debugging=on link=shared linkflags=%linkflags% include=%include% testing.execute=off
 
 # python binding
 - cd %ROOT_DIRECTORY%\bindings\python

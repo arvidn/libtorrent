@@ -34,17 +34,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/socket_io.hpp"
 #include <functional>
-#include <boost/ref.hpp>
-#include <boost/intrusive_ptr.hpp>
 #include <iostream>
+
+#include <boost/shared_ptr.hpp>
+#include <boost/make_shared.hpp>
+#include <boost/ref.hpp>
 
 using namespace libtorrent;
 
-void callback(int mapping, address extip, int port, error_code const& err)
+void callback(int mapping, address extip, int port, int protocol, error_code const& err)
 {
 	std::cerr
 		<< "mapping: " << mapping
 		<< ", port: " << port
+		<< ", protocol: " << protocol
 		<< ", external-IP: " << print_address(extip)
 		<< ", error: \"" << err.message() << "\"\n";
 }
@@ -65,24 +68,24 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	boost::intrusive_ptr<natpmp> natpmp_handler = new natpmp(ios, address_v4()
-		, &callback, &log_callback);
+	boost::shared_ptr<natpmp> natpmp_handler(new natpmp(
+		ios, &callback, &log_callback));
 
 	deadline_timer timer(ios);
 
-	int tcp_map = natpmp_handler->add_mapping(natpmp::tcp, atoi(argv[1]), atoi(argv[1]));
-	int udp_map = natpmp_handler->add_mapping(natpmp::udp, atoi(argv[2]), atoi(argv[2]));
+	int const tcp_map = natpmp_handler->add_mapping(natpmp::tcp, atoi(argv[1]), atoi(argv[1]));
+	natpmp_handler->add_mapping(natpmp::udp, atoi(argv[2]), atoi(argv[2]));
 
 	error_code ec;
 	timer.expires_from_now(seconds(2), ec);
-	timer.async_wait(std::bind(&io_service::stop, boost::ref(ios)));
+	timer.async_wait([&] (error_code const&) { ios.io_service::stop(); });
 	std::cerr << "mapping ports TCP: " << argv[1]
 		<< " UDP: " << argv[2] << std::endl;
 
 	ios.reset();
 	ios.run(ec);
 	timer.expires_from_now(seconds(2), ec);
-	timer.async_wait(std::bind(&io_service::stop, boost::ref(ios)));
+	timer.async_wait([&] (error_code const&) { ios.io_service::stop(); });
 	std::cerr << "removing mapping " << tcp_map << std::endl;
 	natpmp_handler->delete_mapping(tcp_map);
 
