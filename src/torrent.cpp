@@ -201,7 +201,6 @@ namespace libtorrent
 		, m_uuid(p.uuid)
 		, m_source_feed_url(p.source_feed_url)
 		, m_stats_counters(ses.stats_counters())
-		, m_check_fastresume_queued(false)
 		, m_storage_constructor(p.storage)
 		, m_added_time(time(0))
 		, m_completed_time(0)
@@ -2101,10 +2100,9 @@ namespace libtorrent
 		inc_refcount("check_fastresume");
 		// async_check_fastresume will gut links
 		m_ses.disk_thread().async_check_fastresume(
-			m_storage.get(), m_resume_data && !m_check_fastresume_queued ? &m_resume_data->node : NULL
+			m_storage.get(), m_resume_data ? m_resume_data.release() : NULL
 			, links, boost::bind(&torrent::on_resume_data_checked
 			, shared_from_this(), _1));
-		m_check_fastresume_queued = true;
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("init, async_check_fastresume");
 #endif
@@ -2306,6 +2304,8 @@ namespace libtorrent
 		// hold a reference until this function returns
 		torrent_ref_holder h(this, "check_fastresume");
 
+		std::unique_ptr<resume_data_t const> resume_data(j->buffer.check_resume_data);
+
 		// when applying some of the resume data to the torrent, we will
 		// trigger calls that set m_need_save_resume_data, even though we're
 		// just applying the state of the resume data we loaded with. We don't
@@ -2319,7 +2319,6 @@ namespace libtorrent
 
 		if (j->ret == piece_manager::fatal_disk_error)
 		{
-			m_resume_data.reset();
 			handle_disk_error(j);
 			auto_managed(false);
 			pause();
@@ -2332,11 +2331,11 @@ namespace libtorrent
 
 		state_updated();
 
-		if (m_resume_data && m_resume_data->node.type() == bdecode_node::dict_t)
+		if (resume_data && resume_data->node.type() == bdecode_node::dict_t)
 		{
 			using namespace libtorrent::detail; // for read_*_endpoint()
 
-			if (bdecode_node peers_entry = m_resume_data->node.dict_find_string("peers"))
+			if (bdecode_node peers_entry = resume_data->node.dict_find_string("peers"))
 			{
 				int num_peers = peers_entry.string_length() / (sizeof(address_v4::bytes_type) + 2);
 				char const* ptr = peers_entry.string_ptr();
@@ -2349,7 +2348,7 @@ namespace libtorrent
 			}
 
 			if (bdecode_node banned_peers_entry
-				= m_resume_data->node.dict_find_string("banned_peers"))
+				= resume_data->node.dict_find_string("banned_peers"))
 			{
 				int num_peers = banned_peers_entry.string_length() / (sizeof(address_v4::bytes_type) + 2);
 				char const* ptr = banned_peers_entry.string_ptr();
@@ -2365,7 +2364,7 @@ namespace libtorrent
 			}
 
 #if TORRENT_USE_IPV6
-			if (bdecode_node peers6_entry = m_resume_data->node.dict_find_string("peers6"))
+			if (bdecode_node peers6_entry = resume_data->node.dict_find_string("peers6"))
 			{
 				int num_peers = peers6_entry.string_length() / (sizeof(address_v6::bytes_type) + 2);
 				char const* ptr = peers6_entry.string_ptr();
@@ -2377,7 +2376,7 @@ namespace libtorrent
 				update_want_peers();
 			}
 
-			if (bdecode_node banned_peers6_entry = m_resume_data->node.dict_find_string("banned_peers6"))
+			if (bdecode_node banned_peers6_entry = resume_data->node.dict_find_string("banned_peers6"))
 			{
 				int num_peers = banned_peers6_entry.string_length() / (sizeof(address_v6::bytes_type) + 2);
 				char const* ptr = banned_peers6_entry.string_ptr();
@@ -2392,7 +2391,7 @@ namespace libtorrent
 #endif
 
 			// parse out "peers" from the resume data and add them to the peer list
-			if (bdecode_node peers_entry = m_resume_data->node.dict_find_list("peers"))
+			if (bdecode_node peers_entry = resume_data->node.dict_find_list("peers"))
 			{
 				for (int i = 0; i < peers_entry.list_size(); ++i)
 				{
@@ -2410,7 +2409,7 @@ namespace libtorrent
 			}
 
 			// parse out "banned_peers" and add them as banned
-			if (bdecode_node banned_peers_entry = m_resume_data->node.dict_find_list("banned_peers"))
+			if (bdecode_node banned_peers_entry = resume_data->node.dict_find_list("banned_peers"))
 			{
 				for (int i = 0; i < banned_peers_entry.list_size(); ++i)
 				{
@@ -2436,7 +2435,7 @@ namespace libtorrent
 #endif
 
 		// only report this error if the user actually provided resume data
-		if ((j->error || j->ret != 0) && m_resume_data
+		if ((j->error || j->ret != 0) && resume_data
 			&& m_ses.alerts().should_post<fastresume_rejected_alert>())
 		{
 			m_ses.alerts().emplace_alert<fastresume_rejected_alert>(get_handle(), j->error.ec
@@ -2464,12 +2463,12 @@ namespace libtorrent
 			// there are either no files for this torrent
 			// or the resume_data was accepted
 
-			if (!j->error && m_resume_data && m_resume_data->node.type() == bdecode_node::dict_t)
+			if (!j->error && resume_data && resume_data->node.type() == bdecode_node::dict_t)
 			{
 				// parse have bitmask
-				bdecode_node pieces = m_resume_data->node.dict_find("pieces");
+				bdecode_node pieces = resume_data->node.dict_find("pieces");
 				if (pieces && pieces.type() == bdecode_node::string_t
-					&& int(pieces.string_length()) == m_torrent_file->num_pieces())
+					&& pieces.string_length() == m_torrent_file->num_pieces())
 				{
 					char const* pieces_str = pieces.string_ptr();
 					for (int i = 0, end(pieces.string_length()); i < end; ++i)
@@ -2488,7 +2487,7 @@ namespace libtorrent
 				}
 				else
 				{
-					bdecode_node slots = m_resume_data->node.dict_find("slots");
+					bdecode_node slots = resume_data->node.dict_find("slots");
 					if (slots && slots.type() == bdecode_node::list_t)
 					{
 						for (int i = 0; i < slots.list_size(); ++i)
@@ -2510,7 +2509,7 @@ namespace libtorrent
 				int num_blocks_per_piece = torrent_file().piece_length() / block_size();
 
 				if (bdecode_node unfinished_ent
-					= m_resume_data->node.dict_find_list("unfinished"))
+					= resume_data->node.dict_find_list("unfinished"))
 				{
 					for (int i = 0; i < unfinished_ent.list_size(); ++i)
 					{
@@ -2571,7 +2570,6 @@ namespace libtorrent
 		}
 
 		maybe_done_flushing();
-		m_resume_data.reset();
 
 		// restore m_need_save_resume_data to its state when we entered this
 		// function.

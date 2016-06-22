@@ -105,12 +105,6 @@ namespace libtorrent
 		struct piece_checker_data;
 	}
 
-	struct resume_data_t
-	{
-		std::vector<char> buf;
-		bdecode_node node;
-	};
-
 	struct time_critical_piece
 	{
 		// when this piece was first requested
@@ -1317,8 +1311,7 @@ namespace libtorrent
 		error_code m_error;
 
 		// used if there is any resume data
-		boost::scoped_ptr<resume_data_t> m_resume_data;
-		bool m_check_fastresume_queued;
+		std::unique_ptr<resume_data_t> m_resume_data;
 
 		// if the torrent is started without metadata, it may
 		// still be given a name until the metadata is received
