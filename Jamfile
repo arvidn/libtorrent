@@ -61,14 +61,8 @@ rule linking ( properties * )
 	if <ssl>openssl in $(properties)
 		&& ! <crypto>libcrypto in $(properties)
 	{
-		EXIT "with ssl=openssl the value for crypto must be libcrypto" ;
-	}
-
-	# crypto=commoncrypto => target-os=darwin
-	if <crypto>commoncrypto in $(properties)
-		&& ! <target-os>darwin in $(properties)
-	{
-		EXIT "value of commoncrypto for crypto option is only possible in macosx" ;
+		ECHO "with ssl=openssl the value for crypto must be libcrypto" ;
+		result += <build>no ;
 	}
 
 	# openssl libraries, if enabled
@@ -80,7 +74,6 @@ rule linking ( properties * )
 			&& ! <toolset>gcc in $(properties)
 		{
 			result += <library>ssleay32
-				<library>libeay32
 				<library>advapi32
 				<library>user32
 				<library>shell32
@@ -89,12 +82,11 @@ rule linking ( properties * )
 		}
 		else
 		{
-			result += <library>crypto <library>ssl ;
+			result += <library>ssl ;
 		}
 	}
 
 	if <crypto>libcrypto in $(properties)
-		&& ! <ssl>openssl in $(properties)
 	{
 		# exclude gcc from a regular windows build to make mingw
 		# link against the regular unix library name
@@ -102,8 +94,7 @@ rule linking ( properties * )
 			&& ! <toolset>gcc in $(properties)
 		{
 			# it should be possible to cleanup this list, but this is safe for now
-			result += <library>ssleay32
-				<library>libeay32
+			result += <library>libeay32
 				<library>advapi32
 				<library>user32
 				<library>shell32
@@ -493,10 +484,9 @@ feature.compose <encryption>off : <define>TORRENT_DISABLE_ENCRYPTION ;
 feature mutable-torrents : on off : composite propagated link-incompatible ;
 feature.compose <mutable-torrents>off : <define>TORRENT_DISABLE_MUTABLE_TORRENTS ;
 
-feature crypto : built-in libcrypto libgcrypt commoncrypto : composite propagated ;
+feature crypto : built-in libcrypto libgcrypt : composite propagated ;
 feature.compose <crypto>libcrypto : <define>TORRENT_USE_LIBCRYPTO ;
 feature.compose <crypto>libgcrypt : <define>TORRENT_USE_LIBGCRYPT ;
-feature.compose <crypto>commoncrypto : <define>TORRENT_USE_COMMONCRYPTO ;
 
 feature ssl : off openssl : composite propagated ;
 feature.compose <ssl>openssl : <define>TORRENT_USE_OPENSSL <define>OPENSSL_NO_SSL2 ;

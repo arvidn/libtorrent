@@ -1838,11 +1838,24 @@ namespace aux {
 		{
 			std::string const& device = m_listen_interfaces[i].device;
 			int const port = m_listen_interfaces[i].port;
-			bool const ssl =
-#ifdef TORRENT_USE_OPENSSL
-			m_listen_interfaces[i].ssl;
-#else
-			false;
+			bool const ssl = m_listen_interfaces[i].ssl;
+
+#ifndef TORRENT_USE_OPENSSL
+			if (ssl)
+			{
+#ifndef TORRENT_DISABLE_LOGGING
+				session_log("attempted to listen ssl with no library support on device: \"%s\""
+					, device.c_str());
+#endif
+				if (m_alerts.should_post<listen_failed_alert>())
+				{
+					m_alerts.emplace_alert<listen_failed_alert>(device
+						, listen_failed_alert::open
+						, boost::asio::error::operation_not_supported
+						, listen_failed_alert::tcp_ssl);
+				}
+				continue;
+			}
 #endif
 
 			// now we have a device to bind to. This device may actually just be an

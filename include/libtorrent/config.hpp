@@ -134,6 +134,13 @@ POSSIBILITY OF SUCH DAMAGE.
 # endif
 #include <AvailabilityMacros.h>
 
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+// on OSX, use the built-in common crypto for built-in
+# if !defined TORRENT_USE_LIBCRYPTO && !defined TORRENT_USE_LIBGCRYPT
+#  define TORRENT_USE_COMMONCRYPTO 1
+# endif // TORRENT_USE_OPENSSL
+#endif // MAC_OS_X_VERSION_MIN_REQUIRED
+
 // execinfo.h is available in the MacOS X 10.5 SDK.
 #if MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
 #define TORRENT_USE_EXECINFO 1
