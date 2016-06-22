@@ -271,7 +271,9 @@ namespace libtorrent
 			// consume potential SSL 's'
 			if (start < in.size() && in[start] == 's')
 			{
+#ifdef TORRENT_USE_OPENSSL
 				iface.ssl = true;
+#endif
 				++start;
 			}
 

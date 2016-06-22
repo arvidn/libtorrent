@@ -58,11 +58,12 @@ rule linking ( properties * )
 
 	# openssl libraries, if enabled
 	if <crypto>openssl in $(properties)
+		|| <crypto>openssl-sha1 in $(properties)
 	{
 		# exclude gcc from a regular windows build to make mingw
 		# link against the regular unix library name
 		if <target-os>windows in $(properties)
-		   && ! <toolset>gcc in $(properties)
+			&& ! <toolset>gcc in $(properties)
 		{
 			result += <library>ssleay32
 				<library>libeay32
@@ -74,7 +75,14 @@ rule linking ( properties * )
 		}
 		else
 		{
-			result += <library>crypto <library>ssl ;
+			if <crypto>openssl in $(properties)
+			{
+				result += <library>crypto <library>ssl ;
+			}
+			else
+			{
+				result += <library>crypto ;
+			}
 		}
 	}
 
@@ -455,8 +463,9 @@ feature.compose <encryption>off : <define>TORRENT_DISABLE_ENCRYPTION ;
 feature mutable-torrents : on off : composite propagated link-incompatible ;
 feature.compose <mutable-torrents>off : <define>TORRENT_DISABLE_MUTABLE_TORRENTS ;
 
-feature crypto : built-in openssl gcrypt : composite propagated ;
+feature crypto : built-in openssl openssl-sha1 gcrypt : composite propagated ;
 feature.compose <crypto>openssl : <define>TORRENT_USE_OPENSSL <define>OPENSSL_NO_SSL2 ;
+feature.compose <crypto>openssl-sha1 : <define>TORRENT_USE_OPENSSL_SHA1 ;
 feature.compose <crypto>gcrypt : <define>TORRENT_USE_GCRYPT ;
 
 feature character-set : unicode ansi : composite propagated link-incompatible ;

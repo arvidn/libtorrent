@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <CommonCrypto/CommonDigest.h>
 
-#elif defined TORRENT_USE_OPENSSL
+#elif defined TORRENT_USE_OPENSSL || defined TORRENT_USE_OPENSSL_SHA1
 
 extern "C"
 {
@@ -109,7 +109,7 @@ namespace libtorrent
 		gcry_md_hd_t m_context;
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA1_CTX m_context;
-#elif defined TORRENT_USE_OPENSSL
+#elif defined TORRENT_USE_OPENSSL || defined TORRENT_USE_OPENSSL_SHA1
 		SHA_CTX m_context;
 #else
 		sha_ctx m_context;
