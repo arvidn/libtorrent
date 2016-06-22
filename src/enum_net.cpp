@@ -278,6 +278,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			, rt_info->destination.is_v4() ? AF_INET : AF_INET6);
 		if_indextoname(rtm->rtm_index, rt_info->name);
 
+		// TODO: get the MTU (and other interesting metrics) from the rt_msghdr instead
 		ifreq req;
 		memset(&req, 0, sizeof(req));
 		if_indextoname(rtm->rtm_index, req.ifr_name);
@@ -887,8 +888,11 @@ namespace libtorrent
 	for (char* next = buf.get(); next < end; next += rtm->rtm_msglen)
 	{
 		rtm = reinterpret_cast<rt_msghdr*>(next);
-		if (rtm->rtm_version != RTM_VERSION)
+		if (rtm->rtm_version != RTM_VERSION
+			|| rtm->rtm_type != RTM_ADD)
+		{
 			continue;
+		}
 
 		ip_route r;
 		if (parse_route(s, rtm, &r)) ret.push_back(r);
