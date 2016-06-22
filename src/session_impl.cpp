@@ -1838,7 +1838,11 @@ namespace aux {
 		{
 			std::string const& device = m_listen_interfaces[i].device;
 			int const port = m_listen_interfaces[i].port;
+#ifdef TORRENT_USE_OPENSSL
 			bool const ssl = m_listen_interfaces[i].ssl;
+#else
+			bool const ssl = false;
+#endif
 
 			// now we have a device to bind to. This device may actually just be an
 			// IP address or a device name. In case it's a device name, we want to
