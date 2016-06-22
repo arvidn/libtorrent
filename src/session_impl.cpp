@@ -124,7 +124,7 @@ const rlim_t rlim_infinity = RLIM_INFINITY;
 
 #endif // TORRENT_DISABLE_LOGGING
 
-#ifdef TORRENT_USE_GCRYPT
+#ifdef TORRENT_USE_LIBGCRYPT
 
 extern "C" {
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
@@ -146,7 +146,7 @@ namespace
 	} gcrypt_global_constructor;
 }
 
-#endif // TORRENT_USE_GCRYPT
+#endif // TORRENT_USE_LIBGCRYPT
 
 #ifdef TORRENT_USE_OPENSSL
 
@@ -1838,10 +1838,11 @@ namespace aux {
 		{
 			std::string const& device = m_listen_interfaces[i].device;
 			int const port = m_listen_interfaces[i].port;
+			bool const ssl =
 #ifdef TORRENT_USE_OPENSSL
-			bool const ssl = m_listen_interfaces[i].ssl;
+			m_listen_interfaces[i].ssl;
 #else
-			bool const ssl = false;
+			false;
 #endif
 
 			// now we have a device to bind to. This device may actually just be an
