@@ -282,6 +282,10 @@ namespace libtorrent
 		, m_use_resume_save_path((p.flags & add_torrent_params::flag_use_resume_save_path) != 0)
 		, m_merge_resume_http_seeds((p.flags & add_torrent_params::flag_merge_resume_http_seeds) != 0)
 		, m_stop_when_ready((p.flags & add_torrent_params::flag_stop_when_ready) != 0)
+#if TORRENT_USE_ASSERTS
+		, m_resume_data_loaded(false)
+		, m_was_started(false)
+#endif
 	{
 		// we cannot log in the constructor, because it relies on shared_from_this
 		// being initialized, which happens after the constructor returns.
@@ -296,9 +300,6 @@ namespace libtorrent
 		if (!p.resume_data.empty() && (p.flags & add_torrent_params::flag_override_resume_data) == 0)
 			m_need_save_resume_data = false;
 
-#if TORRENT_USE_ASSERTS
-		m_resume_data_loaded = false;
-#endif
 #if TORRENT_USE_UNC_PATHS
 		m_save_path = canonicalize_path(m_save_path);
 #endif
@@ -718,6 +719,10 @@ namespace libtorrent
 	void torrent::start(add_torrent_params const& p)
 	{
 		TORRENT_ASSERT(is_single_thread());
+		TORRENT_ASSERT(m_was_started == false);
+#if TORRENT_USE_ASSERTS
+		m_was_started = true;
+#endif
 
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("creating torrent: %s max-uploads: %d max-connections: %d "
