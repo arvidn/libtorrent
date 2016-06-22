@@ -360,7 +360,7 @@ rule building ( properties * )
 		result += <source>src/pe_crypto.cpp ;
 	}
 
-	if <crypo>builtin in $(properties)
+	if <crypo>built-in in $(properties)
 	{
 		result += <source>src/sha1.cpp ;
 	}
@@ -493,7 +493,7 @@ feature.compose <encryption>off : <define>TORRENT_DISABLE_ENCRYPTION ;
 feature mutable-torrents : on off : composite propagated link-incompatible ;
 feature.compose <mutable-torrents>off : <define>TORRENT_DISABLE_MUTABLE_TORRENTS ;
 
-feature crypto : builtin libcrypto libgcrypt commoncrypto : composite propagated ;
+feature crypto : built-in libcrypto libgcrypt commoncrypto : composite propagated ;
 feature.compose <crypto>libcrypto : <define>TORRENT_USE_LIBCRYPTO ;
 feature.compose <crypto>libgcrypt : <define>TORRENT_USE_LIBGCRYPT ;
 feature.compose <crypto>commoncrypto : <define>TORRENT_USE_COMMONCRYPTO ;
