@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifdef TORRENT_USE_LIBGCRYPT
 #include <gcrypt.h>
 
-#elif defined TORRENT_USE_COMMONCRYPTO
+#elif TORRENT_USE_COMMONCRYPTO
 
 #include <CommonCrypto/CommonDigest.h>
 
@@ -107,7 +107,7 @@ namespace libtorrent
 
 #ifdef TORRENT_USE_LIBGCRYPT
 		gcry_md_hd_t m_context;
-#elif defined TORRENT_USE_COMMONCRYPTO
+#elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA1_CTX m_context;
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA_CTX m_context;

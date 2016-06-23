@@ -38,7 +38,7 @@ namespace libtorrent
 	{
 #ifdef TORRENT_USE_LIBGCRYPT
 		gcry_md_open(&m_context, GCRY_MD_SHA1, 0);
-#elif defined TORRENT_USE_COMMONCRYPTO
+#elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA1_Init(&m_context);
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA1_Init(&m_context);
@@ -54,7 +54,7 @@ namespace libtorrent
 #ifdef TORRENT_USE_LIBGCRYPT
 		gcry_md_open(&m_context, GCRY_MD_SHA1, 0);
 		gcry_md_write(m_context, data, len);
-#elif defined TORRENT_USE_COMMONCRYPTO
+#elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA1_Init(&m_context);
 		CC_SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
 #elif defined TORRENT_USE_LIBCRYPTO
@@ -86,7 +86,7 @@ namespace libtorrent
 		TORRENT_ASSERT(len > 0);
 #ifdef TORRENT_USE_LIBGCRYPT
 		gcry_md_write(m_context, data, len);
-#elif defined TORRENT_USE_COMMONCRYPTO
+#elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
@@ -102,7 +102,7 @@ namespace libtorrent
 #ifdef TORRENT_USE_LIBGCRYPT
 		gcry_md_final(m_context);
 		digest.assign((const char*)gcry_md_read(m_context, 0));
-#elif defined TORRENT_USE_COMMONCRYPTO
+#elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA1_Final(digest.begin(), &m_context);
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA1_Final(digest.begin(), &m_context);
@@ -116,7 +116,7 @@ namespace libtorrent
 	{
 #ifdef TORRENT_USE_LIBGCRYPT
 		gcry_md_reset(m_context);
-#elif defined TORRENT_USE_COMMONCRYPTO
+#elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA1_Init(&m_context);
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA1_Init(&m_context);

@@ -277,11 +277,18 @@ Build features:
 |                          | * ``off`` - mutable torrents are not supported.    |
 +--------------------------+----------------------------------------------------+
 | ``crypto``               | * ``built-in`` - (default) uses built-in SHA-1     |
-|                          |   implementation.                                  |
-|                          | * ``openssl`` - links against openssl and          |
-|                          |   libcrypto to use for SHA-1 hashing.              |
-|                          | * ``gcrypt`` - links against libgcrypt to use for  |
-|                          |   SHA-1 hashing.                                   |
+|                          |   implementation. In macOS/iOS it uses             |
+|                          |   CommonCrypto SHA-1 implementation.               |
+|                          | * ``libcrypto`` - links against libcrypto          |
+|                          |   to use the SHA-1 implementation.                 |
+|                          | * ``libgcrypt`` - links against libgcrypt          |
+|                          |   to use the SHA-1 implementation.                 |
++--------------------------+----------------------------------------------------+
+| ``ssl``                  | * ``off`` - (default) disable torrents over ssl    |
+|                          |   feature.                                         |
+|                          | * ``openssl`` - links against openssl to enable    |
+|                          |   torrents over ssl feature. Requires              |
+|                          |   the option crypto=libcrypto.                     |
 +--------------------------+----------------------------------------------------+
 | ``allocator``            | * ``pool`` - default, uses pool allocators for     |
 |                          |   send buffers.                                    |
@@ -566,8 +573,8 @@ defines you can use to control the build.
 |                                        | encrypted supported by clients such as          |
 |                                        | uTorrent, Azureus and KTorrent.                 |
 |                                        | If this is not defined, either                  |
-|                                        | ``TORRENT_USE_OPENSSL`` or                      |
-|                                        | ``TORRENT_USE_GCRYPT`` must be defined.         |
+|                                        | ``TORRENT_USE_LIBCRYPTO`` or                    |
+|                                        | ``TORRENT_USE_LIBGCRYPT`` must be defined.      |
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_DISABLE_EXTENSIONS``         | When defined, libtorrent plugin support is      |
 |                                        | disabled along with support for the extension   |
