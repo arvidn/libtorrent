@@ -305,6 +305,7 @@ TORRENT_TEST(torrent)
 	}
 }
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
 struct test_plugin : libtorrent::torrent_plugin {};
 
 struct plugin_creator
@@ -321,7 +322,6 @@ struct plugin_creator
 	int& m_called;
 };
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
 TORRENT_TEST(duplicate_is_not_error)
 {
 	file_storage fs;
