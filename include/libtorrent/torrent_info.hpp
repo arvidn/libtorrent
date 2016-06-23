@@ -400,17 +400,17 @@ namespace libtorrent
 		// returns true if this torrent_info object has a torrent loaded.
 		// This is primarily used to determine if a magnet link has had its
 		// metadata resolved yet or not.
-		bool is_valid() const { return m_files.is_valid(); }
+		bool is_valid() const { return (m_files.is_valid()) != 0; }
 
 		// returns true if this torrent is private. i.e., it should not be
 		// distributed on the trackerless network (the kademlia DHT).
-		bool priv() const { return m_flags & private_torrent; }
+		bool priv() const { return (m_flags & private_torrent) != 0; }
 
 		// returns true if this is an i2p torrent. This is determined by whether
 		// or not it has a tracker whose URL domain name ends with ".i2p". i2p
 		// torrents disable the DHT and local peer discovery as well as talking
 		// to peers over anything other than the i2p network.
-		bool is_i2p() const { return m_flags & i2p; }
+		bool is_i2p() const { return (m_flags & i2p) != 0; }
 
 		// ``hash_for_piece()`` takes a piece-index and returns the 20-bytes
 		// sha1-hash for that piece and ``info_hash()`` returns the 20-bytes
