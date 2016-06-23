@@ -539,7 +539,7 @@ namespace aux {
 		session_log(" done starting session");
 #endif
 
-		apply_settings_pack(pack);
+		apply_settings_pack_impl(*pack, true);
 
 		// call update_* after settings set initialized
 
@@ -557,13 +557,6 @@ namespace aux {
 		update_lsd();
 		update_dht();
 		update_peer_fingerprint();
-
-		if (m_listen_sockets.empty())
-		{
-			update_listen_interfaces();
-			reopen_listen_sockets();
-		}
-
 #ifndef TORRENT_DISABLE_DHT
 		update_dht_announce_interval();
 #endif
@@ -1458,9 +1451,10 @@ namespace aux {
 		return ret;
 	}
 
-	void session_impl::apply_settings_pack_impl(settings_pack const& pack)
+	void session_impl::apply_settings_pack_impl(settings_pack const& pack
+		, bool const init)
 	{
-		bool reopen_listen_port =
+		bool const reopen_listen_port =
 #ifndef TORRENT_NO_DEPRECATE
 			(pack.has_val(settings_pack::ssl_listen)
 				&& pack.get_int(settings_pack::ssl_listen)
@@ -1474,7 +1468,10 @@ namespace aux {
 		apply_pack(&pack, m_settings, this);
 		m_disk_thread.set_settings(&pack, m_alerts);
 
-		if (reopen_listen_port)
+		if (init)
+			update_listen_interfaces();
+
+		if (init || reopen_listen_port)
 		{
 			reopen_listen_sockets();
 		}
