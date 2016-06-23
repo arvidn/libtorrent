@@ -298,7 +298,8 @@ namespace libtorrent
 #endif
 
 			void apply_settings_pack(boost::shared_ptr<settings_pack> pack) override;
-			void apply_settings_pack_impl(settings_pack const& pack);
+			void apply_settings_pack_impl(settings_pack const& pack
+				, bool const init = false);
 			session_settings const& settings() const override { return m_settings; }
 			settings_pack get_settings() const;
 
