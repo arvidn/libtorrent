@@ -106,7 +106,7 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 	// returns the entire regular buffer
 	// should only be used during the handshake
-	buffer::interval mutable_buffer();
+	boost::asio::mutable_buffer mutable_buffer();
 
 	// returns the last 'bytes' from the receive buffer
 	boost::asio::mutable_buffer mutable_buffer(int bytes);
@@ -178,7 +178,7 @@ private:
 // Wraps a receive_buffer to provide the ability to inject
 // possibly authenticated crypto beneath the bittorrent protocol.
 // When authenticated crypto is in use the wrapped receive_buffer
-// holds the receive state of the crpyto layer while this class
+// holds the receive state of the crypto layer while this class
 // tracks the state of the bittorrent protocol.
 struct crypto_receive_buffer
 {
@@ -189,7 +189,10 @@ struct crypto_receive_buffer
 		, m_connection_buffer(next)
 	{}
 
-	buffer::interval mutable_buffer() { return m_connection_buffer.mutable_buffer(); }
+	boost::asio::mutable_buffer mutable_buffer()
+	{
+		return m_connection_buffer.mutable_buffer();
+	}
 
 	bool packet_finished() const;
 

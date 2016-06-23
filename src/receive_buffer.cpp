@@ -130,7 +130,7 @@ buffer::const_interval receive_buffer::get() const
 	if (m_recv_buffer.empty())
 	{
 		TORRENT_ASSERT(m_recv_pos == 0);
-		return buffer::interval(0,0);
+		return buffer::const_interval(0,0);
 	}
 
 	int rcv_pos = (std::min)(m_recv_pos, int(m_recv_buffer.size()) - m_recv_start);
@@ -139,16 +139,17 @@ buffer::const_interval receive_buffer::get() const
 }
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-buffer::interval receive_buffer::mutable_buffer()
+boost::asio::mutable_buffer receive_buffer::mutable_buffer()
 {
+	namespace asio = boost::asio;
+
 	if (m_recv_buffer.empty())
 	{
 		TORRENT_ASSERT(m_recv_pos == 0);
-		return buffer::interval(0,0);
+		return asio::mutable_buffer();
 	}
 	int const rcv_pos = (std::min)(m_recv_pos, int(m_recv_buffer.size()));
-	return buffer::interval(&m_recv_buffer[0] + m_recv_start
-		, &m_recv_buffer[0] + m_recv_start + rcv_pos);
+	return asio::mutable_buffer(&m_recv_buffer[0] + m_recv_start, rcv_pos);
 }
 
 boost::asio::mutable_buffer receive_buffer::mutable_buffer(int const bytes)
