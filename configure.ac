@@ -386,7 +386,7 @@ AS_CASE(["$ARG_ENABLE_ENCRYPTION"],
 
       AX_CHECK_OPENSSL([
           AC_DEFINE([TORRENT_USE_OPENSSL],[1],[Define to use OpenSSL support.])
-          COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_USE_OPENSSL "
+          COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_USE_OPENSSL -DTORRENT_USE_LIBCRYPTO "
         ], [
           AC_MSG_ERROR([OpenSSL library not found. Try using --with-openssl=DIR or disabling encryption at all.])
       ])

@@ -124,7 +124,7 @@ const rlim_t rlim_infinity = RLIM_INFINITY;
 
 #endif // TORRENT_DISABLE_LOGGING
 
-#ifdef TORRENT_USE_GCRYPT
+#ifdef TORRENT_USE_LIBGCRYPT
 
 extern "C" {
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
@@ -146,7 +146,7 @@ namespace
 	} gcrypt_global_constructor;
 }
 
-#endif // TORRENT_USE_GCRYPT
+#endif // TORRENT_USE_LIBGCRYPT
 
 #ifdef TORRENT_USE_OPENSSL
 
@@ -1839,6 +1839,24 @@ namespace aux {
 			std::string const& device = m_listen_interfaces[i].device;
 			int const port = m_listen_interfaces[i].port;
 			bool const ssl = m_listen_interfaces[i].ssl;
+
+#ifndef TORRENT_USE_OPENSSL
+			if (ssl)
+			{
+#ifndef TORRENT_DISABLE_LOGGING
+				session_log("attempted to listen ssl with no library support on device: \"%s\""
+					, device.c_str());
+#endif
+				if (m_alerts.should_post<listen_failed_alert>())
+				{
+					m_alerts.emplace_alert<listen_failed_alert>(device
+						, listen_failed_alert::open
+						, boost::asio::error::operation_not_supported
+						, listen_failed_alert::tcp_ssl);
+				}
+				continue;
+			}
+#endif
 
 			// now we have a device to bind to. This device may actually just be an
 			// IP address or a device name. In case it's a device name, we want to

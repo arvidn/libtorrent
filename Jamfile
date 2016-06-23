@@ -56,16 +56,24 @@ rule linking ( properties * )
 {
 	local result ;
 
+	# ssl=openssl => crypto=libcrypto
+	# this match the previous behavior
+	if <ssl>openssl in $(properties)
+		&& ! <crypto>libcrypto in $(properties)
+	{
+		ECHO "with ssl=openssl the value for crypto must be libcrypto" ;
+		result += <build>no ;
+	}
+
 	# openssl libraries, if enabled
-	if <crypto>openssl in $(properties)
+	if <ssl>openssl in $(properties)
 	{
 		# exclude gcc from a regular windows build to make mingw
 		# link against the regular unix library name
 		if <target-os>windows in $(properties)
-		   && ! <toolset>gcc in $(properties)
+			&& ! <toolset>gcc in $(properties)
 		{
 			result += <library>ssleay32
-				<library>libeay32
 				<library>advapi32
 				<library>user32
 				<library>shell32
@@ -74,7 +82,28 @@ rule linking ( properties * )
 		}
 		else
 		{
-			result += <library>crypto <library>ssl ;
+			result += <library>ssl ;
+		}
+	}
+
+	if <crypto>libcrypto in $(properties)
+	{
+		# exclude gcc from a regular windows build to make mingw
+		# link against the regular unix library name
+		if <target-os>windows in $(properties)
+			&& ! <toolset>gcc in $(properties)
+		{
+			# it should be possible to cleanup this list, but this is safe for now
+			result += <library>libeay32
+				<library>advapi32
+				<library>user32
+				<library>shell32
+				<library>gdi32
+			;
+		}
+		else
+		{
+			result += <library>crypto ;
 		}
 	}
 
@@ -95,7 +124,7 @@ rule linking ( properties * )
 	}
 
 	# gcrypt libraries, if enabled
-	if <crypto>gcrypt in $(properties)
+	if <crypto>libgcrypt in $(properties)
 	{
 		# on mac os x, adding the /opt/local/include path
 		# would include openssl headers incompatible with
@@ -455,9 +484,12 @@ feature.compose <encryption>off : <define>TORRENT_DISABLE_ENCRYPTION ;
 feature mutable-torrents : on off : composite propagated link-incompatible ;
 feature.compose <mutable-torrents>off : <define>TORRENT_DISABLE_MUTABLE_TORRENTS ;
 
-feature crypto : built-in openssl gcrypt : composite propagated ;
-feature.compose <crypto>openssl : <define>TORRENT_USE_OPENSSL <define>OPENSSL_NO_SSL2 ;
-feature.compose <crypto>gcrypt : <define>TORRENT_USE_GCRYPT ;
+feature crypto : built-in libcrypto libgcrypt : composite propagated ;
+feature.compose <crypto>libcrypto : <define>TORRENT_USE_LIBCRYPTO ;
+feature.compose <crypto>libgcrypt : <define>TORRENT_USE_LIBGCRYPT ;
+
+feature ssl : off openssl : composite propagated ;
+feature.compose <ssl>openssl : <define>TORRENT_USE_OPENSSL <define>OPENSSL_NO_SSL2 ;
 
 feature character-set : unicode ansi : composite propagated link-incompatible ;
 feature.compose <character-set>unicode : <define>_UNICODE <define>UNICODE ;
@@ -494,7 +526,7 @@ variant test_release : release
 	  <inlining>off
 	;
 variant test_debug : debug
-	: <crypto>openssl <logging>on <disk-stats>on
+	: <ssl>openssl <crypto>libcrypto <logging>on <disk-stats>on
 	  <allocator>debug
 	  <invariant-checks>full <boost-link>shared
 	  <export-extra>on <debug-iterators>on <threading>multi <asserts>on

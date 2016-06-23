@@ -39,14 +39,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstdint>
 
-#ifdef TORRENT_USE_GCRYPT
+#ifdef TORRENT_USE_LIBGCRYPT
 #include <gcrypt.h>
 
 #elif TORRENT_USE_COMMONCRYPTO
 
 #include <CommonCrypto/CommonDigest.h>
 
-#elif defined TORRENT_USE_OPENSSL
+#elif defined TORRENT_USE_LIBCRYPTO
 
 extern "C"
 {
@@ -85,7 +85,7 @@ namespace libtorrent
 		// ``update(data, len)``.
 		hasher(const char* data, int len);
 
-#ifdef TORRENT_USE_GCRYPT
+#ifdef TORRENT_USE_LIBGCRYPT
 		hasher(hasher const& h);
 		hasher& operator=(hasher const& h);
 #endif
@@ -105,11 +105,11 @@ namespace libtorrent
 
 	private:
 
-#ifdef TORRENT_USE_GCRYPT
+#ifdef TORRENT_USE_LIBGCRYPT
 		gcry_md_hd_t m_context;
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA1_CTX m_context;
-#elif defined TORRENT_USE_OPENSSL
+#elif defined TORRENT_USE_LIBCRYPTO
 		SHA_CTX m_context;
 #else
 		sha_ctx m_context;

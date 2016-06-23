@@ -190,7 +190,7 @@ namespace libtorrent
 			// see proxy_type.
 			proxy_hostname,
 
-			// when using a proxy, these are the credentials (if any) to use whne
+			// when using a proxy, these are the credentials (if any) to use when
 			// connecting to it. see proxy_type
 			proxy_username,
 			proxy_password,
