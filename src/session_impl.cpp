@@ -4809,6 +4809,18 @@ retry:
 		if (!peers.empty())
 			torrent_ptr->update_want_peers();
 
+#ifndef TORRENT_DISABLE_DHT
+		if (params.ti)
+		{
+			torrent_info::nodes_t const& nodes = params.ti->nodes();
+			for (std::vector<std::pair<std::string, int> >::const_iterator i = nodes.begin()
+				, end(nodes.end()); i != end; ++i)
+			{
+				add_dht_node_name(*i);
+			}
+		}
+#endif
+
 		if (m_alerts.should_post<torrent_added_alert>())
 			m_alerts.emplace_alert<torrent_added_alert>(handle);
 
@@ -4831,18 +4843,6 @@ retry:
 		}
 
 		add_extensions_to_torrent(torrent_ptr, params.userdata);
-#endif
-
-#ifndef TORRENT_DISABLE_DHT
-		if (params.ti)
-		{
-			torrent_info::nodes_t const& nodes = params.ti->nodes();
-			for (std::vector<std::pair<std::string, int> >::const_iterator i = nodes.begin()
-				, end(nodes.end()); i != end; ++i)
-			{
-				add_dht_node_name(*i);
-			}
-		}
 #endif
 
 #if TORRENT_HAS_BOOST_UNORDERED
