@@ -400,17 +400,17 @@ namespace libtorrent
 		// returns true if this torrent_info object has a torrent loaded.
 		// This is primarily used to determine if a magnet link has had its
 		// metadata resolved yet or not.
-		bool is_valid() const { return m_files.is_valid(); }
+		bool is_valid() const { return (m_files.is_valid()) != 0; }
 
 		// returns true if this torrent is private. i.e., it should not be
 		// distributed on the trackerless network (the kademlia DHT).
-		bool priv() const { return m_private; }
+		bool priv() const { return (m_flags & private_torrent) != 0; }
 
 		// returns true if this is an i2p torrent. This is determined by whether
 		// or not it has a tracker whose URL domain name ends with ".i2p". i2p
 		// torrents disable the DHT and local peer discovery as well as talking
 		// to peers over anything other than the i2p network.
-		bool is_i2p() const { return m_i2p; }
+		bool is_i2p() const { return (m_flags & i2p) != 0; }
 
 		// ``hash_for_piece()`` takes a piece-index and returns the 20-bytes
 		// sha1-hash for that piece and ``info_hash()`` returns the 20-bytes
@@ -587,7 +587,7 @@ namespace libtorrent
 
 		// this is a pointer into the m_info_section buffer
 		// pointing to the first byte of the first sha-1 hash
-		char const* m_piece_hashes;
+		char const* m_piece_hashes = nullptr;
 
 		// if a comment is found in the torrent file
 		// this will be set to that comment
@@ -604,34 +604,40 @@ namespace libtorrent
 		// if a creation date is found in the torrent file
 		// this will be set to that, otherwise it'll be
 		// 1970, Jan 1
-		time_t m_creation_date;
+		time_t m_creation_date = 0;
 
 		// the hash that identifies this torrent
 		sha1_hash m_info_hash;
 
 		// the number of bytes in m_info_section
-		std::uint32_t m_info_section_size;
+		std::uint32_t m_info_section_size = 0;
 
 		// the index to the first leaf. This is where the hash for the
 		// first piece is stored
-		std::uint32_t m_merkle_first_leaf:24;
+		std::uint32_t m_merkle_first_leaf = 0;
 
-		// this is used when creating a torrent. If there's
-		// only one file there are cases where it's impossible
-		// to know if it should be written as a multifile torrent
-		// or not. e.g. test/test  there's one file and one directory
-		// and they have the same name.
-		bool m_multifile:1;
+		enum flags_t : std::uint8_t
+		{
+			// this is used when creating a torrent. If there's
+			// only one file there are cases where it's impossible
+			// to know if it should be written as a multifile torrent
+			// or not. e.g. test/test  there's one file and one directory
+			// and they have the same name.
+			multifile = 1,
 
-		// this is true if the torrent is private. i.e., is should not
-		// be announced on the dht
-		bool m_private:1;
+			// this is true if the torrent is private. i.e., is should not
+			// be announced on the dht
+			private_torrent = 2,
 
-		// this is true if one of the trackers has an .i2p top
-		// domain in its hostname. This means the DHT and LSD
-		// features are disabled for this torrent (unless the
-		// settings allows mixing i2p peers with regular peers)
-		bool m_i2p:1;
+			// this is true if one of the trackers has an .i2p top
+			// domain in its hostname. This means the DHT and LSD
+			// features are disabled for this torrent (unless the
+			// settings allows mixing i2p peers with regular peers)
+			i2p = 4
+		};
+
+		// any combination of values from flags_t enum
+		std::uint8_t m_flags = 0;
 	};
 
 }
