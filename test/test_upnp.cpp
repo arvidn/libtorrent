@@ -37,9 +37,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp"
 #include <fstream>
 #include <functional>
-#include <boost/ref.hpp>
-#include <boost/smart_ptr.hpp>
 #include <iostream>
+
+#include <boost/smart_ptr.hpp>
+#include <boost/ref.hpp>
 
 using namespace libtorrent;
 
@@ -159,8 +160,8 @@ void run_upnp_test(char const* root_filename, char const* router_model, char con
 
 	std::string user_agent = "test agent";
 
-	boost::shared_ptr<upnp> upnp_handler = boost::make_shared<upnp>(boost::ref(ios)
-		, user_agent, &callback, &log_callback, false);
+	boost::shared_ptr<upnp> upnp_handler(new upnp(boost::ref(ios)
+		, user_agent, &callback, &log_callback, false));
 	upnp_handler->start();
 	upnp_handler->discover_device();
 

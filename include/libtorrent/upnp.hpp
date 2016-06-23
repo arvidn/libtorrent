@@ -220,7 +220,9 @@ private:
 
 	void disable(error_code const& ec);
 	void return_error(int mapping, int code);
-	void log(char const* msg);
+#ifndef TORRENT_DISABLE_LOGGING
+	void log(char const* msg, ...) const TORRENT_FORMAT(2,3);
+#endif
 
 	void get_ip_address(rootdevice& d);
 	void delete_port_mapping(rootdevice& d, int i);
@@ -364,7 +366,9 @@ private:
 	std::set<rootdevice> m_devices;
 
 	portmap_callback_t m_callback;
+#ifndef TORRENT_DISABLE_LOGGING
 	log_callback_t m_log_callback;
+#endif
 
 	// current retry count
 	int m_retry_count;
