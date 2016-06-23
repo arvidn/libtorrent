@@ -1454,24 +1454,25 @@ namespace aux {
 	void session_impl::apply_settings_pack_impl(settings_pack const& pack
 		, bool const init)
 	{
-		bool reopen_listen_port =
+		bool const reopen_listen_port =
 #ifndef TORRENT_NO_DEPRECATE
 			(pack.has_val(settings_pack::ssl_listen)
 				&& pack.get_int(settings_pack::ssl_listen)
 					!= m_settings.get_int(settings_pack::ssl_listen))
 			||
 #endif
-			init || (pack.has_val(settings_pack::listen_interfaces)
+			(pack.has_val(settings_pack::listen_interfaces)
 				&& pack.get_str(settings_pack::listen_interfaces)
 					!= m_settings.get_str(settings_pack::listen_interfaces));
 
 		apply_pack(&pack, m_settings, this);
 		m_disk_thread.set_settings(&pack, m_alerts);
 
-		if (reopen_listen_port)
+		if (init)
+			update_listen_interfaces();
+
+		if (init || reopen_listen_port)
 		{
-			if (init)
-				update_listen_interfaces();
 			reopen_listen_sockets();
 		}
 	}
