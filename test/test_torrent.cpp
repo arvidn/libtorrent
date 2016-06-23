@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/thread.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/peer_info.hpp"
+#include "libtorrent/extensions.hpp"
 #include <boost/tuple/tuple.hpp>
 #include <boost/make_shared.hpp>
 #include <iostream>
@@ -303,6 +304,68 @@ TORRENT_TEST(torrent)
 		test_running_torrent(info, 1024);
 	}
 }
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+struct test_plugin : libtorrent::torrent_plugin {};
+
+struct plugin_creator
+{
+	plugin_creator(int& c) : m_called(c) {}
+
+	boost::shared_ptr<libtorrent::torrent_plugin>
+	operator()(torrent_handle const&, void*)
+	{
+		++m_called;
+		return boost::make_shared<test_plugin>();
+	}
+
+	int& m_called;
+};
+
+TORRENT_TEST(duplicate_is_not_error)
+{
+	file_storage fs;
+
+	fs.add_file("test_torrent_dir2/tmp1", 1024);
+	libtorrent::create_torrent t(fs, 128 * 1024, 6);
+
+	std::vector<char> piece(128 * 1024);
+	for (int i = 0; i < int(piece.size()); ++i)
+		piece[i] = (i % 26) + 'A';
+
+	// calculate the hash for all pieces
+	sha1_hash ph = hasher(&piece[0], piece.size()).final();
+	int num = t.num_pieces();
+	TEST_CHECK(t.num_pieces() > 0);
+	for (int i = 0; i < num; ++i)
+		t.set_hash(i, ph);
+
+	std::vector<char> tmp;
+	std::back_insert_iterator<std::vector<char> > out(tmp);
+	bencode(out, t.generate());
+	error_code ec;
+
+	int called = 0;
+	plugin_creator creator(called);
+
+	add_torrent_params p;
+	p.ti = boost::make_shared<torrent_info>(&tmp[0], tmp.size(), boost::ref(ec), 0);
+	p.flags &= ~add_torrent_params::flag_paused;
+	p.flags &= ~add_torrent_params::flag_auto_managed;
+	p.flags &= ~add_torrent_params::flag_duplicate_is_error;
+	p.save_path = ".";
+	p.extensions.push_back(creator);
+
+	lt::session ses;
+	ses.async_add_torrent(p);
+	ses.async_add_torrent(p);
+
+	wait_for_downloading(ses, "ses");
+
+	// we should only have added the plugin once
+	TEST_EQUAL(called, 1);
+}
+#endif
 
 TORRENT_TEST(torrent_total_size_zero)
 {

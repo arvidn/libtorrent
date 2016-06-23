@@ -406,7 +406,10 @@ namespace libtorrent
 #endif
 
 			torrent_handle add_torrent(add_torrent_params const&, error_code& ec);
-			boost::shared_ptr<torrent> add_torrent_impl(add_torrent_params& p, error_code& ec);
+			// second return value is true if the torrent was added and false if an
+			// existing one was found.
+			std::pair<boost::shared_ptr<torrent>, bool>
+			add_torrent_impl(add_torrent_params& p, error_code& ec);
 			void async_add_torrent(add_torrent_params* params);
 			void on_async_load_torrent(disk_io_job const* j);
 
