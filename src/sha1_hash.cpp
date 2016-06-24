@@ -76,16 +76,13 @@ namespace libtorrent
 			}
 
 #if TORRENT_HAS_SSE
-			if (aux::mmx_support)
-			{
 #ifdef __GNUC__
-				return ret + __builtin_clz(v);
+			return ret + __builtin_clz(v);
 #else
-				DWORD pos;
-				_BitScanReverse(&pos, v);
-				return ret + 31 - pos;
+			DWORD pos;
+			_BitScanReverse(&pos, v);
+			return ret + 31 - pos;
 #endif
-			}
 #else
 			// http://graphics.stanford.edu/~seander/bithacks.html#IntegerLogObvious
 			static const int MultiplyDeBruijnBitPosition[32] =
