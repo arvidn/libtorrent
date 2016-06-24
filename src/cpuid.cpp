@@ -40,6 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if TORRENT_HAS_SSE && defined __GNUC__
 #include <cpuid.h>
+#else
+#include <cstring> // for std::memset
 #endif
 
 namespace libtorrent { namespace aux
