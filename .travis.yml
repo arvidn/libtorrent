@@ -15,6 +15,9 @@ matrix:
     - os: osx
       osx_image: xcode6.4
       env: variant=test_barebones
+    - sudo: required
+      dist: trusty
+      env: arch=arm
 
 git:
   submodules: false
@@ -87,7 +90,6 @@ install:
   - if [ "$docs" == "1" ]; then rst2html.py --version; fi
 
 script:
-
 
   - cd docs
   - 'if [ "$docs" == "1" ]; then
@@ -165,3 +167,4 @@ script:
 
   - 'if [[ "$variant" != "" ]]; then ccache --show-stats; fi'
 
+  - if [ $arch == "arm" ]; then ./.travis-arm.sh; fi

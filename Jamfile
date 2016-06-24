@@ -536,6 +536,11 @@ variant test_barebones : debug
 	  <deprecated-functions>off <invariant-checks>off
 	  <export-extra>on <debug-iterators>on <threading>multi <asserts>on
 	;
+variant test_arm : debug
+	: <ipv6>off <dht>off <extensions>off <logging>off
+	  <deprecated-functions>off <invariant-checks>off
+	  <export-extra>on <asserts>on
+	;
 
 # required for openssl on windows
 lib ssleay32 : : <name>ssleay32 ;

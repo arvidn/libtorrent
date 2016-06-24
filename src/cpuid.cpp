@@ -48,19 +48,22 @@ namespace libtorrent { namespace aux
 {
 	namespace {
 
+#if TORRENT_HAS_SSE
 	// internal
 	void cpuid(unsigned int info[4], int type)
 	{
-#if TORRENT_HAS_SSE && defined _MSC_VER
+#if defined _MSC_VER
 		__cpuid((int*)info, type);
 
-#elif TORRENT_HAS_SSE && defined __GNUC__
+#elif defined __GNUC__
 		__get_cpuid(type, &info[0], &info[1], &info[2], &info[3]);
 #else
+		TORRENT_UNUSED(type);
 		// for non-x86 and non-amd64, just return zeroes
 		std::memset(&info[0], 0, sizeof(unsigned int) * 4);
 #endif
 	}
+#endif
 
 	bool supports_sse42()
 	{

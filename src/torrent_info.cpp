@@ -67,10 +67,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#if TORRENT_USE_I2P
-#include "libtorrent/parse_url.hpp"
-#endif
-
 namespace libtorrent
 {
 
@@ -83,6 +79,7 @@ namespace libtorrent
 #else
 		static const char invalid_chars[] = "";
 #endif
+
 		if (c >= 0 && c < 32) return false;
 		return std::strchr(invalid_chars, c) == 0;
 	}

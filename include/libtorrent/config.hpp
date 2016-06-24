@@ -518,6 +518,23 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #endif // TORRENT_HAS_SSE
 
+#if (defined __arm__ || defined __aarch64__)
+#define TORRENT_HAS_ARM 1
+#else
+#define TORRENT_HAS_ARM 0
+#endif // TORRENT_HAS_ARM
+
+#ifndef __has_builtin
+#define __has_builtin(x) 0  // for non-clang compilers
+#endif
+
+#if (TORRENT_HAS_SSE && __GNUC__) \
+	|| (TORRENT_HAS_ARM && defined __GNUC__ && !defined __clang__) \
+	|| (defined __clang__ && __has_builtin(__builtin_clz))
+#define TORRENT_HAS_BUILTIN_CLZ 1
+#else
+#define TORRENT_HAS_BUILTIN_CLZ 0
+#endif // TORRENT_HAS_BUILTIN_CLZ
 
 #endif // TORRENT_CONFIG_HPP_INCLUDED
 

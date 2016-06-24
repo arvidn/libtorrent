@@ -75,14 +75,12 @@ namespace libtorrent
 				continue;
 			}
 
-#if TORRENT_HAS_SSE
-#ifdef __GNUC__
+#if TORRENT_HAS_BUILTIN_CLZ
 			return ret + __builtin_clz(v);
-#else
+#elif TORRENT_HAS_SSE && defined _MSC_VER
 			DWORD pos;
 			_BitScanReverse(&pos, v);
 			return ret + 31 - pos;
-#endif
 #else
 			// http://graphics.stanford.edu/~seander/bithacks.html#IntegerLogObvious
 			static const int MultiplyDeBruijnBitPosition[32] =
