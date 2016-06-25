@@ -1653,6 +1653,11 @@ namespace libtorrent
 		// progress parts per million (the number of
 		// millionths of completeness)
 		unsigned int m_progress_ppm:20;
+
+#if TORRENT_USE_ASSERTS
+		// set to true when torrent is start()ed. It may only be started once
+		bool m_was_started;
+#endif
 	};
 
 	struct torrent_ref_holder

@@ -276,6 +276,9 @@ namespace libtorrent
 		, m_downloaded(0xffffff)
 		, m_last_scrape((std::numeric_limits<std::int16_t>::min)())
 		, m_progress_ppm(0)
+#if TORRENT_USE_ASSERTS
+		, m_was_started(false)
+#endif
 	{
 		// we cannot log in the constructor, because it relies on shared_from_this
 		// being initialized, which happens after the constructor returns.
@@ -641,6 +644,10 @@ namespace libtorrent
 	void torrent::start(add_torrent_params const& p)
 	{
 		TORRENT_ASSERT(is_single_thread());
+		TORRENT_ASSERT(m_was_started == false);
+#if TORRENT_USE_ASSERTS
+		m_was_started = true;
+#endif
 
 #ifndef TORRENT_NO_DEPRECATE
 		if (m_add_torrent_params

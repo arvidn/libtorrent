@@ -4634,7 +4634,9 @@ namespace aux {
 	{
 		// params is updated by add_torrent_impl()
 		add_torrent_params params = p;
-		boost::shared_ptr<torrent> const torrent_ptr = add_torrent_impl(params, ec);
+		boost::shared_ptr<torrent> torrent_ptr;
+		bool added;
+		boost::tie(torrent_ptr, added) = add_torrent_impl(params, ec);
 
 		torrent_handle const handle(torrent_ptr);
 		m_alerts.emplace_alert<add_torrent_alert>(handle, params, ec);
@@ -4644,8 +4646,24 @@ namespace aux {
 		// params.info_hash should have been initialized by add_torrent_impl()
 		TORRENT_ASSERT(params.info_hash != sha1_hash(0));
 
+#ifndef TORRENT_DISABLE_DHT
+		if (params.ti)
+		{
+			torrent_info::nodes_t const& nodes = params.ti->nodes();
+			for (std::vector<std::pair<std::string, int> >::const_iterator i = nodes.begin()
+				, end(nodes.end()); i != end; ++i)
+			{
+				add_dht_node_name(*i);
+			}
+		}
+#endif
+
 		if (m_alerts.should_post<torrent_added_alert>())
 			m_alerts.emplace_alert<torrent_added_alert>(handle);
+
+		// if this was an existing torrent, we can't start it again, or add
+		// another set of plugins etc. we're done
+		if (!added) return handle;
 
 		torrent_ptr->set_ip_filter(m_ip_filter);
 		torrent_ptr->start(params);
@@ -4662,18 +4680,6 @@ namespace aux {
 		}
 
 		add_extensions_to_torrent(torrent_ptr, params.userdata);
-#endif
-
-#ifndef TORRENT_DISABLE_DHT
-		if (params.ti)
-		{
-			torrent_info::nodes_t const& nodes = params.ti->nodes();
-			for (std::vector<std::pair<std::string, int> >::const_iterator i = nodes.begin()
-				, end(nodes.end()); i != end; ++i)
-			{
-				add_dht_node_name(*i);
-			}
-		}
 #endif
 
 		sha1_hash next_lsd(0);
@@ -4756,18 +4762,19 @@ namespace aux {
 		return handle;
 	}
 
-	boost::shared_ptr<torrent> session_impl::add_torrent_impl(
+	std::pair<boost::shared_ptr<torrent>, bool>
+	session_impl::add_torrent_impl(
 		add_torrent_params& params
 		, error_code& ec)
 	{
 		TORRENT_ASSERT(!params.save_path.empty());
 
-		typedef boost::shared_ptr<torrent> ptr_t;
+		using ptr_t = boost::shared_ptr<torrent>;
 
 		if (string_begins_no_case("magnet:", params.url.c_str()))
 		{
 			parse_magnet_uri(params.url, params, ec);
-			if (ec) return ptr_t();
+			if (ec) return std::make_pair(ptr_t(), false);
 			params.url.clear();
 		}
 
@@ -4775,7 +4782,7 @@ namespace aux {
 		{
 			std::string const filename = resolve_file_url(params.url);
 			boost::shared_ptr<torrent_info> t = boost::make_shared<torrent_info>(filename, boost::ref(ec), 0);
-			if (ec) return ptr_t();
+			if (ec) return std::make_pair(ptr_t(), false);
 			params.url.clear();
 			params.ti = t;
 		}
@@ -4783,13 +4790,13 @@ namespace aux {
 		if (params.ti && !params.ti->is_valid())
 		{
 			ec = errors::no_metadata;
-			return ptr_t();
+			return std::make_pair(ptr_t(), false);
 		}
 
 		if (params.ti && params.ti->is_valid() && params.ti->num_files() == 0)
 		{
 			ec = errors::no_files_in_torrent;
-			return ptr_t();
+			return std::make_pair(ptr_t(), false);
 		}
 
 #ifndef TORRENT_DISABLE_DHT
@@ -4809,7 +4816,7 @@ namespace aux {
 		if (is_aborted())
 		{
 			ec = errors::session_is_closing;
-			return ptr_t();
+			return std::make_pair(ptr_t(), false);
 		}
 
 		// figure out the info hash of the torrent and make sure params.info_hash
@@ -4831,7 +4838,7 @@ namespace aux {
 		if (params.info_hash == sha1_hash(0))
 		{
 			ec = errors::missing_info_hash_in_uri;
-			return ptr_t();
+			return std::make_pair(ptr_t(), false);
 		}
 
 		// is the torrent already active?
@@ -4861,11 +4868,11 @@ namespace aux {
 				if (!params.url.empty() && torrent_ptr->url().empty())
 					torrent_ptr->set_url(params.url);
 #endif
-				return torrent_ptr;
+				return std::make_pair(torrent_ptr, false);
 			}
 
 			ec = errors::duplicate_torrent;
-			return ptr_t();
+			return std::make_pair(ptr_t(), false);
 		}
 
 		int queue_pos = ++m_max_queue_pos;
@@ -4874,7 +4881,7 @@ namespace aux {
 			, 16 * 1024, queue_pos, m_paused
 			, boost::cref(params), boost::cref(params.info_hash));
 
-		return torrent_ptr;
+		return std::make_pair(torrent_ptr, true);
 	}
 
 	void session_impl::update_outgoing_interfaces()
