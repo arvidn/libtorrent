@@ -92,6 +92,10 @@ TORRENT_TEST(recv_buffer_packet_finished)
 	TEST_EQUAL(b.packet_finished(), true);
 }
 
+// TODO: 4 test grow()
+// TODO: 4 test normalize(), specifically buffer shrinking + edge cases
+// TODO: 4 test max_receive()
+
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 
 TORRENT_TEST(recv_buffer_mutable_buffers)

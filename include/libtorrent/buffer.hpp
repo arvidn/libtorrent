@@ -40,12 +40,27 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/aux_/array_view.hpp"
+
+#if defined __GLIBC__
+#include <malloc.h>
+#elif defined _MSC_VER
+#include <malloc.h>
+#elif defined TORRENT_BSD
+#include <malloc/malloc.h>
+#endif
 
 namespace libtorrent {
 
+// the buffer is allocated once and cannot be resized. The size() may be
+// larger than requested, in case the underlying allocator over allocated. In
+// order to "grow" an allocation, create a new buffer and initialize it by
+// the range of bytes from the existing, and move-assign the new over the
+// old.
 class buffer
 {
 public:
+
 	struct interval
 	{
 	interval()
@@ -110,25 +125,56 @@ public:
 		char const* end;
 	};
 
-	buffer(std::size_t n = 0)
+	// allocate an uninitialized buffer of the specified size
+	buffer(std::size_t const size = 0)
 	{
-		if (n) resize(n);
+		TORRENT_ASSERT(size < std::numeric_limits<std::int32_t>::max());
+
+		if (size == 0) return;
+
+		m_begin = static_cast<char*>(std::malloc(size));
+		if (m_begin == nullptr)
+		{
+#ifndef BOOST_NO_EXCEPTIONS
+			throw std::bad_alloc();
+#else
+			std::terminate();
+#endif
+		}
+
+		// the actual allocation may be larger than we requested. If so, let the
+		// user take advantage of every single byte
+#if defined __GLIBC__
+		m_size = malloc_usable_size(m_begin);
+#elif defined _MSC_VER
+		m_size = _msize(m_begin);
+#elif defined TORRENT_BSD
+		m_size = malloc_size(m_begin);
+#else
+		m_size = size;
+#endif
 	}
 
-	buffer(buffer const& b)
+	// allocate an uninitialized buffer of the specified size
+	// and copy the initialization range into the start of the buffer
+	buffer(std::size_t const size, aux::array_view<char const> initialize)
+		: buffer(size)
 	{
-		if (b.size() == 0) return;
-		resize(b.size());
-		std::memcpy(m_begin, b.begin(), b.size());
+		TORRENT_ASSERT(initialize.size() <= size);
+		if (initialize.size() > 0)
+		{
+			memcpy(m_begin, initialize.data(), std::min(initialize.size(), size));
+		}
 	}
+
+	buffer(buffer const& b) = delete;
 
 	buffer(buffer&& b)
 		: m_begin(b.m_begin)
 		, m_size(b.m_size)
-		, m_capacity(b.m_capacity)
 	{
 		b.m_begin = nullptr;
-		b.m_size = b.m_capacity = 0;
+		b.m_size = 0;
 	}
 
 	buffer& operator=(buffer&& b)
@@ -137,88 +183,30 @@ public:
 		std::free(m_begin);
 		m_begin = b.m_begin;
 		m_size = b.m_size;
-		m_capacity = b.m_capacity;
 		b.m_begin = nullptr;
-		b.m_size = b.m_capacity = 0;
+		b.m_size = 0;
 		return *this;
 	}
 
-	buffer& operator=(buffer const& b)
-	{
-		if (&b == this) return *this;
-		resize(b.size());
-		if (b.size() == 0) return *this;
-		std::memcpy(m_begin, b.begin(), b.size());
-		return *this;
-	}
+	buffer& operator=(buffer const& b) = delete;
 
-	~buffer()
-	{
-		std::free(m_begin);
-	}
+	~buffer() { std::free(m_begin); }
+
+	// TODO: 3 fix the naming convention here
+	char* ptr() { return m_begin; }
+	char const* ptr() const { return m_begin; }
 
 	buffer::interval data()
 	{ return interval(m_begin, m_begin + m_size); }
 	buffer::const_interval data() const
-	{ return const_interval(m_begin, m_begin + m_size); }
+	{ return interval(m_begin, m_begin + m_size); }
 
-	void resize(std::size_t n)
-	{
-		TORRENT_ASSERT(n < std::numeric_limits<std::uint32_t>::max());
-		reserve(n);
-		m_size = std::uint32_t(n);
-	}
+	operator aux::array_view<char>()
+	{ return aux::array_view<char>(m_begin, m_size); }
+	operator aux::array_view<char const>() const
+	{ return aux::array_view<char const>(m_begin, m_size); }
 
-	void insert(char* point, char const* first, char const* last)
-	{
-		std::size_t p = point - m_begin;
-		if (point == m_begin + m_size)
-		{
-			resize(size() + last - first);
-			std::memcpy(m_begin + p, first, last - first);
-			return;
-		}
-
-		resize(size() + last - first);
-		std::memmove(m_begin + p + (last - first), m_begin + p, last - first);
-		std::memcpy(m_begin + p, first, last - first);
-	}
-
-	void erase(char* b, char* e)
-	{
-		TORRENT_ASSERT(e <= m_begin + m_size);
-		TORRENT_ASSERT(b >= m_begin);
-		TORRENT_ASSERT(b <= e);
-		if (e == m_begin + m_size)
-		{
-			resize(b - m_begin);
-			return;
-		}
-		std::memmove(b, e, m_begin + m_size - e);
-		TORRENT_ASSERT(e >= b);
-		TORRENT_ASSERT(uintptr_t(e - b) <= std::numeric_limits<std::uint32_t>::max());
-		TORRENT_ASSERT(uintptr_t(e - b) <= m_size);
-		m_size -= std::uint32_t(e - b);
-	}
-
-	void clear() { m_size = 0; }
 	std::size_t size() const { return m_size; }
-	std::size_t capacity() const { return m_capacity; }
-	void reserve(std::size_t n)
-	{
-		if (n <= capacity()) return;
-		TORRENT_ASSERT(n > 0);
-		TORRENT_ASSERT(n < 0xffffffffu);
-
-		char* tmp = static_cast<char*>(std::realloc(m_begin, n));
-#ifndef BOOST_NO_EXCEPTIONS
-		if (tmp == nullptr) throw std::bad_alloc();
-#endif
-		m_begin = tmp;
-		// TODO: 4 on linux, ask about the actual number of bytes in the
-		// allocation here
-		m_capacity = std::uint32_t(n);
-	}
 
 	bool empty() const { return m_size == 0; }
 	char& operator[](std::size_t i) { TORRENT_ASSERT(i < size()); return m_begin[i]; }
@@ -234,14 +222,12 @@ public:
 		using std::swap;
 		swap(m_begin, b.m_begin);
 		swap(m_size, b.m_size);
-		swap(m_capacity, b.m_capacity);
 	}
 private:
 	char* m_begin = nullptr;
-	std::uint32_t m_size = 0;
-	std::uint32_t m_capacity = 0;
+	// m_begin points to an allocation of this size.
+	std::size_t m_size = 0;
 };
-
 
 }
 

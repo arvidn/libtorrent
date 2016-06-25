@@ -43,125 +43,97 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-/*
-template<class T>
-T const& min_(T const& x, T const& y)
-{
-	return x < y ? x : y;
-}
-
-void test_speed()
-{
-	buffer b;
-
-	char data[32];
-
-	srand(0);
-
-	boost::timer t;
-
-	int const iterations = 5000000;
-	int const step = iterations / 20;
-
-	for (int i = 0; i < iterations; ++i)
-	{
-		int x = rand();
-
-		if (i % step == 0) std::cerr << ".";
-
-		std::size_t n = rand() % 32;
-		n = 32;
-
-		if (x % 2)
-		{
-			b.insert(data, data + n);
-		}
-		else
-		{
-			b.erase(min_(b.size(), n));
-		}
-	}
-
-	float t1 = t.elapsed();
-	std::cerr << "buffer elapsed: " << t.elapsed() << "\n";
-
-	std::vector<char> v;
-
-	srand(0);
-	t.restart();
-
-	for (int i = 0; i < iterations; ++i)
-	{
-		int x = rand();
-
-		if (i % step == 0) std::cerr << ".";
-
-		std::size_t n = rand() % 32;
-		n = 32;
-
-		if (x % 2)
-		{
-			v.insert(v.end(), data, data + n);
-		}
-		else
-		{
-			v.erase(v.begin(), v.begin() + min_(v.size(), n));
-		}
-	}
-
-	float t2 = t.elapsed();
-	std::cerr << "std::vector elapsed: " << t.elapsed() << "\n";
-
-	assert(t1 < t2);
-}
-*/
-
 // -- test buffer --
 
-TORRENT_TEST(buffer)
+static char const data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+
+TORRENT_TEST(buffer_constructor)
 {
-	char data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 
-	buffer b;
+	{
+		buffer b;
+		TEST_CHECK(b.size() == 0);
+		TEST_CHECK(b.empty());
+	}
 
-	TEST_CHECK(b.size() == 0);
-	TEST_CHECK(b.capacity() == 0);
-	TEST_CHECK(b.empty());
+	{
+		buffer b(10);
+		TEST_CHECK(b.size() >= 10);
+	}
 
-	b.resize(10);
-	TEST_CHECK(b.size() == 10);
-	TEST_CHECK(b.capacity() == 10);
+	{
+		buffer b(50, data);
+		TEST_CHECK(std::memcmp(b.ptr(), data, 10) == 0);
+		TEST_CHECK(b.size() >= 50);
+	}
+}
 
-	std::memcpy(b.begin(), data, 10);
-	b.reserve(50);
-	TEST_CHECK(std::memcmp(b.begin(), data, 10) == 0);
-	TEST_CHECK(b.capacity() == 50);
+TORRENT_TEST(buffer_swap)
+{
+	buffer b1;
+	TEST_CHECK(b1.size() == 0);
+	buffer b2(10, data);
+	int const b2_size = b2.size();
+	TEST_CHECK(b2_size >= 10);
 
-	b.erase(b.begin() + 6, b.end());
-	TEST_CHECK(std::memcmp(b.begin(), data, 6) == 0);
-	TEST_CHECK(b.capacity() == 50);
-	TEST_CHECK(b.size() == 6);
+	b1.swap(b2);
 
-	b.insert(b.begin(), data + 5, data + 10);
-	TEST_CHECK(b.capacity() == 50);
-	TEST_CHECK(b.size() == 11);
-	TEST_CHECK(std::memcmp(b.begin(), data + 5, 5) == 0);
+	TEST_CHECK(b2.size() == 0);
+	TEST_CHECK(b1.size() == b2_size);
+	TEST_CHECK(std::memcmp(b1.ptr(), data, 10) == 0);
+}
 
-	b.clear();
-	TEST_CHECK(b.size() == 0);
-	TEST_CHECK(b.capacity() == 50);
+TORRENT_TEST(buffer_subscript)
+{
+	buffer b(50, data);
+	TEST_CHECK(std::memcmp(b.ptr(), data, 10) == 0);
+	TEST_CHECK(b.size() >= 50);
 
-	b.insert(b.end(), data, data + 10);
-	TEST_CHECK(b.size() == 10);
-	TEST_CHECK(std::memcmp(b.begin(), data, 10) == 0);
+	for (int i = 0; i < sizeof(data)/sizeof(data[0]); ++i)
+		TEST_CHECK(b[i] == data[i]);
+}
 
-	b.erase(b.begin(), b.end());
-	TEST_CHECK(b.capacity() == 50);
-	TEST_CHECK(b.size() == 0);
+TORRENT_TEST(buffer_subscript2)
+{
+	buffer b(1);
+	TEST_CHECK(b.size() >= 1);
 
-	buffer().swap(b);
-	TEST_CHECK(b.capacity() == 0);
+	for (int i = 0; i < b.size(); ++i)
+		b[i] = i & 0xff;
 
+	for (int i = 0; i < b.size(); ++i)
+		TEST_CHECK(b[i] == (i & 0xff));
+}
+
+TORRENT_TEST(buffer_move_construct)
+{
+	buffer b1(50, data);
+	TEST_CHECK(std::memcmp(b1.ptr(), data, 10) == 0);
+	TEST_CHECK(b1.size() >= 50);
+
+	buffer b2(std::move(b1));
+
+	TEST_CHECK(b1.size() == 0);
+
+	TEST_CHECK(std::memcmp(b2.ptr(), data, 10) == 0);
+	TEST_CHECK(b2.size() >= 50);
+}
+
+TORRENT_TEST(buffer_move_assign)
+{
+	buffer b1(50, data);
+	TEST_CHECK(std::memcmp(b1.ptr(), data, 10) == 0);
+	TEST_CHECK(b1.size() >= 50);
+
+	buffer b2;
+	TEST_CHECK(b2.size() == 0);
+
+	b2 = std::move(b1);
+
+	TEST_CHECK(b1.size() == 0);
+
+	TEST_CHECK(std::memcmp(b2.ptr(), data, 10) == 0);
+	TEST_CHECK(b2.size() >= 50);
 }
 
 // -- test chained buffer --

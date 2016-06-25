@@ -4485,6 +4485,7 @@ namespace libtorrent
 		p.used_send_buffer = m_send_buffer.size();
 		p.receive_buffer_size = m_recv_buffer.capacity();
 		p.used_receive_buffer = m_recv_buffer.pos();
+		p.receive_buffer_watermark = m_recv_buffer.watermark();
 		p.write_state = m_channel_state[upload_channel];
 		p.read_state = m_channel_state[download_channel];
 
@@ -5960,6 +5961,7 @@ namespace libtorrent
 		{
 			// the message we're receiving is larger than our buffer receive
 			// buffer, we must grow.
+			// TODO: 4 make the size limit configurable and passed in here
 			m_recv_buffer.grow();
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::incoming, "GROW_BUFFER", "%d bytes"

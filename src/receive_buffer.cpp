@@ -41,7 +41,7 @@ namespace libtorrent {
 		}
 	}
 
-int receive_buffer::max_receive()
+int receive_buffer::max_receive() const
 {
 	return int(m_recv_buffer.size() - m_recv_end);
 }
@@ -55,20 +55,38 @@ boost::asio::mutable_buffer receive_buffer::reserve(int size)
 	TORRENT_ASSERT(m_recv_start == 0);
 
 	if (m_recv_buffer.size() < m_recv_end + size)
-		m_recv_buffer.resize(m_recv_end + size);
+	{
+		// TODO: 4 if the message size is larger still, allocate enough space to
+		// fit the whole message
+		buffer new_buffer(m_recv_end + size
+			, aux::array_view<char const>(m_recv_buffer.ptr(), m_recv_end));
+		m_recv_buffer = std::move(new_buffer);
+
+		// since we just increased the size of the buffer, reset the watermark to
+		// start at our new size (avoid flapping the buffer size)
+		m_watermark = sliding_average<20>();
+	}
 
 	return boost::asio::buffer(&m_recv_buffer[0] + m_recv_end, size);
 }
 
-void receive_buffer::grow()
+void receive_buffer::grow(int const limit)
 {
 	int const current_size = int(m_recv_buffer.size());
 	TORRENT_ASSERT(current_size < std::numeric_limits<int>::max() / 3);
 
 	// first grow to one piece message, then grow by 50% each time
-	int const new_size = (current_size < m_packet_size)
-		? m_packet_size : current_size * 3 / 2;
-	m_recv_buffer.resize(new_size);
+	int const new_size = std::min((current_size < m_packet_size)
+		? m_packet_size : current_size * 3 / 2, limit);
+
+	// re-allcoate the buffer and copy over the part of it that's used
+	buffer new_buffer(new_size
+		, aux::array_view<char const>(m_recv_buffer.ptr(), m_recv_end));
+	m_recv_buffer = std::move(new_buffer);
+
+	// since we just increased the size of the buffer, reset the watermark to
+	// start at our new size (avoid flapping the buffer size)
+	m_watermark = sliding_average<20>();
 }
 
 int receive_buffer::advance_pos(int bytes)
@@ -92,7 +110,7 @@ void receive_buffer::clamp_size()
 // size = the packet size to remove from the receive buffer
 // packet_size = the next packet size to receive in the buffer
 // offset = the offset into the receive buffer where to remove `size` bytes
-void receive_buffer::cut(int size, int packet_size, int offset)
+void receive_buffer::cut(int const size, int const packet_size, int const offset)
 {
 	TORRENT_ASSERT(packet_size > 0);
 	TORRENT_ASSERT(int(m_recv_buffer.size()) >= size);
@@ -108,9 +126,11 @@ void receive_buffer::cut(int size, int packet_size, int offset)
 		TORRENT_ASSERT(m_recv_start - size <= m_recv_end);
 
 		if (size > 0)
+		{
 			std::memmove(&m_recv_buffer[0] + m_recv_start + offset
 				, &m_recv_buffer[0] + m_recv_start + offset + size
 				, m_recv_end - m_recv_start - size - offset);
+		}
 
 		m_recv_pos -= size;
 		m_recv_end -= size;
@@ -172,13 +192,34 @@ boost::asio::mutable_buffer receive_buffer::mutable_buffer(int const bytes)
 
 // the purpose of this function is to free up and cut off all messages
 // in the receive buffer that have been parsed and processed.
+// it may also shrink the size of the buffer allocation if we haven't been using
+// enough of it lately.
 void receive_buffer::normalize()
 {
 	TORRENT_ASSERT(m_recv_end >= m_recv_start);
 	if (m_recv_start == 0) return;
 
-	if (m_recv_end > m_recv_start)
-		std::memmove(&m_recv_buffer[0], &m_recv_buffer[0] + m_recv_start, m_recv_end - m_recv_start);
+	m_watermark.add_sample(std::max(m_recv_end, m_packet_size));
+
+	// if the running average drops below half of the current buffer size,
+	// reallocate a smaller one.
+	bool const shrink_buffer = m_recv_buffer.size() / 2 > m_watermark.mean()
+		&& m_watermark.mean() > (m_recv_end - m_recv_start);
+
+	aux::array_view<char const> bytes_to_shift(
+		m_recv_buffer.ptr() + m_recv_start
+			, m_recv_end - m_recv_start);
+
+	if (shrink_buffer)
+	{
+		buffer new_buffer(m_watermark.mean(), bytes_to_shift);
+		m_recv_buffer = std::move(new_buffer);
+	}
+	else if (m_recv_end > m_recv_start)
+	{
+		std::memmove(m_recv_buffer.ptr(), bytes_to_shift.data()
+			, bytes_to_shift.size());
+	}
 
 	m_recv_end -= m_recv_start;
 	m_recv_start = 0;

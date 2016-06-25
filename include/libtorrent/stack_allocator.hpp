@@ -42,6 +42,10 @@ namespace libtorrent { namespace aux
 	{
 		stack_allocator() {}
 
+		// non-copyable
+		stack_allocator(stack_allocator const&) = delete;
+		stack_allocator& operator=(stack_allocator const&) = delete;
+
 		int copy_string(std::string const& str)
 		{
 			int ret = int(m_storage.size());
@@ -100,11 +104,7 @@ namespace libtorrent { namespace aux
 
 	private:
 
-		// non-copyable
-		stack_allocator(stack_allocator const&);
-		stack_allocator& operator=(stack_allocator const&);
-
-		buffer m_storage;
+		std::vector<char> m_storage;
 	};
 
 } }

@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <libtorrent/buffer.hpp>
 #include <libtorrent/disk_buffer_holder.hpp>
+#include <libtorrent/sliding_average.hpp>
 #include <boost/asio/buffer.hpp>
 
 namespace libtorrent {
@@ -51,14 +52,15 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 		return m_packet_size - m_recv_pos;
 	}
 
-	int max_receive();
+	int max_receive() const;
 
 	bool packet_finished() const { return m_packet_size <= m_recv_pos; }
 	int pos() const { return m_recv_pos; }
-	int capacity() const { return int(m_recv_buffer.capacity()); }
+	int capacity() const { return int(m_recv_buffer.size()); }
+	int watermark() const { return m_watermark.mean(); }
 
 	boost::asio::mutable_buffer reserve(int size);
-	void grow();
+	void grow(int limit = 2 * 1024 * 1024);
 
 	// tell the buffer we just received more bytes at the end of it. This will
 	// advance the end cursor
@@ -114,7 +116,7 @@ private:
 	// explicitly disallow assignment, to silence msvc warning
 	receive_buffer& operator=(receive_buffer const&);
 
-	// recv_buffer.begin (start of actual receive buffer)
+	// m_recv_buffer.data() (start of actual receive buffer)
 	// |
 	// |      m_recv_start (tart of current packet)
 	// |      |
@@ -122,7 +124,7 @@ private:
 	// |      |    |  by upper layer, from logical receive buffer)
 	// |      |    |
 	// |      x---------x
-	// |      |         |        recv_buffer.end (end of actual receive buffer)
+	// |      |         |        m_recv_buffer.size() (end of actual receive buffer)
 	// |      |         |        |
 	// v      v         v        v
 	// *------==========---------
@@ -147,6 +149,10 @@ private:
 	// the size (in bytes) of the bittorrent message
 	// we're currently receiving
 	int m_packet_size = 0;
+
+	// keep track of how much of the receive buffer we use, if we're not using
+	// enuogh of it we shrink it
+	sliding_average<20> m_watermark;
 
 	buffer m_recv_buffer;
 };
