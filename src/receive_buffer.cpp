@@ -43,20 +43,13 @@ namespace libtorrent {
 
 int receive_buffer::max_receive()
 {
-	int max = packet_bytes_remaining();
-	if (m_recv_pos >= m_soft_packet_size) m_soft_packet_size = 0;
-	if (m_soft_packet_size && max > m_soft_packet_size - m_recv_pos)
-		max = m_soft_packet_size - m_recv_pos;
-	return max;
+	return int(m_recv_buffer.size() - m_recv_end);
 }
 
 boost::asio::mutable_buffer receive_buffer::reserve(int size)
 {
 	TORRENT_ASSERT(size > 0);
 	TORRENT_ASSERT(m_recv_pos >= 0);
-	// this is unintuitive, but we used to use m_recv_pos in this function when
-	// we should have used m_recv_end. perhaps they always happen to be equal
-	TORRENT_ASSERT(m_recv_pos == m_recv_end);
 
 	// normalize() must be called before receiving more data
 	TORRENT_ASSERT(m_recv_start == 0);
@@ -65,13 +58,25 @@ boost::asio::mutable_buffer receive_buffer::reserve(int size)
 	return boost::asio::buffer(&m_recv_buffer[0] + m_recv_end, size);
 }
 
+void receive_buffer::grow()
+{
+	// the size of a bittorrent piece message, probably the largest message we'll
+	// receive
+	int const piece_msg_size = 16384 + 9;
+
+	int const current_capacity = int(m_recv_buffer.capacity());
+
+	// first grow to one piece message, then grow by 50% each time
+	int const new_capacity = (current_capacity < piece_msg_size)
+		? piece_msg_size : current_capacity * 3 / 2;
+	m_recv_buffer.resize(new_capacity);
+}
+
 int receive_buffer::advance_pos(int bytes)
 {
-	int const packet_size = m_soft_packet_size ? m_soft_packet_size : m_packet_size;
-	int const limit = packet_size > m_recv_pos ? packet_size - m_recv_pos : packet_size;
+	int const limit = m_packet_size > m_recv_pos ? m_packet_size - m_recv_pos : m_packet_size;
 	int const sub_transferred = (std::min)(bytes, limit);
 	m_recv_pos += sub_transferred;
-	if (m_recv_pos >= m_soft_packet_size) m_soft_packet_size = 0;
 	return sub_transferred;
 }
 
@@ -276,24 +281,14 @@ void crypto_receive_buffer::crypto_reset(int packet_size)
 	}
 }
 
-void crypto_receive_buffer::set_soft_packet_size(int size)
-{
-	if (m_recv_pos == INT_MAX)
-		m_connection_buffer.set_soft_packet_size(size);
-	else
-		m_soft_packet_size = size;
-}
-
 int crypto_receive_buffer::advance_pos(int bytes)
 {
 	if (m_recv_pos == INT_MAX) return bytes;
 
-	int packet_size = m_soft_packet_size ? m_soft_packet_size : m_packet_size;
-	int limit = packet_size > m_recv_pos ? packet_size - m_recv_pos : packet_size;
-	int sub_transferred = (std::min)(bytes, limit);
+	int const limit = m_packet_size > m_recv_pos ? m_packet_size - m_recv_pos : m_packet_size;
+	int const sub_transferred = (std::min)(bytes, limit);
 	m_recv_pos += sub_transferred;
 	m_connection_buffer.cut(0, m_connection_buffer.packet_size() + sub_transferred);
-	if (m_recv_pos >= m_soft_packet_size) m_soft_packet_size = 0;
 	return sub_transferred;
 }
 

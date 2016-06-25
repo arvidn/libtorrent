@@ -1105,12 +1105,11 @@ namespace libtorrent
 
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
-		bool merkle = static_cast<std::uint8_t>(recv_buffer.begin[0]) == 250;
+		bool const merkle = static_cast<std::uint8_t>(recv_buffer.begin[0]) == 250;
 		if (merkle)
 		{
 			if (recv_pos == 1)
 			{
-				m_recv_buffer.set_soft_packet_size(13);
 				received_bytes(0, received);
 				return;
 			}
@@ -1119,13 +1118,10 @@ namespace libtorrent
 				received_bytes(0, received);
 				return;
 			}
-			if (recv_pos == 13)
+			if (recv_pos >= 13)
 			{
-				const char* ptr = recv_buffer.begin + 9;
-				int list_size = detail::read_int32(ptr);
-				// now we know how long the bencoded hash list is
-				// and we can allocate the disk buffer and receive
-				// into it
+				char const* ptr = recv_buffer.begin + 9;
+				int const list_size = detail::read_int32(ptr);
 
 				if (list_size > m_recv_buffer.packet_size() - 13)
 				{

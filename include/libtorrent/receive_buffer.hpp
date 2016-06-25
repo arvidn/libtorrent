@@ -43,14 +43,6 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 {
 	friend struct crypto_receive_buffer;
 
-	receive_buffer()
-		: m_recv_start(0)
-		, m_recv_end(0)
-		, m_recv_pos(0)
-		, m_packet_size(0)
-		, m_soft_packet_size(0)
-	{}
-
 	int packet_size() const { return m_packet_size; }
 	int packet_bytes_remaining() const
 	{
@@ -65,13 +57,8 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 	int pos() const { return m_recv_pos; }
 	int capacity() const { return int(m_recv_buffer.capacity()); }
 
-	int regular_buffer_size() const
-	{
-		TORRENT_ASSERT(m_packet_size > 0);
-		return m_packet_size;
-	}
-
 	boost::asio::mutable_buffer reserve(int size);
+	void grow();
 
 	// tell the buffer we just received more bytes at the end of it. This will
 	// advance the end cursor
@@ -92,8 +79,6 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 	// make the buffer size divisible by 8 bytes (RC4 block size)
 	void clamp_size();
 
-	void set_soft_packet_size(int size) { m_soft_packet_size = size; }
-
 	// size = the packet size to remove from the receive buffer
 	// packet_size = the next packet size to receive in the buffer
 	// offset = the offset into the receive buffer where to remove `size` bytes
@@ -104,8 +89,7 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 	buffer::const_interval get() const;
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-	// returns the entire regular buffer
-	// should only be used during the handshake
+	// returns the entire buffer
 	buffer::interval mutable_buffer();
 
 	// returns the last 'bytes' from the receive buffer
@@ -130,16 +114,15 @@ private:
 	// explicitly disallow assignment, to silence msvc warning
 	receive_buffer& operator=(receive_buffer const&);
 
-	// recv_buf.begin (start of actual receive buffer)
+	// recv_buffer.begin (start of actual receive buffer)
 	// |
-	// |      m_recv_start (logical start of current
-	// |      |  receive buffer, as perceived by upper layers)
+	// |      m_recv_start (tart of current packet)
 	// |      |
 	// |      |    m_recv_pos (number of bytes consumed
 	// |      |    |  by upper layer, from logical receive buffer)
 	// |      |    |
 	// |      x---------x
-	// |      |         |        recv_buf.end (end of actual receive buffer)
+	// |      |         |        recv_buffer.end (end of actual receive buffer)
 	// |      |         |        |
 	// v      v         v        v
 	// *------==========---------
@@ -151,25 +134,19 @@ private:
 	// m_recv_buffer
 
 	// the start of the logical receive buffer
-	int m_recv_start;
+	int m_recv_start = 0;
 
 	// the number of valid, received bytes in m_recv_buffer
-	int m_recv_end;
+	int m_recv_end = 0;
 
 	// the byte offset in m_recv_buffer that we have
 	// are passing on to the upper layer. This is
 	// always <= m_recv_end
-	int m_recv_pos;
+	int m_recv_pos = 0;
 
 	// the size (in bytes) of the bittorrent message
 	// we're currently receiving
-	int m_packet_size;
-
-	// the number of bytes that the other
-	// end has to send us in order to respond
-	// to all outstanding piece requests we
-	// have sent to it
-	int m_soft_packet_size;
+	int m_packet_size = 0;
 
 	buffer m_recv_buffer;
 };
@@ -183,10 +160,7 @@ private:
 struct crypto_receive_buffer
 {
 	crypto_receive_buffer(receive_buffer& next)
-		: m_recv_pos(INT_MAX)
-		, m_packet_size(0)
-		, m_soft_packet_size(0)
-		, m_connection_buffer(next)
+		: m_connection_buffer(next)
 	{}
 
 	buffer::interval mutable_buffer() { return m_connection_buffer.mutable_buffer(); }
@@ -219,8 +193,6 @@ struct crypto_receive_buffer
 	void reset(int packet_size);
 	void crypto_reset(int packet_size);
 
-	void set_soft_packet_size(int size);
-
 	int advance_pos(int bytes);
 
 	buffer::const_interval get() const;
@@ -231,9 +203,8 @@ private:
 	// explicitly disallow assignment, to silence msvc warning
 	crypto_receive_buffer& operator=(crypto_receive_buffer const&);
 
-	int m_recv_pos;
-	int m_packet_size;
-	int m_soft_packet_size;
+	int m_recv_pos = std::numeric_limits<int>::max();
+	int m_packet_size = 0;
 	receive_buffer& m_connection_buffer;
 };
 #endif // TORRENT_DISABLE_ENCRYPTION
@@ -241,3 +212,4 @@ private:
 } // namespace libtorrent
 
 #endif // #ifndef TORRENT_RECEIVE_BUFFER_HPP_INCLUDED
+

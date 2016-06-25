@@ -299,6 +299,8 @@ namespace libtorrent
 
 		if (!m_outgoing)
 		{
+			m_recv_buffer.reserve(300);
+
 			tcp::socket::non_blocking_io ioc(true);
 			error_code ec;
 			m_socket->io_control(ioc, ec);
@@ -5409,10 +5411,11 @@ namespace libtorrent
 		}
 	}
 
-	int peer_connection::request_bandwidth(int channel, int bytes)
+	int peer_connection::request_bandwidth(int const channel, int bytes)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
+
 		// we can only have one outstanding bandwidth request at a time
 		if (m_channel_state[channel] & peer_info::bw_limit) return 0;
 
@@ -5653,7 +5656,8 @@ namespace libtorrent
 		if (m_disconnecting) return;
 
 		// we may want to request more quota at this point
-		request_bandwidth(download_channel);
+		int const buffer_size = m_recv_buffer.max_receive();
+		request_bandwidth(download_channel, buffer_size);
 
 		if (m_channel_state[download_channel] & peer_info::bw_network) return;
 
@@ -5680,94 +5684,29 @@ namespace libtorrent
 			// from being at or exceeding the limit down to below the limit
 			return;
 		}
-		error_code ec;
-
-		try_read(read_async, ec);
-	}
-
-	size_t peer_connection::try_read(sync_t s, error_code& ec)
-	{
-		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(m_connected);
+		if (m_quota[download_channel] == 0) return;
 
-		if (m_quota[download_channel] == 0)
-		{
-			ec = boost::asio::error::would_block;
-			return 0;
-		}
+		if (!can_read()) return;
 
-		if (!can_read())
-		{
-			ec = boost::asio::error::would_block;
-			return 0;
-		}
+		int const quota_left = m_quota[download_channel];
+		int const max_receive = (std::min)(buffer_size, quota_left);
 
-		int max_receive = m_recv_buffer.max_receive();
-
-		// only apply the contiguous receive buffer when we don't have any
-		// outstanding requests. When we're likely to receive pieces, we'll
-		// save more time from avoiding copying data from the socket
-		if (m_download_queue.empty())
-		{
-			if (s == read_sync)
-			{
-				ec = boost::asio::error::would_block;
-				return 0;
-			}
-
-			TORRENT_ASSERT((m_channel_state[download_channel] & peer_info::bw_network) == 0);
-			m_channel_state[download_channel] |= peer_info::bw_network;
-#ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::incoming, "ASYNC_READ");
-#endif
-
-			ADD_OUTSTANDING_ASYNC("peer_connection::on_receive_data_nb");
-			m_socket->async_read_some(null_buffers(), make_read_handler(
-				std::bind(&peer_connection::on_receive_data_nb, self(), _1, _2)));
-			return 0;
-		}
-
-		TORRENT_ASSERT(max_receive >= 0);
-
-		int quota_left = m_quota[download_channel];
-		if (max_receive > quota_left)
-			max_receive = quota_left;
-
-		if (max_receive == 0)
-		{
-			ec = boost::asio::error::would_block;
-			return 0;
-		}
+		if (max_receive == 0) return;
 
 		boost::asio::mutable_buffer const vec = m_recv_buffer.reserve(max_receive);
-
-		if (s == read_async)
-		{
-			TORRENT_ASSERT((m_channel_state[download_channel] & peer_info::bw_network) == 0);
-			m_channel_state[download_channel] |= peer_info::bw_network;
+		TORRENT_ASSERT((m_channel_state[download_channel] & peer_info::bw_network) == 0);
+		m_channel_state[download_channel] |= peer_info::bw_network;
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::incoming, "ASYNC_READ"
-				, "max: %d bytes", max_receive);
+		peer_log(peer_log_alert::incoming, "ASYNC_READ"
+			, "max: %d bytes", max_receive);
 #endif
 
-			// utp sockets aren't thread safe...
-			ADD_OUTSTANDING_ASYNC("peer_connection::on_receive_data");
-			m_socket->async_read_some(
-				boost::asio::mutable_buffers_1(vec), make_read_handler(
-					std::bind(&peer_connection::on_receive_data, self(), _1, _2)));
-			return 0;
-		}
-
-		size_t const ret = m_socket->read_some(boost::asio::mutable_buffers_1(vec), ec);
-
-		// this is weird. You would imagine read_some() would do this
-		if (ret == 0 && !ec) ec = boost::asio::error::eof;
-
-#ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::incoming, "SYNC_READ", "max: %d ret: %d e: %s"
-			, max_receive, int(ret), ec ? ec.message().c_str() : "");
-#endif
-		return ret;
+		// utp sockets aren't thread safe...
+		ADD_OUTSTANDING_ASYNC("peer_connection::on_receive_data");
+		m_socket->async_read_some(
+			boost::asio::mutable_buffers_1(vec), make_read_handler(
+				std::bind(&peer_connection::on_receive_data, self(), _1, _2)));
 	}
 
 	void peer_connection::append_send_buffer(char* buffer, int size
@@ -5859,118 +5798,44 @@ namespace libtorrent
 		bool m_cond;
 	};
 
-	void peer_connection::on_receive_data_nb(const error_code& error
-		, std::size_t bytes_transferred)
-	{
-		TORRENT_ASSERT(is_single_thread());
-		COMPLETE_ASYNC("peer_connection::on_receive_data_nb");
-
-		// leave this bit set until we're done looping, reading from the socket.
-		// that way we don't trigger any async read calls until the end of this
-		// function.
-		TORRENT_ASSERT(m_channel_state[download_channel] & peer_info::bw_network);
-
-		// nb is short for null_buffers. In this mode we don't actually
-		// allocate a receive buffer up-front, but get notified when
-		// we can read from the socket, and then determine how much there
-		// is to read.
-
-		if (error)
-		{
-			TORRENT_ASSERT_VAL(error.value() != 0, error.value());
-#ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, "ERROR"
-				, "in peer_connection::on_receive_data_nb error: (%s:%d) %s"
-				, error.category().name(), error.value()
-				, error.message().c_str());
-#endif
-			on_receive(error, bytes_transferred);
-			disconnect(error, op_sock_read);
-			return;
-		}
-
-		error_code ec;
-		std::size_t buffer_size = m_socket->available(ec);
-		if (ec)
-		{
-			disconnect(ec, op_available);
-			return;
-		}
-
-#ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::incoming, "READ_AVAILABLE"
-			, "bytes: %d", int(buffer_size));
-#endif
-
-		// at this point the ioctl told us the socket doesn't have any
-		// pending bytes. This probably means some error happened.
-		// in order to find out though, we need to initiate a read
-		// operation
-		if (buffer_size == 0)
-		{
-			// try to read one byte. The socket is non-blocking anyway
-			// so worst case, we'll fail with EWOULDBLOCK
-			buffer_size = 1;
-		}
-		else
-		{
-			if (buffer_size > m_quota[download_channel])
-			{
-				request_bandwidth(download_channel, int(buffer_size));
-				buffer_size = m_quota[download_channel];
-			}
-			// we're already waiting to get some more
-			// quota from the bandwidth manager
-			if (buffer_size == 0)
-			{
-				// allow reading from the socket again
-				TORRENT_ASSERT(m_channel_state[download_channel] & peer_info::bw_network);
-				m_channel_state[download_channel] &= ~peer_info::bw_network;
-				return;
-			}
-		}
-
-		if (buffer_size > 2097152) buffer_size = 2097152;
-
-		boost::asio::mutable_buffer buffer = m_recv_buffer.reserve(int(buffer_size));
-		TORRENT_ASSERT(m_recv_buffer.normalized());
-
-		bytes_transferred = m_socket->read_some(boost::asio::mutable_buffers_1(buffer), ec);
-
-		if (ec)
-		{
-			if (ec == boost::asio::error::try_again
-				|| ec == boost::asio::error::would_block)
-			{
-				// allow reading from the socket again
-				TORRENT_ASSERT(m_channel_state[download_channel] & peer_info::bw_network);
-				m_channel_state[download_channel] &= ~peer_info::bw_network;
-				setup_receive();
-				return;
-			}
-			disconnect(ec, op_sock_read);
-			return;
-		}
-
-		receive_data_impl(error, bytes_transferred, 0);
-	}
-
 	// --------------------------
 	// RECEIVE DATA
 	// --------------------------
 
-	// nb is true if this callback is due to a null_buffers()
-	// invocation of async_read_some(). In that case, we need
-	// to disregard bytes_transferred.
-	// at all exit points of this function, one of the following MUST hold:
-	//  1. the socket is disconnecting
-	//  2. m_channel_state[download_channel] & peer_info::bw_network == 0
+	void peer_connection::account_received_bytes(int const bytes_transferred)
+	{
+		// tell the receive buffer we just fed it this many bytes of incoming data
+		TORRENT_ASSERT(bytes_transferred > 0);
+		m_recv_buffer.received(bytes_transferred);
+
+		// update the dl quota
+		TORRENT_ASSERT(bytes_transferred <= m_quota[download_channel]);
+		m_quota[download_channel] -= bytes_transferred;
+
+		// account receiver buffer size stats to the session
+		m_ses.received_buffer(bytes_transferred);
+
+		// estimage transport protocol overhead
+		trancieve_ip_packet(bytes_transferred, m_remote.address().is_v6());
+
+#ifndef TORRENT_DISABLE_LOGGING
+		peer_log(peer_log_alert::incoming, "READ"
+			, "%d bytes", int(bytes_transferred));
+#endif
+	}
 
 	void peer_connection::on_receive_data(const error_code& error
 		, std::size_t bytes_transferred)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		COMPLETE_ASYNC("peer_connection::on_receive_data");
+
+#ifndef TORRENT_DISABLE_LOGGING
+		peer_log(peer_log_alert::incoming, "ON_RECEIVE_DATA"
+			, "bytes: %d error: (%s:%d) %s"
+			, int(bytes_transferred), error.category().name(), error.value()
+			, error.message().c_str());
+#endif
 
 		// leave this bit set until we're done looping, reading from the socket.
 		// that way we don't trigger any async read calls until the end of this
@@ -5979,19 +5844,23 @@ namespace libtorrent
 
 		TORRENT_ASSERT(bytes_transferred > 0 || error);
 
-		receive_data_impl(error, bytes_transferred, 10);
-	}
+		m_counters.inc_stats_counter(counters::on_read_counter);
 
-	void peer_connection::receive_data_impl(const error_code& error
-		, std::size_t bytes_transferred, int read_loops)
-	{
-		TORRENT_ASSERT(is_single_thread());
+		INVARIANT_CHECK;
+
+		if (error)
+		{
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::incoming, "ON_RECEIVE_DATA"
-			, "bytes: %d error: (%s:%d) %s"
-			, int(bytes_transferred), error.category().name(), error.value()
-			, error.message().c_str());
+			peer_log(peer_log_alert::info, "ERROR"
+				, "in peer_connection::on_receive_data_impl error: %s"
+				, error.message().c_str());
 #endif
+			on_receive(error, bytes_transferred);
+			disconnect(error, op_sock_read);
+			return;
+		}
+
+		m_last_receive = aux::time_now();
 
 		// submit all disk jobs later
 		m_ses.deferred_submit_jobs();
@@ -6005,27 +5874,14 @@ namespace libtorrent
 		// flush the send buffer at the end of this function
 		cork _c(*this);
 
-		INVARIANT_CHECK;
-
-		int bytes_in_loop = int(bytes_transferred);
-
-		if (error)
-		{
-#ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, "ERROR"
-				, "in peer_connection::on_receive_data_impl error: %s"
-				, error.message().c_str());
-#endif
-			trancieve_ip_packet(bytes_in_loop, m_remote.address().is_v6());
-			on_receive(error, bytes_transferred);
-			disconnect(error, op_sock_read);
-			return;
-		}
-
 		TORRENT_ASSERT(bytes_transferred > 0);
 
-		m_counters.inc_stats_counter(counters::on_read_counter);
-		m_ses.received_buffer(int(bytes_transferred));
+		// if we received exactly as many bytes as we provided a receive buffer
+		// for. There most likely are more bytes to read, and we should grow our
+		// receive buffer.
+		TORRENT_ASSERT(bytes_transferred <= m_recv_buffer.max_receive());
+		bool const grow_buffer = (bytes_transferred == m_recv_buffer.max_receive());
+		account_received_bytes(bytes_transferred);
 
 		if (m_extension_outstanding_bytes > 0)
 			m_extension_outstanding_bytes -= (std::min)(m_extension_outstanding_bytes, int(bytes_transferred));
@@ -6033,87 +5889,97 @@ namespace libtorrent
 		check_graceful_pause();
 		if (m_disconnecting) return;
 
-		int num_loops = 0;
-		do
+		// this is the case where we try to grow the receive buffer and try to
+		// drain the socket
+		if (grow_buffer)
 		{
-#ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::incoming, "READ"
-				, "%d bytes", int(bytes_transferred));
-#endif
-			// correct the dl quota usage, if not all of the buffer was actually read
-			TORRENT_ASSERT(int(bytes_transferred) <= m_quota[download_channel]);
-			m_quota[download_channel] -= int(bytes_transferred);
-
-			if (m_disconnecting)
-			{
-				trancieve_ip_packet(bytes_in_loop, m_remote.address().is_v6());
-				return;
-			}
-
-			TORRENT_ASSERT(bytes_transferred > 0);
-			m_recv_buffer.received(int(bytes_transferred));
-
-			int bytes = int(bytes_transferred);
-			int sub_transferred = 0;
-			do {
-// TODO: The stats checks can not be honored when authenticated encryption is in use
-// because we may have encrypted data which we cannot authenticate yet
-#if 0
-				std::int64_t cur_payload_dl = m_statistics.last_payload_downloaded();
-				std::int64_t cur_protocol_dl = m_statistics.last_protocol_downloaded();
-#endif
-				sub_transferred = m_recv_buffer.advance_pos(bytes);
-				on_receive(error, sub_transferred);
-				bytes -= sub_transferred;
-				TORRENT_ASSERT(sub_transferred > 0);
-
-#if 0
-				TORRENT_ASSERT(m_statistics.last_payload_downloaded() - cur_payload_dl >= 0);
-				TORRENT_ASSERT(m_statistics.last_protocol_downloaded() - cur_protocol_dl >= 0);
-				std::int64_t stats_diff = m_statistics.last_payload_downloaded() - cur_payload_dl +
-					m_statistics.last_protocol_downloaded() - cur_protocol_dl;
-				TORRENT_ASSERT(stats_diff == int(sub_transferred));
-#endif
-				if (m_disconnecting) return;
-
-			} while (bytes > 0 && sub_transferred > 0);
-
-			m_recv_buffer.normalize();
-
-			TORRENT_ASSERT(m_recv_buffer.pos_at_end());
-			TORRENT_ASSERT(m_recv_buffer.packet_size() > 0);
-
-			if (m_peer_choked)
-			{
-				m_recv_buffer.clamp_size();
-			}
-
-			if (num_loops > read_loops) break;
-
 			error_code ec;
-			bytes_transferred = try_read(read_sync, ec);
-			TORRENT_ASSERT(bytes_transferred > 0 || ec);
-			if (ec == boost::asio::error::would_block || ec == boost::asio::error::try_again) break;
+			std::size_t buffer_size = m_socket->available(ec);
 			if (ec)
 			{
-				trancieve_ip_packet(bytes_in_loop, m_remote.address().is_v6());
-				disconnect(ec, op_sock_read);
+				disconnect(ec, op_available);
 				return;
 			}
-			bytes_in_loop += int(bytes_transferred);
-			++num_loops;
-		}
-		while (bytes_transferred > 0);
 
-		m_last_receive = aux::time_now();
+#ifndef TORRENT_DISABLE_LOGGING
+			peer_log(peer_log_alert::incoming, "AVAILABLE"
+				, "%d bytes", int(buffer_size));
+#endif
+
+			request_bandwidth(download_channel, buffer_size);
+
+			int const quota_left = m_quota[download_channel];
+			if (buffer_size > quota_left) buffer_size = quota_left;
+			if (buffer_size > 0)
+			{
+				boost::asio::mutable_buffer const vec = m_recv_buffer.reserve(buffer_size);
+				size_t bytes = m_socket->read_some(boost::asio::mutable_buffers_1(vec), ec);
+
+				// this is weird. You would imagine read_some() would do this
+				if (bytes == 0 && !ec) ec = boost::asio::error::eof;
+
+#ifndef TORRENT_DISABLE_LOGGING
+				peer_log(peer_log_alert::incoming, "SYNC_READ", "max: %d ret: %d e: %s"
+					, int(buffer_size), int(bytes), ec ? ec.message().c_str() : "");
+#endif
+
+				TORRENT_ASSERT(bytes > 0 || ec);
+				if (ec == boost::asio::error::would_block || ec == boost::asio::error::try_again)
+				{
+					bytes = 0;
+				}
+				else if (ec)
+				{
+					disconnect(ec, op_sock_read);
+					return;
+				}
+
+				account_received_bytes(bytes);
+
+				bytes_transferred += bytes;
+			}
+		}
+
+		// feed bytes in receive buffer to upper layer by calling on_receive()
+
+		int bytes = int(bytes_transferred);
+		int sub_transferred = 0;
+		do {
+			sub_transferred = m_recv_buffer.advance_pos(bytes);
+			on_receive(error, sub_transferred);
+			bytes -= sub_transferred;
+			TORRENT_ASSERT(sub_transferred > 0);
+			if (m_disconnecting) return;
+		} while (bytes > 0 && sub_transferred > 0);
+
+		m_recv_buffer.normalize();
+
+		if (m_recv_buffer.max_receive() == 0)
+		{
+			// the message we're receiving is larger than our buffer receive
+			// buffer, we must grow.
+			m_recv_buffer.grow();
+#ifndef TORRENT_DISABLE_LOGGING
+			peer_log(peer_log_alert::incoming, "GROW_BUFFER", "%d bytes"
+				, m_recv_buffer.capacity());
+#endif
+		}
+
+		TORRENT_ASSERT(m_recv_buffer.pos_at_end());
+		TORRENT_ASSERT(m_recv_buffer.packet_size() > 0);
+
+		// TODO: 4 this seems like a reasonable idea to do on the edge from
+		// unchoked -> choked, not as a level trigger
+		if (m_peer_choked)
+		{
+			m_recv_buffer.clamp_size();
+		}
 
 		if (is_seed())
 		{
 			boost::shared_ptr<torrent> t = m_torrent.lock();
 			if (t) t->seen_complete();
 		}
-
-		trancieve_ip_packet(bytes_in_loop, m_remote.address().is_v6());
 
 		// allow reading from the socket again
 		TORRENT_ASSERT(m_channel_state[download_channel] & peer_info::bw_network);
@@ -6166,6 +6032,8 @@ namespace libtorrent
 #endif
 
 		INVARIANT_CHECK;
+
+		m_recv_buffer.reserve(300);
 
 #ifndef TORRENT_DISABLE_LOGGING
 		{
@@ -6345,16 +6213,14 @@ namespace libtorrent
 
 		time_point now = clock_type::now();
 
-		for (std::vector<pending_block>::iterator i = m_download_queue.begin()
-			, end(m_download_queue.end()); i != end; ++i)
+		for (auto& block : m_download_queue)
 		{
-			if (i->send_buffer_offset == pending_block::not_in_buffer) continue;
-			std::int32_t offset = i->send_buffer_offset;
-			offset -= int(bytes_transferred);
-			if (offset < 0)
-				i->send_buffer_offset = pending_block::not_in_buffer;
+			if (block.send_buffer_offset == pending_block::not_in_buffer)
+				continue;
+			if (block.send_buffer_offset < int(bytes_transferred))
+				block.send_buffer_offset = pending_block::not_in_buffer;
 			else
-				i->send_buffer_offset = offset;
+				block.send_buffer_offset -= int(bytes_transferred);
 		}
 
 		m_channel_state[upload_channel] &= ~peer_info::bw_network;
