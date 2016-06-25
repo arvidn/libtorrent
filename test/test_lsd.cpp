@@ -82,7 +82,7 @@ void test_lsd()
 		print_ses_rate(float(i), &st1, &st2);
 
 		if (st2.is_seeding /*&& st3.is_seeding*/) break;
-		test_sleep(1000);
+		std::this_thread::sleep_for(lt::milliseconds(1000));
 	}
 
 	TEST_CHECK(tor2.status().is_seeding);

@@ -534,7 +534,7 @@ TORRENT_TEST(reject_fast)
 	}
 	print_session_log(*ses);
 	s.close();
-	test_sleep(500);
+	std::this_thread::sleep_for(lt::milliseconds(500));
 	print_session_log(*ses);
 }
 
@@ -558,7 +558,7 @@ TORRENT_TEST(invalid_suggest)
 	// request for that piece index.
 	send_suggest_piece(s, -234);
 	send_unchoke(s);
-	test_sleep(500);
+	std::this_thread::sleep_for(lt::milliseconds(500));
 	print_session_log(*ses);
 
 	int len = read_message(s, recv_buffer, sizeof(recv_buffer));
@@ -653,7 +653,7 @@ TORRENT_TEST(reject_suggest)
 	TEST_CHECK(fail_counter > 0);
 
 	s.close();
-	test_sleep(500);
+	std::this_thread::sleep_for(lt::milliseconds(500));
 	print_session_log(*ses);
 }
 
@@ -713,7 +713,7 @@ TORRENT_TEST(suggest_order)
 	TEST_CHECK(fail_counter > 0);
 
 	s.close();
-	test_sleep(500);
+	std::this_thread::sleep_for(lt::milliseconds(500));
 	print_session_log(*ses);
 }
 
@@ -747,7 +747,7 @@ TORRENT_TEST(multiple_bitfields)
 	print_session_log(*ses);
 
 	s.close();
-	test_sleep(500);
+	std::this_thread::sleep_for(lt::milliseconds(500));
 	print_session_log(*ses);
 }
 
@@ -777,7 +777,7 @@ TORRENT_TEST(multiple_have_all)
 
 	s.close();
 	print_session_log(*ses);
-	test_sleep(500);
+	std::this_thread::sleep_for(lt::milliseconds(500));
 	print_session_log(*ses);
 }
 
@@ -802,7 +802,7 @@ TORRENT_TEST(dont_have)
 	send_have_all(s);
 	print_session_log(*ses);
 
-	test_sleep(300);
+	std::this_thread::sleep_for(lt::milliseconds(300));
 	print_session_log(*ses);
 
 	std::vector<peer_info> pi;
@@ -863,7 +863,7 @@ TORRENT_TEST(dont_have)
 
 	print_session_log(*ses);
 
-	test_sleep(1000);
+	std::this_thread::sleep_for(lt::milliseconds(1000));
 
 	print_session_log(*ses);
 

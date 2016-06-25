@@ -117,7 +117,7 @@ void test_swarm()
 
 		print_ses_rate(i / 10.f, &st1, &st2, &st3);
 
-		test_sleep(100);
+		std::this_thread::sleep_for(lt::milliseconds(100));
 	}
 
 	TEST_CHECK(cnt["ses.num_unchoke_slots"] >= 2);

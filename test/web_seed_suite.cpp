@@ -191,7 +191,7 @@ void test_transfer(lt::session& ses, boost::shared_ptr<torrent_info> torrent_fil
 		// the test. make sure to do so quickly
 		if (!test_ban && keepalive && peer_disconnects >= 1) break;
 
-		test_sleep(100);
+		std::this_thread::sleep_for(lt::milliseconds(100));
 	}
 
 	cnt = get_counters(ses);
@@ -229,7 +229,7 @@ void test_transfer(lt::session& ses, boost::shared_ptr<torrent_info> torrent_fil
 					break;
 				std::fprintf(stderr, "cache_size: %d/%d\n", int(cnt["disk.read_cache_blocks"])
 					, int(cnt["disk.disk_blocks_in_use"]));
-				test_sleep(100);
+				std::this_thread::sleep_for(lt::milliseconds(100));
 			}
 			TEST_CHECK(std::abs(int(cnt["disk.disk_blocks_in_use"]
 				- (torrent_file->total_size() + 0x3fff) / 0x4000)) <= 2);

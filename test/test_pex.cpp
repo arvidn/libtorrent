@@ -101,7 +101,7 @@ void test_pex()
 
 	ses2.apply_settings(pack);
 
-	test_sleep(100);
+	std::this_thread::sleep_for(lt::milliseconds(100));
 
 	// in this test, ses1 is a seed, ses2 is connected to ses1 and ses3.
 	// the expected behavior is that ses2 will introduce ses1 and ses3 to each other
@@ -133,7 +133,7 @@ void test_pex()
 		// through session 2
 		if (st3.state == torrent_status::seeding) break;
 
-		test_sleep(100);
+		std::this_thread::sleep_for(lt::milliseconds(100));
 	}
 
 	TEST_CHECK(st1.num_peers == 2 && st2.num_peers == 2 && st3.num_peers == 2)

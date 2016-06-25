@@ -30,17 +30,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <functional>
 #include <atomic>
 #include <list>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <thread>
 
 #include "test.hpp"
-#include "setup_transfer.hpp" // for test_sleep
+#include "time.hpp"
 
+namespace lt = libtorrent;
 using namespace libtorrent;
 
 void fun(std::condition_variable* s, std::mutex* m, int* waiting, int i)
@@ -88,7 +86,7 @@ TORRENT_TEST(threads)
 	while (waiting < 20)
 	{
 		l.unlock();
-		test_sleep(10);
+		std::this_thread::sleep_for(lt::milliseconds(10));
 		l.lock();
 	}
 
@@ -111,7 +109,7 @@ TORRENT_TEST(threads)
 	while (waiting < 6)
 	{
 		l.unlock();
-		test_sleep(10);
+		std::this_thread::sleep_for(lt::milliseconds(10));
 		l.lock();
 	}
 

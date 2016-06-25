@@ -112,7 +112,7 @@ void test_transfer()
 		print_alerts(ses1, "ses1", true, true, true);
 		print_alerts(ses2, "ses2", true, true, true);
 
-		test_sleep(500);
+		std::this_thread::sleep_for(lt::milliseconds(500));
 
 		torrent_status st1 = tor1.status();
 		torrent_status st2 = tor2.status();

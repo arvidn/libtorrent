@@ -215,13 +215,13 @@ void test_checking(int flags = read_only_files)
 			break;
 
 		if (st.errc) break;
-		test_sleep(500);
+		std::this_thread::sleep_for(lt::milliseconds(500));
 	}
 	if (flags & incomplete_files)
 	{
 		TEST_CHECK(!st.is_seeding);
 
-		test_sleep(500);
+		std::this_thread::sleep_for(lt::milliseconds(500));
 		st = tor1.status();
 		TEST_CHECK(!st.is_seeding);
 	}
@@ -240,7 +240,7 @@ void test_checking(int flags = read_only_files)
 				std::fprintf(stderr, "error: %s\n", st.errc.message().c_str());
 
 			// wait a while to make sure libtorrent survived the error
-			test_sleep(1000);
+			std::this_thread::sleep_for(lt::milliseconds(1000));
 
 			st = tor1.status();
 			TEST_CHECK(!st.is_seeding);

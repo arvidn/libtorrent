@@ -355,7 +355,7 @@ TORRENT_TEST(udp_tracker)
 		if (num_udp_announces() == prev_udp_announces + 1)
 			break;
 
-		test_sleep(100);
+		std::this_thread::sleep_for(lt::milliseconds(100));
 		std::fprintf(stderr, "UDP: %d / %d\n", int(num_udp_announces())
 			, int(prev_udp_announces) + 1);
 	}
@@ -365,7 +365,7 @@ TORRENT_TEST(udp_tracker)
 
 	// if we remove the torrent before it has received the response from the
 	// tracker, it won't announce again to stop. So, wait a bit before removing.
-	test_sleep(1000);
+	std::this_thread::sleep_for(lt::milliseconds(1000));
 
 	s->remove_torrent(h);
 
@@ -375,7 +375,7 @@ TORRENT_TEST(udp_tracker)
 		if (num_udp_announces() == prev_udp_announces + 2)
 			break;
 
-		test_sleep(100);
+		std::this_thread::sleep_for(lt::milliseconds(100));
 		std::fprintf(stderr, "UDP: %d / %d\n", int(num_udp_announces())
 			, int(prev_udp_announces) + 1);
 	}

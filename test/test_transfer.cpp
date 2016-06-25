@@ -296,7 +296,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 			// jobs failing right after, putting us back in upload mode. So,
 			// give the disk some time to fail all disk jobs before resetting
 			// upload mode to false
-			test_sleep(500);
+			std::this_thread::sleep_for(lt::milliseconds(500));
 
 			// then we need to drain the alert queue, so the peer_disconnects
 			// counter doesn't get incremented by old alerts
@@ -336,7 +336,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 		// if nothing is being transferred after 2 seconds, we're failing the test
 //		if (!test_disk_full && st1.upload_payload_rate == 0 && i > 20) break;
 
-		test_sleep(100);
+		std::this_thread::sleep_for(lt::milliseconds(100));
 	}
 
 	TEST_CHECK(tor2.status().is_seeding);

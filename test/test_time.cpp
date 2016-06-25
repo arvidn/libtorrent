@@ -31,13 +31,13 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "test.hpp"
-#include "setup_transfer.hpp" // for test_sleep
 
 #include "libtorrent/time.hpp"
 
 #include <functional>
 #include <thread>
 
+namespace lt = libtorrent;
 using namespace libtorrent;
 
 void check_timer_loop(std::mutex& m, time_point& last, std::condition_variable& cv)
@@ -57,7 +57,6 @@ void check_timer_loop(std::mutex& m, time_point& last, std::condition_variable& 
 
 TORRENT_TEST(time)
 {
-
 	// make sure the time classes have correct semantics
 
 	TEST_EQUAL(total_milliseconds(milliseconds(100)), 100);
@@ -83,12 +82,12 @@ TORRENT_TEST(time)
 
 	std::mutex m;
 	std::condition_variable cv;
-	std::thread t1(&check_timer_loop, boost::ref(m), boost::ref(last), boost::ref(cv));
-	std::thread t2(&check_timer_loop, boost::ref(m), boost::ref(last), boost::ref(cv));
-	std::thread t3(&check_timer_loop, boost::ref(m), boost::ref(last), boost::ref(cv));
-	std::thread t4(&check_timer_loop, boost::ref(m), boost::ref(last), boost::ref(cv));
+	std::thread t1(&check_timer_loop, std::ref(m), std::ref(last), std::ref(cv));
+	std::thread t2(&check_timer_loop, std::ref(m), std::ref(last), std::ref(cv));
+	std::thread t3(&check_timer_loop, std::ref(m), std::ref(last), std::ref(cv));
+	std::thread t4(&check_timer_loop, std::ref(m), std::ref(last), std::ref(cv));
 
-	test_sleep(100);
+	std::this_thread::sleep_for(lt::milliseconds(100));
 
 	cv.notify_all();
 

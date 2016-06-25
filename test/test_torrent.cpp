@@ -83,7 +83,7 @@ void test_running_torrent(boost::shared_ptr<torrent_info> info, std::int64_t fil
 	std::vector<int> ones(info->num_files(), 1);
 	h.prioritize_files(ones);
 
-//	test_sleep(500);
+//	std::this_thread::sleep_for(lt::milliseconds(500));
 	torrent_status st = h.status();
 
 	TEST_EQUAL(st.total_wanted, file_size); // we want the single file
