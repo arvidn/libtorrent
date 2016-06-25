@@ -299,8 +299,6 @@ namespace libtorrent
 
 		if (!m_outgoing)
 		{
-			m_recv_buffer.reserve(300);
-
 			tcp::socket::non_blocking_io ioc(true);
 			error_code ec;
 			m_socket->io_control(ioc, ec);
@@ -5655,6 +5653,12 @@ namespace libtorrent
 
 		if (m_disconnecting) return;
 
+		if (m_recv_buffer.capacity() < 100
+			&& m_recv_buffer.max_receive() == 0)
+		{
+			m_recv_buffer.reserve(100);
+		}
+
 		// we may want to request more quota at this point
 		int const buffer_size = m_recv_buffer.max_receive();
 		request_bandwidth(download_channel, buffer_size);
@@ -5686,8 +5690,6 @@ namespace libtorrent
 		}
 		TORRENT_ASSERT(m_connected);
 		if (m_quota[download_channel] == 0) return;
-
-		if (!can_read()) return;
 
 		int const quota_left = m_quota[download_channel];
 		int const max_receive = (std::min)(buffer_size, quota_left);
@@ -6032,8 +6034,6 @@ namespace libtorrent
 #endif
 
 		INVARIANT_CHECK;
-
-		m_recv_buffer.reserve(300);
 
 #ifndef TORRENT_DISABLE_LOGGING
 		{

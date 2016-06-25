@@ -54,22 +54,21 @@ boost::asio::mutable_buffer receive_buffer::reserve(int size)
 	// normalize() must be called before receiving more data
 	TORRENT_ASSERT(m_recv_start == 0);
 
-	m_recv_buffer.resize(m_recv_end + size);
+	if (m_recv_buffer.size() < m_recv_end + size)
+		m_recv_buffer.resize(m_recv_end + size);
+
 	return boost::asio::buffer(&m_recv_buffer[0] + m_recv_end, size);
 }
 
 void receive_buffer::grow()
 {
-	// the size of a bittorrent piece message, probably the largest message we'll
-	// receive
-	int const piece_msg_size = 16384 + 9;
-
-	int const current_capacity = int(m_recv_buffer.capacity());
+	int const current_size = int(m_recv_buffer.size());
+	TORRENT_ASSERT(current_size < std::numeric_limits<int>::max() / 3);
 
 	// first grow to one piece message, then grow by 50% each time
-	int const new_capacity = (current_capacity < piece_msg_size)
-		? piece_msg_size : current_capacity * 3 / 2;
-	m_recv_buffer.resize(new_capacity);
+	int const new_size = (current_size < m_packet_size)
+		? m_packet_size : current_size * 3 / 2;
+	m_recv_buffer.resize(new_size);
 }
 
 int receive_buffer::advance_pos(int bytes)
@@ -83,7 +82,7 @@ int receive_buffer::advance_pos(int bytes)
 void receive_buffer::clamp_size()
 {
 	if (m_recv_pos == 0
-		&& (m_recv_buffer.capacity() - m_packet_size) > 128)
+		&& (m_recv_buffer.size() - m_packet_size) > 128)
 	{
 		// round up to an even 8 bytes since that's the RC4 blocksize
 		buffer(round_up8(m_packet_size)).swap(m_recv_buffer);

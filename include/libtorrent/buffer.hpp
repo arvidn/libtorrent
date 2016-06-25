@@ -111,17 +111,11 @@ public:
 	};
 
 	buffer(std::size_t n = 0)
-		: m_begin(0)
-		, m_size(0)
-		, m_capacity(0)
 	{
 		if (n) resize(n);
 	}
 
 	buffer(buffer const& b)
-		: m_begin(0)
-		, m_size(0)
-		, m_capacity(0)
 	{
 		if (b.size() == 0) return;
 		resize(b.size());
@@ -221,6 +215,8 @@ public:
 		if (tmp == nullptr) throw std::bad_alloc();
 #endif
 		m_begin = tmp;
+		// TODO: 4 on linux, ask about the actual number of bytes in the
+		// allocation here
 		m_capacity = std::uint32_t(n);
 	}
 
@@ -241,9 +237,9 @@ public:
 		swap(m_capacity, b.m_capacity);
 	}
 private:
-	char* m_begin;
-	std::uint32_t m_size;
-	std::uint32_t m_capacity;
+	char* m_begin = nullptr;
+	std::uint32_t m_size = 0;
+	std::uint32_t m_capacity = 0;
 };
 
 

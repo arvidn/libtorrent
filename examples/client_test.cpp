@@ -389,7 +389,7 @@ int print_peer_info(std::string& out
 	if (print_ip) out += "IP                             ";
 	out += "progress        down     (total | peak   )  up      (total | peak   ) sent-req tmo bsy rcv flags         dn  up  source  ";
 	if (print_fails) out += "fail hshf ";
-	if (print_send_bufs) out += "rq sndb rcvb   q-bytes ";
+	if (print_send_bufs) out += "rq sndb (recvb |alloc ) q-bytes ";
 	if (print_timers) out += "inactive wait timeout q-time ";
 	out += "  v disk ^    rtt  ";
 	if (print_block) out += "block-progress ";
@@ -471,9 +471,10 @@ int print_peer_info(std::string& out
 		}
 		if (print_send_bufs)
 		{
-			std::snprintf(str, sizeof(str), "%2d %6d %6d%5dkB "
+			std::snprintf(str, sizeof(str), "%2d %6d %6d|%6d%5dkB "
 				, i->requests_in_buffer, i->used_send_buffer
 				, i->used_receive_buffer
+				, i->receive_buffer_size
 				, i->queue_bytes / 1000);
 			out += str;
 		}
