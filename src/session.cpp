@@ -389,7 +389,13 @@ namespace libtorrent
 		int counter = 0;
 		while (log_async())
 		{
-			sleep(1000);
+#if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
+			Sleep(1000);
+#elif defined TORRENT_BEOS
+			snooze_until(system_time() + 1000000, B_SYSTEM_TIMEBASE);
+#else
+			usleep(1000000);
+#endif
 			++counter;
 			printf("\x1b[2J\x1b[0;0H\x1b[33m==== Waiting to shut down: %d ==== \x1b[0m\n\n"
 				, counter);
