@@ -143,5 +143,8 @@ TORRENT_TEST(count_leading_zeroes)
 		std::fprintf(stderr, "%s\n", t.first);
 		TEST_EQUAL(to_hash(t.first).count_leading_zeroes(), t.second);
 	}
-}
 
+#if TORRENT_HAS_ARM && !TORRENT_HAS_BUILTIN_CLZ
+#error "expected built-in clz for arm architecture"
+#endif
+}

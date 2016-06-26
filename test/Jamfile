@@ -114,7 +114,6 @@ test-suite libtorrent :
 		test_create_torrent.cpp
 		test_packet_buffer.cpp
 		test_timestamp_history.cpp
-		test_sha1_hash.cpp
 		test_bloom_filter.cpp
 		test_identify_client.cpp
 		test_merkle.cpp
@@ -160,6 +159,7 @@ test-suite libtorrent :
 		test_utf8.cpp
 		]
 
+	[ run test_sha1_hash.cpp ]
 	[ run test_receive_buffer.cpp ]
 	[ run test_alert_manager.cpp ]
 	[ run test_direct_dht.cpp ]
@@ -265,7 +265,12 @@ alias osx-tests :
 	test_time_critical
 	test_pex
 	test_priority
-;
+    ;
 
 explicit win-tests ;
 
+alias arm-tests :
+    test_sha1_hash
+    ;
+
+explicit arm-tests ;

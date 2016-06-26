@@ -57,8 +57,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/assert.hpp>
-
 #include <unordered_set>
 #include <iterator>
 #include <algorithm>
@@ -66,10 +64,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <ctime>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-#if TORRENT_USE_I2P
-#include "libtorrent/parse_url.hpp"
-#endif
 
 namespace libtorrent
 {

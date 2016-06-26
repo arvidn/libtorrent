@@ -15,6 +15,9 @@ matrix:
     - os: osx
       osx_image: xcode6.4
       env: variant=test_barebones
+    - sudo: required
+      dist: trusty
+      env: arch=arm
 
 git:
   submodules: false
@@ -86,8 +89,26 @@ install:
   - 'if [[ "$variant" != "" ]]; then ccache -V && ccache --show-stats && ccache --zero-stats; fi'
   - if [ "$docs" == "1" ]; then rst2html.py --version; fi
 
-script:
+- 'if [ $arch == "arm" ];
+    then
+      cd test;
+      echo "using gcc : arm64 : aarch64-linux-gnu-gcc : <cflags>-std=c11 <cxxflags>-std=c++11 <cxxflags>-fsigned-char <linkflags>-lstdc++ <linkflags>-lm ;" >> ~/user-config.jam;
+      wget http://releases.linaro.org/components/toolchain/binaries/latest-5/aarch64-linux-gnu/gcc-linaro-5.3-2016.02-x86_64_aarch64-linux-gnu.tar.xz;
+      tar xf gcc-linaro-5.3-2016.02-x86_64_aarch64-linux-gnu.tar.xz;
+      export PATH=${PWD}/gcc-linaro-5.3-2016.02-x86_64_aarch64-linux-gnu/bin:${PATH};
+      aarch64-linux-gnu-gcc --version;
+      wget -O boost.zip http://pilotfiber.dl.sourceforge.net/project/boost/boost/1.55.0/boost_1_55_0.zip;
+      unzip -qq boost.zip;
+      export BOOST_ROOT=$PWD/boost_1_55_0;
+      sudo apt-get install -y qemu-user-static debootstrap;
+      sudo debootstrap --variant=minbase --arch arm64 --foreign --include=build-essential testing rootfs;
+      sudo cp /usr/bin/qemu-aarch64-static rootfs/usr/bin/;
+      sudo chroot rootfs /debootstrap/debootstrap --second-stage;
+      sudo chroot rootfs mount -t proc none /proc;
+      cd ..;
+    fi'
 
+script:
 
   - cd docs
   - 'if [ "$docs" == "1" ]; then
@@ -165,3 +186,9 @@ script:
 
   - 'if [[ "$variant" != "" ]]; then ccache --show-stats; fi'
 
+  - cd test
+  - 'if [ $arch == "arm" ];
+    then
+      bjam arm-tests warnings-as-errors=on variant=test_arm toolset=gcc-arm64 target-os=linux link=static testing.launcher="sudo cp -R bin rootfs/; sudo chroot rootfs";
+    fi'
+  - cd ..
