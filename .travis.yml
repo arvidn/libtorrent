@@ -3,7 +3,7 @@ language: cpp
 matrix:
   include:
     - env: variant=test_release coverage=1 toolset=gcc-coverage
-    - env: variant=test_debug sim=1 toolset=gcc-sanitizer
+    - env: variant=test_debug sim=1 toolset=gcc
     - env: variant=test_barebones toolset=gcc
     - env: analyze=1 toolset=gcc
     - os: osx
@@ -77,9 +77,6 @@ install:
   - 'if [[ $toolset == "gcc-coverage" ]]; then
       echo "using gcc : coverage : ccache g++-5 --coverage : <cxxflags>-std=c++11 <linkflags>--coverage ;" >> ~/user-config.jam;
     fi'
-  - 'if [[ $toolset == "gcc-sanitizer" ]]; then
-    echo "using gcc : sanitizer : ccache g++-5 : <compileflags>-fsanitize=address <cxxflags>-std=c++11 <linkflags>-fsanitize=address ;" >> ~/user-config.jam;
-    fi'
   - 'if [[ $toolset == "gcc-arm64" ]]; then
       echo "using gcc : arm64 : ccache aarch64-linux-gnu-g++ : <cxxflags>-std=c++11 <cxxflags>-fsigned-char <linkflags>-lm ;" >> ~/user-config.jam;
     fi;'
@@ -92,8 +89,8 @@ install:
 # we're building with -Werror, we can't have those warnings
   - 'if [[ "$variant" != "" ]]; then ccache -V && ccache --show-stats && ccache --zero-stats; fi'
 
-  - 'if [ $arch == "arm" ];
-    then
+  - 'if [ $arch == "arm" ]; then
+      cd test;
       wget http://releases.linaro.org/components/toolchain/binaries/latest-5/aarch64-linux-gnu/gcc-linaro-5.3-2016.02-x86_64_aarch64-linux-gnu.tar.xz;
       tar xf gcc-linaro-5.3-2016.02-x86_64_aarch64-linux-gnu.tar.xz;
       export PATH=${PWD}/gcc-linaro-5.3-2016.02-x86_64_aarch64-linux-gnu/bin:${PATH};
@@ -106,6 +103,7 @@ install:
       sudo cp /usr/bin/qemu-aarch64-static rootfs/usr/bin/;
       sudo chroot rootfs /debootstrap/debootstrap --second-stage;
       sudo chroot rootfs mount -t proc none /proc;
+      cd ..;
     fi'
 
 script:
