@@ -8,13 +8,13 @@ matrix:
     - env: analyze=1 toolset=gcc
     - os: osx
       osx_image: xcode6.4
-      env: variant=test_release docs=1 toolset=darwin
+      env: variant=test_release docs=1 toolset=darwin target=osx-tests
     - os: osx
       osx_image: xcode6.4
-      env: variant=test_debug toolset=darwin
+      env: variant=test_debug toolset=darwin target=osx-tests
     - os: osx
       osx_image: xcode6.4
-      env: variant=test_barebones toolset=darwin
+      env: variant=test_barebones toolset=darwin target=osx-tests
     - sudo: required
       dist: trusty
       env: arch=arm toolset=gcc-arm64
@@ -62,8 +62,6 @@ before_install:
     brew install --quiet Homebrew/python/pillow;
     fi'
 
-# disable simulations on OSX for now. It hangs on travis
-  - if [ $TRAVIS_OS_NAME == "osx" ]; then export target="osx-tests"; fi
   - if [ "$coverage" == "1" ]; then
     pip install --user codecov;
     fi
@@ -71,15 +69,23 @@ before_install:
 
 install:
 
-  - if [[ $toolset == "gcc" ]]; then g++-5 --version; fi
-  - if [ "$docs" == "1" ]; then rst2html.py --version; fi
   - touch ~/user-config.jam
-  - 'echo "using gcc : : ccache g++-5 : <cxxflags>-std=c++11 ;" >> ~/user-config.jam'
-  - 'echo "using gcc : sanitizer : ccache g++-5 -fsanitize=address : <cxxflags>-std=c++11 <linkflags>-fsanitize=address ;" >> ~/user-config.jam'
-  - 'echo "using gcc : coverage : ccache g++-5 --coverage : <cxxflags>-std=c++11 <linkflags>--coverage ;" >> ~/user-config.jam'
-  - 'echo "using gcc : arm64 : ccache aarch64-linux-gnu-g++ : <cxxflags>-std=c++11 <cxxflags>-fsigned-char <linkflags>-lm ;" >> ~/user-config.jam'
+  - 'if [[ $toolset == "gcc" ]]; then
+      g++-5 --version;
+      echo "using gcc : : ccache g++-5 : <cxxflags>-std=c++11 ;" >> ~/user-config.jam;
+    fi'
+  - 'if [[ $toolset == "gcc-coverage" ]]; then
+      echo "using gcc : coverage : ccache g++-5 --coverage : <cxxflags>-std=c++11 <linkflags>--coverage ;" >> ~/user-config.jam;
+    fi'
+  - 'if [[ $toolset == "gcc-sanitizer" ]]; then
+    echo "using gcc : sanitizer : ccache g++-5 : <compileflags>-fsanitize=address <cxxflags>-std=c++11 <linkflags>-fsanitize=address ;" >> ~/user-config.jam;
+    fi'
+  - 'if [[ $toolset == "gcc-arm64" ]]; then
+      echo "using gcc : arm64 : ccache aarch64-linux-gnu-g++ : <cxxflags>-std=c++11 <cxxflags>-fsigned-char <linkflags>-lm ;" >> ~/user-config.jam;
+    fi;'
   - 'echo "using darwin : : ccache clang++ : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>-Wno-deprecated-declarations ;" >> ~/user-config.jam'
   - 'echo "using python : 2.7 ;" >> ~/user-config.jam'
+  - if [ "$docs" == "1" ]; then rst2html.py --version; fi
 
 # osx builds need to disable the deprecated warning because of the openssl
 # shipping with the system having marked all functions as deprecated. Since
