@@ -89,7 +89,7 @@ install:
   - 'if [[ "$variant" != "" ]]; then ccache -V && ccache --show-stats && ccache --zero-stats; fi'
   - if [ "$docs" == "1" ]; then rst2html.py --version; fi
 
-- 'if [ $arch == "arm" ];
+  - 'if [ $arch == "arm" ];
     then
       cd test;
       echo "using gcc : arm64 : aarch64-linux-gnu-gcc : <cflags>-std=c11 <cxxflags>-std=c++11 <cxxflags>-fsigned-char <linkflags>-lstdc++ <linkflags>-lm ;" >> ~/user-config.jam;
