@@ -34,9 +34,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <atomic>
 #include <list>
 #include <thread>
+#include <mutex>
+#include <condition_variable>
 
 #include "test.hpp"
-#include "time.hpp"
+#include "libtorrent/time.hpp"
 
 namespace lt = libtorrent;
 using namespace libtorrent;

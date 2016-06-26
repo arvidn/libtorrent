@@ -36,6 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <functional>
 #include <thread>
+#include <mutex>
+#include <condition_variable>
 
 namespace lt = libtorrent;
 using namespace libtorrent;

@@ -336,7 +336,7 @@ TORRENT_TEST(duplicate_is_not_error)
 		piece[i] = (i % 26) + 'A';
 
 	// calculate the hash for all pieces
-	sha1_hash ph = hasher(&piece[0], piece.size()).final();
+	sha1_hash ph = hasher(&piece[0], int(piece.size())).final();
 	int num = t.num_pieces();
 	TEST_CHECK(t.num_pieces() > 0);
 	for (int i = 0; i < num; ++i)
