@@ -92,9 +92,127 @@ TORRENT_TEST(recv_buffer_packet_finished)
 	TEST_EQUAL(b.packet_finished(), true);
 }
 
-// TODO: 4 test grow()
-// TODO: 4 test normalize(), specifically buffer shrinking + edge cases
-// TODO: 4 test max_receive()
+TORRENT_TEST(recv_buffer_grow_floor)
+{
+	receive_buffer b;
+	b.reset(1337);
+	b.grow(100000);
+
+	// the exact size depends on the OS allocator. Technically there's no upper
+	// bound, but it's likely withint some reasonable size
+	TEST_CHECK(b.capacity() >= 1337);
+	TEST_CHECK(b.capacity() < 1337 + 1000);
+}
+
+TORRENT_TEST(recv_buffer_grow)
+{
+	receive_buffer b;
+	b.reserve(200);
+	b.grow(100000);
+	// grow by 50%
+	TEST_CHECK(b.capacity() >= 300);
+	TEST_CHECK(b.capacity() < 300 + 500);
+}
+
+TORRENT_TEST(recv_buffer_grow_limit)
+{
+	receive_buffer b;
+	b.reserve(2000);
+	b.grow(2100);
+	// grow by 50%, but capped by 2100 bytes
+	TEST_CHECK(b.capacity() >= 2100);
+	TEST_CHECK(b.capacity() < 2100 + 500);
+	printf("capacity: %d\n", b.capacity());
+}
+
+TORRENT_TEST(recv_buffer_reserve_minimum_grow)
+{
+	receive_buffer b;
+	b.reset(1337);
+	b.reserve(20);
+
+	// we only asked for 20 more bytes, but since the message size was set to
+	// 1337, that's the minimum size to grow to
+	TEST_CHECK(b.capacity() >= 1337);
+	TEST_CHECK(b.capacity() < 1337 + 1000);
+}
+
+TORRENT_TEST(recv_buffer_reserve_grow)
+{
+	receive_buffer b;
+	b.reserve(20);
+
+	TEST_CHECK(b.capacity() >= 20);
+	TEST_CHECK(b.capacity() < 20 + 500);
+}
+
+TORRENT_TEST(recv_buffer_reserve)
+{
+	receive_buffer b;
+	auto range1 = b.reserve(100);
+
+	int const capacity = b.capacity();
+
+	b.reset(20);
+	b.received(20);
+
+	TEST_EQUAL(b.capacity(), capacity);
+
+	auto range2 = b.reserve(50);
+
+	using namespace boost::asio;
+
+	TEST_EQUAL(b.capacity(), capacity);
+	TEST_EQUAL(buffer_cast<char*>(range1) + 20, buffer_cast<char*>(range2));
+	TEST_CHECK(buffer_size(range1) >= 20);
+	TEST_CHECK(buffer_size(range2) >= 50);
+}
+
+TORRENT_TEST(receive_buffer_normalize)
+{
+	receive_buffer b;
+	b.reset(16000);
+
+	// receive one large packet, to allocate a large receive buffer
+	for (int i = 0; i < 16; ++i)
+	{
+		b.reserve(1000);
+		b.received(1000);
+		b.normalize();
+	}
+
+	TEST_CHECK(b.capacity() >= 16000);
+	int const start_capacity = b.capacity();
+
+	// then receive lots of small packets. We should eventually re-allocate down
+	// to a smaller buffer
+	for (int i = 0; i < 15; ++i)
+	{
+		b.reset(160);
+		b.reserve(160);
+		b.received(160);
+		b.normalize();
+		printf("capacity: %d watermark: %d\n", b.capacity(), b.watermark());
+	}
+
+	TEST_CHECK(b.capacity() <= start_capacity / 2);
+	printf("capacity: %d\n", b.capacity());
+}
+
+TORRENT_TEST(receive_buffer_max_receive)
+{
+	receive_buffer b;
+	b.reset(2000);
+	b.reserve(2000);
+	b.received(2000);
+	b.normalize();
+
+	b.reset(20);
+	int const max_receive = b.max_receive();
+	TEST_CHECK(max_receive >= 2000);
+	b.received(20);
+	TEST_EQUAL(b.max_receive(), max_receive - 20);
+}
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 

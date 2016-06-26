@@ -107,10 +107,6 @@ struct suggest_piece
 		}
 
 		m_priority_pieces.push_back(index);
-
-		std::printf("SUGGEST: ");
-		for (int p : m_priority_pieces) std::printf(" %d", p);
-		std::printf("\n");
 	}
 
 private:

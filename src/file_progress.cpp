@@ -91,12 +91,13 @@ namespace libtorrent { namespace aux
 			m_have_pieces.set_bit(piece);
 #endif
 
-			int size = (std::min)(std::uint64_t(piece_size), total_size - off);
+			TORRENT_ASSERT(total_size >= off);
+			std::int64_t size = (std::min)(std::uint64_t(piece_size), total_size - off);
 			TORRENT_ASSERT(size >= 0);
 
 			while (size)
 			{
-				int add = (std::min)(std::int64_t(size), fs.file_size(file_index) - file_offset);
+				std::int64_t add = (std::min)(size, fs.file_size(file_index) - file_offset);
 				TORRENT_ASSERT(add >= 0);
 				m_file_progress[file_index] += add;
 

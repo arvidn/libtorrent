@@ -73,7 +73,7 @@ TORRENT_TEST(buffer_swap)
 	buffer b1;
 	TEST_CHECK(b1.size() == 0);
 	buffer b2(10, data);
-	int const b2_size = b2.size();
+	std::size_t const b2_size = b2.size();
 	TEST_CHECK(b2_size >= 10);
 
 	b1.swap(b2);
@@ -89,7 +89,7 @@ TORRENT_TEST(buffer_subscript)
 	TEST_CHECK(std::memcmp(b.ptr(), data, 10) == 0);
 	TEST_CHECK(b.size() >= 50);
 
-	for (int i = 0; i < sizeof(data)/sizeof(data[0]); ++i)
+	for (int i = 0; i < int(sizeof(data)/sizeof(data[0])); ++i)
 		TEST_CHECK(b[i] == data[i]);
 }
 
@@ -98,10 +98,10 @@ TORRENT_TEST(buffer_subscript2)
 	buffer b(1);
 	TEST_CHECK(b.size() >= 1);
 
-	for (int i = 0; i < b.size(); ++i)
+	for (int i = 0; i < int(b.size()); ++i)
 		b[i] = i & 0xff;
 
-	for (int i = 0; i < b.size(); ++i)
+	for (int i = 0; i < int(b.size()); ++i)
 		TEST_CHECK(b[i] == (i & 0xff));
 }
 

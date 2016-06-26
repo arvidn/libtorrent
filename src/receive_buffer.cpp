@@ -34,13 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	namespace {
-		int round_up8(int v)
-		{
-			return ((v & 7) == 0) ? v : v + (8 - (v & 7));
-		}
-	}
-
 int receive_buffer::max_receive() const
 {
 	return int(m_recv_buffer.size() - m_recv_end);
@@ -56,9 +49,8 @@ boost::asio::mutable_buffer receive_buffer::reserve(int size)
 
 	if (m_recv_buffer.size() < m_recv_end + size)
 	{
-		// TODO: 4 if the message size is larger still, allocate enough space to
-		// fit the whole message
-		buffer new_buffer(m_recv_end + size
+		int const new_size = std::max(m_recv_end + size, m_packet_size);
+		buffer new_buffer(new_size
 			, aux::array_view<char const>(m_recv_buffer.ptr(), m_recv_end));
 		m_recv_buffer = std::move(new_buffer);
 
@@ -76,8 +68,8 @@ void receive_buffer::grow(int const limit)
 	TORRENT_ASSERT(current_size < std::numeric_limits<int>::max() / 3);
 
 	// first grow to one piece message, then grow by 50% each time
-	int const new_size = std::min((current_size < m_packet_size)
-		? m_packet_size : current_size * 3 / 2, limit);
+	int const new_size = (current_size < m_packet_size)
+		? m_packet_size : std::min(current_size * 3 / 2, limit);
 
 	// re-allcoate the buffer and copy over the part of it that's used
 	buffer new_buffer(new_size
@@ -95,16 +87,6 @@ int receive_buffer::advance_pos(int bytes)
 	int const sub_transferred = (std::min)(bytes, limit);
 	m_recv_pos += sub_transferred;
 	return sub_transferred;
-}
-
-void receive_buffer::clamp_size()
-{
-	if (m_recv_pos == 0
-		&& (m_recv_buffer.size() - m_packet_size) > 128)
-	{
-		// round up to an even 8 bytes since that's the RC4 blocksize
-		buffer(round_up8(m_packet_size)).swap(m_recv_buffer);
-	}
 }
 
 // size = the packet size to remove from the receive buffer
@@ -194,10 +176,9 @@ boost::asio::mutable_buffer receive_buffer::mutable_buffer(int const bytes)
 // in the receive buffer that have been parsed and processed.
 // it may also shrink the size of the buffer allocation if we haven't been using
 // enough of it lately.
-void receive_buffer::normalize()
+void receive_buffer::normalize(int force_shrink)
 {
 	TORRENT_ASSERT(m_recv_end >= m_recv_start);
-	if (m_recv_start == 0) return;
 
 	m_watermark.add_sample(std::max(m_recv_end, m_packet_size));
 
@@ -210,12 +191,20 @@ void receive_buffer::normalize()
 		m_recv_buffer.ptr() + m_recv_start
 			, m_recv_end - m_recv_start);
 
-	if (shrink_buffer)
+	if (force_shrink)
+	{
+		const int target_size = std::max(std::max(force_shrink
+			, int(bytes_to_shift.size())), m_packet_size);
+		buffer new_buffer(target_size, bytes_to_shift);
+		m_recv_buffer = std::move(new_buffer);
+	}
+	else if (shrink_buffer)
 	{
 		buffer new_buffer(m_watermark.mean(), bytes_to_shift);
 		m_recv_buffer = std::move(new_buffer);
 	}
-	else if (m_recv_end > m_recv_start)
+	else if (m_recv_end > m_recv_start
+		&& m_recv_start > 0)
 	{
 		std::memmove(m_recv_buffer.ptr(), bytes_to_shift.data()
 			, bytes_to_shift.size());

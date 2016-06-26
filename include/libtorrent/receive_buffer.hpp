@@ -60,7 +60,7 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 	int watermark() const { return m_watermark.mean(); }
 
 	boost::asio::mutable_buffer reserve(int size);
-	void grow(int limit = 2 * 1024 * 1024);
+	void grow(int limit);
 
 	// tell the buffer we just received more bytes at the end of it. This will
 	// advance the end cursor
@@ -77,9 +77,6 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 
 	// has the read cursor reached the end cursor?
 	bool pos_at_end() { return m_recv_pos == m_recv_end; }
-
-	// make the buffer size divisible by 8 bytes (RC4 block size)
-	void clamp_size();
 
 	// size = the packet size to remove from the receive buffer
 	// packet_size = the next packet size to receive in the buffer
@@ -100,7 +97,7 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 
 	// the purpose of this function is to free up and cut off all messages
 	// in the receive buffer that have been parsed and processed.
-	void normalize();
+	void normalize(int force_shrink = 0);
 	bool normalized() const { return m_recv_start == 0; }
 
 	void reset(int packet_size);

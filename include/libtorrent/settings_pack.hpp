@@ -1098,13 +1098,16 @@ namespace libtorrent
 			// and is disconnected.
 			max_rejects,
 
-			// ``recv_socket_buffer_size`` and ``send_socket_buffer_size``
 			// specifies the buffer sizes set on peer sockets. 0 (which is the
 			// default) means the OS default (i.e. don't change the buffer sizes).
 			// The socket buffer sizes are changed using setsockopt() with
 			// SOL_SOCKET/SO_RCVBUF and SO_SNDBUFFER.
 			recv_socket_buffer_size,
 			send_socket_buffer_size,
+
+			// the max number of bytes a single peer connection's receive buffer is
+			// allowed to grow to.
+			max_peer_recv_buffer_size,
 
 			// ``file_checks_delay_per_block`` is the number of milliseconds to
 			// sleep in between disk read operations when checking torrents. This

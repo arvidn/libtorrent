@@ -5945,6 +5945,7 @@ namespace libtorrent
 
 		// feed bytes in receive buffer to upper layer by calling on_receive()
 
+		bool const prev_choked = m_peer_choked;
 		int bytes = int(bytes_transferred);
 		int sub_transferred = 0;
 		do {
@@ -5955,14 +5956,19 @@ namespace libtorrent
 			if (m_disconnecting) return;
 		} while (bytes > 0 && sub_transferred > 0);
 
-		m_recv_buffer.normalize();
+		// if the peer went from unchoked to choked, suggest to the receive
+		// buffer that it shrinks to 100 bytes
+		int const force_shrink = (m_peer_choked && !prev_choked)
+			? 100 : 0;
+		m_recv_buffer.normalize(force_shrink);
 
 		if (m_recv_buffer.max_receive() == 0)
 		{
-			// the message we're receiving is larger than our buffer receive
+			// the message we're receiving is larger than our receive
 			// buffer, we must grow.
-			// TODO: 4 make the size limit configurable and passed in here
-			m_recv_buffer.grow();
+			int const buffer_size_limit
+				= m_settings.get_int(settings_pack::max_peer_recv_buffer_size);
+			m_recv_buffer.grow(buffer_size_limit);
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::incoming, "GROW_BUFFER", "%d bytes"
 				, m_recv_buffer.capacity());
@@ -5971,13 +5977,6 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_recv_buffer.pos_at_end());
 		TORRENT_ASSERT(m_recv_buffer.packet_size() > 0);
-
-		// TODO: 4 this seems like a reasonable idea to do on the edge from
-		// unchoked -> choked, not as a level trigger
-		if (m_peer_choked)
-		{
-			m_recv_buffer.clamp_size();
-		}
 
 		if (is_seed())
 		{
