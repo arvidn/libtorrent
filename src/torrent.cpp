@@ -278,6 +278,7 @@ namespace libtorrent
 		, m_progress_ppm(0)
 #if TORRENT_USE_ASSERTS
 		, m_was_started(false)
+		, m_outstanding_check_files(false)
 #endif
 	{
 		// we cannot log in the constructor, because it relies on shared_from_this
@@ -1761,13 +1762,10 @@ namespace libtorrent
 		// --- MAPPED FILES ---
 		if (m_add_torrent_params)
 		{
-			for (std::map<int, std::string>::const_iterator i
-				= m_add_torrent_params->renamed_files.begin()
-				, end(m_add_torrent_params->renamed_files.end());
-				i != end; ++i)
+			for (auto const& f : m_add_torrent_params->renamed_files)
 			{
-				if (i->first < 0 || i->first >= m_torrent_file->num_files()) continue;
-				m_torrent_file->rename_file(i->first, i->second);
+				if (f.first < 0 || f.first >= m_torrent_file->num_files()) continue;
+				m_torrent_file->rename_file(f.first, f.second);
 			}
 		}
 
@@ -1792,10 +1790,8 @@ namespace libtorrent
 			// copy the peer list since peers may disconnect and invalidate
 			// m_connections as we initialize them
 			std::vector<peer_connection*> peers = m_connections;
-			for (torrent::peer_iterator i = peers.begin();
-				i != peers.end(); ++i)
+			for (auto* pc :  peers)
 			{
-				peer_connection* pc = *i;
 				if (pc->is_disconnecting()) continue;
 				pc->on_metadata_impl();
 				if (pc->is_disconnecting()) continue;
@@ -1829,6 +1825,7 @@ namespace libtorrent
 		{
 			m_have_all = true;
 			m_ses.get_io_service().post(std::bind(&torrent::files_checked, shared_from_this()));
+			TORRENT_ASSERT(m_outstanding_check_files == false);
 			m_add_torrent_params.reset();
 			update_gauge();
 			update_state_list();
@@ -1964,6 +1961,10 @@ namespace libtorrent
 
 		inc_refcount("check_fastresume");
 		// async_check_files will gut links
+#if TORRENT_USE_ASSERTS
+		TORRENT_ASSERT(m_outstanding_check_files == false);
+		m_outstanding_check_files = true;
+#endif
 		m_ses.disk_thread().async_check_files(
 			m_storage.get(), m_add_torrent_params ? m_add_torrent_params.get() : nullptr
 			, links, std::bind(&torrent::on_resume_data_checked
@@ -2166,19 +2167,25 @@ namespace libtorrent
 		// hold a reference until this function returns
 		torrent_ref_holder h(this, "check_fastresume");
 
+#if TORRENT_USE_ASSERTS
+		TORRENT_ASSERT(m_outstanding_check_files);
+		m_outstanding_check_files = false;
+#endif
+
 		// when applying some of the resume data to the torrent, we will
 		// trigger calls that set m_need_save_resume_data, even though we're
 		// just applying the state of the resume data we loaded with. We don't
 		// want anything in this function to affect the state of
 		// m_need_save_resume_data, so we save it in a local variable and reset
 		// it at the end of the function.
-		bool need_save_resume_data = m_need_save_resume_data;
+		bool const need_save_resume_data = m_need_save_resume_data;
 
 		dec_refcount("check_fastresume");
 		TORRENT_ASSERT(is_single_thread());
 
 		if (j->ret == piece_manager::fatal_disk_error)
 		{
+			TORRENT_ASSERT(m_outstanding_check_files == false);
 			m_add_torrent_params.reset();
 			handle_disk_error(j);
 			auto_managed(false);
@@ -2351,6 +2358,7 @@ namespace libtorrent
 		}
 
 		maybe_done_flushing();
+		TORRENT_ASSERT(m_outstanding_check_files == false);
 		m_add_torrent_params.reset();
 
 		// restore m_need_save_resume_data to its state when we entered this
@@ -2412,6 +2420,7 @@ namespace libtorrent
 		if (m_auto_managed && !is_finished())
 			set_queue_position((std::numeric_limits<int>::max)());
 
+		TORRENT_ASSERT(m_outstanding_check_files == false);
 		m_add_torrent_params.reset();
 
 		std::vector<std::string> links;
