@@ -1657,6 +1657,7 @@ namespace libtorrent
 #if TORRENT_USE_ASSERTS
 		// set to true when torrent is start()ed. It may only be started once
 		bool m_was_started;
+		bool m_outstanding_check_files;
 #endif
 	};
 
