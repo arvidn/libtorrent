@@ -57,8 +57,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/assert.hpp>
-
 #include <unordered_set>
 #include <iterator>
 #include <algorithm>
@@ -79,7 +77,6 @@ namespace libtorrent
 #else
 		static const char invalid_chars[] = "";
 #endif
-
 		if (c >= 0 && c < 32) return false;
 		return std::strchr(invalid_chars, c) == 0;
 	}

@@ -528,12 +528,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #define __has_builtin(x) 0  // for non-clang compilers
 #endif
 
-#if (TORRENT_HAS_SSE && __GNUC__) \
-	|| (TORRENT_HAS_ARM && defined __GNUC__ && !defined __clang__) \
-	|| (defined __clang__ && __has_builtin(__builtin_clz))
-#define TORRENT_HAS_BUILTIN_CLZ 1
+#if (TORRENT_HAS_SSE && __GNUC__)
+#	define TORRENT_HAS_BUILTIN_CLZ 1
+#elif (TORRENT_HAS_ARM && defined __GNUC__ && !defined __clang__)
+#	define TORRENT_HAS_BUILTIN_CLZ 1
+#elif (defined __clang__ && __has_builtin(__builtin_clz))
+#	define TORRENT_HAS_BUILTIN_CLZ 1
 #else
-#define TORRENT_HAS_BUILTIN_CLZ 0
+#	define TORRENT_HAS_BUILTIN_CLZ 0
 #endif // TORRENT_HAS_BUILTIN_CLZ
 
 #endif // TORRENT_CONFIG_HPP_INCLUDED
