@@ -5,7 +5,7 @@ matrix:
     - env: variant=test_release coverage=1 toolset=gcc-coverage
     - env: variant=test_debug sim=1 toolset=gcc-sanitizer
     - env: variant=test_barebones toolset=gcc
-    - env: analyze=1
+    - env: analyze=1 toolset=gcc
     - os: osx
       osx_image: xcode6.4
       env: variant=test_release docs=1 toolset=darwin
@@ -75,8 +75,8 @@ install:
   - if [ "$docs" == "1" ]; then rst2html.py --version; fi
   - touch ~/user-config.jam
   - 'echo "using gcc : : ccache g++-5 : <cxxflags>-std=c++11 ;" >> ~/user-config.jam'
-  - 'echo "using gcc : sanitizer : ccache g++-5 : <cxxflags>-std=c++11 <compileflags>-fsanitize=address <linkflags>-fsanitize=address ;" >> ~/user-config.jam'
-  - 'echo "using gcc : coverage : ccache g++-5 : <cxxflags>-std=c++11 <compileflags>--coverage <linkflags>--coverage ;" >> ~/user-config.jam'
+  - 'echo "using gcc : sanitizer : ccache g++-5 -fsanitize=address : <cxxflags>-std=c++11 <linkflags>-fsanitize=address ;" >> ~/user-config.jam'
+  - 'echo "using gcc : coverage : ccache g++-5 --coverage : <cxxflags>-std=c++11 <linkflags>--coverage ;" >> ~/user-config.jam'
   - 'echo "using gcc : arm64 : ccache aarch64-linux-gnu-g++ : <cxxflags>-std=c++11 <cxxflags>-fsigned-char <linkflags>-lm ;" >> ~/user-config.jam'
   - 'echo "using darwin : : ccache clang++ : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>-Wno-deprecated-declarations ;" >> ~/user-config.jam'
   - 'echo "using python : 2.7 ;" >> ~/user-config.jam'
