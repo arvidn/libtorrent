@@ -181,7 +181,7 @@ void test_remap_files_gather(storage_mode_t storage_mode = storage_mode_sparse)
 
 		if (peer_disconnects >= 2) break;
 
-		test_sleep(100);
+		std::this_thread::sleep_for(lt::milliseconds(100));
 	}
 
 	torrent_status st2 = tor2.status();
@@ -215,7 +215,7 @@ void test_remap_files_gather(storage_mode_t storage_mode = storage_mode_sparse)
 
 		if (st2.progress == 1.0) break;
 
-		test_sleep(100);
+		std::this_thread::sleep_for(lt::milliseconds(100));
 	}
 
 	st2 = tor2.status();
@@ -325,7 +325,7 @@ void test_remap_files_scatter(storage_mode_t storage_mode = storage_mode_sparse)
 
 		if (peer_disconnects >= 2) break;
 
-		test_sleep(100);
+		std::this_thread::sleep_for(lt::milliseconds(100));
 	}
 
 	torrent_status st2 = tor2.status();
@@ -359,7 +359,7 @@ void test_remap_files_scatter(storage_mode_t storage_mode = storage_mode_sparse)
 
 		if (st2.progress == 1.0) break;
 
-		test_sleep(100);
+		std::this_thread::sleep_for(lt::milliseconds(100));
 	}
 
 	st2 = tor2.status();
@@ -464,7 +464,7 @@ void test_remap_files_prio(storage_mode_t storage_mode = storage_mode_sparse)
 	// torrent1 will attempt to connect to torrent2
 	// make sure torrent2 is up and running by then
 	tor2.resume();
-	test_sleep(500);
+	std::this_thread::sleep_for(lt::milliseconds(500));
 	tor1.resume();
 
 	std::fprintf(stderr, "\ntesting remap scatter prio\n\n");
@@ -508,7 +508,7 @@ void test_remap_files_prio(storage_mode_t storage_mode = storage_mode_sparse)
 
 		if (peer_disconnects >= 2) break;
 
-		test_sleep(100);
+		std::this_thread::sleep_for(lt::milliseconds(100));
 	}
 
 	torrent_status st2 = tor2.status();

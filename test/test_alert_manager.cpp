@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <thread>
 
+namespace lt = libtorrent;
 using namespace libtorrent;
 
 TORRENT_TEST(limit)
@@ -193,7 +194,7 @@ TORRENT_TEST(extensions)
 
 void post_torrent_added(alert_manager* mgr)
 {
-	test_sleep(10);
+	std::this_thread::sleep_for(lt::milliseconds(10));
 	mgr->emplace_alert<torrent_added_alert>(torrent_handle());
 }
 

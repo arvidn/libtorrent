@@ -32,11 +32,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/file.hpp"
 #include "test.hpp"
-#include "setup_transfer.hpp" // for test_sleep
-#include <string.h> // for strcmp
+#include <cstring> // for std::strcmp
 #include <vector>
 #include <set>
+#include <thread>
 
+namespace lt = libtorrent;
 using namespace libtorrent;
 
 int touch_file(std::string const& filename, int size)
@@ -88,7 +89,7 @@ TORRENT_TEST(file_status)
 
 	// sleep for 3 seconds and then make sure the difference in timestamp is
 	// between 2-4 seconds after touching it again
-	test_sleep(3000);
+	std::this_thread::sleep_for(lt::milliseconds(3000));
 
 	touch_file("__test_timestamp__", 10);
 
@@ -253,16 +254,16 @@ TORRENT_TEST(split_string)
 	int ret = split_string(tags, 10, tags_str);
 
 	TEST_CHECK(ret == 10);
-	TEST_CHECK(strcmp(tags[0], "this") == 0);
-	TEST_CHECK(strcmp(tags[1], "is") == 0);
-	TEST_CHECK(strcmp(tags[2], "a") == 0);
-	TEST_CHECK(strcmp(tags[3], "test") == 0);
-	TEST_CHECK(strcmp(tags[4], "string") == 0);
-	TEST_CHECK(strcmp(tags[5], "to") == 0);
-	TEST_CHECK(strcmp(tags[6], "be") == 0);
-	TEST_CHECK(strcmp(tags[7], "split") == 0);
-	TEST_CHECK(strcmp(tags[8], "and") == 0);
-	TEST_CHECK(strcmp(tags[9], "it") == 0);
+	TEST_CHECK(std::strcmp(tags[0], "this") == 0);
+	TEST_CHECK(std::strcmp(tags[1], "is") == 0);
+	TEST_CHECK(std::strcmp(tags[2], "a") == 0);
+	TEST_CHECK(std::strcmp(tags[3], "test") == 0);
+	TEST_CHECK(std::strcmp(tags[4], "string") == 0);
+	TEST_CHECK(std::strcmp(tags[5], "to") == 0);
+	TEST_CHECK(std::strcmp(tags[6], "be") == 0);
+	TEST_CHECK(std::strcmp(tags[7], "split") == 0);
+	TEST_CHECK(std::strcmp(tags[8], "and") == 0);
+	TEST_CHECK(std::strcmp(tags[9], "it") == 0);
 
 	// replace_extension
 	std::string test = "foo.bar";
@@ -304,7 +305,7 @@ TORRENT_TEST(file)
 	if (ec)
 		std::fprintf(stderr, "readv failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_EQUAL(ec, error_code());
-	TEST_CHECK(strcmp(test_buf, "test") == 0);
+	TEST_CHECK(std::strcmp(test_buf, "test") == 0);
 	f.close();
 }
 
@@ -348,7 +349,7 @@ TORRENT_TEST(hard_link)
 	if (ec)
 		std::fprintf(stderr, "readv failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_EQUAL(ec, error_code());
-	TEST_CHECK(strcmp(test_buf, "abcdefghijklmnopqrstuvwxyz") == 0);
+	TEST_CHECK(std::strcmp(test_buf, "abcdefghijklmnopqrstuvwxyz") == 0);
 	f.close();
 
 	remove("original_file", ec);
@@ -387,8 +388,8 @@ TORRENT_TEST(coalesce_buffer)
 			, ec.category().name(), ec.message().c_str());
 	}
 	TEST_EQUAL(ec, error_code());
-	TEST_CHECK(strcmp(test_buf1, "test") == 0);
-	TEST_CHECK(strcmp(test_buf2, "foobar") == 0);
+	TEST_CHECK(std::strcmp(test_buf1, "test") == 0);
+	TEST_CHECK(std::strcmp(test_buf2, "foobar") == 0);
 	f.close();
 }
 

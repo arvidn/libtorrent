@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/smart_ptr.hpp>
 #include <boost/ref.hpp>
 
+namespace lt = libtorrent;
 using namespace libtorrent;
 
 broadcast_socket* sock = 0;
@@ -176,7 +177,7 @@ void run_upnp_test(char const* root_filename, char const* router_model, char con
 			break;
 		}
 		if (upnp_handler->router_model() != "") break;
-		test_sleep(100);
+		std::this_thread::sleep_for(lt::milliseconds(100));
 	}
 
 	std::cerr << "router: " << upnp_handler->router_model() << std::endl;
@@ -196,7 +197,7 @@ void run_upnp_test(char const* root_filename, char const* router_model, char con
 			break;
 		}
 		if (callbacks.size() >= 2) break;
-		test_sleep(100);
+		std::this_thread::sleep_for(lt::milliseconds(100));
 	}
 
 	callback_info expected1 = {mapping1, 500, error_code()};
@@ -222,7 +223,7 @@ void run_upnp_test(char const* root_filename, char const* router_model, char con
 			break;
 		}
 		if (callbacks.size() >= 4) break;
-		test_sleep(100);
+		std::this_thread::sleep_for(lt::milliseconds(100));
 	}
 
 	// there should have been two DeleteMapping calls

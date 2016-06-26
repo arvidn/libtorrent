@@ -280,7 +280,7 @@ void test_ssl(int test_idx, bool use_utp)
 		TEST_CHECK(st2.state == torrent_status::downloading
 			|| st2.state == torrent_status::checking_resume_data);
 
-		test_sleep(100);
+		std::this_thread::sleep_for(lt::milliseconds(100));
 	}
 
 	std::fprintf(stderr, "peer_errors: %d expected_errors: %d\n"

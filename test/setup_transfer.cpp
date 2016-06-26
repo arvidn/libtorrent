@@ -424,17 +424,6 @@ void print_ses_rate(float time
 	std::fprintf(stderr, "\n");
 }
 
-void test_sleep(int milliseconds)
-{
-#if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
-	Sleep(milliseconds);
-#elif defined TORRENT_BEOS
-	snooze_until(system_time() + std::int64_t(milliseconds) * 1000, B_SYSTEM_TIMEBASE);
-#else
-	usleep(milliseconds * 1000);
-#endif
-}
-
 #ifdef _WIN32
 typedef DWORD pid_type;
 #else
@@ -600,7 +589,7 @@ int start_proxy(int proxy_type)
 	proxy_t t = { r, proxy_type };
 	running_proxies.insert(std::make_pair(port, t));
 	std::fprintf(stderr, "%s launched\n", time_now_string());
-	test_sleep(500);
+	std::this_thread::sleep_for(lt::milliseconds(500));
 	return port;
 }
 
@@ -852,7 +841,7 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 	TORRENT_ASSERT(ses1->get_torrents().size() == 1);
 	TORRENT_ASSERT(ses2->get_torrents().size() == 1);
 
-//	test_sleep(100);
+//	std::this_thread::sleep_for(lt::milliseconds(100));
 
 	if (connect_peers)
 	{
@@ -937,7 +926,7 @@ int start_web_server(bool ssl, bool chunked_encoding, bool keepalive)
 	if (r == 0) abort();
 	web_server_pid = r;
 	std::fprintf(stderr, "%s launched\n", time_now_string());
-	test_sleep(500);
+	std::this_thread::sleep_for(lt::milliseconds(500));
 	return port;
 }
 

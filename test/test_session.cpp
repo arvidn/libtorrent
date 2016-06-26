@@ -191,9 +191,9 @@ TORRENT_TEST(paused_session)
 
 	torrent_handle h = s.add_torrent(ps);
 
-	test_sleep(2000);
+	std::this_thread::sleep_for(lt::milliseconds(2000));
 	h.resume();
-	test_sleep(1000);
+	std::this_thread::sleep_for(lt::milliseconds(1000));
 
 	TEST_CHECK(!h.status().paused);
 }

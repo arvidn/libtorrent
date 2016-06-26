@@ -657,7 +657,7 @@ void test_fastresume(bool const test_deprecated)
 				std::cout << "progress: 1.0f" << std::endl;
 				break;
 			}
-			test_sleep(100);
+			std::this_thread::sleep_for(lt::milliseconds(100));
 		}
 
 		// the whole point of the test is to have a resume
@@ -774,7 +774,7 @@ void test_rename_file_fastresume(bool test_deprecated)
 			if (print_alerts(ses, "ses", true, true, true, &got_file_rename_alert)) renamed = true;
 			torrent_status s = h.status();
 			if (s.state == torrent_status::seeding && renamed) break;
-			test_sleep(100);
+			std::this_thread::sleep_for(lt::milliseconds(100));
 		}
 		std::cout << "stop loop" << std::endl;
 		torrent_status s = h.status();
@@ -824,7 +824,7 @@ void test_rename_file_fastresume(bool test_deprecated)
 			print_alerts(ses, "ses");
 			if (stat.state == torrent_status::seeding)
 				break;
-			test_sleep(100);
+			std::this_thread::sleep_for(lt::milliseconds(100));
 		}
 		TEST_CHECK(stat.state == torrent_status::seeding);
 

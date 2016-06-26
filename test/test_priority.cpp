@@ -178,7 +178,7 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 		// if nothing is being transferred after 2 seconds, we're failing the test
 		if (st1.upload_payload_rate == 0 && i > 20) break;
 
-		test_sleep(100);
+		std::this_thread::sleep_for(lt::milliseconds(100));
 	}
 
 	TEST_CHECK(!tor2.status().is_seeding);
@@ -218,7 +218,7 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 			std::cerr << int(st2.progress * 100) << "% " << std::endl;
 		}
 		if (st2.state == torrent_status::finished) break;
-		test_sleep(100);
+		std::this_thread::sleep_for(lt::milliseconds(100));
 	}
 
 	TEST_EQUAL(st2.state, torrent_status::finished);
@@ -281,7 +281,7 @@ done:
 
 	std::cerr << "removed" << std::endl;
 
-	test_sleep(100);
+	std::this_thread::sleep_for(lt::milliseconds(100));
 
 	std::cout << "re-adding" << std::endl;
 	add_torrent_params p;
@@ -322,7 +322,7 @@ done:
 
 		if (st2.is_finished) break;
 
-		test_sleep(100);
+		std::this_thread::sleep_for(lt::milliseconds(100));
 	}
 
 	// torrent 2 should not be seeding yet, it should
@@ -371,7 +371,7 @@ done:
 			break;
 		}
 
-		test_sleep(100);
+		std::this_thread::sleep_for(lt::milliseconds(100));
 	}
 
 	st2 = tor2.status();
