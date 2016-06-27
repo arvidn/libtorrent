@@ -583,7 +583,7 @@ namespace libtorrent
 
 		storage_interface* get_storage_impl() { return m_storage.get(); }
 
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 		void assert_torrent_refcount() const;
 #endif
 	private:
