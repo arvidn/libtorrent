@@ -44,6 +44,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstring> // for std::memset
 #endif
 
+#if TORRENT_HAS_ARM
+#include <sys/auxv.h>
+#endif
+
 namespace libtorrent { namespace aux
 {
 	namespace {
@@ -87,8 +91,24 @@ namespace libtorrent { namespace aux
 #endif
 	}
 
+	bool supports_arm_neon()
+	{
+#if TORRENT_HAS_ARM_NEON
+#if defined __arm__
+		//return (getauxval(AT_HWCAP) & HWCAP_NEON);
+		return (getauxval(16) & (1 << 12));
+#elif defined __aarch64__
+		//return (getauxval(AT_HWCAP) & HWCAP_ASIMD);
+		return (getauxval(16) & (1 << 1));
+#endif // TORRENT_HAS_ARM
+#else
+		return false;
+#endif
+	}
+
 	} // anonymous namespace
 
 	bool sse42_support = supports_sse42();
 	bool mmx_support = supports_mmx();
+	bool arm_neon_support = supports_arm_neon();
 } }
