@@ -2089,7 +2089,7 @@ namespace libtorrent
 				{
 					for (int i = m_reverse_cursor - 1; i >= m_cursor; --i)
 					{
-						pc.inc_stats_counter(counters::piece_picker_sequential_loops);
+//						pc.inc_stats_counter(counters::piece_picker_sequential_loops);
 						if (!is_piece_free(i, pieces)) continue;
 						// we've already added high priority pieces
 						if (piece_priority(i) == priority_levels - 1) continue;
@@ -2108,7 +2108,7 @@ namespace libtorrent
 				{
 					for (int i = m_cursor; i < m_reverse_cursor; ++i)
 					{
-						pc.inc_stats_counter(counters::piece_picker_sequential_loops);
+//						pc.inc_stats_counter(counters::piece_picker_sequential_loops);
 						if (!is_piece_free(i, pieces)) continue;
 						// we've already added high priority pieces
 						if (piece_priority(i) == priority_levels - 1) continue;

@@ -1479,7 +1479,7 @@ namespace libtorrent
 	}
 
 	void disk_io_thread::async_read(piece_manager* storage, peer_request const& r
-		, boost::function<void(disk_io_job const*)> const& handler, void* requester
+		, boost::function<void(disk_io_job const*)> handler, void* requester
 		, int flags)
 	{
 		INVARIANT_CHECK;
@@ -1503,7 +1503,7 @@ namespace libtorrent
 		j->buffer.disk_block = 0;
 		j->flags = flags;
 		j->requester = requester;
-		j->callback = handler;
+		j->callback = std::move(handler);
 
 		std::unique_lock<std::mutex> l(m_cache_mutex);
 		int ret = prep_read_job_impl(j);
@@ -1512,7 +1512,7 @@ namespace libtorrent
 		switch (ret)
 		{
 			case 0:
-				if (handler) handler(j);
+				if (j->callback) j->callback(j);
 				free_job(j);
 				break;
 			case 1:
@@ -1599,7 +1599,7 @@ namespace libtorrent
 
 	void disk_io_thread::async_write(piece_manager* storage, peer_request const& r
 		, disk_buffer_holder buffer
-		, boost::function<void(disk_io_job const*)> const& handler
+		, boost::function<void(disk_io_job const*)> handler
 		, int flags)
 	{
 		INVARIANT_CHECK;
@@ -1619,7 +1619,7 @@ namespace libtorrent
 		j->d.io.offset = r.start;
 		j->d.io.buffer_size = r.length;
 		j->buffer.disk_block = buffer.get();
-		j->callback = handler;
+		j->callback = std::move(handler);
 		j->flags = flags;
 
 #if TORRENT_USE_ASSERTS
@@ -1709,7 +1709,7 @@ namespace libtorrent
 	}
 
 	void disk_io_thread::async_hash(piece_manager* storage, int piece, int flags
-		, boost::function<void(disk_io_job const*)> const& handler, void* requester)
+		, boost::function<void(disk_io_job const*)> handler, void* requester)
 	{
 #ifdef TORRENT_DEBUG
 		// the caller must increment the torrent refcount before
@@ -1720,7 +1720,7 @@ namespace libtorrent
 		disk_io_job* j = allocate_job(disk_io_job::hash);
 		j->storage = storage->shared_from_this();
 		j->piece = piece;
-		j->callback = handler;
+		j->callback = std::move(handler);
 		j->flags = flags;
 		j->requester = requester;
 
@@ -1745,7 +1745,7 @@ namespace libtorrent
 #endif
 
 			l.unlock();
-			if (handler) handler(j);
+			if (j->callback) j->callback(j);
 			free_job(j);
 			return;
 		}
@@ -1754,7 +1754,7 @@ namespace libtorrent
 	}
 
 	void disk_io_thread::async_move_storage(piece_manager* storage, std::string const& p, int flags
-		, boost::function<void(disk_io_job const*)> const& handler)
+		, boost::function<void(disk_io_job const*)> handler)
 	{
 #ifdef TORRENT_DEBUG
 		// the caller must increment the torrent refcount before
@@ -1765,25 +1765,25 @@ namespace libtorrent
 		disk_io_job* j = allocate_job(disk_io_job::move_storage);
 		j->storage = storage->shared_from_this();
 		j->buffer.string = allocate_string_copy(p.c_str());
-		j->callback = handler;
+		j->callback = std::move(handler);
 		j->flags = flags;
 
 		add_fence_job(storage, j);
 	}
 
 	void disk_io_thread::async_release_files(piece_manager* storage
-		, boost::function<void(disk_io_job const*)> const& handler)
+		, boost::function<void(disk_io_job const*)> handler)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::release_files);
 		j->storage = storage->shared_from_this();
-		j->callback = handler;
+		j->callback = std::move(handler);
 
 		add_fence_job(storage, j);
 	}
 
 	void disk_io_thread::async_delete_files(piece_manager* storage
 		, int const options
-		, boost::function<void(disk_io_job const*)> const& handler)
+		, boost::function<void(disk_io_job const*)> handler)
 	{
 #ifdef TORRENT_DEBUG
 		// the caller must increment the torrent refcount before
@@ -1822,7 +1822,7 @@ namespace libtorrent
 
 		disk_io_job* j = allocate_job(disk_io_job::delete_files);
 		j->storage = storage->shared_from_this();
-		j->callback = handler;
+		j->callback = std::move(handler);
 		j->buffer.delete_options = options;
 		add_fence_job(storage, j);
 
@@ -1836,7 +1836,7 @@ namespace libtorrent
 	void disk_io_thread::async_check_files(piece_manager* storage
 		, add_torrent_params const* resume_data
 		, std::vector<std::string>& links
-		, boost::function<void(disk_io_job const*)> const& handler)
+		, boost::function<void(disk_io_job const*)> handler)
 	{
 #ifdef TORRENT_DEBUG
 		// the caller must increment the torrent refcount before
@@ -1852,13 +1852,13 @@ namespace libtorrent
 		j->storage = storage->shared_from_this();
 		j->buffer.check_resume_data = resume_data;
 		j->d.links = links_vector;
-		j->callback = handler;
+		j->callback = std::move(handler);
 
 		add_fence_job(storage, j);
 	}
 
 	void disk_io_thread::async_rename_file(piece_manager* storage, int index, std::string const& name
-		, boost::function<void(disk_io_job const*)> const& handler)
+		, boost::function<void(disk_io_job const*)> handler)
 	{
 #ifdef TORRENT_DEBUG
 		// the caller must increment the torrent refcount before
@@ -1870,12 +1870,12 @@ namespace libtorrent
 		j->storage = storage->shared_from_this();
 		j->piece = index;
 		j->buffer.string = allocate_string_copy(name.c_str());
-		j->callback = handler;
+		j->callback = std::move(handler);
 		add_fence_job(storage, j);
 	}
 
 	void disk_io_thread::async_stop_torrent(piece_manager* storage
-		, boost::function<void(disk_io_job const*)> const& handler)
+		, boost::function<void(disk_io_job const*)> handler)
 	{
 		// remove outstanding hash jobs belonging to this torrent
 		std::unique_lock<std::mutex> l2(m_job_mutex);
@@ -1899,7 +1899,7 @@ namespace libtorrent
 
 		disk_io_job* j = allocate_job(disk_io_job::stop_torrent);
 		j->storage = storage->shared_from_this();
-		j->callback = handler;
+		j->callback = std::move(handler);
 		add_fence_job(storage, j);
 
 		jobqueue_t completed_jobs;
@@ -1911,7 +1911,7 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 	void disk_io_thread::async_cache_piece(piece_manager* storage, int piece
-		, boost::function<void(disk_io_job const*)> const& handler)
+		, boost::function<void(disk_io_job const*)> handler)
 	{
 #ifdef TORRENT_DEBUG
 		// the caller must increment the torrent refcount before
@@ -1922,13 +1922,13 @@ namespace libtorrent
 		disk_io_job* j = allocate_job(disk_io_job::cache_piece);
 		j->storage = storage->shared_from_this();
 		j->piece = piece;
-		j->callback = handler;
+		j->callback = std::move(handler);
 
 		add_job(j);
 	}
 
 	void disk_io_thread::async_finalize_file(piece_manager* storage, int file
-		, boost::function<void(disk_io_job const*)> const& handler)
+		, boost::function<void(disk_io_job const*)> handler)
 	{
 #ifdef TORRENT_DEBUG
 		// the caller must increment the torrent refcount before
@@ -1939,14 +1939,14 @@ namespace libtorrent
 		disk_io_job* j = allocate_job(disk_io_job::finalize_file);
 		j->storage = storage->shared_from_this();
 		j->piece = file;
-		j->callback = handler;
+		j->callback = std::move(handler);
 
 		add_job(j);
 	}
 #endif // TORRENT_NO_DEPRECATE
 
 	void disk_io_thread::async_flush_piece(piece_manager* storage, int piece
-		, boost::function<void(disk_io_job const*)> const& handler)
+		, boost::function<void(disk_io_job const*)> handler)
 	{
 #ifdef TORRENT_DEBUG
 		// the caller must increment the torrent refcount before
@@ -1957,12 +1957,12 @@ namespace libtorrent
 		disk_io_job* j = allocate_job(disk_io_job::flush_piece);
 		j->storage = storage->shared_from_this();
 		j->piece = piece;
-		j->callback = handler;
+		j->callback = std::move(handler);
 
 		if (m_abort)
 		{
 			j->error.ec = boost::asio::error::operation_aborted;
-			if (handler) handler(j);
+			if (j->callback) j->callback(j);
 			free_job(j);
 			return;
 		}
@@ -1972,7 +1972,7 @@ namespace libtorrent
 
 	void disk_io_thread::async_set_file_priority(piece_manager* storage
 		, std::vector<std::uint8_t> const& prios
-		, boost::function<void(disk_io_job const*)> const& handler)
+		, boost::function<void(disk_io_job const*)> handler)
 	{
 #ifdef TORRENT_DEBUG
 		// the caller must increment the torrent refcount before
@@ -1985,27 +1985,27 @@ namespace libtorrent
 		disk_io_job* j = allocate_job(disk_io_job::file_priority);
 		j->storage = storage->shared_from_this();
 		j->buffer.priorities = p;
-		j->callback = handler;
+		j->callback = std::move(handler);
 
 		add_fence_job(storage, j);
 	}
 
 	void disk_io_thread::async_load_torrent(add_torrent_params* params
-		, boost::function<void(disk_io_job const*)> const& handler)
+		, boost::function<void(disk_io_job const*)> handler)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::load_torrent);
 		j->requester = reinterpret_cast<char*>(params);
-		j->callback = handler;
+		j->callback = std::move(handler);
 
 		add_job(j);
 	}
 
 	void disk_io_thread::async_tick_torrent(piece_manager* storage
-		, boost::function<void(disk_io_job const*)> const& handler)
+		, boost::function<void(disk_io_job const*)> handler)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::tick_storage);
 		j->storage = storage->shared_from_this();
-		j->callback = handler;
+		j->callback = std::move(handler);
 
 		add_job(j);
 	}
@@ -2028,7 +2028,7 @@ namespace libtorrent
 	}
 
 	void disk_io_thread::async_clear_piece(piece_manager* storage, int index
-		, boost::function<void(disk_io_job const*)> const& handler)
+		, boost::function<void(disk_io_job const*)> handler)
 	{
 #ifdef TORRENT_DEBUG
 		// the caller must increment the torrent refcount before
@@ -2039,7 +2039,7 @@ namespace libtorrent
 		disk_io_job* j = allocate_job(disk_io_job::clear_piece);
 		j->storage = storage->shared_from_this();
 		j->piece = index;
-		j->callback = handler;
+		j->callback = std::move(handler);
 
 		// regular jobs are not guaranteed to be executed in-order
 		// since clear piece must guarantee that all write jobs that

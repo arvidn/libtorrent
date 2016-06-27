@@ -2725,7 +2725,7 @@ namespace libtorrent
 			return;
 		}
 
-		time_point now = clock_type::now();
+		time_point const now = clock_type::now();
 
 		t->need_picker();
 
@@ -2824,7 +2824,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_LOGGING
 		t->debug_log("PIECE [%p] (%d ms) (%d)", static_cast<void*>(this)
-			, int(total_milliseconds(clock_type::now() - m_unchoke_time)), t->num_have());
+			, int(total_milliseconds(now - m_unchoke_time)), t->num_have());
 
 		peer_log(peer_log_alert::info, "FILE_ASYNC_WRITE", "piece: %d s: %x l: %x"
 			, p.piece, p.start, p.length);
@@ -2872,9 +2872,9 @@ namespace libtorrent
 		if (!m_download_queue.empty())
 			m_requested = now;
 
-		bool was_finished = picker.is_piece_finished(p.piece);
+		bool const was_finished = picker.is_piece_finished(p.piece);
 		// did we request this block from any other peers?
-		bool multi = picker.num_peers(block_finished) > 1;
+		bool const multi = picker.num_peers(block_finished) > 1;
 //		std::fprintf(stderr, "peer_connection mark_as_writing peer: %p piece: %d block: %d\n"
 //			, peer_info_struct(), block_finished.piece_index, block_finished.block_index);
 		picker.mark_as_writing(block_finished, peer_info_struct());
@@ -3301,7 +3301,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_LOGGING
 		{
-			time_point now = clock_type::now();
+			time_point const now = clock_type::now();
 			t->debug_log("ALLOW FAST [%p] (%d ms)"
 				, static_cast<void*>(this)
 				, int(total_milliseconds(now - m_connect_time)));
@@ -3983,8 +3983,7 @@ namespace libtorrent
 			// request timeout.
 			m_requested = aux::time_now();
 #ifndef TORRENT_DISABLE_LOGGING
-			t->debug_log("REQUEST [%p] (%d ms)", static_cast<void*>(this)
-				, int(total_milliseconds(clock_type::now() - m_unchoke_time)));
+			t->debug_log("REQUEST [%p]", static_cast<void*>(this));
 #endif
 		}
 	}

@@ -80,12 +80,10 @@ namespace libtorrent
 
 		bool time_critical_mode = t.num_time_critical_pieces() > 0;
 
-		int desired_queue_size = c.desired_queue_size();
-
 		// in time critical mode, only have 1 outstanding request at a time
 		// via normal requests
-		if (time_critical_mode)
-			desired_queue_size = (std::min)(1, desired_queue_size);
+		int const desired_queue_size = time_critical_mode
+			? 1 : c.desired_queue_size();
 
 		int num_requests = desired_queue_size
 			- int(c.download_queue().size())
@@ -95,9 +93,9 @@ namespace libtorrent
 		c.peer_log(peer_log_alert::info, "PIECE_PICKER"
 			, "dlq: %d rqq: %d target: %d req: %d engame: %d"
 			, int(c.download_queue().size()), int(c.request_queue().size())
-			, c.desired_queue_size(), num_requests, c.endgame());
+			, desired_queue_size, num_requests, c.endgame());
 #endif
-		TORRENT_ASSERT(c.desired_queue_size() > 0);
+		TORRENT_ASSERT(desired_queue_size > 0);
 		// if our request queue is already full, we
 		// don't have to make any new requests yet
 		if (num_requests <= 0) return false;
