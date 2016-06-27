@@ -53,9 +53,9 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 	namespace {
-		std::size_t round_up8(std::size_t const v)
+		inline std::size_t round_up8(std::size_t const v)
 		{
-			return (v + 7) & (~0x7);
+			return (v + 7) & (~std::size_t(0x7));
 		}
 	}
 
