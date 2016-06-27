@@ -8,7 +8,6 @@ import errors ;
 import feature : feature ;
 import package ;
 import virtual-target ;
-import configure ;
 
 BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
 CXXFLAGS = [ modules.peek : CXXFLAGS ] ;
@@ -375,12 +374,6 @@ rule building ( properties * )
 		{
 			result += <linkflags>-Wl,-Bsymbolic ;
 		}
-	}
-
-	if [ configure.builds /boost/architecture//x86 : $(properties) : x86 ]
-		&& ! <target-os>windows in $(properties)
-	{
-		result += <cxxflags>-mpopcnt ;
 	}
 
 	return $(result) ;
