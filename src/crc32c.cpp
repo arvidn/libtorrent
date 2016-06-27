@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/crc.hpp>
-#ifdef _MSC_VER
+#if (defined _MSC_VER && _MSC_VER >= 1600)
 #include <nmmintrin.h>
 #endif
 

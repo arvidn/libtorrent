@@ -230,9 +230,7 @@ namespace libtorrent
 			, m_flags(flags)
 		{}
 
-		int file_op(int const file_index
-			, boost::int64_t const file_offset
-			, int const size
+		int file_op(int file_index, boost::int64_t file_offset, int size
 			, file::iovec_t const* bufs, storage_error& ec)
 			TORRENT_OVERRIDE TORRENT_FINAL
 		{
@@ -321,9 +319,7 @@ namespace libtorrent
 			, m_flags(flags)
 		{}
 
-		int file_op(int const file_index
-			, boost::int64_t const file_offset
-			, int const size
+		int file_op(int file_index, boost::int64_t file_offset, int size
 			, file::iovec_t const* bufs, storage_error& ec)
 			TORRENT_OVERRIDE TORRENT_FINAL
 		{
