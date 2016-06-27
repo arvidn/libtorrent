@@ -65,7 +65,11 @@ namespace libtorrent
 			for (int i = 0; i < words; ++i)
 			{
 #ifdef __GNUC__
-				ret += __builtin_popcount(m_buf[i]);
+				std::uint32_t cnt = 0;
+				__asm__("popcnt %1, %0"
+					: "=r"(cnt)
+					: "r"(m_buf[i]));
+				ret += cnt;
 #else
 				ret += _mm_popcnt_u32(m_buf[i]);
 #endif
