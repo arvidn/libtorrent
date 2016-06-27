@@ -117,9 +117,10 @@ script:
 
 # if variant is not set, we do not want to build anything
 # if we are building with code coverage, report it as soon as possible
+# libtorrent is the name of the test suite target
   - cd test
   - 'if [ "$variant" != "" ]; then
-      bjam -j3 warnings-as-errors=on variant=$variant -l900 $toolset $target test_natpmp &&
+      bjam -j3 warnings-as-errors=on variant=$variant -l900 $toolset libtorrent test_natpmp enum_if bencode_benchmark &&
       if [ "$coverage" == "1" ]; then
         codecov --root .. --gcov-exec gcov-5;
       fi;
