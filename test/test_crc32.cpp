@@ -31,6 +31,8 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/crc32c.hpp"
+#include "libtorrent/aux_/cpuid.hpp"
+#include "libtorrent/assert.hpp"
 #include "test.hpp"
 
 TORRENT_TEST(crc32)
@@ -60,5 +62,10 @@ TORRENT_TEST(crc32)
 		"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f", 32);
 	out = crc32c(buf, 4);
 	TEST_EQUAL(out, htonl(0x4e79dd46));
-}
 
+#if TORRENT_HAS_ARM
+	TORRENT_ASSERT(aux::arm_crc32c_support);
+#else
+	TORRENT_ASSERT(!aux::arm_crc32c_support);
+#endif
+}

@@ -42,6 +42,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
+#if TORRENT_HAS_ARM_CRC32
+#include <arm_acle.h>
+#endif
+
 namespace libtorrent
 {
 	std::uint32_t crc32c_32(std::uint32_t v)
@@ -61,6 +65,14 @@ namespace libtorrent
 #else
 			return _mm_crc32_u32(ret, v) ^ 0xffffffff;
 #endif
+		}
+#endif
+
+#if TORRENT_HAS_ARM_CRC32
+		if (aux::arm_crc32c_support)
+		{
+			std::uint32_t ret = 0xffffffff;
+			return __crc32cw(ret, v) ^ 0xffffffff;
 		}
 #endif
 
@@ -116,11 +128,21 @@ namespace libtorrent
 #endif // amd64 or x86
 		}
 #endif // x86 or amd64 and gcc or msvc
+
+#if TORRENT_HAS_ARM_CRC32
+		if (aux::arm_crc32c_support)
+		{
+			std::uint32_t ret = 0xffffffff;
+			for (int i = 0; i < num_words; ++i)
+			{
+				ret = __crc32cd(ret, buf[i]);
+			}
+			return ret ^ 0xffffffff;
+		}
+#endif
 	
 		boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
 		crc.process_bytes(buf, num_words * 8);
 		return crc.checksum();
 	}
 }
-
-
