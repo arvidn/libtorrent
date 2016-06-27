@@ -113,8 +113,7 @@ rule linking ( properties * )
 	}
 
 	if <target-os>windows in $(properties)
-		&& ( <variant>debug in $(properties)
-			|| <asserts>on in $(properties)
+		&& ( <asserts>on in $(properties)
 			|| <asserts>production in $(properties)
 			|| <pool-allocators>debug in $(properties)
 			|| <allocator>debug in $(properties)
@@ -173,8 +172,7 @@ rule linking ( properties * )
 	if ( <toolset>gcc in $(properties)
 			|| <toolset>clang in $(properties) )
 		&& <target-os>linux in $(properties)
-		&& ( <variant>debug in $(properties)
-			|| <asserts>on in $(properties)
+		&& ( <asserts>on in $(properties)
 			|| <asserts>production in $(properties)
 			|| <pool-allocators>debug in $(properties)
 			|| <allocator>debug in $(properties)
@@ -530,16 +528,19 @@ variant test_debug : debug
 	  <allocator>debug
 	  <invariant-checks>full <boost-link>shared
 	  <export-extra>on <debug-iterators>on <threading>multi <asserts>on
+	  <define>TORRENT_DEBUG
 	;
 variant test_barebones : debug
 	: <ipv6>off <dht>off <extensions>off <logging>off <boost-link>shared
 	  <deprecated-functions>off <invariant-checks>off
 	  <export-extra>on <debug-iterators>on <threading>multi <asserts>on
+	  <define>TORRENT_DEBUG
 	;
 variant test_arm : debug
 	: <ipv6>off <dht>off <extensions>off <logging>off
 	  <deprecated-functions>off <invariant-checks>off
 	  <export-extra>on <asserts>on
+	  <define>TORRENT_DEBUG
 	;
 
 # required for openssl on windows
