@@ -8,13 +8,13 @@ matrix:
     - env: analyze=1 toolset=gcc
     - os: osx
       osx_image: xcode6.4
-      env: variant=test_release docs=1 toolset=darwin target=osx-tests
+      env: variant=test_release docs=1 toolset=darwin
     - os: osx
       osx_image: xcode6.4
-      env: variant=test_debug toolset=darwin target=osx-tests
+      env: variant=test_debug toolset=darwin
     - os: osx
       osx_image: xcode6.4
-      env: variant=test_barebones toolset=darwin target=osx-tests
+      env: variant=test_barebones toolset=darwin
     - sudo: required
       dist: trusty
       env: arch=arm toolset=gcc-arm
