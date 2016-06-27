@@ -120,7 +120,7 @@ script:
 # libtorrent is the name of the test suite target
   - cd test
   - 'if [ "$variant" != "" ]; then
-      bjam -j3 warnings-as-errors=on variant=$variant -l900 $toolset libtorrent test_natpmp enum_if bencode_benchmark &&
+      bjam -j3 warnings-as-errors=on variant=$variant -l900 $toolset libtorrent test_natpmp enum_if bdecode_benchmark &&
       if [ "$coverage" == "1" ]; then
         codecov --root .. --gcov-exec gcov-5;
       fi;
