@@ -2,22 +2,22 @@ language: cpp
 
 matrix:
   include:
-    - env: variant=test_release coverage=1
-    - env: variant=test_debug sim=1
-    - env: variant=test_barebones
-    - env: analyze=1
+    - env: variant=test_release coverage=1 toolset=gcc-coverage
+    - env: variant=test_debug sim=1 toolset=gcc
+    - env: variant=test_barebones toolset=gcc
+    - env: analyze=1 toolset=gcc
     - os: osx
       osx_image: xcode6.4
-      env: variant=test_release docs=1
+      env: variant=test_release docs=1 toolset=darwin target=osx-tests
     - os: osx
       osx_image: xcode6.4
-      env: variant=test_debug
+      env: variant=test_debug toolset=darwin target=osx-tests
     - os: osx
       osx_image: xcode6.4
-      env: variant=test_barebones
+      env: variant=test_barebones toolset=darwin target=osx-tests
     - sudo: required
       dist: trusty
-      env: arch=arm
+      env: arch=arm toolset=gcc-arm64
 
 git:
   submodules: false
@@ -62,12 +62,7 @@ before_install:
     brew install --quiet Homebrew/python/pillow;
     fi'
 
-# disable simulations on OSX for now. It hangs on travis
-  - if [ $TRAVIS_OS_NAME == "osx" ]; then export toolset="darwin"; export sim="0"; fi
-  - if [ $TRAVIS_OS_NAME == "osx" ]; then export target="osx-tests"; fi
-  - if [ $TRAVIS_OS_NAME == "linux" ]; then export toolset="gcc"; fi
   - if [ "$coverage" == "1" ]; then
-    export toolset=gcc-coverage;
     pip install --user codecov;
     fi
   - 'echo "using toolset: " ${toolset}'
@@ -75,28 +70,31 @@ before_install:
 install:
 
   - touch ~/user-config.jam
-  - if [[ $TRAVIS_OS_NAME == "linux" ]]; then g++-5 --version; fi
-  - 'if [[ $TRAVIS_OS_NAME == "linux" ]]; then
-      echo "using gcc : : ccache g++-5 : <cflags>-std=c11 <cxxflags>-std=c++11 ;" >> ~/user-config.jam;
-      echo "using gcc : coverage : ccache g++-5 : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>--coverage <linkflags>--coverage ;" >> ~/user-config.jam;
+  - 'if [[ $toolset == "gcc" ]]; then
+      g++-5 --version;
+      echo "using gcc : : ccache g++-5 : <cxxflags>-std=c++11 ;" >> ~/user-config.jam;
     fi'
+  - 'if [[ $toolset == "gcc-coverage" ]]; then
+      echo "using gcc : coverage : ccache g++-5 --coverage : <cxxflags>-std=c++11 <linkflags>--coverage ;" >> ~/user-config.jam;
+    fi'
+  - 'if [[ $toolset == "gcc-arm64" ]]; then
+      echo "using gcc : arm64 : ccache aarch64-linux-gnu-g++ : <cxxflags>-std=c++11 <cxxflags>-fsigned-char <linkflags>-lm ;" >> ~/user-config.jam;
+    fi;'
+  - 'echo "using darwin : : ccache clang++ : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>-Wno-deprecated-declarations ;" >> ~/user-config.jam'
+  - 'echo "using python : 2.7 ;" >> ~/user-config.jam'
+  - if [ "$docs" == "1" ]; then rst2html.py --version; fi
 
 # osx builds need to disable the deprecated warning because of the openssl
 # shipping with the system having marked all functions as deprecated. Since
 # we're building with -Werror, we can't have those warnings
-  - 'echo "using darwin : : ccache clang++ : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>-Wno-deprecated-declarations ;" >> ~/user-config.jam'
-  - 'echo "using python : 2.7 ;" >> ~/user-config.jam'
   - 'if [[ "$variant" != "" ]]; then ccache -V && ccache --show-stats && ccache --zero-stats; fi'
-  - if [ "$docs" == "1" ]; then rst2html.py --version; fi
 
-  - 'if [ $arch == "arm" ];
-    then
+  - 'if [ $arch == "arm" ]; then
       cd test;
-      echo "using gcc : arm64 : aarch64-linux-gnu-gcc : <cflags>-std=c11 <cxxflags>-std=c++11 <cxxflags>-fsigned-char <linkflags>-lstdc++ <linkflags>-lm ;" >> ~/user-config.jam;
       wget http://releases.linaro.org/components/toolchain/binaries/latest-5/aarch64-linux-gnu/gcc-linaro-5.3-2016.02-x86_64_aarch64-linux-gnu.tar.xz;
       tar xf gcc-linaro-5.3-2016.02-x86_64_aarch64-linux-gnu.tar.xz;
       export PATH=${PWD}/gcc-linaro-5.3-2016.02-x86_64_aarch64-linux-gnu/bin:${PATH};
-      aarch64-linux-gnu-gcc --version;
+      aarch64-linux-gnu-g++ --version;
       wget -O boost.zip http://pilotfiber.dl.sourceforge.net/project/boost/boost/1.55.0/boost_1_55_0.zip;
       unzip -qq boost.zip;
       export BOOST_ROOT=$PWD/boost_1_55_0;
@@ -189,6 +187,6 @@ script:
   - cd test
   - 'if [ $arch == "arm" ];
     then
-      bjam arm-tests warnings-as-errors=on variant=test_arm toolset=gcc-arm64 target-os=linux link=static testing.launcher="sudo cp -R bin rootfs/; sudo chroot rootfs";
+      bjam arm-tests warnings-as-errors=on variant=test_arm $toolset target-os=linux link=static testing.launcher="sudo cp -R bin rootfs/; sudo chroot rootfs";
     fi'
   - cd ..
