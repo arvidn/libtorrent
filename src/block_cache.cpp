@@ -45,10 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/aux_/time.hpp"
 
-#ifdef TORRENT_DEBUG
-#include "libtorrent/random.hpp"
-#endif
-
 /*
 
 	The disk cache mimics ARC (adaptive replacement cache).
@@ -562,7 +558,7 @@ void block_cache::try_evict_one_volatile()
 
 		if (pe->ok_to_evict())
 		{
-#ifdef TORRENT_DEBUG
+#ifndef TORRENT_DISABLE_INVARIANT_CHECKS
 			for (int j = 0; j < pe->blocks_in_piece; ++j)
 				TORRENT_PIECE_ASSERT(pe->blocks[j].buf == 0, pe);
 #endif
@@ -605,7 +601,7 @@ void block_cache::try_evict_one_volatile()
 
 		if (pe->ok_to_evict())
 		{
-#ifdef TORRENT_DEBUG
+#ifndef TORRENT_DISABLE_INVARIANT_CHECKS
 			for (int j = 0; j < pe->blocks_in_piece; ++j)
 				TORRENT_PIECE_ASSERT(pe->blocks[j].buf == 0, pe);
 #endif
@@ -1079,7 +1075,7 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 
 			if (pe->ok_to_evict())
 			{
-#ifdef TORRENT_DEBUG
+#ifndef TORRENT_DISABLE_INVARIANT_CHECKS
 				for (int j = 0; j < pe->blocks_in_piece; ++j)
 					TORRENT_PIECE_ASSERT(pe->blocks[j].buf == 0, pe);
 #endif
@@ -1119,7 +1115,7 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 
 			if (pe->ok_to_evict())
 			{
-#ifdef TORRENT_DEBUG
+#ifndef TORRENT_DISABLE_INVARIANT_CHECKS
 				for (int j = 0; j < pe->blocks_in_piece; ++j)
 					TORRENT_PIECE_ASSERT(pe->blocks[j].buf == 0, pe);
 #endif
@@ -1152,7 +1148,7 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 
 				if (pe->ok_to_evict())
 				{
-#ifdef TORRENT_DEBUG
+#ifndef TORRENT_DISABLE_INVARIANT_CHECKS
 					for (int j = 0; j < pe->blocks_in_piece; ++j)
 						TORRENT_PIECE_ASSERT(pe->blocks[j].buf == 0, pe);
 #endif
@@ -1198,7 +1194,7 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 
 				if (pe->ok_to_evict())
 				{
-#ifdef TORRENT_DEBUG
+#ifndef TORRENT_DISABLE_INVARIANT_CHECKS
 					for (int j = 0; j < pe->blocks_in_piece; ++j)
 						TORRENT_PIECE_ASSERT(pe->blocks[j].buf == 0, pe);
 #endif

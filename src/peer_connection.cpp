@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 #include <cstdint>
 
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 #include <set>
 #endif
 
@@ -226,7 +226,7 @@ namespace libtorrent
 			, static_cast<void*>(m_peer_info)
 			, print_endpoint(local_ep).c_str());
 #endif
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 		piece_failed = false;
 #endif
 		std::fill(m_peer_id.begin(), m_peer_id.end(), 0);
@@ -5444,7 +5444,7 @@ namespace libtorrent
 				, channels + c, max_channels - c);
 		}
 
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 		// make sure we don't have duplicates
 		std::set<bandwidth_channel*> unique_classes;
 		for (int i = 0; i < c; ++i)

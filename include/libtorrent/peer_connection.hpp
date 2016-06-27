@@ -678,7 +678,7 @@ namespace libtorrent
 		void max_out_request_queue(int s);
 		int max_out_request_queue() const;
 
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 		bool piece_failed;
 #endif
 
