@@ -246,6 +246,7 @@ namespace libtorrent
 		// allocated and used as receive buffer, respectively.
 		int receive_buffer_size;
 		int used_receive_buffer;
+		int receive_buffer_watermark;
 
 		// the number of pieces this peer has participated in sending us that
 		// turned out to fail the hash check.

@@ -719,8 +719,6 @@ namespace libtorrent
 
 	protected:
 
-		size_t try_read(sync_t s, error_code& ec);
-
 		virtual void get_specific_peer_info(peer_info& p) const = 0;
 
 		virtual void write_choke() = 0;
@@ -742,6 +740,7 @@ namespace libtorrent
 		virtual void on_connected() = 0;
 		virtual void on_tick() {}
 
+		// implemented by concrete connection classes
 		virtual void on_receive(error_code const& error
 			, std::size_t bytes_transferred) = 0;
 		virtual void on_sent(error_code const& error
@@ -752,28 +751,16 @@ namespace libtorrent
 		virtual
 		std::tuple<int, aux::array_view<boost::asio::const_buffer>>
 		hit_send_barrier(aux::array_view<boost::asio::mutable_buffer> /* iovec */)
-		{ return std::make_tuple(INT_MAX, aux::array_view<boost::asio::const_buffer>()); }
+		{
+			return std::make_tuple(INT_MAX
+				, aux::array_view<boost::asio::const_buffer>());
+		}
 
 		void attach_to_torrent(sha1_hash const& ih);
 
 		bool verify_piece(peer_request const& p) const;
 
 		void update_desired_queue_size();
-
-		// called from the main loop when this connection has any
-		// work to do.
-		void on_send_data(error_code const& error
-			, std::size_t bytes_transferred);
-		void on_receive_data(error_code const& error
-			, std::size_t bytes_transferred);
-
-		// _nb means null_buffers. i.e. we just know the socket is
-		// readable at this point, we don't know how much has been received
-		void on_receive_data_nb(error_code const& error
-			, std::size_t bytes_transferred);
-
-		void receive_data_impl(error_code const& error
-			, std::size_t bytes_transferred, int read_loops);
 
 		void set_send_barrier(int bytes)
 		{
@@ -788,6 +775,15 @@ namespace libtorrent
 		io_service& get_io_service() { return m_ios; }
 
 	private:
+
+		// callbacks for data being sent or received
+		void on_send_data(error_code const& error
+			, std::size_t bytes_transferred);
+		void on_receive_data(error_code const& error
+			, std::size_t bytes_transferred);
+
+		void account_received_bytes(int bytes_transferred);
+
 		// explicitly disallow assignment, to silence msvc warning
 		peer_connection& operator=(peer_connection const&);
 

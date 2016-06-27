@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <libtorrent/buffer.hpp>
 #include <libtorrent/disk_buffer_holder.hpp>
+#include <libtorrent/sliding_average.hpp>
 #include <boost/asio/buffer.hpp>
 
 namespace libtorrent {
@@ -42,14 +43,6 @@ namespace libtorrent {
 struct TORRENT_EXTRA_EXPORT receive_buffer
 {
 	friend struct crypto_receive_buffer;
-
-	receive_buffer()
-		: m_recv_start(0)
-		, m_recv_end(0)
-		, m_recv_pos(0)
-		, m_packet_size(0)
-		, m_soft_packet_size(0)
-	{}
 
 	int packet_size() const { return m_packet_size; }
 	int packet_bytes_remaining() const
@@ -59,19 +52,15 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 		return m_packet_size - m_recv_pos;
 	}
 
-	int max_receive();
+	int max_receive() const;
 
 	bool packet_finished() const { return m_packet_size <= m_recv_pos; }
 	int pos() const { return m_recv_pos; }
-	int capacity() const { return int(m_recv_buffer.capacity()); }
-
-	int regular_buffer_size() const
-	{
-		TORRENT_ASSERT(m_packet_size > 0);
-		return m_packet_size;
-	}
+	int capacity() const { return int(m_recv_buffer.size()); }
+	int watermark() const { return m_watermark.mean(); }
 
 	boost::asio::mutable_buffer reserve(int size);
+	void grow(int limit);
 
 	// tell the buffer we just received more bytes at the end of it. This will
 	// advance the end cursor
@@ -89,11 +78,6 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 	// has the read cursor reached the end cursor?
 	bool pos_at_end() { return m_recv_pos == m_recv_end; }
 
-	// make the buffer size divisible by 8 bytes (RC4 block size)
-	void clamp_size();
-
-	void set_soft_packet_size(int size) { m_soft_packet_size = size; }
-
 	// size = the packet size to remove from the receive buffer
 	// packet_size = the next packet size to receive in the buffer
 	// offset = the offset into the receive buffer where to remove `size` bytes
@@ -104,8 +88,7 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 	buffer::const_interval get() const;
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-	// returns the entire regular buffer
-	// should only be used during the handshake
+	// returns the entire buffer
 	buffer::interval mutable_buffer();
 
 	// returns the last 'bytes' from the receive buffer
@@ -114,7 +97,7 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 
 	// the purpose of this function is to free up and cut off all messages
 	// in the receive buffer that have been parsed and processed.
-	void normalize();
+	void normalize(int force_shrink = 0);
 	bool normalized() const { return m_recv_start == 0; }
 
 	void reset(int packet_size);
@@ -130,16 +113,15 @@ private:
 	// explicitly disallow assignment, to silence msvc warning
 	receive_buffer& operator=(receive_buffer const&);
 
-	// recv_buf.begin (start of actual receive buffer)
+	// m_recv_buffer.data() (start of actual receive buffer)
 	// |
-	// |      m_recv_start (logical start of current
-	// |      |  receive buffer, as perceived by upper layers)
+	// |      m_recv_start (tart of current packet)
 	// |      |
 	// |      |    m_recv_pos (number of bytes consumed
 	// |      |    |  by upper layer, from logical receive buffer)
 	// |      |    |
 	// |      x---------x
-	// |      |         |        recv_buf.end (end of actual receive buffer)
+	// |      |         |        m_recv_buffer.size() (end of actual receive buffer)
 	// |      |         |        |
 	// v      v         v        v
 	// *------==========---------
@@ -151,25 +133,23 @@ private:
 	// m_recv_buffer
 
 	// the start of the logical receive buffer
-	int m_recv_start;
+	int m_recv_start = 0;
 
 	// the number of valid, received bytes in m_recv_buffer
-	int m_recv_end;
+	int m_recv_end = 0;
 
 	// the byte offset in m_recv_buffer that we have
 	// are passing on to the upper layer. This is
 	// always <= m_recv_end
-	int m_recv_pos;
+	int m_recv_pos = 0;
 
 	// the size (in bytes) of the bittorrent message
 	// we're currently receiving
-	int m_packet_size;
+	int m_packet_size = 0;
 
-	// the number of bytes that the other
-	// end has to send us in order to respond
-	// to all outstanding piece requests we
-	// have sent to it
-	int m_soft_packet_size;
+	// keep track of how much of the receive buffer we use, if we're not using
+	// enuogh of it we shrink it
+	sliding_average<20> m_watermark;
 
 	buffer m_recv_buffer;
 };
@@ -183,10 +163,7 @@ private:
 struct crypto_receive_buffer
 {
 	crypto_receive_buffer(receive_buffer& next)
-		: m_recv_pos(INT_MAX)
-		, m_packet_size(0)
-		, m_soft_packet_size(0)
-		, m_connection_buffer(next)
+		: m_connection_buffer(next)
 	{}
 
 	buffer::interval mutable_buffer() { return m_connection_buffer.mutable_buffer(); }
@@ -219,8 +196,6 @@ struct crypto_receive_buffer
 	void reset(int packet_size);
 	void crypto_reset(int packet_size);
 
-	void set_soft_packet_size(int size);
-
 	int advance_pos(int bytes);
 
 	buffer::const_interval get() const;
@@ -231,9 +206,8 @@ private:
 	// explicitly disallow assignment, to silence msvc warning
 	crypto_receive_buffer& operator=(crypto_receive_buffer const&);
 
-	int m_recv_pos;
-	int m_packet_size;
-	int m_soft_packet_size;
+	int m_recv_pos = std::numeric_limits<int>::max();
+	int m_packet_size = 0;
 	receive_buffer& m_connection_buffer;
 };
 #endif // TORRENT_DISABLE_ENCRYPTION
@@ -241,3 +215,4 @@ private:
 } // namespace libtorrent
 
 #endif // #ifndef TORRENT_RECEIVE_BUFFER_HPP_INCLUDED
+

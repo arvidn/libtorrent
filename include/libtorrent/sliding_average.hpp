@@ -45,6 +45,8 @@ template <int inverted_gain>
 struct sliding_average
 {
 	sliding_average(): m_mean(0), m_average_deviation(0), m_num_samples(0) {}
+	sliding_average(sliding_average const&) = default;
+	sliding_average& operator=(sliding_average const&) = default;
 
 	void add_sample(int s)
 	{
@@ -75,19 +77,16 @@ struct sliding_average
 
 private:
 	// both of these are fixed point values (* 64)
-	int m_mean;
-	int m_average_deviation;
+	int m_mean = 0;
+	int m_average_deviation = 0;
 	// the number of samples we have received, but no more than inverted_gain
 	// this is the effective inverted_gain
-	int m_num_samples;
+	int m_num_samples = 0;
 };
 
 struct average_accumulator
 {
-	average_accumulator()
-		: m_num_samples(0)
-		, m_sample_sum(0)
-	{}
+	average_accumulator() {}
 
 	void add_sample(int s)
 	{
@@ -108,8 +107,10 @@ struct average_accumulator
 		return ret;
 	}
 
-	int m_num_samples;
-	std::uint64_t m_sample_sum;
+private:
+
+	int m_num_samples = 0;
+	std::uint64_t m_sample_sum = 0;
 };
 
 }

@@ -34,61 +34,65 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	namespace {
-		int round_up8(int v)
-		{
-			return ((v & 7) == 0) ? v : v + (8 - (v & 7));
-		}
-	}
-
-int receive_buffer::max_receive()
+int receive_buffer::max_receive() const
 {
-	int max = packet_bytes_remaining();
-	if (m_recv_pos >= m_soft_packet_size) m_soft_packet_size = 0;
-	if (m_soft_packet_size && max > m_soft_packet_size - m_recv_pos)
-		max = m_soft_packet_size - m_recv_pos;
-	return max;
+	return int(m_recv_buffer.size() - m_recv_end);
 }
 
 boost::asio::mutable_buffer receive_buffer::reserve(int size)
 {
 	TORRENT_ASSERT(size > 0);
 	TORRENT_ASSERT(m_recv_pos >= 0);
-	// this is unintuitive, but we used to use m_recv_pos in this function when
-	// we should have used m_recv_end. perhaps they always happen to be equal
-	TORRENT_ASSERT(m_recv_pos == m_recv_end);
 
 	// normalize() must be called before receiving more data
 	TORRENT_ASSERT(m_recv_start == 0);
 
-	m_recv_buffer.resize(m_recv_end + size);
+	if (m_recv_buffer.size() < m_recv_end + size)
+	{
+		int const new_size = std::max(m_recv_end + size, m_packet_size);
+		buffer new_buffer(new_size
+			, aux::array_view<char const>(m_recv_buffer.ptr(), m_recv_end));
+		m_recv_buffer = std::move(new_buffer);
+
+		// since we just increased the size of the buffer, reset the watermark to
+		// start at our new size (avoid flapping the buffer size)
+		m_watermark = sliding_average<20>();
+	}
+
 	return boost::asio::buffer(&m_recv_buffer[0] + m_recv_end, size);
+}
+
+void receive_buffer::grow(int const limit)
+{
+	int const current_size = int(m_recv_buffer.size());
+	TORRENT_ASSERT(current_size < std::numeric_limits<int>::max() / 3);
+
+	// first grow to one piece message, then grow by 50% each time
+	int const new_size = (current_size < m_packet_size)
+		? m_packet_size : std::min(current_size * 3 / 2, limit);
+
+	// re-allcoate the buffer and copy over the part of it that's used
+	buffer new_buffer(new_size
+		, aux::array_view<char const>(m_recv_buffer.ptr(), m_recv_end));
+	m_recv_buffer = std::move(new_buffer);
+
+	// since we just increased the size of the buffer, reset the watermark to
+	// start at our new size (avoid flapping the buffer size)
+	m_watermark = sliding_average<20>();
 }
 
 int receive_buffer::advance_pos(int bytes)
 {
-	int const packet_size = m_soft_packet_size ? m_soft_packet_size : m_packet_size;
-	int const limit = packet_size > m_recv_pos ? packet_size - m_recv_pos : packet_size;
+	int const limit = m_packet_size > m_recv_pos ? m_packet_size - m_recv_pos : m_packet_size;
 	int const sub_transferred = (std::min)(bytes, limit);
 	m_recv_pos += sub_transferred;
-	if (m_recv_pos >= m_soft_packet_size) m_soft_packet_size = 0;
 	return sub_transferred;
-}
-
-void receive_buffer::clamp_size()
-{
-	if (m_recv_pos == 0
-		&& (m_recv_buffer.capacity() - m_packet_size) > 128)
-	{
-		// round up to an even 8 bytes since that's the RC4 blocksize
-		buffer(round_up8(m_packet_size)).swap(m_recv_buffer);
-	}
 }
 
 // size = the packet size to remove from the receive buffer
 // packet_size = the next packet size to receive in the buffer
 // offset = the offset into the receive buffer where to remove `size` bytes
-void receive_buffer::cut(int size, int packet_size, int offset)
+void receive_buffer::cut(int const size, int const packet_size, int const offset)
 {
 	TORRENT_ASSERT(packet_size > 0);
 	TORRENT_ASSERT(int(m_recv_buffer.size()) >= size);
@@ -104,9 +108,11 @@ void receive_buffer::cut(int size, int packet_size, int offset)
 		TORRENT_ASSERT(m_recv_start - size <= m_recv_end);
 
 		if (size > 0)
+		{
 			std::memmove(&m_recv_buffer[0] + m_recv_start + offset
 				, &m_recv_buffer[0] + m_recv_start + offset + size
 				, m_recv_end - m_recv_start - size - offset);
+		}
 
 		m_recv_pos -= size;
 		m_recv_end -= size;
@@ -168,13 +174,41 @@ boost::asio::mutable_buffer receive_buffer::mutable_buffer(int const bytes)
 
 // the purpose of this function is to free up and cut off all messages
 // in the receive buffer that have been parsed and processed.
-void receive_buffer::normalize()
+// it may also shrink the size of the buffer allocation if we haven't been using
+// enough of it lately.
+void receive_buffer::normalize(int force_shrink)
 {
 	TORRENT_ASSERT(m_recv_end >= m_recv_start);
-	if (m_recv_start == 0) return;
 
-	if (m_recv_end > m_recv_start)
-		std::memmove(&m_recv_buffer[0], &m_recv_buffer[0] + m_recv_start, m_recv_end - m_recv_start);
+	m_watermark.add_sample(std::max(m_recv_end, m_packet_size));
+
+	// if the running average drops below half of the current buffer size,
+	// reallocate a smaller one.
+	bool const shrink_buffer = m_recv_buffer.size() / 2 > m_watermark.mean()
+		&& m_watermark.mean() > (m_recv_end - m_recv_start);
+
+	aux::array_view<char const> bytes_to_shift(
+		m_recv_buffer.ptr() + m_recv_start
+			, m_recv_end - m_recv_start);
+
+	if (force_shrink)
+	{
+		const int target_size = std::max(std::max(force_shrink
+			, int(bytes_to_shift.size())), m_packet_size);
+		buffer new_buffer(target_size, bytes_to_shift);
+		m_recv_buffer = std::move(new_buffer);
+	}
+	else if (shrink_buffer)
+	{
+		buffer new_buffer(m_watermark.mean(), bytes_to_shift);
+		m_recv_buffer = std::move(new_buffer);
+	}
+	else if (m_recv_end > m_recv_start
+		&& m_recv_start > 0)
+	{
+		std::memmove(m_recv_buffer.ptr(), bytes_to_shift.data()
+			, bytes_to_shift.size());
+	}
 
 	m_recv_end -= m_recv_start;
 	m_recv_start = 0;
@@ -276,24 +310,14 @@ void crypto_receive_buffer::crypto_reset(int packet_size)
 	}
 }
 
-void crypto_receive_buffer::set_soft_packet_size(int size)
-{
-	if (m_recv_pos == INT_MAX)
-		m_connection_buffer.set_soft_packet_size(size);
-	else
-		m_soft_packet_size = size;
-}
-
 int crypto_receive_buffer::advance_pos(int bytes)
 {
 	if (m_recv_pos == INT_MAX) return bytes;
 
-	int packet_size = m_soft_packet_size ? m_soft_packet_size : m_packet_size;
-	int limit = packet_size > m_recv_pos ? packet_size - m_recv_pos : packet_size;
-	int sub_transferred = (std::min)(bytes, limit);
+	int const limit = m_packet_size > m_recv_pos ? m_packet_size - m_recv_pos : m_packet_size;
+	int const sub_transferred = (std::min)(bytes, limit);
 	m_recv_pos += sub_transferred;
 	m_connection_buffer.cut(0, m_connection_buffer.packet_size() + sub_transferred);
-	if (m_recv_pos >= m_soft_packet_size) m_soft_packet_size = 0;
 	return sub_transferred;
 }
 

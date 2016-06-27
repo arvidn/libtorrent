@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_ARRAY_VIEW_HPP_INCLUDED
 
 #include <vector>
+#include <array>
 #include <type_traits> // for std::is_convertible
 #include "libtorrent/assert.hpp"
 

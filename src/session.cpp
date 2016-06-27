@@ -84,6 +84,8 @@ namespace libtorrent
 		set.set_bool(settings_pack::contiguous_recv_buffer, false);
 #endif
 
+		set.set_int(settings_pack::max_peer_recv_buffer_size, 32 * 1024 + 200);
+
 		set.set_int(settings_pack::disk_io_write_mode, settings_pack::disable_os_cache);
 		set.set_int(settings_pack::disk_io_read_mode, settings_pack::disable_os_cache);
 
@@ -170,6 +172,8 @@ namespace libtorrent
 
 		set.set_int(settings_pack::max_out_request_queue, 1500);
 		set.set_int(settings_pack::max_allowed_in_request_queue, 2000);
+
+		set.set_int(settings_pack::max_peer_recv_buffer_size, 5 * 1024 * 1024);
 
 		// we will probably see a high rate of alerts, make it less
 		// likely to loose alerts
