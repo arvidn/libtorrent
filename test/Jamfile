@@ -125,7 +125,6 @@ test-suite libtorrent :
 		test_socket_io.cpp
 #		test_random.cpp
 		test_gzip.cpp
-		test_bitfield.cpp
 		test_part_file.cpp
 		test_peer_list.cpp
 		test_torrent_info.cpp
@@ -160,6 +159,7 @@ test-suite libtorrent :
 		]
 
 	[ run test_sha1_hash.cpp ]
+	[ run test_bitfield.cpp ]
 	[ run test_receive_buffer.cpp ]
 	[ run test_alert_manager.cpp ]
 	[ run test_direct_dht.cpp ]
@@ -271,6 +271,7 @@ explicit win-tests ;
 
 alias arm-tests :
     test_sha1_hash
+    test_bitfield
     ;
 
 explicit arm-tests ;

@@ -37,6 +37,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <intrin.h>
 #endif
 
+#if TORRENT_HAS_ARM_NEON
+#include <arm_neon.h>
+#endif
+
 namespace libtorrent
 {
 	bool bitfield::all_set() const
@@ -74,6 +78,30 @@ namespace libtorrent
 			return ret;
 		}
 #endif // TORRENT_HAS_SSE
+
+#if TORRENT_HAS_ARM_NEON
+		if (aux::arm_neon_support)
+		{
+			for (int i = 0; i < words; ++i)
+			{
+				uint8x8_t in_val;
+				uint8x8_t cnt8x8_val;
+				uint16x4_t cnt16x4_val;
+				uint32x2_t cnt32x2_val;
+				uint32_t cnt;
+
+				in_val = vld1_u8((unsigned char *) &m_buf[i]);
+				cnt8x8_val = vcnt_u8(in_val);
+				cnt16x4_val = vpaddl_u8(cnt8x8_val);
+				cnt32x2_val = vpaddl_u16(cnt16x4_val);
+				vst1_u32(&cnt, cnt32x2_val);
+
+				ret += cnt;
+			}
+
+			return ret;
+		}
+#endif // TORRENT_HAS_ARM_NEON
 
 		for (int i = 0; i < words; ++i)
 		{

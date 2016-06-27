@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "libtorrent/bitfield.hpp"
+#include "libtorrent/aux_/cpuid.hpp"
 #include <stdlib.h>
 
 using namespace libtorrent;
@@ -187,4 +188,10 @@ TORRENT_TEST(bitfield)
 		TEST_EQUAL(test1.count(), 32 + 8 + 2);
 		TEST_EQUAL(test1.all_set(), true);
 	}
+
+#if TORRENT_HAS_ARM
+	TORRENT_ASSERT(aux::arm_neon_support);
+#else
+	TORRENT_ASSERT(!aux::arm_neon_support);
+#endif
 }
