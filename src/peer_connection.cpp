@@ -34,21 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 #include <cstdint>
 
-#if TORRENT_USE_ASSERTS
-#include <set>
-#endif
-
-#ifdef TORRENT_USE_OPENSSL
-#include <openssl/rand.h>
-#endif
-
-#ifndef TORRENT_DISABLE_LOGGING
-#include <cstdarg> // for va_start, va_end
-#include <cstdio> // for vsnprintf
-#include "libtorrent/socket_io.hpp"
-#include "libtorrent/hex.hpp" // to_hex
-#endif
-
+#include "libtorrent/config.hpp"
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/entry.hpp"
@@ -78,6 +64,21 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/close_reason.hpp"
 #include "libtorrent/aux_/time.hpp"
+
+#if TORRENT_USE_ASSERTS
+#include <set>
+#endif
+
+#ifdef TORRENT_USE_OPENSSL
+#include <openssl/rand.h>
+#endif
+
+#ifndef TORRENT_DISABLE_LOGGING
+#include <cstdarg> // for va_start, va_end
+#include <cstdio> // for vsnprintf
+#include "libtorrent/socket_io.hpp"
+#include "libtorrent/hex.hpp" // to_hex
+#endif
 
 //#define TORRENT_CORRUPT_DATA
 

@@ -4443,10 +4443,7 @@ namespace aux {
 	void session_impl::session_vlog(char const* fmt, va_list& v) const
 	{
 		if (!m_alerts.should_post<log_alert>()) return;
-
-		char buf[1024];
-		vsnprintf(buf, sizeof(buf), fmt, v);
-		m_alerts.emplace_alert<log_alert>(buf);
+		m_alerts.emplace_alert<log_alert>(fmt, v);
 	}
 #endif
 
@@ -6593,10 +6590,9 @@ namespace aux {
 
 		va_list v;
 		va_start(v, fmt);
-		char buf[1024];
-		std::vsnprintf(buf, sizeof(buf), fmt, v);
+		m_alerts.emplace_alert<dht_log_alert>(
+			static_cast<dht_log_alert::dht_module_t>(m), fmt, v);
 		va_end(v);
-		m_alerts.emplace_alert<dht_log_alert>(static_cast<dht_log_alert::dht_module_t>(m), buf);
 	}
 
 	void session_impl::log_packet(message_direction_t dir, char const* pkt, int len
@@ -6938,10 +6934,8 @@ namespace aux {
 		{
 			va_list v;
 			va_start(v, fmt);
-			char usr[1024];
-			vsnprintf(usr, sizeof(usr), fmt, v);
+			m_ses.session_vlog(fmt, v);
 			va_end(v);
-			m_ses.session_log("%s", usr);
 		}
 #endif // TORRENT_DISABLE_LOGGING
 }}

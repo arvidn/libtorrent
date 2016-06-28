@@ -11310,13 +11310,9 @@ namespace libtorrent
 
 		va_list v;
 		va_start(v, fmt);
-
-		char buf[400];
-		vsnprintf(buf, sizeof(buf), fmt, v);
-		va_end(v);
-
 		alerts().emplace_alert<torrent_log_alert>(
-			const_cast<torrent*>(this)->get_handle(), buf);
+			const_cast<torrent*>(this)->get_handle(), fmt, v);
+		va_end(v);
 	}
 #endif
 
