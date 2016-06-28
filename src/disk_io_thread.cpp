@@ -1484,7 +1484,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-#ifndef TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_ASSERTS
 		// the caller must increment the torrent refcount before
 		// issuing an async disk request
 		storage->assert_torrent_refcount();
@@ -1604,7 +1604,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-#ifndef TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_ASSERTS
 		// the caller must increment the torrent refcount before
 		// issuing an async disk request
 		storage->assert_torrent_refcount();
@@ -1711,7 +1711,7 @@ namespace libtorrent
 	void disk_io_thread::async_hash(piece_manager* storage, int piece, int flags
 		, boost::function<void(disk_io_job const*)> handler, void* requester)
 	{
-#ifndef TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_ASSERTS
 		// the caller must increment the torrent refcount before
 		// issuing an async disk request
 		storage->assert_torrent_refcount();
@@ -1756,7 +1756,7 @@ namespace libtorrent
 	void disk_io_thread::async_move_storage(piece_manager* storage, std::string const& p, int flags
 		, boost::function<void(disk_io_job const*)> handler)
 	{
-#ifndef TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_ASSERTS
 		// the caller must increment the torrent refcount before
 		// issuing an async disk request
 		storage->assert_torrent_refcount();
@@ -1785,7 +1785,7 @@ namespace libtorrent
 		, int const options
 		, boost::function<void(disk_io_job const*)> handler)
 	{
-#ifndef TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_ASSERTS
 		// the caller must increment the torrent refcount before
 		// issuing an async disk request
 		storage->assert_torrent_refcount();
@@ -1838,7 +1838,7 @@ namespace libtorrent
 		, std::vector<std::string>& links
 		, boost::function<void(disk_io_job const*)> handler)
 	{
-#ifndef TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_ASSERTS
 		// the caller must increment the torrent refcount before
 		// issuing an async disk request
 		storage->assert_torrent_refcount();
@@ -1860,7 +1860,7 @@ namespace libtorrent
 	void disk_io_thread::async_rename_file(piece_manager* storage, int index, std::string const& name
 		, boost::function<void(disk_io_job const*)> handler)
 	{
-#ifndef TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_ASSERTS
 		// the caller must increment the torrent refcount before
 		// issuing an async disk request
 		storage->assert_torrent_refcount();
@@ -1913,7 +1913,7 @@ namespace libtorrent
 	void disk_io_thread::async_cache_piece(piece_manager* storage, int piece
 		, boost::function<void(disk_io_job const*)> handler)
 	{
-#ifndef TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_ASSERTS
 		// the caller must increment the torrent refcount before
 		// issuing an async disk request
 		storage->assert_torrent_refcount();
@@ -1930,7 +1930,7 @@ namespace libtorrent
 	void disk_io_thread::async_finalize_file(piece_manager* storage, int file
 		, boost::function<void(disk_io_job const*)> handler)
 	{
-#ifndef TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_ASSERTS
 		// the caller must increment the torrent refcount before
 		// issuing an async disk request
 		storage->assert_torrent_refcount();
@@ -1948,7 +1948,7 @@ namespace libtorrent
 	void disk_io_thread::async_flush_piece(piece_manager* storage, int piece
 		, boost::function<void(disk_io_job const*)> handler)
 	{
-#ifndef TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_ASSERTS
 		// the caller must increment the torrent refcount before
 		// issuing an async disk request
 		storage->assert_torrent_refcount();
@@ -1974,7 +1974,7 @@ namespace libtorrent
 		, std::vector<std::uint8_t> const& prios
 		, boost::function<void(disk_io_job const*)> handler)
 	{
-#ifndef TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_ASSERTS
 		// the caller must increment the torrent refcount before
 		// issuing an async disk request
 		storage->assert_torrent_refcount();
@@ -2030,7 +2030,7 @@ namespace libtorrent
 	void disk_io_thread::async_clear_piece(piece_manager* storage, int index
 		, boost::function<void(disk_io_job const*)> handler)
 	{
-#ifndef TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_ASSERTS
 		// the caller must increment the torrent refcount before
 		// issuing an async disk request
 		storage->assert_torrent_refcount();
