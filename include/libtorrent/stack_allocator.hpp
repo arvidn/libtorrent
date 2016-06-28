@@ -77,7 +77,10 @@ namespace libtorrent { namespace aux
 #pragma clang diagnostic pop
 #endif
 
-			m_storage.resize(len > 512 ? 512 : len);
+			if (len < 0) return copy_string("(format error)");
+
+			// +1 is to include the 0-terminator
+			m_storage.resize(ret + (len > 512 ? 512 : len) + 1);
 			return ret;
 		}
 
