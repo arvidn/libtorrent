@@ -1699,6 +1699,17 @@ namespace libtorrent {
 		, m_str_idx(alloc.copy_string(log))
 	{}
 
+	peer_log_alert::peer_log_alert(aux::stack_allocator& alloc
+		, torrent_handle const& h
+		, tcp::endpoint const& i, peer_id const& pi
+		, peer_log_alert::direction_t dir
+		, char const* event, char const* fmt, va_list v)
+		: peer_alert(alloc, h, i, pi)
+		, event_type(event)
+		, direction(dir)
+		, m_str_idx(alloc.format_string(fmt, v))
+	{}
+
 	char const* peer_log_alert::msg() const
 	{
 		return m_alloc.get().ptr(m_str_idx);

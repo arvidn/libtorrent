@@ -509,18 +509,15 @@ namespace libtorrent
 		va_list v;
 		va_start(v, fmt);
 
-		// TODO: it would be neat to be able to print this straight into the
-		// alert's stack allocator
-		char buf[512];
-		std::vsnprintf(buf, sizeof(buf), fmt, v);
-		va_end(v);
-
 		torrent_handle h;
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (t) h = t->get_handle();
 
 		m_ses.alerts().emplace_alert<peer_log_alert>(
-			h, m_remote, m_peer_id, direction, event, buf);
+			h, m_remote, m_peer_id, direction, event, fmt, v);
+
+		va_end(v);
+
 	}
 #endif
 

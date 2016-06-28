@@ -2150,6 +2150,10 @@ namespace libtorrent
 			, tcp::endpoint const& i, peer_id const& pi
 			, peer_log_alert::direction_t dir
 			, char const* event, char const* log);
+		peer_log_alert(aux::stack_allocator& alloc, torrent_handle const& h
+			, tcp::endpoint const& i, peer_id const& pi
+			, peer_log_alert::direction_t dir
+			, char const* event, char const* fmt, va_list v);
 
 		TORRENT_DEFINE_ALERT(peer_log_alert, 81)
 
