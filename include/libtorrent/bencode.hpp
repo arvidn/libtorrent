@@ -222,7 +222,7 @@ namespace libtorrent
 			if (in == end)
 			{
 				err = true;
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 				ret.m_type_queried = false;
 #endif
 				return;
@@ -242,7 +242,7 @@ namespace libtorrent
 				ret = entry(entry::int_t);
 				char* end_pointer;
 				ret.integer() = strtoll(val.c_str(), &end_pointer, 10);
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 				ret.m_type_queried = false;
 #endif
 				if (end_pointer == val.c_str())
@@ -265,7 +265,7 @@ namespace libtorrent
 					bdecode_recursive(in, end, e, err, depth + 1);
 					if (err)
 					{
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 						ret.m_type_queried = false;
 #endif
 						return;
@@ -273,13 +273,13 @@ namespace libtorrent
 					if (in == end)
 					{
 						err = true;
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 						ret.m_type_queried = false;
 #endif
 						return;
 					}
 				}
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 				ret.m_type_queried = false;
 #endif
 				TORRENT_ASSERT(*in == 'e');
@@ -298,7 +298,7 @@ namespace libtorrent
 					bdecode_recursive(in, end, key, err, depth + 1);
 					if (err || key.type() != entry::string_t)
 					{
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 						ret.m_type_queried = false;
 #endif
 						return;
@@ -307,7 +307,7 @@ namespace libtorrent
 					bdecode_recursive(in, end, e, err, depth + 1);
 					if (err)
 					{
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 						ret.m_type_queried = false;
 #endif
 						return;
@@ -315,13 +315,13 @@ namespace libtorrent
 					if (in == end)
 					{
 						err = true;
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 						ret.m_type_queried = false;
 #endif
 						return;
 					}
 				}
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 				ret.m_type_queried = false;
 #endif
 				TORRENT_ASSERT(*in == 'e');
@@ -336,7 +336,7 @@ namespace libtorrent
 					std::string len_s = read_until(in, end, ':', err);
 					if (err)
 					{
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 						ret.m_type_queried = false;
 #endif
 						return;
@@ -348,7 +348,7 @@ namespace libtorrent
 					read_string(in, end, len, ret.string(), err);
 					if (err)
 					{
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 						ret.m_type_queried = false;
 #endif
 						return;
@@ -357,12 +357,12 @@ namespace libtorrent
 				else
 				{
 					err = true;
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 					ret.m_type_queried = false;
 #endif
 					return;
 				}
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 				ret.m_type_queried = false;
 #endif
 			}
@@ -421,9 +421,7 @@ namespace libtorrent
 		entry e;
 		bool err = false;
 		detail::bdecode_recursive(start, end, e, err, 0);
-#ifdef TORRENT_DEBUG
 		TORRENT_ASSERT(e.m_type_queried == false);
-#endif
 		if (err) return entry();
 		return e;
 	}

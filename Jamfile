@@ -113,7 +113,8 @@ rule linking ( properties * )
 	}
 
 	if <target-os>windows in $(properties)
-		&& ( <asserts>on in $(properties)
+		&& ( <define>TORRENT_DEBUG
+			|| <asserts>on in $(properties)
 			|| <asserts>production in $(properties)
 			|| <pool-allocators>debug in $(properties)
 			|| <allocator>debug in $(properties)
@@ -338,7 +339,7 @@ rule building ( properties * )
 		result += <cflags>-ftrapv ;
 	}
 
-	if ( <variant>debug in $(properties)
+	if ( <asserts>production in $(properties)
 		|| <asserts>on in $(properties) )
 	{
 		result += <source>src/assert.cpp ;
@@ -422,10 +423,10 @@ feature memory-optimization : off on : composite propagated link-incompatible ;
 feature.compose <memory-optimization>on : <define>TORRENT_OPTIMIZE_MEMORY_USAGE ;
 
 feature asserts : auto on off production system : composite propagated ;
-feature.compose <asserts>on : <define>TORRENT_RELEASE_ASSERTS=1 ;
-feature.compose <asserts>production : <define>TORRENT_PRODUCTION_ASSERTS=1 <define>TORRENT_RELEASE_ASSERTS=1 ;
+feature.compose <asserts>on : <define>TORRENT_USE_ASSERTS=1 ;
+feature.compose <asserts>production : <define>TORRENT_USE_ASSERTS=1 <define>TORRENT_PRODUCTION_ASSERTS=1 ;
+feature.compose <asserts>system : <define>TORRENT_USE_ASSERTS=1 <define>TORRENT_USE_SYSTEM_ASSERTS=1 ;
 feature.compose <asserts>off : <define>TORRENT_USE_ASSERTS=0 ;
-feature.compose <asserts>system : <define>TORRENT_USE_SYSTEM_ASSERTS=1 ;
 
 feature windows-version : vista win7 xp : composite propagated link-incompatible ;
 feature.compose <windows-version>vista : <define>_WIN32_WINNT=0x0600 ;
@@ -528,19 +529,16 @@ variant test_debug : debug
 	  <allocator>debug
 	  <invariant-checks>full <boost-link>shared
 	  <export-extra>on <debug-iterators>on <threading>multi <asserts>on
-	  <define>TORRENT_DEBUG
 	;
 variant test_barebones : debug
 	: <ipv6>off <dht>off <extensions>off <logging>off <boost-link>shared
 	  <deprecated-functions>off <invariant-checks>off
 	  <export-extra>on <debug-iterators>on <threading>multi <asserts>on
-	  <define>TORRENT_DEBUG
 	;
 variant test_arm : debug
 	: <ipv6>off <dht>off <extensions>off <logging>off
 	  <deprecated-functions>off <invariant-checks>off
 	  <export-extra>on <asserts>on
-	  <define>TORRENT_DEBUG
 	;
 
 # required for openssl on windows

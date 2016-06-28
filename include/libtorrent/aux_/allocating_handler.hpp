@@ -52,7 +52,7 @@ namespace libtorrent { namespace aux
 	template <std::size_t Size>
 	struct handler_storage
 	{
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 		handler_storage()
 			: used(false)
 		{}
@@ -96,7 +96,7 @@ namespace libtorrent { namespace aux
 		{
 			TORRENT_UNUSED(size);
 			TORRENT_ASSERT(size <= Size);
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 			TORRENT_ASSERT(!ctx->storage.used);
 			ctx->storage.used = true;
 #endif
@@ -112,7 +112,7 @@ namespace libtorrent { namespace aux
 
 			TORRENT_ASSERT(size <= Size);
 			TORRENT_ASSERT(ptr == &ctx->storage.bytes);
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 			ctx->storage.used = false;
 #endif
 		}

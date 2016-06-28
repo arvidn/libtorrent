@@ -1488,7 +1488,7 @@ namespace libtorrent
 	piece_manager::~piece_manager()
 	{}
 
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 	void piece_manager::assert_torrent_refcount() const
 	{
 		if (!m_torrent) return;
