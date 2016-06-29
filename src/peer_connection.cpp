@@ -34,21 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 #include <cstdint>
 
-#if TORRENT_USE_ASSERTS
-#include <set>
-#endif
-
-#ifdef TORRENT_USE_OPENSSL
-#include <openssl/rand.h>
-#endif
-
-#ifndef TORRENT_DISABLE_LOGGING
-#include <cstdarg> // for va_start, va_end
-#include <cstdio> // for vsnprintf
-#include "libtorrent/socket_io.hpp"
-#include "libtorrent/hex.hpp" // to_hex
-#endif
-
+#include "libtorrent/config.hpp"
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/entry.hpp"
@@ -78,6 +64,21 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/close_reason.hpp"
 #include "libtorrent/aux_/time.hpp"
+
+#if TORRENT_USE_ASSERTS
+#include <set>
+#endif
+
+#ifdef TORRENT_USE_OPENSSL
+#include <openssl/rand.h>
+#endif
+
+#ifndef TORRENT_DISABLE_LOGGING
+#include <cstdarg> // for va_start, va_end
+#include <cstdio> // for vsnprintf
+#include "libtorrent/socket_io.hpp"
+#include "libtorrent/hex.hpp" // to_hex
+#endif
 
 //#define TORRENT_CORRUPT_DATA
 
@@ -509,18 +510,15 @@ namespace libtorrent
 		va_list v;
 		va_start(v, fmt);
 
-		// TODO: it would be neat to be able to print this straight into the
-		// alert's stack allocator
-		char buf[512];
-		std::vsnprintf(buf, sizeof(buf), fmt, v);
-		va_end(v);
-
 		torrent_handle h;
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (t) h = t->get_handle();
 
 		m_ses.alerts().emplace_alert<peer_log_alert>(
-			h, m_remote, m_peer_id, direction, event, buf);
+			h, m_remote, m_peer_id, direction, event, fmt, v);
+
+		va_end(v);
+
 	}
 #endif
 
