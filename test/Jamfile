@@ -17,6 +17,7 @@ exe enum_if : enum_if.cpp /torrent//torrent
 	<picker-debugging>on
 	<debug-iterators>on
 	<logging>on
+	;
 
 explicit test_natpmp ;
 explicit enum_if ;
