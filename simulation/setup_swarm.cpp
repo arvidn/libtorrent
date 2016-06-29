@@ -399,9 +399,10 @@ void setup_swarm(int num_nodes
 				, [](boost::shared_ptr<lt::session> const& s)
 				{ return is_seed(*s); });
 
-			if (tick > 70 * (num_nodes - 1) && !shut_down)
+			if (tick > 88 * (num_nodes - 1) && !shut_down)
 			{
 				TEST_ERROR("seeding failed!");
+				shut_down = true;
 			}
 		}
 

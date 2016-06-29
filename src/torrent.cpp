@@ -1259,7 +1259,10 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		// if we have all pieces we should not have a picker
-		TORRENT_ASSERT(!m_have_all);
+		// unless we're in suggest mode
+		TORRENT_ASSERT(!m_have_all
+			|| settings().get_int(settings_pack::suggest_mode)
+			== settings_pack::suggest_read_cache);
 
 		m_picker.reset(new piece_picker());
 		int const blocks_per_piece
