@@ -4,17 +4,22 @@ import feature : feature ;
 use-project /torrent : .. ;
 
 exe test_natpmp : test_natpmp.cpp /torrent//torrent
-	: <threading>multi <debug-iterators>on <invariant-checks>full ;
+	: <invariant-checks>full
+	<link>shared
+	<picker-debugging>on
+	<debug-iterators>on
+	<logging>on
+	;
 
 exe enum_if : enum_if.cpp /torrent//torrent
-	: <threading>multi <debug-iterators>on <invariant-checks>full ;
-
-exe bdecode_benchmark : bdecode_benchmark.cpp /torrent//torrent
-	: <variant>release ;
+	: <invariant-checks>full
+	<link>shared
+	<picker-debugging>on
+	<debug-iterators>on
+	<logging>on
 
 explicit test_natpmp ;
 explicit enum_if ;
-explicit bdecode_benchmark ;
 
 rule link_test ( properties * )
 {

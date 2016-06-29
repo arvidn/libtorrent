@@ -1,8 +1,5 @@
 AUTOMAKE_OPTIONS = subdir-objects
 
-benchmark_programs = \
-  bdecode_benchmark
-
 test_programs = \
   test_primitives            \
   test_recheck               \
@@ -49,7 +46,7 @@ test_programs = \
   test_direct_dht
 
 if ENABLE_TESTS
-check_PROGRAMS = $(test_programs) $(benchmark_programs)
+check_PROGRAMS = $(test_programs)
 noinst_LTLIBRARIES = libtest.la
 endif
 
@@ -117,7 +114,7 @@ EXTRA_DIST = Jamfile \
   socks.py \
   http.py
 
-EXTRA_PROGRAMS = $(test_programs) $(benchmark_programs)
+EXTRA_PROGRAMS = $(test_programs)
 
 noinst_HEADERS = test.hpp setup_transfer.hpp dht_server.hpp \
   peer_server.hpp udp_tracker.hpp web_seed_suite.hpp swarm_suite.hpp \
@@ -185,7 +182,6 @@ test_primitives_SOURCES = \
   test_dos_blocker.cpp \
   test_upnp.cpp
 
-bdecode_benchmark_SOURCES = bdecode_benchmark.cpp
 test_recheck_SOURCES = test_recheck.cpp
 test_stat_cache_SOURCES = test_stat_cache.cpp
 test_file_SOURCES = test_file.cpp
