@@ -179,6 +179,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_NETLINK 1
 #define TORRENT_USE_IFCONF 1
 #define TORRENT_HAS_SALEN 0
+#define TORRENT_USE_FDATASYNC 1
 
 // ===== ANDROID ===== (almost linux, sort of)
 #if defined __ANDROID__
@@ -189,12 +190,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_ICONV 0
 #define TORRENT_USE_IFADDRS 0
 #define TORRENT_USE_MEMALIGN 1
-#define TORRENT_USE_FDATASYNC 0
 #else // ANDROID
 #define TORRENT_ANDROID 0
 #define TORRENT_USE_IFADDRS 1
 #define TORRENT_USE_POSIX_MEMALIGN 1
-#define TORRENT_USE_FDATASYNC 1
 
 // posix_fallocate() is available under this condition
 #if _XOPEN_SOURCE >= 600 || _POSIX_C_SOURCE >= 200112L
