@@ -21,6 +21,7 @@ matrix:
 
 git:
   submodules: false
+  depth: 1
 
 branches:
   only:
