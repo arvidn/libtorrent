@@ -2515,6 +2515,13 @@ namespace libtorrent
 			}
 			received_bytes(0, consumed);
 
+			// don't accept packets larger than 1 MB with a 1KB allowance for headers
+			if (m_recv_buffer.crypto_packet_size() > 1025 * 1024)
+			{
+				disconnect(errors::packet_too_large, op_encryption, 2);
+				return;
+			}
+
 			int sub_transferred = 0;
 			while (bytes_transferred > 0 &&
 				((sub_transferred = int(m_recv_buffer.advance_pos(int(bytes_transferred)))) > 0))

@@ -122,7 +122,7 @@ namespace libtorrent
 			bufs = TORRENT_ALLOCA(mutable_buffer, iovec.size());
 			need_destruct = true;
 			num_bufs = 0;
-			for (int i = 0; to_process > 0; ++i)
+			for (int i = 0; to_process > 0 && i < iovec.size(); ++i)
 			{
 				++num_bufs;
 				int const size = buffer_size(iovec[i]);
@@ -147,16 +147,19 @@ namespace libtorrent
 
 		int next_barrier = 0;
 		aux::array_view<const_buffer> out_iovec;
-		bool process_barrier = num_bufs == 0;
-		if (!process_barrier)
+		if (num_bufs != 0)
 		{
 			std::tie(next_barrier, out_iovec)
 				= m_send_barriers.front().enc_handler->encrypt({bufs, num_bufs});
-			process_barrier = (next_barrier != 0);
 		}
-		if (process_barrier)
+
+		if (m_send_barriers.front().next != INT_MAX)
 		{
-			if (m_send_barriers.front().next != INT_MAX)
+			// to_process holds the difference between the size of the buffers
+			// and the bytes left to the next barrier
+			// if it's zero then pop the barrier
+			// otherwise update the number of bytes remaining to the next barrier
+			if (to_process == 0)
 			{
 				if (m_send_barriers.size() == 1)
 				{
@@ -165,21 +168,25 @@ namespace libtorrent
 				}
 				m_send_barriers.pop_front();
 			}
+			else
+			{
+				m_send_barriers.front().next = to_process;
+			}
+		}
 
 #if TORRENT_USE_ASSERTS
-			if (next_barrier != INT_MAX)
-			{
-				int payload = 0;
-				for (int i = 0; i < num_bufs; ++i)
-					payload += int(buffer_size(bufs[i]));
+		if (next_barrier != INT_MAX && next_barrier != 0)
+		{
+			int payload = 0;
+			for (int i = 0; i < num_bufs; ++i)
+				payload += int(buffer_size(bufs[i]));
 
-				int overhead = 0;
-				for (auto buf : out_iovec)
-					overhead += int(buffer_size(buf));
-				TORRENT_ASSERT(overhead + payload == next_barrier);
-			}
-#endif
+			int overhead = 0;
+			for (auto buf : out_iovec)
+				overhead += int(buffer_size(buf));
+			TORRENT_ASSERT(overhead + payload == next_barrier);
 		}
+#endif
 		if (need_destruct)
 		{
 			for (int i = 0; i < num_bufs; ++i)
