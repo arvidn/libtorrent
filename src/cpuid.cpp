@@ -45,11 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #if TORRENT_HAS_ARM
-#if TORRENT_ANDROID
-unsigned long getauxval(unsigned long type) __attribute__((weak));
-#else
 #include <sys/auxv.h>
-#endif
 #endif
 
 namespace libtorrent { namespace aux
