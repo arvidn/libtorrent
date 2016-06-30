@@ -100,7 +100,24 @@ namespace libtorrent { namespace aux
 #elif defined __aarch64__
 		//return (getauxval(AT_HWCAP) & HWCAP_ASIMD);
 		return (getauxval(16) & (1 << 1));
-#endif // TORRENT_HAS_ARM
+#endif
+#else
+		return false;
+#endif
+	}
+
+	bool supports_arm_crc32c()
+	{
+#if TORRENT_HAS_ARM_CRC32
+#if defined TORRENT_FORCE_ARM_CRC32
+		return true;
+#elif defined __arm__
+		//return (getauxval(AT_HWCAP2) & HWCAP2_CRC32);
+		return (getauxval(26) & (1 << 4));
+#elif defined __aarch64__
+		//return (getauxval(AT_HWCAP) & HWCAP_CRC32);
+		return (getauxval(16) & (1 << 7));
+#endif
 #else
 		return false;
 #endif
@@ -111,4 +128,5 @@ namespace libtorrent { namespace aux
 	bool sse42_support = supports_sse42();
 	bool mmx_support = supports_mmx();
 	bool arm_neon_support = supports_arm_neon();
+	bool arm_crc32c_support = supports_arm_crc32c();
 } }

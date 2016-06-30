@@ -41,6 +41,7 @@ namespace libtorrent { namespace aux
 	TORRENT_EXTRA_EXPORT extern bool sse42_support;
 	TORRENT_EXTRA_EXPORT extern bool mmx_support;
 	TORRENT_EXTRA_EXPORT extern bool arm_neon_support;
+	TORRENT_EXTRA_EXPORT extern bool arm_crc32c_support;
 } }
 
 #endif // TORRENT_CPUID_HPP_INCLUDED

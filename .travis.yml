@@ -17,7 +17,7 @@ matrix:
       env: variant=test_barebones toolset=darwin target=osx-tests
     - sudo: required
       dist: trusty
-      env: arch=arm toolset=gcc-arm64
+      env: arch=arm toolset=gcc-arm
 
 git:
   submodules: false
@@ -78,8 +78,8 @@ install:
   - 'if [[ $toolset == "gcc-coverage" ]]; then
       echo "using gcc : coverage : ccache g++-5 --coverage : <cxxflags>-std=c++11 <linkflags>--coverage ;" >> ~/user-config.jam;
     fi'
-  - 'if [[ $toolset == "gcc-arm64" ]]; then
-      echo "using gcc : arm64 : ccache aarch64-linux-gnu-g++ : <cxxflags>-std=c++11 <cxxflags>-fsigned-char <linkflags>-lm ;" >> ~/user-config.jam;
+  - 'if [[ $toolset == "gcc-arm" ]]; then
+      echo "using gcc : arm : ccache armv8l-linux-gnueabihf-g++ : <cxxflags>\"-std=c++11 -fsigned-char -march=armv8-a+crc -mfpu=crypto-neon-fp-armv8 -DTORRENT_FORCE_ARM_CRC32\" <linkflags>-lm ;" >> ~/user-config.jam;
     fi;'
   - 'echo "using darwin : : ccache clang++ : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>-Wno-deprecated-declarations ;" >> ~/user-config.jam'
   - 'echo "using python : 2.7 ;" >> ~/user-config.jam'
@@ -92,16 +92,16 @@ install:
 
   - 'if [ $arch == "arm" ]; then
       cd test;
-      wget http://releases.linaro.org/components/toolchain/binaries/latest-5/aarch64-linux-gnu/gcc-linaro-5.3-2016.02-x86_64_aarch64-linux-gnu.tar.xz;
-      tar xf gcc-linaro-5.3-2016.02-x86_64_aarch64-linux-gnu.tar.xz;
-      export PATH=${PWD}/gcc-linaro-5.3-2016.02-x86_64_aarch64-linux-gnu/bin:${PATH};
-      aarch64-linux-gnu-g++ --version;
+      wget https://releases.linaro.org/components/toolchain/binaries/latest-5/armv8l-linux-gnueabihf/gcc-linaro-5.3-2016.02-x86_64_armv8l-linux-gnueabihf.tar.xz;
+      tar xf gcc-linaro-5.3-2016.02-x86_64_armv8l-linux-gnueabihf.tar.xz;
+      export PATH=${PWD}/gcc-linaro-5.3-2016.02-x86_64_armv8l-linux-gnueabihf/bin:${PATH};
+      armv8l-linux-gnueabihf-g++ --version;
       wget -O boost.zip http://pilotfiber.dl.sourceforge.net/project/boost/boost/1.55.0/boost_1_55_0.zip;
       unzip -qq boost.zip;
       export BOOST_ROOT=$PWD/boost_1_55_0;
       sudo apt-get install -y qemu-user-static debootstrap;
-      sudo debootstrap --variant=minbase --arch arm64 --foreign --include=build-essential testing rootfs;
-      sudo cp /usr/bin/qemu-aarch64-static rootfs/usr/bin/;
+      sudo debootstrap --variant=minbase --arch armhf --foreign --include=build-essential testing rootfs;
+      sudo cp /usr/bin/qemu-arm-static rootfs/usr/bin/;
       sudo chroot rootfs /debootstrap/debootstrap --second-stage;
       sudo chroot rootfs mount -t proc none /proc;
       cd ..;
