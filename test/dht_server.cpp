@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 
-#if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
+#if TORRENT_USE_IOSTREAM
 #include <iostream>
 #endif
 
@@ -145,7 +145,7 @@ struct dht_server
 			{
 				entry msg = bdecode(buffer, buffer + bytes_transferred);
 
-#if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
+#if TORRENT_USE_IOSTREAM
 				std::cerr << msg << std::endl;
 #endif
 				++m_dht_requests;

@@ -116,7 +116,7 @@ namespace libtorrent
 	struct TORRENT_DEPRECATED_EXPORT internal_file_entry
 	{
 		friend class file_storage;
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 		// for torrent_info::invariant_check
 		friend class torrent_info;
 #endif

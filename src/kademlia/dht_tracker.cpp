@@ -330,18 +330,6 @@ namespace libtorrent { namespace dht
 		m_storage.update_node_ids(ids);
 	}
 
-/*
-#if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
-		std::ofstream st("dht_routing_table_state.txt", std::ios_base::trunc);
-		m_dht.print_state(st);
-
-	#if TORRENT_USE_IPV6
-		std::ofstream st6("dht6_routing_table_state.txt", std::ios_base::trunc);
-		m_dht6.print_state(st6);
-	#endif
-#endif
-*/
-
 	void dht_tracker::get_peers(sha1_hash const& ih
 		, boost::function<void(std::vector<tcp::endpoint> const&)> f)
 	{

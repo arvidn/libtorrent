@@ -317,7 +317,6 @@ namespace libtorrent
 
 	void piece_picker::check_piece_state() const
 	{
-#ifndef TORRENT_DISABLE_INVARIANT_CHECKS
 		for (int k = 0; k < piece_pos::num_download_categories; ++k)
 		{
 			if (!m_downloads[k].empty())
@@ -327,7 +326,6 @@ namespace libtorrent
 				{
 					downloading_piece const& dp = *i;
 					downloading_piece const& next = *(i + 1);
-//					TORRENT_ASSERT(dp.finished + dp.writing >= next.finished + next.writing);
 					TORRENT_ASSERT(dp.index < next.index);
 					TORRENT_ASSERT(int(dp.info_idx) * m_blocks_per_piece
 						+ m_blocks_per_piece <= int(m_block_info.size()));
@@ -345,7 +343,6 @@ namespace libtorrent
 				}
 			}
 		}
-#endif
 	}
 
 	void piece_picker::verify_pick(std::vector<piece_block> const& picked
@@ -2321,7 +2318,7 @@ get_out:
 			= TORRENT_ALLOCA(downloading_piece const*, partials_size);
 		int c = 0;
 
-#if TORRENT_USE_ASSERTS && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 		// if we get here, we're about to pick a busy block. First, make sure
 		// we really exhausted the available blocks
 		for (std::vector<downloading_piece>::const_iterator i
@@ -2424,7 +2421,7 @@ get_out:
 			--partials_size;
 		}
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 // make sure that we at this point have added requests to all unrequested blocks
 // in all downloading pieces
 
@@ -2491,7 +2488,7 @@ get_out:
 				if (k == m_downloads[download_state].end()) continue;
 			}
 		}
-#endif // TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#endif
 		return ret;
 	}
 
@@ -2848,7 +2845,7 @@ get_out:
 		if (int(i->finished) + int(i->writing) < max_blocks) return false;
 		TORRENT_ASSERT(int(i->finished) + int(i->writing) == max_blocks);
 
-#if TORRENT_USE_ASSERTS && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 		block_info const* info = blocks_for_piece(*i);
 		for (int k = 0; k < max_blocks; ++k)
 		{

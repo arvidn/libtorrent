@@ -3866,11 +3866,9 @@ namespace libtorrent
 			{
 				downloading_piece[block] = p->bytes_downloaded;
 			}
-#ifdef TORRENT_DEBUG
 			TORRENT_ASSERT(p->bytes_downloaded <= p->full_block_bytes);
 			TORRENT_ASSERT(p->full_block_bytes == to_req(piece_block(
 				p->piece_index, p->block_index)).length);
-#endif
 		}
 		for (std::map<piece_block, int>::iterator i = downloading_piece.begin();
 			i != downloading_piece.end(); ++i)
@@ -3884,7 +3882,7 @@ namespace libtorrent
 		TORRENT_ASSERT(st.total_done <= m_torrent_file->total_size() - m_padding);
 		TORRENT_ASSERT(st.total_wanted_done <= m_torrent_file->total_size() - m_padding);
 
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 
 		if (st.total_done >= m_torrent_file->total_size())
 		{
@@ -4296,7 +4294,7 @@ namespace libtorrent
 		std::set<torrent_peer*> peers;
 		std::copy(downloaders.begin(), downloaders.end(), std::inserter(peers, peers.begin()));
 
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 		for (std::vector<torrent_peer*>::iterator i = downloaders.begin()
 			, end(downloaders.end()); i != end; ++i)
 		{
@@ -4414,7 +4412,7 @@ namespace libtorrent
 			on_piece_sync(&j);
 		}
 
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 		for (std::vector<torrent_peer*>::iterator i = downloaders.begin()
 			, end(downloaders.end()); i != end; ++i)
 		{
@@ -4494,12 +4492,10 @@ namespace libtorrent
 			torrent_peer* pp = peer->peer_info_struct();
 			m_picker->inc_refcount(index, pp);
 		}
-#ifdef TORRENT_DEBUG
 		else
 		{
 			TORRENT_ASSERT(is_seed() || !m_have_all);
 		}
-#endif
 	}
 
 	// when we get a bitfield message, this is called for that piece
@@ -4511,12 +4507,10 @@ namespace libtorrent
 			torrent_peer* pp = peer->peer_info_struct();
 			m_picker->inc_refcount(bits, pp);
 		}
-#ifdef TORRENT_DEBUG
 		else
 		{
 			TORRENT_ASSERT(is_seed() || !m_have_all);
 		}
-#endif
 	}
 
 	void torrent::peer_has_all(peer_connection const* peer)
@@ -4526,12 +4520,10 @@ namespace libtorrent
 			torrent_peer* pp = peer->peer_info_struct();
 			m_picker->inc_refcount_all(pp);
 		}
-#ifdef TORRENT_DEBUG
 		else
 		{
 			TORRENT_ASSERT(is_seed() || !m_have_all);
 		}
-#endif
 	}
 
 	void torrent::peer_lost(bitfield const& bits, peer_connection const* peer)
@@ -4542,12 +4534,10 @@ namespace libtorrent
 			torrent_peer* pp = peer->peer_info_struct();
 			m_picker->dec_refcount(bits, pp);
 		}
-#ifdef TORRENT_DEBUG
 		else
 		{
 			TORRENT_ASSERT(is_seed() || !m_have_all);
 		}
-#endif
 	}
 
 	void torrent::peer_lost(int index, peer_connection const* peer)
@@ -4557,12 +4547,10 @@ namespace libtorrent
 			torrent_peer* pp = peer->peer_info_struct();
 			m_picker->dec_refcount(index, pp);
 		}
-#ifdef TORRENT_DEBUG
 		else
 		{
 			TORRENT_ASSERT(is_seed() || !m_have_all);
 		}
-#endif
 	}
 
 	void torrent::abort()
@@ -7299,7 +7287,7 @@ namespace libtorrent
 		debug_log("incoming peer (%d)", int(m_connections.size()));
 #endif
 
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 		error_code ec;
 		TORRENT_ASSERT(p->remote() == p->get_socket()->remote_endpoint(ec) || ec);
 #endif
@@ -7603,7 +7591,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 		for (peer_iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
 		{

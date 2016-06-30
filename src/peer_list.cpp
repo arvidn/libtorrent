@@ -54,10 +54,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/torrent_peer_allocator.hpp"
 
-#ifdef TORRENT_DEBUG
-#include "libtorrent/bt_peer_connection.hpp"
-#endif
-
 #if TORRENT_USE_ASSERTS
 #include "libtorrent/socket_io.hpp" // for print_endpoint
 #endif
@@ -88,7 +84,7 @@ namespace
 		tcp::endpoint const& m_ep;
 	};
 
-#ifndef TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 	struct match_peer_connection
 	{
 		match_peer_connection(peer_connection_interface const& c) : m_conn(c) {}
@@ -1195,7 +1191,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(p->in_use);
 
-#ifndef TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 		// web seeds are special, they're not connected via the peer list
 		// so they're not kept in m_peers
 		TORRENT_ASSERT(p->web_seed
@@ -1308,8 +1304,7 @@ namespace libtorrent
 		int connect_candidates = 0;
 
 		const_iterator prev = m_peers.end();
-		for (const_iterator i = m_peers.begin();
-			i != m_peers.end(); ++i)
+		for (const_iterator i = m_peers.begin(); i != m_peers.end(); ++i)
 		{
 			if (prev != m_peers.end()) ++prev;
 			if (i == m_peers.begin() + 1) prev = m_peers.begin();
@@ -1339,7 +1334,7 @@ namespace libtorrent
 #endif // TORRENT_EXPENSIVE_INVARIANT_CHECKS
 
 	}
-#endif // TORRENT_DEBUG
+#endif
 
 	// this returns true if lhs is a better erase candidate than rhs
 	bool peer_list::compare_peer_erase(torrent_peer const& lhs, torrent_peer const& rhs) const

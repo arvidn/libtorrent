@@ -40,9 +40,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cinttypes> // for PRId64 et.al.
 #include <functional>
 
-#if defined TORRENT_DEBUG && !defined TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 #include <unordered_set>
-#endif // TORRENT_DEBUG && !TORRENT_DISABLE_INVARIANT_CHECKS
+#endif
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -1094,7 +1094,7 @@ namespace aux {
 		TORRENT_ASSERT(pc);
 		if (pc == 0)
 		{
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 			// make it obvious that the return value is undefined
 			ret.upload_limit = 0xf0f0f0f;
 			ret.download_limit = 0xf0f0f0f;
@@ -1229,7 +1229,7 @@ namespace aux {
 		// checking to see if it's the first item
 		if (t->next != nullptr || t->prev != nullptr || m_torrent_lru.front() == t)
 		{
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 			torrent* i = m_torrent_lru.front();
 			while (i != nullptr && i != t) i = i->next;
 			TORRENT_ASSERT(i == t);
@@ -1269,7 +1269,7 @@ namespace aux {
 
 		TORRENT_ASSERT(t->next != nullptr || t->prev != nullptr || m_torrent_lru.front() == t);
 
-#if defined TORRENT_DEBUG && defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
+#if TORRENT_USE_ASSERTS
 		torrent* i = m_torrent_lru.front();
 		while (i != nullptr && i != t) i = i->next;
 		TORRENT_ASSERT(i == t);
@@ -1308,7 +1308,7 @@ namespace aux {
 		// one more torrent in the list.
 		if (ignore->next != nullptr || ignore->prev != nullptr || m_torrent_lru.front() == ignore)
 		{
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 			torrent* i = m_torrent_lru.front();
 			while (i != nullptr && i != ignore) i = i->next;
 			TORRENT_ASSERT(i == ignore);
@@ -2866,15 +2866,6 @@ namespace aux {
 		if (!sp.unique())
 			m_undead_peers.push_back(sp);
 
-// too expensive
-//		INVARIANT_CHECK;
-
-#ifdef TORRENT_DEBUG
-//		for (aux::session_impl::torrent_map::const_iterator i = m_torrents.begin()
-//			, end(m_torrents.end()); i != end; ++i)
-//			TORRENT_ASSERT(!i->second->has_peer((peer_connection*)p));
-#endif
-
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log(" CLOSING CONNECTION %s : %s"
 			, print_endpoint(p->remote()).c_str(), ec.message().c_str());
@@ -4246,7 +4237,7 @@ namespace aux {
 		TORRENT_ASSERT(is_single_thread());
 
 		torrent_map::const_iterator i = m_torrents.find(info_hash);
-#if defined TORRENT_DEBUG && defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 		for (torrent_map::const_iterator j
 			= m_torrents.begin(); j != m_torrents.end(); ++j)
 		{

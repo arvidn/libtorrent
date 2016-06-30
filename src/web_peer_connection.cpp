@@ -858,10 +858,10 @@ void web_peer_connection::on_receive(error_code const& error
 				{
 					TORRENT_ASSERT_VAL(m_chunk_pos == 0, m_chunk_pos);
 
-#ifdef TORRENT_DEBUG
-					chunk_start = recv_buffer;
-					chunk_start.begin += m_chunk_pos;
-					TORRENT_ASSERT(chunk_start.left() == 0 || chunk_start.begin[0] == 'H');
+#if TORRENT_USE_ASSERTS
+					buffer::const_interval chunk = recv_buffer;
+					chunk.begin += m_chunk_pos;
+					TORRENT_ASSERT(chunk.left() == 0 || chunk.begin[0] == 'H');
 #endif
 					m_chunk_pos = -1;
 

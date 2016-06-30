@@ -51,7 +51,7 @@ TORRENT_TEST(default_settings)
 	// by save_settings
 	TEST_EQUAL(e.dict().size(), 0);
 
-#if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
+#if TORRENT_USE_IOSTREAM
 	if (e.dict().size() > 0)
 		std::cerr << e << std::endl;
 #endif

@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/pool/pool.hpp>
 #endif
 
-#if defined TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 #include <set>
 #endif
 
@@ -180,7 +180,7 @@ namespace libtorrent
 		// this is specifically exempt from release_asserts
 		// since it's a quite costly check. Only for debug
 		// builds.
-#if defined TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 		std::set<char*> m_buffers_in_use;
 #endif
 #if TORRENT_USE_ASSERTS

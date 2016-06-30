@@ -57,10 +57,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/debug.hpp"
 
-#ifdef TORRENT_DEBUG
-#include "libtorrent/socket_io.hpp"
-#endif
-
 using namespace std::placeholders;
 
 namespace libtorrent
@@ -212,13 +208,6 @@ namespace libtorrent
 
 #endif
 			open_multicast_socket(ios, i->interface_address, loopback, ec);
-#ifdef TORRENT_DEBUG
-			std::fprintf(stderr, "broadcast socket [ if: %s group: %s mask: %s ] %s\n"
-				, i->interface_address.to_string().c_str()
-				, m_multicast_endpoint.address().to_string().c_str()
-				, i->netmask.to_string().c_str()
-				, ec.message().c_str());
-#endif
 			open_unicast_socket(ios, i->interface_address
 				, i->netmask.is_v4() ? i->netmask.to_v4() : address_v4());
 		}

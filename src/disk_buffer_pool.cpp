@@ -176,7 +176,7 @@ namespace libtorrent
 		}
 #endif
 
-#if defined TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 		return m_buffers_in_use.count(buffer) == 1;
 #elif defined TORRENT_DEBUG_BUFFERS
 		return page_aligned_allocator::in_use(buffer);
@@ -310,7 +310,7 @@ namespace libtorrent
 			}
 		}
 
-#if defined TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 		TORRENT_ASSERT(m_buffers_in_use.count(ret) == 0);
 		m_buffers_in_use.insert(ret);
 #endif
@@ -553,7 +553,7 @@ namespace libtorrent
 #endif // TORRENT_DISABLE_POOL_ALLOCATOR
 		}
 
-#if defined TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 		std::set<char*>::iterator i = m_buffers_in_use.find(buf);
 		TORRENT_ASSERT(i != m_buffers_in_use.end());
 		m_buffers_in_use.erase(i);

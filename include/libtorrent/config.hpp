@@ -473,17 +473,10 @@ POSSIBILITY OF SUCH DAMAGE.
 // builds have asserts if they are explicitly enabled by
 // the release_asserts macro.
 #ifndef TORRENT_USE_ASSERTS
-#if defined TORRENT_DEBUG
-#define TORRENT_USE_ASSERTS 1
-#else
 #define TORRENT_USE_ASSERTS 0
-#endif
 #endif // TORRENT_USE_ASSERTS
 
-#if defined TORRENT_DEBUG && TORRENT_USE_ASSERTS \
-	&& !defined TORRENT_DISABLE_INVARIANT_CHECKS
-#define TORRENT_USE_INVARIANT_CHECKS 1
-#else
+#ifndef TORRENT_USE_INVARIANT_CHECKS
 #define TORRENT_USE_INVARIANT_CHECKS 0
 #endif
 

@@ -202,7 +202,7 @@ struct packet
 	// sent with the DF bit set (Don't Fragment)
 	bool mtu_probe:1;
 
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 	int num_fast_resend;
 #endif
 
@@ -1018,7 +1018,7 @@ void utp_stream::add_write_buffer(void const* buf, size_t len)
 	TORRENT_ASSERT(len > 0);
 	TORRENT_ASSERT(buf);
 
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 	int write_buffer_size = 0;
 	for (std::vector<utp_socket_impl::iovec_t>::iterator i = m_impl->m_write_buffer.begin()
 		, end(m_impl->m_write_buffer.end()); i != end; ++i)
@@ -1032,7 +1032,7 @@ void utp_stream::add_write_buffer(void const* buf, size_t len)
 	m_impl->m_write_buffer.push_back(utp_socket_impl::iovec_t(const_cast<void*>(buf), len));
 	m_impl->m_write_buffer_size += int(len);
 
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 	write_buffer_size = 0;
 	for (std::vector<utp_socket_impl::iovec_t>::iterator i = m_impl->m_write_buffer.begin()
 		, end(m_impl->m_write_buffer.end()); i != end; ++i)
@@ -1367,7 +1367,7 @@ void utp_socket_impl::send_syn()
 	p->header_size = sizeof(utp_header);
 	p->num_transmissions = 0;
 	p->mtu_probe = false;
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 	p->num_fast_resend = 0;
 #endif
 	p->need_resend = false;
@@ -1623,7 +1623,7 @@ void utp_socket_impl::write_payload(std::uint8_t* ptr, int size)
 {
 	INVARIANT_CHECK;
 
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 	int write_buffer_size = 0;
 	for (std::vector<iovec_t>::iterator i = m_write_buffer.begin()
 		, end(m_write_buffer.end()); i != end; ++i)
@@ -1662,7 +1662,7 @@ void utp_socket_impl::write_payload(std::uint8_t* ptr, int size)
 		m_write_buffer.erase(m_write_buffer.begin()
 			, m_write_buffer.begin() + buffers_to_clear);
 
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 	write_buffer_size = 0;
 	for (std::vector<iovec_t>::iterator j = m_write_buffer.begin()
 		, end(m_write_buffer.end()); j != end; ++j)
@@ -1921,7 +1921,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 		p->size = packet_size;
 		p->header_size = packet_size - payload_size;
 		p->num_transmissions = 0;
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 		p->num_fast_resend = 0;
 #endif
 		p->need_resend = false;
@@ -2241,7 +2241,7 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 	m_sm->inc_stats_counter(counters::utp_packet_resend);
 	if (fast_resend) m_sm->inc_stats_counter(counters::utp_fast_retransmit);
 
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 	if (fast_resend) ++p->num_fast_resend;
 #endif
 	p->need_resend = false;
@@ -2629,7 +2629,7 @@ bool utp_socket_impl::consume_incoming_data(
 		p->size = payload_size;
 		p->header_size = 0;
 		p->num_transmissions = 0;
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 		p->num_fast_resend = 0;
 #endif
 		p->need_resend = false;

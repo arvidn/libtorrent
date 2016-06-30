@@ -4315,7 +4315,7 @@ namespace libtorrent
 			TORRENT_ASSERT(m_request_queue.empty());
 		}
 
-#if defined TORRENT_DEBUG && defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
+#if defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		// since this connection doesn't have a torrent reference
 		// no torrent should have a reference to this connection either
 		TORRENT_ASSERT(!m_ses.any_torrent_has_peer(this));
