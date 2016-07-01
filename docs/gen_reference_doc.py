@@ -546,11 +546,12 @@ def consume_ifdef(lno, lines, warn_on_ifdefs = False):
 		elif define != '':
 			print '\x1b[33msensitive define in public struct: "%s"\x1b[34m %s:%d\x1b[0m' % (define, filename, lno)
 
-	if l.startswith('#if') and (
-		' TORRENT_USE_ASSERTS' in l or \
-		' TORRENT_USE_INVARIANT_CHECKS' in l or \
-		' TORRENT_ASIO_DEBUGGING' in l or \
-		' TORRENT_ASIO_DEBUGGING' in l):
+	if (l.startswith('#if') and (
+		' TORRENT_USE_ASSERTS' in l or
+		' TORRENT_USE_INVARIANT_CHECKS' in l or
+		' TORRENT_ASIO_DEBUGGING' in l) or
+		l == '#ifndef TORRENT_NO_DEPRECATE'
+		):
 		while lno < len(lines):
 			l = lines[lno].strip()
 			lno += 1
