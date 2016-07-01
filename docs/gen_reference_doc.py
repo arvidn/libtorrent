@@ -532,33 +532,26 @@ def consume_ifdef(lno, lines, warn_on_ifdefs = False):
 
 	if verbose: print 'prep  %s' % l
 
-	if warn_on_ifdefs and ('TORRENT_DEBUG' in l):
+	if warn_on_ifdefs and l.strip().startswith('#if'):
 		while l.endswith('\\'):
 			lno += 1
 			l += lines[lno].strip()
 			if verbose: print 'prep  %s' % lines[lno].trim()
 		define = trim_define(l)
-		print '\x1b[31mWARNING: possible ABI breakage in public struct! "%s" \x1b[34m %s:%d\x1b[0m' % \
-			(define, filename, lno)
-		# we've already warned once, no need to do it twice
-		warn_on_ifdefs = False
-
-	if warn_on_ifdefs and '#if' in l:
-		while l.endswith('\\'):
-			lno += 1
-			l += lines[lno].strip()
-			if verbose: print 'prep  %s' % lines[lno].trim()
-		define = trim_define(l)
-		if define != '':
+		if 'TORRENT_' in define:
+			print '\x1b[31mWARNING: possible ABI breakage in public struct! "%s" \x1b[34m %s:%d\x1b[0m' % \
+				(define, filename, lno)
+			# we've already warned once, no need to do it twice
+			warn_on_ifdefs = False
+		elif define != '':
 			print '\x1b[33msensitive define in public struct: "%s"\x1b[34m %s:%d\x1b[0m' % (define, filename, lno)
 
-	if l == '#ifndef TORRENT_NO_DEPRECATE' or \
-		l == '#ifdef TORRENT_DEBUG' or \
-		(l.startswith('#if ') and ' TORRENT_USE_ASSERTS' in l) or \
-		(l.startswith('#if ') and ' TORRENT_USE_INVARIANT_CHECKS' in l) or \
-		l == '#ifdef TORRENT_ASIO_DEBUGGING' or \
-		(l.startswith('#if') and 'defined TORRENT_DEBUG' in l) or \
-		(l.startswith('#if') and 'defined TORRENT_ASIO_DEBUGGING' in l):
+	if (l.startswith('#if') and (
+		' TORRENT_USE_ASSERTS' in l or
+		' TORRENT_USE_INVARIANT_CHECKS' in l or
+		' TORRENT_ASIO_DEBUGGING' in l) or
+		l == '#ifndef TORRENT_NO_DEPRECATE'
+		):
 		while lno < len(lines):
 			l = lines[lno].strip()
 			lno += 1

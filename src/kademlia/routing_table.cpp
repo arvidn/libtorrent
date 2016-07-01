@@ -242,8 +242,7 @@ int routing_table::depth() const
 	return m_depth;
 }
 
-#if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
-
+#ifndef TORRENT_DISABLE_LOGGING
 void routing_table::print_state(std::ostream& os) const
 {
 	std::vector<char> buf(2048);

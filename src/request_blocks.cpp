@@ -120,7 +120,7 @@ namespace libtorrent
 		// the number of blocks we want, but it will try to make the picked
 		// blocks be from whole pieces, possibly by returning more blocks
 		// than we requested.
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 		error_code ec;
 		TORRENT_ASSERT(c.remote() == c.get_socket()->remote_endpoint(ec) || ec);
 #endif
@@ -231,7 +231,7 @@ namespace libtorrent
 			if (std::find_if(dq.begin(), dq.end(), has_block(*i)) != dq.end()
 				|| std::find_if(rq.begin(), rq.end(), has_block(*i)) != rq.end())
 			{
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 				std::vector<pending_block>::const_iterator j
 					= std::find_if(dq.begin(), dq.end(), has_block(*i));
 				if (j != dq.end()) TORRENT_ASSERT(j->timed_out || j->not_wanted);
@@ -272,7 +272,7 @@ namespace libtorrent
 		// and can't find any, that doesn't count as end-game
 		if (!c.has_peer_choked())
 			c.set_endgame(true);
-	
+
 		// if we don't have any potential busy blocks to request
 		// or if we already have outstanding requests, don't
 		// pick a busy piece
@@ -282,7 +282,7 @@ namespace libtorrent
 			return true;
 		}
 
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 		piece_picker::downloading_piece st;
 		p.piece_info(busy_block.piece_index, st);
 		TORRENT_ASSERT(st.requested + st.finished + st.writing

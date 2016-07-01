@@ -584,12 +584,11 @@ defines you can use to control the build.
 |                                        | use wide character API, to properly support     |
 |                                        | non-ansi characters.                            |
 +----------------------------------------+-------------------------------------------------+
-| ``TORRENT_DISABLE_INVARIANT_CHECKS``   | This will disable internal invariant checks in  |
-|                                        | libtorrent. The invariant checks can sometime   |
+| ``TORRENT_USE_INVARIANT_CHECKS``       | If defined to non-zero, this will enable        |
+|                                        | internal invariant checks in libtorrent.        |
+|                                        | The invariant checks can sometimes              |
 |                                        | be quite expensive, they typically don't scale  |
-|                                        | very well. This option can be used to still     |
-|                                        | build in debug mode, with asserts enabled, but  |
-|                                        | make the resulting executable faster.           |
+|                                        | very well.                                      |
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_EXPENSIVE_INVARIANT_CHECKS`` | This will enable extra expensive invariant      |
 |                                        | checks. Useful for finding particular bugs      |

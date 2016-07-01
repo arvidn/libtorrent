@@ -321,11 +321,9 @@ done:
 # endif
 #endif
 
-#ifdef TORRENT_DEBUG
 static_assert((libtorrent::file::rw_mask & libtorrent::file::sparse) == 0, "internal flags error");
 static_assert((libtorrent::file::rw_mask & libtorrent::file::attribute_mask) == 0, "internal flags error");
 static_assert((libtorrent::file::sparse & libtorrent::file::attribute_mask) == 0, "internal flags error");
-#endif
 
 #if defined TORRENT_WINDOWS && defined UNICODE && !TORRENT_USE_WSTRING
 

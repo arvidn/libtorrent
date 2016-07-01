@@ -312,7 +312,7 @@ AC_MSG_CHECKING([whether debug build should be enabled])
 AS_CASE(["$ARG_ENABLE_DEBUG"],
   ["yes"], [
       AC_MSG_RESULT([yes])
-      AC_DEFINE([TORRENT_DEBUG],[1],[Define to enable debug code.])
+      AC_DEFINE([TORRENT_USE_ASSERTS],[1],[Define to enable debug code.])
       COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_DEBUG "
       DEBUGFLAGS="-g"
    ],
@@ -330,19 +330,16 @@ AC_MSG_CHECKING([whether invariant check should be enabled]) #depends: $ac_arg_e
 AS_CASE(["$ARG_ENABLE_INVARIANT"],
   ["yes"|"on"], [
       AC_MSG_RESULT([yes])
-      AS_IF([test "x$ac_arg_enable_debug" = "xno"],
-            [AC_MSG_ERROR([invariant-checks: this setting only affects debug build. Try using --enable-debug.])])
+      [AC_DEFINE([TORRENT_USE_INVARIANT_CHECKS],[1],[Define to enable internal invariant checks.])])
     ],
   ["no"|"off"], [
       AC_MSG_RESULT([no])
-      AS_IF([test "x$ac_arg_enable_debug" = "xyes"],
-            [AC_DEFINE([TORRENT_DISABLE_INVARIANT_CHECKS],[1],[Define to disable internal invariant checks. Asserts are still enabled while debug is on.])])
+      [AC_DEFINE([TORRENT_USE_INVARIANT_CHECKS],[0],[Define to disable internal invariant checks. Asserts are still enabled while debug is on.])])
     ],
   ["full"], [
       AC_MSG_RESULT([full])
-      AS_IF([test "x$ac_arg_enable_debug" = "xyes"],
-            [AC_DEFINE([TORRENT_EXPENSIVE_INVARIANT_CHECKS],[1],[Define to enable extra expensive invariant checks.])],
-            [AC_MSG_ERROR([invariant-checks: this setting only affects debug build. Try using --enable-debug.])])
+      [AC_DEFINE([TORRENT_USE_INVARIANT_CHECKS],[1],[Define to enable internal invariant checks.])])
+      [AC_DEFINE([TORRENT_EXPENSIVE_INVARIANT_CHECKS],[1],[Define to enable extra expensive invariant checks.])],
     ],
   [AC_MSG_RESULT([$ARG_ENABLE_INVARIANT])
    AC_MSG_ERROR([Unknown option "$ARG_ENABLE_INVARIANT". Use either "yes", "no" or "full".])]

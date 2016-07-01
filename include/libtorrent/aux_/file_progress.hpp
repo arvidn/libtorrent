@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/export.hpp"
 
-#if TORRENT_USE_INVARIANT_CHECKS && defined TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/invariant_check.hpp"
 #endif
@@ -75,7 +75,7 @@ namespace aux
 		// is first queried by the client
 		std::vector<std::uint64_t> m_file_progress;
 
-#if TORRENT_USE_INVARIANT_CHECKS && defined TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 		friend class libtorrent::invariant_access;
 		void check_invariant() const;
 

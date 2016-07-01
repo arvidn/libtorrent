@@ -254,7 +254,7 @@ public:
 
 	void replacement_cache(bucket_t& nodes) const;
 
-#if defined TORRENT_DEBUG
+#ifndef TORRENT_DISABLE_LOGGING
 	// used for debug and monitoring purposes. This will print out
 	// the state of the routing table to the given stream
 	void print_state(std::ostream& os) const;

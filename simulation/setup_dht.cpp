@@ -218,7 +218,7 @@ struct dht_node final : lt::dht::udp_socket_interface
 			if (nodes_per_bucket[bucket] == 0) continue;
 			--nodes_per_bucket[bucket];
 			bool const added = dht().m_table.node_seen(n.first, n.second, (lt::random() % 300) + 10);
-			TORRENT_ASSERT(added);
+			TEST_CHECK(added);
 			if (m_add_dead_nodes)
 			{
 				// generate a random node ID that would fall in `bucket`

@@ -113,8 +113,7 @@ rule linking ( properties * )
 	}
 
 	if <target-os>windows in $(properties)
-		&& ( <define>TORRENT_DEBUG
-			|| <asserts>on in $(properties)
+		&& ( <asserts>on in $(properties)
 			|| <asserts>production in $(properties)
 			|| <pool-allocators>debug in $(properties)
 			|| <allocator>debug in $(properties)
@@ -415,11 +414,10 @@ feature.compose <iconv>off : <define>TORRENT_USE_ICONV=0 ;
 feature memory-optimization : off on : composite propagated link-incompatible ;
 feature.compose <memory-optimization>on : <define>TORRENT_OPTIMIZE_MEMORY_USAGE ;
 
-feature asserts : auto on off production system : composite propagated ;
+feature asserts : off on production system : composite propagated ;
 feature.compose <asserts>on : <define>TORRENT_USE_ASSERTS=1 ;
 feature.compose <asserts>production : <define>TORRENT_USE_ASSERTS=1 <define>TORRENT_PRODUCTION_ASSERTS=1 ;
 feature.compose <asserts>system : <define>TORRENT_USE_ASSERTS=1 <define>TORRENT_USE_SYSTEM_ASSERTS=1 ;
-feature.compose <asserts>off : <define>TORRENT_USE_ASSERTS=0 ;
 
 feature windows-version : vista win7 xp : composite propagated link-incompatible ;
 feature.compose <windows-version>vista : <define>_WIN32_WINNT=0x0600 ;
@@ -451,9 +449,9 @@ feature piece-allocator : valloc memalign posix_memalign : composite propagated 
 feature.compose <piece-allocator>memalign : <define>TORRENT_USE_MEMALIGN=1 ;
 feature.compose <piece-allocator>posix_memalign : <define>TORRENT_USE_POSIX_MEMALIGN=1 ;
 
-feature invariant-checks : on off full : composite propagated link-incompatible ;
-feature.compose <invariant-checks>off : <define>TORRENT_DISABLE_INVARIANT_CHECKS ;
-feature.compose <invariant-checks>full : <define>TORRENT_EXPENSIVE_INVARIANT_CHECKS ;
+feature invariant-checks : off on full : composite propagated link-incompatible ;
+feature.compose <invariant-checks>on : <define>TORRENT_USE_INVARIANT_CHECKS=1 ;
+feature.compose <invariant-checks>full : <define>TORRENT_USE_INVARIANT_CHECKS=1 <define>TORRENT_EXPENSIVE_INVARIANT_CHECKS ;
 
 feature disk-stats : off on : composite propagated link-incompatible ;
 feature.compose <disk-stats>on : <define>TORRENT_DISK_STATS ;
@@ -513,25 +511,25 @@ feature export-extra : off on : composite propagated ;
 # allowed memory usage on travis-ci
 variant test_release : release
 	: <asserts>production <debug-symbols>on
-	  <invariant-checks>full <boost-link>shared <optimization>off
-	  <export-extra>on <debug-iterators>on <threading>multi
-	  <inlining>off
+	<invariant-checks>full <boost-link>shared <optimization>off
+	<export-extra>on <debug-iterators>on <threading>multi
+	<inlining>off
 	;
 variant test_debug : debug
 	: <ssl>openssl <crypto>libcrypto <logging>on <disk-stats>on
-	  <allocator>debug
-	  <invariant-checks>full <boost-link>shared
-	  <export-extra>on <debug-iterators>on <threading>multi <asserts>on
+	<allocator>debug
+	<invariant-checks>full <boost-link>shared
+	<export-extra>on <debug-iterators>on <threading>multi <asserts>on
 	;
 variant test_barebones : debug
 	: <ipv6>off <dht>off <extensions>off <logging>off <boost-link>shared
-	  <deprecated-functions>off <invariant-checks>off
-	  <export-extra>on <debug-iterators>on <threading>multi <asserts>on
+	<deprecated-functions>off <invariant-checks>off
+	<export-extra>on <debug-iterators>on <threading>multi <asserts>on
 	;
 variant test_arm : debug
 	: <ipv6>off <dht>off <extensions>off <logging>off
-	  <deprecated-functions>off <invariant-checks>off
-	  <export-extra>on <asserts>on
+	<deprecated-functions>off <invariant-checks>off
+	<export-extra>on <asserts>on
 	;
 
 # required for openssl on windows
@@ -726,7 +724,6 @@ local usage-requirements =
 # and iconv.h is installed there
 	<include>/usr/local/include
 	<variant>release:<define>NDEBUG
-	<variant>debug:<define>TORRENT_DEBUG
 	<define>_FILE_OFFSET_BITS=64
 	<define>BOOST_EXCEPTION_DISABLE
 # enable cancel support in asio
@@ -767,6 +764,8 @@ lib torrent
 
 	<dht>on:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
 	<dht>on:<source>ed25519/src/$(ED25519_SOURCES).cpp
+	<variant>debug:<asserts>on
+	<variant>debug:<invariant-checks>on
 
 	<conditional>@building
 	<conditional>@warnings

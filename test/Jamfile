@@ -98,6 +98,7 @@ project
 	<toolset>msvc:<define>_SCL_SECURE_NO_WARNINGS
 	: default-build
 	<threading>multi
+	<asserts>on
 	<invariant-checks>full
 	<link>shared
 	<picker-debugging>on

@@ -558,7 +558,7 @@ void block_cache::try_evict_one_volatile()
 
 		if (pe->ok_to_evict())
 		{
-#ifndef TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 			for (int j = 0; j < pe->blocks_in_piece; ++j)
 				TORRENT_PIECE_ASSERT(pe->blocks[j].buf == 0, pe);
 #endif
@@ -601,7 +601,7 @@ void block_cache::try_evict_one_volatile()
 
 		if (pe->ok_to_evict())
 		{
-#ifndef TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 			for (int j = 0; j < pe->blocks_in_piece; ++j)
 				TORRENT_PIECE_ASSERT(pe->blocks[j].buf == 0, pe);
 #endif
@@ -1075,7 +1075,7 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 
 			if (pe->ok_to_evict())
 			{
-#ifndef TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 				for (int j = 0; j < pe->blocks_in_piece; ++j)
 					TORRENT_PIECE_ASSERT(pe->blocks[j].buf == 0, pe);
 #endif
@@ -1115,7 +1115,7 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 
 			if (pe->ok_to_evict())
 			{
-#ifndef TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 				for (int j = 0; j < pe->blocks_in_piece; ++j)
 					TORRENT_PIECE_ASSERT(pe->blocks[j].buf == 0, pe);
 #endif
@@ -1148,7 +1148,7 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 
 				if (pe->ok_to_evict())
 				{
-#ifndef TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 					for (int j = 0; j < pe->blocks_in_piece; ++j)
 						TORRENT_PIECE_ASSERT(pe->blocks[j].buf == 0, pe);
 #endif
@@ -1194,7 +1194,7 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 
 				if (pe->ok_to_evict())
 				{
-#ifndef TORRENT_DISABLE_INVARIANT_CHECKS
+#if TORRENT_USE_INVARIANT_CHECKS
 					for (int j = 0; j < pe->blocks_in_piece; ++j)
 						TORRENT_PIECE_ASSERT(pe->blocks[j].buf == 0, pe);
 #endif

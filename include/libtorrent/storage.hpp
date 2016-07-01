@@ -600,10 +600,6 @@ namespace libtorrent
 		int check_no_fastresume(storage_error& error);
 		int check_init_storage(storage_error& error);
 
-#ifdef TORRENT_DEBUG
-		std::string name() const { return m_files.name(); }
-#endif
-
 #if TORRENT_USE_INVARIANT_CHECKS
 		void check_invariant() const;
 #endif

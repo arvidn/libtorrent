@@ -53,7 +53,7 @@ namespace libtorrent { namespace aux
 		int const num_pieces = fs.num_pieces();
 		int const num_files = fs.num_files();
 
-#if TORRENT_USE_INVARIANT_CHECKS && defined TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 		m_have_pieces.clear();
 		m_have_pieces.resize(num_pieces, false);
 		m_file_sizes.clear();
@@ -87,7 +87,7 @@ namespace libtorrent { namespace aux
 
 			if (!picker.have_piece(piece)) continue;
 
-#if TORRENT_USE_INVARIANT_CHECKS && defined TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 			m_have_pieces.set_bit(piece);
 #endif
 
@@ -127,7 +127,7 @@ namespace libtorrent { namespace aux
 	{
 		INVARIANT_CHECK;
 		std::vector<std::uint64_t>().swap(m_file_progress);
-#if TORRENT_USE_INVARIANT_CHECKS && defined TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 		m_have_pieces.clear();
 #endif
 	}
@@ -140,7 +140,7 @@ namespace libtorrent { namespace aux
 		INVARIANT_CHECK;
 		if (m_file_progress.empty()) return;
 
-#if TORRENT_USE_INVARIANT_CHECKS && defined TORRENT_DEBUG
+#if TORRENT_USE_INVARIANT_CHECKS
 		// if this assert fires, we've told the file_progress object that we have
 		// a piece twice. That violates its precondition and will cause incorect
 		// accounting

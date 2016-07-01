@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdio> // for snprintf
 #include <cinttypes> // for PRId64 et.al.
 
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 #include "libtorrent/bdecode.hpp"
 #endif
 
@@ -52,7 +52,7 @@ namespace
 		, std::pair<char const*, int> salt, char out[canonical_length])
 	{
 		// v must be valid bencoding!
-#ifdef TORRENT_DEBUG
+#if TORRENT_USE_ASSERTS
 		bdecode_node e;
 		error_code ec;
 		TORRENT_ASSERT(bdecode(v.first, v.first + v.second, e, ec) == 0);
