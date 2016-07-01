@@ -324,13 +324,6 @@ rule building ( properties * )
 		result += <cflags>/bigobj ;
 	}
 
-	if <toolset>gcc in $(properties)
-		&& <target-os>windows in $(properties)
-	{
-		# allow larger .obj files in GCC
-		result += <cflags>-Wa,-mbig-obj ;
-	}
-
 	if ( <variant>debug in $(properties)
 		&& ( <toolset>clang in $(properties)
 			|| <toolset>gcc in $(properties)
