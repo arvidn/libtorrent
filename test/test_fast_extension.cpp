@@ -452,8 +452,7 @@ boost::shared_ptr<torrent_info> setup_peer(tcp::socket& s, sha1_hash& ih
 	{
 		tcp::acceptor l(s.get_io_service());
 		l.open(tcp::v4());
-		l.bind(tcp::endpoint(address_v4::from_string("127.0.0.1")
-			, 3000 + rand() % 60000));
+		l.bind(tcp::endpoint(address_v4::from_string("127.0.0.1"), 0));
 		l.listen();
 		tcp::endpoint addr = l.local_endpoint();
 

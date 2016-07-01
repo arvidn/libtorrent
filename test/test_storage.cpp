@@ -769,7 +769,7 @@ void test_rename_file_fastresume(bool test_deprecated)
 		h.rename_file(0, "testing_renamed_files");
 		std::cout << "renaming file" << std::endl;
 		bool renamed = false;
-		for (int i = 0; i < 10; ++i)
+		for (int i = 0; i < 30; ++i)
 		{
 			if (print_alerts(ses, "ses", true, true, true, &got_file_rename_alert)) renamed = true;
 			torrent_status s = h.status();
