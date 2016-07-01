@@ -19,6 +19,7 @@ project
 	<threading>multi
 	<invariant-checks>full
 	<debug-iterators>on
+	<asserts>on
 	<picker-debugging>on
 	;
 

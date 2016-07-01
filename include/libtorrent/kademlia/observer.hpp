@@ -162,7 +162,7 @@ private:
 	// the transaction ID for this call
 	std::uint16_t m_transaction_id;
 public:
-	unsigned char flags;
+	std::uint8_t flags;
 
 #if TORRENT_USE_ASSERTS
 	bool m_in_constructor:1;
