@@ -151,7 +151,7 @@ void test_remap_files_gather(storage_mode_t storage_mode = storage_mode_sparse)
 
 	std::fprintf(stderr, "\ntesting remap gather\n\n");
 
-	for (int i = 0; i < 50; ++i)
+	for (int i = 0; i < 100; ++i)
 	{
 		print_alerts(ses1, "ses1", true, true, true, &on_alert);
 		print_alerts(ses2, "ses2", true, true, true, &on_alert);
