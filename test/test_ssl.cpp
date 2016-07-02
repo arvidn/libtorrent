@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/hex.hpp" // for to_hex, from_hex
+#include "libtorrent/time.hpp"
 
 #include "test.hpp"
 #include "test_utils.hpp"
@@ -59,6 +60,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace std::placeholders;
 using namespace libtorrent;
 using std::ignore;
+namespace lt = libtorrent;
 
 int const alert_mask = alert::all_categories
 & ~alert::progress_notification

@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/cpuid.hpp"
 
+#include <cstdint>
+
 #if defined _MSC_VER && TORRENT_HAS_SSE
 #include <intrin.h>
 #include <nmmintrin.h>
@@ -54,7 +56,7 @@ namespace libtorrent { namespace aux
 
 #if TORRENT_HAS_SSE
 	// internal
-	void cpuid(unsigned int info[4], int type)
+	void cpuid(std::uint32_t* info, int type)
 	{
 #if defined _MSC_VER
 		__cpuid((int*)info, type);
@@ -64,7 +66,7 @@ namespace libtorrent { namespace aux
 #else
 		TORRENT_UNUSED(type);
 		// for non-x86 and non-amd64, just return zeroes
-		std::memset(&info[0], 0, sizeof(unsigned int) * 4);
+		std::memset(&info[0], 0, sizeof(std::uint32_t) * 4);
 #endif
 	}
 #endif
@@ -72,7 +74,7 @@ namespace libtorrent { namespace aux
 	bool supports_sse42()
 	{
 #if TORRENT_HAS_SSE
-		unsigned int cpui[4];
+		std::uint32_t cpui[4] = {0};
 		cpuid(cpui, 1);
 		return (cpui[2] & (1 << 20)) != 0;
 #else
@@ -83,7 +85,7 @@ namespace libtorrent { namespace aux
 	bool supports_mmx()
 	{
 #if TORRENT_HAS_SSE
-		unsigned int cpui[4];
+		std::uint32_t cpui[4] = {0};
 		cpuid(cpui, 1);
 		return (cpui[2] & (1 << 23)) != 0;
 #else
@@ -125,8 +127,8 @@ namespace libtorrent { namespace aux
 
 	} // anonymous namespace
 
-	bool sse42_support = supports_sse42();
-	bool mmx_support = supports_mmx();
-	bool arm_neon_support = supports_arm_neon();
-	bool arm_crc32c_support = supports_arm_crc32c();
+	bool const sse42_support = supports_sse42();
+	bool const mmx_support = supports_mmx();
+	bool const arm_neon_support = supports_arm_neon();
+	bool const arm_crc32c_support = supports_arm_crc32c();
 } }
