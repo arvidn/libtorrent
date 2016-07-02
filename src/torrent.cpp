@@ -1259,7 +1259,10 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		// if we have all pieces we should not have a picker
-		TORRENT_ASSERT(!m_have_all);
+		// unless we're in suggest mode
+		TORRENT_ASSERT(!m_have_all
+			|| settings().get_int(settings_pack::suggest_mode)
+			== settings_pack::suggest_read_cache);
 
 		m_picker.reset(new piece_picker());
 		int const blocks_per_piece
@@ -6382,21 +6385,20 @@ namespace libtorrent
 			entry::list_type& up = ret["unfinished"].list();
 
 			// info for each unfinished piece
-			for (std::vector<piece_picker::downloading_piece>::const_iterator i
-				= q.begin(); i != q.end(); ++i)
+			for (piece_picker::downloading_piece const& dp : q)
 			{
-				if (i->finished == 0) continue;
+				if (dp.finished == 0) continue;
 
 				entry piece_struct(entry::dictionary_t);
 
 				// the unfinished piece's index
-				piece_struct["piece"] = i->index;
+				piece_struct["piece"] = dp.index;
 
 				std::string bitmask;
 				const int num_bitmask_bytes
 					= (std::max)(num_blocks_per_piece / 8, 1);
 
-				piece_picker::block_info const* info = m_picker->blocks_for_piece(*i);
+				piece_picker::block_info const* info = m_picker->blocks_for_piece(dp);
 				for (int j = 0; j < num_bitmask_bytes; ++j)
 				{
 					unsigned char v = 0;
@@ -6417,22 +6419,21 @@ namespace libtorrent
 		entry::list_type& tr_list = ret["trackers"].list();
 		tr_list.push_back(entry::list_type());
 		int tier = 0;
-		for (std::vector<announce_entry>::const_iterator i = m_trackers.begin()
-			, end(m_trackers.end()); i != end; ++i)
+		for (announce_entry const& tr : m_trackers)
 		{
 			// don't save trackers we can't trust
 			// TODO: 1 save the send_stats state instead of throwing them away
 			// it may pose an issue when downgrading though
-			if (i->send_stats == false) continue;
-			if (i->tier == tier)
+			if (tr.send_stats == false) continue;
+			if (tr.tier == tier)
 			{
-				tr_list.back().list().push_back(i->url);
+				tr_list.back().list().push_back(tr.url);
 			}
 			else
 			{
 				tr_list.push_back(entry::list_t);
-				tr_list.back().list().push_back(i->url);
-				tier = i->tier;
+				tr_list.back().list().push_back(tr.url);
+				tier = tr.tier;
 			}
 		}
 
@@ -6441,14 +6442,13 @@ namespace libtorrent
 		{
 			entry::list_type& url_list = ret["url-list"].list();
 			entry::list_type& httpseed_list = ret["httpseeds"].list();
-			for (std::list<web_seed_t>::const_iterator i = m_web_seeds.begin()
-				, end(m_web_seeds.end()); i != end; ++i)
+			for (web_seed_t const& ws : m_web_seeds)
 			{
-				if (i->removed) continue;
-				if (i->type == web_seed_entry::url_seed)
-					url_list.push_back(i->url);
-				else if (i->type == web_seed_entry::http_seed)
-					httpseed_list.push_back(i->url);
+				if (ws.removed) continue;
+				if (ws.type == web_seed_entry::url_seed)
+					url_list.push_back(ws.url);
+				else if (ws.type == web_seed_entry::http_seed)
+					httpseed_list.push_back(ws.url);
 			}
 		}
 
@@ -6474,7 +6474,7 @@ namespace libtorrent
 		{
 			entry::string_type& pieces = ret["pieces"].string();
 			pieces.resize(max_piece);
-			if (!has_picker())
+			if (is_seed())
 			{
 				std::memset(&pieces[0], m_have_all, pieces.size());
 			}

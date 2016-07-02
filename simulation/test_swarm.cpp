@@ -38,13 +38,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_stats.hpp"
 #include "libtorrent/file.hpp"
+#include "libtorrent/torrent_info.hpp"
+#include "settings.hpp"
 
 using namespace libtorrent;
 
 TORRENT_TEST(seed_mode)
 {
 	// with seed mode
-	setup_swarm(2, swarm_test::upload
+	setup_swarm(3, swarm_test::upload
 		// add session
 		, [](lt::settings_pack&) {}
 		// add torrent
@@ -55,7 +57,37 @@ TORRENT_TEST(seed_mode)
 		, [](lt::alert const*, lt::session&) {}
 		// terminate
 		, [](int, lt::session&) -> bool
-		{ return true; });
+		{ return false; });
+}
+
+TORRENT_TEST(seed_mode_disable_hash_checks)
+{
+	// all nodes need to disable hash checking, otherwise the downloader would
+	// just fail
+	settings_pack swarm_settings = settings();
+	swarm_settings.set_bool(settings_pack::disable_hash_checks, true);
+
+	dsl_config network_cfg;
+	sim::simulation sim{network_cfg};
+
+	// with seed mode
+	setup_swarm(2, swarm_test::upload, sim, swarm_settings, add_torrent_params()
+		// add session
+		, [](lt::settings_pack& pack) {
+			pack.set_int(settings_pack::suggest_mode, settings_pack::suggest_read_cache);
+		}
+		// add torrent
+		, [](lt::add_torrent_params& params) {
+			params.flags |= add_torrent_params::flag_seed_mode;
+			// just to make sure the disable_hash_checks really work, we
+			// shouldn't be verifying anything from the storage
+			params.storage = disabled_storage_constructor;
+		}
+		// on alert
+		, [](lt::alert const*, lt::session&) {}
+		// terminate
+		, [](int, lt::session&) -> bool
+		{ return false; });
 }
 
 TORRENT_TEST(plain)

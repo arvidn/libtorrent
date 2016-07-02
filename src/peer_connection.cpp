@@ -5108,13 +5108,17 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 				peer_log(peer_log_alert::outgoing_message, "REJECT_PIECE"
 					, "piece: %d s: %x l: %x torrent deleted"
-					, r.piece , r.start , r.length);
+					, r.piece, r.start , r.length);
 #endif
 				write_reject_request(r);
 				continue;
 			}
 
-			if (t->seed_mode() && !t->verified_piece(r.piece))
+			bool const seed_mode = t->seed_mode();
+
+			if (seed_mode
+				&& !t->verified_piece(r.piece)
+				&& !m_settings.get_bool(settings_pack::disable_hash_checks))
 			{
 				// we're still verifying the hash of this piece
 				// so we can't return it yet.
@@ -5140,10 +5144,7 @@ namespace libtorrent
 				continue;
 			}
 
-			// in seed mode, we might end up accepting a request
-			// which it later turns out we cannot serve, if we ended
-			// up not having that piece
-			if (!t->has_piece_passed(r.piece))
+			if (!t->has_piece_passed(r.piece) && !seed_mode)
 			{
 				// we don't have this piece yet, but we anticipate to have
 				// it very soon, so we have told our peers we have it.
