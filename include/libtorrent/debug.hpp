@@ -176,7 +176,7 @@ namespace libtorrent
 namespace libtorrent
 {
 #if TORRENT_USE_ASSERTS
-	struct single_threaded
+	struct TORRENT_EXTRA_EXPORT single_threaded
 	{
 		single_threaded(): m_id() {}
 		~single_threaded() { m_id = std::thread::id(); }
