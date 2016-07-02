@@ -17,12 +17,22 @@
 #include <libtorrent/aux_/session_impl.hpp> // for settings_map()
 #include <libtorrent/torrent_info.hpp>
 #include <libtorrent/kademlia/item.hpp> // for sign_mutable_item
-
+#include <libtorrent/alert.hpp>
 #include <libtorrent/extensions/lt_trackers.hpp>
 #include <libtorrent/extensions/metadata_transfer.hpp>
 #include <libtorrent/extensions/smart_ban.hpp>
 #include <libtorrent/extensions/ut_metadata.hpp>
 #include <libtorrent/extensions/ut_pex.hpp>
+
+namespace boost
+{
+	// this fixes mysterious link error on msvc
+	libtorrent::alert const volatile*
+	get_pointer(libtorrent::alert const volatile* p)
+	{
+		return p;
+	}
+}
 
 #include "gil.hpp"
 #include "bytes.hpp"
@@ -323,8 +333,11 @@ namespace
     alert const*
     wait_for_alert(lt::session& s, int ms)
     {
-        allow_threading_guard guard;
-        alert const* a = s.wait_for_alert(milliseconds(ms));
+        alert const* a;
+        {
+            allow_threading_guard guard;
+            a = s.wait_for_alert(milliseconds(ms));
+        }
         return a;
     }
 
@@ -415,10 +428,9 @@ namespace
         }
 
         list ret;
-        for (std::vector<alert*>::iterator i = alerts.begin()
-            , end(alerts.end()); i != end; ++i)
+        for (alert* a : alerts)
         {
-            ret.append(boost::python::ptr(*i));
+            ret.append(boost::python::ptr(a));
         }
         return ret;
     }
@@ -759,8 +771,7 @@ void bind_session()
         .def("load_state", &load_state, (arg("entry"), arg("flags") = 0xffffffff))
         .def("save_state", &save_state, (arg("entry"), arg("flags") = 0xffffffff))
         .def("pop_alerts", &pop_alerts)
-        .def("wait_for_alert", &wait_for_alert, return_internal_reference<>()
-        )
+        .def("wait_for_alert", &wait_for_alert, return_internal_reference<>())
         .def("add_extension", &add_extension)
 #ifndef TORRENT_NO_DEPRECATE
 #if TORRENT_USE_I2P
