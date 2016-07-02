@@ -14,7 +14,7 @@ matrix:
       env: variant=test_debug toolset=darwin-address_sanitizer target=osx-tests
     - os: osx
       osx_image: xcode6.4
-      env: variant=test_debug toolset=darwin-undef_sanitizer target=osx-tests
+      env: variant=test_debug toolset=darwin-thread_sanitizer target=osx-tests
     - sudo: required
       dist: trusty
       env: arch=arm toolset=gcc-arm
@@ -83,7 +83,7 @@ install:
     fi;'
   - 'echo "using darwin : : ccache clang++ : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>-Wno-deprecated-declarations ;" >> ~/user-config.jam'
   - 'echo "using darwin : address_sanitizer : ccache clang++ : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>-Wno-deprecated-declarations <compileflags>-fsanitize=address <linkflags>-fsanitize=address ;" >> ~/user-config.jam'
-  - 'echo "using darwin : undef_sanitizer : ccache clang++ : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>-Wno-deprecated-declarations <compileflags>-fsanitize=undefined <linkflags>-fsanitize=undefined ;" >> ~/user-config.jam'
+  - 'echo "using darwin : thread_sanitizer : ccache clang++ : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>-Wno-deprecated-declarations <compileflags>-fsanitize=thread <linkflags>-fsanitize=thread ;" >> ~/user-config.jam'
   - 'echo "using python : 2.7 ;" >> ~/user-config.jam'
   - if [ "$docs" == "1" ]; then rst2html.py --version; fi
 
