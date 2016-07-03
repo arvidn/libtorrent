@@ -44,12 +44,12 @@ rule link_libtorrent ( properties * )
 	if <link>shared in $(properties)
 	{
 		result +=
-			<library>/torrent//torrent/<link>shared/<boost-link>shared/<export-extra>on ;
+			<library>/torrent//torrent/<link>shared/<boost-link>shared ;
 	}
 	else
 	{
 		result +=
-			<library>/torrent//torrent/<link>static/<boost-link>static/<export-extra>on ;
+			<library>/torrent//torrent/<link>static/<boost-link>static ;
 	}
 	return $(result) ;
 }
@@ -102,6 +102,7 @@ project
 # disable warning C4275: non DLL-interface classkey 'identifier' used as base for DLL-interface classkey 'identifier'
 	<toolset>msvc:<cflags>/wd4275
 	<toolset>msvc:<define>_SCL_SECURE_NO_WARNINGS
+	<export-extra>on
 	: default-build
 	<threading>multi
 	<asserts>on

@@ -51,7 +51,7 @@ namespace libtorrent { namespace aux
 
 	struct TORRENT_EXTRA_EXPORT session_settings
 	{
-		friend void libtorrent::save_settings_to_dict(
+		friend TORRENT_EXTRA_EXPORT void libtorrent::save_settings_to_dict(
 			aux::session_settings const& s, entry::dictionary_type& sett);
 
 		void set_str(int name, std::string const& value)
