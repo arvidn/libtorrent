@@ -414,6 +414,41 @@ TORRENT_TEST(delete_partfile)
 	TEST_CHECK(!ec);
 }
 
+TORRENT_TEST(torrent_completed_alert)
+{
+	int num_file_completed = false;
+
+	setup_swarm(2, swarm_test::download
+		// add session
+		, [](lt::settings_pack& pack)
+		{
+			pack.set_int(lt::settings_pack::alert_mask, alert::progress_notification);
+		}
+		// add torrent
+		, [](lt::add_torrent_params&) {}
+		// on alert
+		, [&](lt::alert const* a, lt::session&)
+		{
+			auto tc = alert_cast<lt::file_completed_alert>(a);
+			if (tc == nullptr) return;
+			++num_file_completed;
+		}
+		// terminate
+		, [](int ticks, lt::session& ses) -> bool
+		{
+			if (ticks > 80)
+			{
+				TEST_ERROR("timeout");
+				return true;
+			}
+			if (!is_seed(ses)) return false;
+			printf("completed in %d ticks\n", ticks);
+			return true;
+		});
+
+	TEST_EQUAL(num_file_completed, 1);
+}
+
 // TODO: add test that makes sure a torrent in graceful pause mode won't make
 // outgoing connections
 // TODO: add test that makes sure a torrent in graceful pause mode won't accept

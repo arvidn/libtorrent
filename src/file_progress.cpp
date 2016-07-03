@@ -80,7 +80,7 @@ namespace libtorrent { namespace aux
 
 			while (size)
 			{
-				int add = (std::min)(boost::int64_t(size), fs.file_size(file_index) - file_offset);
+				int const add = (std::min)(boost::int64_t(size), fs.file_size(file_index) - file_offset);
 				TORRENT_ASSERT(add >= 0);
 				m_file_progress[file_index] += add;
 

@@ -801,9 +801,13 @@ namespace libtorrent
 			return std::binary_search(m_predictive_pieces.begin(), m_predictive_pieces.end(), index);
 		}
 
+	private:
+
 		// called when we learn that we have a piece
 		// only once per piece
 		void we_have(int index);
+
+	public:
 
 		int num_have() const
 		{
