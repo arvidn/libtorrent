@@ -330,16 +330,16 @@ AC_MSG_CHECKING([whether invariant check should be enabled]) #depends: $ac_arg_e
 AS_CASE(["$ARG_ENABLE_INVARIANT"],
   ["yes"|"on"], [
       AC_MSG_RESULT([yes])
-      [AC_DEFINE([TORRENT_USE_INVARIANT_CHECKS],[1],[Define to enable internal invariant checks.])])
+      AC_DEFINE([TORRENT_USE_INVARIANT_CHECKS],[1],[Define to enable internal invariant checks.])
     ],
   ["no"|"off"], [
       AC_MSG_RESULT([no])
-      [AC_DEFINE([TORRENT_USE_INVARIANT_CHECKS],[0],[Define to disable internal invariant checks. Asserts are still enabled while debug is on.])])
+      AC_DEFINE([TORRENT_USE_INVARIANT_CHECKS],[0],[Define to disable internal invariant checks. Asserts are still enabled while debug is on.])
     ],
   ["full"], [
       AC_MSG_RESULT([full])
-      [AC_DEFINE([TORRENT_USE_INVARIANT_CHECKS],[1],[Define to enable internal invariant checks.])])
-      [AC_DEFINE([TORRENT_EXPENSIVE_INVARIANT_CHECKS],[1],[Define to enable extra expensive invariant checks.])],
+      AC_DEFINE([TORRENT_USE_INVARIANT_CHECKS],[1],[Define to enable internal invariant checks.])
+      AC_DEFINE([TORRENT_EXPENSIVE_INVARIANT_CHECKS],[1],[Define to enable extra expensive invariant checks.]),
     ],
   [AC_MSG_RESULT([$ARG_ENABLE_INVARIANT])
    AC_MSG_ERROR([Unknown option "$ARG_ENABLE_INVARIANT". Use either "yes", "no" or "full".])]
