@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_HASHER_HPP_INCLUDED
 #define TORRENT_HASHER_HPP_INCLUDED
 
+#include "libtorrent/config.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
@@ -43,13 +44,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <gcrypt.h>
 
 #elif TORRENT_USE_COMMONCRYPTO
-
 #include <CommonCrypto/CommonDigest.h>
+
+#elif TORRENT_USE_CRYPTOAPI
+#include <Wincrypt.h>
 
 #elif defined TORRENT_USE_LIBCRYPTO
 
-extern "C"
-{
+extern "C" {
 #include <openssl/sha.h>
 }
 
@@ -83,12 +85,10 @@ namespace libtorrent
 
 		// this is the same as default constructing followed by a call to
 		// ``update(data, len)``.
-		hasher(const char* data, int len);
+		hasher(char const* data, int len);
 
-#ifdef TORRENT_USE_LIBGCRYPT
-		hasher(hasher const& h);
-		hasher& operator=(hasher const& h);
-#endif
+		hasher(hasher const&);
+		hasher& operator=(hasher const&);
 
 		// append the following bytes to what is being hashed
 		hasher& update(std::string const& data) { update(data.c_str(), int(data.size())); return *this; }
@@ -97,6 +97,7 @@ namespace libtorrent
 		// returns the SHA-1 digest of the buffers previously passed to
 		// update() and the hasher constructor.
 		sha1_hash final();
+
 		// restore the hasher state to be as if the hasher has just been
 		// default constructed.
 		void reset();
@@ -109,6 +110,8 @@ namespace libtorrent
 		gcry_md_hd_t m_context;
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA1_CTX m_context;
+#elif TORRENT_USE_CRYPTOAPI
+		HCRYPTHASH m_context;
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA_CTX m_context;
 #else

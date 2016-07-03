@@ -12,36 +12,34 @@ environment:
     compiler: msvc-14.0
     model: 64
     sim: 1
-    linkflags: '"/LIBPATH:C:\\openssl-1.0.1p-vs2015\\lib64"'
-    include: '"c:\\openssl-1.0.1p-vs2015\\include"'
   - variant: test_debug
     compiler: msvc-14.0
     model: 32
-    linkflags: '"/LIBPATH:C:\\openssl-1.0.1p-vs2015\\lib"'
-    include: '"c:\\openssl-1.0.1p-vs2015\\include"'
   - variant: test_release
     compiler: msvc-14.0
     model: 64
     python: 1
-    linkflags: '"/LIBPATH:C:\\openssl-1.0.1p-vs2015\\lib64"'
-    include: '"c:\\openssl-1.0.1p-vs2015\\include"'
+    ssl: openssl
+    crypto: libcrypto
+    linkflags: 'linkflags="/LIBPATH:C:\\openssl-1.0.1p-vs2015\\lib64"'
+    include: 'include="c:\\openssl-1.0.1p-vs2015\\include"'
   - variant: test_debug
     compiler: gcc
     model: 32
-    linkflags: '"-LC:\\OpenSSL-Win32\\lib"'
-    include: '"c:\\OpenSSL-Win32\\include"'
+    ssl: openssl
+    crypto: libcrypto
+    linkflags: 'linkflags="-LC:\\OpenSSL-Win32\\lib"'
+    include: 'include="c:\\OpenSSL-Win32\\include"'
 
 install:
 - if defined sim ( git submodule update --init --recursive )
 - set ROOT_DIRECTORY=%CD%
 - cd %ROOT_DIRECTORY%
-- if %compiler% == msvc-14.0 (
-    if not exist openssl-1.0.1p-vs2015.7z (
-      echo downloading openssl-2015
-      & appveyor DownloadFile "http://www.npcglib.org/~stathis/downloads/openssl-1.0.1p-vs2015.7z"
-    )
+- if %compiler% == msvc-14.0 if defined ssl if not exist openssl-1.0.1p-vs2015.7z (
+    echo downloading openssl-2015
+    & appveyor DownloadFile "http://www.npcglib.org/~stathis/downloads/openssl-1.0.1p-vs2015.7z"
   )
-- if %compiler% == msvc-14.0 (
+- if %compiler% == msvc-14.0 if defined ssl (
     echo extracting openssl-2015
     & 7z x -oc:\ -aoa openssl-1.0.1p-vs2015.7z > nul
     & copy c:\openssl-1.0.1p-vs2015\lib64\ssleay32MT.lib c:\openssl-1.0.1p-vs2015\lib64\ssleay32.lib
@@ -49,6 +47,10 @@ install:
     & copy c:\openssl-1.0.1p-vs2015\lib\ssleay32MT.lib c:\openssl-1.0.1p-vs2015\lib\ssleay32.lib
     & copy c:\openssl-1.0.1p-vs2015\lib\libeay32MT.lib c:\openssl-1.0.1p-vs2015\lib\libeay32.lib
   )
+- if not defined ssl ( set ssl=off )
+- if not defined crypto ( set crypto=built-in )
+- if not defined linkflags ( set linkflags="" )
+- if not defined include ( set include="" )
 - cd %ROOT_DIRECTORY%
 - set BOOST_ROOT=c:\Libraries\boost_1_59_0
 - set BOOST_BUILD_PATH=%BOOST_ROOT%\tools\build
@@ -72,34 +74,34 @@ cache:
 build_script:
 # examples
 - cd %ROOT_DIRECTORY%\examples
-- b2.exe --hash warnings-as-errors=on -j2 %compiler% address-model=%model% variant=%variant% picker-debugging=on linkflags=%linkflags% include=%include% link=shared
+- b2.exe --hash warnings-as-errors=on -j2 %compiler% ssl=%ssl% crypto=%crypto% address-model=%model% variant=%variant% picker-debugging=on %linkflags% %include% link=shared
 
 # tools
 - cd %ROOT_DIRECTORY%\tools
-- b2.exe --hash warnings-as-errors=on -j2 %compiler% address-model=%model% variant=%variant% picker-debugging=on linkflags=%linkflags% include=%include% link=shared
+- b2.exe --hash warnings-as-errors=on -j2 %compiler% ssl=%ssl% crypto=%crypto% address-model=%model% variant=%variant% picker-debugging=on %linkflags% %include% link=shared
 
 # test
 - cd %ROOT_DIRECTORY%\test
-- b2.exe --hash warnings-as-errors=on -j2 address-model=%model% win-tests test_upnp test_natpmp %compiler% variant=%variant% picker-debugging=on link=shared linkflags=%linkflags% include=%include% testing.execute=off
+- b2.exe --hash warnings-as-errors=on -j2 %compiler% ssl=%ssl% crypto=%crypto% address-model=%model% win-tests test_upnp test_natpmp variant=%variant% picker-debugging=on link=shared %linkflags% %include% testing.execute=off
 
 # python binding
 - cd %ROOT_DIRECTORY%\bindings\python
 # we use 64 bit python builds
-- if defined python ( b2.exe --hash warnings-as-errors=on -j2 %compiler% address-model=%model% stage_module install-dependencies=on variant=%variant% picker-debugging=on libtorrent-link=shared linkflags=%linkflags% include=%include% )
+- if defined python ( b2.exe --hash warnings-as-errors=on -j2 %compiler% ssl=%ssl% crypto=%crypto% address-model=%model% stage_module install-dependencies=on variant=%variant% picker-debugging=on libtorrent-link=shared %linkflags% %include% )
 
 # simulations
 - if defined sim (
   cd %ROOT_DIRECTORY%\simulation
-  & b2.exe --hash warnings-as-errors=on -j2 link=shared crypto=built-in %compiler% address-model=%model% testing.execute=off
+  & b2.exe --hash warnings-as-errors=on -j2 link=shared %compiler% ssl=%ssl% crypto=%crypto% address-model=%model% testing.execute=off
   )
 
 test_script:
 - cd %ROOT_DIRECTORY%\test
 # mingw tests crash currently. needs resolving
-- if not %compiler% == gcc ( b2.exe --hash warnings-as-errors=on -j2 address-model=%model% win-tests %compiler% variant=%variant% picker-debugging=on link=shared linkflags=%linkflags% include=%include% )
+- if not %compiler% == gcc ( b2.exe --hash warnings-as-errors=on -j2 ssl=%ssl% crypto=%crypto% address-model=%model% win-tests %compiler% variant=%variant% picker-debugging=on link=shared %linkflags% %include% )
 - cd %ROOT_DIRECTORY%\bindings\python
 # we use 64 bit python build
 - if defined python ( c:\Python35-x64\python.exe test.py )
 - cd %ROOT_DIRECTORY%\simulation
-- if defined sim ( b2.exe --hash warnings-as-errors=on -j2 link=shared crypto=built-in %compiler% address-model=%model% )
+- if defined sim ( b2.exe --hash warnings-as-errors=on -j2 ssl=%ssl% crypto=%crypto% link=shared crypto=built-in %compiler% address-model=%model% )
 

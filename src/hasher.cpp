@@ -31,6 +31,34 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/hasher.hpp"
+#include "libtorrent/error_code.hpp"
+
+#if TORRENT_USE_CRYPTOAPI
+namespace
+{
+	HCRYPTPROV make_crypt_provider()
+	{
+		using namespace libtorrent;
+
+		HCRYPTPROV ret;
+		if (CryptAcquireContext(&ret, nullptr, nullptr, PROV_RSA_SIG, 0) == false)
+		{
+#ifndef BOOST_NO_EXCEPTIONS
+			throw system_error(error_code(GetLastError(), system_category()));
+#else
+			std::terminate();
+#endif
+		}
+		return ret;
+	}
+
+	HCRYPTPROV get_crypt_provider()
+	{
+		static HCRYPTPROV prov = make_crypt_provider();
+		return prov;
+	}
+}
+#endif
 
 namespace libtorrent
 {
@@ -40,6 +68,15 @@ namespace libtorrent
 		gcry_md_open(&m_context, GCRY_MD_SHA1, 0);
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA1_Init(&m_context);
+#elif TORRENT_USE_CRYPTOAPI
+		if (CryptCreateHash(get_crypt_provider(), CALG_SHA1, 0, 0, &m_context) == false)
+		{
+#ifndef BOOST_NO_EXCEPTIONS
+			throw system_error(error_code(GetLastError(), system_category()));
+#else
+			std::terminate();
+#endif
+		}
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA1_Init(&m_context);
 #else
@@ -48,22 +85,11 @@ namespace libtorrent
 	}
 
 	hasher::hasher(const char* data, int len)
+		: hasher()
 	{
 		TORRENT_ASSERT(data != 0);
 		TORRENT_ASSERT(len > 0);
-#ifdef TORRENT_USE_LIBGCRYPT
-		gcry_md_open(&m_context, GCRY_MD_SHA1, 0);
-		gcry_md_write(m_context, data, len);
-#elif TORRENT_USE_COMMONCRYPTO
-		CC_SHA1_Init(&m_context);
-		CC_SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
-#elif defined TORRENT_USE_LIBCRYPTO
-		SHA1_Init(&m_context);
-		SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
-#else
-		SHA1_init(&m_context);
-		SHA1_update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
-#endif
+		update(data, len);
 	}
 
 #ifdef TORRENT_USE_LIBGCRYPT
@@ -74,10 +100,41 @@ namespace libtorrent
 
 	hasher& hasher::operator=(hasher const& h)
 	{
+		if (this == &h) return;
 		gcry_md_close(m_context);
 		gcry_md_copy(&m_context, h.m_context);
 		return *this;
 	}
+#elif TORRENT_USE_CRYPTOAPI
+	hasher::hasher(hasher const& h)
+	{
+		if (CryptDuplicateHash(h.m_context, 0, 0, &m_context) == false)
+		{
+#ifndef BOOST_NO_EXCEPTIONS
+			throw system_error(error_code(GetLastError(), system_category()));
+#else
+			std::terminate();
+#endif
+		}
+	}
+
+	hasher& hasher::operator=(hasher const& h)
+	{
+		if (this == &h) return *this;
+		CryptDestroyHash(m_context);
+		if (CryptDuplicateHash(h.m_context, 0, 0, &m_context) == false)
+		{
+#ifndef BOOST_NO_EXCEPTIONS
+			throw system_error(error_code(GetLastError(), system_category()));
+#else
+			std::terminate();
+#endif
+		}
+		return *this;
+	}
+#else
+	hasher::hasher(hasher const&) = default;
+	hasher& hasher::operator=(hasher const&) = default;
 #endif
 
 	hasher& hasher::update(const char* data, int len)
@@ -88,6 +145,15 @@ namespace libtorrent
 		gcry_md_write(m_context, data, len);
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
+#elif TORRENT_USE_CRYPTOAPI
+		if (CryptHashData(m_context, reinterpret_cast<BYTE const*>(data), len, 0) == false)
+		{
+#ifndef BOOST_NO_EXCEPTIONS
+			throw system_error(error_code(GetLastError(), system_category()));
+#else
+			std::terminate();
+#endif
+		}
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data), len);
 #else
@@ -104,6 +170,19 @@ namespace libtorrent
 		digest.assign((const char*)gcry_md_read(m_context, 0));
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA1_Final(digest.begin(), &m_context);
+#elif TORRENT_USE_CRYPTOAPI
+
+		DWORD size = sha1_hash::size;
+		if (CryptGetHashParam(m_context, HP_HASHVAL
+			, reinterpret_cast<BYTE*>(digest.data()), &size, 0) == false)
+		{
+#ifndef BOOST_NO_EXCEPTIONS
+			throw system_error(error_code(GetLastError(), system_category()));
+#else
+			std::terminate();
+#endif
+		}
+		TORRENT_ASSERT(size == sha1_hash::size);
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA1_Final(digest.begin(), &m_context);
 #else
@@ -118,6 +197,16 @@ namespace libtorrent
 		gcry_md_reset(m_context);
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA1_Init(&m_context);
+#elif TORRENT_USE_CRYPTOAPI
+		CryptDestroyHash(m_context);
+		if (CryptCreateHash(get_crypt_provider(), CALG_SHA1, 0, 0, &m_context) == false)
+		{
+#ifndef BOOST_NO_EXCEPTIONS
+			throw system_error(error_code(GetLastError(), system_category()));
+#else
+			std::terminate();
+#endif
+		}
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA1_Init(&m_context);
 #else
@@ -127,10 +216,11 @@ namespace libtorrent
 
 	hasher::~hasher()
 	{
-#ifdef TORRENT_USE_LIBGCRYPT
+#if TORRENT_USE_CRYPTOAPI
+		CryptDestroyHash(m_context);
+#elif defined TORRENT_USE_LIBGCRYPT
 		gcry_md_close(m_context);
 #endif
 	}
-
 }
 
