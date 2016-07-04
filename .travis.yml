@@ -92,20 +92,20 @@ script:
     fi
 
   - cd ../examples
-  - bjam --abbreviate-paths -j3 warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $toolset link=shared
+  - bjam --abbreviate-paths -j3 warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset link=shared
   - if [[ $lang == "cpp11" ]]; then
-    bjam --abbreviate-paths -j3 warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $toolset link=shared bt-get bt-get2;
+    bjam --abbreviate-paths -j3 warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset link=shared bt-get bt-get2;
     fi
   - cd ..
 
 # build libtorrent separately and install it in a temporary (well known) dir
 # we have to do this because on linux the name of the python module is the same
 # as the main library, so we can't stage them to the same directory
-  - bjam --abbreviate-paths -j3 warnings-as-errors=on link=shared debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $toolset install location=./lib
+  - bjam --abbreviate-paths -j3 warnings-as-errors=on link=shared debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset install location=./lib
 
   - cd bindings/python
 # here we specify the temporary lib dir as a path to look for the main library
-  - bjam --abbreviate-paths -j3 warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $toolset stage_module libtorrent-link=shared install-type=LIB dll-path=../../lib
+  - bjam --abbreviate-paths -j3 warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset stage_module libtorrent-link=shared install-type=LIB dll-path=../../lib
   - LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib python test.py
   - cd ../..
 
