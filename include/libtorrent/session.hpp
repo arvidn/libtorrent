@@ -117,21 +117,16 @@ namespace libtorrent
 	public:
 		// default constructor, does not refer to any session
 		// implementation object.
-		session_proxy() {}
+		session_proxy();
 		~session_proxy();
-#if __cplusplus >= 201103L
-		session_proxy(session_proxy const&) = default;
-		session_proxy& operator=(session_proxy const&) = default;
-#endif
+		session_proxy(session_proxy const&);
+		session_proxy& operator=(session_proxy const&);
 	private:
 		session_proxy(
 			boost::shared_ptr<io_service> ios
 			, std::shared_ptr<std::thread> t
-			, boost::shared_ptr<aux::session_impl> impl)
-			: m_io_service(ios)
-			, m_thread(t)
-			, m_impl(impl)
-		{}
+			, boost::shared_ptr<aux::session_impl> impl);
+
 		boost::shared_ptr<io_service> m_io_service;
 		std::shared_ptr<std::thread> m_thread;
 		boost::shared_ptr<aux::session_impl> m_impl;
@@ -149,7 +144,7 @@ namespace libtorrent
 	// the settings to be set and pass it in to ``session::apply_settings()``.
 	// 
 	// see apply_settings().
-	class TORRENT_EXPORT session: public boost::noncopyable, public session_handle
+	class TORRENT_EXPORT session : public session_handle
 	{
 	public:
 
@@ -171,6 +166,14 @@ namespace libtorrent
 			TORRENT_CFG();
 			start(flags, pack, nullptr);
 		}
+
+		// moveable
+		session(session&&) = default;
+		session& operator=(session&&) = default;
+
+		// noncopyable
+		session(session const&) = delete;
+		session& operator=(session const&) = delete;
 
 		// overload of the constructor that takes an external io_service to run
 		// the session object on. This is primarily useful for tests that may want
