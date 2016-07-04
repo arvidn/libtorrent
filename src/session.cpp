@@ -398,6 +398,16 @@ namespace libtorrent
 	session_settings::~session_settings() {}
 #endif // TORRENT_NO_DEPRECATE
 
+	session_proxy::session_proxy() = default;
+	session_proxy::session_proxy(boost::shared_ptr<io_service> ios
+		, std::shared_ptr<std::thread> t
+		, boost::shared_ptr<aux::session_impl> impl)
+		: m_io_service(ios)
+		, m_thread(t)
+		, m_impl(impl)
+	{}
+	session_proxy::session_proxy(session_proxy const&) = default;
+	session_proxy& session_proxy::operator=(session_proxy const&) = default;
 	session_proxy::~session_proxy()
 	{
 		if (m_thread && m_thread.unique())

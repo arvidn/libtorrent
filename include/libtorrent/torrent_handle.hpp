@@ -248,12 +248,10 @@ namespace libtorrent
 		// i.e. is_valid() will return false.
 		torrent_handle() {}
 
-		torrent_handle(torrent_handle const& t)
-		{ if (!t.m_torrent.expired()) m_torrent = t.m_torrent; }
-
-#if __cplusplus >= 201103L
+		torrent_handle(torrent_handle const& t) = default;
+		torrent_handle(torrent_handle&& t) = default;
 		torrent_handle& operator=(torrent_handle const&) = default;
-#endif
+		torrent_handle& operator=(torrent_handle&&) = default;
 
 		// flags for add_piece().
 		enum flags_t { overwrite_existing = 1 };
