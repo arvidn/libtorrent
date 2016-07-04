@@ -276,7 +276,7 @@ namespace libtorrent
 
 			// if the user specified the broadcast flag, send one to the broadcast
 			// address as well
-			if ((flags & broadcast_socket::broadcast) && i->can_broadcast())
+			if ((flags & broadcast_socket::flag_broadcast) && i->can_broadcast())
 				i->socket->send_to(boost::asio::buffer(buffer, size)
 					, udp::endpoint(i->broadcast_address(), m_multicast_endpoint.port()), 0, e);
 
