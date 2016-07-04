@@ -169,8 +169,8 @@ script:
 # run cppcheck if enabled
   - 'if [[ "$analyze" == "1" ]]; then
       cppcheck --version &&
-      find src test examples tools -type f | grep ".*\.cpp$" >cppcheck.files &&
-      find simulation -type f -depth -2 | grep ".*\.cpp$" >>cppcheck.files &&
+      find -type f src test examples tools | grep ".*\.cpp$" >cppcheck.files &&
+      find -type f -depth -2 simulation | grep ".*\.cpp$" >>cppcheck.files &&
       cppcheck -DTORRENT_USE_IPV6="1" -DTORRENT_USE_I2P="1"
        -DTORRENT_USE_OPENSSL="1" -DTORRENT_USE_INVARIANT_CHECKS="1"
        -DTORRENT_EXPENSIVE_INVARIANT_CHECKS="1" -DTORRENT_USE_ASSERTS="1"
