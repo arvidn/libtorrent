@@ -186,7 +186,7 @@ script:
        --enable=style
        --template "{file}({line}): {severity} ({id}): {message}"
        --inline-suppr --force --std=c++11 -j2 -I include -I /usr/local/include
-       -I test -I simulator/libsimulator/include
+       -I test -I simulation/libsimulator/include
        --file-list=cppcheck.files 2> cppcheck.txt &&
       if [ -s cppcheck.txt ]; then
         echo "   ======= CPPCHECK ERRORS =====";
