@@ -177,6 +177,10 @@ script:
        -UTORRENT_DISABLE_MUTABLE_TORRENTS -UTORRENT_DISABLE_LOGGING
        -UTORRENT_DEBUG_BUFFERS -UTORRENT_EXPORT_EXTRA
        --suppress=preprocessorErrorDirective
+       --suppress=uninitVar
+       --suppress=arrayIndexOutOfBounds
+       --suppress=unusedStructMember
+       --suppress=operatorEqVarError
        --suppress=noConstructor
        --suppress=syntaxError
        --enable=style

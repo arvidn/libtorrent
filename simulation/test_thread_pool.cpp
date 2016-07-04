@@ -39,9 +39,7 @@ namespace lt = libtorrent;
 
 struct test_threads : lt::pool_thread_interface
 {
-	test_threads()
-		: m_active_threads(0)
-	{}
+	test_threads() {}
 
 	virtual void notify_all() override { m_cond.notify_all(); }
 	virtual void thread_fun(lt::io_service::work w) override
@@ -106,9 +104,9 @@ struct test_threads : lt::pool_thread_interface
 	std::condition_variable m_exit_cond;
 
 	// must hold m_mutex to access
-	int m_active_threads;
+	int m_active_threads = 0;
 	// must hold m_mutex to access
-	int m_target_active_threads;
+	int m_target_active_threads = 0;
 };
 
 TORRENT_TEST(disk_io_thread_pool_idle_reaping)
