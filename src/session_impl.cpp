@@ -3732,11 +3732,29 @@ namespace aux {
 	}
 
 	namespace {
-		bool last_optimistic_unchoke_cmp(torrent_peer const* const l
-			, torrent_peer const* const r)
+		struct opt_unchoke_candidate
 		{
-			return l->last_optimistically_unchoked
-				< r->last_optimistically_unchoked;
+			opt_unchoke_candidate(torrent_peer* tp)
+				: peer(tp), ext_priority(std::numeric_limits<uint64_t>::max())
+			{}
+
+			torrent_peer* peer;
+			uint64_t ext_priority;
+		};
+
+		bool last_optimistic_unchoke_cmp(opt_unchoke_candidate const& l
+			, opt_unchoke_candidate const& r)
+		{
+			if (l.peer->last_optimistically_unchoked
+				!= r.peer->last_optimistically_unchoked)
+			{
+				return l.peer->last_optimistically_unchoked
+					< r.peer->last_optimistically_unchoked;
+			}
+			else
+			{
+				return l.ext_priority < r.ext_priority;
+			}
 		}
 	}
 
@@ -3747,7 +3765,7 @@ namespace aux {
 		TORRENT_ASSERT(is_single_thread());
 		if (m_stats_counters[counters::num_unchoke_slots] == 0) return;
 
-		std::vector<torrent_peer*> opt_unchoke;
+		std::vector<opt_unchoke_candidate> opt_unchoke;
 
 		// collect the currently optimistically unchoked peers here, so we can
 		// choke them when we've found new optimistic unchoke candidates.
@@ -3760,10 +3778,9 @@ namespace aux {
 		// collect the n best candidates. maybe just a queue of peers would make
 		// even more sense, just pick the next peer in the queue for unchoking. It
 		// would be O(1).
-		for (connection_map::iterator i = m_connections.begin()
-			, end(m_connections.end()); i != end; ++i)
+		for (auto& i : m_connections)
 		{
-			peer_connection* p = i->get();
+			peer_connection* p = i.get();
 			TORRENT_ASSERT(p);
 			torrent_peer* pi = p->peer_info_struct();
 			if (!pi) continue;
@@ -3790,6 +3807,15 @@ namespace aux {
 				&& t->valid_metadata())
 			{
 				opt_unchoke.push_back(pi);
+#ifndef TORRENT_DISABLE_EXTENSIONS
+				auto const& plugins = m_ses_extensions[plugins_optimistic_unchoke_idx];
+				for (auto& e : plugins)
+				{
+					uint64_t priority = e->get_unchoke_priority(peer_connection_handle(i));
+					opt_unchoke.back().ext_priority
+						= (std::min)(priority, opt_unchoke.back().ext_priority);
+				}
+#endif
 			}
 		}
 
@@ -3807,44 +3833,14 @@ namespace aux {
 			, opt_unchoke.begin() + num_opt_unchoke
 			, opt_unchoke.end(), &last_optimistic_unchoke_cmp);
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		auto const& plugins = m_ses_extensions[plugins_optimistic_unchoke_idx];
-		if (plugins.size() > 0)
-		{
-			// if there is an extension that wants to reorder the optimistic
-			// unchoke peers, first convert the vector into one containing
-			// peer_connection_handles, since that's the exported API
-			std::vector<peer_connection_handle> peers;
-			peers.reserve(opt_unchoke.size());
-			for (std::vector<torrent_peer*>::iterator i = opt_unchoke.begin()
-				, end(opt_unchoke.end()); i != end; ++i)
-			{
-				peers.push_back(peer_connection_handle(static_cast<peer_connection*>((*i)->connection)->self()));
-			}
-			for (auto& e : plugins)
-			{
-				if (e->on_optimistic_unchoke(peers))
-					break;
-			}
-			// then convert back to the internal torrent_peer pointers
-			opt_unchoke.clear();
-			for (std::vector<peer_connection_handle>::iterator i = peers.begin()
-				, end(peers.end()); i != end; ++i)
-			{
-				opt_unchoke.push_back(i->native_handle()->peer_info_struct());
-			}
-		}
-#endif
-
 		// unchoke the first num_opt_unchoke peers in the candidate set
 		// and make sure that the others are choked
-		std::vector<torrent_peer*>::iterator opt_unchoke_end = opt_unchoke.begin()
+		auto opt_unchoke_end = opt_unchoke.begin()
 			+ num_opt_unchoke;
 
-		for (std::vector<torrent_peer*>::iterator i = opt_unchoke.begin();
-			i != opt_unchoke_end; ++i)
+		for (auto i = opt_unchoke.begin(); i != opt_unchoke_end; ++i)
 		{
-			torrent_peer* pi = *i;
+			torrent_peer* pi = i->peer;
 			peer_connection* p = static_cast<peer_connection*>(pi->connection);
 			if (pi->optimistically_unchoked)
 			{
@@ -3882,10 +3878,8 @@ namespace aux {
 		}
 
 		// now, choke all the previous optimistically unchoked peers
-		for (std::vector<torrent_peer*>::iterator i = prev_opt_unchoke.begin()
-			, end(prev_opt_unchoke.end()); i != end; ++i)
+		for (torrent_peer* pi : prev_opt_unchoke)
 		{
-			torrent_peer* pi = *i;
 			TORRENT_ASSERT(pi->optimistically_unchoked);
 			peer_connection* p = static_cast<peer_connection*>(pi->connection);
 			boost::shared_ptr<torrent> t = p->associated_torrent().lock();
