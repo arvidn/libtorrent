@@ -5,7 +5,7 @@ matrix:
     - env: variant=test_release coverage=1 toolset=gcc-coverage
     - env: variant=test_debug sim=1 toolset=gcc
     - env: variant=test_barebones toolset=gcc
-    - env: analyze=1 toolset=gcc
+    - env: analyze=1 autotools=1 toolset=gcc
     - os: osx
       osx_image: xcode6.4
       env: variant=test_release docs=1 toolset=darwin
@@ -159,6 +159,12 @@ script:
       bjam -j2 crypto=built-in warnings-as-errors=on $toolset;
     fi'
   - cd ..
+
+# run through autotools and ./confiture to make sure it works
+  - 'if [[ "$autotools" == "1" ]]; then
+      ./autotool.sh &&
+      ./configure;
+    fi'
 
 # run cppcheck if enabled
   - 'if [[ "$analyze" == "1" ]]; then
