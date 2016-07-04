@@ -12,7 +12,6 @@ environment:
     compiler: msvc-14.0
     model: 64
     sim: 1
-    python: 1
     linkflags: '"/LIBPATH:C:\\openssl-1.0.1p-vs2015\\lib64"'
     include: '"c:\\openssl-1.0.1p-vs2015\\include"'
   - variant: test_debug
@@ -23,6 +22,7 @@ environment:
   - variant: test_release
     compiler: msvc-14.0
     model: 64
+    python: 1
     linkflags: '"/LIBPATH:C:\\openssl-1.0.1p-vs2015\\lib64"'
     include: '"c:\\openssl-1.0.1p-vs2015\\include"'
   - variant: test_debug
