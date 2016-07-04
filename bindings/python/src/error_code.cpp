@@ -34,6 +34,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/bdecode.hpp>
 #include <libtorrent/upnp.hpp>
 #include <libtorrent/socks5_stream.hpp>
+
+namespace boost
+{
+	// this fixe mysterious link error on msvc
+	boost::system::error_category const volatile*
+	get_pointer(boost::system::error_category const volatile* p)
+	{
+		return p;
+	}
+}
+
 #include "boost_python.hpp"
 
 using namespace boost::python;
@@ -42,7 +53,9 @@ using boost::system::error_category;
 
 void bind_error_code()
 {
-    class_<boost::system::error_category, boost::noncopyable>("error_category", no_init)
+    using boost::noncopyable;
+
+    class_<boost::system::error_category, noncopyable>("error_category", no_init)
         .def("name", &error_category::name)
         .def("message", &error_category::message)
         .def(self == self)
@@ -56,34 +69,34 @@ void bind_error_code()
         .def("value", &error_code::value)
         .def("clear", &error_code::clear)
         .def("category", &error_code::category
-           , return_internal_reference<>())
+           , return_value_policy<reference_existing_object>())
         .def("assign", &error_code::assign)
         ;
 
     def("get_libtorrent_category", &get_libtorrent_category
-       , return_internal_reference<>());
+       , return_value_policy<reference_existing_object>());
 
     def("get_upnp_category", &get_upnp_category
-       , return_internal_reference<>());
+       , return_value_policy<reference_existing_object>());
 
     def("get_http_category", &get_http_category
-       , return_internal_reference<>());
+       , return_value_policy<reference_existing_object>());
 
     def("get_socks_category", &get_socks_category
-       , return_internal_reference<>());
+       , return_value_policy<reference_existing_object>());
 
 #if TORRENT_USE_I2P
     def("get_i2p_category", &get_i2p_category
-       , return_internal_reference<>());
+       , return_value_policy<reference_existing_object>());
 #endif
 
     def("get_bdecode_category", &get_bdecode_category
-       , return_internal_reference<>());
+       , return_value_policy<reference_existing_object>());
 
     def("generic_category", &boost::system::generic_category
-       , return_internal_reference<>());
+       , return_value_policy<reference_existing_object>());
 
     def("system_category", &boost::system::system_category
-       , return_internal_reference<>());
+       , return_value_policy<reference_existing_object>());
 }
 
