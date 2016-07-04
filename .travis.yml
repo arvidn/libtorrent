@@ -85,7 +85,7 @@ script:
   - cd ..
 
   - cd test
-  - bjam --abbreviate-paths -j3 warnings-as-errors=on variant=$variant -l900 $coverage_toolset $target
+  - bjam --abbreviate-paths -j3 warnings-as-errors=on invariant-checks=full variant=$variant -l900 $coverage_toolset $target
 # if we're building with code coverage, report it as soon as possible
   - if [[ $TRAVIS_OS_NAME == "linux" && $coverage == "1" ]]; then
     codecov --root .. --gcov-exec gcov-4.8;
