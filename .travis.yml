@@ -170,7 +170,7 @@ script:
   - 'if [[ "$analyze" == "1" ]]; then
       cppcheck --version &&
       find src test examples tools -type f | grep ".*\.cpp$" >cppcheck.files &&
-      find simulation -type f -maxdepth 1 | grep ".*\.cpp$" >>cppcheck.files &&
+      find simulation -maxdepth 1 -type f | grep ".*\.cpp$" >>cppcheck.files &&
       cppcheck -DTORRENT_USE_IPV6="1" -DTORRENT_USE_I2P="1"
        -DTORRENT_USE_OPENSSL="1" -DTORRENT_USE_INVARIANT_CHECKS="1"
        -DTORRENT_EXPENSIVE_INVARIANT_CHECKS="1" -DTORRENT_USE_ASSERTS="1"
@@ -182,6 +182,7 @@ script:
        --enable=style
        --template "{file}({line}): {severity} ({id}): {message}"
        --inline-suppr --force --std=c++11 -j2 -I include -I /usr/local/include
+       -I test -I simulator/libsimulator/include
        --file-list=cppcheck.files 2> cppcheck.txt &&
       if [ -s cppcheck.txt ]; then
         echo "   ======= CPPCHECK ERRORS =====";
