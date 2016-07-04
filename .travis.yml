@@ -2,22 +2,22 @@ language: cpp
 
 matrix:
   include:
-    - env: variant=test_release coverage=1 toolset=gcc-coverage
-    - env: variant=test_debug sim=1 toolset=gcc
-    - env: variant=test_barebones toolset=gcc
+#    - env: variant=test_release coverage=1 toolset=gcc-coverage
+#    - env: variant=test_debug sim=1 toolset=gcc
+#    - env: variant=test_barebones toolset=gcc
     - env: analyze=1 autotools=1 toolset=gcc
-    - os: osx
-      osx_image: xcode6.4
-      env: variant=test_release docs=1 toolset=darwin
-    - os: osx
-      osx_image: xcode6.4
-      env: variant=test_debug toolset=darwin
-    - os: osx
-      osx_image: xcode6.4
-      env: variant=test_barebones toolset=darwin
-    - sudo: required
-      dist: trusty
-      env: arch=arm toolset=gcc-arm
+#    - os: osx
+#      osx_image: xcode6.4
+#      env: variant=test_release docs=1 toolset=darwin
+#    - os: osx
+#      osx_image: xcode6.4
+#      env: variant=test_debug toolset=darwin
+#    - os: osx
+#      osx_image: xcode6.4
+#      env: variant=test_barebones toolset=darwin
+#    - sudo: required
+#      dist: trusty
+#      env: arch=arm toolset=gcc-arm
 
 git:
   submodules: false
@@ -170,7 +170,7 @@ script:
   - 'if [[ "$analyze" == "1" ]]; then
       cppcheck --version &&
       find src test examples tools -type f | grep ".*\.cpp$" >cppcheck.files &&
-      find simulation -type f -depth -2 | grep ".*\.cpp$" >>cppcheck.files &&
+      find simulation -type f -maxdepth 1 | grep ".*\.cpp$" >>cppcheck.files &&
       cppcheck -DTORRENT_USE_IPV6="1" -DTORRENT_USE_I2P="1"
        -DTORRENT_USE_OPENSSL="1" -DTORRENT_USE_INVARIANT_CHECKS="1"
        -DTORRENT_EXPENSIVE_INVARIANT_CHECKS="1" -DTORRENT_USE_ASSERTS="1"
@@ -182,7 +182,7 @@ script:
        --enable=style
        --template "{file}({line}): {severity} ({id}): {message}"
        --inline-suppr --force --std=c++11 -j2 -I include -I /usr/local/include
-       --file-list=cppcheck.files 2> cppcheck.txt;
+       --file-list=cppcheck.files 2> cppcheck.txt &&
       if [ -s cppcheck.txt ]; then
         echo "   ======= CPPCHECK ERRORS =====";
         cat cppcheck.txt;
