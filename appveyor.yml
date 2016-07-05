@@ -1,5 +1,3 @@
-disable
-
 version: 1.0.{build}
 branches:
   only:

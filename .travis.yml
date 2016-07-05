@@ -2,22 +2,22 @@ language: cpp
 
 matrix:
   include:
-#    - env: variant=test_release coverage=1 toolset=gcc-coverage
-#    - env: variant=test_debug sim=1 toolset=gcc
-#    - env: variant=test_barebones toolset=gcc
+    - env: variant=test_release coverage=1 toolset=gcc-coverage
+    - env: variant=test_debug sim=1 toolset=gcc
+    - env: variant=test_barebones toolset=gcc
     - env: analyze=1 autotools=1 toolset=gcc
-#    - os: osx
-#      osx_image: xcode6.4
-#      env: variant=test_release docs=1 toolset=darwin
-#    - os: osx
-#      osx_image: xcode6.4
-#      env: variant=test_debug toolset=darwin
-#    - os: osx
-#      osx_image: xcode6.4
-#      env: variant=test_barebones toolset=darwin
-#    - sudo: required
-#      dist: trusty
-#      env: arch=arm toolset=gcc-arm
+    - os: osx
+      osx_image: xcode6.4
+      env: variant=test_release docs=1 toolset=darwin
+    - os: osx
+      osx_image: xcode6.4
+      env: variant=test_debug toolset=darwin
+    - os: osx
+      osx_image: xcode6.4
+      env: variant=test_barebones toolset=darwin
+    - sudo: required
+      dist: trusty
+      env: arch=arm toolset=gcc-arm
 
 git:
   submodules: false
