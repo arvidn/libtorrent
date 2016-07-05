@@ -85,33 +85,33 @@ script:
   - cd ..
 
   - cd test
-  - bjam --abbreviate-paths -j3 warnings-as-errors=on invariant-checks=full variant=$variant -l900 $coverage_toolset $target
+  - bjam --hash -j3 warnings-as-errors=on invariant-checks=full variant=$variant -l900 $coverage_toolset $target
 # if we're building with code coverage, report it as soon as possible
   - if [[ $TRAVIS_OS_NAME == "linux" && $coverage == "1" ]]; then
     codecov --root .. --gcov-exec gcov-4.8;
     fi
 
   - cd ../examples
-  - bjam --abbreviate-paths -j3 warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset link=shared
+  - bjam --hash -j3 warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset link=shared
   - if [[ $lang == "cpp11" ]]; then
-    bjam --abbreviate-paths -j3 warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset link=shared bt-get bt-get2;
+    bjam --hash -j3 warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset link=shared bt-get bt-get2;
     fi
   - cd ..
 
 # build libtorrent separately and install it in a temporary (well known) dir
 # we have to do this because on linux the name of the python module is the same
 # as the main library, so we can't stage them to the same directory
-  - bjam --abbreviate-paths -j3 warnings-as-errors=on link=shared debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset install location=./lib
+  - bjam --hash -j3 warnings-as-errors=on link=shared debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset install location=./lib
 
   - cd bindings/python
 # here we specify the temporary lib dir as a path to look for the main library
-  - bjam --abbreviate-paths -j3 warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset stage_module libtorrent-link=shared install-type=LIB dll-path=../../lib
+  - bjam --hash -j3 warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset stage_module libtorrent-link=shared install-type=LIB dll-path=../../lib
   - LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib python test.py
   - cd ../..
 
   - cd simulation
   - if [ $sim = "1" ]; then
-    bjam --abbreviate-paths -j2 crypto=built-in warnings-as-errors=on $coverage_toolset;
+    bjam --hash -j2 crypto=built-in warnings-as-errors=on $coverage_toolset;
     fi
   - cd ..
   - ccache --show-stats
