@@ -41,7 +41,7 @@ namespace
 		using namespace libtorrent;
 
 		HCRYPTPROV ret;
-		if (CryptAcquireContext(&ret, nullptr, nullptr, PROV_RSA_SIG
+		if (CryptAcquireContext(&ret, nullptr, nullptr, PROV_RSA_FULL
 			, CRYPT_VERIFYCONTEXT) == false)
 		{
 #ifndef BOOST_NO_EXCEPTIONS
