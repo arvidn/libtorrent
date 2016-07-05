@@ -154,7 +154,7 @@ void lsd::announce_impl(sha1_hash const& ih, int listen_port, bool broadcast
 	{
 		int msg_len = render_lsd_packet(msg, sizeof(msg), listen_port, ih_hex
 			, m_cookie, "239.192.152.143");
-		m_socket.send(msg, msg_len, ec, broadcast ? broadcast_socket::broadcast : 0);
+		m_socket.send(msg, msg_len, ec, broadcast ? broadcast_socket::flag_broadcast : 0);
 		if (ec)
 		{
 			m_disabled = true;
@@ -170,7 +170,7 @@ void lsd::announce_impl(sha1_hash const& ih, int listen_port, bool broadcast
 	{
 		int msg_len = render_lsd_packet(msg, sizeof(msg), listen_port, ih_hex
 			, m_cookie, "[ff15::efc0:988f]");
-		m_socket6.send(msg, msg_len, ec, broadcast ? broadcast_socket::broadcast : 0);
+		m_socket6.send(msg, msg_len, ec, broadcast ? broadcast_socket::flag_broadcast : 0);
 		if (ec)
 		{
 			m_disabled6 = true;

@@ -73,7 +73,7 @@ namespace libtorrent
 		void open(receive_handler_t const& handler, io_service& ios
 			, error_code& ec, bool loopback = true);
 
-		enum flags_t { broadcast = 1 };
+		enum flags_t { flag_broadcast = 1 };
 		void send(char const* buffer, int size, error_code& ec, int flags = 0);
 
 		void close();
@@ -117,7 +117,7 @@ namespace libtorrent
 #endif
 			}
 		};
-	
+
 		void on_receive(socket_entry* s, error_code const& ec
 			, std::size_t bytes_transferred);
 		void open_unicast_socket(io_service& ios, address const& addr

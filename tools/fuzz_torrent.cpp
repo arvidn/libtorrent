@@ -373,7 +373,7 @@ int main(int argc, char const* argv[])
 		}
 
 		bdecode_node e;
-		if (buf.size() == 0 || bdecode(&buf[0], &buf[0] + buf.size(), e, ec) != 0)
+		if (buf.empty() || bdecode(&buf[0], &buf[0] + buf.size(), e, ec) != 0)
 		{
 			std::fprintf(stderr, "ERROR parsing file: %s\n%s\n"
 				, *argv, ec.message().c_str());
