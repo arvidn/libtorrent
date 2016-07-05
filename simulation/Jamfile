@@ -10,7 +10,8 @@ use-project /libsimulator : libsimulator ;
 project
 	: requirements
 	<simulator>on
-	<library>/torrent//torrent/<export-extra>on
+	<export-extra>on
+	<library>/torrent//torrent
 	<library>/libtorrent_test//libtorrent_test
 	<source>setup_swarm.cpp
 	<source>setup_dht.cpp
