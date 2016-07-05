@@ -130,13 +130,13 @@ script:
 
   - cd ../examples
   - 'if [ "$variant" != "" ]; then
-      bjam -j3 warnings-as-errors=on ssl=$ssl crypto=$crypto variant=$variant picker-debugging=on $toolset link=shared;
+      bjam -j3 warnings-as-errors=on ssl=$ssl crypto=$crypto debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant picker-debugging=on $toolset link=shared;
     fi'
   - cd ..
 
   - cd tools
   - 'if [ "$variant" != "" ]; then
-      bjam -j3 warnings-as-errors=on ssl=$ssl crypto=$crypto variant=$variant picker-debugging=on $toolset link=shared;
+      bjam -j3 warnings-as-errors=on ssl=$ssl crypto=$crypto debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant picker-debugging=on $toolset link=shared;
     fi'
   - cd ..
 
@@ -145,12 +145,12 @@ script:
 # as the main library, so we cannot stage them to the same directory
 # here we specify the temporary lib dir as a path to look for the main library
   - 'if [ "$variant" != "" ]; then
-      bjam -j3 warnings-as-errors=on ssl=$ssl crypto=$crypto picker-debugging=on link=shared variant=$variant $toolset install location=./lib;
+      bjam -j3 warnings-as-errors=on ssl=$ssl crypto=$crypto debug-iterators=on picker-debugging=on invariant-checks=full link=shared variant=$variant $toolset install location=./lib;
     fi'
 
   - cd bindings/python
   - 'if [ "$variant" != "" ]; then
-      bjam -j3 warnings-as-errors=on ssl=$ssl crypto=$crypto variant=$variant picker-debugging=on $toolset stage_module libtorrent-link=shared install-type=LIB dll-path=../../lib &&
+      bjam -j3 warnings-as-errors=on ssl=$ssl crypto=$crypto variant=$variant debug-iterators=on picker-debugging=on invariant-checks=full $toolset stage_module libtorrent-link=shared install-type=LIB dll-path=../../lib &&
       LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib python test.py;
     fi'
   - cd ../..;

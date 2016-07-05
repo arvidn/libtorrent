@@ -97,7 +97,7 @@ namespace libtorrent { namespace aux
 
 			while (size)
 			{
-				std::int64_t add = (std::min)(size, fs.file_size(file_index) - file_offset);
+				std::int64_t const add = (std::min)(size, fs.file_size(file_index) - file_offset);
 				TORRENT_ASSERT(add >= 0);
 				m_file_progress[file_index] += add;
 

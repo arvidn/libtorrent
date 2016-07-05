@@ -1272,6 +1272,13 @@ namespace libtorrent
 			+ block_size() - 1) / block_size();
 		m_picker->init(blocks_per_piece, blocks_in_last_piece, m_torrent_file->num_pieces());
 
+		// initialize the file progress too
+		if (m_file_progress.empty())
+		{
+			TORRENT_ASSERT(has_picker());
+			m_file_progress.init(picker(), m_torrent_file->files());
+		}
+
 		update_gauge();
 
 		for (peer_iterator i = m_connections.begin()
@@ -2400,7 +2407,6 @@ namespace libtorrent
 
 // removing the piece picker will clear the user priorities
 // instead, just clear which pieces we have
-//		m_picker.reset();
 		if (m_picker)
 		{
 			int blocks_per_piece = (m_torrent_file->piece_length() + block_size() - 1) / block_size();
@@ -10682,13 +10688,6 @@ namespace libtorrent
 			fp.resize(m_torrent_file->num_files(), 0);
 			return;
 		}
-
-		// if this is the first time the client asks for file progress.
-		// allocate it and make sure it's up to date
-
-		// we cover the case where we're a seed above
-		TORRENT_ASSERT(has_picker());
-		m_file_progress.init(picker(), m_torrent_file->files());
 
 		m_file_progress.export_progress(fp);
 

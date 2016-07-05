@@ -74,7 +74,7 @@ cache:
 build_script:
 # examples
 - cd %ROOT_DIRECTORY%\examples
-- b2.exe --hash warnings-as-errors=on -j2 %compiler% ssl=%ssl% crypto=%crypto% address-model=%model% variant=%variant% picker-debugging=on %linkflags% %include% link=shared
+- b2.exe --hash warnings-as-errors=on -j2 %compiler% ssl=%ssl% crypto=%crypto% address-model=%model% debug-iterators=on picker-debugging=on invariant-checks=full variant=%variant% picker-debugging=on %linkflags% %include% link=shared
 
 # tools
 - cd %ROOT_DIRECTORY%\tools

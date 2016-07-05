@@ -514,7 +514,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #if (defined _M_AMD64 || defined _M_IX86 || defined _M_X64 \
 	|| defined __amd64__ || defined __i386 || defined __i386__ \
 	|| defined __x86_64__ || defined __x86_64) \
-	&& (defined __GNUC__ || defined _MSC_VER)
+	&& (defined __GNUC__ || (defined _MSC_VER && _MSC_VER >= 1600))
 #define TORRENT_HAS_SSE 1
 #else
 #define TORRENT_HAS_SSE 0
