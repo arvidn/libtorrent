@@ -91,6 +91,7 @@ install:
 - echo %BOOST_BUILD_PATH%
 - set PATH=%PATH%;%BOOST_BUILD_PATH%\src\engine\bin.ntx86
 - 'echo using msvc : 10.0 ; >%HOMEDRIVE%%HOMEPATH%/user-config.jam'
+- 'echo using msvc : 14.0 ; >>%HOMEDRIVE%%HOMEPATH%/user-config.jam'
 - 'echo using msvc : 12.0 ; >>%HOMEDRIVE%%HOMEPATH%/user-config.jam'
 - 'echo using msvc : 9.0 ; >>%HOMEDRIVE%%HOMEPATH%/user-config.jam'
 - type %HOMEDRIVE%%HOMEPATH%\user-config.jam
