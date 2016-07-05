@@ -512,7 +512,7 @@ variant test_release : release
 	<inlining>off
 	;
 variant test_debug : debug
-	: <ssl>openssl <crypto>libcrypto <logging>on <disk-stats>on
+	: <logging>on <disk-stats>on
 	<allocator>debug
 	<invariant-checks>full <boost-link>shared
 	<export-extra>on <debug-iterators>on <threading>multi <asserts>on

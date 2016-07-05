@@ -235,6 +235,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_USE_GETIPFORWARDTABLE
 # define TORRENT_USE_GETIPFORWARDTABLE 1
 #endif
+
+# if !defined TORRENT_USE_LIBCRYPTO && !defined TORRENT_USE_LIBGCRYPT
+// unless some other crypto library has been specified, default to the native
+// windows CryptoAPI
+#define TORRENT_USE_CRYPTOAPI 1
+#endif
+
 #define TORRENT_USE_GETADAPTERSADDRESSES 1
 #define TORRENT_HAS_SALEN 0
 // windows has its own functions to convert
@@ -388,6 +395,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_USE_COMMONCRYPTO
 #define TORRENT_USE_COMMONCRYPTO 0
+#endif
+
+#ifndef TORRENT_USE_CRYPTOAPI
+#define TORRENT_USE_CRYPTOAPI 0
 #endif
 
 #ifndef TORRENT_HAVE_MMAP
