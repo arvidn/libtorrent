@@ -3734,26 +3734,53 @@ namespace aux {
 	namespace {
 		struct opt_unchoke_candidate
 		{
-			opt_unchoke_candidate(torrent_peer* tp)
-				: peer(tp), ext_priority(std::numeric_limits<uint64_t>::max())
+			opt_unchoke_candidate(boost::shared_ptr<peer_connection> const* tp
+				, std::vector<boost::shared_ptr<plugin>>* plugins)
+				: peer(tp)
+				, plugins(plugins)
+				, ext_priority(std::numeric_limits<uint64_t>::max())
 			{}
 
-			torrent_peer* peer;
-			uint64_t ext_priority;
+			uint64_t get_ext_priority() const
+			{
+#ifndef TORRENT_DISABLE_EXTENSIONS
+				if (plugins)
+				{
+					for (auto& e : *plugins)
+					{
+						uint64_t const priority = e->get_unchoke_priority(peer_connection_handle(*peer));
+						ext_priority = (std::min)(priority, ext_priority);
+					}
+					plugins = nullptr;
+				}
+#endif
+				return ext_priority;
+			}
+
+			boost::shared_ptr<peer_connection> const* peer;
+
+		private:
+			// these are mutable because comparison functors passed to std::partial_sort
+			// are not supposed to modify the elements they are sorting. Here the mutation
+			// being applied is idempotent so it should not pose a problem.
+			mutable std::vector<boost::shared_ptr<plugin>>* plugins;
+			mutable uint64_t ext_priority;
 		};
 
 		bool last_optimistic_unchoke_cmp(opt_unchoke_candidate const& l
 			, opt_unchoke_candidate const& r)
 		{
-			if (l.peer->last_optimistically_unchoked
-				!= r.peer->last_optimistically_unchoked)
+			torrent_peer* pil = (*l.peer)->peer_info_struct();
+			torrent_peer* pir = (*r.peer)->peer_info_struct();
+			if (pil->last_optimistically_unchoked
+				!= pir->last_optimistically_unchoked)
 			{
-				return l.peer->last_optimistically_unchoked
-					< r.peer->last_optimistically_unchoked;
+				return pil->last_optimistically_unchoked
+					< pir->last_optimistically_unchoked;
 			}
 			else
 			{
-				return l.ext_priority < r.ext_priority;
+				return l.get_ext_priority() < r.get_ext_priority();
 			}
 		}
 	}
@@ -3806,15 +3833,10 @@ namespace aux {
 				&& !p->ignore_unchoke_slots()
 				&& t->valid_metadata())
 			{
-				opt_unchoke.push_back(pi);
 #ifndef TORRENT_DISABLE_EXTENSIONS
-				auto const& plugins = m_ses_extensions[plugins_optimistic_unchoke_idx];
-				for (auto& e : plugins)
-				{
-					uint64_t priority = e->get_unchoke_priority(peer_connection_handle(i));
-					opt_unchoke.back().ext_priority
-						= (std::min)(priority, opt_unchoke.back().ext_priority);
-				}
+				opt_unchoke.emplace_back(&i, &m_ses_extensions[plugins_optimistic_unchoke_idx]);
+#else
+				opt_unchoke.emplace_back(&i, nullptr);
 #endif
 			}
 		}
@@ -3840,7 +3862,7 @@ namespace aux {
 
 		for (auto i = opt_unchoke.begin(); i != opt_unchoke_end; ++i)
 		{
-			torrent_peer* pi = i->peer;
+			torrent_peer* pi = (*i->peer)->peer_info_struct();
 			peer_connection* p = static_cast<peer_connection*>(pi->connection);
 			if (pi->optimistically_unchoked)
 			{
