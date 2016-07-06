@@ -97,6 +97,37 @@ web_peer_connection::web_peer_connection(peer_connection_args const& pack
 
 	prefer_contiguous_blocks((std::max)(preferred_size / tor->block_size(), 1));
 
+	boost::shared_ptr<torrent> t = associated_torrent().lock();
+	bool const single_file_request = t->torrent_file().num_files() == 1;
+
+	if (!single_file_request)
+	{
+		// handle incorrect .torrent files which are multi-file
+		// but have web seeds not ending with a slash
+		if (m_path.empty() || m_path.back() != '/') m_path += '/';
+		if (m_url.empty() || m_url.back() != '/') m_url += '/';
+	}
+	else
+	{
+		// handle .torrent files that don't include the filename in the url
+		if (m_path.empty()) m_path += '/';
+		if (m_path.back() == '/')
+		{
+			std::string const& name = t->torrent_file().name();
+			m_path += escape_string(name.c_str(), name.size());
+		}
+
+		if (!m_url.empty() && m_url[m_url.size() - 1] == '/')
+		{
+			std::string tmp = t->torrent_file().files().file_path(0);
+#ifdef TORRENT_WINDOWS
+			convert_path_to_posix(tmp);
+#endif
+			tmp = escape_path(tmp.c_str(), tmp.size());
+			m_url += tmp;
+		}
+	}
+
 	// we want large blocks as well, so
 	// we can request more bytes at once
 	// this setting will merge adjacent requests
@@ -232,37 +263,6 @@ void web_peer_connection::write_request(peer_request const& r)
 
 	TORRENT_ASSERT(t->valid_metadata());
 
-	bool single_file_request = t->torrent_file().num_files() == 1;
-
-	if (!single_file_request)
-	{
-		// handle incorrect .torrent files which are multi-file
-		// but have web seeds not ending with a slash
-		if (m_path.empty() || m_path[m_path.size() - 1] != '/') m_path += "/";
-		if (m_url.empty() || m_url[m_url.size() - 1] != '/') m_url += "/";
-	}
-	else
-	{
-		// handle .torrent files that don't include the filename in the url
-		if (m_path.empty()) m_path += "/" + t->torrent_file().name();
-		else if (m_path[m_path.size() - 1] == '/')
-		{
-			std::string tmp = t->torrent_file().files().file_path(0);
-#ifdef TORRENT_WINDOWS
-			convert_path_to_posix(tmp);
-#endif
-			m_path += tmp;
-		}
-		else if (!m_url.empty() && m_url[m_url.size() - 1] == '/')
-		{
-			std::string tmp = t->torrent_file().files().file_path(0);
-#ifdef TORRENT_WINDOWS
-			convert_path_to_posix(tmp);
-#endif
-			m_url += tmp;
-		}
-	}
-
 	torrent_info const& info = t->torrent_file();
 	peer_request req = r;
 
@@ -315,8 +315,9 @@ void web_peer_connection::write_request(peer_request const& r)
 		size -= pr.length;
 	}
 
-	int proxy_type = m_settings.get_int(settings_pack::proxy_type);
-	bool using_proxy = (proxy_type == settings_pack::http
+	bool const single_file_request = t->torrent_file().num_files() == 1;
+	int const proxy_type = m_settings.get_int(settings_pack::proxy_type);
+	bool const using_proxy = (proxy_type == settings_pack::http
 		|| proxy_type == settings_pack::http_pw) && !m_ssl;
 
 	// the number of pad files that have been "requested". In case we _only_
@@ -585,9 +586,8 @@ void web_peer_connection::handle_redirect(int bytes_left)
 		return;
 	}
 
-	bool single_file_request = false;
-	if (!m_path.empty() && m_path[m_path.size() - 1] != '/')
-		single_file_request = true;
+	bool const single_file_request = !m_path.empty()
+		&& m_path[m_path.size() - 1] != '/';
 
 	// add the redirected url and remove the current one
 	if (!single_file_request)
