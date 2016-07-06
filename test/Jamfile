@@ -3,16 +3,28 @@ import feature : feature ;
 
 use-project /torrent : .. ;
 
-exe test_natpmp : test_natpmp.cpp /torrent//torrent
-	: <invariant-checks>full
+exe test_natpmp : test_natpmp.cpp
+	: # requirements
+	<library>/torrent//torrent
+	<export-extra>on
+	: # default-build
+	<threading>multi
+	<asserts>on
+	<invariant-checks>full
 	<link>shared
 	<picker-debugging>on
 	<debug-iterators>on
 	<logging>on
 	;
 
-exe enum_if : enum_if.cpp /torrent//torrent
-	: <invariant-checks>full
+exe enum_if : enum_if.cpp
+	: # requirements
+	<library>/torrent//torrent
+	<export-extra>on
+	: # default-build
+	<threading>multi
+	<asserts>on
+	<invariant-checks>full
 	<link>shared
 	<picker-debugging>on
 	<debug-iterators>on
