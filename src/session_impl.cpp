@@ -3735,9 +3735,9 @@ namespace aux {
 		struct opt_unchoke_candidate
 		{
 			opt_unchoke_candidate(boost::shared_ptr<peer_connection> const* tp
-				, std::vector<boost::shared_ptr<plugin>>* plugins)
+				, std::vector<boost::shared_ptr<plugin>>* ps)
 				: peer(tp)
-				, plugins(plugins)
+				, plugins(ps)
 				, ext_priority(std::numeric_limits<uint64_t>::max())
 			{}
 
