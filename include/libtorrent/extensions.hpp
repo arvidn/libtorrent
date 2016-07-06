@@ -266,7 +266,8 @@ namespace libtorrent
 		// indicates the peer's priority for unchoking. Lower return values correspond
 		// to higher priority. If your plugin expects this to be called, make
 		// sure to include the flag ``optimistic_unchoke_feature`` in the return
-		// value from implemented_features().
+		// value from implemented_features(). If multiple plugins implement this function
+		// the lowest return value (i.e. the highest priority) is used.
 		virtual uint64_t get_unchoke_priority(peer_connection_handle /* peer */)
 		{ return std::numeric_limits<uint64_t>::max(); }
 
