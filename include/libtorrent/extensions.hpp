@@ -173,6 +173,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/sha1_hash.hpp" // for sha1_hash
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/session_handle.hpp"
+#include "libtorrent/peer_connection_handle.hpp"
 #include "libtorrent/aux_/array_view.hpp"
 
 namespace libtorrent
@@ -185,7 +186,6 @@ namespace libtorrent
 	class alert;
 	struct torrent_plugin;
 	struct add_torrent_params;
-	struct peer_connection_handle;
 	struct torrent_handle;
 
 	// this is the base class for a session plugin. One primary feature
@@ -262,15 +262,16 @@ namespace libtorrent
 		// ``tick_feature`` in the return value from implemented_features().
 		virtual void on_tick() {}
 
-		// called when choosing peers to optimistically unchoke. peer's will be
-		// unchoked in the order they appear in the given vector. if
-		// the plugin returns true then the ordering provided will be used and no
-		// other plugin will be allowed to change it. If your plugin expects this
-		// to be called, make sure to include the flag
-		// ``optimistic_unchoke_feature`` in the return value from
-		// implemented_features().
-		virtual bool on_optimistic_unchoke(std::vector<peer_connection_handle>& /* peers */)
-		{ return false; }
+		// called when choosing peers to optimistically unchoke. The return value
+		// indicates the peer's priority for unchoking. Lower return values
+		// correspond to higher priority. Priorities above 2^63-1 are reserved.
+		// If your plugin has no priority to assign a peer it should return 2^64-1.
+		// If your plugin expects this to be called, make sure to include the flag
+		// ``optimistic_unchoke_feature`` in the return value from implemented_features().
+		// If multiple plugins implement this function the lowest return value
+		// (i.e. the highest priority) is used.
+		virtual uint64_t get_unchoke_priority(peer_connection_handle /* peer */)
+		{ return std::numeric_limits<uint64_t>::max(); }
 
 		// called when saving settings state
 		virtual void save_state(entry&) const {}

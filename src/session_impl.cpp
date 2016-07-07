@@ -3732,12 +3732,69 @@ namespace aux {
 	}
 
 	namespace {
-		bool last_optimistic_unchoke_cmp(torrent_peer const* const l
-			, torrent_peer const* const r)
+		uint64_t const priority_undetermined = std::numeric_limits<uint64_t>::max() - 1;
+
+		struct opt_unchoke_candidate
 		{
-			return l->last_optimistically_unchoked
-				< r->last_optimistically_unchoked;
-		}
+			opt_unchoke_candidate(boost::shared_ptr<peer_connection> const* tp)
+				: peer(tp)
+			{}
+
+			boost::shared_ptr<peer_connection> const* peer;
+#ifndef TORRENT_DISABLE_EXTENSIONS
+			// this is mutable because comparison functors passed to std::partial_sort
+			// are not supposed to modify the elements they are sorting. Here the mutation
+			// being applied is idempotent so it should not pose a problem.
+			mutable uint64_t ext_priority = priority_undetermined;
+#endif
+		};
+
+		struct last_optimistic_unchoke_cmp
+		{
+#ifndef TORRENT_DISABLE_EXTENSIONS
+			last_optimistic_unchoke_cmp(std::vector<boost::shared_ptr<plugin>>& ps)
+				: plugins(ps)
+			{}
+
+			std::vector<boost::shared_ptr<plugin>>& plugins;
+#endif
+
+			uint64_t get_ext_priority(opt_unchoke_candidate const& peer) const
+			{
+#ifndef TORRENT_DISABLE_EXTENSIONS
+				if (peer.ext_priority == priority_undetermined)
+				{
+					peer.ext_priority = std::numeric_limits<uint64_t>::max();
+					for (auto& e : plugins)
+					{
+						uint64_t const priority = e->get_unchoke_priority(peer_connection_handle(*peer.peer));
+						peer.ext_priority = (std::min)(priority, peer.ext_priority);
+					}
+				}
+				return peer.ext_priority;
+#else
+				TORRENT_UNUSED(peer);
+				return std::numeric_limits<uint64_t>::max();
+#endif
+			}
+
+			bool operator()(opt_unchoke_candidate const& l
+				, opt_unchoke_candidate const& r) const
+			{
+				torrent_peer* pil = (*l.peer)->peer_info_struct();
+				torrent_peer* pir = (*r.peer)->peer_info_struct();
+				if (pil->last_optimistically_unchoked
+					!= pir->last_optimistically_unchoked)
+				{
+					return pil->last_optimistically_unchoked
+						< pir->last_optimistically_unchoked;
+				}
+				else
+				{
+					return get_ext_priority(l) < get_ext_priority(r);
+				}
+			}
+		};
 	}
 
 	void session_impl::recalculate_optimistic_unchoke_slots()
@@ -3747,7 +3804,7 @@ namespace aux {
 		TORRENT_ASSERT(is_single_thread());
 		if (m_stats_counters[counters::num_unchoke_slots] == 0) return;
 
-		std::vector<torrent_peer*> opt_unchoke;
+		std::vector<opt_unchoke_candidate> opt_unchoke;
 
 		// collect the currently optimistically unchoked peers here, so we can
 		// choke them when we've found new optimistic unchoke candidates.
@@ -3760,10 +3817,9 @@ namespace aux {
 		// collect the n best candidates. maybe just a queue of peers would make
 		// even more sense, just pick the next peer in the queue for unchoking. It
 		// would be O(1).
-		for (connection_map::iterator i = m_connections.begin()
-			, end(m_connections.end()); i != end; ++i)
+		for (auto& i : m_connections)
 		{
-			peer_connection* p = i->get();
+			peer_connection* p = i.get();
 			TORRENT_ASSERT(p);
 			torrent_peer* pi = p->peer_info_struct();
 			if (!pi) continue;
@@ -3789,7 +3845,7 @@ namespace aux {
 				&& !p->ignore_unchoke_slots()
 				&& t->valid_metadata())
 			{
-				opt_unchoke.push_back(pi);
+				opt_unchoke.emplace_back(&i);
 			}
 		}
 
@@ -3805,46 +3861,22 @@ namespace aux {
 		// find the n best optimistic unchoke candidates
 		std::partial_sort(opt_unchoke.begin()
 			, opt_unchoke.begin() + num_opt_unchoke
-			, opt_unchoke.end(), &last_optimistic_unchoke_cmp);
-
+			, opt_unchoke.end()
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		auto const& plugins = m_ses_extensions[plugins_optimistic_unchoke_idx];
-		if (plugins.size() > 0)
-		{
-			// if there is an extension that wants to reorder the optimistic
-			// unchoke peers, first convert the vector into one containing
-			// peer_connection_handles, since that's the exported API
-			std::vector<peer_connection_handle> peers;
-			peers.reserve(opt_unchoke.size());
-			for (std::vector<torrent_peer*>::iterator i = opt_unchoke.begin()
-				, end(opt_unchoke.end()); i != end; ++i)
-			{
-				peers.push_back(peer_connection_handle(static_cast<peer_connection*>((*i)->connection)->self()));
-			}
-			for (auto& e : plugins)
-			{
-				if (e->on_optimistic_unchoke(peers))
-					break;
-			}
-			// then convert back to the internal torrent_peer pointers
-			opt_unchoke.clear();
-			for (std::vector<peer_connection_handle>::iterator i = peers.begin()
-				, end(peers.end()); i != end; ++i)
-			{
-				opt_unchoke.push_back(i->native_handle()->peer_info_struct());
-			}
-		}
+			, last_optimistic_unchoke_cmp(m_ses_extensions[plugins_optimistic_unchoke_idx])
+#else
+			, last_optimistic_unchoke_cmp()
 #endif
+			);
 
 		// unchoke the first num_opt_unchoke peers in the candidate set
 		// and make sure that the others are choked
-		std::vector<torrent_peer*>::iterator opt_unchoke_end = opt_unchoke.begin()
+		auto opt_unchoke_end = opt_unchoke.begin()
 			+ num_opt_unchoke;
 
-		for (std::vector<torrent_peer*>::iterator i = opt_unchoke.begin();
-			i != opt_unchoke_end; ++i)
+		for (auto i = opt_unchoke.begin(); i != opt_unchoke_end; ++i)
 		{
-			torrent_peer* pi = *i;
+			torrent_peer* pi = (*i->peer)->peer_info_struct();
 			peer_connection* p = static_cast<peer_connection*>(pi->connection);
 			if (pi->optimistically_unchoked)
 			{
@@ -3882,10 +3914,8 @@ namespace aux {
 		}
 
 		// now, choke all the previous optimistically unchoked peers
-		for (std::vector<torrent_peer*>::iterator i = prev_opt_unchoke.begin()
-			, end(prev_opt_unchoke.end()); i != end; ++i)
+		for (torrent_peer* pi : prev_opt_unchoke)
 		{
-			torrent_peer* pi = *i;
 			TORRENT_ASSERT(pi->optimistically_unchoked);
 			peer_connection* p = static_cast<peer_connection*>(pi->connection);
 			boost::shared_ptr<torrent> t = p->associated_torrent().lock();
