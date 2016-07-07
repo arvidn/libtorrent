@@ -3732,57 +3732,69 @@ namespace aux {
 	}
 
 	namespace {
+		uint64_t const priority_undetermined = std::numeric_limits<uint64_t>::max() - 1;
+
 		struct opt_unchoke_candidate
 		{
-			opt_unchoke_candidate(boost::shared_ptr<peer_connection> const* tp
-				, std::vector<boost::shared_ptr<plugin>>* ps)
+			opt_unchoke_candidate(boost::shared_ptr<peer_connection> const* tp)
 				: peer(tp)
-				, plugins(ps)
-				, ext_priority(std::numeric_limits<uint64_t>::max())
 			{}
 
-			uint64_t get_ext_priority() const
-			{
-#ifndef TORRENT_DISABLE_EXTENSIONS
-				if (plugins)
-				{
-					for (auto& e : *plugins)
-					{
-						uint64_t const priority = e->get_unchoke_priority(peer_connection_handle(*peer));
-						ext_priority = (std::min)(priority, ext_priority);
-					}
-					plugins = nullptr;
-				}
-#endif
-				return ext_priority;
-			}
-
 			boost::shared_ptr<peer_connection> const* peer;
-
-		private:
-			// these are mutable because comparison functors passed to std::partial_sort
+#ifndef TORRENT_DISABLE_EXTENSIONS
+			// this is mutable because comparison functors passed to std::partial_sort
 			// are not supposed to modify the elements they are sorting. Here the mutation
 			// being applied is idempotent so it should not pose a problem.
-			mutable std::vector<boost::shared_ptr<plugin>>* plugins;
-			mutable uint64_t ext_priority;
+			mutable uint64_t ext_priority = priority_undetermined;
+#endif
 		};
 
-		bool last_optimistic_unchoke_cmp(opt_unchoke_candidate const& l
-			, opt_unchoke_candidate const& r)
+		struct last_optimistic_unchoke_cmp
 		{
-			torrent_peer* pil = (*l.peer)->peer_info_struct();
-			torrent_peer* pir = (*r.peer)->peer_info_struct();
-			if (pil->last_optimistically_unchoked
-				!= pir->last_optimistically_unchoked)
+#ifndef TORRENT_DISABLE_EXTENSIONS
+			last_optimistic_unchoke_cmp(std::vector<boost::shared_ptr<plugin>>& ps)
+				: plugins(ps)
+			{}
+
+			std::vector<boost::shared_ptr<plugin>>& plugins;
+#endif
+
+			uint64_t get_ext_priority(opt_unchoke_candidate const& peer) const
 			{
-				return pil->last_optimistically_unchoked
-					< pir->last_optimistically_unchoked;
+#ifndef TORRENT_DISABLE_EXTENSIONS
+				if (peer.ext_priority == priority_undetermined)
+				{
+					peer.ext_priority = std::numeric_limits<uint64_t>::max();
+					for (auto& e : plugins)
+					{
+						uint64_t const priority = e->get_unchoke_priority(peer_connection_handle(*peer.peer));
+						peer.ext_priority = (std::min)(priority, peer.ext_priority);
+					}
+				}
+				return peer.ext_priority;
+#else
+				TORRENT_UNUSED(peer);
+				return std::numeric_limits<uint64_t>::max();
+#endif
 			}
-			else
+
+			bool operator()(opt_unchoke_candidate const& l
+				, opt_unchoke_candidate const& r) const
 			{
-				return l.get_ext_priority() < r.get_ext_priority();
+				torrent_peer* pil = (*l.peer)->peer_info_struct();
+				torrent_peer* pir = (*r.peer)->peer_info_struct();
+				if (pil->last_optimistically_unchoked
+					!= pir->last_optimistically_unchoked)
+				{
+					return pil->last_optimistically_unchoked
+						< pir->last_optimistically_unchoked;
+				}
+				else
+				{
+					return get_ext_priority(l) < get_ext_priority(r);
+				}
 			}
-		}
+		};
 	}
 
 	void session_impl::recalculate_optimistic_unchoke_slots()
@@ -3833,11 +3845,7 @@ namespace aux {
 				&& !p->ignore_unchoke_slots()
 				&& t->valid_metadata())
 			{
-#ifndef TORRENT_DISABLE_EXTENSIONS
-				opt_unchoke.emplace_back(&i, &m_ses_extensions[plugins_optimistic_unchoke_idx]);
-#else
-				opt_unchoke.emplace_back(&i, nullptr);
-#endif
+				opt_unchoke.emplace_back(&i);
 			}
 		}
 
@@ -3853,7 +3861,13 @@ namespace aux {
 		// find the n best optimistic unchoke candidates
 		std::partial_sort(opt_unchoke.begin()
 			, opt_unchoke.begin() + num_opt_unchoke
-			, opt_unchoke.end(), &last_optimistic_unchoke_cmp);
+			, opt_unchoke.end()
+#ifndef TORRENT_DISABLE_EXTENSIONS
+			, last_optimistic_unchoke_cmp(m_ses_extensions[plugins_optimistic_unchoke_idx])
+#else
+			, last_optimistic_unchoke_cmp()
+#endif
+			);
 
 		// unchoke the first num_opt_unchoke peers in the candidate set
 		// and make sure that the others are choked
