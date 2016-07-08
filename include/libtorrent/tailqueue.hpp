@@ -91,6 +91,7 @@ namespace libtorrent
 				swap(rhs);
 				return;
 			}
+			TORRENT_ASSERT(m_last);
 
 			m_last->next = rhs.m_first;
 			m_last = rhs.m_last;

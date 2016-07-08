@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <tuple> // for tie
 #include <cstdlib> // for malloc
-#include <cstring> // for memmov/strcpy/strlen
+#include <cstring> // for memmov/strlen
 
 namespace libtorrent
 {
@@ -148,10 +148,11 @@ namespace libtorrent
 
 	char* allocate_string_copy(char const* str)
 	{
-		if (str == 0) return 0;
-		char* tmp = static_cast<char*>(std::malloc(std::strlen(str) + 1));
-		if (tmp == 0) return 0;
-		std::strcpy(tmp, str);
+		if (str == nullptr) return nullptr;
+		int const len = std::strlen(str) + 1;
+		char* const tmp = static_cast<char*>(std::malloc(len));
+		if (tmp == nullptr) return nullptr;
+		std::memcpy(tmp, str, len);
 		return tmp;
 	}
 

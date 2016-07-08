@@ -5033,8 +5033,6 @@ namespace libtorrent
 		if (m_settings.get_bool(settings_pack::guided_read_cache))
 		{
 			boost::shared_ptr<torrent> t = m_torrent.lock();
-			int upload_rate = m_statistics.upload_payload_rate();
-			if (upload_rate == 0) upload_rate = 1;
 
 			int num_uploads = m_ses.num_uploads();
 			if (num_uploads == 0) num_uploads = 1;

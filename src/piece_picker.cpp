@@ -1029,7 +1029,7 @@ namespace libtorrent
 		int range_start, range_end;
 		priority_range(priority, &range_start, &range_end);
 		TORRENT_ASSERT(range_start < range_end);
-		int other_index = random() % (range_end - range_start) + range_start;
+		int const other_index = random() % (range_end - range_start) + range_start;
 
 		if (other_index == elem_index) return;
 
