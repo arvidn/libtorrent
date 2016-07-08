@@ -275,7 +275,7 @@ std::atomic<int> assert_counter(0);
 #endif
 
 TORRENT_FORMAT(1,2)
-TORRENT_EXPORT void assert_print(char const* fmt, ...)
+TORRENT_EXPORT void assert_print(char const* fmt, ...) /* NOLINT */
 {
 #ifdef TORRENT_PRODUCTION_ASSERTS
 	if (assert_counter > 500) return;
@@ -343,7 +343,7 @@ TORRENT_EXPORT void assert_fail(char const* expr, int line
 #endif
 		, file, line, function, expr
 		, value ? value : "", value ? "\n" : ""
-		, stack);
+		, stack) /* NOLINT */;
 
 	// if production asserts are defined, don't abort, just print the error
 #ifndef TORRENT_PRODUCTION_ASSERTS
