@@ -4450,7 +4450,7 @@ namespace aux {
 
 #ifndef TORRENT_DISABLE_LOGGING
 	TORRENT_FORMAT(2,3)
-	void session_impl::session_log(char const* fmt, ...) const
+	void session_impl::session_log(char const* fmt, ...) const /* NOLINT */
 	{
 		if (!m_alerts.should_post<log_alert>()) return;
 
@@ -6951,7 +6951,7 @@ namespace aux {
 				, response_code, ec.message().c_str(), str.c_str());
 		}
 
-		void tracker_logger::debug_log(const char* fmt, ...) const
+		void tracker_logger::debug_log(const char* fmt, ...) const /* NOLINT */
 		{
 			va_list v;
 			va_start(v, fmt);

@@ -501,7 +501,7 @@ namespace libtorrent
 
 	TORRENT_FORMAT(4,5)
 	void peer_connection::peer_log(peer_log_alert::direction_t direction
-		, char const* event, char const* fmt, ...) const
+		, char const* event, char const* fmt, ...) const /* NOLINT */
 	{
 		TORRENT_ASSERT(is_single_thread());
 

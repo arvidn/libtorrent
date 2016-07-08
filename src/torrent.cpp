@@ -11291,7 +11291,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_LOGGING
 	TORRENT_FORMAT(2,3)
-	void torrent::debug_log(char const* fmt, ...) const
+	void torrent::debug_log(char const* fmt, ...) const /* NOLINT */
 	{
 		if (!alerts().should_post<torrent_log_alert>()) return;
 
