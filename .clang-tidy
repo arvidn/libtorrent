@@ -1,5 +1,5 @@
 ---
-Checks:          '-clang-analyzer-*,cppcoreguidelines-*,cert-*,modernize-*,boost-*,performance-*,misc-*,llvm-*,google-*,-google-readability-todo,-google-build-using-namespace,-google-readability-braces-around-statements,-llvm-include-order,-google-runtime-references,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-cppcoreguidelines-pro-type-static-cast-downcast,-cppcoreguidelines-pro-type-vararg'
+Checks:          '-clang-analyzer-*,cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-type-cstyle-cast,cert-*,modernize-*,boost-*,performance-*,misc-*,llvm-*,google-*,-google-readability-todo,-google-build-using-namespace,-google-readability-braces-around-statements,-llvm-include-order,-google-runtime-references'
 WarningsAsErrors: ''
 HeaderFilterRegex: ''
 AnalyzeTemporaryDtors: false
