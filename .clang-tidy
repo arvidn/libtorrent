@@ -1,5 +1,5 @@
 ---
-Checks:          '-clang-analyzer-*,cert-*,modernize-*,boost-*,performance-*,misc-*,llvm-*,google-*,-google-readability-todo,-google-build-using-namespace,-google-readability-braces-around-statements'
+Checks:          '-clang-analyzer-*,cert-*,modernize-*,boost-*,performance-*,misc-*,llvm-*,google-*,-google-readability-todo,-google-build-using-namespace,-google-readability-braces-around-statements,-llvm-include-order,-google-runtime-references'
 WarningsAsErrors: ''
 HeaderFilterRegex: ''
 AnalyzeTemporaryDtors: false
