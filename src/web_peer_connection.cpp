@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <vector>
-#include <stdlib.h>
+#include <cstdlib>
 #include <cstdio> // for snprintf
 #include <cinttypes> // for PRId64 et.al.
 
@@ -362,12 +362,9 @@ void web_peer_connection::write_request(peer_request const& r)
 		std::vector<file_slice> files = info.orig_files().map_block(req.piece, req.start
 			, req.length);
 
-		for (std::vector<file_slice>::iterator i = files.begin();
-			i != files.end(); ++i)
+		for (auto & f : files)
 		{
-			file_slice const& f = *i;
-
-			file_request_t file_req;
+				file_request_t file_req;
 			file_req.file_index = f.file_index;
 			file_req.start = f.offset;
 			file_req.length = f.size;
@@ -487,7 +484,7 @@ namespace {
 		}
 		return std::tuple<std::int64_t, std::int64_t>(range_start, range_end);
 	}
-}
+} // namespace
 
 // --------------------------
 // RECEIVE DATA
@@ -718,9 +715,8 @@ void web_peer_connection::on_receive(error_code const& error
 			peer_log(peer_log_alert::info, "STATUS"
 				, "%d %s", m_parser.status_code(), m_parser.message().c_str());
 			std::multimap<std::string, std::string> const& headers = m_parser.headers();
-			for (std::multimap<std::string, std::string>::const_iterator i = headers.begin()
-				, end(headers.end()); i != end; ++i)
-				peer_log(peer_log_alert::info, "STATUS", "   %s: %s", i->first.c_str(), i->second.c_str());
+			for (const auto & header : headers)
+				peer_log(peer_log_alert::info, "STATUS", "   %s: %s", header.first.c_str(), header.second.c_str());
 #endif
 
 			// if the status code is not one of the accepted ones, abort
@@ -1088,5 +1084,5 @@ void web_peer_connection::handle_padfile()
 	}
 }
 
-} // libtorrent namespace
+} // namespace libtorrent
 

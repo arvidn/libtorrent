@@ -110,7 +110,7 @@ public:
 	void tick();
 	void bootstrap(std::vector<udp::endpoint> const& nodes
 		, find_data::nodes_callback const& f);
-	void add_router_node(udp::endpoint router);
+	void add_router_node(const udp::endpoint& router);
 
 	void unreachable(udp::endpoint const& ep);
 	void incoming(msg const& m);
@@ -140,21 +140,21 @@ public:
 
 	enum flags_t { flag_seed = 1, flag_implied_port = 2 };
 	void get_peers(sha1_hash const& info_hash
-		, boost::function<void(std::vector<tcp::endpoint> const&)> dcallback
-		, boost::function<void(std::vector<std::pair<node_entry, std::string> > const&)> ncallback
+		, const boost::function<void(std::vector<tcp::endpoint> const&)>& dcallback
+		, const boost::function<void(std::vector<std::pair<node_entry, std::string> > const&)>& ncallback
 		, bool noseeds);
 	void announce(sha1_hash const& info_hash, int listen_port, int flags
-		, boost::function<void(std::vector<tcp::endpoint> const&)> f);
+		, const boost::function<void(std::vector<tcp::endpoint> const&)>& f);
 
-	void direct_request(udp::endpoint ep, entry& e
-		, boost::function<void(msg const&)> f);
+	void direct_request(const udp::endpoint& ep, entry& e
+		, const boost::function<void(msg const&)>& f);
 
 	void get_item(sha1_hash const& target, boost::function<void(item const&)> f);
-	void get_item(char const* pk, std::string const& salt, boost::function<void(item const&, bool)> f);
+	void get_item(char const* pk, std::string const& salt, const boost::function<void(item const&, bool)>& f);
 
 	void put_item(sha1_hash const& target, entry const& data, boost::function<void(int)> f);
 	void put_item(char const* pk, std::string const& salt
-		, boost::function<void(item const&, int)> f
+		, const boost::function<void(item const&, int)>& f
 		, boost::function<void(item&)> data_cb);
 
 	bool verify_token(std::string const& token, char const* info_hash
@@ -172,7 +172,7 @@ public:
 	// pings the given node, and adds it to
 	// the routing table if it respons and if the
 	// bucket is not full.
-	void add_node(udp::endpoint node);
+	void add_node(const udp::endpoint& node);
 
 	void replacement_cache(bucket_t& nodes) const
 	{ m_table.replacement_cache(nodes); }

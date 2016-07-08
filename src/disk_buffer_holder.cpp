@@ -103,4 +103,4 @@ namespace libtorrent
 	}
 
 	disk_buffer_holder::~disk_buffer_holder() { reset(); }
-}
+} // namespace libtorrent

@@ -52,7 +52,7 @@ namespace libtorrent { namespace dht
 		// called every time we receive an incoming packet. Returns
 		// true if we should let the packet through, and false if
 		// it's blocked
-		bool incoming(address addr, time_point now, dht_logger* logger);
+		bool incoming(const address& addr, time_point now, dht_logger* logger);
 
 		void set_rate_limit(int l)
 		{

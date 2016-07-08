@@ -55,7 +55,7 @@ struct put_data: traversal_algorithm
 {
 	typedef boost::function<void(item const&, int)> put_callback;
 
-	put_data(node& node, put_callback const& callback);
+	put_data(node& node, put_callback callback);
 
 	virtual char const* name() const override;
 	virtual void start() override;

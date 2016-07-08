@@ -229,7 +229,7 @@ namespace libtorrent
 			, entry const& resume_data = entry()
 			, storage_mode_t storage_mode = storage_mode_sparse
 			, bool paused = false
-			, storage_constructor_type sc = default_storage_constructor);
+			, const storage_constructor_type& sc = default_storage_constructor);
 
 		// deprecated in 0.14
 		TORRENT_DEPRECATED
@@ -241,7 +241,7 @@ namespace libtorrent
 			, entry const& resume_data = entry()
 			, storage_mode_t storage_mode = storage_mode_sparse
 			, bool paused = false
-			, storage_constructor_type sc = default_storage_constructor
+			, const storage_constructor_type& sc = default_storage_constructor
 			, void* userdata = 0);
 #endif
 #endif

@@ -72,5 +72,5 @@ namespace libtorrent
 		}
 		return ret;
 	}
-}
+} // namespace libtorrent
 

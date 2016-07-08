@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace
 {
-}
+} // namespace
 
 namespace libtorrent
 {
@@ -71,7 +71,7 @@ namespace libtorrent
 			if (sign) buf[--size] = '-';
 			return buf + size;
 		}
-	}
+	} // namespace detail
 
 	namespace
 	{
@@ -91,51 +91,51 @@ namespace libtorrent
 			TORRENT_ASSERT(o);
 			o->~T();
 		}
-	}
+	} // namespace
 
 	entry& entry::operator[](char const* key)
 	{
-		dictionary_type::iterator i = dict().find(key);
+		auto i = dict().find(key);
 		if (i != dict().end()) return i->second;
-		dictionary_type::iterator ret = dict().insert(
+		auto ret = dict().insert(
 			std::pair<const std::string, entry>(key, entry())).first;
 		return ret->second;
 	}
 
 	entry& entry::operator[](std::string const& key)
 	{
-		dictionary_type::iterator i = dict().find(key);
+		auto i = dict().find(key);
 		if (i != dict().end()) return i->second;
-		dictionary_type::iterator ret = dict().insert(
+		auto ret = dict().insert(
 			std::make_pair(key, entry())).first;
 		return ret->second;
 	}
 
 	entry* entry::find_key(char const* key)
 	{
-		dictionary_type::iterator i = dict().find(key);
-		if (i == dict().end()) return 0;
+		auto i = dict().find(key);
+		if (i == dict().end()) return nullptr;
 		return &i->second;
 	}
 
 	entry const* entry::find_key(char const* key) const
 	{
-		dictionary_type::const_iterator i = dict().find(key);
-		if (i == dict().end()) return 0;
+		auto i = dict().find(key);
+		if (i == dict().end()) return nullptr;
 		return &i->second;
 	}
 
 	entry* entry::find_key(std::string const& key)
 	{
-		dictionary_type::iterator i = dict().find(key);
-		if (i == dict().end()) return 0;
+		auto i = dict().find(key);
+		if (i == dict().end()) return nullptr;
 		return &i->second;
 	}
 
 	entry const* entry::find_key(std::string const& key) const
 	{
-		dictionary_type::const_iterator i = dict().find(key);
-		if (i == dict().end()) return 0;
+		auto i = dict().find(key);
+		if (i == dict().end()) return nullptr;
 		return &i->second;
 	}
 
@@ -146,7 +146,7 @@ namespace libtorrent
 
 	const entry& entry::operator[](std::string const& key) const
 	{
-		dictionary_type::const_iterator i = dict().find(key);
+		auto i = dict().find(key);
 		if (i == dict().end()) throw_error();
 		return i->second;
 	}
@@ -691,9 +691,9 @@ namespace libtorrent
 		case string_t:
 			{
 				bool binary_string = false;
-				for (std::string::const_iterator i = string().begin(); i != string().end(); ++i)
+				for (char i : string())
 				{
-					if (!is_print(static_cast<unsigned char>(*i)))
+					if (!is_print(static_cast<unsigned char>(i)))
 					{
 						binary_string = true;
 						break;
@@ -713,18 +713,18 @@ namespace libtorrent
 		case list_t:
 			{
 				out += "list\n";
-				for (list_type::const_iterator i = list().begin(); i != list().end(); ++i)
+				for (const auto & i : list())
 				{
-					i->to_string_impl(out, indent+1);
+					i.to_string_impl(out, indent+1);
 				}
 			} break;
 		case dictionary_t:
 			{
 				out += "dictionary\n";
-				for (dictionary_type::const_iterator i = dict().begin(); i != dict().end(); ++i)
+				for (const auto & i : dict())
 				{
 					bool binary_string = false;
-					for (std::string::const_iterator k = i->first.begin(); k != i->first.end(); ++k)
+					for (std::string::const_iterator k = i.first.begin(); k != i.first.end(); ++k)
 					{
 						if (!is_print(static_cast<unsigned char>(*k)))
 						{
@@ -734,15 +734,15 @@ namespace libtorrent
 					}
 					for (int j = 0; j < indent+1; ++j) out += " ";
 					out += "[";
-					if (binary_string) out += aux::to_hex(i->first);
-					else out += i->first;
+					if (binary_string) out += aux::to_hex(i.first);
+					else out += i.first;
 					out += "]";
 
-					if (i->second.type() != entry::string_t
-						&& i->second.type() != entry::int_t)
+					if (i.second.type() != entry::string_t
+						&& i.second.type() != entry::int_t)
 						out += "\n";
 					else out += " ";
-					i->second.to_string_impl(out, indent+2);
+					i.second.to_string_impl(out, indent+2);
 				}
 			} break;
 		case preformatted_t:
@@ -752,5 +752,5 @@ namespace libtorrent
 			out += "<uninitialized>\n";
 		}
 	}
-}
+} // namespace libtorrent
 

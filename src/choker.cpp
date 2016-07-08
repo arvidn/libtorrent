@@ -259,11 +259,10 @@ namespace libtorrent
 		, aux::session_settings const& sett)
 	{
 #if TORRENT_USE_ASSERTS
-		for (std::vector<peer_connection*>::iterator i = peers.begin()
-			, end(peers.end()); i != end; ++i)
+		for (auto & peer : peers)
 		{
-			TORRENT_ASSERT((*i)->self());
-			TORRENT_ASSERT((*i)->associated_torrent().lock());
+			TORRENT_ASSERT(peer->self());
+			TORRENT_ASSERT(peer->associated_torrent().lock());
 		}
 #endif
 
@@ -314,11 +313,9 @@ namespace libtorrent
 			// until there none left
 			upload_slots = 0;
 
-			for (std::vector<peer_connection*>::iterator i = peers.begin()
-				, end(peers.end()); i != end; ++i)
+			for (auto p : peers)
 			{
-				peer_connection* p = *i;
-				TORRENT_ASSERT(p);
+					TORRENT_ASSERT(p);
 
 				if (p->est_reciprocation_rate() > upload_capacity_left) break;
 
@@ -418,4 +415,4 @@ namespace libtorrent
 		return upload_slots;
 	}
 
-}
+} // namespace libtorrent

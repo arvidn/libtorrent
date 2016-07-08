@@ -125,7 +125,7 @@ namespace libtorrent {
 		void set_notify_function(boost::function<void()> const& fun);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		void add_extension(boost::shared_ptr<plugin> ext);
+		void add_extension(const boost::shared_ptr<plugin>& ext);
 #endif
 
 	private:

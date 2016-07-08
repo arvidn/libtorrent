@@ -46,7 +46,7 @@ namespace libtorrent
 	{
 		// create a part file at 'path', that can hold 'num_pieces' pieces.
 		// each piece being 'piece_size' number of bytes
-		part_file(std::string const& path, std::string const& name, int num_pieces, int piece_size);
+		part_file(std::string path, std::string name, int num_pieces, int piece_size);
 		~part_file();
 
 		int writev(file::iovec_t const* bufs, int num_bufs, int piece, int offset, error_code& ec);

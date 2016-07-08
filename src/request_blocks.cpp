@@ -76,7 +76,7 @@ namespace libtorrent
 		// we don't want to request more blocks while trying to gracefully pause
 		if (t.graceful_pause()) return false;
 
-		TORRENT_ASSERT(c.peer_info_struct() != 0 || c.type() != peer_connection::bittorrent_connection);
+		TORRENT_ASSERT(c.peer_info_struct() != nullptr || c.type() != peer_connection::bittorrent_connection);
 
 		bool time_critical_mode = t.num_time_critical_pieces() > 0;
 
@@ -143,9 +143,8 @@ namespace libtorrent
 
 			// build a bitmask with only the allowed pieces in it
 			fast_mask.resize(c.get_bitfield().size(), false);
-			for (std::vector<int>::const_iterator i = allowed_fast.begin()
-				, end(allowed_fast.end()); i != end; ++i)
-				if ((*bits)[*i]) fast_mask.set_bit(*i);
+			for (int i : allowed_fast)
+				if ((*bits)[i]) fast_mask.set_bit(i);
 			bits = &fast_mask;
 		}
 
@@ -193,19 +192,18 @@ namespace libtorrent
 		// that some other peer is currently downloading
 		piece_block busy_block = piece_block::invalid;
 
-		for (std::vector<piece_block>::iterator i = interesting_pieces.begin();
-			i != interesting_pieces.end(); ++i)
+		for (auto & interesting_piece : interesting_pieces)
 		{
 			if (prefer_contiguous_blocks == 0 && num_requests <= 0) break;
 
-			if (time_critical_mode && p.piece_priority(i->piece_index) != 7)
+			if (time_critical_mode && p.piece_priority(interesting_piece.piece_index) != 7)
 			{
 				// assume the subsequent pieces are not prio 7 and
 				// be done
 				break;
 			}
 
-			int num_block_requests = p.num_peers(*i);
+			int num_block_requests = p.num_peers(interesting_piece);
 			if (num_block_requests > 0)
 			{
 				// have we picked enough pieces?
@@ -216,30 +214,30 @@ namespace libtorrent
 				// as well just exit the loop
 				if (dont_pick_busy_blocks) break;
 
-				TORRENT_ASSERT(p.num_peers(*i) > 0);
-				busy_block = *i;
+				TORRENT_ASSERT(p.num_peers(interesting_piece) > 0);
+				busy_block = interesting_piece;
 				continue;
 			}
 
-			TORRENT_ASSERT(p.num_peers(*i) == 0);
+			TORRENT_ASSERT(p.num_peers(interesting_piece) == 0);
 
 			// don't request pieces we already have in our request queue
 			// This happens when pieces time out or the peer sends us
 			// pieces we didn't request. Those aren't marked in the
 			// piece picker, but we still keep track of them in the
 			// download queue
-			if (std::find_if(dq.begin(), dq.end(), has_block(*i)) != dq.end()
-				|| std::find_if(rq.begin(), rq.end(), has_block(*i)) != rq.end())
+			if (std::find_if(dq.begin(), dq.end(), has_block(interesting_piece)) != dq.end()
+				|| std::find_if(rq.begin(), rq.end(), has_block(interesting_piece)) != rq.end())
 			{
 #if TORRENT_USE_ASSERTS
-				std::vector<pending_block>::const_iterator j
-					= std::find_if(dq.begin(), dq.end(), has_block(*i));
+				auto j
+					= std::find_if(dq.begin(), dq.end(), has_block(interesting_piece));
 				if (j != dq.end()) TORRENT_ASSERT(j->timed_out || j->not_wanted);
 #endif
 #ifndef TORRENT_DISABLE_LOGGING
 				c.peer_log(peer_log_alert::info, "PIECE_PICKER"
 					, "not_picking: %d,%d already in queue"
-					, i->piece_index, i->block_index);
+					, interesting_piece.piece_index, interesting_piece.block_index);
 #endif
 				continue;
 			}
@@ -247,9 +245,9 @@ namespace libtorrent
 			// ok, we found a piece that's not being downloaded
 			// by somebody else. request it from this peer
 			// and return
-			if (!c.add_request(*i, 0)) continue;
-			TORRENT_ASSERT(p.num_peers(*i) == 1);
-			TORRENT_ASSERT(p.is_requested(*i));
+			if (!c.add_request(interesting_piece, 0)) continue;
+			TORRENT_ASSERT(p.num_peers(interesting_piece) == 1);
+			TORRENT_ASSERT(p.is_requested(interesting_piece));
 			num_requests--;
 		}
 
@@ -297,5 +295,5 @@ namespace libtorrent
 		return true;
 	}
 
-}
+} // namespace libtorrent
 

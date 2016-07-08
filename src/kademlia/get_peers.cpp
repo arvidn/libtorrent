@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DISABLE_LOGGING
 #include <libtorrent/hex.hpp> // to_hex
 #endif
+#include <utility>
 
 namespace libtorrent { namespace dht
 {
@@ -126,11 +127,11 @@ void get_peers::got_peers(std::vector<tcp::endpoint> const& peers)
 get_peers::get_peers(
 	node& dht_node
 	, node_id target
-	, data_callback const& dcallback
+	, data_callback dcallback
 	, nodes_callback const& ncallback
 	, bool noseeds)
 	: find_data(dht_node, target, ncallback)
-	, m_data_callback(dcallback)
+	, m_data_callback(std::move(dcallback))
 	, m_noseeds(noseeds)
 {
 }
@@ -225,10 +226,9 @@ bool obfuscated_get_peers::invoke(observer_ptr o)
 		// our node-list for this traversal algorithm, to
 		// allow the get_peers traversal to regress in case
 		// nodes further down end up being dead
-		for (std::vector<observer_ptr>::iterator i = m_results.begin()
-			, end(m_results.end()); i != end; ++i)
+		for (auto & m_result : m_results)
 		{
-			observer* const node = i->get();
+			observer* const node = m_result.get();
 			// don't re-request from nodes that didn't respond
 			if (node->flags & observer::flag_failed) continue;
 			// don't interrupt with queries that are already in-flight
@@ -292,7 +292,7 @@ void obfuscated_get_peers::done()
 #endif
 
 	int num_added = 0;
-	for (std::vector<observer_ptr>::iterator i = m_results.begin()
+	for (auto i = m_results.begin()
 		, end(m_results.end()); i != end && num_added < 16; ++i)
 	{
 		observer_ptr o = *i;
@@ -340,4 +340,5 @@ void obfuscated_get_peers_observer::reply(msg const& m)
 	done();
 }
 
-} } // namespace libtorrent::dht
+} // namespace dht
+ } // namespace libtorrent

@@ -108,19 +108,19 @@ namespace libtorrent { namespace
 		bool need_loaded()
 		{ return m_torrent.need_loaded(); }
 
-		virtual void on_unload() override
+		void on_unload() override
 		{
 			m_metadata.reset();
 		}
 
-		virtual void on_load() override
+		void on_load() override
 		{
 			// initialize m_metadata_size
 			TORRENT_ASSERT(m_torrent.is_loaded());
 			metadata();
 		}
 
-		virtual void on_files_checked() override
+		void on_files_checked() override
 		{
 			// TODO: 2 if we were to initialize m_metadata_size lazily instead,
 			// we would probably be more efficient
@@ -128,7 +128,7 @@ namespace libtorrent { namespace
 			metadata();
 		}
 
-		virtual boost::shared_ptr<peer_plugin> new_connection(
+		boost::shared_ptr<peer_plugin> new_connection(
 			peer_connection_handle const& pc) override;
 
 		int get_metadata_size() const
@@ -231,10 +231,10 @@ namespace libtorrent { namespace
 			, m_tp(tp)
 		{}
 
-		virtual char const* type() const override { return "ut_metadata"; }
+		char const* type() const override { return "ut_metadata"; }
 
 		// can add entries to the extension handshake
-		virtual void add_handshake(entry& h) override
+		void add_handshake(entry& h) override
 		{
 			entry& messages = h["m"];
 			messages["ut_metadata"] = 2;
@@ -243,7 +243,7 @@ namespace libtorrent { namespace
 		}
 
 		// called when the extension handshake from the other end is received
-		virtual bool on_extension_handshake(bdecode_node const& h) override
+		bool on_extension_handshake(bdecode_node const& h) override
 		{
 			m_message_index = 0;
 			if (h.type() != bdecode_node::dict_t) return false;
@@ -284,7 +284,7 @@ namespace libtorrent { namespace
 			e["msg_type"] = type;
 			e["piece"] = piece;
 
-			char const* metadata = 0;
+			char const* metadata = nullptr;
 			int metadata_piece_size = 0;
 
 			if (m_torrent.valid_metadata())
@@ -328,7 +328,7 @@ namespace libtorrent { namespace
 			m_pc.stats_counters().inc_stats_counter(counters::num_outgoing_metadata);
 		}
 
-		virtual bool on_extended(int length
+		bool on_extended(int length
 			, int extended_msg, buffer::const_interval body) override
 		{
 			if (extended_msg != 2) return false;
@@ -360,8 +360,8 @@ namespace libtorrent { namespace
 
 			entry const* type_ent = msg.find_key("msg_type");
 			entry const* piece_ent = msg.find_key("piece");
-			if (type_ent == 0 || type_ent->type() != entry::int_t
-				|| piece_ent == 0 || piece_ent->type() != entry::int_t)
+			if (type_ent == nullptr || type_ent->type() != entry::int_t
+				|| piece_ent == nullptr || piece_ent->type() != entry::int_t)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
 				m_pc.peer_log(peer_log_alert::incoming_message, "UT_METADATA"
@@ -405,7 +405,7 @@ namespace libtorrent { namespace
 				break;
 				case metadata_piece:
 				{
-					std::vector<int>::iterator i = std::find(m_sent_requests.begin()
+					auto i = std::find(m_sent_requests.begin()
 						, m_sent_requests.end(), piece);
 
 					// unwanted piece?
@@ -428,7 +428,7 @@ namespace libtorrent { namespace
 				case metadata_dont_have:
 				{
 					m_request_limit = (std::max)(aux::time_now() + minutes(1), m_request_limit);
-					std::vector<int>::iterator i = std::find(m_sent_requests.begin()
+					auto i = std::find(m_sent_requests.begin()
 						, m_sent_requests.end(), piece);
 					// unwanted piece?
 					if (i == m_sent_requests.end()) return true;
@@ -445,7 +445,7 @@ namespace libtorrent { namespace
 			return true;
 		}
 
-		virtual void tick() override
+		void tick() override
 		{
 			maybe_send_request();
 			while (!m_incoming_requests.empty()
@@ -527,7 +527,7 @@ namespace libtorrent { namespace
 	// from requesting this block by setting a timeout on it.
 	int ut_metadata_plugin::metadata_request(bool has_metadata)
 	{
-		std::vector<metadata_piece>::iterator i = std::min_element(
+		auto i = std::min_element(
 			m_requested_metadata.begin(), m_requested_metadata.end());
 
 		if (m_requested_metadata.empty())
@@ -637,11 +637,11 @@ namespace libtorrent { namespace
 				// if we only have one block, and thus requested it from a single
 				// peer, we bump up the retry time a lot more to try other peers
 				bool single_peer = m_requested_metadata.size() == 1;
-				for (int i = 0; i < int(m_requested_metadata.size()); ++i)
+				for (auto & i : m_requested_metadata)
 				{
-					m_requested_metadata[i].num_requests = 0;
+					i.num_requests = 0;
 					boost::shared_ptr<ut_metadata_peer_plugin> peer
-						= m_requested_metadata[i].source.lock();
+						= i.source.lock();
 					if (!peer) continue;
 
 					peer->failed_hash_check(single_peer ? now + minutes(5) : now);
@@ -662,7 +662,8 @@ namespace libtorrent { namespace
 		return true;
 	}
 
-} }
+} // namespace
+ } // namespace libtorrent
 
 namespace libtorrent
 {
@@ -675,7 +676,7 @@ namespace libtorrent
 		return boost::shared_ptr<torrent_plugin>(new ut_metadata_plugin(*t));
 	}
 
-}
+} // namespace libtorrent
 
 #endif
 

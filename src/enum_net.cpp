@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <functional>
 #include <vector>
-#include <stdlib.h> // for wcstombscstombs
+#include <cstdlib> // for wcstombscstombs
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -50,7 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <net/if.h>
-#include <string.h>
+#include <cstring>
 #endif
 
 #if TORRENT_USE_SYSCTL
@@ -248,7 +248,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		{
 			if ((rtm->rtm_addrs & (1 << i)) == 0)
 			{
-				rti_info[i] = 0;
+				rti_info[i] = nullptr;
 				continue;
 			}
 			rti_info[i] = sa;
@@ -262,9 +262,9 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		}
 
 		sa = rti_info[RTAX_GATEWAY];
-		if (sa == 0
-			|| rti_info[RTAX_DST] == 0
-			|| rti_info[RTAX_NETMASK] == 0
+		if (sa == nullptr
+			|| rti_info[RTAX_DST] == nullptr
+			|| rti_info[RTAX_NETMASK] == nullptr
 			|| (sa->sa_family != AF_INET
 #if TORRENT_USE_IPV6
 				&& sa->sa_family != AF_INET6
@@ -319,7 +319,8 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 	}
 #endif
 
-}} // <anonymous>
+} // namespace
+} // namespace libtorrent
 
 namespace libtorrent
 {
@@ -361,10 +362,9 @@ namespace libtorrent
 
 	bool in_local_network(std::vector<ip_interface> const& net, address const& addr)
 	{
-		for (std::vector<ip_interface>::const_iterator i = net.begin()
-			, end(net.end()); i != end; ++i)
+		for (const auto & i : net)
 		{
-			if (match_addr_mask(addr, i->interface_address, i->netmask))
+			if (match_addr_mask(addr, i.interface_address, i.netmask))
 				return true;
 		}
 		return false;
@@ -454,7 +454,7 @@ namespace libtorrent
 
 		for (ifaddrs* ifa = ifaddr; ifa; ifa = ifa->ifa_next)
 		{
-			if (ifa->ifa_addr == 0) continue;
+			if (ifa->ifa_addr == nullptr) continue;
 			if ((ifa->ifa_flags & IFF_UP) == 0) continue;
 
 			int family = ifa->ifa_addr->sa_family;
@@ -699,7 +699,7 @@ namespace libtorrent
 	address get_default_gateway(io_service& ios, error_code& ec)
 	{
 		std::vector<ip_route> ret = enum_routes(ios, ec);
-		std::vector<ip_route>::iterator i = std::find_if(ret.begin(), ret.end()
+		auto i = std::find_if(ret.begin(), ret.end()
 			, [](ip_route const& r) { return r.destination == address(); });
 		if (i == ret.end()) return address();
 		return i->gateway;
@@ -847,7 +847,7 @@ namespace libtorrent
 #ifdef TORRENT_OS2
 	if (__libsocket_sysctl(mib, 6, 0, &needed, 0, 0) < 0)
 #else
-	if (sysctl(mib, 6, 0, &needed, 0, 0) < 0)
+	if (sysctl(mib, 6, nullptr, &needed, nullptr, 0) < 0)
 #endif
 	{
 		ec = error_code(errno, system_category());
@@ -860,7 +860,7 @@ namespace libtorrent
 	}
 
 	boost::scoped_array<char> buf(new (std::nothrow) char[needed]);
-	if (buf.get() == 0)
+	if (buf.get() == nullptr)
 	{
 		ec = boost::asio::error::no_memory;
 		return std::vector<ip_route>();
@@ -869,7 +869,7 @@ namespace libtorrent
 #ifdef TORRENT_OS2
 	if (__libsocket_sysctl(mib, 6, buf.get(), &needed, 0, 0) < 0)
 #else
-	if (sysctl(mib, 6, buf.get(), &needed, 0, 0) < 0)
+	if (sysctl(mib, 6, buf.get(), &needed, nullptr, 0) < 0)
 #endif
 	{
 		ec = error_code(errno, system_category());
@@ -1131,22 +1131,22 @@ namespace libtorrent
 		std::vector<ip_interface> ifs = enum_net_interfaces(ios, ec);
 		if (ec) return false;
 
-		for (int i = 0; i < int(ifs.size()); ++i)
-			if (ifs[i].name == name) return true;
+		for (auto & i : ifs)
+			if (i.name == name) return true;
 		return false;
 	}
 
 	// returns the device name whose local address is ``addr``. If
 	// no such device is found, an empty string is returned.
-	std::string device_for_address(address addr, io_service& ios, error_code& ec)
+	std::string device_for_address(const address& addr, io_service& ios, error_code& ec)
 	{
 		std::vector<ip_interface> ifs = enum_net_interfaces(ios, ec);
 		if (ec) return std::string();
 
-		for (int i = 0; i < int(ifs.size()); ++i)
-			if (ifs[i].interface_address == addr) return ifs[i].name;
+		for (auto & i : ifs)
+			if (i.interface_address == addr) return i.name;
 		return std::string();
 	}
-}
+} // namespace libtorrent
 
 

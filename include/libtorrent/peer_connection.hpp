@@ -332,7 +332,7 @@ namespace libtorrent
 		void send_allowed_set();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		void add_extension(boost::shared_ptr<peer_plugin>);
+		void add_extension(const boost::shared_ptr<peer_plugin>&);
 		peer_plugin const* find_plugin(char const* type);
 #endif
 
@@ -793,7 +793,7 @@ namespace libtorrent
 		void on_disk_read_complete(disk_io_job const* j, peer_request r
 			, time_point issue_time);
 		void on_disk_write_complete(disk_io_job const* j
-			, peer_request r, boost::shared_ptr<torrent> t);
+			, peer_request r, const boost::shared_ptr<torrent>& t);
 		void on_seed_mode_hashed(disk_io_job const* j);
 		int request_timeout() const;
 		void check_graceful_pause();

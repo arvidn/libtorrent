@@ -127,7 +127,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_LOGGING
 			boost::shared_ptr<request_callback> cb = requester();
-			if (cb) cb->debug_log("*** UDP_TRACKER [ initiating name lookup: \"%s\" ]"
+			if (cb) cb->debug_log(R"(*** UDP_TRACKER [ initiating name lookup: "%s" ])"
 				, hostname.c_str());
 #endif
 		}
@@ -142,7 +142,7 @@ namespace libtorrent
 		, char const* msg, int interval, int min_interval)
 	{
 		// m_target failed. remove it from the endpoint list
-		std::vector<tcp::endpoint>::iterator i = std::find(m_endpoints.begin()
+		auto i = std::find(m_endpoints.begin()
 			, m_endpoints.end(), tcp::endpoint(m_target.address(), m_target.port()));
 
 		if (i != m_endpoints.end()) m_endpoints.erase(i);
@@ -156,7 +156,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_LOGGING
 		boost::shared_ptr<request_callback> cb = requester();
-		if (cb) cb->debug_log("*** UDP_TRACKER [ host: \"%s\" ip: \"%s\" | error: \"%s\" ]"
+		if (cb) cb->debug_log(R"(*** UDP_TRACKER [ host: "%s" ip: "%s" | error: "%s" ])"
 			, m_hostname.c_str(), print_endpoint(m_target).c_str(), ec.message().c_str());
 #endif
 
@@ -164,7 +164,7 @@ namespace libtorrent
 		m_target = pick_target_endpoint();
 
 #ifndef TORRENT_DISABLE_LOGGING
-		if (cb) cb->debug_log("*** UDP_TRACKER trying next IP [ host: \"%s\" ip: \"%s\" ]"
+		if (cb) cb->debug_log(R"(*** UDP_TRACKER trying next IP [ host: "%s" ip: "%s" ])"
 			, m_hostname.c_str(), print_endpoint(m_target).c_str());
 #endif
 		get_io_service().post(std::bind(
@@ -205,14 +205,13 @@ namespace libtorrent
 		// we're listening on. To make sure the tracker get our
 		// correct listening address.
 
-		for (std::vector<address>::const_iterator i = addresses.begin()
-			, end(addresses.end()); i != end; ++i)
-			m_endpoints.push_back(tcp::endpoint(*i, port));
+		for (const auto & addresse : addresses)
+			m_endpoints.push_back(tcp::endpoint(addresse, port));
 
 		if (tracker_req().filter)
 		{
 			// remove endpoints that are filtered by the IP filter
-			for (std::vector<tcp::endpoint>::iterator k = m_endpoints.begin();
+			for (auto k = m_endpoints.begin();
 				k != m_endpoints.end();)
 			{
 				if (tracker_req().filter->access(k->address()) == ip_filter::blocked) 
@@ -242,7 +241,7 @@ namespace libtorrent
 
 	udp::endpoint udp_tracker_connection::pick_target_endpoint() const
 	{
-		std::vector<tcp::endpoint>::const_iterator iter = m_endpoints.begin();
+		auto iter = m_endpoints.begin();
 		udp::endpoint target = udp::endpoint(iter->address(), iter->port());
 
 		if (bind_interface() != address_v4::any())
@@ -281,7 +280,7 @@ namespace libtorrent
 	void udp_tracker_connection::start_announce()
 	{
 		std::unique_lock<std::mutex> l(m_cache_mutex);
-		std::map<address, connection_cache_entry>::iterator cc
+		auto cc
 			= m_connection_cache.find(m_target.address());
 		if (cc != m_connection_cache.end())
 		{
@@ -548,7 +547,7 @@ namespace libtorrent
 	{
 		if (m_abort) return;
 
-		std::map<address, connection_cache_entry>::iterator i
+		auto i
 			= m_connection_cache.find(m_target.address());
 		// this isn't really supposed to happen
 		TORRENT_ASSERT(i != m_connection_cache.end());
@@ -709,7 +708,7 @@ namespace libtorrent
 		bool const stats = req.send_stats;
 		aux::session_settings const& settings = m_man.settings();
 
-		std::map<address, connection_cache_entry>::iterator i
+		auto i
 			= m_connection_cache.find(m_target.address());
 		// this isn't really supposed to happen
 		TORRENT_ASSERT(i != m_connection_cache.end());
@@ -791,5 +790,5 @@ namespace libtorrent
 		}
 	}
 
-}
+} // namespace libtorrent
 

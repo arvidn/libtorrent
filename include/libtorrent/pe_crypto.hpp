@@ -105,10 +105,10 @@ namespace libtorrent
 		int decrypt(crypto_receive_buffer& recv_buffer
 			, std::size_t& bytes_transferred);
 
-		bool switch_send_crypto(boost::shared_ptr<crypto_plugin> crypto
+		bool switch_send_crypto(const boost::shared_ptr<crypto_plugin>& crypto
 			, int pending_encryption);
 
-		void switch_recv_crypto(boost::shared_ptr<crypto_plugin> crypto
+		void switch_recv_crypto(const boost::shared_ptr<crypto_plugin>& crypto
 			, crypto_receive_buffer& recv_buffer);
 
 		bool is_send_plaintext() const

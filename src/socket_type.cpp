@@ -392,5 +392,5 @@ namespace libtorrent
 	{ TORRENT_SOCKTYPE_FORWARD_RET(available(), 0) }
 #endif
 
-}
+} // namespace libtorrent
 

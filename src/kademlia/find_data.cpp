@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/hex.hpp> // to_hex
 #endif
 
+#include <utility>
 #include <vector>
 
 namespace libtorrent { namespace dht
@@ -89,9 +90,9 @@ void find_data_observer::reply(msg const& m)
 find_data::find_data(
 	node& dht_node
 	, node_id target
-	, nodes_callback const& ncallback)
+	, nodes_callback ncallback)
 	: traversal_algorithm(dht_node, target)
-	, m_nodes_callback(ncallback)
+	, m_nodes_callback(std::move(ncallback))
 	, m_done(false)
 {
 }
@@ -105,10 +106,9 @@ void find_data::start()
 		std::vector<node_entry> nodes;
 		m_node.m_table.find_node(m_target, nodes, routing_table::include_failed);
 
-		for (std::vector<node_entry>::iterator i = nodes.begin()
-			, end(nodes.end()); i != end; ++i)
+		for (auto & node : nodes)
 		{
-			add_entry(i->id, i->ep(), observer::flag_initial);
+			add_entry(node.id, node.ep(), observer::flag_initial);
 		}
 	}
 
@@ -149,7 +149,7 @@ void find_data::done()
 
 	std::vector<std::pair<node_entry, std::string> > results;
 	int num_results = m_node.m_table.bucket_size();
-	for (std::vector<observer_ptr>::iterator i = m_results.begin()
+	for (auto i = m_results.begin()
 		, end(m_results.end()); i != end && num_results > 0; ++i)
 	{
 		observer_ptr const& o = *i;
@@ -161,7 +161,7 @@ void find_data::done()
 #endif
 			continue;
 		}
-		std::map<node_id, std::string>::iterator j = m_write_tokens.find(o->id());
+		auto j = m_write_tokens.find(o->id());
 		if (j == m_write_tokens.end())
 		{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -183,5 +183,6 @@ void find_data::done()
 	traversal_algorithm::done();
 }
 
-} } // namespace libtorrent::dht
+} // namespace dht
+ } // namespace libtorrent
 

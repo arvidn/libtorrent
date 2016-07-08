@@ -62,7 +62,7 @@ namespace libtorrent
 				current_flags |= flag;
 			}
 		}
-	}
+	} // namespace
 
 	add_torrent_params read_resume_data(bdecode_node const& rd, error_code& ec)
 	{
@@ -339,5 +339,5 @@ namespace libtorrent
 
 		return read_resume_data(rd, ec);
 	}
-}
+} // namespace libtorrent
 

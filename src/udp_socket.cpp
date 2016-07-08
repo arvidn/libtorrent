@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/time.hpp" // for aux::time_now()
 #include "libtorrent/debug.hpp"
 
-#include <stdlib.h>
+#include <cstdlib>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -94,7 +94,7 @@ private:
 
 	boost::shared_ptr<socks5> self() { return shared_from_this(); }
 
-	void on_name_lookup(error_code const& e, tcp::resolver::iterator i);
+	void on_name_lookup(error_code const& e, const tcp::resolver::iterator& i);
 	void on_connect_timeout(error_code const& ec);
 	void on_connected(error_code const& ec);
 	void handshake1(error_code const& e);
@@ -502,7 +502,7 @@ void socks5::start(aux::proxy_settings const& ps)
 		&socks5::on_name_lookup, self(), _1, _2));
 }
 
-void socks5::on_name_lookup(error_code const& e, tcp::resolver::iterator i)
+void socks5::on_name_lookup(error_code const& e, const tcp::resolver::iterator& i)
 {
 	COMPLETE_ASYNC("socks5::on_name_lookup");
 
@@ -761,5 +761,5 @@ void socks5::close()
 	m_timer.cancel();
 }
 
-}
+} // namespace libtorrent
 

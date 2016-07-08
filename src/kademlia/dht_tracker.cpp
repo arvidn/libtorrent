@@ -61,6 +61,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 #include <boost/function/function0.hpp>
 #include <boost/ref.hpp>
+#include <utility>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -106,7 +107,7 @@ namespace libtorrent { namespace dht
 	// unit and connecting them together.
 	dht_tracker::dht_tracker(dht_observer* observer
 		, io_service& ios
-		, send_fun_t const& send_fun
+		, send_fun_t send_fun
 		, dht_settings const& settings
 		, counters& cnt
 		, dht_storage_interface& storage
@@ -119,7 +120,7 @@ namespace libtorrent { namespace dht
 		, m_dht6(udp::v6(), this, settings, extract_node_id(state, "node-id6")
 			, observer, cnt, m_nodes, storage)
 #endif
-		, m_send_fun(send_fun)
+		, m_send_fun(std::move(send_fun))
 		, m_log(observer)
 		, m_key_refresh_timer(ios)
 		, m_connection_timer(ios)
@@ -153,7 +154,7 @@ namespace libtorrent { namespace dht
 #endif
 	}
 
-	dht_tracker::~dht_tracker() {}
+	dht_tracker::~dht_tracker() = default;
 
 	void dht_tracker::update_node_id()
 	{
@@ -331,7 +332,7 @@ namespace libtorrent { namespace dht
 	}
 
 	void dht_tracker::get_peers(sha1_hash const& ih
-		, boost::function<void(std::vector<tcp::endpoint> const&)> f)
+		, const boost::function<void(std::vector<tcp::endpoint> const&)>& f)
 	{
 		boost::function<void(std::vector<std::pair<node_entry, std::string> > const&)> empty;
 		m_dht.get_peers(ih, f, empty, false);
@@ -341,7 +342,7 @@ namespace libtorrent { namespace dht
 	}
 
 	void dht_tracker::announce(sha1_hash const& ih, int listen_port, int flags
-		, boost::function<void(std::vector<tcp::endpoint> const&)> f)
+		, const boost::function<void(std::vector<tcp::endpoint> const&)>& f)
 	{
 		m_dht.announce(ih, listen_port, flags, f);
 #if TORRENT_USE_IPV6
@@ -363,8 +364,8 @@ namespace libtorrent { namespace dht
 
 	// these functions provide a slightly higher level
 	// interface to the get/put functionality in the DHT
-	void get_immutable_item_callback(item const& it, boost::shared_ptr<get_immutable_item_ctx> ctx
-		, boost::function<void(item const&)> f)
+	void get_immutable_item_callback(item const& it, const boost::shared_ptr<get_immutable_item_ctx>& ctx
+		, const boost::function<void(item const&)>& f)
 	{
 		// the reason to wrap here is to control the return value
 		// since it controls whether we re-put the content
@@ -385,8 +386,8 @@ namespace libtorrent { namespace dht
 	};
 
 	bool get_mutable_item_callback(item const& it, bool authoritative
-		, boost::shared_ptr<get_mutable_item_ctx> ctx
-		, boost::function<void(item const&, bool)> f)
+		, const boost::shared_ptr<get_mutable_item_ctx>& ctx
+		, const boost::function<void(item const&, bool)>& f)
 	{
 		TORRENT_ASSERT(it.is_mutable());
 		if (authoritative) --ctx->active_traversals;
@@ -413,16 +414,16 @@ namespace libtorrent { namespace dht
 		int response_count;
 	};
 
-	void put_immutable_item_callback(int responses, boost::shared_ptr<put_item_ctx> ctx
-		, boost::function<void(int)> f)
+	void put_immutable_item_callback(int responses, const boost::shared_ptr<put_item_ctx>& ctx
+		, const boost::function<void(int)>& f)
 	{
 		ctx->response_count += responses;
 		if (--ctx->active_traversals == 0)
 			f(ctx->response_count);
 	}
 
-	void put_mutable_item_callback(item const& it, int responses, boost::shared_ptr<put_item_ctx> ctx
-		, boost::function<void(item const&, int)> cb)
+	void put_mutable_item_callback(item const& it, int responses, const boost::shared_ptr<put_item_ctx>& ctx
+		, const boost::function<void(item const&, int)>& cb)
 	{
 		ctx->response_count += responses;
 		if (--ctx->active_traversals == 0)
@@ -446,7 +447,7 @@ namespace libtorrent { namespace dht
 	// the salt is optional
 	void dht_tracker::get_item(char const* key
 		, boost::function<void(item const&, bool)> cb
-		, std::string salt)
+		, const std::string& salt)
 	{
 		boost::shared_ptr<get_mutable_item_ctx>
 			ctx = boost::make_shared<get_mutable_item_ctx>((TORRENT_USE_IPV6) ? 2 : 1);
@@ -476,7 +477,7 @@ namespace libtorrent { namespace dht
 
 	void dht_tracker::put_item(char const* key
 		, boost::function<void(item const&, int)> cb
-		, boost::function<void(item&)> data_cb, std::string salt)
+		, const boost::function<void(item&)>& data_cb, const std::string& salt)
 	{
 		boost::shared_ptr<put_item_ctx>
 			ctx = boost::make_shared<put_item_ctx>((TORRENT_USE_IPV6) ? 2 : 1);
@@ -489,8 +490,8 @@ namespace libtorrent { namespace dht
 #endif
 	}
 
-	void dht_tracker::direct_request(udp::endpoint ep, entry& e
-		, boost::function<void(msg const&)> f)
+	void dht_tracker::direct_request(const udp::endpoint& ep, entry& e
+		, const boost::function<void(msg const&)>& f)
 	{
 #if TORRENT_USE_IPV6
 		if (ep.protocol() == udp::v6())
@@ -611,12 +612,11 @@ namespace libtorrent { namespace dht
 		dht.m_table.for_each_node(&add_node_fun, &add_node_fun, &nodes);
 		bucket_t cache;
 		dht.replacement_cache(cache);
-		for (bucket_t::iterator i(cache.begin())
-			 , end(cache.end()); i != end; ++i)
+		for (auto & i : cache)
 		{
 			std::string node;
 			std::back_insert_iterator<std::string> out(node);
-			write_endpoint(i->ep(), out);
+			write_endpoint(i.ep(), out);
 			nodes.list().push_back(entry(node));
 		}
 		if (!nodes.list().empty())
@@ -637,7 +637,7 @@ namespace libtorrent { namespace dht
 		return ret;
 	}
 
-	void dht_tracker::add_node(udp::endpoint node)
+	void dht_tracker::add_node(const udp::endpoint& node)
 	{
 		m_dht.add_node(node);
 #if TORRENT_USE_IPV6
@@ -712,5 +712,6 @@ namespace libtorrent { namespace dht
 		return true;
 	}
 
-}}
+} // namespace dht
+} // namespace libtorrent
 

@@ -136,7 +136,7 @@ buffer::const_interval receive_buffer::get() const
 	if (m_recv_buffer.empty())
 	{
 		TORRENT_ASSERT(m_recv_pos == 0);
-		return buffer::interval(0,0);
+		return buffer::interval(nullptr,nullptr);
 	}
 
 	int rcv_pos = (std::min)(m_recv_pos, int(m_recv_buffer.size()) - m_recv_start);
@@ -150,7 +150,7 @@ buffer::interval receive_buffer::mutable_buffer()
 	if (m_recv_buffer.empty())
 	{
 		TORRENT_ASSERT(m_recv_pos == 0);
-		return buffer::interval(0,0);
+		return buffer::interval(nullptr,nullptr);
 	}
 	int const rcv_pos = (std::min)(m_recv_pos, int(m_recv_buffer.size()));
 	return buffer::interval(&m_recv_buffer[0] + m_recv_start

@@ -81,7 +81,7 @@ namespace
 			, m_salt(random())
 		{}
 
-		virtual void on_piece_pass(int p) override
+		void on_piece_pass(int p) override
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			m_torrent.debug_log(" PIECE PASS [ p: %d | block_hash_size: %d ]"
@@ -90,7 +90,7 @@ namespace
 			// has this piece failed earlier? If it has, go through the
 			// CRCs from the time it failed and ban the peers that
 			// sent bad blocks
-			std::map<piece_block, block_entry>::iterator i = m_block_hashes.lower_bound(piece_block(p, 0));
+			auto i = m_block_hashes.lower_bound(piece_block(p, 0));
 			if (i == m_block_hashes.end() || int(i->first.piece_index) != p) return;
 
 			int size = m_torrent.torrent_file().piece_size(p);
@@ -133,7 +133,7 @@ namespace
 			}
 		}
 
-		virtual void on_piece_failed(int p) override
+		void on_piece_failed(int p) override
 		{
 			// The piece failed the hash check. Record
 			// the CRC and origin peer of every block
@@ -148,10 +148,9 @@ namespace
 			int size = m_torrent.torrent_file().piece_size(p);
 			peer_request r = {p, 0, (std::min)(16*1024, size)};
 			piece_block pb(p, 0);
-			for (std::vector<torrent_peer*>::iterator i = downloaders.begin()
-				, end(downloaders.end()); i != end; ++i)
+			for (auto & downloader : downloaders)
 			{
-				if (*i != nullptr)
+				if (downloader != nullptr)
 				{
 					// for very sad and involved reasons, this read need to force a copy out of the cache
 					// since the piece has failed, this block is very likely to be replaced with a newly
@@ -159,7 +158,7 @@ namespace
 					// block read will have been deleted by the time it gets back to the network thread
 					m_torrent.session().disk_thread().async_read(&m_torrent.storage(), r
 						, std::bind(&smart_ban_plugin::on_read_failed_block
-						, shared_from_this(), pb, (*i)->address(), _1)
+						, shared_from_this(), pb, downloader->address(), _1)
 						, reinterpret_cast<torrent_peer*>(1)
 						, disk_io_job::force_copy);
 				}
@@ -182,7 +181,7 @@ namespace
 			sha1_hash digest;
 		};
 
-		void on_read_failed_block(piece_block b, address a, disk_io_job const* j)
+		void on_read_failed_block(piece_block b, const address& a, disk_io_job const* j)
 		{
 			TORRENT_ASSERT(m_torrent.session().is_single_thread());
 
@@ -204,7 +203,7 @@ namespace
 			torrent_peer* p = (*range.first);
 			block_entry e = {p, h.final()};
 
-			std::map<piece_block, block_entry>::iterator i = m_block_hashes.lower_bound(b);
+			auto i = m_block_hashes.lower_bound(b);
 
 			if (i != m_block_hashes.end() && i->first == b && i->second.peer == p)
 			{
@@ -258,7 +257,7 @@ namespace
 #endif
 		}
 
-		void on_read_ok_block(std::pair<piece_block, block_entry> b, address a, disk_io_job const* j)
+		void on_read_ok_block(std::pair<piece_block, block_entry> b, const address& a, disk_io_job const* j)
 		{
 			TORRENT_ASSERT(m_torrent.session().is_single_thread());
 
@@ -323,7 +322,8 @@ namespace
 		smart_ban_plugin& operator=(smart_ban_plugin const&);
 	};
 
-} }
+} // namespace
+ } // namespace libtorrent
 
 namespace libtorrent
 {
@@ -334,7 +334,7 @@ namespace libtorrent
 		return boost::shared_ptr<torrent_plugin>(new smart_ban_plugin(*t));
 	}
 
-}
+} // namespace libtorrent
 
 #endif
 

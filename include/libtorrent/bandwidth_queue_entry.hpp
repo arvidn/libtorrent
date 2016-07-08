@@ -44,7 +44,7 @@ namespace libtorrent {
 
 struct TORRENT_EXTRA_EXPORT bw_request
 {
-	bw_request(boost::shared_ptr<bandwidth_socket> const& pe
+	bw_request(boost::shared_ptr<bandwidth_socket> pe
 		, int blk, int prio);
 
 	boost::shared_ptr<bandwidth_socket> peer;

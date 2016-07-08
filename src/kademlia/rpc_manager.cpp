@@ -61,6 +61,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <functional>
+#include <utility>
 
 using namespace std::placeholders;
 
@@ -71,14 +72,14 @@ namespace io = libtorrent::detail;
 
 void intrusive_ptr_add_ref(observer const* o)
 {
-	TORRENT_ASSERT(o != 0);
+	TORRENT_ASSERT(o != nullptr);
 	TORRENT_ASSERT(o->m_refs < 0xffff);
 	++o->m_refs;
 }
 
 void intrusive_ptr_release(observer const* o)
 {
-	TORRENT_ASSERT(o != 0);
+	TORRENT_ASSERT(o != nullptr);
 	TORRENT_ASSERT(o->m_refs > 0);
 	if (--o->m_refs == 0)
 	{
@@ -173,7 +174,7 @@ using observer_storage = std::aligned_union<1
 	, null_observer
 	, traversal_observer>::type;
 
-rpc_manager::rpc_manager(node_id const& our_id
+rpc_manager::rpc_manager(node_id our_id
 	, dht_settings const& settings
 	, routing_table& table, udp_socket_interface* sock
 	, dht_logger* log)
@@ -183,7 +184,7 @@ rpc_manager::rpc_manager(node_id const& our_id
 	, m_settings(settings)
 	, m_table(table)
 	, m_timer(aux::time_now())
-	, m_our_id(our_id)
+	, m_our_id(std::move(our_id))
 	, m_allocated_observers(0)
 	, m_destructing(false)
 {}
@@ -193,10 +194,9 @@ rpc_manager::~rpc_manager()
 	TORRENT_ASSERT(!m_destructing);
 	m_destructing = true;
 
-	for (transactions_t::iterator i = m_transactions.begin()
-		, end(m_transactions.end()); i != end; ++i)
+	for (auto & m_transaction : m_transactions)
 	{
-		i->second->abort();
+		m_transaction.second->abort();
 	}
 }
 
@@ -225,7 +225,7 @@ size_t rpc_manager::allocation_size() const
 #if TORRENT_USE_INVARIANT_CHECKS
 void rpc_manager::check_invariant() const
 {
-	for (transactions_t::const_iterator i = m_transactions.begin()
+	for (auto i = m_transactions.begin()
 		, end(m_transactions.end()); i != end; ++i)
 	{
 		TORRENT_ASSERT(i->second);
@@ -240,7 +240,7 @@ void rpc_manager::unreachable(udp::endpoint const& ep)
 		, print_endpoint(ep).c_str());
 #endif
 
-	for (transactions_t::iterator i = m_transactions.begin();
+	for (auto i = m_transactions.begin();
 		i != m_transactions.end();)
 	{
 		TORRENT_ASSERT(i->second);
@@ -278,7 +278,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 
 	observer_ptr o;
 	std::pair<transactions_t::iterator, transactions_t::iterator> range = m_transactions.equal_range(tid);
-	for (transactions_t::iterator i = range.first; i != range.second; ++i)
+	for (auto i = range.first; i != range.second; ++i)
 	{
 		if (m.addr.address() != i->second->target_addr()) continue;
 		o = i->second;
@@ -399,7 +399,7 @@ time_duration rpc_manager::tick()
 	time_duration ret = seconds(short_timeout);
 	time_point now = aux::time_now();
 
-	for (transactions_t::iterator i = m_transactions.begin();
+	for (auto i = m_transactions.begin();
 		i != m_transactions.end();)
 	{
 		observer_ptr o = i->second;
@@ -447,7 +447,7 @@ void rpc_manager::add_our_id(entry& e)
 	e["id"] = m_our_id.to_string();
 }
 
-bool rpc_manager::invoke(entry& e, udp::endpoint target_addr
+bool rpc_manager::invoke(entry& e, const udp::endpoint& target_addr
 	, observer_ptr o)
 {
 	INVARIANT_CHECK;
@@ -509,5 +509,6 @@ observer::~observer()
 #endif
 }
 
-} } // namespace libtorrent::dht
+} // namespace dht
+ } // namespace libtorrent
 

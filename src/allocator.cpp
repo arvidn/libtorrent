@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <kernel/OS.h>
 #include <stdlib.h> // malloc/free
 #elif !defined TORRENT_WINDOWS
-#include <stdlib.h> // posix_memalign/free
+#include <cstdlib> // posix_memalign/free
 #include <unistd.h> // _SC_PAGESIZE
 #endif
 
@@ -157,7 +157,7 @@ namespace libtorrent
 
 	void page_aligned_allocator::free(char* block)
 	{
-		if (block == 0) return;
+		if (block == nullptr) return;
 
 #ifdef TORRENT_DEBUG_BUFFERS
 
@@ -207,5 +207,5 @@ namespace libtorrent
 	}
 #endif
 
-}
+} // namespace libtorrent
 

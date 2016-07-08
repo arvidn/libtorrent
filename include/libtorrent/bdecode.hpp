@@ -303,10 +303,10 @@ struct TORRENT_EXPORT bdecode_node
 	// Functions with the ``_value`` suffix return the value of the node
 	// directly, rather than the nodes. In case the node is not found, or it has
 	// a different type, a default value is returned (which can be specified).
-	bdecode_node dict_find(std::string key) const;
+	bdecode_node dict_find(const std::string& key) const;
 	bdecode_node dict_find(char const* key) const;
 	std::pair<std::string, bdecode_node> dict_at(int i) const;
-	bdecode_node dict_find_dict(std::string key) const;
+	bdecode_node dict_find_dict(const std::string& key) const;
 	bdecode_node dict_find_dict(char const* key) const;
 	bdecode_node dict_find_list(char const* key) const;
 	bdecode_node dict_find_string(char const* key) const;

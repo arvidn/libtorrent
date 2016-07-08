@@ -219,17 +219,17 @@ public:
 
 private:
 
-	void name_lookup(error_code const& e, tcp::resolver::iterator i
+	void name_lookup(error_code const& e, const tcp::resolver::iterator& i
 		, boost::shared_ptr<handler_type> h);
 	void connected(error_code const& e, boost::shared_ptr<handler_type> h);
 	void handshake1(error_code const& e, boost::shared_ptr<handler_type> h);
 	void handshake2(error_code const& e, boost::shared_ptr<handler_type> h);
 	void handshake3(error_code const& e, boost::shared_ptr<handler_type> h);
-	void handshake4(error_code const& e, boost::shared_ptr<handler_type> h);
+	void handshake4(error_code const& e, const boost::shared_ptr<handler_type>& h);
 	void socks_connect(boost::shared_ptr<handler_type> h);
 	void connect1(error_code const& e, boost::shared_ptr<handler_type> h);
 	void connect2(error_code const& e, boost::shared_ptr<handler_type> h);
-	void connect3(error_code const& e, boost::shared_ptr<handler_type> h);
+	void connect3(error_code const& e, const boost::shared_ptr<handler_type>& h);
 
 	// send and receive buffer
 	std::vector<char> m_buffer;

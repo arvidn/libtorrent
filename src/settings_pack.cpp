@@ -50,13 +50,12 @@ namespace {
 	template <class T>
 	void insort_replace(std::vector<std::pair<std::uint16_t, T> >& c, std::pair<std::uint16_t, T> const& v)
 	{
-		typedef std::vector<std::pair<std::uint16_t, T> > container_t;
-		typename container_t::iterator i = std::lower_bound(c.begin(), c.end(), v
+		auto i = std::lower_bound(c.begin(), c.end(), v
 			, &compare_first<T>);
 		if (i != c.end() && i->first == v.first) i->second = v.second;
 		else c.insert(i, v);
 	}
-}
+} // namespace
 
 namespace libtorrent
 {
@@ -128,9 +127,9 @@ namespace libtorrent
 	str_setting_entry_t str_settings[settings_pack::num_string_settings] =
 	{
 		SET(user_agent, "libtorrent/" LIBTORRENT_VERSION, &session_impl::update_user_agent),
-		SET(announce_ip, 0, 0),
-		SET(mmap_cache, 0, 0),
-		SET(handshake_client_version, 0, 0),
+		SET(announce_ip, nullptr, nullptr),
+		SET(mmap_cache, nullptr, nullptr),
+		SET(handshake_client_version, nullptr, nullptr),
 		SET_NOPREV(outgoing_interfaces, "", &session_impl::update_outgoing_interfaces),
 #if !TORRENT_USE_IPV6
 		SET_NOPREV(listen_interfaces, "0.0.0.0:6881", &session_impl::update_listen_interfaces),
@@ -146,205 +145,205 @@ namespace libtorrent
 
 	bool_setting_entry_t bool_settings[settings_pack::num_bool_settings] =
 	{
-		SET(allow_multiple_connections_per_ip, false, 0),
+		SET(allow_multiple_connections_per_ip, false, nullptr),
 		DEPRECATED_SET(ignore_limits_on_local_network, true, &session_impl::update_ignore_rate_limits_on_local_network),
-		SET(send_redundant_have, true, 0),
-		DEPRECATED_SET(lazy_bitfields, false, 0),
-		SET(use_dht_as_fallback, false, 0),
-		SET(upnp_ignore_nonrouters, false, 0),
-		SET(use_parole_mode, true, 0),
-		SET(use_read_cache, true, 0),
-		DEPRECATED_SET(use_write_cache, true, 0),
-		SET(dont_flush_write_cache, false, 0),
-		SET(coalesce_reads, false, 0),
-		SET(coalesce_writes, false, 0),
-		SET(auto_manage_prefer_seeds, false, 0),
+		SET(send_redundant_have, true, nullptr),
+		DEPRECATED_SET(lazy_bitfields, false, nullptr),
+		SET(use_dht_as_fallback, false, nullptr),
+		SET(upnp_ignore_nonrouters, false, nullptr),
+		SET(use_parole_mode, true, nullptr),
+		SET(use_read_cache, true, nullptr),
+		DEPRECATED_SET(use_write_cache, true, nullptr),
+		SET(dont_flush_write_cache, false, nullptr),
+		SET(coalesce_reads, false, nullptr),
+		SET(coalesce_writes, false, nullptr),
+		SET(auto_manage_prefer_seeds, false, nullptr),
 		SET(dont_count_slow_torrents, true, &session_impl::update_count_slow),
-		SET(close_redundant_connections, true, 0),
-		SET(prioritize_partial_pieces, false, 0),
-		SET(rate_limit_ip_overhead, true, 0),
-		SET(announce_to_all_trackers, false, 0),
-		SET(announce_to_all_tiers, false, 0),
-		SET(prefer_udp_trackers, true, 0),
-		SET(strict_super_seeding, false, 0),
-		DEPRECATED_SET(lock_disk_cache, false, 0),
-		SET(disable_hash_checks, false, 0),
-		SET(allow_i2p_mixed, false, 0),
-		SET(low_prio_disk, true, 0),
-		SET(volatile_read_cache, false, 0),
-		SET(guided_read_cache, false, 0),
-		SET(no_atime_storage, true, 0),
-		SET(incoming_starts_queued_torrents, false, 0),
-		SET(report_true_downloaded, false, 0),
-		SET(strict_end_game_mode, true, 0),
-		SET(broadcast_lsd, true, 0),
-		SET(enable_outgoing_utp, true, 0),
-		SET(enable_incoming_utp, true, 0),
-		SET(enable_outgoing_tcp, true, 0),
-		SET(enable_incoming_tcp, true, 0),
-		SET(ignore_resume_timestamps, false, 0),
-		SET(no_recheck_incomplete_resume, false, 0),
+		SET(close_redundant_connections, true, nullptr),
+		SET(prioritize_partial_pieces, false, nullptr),
+		SET(rate_limit_ip_overhead, true, nullptr),
+		SET(announce_to_all_trackers, false, nullptr),
+		SET(announce_to_all_tiers, false, nullptr),
+		SET(prefer_udp_trackers, true, nullptr),
+		SET(strict_super_seeding, false, nullptr),
+		DEPRECATED_SET(lock_disk_cache, false, nullptr),
+		SET(disable_hash_checks, false, nullptr),
+		SET(allow_i2p_mixed, false, nullptr),
+		SET(low_prio_disk, true, nullptr),
+		SET(volatile_read_cache, false, nullptr),
+		SET(guided_read_cache, false, nullptr),
+		SET(no_atime_storage, true, nullptr),
+		SET(incoming_starts_queued_torrents, false, nullptr),
+		SET(report_true_downloaded, false, nullptr),
+		SET(strict_end_game_mode, true, nullptr),
+		SET(broadcast_lsd, true, nullptr),
+		SET(enable_outgoing_utp, true, nullptr),
+		SET(enable_incoming_utp, true, nullptr),
+		SET(enable_outgoing_tcp, true, nullptr),
+		SET(enable_incoming_tcp, true, nullptr),
+		SET(ignore_resume_timestamps, false, nullptr),
+		SET(no_recheck_incomplete_resume, false, nullptr),
 		SET(anonymous_mode, false, &session_impl::update_anonymous_mode),
 		SET(report_web_seed_downloads, true, &session_impl::update_report_web_seed_downloads),
 		DEPRECATED_SET(rate_limit_utp, false, &session_impl::update_rate_limit_utp),
-		SET(announce_double_nat, false, 0),
-		SET(seeding_outgoing_connections, true, 0),
+		SET(announce_double_nat, false, nullptr),
+		SET(seeding_outgoing_connections, true, nullptr),
 		SET(no_connect_privileged_ports, false, &session_impl::update_privileged_ports),
-		SET(smooth_connects, true, 0),
-		SET(always_send_user_agent, false, 0),
-		SET(apply_ip_filter_to_trackers, true, 0),
-		SET(use_disk_read_ahead, true, 0),
-		SET(lock_files, false, 0),
-		DEPRECATED_SET(contiguous_recv_buffer, true, 0),
-		SET(ban_web_seeds, true, 0),
-		SET_NOPREV(allow_partial_disk_writes, true, 0),
+		SET(smooth_connects, true, nullptr),
+		SET(always_send_user_agent, false, nullptr),
+		SET(apply_ip_filter_to_trackers, true, nullptr),
+		SET(use_disk_read_ahead, true, nullptr),
+		SET(lock_files, false, nullptr),
+		DEPRECATED_SET(contiguous_recv_buffer, true, nullptr),
+		SET(ban_web_seeds, true, nullptr),
+		SET_NOPREV(allow_partial_disk_writes, true, nullptr),
 		SET(force_proxy, false, &session_impl::update_force_proxy),
-		SET(support_share_mode, true, 0),
-		SET(support_merkle_torrents, true, 0),
-		SET(report_redundant_bytes, true, 0),
-		SET_NOPREV(listen_system_port_fallback, true, 0),
-		SET(use_disk_cache_pool, true, 0),
-		SET_NOPREV(announce_crypto_support, true, 0),
+		SET(support_share_mode, true, nullptr),
+		SET(support_merkle_torrents, true, nullptr),
+		SET(report_redundant_bytes, true, nullptr),
+		SET_NOPREV(listen_system_port_fallback, true, nullptr),
+		SET(use_disk_cache_pool, true, nullptr),
+		SET_NOPREV(announce_crypto_support, true, nullptr),
 		SET_NOPREV(enable_upnp, true, &session_impl::update_upnp),
 		SET_NOPREV(enable_natpmp, true, &session_impl::update_natpmp),
 		SET_NOPREV(enable_lsd, true, &session_impl::update_lsd),
 		SET_NOPREV(enable_dht, true, &session_impl::update_dht),
-		SET_NOPREV(prefer_rc4, false, 0),
-		SET_NOPREV(proxy_hostnames, true, 0),
-		SET_NOPREV(proxy_peer_connections, true, 0),
+		SET_NOPREV(prefer_rc4, false, nullptr),
+		SET_NOPREV(proxy_hostnames, true, nullptr),
+		SET_NOPREV(proxy_peer_connections, true, nullptr),
 		SET_NOPREV(auto_sequential, true, &session_impl::update_auto_sequential),
-		SET_NOPREV(proxy_tracker_connections, true, 0),
+		SET_NOPREV(proxy_tracker_connections, true, nullptr),
 	};
 
 	int_setting_entry_t int_settings[settings_pack::num_int_settings] =
 	{
-		SET(tracker_completion_timeout, 30, 0),
-		SET(tracker_receive_timeout, 10, 0),
-		SET(stop_tracker_timeout, 5, 0),
-		SET(tracker_maximum_response_length, 1024*1024, 0),
-		SET(piece_timeout, 20, 0),
-		SET(request_timeout, 60, 0),
-		SET(request_queue_time, 3, 0),
-		SET(max_allowed_in_request_queue, 500, 0),
-		SET(max_out_request_queue, 500, 0),
-		SET(whole_pieces_threshold, 20, 0),
-		SET(peer_timeout, 120, 0),
-		SET(urlseed_timeout, 20, 0),
-		SET(urlseed_pipeline_size, 5, 0),
-		SET(urlseed_wait_retry, 30, 0),
-		SET(file_pool_size, 40, 0),
+		SET(tracker_completion_timeout, 30, nullptr),
+		SET(tracker_receive_timeout, 10, nullptr),
+		SET(stop_tracker_timeout, 5, nullptr),
+		SET(tracker_maximum_response_length, 1024*1024, nullptr),
+		SET(piece_timeout, 20, nullptr),
+		SET(request_timeout, 60, nullptr),
+		SET(request_queue_time, 3, nullptr),
+		SET(max_allowed_in_request_queue, 500, nullptr),
+		SET(max_out_request_queue, 500, nullptr),
+		SET(whole_pieces_threshold, 20, nullptr),
+		SET(peer_timeout, 120, nullptr),
+		SET(urlseed_timeout, 20, nullptr),
+		SET(urlseed_pipeline_size, 5, nullptr),
+		SET(urlseed_wait_retry, 30, nullptr),
+		SET(file_pool_size, 40, nullptr),
 		SET(max_failcount, 3, &session_impl::update_max_failcount),
-		SET(min_reconnect_time, 60, 0),
-		SET(peer_connect_timeout, 15, 0),
+		SET(min_reconnect_time, 60, nullptr),
+		SET(peer_connect_timeout, 15, nullptr),
 		SET(connection_speed, 10, &session_impl::update_connection_speed),
-		SET(inactivity_timeout, 600, 0),
-		SET(unchoke_interval, 15, 0),
-		SET(optimistic_unchoke_interval, 30, 0),
-		SET(num_want, 200, 0),
-		SET(initial_picker_threshold, 4, 0),
-		SET(allowed_fast_set_size, 5, 0),
-		SET(suggest_mode, settings_pack::no_piece_suggestions, 0),
+		SET(inactivity_timeout, 600, nullptr),
+		SET(unchoke_interval, 15, nullptr),
+		SET(optimistic_unchoke_interval, 30, nullptr),
+		SET(num_want, 200, nullptr),
+		SET(initial_picker_threshold, 4, nullptr),
+		SET(allowed_fast_set_size, 5, nullptr),
+		SET(suggest_mode, settings_pack::no_piece_suggestions, nullptr),
 		SET(max_queued_disk_bytes, 1024 * 1024, &session_impl::update_queued_disk_bytes),
-		SET(handshake_timeout, 10, 0),
-		SET(send_buffer_low_watermark, 10 * 1024, 0),
-		SET(send_buffer_watermark, 500 * 1024, 0),
-		SET(send_buffer_watermark_factor, 50, 0),
-		SET(choking_algorithm, settings_pack::fixed_slots_choker, 0),
-		SET(seed_choking_algorithm, settings_pack::round_robin, 0),
-		SET(cache_size, 1024, 0),
+		SET(handshake_timeout, 10, nullptr),
+		SET(send_buffer_low_watermark, 10 * 1024, nullptr),
+		SET(send_buffer_watermark, 500 * 1024, nullptr),
+		SET(send_buffer_watermark_factor, 50, nullptr),
+		SET(choking_algorithm, settings_pack::fixed_slots_choker, nullptr),
+		SET(seed_choking_algorithm, settings_pack::round_robin, nullptr),
+		SET(cache_size, 1024, nullptr),
 		SET(cache_buffer_chunk_size, 0, &session_impl::update_cache_buffer_chunk_size),
-		SET(cache_expiry, 300, 0),
-		SET(disk_io_write_mode, settings_pack::enable_os_cache, 0),
-		SET(disk_io_read_mode, settings_pack::enable_os_cache, 0),
-		SET(outgoing_port, 0, 0),
-		SET(num_outgoing_ports, 0, 0),
+		SET(cache_expiry, 300, nullptr),
+		SET(disk_io_write_mode, settings_pack::enable_os_cache, nullptr),
+		SET(disk_io_read_mode, settings_pack::enable_os_cache, nullptr),
+		SET(outgoing_port, 0, nullptr),
+		SET(num_outgoing_ports, 0, nullptr),
 		SET(peer_tos, 0, &session_impl::update_peer_tos),
 		SET(active_downloads, 3, &session_impl::trigger_auto_manage),
 		SET(active_seeds, 5, &session_impl::trigger_auto_manage),
 		SET_NOPREV(active_checking, 1, &session_impl::trigger_auto_manage),
-		SET(active_dht_limit, 88, 0),
-		SET(active_tracker_limit, 1600, 0),
-		SET(active_lsd_limit, 60, 0),
+		SET(active_dht_limit, 88, nullptr),
+		SET(active_tracker_limit, 1600, nullptr),
+		SET(active_lsd_limit, 60, nullptr),
 		SET(active_limit, 15, &session_impl::trigger_auto_manage),
 		SET_NOPREV(active_loaded_limit, 100, &session_impl::trigger_auto_manage),
-		SET(auto_manage_interval, 30, 0),
-		SET(seed_time_limit, 24 * 60 * 60, 0),
-		SET(auto_scrape_interval, 1800, 0),
-		SET(auto_scrape_min_interval, 300, 0),
-		SET(max_peerlist_size, 3000, 0),
-		SET(max_paused_peerlist_size, 1000, 0),
-		SET(min_announce_interval, 5 * 60, 0),
-		SET(auto_manage_startup, 60, 0),
-		SET(seeding_piece_quota, 20, 0),
-		SET(max_rejects, 50, 0),
+		SET(auto_manage_interval, 30, nullptr),
+		SET(seed_time_limit, 24 * 60 * 60, nullptr),
+		SET(auto_scrape_interval, 1800, nullptr),
+		SET(auto_scrape_min_interval, 300, nullptr),
+		SET(max_peerlist_size, 3000, nullptr),
+		SET(max_paused_peerlist_size, 1000, nullptr),
+		SET(min_announce_interval, 5 * 60, nullptr),
+		SET(auto_manage_startup, 60, nullptr),
+		SET(seeding_piece_quota, 20, nullptr),
+		SET(max_rejects, 50, nullptr),
 		SET(recv_socket_buffer_size, 0, &session_impl::update_socket_buffer_size),
 		SET(send_socket_buffer_size, 0, &session_impl::update_socket_buffer_size),
-		SET_NOPREV(max_peer_recv_buffer_size, 2 * 1024 * 1024, 0),
-		SET(file_checks_delay_per_block, 0, 0),
-		SET(read_cache_line_size, 32, 0),
-		SET(write_cache_line_size, 16, 0),
-		SET(optimistic_disk_retry, 10 * 60, 0),
-		SET(max_suggest_pieces, 16, 0),
-		SET(local_service_announce_interval, 5 * 60, 0),
+		SET_NOPREV(max_peer_recv_buffer_size, 2 * 1024 * 1024, nullptr),
+		SET(file_checks_delay_per_block, 0, nullptr),
+		SET(read_cache_line_size, 32, nullptr),
+		SET(write_cache_line_size, 16, nullptr),
+		SET(optimistic_disk_retry, 10 * 60, nullptr),
+		SET(max_suggest_pieces, 16, nullptr),
+		SET(local_service_announce_interval, 5 * 60, nullptr),
 		SET(dht_announce_interval, 15 * 60, &session_impl::update_dht_announce_interval),
-		SET(udp_tracker_token_expiry, 60, 0),
-		SET(default_cache_min_age, 1, 0),
-		SET(num_optimistic_unchoke_slots, 0, 0),
-		SET(default_est_reciprocation_rate, 16000, 0),
-		SET(increase_est_reciprocation_rate, 20, 0),
-		SET(decrease_est_reciprocation_rate, 3, 0),
-		SET(max_pex_peers, 50, 0),
-		SET(tick_interval, 500, 0),
-		SET(share_mode_target, 3, 0),
+		SET(udp_tracker_token_expiry, 60, nullptr),
+		SET(default_cache_min_age, 1, nullptr),
+		SET(num_optimistic_unchoke_slots, 0, nullptr),
+		SET(default_est_reciprocation_rate, 16000, nullptr),
+		SET(increase_est_reciprocation_rate, 20, nullptr),
+		SET(decrease_est_reciprocation_rate, 3, nullptr),
+		SET(max_pex_peers, 50, nullptr),
+		SET(tick_interval, 500, nullptr),
+		SET(share_mode_target, 3, nullptr),
 		SET(upload_rate_limit, 0, &session_impl::update_upload_rate),
 		SET(download_rate_limit, 0, &session_impl::update_download_rate),
 		DEPRECATED_SET(local_upload_rate_limit, 0, &session_impl::update_local_upload_rate),
 		DEPRECATED_SET(local_download_rate_limit, 0, &session_impl::update_local_download_rate),
 		DEPRECATED_SET(dht_upload_rate_limit, 4000, &session_impl::update_dht_upload_rate_limit),
 		SET(unchoke_slots_limit, 8, &session_impl::update_unchoke_limit),
-		DEPRECATED_SET(half_open_limit, 0, 0),
+		DEPRECATED_SET(half_open_limit, 0, nullptr),
 		SET(connections_limit, 200, &session_impl::update_connections_limit),
-		SET(connections_slack, 10, 0),
-		SET(utp_target_delay, 100, 0),
-		SET(utp_gain_factor, 3000, 0),
-		SET(utp_min_timeout, 500, 0),
-		SET(utp_syn_resends, 2, 0),
-		SET(utp_fin_resends, 2, 0),
-		SET(utp_num_resends, 3, 0),
-		SET(utp_connect_timeout, 3000, 0),
-		SET(utp_delayed_ack, 0, 0),
-		SET(utp_loss_multiplier, 50, 0),
-		SET(mixed_mode_algorithm, settings_pack::peer_proportional, 0),
-		SET(listen_queue_size, 5, 0),
-		SET(torrent_connect_boost, 10, 0),
+		SET(connections_slack, 10, nullptr),
+		SET(utp_target_delay, 100, nullptr),
+		SET(utp_gain_factor, 3000, nullptr),
+		SET(utp_min_timeout, 500, nullptr),
+		SET(utp_syn_resends, 2, nullptr),
+		SET(utp_fin_resends, 2, nullptr),
+		SET(utp_num_resends, 3, nullptr),
+		SET(utp_connect_timeout, 3000, nullptr),
+		SET(utp_delayed_ack, 0, nullptr),
+		SET(utp_loss_multiplier, 50, nullptr),
+		SET(mixed_mode_algorithm, settings_pack::peer_proportional, nullptr),
+		SET(listen_queue_size, 5, nullptr),
+		SET(torrent_connect_boost, 10, nullptr),
 		SET(alert_queue_size, 1000, &session_impl::update_alert_queue_size),
-		SET(max_metadata_size, 3 * 1024 * 10240, 0),
-		DEPRECATED_SET(hashing_threads, 1, 0),
-		SET(checking_mem_usage, 256, 0),
-		SET(predictive_piece_announce, 0, 0),
+		SET(max_metadata_size, 3 * 1024 * 10240, nullptr),
+		DEPRECATED_SET(hashing_threads, 1, nullptr),
+		SET(checking_mem_usage, 256, nullptr),
+		SET(predictive_piece_announce, 0, nullptr),
 		SET(aio_threads, 4, &session_impl::update_disk_threads),
-		SET(aio_max, 300, 0),
-		SET(network_threads, 0, 0),
+		SET(aio_max, 300, nullptr),
+		SET(network_threads, 0, nullptr),
 		DEPRECATED_SET(ssl_listen, 0, &session_impl::update_ssl_listen),
-		SET(tracker_backoff, 250, 0),
-		SET_NOPREV(share_ratio_limit, 200, 0),
-		SET_NOPREV(seed_time_ratio_limit, 700, 0),
-		SET_NOPREV(peer_turnover, 4, 0),
-		SET_NOPREV(peer_turnover_cutoff, 90, 0),
-		SET(peer_turnover_interval, 300, 0),
-		SET_NOPREV(connect_seed_every_n_download, 10, 0),
-		SET(max_http_recv_buffer_size, 4*1024*204, 0),
-		SET_NOPREV(max_retry_port_bind, 10, 0),
+		SET(tracker_backoff, 250, nullptr),
+		SET_NOPREV(share_ratio_limit, 200, nullptr),
+		SET_NOPREV(seed_time_ratio_limit, 700, nullptr),
+		SET_NOPREV(peer_turnover, 4, nullptr),
+		SET_NOPREV(peer_turnover_cutoff, 90, nullptr),
+		SET(peer_turnover_interval, 300, nullptr),
+		SET_NOPREV(connect_seed_every_n_download, 10, nullptr),
+		SET(max_http_recv_buffer_size, 4*1024*204, nullptr),
+		SET_NOPREV(max_retry_port_bind, 10, nullptr),
 		SET_NOPREV(alert_mask, alert::error_notification, &session_impl::update_alert_mask),
-		SET_NOPREV(out_enc_policy, settings_pack::pe_enabled, 0),
-		SET_NOPREV(in_enc_policy, settings_pack::pe_enabled, 0),
-		SET_NOPREV(allowed_enc_level, settings_pack::pe_both, 0),
-		SET(inactive_down_rate, 2048, 0),
-		SET(inactive_up_rate, 2048, 0),
+		SET_NOPREV(out_enc_policy, settings_pack::pe_enabled, nullptr),
+		SET_NOPREV(in_enc_policy, settings_pack::pe_enabled, nullptr),
+		SET_NOPREV(allowed_enc_level, settings_pack::pe_both, nullptr),
+		SET(inactive_down_rate, 2048, nullptr),
+		SET(inactive_up_rate, 2048, nullptr),
 		SET_NOPREV(proxy_type, settings_pack::none, &session_impl::update_proxy),
 		SET_NOPREV(proxy_port, 0, &session_impl::update_proxy),
 		SET_NOPREV(i2p_port, 0, &session_impl::update_i2p_bridge),
-		SET_NOPREV(cache_size_volatile, 256, 0)
+		SET_NOPREV(cache_size_volatile, 256, nullptr)
 	};
 
 #undef SET
@@ -442,7 +441,7 @@ namespace libtorrent
 		// loop over all settings that differ from default
 		for (int i = 0; i < settings_pack::num_string_settings; ++i)
 		{
-			char const* cmp = str_settings[i].default_value == 0 ? "" : str_settings[i].default_value;
+			char const* cmp = str_settings[i].default_value == nullptr ? "" : str_settings[i].default_value;
 			if (cmp == s.m_strings[i]) continue;
 			sett[str_settings[i].name] = s.m_strings[i];
 		}
@@ -554,7 +553,7 @@ namespace libtorrent
 	{
 		for (int i = 0; i < settings_pack::num_string_settings; ++i)
 		{
-			if (str_settings[i].default_value == 0) continue;
+			if (str_settings[i].default_value == nullptr) continue;
 			s.set_str(settings_pack::string_type_base + i, str_settings[i].default_value);
 			TORRENT_ASSERT(s.get_str(settings_pack::string_type_base + i) == str_settings[i].default_value);
 		}
@@ -578,60 +577,57 @@ namespace libtorrent
 		typedef void (aux::session_impl::*fun_t)();
 		std::vector<fun_t> callbacks;
 
-		for (std::vector<std::pair<std::uint16_t, std::string> >::const_iterator i = pack->m_strings.begin()
-			, end(pack->m_strings.end()); i != end; ++i)
+		for (const auto & m_string : pack->m_strings)
 		{
 			// disregard setting indices that are not string types
-			if ((i->first & settings_pack::type_mask) != settings_pack::string_type_base)
+			if ((m_string.first & settings_pack::type_mask) != settings_pack::string_type_base)
 				continue;
 
 			// ignore settings that are out of bounds
-			int const index = i->first & settings_pack::index_mask;
+			int const index = m_string.first & settings_pack::index_mask;
 			TORRENT_ASSERT_PRECOND(index >= 0 && index < settings_pack::num_string_settings);
 			if (index < 0 || index >= settings_pack::num_string_settings)
 				continue;
 
-			sett.set_str(i->first, i->second);
+			sett.set_str(m_string.first, m_string.second);
 			str_setting_entry_t const& sa = str_settings[index];
 			if (sa.fun && ses
 				&& std::find(callbacks.begin(), callbacks.end(), sa.fun) == callbacks.end())
 				callbacks.push_back(sa.fun);
 		}
 
-		for (std::vector<std::pair<std::uint16_t, int> >::const_iterator i = pack->m_ints.begin()
-			, end(pack->m_ints.end()); i != end; ++i)
+		for (const auto & m_int : pack->m_ints)
 		{
 			// disregard setting indices that are not int types
-			if ((i->first & settings_pack::type_mask) != settings_pack::int_type_base)
+			if ((m_int.first & settings_pack::type_mask) != settings_pack::int_type_base)
 				continue;
 
 			// ignore settings that are out of bounds
-			int const index = i->first & settings_pack::index_mask;
+			int const index = m_int.first & settings_pack::index_mask;
 			TORRENT_ASSERT_PRECOND(index >= 0 && index < settings_pack::num_int_settings);
 			if (index < 0 || index >= settings_pack::num_int_settings)
 				continue;
 
-			sett.set_int(i->first, i->second);
+			sett.set_int(m_int.first, m_int.second);
 			int_setting_entry_t const& sa = int_settings[index];
 			if (sa.fun && ses
 				&& std::find(callbacks.begin(), callbacks.end(), sa.fun) == callbacks.end())
 				callbacks.push_back(sa.fun);
 		}
 
-		for (std::vector<std::pair<std::uint16_t, bool> >::const_iterator i = pack->m_bools.begin()
-			, end(pack->m_bools.end()); i != end; ++i)
+		for (const auto & m_bool : pack->m_bools)
 		{
 			// disregard setting indices that are not bool types
-			if ((i->first & settings_pack::type_mask) != settings_pack::bool_type_base)
+			if ((m_bool.first & settings_pack::type_mask) != settings_pack::bool_type_base)
 				continue;
 
 			// ignore settings that are out of bounds
-			int const index = i->first & settings_pack::index_mask;
+			int const index = m_bool.first & settings_pack::index_mask;
 			TORRENT_ASSERT_PRECOND(index >= 0 && index < settings_pack::num_bool_settings);
 			if (index < 0 || index >= settings_pack::num_bool_settings)
 				continue;
 
-			sett.set_bool(i->first, i->second);
+			sett.set_bool(m_bool.first, m_bool.second);
 			bool_setting_entry_t const& sa = bool_settings[index];
 			if (sa.fun && ses
 				&& std::find(callbacks.begin(), callbacks.end(), sa.fun) == callbacks.end())
@@ -640,11 +636,9 @@ namespace libtorrent
 
 		// call the callbacks once all the settings have been applied, and
 		// only once per callback
-		for (std::vector<fun_t>::iterator i = callbacks.begin(), end(callbacks.end());
-			i != end; ++i)
+		for (auto & f : callbacks)
 		{
-			fun_t const& f = *i;
-			(ses->*f)();
+				(ses->*f)();
 		}
 	}
 
@@ -683,7 +677,7 @@ namespace libtorrent
 				if (m_strings.size() == settings_pack::num_string_settings)
 					return true;
 				std::pair<std::uint16_t, std::string> v(name, std::string());
-				std::vector<std::pair<std::uint16_t, std::string> >::const_iterator i =
+				auto i =
 					std::lower_bound(m_strings.begin(), m_strings.end(), v
 						, &compare_first<std::string>);
 				return i != m_strings.end() && i->first == name;
@@ -695,7 +689,7 @@ namespace libtorrent
 				if (m_ints.size() == settings_pack::num_int_settings)
 					return true;
 				std::pair<std::uint16_t, int> v(name, 0);
-				std::vector<std::pair<std::uint16_t, int> >::const_iterator i =
+				auto i =
 					std::lower_bound(m_ints.begin(), m_ints.end(), v
 						, &compare_first<int>);
 				return i != m_ints.end() && i->first == name;
@@ -707,7 +701,7 @@ namespace libtorrent
 				if (m_bools.size() == settings_pack::num_bool_settings)
 					return true;
 				std::pair<std::uint16_t, bool> v(name, false);
-				std::vector<std::pair<std::uint16_t, bool> >::const_iterator i =
+				auto i =
 					std::lower_bound(m_bools.begin(), m_bools.end(), v
 						, &compare_first<bool>);
 				return i != m_bools.end() && i->first == name;
@@ -730,7 +724,7 @@ namespace libtorrent
 			return m_strings[name & index_mask].second;
 		}
 		std::pair<std::uint16_t, std::string> v(name, std::string());
-		std::vector<std::pair<std::uint16_t, std::string> >::const_iterator i
+		auto i
 			= std::lower_bound(m_strings.begin(), m_strings.end(), v
 				, &compare_first<std::string>);
 		if (i != m_strings.end() && i->first == name) return i->second;
@@ -750,7 +744,7 @@ namespace libtorrent
 			return m_ints[name & index_mask].second;
 		}
 		std::pair<std::uint16_t, int> v(name, 0);
-		std::vector<std::pair<std::uint16_t, int> >::const_iterator i
+		auto i
 			= std::lower_bound(m_ints.begin(), m_ints.end(), v
 				, &compare_first<int>);
 		if (i != m_ints.end() && i->first == name) return i->second;
@@ -770,7 +764,7 @@ namespace libtorrent
 			return m_bools[name & index_mask].second;
 		}
 		std::pair<std::uint16_t, bool> v(name, false);
-		std::vector<std::pair<std::uint16_t, bool> >::const_iterator i
+		auto i
 			= std::lower_bound(m_bools.begin(), m_bools.end(), v
 					, &compare_first<bool>);
 		if (i != m_bools.end() && i->first == name) return i->second;
@@ -783,5 +777,5 @@ namespace libtorrent
 		m_ints.clear();
 		m_bools.clear();
 	}
-}
+} // namespace libtorrent
 

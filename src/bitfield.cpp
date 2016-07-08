@@ -188,4 +188,4 @@ namespace libtorrent
 		clear_trailing_bits();
 		TORRENT_ASSERT(size() == bits);
 	}
-}
+} // namespace libtorrent

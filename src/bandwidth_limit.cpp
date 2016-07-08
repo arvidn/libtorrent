@@ -85,5 +85,5 @@ namespace libtorrent
 		m_quota_left -= amount;
 	}
 
-}
+} // namespace libtorrent
 

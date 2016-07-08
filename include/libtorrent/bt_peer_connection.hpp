@@ -77,7 +77,7 @@ namespace libtorrent
 		// The peer_connection should handshake and verify that the
 		// other end has the correct id
 		bt_peer_connection(peer_connection_args const& pack
-			, peer_id const& pid);
+			, peer_id pid);
 
 		virtual void start() override;
 
@@ -101,8 +101,8 @@ namespace libtorrent
 		bool rc4_encrypted() const
 		{ return m_rc4_encrypted; }
 
-		void switch_send_crypto(boost::shared_ptr<crypto_plugin> crypto);
-		void switch_recv_crypto(boost::shared_ptr<crypto_plugin> crypto);
+		void switch_send_crypto(const boost::shared_ptr<crypto_plugin>& crypto);
+		void switch_recv_crypto(const boost::shared_ptr<crypto_plugin>& crypto);
 #endif
 
 		virtual int type() const override

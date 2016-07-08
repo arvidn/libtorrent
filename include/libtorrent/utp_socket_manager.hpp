@@ -62,8 +62,8 @@ namespace libtorrent
 		typedef boost::function<void(boost::shared_ptr<socket_type> const&)>
 			incoming_utp_callback_t;
 
-		utp_socket_manager(send_fun_t const& send_fun
-			, incoming_utp_callback_t const& cb
+		utp_socket_manager(send_fun_t send_fun
+			, incoming_utp_callback_t cb
 			, io_service& ios
 			, aux::session_settings const& sett
 			, counters& cnt, void* ssl_context

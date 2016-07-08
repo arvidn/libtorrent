@@ -136,5 +136,5 @@ namespace libtorrent
 		return ret;
 #endif // TORRENT_BUILD_SIMULATOR
 	}
-}
+} // namespace libtorrent
 

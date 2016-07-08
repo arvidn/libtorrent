@@ -49,7 +49,7 @@ namespace libtorrent
 	{}
 
 	void resolver::on_lookup(error_code const& ec, tcp::resolver::iterator i
-		, resolver_interface::callback_t h, std::string hostname)
+		, const resolver_interface::callback_t& h, const std::string& hostname)
 	{
 		COMPLETE_ASYNC("resolver::on_lookup");
 		if (ec)
@@ -136,5 +136,5 @@ namespace libtorrent
 	{
 		m_resolver.cancel();
 	}
-}
+} // namespace libtorrent
 

@@ -176,7 +176,7 @@ namespace libtorrent
 #endif
 			if (!settings.get_bool(settings_pack::anonymous_mode))
 			{
-				std::string announce_ip = settings.get_str(settings_pack::announce_ip);
+				const std::string& announce_ip = settings.get_str(settings_pack::announce_ip);
 				if (!announce_ip.empty())
 				{
 					url += "&ip=" + escape_string(announce_ip.c_str(), int(announce_ip.size()));
@@ -266,7 +266,7 @@ namespace libtorrent
 		if (!tracker_req().filter) return;
 
 		// remove endpoints that are filtered by the IP filter
-		for (std::vector<tcp::endpoint>::iterator i = endpoints.begin();
+		for (auto i = endpoints.begin();
 			i != endpoints.end();)
 		{
 			if (tracker_req().filter->access(i->address()) == ip_filter::blocked)
@@ -364,10 +364,9 @@ namespace libtorrent
 			{
 				error_code ignore;
 				std::vector<tcp::endpoint> const& epts = m_tracker_connection->endpoints();
-				for (std::vector<tcp::endpoint>::const_iterator i = epts.begin()
-					, end(epts.end()); i != end; ++i)
+				for (const auto & ept : epts)
 				{
-					ip_list.push_back(i->address());
+					ip_list.push_back(ept.address());
 				}
 			}
 
@@ -596,5 +595,5 @@ namespace libtorrent
 
 		return resp;
 	}
-}
+} // namespace libtorrent
 

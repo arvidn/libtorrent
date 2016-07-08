@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <functional>
+#include <utility>
 
 #include "libtorrent/socket.hpp"
 #include "libtorrent/enum_net.hpp"
@@ -156,8 +157,8 @@ namespace libtorrent
 	}
 
 	broadcast_socket::broadcast_socket(
-		udp::endpoint const& multicast_endpoint)
-		: m_multicast_endpoint(multicast_endpoint)
+		udp::endpoint multicast_endpoint)
+		: m_multicast_endpoint(std::move(multicast_endpoint))
 		, m_outstanding_operations(0)
 		, m_abort(false)
 	{
@@ -268,22 +269,21 @@ namespace libtorrent
 		bool all_fail = true;
 		error_code e;
 
-		for (std::list<socket_entry>::iterator i = m_unicast_sockets.begin()
-			, end(m_unicast_sockets.end()); i != end; ++i)
+		for (auto & m_unicast_socket : m_unicast_sockets)
 		{
-			if (!i->socket) continue;
-			i->socket->send_to(boost::asio::buffer(buffer, size), m_multicast_endpoint, 0, e);
+			if (!m_unicast_socket.socket) continue;
+			m_unicast_socket.socket->send_to(boost::asio::buffer(buffer, size), m_multicast_endpoint, 0, e);
 
 			// if the user specified the broadcast flag, send one to the broadcast
 			// address as well
-			if ((flags & broadcast_socket::flag_broadcast) && i->can_broadcast())
-				i->socket->send_to(boost::asio::buffer(buffer, size)
-					, udp::endpoint(i->broadcast_address(), m_multicast_endpoint.port()), 0, e);
+			if ((flags & broadcast_socket::flag_broadcast) && m_unicast_socket.can_broadcast())
+				m_unicast_socket.socket->send_to(boost::asio::buffer(buffer, size)
+					, udp::endpoint(m_unicast_socket.broadcast_address(), m_multicast_endpoint.port()), 0, e);
 
 			if (e)
 			{
-				i->socket->close(e);
-				i->socket.reset();
+				m_unicast_socket.socket->close(e);
+				m_unicast_socket.socket.reset();
 			}
 			else
 			{
@@ -291,15 +291,14 @@ namespace libtorrent
 			}
 		}
 
-		for (std::list<socket_entry>::iterator i = m_sockets.begin()
-			, end(m_sockets.end()); i != end; ++i)
+		for (auto & m_socket : m_sockets)
 		{
-			if (!i->socket) continue;
-			i->socket->send_to(boost::asio::buffer(buffer, size), m_multicast_endpoint, 0, e);
+			if (!m_socket.socket) continue;
+			m_socket.socket->send_to(boost::asio::buffer(buffer, size), m_multicast_endpoint, 0, e);
 			if (e)
 			{
-				i->socket->close(e);
-				i->socket.reset();
+				m_socket.socket->close(e);
+				m_socket.socket.reset();
 			}
 			else
 			{
@@ -354,6 +353,6 @@ namespace libtorrent
 		m_abort = true;
 		maybe_abort();
 	}
-}
+} // namespace libtorrent
 
 

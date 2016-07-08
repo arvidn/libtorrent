@@ -131,7 +131,7 @@ namespace libtorrent
 	// this is the internal representation of web seeds
 	struct web_seed_t : web_seed_entry
 	{
-		web_seed_t(web_seed_entry const& wse);
+		web_seed_t(web_seed_entry wse);
 		web_seed_t(std::string const& url_, web_seed_entry::type_t type_
 			, std::string const& auth_ = std::string()
 			, web_seed_entry::headers_t const& extra_headers_ = web_seed_entry::headers_t());
@@ -298,8 +298,8 @@ namespace libtorrent
 		int current_stats_state() const;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		void add_extension(boost::shared_ptr<torrent_plugin>);
-		void remove_extension(boost::shared_ptr<torrent_plugin>);
+		void add_extension(const boost::shared_ptr<torrent_plugin>&);
+		void remove_extension(const boost::shared_ptr<torrent_plugin>&);
 		void add_extension_fun(boost::function<boost::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> const& ext
 			, void* userdata);
 		void notify_extension_add_peer(tcp::endpoint const& ip, int src, int flags);
@@ -389,7 +389,7 @@ namespace libtorrent
 		};
 		void read_piece(int piece);
 		void on_disk_read_complete(disk_io_job const* j, peer_request r
-			, boost::shared_ptr<read_piece_struct> rp);
+			, const boost::shared_ptr<read_piece_struct>& rp);
 
 		storage_mode_t storage_mode() const;
 		storage_interface* get_storage();
@@ -441,7 +441,7 @@ namespace libtorrent
 		void sent_syn(bool ipv6);
 		void received_synack(bool ipv6);
 
-		void set_ip_filter(boost::shared_ptr<const ip_filter> ipf);
+		void set_ip_filter(const boost::shared_ptr<const ip_filter>& ipf);
 		void port_filter_updated();
 		ip_filter const* get_ip_filter() { return m_ip_filter.get(); }
 
@@ -546,7 +546,7 @@ namespace libtorrent
 		void file_progress(std::vector<std::int64_t>& fp, int flags = 0);
 
 #ifndef TORRENT_NO_DEPRECATE
-		void use_interface(std::string net_interface);
+		void use_interface(const std::string& net_interface);
 #endif
 
 		void connect_to_url_seed(std::list<web_seed_t>::iterator url);
@@ -1142,13 +1142,13 @@ namespace libtorrent
 
 		void update_tracker_timer(time_point now);
 
-		static void on_tracker_announce_disp(boost::weak_ptr<torrent> p
+		static void on_tracker_announce_disp(const boost::weak_ptr<torrent>& p
 			, error_code const& e);
 
 		void on_tracker_announce();
 
 #ifndef TORRENT_DISABLE_DHT
-		static void on_dht_announce_response_disp(boost::weak_ptr<torrent> t
+		static void on_dht_announce_response_disp(const boost::weak_ptr<torrent>& t
 			, std::vector<tcp::endpoint> const& peers);
 		void on_dht_announce_response(std::vector<tcp::endpoint> const& peers);
 		bool should_announce_dht() const;

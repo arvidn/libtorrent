@@ -132,7 +132,7 @@ bool verify_message(bdecode_node const& message, key_desc_t const desc[]
 	return true;
 }
 
-}
+} // namespace dht_detail
 
 void incoming_error(entry& e, char const* msg, int error_code)
 {
@@ -142,4 +142,5 @@ void incoming_error(entry& e, char const* msg, int error_code)
 	l.push_back(entry(msg));
 }
 
-} }
+} // namespace dht
+ } // namespace libtorrent

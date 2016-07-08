@@ -83,9 +83,9 @@ namespace libtorrent
 
 		typedef std::vector<std::pair<std::string, std::string> > headers_t;
 
-		web_seed_entry(std::string const& url_, type_t type_
-			, std::string const& auth_ = std::string()
-			, headers_t const& extra_headers_ = headers_t());
+		web_seed_entry(std::string url_, type_t type_
+			, std::string auth_ = std::string()
+			, headers_t extra_headers_ = headers_t());
 
 		// URL and type comparison
 		bool operator==(web_seed_entry const& e) const
@@ -157,7 +157,7 @@ namespace libtorrent
 		torrent_info(std::string const& filename, int flags = 0);
 #endif // BOOST_NO_EXCEPTIONS
 		torrent_info(torrent_info const& t);
-		torrent_info(sha1_hash const& info_hash, int flags = 0);
+		torrent_info(sha1_hash info_hash, int flags = 0);
 		torrent_info(bdecode_node const& torrent_file, error_code& ec, int flags = 0);
 		torrent_info(char const* buffer, int size, error_code& ec, int flags = 0);
 		torrent_info(std::string const& filename, error_code& ec, int flags = 0);
@@ -305,7 +305,7 @@ namespace libtorrent
 			, std::string const& extern_auth = std::string()
 			, web_seed_entry::headers_t const& extra_headers = web_seed_entry::headers_t());
 		std::vector<web_seed_entry> const& web_seeds() const { return m_web_seeds; }
-		void set_web_seeds(std::vector<web_seed_entry> seeds);
+		void set_web_seeds(const std::vector<web_seed_entry>& seeds);
 
 		// ``total_size()``, ``piece_length()`` and ``num_pieces()`` returns the
 		// total number of bytes the torrent-file represents (all the files in

@@ -112,13 +112,13 @@ namespace libtorrent
 			TORRENT_UNUSED(p);
 			return "";
 #else
-			std::string path = convert_to_native(p);
+			const std::string& path = convert_to_native(p);
 			return get_symlink_path_impl(p.c_str());
 #endif
 		}
 
 		void add_files_impl(file_storage& fs, std::string const& p
-			, std::string const& l, boost::function<bool(std::string)> pred, std::uint32_t flags)
+			, std::string const& l, const boost::function<bool(std::string)>& pred, std::uint32_t flags)
 		{
 			std::string f = combine_path(p, l);
 			if (!pred(f)) return;
@@ -201,7 +201,7 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 
 	void add_files(file_storage& fs, std::wstring const& wfile
-		, boost::function<bool(std::string)> p, std::uint32_t flags)
+		, const boost::function<bool(std::string)>& p, std::uint32_t flags)
 	{
 		std::string utf8;
 		wchar_utf8(wfile, utf8);
@@ -219,7 +219,7 @@ namespace libtorrent
 	}
 
 	void set_piece_hashes(create_torrent& t, std::wstring const& p
-		, boost::function<void(int)> f, error_code& ec)
+		, const boost::function<void(int)>& f, error_code& ec)
 	{
 		std::string utf8;
 		wchar_utf8(p, utf8);
@@ -227,7 +227,7 @@ namespace libtorrent
 	}
 
 	void set_piece_hashes_deprecated(create_torrent& t, std::wstring const& p
-		, boost::function<void(int)> f, error_code& ec)
+		, const boost::function<void(int)>& f, error_code& ec)
 	{
 		std::string utf8;
 		wchar_utf8(p, utf8);
@@ -237,7 +237,7 @@ namespace libtorrent
 #endif
 
 	void add_files(file_storage& fs, std::string const& file
-		, boost::function<bool(std::string)> p, std::uint32_t flags)
+		, const boost::function<bool(std::string)>& p, std::uint32_t flags)
 	{
 		add_files_impl(fs, parent_path(complete(file)), filename(file), p, flags);
 	}
@@ -275,7 +275,7 @@ namespace libtorrent
 		// dummy torrent object pointer
 		boost::shared_ptr<char> dummy;
 		counters cnt;
-		disk_io_thread disk_thread(ios, cnt, 0);
+		disk_io_thread disk_thread(ios, cnt, nullptr);
 		disk_thread.set_num_threads(1);
 
 		storage_params params;
@@ -315,12 +315,12 @@ namespace libtorrent
 		ios.run(ec);
 	}
 
-	create_torrent::~create_torrent() {}
+	create_torrent::~create_torrent() = default;
 
 	create_torrent::create_torrent(file_storage& fs, int piece_size
 		, int pad_file_limit, int flags, int alignment)
 		: m_files(fs)
-		, m_creation_date(time(0))
+		, m_creation_date(time(nullptr))
 		, m_multifile(fs.num_files() > 1)
 		, m_private(false)
 		, m_merkle_torrent((flags & merkle) != 0)
@@ -379,7 +379,7 @@ namespace libtorrent
 
 	create_torrent::create_torrent(torrent_info const& ti)
 		: m_files(const_cast<file_storage&>(ti.files()))
-		, m_creation_date(time(0))
+		, m_creation_date(time(nullptr))
 		, m_multifile(ti.num_files() > 1)
 		, m_private(ti.priv())
 		, m_merkle_torrent(ti.is_merkle_torrent())
@@ -397,23 +397,20 @@ namespace libtorrent
 		if (!ti.comment().empty()) set_comment(ti.comment().c_str());
 
 		torrent_info::nodes_t const& nodes = ti.nodes();
-		for (torrent_info::nodes_t::const_iterator i = nodes.begin()
-			, end(nodes.end()); i != end; ++i)
-			add_node(*i);
+		for (const auto & node : nodes)
+			add_node(node);
 
 		std::vector<libtorrent::announce_entry> const& trackers = ti.trackers();
-		for (std::vector<libtorrent::announce_entry>::const_iterator i = trackers.begin()
-			, end(trackers.end()); i != end; ++i)
-			add_tracker(i->url, i->tier);
+		for (const auto & tracker : trackers)
+			add_tracker(tracker.url, tracker.tier);
 
 		std::vector<web_seed_entry> const& web_seeds = ti.web_seeds();
-		for (std::vector<web_seed_entry>::const_iterator i = web_seeds.begin()
-			, end(web_seeds.end()); i != end; ++i)
+		for (const auto & web_seed : web_seeds)
 		{
-			if (i->type == web_seed_entry::url_seed)
-				add_url_seed(i->url);
-			else if (i->type == web_seed_entry::http_seed)
-				add_http_seed(i->url);
+			if (web_seed.type == web_seed_entry::url_seed)
+				add_url_seed(web_seed.url);
+			else if (web_seed.type == web_seed_entry::http_seed)
+				add_http_seed(web_seed.url);
 		}
 
 		m_piece_hash.resize(m_files.num_pieces());
@@ -440,12 +437,11 @@ namespace libtorrent
 		{
 			entry& nodes = dict["nodes"];
 			entry::list_type& nodes_list = nodes.list();
-			for (nodes_t::const_iterator i = m_nodes.begin()
-				, end(m_nodes.end()); i != end; ++i)
+			for (const auto & m_node : m_nodes)
 			{
 				entry::list_type node;
-				node.push_back(entry(i->first));
-				node.push_back(entry(i->second));
+				node.push_back(entry(m_node.first));
+				node.push_back(entry(m_node.second));
 				nodes_list.push_back(entry(node));
 			}
 		}
@@ -455,16 +451,15 @@ namespace libtorrent
 			entry trackers(entry::list_t);
 			entry tier(entry::list_t);
 			int current_tier = m_urls.front().second;
-			for (std::vector<announce_entry>::const_iterator i = m_urls.begin();
-				i != m_urls.end(); ++i)
+			for (const auto & m_url : m_urls)
 			{
-				if (i->second != current_tier)
+				if (m_url.second != current_tier)
 				{
-					current_tier = i->second;
+					current_tier = m_url.second;
 					trackers.list().push_back(tier);
 					tier.list().clear();
 				}
-				tier.list().push_back(entry(i->first));
+				tier.list().push_back(entry(m_url.first));
 			}
 			trackers.list().push_back(tier);
 			dict["announce-list"] = trackers;
@@ -487,10 +482,9 @@ namespace libtorrent
 			else
 			{
 				entry& list = dict["url-list"];
-				for (std::vector<std::string>::const_iterator i
-					= m_url_seeds.begin(); i != m_url_seeds.end(); ++i)
+				for (const auto & m_url_seed : m_url_seeds)
 				{
-					list.list().push_back(entry(*i));
+					list.list().push_back(entry(m_url_seed));
 				}
 			}
 		}
@@ -504,10 +498,9 @@ namespace libtorrent
 			else
 			{
 				entry& list = dict["httpseeds"];
-				for (std::vector<std::string>::const_iterator i
-					= m_http_seeds.begin(); i != m_http_seeds.end(); ++i)
+				for (const auto & m_http_seed : m_http_seeds)
 				{
-					list.list().push_back(entry(*i));
+					list.list().push_back(entry(m_http_seed));
 				}
 			}
 		}
@@ -523,20 +516,18 @@ namespace libtorrent
 		if (!m_collections.empty())
 		{
 			entry& list = info["collections"];
-			for (std::vector<std::string>::const_iterator i
-				= m_collections.begin(); i != m_collections.end(); ++i)
+			for (const auto & m_collection : m_collections)
 			{
-				list.list().push_back(entry(*i));
+				list.list().push_back(entry(m_collection));
 			}
 		}
 
 		if (!m_similar.empty())
 		{
 			entry& list = info["similar"];
-			for (std::vector<sha1_hash>::const_iterator i
-				= m_similar.begin(); i != m_similar.end(); ++i)
+			for (const auto & i : m_similar)
 			{
-				list.list().push_back(entry(i->to_string()));
+				list.list().push_back(entry(i.to_string()));
 			}
 		}
 
@@ -569,7 +560,7 @@ namespace libtorrent
 				entry& sympath_e = info["symlink path"];
 
 				std::string split = split_path(m_files.symlink(0));
-				for (char const* e = split.c_str(); e != 0; e = next_path_element(e))
+				for (char const* e = split.c_str(); e != nullptr; e = next_path_element(e))
 					sympath_e.list().push_back(entry(e));
 			}
 			if (!m_filehashes.empty())
@@ -598,7 +589,7 @@ namespace libtorrent
 						TORRENT_ASSERT(split.c_str() == m_files.name());
 
 						for (char const* e = next_path_element(split.c_str());
-							e != 0; e = next_path_element(e))
+							e != nullptr; e = next_path_element(e))
 							path_e.list().push_back(entry(e));
 					}
 
@@ -618,7 +609,7 @@ namespace libtorrent
 						entry& sympath_e = file_e["symlink path"];
 
 						std::string split = split_path(m_files.symlink(i));
-						for (char const* e = split.c_str(); e != 0; e = next_path_element(e))
+						for (char const* e = split.c_str(); e != nullptr; e = next_path_element(e))
 							sympath_e.list().push_back(entry(e));
 					}
 					if (!m_filehashes.empty() && m_filehashes[i] != sha1_hash())
@@ -639,7 +630,7 @@ namespace libtorrent
 			int num_pieces = int(m_piece_hash.size());
 			for (int i = 0; i < num_pieces; ++i)
 				m_merkle_tree[first_leaf + i] = m_piece_hash[i];
-			sha1_hash filler(0);
+			sha1_hash filler(nullptr);
 			for (int i = num_pieces; i < num_leafs; ++i)
 				m_merkle_tree[first_leaf + i] = filler;
 
@@ -668,10 +659,9 @@ namespace libtorrent
 		{
 			std::string& p = info["pieces"].string();
 
-			for (std::vector<sha1_hash>::const_iterator i = m_piece_hash.begin();
-				i != m_piece_hash.end(); ++i)
+			for (const auto & i : m_piece_hash)
 			{
-				p.append(i->data(), sha1_hash::size);
+				p.append(i.data(), sha1_hash::size);
 			}
 		}
 
@@ -701,7 +691,7 @@ namespace libtorrent
 		m_similar.push_back(ih);
 	}
 
-	void create_torrent::add_collection(std::string c)
+	void create_torrent::add_collection(const std::string& c)
 	{
 		m_collections.push_back(c);
 	}
@@ -738,15 +728,15 @@ namespace libtorrent
 
 	void create_torrent::set_comment(char const* str)
 	{
-		if (str == 0) m_comment.clear();
+		if (str == nullptr) m_comment.clear();
 		else m_comment = str;
 	}
 
 	void create_torrent::set_creator(char const* str)
 	{
-		if (str == 0) m_created_by.clear();
+		if (str == nullptr) m_created_by.clear();
 		else m_created_by = str;
 	}
 
-}
+} // namespace libtorrent
 

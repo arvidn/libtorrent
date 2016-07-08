@@ -43,16 +43,16 @@ namespace libtorrent { namespace dht
 		: m_message_rate_limit(5)
 		, m_block_timeout(5 * 60)
 	{
-		for (int i = 0; i < num_ban_nodes; ++i)
+		for (auto & m_ban_node : m_ban_nodes)
 		{
-			m_ban_nodes[i].count = 0;
-			m_ban_nodes[i].limit = min_time();
+			m_ban_node.count = 0;
+			m_ban_node.limit = min_time();
 		}
 	}
 
-	bool dos_blocker::incoming(address addr, time_point now, dht_logger* logger)
+	bool dos_blocker::incoming(const address& addr, time_point now, dht_logger* logger)
 	{
-		node_ban_entry* match = 0;
+		node_ban_entry* match = nullptr;
 		node_ban_entry* min = m_ban_nodes;
 		for (node_ban_entry* i = m_ban_nodes; i < m_ban_nodes + num_ban_nodes; ++i)
 		{
@@ -104,5 +104,6 @@ namespace libtorrent { namespace dht
 		}
 		return true;
 	}
-}}
+} // namespace dht
+} // namespace libtorrent
 

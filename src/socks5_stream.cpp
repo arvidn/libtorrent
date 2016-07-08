@@ -47,13 +47,13 @@ namespace libtorrent
 		{
 			return error_code(e, get_socks_category());
 		}
-	}
+	} // namespace socks_error
 
 	struct socks_error_category : boost::system::error_category
 	{
-		virtual const char* name() const BOOST_SYSTEM_NOEXCEPT
+		const char* name() const BOOST_SYSTEM_NOEXCEPT override
 		{ return "socks error"; }
-		virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT
+		std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT override
 		{
 			static char const* messages[] =
 			{
@@ -72,8 +72,8 @@ namespace libtorrent
 			if (ev < 0 || ev >= socks_error::num_errors) return "unknown error";
 			return messages[ev];
 		}
-		virtual boost::system::error_condition default_error_condition(
-			int ev) const BOOST_SYSTEM_NOEXCEPT
+		boost::system::error_condition default_error_condition(
+			int ev) const BOOST_SYSTEM_NOEXCEPT override
 		{ return boost::system::error_condition(ev, *this); }
 	};
 
@@ -131,9 +131,9 @@ namespace libtorrent
 			TORRENT_ASSERT_FAIL();
 			return tcp::endpoint();
 		}
-	}
+	} // namespace
 
-	void socks5_stream::name_lookup(error_code const& e, tcp::resolver::iterator i
+	void socks5_stream::name_lookup(error_code const& e, const tcp::resolver::iterator& i
 		, boost::shared_ptr<handler_type> h)
 	{
 		COMPLETE_ASYNC("socks5_stream::name_lookup");
@@ -265,7 +265,7 @@ namespace libtorrent
 	}
 
 	void socks5_stream::handshake4(error_code const& e
-		, boost::shared_ptr<handler_type> h)
+		, const boost::shared_ptr<handler_type>& h)
 	{
 		COMPLETE_ASYNC("socks5_stream::handshake4");
 		if (handle_error(e, h)) return;
@@ -497,7 +497,7 @@ namespace libtorrent
 		}
 	}
 
-	void socks5_stream::connect3(error_code const& e, boost::shared_ptr<handler_type> h)
+	void socks5_stream::connect3(error_code const& e, const boost::shared_ptr<handler_type>& h)
 	{
 		COMPLETE_ASYNC("socks5_stream::connect3");
 		using namespace libtorrent::detail;
@@ -519,5 +519,5 @@ namespace libtorrent
 		std::vector<char>().swap(m_buffer);
 		(*h)(e);
 	}
-}
+} // namespace libtorrent
 

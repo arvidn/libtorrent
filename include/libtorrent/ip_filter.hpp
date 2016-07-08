@@ -282,7 +282,7 @@ struct TORRENT_EXPORT ip_filter
 	// 
 	// This means that in a case of overlapping ranges, the last one applied takes
 	// precedence.
-	void add_rule(address first, address last, std::uint32_t flags);
+	void add_rule(const address& first, const address& last, std::uint32_t flags);
 
 	// Returns the access permissions for the given address (``addr``). The permission
 	// can currently be 0 or ``ip_filter::blocked``. The complexity of this operation

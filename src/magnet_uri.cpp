@@ -60,18 +60,17 @@ namespace libtorrent
 		}
 
 		std::vector<announce_entry> const& tr = handle.trackers();
-		for (std::vector<announce_entry>::const_iterator i = tr.begin(), end(tr.end()); i != end; ++i)
+		for (const auto & i : tr)
 		{
 			ret += "&tr=";
-			ret += escape_string(i->url.c_str(), int(i->url.length()));
+			ret += escape_string(i.url.c_str(), int(i.url.length()));
 		}
 
 		std::set<std::string> seeds = handle.url_seeds();
-		for (std::set<std::string>::iterator i = seeds.begin()
-			, end(seeds.end()); i != end; ++i)
+		for (const auto & seed : seeds)
 		{
 			ret += "&ws=";
-			ret += escape_string(i->c_str(), int(i->length()));
+			ret += escape_string(seed.c_str(), int(seed.length()));
 		}
 
 		return ret;
@@ -94,20 +93,19 @@ namespace libtorrent
 
 		std::vector<announce_entry> const& tr = info.trackers();
 
-		for (std::vector<announce_entry>::const_iterator i = tr.begin(), end(tr.end()); i != end; ++i)
+		for (const auto & i : tr)
 		{
 			ret += "&tr=";
-			ret += escape_string(i->url.c_str(), int(i->url.length()));
+			ret += escape_string(i.url.c_str(), int(i.url.length()));
 		}
 
 		std::vector<web_seed_entry> const& seeds = info.web_seeds();
-		for (std::vector<web_seed_entry>::const_iterator i = seeds.begin()
-			, end(seeds.end()); i != end; ++i)
+		for (const auto & seed : seeds)
 		{
-			if (i->type != web_seed_entry::url_seed) continue;
+			if (seed.type != web_seed_entry::url_seed) continue;
 
 			ret += "&ws=";
-			ret += escape_string(i->url.c_str(), int(i->url.length()));
+			ret += escape_string(seed.url.c_str(), int(seed.url.length()));
 		}
 
 		return ret;
@@ -123,7 +121,7 @@ namespace libtorrent
 			if (ec) return torrent_handle();
 			return ses.add_torrent(p, ec);
 		}
-	}
+	} // namespace
 
 	torrent_handle add_magnet_uri(session& ses, std::string const& uri
 		, add_torrent_params const& p, error_code& ec)
@@ -136,7 +134,7 @@ namespace libtorrent
 		, std::string const& save_path
 		, storage_mode_t storage_mode
 		, bool paused
-		, storage_constructor_type sc
+		, const storage_constructor_type& sc
 		, void* userdata)
 	{
 		add_torrent_params params(sc);
@@ -285,6 +283,6 @@ namespace libtorrent
 		p.info_hash = info_hash;
 		if (!name.empty()) p.name = name;
 	}
-}
+} // namespace libtorrent
 
 

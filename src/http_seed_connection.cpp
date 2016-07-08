@@ -467,5 +467,5 @@ namespace libtorrent
 		p.connection_type = peer_info::http_seed;
 	}
 
-}
+} // namespace libtorrent
 

@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 #include <string>
 #include <algorithm>
+#include <utility>
 
 using namespace std::placeholders;
 
@@ -54,11 +55,11 @@ namespace libtorrent {
 
 http_connection::http_connection(io_service& ios
 	, resolver_interface& resolver
-	, http_handler const& handler
+	, http_handler handler
 	, bool bottled
 	, int max_bottled_buffer_size
-	, http_connect_handler const& ch
-	, http_filter_handler const& fh
+	, http_connect_handler ch
+	, http_filter_handler fh
 #ifdef TORRENT_USE_OPENSSL
 	, ssl::context* ssl_ctx
 #endif
@@ -70,12 +71,12 @@ http_connection::http_connection(io_service& ios
 	, m_own_ssl_context(false)
 #endif
 #if TORRENT_USE_I2P
-	, m_i2p_conn(0)
+	, m_i2p_conn(nullptr)
 #endif
 	, m_resolver(resolver)
-	, m_handler(handler)
-	, m_connect_handler(ch)
-	, m_filter_handler(fh)
+	, m_handler(std::move(handler))
+	, m_connect_handler(std::move(ch))
+	, m_filter_handler(std::move(fh))
 	, m_timer(ios)
 	, m_read_timeout(seconds(5))
 	, m_completion_timeout(seconds(5))
@@ -320,11 +321,11 @@ void http_connection::start(std::string const& hostname, int port
 			|| proxy->type == settings_pack::http_pw)
 			&& !ssl)
 		{
-			proxy = 0;
+			proxy = nullptr;
 		}
 		aux::proxy_settings null_proxy;
 
-		void* userdata = 0;
+		void* userdata = nullptr;
 #ifdef TORRENT_USE_OPENSSL
 		if (m_ssl)
 		{
@@ -518,9 +519,8 @@ void http_connection::on_resolve(error_code const& e
 	}
 	TORRENT_ASSERT(!addresses.empty());
 
-	for (std::vector<address>::const_iterator i = addresses.begin()
-		, end(addresses.end()); i != end; ++i)
-		m_endpoints.push_back(tcp::endpoint(*i, m_port));
+	for (const auto & addresse : addresses)
+		m_endpoints.push_back(tcp::endpoint(addresse, m_port));
 
 	if (m_filter_handler) m_filter_handler(*this, m_endpoints);
 	if (m_endpoints.empty())
@@ -643,7 +643,7 @@ void http_connection::callback(error_code e, char* data, int size)
 				return;
 			}
 			size = int(buf.size());
-			data = size == 0 ? 0 : &buf[0];
+			data = size == 0 ? nullptr : &buf[0];
 		}
 
 		// if we completed the whole response, no need
@@ -720,7 +720,7 @@ void http_connection::on_read(error_code const& e
 	{
 		error_code ec = boost::asio::error::eof;
 		TORRENT_ASSERT(bytes_transferred == 0);
-		char* data = 0;
+		char* data = nullptr;
 		std::size_t size = 0;
 		if (m_bottled && m_parser.header_finished())
 		{
@@ -751,7 +751,7 @@ void http_connection::on_read(error_code const& e
 		{
 			// HTTP parse error
 			error_code ec = errors::http_parse_error;
-			callback(ec, 0, 0);
+			callback(ec, nullptr, 0);
 			return;
 		}
 
@@ -899,5 +899,5 @@ void http_connection::rate_limit(int limit)
 	m_rate_limit = limit;
 }
 
-}
+} // namespace libtorrent
 

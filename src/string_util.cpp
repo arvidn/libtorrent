@@ -83,7 +83,7 @@ namespace libtorrent
 	bool is_space(char c)
 	{
 		static const char* ws = " \t\n\r\f\v";
-		return strchr(ws, c) != 0;
+		return strchr(ws, c) != nullptr;
 	}
 
 	char to_lower(char c)
@@ -173,7 +173,7 @@ namespace libtorrent
 	std::string print_listen_interfaces(std::vector<listen_interface_t> const& in)
 	{
 		std::string ret;
-		for (std::vector<listen_interface_t>::const_iterator i = in.begin()
+		for (auto i = in.begin()
 			, end(in.end()); i != end; ++i)
 		{
 			if (i != in.begin()) ret += ",";
@@ -326,7 +326,7 @@ namespace libtorrent
 
 	char* string_tokenize(char* last, char sep, char** next)
 	{
-		if (last == 0) return 0;
+		if (last == nullptr) return nullptr;
 		if (last[0] == '"')
 		{
 			*next = strchr(last + 1, '"');
@@ -338,7 +338,7 @@ namespace libtorrent
 		{
 			*next = strchr(last, sep);
 		}
-		if (*next == 0) return last;
+		if (*next == nullptr) return last;
 		**next = 0;
 		++(*next);
 		while (**next == sep && **next) ++(*next);
@@ -360,5 +360,5 @@ namespace libtorrent
 
 #endif
 
-}
+} // namespace libtorrent
 

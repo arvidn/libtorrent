@@ -834,7 +834,7 @@ int utp_stream::recv_delay() const
 
 utp_stream::utp_stream(io_service& io_service)
 	: m_io_service(io_service)
-	, m_impl(0)
+	, m_impl(nullptr)
 	, m_incoming_close_reason(0)
 	, m_open(false)
 {
@@ -863,7 +863,7 @@ void utp_stream::close()
 	{
 		if (!m_impl) return;
 		detach_utp_impl(m_impl);
-		m_impl = 0;
+		m_impl = nullptr;
 	}
 }
 
@@ -884,7 +884,7 @@ utp_stream::endpoint_type utp_stream::remote_endpoint(error_code& ec) const
 
 utp_stream::endpoint_type utp_stream::local_endpoint(error_code& ec) const
 {
-	if (m_impl == 0 || m_impl->m_sm == 0)
+	if (m_impl == nullptr || m_impl->m_sm == nullptr)
 	{
 		ec = boost::asio::error::not_connected;
 	}
@@ -900,12 +900,12 @@ utp_stream::~utp_stream()
 		detach_utp_impl(m_impl);
 	}
 
-	m_impl = 0;
+	m_impl = nullptr;
 }
 
 void utp_stream::set_impl(utp_socket_impl* impl)
 {
-	TORRENT_ASSERT(m_impl == 0);
+	TORRENT_ASSERT(m_impl == nullptr);
 	TORRENT_ASSERT(!m_open);
 	m_impl = impl;
 	m_open = true;
@@ -945,7 +945,7 @@ void utp_stream::on_read(void* self, size_t bytes_transferred
 	{
 		TORRENT_ASSERT(ec);
 		detach_utp_impl(s->m_impl);
-		s->m_impl = 0;
+		s->m_impl = nullptr;
 	}
 //	tmp(ec, bytes_transferred);
 }
@@ -969,7 +969,7 @@ void utp_stream::on_write(void* self, size_t bytes_transferred
 	{
 		TORRENT_ASSERT(ec);
 		detach_utp_impl(s->m_impl);
-		s->m_impl = 0;
+		s->m_impl = nullptr;
 	}
 //	tmp(ec, bytes_transferred);
 }
@@ -991,7 +991,7 @@ void utp_stream::on_connect(void* self, error_code const& ec, bool kill)
 	{
 		TORRENT_ASSERT(ec);
 		detach_utp_impl(s->m_impl);
-		s->m_impl = 0;
+		s->m_impl = nullptr;
 	}
 //	tmp(ec);
 }
@@ -1020,7 +1020,7 @@ void utp_stream::add_write_buffer(void const* buf, size_t len)
 
 #if TORRENT_USE_ASSERTS
 	int write_buffer_size = 0;
-	for (std::vector<utp_socket_impl::iovec_t>::iterator i = m_impl->m_write_buffer.begin()
+	for (auto i = m_impl->m_write_buffer.begin()
 		, end(m_impl->m_write_buffer.end()); i != end; ++i)
 	{
 		TORRENT_ASSERT(std::numeric_limits<int>::max() - i->len > write_buffer_size);
@@ -1034,7 +1034,7 @@ void utp_stream::add_write_buffer(void const* buf, size_t len)
 
 #if TORRENT_USE_ASSERTS
 	write_buffer_size = 0;
-	for (std::vector<utp_socket_impl::iovec_t>::iterator i = m_impl->m_write_buffer.begin()
+	for (auto i = m_impl->m_write_buffer.begin()
 		, end(m_impl->m_write_buffer.end()); i != end; ++i)
 	{
 		TORRENT_ASSERT(std::numeric_limits<int>::max() - i->len > write_buffer_size);
@@ -1084,12 +1084,12 @@ size_t utp_stream::read_some(bool clear_buffers)
 		return 0;
 	}
 
-	std::vector<utp_socket_impl::iovec_t>::iterator target = m_impl->m_read_buffer.begin();
+	auto target = m_impl->m_read_buffer.begin();
 
 	size_t ret = 0;
 
 	int pop_packets = 0;
-	for (std::vector<packet*>::iterator i = m_impl->m_receive_buffer.begin()
+	for (auto i = m_impl->m_receive_buffer.begin()
 		, end(m_impl->m_receive_buffer.end()); i != end;)
 	{
 		if (target == m_impl->m_read_buffer.end())
@@ -1125,7 +1125,7 @@ size_t utp_stream::read_some(bool clear_buffers)
 		{
 			free(p);
 			++pop_packets;
-			*i = 0;
+			*i = nullptr;
 			++i;
 		}
 
@@ -1226,10 +1226,9 @@ utp_socket_impl::~utp_socket_impl()
 		free(p);
 	}
 
-	for (std::vector<packet*>::iterator i = m_receive_buffer.begin()
-		, end = m_receive_buffer.end(); i != end; ++i)
+	for (auto & i : m_receive_buffer)
 	{
-		free(*i);
+		free(i);
 	}
 
 	free(m_nagle_packet);
@@ -1314,14 +1313,14 @@ bool utp_socket_impl::destroy()
 		, static_cast<void*>(this), socket_state_names[m_state], int(m_close_reason));
 #endif
 
-	if (m_userdata == 0) return false;
+	if (m_userdata == nullptr) return false;
 
 	if (m_state == UTP_STATE_CONNECTED)
 		send_fin();
 
 	bool cancelled = cancel_handlers(boost::asio::error::operation_aborted, true);
 
-	m_userdata = 0;
+	m_userdata = nullptr;
 
 	m_read_buffer.clear();
 	m_read_buffer_size = 0;
@@ -1512,7 +1511,7 @@ void utp_socket_impl::parse_close_reason(std::uint8_t const* ptr, int size)
 	UTP_LOGV("%8p: incoming close_reason: %d\n"
 		, static_cast<void*>(this), int(incoming_close_reason));
 
-	if (m_userdata == 0) return;
+	if (m_userdata == nullptr) return;
 
 	utp_stream::on_close_reason(m_userdata, incoming_close_reason);
 }
@@ -1625,7 +1624,7 @@ void utp_socket_impl::write_payload(std::uint8_t* ptr, int size)
 
 #if TORRENT_USE_ASSERTS
 	int write_buffer_size = 0;
-	for (std::vector<iovec_t>::iterator i = m_write_buffer.begin()
+	for (auto i = m_write_buffer.begin()
 		, end(m_write_buffer.end()); i != end; ++i)
 	{
 		TORRENT_ASSERT(std::numeric_limits<int>::max() - i->len > write_buffer_size);
@@ -1635,7 +1634,7 @@ void utp_socket_impl::write_payload(std::uint8_t* ptr, int size)
 #endif
 	TORRENT_ASSERT(!m_write_buffer.empty() || size == 0);
 	TORRENT_ASSERT(m_write_buffer_size >= size);
-	std::vector<iovec_t>::iterator i = m_write_buffer.begin();
+	auto i = m_write_buffer.begin();
 
 	if (size == 0) return;
 
@@ -1664,7 +1663,7 @@ void utp_socket_impl::write_payload(std::uint8_t* ptr, int size)
 
 #if TORRENT_USE_ASSERTS
 	write_buffer_size = 0;
-	for (std::vector<iovec_t>::iterator j = m_write_buffer.begin()
+	for (auto j = m_write_buffer.begin()
 		, end(m_write_buffer.end()); j != end; ++j)
 	{
 		TORRENT_ASSERT(std::numeric_limits<int>::max() - j->len > write_buffer_size);
@@ -2373,7 +2372,7 @@ void utp_socket_impl::maybe_inc_acked_seq_nr()
 	// if the slot in m_outbuf is 0, it means the
 	// packet has been ACKed and removed from the send buffer
 	while (((m_acked_seq_nr + 1) & ACK_MASK) != m_seq_nr
-		&& m_outbuf.at((m_acked_seq_nr + 1) & ACK_MASK) == 0)
+		&& m_outbuf.at((m_acked_seq_nr + 1) & ACK_MASK) == nullptr)
 	{
 		// increment the fast resend sequence number
 		if (m_fast_resend_seq_nr == m_acked_seq_nr)
@@ -2478,7 +2477,7 @@ void utp_socket_impl::incoming(std::uint8_t const* buf, int size, packet* p
 
 		if (size == 0)
 		{
-			TORRENT_ASSERT(p == 0 || p->header_size == p->size);
+			TORRENT_ASSERT(p == nullptr || p->header_size == p->size);
 			free(p);
 			return;
 		}
@@ -2558,7 +2557,7 @@ bool utp_socket_impl::consume_incoming_data(
 
 	if (ph->seq_nr == ((m_ack_nr + 1) & ACK_MASK))
 	{
-		TORRENT_ASSERT(m_inbuf.at(m_ack_nr) == 0);
+		TORRENT_ASSERT(m_inbuf.at(m_ack_nr) == nullptr);
 
 		if (m_buffered_incoming_bytes + m_receive_buffer_size + payload_size > m_in_buf_size)
 		{
@@ -2568,12 +2567,12 @@ bool utp_socket_impl::consume_incoming_data(
 		}
 
 		// we received a packet in order
-		incoming(ptr, payload_size, 0, now);
+		incoming(ptr, payload_size, nullptr, now);
 		m_ack_nr = (m_ack_nr + 1) & ACK_MASK;
 
 		// If this packet was previously in the reorder buffer
 		// it would have been acked when m_ack_nr-1 was acked.
-		TORRENT_ASSERT(m_inbuf.at(m_ack_nr) == 0);
+		TORRENT_ASSERT(m_inbuf.at(m_ack_nr) == nullptr);
 
 		UTP_LOGV("%8p: remove inbuf: %d (%d)\n"
 			, static_cast<void*>(this), m_ack_nr, int(m_inbuf.size()));
@@ -2587,7 +2586,7 @@ bool utp_socket_impl::consume_incoming_data(
 			if (!p) break;
 
 			m_buffered_incoming_bytes -= p->size - p->header_size;
-			incoming(0, p->size - p->header_size, p, now);
+			incoming(nullptr, p->size - p->header_size, p, now);
 
 			m_ack_nr = next_ack_nr;
 
@@ -3731,10 +3730,9 @@ void utp_socket_impl::check_receive_buffers() const
 
 	std::size_t size = 0;
 
-	for (std::vector<packet*>::const_iterator i = m_receive_buffer.begin()
-		, end(m_receive_buffer.end()); i != end; ++i)
+	for (auto p : m_receive_buffer)
 	{
-		if (packet const* p = *i)
+		if (p)
 			size += p->size - p->header_size;
 	}
 
@@ -3764,4 +3762,4 @@ void utp_socket_impl::check_invariant() const
 	}
 }
 #endif
-}
+} // namespace libtorrent

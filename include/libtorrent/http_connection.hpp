@@ -84,11 +84,11 @@ struct TORRENT_EXTRA_EXPORT http_connection
 {
 	http_connection(io_service& ios
 		, resolver_interface& resolver
-		, http_handler const& handler
+		, http_handler handler
 		, bool bottled = true
 		, int max_bottled_buffer_size = default_max_bottled_buffer_size
-		, http_connect_handler const& ch = http_connect_handler()
-		, http_filter_handler const& fh = http_filter_handler()
+		, http_connect_handler ch = http_connect_handler()
+		, http_filter_handler fh = http_filter_handler()
 #ifdef TORRENT_USE_OPENSSL
 		, ssl::context* ssl_ctx = 0
 #endif

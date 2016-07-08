@@ -131,4 +131,5 @@ namespace libtorrent { namespace aux
 	bool const mmx_support = supports_mmx();
 	bool const arm_neon_support = supports_arm_neon();
 	bool const arm_crc32c_support = supports_arm_crc32c();
-} }
+} // namespace aux
+ } // namespace libtorrent

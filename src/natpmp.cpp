@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cinttypes> // for PRId64 et.al.
 #include <cstdarg>
 #include <functional>
+#include <utility>
 
 #include "libtorrent/natpmp.hpp"
 #include "libtorrent/io.hpp"
@@ -61,8 +62,8 @@ using namespace libtorrent;
 using namespace std::placeholders;
 
 natpmp::natpmp(io_service& ios
-	, portmap_callback_t const& cb, log_callback_t const& lcb)
-	: m_callback(cb)
+	, portmap_callback_t cb, log_callback_t const& lcb)
+	: m_callback(std::move(cb))
 #ifndef TORRENT_DISABLE_LOGGING
 	, m_log_callback(lcb)
 #endif
@@ -128,7 +129,7 @@ void natpmp::start()
 		, m_remote, std::bind(&natpmp::on_reply, self(), _1, _2));
 	send_get_ip_address_request();
 
-	for (std::vector<mapping_t>::iterator i = m_mappings.begin()
+	for (auto i = m_mappings.begin()
 		, end(m_mappings.end()); i != end; ++i)
 	{
 		if (i->protocol != none
@@ -191,7 +192,7 @@ void natpmp::disable(error_code const& ec)
 	TORRENT_ASSERT(is_single_thread());
 	m_disabled = true;
 
-	for (std::vector<mapping_t>::iterator i = m_mappings.begin()
+	for (auto i = m_mappings.begin()
 		, end(m_mappings.end()); i != end; ++i)
 	{
 		if (i->protocol == none) continue;
@@ -230,7 +231,7 @@ int natpmp::add_mapping(protocol_type p, int const external_port
 
 	if (m_disabled) return -1;
 
-	std::vector<mapping_t>::iterator i = std::find_if(m_mappings.begin()
+	auto i = std::find_if(m_mappings.begin()
 		, m_mappings.end(), [] (mapping_t const& m) { return m.protocol == none; });
 	if (i == m_mappings.end())
 	{
@@ -497,9 +498,9 @@ void natpmp::on_reply(error_code const& e
 	}
 #endif
 
-	mapping_t* m = 0;
+	mapping_t* m = nullptr;
 	int index = -1;
-	for (std::vector<mapping_t>::iterator i = m_mappings.begin()
+	for (auto i = m_mappings.begin()
 		, end(m_mappings.end()); i != end; ++i)
 	{
 		if (private_port != i->local_port) continue;
@@ -511,7 +512,7 @@ void natpmp::on_reply(error_code const& e
 		break;
 	}
 
-	if (m == 0)
+	if (m == nullptr)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		snprintf(msg + num_chars, sizeof(msg) - num_chars, " not found in map table");
@@ -579,7 +580,7 @@ void natpmp::update_expiration_timer()
 	time_point now = aux::time_now() + milliseconds(100);
 	time_point min_expire = now + seconds(3600);
 	int min_index = -1;
-	for (std::vector<mapping_t>::iterator i = m_mappings.begin()
+	for (auto i = m_mappings.begin()
 		, end(m_mappings.end()); i != end; ++i)
 	{
 		if (i->protocol == none

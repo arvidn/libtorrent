@@ -60,11 +60,11 @@ class node;
 // this class may not be instantiated as a stack object
 struct TORRENT_EXTRA_EXPORT traversal_algorithm : boost::noncopyable
 {
-	void traverse(node_id const& id, udp::endpoint addr);
-	void finished(observer_ptr o);
+	void traverse(node_id const& id, const udp::endpoint& addr);
+	void finished(const observer_ptr& o);
 
 	enum flags_t { prevent_request = 1, short_timeout = 2 };
-	void failed(observer_ptr o, int flags = 0);
+	void failed(const observer_ptr& o, int flags = 0);
 	virtual ~traversal_algorithm();
 	void status(dht_lookup& l);
 
@@ -77,7 +77,7 @@ struct TORRENT_EXTRA_EXPORT traversal_algorithm : boost::noncopyable
 	node_id const& target() const { return m_target; }
 
 	void resort_results();
-	void add_entry(node_id const& id, udp::endpoint addr, unsigned char flags);
+	void add_entry(node_id const& id, const udp::endpoint& addr, unsigned char flags);
 
 	traversal_algorithm(node & node, node_id target);
 	int invoke_count() const { return m_invoke_count; }

@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <limits>
 #include <functional>
-#include <stdlib.h>
+#include <cstdlib>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -119,7 +119,7 @@ namespace libtorrent
 	}
 
 	web_connection_base::~web_connection_base()
-	{}
+	= default;
 
 	void web_connection_base::on_connected()
 	{
@@ -156,12 +156,12 @@ namespace libtorrent
 			request += base64encode(sett.get_str(settings_pack::proxy_username)
 				+ ":" + sett.get_str(settings_pack::proxy_password));
 		}
-		for (web_seed_entry::headers_t::const_iterator it = m_extra_headers.begin();
-		     it != m_extra_headers.end(); ++it) {
-		  request += "\r\n";
-		  request += it->first;
-		  request += ": ";
-		  request += it->second;
+		for (auto const& m_extra_header : m_extra_headers)
+		{
+			request += "\r\n";
+			request += m_extra_header.first;
+			request += ": ";
+			request += m_extra_header.second;
 		}
 		if (using_proxy) {
 			request += "\r\nProxy-Connection: keep-alive";
@@ -212,5 +212,5 @@ namespace libtorrent
 */	}
 #endif
 
-}
+} // namespace libtorrent
 

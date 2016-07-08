@@ -70,7 +70,7 @@ class TORRENT_EXTRA_EXPORT rpc_manager
 {
 public:
 
-	rpc_manager(node_id const& our_id
+	rpc_manager(node_id our_id
 		, dht_settings const& settings
 		, routing_table& table
 		, udp_socket_interface* sock
@@ -84,7 +84,7 @@ public:
 	bool incoming(msg const&, node_id* id);
 	time_duration tick();
 
-	bool invoke(entry& e, udp::endpoint target
+	bool invoke(entry& e, const udp::endpoint& target
 		, observer_ptr o);
 
 	void add_our_id(entry& e);

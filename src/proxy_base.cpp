@@ -41,7 +41,7 @@ namespace libtorrent
 		, m_resolver(io_service)
 	{}
 
-	proxy_base::~proxy_base() {}
+	proxy_base::~proxy_base() = default;
 
 	bool proxy_base::handle_error(error_code const& e, boost::shared_ptr<handler_type> const& h)
 	{
@@ -51,5 +51,5 @@ namespace libtorrent
 		close(ec);
 		return true;
 	}
-}
+} // namespace libtorrent
 

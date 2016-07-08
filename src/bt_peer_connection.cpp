@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 
 #include <memory> // unique_ptr
+#include <utility>
 #include <vector>
 #include <functional>
 
@@ -134,7 +135,7 @@ namespace libtorrent
 #endif
 
 	bt_peer_connection::bt_peer_connection(peer_connection_args const& pack
-		, peer_id const& pid)
+		, peer_id pid)
 		: peer_connection(pack)
 		, m_state(read_protocol_identifier)
 		, m_supports_extensions(false)
@@ -148,7 +149,7 @@ namespace libtorrent
 		, m_rc4_encrypted(false)
 		, m_recv_buffer(peer_connection::m_recv_buffer)
 #endif
-		, m_our_peer_id(pid)
+		, m_our_peer_id(std::move(pid))
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		, m_sync_bytes_read(0)
 #endif
@@ -187,17 +188,16 @@ namespace libtorrent
 	}
 
 	bt_peer_connection::~bt_peer_connection()
-	{
-	}
+	= default;
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-	void bt_peer_connection::switch_send_crypto(boost::shared_ptr<crypto_plugin> crypto)
+	void bt_peer_connection::switch_send_crypto(const boost::shared_ptr<crypto_plugin>& crypto)
 	{
 		if (m_enc_handler.switch_send_crypto(crypto, send_buffer_size() - get_send_barrier()))
 			set_send_barrier(send_buffer_size());
 	}
 
-	void bt_peer_connection::switch_recv_crypto(boost::shared_ptr<crypto_plugin> crypto)
+	void bt_peer_connection::switch_recv_crypto(const boost::shared_ptr<crypto_plugin>& crypto)
 	{
 		m_enc_handler.switch_recv_crypto(crypto, m_recv_buffer);
 	}
@@ -492,7 +492,7 @@ namespace libtorrent
 	namespace {
 		char random_byte()
 		{ return random() & 0xff; }
-	}
+	} // namespace
 
 	void bt_peer_connection::write_pe1_2_dhkey()
 	{
@@ -719,7 +719,7 @@ namespace libtorrent
 		{
 			::free(buf);
 		}
-	}
+	} // namespace
 
 #endif // #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 
@@ -1493,7 +1493,7 @@ namespace libtorrent
 				// the peer at 'ep'. We need to find which of
 				// our connections points to that endpoint
 				bt_peer_connection* p = t->find_peer(ep);
-				if (p == 0)
+				if (p == nullptr)
 				{
 					// we're not connected to this peer
 					write_holepunch_msg(hp_failed, ep, hp_not_connected);
@@ -1517,7 +1517,7 @@ namespace libtorrent
 			{
 				// add or find the peer with this endpoint
 				torrent_peer* p = t->add_peer(ep, peer_info::pex);
-				if (p == 0 || p->connection)
+				if (p == nullptr || p->connection)
 				{
 #ifndef TORRENT_DISABLE_LOGGING
 					peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
@@ -1727,10 +1727,9 @@ namespace libtorrent
 				, "msg: %d size: %d", extended_id, m_recv_buffer.packet_size());
 #endif
 
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto & m_extension : m_extensions)
 		{
-			if ((*i)->on_extended(m_recv_buffer.packet_size() - 2, extended_id
+			if (m_extension->on_extended(m_recv_buffer.packet_size() - 2, extended_id
 				, recv_buffer))
 				return;
 		}
@@ -1767,7 +1766,7 @@ namespace libtorrent
 			, "%s", print_entry(root).c_str());
 #endif
 
-		for (extension_list_t::iterator i = m_extensions.begin();
+		for (auto i = m_extensions.begin();
 			!m_extensions.empty() && i != m_extensions.end();)
 		{
 			// a false return value means that the extension
@@ -1789,7 +1788,7 @@ namespace libtorrent
 
 		// there is supposed to be a remote listen port
 		int listen_port = int(root.dict_find_int_value("p"));
-		if (listen_port > 0 && peer_info_struct() != 0)
+		if (listen_port > 0 && peer_info_struct() != nullptr)
 		{
 			t->update_peer_port(listen_port, peer_info_struct(), peer_info::incoming);
 			received_listen_port();
@@ -1907,10 +1906,9 @@ namespace libtorrent
 			default:
 			{
 #ifndef TORRENT_DISABLE_EXTENSIONS
-				for (extension_list_t::iterator i = m_extensions.begin()
-					, end(m_extensions.end()); i != end; ++i)
+				for (auto & m_extension : m_extensions)
 				{
-					if ((*i)->on_unknown_message(m_recv_buffer.packet_size(), packet_type
+					if (m_extension->on_unknown_message(m_recv_buffer.packet_size(), packet_type
 						, buffer::const_interval(recv_buffer.begin+1
 							, recv_buffer.end)))
 						return m_recv_buffer.packet_finished();
@@ -2111,7 +2109,7 @@ namespace libtorrent
 		const int packet_size = (num_pieces + 7) / 8 + 5;
 
 		std::uint8_t* msg = TORRENT_ALLOCA(std::uint8_t, packet_size);
-		if (msg == 0) return; // out of memory
+		if (msg == nullptr) return; // out of memory
 		unsigned char* ptr = msg;
 
 		detail::write_int32(packet_size - 4, ptr);
@@ -2235,7 +2233,7 @@ namespace libtorrent
 
 		// loop backwards, to make the first extension be the last
 		// to fill in the handshake (i.e. give the first extensions priority)
-		for (extension_list_t::reverse_iterator i = m_extensions.rbegin()
+		for (auto i = m_extensions.rbegin()
 			, end(m_extensions.rend()); i != end; ++i)
 		{
 			(*i)->add_handshake(handshake);
@@ -2304,10 +2302,9 @@ namespace libtorrent
 		stats_counters().inc_stats_counter(counters::num_outgoing_unchoke);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto & m_extension : m_extensions)
 		{
-			(*i)->sent_unchoke();
+			m_extension->sent_unchoke();
 		}
 #endif
 	}
@@ -2439,12 +2436,11 @@ namespace libtorrent
 			entry piece_list;
 			entry::list_type& l = piece_list.list();
 			std::map<int, sha1_hash> merkle_node_list = t->torrent_file().build_merkle_list(r.piece);
-			for (std::map<int, sha1_hash>::iterator i = merkle_node_list.begin()
-				, end(merkle_node_list.end()); i != end; ++i)
+			for (auto & i : merkle_node_list)
 			{
 				l.push_back(entry(entry::list_t));
-				l.back().list().push_back(i->first);
-				l.back().list().push_back(i->second.to_string());
+				l.back().list().push_back(i.first);
+				l.back().list().push_back(i.second.to_string());
 			}
 			bencode(std::back_inserter(piece_list_buf), piece_list);
 			detail::write_int32(int(piece_list_buf.size()), ptr);
@@ -3277,7 +3273,7 @@ namespace libtorrent
 					if (is_print(recv_buffer.begin[i])) ascii_pid[i] = recv_buffer.begin[i];
 					else ascii_pid[i] = '.';
 				}
-				peer_log(peer_log_alert::incoming, "HANDSHAKE", "received peer_id: %s client: %s ascii: \"%s\""
+				peer_log(peer_log_alert::incoming, "HANDSHAKE", R"(received peer_id: %s client: %s ascii: "%s")"
 					, hex_pid, identify_client(peer_id(recv_buffer.begin)).c_str(), ascii_pid);
 			}
 #endif
@@ -3330,7 +3326,7 @@ namespace libtorrent
 			}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-			for (extension_list_t::iterator i = m_extensions.begin()
+			for (auto i = m_extensions.begin()
 				, end(m_extensions.end()); i != end;)
 			{
 				if (!(*i)->on_handshake(m_reserved_bits))
@@ -3521,9 +3517,9 @@ namespace libtorrent
 			// this points to the first entry to not erase. i.e.
 			// [begin, first_to_keep) will be erased because
 			// the payload ranges they represent have been sent
-			std::vector<range>::iterator first_to_keep = m_payloads.begin();
+			auto first_to_keep = m_payloads.begin();
 
-			for (std::vector<range>::iterator i = m_payloads.begin();
+			for (auto i = m_payloads.begin();
 				i != m_payloads.end(); ++i)
 			{
 				i->start -= int(bytes_transferred);
@@ -3578,7 +3574,7 @@ namespace libtorrent
 
 		if (!m_payloads.empty())
 		{
-			for (std::vector<range>::const_iterator i = m_payloads.begin();
+			for (auto i = m_payloads.begin();
 				i != m_payloads.end() - 1; ++i)
 			{
 				TORRENT_ASSERT(i->start + i->length <= (i+1)->start);
@@ -3587,5 +3583,5 @@ namespace libtorrent
 	}
 #endif
 
-}
+} // namespace libtorrent
 

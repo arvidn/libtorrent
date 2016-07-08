@@ -172,5 +172,5 @@ namespace libtorrent
 
 		return close_no_reason;
 	}
-}
+} // namespace libtorrent
 

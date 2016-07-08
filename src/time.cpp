@@ -40,8 +40,9 @@ namespace libtorrent { namespace aux
 	// be used where more accurate time is not necessary
 	namespace {
 		std::atomic<time_point> g_current_time(clock_type::now());
-	}
+	} // namespace
 	time_point time_now() { return aux::g_current_time.load(); }
 	void update_time_now() { g_current_time.store(clock_type::now()); }
 
-} }
+} // namespace aux
+ } // namespace libtorrent

@@ -41,7 +41,7 @@ using namespace std::placeholders;
 namespace libtorrent
 {
 
-	void http_stream::name_lookup(error_code const& e, tcp::resolver::iterator i
+	void http_stream::name_lookup(error_code const& e, const tcp::resolver::iterator& i
 		, boost::shared_ptr<handler_type> h)
 	{
 		if (handle_error(e, h)) return;
@@ -122,7 +122,7 @@ namespace libtorrent
 		{
 			m_buffer.push_back(0);
 			char* status = std::strchr(&m_buffer[0], ' ');
-			if (status == 0)
+			if (status == nullptr)
 			{
 				(*h)(boost::asio::error::operation_not_supported);
 				error_code ec;
@@ -151,5 +151,5 @@ namespace libtorrent
 			, std::bind(&http_stream::handshake2, this, _1, h));
 	}
 
-}
+} // namespace libtorrent
 

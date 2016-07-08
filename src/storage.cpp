@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/version.hpp>
+#include <utility>
 
 #if defined(__APPLE__)
 // for getattrlist()
@@ -229,7 +230,7 @@ namespace libtorrent
 			, std::int64_t const file_offset
 			, int const size
 			, file::iovec_t const* bufs, storage_error& ec)
-			override final
+			final
 		{
 			if (m_storage.files().pad_file_at(file_index))
 			{
@@ -320,7 +321,7 @@ namespace libtorrent
 			, std::int64_t const file_offset
 			, int const size
 			, file::iovec_t const* bufs, storage_error& ec)
-			override final
+			final
 		{
 			int num_bufs = count_bufs(bufs, size);
 
@@ -804,7 +805,7 @@ namespace libtorrent
 			// remove the directories. Reverse order to delete
 			// subdirectories first
 
-			for (std::set<std::string>::reverse_iterator i = directories.rbegin()
+			for (auto i = directories.rbegin()
 				, end(directories.rend()); i != end; ++i)
 			{
 				error_code error;
@@ -853,7 +854,7 @@ namespace libtorrent
 			// other torrents until a new mutable torrent has been completely
 			// added.
 			int idx = 0;
-			for (std::vector<std::string>::const_iterator i = links->begin();
+			for (auto i = links->begin();
 				i != links->end(); ++i, ++idx)
 			{
 				if (i->empty()) continue;
@@ -1126,7 +1127,7 @@ namespace libtorrent
 		, const int piece, const int offset, const int num_bufs, fileop& op
 		, storage_error& ec)
 	{
-		TORRENT_ASSERT(bufs != 0);
+		TORRENT_ASSERT(bufs != nullptr);
 		TORRENT_ASSERT(piece >= 0);
 		TORRENT_ASSERT(piece < files.num_pieces());
 		TORRENT_ASSERT(offset >= 0);
@@ -1365,31 +1366,31 @@ namespace libtorrent
 		class disabled_storage final : public storage_interface, boost::noncopyable
 		{
 		public:
-			virtual bool has_any_file(storage_error&) override { return false; }
-			virtual void set_file_priority(std::vector<std::uint8_t> const&
+			bool has_any_file(storage_error&) override { return false; }
+			void set_file_priority(std::vector<std::uint8_t> const&
 				, storage_error&) override {}
-			virtual void rename_file(int, std::string const&, storage_error&) override {}
-			virtual void release_files(storage_error&) override {}
-			virtual void delete_files(int, storage_error&) override {}
-			virtual void initialize(storage_error&) override {}
-			virtual int move_storage(std::string const&, int, storage_error&) override { return 0; }
+			void rename_file(int, std::string const&, storage_error&) override {}
+			void release_files(storage_error&) override {}
+			void delete_files(int, storage_error&) override {}
+			void initialize(storage_error&) override {}
+			int move_storage(std::string const&, int, storage_error&) override { return 0; }
 
-			virtual int readv(file::iovec_t const* bufs, int num_bufs
+			int readv(file::iovec_t const* bufs, int num_bufs
 				, int, int, int, storage_error&) override
 			{
 				return bufs_size(bufs, num_bufs);
 			}
-			virtual int writev(file::iovec_t const* bufs, int num_bufs
+			int writev(file::iovec_t const* bufs, int num_bufs
 				, int, int, int, storage_error&) override
 			{
 				return bufs_size(bufs, num_bufs);
 			}
 
-			virtual bool verify_resume_data(add_torrent_params const&
+			bool verify_resume_data(add_torrent_params const&
 				, std::vector<std::string> const*
 				, storage_error&) override { return false; }
 		};
-	}
+	} // namespace
 
 	storage_interface* disabled_storage_constructor(storage_params const& params)
 	{
@@ -1405,9 +1406,9 @@ namespace libtorrent
 		// anything written to it
 		struct zero_storage final : storage_interface
 		{
-			virtual void initialize(storage_error&) override {}
+			void initialize(storage_error&) override {}
 
-			virtual int readv(file::iovec_t const* bufs, int num_bufs
+			int readv(file::iovec_t const* bufs, int num_bufs
 				, int, int, int, storage_error&) override
 			{
 				int ret = 0;
@@ -1418,7 +1419,7 @@ namespace libtorrent
 				}
 				return 0;
 			}
-			virtual int writev(file::iovec_t const* bufs, int num_bufs
+			int writev(file::iovec_t const* bufs, int num_bufs
 				, int, int, int, storage_error&) override
 			{
 				int ret = 0;
@@ -1427,21 +1428,21 @@ namespace libtorrent
 				return 0;
 			}
 
-			virtual bool has_any_file(storage_error&) override { return false; }
-			virtual void set_file_priority(std::vector<std::uint8_t> const& /* prio */
+			bool has_any_file(storage_error&) override { return false; }
+			void set_file_priority(std::vector<std::uint8_t> const& /* prio */
 				, storage_error&) override {}
-			virtual int move_storage(std::string const& /* save_path */
+			int move_storage(std::string const& /* save_path */
 				, int /* flags */, storage_error&) override { return 0; }
-			virtual bool verify_resume_data(add_torrent_params const& /* rd */
+			bool verify_resume_data(add_torrent_params const& /* rd */
 				, std::vector<std::string> const* /* links */
 				, storage_error&) override
 			{ return false; }
-			virtual void release_files(storage_error&) override {}
-			virtual void rename_file(int /* index */
+			void release_files(storage_error&) override {}
+			void rename_file(int /* index */
 				, std::string const& /* new_filenamem */, storage_error&) override {}
-			virtual void delete_files(int, storage_error&) override {}
+			void delete_files(int, storage_error&) override {}
 		};
-	}
+	} // namespace
 
 	storage_interface* zero_storage_constructor(storage_params const&)
 	{
@@ -1478,16 +1479,16 @@ namespace libtorrent
 
 	piece_manager::piece_manager(
 		storage_interface* storage_impl
-		, boost::shared_ptr<void> const& torrent
+		, boost::shared_ptr<void> torrent
 		, file_storage* files)
 		: m_files(*files)
 		, m_storage(storage_impl)
-		, m_torrent(torrent)
+		, m_torrent(std::move(torrent))
 	{
 	}
 
 	piece_manager::~piece_manager()
-	{}
+	= default;
 
 #if TORRENT_USE_ASSERTS
 	void piece_manager::assert_torrent_refcount() const

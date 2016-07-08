@@ -558,5 +558,5 @@ namespace libtorrent
 		return i->value_index;
 	}
 
-}
+} // namespace libtorrent
 

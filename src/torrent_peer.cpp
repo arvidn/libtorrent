@@ -52,7 +52,7 @@ namespace libtorrent
 				++mask;
 			}
 		}
-	}
+	} // namespace
 
 	// 1. if the IP addresses are identical, hash the ports in 16 bit network-order
 	//    binary representation, ordered lowest first.
@@ -144,7 +144,7 @@ namespace libtorrent
 	torrent_peer::torrent_peer(std::uint16_t port_, bool conn, int src)
 		: prev_amount_upload(0)
 		, prev_amount_download(0)
-		, connection(0)
+		, connection(nullptr)
 		, peer_rank(0)
 		, last_optimistically_unchoked(0)
 		, last_connected(0)
@@ -206,7 +206,7 @@ namespace libtorrent
 
 	std::uint64_t torrent_peer::total_download() const
 	{
-		if (connection != 0)
+		if (connection != nullptr)
 		{
 			TORRENT_ASSERT(prev_amount_download == 0);
 			return connection->statistics().total_payload_download();
@@ -219,7 +219,7 @@ namespace libtorrent
 
 	std::uint64_t torrent_peer::total_upload() const
 	{
-		if (connection != 0)
+		if (connection != nullptr)
 		{
 			TORRENT_ASSERT(prev_amount_upload == 0);
 			return connection->statistics().total_payload_upload();
@@ -245,7 +245,7 @@ namespace libtorrent
 	}
 
 	ipv4_peer::ipv4_peer(ipv4_peer const& p)
-		: torrent_peer(p), addr(p.addr) {}
+		= default;
 
 #if TORRENT_USE_I2P
 	i2p_peer::i2p_peer(char const* dest, bool connectable, int src)
@@ -313,5 +313,5 @@ namespace libtorrent
 		return static_cast<ipv4_peer const*>(this)->addr;
 	}
 
-}
+} // namespace libtorrent
 

@@ -33,14 +33,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 #include <cstring>
 #include <algorithm>
+#include <utility>
 
 #include "libtorrent/bandwidth_queue_entry.hpp"
 
 namespace libtorrent
 {
-	bw_request::bw_request(boost::shared_ptr<bandwidth_socket> const& pe
+	bw_request::bw_request(boost::shared_ptr<bandwidth_socket> pe
 		, int blk, int prio)
-		: peer(pe)
+		: peer(std::move(pe))
 		, priority(prio)
 		, assigned(0)
 		, request_size(blk)
@@ -71,5 +72,5 @@ namespace libtorrent
 		TORRENT_ASSERT(assigned <= request_size);
 		return quota;
 	}
-}
+} // namespace libtorrent
 

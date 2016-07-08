@@ -294,7 +294,7 @@ namespace libtorrent
 		// 
 		// .. _`BEP 38`: http://www.bittorrent.org/beps/bep_0038.html
 		void add_similar_torrent(sha1_hash ih);
-		void add_collection(std::string c);
+		void add_collection(const std::string& c);
 
 	private:
 
@@ -395,7 +395,7 @@ namespace libtorrent
 	// The ``flags`` argument should be the same as the flags passed to the `create_torrent`_
 	// constructor.
 	TORRENT_EXPORT void add_files(file_storage& fs, std::string const& file
-		, boost::function<bool(std::string)> p, std::uint32_t flags = 0);
+		, const boost::function<bool(std::string)>& p, std::uint32_t flags = 0);
 	TORRENT_EXPORT void add_files(file_storage& fs, std::string const& file
 		, std::uint32_t flags = 0);
 	
@@ -440,7 +440,7 @@ namespace libtorrent
 
 	TORRENT_DEPRECATED
 	TORRENT_EXPORT void add_files(file_storage& fs, std::wstring const& wfile
-		, boost::function<bool(std::string)> p, std::uint32_t flags = 0);
+		, const boost::function<bool(std::string)>& p, std::uint32_t flags = 0);
 
 	TORRENT_DEPRECATED
 	TORRENT_EXPORT void add_files(file_storage& fs, std::wstring const& wfile
@@ -448,11 +448,11 @@ namespace libtorrent
 	
 	TORRENT_DEPRECATED
 	TORRENT_EXPORT void set_piece_hashes(create_torrent& t, std::wstring const& p
-		, boost::function<void(int)> f, error_code& ec);
+		, const boost::function<void(int)>& f, error_code& ec);
 
 	TORRENT_EXPORT void set_piece_hashes_deprecated(create_torrent& t
 		, std::wstring const& p
-		, boost::function<void(int)> f, error_code& ec);
+		, const boost::function<void(int)>& f, error_code& ec);
 
 #ifndef BOOST_NO_EXCEPTIONS
 	template <class Fun>

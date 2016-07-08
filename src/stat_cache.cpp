@@ -42,7 +42,7 @@ namespace libtorrent
 	class file_storage;
 
 	stat_cache::stat_cache() {}
-	stat_cache::~stat_cache() {}
+	stat_cache::~stat_cache() = default;
 
 	void stat_cache::set_cache(int i, std::int64_t size)
 	{
@@ -113,10 +113,10 @@ namespace libtorrent
 
 	int stat_cache::add_error(error_code const& ec)
 	{
-		std::vector<error_code>::iterator i = std::find(m_errors.begin(), m_errors.end(), ec);
+		auto i = std::find(m_errors.begin(), m_errors.end(), ec);
 		if (i != m_errors.end()) return i - m_errors.begin();
 		m_errors.push_back(ec);
 		return int(m_errors.size()) - 1;
 	}
-}
+} // namespace libtorrent
 

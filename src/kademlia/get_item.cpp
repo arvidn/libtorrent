@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #if TORRENT_USE_ASSERTS
 #include <libtorrent/bencode.hpp>
 #endif
+#include <utility>
 
 namespace libtorrent { namespace dht
 {
@@ -103,10 +104,10 @@ void get_item::got_data(bdecode_node const& v,
 get_item::get_item(
 	node& dht_node
 	, node_id target
-	, data_callback const& dcallback
+	, data_callback dcallback
 	, nodes_callback const& ncallback)
 	: find_data(dht_node, target, ncallback)
-	, m_data_callback(dcallback)
+	, m_data_callback(std::move(dcallback))
 	, m_immutable(true)
 {
 }
@@ -115,12 +116,12 @@ get_item::get_item(
 	node& dht_node
 	, char const* pk
 	, std::string const& salt
-	, data_callback const& dcallback
+	, data_callback dcallback
 	, nodes_callback const& ncallback)
 	: find_data(dht_node, item_target_id(
 		std::make_pair(salt.c_str(), int(salt.size())), pk)
 		, ncallback)
-	, m_data_callback(dcallback)
+	, m_data_callback(std::move(dcallback))
 	, m_data(pk, salt)
 	, m_immutable(false)
 {
@@ -225,4 +226,5 @@ void get_item_observer::reply(msg const& m)
 	find_data_observer::reply(m);
 }
 
-} } // namespace libtorrent::dht
+} // namespace dht
+ } // namespace libtorrent

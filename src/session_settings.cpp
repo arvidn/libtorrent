@@ -38,5 +38,6 @@ namespace libtorrent { namespace aux
 	{
 		initialize_default_settings(*this);
 	}
-} }
+} // namespace aux
+ } // namespace libtorrent
 

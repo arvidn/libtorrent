@@ -130,14 +130,14 @@ namespace libtorrent
 		return url;
 	}
 
-	http_parser::~http_parser() {}
+	http_parser::~http_parser() = default;
 
 	http_parser::http_parser(int flags)
 		: m_recv_pos(0)
 		, m_content_length(-1)
 		, m_range_start(-1)
 		, m_range_end(-1)
-		, m_recv_buffer(0, 0)
+		, m_recv_buffer(nullptr, nullptr)
 		, m_cur_chunk_end(-1)
 		, m_status_code(-1)
 		, m_chunk_header_size(0)
@@ -279,7 +279,7 @@ restart_response:
 
 				if (name == "content-length")
 				{
-					m_content_length = strtoll(value.c_str(), 0, 10);
+					m_content_length = strtoll(value.c_str(), nullptr, 10);
 					if (m_content_length < 0)
 					{
 						m_state = error_state;
@@ -471,7 +471,7 @@ restart_response:
 		// empty line
 
 		// first, read the chunk length
-		*chunk_size = strtoll(pos, 0, 16);
+		*chunk_size = strtoll(pos, nullptr, 16);
 		if (*chunk_size < 0) return true;
 
 		if (*chunk_size != 0)
@@ -558,8 +558,8 @@ restart_response:
 		m_range_end = -1;
 		m_finished = false;
 		m_state = read_status;
-		m_recv_buffer.begin = 0;
-		m_recv_buffer.end = 0;
+		m_recv_buffer.begin = nullptr;
+		m_recv_buffer.end = nullptr;
 		m_header.clear();
 		m_chunked_encoding = false;
 		m_chunked_ranges.clear();
@@ -581,7 +581,7 @@ restart_response:
 		// of the HTTP header from them
 		int offset = body_start();
 		std::vector<std::pair<std::int64_t, std::int64_t> > const& c = chunks();
-		for (std::vector<std::pair<std::int64_t, std::int64_t> >::const_iterator i = c.begin()
+		for (auto i = c.begin()
 			, end(c.end()); i != end; ++i)
 		{
 			TORRENT_ASSERT(i->second - i->first < (std::numeric_limits<int>::max)());
@@ -594,5 +594,5 @@ restart_response:
 		size = write_ptr - buffer;
 		return size;
 	}
-}
+} // namespace libtorrent
 

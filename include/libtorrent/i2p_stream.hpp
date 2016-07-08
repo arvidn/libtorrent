@@ -135,7 +135,7 @@ private:
 	// explicitly disallow assignment, to silence msvc warning
 	i2p_stream& operator=(i2p_stream const&);
 
-	void do_connect(error_code const& e, tcp::resolver::iterator i
+	void do_connect(error_code const& e, const tcp::resolver::iterator& i
 		, boost::shared_ptr<handler_type> h);
 	void connected(error_code const& e, boost::shared_ptr<handler_type> h);
 	void start_read_line(error_code const& e, boost::shared_ptr<handler_type> h);
@@ -194,12 +194,12 @@ private:
 	i2p_connection& operator=(i2p_connection const&);
 
 	void on_sam_connect(error_code const& ec, i2p_stream::handler_type const& h
-		, boost::shared_ptr<i2p_stream>);
+		, const boost::shared_ptr<i2p_stream>&);
 	void do_name_lookup(std::string const& name
 		, name_lookup_handler const& h);
 	void on_name_lookup(error_code const& ec
-		, name_lookup_handler handler
-		, boost::shared_ptr<i2p_stream>);
+		, const name_lookup_handler& handler
+		, const boost::shared_ptr<i2p_stream>&);
 
 	void set_local_endpoint(error_code const& ec, char const* dest
 		, i2p_stream::handler_type const& h);

@@ -161,5 +161,5 @@ namespace libtorrent
 		}
 	}
 
-}
+} // namespace libtorrent
 

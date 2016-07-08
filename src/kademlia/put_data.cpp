@@ -34,13 +34,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/dht_observer.hpp>
 #include <libtorrent/kademlia/node.hpp>
 #include <libtorrent/io.hpp>
+#include <utility>
 
 namespace libtorrent { namespace dht
 {
 
-put_data::put_data(node& dht_node, put_callback const& callback)
+put_data::put_data(node& dht_node, put_callback callback)
 	: traversal_algorithm(dht_node, (node_id::min)())
-	, m_put_callback(callback)
+	, m_put_callback(std::move(callback))
 	, m_done(false)
 {
 }
@@ -57,14 +58,13 @@ void put_data::start()
 
 void put_data::set_targets(std::vector<std::pair<node_entry, std::string> > const& targets)
 {
-	for (std::vector<std::pair<node_entry, std::string> >::const_iterator i = targets.begin()
-		, end(targets.end()); i != end; ++i)
+	for (const auto & target : targets)
 	{
 		void* ptr = m_node.m_rpc.allocate_observer();
-		if (ptr == 0) return;
+		if (ptr == nullptr) return;
 
-		observer_ptr o(new (ptr) put_data_observer(this, i->first.ep()
-			, i->first.id, i->second));
+		observer_ptr o(new (ptr) put_data_observer(this, target.first.ep()
+			, target.first.id, target.second));
 
 	#if TORRENT_USE_ASSERTS
 		o->m_in_constructor = false;
@@ -118,5 +118,6 @@ bool put_data::invoke(observer_ptr o)
 	return m_node.m_rpc.invoke(e, o->target_ep(), o);
 }
 
-} } // namespace libtorrent::dht
+} // namespace dht
+ } // namespace libtorrent
 

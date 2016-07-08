@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
+#include <utility>
 #include <vector>
 #include <cctype>
 
@@ -58,7 +59,7 @@ namespace
 		http_buffer_size = 2048
 	};
 
-}
+} // namespace
 
 namespace libtorrent
 {
@@ -148,12 +149,12 @@ namespace libtorrent
 
 	tracker_connection::tracker_connection(
 		tracker_manager& man
-		, tracker_request const& req
+		, tracker_request req
 		, io_service& ios
 		, boost::weak_ptr<request_callback> r)
 		: timeout_handler(ios)
-		, m_req(req)
-		, m_requester(r)
+		, m_req(std::move(req))
+		, m_requester(std::move(r))
 		, m_man(man)
 	{}
 
@@ -171,7 +172,7 @@ namespace libtorrent
 	}
 
 	void tracker_connection::fail_impl(error_code const& ec, int code
-		, std::string msg, int interval, int min_interval)
+		, const std::string& msg, int interval, int min_interval)
 	{
 		boost::shared_ptr<request_callback> cb = requester();
 		if (cb) cb->tracker_request_error(m_req, code, ec, msg.c_str()
@@ -195,8 +196,8 @@ namespace libtorrent
 		m_man.remove_request(this);
 	}
 
-	tracker_manager::tracker_manager(send_fun_t const& send_fun
-		, send_fun_hostname_t const& send_fun_hostname
+	tracker_manager::tracker_manager(send_fun_t send_fun
+		, send_fun_hostname_t send_fun_hostname
 		, counters& stats_counters
 		, resolver_interface& resolver
 		, aux::session_settings const& sett
@@ -204,8 +205,8 @@ namespace libtorrent
 		, aux::session_logger& ses
 #endif
 		)
-		: m_send_fun(send_fun)
-		, m_send_fun_hostname(send_fun_hostname)
+		: m_send_fun(std::move(send_fun))
+		, m_send_fun_hostname(std::move(send_fun_hostname))
 		, m_host_resolver(resolver)
 		, m_settings(sett)
 		, m_stats_counters(stats_counters)
@@ -236,7 +237,7 @@ namespace libtorrent
 	void tracker_manager::remove_request(tracker_connection const* c)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		http_conns_t::iterator i = std::find_if(m_http_conns.begin(), m_http_conns.end()
+		auto i = std::find_if(m_http_conns.begin(), m_http_conns.end()
 			, [c] (boost::shared_ptr<http_tracker_connection> const& ptr) { return ptr.get() == c; });
 		if (i != m_http_conns.end())
 		{
@@ -254,7 +255,7 @@ namespace libtorrent
 	}
 
 	void tracker_manager::update_transaction_id(
-		boost::shared_ptr<udp_tracker_connection> c
+		const boost::shared_ptr<udp_tracker_connection>& c
 		, std::uint64_t tid)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -413,25 +414,23 @@ namespace libtorrent
 		http_conns_t close_http_connections;
 		std::vector<boost::shared_ptr<udp_tracker_connection> > close_udp_connections;
 
-		for (http_conns_t::iterator i = m_http_conns.begin()
-			, end(m_http_conns.end()); i != end; ++i)
+		for (auto & m_http_conn : m_http_conns)
 		{
-			http_tracker_connection* c = i->get();
+			http_tracker_connection* c = m_http_conn.get();
 			tracker_request const& req = c->tracker_req();
 			if (req.event == tracker_request::stopped && !all)
 				continue;
 
-			close_http_connections.push_back(*i);
+			close_http_connections.push_back(m_http_conn);
 
 #ifndef TORRENT_DISABLE_LOGGING
 			boost::shared_ptr<request_callback> rc = c->requester();
 			if (rc) rc->debug_log("aborting: %s", req.url.c_str());
 #endif
 		}
-		for (udp_conns_t::iterator i = m_udp_conns.begin()
-			, end(m_udp_conns.end()); i != end; ++i)
+		for (auto & m_udp_conn : m_udp_conns)
 		{
-			boost::shared_ptr<udp_tracker_connection> c = i->second;
+			boost::shared_ptr<udp_tracker_connection> c = m_udp_conn.second;
 			tracker_request const& req = c->tracker_req();
 			if (req.event == tracker_request::stopped && !all)
 				continue;
@@ -444,17 +443,14 @@ namespace libtorrent
 #endif
 		}
 
-		for (http_conns_t::iterator i = close_http_connections.begin()
-			, end(close_http_connections.end()); i != end; ++i)
+		for (auto & close_http_connection : close_http_connections)
 		{
-			(*i)->close();
+			close_http_connection->close();
 		}
 
-		for (std::vector<boost::shared_ptr<udp_tracker_connection> >::iterator i
-			= close_udp_connections.begin()
-			, end(close_udp_connections.end()); i != end; ++i)
+		for (auto & close_udp_connection : close_udp_connections)
 		{
-			(*i)->close();
+			close_udp_connection->close();
 		}
 	}
 
@@ -469,4 +465,4 @@ namespace libtorrent
 		TORRENT_ASSERT(is_single_thread());
 		return int(m_http_conns.size() + m_udp_conns.size());
 	}
-}
+} // namespace libtorrent
