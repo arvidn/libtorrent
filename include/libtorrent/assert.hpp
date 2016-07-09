@@ -47,13 +47,13 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth = 0, void*
 // this is to disable the warning of conditional expressions
 // being constant in msvc
 #ifdef _MSC_VER
-#define TORRENT_WHILE_0  \
+#define TORRENT_WHILE_0 /* NOLINT */ \
 	__pragma( warning(push) ) \
 	__pragma( warning(disable:4127) ) \
 	while (0) \
 	__pragma( warning(pop) )
 #else
-#define TORRENT_WHILE_0 while (0)
+#define TORRENT_WHILE_0 while (0) /* NOLINT */
 #endif
 
 
@@ -81,19 +81,19 @@ extern char const* libtorrent_assert_log;
 #ifndef TORRENT_USE_SYSTEM_ASSERTS
 
 #define TORRENT_ASSERT_PRECOND(x) \
-	do { if (x) {} else assert_fail(#x, __LINE__, __FILE__, TORRENT_FUNCTION, 0, 1); } TORRENT_WHILE_0
+	do { if (x) {} else assert_fail(#x, __LINE__, __FILE__, TORRENT_FUNCTION, 0, 1); } TORRENT_WHILE_0 /* NOLINT */
 
 #define TORRENT_ASSERT(x) \
-	do { if (x) {} else assert_fail(#x, __LINE__, __FILE__, TORRENT_FUNCTION, 0, 0); } TORRENT_WHILE_0
+	do { if (x) {} else assert_fail(#x, __LINE__, __FILE__, TORRENT_FUNCTION, 0, 0); } TORRENT_WHILE_0 /* NOLINT */
 
 #if TORRENT_USE_IOSTREAM
 #define TORRENT_ASSERT_VAL(x, y) \
 	do { if (x) {} else { std::stringstream __s__; __s__ << #y ": " << y; \
-	assert_fail(#x, __LINE__, __FILE__, TORRENT_FUNCTION, __s__.str().c_str(), 0); } } TORRENT_WHILE_0
+	assert_fail(#x, __LINE__, __FILE__, TORRENT_FUNCTION, __s__.str().c_str(), 0); } } TORRENT_WHILE_0 /* NOLINT */
 
 #define TORRENT_ASSERT_FAIL_VAL(y) \
 	do { std::stringstream __s__; __s__ << #y ": " << y; \
-	assert_fail("<unconditional>", __LINE__, __FILE__, TORRENT_FUNCTION, __s__.str().c_str(), 0); } TORRENT_WHILE_0
+	assert_fail("<unconditional>", __LINE__, __FILE__, TORRENT_FUNCTION, __s__.str().c_str(), 0); } TORRENT_WHILE_0 /* NOLINT */
 
 #else
 #define TORRENT_ASSERT_VAL(x, y) TORRENT_ASSERT(x)

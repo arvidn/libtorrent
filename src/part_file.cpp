@@ -68,6 +68,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 // TODO: 3 use std::unique_ptr
 #include <boost/scoped_array.hpp>
+#include <utility>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace
@@ -75,14 +76,14 @@ namespace
 	// round up to even kilobyte
 	int round_up(int n)
 	{ return (n + 1023) & ~0x3ff; }
-}
+} // namespace
 
 namespace libtorrent
 {
-	part_file::part_file(std::string const& path, std::string const& name
+	part_file::part_file(std::string path, std::string name
 		, int num_pieces, int piece_size)
-		: m_path(path)
-		, m_name(name)
+		: m_path(std::move(path))
+		, m_name(std::move(name))
 		, m_num_allocated(0)
 		, m_max_pieces(num_pieces)
 		, m_piece_size(piece_size)
@@ -184,7 +185,7 @@ namespace libtorrent
 		if (ec) return -1;
 
 		int slot = -1;
-		std::unordered_map<int, int>::iterator i = m_piece_map.find(piece);
+		auto i = m_piece_map.find(piece);
 		if (i == m_piece_map.end())
 			slot = allocate_slot(piece);
 		else
@@ -202,7 +203,7 @@ namespace libtorrent
 		TORRENT_ASSERT(offset >= 0);
 		std::unique_lock<std::mutex> l(m_mutex);
 
-		std::unordered_map<int, int>::iterator i = m_piece_map.find(piece);
+		auto i = m_piece_map.find(piece);
 		if (i == m_piece_map.end())
 		{
 			ec = error_code(boost::system::errc::no_such_file_or_directory
@@ -246,7 +247,7 @@ namespace libtorrent
 	{
 		std::lock_guard<std::mutex> l(m_mutex);
 
-		std::unordered_map<int, int>::iterator i = m_piece_map.find(piece);
+		auto i = m_piece_map.find(piece);
 		if (i == m_piece_map.end()) return;
 
 		// TODO: what do we do if someone is currently reading from the disk
@@ -314,7 +315,7 @@ namespace libtorrent
 		std::int64_t file_offset = 0;
 		for (; piece < end; ++piece)
 		{
-			std::unordered_map<int, int>::iterator i = m_piece_map.find(piece);
+			auto i = m_piece_map.find(piece);
 			int const block_to_copy = (std::min)(m_piece_size - piece_offset, size);
 			if (i != m_piece_map.end())
 			{
@@ -349,7 +350,7 @@ namespace libtorrent
 					// another thread removed this slot map entry, and invalidated
 					// our iterator. Now that we hold the lock again, perform
 					// another lookup to be sure.
-					std::unordered_map<int, int>::iterator j = m_piece_map.find(piece);
+					auto j = m_piece_map.find(piece);
 					if (j != m_piece_map.end())
 					{
 						// if the slot moved, that's really suspicious
@@ -408,7 +409,7 @@ namespace libtorrent
 
 		for (int piece = 0; piece < m_max_pieces; ++piece)
 		{
-			std::unordered_map<int, int>::iterator i = m_piece_map.find(piece);
+			auto i = m_piece_map.find(piece);
 			int slot = 0xffffffff;
 			if (i != m_piece_map.end())
 				slot = i->second;
@@ -420,5 +421,5 @@ namespace libtorrent
 		m_file.writev(0, &b, 1, ec);
 		if (ec) return;
 	}
-}
+} // namespace libtorrent
 

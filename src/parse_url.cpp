@@ -130,5 +130,5 @@ exit:
 			, std::string(start, url.end()));
 	}
 
-}
+} // namespace libtorrent
 

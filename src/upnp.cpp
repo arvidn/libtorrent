@@ -64,7 +64,7 @@ namespace upnp_errors
 		return error_code(e, get_upnp_category());
 	}
 
-} // upnp_errors namespace
+} // namespace upnp_errors
 
 static error_code ignore_error;
 
@@ -108,7 +108,7 @@ void upnp::start()
 	m_mappings.reserve(10);
 }
 
-upnp::~upnp() {}
+upnp::~upnp() = default;
 
 void upnp::discover_device()
 {
@@ -188,7 +188,7 @@ int upnp::add_mapping(upnp::protocol_type p, int external_port, int local_port)
 #endif
 	if (m_disabled) return -1;
 
-	std::vector<global_mapping_t>::iterator mapping_it = std::find_if(
+	auto mapping_it = std::find_if(
 		m_mappings.begin(), m_mappings.end()
 		, [](global_mapping_t const& m) { return m.protocol == none; });
 
@@ -485,7 +485,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 	rootdevice d;
 	d.url = url;
 
-	std::set<rootdevice>::iterator i = m_devices.find(d);
+	auto i = m_devices.find(d);
 
 	if (i == m_devices.end())
 	{
@@ -543,14 +543,13 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 		d.non_router = non_router;
 
 		TORRENT_ASSERT(d.mapping.empty());
-		for (std::vector<global_mapping_t>::iterator j = m_mappings.begin()
-			, end(m_mappings.end()); j != end; ++j)
+		for (auto& map : m_mappings)
 		{
 			mapping_t m;
 			m.action = mapping_t::action_add;
-			m.local_port = j->local_port;
-			m.external_port = j->external_port;
-			m.protocol = j->protocol;
+			m.local_port = map.local_port;
+			m.external_port = map.external_port;
+			m.protocol = map.protocol;
 			d.mapping.push_back(m);
 		}
 		std::tie(i, std::ignore) = m_devices.insert(d);
@@ -602,22 +601,21 @@ void upnp::try_map_upnp(bool timer)
 #endif
 	}
 
-	for (std::set<rootdevice>::iterator i = m_devices.begin()
-		, end(m_devices.end()); i != end; ++i)
+	for (auto const& dev : m_devices)
 	{
 		// if we're ignoring non-routers, skip them. If on_timer is
 		// set, we expect to have received all responses and if we don't
 		// have any devices at our default route, then issue requests
 		// to any device we found.
-		if (m_ignore_non_routers && i->non_router
+		if (m_ignore_non_routers && dev.non_router
 			&& !override_ignore_non_routers)
 			continue;
 
-		if (i->control_url.empty() && !i->upnp_connection && !i->disabled)
+		if (dev.control_url.empty() && !dev.upnp_connection && !dev.disabled)
 		{
 			// we don't have a WANIP or WANPPP url for this device,
 			// ask for it
-			rootdevice& d = const_cast<rootdevice&>(*i);
+			rootdevice& d = const_cast<rootdevice&>(dev);
 			TORRENT_ASSERT(d.magic == 1337);
 			TORRENT_TRY
 			{
@@ -723,7 +721,7 @@ void upnp::next(rootdevice& d, int i)
 	}
 	else
 	{
-		std::vector<mapping_t>::iterator j = std::find_if(d.mapping.begin(), d.mapping.end()
+		auto j = std::find_if(d.mapping.begin(), d.mapping.end()
 			, [] (mapping_t const& m) { return m.action != mapping_t::action_none; });
 		if (j == d.mapping.end()) return;
 
@@ -842,7 +840,7 @@ namespace
 			dst.push_back(to_lower(*src++));
 		}
 	}
-}
+} // namespace
 
 TORRENT_EXTRA_EXPORT void find_control_url(int type, char const* string
 	, int str_len, parse_state& state)
@@ -1048,7 +1046,7 @@ void upnp::disable(error_code const& ec)
 	m_disabled = true;
 
 	// kill all mappings
-	for (std::vector<global_mapping_t>::iterator i = m_mappings.begin()
+	for (auto i = m_mappings.begin()
 		, end(m_mappings.end()); i != end; ++i)
 	{
 		if (i->protocol == none) continue;
@@ -1139,20 +1137,20 @@ namespace
 		, {727, "ExternalPort must be a wildcard and cannot be a specific port "}
 	};
 
-}
+} // namespace
 
 struct upnp_error_category : boost::system::error_category
 {
-	virtual const char* name() const BOOST_SYSTEM_NOEXCEPT
+	const char* name() const BOOST_SYSTEM_NOEXCEPT override
 	{
 		return "UPnP error";
 	}
 
-	virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT
+	std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT override
 	{
 		int num_errors = sizeof(error_codes) / sizeof(error_codes[0]);
 		error_code_t* end = error_codes + num_errors;
-		error_code_t tmp = {ev, 0};
+		error_code_t tmp = {ev, nullptr};
 		error_code_t* e = std::lower_bound(error_codes, end, tmp
 			, [] (error_code_t const& lhs, error_code_t const& rhs)
 			{ return lhs.code < rhs.code; });
@@ -1165,8 +1163,8 @@ struct upnp_error_category : boost::system::error_category
 		return msg;
 	}
 
-	virtual boost::system::error_condition default_error_condition(
-		int ev) const BOOST_SYSTEM_NOEXCEPT
+	boost::system::error_condition default_error_condition(
+		int ev) const BOOST_SYSTEM_NOEXCEPT override
 	{
 		return boost::system::error_condition(ev, *this);
 	}
@@ -1316,7 +1314,7 @@ void upnp::on_upnp_map_response(error_code const& e
 		return;
 	}
 
-	std::string ct = p.header("content-type");
+	const std::string& ct = p.header("content-type");
 	if (!ct.empty()
 		&& ct.find_first_of("text/xml") == std::string::npos
 		&& ct.find_first_of("text/soap+xml") == std::string::npos
@@ -1325,8 +1323,7 @@ void upnp::on_upnp_map_response(error_code const& e
 		)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		log("error while adding port map: invalid content-type, \"%s\". "
-			"Expected text/xml or application/soap+xml", ct.c_str());
+		log(R"(error while adding port map: invalid content-type, "%s". Expected text/xml or application/soap+xml)", ct.c_str());
 #endif
 		next(d, mapping);
 		return;
@@ -1416,7 +1413,7 @@ void upnp::return_error(int mapping, int code)
 	TORRENT_ASSERT(is_single_thread());
 	int num_errors = sizeof(error_codes) / sizeof(error_codes[0]);
 	error_code_t* end = error_codes + num_errors;
-	error_code_t tmp = {code, 0};
+	error_code_t tmp = {code, nullptr};
 	error_code_t* e = std::lower_bound(error_codes, end, tmp
 		, [] (error_code_t const& lhs, error_code_t const& rhs)
 		{ return lhs.code < rhs.code; });
@@ -1502,10 +1499,9 @@ void upnp::on_expire(error_code const& ec)
 	time_point now = aux::time_now();
 	time_point next_expire = max_time();
 
-	for (std::set<rootdevice>::iterator i = m_devices.begin()
-		, end(m_devices.end()); i != end; ++i)
+	for (auto const& dev : m_devices)
 	{
-		rootdevice& d = const_cast<rootdevice&>(*i);
+		rootdevice& d = const_cast<rootdevice&>(dev);
 		TORRENT_ASSERT(d.magic == 1337);
 		for (int m = 0; m < num_mappings(); ++m)
 		{
@@ -1543,13 +1539,12 @@ void upnp::close()
 	m_closing = true;
 	m_socket.close();
 
-	for (std::set<rootdevice>::iterator i = m_devices.begin()
-		, end(m_devices.end()); i != end; ++i)
+	for (auto const& dev : m_devices)
 	{
-		rootdevice& d = const_cast<rootdevice&>(*i);
+		rootdevice& d = const_cast<rootdevice&>(dev);
 		TORRENT_ASSERT(d.magic == 1337);
 		if (d.control_url.empty()) continue;
-		for (std::vector<mapping_t>::iterator j = d.mapping.begin()
+		for (auto j = d.mapping.begin()
 			, end2(d.mapping.end()); j != end2; ++j)
 		{
 			if (j->protocol == none) continue;
@@ -1565,5 +1560,5 @@ void upnp::close()
 	}
 }
 
-}
+} // namespace libtorrent
 

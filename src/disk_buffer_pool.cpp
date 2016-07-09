@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 #include <boost/system/error_code.hpp>
 #include <boost/shared_ptr.hpp>
+#include <utility>
 
 #if TORRENT_HAVE_MMAP
 #include <sys/mman.h>
@@ -79,18 +80,18 @@ namespace libtorrent
 	} // anonymous namespace
 
 	disk_buffer_pool::disk_buffer_pool(int block_size, io_service& ios
-		, boost::function<void()> const& trigger_trim)
+		, boost::function<void()> trigger_trim)
 		: m_block_size(block_size)
 		, m_in_use(0)
 		, m_max_use(64)
 		, m_low_watermark((std::max)(m_max_use - 32, 0))
-		, m_trigger_cache_trim(trigger_trim)
+		, m_trigger_cache_trim(std::move(trigger_trim))
 		, m_exceeded_max_size(false)
 		, m_ios(ios)
 		, m_cache_buffer_chunk_size(0)
 #if TORRENT_HAVE_MMAP
 		, m_cache_fd(-1)
-		, m_cache_pool(0)
+		, m_cache_pool(nullptr)
 #endif
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 		, m_using_pool_allocator(false)
@@ -115,7 +116,7 @@ namespace libtorrent
 		if (m_cache_pool)
 		{
 			munmap(m_cache_pool, std::uint64_t(m_max_use) * 0x4000);
-			m_cache_pool = 0;
+			m_cache_pool = nullptr;
 			// attempt to make MacOS not flush this to disk, making close()
 			// block for a long time
 			int ignore = ftruncate(m_cache_fd, 0);
@@ -212,7 +213,7 @@ namespace libtorrent
 	// that there's more room in the pool now. This caps the amount of over-
 	// allocation to one block per peer connection.
 	char* disk_buffer_pool::allocate_buffer(bool& exceeded
-		, boost::shared_ptr<disk_observer> o, char const* category)
+		, const boost::shared_ptr<disk_observer>& o, char const* category)
 	{
 		std::unique_lock<std::mutex> l(m_pool_mutex);
 		char* ret = allocate_buffer_impl(l, category);
@@ -273,7 +274,7 @@ namespace libtorrent
 				m_exceeded_max_size = true;
 				m_trigger_cache_trim();
 			}
-			if (m_free_list.empty()) return 0;
+			if (m_free_list.empty()) return nullptr;
 			std::uint64_t slot_index = m_free_list.back();
 			m_free_list.pop_back();
 			ret = m_cache_pool + (slot_index * 0x4000);
@@ -307,7 +308,7 @@ namespace libtorrent
 			{
 				m_exceeded_max_size = true;
 				m_trigger_cache_trim();
-				return 0;
+				return nullptr;
 			}
 		}
 
@@ -381,7 +382,7 @@ namespace libtorrent
 		// cache, or if we're just about to turn it off
 		if (
 #if TORRENT_HAVE_MMAP
-			m_cache_pool == 0 ||
+			m_cache_pool == nullptr ||
 #endif
 			sett.get_str(settings_pack::mmap_cache).empty())
 		{
@@ -459,7 +460,7 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(m_in_use == 0);
 			munmap(m_cache_pool, std::uint64_t(m_max_use) * 0x4000);
-			m_cache_pool = 0;
+			m_cache_pool = nullptr;
 			// attempt to make MacOS not flush this to disk, making close()
 			// block for a long time
 			int ignore = ftruncate(m_cache_fd, 0);
@@ -468,7 +469,7 @@ namespace libtorrent
 			m_cache_fd = -1;
 			std::vector<int>().swap(m_free_list);
 		}
-		else if (m_cache_pool == 0 && !sett.get_str(settings_pack::mmap_cache).empty())
+		else if (m_cache_pool == nullptr && !sett.get_str(settings_pack::mmap_cache).empty())
 		{
 			// O_TRUNC here is because we don't actually care about what's
 			// in the file now, there's no need to ever read that into RAM
@@ -488,19 +489,19 @@ namespace libtorrent
 				if (ftruncate(m_cache_fd, std::uint64_t(m_max_use) * 0x4000) < 0)
 				{
 					ec.assign(errno, boost::system::system_category());
-					m_cache_pool = 0;
+					m_cache_pool = nullptr;
 					close(m_cache_fd);
 					m_cache_fd = -1;
 					return;
 				}
 
-				m_cache_pool = static_cast<char*>(mmap(0, std::uint64_t(m_max_use) * 0x4000, PROT_READ | PROT_WRITE
+				m_cache_pool = static_cast<char*>(mmap(nullptr, std::uint64_t(m_max_use) * 0x4000, PROT_READ | PROT_WRITE
 					, MAP_SHARED | MAP_NOCACHE, m_cache_fd, 0));
 				if (intptr_t(m_cache_pool) == -1)
 				{
 					ec.assign(errno, boost::system::system_category());
 
-					m_cache_pool = 0;
+					m_cache_pool = nullptr;
 					// attempt to make MacOS not flush this to disk, making close()
 					// block for a long time
 					int ignore = ftruncate(m_cache_fd, 0);
@@ -566,7 +567,7 @@ namespace libtorrent
 		}
 
 #if TORRENT_USE_INVARIANT_CHECKS
-		std::set<char*>::iterator i = m_buffers_in_use.find(buf);
+		auto i = m_buffers_in_use.find(buf);
 		TORRENT_ASSERT(i != m_buffers_in_use.end());
 		m_buffers_in_use.erase(i);
 #endif
@@ -593,5 +594,5 @@ namespace libtorrent
 #endif
 	}
 
-}
+} // namespace libtorrent
 

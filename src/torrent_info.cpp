@@ -62,6 +62,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <set>
 #include <ctime>
+#include <utility>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -78,7 +79,7 @@ namespace libtorrent
 		static const char invalid_chars[] = "";
 #endif
 		if (c >= 0 && c < 32) return false;
-		return std::strchr(invalid_chars, c) == 0;
+		return std::strchr(invalid_chars, c) == nullptr;
 	}
 
 	} // anonymous namespace
@@ -594,12 +595,12 @@ namespace libtorrent
 
 	} // anonymous namespace
 
-	web_seed_entry::web_seed_entry(std::string const& url_, type_t type_
-		, std::string const& auth_
-		, headers_t const& extra_headers_)
-		: url(url_)
-		, auth(auth_)
-		, extra_headers(extra_headers_)
+	web_seed_entry::web_seed_entry(std::string url_, type_t type_
+		, std::string auth_
+		, headers_t extra_headers_)
+		: url(std::move(url_))
+		, auth(std::move(auth_))
+		, extra_headers(std::move(extra_headers_))
 		, type(type_)
 	{
 	}
@@ -637,11 +638,11 @@ namespace libtorrent
 			const_cast<file_storage&>(*m_orig_files).apply_pointer_offset(offset);
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
-		for (int i = 0; i < m_collections.size(); ++i)
-			m_collections[i].first += offset;
+		for (auto& c : m_collections)
+			c.first += offset;
 
-		for (int i = 0; i < m_similar_torrents.size(); ++i)
-			m_similar_torrents[i] += offset;
+		for (auto& tor : m_similar_torrents)
+			tor += offset;
 #endif
 
 		if (m_info_dict)
@@ -695,10 +696,9 @@ namespace libtorrent
 
 		// insert all directories first, to make sure no files
 		// are allowed to collied with them
-		for (std::vector<std::string>::const_iterator i = paths.begin()
-			, end(paths.end()); i != end; ++i)
+		for (auto const& path : paths)
 		{
-			std::string p = combine_path(m_files.name(), *i);
+			std::string p = combine_path(m_files.name(), path);
 			files.insert(p);
 			while (has_parent_path(p))
 			{
@@ -951,14 +951,14 @@ namespace libtorrent
 	// will not contain any hashes, comments, creation date
 	// just the necessary to use it with piece manager
 	// used for torrents with no metadata
-	torrent_info::torrent_info(sha1_hash const& info_hash, int const flags)
-		: m_info_hash(info_hash)
+	torrent_info::torrent_info(sha1_hash info_hash, int const flags)
+		: m_info_hash(std::move(info_hash))
 	{
 		TORRENT_UNUSED(flags);
 	}
 
 	torrent_info::~torrent_info()
-	{}
+	= default;
 
 	void torrent_info::load(char const* buffer, int size, error_code& ec)
 	{
@@ -985,7 +985,7 @@ namespace libtorrent
 		if (m_orig_files) m_orig_files.reset();
 		else m_files.unload();
 
-		m_piece_hashes = 0;
+		m_piece_hashes = nullptr;
 		std::vector<web_seed_entry>().swap(m_web_seeds);
 
 		TORRENT_ASSERT(!is_loaded());
@@ -1237,8 +1237,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		int n = m_merkle_first_leaf + piece;
-		typedef std::map<int, sha1_hash>::const_iterator iter;
-		iter it = subtree.find(n);
+		auto it = subtree.find(n);
 		if (it == subtree.end()) return false;
 		sha1_hash h = it->second;
 
@@ -1250,7 +1249,7 @@ namespace libtorrent
 		{
 			int sibling = merkle_get_sibling(n);
 			int parent = merkle_get_parent(n);
-			iter sibling_hash = subtree.find(sibling);
+			auto sibling_hash = subtree.find(sibling);
 			if (sibling_hash == subtree.end())
 				return false;
 			to_add[n] = h;
@@ -1274,10 +1273,9 @@ namespace libtorrent
 		// the nodes and piece hash matched the root-hash
 		// insert them into our tree
 
-		for (std::map<int, sha1_hash>::iterator i = to_add.begin()
-			, end(to_add.end()); i != end; ++i)
+		for (auto& i : to_add)
 		{
-			m_merkle_tree[i->first] = i->second;
+			m_merkle_tree[i.first] = i.second;
 		}
 		return true;
 	}
@@ -1299,7 +1297,7 @@ namespace libtorrent
 			ret[sibling] = m_merkle_tree[sibling];
 			// we cannot build the tree path if one
 			// of the nodes in the tree is missing
-			TORRENT_ASSERT(m_merkle_tree[sibling] != sha1_hash(0));
+			TORRENT_ASSERT(m_merkle_tree[sibling] != sha1_hash(nullptr));
 			n = parent;
 		}
 		return ret;
@@ -1327,9 +1325,8 @@ namespace libtorrent
 				if (ec) return false;
 
 				m_info_hash = p.info_hash;
-				for (std::vector<std::string>::iterator i = p.trackers.begin()
-					, end(p.trackers.end()); i != end; ++i)
-					m_urls.push_back(*i);
+				for (auto& tracker : p.trackers)
+					m_urls.push_back(tracker);
 
 				return true;
 			}
@@ -1399,7 +1396,7 @@ namespace libtorrent
 			if (!m_urls.empty())
 			{
 				// shuffle each tier
-				std::vector<announce_entry>::iterator start = m_urls.begin();
+				auto start = m_urls.begin();
 				std::vector<announce_entry>::iterator stop;
 				int current_tier = m_urls.front().tier;
 				for (stop = m_urls.begin(); stop != m_urls.end(); ++stop)
@@ -1546,7 +1543,7 @@ namespace libtorrent
 			std::vector<std::string> urls;
 			web_seed_entry::type_t t;
 		};
-	}
+	} // namespace
 
 	std::vector<std::string> torrent_info::url_seeds() const
 	{
@@ -1590,7 +1587,7 @@ namespace libtorrent
 			, auth, extra_headers));
 	}
 
-	void torrent_info::set_web_seeds(std::vector<web_seed_entry> seeds)
+	void torrent_info::set_web_seeds(const std::vector<web_seed_entry>& seeds)
 	{
 		m_web_seeds = seeds;
 	}
@@ -1601,11 +1598,11 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 		ret.reserve(m_similar_torrents.size() + m_owned_similar_torrents.size());
 
-		for (int i = 0; i < m_similar_torrents.size(); ++i)
-			ret.push_back(sha1_hash(m_similar_torrents[i]));
+		for (auto tor : m_similar_torrents)
+			ret.push_back(sha1_hash(tor));
 
-		for (int i = 0; i < m_owned_similar_torrents.size(); ++i)
-			ret.push_back(m_owned_similar_torrents[i]);
+		for (auto const& tor : m_owned_similar_torrents)
+			ret.push_back(tor);
 #endif
 
 		return ret;
@@ -1617,11 +1614,11 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 		ret.reserve(m_collections.size() + m_owned_collections.size());
 
-		for (int i = 0; i < m_collections.size(); ++i)
-			ret.push_back(std::string(m_collections[i].first, m_collections[i].second));
+		for (auto const& c : m_collections)
+			ret.push_back(std::string(c.first, c.second));
 
-		for (int i = 0; i < m_owned_collections.size(); ++i)
-			ret.push_back(m_owned_collections[i]);
+		for (auto const& col : m_owned_collections)
+			ret.push_back(col);
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 
 		return ret;
@@ -1632,7 +1629,7 @@ namespace libtorrent
 	{
 		for (int i = 0; i < m_files.num_files(); ++i)
 		{
-			TORRENT_ASSERT(m_files.file_name_ptr(i) != 0);
+			TORRENT_ASSERT(m_files.file_name_ptr(i) != nullptr);
 			if (m_files.file_name_len(i) != -1)
 			{
 				// name needs to point into the allocated info section buffer
@@ -1646,7 +1643,7 @@ namespace libtorrent
 			}
 		}
 
-		if (m_piece_hashes != 0)
+		if (m_piece_hashes != nullptr)
 		{
 			TORRENT_ASSERT(m_piece_hashes >= m_info_section.get());
 			TORRENT_ASSERT(m_piece_hashes < m_info_section.get() + m_info_section_size);
@@ -1654,5 +1651,5 @@ namespace libtorrent
 	}
 #endif
 
-}
+} // namespace libtorrent
 

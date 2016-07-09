@@ -39,5 +39,5 @@ char const* version()
 	return LIBTORRENT_VERSION;
 }
 
-}
+} // namespace libtorrent
 

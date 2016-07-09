@@ -64,7 +64,7 @@ namespace libtorrent
 		// TODO: it would be nice to get the literal working
 		key_t const dh_prime
 			("0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A63A36210000000000090563");
-	}
+	} // namespace
 
 	// Set the prime P and the generator, generate local public key
 	dh_key_exchange::dh_key_exchange()
@@ -217,14 +217,14 @@ namespace libtorrent
 		return consume;
 	}
 
-	bool encryption_handler::switch_send_crypto(boost::shared_ptr<crypto_plugin> crypto
+	bool encryption_handler::switch_send_crypto(const boost::shared_ptr<crypto_plugin>& crypto
 		, int pending_encryption)
 	{
 		bool place_barrier = false;
 		if (!m_send_barriers.empty())
 		{
-			std::list<barrier>::iterator end = m_send_barriers.end(); --end;
-			for (std::list<barrier>::iterator b = m_send_barriers.begin();
+			auto end = m_send_barriers.end(); --end;
+			for (auto b = m_send_barriers.begin();
 				b != end; ++b)
 				pending_encryption -= b->next;
 			TORRENT_ASSERT(pending_encryption >= 0);
@@ -239,7 +239,7 @@ namespace libtorrent
 		return place_barrier;
 	}
 
-	void encryption_handler::switch_recv_crypto(boost::shared_ptr<crypto_plugin> crypto
+	void encryption_handler::switch_recv_crypto(const boost::shared_ptr<crypto_plugin>& crypto
 		, crypto_receive_buffer& recv_buffer)
 	{
 		m_dec_handler = crypto;
@@ -349,7 +349,7 @@ void rc4_init(const unsigned char* in, unsigned long len, rc4 *state)
 	unsigned char key[key_size], tmp, *s;
 	int keylen, x, y, j;
 
-	TORRENT_ASSERT(state != 0);
+	TORRENT_ASSERT(state != nullptr);
 	TORRENT_ASSERT(len <= key_size);
 	if (len > key_size) len = key_size;
 
@@ -384,8 +384,8 @@ unsigned long rc4_encrypt(unsigned char *out, unsigned long outlen, rc4 *state)
 	unsigned char x, y, *s, tmp;
 	unsigned long n;
 
-	TORRENT_ASSERT(out != 0);
-	TORRENT_ASSERT(state != 0);
+	TORRENT_ASSERT(out != nullptr);
+	TORRENT_ASSERT(state != nullptr);
 
 	n = outlen;
 	x = state->x;

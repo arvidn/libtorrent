@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace
 {
 	constexpr std::chrono::seconds reap_idle_threads_interval(60);
-}
+} // namespace
 
 namespace libtorrent
 {

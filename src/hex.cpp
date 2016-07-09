@@ -77,10 +77,10 @@ namespace libtorrent
 	std::string to_hex(std::string const& s)
 	{
 		std::string ret;
-		for (std::string::const_iterator i = s.begin(); i != s.end(); ++i)
+		for (char i : s)
 		{
-			ret += hex_chars[std::uint8_t(*i) >> 4];
-			ret += hex_chars[std::uint8_t(*i) & 0xf];
+			ret += hex_chars[std::uint8_t(i) >> 4];
+			ret += hex_chars[std::uint8_t(i) & 0xf];
 		}
 		return ret;
 	}
@@ -95,7 +95,7 @@ namespace libtorrent
 		*out = '\0';
 	}
 
-	} // aux namespace
+	} // namespace aux
 
-}
+} // namespace libtorrent
 

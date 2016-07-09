@@ -62,10 +62,9 @@ namespace libtorrent
 #if TORRENT_USE_ASSERTS
 	bool bandwidth_manager::is_queued(bandwidth_socket const* peer) const
 	{
-		for (queue_t::const_iterator i = m_queue.begin()
-			, end(m_queue.end()); i != end; ++i)
+		for (auto const& i : m_queue)
 		{
-			if (i->peer.get() == peer) return true;
+			if (i.peer.get() == peer) return true;
 		}
 		return false;
 	}
@@ -125,10 +124,9 @@ namespace libtorrent
 	void bandwidth_manager::check_invariant() const
 	{
 		std::int64_t queued = 0;
-		for (queue_t::const_iterator i = m_queue.begin()
-			, end(m_queue.end()); i != end; ++i)
+		for (auto const& i : m_queue)
 		{
-			queued += i->request_size - i->assigned;
+			queued += i.request_size - i.assigned;
 		}
 		TORRENT_ASSERT(queued == m_queued_bytes);
 	}
@@ -150,7 +148,7 @@ namespace libtorrent
 
 		queue_t tm;
 
-		for (queue_t::iterator i = m_queue.begin();
+		for (auto i = m_queue.begin();
 			i != m_queue.end();)
 		{
 			if (i->peer->is_disconnecting())
@@ -178,7 +176,7 @@ namespace libtorrent
 			++i;
 		}
 
-		for (queue_t::iterator i = m_queue.begin()
+		for (auto i = m_queue.begin()
 			, end(m_queue.end()); i != end; ++i)
 		{
 			for (int j = 0; j < bw_request::max_bandwidth_channels && i->channel[j]; ++j)
@@ -190,13 +188,12 @@ namespace libtorrent
 			}
 		}
 
-		for (std::vector<bandwidth_channel*>::iterator i = channels.begin()
-			, end(channels.end()); i != end; ++i)
+		for (auto& channel : channels)
 		{
-			(*i)->update_quota(int(dt_milliseconds));
+			channel->update_quota(int(dt_milliseconds));
 		}
 
-		for (queue_t::iterator i = m_queue.begin();
+		for (auto i = m_queue.begin();
 			i != m_queue.end();)
 		{
 			int a = i->assign_bandwidth();
@@ -222,5 +219,5 @@ namespace libtorrent
 			tm.pop_back();
 		}
 	}
-}
+} // namespace libtorrent
 

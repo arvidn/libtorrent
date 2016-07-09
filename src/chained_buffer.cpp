@@ -122,7 +122,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(is_single_thread());
 		char* insert = allocate_appendix(s);
-		if (insert == 0) return 0;
+		if (insert == nullptr) return nullptr;
 		memcpy(insert, buf, s);
 		return insert;
 	}
@@ -133,10 +133,10 @@ namespace libtorrent
 	char* chained_buffer::allocate_appendix(int s)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		if (m_vec.empty()) return 0;
+		if (m_vec.empty()) return nullptr;
 		buffer_t& b = m_vec.back();
 		char* insert = b.start + b.used_size;
-		if (insert + s > b.buf + b.size) return 0;
+		if (insert + s > b.buf + b.size) return nullptr;
 		b.used_size += s;
 		m_bytes += s;
 		TORRENT_ASSERT(m_bytes <= m_capacity);
@@ -159,7 +159,7 @@ namespace libtorrent
 	template <typename Buffer>
 	void chained_buffer::build_vec(int bytes, std::vector<Buffer> &vec)
 	{
-		for (std::deque<buffer_t>::iterator i = m_vec.begin()
+		for (auto i = m_vec.begin()
 			, end(m_vec.end()); bytes > 0 && i != end; ++i)
 		{
 			if (i->used_size > bytes)
@@ -176,10 +176,9 @@ namespace libtorrent
 
 	void chained_buffer::clear()
 	{
-		for (std::deque<buffer_t>::iterator i = m_vec.begin()
-			, end(m_vec.end()); i != end; ++i)
+		for (auto& i : m_vec)
 		{
-			i->free_fun(i->buf, i->userdata, i->ref);
+			i.free_fun(i.buf, i.userdata, i.ref);
 		}
 		m_bytes = 0;
 		m_capacity = 0;
@@ -198,5 +197,5 @@ namespace libtorrent
 		clear();
 	}
 
-}
+} // namespace libtorrent
 

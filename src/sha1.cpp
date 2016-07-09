@@ -173,7 +173,7 @@ namespace
 		return *reinterpret_cast<u8*>(&test) == 0;
 	}
 #endif
-}
+} // namespace
 
 // SHA1Init - Initialize new context
 
@@ -236,7 +236,7 @@ void SHA1_final(u8* digest, sha_ctx* context)
 	}
 }
 
-} // libtorrent namespace
+} // namespace libtorrent
 
 /************************************************************
 

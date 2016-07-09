@@ -62,9 +62,9 @@ typedef boost::function<void(char const*)> log_callback_t;
 class lsd : public boost::enable_shared_from_this<lsd>
 {
 public:
-	lsd(io_service& ios, peer_callback_t const& cb
+	lsd(io_service& ios, peer_callback_t cb
 #ifndef TORRENT_DISABLE_LOGGING
-		, log_callback_t const& log
+		, log_callback_t log
 #endif
 		);
 	~lsd();

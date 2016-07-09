@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	disk_io_job::disk_io_job()
-		: requester(0)
+		: requester(nullptr)
 		, piece(0)
 		, action(read)
 		, ret(0)
@@ -50,10 +50,10 @@ namespace libtorrent
 		, blocked(false)
 #endif
 	{
-		buffer.disk_block = 0;
+		buffer.disk_block = nullptr;
 		d.io.offset = 0;
 		d.io.buffer_size = 0;
-		d.io.ref.storage = 0;
+		d.io.ref.storage = nullptr;
 		d.io.ref.piece = 0;
 		d.io.ref.block = 0;
 	}
@@ -80,5 +80,5 @@ namespace libtorrent
 		// were successfully written to disk. This job is complete
 		return true;
 	}
-}
+} // namespace libtorrent
 

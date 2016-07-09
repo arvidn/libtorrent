@@ -47,7 +47,7 @@ namespace libtorrent
 		, m_generation(0)
 	{}
 
-	alert_manager::~alert_manager() {}
+	alert_manager::~alert_manager() = default;
 
 	alert* alert_manager::wait_for_alert(time_duration max_wait)
 	{
@@ -106,7 +106,7 @@ namespace libtorrent
 	}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-	void alert_manager::add_extension(boost::shared_ptr<plugin> ext)
+	void alert_manager::add_extension(const boost::shared_ptr<plugin>& ext)
 	{
 		m_ses_extensions.push_back(ext);
 	}
@@ -142,5 +142,5 @@ namespace libtorrent
 		return queue_size_limit_;
 	}
 
-}
+} // namespace libtorrent
 

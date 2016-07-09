@@ -53,8 +53,7 @@ namespace libtorrent
 	}
 
 	file_pool::~file_pool()
-	{
-	}
+	= default;
 
 #ifdef TORRENT_WINDOWS
 	void set_low_priority(file_handle const& f)
@@ -143,11 +142,11 @@ namespace libtorrent
 			== m_deleted_storages.end());
 #endif
 
-		TORRENT_ASSERT(st != 0);
+		TORRENT_ASSERT(st != nullptr);
 		TORRENT_ASSERT(is_complete(p));
 		TORRENT_ASSERT((m & file::rw_mask) == file::read_only
 			|| (m & file::rw_mask) == file::read_write);
-		file_set::iterator i = m_files.find(std::make_pair(st, file_index));
+		auto i = m_files.find(std::make_pair(st, file_index));
 		if (i != m_files.end())
 		{
 			lru_file_entry& e = i->second;
@@ -231,10 +230,10 @@ namespace libtorrent
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 
-		file_set::const_iterator start = m_files.lower_bound(std::make_pair(st, 0));
-		file_set::const_iterator end = m_files.upper_bound(std::make_pair(st, INT_MAX));
+		auto start = m_files.lower_bound(std::make_pair(st, 0));
+		auto end = m_files.upper_bound(std::make_pair(st, INT_MAX));
 
-		for (file_set::const_iterator i = start; i != end; ++i)
+		for (auto i = start; i != end; ++i)
 		{
 			pool_file_status s;
 			s.file_index = i->first.second;
@@ -246,7 +245,7 @@ namespace libtorrent
 
 	void file_pool::remove_oldest(std::unique_lock<std::mutex>& l)
 	{
-		file_set::iterator i = std::min_element(m_files.begin(), m_files.end()
+		auto i = std::min_element(m_files.begin(), m_files.end()
 			, [] (file_set::value_type const& lhs, file_set::value_type const& rhs)
 				{ return lhs.second.last_use < rhs.second.last_use; });
 		if (i == m_files.end()) return;
@@ -264,7 +263,7 @@ namespace libtorrent
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 
-		file_set::iterator i = m_files.find(std::make_pair(st, file_index));
+		auto i = m_files.find(std::make_pair(st, file_index));
 		if (i == m_files.end()) return;
 
 		file_handle file_ptr = i->second.file_ptr;
@@ -281,7 +280,7 @@ namespace libtorrent
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 
-		if (st == 0)
+		if (st == nullptr)
 		{
 			file_set tmp;
 			tmp.swap(m_files);
@@ -290,7 +289,7 @@ namespace libtorrent
 		}
 
 		std::vector<file_handle> to_close;
-		for (file_set::iterator i = m_files.begin();
+		for (auto i = m_files.begin();
 			i != m_files.end();)
 		{
 			if (i->second.key == st)
@@ -319,10 +318,9 @@ namespace libtorrent
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 
-		for (file_set::const_iterator i = m_files.begin();
-			i != m_files.end(); ++i)
+		for (auto const& f : m_files)
 		{
-			if (i->second.key == st && !i->second.file_ptr.unique())
+			if (f.second.key == st && !f.second.file_ptr.unique())
 				return false;
 		}
 		return true;
@@ -344,5 +342,5 @@ namespace libtorrent
 			remove_oldest(l);
 	}
 
-}
+} // namespace libtorrent
 

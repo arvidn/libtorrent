@@ -59,7 +59,7 @@ namespace libtorrent
 		, std::string const& save_path
 		, storage_mode_t storage_mode = storage_mode_sparse
 		, bool paused = false
-		, storage_constructor_type sc = default_storage_constructor
+		, const storage_constructor_type& sc = default_storage_constructor
 		, void* userdata = 0);
 
 	// deprecated in 0.16. Instead, pass in the magnet link as add_torrent_params::url

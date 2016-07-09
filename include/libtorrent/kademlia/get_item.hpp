@@ -53,14 +53,14 @@ public:
 	// for immutable itms
 	get_item(node& dht_node
 		, node_id target
-		, data_callback const& dcallback
+		, data_callback dcallback
 		, nodes_callback const& ncallback);
 
 	// for mutable items
 	get_item(node& dht_node
 		, char const* pk
 		, std::string const& salt
-		, data_callback const& dcallback
+		, data_callback dcallback
 		, nodes_callback const& ncallback);
 
 	virtual char const* name() const;

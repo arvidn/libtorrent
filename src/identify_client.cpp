@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cctype>
 #include <algorithm>
-#include <stdio.h>
+#include <cstdio>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -308,7 +308,7 @@ namespace
 #endif
 
 		char temp[3];
-		char const* name = 0;
+		char const* name = nullptr;
 		if (i < name_map + size && std::equal(f.name, f.name + 2, i->id))
 		{
 			name = i->name;
@@ -338,7 +338,7 @@ namespace
 	{
 		return std::equal(search, search + std::strlen(search), id);
 	}
-}
+} // namespace
 
 namespace libtorrent
 {
@@ -411,12 +411,12 @@ namespace libtorrent
 			return "Generic";
 
 		std::string unknown("Unknown [");
-		for (peer_id::const_iterator i = p.begin(); i != p.end(); ++i)
+		for (unsigned char i : p)
 		{
-			unknown += is_print(char(*i))?*i:'.';
+			unknown += is_print(char(i))?i:'.';
 		}
 		unknown += "]";
 		return unknown;
 	}
-}
+} // namespace libtorrent
 

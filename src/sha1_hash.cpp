@@ -66,9 +66,9 @@ namespace libtorrent
 	int sha1_hash::count_leading_zeroes() const
 	{
 		int ret = 0;
-		for (int i = 0; i < number_size; ++i)
+		for (unsigned int i : m_number)
 		{
-			std::uint32_t v = aux::network_to_host(m_number[i]);
+			std::uint32_t v = aux::network_to_host(i);
 			if (v == 0)
 			{
 				ret += 32;
@@ -177,5 +177,5 @@ namespace libtorrent
 		return *this;
 	}
 
-}
+} // namespace libtorrent
 

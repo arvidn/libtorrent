@@ -62,46 +62,17 @@ namespace libtorrent
 		, m_num_files(0)
 	{}
 
-	file_storage::~file_storage() {}
+	file_storage::~file_storage() = default;
 
 	// even though this copy constructor and the copy assignment
 	// operator are identical to what the compiler would have
 	// generated, they are put here to explicitly make them part
 	// of libtorrent and properly exported by the .dll.
 	file_storage::file_storage(file_storage const& f)
-		: m_piece_length(f.m_piece_length)
-		, m_num_pieces(f.m_num_pieces)
-		, m_files(f.m_files)
-		, m_file_hashes(f.m_file_hashes)
-		, m_symlinks(f.m_symlinks)
-		, m_mtime(f.m_mtime)
-#ifndef TORRENT_NO_DEPRECATE
-		, m_file_base(f.m_file_base)
-#endif
-		, m_paths(f.m_paths)
-		, m_name(f.m_name)
-		, m_total_size(f.m_total_size)
-		, m_num_files(f.m_num_files)
-	{
-	}
+		= default;
 
 	file_storage& file_storage::operator=(file_storage const& f)
-	{
-		m_piece_length = f.m_piece_length;
-		m_num_pieces = f.m_num_pieces;
-		m_files = f.m_files;
-		m_file_hashes = f.m_file_hashes;
-		m_symlinks = f.m_symlinks;
-		m_mtime = f.m_mtime;
-#ifndef TORRENT_NO_DEPRECATE
-		m_file_base = f.m_file_base;
-#endif
-		m_paths = f.m_paths;
-		m_name = f.m_name;
-		m_total_size = f.m_total_size;
-		m_num_files = f.m_num_files;
-		return *this;
-	}
+	= default;
 
 	void file_storage::reserve(int num_files)
 	{
@@ -143,7 +114,7 @@ namespace libtorrent
 		{
 			return lhs.offset < rhs.offset;
 		}
-	}
+	} // namespace
 
 	// path is not supposed to include the name of the torrent itself.
 	void file_storage::update_path_index(internal_file_entry& e
@@ -198,7 +169,7 @@ namespace libtorrent
 		}
 
 		// do we already have this path in the path list?
-		std::vector<std::string>::reverse_iterator p
+		auto p
 			= std::find_if(m_paths.rbegin(), m_paths.rend()
 				, std::bind(&compare_string, branch_path, branch_len, _1));
 
@@ -227,7 +198,7 @@ namespace libtorrent
 		, symlink_attribute(false)
 	{}
 
-	file_entry::~file_entry() {}
+	file_entry::~file_entry() = default;
 #endif // TORRENT_NO_DEPRECATE
 
 	internal_file_entry::~internal_file_entry()
@@ -245,7 +216,7 @@ namespace libtorrent
 		, hidden_attribute(fe.hidden_attribute)
 		, executable_attribute(fe.executable_attribute)
 		, symlink_attribute(fe.symlink_attribute)
-		, name(0)
+		, name(nullptr)
 		, path_index(fe.path_index)
 	{
 		if (fe.name_len == name_is_owned)
@@ -308,16 +279,16 @@ namespace libtorrent
 
 	void file_storage::apply_pointer_offset(ptrdiff_t off)
 	{
-		for (int i = 0; i < m_files.size(); ++i)
+		for (auto& f : m_files)
 		{
-			if (m_files[i].name_len == internal_file_entry::name_is_owned) continue;
-			m_files[i].name += off;
+			if (f.name_len == internal_file_entry::name_is_owned) continue;
+			f.name += off;
 		}
 
-		for (int i = 0; i < m_file_hashes.size(); ++i)
+		for (auto& h : m_file_hashes)
 		{
-			if (m_file_hashes[i] == nullptr) continue;
-			m_file_hashes[i] += off;
+			if (h == nullptr) continue;
+			h += off;
 		}
 	}
 
@@ -380,7 +351,7 @@ namespace libtorrent
 		target.offset = offset;
 		TORRENT_ASSERT(!compare_file_offset(target, m_files.front()));
 
-		std::vector<internal_file_entry>::const_iterator file_iter = std::upper_bound(
+		auto file_iter = std::upper_bound(
 			begin_deprecated(), end_deprecated(), target, compare_file_offset);
 
 		TORRENT_ASSERT(file_iter != begin_deprecated());
@@ -401,7 +372,7 @@ namespace libtorrent
 		target.offset = offset;
 		TORRENT_ASSERT(!compare_file_offset(target, m_files.front()));
 
-		std::vector<internal_file_entry>::const_iterator file_iter = std::upper_bound(
+		auto file_iter = std::upper_bound(
 			m_files.begin(), m_files.end(), target, compare_file_offset);
 
 		TORRENT_ASSERT(file_iter != m_files.begin());
@@ -440,7 +411,7 @@ namespace libtorrent
 		if (std::int64_t(target.offset + size) > m_total_size)
 			size = m_total_size - target.offset;
 
-		std::vector<internal_file_entry>::const_iterator file_iter = std::upper_bound(
+		auto file_iter = std::upper_bound(
 			m_files.begin(), m_files.end(), target, compare_file_offset);
 
 		TORRENT_ASSERT(file_iter != m_files.begin());
@@ -610,7 +581,7 @@ namespace libtorrent
 
 	sha1_hash file_storage::hash(int index) const
 	{
-		if (index >= int(m_file_hashes.size())) return sha1_hash(0);
+		if (index >= int(m_file_hashes.size())) return sha1_hash(nullptr);
 		return sha1_hash(m_file_hashes[index]);
 	}
 	
@@ -652,7 +623,7 @@ namespace libtorrent
 			}
 			table.insert(crc.checksum());
 		}
-	}
+	} // namespace
 
 	void file_storage::all_path_hashes(
 		std::unordered_set<std::uint32_t>& table) const
@@ -847,7 +818,7 @@ namespace libtorrent
 	sha1_hash file_storage::hash(internal_file_entry const& fe) const
 	{
 		int index = &fe - &m_files[0];
-		if (index >= int(m_file_hashes.size())) return sha1_hash(0);
+		if (index >= int(m_file_hashes.size())) return sha1_hash(nullptr);
 		return sha1_hash(m_file_hashes[index]);
 	}
 
@@ -954,14 +925,14 @@ namespace libtorrent
 
 		std::int64_t off = 0;
 		int padding_file = 0;
-		for (std::vector<internal_file_entry>::iterator i = m_files.begin();
+		for (auto i = m_files.begin();
 			i != m_files.end(); ++i)
 		{
 			if ((off % alignment) == 0)
 			{
 				// this file position is aligned, pick the largest
 				// available file to put here
-				std::vector<internal_file_entry>::iterator best_match
+				auto best_match
 					= std::max_element(i, m_files.end()
 						, &compare_file_entry_size);
 
@@ -984,13 +955,13 @@ namespace libtorrent
 				int pad_size = alignment - (off % alignment);
 				
 				// find the largest file that fits in pad_size
-				std::vector<internal_file_entry>::iterator best_match = m_files.end();
+				auto best_match = m_files.end();
 
 				// if pad_file_limit is 0, it means all files are padded, there's
 				// no point in trying to find smaller files to use as filling
 				if (pad_file_limit > 0)
 				{
-					for (std::vector<internal_file_entry>::iterator j = i+1; j < m_files.end(); ++j)
+					for (auto j = i+1; j < m_files.end(); ++j)
 					{
 						if (j->size > std::uint32_t(pad_size)) continue;
 						if (best_match == m_files.end() || j->size > best_match->size)
@@ -1094,5 +1065,5 @@ namespace libtorrent
 #endif
 		std::vector<std::string>().swap(m_paths);
 	}
-}
+} // namespace libtorrent
 

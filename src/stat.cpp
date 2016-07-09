@@ -45,5 +45,5 @@ void stat_channel::second_tick(int tick_interval_ms)
 	m_counter = 0;
 }
 
-}
+} // namespace libtorrent
 

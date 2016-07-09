@@ -38,7 +38,7 @@ namespace libtorrent
 {
 
 	TORRENT_EXTRA_EXPORT void xml_parse(char const* p, char const* end
-		, boost::function<void(int,char const*,int,char const*,int)> callback)
+		, const boost::function<void(int,char const*,int,char const*,int)>& callback)
 	{
 		for(;p != end; ++p)
 		{
@@ -192,5 +192,5 @@ namespace libtorrent
 		}
 	}
 
-}
+} // namespace libtorrent
 

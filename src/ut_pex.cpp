@@ -93,7 +93,7 @@ namespace libtorrent { namespace
 			, m_last_msg(min_time())
 			, m_peers_in_message(0) {}
 
-		virtual boost::shared_ptr<peer_plugin> new_connection(
+		boost::shared_ptr<peer_plugin> new_connection(
 			peer_connection_handle const& pc) override;
 
 		std::vector<char>& get_ut_pex_msg()
@@ -111,7 +111,7 @@ namespace libtorrent { namespace
 		// are calculated here and the pex message is created
 		// each peer connection will use this message
 		// max_peer_entries limits the packet size
-		virtual void tick() override
+		void tick() override
 		{
 			time_point now = aux::time_now();
 			if (now - seconds(60) < m_last_msg) return;
@@ -141,16 +141,14 @@ namespace libtorrent { namespace
 
 			m_peers_in_message = 0;
 			int num_added = 0;
-			for (torrent::peer_iterator i = m_torrent.begin()
-				, end(m_torrent.end()); i != end; ++i)
+			for (auto peer : m_torrent)
 			{
-				peer_connection* peer = *i;
-				if (!send_peer(*peer)) continue;
+					if (!send_peer(*peer)) continue;
 
 				tcp::endpoint remote = peer->remote();
 				m_old_peers.insert(remote);
 
-				std::set<tcp::endpoint>::iterator di = dropped.find(remote);
+				auto di = dropped.find(remote);
 				if (di == dropped.end())
 				{
 					// don't write too big of a package
@@ -213,14 +211,13 @@ namespace libtorrent { namespace
 				}
 			}
 
-			for (std::set<tcp::endpoint>::const_iterator i = dropped.begin()
-				, end(dropped.end()); i != end; ++i)
+			for (auto const& i : dropped)
 			{	
-				if (i->address().is_v4())
-					detail::write_endpoint(*i, pld_out);
+				if (i.address().is_v4())
+					detail::write_endpoint(i, pld_out);
 #if TORRENT_USE_IPV6
 				else
-					detail::write_endpoint(*i, pld6_out);
+					detail::write_endpoint(i, pld6_out);
 #endif
 				++m_peers_in_message;
 			}
@@ -253,21 +250,21 @@ namespace libtorrent { namespace
 			, m_first_time(true)
 		{
 			const int num_pex_timers = sizeof(m_last_pex)/sizeof(m_last_pex[0]);
-			for (int i = 0; i < num_pex_timers; ++i)
+			for (auto& i : m_last_pex)
 			{
-				m_last_pex[i]= min_time();
+				i= min_time();
 			}
 		}
 
-		virtual char const* type() const override { return "ut_pex"; }
+		char const* type() const override { return "ut_pex"; }
 
-		virtual void add_handshake(entry& h) override
+		void add_handshake(entry& h) override
 		{
 			entry& messages = h["m"];
 			messages[extension_name] = extension_index;
 		}
 
-		virtual bool on_extension_handshake(bdecode_node const& h) override
+		bool on_extension_handshake(bdecode_node const& h) override
 		{
 			m_message_index = 0;
 			if (h.type() != bdecode_node::dict_t) return false;
@@ -280,7 +277,7 @@ namespace libtorrent { namespace
 			return true;
 		}
 
-		virtual bool on_extended(int length, int msg, buffer::const_interval body) override
+		bool on_extended(int length, int msg, buffer::const_interval body) override
 		{
 			if (msg != extension_index) return false;
 			if (m_message_index == 0) return false;
@@ -332,7 +329,7 @@ namespace libtorrent { namespace
 				{
 					tcp::endpoint adr = detail::read_v4_endpoint<tcp::endpoint>(in);
 					peers4_t::value_type v(adr.address().to_v4().to_bytes(), adr.port());
-					peers4_t::iterator j = std::lower_bound(m_peers.begin(), m_peers.end(), v);
+					auto j = std::lower_bound(m_peers.begin(), m_peers.end(), v);
 					if (j != m_peers.end() && *j == v) m_peers.erase(j);
 				}
 			}
@@ -361,7 +358,7 @@ namespace libtorrent { namespace
 					if (is_local(adr.address()) && !is_local(m_pc.remote().address())) continue;
 
 					peers4_t::value_type v(adr.address().to_v4().to_bytes(), adr.port());
-					peers4_t::iterator j = std::lower_bound(m_peers.begin(), m_peers.end(), v);
+					auto j = std::lower_bound(m_peers.begin(), m_peers.end(), v);
 					// do we already know about this peer?
 					if (j != m_peers.end() && *j == v) continue;
 					m_peers.insert(j, v);
@@ -384,7 +381,7 @@ namespace libtorrent { namespace
 				{
 					tcp::endpoint adr = detail::read_v6_endpoint<tcp::endpoint>(in);
 					peers6_t::value_type v(adr.address().to_v6().to_bytes(), adr.port());
-					peers6_t::iterator j = std::lower_bound(m_peers6.begin(), m_peers6.end(), v);
+					auto j = std::lower_bound(m_peers6.begin(), m_peers6.end(), v);
 					if (j != m_peers6.end() && *j == v) m_peers6.erase(j);
 				}
 			}
@@ -414,7 +411,7 @@ namespace libtorrent { namespace
 						break;
 
 					peers6_t::value_type v(adr.address().to_v6().to_bytes(), adr.port());
-					peers6_t::iterator j = std::lower_bound(m_peers6.begin(), m_peers6.end(), v);
+					auto j = std::lower_bound(m_peers6.begin(), m_peers6.end(), v);
 					// do we already know about this peer?
 					if (j != m_peers6.end() && *j == v) continue;
 					m_peers6.insert(j, v);
@@ -433,7 +430,7 @@ namespace libtorrent { namespace
 
 		// the peers second tick
 		// every minute we send a pex message
-		virtual void tick() override
+		void tick() override
 		{
 			// no handshake yet
 			if (!m_message_index) return;
@@ -546,11 +543,9 @@ namespace libtorrent { namespace
 #endif
 
 			int num_added = 0;
-			for (torrent::peer_iterator i = m_torrent.begin()
-				, end(m_torrent.end()); i != end; ++i)
+			for (auto peer : m_torrent)
 			{
-				peer_connection* peer = *i;
-				if (!send_peer(*peer)) continue;
+					if (!send_peer(*peer)) continue;
 
 				// don't write too big of a package
 				if (num_added >= max_peer_entries) break;
@@ -670,7 +665,8 @@ namespace libtorrent { namespace
 		return boost::shared_ptr<peer_plugin>(new ut_pex_peer_plugin(m_torrent
 			, *pc.native_handle(), *this));
 	}
-} }
+} // namespace
+ } // namespace libtorrent
 
 namespace libtorrent
 {
@@ -693,7 +689,7 @@ namespace libtorrent
 		{
 #endif
 			ut_pex_peer_plugin::peers4_t::value_type v(ep.address().to_v4().to_bytes(), ep.port());
-			ut_pex_peer_plugin::peers4_t::const_iterator i
+			auto i
 				= std::lower_bound(p->m_peers.begin(), p->m_peers.end(), v);
 			return i != p->m_peers.end() && *i == v;
 #if TORRENT_USE_IPV6
@@ -701,13 +697,13 @@ namespace libtorrent
 		else
 		{
 			ut_pex_peer_plugin::peers6_t::value_type v(ep.address().to_v6().to_bytes(), ep.port());
-			ut_pex_peer_plugin::peers6_t::const_iterator i
+			auto i
 				= std::lower_bound(p->m_peers6.begin(), p->m_peers6.end(), v);
 			return i != p->m_peers6.end() && *i == v;
 		}
 #endif
 	}
-}
+} // namespace libtorrent
 
 #endif
 

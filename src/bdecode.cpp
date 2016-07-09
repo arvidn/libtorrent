@@ -165,10 +165,10 @@ namespace libtorrent
 
 	struct bdecode_error_category : boost::system::error_category
 	{
-		virtual const char* name() const BOOST_SYSTEM_NOEXCEPT;
-		virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT;
-		virtual boost::system::error_condition default_error_condition(
-			int ev) const BOOST_SYSTEM_NOEXCEPT
+		const char* name() const BOOST_SYSTEM_NOEXCEPT override;
+		std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT override;
+		boost::system::error_condition default_error_condition(
+			int ev) const BOOST_SYSTEM_NOEXCEPT override
 		{ return boost::system::error_condition(ev, *this); }
 	};
 
@@ -207,11 +207,11 @@ namespace libtorrent
 		{
 			return boost::system::error_code(e, get_bdecode_category());
 		}
-	}
+	} // namespace bdecode_errors
 
 
 	bdecode_node::bdecode_node()
-		: m_root_tokens(0)
+		: m_root_tokens(nullptr)
 		, m_buffer(nullptr)
 		, m_buffer_size(0)
 		, m_token_idx(-1)
@@ -482,7 +482,7 @@ namespace libtorrent
 		return ret;
 	}
 
-	bdecode_node bdecode_node::dict_find(std::string key) const
+	bdecode_node bdecode_node::dict_find(const std::string& key) const
 	{
 		TORRENT_ASSERT(type() == dict_t);
 
@@ -526,7 +526,7 @@ namespace libtorrent
 		return bdecode_node();
 	}
 
-	bdecode_node bdecode_node::dict_find_dict(std::string key) const
+	bdecode_node bdecode_node::dict_find_dict(const std::string& key) const
 	{
 		bdecode_node ret = dict_find(key);
 		if (ret.type() == bdecode_node::dict_t)
@@ -976,7 +976,7 @@ done:
 			else
 			{
 				char tmp[5];
-				std::snprintf(tmp, sizeof(tmp), "\\x%02x", std::uint8_t(str[i]));
+				std::snprintf(tmp, sizeof(tmp), R"(\x%02x)", std::uint8_t(str[i]));
 				ret += tmp;
 			}
 		}
@@ -1019,7 +1019,7 @@ done:
 		ret += "'";
 	}
 
-}
+} // namespace
 
 	std::string print_entry(bdecode_node const& e
 		, bool single_line, int indent)
@@ -1084,5 +1084,5 @@ done:
 		}
 		return ret;
 	}
-}
+} // namespace libtorrent
 

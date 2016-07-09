@@ -266,7 +266,7 @@ namespace libtorrent
 					atp.file_priorities = resume_data.file_priorities;
 			}
 		}
-	}
+	} // namespace
 #endif
 
 #ifndef BOOST_NO_EXCEPTIONS
@@ -307,7 +307,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT_PRECOND(!params.save_path.empty());
 
-		add_torrent_params* p = new add_torrent_params(params);
+		auto p = new add_torrent_params(params);
 
 #ifndef TORRENT_NO_DEPRECATE
 		handle_backwards_compatible_resume_data(*p);
@@ -325,7 +325,7 @@ namespace libtorrent
 		, entry const& resume_data
 		, storage_mode_t storage_mode
 		, bool paused
-		, storage_constructor_type sc)
+		, const storage_constructor_type& sc)
 	{
 		boost::shared_ptr<torrent_info> tip(boost::make_shared<torrent_info>(ti));
 		add_torrent_params p(sc);
@@ -349,7 +349,7 @@ namespace libtorrent
 		, entry const& resume_data
 		, storage_mode_t storage_mode
 		, bool paused
-		, storage_constructor_type sc
+		, const storage_constructor_type& sc
 		, void* userdata)
 	{
 		TORRENT_ASSERT_PRECOND(!save_path.empty());
@@ -419,7 +419,7 @@ namespace libtorrent
 	void session_handle::get_cache_info(cache_status* ret
 		, torrent_handle h, int flags) const
 	{
-		piece_manager* st = 0;
+		piece_manager* st = nullptr;
 		boost::shared_ptr<torrent> t = h.m_torrent.lock();
 		if (t)
 		{

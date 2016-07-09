@@ -59,7 +59,7 @@ namespace libtorrent
 
 	void peer_class_set::remove_class(peer_class_pool& pool, peer_class_t c)
 	{
-		std::array<peer_class_t, 15>::iterator i = std::find(m_class.begin()
+		auto i = std::find(m_class.begin()
 			, m_class.begin() + m_size, c);
 		int idx = i - m_class.begin();
 		if (idx == m_size) return; // not found
@@ -71,5 +71,5 @@ namespace libtorrent
 		--m_size;
 		pool.decref(c);
 	}
-}
+} // namespace libtorrent
 

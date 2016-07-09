@@ -85,8 +85,8 @@ enum
 class TORRENT_EXTRA_EXPORT item
 {
 public:
-	item() : m_seq(0), m_mutable(false)  {}
-	item(char const* pk, std::string const& salt);
+	item() : m_seq(0), m_mutable(false) {}
+	item(char const* pk, std::string salt);
 	item(entry const& v) { assign(v); }
 	item(entry const& v
 		, std::pair<char const*, int> salt
@@ -107,7 +107,7 @@ public:
 	}
 	bool assign(bdecode_node const& v, std::pair<char const*, int> salt
 		, std::uint64_t seq, char const* pk, char const* sig);
-	void assign(entry const& v, std::string salt, std::uint64_t seq
+	void assign(entry const& v, const std::string& salt, std::uint64_t seq
 		, char const* pk, char const* sig);
 
 	void clear() { m_value = entry(); }

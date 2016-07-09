@@ -30,17 +30,19 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include <utility>
+
 #include "libtorrent/kademlia/node_entry.hpp"
 #include "libtorrent/aux_/time.hpp" // for aux::time_now()
 
 namespace libtorrent { namespace dht
 {
 
-	node_entry::node_entry(node_id const& id_, udp::endpoint ep
+	node_entry::node_entry(node_id id_, udp::endpoint ep
 		, int roundtriptime
 		, bool pinged)
 		: last_queried(pinged ? aux::time_now() : min_time())
-		, id(id_)
+		, id(std::move(id_))
 		, endpoint(ep)
 		, rtt(roundtriptime & 0xffff)
 		, timeout_count(pinged ? 0 : 0xff)
@@ -52,7 +54,7 @@ namespace libtorrent { namespace dht
 
 	node_entry::node_entry(udp::endpoint ep)
 		: last_queried(min_time())
-		, id(0)
+		, id(nullptr)
 		, endpoint(ep)
 		, rtt(0xffff)
 		, timeout_count(0xff)
@@ -64,7 +66,7 @@ namespace libtorrent { namespace dht
 
 	node_entry::node_entry()
 		: last_queried(min_time())
-		, id(0)
+		, id(nullptr)
 		, rtt(0xffff)
 		, timeout_count(0xff)
 	{
@@ -82,6 +84,7 @@ namespace libtorrent { namespace dht
 		else rtt = int(rtt) * 2 / 3 + int(new_rtt) / 3;
 	}
 
-}}
+} // namespace dht
+} // namespace libtorrent
 
 

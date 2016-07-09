@@ -78,4 +78,5 @@ void torrent_wait(bool& done, aux::session_impl& ses)
 	while (!done) { ses.cond.wait(l); };
 }
 
-} } // namespace aux namespace libtorrent
+} // namespace aux
+ } // namespace libtorrent

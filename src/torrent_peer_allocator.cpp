@@ -130,5 +130,5 @@ namespace libtorrent
 		--m_live_allocations;
 	}
 
-}
+} // namespace libtorrent
 

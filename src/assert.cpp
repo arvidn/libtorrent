@@ -50,7 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <cstring>
-#include <stdlib.h>
+#include <cstdlib>
 #include <cstdarg>
 #include <cstdio> // for snprintf
 #include <cinttypes> // for PRId64 et.al.
@@ -69,7 +69,7 @@ std::string demangle(char const* name)
 // in case this string comes
 	// this is needed on linux
 	char const* start = strchr(name, '(');
-	if (start != 0)
+	if (start != nullptr)
 	{
 		++start;
 	}
@@ -77,10 +77,10 @@ std::string demangle(char const* name)
 	{
 		// this is needed on macos x
 		start = strstr(name, "0x");
-		if (start != 0)
+		if (start != nullptr)
 		{
 			start = strchr(start, ' ');
-			if (start != 0) ++start;
+			if (start != nullptr) ++start;
 			else start = name;
 		}
 		else start = name;
@@ -90,13 +90,13 @@ std::string demangle(char const* name)
 	if (end) while (*(end-1) == ' ') --end;
 
 	std::string in;
-	if (end == 0) in.assign(start);
+	if (end == nullptr) in.assign(start);
 	else in.assign(start, end);
 
 	size_t len;
 	int status;
-	char* unmangled = ::abi::__cxa_demangle(in.c_str(), 0, &len, &status);
-	if (unmangled == 0) return in;
+	char* unmangled = ::abi::__cxa_demangle(in.c_str(), nullptr, &len, &status);
+	if (unmangled == nullptr) return in;
 	std::string ret(unmangled);
 	free(unmangled);
 	return ret;
@@ -118,9 +118,9 @@ std::string demangle(char const* name)
 std::string demangle(char const* name) { return name; }
 #endif
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <signal.h>
+#include <cstdlib>
+#include <cstdio>
+#include <csignal>
 #include "libtorrent/version.hpp"
 
 #if TORRENT_USE_EXECINFO
@@ -275,7 +275,7 @@ std::atomic<int> assert_counter(0);
 #endif
 
 TORRENT_FORMAT(1,2)
-TORRENT_EXPORT void assert_print(char const* fmt, ...)
+TORRENT_EXPORT void assert_print(char const* fmt, ...) /* NOLINT */
 {
 #ifdef TORRENT_PRODUCTION_ASSERTS
 	if (assert_counter > 500) return;
@@ -343,7 +343,7 @@ TORRENT_EXPORT void assert_fail(char const* expr, int line
 #endif
 		, file, line, function, expr
 		, value ? value : "", value ? "\n" : ""
-		, stack);
+		, stack) /* NOLINT */;
 
 	// if production asserts are defined, don't abort, just print the error
 #ifndef TORRENT_PRODUCTION_ASSERTS

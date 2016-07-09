@@ -145,4 +145,4 @@ namespace libtorrent
 		crc.process_bytes(buf, num_words * 8);
 		return crc.checksum();
 	}
-}
+} // namespace libtorrent

@@ -71,5 +71,5 @@ namespace libtorrent
 		return random() % i;
 	}
 
-}
+} // namespace libtorrent
 

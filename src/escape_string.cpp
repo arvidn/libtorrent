@@ -66,7 +66,7 @@ namespace libtorrent
 	// defined in hex.cpp
 	namespace aux {
 		extern const char hex_chars[];
-	}
+	} // namespace aux
 
 	std::string unescape_string(std::string const& s, error_code& ec)
 	{
@@ -143,7 +143,7 @@ namespace libtorrent
 	// the offset is used to ignore the first characters in the unreserved_chars table.
 	std::string escape_string_impl(const char* str, int len, int offset)
 	{
-		TORRENT_ASSERT(str != 0);
+		TORRENT_ASSERT(str != nullptr);
 		TORRENT_ASSERT(len >= 0);
 		TORRENT_ASSERT(offset >= 0);
 		TORRENT_ASSERT(offset < int(sizeof(unreserved_chars))-1);
@@ -182,7 +182,7 @@ namespace libtorrent
 	{
 		for (int i = 0; i < len; ++i)
 		{
-			if (std::strchr(unreserved_chars, *str) == 0 || *str == 0)
+			if (std::strchr(unreserved_chars, *str) == nullptr || *str == 0)
 				return true;
 			++str;
 		}
@@ -191,9 +191,8 @@ namespace libtorrent
 
 	void convert_path_to_posix(std::string& path)
 	{
-		for (std::string::iterator i = path.begin()
-			, end(path.end()); i != end; ++i)
-			if (*i == '\\') *i = '/';
+		for (char & i : path)
+			if (i == '\\') i = '/';
 	}
 
 #ifdef TORRENT_WINDOWS
@@ -618,5 +617,5 @@ namespace libtorrent
 
 #endif
 
-}
+} // namespace libtorrent
 

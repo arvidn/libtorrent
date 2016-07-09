@@ -30,6 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include <utility>
 #include <vector>
 #include <functional>
 #include <cstdint>
@@ -101,7 +102,7 @@ namespace libtorrent
 		return pb.send_buffer_offset != pending_block::not_in_buffer;
 	}
 
-	}
+	} // namespace
 
 #if TORRENT_USE_ASSERTS
 	bool peer_connection::is_single_thread() const
@@ -212,7 +213,7 @@ namespace libtorrent
 		m_quota[0] = 0;
 		m_quota[1] = 0;
 
-		TORRENT_ASSERT(pack.peerinfo == 0 || pack.peerinfo->banned == false);
+		TORRENT_ASSERT(pack.peerinfo == nullptr || pack.peerinfo->banned == false);
 #ifndef TORRENT_DISABLE_LOGGING
 		error_code ec;
 		TORRENT_ASSERT(m_socket->remote_endpoint(ec) == m_remote || ec);
@@ -295,7 +296,7 @@ namespace libtorrent
 	void peer_connection::start()
 	{
 		TORRENT_ASSERT(is_single_thread());
-		TORRENT_ASSERT(m_peer_info == 0 || m_peer_info->connection == this);
+		TORRENT_ASSERT(m_peer_info == nullptr || m_peer_info->connection == this);
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 
 		if (!m_outgoing)
@@ -501,7 +502,7 @@ namespace libtorrent
 
 	TORRENT_FORMAT(4,5)
 	void peer_connection::peer_log(peer_log_alert::direction_t direction
-		, char const* event, char const* fmt, ...) const
+		, char const* event, char const* fmt, ...) const /* NOLINT */
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -523,7 +524,7 @@ namespace libtorrent
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-	void peer_connection::add_extension(boost::shared_ptr<peer_plugin> ext)
+	void peer_connection::add_extension(const boost::shared_ptr<peer_plugin>& ext)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		m_extensions.push_back(ext);
@@ -532,12 +533,11 @@ namespace libtorrent
 	peer_plugin const* peer_connection::find_plugin(char const* type)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto& ext : m_extensions)
 		{
-			if (strcmp((*i)->type(), type) == 0) return (*i).get();
+			if (strcmp(ext->type(), type) == 0) return ext.get();
 		}
-		return 0;
+		return nullptr;
 	}
 #endif
 
@@ -658,7 +658,7 @@ namespace libtorrent
 		// now that we know how many pieces there are
 		// remove any invalid allowed_fast and suggest pieces
 		// now that we know what the number of pieces are
-		for (std::vector<int>::iterator i = m_allowed_fast.begin();
+		for (auto i = m_allowed_fast.begin();
 			i != m_allowed_fast.end();)
 		{
 			if (*i < m_num_pieces)
@@ -818,7 +818,7 @@ namespace libtorrent
 
 #if TORRENT_USE_ASSERTS
 		if (m_peer_info)
-			TORRENT_ASSERT(m_peer_info->connection == 0);
+			TORRENT_ASSERT(m_peer_info->connection == nullptr);
 #endif
 	}
 
@@ -904,7 +904,7 @@ namespace libtorrent
 #endif
 
 		// remove suggested pieces once we have them
-		std::vector<int>::iterator i = std::find(
+		auto i = std::find(
 			m_suggested_pieces.begin(), m_suggested_pieces.end(), index);
 		if (i != m_suggested_pieces.end()) m_suggested_pieces.erase(i);
 
@@ -1055,10 +1055,9 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		if (bytes_payload)
 		{
-			for (extension_list_t::iterator i = m_extensions.begin()
-				, end(m_extensions.end()); i != end; ++i)
+			for (auto& ext : m_extensions)
 			{
-				(*i)->sent_payload(bytes_payload);
+				ext->sent_payload(bytes_payload);
 			}
 		}
 #endif
@@ -1112,11 +1111,10 @@ namespace libtorrent
 //		INVARIANT_CHECK;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto& ext : m_extensions)
 		{
 			TORRENT_TRY {
-				(*i)->on_piece_pass(index);
+				ext->on_piece_pass(index);
 			} TORRENT_CATCH(std::exception&) {}
 		}
 #else
@@ -1133,11 +1131,10 @@ namespace libtorrent
 		TORRENT_UNUSED(single_peer);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto& ext : m_extensions)
 		{
 			TORRENT_TRY {
-				(*i)->on_piece_failed(index);
+				ext->on_piece_failed(index);
 			} TORRENT_CATCH(std::exception&) {}
 		}
 #else
@@ -1356,10 +1353,9 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto& ext : m_extensions)
 		{
-			if ((*i)->on_choke()) return;
+			if (ext->on_choke()) return;
 		}
 #endif
 		if (is_disconnecting()) return;
@@ -1388,7 +1384,7 @@ namespace libtorrent
 		}
 
 		// clear the requests that haven't been sent yet
-		if (peer_info_struct() == 0 || !peer_info_struct()->on_parole)
+		if (peer_info_struct() == nullptr || !peer_info_struct()->on_parole)
 		{
 			// if the peer is not in parole mode, clear the queued
 			// up block requests
@@ -1412,7 +1408,7 @@ namespace libtorrent
 		if (r.start % block_size != 0) return false;
 		return true;
 	}
-	}
+	} // namespace
 
 	// -----------------------------
 	// -------- REJECT PIECE -------
@@ -1432,16 +1428,15 @@ namespace libtorrent
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto& ext : m_extensions)
 		{
-			if ((*i)->on_reject(r)) return;
+			if (ext->on_reject(r)) return;
 		}
 #endif
 
 		if (is_disconnecting()) return;
 
-		std::vector<pending_block>::iterator dlq_iter = std::find_if(
+		auto dlq_iter = std::find_if(
 			m_download_queue.begin(), m_download_queue.end()
 			, std::bind(match_request, boost::cref(r), std::bind(&pending_block::block, _1)
 			, t->block_size()));
@@ -1486,13 +1481,13 @@ namespace libtorrent
 			// if we're choked and we got a rejection of
 			// a piece in the allowed fast set, remove it
 			// from the allow fast set.
-			std::vector<int>::iterator i = std::find(
+			auto i = std::find(
 				m_allowed_fast.begin(), m_allowed_fast.end(), r.piece);
 			if (i != m_allowed_fast.end()) m_allowed_fast.erase(i);
 		}
 		else
 		{
-			std::vector<int>::iterator i = std::find(m_suggested_pieces.begin()
+			auto i = std::find(m_suggested_pieces.begin()
 				, m_suggested_pieces.end(), r.piece);
 			if (i != m_suggested_pieces.end())
 				m_suggested_pieces.erase(i);
@@ -1526,10 +1521,9 @@ namespace libtorrent
 		if (!t) return;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto& ext : m_extensions)
 		{
-			if ((*i)->on_suggest(index)) return;
+			if (ext->on_suggest(index)) return;
 		}
 #endif
 
@@ -1594,10 +1588,9 @@ namespace libtorrent
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto& ext : m_extensions)
 		{
-			if ((*i)->on_unchoke()) return;
+			if (ext->on_unchoke()) return;
 		}
 #endif
 
@@ -1632,10 +1625,9 @@ namespace libtorrent
 		TORRENT_ASSERT(t);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto& ext : m_extensions)
 		{
-			if ((*i)->on_interested()) return;
+			if (ext->on_interested()) return;
 		}
 #endif
 
@@ -1725,10 +1717,9 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto& ext : m_extensions)
 		{
-			if ((*i)->on_not_interested()) return;
+			if (ext->on_not_interested()) return;
 		}
 #endif
 
@@ -1785,10 +1776,9 @@ namespace libtorrent
 		TORRENT_ASSERT(t);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto& ext : m_extensions)
 		{
-			if ((*i)->on_have(index)) return;
+			if (ext->on_have(index)) return;
 		}
 #endif
 
@@ -1935,7 +1925,7 @@ namespace libtorrent
 			&& m_settings.get_bool(settings_pack::strict_super_seeding)
 			&& (!super_seeded_piece(index) || t->num_peers() == 1))
 		{
-			for (torrent::peer_iterator i = t->begin()
+			for (auto i = t->begin()
 				, end(t->end()); i != end; ++i)
 			{
 				peer_connection* p = *i;
@@ -1959,10 +1949,9 @@ namespace libtorrent
 		TORRENT_ASSERT(t);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto& ext : m_extensions)
 		{
-			if ((*i)->on_dont_have(index)) return;
+			if (ext->on_dont_have(index)) return;
 		}
 #endif
 
@@ -2018,10 +2007,9 @@ namespace libtorrent
 		TORRENT_ASSERT(t);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto& ext : m_extensions)
 		{
-			if ((*i)->on_bitfield(bits)) return;
+			if (ext->on_bitfield(bits)) return;
 		}
 #endif
 
@@ -2185,10 +2173,9 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(is_single_thread());
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::const_iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto const& ext : m_extensions)
 		{
-			if (!(*i)->can_disconnect(ec)) return false;
+			if (!ext->can_disconnect(ec)) return false;
 		}
 #else
 		TORRENT_UNUSED(ec);
@@ -2256,10 +2243,9 @@ namespace libtorrent
 		if (is_disconnecting()) return;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto& ext : m_extensions)
 		{
-			if ((*i)->on_request(r)) return;
+			if (ext->on_request(r)) return;
 		}
 #endif
 		if (is_disconnecting()) return;
@@ -2296,7 +2282,7 @@ namespace libtorrent
 		}
 
 		int fast_idx = -1;
-		std::vector<int>::iterator fast_iter = std::find(m_accept_fast.begin()
+		auto fast_iter = std::find(m_accept_fast.begin()
 			, m_accept_fast.end(), r.piece);
 		if (fast_iter != m_accept_fast.end()) fast_idx = fast_iter - m_accept_fast.begin();
 
@@ -2456,7 +2442,7 @@ namespace libtorrent
 	void peer_connection::reject_piece(int index)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		for (std::vector<peer_request>::iterator i = m_requests.begin()
+		for (auto i = m_requests.begin()
 			, end(m_requests.end()); i != end; ++i)
 		{
 			peer_request const& r = *i;
@@ -2519,10 +2505,9 @@ namespace libtorrent
 		m_receiving_block = b;
 
 		bool in_req_queue = false;
-		for (std::vector<pending_block>::iterator i = m_download_queue.begin()
-			, end(m_download_queue.end()); i != end; ++i)
+		for (auto& i : m_download_queue)
 		{
-			if (i->block != b) continue;
+			if (i.block != b) continue;
 			in_req_queue = true;
 			break;
 		}
@@ -2532,7 +2517,7 @@ namespace libtorrent
 		// if we're disconnecting, we shouldn't add pieces
 		if (!in_req_queue && !m_disconnecting)
 		{
-			for (std::vector<pending_block>::iterator i = m_request_queue.begin()
+			for (auto i = m_request_queue.begin()
 				, end(m_request_queue.end()); i != end; ++i)
 			{
 				if (i->block != b) continue;
@@ -2568,8 +2553,8 @@ namespace libtorrent
 #if TORRENT_USE_INVARIANT_CHECKS
 	struct check_postcondition
 	{
-		check_postcondition(boost::shared_ptr<torrent> const& t_
-			, bool init_check = true): t(t_) { if (init_check) check(); }
+		check_postcondition(boost::shared_ptr<torrent> t_
+			, bool init_check = true): t(std::move(t_)) { if (init_check) check(); }
 
 		~check_postcondition() { check(); }
 
@@ -2583,7 +2568,7 @@ namespace libtorrent
 				std::vector<piece_picker::downloading_piece> const& dl_queue
 					= t->picker().get_download_queue();
 
-				for (std::vector<piece_picker::downloading_piece>::const_iterator i =
+				for (auto i =
 					dl_queue.begin(); i != dl_queue.end(); ++i)
 				{
 					TORRENT_ASSERT(i->finished <= blocks_per_piece);
@@ -2665,10 +2650,9 @@ namespace libtorrent
 		update_desired_queue_size();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto& ext : m_extensions)
 		{
-			if ((*i)->on_piece(p, data.get()))
+			if (ext->on_piece(p, data.get()))
 			{
 #if TORRENT_USE_ASSERTS
 				TORRENT_ASSERT(m_received_in_piece == p.length);
@@ -2732,7 +2716,7 @@ namespace libtorrent
 		piece_block block_finished(p.piece, p.start / t->block_size());
 		TORRENT_ASSERT(verify_piece(p));
 
-		std::vector<pending_block>::iterator b
+		auto b
 			= std::find_if(
 				m_download_queue.begin()
 				, m_download_queue.end()
@@ -2971,7 +2955,7 @@ namespace libtorrent
 	}
 
 	void peer_connection::on_disk_write_complete(disk_io_job const* j
-		, peer_request p, boost::shared_ptr<torrent> t)
+		, peer_request p, const boost::shared_ptr<torrent>& t)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		torrent_ref_holder h(t.get(), "async_write");
@@ -3063,11 +3047,10 @@ namespace libtorrent
 			const std::vector<piece_picker::downloading_piece>& q
 				= picker.get_download_queue();
 
-			for (std::vector<piece_picker::downloading_piece>::const_iterator
-				i = q.begin(), end(q.end()); i != end; ++i)
+			for (auto i : q)
 			{
-				if (i->index != block_finished.piece_index) continue;
-				piece_picker::block_info* info = picker.blocks_for_piece(*i);
+				if (i.index != block_finished.piece_index) continue;
+				piece_picker::block_info* info = picker.blocks_for_piece(i);
 				TORRENT_ASSERT(info[block_finished.block_index].state
 					== piece_picker::block_info::state_finished);
 			}
@@ -3086,10 +3069,9 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto& ext : m_extensions)
 		{
-			if ((*i)->on_cancel(r)) return;
+			if (ext->on_cancel(r)) return;
 		}
 #endif
 		if (is_disconnecting()) return;
@@ -3099,7 +3081,7 @@ namespace libtorrent
 			, "piece: %d s: %x l: %x", r.piece, r.start, r.length);
 #endif
 
-		std::vector<peer_request>::iterator i
+		auto i
 			= std::find(m_requests.begin(), m_requests.end(), r);
 
 		if (i != m_requests.end())
@@ -3170,10 +3152,9 @@ namespace libtorrent
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto& ext : m_extensions)
 		{
-			if ((*i)->on_have_all()) return;
+			if (ext->on_have_all()) return;
 		}
 #endif
 		if (is_disconnecting()) return;
@@ -3252,10 +3233,9 @@ namespace libtorrent
 		TORRENT_ASSERT(t);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto& ext : m_extensions)
 		{
-			if ((*i)->on_have_none()) return;
+			if (ext->on_have_none()) return;
 		}
 #endif
 		if (is_disconnecting()) return;
@@ -3309,10 +3289,9 @@ namespace libtorrent
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto& ext : m_extensions)
 		{
-			if ((*i)->on_allowed_fast(index)) return;
+			if (ext->on_allowed_fast(index)) return;
 		}
 #endif
 		if (is_disconnecting()) return;
@@ -3391,7 +3370,7 @@ namespace libtorrent
 	bool peer_connection::make_time_critical(piece_block const& block)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		std::vector<pending_block>::iterator rit = std::find_if(m_request_queue.begin()
+		auto rit = std::find_if(m_request_queue.begin()
 			, m_request_queue.end(), has_block(block));
 		if (rit == m_request_queue.end()) return false;
 #if TORRENT_USE_ASSERTS
@@ -3546,10 +3525,9 @@ namespace libtorrent
 		// support the FAST extensions).
 		std::vector<pending_block> temp_copy = m_download_queue;
 
-		for (std::vector<pending_block>::iterator i = temp_copy.begin()
-			, end(temp_copy.end()); i != end; ++i)
+		for (auto& i : temp_copy)
 		{
-			piece_block b = i->block;
+			piece_block b = i.block;
 
 			int block_offset = b.block_index * t->block_size();
 			int block_size
@@ -3595,11 +3573,11 @@ namespace libtorrent
 		// cancelled, then just ignore the cancel.
 		if (!t->picker().is_requested(block)) return;
 
-		std::vector<pending_block>::iterator it
+		auto it
 			= std::find_if(m_download_queue.begin(), m_download_queue.end(), has_block(block));
 		if (it == m_download_queue.end())
 		{
-			std::vector<pending_block>::iterator rit = std::find_if(m_request_queue.begin()
+			auto rit = std::find_if(m_request_queue.begin()
 				, m_request_queue.end(), has_block(block));
 
 			// when a multi block is received, it is cancelled
@@ -3679,7 +3657,7 @@ namespace libtorrent
 
 		// reject the requests we have in the queue
 		// except the allowed fast pieces
-		for (std::vector<peer_request>::iterator i = m_requests.begin();
+		for (auto i = m_requests.begin();
 			i != m_requests.end();)
 		{
 			if (std::find(m_accept_fast.begin(), m_accept_fast.end(), i->piece)
@@ -3949,10 +3927,9 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			bool handled = false;
-			for (extension_list_t::iterator i = m_extensions.begin()
-				, end(m_extensions.end()); i != end; ++i)
+			for (auto& ext : m_extensions)
 			{
-				handled = (*i)->write_request(r);
+				handled = ext->write_request(r);
 				if (handled) break;
 			}
 			if (is_disconnecting()) return;
@@ -4228,10 +4205,9 @@ namespace libtorrent
 		if (t) handle = t->get_handle();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto& ext : m_extensions)
 		{
-			(*i)->on_disconnect(ec);
+			ext->on_disconnect(ec);
 		}
 #endif
 
@@ -4425,11 +4401,10 @@ namespace libtorrent
 		p.upload_queue_length = int(upload_queue().size());
 		p.timed_out_requests = 0;
 		p.busy_requests = 0;
-		for (std::vector<pending_block>::const_iterator i = m_download_queue.begin()
-			, end(m_download_queue.end()); i != end; ++i)
+		for (auto i : m_download_queue)
 		{
-			if (i->timed_out) ++p.timed_out_requests;
-			if (i->busy) ++p.busy_requests;
+			if (i.timed_out) ++p.timed_out_requests;
+			if (i.busy) ++p.busy_requests;
 		}
 
 		if (boost::optional<piece_block_progress> ret = downloading_piece_progress())
@@ -4702,10 +4677,9 @@ namespace libtorrent
 		if (is_disconnecting()) return;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto& ext : m_extensions)
 		{
-			(*i)->tick();
+			ext->tick();
 		}
 		if (is_disconnecting()) return;
 #endif
@@ -5033,8 +5007,6 @@ namespace libtorrent
 		if (m_settings.get_bool(settings_pack::guided_read_cache))
 		{
 			boost::shared_ptr<torrent> t = m_torrent.lock();
-			int upload_rate = m_statistics.upload_payload_rate();
-			if (upload_rate == 0) upload_rate = 1;
 
 			int num_uploads = m_ses.num_uploads();
 			if (num_uploads == 0) num_uploads = 1;
@@ -5282,7 +5254,7 @@ namespace libtorrent
 				return;
 			}
 
-			TORRENT_ASSERT(j->buffer.disk_block == 0);
+			TORRENT_ASSERT(j->buffer.disk_block == nullptr);
 			write_dont_have(r.piece);
 			write_reject_request(r);
 			if (t->alerts().should_post<file_error_alert>())
@@ -5746,7 +5718,7 @@ namespace libtorrent
 			aux::session_interface* ses = static_cast<aux::session_interface*>(userdata);
 			ses->free_buffer(buffer);
 		}
-	}
+	} // namespace
 
 	void peer_connection::send_buffer(char const* buf, int size, int flags)
 	{
@@ -5762,7 +5734,7 @@ namespace libtorrent
 			// this should always succeed, because we checked how much space
 			// there was up-front
 			TORRENT_UNUSED(dst);
-			TORRENT_ASSERT(dst != 0);
+			TORRENT_ASSERT(dst != nullptr);
 			size -= free_space;
 			buf += free_space;
 		}
@@ -5772,7 +5744,7 @@ namespace libtorrent
 		while (size > 0)
 		{
 			char* chain_buf = m_ses.allocate_buffer();
-			if (chain_buf == 0)
+			if (chain_buf == nullptr)
 			{
 				disconnect(errors::no_memory, op_alloc_sndbuf);
 				return;
@@ -6153,10 +6125,9 @@ namespace libtorrent
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto& ext : m_extensions)
 		{
-			(*i)->on_connected();
+			ext->on_connected();
 		}
 #endif
 
@@ -6337,7 +6308,7 @@ namespace libtorrent
 			int block_size = t->block_size();
 			piece_block last_block(ti.num_pieces()-1
 				, (ti.piece_size(ti.num_pieces()-1) + block_size - 1) / block_size);
-			for (std::vector<pending_block>::const_iterator i = m_download_queue.begin()
+			for (auto i = m_download_queue.begin()
 				, end(m_download_queue.end()); i != end; ++i)
 			{
 				TORRENT_ASSERT(i->block.piece_index <= last_block.piece_index);
@@ -6378,7 +6349,7 @@ namespace libtorrent
 			TORRENT_ASSERT(m_peer_info->prev_amount_upload == 0);
 			TORRENT_ASSERT(m_peer_info->prev_amount_download == 0);
 			TORRENT_ASSERT(m_peer_info->connection == this
-				|| m_peer_info->connection == 0);
+				|| m_peer_info->connection == nullptr);
 
 			if (m_peer_info->optimistically_unchoked)
 				TORRENT_ASSERT(!is_choked());
@@ -6596,4 +6567,4 @@ namespace libtorrent
 		disconnect_if_redundant();
 	}
 
-}
+} // namespace libtorrent

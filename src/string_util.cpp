@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <tuple> // for tie
 #include <cstdlib> // for malloc
-#include <cstring> // for memmov/strcpy/strlen
+#include <cstring> // for memmov/strlen
 
 namespace libtorrent
 {
@@ -83,7 +83,7 @@ namespace libtorrent
 	bool is_space(char c)
 	{
 		static const char* ws = " \t\n\r\f\v";
-		return strchr(ws, c) != 0;
+		return strchr(ws, c) != nullptr;
 	}
 
 	char to_lower(char c)
@@ -148,10 +148,11 @@ namespace libtorrent
 
 	char* allocate_string_copy(char const* str)
 	{
-		if (str == 0) return 0;
-		char* tmp = static_cast<char*>(std::malloc(std::strlen(str) + 1));
-		if (tmp == 0) return 0;
-		std::strcpy(tmp, str);
+		if (str == nullptr) return nullptr;
+		int const len = std::strlen(str) + 1;
+		char* const tmp = static_cast<char*>(std::malloc(len));
+		if (tmp == nullptr) return nullptr;
+		std::memcpy(tmp, str, len);
 		return tmp;
 	}
 
@@ -172,7 +173,7 @@ namespace libtorrent
 	std::string print_listen_interfaces(std::vector<listen_interface_t> const& in)
 	{
 		std::string ret;
-		for (std::vector<listen_interface_t>::const_iterator i = in.begin()
+		for (auto i = in.begin()
 			, end(in.end()); i != end; ++i)
 		{
 			if (i != in.begin()) ret += ",";
@@ -325,7 +326,7 @@ namespace libtorrent
 
 	char* string_tokenize(char* last, char sep, char** next)
 	{
-		if (last == 0) return 0;
+		if (last == nullptr) return nullptr;
 		if (last[0] == '"')
 		{
 			*next = strchr(last + 1, '"');
@@ -337,7 +338,7 @@ namespace libtorrent
 		{
 			*next = strchr(last, sep);
 		}
-		if (*next == 0) return last;
+		if (*next == nullptr) return last;
 		**next = 0;
 		++(*next);
 		while (**next == sep && **next) ++(*next);
@@ -359,5 +360,5 @@ namespace libtorrent
 
 #endif
 
-}
+} // namespace libtorrent
 

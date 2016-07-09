@@ -30,7 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <stdlib.h> // free and calloc
+#include <cstdlib> // free and calloc
 #include <new> // for bad_alloc
 #include "libtorrent/packet_buffer.hpp"
 #include "libtorrent/assert.hpp"
@@ -42,7 +42,7 @@ namespace libtorrent {
 		, std::uint32_t mask);
 
 	packet_buffer_impl::packet_buffer_impl()
-		: m_storage(0)
+		: m_storage(nullptr)
 		, m_capacity(0)
 		, m_size(0)
 		, m_first(0)
@@ -74,7 +74,7 @@ namespace libtorrent {
 		// you're not allowed to insert NULLs!
 		TORRENT_ASSERT(value);
 
-		if (value == 0) return remove(idx);
+		if (value == nullptr) return remove(idx);
 
 		if (m_size != 0)
 		{
@@ -127,7 +127,7 @@ namespace libtorrent {
 		if (m_size == 0) m_first = idx;
 		// if we're just replacing an old value, the number
 		// of elements in the buffer doesn't actually increase
-		if (old_value == 0) ++m_size;
+		if (old_value == nullptr) ++m_size;
 
 		TORRENT_ASSERT_VAL(m_first <= 0xffff, m_first);
 		return old_value;
@@ -137,11 +137,11 @@ namespace libtorrent {
 	{
 		INVARIANT_CHECK;
 		if (idx >= m_first + m_capacity)
-			return 0;
+			return nullptr;
 
 		if (compare_less_wrap(idx, m_first, 0xffff))
 		{
-			return 0;
+			return nullptr;
 		}
 
 		const int mask = int(m_capacity - 1);
@@ -163,7 +163,7 @@ namespace libtorrent {
 #endif
 
 		for (index_type i = 0; i < new_size; ++i)
-			new_storage[i] = 0;
+			new_storage[i] = nullptr;
 
 		for (index_type i = m_first; i < (m_first + m_capacity); ++i)
 			new_storage[i & (new_size - 1)] = m_storage[i & (m_capacity - 1)];
@@ -179,14 +179,14 @@ namespace libtorrent {
 		INVARIANT_CHECK;
 		// TODO: use compare_less_wrap for this comparison as well
 		if (idx >= m_first + m_capacity)
-			return 0;
+			return nullptr;
 
 		if (compare_less_wrap(idx, m_first, 0xffff))
-			return 0;
+			return nullptr;
 
 		const int mask = int(m_capacity - 1);
 		void* old_value = m_storage[idx & mask];
-		m_storage[idx & mask] = 0;
+		m_storage[idx & mask] = nullptr;
 
 		if (old_value)
 		{
@@ -215,5 +215,5 @@ namespace libtorrent {
 		return old_value;
 	}
 
-}
+} // namespace libtorrent
 

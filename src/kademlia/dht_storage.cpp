@@ -103,7 +103,7 @@ namespace
 
 	struct dht_immutable_item
 	{
-		dht_immutable_item() : value(0), num_announcers(0), size(0) {}
+		dht_immutable_item() : value(nullptr), num_announcers(0), size(0) {}
 		// malloced space for the actual value
 		char* value;
 		// this counts the number of IPs we have seen
@@ -149,7 +149,7 @@ namespace
 	{
 		immutable_item_comparator(std::vector<node_id> const& node_ids) : m_node_ids(node_ids) {}
 		immutable_item_comparator(immutable_item_comparator const& c)
-			: m_node_ids(c.m_node_ids) {}
+			= default;
 
 		bool operator() (std::pair<node_id, dht_immutable_item> const& lhs
 			, std::pair<node_id, dht_immutable_item> const& rhs) const
@@ -200,7 +200,7 @@ namespace
 			m_counters.reset();
 		}
 
-		~dht_default_storage() {}
+		~dht_default_storage() override = default;
 
 #ifndef TORRENT_NO_DEPRECATE
 		size_t num_torrents() const override { return m_map.size(); }
@@ -220,7 +220,7 @@ namespace
 			, bool noseed, bool scrape
 			, entry& peers) const override
 		{
-			table_t::const_iterator i = m_map.lower_bound(info_hash);
+			auto i = m_map.lower_bound(info_hash);
 			if (i == m_map.end()) return false;
 			if (i->first != info_hash) return false;
 
@@ -233,12 +233,11 @@ namespace
 				bloom_filter<256> downloaders;
 				bloom_filter<256> seeds;
 
-				for (std::set<peer_entry>::const_iterator peer_it = v.peers.begin()
-					, end(v.peers.end()); peer_it != end; ++peer_it)
+				for (auto const& peer : v.peers)
 				{
 					sha1_hash iphash;
-					hash_address(peer_it->addr.address(), iphash);
-					if (peer_it->seed) seeds.set(iphash);
+					hash_address(peer.addr.address(), iphash);
+					if (peer.seed) seeds.set(iphash);
 					else downloaders.set(iphash);
 				}
 
@@ -254,7 +253,7 @@ namespace
 				if (!v.peers.empty() && v.peers.begin()->addr.protocol() == tcp::v6())
 					max /= 4;
 				int num = (std::min)(int(v.peers.size()), max);
-				std::set<peer_entry>::const_iterator iter = v.peers.begin();
+				auto iter = v.peers.begin();
 				entry::list_type& pe = peers["values"].list();
 				std::string endpoint;
 
@@ -278,7 +277,7 @@ namespace
 			, tcp::endpoint const& endp
 			, std::string const& name, bool seed) override
 		{
-			table_t::iterator ti = m_map.find(info_hash);
+			auto ti = m_map.find(info_hash);
 			torrent_entry* v;
 			if (ti == m_map.end())
 			{
@@ -289,8 +288,8 @@ namespace
 					// we need to remove some. Remove the ones with the
 					// fewest peers
 					int num_peers = int(m_map.begin()->second.peers.size());
-					table_t::iterator candidate = m_map.begin();
-					for (table_t::iterator i = m_map.begin()
+					auto candidate = m_map.begin();
+					for (auto i = m_map.begin()
 						, end(m_map.end()); i != end; ++i)
 					{
 						if (int(i->second.peers.size()) > num_peers) continue;
@@ -323,7 +322,7 @@ namespace
 			peer.addr = endp;
 			peer.added = aux::time_now();
 			peer.seed = seed;
-			std::set<peer_entry>::iterator i = v->peers.find(peer);
+			auto i = v->peers.find(peer);
 			if (i != v->peers.end())
 			{
 				v->peers.erase(i++);
@@ -346,7 +345,7 @@ namespace
 		bool get_immutable_item(sha1_hash const& target
 			, entry& item) const override
 		{
-			dht_immutable_table_t::const_iterator i = m_immutable_table.find(target);
+			auto i = m_immutable_table.find(target);
 			if (i == m_immutable_table.end()) return false;
 
 			item["v"] = bdecode(i->second.value, i->second.value + i->second.size);
@@ -358,7 +357,7 @@ namespace
 			, address const& addr) override
 		{
 			TORRENT_ASSERT(!m_node_ids.empty());
-			dht_immutable_table_t::iterator i = m_immutable_table.find(target);
+			auto i = m_immutable_table.find(target);
 			if (i == m_immutable_table.end())
 			{
 				// make sure we don't add too many items
@@ -390,7 +389,7 @@ namespace
 		bool get_mutable_item_seq(sha1_hash const& target
 			, std::int64_t& seq) const override
 		{
-			dht_mutable_table_t::const_iterator i = m_mutable_table.find(target);
+			auto i = m_mutable_table.find(target);
 			if (i == m_mutable_table.end()) return false;
 
 			seq = i->second.seq;
@@ -401,7 +400,7 @@ namespace
 			, std::int64_t seq, bool force_fill
 			, entry& item) const override
 		{
-			dht_mutable_table_t::const_iterator i = m_mutable_table.find(target);
+			auto i = m_mutable_table.find(target);
 			if (i == m_mutable_table.end()) return false;
 
 			dht_mutable_item const& f = i->second;
@@ -424,7 +423,7 @@ namespace
 			, address const& addr) override
 		{
 			TORRENT_ASSERT(!m_node_ids.empty());
-			dht_mutable_table_t::iterator i = m_mutable_table.find(target);
+			auto i = m_mutable_table.find(target);
 			if (i == m_mutable_table.end())
 			{
 				// this is the case where we don't have an item in this slot
@@ -487,7 +486,7 @@ namespace
 			time_point now(aux::time_now());
 
 			// look through all peers and see if any have timed out
-			for (table_t::iterator i = m_map.begin(), end(m_map.end()); i != end;)
+			for (auto i = m_map.begin(), end(m_map.end()); i != end;)
 			{
 				torrent_entry& t = i->second;
 				purge_peers(t.peers);
@@ -509,7 +508,7 @@ namespace
 			// item lifetime must >= 120 minutes.
 			if (lifetime < minutes(120)) lifetime = minutes(120);
 
-			for (dht_immutable_table_t::iterator i = m_immutable_table.begin();
+			for (auto i = m_immutable_table.begin();
 				i != m_immutable_table.end();)
 			{
 				if (i->second.last_seen + lifetime > now)
@@ -522,7 +521,7 @@ namespace
 				m_counters.immutable_data -= 1;
 			}
 
-			for (dht_mutable_table_t::iterator i = m_mutable_table.begin();
+			for (auto i = m_mutable_table.begin();
 				i != m_mutable_table.end();)
 			{
 				if (i->second.last_seen + lifetime > now)
@@ -537,7 +536,7 @@ namespace
 			}
 		}
 
-		virtual dht_storage_counters counters() const override
+		dht_storage_counters counters() const override
 		{
 			return m_counters;
 		}
@@ -553,7 +552,7 @@ namespace
 
 		void purge_peers(std::set<peer_entry>& peers)
 		{
-			for (std::set<peer_entry>::iterator i = peers.begin()
+			for (auto i = peers.begin()
 				, end(peers.end()); i != end;)
 			{
 				// the peer has timed out
@@ -567,7 +566,7 @@ namespace
 			}
 		}
 	};
-}
+} // namespace
 
 void dht_storage_counters::reset()
 {
@@ -583,4 +582,5 @@ std::unique_ptr<dht_storage_interface> dht_default_storage_constructor(
 	return std::unique_ptr<dht_default_storage>(new dht_default_storage(settings));
 }
 
-} } // namespace libtorrent::dht
+} // namespace dht
+ } // namespace libtorrent

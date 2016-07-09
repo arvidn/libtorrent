@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstdio> // for snprintf
 #include <cinttypes> // for PRId64 et.al.
+#include <utility>
 
 #if TORRENT_USE_ASSERTS
 #include "libtorrent/bdecode.hpp"
@@ -76,7 +77,7 @@ namespace
 		TORRENT_ASSERT((ptr - out) <= canonical_length);
 		return ptr - out;
 	}
-}
+} // namespace
 
 // calculate the target hash for an immutable item.
 sha1_hash item_target_id(std::pair<char const*, int> v)
@@ -137,8 +138,8 @@ void sign_mutable_item(
 	);
 }
 
-item::item(char const* pk, std::string const& salt)
-	: m_salt(salt)
+item::item(char const* pk, std::string salt)
+	: m_salt(std::move(salt))
 	, m_seq(0)
 	, m_mutable(true)
 {
@@ -197,7 +198,7 @@ bool item::assign(bdecode_node const& v
 	return true;
 }
 
-void item::assign(entry const& v, std::string salt, std::uint64_t seq
+void item::assign(entry const& v, const std::string& salt, std::uint64_t seq
 	, char const* pk, char const* sig)
 {
 #if TORRENT_USE_ASSERTS
@@ -219,4 +220,5 @@ void item::assign(entry const& v, std::string salt, std::uint64_t seq
 	m_value = v;
 }
 
-} } // namespace libtorrent::dht
+} // namespace dht
+ } // namespace libtorrent

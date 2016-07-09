@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 #include <thread>
 #include <functional>
+#include <utility>
 
 #include "libtorrent/extensions/ut_pex.hpp"
 #include "libtorrent/extensions/ut_metadata.hpp"
@@ -293,7 +294,7 @@ namespace libtorrent
 		initialize_default_settings(def);
 		settings_pack pack;
 		min_memory_usage(pack);
-		apply_pack(&pack, def, 0);
+		apply_pack(&pack, def, nullptr);
 		session_settings ret;
 		load_struct_from_settings(def, ret);
 		return ret;
@@ -305,7 +306,7 @@ namespace libtorrent
 		initialize_default_settings(def);
 		settings_pack pack;
 		high_performance_seed(pack);
-		apply_pack(&pack, def, 0);
+		apply_pack(&pack, def, nullptr);
 		session_settings ret;
 		load_struct_from_settings(def, ret);
 		return ret;
@@ -395,16 +396,16 @@ namespace libtorrent
 		load_struct_from_settings(def, *this);
 	}
 
-	session_settings::~session_settings() {}
+	session_settings::~session_settings() = default;
 #endif // TORRENT_NO_DEPRECATE
 
 	session_proxy::session_proxy() = default;
 	session_proxy::session_proxy(boost::shared_ptr<io_service> ios
 		, std::shared_ptr<std::thread> t
 		, boost::shared_ptr<aux::session_impl> impl)
-		: m_io_service(ios)
-		, m_thread(t)
-		, m_impl(impl)
+		: m_io_service(std::move(ios))
+		, m_thread(std::move(t))
+		, m_impl(std::move(impl))
 	{}
 	session_proxy::session_proxy(session_proxy const&) = default;
 	session_proxy& session_proxy::operator=(session_proxy const&) = default;
@@ -413,5 +414,5 @@ namespace libtorrent
 		if (m_thread && m_thread.unique())
 			m_thread->join();
 	}
-}
+} // namespace libtorrent
 

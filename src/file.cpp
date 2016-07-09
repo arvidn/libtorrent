@@ -85,7 +85,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <sys/stat.h>
-#include <limits.h> // for IOV_MAX
+#include <climits> // for IOV_MAX
 
 #ifdef TORRENT_WINDOWS
 // windows part
@@ -112,7 +112,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <unistd.h>
 #include <sys/types.h>
-#include <errno.h>
+#include <cerrno>
 #include <dirent.h>
 
 #ifdef TORRENT_LINUX
@@ -505,7 +505,7 @@ namespace libtorrent
 			&& GetLastError() != ERROR_ALREADY_EXISTS)
 			ec.assign(GetLastError(), system_category());
 #else
-		std::string n = convert_to_native(f);
+		const std::string& n = convert_to_native(f);
 		int ret = mkdir(n.c_str(), 0777);
 		if (ret < 0 && errno != EEXIST)
 			ec.assign(errno, system_category());
@@ -549,8 +549,8 @@ namespace libtorrent
 
 #else
 
-		std::string n_exist = convert_to_native(file);
-		std::string n_link = convert_to_native(link);
+		const std::string& n_exist = convert_to_native(file);
+		const std::string& n_link = convert_to_native(link);
 
 		// assume posix's link() function exists
 		int ret = ::link(n_exist.c_str(), n_link.c_str());
@@ -628,8 +628,8 @@ namespace libtorrent
 		if (CopyFile_(f1.c_str(), f2.c_str(), false) == 0)
 			ec.assign(GetLastError(), system_category());
 #elif defined __APPLE__ && defined __MACH__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
-		std::string f1 = convert_to_native(inf);
-		std::string f2 = convert_to_native(newf);
+		const std::string& f1 = convert_to_native(inf);
+		const std::string& f2 = convert_to_native(newf);
 
 		// this only works on 10.5
 		copyfile_state_t state = copyfile_state_alloc();
@@ -751,7 +751,7 @@ namespace libtorrent
 	char const* next_path_element(char const* p)
 	{
 		p += strlen(p) + 1;
-		if (*p == 0) return 0;
+		if (*p == 0) return nullptr;
 		return p;
 	}
 
@@ -777,7 +777,7 @@ namespace libtorrent
 #endif
 		char const* ext = strrchr(f.c_str(), '.');
 		// if we don't have an extension, just return f
-		if (ext == 0 || ext == &f[0] || (slash != nullptr && ext < slash)) return f;
+		if (ext == nullptr || ext == &f[0] || (slash != nullptr && ext < slash)) return f;
 		return f.substr(0, ext - &f[0]);
 	}
 
@@ -877,14 +877,14 @@ namespace libtorrent
 
 	char const* filename_cstr(char const* f)
 	{
-		if (f == 0) return f;
+		if (f == nullptr) return f;
 
 		char const* sep = strrchr(f, '/');
 #ifdef TORRENT_WINDOWS
 		char const* altsep = strrchr(f, '\\');
 		if (sep == 0 || altsep > sep) sep = altsep;
 #endif
-		if (sep == 0) return f;
+		if (sep == nullptr) return f;
 		return sep+1;
 	}
 
@@ -897,7 +897,7 @@ namespace libtorrent
 		char const* altsep = strrchr(first, '\\');
 		if (sep == 0 || altsep > sep) sep = altsep;
 #endif
-		if (sep == 0) return f;
+		if (sep == nullptr) return f;
 
 		if (sep - first == int(f.size()) - 1)
 		{
@@ -984,7 +984,7 @@ namespace libtorrent
 #endif // TORRENT_USE_WSTRING
 #else
 		char cwd[TORRENT_MAX_PATH];
-		if (getcwd(cwd, sizeof(cwd)) == 0) return "/";
+		if (getcwd(cwd, sizeof(cwd)) == nullptr) return "/";
 #endif
 #if defined TORRENT_WINDOWS && !defined TORRENT_MINGW && TORRENT_USE_WSTRING
 		return convert_from_wstring(cwd);
@@ -1213,7 +1213,7 @@ namespace libtorrent
 
 		p = convert_to_native(p);
 		m_handle = opendir(p.c_str());
-		if (m_handle == 0)
+		if (m_handle == nullptr)
 		{
 			ec.assign(errno, system_category());
 			m_done = true;
@@ -1280,7 +1280,7 @@ namespace libtorrent
 			ec.assign(errno, system_category());
 			m_done = true;
 		}
-		if (dummy == 0) m_done = true;
+		if (dummy == nullptr) m_done = true;
 #endif
 	}
 
@@ -2367,5 +2367,5 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		std::fclose(out);
 	}
 #endif
-}
+} // namespace libtorrent
 

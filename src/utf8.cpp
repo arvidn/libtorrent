@@ -197,7 +197,7 @@ namespace libtorrent
 		return convert_from_wide<sizeof(wchar_t)>::convert(
 			&src_start, src_start + wide.size(), utf8);
 	}
-}
+} // namespace libtorrent
 
 #ifdef __clang__
 #pragma clang diagnostic pop

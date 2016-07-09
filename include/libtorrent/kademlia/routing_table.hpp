@@ -94,9 +94,9 @@ struct ipv6_hash
 
 struct ip_set
 {
-	void insert(address addr);
-	size_t count(address addr);
-	void erase(address addr);
+	void insert(const address& addr);
+	size_t count(const address& addr);
+	void erase(const address& addr);
 
 	void clear()
 	{
@@ -153,7 +153,7 @@ public:
 	// Perhaps replacement nodes should be in a separate vector.
 	using table_t = std::vector<routing_table_node>;
 
-	routing_table(node_id const& id, udp proto
+	routing_table(node_id id, udp proto
 		, int bucket_size
 		, dht_settings const& settings
 		, dht_logger* log);
@@ -171,7 +171,7 @@ public:
 
 	// adds an endpoint that will never be added to
 	// the routing table
-	void add_router_node(udp::endpoint router);
+	void add_router_node(const udp::endpoint& router);
 
 	// iterates over the router nodes added
 	typedef std::set<udp::endpoint>::const_iterator router_iterator;
@@ -191,7 +191,7 @@ public:
 	// a sign of a node being alive. This node will either
 	// be inserted in the k-buckets or be moved to the top
 	// of its bucket.
-	bool node_seen(node_id const& id, udp::endpoint ep, int rtt);
+	bool node_seen(node_id const& id, const udp::endpoint& ep, int rtt);
 
 	// this may add a node to the routing table and mark it as
 	// not pinged. If the bucket the node falls into is full,

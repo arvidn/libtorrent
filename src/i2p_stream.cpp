@@ -51,9 +51,9 @@ namespace libtorrent
 
 	struct i2p_error_category : boost::system::error_category
 	{
-		virtual const char* name() const BOOST_SYSTEM_NOEXCEPT
+		const char* name() const BOOST_SYSTEM_NOEXCEPT override
 		{ return "i2p error"; }
-		virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT
+		std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT override
 		{
 			static char const* messages[] =
 			{
@@ -71,8 +71,8 @@ namespace libtorrent
 			if (ev < 0 || ev >= i2p_error::num_errors) return "unknown error";
 			return messages[ev];
 		}
-		virtual boost::system::error_condition default_error_condition(
-			int ev) const BOOST_SYSTEM_NOEXCEPT
+		boost::system::error_condition default_error_condition(
+			int ev) const BOOST_SYSTEM_NOEXCEPT override
 		{ return boost::system::error_condition(ev, *this); }
 	};
 
@@ -89,7 +89,7 @@ namespace libtorrent
 		{
 			return error_code(e, get_i2p_category());
 		}
-	}
+	} // namespace i2p_error
 
 	i2p_connection::i2p_connection(io_service& ios)
 		: m_port(0)
@@ -98,7 +98,7 @@ namespace libtorrent
 	{}
 
 	i2p_connection::~i2p_connection()
-	{}
+	= default;
 
 	void i2p_connection::close(error_code& e)
 	{
@@ -145,7 +145,7 @@ namespace libtorrent
 			, std::bind(&i2p_connection::on_sam_connect, this, _1, handler, m_sam_socket));
 	}
 
-	void i2p_connection::on_sam_connect(error_code const& ec, i2p_stream::handler_type const& h, boost::shared_ptr<i2p_stream>)
+	void i2p_connection::on_sam_connect(error_code const& ec, i2p_stream::handler_type const& h, const boost::shared_ptr<i2p_stream>&)
 	{
 		COMPLETE_ASYNC("i2p_stream::on_sam_connect");
 		m_state = sam_idle;
@@ -162,7 +162,7 @@ namespace libtorrent
 	void i2p_connection::set_local_endpoint(error_code const& ec, char const* dest
 		, i2p_stream::handler_type const& h)
 	{
-		if (!ec && dest != 0)
+		if (!ec && dest != nullptr)
 			m_i2p_local_endpoint = dest;
 		else
 			m_i2p_local_endpoint.clear();
@@ -191,7 +191,7 @@ namespace libtorrent
 	}
 
 	void i2p_connection::on_name_lookup(error_code const& ec
-		, name_lookup_handler handler, boost::shared_ptr<i2p_stream>)
+		, const name_lookup_handler& handler, const boost::shared_ptr<i2p_stream>&)
 	{
 		m_state = sam_idle;
 
@@ -205,7 +205,7 @@ namespace libtorrent
 
 		if (ec)
 		{
-			handler(ec, 0);
+			handler(ec, nullptr);
 			return;
 		}
 
@@ -214,7 +214,7 @@ namespace libtorrent
 
 	i2p_stream::i2p_stream(io_service& io_service)
 		: proxy_base(io_service)
-		, m_id(0)
+		, m_id(nullptr)
 		, m_command(cmd_create_session)
 		, m_state(0)
 	{
@@ -231,7 +231,7 @@ namespace libtorrent
 #endif
 	}
 
-	void i2p_stream::do_connect(error_code const& e, tcp::resolver::iterator i
+	void i2p_stream::do_connect(error_code const& e, const tcp::resolver::iterator& i
 		, boost::shared_ptr<handler_type> h)
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
@@ -314,8 +314,8 @@ namespace libtorrent
 		char* ptr = &m_buffer[0];
 		char* next = ptr;
 
-		char const* expect1 = 0;
-		char const* expect2 = 0;
+		char const* expect1 = nullptr;
+		char const* expect2 = nullptr;
 
 		switch (m_state)
 		{
@@ -340,9 +340,9 @@ namespace libtorrent
 
 //		std::fprintf(stderr, "<<< %s\n", &m_buffer[0]);
 		ptr = string_tokenize(next, ' ', &next);
-		if (ptr == 0 || expect1 == 0 || strcmp(expect1, ptr)) { handle_error(invalid_response, h); return; }
+		if (ptr == nullptr || expect1 == nullptr || strcmp(expect1, ptr)) { handle_error(invalid_response, h); return; }
 		ptr = string_tokenize(next, ' ', &next);
-		if (ptr == 0 || expect2 == 0 || strcmp(expect2, ptr)) { handle_error(invalid_response, h); return; }
+		if (ptr == nullptr || expect2 == nullptr || strcmp(expect2, ptr)) { handle_error(invalid_response, h); return; }
 
 		int result = 0;
 //		char const* message = 0;
@@ -351,10 +351,10 @@ namespace libtorrent
 		for(;;)
 		{
 			char* name = string_tokenize(next, '=', &next);
-			if (name == 0) break;
+			if (name == nullptr) break;
 //			std::fprintf(stderr, "name=\"%s\"\n", name);
 			char* ptr2 = string_tokenize(next, ' ', &next);
-			if (ptr2 == 0) { handle_error(invalid_response, h); return; }
+			if (ptr2 == nullptr) { handle_error(invalid_response, h); return; }
 //			std::fprintf(stderr, "value=\"%s\"\n", ptr2);
 
 			if (strcmp("RESULT", name) == 0)
@@ -499,7 +499,7 @@ namespace libtorrent
 		async_write(m_sock, boost::asio::buffer(cmd, size)
 			, std::bind(&i2p_stream::start_read_line, this, _1, h));
 	}
-}
+} // namespace libtorrent
 
 #endif
 

@@ -244,8 +244,8 @@ namespace libtorrent
 		TORRENT_ASSERT(m_outstanding_reclaim_message);
 		m_outstanding_reclaim_message = false;
 		std::unique_lock<std::mutex> l(m_cache_mutex);
-		for (int i = 0; i < m_blocks_to_reclaim.size(); ++i)
-			m_disk_cache.reclaim_block(m_blocks_to_reclaim[i]);
+		for (auto& i : m_blocks_to_reclaim)
+			m_disk_cache.reclaim_block(i);
 		m_blocks_to_reclaim.clear();
 	}
 
@@ -270,7 +270,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_magic == 0x1337);
 		TORRENT_ASSERT(l.owns_lock());
 		TORRENT_ASSERT(cont_block > 0);
-		if (p->hash == 0 && !p->hashing_done)
+		if (p->hash == nullptr && !p->hashing_done)
 		{
 			DLOG("try_flush_hashed: (%d) no hash\n", int(p->piece));
 			return 0;
@@ -813,10 +813,9 @@ namespace libtorrent
 				piece_index.push_back(p->piece);
 			}
 
-			for (std::vector<int>::iterator i = piece_index.begin()
-				, end(piece_index.end()); i != end; ++i)
+			for (int & i : piece_index)
 			{
-				cached_piece_entry* pe = m_disk_cache.find_piece(storage, *i);
+				cached_piece_entry* pe = m_disk_cache.find_piece(storage, i);
 				if (pe == nullptr) continue;
 				TORRENT_PIECE_ASSERT(pe->storage.get() == storage, pe);
 				flush_piece(pe, flags, completed_jobs, l);
@@ -884,12 +883,11 @@ namespace libtorrent
 			pieces.push_back(std::make_pair(e->storage.get(), int(e->piece)));
 		}
 
-		for (std::vector<std::pair<piece_manager*, int> >::iterator i = pieces.begin()
-			, end(pieces.end()); i != end; ++i)
+		for (auto& piece : pieces)
 		{
 			// TODO: instead of doing a lookup each time through the loop, save
 			// cached_piece_entry pointers with piece_refcount incremented to pin them
-			cached_piece_entry* pe = m_disk_cache.find_piece(i->first, i->second);
+			cached_piece_entry* pe = m_disk_cache.find_piece(piece.first, piece.second);
 			if (pe == nullptr) continue;
 
 			// another thread may flush this piece while we're looping and
@@ -916,10 +914,9 @@ namespace libtorrent
 
 		// if we still need to flush blocks, start over and flush
 		// everything in LRU order (degrade to lru cache eviction)
-		for (std::vector<std::pair<piece_manager*, int> >::iterator i = pieces.begin()
-			, end(pieces.end()); i != end; ++i)
+		for (auto& piece : pieces)
 		{
-			cached_piece_entry* pe = m_disk_cache.find_piece(i->first, i->second);
+			cached_piece_entry* pe = m_disk_cache.find_piece(piece.first, piece.second);
 			if (pe == nullptr) continue;
 			if (pe->num_dirty == 0) continue;
 
@@ -1057,7 +1054,7 @@ namespace libtorrent
 	void disk_io_thread::perform_job(disk_io_job* j, jobqueue_t& completed_jobs)
 	{
 		INVARIANT_CHECK;
-		TORRENT_ASSERT(j->next == 0);
+		TORRENT_ASSERT(j->next == nullptr);
 		TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
 
 #if DEBUG_DISK_THREAD
@@ -1079,7 +1076,7 @@ namespace libtorrent
 		// call. Each disk thread could hold its most recent understanding of the settings
 		// in a shared_ptr, and update it every time it wakes up from a job. That way
 		// each access to the settings won't require a std::mutex to be held.
-		if (storage && storage->get_storage_impl()->m_settings == 0)
+		if (storage && storage->get_storage_impl()->m_settings == nullptr)
 			storage->get_storage_impl()->m_settings = &m_settings;
 
 		TORRENT_ASSERT(j->action < sizeof(job_functions)/sizeof(job_functions[0]));
@@ -1147,7 +1144,7 @@ namespace libtorrent
 	int disk_io_thread::do_uncached_read(disk_io_job* j)
 	{
 		j->buffer.disk_block = m_disk_cache.allocate_buffer("send buffer");
-		if (j->buffer.disk_block == 0)
+		if (j->buffer.disk_block == nullptr)
 		{
 			j->error.ec = error::no_memory;
 			j->error.operation = storage_error::alloc_cache_piece;
@@ -1447,7 +1444,7 @@ namespace libtorrent
 #endif
 
 			if (!pe->hashing_done
-				&& pe->hash == 0
+				&& pe->hash == nullptr
 				&& !m_settings.get_bool(settings_pack::disable_hash_checks))
 			{
 				pe->hash = new partial_hash;
@@ -1500,7 +1497,7 @@ namespace libtorrent
 		j->piece = r.piece;
 		j->d.io.offset = r.start;
 		j->d.io.buffer_size = r.length;
-		j->buffer.disk_block = 0;
+		j->buffer.disk_block = nullptr;
 		j->flags = flags;
 		j->requester = requester;
 		j->callback = std::move(handler);
@@ -1844,7 +1841,7 @@ namespace libtorrent
 		storage->assert_torrent_refcount();
 #endif
 
-		std::vector<std::string>* links_vector
+		auto links_vector
 			= new std::vector<std::string>();
 		links_vector->swap(links);
 
@@ -1980,7 +1977,7 @@ namespace libtorrent
 		storage->assert_torrent_refcount();
 #endif
 
-		std::vector<std::uint8_t>* p = new std::vector<std::uint8_t>(prios);
+		auto p = new std::vector<std::uint8_t>(prios);
 
 		disk_io_job* j = allocate_job(disk_io_job::file_priority);
 		j->storage = storage->shared_from_this();
@@ -2055,7 +2052,7 @@ namespace libtorrent
 		std::unique_lock<std::mutex> l(m_cache_mutex);
 
 		cached_piece_entry* pe = m_disk_cache.find_piece(storage, index);
-		if (pe == 0) return;
+		if (pe == nullptr) return;
 		TORRENT_PIECE_ASSERT(pe->hashing == false, pe);
 		pe->hashing_done = 0;
 		delete pe->hash;
@@ -2093,7 +2090,7 @@ namespace libtorrent
 		for (int i = cursor; i < pe->blocks_in_piece; ++i)
 		{
 			cached_block_entry& bl = pe->blocks[i];
-			if (bl.buf == 0) break;
+			if (bl.buf == nullptr) break;
 
 			// if we fail to lock the block, it' no longer in the cache
 			if (m_disk_cache.inc_block_refcount(pe, i, block_cache::ref_hashing) == false)
@@ -2563,7 +2560,7 @@ namespace libtorrent
 	int disk_io_thread::do_cache_piece(disk_io_job* j, jobqueue_t& /* completed_jobs */ )
 	{
 		INVARIANT_CHECK;
-		TORRENT_ASSERT(j->buffer.disk_block == 0);
+		TORRENT_ASSERT(j->buffer.disk_block == nullptr);
 
 		if (m_settings.get_int(settings_pack::cache_size) == 0
 			|| m_settings.get_bool(settings_pack::use_read_cache) == false)
@@ -2678,7 +2675,7 @@ namespace libtorrent
 		info.storage = i->storage.get();
 		info.last_use = i->expire;
 		info.need_readback = i->need_readback;
-		info.next_to_hash = i->hash == 0 ? -1 : (i->hash->offset + block_size - 1) / block_size;
+		info.next_to_hash = i->hash == nullptr ? -1 : (i->hash->offset + block_size - 1) / block_size;
 		info.kind = i->cache_state == cached_piece_entry::write_lru
 			? cached_piece_info::write_cache
 			: i->cache_state == cached_piece_entry::volatile_read_lru
@@ -2687,7 +2684,7 @@ namespace libtorrent
 		int blocks_in_piece = i->blocks_in_piece;
 		info.blocks.resize(blocks_in_piece);
 		for (int b = 0; b < blocks_in_piece; ++b)
-			info.blocks[b] = i->blocks[b].buf != 0;
+			info.blocks[b] = i->blocks[b].buf != nullptr;
 	}
 
 	} // anonymous namespace
@@ -2855,7 +2852,7 @@ namespace libtorrent
 
 		if (!pe->hashing_done)
 		{
-			if (pe->hash == 0 && !m_settings.get_bool(settings_pack::disable_hash_checks))
+			if (pe->hash == nullptr && !m_settings.get_bool(settings_pack::disable_hash_checks))
 			{
 				pe->hash = new partial_hash;
 				m_disk_cache.update_cache_state(pe);
@@ -2908,7 +2905,7 @@ namespace libtorrent
 		add_torrent_params* params = reinterpret_cast<add_torrent_params*>(j->requester);
 
 		std::string filename = resolve_file_url(params->url);
-		torrent_info* t = new torrent_info(filename, j->error.ec);
+		auto t = new torrent_info(filename, j->error.ec);
 		if (j->error.ec)
 		{
 			j->buffer.torrent_file = nullptr;
@@ -2934,7 +2931,7 @@ namespace libtorrent
 		std::unique_lock<std::mutex> l(m_cache_mutex);
 
 		cached_piece_entry* pe = m_disk_cache.find_piece(j);
-		if (pe == 0) return 0;
+		if (pe == nullptr) return 0;
 		TORRENT_PIECE_ASSERT(pe->hashing == false, pe);
 		pe->hashing_done = 0;
 		delete pe->hash;
@@ -3211,7 +3208,7 @@ namespace libtorrent
 
 		for (;;)
 		{
-			disk_io_job* j = 0;
+			disk_io_job* j = nullptr;
 			if (type == generic_thread)
 			{
 				bool const should_exit = wait_for_job(m_generic_io_jobs, m_generic_threads, l);
@@ -3486,7 +3483,7 @@ namespace libtorrent
 #endif
 
 				if (!pe->hashing_done
-					&& pe->hash == 0
+					&& pe->hash == nullptr
 					&& !m_settings.get_bool(settings_pack::disable_hash_checks))
 				{
 					pe->hash = new partial_hash;
@@ -3586,5 +3583,5 @@ namespace libtorrent
 	{
 	}
 #endif
-}
+} // namespace libtorrent
 

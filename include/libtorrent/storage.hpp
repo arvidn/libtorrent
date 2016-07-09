@@ -564,7 +564,7 @@ namespace libtorrent
 
 		piece_manager(
 			storage_interface* storage_impl
-			, boost::shared_ptr<void> const& torrent
+			, boost::shared_ptr<void> torrent
 			, file_storage* files);
 
 		~piece_manager();

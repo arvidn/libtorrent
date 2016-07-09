@@ -121,7 +121,7 @@ node::node(udp proto, udp_socket_interface* sock
 	m_secret[1] = random();
 }
 
-node::~node() {}
+node::~node() = default;
 
 void node::update_node_id()
 {
@@ -213,13 +213,12 @@ void node::bootstrap(std::vector<udp::endpoint> const& nodes
 	int count = 0;
 #endif
 
-	for (std::vector<udp::endpoint>::const_iterator i = nodes.begin()
-		, end(nodes.end()); i != end; ++i)
+	for (auto const& node : nodes)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		++count;
 #endif
-		r->add_entry(node_id(0), *i, observer::flag_initial);
+		r->add_entry(node_id(nullptr), node, observer::flag_initial);
 	}
 
 	// make us start as far away from our node ID as possible
@@ -369,20 +368,19 @@ namespace
 		boost::intrusive_ptr<traversal_algorithm> algo(
 			new traversal_algorithm(node, (node_id::min)()));
 		// store on the first k nodes
-		for (std::vector<std::pair<node_entry, std::string> >::const_iterator i = v.begin()
-			, end(v.end()); i != end; ++i)
+		for (auto const& i : v)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			if (node.observer())
 			{
 				node.observer()->log(dht_logger::node, "announce-distance: %d"
-					, (160 - distance_exp(ih, i->first.id)));
+					, (160 - distance_exp(ih, i.first.id)));
 			}
 #endif
 
 			void* ptr = node.m_rpc.allocate_observer();
-			if (ptr == 0) return;
-			observer_ptr o(new (ptr) announce_observer(algo, i->first.ep(), i->first.id));
+			if (ptr == nullptr) return;
+			observer_ptr o(new (ptr) announce_observer(algo, i.first.ep(), i.first.id));
 #if TORRENT_USE_ASSERTS
 			o->m_in_constructor = false;
 #endif
@@ -392,16 +390,16 @@ namespace
 			entry& a = e["a"];
 			a["info_hash"] = ih.to_string();
 			a["port"] = listen_port;
-			a["token"] = i->second;
+			a["token"] = i.second;
 			a["seed"] = (flags & node::flag_seed) ? 1 : 0;
 			if (flags & node::flag_implied_port) a["implied_port"] = 1;
 			node.stats_counters().inc_stats_counter(counters::dht_announce_peer_out);
-			node.m_rpc.invoke(e, i->first.ep(), o);
+			node.m_rpc.invoke(e, i.first.ep(), o);
 		}
 	}
-}
+} // namespace
 
-void node::add_router_node(udp::endpoint router)
+void node::add_router_node(const udp::endpoint& router)
 {
 #ifndef TORRENT_DISABLE_LOGGING
 	if (m_observer)
@@ -413,7 +411,7 @@ void node::add_router_node(udp::endpoint router)
 	m_table.add_router_node(router);
 }
 
-void node::add_node(udp::endpoint node)
+void node::add_node(const udp::endpoint& node)
 {
 	if (!native_address(node)) return;
 	// ping the node, and if we get a reply, it
@@ -422,8 +420,8 @@ void node::add_node(udp::endpoint node)
 }
 
 void node::get_peers(sha1_hash const& info_hash
-	, boost::function<void(std::vector<tcp::endpoint> const&)> dcallback
-	, boost::function<void(std::vector<std::pair<node_entry, std::string> > const&)> ncallback
+	, const boost::function<void(std::vector<tcp::endpoint> const&)>& dcallback
+	, const boost::function<void(std::vector<std::pair<node_entry, std::string> > const&)>& ncallback
 	, bool noseeds)
 {
 	// search for nodes with ids close to id or with peers
@@ -443,7 +441,7 @@ void node::get_peers(sha1_hash const& info_hash
 }
 
 void node::announce(sha1_hash const& info_hash, int listen_port, int flags
-	, boost::function<void(std::vector<tcp::endpoint> const&)> f)
+	, const boost::function<void(std::vector<tcp::endpoint> const&)>& f)
 {
 #ifndef TORRENT_DISABLE_LOGGING
 	if (m_observer)
@@ -460,15 +458,15 @@ void node::announce(sha1_hash const& info_hash, int listen_port, int flags
 		, listen_port, info_hash, flags), flags & node::flag_seed);
 }
 
-void node::direct_request(udp::endpoint ep, entry& e
-	, boost::function<void(msg const&)> f)
+void node::direct_request(const udp::endpoint& ep, entry& e
+	, const boost::function<void(msg const&)>& f)
 {
 	// not really a traversal
 	boost::intrusive_ptr<direct_traversal> algo(
 		new direct_traversal(*this, (node_id::min)(), f));
 
 	void* ptr = m_rpc.allocate_observer();
-	if (ptr == 0) return;
+	if (ptr == nullptr) return;
 	observer_ptr o(new (ptr) direct_observer(algo, ep, (node_id::min)()));
 #if TORRENT_USE_ASSERTS
 	o->m_in_constructor = false;
@@ -495,7 +493,7 @@ void node::get_item(sha1_hash const& target
 }
 
 void node::get_item(char const* pk, std::string const& salt
-	, boost::function<void(item const&, bool)> f)
+	, const boost::function<void(item const&, bool)>& f)
 {
 #ifndef TORRENT_DISABLE_LOGGING
 	if (m_observer)
@@ -514,15 +512,15 @@ void node::get_item(char const* pk, std::string const& salt
 namespace {
 
 void put(std::vector<std::pair<node_entry, std::string> > const& nodes
-	, boost::intrusive_ptr<dht::put_data> ta)
+	, boost::intrusive_ptr<dht::put_data> const& ta)
 {
 	ta->set_targets(nodes);
 	ta->start();
 }
 
 void put_data_cb(item i, bool auth
-	, boost::intrusive_ptr<put_data> ta
-	, boost::function<void(item&)> f)
+	, boost::intrusive_ptr<put_data> const& ta
+	, boost::function<void(item&)> const& f)
 {
 	// call data_callback only when we got authoritative data.
 	if (auth)
@@ -559,7 +557,7 @@ void node::put_item(sha1_hash const& target, entry const& data, boost::function<
 }
 
 void node::put_item(char const* pk, std::string const& salt
-	, boost::function<void(item const&, int)> f
+	, const boost::function<void(item const&, int)>& f
 	, boost::function<void(item&)> data_cb)
 {
 	#ifndef TORRENT_DISABLE_LOGGING
@@ -590,7 +588,7 @@ struct ping_observer : observer
 	{}
 
 	// parses out "nodes"
-	virtual void reply(msg const& m)
+	void reply(msg const& m) override
 	{
 		flags |= flag_done;
 
@@ -672,7 +670,7 @@ void node::send_single_refresh(udp::endpoint const& ep, int bucket
 {
 	TORRENT_ASSERT(id != m_id);
 	void* ptr = m_rpc.allocate_observer();
-	if (ptr == 0) return;
+	if (ptr == nullptr) return;
 
 	TORRENT_ASSERT(bucket >= 0);
 	TORRENT_ASSERT(bucket <= 159);
@@ -734,12 +732,11 @@ void node::status(std::vector<dht_routing_bucket>& table
 
 	m_table.status(table);
 
-	for (std::set<traversal_algorithm*>::iterator i = m_running_requests.begin()
-		, end(m_running_requests.end()); i != end; ++i)
+	for (auto* req : m_running_requests)
 	{
 		requests.push_back(dht_lookup());
 		dht_lookup& lookup = requests.back();
-		(*i)->status(lookup);
+		req->status(lookup);
 	}
 }
 
@@ -758,12 +755,11 @@ void node::status(session_status& s)
 
 	m_table.status(s);
 	s.dht_total_allocations += m_rpc.num_allocated_observers();
-	for (std::set<traversal_algorithm*>::iterator i = m_running_requests.begin()
-		, end(m_running_requests.end()); i != end; ++i)
+	for (auto* req : m_running_requests)
 	{
 		s.active_requests.push_back(dht_lookup());
 		dht_lookup& lookup = s.active_requests.back();
-		(*i)->status(lookup);
+		req->status(lookup);
 	}
 }
 #endif
@@ -780,11 +776,10 @@ void node::lookup_peers(sha1_hash const& info_hash, entry& reply
 void TORRENT_EXTRA_EXPORT write_nodes_entry(entry& n, nodes_t const& nodes)
 {
 	std::back_insert_iterator<std::string> out(n.string());
-	for (nodes_t::const_iterator i = nodes.begin()
-		, end(nodes.end()); i != end; ++i)
+	for (auto const& node : nodes)
 	{
-		std::copy(i->id.begin(), i->id.end(), out);
-		write_endpoint(udp::endpoint(i->addr(), i->port()), out);
+		std::copy(node.id.begin(), node.id.end(), out);
+		write_endpoint(udp::endpoint(node.addr(), node.port()), out);
 	}
 }
 
@@ -1203,7 +1198,7 @@ void node::write_nodes_entries(sha1_hash const& info_hash
 		bdecode_node wanted = want.list_at(i);
 		if (wanted.type() != bdecode_node::string_t)
 			continue;
-		std::map<std::string, node*>::const_iterator wanted_node
+		auto wanted_node
 			= m_nodes.find(wanted.string_value());
 		if (wanted_node == m_nodes.end())
 			continue;
@@ -1219,14 +1214,15 @@ node::protocol_descriptor const& node::map_protocol_to_descriptor(udp protocol)
 		{ {udp::v4(), "n4", "nodes"}
 		, {udp::v6(), "n6", "nodes6"} };
 
-	for (int i = 0; i < sizeof(descriptors) / sizeof(protocol_descriptor); ++i)
+	for (auto& descriptor : descriptors)
 	{
-		if (descriptors[i].protocol == protocol)
-			return descriptors[i];
+		if (descriptor.protocol == protocol)
+			return descriptor;
 	}
 
 	TORRENT_ASSERT_FAIL();
 	throw std::out_of_range("unknown protocol");
 }
 
-} } // namespace libtorrent::dht
+} // namespace dht
+ } // namespace libtorrent

@@ -53,6 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstdlib>
 #include <functional>
+#include <utility>
 #include <cstdarg>
 
 using namespace std::placeholders;
@@ -77,18 +78,18 @@ int render_lsd_packet(char* dst, int len, int listen_port
 
 static error_code dummy;
 
-lsd::lsd(io_service& ios, peer_callback_t const& cb
+lsd::lsd(io_service& ios, peer_callback_t cb
 #ifndef TORRENT_DISABLE_LOGGING
-	, log_callback_t const& log
+	, log_callback_t log
 #endif
 	)
-	: m_callback(cb)
+	: m_callback(std::move(cb))
 	, m_socket(udp::endpoint(address_v4::from_string("239.192.152.143", dummy), 6771))
 #if TORRENT_USE_IPV6
 	, m_socket6(udp::endpoint(address_v6::from_string("ff15::efc0:988f", dummy), 6771))
 #endif
 #ifndef TORRENT_DISABLE_LOGGING
-	, m_log_cb(log)
+	, m_log_cb(std::move(log))
 #endif
 	, m_broadcast_timer(ios)
 	, m_cookie(random())
@@ -125,7 +126,7 @@ void lsd::start(error_code& ec)
 #endif
 }
 
-lsd::~lsd() {}
+lsd::~lsd() = default;
 
 void lsd::announce(sha1_hash const& ih, int listen_port, bool broadcast)
 {
@@ -247,7 +248,7 @@ void lsd::on_announce(udp::endpoint const& from, char* buf
 	typedef std::multimap<std::string, std::string> headers_t;
 	headers_t const& headers = p.headers();
 
-	headers_t::const_iterator cookie_iter = headers.find("cookie");
+	auto cookie_iter = headers.find("cookie");
 	if (cookie_iter != headers.end())
 	{
 		// we expect it to be hexadecimal
@@ -266,7 +267,7 @@ void lsd::on_announce(udp::endpoint const& from, char* buf
 	std::pair<headers_t::const_iterator, headers_t::const_iterator> ihs
 		= headers.equal_range("infohash");
 
-	for (headers_t::const_iterator i = ihs.first; i != ihs.second; ++i)
+	for (auto i = ihs.first; i != ihs.second; ++i)
 	{
 		std::string const& ih_str = i->second;
 		if (ih_str.size() != 40)
@@ -278,7 +279,7 @@ void lsd::on_announce(udp::endpoint const& from, char* buf
 			continue;
 		}
 
-		sha1_hash ih(0);
+		sha1_hash ih(nullptr);
 		aux::from_hex(ih_str.c_str(), 40, ih.data());
 
 		if (!ih.is_all_zeros() && port != 0)
@@ -311,6 +312,6 @@ void lsd::close()
 	m_callback.clear();
 }
 
-} // libtorrent namespace
+} // namespace libtorrent
 
 

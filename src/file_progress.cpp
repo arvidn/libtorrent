@@ -193,6 +193,7 @@ namespace libtorrent { namespace aux
 		}
 	}
 #endif
-} }
+} // namespace aux
+ } // namespace libtorrent
 
 

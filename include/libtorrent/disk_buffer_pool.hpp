@@ -66,7 +66,7 @@ namespace libtorrent
 	struct TORRENT_EXTRA_EXPORT disk_buffer_pool : boost::noncopyable
 	{
 		disk_buffer_pool(int block_size, io_service& ios
-			, boost::function<void()> const& trigger_trim);
+			, boost::function<void()> trigger_trim);
 		~disk_buffer_pool();
 
 #if TORRENT_USE_ASSERTS
@@ -76,7 +76,7 @@ namespace libtorrent
 #endif
 
 		char* allocate_buffer(char const* category);
-		char* allocate_buffer(bool& exceeded, boost::shared_ptr<disk_observer> o
+		char* allocate_buffer(bool& exceeded, const boost::shared_ptr<disk_observer>& o
 			, char const* category);
 		void free_buffer(char* buf);
 		void free_multiple_buffers(char** bufvec, int numbufs);

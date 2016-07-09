@@ -97,15 +97,15 @@ void bootstrap::done()
 		, static_cast<void*>(this));
 #endif
 
-	for (std::vector<observer_ptr>::iterator i = m_results.begin()
-		, end(m_results.end()); i != end; ++i)
+	for (auto r : m_results)
 	{
-		if ((*i)->flags & observer::flag_queried) continue;
+		if (r->flags & observer::flag_queried) continue;
 		// this will send a ping
-		m_node.add_node((*i)->target_ep());
+		m_node.add_node(r->target_ep());
 	}
 	get_peers::done();
 }
 
-} } // namespace libtorrent::dht
+} // namespace dht
+ } // namespace libtorrent
 

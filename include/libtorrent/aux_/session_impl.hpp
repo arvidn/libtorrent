@@ -215,9 +215,9 @@ namespace libtorrent
 			void init_peer_class_filter(bool unlimited_local);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-			void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(
-				torrent_handle const&, void*)> ext);
-			void add_ses_extension(boost::shared_ptr<plugin> ext);
+			void add_extension(const boost::function<boost::shared_ptr<torrent_plugin>(
+				torrent_handle const&, void*)>& ext);
+			void add_ses_extension(const boost::shared_ptr<plugin>& ext);
 #endif
 #if TORRENT_USE_ASSERTS
 			bool has_peer(peer_connection const* p) const override;
@@ -257,7 +257,7 @@ namespace libtorrent
 
 			void async_accept(boost::shared_ptr<tcp::acceptor> const& listener, bool ssl);
 			void on_accept_connection(boost::shared_ptr<socket_type> const& s
-				, boost::weak_ptr<tcp::acceptor> listener, error_code const& e, bool ssl);
+				, const boost::weak_ptr<tcp::acceptor>& listener, error_code const& e, bool ssl);
 			void on_socks_listen(boost::shared_ptr<socket_type> const& s
 				, error_code const& e);
 			void on_socks_accept(boost::shared_ptr<socket_type> const& s
@@ -312,7 +312,7 @@ namespace libtorrent
 			void add_dht_router(std::pair<std::string, int> const& node);
 			void set_dht_settings(dht_settings const& s);
 			dht_settings const& get_dht_settings() const { return m_dht_settings; }
-			void set_dht_storage(dht::dht_storage_constructor_type sc);
+			void set_dht_storage(const dht::dht_storage_constructor_type& sc);
 			void start_dht();
 			void stop_dht();
 			void start_dht(entry const& startup_state);
@@ -330,19 +330,19 @@ namespace libtorrent
 			void dht_get_immutable_item(sha1_hash const& target);
 
 			void dht_get_mutable_item(std::array<char, 32> key
-				, std::string salt = std::string());
+				, const std::string& salt = std::string());
 
 			void dht_put_immutable_item(entry const& data, sha1_hash target);
 
 			void dht_put_mutable_item(std::array<char, 32> key
 				, boost::function<void(entry&, std::array<char,64>&
 				, std::uint64_t&, std::string const&)> cb
-				, std::string salt = std::string());
+				, const std::string& salt = std::string());
 
 			void dht_get_peers(sha1_hash const& info_hash);
 			void dht_announce(sha1_hash const& info_hash, int port = 0, int flags = 0);
 
-			void dht_direct_request(udp::endpoint ep, entry& e
+			void dht_direct_request(const udp::endpoint& ep, entry& e
 				, void* userdata = 0);
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -704,7 +704,7 @@ namespace libtorrent
 
 			peer_class_pool m_classes;
 
-			void init(boost::shared_ptr<settings_pack> pack);
+			void init(const boost::shared_ptr<settings_pack>& pack);
 
 			void submit_disk_jobs();
 
@@ -1035,7 +1035,7 @@ namespace libtorrent
 				, error_code& ec
 				, int flags);
 
-			void on_udp_writeable(boost::weak_ptr<udp_socket> s, error_code const& ec);
+			void on_udp_writeable(const boost::weak_ptr<udp_socket>& s, error_code const& ec);
 
 			void on_udp_packet(boost::weak_ptr<udp_socket> const& s
 				, bool ssl, error_code const& ec);

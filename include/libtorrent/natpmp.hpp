@@ -62,7 +62,7 @@ struct TORRENT_EXTRA_EXPORT natpmp
 	: boost::enable_shared_from_this<natpmp>
 	, single_threaded
 {
-	natpmp(io_service& ios, portmap_callback_t const& cb
+	natpmp(io_service& ios, portmap_callback_t cb
 		, log_callback_t const& lcb);
 
 	void start();

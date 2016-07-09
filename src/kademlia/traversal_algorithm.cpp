@@ -114,11 +114,11 @@ void traversal_algorithm::resort_results()
 		{ return compare_ref(lhs->id(), rhs->id(), m_target); });
 }
 
-void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsigned char flags)
+void traversal_algorithm::add_entry(node_id const& id, const udp::endpoint& addr, unsigned char flags)
 {
 	TORRENT_ASSERT(m_node.m_rpc.allocation_size() >= sizeof(find_data_observer));
 	void* ptr = m_node.m_rpc.allocate_observer();
-	if (ptr == 0)
+	if (ptr == nullptr)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		if (get_node().observer())
@@ -143,7 +143,7 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 		, [this](observer_ptr const& lhs, observer_ptr const& rhs)
 		{ return compare_ref(lhs->id(), rhs->id(), m_target); }));
 
-	std::vector<observer_ptr>::iterator iter = std::lower_bound(
+	auto iter = std::lower_bound(
 		m_results.begin(), m_results.end(), o
 		, [this](observer_ptr const& lhs, observer_ptr const& rhs)
 		{ return compare_ref(lhs->id(), rhs->id(), m_target); });
@@ -157,7 +157,7 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 			if (o->target_addr().is_v6())
 			{
 				address_v6::bytes_type addr_bytes = o->target_addr().to_v6().to_bytes();
-				address_v6::bytes_type::const_iterator prefix_it = addr_bytes.begin();
+				auto prefix_it = addr_bytes.begin();
 				std::uint64_t prefix6 = detail::read_uint64(prefix_it);
 
 				if (m_peer6_prefixes.insert(prefix6).second)
@@ -261,7 +261,7 @@ char const* traversal_algorithm::name() const
 	return "traversal_algorithm";
 }
 
-void traversal_algorithm::traverse(node_id const& id, udp::endpoint addr)
+void traversal_algorithm::traverse(node_id const& id, const udp::endpoint& addr)
 {
 #ifndef TORRENT_DISABLE_LOGGING
 	if (id.is_all_zeros() && get_node().observer())
@@ -278,7 +278,7 @@ void traversal_algorithm::traverse(node_id const& id, udp::endpoint addr)
 	add_entry(id, addr, 0);
 }
 
-void traversal_algorithm::finished(observer_ptr o)
+void traversal_algorithm::finished(const observer_ptr& o)
 {
 #if TORRENT_USE_ASSERTS
 	auto i = std::find(m_results.begin(), m_results.end(), o);
@@ -306,7 +306,7 @@ void traversal_algorithm::finished(observer_ptr o)
 // prevent request means that the total number of requests has
 // overflown. This query failed because it was the oldest one.
 // So, if this is true, don't make another request
-void traversal_algorithm::failed(observer_ptr o, int flags)
+void traversal_algorithm::failed(const observer_ptr& o, int flags)
 {
 	// don't tell the routing table about
 	// node ids that we just generated ourself
@@ -384,11 +384,9 @@ void traversal_algorithm::done()
 	int closest_target = 160;
 #endif
 
-	for (std::vector<observer_ptr>::iterator i = m_results.begin()
-		, end(m_results.end()); i != end; ++i)
+	for (auto o : m_results)
 	{
-		boost::intrusive_ptr<observer> o = *i;
-		if ((o->flags & (observer::flag_queried | observer::flag_failed)) == observer::flag_queried)
+			if ((o->flags & (observer::flag_queried | observer::flag_failed)) == observer::flag_queried)
 		{
 			// set the done flag on any outstanding queries to prevent them from
 			// calling finished() or failed() after we've already declared the traversal
@@ -453,7 +451,7 @@ bool traversal_algorithm::add_requests()
 	// limits the number of outstanding requests, this limits the
 	// number of good outstanding requests. It will use more traffic,
 	// but is intended to speed up lookups
-	for (std::vector<observer_ptr>::iterator i = m_results.begin()
+	for (auto i = m_results.begin()
 		, end(m_results.end()); i != end
 		&& results_target > 0
 		&& (agg ? outstanding < m_branch_factor
@@ -523,10 +521,10 @@ void traversal_algorithm::add_router_entries()
 			, static_cast<void*>(this), int(std::distance(m_node.m_table.router_begin(), m_node.m_table.router_end())));
 	}
 #endif
-	for (routing_table::router_iterator i = m_node.m_table.router_begin()
+	for (auto i = m_node.m_table.router_begin()
 		, end(m_node.m_table.router_end()); i != end; ++i)
 	{
-		add_entry(node_id(0), *i, observer::flag_initial);
+		add_entry(node_id(nullptr), *i, observer::flag_initial);
 	}
 }
 
@@ -553,10 +551,9 @@ void traversal_algorithm::status(dht_lookup& l)
 
 	int last_sent = INT_MAX;
 	time_point now = aux::time_now();
-	for (std::vector<observer_ptr>::iterator i = m_results.begin()
-		, end(m_results.end()); i != end; ++i)
+	for (auto& r : m_results)
 	{
-		observer& o = **i;
+		observer& o = *r;
 		if (o.flags & observer::flag_queried)
 		{
 			last_sent = (std::min)(last_sent, int(total_seconds(now - o.sent())));
@@ -642,5 +639,6 @@ void traversal_observer::reply(msg const& m)
 	set_id(node_id(id.string_ptr()));
 }
 
-} } // namespace libtorrent::dht
+} // namespace dht
+ } // namespace libtorrent
 
