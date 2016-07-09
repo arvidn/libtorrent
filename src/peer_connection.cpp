@@ -5790,17 +5790,6 @@ namespace libtorrent
 		setup_send();
 	}
 
-	template<class T>
-	struct set_to_zero
-	{
-		set_to_zero(T& v, bool cond): m_val(v), m_cond(cond) {}
-		void fire() { if (!m_cond) return; m_cond = false; m_val = 0; }
-		~set_to_zero() { if (m_cond) m_val = 0; }
-	private:
-		T& m_val;
-		bool m_cond;
-	};
-
 	// --------------------------
 	// RECEIVE DATA
 	// --------------------------

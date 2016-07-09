@@ -48,14 +48,6 @@ using namespace libtorrent;
 
 namespace lt = libtorrent;
 
-std::unique_ptr<sim::asio::io_service> make_io_service(sim::simulation& sim, int i)
-{
-	char ep[30];
-	snprintf(ep, sizeof(ep), "50.0.%d.%d", (i + 1) >> 8, (i + 1) & 0xff);
-	return std::unique_ptr<sim::asio::io_service>(new sim::asio::io_service(
-		sim, address_v4::from_string(ep)));
-}
-
 boost::shared_ptr<torrent_info> create_torrent(file_storage& fs)
 {
 	int const piece_size = 0x4000;
