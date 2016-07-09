@@ -116,7 +116,7 @@ web_peer_connection::web_peer_connection(peer_connection_args const& pack
 		if (m_path[m_path.size()-1] == '/')
 		{
 			std::string const& name = t->torrent_file().name();
-			m_path += escape_string(name.c_str(), name.size());
+			m_path += escape_string(name.c_str(), int(name.size()));
 		}
 
 		if (!m_url.empty() && m_url[m_url.size() - 1] == '/')
@@ -125,7 +125,7 @@ web_peer_connection::web_peer_connection(peer_connection_args const& pack
 #ifdef TORRENT_WINDOWS
 			convert_path_to_posix(tmp);
 #endif
-			tmp = escape_path(tmp.c_str(), tmp.size());
+			tmp = escape_path(tmp.c_str(), int(tmp.size()));
 			m_url += tmp;
 		}
 	}
