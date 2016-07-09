@@ -6033,6 +6033,7 @@ namespace libtorrent
 		std::string hostname;
 		error_code ec;
 		std::string protocol;
+		using std::ignore;
 		std::tie(protocol, ignore, hostname, port, ignore)
 			= parse_url_components(web->url, ec);
 		if (port == -1) port = protocol == "http" ? 80 : 443;
@@ -6173,6 +6174,7 @@ namespace libtorrent
 
 		std::string hostname;
 		error_code ec;
+		using std::ignore;
 		std::tie(ignore, ignore, hostname, ignore, ignore)
 			= parse_url_components(web->url, ec);
 		if (ec)
@@ -7783,6 +7785,7 @@ namespace libtorrent
 
 		while (index > 0 && m_trackers[index].tier == m_trackers[index-1].tier)
 		{
+			using std::swap;
 			swap(m_trackers[index], m_trackers[index-1]);
 			if (m_last_working_tracker == index) --m_last_working_tracker;
 			else if (m_last_working_tracker == index - 1) ++m_last_working_tracker;
@@ -7801,6 +7804,7 @@ namespace libtorrent
 
 		while (index < int(m_trackers.size()) - 1 && m_trackers[index].tier == m_trackers[index + 1].tier)
 		{
+			using std::swap;
 			swap(m_trackers[index], m_trackers[index + 1]);
 			if (m_last_working_tracker == index) ++m_last_working_tracker;
 			else if (m_last_working_tracker == index + 1) --m_last_working_tracker;
