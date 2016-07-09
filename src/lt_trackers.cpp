@@ -83,10 +83,10 @@ namespace libtorrent { namespace
 			update_list_hash();
 		}
 
-		virtual boost::shared_ptr<peer_plugin> new_connection(
-			peer_connection_handle const& pc);
+		boost::shared_ptr<peer_plugin> new_connection(
+			peer_connection_handle const& pc) override;
 
-		virtual void tick()
+		void tick() override
 		{
 			if (m_2_minutes++ < 120) return;
 			m_2_minutes = 0;
@@ -159,7 +159,7 @@ namespace libtorrent { namespace
 		{}
 
 		// can add entries to the extension handshake
-		virtual void add_handshake(entry& h)
+		void add_handshake(entry& h) override
 		{
 			entry& messages = h["m"];
 			messages["lt_tex"] = 19;
@@ -167,7 +167,7 @@ namespace libtorrent { namespace
 		}
 
 		// called when the extension handshake from the other end is received
-		virtual bool on_extension_handshake(bdecode_node const& h)
+		bool on_extension_handshake(bdecode_node const& h) override
 		{
 			m_message_index = 0;
 			if (h.type() != bdecode_node::dict_t) return false;
@@ -189,8 +189,8 @@ namespace libtorrent { namespace
 			return true;
 		}
 
-		virtual bool on_extended(int /* length */
-			, int extended_msg, buffer::const_interval body)
+		bool on_extended(int /* length */
+			, int extended_msg, buffer::const_interval body) override
 		{
 			if (extended_msg != 19) return false;
 			if (m_message_index == 0) return false;
@@ -273,7 +273,7 @@ namespace libtorrent { namespace
 			return true;
 		}
 
-		virtual void tick()
+		void tick() override
 		{
 			// no handshake yet
 			if (!m_message_index) return;

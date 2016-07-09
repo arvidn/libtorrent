@@ -1143,12 +1143,12 @@ namespace
 
 struct upnp_error_category : boost::system::error_category
 {
-	virtual const char* name() const BOOST_SYSTEM_NOEXCEPT
+	const char* name() const BOOST_SYSTEM_NOEXCEPT override
 	{
 		return "UPnP error";
 	}
 
-	virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT
+	std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT override
 	{
 		int num_errors = sizeof(error_codes) / sizeof(error_codes[0]);
 		error_code_t* end = error_codes + num_errors;
@@ -1165,8 +1165,8 @@ struct upnp_error_category : boost::system::error_category
 		return msg;
 	}
 
-	virtual boost::system::error_condition default_error_condition(
-		int ev) const BOOST_SYSTEM_NOEXCEPT
+	boost::system::error_condition default_error_condition(
+		int ev) const BOOST_SYSTEM_NOEXCEPT override
 	{
 		return boost::system::error_condition(ev, *this);
 	}

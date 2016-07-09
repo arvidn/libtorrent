@@ -47,33 +47,33 @@ using namespace libtorrent;
 
 struct test_storage_impl : storage_interface
 {
-	virtual void initialize(storage_error& ec) override {}
+	void initialize(storage_error& ec) override {}
 
-	virtual int readv(file::iovec_t const* bufs, int num_bufs
+	int readv(file::iovec_t const* bufs, int num_bufs
 		, int piece, int offset, int flags, storage_error& ec) override
 	{
 		return bufs_size(bufs, num_bufs);
 	}
-	virtual int writev(file::iovec_t const* bufs, int num_bufs
+	int writev(file::iovec_t const* bufs, int num_bufs
 		, int piece, int offset, int flags, storage_error& ec) override
 	{
 		return bufs_size(bufs, num_bufs);
 	}
 
-	virtual bool has_any_file(storage_error& ec) override { return false; }
-	virtual void set_file_priority(std::vector<std::uint8_t> const& prio
+	bool has_any_file(storage_error& ec) override { return false; }
+	void set_file_priority(std::vector<std::uint8_t> const& prio
 		, storage_error& ec) override {}
-	virtual int move_storage(std::string const& save_path, int flags
+	int move_storage(std::string const& save_path, int flags
 		, storage_error& ec) override { return 0; }
-	virtual bool verify_resume_data(add_torrent_params const& rd
+	bool verify_resume_data(add_torrent_params const& rd
 		, std::vector<std::string> const* links
 		, storage_error& ec) override { return true; }
-	virtual void release_files(storage_error& ec) override {}
-	virtual void rename_file(int index, std::string const& new_filenamem
+	void release_files(storage_error& ec) override {}
+	void rename_file(int index, std::string const& new_filenamem
 		, storage_error& ec) override {}
-	virtual void delete_files(int, storage_error& ec) override {}
+	void delete_files(int, storage_error& ec) override {}
 #ifndef TORRENT_NO_DEPRECATE
-	virtual void finalize_file(int, storage_error&) override {}
+	void finalize_file(int, storage_error&) override {}
 #endif
 };
 

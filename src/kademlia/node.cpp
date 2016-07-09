@@ -590,7 +590,7 @@ struct ping_observer : observer
 	{}
 
 	// parses out "nodes"
-	virtual void reply(msg const& m)
+	void reply(msg const& m) override
 	{
 		flags |= flag_done;
 

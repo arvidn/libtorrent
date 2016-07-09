@@ -58,9 +58,9 @@ namespace libtorrent
 {
 	struct gzip_error_category : boost::system::error_category
 	{
-		virtual const char* name() const BOOST_SYSTEM_NOEXCEPT;
-		virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT;
-		virtual boost::system::error_condition default_error_condition(int ev) const BOOST_SYSTEM_NOEXCEPT
+		const char* name() const BOOST_SYSTEM_NOEXCEPT override;
+		std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT override;
+		boost::system::error_condition default_error_condition(int ev) const BOOST_SYSTEM_NOEXCEPT override
 		{ return boost::system::error_condition(ev, *this); }
 	};
 

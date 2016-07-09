@@ -77,8 +77,8 @@ struct test_storage : default_storage
 		, m_limit(16 * 1024 * 2)
 	{}
 
-	virtual void set_file_priority(std::vector<std::uint8_t> const& p
-		, storage_error& ec) {}
+	void set_file_priority(std::vector<std::uint8_t> const& p
+		, storage_error& ec) override {}
 
 	void set_limit(int lim)
 	{
@@ -92,7 +92,7 @@ struct test_storage : default_storage
 		, int piece_index
 		, int offset
 		, int flags
-		, storage_error& se)
+		, storage_error& se) override
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 		if (m_written >= m_limit)
@@ -110,7 +110,7 @@ struct test_storage : default_storage
 		return default_storage::writev(bufs, num_bufs, piece_index, offset, flags, se);
 	}
 
-	virtual ~test_storage() {}
+	~test_storage() override {}
 
 	int m_written;
 	int m_limit;

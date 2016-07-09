@@ -47,14 +47,14 @@ namespace
 
 struct test_plugin : plugin
 {
-	virtual std::uint32_t implemented_features()
+	std::uint32_t implemented_features() override
 	{
 		return plugin::dht_request_feature;
 	}
 
-	virtual bool on_dht_request(char const* /* query */, int const /* query_len */
+	bool on_dht_request(char const* /* query */, int const /* query_len */
 		, udp::endpoint const& /* source */, bdecode_node const& message
-		, entry& response)
+		, entry& response) override
 	{
 		if (message.dict_find_string_value("q") == "test_good")
 		{

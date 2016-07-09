@@ -778,7 +778,7 @@ namespace aux {
 	{
 		session_plugin_wrapper(ext_function_t const& f) : m_f(f) {}
 
-		virtual boost::shared_ptr<torrent_plugin> new_torrent(torrent_handle const& t, void* user)
+		boost::shared_ptr<torrent_plugin> new_torrent(torrent_handle const& t, void* user) override
 		{ return m_f(t, user); }
 		ext_function_t m_f;
 	};

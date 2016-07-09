@@ -41,8 +41,8 @@ struct test_threads : lt::pool_thread_interface
 {
 	test_threads() {}
 
-	virtual void notify_all() override { m_cond.notify_all(); }
-	virtual void thread_fun(lt::io_service::work w) override
+	void notify_all() override { m_cond.notify_all(); }
+	void thread_fun(lt::io_service::work w) override
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 		for (;;)

@@ -157,7 +157,7 @@ int plugin_alerts[3] = { 0, 0, 0 };
 struct test_plugin : libtorrent::plugin
 {
 	test_plugin(int index) : m_index(index) {}
-	virtual void on_alert(alert const* a)
+	void on_alert(alert const* a) override
 	{
 		++plugin_alerts[m_index];
 	}

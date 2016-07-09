@@ -45,7 +45,7 @@ using namespace libtorrent;
 #ifndef TORRENT_DISABLE_LOGGING
 struct log_t : libtorrent::dht::dht_logger
 {
-	virtual void log(dht_logger::module_t m, char const* fmt, ...)
+	void log(dht_logger::module_t m, char const* fmt, ...)
 		override TORRENT_FORMAT(3, 4)
 	{
 		va_list v;
@@ -54,7 +54,7 @@ struct log_t : libtorrent::dht::dht_logger
 		va_end(v);
 	}
 
-	virtual void log_packet(message_direction_t dir, char const* pkt, int len
+	void log_packet(message_direction_t dir, char const* pkt, int len
 		, udp::endpoint node) override
 	{
 		libtorrent::bdecode_node print;

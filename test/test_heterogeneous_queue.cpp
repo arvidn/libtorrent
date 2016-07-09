@@ -45,7 +45,7 @@ struct B : A
 {
 	int b;
 	explicit B(int a_, int b_) : A(a_), b(b_) {}
-	virtual int type() { return 1; }
+	int type() override { return 1; }
 };
 
 struct C : A
@@ -55,7 +55,7 @@ struct C : A
 	{
 		memset(c, c_, sizeof(c));
 	}
-	virtual int type() { return 2; }
+	int type() override { return 2; }
 };
 
 struct D

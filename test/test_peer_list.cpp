@@ -70,7 +70,7 @@ struct mock_peer_connection
 	virtual ~mock_peer_connection() {}
 
 #if !defined TORRENT_DISABLE_LOGGING
-	virtual void peer_log(peer_log_alert::direction_t dir, char const* event
+	void peer_log(peer_log_alert::direction_t dir, char const* event
 		, char const* fmt, ...) const override
 	{
 		va_list v;
@@ -93,22 +93,22 @@ struct mock_peer_connection
 	bool m_disconnect_called;
 	mock_torrent& m_torrent;
 
-	virtual void get_peer_info(peer_info& p) const override {}
-	virtual tcp::endpoint const& remote() const override { return m_remote; }
-	virtual tcp::endpoint local_endpoint() const override { return m_local; }
-	virtual void disconnect(error_code const& ec
+	void get_peer_info(peer_info& p) const override {}
+	tcp::endpoint const& remote() const override { return m_remote; }
+	tcp::endpoint local_endpoint() const override { return m_local; }
+	void disconnect(error_code const& ec
 		, operation_t op, int error = 0) override;
-	virtual peer_id const& pid() const override { return m_id; }
-	virtual void set_holepunch_mode() override {}
-	virtual torrent_peer* peer_info_struct() const override { return m_tp; }
-	virtual void set_peer_info(torrent_peer* pi) override { m_tp = pi; }
-	virtual bool is_outgoing() const override { return m_outgoing; }
-	virtual void add_stat(std::int64_t downloaded, std::int64_t uploaded) override
+	peer_id const& pid() const override { return m_id; }
+	void set_holepunch_mode() override {}
+	torrent_peer* peer_info_struct() const override { return m_tp; }
+	void set_peer_info(torrent_peer* pi) override { m_tp = pi; }
+	bool is_outgoing() const override { return m_outgoing; }
+	void add_stat(std::int64_t downloaded, std::int64_t uploaded) override
 	{ m_stat.add_stat(downloaded, uploaded); }
-	virtual bool fast_reconnect() const override { return true; }
-	virtual bool is_choked() const override { return m_choked; }
-	virtual bool failed() const override { return false; }
-	virtual libtorrent::stat const& statistics() const override { return m_stat; }
+	bool fast_reconnect() const override { return true; }
+	bool is_choked() const override { return m_choked; }
+	bool failed() const override { return false; }
+	libtorrent::stat const& statistics() const override { return m_stat; }
 };
 
 struct mock_torrent

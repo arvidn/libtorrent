@@ -63,7 +63,7 @@ struct sim_config : sim::default_config
 		asio::ip::address const& requestor
 		, std::string hostname
 		, std::vector<asio::ip::address>& result
-		, boost::system::error_code& ec)
+		, boost::system::error_code& ec) override
 	{
 		if (hostname == "try-next.com")
 		{

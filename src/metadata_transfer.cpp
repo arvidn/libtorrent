@@ -111,26 +111,26 @@ namespace libtorrent { namespace
 		bool need_loaded()
 		{ return m_torrent.need_loaded(); }
 */
-		virtual void on_unload() override
+		void on_unload() override
 		{
 			m_metadata.reset();
 		}
 
-		virtual void on_load() override
+		void on_load() override
 		{
 			// initialize m_metadata_size
 			TORRENT_ASSERT(m_torrent.is_loaded());
 			metadata();
 		}
 
-		virtual void on_files_checked() override
+		void on_files_checked() override
 		{
 			// if the torrent is a seed, make a reference to
 			// the metadata from the torrent before it is deallocated
 			if (m_torrent.is_seed()) metadata();
 		}
 
-		virtual boost::shared_ptr<peer_plugin> new_connection(
+		boost::shared_ptr<peer_plugin> new_connection(
 			peer_connection_handle const& pc) override;
 
 		buffer::const_interval metadata() const
@@ -271,17 +271,17 @@ namespace libtorrent { namespace
 			, m_tp(tp)
 		{}
 
-		virtual char const* type() const override { return "LT_metadata"; }
+		char const* type() const override { return "LT_metadata"; }
 
 		// can add entries to the extension handshake
-		virtual void add_handshake(entry& h) override
+		void add_handshake(entry& h) override
 		{
 			entry& messages = h["m"];
 			messages["LT_metadata"] = 14;
 		}
 
 		// called when the extension handshake from the other end is received
-		virtual bool on_extension_handshake(bdecode_node const& h) override
+		bool on_extension_handshake(bdecode_node const& h) override
 		{
 			m_message_index = 0;
 			if (h.type() != bdecode_node::dict_t) return false;
@@ -387,7 +387,7 @@ namespace libtorrent { namespace
 			m_pc.setup_send();
 		}
 
-		virtual bool on_extended(int length
+		bool on_extended(int length
 			, int msg, buffer::const_interval body) override
 		{
 			if (msg != 14) return false;
@@ -490,7 +490,7 @@ namespace libtorrent { namespace
 			return true;
 		}
 
-		virtual void tick() override
+		void tick() override
 		{
 			if (m_pc.is_disconnecting()) return;
 

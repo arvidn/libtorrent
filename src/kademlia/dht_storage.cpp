@@ -200,7 +200,7 @@ namespace
 			m_counters.reset();
 		}
 
-		~dht_default_storage() {}
+		~dht_default_storage() override {}
 
 #ifndef TORRENT_NO_DEPRECATE
 		size_t num_torrents() const override { return m_map.size(); }
@@ -537,7 +537,7 @@ namespace
 			}
 		}
 
-		virtual dht_storage_counters counters() const override
+		dht_storage_counters counters() const override
 		{
 			return m_counters;
 		}
