@@ -47,7 +47,7 @@ namespace libtorrent
 		, m_generation(0)
 	{}
 
-	alert_manager::~alert_manager() {}
+	alert_manager::~alert_manager() = default;
 
 	alert* alert_manager::wait_for_alert(time_duration max_wait)
 	{

@@ -98,8 +98,7 @@ namespace libtorrent
 		, m_io_service(ios)
 	{}
 
-	i2p_connection::~i2p_connection()
-	{}
+	i2p_connection::~i2p_connection() = default;
 
 	void i2p_connection::close(error_code& e)
 	{

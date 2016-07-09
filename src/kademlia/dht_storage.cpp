@@ -148,8 +148,7 @@ namespace
 	struct immutable_item_comparator
 	{
 		immutable_item_comparator(std::vector<node_id> const& node_ids) : m_node_ids(node_ids) {}
-		immutable_item_comparator(immutable_item_comparator const& c)
-			: m_node_ids(c.m_node_ids) {}
+		immutable_item_comparator(immutable_item_comparator const& c) = default;
 
 		bool operator() (std::pair<node_id, dht_immutable_item> const& lhs
 			, std::pair<node_id, dht_immutable_item> const& rhs) const
@@ -200,7 +199,7 @@ namespace
 			m_counters.reset();
 		}
 
-		~dht_default_storage() override {}
+		~dht_default_storage() override = default;
 
 #ifndef TORRENT_NO_DEPRECATE
 		size_t num_torrents() const override { return m_map.size(); }

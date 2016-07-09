@@ -1285,7 +1285,7 @@ namespace libtorrent
 	}
 
 #ifndef INVALID_HANDLE_VALUE
-#define INVALID_HANDLE_VALUE -1
+#define INVALID_HANDLE_VALUE (-1)
 #endif
 
 #ifdef TORRENT_WINDOWS

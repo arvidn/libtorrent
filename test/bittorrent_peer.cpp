@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstdlib>
 #include <functional>
+#include <utility>
 
 using namespace libtorrent;
 using namespace std::placeholders;
@@ -54,7 +55,7 @@ peer_conn::peer_conn(io_service& ios
 	, m_mode(mode)
 	, m_ti(ti)
 	, read_pos(0)
-	, m_on_msg(on_msg)
+	, m_on_msg(std::move(on_msg))
 	, state(handshaking)
 	, choked(true)
 	, current_piece(-1)

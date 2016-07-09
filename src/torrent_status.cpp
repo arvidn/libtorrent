@@ -108,7 +108,7 @@ namespace libtorrent
 		, info_hash(nullptr)
 	{}
 
-	torrent_status::~torrent_status() {}
+	torrent_status::~torrent_status() = default;
 
 }
 

@@ -46,12 +46,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { namespace dht
 {
 
-using detail::read_endpoint_list;
-using detail::read_v4_endpoint;
-#if TORRENT_USE_IPV6
-using detail::read_v6_endpoint;
-#endif
-
 void find_data_observer::reply(msg const& m)
 {
 	bdecode_node r = m.message.dict_find_dict("r");

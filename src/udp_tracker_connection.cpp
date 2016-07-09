@@ -743,7 +743,6 @@ namespace libtorrent
 
 		std::string request_string;
 		error_code ec;
-		using std::ignore;
 		std::tie(ignore, ignore, ignore, ignore, request_string)
 			= parse_url_components(req.url, ec);
 		if (ec) request_string.clear();

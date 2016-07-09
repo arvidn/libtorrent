@@ -125,7 +125,7 @@ void lsd::start(error_code& ec)
 #endif
 }
 
-lsd::~lsd() {}
+lsd::~lsd() = default;
 
 void lsd::announce(sha1_hash const& ih, int listen_port, bool broadcast)
 {

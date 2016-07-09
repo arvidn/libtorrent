@@ -38,7 +38,7 @@ struct A
 	int a;
 	explicit A(int a_) : a(a_) {}
 	virtual int type() = 0;
-	virtual ~A() {}
+	virtual ~A() = default;
 };
 
 struct B : A

@@ -83,7 +83,7 @@ namespace libtorrent
 		, triggered_manually(false)
 	{}
 
-	announce_entry::~announce_entry() {}
+	announce_entry::~announce_entry() = default;
 
 	int announce_entry::next_announce_in() const
 	{ return total_seconds(next_announce - aux::time_now()); }

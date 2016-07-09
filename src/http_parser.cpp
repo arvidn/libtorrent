@@ -130,7 +130,7 @@ namespace libtorrent
 		return url;
 	}
 
-	http_parser::~http_parser() {}
+	http_parser::~http_parser() = default;
 
 	http_parser::http_parser(int flags)
 		: m_recv_pos(0)

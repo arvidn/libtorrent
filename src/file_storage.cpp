@@ -62,46 +62,17 @@ namespace libtorrent
 		, m_num_files(0)
 	{}
 
-	file_storage::~file_storage() {}
+	file_storage::~file_storage() = default;
 
 	// even though this copy constructor and the copy assignment
 	// operator are identical to what the compiler would have
 	// generated, they are put here to explicitly make them part
 	// of libtorrent and properly exported by the .dll.
 	file_storage::file_storage(file_storage const& f)
-		: m_piece_length(f.m_piece_length)
-		, m_num_pieces(f.m_num_pieces)
-		, m_files(f.m_files)
-		, m_file_hashes(f.m_file_hashes)
-		, m_symlinks(f.m_symlinks)
-		, m_mtime(f.m_mtime)
-#ifndef TORRENT_NO_DEPRECATE
-		, m_file_base(f.m_file_base)
-#endif
-		, m_paths(f.m_paths)
-		, m_name(f.m_name)
-		, m_total_size(f.m_total_size)
-		, m_num_files(f.m_num_files)
-	{
-	}
+		= default;
 
 	file_storage& file_storage::operator=(file_storage const& f)
-	{
-		m_piece_length = f.m_piece_length;
-		m_num_pieces = f.m_num_pieces;
-		m_files = f.m_files;
-		m_file_hashes = f.m_file_hashes;
-		m_symlinks = f.m_symlinks;
-		m_mtime = f.m_mtime;
-#ifndef TORRENT_NO_DEPRECATE
-		m_file_base = f.m_file_base;
-#endif
-		m_paths = f.m_paths;
-		m_name = f.m_name;
-		m_total_size = f.m_total_size;
-		m_num_files = f.m_num_files;
-		return *this;
-	}
+	= default;
 
 	void file_storage::reserve(int num_files)
 	{
@@ -227,7 +198,7 @@ namespace libtorrent
 		, symlink_attribute(false)
 	{}
 
-	file_entry::~file_entry() {}
+	file_entry::~file_entry() = default;
 #endif // TORRENT_NO_DEPRECATE
 
 	internal_file_entry::~internal_file_entry()

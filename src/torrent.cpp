@@ -5640,7 +5640,6 @@ namespace libtorrent
 			return;
 		}
 
-		using boost::asio::ssl::context;
 		error_code ec;
 		m_ssl_ctx->set_password_callback(std::bind(&password_callback, _1, _2, passphrase), ec);
 		if (ec)
@@ -5690,7 +5689,6 @@ namespace libtorrent
 #else
 		boost::asio::const_buffer certificate_buf(certificate.c_str(), certificate.size());
 
-		using boost::asio::ssl::context;
 		error_code ec;
 		m_ssl_ctx->use_certificate(certificate_buf, context::pem, ec);
 		if (ec)
@@ -6032,7 +6030,6 @@ namespace libtorrent
 
 		tcp::endpoint a(addrs[0], port);
 
-		using std::ignore;
 		std::string hostname;
 		error_code ec;
 		std::string protocol;
@@ -6174,7 +6171,6 @@ namespace libtorrent
 			s->get<http_stream>()->set_no_connect(true);
 		}
 
-		using std::ignore;
 		std::string hostname;
 		error_code ec;
 		std::tie(ignore, ignore, hostname, ignore, ignore)
@@ -7787,7 +7783,6 @@ namespace libtorrent
 
 		while (index > 0 && m_trackers[index].tier == m_trackers[index-1].tier)
 		{
-			using std::swap;
 			swap(m_trackers[index], m_trackers[index-1]);
 			if (m_last_working_tracker == index) --m_last_working_tracker;
 			else if (m_last_working_tracker == index - 1) ++m_last_working_tracker;
@@ -7806,7 +7801,6 @@ namespace libtorrent
 
 		while (index < int(m_trackers.size()) - 1 && m_trackers[index].tier == m_trackers[index + 1].tier)
 		{
-			using std::swap;
 			swap(m_trackers[index], m_trackers[index + 1]);
 			if (m_last_working_tracker == index) ++m_last_working_tracker;
 			else if (m_last_working_tracker == index + 1) --m_last_working_tracker;

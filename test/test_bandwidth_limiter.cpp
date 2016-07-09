@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cmath>
 #include <functional>
 #include <iostream>
+#include <utility>
 
 struct torrent;
 struct peer_connection;
@@ -69,7 +70,7 @@ struct peer_connection: bandwidth_socket, boost::enable_shared_from_this<peer_co
 		, m_torrent_bandwidth_channel(torrent_bwc)
 		, m_priority(prio)
 		, m_ignore_limits(ignore_limits)
-		, m_name(name)
+		, m_name(std::move(name))
 		, m_quota(0)
 	{}
 

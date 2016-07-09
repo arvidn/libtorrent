@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
+#include <utility>
 #include <vector>
 #include <cctype>
 
@@ -153,7 +154,7 @@ namespace libtorrent
 		, boost::weak_ptr<request_callback> r)
 		: timeout_handler(ios)
 		, m_req(req)
-		, m_requester(r)
+		, m_requester(std::move(r))
 		, m_man(man)
 	{}
 

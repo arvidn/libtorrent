@@ -110,7 +110,7 @@ struct test_storage : default_storage
 		return default_storage::writev(bufs, num_bufs, piece_index, offset, flags, se);
 	}
 
-	~test_storage() override {}
+	~test_storage() override = default;
 
 	int m_written;
 	int m_limit;

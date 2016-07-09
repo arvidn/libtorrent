@@ -119,7 +119,7 @@ namespace libtorrent
 	}
 
 	web_connection_base::~web_connection_base()
-	{}
+	= default;
 
 	void web_connection_base::on_connected()
 	{

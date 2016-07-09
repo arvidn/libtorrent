@@ -315,7 +315,7 @@ namespace libtorrent
 		ios.run(ec);
 	}
 
-	create_torrent::~create_torrent() {}
+	create_torrent::~create_torrent() = default;
 
 	create_torrent::create_torrent(file_storage& fs, int piece_size
 		, int pad_file_limit, int flags, int alignment)

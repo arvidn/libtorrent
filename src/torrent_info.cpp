@@ -957,8 +957,7 @@ namespace libtorrent
 		TORRENT_UNUSED(flags);
 	}
 
-	torrent_info::~torrent_info()
-	{}
+	torrent_info::~torrent_info() = default;
 
 	void torrent_info::load(char const* buffer, int size, error_code& ec)
 	{
