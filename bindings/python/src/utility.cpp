@@ -42,7 +42,7 @@ struct bytes_from_python
 #if PY_MAJOR_VERSION >= 3
         return PyBytes_Check(x) ? x : NULL;
 #else
-        return PyString_Check(x) ? x : NULL;
+        return PyString_Check(x) ? x : nullptr;
 #endif
     }
 

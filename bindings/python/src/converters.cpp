@@ -33,15 +33,15 @@ struct tuple_to_endpoint
 
     static void* convertible(PyObject* x)
     {
-        if (!PyTuple_Check(x)) return NULL;
-        if (PyTuple_Size(x) != 2) return NULL;
+        if (!PyTuple_Check(x)) return nullptr;
+        if (PyTuple_Size(x) != 2) return nullptr;
         extract<std::string> ip(object(borrowed(PyTuple_GetItem(x, 0))));
-        if (!ip.check()) return NULL;
+        if (!ip.check()) return nullptr;
         extract<int> port(object(borrowed(PyTuple_GetItem(x, 1))));
-        if (!port.check()) return NULL;
+        if (!port.check()) return nullptr;
         lt::error_code ec;
         lt::address::from_string(ip, ec);
-        if (ec) return NULL;
+        if (ec) return nullptr;
         return x;
     }
 
@@ -78,7 +78,7 @@ struct tuple_to_pair
 
     static void* convertible(PyObject* x)
     {
-        return (PyTuple_Check(x) && PyTuple_Size(x) == 2) ? x: NULL;
+        return (PyTuple_Check(x) && PyTuple_Size(x) == 2) ? x: nullptr;
     }
 
     static void construct(PyObject* x, converter::rvalue_from_python_stage1_data* data)
@@ -121,7 +121,7 @@ struct list_to_vector
 
     static void* convertible(PyObject* x)
     {
-        return PyList_Check(x) ? x: 0;
+        return PyList_Check(x) ? x: nullptr;
     }
 
     static void construct(PyObject* x, converter::rvalue_from_python_stage1_data* data)

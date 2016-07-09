@@ -21,7 +21,7 @@ struct unicode_from_python
 #if PY_VERSION_HEX >= 0x03020000
         return PyBytes_Check(x) ? x : PyUnicode_Check(x) ? x : 0;
 #else
-        return PyString_Check(x) ? x : PyUnicode_Check(x) ? x : 0;
+        return PyString_Check(x) ? x : PyUnicode_Check(x) ? x : nullptr;
 #endif
     }
 
@@ -33,7 +33,7 @@ struct unicode_from_python
         if (PyUnicode_Check(x))
         {
             PyObject* utf8 = PyUnicode_AsUTF8String(x);
-            if (utf8 == NULL)
+            if (utf8 == nullptr)
             {
                new (storage) std::string();
             }

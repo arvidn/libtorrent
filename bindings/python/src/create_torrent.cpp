@@ -76,7 +76,7 @@ namespace
 
         FileIter(file_storage const& fs, int i) : m_fs(&fs), m_i(i) {}
         FileIter(FileIter const& fi) : m_fs(fi.m_fs), m_i(fi.m_i) {}
-        FileIter() : m_fs(NULL), m_i(0) {}
+        FileIter() : m_fs(nullptr), m_i(0) {}
         libtorrent::file_entry operator*() const
         { return m_fs->at(m_i); }
 
