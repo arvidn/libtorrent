@@ -419,7 +419,7 @@ namespace libtorrent
 	void session_handle::get_cache_info(cache_status* ret
 		, torrent_handle h, int flags) const
 	{
-		piece_manager* st = 0;
+		piece_manager* st = nullptr;
 		boost::shared_ptr<torrent> t = h.m_torrent.lock();
 		if (t)
 		{

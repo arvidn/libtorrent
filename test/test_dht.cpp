@@ -509,11 +509,11 @@ void do_test_dht(address(&rand_addr)())
 	obs observer;
 	counters cnt;
 	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
-	dht_storage->update_node_ids({node_id(0)});
+	dht_storage->update_node_ids({node_id(nullptr)});
 	udp::endpoint source(rand_addr(), 20);
 	std::map<std::string, node*> nodes;
 	dht::node node(source.protocol(), &s, sett
-		, node_id(0), &observer, cnt, nodes, *dht_storage);
+		, node_id(nullptr), &observer, cnt, nodes, *dht_storage);
 
 	// DHT should be running on port 48199 now
 	bdecode_node response;
@@ -905,7 +905,7 @@ void do_test_dht(address(&rand_addr)())
 
 	std::pair<char const*, int> itemv;
 	std::pair<char const*, int> empty_salt;
-	empty_salt.first = NULL;
+	empty_salt.first = nullptr;
 	empty_salt.second = 0;
 
 	char signature[item_sig_len];
@@ -928,7 +928,7 @@ void do_test_dht(address(&rand_addr)())
 
 		TEST_CHECK(ret);
 
-		std::pair<const char*, int> salt((char*)0, 0);
+		std::pair<const char*, int> salt((char*)nullptr, 0);
 		if (with_salt)
 			salt = std::pair<char const*, int>("foobar", 6);
 
@@ -2040,9 +2040,9 @@ TORRENT_TEST(dht_dual_stack)
 	counters cnt;
 	std::map<std::string, node*> nodes;
 	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
-	dht_storage->update_node_ids({node_id(0)});
-	dht::node node4(udp::v4(), &s, sett, node_id(0), &observer, cnt, nodes, *dht_storage);
-	dht::node node6(udp::v6(), &s, sett, node_id(0), &observer, cnt, nodes, *dht_storage);
+	dht_storage->update_node_ids({node_id(nullptr)});
+	dht::node node4(udp::v4(), &s, sett, node_id(nullptr), &observer, cnt, nodes, *dht_storage);
+	dht::node node6(udp::v6(), &s, sett, node_id(nullptr), &observer, cnt, nodes, *dht_storage);
 	nodes.insert(std::make_pair("n4", &node4));
 	nodes.insert(std::make_pair("n6", &node6));
 
@@ -2502,8 +2502,8 @@ TORRENT_TEST(read_only_node)
 	std::map<std::string, node*> nodes;
 
 	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
-	dht_storage->update_node_ids({node_id(0)});
-	dht::node node(udp::v4(), &s, sett, node_id(0), &observer, cnt, nodes, *dht_storage);
+	dht_storage->update_node_ids({node_id(nullptr)});
+	dht::node node(udp::v4(), &s, sett, node_id(nullptr), &observer, cnt, nodes, *dht_storage);
 	udp::endpoint source(address::from_string("10.0.0.1"), 20);
 	bdecode_node response;
 	msg_args args;
@@ -2593,8 +2593,8 @@ TORRENT_TEST(invalid_error_msg)
 	std::map<std::string, node*> nodes;
 
 	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
-	dht_storage->update_node_ids({node_id(0)});
-	dht::node node(udp::v4(), &s, sett, node_id(0), &observer, cnt, nodes, *dht_storage);
+	dht_storage->update_node_ids({node_id(nullptr)});
+	dht::node node(udp::v4(), &s, sett, node_id(nullptr), &observer, cnt, nodes, *dht_storage);
 	udp::endpoint source(address::from_string("10.0.0.1"), 20);
 
 	entry e;
@@ -2635,8 +2635,8 @@ TORRENT_TEST(rpc_invalid_error_msg)
 	dht::routing_table table(node_id(), udp::v4(), 8, sett, &observer);
 	dht::rpc_manager rpc(node_id(), sett, table, &s, &observer);
 	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
-	dht_storage->update_node_ids({node_id(0)});
-	dht::node node(udp::v4(), &s, sett, node_id(0), &observer, cnt, nodes, *dht_storage);
+	dht_storage->update_node_ids({node_id(nullptr)});
+	dht::node node(udp::v4(), &s, sett, node_id(nullptr), &observer, cnt, nodes, *dht_storage);
 
 	udp::endpoint source(address::from_string("10.0.0.1"), 20);
 

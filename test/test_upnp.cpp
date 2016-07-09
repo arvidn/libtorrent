@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace lt = libtorrent;
 using namespace libtorrent;
 
-broadcast_socket* sock = 0;
+broadcast_socket* sock = nullptr;
 int g_port = 0;
 
 char const* soap_add_response[] = {
@@ -141,7 +141,7 @@ void run_upnp_test(char const* root_filename, char const* router_model, char con
 	buf.push_back(0);
 
 	FILE* xml_file = fopen("upnp.xml", "w+");
-	if (xml_file == NULL)
+	if (xml_file == nullptr)
 	{
 		std::fprintf(stderr, "failed to open file 'upnp.xml': %s\n", strerror(errno));
 		TEST_CHECK(false);

@@ -74,12 +74,12 @@ bool keep_files = false;
 extern int _g_test_idx;
 
 // the current tests file descriptor
-unit_test_t* current_test = NULL;
+unit_test_t* current_test = nullptr;
 
 void output_test_log_to_terminal()
 {
-	if (current_test == NULL || old_stdout == -1 || old_stderr == -1
-		|| !redirect_output || current_test->output == NULL)
+	if (current_test == nullptr || old_stdout == -1 || old_stderr == -1
+		|| !redirect_output || current_test->output == nullptr)
 		return;
 
 	fflush(stdout);
@@ -347,7 +347,7 @@ EXPORT int main(int argc, char const* argv[])
 			fflush(stderr);
 
 			FILE* f = tmpfile();
-			if (f != NULL)
+			if (f != nullptr)
 			{
 				int ret1 = dup2(fileno(f), fileno(stdout));
 				dup2(fileno(f), fileno(stderr));
@@ -369,8 +369,8 @@ EXPORT int main(int argc, char const* argv[])
 		}
 
 		// get proper interleaving of stderr and stdout
-		setbuf(stdout, NULL);
-		setbuf(stderr, NULL);
+		setbuf(stdout, nullptr);
+		setbuf(stderr, nullptr);
 
 		_g_test_idx = i;
 		current_test = &t;

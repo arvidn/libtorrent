@@ -59,7 +59,7 @@ struct log_t : libtorrent::dht::dht_logger
 	{
 		libtorrent::bdecode_node print;
 		libtorrent::error_code ec;
-		int ret = bdecode(pkt, pkt + len, print, ec, NULL, 100, 100);
+		int ret = bdecode(pkt, pkt + len, print, ec, nullptr, 100, 100);
 		TEST_EQUAL(ret, 0);
 
 		std::string msg = print_entry(print, true);

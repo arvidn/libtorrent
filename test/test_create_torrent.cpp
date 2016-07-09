@@ -58,7 +58,7 @@ TORRENT_TEST(create_verbatim_torrent)
 	buffer.push_back('\0');
 	char const* dest_info = std::strstr(&buffer[0], "4:info");
 
-	TEST_CHECK(dest_info != NULL);
+	TEST_CHECK(dest_info != nullptr);
 
 	// +1 and -2 here is to strip the outermost dictionary from the source
 	// torrent, since create_torrent may have added items next to the info dict

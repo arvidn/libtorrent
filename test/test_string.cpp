@@ -66,7 +66,7 @@ TORRENT_TEST(hex)
 
 	for (int i = 1; i < 255; ++i)
 	{
-		bool hex = strchr(hex_chars, i) != NULL;
+		bool hex = strchr(hex_chars, i) != nullptr;
 		char c = i;
 		TEST_EQUAL(aux::is_hex(&c, 1), hex);
 	}
@@ -355,7 +355,7 @@ TORRENT_TEST(tokenize)
 	TEST_EQUAL(ptr, std::string("f"));
 
 	ptr = string_tokenize(next, ' ', &next);
-	TEST_EQUAL(ptr, static_cast<char*>(0));
+	TEST_EQUAL(ptr, static_cast<char*>(nullptr));
 
 	TEST_EQUAL(std::string("foobar"), convert_from_native(convert_to_native("foobar")));
 	TEST_EQUAL(std::string("foobar")

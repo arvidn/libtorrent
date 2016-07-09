@@ -157,7 +157,7 @@ namespace libtorrent
 
 	void page_aligned_allocator::free(char* block)
 	{
-		if (block == 0) return;
+		if (block == nullptr) return;
 
 #ifdef TORRENT_DEBUG_BUFFERS
 

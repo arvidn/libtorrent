@@ -114,28 +114,28 @@ namespace libtorrent
 	entry* entry::find_key(char const* key)
 	{
 		dictionary_type::iterator i = dict().find(key);
-		if (i == dict().end()) return 0;
+		if (i == dict().end()) return nullptr;
 		return &i->second;
 	}
 
 	entry const* entry::find_key(char const* key) const
 	{
 		dictionary_type::const_iterator i = dict().find(key);
-		if (i == dict().end()) return 0;
+		if (i == dict().end()) return nullptr;
 		return &i->second;
 	}
 
 	entry* entry::find_key(std::string const& key)
 	{
 		dictionary_type::iterator i = dict().find(key);
-		if (i == dict().end()) return 0;
+		if (i == dict().end()) return nullptr;
 		return &i->second;
 	}
 
 	entry const* entry::find_key(std::string const& key) const
 	{
 		dictionary_type::const_iterator i = dict().find(key);
-		if (i == dict().end()) return 0;
+		if (i == dict().end()) return nullptr;
 		return &i->second;
 	}
 

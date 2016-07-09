@@ -41,7 +41,7 @@ void print_alerts(libtorrent::session* ses, libtorrent::time_point start_time)
 	using namespace libtorrent;
 	namespace lt = libtorrent;
 
-	if (ses == NULL) return;
+	if (ses == nullptr) return;
 
 	std::vector<lt::alert*> alerts;
 	ses->pop_alerts(&alerts);

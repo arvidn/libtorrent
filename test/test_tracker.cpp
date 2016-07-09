@@ -266,7 +266,7 @@ peer_entry extract_peer(char const* peer_field, error_code expected_ec, bool exp
 	peer_entry result;
 	bdecode_node n;
 	bdecode(peer_field, peer_field + strlen(peer_field)
-		, n, ec, NULL, 1000, 1000);
+		, n, ec, nullptr, 1000, 1000);
 	TEST_CHECK(!ec);
 	bool ret = extract_peer_info(n, result, ec);
 	TEST_EQUAL(expected_ret, ret);
@@ -500,11 +500,11 @@ void test_proxy(bool proxy_trackers)
 	const alert* a = wait_for_alert(*s, tracker_reply_alert::alert_type, "s");
 	if (proxy_trackers)
 	{
-		TEST_CHECK(a == NULL);
+		TEST_CHECK(a == nullptr);
 	}
 	else
 	{
-		TEST_CHECK(a != NULL);
+		TEST_CHECK(a != nullptr);
 	}
 
 	std::fprintf(stderr, "destructing session\n");

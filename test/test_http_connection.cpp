@@ -143,7 +143,7 @@ void run_test(std::string const& url, int size, int status, int connected
 
 void write_test_file()
 {
-	std::srand(unsigned(std::time(0)));
+	std::srand(unsigned(std::time(nullptr)));
 	std::generate(data_buffer, data_buffer + sizeof(data_buffer), &std::rand);
 	error_code ec;
 	file test_file("test_file", file::write_only, ec);
@@ -206,7 +206,7 @@ void run_suite(std::string const& protocol
 	hostent* h = gethostbyname("non-existent-domain.se");
 	std::printf("gethostbyname(\"non-existent-domain.se\") = %p. h_errno = %d\n"
 		, static_cast<void*>(h), h_errno);
-	if (h == 0 && h_errno == HOST_NOT_FOUND)
+	if (h == nullptr && h_errno == HOST_NOT_FOUND)
 	{
 		run_test(protocol + "://non-existent-domain.se/non-existing-file", -1, -1, 0, err(), ps);
 	}

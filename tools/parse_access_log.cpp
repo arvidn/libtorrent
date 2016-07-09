@@ -62,7 +62,7 @@ int main(int argc, char* argv[])
 	if (argc != 2) print_usage();
 
 	FILE* log_file = std::fopen(argv[1], "r");
-	if (log_file == 0)
+	if (log_file == nullptr)
 	{
 		std::fprintf(stderr, "failed to open logfile: %s\n%d: %s\n"
 			, argv[1], errno, strerror(errno));
@@ -100,7 +100,7 @@ int main(int argc, char* argv[])
 		bool complete = (op.event & 2) != 0;
 		if (complete)
 		{
-			FILE* out_file = 0;
+			FILE* out_file = nullptr;
 			op_map::iterator i = outstanding_ops.find(event_id);
 			if (i != outstanding_ops.end())
 			{

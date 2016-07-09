@@ -52,7 +52,7 @@ namespace libtorrent { namespace dht
 
 	node_entry::node_entry(udp::endpoint ep)
 		: last_queried(min_time())
-		, id(0)
+		, id(nullptr)
 		, endpoint(ep)
 		, rtt(0xffff)
 		, timeout_count(0xff)
@@ -64,7 +64,7 @@ namespace libtorrent { namespace dht
 
 	node_entry::node_entry()
 		: last_queried(min_time())
-		, id(0)
+		, id(nullptr)
 		, rtt(0xffff)
 		, timeout_count(0xff)
 	{

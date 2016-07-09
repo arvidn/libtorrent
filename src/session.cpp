@@ -293,7 +293,7 @@ namespace libtorrent
 		initialize_default_settings(def);
 		settings_pack pack;
 		min_memory_usage(pack);
-		apply_pack(&pack, def, 0);
+		apply_pack(&pack, def, nullptr);
 		session_settings ret;
 		load_struct_from_settings(def, ret);
 		return ret;
@@ -305,7 +305,7 @@ namespace libtorrent
 		initialize_default_settings(def);
 		settings_pack pack;
 		high_performance_seed(pack);
-		apply_pack(&pack, def, 0);
+		apply_pack(&pack, def, nullptr);
 		session_settings ret;
 		load_struct_from_settings(def, ret);
 		return ret;

@@ -728,7 +728,7 @@ TORRENT_TEST(parse_torrents)
 				, (flags & file_storage::flag_symlink)?'l':'-'
 				, first, last
 				, std::uint32_t(fs.mtime(i))
-				, fs.hash(i) != sha1_hash(0) ? aux::to_hex(fs.hash(i).to_string()).c_str() : ""
+				, fs.hash(i) != sha1_hash(nullptr) ? aux::to_hex(fs.hash(i).to_string()).c_str() : ""
 				, fs.file_path(i).c_str()
 				, flags & file_storage::flag_symlink ? "-> ": ""
 				, flags & file_storage::flag_symlink ? fs.symlink(i).c_str() : "");
@@ -879,8 +879,8 @@ TORRENT_TEST(copy)
 
 	sha1_hash file_hashes[] =
 	{
-		sha1_hash(0),
-		sha1_hash(0),
+		sha1_hash(nullptr),
+		sha1_hash(nullptr),
 		sha1_hash("abababababababababab")
 	};
 

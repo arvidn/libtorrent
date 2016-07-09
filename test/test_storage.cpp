@@ -430,8 +430,8 @@ void test_check_files(std::string const& test_path
 
 	libtorrent::create_torrent t(fs, piece_size, -1, 0);
 	t.set_hash(0, hasher(piece0.get(), piece_size).final());
-	t.set_hash(1, sha1_hash(0));
-	t.set_hash(2, sha1_hash(0));
+	t.set_hash(1, sha1_hash(nullptr));
+	t.set_hash(2, sha1_hash(nullptr));
 	t.set_hash(3, hasher(piece2.get(), piece_size).final());
 
 	create_directory(combine_path(test_path, "temp_storage"), ec);
@@ -455,7 +455,7 @@ void test_check_files(std::string const& test_path
 	file_pool fp;
 	boost::asio::io_service ios;
 	counters cnt;
-	disk_io_thread io(ios, cnt, NULL);
+	disk_io_thread io(ios, cnt, nullptr);
 	io.set_num_threads(1);
 	disk_buffer_pool dp(16 * 1024, ios, std::bind(&nop));
 	storage_params p;
@@ -712,7 +712,7 @@ void test_fastresume(bool const test_deprecated)
 		alert const* a = wait_for_alert(ses, fastresume_rejected_alert::alert_type
 			, "ses");
 		// we expect the fast resume to be rejected because the files were removed
-		TEST_CHECK(alert_cast<fastresume_rejected_alert>(a) != 0);
+		TEST_CHECK(alert_cast<fastresume_rejected_alert>(a) != nullptr);
 	}
 	remove_all(combine_path(test_path, "tmp1"), ec);
 	if (ec && ec != boost::system::errc::no_such_file_or_directory)
@@ -905,7 +905,7 @@ void free_iov(file::iovec_t* iov, int num_bufs)
 	{
 		free(iov[i].iov_base);
 		iov[i].iov_len = 0;
-		iov[i].iov_base = NULL;
+		iov[i].iov_base = nullptr;
 	}
 }
 

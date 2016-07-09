@@ -105,7 +105,7 @@ namespace libtorrent
 		, announcing_to_lsd(false)
 		, announcing_to_dht(false)
 		, stop_when_ready(false)
-		, info_hash(0)
+		, info_hash(nullptr)
 	{}
 
 	torrent_status::~torrent_status() {}

@@ -122,7 +122,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(is_single_thread());
 		char* insert = allocate_appendix(s);
-		if (insert == 0) return 0;
+		if (insert == nullptr) return nullptr;
 		memcpy(insert, buf, s);
 		return insert;
 	}
@@ -133,10 +133,10 @@ namespace libtorrent
 	char* chained_buffer::allocate_appendix(int s)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		if (m_vec.empty()) return 0;
+		if (m_vec.empty()) return nullptr;
 		buffer_t& b = m_vec.back();
 		char* insert = b.start + b.used_size;
-		if (insert + s > b.buf + b.size) return 0;
+		if (insert + s > b.buf + b.size) return nullptr;
 		b.used_size += s;
 		m_bytes += s;
 		TORRENT_ASSERT(m_bytes <= m_capacity);

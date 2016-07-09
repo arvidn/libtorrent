@@ -58,7 +58,7 @@ struct mock_peer_connection
 	mock_peer_connection(mock_torrent* tor, bool out, tcp::endpoint const& remote)
 		: m_choked(false)
 		, m_outgoing(out)
-		, m_tp(NULL)
+		, m_tp(nullptr)
 		, m_remote(remote)
 		, m_local(ep("127.0.0.1", 8080))
 		, m_disconnect_called(false)
@@ -113,12 +113,12 @@ struct mock_peer_connection
 
 struct mock_torrent
 {
-	mock_torrent(torrent_state* st) : m_p(NULL), m_state(st) {}
+	mock_torrent(torrent_state* st) : m_p(nullptr), m_state(st) {}
 	virtual ~mock_torrent() {}
 
 	bool connect_to_peer(torrent_peer* peerinfo, bool ignore_limit = false)
 	{
-		TORRENT_ASSERT(peerinfo->connection == NULL);
+		TORRENT_ASSERT(peerinfo->connection == nullptr);
 		if (peerinfo->connection) return false;
 		auto c = std::make_shared<mock_peer_connection>(this, true, peerinfo->ip());
 		c->set_peer_info(peerinfo);
@@ -152,7 +152,7 @@ void mock_peer_connection::disconnect(error_code const& ec
 			, std::static_pointer_cast<mock_peer_connection>(shared_from_this()));
 	if (i != m_torrent.m_connections.end()) m_torrent.m_connections.erase(i);
 
-	m_tp = 0;
+	m_tp = nullptr;
 	m_disconnect_called = true;
 }
 
@@ -269,7 +269,7 @@ TORRENT_TEST(multiple_ips_allowed2)
 	// we only have one peer, we can't
 	// connect another one
 	tp = p.connect_one_peer(0, &st);
-	TEST_CHECK(tp == NULL);
+	TEST_CHECK(tp == nullptr);
 	st.erased.clear();
 
 	torrent_peer* peer2 = p.add_peer(ep("10.0.0.2", 9020), 0, 0, &st);
@@ -309,7 +309,7 @@ TORRENT_TEST(multiple_ips_disallowed2)
 	// we only have one peer, we can't
 	// connect another one
 	tp = p.connect_one_peer(0, &st);
-	TEST_CHECK(tp == NULL);
+	TEST_CHECK(tp == nullptr);
 	st.erased.clear();
 
 	torrent_peer* peer2 = p.add_peer(ep("10.0.0.2", 9020), 0, 0, &st);
@@ -512,7 +512,7 @@ TORRENT_TEST(erase_peers)
 		tcp::endpoint ep = rand_tcp_ep();
 		torrent_peer* peer = add_peer(p, st, ep);
 		TEST_CHECK(peer);
-		if (peer == NULL || st.erased.size() > 0)
+		if (peer == nullptr || st.erased.size() > 0)
 		{
 			std::fprintf(stderr, "unexpected rejection of peer: %s | %d in list. "
 				"added peer %p, erased %d peers\n"
@@ -526,7 +526,7 @@ TORRENT_TEST(erase_peers)
 	torrent_peer* peer = p.add_peer(rand_tcp_ep(), 0, 0, &st);
 	// we either removed an existing peer, or rejected this one
 	// either is valid behavior when the list is full
-	TEST_CHECK(st.erased.size() == 1 || peer == NULL);
+	TEST_CHECK(st.erased.size() == 1 || peer == nullptr);
 }
 
 // test set_ip_filter
@@ -914,7 +914,7 @@ TORRENT_TEST(new_peer_size_limit)
 	TEST_CHECK(peer5);
 	TEST_EQUAL(p.num_peers(), 5);
 	torrent_peer* peer6 = p.add_peer(ep("10.0.0.6", 8080), 0, 0, &st);
-	TEST_CHECK(peer6 == NULL);
+	TEST_CHECK(peer6 == nullptr);
 	TEST_EQUAL(p.num_peers(), 5);
 
 	// one of the connection should have been removed

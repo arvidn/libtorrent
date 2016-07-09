@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 char const* timestamp()
 {
-	std::time_t t = std::time(0);
+	std::time_t t = std::time(nullptr);
 	std::tm* timeinfo = std::localtime(&t);
 	static char str[200];
 	std::strftime(str, 200, "%b %d %X", timeinfo);
@@ -78,7 +78,7 @@ int main(int argc, char* argv[])
 	for (;;)
 	{
 		alert const* a = s.wait_for_alert(seconds(5));
-		if (a == 0)
+		if (a == nullptr)
 		{
 			settings_pack p;
 			p.set_bool(settings_pack::enable_upnp, false);
@@ -100,7 +100,7 @@ int main(int argc, char* argv[])
 	for (;;)
 	{
 		alert const* a = s.wait_for_alert(seconds(5));
-		if (a == 0) break;
+		if (a == nullptr) break;
 		std::vector<alert*> alerts;
 		s.pop_alerts(&alerts);
 		for (std::vector<alert*>::iterator i = alerts.begin()

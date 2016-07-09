@@ -73,7 +73,7 @@ dht_direct_response_alert* get_direct_response(lt::session& ses)
 		// it shouldn't take more than 20 seconds to get a response
 		// so fail the test and bail out if we don't get an alert in that time
 		TEST_CHECK(a);
-		if (!a) return NULL;
+		if (!a) return nullptr;
 		std::vector<alert*> alerts;
 		ses.pop_alerts(&alerts);
 		for (std::vector<alert*>::iterator i = alerts.begin(); i != alerts.end(); ++i)

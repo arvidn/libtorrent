@@ -133,7 +133,7 @@ retry:
 	FD_ZERO(&set);
 	FD_SET(0, &set);
 	timeval tv = {sleep/ 1000, (sleep % 1000) * 1000 };
-	ret = select(1, &set, 0, 0, &tv);
+	ret = select(1, &set, nullptr, nullptr, &tv);
 	if (ret > 0)
 	{
 		*c = getc(stdin);
@@ -285,7 +285,7 @@ std::string leaf_path(std::string f)
 	char const* altsep = strrchr(first, '\\');
 	if (sep == 0 || altsep > sep) sep = altsep;
 #endif
-	if (sep == 0) return f;
+	if (sep == nullptr) return f;
 
 	if (sep - first == int(f.size()) - 1)
 	{
@@ -368,7 +368,7 @@ using libtorrent::torrent_status;
 bool yes(libtorrent::torrent_status const&)
 { return true; }
 
-FILE* g_log_file = 0;
+FILE* g_log_file = nullptr;
 
 int peer_index(libtorrent::tcp::endpoint addr, std::vector<libtorrent::peer_info> const& peers)
 {
@@ -707,7 +707,7 @@ std::vector<std::string> list_dir(std::string path
 		path.resize(path.size()-1);
 
 	DIR* handle = opendir(path.c_str());
-	if (handle == 0)
+	if (handle == nullptr)
 	{
 		ec.assign(errno, boost::system::system_category());
 		return ret;
@@ -717,7 +717,7 @@ std::vector<std::string> list_dir(std::string path
 	dirent* dummy;
 	while (readdir_r(handle, &de, &dummy) == 0)
 	{
-		if (dummy == 0) break;
+		if (dummy == nullptr) break;
 
 		std::string p = de.d_name;
 		if (filter_fun(p))
@@ -807,7 +807,7 @@ void scan_dir(std::string const& dir_path
 
 char const* timestamp()
 {
-	time_t t = std::time(0);
+	time_t t = std::time(nullptr);
 	tm* timeinfo = std::localtime(&t);
 	static char str[200];
 	std::strftime(str, 200, "%b %d %X", timeinfo);
@@ -1104,13 +1104,13 @@ void print_piece(libtorrent::partial_piece_info* pp
 	using namespace libtorrent;
 
 	char str[1024];
-	assert(pp == 0 || cs == 0 || cs->piece == pp->piece_index);
+	assert(pp == nullptr || cs == nullptr || cs->piece == pp->piece_index);
 	int piece = pp ? pp->piece_index : cs->piece;
 	int num_blocks = pp ? pp->blocks_in_piece : int(cs->blocks.size());
 
 	std::snprintf(str, sizeof(str), "%5d:[", piece);
 	out += str;
-	char const* last_color = 0;
+	char const* last_color = nullptr;
 	for (int j = 0; j < num_blocks; ++j)
 	{
 		int index = pp ? peer_index(pp->blocks[j].peer(), peers) % 36 : -1;
@@ -1121,7 +1121,7 @@ void print_piece(libtorrent::partial_piece_info* pp
 
 		char const* color = "";
 
-		if (pp == 0)
+		if (pp == nullptr)
 		{
 			color = cs->blocks[j] ? esc("34;7") : esc("0");
 			chr = ' ';
@@ -1142,7 +1142,7 @@ void print_piece(libtorrent::partial_piece_info* pp
 			else if (pp->blocks[j].state == block_info::requested) color = snubbed ? esc("35;7") : esc("0");
 			else { color = esc("0"); chr = ' '; }
 		}
-		if (last_color == 0 || std::strcmp(last_color, color) != 0)
+		if (last_color == nullptr || std::strcmp(last_color, color) != 0)
 		{
 			std::snprintf(str, sizeof(str), "%s%c", color, chr);
 			out += str;
@@ -1940,7 +1940,7 @@ int main(int argc, char* argv[])
 				{
 					if (pos + 3 >= terminal_height) break;
 
-					partial_piece_info* pp = 0;
+					partial_piece_info* pp = nullptr;
 					partial_piece_info tmp;
 					tmp.piece_index = i->piece;
 					std::vector<partial_piece_info>::iterator ppi
@@ -1978,7 +1978,7 @@ int main(int argc, char* argv[])
 				{
 					if (pos + 3 >= terminal_height) break;
 
-					print_piece(&*i, 0, peers, out);
+					print_piece(&*i, nullptr, peers, out);
 
 					int num_blocks = i->blocks_in_piece;
 					p += num_blocks + 8;
@@ -2157,7 +2157,7 @@ int main(int argc, char* argv[])
 	while (num_outstanding_resume_data > 0)
 	{
 		alert const* a = ses.wait_for_alert(seconds(10));
-		if (a == 0) continue;
+		if (a == nullptr) continue;
 
 		std::vector<alert*> alerts;
 		ses.pop_alerts(&alerts);

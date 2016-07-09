@@ -437,7 +437,7 @@ void test_unaligned_read()
 	rj.piece = 0;
 	rj.storage = pm;
 	rj.requester = (void*)1;
-	rj.buffer.disk_block = 0;
+	rj.buffer.disk_block = nullptr;
 	ret = bc.try_read(&rj);
 
 	// unaligned reads copies the data into a new buffer

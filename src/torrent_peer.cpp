@@ -144,7 +144,7 @@ namespace libtorrent
 	torrent_peer::torrent_peer(std::uint16_t port_, bool conn, int src)
 		: prev_amount_upload(0)
 		, prev_amount_download(0)
-		, connection(0)
+		, connection(nullptr)
 		, peer_rank(0)
 		, last_optimistically_unchoked(0)
 		, last_connected(0)
@@ -206,7 +206,7 @@ namespace libtorrent
 
 	std::uint64_t torrent_peer::total_download() const
 	{
-		if (connection != 0)
+		if (connection != nullptr)
 		{
 			TORRENT_ASSERT(prev_amount_download == 0);
 			return connection->statistics().total_payload_download();
@@ -219,7 +219,7 @@ namespace libtorrent
 
 	std::uint64_t torrent_peer::total_upload() const
 	{
-		if (connection != 0)
+		if (connection != nullptr)
 		{
 			TORRENT_ASSERT(prev_amount_upload == 0);
 			return connection->statistics().total_payload_upload();

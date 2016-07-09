@@ -207,7 +207,7 @@ TORRENT_TEST(wait_for_alert)
 	alert* a = mgr.wait_for_alert(seconds(1));
 
 	time_point end = clock_type::now();
-	TEST_EQUAL(a, static_cast<alert*>(0));
+	TEST_EQUAL(a, static_cast<alert*>(nullptr));
 	std::fprintf(stderr, "delay: %d ms (expected 1 second)\n"
 		, int(total_milliseconds(end - start)));
 	TEST_CHECK(end - start > milliseconds(900));

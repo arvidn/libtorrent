@@ -114,7 +114,7 @@ namespace libtorrent
 	// returns -1 if gzip header is invalid or the header size in bytes
 	int gzip_header(const char* buf, int size)
 	{
-		TORRENT_ASSERT(buf != 0);
+		TORRENT_ASSERT(buf != nullptr);
 
 		const unsigned char* buffer = reinterpret_cast<const unsigned char*>(buf);
 		const int total_size = size;
@@ -122,7 +122,7 @@ namespace libtorrent
 		// gzip is defined in https://tools.ietf.org/html/rfc1952
 
 		// The zip header cannot be shorter than 10 bytes
-		if (size < 10 || buf == 0) return -1;
+		if (size < 10 || buf == nullptr) return -1;
 
 		// check the magic header of gzip
 		if ((buffer[0] != GZIP_MAGIC0) || (buffer[1] != GZIP_MAGIC1)) return -1;

@@ -145,7 +145,7 @@ void test_remap_files_gather(storage_mode_t storage_mode = storage_mode_sparse)
 	peer_disconnects = 0;
 
 	// test using piece sizes smaller than 16kB
-	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
+	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, nullptr
 		, true, false, true, "_remap", 8 * 1024, &t, false, &params
 		, true, false, &t2);
 
@@ -202,7 +202,7 @@ void test_remap_files_gather(storage_mode_t storage_mode = storage_mode_sparse)
 
 		if (i % 10 == 0)
 		{
-			print_ses_rate(i / 10.f, NULL, &st2);
+			print_ses_rate(i / 10.f, nullptr, &st2);
 		}
 
 		if (st2.state != torrent_status::checking_files)
@@ -289,7 +289,7 @@ void test_remap_files_scatter(storage_mode_t storage_mode = storage_mode_sparse)
 	peer_disconnects = 0;
 
 	// test using piece sizes smaller than 16kB
-	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
+	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, nullptr
 		, true, false, true, "_remap2", 8 * 1024, &t, false, &params
 		, true, false, &t2);
 
@@ -346,7 +346,7 @@ void test_remap_files_scatter(storage_mode_t storage_mode = storage_mode_sparse)
 
 		if (i % 10 == 0)
 		{
-			print_ses_rate(i / 10.f, NULL, &st2);
+			print_ses_rate(i / 10.f, nullptr, &st2);
 		}
 
 		if (st2.state != torrent_status::checking_files)
@@ -453,7 +453,7 @@ void test_remap_files_prio(storage_mode_t storage_mode = storage_mode_sparse)
 	peer_disconnects = 0;
 
 	// test using piece sizes smaller than 16kB
-	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
+	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, nullptr
 		, true, false, true, "_remap3", 8 * 1024, &t, false, &params
 		, true, false, &t2);
 

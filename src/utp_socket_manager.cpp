@@ -57,7 +57,7 @@ namespace libtorrent
 		, void* ssl_context)
 		: m_send_fun(send_fun)
 		, m_cb(cb)
-		, m_last_socket(0)
+		, m_last_socket(nullptr)
 		, m_new_connection(-1)
 		, m_sett(sett)
 		, m_last_route_update(min_time())
@@ -88,7 +88,7 @@ namespace libtorrent
 			if (should_delete(i->second))
 			{
 				delete_utp_impl(i->second);
-				if (m_last_socket == i->second) m_last_socket = 0;
+				if (m_last_socket == i->second) m_last_socket = nullptr;
 				m_utp_sockets.erase(i++);
 				continue;
 			}
@@ -313,7 +313,7 @@ namespace libtorrent
 		socket_map_t::iterator i = m_utp_sockets.find(id);
 		if (i == m_utp_sockets.end()) return;
 		delete_utp_impl(i->second);
-		if (m_last_socket == i->second) m_last_socket = 0;
+		if (m_last_socket == i->second) m_last_socket = nullptr;
 		m_utp_sockets.erase(i);
 	}
 

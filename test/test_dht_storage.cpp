@@ -316,7 +316,7 @@ TORRENT_TEST(update_node_ids)
 {
 	dht_settings sett = test_settings();
 	std::unique_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
-	TEST_CHECK(s.get() != NULL);
+	TEST_CHECK(s.get() != nullptr);
 
 	node_id const n1 = to_hash("0000000000000000000000000000000000000200");
 	node_id const n2 = to_hash("0000000000000000000000000000000000000400");
