@@ -497,7 +497,7 @@ void natpmp::on_reply(error_code const& e
 	}
 #endif
 
-	mapping_t* m = 0;
+	mapping_t* m = nullptr;
 	int index = -1;
 	for (std::vector<mapping_t>::iterator i = m_mappings.begin()
 		, end(m_mappings.end()); i != end; ++i)
@@ -511,7 +511,7 @@ void natpmp::on_reply(error_code const& e
 		break;
 	}
 
-	if (m == 0)
+	if (m == nullptr)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		snprintf(msg + num_chars, sizeof(msg) - num_chars, " not found in map table");

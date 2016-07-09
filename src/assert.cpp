@@ -69,7 +69,7 @@ std::string demangle(char const* name)
 // in case this string comes
 	// this is needed on linux
 	char const* start = strchr(name, '(');
-	if (start != 0)
+	if (start != nullptr)
 	{
 		++start;
 	}
@@ -77,10 +77,10 @@ std::string demangle(char const* name)
 	{
 		// this is needed on macos x
 		start = strstr(name, "0x");
-		if (start != 0)
+		if (start != nullptr)
 		{
 			start = strchr(start, ' ');
-			if (start != 0) ++start;
+			if (start != nullptr) ++start;
 			else start = name;
 		}
 		else start = name;
@@ -90,13 +90,13 @@ std::string demangle(char const* name)
 	if (end) while (*(end-1) == ' ') --end;
 
 	std::string in;
-	if (end == 0) in.assign(start);
+	if (end == nullptr) in.assign(start);
 	else in.assign(start, end);
 
 	size_t len;
 	int status;
-	char* unmangled = ::abi::__cxa_demangle(in.c_str(), 0, &len, &status);
-	if (unmangled == 0) return in;
+	char* unmangled = ::abi::__cxa_demangle(in.c_str(), nullptr, &len, &status);
+	if (unmangled == nullptr) return in;
 	std::string ret(unmangled);
 	free(unmangled);
 	return ret;

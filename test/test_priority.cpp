@@ -132,8 +132,8 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 	peer_disconnects = 0;
 
 	// test using piece sizes smaller than 16kB
-	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
-		, true, false, true, "_priority", 8 * 1024, &t, false, 0);
+	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, nullptr
+		, true, false, true, "_priority", 8 * 1024, &t, false, nullptr);
 
 	int num_pieces = tor2.torrent_file()->num_pieces();
 	std::vector<int> priorities(num_pieces, 1);

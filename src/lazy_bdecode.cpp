@@ -145,7 +145,7 @@ namespace libtorrent
 					++start;
 					if (start == end) TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
 					lazy_entry* ent = top->dict_append(start);
-					if (ent == 0) TORRENT_FAIL_BDECODE(boost::system::errc::not_enough_memory);
+					if (ent == nullptr) TORRENT_FAIL_BDECODE(boost::system::errc::not_enough_memory);
 					start += len;
 					if (start >= end) TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
 					stack.push_back(ent);
@@ -162,7 +162,7 @@ namespace libtorrent
 						continue;
 					}
 					lazy_entry* ent = top->list_append();
-					if (ent == 0) TORRENT_FAIL_BDECODE(boost::system::errc::not_enough_memory);
+					if (ent == nullptr) TORRENT_FAIL_BDECODE(boost::system::errc::not_enough_memory);
 					stack.push_back(ent);
 					break;
 				}
@@ -339,28 +339,28 @@ namespace libtorrent
 	std::string lazy_entry::dict_find_string_value(char const* name) const
 	{
 		lazy_entry const* e = dict_find(name);
-		if (e == 0 || e->type() != lazy_entry::string_t) return std::string();
+		if (e == nullptr || e->type() != lazy_entry::string_t) return std::string();
 		return e->string_value();
 	}
 
 	pascal_string lazy_entry::dict_find_pstr(char const* name) const
 	{
 		lazy_entry const* e = dict_find(name);
-		if (e == 0 || e->type() != lazy_entry::string_t) return pascal_string(0, 0);
+		if (e == nullptr || e->type() != lazy_entry::string_t) return pascal_string(nullptr, 0);
 		return e->string_pstr();
 	}
 
 	lazy_entry const* lazy_entry::dict_find_string(char const* name) const
 	{
 		lazy_entry const* e = dict_find(name);
-		if (e == 0 || e->type() != lazy_entry::string_t) return 0;
+		if (e == nullptr || e->type() != lazy_entry::string_t) return nullptr;
 		return e;
 	}
 
 	lazy_entry const* lazy_entry::dict_find_int(char const* name) const
 	{
 		lazy_entry const* e = dict_find(name);
-		if (e == 0 || e->type() != lazy_entry::int_t) return 0;
+		if (e == nullptr || e->type() != lazy_entry::int_t) return nullptr;
 		return e;
 	}
 
@@ -368,28 +368,28 @@ namespace libtorrent
 		, std::int64_t default_val) const
 	{
 		lazy_entry const* e = dict_find(name);
-		if (e == 0 || e->type() != lazy_entry::int_t) return default_val;
+		if (e == nullptr || e->type() != lazy_entry::int_t) return default_val;
 		return e->int_value();
 	}
 
 	lazy_entry const* lazy_entry::dict_find_dict(char const* name) const
 	{
 		lazy_entry const* e = dict_find(name);
-		if (e == 0 || e->type() != lazy_entry::dict_t) return 0;
+		if (e == nullptr || e->type() != lazy_entry::dict_t) return nullptr;
 		return e;
 	}
 
 	lazy_entry const* lazy_entry::dict_find_dict(std::string const& name) const
 	{
 		lazy_entry const* e = dict_find(name);
-		if (e == 0 || e->type() != lazy_entry::dict_t) return 0;
+		if (e == nullptr || e->type() != lazy_entry::dict_t) return nullptr;
 		return e;
 	}
 
 	lazy_entry const* lazy_entry::dict_find_list(char const* name) const
 	{
 		lazy_entry const* e = dict_find(name);
-		if (e == 0 || e->type() != lazy_entry::list_t) return 0;
+		if (e == nullptr || e->type() != lazy_entry::list_t) return nullptr;
 		return e;
 	}
 
@@ -402,7 +402,7 @@ namespace libtorrent
 			if (string_equal(name, e.name, e.val.m_begin - e.name))
 				return &e.val;
 		}
-		return 0;
+		return nullptr;
 	}
 
 	lazy_entry* lazy_entry::dict_find(std::string const& name)
@@ -415,7 +415,7 @@ namespace libtorrent
 			if (std::equal(name.begin(), name.end(), e.name))
 				return &e.val;
 		}
-		return 0;
+		return nullptr;
 	}
 
 	lazy_entry* lazy_entry::list_append()
@@ -426,7 +426,7 @@ namespace libtorrent
 		{
 			int capacity = lazy_entry_list_init;
 			m_data.list = new (std::nothrow) lazy_entry[capacity+1];
-			if (m_data.list == 0) return 0;
+			if (m_data.list == nullptr) return nullptr;
 			m_data.list[0].m_len = capacity;
 		}
 		else if (m_size == this->capacity())
@@ -449,21 +449,21 @@ namespace libtorrent
 	std::string lazy_entry::list_string_value_at(int i) const
 	{
 		lazy_entry const* e = list_at(i);
-		if (e == 0 || e->type() != lazy_entry::string_t) return std::string();
+		if (e == nullptr || e->type() != lazy_entry::string_t) return std::string();
 		return e->string_value();
 	}
 
 	pascal_string lazy_entry::list_pstr_at(int i) const
 	{
 		lazy_entry const* e = list_at(i);
-		if (e == 0 || e->type() != lazy_entry::string_t) return pascal_string(0, 0);
+		if (e == nullptr || e->type() != lazy_entry::string_t) return pascal_string(nullptr, 0);
 		return e->string_pstr();
 	}
 
 	std::int64_t lazy_entry::list_int_value_at(int i, std::int64_t default_val) const
 	{
 		lazy_entry const* e = list_at(i);
-		if (e == 0 || e->type() != lazy_entry::int_t) return default_val;
+		if (e == nullptr || e->type() != lazy_entry::int_t) return default_val;
 		return e->int_value();
 	}
 

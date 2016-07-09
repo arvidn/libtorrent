@@ -62,7 +62,7 @@ std::vector<std::string> rejected_trackers;
 bool alert_predicate(libtorrent::alert const* a)
 {
 	anonymous_mode_alert const* am = alert_cast<anonymous_mode_alert>(a);
-	if (am == NULL) return false;
+	if (am == nullptr) return false;
 
 	if (am->kind == anonymous_mode_alert::tracker_not_anonymous)
 		rejected_trackers.push_back(am->str);

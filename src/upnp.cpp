@@ -1152,7 +1152,7 @@ struct upnp_error_category : boost::system::error_category
 	{
 		int num_errors = sizeof(error_codes) / sizeof(error_codes[0]);
 		error_code_t* end = error_codes + num_errors;
-		error_code_t tmp = {ev, 0};
+		error_code_t tmp = {ev, nullptr};
 		error_code_t* e = std::lower_bound(error_codes, end, tmp
 			, [] (error_code_t const& lhs, error_code_t const& rhs)
 			{ return lhs.code < rhs.code; });
@@ -1416,7 +1416,7 @@ void upnp::return_error(int mapping, int code)
 	TORRENT_ASSERT(is_single_thread());
 	int num_errors = sizeof(error_codes) / sizeof(error_codes[0]);
 	error_code_t* end = error_codes + num_errors;
-	error_code_t tmp = {code, 0};
+	error_code_t tmp = {code, nullptr};
 	error_code_t* e = std::lower_bound(error_codes, end, tmp
 		, [] (error_code_t const& lhs, error_code_t const& rhs)
 		{ return lhs.code < rhs.code; });

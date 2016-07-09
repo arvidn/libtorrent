@@ -118,7 +118,7 @@ TORRENT_TEST(wrap)
 	TEST_CHECK(pb.at(2) == (void*)2);
 
 	pb.remove(0xfffe);
-	TEST_CHECK(pb.at(0xfffe) == (void*)0);
+	TEST_CHECK(pb.at(0xfffe) == (void*)nullptr);
 	TEST_CHECK(pb.at(2) == (void*)2);
 }
 
@@ -138,7 +138,7 @@ TORRENT_TEST(wrap2)
 
 	void* old = pb.remove(0xfff3);
 	TEST_CHECK(old == (void*)1);
-	TEST_CHECK(pb.at(0xfff3) == (void*)0);
+	TEST_CHECK(pb.at(0xfff3) == (void*)nullptr);
 	TEST_CHECK(pb.at(new_index) == (void*)2);
 }
 
@@ -158,7 +158,7 @@ TORRENT_TEST(reverse_wrap)
 
 	void* old = pb.remove(0xfff3);
 	TEST_CHECK(old == (void*)1);
-	TEST_CHECK(pb.at(0xfff3) == (void*)0);
+	TEST_CHECK(pb.at(0xfff3) == (void*)nullptr);
 	TEST_CHECK(pb.at(new_index) == (void*)2);
 
 	pb.insert(0xffff, (void*)0xffff);

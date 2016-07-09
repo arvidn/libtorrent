@@ -212,7 +212,7 @@ namespace libtorrent
 		m_quota[0] = 0;
 		m_quota[1] = 0;
 
-		TORRENT_ASSERT(pack.peerinfo == 0 || pack.peerinfo->banned == false);
+		TORRENT_ASSERT(pack.peerinfo == nullptr || pack.peerinfo->banned == false);
 #ifndef TORRENT_DISABLE_LOGGING
 		error_code ec;
 		TORRENT_ASSERT(m_socket->remote_endpoint(ec) == m_remote || ec);
@@ -295,7 +295,7 @@ namespace libtorrent
 	void peer_connection::start()
 	{
 		TORRENT_ASSERT(is_single_thread());
-		TORRENT_ASSERT(m_peer_info == 0 || m_peer_info->connection == this);
+		TORRENT_ASSERT(m_peer_info == nullptr || m_peer_info->connection == this);
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 
 		if (!m_outgoing)
@@ -537,7 +537,7 @@ namespace libtorrent
 		{
 			if (strcmp((*i)->type(), type) == 0) return (*i).get();
 		}
-		return 0;
+		return nullptr;
 	}
 #endif
 
@@ -818,7 +818,7 @@ namespace libtorrent
 
 #if TORRENT_USE_ASSERTS
 		if (m_peer_info)
-			TORRENT_ASSERT(m_peer_info->connection == 0);
+			TORRENT_ASSERT(m_peer_info->connection == nullptr);
 #endif
 	}
 
@@ -1388,7 +1388,7 @@ namespace libtorrent
 		}
 
 		// clear the requests that haven't been sent yet
-		if (peer_info_struct() == 0 || !peer_info_struct()->on_parole)
+		if (peer_info_struct() == nullptr || !peer_info_struct()->on_parole)
 		{
 			// if the peer is not in parole mode, clear the queued
 			// up block requests
@@ -5282,7 +5282,7 @@ namespace libtorrent
 				return;
 			}
 
-			TORRENT_ASSERT(j->buffer.disk_block == 0);
+			TORRENT_ASSERT(j->buffer.disk_block == nullptr);
 			write_dont_have(r.piece);
 			write_reject_request(r);
 			if (t->alerts().should_post<file_error_alert>())
@@ -5762,7 +5762,7 @@ namespace libtorrent
 			// this should always succeed, because we checked how much space
 			// there was up-front
 			TORRENT_UNUSED(dst);
-			TORRENT_ASSERT(dst != 0);
+			TORRENT_ASSERT(dst != nullptr);
 			size -= free_space;
 			buf += free_space;
 		}
@@ -5772,7 +5772,7 @@ namespace libtorrent
 		while (size > 0)
 		{
 			char* chain_buf = m_ses.allocate_buffer();
-			if (chain_buf == 0)
+			if (chain_buf == nullptr)
 			{
 				disconnect(errors::no_memory, op_alloc_sndbuf);
 				return;
@@ -6378,7 +6378,7 @@ namespace libtorrent
 			TORRENT_ASSERT(m_peer_info->prev_amount_upload == 0);
 			TORRENT_ASSERT(m_peer_info->prev_amount_download == 0);
 			TORRENT_ASSERT(m_peer_info->connection == this
-				|| m_peer_info->connection == 0);
+				|| m_peer_info->connection == nullptr);
 
 			if (m_peer_info->optimistically_unchoked)
 				TORRENT_ASSERT(!is_choked());

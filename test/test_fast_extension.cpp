@@ -406,7 +406,7 @@ entry read_ut_metadata_msg(tcp::socket& s, char* recv_buffer, int size)
 
 boost::shared_ptr<torrent_info> setup_peer(tcp::socket& s, sha1_hash& ih
 	, boost::shared_ptr<lt::session>& ses, bool incoming = true
-	, int flags = 0, torrent_handle* th = NULL)
+	, int flags = 0, torrent_handle* th = nullptr)
 {
 	boost::shared_ptr<torrent_info> t = ::create_torrent();
 	ih = t->info_hash();

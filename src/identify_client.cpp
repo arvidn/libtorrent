@@ -308,7 +308,7 @@ namespace
 #endif
 
 		char temp[3];
-		char const* name = 0;
+		char const* name = nullptr;
 		if (i < name_map + size && std::equal(f.name, f.name + 2, i->id))
 		{
 			name = i->name;

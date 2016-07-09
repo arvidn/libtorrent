@@ -68,7 +68,7 @@ TORRENT_TEST(session)
 	{
 		a = wait_for_alert(ses, performance_alert::alert_type, "ses1");
 
-		if (a == NULL) break;
+		if (a == nullptr) break;
 		TEST_EQUAL(a->type(), performance_alert::alert_type);
 
 		if (alert_cast<performance_alert>(a)->warning_code

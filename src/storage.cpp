@@ -1126,7 +1126,7 @@ namespace libtorrent
 		, const int piece, const int offset, const int num_bufs, fileop& op
 		, storage_error& ec)
 	{
-		TORRENT_ASSERT(bufs != 0);
+		TORRENT_ASSERT(bufs != nullptr);
 		TORRENT_ASSERT(piece >= 0);
 		TORRENT_ASSERT(piece < files.num_pieces());
 		TORRENT_ASSERT(offset >= 0);

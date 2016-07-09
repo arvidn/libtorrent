@@ -275,7 +275,7 @@ namespace libtorrent
 		// dummy torrent object pointer
 		boost::shared_ptr<char> dummy;
 		counters cnt;
-		disk_io_thread disk_thread(ios, cnt, 0);
+		disk_io_thread disk_thread(ios, cnt, nullptr);
 		disk_thread.set_num_threads(1);
 
 		storage_params params;
@@ -320,7 +320,7 @@ namespace libtorrent
 	create_torrent::create_torrent(file_storage& fs, int piece_size
 		, int pad_file_limit, int flags, int alignment)
 		: m_files(fs)
-		, m_creation_date(time(0))
+		, m_creation_date(time(nullptr))
 		, m_multifile(fs.num_files() > 1)
 		, m_private(false)
 		, m_merkle_torrent((flags & merkle) != 0)
@@ -379,7 +379,7 @@ namespace libtorrent
 
 	create_torrent::create_torrent(torrent_info const& ti)
 		: m_files(const_cast<file_storage&>(ti.files()))
-		, m_creation_date(time(0))
+		, m_creation_date(time(nullptr))
 		, m_multifile(ti.num_files() > 1)
 		, m_private(ti.priv())
 		, m_merkle_torrent(ti.is_merkle_torrent())
@@ -569,7 +569,7 @@ namespace libtorrent
 				entry& sympath_e = info["symlink path"];
 
 				std::string split = split_path(m_files.symlink(0));
-				for (char const* e = split.c_str(); e != 0; e = next_path_element(e))
+				for (char const* e = split.c_str(); e != nullptr; e = next_path_element(e))
 					sympath_e.list().push_back(entry(e));
 			}
 			if (!m_filehashes.empty())
@@ -598,7 +598,7 @@ namespace libtorrent
 						TORRENT_ASSERT(split.c_str() == m_files.name());
 
 						for (char const* e = next_path_element(split.c_str());
-							e != 0; e = next_path_element(e))
+							e != nullptr; e = next_path_element(e))
 							path_e.list().push_back(entry(e));
 					}
 
@@ -618,7 +618,7 @@ namespace libtorrent
 						entry& sympath_e = file_e["symlink path"];
 
 						std::string split = split_path(m_files.symlink(i));
-						for (char const* e = split.c_str(); e != 0; e = next_path_element(e))
+						for (char const* e = split.c_str(); e != nullptr; e = next_path_element(e))
 							sympath_e.list().push_back(entry(e));
 					}
 					if (!m_filehashes.empty() && m_filehashes[i] != sha1_hash())
@@ -639,7 +639,7 @@ namespace libtorrent
 			int num_pieces = int(m_piece_hash.size());
 			for (int i = 0; i < num_pieces; ++i)
 				m_merkle_tree[first_leaf + i] = m_piece_hash[i];
-			sha1_hash filler(0);
+			sha1_hash filler(nullptr);
 			for (int i = num_pieces; i < num_leafs; ++i)
 				m_merkle_tree[first_leaf + i] = filler;
 
@@ -738,13 +738,13 @@ namespace libtorrent
 
 	void create_torrent::set_comment(char const* str)
 	{
-		if (str == 0) m_comment.clear();
+		if (str == nullptr) m_comment.clear();
 		else m_comment = str;
 	}
 
 	void create_torrent::set_creator(char const* str)
 	{
-		if (str == 0) m_created_by.clear();
+		if (str == nullptr) m_created_by.clear();
 		else m_created_by = str;
 	}
 

@@ -255,13 +255,13 @@ void parser_callback(std::string& out, int token, char const* s, int len
 	out.append(s, len);
 	if (token == xml_attribute)
 	{
-		TEST_CHECK(val != NULL);
+		TEST_CHECK(val != nullptr);
 		out += "V";
 		out.append(val, val_len);
 	}
 	else
 	{
-		TEST_CHECK(val == NULL);
+		TEST_CHECK(val == nullptr);
 	}
 }
 

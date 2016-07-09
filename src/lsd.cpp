@@ -278,7 +278,7 @@ void lsd::on_announce(udp::endpoint const& from, char* buf
 			continue;
 		}
 
-		sha1_hash ih(0);
+		sha1_hash ih(nullptr);
 		aux::from_hex(ih_str.c_str(), 40, ih.data());
 
 		if (!ih.is_all_zeros() && port != 0)

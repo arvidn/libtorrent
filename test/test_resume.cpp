@@ -326,7 +326,7 @@ TORRENT_TEST(resume_save_load_deprecated)
 		, "resume_save_load"));
 
 	TEST_CHECK(a);
-	if (a == NULL) return;
+	if (a == nullptr) return;
 
 	TEST_CHECK(a->resume_data);
 
@@ -353,7 +353,7 @@ TORRENT_TEST(resume_save_load_resume_deprecated)
 		, "resume_save_load"));
 
 	TEST_CHECK(a);
-	if (a == NULL) return;
+	if (a == nullptr) return;
 
 	TEST_CHECK(a->resume_data);
 
@@ -912,7 +912,7 @@ TORRENT_TEST(resume_save_load)
 		, "resume_save_load"));
 
 	TEST_CHECK(a);
-	if (a == NULL) return;
+	if (a == nullptr) return;
 
 	TEST_CHECK(a->resume_data);
 
@@ -939,7 +939,7 @@ TORRENT_TEST(resume_save_load_resume)
 		, "resume_save_load"));
 
 	TEST_CHECK(a);
-	if (a == NULL) return;
+	if (a == nullptr) return;
 
 	TEST_CHECK(a->resume_data);
 

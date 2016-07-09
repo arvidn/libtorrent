@@ -83,7 +83,7 @@ namespace libtorrent
 	bool is_space(char c)
 	{
 		static const char* ws = " \t\n\r\f\v";
-		return strchr(ws, c) != 0;
+		return strchr(ws, c) != nullptr;
 	}
 
 	char to_lower(char c)
@@ -148,9 +148,9 @@ namespace libtorrent
 
 	char* allocate_string_copy(char const* str)
 	{
-		if (str == 0) return 0;
+		if (str == nullptr) return nullptr;
 		char* tmp = static_cast<char*>(std::malloc(std::strlen(str) + 1));
-		if (tmp == 0) return 0;
+		if (tmp == nullptr) return nullptr;
 		std::strcpy(tmp, str);
 		return tmp;
 	}
@@ -325,7 +325,7 @@ namespace libtorrent
 
 	char* string_tokenize(char* last, char sep, char** next)
 	{
-		if (last == 0) return 0;
+		if (last == nullptr) return nullptr;
 		if (last[0] == '"')
 		{
 			*next = strchr(last + 1, '"');
@@ -337,7 +337,7 @@ namespace libtorrent
 		{
 			*next = strchr(last, sep);
 		}
-		if (*next == 0) return last;
+		if (*next == nullptr) return last;
 		**next = 0;
 		++(*next);
 		while (**next == sep && **next) ++(*next);

@@ -72,7 +72,7 @@ namespace libtorrent
 		else if (ps.type == settings_pack::i2p_proxy)
 		{
 			// it doesn't make any sense to try ssl over i2p
-			TORRENT_ASSERT(ssl_context == 0);
+			TORRENT_ASSERT(ssl_context == nullptr);
 			s.instantiate<i2p_stream>(ios);
 			s.get<i2p_stream>()->set_proxy(ps.hostname, ps.port);
 		}

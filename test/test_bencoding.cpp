@@ -338,7 +338,7 @@ TORRENT_TEST(lazy_entry)
 
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode(b, b + i + 1, e, ec, NULL, 1000, 1000);
+		int ret = lazy_bdecode(b, b + i + 1, e, ec, nullptr, 1000, 1000);
 		TEST_CHECK(ret != 0);
 		TEST_EQUAL(ec, error_code(bdecode_errors::limit_exceeded
 			, get_bdecode_category()));
@@ -350,7 +350,7 @@ TORRENT_TEST(lazy_entry)
 
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_CHECK(ret != 0);
 		std::printf("%s\n", print_entry(e).c_str());
 		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof
@@ -363,7 +363,7 @@ TORRENT_TEST(lazy_entry)
 
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_CHECK(ret != 0);
 		std::printf("%s\n", print_entry(e).c_str());
 		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof
@@ -377,7 +377,7 @@ TORRENT_TEST(lazy_entry)
 
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_CHECK(ret != 0);
 		std::printf("%s\n", print_entry(e).c_str());
 		TEST_EQUAL(ec, error_code(bdecode_errors::expected_digit
@@ -390,7 +390,7 @@ TORRENT_TEST(lazy_entry)
 
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_CHECK(ret != 0);
 		std::printf("%s\n", print_entry(e).c_str());
 		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof
@@ -403,7 +403,7 @@ TORRENT_TEST(lazy_entry)
 
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_CHECK(ret != 0);
 		std::printf("%s\n", print_entry(e).c_str());
 		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof
@@ -416,7 +416,7 @@ TORRENT_TEST(lazy_entry)
 
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_CHECK(ret != 0);
 		std::printf("%s\n", print_entry(e).c_str());
 		TEST_EQUAL(ec, error_code(bdecode_errors::expected_digit
@@ -429,7 +429,7 @@ TORRENT_TEST(lazy_entry)
 
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_CHECK(ret != 0);
 		std::printf("%s\n", print_entry(e).c_str());
 		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof
@@ -442,7 +442,7 @@ TORRENT_TEST(lazy_entry)
 
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_CHECK(ret != 0);
 		std::printf("%s\n", print_entry(e).c_str());
 		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof
@@ -456,7 +456,7 @@ TORRENT_TEST(lazy_entry)
 
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_CHECK(ret != 0);
 		std::printf("%s\n", print_entry(e).c_str());
 		TEST_EQUAL(ec, error_code(bdecode_errors::expected_colon
@@ -469,7 +469,7 @@ TORRENT_TEST(lazy_entry)
 
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_EQUAL(ret, -1);
 		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof
 			, get_bdecode_category()));
@@ -482,7 +482,7 @@ TORRENT_TEST(lazy_entry)
 
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_CHECK(ret != 0);
 		std::printf("%s\n", print_entry(e).c_str());
 		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof
@@ -495,7 +495,7 @@ TORRENT_TEST(lazy_entry)
 
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_EQUAL(ret, 0);
 		std::printf("%s\n", print_entry(e).c_str());
 
@@ -504,7 +504,7 @@ TORRENT_TEST(lazy_entry)
 		TEST_EQUAL(ps.len, 6);
 
 		ps = e.dict_find_pstr("foobar2");
-		TEST_EQUAL(ps.ptr, static_cast<char const*>(0));
+		TEST_EQUAL(ps.ptr, static_cast<char const*>(nullptr));
 		TEST_EQUAL(ps.len, 0);
 	}
 
@@ -514,7 +514,7 @@ TORRENT_TEST(lazy_entry)
 
 		lazy_entry e;
 		error_code ec;
-		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_EQUAL(ret, 0);
 		std::printf("%s\n", print_entry(e).c_str());
 
@@ -524,7 +524,7 @@ TORRENT_TEST(lazy_entry)
 		TEST_EQUAL(ps.len, 6);
 
 		ps = e.list_pstr_at(1);
-		TEST_EQUAL(ps.ptr, static_cast<char const*>(0));
+		TEST_EQUAL(ps.ptr, static_cast<char const*>(nullptr));
 		TEST_EQUAL(ps.len, 0);
 	}
 
@@ -634,7 +634,7 @@ TORRENT_TEST(lazy_entry)
 		{
 			lazy_entry e;
 			error_code ec;
-			int ret = lazy_bdecode(b[i], b[i] + strlen(b[i]), e, ec, NULL);
+			int ret = lazy_bdecode(b[i], b[i] + strlen(b[i]), e, ec, nullptr);
 			TEST_EQUAL(ret, -1);
 			TEST_CHECK(ec == error_code(bdecode_errors::unexpected_eof));
 			std::printf("%s\n", print_entry(e).c_str());

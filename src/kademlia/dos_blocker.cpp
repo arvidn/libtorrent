@@ -52,7 +52,7 @@ namespace libtorrent { namespace dht
 
 	bool dos_blocker::incoming(address addr, time_point now, dht_logger* logger)
 	{
-		node_ban_entry* match = 0;
+		node_ban_entry* match = nullptr;
 		node_ban_entry* min = m_ban_nodes;
 		for (node_ban_entry* i = m_ban_nodes; i < m_ban_nodes + num_ban_nodes; ++i)
 		{

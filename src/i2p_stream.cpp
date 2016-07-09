@@ -162,7 +162,7 @@ namespace libtorrent
 	void i2p_connection::set_local_endpoint(error_code const& ec, char const* dest
 		, i2p_stream::handler_type const& h)
 	{
-		if (!ec && dest != 0)
+		if (!ec && dest != nullptr)
 			m_i2p_local_endpoint = dest;
 		else
 			m_i2p_local_endpoint.clear();
@@ -205,7 +205,7 @@ namespace libtorrent
 
 		if (ec)
 		{
-			handler(ec, 0);
+			handler(ec, nullptr);
 			return;
 		}
 
@@ -214,7 +214,7 @@ namespace libtorrent
 
 	i2p_stream::i2p_stream(io_service& io_service)
 		: proxy_base(io_service)
-		, m_id(0)
+		, m_id(nullptr)
 		, m_command(cmd_create_session)
 		, m_state(0)
 	{
@@ -314,8 +314,8 @@ namespace libtorrent
 		char* ptr = &m_buffer[0];
 		char* next = ptr;
 
-		char const* expect1 = 0;
-		char const* expect2 = 0;
+		char const* expect1 = nullptr;
+		char const* expect2 = nullptr;
 
 		switch (m_state)
 		{
@@ -340,9 +340,9 @@ namespace libtorrent
 
 //		std::fprintf(stderr, "<<< %s\n", &m_buffer[0]);
 		ptr = string_tokenize(next, ' ', &next);
-		if (ptr == 0 || expect1 == 0 || strcmp(expect1, ptr)) { handle_error(invalid_response, h); return; }
+		if (ptr == nullptr || expect1 == nullptr || strcmp(expect1, ptr)) { handle_error(invalid_response, h); return; }
 		ptr = string_tokenize(next, ' ', &next);
-		if (ptr == 0 || expect2 == 0 || strcmp(expect2, ptr)) { handle_error(invalid_response, h); return; }
+		if (ptr == nullptr || expect2 == nullptr || strcmp(expect2, ptr)) { handle_error(invalid_response, h); return; }
 
 		int result = 0;
 //		char const* message = 0;
@@ -351,10 +351,10 @@ namespace libtorrent
 		for(;;)
 		{
 			char* name = string_tokenize(next, '=', &next);
-			if (name == 0) break;
+			if (name == nullptr) break;
 //			std::fprintf(stderr, "name=\"%s\"\n", name);
 			char* ptr2 = string_tokenize(next, ' ', &next);
-			if (ptr2 == 0) { handle_error(invalid_response, h); return; }
+			if (ptr2 == nullptr) { handle_error(invalid_response, h); return; }
 //			std::fprintf(stderr, "value=\"%s\"\n", ptr2);
 
 			if (strcmp("RESULT", name) == 0)

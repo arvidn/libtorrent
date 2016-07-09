@@ -122,7 +122,7 @@ namespace libtorrent
 		{
 			m_buffer.push_back(0);
 			char* status = std::strchr(&m_buffer[0], ' ');
-			if (status == 0)
+			if (status == nullptr)
 			{
 				(*h)(boost::asio::error::operation_not_supported);
 				error_code ec;

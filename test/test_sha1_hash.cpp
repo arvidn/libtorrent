@@ -45,8 +45,8 @@ static sha1_hash to_hash(char const* s)
 
 TORRENT_TEST(sha1_hash)
 {
-	sha1_hash h1(0);
-	sha1_hash h2(0);
+	sha1_hash h1(nullptr);
+	sha1_hash h2(nullptr);
 	TEST_CHECK(h1 == h2);
 	TEST_CHECK(!(h1 != h2));
 	TEST_CHECK(!(h1 < h2));

@@ -84,13 +84,13 @@ int min_distance_exp(node_id const& n1, std::vector<node_id> const& ids)
 
 node_id generate_id_impl(address const& ip_, std::uint32_t r)
 {
-	std::uint8_t* ip = 0;
+	std::uint8_t* ip = nullptr;
 
 	static const std::uint8_t v4mask[] = { 0x03, 0x0f, 0x3f, 0xff };
 #if TORRENT_USE_IPV6
 	static const std::uint8_t v6mask[] = { 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f, 0xff };
 #endif
-	std::uint8_t const* mask = 0;
+	std::uint8_t const* mask = nullptr;
 	int num_octets = 0;
 
 	address_v4::bytes_type b4;
@@ -209,7 +209,7 @@ node_id generate_prefix_mask(int bits)
 {
 	TORRENT_ASSERT(bits >= 0);
 	TORRENT_ASSERT(bits <= 160);
-	node_id mask(0);
+	node_id mask(nullptr);
 	int b = 0;
 	for (; b < bits - 7; b += 8) mask[b/8] |= 0xff;
 	if (bits < 160) mask[b/8] |= (0xff << (8 - (bits&7))) & 0xff;

@@ -248,7 +248,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		{
 			if ((rtm->rtm_addrs & (1 << i)) == 0)
 			{
-				rti_info[i] = 0;
+				rti_info[i] = nullptr;
 				continue;
 			}
 			rti_info[i] = sa;
@@ -262,9 +262,9 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		}
 
 		sa = rti_info[RTAX_GATEWAY];
-		if (sa == 0
-			|| rti_info[RTAX_DST] == 0
-			|| rti_info[RTAX_NETMASK] == 0
+		if (sa == nullptr
+			|| rti_info[RTAX_DST] == nullptr
+			|| rti_info[RTAX_NETMASK] == nullptr
 			|| (sa->sa_family != AF_INET
 #if TORRENT_USE_IPV6
 				&& sa->sa_family != AF_INET6
@@ -454,7 +454,7 @@ namespace libtorrent
 
 		for (ifaddrs* ifa = ifaddr; ifa; ifa = ifa->ifa_next)
 		{
-			if (ifa->ifa_addr == 0) continue;
+			if (ifa->ifa_addr == nullptr) continue;
 			if ((ifa->ifa_flags & IFF_UP) == 0) continue;
 
 			int family = ifa->ifa_addr->sa_family;
@@ -847,7 +847,7 @@ namespace libtorrent
 #ifdef TORRENT_OS2
 	if (__libsocket_sysctl(mib, 6, 0, &needed, 0, 0) < 0)
 #else
-	if (sysctl(mib, 6, 0, &needed, 0, 0) < 0)
+	if (sysctl(mib, 6, nullptr, &needed, nullptr, 0) < 0)
 #endif
 	{
 		ec = error_code(errno, system_category());
@@ -860,7 +860,7 @@ namespace libtorrent
 	}
 
 	boost::scoped_array<char> buf(new (std::nothrow) char[needed]);
-	if (buf.get() == 0)
+	if (buf.get() == nullptr)
 	{
 		ec = boost::asio::error::no_memory;
 		return std::vector<ip_route>();
@@ -869,7 +869,7 @@ namespace libtorrent
 #ifdef TORRENT_OS2
 	if (__libsocket_sysctl(mib, 6, buf.get(), &needed, 0, 0) < 0)
 #else
-	if (sysctl(mib, 6, buf.get(), &needed, 0, 0) < 0)
+	if (sysctl(mib, 6, buf.get(), &needed, nullptr, 0) < 0)
 #endif
 	{
 		ec = error_code(errno, system_category());

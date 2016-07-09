@@ -102,7 +102,7 @@ void test_transfer()
 //	atp.storage = &disabled_storage_constructor;
 
 	// test using piece sizes smaller than 16kB
-	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
+	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, nullptr
 		, true, false, true, "_utp", 0, &t, false, &atp);
 
 	const int timeout = 8;

@@ -61,7 +61,7 @@ void put_data::set_targets(std::vector<std::pair<node_entry, std::string> > cons
 		, end(targets.end()); i != end; ++i)
 	{
 		void* ptr = m_node.m_rpc.allocate_observer();
-		if (ptr == 0) return;
+		if (ptr == nullptr) return;
 
 		observer_ptr o(new (ptr) put_data_observer(this, i->first.ep()
 			, i->first.id, i->second));

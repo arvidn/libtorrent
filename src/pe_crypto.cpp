@@ -349,7 +349,7 @@ void rc4_init(const unsigned char* in, unsigned long len, rc4 *state)
 	unsigned char key[key_size], tmp, *s;
 	int keylen, x, y, j;
 
-	TORRENT_ASSERT(state != 0);
+	TORRENT_ASSERT(state != nullptr);
 	TORRENT_ASSERT(len <= key_size);
 	if (len > key_size) len = key_size;
 
@@ -384,8 +384,8 @@ unsigned long rc4_encrypt(unsigned char *out, unsigned long outlen, rc4 *state)
 	unsigned char x, y, *s, tmp;
 	unsigned long n;
 
-	TORRENT_ASSERT(out != 0);
-	TORRENT_ASSERT(state != 0);
+	TORRENT_ASSERT(out != nullptr);
+	TORRENT_ASSERT(state != nullptr);
 
 	n = outlen;
 	x = state->x;

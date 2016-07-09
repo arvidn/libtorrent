@@ -165,7 +165,7 @@ void test_transfer(lt::session& ses, boost::shared_ptr<torrent_info> torrent_fil
 
 		cnt = get_counters(ses);
 
-		print_ses_rate(i / 10.f, &s, NULL);
+		print_ses_rate(i / 10.f, &s, nullptr);
 		print_alerts(ses, "  >>  ses", test_ban, false, false, &on_alert);
 
 		if (test_ban && th.url_seeds().empty() && th.http_seeds().empty())

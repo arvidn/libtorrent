@@ -1493,7 +1493,7 @@ namespace libtorrent
 				// the peer at 'ep'. We need to find which of
 				// our connections points to that endpoint
 				bt_peer_connection* p = t->find_peer(ep);
-				if (p == 0)
+				if (p == nullptr)
 				{
 					// we're not connected to this peer
 					write_holepunch_msg(hp_failed, ep, hp_not_connected);
@@ -1517,7 +1517,7 @@ namespace libtorrent
 			{
 				// add or find the peer with this endpoint
 				torrent_peer* p = t->add_peer(ep, peer_info::pex);
-				if (p == 0 || p->connection)
+				if (p == nullptr || p->connection)
 				{
 #ifndef TORRENT_DISABLE_LOGGING
 					peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
@@ -1789,7 +1789,7 @@ namespace libtorrent
 
 		// there is supposed to be a remote listen port
 		int listen_port = int(root.dict_find_int_value("p"));
-		if (listen_port > 0 && peer_info_struct() != 0)
+		if (listen_port > 0 && peer_info_struct() != nullptr)
 		{
 			t->update_peer_port(listen_port, peer_info_struct(), peer_info::incoming);
 			received_listen_port();
@@ -2111,7 +2111,7 @@ namespace libtorrent
 		const int packet_size = (num_pieces + 7) / 8 + 5;
 
 		std::uint8_t* msg = TORRENT_ALLOCA(std::uint8_t, packet_size);
-		if (msg == 0) return; // out of memory
+		if (msg == nullptr) return; // out of memory
 		unsigned char* ptr = msg;
 
 		detail::write_int32(packet_size - 4, ptr);

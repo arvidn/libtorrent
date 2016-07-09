@@ -143,7 +143,7 @@ namespace libtorrent
 			== m_deleted_storages.end());
 #endif
 
-		TORRENT_ASSERT(st != 0);
+		TORRENT_ASSERT(st != nullptr);
 		TORRENT_ASSERT(is_complete(p));
 		TORRENT_ASSERT((m & file::rw_mask) == file::read_only
 			|| (m & file::rw_mask) == file::read_write);
@@ -281,7 +281,7 @@ namespace libtorrent
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 
-		if (st == 0)
+		if (st == nullptr)
 		{
 			file_set tmp;
 			tmp.swap(m_files);

@@ -177,9 +177,9 @@ alert const* wait_for_alert(lt::session& ses, int type, char const* name)
 	while (true)
 	{
 		time_point now = clock_type::now();
-		if (now > end_time) return NULL;
+		if (now > end_time) return nullptr;
 
-		alert const* ret = NULL;
+		alert const* ret = nullptr;
 
 		ses.wait_for_alert(end_time - now);
 		std::vector<alert*> alerts;
@@ -198,14 +198,14 @@ alert const* wait_for_alert(lt::session& ses, int type, char const* name)
 		}
 		if (ret) return ret;
 	}
-	return NULL;
+	return nullptr;
 }
 
 int load_file(std::string const& filename, std::vector<char>& v, libtorrent::error_code& ec, int limit)
 {
 	ec.clear();
 	FILE* f = fopen(filename.c_str(), "rb");
-	if (f == NULL)
+	if (f == nullptr)
 	{
 		ec.assign(errno, boost::system::system_category());
 		return -1;
@@ -307,7 +307,7 @@ bool print_alerts(lt::session& ses, char const* name
 			std::fprintf(stderr, "%s: %s: [%s] %s\n", time_now_string(), name, (a)->what(), (a)->message().c_str());
 		}
 
-		TEST_CHECK(alert_cast<fastresume_rejected_alert>(a) == 0 || allow_failed_fastresume);
+		TEST_CHECK(alert_cast<fastresume_rejected_alert>(a) == nullptr || allow_failed_fastresume);
 /*
 		peer_error_alert const* pea = alert_cast<peer_error_alert>(a);
 		if (pea)
@@ -349,7 +349,7 @@ bool listen_alert(libtorrent::alert const* a)
 void wait_for_listen(lt::session& ses, char const* name)
 {
 	listen_done = false;
-	alert const* a = 0;
+	alert const* a = nullptr;
 	do
 	{
 		print_alerts(ses, name, true, true, true, &listen_alert, false);
@@ -373,7 +373,7 @@ void wait_for_downloading(lt::session& ses, char const* name)
 {
 	time_point start = clock_type::now();
 	downloading_done = false;
-	alert const* a = 0;
+	alert const* a = nullptr;
 	do
 	{
 		print_alerts(ses, name, true, true, true, &downloading_alert, false);
@@ -488,9 +488,9 @@ pid_type async_run(char const* cmdline)
 		argv.push_back(argp);
 	}
 	*argp = '\0';
-	argv.push_back(NULL);
+	argv.push_back(nullptr);
 
-	int ret = posix_spawnp(&p, argv[0], NULL, NULL, &argv[0], NULL);
+	int ret = posix_spawnp(&p, argv[0], nullptr, nullptr, &argv[0], nullptr);
 	if (ret != 0)
 	{
 		std::fprintf(stderr, "failed (%d) %s\n", errno, strerror(errno));
@@ -764,7 +764,7 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 	if (ses3) TORRENT_ASSERT(ses3->id() != ses2->id());
 
 	boost::shared_ptr<torrent_info> t;
-	if (torrent == 0)
+	if (torrent == nullptr)
 	{
 		error_code ec;
 		create_directory("tmp1" + suffix, ec);

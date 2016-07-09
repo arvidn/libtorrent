@@ -40,8 +40,8 @@ using namespace libtorrent;
 std::string class_name(peer_class_t id, peer_class_pool const& p)
 {
 	peer_class const* c = p.at(id);
-	TEST_CHECK(c != NULL);
-	if (c == NULL) return "";
+	TEST_CHECK(c != nullptr);
+	if (c == nullptr) return "";
 	peer_class_info i;
 	c->get_info(&i);
 	return i.label;
@@ -73,7 +73,7 @@ TORRENT_TEST(peer_class)
 	TEST_CHECK(class_name(id3, pool) == "test3");
 	pool.decref(id3);
 	// it should have been deleted now
-	TEST_CHECK(pool.at(id3) == NULL);
+	TEST_CHECK(pool.at(id3) == nullptr);
 
 	// test setting and retrieving upload and download rates
 	pool.at(id2)->set_upload_limit(1000);
@@ -110,7 +110,7 @@ TORRENT_TEST(peer_class)
 
 	pool.decref(id2);
 	pool.decref(id1);
-	TEST_CHECK(pool.at(id2) == NULL);
-	TEST_CHECK(pool.at(id1) == NULL);
+	TEST_CHECK(pool.at(id2) == nullptr);
+	TEST_CHECK(pool.at(id1) == nullptr);
 }
 

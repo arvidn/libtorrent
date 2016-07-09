@@ -103,7 +103,7 @@ namespace
 
 	struct dht_immutable_item
 	{
-		dht_immutable_item() : value(0), num_announcers(0), size(0) {}
+		dht_immutable_item() : value(nullptr), num_announcers(0), size(0) {}
 		// malloced space for the actual value
 		char* value;
 		// this counts the number of IPs we have seen

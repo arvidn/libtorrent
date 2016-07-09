@@ -1101,7 +1101,7 @@ namespace libtorrent {
 
 	peer_blocked_alert::peer_blocked_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h, tcp::endpoint const& ep, int r)
-		: peer_alert(alloc, h, ep, peer_id(0))
+		: peer_alert(alloc, h, ep, peer_id(nullptr))
 		, reason(r)
 	{}
 
@@ -1233,7 +1233,7 @@ namespace libtorrent {
 
 	lsd_peer_alert::lsd_peer_alert(aux::stack_allocator& alloc, torrent_handle const& h
 		, tcp::endpoint const& i)
-		: peer_alert(alloc, h, i, peer_id(0))
+		: peer_alert(alloc, h, i, peer_id(nullptr))
 	{}
 
 	std::string lsd_peer_alert::message() const
@@ -1588,7 +1588,7 @@ namespace libtorrent {
 		, std::string s
 		, std::uint64_t sequence_number
 		, int n)
-		: target(0)
+		: target(nullptr)
 		, public_key(key)
 		, signature(sig)
 		, salt(s)

@@ -228,7 +228,7 @@ namespace libtorrent
 		{
 			info[i].num_peers = 0;
 			info[i].state = block_info::state_none;
-			info[i].peer = 0;
+			info[i].peer = nullptr;
 #if TORRENT_USE_ASSERTS
 			info[i].piece_index = piece;
 			info[i].peers.clear();
@@ -483,7 +483,7 @@ namespace libtorrent
 			}
 		}
 
-		if (t != 0)
+		if (t != nullptr)
 			TORRENT_ASSERT(int(m_piece_map.size()) == t->torrent_file().num_pieces());
 
 		for (int j = 0; j < piece_pos::num_download_categories; ++j)
@@ -501,7 +501,7 @@ namespace libtorrent
 				for (int k = 0; k < num_blocks; ++k)
 				{
 					TORRENT_ASSERT(info[k].piece_index == i->index);
-					TORRENT_ASSERT(info[k].peer == 0
+					TORRENT_ASSERT(info[k].peer == nullptr
 						|| info[k].peer->in_use);
 
 					if (info[k].state == block_info::state_finished)
@@ -632,11 +632,11 @@ namespace libtorrent
 
 			if (p.index == piece_pos::we_have_index)
 			{
-				TORRENT_ASSERT(t == 0 || t->have_piece(index));
+				TORRENT_ASSERT(t == nullptr || t->have_piece(index));
 				TORRENT_ASSERT(p.downloading() == false);
 			}
 
-			if (t != 0)
+			if (t != nullptr)
 				TORRENT_ASSERT(!t->have_piece(index));
 
 			int prio = p.priority(this);
@@ -1913,7 +1913,7 @@ namespace libtorrent
 		, counters& pc
 		) const
 	{
-		TORRENT_ASSERT(peer == 0 || peer->in_use);
+		TORRENT_ASSERT(peer == nullptr || peer->in_use);
 		std::uint32_t ret = 0;
 
 		// prevent the number of partial pieces to grow indefinitely
@@ -2397,7 +2397,7 @@ get_out:
 			for (int j = 0; j < num_blocks_in_piece; ++j)
 			{
 				block_info const& info = binfo[j];
-				TORRENT_ASSERT(info.peer == 0
+				TORRENT_ASSERT(info.peer == nullptr
 					|| static_cast<torrent_peer*>(info.peer)->in_use);
 				TORRENT_ASSERT(info.piece_index == dp->index);
 				if (info.state != block_info::state_requested
@@ -2537,7 +2537,7 @@ get_out:
 		for (std::vector<block_info>::iterator i = m_block_info.begin()
 			, end(m_block_info.end()); i != end; ++i)
 		{
-			TORRENT_ASSERT(i->peer == 0 || static_cast<torrent_peer*>(i->peer)->in_use);
+			TORRENT_ASSERT(i->peer == nullptr || static_cast<torrent_peer*>(i->peer)->in_use);
 		}
 	}
 #endif
@@ -2547,7 +2547,7 @@ get_out:
 		for (std::vector<block_info>::iterator i = m_block_info.begin()
 			, end(m_block_info.end()); i != end; ++i)
 		{
-			if (i->peer == peer) i->peer = 0;
+			if (i->peer == peer) i->peer = nullptr;
 		}
 	}
 
@@ -2570,7 +2570,7 @@ get_out:
 		for (int j = 0; j < num_blocks_in_piece; ++j)
 		{
 			piece_picker::block_info const& info = binfo[j];
-			TORRENT_ASSERT(info.peer == 0 || static_cast<torrent_peer*>(info.peer)->in_use);
+			TORRENT_ASSERT(info.peer == nullptr || static_cast<torrent_peer*>(info.peer)->in_use);
 			TORRENT_ASSERT(info.piece_index == p.index);
 			if (info.state == piece_picker::block_info::state_none)
 			{
@@ -2587,7 +2587,7 @@ get_out:
 			{
 				exclusive = false;
 				if (info.state == piece_picker::block_info::state_requested
-					&& info.peer != 0)
+					&& info.peer != nullptr)
 				{
 					exclusive_active = false;
 				}
@@ -3068,7 +3068,7 @@ get_out:
 			<< block.piece_index << ", " << block.block_index << "} )" << std::endl;
 #endif
 
-		TORRENT_ASSERT(peer == 0 || static_cast<torrent_peer*>(peer)->in_use);
+		TORRENT_ASSERT(peer == nullptr || static_cast<torrent_peer*>(peer)->in_use);
 		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
 		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
 		TORRENT_ASSERT(block.piece_index < m_piece_map.size());
@@ -3215,7 +3215,7 @@ get_out:
 		std::cerr << "[" << this << "] " << "mark_as_writing( {" << block.piece_index << ", " << block.block_index << "} )" << std::endl;
 #endif
 
-		TORRENT_ASSERT(peer == 0 || static_cast<torrent_peer*>(peer)->in_use);
+		TORRENT_ASSERT(peer == nullptr || static_cast<torrent_peer*>(peer)->in_use);
 
 		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
 		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
@@ -3360,7 +3360,7 @@ get_out:
 		if (info.state == block_info::state_finished) return;
 		if (info.state == block_info::state_writing) --i->writing;
 
-		info.peer = 0;
+		info.peer = nullptr;
 		info.state = block_info::state_none;
 		if (i->passed_hash_check)
 		{
@@ -3426,7 +3426,7 @@ get_out:
 		TORRENT_ASSERT(info.num_peers == 0);
 		info.peer = peer;
 		TORRENT_ASSERT(info.state == block_info::state_writing
-			|| peer == 0);
+			|| peer == nullptr);
 		if (info.state == block_info::state_writing)
 		{
 			--i->writing;
@@ -3467,7 +3467,7 @@ get_out:
 			<< block.piece_index << ", " << block.block_index << "} )" << std::endl;
 #endif
 
-		TORRENT_ASSERT(peer == 0 || static_cast<torrent_peer*>(peer)->in_use);
+		TORRENT_ASSERT(peer == nullptr || static_cast<torrent_peer*>(peer)->in_use);
 		TORRENT_ASSERT(block.piece_index >= 0);
 		TORRENT_ASSERT(block.block_index >= 0);
 		TORRENT_ASSERT(block.piece_index < m_piece_map.size());
@@ -3525,7 +3525,7 @@ get_out:
 			// and mark_as_finished. When a peer disconnects, its m_peer_info
 			// pointer is set to nullptr. If so, preserve the previous peer
 			// pointer, instead of forgetting who we downloaded this block from
-			if (info.state != block_info::state_writing || peer != 0)
+			if (info.state != block_info::state_writing || peer != nullptr)
 				info.peer = peer;
 
 			++i->finished;
@@ -3598,7 +3598,7 @@ get_out:
 		block_info const* binfo = blocks_for_piece(*i);
 		for (int j = 0; j != num_blocks; ++j)
 		{
-			TORRENT_ASSERT(binfo[j].peer == 0
+			TORRENT_ASSERT(binfo[j].peer == nullptr
 				|| binfo[j].peer->in_use);
 			d.push_back(binfo[j].peer);
 		}
@@ -3607,7 +3607,7 @@ get_out:
 	torrent_peer* piece_picker::get_downloader(piece_block block) const
 	{
 		int state = m_piece_map[block.piece_index].download_queue();
-		if (state == piece_pos::piece_open) return 0;
+		if (state == piece_pos::piece_open) return nullptr;
 
 		std::vector<downloading_piece>::const_iterator i = find_dl_piece(state
 			, block.piece_index);
@@ -3619,7 +3619,7 @@ get_out:
 			return nullptr;
 
 		torrent_peer* peer = binfo[block.block_index].peer;
-		TORRENT_ASSERT(peer == 0 || static_cast<torrent_peer*>(peer)->in_use);
+		TORRENT_ASSERT(peer == nullptr || static_cast<torrent_peer*>(peer)->in_use);
 		return peer;
 	}
 
@@ -3634,7 +3634,7 @@ get_out:
 #ifdef TORRENT_PICKER_LOG
 		std::cerr << "[" << this << "] " << "abort_download( {" << block.piece_index << ", " << block.block_index << "} )" << std::endl;
 #endif
-		TORRENT_ASSERT(peer == 0 || peer->in_use);
+		TORRENT_ASSERT(peer == nullptr || peer->in_use);
 
 		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
 		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
@@ -3650,7 +3650,7 @@ get_out:
 
 		block_info* binfo = blocks_for_piece(*i);
 		block_info& info = binfo[block.block_index];
-		TORRENT_ASSERT(info.peer == 0 || info.peer->in_use);
+		TORRENT_ASSERT(info.peer == nullptr || info.peer->in_use);
 		TORRENT_ASSERT(info.piece_index == block.piece_index);
 
 		TORRENT_ASSERT(info.state != block_info::state_none);
@@ -3666,7 +3666,7 @@ get_out:
 #endif
 		TORRENT_ASSERT(info.num_peers > 0);
 		if (info.num_peers > 0) --info.num_peers;
-		if (info.peer == peer) info.peer = 0;
+		if (info.peer == peer) info.peer = nullptr;
 		TORRENT_ASSERT(info.peers.size() == info.num_peers);
 
 		TORRENT_ASSERT(int(block.block_index) < blocks_in_piece(block.piece_index));
@@ -3675,7 +3675,7 @@ get_out:
 		if (info.num_peers > 0) return;
 
 		// clear the downloader of this block
-		info.peer = 0;
+		info.peer = nullptr;
 
 		// clear this block as being downloaded
 		info.state = block_info::state_none;

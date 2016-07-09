@@ -705,7 +705,7 @@ boost::shared_ptr<torrent_info> make_torrent(bool priv)
 	ct.add_tracker("http://tracker.com:8080/announce");
 
 	for (int i = 0; i < ct.num_pieces(); ++i)
-		ct.set_hash(i, sha1_hash(0));
+		ct.set_hash(i, sha1_hash(nullptr));
 
 	ct.set_priv(priv);
 

@@ -118,7 +118,7 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 {
 	TORRENT_ASSERT(m_node.m_rpc.allocation_size() >= sizeof(find_data_observer));
 	void* ptr = m_node.m_rpc.allocate_observer();
-	if (ptr == 0)
+	if (ptr == nullptr)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		if (get_node().observer())
@@ -526,7 +526,7 @@ void traversal_algorithm::add_router_entries()
 	for (routing_table::router_iterator i = m_node.m_table.router_begin()
 		, end(m_node.m_table.router_end()); i != end; ++i)
 	{
-		add_entry(node_id(0), *i, observer::flag_initial);
+		add_entry(node_id(nullptr), *i, observer::flag_initial);
 	}
 }
 

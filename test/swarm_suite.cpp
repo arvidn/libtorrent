@@ -131,7 +131,7 @@ void test_swarm(int flags)
 	if (flags & seed_mode) p.flags |= add_torrent_params::flag_seed_mode;
 	// test using piece sizes smaller than 16kB
 	std::tie(tor1, tor2, tor3) = setup_transfer(&ses1, &ses2, &ses3, true
-		, false, true, "_swarm", 8 * 1024, 0, flags & super_seeding, &p);
+		, false, true, "_swarm", 8 * 1024, nullptr, flags & super_seeding, &p);
 
 	if (flags & time_critical)
 	{
@@ -197,7 +197,7 @@ void test_swarm(int flags)
 
 	alert const* a = wait_for_alert(ses1, torrent_deleted_alert::alert_type, "swarm_suite");
 
-	TEST_CHECK(alert_cast<torrent_deleted_alert>(a) != 0);
+	TEST_CHECK(alert_cast<torrent_deleted_alert>(a) != nullptr);
 
 	// there shouldn't be any alerts generated from now on
 	// make sure that the timer in wait_for_alert() works

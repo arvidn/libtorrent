@@ -544,7 +544,7 @@ node_entry* routing_table::find_node(udp::endpoint const& ep
 		}
 	}
 	*bucket = m_buckets.end();
-	return 0;
+	return nullptr;
 }
 
 void routing_table::remove_node(node_entry* n
@@ -641,7 +641,7 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 
 		table_t::iterator existing_bucket;
 		node_entry* existing = find_node(e.ep(), &existing_bucket);
-		if (existing == 0)
+		if (existing == nullptr)
 		{
 			// the node we're trying to add is not a match with an existing node. we
 			// should ignore it, unless we allow duplicate IPs in our routing

@@ -78,7 +78,7 @@ namespace libtorrent
 		static const char invalid_chars[] = "";
 #endif
 		if (c >= 0 && c < 32) return false;
-		return std::strchr(invalid_chars, c) == 0;
+		return std::strchr(invalid_chars, c) == nullptr;
 	}
 
 	} // anonymous namespace
@@ -985,7 +985,7 @@ namespace libtorrent
 		if (m_orig_files) m_orig_files.reset();
 		else m_files.unload();
 
-		m_piece_hashes = 0;
+		m_piece_hashes = nullptr;
 		std::vector<web_seed_entry>().swap(m_web_seeds);
 
 		TORRENT_ASSERT(!is_loaded());
@@ -1299,7 +1299,7 @@ namespace libtorrent
 			ret[sibling] = m_merkle_tree[sibling];
 			// we cannot build the tree path if one
 			// of the nodes in the tree is missing
-			TORRENT_ASSERT(m_merkle_tree[sibling] != sha1_hash(0));
+			TORRENT_ASSERT(m_merkle_tree[sibling] != sha1_hash(nullptr));
 			n = parent;
 		}
 		return ret;
@@ -1632,7 +1632,7 @@ namespace libtorrent
 	{
 		for (int i = 0; i < m_files.num_files(); ++i)
 		{
-			TORRENT_ASSERT(m_files.file_name_ptr(i) != 0);
+			TORRENT_ASSERT(m_files.file_name_ptr(i) != nullptr);
 			if (m_files.file_name_len(i) != -1)
 			{
 				// name needs to point into the allocated info section buffer
@@ -1646,7 +1646,7 @@ namespace libtorrent
 			}
 		}
 
-		if (m_piece_hashes != 0)
+		if (m_piece_hashes != nullptr)
 		{
 			TORRENT_ASSERT(m_piece_hashes >= m_info_section.get());
 			TORRENT_ASSERT(m_piece_hashes < m_info_section.get() + m_info_section_size);

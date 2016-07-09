@@ -420,7 +420,7 @@ TORRENT_TEST(depth_limit)
 
 	bdecode_node e;
 	error_code ec;
-	int ret = bdecode(b, b + sizeof(b), e, ec, NULL, 100);
+	int ret = bdecode(b, b + sizeof(b), e, ec, nullptr, 100);
 	TEST_CHECK(ret != 0);
 	TEST_EQUAL(ec, error_code(bdecode_errors::depth_exceeded
 		, get_bdecode_category()));
@@ -438,7 +438,7 @@ TORRENT_TEST(item_limit)
 
 	bdecode_node e;
 	error_code ec;
-	int ret = bdecode(b, b + i + 1, e, ec, NULL, 1000, 1000);
+	int ret = bdecode(b, b + i + 1, e, ec, nullptr, 1000, 1000);
 	TEST_CHECK(ret != 0);
 	TEST_EQUAL(ec, error_code(bdecode_errors::limit_exceeded
 		, get_bdecode_category()));
@@ -588,7 +588,7 @@ TORRENT_TEST(empty_string)
 
 	bdecode_node e;
 	error_code ec;
-	int ret = bdecode(b, b + sizeof(b)-1, e, ec, NULL);
+	int ret = bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 	TEST_EQUAL(ret, -1);
 	TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof));
 	std::printf("%s\n", print_entry(e).c_str());

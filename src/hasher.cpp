@@ -88,7 +88,7 @@ namespace libtorrent
 	hasher::hasher(const char* data, int len)
 		: hasher()
 	{
-		TORRENT_ASSERT(data != 0);
+		TORRENT_ASSERT(data != nullptr);
 		TORRENT_ASSERT(len > 0);
 		update(data, len);
 	}
@@ -140,7 +140,7 @@ namespace libtorrent
 
 	hasher& hasher::update(const char* data, int len)
 	{
-		TORRENT_ASSERT(data != 0);
+		TORRENT_ASSERT(data != nullptr);
 		TORRENT_ASSERT(len > 0);
 #ifdef TORRENT_USE_LIBGCRYPT
 		gcry_md_write(m_context, data, len);

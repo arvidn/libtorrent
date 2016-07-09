@@ -284,7 +284,7 @@ namespace libtorrent { namespace
 			e["msg_type"] = type;
 			e["piece"] = piece;
 
-			char const* metadata = 0;
+			char const* metadata = nullptr;
 			int metadata_piece_size = 0;
 
 			if (m_torrent.valid_metadata())
@@ -360,8 +360,8 @@ namespace libtorrent { namespace
 
 			entry const* type_ent = msg.find_key("msg_type");
 			entry const* piece_ent = msg.find_key("piece");
-			if (type_ent == 0 || type_ent->type() != entry::int_t
-				|| piece_ent == 0 || piece_ent->type() != entry::int_t)
+			if (type_ent == nullptr || type_ent->type() != entry::int_t
+				|| piece_ent == nullptr || piece_ent->type() != entry::int_t)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
 				m_pc.peer_log(peer_log_alert::incoming_message, "UT_METADATA"

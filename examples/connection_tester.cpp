@@ -124,7 +124,7 @@ std::string leaf_path(std::string f)
 	char const* altsep = strrchr(first, '\\');
 	if (sep == 0 || altsep > sep) sep = altsep;
 #endif
-	if (sep == 0) return f;
+	if (sep == nullptr) return f;
 
 	if (sep - first == int(f.size()) - 1)
 	{
@@ -933,7 +933,7 @@ int main(int argc, char* argv[])
 		FILE* output = stdout;
 		if (strcmp("-", torrent_file) != 0)
 		{
-			if( (output = std::fopen(torrent_file, "wb+")) == 0)
+			if( (output = std::fopen(torrent_file, "wb+")) == nullptr)
 			{
 				std::fprintf(stderr, "Could not open file '%s' for writing: %s\n"
 					, torrent_file, std::strerror(errno));
@@ -977,7 +977,7 @@ int main(int argc, char* argv[])
 			// 1 MiB piece size
 			const int piece_size = 1024 * 1024;
 			libtorrent::create_torrent t(fs, piece_size);
-			sha1_hash zero(0);
+			sha1_hash zero(nullptr);
 			for (int k = 0; k < fs.num_pieces(); ++k)
 				t.set_hash(k, zero);
 
@@ -986,7 +986,7 @@ int main(int argc, char* argv[])
 			std::back_insert_iterator<std::vector<char> > out(buf);
 			bencode(out, t.generate());
 			FILE* f = std::fopen(torrent_name, "w+");
-			if (f == 0)
+			if (f == nullptr)
 			{
 				std::fprintf(stderr, "Could not open file '%s' for writing: %s\n"
 					, torrent_name, std::strerror(errno));

@@ -211,7 +211,7 @@ namespace libtorrent
 
 
 	bdecode_node::bdecode_node()
-		: m_root_tokens(0)
+		: m_root_tokens(nullptr)
 		, m_buffer(nullptr)
 		, m_buffer_size(0)
 		, m_token_idx(-1)

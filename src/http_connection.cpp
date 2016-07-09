@@ -70,7 +70,7 @@ http_connection::http_connection(io_service& ios
 	, m_own_ssl_context(false)
 #endif
 #if TORRENT_USE_I2P
-	, m_i2p_conn(0)
+	, m_i2p_conn(nullptr)
 #endif
 	, m_resolver(resolver)
 	, m_handler(handler)
@@ -320,11 +320,11 @@ void http_connection::start(std::string const& hostname, int port
 			|| proxy->type == settings_pack::http_pw)
 			&& !ssl)
 		{
-			proxy = 0;
+			proxy = nullptr;
 		}
 		aux::proxy_settings null_proxy;
 
-		void* userdata = 0;
+		void* userdata = nullptr;
 #ifdef TORRENT_USE_OPENSSL
 		if (m_ssl)
 		{
@@ -643,7 +643,7 @@ void http_connection::callback(error_code e, char* data, int size)
 				return;
 			}
 			size = int(buf.size());
-			data = size == 0 ? 0 : &buf[0];
+			data = size == 0 ? nullptr : &buf[0];
 		}
 
 		// if we completed the whole response, no need
@@ -720,7 +720,7 @@ void http_connection::on_read(error_code const& e
 	{
 		error_code ec = boost::asio::error::eof;
 		TORRENT_ASSERT(bytes_transferred == 0);
-		char* data = 0;
+		char* data = nullptr;
 		std::size_t size = 0;
 		if (m_bottled && m_parser.header_finished())
 		{
@@ -751,7 +751,7 @@ void http_connection::on_read(error_code const& e
 		{
 			// HTTP parse error
 			error_code ec = errors::http_parse_error;
-			callback(ec, 0, 0);
+			callback(ec, nullptr, 0);
 			return;
 		}
 

@@ -219,7 +219,7 @@ void node::bootstrap(std::vector<udp::endpoint> const& nodes
 #ifndef TORRENT_DISABLE_LOGGING
 		++count;
 #endif
-		r->add_entry(node_id(0), *i, observer::flag_initial);
+		r->add_entry(node_id(nullptr), *i, observer::flag_initial);
 	}
 
 	// make us start as far away from our node ID as possible
@@ -381,7 +381,7 @@ namespace
 #endif
 
 			void* ptr = node.m_rpc.allocate_observer();
-			if (ptr == 0) return;
+			if (ptr == nullptr) return;
 			observer_ptr o(new (ptr) announce_observer(algo, i->first.ep(), i->first.id));
 #if TORRENT_USE_ASSERTS
 			o->m_in_constructor = false;
@@ -468,7 +468,7 @@ void node::direct_request(udp::endpoint ep, entry& e
 		new direct_traversal(*this, (node_id::min)(), f));
 
 	void* ptr = m_rpc.allocate_observer();
-	if (ptr == 0) return;
+	if (ptr == nullptr) return;
 	observer_ptr o(new (ptr) direct_observer(algo, ep, (node_id::min)()));
 #if TORRENT_USE_ASSERTS
 	o->m_in_constructor = false;
@@ -672,7 +672,7 @@ void node::send_single_refresh(udp::endpoint const& ep, int bucket
 {
 	TORRENT_ASSERT(id != m_id);
 	void* ptr = m_rpc.allocate_observer();
-	if (ptr == 0) return;
+	if (ptr == nullptr) return;
 
 	TORRENT_ASSERT(bucket >= 0);
 	TORRENT_ASSERT(bucket <= 159);

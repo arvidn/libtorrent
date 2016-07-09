@@ -245,7 +245,7 @@ namespace libtorrent
 		, hidden_attribute(fe.hidden_attribute)
 		, executable_attribute(fe.executable_attribute)
 		, symlink_attribute(fe.symlink_attribute)
-		, name(0)
+		, name(nullptr)
 		, path_index(fe.path_index)
 	{
 		if (fe.name_len == name_is_owned)
@@ -610,7 +610,7 @@ namespace libtorrent
 
 	sha1_hash file_storage::hash(int index) const
 	{
-		if (index >= int(m_file_hashes.size())) return sha1_hash(0);
+		if (index >= int(m_file_hashes.size())) return sha1_hash(nullptr);
 		return sha1_hash(m_file_hashes[index]);
 	}
 	
@@ -847,7 +847,7 @@ namespace libtorrent
 	sha1_hash file_storage::hash(internal_file_entry const& fe) const
 	{
 		int index = &fe - &m_files[0];
-		if (index >= int(m_file_hashes.size())) return sha1_hash(0);
+		if (index >= int(m_file_hashes.size())) return sha1_hash(nullptr);
 		return sha1_hash(m_file_hashes[index]);
 	}
 

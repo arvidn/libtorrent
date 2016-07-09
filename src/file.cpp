@@ -751,7 +751,7 @@ namespace libtorrent
 	char const* next_path_element(char const* p)
 	{
 		p += strlen(p) + 1;
-		if (*p == 0) return 0;
+		if (*p == 0) return nullptr;
 		return p;
 	}
 
@@ -777,7 +777,7 @@ namespace libtorrent
 #endif
 		char const* ext = strrchr(f.c_str(), '.');
 		// if we don't have an extension, just return f
-		if (ext == 0 || ext == &f[0] || (slash != nullptr && ext < slash)) return f;
+		if (ext == nullptr || ext == &f[0] || (slash != nullptr && ext < slash)) return f;
 		return f.substr(0, ext - &f[0]);
 	}
 
@@ -877,14 +877,14 @@ namespace libtorrent
 
 	char const* filename_cstr(char const* f)
 	{
-		if (f == 0) return f;
+		if (f == nullptr) return f;
 
 		char const* sep = strrchr(f, '/');
 #ifdef TORRENT_WINDOWS
 		char const* altsep = strrchr(f, '\\');
 		if (sep == 0 || altsep > sep) sep = altsep;
 #endif
-		if (sep == 0) return f;
+		if (sep == nullptr) return f;
 		return sep+1;
 	}
 
@@ -897,7 +897,7 @@ namespace libtorrent
 		char const* altsep = strrchr(first, '\\');
 		if (sep == 0 || altsep > sep) sep = altsep;
 #endif
-		if (sep == 0) return f;
+		if (sep == nullptr) return f;
 
 		if (sep - first == int(f.size()) - 1)
 		{
@@ -984,7 +984,7 @@ namespace libtorrent
 #endif // TORRENT_USE_WSTRING
 #else
 		char cwd[TORRENT_MAX_PATH];
-		if (getcwd(cwd, sizeof(cwd)) == 0) return "/";
+		if (getcwd(cwd, sizeof(cwd)) == nullptr) return "/";
 #endif
 #if defined TORRENT_WINDOWS && !defined TORRENT_MINGW && TORRENT_USE_WSTRING
 		return convert_from_wstring(cwd);
@@ -1213,7 +1213,7 @@ namespace libtorrent
 
 		p = convert_to_native(p);
 		m_handle = opendir(p.c_str());
-		if (m_handle == 0)
+		if (m_handle == nullptr)
 		{
 			ec.assign(errno, system_category());
 			m_done = true;
@@ -1280,7 +1280,7 @@ namespace libtorrent
 			ec.assign(errno, system_category());
 			m_done = true;
 		}
-		if (dummy == 0) m_done = true;
+		if (dummy == nullptr) m_done = true;
 #endif
 	}
 

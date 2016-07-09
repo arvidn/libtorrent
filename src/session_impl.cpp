@@ -1082,7 +1082,7 @@ namespace aux {
 		TORRENT_ASSERT(is_single_thread());
 		// if you hit this assert, you're deleting a non-existent peer class
 		TORRENT_ASSERT(m_classes.at(cid));
-		if (m_classes.at(cid) == 0) return;
+		if (m_classes.at(cid) == nullptr) return;
 		m_classes.decref(cid);
 	}
 
@@ -1092,7 +1092,7 @@ namespace aux {
 		peer_class* pc = m_classes.at(cid);
 		// if you hit this assert, you're passing in an invalid cid
 		TORRENT_ASSERT(pc);
-		if (pc == 0)
+		if (pc == nullptr)
 		{
 #if TORRENT_USE_INVARIANT_CHECKS
 			// make it obvious that the return value is undefined
@@ -1143,7 +1143,7 @@ namespace aux {
 		peer_class* pc = m_classes.at(cid);
 		// if you hit this assert, you're passing in an invalid cid
 		TORRENT_ASSERT(pc);
-		if (pc == 0) return;
+		if (pc == nullptr) return;
 
 		pc->set_info(&pci);
 	}
@@ -1187,7 +1187,7 @@ namespace aux {
 			// a bitmask referencing a non-existent peer class
 			TORRENT_ASSERT_PRECOND(m_classes.at(i));
 
-			if (m_classes.at(i) == 0) continue;
+			if (m_classes.at(i) == nullptr) continue;
 			s->add_class(m_classes, i);
 		}
 	}
@@ -1198,7 +1198,7 @@ namespace aux {
 		for (int i = 0; i < num; ++i)
 		{
 			peer_class const* pc = m_classes.at(set.class_at(i));
-			if (pc == 0) continue;
+			if (pc == nullptr) continue;
 			if (pc->ignore_unchoke_slots) return true;
 		}
 		return false;
@@ -1387,7 +1387,7 @@ namespace aux {
 		{
 			peer_class* pc = m_classes.at(set.class_at(i));
 			TORRENT_ASSERT(pc);
-			if (pc == 0) continue;
+			if (pc == nullptr) continue;
 			bandwidth_channel* chan = &pc->channel[channel];
 			// no need to include channels that don't have any bandwidth limits
 			if (chan->throttle() == 0) continue;
@@ -1411,7 +1411,7 @@ namespace aux {
 		for (int i = 0; i < num; ++i)
 		{
 			peer_class* p = m_classes.at(set.class_at(i));
-			if (p == 0) continue;
+			if (p == nullptr) continue;
 
 			bandwidth_channel* ch = &p->channel[peer_connection::download_channel];
 			if (use_quota_overhead(ch, amount_down))
@@ -2430,7 +2430,7 @@ namespace aux {
 	{
 		TORRENT_ASSERT(!m_abort);
 		shared_ptr<socket_type> c(new socket_type(m_io_service));
-		tcp::socket* str = 0;
+		tcp::socket* str = nullptr;
 
 #ifdef TORRENT_USE_OPENSSL
 		if (ssl)
@@ -2821,7 +2821,7 @@ namespace aux {
 		pack.tor = boost::weak_ptr<torrent>();
 		pack.s = s;
 		pack.endp = endp;
-		pack.peerinfo = 0;
+		pack.peerinfo = nullptr;
 
 		boost::shared_ptr<peer_connection> c
 			= boost::make_shared<bt_peer_connection>(boost::cref(pack)
@@ -2915,7 +2915,7 @@ namespace aux {
 		if (channel < 0 || channel > 1) return 0;
 
 		peer_class const* pc = m_classes.at(c);
-		if (pc == 0) return 0;
+		if (pc == nullptr) return 0;
 		return pc->channel[channel].throttle();
 	}
 
@@ -2938,7 +2938,7 @@ namespace aux {
 		if (channel < 0 || channel > 1) return;
 
 		peer_class* pc = m_classes.at(c);
-		if (pc == 0) return;
+		if (pc == nullptr) return;
 		if (limit <= 0) limit = 0;
 		pc->channel[channel].throttle(limit);
 	}
@@ -4096,7 +4096,7 @@ namespace aux {
 			torrent* const t = p->associated_torrent().lock().get();
 			torrent_peer* const pi = p->peer_info_struct();
 
-			if (p->ignore_unchoke_slots() || t == 0 || pi == 0
+			if (p->ignore_unchoke_slots() || t == nullptr || pi == nullptr
 				|| pi->web_seed || t->is_paused())
 			{
 				p->reset_choke_counters();
@@ -4662,7 +4662,7 @@ namespace aux {
 		if (!torrent_ptr) return handle;
 
 		// params.info_hash should have been initialized by add_torrent_impl()
-		TORRENT_ASSERT(params.info_hash != sha1_hash(0));
+		TORRENT_ASSERT(params.info_hash != sha1_hash(nullptr));
 
 #ifndef TORRENT_DISABLE_DHT
 		if (params.ti)
@@ -4700,8 +4700,8 @@ namespace aux {
 		add_extensions_to_torrent(torrent_ptr, params.userdata);
 #endif
 
-		sha1_hash next_lsd(0);
-		sha1_hash next_dht(0);
+		sha1_hash next_lsd(nullptr);
+		sha1_hash next_dht(nullptr);
 		if (m_next_lsd_torrent != m_torrents.end())
 			next_lsd = m_next_lsd_torrent->first;
 #ifndef TORRENT_DISABLE_DHT
@@ -4853,7 +4853,7 @@ namespace aux {
 		}
 #endif
 
-		if (params.info_hash == sha1_hash(0))
+		if (params.info_hash == sha1_hash(nullptr))
 		{
 			ec = errors::missing_info_hash_in_uri;
 			return std::make_pair(ptr_t(), false);
