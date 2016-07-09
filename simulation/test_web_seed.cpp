@@ -59,7 +59,7 @@ boost::shared_ptr<torrent_info> create_torrent(file_storage& fs)
 
 	// calculate the hash for all pieces
 	int const num = t.num_pieces();
-	sha1_hash ph = hasher(&piece[0], piece.size()).final();
+	sha1_hash ph = hasher(&piece[0], int(piece.size())).final();
 	for (int i = 0; i < num; ++i)
 		t.set_hash(i, ph);
 
