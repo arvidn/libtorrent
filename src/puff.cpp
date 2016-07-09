@@ -74,7 +74,7 @@ type width assuptions in the comment above.
 // this whole file is just preserved and warnings are suppressed
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <setjmp.h>             /* for setjmp(), longjmp(), and jmp_buf */
+#include <csetjmp>             /* for setjmp(), longjmp(), and jmp_buf */
 #include <cstdint>    /* for types with size guarantees */
 #include "libtorrent/puff.hpp"  /* prototype for puff() */
 

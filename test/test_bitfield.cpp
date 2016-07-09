@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/aux_/cpuid.hpp"
-#include <stdlib.h>
+#include <cstdlib>
 
 using namespace libtorrent;
 

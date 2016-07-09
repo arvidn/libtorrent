@@ -50,7 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <cstring>
-#include <stdlib.h>
+#include <cstdlib>
 #include <cstdarg>
 #include <cstdio> // for snprintf
 #include <cinttypes> // for PRId64 et.al.
@@ -118,9 +118,9 @@ std::string demangle(char const* name)
 std::string demangle(char const* name) { return name; }
 #endif
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <signal.h>
+#include <cstdlib>
+#include <cstdio>
+#include <csignal>
 #include "libtorrent/version.hpp"
 
 #if TORRENT_USE_EXECINFO

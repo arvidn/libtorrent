@@ -15,8 +15,8 @@
 
 #include "print.hpp"
 
-#include <stdlib.h> // for atoi
-#include <string.h> // for strlen
+#include <cstdlib> // for atoi
+#include <cstring> // for strlen
 #include <cmath>
 #include <algorithm> // for std::min
 #include <iterator> // for back_inserter

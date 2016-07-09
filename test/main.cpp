@@ -33,8 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <boost/config.hpp>
 #include <fcntl.h>
-#include <stdio.h>
-#include <stdlib.h> // for exit()
+#include <cstdio>
+#include <cstdlib> // for exit()
 #include "libtorrent/address.hpp"
 #include "libtorrent/socket.hpp"
 #include "setup_transfer.hpp" // for _g_test_failures
@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/file.hpp"
-#include <signal.h>
+#include <csignal>
 
 #ifdef _WIN32
 #include <windows.h> // fot SetErrorMode

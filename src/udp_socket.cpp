@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/time.hpp" // for aux::time_now()
 #include "libtorrent/debug.hpp"
 
-#include <stdlib.h>
+#include <cstdlib>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 

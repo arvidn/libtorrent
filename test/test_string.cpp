@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hex.hpp"
 #include "libtorrent/string_util.hpp"
 #include <iostream>
-#include <string.h> // for strcmp
+#include <cstring> // for strcmp
 
 using namespace libtorrent;
 

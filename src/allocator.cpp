@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <kernel/OS.h>
 #include <stdlib.h> // malloc/free
 #elif !defined TORRENT_WINDOWS
-#include <stdlib.h> // posix_memalign/free
+#include <cstdlib> // posix_memalign/free
 #include <unistd.h> // _SC_PAGESIZE
 #endif
 

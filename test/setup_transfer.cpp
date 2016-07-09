@@ -65,7 +65,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef _WIN32
 #include <spawn.h>
-#include <signal.h>
+#include <csignal>
 #endif
 
 #define DEBUG_WEB_SERVER 0

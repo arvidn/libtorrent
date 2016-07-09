@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <vector>
-#include <stdlib.h>
+#include <cstdlib>
 #include <cstdio> // for snprintf
 #include <cinttypes> // for PRId64 et.al.
 

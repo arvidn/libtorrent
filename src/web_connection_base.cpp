@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <limits>
 #include <functional>
-#include <stdlib.h>
+#include <cstdlib>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 

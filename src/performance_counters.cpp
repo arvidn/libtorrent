@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/assert.hpp"
-#include <string.h> // for memset
+#include <cstring> // for memset
 
 namespace libtorrent {
 

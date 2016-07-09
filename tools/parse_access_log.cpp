@@ -34,8 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include <cstring>
 #include <cstdlib>
-#include <errno.h>
-#include <assert.h>
+#include <cerrno>
+#include <cassert>
 #include <map>
 #include <cstdio>
 #include <cinttypes> // for PRId64 et.al.

@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <functional>
 #include <vector>
-#include <stdlib.h> // for wcstombscstombs
+#include <cstdlib> // for wcstombscstombs
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -50,7 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <net/if.h>
-#include <string.h>
+#include <cstring>
 #endif
 
 #if TORRENT_USE_SYSCTL

@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp"
 #include <vector>
 #include <memory> // for shared_ptr
-#include <stdarg.h>
+#include <cstdarg>
 
 using namespace libtorrent;
 

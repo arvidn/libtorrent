@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bt_peer_connection.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
-#include <stdarg.h> // for va_start, va_end
+#include <cstdarg> // for va_start, va_end
 #endif
 
 namespace libtorrent

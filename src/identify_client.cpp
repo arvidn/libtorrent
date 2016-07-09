@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cctype>
 #include <algorithm>
-#include <stdio.h>
+#include <cstdio>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 

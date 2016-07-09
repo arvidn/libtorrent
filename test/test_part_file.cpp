@@ -30,7 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <string.h>
+#include <cstring>
 #include "test.hpp"
 #include "libtorrent/part_file.hpp"
 #include "libtorrent/file.hpp"

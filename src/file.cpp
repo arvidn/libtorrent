@@ -85,7 +85,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <sys/stat.h>
-#include <limits.h> // for IOV_MAX
+#include <climits> // for IOV_MAX
 
 #ifdef TORRENT_WINDOWS
 // windows part
@@ -112,7 +112,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <unistd.h>
 #include <sys/types.h>
-#include <errno.h>
+#include <cerrno>
 #include <dirent.h>
 
 #ifdef TORRENT_LINUX
