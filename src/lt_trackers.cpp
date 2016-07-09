@@ -326,7 +326,7 @@ namespace libtorrent { namespace
 #endif
 			entry tex;
 			entry::list_type& added = tex["added"].list();
-			for (const auto & i : m_tp.trackers())
+			for (auto const& i : m_tp.trackers())
 			{
 				if (!send_tracker(i)) continue;
 				added.push_back(i.url);

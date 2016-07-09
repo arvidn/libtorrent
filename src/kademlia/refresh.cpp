@@ -97,11 +97,11 @@ void bootstrap::done()
 		, static_cast<void*>(this));
 #endif
 
-	for (auto & m_result : m_results)
+	for (auto r : m_results)
 	{
-		if (m_result->flags & observer::flag_queried) continue;
+		if (r->flags & observer::flag_queried) continue;
 		// this will send a ping
-		m_node.add_node(m_result->target_ep());
+		m_node.add_node(r->target_ep());
 	}
 	get_peers::done();
 }

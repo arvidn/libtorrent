@@ -713,7 +713,7 @@ namespace libtorrent
 		case list_t:
 			{
 				out += "list\n";
-				for (const auto & i : list())
+				for (auto const& i : list())
 				{
 					i.to_string_impl(out, indent+1);
 				}
@@ -721,7 +721,7 @@ namespace libtorrent
 		case dictionary_t:
 			{
 				out += "dictionary\n";
-				for (const auto & i : dict())
+				for (auto const& i : dict())
 				{
 					bool binary_string = false;
 					for (std::string::const_iterator k = i.first.begin(); k != i.first.end(); ++k)

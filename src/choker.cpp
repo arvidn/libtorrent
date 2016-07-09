@@ -259,7 +259,7 @@ namespace libtorrent
 		, aux::session_settings const& sett)
 	{
 #if TORRENT_USE_ASSERTS
-		for (auto & peer : peers)
+		for (auto& peer : peers)
 		{
 			TORRENT_ASSERT(peer->self());
 			TORRENT_ASSERT(peer->associated_torrent().lock());

@@ -194,9 +194,9 @@ rpc_manager::~rpc_manager()
 	TORRENT_ASSERT(!m_destructing);
 	m_destructing = true;
 
-	for (auto & m_transaction : m_transactions)
+	for (auto& t : m_transactions)
 	{
-		m_transaction.second->abort();
+		t.second->abort();
 	}
 }
 

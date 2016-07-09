@@ -2081,7 +2081,7 @@ namespace libtorrent {
 
 		std::vector<piece_block> b = blocks();
 
-		for (auto & i : b)
+		for (auto& i : b)
 		{
 			char buf[50];
 			std::snprintf(buf, sizeof(buf), "(%d,%d) "

@@ -244,7 +244,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_outstanding_reclaim_message);
 		m_outstanding_reclaim_message = false;
 		std::unique_lock<std::mutex> l(m_cache_mutex);
-		for (auto & i : m_blocks_to_reclaim)
+		for (auto& i : m_blocks_to_reclaim)
 			m_disk_cache.reclaim_block(i);
 		m_blocks_to_reclaim.clear();
 	}
@@ -883,7 +883,7 @@ namespace libtorrent
 			pieces.push_back(std::make_pair(e->storage.get(), int(e->piece)));
 		}
 
-		for (auto & piece : pieces)
+		for (auto& piece : pieces)
 		{
 			// TODO: instead of doing a lookup each time through the loop, save
 			// cached_piece_entry pointers with piece_refcount incremented to pin them
@@ -914,7 +914,7 @@ namespace libtorrent
 
 		// if we still need to flush blocks, start over and flush
 		// everything in LRU order (degrade to lru cache eviction)
-		for (auto & piece : pieces)
+		for (auto& piece : pieces)
 		{
 			cached_piece_entry* pe = m_disk_cache.find_piece(piece.first, piece.second);
 			if (pe == nullptr) continue;

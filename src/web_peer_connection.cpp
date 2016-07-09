@@ -362,7 +362,7 @@ void web_peer_connection::write_request(peer_request const& r)
 		std::vector<file_slice> files = info.orig_files().map_block(req.piece, req.start
 			, req.length);
 
-		for (auto & f : files)
+		for (auto& f : files)
 		{
 				file_request_t file_req;
 			file_req.file_index = f.file_index;
@@ -715,7 +715,7 @@ void web_peer_connection::on_receive(error_code const& error
 			peer_log(peer_log_alert::info, "STATUS"
 				, "%d %s", m_parser.status_code(), m_parser.message().c_str());
 			std::multimap<std::string, std::string> const& headers = m_parser.headers();
-			for (const auto & header : headers)
+			for (auto const& header : headers)
 				peer_log(peer_log_alert::info, "STATUS", "   %s: %s", header.first.c_str(), header.second.c_str());
 #endif
 

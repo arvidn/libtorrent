@@ -638,11 +638,11 @@ namespace libtorrent
 			const_cast<file_storage&>(*m_orig_files).apply_pointer_offset(offset);
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
-		for (auto & m_collection : m_collections)
-			m_collection.first += offset;
+		for (auto& c : m_collections)
+			c.first += offset;
 
-		for (auto & m_similar_torrent : m_similar_torrents)
-			m_similar_torrent += offset;
+		for (auto& tor : m_similar_torrents)
+			tor += offset;
 #endif
 
 		if (m_info_dict)
@@ -696,7 +696,7 @@ namespace libtorrent
 
 		// insert all directories first, to make sure no files
 		// are allowed to collied with them
-		for (const auto & path : paths)
+		for (auto const& path : paths)
 		{
 			std::string p = combine_path(m_files.name(), path);
 			files.insert(p);
@@ -1273,7 +1273,7 @@ namespace libtorrent
 		// the nodes and piece hash matched the root-hash
 		// insert them into our tree
 
-		for (auto & i : to_add)
+		for (auto& i : to_add)
 		{
 			m_merkle_tree[i.first] = i.second;
 		}
@@ -1325,7 +1325,7 @@ namespace libtorrent
 				if (ec) return false;
 
 				m_info_hash = p.info_hash;
-				for (auto & tracker : p.trackers)
+				for (auto& tracker : p.trackers)
 					m_urls.push_back(tracker);
 
 				return true;
@@ -1598,11 +1598,11 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 		ret.reserve(m_similar_torrents.size() + m_owned_similar_torrents.size());
 
-		for (auto m_similar_torrent : m_similar_torrents)
-			ret.push_back(sha1_hash(m_similar_torrent));
+		for (auto tor : m_similar_torrents)
+			ret.push_back(sha1_hash(tor));
 
-		for (const auto & m_owned_similar_torrent : m_owned_similar_torrents)
-			ret.push_back(m_owned_similar_torrent);
+		for (auto const& tor : m_owned_similar_torrents)
+			ret.push_back(tor);
 #endif
 
 		return ret;
@@ -1614,11 +1614,11 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 		ret.reserve(m_collections.size() + m_owned_collections.size());
 
-		for (const auto & m_collection : m_collections)
-			ret.push_back(std::string(m_collection.first, m_collection.second));
+		for (auto const& c : m_collections)
+			ret.push_back(std::string(c.first, c.second));
 
-		for (const auto & m_owned_collection : m_owned_collections)
-			ret.push_back(m_owned_collection);
+		for (auto const& col : m_owned_collections)
+			ret.push_back(col);
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 
 		return ret;

@@ -269,21 +269,21 @@ namespace libtorrent
 		bool all_fail = true;
 		error_code e;
 
-		for (auto & m_unicast_socket : m_unicast_sockets)
+		for (auto& socket : m_unicast_sockets)
 		{
-			if (!m_unicast_socket.socket) continue;
-			m_unicast_socket.socket->send_to(boost::asio::buffer(buffer, size), m_multicast_endpoint, 0, e);
+			if (!socket.socket) continue;
+			socket.socket->send_to(boost::asio::buffer(buffer, size), m_multicast_endpoint, 0, e);
 
 			// if the user specified the broadcast flag, send one to the broadcast
 			// address as well
-			if ((flags & broadcast_socket::flag_broadcast) && m_unicast_socket.can_broadcast())
-				m_unicast_socket.socket->send_to(boost::asio::buffer(buffer, size)
-					, udp::endpoint(m_unicast_socket.broadcast_address(), m_multicast_endpoint.port()), 0, e);
+			if ((flags & broadcast_socket::flag_broadcast) && socket.can_broadcast())
+				socket.socket->send_to(boost::asio::buffer(buffer, size)
+					, udp::endpoint(socket.broadcast_address(), m_multicast_endpoint.port()), 0, e);
 
 			if (e)
 			{
-				m_unicast_socket.socket->close(e);
-				m_unicast_socket.socket.reset();
+				socket.socket->close(e);
+				socket.socket.reset();
 			}
 			else
 			{
@@ -291,14 +291,14 @@ namespace libtorrent
 			}
 		}
 
-		for (auto & m_socket : m_sockets)
+		for (auto& socket : m_sockets)
 		{
-			if (!m_socket.socket) continue;
-			m_socket.socket->send_to(boost::asio::buffer(buffer, size), m_multicast_endpoint, 0, e);
+			if (!socket.socket) continue;
+			socket.socket->send_to(boost::asio::buffer(buffer, size), m_multicast_endpoint, 0, e);
 			if (e)
 			{
-				m_socket.socket->close(e);
-				m_socket.socket.reset();
+				socket.socket->close(e);
+				socket.socket.reset();
 			}
 			else
 			{

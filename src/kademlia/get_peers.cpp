@@ -226,9 +226,9 @@ bool obfuscated_get_peers::invoke(observer_ptr o)
 		// our node-list for this traversal algorithm, to
 		// allow the get_peers traversal to regress in case
 		// nodes further down end up being dead
-		for (auto & m_result : m_results)
+		for (auto& r : m_results)
 		{
-			observer* const node = m_result.get();
+			observer* const node = r.get();
 			// don't re-request from nodes that didn't respond
 			if (node->flags & observer::flag_failed) continue;
 			// don't interrupt with queries that are already in-flight

@@ -58,7 +58,7 @@ void put_data::start()
 
 void put_data::set_targets(std::vector<std::pair<node_entry, std::string> > const& targets)
 {
-	for (const auto & target : targets)
+	for (auto const& target : targets)
 	{
 		void* ptr = m_node.m_rpc.allocate_observer();
 		if (ptr == nullptr) return;

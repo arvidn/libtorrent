@@ -612,7 +612,7 @@ namespace libtorrent { namespace dht
 		dht.m_table.for_each_node(&add_node_fun, &add_node_fun, &nodes);
 		bucket_t cache;
 		dht.replacement_cache(cache);
-		for (auto & i : cache)
+		for (auto& i : cache)
 		{
 			std::string node;
 			std::back_insert_iterator<std::string> out(node);

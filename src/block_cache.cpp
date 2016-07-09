@@ -1222,9 +1222,9 @@ void block_cache::clear(tailqueue<disk_io_job>& jobs)
 	// at the end
 	std::vector<char*> bufs;
 
-	for (const auto & m_piece : m_pieces)
+	for (auto const& p : m_pieces)
 	{
-		cached_piece_entry& pe = const_cast<cached_piece_entry&>(m_piece);
+		cached_piece_entry& pe = const_cast<cached_piece_entry&>(p);
 #if TORRENT_USE_ASSERTS
 		for (tailqueue_iterator<disk_io_job> i = pe.jobs.iterate(); i.get(); i.next())
 			TORRENT_PIECE_ASSERT((static_cast<disk_io_job const*>(i.get()))->piece == pe.piece, &pe);
@@ -1241,7 +1241,7 @@ void block_cache::clear(tailqueue<disk_io_job>& jobs)
 	if (!bufs.empty()) free_multiple_buffers(&bufs[0], int(bufs.size()));
 
 	// clear lru lists
-	for (auto & i : m_lru)
+	for (auto& i : m_lru)
 		i.get_all();
 
 	m_pieces.clear();
@@ -1663,7 +1663,7 @@ void block_cache::check_invariant() const
 	}
 
 	boost::unordered_set<char*> buffers;
-	for (const auto & p : m_pieces)
+	for (auto const& p : m_pieces)
 	{
 			TORRENT_PIECE_ASSERT(p.blocks, &p);
 

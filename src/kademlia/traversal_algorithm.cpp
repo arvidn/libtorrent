@@ -551,9 +551,9 @@ void traversal_algorithm::status(dht_lookup& l)
 
 	int last_sent = INT_MAX;
 	time_point now = aux::time_now();
-	for (auto & m_result : m_results)
+	for (auto& r : m_results)
 	{
-		observer& o = *m_result;
+		observer& o = *r;
 		if (o.flags & observer::flag_queried)
 		{
 			last_sent = (std::min)(last_sent, int(total_seconds(now - o.sent())));

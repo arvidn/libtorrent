@@ -1727,9 +1727,9 @@ namespace libtorrent
 				, "msg: %d size: %d", extended_id, m_recv_buffer.packet_size());
 #endif
 
-		for (auto & m_extension : m_extensions)
+		for (auto const& ext : m_extensions)
 		{
-			if (m_extension->on_extended(m_recv_buffer.packet_size() - 2, extended_id
+			if (ext->on_extended(m_recv_buffer.packet_size() - 2, extended_id
 				, recv_buffer))
 				return;
 		}
@@ -1906,9 +1906,9 @@ namespace libtorrent
 			default:
 			{
 #ifndef TORRENT_DISABLE_EXTENSIONS
-				for (auto & m_extension : m_extensions)
+				for (auto const& ext : m_extensions)
 				{
-					if (m_extension->on_unknown_message(m_recv_buffer.packet_size(), packet_type
+					if (ext->on_unknown_message(m_recv_buffer.packet_size(), packet_type
 						, buffer::const_interval(recv_buffer.begin+1
 							, recv_buffer.end)))
 						return m_recv_buffer.packet_finished();
@@ -2302,9 +2302,9 @@ namespace libtorrent
 		stats_counters().inc_stats_counter(counters::num_outgoing_unchoke);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto & m_extension : m_extensions)
+		for (auto const& ext : m_extensions)
 		{
-			m_extension->sent_unchoke();
+			ext->sent_unchoke();
 		}
 #endif
 	}
@@ -2436,7 +2436,7 @@ namespace libtorrent
 			entry piece_list;
 			entry::list_type& l = piece_list.list();
 			std::map<int, sha1_hash> merkle_node_list = t->torrent_file().build_merkle_list(r.piece);
-			for (auto & i : merkle_node_list)
+			for (auto& i : merkle_node_list)
 			{
 				l.push_back(entry(entry::list_t));
 				l.back().list().push_back(i.first);

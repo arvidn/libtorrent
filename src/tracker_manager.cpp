@@ -414,23 +414,23 @@ namespace libtorrent
 		http_conns_t close_http_connections;
 		std::vector<boost::shared_ptr<udp_tracker_connection> > close_udp_connections;
 
-		for (auto & m_http_conn : m_http_conns)
+		for (auto& conn : m_http_conns)
 		{
-			http_tracker_connection* c = m_http_conn.get();
+			http_tracker_connection* c = conn.get();
 			tracker_request const& req = c->tracker_req();
 			if (req.event == tracker_request::stopped && !all)
 				continue;
 
-			close_http_connections.push_back(m_http_conn);
+			close_http_connections.push_back(conn);
 
 #ifndef TORRENT_DISABLE_LOGGING
 			boost::shared_ptr<request_callback> rc = c->requester();
 			if (rc) rc->debug_log("aborting: %s", req.url.c_str());
 #endif
 		}
-		for (auto & m_udp_conn : m_udp_conns)
+		for (auto& conn : m_udp_conns)
 		{
-			boost::shared_ptr<udp_tracker_connection> c = m_udp_conn.second;
+			boost::shared_ptr<udp_tracker_connection> c = conn.second;
 			tracker_request const& req = c->tracker_req();
 			if (req.event == tracker_request::stopped && !all)
 				continue;
@@ -443,14 +443,14 @@ namespace libtorrent
 #endif
 		}
 
-		for (auto & close_http_connection : close_http_connections)
+		for (auto const& conn : close_http_connections)
 		{
-			close_http_connection->close();
+			conn->close();
 		}
 
-		for (auto & close_udp_connection : close_udp_connections)
+		for (auto& conn : close_udp_connections)
 		{
-			close_udp_connection->close();
+			conn->close();
 		}
 	}
 

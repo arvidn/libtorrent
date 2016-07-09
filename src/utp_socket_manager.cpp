@@ -75,9 +75,9 @@ namespace libtorrent
 
 	utp_socket_manager::~utp_socket_manager()
 	{
-		for (auto & m_utp_socket : m_utp_sockets)
+		for (auto& socket : m_utp_sockets)
 		{
-			delete_utp_impl(m_utp_socket.second);
+			delete_utp_impl(socket.second);
 		}
 	}
 

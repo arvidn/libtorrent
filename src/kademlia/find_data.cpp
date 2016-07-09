@@ -106,7 +106,7 @@ void find_data::start()
 		std::vector<node_entry> nodes;
 		m_node.m_table.find_node(m_target, nodes, routing_table::include_failed);
 
-		for (auto & node : nodes)
+		for (auto& node : nodes)
 		{
 			add_entry(node.id, node.ep(), observer::flag_initial);
 		}

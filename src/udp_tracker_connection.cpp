@@ -205,7 +205,7 @@ namespace libtorrent
 		// we're listening on. To make sure the tracker get our
 		// correct listening address.
 
-		for (const auto & addresse : addresses)
+		for (auto const& addresse : addresses)
 			m_endpoints.push_back(tcp::endpoint(addresse, port));
 
 		if (tracker_req().filter)

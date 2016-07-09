@@ -519,7 +519,7 @@ void http_connection::on_resolve(error_code const& e
 	}
 	TORRENT_ASSERT(!addresses.empty());
 
-	for (const auto & addresse : addresses)
+	for (auto const& addresse : addresses)
 		m_endpoints.push_back(tcp::endpoint(addresse, m_port));
 
 	if (m_filter_handler) m_filter_handler(*this, m_endpoints);

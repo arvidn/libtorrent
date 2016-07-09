@@ -62,7 +62,7 @@ namespace libtorrent
 #if TORRENT_USE_ASSERTS
 	bool bandwidth_manager::is_queued(bandwidth_socket const* peer) const
 	{
-		for (const auto & i : m_queue)
+		for (auto const& i : m_queue)
 		{
 			if (i.peer.get() == peer) return true;
 		}
@@ -124,7 +124,7 @@ namespace libtorrent
 	void bandwidth_manager::check_invariant() const
 	{
 		std::int64_t queued = 0;
-		for (const auto & i : m_queue)
+		for (auto const& i : m_queue)
 		{
 			queued += i.request_size - i.assigned;
 		}
@@ -188,7 +188,7 @@ namespace libtorrent
 			}
 		}
 
-		for (auto & channel : channels)
+		for (auto& channel : channels)
 		{
 			channel->update_quota(int(dt_milliseconds));
 		}

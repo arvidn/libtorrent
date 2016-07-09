@@ -233,7 +233,7 @@ namespace
 				bloom_filter<256> downloaders;
 				bloom_filter<256> seeds;
 
-				for (const auto & peer : v.peers)
+				for (auto const& peer : v.peers)
 				{
 					sha1_hash iphash;
 					hash_address(peer.addr.address(), iphash);

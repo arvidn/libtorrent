@@ -873,27 +873,27 @@ namespace aux {
 #endif
 		m_lsd_announce_timer.cancel(ec);
 
-		for (const auto & m_incoming_socket : m_incoming_sockets)
+		for (auto const& socket : m_incoming_sockets)
 		{
-			m_incoming_socket->close(ec);
+			socket->close(ec);
 			TORRENT_ASSERT(!ec);
 		}
 		m_incoming_sockets.clear();
 
 		// close the listen sockets
-		for (auto & m_listen_socket : m_listen_sockets)
+		for (auto& socket : m_listen_sockets)
 		{
-			if (m_listen_socket.sock)
+			if (socket.sock)
 			{
-				m_listen_socket.sock->close(ec);
+				socket.sock->close(ec);
 				TORRENT_ASSERT(!ec);
 			}
 
 			// TODO: 3 closing the udp sockets here means that
 			// the uTP connections cannot be closed gracefully
-			if (m_listen_socket.udp_sock)
+			if (socket.udp_sock)
 			{
-				m_listen_socket.udp_sock->close();
+				socket.udp_sock->close();
 			}
 		}
 		if (m_socks_listen_socket && m_socks_listen_socket->is_open())
@@ -916,9 +916,9 @@ namespace aux {
 		session_log(" aborting all torrents (%d)", int(m_torrents.size()));
 #endif
 		// abort all torrents
-		for (auto & m_torrent : m_torrents)
+		for (auto& t : m_torrents)
 		{
-			m_torrent.second->abort();
+			t.second->abort();
 		}
 		m_torrents.clear();
 
@@ -985,8 +985,8 @@ namespace aux {
 			m_port_filter.add_rule(0, 1024, port_filter::blocked);
 		// Close connections whose endpoint is filtered
 		// by the new ip-filter
-		for (auto & m_torrent : m_torrents)
-			m_torrent.second->port_filter_updated();
+		for (auto& t : m_torrents)
+			t.second->port_filter_updated();
 	}
 
 	void session_impl::set_ip_filter(boost::shared_ptr<ip_filter> const& f)
@@ -997,8 +997,8 @@ namespace aux {
 
 		// Close connections whose endpoint is filtered
 		// by the new ip-filter
-		for (auto & m_torrent : m_torrents)
-			m_torrent.second->set_ip_filter(m_ip_filter);
+		for (auto& t : m_torrents)
+			t.second->set_ip_filter(m_ip_filter);
 	}
 
 	void session_impl::ban_ip(address addr)
@@ -1006,8 +1006,8 @@ namespace aux {
 		TORRENT_ASSERT(is_single_thread());
 		if (!m_ip_filter) m_ip_filter = boost::make_shared<ip_filter>();
 		m_ip_filter->add_rule(addr, addr, ip_filter::blocked);
-		for (auto & m_torrent : m_torrents)
-			m_torrent.second->set_ip_filter(m_ip_filter);
+		for (auto& t : m_torrents)
+			t.second->set_ip_filter(m_ip_filter);
 	}
 
 	ip_filter const& session_impl::get_ip_filter()
@@ -1496,10 +1496,10 @@ namespace aux {
 	tcp::endpoint session_impl::get_ipv6_interface() const
 	{
 #if TORRENT_USE_IPV6
-		for (const auto & m_listen_socket : m_listen_sockets)
+		for (auto const& socket : m_listen_sockets)
 		{
-			if (!m_listen_socket.local_endpoint.address().is_v6()) continue;
-			return tcp::endpoint(m_listen_socket.local_endpoint.address(), m_listen_socket.tcp_external_port);
+			if (!socket.local_endpoint.address().is_v6()) continue;
+			return tcp::endpoint(socket.local_endpoint.address(), socket.tcp_external_port);
 		}
 #endif
 		return tcp::endpoint();
@@ -1507,10 +1507,10 @@ namespace aux {
 
 	tcp::endpoint session_impl::get_ipv4_interface() const
 	{
-		for (const auto & m_listen_socket : m_listen_sockets)
+		for (auto const& socket : m_listen_sockets)
 		{
-			if (!m_listen_socket.local_endpoint.address().is_v4()) continue;
-			return tcp::endpoint(m_listen_socket.local_endpoint.address(), m_listen_socket.tcp_external_port);
+			if (!socket.local_endpoint.address().is_v4()) continue;
+			return tcp::endpoint(socket.local_endpoint.address(), socket.tcp_external_port);
 		}
 		return tcp::endpoint();
 	}
@@ -1811,10 +1811,10 @@ namespace aux {
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log("closing all listen sockets");
 #endif
-		for (auto & m_listen_socket : m_listen_sockets)
+		for (auto& socket : m_listen_sockets)
 		{
-			if (m_listen_socket.sock) m_listen_socket.sock->close(ec);
-			if (m_listen_socket.udp_sock) m_listen_socket.udp_sock->close();
+			if (socket.sock) socket.sock->close(ec);
+			if (socket.udp_sock) socket.udp_sock->close();
 		}
 
 		m_listen_sockets.clear();
@@ -1823,11 +1823,11 @@ namespace aux {
 
 		if (m_abort) return;
 
-		for (auto & m_listen_interface : m_listen_interfaces)
+		for (auto& iface : m_listen_interfaces)
 		{
-			std::string const& device = m_listen_interface.device;
-			int const port = m_listen_interface.port;
-			bool const ssl = m_listen_interface.ssl;
+			std::string const& device = iface.device;
+			int const port = iface.port;
+			bool const ssl = iface.ssl;
 
 #ifndef TORRENT_USE_OPENSSL
 			if (ssl)
@@ -1887,7 +1887,7 @@ namespace aux {
 					continue;
 				}
 
-				for (auto & k : ifs)
+				for (auto& k : ifs)
 				{
 					// we're looking for a specific interface, and its address
 					// (which must be of the same family as the address we're
@@ -1918,16 +1918,16 @@ namespace aux {
 		// listening on
 		if (m_alerts.should_post<listen_succeeded_alert>())
 		{
-			for (auto & m_listen_socket : m_listen_sockets)
+			for (auto& socket : m_listen_sockets)
 			{
 				error_code err;
-				if (m_listen_socket.sock)
+				if (socket.sock)
 				{
-					tcp::endpoint const tcp_ep = m_listen_socket.sock->local_endpoint(err);
+					tcp::endpoint const tcp_ep = socket.sock->local_endpoint(err);
 					if (!err)
 					{
 						listen_succeeded_alert::socket_type_t const socket_type
-							= m_listen_socket.ssl
+							= socket.ssl
 							? listen_succeeded_alert::tcp_ssl
 							: listen_succeeded_alert::tcp;
 
@@ -1936,13 +1936,13 @@ namespace aux {
 					}
 				}
 
-				if (m_listen_socket.udp_sock)
+				if (socket.udp_sock)
 				{
-					udp::endpoint const udp_ep = m_listen_socket.udp_sock->local_endpoint(err);
-					if (!err && m_listen_socket.udp_sock->is_open())
+					udp::endpoint const udp_ep = socket.udp_sock->local_endpoint(err);
+					if (!err && socket.udp_sock->is_open())
 					{
 						listen_succeeded_alert::socket_type_t const socket_type
-							= m_listen_socket.ssl
+							= socket.ssl
 							? listen_succeeded_alert::utp_ssl
 							: listen_succeeded_alert::udp;
 
@@ -1961,10 +1961,10 @@ namespace aux {
 		ec.clear();
 
 		// initiate accepting on the listen sockets
-		for (auto & m_listen_socket : m_listen_sockets)
+		for (auto& socket : m_listen_sockets)
 		{
-			if (m_listen_socket.sock) async_accept(m_listen_socket.sock, m_listen_socket.ssl);
-			remap_ports(remap_natpmp_and_upnp, m_listen_socket);
+			if (socket.sock) async_accept(socket.sock, socket.ssl);
+			remap_ports(remap_natpmp_and_upnp, socket);
 		}
 
 		open_new_incoming_socks_connection();
@@ -2192,21 +2192,21 @@ namespace aux {
 		// for now, just pick the first socket with a matching address family
 		// TODO: 3 for proper multi-homed support, we may want to do something
 		// else here. Probably let the caller decide which interface to send over
-		for (auto & m_listen_socket : m_listen_sockets)
+		for (auto& socket : m_listen_sockets)
 		{
-			if (!m_listen_socket.udp_sock) continue;
-			if (m_listen_socket.ssl) continue;
+			if (!socket.udp_sock) continue;
+			if (socket.ssl) continue;
 
-			m_listen_socket.udp_sock->send_hostname(hostname, port, p, ec, flags);
+			socket.udp_sock->send_hostname(hostname, port, p, ec, flags);
 
 			if ((ec == error::would_block
 					|| ec == error::try_again)
-				&& !m_listen_socket.udp_write_blocked)
+				&& !socket.udp_write_blocked)
 			{
-				m_listen_socket.udp_write_blocked = true;
+				socket.udp_write_blocked = true;
 				ADD_OUTSTANDING_ASYNC("session_impl::on_udp_writeable");
-				m_listen_socket.udp_sock->async_write(std::bind(&session_impl::on_udp_writeable
-					, this, boost::weak_ptr<udp_socket>(m_listen_socket.udp_sock), _1));
+				socket.udp_sock->async_write(std::bind(&session_impl::on_udp_writeable
+					, this, boost::weak_ptr<udp_socket>(socket.udp_sock), _1));
 			}
 			return;
 		}
@@ -2222,23 +2222,23 @@ namespace aux {
 		// for now, just pick the first socket with a matching address family
 		// TODO: 3 for proper multi-homed support, we may want to do something
 		// else here. Probably let the caller decide which interface to send over
-		for (auto & m_listen_socket : m_listen_sockets)
+		for (auto& socket : m_listen_sockets)
 		{
-			if (m_listen_socket.ssl != ssl) continue;
-			if (!m_listen_socket.udp_sock) continue;
-			if (m_listen_socket.local_endpoint.address().is_v4() != ep.address().is_v4())
+			if (socket.ssl != ssl) continue;
+			if (!socket.udp_sock) continue;
+			if (socket.local_endpoint.address().is_v4() != ep.address().is_v4())
 				continue;
 
-			m_listen_socket.udp_sock->send(ep, p, ec, flags);
+			socket.udp_sock->send(ep, p, ec, flags);
 
 			if ((ec == error::would_block
 					|| ec == error::try_again)
-				&& !m_listen_socket.udp_write_blocked)
+				&& !socket.udp_write_blocked)
 			{
-				m_listen_socket.udp_write_blocked = true;
+				socket.udp_write_blocked = true;
 				ADD_OUTSTANDING_ASYNC("session_impl::on_udp_writeable");
-				m_listen_socket.udp_sock->async_write(std::bind(&session_impl::on_udp_writeable
-					, this, boost::weak_ptr<udp_socket>(m_listen_socket.udp_sock), _1));
+				socket.udp_sock->async_write(std::bind(&session_impl::on_udp_writeable
+					, this, boost::weak_ptr<udp_socket>(socket.udp_sock), _1));
 			}
 			return;
 		}
@@ -2774,9 +2774,9 @@ namespace aux {
 		if (!m_settings.get_bool(settings_pack::incoming_starts_queued_torrents))
 		{
 			bool has_active_torrent = false;
-			for (auto & m_torrent : m_torrents)
+			for (auto& t : m_torrents)
 			{
-				if (!m_torrent.second->is_torrent_paused())
+				if (!t.second->is_torrent_paused())
 				{
 					has_active_torrent = true;
 					break;
@@ -3102,9 +3102,9 @@ namespace aux {
 			m_created += hours(4);
 
 			const int four_hours = 60 * 60 * 4;
-			for (auto & m_torrent : m_torrents)
+			for (auto& t : m_torrents)
 			{
-				m_torrent.second->step_session_time(four_hours);
+				t.second->step_session_time(four_hours);
 			}
 		}
 
@@ -3129,16 +3129,15 @@ namespace aux {
 			case settings_pack::peer_proportional:
 				{
 					int num_peers[2][2] = {{0, 0}, {0, 0}};
-					for (const auto & m_connection : m_connections)
+					for (auto const& p : m_connections)
 					{
-						peer_connection& p = *m_connection;
-						if (p.in_handshake()) continue;
+						if (p->in_handshake()) continue;
 						int protocol = 0;
-						if (is_utp(*p.get_socket())) protocol = 1;
+						if (is_utp(*p->get_socket())) protocol = 1;
 
-						if (p.download_queue().size() + p.request_queue().size() > 0)
+						if (p->download_queue().size() + p->request_queue().size() > 0)
 							++num_peers[protocol][peer_connection::download_channel];
-						if (p.upload_queue().size() > 0)
+						if (p->upload_queue().size() > 0)
 							++num_peers[protocol][peer_connection::upload_channel];
 					}
 
@@ -3184,8 +3183,7 @@ namespace aux {
 		// check for incoming connections that might have timed out
 		// --------------------------------------------------------------
 
-		for (auto i = m_connections.begin();
-			i != m_connections.end();)
+		for (auto i = m_connections.begin(); i != m_connections.end();)
 		{
 			peer_connection* p = (*i).get();
 			++i;
@@ -3350,9 +3348,9 @@ namespace aux {
 				{
 					// if we haven't reached the global max. see if any torrent
 					// has reached its local limit
-					for (auto & m_torrent : m_torrents)
+					for (auto& tor : m_torrents)
 					{
-						boost::shared_ptr<torrent> t = m_torrent.second;
+						boost::shared_ptr<torrent> t = tor.second;
 
 						// ths disconnect logic is disabled for torrents with
 						// too low connection limit
@@ -4206,9 +4204,9 @@ namespace aux {
 	{
 		m_stats_counters.inc_stats_counter(counters::on_disk_counter);
 		TORRENT_ASSERT(is_single_thread());
-		for (auto & m_delayed_uncork : m_delayed_uncorks)
+		for (auto& uc : m_delayed_uncorks)
 		{
-			m_delayed_uncork->uncork_socket();
+			uc->uncork_socket();
 		}
 		m_delayed_uncorks.clear();
 	}
@@ -4243,9 +4241,9 @@ namespace aux {
 
 		auto i = m_torrents.find(info_hash);
 #if TORRENT_USE_INVARIANT_CHECKS
-		for (const auto & m_torrent : m_torrents)
+		for (auto const& tor : m_torrents)
 		{
-			torrent* p = boost::get_pointer(m_torrent.second);
+			torrent* p = boost::get_pointer(tor.second);
 			TORRENT_ASSERT(p);
 		}
 #endif
@@ -4271,9 +4269,9 @@ namespace aux {
 	{
 		if (p >= 0 && me->queue_position() == -1)
 		{
-			for (auto & m_torrent : m_torrents)
+			for (auto& tor : m_torrents)
 			{
-				torrent* t = m_torrent.second.get();
+				torrent* t = tor.second.get();
 				if (t->queue_position() >= p)
 				{
 					t->set_queue_position_impl(t->queue_position()+1);
@@ -4288,9 +4286,9 @@ namespace aux {
 		{
 			TORRENT_ASSERT(me->queue_position() >= 0);
 			TORRENT_ASSERT(p == -1);
-			for (auto & m_torrent : m_torrents)
+			for (auto& tor : m_torrents)
 			{
-				torrent* t = m_torrent.second.get();
+				torrent* t = tor.second.get();
 				if (t == me) continue;
 				if (t->queue_position() == -1) continue;
 				if (t->queue_position() >= me->queue_position())
@@ -4304,9 +4302,9 @@ namespace aux {
 		}
 		else if (p < me->queue_position())
 		{
-			for (auto & m_torrent : m_torrents)
+			for (auto& tor : m_torrents)
 			{
-				torrent* t = m_torrent.second.get();
+				torrent* t = tor.second.get();
 				if (t == me) continue;
 				if (t->queue_position() == -1) continue;
 				if (t->queue_position() >= p
@@ -4320,9 +4318,9 @@ namespace aux {
 		}
 		else if (p > me->queue_position())
 		{
-			for (auto & m_torrent : m_torrents)
+			for (auto& tor : m_torrents)
 			{
-				torrent* t = m_torrent.second.get();
+				torrent* t = tor.second.get();
 				int pos = t->queue_position();
 				if (t == me) continue;
 				if (pos == -1) continue;
@@ -4373,9 +4371,9 @@ namespace aux {
 		std::string const& collection) const
 	{
 		std::vector<boost::shared_ptr<torrent> > ret;
-		for (const auto & m_torrent : m_torrents)
+		for (auto const& tor : m_torrents)
 		{
-			boost::shared_ptr<torrent> t = m_torrent.second;
+			boost::shared_ptr<torrent> t = tor.second;
 			if (!t) continue;
 			std::vector<std::string> const& c = t->torrent_file().collections();
 			if (std::count(c.begin(), c.end(), collection) == 0) continue;
@@ -4441,11 +4439,11 @@ namespace aux {
 		, boost::function<bool(torrent_status const&)> const& pred
 		, std::uint32_t flags) const
 	{
-		for (const auto & m_torrent : m_torrents)
+		for (auto const& tor : m_torrents)
 		{
-			if (m_torrent.second->is_aborted()) continue;
+			if (tor.second->is_aborted()) continue;
 			torrent_status st;
-			m_torrent.second->status(&st, flags);
+			tor.second->status(&st, flags);
 			if (!pred(st)) continue;
 			ret->push_back(st);
 		}
@@ -4454,7 +4452,7 @@ namespace aux {
 	void session_impl::refresh_torrent_status(std::vector<torrent_status>* ret
 		, std::uint32_t flags) const
 	{
-		for (auto & i : *ret)
+		for (auto& i : *ret)
 		{
 			boost::shared_ptr<torrent> t = i.handle.m_torrent.lock();
 			if (!t) continue;
@@ -4549,10 +4547,10 @@ namespace aux {
 	{
 		std::vector<torrent_handle> ret;
 
-		for (const auto & m_torrent : m_torrents)
+		for (auto const& tor : m_torrents)
 		{
-			if (m_torrent.second->is_aborted()) continue;
-			ret.push_back(torrent_handle(m_torrent.second));
+			if (tor.second->is_aborted()) continue;
+			ret.push_back(torrent_handle(tor.second));
 		}
 		return ret;
 	}
@@ -4630,7 +4628,7 @@ namespace aux {
 		if (params.ti)
 		{
 			torrent_info::nodes_t const& nodes = params.ti->nodes();
-			for (const auto & node : nodes)
+			for (auto const& node : nodes)
 			{
 				add_dht_node_name(node);
 			}
@@ -4941,10 +4939,10 @@ namespace aux {
 		// local endpoint for this socket is bound to one of the allowed
 		// interfaces. the list can be a mixture of interfaces and IP
 		// addresses.
-		for (auto & m_outgoing_interface : m_outgoing_interfaces)
+		for (auto& iface : m_outgoing_interfaces)
 		{
 			error_code err;
-			address ip = address::from_string(m_outgoing_interface.c_str(), err);
+			address ip = address::from_string(iface.c_str(), err);
 			if (err) continue;
 			if (ip == addr) return true;
 		}
@@ -4957,9 +4955,9 @@ namespace aux {
 		// if no device was found to have this address, we fail
 		if (device.empty()) return false;
 
-		for (auto & m_outgoing_interface : m_outgoing_interfaces)
+		for (auto& iface : m_outgoing_interfaces)
 		{
-			if (m_outgoing_interface == device) return true;
+			if (iface == device) return true;
 		}
 
 		return false;
@@ -5136,8 +5134,8 @@ namespace aux {
 
 			// Close connections whose endpoint is filtered
 			// by the new ip-filter
-			for (auto & m_torrent : m_torrents)
-				m_torrent.second->port_filter_updated();
+			for (auto& tor : m_torrents)
+				tor.second->port_filter_updated();
 		}
 		else
 		{
@@ -5147,15 +5145,15 @@ namespace aux {
 
 	void session_impl::update_auto_sequential()
 	{
-		for (auto & m_torrent : m_torrents)
-			m_torrent.second->update_auto_sequential();
+		for (auto& tor : m_torrents)
+			tor.second->update_auto_sequential();
 	}
 
 	void session_impl::update_max_failcount()
 	{
-		for (auto & m_torrent : m_torrents)
+		for (auto& tor : m_torrents)
 		{
-			m_torrent.second->update_max_failcount();
+			tor.second->update_max_failcount();
 		}
 	}
 
@@ -5164,9 +5162,9 @@ namespace aux {
 		// in case we just set a socks proxy, we might have to
 		// open the socks incoming connection
 		if (!m_socks_listen_socket) open_new_incoming_socks_connection();
-		for (auto & m_listen_socket : m_listen_sockets)
+		for (auto& socket : m_listen_sockets)
 		{
-			m_listen_socket.udp_sock->set_proxy_settings(proxy());
+			socket.udp_sock->set_proxy_settings(proxy());
 		}
 	}
 
@@ -5491,9 +5489,9 @@ namespace aux {
 		// this loop is potentially expensive. It could be optimized by
 		// simply keeping a global counter
 		int peerlist_size = 0;
-		for (const auto & m_torrent : m_torrents)
+		for (auto const& tor : m_torrents)
 		{
-			peerlist_size += m_torrent.second->num_known_peers();
+			peerlist_size += tor.second->num_known_peers();
 		}
 
 		s.peerlist_size = peerlist_size;
@@ -5535,14 +5533,14 @@ namespace aux {
 			, *m_dht_storage
 			, startup_state);
 
-		for (auto & m_dht_router_node : m_dht_router_nodes)
+		for (auto const& node : m_dht_router_nodes)
 		{
-			m_dht->add_router_node(m_dht_router_node);
+			m_dht->add_router_node(node);
 		}
 
-		for (auto & m_dht_node : m_dht_nodes)
+		for (auto& n : m_dht_nodes)
 		{
-			m_dht->add_node(m_dht_node);
+			m_dht->add_node(n);
 		}
 		m_dht_nodes.clear();
 
@@ -5605,7 +5603,7 @@ namespace aux {
 			return;
 		}
 
-		for (const auto & addresse : addresses)
+		for (auto const& addresse : addresses)
 		{
 			udp::endpoint ep(addresse, port);
 			add_dht_node(ep);
@@ -5638,7 +5636,7 @@ namespace aux {
 		}
 
 
-		for (const auto & addresse : addresses)
+		for (auto const& addresse : addresses)
 		{
 			// router nodes should be added before the DHT is started (and bootstrapped)
 			udp::endpoint ep(addresse, port);
@@ -5926,24 +5924,24 @@ namespace aux {
 	void session_impl::update_peer_tos()
 	{
 		int const tos = m_settings.get_int(settings_pack::peer_tos);
-		for (auto & m_listen_socket : m_listen_sockets)
+		for (auto& socket : m_listen_sockets)
 		{
 			error_code ec;
-			set_tos(*m_listen_socket.sock, tos, ec);
+			set_tos(*socket.sock, tos, ec);
 
 #ifndef TORRENT_DISABLE_LOGGING
 			error_code err;
 			session_log(">>> SET_TOS [ tcp (%s %d) tos: %x e: %s ]"
-				, m_listen_socket.sock->local_endpoint(err).address().to_string().c_str()
-				, m_listen_socket.sock->local_endpoint(err).port(), tos, ec.message().c_str());
+				, socket.sock->local_endpoint(err).address().to_string().c_str()
+				, socket.sock->local_endpoint(err).port(), tos, ec.message().c_str());
 #endif
 			ec.clear();
-			set_tos(*m_listen_socket.udp_sock, tos, ec);
+			set_tos(*socket.udp_sock, tos, ec);
 
 #ifndef TORRENT_DISABLE_LOGGING
 			session_log(">>> SET_TOS [ udp (%s %d) tos: %x e: %s ]"
-				, m_listen_socket.udp_sock->local_endpoint(err).address().to_string().c_str()
-				, m_listen_socket.udp_sock->local_port()
+				, socket.udp_sock->local_endpoint(err).address().to_string().c_str()
+				, socket.udp_sock->local_port()
 				, tos, ec.message().c_str());
 #endif
 		}
@@ -6044,12 +6042,12 @@ namespace aux {
 	{
 		// if this flag changed, update all web seed connections
 		bool report = m_settings.get_bool(settings_pack::report_web_seed_downloads);
-		for (const auto & m_connection : m_connections)
+		for (auto const& conn : m_connections)
 		{
-			int type = m_connection->type();
+			int const type = conn->type();
 			if (type == peer_connection::url_seed_connection
 				|| type == peer_connection::http_seed_connection)
-				m_connection->ignore_stats(!report);
+				conn->ignore_stats(!report);
 		}
 	}
 
@@ -6087,28 +6085,28 @@ namespace aux {
 
 	void session_impl::update_socket_buffer_size()
 	{
-		for (auto & m_listen_socket : m_listen_sockets)
+		for (auto& socket : m_listen_sockets)
 		{
 			error_code ec;
-			set_socket_buffer_size(*m_listen_socket.udp_sock, m_settings, ec);
+			set_socket_buffer_size(*socket.udp_sock, m_settings, ec);
 #ifndef TORRENT_DISABLE_LOGGING
 			if (ec)
 			{
 				error_code err;
 				session_log("socket buffer size [ udp %s %d]: (%d) %s"
-				, m_listen_socket.udp_sock->local_endpoint(err).address().to_string(err).c_str()
-				, m_listen_socket.udp_sock->local_port(), ec.value(), ec.message().c_str());
+				, socket.udp_sock->local_endpoint(err).address().to_string(err).c_str()
+				, socket.udp_sock->local_port(), ec.value(), ec.message().c_str());
 			}
 #endif
 			ec.clear();
-			set_socket_buffer_size(*m_listen_socket.sock, m_settings, ec);
+			set_socket_buffer_size(*socket.sock, m_settings, ec);
 #ifndef TORRENT_DISABLE_LOGGING
 			if (ec)
 			{
 				error_code err;
 				session_log("socket buffer size [ udp %s %d]: (%d) %s"
-				, m_listen_socket.sock->local_endpoint(err).address().to_string(err).c_str()
-				, m_listen_socket.sock->local_endpoint(err).port(), ec.value(), ec.message().c_str());
+				, socket.sock->local_endpoint(err).address().to_string(err).c_str()
+				, socket.sock->local_endpoint(err).port(), ec.value(), ec.message().c_str());
 			}
 #endif
 		}
@@ -6155,16 +6153,16 @@ namespace aux {
 
 	void session_impl::update_force_proxy()
 	{
-		for (auto & m_listen_socket : m_listen_sockets)
+		for (auto& socket : m_listen_sockets)
 		{
-			m_listen_socket.udp_sock->set_force_proxy(m_settings.get_bool(settings_pack::force_proxy));
+			socket.udp_sock->set_force_proxy(m_settings.get_bool(settings_pack::force_proxy));
 
 			// close the TCP listen sockets
-			if (m_listen_socket.sock)
+			if (socket.sock)
 			{
 				error_code ec;
-				m_listen_socket.sock->close(ec);
-				m_listen_socket.sock.reset();
+				socket.sock->close(ec);
+				socket.sock.reset();
 			}
 		}
 
@@ -6245,9 +6243,9 @@ namespace aux {
 			{
 				// the number of torrents that are above average
 				int num_above = 0;
-				for (auto & m_torrent : m_torrents)
+				for (auto& tor : m_torrents)
 				{
-					int num = m_torrent.second->num_peers();
+					int num = tor.second->num_peers();
 					if (num <= last_average) continue;
 					if (num > average) ++num_above;
 					if (num < average) extra += average - num;
@@ -6262,9 +6260,9 @@ namespace aux {
 				extra = extra % num_above;
 			}
 
-			for (auto & m_torrent : m_torrents)
+			for (auto& tor : m_torrents)
 			{
-				int num = m_torrent.second->num_peers();
+				int num = tor.second->num_peers();
 				if (num <= average) continue;
 
 				// distribute the remainder
@@ -6277,7 +6275,7 @@ namespace aux {
 
 				int disconnect = (std::min)(to_disconnect, num - my_average);
 				to_disconnect -= disconnect;
-				m_torrent.second->disconnect_peers(disconnect
+				tor.second->disconnect_peers(disconnect
 					, error_code(errors::too_many_connections, get_libtorrent_category()));
 			}
 		}
@@ -6414,9 +6412,9 @@ namespace aux {
 				, this, _1, 0));
 		m_natpmp->start();
 
-		for (auto & m_listen_socket : m_listen_sockets)
+		for (auto& socket : m_listen_sockets)
 		{
-			remap_ports(remap_natpmp, m_listen_socket);
+			remap_ports(remap_natpmp, socket);
 		}
 		return m_natpmp.get();
 	}
@@ -6439,9 +6437,9 @@ namespace aux {
 
 		m_upnp->discover_device();
 
-		for (auto & m_listen_socket : m_listen_sockets)
+		for (auto& socket : m_listen_sockets)
 		{
-			remap_ports(remap_upnp, m_listen_socket);
+			remap_ports(remap_upnp, socket);
 		}
 		return m_upnp.get();
 	}
@@ -6475,10 +6473,10 @@ namespace aux {
 		if (!m_natpmp) return;
 
 		m_natpmp->close();
-		for (auto & m_listen_socket : m_listen_sockets)
+		for (auto& socket : m_listen_sockets)
 		{
-			m_listen_socket.tcp_port_mapping[0] = -1;
-			m_listen_socket.udp_port_mapping[0] = -1;
+			socket.tcp_port_mapping[0] = -1;
+			socket.udp_port_mapping[0] = -1;
 		}
 
 		m_natpmp.reset();
@@ -6489,10 +6487,10 @@ namespace aux {
 		if (!m_upnp) return;
 
 		m_upnp->close();
-		for (auto & m_listen_socket : m_listen_sockets)
+		for (auto& socket : m_listen_sockets)
 		{
-			m_listen_socket.tcp_port_mapping[1] = -1;
-			m_listen_socket.udp_port_mapping[1] = -1;
+			socket.tcp_port_mapping[1] = -1;
+			socket.udp_port_mapping[1] = -1;
 		}
 		m_upnp.reset();
 	}
@@ -6606,9 +6604,9 @@ namespace aux {
 		if (m_alerts.should_post<external_ip_alert>())
 			m_alerts.emplace_alert<external_ip_alert>(ip);
 
-		for (auto & m_torrent : m_torrents)
+		for (auto& tor : m_torrents)
 		{
-			m_torrent.second->new_external_ip();
+			tor.second->new_external_ip();
 		}
 
 		// since we have a new external IP now, we need to
@@ -6707,9 +6705,9 @@ namespace aux {
 		int num_active_downloading = 0;
 		int num_active_finished = 0;
 		int total_downloaders = 0;
-		for (const auto & m_torrent : m_torrents)
+		for (auto const& tor : m_torrents)
 		{
-			boost::shared_ptr<torrent> t = m_torrent.second;
+			boost::shared_ptr<torrent> t = tor.second;
 			if (t->want_peers_download()) ++num_active_downloading;
 			if (t->want_peers_finished()) ++num_active_finished;
 			TORRENT_ASSERT(!(t->want_peers_download() && t->want_peers_finished()));
@@ -6780,9 +6778,9 @@ namespace aux {
 			}
 		}
 
-		for (const auto & m_undead_peer : m_undead_peers)
+		for (auto const& peer : m_undead_peers)
 		{
-			peer_connection* p = m_undead_peer.get();
+			peer_connection* p = peer.get();
 			if (p->ignore_unchoke_slots())
 			{
 				if (!p->is_choked()) ++unchokes_all;
@@ -6853,7 +6851,7 @@ namespace aux {
 				, print_address(resp.external_ip).c_str()
 				, print_address(tracker_ip).c_str());
 
-			for (const auto & peer : resp.peers)
+			for (auto const& peer : resp.peers)
 			{
 				debug_log(" %16s %5d %s %s", peer.hostname.c_str(), peer.port
 					, peer.pid.is_all_zeros()?"":to_hex(peer.pid.to_string()).c_str()
@@ -6864,7 +6862,7 @@ namespace aux {
 				debug_log(" %s:%d", print_address(address_v4(i.ip)).c_str(), i.port);
 			}
 #if TORRENT_USE_IPV6
-			for (const auto & i : resp.peers6)
+			for (auto const& i : resp.peers6)
 			{
 				debug_log(" [%s]:%d", print_address(address_v6(i.ip)).c_str(), i.port);
 			}

@@ -543,13 +543,13 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 		d.non_router = non_router;
 
 		TORRENT_ASSERT(d.mapping.empty());
-		for (auto & m_mapping : m_mappings)
+		for (auto& map : m_mappings)
 		{
 			mapping_t m;
 			m.action = mapping_t::action_add;
-			m.local_port = m_mapping.local_port;
-			m.external_port = m_mapping.external_port;
-			m.protocol = m_mapping.protocol;
+			m.local_port = map.local_port;
+			m.external_port = map.external_port;
+			m.protocol = map.protocol;
 			d.mapping.push_back(m);
 		}
 		std::tie(i, std::ignore) = m_devices.insert(d);
@@ -601,21 +601,21 @@ void upnp::try_map_upnp(bool timer)
 #endif
 	}
 
-	for (const auto & m_device : m_devices)
+	for (auto const& dev : m_devices)
 	{
 		// if we're ignoring non-routers, skip them. If on_timer is
 		// set, we expect to have received all responses and if we don't
 		// have any devices at our default route, then issue requests
 		// to any device we found.
-		if (m_ignore_non_routers && m_device.non_router
+		if (m_ignore_non_routers && dev.non_router
 			&& !override_ignore_non_routers)
 			continue;
 
-		if (m_device.control_url.empty() && !m_device.upnp_connection && !m_device.disabled)
+		if (dev.control_url.empty() && !dev.upnp_connection && !dev.disabled)
 		{
 			// we don't have a WANIP or WANPPP url for this device,
 			// ask for it
-			rootdevice& d = const_cast<rootdevice&>(m_device);
+			rootdevice& d = const_cast<rootdevice&>(dev);
 			TORRENT_ASSERT(d.magic == 1337);
 			TORRENT_TRY
 			{
@@ -1499,9 +1499,9 @@ void upnp::on_expire(error_code const& ec)
 	time_point now = aux::time_now();
 	time_point next_expire = max_time();
 
-	for (const auto & m_device : m_devices)
+	for (auto const& dev : m_devices)
 	{
-		rootdevice& d = const_cast<rootdevice&>(m_device);
+		rootdevice& d = const_cast<rootdevice&>(dev);
 		TORRENT_ASSERT(d.magic == 1337);
 		for (int m = 0; m < num_mappings(); ++m)
 		{
@@ -1539,9 +1539,9 @@ void upnp::close()
 	m_closing = true;
 	m_socket.close();
 
-	for (const auto & m_device : m_devices)
+	for (auto const& dev : m_devices)
 	{
-		rootdevice& d = const_cast<rootdevice&>(m_device);
+		rootdevice& d = const_cast<rootdevice&>(dev);
 		TORRENT_ASSERT(d.magic == 1337);
 		if (d.control_url.empty()) continue;
 		for (auto j = d.mapping.begin()

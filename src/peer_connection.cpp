@@ -533,9 +533,9 @@ namespace libtorrent
 	peer_plugin const* peer_connection::find_plugin(char const* type)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		for (auto & m_extension : m_extensions)
+		for (auto& ext : m_extensions)
 		{
-			if (strcmp(m_extension->type(), type) == 0) return m_extension.get();
+			if (strcmp(ext->type(), type) == 0) return ext.get();
 		}
 		return nullptr;
 	}
@@ -1055,9 +1055,9 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		if (bytes_payload)
 		{
-			for (auto & m_extension : m_extensions)
+			for (auto& ext : m_extensions)
 			{
-				m_extension->sent_payload(bytes_payload);
+				ext->sent_payload(bytes_payload);
 			}
 		}
 #endif
@@ -1111,10 +1111,10 @@ namespace libtorrent
 //		INVARIANT_CHECK;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto & m_extension : m_extensions)
+		for (auto& ext : m_extensions)
 		{
 			TORRENT_TRY {
-				m_extension->on_piece_pass(index);
+				ext->on_piece_pass(index);
 			} TORRENT_CATCH(std::exception&) {}
 		}
 #else
@@ -1131,10 +1131,10 @@ namespace libtorrent
 		TORRENT_UNUSED(single_peer);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto & m_extension : m_extensions)
+		for (auto& ext : m_extensions)
 		{
 			TORRENT_TRY {
-				m_extension->on_piece_failed(index);
+				ext->on_piece_failed(index);
 			} TORRENT_CATCH(std::exception&) {}
 		}
 #else
@@ -1353,9 +1353,9 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto & m_extension : m_extensions)
+		for (auto& ext : m_extensions)
 		{
-			if (m_extension->on_choke()) return;
+			if (ext->on_choke()) return;
 		}
 #endif
 		if (is_disconnecting()) return;
@@ -1428,9 +1428,9 @@ namespace libtorrent
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto & m_extension : m_extensions)
+		for (auto& ext : m_extensions)
 		{
-			if (m_extension->on_reject(r)) return;
+			if (ext->on_reject(r)) return;
 		}
 #endif
 
@@ -1521,9 +1521,9 @@ namespace libtorrent
 		if (!t) return;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto & m_extension : m_extensions)
+		for (auto& ext : m_extensions)
 		{
-			if (m_extension->on_suggest(index)) return;
+			if (ext->on_suggest(index)) return;
 		}
 #endif
 
@@ -1588,9 +1588,9 @@ namespace libtorrent
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto & m_extension : m_extensions)
+		for (auto& ext : m_extensions)
 		{
-			if (m_extension->on_unchoke()) return;
+			if (ext->on_unchoke()) return;
 		}
 #endif
 
@@ -1625,9 +1625,9 @@ namespace libtorrent
 		TORRENT_ASSERT(t);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto & m_extension : m_extensions)
+		for (auto& ext : m_extensions)
 		{
-			if (m_extension->on_interested()) return;
+			if (ext->on_interested()) return;
 		}
 #endif
 
@@ -1717,9 +1717,9 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto & m_extension : m_extensions)
+		for (auto& ext : m_extensions)
 		{
-			if (m_extension->on_not_interested()) return;
+			if (ext->on_not_interested()) return;
 		}
 #endif
 
@@ -1776,9 +1776,9 @@ namespace libtorrent
 		TORRENT_ASSERT(t);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto & m_extension : m_extensions)
+		for (auto& ext : m_extensions)
 		{
-			if (m_extension->on_have(index)) return;
+			if (ext->on_have(index)) return;
 		}
 #endif
 
@@ -1949,9 +1949,9 @@ namespace libtorrent
 		TORRENT_ASSERT(t);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto & m_extension : m_extensions)
+		for (auto& ext : m_extensions)
 		{
-			if (m_extension->on_dont_have(index)) return;
+			if (ext->on_dont_have(index)) return;
 		}
 #endif
 
@@ -2007,9 +2007,9 @@ namespace libtorrent
 		TORRENT_ASSERT(t);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto & m_extension : m_extensions)
+		for (auto& ext : m_extensions)
 		{
-			if (m_extension->on_bitfield(bits)) return;
+			if (ext->on_bitfield(bits)) return;
 		}
 #endif
 
@@ -2173,9 +2173,9 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(is_single_thread());
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (const auto & m_extension : m_extensions)
+		for (auto const& ext : m_extensions)
 		{
-			if (!m_extension->can_disconnect(ec)) return false;
+			if (!ext->can_disconnect(ec)) return false;
 		}
 #else
 		TORRENT_UNUSED(ec);
@@ -2243,9 +2243,9 @@ namespace libtorrent
 		if (is_disconnecting()) return;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto & m_extension : m_extensions)
+		for (auto& ext : m_extensions)
 		{
-			if (m_extension->on_request(r)) return;
+			if (ext->on_request(r)) return;
 		}
 #endif
 		if (is_disconnecting()) return;
@@ -2505,7 +2505,7 @@ namespace libtorrent
 		m_receiving_block = b;
 
 		bool in_req_queue = false;
-		for (auto & i : m_download_queue)
+		for (auto& i : m_download_queue)
 		{
 			if (i.block != b) continue;
 			in_req_queue = true;
@@ -2650,9 +2650,9 @@ namespace libtorrent
 		update_desired_queue_size();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto & m_extension : m_extensions)
+		for (auto& ext : m_extensions)
 		{
-			if (m_extension->on_piece(p, data.get()))
+			if (ext->on_piece(p, data.get()))
 			{
 #if TORRENT_USE_ASSERTS
 				TORRENT_ASSERT(m_received_in_piece == p.length);
@@ -3069,9 +3069,9 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto & m_extension : m_extensions)
+		for (auto& ext : m_extensions)
 		{
-			if (m_extension->on_cancel(r)) return;
+			if (ext->on_cancel(r)) return;
 		}
 #endif
 		if (is_disconnecting()) return;
@@ -3152,9 +3152,9 @@ namespace libtorrent
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto & m_extension : m_extensions)
+		for (auto& ext : m_extensions)
 		{
-			if (m_extension->on_have_all()) return;
+			if (ext->on_have_all()) return;
 		}
 #endif
 		if (is_disconnecting()) return;
@@ -3233,9 +3233,9 @@ namespace libtorrent
 		TORRENT_ASSERT(t);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto & m_extension : m_extensions)
+		for (auto& ext : m_extensions)
 		{
-			if (m_extension->on_have_none()) return;
+			if (ext->on_have_none()) return;
 		}
 #endif
 		if (is_disconnecting()) return;
@@ -3289,9 +3289,9 @@ namespace libtorrent
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto & m_extension : m_extensions)
+		for (auto& ext : m_extensions)
 		{
-			if (m_extension->on_allowed_fast(index)) return;
+			if (ext->on_allowed_fast(index)) return;
 		}
 #endif
 		if (is_disconnecting()) return;
@@ -3525,7 +3525,7 @@ namespace libtorrent
 		// support the FAST extensions).
 		std::vector<pending_block> temp_copy = m_download_queue;
 
-		for (auto & i : temp_copy)
+		for (auto& i : temp_copy)
 		{
 			piece_block b = i.block;
 
@@ -3927,9 +3927,9 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			bool handled = false;
-			for (auto & m_extension : m_extensions)
+			for (auto& ext : m_extensions)
 			{
-				handled = m_extension->write_request(r);
+				handled = ext->write_request(r);
 				if (handled) break;
 			}
 			if (is_disconnecting()) return;
@@ -4205,9 +4205,9 @@ namespace libtorrent
 		if (t) handle = t->get_handle();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto & m_extension : m_extensions)
+		for (auto& ext : m_extensions)
 		{
-			m_extension->on_disconnect(ec);
+			ext->on_disconnect(ec);
 		}
 #endif
 
@@ -4677,9 +4677,9 @@ namespace libtorrent
 		if (is_disconnecting()) return;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto & m_extension : m_extensions)
+		for (auto& ext : m_extensions)
 		{
-			m_extension->tick();
+			ext->tick();
 		}
 		if (is_disconnecting()) return;
 #endif
@@ -5762,17 +5762,6 @@ namespace libtorrent
 		setup_send();
 	}
 
-	template<class T>
-	struct set_to_zero
-	{
-		set_to_zero(T& v, bool cond): m_val(v), m_cond(cond) {}
-		void fire() { if (!m_cond) return; m_cond = false; m_val = 0; }
-		~set_to_zero() { if (m_cond) m_val = 0; }
-	private:
-		T& m_val;
-		bool m_cond;
-	};
-
 	// --------------------------
 	// RECEIVE DATA
 	// --------------------------
@@ -6136,9 +6125,9 @@ namespace libtorrent
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto & m_extension : m_extensions)
+		for (auto& ext : m_extensions)
 		{
-			m_extension->on_connected();
+			ext->on_connected();
 		}
 #endif
 

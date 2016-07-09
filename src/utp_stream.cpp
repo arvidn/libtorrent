@@ -1226,7 +1226,7 @@ utp_socket_impl::~utp_socket_impl()
 		free(p);
 	}
 
-	for (auto & i : m_receive_buffer)
+	for (auto& i : m_receive_buffer)
 	{
 		free(i);
 	}

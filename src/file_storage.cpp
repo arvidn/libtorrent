@@ -279,16 +279,16 @@ namespace libtorrent
 
 	void file_storage::apply_pointer_offset(ptrdiff_t off)
 	{
-		for (auto & m_file : m_files)
+		for (auto& f : m_files)
 		{
-			if (m_file.name_len == internal_file_entry::name_is_owned) continue;
-			m_file.name += off;
+			if (f.name_len == internal_file_entry::name_is_owned) continue;
+			f.name += off;
 		}
 
-		for (auto & m_file_hashe : m_file_hashes)
+		for (auto& h : m_file_hashes)
 		{
-			if (m_file_hashe == nullptr) continue;
-			m_file_hashe += off;
+			if (h == nullptr) continue;
+			h += off;
 		}
 	}
 

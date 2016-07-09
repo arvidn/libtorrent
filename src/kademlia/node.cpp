@@ -213,7 +213,7 @@ void node::bootstrap(std::vector<udp::endpoint> const& nodes
 	int count = 0;
 #endif
 
-	for (const auto & node : nodes)
+	for (auto const& node : nodes)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		++count;
@@ -368,7 +368,7 @@ namespace
 		boost::intrusive_ptr<traversal_algorithm> algo(
 			new traversal_algorithm(node, (node_id::min)()));
 		// store on the first k nodes
-		for (const auto & i : v)
+		for (auto const& i : v)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			if (node.observer())
@@ -732,11 +732,11 @@ void node::status(std::vector<dht_routing_bucket>& table
 
 	m_table.status(table);
 
-	for (auto m_running_request : m_running_requests)
+	for (auto* req : m_running_requests)
 	{
 		requests.push_back(dht_lookup());
 		dht_lookup& lookup = requests.back();
-		m_running_request->status(lookup);
+		req->status(lookup);
 	}
 }
 
@@ -755,11 +755,11 @@ void node::status(session_status& s)
 
 	m_table.status(s);
 	s.dht_total_allocations += m_rpc.num_allocated_observers();
-	for (auto m_running_request : m_running_requests)
+	for (auto* req : m_running_requests)
 	{
 		s.active_requests.push_back(dht_lookup());
 		dht_lookup& lookup = s.active_requests.back();
-		m_running_request->status(lookup);
+		req->status(lookup);
 	}
 }
 #endif
@@ -776,7 +776,7 @@ void node::lookup_peers(sha1_hash const& info_hash, entry& reply
 void TORRENT_EXTRA_EXPORT write_nodes_entry(entry& n, nodes_t const& nodes)
 {
 	std::back_insert_iterator<std::string> out(n.string());
-	for (const auto & node : nodes)
+	for (auto const& node : nodes)
 	{
 		std::copy(node.id.begin(), node.id.end(), out);
 		write_endpoint(udp::endpoint(node.addr(), node.port()), out);
@@ -1214,7 +1214,7 @@ node::protocol_descriptor const& node::map_protocol_to_descriptor(udp protocol)
 		{ {udp::v4(), "n4", "nodes"}
 		, {udp::v6(), "n6", "nodes6"} };
 
-	for (auto & descriptor : descriptors)
+	for (auto& descriptor : descriptors)
 	{
 		if (descriptor.protocol == protocol)
 			return descriptor;

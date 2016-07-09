@@ -211,7 +211,7 @@ namespace libtorrent { namespace
 				}
 			}
 
-			for (const auto & i : dropped)
+			for (auto const& i : dropped)
 			{	
 				if (i.address().is_v4())
 					detail::write_endpoint(i, pld_out);
@@ -250,7 +250,7 @@ namespace libtorrent { namespace
 			, m_first_time(true)
 		{
 			const int num_pex_timers = sizeof(m_last_pex)/sizeof(m_last_pex[0]);
-			for (auto & i : m_last_pex)
+			for (auto& i : m_last_pex)
 			{
 				i= min_time();
 			}

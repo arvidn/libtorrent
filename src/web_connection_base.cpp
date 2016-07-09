@@ -156,12 +156,12 @@ namespace libtorrent
 			request += base64encode(sett.get_str(settings_pack::proxy_username)
 				+ ":" + sett.get_str(settings_pack::proxy_password));
 		}
-		for (auto const& m_extra_header : m_extra_headers)
+		for (auto const& header : m_extra_headers)
 		{
 			request += "\r\n";
-			request += m_extra_header.first;
+			request += header.first;
 			request += ": ";
-			request += m_extra_header.second;
+			request += header.second;
 		}
 		if (using_proxy) {
 			request += "\r\nProxy-Connection: keep-alive";

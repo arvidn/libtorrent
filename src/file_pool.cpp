@@ -318,9 +318,9 @@ namespace libtorrent
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 
-		for (const auto & m_file : m_files)
+		for (auto const& f : m_files)
 		{
-			if (m_file.second.key == st && !m_file.second.file_ptr.unique())
+			if (f.second.key == st && !f.second.file_ptr.unique())
 				return false;
 		}
 		return true;

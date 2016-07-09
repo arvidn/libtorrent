@@ -192,7 +192,7 @@ namespace libtorrent
 		// that some other peer is currently downloading
 		piece_block busy_block = piece_block::invalid;
 
-		for (auto & interesting_piece : interesting_pieces)
+		for (auto& interesting_piece : interesting_pieces)
 		{
 			if (prefer_contiguous_blocks == 0 && num_requests <= 0) break;
 

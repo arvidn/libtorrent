@@ -362,7 +362,7 @@ namespace libtorrent
 
 	bool in_local_network(std::vector<ip_interface> const& net, address const& addr)
 	{
-		for (const auto & i : net)
+		for (auto const& i : net)
 		{
 			if (match_addr_mask(addr, i.interface_address, i.netmask))
 				return true;
@@ -1131,7 +1131,7 @@ namespace libtorrent
 		std::vector<ip_interface> ifs = enum_net_interfaces(ios, ec);
 		if (ec) return false;
 
-		for (auto & i : ifs)
+		for (auto& i : ifs)
 			if (i.name == name) return true;
 		return false;
 	}
@@ -1143,7 +1143,7 @@ namespace libtorrent
 		std::vector<ip_interface> ifs = enum_net_interfaces(ios, ec);
 		if (ec) return std::string();
 
-		for (auto & i : ifs)
+		for (auto& i : ifs)
 			if (i.interface_address == addr) return i.name;
 		return std::string();
 	}

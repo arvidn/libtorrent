@@ -176,7 +176,7 @@ namespace libtorrent
 
 	void chained_buffer::clear()
 	{
-		for (auto & i : m_vec)
+		for (auto& i : m_vec)
 		{
 			i.free_fun(i.buf, i.userdata, i.ref);
 		}

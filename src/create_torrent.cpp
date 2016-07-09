@@ -397,15 +397,15 @@ namespace libtorrent
 		if (!ti.comment().empty()) set_comment(ti.comment().c_str());
 
 		torrent_info::nodes_t const& nodes = ti.nodes();
-		for (const auto & node : nodes)
+		for (auto const& node : nodes)
 			add_node(node);
 
 		std::vector<libtorrent::announce_entry> const& trackers = ti.trackers();
-		for (const auto & tracker : trackers)
+		for (auto const& tracker : trackers)
 			add_tracker(tracker.url, tracker.tier);
 
 		std::vector<web_seed_entry> const& web_seeds = ti.web_seeds();
-		for (const auto & web_seed : web_seeds)
+		for (auto const& web_seed : web_seeds)
 		{
 			if (web_seed.type == web_seed_entry::url_seed)
 				add_url_seed(web_seed.url);
@@ -437,11 +437,11 @@ namespace libtorrent
 		{
 			entry& nodes = dict["nodes"];
 			entry::list_type& nodes_list = nodes.list();
-			for (const auto & m_node : m_nodes)
+			for (auto const& n : m_nodes)
 			{
 				entry::list_type node;
-				node.push_back(entry(m_node.first));
-				node.push_back(entry(m_node.second));
+				node.push_back(entry(n.first));
+				node.push_back(entry(n.second));
 				nodes_list.push_back(entry(node));
 			}
 		}
@@ -451,15 +451,15 @@ namespace libtorrent
 			entry trackers(entry::list_t);
 			entry tier(entry::list_t);
 			int current_tier = m_urls.front().second;
-			for (const auto & m_url : m_urls)
+			for (auto const& u : m_urls)
 			{
-				if (m_url.second != current_tier)
+				if (u.second != current_tier)
 				{
-					current_tier = m_url.second;
+					current_tier = u.second;
 					trackers.list().push_back(tier);
 					tier.list().clear();
 				}
-				tier.list().push_back(entry(m_url.first));
+				tier.list().push_back(entry(u.first));
 			}
 			trackers.list().push_back(tier);
 			dict["announce-list"] = trackers;
@@ -482,9 +482,9 @@ namespace libtorrent
 			else
 			{
 				entry& list = dict["url-list"];
-				for (const auto & m_url_seed : m_url_seeds)
+				for (auto const& s : m_url_seeds)
 				{
-					list.list().push_back(entry(m_url_seed));
+					list.list().push_back(entry(s));
 				}
 			}
 		}
@@ -498,9 +498,9 @@ namespace libtorrent
 			else
 			{
 				entry& list = dict["httpseeds"];
-				for (const auto & m_http_seed : m_http_seeds)
+				for (auto const& s : m_http_seeds)
 				{
-					list.list().push_back(entry(m_http_seed));
+					list.list().push_back(entry(s));
 				}
 			}
 		}
@@ -516,16 +516,16 @@ namespace libtorrent
 		if (!m_collections.empty())
 		{
 			entry& list = info["collections"];
-			for (const auto & m_collection : m_collections)
+			for (auto const& c : m_collections)
 			{
-				list.list().push_back(entry(m_collection));
+				list.list().push_back(entry(c));
 			}
 		}
 
 		if (!m_similar.empty())
 		{
 			entry& list = info["similar"];
-			for (const auto & i : m_similar)
+			for (auto const& i : m_similar)
 			{
 				list.list().push_back(entry(i.to_string()));
 			}
@@ -659,7 +659,7 @@ namespace libtorrent
 		{
 			std::string& p = info["pieces"].string();
 
-			for (const auto & i : m_piece_hash)
+			for (auto const& i : m_piece_hash)
 			{
 				p.append(i.data(), sha1_hash::size);
 			}

@@ -103,8 +103,8 @@ namespace libtorrent
 		m_reverse_cursor = int(m_piece_map.size());
 		m_cursor = 0;
 
-		for (auto & m_download : m_downloads)
-			m_download.clear();
+		for (auto& d : m_downloads)
+			d.clear();
 		m_block_info.clear();
 		m_free_block_infos.clear();
 
@@ -113,7 +113,7 @@ namespace libtorrent
 		m_num_have = 0;
 		m_num_passed = 0;
 		m_dirty = true;
-		for (auto & i : m_piece_map)
+		for (auto& i : m_piece_map)
 		{
 			i.peer_count = 0;
 			i.download_state = piece_pos::piece_open;
@@ -276,16 +276,16 @@ namespace libtorrent
 #endif
 
 		std::vector<downloading_piece> ret;
-		for (const auto & m_download : m_downloads)
-			ret.insert(ret.end(), m_download.begin(), m_download.end());
+		for (auto const& d : m_downloads)
+			ret.insert(ret.end(), d.begin(), d.end());
 		return ret;
 	}
 
 	int piece_picker::get_download_queue_size() const
 	{
 		int ret = 0;
-		for (const auto & m_download : m_downloads)
-			ret += int(m_download.size());
+		for (auto const& d : m_downloads)
+			ret += int(d.size());
 		return ret;
 	}
 
@@ -316,12 +316,11 @@ namespace libtorrent
 
 	void piece_picker::check_piece_state() const
 	{
-		for (const auto & m_download : m_downloads)
+		for (auto const& d : m_downloads)
 		{
-			if (!m_download.empty())
+			if (!d.empty())
 			{
-				for (auto i = m_download.begin();
-						i != m_download.end() - 1; ++i)
+				for (auto i = d.begin(); i != d.end() - 1; ++i)
 				{
 					downloading_piece const& dp = *i;
 					downloading_piece const& next = *(i + 1);
@@ -454,12 +453,11 @@ namespace libtorrent
 		TORRENT_ASSERT(m_num_filtered >= 0);
 		TORRENT_ASSERT(m_seeds >= 0);
 
-		for (const auto & m_download : m_downloads)
+		for (auto const& d : m_downloads)
 		{
-			if (!m_download.empty())
+			if (!d.empty())
 			{
-				for (auto i = m_download.begin();
-						i != m_download.end() - 1; ++i)
+				for (auto i = d.begin(); i != d.end() - 1; ++i)
 				{
 					downloading_piece const& dp = *i;
 					downloading_piece const& next = *(i + 1);
@@ -1202,7 +1200,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_seeds > 0);
 		--m_seeds;
 
-		for (auto & i : m_piece_map)
+		for (auto& i : m_piece_map)
 		{
 			++i.peer_count;
 		}
@@ -1469,7 +1467,7 @@ namespace libtorrent
 		std::cerr << "[" << this << "] " << "update_pieces" << std::endl;
 #endif
 		std::fill(m_priority_boundries.begin(), m_priority_boundries.end(), 0);
-		for (auto & i : m_piece_map)
+		for (auto& i : m_piece_map)
 		{
 			int prio = i.priority(this);
 			if (prio == -1) continue;
@@ -1484,10 +1482,10 @@ namespace libtorrent
 #endif
 
 		int index = 0;
-		for (int & m_priority_boundrie : m_priority_boundries)
+		for (int& b : m_priority_boundries)
 		{
-			m_priority_boundrie += index;
-			index = m_priority_boundrie;
+			b += index;
+			index = b;
 		}
 		m_pieces.resize(index, 0);
 
@@ -1507,11 +1505,11 @@ namespace libtorrent
 		}
 
 		int start = 0;
-		for (int & m_priority_boundrie : m_priority_boundries)
+		for (int& b : m_priority_boundries)
 		{
-			if (start == m_priority_boundrie) continue;
-			std::random_shuffle(&m_pieces[0] + start, &m_pieces[0] + m_priority_boundrie, randint);
-			start = m_priority_boundrie;
+			if (start == b) continue;
+			std::random_shuffle(&m_pieces[0] + start, &m_pieces[0] + b, randint);
+			start = b;
 		}
 
 		index = 0;
@@ -2292,7 +2290,7 @@ get_out:
 		// in end game mode we pick a single block
 		// that has already been requested from someone
 		// all pieces that are interesting are in
-		// m_downloads[0] and m_download[1]
+		// m_downloads[0] and m_downloads[1]
 		// (i.e. partial and full pieces)
 
 		std::vector<piece_block> temp;
@@ -2527,7 +2525,7 @@ get_out:
 
 	void piece_picker::clear_peer(torrent_peer* peer)
 	{
-		for (auto & i : m_block_info)
+		for (auto& i : m_block_info)
 		{
 			if (i.peer == peer) i.peer = nullptr;
 		}
@@ -3686,12 +3684,11 @@ get_out:
 	int piece_picker::unverified_blocks() const
 	{
 		int counter = 0;
-		for (const auto & m_download : m_downloads)
+		for (auto const& d : m_downloads)
 		{
-			for (auto i = m_download.begin();
-				i != m_download.end(); ++i)
+			for (auto const& i : d)
 			{
-				counter += int(i->finished);
+				counter += int(i.finished);
 			}
 		}
 		return counter;

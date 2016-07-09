@@ -148,7 +148,7 @@ namespace
 			int size = m_torrent.torrent_file().piece_size(p);
 			peer_request r = {p, 0, (std::min)(16*1024, size)};
 			piece_block pb(p, 0);
-			for (auto & downloader : downloaders)
+			for (auto& downloader : downloaders)
 			{
 				if (downloader != nullptr)
 				{

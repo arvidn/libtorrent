@@ -139,11 +139,11 @@ int routing_table::bucket_limit(int bucket) const
 
 void routing_table::status(std::vector<dht_routing_bucket>& s) const
 {
-	for (const auto & m_bucket : m_buckets)
+	for (auto const& bucket : m_buckets)
 	{
 		dht_routing_bucket b;
-		b.num_nodes = int(m_bucket.live_nodes.size());
-		b.num_replacements = int(m_bucket.replacements.size());
+		b.num_nodes = int(bucket.live_nodes.size());
+		b.num_replacements = int(bucket.replacements.size());
 		s.push_back(b);
 	}
 }
@@ -165,11 +165,11 @@ void routing_table::status(session_status& s) const
 	// family), then it becomes a bit trickier
 	s.dht_global_nodes += num_global_nodes();
 
-	for (const auto & m_bucket : m_buckets)
+	for (auto const& bucket : m_buckets)
 	{
 		dht_routing_bucket b;
-		b.num_nodes = int(m_bucket.live_nodes.size());
-		b.num_replacements = int(m_bucket.replacements.size());
+		b.num_nodes = int(bucket.live_nodes.size());
+		b.num_replacements = int(bucket.replacements.size());
 #ifndef TORRENT_NO_DEPRECATE
 		b.last_active = 0;
 #endif
@@ -183,16 +183,16 @@ std::tuple<int, int, int> routing_table::size() const
 	int nodes = 0;
 	int replacements = 0;
 	int confirmed = 0;
-	for (const auto & m_bucket : m_buckets)
+	for (auto const& bucket : m_buckets)
 	{
-		nodes += int(m_bucket.live_nodes.size());
-		for (auto k = m_bucket.live_nodes.begin()
-			, end2(m_bucket.live_nodes.end()); k != end2; ++k)
+		nodes += int(bucket.live_nodes.size());
+		for (auto k = bucket.live_nodes.begin()
+			, end2(bucket.live_nodes.end()); k != end2; ++k)
 		{
 			if (k->confirmed()) ++confirmed;
 		}
 
-		replacements += int(m_bucket.replacements.size());
+		replacements += int(bucket.replacements.size());
 	}
 	return std::make_tuple(nodes, replacements, confirmed);
 }
@@ -201,9 +201,9 @@ std::int64_t routing_table::num_global_nodes() const
 {
 	int deepest_bucket = 0;
 	int deepest_size = 0;
-	for (const auto & m_bucket : m_buckets)
+	for (auto const& bucket : m_buckets)
 	{
-		deepest_size = int(m_bucket.live_nodes.size()); // + i->replacements.size();
+		deepest_size = int(bucket.live_nodes.size()); // + i->replacements.size();
 		if (deepest_size < m_bucket_size) break;
 		// this bucket is full
 		++deepest_bucket;
@@ -295,7 +295,7 @@ void routing_table::print_state(std::ostream& os) const
 		else
 			id_shift = bucket_index + 1;
 
-		for (const auto & live_node : i->live_nodes)
+		for (auto const& live_node : i->live_nodes)
 		{
 			int bucket_size_limit = bucket_limit(bucket_index);
 			std::uint32_t top_mask = bucket_size_limit - 1;
@@ -385,7 +385,7 @@ void routing_table::print_state(std::ostream& os) const
 		else
 			id_shift = bucket_index + 1;
 
-		for (const auto & live_node : i->live_nodes)
+		for (auto const& live_node : i->live_nodes)
 		{
 			node_id id = live_node.id;
 			id <<= id_shift;
@@ -1080,20 +1080,20 @@ void routing_table::update_node_id(node_id id)
 
 	// then add them all back. First add the main nodes, then the replacement
 	// nodes
-	for (auto & old_bucket : old_buckets)
+	for (auto& old_bucket : old_buckets)
 	{
 		bucket_t const& bucket = old_bucket.live_nodes;
-		for (const auto & j : bucket)
+		for (auto const& j : bucket)
 		{
 			add_node(j);
 		}
 	}
 
 	// now add back the replacement nodes
-	for (auto & old_bucket : old_buckets)
+	for (auto& old_bucket : old_buckets)
 	{
 		bucket_t const& bucket = old_bucket.replacements;
-		for (const auto & j : bucket)
+		for (auto const& j : bucket)
 		{
 			add_node(j);
 		}
@@ -1105,18 +1105,18 @@ void routing_table::for_each_node(
 	, void (*fun2)(void*, node_entry const&)
 	, void* userdata) const
 {
-	for (const auto & m_bucket : m_buckets)
+	for (auto const& bucket : m_buckets)
 	{
 		if (fun1)
 		{
-			for (auto j = m_bucket.live_nodes.begin()
-				, end2(m_bucket.live_nodes.end()); j != end2; ++j)
+			for (auto j = bucket.live_nodes.begin()
+				, end2(bucket.live_nodes.end()); j != end2; ++j)
 				fun1(userdata, *j);
 		}
 		if (fun2)
 		{
-			for (auto j = m_bucket.replacements.begin()
-				, end2(m_bucket.replacements.end()); j != end2; ++j)
+			for (auto j = bucket.replacements.begin()
+				, end2(bucket.replacements.end()); j != end2; ++j)
 				fun2(userdata, *j);
 		}
 	}
@@ -1325,7 +1325,7 @@ void routing_table::check_invariant() const
 	for (auto i = m_buckets.begin()
 		, end(m_buckets.end()); i != end; ++i)
 	{
-		for (const auto & replacement : i->replacements)
+		for (auto const& replacement : i->replacements)
 		{
 			all_ips.insert(replacement.addr());
 		}
