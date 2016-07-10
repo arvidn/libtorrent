@@ -559,7 +559,7 @@ namespace libtorrent { namespace
 		if (pc.type() != peer_connection::bittorrent_connection)
 			return boost::shared_ptr<peer_plugin>();
 
-		return boost::shared_ptr<peer_plugin>(new metadata_peer_plugin(m_torrent, *pc.native_handle().get(), *this));
+		return boost::shared_ptr<peer_plugin>(new metadata_peer_plugin(m_torrent, *pc.native_handle(), *this));
 	}
 
 	std::pair<int, int> metadata_plugin::metadata_request()

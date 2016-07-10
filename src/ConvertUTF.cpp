@@ -219,7 +219,7 @@ ConversionResult ConvertUTF16toUTF8 (
 	UTF8* target = *targetStart;
 	while (source < sourceEnd) {
 	UTF32 ch;
-	unsigned short bytesToWrite = 0;
+	std::uint16_t bytesToWrite = 0;
 	const UTF32 byteMask = 0xBF;
 	const UTF32 byteMark = 0x80;
 	const UTF16* oldSource = source; /* In case we have to back up because of target overflow. */
@@ -341,7 +341,7 @@ ConversionResult ConvertUTF8toUTF16 (
 	UTF16* target = *targetStart;
 	while (source < sourceEnd) {
 	UTF32 ch = 0;
-	unsigned short extraBytesToRead = trailingBytesForUTF8[*source];
+	std::uint16_t extraBytesToRead = trailingBytesForUTF8[*source];
 	if (source + extraBytesToRead >= sourceEnd) {
 		result = sourceExhausted; break;
 	}
@@ -414,7 +414,7 @@ ConversionResult ConvertUTF32toUTF8 (
 	UTF8* target = *targetStart;
 	while (source < sourceEnd) {
 	UTF32 ch;
-	unsigned short bytesToWrite = 0;
+	std::uint16_t bytesToWrite = 0;
 	const UTF32 byteMask = 0xBF;
 	const UTF32 byteMark = 0x80;
 	ch = *source++;
@@ -467,7 +467,7 @@ ConversionResult ConvertUTF8toUTF32 (
 	UTF32* target = *targetStart;
 	while (source < sourceEnd) {
 	UTF32 ch = 0;
-	unsigned short extraBytesToRead = trailingBytesForUTF8[*source];
+	std::uint16_t extraBytesToRead = trailingBytesForUTF8[*source];
 	if (source + extraBytesToRead >= sourceEnd) {
 		result = sourceExhausted; break;
 	}
