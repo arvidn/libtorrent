@@ -79,39 +79,14 @@
 
 ------------------------------------------------------------------------ */
 
-/* ---------------------------------------------------------------------
-    The following 4 definitions are compiler-specific.
-    The C standard does not guarantee that wchar_t has at least
-    16 bits, so wchar_t is no less portable than unsigned short!
-    All should be unsigned values to avoid sign extension during
-    bit mask & shift operations.
------------------------------------------------------------------------- */
-
-#ifdef __cplusplus
 #include "libtorrent/config.hpp"
-// these are standard C types, but they might
-// not be available in c++
-#include <stdint.h>
-typedef uint32_t UTF32;
-typedef uint16_t UTF16;
-typedef uint8_t  UTF8;
+#include <cstdint>
+typedef std::uint32_t UTF32;
+typedef std::uint16_t UTF16;
+typedef std::uint8_t  UTF8;
 extern "C" {
-#else
-#define TORRENT_EXTRA_EXPORT
-#ifdef _MSC_VER
-// msvc doesn't seem to have stdint.h
-typedef unsigned __int32 UTF32;
-typedef unsigned __int16 UTF16;
-typedef unsigned __int8  UTF8;
-#else
-#include <stdint.h>
-typedef uint32_t UTF32;
-typedef uint16_t UTF16;
-typedef uint8_t  UTF8;
-#endif
-#endif
 
-typedef unsigned char	Boolean; /* 0 or 1 */
+typedef unsigned char Boolean; /* 0 or 1 */
 
 /* Some fundamental constants */
 #define UNI_REPLACEMENT_CHAR UTF32(0x0000FFFD)

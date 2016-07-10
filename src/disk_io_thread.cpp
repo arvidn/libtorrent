@@ -2079,7 +2079,7 @@ namespace libtorrent
 		if (!pe->hash) return;
 		if (pe->hashing) return;
 
-		int piece_size = pe->storage.get()->files()->piece_size(pe->piece);
+		int piece_size = pe->storage->files()->piece_size(pe->piece);
 		partial_hash* ph = pe->hash;
 
 		// are we already done?

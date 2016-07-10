@@ -330,7 +330,7 @@ TORRENT_TEST(resume_save_load_deprecated)
 
 	TEST_CHECK(a->resume_data);
 
-	entry& e = *a->resume_data.get();
+	entry& e = *a->resume_data;
 	entry::list_type& l = e["file_priority"].list();
 	entry::list_type::iterator i = l.begin();
 
@@ -357,7 +357,7 @@ TORRENT_TEST(resume_save_load_resume_deprecated)
 
 	TEST_CHECK(a->resume_data);
 
-	entry& e = *a->resume_data.get();
+	entry& e = *a->resume_data;
 	entry::list_type& l = e["file_priority"].list();
 	entry::list_type::iterator i = l.begin();
 
@@ -916,7 +916,7 @@ TORRENT_TEST(resume_save_load)
 
 	TEST_CHECK(a->resume_data);
 
-	entry& e = *a->resume_data.get();
+	entry& e = *a->resume_data;
 	entry::list_type& l = e["file_priority"].list();
 	entry::list_type::iterator i = l.begin();
 
@@ -943,7 +943,7 @@ TORRENT_TEST(resume_save_load_resume)
 
 	TEST_CHECK(a->resume_data);
 
-	entry& e = *a->resume_data.get();
+	entry& e = *a->resume_data;
 	entry::list_type& l = e["file_priority"].list();
 	entry::list_type::iterator i = l.begin();
 

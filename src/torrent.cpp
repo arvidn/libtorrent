@@ -6250,7 +6250,7 @@ namespace libtorrent
 		for (auto& ext : m_extensions)
 		{
 			boost::shared_ptr<peer_plugin>
-				pp(ext->new_connection(peer_connection_handle(c.get()->self())));
+				pp(ext->new_connection(peer_connection_handle(c->self())));
 			if (pp) c->add_extension(pp);
 		}
 #endif
@@ -6950,7 +6950,7 @@ namespace libtorrent
 			{
 				TORRENT_TRY {
 					boost::shared_ptr<peer_plugin> pp(ext->new_connection(
-						peer_connection_handle(c.get()->self())));
+						peer_connection_handle(c->self())));
 					if (pp) c->add_extension(pp);
 				} TORRENT_CATCH (std::exception&) {}
 			}
