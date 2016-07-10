@@ -1486,8 +1486,7 @@ namespace libtorrent
 	{
 	}
 
-	piece_manager::~piece_manager()
-	= default;
+	piece_manager::~piece_manager() = default;
 
 #if TORRENT_USE_ASSERTS
 	void piece_manager::assert_torrent_refcount() const

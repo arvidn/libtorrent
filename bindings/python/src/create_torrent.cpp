@@ -92,7 +92,7 @@ namespace
             return m_i - rhs.m_i;
         }
 
-        FileIter& operator=(FileIter const& rhs) = default;
+        FileIter& operator=(FileIter const&) = default;
 
         file_storage const* m_fs;
         int m_i;

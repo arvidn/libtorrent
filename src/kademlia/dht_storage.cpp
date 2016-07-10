@@ -148,7 +148,7 @@ namespace
 	struct immutable_item_comparator
 	{
 		immutable_item_comparator(std::vector<node_id> const& node_ids) : m_node_ids(node_ids) {}
-		immutable_item_comparator(immutable_item_comparator const& c) = default;
+		immutable_item_comparator(immutable_item_comparator const&) = default;
 
 		bool operator() (std::pair<node_id, dht_immutable_item> const& lhs
 			, std::pair<node_id, dht_immutable_item> const& rhs) const

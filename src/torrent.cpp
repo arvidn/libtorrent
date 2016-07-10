@@ -5690,6 +5690,7 @@ namespace libtorrent
 #else
 		boost::asio::const_buffer certificate_buf(certificate.c_str(), certificate.size());
 
+		using boost::asio::ssl::context;
 		error_code ec;
 		m_ssl_ctx->use_certificate(certificate_buf, context::pem, ec);
 		if (ec)

@@ -52,8 +52,7 @@ namespace libtorrent
 	{
 	}
 
-	file_pool::~file_pool()
-	= default;
+	file_pool::~file_pool() = default;
 
 #ifdef TORRENT_WINDOWS
 	void set_low_priority(file_handle const& f)
