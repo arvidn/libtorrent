@@ -5640,6 +5640,7 @@ namespace libtorrent
 			return;
 		}
 
+		using boost::asio::ssl::context;
 		error_code ec;
 		m_ssl_ctx->set_password_callback(std::bind(&password_callback, _1, _2, passphrase), ec);
 		if (ec)
