@@ -31,18 +31,19 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
+
+#if TORRENT_USE_I2P
+
 #include "libtorrent/i2p_stream.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/string_util.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/hex.hpp" // for to_hex
-
-#if TORRENT_USE_I2P
+#include "libtorrent/debug.hpp"
 
 #include <functional>
-
-#include "libtorrent/debug.hpp"
+#include <cstring>
 
 using namespace std::placeholders;
 
@@ -261,7 +262,6 @@ namespace libtorrent
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
 		async_write(m_sock, boost::asio::buffer(cmd, sizeof(cmd) - 1)
 			, std::bind(&i2p_stream::start_read_line, this, _1, h));
-//		std::fprintf(stderr, ">>> %s", cmd);
 	}
 
 	void i2p_stream::start_read_line(error_code const& e, boost::shared_ptr<handler_type> h)
@@ -338,59 +338,54 @@ namespace libtorrent
 				break;
 		}
 
-//		std::fprintf(stderr, "<<< %s\n", &m_buffer[0]);
 		ptr = string_tokenize(next, ' ', &next);
-		if (ptr == nullptr || expect1 == nullptr || strcmp(expect1, ptr)) { handle_error(invalid_response, h); return; }
+		if (ptr == nullptr || expect1 == nullptr || std::strcmp(expect1, ptr) != 0)
+		{ handle_error(invalid_response, h); return; }
 		ptr = string_tokenize(next, ' ', &next);
-		if (ptr == nullptr || expect2 == nullptr || strcmp(expect2, ptr)) { handle_error(invalid_response, h); return; }
+		if (ptr == nullptr || expect2 == nullptr || std::strcmp(expect2, ptr) != 0)
+		{ handle_error(invalid_response, h); return; }
 
 		int result = 0;
-//		char const* message = 0;
-//		float version = 3.0f;
 
 		for(;;)
 		{
-			char* name = string_tokenize(next, '=', &next);
+			char const* const name = string_tokenize(next, '=', &next);
 			if (name == nullptr) break;
-//			std::fprintf(stderr, "name=\"%s\"\n", name);
-			char* ptr2 = string_tokenize(next, ' ', &next);
+			char const* const ptr2 = string_tokenize(next, ' ', &next);
 			if (ptr2 == nullptr) { handle_error(invalid_response, h); return; }
-//			std::fprintf(stderr, "value=\"%s\"\n", ptr2);
 
-			if (strcmp("RESULT", name) == 0)
+			if (std::strcmp("RESULT", name) == 0)
 			{
-				if (strcmp("OK", ptr2) == 0)
+				if (std::strcmp("OK", ptr2) == 0)
 					result = i2p_error::no_error;
-				else if (strcmp("CANT_REACH_PEER", ptr2) == 0)
+				else if (std::strcmp("CANT_REACH_PEER", ptr2) == 0)
 					result = i2p_error::cant_reach_peer;
-				else if (strcmp("I2P_ERROR", ptr2) == 0)
+				else if (std::strcmp("I2P_ERROR", ptr2) == 0)
 					result = i2p_error::i2p_error;
-				else if (strcmp("INVALID_KEY", ptr2) == 0)
+				else if (std::strcmp("INVALID_KEY", ptr2) == 0)
 					result = i2p_error::invalid_key;
-				else if (strcmp("INVALID_ID", ptr2) == 0)
+				else if (std::strcmp("INVALID_ID", ptr2) == 0)
 					result = i2p_error::invalid_id;
-				else if (strcmp("TIMEOUT", ptr2) == 0)
+				else if (std::strcmp("TIMEOUT", ptr2) == 0)
 					result = i2p_error::timeout;
-				else if (strcmp("KEY_NOT_FOUND", ptr2) == 0)
+				else if (std::strcmp("KEY_NOT_FOUND", ptr2) == 0)
 					result = i2p_error::key_not_found;
-				else if (strcmp("DUPLICATED_ID", ptr2) == 0)
+				else if (std::strcmp("DUPLICATED_ID", ptr2) == 0)
 					result = i2p_error::duplicated_id;
 				else
 					result = i2p_error::num_errors; // unknown error
 			}
-			else if (strcmp("MESSAGE", name) == 0)
+			/*else if (std::strcmp("MESSAGE", name) == 0)
 			{
-//				message = ptr2;
 			}
-			else if (strcmp("VERSION", name) == 0)
+			else if (std::strcmp("VERSION", name) == 0)
 			{
-//				version = float(atof(ptr2));
-			}
-			else if (strcmp("VALUE", name) == 0)
+			}*/
+			else if (std::strcmp("VALUE", name) == 0)
 			{
 				m_name_lookup = ptr2;
 			}
-			else if (strcmp("DESTINATION", name) == 0)
+			else if (std::strcmp("DESTINATION", name) == 0)
 			{
 				m_dest = ptr2;
 			}
@@ -457,7 +452,6 @@ namespace libtorrent
 		char cmd[1024];
 		int size = std::snprintf(cmd, sizeof(cmd), "STREAM CONNECT ID=%s DESTINATION=%s\n"
 			, m_id, m_dest.c_str());
-//		std::fprintf(stderr, ">>> %s", cmd);
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
 		async_write(m_sock, boost::asio::buffer(cmd, size)
 			, std::bind(&i2p_stream::start_read_line, this, _1, h));
@@ -469,7 +463,6 @@ namespace libtorrent
 		m_state = read_accept_response;
 		char cmd[400];
 		int size = std::snprintf(cmd, sizeof(cmd), "STREAM ACCEPT ID=%s\n", m_id);
-//		std::fprintf(stderr, ">>> %s", cmd);
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
 		async_write(m_sock, boost::asio::buffer(cmd, size)
 			, std::bind(&i2p_stream::start_read_line, this, _1, h));
@@ -482,7 +475,6 @@ namespace libtorrent
 		char cmd[400];
 		int size = std::snprintf(cmd, sizeof(cmd), "SESSION CREATE STYLE=STREAM ID=%s DESTINATION=TRANSIENT\n"
 			, m_id);
-//		std::fprintf(stderr, ">>> %s", cmd);
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
 		async_write(m_sock, boost::asio::buffer(cmd, size)
 			, std::bind(&i2p_stream::start_read_line, this, _1, h));
@@ -494,7 +486,6 @@ namespace libtorrent
 		m_state = read_name_lookup_response;
 		char cmd[1024];
 		int size = std::snprintf(cmd, sizeof(cmd), "NAMING LOOKUP NAME=%s\n", m_name_lookup.c_str());
-//		std::fprintf(stderr, ">>> %s", cmd);
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
 		async_write(m_sock, boost::asio::buffer(cmd, size)
 			, std::bind(&i2p_stream::start_read_line, this, _1, h));
