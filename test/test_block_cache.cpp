@@ -121,7 +121,7 @@ static void nop() {}
 #define WRITE_BLOCK(p, b) \
 	wj.flags = disk_io_job::in_progress; \
 	wj.action = disk_io_job::write; \
-	wj.d.io.offset = b * 0x4000; \
+	wj.d.io.offset = (b) * 0x4000; \
 	wj.d.io.buffer_size = 0x4000; \
 	wj.piece = p; \
 	wj.buffer.disk_block = bc.allocate_buffer("write-test"); \
@@ -129,11 +129,11 @@ static void nop() {}
 
 #define READ_BLOCK(p, b, r) \
 	rj.action = disk_io_job::read; \
-	rj.d.io.offset = b * 0x4000; \
+	rj.d.io.offset = (b) * 0x4000; \
 	rj.d.io.buffer_size = 0x4000; \
 	rj.piece = p; \
 	rj.storage = pm; \
-	rj.requester = (void*)r; \
+	rj.requester = (void*)(r); \
 	rj.buffer.disk_block = 0; \
 	ret = bc.try_read(&rj)
 
@@ -143,12 +143,12 @@ static void nop() {}
 	rj.d.io.ref.storage = 0
 
 #define FLUSH(flushing) \
-	for (int i = 0; i < int(sizeof(flushing)/sizeof(flushing[0])); ++i) \
+	for (int i = 0; i < int(sizeof(flushing)/sizeof((flushing)[0])); ++i) \
 	{ \
-		pe->blocks[flushing[i]].pending = true; \
+		pe->blocks[(flushing)[i]].pending = true; \
 		bc.inc_block_refcount(pe, 0, block_cache::ref_flushing); \
 	} \
-	bc.blocks_flushed(pe, flushing, sizeof(flushing)/sizeof(flushing[0]))
+	bc.blocks_flushed(pe, flushing, sizeof(flushing)/sizeof((flushing)[0]))
 
 #define INSERT(p, b) \
 	wj.piece = p; \

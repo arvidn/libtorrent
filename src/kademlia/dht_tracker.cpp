@@ -153,7 +153,7 @@ namespace libtorrent { namespace dht
 #endif
 	}
 
-	dht_tracker::~dht_tracker() {}
+	dht_tracker::~dht_tracker() = default;
 
 	void dht_tracker::update_node_id()
 	{
@@ -673,7 +673,6 @@ namespace libtorrent { namespace dht
 	bool dht_tracker::send_packet(libtorrent::entry& e, udp::endpoint const& addr)
 	{
 		using libtorrent::bencode;
-		using libtorrent::entry;
 
 		static char const version_str[] = {'L', 'T'
 			, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR};

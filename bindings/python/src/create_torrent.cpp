@@ -75,7 +75,7 @@ namespace
         typedef std::forward_iterator_tag iterator_category;
 
         FileIter(file_storage const& fs, int i) : m_fs(&fs), m_i(i) {}
-        FileIter(FileIter const& fi) : m_fs(fi.m_fs), m_i(fi.m_i) {}
+        FileIter(FileIter const&) = default;
         FileIter() : m_fs(nullptr), m_i(0) {}
         libtorrent::file_entry operator*() const
         { return m_fs->at(m_i); }
@@ -92,12 +92,7 @@ namespace
             return m_i - rhs.m_i;
         }
 
-        FileIter& operator=(FileIter const& rhs)
-        {
-            m_fs = rhs.m_fs;
-            m_i = rhs.m_i;
-            return *this;
-        }
+        FileIter& operator=(FileIter const&) = default;
 
         file_storage const* m_fs;
         int m_i;

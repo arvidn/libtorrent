@@ -121,7 +121,7 @@ node::node(udp proto, udp_socket_interface* sock
 	m_secret[1] = random();
 }
 
-node::~node() {}
+node::~node() = default;
 
 void node::update_node_id()
 {

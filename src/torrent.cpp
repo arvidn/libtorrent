@@ -6032,10 +6032,10 @@ namespace libtorrent
 
 		tcp::endpoint a(addrs[0], port);
 
-		using std::ignore;
 		std::string hostname;
 		error_code ec;
 		std::string protocol;
+		using std::ignore;
 		std::tie(protocol, ignore, hostname, port, ignore)
 			= parse_url_components(web->url, ec);
 		if (port == -1) port = protocol == "http" ? 80 : 443;
@@ -6174,9 +6174,9 @@ namespace libtorrent
 			s->get<http_stream>()->set_no_connect(true);
 		}
 
-		using std::ignore;
 		std::string hostname;
 		error_code ec;
+		using std::ignore;
 		std::tie(ignore, ignore, hostname, ignore, ignore)
 			= parse_url_components(web->url, ec);
 		if (ec)

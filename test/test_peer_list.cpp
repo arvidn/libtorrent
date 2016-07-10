@@ -67,7 +67,7 @@ struct mock_peer_connection
 		for (int i = 0; i < 20; ++i) m_id[i] = rand();
 	}
 
-	virtual ~mock_peer_connection() {}
+	virtual ~mock_peer_connection() = default;
 
 #if !defined TORRENT_DISABLE_LOGGING
 	void peer_log(peer_log_alert::direction_t dir, char const* event
@@ -114,7 +114,7 @@ struct mock_peer_connection
 struct mock_torrent
 {
 	mock_torrent(torrent_state* st) : m_p(nullptr), m_state(st) {}
-	virtual ~mock_torrent() {}
+	virtual ~mock_torrent() = default;
 
 	bool connect_to_peer(torrent_peer* peerinfo, bool ignore_limit = false)
 	{

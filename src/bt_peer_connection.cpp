@@ -186,9 +186,7 @@ namespace libtorrent
 		setup_receive();
 	}
 
-	bt_peer_connection::~bt_peer_connection()
-	{
-	}
+	bt_peer_connection::~bt_peer_connection() = default;
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 	void bt_peer_connection::switch_send_crypto(boost::shared_ptr<crypto_plugin> crypto)

@@ -42,7 +42,7 @@ namespace libtorrent
 	class file_storage;
 
 	stat_cache::stat_cache() {}
-	stat_cache::~stat_cache() {}
+	stat_cache::~stat_cache() = default;
 
 	void stat_cache::set_cache(int i, std::int64_t size)
 	{

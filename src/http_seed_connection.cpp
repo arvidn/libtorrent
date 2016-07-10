@@ -51,7 +51,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hex.hpp" // for is_hex
 
 using boost::shared_ptr;
-using libtorrent::aux::session_impl;
 
 namespace libtorrent
 {

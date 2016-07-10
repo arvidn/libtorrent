@@ -108,7 +108,7 @@ void upnp::start()
 	m_mappings.reserve(10);
 }
 
-upnp::~upnp() {}
+upnp::~upnp() = default;
 
 void upnp::discover_device()
 {

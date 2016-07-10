@@ -118,14 +118,13 @@ namespace libtorrent
 		peer_connection::start();
 	}
 
-	web_connection_base::~web_connection_base()
-	{}
+	web_connection_base::~web_connection_base() = default;
 
 	void web_connection_base::on_connected()
 	{
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
-	
+
 		// this is always a seed
 		incoming_have_all();
 

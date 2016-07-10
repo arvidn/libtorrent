@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 #include <thread>
 #include <functional>
+#include <utility>
 
 #include "libtorrent/extensions/ut_pex.hpp"
 #include "libtorrent/extensions/ut_metadata.hpp"
@@ -70,7 +71,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_call.hpp"
 
 using boost::shared_ptr;
-using boost::weak_ptr;
 using libtorrent::aux::session_impl;
 
 namespace libtorrent
@@ -395,14 +395,14 @@ namespace libtorrent
 		load_struct_from_settings(def, *this);
 	}
 
-	session_settings::~session_settings() {}
+	session_settings::~session_settings() = default;
 #endif // TORRENT_NO_DEPRECATE
 
 	session_proxy::session_proxy() = default;
 	session_proxy::session_proxy(boost::shared_ptr<io_service> ios
 		, std::shared_ptr<std::thread> t
 		, boost::shared_ptr<aux::session_impl> impl)
-		: m_io_service(ios)
+		: m_io_service(std::move(ios))
 		, m_thread(t)
 		, m_impl(impl)
 	{}

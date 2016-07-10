@@ -45,9 +45,6 @@ namespace libtorrent { namespace dht
 
 using detail::read_endpoint_list;
 using detail::read_v4_endpoint;
-#if TORRENT_USE_IPV6
-using detail::read_v6_endpoint;
-#endif
 
 void get_peers_observer::reply(msg const& m)
 {
