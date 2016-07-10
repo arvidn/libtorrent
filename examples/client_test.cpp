@@ -104,7 +104,7 @@ bool sleep_and_input(int* c, int sleep)
 
 #include <termios.h>
 #include <sys/ioctl.h>
-#include <signal.h>
+#include <csignal>
 
 struct set_keypress
 {

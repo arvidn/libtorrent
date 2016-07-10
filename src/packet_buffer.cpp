@@ -30,7 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <stdlib.h> // free and calloc
+#include <cstdlib> // free and calloc
 #include <new> // for bad_alloc
 #include "libtorrent/packet_buffer.hpp"
 #include "libtorrent/assert.hpp"

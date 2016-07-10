@@ -49,7 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_UT_SEQ 1
 
 #if TORRENT_UTP_LOG
-#include <stdarg.h>
+#include <cstdarg>
 #include <cinttypes> // for PRId64 et.al.
 #include "libtorrent/socket_io.hpp"
 #endif

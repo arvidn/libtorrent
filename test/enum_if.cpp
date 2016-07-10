@@ -30,7 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <stdio.h>
+#include <cstdio>
 #include <libtorrent/enum_net.hpp>
 #include <libtorrent/socket.hpp>
 #include <libtorrent/broadcast_socket.hpp>
