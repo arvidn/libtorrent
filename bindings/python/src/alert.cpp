@@ -346,7 +346,7 @@ void bind_alert()
         ;
 
     class_<read_piece_alert, bases<torrent_alert>, noncopyable>(
-        "read_piece_alert", 0, no_init)
+        "read_piece_alert", nullptr, no_init)
         .add_property("buffer", get_buffer)
         .def_readonly("piece", &read_piece_alert::piece)
         .def_readonly("size", &read_piece_alert::size)

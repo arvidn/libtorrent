@@ -794,7 +794,7 @@ void bind_session()
 #ifndef TORRENT_NO_DEPRECATE
         .def(
             "listen_on", &listen_on
-          , (arg("min"), "max", arg("interface") = (char const*)0, arg("flags") = 0)
+          , (arg("min"), "max", arg("interface") = (char const*)nullptr, arg("flags") = 0)
         )
 #ifndef TORRENT_DISABLE_DHT
         .def("start_dht", allow_threads(start_dht0))
