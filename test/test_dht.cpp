@@ -458,20 +458,20 @@ void put_immutable_item_cb(int num, int expect)
 
 struct obs : dht::dht_observer
 {
-	virtual void set_external_address(address const& addr
+	void set_external_address(address const& addr
 		, address const& source) override
 	{}
 
-	virtual address external_address(udp proto) override
+	address external_address(udp proto) override
 	{
 		return address_v4::from_string("236.0.0.1");
 	}
-	virtual void get_peers(sha1_hash const& ih) override {}
-	virtual void outgoing_get_peers(sha1_hash const& target
+	void get_peers(sha1_hash const& ih) override {}
+	void outgoing_get_peers(sha1_hash const& target
 		, sha1_hash const& sent_target, udp::endpoint const& ep) override {}
-	virtual void announce(sha1_hash const& ih, address const& addr, int port) override {}
+	void announce(sha1_hash const& ih, address const& addr, int port) override {}
 #ifndef TORRENT_DISABLE_LOGGING
-	virtual void log(dht_logger::module_t l, char const* fmt, ...) override
+	void log(dht_logger::module_t l, char const* fmt, ...) override
 	{
 		va_list v;
 		va_start(v, fmt);
@@ -480,10 +480,10 @@ struct obs : dht::dht_observer
 		va_end(v);
 		m_log.push_back(buf);
 	}
-	virtual void log_packet(message_direction_t dir, char const* pkt, int len
+	void log_packet(message_direction_t dir, char const* pkt, int len
 		, udp::endpoint node) override {}
 #endif
-	virtual bool on_dht_request(char const* query, int query_len
+	bool on_dht_request(char const* query, int query_len
 		, dht::msg const& request, entry& response) override { return false; }
 
 #ifndef TORRENT_DISABLE_LOGGING

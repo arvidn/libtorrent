@@ -108,19 +108,19 @@ namespace libtorrent { namespace
 		bool need_loaded()
 		{ return m_torrent.need_loaded(); }
 
-		virtual void on_unload() override
+		void on_unload() override
 		{
 			m_metadata.reset();
 		}
 
-		virtual void on_load() override
+		void on_load() override
 		{
 			// initialize m_metadata_size
 			TORRENT_ASSERT(m_torrent.is_loaded());
 			metadata();
 		}
 
-		virtual void on_files_checked() override
+		void on_files_checked() override
 		{
 			// TODO: 2 if we were to initialize m_metadata_size lazily instead,
 			// we would probably be more efficient
@@ -128,7 +128,7 @@ namespace libtorrent { namespace
 			metadata();
 		}
 
-		virtual boost::shared_ptr<peer_plugin> new_connection(
+		boost::shared_ptr<peer_plugin> new_connection(
 			peer_connection_handle const& pc) override;
 
 		int get_metadata_size() const
@@ -231,10 +231,10 @@ namespace libtorrent { namespace
 			, m_tp(tp)
 		{}
 
-		virtual char const* type() const override { return "ut_metadata"; }
+		char const* type() const override { return "ut_metadata"; }
 
 		// can add entries to the extension handshake
-		virtual void add_handshake(entry& h) override
+		void add_handshake(entry& h) override
 		{
 			entry& messages = h["m"];
 			messages["ut_metadata"] = 2;
@@ -243,7 +243,7 @@ namespace libtorrent { namespace
 		}
 
 		// called when the extension handshake from the other end is received
-		virtual bool on_extension_handshake(bdecode_node const& h) override
+		bool on_extension_handshake(bdecode_node const& h) override
 		{
 			m_message_index = 0;
 			if (h.type() != bdecode_node::dict_t) return false;
@@ -328,7 +328,7 @@ namespace libtorrent { namespace
 			m_pc.stats_counters().inc_stats_counter(counters::num_outgoing_metadata);
 		}
 
-		virtual bool on_extended(int length
+		bool on_extended(int length
 			, int extended_msg, buffer::const_interval body) override
 		{
 			if (extended_msg != 2) return false;
@@ -445,7 +445,7 @@ namespace libtorrent { namespace
 			return true;
 		}
 
-		virtual void tick() override
+		void tick() override
 		{
 			maybe_send_request();
 			while (!m_incoming_requests.empty()

@@ -81,7 +81,7 @@ namespace
 			, m_salt(random())
 		{}
 
-		virtual void on_piece_pass(int p) override
+		void on_piece_pass(int p) override
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			m_torrent.debug_log(" PIECE PASS [ p: %d | block_hash_size: %d ]"
@@ -133,7 +133,7 @@ namespace
 			}
 		}
 
-		virtual void on_piece_failed(int p) override
+		void on_piece_failed(int p) override
 		{
 			// The piece failed the hash check. Record
 			// the CRC and origin peer of every block

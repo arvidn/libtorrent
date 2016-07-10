@@ -229,7 +229,7 @@ namespace libtorrent
 			, std::int64_t const file_offset
 			, int const size
 			, file::iovec_t const* bufs, storage_error& ec)
-			override final
+			final
 		{
 			if (m_storage.files().pad_file_at(file_index))
 			{
@@ -320,7 +320,7 @@ namespace libtorrent
 			, std::int64_t const file_offset
 			, int const size
 			, file::iovec_t const* bufs, storage_error& ec)
-			override final
+			final
 		{
 			int num_bufs = count_bufs(bufs, size);
 
@@ -1365,27 +1365,27 @@ namespace libtorrent
 		class disabled_storage final : public storage_interface, boost::noncopyable
 		{
 		public:
-			virtual bool has_any_file(storage_error&) override { return false; }
-			virtual void set_file_priority(std::vector<std::uint8_t> const&
+			bool has_any_file(storage_error&) override { return false; }
+			void set_file_priority(std::vector<std::uint8_t> const&
 				, storage_error&) override {}
-			virtual void rename_file(int, std::string const&, storage_error&) override {}
-			virtual void release_files(storage_error&) override {}
-			virtual void delete_files(int, storage_error&) override {}
-			virtual void initialize(storage_error&) override {}
-			virtual int move_storage(std::string const&, int, storage_error&) override { return 0; }
+			void rename_file(int, std::string const&, storage_error&) override {}
+			void release_files(storage_error&) override {}
+			void delete_files(int, storage_error&) override {}
+			void initialize(storage_error&) override {}
+			int move_storage(std::string const&, int, storage_error&) override { return 0; }
 
-			virtual int readv(file::iovec_t const* bufs, int num_bufs
+			int readv(file::iovec_t const* bufs, int num_bufs
 				, int, int, int, storage_error&) override
 			{
 				return bufs_size(bufs, num_bufs);
 			}
-			virtual int writev(file::iovec_t const* bufs, int num_bufs
+			int writev(file::iovec_t const* bufs, int num_bufs
 				, int, int, int, storage_error&) override
 			{
 				return bufs_size(bufs, num_bufs);
 			}
 
-			virtual bool verify_resume_data(add_torrent_params const&
+			bool verify_resume_data(add_torrent_params const&
 				, std::vector<std::string> const*
 				, storage_error&) override { return false; }
 		};
@@ -1405,9 +1405,9 @@ namespace libtorrent
 		// anything written to it
 		struct zero_storage final : storage_interface
 		{
-			virtual void initialize(storage_error&) override {}
+			void initialize(storage_error&) override {}
 
-			virtual int readv(file::iovec_t const* bufs, int num_bufs
+			int readv(file::iovec_t const* bufs, int num_bufs
 				, int, int, int, storage_error&) override
 			{
 				int ret = 0;
@@ -1418,7 +1418,7 @@ namespace libtorrent
 				}
 				return 0;
 			}
-			virtual int writev(file::iovec_t const* bufs, int num_bufs
+			int writev(file::iovec_t const* bufs, int num_bufs
 				, int, int, int, storage_error&) override
 			{
 				int ret = 0;
@@ -1427,19 +1427,19 @@ namespace libtorrent
 				return 0;
 			}
 
-			virtual bool has_any_file(storage_error&) override { return false; }
-			virtual void set_file_priority(std::vector<std::uint8_t> const& /* prio */
+			bool has_any_file(storage_error&) override { return false; }
+			void set_file_priority(std::vector<std::uint8_t> const& /* prio */
 				, storage_error&) override {}
-			virtual int move_storage(std::string const& /* save_path */
+			int move_storage(std::string const& /* save_path */
 				, int /* flags */, storage_error&) override { return 0; }
-			virtual bool verify_resume_data(add_torrent_params const& /* rd */
+			bool verify_resume_data(add_torrent_params const& /* rd */
 				, std::vector<std::string> const* /* links */
 				, storage_error&) override
 			{ return false; }
-			virtual void release_files(storage_error&) override {}
-			virtual void rename_file(int /* index */
+			void release_files(storage_error&) override {}
+			void rename_file(int /* index */
 				, std::string const& /* new_filenamem */, storage_error&) override {}
-			virtual void delete_files(int, storage_error&) override {}
+			void delete_files(int, storage_error&) override {}
 		};
 	}
 

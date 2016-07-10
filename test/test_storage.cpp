@@ -1025,7 +1025,7 @@ struct test_fileop : fileop
 	test_fileop(int stripe_size) : m_stripe_size(stripe_size) {}
 
 	int file_op(int const file_index, std::int64_t const file_offset, int const size
-		, file::iovec_t const* bufs, storage_error& ec)
+		, file::iovec_t const* bufs, storage_error& ec) override
 	{
 		size_t offset = size_t(file_offset);
 		if (file_index >= int(m_file_data.size()))
@@ -1064,7 +1064,7 @@ struct test_read_fileop : fileop
 	test_read_fileop(int size) : m_size(size), m_counter(0) {}
 
 	int file_op(int const file_index, std::int64_t const file_offset, int const size
-		, file::iovec_t const* bufs, storage_error& ec)
+		, file::iovec_t const* bufs, storage_error& ec) override
 	{
 		int local_size = (std::min)(m_size, size);
 		const int read = local_size;
@@ -1095,7 +1095,7 @@ struct test_error_fileop : fileop
 		: m_error_file(error_file) {}
 
 	int file_op(int const file_index, std::int64_t const file_offset, int const size
-		, file::iovec_t const* bufs, storage_error& ec)
+		, file::iovec_t const* bufs, storage_error& ec) override
 	{
 		if (m_error_file == file_index)
 		{

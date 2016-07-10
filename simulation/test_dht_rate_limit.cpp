@@ -54,22 +54,22 @@ using namespace std::placeholders;
 
 struct obs : dht::dht_observer
 {
-	virtual void set_external_address(address const& /* addr */
+	void set_external_address(address const& /* addr */
 		, address const& /* source */) override
 	{}
-	virtual address external_address(udp proto) override
+	address external_address(udp proto) override
 	{
 		if (proto == udp::v4())
 			return address_v4::from_string("40.30.20.10");
 		else
 			return address_v6();
 	}
-	virtual void get_peers(sha1_hash const&) override {}
-	virtual void outgoing_get_peers(sha1_hash const& /* target */
+	void get_peers(sha1_hash const&) override {}
+	void outgoing_get_peers(sha1_hash const& /* target */
 		, sha1_hash const& /* sent_target */, udp::endpoint const& /* ep */) override {}
-	virtual void announce(sha1_hash const& /* ih */
+	void announce(sha1_hash const& /* ih */
 		, address const& /* addr */, int /* port */) override {}
-	virtual void log(dht_logger::module_t l, char const* fmt, ...) override
+	void log(dht_logger::module_t l, char const* fmt, ...) override
 	{
 		va_list v;
 		va_start(v, fmt);
@@ -77,10 +77,10 @@ struct obs : dht::dht_observer
 		va_end(v);
 		puts("\n");
 	}
-	virtual void log_packet(message_direction_t /* dir */
+	void log_packet(message_direction_t /* dir */
 		, char const* /* pkt */, int /* len */
 		, udp::endpoint /* node */) override {}
-	virtual bool on_dht_request(char const* /* query */, int /* query_len */
+	bool on_dht_request(char const* /* query */, int /* query_len */
 		, dht::msg const& /* request */, entry& /* response */) override
 	{ return false; }
 };

@@ -51,9 +51,9 @@ namespace libtorrent
 
 	struct socks_error_category : boost::system::error_category
 	{
-		virtual const char* name() const BOOST_SYSTEM_NOEXCEPT
+		const char* name() const BOOST_SYSTEM_NOEXCEPT override
 		{ return "socks error"; }
-		virtual std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT
+		std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT override
 		{
 			static char const* messages[] =
 			{
@@ -72,8 +72,8 @@ namespace libtorrent
 			if (ev < 0 || ev >= socks_error::num_errors) return "unknown error";
 			return messages[ev];
 		}
-		virtual boost::system::error_condition default_error_condition(
-			int ev) const BOOST_SYSTEM_NOEXCEPT
+		boost::system::error_condition default_error_condition(
+			int ev) const BOOST_SYSTEM_NOEXCEPT override
 		{ return boost::system::error_condition(ev, *this); }
 	};
 

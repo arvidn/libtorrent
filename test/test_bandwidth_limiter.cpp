@@ -73,9 +73,9 @@ struct peer_connection: bandwidth_socket, boost::enable_shared_from_this<peer_co
 		, m_quota(0)
 	{}
 
-	bool is_disconnecting() const { return false; }
+	bool is_disconnecting() const override { return false; }
 	bool ignore_bandwidth_limits() { return m_ignore_limits; }
-	void assign_bandwidth(int channel, int amount);
+	void assign_bandwidth(int channel, int amount) override;
 
 	void throttle(int limit) { m_bandwidth_channel.throttle(limit); }
 
