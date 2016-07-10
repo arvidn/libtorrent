@@ -8,6 +8,9 @@ matrix:
     - env: tidy=1 autotools=1 toolset=gcc
       addons:
         apt:
+          sources:
+          - boost-latest
+          - libboost1.55-all-dev
           packages:
           - clang-tidy
 #    - os: osx
@@ -95,7 +98,7 @@ install:
 # we're building with -Werror, we can't have those warnings
   - 'if [[ "$variant" != "" ]]; then ccache -V && ccache --show-stats && ccache --zero-stats; fi'
 
-  - 'if [ $arch == "arm" ]; then
+  - 'if [[ "$arch" == "arm" ]]; then
       cd test;
       wget https://releases.linaro.org/components/toolchain/binaries/latest-5/armv8l-linux-gnueabihf/gcc-linaro-5.3-2016.02-x86_64_armv8l-linux-gnueabihf.tar.xz;
       tar xf gcc-linaro-5.3-2016.02-x86_64_armv8l-linux-gnueabihf.tar.xz;
@@ -185,7 +188,7 @@ script:
   - 'if [[ "$variant" != "" ]]; then ccache --show-stats; fi'
 
   - cd test
-  - 'if [ $arch == "arm" ];
+  - 'if [[ "$arch" == "arm" ]];
     then
       bjam arm-tests warnings-as-errors=on ssl=$ssl crypto=$crypto variant=test_arm $toolset target-os=linux link=static testing.launcher="sudo cp -R bin rootfs/; sudo chroot rootfs";
     fi'
