@@ -102,7 +102,7 @@ namespace libtorrent
 
 	struct stack_frame
 	{
-		stack_frame(int const t): token(t), state(0) {}
+		explicit stack_frame(int const t): token(t), state(0) {}
 		// this is an index into m_tokens
 		std::uint32_t token:31;
 		// this is used for dictionaries to indicate whether we're
@@ -752,7 +752,7 @@ namespace libtorrent
 			switch (t)
 			{
 				case 'd':
-					stack[sp++] = int(ret.m_tokens.size());
+					stack[sp++] = stack_frame(int(ret.m_tokens.size()));
 					// we push it into the stack so that we know where to fill
 					// in the next_node field once we pop this node off the stack.
 					// i.e. get to the node following the dictionary in the buffer
@@ -761,7 +761,7 @@ namespace libtorrent
 					++start;
 					break;
 				case 'l':
-					stack[sp++] = int(ret.m_tokens.size());
+					stack[sp++] = stack_frame(int(ret.m_tokens.size()));
 					// we push it into the stack so that we know where to fill
 					// in the next_node field once we pop this node off the stack.
 					// i.e. get to the node following the list in the buffer

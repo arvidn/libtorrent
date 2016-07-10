@@ -1723,7 +1723,7 @@ void utp_socket_impl::remove_sack_header(packet* p)
 
 struct holder
 {
-	holder(char* buf = nullptr): m_buf(buf) {}
+	explicit holder(char* buf = nullptr): m_buf(buf) {}
 	~holder() { free(m_buf); }
 
 	void reset(char* buf)

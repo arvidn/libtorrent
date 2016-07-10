@@ -1022,7 +1022,7 @@ file_storage make_fs()
 
 struct test_fileop : fileop
 {
-	test_fileop(int stripe_size) : m_stripe_size(stripe_size) {}
+	explicit test_fileop(int stripe_size) : m_stripe_size(stripe_size) {}
 
 	int file_op(int const file_index, std::int64_t const file_offset, int const size
 		, file::iovec_t const* bufs, storage_error& ec) override
@@ -1061,7 +1061,7 @@ struct test_fileop : fileop
 struct test_read_fileop : fileop
 {
 	// EOF after size bytes read
-	test_read_fileop(int size) : m_size(size), m_counter(0) {}
+	explicit test_read_fileop(int size) : m_size(size), m_counter(0) {}
 
 	int file_op(int const file_index, std::int64_t const file_offset, int const size
 		, file::iovec_t const* bufs, storage_error& ec) override
@@ -1091,7 +1091,7 @@ struct test_read_fileop : fileop
 struct test_error_fileop : fileop
 {
 	// EOF after size bytes read
-	test_error_fileop(int error_file)
+	explicit test_error_fileop(int error_file)
 		: m_error_file(error_file) {}
 
 	int file_op(int const file_index, std::int64_t const file_offset, int const size

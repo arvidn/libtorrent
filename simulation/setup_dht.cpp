@@ -302,7 +302,7 @@ dht_network::dht_network(sim::simulation& sim, int num_nodes, std::uint32_t flag
 	}
 }
 
-dht_network::~dht_network() {}
+dht_network::~dht_network() = default;
 
 void print_routing_table(std::vector<lt::dht_routing_bucket> const& rt)
 {

@@ -71,7 +71,7 @@ namespace
 
 	struct match_peer_endpoint
 	{
-		match_peer_endpoint(tcp::endpoint const& ep)
+		explicit match_peer_endpoint(tcp::endpoint const& ep)
 			: m_ep(ep)
 		{}
 
@@ -87,7 +87,7 @@ namespace
 #if TORRENT_USE_INVARIANT_CHECKS
 	struct match_peer_connection
 	{
-		match_peer_connection(peer_connection_interface const& c) : m_conn(c) {}
+		explicit match_peer_connection(peer_connection_interface const& c) : m_conn(c) {}
 
 		bool operator()(torrent_peer const* p) const
 		{
@@ -102,7 +102,7 @@ namespace
 #if TORRENT_USE_ASSERTS
 	struct match_peer_connection_or_endpoint
 	{
-		match_peer_connection_or_endpoint(peer_connection_interface const& c) : m_conn(c) {}
+		explicit match_peer_connection_or_endpoint(peer_connection_interface const& c) : m_conn(c) {}
 
 		bool operator()(torrent_peer const* p) const
 		{

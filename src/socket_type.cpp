@@ -100,8 +100,8 @@ namespace libtorrent
 		ctx = SSL_get_SSL_CTX(ssl); \
 		break;
 
-		SSL* ssl = 0;
-		SSL_CTX* ctx = 0;
+		SSL* ssl = nullptr;
+		SSL_CTX* ctx = nullptr;
 
 		switch(s.type())
 		{
@@ -115,8 +115,8 @@ namespace libtorrent
 #if OPENSSL_VERSION_NUMBER >= 0x90812f
 		if (ctx)
 		{
-			aux::openssl_set_tlsext_servername_callback(ctx, 0);
-			aux::openssl_set_tlsext_servername_arg(ctx, 0);
+			aux::openssl_set_tlsext_servername_callback(ctx, nullptr);
+			aux::openssl_set_tlsext_servername_arg(ctx, nullptr);
 		}
 #endif // OPENSSL_VERSION_NUMBER
 

@@ -1488,7 +1488,7 @@ namespace libtorrent
 
 		// Go through the alternate names in the certificate looking for matching DNS entries
 		GENERAL_NAMES* gens = static_cast<GENERAL_NAMES*>(
-			X509_get_ext_d2i(cert, NID_subject_alt_name, 0, 0));
+			X509_get_ext_d2i(cert, NID_subject_alt_name, nullptr, nullptr));
 
 #ifndef TORRENT_DISABLE_LOGGING
 		std::string names;
@@ -1525,7 +1525,7 @@ namespace libtorrent
 		// use the "most specific" common name, which is the last one in the list.
 		X509_NAME* name = X509_get_subject_name(cert);
 		int i = -1;
-		ASN1_STRING* common_name = 0;
+		ASN1_STRING* common_name = nullptr;
 		while ((i = X509_NAME_get_index_by_NID(name, NID_commonName, i)) >= 0)
 		{
 			X509_NAME_ENTRY* name_entry = X509_NAME_get_entry(name, i);
@@ -1637,7 +1637,7 @@ namespace libtorrent
 
 		// parse the certificate into OpenSSL's internal
 		// representation
-		X509* certificate = PEM_read_bio_X509_AUX(bp, 0, 0, 0);
+		X509* certificate = PEM_read_bio_X509_AUX(bp, nullptr, nullptr, nullptr);
 
 		BIO_free(bp);
 
@@ -7100,7 +7100,7 @@ namespace libtorrent
 			ssl_conn = s->get<ssl_stream<t> >()->native_handle(); \
 			break;
 
-			SSL* ssl_conn = 0;
+			SSL* ssl_conn = nullptr;
 
 			switch (s->type())
 			{
@@ -7112,7 +7112,7 @@ namespace libtorrent
 
 #undef SSL
 
-			if (ssl_conn == 0)
+			if (ssl_conn == nullptr)
 			{
 				// don't allow non SSL peers on SSL torrents
 				p->disconnect(errors::requires_ssl_connection, op_bittorrent);

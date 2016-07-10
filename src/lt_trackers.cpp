@@ -73,7 +73,7 @@ namespace libtorrent { namespace
 
 	struct lt_tracker_plugin : torrent_plugin
 	{
-		lt_tracker_plugin(torrent& t)
+		explicit lt_tracker_plugin(torrent& t)
 			: m_torrent(t)
 			, m_updates(0)
 			, m_2_minutes(110)

@@ -328,7 +328,7 @@ void http_connection::start(std::string const& hostname, int port
 #ifdef TORRENT_USE_OPENSSL
 		if (m_ssl)
 		{
-			if (m_ssl_ctx == 0)
+			if (m_ssl_ctx == nullptr)
 			{
 				m_ssl_ctx = new (std::nothrow) ssl::context(
 					m_timer.get_io_service(), ssl::context::sslv23_client);

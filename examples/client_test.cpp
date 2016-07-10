@@ -354,7 +354,7 @@ std::string print_endpoint(libtorrent::tcp::endpoint const& ep)
 
 struct torrent_entry
 {
-	torrent_entry(libtorrent::torrent_handle h) : handle(std::move(h)) {}
+	explicit torrent_entry(libtorrent::torrent_handle h) : handle(std::move(h)) {}
 	libtorrent::torrent_handle handle;
 	libtorrent::torrent_status status;
 };

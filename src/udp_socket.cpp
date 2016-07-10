@@ -74,7 +74,7 @@ using namespace std::placeholders;
 //    the common case cheaper by not allocating this space unconditionally
 struct socks5 : boost::enable_shared_from_this<socks5>
 {
-	socks5(io_service& ios)
+	explicit socks5(io_service& ios)
 		: m_socks5_sock(ios)
 		, m_resolver(ios)
 		, m_timer(ios)

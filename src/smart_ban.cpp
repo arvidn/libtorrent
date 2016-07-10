@@ -76,7 +76,7 @@ namespace
 		: torrent_plugin
 		, boost::enable_shared_from_this<smart_ban_plugin>
 	{
-		smart_ban_plugin(torrent& t)
+		explicit smart_ban_plugin(torrent& t)
 			: m_torrent(t)
 			, m_salt(random())
 		{}

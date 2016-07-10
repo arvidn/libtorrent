@@ -89,7 +89,7 @@ namespace
 	struct count_peers
 	{
 		int* count;
-		count_peers(int* c): count(c) {}
+		explicit count_peers(int* c): count(c) {}
 		void operator()(std::pair<libtorrent::sha1_hash
 			, torrent_entry> const& t)
 		{
@@ -147,7 +147,7 @@ namespace
 	// less important to keep
 	struct immutable_item_comparator
 	{
-		immutable_item_comparator(std::vector<node_id> const& node_ids) : m_node_ids(node_ids) {}
+		explicit immutable_item_comparator(std::vector<node_id> const& node_ids) : m_node_ids(node_ids) {}
 		immutable_item_comparator(immutable_item_comparator const&) = default;
 
 		bool operator() (std::pair<node_id, dht_immutable_item> const& lhs
@@ -193,7 +193,7 @@ namespace
 
 	public:
 
-		dht_default_storage(dht_settings const& settings)
+		explicit dht_default_storage(dht_settings const& settings)
 			: m_settings(settings)
 		{
 			m_counters.reset();

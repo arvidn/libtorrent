@@ -88,7 +88,7 @@ namespace libtorrent { namespace
 		// to evenly spread it out across all torrents
 		// the more torrents we have, the longer we can
 		// delay the rebuilding
-		ut_pex_plugin(torrent& t)
+		explicit ut_pex_plugin(torrent& t)
 			: m_torrent(t)
 			, m_last_msg(min_time())
 			, m_peers_in_message(0) {}
