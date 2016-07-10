@@ -95,7 +95,7 @@ namespace libtorrent { namespace
 	struct ut_metadata_plugin final
 		: torrent_plugin
 	{
-		ut_metadata_plugin(torrent& t)
+		explicit ut_metadata_plugin(torrent& t)
 			: m_torrent(t)
 //			, m_metadata_progress(0)
 			, m_metadata_size(0)

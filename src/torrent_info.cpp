@@ -1539,7 +1539,7 @@ namespace libtorrent
 	{
 		struct filter_web_seed_type
 		{
-			filter_web_seed_type(web_seed_entry::type_t t_) : t(t_) {}
+			explicit filter_web_seed_type(web_seed_entry::type_t t_) : t(t_) {}
 			void operator() (web_seed_entry const& w)
 			{ if (w.type == t) urls.push_back(w.url); }
 			std::vector<std::string> urls;

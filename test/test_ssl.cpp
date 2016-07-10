@@ -196,7 +196,7 @@ void test_ssl(int test_idx, bool use_utp)
 	ssl_peer_disconnects = 0;
 	peer_errors = 0;
 
-	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, 0
+	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, nullptr
 		, true, false, false, "_ssl", 16 * 1024, &t, false, &addp, true);
 
 	if (test.seed_has_cert)

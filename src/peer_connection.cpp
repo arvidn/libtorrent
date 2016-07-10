@@ -2568,7 +2568,7 @@ namespace libtorrent
 #if TORRENT_USE_INVARIANT_CHECKS
 	struct check_postcondition
 	{
-		check_postcondition(boost::shared_ptr<torrent> const& t_
+		explicit check_postcondition(boost::shared_ptr<torrent> const& t_
 			, bool init_check = true): t(t_) { if (init_check) check(); }
 
 		~check_postcondition() { check(); }

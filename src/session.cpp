@@ -403,7 +403,7 @@ namespace libtorrent
 		, std::shared_ptr<std::thread> t
 		, boost::shared_ptr<aux::session_impl> impl)
 		: m_io_service(std::move(ios))
-		, m_thread(t)
+		, m_thread(std::move(t))
 		, m_impl(impl)
 	{}
 	session_proxy::session_proxy(session_proxy const&) = default;

@@ -353,7 +353,7 @@ namespace libtorrent { namespace dht
 
 	struct get_immutable_item_ctx
 	{
-		get_immutable_item_ctx(int traversals)
+		explicit get_immutable_item_ctx(int traversals)
 			: active_traversals(traversals)
 			, item_posted(false)
 		{}
@@ -379,7 +379,7 @@ namespace libtorrent { namespace dht
 
 	struct get_mutable_item_ctx
 	{
-		get_mutable_item_ctx(int traversals) : active_traversals(traversals) {}
+		explicit get_mutable_item_ctx(int traversals) : active_traversals(traversals) {}
 		int active_traversals;
 		item it;
 	};
@@ -404,7 +404,7 @@ namespace libtorrent { namespace dht
 
 	struct put_item_ctx
 	{
-		put_item_ctx(int traversals)
+		explicit put_item_ctx(int traversals)
 			: active_traversals(traversals)
 			, response_count(0)
 		{}

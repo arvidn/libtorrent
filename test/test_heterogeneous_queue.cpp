@@ -69,7 +69,7 @@ struct D
 
 struct E
 {
-	E(char const* msg) : string_member(msg) {}
+	explicit E(char const* msg) : string_member(msg) {}
 	std::string string_member;
 };
 
@@ -77,7 +77,7 @@ int D::instances = 0;
 
 struct F
 {
-	F(int f_)
+	explicit F(int f_)
 		: self(this)
 		, f(f_)
 		, constructed(true)

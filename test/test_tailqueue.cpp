@@ -37,7 +37,7 @@ using namespace libtorrent;
 
 struct test_node : tailqueue_node<test_node>
 {
-	test_node(char n) : name(n) {}
+	explicit test_node(char n) : name(n) {}
 	char name;
 };
 

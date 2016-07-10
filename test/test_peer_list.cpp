@@ -113,7 +113,7 @@ struct mock_peer_connection
 
 struct mock_torrent
 {
-	mock_torrent(torrent_state* st) : m_p(nullptr), m_state(st) {}
+	explicit mock_torrent(torrent_state* st) : m_p(nullptr), m_state(st) {}
 	virtual ~mock_torrent() = default;
 
 	bool connect_to_peer(torrent_peer* peerinfo, bool ignore_limit = false)

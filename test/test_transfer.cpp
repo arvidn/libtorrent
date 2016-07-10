@@ -71,7 +71,7 @@ bool on_alert(alert const* a)
 // simulate a full disk
 struct test_storage : default_storage
 {
-	test_storage(storage_params const& params)
+	explicit test_storage(storage_params const& params)
 		: default_storage(params)
 		, m_written(0)
 		, m_limit(16 * 1024 * 2)

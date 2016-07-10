@@ -776,7 +776,7 @@ namespace aux {
 
 	struct session_plugin_wrapper : plugin
 	{
-		session_plugin_wrapper(ext_function_t const& f) : m_f(f) {}
+		explicit session_plugin_wrapper(ext_function_t const& f) : m_f(f) {}
 
 		boost::shared_ptr<torrent_plugin> new_torrent(torrent_handle const& t, void* user) override
 		{ return m_f(t, user); }
@@ -3736,7 +3736,7 @@ namespace aux {
 
 		struct opt_unchoke_candidate
 		{
-			opt_unchoke_candidate(boost::shared_ptr<peer_connection> const* tp)
+			explicit opt_unchoke_candidate(boost::shared_ptr<peer_connection> const* tp)
 				: peer(tp)
 			{}
 
@@ -3752,7 +3752,7 @@ namespace aux {
 		struct last_optimistic_unchoke_cmp
 		{
 #ifndef TORRENT_DISABLE_EXTENSIONS
-			last_optimistic_unchoke_cmp(std::vector<boost::shared_ptr<plugin>>& ps)
+			explicit last_optimistic_unchoke_cmp(std::vector<boost::shared_ptr<plugin>>& ps)
 				: plugins(ps)
 			{}
 

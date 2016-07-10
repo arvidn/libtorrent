@@ -37,7 +37,7 @@ using namespace libtorrent;
 
 struct test_node : list_node<test_node>
 {
-	test_node(int v) : val(v) {}
+	explicit test_node(int v) : val(v) {}
 	int val;
 };
 
