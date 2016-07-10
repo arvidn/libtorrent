@@ -178,7 +178,7 @@ script:
       ./build.sh &&
       cd ../../.. &&
       ./build/src/engine/bin.linuxx86_64/bjam -anc &&
-      clang-tidy -p . -checks=-*,cert-err34-c,cert-err60-cpp,google-readability-redundant-smartptr-get,google-readability-function-size,google-readability-casting,google-explicit-constructor,google-build-explicit-make-pair,google-global-names-in-headers,google-runtime-int,google-runtime-memset,misc-*,-misc-unused-*,modernize-*,-modernize-use-auto,-modernize-raw-string-literal,-modernize-loop-convert,-modernize-avoid-bind,readability-*,performance-* \
+      clang-tidy -p . -header-filter="(?! .*/boost/.* )" -checks=-*,cert-err34-c,cert-err60-cpp,google-readability-redundant-smartptr-get,google-readability-function-size,google-readability-casting,google-explicit-constructor,google-build-explicit-make-pair,google-global-names-in-headers,google-runtime-int,google-runtime-memset,misc-*,-misc-unused-*,-misc-misplaced-widening-cast,modernize-*,-modernize-use-auto,-modernize-raw-string-literal,-modernize-loop-convert,-modernize-avoid-bind,readability-*,performance-* \
         -warnings-as-errors=* src/*.cpp src/kademlia/*.cpp
     fi'
 
