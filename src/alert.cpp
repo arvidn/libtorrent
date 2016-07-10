@@ -53,6 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/max_path.hpp" // for TORRENT_MAX_PATH
 
 #include <functional>
+#include <utility>
 
 namespace libtorrent {
 
@@ -148,7 +149,7 @@ namespace libtorrent {
 		, torrent_handle const& h
 		, int p, boost::shared_array<char> d, int s)
 		: torrent_alert(alloc, h)
-		, buffer(d)
+		, buffer(std::move(d))
 		, piece(p)
 		, size(s)
 	{}
@@ -1591,7 +1592,7 @@ namespace libtorrent {
 		: target(nullptr)
 		, public_key(key)
 		, signature(sig)
-		, salt(s)
+		, salt(std::move(s))
 		, seq(sequence_number)
 		, num_success(n)
 	{}
@@ -1633,7 +1634,7 @@ namespace libtorrent {
 		, udp::endpoint ep)
 		: info_hash(ih)
 		, obfuscated_info_hash(obfih)
-		, ip(ep)
+		, ip(std::move(ep))
 	{}
 
 	std::string dht_outgoing_get_peers_alert::message() const
@@ -1888,7 +1889,7 @@ namespace libtorrent {
 	dht_pkt_alert::dht_pkt_alert(aux::stack_allocator& alloc
 		, char const* buf, int size, dht_pkt_alert::direction_t d, udp::endpoint ep)
 		: dir(d)
-		, node(ep)
+		, node(std::move(ep))
 		, m_alloc(alloc)
 		, m_msg_idx(alloc.copy_buffer(buf, size))
 		, m_size(size)

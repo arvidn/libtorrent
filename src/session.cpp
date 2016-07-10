@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 #include <thread>
 #include <functional>
+#include <utility>
 
 #include "libtorrent/extensions/ut_pex.hpp"
 #include "libtorrent/extensions/ut_metadata.hpp"
@@ -402,7 +403,7 @@ namespace libtorrent
 	session_proxy::session_proxy(boost::shared_ptr<io_service> ios
 		, std::shared_ptr<std::thread> t
 		, boost::shared_ptr<aux::session_impl> impl)
-		: m_io_service(ios)
+		: m_io_service(std::move(ios))
 		, m_thread(t)
 		, m_impl(impl)
 	{}
