@@ -81,7 +81,13 @@ EXPORT bool print_alerts(libtorrent::session& ses, char const* name
 EXPORT void wait_for_listen(libtorrent::session& ses, char const* name);
 EXPORT void wait_for_downloading(libtorrent::session& ses, char const* name);
 
-EXPORT void create_random_files(std::string const& path, const int file_sizes[], int num_files);
+EXPORT std::vector<char> generate_piece(int idx, int const piece_size = 0x4000);
+EXPORT libtorrent::file_storage make_file_storage(const int file_sizes[], int num_files
+	, int const piece_size, std::string base_name = "test_dir-");
+EXPORT boost::shared_ptr<libtorrent::torrent_info> make_torrent(const int file_sizes[]
+	, int num_files, int piece_size);
+EXPORT void create_random_files(std::string const& path, const int file_sizes[]
+	, int num_files);
 
 EXPORT boost::shared_ptr<libtorrent::torrent_info> create_torrent(std::ostream* file = 0
 	, char const* name = "temporary", int piece_size = 16 * 1024, int num_pieces = 13

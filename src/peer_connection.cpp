@@ -2843,11 +2843,11 @@ namespace libtorrent
 			, std::bind(&peer_connection::on_disk_write_complete
 			, self(), _1, p, t));
 
-		std::uint64_t write_queue_size = m_counters.inc_stats_counter(
+		std::uint64_t const write_queue_size = m_counters.inc_stats_counter(
 			counters::queued_write_bytes, p.length);
 		m_outstanding_writing_bytes += p.length;
 
-		std::uint64_t max_queue_size = m_settings.get_int(
+		std::uint64_t const max_queue_size = m_settings.get_int(
 			settings_pack::max_queued_disk_bytes);
 		if (write_queue_size > max_queue_size
 			&& write_queue_size - p.length < max_queue_size
@@ -3033,13 +3033,6 @@ namespace libtorrent
 		TORRENT_ASSERT(p.start == j->d.io.offset);
 		TORRENT_ASSERT(picker.num_peers(block_finished) == 0);
 
-		if (j->ret == -1
-			&& j->error.ec == boost::system::errc::operation_canceled)
-		{
-			picker.mark_as_canceled(block_finished, peer_info_struct());
-			TORRENT_ASSERT_FAIL(); // how do we get here?
-			return;
-		}
 //		std::fprintf(stderr, "peer_connection mark_as_finished peer: %p piece: %d block: %d\n"
 //			, peer_info_struct(), block_finished.piece_index, block_finished.block_index);
 		picker.mark_as_finished(block_finished, peer_info_struct());

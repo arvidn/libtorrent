@@ -1288,6 +1288,8 @@ namespace libtorrent
 		}
 	}
 
+	// TODO: 3 there's some duplication between this function and
+	// peer_connection::incoming_piece(). is there a way to merge something?
 	void torrent::add_piece(int piece, char const* data, int flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -1333,14 +1335,28 @@ namespace libtorrent
 				return;
 			}
 			inc_refcount("add_piece");
+			m_stats_counters.inc_stats_counter(counters::queued_write_bytes, p.length);
 			m_ses.disk_thread().async_write(&storage(), p, std::move(buffer)
 				, std::bind(&torrent::on_disk_write_complete
 				, shared_from_this(), _1, p));
+
 			piece_block block(piece, i);
+			bool const was_finished = picker().is_piece_finished(p.piece);
+			bool const multi = picker().num_peers(block) > 1;
+
 			picker().mark_as_downloading(block, nullptr);
 			picker().mark_as_writing(block, nullptr);
+
+			if (multi) cancel_block(block);
+
+			// did we just finish the piece?
+			// this means all blocks are either written
+			// to disk or are in the disk write cache
+			if (picker().is_piece_finished(p.piece) && !was_finished)
+			{
+				verify_piece(p.piece);
+			}
 		}
-		verify_piece(piece);
 		picker().dec_refcount(piece, nullptr);
 	}
 
@@ -1363,16 +1379,13 @@ namespace libtorrent
 
 		schedule_storage_tick();
 
+		m_stats_counters.inc_stats_counter(counters::queued_write_bytes, -p.length);
+
 //		std::fprintf(stderr, "torrent::on_disk_write_complete ret:%d piece:%d block:%d\n"
 //			, j->ret, j->piece, j->offset/0x4000);
 
 		INVARIANT_CHECK;
-
-		if (m_abort)
-		{
-			return;
-		}
-
+		if (m_abort) return;
 		piece_block block_finished(p.piece, p.start / block_size());
 
 		if (j->ret == -1)
@@ -1390,6 +1403,13 @@ namespace libtorrent
 
 		picker().mark_as_finished(block_finished, nullptr);
 		maybe_done_flushing();
+
+		if (alerts().should_post<block_finished_alert>())
+		{
+			alerts().emplace_alert<block_finished_alert>(get_handle(),
+				tcp::endpoint(), peer_id(), int(block_finished.block_index)
+				, int(block_finished.piece_index));
+		}
 	}
 
 	void torrent::on_disk_tick_done(disk_io_job const* j)
@@ -10552,7 +10572,7 @@ namespace libtorrent
 
 	// verify piece is used when checking resume data or when the user
 	// adds a piece
-	void torrent::verify_piece(int piece)
+	void torrent::verify_piece(int const piece)
 	{
 //		picker().mark_as_checking(piece);
 
