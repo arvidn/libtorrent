@@ -57,15 +57,15 @@ void test_remap_files(storage_mode_t storage_mode = storage_mode_sparse)
 	// create a torrent with 2 files, remap them into 3 files and make sure
 	// the file priorities don't break things
 	static const int file_sizes[] = {100000, 100000};
-	const int num_files = sizeof(file_sizes)/sizeof(file_sizes[0]);
+	const int num_files = 2;
 	const int piece_size = 0x8000;
 	auto t = make_torrent(file_sizes, num_files, piece_size);
 
-	int num_new_files = 3;
+	static const int remap_file_sizes[] = {10000, 10000, int(t->total_size() - 20000)};
+	int const num_new_files = 3;
 
-	static const int remap_file_sizes[] = {10000, 10000, 180000};
-	file_storage fs = make_file_storage(rema_file_sizes, 3
-		, t->piece_length(), "multifile-");
+	file_storage fs = make_file_storage(remap_file_sizes, num_new_files
+		, piece_size, "multifile-");
 
 	t->remap_files(fs);
 
