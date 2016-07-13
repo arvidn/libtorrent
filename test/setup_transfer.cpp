@@ -611,10 +611,10 @@ std::vector<char> generate_piece(int const idx, int const piece_size)
 	std::vector<char> ret(piece_size);
 
 	std::mt19937 rng(idx);
-	std::uniform_int_distribution<char> rand(-128, 127);
+	std::uniform_int_distribution<int> rand(-128, 127);
 	for (char& c : ret)
 	{
-		c = rand(rng);
+		c = static_cast<char>(rand(rng));
 	}
 	return ret;
 }
