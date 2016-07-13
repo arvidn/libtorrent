@@ -110,11 +110,11 @@ extern int EXPORT _g_test_failures;
 #ifdef BOOST_NO_EXCEPTIONS
 #define TEST_CHECK(x) \
 	if (!(x)) \
-		TEST_REPORT_AUX("TEST_CHECK failed: \"" #x "\"", __FILE__, __LINE__);
+		TEST_REPORT_AUX("TEST_ERROR: check failed: \"" #x "\"", __FILE__, __LINE__);
 #define TEST_EQUAL(x, y) \
 	if ((x) != (y)) { \
 		std::stringstream s__; \
-		s__ << "TEST_EQUAL_ERROR:\n" #x ": " << (x) << "\nexpected: " << (y); \
+		s__ << "TEST_ERROR: equal check failed:\n" #x ": " << (x) << "\nexpected: " << (y); \
 		TEST_REPORT_AUX(s__.str().c_str(), __FILE__, __LINE__); \
 	}
 #else
@@ -122,37 +122,37 @@ extern int EXPORT _g_test_failures;
 	try \
 	{ \
 		if (!(x)) \
-			TEST_REPORT_AUX("TEST_CHECK failed: \"" #x "\"", __FILE__, __LINE__); \
+			TEST_REPORT_AUX("TEST_ERROR: check failed: \"" #x "\"", __FILE__, __LINE__); \
 	} \
 	catch (std::exception& e) \
 	{ \
-		TEST_ERROR("Exception thrown: " #x " :" + std::string(e.what())); \
+		TEST_ERROR("TEST_ERROR: Exception thrown: " #x " :" + std::string(e.what())); \
 	} \
 	catch (...) \
 	{ \
-		TEST_ERROR("Exception thrown: " #x); \
+		TEST_ERROR("TEST_ERROR: Exception thrown: " #x); \
 	}
 
 #define TEST_EQUAL(x, y) \
 	try { \
 		if ((x) != (y)) { \
 			std::stringstream s__; \
-			s__ << "TEST_EQUAL_ERROR: " #x ": " << (x) << " expected: " << (y); \
+			s__ << "TEST_ERROR: " #x ": " << (x) << " expected: " << (y); \
 			TEST_REPORT_AUX(s__.str().c_str(), __FILE__, __LINE__); \
 		} \
 	} \
 	catch (std::exception& e) \
 	{ \
-		TEST_ERROR("Exception thrown: " #x " :" + std::string(e.what())); \
+		TEST_ERROR("TEST_ERROR: Exception thrown: " #x " :" + std::string(e.what())); \
 	} \
 	catch (...) \
 	{ \
-		TEST_ERROR("Exception thrown: " #x); \
+		TEST_ERROR("TEST_ERROR: Exception thrown: " #x); \
 	}
 #endif
 
 #define TEST_ERROR(x) \
-	TEST_REPORT_AUX((std::string("ERROR: \"") + (x) + "\"").c_str(), __FILE__, __LINE__)
+	TEST_REPORT_AUX((std::string("TEST_ERROR: \"") + (x) + "\"").c_str(), __FILE__, __LINE__)
 
 #define TEST_NOTHROW(x) \
 	try \
@@ -161,7 +161,7 @@ extern int EXPORT _g_test_failures;
 	} \
 	catch (...) \
 	{ \
-		TEST_ERROR("Exception thrown: " #x); \
+		TEST_ERROR("TEST_ERROR: Exception thrown: " #x); \
 	}
 
 #endif // TEST_HPP

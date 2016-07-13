@@ -47,6 +47,11 @@ using namespace libtorrent;
 namespace lt = libtorrent;
 using std::ignore;
 
+bool all_of(std::vector<bool> const& v)
+{
+	return std::all_of(v.begin(), v.end(), [](bool v){ return v; });
+}
+
 void test_remap_files(storage_mode_t storage_mode = storage_mode_sparse)
 {
 	using namespace libtorrent;
@@ -102,12 +107,13 @@ void test_remap_files(storage_mode_t storage_mode = storage_mode_sparse)
 
 	// wait for all alerts to come back and verify the data against the expected
 	// piece adata
-
 	std::vector<bool> pieces(fs.num_pieces(), false);
+	std::vector<bool> passed(fs.num_pieces(), false);
+	std::vector<bool> files(fs.num_files(), false);
 
-	while (!std::all_of(pieces.begin(), pieces.end(), [](bool v){ return v; }))
+	while (!all_of(pieces) || !all_of(passed) || !all_of(files))
 	{
-		alert* a = ses.wait_for_alert(lt::seconds(30));
+		alert* a = ses.wait_for_alert(lt::seconds(5));
 		if (a == nullptr) break;
 
 		std::vector<alert*> alerts;
@@ -116,18 +122,40 @@ void test_remap_files(storage_mode_t storage_mode = storage_mode_sparse)
 		for (alert* i : alerts)
 		{
 			printf("%s\n", i->message().c_str());
+
 			read_piece_alert* rp = alert_cast<read_piece_alert>(i);
-			if (rp == nullptr) continue;
+			if (rp)
+			{
+				int const idx = rp->piece;
+				TEST_EQUAL(t->piece_size(idx), rp->size);
 
-			int const idx = rp->piece;
-			TEST_EQUAL(t->piece_size(idx), rp->size);
+				std::vector<char> const piece = generate_piece(idx, t->piece_size(idx));
+				TEST_CHECK(memcmp(rp->buffer.get(), piece.data(), rp->size) == 0);
+				TEST_CHECK(pieces[idx] == false);
+				pieces[idx] = true;
+			}
 
-			std::vector<char> const piece = generate_piece(idx, t->piece_size(idx));
-			TEST_CHECK(memcmp(rp->buffer.get(), piece.data(), rp->size) == 0);
-			TEST_CHECK(pieces[idx] == false);
-			pieces[idx] = true;
+			file_completed_alert* fc = alert_cast<file_completed_alert>(i);
+			if (fc)
+			{
+				int const idx = fc->index;
+				TEST_CHECK(files[idx] == false);
+				files[idx] = true;
+			}
+
+			piece_finished_alert* pf = alert_cast<piece_finished_alert>(i);
+			if (pf)
+			{
+				int const idx = pf->piece_index;
+				TEST_CHECK(passed[idx] == false);
+				passed[idx] = true;
+			}
 		}
 	}
+
+	TEST_CHECK(all_of(pieces));
+	TEST_CHECK(all_of(files));
+	TEST_CHECK(all_of(passed));
 
 	// just because we can read them back throught libtorrent, doesn't mean the
 	// files have hit disk yet (because of the cache). Retry a few times to try

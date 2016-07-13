@@ -637,7 +637,7 @@ lt::file_storage make_file_storage(const int file_sizes[], int num_files
 	}
 
 	fs.set_piece_length(piece_size);
-	fs.set_num_pieces((fs.total_size() + piece_size - 1) / piece_size);
+	fs.set_num_pieces(int((fs.total_size() + piece_size - 1) / piece_size));
 
 	return fs;
 }
@@ -654,7 +654,7 @@ boost::shared_ptr<lt::torrent_info> make_torrent(const int file_sizes[]
 	for (int i = 0; i < fs.num_pieces(); ++i)
 	{
 		std::vector<char> const piece = generate_piece(i, fs.piece_size(i));
-		ct.set_hash(i, hasher(piece.data(), piece.size()).final());
+		ct.set_hash(i, hasher(piece.data(), int(piece.size())).final());
 	}
 
 	std::vector<char> buf;
