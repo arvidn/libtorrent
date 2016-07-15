@@ -33,6 +33,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 #include <deque>
 #include <map>
+#include <tuple>
+#include <functional>
+#include <random>
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/hasher.hpp"
@@ -50,8 +53,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp" // for supports_ipv6()
 #include "libtorrent/hex.hpp" // to_hex
 
-#include <tuple>
-#include <functional>
 #include <boost/make_shared.hpp>
 
 #include "test.hpp"
@@ -603,6 +604,64 @@ boost::shared_ptr<T> clone_ptr(boost::shared_ptr<T> const& ptr)
 
 unsigned char random_byte()
 { return lt::random() & 0xff; }
+
+std::vector<char> generate_piece(int const idx, int const piece_size)
+{
+	using namespace libtorrent;
+	std::vector<char> ret(piece_size);
+
+	std::mt19937 rng(idx);
+	std::uniform_int_distribution<int> rand(-128, 127);
+	for (char& c : ret)
+	{
+		c = static_cast<char>(rand(rng));
+	}
+	return ret;
+}
+
+lt::file_storage make_file_storage(const int file_sizes[], int num_files
+	, int const piece_size, std::string base_name)
+{
+	using namespace libtorrent;
+	file_storage fs;
+	for (int i = 0; i != num_files; ++i)
+	{
+		char filename[200];
+		std::snprintf(filename, sizeof(filename), "test%d", i);
+		char dirname[200];
+		std::snprintf(dirname, sizeof(dirname), "%s%d", base_name.c_str()
+			, i / 5);
+		std::string full_path = combine_path(dirname, filename);
+
+		fs.add_file(full_path, file_sizes[i]);
+	}
+
+	fs.set_piece_length(piece_size);
+	fs.set_num_pieces(int((fs.total_size() + piece_size - 1) / piece_size));
+
+	return fs;
+}
+
+boost::shared_ptr<lt::torrent_info> make_torrent(const int file_sizes[]
+	, int const num_files, int const piece_size)
+{
+	using namespace libtorrent;
+	file_storage fs = make_file_storage(file_sizes, num_files, piece_size);
+
+	libtorrent::create_torrent ct(fs, piece_size, 0x4000
+		, libtorrent::create_torrent::optimize_alignment);
+
+	for (int i = 0; i < fs.num_pieces(); ++i)
+	{
+		std::vector<char> const piece = generate_piece(i, fs.piece_size(i));
+		ct.set_hash(i, hasher(piece.data(), int(piece.size())).final());
+	}
+
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), ct.generate());
+	error_code ec;
+	return boost::make_shared<torrent_info>(&buf[0], int(buf.size()), ec);
+}
 
 void create_random_files(std::string const& path, const int file_sizes[], int num_files)
 {
