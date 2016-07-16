@@ -115,16 +115,16 @@ TORRENT_TEST(bitfield)
 
 	test1.resize(100, true);
 	TEST_CHECK(test1.all_set() == true);
-	TEST_CHECK(test1.count() == 100);
+	TEST_EQUAL(test1.count(), 100);
 	test1.resize(200, false);
 	TEST_CHECK(test1.all_set() == false);
-	TEST_CHECK(test1.count() == 100);
+	TEST_EQUAL(test1.count(), 100);
 	test1.resize(50, false);
 	TEST_CHECK(test1.all_set() == true);
-	TEST_CHECK(test1.count() == 50);
+	TEST_EQUAL(test1.count(), 50);
 	test1.resize(101, true);
 	TEST_CHECK(test1.all_set() == true);
-	TEST_CHECK(test1.count() == 101);
+	TEST_EQUAL(test1.count(), 101);
 
 	std::uint8_t b1[] = { 0x08, 0x10 };
 	test1.assign((char*)b1, 14);
@@ -216,6 +216,8 @@ TORRENT_TEST(test_resize_val)
 	b.fill(0xcc);
 
 	bitfield test1(b.data(), 8 * 8);
+	print_bitfield(test1);
+	TEST_EQUAL(test1.size(), 8 * 8);
 	TEST_EQUAL(test1.count(), 4 * 8);
 
 	for (int i = 1; i < 4 * 8; ++i)
@@ -226,12 +228,14 @@ TORRENT_TEST(test_resize_val)
 	}
 }
 
-TORRENT_TEST(test_resize)
+TORRENT_TEST(test_resize_up)
 {
 	std::array<char, 8> b;
 	b.fill(0xcc);
 
 	bitfield test1(b.data(), 8 * 8);
+	print_bitfield(test1);
+	TEST_EQUAL(test1.size(), 8 * 8);
 	TEST_EQUAL(test1.count(), 4 * 8);
 
 	for (int i = 1; i < 5 * 8; ++i)
@@ -243,3 +247,18 @@ TORRENT_TEST(test_resize)
 	}
 }
 
+TORRENT_TEST(test_resize_down)
+{
+	std::array<char, 8> b;
+	b.fill(0x55);
+
+	bitfield test1(b.data(), 8 * 8);
+
+	for (int i = 8 * 8; i > -1; --i)
+	{
+		test1.resize(i);
+		print_bitfield(test1);
+		TEST_EQUAL(test1.size(), i);
+		TEST_EQUAL(test1.count(), i / 2);
+	}
+}

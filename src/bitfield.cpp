@@ -79,6 +79,8 @@ namespace libtorrent
 #endif
 			}
 
+			TORRENT_ASSERT(ret <= size());
+			TORRENT_ASSERT(ret >= 0);
 			return ret;
 		}
 #endif // TORRENT_HAS_SSE
@@ -98,6 +100,8 @@ namespace libtorrent
 				ret += cnt;
 			}
 
+			TORRENT_ASSERT(ret <= size());
+			TORRENT_ASSERT(ret >= 0);
 			return ret;
 		}
 #endif // TORRENT_HAS_ARM_NEON
@@ -161,15 +165,21 @@ namespace libtorrent
 			m_buf.reset();
 			return;
 		}
-		const int size_words = (bits + 31) / 32;
-		if (num_words() != size_words)
+		int const new_size_words = (bits + 31) / 32;
+		int const cur_size_words = num_words();
+		if (cur_size_words != new_size_words)
 		{
-			std::unique_ptr<std::uint32_t[]> b(new std::uint32_t[size_words + 1]);
+			std::unique_ptr<std::uint32_t[]> b(new std::uint32_t[new_size_words + 1]);
 #ifdef BOOST_NO_EXCEPTIONS
 			if (b == nullptr) std::terminate();
 #endif
 			b[0] = bits;
-			if (m_buf) memcpy(&b[1], buf(), (std::min)(num_words(), size_words) * 4);
+			if (m_buf) memcpy(&b[1], buf(), (std::min)(new_size_words, cur_size_words) * 4);
+			if (new_size_words > cur_size_words)
+			{
+				memset(&b[1 + cur_size_words], 0
+					, (new_size_words - cur_size_words) * 4);
+			}
 			m_buf = std::move(b);
 		}
 		else
