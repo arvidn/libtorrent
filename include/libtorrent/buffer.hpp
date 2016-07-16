@@ -135,7 +135,7 @@ public:
 	// allocate an uninitialized buffer of the specified size
 	buffer(std::size_t size = 0)
 	{
-		TORRENT_ASSERT(size < std::size_t(std::numeric_limits<std::int32_t>::max()));
+		TORRENT_ASSERT(size < std::size_t((std::numeric_limits<std::int32_t>::max)()));
 
 		if (size == 0) return;
 
@@ -172,7 +172,7 @@ public:
 		TORRENT_ASSERT(initialize.size() <= size);
 		if (initialize.size() > 0)
 		{
-			memcpy(m_begin, initialize.data(), std::min(initialize.size(), size));
+			memcpy(m_begin, initialize.data(), (std::min)(initialize.size(), size));
 		}
 	}
 

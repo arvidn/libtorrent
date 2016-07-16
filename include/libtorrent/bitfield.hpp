@@ -40,7 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstring> // for memset and memcpy
 #include <cstdint> // uint32_t
-#include <algorithm> // for min()
 #include <memory> // for unique_ptr
 
 namespace libtorrent
@@ -130,8 +129,8 @@ namespace libtorrent
 		bool empty() const { return m_buf == nullptr ? true : m_buf[0] == 0; }
 
 		// returns a pointer to the internal buffer of the bitfield.
-		char const* data() const { return reinterpret_cast<char const*>(&m_buf[1]); }
-		char* data() { return reinterpret_cast<char*>(&m_buf[1]); }
+		char const* data() const { return m_buf ? reinterpret_cast<char const*>(&m_buf[1]) : nullptr; }
+		char* data() { return m_buf ? reinterpret_cast<char*>(&m_buf[1]) : nullptr; }
 
 #ifndef TORRENT_NO_DEPRECATE
 		TORRENT_DEPRECATED
@@ -149,7 +148,6 @@ namespace libtorrent
 
 		void swap(bitfield& rhs)
 		{
-			using namespace std;
 			std::swap(m_buf, rhs.m_buf);
 		}
 
