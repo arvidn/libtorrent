@@ -40,10 +40,9 @@ using namespace libtorrent;
 void print_bitfield(bitfield const& b)
 {
 	std::string out;
-	for (int i = 0; i < b.size(); ++i)
-	{
-		out += b.get_bit(i) ? "1" : "0";
-	}
+	out.reserve(b.size());
+	for (bool bit : b)
+		out += bit ? '1' : '0';
 	std::printf("%s\n", out.c_str());
 }
 
@@ -149,7 +148,11 @@ TORRENT_TEST(bitfield)
 	TEST_EQUAL(test1.get_bit(0), true);
 	TEST_EQUAL(test1.get_bit(1), false);
 	TEST_EQUAL(test1.get_bit(2), true);
+}
 
+TORRENT_TEST(test_assign3)
+{
+	bitfield test1;
 	std::uint8_t b2[] = { 0x08, 0x10, 0xff, 0xff, 0xff, 0xff, 0xf, 0xc, 0x7f };
 	test1.assign((char*)b2, 72);
 	print_bitfield(test1);
@@ -159,31 +162,42 @@ TORRENT_TEST(bitfield)
 	test1.assign((char*)b3, 64);
 	print_bitfield(test1);
 	TEST_EQUAL(test1.count(), 40);
+}
 
+TORRENT_TEST(test_iterators)
+{
+	bitfield test1;
 	for (int i = 0; i < 100; ++i)
 	{
 		test1.resize(i, false);
 		test_iterators(test1);
 	}
+}
 
-	// test alignment
-	std::uint32_t buffer[4];
-	char* b = (char*)buffer;
+TORRENT_TEST(test_assign)
+{
+	std::array<char, 16> b;
+	bitfield test1;
 
 	for (int i = 0; i < 4; ++i)
 	{
 		b[i] = char(0xc0);
-		test1.assign(b + i, 2);
+		test1.assign(&b[i], 2);
 		print_bitfield(test1);
 		TEST_EQUAL(test1.count(), 2);
 		TEST_EQUAL(test1.all_set(), true);
 	}
+}
 
+TORRENT_TEST(test_assign2)
+{
+	std::array<char, 16> b;
+	bitfield test1;
 	for (int i = 0; i < 4; ++i)
 	{
-		memset(b + i, 0xff, 5);
+		memset(&b[i], 0xff, 5);
 		b[i + 5] = char(0xc0);
-		test1.assign(b + i, 32 + 8 + 2);
+		test1.assign(&b[i], 32 + 8 + 2);
 		print_bitfield(test1);
 		TEST_EQUAL(test1.count(), 32 + 8 + 2);
 		TEST_EQUAL(test1.all_set(), true);
@@ -195,3 +209,37 @@ TORRENT_TEST(bitfield)
 	TORRENT_ASSERT(!aux::arm_neon_support);
 #endif
 }
+
+TORRENT_TEST(test_resize_val)
+{
+	std::array<char, 8> b;
+	b.fill(0xcc);
+
+	bitfield test1(b.data(), 8 * 8);
+	TEST_EQUAL(test1.count(), 4 * 8);
+
+	for (int i = 1; i < 4 * 8; ++i)
+	{
+		test1.resize(8 * 8 + i, true);
+		print_bitfield(test1);
+		TEST_EQUAL(test1.count(), 4 * 8 + i);
+	}
+}
+
+TORRENT_TEST(test_resize)
+{
+	std::array<char, 8> b;
+	b.fill(0xcc);
+
+	bitfield test1(b.data(), 8 * 8);
+	TEST_EQUAL(test1.count(), 4 * 8);
+
+	for (int i = 1; i < 5 * 8; ++i)
+	{
+		test1.resize(8 * 8 + i);
+		print_bitfield(test1);
+		TEST_EQUAL(test1.size(), 8 * 8 + i);
+		TEST_EQUAL(test1.count(), 4 * 8);
+	}
+}
+
