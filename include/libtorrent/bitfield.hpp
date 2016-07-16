@@ -70,7 +70,7 @@ namespace libtorrent
 			resize(bits);
 			if (bits > 0)
 			{
-				std::memcpy(data(), b, size_t((bits + 7) / 8));
+				std::memcpy(buf(), b, size_t((bits + 7) / 8));
 				clear_trailing_bits();
 			}
 		}
@@ -212,25 +212,26 @@ namespace libtorrent
 			std::uint32_t bit;
 		};
 
-		const_iterator begin() const { return const_iterator(buf(), 0); }
+		const_iterator begin() const { return const_iterator(m_buf ? buf() : nullptr, 0); }
 		const_iterator end() const { return const_iterator(
-			buf() + num_words() - (((size() & 31) == 0) ? 0 : 1), size() & 31); }
+			m_buf ? buf() + num_words() - (((size() & 31) == 0) ? 0 : 1) : nullptr, size() & 31); }
 
 		// set the size of the bitfield to ``bits`` length. If the bitfield is extended,
 		// the new bits are initialized to ``val``.
 		void resize(int bits, bool val);
-
 		void resize(int bits);
 
 		// set all bits in the bitfield to 1 (set_all) or 0 (clear_all).
 		void set_all()
 		{
-			std::memset(data(), 0xff, size_t(num_words() * 4));
+			if (m_buf == nullptr) return;
+			std::memset(buf(), 0xff, size_t(num_words() * 4));
 			clear_trailing_bits();
 		}
 		void clear_all()
 		{
-			std::memset(data(), 0x00, size_t(num_words() * 4));
+			if (m_buf == nullptr) return;
+			std::memset(buf(), 0x00, size_t(num_words() * 4));
 		}
 
 		// make the bitfield empty, of zero size.
@@ -238,8 +239,8 @@ namespace libtorrent
 
 	private:
 
-		std::uint32_t const* buf() const { return &m_buf[1]; }
-		std::uint32_t* buf() { return &m_buf[1]; }
+		std::uint32_t const* buf() const { TORRENT_ASSERT(m_buf); return &m_buf[1]; }
+		std::uint32_t* buf() { TORRENT_ASSERT(m_buf); return &m_buf[1]; }
 		void clear_trailing_bits()
 		{
 			// clear the tail bits in the last byte
