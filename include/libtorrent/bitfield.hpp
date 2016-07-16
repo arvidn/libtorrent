@@ -35,12 +35,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/buffer.hpp"
 #include "libtorrent/aux_/byteswap.hpp"
 
 #include <cstring> // for memset and memcpy
-#include <cstdlib> // for malloc, free and realloc
 #include <cstdint> // uint32_t
-#include <algorithm> // for min()
+#include <memory> // for unique_ptr
 
 namespace libtorrent
 {
@@ -56,22 +56,12 @@ namespace libtorrent
 		// The constructor taking a pointer ``b`` and ``bits`` copies a bitfield
 		// from the specified buffer, and ``bits`` number of bits (rounded up to
 		// the nearest byte boundary).
-		bitfield(): m_buf(nullptr) {}
-		bitfield(int bits): m_buf(nullptr)
-		{ resize(bits); }
-		bitfield(int bits, bool val): m_buf(nullptr)
-		{ resize(bits, val); }
-		bitfield(char const* b, int bits): m_buf(nullptr)
-		{ assign(b, bits); }
-		bitfield(bitfield const& rhs): m_buf(nullptr)
-		{ assign(rhs.data(), rhs.size()); }
-#if __cplusplus > 199711L
-		bitfield(bitfield&& rhs): m_buf(rhs.m_buf)
-		{ rhs.m_buf = nullptr; }
-#endif
-
-		// hidden
-		~bitfield() { dealloc(); }
+		bitfield() = default;
+		bitfield(int bits) { resize(bits); }
+		bitfield(int bits, bool val) { resize(bits, val); }
+		bitfield(char const* b, int bits) { assign(b, bits); }
+		bitfield(bitfield const& rhs) { assign(rhs.data(), rhs.size()); }
+		bitfield(bitfield&& rhs) = default;
 
 		// copy bitfield from buffer ``b`` of ``bits`` number of bits, rounded up to
 		// the nearest byte boundary.
@@ -80,7 +70,7 @@ namespace libtorrent
 			resize(bits);
 			if (bits > 0)
 			{
-				std::memcpy(m_buf, b, size_t((bits + 7) / 8));
+				std::memcpy(buf(), b, size_t((bits + 7) / 8));
 				clear_trailing_bits();
 			}
 		}
@@ -93,7 +83,7 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(index >= 0);
 			TORRENT_ASSERT(index < size());
-			return (m_buf[index / 32] & aux::host_to_network((0x80000000 >> (index & 31)))) != 0;
+			return (buf()[index / 32] & aux::host_to_network((0x80000000 >> (index & 31)))) != 0;
 		}
 
 		// set bit at ``index`` to 0 (clear_bit) or 1 (set_bit).
@@ -101,13 +91,13 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(index >= 0);
 			TORRENT_ASSERT(index < size());
-			m_buf[index / 32] &= aux::host_to_network(~(0x80000000 >> (index & 31)));
+			buf()[index / 32] &= aux::host_to_network(~(0x80000000 >> (index & 31)));
 		}
 		void set_bit(int index)
 		{
 			TORRENT_ASSERT(index >= 0);
 			TORRENT_ASSERT(index < size());
-			m_buf[index / 32] |= aux::host_to_network((0x80000000 >> (index & 31)));
+			buf()[index / 32] |= aux::host_to_network((0x80000000 >> (index & 31)));
 		}
 
 		// returns true if all bits in the bitfield are set
@@ -116,9 +106,10 @@ namespace libtorrent
 		bool none_set() const
 		{
 			const int words = num_words();
+			std::uint32_t const* b = buf();
 			for (int i = 0; i < words; ++i)
 			{
-				if (m_buf[i] != 0) return false;
+				if (b[i] != 0) return false;
 			}
 			return true;
 		}
@@ -126,7 +117,7 @@ namespace libtorrent
 		// returns the size of the bitfield in bits.
 		int size() const
 		{
-			return m_buf == nullptr ? 0 : int(m_buf[-1]);
+			return m_buf == nullptr ? 0 : int(m_buf[0]);
 		}
 
 		int num_words() const
@@ -135,28 +126,29 @@ namespace libtorrent
 		}
 
 		// returns true if the bitfield has zero size.
-		bool empty() const { return m_buf == nullptr ? true : m_buf[-1] == 0; }
+		bool empty() const { return m_buf == nullptr ? true : m_buf[0] == 0; }
 
 		// returns a pointer to the internal buffer of the bitfield.
-		char const* data() const { return reinterpret_cast<char const*>(m_buf); }
+		char const* data() const { return m_buf ? reinterpret_cast<char const*>(&m_buf[1]) : nullptr; }
+		char* data() { return m_buf ? reinterpret_cast<char*>(&m_buf[1]) : nullptr; }
 
 #ifndef TORRENT_NO_DEPRECATE
 		TORRENT_DEPRECATED
 		char const* bytes() const { return data(); }
 #endif
 
-		// copy operator
+		// assignment operator
 		bitfield& operator=(bitfield const& rhs)
 		{
 			assign(rhs.data(), rhs.size());
 			return *this;
 		}
 
+		bitfield& operator=(bitfield&& rhs) = default;
+
 		void swap(bitfield& rhs)
 		{
-			std::uint32_t* tmp = m_buf;
-			m_buf = rhs.m_buf;
-			rhs.m_buf = tmp;
+			std::swap(m_buf, rhs.m_buf);
 		}
 
 		// count the number of bits in the bitfield that are set to 1.
@@ -220,49 +212,44 @@ namespace libtorrent
 			std::uint32_t bit;
 		};
 
-		const_iterator begin() const { return const_iterator(m_buf, 0); }
+		const_iterator begin() const { return const_iterator(m_buf ? buf() : nullptr, 0); }
 		const_iterator end() const { return const_iterator(
-			m_buf + num_words() - (((size() & 31) == 0) ? 0 : 1), size() & 31); }
+			m_buf ? buf() + num_words() - (((size() & 31) == 0) ? 0 : 1) : nullptr, size() & 31); }
 
 		// set the size of the bitfield to ``bits`` length. If the bitfield is extended,
 		// the new bits are initialized to ``val``.
 		void resize(int bits, bool val);
-
 		void resize(int bits);
 
 		// set all bits in the bitfield to 1 (set_all) or 0 (clear_all).
 		void set_all()
 		{
-			std::memset(m_buf, 0xff, size_t(num_words() * 4));
+			if (m_buf == nullptr) return;
+			std::memset(buf(), 0xff, size_t(num_words() * 4));
 			clear_trailing_bits();
 		}
 		void clear_all()
 		{
-			std::memset(m_buf, 0x00, size_t(num_words() * 4));
+			if (m_buf == nullptr) return;
+			std::memset(buf(), 0x00, size_t(num_words() * 4));
 		}
 
 		// make the bitfield empty, of zero size.
-		void clear() { dealloc(); }
+		void clear() { m_buf.reset(); }
 
 	private:
 
+		std::uint32_t const* buf() const { TORRENT_ASSERT(m_buf); return &m_buf[1]; }
+		std::uint32_t* buf() { TORRENT_ASSERT(m_buf); return &m_buf[1]; }
 		void clear_trailing_bits()
 		{
 			// clear the tail bits in the last byte
-			if (size() & 31) m_buf[num_words() - 1] &= aux::host_to_network(0xffffffff << (32 - (size() & 31)));
-		}
-
-		void dealloc()
-		{
-			if (m_buf) std::free(m_buf-1);
-			m_buf = nullptr;
+			if (size() & 31) buf()[num_words() - 1] &= aux::host_to_network(0xffffffff << (32 - (size() & 31)));
 		}
 
 		// the first element is not part of the bitfield, it's the
-		// number of bits. For this purpose, the m_buf actually points
-		// the element 1, not 0. To access the size (in bits), access
-		// m_buf[-1]
-		std::uint32_t* m_buf;
+		// number of bits.
+		std::unique_ptr<std::uint32_t[]> m_buf;
 	};
 
 }

@@ -45,16 +45,16 @@ namespace libtorrent
 {
 	bool bitfield::all_set() const
 	{
-		const int words = size() / 32;
-		for (int i = 0; i < words; ++i)
+		int const words = size() / 32;
+		for (int i = 1; i < words + 1; ++i)
 		{
 			if (m_buf[i] != 0xffffffff) return false;
 		}
-		int rest = size() & 31;
+		int const rest = size() & 31;
 		if (rest > 0)
 		{
-			std::uint32_t mask = aux::host_to_network(0xffffffff << (32-rest));
-			if ((m_buf[words] & mask) != mask) return false;
+			std::uint32_t const mask = aux::host_to_network(0xffffffff << (32-rest));
+			if ((m_buf[words+1] & mask) != mask) return false;
 		}
 		return true;
 	}
@@ -62,11 +62,11 @@ namespace libtorrent
 	int bitfield::count() const
 	{
 		int ret = 0;
-		const int words = num_words();
+		int const words = num_words();
 #if TORRENT_HAS_SSE
 		if (aux::mmx_support)
 		{
-			for (int i = 0; i < words; ++i)
+			for (int i = 1; i < words+1; ++i)
 			{
 #ifdef __GNUC__
 				std::uint32_t cnt = 0;
@@ -79,6 +79,8 @@ namespace libtorrent
 #endif
 			}
 
+			TORRENT_ASSERT(ret <= size());
+			TORRENT_ASSERT(ret >= 0);
 			return ret;
 		}
 #endif // TORRENT_HAS_SSE
@@ -86,7 +88,7 @@ namespace libtorrent
 #if TORRENT_HAS_ARM_NEON
 		if (aux::arm_neon_support)
 		{
-			for (int i = 0; i < words; ++i)
+			for (int i = 1; i < words + 1; ++i)
 			{
 				uint8x8_t const in_val = vld1_u8((unsigned char *) &m_buf[i]);
 				uint8x8_t const cnt8x8_val = vcnt_u8(in_val);
@@ -98,13 +100,15 @@ namespace libtorrent
 				ret += cnt;
 			}
 
+			TORRENT_ASSERT(ret <= size());
+			TORRENT_ASSERT(ret >= 0);
 			return ret;
 		}
 #endif // TORRENT_HAS_ARM_NEON
 
-		for (int i = 0; i < words; ++i)
+		for (int i = 1; i < words + 1; ++i)
 		{
-			std::uint32_t v = m_buf[i];
+			std::uint32_t const v = m_buf[i];
 			// from:
 			// http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
 			static const int S[] = {1, 2, 4, 8, 16}; // Magic Binary Numbers
@@ -116,6 +120,7 @@ namespace libtorrent
 			c = ((c >> S[3]) + c) & B[3];
 			c = ((c >> S[4]) + c) & B[4];
 			ret += c;
+			TORRENT_ASSERT(ret <= size());
 		}
 
 		TORRENT_ASSERT(ret <= size());
@@ -127,24 +132,24 @@ namespace libtorrent
 	{
 		if (bits == size()) return;
 
-		int s = size();
-		int b = size() & 31;
+		int const s = size();
+		int const b = size() & 31;
 		resize(bits);
 		if (s >= size()) return;
-		int old_size_words = (s + 31) / 32;
-		int new_size_words = num_words();
+		int const old_size_words = (s + 31) / 32;
+		int const new_size_words = num_words();
 		if (val)
 		{
-			if (old_size_words && b) m_buf[old_size_words - 1] |= aux::host_to_network((0xffffffff >> b));
+			if (old_size_words && b) buf()[old_size_words - 1] |= aux::host_to_network((0xffffffff >> b));
 			if (old_size_words < new_size_words)
-				std::memset(m_buf + old_size_words, 0xff
+				std::memset(buf() + old_size_words, 0xff
 					, size_t((new_size_words - old_size_words) * 4));
 			clear_trailing_bits();
 		}
 		else
 		{
 			if (old_size_words < new_size_words)
-				std::memset(m_buf + old_size_words, 0x00
+				std::memset(buf() + old_size_words, 0x00
 					, size_t((new_size_words - old_size_words) * 4));
 		}
 		TORRENT_ASSERT(size() == bits);
@@ -155,37 +160,35 @@ namespace libtorrent
 		if (bits == size()) return;
 
 		TORRENT_ASSERT(bits >= 0);
-		const int b = (bits + 31) / 32;
 		if (bits == 0)
 		{
-			if (m_buf != nullptr)
-			{
-				std::free(m_buf-1);
-				m_buf = nullptr;
-			}
+			m_buf.reset();
 			return;
 		}
-
-		if (m_buf)
+		int const new_size_words = (bits + 31) / 32;
+		int const cur_size_words = num_words();
+		if (cur_size_words != new_size_words)
 		{
-			std::uint32_t* tmp = static_cast<std::uint32_t*>(std::realloc(m_buf-1, (b+1) * 4));
-#ifndef BOOST_NO_EXCEPTIONS
-			if (tmp == nullptr) throw std::bad_alloc();
+			std::unique_ptr<std::uint32_t[]> b(new std::uint32_t[new_size_words + 1]);
+#ifdef BOOST_NO_EXCEPTIONS
+			if (b == nullptr) std::terminate();
 #endif
-			m_buf = tmp + 1;
-			m_buf[-1] = bits;
+			b[0] = bits;
+			if (m_buf) memcpy(&b[1], buf(), (std::min)(new_size_words, cur_size_words) * 4);
+			if (new_size_words > cur_size_words)
+			{
+				memset(&b[1 + cur_size_words], 0
+					, (new_size_words - cur_size_words) * 4);
+			}
+			m_buf = std::move(b);
 		}
 		else
 		{
-			// +1 because the first word is the size (in bits)
-			std::uint32_t* tmp = static_cast<std::uint32_t*>(std::malloc((b+1) * 4));
-#ifndef BOOST_NO_EXCEPTIONS
-			if (tmp == nullptr) throw std::bad_alloc();
-#endif
-			m_buf = tmp + 1;
-			m_buf[-1] = bits;
+			m_buf[0] = bits;
 		}
+
 		clear_trailing_bits();
 		TORRENT_ASSERT(size() == bits);
 	}
 }
+
