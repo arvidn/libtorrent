@@ -1239,6 +1239,7 @@ namespace aux {
 	ip_filter const& session_impl::get_ip_filter()
 	{
 		TORRENT_ASSERT(is_single_thread());
+		if (!m_ip_filter) m_ip_filter = boost::make_shared<ip_filter>();
 		return *m_ip_filter;
 	}
 
