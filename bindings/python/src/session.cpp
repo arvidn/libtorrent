@@ -717,7 +717,7 @@ void bind_session()
                 , arg("alert_mask")=int(alert::error_notification)))
         )
 #endif
-        .def("post_torrent_updates", allow_threads(&lt::session::post_torrent_updates))
+        .def("post_torrent_updates", allow_threads(&lt::session::post_torrent_updates), arg("flags") = 0xffffffff)
         .def("post_session_stats", allow_threads(&lt::session::post_session_stats))
         .def("outgoing_ports", &outgoing_ports)
         .def("is_listening", allow_threads(&lt::session::is_listening))

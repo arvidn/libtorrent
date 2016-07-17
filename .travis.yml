@@ -56,7 +56,7 @@ before_install:
   - 'if [[ $crypto == "" ]]; then export crypto=built-in; fi'
   - 'if [[ $TRAVIS_OS_NAME == "osx" && "$variant" != "" ]]; then brew update > /dev/null && brew install --quiet ccache boost-build boost-python; fi'
   - 'if [ "$docs" = "1" ]; then
-    brew install --quiet https://raw.githubusercontent.com/catap/homebrew/docutils/Library/Formula/docutils.rb;
+    brew install --quiet docutils;
     mkdir -p /Users/travis/Library/Python/2.7/lib/python/site-packages;
     echo ''import site; site.addsitedir("/usr/local/lib/python2.7/site-packages")'' >> /Users/travis/Library/Python/2.7/lib/python/site-packages/homebrew.pth;
     sudo easy_install Pygments;
