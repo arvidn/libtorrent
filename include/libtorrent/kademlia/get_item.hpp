@@ -72,7 +72,6 @@ protected:
 
 	data_callback m_data_callback;
 	item m_data;
-	std::string m_salt;
 	bool m_immutable;
 };
 

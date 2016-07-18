@@ -56,6 +56,7 @@ namespace aux
 
 		void export_progress(std::vector<boost::int64_t> &fp);
 
+		bool empty() const { return m_file_progress.empty(); }
 		void clear();
 
 		void update(file_storage const& fs, int index

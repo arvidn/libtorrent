@@ -2699,12 +2699,9 @@ namespace libtorrent
 #endif
 
 #ifndef TORRENT_DISABLE_LOGGING
-		hasher h;
-		h.update(data.get(), p.length);
-		peer_log(peer_log_alert::incoming_message, "PIECE", "piece: %d s: %x l: %x ds: %d qs: %d q: %d hash: %s"
+		peer_log(peer_log_alert::incoming_message, "PIECE", "piece: %d s: %x l: %x ds: %d qs: %d q: %d"
 			, p.piece, p.start, p.length, statistics().download_rate()
-			, int(m_desired_queue_size), int(m_download_queue.size())
-			, to_hex(h.final().to_string()).c_str());
+			, int(m_desired_queue_size), int(m_download_queue.size()));
 #endif
 
 		if (p.length == 0)

@@ -61,7 +61,7 @@ class test_torrent_info(unittest.TestCase):
 			print f.path
 
 			self.assertEqual(os.path.split(f.path)[1], expected[idx])
-			self.assertEqual(os.path.split(f.path)[0], 'temp/foo')
+			self.assertEqual(os.path.split(os.path.split(f.path)[0]), ('temp', 'foo'))
 			idx += 1
 
 class test_alerts(unittest.TestCase):
