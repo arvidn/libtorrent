@@ -131,8 +131,6 @@ test-suite libtorrent :
 		test_xml.cpp
 		test_ip_filter.cpp
 		test_hasher.cpp
-		test_dht_storage.cpp
-		test_dht.cpp
 		test_block_cache.cpp
 		test_peer_classes.cpp
 		test_settings_pack.cpp
@@ -142,6 +140,10 @@ test-suite libtorrent :
 		test_enum_net.cpp
 		test_linked_list.cpp
 		test_file_progress.cpp ]
+
+	[ run test_dht.cpp
+		test_dht_storage.cpp
+		]
 
 	[ run test_string.cpp
 		test_utf8.cpp

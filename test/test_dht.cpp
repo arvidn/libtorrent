@@ -60,7 +60,9 @@ using namespace libtorrent;
 using namespace libtorrent::dht;
 using namespace std::placeholders;
 
-static sha1_hash to_hash(char const* s)
+namespace {
+
+sha1_hash to_hash(char const* s)
 {
 	sha1_hash ret;
 	aux::from_hex(s, 40, (char*)&ret[0]);
@@ -85,8 +87,8 @@ void node_push_back(void* userdata, libtorrent::dht::node_entry const& n)
 	nv->push_back(n);
 }
 
-static void nop(void* userdata, libtorrent::dht::node_entry const& n) {}
-static void nop_node() {}
+void nop(void* userdata, libtorrent::dht::node_entry const& n) {}
+void nop_node() {}
 
 std::list<std::pair<udp::endpoint, entry> > g_sent_packets;
 
@@ -108,15 +110,6 @@ sha1_hash generate_next()
 	for (int i = 0; i < 20; ++i) ret[i] = rand() & 0xff;
 	return ret;
 }
-
-std::array<char, 64> generate_key()
-{
-	std::array<char, 64> ret;
-	for (int i = 0; i < 64; ++i) ret[i] = rand() & 0xff;
-	return ret;
-}
-
-static const std::string no;
 
 std::list<std::pair<udp::endpoint, entry> >::iterator
 find_packet(udp::endpoint ep)
@@ -310,7 +303,7 @@ void announce_immutable_items(node& node, udp::endpoint const* eps
 			bdecode_node response;
 			send_dht_request(node, "get", eps[i], &response
 				, msg_args().target((char const*)&items[j].target[0]));
-			
+
 			key_desc_t desc[] =
 			{
 				{ "r", bdecode_node::dict_t, 0, key_desc_t::parse_children },
@@ -500,28 +493,48 @@ dht_settings test_settings()
 	return sett;
 }
 
-// TODO: test obfuscated_get_peers
-// TODO: 2 split this test up into smaller test cases
-void do_test_dht(address(&rand_addr)())
+struct dht_test_setup
 {
-	dht_settings sett = test_settings();
+	dht_test_setup(udp::endpoint src)
+		: sett(test_settings())
+		, dht_storage(dht_default_storage_constructor(sett))
+		, source(src)
+		, node(src.protocol(), &s, sett
+			, node_id(nullptr), &observer, cnt, nodes, *dht_storage)
+	{
+		dht_storage->update_node_ids({node_id(nullptr)});
+	}
+	dht_settings sett;
 	mock_socket s;
 	obs observer;
 	counters cnt;
-	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
-	dht_storage->update_node_ids({node_id(nullptr)});
-	udp::endpoint source(rand_addr(), 20);
+	std::unique_ptr<dht_storage_interface> dht_storage;
+	udp::endpoint source;
 	std::map<std::string, node*> nodes;
-	dht::node node(source.protocol(), &s, sett
-		, node_id(nullptr), &observer, cnt, nodes, *dht_storage);
-
-	// DHT should be running on port 48199 now
-	bdecode_node response;
+	dht::node node;
 	char error_string[200];
-	bool ret;
+};
 
-	// ====== ping ======
-	send_dht_request(node, "ping", source, &response);
+dht::key_desc_t const err_desc[] = {
+	{"y", bdecode_node::string_t, 1, 0},
+	{"e", bdecode_node::list_t, 2, 0}
+};
+
+dht::key_desc_t peer1_desc[] = {
+	{"y", bdecode_node::string_t, 1, 0},
+	{"r", bdecode_node::dict_t, 0, key_desc_t::parse_children},
+		{"token", bdecode_node::string_t, 0, 0},
+		{"id", bdecode_node::string_t, 20, key_desc_t::last_child},
+};
+
+} // annonymous namespace
+
+TORRENT_TEST(ping)
+{
+	dht_test_setup t(udp::endpoint(rand_v4(), 20));
+	bdecode_node response;
+
+	send_dht_request(t.node, "ping", t.source, &response);
 
 	dht::key_desc_t pong_desc[] = {
 		{"y", bdecode_node::string_t, 1, 0},
@@ -533,8 +546,8 @@ void do_test_dht(address(&rand_addr)())
 	bdecode_node pong_keys[4];
 
 	std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-	ret = dht::verify_message(response, pong_desc, pong_keys, error_string
-		, sizeof(error_string));
+	bool ret = dht::verify_message(response, pong_desc, pong_keys, t.error_string
+		, sizeof(t.error_string));
 	TEST_CHECK(ret);
 	if (ret)
 	{
@@ -543,23 +556,21 @@ void do_test_dht(address(&rand_addr)())
 	}
 	else
 	{
-		std::fprintf(stderr, "   invalid ping response: %s\n", error_string);
+		std::fprintf(stderr, "   invalid ping response: %s\n", t.error_string);
 	}
+}
 
-	// ====== invalid message ======
-
-	send_dht_request(node, "find_node", source, &response);
-
-	dht::key_desc_t err_desc[] = {
-		{"y", bdecode_node::string_t, 1, 0},
-		{"e", bdecode_node::list_t, 2, 0}
-	};
-
+TORRENT_TEST(invalid_message)
+{
+	dht_test_setup t(udp::endpoint(rand_v4(), 20));
+	bdecode_node response;
 	bdecode_node err_keys[2];
 
+	send_dht_request(t.node, "find_node", t.source, &response);
+
 	std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-	ret = dht::verify_message(response, err_desc, err_keys, error_string
-		, sizeof(error_string));
+	bool ret = dht::verify_message(response, err_desc, err_keys, t.error_string
+		, sizeof(t.error_string));
 	TEST_CHECK(ret);
 	if (ret)
 	{
@@ -576,27 +587,37 @@ void do_test_dht(address(&rand_addr)())
 	}
 	else
 	{
-		std::fprintf(stderr, "   invalid error response: %s\n", error_string);
+		std::fprintf(stderr, "   invalid error response: %s\n", t.error_string);
 	}
+}
 
-	// ====== get_peers ======
+TORRENT_TEST(node_id_testng)
+{
+	node_id rnd = generate_secret_id();
+	TEST_CHECK(verify_secret_id(rnd));
 
-	send_dht_request(node, "get_peers", source, &response
+	rnd[19] ^= 0x55;
+	TEST_CHECK(!verify_secret_id(rnd));
+
+	rnd = generate_random_id();
+	make_id_secret(rnd);
+	TEST_CHECK(verify_secret_id(rnd));
+}
+
+TORRENT_TEST(get_peers_announce)
+{
+	dht_test_setup t(udp::endpoint(rand_v4(), 20));
+	bdecode_node response;
+
+	send_dht_request(t.node, "get_peers", t.source, &response
 		, msg_args().info_hash("01010101010101010101"));
-
-	dht::key_desc_t peer1_desc[] = {
-		{"y", bdecode_node::string_t, 1, 0},
-		{"r", bdecode_node::dict_t, 0, key_desc_t::parse_children},
-			{"token", bdecode_node::string_t, 0, 0},
-			{"id", bdecode_node::string_t, 20, key_desc_t::last_child},
-	};
 
 	bdecode_node peer1_keys[4];
 
 	std::string token;
 	std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-	ret = dht::verify_message(response, peer1_desc, peer1_keys, error_string
-		, sizeof(error_string));
+	bool ret = dht::verify_message(response, peer1_desc, peer1_keys, t.error_string
+		, sizeof(t.error_string));
 	TEST_CHECK(ret);
 	if (ret)
 	{
@@ -607,18 +628,15 @@ void do_test_dht(address(&rand_addr)())
 	else
 	{
 		std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-		std::fprintf(stderr, "   invalid get_peers response: %s\n", error_string);
+		std::fprintf(stderr, "   invalid get_peers response: %s\n", t.error_string);
 	}
 
-	// ====== announce ======
-
-	send_dht_request(node, "announce_peer", source, &response
+	send_dht_request(t.node, "announce_peer", t.source, &response
 		, msg_args()
 			.info_hash("01010101010101010101")
 			.name("test")
 			.token(token)
 			.port(8080));
-
 
 	dht::key_desc_t ann_desc[] = {
 		{"y", bdecode_node::string_t, 1, 0},
@@ -629,8 +647,8 @@ void do_test_dht(address(&rand_addr)())
 	bdecode_node ann_keys[3];
 
 	std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-	ret = dht::verify_message(response, ann_desc, ann_keys, error_string
-		, sizeof(error_string));
+	ret = dht::verify_message(response, ann_desc, ann_keys, t.error_string
+		, sizeof(t.error_string));
 	TEST_CHECK(ret);
 	if (ret)
 	{
@@ -638,8 +656,19 @@ void do_test_dht(address(&rand_addr)())
 	}
 	else
 	{
-		std::fprintf(stderr, "   invalid announce response: %s\n", error_string);
+		std::fprintf(stderr, "   invalid announce response:\n");
+		TEST_ERROR(t.error_string);
 	}
+}
+
+// TODO: test obfuscated_get_peers
+// TODO: 2 split this test up into smaller test cases
+void do_test_dht(address(&rand_addr)())
+{
+	dht_test_setup t(udp::endpoint(rand_addr(), 20));
+
+	bdecode_node response;
+	bool ret;
 
 	init_rand_address();
 
@@ -647,26 +676,27 @@ void do_test_dht(address(&rand_addr)())
 	// 50 downloaders and 50 seeds
 	for (int i = 0; i < 100; ++i)
 	{
-		source = udp::endpoint(rand_addr(), 6000);
-		send_dht_request(node, "get_peers", source, &response
+		t.source = udp::endpoint(rand_addr(), 6000);
+		send_dht_request(t.node, "get_peers", t.source, &response
 			, msg_args().info_hash("01010101010101010101"));
 
-		ret = dht::verify_message(response, peer1_desc, peer1_keys, error_string
-			, sizeof(error_string));
+		bdecode_node peer1_keys[4];
+		ret = dht::verify_message(response, peer1_desc, peer1_keys, t.error_string
+			, sizeof(t.error_string));
 
+		std::string token;
 		if (ret)
 		{
 			TEST_CHECK(peer1_keys[0].string_value() == "r");
 			token = peer1_keys[2].string_value();
-//			std::fprintf(stderr, "got token: %s\n", token.c_str());
 		}
 		else
 		{
 			std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-			std::fprintf(stderr, "   invalid get_peers response: %s\n", error_string);
+			std::fprintf(stderr, "   invalid get_peers response: %s\n", t.error_string);
 		}
 		response.clear();
-		send_dht_request(node, "announce_peer", source, &response
+		send_dht_request(t.node, "announce_peer", t.source, &response
 			, msg_args()
 				.info_hash("01010101010101010101")
 				.name("test")
@@ -679,7 +709,7 @@ void do_test_dht(address(&rand_addr)())
 
 	// ====== get_peers ======
 
-	send_dht_request(node, "get_peers", source, &response
+	send_dht_request(t.node, "get_peers", t.source, &response
 		, msg_args().info_hash("01010101010101010101").scrape(true));
 
 	dht::key_desc_t peer2_desc[] = {
@@ -693,8 +723,8 @@ void do_test_dht(address(&rand_addr)())
 	bdecode_node peer2_keys[5];
 
 	std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-	ret = dht::verify_message(response, peer2_desc, peer2_keys, error_string
-		, sizeof(error_string));
+	ret = dht::verify_message(response, peer2_desc, peer2_keys, t.error_string
+		, sizeof(t.error_string));
 	TEST_CHECK(ret);
 	if (ret)
 	{
@@ -714,51 +744,38 @@ void do_test_dht(address(&rand_addr)())
 	}
 	else
 	{
-		std::fprintf(stderr, "   invalid get_peers response: %s\n", error_string);
-	}
-
-	// ====== test node ID testing =====
-
-	{
-		node_id rnd = generate_secret_id();
-		TEST_CHECK(verify_secret_id(rnd));
-
-		rnd[19] ^= 0x55;
-		TEST_CHECK(!verify_secret_id(rnd));
-
-		rnd = generate_random_id();
-		make_id_secret(rnd);
-		TEST_CHECK(verify_secret_id(rnd));
+		std::fprintf(stderr, "   invalid get_peers response: %s\n", t.error_string);
 	}
 
 	// ====== test node ID enforcement ======
 
 	// enable node_id enforcement
-	sett.enforce_node_id = true;
+	t.sett.enforce_node_id = true;
 
 	node_id nid;
-	if (source.protocol() == udp::v4())
+	if (t.source.protocol() == udp::v4())
 	{
 		// this is one of the test vectors from:
 		// http://libtorrent.org/dht_sec.html
-		source = udp::endpoint(address::from_string("124.31.75.21"), 1);
+		t.source = udp::endpoint(address::from_string("124.31.75.21"), 1);
 		nid = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee401");
 	}
 	else
 	{
-		source = udp::endpoint(address::from_string("2001:b829:2123:be84:e16c:d6ae:5290:49f1"), 1);
+		t.source = udp::endpoint(address::from_string("2001:b829:2123:be84:e16c:d6ae:5290:49f1"), 1);
 		nid = to_hash("0a8ad123be84e16cd6ae529049f1f1bbe9ebb304");
 	}
 
 	// verify that we reject invalid node IDs
 	// this is now an invalid node-id for 'source'
 	nid[0] = 0x18;
-	int nodes_num = std::get<0>(node.size());
-	send_dht_request(node, "find_node", source, &response
+	int nodes_num = std::get<0>(t.node.size());
+	send_dht_request(t.node, "find_node", t.source, &response
 		, msg_args().target("0101010101010101010101010101010101010101").nid(nid));
 
-	ret = dht::verify_message(response, err_desc, err_keys, error_string
-		, sizeof(error_string));
+	bdecode_node err_keys[2];
+	ret = dht::verify_message(response, err_desc, err_keys, t.error_string
+		, sizeof(t.error_string));
 	TEST_CHECK(ret);
 	if (ret)
 	{
@@ -777,18 +794,18 @@ void do_test_dht(address(&rand_addr)())
 	else
 	{
 		std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-		std::fprintf(stderr, "   invalid error response: %s\n", error_string);
+		std::fprintf(stderr, "   invalid error response: %s\n", t.error_string);
 	}
 
 	// a node with invalid node-id shouldn't be added to routing table.
-	TEST_EQUAL(std::get<0>(node.size()), nodes_num);
+	TEST_EQUAL(std::get<0>(t.node.size()), nodes_num);
 
 	// now the node-id is valid.
-	if (source.protocol() == udp::v4())
+	if (t.source.protocol() == udp::v4())
 		nid[0] = 0x5f;
 	else
 		nid[0] = 0x0a;
-	send_dht_request(node, "find_node", source, &response
+	send_dht_request(t.node, "find_node", t.source, &response
 		, msg_args().target("0101010101010101010101010101010101010101").nid(nid));
 
 	dht::key_desc_t nodes_desc[] = {
@@ -800,8 +817,8 @@ void do_test_dht(address(&rand_addr)())
 	bdecode_node nodes_keys[3];
 
 	std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-	ret = dht::verify_message(response, nodes_desc, nodes_keys, error_string
-		, sizeof(error_string));
+	ret = dht::verify_message(response, nodes_desc, nodes_keys, t.error_string
+		, sizeof(t.error_string));
 	TEST_CHECK(ret);
 	if (ret)
 	{
@@ -810,12 +827,12 @@ void do_test_dht(address(&rand_addr)())
 	else
 	{
 		std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-		std::fprintf(stderr, "   invalid error response: %s\n", error_string);
+		std::fprintf(stderr, "   invalid error response: %s\n", t.error_string);
 	}
 	// node with valid node-id should be added to routing table.
-	TEST_EQUAL(std::get<0>(node.size()), nodes_num + 1);
+	TEST_EQUAL(std::get<0>(t.node.size()), nodes_num + 1);
 
-	sett.enforce_node_id = false;
+	t.sett.enforce_node_id = false;
 
 // ===========================
 
@@ -884,7 +901,7 @@ void do_test_dht(address(&rand_addr)())
 	for (int i = 0; i < int(sizeof(items)/sizeof(items[0])); ++i)
 		items[i].gen();
 
-	announce_immutable_items(node, eps, items, sizeof(items)/sizeof(items[0]));
+	announce_immutable_items(t.node, eps, items, sizeof(items)/sizeof(items[0]));
 
 	key_desc_t desc2[] =
 	{
@@ -939,7 +956,7 @@ void do_test_dht(address(&rand_addr)())
 		std::fprintf(stderr, "target_id: %s\n"
 			, aux::to_hex(target_id.to_string()).c_str());
 
-		send_dht_request(node, "get", source, &response
+		send_dht_request(t.node, "get", t.source, &response
 			, msg_args().target((char*)&target_id[0]));
 
 		key_desc_t desc[] =
@@ -953,8 +970,9 @@ void do_test_dht(address(&rand_addr)())
 
 		bdecode_node desc_keys[5];
 
-		ret = verify_message(response, desc, desc_keys, error_string
-			, sizeof(error_string));
+		ret = verify_message(response, desc, desc_keys, t.error_string
+			, sizeof(t.error_string));
+		std::string token;
 		if (ret)
 		{
 			TEST_EQUAL(desc_keys[4].string_value(), "r");
@@ -967,15 +985,15 @@ void do_test_dht(address(&rand_addr)())
 		{
 			std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
 			std::fprintf(stderr, "   invalid get response: %s\n%s\n"
-				, error_string, print_entry(response).c_str());
-			TEST_ERROR(error_string);
+				, t.error_string, print_entry(response).c_str());
+			TEST_ERROR(t.error_string);
 		}
 
 		itemv = std::pair<char const*, int>(buffer, bencode(buffer, items[0].ent));
 		sign_mutable_item(itemv, salt, seq, public_key, private_key, signature);
 		TEST_EQUAL(verify_mutable_item(itemv, salt, seq, public_key, signature), true);
 
-		send_dht_request(node, "put", source, &response
+		send_dht_request(t.node, "put", t.source, &response
 			, msg_args()
 				.token(token)
 				.value(items[0].ent)
@@ -984,8 +1002,8 @@ void do_test_dht(address(&rand_addr)())
 				.seq(seq)
 				.salt(salt.first));
 
-		ret = verify_message(response, desc2, desc2_keys, error_string
-			, sizeof(error_string));
+		ret = verify_message(response, desc2, desc2_keys, t.error_string
+			, sizeof(t.error_string));
 		if (ret)
 		{
 			std::fprintf(stderr, "put response: %s\n"
@@ -995,11 +1013,11 @@ void do_test_dht(address(&rand_addr)())
 		else
 		{
 			std::fprintf(stderr, "   invalid put response: %s\n%s\n"
-				, error_string, print_entry(response).c_str());
-			TEST_ERROR(error_string);
+				, t.error_string, print_entry(response).c_str());
+			TEST_ERROR(t.error_string);
 		}
 
-		send_dht_request(node, "get", source, &response
+		send_dht_request(t.node, "get", t.source, &response
 			, msg_args().target((char*)&target_id[0]));
 
 		std::fprintf(stderr, "target_id: %s\n"
@@ -1018,14 +1036,14 @@ void do_test_dht(address(&rand_addr)())
 
 		bdecode_node desc3_keys[7];
 
-		ret = verify_message(response, desc3, desc3_keys, error_string
-			, sizeof(error_string));
+		ret = verify_message(response, desc3, desc3_keys, t.error_string
+			, sizeof(t.error_string));
 		if (ret == 0)
 		{
 			std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
 			std::fprintf(stderr, "   invalid get response: %s\n%s\n"
-				, error_string, print_entry(response).c_str());
-			TEST_ERROR(error_string);
+				, t.error_string, print_entry(response).c_str());
+			TEST_ERROR(t.error_string);
 		}
 		else
 		{
@@ -1052,7 +1070,7 @@ void do_test_dht(address(&rand_addr)())
 
 		TEST_CHECK(verify_mutable_item(itemv, salt, seq, public_key, signature) != 1);
 
-		send_dht_request(node, "put", source, &response
+		send_dht_request(t.node, "put", t.source, &response
 			, msg_args()
 				.token(token)
 				.value(items[0].ent)
@@ -1061,8 +1079,8 @@ void do_test_dht(address(&rand_addr)())
 				.seq(seq)
 				.salt(salt.first));
 
-		ret = verify_message(response, desc_error, desc_error_keys, error_string
-			, sizeof(error_string));
+		ret = verify_message(response, desc_error, desc_error_keys, t.error_string
+			, sizeof(t.error_string));
 		if (ret)
 		{
 			std::fprintf(stderr, "put response: %s\n", print_entry(response).c_str());
@@ -1073,13 +1091,13 @@ void do_test_dht(address(&rand_addr)())
 		else
 		{
 			std::fprintf(stderr, "   invalid put response: %s\n%s\n"
-				, error_string, print_entry(response).c_str());
-			TEST_ERROR(error_string);
+				, t.error_string, print_entry(response).c_str());
+			TEST_ERROR(t.error_string);
 		}
 
 		// === test conditional get ===
 
-		send_dht_request(node, "get", source, &response
+		send_dht_request(t.node, "get", t.source, &response
 			, msg_args().target((char*)&target_id[0]).seq(seq - 1));
 
 		{
@@ -1089,7 +1107,7 @@ void do_test_dht(address(&rand_addr)())
 			TEST_CHECK(r.dict_find("sig"));
 		}
 
-		send_dht_request(node, "get", source, &response
+		send_dht_request(t.node, "get", t.source, &response
 			, msg_args().target((char*)&target_id[0]).seq(seq));
 
 		{
@@ -1115,7 +1133,7 @@ void do_test_dht(address(&rand_addr)())
 
 		std::fprintf(stderr, "PUT CAS 1\n");
 
-		send_dht_request(node, "put", source, &response
+		send_dht_request(t.node, "put", t.source, &response
 			, msg_args()
 				.token(token)
 				.value(items[1].ent)
@@ -1125,8 +1143,8 @@ void do_test_dht(address(&rand_addr)())
 				.cas(cas)
 				.salt(salt.first));
 
-		ret = verify_message(response, desc2, desc2_keys, error_string
-			, sizeof(error_string));
+		ret = verify_message(response, desc2, desc2_keys, t.error_string
+			, sizeof(t.error_string));
 		if (ret)
 		{
 			std::fprintf(stderr, "put response: %s\n"
@@ -1136,8 +1154,8 @@ void do_test_dht(address(&rand_addr)())
 		else
 		{
 			std::fprintf(stderr, "   invalid put response: %s\n%s\n"
-				, error_string, print_entry(response).c_str());
-			TEST_ERROR(error_string);
+				, t.error_string, print_entry(response).c_str());
+			TEST_ERROR(t.error_string);
 		}
 
 		std::fprintf(stderr, "PUT CAS 2\n");
@@ -1145,7 +1163,7 @@ void do_test_dht(address(&rand_addr)())
 		// put the same message again. This should fail because the
 		// CAS hash is outdated, it's not the hash of the value that's
 		// stored anymore
-		send_dht_request(node, "put", source, &response
+		send_dht_request(t.node, "put", t.source, &response
 			, msg_args()
 				.token(token)
 				.value(items[1].ent)
@@ -1155,8 +1173,8 @@ void do_test_dht(address(&rand_addr)())
 				.cas(cas)
 				.salt(salt.first));
 
-		ret = verify_message(response, desc_error, desc_error_keys, error_string
-			, sizeof(error_string));
+		ret = verify_message(response, desc_error, desc_error_keys, t.error_string
+			, sizeof(t.error_string));
 		if (ret)
 		{
 			std::fprintf(stderr, "put response: %s\n"
@@ -1168,8 +1186,8 @@ void do_test_dht(address(&rand_addr)())
 		else
 		{
 			std::fprintf(stderr, "   invalid put response: %s\n%s\nExpected failure 301 (CAS hash mismatch)\n"
-				, error_string, print_entry(response).c_str());
-			TEST_ERROR(error_string);
+				, t.error_string, print_entry(response).c_str());
+			TEST_ERROR(t.error_string);
 		}
 
 	}
@@ -1181,7 +1199,7 @@ void do_test_dht(address(&rand_addr)())
 		//	s.restrict_routing_ips = false;
 		node_id id = to_hash("3123456789abcdef01232456789abcdef0123456");
 		const int bucket_size = 10;
-		dht::routing_table table(id, source.protocol(), bucket_size, s, &observer);
+		dht::routing_table table(id, t.source.protocol(), bucket_size, s, &t.observer);
 		std::vector<node_entry> nodes;
 		TEST_EQUAL(std::get<0>(table.size()), 0);
 
@@ -1190,7 +1208,7 @@ void do_test_dht(address(&rand_addr)())
 
 		address node_addr;
 		address node_near_addr;
-		if (source.protocol() == udp::v4())
+		if (t.source.protocol() == udp::v4())
 		{
 			node_addr = address_v4::from_string("4.4.4.4");
 			node_near_addr = address_v4::from_string("4.4.4.5");
@@ -1427,9 +1445,9 @@ void do_test_dht(address(&rand_addr)())
 	g_sent_packets.clear();
 	do
 	{
-		std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
+		std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(t.sett));
 		dht_storage->update_node_ids({node_id::min()});
-		dht::node node(udp::v4(), &s, sett, node_id::min(), &observer, cnt, nodes, *dht_storage);
+		dht::node node(udp::v4(), &t.s, t.sett, node_id::min(), &t.observer, t.cnt, t.nodes, *t.dht_storage);
 
 		udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
 		std::vector<udp::endpoint> nodesv;
@@ -1441,8 +1459,8 @@ void do_test_dht(address(&rand_addr)())
 		TEST_EQUAL(g_sent_packets.front().first, initial_node);
 
 		lazy_from_entry(g_sent_packets.front().second, response);
-		ret = verify_message(response, find_node_desc, find_node_keys, error_string
-			, sizeof(error_string));
+		ret = verify_message(response, find_node_desc, find_node_keys, t.error_string
+			, sizeof(t.error_string));
 		if (ret)
 		{
 			TEST_EQUAL(find_node_keys[0].string_value(), "q");
@@ -1456,7 +1474,7 @@ void do_test_dht(address(&rand_addr)())
 		else
 		{
 			std::fprintf(stderr, "   invalid find_node request: %s\n", print_entry(response).c_str());
-			TEST_ERROR(error_string);
+			TEST_ERROR(t.error_string);
 			break;
 		}
 
@@ -1471,8 +1489,8 @@ void do_test_dht(address(&rand_addr)())
 		TEST_EQUAL(g_sent_packets.front().first, found_node);
 
 		lazy_from_entry(g_sent_packets.front().second, response);
-		ret = verify_message(response, find_node_desc, find_node_keys, error_string
-			, sizeof(error_string));
+		ret = verify_message(response, find_node_desc, find_node_keys, t.error_string
+			, sizeof(t.error_string));
 		if (ret)
 		{
 			TEST_EQUAL(find_node_keys[0].string_value(), "q");
@@ -1484,7 +1502,7 @@ void do_test_dht(address(&rand_addr)())
 		else
 		{
 			std::fprintf(stderr, "   invalid find_node request: %s\n", print_entry(response).c_str());
-			TEST_ERROR(error_string);
+			TEST_ERROR(t.error_string);
 			break;
 		}
 
@@ -1500,10 +1518,10 @@ void do_test_dht(address(&rand_addr)())
 	g_sent_packets.clear();
 	do
 	{
-		std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
+		std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(t.sett));
 		dht_storage->update_node_ids({node_id::min()});
 		dht::node_id target = to_hash("1234876923549721020394873245098347598635");
-		dht::node node(udp::v4(), &s, sett, node_id::min(), &observer, cnt, nodes, *dht_storage);
+		dht::node node(udp::v4(), &t.s, t.sett, node_id::min(), &t.observer, t.cnt, t.nodes, *t.dht_storage);
 
 		udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
 		node.m_table.add_node(initial_node);
@@ -1515,8 +1533,8 @@ void do_test_dht(address(&rand_addr)())
 		TEST_EQUAL(g_sent_packets.front().first, initial_node);
 
 		lazy_from_entry(g_sent_packets.front().second, response);
-		ret = verify_message(response, get_peers_desc, get_peers_keys, error_string
-			, sizeof(error_string));
+		ret = verify_message(response, get_peers_desc, get_peers_keys, t.error_string
+			, sizeof(t.error_string));
 		if (ret)
 		{
 			TEST_EQUAL(get_peers_keys[0].string_value(), "q");
@@ -1527,7 +1545,7 @@ void do_test_dht(address(&rand_addr)())
 		else
 		{
 			std::fprintf(stderr, "   invalid get_peers request: %s\n", print_entry(response).c_str());
-			TEST_ERROR(error_string);
+			TEST_ERROR(t.error_string);
 			break;
 		}
 
@@ -1549,8 +1567,8 @@ void do_test_dht(address(&rand_addr)())
 		TEST_EQUAL(g_sent_packets.front().first, next_node);
 
 		lazy_from_entry(g_sent_packets.front().second, response);
-		ret = verify_message(response, get_peers_desc, get_peers_keys, error_string
-			, sizeof(error_string));
+		ret = verify_message(response, get_peers_desc, get_peers_keys, t.error_string
+			, sizeof(t.error_string));
 		if (ret)
 		{
 			TEST_EQUAL(get_peers_keys[0].string_value(), "q");
@@ -1561,7 +1579,7 @@ void do_test_dht(address(&rand_addr)())
 		else
 		{
 			std::fprintf(stderr, "   invalid get_peers request: %s\n", print_entry(response).c_str());
-			TEST_ERROR(error_string);
+			TEST_ERROR(t.error_string);
 			break;
 		}
 
@@ -1598,9 +1616,9 @@ void do_test_dht(address(&rand_addr)())
 	g_sent_packets.clear();
 	do
 	{
-		std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
+		std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(t.sett));
 		dht_storage->update_node_ids({node_id::min()});
-		dht::node node(udp::v4(), &s, sett, node_id::min(), &observer, cnt, nodes, *dht_storage);
+		dht::node node(udp::v4(), &t.s, t.sett, node_id::min(), &t.observer, t.cnt, t.nodes, *t.dht_storage);
 
 		udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
 		node.m_table.add_node(initial_node);
@@ -1612,8 +1630,8 @@ void do_test_dht(address(&rand_addr)())
 		TEST_EQUAL(g_sent_packets.front().first, initial_node);
 
 		lazy_from_entry(g_sent_packets.front().second, response);
-		ret = verify_message(response, get_item_desc, get_item_keys, error_string
-			, sizeof(error_string));
+		ret = verify_message(response, get_item_desc, get_item_keys, t.error_string
+			, sizeof(t.error_string));
 		if (ret)
 		{
 			TEST_EQUAL(get_item_keys[0].string_value(), "q");
@@ -1624,7 +1642,7 @@ void do_test_dht(address(&rand_addr)())
 		else
 		{
 			std::fprintf(stderr, "   invalid get request: %s\n", print_entry(response).c_str());
-			TEST_ERROR(error_string);
+			TEST_ERROR(t.error_string);
 			break;
 		}
 
@@ -1646,9 +1664,9 @@ void do_test_dht(address(&rand_addr)())
 	g_sent_packets.clear();
 	do
 	{
-		std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
+		std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(t.sett));
 		dht_storage->update_node_ids({node_id::min()});
-		dht::node node(udp::v4(), &s, sett, node_id::min(), &observer, cnt, nodes, *dht_storage);
+		dht::node node(udp::v4(), &t.s, t.sett, node_id::min(), &t.observer, t.cnt, t.nodes, *t.dht_storage);
 
 		udp::endpoint initial_node(address_v4::from_string("4.4.4.4"), 1234);
 		node.m_table.add_node(initial_node);
@@ -1660,8 +1678,8 @@ void do_test_dht(address(&rand_addr)())
 		TEST_EQUAL(g_sent_packets.front().first, initial_node);
 
 		lazy_from_entry(g_sent_packets.front().second, response);
-		ret = verify_message(response, get_item_desc, get_item_keys, error_string
-			, sizeof(error_string));
+		ret = verify_message(response, get_item_desc, get_item_keys, t.error_string
+			, sizeof(t.error_string));
 		if (ret)
 		{
 			TEST_EQUAL(get_item_keys[0].string_value(), "q");
@@ -1671,7 +1689,7 @@ void do_test_dht(address(&rand_addr)())
 		else
 		{
 			std::fprintf(stderr, "   invalid get request: %s\n", print_entry(response).c_str());
-			TEST_ERROR(error_string);
+			TEST_ERROR(t.error_string);
 			break;
 		}
 
@@ -1733,11 +1751,11 @@ void do_test_dht(address(&rand_addr)())
 	for (int loop = 0; loop < 9; loop++)
 	{
 		// set the branching factor to k to make this a little easier
-		int old_branching = sett.search_branching;
-		sett.search_branching = 8;
-		std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
+		int old_branching = t.sett.search_branching;
+		t.sett.search_branching = 8;
+		std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(t.sett));
 		dht_storage->update_node_ids({node_id::min()});
-		dht::node node(udp::v4(), &s, sett, node_id::min(), &observer, cnt, nodes, *dht_storage);
+		dht::node node(udp::v4(), &t.s, t.sett, node_id::min(), &t.observer, t.cnt, t.nodes, *t.dht_storage);
 		enum { num_test_nodes = 8 };
 		node_entry nodes[num_test_nodes] =
 			{ node_entry(items[0].target, udp::endpoint(address_v4::from_string("1.1.1.1"), 1231))
@@ -1771,12 +1789,12 @@ void do_test_dht(address(&rand_addr)())
 			if (packet == g_sent_packets.end()) continue;
 
 			lazy_from_entry(packet->second, response);
-			ret = verify_message(response, get_item_desc, get_item_keys, error_string
-				, sizeof(error_string));
+			ret = verify_message(response, get_item_desc, get_item_keys, t.error_string
+				, sizeof(t.error_string));
 			if (!ret)
 			{
 				std::fprintf(stderr, "   invalid get request: %s\n", print_entry(response).c_str());
-				TEST_ERROR(error_string);
+				TEST_ERROR(t.error_string);
 				continue;
 			}
 			char t[10];
@@ -1801,7 +1819,7 @@ void do_test_dht(address(&rand_addr)())
 
 			lazy_from_entry(packet->second, response);
 			ret = verify_message(response, put_immutable_item_desc, put_immutable_item_keys
-				, error_string, sizeof(error_string));
+				, t.error_string, sizeof(t.error_string));
 			if (ret)
 			{
 				TEST_EQUAL(put_immutable_item_keys[0].string_value(), "q");
@@ -1819,11 +1837,11 @@ void do_test_dht(address(&rand_addr)())
 			else
 			{
 				std::fprintf(stderr, "   invalid immutable put request: %s\n", print_entry(response).c_str());
-				TEST_ERROR(error_string);
+				TEST_ERROR(t.error_string);
 				continue;
 			}
 		}
-		sett.search_branching = old_branching;
+		t.sett.search_branching = old_branching;
 		g_sent_packets.clear();
 		g_put_item.clear();
 		g_put_count = 0;
@@ -1835,11 +1853,11 @@ void do_test_dht(address(&rand_addr)())
 	for (int loop = 0; loop < 9; loop++)
 	{
 		// set the branching factor to k to make this a little easier
-		int old_branching = sett.search_branching;
-		sett.search_branching = 8;
-		std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
+		int old_branching = t.sett.search_branching;
+		t.sett.search_branching = 8;
+		std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(t.sett));
 		dht_storage->update_node_ids({node_id::min()});
-		dht::node node(udp::v4(), &s, sett, node_id::min(), &observer, cnt, nodes, *dht_storage);
+		dht::node node(udp::v4(), &t.s, t.sett, node_id::min(), &t.observer, t.cnt, t.nodes, *t.dht_storage);
 		enum { num_test_nodes = 8 };
 		node_entry nodes[num_test_nodes] =
 			{ node_entry(items[0].target, udp::endpoint(address_v4::from_string("1.1.1.1"), 1231))
@@ -1870,12 +1888,12 @@ void do_test_dht(address(&rand_addr)())
 			if (packet == g_sent_packets.end()) continue;
 
 			lazy_from_entry(packet->second, response);
-			ret = verify_message(response, get_item_desc, get_item_keys, error_string
-				, sizeof(error_string));
+			ret = verify_message(response, get_item_desc, get_item_keys, t.error_string
+				, sizeof(t.error_string));
 			if (!ret)
 			{
 				std::fprintf(stderr, "   invalid get request: %s\n", print_entry(response).c_str());
-				TEST_ERROR(error_string);
+				TEST_ERROR(t.error_string);
 				continue;
 			}
 			char t[10];
@@ -1901,7 +1919,7 @@ void do_test_dht(address(&rand_addr)())
 
 			lazy_from_entry(packet->second, response);
 			ret = verify_message(response, put_mutable_item_desc, put_mutable_item_keys
-				, error_string, sizeof(error_string));
+				, t.error_string, sizeof(t.error_string));
 			if (ret)
 			{
 				TEST_EQUAL(put_mutable_item_keys[0].string_value(), "q");
@@ -1923,11 +1941,11 @@ void do_test_dht(address(&rand_addr)())
 			else
 			{
 				std::fprintf(stderr, "   invalid put request: %s\n", print_entry(response).c_str());
-				TEST_ERROR(error_string);
+				TEST_ERROR(t.error_string);
 				continue;
 			}
 		}
-		sett.search_branching = old_branching;
+		t.sett.search_branching = old_branching;
 		g_sent_packets.clear();
 		g_put_item.clear();
 		g_put_count = 0;
@@ -1939,11 +1957,11 @@ void do_test_dht(address(&rand_addr)())
 	do
 	{
 		// set the branching factor to k to make this a little easier
-		int old_branching = sett.search_branching;
-		sett.search_branching = 8;
-		std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
+		int old_branching = t.sett.search_branching;
+		t.sett.search_branching = 8;
+		std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(t.sett));
 		dht_storage->update_node_ids({node_id::min()});
-		dht::node node(udp::v4(), &s, sett, node_id::min(), &observer, cnt, nodes, *dht_storage);
+		dht::node node(udp::v4(), &t.s, t.sett, node_id::min(), &t.observer, t.cnt, t.nodes, *t.dht_storage);
 		sha1_hash target = hasher(public_key, item_pk_len).final();
 		enum { num_test_nodes = 9 }; // we need K + 1 nodes to create the failing sequence
 		node_entry nodes[num_test_nodes] =
@@ -1987,12 +2005,12 @@ void do_test_dht(address(&rand_addr)())
 			if (packet == g_sent_packets.end()) continue;
 
 			lazy_from_entry(packet->second, response);
-			ret = verify_message(response, get_item_desc, get_item_keys, error_string
-				, sizeof(error_string));
+			ret = verify_message(response, get_item_desc, get_item_keys, t.error_string
+				, sizeof(t.error_string));
 			if (!ret)
 			{
 				std::fprintf(stderr, "   invalid get request: %s\n", print_entry(response).c_str());
-				TEST_ERROR(error_string);
+				TEST_ERROR(t.error_string);
 				continue;
 			}
 			char t[10];
@@ -2019,7 +2037,7 @@ void do_test_dht(address(&rand_addr)())
 		g_sent_packets.clear();
 		g_put_item.clear();
 		g_put_count = 0;
-		sett.search_branching = old_branching;
+		t.sett.search_branching = old_branching;
 	} while (false);
 }
 
