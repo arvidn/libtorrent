@@ -499,7 +499,7 @@ struct dht_test_setup
 		: sett(test_settings())
 		, dht_storage(dht_default_storage_constructor(sett))
 		, source(src)
-		, node(src.protocol(), &s, sett
+		, dht_node(src.protocol(), &s, sett
 			, node_id(nullptr), &observer, cnt, nodes, *dht_storage)
 	{
 		dht_storage->update_node_ids({node_id(nullptr)});
@@ -511,7 +511,7 @@ struct dht_test_setup
 	std::unique_ptr<dht_storage_interface> dht_storage;
 	udp::endpoint source;
 	std::map<std::string, node*> nodes;
-	dht::node node;
+	dht::node dht_node;
 	char error_string[200];
 };
 
@@ -534,7 +534,7 @@ TORRENT_TEST(ping)
 	dht_test_setup t(udp::endpoint(rand_v4(), 20));
 	bdecode_node response;
 
-	send_dht_request(t.node, "ping", t.source, &response);
+	send_dht_request(t.dht_node, "ping", t.source, &response);
 
 	dht::key_desc_t pong_desc[] = {
 		{"y", bdecode_node::string_t, 1, 0},
@@ -566,7 +566,7 @@ TORRENT_TEST(invalid_message)
 	bdecode_node response;
 	bdecode_node err_keys[2];
 
-	send_dht_request(t.node, "find_node", t.source, &response);
+	send_dht_request(t.dht_node, "find_node", t.source, &response);
 
 	std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
 	bool ret = dht::verify_message(response, err_desc, err_keys, t.error_string
@@ -609,7 +609,7 @@ TORRENT_TEST(get_peers_announce)
 	dht_test_setup t(udp::endpoint(rand_v4(), 20));
 	bdecode_node response;
 
-	send_dht_request(t.node, "get_peers", t.source, &response
+	send_dht_request(t.dht_node, "get_peers", t.source, &response
 		, msg_args().info_hash("01010101010101010101"));
 
 	bdecode_node peer1_keys[4];
@@ -631,7 +631,7 @@ TORRENT_TEST(get_peers_announce)
 		std::fprintf(stderr, "   invalid get_peers response: %s\n", t.error_string);
 	}
 
-	send_dht_request(t.node, "announce_peer", t.source, &response
+	send_dht_request(t.dht_node, "announce_peer", t.source, &response
 		, msg_args()
 			.info_hash("01010101010101010101")
 			.name("test")
@@ -677,7 +677,7 @@ void do_test_dht(address(&rand_addr)())
 	for (int i = 0; i < 100; ++i)
 	{
 		t.source = udp::endpoint(rand_addr(), 6000);
-		send_dht_request(t.node, "get_peers", t.source, &response
+		send_dht_request(t.dht_node, "get_peers", t.source, &response
 			, msg_args().info_hash("01010101010101010101"));
 
 		bdecode_node peer1_keys[4];
@@ -696,7 +696,7 @@ void do_test_dht(address(&rand_addr)())
 			std::fprintf(stderr, "   invalid get_peers response: %s\n", t.error_string);
 		}
 		response.clear();
-		send_dht_request(t.node, "announce_peer", t.source, &response
+		send_dht_request(t.dht_node, "announce_peer", t.source, &response
 			, msg_args()
 				.info_hash("01010101010101010101")
 				.name("test")
@@ -709,7 +709,7 @@ void do_test_dht(address(&rand_addr)())
 
 	// ====== get_peers ======
 
-	send_dht_request(t.node, "get_peers", t.source, &response
+	send_dht_request(t.dht_node, "get_peers", t.source, &response
 		, msg_args().info_hash("01010101010101010101").scrape(true));
 
 	dht::key_desc_t peer2_desc[] = {
@@ -769,8 +769,8 @@ void do_test_dht(address(&rand_addr)())
 	// verify that we reject invalid node IDs
 	// this is now an invalid node-id for 'source'
 	nid[0] = 0x18;
-	int nodes_num = std::get<0>(t.node.size());
-	send_dht_request(t.node, "find_node", t.source, &response
+	int nodes_num = std::get<0>(t.dht_node.size());
+	send_dht_request(t.dht_node, "find_node", t.source, &response
 		, msg_args().target("0101010101010101010101010101010101010101").nid(nid));
 
 	bdecode_node err_keys[2];
@@ -798,14 +798,14 @@ void do_test_dht(address(&rand_addr)())
 	}
 
 	// a node with invalid node-id shouldn't be added to routing table.
-	TEST_EQUAL(std::get<0>(t.node.size()), nodes_num);
+	TEST_EQUAL(std::get<0>(t.dht_node.size()), nodes_num);
 
 	// now the node-id is valid.
 	if (t.source.protocol() == udp::v4())
 		nid[0] = 0x5f;
 	else
 		nid[0] = 0x0a;
-	send_dht_request(t.node, "find_node", t.source, &response
+	send_dht_request(t.dht_node, "find_node", t.source, &response
 		, msg_args().target("0101010101010101010101010101010101010101").nid(nid));
 
 	dht::key_desc_t nodes_desc[] = {
@@ -830,7 +830,7 @@ void do_test_dht(address(&rand_addr)())
 		std::fprintf(stderr, "   invalid error response: %s\n", t.error_string);
 	}
 	// node with valid node-id should be added to routing table.
-	TEST_EQUAL(std::get<0>(t.node.size()), nodes_num + 1);
+	TEST_EQUAL(std::get<0>(t.dht_node.size()), nodes_num + 1);
 
 	t.sett.enforce_node_id = false;
 
@@ -901,7 +901,7 @@ void do_test_dht(address(&rand_addr)())
 	for (int i = 0; i < int(sizeof(items)/sizeof(items[0])); ++i)
 		items[i].gen();
 
-	announce_immutable_items(t.node, eps, items, sizeof(items)/sizeof(items[0]));
+	announce_immutable_items(t.dht_node, eps, items, sizeof(items)/sizeof(items[0]));
 
 	key_desc_t desc2[] =
 	{
@@ -956,7 +956,7 @@ void do_test_dht(address(&rand_addr)())
 		std::fprintf(stderr, "target_id: %s\n"
 			, aux::to_hex(target_id.to_string()).c_str());
 
-		send_dht_request(t.node, "get", t.source, &response
+		send_dht_request(t.dht_node, "get", t.source, &response
 			, msg_args().target((char*)&target_id[0]));
 
 		key_desc_t desc[] =
@@ -993,7 +993,7 @@ void do_test_dht(address(&rand_addr)())
 		sign_mutable_item(itemv, salt, seq, public_key, private_key, signature);
 		TEST_EQUAL(verify_mutable_item(itemv, salt, seq, public_key, signature), true);
 
-		send_dht_request(t.node, "put", t.source, &response
+		send_dht_request(t.dht_node, "put", t.source, &response
 			, msg_args()
 				.token(token)
 				.value(items[0].ent)
@@ -1017,7 +1017,7 @@ void do_test_dht(address(&rand_addr)())
 			TEST_ERROR(t.error_string);
 		}
 
-		send_dht_request(t.node, "get", t.source, &response
+		send_dht_request(t.dht_node, "get", t.source, &response
 			, msg_args().target((char*)&target_id[0]));
 
 		std::fprintf(stderr, "target_id: %s\n"
@@ -1070,7 +1070,7 @@ void do_test_dht(address(&rand_addr)())
 
 		TEST_CHECK(verify_mutable_item(itemv, salt, seq, public_key, signature) != 1);
 
-		send_dht_request(t.node, "put", t.source, &response
+		send_dht_request(t.dht_node, "put", t.source, &response
 			, msg_args()
 				.token(token)
 				.value(items[0].ent)
@@ -1097,7 +1097,7 @@ void do_test_dht(address(&rand_addr)())
 
 		// === test conditional get ===
 
-		send_dht_request(t.node, "get", t.source, &response
+		send_dht_request(t.dht_node, "get", t.source, &response
 			, msg_args().target((char*)&target_id[0]).seq(seq - 1));
 
 		{
@@ -1107,7 +1107,7 @@ void do_test_dht(address(&rand_addr)())
 			TEST_CHECK(r.dict_find("sig"));
 		}
 
-		send_dht_request(t.node, "get", t.source, &response
+		send_dht_request(t.dht_node, "get", t.source, &response
 			, msg_args().target((char*)&target_id[0]).seq(seq));
 
 		{
@@ -1133,7 +1133,7 @@ void do_test_dht(address(&rand_addr)())
 
 		std::fprintf(stderr, "PUT CAS 1\n");
 
-		send_dht_request(t.node, "put", t.source, &response
+		send_dht_request(t.dht_node, "put", t.source, &response
 			, msg_args()
 				.token(token)
 				.value(items[1].ent)
@@ -1163,7 +1163,7 @@ void do_test_dht(address(&rand_addr)())
 		// put the same message again. This should fail because the
 		// CAS hash is outdated, it's not the hash of the value that's
 		// stored anymore
-		send_dht_request(t.node, "put", t.source, &response
+		send_dht_request(t.dht_node, "put", t.source, &response
 			, msg_args()
 				.token(token)
 				.value(items[1].ent)
