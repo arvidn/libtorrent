@@ -661,14 +661,10 @@ TORRENT_TEST(get_peers_announce)
 	}
 }
 
-// TODO: test obfuscated_get_peers
-// TODO: 2 split this test up into smaller test cases
-void do_test_dht(address(&rand_addr)())
+void test_scrape(address(&rand_addr)())
 {
 	dht_test_setup t(udp::endpoint(rand_addr(), 20));
-
 	bdecode_node response;
-	bool ret;
 
 	init_rand_address();
 
@@ -681,7 +677,7 @@ void do_test_dht(address(&rand_addr)())
 			, msg_args().info_hash("01010101010101010101"));
 
 		bdecode_node peer1_keys[4];
-		ret = dht::verify_message(response, peer1_desc, peer1_keys, t.error_string
+		bool ret = dht::verify_message(response, peer1_desc, peer1_keys, t.error_string
 			, sizeof(t.error_string));
 
 		std::string token;
@@ -723,7 +719,7 @@ void do_test_dht(address(&rand_addr)())
 	bdecode_node peer2_keys[5];
 
 	std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-	ret = dht::verify_message(response, peer2_desc, peer2_keys, t.error_string
+	bool ret = dht::verify_message(response, peer2_desc, peer2_keys, t.error_string
 		, sizeof(t.error_string));
 	TEST_CHECK(ret);
 	if (ret)
@@ -744,10 +740,27 @@ void do_test_dht(address(&rand_addr)())
 	}
 	else
 	{
-		std::fprintf(stderr, "   invalid get_peers response: %s\n", t.error_string);
+		std::fprintf(stderr, "invalid get_peers response:\n");
+		TEST_ERROR(t.error_string);
 	}
+}
 
-	// ====== test node ID enforcement ======
+TORRENT_TEST(scrape_v4)
+{
+	test_scrape(rand_v4);
+}
+
+#if TORRENT_USE_IPV6
+TORRENT_TEST(scrape_v6)
+{
+	test_scrape(rand_v6);
+}
+#endif
+
+void test_id_enforcement(address(&rand_addr)())
+{
+	dht_test_setup t(udp::endpoint(rand_addr(), 20));
+	bdecode_node response;
 
 	// enable node_id enforcement
 	t.sett.enforce_node_id = true;
@@ -774,7 +787,7 @@ void do_test_dht(address(&rand_addr)())
 		, msg_args().target("0101010101010101010101010101010101010101").nid(nid));
 
 	bdecode_node err_keys[2];
-	ret = dht::verify_message(response, err_desc, err_keys, t.error_string
+	bool ret = dht::verify_message(response, err_desc, err_keys, t.error_string
 		, sizeof(t.error_string));
 	TEST_CHECK(ret);
 	if (ret)
@@ -831,11 +844,22 @@ void do_test_dht(address(&rand_addr)())
 	}
 	// node with valid node-id should be added to routing table.
 	TEST_EQUAL(std::get<0>(t.dht_node.size()), nodes_num + 1);
+}
 
-	t.sett.enforce_node_id = false;
+TORRENT_TEST(id_enforcement_v4)
+{
+	test_id_enforcement(rand_v4);
+}
 
-// ===========================
+#if TORRENT_USE_IPV6
+TORRENT_TEST(id_enforcement_v6)
+{
+	test_id_enforcement(rand_v6);
+}
+#endif
 
+TORRENT_TEST(bloom_filter)
+{
 	bloom_filter<256> test;
 	for (int i = 0; i < 256; ++i)
 	{
@@ -874,8 +898,16 @@ void do_test_dht(address(&rand_addr)())
 		TEST_CHECK(fabs(test.size() - 257.854f) < 0.001);
 		TEST_CHECK(aux::to_hex(test.to_string()) == "24c0004020043000102012743e00480037110820422110008000c0e302854835a05401a4045021302a306c060001881002d8a0a3a8001901b40a800900310008d2108110c2496a0028700010d804188b01415200082004088026411104a804048002002000080680828c400080cc40020c042c0494447280928041402104080d4240040414a41f0205654800b0811830d2020042b002c5800004a71d0204804a0028120a004c10017801490b834004044106005421000c86900a0020500203510060144e900100924a1018141a028012913f0041802250042280481200002004430804210101c08111c10801001080002038008211004266848606b035001048");
 	}
+}
 
-	response.clear();
+// TODO: test obfuscated_get_peers
+// TODO: 2 split this test up into smaller test cases
+void do_test_dht(address(&rand_addr)())
+{
+	dht_test_setup t(udp::endpoint(rand_addr(), 20));
+
+	bdecode_node response;
+	bool ret;
 
 	// ====== put ======
 
@@ -942,8 +974,6 @@ void do_test_dht(address(&rand_addr)())
 		std::fprintf(stderr, "pub: %s priv: %s\n"
 			, aux::to_hex(std::string(public_key, item_pk_len)).c_str()
 			, aux::to_hex(std::string(private_key, item_sk_len)).c_str());
-
-		TEST_CHECK(ret);
 
 		std::pair<const char*, int> salt((char*)nullptr, 0);
 		if (with_salt)
@@ -2920,6 +2950,12 @@ TORRENT_TEST(compare_ip_cidr)
 			, std::get<2>(t));
 	}
 #endif
+}
+#else
+TORRENT_TEST(dht)
+{
+	// dummy dht test
+	TEST_CHECK(true);
 }
 
 #endif
