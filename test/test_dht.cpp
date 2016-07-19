@@ -30,6 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "test.hpp"
+
 #ifndef TORRENT_DISABLE_DHT
 
 #include "libtorrent/config.hpp"
@@ -53,7 +55,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <tuple>
 #include <iostream>
 
-#include "test.hpp"
 #include "setup_transfer.hpp"
 
 using namespace libtorrent;
