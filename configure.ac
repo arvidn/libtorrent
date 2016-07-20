@@ -520,11 +520,6 @@ AM_CONDITIONAL([WITH_OPENSSL], [test "x$ARG_ENABLE_ENCRYPTION" = "xyes" -o "x$AR
 # Other useful stuff
 ###############################################################################
 
-# this works around a bug in asio in boost-1.39
-# see: https://svn.boost.org/trac/boost/ticket/3095
-AC_DEFINE([BOOST_ASIO_HASH_MAP_BUCKETS],[1021],[Define to fix a wrong behavior in boost 1.39.])
-COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DBOOST_ASIO_HASH_MAP_BUCKETS=1021 "
-
 AC_DEFINE([BOOST_ASIO_HAS_STD_CHRONO],[1],[Define to make sure asio uses std::chrono.])
 COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DBOOST_ASIO_HAS_STD_CHRONO=1 "
 
@@ -549,10 +544,10 @@ AC_SUBST(PYTHON_INSTALL_PARAMS)
 AC_SUBST(COMPILETIME_OPTIONS)
 
 
-# Try to guess real svn revision if any, fallback to hardcoded otherwise
-SVN_REVISION=`svn info 2>/dev/null | sed -n -e '/^URL\:.*libtorrent.svn.sourceforge.net/,$!d;s,^Revision\: \([[0-9]]*\)$,\1,p'`
-AS_IF([test -z "$SVN_REVISION"],
-      [SVN_REVISION=`sed -n -e 's/^#define LIBTORRENT_REVISION \"\$Rev\: \([0-9]*\) \$\" $/\1/p' include/libtorrent/version.hpp`])
+# Try to guess real git revision if any, fallback to hardcoded otherwise
+GIT_REVISION=`git log -1 --format=format:%h 2>/dev/null`
+AS_IF([test -z "GIT_REVISION"],
+      [GIT_REVISION=`sed -n -e 's/^#define LIBTORRENT_REVISION \"\([0-9a-z]*\)\"$/\1/p' include/libtorrent/version.hpp`])
 
 
 ###############################################################################
@@ -595,7 +590,7 @@ cat > config.report << END
 Package:
   name:                 ${PACKAGE_NAME}
   version:              ${PACKAGE_VERSION}
-  svn revision:         ${SVN_REVISION}
+  git revision:         ${GIT_REVISION}
 
 Build environment:
   build system:         ${build}

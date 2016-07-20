@@ -15,8 +15,7 @@ matrix:
     - os: osx
       osx_image: xcode6.4
       env: variant=test_barebones toolset=darwin
-    - sudo: required
-      dist: trusty
+    - dist: trusty
       env: arch=arm toolset=gcc-arm
 
 git:
@@ -29,8 +28,6 @@ branches:
     - RC_1_1
     - RC_1_0
 
-# container-based builds
-sudo: false
 cache:
   directories:
     - $HOME/.ccache
