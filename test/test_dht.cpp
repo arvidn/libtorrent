@@ -1040,7 +1040,7 @@ void test_put(address(&rand_addr)())
 			, aux::to_hex(std::string(public_key, item_pk_len)).c_str()
 			, aux::to_hex(std::string(private_key, item_sk_len)).c_str());
 
-		std::pair<const char*, int> salt((char*)nullptr, 0);
+		std::pair<const char*, int> salt(nullptr, 0);
 		if (with_salt)
 			salt = std::pair<char const*, int>("foobar", 6);
 
@@ -1121,11 +1121,11 @@ void test_put(address(&rand_addr)())
 		key_desc_t const desc3[] =
 		{
 			{ "r", bdecode_node::dict_t, 0, key_desc_t::parse_children },
-			{ "id", bdecode_node::string_t, 20, 0},
-			{ "v", bdecode_node::none_t, 0, 0},
-			{ "seq", bdecode_node::int_t, 0, 0},
-			{ "sig", bdecode_node::string_t, 0, 0},
-			{ "ip", bdecode_node::string_t, 0, key_desc_t::optional | key_desc_t::last_child},
+				{ "id", bdecode_node::string_t, 20, 0},
+				{ "v", bdecode_node::none_t, 0, 0},
+				{ "seq", bdecode_node::int_t, 0, 0},
+				{ "sig", bdecode_node::string_t, 0, 0},
+				{ "ip", bdecode_node::string_t, 0, key_desc_t::optional | key_desc_t::last_child},
 			{ "y", bdecode_node::string_t, 1, 0},
 		};
 
@@ -1196,7 +1196,7 @@ void test_put(address(&rand_addr)())
 			, msg_args().target((char*)&target_id[0]).seq(seq - 1));
 
 		{
-			bdecode_node r = response.dict_find_dict("r");
+			bdecode_node const r = response.dict_find_dict("r");
 			TEST_CHECK(r.dict_find("v"));
 			TEST_CHECK(r.dict_find("k"));
 			TEST_CHECK(r.dict_find("sig"));
@@ -1767,7 +1767,7 @@ TORRENT_TEST(get_peers_v6)
 }
 #endif
 
-void test_mutable_get(address(&rand_addr)())
+void test_mutable_get(address(&rand_addr)(), bool const with_salt)
 {
 	dht_test_setup t(udp::endpoint(rand_addr(), 20));
 
@@ -1781,14 +1781,18 @@ void test_mutable_get(address(&rand_addr)())
 	std::pair<char const*, int> itemv;
 	bdecode_node response;
 
+	std::pair<const char*, int> salt(nullptr, 0);
+	if (with_salt)
+		salt = std::pair<char const*, int>("foobar", 6);
+
 	// mutable get
 
 	g_sent_packets.clear();
 
-	udp::endpoint initial_node(rand_addr(), 1234);
+	udp::endpoint const initial_node(rand_addr(), 1234);
 	t.dht_node.m_table.add_node(initial_node);
 
-	g_put_item.assign(items[0].ent, empty_salt, seq, public_key, private_key);
+	g_put_item.assign(items[0].ent, salt, seq, public_key, private_key);
 	std::string sig(g_put_item.sig().data(), item_sig_len);
 	t.dht_node.put_item(public_key, std::string()
 		, std::bind(&put_mutable_item_cb, _1, _2, 0)
@@ -1800,7 +1804,7 @@ void test_mutable_get(address(&rand_addr)())
 
 	g_sent_packets.clear();
 
-	t.dht_node.get_item(public_key, std::string(), get_mutable_item_cb);
+	t.dht_node.get_item(public_key, std::string(salt.first, salt.second), get_mutable_item_cb);
 
 	TEST_EQUAL(g_sent_packets.size(), 1);
 	if (g_sent_packets.empty()) return;
@@ -1828,7 +1832,7 @@ void test_mutable_get(address(&rand_addr)())
 	g_sent_packets.clear();
 
 	itemv = std::pair<char const*, int>(buffer, bencode(buffer, items[0].ent));
-	sign_mutable_item(itemv, empty_salt, seq, public_key, private_key, signature);
+	sign_mutable_item(itemv, salt, seq, public_key, private_key, signature);
 	send_dht_response(t.dht_node, response, initial_node
 		, msg_args()
 			.token("10")
@@ -1836,6 +1840,7 @@ void test_mutable_get(address(&rand_addr)())
 			.value(items[0].ent)
 			.key(std::string(public_key, item_pk_len))
 			.sig(std::string(signature, item_sig_len))
+			.salt(salt.first)
 			.seq(seq));
 
 	TEST_CHECK(g_sent_packets.empty());
@@ -1851,14 +1856,25 @@ void test_mutable_get(address(&rand_addr)())
 
 TORRENT_TEST(mutable_get_v4)
 {
-	test_mutable_get(rand_v4);
+	test_mutable_get(rand_v4, false);
+}
+
+TORRENT_TEST(mutable_get_salt_v4)
+{
+	test_mutable_get(rand_v4, true);
 }
 
 #if TORRENT_USE_IPV6
 TORRENT_TEST(mutable_get_v6)
 {
 	if (supports_ipv6())
-		test_mutable_get(rand_v6);
+		test_mutable_get(rand_v6, false);
+}
+
+TORRENT_TEST(mutable_get_salt_v6)
+{
+	if (supports_ipv6())
+		test_mutable_get(rand_v6, true);
 }
 #endif
 
