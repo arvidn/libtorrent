@@ -213,7 +213,7 @@ TORRENT_TEST(test_assign2)
 TORRENT_TEST(test_resize_val)
 {
 	std::array<char, 8> b;
-	b.fill(static_cast<char>(0xcc));
+	b.fill(-52);
 
 	bitfield test1(b.data(), 8 * 8);
 	print_bitfield(test1);
@@ -231,7 +231,7 @@ TORRENT_TEST(test_resize_val)
 TORRENT_TEST(test_resize_up)
 {
 	std::array<char, 8> b;
-	b.fill(static_cast<char>(0xcc));
+	b.fill(-52);
 
 	bitfield test1(b.data(), 8 * 8);
 	print_bitfield(test1);
