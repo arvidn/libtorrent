@@ -2,22 +2,29 @@ language: cpp
 
 matrix:
   include:
-    - env: variant=test_release coverage=1 toolset=gcc-coverage
-    - env: variant=test_debug sim=1 ssl=openssl crypto=libcrypto toolset=gcc
-    - env: variant=test_barebones toolset=gcc
-    - env: analyze=1 autotools=1 toolset=gcc
-    - os: osx
-      osx_image: xcode6.4
-      env: variant=test_release docs=1 toolset=darwin
-    - os: osx
-      osx_image: xcode6.4
-      env: variant=test_debug ssl=openssl crypto=libcrypto toolset=darwin
-    - os: osx
-      osx_image: xcode6.4
-      env: variant=test_barebones toolset=darwin
-    - sudo: required
-      dist: trusty
-      env: arch=arm toolset=gcc-arm
+#    - env: variant=test_release coverage=1 toolset=gcc-coverage
+#    - env: variant=test_debug sim=1 ssl=openssl crypto=libcrypto toolset=gcc
+#    - env: variant=test_barebones toolset=gcc
+    - env: tidy=1 autotools=1 toolset=gcc
+      addons:
+        apt:
+          sources:
+          - boost-latest
+          packages:
+          - libboost1.55-all-dev
+          - clang-tidy
+#    - os: osx
+#      osx_image: xcode6.4
+#      env: variant=test_release docs=1 toolset=darwin
+#    - os: osx
+#      osx_image: xcode6.4
+#      env: variant=test_debug ssl=openssl crypto=libcrypto toolset=darwin
+#    - os: osx
+#      osx_image: xcode6.4
+#      env: variant=test_barebones toolset=darwin
+#    - sudo: required
+#      dist: trusty
+#      env: arch=arm toolset=gcc-arm
 
 git:
   submodules: false
@@ -47,7 +54,6 @@ addons:
     - libboost1.55-tools-dev
     - python2.7-dev
     - g++-5
-    - cppcheck
 
 before_install:
 
@@ -92,7 +98,7 @@ install:
 # we're building with -Werror, we can't have those warnings
   - 'if [[ "$variant" != "" ]]; then ccache -V && ccache --show-stats && ccache --zero-stats; fi'
 
-  - 'if [ $arch == "arm" ]; then
+  - 'if [[ "$arch" == "arm" ]]; then
       cd test;
       wget https://releases.linaro.org/components/toolchain/binaries/latest-5/armv8l-linux-gnueabihf/gcc-linaro-5.3-2016.02-x86_64_armv8l-linux-gnueabihf.tar.xz;
       tar xf gcc-linaro-5.3-2016.02-x86_64_armv8l-linux-gnueabihf.tar.xz;
@@ -168,39 +174,20 @@ script:
       ./configure;
     fi'
 
-# run cppcheck if enabled
-  - 'if [[ "$analyze" == "1" ]]; then
-      cppcheck --version &&
-      find src test examples tools -type f | grep ".*\.cpp$" >cppcheck.files &&
-      find simulation -maxdepth 1 -type f | grep ".*\.cpp$" >>cppcheck.files &&
-      cppcheck -DTORRENT_USE_IPV6="1" -DTORRENT_USE_I2P="1"
-       -DTORRENT_USE_OPENSSL="1" -DTORRENT_USE_INVARIANT_CHECKS="1"
-       -DTORRENT_EXPENSIVE_INVARIANT_CHECKS="1" -DTORRENT_USE_ASSERTS="1"
-       -UTORRENT_DISABLE_MUTABLE_TORRENTS -UTORRENT_DISABLE_LOGGING
-       -UTORRENT_DEBUG_BUFFERS -UTORRENT_EXPORT_EXTRA
-       --suppress=preprocessorErrorDirective
-       --suppress=uninitVar
-       --suppress=arrayIndexOutOfBounds
-       --suppress=unusedStructMember
-       --suppress=operatorEqVarError
-       --suppress=noConstructor
-       --suppress=syntaxError
-       --enable=style
-       --template "{file}({line}): {severity} ({id}): {message}"
-       --inline-suppr --force --std=c++11 -j2 -I include -I /usr/local/include
-       -I test -I simulation/libsimulator/include
-       --file-list=cppcheck.files 2> cppcheck.txt &&
-      if [ -s cppcheck.txt ]; then
-        echo "   ======= CPPCHECK ERRORS =====";
-        cat cppcheck.txt;
-        exit 1;
-      fi;
+# run clang-tidy if enabled
+  - 'if [[ "$tidy" == "1" ]]; then
+      git clone --depth=1 --branch=compilation-db https://github.com/arvidn/build.git &&
+      cd build/src/engine &&
+      ./build.sh &&
+      cd ../../.. &&
+      ./build/src/engine/bin.linuxx86_64/bjam -anc &&
+      clang-tidy -p . -header-filter="(?! .*/boost/.* )" -checks=-*,cert-err34-c,cert-err60-cpp,google-readability-redundant-smartptr-get,google-readability-function-size,google-readability-casting,google-explicit-constructor,google-build-explicit-make-pair,google-global-names-in-headers,google-runtime-int,google-runtime-memset,misc-*,-misc-unused-*,-misc-misplaced-widening-cast,modernize-*,-modernize-use-auto,-modernize-raw-string-literal,-modernize-loop-convert,-modernize-avoid-bind,readability-*,performance-* -warnings-as-errors=* src/*.cpp src/kademlia/*.cpp ;
     fi'
 
   - 'if [[ "$variant" != "" ]]; then ccache --show-stats; fi'
 
   - cd test
-  - 'if [ $arch == "arm" ];
+  - 'if [[ "$arch" == "arm" ]];
     then
       bjam arm-tests warnings-as-errors=on ssl=$ssl crypto=$crypto variant=test_arm $toolset target-os=linux link=static testing.launcher="sudo cp -R bin rootfs/; sudo chroot rootfs";
     fi'

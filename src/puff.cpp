@@ -270,7 +270,7 @@ local int decode(struct state *s, struct huffman *h)
     code = first = index = 0;
     len = 1;
     next = h->count + 1;
-    while (1) {
+    while (true) {
         while (left--) {
             code |= bitbuf & 1;
             bitbuf >>= 1;

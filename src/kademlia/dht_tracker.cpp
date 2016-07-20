@@ -435,7 +435,7 @@ namespace libtorrent { namespace dht
 		, boost::function<void(item const&)> cb)
 	{
 		boost::shared_ptr<get_immutable_item_ctx>
-			ctx = boost::make_shared<get_immutable_item_ctx>((TORRENT_USE_IPV6) ? 2 : 1);
+			ctx = boost::make_shared<get_immutable_item_ctx>((TORRENT_USE_IPV6) ? 2 : 1); /* NOLINT */
 		m_dht.get_item(target, std::bind(&get_immutable_item_callback, _1, ctx, cb));
 #if TORRENT_USE_IPV6
 		m_dht6.get_item(target, std::bind(&get_immutable_item_callback, _1, ctx, cb));
@@ -449,7 +449,7 @@ namespace libtorrent { namespace dht
 		, std::string salt)
 	{
 		boost::shared_ptr<get_mutable_item_ctx>
-			ctx = boost::make_shared<get_mutable_item_ctx>((TORRENT_USE_IPV6) ? 2 : 1);
+			ctx = boost::make_shared<get_mutable_item_ctx>((TORRENT_USE_IPV6) ? 2 : 1); /* NOLINT */
 		m_dht.get_item(key, salt, std::bind(&get_mutable_item_callback, _1, _2, ctx, cb));
 #if TORRENT_USE_IPV6
 		m_dht6.get_item(key, salt, std::bind(&get_mutable_item_callback, _1, _2, ctx, cb));
@@ -465,7 +465,7 @@ namespace libtorrent { namespace dht
 			std::pair<char const*, int>(flat_data.c_str(), flat_data.size()));
 
 		boost::shared_ptr<put_item_ctx>
-			ctx = boost::make_shared<put_item_ctx>((TORRENT_USE_IPV6) ? 2 : 1);
+			ctx = boost::make_shared<put_item_ctx>((TORRENT_USE_IPV6) ? 2 : 1); /* NOLINT */
 		m_dht.put_item(target, data, std::bind(&put_immutable_item_callback
 			, _1, ctx, cb));
 #if TORRENT_USE_IPV6
@@ -479,7 +479,7 @@ namespace libtorrent { namespace dht
 		, boost::function<void(item&)> data_cb, std::string salt)
 	{
 		boost::shared_ptr<put_item_ctx>
-			ctx = boost::make_shared<put_item_ctx>((TORRENT_USE_IPV6) ? 2 : 1);
+			ctx = boost::make_shared<put_item_ctx>((TORRENT_USE_IPV6) ? 2 : 1); /* NOLINT */
 
 		m_dht.put_item(key, salt, std::bind(&put_mutable_item_callback
 			, _1, _2, ctx, cb), data_cb);
