@@ -270,6 +270,11 @@ namespace libtorrent
 		disconnect_if_redundant();
 		if (m_disconnecting) return;
 
+		if (!m_sent_handshake) return;
+		// we haven't gotten far enough on the incoming handshake to be able to
+		// send the bitfield yet
+		if (m_state < read_packet_size) return;
+
 		// connections that are still in the handshake
 		// will send their bitfield when the handshake
 		// is done
@@ -277,7 +282,6 @@ namespace libtorrent
 		write_upload_only();
 #endif
 
-		if (!m_sent_handshake) return;
 		if (m_sent_bitfield) return;
 		boost::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
