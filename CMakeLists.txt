@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.1.0 FATAL_ERROR)
 
 project(libtorrent)
 set (SOVERSION "8")
-set (VERSION "1.1.0")
+set (VERSION "1.2.0")
 
 list(APPEND CMAKE_MODULE_PATH ${libtorrent_SOURCE_DIR}/cmake/Modules)
 
