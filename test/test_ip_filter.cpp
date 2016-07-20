@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/ip_filter.hpp"
 #include "setup_transfer.hpp" // for addr()
-#include <boost/utility.hpp>
+#include <utility>
 
 #include "test.hpp"
 #include "libtorrent/socket_io.hpp"
@@ -78,7 +78,7 @@ void test_rules_invariant(std::vector<ip_range<T> > const& r, ip_filter const& f
 		TEST_CHECK(r.back().last == addr("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"));
 	}
 
-	for (iterator i(r.begin()), j(boost::next(r.begin()))
+	for (iterator i(r.begin()), j(std::next(r.begin()))
 		, end(r.end()); j != end; ++j, ++i)
 	{
 		TEST_EQUAL(f.access(i->last), int(i->flags));
@@ -93,7 +93,7 @@ TORRENT_TEST(session_get_ip_filter)
 	session ses;
 	ip_filter const& ipf = ses.get_ip_filter();
 #if TORRENT_USE_IPV6
-	TEST_EQUAL(boost::get<0>(ipf.export_filter()).size(), 1);
+	TEST_EQUAL(std::get<0>(ipf.export_filter()).size(), 1);
 #else
 	TEST_EQUAL(ipf.export_filter().size(), 1);
 #endif
