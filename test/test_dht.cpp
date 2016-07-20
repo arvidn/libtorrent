@@ -105,7 +105,7 @@ struct mock_socket final : udp_socket_interface
 	bool has_quota() override { return true; }
 	bool send_packet(entry& msg, udp::endpoint const& ep) override
 	{
-		// TODO: ideally the mock_socket would contain this queue of packets, to
+		// TODO: 3 ideally the mock_socket would contain this queue of packets, to
 		// make tests independent
 		g_sent_packets.push_back(std::make_pair(ep, msg));
 		return true;
@@ -267,7 +267,7 @@ void send_dht_response(node& node, bdecode_node const& request, udp::endpoint co
 	e["r"] = args.a;
 	e["r"].dict().insert(std::make_pair("id", generate_next().to_string()));
 	char msg_buf[1500];
-	int size = bencode(msg_buf, e);
+	int const size = bencode(msg_buf, e);
 
 	bdecode_node decoded;
 	error_code ec;
@@ -481,6 +481,7 @@ struct obs : dht::dht_observer
 		char buf[1024];
 		vsnprintf(buf, sizeof(buf), fmt, v);
 		va_end(v);
+		fprintf(stderr, "%s\n", buf);
 		m_log.push_back(buf);
 	}
 	void log_packet(message_direction_t dir, char const* pkt, int len
@@ -512,7 +513,7 @@ struct dht_test_setup
 		, dht_node(src.protocol(), &s, sett
 			, node_id(nullptr), &observer, cnt, nodes, *dht_storage)
 	{
-		dht_storage->update_node_ids({node_id(nullptr)});
+		dht_storage->update_node_ids({node_id::min()});
 	}
 	dht_settings sett;
 	mock_socket s;
@@ -1549,15 +1550,10 @@ void test_bootstrap(address(&rand_addr)())
 
 	g_sent_packets.clear();
 
-	// TODO: 3 why not use t.node and t.storage?
-	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(t.sett));
-	dht_storage->update_node_ids({node_id::min()});
-	dht::node node(udp::v4(), &t.s, t.sett, node_id::min(), &t.observer, t.cnt, t.nodes, *t.dht_storage);
-
-	udp::endpoint initial_node(addr4("4.4.4.4"), 1234);
+	udp::endpoint initial_node(rand_addr(), 1234);
 	std::vector<udp::endpoint> nodesv;
 	nodesv.push_back(initial_node);
-	node.bootstrap(nodesv, std::bind(&nop_node));
+	t.dht_node.bootstrap(nodesv, std::bind(&nop_node));
 
 	TEST_EQUAL(g_sent_packets.size(), 1);
 	if (g_sent_packets.empty()) return;
@@ -1583,11 +1579,14 @@ void test_bootstrap(address(&rand_addr)())
 		return;
 	}
 
-	udp::endpoint found_node(addr4("5.5.5.5"), 2235);
+	udp::endpoint found_node(rand_addr(), 2235);
 	nodes_t nodes;
 	nodes.push_back(found_node);
 	g_sent_packets.clear();
-	send_dht_response(node, response, initial_node, msg_args().nodes(nodes));
+	if (initial_node.address().is_v4())
+		send_dht_response(t.dht_node, response, initial_node, msg_args().nodes(nodes));
+	else
+		send_dht_response(t.dht_node, response, initial_node, msg_args().nodes6(nodes));
 
 	TEST_EQUAL(g_sent_packets.size(), 1);
 	if (g_sent_packets.empty()) return;
@@ -1601,8 +1600,9 @@ void test_bootstrap(address(&rand_addr)())
 		TEST_EQUAL(find_node_keys[0].string_value(), "q");
 		TEST_CHECK(find_node_keys[2].string_value() == "find_node"
 			|| find_node_keys[2].string_value() == "get_peers");
-		if (find_node_keys[0].string_value() != "q" || (find_node_keys[2].string_value() != "find_node"
-			&& find_node_keys[2].string_value() == "get_peers")) return;
+		if (find_node_keys[0].string_value() != "q"
+			|| (find_node_keys[2].string_value() != "find_node"
+				&& find_node_keys[2].string_value() == "get_peers")) return;
 	}
 	else
 	{
@@ -1612,10 +1612,10 @@ void test_bootstrap(address(&rand_addr)())
 	}
 
 	g_sent_packets.clear();
-	send_dht_response(node, response, found_node);
+	send_dht_response(t.dht_node, response, found_node);
 
 	TEST_CHECK(g_sent_packets.empty());
-	TEST_EQUAL(node.num_global_nodes(), 3);
+	TEST_EQUAL(t.dht_node.num_global_nodes(), 3);
 }
 
 TORRENT_TEST(bootstrap_v4)
@@ -1652,16 +1652,12 @@ void test_get_peers(address(&rand_addr)())
 
 	g_sent_packets.clear();
 
-	// TODO: 3 why not use t.node and t.storage?
-	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(t.sett));
-	dht_storage->update_node_ids({node_id::min()});
-	dht::node_id target = to_hash("1234876923549721020394873245098347598635");
-	dht::node node(udp::v4(), &t.s, t.sett, node_id::min(), &t.observer, t.cnt, t.nodes, *t.dht_storage);
+	dht::node_id const target = to_hash("1234876923549721020394873245098347598635");
 
-	udp::endpoint initial_node(addr4("4.4.4.4"), 1234);
-	node.m_table.add_node(initial_node);
+	udp::endpoint const initial_node(rand_addr(), 1234);
+	t.dht_node.m_table.add_node(initial_node);
 
-	node.announce(target, 1234, false, get_peers_cb);
+	t.dht_node.announce(target, 1234, false, get_peers_cb);
 
 	TEST_EQUAL(g_sent_packets.size(), 1);
 	if (g_sent_packets.empty()) return;
@@ -1687,17 +1683,25 @@ void test_get_peers(address(&rand_addr)())
 	}
 
 	std::set<tcp::endpoint> peers[2];
-	peers[0].insert(tcp::endpoint(addr4("4.1.1.1"), 4111));
-	peers[0].insert(tcp::endpoint(addr4("4.1.1.2"), 4112));
-	peers[0].insert(tcp::endpoint(addr4("4.1.1.3"), 4113));
+	peers[0].insert(tcp::endpoint(rand_addr(), 4111));
+	peers[0].insert(tcp::endpoint(rand_addr(), 4112));
+	peers[0].insert(tcp::endpoint(rand_addr(), 4113));
 
-	udp::endpoint next_node(addr4("5.5.5.5"), 2235);
+	udp::endpoint next_node(rand_addr(), 2235);
 	nodes_t nodes;
 	nodes.push_back(next_node);
 
 	g_sent_packets.clear();
-	send_dht_response(node, response, initial_node
-		, msg_args().nodes(nodes).token("10").port(1234).peers(peers[0]));
+	if (initial_node.address().is_v4())
+	{
+		send_dht_response(t.dht_node, response, initial_node
+			, msg_args().nodes(nodes).token("10").port(1234).peers(peers[0]));
+	}
+	else
+	{
+		send_dht_response(t.dht_node, response, initial_node
+			, msg_args().nodes6(nodes).token("10").port(1234).peers(peers[0]));
+	}
 
 	TEST_EQUAL(g_sent_packets.size(), 1);
 	if (g_sent_packets.empty()) return;
@@ -1722,12 +1726,12 @@ void test_get_peers(address(&rand_addr)())
 		return;
 	}
 
-	peers[1].insert(tcp::endpoint(addr4("4.1.1.4"), 4114));
-	peers[1].insert(tcp::endpoint(addr4("4.1.1.5"), 4115));
-	peers[1].insert(tcp::endpoint(addr4("4.1.1.6"), 4116));
+	peers[1].insert(tcp::endpoint(rand_addr(), 4114));
+	peers[1].insert(tcp::endpoint(rand_addr(), 4115));
+	peers[1].insert(tcp::endpoint(rand_addr(), 4116));
 
 	g_sent_packets.clear();
-	send_dht_response(node, response, next_node
+	send_dht_response(t.dht_node, response, next_node
 		, msg_args().token("11").port(1234).peers(peers[1]));
 
 	for (std::list<std::pair<udp::endpoint, entry> >::iterator i = g_sent_packets.begin()
@@ -1781,17 +1785,12 @@ void test_mutable_get(address(&rand_addr)())
 
 	g_sent_packets.clear();
 
-	// TODO: 3 why not use t.node and t.storage?
-	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(t.sett));
-	dht_storage->update_node_ids({node_id::min()});
-	dht::node node(udp::v4(), &t.s, t.sett, node_id::min(), &t.observer, t.cnt, t.nodes, *t.dht_storage);
-
-	udp::endpoint initial_node(addr4("4.4.4.4"), 1234);
-	node.m_table.add_node(initial_node);
+	udp::endpoint initial_node(rand_addr(), 1234);
+	t.dht_node.m_table.add_node(initial_node);
 
 	g_put_item.assign(items[0].ent, empty_salt, seq, public_key, private_key);
 	std::string sig(g_put_item.sig().data(), item_sig_len);
-	node.put_item(public_key, std::string()
+	t.dht_node.put_item(public_key, std::string()
 		, std::bind(&put_mutable_item_cb, _1, _2, 0)
 		, put_mutable_item_data_cb);
 
@@ -1801,7 +1800,7 @@ void test_mutable_get(address(&rand_addr)())
 
 	g_sent_packets.clear();
 
-	node.get_item(public_key, std::string(), get_mutable_item_cb);
+	t.dht_node.get_item(public_key, std::string(), get_mutable_item_cb);
 
 	TEST_EQUAL(g_sent_packets.size(), 1);
 	if (g_sent_packets.empty()) return;
@@ -1830,7 +1829,7 @@ void test_mutable_get(address(&rand_addr)())
 
 	itemv = std::pair<char const*, int>(buffer, bencode(buffer, items[0].ent));
 	sign_mutable_item(itemv, empty_salt, seq, public_key, private_key, signature);
-	send_dht_response(node, response, initial_node
+	send_dht_response(t.dht_node, response, initial_node
 		, msg_args()
 			.token("10")
 			.port(1234)
@@ -1872,15 +1871,10 @@ TORRENT_TEST(immutable_get)
 
 	g_sent_packets.clear();
 
-	// TODO: 3 why not use t.node and t.storage?
-	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(t.sett));
-	dht_storage->update_node_ids({node_id::min()});
-	dht::node node(udp::v4(), &t.s, t.sett, node_id::min(), &t.observer, t.cnt, t.nodes, *t.dht_storage);
-
 	udp::endpoint initial_node(addr4("4.4.4.4"), 1234);
-	node.m_table.add_node(initial_node);
+	t.dht_node.m_table.add_node(initial_node);
 
-	node.get_item(items[0].target, get_immutable_item_cb);
+	t.dht_node.get_item(items[0].target, get_immutable_item_cb);
 
 	TEST_EQUAL(g_sent_packets.size(), 1);
 	if (g_sent_packets.empty()) return;
@@ -1905,7 +1899,7 @@ TORRENT_TEST(immutable_get)
 	}
 
 	g_sent_packets.clear();
-	send_dht_response(node, response, initial_node
+	send_dht_response(t.dht_node, response, initial_node
 		, msg_args().token("10").port(1234).value(items[0].ent));
 
 	TEST_CHECK(g_sent_packets.empty());
@@ -1918,11 +1912,6 @@ TORRENT_TEST(immutable_get)
 
 TORRENT_TEST(immutable_put)
 {
-	dht_test_setup t(udp::endpoint(rand_v4(), 20));
-
-	// set the branching factor to k to make this a little easier
-	t.sett.search_branching = 8;
-
 	bdecode_node response;
 	std::pair<char const*, int> itemv;
 	char buffer[1200];
@@ -1943,14 +1932,15 @@ TORRENT_TEST(immutable_put)
 	g_sent_packets.clear();
 	for (int loop = 0; loop < 9; loop++)
 	{
-		// TODO: 3 why not use t.node and t.storage?
-		std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(t.sett));
-		dht_storage->update_node_ids({node_id::min()});
-		dht::node node(udp::v4(), &t.s, t.sett, node_id::min(), &t.observer, t.cnt, t.nodes, *t.dht_storage);
+		dht_test_setup t(udp::endpoint(rand_v4(), 20));
+
+		// set the branching factor to k to make this a little easier
+		t.sett.search_branching = 8;
+
 		std::array<node_entry, 8> const nodes = build_nodes();
 
 		for (node_entry const& n : nodes)
-			node.m_table.add_node(n);
+			t.dht_node.m_table.add_node(n);
 
 		entry put_data;
 		put_data = "Hello world";
@@ -1959,7 +1949,7 @@ TORRENT_TEST(immutable_put)
 		sha1_hash target = item_target_id(
 			std::pair<char const*, int>(flat_data.c_str(), int(flat_data.size())));
 
-		node.put_item(target, put_data, std::bind(&put_immutable_item_cb, _1, loop));
+		t.dht_node.put_item(target, put_data, std::bind(&put_immutable_item_cb, _1, loop));
 
 		TEST_EQUAL(g_sent_packets.size(), 8);
 		if (g_sent_packets.size() != 8) break;
@@ -1980,12 +1970,12 @@ TORRENT_TEST(immutable_put)
 				TEST_ERROR(t.error_string);
 				continue;
 			}
-			char t[10];
-			std::snprintf(t, sizeof(t), "%02d", i);
+			char tok[10];
+			std::snprintf(tok, sizeof(tok), "%02d", i);
 
 			msg_args args;
-			args.token(t).port(1234).nid(nodes[i].id).nodes(nodes_t(1, nodes[i]));
-			send_dht_response(node, response, nodes[i].ep(), args);
+			args.token(tok).port(1234).nid(nodes[i].id).nodes(nodes_t(1, nodes[i]));
+			send_dht_response(t.dht_node, response, nodes[i].ep(), args);
 			g_sent_packets.erase(packet);
 		}
 
@@ -2009,13 +1999,13 @@ TORRENT_TEST(immutable_put)
 				TEST_EQUAL(put_immutable_item_keys[2].string_value(), "put");
 				std::pair<const char*, int>v = put_immutable_item_keys[6].data_section();
 				TEST_EQUAL(std::string(v.first, v.second), flat_data);
-				char t[10];
-				std::snprintf(t, sizeof(t), "%02d", i);
-				TEST_EQUAL(put_immutable_item_keys[5].string_value(), t);
+				char tok[10];
+				std::snprintf(tok, sizeof(tok), "%02d", i);
+				TEST_EQUAL(put_immutable_item_keys[5].string_value(), tok);
 				if (put_immutable_item_keys[0].string_value() != "q"
 					|| put_immutable_item_keys[2].string_value() != "put") continue;
 
-				if (i < loop) send_dht_response(node, response, nodes[i].ep());
+				if (i < loop) send_dht_response(t.dht_node, response, nodes[i].ep());
 			}
 			else
 			{
@@ -2032,11 +2022,6 @@ TORRENT_TEST(immutable_put)
 
 TORRENT_TEST(mutable_put)
 {
-	dht_test_setup t(udp::endpoint(rand_v4(), 20));
-
-	// set the branching factor to k to make this a little easier
-	t.sett.search_branching = 8;
-
 	bdecode_node response;
 	std::pair<char const*, int> itemv;
 	char buffer[1200];
@@ -2051,19 +2036,20 @@ TORRENT_TEST(mutable_put)
 	g_sent_packets.clear();
 	for (int loop = 0; loop < 9; loop++)
 	{
-		// TODO: 3 why not use t.node and t.storage
-		std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(t.sett));
-		dht_storage->update_node_ids({node_id::min()});
-		dht::node node(udp::v4(), &t.s, t.sett, node_id::min(), &t.observer, t.cnt, t.nodes, *t.dht_storage);
+		dht_test_setup t(udp::endpoint(rand_v4(), 20));
+
+		// set the branching factor to k to make this a little easier
+		t.sett.search_branching = 8;
+
 		enum { num_test_nodes = 8 };
 		std::array<node_entry, num_test_nodes> const nodes = build_nodes();
 
 		for (int i = 0; i < num_test_nodes; ++i)
-			node.m_table.add_node(nodes[i]);
+			t.dht_node.m_table.add_node(nodes[i]);
 
 		g_put_item.assign(items[0].ent, empty_salt, seq, public_key, private_key);
 		std::string sig(g_put_item.sig().data(), item_sig_len);
-		node.put_item(public_key, std::string()
+		t.dht_node.put_item(public_key, std::string()
 				, std::bind(&put_mutable_item_cb, _1, _2, loop)
 				, put_mutable_item_data_cb);
 
@@ -2086,13 +2072,12 @@ TORRENT_TEST(mutable_put)
 				TEST_ERROR(t.error_string);
 				continue;
 			}
-			char t[10];
-			std::snprintf(t, sizeof(t), "%02d", i);
+			char tok[10];
+			std::snprintf(tok, sizeof(tok), "%02d", i);
 
 			msg_args args;
-			args.token(t).port(1234).nid(nodes[i].id).nodes(nodes_t(1, nodes[i]));
-
-			send_dht_response(node, response, nodes[i].ep(), args);
+			args.token(tok).port(1234).nid(nodes[i].id).nodes(nodes_t(1, nodes[i]));
+			send_dht_response(t.dht_node, response, nodes[i].ep(), args);
 			g_sent_packets.erase(packet);
 		}
 
@@ -2120,13 +2105,13 @@ TORRENT_TEST(mutable_put)
 				std::pair<const char*, int> v = put_mutable_item_keys[10].data_section();
 				TEST_EQUAL(v.second, itemv.second);
 				TEST_CHECK(memcmp(v.first, itemv.first, itemv.second) == 0);
-				char t[10];
-				std::snprintf(t, sizeof(t), "%02d", i);
-				TEST_EQUAL(put_mutable_item_keys[9].string_value(), t);
+				char tok[10];
+				std::snprintf(tok, sizeof(tok), "%02d", i);
+				TEST_EQUAL(put_mutable_item_keys[9].string_value(), tok);
 				if (put_mutable_item_keys[0].string_value() != "q"
 					|| put_mutable_item_keys[2].string_value() != "put") continue;
 
-				if (i < loop) send_dht_response(node, response, nodes[i].ep());
+				if (i < loop) send_dht_response(t.dht_node, response, nodes[i].ep());
 			}
 			else
 			{
@@ -2159,10 +2144,6 @@ TORRENT_TEST(traversal_done)
 	// See PR 252
 	g_sent_packets.clear();
 
-	// TODO: 3 why not use t.node and t.storage?
-	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(t.sett));
-	dht_storage->update_node_ids({node_id::min()});
-	dht::node node(udp::v4(), &t.s, t.sett, node_id::min(), &t.observer, t.cnt, t.nodes, *t.dht_storage);
 	sha1_hash target = hasher(public_key, item_pk_len).final();
 	enum { num_test_nodes = 9 }; // we need K + 1 nodes to create the failing sequence
 
@@ -2175,11 +2156,11 @@ TORRENT_TEST(traversal_done)
 
 	// add the first k nodes to the subject's routing table
 	for (int i = 0; i < 8; ++i)
-		node.m_table.add_node(nodes[i]);
+		t.dht_node.m_table.add_node(nodes[i]);
 
 	// kick off a mutable put request
 	g_put_item.assign(items[0].ent, empty_salt, seq, public_key, private_key);
-	node.put_item(public_key, std::string()
+	t.dht_node.put_item(public_key, std::string()
 		, std::bind(&put_mutable_item_cb, _1, _2, 0)
 		, put_mutable_item_data_cb);
 	TEST_EQUAL(g_sent_packets.size(), 8);
@@ -2207,17 +2188,17 @@ TORRENT_TEST(traversal_done)
 			TEST_ERROR(t.error_string);
 			continue;
 		}
-		char t[10];
-		std::snprintf(t, sizeof(t), "%02d", i);
+		char tok[10];
+		std::snprintf(tok, sizeof(tok), "%02d", i);
 
 		msg_args args;
-		args.token(t).port(1234).nid(nodes[i].id);
+		args.token(tok).port(1234).nid(nodes[i].id);
 
 		// add the address of the closest node to the first response
 		if (i == 1)
 			args.nodes(nodes_t(1, nodes[8]));
 
-		send_dht_response(node, response, nodes[i].ep(), args);
+		send_dht_response(t.dht_node, response, nodes[i].ep(), args);
 		g_sent_packets.erase(packet);
 
 		// once we've sent the response from the farthest node, we're done
