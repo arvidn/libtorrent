@@ -26,6 +26,7 @@
 
 1.1.1 release
 
+	* fix crash in session::get_ip_filter when not having set one
 	* fix filename escaping when repairing torrents with broken web seeds
 	* fix bug where file_completed_alert would not be posted unless file_progress
 	  had been queries by the client

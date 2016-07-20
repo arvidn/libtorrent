@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "libtorrent/socket_io.hpp"
+#include "libtorrent/session.hpp"
 
 /*
 
@@ -84,6 +85,18 @@ void test_rules_invariant(std::vector<ip_range<T> > const& r, ip_filter const& f
 		TEST_EQUAL(f.access(j->first), int(j->flags));
 		TEST_CHECK(detail::plus_one(i->last.to_bytes()) == j->first.to_bytes());
 	}
+}
+
+TORRENT_TEST(session_get_ip_filter)
+{
+	using namespace libtorrent;
+	session ses;
+	ip_filter const& ipf = ses.get_ip_filter();
+#if TORRENT_USE_IPV6
+	TEST_EQUAL(boost::get<0>(ipf.export_filter()).size(), 1);
+#else
+	TEST_EQUAL(ipf.export_filter().size(), 1);
+#endif
 }
 
 TORRENT_TEST(ip_filter)

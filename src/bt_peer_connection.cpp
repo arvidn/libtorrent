@@ -300,19 +300,18 @@ namespace libtorrent
 		disconnect_if_redundant();
 		if (m_disconnecting) return;
 
+		if (!m_sent_handshake) return;
+		// we're still waiting to fully handshake with this peer. At the end of
+		// the handshake we'll send the bitfield and dht port anyway. It's too
+		// early to do now
+		if (m_state < read_packet_size) return;
+
 		// connections that are still in the handshake
 		// will send their bitfield when the handshake
 		// is done
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		write_upload_only();
 #endif
-
-		if (!m_sent_handshake) return;
-
-		// we're still waiting to fully handshake with this peer. At the end of
-		// the handshake we'll send the bitfield and dht port anyway. It's too
-		// early to do now
-		if (m_state < read_peer_id) return;
 
 		if (m_sent_bitfield) return;
 
