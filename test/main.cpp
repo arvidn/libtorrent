@@ -322,7 +322,7 @@ EXPORT int main(int argc, char const* argv[])
 
 	if (_g_num_unit_tests == 0)
 	{
-		std::fprintf(stderr, "\x1b[31mERROR: no unit tests registered\x1b[0m\n");
+		std::fprintf(stderr, "\x1b[31mTEST_ERROR: no unit tests registered\x1b[0m\n");
 		return 1;
 	}
 
@@ -387,7 +387,7 @@ EXPORT int main(int argc, char const* argv[])
 		catch (boost::system::system_error const& e)
 		{
 			char buf[200];
-			std::snprintf(buf, sizeof(buf), "Terminated with system_error: (%d) [%s] \"%s\""
+			std::snprintf(buf, sizeof(buf), "TEST_ERROR: Terminated with system_error: (%d) [%s] \"%s\""
 				, e.code().value()
 				, e.code().category().name()
 				, e.code().message().c_str());
@@ -396,12 +396,12 @@ EXPORT int main(int argc, char const* argv[])
 		catch (std::exception const& e)
 		{
 			char buf[200];
-			std::snprintf(buf, sizeof(buf), "Terminated with exception: \"%s\"", e.what());
+			std::snprintf(buf, sizeof(buf), "TEST_ERROR: Terminated with exception: \"%s\"", e.what());
 			report_failure(buf, __FILE__, __LINE__);
 		}
 		catch (...)
 		{
-			report_failure("Terminated with unknown exception", __FILE__, __LINE__);
+			report_failure("TEST_ERROR: Terminated with unknown exception", __FILE__, __LINE__);
 		}
 #endif
 
@@ -441,7 +441,7 @@ EXPORT int main(int argc, char const* argv[])
 
 	if (num_run == 0)
 	{
-		std::fprintf(stderr, "\x1b[31mERROR: no unit tests run\x1b[0m\n");
+		std::fprintf(stderr, "\x1b[31mTEST_ERROR: no unit tests run\x1b[0m\n");
 		return 1;
 	}
 
