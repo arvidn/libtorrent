@@ -33,10 +33,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/hasher.hpp>
 #include <libtorrent/kademlia/item.hpp>
 #include <libtorrent/bencode.hpp>
+#include <libtorrent/aux_/array_view.hpp>
 #include <libtorrent/ed25519.hpp>
 
 #include <cstdio> // for snprintf
 #include <cinttypes> // for PRId64 et.al.
+#include <cstring> // for memcpy
 
 #if TORRENT_USE_ASSERTS
 #include "libtorrent/bdecode.hpp"
@@ -47,9 +49,10 @@ namespace libtorrent { namespace dht
 
 namespace
 {
-	enum { canonical_length = 1200 };
-	int canonical_string(std::pair<char const*, int> v, std::uint64_t seq
-		, std::pair<char const*, int> salt, char out[canonical_length])
+	int canonical_string(std::pair<char const*, int> v
+		, sequence_number const seq
+		, std::pair<char const*, int> salt
+		, aux::array_view<char> out)
 	{
 		// v must be valid bencoding!
 #if TORRENT_USE_ASSERTS
@@ -57,24 +60,24 @@ namespace
 		error_code ec;
 		TORRENT_ASSERT(bdecode(v.first, v.first + v.second, e, ec) == 0);
 #endif
-		char* ptr = out;
+		char* ptr = out.data();
 
-		int left = canonical_length - (ptr - out);
+		int left = out.size() - (ptr - out.data());
 		if (salt.second > 0)
 		{
 			ptr += std::snprintf(ptr, left, "4:salt%d:", salt.second);
-			left = canonical_length - (ptr - out);
-			memcpy(ptr, salt.first, (std::min)(salt.second, left));
+			left = out.size() - (ptr - out.data());
+			std::memcpy(ptr, salt.first, (std::min)(salt.second, left));
 			ptr += (std::min)(salt.second, left);
-			left = canonical_length - (ptr - out);
+			left = out.size() - (ptr - out.data());
 		}
-		ptr += std::snprintf(ptr, canonical_length - (ptr - out)
-			, "3:seqi%" PRId64 "e1:v", seq);
-		left = canonical_length - (ptr - out);
-		memcpy(ptr, v.first, (std::min)(v.second, left));
+		ptr += std::snprintf(ptr, out.size() - (ptr - out.data())
+			, "3:seqi%" PRId64 "e1:v", seq.value);
+		left = out.size() - (ptr - out.data());
+		std::memcpy(ptr, v.first, (std::min)(v.second, left));
 		ptr += (std::min)(v.second, left);
-		TORRENT_ASSERT((ptr - out) <= canonical_length);
-		return ptr - out;
+		TORRENT_ASSERT((ptr - out.data()) <= out.size());
+		return ptr - out.data();
 	}
 }
 
@@ -86,10 +89,10 @@ sha1_hash item_target_id(std::pair<char const*, int> v)
 
 // calculate the target hash for a mutable item.
 sha1_hash item_target_id(std::pair<char const*, int> salt
-	, char const* pk)
+	, public_key const& pk)
 {
 	hasher h;
-	h.update(pk, item_pk_len);
+	h.update(pk.bytes.data(), pk.bytes.size());
 	if (salt.second > 0) h.update(salt.first, salt.second);
 	return h.final();
 }
@@ -97,17 +100,17 @@ sha1_hash item_target_id(std::pair<char const*, int> salt
 bool verify_mutable_item(
 	std::pair<char const*, int> v
 	, std::pair<char const*, int> salt
-	, std::uint64_t seq
-	, char const* pk
-	, char const* sig)
+	, sequence_number const seq
+	, public_key const& pk
+	, signature const& sig)
 {
-	char str[canonical_length];
+	char str[1200];
 	int len = canonical_string(v, seq, salt, str);
 
-	return ed25519_verify(reinterpret_cast<unsigned char const*>(sig)
+	return ed25519_verify(reinterpret_cast<unsigned char const*>(sig.bytes.data())
 		, reinterpret_cast<unsigned char const*>(str)
 		, len
-		, reinterpret_cast<unsigned char const*>(pk)) == 1;
+		, reinterpret_cast<unsigned char const*>(pk.bytes.data())) == 1;
 }
 
 // given the bencoded buffer ``v``, the salt (which is optional and may have
@@ -119,87 +122,98 @@ bool verify_mutable_item(
 void sign_mutable_item(
 	std::pair<char const*, int> v
 	, std::pair<char const*, int> salt
-	, std::uint64_t seq
-	, char const* pk
-	, char const* sk
-	, char* sig)
+	, sequence_number const seq
+	, public_key const& pk
+	, secret_key const& sk
+	, signature& sig)
 {
-	char str[canonical_length];
-	int len = canonical_string(v, seq, salt, str);
+	char str[1200];
+	int const len = canonical_string(v, seq, salt, str);
 
-	ed25519_sign(reinterpret_cast<unsigned char*>(sig)
+	ed25519_sign(reinterpret_cast<unsigned char*>(sig.bytes.data())
 		, reinterpret_cast<unsigned char const*>(str)
 		, len
-		, reinterpret_cast<unsigned char const*>(pk)
-		, reinterpret_cast<unsigned char const*>(sk)
+		, reinterpret_cast<unsigned char const*>(pk.bytes.data())
+		, reinterpret_cast<unsigned char const*>(sk.bytes.data())
 	);
 }
 
-item::item(char const* pk, std::string const& salt)
+item::item(public_key const& pk, std::string const& salt)
 	: m_salt(salt)
+	, m_pk(pk)
 	, m_seq(0)
 	, m_mutable(true)
+{}
+
+item::item(entry v)
+	: m_value(std::move(v))
+	, m_seq(0)
+	, m_mutable(false)
+{}
+
+item::item(bdecode_node const& v)
+	: m_value(std::move(v))
+	, m_seq(0)
+	, m_mutable(false)
+{}
+
+item::item(entry v, std::pair<char const*, int> salt
+	, sequence_number const seq, public_key const& pk, secret_key const& sk)
 {
-	memcpy(m_pk.data(), pk, item_pk_len);
+	assign(std::move(v), salt, seq, pk, sk);
 }
 
-item::item(entry const& v
-	, std::pair<char const*, int> salt
-	, std::uint64_t seq, char const* pk, char const* sk)
+void item::assign(entry v)
 {
-	assign(v, salt, seq, pk, sk);
+	m_mutable = false;
+	m_value = std::move(v);
 }
 
-void item::assign(entry const& v, std::pair<char const*, int> salt
-	, std::uint64_t seq, char const* pk, char const* sk)
+void item::assign(entry v, std::pair<char const*, int> salt
+	, sequence_number const seq, public_key const& pk, secret_key const& sk)
 {
+	char buffer[1000];
+	int bsize = bencode(buffer, v);
+	TORRENT_ASSERT(bsize <= 1000);
+	sign_mutable_item(std::make_pair(buffer, bsize)
+		, salt, seq, pk, sk, m_sig);
+	m_salt.assign(salt.first, salt.second);
+	m_pk = pk;
+	m_seq = seq;
+	m_mutable = true;
+	m_value = std::move(v);
+}
+
+void item::assign(bdecode_node const& v)
+{
+	m_mutable = false;
 	m_value = v;
-	if (pk && sk)
-	{
-		char buffer[1000];
-		int bsize = bencode(buffer, v);
-		TORRENT_ASSERT(bsize <= 1000);
-		sign_mutable_item(std::make_pair(buffer, bsize)
-			, salt, seq, pk, sk, m_sig.data());
-		m_salt.assign(salt.first, salt.second);
-		memcpy(m_pk.data(), pk, item_pk_len);
-		m_seq = seq;
-		m_mutable = true;
-	}
-	else
-		m_mutable = false;
 }
 
-bool item::assign(bdecode_node const& v
-	, std::pair<char const*, int> salt
-	, std::uint64_t seq, char const* pk, char const* sig)
+bool item::assign(bdecode_node const& v, std::pair<char const*, int> salt
+	, sequence_number const seq, public_key const& pk, signature const& sig)
 {
 	TORRENT_ASSERT(v.data_section().second <= 1000);
-	if (pk && sig)
-	{
-		if (!verify_mutable_item(v.data_section(), salt, seq, pk, sig))
-			return false;
-		memcpy(m_pk.data(), pk, item_pk_len);
-		memcpy(m_sig.data(), sig, item_sig_len);
-		if (salt.second > 0)
-			m_salt.assign(salt.first, salt.second);
-		else
-			m_salt.clear();
-		m_seq = seq;
-		m_mutable = true;
-	}
+	if (!verify_mutable_item(v.data_section(), salt, seq, pk, sig))
+		return false;
+	m_pk = pk;
+	m_sig = sig;
+	if (salt.second > 0)
+		m_salt.assign(salt.first, salt.second);
 	else
-		m_mutable = false;
+		m_salt.clear();
+	m_seq = seq;
+	m_mutable = true;
 
 	m_value = v;
 	return true;
 }
 
-void item::assign(entry const& v, std::string salt, std::uint64_t seq
-	, char const* pk, char const* sig)
+void item::assign(entry v, std::string salt
+	, sequence_number const seq
+	, public_key const& pk, signature const& sig)
 {
 #if TORRENT_USE_ASSERTS
-	TORRENT_ASSERT(pk && sig);
 	char buffer[1000];
 	int bsize = bencode(buffer, v);
 	TORRENT_ASSERT(bsize <= 1000);
@@ -209,12 +223,13 @@ void item::assign(entry const& v, std::string salt, std::uint64_t seq
 		, seq, pk, sig));
 #endif
 
-	memcpy(m_pk.data(), pk, item_pk_len);
-	memcpy(m_sig.data(), sig, item_sig_len);
+	m_pk = pk;
+	m_sig = sig;
 	m_salt = salt;
 	m_seq = seq;
 	m_mutable = true;
-	m_value = v;
+	m_value = std::move(v);
 }
 
 } } // namespace libtorrent::dht
+

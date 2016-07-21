@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <libtorrent/kademlia/node_id.hpp>
+#include <libtorrent/kademlia/types.hpp>
 
 #include <libtorrent/socket.hpp>
 #include <libtorrent/sha1_hash.hpp>
@@ -173,7 +174,7 @@ namespace dht
 		// inside the out parameter seq.
 		//
 		virtual bool get_mutable_item_seq(sha1_hash const& target
-			, std::int64_t& seq) const = 0;
+			, sequence_number& seq) const = 0;
 
 		// This function retrieves the mutable stored in the DHT.
 		//
@@ -189,7 +190,7 @@ namespace dht
 		// inside the (entry) out parameter item.
 		//
 		virtual bool get_mutable_item(sha1_hash const& target
-			, std::int64_t seq, bool force_fill
+			, sequence_number seq, bool force_fill
 			, entry& item) const = 0;
 
 		// Store the item's data. This layer is only for storage.
@@ -202,9 +203,9 @@ namespace dht
 		//
 		virtual void put_mutable_item(sha1_hash const& target
 			, char const* buf, int size
-			, char const* sig
-			, std::int64_t seq
-			, char const* pk
+			, signature const& sig
+			, sequence_number seq
+			, public_key const& pk
 			, char const* salt, int salt_size
 			, address const& addr) = 0;
 

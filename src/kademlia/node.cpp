@@ -360,7 +360,7 @@ namespace
 		if (node.observer())
 		{
 			char hex_ih[41];
-			aux::to_hex(reinterpret_cast<char const*>(&ih[0]), 20, hex_ih);
+			aux::to_hex(ih.data(), 20, hex_ih);
 			node.observer()->log(dht_logger::node, "sending announce_peer [ ih: %s "
 				" p: %d nodes: %d ]", hex_ih, listen_port, int(v.size()));
 		}
@@ -450,7 +450,7 @@ void node::announce(sha1_hash const& info_hash, int listen_port, int flags
 	if (m_observer)
 	{
 		char hex_ih[41];
-		aux::to_hex(reinterpret_cast<char const*>(&info_hash[0]), 20, hex_ih);
+		aux::to_hex(info_hash.data(), 20, hex_ih);
 		m_observer->log(dht_logger::node, "announcing [ ih: %s p: %d ]"
 			, hex_ih, listen_port);
 	}
@@ -484,7 +484,7 @@ void node::get_item(sha1_hash const& target
 	if (m_observer)
 	{
 		char hex_target[41];
-		aux::to_hex(reinterpret_cast<char const*>(&target[0]), 20, hex_target);
+		aux::to_hex(target.data(), 20, hex_target);
 		m_observer->log(dht_logger::node, "starting get for [ hash: %s ]"
 			, hex_target);
 	}
@@ -495,14 +495,14 @@ void node::get_item(sha1_hash const& target
 	ta->start();
 }
 
-void node::get_item(char const* pk, std::string const& salt
+void node::get_item(public_key const& pk, std::string const& salt
 	, boost::function<void(item const&, bool)> f)
 {
 #ifndef TORRENT_DISABLE_LOGGING
 	if (m_observer)
 	{
 		char hex_key[65];
-		aux::to_hex(pk, 32, hex_key);
+		aux::to_hex(pk.bytes.data(), 32, hex_key);
 		m_observer->log(dht_logger::node, "starting get for [ key: %s ]", hex_key);
 	}
 #endif
@@ -559,7 +559,7 @@ void node::put_item(sha1_hash const& target, entry const& data, boost::function<
 	ta->start();
 }
 
-void node::put_item(char const* pk, std::string const& salt
+void node::put_item(public_key const& pk, std::string const& salt
 	, boost::function<void(item const&, int)> f
 	, boost::function<void(item&)> data_cb)
 {
@@ -567,7 +567,7 @@ void node::put_item(char const* pk, std::string const& salt
 	if (m_observer)
 	{
 		char hex_key[65];
-		aux::to_hex(pk, 32, hex_key);
+		aux::to_hex(pk.bytes.data(), 32, hex_key);
 		m_observer->log(dht_logger::node, "starting get for [ key: %s ]", hex_key);
 	}
 	#endif
@@ -973,8 +973,8 @@ void node::incoming_request(msg const& m, entry& e)
 			{"v", bdecode_node::none_t, 0, 0},
 			{"seq", bdecode_node::int_t, 0, key_desc_t::optional},
 			// public key
-			{"k", bdecode_node::string_t, item_pk_len, key_desc_t::optional},
-			{"sig", bdecode_node::string_t, item_sig_len, key_desc_t::optional},
+			{"k", bdecode_node::string_t, public_key::len, key_desc_t::optional},
+			{"sig", bdecode_node::string_t, signature::len, key_desc_t::optional},
 			{"cas", bdecode_node::int_t, 0, key_desc_t::optional},
 			{"salt", bdecode_node::string_t, 0, key_desc_t::optional},
 		};
@@ -994,12 +994,12 @@ void node::incoming_request(msg const& m, entry& e)
 		bool mutable_put = (msg_keys[2] && msg_keys[3] && msg_keys[4]);
 
 		// public key (only set if it's a mutable put)
-		char const* pk = nullptr;
-		if (msg_keys[3]) pk = msg_keys[3].string_ptr();
+		char const* pub_key = nullptr;
+		if (msg_keys[3]) pub_key = msg_keys[3].string_ptr();
 
 		// signature (only set if it's a mutable put)
-		char const* sig = nullptr;
-		if (msg_keys[4]) sig = msg_keys[4].string_ptr();
+		char const* sign = nullptr;
+		if (msg_keys[4]) sign = msg_keys[4].string_ptr();
 
 		// pointer and length to the whole entry
 		std::pair<char const*, int> buf = msg_keys[1].data_section();
@@ -1022,8 +1022,8 @@ void node::incoming_request(msg const& m, entry& e)
 		}
 
 		sha1_hash target;
-		if (pk)
-			target = item_target_id(salt, pk);
+		if (pub_key)
+			target = item_target_id(salt, public_key(pub_key));
 		else
 			target = item_target_id(buf);
 
@@ -1050,9 +1050,11 @@ void node::incoming_request(msg const& m, entry& e)
 		else
 		{
 			// mutable put, we must verify the signature
-			std::int64_t const seq = msg_keys[2].int_value();
+			sequence_number const seq(msg_keys[2].int_value());
+			public_key const pk(pub_key);
+			signature const sig(sign);
 
-			if (seq < 0)
+			if (seq < sequence_number(0))
 			{
 				m_counters.inc_stats_counter(counters::dht_invalid_put);
 				incoming_error(e, "invalid (negative) sequence number");
@@ -1068,9 +1070,9 @@ void node::incoming_request(msg const& m, entry& e)
 				return;
 			}
 
-			TORRENT_ASSERT(item_sig_len == msg_keys[4].string_length());
+			TORRENT_ASSERT(signature::len == msg_keys[4].string_length());
 
-			std::int64_t item_seq;
+			sequence_number item_seq;
 			if (!m_storage.get_mutable_item_seq(target, item_seq))
 			{
 				m_storage.put_mutable_item(target
@@ -1086,7 +1088,7 @@ void node::incoming_request(msg const& m, entry& e)
 				// number matches the expected value before replacing it
 				// this is critical for avoiding race conditions when multiple
 				// writers are accessing the same slot
-				if (msg_keys[5] && item_seq != msg_keys[5].int_value())
+				if (msg_keys[5] && item_seq.value != msg_keys[5].int_value())
 				{
 					m_counters.inc_stats_counter(counters::dht_invalid_put);
 					incoming_error(e, "CAS mismatch", 301);
@@ -1148,13 +1150,14 @@ void node::incoming_request(msg const& m, entry& e)
 		{
 			if (!m_storage.get_immutable_item(target, reply)) // ok, check for a mutable one
 			{
-				m_storage.get_mutable_item(target, 0, true, reply);
+				m_storage.get_mutable_item(target, sequence_number(0)
+					, true, reply);
 			}
 		}
 		else
 		{
 			m_storage.get_mutable_item(target
-				, msg_keys[0].int_value(), false
+				, sequence_number(msg_keys[0].int_value()), false
 				, reply);
 		}
 	}

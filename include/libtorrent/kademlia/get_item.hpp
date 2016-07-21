@@ -46,9 +46,9 @@ public:
 	typedef boost::function<void(item const&, bool)> data_callback;
 
 	void got_data(bdecode_node const& v,
-		char const* pk,
-		std::uint64_t seq,
-		char const* sig);
+		public_key const& pk,
+		sequence_number seq,
+		signature const& sig);
 
 	// for immutable itms
 	get_item(node& dht_node
@@ -58,7 +58,7 @@ public:
 
 	// for mutable items
 	get_item(node& dht_node
-		, char const* pk
+		, public_key const& pk
 		, std::string const& salt
 		, data_callback const& dcallback
 		, nodes_callback const& ncallback);

@@ -106,7 +106,7 @@ namespace libtorrent { namespace dht
 
 		// key is a 32-byte binary string, the public key to look up.
 		// the salt is optional
-		void get_item(char const* key
+		void get_item(public_key const& key
 			, boost::function<void(item const&, bool)> cb
 			, std::string salt = std::string());
 
@@ -119,7 +119,7 @@ namespace libtorrent { namespace dht
 		// for mutable_item.
 		// the data_cb will be called when we get authoritative mutable_item,
 		// the cb is same as put immutable_item.
-		void put_item(char const* key
+		void put_item(public_key const& key
 			, boost::function<void(item const&, int)> cb
 			, boost::function<void(item&)> data_cb, std::string salt = std::string());
 

@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/session.hpp"
-#include "libtorrent/kademlia/node.hpp" // for verify_message
+#include "libtorrent/kademlia/msg.hpp" // for verify_message
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/socket_io.hpp" // for hash_address
 #include "libtorrent/broadcast_socket.hpp" // for supports_ipv6
@@ -148,13 +148,13 @@ TORRENT_TEST(put_immutable_item)
 	r = s->get_immutable_item(n1, item);
 	TEST_CHECK(!r);
 
-	r = s->get_mutable_item(n4, 0, false, item);
+	r = s->get_mutable_item(n4, sequence_number(0), false, item);
 	TEST_CHECK(!r);
 
-	char public_key[item_pk_len];
-	char signature[item_sig_len];
-	s->put_mutable_item(n4, "123", 3, signature, 1, public_key, "salt", 4, address::from_string("124.31.75.21"));
-	r = s->get_mutable_item(n4, 0, false, item);
+	public_key pk;
+	signature sig;
+	s->put_mutable_item(n4, "123", 3, sig, sequence_number(1), pk, "salt", 4, address::from_string("124.31.75.21"));
+	r = s->get_mutable_item(n4, sequence_number(0), false, item);
 	TEST_CHECK(r);
 }
 
@@ -196,9 +196,9 @@ TORRENT_TEST(counters)
 	s->put_immutable_item(n3, "123", 3, address::from_string("124.31.75.21"));
 	TEST_EQUAL(s->counters().immutable_data, 2);
 
-	char public_key[item_pk_len];
-	char signature[item_sig_len];
-	s->put_mutable_item(n4, "123", 3, signature, 1, public_key, "salt", 4, address::from_string("124.31.75.21"));
+	public_key pk;
+	signature sig;
+	s->put_mutable_item(n4, "123", 3, sig, sequence_number(1), pk, "salt", 4, address::from_string("124.31.75.21"));
 	TEST_EQUAL(s->counters().mutable_data, 1);
 }
 
@@ -300,11 +300,11 @@ TORRENT_TEST(mutable_item_limit)
 	sett.max_dht_items = 42;
 	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
-	char public_key[item_pk_len];
-	char signature[item_sig_len];
+	public_key pk;
+	signature sig;
 	for (int i = 0; i < 200; ++i)
 	{
-		s->put_mutable_item(rand_hash(), "123", 3, signature, 1, public_key, "salt", 4, rand_v4());
+		s->put_mutable_item(rand_hash(), "123", 3, sig, sequence_number(1), pk, "salt", 4, rand_v4());
 		dht_storage_counters cnt = s->counters();
 		TEST_CHECK(cnt.mutable_data <= 42);
 	}

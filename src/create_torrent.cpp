@@ -570,7 +570,7 @@ namespace libtorrent
 
 				std::string split = split_path(m_files.symlink(0));
 				for (char const* e = split.c_str(); e != nullptr; e = next_path_element(e))
-					sympath_e.list().push_back(entry(e));
+					sympath_e.list().push_back(e);
 			}
 			if (!m_filehashes.empty())
 			{

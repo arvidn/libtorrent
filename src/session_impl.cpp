@@ -81,6 +81,7 @@ const rlim_t rlim_infinity = RLIM_INFINITY;
 #include "libtorrent/aux_/session_impl.hpp"
 #ifndef TORRENT_DISABLE_DHT
 #include "libtorrent/kademlia/dht_tracker.hpp"
+#include "libtorrent/kademlia/types.hpp"
 #endif
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/config.hpp"
@@ -5714,20 +5715,23 @@ namespace aux {
 	}
 
 	// callback for dht_mutable_get
-	void session_impl::get_mutable_callback(dht::item const& i, bool authoritative)
+	void session_impl::get_mutable_callback(dht::item const& i
+		, bool const authoritative)
 	{
 		TORRENT_ASSERT(i.is_mutable());
-		m_alerts.emplace_alert<dht_mutable_item_alert>(i.pk(), i.sig(), i.seq()
+		m_alerts.emplace_alert<dht_mutable_item_alert>(i.pk().bytes
+			, i.sig().bytes, i.seq().value
 			, i.salt(), i.value(), authoritative);
 	}
 
 	// key is a 32-byte binary string, the public key to look up.
 	// the salt is optional
+	// TODO: 3 use public_key here instead of std::array
 	void session_impl::dht_get_mutable_item(std::array<char, 32> key
 		, std::string salt)
 	{
 		if (!m_dht) return;
-		m_dht->get_item(key.data(), std::bind(&session_impl::get_mutable_callback
+		m_dht->get_item(dht::public_key(key.data()), std::bind(&session_impl::get_mutable_callback
 			, this, _1, _2), salt);
 	}
 
@@ -5741,26 +5745,29 @@ namespace aux {
 
 		void on_dht_put_mutable_item(alert_manager& alerts, dht::item const& i, int num)
 		{
-			std::array<char, 64> sig = i.sig();
-			std::array<char, 32> pk = i.pk();
-			std::uint64_t seq = i.seq();
+			dht::signature sig = i.sig();
+			dht::public_key pk = i.pk();
+			dht::sequence_number seq = i.seq();
 			std::string salt = i.salt();
 
 			if (alerts.should_post<dht_put_alert>())
-				alerts.emplace_alert<dht_put_alert>(pk, sig, salt, seq, num);
+			{
+				alerts.emplace_alert<dht_put_alert>(pk.bytes, sig.bytes, salt
+					, seq.value, num);
+			}
 		}
 
 		void put_mutable_callback(dht::item& i
-			, boost::function<void(entry&, std::array<char,64>&
+			, boost::function<void(entry&, std::array<char, 64>&
 				, std::uint64_t&, std::string const&)> cb)
 		{
 			entry value = i.value();
-			std::array<char, 64> sig = i.sig();
-			std::array<char, 32> pk = i.pk();
-			std::uint64_t seq = i.seq();
+			dht::signature sig = i.sig();
+			dht::public_key pk = i.pk();
+			dht::sequence_number seq = i.seq();
 			std::string salt = i.salt();
-			cb(value, sig, seq, salt);
-			i.assign(value, salt, seq, pk.data(), sig.data());
+			cb(value, sig.bytes, seq.value, salt);
+			i.assign(std::move(value), salt, seq, pk, sig);
 		}
 
 		void on_dht_get_peers(alert_manager& alerts, sha1_hash info_hash, std::vector<tcp::endpoint> const& peers)
@@ -5792,9 +5799,9 @@ namespace aux {
 		, std::string salt)
 	{
 		if (!m_dht) return;
-		m_dht->put_item(key.data(),
-			std::bind(&on_dht_put_mutable_item, boost::ref(m_alerts), _1, _2),
-			std::bind(&put_mutable_callback, _1, cb), salt);
+		m_dht->put_item(dht::public_key(key.data())
+			, std::bind(&on_dht_put_mutable_item, boost::ref(m_alerts), _1, _2)
+			, std::bind(&put_mutable_callback, _1, cb), salt);
 	}
 
 	void session_impl::dht_get_peers(sha1_hash const& info_hash)

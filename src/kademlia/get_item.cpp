@@ -45,9 +45,9 @@ namespace libtorrent { namespace dht
 {
 
 void get_item::got_data(bdecode_node const& v,
-	char const* pk,
-	std::uint64_t seq,
-	char const* sig)
+	public_key const& pk,
+	sequence_number const seq,
+	signature const& sig)
 {
 	// we received data!
 	// if no data_callback, we needn't care about the data we get.
@@ -74,13 +74,12 @@ void get_item::got_data(bdecode_node const& v,
 		return;
 	}
 
-	// immutalbe data should has been handled before this line, only mutable
-	// data can reach here, which means pk and sig must be valid.
-	if (!pk || !sig) return;
+	// immutable data should have been handled before this line, only mutable
+	// data can reach here, which means pk, sig and seq must be valid.
 
 	std::string temp_copy(m_data.salt());
 	std::pair<char const*, int> salt(temp_copy.c_str(), int(temp_copy.size()));
-	sha1_hash incoming_target = item_target_id(salt, pk);
+	sha1_hash const incoming_target = item_target_id(salt, pk);
 	if (incoming_target != m_target) return;
 
 	// this is mutable data. If it passes the signature
@@ -114,7 +113,7 @@ get_item::get_item(
 
 get_item::get_item(
 	node& dht_node
-	, char const* pk
+	, public_key const& pk
 	, std::string const& salt
 	, data_callback const& dcallback
 	, nodes_callback const& ncallback)
@@ -175,7 +174,7 @@ void get_item::done()
 			TORRENT_ASSERT(m_target
 				== item_target_id(std::pair<char const*, int>(m_data.salt().c_str()
 					, m_data.salt().size())
-					, m_data.pk().data()));
+					, m_data.pk()));
 		}
 #endif
 	}
@@ -185,9 +184,9 @@ void get_item::done()
 
 void get_item_observer::reply(msg const& m)
 {
-	char const* pk = nullptr;
-	char const* sig = nullptr;
-	std::uint64_t seq = 0;
+	public_key pk;
+	signature sig;
+	sequence_number seq{0};
 
 	bdecode_node r = m.message.dict_find_dict("r");
 	if (!r)
@@ -201,17 +200,19 @@ void get_item_observer::reply(msg const& m)
 	}
 
 	bdecode_node k = r.dict_find_string("k");
-	if (k && k.string_length() == item_pk_len)
-		pk = k.string_ptr();
+	if (k && k.string_length() == public_key::len)
+		std::memcpy(pk.bytes.data(), k.string_ptr(), public_key::len);
 
 	bdecode_node s = r.dict_find_string("sig");
-	if (s && s.string_length() == item_sig_len)
-		sig = s.string_ptr();
+	if (s && s.string_length() == signature::len)
+		std::memcpy(sig.bytes.data(), s.string_ptr(), signature::len);
 
 	bdecode_node q = r.dict_find_int("seq");
 	if (q)
-		seq = q.int_value();
-	else if (pk && sig)
+	{
+		seq = sequence_number(q.int_value());
+	}
+	else if (k && s)
 	{
 		timeout();
 		return;

@@ -106,9 +106,9 @@ bool put_data::invoke(observer_ptr o)
 	a["token"] = po->m_token;
 	if (m_data.is_mutable())
 	{
-		a["k"] = std::string(m_data.pk().data(), item_pk_len);
-		a["seq"] = m_data.seq();
-		a["sig"] = std::string(m_data.sig().data(), item_sig_len);
+		a["k"] = m_data.pk().bytes;
+		a["seq"] = m_data.seq().value;
+		a["sig"] = m_data.sig().bytes;
 		if (!m_data.salt().empty())
 		{
 			a["salt"] = m_data.salt();
