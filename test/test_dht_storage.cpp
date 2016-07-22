@@ -138,13 +138,13 @@ TORRENT_TEST(put_immutable_item)
 	bool r = s->get_immutable_item(n4, item);
 	TEST_CHECK(!r);
 
-	s->put_immutable_item(n4, "123", 3, address::from_string("124.31.75.21"));
+	s->put_immutable_item(n4, {"123", 3}, addr("124.31.75.21"));
 	r = s->get_immutable_item(n4, item);
 	TEST_CHECK(r);
 
-	s->put_immutable_item(n1, "123", 3, address::from_string("124.31.75.21"));
-	s->put_immutable_item(n2, "123", 3, address::from_string("124.31.75.21"));
-	s->put_immutable_item(n3, "123", 3, address::from_string("124.31.75.21"));
+	s->put_immutable_item(n1, {"123", 3}, addr("124.31.75.21"));
+	s->put_immutable_item(n2, {"123", 3}, addr("124.31.75.21"));
+	s->put_immutable_item(n3, {"123", 3}, addr("124.31.75.21"));
 	r = s->get_immutable_item(n1, item);
 	TEST_CHECK(!r);
 
@@ -153,7 +153,8 @@ TORRENT_TEST(put_immutable_item)
 
 	public_key pk;
 	signature sig;
-	s->put_mutable_item(n4, "123", 3, sig, sequence_number(1), pk, "salt", 4, address::from_string("124.31.75.21"));
+	s->put_mutable_item(n4, {"123", 3}, sig, sequence_number(1), pk
+		, {"salt", 4}, addr("124.31.75.21"));
 	r = s->get_mutable_item(n4, sequence_number(0), false, item);
 	TEST_CHECK(r);
 }
@@ -188,17 +189,18 @@ TORRENT_TEST(counters)
 
 	entry item;
 
-	s->put_immutable_item(n4, "123", 3, address::from_string("124.31.75.21"));
+	s->put_immutable_item(n4, {"123", 3}, addr("124.31.75.21"));
 	TEST_EQUAL(s->counters().immutable_data, 1);
 
-	s->put_immutable_item(n1, "123", 3, address::from_string("124.31.75.21"));
-	s->put_immutable_item(n2, "123", 3, address::from_string("124.31.75.21"));
-	s->put_immutable_item(n3, "123", 3, address::from_string("124.31.75.21"));
+	s->put_immutable_item(n1, {"123", 3}, addr("124.31.75.21"));
+	s->put_immutable_item(n2, {"123", 3}, addr("124.31.75.21"));
+	s->put_immutable_item(n3, {"123", 3}, addr("124.31.75.21"));
 	TEST_EQUAL(s->counters().immutable_data, 2);
 
 	public_key pk;
 	signature sig;
-	s->put_mutable_item(n4, "123", 3, sig, sequence_number(1), pk, "salt", 4, address::from_string("124.31.75.21"));
+	s->put_mutable_item(n4, {"123", 3}, sig, sequence_number(1), pk
+		, {"salt", 4}, addr("124.31.75.21"));
 	TEST_EQUAL(s->counters().mutable_data, 1);
 }
 
@@ -286,7 +288,7 @@ TORRENT_TEST(immutable_item_limit)
 
 	for (int i = 0; i < 200; ++i)
 	{
-		s->put_immutable_item(rand_hash(), "123", 3, rand_v4());
+		s->put_immutable_item(rand_hash(), {"123", 3}, rand_v4());
 		dht_storage_counters cnt = s->counters();
 		TEST_CHECK(cnt.immutable_data <= 42);
 	}
@@ -304,7 +306,8 @@ TORRENT_TEST(mutable_item_limit)
 	signature sig;
 	for (int i = 0; i < 200; ++i)
 	{
-		s->put_mutable_item(rand_hash(), "123", 3, sig, sequence_number(1), pk, "salt", 4, rand_v4());
+		s->put_mutable_item(rand_hash(), {"123", 3}, sig, sequence_number(1)
+			, pk, {"salt", 4}, rand_v4());
 		dht_storage_counters cnt = s->counters();
 		TEST_CHECK(cnt.mutable_data <= 42);
 	}
@@ -342,15 +345,15 @@ TORRENT_TEST(update_node_ids)
 
 	// all items will have one announcer, all calculations
 	// for item erase will be reduced to the distance
-	s->put_immutable_item(h1, "123", 3, address::from_string("124.31.75.21"));
+	s->put_immutable_item(h1, {"123", 3}, addr("124.31.75.21"));
 	cnt = s->counters();
 	TEST_EQUAL(cnt.immutable_data, 1);
-	s->put_immutable_item(h2, "123", 3, address::from_string("124.31.75.21"));
+	s->put_immutable_item(h2, {"123", 3}, addr("124.31.75.21"));
 	cnt = s->counters();
 	TEST_EQUAL(cnt.immutable_data, 2);
 	// at this point, the least important (h2) will removed
 	// to make room for h3
-	s->put_immutable_item(h3, "123", 3, address::from_string("124.31.75.21"));
+	s->put_immutable_item(h3, {"123", 3}, addr("124.31.75.21"));
 	cnt = s->counters();
 	TEST_EQUAL(cnt.immutable_data, 2);
 

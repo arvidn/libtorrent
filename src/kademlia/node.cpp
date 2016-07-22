@@ -1010,11 +1010,10 @@ void node::incoming_request(msg const& m, entry& e)
 			return;
 		}
 
-		std::pair<char const*, int> salt(static_cast<char const*>(nullptr), 0);
+		aux::array_view<char const> salt;
 		if (msg_keys[6])
-			salt = std::pair<char const*, int>(
-				msg_keys[6].string_ptr(), msg_keys[6].string_length());
-		if (salt.second > 64)
+			salt = { msg_keys[6].string_ptr(), size_t(msg_keys[6].string_length()) };
+		if (salt.size() > 64)
 		{
 			m_counters.inc_stats_counter(counters::dht_invalid_put);
 			incoming_error(e, "salt too big", 207);
@@ -1045,7 +1044,7 @@ void node::incoming_request(msg const& m, entry& e)
 
 		if (!mutable_put)
 		{
-			m_storage.put_immutable_item(target, buf.data(), buf.size(), m.addr.address());
+			m_storage.put_immutable_item(target, buf, m.addr.address());
 		}
 		else
 		{
@@ -1074,10 +1073,7 @@ void node::incoming_request(msg const& m, entry& e)
 			sequence_number item_seq;
 			if (!m_storage.get_mutable_item_seq(target, item_seq))
 			{
-				m_storage.put_mutable_item(target
-					, buf.data(), buf.size()
-					, sig, seq, pk
-					, salt.first, salt.second
+				m_storage.put_mutable_item(target, buf, sig, seq, pk, salt
 					, m.addr.address());
 			}
 			else
@@ -1101,10 +1097,7 @@ void node::incoming_request(msg const& m, entry& e)
 					return;
 				}
 
-				m_storage.put_mutable_item(target
-					, buf.first, buf.second
-					, sig, seq, pk
-					, salt.first, salt.second
+				m_storage.put_mutable_item(target, buf, sig, seq, pk, salt
 					, m.addr.address());
 			}
 		}

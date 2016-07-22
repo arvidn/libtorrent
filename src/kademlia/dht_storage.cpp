@@ -103,10 +103,8 @@ namespace
 
 	struct dht_immutable_item
 	{
-		dht_immutable_item() : value(nullptr), num_announcers(0), size(0) {}
-		// malloced space for the actual value
-		// TODO: 3 use unique_ptr
-		char* value;
+		// the actual value
+		std::unique_ptr<char[]> value;
 		// this counts the number of IPs we have seen
 		// announcing this item, this is used to determine
 		// popularity if we reach the limit of items to store
@@ -114,9 +112,9 @@ namespace
 		// the last time we heard about this
 		time_point last_seen;
 		// number of IPs in the bloom filter
-		int num_announcers;
+		int num_announcers = 0;
 		// size of malloced space pointed to by value
-		int size;
+		int size = 0;
 	};
 
 	struct dht_mutable_item : dht_immutable_item
@@ -124,10 +122,7 @@ namespace
 		signature sig;
 		sequence_number seq;
 		public_key key;
-
-		// TODO: 3 who owns the salt?
-		char* salt;
-		int salt_size;
+		std::string salt;
 	};
 
 	void touch_item(dht_immutable_item* f, address const& address)
@@ -151,8 +146,9 @@ namespace
 		explicit immutable_item_comparator(std::vector<node_id> const& node_ids) : m_node_ids(node_ids) {}
 		immutable_item_comparator(immutable_item_comparator const&) = default;
 
-		bool operator() (std::pair<node_id, dht_immutable_item> const& lhs
-			, std::pair<node_id, dht_immutable_item> const& rhs) const
+		template <typename Item>
+		bool operator()(std::pair<node_id const, Item> const& lhs
+			, std::pair<node_id const, Item> const& rhs) const
 		{
 			int const l_distance = min_distance_exp(lhs.first, m_node_ids);
 			int const r_distance = min_distance_exp(rhs.first, m_node_ids);
@@ -181,8 +177,7 @@ namespace
 	typename std::map<node_id, Item>::const_iterator pick_least_important_item(
 		std::vector<node_id> const& node_ids, std::map<node_id, Item> const& table)
 	{
-		return std::min_element(table.begin()
-			, table.end()
+		return std::min_element(table.begin(), table.end()
 			, immutable_item_comparator(node_ids));
 	}
 
@@ -349,7 +344,8 @@ namespace
 			dht_immutable_table_t::const_iterator i = m_immutable_table.find(target);
 			if (i == m_immutable_table.end()) return false;
 
-			item["v"] = bdecode(i->second.value, i->second.value + i->second.size);
+			item["v"] = bdecode(i->second.value.get()
+				, i->second.value.get() + i->second.size);
 			return true;
 		}
 
@@ -368,18 +364,16 @@ namespace
 						, m_immutable_table);
 
 					TORRENT_ASSERT(j != m_immutable_table.end());
-					free(j->second.value);
 					m_immutable_table.erase(j);
 					m_counters.immutable_data -= 1;
 				}
 				dht_immutable_item to_add;
-#error use unique_ptr
-				to_add.value = static_cast<char*>(malloc(buf.size()));
-				to_add.size = size;
-				memcpy(to_add.value, buf.data(), size);
+				to_add.value.reset(new char[buf.size()]);
+				to_add.size = buf.size();
+				memcpy(to_add.value.get(), buf.data(), buf.size());
 
 				std::tie(i, std::ignore) = m_immutable_table.insert(
-					std::make_pair(target, to_add));
+					std::make_pair(target, std::move(to_add)));
 				m_counters.immutable_data += 1;
 			}
 
@@ -409,20 +403,19 @@ namespace
 			item["seq"] = f.seq.value;
 			if (force_fill || (sequence_number(0) <= seq && seq < f.seq))
 			{
-				item["v"] = bdecode(f.value, f.value + f.size);
+				item["v"] = bdecode(f.value.get(), f.value.get() + f.size);
 				item["sig"] = f.sig.bytes;
 				item["k"] = f.key.bytes;
 			}
 			return true;
 		}
 
-		// TODO: 3 use array_view for buffer and salt
 		void put_mutable_item(sha1_hash const& target
-			, char const* buf, int size
+			, aux::array_view<char const> buf
 			, signature const& sig
 			, sequence_number seq
 			, public_key const& pk
-			, char const* salt, int salt_size
+			, aux::array_view<char const> salt
 			, address const& addr) override
 		{
 			TORRENT_ASSERT(!m_node_ids.empty());
@@ -437,29 +430,20 @@ namespace
 						, m_mutable_table);
 
 					TORRENT_ASSERT(j != m_mutable_table.end());
-					free(j->second.value);
-					free(j->second.salt);
 					m_mutable_table.erase(j);
 					m_counters.mutable_data -= 1;
 				}
 				dht_mutable_item to_add;
-				to_add.value = static_cast<char*>(malloc(size));
-				to_add.size = size;
+				to_add.value.reset(new char[buf.size()]);
+				to_add.size = buf.size();
 				to_add.seq = seq;
-				to_add.salt = nullptr;
-				to_add.salt_size = 0;
+				to_add.salt.assign(salt.data(), salt.size());
 				to_add.sig = sig;
 				to_add.key = pk;
-				if (salt_size > 0)
-				{
-					to_add.salt = static_cast<char*>(malloc(salt_size));
-					to_add.salt_size = salt_size;
-					memcpy(to_add.salt, salt, salt_size);
-				}
-				memcpy(to_add.value, buf, size);
+				memcpy(to_add.value.get(), buf.data(), buf.size());
 
 				std::tie(i, std::ignore) = m_mutable_table.insert(
-					std::make_pair(target, to_add));
+					std::make_pair(target, std::move(to_add)));
 				m_counters.mutable_data += 1;
 			}
 			else
@@ -469,15 +453,14 @@ namespace
 
 				if (item.seq < seq)
 				{
-					if (item.size != size)
+					if (item.size != buf.size())
 					{
-						free(item.value);
-						item.value = static_cast<char*>(malloc(size));
-						item.size = size;
+						item.value.reset(new char[buf.size()]);
+						item.size = buf.size();
 					}
 					item.seq = seq;
 					item.sig = sig;
-					memcpy(item.value, buf, size);
+					memcpy(item.value.get(), buf.data(), buf.size());
 				}
 			}
 
@@ -519,7 +502,6 @@ namespace
 					++i;
 					continue;
 				}
-				free(i->second.value);
 				m_immutable_table.erase(i++);
 				m_counters.immutable_data -= 1;
 			}
@@ -532,8 +514,6 @@ namespace
 					++i;
 					continue;
 				}
-				free(i->second.value);
-				free(i->second.salt);
 				m_mutable_table.erase(i++);
 				m_counters.mutable_data -= 1;
 			}

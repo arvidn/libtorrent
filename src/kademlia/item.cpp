@@ -62,13 +62,13 @@ namespace
 #endif
 		char* ptr = out.data();
 
-		int left = out.size() - (ptr - out.data());
-		if (salt.second > 0)
+		size_t left = out.size() - (ptr - out.data());
+		if (salt.size() > 0)
 		{
-			ptr += std::snprintf(ptr, left, "4:salt%d:", salt.second);
+			ptr += std::snprintf(ptr, left, "4:salt%d:", int(salt.size()));
 			left = out.size() - (ptr - out.data());
-			std::memcpy(ptr, salt.first, (std::min)(salt.second, left));
-			ptr += (std::min)(salt.second, left);
+			std::memcpy(ptr, salt.data(), (std::min)(salt.size(), left));
+			ptr += (std::min)(salt.size(), left);
 			left = out.size() - (ptr - out.data());
 		}
 		ptr += std::snprintf(ptr, out.size() - (ptr - out.data())
@@ -177,7 +177,7 @@ void item::assign(entry v, aux::array_view<char const> salt
 	TORRENT_ASSERT(bsize <= 1000);
 	sign_mutable_item(aux::array_view<char const>(buffer, bsize)
 		, salt, seq, pk, sk, m_sig);
-	m_salt.assign(salt.first, salt.second);
+	m_salt.assign(salt.data(), salt.size());
 	m_pk = pk;
 	m_seq = seq;
 	m_mutable = true;
@@ -193,13 +193,13 @@ void item::assign(bdecode_node const& v)
 bool item::assign(bdecode_node const& v, aux::array_view<char const> salt
 	, sequence_number const seq, public_key const& pk, signature const& sig)
 {
-	TORRENT_ASSERT(v.data_section().second <= 1000);
+	TORRENT_ASSERT(v.data_section().size() <= 1000);
 	if (!verify_mutable_item(v.data_section(), salt, seq, pk, sig))
 		return false;
 	m_pk = pk;
 	m_sig = sig;
-	if (salt.second > 0)
-		m_salt.assign(salt.first, salt.second);
+	if (salt.size() > 0)
+		m_salt.assign(salt.data(), salt.size());
 	else
 		m_salt.clear();
 	m_seq = seq;
@@ -209,14 +209,14 @@ bool item::assign(bdecode_node const& v, aux::array_view<char const> salt
 	return true;
 }
 
-void item::assign(entry v, aux::array_vie<char const> salt
+void item::assign(entry v, aux::array_view<char const> salt
 	, sequence_number const seq
 	, public_key const& pk, signature const& sig)
 {
 
 	m_pk = pk;
 	m_sig = sig;
-	m_salt = salt;
+	m_salt.assign(salt.data(), salt.size());
 	m_seq = seq;
 	m_mutable = true;
 	m_value = std::move(v);
