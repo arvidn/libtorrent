@@ -207,14 +207,14 @@ namespace libtorrent
 		}
 
 		// accessors for specific bytes
-		std::uint8_t& operator[](int i)
+		std::uint8_t& operator[](size_t i)
 		{
-			TORRENT_ASSERT(i >= 0 && i < size());
+			TORRENT_ASSERT(i < size());
 			return reinterpret_cast<std::uint8_t*>(m_number)[i];
 		}
-		std::uint8_t const& operator[](int i) const
+		std::uint8_t const& operator[](size_t i) const
 		{
-			TORRENT_ASSERT(i >= 0 && i < size());
+			TORRENT_ASSERT(i < size());
 			return reinterpret_cast<std::uint8_t const*>(m_number)[i];
 		}
 
