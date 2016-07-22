@@ -498,9 +498,6 @@ namespace
        }
        return pieces;
     }
-
-    void load_asnum_db(lt::session& s, std::string file) {}
-    void load_country_db(lt::session& s, std::string file) {}
 #endif
 
     entry save_state(lt::session const& s, boost::uint32_t flags)
@@ -875,8 +872,6 @@ void bind_session()
         .def("set_max_connections", allow_threads(&lt::session::set_max_connections))
         .def("max_connections", allow_threads(&lt::session::max_connections))
         .def("num_connections", allow_threads(&lt::session::num_connections))
-        .def("load_asnum_db", &load_asnum_db)
-        .def("load_country_db", &load_country_db)
         .def("set_max_half_open_connections", allow_threads(&lt::session::set_max_half_open_connections))
         .def("set_severity_level", allow_threads(&lt::session::set_severity_level))
         .def("set_alert_queue_size_limit", allow_threads(&lt::session::set_alert_queue_size_limit))
