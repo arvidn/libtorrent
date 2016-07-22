@@ -85,6 +85,8 @@ namespace libtorrent { namespace dht
 		{ return value <= rhs.value; }
 		bool operator==(sequence_number const& rhs) const
 		{ return value == rhs.value; }
+		sequence_number& operator++()
+		{ ++value; return *this; }
 		std::uint64_t value;
 	};
 

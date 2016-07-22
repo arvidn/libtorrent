@@ -467,9 +467,8 @@ namespace
         std::vector<char> buf;
         bencode(std::back_inserter(buf), e);
         ++seq;
-        sign_mutable_item(std::pair<char const*, int>(&buf[0], int(buf.size()))
-                          , std::pair<char const*, int>(&salt[0], int(salt.size()))
-                          , seq, public_key.c_str(), private_key.c_str(), sig.data());
+        sign_mutable_item(buf, salt
+                          , seq, public_key.data(), private_key.data(), sig.data());
     }
 
     void dht_put_mutable_item(lt::session& ses, std::string private_key, std::string public_key,

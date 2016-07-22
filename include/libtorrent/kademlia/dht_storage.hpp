@@ -165,7 +165,7 @@ namespace dht
 		// dht_settings::max_dht_items.
 		//
 		virtual void put_immutable_item(sha1_hash const& target
-			, char const* buf, int size
+			, aux::array_view<char const> buf
 			, address const& addr) = 0;
 
 		// This function retrieves the sequence number of a mutable item.
@@ -202,11 +202,11 @@ namespace dht
 		// dht_settings::max_dht_items.
 		//
 		virtual void put_mutable_item(sha1_hash const& target
-			, char const* buf, int size
+			, aux::array_view<char const> buf
 			, signature const& sig
 			, sequence_number seq
 			, public_key const& pk
-			, char const* salt, int salt_size
+			, aux::array_view<char const> salt
 			, address const& addr) = 0;
 
 		// This function is called periodically (non-constant frequency).

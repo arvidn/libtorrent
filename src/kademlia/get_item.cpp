@@ -77,9 +77,8 @@ void get_item::got_data(bdecode_node const& v,
 	// immutable data should have been handled before this line, only mutable
 	// data can reach here, which means pk, sig and seq must be valid.
 
-	std::string temp_copy(m_data.salt());
-	std::pair<char const*, int> salt(temp_copy.c_str(), int(temp_copy.size()));
-	sha1_hash const incoming_target = item_target_id(salt, pk);
+	std::string const salt_copy(m_data.salt());
+	sha1_hash const incoming_target = item_target_id(salt_copy, pk);
 	if (incoming_target != m_target) return;
 
 	// this is mutable data. If it passes the signature
@@ -87,7 +86,7 @@ void get_item::got_data(bdecode_node const& v,
 	// the highest sequence number.
 	if (m_data.empty() || m_data.seq() < seq)
 	{
-		if (!m_data.assign(v, salt, seq, pk, sig))
+		if (!m_data.assign(v, salt_copy, seq, pk, sig))
 			return;
 
 		// for get_item, we should call callback when we get data,
@@ -114,12 +113,10 @@ get_item::get_item(
 get_item::get_item(
 	node& dht_node
 	, public_key const& pk
-	, std::string const& salt
+	, aux::array_view<char const> salt
 	, data_callback const& dcallback
 	, nodes_callback const& ncallback)
-	: find_data(dht_node, item_target_id(
-		std::make_pair(salt.c_str(), int(salt.size())), pk)
-		, ncallback)
+	: find_data(dht_node, item_target_id(salt, pk), ncallback)
 	, m_data_callback(dcallback)
 	, m_data(pk, salt)
 	, m_immutable(false)
@@ -171,10 +168,7 @@ void get_item::done()
 #if TORRENT_USE_ASSERTS
 		if (m_data.is_mutable())
 		{
-			TORRENT_ASSERT(m_target
-				== item_target_id(std::pair<char const*, int>(m_data.salt().c_str()
-					, m_data.salt().size())
-					, m_data.pk()));
+			TORRENT_ASSERT(m_target == item_target_id(m_data.salt(), m_data.pk()));
 		}
 #endif
 	}

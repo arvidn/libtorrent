@@ -1002,8 +1002,8 @@ void node::incoming_request(msg const& m, entry& e)
 		if (msg_keys[4]) sign = msg_keys[4].string_ptr();
 
 		// pointer and length to the whole entry
-		std::pair<char const*, int> buf = msg_keys[1].data_section();
-		if (buf.second > 1000 || buf.second <= 0)
+		aux::array_view<char const> buf = msg_keys[1].data_section();
+		if (buf.size() > 1000 || buf.size() <= 0)
 		{
 			m_counters.inc_stats_counter(counters::dht_invalid_put);
 			incoming_error(e, "message too big", 205);
@@ -1045,7 +1045,7 @@ void node::incoming_request(msg const& m, entry& e)
 
 		if (!mutable_put)
 		{
-			m_storage.put_immutable_item(target, buf.first, buf.second, m.addr.address());
+			m_storage.put_immutable_item(target, buf.data(), buf.size(), m.addr.address());
 		}
 		else
 		{
@@ -1062,8 +1062,7 @@ void node::incoming_request(msg const& m, entry& e)
 			}
 
 			// msg_keys[4] is the signature, msg_keys[3] is the public key
-			if (!verify_mutable_item(buf, salt
-				, seq, pk, sig))
+			if (!verify_mutable_item(buf, salt, seq, pk, sig))
 			{
 				m_counters.inc_stats_counter(counters::dht_invalid_put);
 				incoming_error(e, "invalid signature", 206);
@@ -1076,7 +1075,7 @@ void node::incoming_request(msg const& m, entry& e)
 			if (!m_storage.get_mutable_item_seq(target, item_seq))
 			{
 				m_storage.put_mutable_item(target
-					, buf.first, buf.second
+					, buf.data(), buf.size()
 					, sig, seq, pk
 					, salt.first, salt.second
 					, m.addr.address());

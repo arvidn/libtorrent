@@ -49,16 +49,16 @@ namespace libtorrent { namespace dht
 
 namespace
 {
-	int canonical_string(std::pair<char const*, int> v
+	int canonical_string(aux::array_view<char const> v
 		, sequence_number const seq
-		, std::pair<char const*, int> salt
+		, aux::array_view<char const> salt
 		, aux::array_view<char> out)
 	{
 		// v must be valid bencoding!
 #if TORRENT_USE_ASSERTS
 		bdecode_node e;
 		error_code ec;
-		TORRENT_ASSERT(bdecode(v.first, v.first + v.second, e, ec) == 0);
+		TORRENT_ASSERT(bdecode(v.data(), v.data() + v.size(), e, ec) == 0);
 #endif
 		char* ptr = out.data();
 
@@ -74,32 +74,32 @@ namespace
 		ptr += std::snprintf(ptr, out.size() - (ptr - out.data())
 			, "3:seqi%" PRId64 "e1:v", seq.value);
 		left = out.size() - (ptr - out.data());
-		std::memcpy(ptr, v.first, (std::min)(v.second, left));
-		ptr += (std::min)(v.second, left);
+		std::memcpy(ptr, v.data(), (std::min)(v.size(), left));
+		ptr += (std::min)(v.size(), left);
 		TORRENT_ASSERT((ptr - out.data()) <= out.size());
 		return ptr - out.data();
 	}
 }
 
 // calculate the target hash for an immutable item.
-sha1_hash item_target_id(std::pair<char const*, int> v)
+sha1_hash item_target_id(aux::array_view<char const> v)
 {
-	return hasher(v.first, v.second).final();
+	return hasher(v).final();
 }
 
 // calculate the target hash for a mutable item.
-sha1_hash item_target_id(std::pair<char const*, int> salt
+sha1_hash item_target_id(aux::array_view<char const> salt
 	, public_key const& pk)
 {
 	hasher h;
 	h.update(pk.bytes.data(), pk.bytes.size());
-	if (salt.second > 0) h.update(salt.first, salt.second);
+	if (salt.size() > 0) h.update(salt.data(), salt.size());
 	return h.final();
 }
 
 bool verify_mutable_item(
-	std::pair<char const*, int> v
-	, std::pair<char const*, int> salt
+	aux::array_view<char const> v
+	, aux::array_view<char const> salt
 	, sequence_number const seq
 	, public_key const& pk
 	, signature const& sig)
@@ -120,8 +120,8 @@ bool verify_mutable_item(
 // at least 64 bytes of available space. This space is where the signature is
 // written.
 void sign_mutable_item(
-	std::pair<char const*, int> v
-	, std::pair<char const*, int> salt
+	aux::array_view<char const> v
+	, aux::array_view<char const> salt
 	, sequence_number const seq
 	, public_key const& pk
 	, secret_key const& sk
@@ -138,8 +138,8 @@ void sign_mutable_item(
 	);
 }
 
-item::item(public_key const& pk, std::string const& salt)
-	: m_salt(salt)
+item::item(public_key const& pk, aux::array_view<char const> salt)
+	: m_salt(salt.data(), salt.size())
 	, m_pk(pk)
 	, m_seq(0)
 	, m_mutable(true)
@@ -157,7 +157,7 @@ item::item(bdecode_node const& v)
 	, m_mutable(false)
 {}
 
-item::item(entry v, std::pair<char const*, int> salt
+item::item(entry v, aux::array_view<char const> salt
 	, sequence_number const seq, public_key const& pk, secret_key const& sk)
 {
 	assign(std::move(v), salt, seq, pk, sk);
@@ -169,13 +169,13 @@ void item::assign(entry v)
 	m_value = std::move(v);
 }
 
-void item::assign(entry v, std::pair<char const*, int> salt
+void item::assign(entry v, aux::array_view<char const> salt
 	, sequence_number const seq, public_key const& pk, secret_key const& sk)
 {
 	char buffer[1000];
 	int bsize = bencode(buffer, v);
 	TORRENT_ASSERT(bsize <= 1000);
-	sign_mutable_item(std::make_pair(buffer, bsize)
+	sign_mutable_item(aux::array_view<char const>(buffer, bsize)
 		, salt, seq, pk, sk, m_sig);
 	m_salt.assign(salt.first, salt.second);
 	m_pk = pk;
@@ -190,7 +190,7 @@ void item::assign(bdecode_node const& v)
 	m_value = v;
 }
 
-bool item::assign(bdecode_node const& v, std::pair<char const*, int> salt
+bool item::assign(bdecode_node const& v, aux::array_view<char const> salt
 	, sequence_number const seq, public_key const& pk, signature const& sig)
 {
 	TORRENT_ASSERT(v.data_section().second <= 1000);
@@ -209,19 +209,10 @@ bool item::assign(bdecode_node const& v, std::pair<char const*, int> salt
 	return true;
 }
 
-void item::assign(entry v, std::string salt
+void item::assign(entry v, aux::array_vie<char const> salt
 	, sequence_number const seq
 	, public_key const& pk, signature const& sig)
 {
-#if TORRENT_USE_ASSERTS
-	char buffer[1000];
-	int bsize = bencode(buffer, v);
-	TORRENT_ASSERT(bsize <= 1000);
-	TORRENT_ASSERT(verify_mutable_item(
-		std::make_pair(buffer, bsize)
-		, std::make_pair(salt.data(), int(salt.size()))
-		, seq, pk, sig));
-#endif
 
 	m_pk = pk;
 	m_sig = sig;

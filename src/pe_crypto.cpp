@@ -150,7 +150,7 @@ namespace libtorrent
 		if (num_bufs != 0)
 		{
 			std::tie(next_barrier, out_iovec)
-				= m_send_barriers.front().enc_handler->encrypt({bufs, num_bufs});
+				= m_send_barriers.front().enc_handler->encrypt({bufs, size_t(num_bufs)});
 		}
 
 		if (m_send_barriers.front().next != INT_MAX)

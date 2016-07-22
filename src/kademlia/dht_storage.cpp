@@ -353,9 +353,8 @@ namespace
 			return true;
 		}
 
-		// TODO: 3 use array_view for buffer
 		void put_immutable_item(sha1_hash const& target
-			, char const* buf, int size
+			, aux::array_view<char const> buf
 			, address const& addr) override
 		{
 			TORRENT_ASSERT(!m_node_ids.empty());
@@ -374,9 +373,10 @@ namespace
 					m_counters.immutable_data -= 1;
 				}
 				dht_immutable_item to_add;
-				to_add.value = static_cast<char*>(malloc(size));
+#error use unique_ptr
+				to_add.value = static_cast<char*>(malloc(buf.size()));
 				to_add.size = size;
-				memcpy(to_add.value, buf, size);
+				memcpy(to_add.value, buf.data(), size);
 
 				std::tie(i, std::ignore) = m_immutable_table.insert(
 					std::make_pair(target, to_add));

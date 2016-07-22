@@ -461,8 +461,7 @@ namespace libtorrent { namespace dht
 	{
 		std::string flat_data;
 		bencode(std::back_inserter(flat_data), data);
-		sha1_hash target = item_target_id(
-			std::pair<char const*, int>(flat_data.c_str(), flat_data.size()));
+		sha1_hash const target = item_target_id(flat_data);
 
 		boost::shared_ptr<put_item_ctx>
 			ctx = boost::make_shared<put_item_ctx>((TORRENT_USE_IPV6) ? 2 : 1);

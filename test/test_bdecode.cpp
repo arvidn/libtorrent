@@ -42,13 +42,13 @@ TORRENT_TEST(integer)
 	bdecode_node e;
 	error_code ec;
 	int ret = bdecode(b, b + sizeof(b)-1, e, ec);
-	TEST_CHECK(ret == 0);
+	TEST_EQUAL(ret, 0);
 	std::printf("%s\n", print_entry(e).c_str());
-	std::pair<const char*, int> section = e.data_section();
-	TEST_CHECK(std::memcmp(b, section.first, section.second) == 0);
-	TEST_CHECK(section.second == sizeof(b) - 1);
-	TEST_CHECK(e.type() == bdecode_node::int_t);
-	TEST_CHECK(e.int_value() == 12453);
+	aux::array_view<const char> section = e.data_section();
+	TEST_CHECK(std::memcmp(b, section.data(), section.size()) == 0);
+	TEST_EQUAL(section.size(), sizeof(b) - 1);
+	TEST_EQUAL(e.type(), bdecode_node::int_t);
+	TEST_EQUAL(e.int_value(), 12453);
 }
 
 // test string
@@ -58,11 +58,11 @@ TORRENT_TEST(string)
 	bdecode_node e;
 	error_code ec;
 	int ret = bdecode(b, b + sizeof(b)-1, e, ec);
-	TEST_CHECK(ret == 0);
+	TEST_EQUAL(ret, 0);
 	std::printf("%s\n", print_entry(e).c_str());
-	std::pair<const char*, int> section = e.data_section();
-	TEST_CHECK(std::memcmp(b, section.first, section.second) == 0);
-	TEST_EQUAL(section.second, sizeof(b) - 1);
+	aux::array_view<const char> section = e.data_section();
+	TEST_CHECK(std::memcmp(b, section.data(), section.size()) == 0);
+	TEST_EQUAL(section.size(), sizeof(b) - 1);
 	TEST_EQUAL(e.type(), bdecode_node::string_t);
 	TEST_EQUAL(e.string_value(), std::string("abcdefghijklmnopqrstuvwxyz"));
 	TEST_EQUAL(e.string_length(), 26);
@@ -79,11 +79,11 @@ TORRENT_TEST(string_prefix1)
 	bdecode_node e;
 	error_code ec;
 	int ret = bdecode(test.c_str(), test.c_str() + test.size(), e, ec);
-	TEST_CHECK(ret == 0);
+	TEST_EQUAL(ret, 0);
 	std::printf("%d bytes string\n", e.string_length());
-	std::pair<const char*, int> section = e.data_section();
-	TEST_CHECK(std::memcmp(test.c_str(), section.first, section.second) == 0);
-	TEST_EQUAL(section.second, int(test.size()));
+	aux::array_view<const char> section = e.data_section();
+	TEST_CHECK(std::memcmp(test.c_str(), section.data(), section.size()) == 0);
+	TEST_EQUAL(section.size(), test.size());
 	TEST_EQUAL(e.type(), bdecode_node::string_t);
 	TEST_EQUAL(e.string_length(), 1000000);
 	TEST_EQUAL(e.string_ptr(), test.c_str() + 8);
@@ -96,21 +96,21 @@ TORRENT_TEST(list)
 	bdecode_node e;
 	error_code ec;
 	int ret = bdecode(b, b + sizeof(b)-1, e, ec);
-	TEST_CHECK(ret == 0);
+	TEST_EQUAL(ret, 0);
 	std::printf("%s\n", print_entry(e).c_str());
-	std::pair<const char*, int> section = e.data_section();
-	TEST_CHECK(std::memcmp(b, section.first, section.second) == 0);
-	TEST_CHECK(section.second == sizeof(b) - 1);
-	TEST_CHECK(e.type() == bdecode_node::list_t);
-	TEST_CHECK(e.list_size() == 2);
-	TEST_CHECK(e.list_at(0).type() == bdecode_node::int_t);
-	TEST_CHECK(e.list_at(1).type() == bdecode_node::string_t);
-	TEST_CHECK(e.list_at(0).int_value() == 12453);
-	TEST_CHECK(e.list_at(1).string_value() == std::string("aaa"));
-	TEST_CHECK(e.list_at(1).string_length() == 3);
+	aux::array_view<const char> section = e.data_section();
+	TEST_CHECK(std::memcmp(b, section.data(), section.size()) == 0);
+	TEST_EQUAL(section.size(), sizeof(b) - 1);
+	TEST_EQUAL(e.type(), bdecode_node::list_t);
+	TEST_EQUAL(e.list_size(), 2);
+	TEST_EQUAL(e.list_at(0).type(), bdecode_node::int_t);
+	TEST_EQUAL(e.list_at(1).type(), bdecode_node::string_t);
+	TEST_EQUAL(e.list_at(0).int_value(), 12453);
+	TEST_EQUAL(e.list_at(1).string_value(), std::string("aaa"));
+	TEST_EQUAL(e.list_at(1).string_length(), 3);
 	section = e.list_at(1).data_section();
-	TEST_CHECK(std::memcmp("3:aaa", section.first, section.second) == 0);
-	TEST_CHECK(section.second == 5);
+	TEST_CHECK(std::memcmp("3:aaa", section.data(), section.size()) == 0);
+	TEST_EQUAL(section.size(), 5);
 }
 
 // test dict
@@ -122,20 +122,20 @@ TORRENT_TEST(dict)
 	int ret = bdecode(b, b + sizeof(b)-1, e, ec);
 	TEST_EQUAL(ret, 0);
 	std::printf("%s\n", print_entry(e).c_str());
-	std::pair<const char*, int> section = e.data_section();
-	TEST_CHECK(std::memcmp(b, section.first, section.second) == 0);
-	TEST_CHECK(section.second == sizeof(b) - 1);
-	TEST_CHECK(e.type() == bdecode_node::dict_t);
-	TEST_CHECK(e.dict_size() == 4);
-	TEST_CHECK(e.dict_find("a").type() == bdecode_node::int_t);
-	TEST_CHECK(e.dict_find("a").int_value() == 12453);
-	TEST_CHECK(e.dict_find("b").type() == bdecode_node::string_t);
-	TEST_CHECK(e.dict_find("b").string_value() == std::string("aaa"));
-	TEST_CHECK(e.dict_find("b").string_length() == 3);
-	TEST_CHECK(e.dict_find("c").type() == bdecode_node::string_t);
-	TEST_CHECK(e.dict_find("c").string_value() == std::string("bbb"));
-	TEST_CHECK(e.dict_find("c").string_length() == 3);
-	TEST_CHECK(e.dict_find_string_value("X") == "0123456789");
+	aux::array_view<const char> section = e.data_section();
+	TEST_CHECK(std::memcmp(b, section.data(), section.size()) == 0);
+	TEST_EQUAL(section.size(), sizeof(b) - 1);
+	TEST_EQUAL(e.type(), bdecode_node::dict_t);
+	TEST_EQUAL(e.dict_size(), 4);
+	TEST_EQUAL(e.dict_find("a").type(), bdecode_node::int_t);
+	TEST_EQUAL(e.dict_find("a").int_value(), 12453);
+	TEST_EQUAL(e.dict_find("b").type(), bdecode_node::string_t);
+	TEST_EQUAL(e.dict_find("b").string_value(), std::string("aaa"));
+	TEST_EQUAL(e.dict_find("b").string_length(), 3);
+	TEST_EQUAL(e.dict_find("c").type(), bdecode_node::string_t);
+	TEST_EQUAL(e.dict_find("c").string_value(), std::string("bbb"));
+	TEST_EQUAL(e.dict_find("c").string_length(), 3);
+	TEST_EQUAL(e.dict_find_string_value("X"), "0123456789");
 }
 
 // test dictionary with a key without a value
@@ -173,7 +173,7 @@ TORRENT_TEST(dict_null_key)
 	bdecode_node e;
 	error_code ec;
 	int ret = bdecode(b, b + sizeof(b)-1, e, ec);
-	TEST_CHECK(ret == 0);
+	TEST_EQUAL(ret, 0);
 	TEST_CHECK(e.dict_size() == 1);
 	bdecode_node d = e.dict_find(std::string("a\0b", 3));
 	TEST_EQUAL(d.type(), bdecode_node::int_t);
@@ -350,7 +350,7 @@ TORRENT_TEST(64bit_int)
 	bdecode_node e;
 	error_code ec;
 	int ret = bdecode(b, b + sizeof(b)-1, e, ec);
-	TEST_CHECK(ret == 0);
+	TEST_EQUAL(ret, 0);
 	std::printf("%s\n", print_entry(e).c_str());
 	TEST_CHECK(e.int_value() == 9223372036854775807LL);
 }
@@ -362,7 +362,7 @@ TORRENT_TEST(64bit_int_negative)
 	bdecode_node e;
 	error_code ec;
 	int ret = bdecode(b, b + sizeof(b)-1, e, ec);
-	TEST_CHECK(ret == 0);
+	TEST_EQUAL(ret, 0);
 	std::printf("%s\n", print_entry(e).c_str());
 	TEST_CHECK(e.int_value() == -9223372036854775807LL);
 }

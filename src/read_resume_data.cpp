@@ -97,8 +97,7 @@ namespace libtorrent
 		{
 			// verify the info-hash of the metadata stored in the resume file matches
 			// the torrent we're loading
-			sha1_hash const resume_ih = hasher(info.data_section().first
-				, info.data_section().second).final();
+			sha1_hash const resume_ih = hasher(info.data_section()).final();
 
 			// if url is set, the info_hash is not actually the info-hash of the
 			// torrent, but the hash of the URL, until we have the full torrent

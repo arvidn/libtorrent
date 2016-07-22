@@ -112,8 +112,8 @@ alert* wait_for_alert(lt::session& s, int alert_type)
 	return ret;
 }
 
-void put_string(entry& e, std::array<char, 64>& sig, std::uint64_t& seq
-	, std::string const& salt, char const* public_key, char const* private_key
+void put_string(entry& e, dht::signature& sig, dht::sequence_number& seq
+	, aux::array_view<char const> salt, public_key const& pk, secret_key const& sk
 	, char const* str)
 {
 	using libtorrent::dht::sign_mutable_item;
@@ -122,12 +122,7 @@ void put_string(entry& e, std::array<char, 64>& sig, std::uint64_t& seq
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), e);
 	++seq;
-	sign_mutable_item(std::pair<char const*, int>(&buf[0], int(buf.size()))
-		, std::pair<char const*, int>(&salt[0], int(salt.size()))
-		, seq
-		, public_key
-		, private_key
-		, sig.data());
+	sign_mutable_item(buf, salt, seq, public_key, private_key, sig);
 }
 
 void bootstrap(lt::session& s)

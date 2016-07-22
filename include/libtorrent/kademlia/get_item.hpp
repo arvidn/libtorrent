@@ -59,7 +59,7 @@ public:
 	// for mutable items
 	get_item(node& dht_node
 		, public_key const& pk
-		, std::string const& salt
+		, aux::array_view<char const> salt
 		, data_callback const& dcallback
 		, nodes_callback const& ncallback);
 
