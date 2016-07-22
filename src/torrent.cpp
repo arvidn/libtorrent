@@ -539,7 +539,7 @@ namespace libtorrent
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		hasher h;
 		h.update("req2", 4);
-		h.update(m_torrent_file->info_hash().data(), 20);
+		h.update(m_torrent_file->info_hash());
 		m_ses.add_obfuscated_hash(h.final(), shared_from_this());
 #endif
 
@@ -4771,7 +4771,7 @@ namespace libtorrent
 		uintptr_t self = reinterpret_cast<uintptr_t>(this);
 		uintptr_t ses = reinterpret_cast<uintptr_t>(&m_ses);
 		uintptr_t storage = reinterpret_cast<uintptr_t>(m_storage.get());
-		sha1_hash h = hasher(reinterpret_cast<char const*>(&self), sizeof(self))
+		sha1_hash const h = hasher(reinterpret_cast<char const*>(&self), sizeof(self))
 			.update(reinterpret_cast<char const*>(&storage), sizeof(storage))
 			.update(reinterpret_cast<char const*>(&ses), sizeof(ses))
 			.final();
@@ -7018,10 +7018,7 @@ namespace libtorrent
 
 		if (m_torrent_file->is_valid()) return false;
 
-		hasher h;
-		h.update(metadata_buf, metadata_size);
-		sha1_hash info_hash = h.final();
-
+		sha1_hash const info_hash = hasher(metadata_buf, metadata_size).final();
 		if (info_hash != m_torrent_file->info_hash())
 		{
 			if (alerts().should_post<metadata_failed_alert>())

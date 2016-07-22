@@ -151,13 +151,13 @@ namespace libtorrent
 		if (ip.is_v6())
 		{
 			address_v6::bytes_type b = ip.to_v6().to_bytes();
-			h = hasher(reinterpret_cast<char*>(&b[0]), int(b.size())).final();
+			h = hasher((char const*)b.data(), int(b.size())).final();
 		}
 		else
 #endif
 		{
 			address_v4::bytes_type b = ip.to_v4().to_bytes();
-			h = hasher(reinterpret_cast<char*>(&b[0]), int(b.size())).final();
+			h = hasher((char const*)b.data(), int(b.size())).final();
 		}
 	}
 

@@ -612,13 +612,13 @@ namespace libtorrent
 #endif
 		x.append(t->torrent_file().info_hash().data(), 20);
 
-		sha1_hash hash = hasher(x.c_str(), int(x.size())).final();
+		sha1_hash hash = hasher(x).final();
 		int attempts = 0;
 		int loops = 0;
 		for (;;)
 		{
 			char const* p = hash.data();
-			for (int i = 0; i < hash.size / sizeof(std::uint32_t); ++i)
+			for (int i = 0; i < hash.size() / sizeof(std::uint32_t); ++i)
 			{
 				++loops;
 				int const piece = detail::read_uint32(p) % num_pieces;
@@ -644,7 +644,7 @@ namespace libtorrent
 				}
 				if (++attempts >= num_allowed_pieces) return;
 			}
-			hash = hasher(hash.data(), 20).final();
+			hash = hasher(hash).final();
 		}
 	}
 

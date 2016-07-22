@@ -81,9 +81,7 @@ namespace
 // calculate the target hash for an immutable item.
 sha1_hash item_target_id(std::pair<char const*, int> v)
 {
-	hasher h;
-	h.update(v.first, v.second);
-	return h.final();
+	return hasher(v.first, v.second).final();
 }
 
 // calculate the target hash for a mutable item.

@@ -653,8 +653,8 @@ boost::shared_ptr<lt::torrent_info> make_torrent(const int file_sizes[]
 
 	for (int i = 0; i < fs.num_pieces(); ++i)
 	{
-		std::vector<char> const piece = generate_piece(i, fs.piece_size(i));
-		ct.set_hash(i, hasher(piece.data(), int(piece.size())).final());
+		std::vector<char> piece = generate_piece(i, fs.piece_size(i));
+		ct.set_hash(i, hasher(piece).final());
 	}
 
 	std::vector<char> buf;
@@ -739,7 +739,7 @@ boost::shared_ptr<torrent_info> create_torrent(std::ostream* file
 
 	// calculate the hash for all pieces
 	int num = t.num_pieces();
-	sha1_hash ph = hasher(&piece[0], int(piece.size())).final();
+	sha1_hash ph = hasher(piece).final();
 	for (int i = 0; i < num; ++i)
 		t.set_hash(i, ph);
 

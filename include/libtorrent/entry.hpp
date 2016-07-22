@@ -71,6 +71,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/aux_/array_view.hpp"
 
 namespace libtorrent
 {
@@ -114,15 +115,27 @@ namespace libtorrent
 		// constructors directly from a specific type.
 		// The content of the argument is copied into the
 		// newly constructed entry
-		entry(dictionary_type const&);
-		entry(string_type const&);
-		entry(list_type const&);
-		entry(integer_type const&);
-		entry(preformatted_type const&);
+		entry(dictionary_type);
+		entry(aux::array_view<char const>);
+		template <typename U, typename = typename std::enable_if<
+			std::is_same<U, entry::string_type>::value
+			|| std::is_same<U, char const*>::value >::type>
+		entry(U v)
+			: m_type(undefined_t)
+		{
+#if TORRENT_USE_ASSERTS
+			m_type_queried = true;
+#endif
+			new(&data) string_type(std::move(v));
+			m_type = string_t;
+		}
+		entry(list_type);
+		entry(integer_type);
+		entry(preformatted_type);
 
 		// construct an empty entry of the specified type.
 		// see data_type enum.
-		entry(data_type t);
+		explicit entry(data_type t);
 
 		// hidden
 		entry(entry const& e);
@@ -146,11 +159,24 @@ namespace libtorrent
 		entry& operator=(bdecode_node const&);
 		entry& operator=(entry const&);
 		entry& operator=(entry&&);
-		entry& operator=(dictionary_type const&);
-		entry& operator=(string_type const&);
-		entry& operator=(list_type const&);
-		entry& operator=(integer_type const&);
-		entry& operator=(preformatted_type const&);
+		entry& operator=(dictionary_type);
+		entry& operator=(aux::array_view<char const>);
+		template <typename U, typename = typename std::enable_if<
+			std::is_same<U, entry::string_type>::value
+			|| std::is_same<U, char const*>::value >::type>
+		entry& operator=(U v)
+		{
+			destruct();
+			new(&data) string_type(std::move(v));
+			m_type = string_t;
+#if TORRENT_USE_ASSERTS
+			m_type_queried = true;
+#endif
+			return *this;
+		}
+		entry& operator=(list_type);
+		entry& operator=(integer_type);
+		entry& operator=(preformatted_type);
 
 		// The ``integer()``, ``string()``, ``list()`` and ``dict()`` functions
 		// are accessors that return the respective type. If the ``entry`` object

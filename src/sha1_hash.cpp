@@ -46,17 +46,17 @@ namespace libtorrent
 	// print a sha1_hash object to an ostream as 40 hexadecimal digits
 	std::ostream& operator<<(std::ostream& os, sha1_hash const& peer)
 	{
-		char out[sha1_hash::size * 2 + 1];
-		aux::to_hex(peer.data(), sha1_hash::size, out);
+		char out[sha1_hash::size() * 2 + 1];
+		aux::to_hex(peer.data(), sha1_hash::size(), out);
 		return os << out;
 	}
 
 	// read 40 hexadecimal digits from an istream into a sha1_hash
 	std::istream& operator>>(std::istream& is, sha1_hash& peer)
 	{
-		char hex[sha1_hash::size * 2];
-		is.read(hex, sha1_hash::size * 2);
-		if (!aux::from_hex(hex, sha1_hash::size * 2, peer.data()))
+		char hex[sha1_hash::size() * 2];
+		is.read(hex, sha1_hash::size() * 2);
+		if (!aux::from_hex(hex, sha1_hash::size() * 2, peer.data()))
 			is.setstate(std::ios_base::failbit);
 		return is;
 	}
@@ -108,7 +108,7 @@ namespace libtorrent
 		const int num_words = n / 32;
 		if (num_words >= number_size)
 		{
-			std::memset(m_number, 0, size);
+			std::memset(m_number, 0, size());
 			return *this;
 		}
 
@@ -146,7 +146,7 @@ namespace libtorrent
 		const int num_words = n / 32;
 		if (num_words >= number_size)
 		{
-			std::memset(m_number, 0, size_t(size));
+			std::memset(m_number, 0, size());
 			return *this;
 		}
 		if (num_words > 0)

@@ -2117,7 +2117,7 @@ namespace libtorrent
 		for (int i = cursor; i < end; ++i)
 		{
 			cached_block_entry& bl = pe->blocks[i];
-			int size = (std::min)(block_size, piece_size - ph->offset);
+			int const size = (std::min)(block_size, piece_size - ph->offset);
 			ph->h.update(bl.buf, size);
 			ph->offset += size;
 		}
@@ -2221,7 +2221,7 @@ namespace libtorrent
 			}
 
 			offset += block_size;
-			h.update(static_cast<char const*>(iov.iov_base), int(iov.iov_len));
+			h.update(static_cast<char const*>(iov.iov_base), iov.iov_len);
 		}
 
 		m_disk_cache.free_buffer(static_cast<char*>(iov.iov_base));
@@ -2361,7 +2361,7 @@ namespace libtorrent
 				TORRENT_PIECE_ASSERT(pe->blocks[i].buf, pe);
 				TORRENT_PIECE_ASSERT(ph->offset == i * block_size, pe);
 				ph->offset += int(iov.iov_len);
-				ph->h.update(pe->blocks[i].buf, int(iov.iov_len));
+				ph->h.update(pe->blocks[i].buf, iov.iov_len);
 			}
 			else
 			{
@@ -2431,7 +2431,7 @@ namespace libtorrent
 
 				TORRENT_PIECE_ASSERT(ph->offset == i * block_size, pe);
 				ph->offset += int(iov.iov_len);
-				ph->h.update(static_cast<char const*>(iov.iov_base), int(iov.iov_len));
+				ph->h.update(static_cast<char const*>(iov.iov_base), iov.iov_len);
 
 				l.lock();
 				m_disk_cache.insert_blocks(pe, i, &iov, 1, j);

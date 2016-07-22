@@ -1997,7 +1997,7 @@ TORRENT_TEST(immutable_put)
 			{
 				TEST_EQUAL(put_immutable_item_keys[0].string_value(), "q");
 				TEST_EQUAL(put_immutable_item_keys[2].string_value(), "put");
-				std::pair<const char*, int>v = put_immutable_item_keys[6].data_section();
+				std::pair<const char*, int> v = put_immutable_item_keys[6].data_section();
 				TEST_EQUAL(std::string(v.first, v.second), flat_data);
 				char tok[10];
 				std::snprintf(tok, sizeof(tok), "%02d", i);
@@ -2260,8 +2260,8 @@ TORRENT_TEST(dht_dual_stack)
 	if (ret)
 	{
 		char const* nodes_ptr = nodes6_keys[3].string_ptr();
-		TEST_CHECK(memcmp(nodes_ptr, id.data(), id.size) == 0);
-		nodes_ptr += id.size;
+		TEST_CHECK(memcmp(nodes_ptr, id.data(), id.size()) == 0);
+		nodes_ptr += id.size();
 		udp::endpoint rep = detail::read_v6_endpoint<udp::endpoint>(nodes_ptr);
 		TEST_EQUAL(rep, udp::endpoint(addr("4::4"), 4441));
 	}
@@ -2293,8 +2293,8 @@ TORRENT_TEST(dht_dual_stack)
 	if (ret)
 	{
 		char const* nodes_ptr = nodes_keys[3].string_ptr();
-		TEST_CHECK(memcmp(nodes_ptr, id.data(), id.size) == 0);
-		nodes_ptr += id.size;
+		TEST_CHECK(memcmp(nodes_ptr, id.data(), id.size()) == 0);
+		nodes_ptr += id.size();
 		udp::endpoint rep = detail::read_v4_endpoint<udp::endpoint>(nodes_ptr);
 		TEST_EQUAL(rep, udp::endpoint(addr("4.4.4.4"), 4440));
 	}
@@ -2327,14 +2327,14 @@ TORRENT_TEST(dht_dual_stack)
 	if (ret)
 	{
 		char const* nodes_ptr = nodes46_keys[3].string_ptr();
-		TEST_CHECK(memcmp(nodes_ptr, id.data(), id.size) == 0);
-		nodes_ptr += id.size;
+		TEST_CHECK(memcmp(nodes_ptr, id.data(), id.size()) == 0);
+		nodes_ptr += id.size();
 		udp::endpoint rep = detail::read_v4_endpoint<udp::endpoint>(nodes_ptr);
 		TEST_EQUAL(rep, udp::endpoint(addr("4.4.4.4"), 4440));
 
 		nodes_ptr = nodes46_keys[4].string_ptr();
-		TEST_CHECK(memcmp(nodes_ptr, id.data(), id.size) == 0);
-		nodes_ptr += id.size;
+		TEST_CHECK(memcmp(nodes_ptr, id.data(), id.size()) == 0);
+		nodes_ptr += id.size();
 		rep = detail::read_v6_endpoint<udp::endpoint>(nodes_ptr);
 		TEST_EQUAL(rep, udp::endpoint(addr("4::4"), 4441));
 	}

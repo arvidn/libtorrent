@@ -93,13 +93,13 @@ namespace libtorrent
 		// shared_secret = (remote_pubkey ^ local_secret) % prime
 		m_dh_shared_secret = mp::powm(remote_pubkey, m_dh_local_secret, dh_prime);
 
-		std::array<std::uint8_t, 96> buffer;
-		mp::export_bits(m_dh_shared_secret, buffer.begin(), 8);
+		std::array<char, 96> buffer;
+		mp::export_bits(m_dh_shared_secret, reinterpret_cast<std::uint8_t*>(buffer.data()), 8);
 
 		// calculate the xor mask for the obfuscated hash
 		hasher h;
 		h.update("req3", 4);
-		h.update(reinterpret_cast<char const*>(buffer.data()), buffer.size());
+		h.update(buffer);
 		m_xor_mask = h.final();
 	}
 
@@ -115,7 +115,7 @@ namespace libtorrent
 		int to_process = m_send_barriers.front().next;
 
 		boost::asio::mutable_buffer* bufs;
-		int num_bufs;
+		size_t num_bufs;
 		bool need_destruct = false;
 		if (to_process != INT_MAX)
 		{

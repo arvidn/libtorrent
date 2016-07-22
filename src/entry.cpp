@@ -318,53 +318,53 @@ namespace libtorrent
 #endif
 	}
 
-	entry::entry(dictionary_type const& v)
+	entry::entry(dictionary_type v)
 		: m_type(undefined_t)
 	{
 #if TORRENT_USE_ASSERTS
 		m_type_queried = true;
 #endif
-		new(&data) dictionary_type(v);
+		new(&data) dictionary_type(std::move(v));
 		m_type = dictionary_t;
 	}
 
-	entry::entry(string_type const& v)
+	entry::entry(aux::array_view<char const> v)
 		: m_type(undefined_t)
 	{
 #if TORRENT_USE_ASSERTS
 		m_type_queried = true;
 #endif
-		new(&data) string_type(v);
+		new(&data) string_type(v.data(), v.size());
 		m_type = string_t;
 	}
 
-	entry::entry(list_type const& v)
+	entry::entry(list_type v)
 		: m_type(undefined_t)
 	{
 #if TORRENT_USE_ASSERTS
 		m_type_queried = true;
 #endif
-		new(&data) list_type(v);
+		new(&data) list_type(std::move(v));
 		m_type = list_t;
 	}
 
-	entry::entry(integer_type const& v)
+	entry::entry(integer_type v)
 		: m_type(undefined_t)
 	{
 #if TORRENT_USE_ASSERTS
 		m_type_queried = true;
 #endif
-		new(&data) integer_type(v);
+		new(&data) integer_type(std::move(v));
 		m_type = int_t;
 	}
 
-	entry::entry(preformatted_type const& v)
+	entry::entry(preformatted_type v)
 		: m_type(undefined_t)
 	{
 #if TORRENT_USE_ASSERTS
 		m_type_queried = true;
 #endif
-		new(&data) preformatted_type(v);
+		new(&data) preformatted_type(std::move(v));
 		m_type = preformatted_t;
 	}
 
@@ -446,10 +446,10 @@ namespace libtorrent
 	}
 #endif
 
-	entry& entry::operator=(preformatted_type const& v)
+	entry& entry::operator=(preformatted_type v)
 	{
 		destruct();
-		new(&data) preformatted_type(v);
+		new(&data) preformatted_type(std::move(v));
 		m_type = preformatted_t;
 #if TORRENT_USE_ASSERTS
 		m_type_queried = true;
@@ -457,10 +457,10 @@ namespace libtorrent
 		return *this;
 	}
 
-	entry& entry::operator=(dictionary_type const& v)
+	entry& entry::operator=(dictionary_type v)
 	{
 		destruct();
-		new(&data) dictionary_type(v);
+		new(&data) dictionary_type(std::move(v));
 		m_type = dictionary_t;
 #if TORRENT_USE_ASSERTS
 		m_type_queried = true;
@@ -468,10 +468,10 @@ namespace libtorrent
 		return *this;
 	}
 
-	entry& entry::operator=(string_type const& v)
+	entry& entry::operator=(aux::array_view<char const> v)
 	{
 		destruct();
-		new(&data) string_type(v);
+		new(&data) string_type(v.data(), v.size());
 		m_type = string_t;
 #if TORRENT_USE_ASSERTS
 		m_type_queried = true;
@@ -479,10 +479,10 @@ namespace libtorrent
 		return *this;
 	}
 
-	entry& entry::operator=(list_type const& v)
+	entry& entry::operator=(list_type v)
 	{
 		destruct();
-		new(&data) list_type(v);
+		new(&data) list_type(std::move(v));
 		m_type = list_t;
 #if TORRENT_USE_ASSERTS
 		m_type_queried = true;
@@ -490,10 +490,10 @@ namespace libtorrent
 		return *this;
 	}
 
-	entry& entry::operator=(integer_type const& v)
+	entry& entry::operator=(integer_type v)
 	{
 		destruct();
-		new(&data) integer_type(v);
+		new(&data) integer_type(std::move(v));
 		m_type = int_t;
 #if TORRENT_USE_ASSERTS
 		m_type_queried = true;

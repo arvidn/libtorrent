@@ -143,11 +143,11 @@ boost::shared_ptr<libtorrent::torrent_info> make_test_torrent(
 
 			if (!pad_files.empty() && torrent_offset >= pad_files.front().first)
 			{
-				h.update(&zero, 1);
+				h.update(zero);
 			}
 			else
 			{
-				h.update(&data, 1);
+				h.update(data);
 			}
 		}
 		piece_hashes += h.final().to_string();

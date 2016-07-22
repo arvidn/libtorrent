@@ -67,9 +67,9 @@ namespace libtorrent
 	{
 		enum { number_size = 5 };
 	public:
-		// internal
+
 		// the number of bytes of the number
-		static const int size = number_size * sizeof(std::uint32_t);
+		static constexpr size_t size() { return number_size * sizeof(std::uint32_t); }
 
 		// constructs an all-zero sha1-hash
 		sha1_hash() { clear(); }
@@ -80,7 +80,7 @@ namespace libtorrent
 		static sha1_hash max()
 		{
 			sha1_hash ret;
-			memset(ret.m_number, 0xff, size);
+			memset(ret.m_number, 0xff, size());
 			return ret;
 		}
 
@@ -90,7 +90,7 @@ namespace libtorrent
 		static sha1_hash min()
 		{
 			sha1_hash ret;
-			memset(ret.m_number, 0, size);
+			memset(ret.m_number, 0, size());
 			return ret;
 		}
 
@@ -100,27 +100,25 @@ namespace libtorrent
 		explicit sha1_hash(char const* s)
 		{
 			if (s == 0) clear();
-			else std::memcpy(m_number, s, size);
+			else std::memcpy(m_number, s, size());
 		}
 		explicit sha1_hash(std::string const& s)
 		{
-			TORRENT_ASSERT(s.size() >= 20);
-			size_t sl = s.size() < size_t(size) ? s.size() : size_t(size);
-			std::memcpy(m_number, s.c_str(), sl);
+			assign(s);
 		}
 		void assign(std::string const& s)
 		{
 			TORRENT_ASSERT(s.size() >= 20);
-			size_t sl = s.size() < size_t(size) ? s.size() : size_t(size);
+			size_t const sl = s.size() < size() ? s.size() : size();
 			std::memcpy(m_number, s.c_str(), sl);
 		}
-		void assign(char const* str) { std::memcpy(m_number, str, size); }
+		void assign(char const* str) { std::memcpy(m_number, str, size()); }
 
 		char const* data() const { return reinterpret_cast<char const*>(&m_number[0]); }
 		char* data() { return reinterpret_cast<char*>(&m_number[0]); }
 
 		// set the sha1-hash to all zeroes.
-		void clear() { std::memset(m_number, 0, size); }
+		void clear() { std::memset(m_number, 0, size()); }
 
 		// return true if the sha1-hash is all zero.
 		bool is_all_zeros() const
@@ -211,12 +209,12 @@ namespace libtorrent
 		// accessors for specific bytes
 		std::uint8_t& operator[](int i)
 		{
-			TORRENT_ASSERT(i >= 0 && i < size);
+			TORRENT_ASSERT(i >= 0 && i < size());
 			return reinterpret_cast<std::uint8_t*>(m_number)[i];
 		}
 		std::uint8_t const& operator[](int i) const
 		{
-			TORRENT_ASSERT(i >= 0 && i < size);
+			TORRENT_ASSERT(i >= 0 && i < size());
 			return reinterpret_cast<std::uint8_t const*>(m_number)[i];
 		}
 
@@ -228,18 +226,17 @@ namespace libtorrent
 		const_iterator begin() const
 		{ return reinterpret_cast<std::uint8_t const*>(m_number); }
 		const_iterator end() const
-		{ return reinterpret_cast<std::uint8_t const*>(m_number) + size; }
+		{ return reinterpret_cast<std::uint8_t const*>(m_number) + size(); }
 		iterator begin()
 		{ return reinterpret_cast<std::uint8_t*>(m_number); }
 		iterator end()
-		{ return reinterpret_cast<std::uint8_t*>(m_number) + size; }
+		{ return reinterpret_cast<std::uint8_t*>(m_number) + size(); }
 
 		// return a copy of the 20 bytes representing the sha1-hash as a std::string.
 		// It's still a binary string with 20 binary characters.
 		std::string to_string() const
 		{
-			return std::string(reinterpret_cast<char const*>(&m_number[0])
-				, size_t(size));
+			return std::string(reinterpret_cast<char const*>(&m_number[0]), size());
 		}
 
 	private:
