@@ -653,31 +653,27 @@ namespace libtorrent
 				for (int i = level_start; i < level_start + level_size; i += 2, ++parent)
 				{
 					hasher h;
-					h.update(m_merkle_tree[i].data(), 20);
-					h.update(m_merkle_tree[i+1].data(), 20);
+					h.update(m_merkle_tree[i]);
+					h.update(m_merkle_tree[i+1]);
 					m_merkle_tree[parent] = h.final();
 				}
 				level_start = merkle_get_parent(level_start);
 				level_size /= 2;
 			}
 			TORRENT_ASSERT(level_size == 1);
-			std::string& p = info["root hash"].string();
-			p.assign(m_merkle_tree[0].data(), 20);
+			info["root hash"] = m_merkle_tree[0];
 		}
 		else
 		{
 			std::string& p = info["pieces"].string();
 
-			for (std::vector<sha1_hash>::const_iterator i = m_piece_hash.begin();
-				i != m_piece_hash.end(); ++i)
-			{
-				p.append(i->data(), sha1_hash::size);
-			}
+			for (sha1_hash const& h : m_piece_hash)
+				p.append(h.data(), h.size());
 		}
 
 		std::vector<char> buf;
 		bencode(std::back_inserter(buf), info);
-		m_info_hash = hasher(&buf[0], int(buf.size())).final();
+		m_info_hash = hasher(buf).final();
 
 		return dict;
 	}

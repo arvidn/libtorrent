@@ -152,7 +152,7 @@ void test_running_torrent(boost::shared_ptr<torrent_info> info, std::int64_t fil
 			TEST_CHECK(memcmp(&piece[0], rpa->buffer.get(), info->piece_size(0)) == 0);
 			TEST_CHECK(rpa->size == info->piece_size(0));
 			TEST_CHECK(rpa->piece == 0);
-			TEST_CHECK(hasher(&piece[0], int(piece.size())).final() == info->hash_for_piece(0));
+			TEST_CHECK(hasher(piece).final() == info->hash_for_piece(0));
 		}
 	}
 }
@@ -265,7 +265,7 @@ TORRENT_TEST(torrent)
 			piece[i] = (i % 26) + 'A';
 
 		// calculate the hash for all pieces
-		sha1_hash ph = hasher(&piece[0], piece.size()).final();
+		sha1_hash ph = hasher(piece).final();
 		int num = t.num_pieces();
 		TEST_CHECK(t.num_pieces() > 0);
 		for (int i = 0; i < num; ++i)
@@ -292,7 +292,7 @@ TORRENT_TEST(torrent)
 			piece[i] = (i % 26) + 'A';
 
 		// calculate the hash for all pieces
-		sha1_hash ph = hasher(&piece[0], int(piece.size())).final();
+		sha1_hash ph = hasher(piece).final();
 		int num = t.num_pieces();
 		TEST_CHECK(t.num_pieces() > 0);
 		for (int i = 0; i < num; ++i)
@@ -336,7 +336,7 @@ TORRENT_TEST(duplicate_is_not_error)
 		piece[i] = (i % 26) + 'A';
 
 	// calculate the hash for all pieces
-	sha1_hash ph = hasher(&piece[0], int(piece.size())).final();
+	sha1_hash ph = hasher(piece).final();
 	int num = t.num_pieces();
 	TEST_CHECK(t.num_pieces() > 0);
 	for (int i = 0; i < num; ++i)

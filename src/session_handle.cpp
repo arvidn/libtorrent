@@ -525,7 +525,7 @@ namespace libtorrent
 	{
 		std::vector<char> buf;
 		bencode(std::back_inserter(buf), data);
-		sha1_hash ret = hasher(&buf[0], int(buf.size())).final();
+		sha1_hash const ret = hasher(buf).final();
 
 #ifndef TORRENT_DISABLE_DHT
 		async_call(&session_impl::dht_put_immutable_item, data, ret);

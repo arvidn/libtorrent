@@ -45,31 +45,28 @@ namespace libtorrent { namespace aux {
 	{
 		array_view() : m_ptr(nullptr), m_len(0) {}
 
-		// T -> const T conversion constructor
-		template <typename U, typename
-			= std::enable_if<std::is_convertible<U*, T*>::value>
-			>
+		template <typename U>
 		array_view(array_view<U> const& v)
 			: m_ptr(v.data()), m_len(v.size()) {}
 
 		array_view(T& p) : m_ptr(&p), m_len(1) {}
-		array_view(T* p, int l) : m_ptr(p), m_len(l)
-		{
-			TORRENT_ASSERT(l >= 0);
-		}
+		array_view(T* p, size_t l) : m_ptr(p), m_len(l) {}
 
-		template <size_t N>
-		array_view(std::array<T, N>& arr)
+		template <typename U, size_t N>
+		array_view(std::array<U, N>& arr)
 			: m_ptr(arr.data()), m_len(arr.size()) {}
 
-		template <size_t N>
-		array_view(T (&arr)[N])
+		template <typename U, size_t N>
+		array_view(U (&arr)[N])
 			: m_ptr(&arr[0]), m_len(N) {}
 
-		array_view(std::vector<T>& vec)
-			: m_ptr(vec.data()), m_len(vec.size()) {}
+		// anything with a .data() member function is considered a container
+		template <typename Cont, typename = decltype(std::declval<Cont>().data())>
+		array_view(Cont& c)
+			: m_ptr(c.data()), m_len(c.size()) {}
 
 		size_t size() const { return m_len; }
+		bool empty() const { return m_len == 0; }
 		T* data() const { return m_ptr; }
 
 		using iterator = T*;
@@ -83,30 +80,26 @@ namespace libtorrent { namespace aux {
 		T& front() const { TORRENT_ASSERT(m_len > 0); return m_ptr[0]; }
 		T& back() const { TORRENT_ASSERT(m_len > 0); return m_ptr[m_len-1]; }
 
-		array_view<T> first(int const n) const
+		array_view<T> first(size_t const n) const
 		{
 			TORRENT_ASSERT(size() >= n);
-			TORRENT_ASSERT(n >= 0);
 			return { data(), size() - n };
 		}
 
-		array_view<T> last(int const n) const
+		array_view<T> last(size_t const n) const
 		{
 			TORRENT_ASSERT(size() >= n);
-			TORRENT_ASSERT(n >= 0);
 			return { data() + size() - n, n };
 		}
 
-		array_view<T> cut_first(int const n) const
+		array_view<T> cut_first(size_t const n) const
 		{
 			TORRENT_ASSERT(size() >= n);
-			TORRENT_ASSERT(n >= 0);
 			return { data() + n, int(size()) - n };
 		}
 
-		T& operator[](int const idx)
+		T& operator[](size_t const idx)
 		{
-			TORRENT_ASSERT(idx >= 0);
 			TORRENT_ASSERT(idx < m_len);
 			return m_ptr[idx];
 		}

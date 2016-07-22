@@ -152,7 +152,7 @@ void make_id_secret(node_id& in)
 	// lets us verify whether a hash came from this function or not in the future.
 	hasher h(reinterpret_cast<char*>(&secret), 4);
 	h.update(reinterpret_cast<char*>(&rand), 4);
-	sha1_hash secret_hash = h.final();
+	sha1_hash const secret_hash = h.final();
 	memcpy(&in[20-4], &secret_hash[0], 4);
 	memcpy(&in[20-8], &rand, 4);
 }

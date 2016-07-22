@@ -132,7 +132,7 @@ boost::shared_ptr<default_storage> setup_torrent(file_storage& fs
 	libtorrent::create_torrent t(fs, 4, -1, 0);
 
 	char buf_[4] = {0, 0, 0, 0};
-	sha1_hash h = hasher(buf_, 4).final();
+	sha1_hash h = hasher(buf_).final();
 	for (int i = 0; i < 6; ++i) t.set_hash(i, h);
 
 	bencode(std::back_inserter(buf), t.generate());
@@ -167,12 +167,10 @@ boost::shared_ptr<default_storage> setup_torrent(file_storage& fs
 	return s;
 }
 
-typedef boost::shared_array<char> buf_ptr;
-
-buf_ptr new_piece(int size)
+std::vector<char> new_piece(int size)
 {
-	buf_ptr ret(static_cast<char*>(malloc(size)), &free);
-	std::generate(ret.get(), ret.get() + size, random_byte);
+	std::vector<char> ret(size);
+	std::generate(ret.begin(), ret.end(), random_byte);
 	return ret;
 }
 
@@ -199,9 +197,9 @@ void run_storage_tests(boost::shared_ptr<torrent_info> info
 	int num_pieces = fs.num_pieces();
 	TEST_CHECK(info->num_pieces() == num_pieces);
 
-	buf_ptr piece0 = new_piece(piece_size);
-	buf_ptr piece1 = new_piece(piece_size);
-	buf_ptr piece2 = new_piece(piece_size);
+	std::vector<char> piece0 = new_piece(piece_size);
+	std::vector<char> piece1 = new_piece(piece_size);
+	std::vector<char> piece2 = new_piece(piece_size);
 
 	aux::session_settings set;
 	set.set_int(settings_pack::disk_io_write_mode
@@ -233,11 +231,11 @@ void run_storage_tests(boost::shared_ptr<torrent_info> info
 	int ret = 0;
 
 	// write piece 1 (in slot 0)
-	file::iovec_t iov = { piece1.get(), half};
+	file::iovec_t iov = { piece1.data(), half};
 	ret = s->writev(&iov, 1, 0, 0, 0, ec);
 	if (ret != half) print_error("writev", ret, ec);
 
-	iov.iov_base = piece1.get() + half;
+	iov.iov_base = piece1.data() + half;
 	iov.iov_len = half;
 	ret = s->writev(&iov, 1, 0, half, 0, ec);
 	if (ret != half) print_error("writev", ret, ec);
@@ -247,7 +245,7 @@ void run_storage_tests(boost::shared_ptr<torrent_info> info
 	iov.iov_len = piece_size - 9;
 	ret = s->readv(&iov, 1, 0, 3, 0, ec);
 	if (ret != piece_size - 9) print_error("readv",ret, ec);
-	TEST_CHECK(std::equal(piece+3, piece + piece_size-9, piece1.get()+3));
+	TEST_CHECK(std::equal(piece+3, piece + piece_size-9, piece1.data()+3));
 
 	// test unaligned read (where the bytes are not aligned)
 	iov.iov_base = piece;
@@ -255,7 +253,7 @@ void run_storage_tests(boost::shared_ptr<torrent_info> info
 	ret = s->readv(&iov, 1, 0, 3, 0, ec);
 	TEST_CHECK(ret == piece_size - 9);
 	if (ret != piece_size - 9) print_error("readv", ret, ec);
-	TEST_CHECK(std::equal(piece, piece + piece_size-9, piece1.get()+3));
+	TEST_CHECK(std::equal(piece, piece + piece_size-9, piece1.data()+3));
 
 	// verify piece 1
 	iov.iov_base = piece;
@@ -263,15 +261,15 @@ void run_storage_tests(boost::shared_ptr<torrent_info> info
 	ret = s->readv(&iov, 1, 0, 0, 0, ec);
 	TEST_CHECK(ret == piece_size);
 	if (ret != piece_size) print_error("readv", ret, ec);
-	TEST_CHECK(std::equal(piece, piece + piece_size, piece1.get()));
+	TEST_CHECK(std::equal(piece, piece + piece_size, piece1.data()));
 
 	// do the same with piece 0 and 2 (in slot 1 and 2)
-	iov.iov_base = piece0.get();
+	iov.iov_base = piece0.data();
 	iov.iov_len = piece_size;
 	ret = s->writev(&iov, 1, 1, 0, 0, ec);
 	if (ret != piece_size) print_error("writev", ret, ec);
 
-	iov.iov_base = piece2.get();
+	iov.iov_base = piece2.data();
 	iov.iov_len = piece_size;
 	ret = s->writev(&iov, 1, 2, 0, 0, ec);
 	if (ret != piece_size) print_error("writev", ret, ec);
@@ -281,13 +279,13 @@ void run_storage_tests(boost::shared_ptr<torrent_info> info
 	iov.iov_len = piece_size;
 	ret = s->readv(&iov, 1, 1, 0, 0, ec);
 	if (ret != piece_size) print_error("readv", ret, ec);
-	TEST_CHECK(std::equal(piece, piece + piece_size, piece0.get()));
+	TEST_CHECK(std::equal(piece, piece + piece_size, piece0.data()));
 
 	iov.iov_base = piece;
 	iov.iov_len = piece_size;
 	ret = s->readv(&iov, 1, 2, 0, 0, ec);
 	if (ret != piece_size) print_error("readv", ret, ec);
-	TEST_CHECK(std::equal(piece, piece + piece_size, piece2.get()));
+	TEST_CHECK(std::equal(piece, piece + piece_size, piece2.data()));
 
 	s->release_files(ec);
 	}
@@ -425,14 +423,14 @@ void test_check_files(std::string const& test_path
 	fs.add_file("temp_storage/test2.tmp", piece_size * 2);
 	fs.add_file("temp_storage/test3.tmp", piece_size);
 
-	buf_ptr piece0 = new_piece(piece_size);
-	buf_ptr piece2 = new_piece(piece_size);
+	std::vector<char> piece0 = new_piece(piece_size);
+	std::vector<char> piece2 = new_piece(piece_size);
 
 	libtorrent::create_torrent t(fs, piece_size, -1, 0);
-	t.set_hash(0, hasher(piece0.get(), piece_size).final());
+	t.set_hash(0, hasher(piece0).final());
 	t.set_hash(1, sha1_hash(nullptr));
 	t.set_hash(2, sha1_hash(nullptr));
-	t.set_hash(3, hasher(piece2.get(), piece_size).final());
+	t.set_hash(3, hasher(piece2).final());
 
 	create_directory(combine_path(test_path, "temp_storage"), ec);
 	if (ec) std::cerr << "create_directory: " << ec.message() << std::endl;
@@ -440,11 +438,11 @@ void test_check_files(std::string const& test_path
 	std::ofstream f;
 	f.open(combine_path(test_path, combine_path("temp_storage", "test1.tmp")).c_str()
 		, std::ios::trunc | std::ios::binary);
-	f.write(piece0.get(), piece_size);
+	f.write(piece0.data(), piece_size);
 	f.close();
 	f.open(combine_path(test_path, combine_path("temp_storage", "test3.tmp")).c_str()
 		, std::ios::trunc | std::ios::binary);
-	f.write(piece2.get(), piece_size);
+	f.write(piece2.data(), piece_size);
 	f.close();
 
 	std::vector<char> buf;
@@ -488,10 +486,10 @@ void run_test(bool unbuffered)
 
 	boost::shared_ptr<torrent_info> info;
 
-	buf_ptr piece0 = new_piece(piece_size);
-	buf_ptr piece1 = new_piece(piece_size);
-	buf_ptr piece2 = new_piece(piece_size);
-	buf_ptr piece3 = new_piece(piece_size);
+	std::vector<char> piece0 = new_piece(piece_size);
+	std::vector<char> piece1 = new_piece(piece_size);
+	std::vector<char> piece2 = new_piece(piece_size);
+	std::vector<char> piece3 = new_piece(piece_size);
 
 	{
 	error_code ec;
@@ -518,10 +516,10 @@ void run_test(bool unbuffered)
 
 	libtorrent::create_torrent t(fs, piece_size, -1, 0);
 	TEST_CHECK(t.num_pieces() == 4);
-	t.set_hash(0, hasher(piece0.get(), piece_size).final());
-	t.set_hash(1, hasher(piece1.get(), piece_size).final());
-	t.set_hash(2, hasher(piece2.get(), piece_size).final());
-	t.set_hash(3, hasher(piece3.get(), piece_size).final());
+	t.set_hash(0, hasher(piece0).final());
+	t.set_hash(1, hasher(piece1).final());
+	t.set_hash(2, hasher(piece2).final());
+	t.set_hash(3, hasher(piece3).final());
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
@@ -563,9 +561,9 @@ void run_test(bool unbuffered)
 	fs.add_file(combine_path("temp_storage", "test1.tmp"), 3 * piece_size);
 	libtorrent::create_torrent t(fs, piece_size, -1, 0);
 	TEST_CHECK(fs.file_path(0) == combine_path("temp_storage", "test1.tmp"));
-	t.set_hash(0, hasher(piece0.get(), piece_size).final());
-	t.set_hash(1, hasher(piece1.get(), piece_size).final());
-	t.set_hash(2, hasher(piece2.get(), piece_size).final());
+	t.set_hash(0, hasher(piece0).final());
+	t.set_hash(1, hasher(piece1).final());
+	t.set_hash(2, hasher(piece2).final());
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());

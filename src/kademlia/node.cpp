@@ -162,41 +162,42 @@ bool node::verify_token(std::string const& token, char const* info_hash
 
 	hasher h1;
 	error_code ec;
-	std::string address = addr.address().to_string(ec);
+	std::string const address = addr.address().to_string(ec);
 	if (ec) return false;
-	h1.update(&address[0], int(address.length()));
+	h1.update(address);
 	h1.update(reinterpret_cast<char const*>(&m_secret[0]), sizeof(m_secret[0]));
-	h1.update(reinterpret_cast<char const*>(info_hash), sha1_hash::size);
+	h1.update(info_hash, 20);
 
 	sha1_hash h = h1.final();
 	if (std::equal(token.begin(), token.end(), reinterpret_cast<char*>(&h[0])))
 		return true;
 
 	hasher h2;
-	h2.update(&address[0], int(address.length()));
+	h2.update(address);
 	h2.update(reinterpret_cast<char const*>(&m_secret[1]), sizeof(m_secret[1]));
-	h2.update(info_hash, sha1_hash::size);
+	h2.update(info_hash, 20);
 	h = h2.final();
 	if (std::equal(token.begin(), token.end(), reinterpret_cast<char*>(&h[0])))
 		return true;
 	return false;
 }
 
-std::string node::generate_token(udp::endpoint const& addr, char const* info_hash)
+std::string node::generate_token(udp::endpoint const& addr
+	, char const* info_hash)
 {
 	std::string token;
 	token.resize(4);
 	hasher h;
 	error_code ec;
-	std::string address = addr.address().to_string(ec);
+	std::string const address = addr.address().to_string(ec);
 	TORRENT_ASSERT(!ec);
-	h.update(&address[0], int(address.length()));
+	h.update(address);
 	h.update(reinterpret_cast<char*>(&m_secret[0]), sizeof(m_secret[0]));
-	h.update(info_hash, sha1_hash::size);
+	h.update(info_hash, 20);
 
-	sha1_hash hash = h.final();
+	sha1_hash const hash = h.final();
 	std::copy(hash.begin(), hash.begin() + 4, reinterpret_cast<char*>(&token[0]));
-	TORRENT_ASSERT(std::equal(token.begin(), token.end(), reinterpret_cast<char*>(&hash[0])));
+	TORRENT_ASSERT(std::equal(token.begin(), token.end(), hash.data()));
 	return token;
 }
 

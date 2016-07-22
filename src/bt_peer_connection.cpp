@@ -102,12 +102,12 @@ namespace libtorrent
 		// outgoing connection : hash ('keyA',S,SKEY)
 		// incoming connection : hash ('keyB',S,SKEY)
 
-		std::array<std::uint8_t, 96> secret_buf;
-		mp::export_bits(secret, secret_buf.begin(), 8);
+		std::array<char, 96> secret_buf;
+		mp::export_bits(secret, reinterpret_cast<std::uint8_t*>(secret_buf.data()), 8);
 
 		if (outgoing) h.update(keyA, 4); else h.update(keyB, 4);
-		h.update(reinterpret_cast<char const*>(secret_buf.data()), secret_buf.size());
-		h.update(stream_key.data(), 20);
+		h.update(secret_buf);
+		h.update(stream_key);
 		const sha1_hash local_key = h.final();
 
 		h.reset();
@@ -117,9 +117,8 @@ namespace libtorrent
 		// incoming connection : hash ('keyA',S,SKEY)
 
 		if (outgoing) h.update(keyB, 4); else h.update(keyA, 4);
-		h.update(reinterpret_cast<char const*>(secret_buf.data())
-			, secret_buf.size());
-		h.update(stream_key.data(), 20);
+		h.update(secret_buf);
+		h.update(stream_key);
 		const sha1_hash remote_key = h.final();
 
 		boost::shared_ptr<rc4_handler> ret = boost::make_shared<rc4_handler>();
@@ -549,8 +548,8 @@ namespace libtorrent
 		hasher h;
 		sha1_hash const& info_hash = t->torrent_file().info_hash();
 		key_t const secret_key = m_dh_key_exchange->get_secret();
-		std::array<std::uint8_t, 96> secret;
-		mp::export_bits(secret_key, secret.begin(), 8);
+		std::array<char, 96> secret;
+		mp::export_bits(secret_key, reinterpret_cast<std::uint8_t*>(secret.data()), 8);
 
 		int pad_size = random() % 512;
 
@@ -561,27 +560,24 @@ namespace libtorrent
 		// sync hash (hash('req1',S))
 		h.reset();
 		h.update("req1",4);
-		h.update(reinterpret_cast<char const*>(secret.data())
-			, secret.size());
-		sha1_hash sync_hash = h.final();
+		h.update(secret);
+		sha1_hash const sync_hash = h.final();
 
-		memcpy(ptr, &sync_hash[0], 20);
+		memcpy(ptr, sync_hash.data(), 20);
 		ptr += 20;
 
 		// stream key obfuscated hash [ hash('req2',SKEY) xor hash('req3',S) ]
 		h.reset();
 		h.update("req2",4);
-		h.update(info_hash.data(), 20);
-		sha1_hash streamkey_hash = h.final();
+		h.update(info_hash);
+		sha1_hash const streamkey_hash = h.final();
 
 		h.reset();
 		h.update("req3",4);
-		h.update(reinterpret_cast<char const*>(secret.data())
-			, secret.size());
-		sha1_hash obfsc_hash = h.final();
-		obfsc_hash ^= streamkey_hash;
+		h.update(secret);
+		sha1_hash const obfsc_hash = h.final() ^ streamkey_hash;
 
-		memcpy(ptr, &obfsc_hash[0], 20);
+		memcpy(ptr, obfsc_hash.data(), 20);
 		ptr += 20;
 
 		// Discard DH key exchange data, setup RC4 keys
@@ -2639,21 +2635,16 @@ namespace libtorrent
 				hasher h;
 
 				// compute synchash (hash('req1',S))
-				std::array<std::uint8_t, 96> buffer;
-				mp::export_bits(m_dh_key_exchange->get_secret(), buffer.begin(), 8);
+				std::array<char, 96> buffer;
+				mp::export_bits(m_dh_key_exchange->get_secret()
+					, reinterpret_cast<std::uint8_t*>(buffer.data()), 8);
 				h.update("req1", 4);
-				h.update(reinterpret_cast<char const*>(buffer.data()), buffer.size());
+				h.update(buffer);
 
-				m_sync_hash.reset(new (std::nothrow) sha1_hash(h.final()));
-				if (!m_sync_hash)
-				{
-					received_bytes(0, int(bytes_transferred));
-					disconnect(errors::no_memory, op_encryption);
-					return;
-				}
+				m_sync_hash.reset(new sha1_hash(h.final()));
 			}
 
-			int syncoffset = get_syncoffset(m_sync_hash->data(), 20
+			int const syncoffset = get_syncoffset(m_sync_hash->data(), 20
 				, recv_buffer.begin, recv_buffer.left());
 
 			// No sync
@@ -2793,7 +2784,7 @@ namespace libtorrent
 			}
 
 			TORRENT_ASSERT(m_sync_vc.get());
-			int syncoffset = get_syncoffset(m_sync_vc.get(), 8
+			int const syncoffset = get_syncoffset(m_sync_vc.get(), 8
 				, recv_buffer.begin, recv_buffer.left());
 
 			// No sync

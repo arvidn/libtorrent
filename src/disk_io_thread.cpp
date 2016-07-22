@@ -2117,7 +2117,7 @@ namespace libtorrent
 		for (int i = cursor; i < end; ++i)
 		{
 			cached_block_entry& bl = pe->blocks[i];
-			int size = (std::min)(block_size, piece_size - ph->offset);
+			int const size = (std::min)(block_size, piece_size - ph->offset);
 			ph->h.update(bl.buf, size);
 			ph->offset += size;
 		}

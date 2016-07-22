@@ -1247,9 +1247,9 @@ namespace libtorrent
 
 		while (n > 0)
 		{
-			int sibling = merkle_get_sibling(n);
-			int parent = merkle_get_parent(n);
-			iter sibling_hash = subtree.find(sibling);
+			int const sibling = merkle_get_sibling(n);
+			int const parent = merkle_get_parent(n);
+			iter const sibling_hash = subtree.find(sibling);
 			if (sibling_hash == subtree.end())
 				return false;
 			to_add[n] = h;
@@ -1257,13 +1257,13 @@ namespace libtorrent
 			hasher hs;
 			if (sibling < n)
 			{
-				hs.update(sibling_hash->second.data(), 20);
-				hs.update(h.data(), 20);
+				hs.update(sibling_hash->second);
+				hs.update(h);
 			}
 			else
 			{
-				hs.update(h.data(), 20);
-				hs.update(sibling_hash->second.data(), 20);
+				hs.update(h);
+				hs.update(sibling_hash->second);
 			}
 			h = hs.final();
 			n = parent;
