@@ -303,9 +303,9 @@ namespace libtorrent
 	bdecode_node::operator bool() const
 	{ return m_token_idx != -1; }
 
-	aux::array_view<char const> bdecode_node::data_section() const
+	span<char const> bdecode_node::data_section() const
 	{
-		if (m_token_idx == -1) return aux::array_view<char const>();
+		if (m_token_idx == -1) return span<char const>();
 
 		TORRENT_ASSERT(m_token_idx != -1);
 		bdecode_token const& t = m_root_tokens[m_token_idx];

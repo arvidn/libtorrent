@@ -200,7 +200,7 @@ struct msg_args
 	msg_args& nid(sha1_hash const& n)
 	{ a["id"] = n.to_string(); return *this; }
 
-	msg_args& salt(aux::array_view<char const> s)
+	msg_args& salt(span<char const> s)
 	{ if (!s.empty()) a["salt"] = s; return *this; }
 
 	msg_args& want(std::string w)
@@ -995,7 +995,7 @@ namespace {
 		return nodes;
 	}
 
-	aux::array_view<char const> const empty_salt;
+	span<char const> const empty_salt;
 }
 
 // TODO: 3 split this up into smaller tests
@@ -1032,7 +1032,7 @@ void test_put(address(&rand_addr)())
 
 	// ==== get / put mutable items ===
 
-	aux::array_view<char const> itemv;
+	span<char const> itemv;
 
 	signature sig;
 	char buffer[1200];
@@ -1099,7 +1099,7 @@ void test_put(address(&rand_addr)())
 			TEST_ERROR(t.error_string);
 		}
 
-		itemv = aux::array_view<char const>(buffer, bencode(buffer, items[0].ent));
+		itemv = span<char const>(buffer, bencode(buffer, items[0].ent));
 		sign_mutable_item(itemv, salt, seq, pk, sk, sig);
 		TEST_EQUAL(verify_mutable_item(itemv, salt, seq, pk, sig), true);
 
@@ -1170,7 +1170,7 @@ void test_put(address(&rand_addr)())
 
 		// also test that invalid signatures fail!
 
-		itemv = aux::array_view<char const>(buffer, bencode(buffer, items[0].ent));
+		itemv = span<char const>(buffer, bencode(buffer, items[0].ent));
 		sign_mutable_item(itemv, salt, seq, pk, sk, sig);
 		TEST_EQUAL(verify_mutable_item(itemv, salt, seq, pk, sig), 1);
 		// break the signature
@@ -1235,7 +1235,7 @@ void test_put(address(&rand_addr)())
 		// increment sequence number
 		seq = next_seq(seq);
 		// put item 1
-		itemv = aux::array_view<char const>(buffer, bencode(buffer, items[1].ent));
+		itemv = span<char const>(buffer, bencode(buffer, items[1].ent));
 		sign_mutable_item(itemv, salt, seq, pk, sk, sig);
 		TEST_EQUAL(verify_mutable_item(itemv, salt, seq, pk, sig), 1);
 
@@ -1793,7 +1793,7 @@ void test_mutable_get(address(&rand_addr)(), bool const with_salt)
 
 	char buffer[1200];
 	sequence_number seq(4);
-	aux::array_view<char const> itemv;
+	span<char const> itemv;
 	bdecode_node response;
 
 	std::string salt;
@@ -1845,7 +1845,7 @@ void test_mutable_get(address(&rand_addr)(), bool const with_salt)
 	g_sent_packets.clear();
 
 	signature sig;
-	itemv = aux::array_view<char const>(buffer, bencode(buffer, items[0].ent));
+	itemv = span<char const>(buffer, bencode(buffer, items[0].ent));
 	sign_mutable_item(itemv, salt, seq, pk, sk, sig);
 	send_dht_response(t.dht_node, response, initial_node
 		, msg_args()
@@ -1943,7 +1943,7 @@ TORRENT_TEST(immutable_get)
 TORRENT_TEST(immutable_put)
 {
 	bdecode_node response;
-	aux::array_view<char const> itemv;
+	span<char const> itemv;
 	char buffer[1200];
 
 	dht::key_desc_t const put_immutable_item_desc[] = {
@@ -1977,7 +1977,7 @@ TORRENT_TEST(immutable_put)
 		std::string flat_data;
 		bencode(std::back_inserter(flat_data), put_data);
 		sha1_hash target = item_target_id(
-			aux::array_view<char const>(flat_data.c_str(), int(flat_data.size())));
+			span<char const>(flat_data.c_str(), int(flat_data.size())));
 
 		t.dht_node.put_item(target, put_data, std::bind(&put_immutable_item_cb, _1, loop));
 
@@ -2012,7 +2012,7 @@ TORRENT_TEST(immutable_put)
 		TEST_EQUAL(g_sent_packets.size(), 8);
 		if (g_sent_packets.size() != 8) break;
 
-		itemv = aux::array_view<char const>(buffer, bencode(buffer, put_data));
+		itemv = span<char const>(buffer, bencode(buffer, put_data));
 
 		for (int i = 0; i < 8; ++i)
 		{
@@ -2027,7 +2027,7 @@ TORRENT_TEST(immutable_put)
 			{
 				TEST_EQUAL(put_immutable_item_keys[0].string_value(), "q");
 				TEST_EQUAL(put_immutable_item_keys[2].string_value(), "put");
-				aux::array_view<const char> v = put_immutable_item_keys[6].data_section();
+				span<const char> v = put_immutable_item_keys[6].data_section();
 				TEST_EQUAL(std::string(v.data(), v.size()), flat_data);
 				char tok[10];
 				std::snprintf(tok, sizeof(tok), "%02d", i);
@@ -2053,7 +2053,7 @@ TORRENT_TEST(immutable_put)
 TORRENT_TEST(mutable_put)
 {
 	bdecode_node response;
-	aux::array_view<char const> itemv;
+	span<char const> itemv;
 	char buffer[1200];
 	bdecode_node put_mutable_item_keys[11];
 	public_key pk;
@@ -2114,7 +2114,7 @@ TORRENT_TEST(mutable_put)
 		TEST_EQUAL(g_sent_packets.size(), 8);
 		if (g_sent_packets.size() != 8) break;
 
-		itemv = aux::array_view<char const>(buffer, bencode(buffer, items[0].ent));
+		itemv = span<char const>(buffer, bencode(buffer, items[0].ent));
 
 		for (int i = 0; i < 8; ++i)
 		{
@@ -2132,7 +2132,7 @@ TORRENT_TEST(mutable_put)
 				TEST_EQUAL(put_mutable_item_keys[6].string_value(), std::string(pk.bytes.data(), public_key::len));
 				TEST_EQUAL(put_mutable_item_keys[7].int_value(), int(seq.value));
 				TEST_EQUAL(put_mutable_item_keys[8].string_value(), std::string(sig.bytes.data(), signature::len));
-				aux::array_view<const char> v = put_mutable_item_keys[10].data_section();
+				span<const char> v = put_mutable_item_keys[10].data_section();
 				TEST_EQUAL(v.size(), itemv.size());
 				TEST_CHECK(memcmp(v.data(), itemv.data(), itemv.size()) == 0);
 				char tok[10];
@@ -2382,14 +2382,14 @@ TORRENT_TEST(signing_test1)
 	// test vector 1
 
 	// test content
-	aux::array_view<char const> test_content("12:Hello World!", 15);
+	span<char const> test_content("12:Hello World!", 15);
 	// test salt
-	aux::array_view<char const> test_salt("foobar", 6);
+	span<char const> test_salt("foobar", 6);
 
 	public_key pk;
 	secret_key sk;
 	get_test_keypair(pk, sk);
-	aux::array_view<char const> empty_salt;
+	span<char const> empty_salt;
 
 	signature sig;
 	sign_mutable_item(test_content, empty_salt, sequence_number(1), pk, sk, sig);
@@ -2409,11 +2409,11 @@ TORRENT_TEST(signing_test2)
 	get_test_keypair(pk, sk);
 
 	// test content
-	aux::array_view<char const> test_content("12:Hello World!", 15);
+	span<char const> test_content("12:Hello World!", 15);
 
 	signature sig;
 	// test salt
-	aux::array_view<char const> test_salt("foobar", 6);
+	span<char const> test_salt("foobar", 6);
 
 	// test vector 2 (the keypair is the same as test 1)
 	sign_mutable_item(test_content, test_salt, sequence_number(1), pk, sk, sig);
@@ -2431,7 +2431,7 @@ TORRENT_TEST(signing_test3)
 	// test vector 3
 
 	// test content
-	aux::array_view<char const> test_content("12:Hello World!", 15);
+	span<char const> test_content("12:Hello World!", 15);
 
 	sha1_hash target_id = item_target_id(test_content);
 	TEST_EQUAL(aux::to_hex(target_id.to_string()), "e5f96f6f38320f0f33959cb4d3d656452117aadb");

@@ -93,7 +93,7 @@ void incoming_error(entry& e, char const* msg, int error_code = 203);
 // given a redundant name to avoid clashing with libtorrent::detail
 namespace dht_detail {
 
-//#error move this to its own .hpp/.cpp pair and make it take an array_view instead of being a template
+//#error move this to its own .hpp/.cpp pair and make it take an span instead of being a template
 TORRENT_EXPORT bool verify_message(bdecode_node const& msg, key_desc_t const desc[]
 	, bdecode_node ret[], int size, char* error, int error_size);
 

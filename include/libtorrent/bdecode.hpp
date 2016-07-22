@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/assert.hpp"
-#include "libtorrent/aux_/array_view.hpp"
+#include "libtorrent/span.hpp"
 
 /*
 
@@ -281,7 +281,7 @@ struct TORRENT_EXPORT bdecode_node
 	// buffer where this node is defined. For a dictionary for instance, this
 	// starts with ``d`` and ends with ``e``, and has all the content of the
 	// dictionary in between.
-	aux::array_view<char const> data_section() const;
+	span<char const> data_section() const;
 
 	// functions with the ``list_`` prefix operate on lists. These functions are
 	// only valid if ``type()`` == ``list_t``. ``list_at()`` returns the item

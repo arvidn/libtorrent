@@ -113,7 +113,7 @@ get_item::get_item(
 get_item::get_item(
 	node& dht_node
 	, public_key const& pk
-	, aux::array_view<char const> salt
+	, span<char const> salt
 	, data_callback const& dcallback
 	, nodes_callback const& ncallback)
 	: find_data(dht_node, item_target_id(salt, pk), ncallback)

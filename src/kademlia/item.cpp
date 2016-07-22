@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/hasher.hpp>
 #include <libtorrent/kademlia/item.hpp>
 #include <libtorrent/bencode.hpp>
-#include <libtorrent/aux_/array_view.hpp>
+#include <libtorrent/span.hpp>
 #include <libtorrent/ed25519.hpp>
 
 #include <cstdio> // for snprintf
@@ -49,10 +49,10 @@ namespace libtorrent { namespace dht
 
 namespace
 {
-	int canonical_string(aux::array_view<char const> v
+	int canonical_string(span<char const> v
 		, sequence_number const seq
-		, aux::array_view<char const> salt
-		, aux::array_view<char> out)
+		, span<char const> salt
+		, span<char> out)
 	{
 		// v must be valid bencoding!
 #if TORRENT_USE_ASSERTS
@@ -82,13 +82,13 @@ namespace
 }
 
 // calculate the target hash for an immutable item.
-sha1_hash item_target_id(aux::array_view<char const> v)
+sha1_hash item_target_id(span<char const> v)
 {
 	return hasher(v).final();
 }
 
 // calculate the target hash for a mutable item.
-sha1_hash item_target_id(aux::array_view<char const> salt
+sha1_hash item_target_id(span<char const> salt
 	, public_key const& pk)
 {
 	hasher h;
@@ -98,8 +98,8 @@ sha1_hash item_target_id(aux::array_view<char const> salt
 }
 
 bool verify_mutable_item(
-	aux::array_view<char const> v
-	, aux::array_view<char const> salt
+	span<char const> v
+	, span<char const> salt
 	, sequence_number const seq
 	, public_key const& pk
 	, signature const& sig)
@@ -120,8 +120,8 @@ bool verify_mutable_item(
 // at least 64 bytes of available space. This space is where the signature is
 // written.
 void sign_mutable_item(
-	aux::array_view<char const> v
-	, aux::array_view<char const> salt
+	span<char const> v
+	, span<char const> salt
 	, sequence_number const seq
 	, public_key const& pk
 	, secret_key const& sk
@@ -138,7 +138,7 @@ void sign_mutable_item(
 	);
 }
 
-item::item(public_key const& pk, aux::array_view<char const> salt)
+item::item(public_key const& pk, span<char const> salt)
 	: m_salt(salt.data(), salt.size())
 	, m_pk(pk)
 	, m_seq(0)
@@ -157,7 +157,7 @@ item::item(bdecode_node const& v)
 	, m_mutable(false)
 {}
 
-item::item(entry v, aux::array_view<char const> salt
+item::item(entry v, span<char const> salt
 	, sequence_number const seq, public_key const& pk, secret_key const& sk)
 {
 	assign(std::move(v), salt, seq, pk, sk);
@@ -169,13 +169,13 @@ void item::assign(entry v)
 	m_value = std::move(v);
 }
 
-void item::assign(entry v, aux::array_view<char const> salt
+void item::assign(entry v, span<char const> salt
 	, sequence_number const seq, public_key const& pk, secret_key const& sk)
 {
 	char buffer[1000];
 	int bsize = bencode(buffer, v);
 	TORRENT_ASSERT(bsize <= 1000);
-	sign_mutable_item(aux::array_view<char const>(buffer, bsize)
+	sign_mutable_item(span<char const>(buffer, bsize)
 		, salt, seq, pk, sk, m_sig);
 	m_salt.assign(salt.data(), salt.size());
 	m_pk = pk;
@@ -190,7 +190,7 @@ void item::assign(bdecode_node const& v)
 	m_value = v;
 }
 
-bool item::assign(bdecode_node const& v, aux::array_view<char const> salt
+bool item::assign(bdecode_node const& v, span<char const> salt
 	, sequence_number const seq, public_key const& pk, signature const& sig)
 {
 	TORRENT_ASSERT(v.data_section().size() <= 1000);
@@ -209,7 +209,7 @@ bool item::assign(bdecode_node const& v, aux::array_view<char const> salt
 	return true;
 }
 
-void item::assign(entry v, aux::array_view<char const> salt
+void item::assign(entry v, span<char const> salt
 	, sequence_number const seq
 	, public_key const& pk, signature const& sig)
 {

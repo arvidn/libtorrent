@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/sha1_hash.hpp>
 #include <libtorrent/bdecode.hpp>
 #include <libtorrent/entry.hpp>
-#include <libtorrent/aux_/array_view.hpp>
+#include <libtorrent/span.hpp>
 #include <libtorrent/kademlia/types.hpp>
 
 #include <vector>
@@ -47,15 +47,15 @@ namespace libtorrent { namespace dht
 {
 
 // calculate the target hash for an immutable item.
-sha1_hash TORRENT_EXTRA_EXPORT item_target_id(aux::array_view<char const> v);
+sha1_hash TORRENT_EXTRA_EXPORT item_target_id(span<char const> v);
 
 // calculate the target hash for a mutable item.
-sha1_hash TORRENT_EXTRA_EXPORT item_target_id(aux::array_view<char const> salt
+sha1_hash TORRENT_EXTRA_EXPORT item_target_id(span<char const> salt
 	, public_key const& pk);
 
 bool TORRENT_EXTRA_EXPORT verify_mutable_item(
-	aux::array_view<char const> v
-	, aux::array_view<char const> salt
+	span<char const> v
+	, span<char const> salt
 	, sequence_number seq
 	, public_key const& pk
 	, signature const& sig);
@@ -70,8 +70,8 @@ bool TORRENT_EXTRA_EXPORT verify_mutable_item(
 // is responsible for allocating the destination buffer that's passed in
 // as the ``sig`` argument. Typically it would be allocated on the stack.
 void TORRENT_EXPORT sign_mutable_item(
-	aux::array_view<char const> v
-	, aux::array_view<char const> salt
+	span<char const> v
+	, span<char const> salt
 	, sequence_number seq
 	, public_key const& pk
 	, secret_key const& sk
@@ -81,26 +81,26 @@ class TORRENT_EXTRA_EXPORT item
 {
 public:
 	item() : m_seq(0), m_mutable(false)  {}
-	item(public_key const& pk, aux::array_view<char const> salt);
+	item(public_key const& pk, span<char const> salt);
 	item(entry v);
 	item(entry v
-		, aux::array_view<char const> salt
+		, span<char const> salt
 		, sequence_number seq
 		, public_key const& pk
 		, secret_key const& sk);
 	item(bdecode_node const& v);
 
 	void assign(entry v);
-	void assign(entry v, aux::array_view<char const> salt
+	void assign(entry v, span<char const> salt
 		, sequence_number seq
 		, public_key const& pk
 		, secret_key const& sk);
 	void assign(bdecode_node const& v);
-	bool assign(bdecode_node const& v, aux::array_view<char const> salt
+	bool assign(bdecode_node const& v, span<char const> salt
 		, sequence_number seq
 		, public_key const& pk
 		, signature const& sig);
-	void assign(entry v, aux::array_view<char const> salt
+	void assign(entry v, span<char const> salt
 		, sequence_number seq
 		, public_key const& pk
 		, signature const& sig);

@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/socket.hpp>
 #include <libtorrent/sha1_hash.hpp>
 #include <libtorrent/address.hpp>
-#include <libtorrent/aux_/array_view.hpp>
+#include <libtorrent/span.hpp>
 
 namespace libtorrent
 {
@@ -166,7 +166,7 @@ namespace dht
 		// dht_settings::max_dht_items.
 		//
 		virtual void put_immutable_item(sha1_hash const& target
-			, aux::array_view<char const> buf
+			, span<char const> buf
 			, address const& addr) = 0;
 
 		// This function retrieves the sequence number of a mutable item.
@@ -203,11 +203,11 @@ namespace dht
 		// dht_settings::max_dht_items.
 		//
 		virtual void put_mutable_item(sha1_hash const& target
-			, aux::array_view<char const> buf
+			, span<char const> buf
 			, signature const& sig
 			, sequence_number seq
 			, public_key const& pk
-			, aux::array_view<char const> salt
+			, span<char const> salt
 			, address const& addr) = 0;
 
 		// This function is called periodically (non-constant frequency).

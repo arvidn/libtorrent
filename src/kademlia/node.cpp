@@ -1002,7 +1002,7 @@ void node::incoming_request(msg const& m, entry& e)
 		if (msg_keys[4]) sign = msg_keys[4].string_ptr();
 
 		// pointer and length to the whole entry
-		aux::array_view<char const> buf = msg_keys[1].data_section();
+		span<char const> buf = msg_keys[1].data_section();
 		if (buf.size() > 1000 || buf.size() <= 0)
 		{
 			m_counters.inc_stats_counter(counters::dht_invalid_put);
@@ -1010,7 +1010,7 @@ void node::incoming_request(msg const& m, entry& e)
 			return;
 		}
 
-		aux::array_view<char const> salt;
+		span<char const> salt;
 		if (msg_keys[6])
 			salt = { msg_keys[6].string_ptr(), size_t(msg_keys[6].string_length()) };
 		if (salt.size() > 64)

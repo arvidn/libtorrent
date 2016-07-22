@@ -91,8 +91,6 @@ namespace libtorrent
 		hasher(hasher const&);
 		hasher& operator=(hasher const&);
 
-		// TODO: 3 take an array_view instead of string
-
 		// append the following bytes to what is being hashed
 		hasher& update(span<char const> data);
 		hasher& update(char const* data, int len);

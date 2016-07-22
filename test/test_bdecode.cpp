@@ -44,7 +44,7 @@ TORRENT_TEST(integer)
 	int ret = bdecode(b, b + sizeof(b)-1, e, ec);
 	TEST_EQUAL(ret, 0);
 	std::printf("%s\n", print_entry(e).c_str());
-	aux::array_view<const char> section = e.data_section();
+	span<const char> section = e.data_section();
 	TEST_CHECK(std::memcmp(b, section.data(), section.size()) == 0);
 	TEST_EQUAL(section.size(), sizeof(b) - 1);
 	TEST_EQUAL(e.type(), bdecode_node::int_t);
@@ -60,7 +60,7 @@ TORRENT_TEST(string)
 	int ret = bdecode(b, b + sizeof(b)-1, e, ec);
 	TEST_EQUAL(ret, 0);
 	std::printf("%s\n", print_entry(e).c_str());
-	aux::array_view<const char> section = e.data_section();
+	span<const char> section = e.data_section();
 	TEST_CHECK(std::memcmp(b, section.data(), section.size()) == 0);
 	TEST_EQUAL(section.size(), sizeof(b) - 1);
 	TEST_EQUAL(e.type(), bdecode_node::string_t);
@@ -81,7 +81,7 @@ TORRENT_TEST(string_prefix1)
 	int ret = bdecode(test.c_str(), test.c_str() + test.size(), e, ec);
 	TEST_EQUAL(ret, 0);
 	std::printf("%d bytes string\n", e.string_length());
-	aux::array_view<const char> section = e.data_section();
+	span<const char> section = e.data_section();
 	TEST_CHECK(std::memcmp(test.c_str(), section.data(), section.size()) == 0);
 	TEST_EQUAL(section.size(), test.size());
 	TEST_EQUAL(e.type(), bdecode_node::string_t);
@@ -98,7 +98,7 @@ TORRENT_TEST(list)
 	int ret = bdecode(b, b + sizeof(b)-1, e, ec);
 	TEST_EQUAL(ret, 0);
 	std::printf("%s\n", print_entry(e).c_str());
-	aux::array_view<const char> section = e.data_section();
+	span<const char> section = e.data_section();
 	TEST_CHECK(std::memcmp(b, section.data(), section.size()) == 0);
 	TEST_EQUAL(section.size(), sizeof(b) - 1);
 	TEST_EQUAL(e.type(), bdecode_node::list_t);
@@ -122,7 +122,7 @@ TORRENT_TEST(dict)
 	int ret = bdecode(b, b + sizeof(b)-1, e, ec);
 	TEST_EQUAL(ret, 0);
 	std::printf("%s\n", print_entry(e).c_str());
-	aux::array_view<const char> section = e.data_section();
+	span<const char> section = e.data_section();
 	TEST_CHECK(std::memcmp(b, section.data(), section.size()) == 0);
 	TEST_EQUAL(section.size(), sizeof(b) - 1);
 	TEST_EQUAL(e.type(), bdecode_node::dict_t);

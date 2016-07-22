@@ -1051,7 +1051,7 @@ namespace libtorrent
 
 		// hash the info-field to calculate info-hash
 		hasher h;
-		aux::array_view<char const> section = info.data_section();
+		span<char const> section = info.data_section();
 		h.update(section.data(), section.size());
 		m_info_hash = h.final();
 

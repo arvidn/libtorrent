@@ -350,7 +350,7 @@ namespace
 		}
 
 		void put_immutable_item(sha1_hash const& target
-			, aux::array_view<char const> buf
+			, span<char const> buf
 			, address const& addr) override
 		{
 			TORRENT_ASSERT(!m_node_ids.empty());
@@ -411,11 +411,11 @@ namespace
 		}
 
 		void put_mutable_item(sha1_hash const& target
-			, aux::array_view<char const> buf
+			, span<char const> buf
 			, signature const& sig
 			, sequence_number seq
 			, public_key const& pk
-			, aux::array_view<char const> salt
+			, span<char const> salt
 			, address const& addr) override
 		{
 			TORRENT_ASSERT(!m_node_ids.empty());
