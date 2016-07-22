@@ -156,7 +156,7 @@ namespace libtorrent
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA1_Update(&m_context, reinterpret_cast<unsigned char const*>(data.data()), data.size());
 #elif TORRENT_USE_CRYPTOAPI
-		if (CryptHashData(m_context, reinterpret_cast<BYTE const*>(data.data()), data.size(), 0) == false)
+		if (CryptHashData(m_context, reinterpret_cast<BYTE const*>(data.data()), int(data.size()), 0) == false)
 		{
 #ifndef BOOST_NO_EXCEPTIONS
 			throw system_error(error_code(GetLastError(), system_category()));
@@ -182,7 +182,7 @@ namespace libtorrent
 		CC_SHA1_Final(digest.begin(), &m_context);
 #elif TORRENT_USE_CRYPTOAPI
 
-		DWORD size = sha1_hash::size;
+		DWORD size = digest.size();
 		if (CryptGetHashParam(m_context, HP_HASHVAL
 			, reinterpret_cast<BYTE*>(digest.data()), &size, 0) == false)
 		{
@@ -192,7 +192,7 @@ namespace libtorrent
 			std::terminate();
 #endif
 		}
-		TORRENT_ASSERT(size == sha1_hash::size);
+		TORRENT_ASSERT(size == digest.size());
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA1_Final(digest.begin(), &m_context);
 #else
