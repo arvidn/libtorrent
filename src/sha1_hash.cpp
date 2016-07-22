@@ -47,7 +47,7 @@ namespace libtorrent
 	std::ostream& operator<<(std::ostream& os, sha1_hash const& peer)
 	{
 		char out[sha1_hash::size() * 2 + 1];
-		aux::to_hex(peer.data(), sha1_hash::size(), out);
+		aux::to_hex(peer.data(), int(sha1_hash::size()), out);
 		return os << out;
 	}
 
@@ -56,7 +56,7 @@ namespace libtorrent
 	{
 		char hex[sha1_hash::size() * 2];
 		is.read(hex, sha1_hash::size() * 2);
-		if (!aux::from_hex(hex, sha1_hash::size() * 2, peer.data()))
+		if (!aux::from_hex(hex, int(sha1_hash::size()) * 2, peer.data()))
 			is.setstate(std::ios_base::failbit);
 		return is;
 	}

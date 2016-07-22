@@ -948,7 +948,7 @@ ip_ok:
 			if (m_log)
 			{
 				char hex_id[41];
-				aux::to_hex(e.id.data(), e.id.size(), hex_id);
+				aux::to_hex(e.id.data(), int(e.id.size()), hex_id);
 				m_log->log(dht_logger::routing_table, "replacing node with higher RTT: %s %s"
 					, hex_id, print_address(e.addr()).c_str());
 			}

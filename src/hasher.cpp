@@ -182,7 +182,7 @@ namespace libtorrent
 		CC_SHA1_Final(digest.begin(), &m_context);
 #elif TORRENT_USE_CRYPTOAPI
 
-		DWORD size = digest.size();
+		DWORD size = DWORD(digest.size());
 		if (CryptGetHashParam(m_context, HP_HASHVAL
 			, reinterpret_cast<BYTE*>(digest.data()), &size, 0) == false)
 		{
