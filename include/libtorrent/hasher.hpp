@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/aux_/array_view.hpp"
+#include "libtorrent/span.hpp"
 
 #include <cstdint>
 
@@ -87,12 +87,12 @@ namespace libtorrent
 		// this is the same as default constructing followed by a call to
 		// ``update(data, len)``.
 		hasher(char const* data, int len);
-		hasher(aux::array_view<char const> data);
+		hasher(span<char const> data);
 		hasher(hasher const&);
 		hasher& operator=(hasher const&);
 
 		// append the following bytes to what is being hashed
-		hasher& update(aux::array_view<char const> data);
+		hasher& update(span<char const> data);
 		hasher& update(char const* data, int len);
 
 		// returns the SHA-1 digest of the buffers previously passed to

@@ -30,39 +30,39 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_ARRAY_VIEW_HPP_INCLUDED
-#define TORRENT_ARRAY_VIEW_HPP_INCLUDED
+#ifndef TORRENT_SPAN_HPP_INCLUDED
+#define TORRENT_SPAN_HPP_INCLUDED
 
 #include <vector>
 #include <array>
 #include <type_traits> // for std::is_convertible
 #include "libtorrent/assert.hpp"
 
-namespace libtorrent { namespace aux {
-
+namespace libtorrent
+{
 	template <typename T>
-	struct array_view
+	struct span
 	{
-		array_view() : m_ptr(nullptr), m_len(0) {}
+		span() : m_ptr(nullptr), m_len(0) {}
 
 		template <typename U>
-		array_view(array_view<U> const& v)
+		span(span<U> const& v)
 			: m_ptr(v.data()), m_len(v.size()) {}
 
-		array_view(T& p) : m_ptr(&p), m_len(1) {}
-		array_view(T* p, size_t l) : m_ptr(p), m_len(l) {}
+		span(T& p) : m_ptr(&p), m_len(1) {}
+		span(T* p, size_t l) : m_ptr(p), m_len(l) {}
 
 		template <typename U, size_t N>
-		array_view(std::array<U, N>& arr)
+		span(std::array<U, N>& arr)
 			: m_ptr(arr.data()), m_len(arr.size()) {}
 
 		template <typename U, size_t N>
-		array_view(U (&arr)[N])
+		span(U (&arr)[N])
 			: m_ptr(&arr[0]), m_len(N) {}
 
 		// anything with a .data() member function is considered a container
 		template <typename Cont, typename = decltype(std::declval<Cont>().data())>
-		array_view(Cont& c)
+		span(Cont& c)
 			: m_ptr(c.data()), m_len(c.size()) {}
 
 		size_t size() const { return m_len; }
@@ -80,19 +80,19 @@ namespace libtorrent { namespace aux {
 		T& front() const { TORRENT_ASSERT(m_len > 0); return m_ptr[0]; }
 		T& back() const { TORRENT_ASSERT(m_len > 0); return m_ptr[m_len-1]; }
 
-		array_view<T> first(size_t const n) const
+		span<T> first(size_t const n) const
 		{
 			TORRENT_ASSERT(size() >= n);
 			return { data(), size() - n };
 		}
 
-		array_view<T> last(size_t const n) const
+		span<T> last(size_t const n) const
 		{
 			TORRENT_ASSERT(size() >= n);
 			return { data() + size() - n, n };
 		}
 
-		array_view<T> cut_first(size_t const n) const
+		span<T> cut_first(size_t const n) const
 		{
 			TORRENT_ASSERT(size() >= n);
 			return { data() + n, int(size()) - n };
@@ -108,7 +108,6 @@ namespace libtorrent { namespace aux {
 		T* m_ptr;
 		size_t m_len;
 	};
-}}
+}
 
-#endif
-
+#endif // TORRENT_SPAN_HPP_INCLUDED

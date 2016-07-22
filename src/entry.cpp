@@ -328,7 +328,7 @@ namespace libtorrent
 		m_type = dictionary_t;
 	}
 
-	entry::entry(aux::array_view<char const> v)
+	entry::entry(span<char const> v)
 		: m_type(undefined_t)
 	{
 #if TORRENT_USE_ASSERTS
@@ -468,7 +468,7 @@ namespace libtorrent
 		return *this;
 	}
 
-	entry& entry::operator=(aux::array_view<char const> v)
+	entry& entry::operator=(span<char const> v)
 	{
 		destruct();
 		new(&data) string_type(v.data(), v.size());

@@ -85,7 +85,7 @@ namespace libtorrent
 #endif
 	}
 
-	hasher::hasher(aux::array_view<char const> data)
+	hasher::hasher(span<char const> data)
 		: hasher()
 	{
 		update(data);
@@ -148,7 +148,7 @@ namespace libtorrent
 		return update({data, size_t(len)});
 	}
 
-	hasher& hasher::update(aux::array_view<char const> data)
+	hasher& hasher::update(span<char const> data)
 	{
 		TORRENT_ASSERT(!data.empty());
 #ifdef TORRENT_USE_LIBGCRYPT

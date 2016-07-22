@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/aux_/time.hpp" // for aux::time_now()
-#include "libtorrent/aux_/array_view.hpp"
+#include "libtorrent/span.hpp"
 
 // #define TORRENT_DEBUG_MTU 1135
 
@@ -157,13 +157,13 @@ namespace libtorrent
 		if ((flags & dont_fragment) && len > TORRENT_DEBUG_MTU) return;
 #endif
 
-		m_send_fun(ep, array_view<char const>(p, len), ec
+		m_send_fun(ep, span<char const>(p, len), ec
 			, ((flags & dont_fragment) ? udp_socket::dont_fragment : 0)
 				| udp_socket::peer_connection);
 	}
 
 	bool utp_socket_manager::incoming_packet(udp::endpoint const& ep
-			, aux::array_view<char const> p)
+			, span<char const> p)
 	{
 //		UTP_LOGV("incoming packet size:%d\n", size);
 

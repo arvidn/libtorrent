@@ -2196,7 +2196,7 @@ namespace aux {
 
 	void session_impl::send_udp_packet_hostname(char const* hostname
 		, int const port
-		, array_view<char const> p
+		, span<char const> p
 		, error_code& ec
 		, int const flags)
 	{
@@ -2227,7 +2227,7 @@ namespace aux {
 
 	void session_impl::send_udp_packet(bool const ssl
 		, udp::endpoint const& ep
-		, array_view<char const> p
+		, span<char const> p
 		, error_code& ec
 		, int const flags)
 	{
@@ -2346,7 +2346,7 @@ namespace aux {
 					continue;
 				}
 
-				aux::array_view<char const> const buf = packet.data;
+				span<char const> const buf = packet.data;
 
 				// give the uTP socket manager first dis on the packet. Presumably
 				// the majority of packets are uTP packets.

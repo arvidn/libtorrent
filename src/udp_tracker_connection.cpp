@@ -53,7 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/aux_/io.hpp"
-#include "libtorrent/aux_/array_view.hpp"
+#include "libtorrent/span.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/socket_io.hpp"
@@ -325,7 +325,7 @@ namespace libtorrent
 	}
 
 	bool udp_tracker_connection::on_receive_hostname(char const* hostname
-		, aux::array_view<char const> buf)
+		, span<char const> buf)
 	{
 		TORRENT_UNUSED(hostname);
 		// just ignore the hostname this came from, pretend that
@@ -336,7 +336,7 @@ namespace libtorrent
 	}
 
 	bool udp_tracker_connection::on_receive(udp::endpoint const& ep
-		, aux::array_view<char const> const buf)
+		, span<char const> const buf)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		boost::shared_ptr<request_callback> cb = requester();
@@ -382,9 +382,9 @@ namespace libtorrent
 		// ignore packets smaller than 8 bytes
 		if (buf.size() < 8) return false;
 
-		aux::array_view<const char> ptr = buf;
-		int const action = read_int32(ptr);
-		std::uint32_t const transaction = read_uint32(ptr);
+		span<const char> ptr = buf;
+		int const action = aux::read_int32(ptr);
+		std::uint32_t const transaction = aux::read_uint32(ptr);
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (cb) cb->debug_log("*** UDP_TRACKER_PACKET [ action: %d ]", action);
@@ -452,7 +452,7 @@ namespace libtorrent
 		m_transaction_id = new_tid;
 	}
 
-	bool udp_tracker_connection::on_connect_response(aux::array_view<char const> buf)
+	bool udp_tracker_connection::on_connect_response(span<char const> buf)
 	{
 		// ignore packets smaller than 16 bytes
 		if (buf.size() < 16) return false;
@@ -464,7 +464,7 @@ namespace libtorrent
 
 		// reset transaction
 		update_transaction_id();
-		std::uint64_t const connection_id = read_int64(buf);
+		std::uint64_t const connection_id = aux::read_int64(buf);
 
 		std::lock_guard<std::mutex> l(m_cache_mutex);
 		connection_cache_entry& cce = m_connection_cache[m_target.address()];
@@ -493,7 +493,7 @@ namespace libtorrent
 		}
 
 		char buf[16];
-		aux::array_view<char> view = buf;
+		span<char> view = buf;
 
 		TORRENT_ASSERT(m_transaction_id != 0);
 
@@ -555,7 +555,7 @@ namespace libtorrent
 		if (i == m_connection_cache.end()) return;
 
 		char buf[8 + 4 + 4 + 20];
-		aux::array_view<char> view = buf;
+		span<char> view = buf;
 
 		aux::write_int64(i->second.connection_id, view); // connection_id
 		aux::write_int32(action_scrape, view); // action (scrape)
@@ -588,7 +588,7 @@ namespace libtorrent
 		}
 	}
 
-	bool udp_tracker_connection::on_announce_response(aux::array_view<char const> buf)
+	bool udp_tracker_connection::on_announce_response(span<char const> buf)
 	{
 		if (buf.size() < 20) return false;
 
@@ -647,7 +647,7 @@ namespace libtorrent
 		return true;
 	}
 
-	bool udp_tracker_connection::on_scrape_response(aux::array_view<char const> buf)
+	bool udp_tracker_connection::on_scrape_response(span<char const> buf)
 	{
 		using namespace libtorrent::aux;
 
@@ -703,7 +703,7 @@ namespace libtorrent
 		if (m_abort) return;
 
 		char buf[800];
-		aux::array_view<char> out = buf;
+		span<char> out = buf;
 
 		tracker_request const& req = tracker_req();
 		bool const stats = req.send_stats;
@@ -771,13 +771,13 @@ namespace libtorrent
 		if (!m_hostname.empty())
 		{
 			m_man.send_hostname(m_hostname.c_str()
-				, m_target.port(), aux::array_view<char const>(buf
+				, m_target.port(), span<char const>(buf
 					, int(sizeof(buf) - out.size())), ec
 				, udp_socket::tracker_connection);
 		}
 		else
 		{
-			m_man.send(m_target, aux::array_view<char const>(buf
+			m_man.send(m_target, span<char const>(buf
 					, int(sizeof(buf) - out.size())), ec
 				, udp_socket::tracker_connection);
 		}

@@ -169,7 +169,7 @@ udp_socket::udp_socket(io_service& ios)
 	, m_abort(true)
 {}
 
-int udp_socket::read(array_view<packet> pkts, error_code& ec)
+int udp_socket::read(span<packet> pkts, error_code& ec)
 {
 	int const num = int(pkts.size());
 	int ret = 0;
@@ -203,11 +203,11 @@ int udp_socket::read(array_view<packet> pkts, error_code& ec)
 				&&  m_socks5_connection->active())) continue;
 
 			p.error = ec;
-			p.data = array_view<char>();
+			p.data = span<char>();
 		}
 		else
 		{
-			p.data = array_view<char>(m_buf->data(), len);
+			p.data = span<char>(m_buf->data(), len);
 
 			// support packets coming from the SOCKS5 proxy
 			if (m_socks5_connection && m_socks5_connection->active())
@@ -234,7 +234,7 @@ int udp_socket::read(array_view<packet> pkts, error_code& ec)
 }
 
 void udp_socket::send_hostname(char const* hostname, int const port
-	, array_view<char const> p, error_code& ec, int const flags)
+	, span<char const> p, error_code& ec, int const flags)
 {
 	TORRENT_ASSERT(is_single_thread());
 
@@ -264,7 +264,7 @@ void udp_socket::send_hostname(char const* hostname, int const port
 	if (!ec) send(udp::endpoint(target, port), p, ec, flags);
 }
 
-void udp_socket::send(udp::endpoint const& ep, array_view<char const> p
+void udp_socket::send(udp::endpoint const& ep, span<char const> p
 	, error_code& ec, int const flags)
 {
 	TORRENT_ASSERT(is_single_thread());
@@ -298,7 +298,7 @@ void udp_socket::send(udp::endpoint const& ep, array_view<char const> p
 	m_socket.send_to(boost::asio::buffer(p.data(), p.size()), ep, 0, ec);
 }
 
-void udp_socket::wrap(udp::endpoint const& ep, array_view<char const> p
+void udp_socket::wrap(udp::endpoint const& ep, span<char const> p
 	, error_code& ec, int const flags)
 {
 	TORRENT_UNUSED(flags);
@@ -323,7 +323,7 @@ void udp_socket::wrap(udp::endpoint const& ep, array_view<char const> p
 	m_socket.send_to(iovec, m_socks5_connection->target(), 0, ec);
 }
 
-void udp_socket::wrap(char const* hostname, int const port, array_view<char const> p
+void udp_socket::wrap(char const* hostname, int const port, span<char const> p
 	, error_code& ec, int const flags)
 {
 	TORRENT_UNUSED(flags);
@@ -356,7 +356,7 @@ void udp_socket::wrap(char const* hostname, int const port, array_view<char cons
 // buf is an in-out parameter. It will be updated
 // return false if the packet should be ignored. It's not a valid Socks5 UDP
 // forwarded packet
-bool udp_socket::unwrap(udp::endpoint& from, array_view<char>& buf)
+bool udp_socket::unwrap(udp::endpoint& from, span<char>& buf)
 {
 	using namespace libtorrent::detail;
 
@@ -396,7 +396,7 @@ bool udp_socket::unwrap(udp::endpoint& from, array_view<char>& buf)
 		from = udp::endpoint(addr, read_uint16(p));
 	}
 
-	buf = array_view<char>(p, size - (p - buf.data()));
+	buf = span<char>(p, size - (p - buf.data()));
 	return true;
 }
 

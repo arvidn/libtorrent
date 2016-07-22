@@ -51,7 +51,7 @@ boost::asio::mutable_buffer receive_buffer::reserve(int size)
 	{
 		int const new_size = std::max(m_recv_end + size, m_packet_size);
 		buffer new_buffer(new_size
-			, aux::array_view<char const>(m_recv_buffer.ptr(), m_recv_end));
+			, span<char const>(m_recv_buffer.ptr(), m_recv_end));
 		m_recv_buffer = std::move(new_buffer);
 
 		// since we just increased the size of the buffer, reset the watermark to
@@ -73,7 +73,7 @@ void receive_buffer::grow(int const limit)
 
 	// re-allcoate the buffer and copy over the part of it that's used
 	buffer new_buffer(new_size
-		, aux::array_view<char const>(m_recv_buffer.ptr(), m_recv_end));
+		, span<char const>(m_recv_buffer.ptr(), m_recv_end));
 	m_recv_buffer = std::move(new_buffer);
 
 	// since we just increased the size of the buffer, reset the watermark to
@@ -187,7 +187,7 @@ void receive_buffer::normalize(int force_shrink)
 	bool const shrink_buffer = m_recv_buffer.size() / 2 > m_watermark.mean()
 		&& m_watermark.mean() > (m_recv_end - m_recv_start);
 
-	aux::array_view<char const> bytes_to_shift(
+	span<char const> bytes_to_shift(
 		m_recv_buffer.ptr() + m_recv_start
 			, m_recv_end - m_recv_start);
 

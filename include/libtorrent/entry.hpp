@@ -71,7 +71,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/aux_/array_view.hpp"
+#include "libtorrent/span.hpp"
 
 namespace libtorrent
 {
@@ -116,7 +116,7 @@ namespace libtorrent
 		// The content of the argument is copied into the
 		// newly constructed entry
 		entry(dictionary_type);
-		entry(aux::array_view<char const>);
+		entry(span<char const>);
 		template <typename U, typename = typename std::enable_if<
 			std::is_same<U, entry::string_type>::value
 			|| std::is_same<U, char const*>::value >::type>
@@ -160,7 +160,7 @@ namespace libtorrent
 		entry& operator=(entry const&);
 		entry& operator=(entry&&);
 		entry& operator=(dictionary_type);
-		entry& operator=(aux::array_view<char const>);
+		entry& operator=(span<char const>);
 		template <typename U, typename = typename std::enable_if<
 			std::is_same<U, entry::string_type>::value
 			|| std::is_same<U, char const*>::value >::type>

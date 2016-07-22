@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
-#include "libtorrent/aux_/array_view.hpp"
+#include "libtorrent/span.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -56,7 +56,7 @@ namespace libtorrent
 	struct utp_socket_manager final
 	{
 		typedef boost::function<void(udp::endpoint const&
-			, aux::array_view<char const>
+			, span<char const>
 			, error_code&, int)> send_fun_t;
 
 		typedef boost::function<void(boost::shared_ptr<socket_type> const&)>
@@ -71,7 +71,7 @@ namespace libtorrent
 		~utp_socket_manager();
 
 		// return false if this is not a uTP packet
-		bool incoming_packet(udp::endpoint const& ep, aux::array_view<char const> p);
+		bool incoming_packet(udp::endpoint const& ep, span<char const> p);
 
 		// if the UDP socket failed with an EAGAIN or EWOULDBLOCK, this will be
 		// called once the socket is writeable again

@@ -687,7 +687,7 @@ namespace libtorrent { namespace dht
 		m_send_quota -= int(m_send_buf.size());
 
 		error_code ec;
-		m_send_fun(addr, aux::array_view<char const>(&m_send_buf[0]
+		m_send_fun(addr, span<char const>(&m_send_buf[0]
 			, int(m_send_buf.size())), ec, 0);
 		if (ec)
 		{

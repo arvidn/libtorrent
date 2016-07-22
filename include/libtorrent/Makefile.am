@@ -149,8 +149,8 @@ nobase_include_HEADERS = \
   web_connection_base.hpp      \
   web_peer_connection.hpp      \
   xml_parse.hpp                \
+  span.hpp                     \
   \
-  aux_/array_view.hpp               \
   aux_/allocating_handler.hpp       \
   aux_/bind_to_device.hpp           \
   aux_/cpuid.hpp                    \

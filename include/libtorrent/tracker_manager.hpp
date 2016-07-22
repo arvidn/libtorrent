@@ -63,7 +63,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/union_endpoint.hpp"
 #include "libtorrent/io_service.hpp"
-#include "libtorrent/aux_/array_view.hpp"
+#include "libtorrent/span.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/error_code.hpp"
@@ -342,10 +342,10 @@ namespace libtorrent
 	public:
 
 		typedef boost::function<void(udp::endpoint const&
-			, aux::array_view<char const>
+			, span<char const>
 			, error_code&, int)> send_fun_t;
 		typedef boost::function<void(char const*, int
-			, aux::array_view<char const>
+			, span<char const>
 			, error_code&, int)> send_fun_hostname_t;
 
 		tracker_manager(send_fun_t const& send_fun
@@ -374,13 +374,13 @@ namespace libtorrent
 		void received_bytes(int bytes);
 
 		void incoming_error(error_code const& ec, udp::endpoint const& ep);
-		bool incoming_packet(udp::endpoint const& ep, aux::array_view<char const> buf);
+		bool incoming_packet(udp::endpoint const& ep, span<char const> buf);
 
 		// this is only used for SOCKS packets, since
 		// they may be addressed to hostname
 		// TODO: 3 make sure the udp_socket supports passing on string-hostnames
 		// too, and that this function is used
-		bool incoming_packet(char const* hostname, aux::array_view<char const> buf);
+		bool incoming_packet(char const* hostname, span<char const> buf);
 
 		void update_transaction_id(
 			boost::shared_ptr<udp_tracker_connection> c
@@ -389,10 +389,10 @@ namespace libtorrent
 		aux::session_settings const& settings() const { return m_settings; }
 		resolver_interface& host_resolver() { return m_host_resolver; }
 
-		void send_hostname(char const* hostname, int port, aux::array_view<char const> p
+		void send_hostname(char const* hostname, int port, span<char const> p
 			, error_code& ec, int flags = 0);
 
-		void send(udp::endpoint const& ep, aux::array_view<char const> p
+		void send(udp::endpoint const& ep, span<char const> p
 			, error_code& ec, int flags = 0);
 
 	private:

@@ -326,7 +326,7 @@ struct utp_socket_impl
 
 	void tick(time_point now);
 	void init_mtu(int link_mtu, int utp_mtu);
-	bool incoming_packet(aux::array_view<std::uint8_t const> buf
+	bool incoming_packet(span<std::uint8_t const> buf
 		, udp::endpoint const& ep, time_point receive_time);
 	void writable();
 
@@ -747,11 +747,11 @@ void utp_init_mtu(utp_socket_impl* s, int link_mtu, int utp_mtu)
 }
 
 bool utp_incoming_packet(utp_socket_impl* s
-	, aux::array_view<char const> p
+	, span<char const> p
 	, udp::endpoint const& ep, time_point receive_time)
 {
 	return s->incoming_packet(
-		aux::array_view<std::uint8_t const>(reinterpret_cast<std::uint8_t const*>(p.data()), int(p.size()))
+		span<std::uint8_t const>(reinterpret_cast<std::uint8_t const*>(p.data()), int(p.size()))
 		, ep, receive_time);
 }
 
@@ -2704,7 +2704,7 @@ void utp_socket_impl::init_mtu(int link_mtu, int utp_mtu)
 }
 
 // return false if this is an invalid packet
-bool utp_socket_impl::incoming_packet(aux::array_view<std::uint8_t const> buf
+bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 	, udp::endpoint const& ep, time_point receive_time)
 {
 	INVARIANT_CHECK;

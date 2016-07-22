@@ -5473,7 +5473,7 @@ namespace libtorrent
 			int const send_bytes = (std::min)(m_send_buffer.size(), 1024*1024);
 			m_send_buffer.build_mutable_iovec(send_bytes, vec);
 			int next_barrier;
-			aux::array_view<boost::asio::const_buffer> inject_vec;
+			span<boost::asio::const_buffer> inject_vec;
 			std::tie(next_barrier, inject_vec) = hit_send_barrier(vec);
 			for (auto i = inject_vec.rbegin(); i != inject_vec.rend(); ++i)
 			{
