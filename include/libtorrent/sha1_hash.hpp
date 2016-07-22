@@ -68,7 +68,7 @@ namespace libtorrent
 		enum { number_size = 5 };
 	public:
 
-		// the number of bytes of the number
+		// the size of the hash in bytes
 		static constexpr size_t size() { return number_size * sizeof(std::uint32_t); }
 
 		// constructs an all-zero sha1-hash

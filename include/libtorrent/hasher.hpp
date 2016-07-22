@@ -92,8 +92,8 @@ namespace libtorrent
 		hasher& operator=(hasher const&);
 
 		// append the following bytes to what is being hashed
-		hasher& update(char const* data, int len);
 		hasher& update(aux::array_view<char const> data);
+		hasher& update(char const* data, int len);
 
 		// returns the SHA-1 digest of the buffers previously passed to
 		// update() and the hasher constructor.

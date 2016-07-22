@@ -148,7 +148,7 @@ namespace libtorrent
 		return update({data, size_t(len)});
 	}
 
-	hasher& hasher::update(aux::array_view<const char> data)
+	hasher& hasher::update(aux::array_view<char const> data)
 	{
 		TORRENT_ASSERT(!data.empty());
 #ifdef TORRENT_USE_LIBGCRYPT
@@ -177,7 +177,7 @@ namespace libtorrent
 		sha1_hash digest;
 #ifdef TORRENT_USE_LIBGCRYPT
 		gcry_md_final(m_context);
-		digest.assign((const char*)gcry_md_read(m_context, 0));
+		digest.assign((char const*)gcry_md_read(m_context, 0));
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA1_Final(digest.begin(), &m_context);
 #elif TORRENT_USE_CRYPTOAPI
