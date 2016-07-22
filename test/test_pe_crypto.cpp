@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pe_crypto.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/random.hpp"
-#include "libtorrent/aux_/array_view.hpp"
+#include "libtorrent/span.hpp"
 
 #include "setup_transfer.hpp"
 #include "test.hpp"
@@ -63,7 +63,7 @@ void test_enc_handler(libtorrent::crypto_plugin& a, libtorrent::crypto_plugin& b
 		{
 			mutable_buffer iovec(&buf[0], buf_len);
 			int next_barrier;
-			lt::aux::array_view<const_buffer> iovec_out;
+			lt::span<const_buffer> iovec_out;
 			std::tie(next_barrier, iovec_out) = a.encrypt(iovec);
 			TEST_CHECK(buf != cmp_buf);
 			TEST_EQUAL(iovec_out.size(), 0);
@@ -85,7 +85,7 @@ void test_enc_handler(libtorrent::crypto_plugin& a, libtorrent::crypto_plugin& b
 		{
 			mutable_buffer iovec(&buf[0], buf_len);
 			int next_barrier;
-			lt::aux::array_view<const_buffer> iovec_out;
+			lt::span<const_buffer> iovec_out;
 			std::tie(next_barrier, iovec_out) = b.encrypt(iovec);
 			TEST_EQUAL(iovec_out.size(), 0);
 			TEST_CHECK(buf != cmp_buf);

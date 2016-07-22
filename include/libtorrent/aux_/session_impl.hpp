@@ -1025,13 +1025,13 @@ namespace libtorrent
 
 			void send_udp_packet_hostname(char const* hostname
 				, int port
-				, array_view<char const> p
+				, span<char const> p
 				, error_code& ec
 				, int flags);
 
 			void send_udp_packet(bool ssl
 				, udp::endpoint const& ep
-				, array_view<char const> p
+				, span<char const> p
 				, error_code& ec
 				, int flags);
 

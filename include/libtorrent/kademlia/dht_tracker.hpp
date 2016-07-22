@@ -51,7 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/deadline_timer.hpp"
-#include "libtorrent/aux_/array_view.hpp"
+#include "libtorrent/span.hpp"
 
 namespace libtorrent
 {
@@ -71,7 +71,7 @@ namespace libtorrent { namespace dht
 		, boost::enable_shared_from_this<dht_tracker>
 	{
 		typedef boost::function<void(udp::endpoint const&
-			, aux::array_view<char const>, error_code&, int)> send_fun_t;
+			, span<char const>, error_code&, int)> send_fun_t;
 
 		dht_tracker(dht_observer* observer
 			, io_service& ios

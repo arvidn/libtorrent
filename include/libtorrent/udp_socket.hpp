@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/buffer.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/debug.hpp"
-#include "libtorrent/aux_/array_view.hpp"
+#include "libtorrent/span.hpp"
 #include "libtorrent/aux_/allocating_handler.hpp"
 
 namespace libtorrent
@@ -76,18 +76,18 @@ namespace libtorrent
 
 		struct packet
 		{
-			aux::array_view<char> data;
+			span<char> data;
 			udp::endpoint from;
 			error_code error;
 		};
 
-		int read(aux::array_view<packet> pkts, error_code& ec);
+		int read(span<packet> pkts, error_code& ec);
 
 		// this is only valid when using a socks5 proxy
-		void send_hostname(char const* hostname, int port, aux::array_view<char const> p
+		void send_hostname(char const* hostname, int port, span<char const> p
 			, error_code& ec, int flags = 0);
 
-		void send(udp::endpoint const& ep, aux::array_view<char const> p
+		void send(udp::endpoint const& ep, span<char const> p
 			, error_code& ec, int flags = 0);
 		void bind(udp::endpoint const& ep, error_code& ec);
 		void close();
@@ -128,9 +128,9 @@ namespace libtorrent
 		udp_socket(udp_socket const&);
 		udp_socket& operator=(udp_socket const&);
 
-		void wrap(udp::endpoint const& ep, aux::array_view<char const> p, error_code& ec, int flags);
-		void wrap(char const* hostname, int port, aux::array_view<char const> p, error_code& ec, int flags);
-		bool unwrap(udp::endpoint& from, aux::array_view<char>& buf);
+		void wrap(udp::endpoint const& ep, span<char const> p, error_code& ec, int flags);
+		void wrap(char const* hostname, int port, span<char const> p, error_code& ec, int flags);
+		bool unwrap(udp::endpoint& from, span<char>& buf);
 
 		udp::socket m_socket;
 

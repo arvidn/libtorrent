@@ -3471,12 +3471,12 @@ namespace libtorrent
 	}
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-	std::tuple<int, aux::array_view<boost::asio::const_buffer>>
+	std::tuple<int, span<boost::asio::const_buffer>>
 	bt_peer_connection::hit_send_barrier(
-		aux::array_view<boost::asio::mutable_buffer> iovec)
+		span<boost::asio::mutable_buffer> iovec)
 	{
 		int next_barrier;
-		aux::array_view<boost::asio::const_buffer> out_iovec;
+		span<boost::asio::const_buffer> out_iovec;
 		std::tie(next_barrier, out_iovec) = m_enc_handler.encrypt(iovec);
 #ifndef TORRENT_DISABLE_LOGGING
 		if (next_barrier != 0)

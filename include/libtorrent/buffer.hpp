@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/aux_/array_view.hpp"
+#include "libtorrent/span.hpp"
 
 #if defined __GLIBC__
 #include <malloc.h>
@@ -166,7 +166,7 @@ public:
 
 	// allocate an uninitialized buffer of the specified size
 	// and copy the initialization range into the start of the buffer
-	buffer(std::size_t const size, aux::array_view<char const> initialize)
+	buffer(std::size_t const size, span<char const> initialize)
 		: buffer(size)
 	{
 		TORRENT_ASSERT(initialize.size() <= size);
@@ -210,10 +210,10 @@ public:
 	buffer::const_interval data() const
 	{ return interval(m_begin, m_begin + m_size); }
 
-	operator aux::array_view<char>()
-	{ return aux::array_view<char>(m_begin, int(m_size)); }
-	operator aux::array_view<char const>() const
-	{ return aux::array_view<char const>(m_begin, int(m_size)); }
+	operator span<char>()
+	{ return span<char>(m_begin, int(m_size)); }
+	operator span<char const>() const
+	{ return span<char const>(m_begin, int(m_size)); }
 
 	std::size_t size() const { return m_size; }
 

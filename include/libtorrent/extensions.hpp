@@ -174,7 +174,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/session_handle.hpp"
 #include "libtorrent/peer_connection_handle.hpp"
-#include "libtorrent/aux_/array_view.hpp"
+#include "libtorrent/span.hpp"
 
 namespace libtorrent
 {
@@ -509,8 +509,8 @@ namespace libtorrent
 		// send buffer, must be owned by the crypto plugin and guaranteed to stay
 		// alive until the crypto_plugin is destructed or this function is called
 		// again.
-		virtual std::tuple<int, aux::array_view<boost::asio::const_buffer>>
-		encrypt(aux::array_view<boost::asio::mutable_buffer> /*send_vec*/) = 0;
+		virtual std::tuple<int, span<boost::asio::const_buffer>>
+		encrypt(span<boost::asio::mutable_buffer> /*send_vec*/) = 0;
 
 		// decrypt the provided buffers.
 		// consume is set to the number of bytes which should be trimmed from the
@@ -521,7 +521,7 @@ namespace libtorrent
 		//
 		// packet_size is set to the minimum number of bytes which must be read to
 		// advance the next step of decryption. default is 0
-		virtual void decrypt(aux::array_view<boost::asio::mutable_buffer> /*receive_vec*/
+		virtual void decrypt(span<boost::asio::mutable_buffer> /*receive_vec*/
 			, int& /* consume */, int& /*produce*/, int& /*packet_size*/) = 0;
 	};
 }

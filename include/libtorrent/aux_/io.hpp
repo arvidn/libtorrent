@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 #include <string>
 #include <algorithm> // for copy
-#include "libtorrent/aux_/array_view.hpp"
+#include "libtorrent/span.hpp"
 
 namespace libtorrent { namespace aux
 {
@@ -47,7 +47,7 @@ namespace libtorrent { namespace aux
 	// it to native endianess
 	template <class T, class Byte>
 	inline typename std::enable_if<sizeof(Byte)==1, T>::type
-	read_impl(array_view<Byte>& view, type<T>)
+	read_impl(span<Byte>& view, type<T>)
 	{
 		T ret = 0;
 		for (int i = 0; i < int(sizeof(T)); ++i)
@@ -61,7 +61,7 @@ namespace libtorrent { namespace aux
 
 	template <class T, class Byte>
 	inline typename std::enable_if<sizeof(Byte)==1, void>::type
-	write_impl(T val, array_view<Byte>& view)
+	write_impl(T val, span<Byte>& view)
 	{
 		int shift = int(sizeof(T)) * 8;
 		for (int i = 0; i < int(sizeof(T)); ++i)
@@ -75,78 +75,78 @@ namespace libtorrent { namespace aux
 	// -- adaptors
 
 	template <typename Byte>
-	std::int64_t read_int64(array_view<Byte>& view)
+	std::int64_t read_int64(span<Byte>& view)
 	{ return read_impl(view, type<std::int64_t>()); }
 
 	template <typename Byte>
-	std::uint64_t read_uint64(array_view<Byte>& view)
+	std::uint64_t read_uint64(span<Byte>& view)
 	{ return read_impl(view, type<std::uint64_t>()); }
 
 	template <typename Byte>
-	std::uint32_t read_uint32(array_view<Byte>& view)
+	std::uint32_t read_uint32(span<Byte>& view)
 	{ return read_impl(view, type<std::uint32_t>()); }
 
 	template <typename Byte>
-	std::int32_t read_int32(array_view<Byte>& view)
+	std::int32_t read_int32(span<Byte>& view)
 	{ return read_impl(view, type<std::int32_t>()); }
 
 	template <typename Byte>
-	std::int16_t read_int16(array_view<Byte>& view)
+	std::int16_t read_int16(span<Byte>& view)
 	{ return read_impl(view, type<std::int16_t>()); }
 
 	template <typename Byte>
-	std::uint16_t read_uint16(array_view<Byte>& view)
+	std::uint16_t read_uint16(span<Byte>& view)
 	{ return read_impl(view, type<std::uint16_t>()); }
 
 	template <typename Byte>
-	std::int8_t read_int8(array_view<Byte>& view)
+	std::int8_t read_int8(span<Byte>& view)
 	{ return read_impl(view, type<std::int8_t>()); }
 
 	template <typename Byte>
-	std::uint8_t read_uint8(array_view<Byte>& view)
+	std::uint8_t read_uint8(span<Byte>& view)
 	{ return read_impl(view, type<std::uint8_t>()); }
 
 
 	template <typename Byte>
-	void write_uint64(std::uint64_t val, array_view<Byte>& view)
+	void write_uint64(std::uint64_t val, span<Byte>& view)
 	{ write_impl(val, view); }
 
 	template <typename Byte>
-	void write_int64(std::int64_t val, array_view<Byte>& view)
+	void write_int64(std::int64_t val, span<Byte>& view)
 	{ write_impl(val, view); }
 
 	template <typename Byte>
-	void write_uint32(std::uint32_t val, array_view<Byte>& view)
+	void write_uint32(std::uint32_t val, span<Byte>& view)
 	{ write_impl(val, view); }
 
 	template <typename Byte>
-	void write_int32(std::int32_t val, array_view<Byte>& view)
+	void write_int32(std::int32_t val, span<Byte>& view)
 	{ write_impl(val, view); }
 
 	template <typename Byte>
-	void write_uint16(std::uint16_t val, array_view<Byte>& view)
+	void write_uint16(std::uint16_t val, span<Byte>& view)
 	{ write_impl(val, view); }
 
 	template <typename Byte>
-	void write_int16(std::int16_t val, array_view<Byte>& view)
+	void write_int16(std::int16_t val, span<Byte>& view)
 	{ write_impl(val, view); }
 
 	template <typename Byte>
-	void write_uint8(std::uint8_t val, array_view<Byte>& view)
+	void write_uint8(std::uint8_t val, span<Byte>& view)
 	{ write_impl(val, view); }
 
 	template <typename Byte>
-	void write_int8(std::int8_t val, array_view<Byte>& view)
+	void write_int8(std::int8_t val, span<Byte>& view)
 	{ write_impl(val, view); }
 
 	template<typename Byte>
-	inline int write_string(std::string const& str, array_view<Byte>& view)
+	inline int write_string(std::string const& str, span<Byte>& view)
 	{
 		int const len = int(str.size());
 		for (int i = 0; i < len; ++i)
 			view[i] = str[i];
 
-		view = array_view<Byte>(view.data() + len, int(view.size()) - len);
+		view = span<Byte>(view.data() + len, int(view.size()) - len);
 		return len;
 	}
 

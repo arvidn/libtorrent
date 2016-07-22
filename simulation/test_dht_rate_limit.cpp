@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/session_settings.hpp"
-#include "libtorrent/aux_/array_view.hpp"
+#include "libtorrent/span.hpp"
 #include "libtorrent/kademlia/dht_observer.hpp"
 
 #include <functional>
@@ -121,7 +121,7 @@ TORRENT_TEST(dht_rate_limit)
 		if (ec) return;
 		udp_socket::packet p;
 		error_code err;
-		int const num = int(sock.read(lt::aux::array_view<udp_socket::packet>(&p, 1), err));
+		int const num = int(sock.read(lt::span<udp_socket::packet>(&p, 1), err));
 		if (num) dht->incoming_packet(p.from, p.data.data(), int(p.data.size()));
 		if (stop || err) return;
 		sock.async_read(on_read);

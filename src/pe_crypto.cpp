@@ -54,7 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pe_crypto.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/aux_/array_view.hpp"
+#include "libtorrent/span.hpp"
 
 namespace libtorrent
 {
@@ -103,9 +103,9 @@ namespace libtorrent
 		m_xor_mask = h.final();
 	}
 
-	std::tuple<int, aux::array_view<boost::asio::const_buffer>>
+	std::tuple<int, span<boost::asio::const_buffer>>
 	encryption_handler::encrypt(
-		aux::array_view<boost::asio::mutable_buffer> iovec)
+		span<boost::asio::mutable_buffer> iovec)
 	{
 		using namespace boost::asio;
 
@@ -146,7 +146,7 @@ namespace libtorrent
 		}
 
 		int next_barrier = 0;
-		aux::array_view<const_buffer> out_iovec;
+		span<const_buffer> out_iovec;
 		if (num_bufs != 0)
 		{
 			std::tie(next_barrier, out_iovec)
@@ -290,11 +290,11 @@ namespace libtorrent
 		encrypt(vec);
 	}
 
-	std::tuple<int, aux::array_view<boost::asio::const_buffer>>
-	rc4_handler::encrypt(aux::array_view<boost::asio::mutable_buffer> bufs)
+	std::tuple<int, span<boost::asio::const_buffer>>
+	rc4_handler::encrypt(span<boost::asio::mutable_buffer> bufs)
 	{
 		using namespace boost::asio;
-		aux::array_view<boost::asio::const_buffer> empty;
+		span<boost::asio::const_buffer> empty;
 		if (!m_encrypt) return std::make_tuple(0, empty);
 		if (bufs.size() == 0) return std::make_tuple(0, empty);
 
@@ -313,7 +313,7 @@ namespace libtorrent
 		return std::make_tuple(bytes_processed, empty);
 	}
 
-	void rc4_handler::decrypt(aux::array_view<boost::asio::mutable_buffer> bufs
+	void rc4_handler::decrypt(span<boost::asio::mutable_buffer> bufs
 		, int& consume
 		, int& produce
 		, int& packet_size)

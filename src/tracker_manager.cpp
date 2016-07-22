@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/udp_tracker_connection.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/aux_/io.hpp"
-#include "libtorrent/aux_/array_view.hpp"
+#include "libtorrent/span.hpp"
 
 
 using namespace std::placeholders;
@@ -312,7 +312,7 @@ namespace libtorrent
 	}
 
 	bool tracker_manager::incoming_packet(udp::endpoint const& ep
-		, aux::array_view<char const> const buf)
+		, span<char const> const buf)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		// ignore packets smaller than 8 bytes
@@ -327,7 +327,7 @@ namespace libtorrent
 
 		// the first word is the action, if it's not [0, 3]
 		// it's not a valid udp tracker response
-		aux::array_view<const char> ptr = buf;
+		span<const char> ptr = buf;
 		std::uint32_t const action = aux::read_uint32(ptr);
 		if (action > 3) return false;
 
@@ -357,7 +357,7 @@ namespace libtorrent
 	}
 
 	bool tracker_manager::incoming_packet(char const* hostname
-		, aux::array_view<char const> const buf)
+		, span<char const> const buf)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		// ignore packets smaller than 8 bytes
@@ -365,7 +365,7 @@ namespace libtorrent
 
 		// the first word is the action, if it's not [0, 3]
 		// it's not a valid udp tracker response
-		aux::array_view<const char> ptr = buf;
+		span<const char> ptr = buf;
 		std::uint32_t const action = aux::read_uint32(ptr);
 		if (action > 3) return false;
 
@@ -389,14 +389,14 @@ namespace libtorrent
 	}
 
 	void tracker_manager::send_hostname(char const* hostname, int const port
-		, array_view<char const> p, error_code& ec, int const flags)
+		, span<char const> p, error_code& ec, int const flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		m_send_fun_hostname(hostname, port, p, ec, flags);
 	}
 
 	void tracker_manager::send(udp::endpoint const& ep
-		, array_view<char const> p
+		, span<char const> p
 		, error_code& ec, int const flags)
 	{
 		TORRENT_ASSERT(is_single_thread());

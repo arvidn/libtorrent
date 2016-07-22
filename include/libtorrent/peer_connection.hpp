@@ -61,7 +61,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/receive_buffer.hpp"
 #include "libtorrent/aux_/allocating_handler.hpp"
 #include "libtorrent/debug.hpp"
-#include "libtorrent/aux_/array_view.hpp"
+#include "libtorrent/span.hpp"
 
 #include <ctime>
 #include <algorithm>
@@ -749,11 +749,11 @@ namespace libtorrent
 		void send_piece_suggestions(int num);
 
 		virtual
-		std::tuple<int, aux::array_view<boost::asio::const_buffer>>
-		hit_send_barrier(aux::array_view<boost::asio::mutable_buffer> /* iovec */)
+		std::tuple<int, span<boost::asio::const_buffer>>
+		hit_send_barrier(span<boost::asio::mutable_buffer> /* iovec */)
 		{
 			return std::make_tuple(INT_MAX
-				, aux::array_view<boost::asio::const_buffer>());
+				, span<boost::asio::const_buffer>());
 		}
 
 		void attach_to_torrent(sha1_hash const& ih);
