@@ -1059,7 +1059,7 @@ namespace libtorrent
 		}
 
 		// copy the info section
-		m_info_section_size = section.size();
+		m_info_section_size = int(section.size());
 		m_info_section.reset(new char[m_info_section_size]);
 		std::memcpy(m_info_section.get(), section.data(), m_info_section_size);
 		TORRENT_ASSERT(section[0] == 'd');

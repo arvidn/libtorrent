@@ -297,6 +297,8 @@ rule warnings ( properties * )
 		result += <cflags>/wd4251 ;
 # disable warning C4275: non DLL-interface classkey 'identifier' used as base for DLL-interface classkey 'identifier'
 		result += <cflags>/wd4275 ;
+# disable warning C4373: virtual function overrides, previous versions of the compiler did not override when parameters only differed by const/volatile qualifiers
+		result += <cflags>/wd4373 ;
 	}
 
 	return $(result) ;

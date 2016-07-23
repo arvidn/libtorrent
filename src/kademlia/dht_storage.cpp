@@ -188,7 +188,7 @@ namespace
 		size_t num_torrents() const override { return m_map.size(); }
 		size_t num_peers() const override
 		{
-			int ret = 0;
+			size_t ret = 0;
 			for (auto const& t : m_map)
 				ret += t.second.peers.size();
 			return ret;
