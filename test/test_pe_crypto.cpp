@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/span.hpp"
+#include "libtorrent/buffer.hpp"
 
 #include "setup_transfer.hpp"
 #include "test.hpp"
@@ -58,7 +59,7 @@ void test_enc_handler(libtorrent::crypto_plugin& a, libtorrent::crypto_plugin& b
 		std::generate(buf.begin(), buf.end(), &std::rand);
 		std::copy(buf.begin(), buf.end(), cmp_buf.begin());
 
-		using namespace boost::asio;
+		using namespace libtorrent::aux;
 
 		{
 			mutable_buffer iovec(&buf[0], buf_len);
@@ -158,4 +159,3 @@ TORRENT_TEST(disabled)
 	std::fprintf(stderr, "PE test not run because it's disabled\n");
 }
 #endif
-

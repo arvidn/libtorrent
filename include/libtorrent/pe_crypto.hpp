@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/asio/buffer.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -47,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/span.hpp"
+#include "libtorrent/buffer.hpp"
 
 #include <list>
 #include <array>
@@ -56,7 +56,7 @@ namespace libtorrent
 {
 	namespace mp = boost::multiprecision;
 
-	using key_t = mp::number<mp::cpp_int_backend<768, 768, mp::unsigned_magnitude, mp::unchecked, void> >;
+	using key_t = mp::number<mp::cpp_int_backend<768, 768, mp::unsigned_magnitude, mp::unchecked, void>>;
 
 	// RC4 state from libtomcrypt
 	struct rc4 {
@@ -99,8 +99,8 @@ namespace libtorrent
 
 	struct encryption_handler
 	{
-		std::tuple<int, span<boost::asio::const_buffer>>
-		encrypt(span<boost::asio::mutable_buffer> iovec);
+		std::tuple<int, span<aux::const_buffer>>
+		encrypt(span<aux::mutable_buffer> iovec);
 
 		int decrypt(crypto_receive_buffer& recv_buffer
 			, std::size_t& bytes_transferred);
@@ -144,10 +144,10 @@ namespace libtorrent
 		void set_incoming_key(unsigned char const* key, int len) override;
 		void set_outgoing_key(unsigned char const* key, int len) override;
 
-		std::tuple<int, span<boost::asio::const_buffer>>
-		encrypt(span<boost::asio::mutable_buffer> buf) override;
+		std::tuple<int, span<aux::const_buffer>>
+		encrypt(span<aux::mutable_buffer> buf) override;
 
-		void decrypt(span<boost::asio::mutable_buffer> buf
+		void decrypt(span<aux::mutable_buffer> buf
 			, int& consume
 			, int& produce
 			, int& packet_size) override;
@@ -165,4 +165,3 @@ namespace libtorrent
 
 #endif // TORRENT_PE_CRYPTO_HPP_INCLUDED
 #endif // TORRENT_DISABLE_ENCRYPTION
-

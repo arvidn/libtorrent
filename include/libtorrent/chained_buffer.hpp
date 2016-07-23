@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/disk_io_job.hpp" // for block_cache_reference
 #include "libtorrent/debug.hpp"
+#include "libtorrent/buffer.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -110,7 +111,7 @@ namespace libtorrent
 
 		void clear();
 
-		void build_mutable_iovec(int bytes, std::vector<boost::asio::mutable_buffer>& vec);
+		void build_mutable_iovec(int bytes, std::vector<aux::mutable_buffer>& vec);
 
 		~chained_buffer();
 
@@ -142,4 +143,3 @@ namespace libtorrent
 }
 
 #endif
-

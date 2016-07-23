@@ -603,7 +603,7 @@ namespace libtorrent
 #endif
 
 		write_pe_vc_cryptofield(ptr, encrypt_size, crypto_provide, pad_size);
-		boost::asio::mutable_buffer vec(ptr, encrypt_size);
+		aux::mutable_buffer vec(ptr, encrypt_size);
 		m_rc4->encrypt(vec);
 		send_buffer(msg, sizeof(msg) - 512 + pad_size);
 	}
@@ -624,7 +624,7 @@ namespace libtorrent
 		char msg[512 + 8 + 4 + 2];
 		write_pe_vc_cryptofield(msg, sizeof(msg), crypto_select, pad_size);
 
-		boost::asio::mutable_buffer vec(msg, buf_size);
+		aux::mutable_buffer vec(msg, buf_size);
 		m_rc4->encrypt(vec);
 		send_buffer(msg, buf_size);
 
@@ -702,7 +702,7 @@ namespace libtorrent
 		int consume = 0;
 		int produce = len;
 		int packet_size = 0;
-		boost::asio::mutable_buffer vec(pos, len);
+		aux::mutable_buffer vec(pos, len);
 		m_rc4->decrypt(vec, consume, produce, packet_size);
 	}
 
@@ -3471,12 +3471,12 @@ namespace libtorrent
 	}
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-	std::tuple<int, span<boost::asio::const_buffer>>
+	std::tuple<int, span<aux::const_buffer>>
 	bt_peer_connection::hit_send_barrier(
-		span<boost::asio::mutable_buffer> iovec)
+		span<aux::mutable_buffer> iovec)
 	{
 		int next_barrier;
-		span<boost::asio::const_buffer> out_iovec;
+		span<aux::const_buffer> out_iovec;
 		std::tie(next_barrier, out_iovec) = m_enc_handler.encrypt(iovec);
 #ifndef TORRENT_DISABLE_LOGGING
 		if (next_barrier != 0)
@@ -3576,4 +3576,3 @@ namespace libtorrent
 #endif
 
 }
-

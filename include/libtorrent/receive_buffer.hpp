@@ -92,7 +92,7 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 	buffer::interval mutable_buffer();
 
 	// returns the last 'bytes' from the receive buffer
-	boost::asio::mutable_buffer mutable_buffer(int bytes);
+	aux::mutable_buffer mutable_buffer(int bytes);
 #endif
 
 	// the purpose of this function is to free up and cut off all messages
@@ -158,7 +158,7 @@ private:
 // Wraps a receive_buffer to provide the ability to inject
 // possibly authenticated crypto beneath the bittorrent protocol.
 // When authenticated crypto is in use the wrapped receive_buffer
-// holds the receive state of the crpyto layer while this class
+// holds the receive state of the crypto layer while this class
 // tracks the state of the bittorrent protocol.
 struct crypto_receive_buffer
 {
@@ -200,7 +200,7 @@ struct crypto_receive_buffer
 
 	buffer::const_interval get() const;
 
-	boost::asio::mutable_buffer mutable_buffer(std::size_t bytes);
+	aux::mutable_buffer mutable_buffer(std::size_t bytes);
 
 private:
 	// explicitly disallow assignment, to silence msvc warning
@@ -215,4 +215,3 @@ private:
 } // namespace libtorrent
 
 #endif // #ifndef TORRENT_RECEIVE_BUFFER_HPP_INCLUDED
-

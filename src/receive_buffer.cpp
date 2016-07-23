@@ -157,17 +157,15 @@ buffer::interval receive_buffer::mutable_buffer()
 		, &m_recv_buffer[0] + m_recv_start + rcv_pos);
 }
 
-boost::asio::mutable_buffer receive_buffer::mutable_buffer(int const bytes)
+aux::mutable_buffer receive_buffer::mutable_buffer(int const bytes)
 {
-	namespace asio = boost::asio;
-
 	// bytes is the number of bytes we just received, and m_recv_pos has
 	// already been adjusted for these bytes. The receive pos immediately
 	// before we received these bytes was (m_recv_pos - bytes)
 	int const last_recv_pos = m_recv_pos - bytes;
 	TORRENT_ASSERT(bytes <= m_recv_pos);
 
-	return asio::mutable_buffer(&m_recv_buffer[0] + m_recv_start
+	return aux::mutable_buffer(&m_recv_buffer[0] + m_recv_start
 			+ last_recv_pos, bytes);
 }
 #endif
@@ -329,7 +327,7 @@ buffer::const_interval crypto_receive_buffer::get() const
 	return recv_buffer;
 }
 
-boost::asio::mutable_buffer crypto_receive_buffer::mutable_buffer(
+aux::mutable_buffer crypto_receive_buffer::mutable_buffer(
 	std::size_t const bytes)
 {
 	int const pending_decryption = (m_recv_pos != INT_MAX)
