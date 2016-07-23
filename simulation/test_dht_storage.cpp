@@ -107,7 +107,7 @@ void test_expiration(high_resolution_clock::duration const& expiry_time
 {
 	default_config cfg;
 	simulation sim(cfg);
-	sim::asio::io_service ios(sim, asio::ip::addr("10.0.0.1"));
+	sim::asio::io_service ios(sim, addr("10.0.0.1"));
 
 	sim::asio::high_resolution_timer timer(ios);
 	timer.expires_from_now(expiry_time);
@@ -144,9 +144,9 @@ TORRENT_TEST(dht_storage_counters)
 	s->put_immutable_item(n2, {"123", 3}, addr("124.31.75.21"));
 	s->put_immutable_item(n3, {"123", 3}, addr("124.31.75.21"));
 
-	char public_key[item_pk_len];
-	char signature[item_sig_len];
-	s->put_mutable_item(n4, {"123", 3}, signature, 1, public_key, {"salt", 4}
+	dht::public_key pk;
+	dht::signature sig;
+	s->put_mutable_item(n4, {"123", 3}, sig, sequence_number(1), pk, {"salt", 4}
 		, addr("124.31.75.21"));
 
 	dht_storage_counters c;
