@@ -131,9 +131,13 @@ AX_BOOST_RANDOM()
 AS_IF([test -z "$BOOST_RANDOM_LIB"],
       [AC_MSG_ERROR(Boost.Random library not found. Try using --with-boost-random=lib)])
 
+AX_BOOST_ATOMIC()
+AS_IF([test -z "$BOOST_ATOMIC_LIB"],
+      [AC_MSG_ERROR(Boost.Atomic library not found. Try using --with-boost-atomic=lib)])
+
 CPPFLAGS="$BOOST_CPPFLAGS $CPPFLAGS"
 LDFLAGS="$BOOST_LDFLAGS $LDFLAGS"
-LIBS="$BOOST_CHRONO_LIB $BOOST_RANDOM_LIB $LIBS"
+LIBS="$BOOST_CHRONO_LIB $BOOST_RANDOM_LIB $BOOST_ATOMIC_LIB $LIBS"
 
 ###############################################################################
 # Checking for functions and other stuffs
