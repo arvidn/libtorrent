@@ -284,8 +284,8 @@ TORRENT_TEST(dht_dual_stack_mutable_item)
 	dht_network dht(sim, 100);
 	dht_network dht6(sim, 100, dht_network::bind_ipv6);
 
-	std::array<char, ed25519_private_key_size> sk;
-	std::array<char, ed25519_public_key_size> pk;
+	lt::dht::secret_key sk;
+	lt::dht::public_key pk;
 	int put_count = 0;
 	bool got_item = false;
 
@@ -302,7 +302,7 @@ TORRENT_TEST(dht_dual_stack_mutable_item)
 			{
 				TEST_CHECK(!got_item);
 				if (p->authoritative)
-					got_item = p->key == pk && p->item.string() == "mutable item";
+					got_item = p->key == pk.bytes && p->item.string() == "mutable item";
 			}
 		}
 		// terminate?
@@ -315,28 +315,28 @@ TORRENT_TEST(dht_dual_stack_mutable_item)
 			if (ticks == 2)
 			{
 				std::array<unsigned char, ed25519_seed_size> seed;
-				ed25519_create_keypair((unsigned char*)pk.data()
-					, (unsigned char*)sk.data(), seed.data());
+				ed25519_create_keypair((unsigned char*)pk.bytes.data()
+					, (unsigned char*)sk.bytes.data(), seed.data());
 
-				ses.dht_put_item(pk, [&](lt::entry& item, std::array<char, 64>& sig
+				ses.dht_put_item(pk.bytes, [&](lt::entry& item, std::array<char, 64>& sig
 					, std::uint64_t& seq, std::string const& salt)
 				{
 					item = "mutable item";
 					seq = 1;
 					std::vector<char> v;
+					lt::dht::signature sign;
 					lt::bencode(std::back_inserter(v), item);
-					lt::dht::sign_mutable_item(
-						std::make_pair(v.data(), int(v.size()))
-						, std::make_pair(salt.data(), int(salt.size()))
-						, seq, pk.data(), sk.data(), sig.data());
+					lt::dht::sign_mutable_item(v, salt
+						, lt::dht::sequence_number(seq), pk, sk, sign);
 					put_count++;
+					sig = sign.bytes;
 				});
 			}
 			if (ticks == 4)
 			{
 				// should be one for each stack, ipv4 and ipv6
 				TEST_EQUAL(put_count, 2);
-				ses.dht_get_item(pk);
+				ses.dht_get_item(pk.bytes);
 			}
 			if (ticks == 6)
 			{
