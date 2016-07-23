@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/assert.hpp"
+#include "libtorrent/span.hpp"
 
 /*
 
@@ -238,6 +239,8 @@ struct bdecode_token
 // There are 5 different types of nodes, see type_t.
 struct TORRENT_EXPORT bdecode_node
 {
+	// TODO: 3 make this take span<char const> for buffer, and make it return a
+	// bdecode_node
 	TORRENT_EXPORT friend int bdecode(char const* start, char const* end, bdecode_node& ret
 		, error_code& ec, int* error_pos, int depth_limit
 		, int token_limit);
@@ -280,7 +283,7 @@ struct TORRENT_EXPORT bdecode_node
 	// buffer where this node is defined. For a dictionary for instance, this
 	// starts with ``d`` and ends with ``e``, and has all the content of the
 	// dictionary in between.
-	std::pair<char const*, int> data_section() const;
+	span<char const> data_section() const;
 
 	// functions with the ``list_`` prefix operate on lists. These functions are
 	// only valid if ``type()`` == ``list_t``. ``list_at()`` returns the item

@@ -85,27 +85,13 @@ namespace
 		std::set<peer_entry> peers;
 	};
 
-#ifndef TORRENT_NO_DEPRECATE
-	struct count_peers
-	{
-		int* count;
-		explicit count_peers(int* c): count(c) {}
-		void operator()(std::pair<libtorrent::sha1_hash
-			, torrent_entry> const& t)
-		{
-			*count += int(t.second.peers.size());
-		}
-	};
-#endif
-
 	// TODO: 2 make this configurable in dht_settings
 	enum { announce_interval = 30 };
 
 	struct dht_immutable_item
 	{
-		dht_immutable_item() : value(nullptr), num_announcers(0), size(0) {}
-		// malloced space for the actual value
-		char* value;
+		// the actual value
+		std::unique_ptr<char[]> value;
 		// this counts the number of IPs we have seen
 		// announcing this item, this is used to determine
 		// popularity if we reach the limit of items to store
@@ -113,20 +99,17 @@ namespace
 		// the last time we heard about this
 		time_point last_seen;
 		// number of IPs in the bloom filter
-		int num_announcers;
+		int num_announcers = 0;
 		// size of malloced space pointed to by value
-		int size;
+		int size = 0;
 	};
-
-	struct ed25519_public_key { char bytes[item_pk_len]; };
 
 	struct dht_mutable_item : dht_immutable_item
 	{
-		char sig[item_sig_len];
-		std::int64_t seq;
-		ed25519_public_key key;
-		char* salt;
-		int salt_size;
+		signature sig;
+		sequence_number seq;
+		public_key key;
+		std::string salt;
 	};
 
 	void touch_item(dht_immutable_item* f, address const& address)
@@ -150,11 +133,12 @@ namespace
 		explicit immutable_item_comparator(std::vector<node_id> const& node_ids) : m_node_ids(node_ids) {}
 		immutable_item_comparator(immutable_item_comparator const&) = default;
 
-		bool operator() (std::pair<node_id, dht_immutable_item> const& lhs
-			, std::pair<node_id, dht_immutable_item> const& rhs) const
+		template <typename Item>
+		bool operator()(std::pair<node_id const, Item> const& lhs
+			, std::pair<node_id const, Item> const& rhs) const
 		{
-			int l_distance = min_distance_exp(lhs.first, m_node_ids);
-			int r_distance = min_distance_exp(rhs.first, m_node_ids);
+			int const l_distance = min_distance_exp(lhs.first, m_node_ids);
+			int const r_distance = min_distance_exp(rhs.first, m_node_ids);
 
 			// this is a score taking the popularity (number of announcers) and the
 			// fit, in terms of distance from ideal storing node, into account.
@@ -180,16 +164,15 @@ namespace
 	typename std::map<node_id, Item>::const_iterator pick_least_important_item(
 		std::vector<node_id> const& node_ids, std::map<node_id, Item> const& table)
 	{
-		return std::min_element(table.begin()
-			, table.end()
+		return std::min_element(table.begin(), table.end()
 			, immutable_item_comparator(node_ids));
 	}
 
 	class dht_default_storage final : public dht_storage_interface, boost::noncopyable
 	{
-	typedef std::map<node_id, torrent_entry> table_t;
-	typedef std::map<node_id, dht_immutable_item> dht_immutable_table_t;
-	typedef std::map<node_id, dht_mutable_item> dht_mutable_table_t;
+		using table_t = std::map<node_id, torrent_entry>;
+		using dht_immutable_table_t = std::map<node_id, dht_immutable_item>;
+		using dht_mutable_table_t = std::map<node_id, dht_mutable_item>;
 
 	public:
 
@@ -205,8 +188,9 @@ namespace
 		size_t num_torrents() const override { return m_map.size(); }
 		size_t num_peers() const override
 		{
-			int ret = 0;
-			std::for_each(m_map.begin(), m_map.end(), count_peers(&ret));
+			size_t ret = 0;
+			for (auto const& t : m_map)
+				ret += t.second.peers.size();
 			return ret;
 		}
 #endif
@@ -216,7 +200,7 @@ namespace
 		}
 
 		bool get_peers(sha1_hash const& info_hash
-			, bool noseed, bool scrape
+			, bool const noseed, bool const scrape
 			, entry& peers) const override
 		{
 			table_t::const_iterator i = m_map.lower_bound(info_hash);
@@ -275,7 +259,7 @@ namespace
 
 		void announce_peer(sha1_hash const& info_hash
 			, tcp::endpoint const& endp
-			, std::string const& name, bool seed) override
+			, std::string const& name, bool const seed) override
 		{
 			table_t::iterator ti = m_map.find(info_hash);
 			torrent_entry* v;
@@ -348,12 +332,13 @@ namespace
 			dht_immutable_table_t::const_iterator i = m_immutable_table.find(target);
 			if (i == m_immutable_table.end()) return false;
 
-			item["v"] = bdecode(i->second.value, i->second.value + i->second.size);
+			item["v"] = bdecode(i->second.value.get()
+				, i->second.value.get() + i->second.size);
 			return true;
 		}
 
 		void put_immutable_item(sha1_hash const& target
-			, char const* buf, int size
+			, span<char const> buf
 			, address const& addr) override
 		{
 			TORRENT_ASSERT(!m_node_ids.empty());
@@ -367,17 +352,16 @@ namespace
 						, m_immutable_table);
 
 					TORRENT_ASSERT(j != m_immutable_table.end());
-					free(j->second.value);
 					m_immutable_table.erase(j);
 					m_counters.immutable_data -= 1;
 				}
 				dht_immutable_item to_add;
-				to_add.value = static_cast<char*>(malloc(size));
-				to_add.size = size;
-				memcpy(to_add.value, buf, size);
+				to_add.value.reset(new char[buf.size()]);
+				to_add.size = int(buf.size());
+				memcpy(to_add.value.get(), buf.data(), buf.size());
 
 				std::tie(i, std::ignore) = m_immutable_table.insert(
-					std::make_pair(target, to_add));
+					std::make_pair(target, std::move(to_add)));
 				m_counters.immutable_data += 1;
 			}
 
@@ -387,7 +371,7 @@ namespace
 		}
 
 		bool get_mutable_item_seq(sha1_hash const& target
-			, std::int64_t& seq) const override
+			, sequence_number& seq) const override
 		{
 			dht_mutable_table_t::const_iterator i = m_mutable_table.find(target);
 			if (i == m_mutable_table.end()) return false;
@@ -397,29 +381,29 @@ namespace
 		}
 
 		bool get_mutable_item(sha1_hash const& target
-			, std::int64_t seq, bool force_fill
+			, sequence_number seq, bool force_fill
 			, entry& item) const override
 		{
 			dht_mutable_table_t::const_iterator i = m_mutable_table.find(target);
 			if (i == m_mutable_table.end()) return false;
 
 			dht_mutable_item const& f = i->second;
-			item["seq"] = f.seq;
-			if (force_fill || (0 <= seq && seq < f.seq))
+			item["seq"] = f.seq.value;
+			if (force_fill || (sequence_number(0) <= seq && seq < f.seq))
 			{
-				item["v"] = bdecode(f.value, f.value + f.size);
-				item["sig"] = std::string(f.sig, f.sig + sizeof(f.sig));
-				item["k"] = std::string(f.key.bytes, f.key.bytes + sizeof(f.key.bytes));
+				item["v"] = bdecode(f.value.get(), f.value.get() + f.size);
+				item["sig"] = f.sig.bytes;
+				item["k"] = f.key.bytes;
 			}
 			return true;
 		}
 
 		void put_mutable_item(sha1_hash const& target
-			, char const* buf, int size
-			, char const* sig
-			, std::int64_t seq
-			, char const* pk
-			, char const* salt, int salt_size
+			, span<char const> buf
+			, signature const& sig
+			, sequence_number seq
+			, public_key const& pk
+			, span<char const> salt
 			, address const& addr) override
 		{
 			TORRENT_ASSERT(!m_node_ids.empty());
@@ -434,47 +418,37 @@ namespace
 						, m_mutable_table);
 
 					TORRENT_ASSERT(j != m_mutable_table.end());
-					free(j->second.value);
-					free(j->second.salt);
 					m_mutable_table.erase(j);
 					m_counters.mutable_data -= 1;
 				}
 				dht_mutable_item to_add;
-				to_add.value = static_cast<char*>(malloc(size));
-				to_add.size = size;
+				to_add.value.reset(new char[buf.size()]);
+				to_add.size = int(buf.size());
 				to_add.seq = seq;
-				to_add.salt = nullptr;
-				to_add.salt_size = 0;
-				if (salt_size > 0)
-				{
-					to_add.salt = static_cast<char*>(malloc(salt_size));
-					to_add.salt_size = salt_size;
-					memcpy(to_add.salt, salt, salt_size);
-				}
-				memcpy(to_add.sig, sig, sizeof(to_add.sig));
-				memcpy(to_add.value, buf, size);
-				memcpy(&to_add.key, pk, sizeof(to_add.key));
+				to_add.salt.assign(salt.data(), salt.size());
+				to_add.sig = sig;
+				to_add.key = pk;
+				memcpy(to_add.value.get(), buf.data(), buf.size());
 
 				std::tie(i, std::ignore) = m_mutable_table.insert(
-					std::make_pair(target, to_add));
+					std::make_pair(target, std::move(to_add)));
 				m_counters.mutable_data += 1;
 			}
 			else
 			{
 				// this is the case where we already
-				dht_mutable_item* item = &i->second;
+				dht_mutable_item& item = i->second;
 
-				if (item->seq < seq)
+				if (item.seq < seq)
 				{
-					if (item->size != size)
+					if (item.size != buf.size())
 					{
-						free(item->value);
-						item->value = static_cast<char*>(malloc(size));
-						item->size = size;
+						item.value.reset(new char[buf.size()]);
+						item.size = int(buf.size());
 					}
-					item->seq = seq;
-					memcpy(item->sig, sig, sizeof(item->sig));
-					memcpy(item->value, buf, size);
+					item.seq = seq;
+					item.sig = sig;
+					memcpy(item.value.get(), buf.data(), buf.size());
 				}
 			}
 
@@ -516,7 +490,6 @@ namespace
 					++i;
 					continue;
 				}
-				free(i->second.value);
 				m_immutable_table.erase(i++);
 				m_counters.immutable_data -= 1;
 			}
@@ -529,8 +502,6 @@ namespace
 					++i;
 					continue;
 				}
-				free(i->second.value);
-				free(i->second.salt);
 				m_mutable_table.erase(i++);
 				m_counters.mutable_data -= 1;
 			}
@@ -556,7 +527,7 @@ namespace
 				, end(peers.end()); i != end;)
 			{
 				// the peer has timed out
-				if (i->added + minutes(int(announce_interval * 1.5f)) < aux::time_now())
+				if (i->added + minutes(int(announce_interval * 3 / 2)) < aux::time_now())
 				{
 					peers.erase(i++);
 					m_counters.peers -= 1;

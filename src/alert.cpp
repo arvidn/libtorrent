@@ -1886,6 +1886,7 @@ namespace libtorrent {
 		return ret;
 	}
 
+	// TODO: 3 use span<> here
 	dht_pkt_alert::dht_pkt_alert(aux::stack_allocator& alloc
 		, char const* buf, int size, dht_pkt_alert::direction_t d, udp::endpoint ep)
 		: dir(d)
@@ -1987,8 +1988,9 @@ namespace libtorrent {
 		aux::stack_allocator& alloc, void* userdata_
 		, udp::endpoint const& addr_, bdecode_node const& response)
 		: userdata(userdata_), addr(addr_), m_alloc(alloc)
-		, m_response_idx(alloc.copy_buffer(response.data_section().first, response.data_section().second))
-		, m_response_size(response.data_section().second)
+		, m_response_idx(alloc.copy_buffer(response.data_section().data()
+				, int(response.data_section().size())))
+		, m_response_size(int(response.data_section().size()))
 	{}
 
 	dht_direct_response_alert::dht_direct_response_alert(

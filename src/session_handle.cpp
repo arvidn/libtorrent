@@ -521,6 +521,8 @@ namespace libtorrent
 #endif
 	}
 
+	// TODO: 3 expose the sequence_number, public_key, secret_key and signature
+	// types to the client
 	sha1_hash session_handle::dht_put_item(entry data)
 	{
 		std::vector<char> buf;

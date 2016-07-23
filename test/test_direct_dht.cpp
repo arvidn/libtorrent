@@ -69,8 +69,8 @@ dht_direct_response_alert* get_direct_response(lt::session& ses)
 {
 	for (;;)
 	{
-		alert* a = ses.wait_for_alert(seconds(20));
-		// it shouldn't take more than 20 seconds to get a response
+		alert* a = ses.wait_for_alert(seconds(30));
+		// it shouldn't take more than 30 seconds to get a response
 		// so fail the test and bail out if we don't get an alert in that time
 		TEST_CHECK(a);
 		if (!a) return nullptr;

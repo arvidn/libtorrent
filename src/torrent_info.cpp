@@ -1050,28 +1050,25 @@ namespace libtorrent
 		}
 
 		// hash the info-field to calculate info-hash
-		hasher h;
-		std::pair<char const*, int> section = info.data_section();
-		h.update(section.first, section.second);
-		m_info_hash = h.final();
-
-		if (section.second >= (std::numeric_limits<std::uint32_t>::max)())
+		auto section = info.data_section();
+		m_info_hash = hasher(section).final();
+		if (info.data_section().size() >= (std::numeric_limits<std::uint32_t>::max)())
 		{
 			ec = errors::metadata_too_large;
 			return false;
 		}
 
 		// copy the info section
-		m_info_section_size = section.second;
+		m_info_section_size = int(section.size());
 		m_info_section.reset(new char[m_info_section_size]);
-		std::memcpy(m_info_section.get(), section.first, m_info_section_size);
-		TORRENT_ASSERT(section.first[0] == 'd');
-		TORRENT_ASSERT(section.first[m_info_section_size-1] == 'e');
+		std::memcpy(m_info_section.get(), section.data(), m_info_section_size);
+		TORRENT_ASSERT(section[0] == 'd');
+		TORRENT_ASSERT(section[m_info_section_size-1] == 'e');
 
 		// when translating a pointer that points into the 'info' tree's
 		// backing buffer, into a pointer to our copy of the info section,
 		// this is the pointer offset to use.
-		ptrdiff_t info_ptr_diff = m_info_section.get() - section.first;
+		ptrdiff_t const info_ptr_diff = m_info_section.get() - section.data();
 
 		// extract piece length
 		int piece_length = info.dict_find_int_value("piece length", -1);

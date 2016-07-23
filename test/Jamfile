@@ -143,6 +143,7 @@ test-suite libtorrent :
 
 	[ run test_dht.cpp
 		test_dht_storage.cpp
+		test_direct_dht.cpp
 		]
 
 	[ run test_string.cpp
@@ -154,7 +155,6 @@ test-suite libtorrent :
 	[ run test_crc32.cpp ]
 	[ run test_receive_buffer.cpp ]
 	[ run test_alert_manager.cpp ]
-	[ run test_direct_dht.cpp ]
 	[ run test_magnet.cpp ]
 	[ run test_storage.cpp ]
 	[ run test_session.cpp ]

@@ -40,10 +40,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <libtorrent/kademlia/node_id.hpp>
+#include <libtorrent/kademlia/types.hpp>
 
 #include <libtorrent/socket.hpp>
 #include <libtorrent/sha1_hash.hpp>
 #include <libtorrent/address.hpp>
+#include <libtorrent/span.hpp>
 
 namespace libtorrent
 {
@@ -164,7 +166,7 @@ namespace dht
 		// dht_settings::max_dht_items.
 		//
 		virtual void put_immutable_item(sha1_hash const& target
-			, char const* buf, int size
+			, span<char const> buf
 			, address const& addr) = 0;
 
 		// This function retrieves the sequence number of a mutable item.
@@ -173,7 +175,7 @@ namespace dht
 		// inside the out parameter seq.
 		//
 		virtual bool get_mutable_item_seq(sha1_hash const& target
-			, std::int64_t& seq) const = 0;
+			, sequence_number& seq) const = 0;
 
 		// This function retrieves the mutable stored in the DHT.
 		//
@@ -189,7 +191,7 @@ namespace dht
 		// inside the (entry) out parameter item.
 		//
 		virtual bool get_mutable_item(sha1_hash const& target
-			, std::int64_t seq, bool force_fill
+			, sequence_number seq, bool force_fill
 			, entry& item) const = 0;
 
 		// Store the item's data. This layer is only for storage.
@@ -201,11 +203,11 @@ namespace dht
 		// dht_settings::max_dht_items.
 		//
 		virtual void put_mutable_item(sha1_hash const& target
-			, char const* buf, int size
-			, char const* sig
-			, std::int64_t seq
-			, char const* pk
-			, char const* salt, int salt_size
+			, span<char const> buf
+			, signature const& sig
+			, sequence_number seq
+			, public_key const& pk
+			, span<char const> salt
 			, address const& addr) = 0;
 
 		// This function is called periodically (non-constant frequency).

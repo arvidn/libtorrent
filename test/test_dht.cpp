@@ -70,11 +70,21 @@ sha1_hash to_hash(char const* s)
 	return ret;
 }
 
-void get_test_keypair(char* public_key, char* private_key)
+void get_test_keypair(public_key& pk, secret_key& sk)
 {
-	aux::from_hex("77ff84905a91936367c01360803104f92432fcd904a43511876df5cdf3e7e548", 64, public_key);
+	aux::from_hex("77ff84905a91936367c01360803104f92432fcd904a43511876df5cdf3e7e548", 64, pk.bytes.data());
 	aux::from_hex("e06d3183d14159228433ed599221b80bd0a5ce8352e4bdf0262f76786ef1c74d"
-		"b7e7a9fea2c0eb269d61e3b38e450a22e754941ac78479d6c54e1faf6037881d", 128, private_key);
+		"b7e7a9fea2c0eb269d61e3b38e450a22e754941ac78479d6c54e1faf6037881d", 128, sk.bytes.data());
+}
+
+sequence_number prev_seq(sequence_number s)
+{
+	return sequence_number(s.value - 1);
+}
+
+sequence_number next_seq(sequence_number s)
+{
+	return sequence_number(s.value + 1);
 }
 
 void add_and_replace(libtorrent::dht::node_id& dst, libtorrent::dht::node_id const& add)
@@ -163,8 +173,8 @@ struct msg_args
 	msg_args& port(int p)
 	{ a["port"] = p; return *this; }
 
-	msg_args& target(char const* t)
-	{ if (t) a["target"] = std::string(t, 20); return *this; }
+	msg_args& target(sha1_hash const& t)
+	{ a["target"] = t.to_string(); return *this; }
 
 	msg_args& value(entry const& v)
 	{ a["v"] = v; return *this; }
@@ -175,23 +185,23 @@ struct msg_args
 	msg_args& seed(bool s)
 	{ a["seed"] = s ? 1 : 0; return *this; }
 
-	msg_args& key(std::string k)
-	{ a["k"] = k; return *this; }
+	msg_args& key(public_key const& k)
+	{ a["k"] = k.bytes; return *this; }
 
-	msg_args& sig(std::string s)
-	{ a["sig"] = s; return *this; }
+	msg_args& sig(signature const& s)
+	{ a["sig"] = s.bytes; return *this; }
 
-	msg_args& seq(int s)
-	{ a["seq"] = s; return *this; }
+	msg_args& seq(sequence_number s)
+	{ a["seq"] = s.value; return *this; }
 
-	msg_args& cas(std::int64_t c)
-	{ a["cas"] = c; return *this; }
+	msg_args& cas(sequence_number c)
+	{ a["cas"] = c.value; return *this; }
 
 	msg_args& nid(sha1_hash const& n)
 	{ a["id"] = n.to_string(); return *this; }
 
-	msg_args& salt(char const* s)
-	{ if (s) a["salt"] = s; return *this; }
+	msg_args& salt(span<char const> s)
+	{ if (!s.empty()) a["salt"] = s; return *this; }
 
 	msg_args& want(std::string w)
 	{ a["want"].list().push_back(w); return *this; }
@@ -312,7 +322,7 @@ void announce_immutable_items(node& node, udp::endpoint const* eps
 			if ((i % items[j].num_peers) == 0) continue;
 			bdecode_node response;
 			send_dht_request(node, "get", eps[i], &response
-				, msg_args().target((char const*)&items[j].target[0]));
+				, msg_args().target(items[j].target));
 
 			key_desc_t const desc[] =
 			{
@@ -353,7 +363,7 @@ void announce_immutable_items(node& node, udp::endpoint const* eps
 			send_dht_request(node, "put", eps[i], &response
 				, msg_args()
 					.token(token)
-					.target((char const*)&items[j].target[0])
+					.target(items[j].target)
 					.value(items[j].ent));
 
 			key_desc_t const desc2[] =
@@ -385,7 +395,7 @@ void announce_immutable_items(node& node, udp::endpoint const* eps
 	{
 		bdecode_node response;
 		send_dht_request(node, "get", eps[j], &response
-			, msg_args().target((char const*)&items[j].target[0]));
+			, msg_args().target(items[j].target));
 
 		key_desc_t const desc[] =
 		{
@@ -554,9 +564,9 @@ dht::key_desc_t const put_mutable_item_desc[] = {
 	{"a", bdecode_node::dict_t, 0, key_desc_t::parse_children},
 		{"id", bdecode_node::string_t, 20, 0},
 		{"cas", bdecode_node::string_t, 20, key_desc_t::optional},
-		{"k", bdecode_node::string_t, item_pk_len, 0},
+		{"k", bdecode_node::string_t, public_key::len, 0},
 		{"seq", bdecode_node::int_t, 0, 0},
-		{"sig", bdecode_node::string_t, item_sig_len, 0},
+		{"sig", bdecode_node::string_t, signature::len, 0},
 		{"token", bdecode_node::string_t, 2, 0},
 		{"v", bdecode_node::none_t, 0, key_desc_t::last_child},
 };
@@ -820,7 +830,9 @@ void test_id_enforcement(address(&rand_addr)())
 	nid[0] = 0x18;
 	int nodes_num = std::get<0>(t.dht_node.size());
 	send_dht_request(t.dht_node, "find_node", t.source, &response
-		, msg_args().target("0101010101010101010101010101010101010101").nid(nid));
+		, msg_args()
+			.target(sha1_hash("0101010101010101010101010101010101010101"))
+			.nid(nid));
 
 	bdecode_node err_keys[2];
 	bool ret = dht::verify_message(response, err_desc, err_keys, t.error_string
@@ -855,7 +867,9 @@ void test_id_enforcement(address(&rand_addr)())
 	else
 		nid[0] = 0x0a;
 	send_dht_request(t.dht_node, "find_node", t.source, &response
-		, msg_args().target("0101010101010101010101010101010101010101").nid(nid));
+		, msg_args()
+			.target(sha1_hash("0101010101010101010101010101010101010101"))
+			.nid(nid));
 
 	dht::key_desc_t const nodes_desc[] = {
 		{"y", bdecode_node::string_t, 1, 0},
@@ -981,7 +995,7 @@ namespace {
 		return nodes;
 	}
 
-	std::pair<char const*, int> const empty_salt(nullptr, 0);
+	span<char const> const empty_salt;
 }
 
 // TODO: 3 split this up into smaller tests
@@ -1018,41 +1032,42 @@ void test_put(address(&rand_addr)())
 
 	// ==== get / put mutable items ===
 
-	std::pair<char const*, int> itemv;
+	span<char const> itemv;
 
-	char signature[item_sig_len];
+	signature sig;
 	char buffer[1200];
-	int seq = 4;
-	char public_key[item_pk_len];
-	char private_key[item_sk_len];
-	get_test_keypair(public_key, private_key);
+	sequence_number seq(4);
+	public_key pk;
+	secret_key sk;
+	get_test_keypair(pk, sk);
 
+	// TODO: 4 pass in the actual salt as a parameter
 	for (int with_salt = 0; with_salt < 2; ++with_salt)
 	{
-		seq = 4;
+		seq = sequence_number(4);
 		std::fprintf(stderr, "\nTEST GET/PUT%s \ngenerating ed25519 keys\n\n"
 			, with_salt ? " with-salt" : " no-salt");
 		unsigned char seed[32];
 		ed25519_create_seed(seed);
 
-		ed25519_create_keypair((unsigned char*)public_key, (unsigned char*)private_key, seed);
+		ed25519_create_keypair((unsigned char*)pk.bytes.data()
+			, (unsigned char*)sk.bytes.data(), seed);
 		std::fprintf(stderr, "pub: %s priv: %s\n"
-			, aux::to_hex(std::string(public_key, item_pk_len)).c_str()
-			, aux::to_hex(std::string(private_key, item_sk_len)).c_str());
+			, aux::to_hex(std::string(pk.bytes.data(), public_key::len)).c_str()
+			, aux::to_hex(std::string(sk.bytes.data(), secret_key::len)).c_str());
 
-		std::pair<const char*, int> salt(nullptr, 0);
-		if (with_salt)
-			salt = std::pair<char const*, int>("foobar", 6);
+		std::string salt;
+		if (with_salt) salt = "foobar";
 
-		hasher h(public_key, 32);
-		if (with_salt) h.update(salt.first, salt.second);
+		hasher h(pk.bytes);
+		if (with_salt) h.update(salt);
 		sha1_hash target_id = h.final();
 
 		std::fprintf(stderr, "target_id: %s\n"
 			, aux::to_hex(target_id.to_string()).c_str());
 
 		send_dht_request(t.dht_node, "get", t.source, &response
-			, msg_args().target((char*)&target_id[0]));
+			, msg_args().target(target_id));
 
 		key_desc_t const desc[] =
 		{
@@ -1084,18 +1099,18 @@ void test_put(address(&rand_addr)())
 			TEST_ERROR(t.error_string);
 		}
 
-		itemv = std::pair<char const*, int>(buffer, bencode(buffer, items[0].ent));
-		sign_mutable_item(itemv, salt, seq, public_key, private_key, signature);
-		TEST_EQUAL(verify_mutable_item(itemv, salt, seq, public_key, signature), true);
+		itemv = span<char const>(buffer, bencode(buffer, items[0].ent));
+		sign_mutable_item(itemv, salt, seq, pk, sk, sig);
+		TEST_EQUAL(verify_mutable_item(itemv, salt, seq, pk, sig), true);
 
 		send_dht_request(t.dht_node, "put", t.source, &response
 			, msg_args()
 				.token(token)
 				.value(items[0].ent)
-				.key(std::string(public_key, item_pk_len))
-				.sig(std::string(signature, item_sig_len))
+				.key(pk)
+				.sig(sig)
 				.seq(seq)
-				.salt(salt.first));
+				.salt(salt));
 
 		ret = verify_message(response, desc2, desc2_keys, t.error_string
 			, sizeof(t.error_string));
@@ -1113,7 +1128,7 @@ void test_put(address(&rand_addr)())
 		}
 
 		send_dht_request(t.dht_node, "get", t.source, &response
-			, msg_args().target((char*)&target_id[0]));
+			, msg_args().target(target_id));
 
 		std::fprintf(stderr, "target_id: %s\n"
 			, aux::to_hex(target_id.to_string()).c_str());
@@ -1146,33 +1161,33 @@ void test_put(address(&rand_addr)())
 				, print_entry(response).c_str());
 			char value[1020];
 			char* ptr = value;
-			int value_len = bencode(ptr, items[0].ent);
-			TEST_EQUAL(value_len, desc3_keys[2].data_section().second);
-			TEST_CHECK(memcmp(desc3_keys[2].data_section().first, value, value_len) == 0);
+			int const value_len = bencode(ptr, items[0].ent);
+			TEST_EQUAL(value_len, int(desc3_keys[2].data_section().size()));
+			TEST_CHECK(memcmp(desc3_keys[2].data_section().data(), value, value_len) == 0);
 
-			TEST_EQUAL(seq, desc3_keys[3].int_value());
+			TEST_EQUAL(int(seq.value), desc3_keys[3].int_value());
 		}
 
 		// also test that invalid signatures fail!
 
-		itemv = std::pair<char const*, int>(buffer, bencode(buffer, items[0].ent));
-		sign_mutable_item(itemv, salt, seq, public_key, private_key, signature);
-		TEST_EQUAL(verify_mutable_item(itemv, salt, seq, public_key, signature), 1);
+		itemv = span<char const>(buffer, bencode(buffer, items[0].ent));
+		sign_mutable_item(itemv, salt, seq, pk, sk, sig);
+		TEST_EQUAL(verify_mutable_item(itemv, salt, seq, pk, sig), 1);
 		// break the signature
-		signature[2] ^= 0xaa;
+		sig.bytes[2] ^= 0xaa;
 
 		std::fprintf(stderr, "PUT broken signature\n");
 
-		TEST_CHECK(verify_mutable_item(itemv, salt, seq, public_key, signature) != 1);
+		TEST_CHECK(verify_mutable_item(itemv, salt, seq, pk, sig) != 1);
 
 		send_dht_request(t.dht_node, "put", t.source, &response
 			, msg_args()
 				.token(token)
 				.value(items[0].ent)
-				.key(std::string(public_key, item_pk_len))
-				.sig(std::string(signature, item_sig_len))
+				.key(pk)
+				.sig(sig)
 				.seq(seq)
-				.salt(salt.first));
+				.salt(salt));
 
 		ret = verify_message(response, desc_error, desc_error_keys, t.error_string
 			, sizeof(t.error_string));
@@ -1193,7 +1208,7 @@ void test_put(address(&rand_addr)())
 		// === test conditional get ===
 
 		send_dht_request(t.dht_node, "get", t.source, &response
-			, msg_args().target((char*)&target_id[0]).seq(seq - 1));
+			, msg_args().target(target_id).seq(prev_seq(seq)));
 
 		{
 			bdecode_node const r = response.dict_find_dict("r");
@@ -1203,7 +1218,7 @@ void test_put(address(&rand_addr)())
 		}
 
 		send_dht_request(t.dht_node, "get", t.source, &response
-			, msg_args().target((char*)&target_id[0]).seq(seq));
+			, msg_args().target(target_id).seq(seq));
 
 		{
 			bdecode_node r = response.dict_find_dict("r");
@@ -1215,16 +1230,16 @@ void test_put(address(&rand_addr)())
 		// === test CAS put ===
 
 		// this is the sequence number we expect to be there
-		std::uint64_t cas = seq;
+		sequence_number cas = seq;
 
 		// increment sequence number
-		++seq;
+		seq = next_seq(seq);
 		// put item 1
-		itemv = std::pair<char const*, int>(buffer, bencode(buffer, items[1].ent));
-		sign_mutable_item(itemv, salt, seq, public_key, private_key, signature);
-		TEST_EQUAL(verify_mutable_item(itemv, salt, seq, public_key, signature), 1);
+		itemv = span<char const>(buffer, bencode(buffer, items[1].ent));
+		sign_mutable_item(itemv, salt, seq, pk, sk, sig);
+		TEST_EQUAL(verify_mutable_item(itemv, salt, seq, pk, sig), 1);
 
-		TEST_CHECK(item_target_id(salt, public_key) == target_id);
+		TEST_CHECK(item_target_id(salt, pk) == target_id);
 
 		std::fprintf(stderr, "PUT CAS 1\n");
 
@@ -1232,11 +1247,11 @@ void test_put(address(&rand_addr)())
 			, msg_args()
 				.token(token)
 				.value(items[1].ent)
-				.key(std::string(public_key, item_pk_len))
-				.sig(std::string(signature, item_sig_len))
+				.key(pk)
+				.sig(sig)
 				.seq(seq)
 				.cas(cas)
-				.salt(salt.first));
+				.salt(salt));
 
 		ret = verify_message(response, desc2, desc2_keys, t.error_string
 			, sizeof(t.error_string));
@@ -1262,11 +1277,11 @@ void test_put(address(&rand_addr)())
 			, msg_args()
 				.token(token)
 				.value(items[1].ent)
-				.key(std::string(public_key, item_pk_len))
-				.sig(std::string(signature, item_sig_len))
+				.key(pk)
+				.sig(sig)
 				.seq(seq)
 				.cas(cas)
-				.salt(salt.first));
+				.salt(salt));
 
 		ret = verify_message(response, desc_error, desc_error_keys, t.error_string
 			, sizeof(t.error_string));
@@ -1767,23 +1782,22 @@ TORRENT_TEST(get_peers_v6)
 }
 #endif
 
+// TODO: 4 pass in th actual salt as the argument
 void test_mutable_get(address(&rand_addr)(), bool const with_salt)
 {
 	dht_test_setup t(udp::endpoint(rand_addr(), 20));
 
-	char public_key[item_pk_len];
-	char private_key[item_sk_len];
-	get_test_keypair(public_key, private_key);
+	public_key pk;
+	secret_key sk;
+	get_test_keypair(pk, sk);
 
-	char signature[item_sig_len];
 	char buffer[1200];
-	int seq = 4;
-	std::pair<char const*, int> itemv;
+	sequence_number seq(4);
+	span<char const> itemv;
 	bdecode_node response;
 
-	std::pair<const char*, int> salt(nullptr, 0);
-	if (with_salt)
-		salt = std::pair<char const*, int>("foobar", 6);
+	std::string salt;
+	if (with_salt) salt = "foobar";
 
 	// mutable get
 
@@ -1792,9 +1806,8 @@ void test_mutable_get(address(&rand_addr)(), bool const with_salt)
 	udp::endpoint const initial_node(rand_addr(), 1234);
 	t.dht_node.m_table.add_node(initial_node);
 
-	g_put_item.assign(items[0].ent, salt, seq, public_key, private_key);
-	std::string sig(g_put_item.sig().data(), item_sig_len);
-	t.dht_node.put_item(public_key, std::string()
+	g_put_item.assign(items[0].ent, salt, seq, pk, sk);
+	t.dht_node.put_item(pk, std::string()
 		, std::bind(&put_mutable_item_cb, _1, _2, 0)
 		, put_mutable_item_data_cb);
 
@@ -1804,7 +1817,7 @@ void test_mutable_get(address(&rand_addr)(), bool const with_salt)
 
 	g_sent_packets.clear();
 
-	t.dht_node.get_item(public_key, std::string(salt.first, salt.second), get_mutable_item_cb);
+	t.dht_node.get_item(pk, salt, get_mutable_item_cb);
 
 	TEST_EQUAL(g_sent_packets.size(), 1);
 	if (g_sent_packets.empty()) return;
@@ -1831,16 +1844,17 @@ void test_mutable_get(address(&rand_addr)(), bool const with_salt)
 
 	g_sent_packets.clear();
 
-	itemv = std::pair<char const*, int>(buffer, bencode(buffer, items[0].ent));
-	sign_mutable_item(itemv, salt, seq, public_key, private_key, signature);
+	signature sig;
+	itemv = span<char const>(buffer, bencode(buffer, items[0].ent));
+	sign_mutable_item(itemv, salt, seq, pk, sk, sig);
 	send_dht_response(t.dht_node, response, initial_node
 		, msg_args()
 			.token("10")
 			.port(1234)
 			.value(items[0].ent)
-			.key(std::string(public_key, item_pk_len))
-			.sig(std::string(signature, item_sig_len))
-			.salt(salt.first)
+			.key(pk)
+			.sig(sig)
+			.salt(salt)
 			.seq(seq));
 
 	TEST_CHECK(g_sent_packets.empty());
@@ -1848,9 +1862,9 @@ void test_mutable_get(address(&rand_addr)(), bool const with_salt)
 	if (g_got_items.empty()) return;
 
 	TEST_EQUAL(g_got_items.front().value(), items[0].ent);
-	TEST_CHECK(memcmp(g_got_items.front().pk().data(), public_key, item_pk_len) == 0);
-	TEST_CHECK(memcmp(g_got_items.front().sig().data(), signature, item_sig_len) == 0);
-	TEST_EQUAL(int(g_got_items.front().seq()), seq);
+	TEST_CHECK(g_got_items.front().pk() == pk);
+	TEST_CHECK(g_got_items.front().sig() == sig);
+	TEST_CHECK(g_got_items.front().seq() == seq);
 	g_got_items.clear();
 }
 
@@ -1929,7 +1943,7 @@ TORRENT_TEST(immutable_get)
 TORRENT_TEST(immutable_put)
 {
 	bdecode_node response;
-	std::pair<char const*, int> itemv;
+	span<char const> itemv;
 	char buffer[1200];
 
 	dht::key_desc_t const put_immutable_item_desc[] = {
@@ -1963,7 +1977,7 @@ TORRENT_TEST(immutable_put)
 		std::string flat_data;
 		bencode(std::back_inserter(flat_data), put_data);
 		sha1_hash target = item_target_id(
-			std::pair<char const*, int>(flat_data.c_str(), int(flat_data.size())));
+			span<char const>(flat_data.c_str(), int(flat_data.size())));
 
 		t.dht_node.put_item(target, put_data, std::bind(&put_immutable_item_cb, _1, loop));
 
@@ -1998,7 +2012,7 @@ TORRENT_TEST(immutable_put)
 		TEST_EQUAL(g_sent_packets.size(), 8);
 		if (g_sent_packets.size() != 8) break;
 
-		itemv = std::pair<char const*, int>(buffer, bencode(buffer, put_data));
+		itemv = span<char const>(buffer, bencode(buffer, put_data));
 
 		for (int i = 0; i < 8; ++i)
 		{
@@ -2013,8 +2027,8 @@ TORRENT_TEST(immutable_put)
 			{
 				TEST_EQUAL(put_immutable_item_keys[0].string_value(), "q");
 				TEST_EQUAL(put_immutable_item_keys[2].string_value(), "put");
-				std::pair<const char*, int> v = put_immutable_item_keys[6].data_section();
-				TEST_EQUAL(std::string(v.first, v.second), flat_data);
+				span<const char> v = put_immutable_item_keys[6].data_section();
+				TEST_EQUAL(std::string(v.data(), v.size()), flat_data);
 				char tok[10];
 				std::snprintf(tok, sizeof(tok), "%02d", i);
 				TEST_EQUAL(put_immutable_item_keys[5].string_value(), tok);
@@ -2039,14 +2053,14 @@ TORRENT_TEST(immutable_put)
 TORRENT_TEST(mutable_put)
 {
 	bdecode_node response;
-	std::pair<char const*, int> itemv;
+	span<char const> itemv;
 	char buffer[1200];
 	bdecode_node put_mutable_item_keys[11];
-	char public_key[item_pk_len];
-	char private_key[item_sk_len];
-	get_test_keypair(public_key, private_key);
+	public_key pk;
+	secret_key sk;
+	get_test_keypair(pk, sk);
 
-	int seq = 4;
+	sequence_number seq(4);
 
 	// mutable put
 	g_sent_packets.clear();
@@ -2063,9 +2077,9 @@ TORRENT_TEST(mutable_put)
 		for (int i = 0; i < num_test_nodes; ++i)
 			t.dht_node.m_table.add_node(nodes[i]);
 
-		g_put_item.assign(items[0].ent, empty_salt, seq, public_key, private_key);
-		std::string sig(g_put_item.sig().data(), item_sig_len);
-		t.dht_node.put_item(public_key, std::string()
+		g_put_item.assign(items[0].ent, empty_salt, seq, pk, sk);
+		signature const sig = g_put_item.sig();
+		t.dht_node.put_item(pk, std::string()
 				, std::bind(&put_mutable_item_cb, _1, _2, loop)
 				, put_mutable_item_data_cb);
 
@@ -2100,7 +2114,7 @@ TORRENT_TEST(mutable_put)
 		TEST_EQUAL(g_sent_packets.size(), 8);
 		if (g_sent_packets.size() != 8) break;
 
-		itemv = std::pair<char const*, int>(buffer, bencode(buffer, items[0].ent));
+		itemv = span<char const>(buffer, bencode(buffer, items[0].ent));
 
 		for (int i = 0; i < 8; ++i)
 		{
@@ -2115,12 +2129,12 @@ TORRENT_TEST(mutable_put)
 			{
 				TEST_EQUAL(put_mutable_item_keys[0].string_value(), "q");
 				TEST_EQUAL(put_mutable_item_keys[2].string_value(), "put");
-				TEST_EQUAL(put_mutable_item_keys[6].string_value(), std::string(public_key, item_pk_len));
-				TEST_EQUAL(put_mutable_item_keys[7].int_value(), seq);
-				TEST_EQUAL(put_mutable_item_keys[8].string_value(), sig);
-				std::pair<const char*, int> v = put_mutable_item_keys[10].data_section();
-				TEST_EQUAL(v.second, itemv.second);
-				TEST_CHECK(memcmp(v.first, itemv.first, itemv.second) == 0);
+				TEST_EQUAL(put_mutable_item_keys[6].string_value(), std::string(pk.bytes.data(), public_key::len));
+				TEST_EQUAL(put_mutable_item_keys[7].int_value(), int(seq.value));
+				TEST_EQUAL(put_mutable_item_keys[8].string_value(), std::string(sig.bytes.data(), signature::len));
+				span<const char> v = put_mutable_item_keys[10].data_section();
+				TEST_EQUAL(v.size(), itemv.size());
+				TEST_CHECK(memcmp(v.data(), itemv.data(), itemv.size()) == 0);
 				char tok[10];
 				std::snprintf(tok, sizeof(tok), "%02d", i);
 				TEST_EQUAL(put_mutable_item_keys[9].string_value(), tok);
@@ -2149,18 +2163,18 @@ TORRENT_TEST(traversal_done)
 	// set the branching factor to k to make this a little easier
 	t.sett.search_branching = 8;
 
-	char public_key[item_pk_len];
-	char private_key[item_sk_len];
-	get_test_keypair(public_key, private_key);
+	public_key pk;
+	secret_key sk;
+	get_test_keypair(pk, sk);
 
-	int seq = 4;
+	sequence_number seq(4);
 	bdecode_node response;
 
 	// verify that done() is only invoked once
 	// See PR 252
 	g_sent_packets.clear();
 
-	sha1_hash target = hasher(public_key, item_pk_len).final();
+	sha1_hash const target = hasher(pk.bytes).final();
 	enum { num_test_nodes = 9 }; // we need K + 1 nodes to create the failing sequence
 
 	std::array<node_entry, 9> nodes = build_nodes(target);
@@ -2175,8 +2189,8 @@ TORRENT_TEST(traversal_done)
 		t.dht_node.m_table.add_node(nodes[i]);
 
 	// kick off a mutable put request
-	g_put_item.assign(items[0].ent, empty_salt, seq, public_key, private_key);
-	t.dht_node.put_item(public_key, std::string()
+	g_put_item.assign(items[0].ent, empty_salt, seq, pk, sk);
+	t.dht_node.put_item(pk, std::string()
 		, std::bind(&put_mutable_item_cb, _1, _2, 0)
 		, put_mutable_item_data_cb);
 	TEST_EQUAL(g_sent_packets.size(), 8);
@@ -2259,7 +2273,9 @@ TORRENT_TEST(dht_dual_stack)
 	udp::endpoint source(addr("10.0.0.1"), 20);
 
 	send_dht_request(node4, "find_node", source, &response
-		, msg_args().target("0101010101010101010101010101010101010101").want("n6"));
+		, msg_args()
+			.target(sha1_hash("0101010101010101010101010101010101010101"))
+			.want("n6"));
 
 	dht::key_desc_t const nodes6_desc[] = {
 		{ "y", bdecode_node::string_t, 1, 0 },
@@ -2366,50 +2382,47 @@ TORRENT_TEST(signing_test1)
 	// test vector 1
 
 	// test content
-	std::pair<char const*, int> test_content("12:Hello World!", 15);
+	span<char const> test_content("12:Hello World!", 15);
 	// test salt
-	std::pair<char const*, int> test_salt("foobar", 6);
+	span<char const> test_salt("foobar", 6);
 
-	char public_key[item_pk_len];
-	char private_key[item_sk_len];
-	get_test_keypair(public_key, private_key);
-	std::pair<char const*, int> empty_salt;
+	public_key pk;
+	secret_key sk;
+	get_test_keypair(pk, sk);
+	span<char const> empty_salt;
 
-	char signature[item_sig_len];
+	signature sig;
+	sign_mutable_item(test_content, empty_salt, sequence_number(1), pk, sk, sig);
 
-	sign_mutable_item(test_content, empty_salt, 1, public_key
-		, private_key, signature);
-
-	TEST_EQUAL(aux::to_hex(std::string(signature, 64))
+	TEST_EQUAL(aux::to_hex(std::string(sig.bytes.data(), signature::len))
 		, "305ac8aeb6c9c151fa120f120ea2cfb923564e11552d06a5d856091e5e853cff"
 		"1260d3f39e4999684aa92eb73ffd136e6f4f3ecbfda0ce53a1608ecd7ae21f01");
 
-	sha1_hash target_id = item_target_id(empty_salt, public_key);
+	sha1_hash target_id = item_target_id(empty_salt, pk);
 	TEST_EQUAL(aux::to_hex(target_id.to_string()), "4a533d47ec9c7d95b1ad75f576cffc641853b750");
 }
 
 TORRENT_TEST(signing_test2)
 {
-	char public_key[item_pk_len];
-	char private_key[item_sk_len];
-	get_test_keypair(public_key, private_key);
+	public_key pk;
+	secret_key sk;
+	get_test_keypair(pk, sk);
 
 	// test content
-	std::pair<char const*, int> test_content("12:Hello World!", 15);
+	span<char const> test_content("12:Hello World!", 15);
 
-	char signature[item_sig_len];
+	signature sig;
 	// test salt
-	std::pair<char const*, int> test_salt("foobar", 6);
+	span<char const> test_salt("foobar", 6);
 
 	// test vector 2 (the keypair is the same as test 1)
-	sign_mutable_item(test_content, test_salt, 1, public_key
-		, private_key, signature);
+	sign_mutable_item(test_content, test_salt, sequence_number(1), pk, sk, sig);
 
-	TEST_EQUAL(aux::to_hex(std::string(signature, 64))
+	TEST_EQUAL(aux::to_hex(std::string(sig.bytes.data(), signature::len))
 		, "6834284b6b24c3204eb2fea824d82f88883a3d95e8b4a21b8c0ded553d17d17d"
 		"df9a8a7104b1258f30bed3787e6cb896fca78c58f8e03b5f18f14951a87d9a08");
 
-	sha1_hash target_id = item_target_id(test_salt, public_key);
+	sha1_hash target_id = item_target_id(test_salt, pk);
 	TEST_EQUAL(aux::to_hex(target_id.to_string()), "411eba73b6f087ca51a3795d9c8c938d365e32c1");
 }
 
@@ -2418,7 +2431,7 @@ TORRENT_TEST(signing_test3)
 	// test vector 3
 
 	// test content
-	std::pair<char const*, int> test_content("12:Hello World!", 15);
+	span<char const> test_content("12:Hello World!", 15);
 
 	sha1_hash target_id = item_target_id(test_content);
 	TEST_EQUAL(aux::to_hex(target_id.to_string()), "e5f96f6f38320f0f33959cb4d3d656452117aadb");
@@ -2704,7 +2717,7 @@ TORRENT_TEST(read_only_node)
 	send_dht_request(node, "ping", source, &response, args, "10", false);
 	TEST_EQUAL(response.type(), bdecode_node::none_t);
 
-	args.target("01010101010101010101");
+	args.target(sha1_hash("01010101010101010101"));
 	send_dht_request(node, "get", source, &response, args, "10", false);
 	TEST_EQUAL(response.type(), bdecode_node::none_t);
 

@@ -145,7 +145,7 @@ void node::update_node_id()
 	m_table.update_node_id(m_id);
 }
 
-bool node::verify_token(std::string const& token, char const* info_hash
+bool node::verify_token(std::string const& token, sha1_hash const& info_hash
 	, udp::endpoint const& addr) const
 {
 	if (token.length() != 4)
@@ -166,7 +166,7 @@ bool node::verify_token(std::string const& token, char const* info_hash
 	if (ec) return false;
 	h1.update(address);
 	h1.update(reinterpret_cast<char const*>(&m_secret[0]), sizeof(m_secret[0]));
-	h1.update(info_hash, 20);
+	h1.update(info_hash);
 
 	sha1_hash h = h1.final();
 	if (std::equal(token.begin(), token.end(), reinterpret_cast<char*>(&h[0])))
@@ -175,7 +175,7 @@ bool node::verify_token(std::string const& token, char const* info_hash
 	hasher h2;
 	h2.update(address);
 	h2.update(reinterpret_cast<char const*>(&m_secret[1]), sizeof(m_secret[1]));
-	h2.update(info_hash, 20);
+	h2.update(info_hash);
 	h = h2.final();
 	if (std::equal(token.begin(), token.end(), reinterpret_cast<char*>(&h[0])))
 		return true;
@@ -183,7 +183,7 @@ bool node::verify_token(std::string const& token, char const* info_hash
 }
 
 std::string node::generate_token(udp::endpoint const& addr
-	, char const* info_hash)
+	, sha1_hash const& info_hash)
 {
 	std::string token;
 	token.resize(4);
@@ -193,7 +193,7 @@ std::string node::generate_token(udp::endpoint const& addr
 	TORRENT_ASSERT(!ec);
 	h.update(address);
 	h.update(reinterpret_cast<char*>(&m_secret[0]), sizeof(m_secret[0]));
-	h.update(info_hash, 20);
+	h.update(info_hash);
 
 	sha1_hash const hash = h.final();
 	std::copy(hash.begin(), hash.begin() + 4, reinterpret_cast<char*>(&token[0]));
@@ -360,7 +360,7 @@ namespace
 		if (node.observer())
 		{
 			char hex_ih[41];
-			aux::to_hex(reinterpret_cast<char const*>(&ih[0]), 20, hex_ih);
+			aux::to_hex(ih.data(), 20, hex_ih);
 			node.observer()->log(dht_logger::node, "sending announce_peer [ ih: %s "
 				" p: %d nodes: %d ]", hex_ih, listen_port, int(v.size()));
 		}
@@ -391,7 +391,7 @@ namespace
 			e["y"] = "q";
 			e["q"] = "announce_peer";
 			entry& a = e["a"];
-			a["info_hash"] = ih.to_string();
+			a["info_hash"] = ih;
 			a["port"] = listen_port;
 			a["token"] = i->second;
 			a["seed"] = (flags & node::flag_seed) ? 1 : 0;
@@ -450,7 +450,7 @@ void node::announce(sha1_hash const& info_hash, int listen_port, int flags
 	if (m_observer)
 	{
 		char hex_ih[41];
-		aux::to_hex(reinterpret_cast<char const*>(&info_hash[0]), 20, hex_ih);
+		aux::to_hex(info_hash.data(), 20, hex_ih);
 		m_observer->log(dht_logger::node, "announcing [ ih: %s p: %d ]"
 			, hex_ih, listen_port);
 	}
@@ -484,7 +484,7 @@ void node::get_item(sha1_hash const& target
 	if (m_observer)
 	{
 		char hex_target[41];
-		aux::to_hex(reinterpret_cast<char const*>(&target[0]), 20, hex_target);
+		aux::to_hex(target.data(), 20, hex_target);
 		m_observer->log(dht_logger::node, "starting get for [ hash: %s ]"
 			, hex_target);
 	}
@@ -495,14 +495,14 @@ void node::get_item(sha1_hash const& target
 	ta->start();
 }
 
-void node::get_item(char const* pk, std::string const& salt
+void node::get_item(public_key const& pk, std::string const& salt
 	, boost::function<void(item const&, bool)> f)
 {
 #ifndef TORRENT_DISABLE_LOGGING
 	if (m_observer)
 	{
 		char hex_key[65];
-		aux::to_hex(pk, 32, hex_key);
+		aux::to_hex(pk.bytes.data(), 32, hex_key);
 		m_observer->log(dht_logger::node, "starting get for [ key: %s ]", hex_key);
 	}
 #endif
@@ -559,7 +559,7 @@ void node::put_item(sha1_hash const& target, entry const& data, boost::function<
 	ta->start();
 }
 
-void node::put_item(char const* pk, std::string const& salt
+void node::put_item(public_key const& pk, std::string const& salt
 	, boost::function<void(item const&, int)> f
 	, boost::function<void(item&)> data_cb)
 {
@@ -567,7 +567,7 @@ void node::put_item(char const* pk, std::string const& salt
 	if (m_observer)
 	{
 		char hex_key[65];
-		aux::to_hex(pk, 32, hex_key);
+		aux::to_hex(pk.bytes.data(), 32, hex_key);
 		m_observer->log(dht_logger::node, "starting get for [ key: %s ]", hex_key);
 	}
 	#endif
@@ -866,7 +866,7 @@ void node::incoming_request(msg const& m, entry& e)
 			return;
 		}
 
-		reply["token"] = generate_token(m.addr, msg_keys[0].string_ptr());
+		reply["token"] = generate_token(m.addr, sha1_hash(msg_keys[0].string_ptr()));
 
 		m_counters.inc_stats_counter(counters::dht_get_peers_in);
 
@@ -944,7 +944,8 @@ void node::incoming_request(msg const& m, entry& e)
 		if (m_observer)
 			m_observer->announce(info_hash, m.addr.address(), port);
 
-		if (!verify_token(msg_keys[2].string_value(), msg_keys[0].string_ptr(), m.addr))
+		if (!verify_token(msg_keys[2].string_value()
+			, sha1_hash(msg_keys[0].string_ptr()), m.addr))
 		{
 			m_counters.inc_stats_counter(counters::dht_invalid_announce);
 			incoming_error(e, "invalid token");
@@ -973,8 +974,8 @@ void node::incoming_request(msg const& m, entry& e)
 			{"v", bdecode_node::none_t, 0, 0},
 			{"seq", bdecode_node::int_t, 0, key_desc_t::optional},
 			// public key
-			{"k", bdecode_node::string_t, item_pk_len, key_desc_t::optional},
-			{"sig", bdecode_node::string_t, item_sig_len, key_desc_t::optional},
+			{"k", bdecode_node::string_t, public_key::len, key_desc_t::optional},
+			{"sig", bdecode_node::string_t, signature::len, key_desc_t::optional},
 			{"cas", bdecode_node::int_t, 0, key_desc_t::optional},
 			{"salt", bdecode_node::string_t, 0, key_desc_t::optional},
 		};
@@ -994,38 +995,35 @@ void node::incoming_request(msg const& m, entry& e)
 		bool mutable_put = (msg_keys[2] && msg_keys[3] && msg_keys[4]);
 
 		// public key (only set if it's a mutable put)
-		char const* pk = nullptr;
-		if (msg_keys[3]) pk = msg_keys[3].string_ptr();
+		char const* pub_key = nullptr;
+		if (msg_keys[3]) pub_key = msg_keys[3].string_ptr();
 
 		// signature (only set if it's a mutable put)
-		char const* sig = nullptr;
-		if (msg_keys[4]) sig = msg_keys[4].string_ptr();
+		char const* sign = nullptr;
+		if (msg_keys[4]) sign = msg_keys[4].string_ptr();
 
 		// pointer and length to the whole entry
-		std::pair<char const*, int> buf = msg_keys[1].data_section();
-		if (buf.second > 1000 || buf.second <= 0)
+		span<char const> buf = msg_keys[1].data_section();
+		if (buf.size() > 1000 || buf.size() <= 0)
 		{
 			m_counters.inc_stats_counter(counters::dht_invalid_put);
 			incoming_error(e, "message too big", 205);
 			return;
 		}
 
-		std::pair<char const*, int> salt(static_cast<char const*>(nullptr), 0);
+		span<char const> salt;
 		if (msg_keys[6])
-			salt = std::pair<char const*, int>(
-				msg_keys[6].string_ptr(), msg_keys[6].string_length());
-		if (salt.second > 64)
+			salt = { msg_keys[6].string_ptr(), size_t(msg_keys[6].string_length()) };
+		if (salt.size() > 64)
 		{
 			m_counters.inc_stats_counter(counters::dht_invalid_put);
 			incoming_error(e, "salt too big", 207);
 			return;
 		}
 
-		sha1_hash target;
-		if (pk)
-			target = item_target_id(salt, pk);
-		else
-			target = item_target_id(buf);
+		sha1_hash const target = pub_key
+			? item_target_id(salt, public_key(pub_key))
+			: item_target_id(buf);
 
 //		std::fprintf(stderr, "%s PUT target: %s salt: %s key: %s\n"
 //			, mutable_put ? "mutable":"immutable"
@@ -1035,8 +1033,7 @@ void node::incoming_request(msg const& m, entry& e)
 
 		// verify the write-token. tokens are only valid to write to
 		// specific target hashes. it must match the one we got a "get" for
-		if (!verify_token(msg_keys[0].string_value()
-				, reinterpret_cast<char const*>(&target[0]), m.addr))
+		if (!verify_token(msg_keys[0].string_value(), target, m.addr))
 		{
 			m_counters.inc_stats_counter(counters::dht_invalid_put);
 			incoming_error(e, "invalid token");
@@ -1045,14 +1042,16 @@ void node::incoming_request(msg const& m, entry& e)
 
 		if (!mutable_put)
 		{
-			m_storage.put_immutable_item(target, buf.first, buf.second, m.addr.address());
+			m_storage.put_immutable_item(target, buf, m.addr.address());
 		}
 		else
 		{
 			// mutable put, we must verify the signature
-			std::int64_t const seq = msg_keys[2].int_value();
+			sequence_number const seq(msg_keys[2].int_value());
+			public_key const pk(pub_key);
+			signature const sig(sign);
 
-			if (seq < 0)
+			if (seq < sequence_number(0))
 			{
 				m_counters.inc_stats_counter(counters::dht_invalid_put);
 				incoming_error(e, "invalid (negative) sequence number");
@@ -1060,23 +1059,19 @@ void node::incoming_request(msg const& m, entry& e)
 			}
 
 			// msg_keys[4] is the signature, msg_keys[3] is the public key
-			if (!verify_mutable_item(buf, salt
-				, seq, pk, sig))
+			if (!verify_mutable_item(buf, salt, seq, pk, sig))
 			{
 				m_counters.inc_stats_counter(counters::dht_invalid_put);
 				incoming_error(e, "invalid signature", 206);
 				return;
 			}
 
-			TORRENT_ASSERT(item_sig_len == msg_keys[4].string_length());
+			TORRENT_ASSERT(signature::len == msg_keys[4].string_length());
 
-			std::int64_t item_seq;
+			sequence_number item_seq;
 			if (!m_storage.get_mutable_item_seq(target, item_seq))
 			{
-				m_storage.put_mutable_item(target
-					, buf.first, buf.second
-					, sig, seq, pk
-					, salt.first, salt.second
+				m_storage.put_mutable_item(target, buf, sig, seq, pk, salt
 					, m.addr.address());
 			}
 			else
@@ -1086,7 +1081,7 @@ void node::incoming_request(msg const& m, entry& e)
 				// number matches the expected value before replacing it
 				// this is critical for avoiding race conditions when multiple
 				// writers are accessing the same slot
-				if (msg_keys[5] && item_seq != msg_keys[5].int_value())
+				if (msg_keys[5] && item_seq.value != msg_keys[5].int_value())
 				{
 					m_counters.inc_stats_counter(counters::dht_invalid_put);
 					incoming_error(e, "CAS mismatch", 301);
@@ -1100,10 +1095,7 @@ void node::incoming_request(msg const& m, entry& e)
 					return;
 				}
 
-				m_storage.put_mutable_item(target
-					, buf.first, buf.second
-					, sig, seq, pk
-					, salt.first, salt.second
+				m_storage.put_mutable_item(target, buf, sig, seq, pk, salt
 					, m.addr.address());
 			}
 		}
@@ -1137,7 +1129,7 @@ void node::incoming_request(msg const& m, entry& e)
 //			, msg_keys[1] ? "mutable":"immutable"
 //			, aux::to_hex(target.to_string()).c_str());
 
-		reply["token"] = generate_token(m.addr, msg_keys[1].string_ptr());
+		reply["token"] = generate_token(m.addr, sha1_hash(msg_keys[1].string_ptr()));
 
 		// always return nodes as well as peers
 		write_nodes_entries(target, msg_keys[2], reply);
@@ -1148,13 +1140,14 @@ void node::incoming_request(msg const& m, entry& e)
 		{
 			if (!m_storage.get_immutable_item(target, reply)) // ok, check for a mutable one
 			{
-				m_storage.get_mutable_item(target, 0, true, reply);
+				m_storage.get_mutable_item(target, sequence_number(0)
+					, true, reply);
 			}
 		}
 		else
 		{
 			m_storage.get_mutable_item(target
-				, msg_keys[0].int_value(), false
+				, sequence_number(msg_keys[0].int_value()), false
 				, reply);
 		}
 	}

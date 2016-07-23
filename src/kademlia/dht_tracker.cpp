@@ -444,7 +444,7 @@ namespace libtorrent { namespace dht
 
 	// key is a 32-byte binary string, the public key to look up.
 	// the salt is optional
-	void dht_tracker::get_item(char const* key
+	void dht_tracker::get_item(public_key const& key
 		, boost::function<void(item const&, bool)> cb
 		, std::string salt)
 	{
@@ -461,8 +461,7 @@ namespace libtorrent { namespace dht
 	{
 		std::string flat_data;
 		bencode(std::back_inserter(flat_data), data);
-		sha1_hash target = item_target_id(
-			std::pair<char const*, int>(flat_data.c_str(), flat_data.size()));
+		sha1_hash const target = item_target_id(flat_data);
 
 		boost::shared_ptr<put_item_ctx>
 			ctx = boost::make_shared<put_item_ctx>((TORRENT_USE_IPV6) ? 2 : 1);
@@ -474,7 +473,7 @@ namespace libtorrent { namespace dht
 #endif
 	}
 
-	void dht_tracker::put_item(char const* key
+	void dht_tracker::put_item(public_key const& key
 		, boost::function<void(item const&, int)> cb
 		, boost::function<void(item&)> data_cb, std::string salt)
 	{
