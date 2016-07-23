@@ -103,38 +103,36 @@ namespace libtorrent
 		m_xor_mask = h.final();
 	}
 
-	std::tuple<int, span<boost::asio::const_buffer>>
+	std::tuple<int, span<aux::const_buffer>>
 	encryption_handler::encrypt(
-		span<boost::asio::mutable_buffer> iovec)
+		span<aux::mutable_buffer> iovec)
 	{
-		using namespace boost::asio;
-
 		TORRENT_ASSERT(!m_send_barriers.empty());
 		TORRENT_ASSERT(m_send_barriers.front().enc_handler);
 
 		int to_process = m_send_barriers.front().next;
 
-		boost::asio::mutable_buffer* bufs;
+		aux::mutable_buffer* bufs;
 		size_t num_bufs;
 		bool need_destruct = false;
 		if (to_process != INT_MAX)
 		{
-			bufs = TORRENT_ALLOCA(mutable_buffer, iovec.size());
+			bufs = TORRENT_ALLOCA(aux::mutable_buffer, iovec.size());
 			need_destruct = true;
 			num_bufs = 0;
 			for (int i = 0; to_process > 0 && i < iovec.size(); ++i)
 			{
 				++num_bufs;
-				int const size = buffer_size(iovec[i]);
+				int const size = int(iovec[i].size());
 				if (to_process < size)
 				{
-					new (&bufs[i]) mutable_buffer(
-						buffer_cast<void*>(iovec[i]), to_process);
+					new (&bufs[i]) aux::mutable_buffer(
+						iovec[i].data(), to_process);
 					to_process = 0;
 				}
 				else
 				{
-					new (&bufs[i]) mutable_buffer(iovec[i]);
+					new (&bufs[i]) aux::mutable_buffer(iovec[i]);
 					to_process -= size;
 				}
 			}
@@ -146,7 +144,7 @@ namespace libtorrent
 		}
 
 		int next_barrier = 0;
-		span<const_buffer> out_iovec;
+		span<aux::const_buffer> out_iovec;
 		if (num_bufs != 0)
 		{
 			std::tie(next_barrier, out_iovec)
@@ -179,18 +177,18 @@ namespace libtorrent
 		{
 			int payload = 0;
 			for (int i = 0; i < num_bufs; ++i)
-				payload += int(buffer_size(bufs[i]));
+				payload += int(bufs[i].size());
 
 			int overhead = 0;
 			for (auto buf : out_iovec)
-				overhead += int(buffer_size(buf));
+				overhead += int(buf.size());
 			TORRENT_ASSERT(overhead + payload == next_barrier);
 		}
 #endif
 		if (need_destruct)
 		{
 			for (int i = 0; i < num_bufs; ++i)
-				bufs[i].~mutable_buffer();
+				bufs[i].~span<char>();
 		}
 		return std::make_tuple(next_barrier, out_iovec);
 	}
@@ -202,7 +200,7 @@ namespace libtorrent
 		int consume = 0;
 		if (recv_buffer.crypto_packet_finished())
 		{
-			boost::asio::mutable_buffer wr_buf = recv_buffer.mutable_buffer(bytes_transferred);
+			aux::mutable_buffer wr_buf = recv_buffer.mutable_buffer(bytes_transferred);
 			int packet_size = 0;
 			int produce = int(bytes_transferred);
 			m_dec_handler->decrypt(wr_buf, consume, produce, packet_size);
@@ -248,7 +246,7 @@ namespace libtorrent
 		{
 			int consume = 0;
 			int produce = 0;
-			std::vector<boost::asio::mutable_buffer> wr_buf;
+			std::vector<aux::mutable_buffer> wr_buf;
 			crypto->decrypt(wr_buf, consume, produce, packet_size);
 			TORRENT_ASSERT(wr_buf.empty());
 			TORRENT_ASSERT(consume == 0);
@@ -276,7 +274,7 @@ namespace libtorrent
 		int produce = 0;
 		int packet_size = 0;
 		char buf[1024];
-		boost::asio::mutable_buffer vec(buf, sizeof(buf));
+		aux::mutable_buffer vec(buf, sizeof(buf));
 		decrypt(vec, consume, produce, packet_size);
 	}
 
@@ -286,23 +284,22 @@ namespace libtorrent
 		rc4_init(key, len, &m_rc4_outgoing);
 		// Discard first 1024 bytes
 		char buf[1024];
-		boost::asio::mutable_buffer vec(buf, sizeof(buf));
+		aux::mutable_buffer vec(buf, sizeof(buf));
 		encrypt(vec);
 	}
 
-	std::tuple<int, span<boost::asio::const_buffer>>
-	rc4_handler::encrypt(span<boost::asio::mutable_buffer> bufs)
+	std::tuple<int, span<aux::const_buffer>>
+	rc4_handler::encrypt(span<aux::mutable_buffer> bufs)
 	{
-		using namespace boost::asio;
-		span<boost::asio::const_buffer> empty;
+		span<aux::const_buffer> empty;
 		if (!m_encrypt) return std::make_tuple(0, empty);
 		if (bufs.size() == 0) return std::make_tuple(0, empty);
 
 		int bytes_processed = 0;
 		for (auto& buf : bufs)
 		{
-			unsigned char* const pos = buffer_cast<unsigned char*>(buf);
-			int const len = int(buffer_size(buf));
+			unsigned char* const pos = reinterpret_cast<unsigned char*>(buf.data());
+			int const len = int(buf.size());
 
 			TORRENT_ASSERT(len >= 0);
 			TORRENT_ASSERT(pos);
@@ -313,7 +310,7 @@ namespace libtorrent
 		return std::make_tuple(bytes_processed, empty);
 	}
 
-	void rc4_handler::decrypt(span<boost::asio::mutable_buffer> bufs
+	void rc4_handler::decrypt(span<aux::mutable_buffer> bufs
 		, int& consume
 		, int& produce
 		, int& packet_size)
@@ -327,8 +324,8 @@ namespace libtorrent
 		int bytes_processed = 0;
 		for (auto& buf : bufs)
 		{
-			unsigned char* const pos = boost::asio::buffer_cast<unsigned char*>(buf);
-			int const len = int(boost::asio::buffer_size(buf));
+			unsigned char* const pos = reinterpret_cast<unsigned char*>(buf.data());
+			int const len = int(buf.size());
 
 			TORRENT_ASSERT(len >= 0);
 			TORRENT_ASSERT(pos);
@@ -406,4 +403,3 @@ unsigned long rc4_encrypt(unsigned char *out, unsigned long outlen, rc4 *state)
 } // namespace libtorrent
 
 #endif // #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-

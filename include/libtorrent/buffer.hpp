@@ -59,6 +59,13 @@ namespace libtorrent {
 		}
 	}
 
+	// TODO: eventually move this file to aux_ or create a new one
+	namespace aux
+	{
+		using mutable_buffer = span<char>;
+		using const_buffer = span<char const>;
+	}
+
 // the buffer is allocated once and cannot be resized. The size() may be
 // larger than requested, in case the underlying allocator over allocated. In
 // order to "grow" an allocation, create a new buffer and initialize it by
@@ -241,4 +248,3 @@ private:
 }
 
 #endif // BTORRENT_BUFFER_HPP_INCLUDED
-

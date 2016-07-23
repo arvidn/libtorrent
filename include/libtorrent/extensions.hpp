@@ -160,12 +160,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/weak_ptr.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include <vector>
 #include "libtorrent/config.hpp"
 #include "libtorrent/buffer.hpp"
@@ -509,8 +503,8 @@ namespace libtorrent
 		// send buffer, must be owned by the crypto plugin and guaranteed to stay
 		// alive until the crypto_plugin is destructed or this function is called
 		// again.
-		virtual std::tuple<int, span<boost::asio::const_buffer>>
-		encrypt(span<boost::asio::mutable_buffer> /*send_vec*/) = 0;
+		virtual std::tuple<int, span<span<char const>>>
+		encrypt(span<span<char>> /*send_vec*/) = 0;
 
 		// decrypt the provided buffers.
 		// consume is set to the number of bytes which should be trimmed from the
@@ -521,7 +515,7 @@ namespace libtorrent
 		//
 		// packet_size is set to the minimum number of bytes which must be read to
 		// advance the next step of decryption. default is 0
-		virtual void decrypt(span<boost::asio::mutable_buffer> /*receive_vec*/
+		virtual void decrypt(span<span<char>> /*receive_vec*/
 			, int& /* consume */, int& /*produce*/, int& /*packet_size*/) = 0;
 	};
 }
@@ -529,4 +523,3 @@ namespace libtorrent
 #endif
 
 #endif // TORRENT_EXTENSIONS_HPP_INCLUDED
-

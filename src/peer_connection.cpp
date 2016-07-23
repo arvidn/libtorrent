@@ -5468,20 +5468,19 @@ namespace libtorrent
 
 		if (m_send_barrier == 0)
 		{
-			std::vector<boost::asio::mutable_buffer> vec;
+			std::vector<aux::mutable_buffer> vec;
 			// limit outgoing crypto messages to 1MB
 			int const send_bytes = (std::min)(m_send_buffer.size(), 1024*1024);
 			m_send_buffer.build_mutable_iovec(send_bytes, vec);
 			int next_barrier;
-			span<boost::asio::const_buffer> inject_vec;
+			span<aux::const_buffer> inject_vec;
 			std::tie(next_barrier, inject_vec) = hit_send_barrier(vec);
 			for (auto i = inject_vec.rbegin(); i != inject_vec.rend(); ++i)
 			{
-				int const size = boost::asio::buffer_size(*i);
+				int const size = int(i->size());
 				// this const_cast is a here because chained_buffer need to be
 				// fixed.
-				char* ptr = const_cast<char*>(
-					boost::asio::buffer_cast<char const*>(*i));
+				char* ptr = const_cast<char*>(i->data());
 				m_send_buffer.prepend_buffer(ptr
 					, size, size, &nop, nullptr);
 			}
