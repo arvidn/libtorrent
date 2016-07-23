@@ -145,7 +145,7 @@ void node::update_node_id()
 	m_table.update_node_id(m_id);
 }
 
-bool node::verify_token(std::string const& token, char const* info_hash
+bool node::verify_token(std::string const& token, sha1_hash const& info_hash
 	, udp::endpoint const& addr) const
 {
 	if (token.length() != 4)
@@ -166,7 +166,7 @@ bool node::verify_token(std::string const& token, char const* info_hash
 	if (ec) return false;
 	h1.update(address);
 	h1.update(reinterpret_cast<char const*>(&m_secret[0]), sizeof(m_secret[0]));
-	h1.update(info_hash, 20);
+	h1.update(info_hash);
 
 	sha1_hash h = h1.final();
 	if (std::equal(token.begin(), token.end(), reinterpret_cast<char*>(&h[0])))
@@ -175,7 +175,7 @@ bool node::verify_token(std::string const& token, char const* info_hash
 	hasher h2;
 	h2.update(address);
 	h2.update(reinterpret_cast<char const*>(&m_secret[1]), sizeof(m_secret[1]));
-	h2.update(info_hash, 20);
+	h2.update(info_hash);
 	h = h2.final();
 	if (std::equal(token.begin(), token.end(), reinterpret_cast<char*>(&h[0])))
 		return true;
@@ -183,7 +183,7 @@ bool node::verify_token(std::string const& token, char const* info_hash
 }
 
 std::string node::generate_token(udp::endpoint const& addr
-	, char const* info_hash)
+	, sha1_hash const& info_hash)
 {
 	std::string token;
 	token.resize(4);
@@ -193,7 +193,7 @@ std::string node::generate_token(udp::endpoint const& addr
 	TORRENT_ASSERT(!ec);
 	h.update(address);
 	h.update(reinterpret_cast<char*>(&m_secret[0]), sizeof(m_secret[0]));
-	h.update(info_hash, 20);
+	h.update(info_hash);
 
 	sha1_hash const hash = h.final();
 	std::copy(hash.begin(), hash.begin() + 4, reinterpret_cast<char*>(&token[0]));
@@ -391,7 +391,7 @@ namespace
 			e["y"] = "q";
 			e["q"] = "announce_peer";
 			entry& a = e["a"];
-			a["info_hash"] = ih.to_string();
+			a["info_hash"] = ih;
 			a["port"] = listen_port;
 			a["token"] = i->second;
 			a["seed"] = (flags & node::flag_seed) ? 1 : 0;
@@ -866,7 +866,7 @@ void node::incoming_request(msg const& m, entry& e)
 			return;
 		}
 
-		reply["token"] = generate_token(m.addr, msg_keys[0].string_ptr());
+		reply["token"] = generate_token(m.addr, sha1_hash(msg_keys[0].string_ptr()));
 
 		m_counters.inc_stats_counter(counters::dht_get_peers_in);
 
@@ -944,7 +944,8 @@ void node::incoming_request(msg const& m, entry& e)
 		if (m_observer)
 			m_observer->announce(info_hash, m.addr.address(), port);
 
-		if (!verify_token(msg_keys[2].string_value(), msg_keys[0].string_ptr(), m.addr))
+		if (!verify_token(msg_keys[2].string_value()
+			, sha1_hash(msg_keys[0].string_ptr()), m.addr))
 		{
 			m_counters.inc_stats_counter(counters::dht_invalid_announce);
 			incoming_error(e, "invalid token");
@@ -1020,11 +1021,9 @@ void node::incoming_request(msg const& m, entry& e)
 			return;
 		}
 
-		sha1_hash target;
-		if (pub_key)
-			target = item_target_id(salt, public_key(pub_key));
-		else
-			target = item_target_id(buf);
+		sha1_hash const target = pub_key
+			? item_target_id(salt, public_key(pub_key))
+			: item_target_id(buf);
 
 //		std::fprintf(stderr, "%s PUT target: %s salt: %s key: %s\n"
 //			, mutable_put ? "mutable":"immutable"
@@ -1034,8 +1033,7 @@ void node::incoming_request(msg const& m, entry& e)
 
 		// verify the write-token. tokens are only valid to write to
 		// specific target hashes. it must match the one we got a "get" for
-		if (!verify_token(msg_keys[0].string_value()
-				, reinterpret_cast<char const*>(&target[0]), m.addr))
+		if (!verify_token(msg_keys[0].string_value(), target, m.addr))
 		{
 			m_counters.inc_stats_counter(counters::dht_invalid_put);
 			incoming_error(e, "invalid token");
@@ -1131,7 +1129,7 @@ void node::incoming_request(msg const& m, entry& e)
 //			, msg_keys[1] ? "mutable":"immutable"
 //			, aux::to_hex(target.to_string()).c_str());
 
-		reply["token"] = generate_token(m.addr, msg_keys[1].string_ptr());
+		reply["token"] = generate_token(m.addr, sha1_hash(msg_keys[1].string_ptr()));
 
 		// always return nodes as well as peers
 		write_nodes_entries(target, msg_keys[2], reply);

@@ -157,10 +157,10 @@ public:
 		, boost::function<void(item const&, int)> f
 		, boost::function<void(item&)> data_cb);
 
-	bool verify_token(std::string const& token, char const* info_hash
+	bool verify_token(std::string const& token, sha1_hash const& info_hash
 		, udp::endpoint const& addr) const;
 
-	std::string generate_token(udp::endpoint const& addr, char const* info_hash);
+	std::string generate_token(udp::endpoint const& addr, sha1_hash const& info_hash);
 
 	// the returned time is the delay until connection_timeout()
 	// should be called again the next time

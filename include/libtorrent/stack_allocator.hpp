@@ -84,6 +84,7 @@ namespace libtorrent { namespace aux
 			return ret;
 		}
 
+		// TODO: 3 use span<> here
 		int copy_buffer(char const* buf, int const size)
 		{
 			int const ret = int(m_storage.size());

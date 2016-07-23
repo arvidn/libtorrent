@@ -195,7 +195,7 @@ namespace
 			h.update(j->buffer.disk_block, j->d.io.buffer_size);
 			h.update(reinterpret_cast<char const*>(&m_salt), sizeof(m_salt));
 
-			std::pair<peer_list::iterator, peer_list::iterator> range
+			std::pair<peer_list::iterator, peer_list::iterator> const range
 				= m_torrent.find_peers(a);
 
 			// there is no peer with this address anymore
@@ -270,7 +270,7 @@ namespace
 			hasher h;
 			h.update(j->buffer.disk_block, j->d.io.buffer_size);
 			h.update(reinterpret_cast<char const*>(&m_salt), sizeof(m_salt));
-			sha1_hash ok_digest = h.final();
+			sha1_hash const ok_digest = h.final();
 
 			if (b.second.digest == ok_digest) return;
 

@@ -4717,9 +4717,9 @@ namespace aux {
 		TORRENT_ASSERT(m_torrents.size() >= m_torrent_lru.size());
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-		hasher h;
-		h.update("req2", 4);
-		h.update(params.info_hash.data(), 20);
+		static char const req2[4] = {'r', 'e', 'q', '2'};
+		hasher h(req2);
+		h.update(params.info_hash);
 		// this is SHA1("req2" + info-hash), used for
 		// encrypted hand shakes
 		m_obfuscated_torrents.insert(std::make_pair(h.final(), torrent_ptr));
@@ -5045,8 +5045,7 @@ namespace aux {
 		if (i == m_torrents.end() && !tptr->url().empty())
 		{
 			std::string const& url = tptr->url();
-			sha1_hash urlhash = hasher(&url[0], int(url.size())).final();
-			i = m_torrents.find(urlhash);
+			i = m_torrents.find(hasher(url).final());
 		}
 #endif
 
@@ -5086,9 +5085,9 @@ namespace aux {
 		TORRENT_ASSERT(m_torrents.size() >= m_torrent_lru.size());
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-		hasher h;
-		h.update("req2", 4);
-		h.update(tptr->info_hash().data(), 20);
+		static char const req2[4] = {'r', 'e', 'q', '2'};
+		hasher h(req2);
+		h.update(tptr->info_hash());
 		m_obfuscated_torrents.erase(h.final());
 #endif
 

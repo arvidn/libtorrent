@@ -1059,7 +1059,7 @@ void test_put(address(&rand_addr)())
 		std::string salt;
 		if (with_salt) salt = "foobar";
 
-		hasher h(pk.bytes.data(), 32);
+		hasher h(pk.bytes);
 		if (with_salt) h.update(salt);
 		sha1_hash target_id = h.final();
 
@@ -1162,7 +1162,7 @@ void test_put(address(&rand_addr)())
 			char value[1020];
 			char* ptr = value;
 			int const value_len = bencode(ptr, items[0].ent);
-			TEST_EQUAL(value_len, desc3_keys[2].data_section().size());
+			TEST_EQUAL(value_len, int(desc3_keys[2].data_section().size()));
 			TEST_CHECK(memcmp(desc3_keys[2].data_section().data(), value, value_len) == 0);
 
 			TEST_EQUAL(int(seq.value), desc3_keys[3].int_value());
@@ -2174,7 +2174,7 @@ TORRENT_TEST(traversal_done)
 	// See PR 252
 	g_sent_packets.clear();
 
-	sha1_hash const target = hasher(pk.bytes.data(), pk.bytes.size()).final();
+	sha1_hash const target = hasher(pk.bytes).final();
 	enum { num_test_nodes = 9 }; // we need K + 1 nodes to create the failing sequence
 
 	std::array<node_entry, 9> nodes = build_nodes(target);

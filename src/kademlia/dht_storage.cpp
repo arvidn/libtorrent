@@ -85,19 +85,6 @@ namespace
 		std::set<peer_entry> peers;
 	};
 
-#ifndef TORRENT_NO_DEPRECATE
-	struct count_peers
-	{
-		int& count;
-		explicit count_peers(int& c): count(c) {}
-		void operator()(std::pair<libtorrent::sha1_hash
-			, torrent_entry> const& t)
-		{
-			count += int(t.second.peers.size());
-		}
-	};
-#endif
-
 	// TODO: 2 make this configurable in dht_settings
 	enum { announce_interval = 30 };
 
@@ -202,7 +189,8 @@ namespace
 		size_t num_peers() const override
 		{
 			int ret = 0;
-			std::for_each(m_map.begin(), m_map.end(), count_peers(ret));
+			for (auto const& t : m_map)
+				ret += t.second.peers.size();
 			return ret;
 		}
 #endif
@@ -369,7 +357,7 @@ namespace
 				}
 				dht_immutable_item to_add;
 				to_add.value.reset(new char[buf.size()]);
-				to_add.size = buf.size();
+				to_add.size = int(buf.size());
 				memcpy(to_add.value.get(), buf.data(), buf.size());
 
 				std::tie(i, std::ignore) = m_immutable_table.insert(
@@ -435,7 +423,7 @@ namespace
 				}
 				dht_mutable_item to_add;
 				to_add.value.reset(new char[buf.size()]);
-				to_add.size = buf.size();
+				to_add.size = int(buf.size());
 				to_add.seq = seq;
 				to_add.salt.assign(salt.data(), salt.size());
 				to_add.sig = sig;
@@ -456,7 +444,7 @@ namespace
 					if (item.size != buf.size())
 					{
 						item.value.reset(new char[buf.size()]);
-						item.size = buf.size();
+						item.size = int(buf.size());
 					}
 					item.seq = seq;
 					item.sig = sig;

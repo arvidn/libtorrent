@@ -91,9 +91,8 @@ sha1_hash item_target_id(span<char const> v)
 sha1_hash item_target_id(span<char const> salt
 	, public_key const& pk)
 {
-	hasher h;
-	h.update(pk.bytes.data(), pk.bytes.size());
-	if (salt.size() > 0) h.update(salt.data(), salt.size());
+	hasher h(pk.bytes);
+	if (salt.size() > 0) h.update(salt);
 	return h.final();
 }
 

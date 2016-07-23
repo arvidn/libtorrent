@@ -96,11 +96,9 @@ namespace libtorrent
 		std::array<char, 96> buffer;
 		mp::export_bits(m_dh_shared_secret, reinterpret_cast<std::uint8_t*>(buffer.data()), 8);
 
+		static char const req3[4] = {'r', 'e', 'q', '3'};
 		// calculate the xor mask for the obfuscated hash
-		hasher h;
-		h.update("req3", 4);
-		h.update(buffer);
-		m_xor_mask = h.final();
+		m_xor_mask = hasher(req3).update(buffer).final();
 	}
 
 	std::tuple<int, span<boost::asio::const_buffer>>

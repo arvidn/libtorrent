@@ -239,6 +239,8 @@ struct bdecode_token
 // There are 5 different types of nodes, see type_t.
 struct TORRENT_EXPORT bdecode_node
 {
+	// TODO: 3 make this take span<char const> for buffer, and make it return a
+	// bdecode_node
 	TORRENT_EXPORT friend int bdecode(char const* start, char const* end, bdecode_node& ret
 		, error_code& ec, int* error_pos, int depth_limit
 		, int token_limit);

@@ -1050,12 +1050,9 @@ namespace libtorrent
 		}
 
 		// hash the info-field to calculate info-hash
-		hasher h;
-		span<char const> section = info.data_section();
-		h.update(section.data(), section.size());
-		m_info_hash = h.final();
-
-		if (section.size() >= (std::numeric_limits<std::uint32_t>::max)())
+		auto section = info.data_section();
+		m_info_hash = hasher(section).final();
+		if (info.data_section().size() >= (std::numeric_limits<std::uint32_t>::max)())
 		{
 			ec = errors::metadata_too_large;
 			return false;
@@ -1071,7 +1068,7 @@ namespace libtorrent
 		// when translating a pointer that points into the 'info' tree's
 		// backing buffer, into a pointer to our copy of the info section,
 		// this is the pointer offset to use.
-		ptrdiff_t info_ptr_diff = m_info_section.get() - section.data();
+		ptrdiff_t const info_ptr_diff = m_info_section.get() - section.data();
 
 		// extract piece length
 		int piece_length = info.dict_find_int_value("piece length", -1);

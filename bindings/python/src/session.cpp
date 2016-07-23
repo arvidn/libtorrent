@@ -457,9 +457,9 @@ namespace
         ses.dht_get_item(public_key, salt);
     }
 
-    void put_string(entry& e, std::array<char, 64>& sig, std::uint64_t& seq,
-                    std::string const& salt, std::string public_key, std::string private_key,
-                    std::string data)
+    void put_string(entry& e, std::array<char, 64>& sig, std::uint64_t& seq
+        , std::string const& salt, std::string pk, std::string sk
+        , std::string data)
     {
         using libtorrent::dht::sign_mutable_item;
 
@@ -467,20 +467,25 @@ namespace
         std::vector<char> buf;
         bencode(std::back_inserter(buf), e);
         ++seq;
+        dht::signature sign;
         sign_mutable_item(buf, salt
-                          , seq, public_key.data(), private_key.data(), sig.data());
+            , dht::sequence_number(seq)
+            , dht::public_key(pk.data())
+            , dht::secret_key(sk.data())
+            , sign);
+        sig = sign.bytes;
     }
 
     void dht_put_mutable_item(lt::session& ses, std::string private_key, std::string public_key,
-                              std::string data, std::string salt)
+        std::string data, std::string salt)
     {
         TORRENT_ASSERT(private_key.size() == 64);
         TORRENT_ASSERT(public_key.size() == 32);
         std::array<char, 32> key;
         std::copy(public_key.begin(), public_key.end(), key.begin());
         ses.dht_put_item(key, boost::bind(&put_string, _1, _2, _3, _4
-                                          , public_key, private_key, data)
-                         , salt);
+            , public_key, private_key, data)
+            , salt);
     }
 #endif
 

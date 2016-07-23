@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp" // for bencode()
 #include "libtorrent/kademlia/item.hpp" // for sign_mutable_item
 #include "libtorrent/ed25519.hpp"
+#include "libtorrent/span.hpp"
 
 #include <functional>
 #include <cstdio> // for snprintf
@@ -112,8 +113,11 @@ alert* wait_for_alert(lt::session& s, int alert_type)
 	return ret;
 }
 
-void put_string(entry& e, dht::signature& sig, dht::sequence_number& seq
-	, aux::array_view<char const> salt, public_key const& pk, secret_key const& sk
+void put_string(entry& e, std::array<char, 64>& sig
+	, std::uint64_t& seq
+	, std::string const& salt
+	, std::array<char, 32> const& pk
+	, std::array<char, 64> const& sk
 	, char const* str)
 {
 	using libtorrent::dht::sign_mutable_item;
@@ -121,8 +125,12 @@ void put_string(entry& e, dht::signature& sig, dht::sequence_number& seq
 	e = std::string(str);
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), e);
+	dht::signature sign;
 	++seq;
-	sign_mutable_item(buf, salt, seq, public_key, private_key, sig);
+	sign_mutable_item(buf, salt, dht::sequence_number(seq)
+		, dht::public_key(pk.data())
+		, dht::secret_key(sk.data()), sign);
+	sig = sign.bytes;
 }
 
 void bootstrap(lt::session& s)
@@ -151,14 +159,14 @@ int dump_key(char *filename)
 	}
 	std::fclose(f);
 
-	std::array<char, 32> public_key;
-	std::array<char, 64> private_key;
-	ed25519_create_keypair((unsigned char*)public_key.data()
-		, (unsigned char*)private_key.data(), seed);
+	std::array<char, 32> pk;
+	std::array<char, 64> sk;
+	ed25519_create_keypair((unsigned char*)pk.data()
+		, (unsigned char*)sk.data(), seed);
 
-	std::printf("public key: %s\nprivate key: %s\n",
-		to_hex(std::string(public_key.data(), public_key.size())).c_str(),
-		to_hex(std::string(private_key.data(), private_key.size())).c_str());
+	std::printf("public key: %s\nprivate key: %s\n"
+		, to_hex(std::string(pk.data(), pk.size())).c_str()
+		, to_hex(std::string(sk.data(), sk.size())).c_str());
 
 	return 0;
 }
@@ -354,7 +362,7 @@ int main(int argc, char* argv[])
 
 		bootstrap(s);
 		s.dht_put_item(public_key, std::bind(&put_string, _1, _2, _3, _4
-			, public_key.data(), private_key.data(), argv[0]));
+			, public_key, private_key, argv[0]));
 
 		std::printf("MPUT publick key: %s\n", to_hex(std::string(public_key.data()
 			, public_key.size())).c_str());

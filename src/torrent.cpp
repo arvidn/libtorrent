@@ -537,8 +537,8 @@ namespace libtorrent
 		m_web_seeds.insert(m_web_seeds.end(), web_seeds.begin(), web_seeds.end());
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-		hasher h;
-		h.update("req2", 4);
+		static char const req2[4] = {'r', 'e', 'q', '2'};
+		hasher h(req2);
 		h.update(m_torrent_file->info_hash());
 		m_ses.add_obfuscated_hash(h.final(), shared_from_this());
 #endif
@@ -7011,6 +7011,7 @@ namespace libtorrent
 		return peerinfo->connection != nullptr;
 	}
 
+	// TODO: 3 make this take a span<char const> instead
 	bool torrent::set_metadata(char const* metadata_buf, int metadata_size)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -7031,7 +7032,8 @@ namespace libtorrent
 
 		bdecode_node metadata;
 		error_code ec;
-		int ret = bdecode(metadata_buf, metadata_buf + metadata_size, metadata, ec);
+		int ret = bdecode(metadata_buf
+			, metadata_buf + metadata_size, metadata, ec);
 		if (ret != 0 || !m_torrent_file->parse_info_section(metadata, ec, 0))
 		{
 			update_gauge();
