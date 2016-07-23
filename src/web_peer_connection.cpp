@@ -655,7 +655,7 @@ void web_peer_connection::on_receive(error_code const& error
 
 	// in case the first file on this series of requests is a padfile
 	// we need to handle it right now
-	buffer::const_interval recv_buffer = m_recv_buffer.get();
+	span<char const> recv_buffer(m_recv_buffer.get().begin, m_recv_buffer.get().left());
 	handle_padfile();
 	if (associated_torrent().expired()) return;
 
@@ -669,21 +669,21 @@ void web_peer_connection::on_receive(error_code const& error
 			bool failed = false;
 			std::tie(payload, protocol) = m_parser.incoming(recv_buffer, failed);
 			received_bytes(0, protocol);
-			TORRENT_ASSERT(int(recv_buffer.left()) >= protocol);
+			TORRENT_ASSERT(int(recv_buffer.size()) >= protocol);
 
 			if (failed)
 			{
-				received_bytes(0, recv_buffer.left());
+				received_bytes(0, recv_buffer.size());
 #ifndef TORRENT_DISABLE_LOGGING
 				peer_log(peer_log_alert::info, "RECEIVE_BYTES"
-					, "%s", std::string(recv_buffer.begin, recv_buffer.end).c_str());
+					, "%s", std::string(recv_buffer.data(), recv_buffer.size()).c_str());
 #endif
 				disconnect(errors::http_parse_error, op_bittorrent, 2);
 				return;
 			}
 
-			TORRENT_ASSERT(recv_buffer.left() == 0 || *recv_buffer.begin == 'H');
-			TORRENT_ASSERT(recv_buffer.left() <= m_recv_buffer.packet_size());
+			TORRENT_ASSERT(recv_buffer.empty() || recv_buffer[0] == 'H');
+			TORRENT_ASSERT(recv_buffer.size() <= m_recv_buffer.packet_size());
 
 			// this means the entire status line hasn't been received yet
 			if (m_parser.status_code() == -1)
@@ -726,26 +726,26 @@ void web_peer_connection::on_receive(error_code const& error
 			// if the status code is not one of the accepted ones, abort
 			if (!is_ok_status(m_parser.status_code()))
 			{
-				handle_error(recv_buffer.left());
+				handle_error(recv_buffer.size());
 				return;
 			}
 
 			if (is_redirect(m_parser.status_code()))
 			{
-				handle_redirect(recv_buffer.left());
+				handle_redirect(recv_buffer.size());
 				return;
 			}
 
 			m_server_string = get_peer_name(m_parser, m_host);
 
-			recv_buffer.begin += m_body_start;
+			recv_buffer = recv_buffer.subspan(m_body_start);
 
 			m_body_start = m_parser.body_start();
 			m_received_body = 0;
 		}
 
 		// we only received the header, no data
-		if (recv_buffer.left() == 0) break;
+		if (recv_buffer.size() == 0) break;
 
 		// ===================================
 		// ======= RESPONSE BYTE RANGE =======
@@ -760,7 +760,7 @@ void web_peer_connection::on_receive(error_code const& error
 		std::tie(range_start, range_end) = get_range(m_parser, ec);
 		if (ec)
 		{
-			received_bytes(0, recv_buffer.left());
+			received_bytes(0, recv_buffer.size());
 			// we should not try this server again.
 			t->remove_web_seed_conn(this, ec, op_bittorrent, 2);
 			m_web = nullptr;
@@ -774,7 +774,7 @@ void web_peer_connection::on_receive(error_code const& error
 			|| range_end != file_req.start + file_req.length)
 		{
 			// the byte range in the http response is different what we expected
-			received_bytes(0, recv_buffer.left());
+			received_bytes(0, recv_buffer.size());
 
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::incoming, "INVALID HTTP RESPONSE"
@@ -793,19 +793,19 @@ void web_peer_connection::on_receive(error_code const& error
 			// === CHUNKED ENCODING  ===
 			// =========================
 
-			while (m_chunk_pos >= 0 && recv_buffer.left() > 0)
+			while (m_chunk_pos >= 0 && recv_buffer.size() > 0)
 			{
 				// first deliver any payload we have in the buffer so far, ahead of
 				// the next chunk header.
 				if (m_chunk_pos > 0)
 				{
-					int const copy_size = (std::min)(m_chunk_pos, recv_buffer.left());
+					int const copy_size = (std::min)(m_chunk_pos, int(recv_buffer.size()));
 					TORRENT_ASSERT(copy_size > 0);
 
 					if (m_received_body + copy_size > file_req.length)
 					{
 						// the byte range in the http response is different what we expected
-						received_bytes(0, recv_buffer.left());
+						received_bytes(0, recv_buffer.size());
 
 #ifndef TORRENT_DISABLE_LOGGING
 						peer_log(peer_log_alert::incoming, "INVALID HTTP RESPONSE"
@@ -815,27 +815,26 @@ void web_peer_connection::on_receive(error_code const& error
 						disconnect(errors::invalid_range, op_bittorrent, 2);
 						return;
 					}
-					incoming_payload(recv_buffer.begin, copy_size);
+					incoming_payload(recv_buffer.data(), copy_size);
 
-					recv_buffer.begin += copy_size;
+					recv_buffer = recv_buffer.subspan(copy_size);
 					m_chunk_pos -= copy_size;
 
-					if (recv_buffer.left() == 0) goto done;
+					if (recv_buffer.size() == 0) goto done;
 				}
 
 				TORRENT_ASSERT(m_chunk_pos == 0);
 
 				int header_size = 0;
 				std::int64_t chunk_size = 0;
-				buffer::const_interval chunk_start = recv_buffer;
-				chunk_start.begin += m_chunk_pos;
-				TORRENT_ASSERT(chunk_start.begin[0] == '\r'
-					|| aux::is_hex(chunk_start.begin, 1));
-				bool ret = m_parser.parse_chunk_header(chunk_start, &chunk_size, &header_size);
+				span<char const> chunk_start = recv_buffer.subspan(m_chunk_pos);
+				TORRENT_ASSERT(chunk_start[0] == '\r'
+					|| aux::is_hex(chunk_start.data(), 1));
+				bool const ret = m_parser.parse_chunk_header(chunk_start, &chunk_size, &header_size);
 				if (!ret)
 				{
-					received_bytes(0, chunk_start.left() - m_partial_chunk_header);
-					m_partial_chunk_header = chunk_start.left();
+					received_bytes(0, chunk_start.size() - m_partial_chunk_header);
+					m_partial_chunk_header = int(chunk_start.size());
 					goto done;
 				}
 #ifndef TORRENT_DISABLE_LOGGING
@@ -846,10 +845,10 @@ void web_peer_connection::on_receive(error_code const& error
 				received_bytes(0, header_size - m_partial_chunk_header);
 				m_partial_chunk_header = 0;
 				TORRENT_ASSERT(chunk_size != 0
-					|| chunk_start.left() <= header_size || chunk_start.begin[header_size] == 'H');
+					|| chunk_start.size() <= header_size || chunk_start[header_size] == 'H');
 				TORRENT_ASSERT(m_body_start + m_chunk_pos < INT_MAX);
 				m_chunk_pos += chunk_size;
-				recv_buffer.begin += header_size;
+				recv_buffer = recv_buffer.subspan(header_size);
 
 				// a chunk size of zero means the request is complete. Make sure the
 				// number of payload bytes we've received matches the number we
@@ -859,9 +858,8 @@ void web_peer_connection::on_receive(error_code const& error
 					TORRENT_ASSERT_VAL(m_chunk_pos == 0, m_chunk_pos);
 
 #if TORRENT_USE_ASSERTS
-					buffer::const_interval chunk = recv_buffer;
-					chunk.begin += m_chunk_pos;
-					TORRENT_ASSERT(chunk.left() == 0 || chunk.begin[0] == 'H');
+					span<char const> chunk = recv_buffer.subspan(m_chunk_pos);
+					TORRENT_ASSERT(chunk.size() == 0 || chunk[0] == 'H');
 #endif
 					m_chunk_pos = -1;
 
@@ -869,7 +867,7 @@ void web_peer_connection::on_receive(error_code const& error
 					if (m_received_body != file_req.length)
 					{
 						// the byte range in the http response is different what we expected
-						received_bytes(0, recv_buffer.left());
+						received_bytes(0, recv_buffer.size());
 
 #ifndef TORRENT_DISABLE_LOGGING
 						peer_log(peer_log_alert::incoming, "INVALID HTTP RESPONSE"
@@ -895,7 +893,7 @@ void web_peer_connection::on_receive(error_code const& error
 
 				// if all of the receive buffer was just consumed as chunk
 				// header, we're done
-				if (recv_buffer.left() == 0) goto done;
+				if (recv_buffer.size() == 0) goto done;
 			}
 		}
 		else
@@ -903,9 +901,9 @@ void web_peer_connection::on_receive(error_code const& error
 			// this is the simple case, where we don't have chunked encoding
 			TORRENT_ASSERT(m_received_body <= file_req.length);
 			int const copy_size = (std::min)(file_req.length - m_received_body
-				, recv_buffer.left());
-			incoming_payload(recv_buffer.begin, copy_size);
-			recv_buffer.begin += copy_size;
+				, int(recv_buffer.size()));
+			incoming_payload(recv_buffer.data(), copy_size);
+			recv_buffer = recv_buffer.subspan(copy_size);
 
 			TORRENT_ASSERT(m_received_body <= file_req.length);
 			if (m_received_body == file_req.length)
@@ -924,12 +922,12 @@ void web_peer_connection::on_receive(error_code const& error
 			}
 		}
 
-		if (recv_buffer.left() == 0) break;
+		if (recv_buffer.size() == 0) break;
 	}
 done:
 
 	// now, remove all the bytes we've processed from the receive buffer
-	m_recv_buffer.cut(recv_buffer.begin - m_recv_buffer.get().begin
+	m_recv_buffer.cut(recv_buffer.data() - m_recv_buffer.get().begin
 		, t->block_size() + request_size_overhead);
 }
 

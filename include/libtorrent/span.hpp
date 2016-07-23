@@ -92,10 +92,17 @@ namespace libtorrent
 			return { data() + size() - n, n };
 		}
 
-		span<T> cut_first(size_t const n) const
+		span<T> subspan(size_t const offset) const
 		{
-			TORRENT_ASSERT(size() >= n);
-			return { data() + n, int(size()) - n };
+			TORRENT_ASSERT(size() >= offset);
+			return { data() + offset, size() - offset };
+		}
+
+		span<T> subspan(size_t const offset, size_t count) const
+		{
+			TORRENT_ASSERT(size() >= offset);
+			TORRENT_ASSERT(size() >= offset + count);
+			return { data() + offset, count };
 		}
 
 		T& operator[](size_t const idx)

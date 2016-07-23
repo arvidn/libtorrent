@@ -214,8 +214,7 @@ void lsd::on_announce(udp::endpoint const& from, char* buf
 	http_parser p;
 
 	bool error = false;
-	p.incoming(buffer::const_interval(buf, buf + bytes_transferred)
-		, error);
+	p.incoming(span<char const>(buf, bytes_transferred), error);
 
 	if (!p.header_finished() || error)
 	{

@@ -435,8 +435,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 
 	http_parser p;
 	bool error = false;
-	p.incoming(buffer::const_interval(buffer
-		, buffer + bytes_transferred), error);
+	p.incoming(span<char const>(buffer, bytes_transferred), error);
 	if (error)
 	{
 #ifndef TORRENT_DISABLE_LOGGING

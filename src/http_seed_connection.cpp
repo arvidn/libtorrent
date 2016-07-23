@@ -247,7 +247,8 @@ namespace libtorrent
 				bool parse_error = false;
 				int protocol = 0;
 				int payload = 0;
-				std::tie(payload, protocol) = m_parser.incoming(recv_buffer, parse_error);
+				std::tie(payload, protocol) = m_parser.incoming(span<char const>(
+					recv_buffer.begin, recv_buffer.left()), parse_error);
 				received_bytes(0, protocol);
 				bytes_transferred -= protocol;
 #if TORRENT_USE_ASSERTS
@@ -362,17 +363,16 @@ namespace libtorrent
 			{
 				int header_size = 0;
 				std::int64_t chunk_size = 0;
-				buffer::const_interval chunk_start = recv_buffer;
-				chunk_start.begin += m_chunk_pos;
-				TORRENT_ASSERT(chunk_start.begin[0] == '\r'
-					|| aux::is_hex(chunk_start.begin, 1));
+				span<char const> chunk_start(recv_buffer.begin + m_chunk_pos, recv_buffer.left() - m_chunk_pos);
+				TORRENT_ASSERT(chunk_start[0] == '\r'
+					|| aux::is_hex(chunk_start.data(), 1));
 				bool ret = m_parser.parse_chunk_header(chunk_start, &chunk_size, &header_size);
 				if (!ret)
 				{
-					TORRENT_ASSERT(bytes_transferred >= size_t(chunk_start.left() - m_partial_chunk_header));
-					bytes_transferred -= chunk_start.left() - m_partial_chunk_header;
-					received_bytes(0, chunk_start.left() - m_partial_chunk_header);
-					m_partial_chunk_header = chunk_start.left();
+					TORRENT_ASSERT(bytes_transferred >= size_t(chunk_start.size() - m_partial_chunk_header));
+					bytes_transferred -= chunk_start.size() - m_partial_chunk_header;
+					received_bytes(0, chunk_start.size() - m_partial_chunk_header);
+					m_partial_chunk_header = chunk_start.size();
 					if (bytes_transferred == 0) return;
 					break;
 				}
@@ -388,7 +388,7 @@ namespace libtorrent
 
 					received_bytes(0, header_size - m_partial_chunk_header);
 					m_partial_chunk_header = 0;
-					TORRENT_ASSERT(chunk_size != 0 || chunk_start.left() <= header_size || chunk_start.begin[header_size] == 'H');
+					TORRENT_ASSERT(chunk_size != 0 || chunk_start.size() <= header_size || chunk_start[header_size] == 'H');
 					// cut out the chunk header from the receive buffer
 					TORRENT_ASSERT(m_chunk_pos + m_body_start < INT_MAX);
 					m_recv_buffer.cut(header_size, t->block_size() + 1024, int(m_chunk_pos + m_body_start));

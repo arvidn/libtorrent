@@ -73,7 +73,7 @@ void incoming_msearch(udp::endpoint const& from, char* buffer
 {
 	http_parser p;
 	bool error = false;
-	p.incoming(buffer::const_interval(buffer, buffer + size), error);
+	p.incoming(span<char const>(buffer, size), error);
 	if (error || !p.header_finished())
 	{
 		std::cerr << "*** malformed HTTP from "

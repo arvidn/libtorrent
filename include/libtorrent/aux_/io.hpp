@@ -55,7 +55,7 @@ namespace libtorrent { namespace aux
 			ret <<= 8;
 			ret |= static_cast<std::uint8_t>(view[i]);
 		}
-		view = view.cut_first(sizeof(T));
+		view = view.subspan(sizeof(T));
 		return ret;
 	}
 
@@ -69,7 +69,7 @@ namespace libtorrent { namespace aux
 			shift -= 8;
 			view[i] = static_cast<unsigned char>((val >> shift) & 0xff);
 		}
-		view = view.cut_first(sizeof(T));
+		view = view.subspan(sizeof(T));
 	}
 
 	// -- adaptors

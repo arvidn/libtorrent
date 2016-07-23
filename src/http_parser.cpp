@@ -132,33 +132,17 @@ namespace libtorrent
 
 	http_parser::~http_parser() = default;
 
-	http_parser::http_parser(int flags)
-		: m_recv_pos(0)
-		, m_content_length(-1)
-		, m_range_start(-1)
-		, m_range_end(-1)
-		, m_recv_buffer(nullptr, nullptr)
-		, m_cur_chunk_end(-1)
-		, m_status_code(-1)
-		, m_chunk_header_size(0)
-		, m_partial_chunk_header(0)
-		, m_flags(flags)
-		, m_body_start_pos(0)
-		, m_state(read_status)
-		, m_connection_close(false)
-		, m_chunked_encoding(false)
-		, m_finished(false)
-	{}
+	http_parser::http_parser(int const flags) : m_flags(flags) {}
 
 	std::tuple<int, int> http_parser::incoming(
-		buffer::const_interval recv_buffer, bool& error)
+		span<char const> recv_buffer, bool& error)
 	{
-		TORRENT_ASSERT(recv_buffer.left() >= m_recv_buffer.left());
+		TORRENT_ASSERT(recv_buffer.size() >= m_recv_buffer.size());
 		std::tuple<int, int> ret(0, 0);
-		int start_pos = m_recv_buffer.left();
+		int start_pos = m_recv_buffer.size();
 
 		// early exit if there's nothing new in the receive buffer
-		if (start_pos == recv_buffer.left()) return ret;
+		if (start_pos == recv_buffer.size()) return ret;
 		m_recv_buffer = recv_buffer;
 
 		if (m_state == error_state)
@@ -167,19 +151,19 @@ namespace libtorrent
 			return ret;
 		}
 
-		char const* pos = recv_buffer.begin + m_recv_pos;
+		char const* pos = recv_buffer.data() + m_recv_pos;
 
 restart_response:
 
 		if (m_state == read_status)
 		{
 			TORRENT_ASSERT(!m_finished);
-			TORRENT_ASSERT(pos <= recv_buffer.end);
-			char const* newline = std::find(pos, recv_buffer.end, '\n');
+			TORRENT_ASSERT(pos <= recv_buffer.end());
+			char const* newline = std::find(pos, recv_buffer.end(), '\n');
 			// if we don't have a full line yet, wait.
-			if (newline == recv_buffer.end)
+			if (newline == recv_buffer.end())
 			{
-				std::get<1>(ret) += m_recv_buffer.left() - start_pos;
+				std::get<1>(ret) += m_recv_buffer.size() - start_pos;
 				return ret;
 			}
 
@@ -198,7 +182,7 @@ restart_response:
 			TORRENT_ASSERT(newline >= pos);
 			int incoming = int(newline - pos);
 			m_recv_pos += incoming;
-			std::get<1>(ret) += newline - (m_recv_buffer.begin + start_pos);
+			std::get<1>(ret) += newline - (m_recv_buffer.data() + start_pos);
 			pos = newline;
 
 			m_protocol = read_until(line, ' ', line_end);
@@ -223,17 +207,17 @@ restart_response:
 				m_status_code = 0;
 			}
 			m_state = read_header;
-			start_pos = pos - recv_buffer.begin;
+			start_pos = pos - recv_buffer.data();
 		}
 
 		if (m_state == read_header)
 		{
 			TORRENT_ASSERT(!m_finished);
-			TORRENT_ASSERT(pos <= recv_buffer.end);
-			char const* newline = std::find(pos, recv_buffer.end, '\n');
+			TORRENT_ASSERT(pos <= recv_buffer.end());
+			char const* newline = std::find(pos, recv_buffer.end(), '\n');
 			std::string line;
 
-			while (newline != recv_buffer.end && m_state == read_header)
+			while (newline != recv_buffer.end() && m_state == read_header)
 			{
 				// if the LF character is preceeded by a CR
 				// charachter, don't copy it into the line string.
@@ -338,16 +322,16 @@ restart_response:
 					m_chunked_encoding = string_begins_no_case("chunked", value.c_str());
 				}
 
-				TORRENT_ASSERT(m_recv_pos <= recv_buffer.left());
-				TORRENT_ASSERT(pos <= recv_buffer.end);
-				newline = std::find(pos, recv_buffer.end, '\n');
+				TORRENT_ASSERT(m_recv_pos <= recv_buffer.size());
+				TORRENT_ASSERT(pos <= recv_buffer.end());
+				newline = std::find(pos, recv_buffer.end(), '\n');
 			}
-			std::get<1>(ret) += newline - (m_recv_buffer.begin + start_pos);
+			std::get<1>(ret) += newline - (m_recv_buffer.data() + start_pos);
 		}
 
 		if (m_state == read_body)
 		{
-			int incoming = recv_buffer.end - pos;
+			int incoming = recv_buffer.end() - pos;
 
 			if (m_chunked_encoding && (m_flags & dont_parse_chunks) == 0)
 			{
@@ -364,7 +348,8 @@ restart_response:
 						std::get<0>(ret) += int(payload);
 						incoming -= int(payload);
 					}
-					buffer::const_interval buf(recv_buffer.begin + m_cur_chunk_end, recv_buffer.end);
+					span<char const> buf(recv_buffer.data() + m_cur_chunk_end
+						, recv_buffer.size() - m_cur_chunk_end);
 					std::int64_t chunk_size;
 					int header_size;
 					if (parse_chunk_header(buf, &chunk_size, &header_size))
@@ -393,7 +378,7 @@ restart_response:
 //						std::fprintf(stderr, "parse_chunk_header(%d, -> %d, -> %d) -> %d\n"
 //							"  incoming = %d\n  m_recv_pos = %d\n  m_cur_chunk_end = %d\n"
 //							"  content-length = %d\n"
-//							, buf.left(), int(chunk_size), header_size, 1, incoming, int(m_recv_pos)
+//							, buf.size(), int(chunk_size), header_size, 1, incoming, int(m_recv_pos)
 //							, m_cur_chunk_end, int(m_content_length));
 					}
 					else
@@ -404,7 +389,7 @@ restart_response:
 //						std::fprintf(stderr, "parse_chunk_header(%d, -> %d, -> %d) -> %d\n"
 //							"  incoming = %d\n  m_recv_pos = %d\n  m_cur_chunk_end = %d\n"
 //							"  content-length = %d\n"
-//							, buf.left(), int(chunk_size), header_size, 0, incoming, int(m_recv_pos)
+//							, buf.size(), int(chunk_size), header_size, 0, incoming, int(m_recv_pos)
 //							, m_cur_chunk_end, int(m_content_length));
 					}
 					m_chunk_header_size += header_size;
@@ -445,23 +430,22 @@ restart_response:
 		return ret;
 	}
 
-	bool http_parser::parse_chunk_header(buffer::const_interval buf
+	bool http_parser::parse_chunk_header(span<char const> buf
 		, std::int64_t* chunk_size, int* header_size)
 	{
-		TORRENT_ASSERT(buf.begin <= buf.end);
-		char const* pos = buf.begin;
+		char const* pos = buf.data();
 
 		// ignore one optional new-line. This is since each chunk
 		// is terminated by a newline. we're likely to see one
 		// before the actual header.
 
-		if (pos < buf.end && pos[0] == '\r') ++pos;
-		if (pos < buf.end && pos[0] == '\n') ++pos;
-		if (pos == buf.end) return false;
+		if (pos < buf.end() && pos[0] == '\r') ++pos;
+		if (pos < buf.end() && pos[0] == '\n') ++pos;
+		if (pos == buf.end()) return false;
 
-		TORRENT_ASSERT(pos <= buf.end);
-		char const* newline = std::find(pos, buf.end, '\n');
-		if (newline == buf.end) return false;
+		TORRENT_ASSERT(pos <= buf.end());
+		char const* newline = std::find(pos, buf.end(), '\n');
+		if (newline == buf.end()) return false;
 		++newline;
 
 		// the chunk header is a single line, a hex length of the
@@ -476,19 +460,19 @@ restart_response:
 
 		if (*chunk_size != 0)
 		{
-			*header_size = newline - buf.begin;
+			*header_size = newline - buf.data();
 			// the newline alone is two bytes
-			TORRENT_ASSERT(newline - buf.begin > 2);
+			TORRENT_ASSERT(newline - buf.data() > 2);
 			return true;
 		}
 
 		// this is the terminator of the stream. Also read headers
 		std::map<std::string, std::string> tail_headers;
 		pos = newline;
-		newline = std::find(pos, buf.end, '\n');
+		newline = std::find(pos, buf.end(), '\n');
 
 		std::string line;
-		while (newline != buf.end)
+		while (newline != buf.end())
 		{
 			// if the LF character is preceeded by a CR
 			// charachter, don't copy it into the line string.
@@ -504,10 +488,10 @@ restart_response:
 				// this means we got a blank line,
 				// the header is finished and the body
 				// starts.
-				*header_size = newline - buf.begin;
+				*header_size = newline - buf.data();
 
 				// the newline alone is two bytes
-				TORRENT_ASSERT(newline - buf.begin > 2);
+				TORRENT_ASSERT(newline - buf.data() > 2);
 
 				// we were successfull in parsing the headers.
 				// add them to the headers in the parser
@@ -529,7 +513,7 @@ restart_response:
 			tail_headers.insert(std::make_pair(name, value));
 //			std::fprintf(stderr, "tail_header: %s: %s\n", name.c_str(), value.c_str());
 
-			newline = std::find(pos, buf.end, '\n');
+			newline = std::find(pos, buf.end(), '\n');
 		}
 		return false;
 	}
@@ -543,8 +527,9 @@ restart_response:
 				? m_recv_pos : (std::min)(m_body_start_pos + m_content_length, m_recv_pos);
 
 		TORRENT_ASSERT(last_byte >= m_body_start_pos);
-		return buffer::const_interval(m_recv_buffer.begin + m_body_start_pos
-			, m_recv_buffer.begin + last_byte);
+		return buffer::const_interval(m_recv_buffer.data()
+			+ m_body_start_pos
+			, m_recv_buffer.data() + last_byte);
 	}
 
 	void http_parser::reset()
@@ -558,8 +543,7 @@ restart_response:
 		m_range_end = -1;
 		m_finished = false;
 		m_state = read_status;
-		m_recv_buffer.begin = nullptr;
-		m_recv_buffer.end = nullptr;
+		m_recv_buffer = span<char const>();
 		m_header.clear();
 		m_chunked_encoding = false;
 		m_chunked_ranges.clear();

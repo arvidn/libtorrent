@@ -460,7 +460,7 @@ namespace libtorrent
 		restart_read_timeout();
 
 		// skip header
-		buf = buf.cut_first(8);
+		buf = buf.subspan(8);
 
 		// reset transaction
 		update_transaction_id();
@@ -592,7 +592,7 @@ namespace libtorrent
 	{
 		if (buf.size() < 20) return false;
 
-		buf = buf.cut_first(8);
+		buf = buf.subspan(8);
 		restart_read_timeout();
 
 		tracker_response resp;
@@ -628,7 +628,7 @@ namespace libtorrent
 		{
 			ipv4_peer_entry e;
 			memcpy(&e.ip[0], buf.data(), 4);
-			buf = buf.cut_first(4);
+			buf = buf.subspan(4);
 			e.port = aux::read_uint16(buf);
 			resp.peers4.push_back(e);
 		}
@@ -719,9 +719,9 @@ namespace libtorrent
 		aux::write_int32(action_announce, out); // action (announce)
 		aux::write_int32(m_transaction_id, out); // transaction_id
 		std::copy(req.info_hash.begin(), req.info_hash.end(), out.data()); // info_hash
-		out.cut_first(20);
+		out.subspan(20);
 		std::copy(req.pid.begin(), req.pid.end(), out.data()); // peer_id
-		out.cut_first(20);
+		out.subspan(20);
 		aux::write_int64(stats ? req.downloaded : 0, out); // downloaded
 		aux::write_int64(stats ? req.left : 0, out); // left
 		aux::write_int64(stats ? req.uploaded : 0, out); // uploaded
