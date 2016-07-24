@@ -280,8 +280,11 @@ EXPORT int main(int argc, char const* argv[])
 
 	SetUnhandledExceptionFilter(&seh_exception_handler);
 
+#ifdef _DEBUG
 	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_FILE);
 	_CrtSetReportFile(_CRT_ERROR, _CRTDBG_FILE_STDERR);
+#endif
+
 #else
 
 	signal(SIGSEGV, &sig_handler);
