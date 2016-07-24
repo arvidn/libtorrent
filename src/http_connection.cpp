@@ -743,10 +743,9 @@ void http_connection::on_read(error_code const& e
 
 	if (m_bottled || !m_parser.header_finished())
 	{
-		libtorrent::buffer::const_interval rcv_buf(&m_recvbuffer[0]
-			, &m_recvbuffer[0] + m_read_pos);
+		span<char const> rcv_buf(m_recvbuffer);
 		bool error = false;
-		m_parser.incoming(rcv_buf, error);
+		m_parser.incoming(rcv_buf.subspan(0, m_read_pos), error);
 		if (error)
 		{
 			// HTTP parse error

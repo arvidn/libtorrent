@@ -85,6 +85,7 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 
 	// return the interval between the start of the buffer to the read cursor.
 	// This is the "current" packet.
+	// TODO: 3 use span
 	buffer::const_interval get() const;
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
@@ -198,6 +199,7 @@ struct crypto_receive_buffer
 
 	int advance_pos(int bytes);
 
+	// TODO: 3 use span
 	buffer::const_interval get() const;
 
 	aux::mutable_buffer mutable_buffer(std::size_t bytes);

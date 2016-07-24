@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
+// TODO: 3 use span here instead of zero-terminated string
 std::tuple<int, int, bool> feed_bytes(http_parser& parser, char const* str)
 {
 	std::tuple<int, int, bool> ret(0, 0, false);
@@ -46,12 +47,12 @@ std::tuple<int, int, bool> feed_bytes(http_parser& parser, char const* str)
 	{
 		ret = std::make_tuple(0, 0, false);
 		parser.reset();
-		buffer::const_interval recv_buf(str, str);
-		for (; *str;)
+		span<char const> recv_buf(str, 0);
+		for (;;)
 		{
-			int chunk_size = (std::min)(chunks, int(strlen(recv_buf.end)));
+			int chunk_size = (std::min)(chunks, int(strlen(recv_buf.end())));
 			if (chunk_size == 0) break;
-			recv_buf.end += chunk_size;
+			recv_buf = span<char const>(recv_buf.data(), recv_buf.size() + chunk_size);
 			int payload, protocol;
 			bool error = false;
 			std::tie(payload, protocol) = parser.incoming(recv_buf, error);
@@ -332,10 +333,10 @@ TORRENT_TEST(http_parser)
 		char const chunk_header1[] = "f;this is a comment\r\n";
 		std::int64_t chunk_size;
 		int header_size;
-		bool ret = parser.parse_chunk_header(buffer::const_interval(chunk_header1, chunk_header1 + 10)
+		bool ret = parser.parse_chunk_header(span<char const>(chunk_header1, 10)
 			, &chunk_size, &header_size);
 		TEST_EQUAL(ret, false);
-		ret = parser.parse_chunk_header(buffer::const_interval(chunk_header1, chunk_header1 + sizeof(chunk_header1))
+		ret = parser.parse_chunk_header(span<char const>(chunk_header1, sizeof(chunk_header1))
 			, &chunk_size, &header_size);
 		TEST_EQUAL(ret, true);
 		TEST_EQUAL(chunk_size, 15);
@@ -347,7 +348,7 @@ TORRENT_TEST(http_parser)
 			"test2: bar\r\n"
 			"\r\n";
 
-		ret = parser.parse_chunk_header(buffer::const_interval(chunk_header2, chunk_header2 + sizeof(chunk_header2))
+		ret = parser.parse_chunk_header(span<char const>(chunk_header2, sizeof(chunk_header2))
 			, &chunk_size, &header_size);
 		TEST_EQUAL(ret, true);
 		TEST_EQUAL(chunk_size, 0);

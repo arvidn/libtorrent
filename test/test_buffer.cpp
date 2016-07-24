@@ -63,7 +63,7 @@ TORRENT_TEST(buffer_constructor)
 
 	{
 		buffer b(50, data);
-		TEST_CHECK(std::memcmp(b.ptr(), data, 10) == 0);
+		TEST_CHECK(std::memcmp(b.data(), data, 10) == 0);
 		TEST_CHECK(b.size() >= 50);
 	}
 }
@@ -80,13 +80,13 @@ TORRENT_TEST(buffer_swap)
 
 	TEST_CHECK(b2.size() == 0);
 	TEST_CHECK(b1.size() == b2_size);
-	TEST_CHECK(std::memcmp(b1.ptr(), data, 10) == 0);
+	TEST_CHECK(std::memcmp(b1.data(), data, 10) == 0);
 }
 
 TORRENT_TEST(buffer_subscript)
 {
 	buffer b(50, data);
-	TEST_CHECK(std::memcmp(b.ptr(), data, 10) == 0);
+	TEST_CHECK(std::memcmp(b.data(), data, 10) == 0);
 	TEST_CHECK(b.size() >= 50);
 
 	for (int i = 0; i < int(sizeof(data)/sizeof(data[0])); ++i)
@@ -108,21 +108,21 @@ TORRENT_TEST(buffer_subscript2)
 TORRENT_TEST(buffer_move_construct)
 {
 	buffer b1(50, data);
-	TEST_CHECK(std::memcmp(b1.ptr(), data, 10) == 0);
+	TEST_CHECK(std::memcmp(b1.data(), data, 10) == 0);
 	TEST_CHECK(b1.size() >= 50);
 
 	buffer b2(std::move(b1));
 
 	TEST_CHECK(b1.size() == 0);
 
-	TEST_CHECK(std::memcmp(b2.ptr(), data, 10) == 0);
+	TEST_CHECK(std::memcmp(b2.data(), data, 10) == 0);
 	TEST_CHECK(b2.size() >= 50);
 }
 
 TORRENT_TEST(buffer_move_assign)
 {
 	buffer b1(50, data);
-	TEST_CHECK(std::memcmp(b1.ptr(), data, 10) == 0);
+	TEST_CHECK(std::memcmp(b1.data(), data, 10) == 0);
 	TEST_CHECK(b1.size() >= 50);
 
 	buffer b2;
@@ -132,7 +132,7 @@ TORRENT_TEST(buffer_move_assign)
 
 	TEST_CHECK(b1.size() == 0);
 
-	TEST_CHECK(std::memcmp(b2.ptr(), data, 10) == 0);
+	TEST_CHECK(std::memcmp(b2.data(), data, 10) == 0);
 	TEST_CHECK(b2.size() >= 50);
 }
 

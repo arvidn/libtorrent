@@ -77,7 +77,7 @@ namespace libtorrent
 		buffer::const_interval get_body() const;
 		bool header_finished() const { return m_state == read_body; }
 		bool finished() const { return m_finished; }
-		std::tuple<int, int> incoming(buffer::const_interval recv_buffer
+		std::tuple<int, int> incoming(span<char const> recv_buffer
 			, bool& error);
 		int body_start() const { return m_body_start_pos; }
 		std::int64_t content_length() const { return m_content_length; }
@@ -110,7 +110,7 @@ namespace libtorrent
 		// if the function returns false, the chunk size and header
 		// size may still have been modified, but their values are
 		// undefined
-		bool parse_chunk_header(buffer::const_interval buf
+		bool parse_chunk_header(span<char const> buf
 			, std::int64_t* chunk_size, int* header_size);
 
 		// reset the whole state and start over
@@ -122,18 +122,18 @@ namespace libtorrent
 		std::vector<std::pair<std::int64_t, std::int64_t> > const& chunks() const { return m_chunked_ranges; }
 
 	private:
-		std::int64_t m_recv_pos;
+		std::int64_t m_recv_pos = 0;
 		std::string m_method;
 		std::string m_path;
 		std::string m_protocol;
 		std::string m_server_message;
 
-		std::int64_t m_content_length;
-		std::int64_t m_range_start;
-		std::int64_t m_range_end;
+		std::int64_t m_content_length = -1;
+		std::int64_t m_range_start = -1;
+		std::int64_t m_range_end = -1;
 
 		std::multimap<std::string, std::string> m_header;
-		buffer::const_interval m_recv_buffer;
+		span<char const> m_recv_buffer;
 		// contains offsets of the first and one-past-end of
 		// each chunked range in the response
 		std::vector<std::pair<std::int64_t, std::int64_t> > m_chunked_ranges;
@@ -141,27 +141,27 @@ namespace libtorrent
 		// while reading a chunk, this is the offset where the
 		// current chunk will end (it refers to the first character
 		// in the chunk tail header or the next chunk header)
-		std::int64_t m_cur_chunk_end;
+		std::int64_t m_cur_chunk_end = -1;
 
-		int m_status_code;
+		int m_status_code = -1;
 
 		// the sum of all chunk headers read so far
-		int m_chunk_header_size;
+		int m_chunk_header_size = 0;
 
-		int m_partial_chunk_header;
+		int m_partial_chunk_header = 0;
 
 		// controls some behaviors of the parser
 		int m_flags;
 
-		int m_body_start_pos;
+		int m_body_start_pos = 0;
 
-		enum { read_status, read_header, read_body, error_state } m_state;
+		enum { read_status, read_header, read_body, error_state } m_state = read_status;
 
 		// this is true if the server is HTTP/1.0 or
 		// if it sent "connection: close"
-		bool m_connection_close;
-		bool m_chunked_encoding;
-		bool m_finished;
+		bool m_connection_close = false;
+		bool m_chunked_encoding = false;
+		bool m_finished = false;
 	};
 
 }

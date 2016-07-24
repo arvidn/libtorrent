@@ -51,7 +51,7 @@ boost::asio::mutable_buffer receive_buffer::reserve(int size)
 	{
 		int const new_size = std::max(m_recv_end + size, m_packet_size);
 		buffer new_buffer(new_size
-			, span<char const>(m_recv_buffer.ptr(), m_recv_end));
+			, span<char const>(m_recv_buffer.data(), m_recv_end));
 		m_recv_buffer = std::move(new_buffer);
 
 		// since we just increased the size of the buffer, reset the watermark to
@@ -73,7 +73,7 @@ void receive_buffer::grow(int const limit)
 
 	// re-allcoate the buffer and copy over the part of it that's used
 	buffer new_buffer(new_size
-		, span<char const>(m_recv_buffer.ptr(), m_recv_end));
+		, span<char const>(m_recv_buffer.data(), m_recv_end));
 	m_recv_buffer = std::move(new_buffer);
 
 	// since we just increased the size of the buffer, reset the watermark to
@@ -186,12 +186,12 @@ void receive_buffer::normalize(int force_shrink)
 		&& m_watermark.mean() > (m_recv_end - m_recv_start);
 
 	span<char const> bytes_to_shift(
-		m_recv_buffer.ptr() + m_recv_start
+		m_recv_buffer.data() + m_recv_start
 			, m_recv_end - m_recv_start);
 
 	if (force_shrink)
 	{
-		const int target_size = std::max(std::max(force_shrink
+		int const target_size = std::max(std::max(force_shrink
 			, int(bytes_to_shift.size())), m_packet_size);
 		buffer new_buffer(target_size, bytes_to_shift);
 		m_recv_buffer = std::move(new_buffer);
@@ -204,7 +204,7 @@ void receive_buffer::normalize(int force_shrink)
 	else if (m_recv_end > m_recv_start
 		&& m_recv_start > 0)
 	{
-		std::memmove(m_recv_buffer.ptr(), bytes_to_shift.data()
+		std::memmove(m_recv_buffer.data(), bytes_to_shift.data()
 			, bytes_to_shift.size());
 	}
 

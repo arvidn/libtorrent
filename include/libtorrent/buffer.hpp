@@ -75,6 +75,7 @@ class buffer
 {
 public:
 
+	// TODO: 3 remove interval and const_interval
 	struct interval
 	{
 	interval()
@@ -208,20 +209,8 @@ public:
 
 	~buffer() { std::free(m_begin); }
 
-	// TODO: 3 fix the naming convention here
-	char* ptr() { return m_begin; }
-	char const* ptr() const { return m_begin; }
-
-	buffer::interval data()
-	{ return interval(m_begin, m_begin + m_size); }
-	buffer::const_interval data() const
-	{ return interval(m_begin, m_begin + m_size); }
-
-	operator span<char>()
-	{ return span<char>(m_begin, int(m_size)); }
-	operator span<char const>() const
-	{ return span<char const>(m_begin, int(m_size)); }
-
+	char* data() { return m_begin; }
+	char const* data() const { return m_begin; }
 	std::size_t size() const { return m_size; }
 
 	bool empty() const { return m_size == 0; }
@@ -239,6 +228,7 @@ public:
 		swap(m_begin, b.m_begin);
 		swap(m_size, b.m_size);
 	}
+
 private:
 	char* m_begin = nullptr;
 	// m_begin points to an allocation of this size.
