@@ -139,7 +139,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(recv_buffer.size() >= m_recv_buffer.size());
 		std::tuple<int, int> ret(0, 0);
-		int start_pos = m_recv_buffer.size();
+		size_t start_pos = m_recv_buffer.size();
 
 		// early exit if there's nothing new in the receive buffer
 		if (start_pos == recv_buffer.size()) return ret;
@@ -163,7 +163,7 @@ restart_response:
 			// if we don't have a full line yet, wait.
 			if (newline == recv_buffer.end())
 			{
-				std::get<1>(ret) += m_recv_buffer.size() - start_pos;
+				std::get<1>(ret) += int(m_recv_buffer.size() - start_pos);
 				return ret;
 			}
 

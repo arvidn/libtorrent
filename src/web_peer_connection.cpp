@@ -673,7 +673,7 @@ void web_peer_connection::on_receive(error_code const& error
 
 			if (failed)
 			{
-				received_bytes(0, recv_buffer.size());
+				received_bytes(0, int(recv_buffer.size()));
 #ifndef TORRENT_DISABLE_LOGGING
 				peer_log(peer_log_alert::info, "RECEIVE_BYTES"
 					, "%s", std::string(recv_buffer.data(), recv_buffer.size()).c_str());
@@ -726,13 +726,13 @@ void web_peer_connection::on_receive(error_code const& error
 			// if the status code is not one of the accepted ones, abort
 			if (!is_ok_status(m_parser.status_code()))
 			{
-				handle_error(recv_buffer.size());
+				handle_error(int(recv_buffer.size()));
 				return;
 			}
 
 			if (is_redirect(m_parser.status_code()))
 			{
-				handle_redirect(recv_buffer.size());
+				handle_redirect(int(recv_buffer.size()));
 				return;
 			}
 
@@ -760,7 +760,7 @@ void web_peer_connection::on_receive(error_code const& error
 		std::tie(range_start, range_end) = get_range(m_parser, ec);
 		if (ec)
 		{
-			received_bytes(0, recv_buffer.size());
+			received_bytes(0, int(recv_buffer.size()));
 			// we should not try this server again.
 			t->remove_web_seed_conn(this, ec, op_bittorrent, 2);
 			m_web = nullptr;
@@ -774,7 +774,7 @@ void web_peer_connection::on_receive(error_code const& error
 			|| range_end != file_req.start + file_req.length)
 		{
 			// the byte range in the http response is different what we expected
-			received_bytes(0, recv_buffer.size());
+			received_bytes(0, int(recv_buffer.size()));
 
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::incoming, "INVALID HTTP RESPONSE"
@@ -805,7 +805,7 @@ void web_peer_connection::on_receive(error_code const& error
 					if (m_received_body + copy_size > file_req.length)
 					{
 						// the byte range in the http response is different what we expected
-						received_bytes(0, recv_buffer.size());
+						received_bytes(0, int(recv_buffer.size()));
 
 #ifndef TORRENT_DISABLE_LOGGING
 						peer_log(peer_log_alert::incoming, "INVALID HTTP RESPONSE"
@@ -833,7 +833,7 @@ void web_peer_connection::on_receive(error_code const& error
 				bool const ret = m_parser.parse_chunk_header(chunk_start, &chunk_size, &header_size);
 				if (!ret)
 				{
-					received_bytes(0, chunk_start.size() - m_partial_chunk_header);
+					received_bytes(0, int(chunk_start.size() - m_partial_chunk_header));
 					m_partial_chunk_header = int(chunk_start.size());
 					goto done;
 				}
@@ -867,7 +867,7 @@ void web_peer_connection::on_receive(error_code const& error
 					if (m_received_body != file_req.length)
 					{
 						// the byte range in the http response is different what we expected
-						received_bytes(0, recv_buffer.size());
+						received_bytes(0, int(recv_buffer.size()));
 
 #ifndef TORRENT_DISABLE_LOGGING
 						peer_log(peer_log_alert::incoming, "INVALID HTTP RESPONSE"
