@@ -717,6 +717,17 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 
 			remove_node(existing, existing_bucket);
 			fill_from_replacements(existing_bucket);
+
+			// when we detect possible malicious activity in a bucket,
+			// schedule the other nodes in the bucket to be pinged soon
+			// to clean out any other malicious nodes
+			auto now = aux::time_now();
+			for (auto& node : existing_bucket->live_nodes)
+			{
+				if (now - node.last_queried > minutes(5))
+					node.last_queried = min_time();
+			}
+
 			return failed_to_add;
 		}
 	}
