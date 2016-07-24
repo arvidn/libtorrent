@@ -138,6 +138,7 @@ void node::update_node_id()
 	m_id = generate_id(m_observer->external_address());
 
 	m_table.update_node_id(m_id);
+	m_rpc.update_node_id(m_id);
 }
 
 bool node::verify_token(std::string const& token, char const* info_hash
