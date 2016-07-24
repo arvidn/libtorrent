@@ -108,10 +108,14 @@ std::string demangle(char const* name)
 
 std::string demangle(char const* name)
 {
+	// UnDecoratedSymbolName() appears to sometime cause access violations
+	return name;
+/*
 	char demangled_name[256];
 	if (UnDecorateSymbolName(name, demangled_name, sizeof(demangled_name), UNDNAME_NO_THROW_SIGNATURES) == 0)
 		demangled_name[0] = 0;
 	return demangled_name;
+*/
 }
 
 #else
