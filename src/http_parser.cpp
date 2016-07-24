@@ -182,7 +182,7 @@ restart_response:
 			TORRENT_ASSERT(newline >= pos);
 			int incoming = int(newline - pos);
 			m_recv_pos += incoming;
-			std::get<1>(ret) += newline - (m_recv_buffer.data() + start_pos);
+			std::get<1>(ret) += int(newline - (m_recv_buffer.data() + start_pos));
 			pos = newline;
 
 			m_protocol = read_until(line, ' ', line_end);
@@ -326,7 +326,7 @@ restart_response:
 				TORRENT_ASSERT(pos <= recv_buffer.end());
 				newline = std::find(pos, recv_buffer.end(), '\n');
 			}
-			std::get<1>(ret) += newline - (m_recv_buffer.data() + start_pos);
+			std::get<1>(ret) += int(newline - (m_recv_buffer.data() + start_pos));
 		}
 
 		if (m_state == read_body)
@@ -348,8 +348,8 @@ restart_response:
 						std::get<0>(ret) += int(payload);
 						incoming -= int(payload);
 					}
-					span<char const> buf(recv_buffer.data() + m_cur_chunk_end
-						, recv_buffer.size() - m_cur_chunk_end);
+					auto const buf = span<char const>(recv_buffer)
+						.subspan(m_cur_chunk_end);
 					std::int64_t chunk_size;
 					int header_size;
 					if (parse_chunk_header(buf, &chunk_size, &header_size))

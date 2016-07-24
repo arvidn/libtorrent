@@ -372,7 +372,7 @@ namespace libtorrent
 					TORRENT_ASSERT(bytes_transferred >= size_t(chunk_start.size() - m_partial_chunk_header));
 					bytes_transferred -= chunk_start.size() - m_partial_chunk_header;
 					received_bytes(0, int(chunk_start.size() - m_partial_chunk_header));
-					m_partial_chunk_header = chunk_start.size();
+					m_partial_chunk_header = int(chunk_start.size());
 					if (bytes_transferred == 0) return;
 					break;
 				}
