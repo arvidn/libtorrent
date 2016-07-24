@@ -101,7 +101,7 @@ test_script:
 - cd %ROOT_DIRECTORY%\test
 # mingw tests crash currently. needs resolving
 - if not %compiler% == gcc (
-  b2.exe --hash warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=on picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared ssl=%ssl% crypto=%crypto% win-tests
+  b2.exe -l400 --hash warnings-as-errors=on -j2 %compiler% address-model=%model% debug-iterators=on picker-debugging=on invariant-checks=full variant=%variant% %linkflags% %include% link=shared ssl=%ssl% crypto=%crypto% win-tests
   )
 - cd %ROOT_DIRECTORY%\bindings\python
 # we use 64 bit python build
