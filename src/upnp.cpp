@@ -940,8 +940,7 @@ void upnp::on_upnp_xml(error_code const& e
 	}
 
 	parse_state s;
-	xml_parse(p.get_body().begin, p.get_body().end
-		, std::bind(&find_control_url, _1, _2, _3, boost::ref(s)));
+	xml_parse(p.get_body(), std::bind(&find_control_url, _1, _2, _3, boost::ref(s)));
 	if (s.control_url.empty())
 	{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1231,14 +1230,14 @@ void upnp::on_upnp_get_ip_address_response(error_code const& e
 	// </s:Body>
 	// </s:Envelope>
 
+	span<char const> body = p.get_body();
 #ifndef TORRENT_DISABLE_LOGGING
 	log("get external IP address response: %s"
-		, std::string(p.get_body().begin, p.get_body().end).c_str());
+		, std::string(body.data(), body.size()).c_str());
 #endif
 
 	ip_address_parse_state s;
-	xml_parse(const_cast<char*>(p.get_body().begin), const_cast<char*>(p.get_body().end)
-		, std::bind(&find_ip_address, _1, _2, boost::ref(s)));
+	xml_parse(body, std::bind(&find_ip_address, _1, _2, boost::ref(s)));
 #ifndef TORRENT_DISABLE_LOGGING
 	if (s.error_code != -1)
 	{
@@ -1335,9 +1334,8 @@ void upnp::on_upnp_map_response(error_code const& e
 	// since those might contain valid UPnP error codes
 
 	error_code_parse_state s;
-	xml_parse(const_cast<char*>(p.get_body().begin)
-		, const_cast<char*>(p.get_body().end)
-		, std::bind(&find_error_code, _1, _2, boost::ref(s)));
+	span<char const> body = p.get_body();
+	xml_parse(body, std::bind(&find_error_code, _1, _2, boost::ref(s)));
 
 	if (s.error_code != -1)
 	{
@@ -1380,7 +1378,7 @@ void upnp::on_upnp_map_response(error_code const& e
 
 #ifndef TORRENT_DISABLE_LOGGING
 	log("map response: %s"
-		, std::string(p.get_body().begin, p.get_body().end).c_str());
+		, std::string(body.data(), body.size()).c_str());
 #endif
 
 	if (s.error_code == -1)
@@ -1468,17 +1466,16 @@ void upnp::on_upnp_unmap_response(error_code const& e
 	else
 	{
 #ifndef TORRENT_DISABLE_LOGGING
+		span<char const> body = p.get_body();
 		log("unmap response: %s"
-			, std::string(p.get_body().begin, p.get_body().end).c_str());
+			, std::string(body.data(), body.size()).c_str());
 #endif
 	}
 
 	error_code_parse_state s;
 	if (p.header_finished())
 	{
-		xml_parse(const_cast<char*>(p.get_body().begin)
-			, const_cast<char*>(p.get_body().end)
-			, std::bind(&find_error_code, _1, _2, boost::ref(s)));
+		xml_parse(p.get_body(), std::bind(&find_error_code, _1, _2, boost::ref(s)));
 	}
 
 	int const proto = m_mappings[mapping].protocol;

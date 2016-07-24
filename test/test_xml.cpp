@@ -264,11 +264,15 @@ void parser_callback(std::string& out, int token, char const* s, int len
 		TEST_CHECK(val == nullptr);
 	}
 }
+span<char const> str(char const* in)
+{
+	return span<char const>(in, strlen(in));
+}
 
 void test_parse(char const* in, char const* expected)
 {
 	std::string out;
-	xml_parse(in, in + strlen(in), std::bind(&parser_callback
+	xml_parse(str(in), std::bind(&parser_callback
 		, boost::ref(out), _1, _2, _3, _4, _5));
 	std::fprintf(stderr, "in: %s\n     out: %s\nexpected: %s\n"
 		, in, out.c_str(), expected);
@@ -278,8 +282,7 @@ void test_parse(char const* in, char const* expected)
 TORRENT_TEST(upnp_parser1)
 {
 	parse_state xml_s;
-	xml_parse(upnp_xml, upnp_xml + sizeof(upnp_xml)
-		, std::bind(&find_control_url, _1, _2, _3, boost::ref(xml_s)));
+	xml_parse(upnp_xml, std::bind(&find_control_url, _1, _2, _3, boost::ref(xml_s)));
 
 	std::cerr << "namespace " << xml_s.service_type << std::endl;
 	std::cerr << "url_base: " << xml_s.url_base << std::endl;
@@ -293,8 +296,7 @@ TORRENT_TEST(upnp_parser1)
 TORRENT_TEST(upnp_parser2)
 {
 	parse_state xml_s;
-	xml_parse(upnp_xml2, upnp_xml2 + sizeof(upnp_xml2)
-		, std::bind(&find_control_url, _1, _2, _3, boost::ref(xml_s)));
+	xml_parse(upnp_xml2, std::bind(&find_control_url, _1, _2, _3, boost::ref(xml_s)));
 
 	std::cerr << "namespace " << xml_s.service_type << std::endl;
 	std::cerr << "url_base: " << xml_s.url_base << std::endl;

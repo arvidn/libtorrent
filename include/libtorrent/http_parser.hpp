@@ -74,7 +74,7 @@ namespace libtorrent
 		std::string const& method() const { return m_method; }
 		std::string const& path() const { return m_path; }
 		std::string const& message() const { return m_server_message; }
-		buffer::const_interval get_body() const;
+		span<char const> get_body() const;
 		bool header_finished() const { return m_state == read_body; }
 		bool finished() const { return m_finished; }
 		std::tuple<int, int> incoming(span<char const> recv_buffer

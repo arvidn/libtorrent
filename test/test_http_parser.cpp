@@ -88,7 +88,8 @@ TORRENT_TEST(http_parser)
 
 	TEST_CHECK(received == std::make_tuple(4, 64, false));
 	TEST_CHECK(parser.finished());
-	TEST_CHECK(std::equal(parser.get_body().begin, parser.get_body().end, "test"));
+	span<char const> body = parser.get_body();
+	TEST_CHECK(std::equal(body.begin(), body.end(), "test"));
 	TEST_CHECK(parser.header("content-type") == "text/plain");
 	TEST_CHECK(atoi(parser.header("content-length").c_str()) == 4);
 
@@ -109,7 +110,7 @@ TORRENT_TEST(http_parser)
 	received = feed_bytes(parser, upnp_response);
 
 	TEST_CHECK(received == std::make_tuple(0, int(strlen(upnp_response)), false));
-	TEST_CHECK(parser.get_body().left() == 0);
+	TEST_CHECK(parser.get_body().empty());
 	TEST_CHECK(parser.header("st") == "upnp:rootdevice");
 	TEST_CHECK(parser.header("location")
 		== "http://192.168.1.1:5431/dyndev/uuid:000f-66d6-7296000099dc");
@@ -130,7 +131,7 @@ TORRENT_TEST(http_parser)
 	received = feed_bytes(parser, http1_response);
 
 	TEST_CHECK(received == std::make_tuple(0, int(strlen(http1_response)), false));
-	TEST_CHECK(parser.get_body().left() == 0);
+	TEST_CHECK(parser.get_body().empty());
 	TEST_CHECK(parser.header("date") == "Fri, 02 Jan 1970 08:10:38 GMT");
 	TEST_EQUAL(parser.connection_close(), true);
 
@@ -146,7 +147,7 @@ TORRENT_TEST(http_parser)
 	received = feed_bytes(parser, close_response);
 
 	TEST_CHECK(received == std::make_tuple(0, int(strlen(close_response)), false));
-	TEST_CHECK(parser.get_body().left() == 0);
+	TEST_CHECK(parser.get_body().empty());
 	TEST_CHECK(parser.header("date") == "Fri, 02 Jan 1970 08:10:38 GMT");
 	TEST_EQUAL(parser.connection_close(), true);
 
@@ -162,7 +163,7 @@ TORRENT_TEST(http_parser)
 	received = feed_bytes(parser, keep_alive_response);
 
 	TEST_CHECK(received == std::make_tuple(0, int(strlen(keep_alive_response)), false));
-	TEST_CHECK(parser.get_body().left() == 0);
+	TEST_CHECK(parser.get_body().empty());
 	TEST_CHECK(parser.header("date") == "Fri, 02 Jan 1970 08:10:38 GMT");
 	TEST_EQUAL(parser.connection_close(), false);
 
@@ -226,7 +227,7 @@ TORRENT_TEST(http_parser)
 	std::printf("payload: %d protocol: %d\n", std::get<0>(received), std::get<1>(received));
 	TEST_CHECK(received == std::make_tuple(20, int(strlen(chunked_test)) - 20, false));
 	TEST_CHECK(parser.finished());
-	TEST_CHECK(std::equal(parser.get_body().begin, parser.get_body().end
+	TEST_CHECK(std::equal(parser.get_body().begin(), parser.get_body().end()
 		, "4\r\ntest\r\n10\r\n0123456789abcdef"));
 	TEST_CHECK(parser.header("test-header") == "foobar");
 	TEST_CHECK(parser.header("content-type") == "text/plain");
@@ -249,7 +250,7 @@ TORRENT_TEST(http_parser)
 	received = feed_bytes(parser, tracker_response);
 
 	TEST_CHECK(received == std::make_tuple(5, int(strlen(tracker_response) - 5), false));
-	TEST_CHECK(parser.get_body().left() == 5);
+	TEST_CHECK(parser.get_body().size() == 5);
 
 	parser.reset();
 
@@ -469,8 +470,9 @@ TORRENT_TEST(chunked_encoding)
 	TEST_CHECK(parser.finished());
 
 	char mutable_buffer[100];
-	memcpy(mutable_buffer, parser.get_body().begin, parser.get_body().left());
-	int len = parser.collapse_chunk_headers(mutable_buffer, parser.get_body().left());
+	span<char const> body = parser.get_body();
+	memcpy(mutable_buffer, body.begin(), body.size());
+	int const len = parser.collapse_chunk_headers(mutable_buffer, body.size());
 
 	TEST_CHECK(std::equal(mutable_buffer, mutable_buffer + len, "test12340123456789abcdef"));
 }
