@@ -108,14 +108,10 @@ std::string demangle(char const* name)
 
 std::string demangle(char const* name)
 {
-	// UnDecoratedSymbolName() appears to sometime cause access violations
-	return name;
-/*
 	char demangled_name[256];
 	if (UnDecorateSymbolName(name, demangled_name, sizeof(demangled_name), UNDNAME_NO_THROW_SIGNATURES) == 0)
 		demangled_name[0] = 0;
 	return demangled_name;
-*/
 }
 
 #else
@@ -158,6 +154,11 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth, void*)
 TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth
 	, void* ctx)
 {
+	// all calls to DbgHlp.dll are thread-unsafe. i.e. they all need to be
+	// synchronized and not called concurrently. This mutex serializes access
+	static std::mutex dbghlp_mutex;
+	std::lock_guard l(dbghlp_mutex);
+
 	CONTEXT context_record;
 	if (ctx)
 	{
