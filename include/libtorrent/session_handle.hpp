@@ -449,18 +449,10 @@ namespace libtorrent
 		// all of these extensions should be added. The main plugins implemented
 		// in libtorrent are:
 		//
-		// metadata extension
+		// uTorrent metadata
 		// 	Allows peers to download the metadata (.torren files) from the swarm
 		// 	directly. Makes it possible to join a swarm with just a tracker and
 		// 	info-hash.
-		//
-		// ::
-		//
-		// 	#include <libtorrent/extensions/metadata_transfer.hpp>
-		// 	ses.add_extension(&libtorrent::create_metadata_plugin);
-		//
-		// uTorrent metadata
-		// 	Same as ``metadata extension`` but compatible with uTorrent.
 		//
 		// ::
 		//

@@ -18,8 +18,6 @@
 #include <libtorrent/torrent_info.hpp>
 #include <libtorrent/kademlia/item.hpp> // for sign_mutable_item
 #include <libtorrent/alert.hpp>
-#include <libtorrent/extensions/lt_trackers.hpp>
-#include <libtorrent/extensions/metadata_transfer.hpp>
 #include <libtorrent/extensions/smart_ban.hpp>
 #include <libtorrent/extensions/ut_metadata.hpp>
 #include <libtorrent/extensions/ut_pex.hpp>
@@ -105,12 +103,6 @@ namespace
             s.add_extension(create_ut_pex_plugin);
        else if (name == "smart_ban")
             s.add_extension(create_smart_ban_plugin);
-       else if (name == "lt_trackers")
-            s.add_extension(create_lt_trackers_plugin);
-#ifndef TORRENT_NO_DEPRECATE
-       else if (name == "metadata_transfer")
-            s.add_extension(create_metadata_plugin);
-#endif // TORRENT_NO_DEPRECATE
 
 #endif // TORRENT_DISABLE_EXTENSIONS
     }
@@ -884,7 +876,6 @@ void bind_session()
 
     def("high_performance_seed", (perf_preset1)high_performance_seed);
     def("min_memory_usage", (mem_preset1)min_memory_usage);
-    scope().attr("create_metadata_plugin") = "metadata_transfer";
 #endif
 
     def("high_performance_seed", (perf_preset2)high_performance_seed);
