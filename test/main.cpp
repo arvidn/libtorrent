@@ -51,9 +51,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <windows.h> // fot SetErrorMode
 #include <io.h> // for _dup and _dup2
 #include <process.h> // for _getpid
+#include <crtdbg.h>
 
 #define dup _dup
 #define dup2 _dup2
+
+#ifdef _DEBUG
+	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_FILE);
+	_CrtSetReportFile(_CRT_ERROR, _CRTDBG_FILE_STDERR);
+#endif
 
 #else
 
