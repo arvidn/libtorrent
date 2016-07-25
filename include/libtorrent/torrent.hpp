@@ -1199,13 +1199,13 @@ namespace libtorrent
 		void setup_peer_class();
 
 		// The list of web seeds in this torrent. Seeds with fatal errors are
-		// removed from the set. It's important that iteratores are not
+		// removed from the set. It's important that iterators are not
 		// invalidated as entries are added and removed from this list, hence the
 		// std::list
 		std::list<web_seed_t> m_web_seeds;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		std::list<boost::shared_ptr<torrent_plugin> > m_extensions;
+		std::list<boost::shared_ptr<torrent_plugin>> m_extensions;
 #endif
 
 		// used for tracker announces
@@ -1414,11 +1414,11 @@ namespace libtorrent
 		// if we're currently in upload-mode
 		std::uint16_t m_upload_mode_time;
 
-		// true when this torrent should anncounce to
+		// true when this torrent should announce to
 		// trackers
 		bool m_announce_to_trackers:1;
 
-		// true when this torrent should anncounce to
+		// true when this torrent should announce to
 		// the local network
 		bool m_announce_to_lsd:1;
 

@@ -62,4 +62,3 @@ namespace libtorrent
 
 #endif // TORRENT_DISABLE_EXTENSIONS
 #endif // TORRENT_UT_METADATA_HPP_INCLUDED
-

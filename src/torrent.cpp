@@ -104,6 +104,10 @@ POSSIBILITY OF SUCH DAMAGE.
 // TODO: factor out cache_status to its own header
 #include "libtorrent/disk_io_thread.hpp" // for cache_status
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+#include "libtorrent/extensions/ut_pex.hpp" // for was_introduced_by
+#endif
+
 #ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/aux_/session_impl.hpp" // for tracker_logger
 #endif
@@ -161,11 +165,6 @@ namespace libtorrent
 		restart_request.start = -1;
 		restart_request.length = -1;
 	}
-
-#ifndef TORRENT_DISABLE_EXTENSIONS
-	// defined in ut_pex.cpp
-	bool was_introduced_by(peer_plugin const*, tcp::endpoint const&);
-#endif
 
 	torrent_hot_members::torrent_hot_members(aux::session_interface& ses
 		, add_torrent_params const& p, int const block_size

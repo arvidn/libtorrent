@@ -119,7 +119,7 @@ namespace libtorrent
 		entry(span<char const>);
 		template <typename U, typename = typename std::enable_if<
 			std::is_same<U, entry::string_type>::value
-			|| std::is_same<U, char const*>::value >::type>
+			|| std::is_same<U, char const*>::value>::type>
 		entry(U v)
 			: m_type(undefined_t)
 		{
@@ -163,7 +163,7 @@ namespace libtorrent
 		entry& operator=(span<char const>);
 		template <typename U, typename = typename std::enable_if<
 			std::is_same<U, entry::string_type>::value
-			|| std::is_same<U, char const*>::value >::type>
+			|| std::is_same<U, char const*>::value>::type>
 		entry& operator=(U v)
 		{
 			destruct();
@@ -327,4 +327,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_ENTRY_HPP_INCLUDED
-
