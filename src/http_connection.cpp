@@ -804,7 +804,7 @@ void http_connection::on_read(error_code const& e
 			m_timer.cancel(ec);
 			span<char> body(m_recvbuffer.data() + m_parser.body_start()
 				, m_parser.get_body().size());
-			callback(e, body.data(), body.size());
+			callback(e, body.data(), int(body.size()));
 		}
 	}
 	else
