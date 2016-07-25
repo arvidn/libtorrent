@@ -648,9 +648,6 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 	if (m_router_nodes.find(e.ep()) != m_router_nodes.end())
 		return failed_to_add;
 
-	// don't add ourself
-	if (e.id == m_id) return failed_to_add;
-
 	// do we already have this IP in the table?
 	if (m_ips.count(e.addr()) > 0)
 	{
@@ -731,6 +728,9 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 			return failed_to_add;
 		}
 	}
+
+	// don't add ourself
+	if (e.id == m_id) return failed_to_add;
 
 	table_t::iterator i = find_bucket(e.id);
 	bucket_t& b = i->live_nodes;
