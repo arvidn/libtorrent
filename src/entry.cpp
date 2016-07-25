@@ -338,6 +338,26 @@ namespace libtorrent
 		m_type = string_t;
 	}
 
+	entry::entry(string_type v)
+		: m_type(undefined_t)
+	{
+#if TORRENT_USE_ASSERTS
+		m_type_queried = true;
+#endif
+		new(&data) string_type(std::move(v));
+		m_type = string_t;
+	}
+
+	entry::entry(char const* v)
+		: m_type(undefined_t)
+	{
+#if TORRENT_USE_ASSERTS
+		m_type_queried = true;
+#endif
+		new(&data) string_type(std::move(v));
+		m_type = string_t;
+	}
+
 	entry::entry(list_type v)
 		: m_type(undefined_t)
 	{
@@ -472,6 +492,28 @@ namespace libtorrent
 	{
 		destruct();
 		new(&data) string_type(v.data(), v.size());
+		m_type = string_t;
+#if TORRENT_USE_ASSERTS
+		m_type_queried = true;
+#endif
+		return *this;
+	}
+
+	entry& entry::operator=(string_type v)
+	{
+		destruct();
+		new(&data) string_type(std::move(v));
+		m_type = string_t;
+#if TORRENT_USE_ASSERTS
+		m_type_queried = true;
+#endif
+		return *this;
+	}
+
+	entry& entry::operator=(char const* v)
+	{
+		destruct();
+		new(&data) string_type(std::move(v));
 		m_type = string_t;
 #if TORRENT_USE_ASSERTS
 		m_type_queried = true;

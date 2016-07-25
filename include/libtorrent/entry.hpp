@@ -117,18 +117,8 @@ namespace libtorrent
 		// newly constructed entry
 		entry(dictionary_type);
 		entry(span<char const>);
-		template <typename U, typename = typename std::enable_if<
-			std::is_same<U, entry::string_type>::value
-			|| std::is_same<U, char const*>::value >::type>
-		entry(U v)
-			: m_type(undefined_t)
-		{
-#if TORRENT_USE_ASSERTS
-			m_type_queried = true;
-#endif
-			new(&data) string_type(std::move(v));
-			m_type = string_t;
-		}
+		entry(string_type);
+		entry(char const*);
 		entry(list_type);
 		entry(integer_type);
 		entry(preformatted_type);
@@ -161,19 +151,8 @@ namespace libtorrent
 		entry& operator=(entry&&);
 		entry& operator=(dictionary_type);
 		entry& operator=(span<char const>);
-		template <typename U, typename = typename std::enable_if<
-			std::is_same<U, entry::string_type>::value
-			|| std::is_same<U, char const*>::value >::type>
-		entry& operator=(U v)
-		{
-			destruct();
-			new(&data) string_type(std::move(v));
-			m_type = string_t;
-#if TORRENT_USE_ASSERTS
-			m_type_queried = true;
-#endif
-			return *this;
-		}
+		entry& operator=(string_type);
+		entry& operator=(char const*);
 		entry& operator=(list_type);
 		entry& operator=(integer_type);
 		entry& operator=(preformatted_type);
