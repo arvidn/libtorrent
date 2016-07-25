@@ -52,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <windows.h> // fot SetErrorMode
 #include <io.h> // for _dup and _dup2
 #include <process.h> // for _getpid
+#include <crtdbg.h>
 
 #define dup _dup
 #define dup2 _dup2
@@ -278,6 +279,11 @@ EXPORT int main(int argc, char const* argv[])
 		| SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
 
 	SetUnhandledExceptionFilter(&seh_exception_handler);
+
+#ifdef _DEBUG
+	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_FILE);
+	_CrtSetReportFile(_CRT_ERROR, _CRTDBG_FILE_STDERR);
+#endif
 
 #else
 
