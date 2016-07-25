@@ -116,11 +116,9 @@ set(sources
 	version
 
 # -- extensions --
-	metadata_transfer
 	ut_pex
 	ut_metadata
 	smart_ban
-	lt_trackers
 )
 
 # -- kademlia --

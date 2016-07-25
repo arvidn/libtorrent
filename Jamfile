@@ -675,10 +675,8 @@ SOURCES =
 	file_progress
 
 # -- extensions --
-	metadata_transfer
 	ut_pex
 	ut_metadata
-	lt_trackers
 	smart_ban
 	;
 

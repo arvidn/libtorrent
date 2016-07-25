@@ -84,7 +84,7 @@ namespace libtorrent
 			checking_files,
 
 			// The torrent is trying to download metadata from peers.
-			// This assumes the metadata_transfer extension is in use.
+			// This implies the ut_metadata extension is in use.
 			downloading_metadata,
 
 			// The torrent is being downloaded. This is the state

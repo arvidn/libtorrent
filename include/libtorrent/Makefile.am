@@ -172,8 +172,6 @@ nobase_include_HEADERS = \
   aux_/byteswap.hpp                 \
   aux_/cppint_import_export.hpp     \
   \
-  extensions/lt_trackers.hpp        \
-  extensions/metadata_transfer.hpp  \
   extensions/smart_ban.hpp          \
   extensions/ut_metadata.hpp        \
   extensions/ut_pex.hpp             \

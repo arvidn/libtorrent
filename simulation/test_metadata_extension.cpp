@@ -40,7 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/magnet_uri.hpp"
-#include "libtorrent/extensions/metadata_transfer.hpp"
 #include "libtorrent/extensions/ut_metadata.hpp"
 
 using namespace libtorrent;
