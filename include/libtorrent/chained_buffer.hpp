@@ -85,6 +85,7 @@ namespace libtorrent
 
 		void pop_front(int bytes_to_pop);
 
+		//TODO: 3 use span<> instead of (buffer,s)
 		void append_buffer(char* buffer, int s, int used_size
 			, free_buffer_fun destructor, void* userdata
 			, block_cache_reference ref = block_cache_reference());

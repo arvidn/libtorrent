@@ -89,8 +89,9 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 	buffer::const_interval get() const;
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-	// returns the entire buffer
-	buffer::interval mutable_buffer();
+	// returns the buffer from the current packet start position to the last
+	// received byte (possibly part of another packet)
+	span<char> mutable_buffer();
 
 	// returns the last 'bytes' from the receive buffer
 	aux::mutable_buffer mutable_buffer(int bytes);
@@ -107,6 +108,9 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 	void check_invariant() const
 	{
 		TORRENT_ASSERT(m_recv_end >= m_recv_start);
+		TORRENT_ASSERT(m_recv_end <= m_recv_buffer.size());
+		TORRENT_ASSERT(m_recv_start <= m_recv_buffer.size());
+		TORRENT_ASSERT(m_recv_start + m_recv_pos <= m_recv_buffer.size());
 	}
 #endif
 
@@ -116,7 +120,7 @@ private:
 
 	// m_recv_buffer.data() (start of actual receive buffer)
 	// |
-	// |      m_recv_start (tart of current packet)
+	// |      m_recv_start (start of current packet)
 	// |      |
 	// |      |    m_recv_pos (number of bytes consumed
 	// |      |    |  by upper layer, from logical receive buffer)
@@ -167,7 +171,7 @@ struct crypto_receive_buffer
 		: m_connection_buffer(next)
 	{}
 
-	buffer::interval mutable_buffer() { return m_connection_buffer.mutable_buffer(); }
+	span<char> mutable_buffer() { return m_connection_buffer.mutable_buffer(); }
 
 	bool packet_finished() const;
 

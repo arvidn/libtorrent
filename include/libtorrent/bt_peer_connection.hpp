@@ -286,7 +286,7 @@ namespace libtorrent
 			, char const* target, int target_size) const;
 
 		// helper to cut down on boilerplate
-		void rc4_decrypt(char* pos, int len);
+		void rc4_decrypt(span<char> buf);
 #endif
 
 public:
