@@ -1463,7 +1463,6 @@ namespace libtorrent
 		else
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			error_code ec;
 			static const char* hp_msg_name[] = {"rendezvous", "connect", "failed"};
 			peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
 				, "msg: %s from %s to: unknown address type"
@@ -2741,7 +2740,7 @@ namespace libtorrent
 			wr_recv_buf.begin += 28;
 
 			const char sh_vc[] = {0,0,0,0, 0,0,0,0};
-			if (!std::equal(sh_vc, sh_vc+8, recv_buffer.begin + 20))
+			if (!std::equal(sh_vc, sh_vc + 8, recv_buffer.begin + 20))
 			{
 				disconnect(errors::invalid_encryption_constant, op_encryption, 2);
 				return;

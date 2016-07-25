@@ -870,7 +870,7 @@ namespace libtorrent
 
 	public:
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		typedef std::list<boost::shared_ptr<peer_plugin> > extension_list_t;
+		typedef std::list<boost::shared_ptr<peer_plugin>> extension_list_t;
 		extension_list_t m_extensions;
 #endif
 	private:

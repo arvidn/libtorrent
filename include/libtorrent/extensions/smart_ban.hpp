@@ -35,10 +35,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
+#include "libtorrent/config.hpp"
+
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/shared_ptr.hpp>
-#include "libtorrent/config.hpp"
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -59,4 +60,3 @@ namespace libtorrent
 #endif // TORRENT_DISABLE_EXTENSIONS
 
 #endif // TORRENT_SMART_BAN_HPP_INCLUDED
-

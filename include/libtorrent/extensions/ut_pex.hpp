@@ -33,10 +33,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_UT_PEX_EXTENSION_HPP_INCLUDED
 #define TORRENT_UT_PEX_EXTENSION_HPP_INCLUDED
 
-#include "libtorrent/config.hpp"
-
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
+#include "libtorrent/config.hpp"
 #include "libtorrent/socket.hpp" // for endpoint
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"

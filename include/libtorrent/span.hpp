@@ -50,7 +50,7 @@ namespace libtorrent
 			: m_ptr(v.data()), m_len(v.size()) {}
 
 		span(T& p) : m_ptr(&p), m_len(1) {}
-		span(T* p, size_t l) : m_ptr(p), m_len(l) {}
+		span(T* p, size_t const l) : m_ptr(p), m_len(l) {}
 
 		template <typename U, size_t N>
 		span(std::array<U, N>& arr)
@@ -98,7 +98,7 @@ namespace libtorrent
 			return { data() + offset, size() - offset };
 		}
 
-		span<T> subspan(size_t const offset, size_t count) const
+		span<T> subspan(size_t const offset, size_t const count) const
 		{
 			TORRENT_ASSERT(size() >= offset);
 			TORRENT_ASSERT(size() >= offset + count);

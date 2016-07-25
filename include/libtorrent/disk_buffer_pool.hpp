@@ -122,7 +122,7 @@ namespace libtorrent
 		// adding up callbacks to this queue. Once the number
 		// of buffers in use drops below the low watermark,
 		// we start calling these functions back
-		std::vector<boost::weak_ptr<disk_observer> > m_observers;
+		std::vector<boost::weak_ptr<disk_observer>> m_observers;
 
 		// callback used to tell the cache it needs to free up some blocks
 		boost::function<void()> m_trigger_cache_trim;
@@ -192,4 +192,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_DISK_BUFFER_POOL_HPP
-
