@@ -25,6 +25,7 @@
 	* fix set_settings in python binding
 	* Added missing alert categories in python binding
 	* Added dht_get_peers_reply_alert alert in python binding
+	* fixed updating the node id reported to peers after changing IPs
 
 1.1.0 release
 
