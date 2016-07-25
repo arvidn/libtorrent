@@ -108,9 +108,9 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 	void check_invariant() const
 	{
 		TORRENT_ASSERT(m_recv_end >= m_recv_start);
-		TORRENT_ASSERT(m_recv_end <= m_recv_buffer.size());
-		TORRENT_ASSERT(m_recv_start <= m_recv_buffer.size());
-		TORRENT_ASSERT(m_recv_start + m_recv_pos <= m_recv_buffer.size());
+		TORRENT_ASSERT(m_recv_end <= int(m_recv_buffer.size()));
+		TORRENT_ASSERT(m_recv_start <= int(m_recv_buffer.size()));
+		TORRENT_ASSERT(m_recv_start + m_recv_pos <= int(m_recv_buffer.size()));
 	}
 #endif
 
