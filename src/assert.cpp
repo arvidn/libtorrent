@@ -158,7 +158,7 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth
 	// all calls to DbgHlp.dll are thread-unsafe. i.e. they all need to be
 	// synchronized and not called concurrently. This mutex serializes access
 	static std::mutex dbghlp_mutex;
-	std::lock_guard l(dbghlp_mutex);
+	std::lock_guard<std::mutex> l(dbghlp_mutex);
 
 	CONTEXT context_record;
 	if (ctx)
