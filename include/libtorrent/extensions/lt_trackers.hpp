@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_LT_TRACKERS_HPP_INCLUDED
 #define TORRENT_LT_TRACKERS_HPP_INCLUDED
 
+#ifndef TORRENT_NO_DEPRECATE
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
 #include "libtorrent/config.hpp"
@@ -51,10 +52,12 @@ namespace libtorrent
 	// constructor function for the trackers exchange extension. This can
 	// either be passed in the add_torrent_params::extensions field, or
 	// via torrent_handle::add_extension().
+	TORRENT_DEPRECATED
 	boost::shared_ptr<torrent_plugin> TORRENT_EXPORT create_lt_trackers_plugin(torrent_handle const&, void*);
 }
 
 #endif // TORRENT_DISABLE_EXTENSIONS
+#endif // TORRENT_NO_DEPRECATE
 
 #endif // TORRENT_LT_TRACKERS_HPP_INCLUDED
 
