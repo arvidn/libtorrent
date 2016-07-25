@@ -151,13 +151,13 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth)
 #include "winbase.h"
 #include "dbghelp.h"
 
-static mutex dbghlp_mutex;
+static libtorrent::mutex dbghlp_mutex;
 
 TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth)
 {
 	// all calls to DbgHlp.dll are thread-unsafe. i.e. they all need to be
 	// synchronized and not called concurrently. This mutex serializes access
-	mutex::scoped_lock l(dbghlp_mutex);
+	libtorrent::mutex::scoped_lock l(dbghlp_mutex);
 
 	typedef USHORT (WINAPI *RtlCaptureStackBackTrace_t)(
 		__in ULONG FramesToSkip,
