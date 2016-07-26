@@ -1,5 +1,6 @@
 1.1.1 release
 
+	* fix value of current_tracker when all tracker failed
 	* deprecate lt_trackers extension
 	* remove load_asnum_db and load_country_db from python bindings
 	* fix crash in session::get_ip_filter when not having set one
