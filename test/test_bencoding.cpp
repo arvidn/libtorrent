@@ -134,6 +134,13 @@ TORRENT_TEST(undefined_node2)
 	TEST_EQUAL(encode(e), "d4:info0:e");
 }
 
+TORRENT_TEST(implicit_construct)
+{
+	entry e(entry::list_t);
+	e.list().push_back(entry::list_t);
+	TEST_EQUAL(e.list().back().type(), entry::list_t);
+}
+
 #ifndef TORRENT_NO_DEPRECATE
 TORRENT_TEST(lazy_entry)
 {

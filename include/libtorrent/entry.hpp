@@ -135,7 +135,7 @@ namespace libtorrent
 
 		// construct an empty entry of the specified type.
 		// see data_type enum.
-		explicit entry(data_type t);
+		entry(data_type t);
 
 		// hidden
 		entry(entry const& e);
