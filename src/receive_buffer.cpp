@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <libtorrent/receive_buffer.hpp>
+#include <libtorrent/invariant_check.hpp>
 
 namespace libtorrent {
 
@@ -41,6 +42,7 @@ int receive_buffer::max_receive() const
 
 boost::asio::mutable_buffer receive_buffer::reserve(int size)
 {
+	INVARIANT_CHECK;
 	TORRENT_ASSERT(size > 0);
 	TORRENT_ASSERT(m_recv_pos >= 0);
 
@@ -64,6 +66,7 @@ boost::asio::mutable_buffer receive_buffer::reserve(int size)
 
 void receive_buffer::grow(int const limit)
 {
+	INVARIANT_CHECK;
 	int const current_size = int(m_recv_buffer.size());
 	TORRENT_ASSERT(current_size < std::numeric_limits<int>::max() / 3);
 
@@ -83,6 +86,7 @@ void receive_buffer::grow(int const limit)
 
 int receive_buffer::advance_pos(int bytes)
 {
+	INVARIANT_CHECK;
 	int const limit = m_packet_size > m_recv_pos ? m_packet_size - m_recv_pos : m_packet_size;
 	int const sub_transferred = (std::min)(bytes, limit);
 	m_recv_pos += sub_transferred;
@@ -94,6 +98,7 @@ int receive_buffer::advance_pos(int bytes)
 // offset = the offset into the receive buffer where to remove `size` bytes
 void receive_buffer::cut(int const size, int const packet_size, int const offset)
 {
+	INVARIANT_CHECK;
 	TORRENT_ASSERT(packet_size > 0);
 	TORRENT_ASSERT(int(m_recv_buffer.size()) >= size);
 	TORRENT_ASSERT(int(m_recv_buffer.size()) >= m_recv_pos);
@@ -136,37 +141,28 @@ buffer::const_interval receive_buffer::get() const
 	if (m_recv_buffer.empty())
 	{
 		TORRENT_ASSERT(m_recv_pos == 0);
-		return buffer::interval(nullptr,nullptr);
+		return buffer::const_interval(nullptr,nullptr);
 	}
 
-	int rcv_pos = (std::min)(m_recv_pos, int(m_recv_buffer.size()) - m_recv_start);
+	TORRENT_ASSERT(m_recv_start + m_recv_pos <= m_recv_buffer.size());
 	return buffer::const_interval(&m_recv_buffer[0] + m_recv_start
-		, &m_recv_buffer[0] + m_recv_start + rcv_pos);
+		, &m_recv_buffer[0] + m_recv_start + m_recv_pos);
 }
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-buffer::interval receive_buffer::mutable_buffer()
+span<char> receive_buffer::mutable_buffer()
 {
-	if (m_recv_buffer.empty())
-	{
-		TORRENT_ASSERT(m_recv_pos == 0);
-		return buffer::interval(nullptr,nullptr);
-	}
-	int const rcv_pos = (std::min)(m_recv_pos, int(m_recv_buffer.size()));
-	return buffer::interval(&m_recv_buffer[0] + m_recv_start
-		, &m_recv_buffer[0] + m_recv_start + rcv_pos);
+	INVARIANT_CHECK;
+	return span<char>(m_recv_buffer).subspan(m_recv_start, m_recv_pos);
 }
 
 aux::mutable_buffer receive_buffer::mutable_buffer(int const bytes)
 {
+	INVARIANT_CHECK;
 	// bytes is the number of bytes we just received, and m_recv_pos has
 	// already been adjusted for these bytes. The receive pos immediately
 	// before we received these bytes was (m_recv_pos - bytes)
-	int const last_recv_pos = m_recv_pos - bytes;
-	TORRENT_ASSERT(bytes <= m_recv_pos);
-
-	return aux::mutable_buffer(&m_recv_buffer[0] + m_recv_start
-			+ last_recv_pos, bytes);
+	return span<char>(m_recv_buffer).subspan(m_recv_start + m_recv_pos - bytes, bytes);
 }
 #endif
 
@@ -176,6 +172,7 @@ aux::mutable_buffer receive_buffer::mutable_buffer(int const bytes)
 // enough of it lately.
 void receive_buffer::normalize(int force_shrink)
 {
+	INVARIANT_CHECK;
 	TORRENT_ASSERT(m_recv_end >= m_recv_start);
 
 	m_watermark.add_sample(std::max(m_recv_end, m_packet_size));
@@ -218,6 +215,7 @@ void receive_buffer::normalize(int force_shrink)
 
 void receive_buffer::reset(int packet_size)
 {
+	INVARIANT_CHECK;
 	TORRENT_ASSERT(m_recv_buffer.size() >= m_recv_end);
 	TORRENT_ASSERT(packet_size > 0);
 	if (m_recv_end > m_packet_size)

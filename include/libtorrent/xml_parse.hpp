@@ -33,10 +33,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_XML_PARSE_HPP
 #define TORRENT_XML_PARSE_HPP
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <cctype>
 #include <cstring>
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/function.hpp>
 
@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/span.hpp"
 
 namespace libtorrent
 {
@@ -68,7 +69,8 @@ namespace libtorrent
 	// val is attribute value
 	// neither string is 0-terminated, but their lengths are specified via
 	// name_len and val_len respectively
-	TORRENT_EXTRA_EXPORT void xml_parse(char const* p, char const* end
+	// TODO: 3 use span<> for the callback
+	TORRENT_EXTRA_EXPORT void xml_parse(span<char const> input
 		, boost::function<void(int,char const*,int,char const*,int)> callback);
 }
 

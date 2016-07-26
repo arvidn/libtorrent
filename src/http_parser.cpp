@@ -518,18 +518,16 @@ restart_response:
 		return false;
 	}
 
-	buffer::const_interval http_parser::get_body() const
+	span<char const> http_parser::get_body() const
 	{
 		TORRENT_ASSERT(m_state == read_body);
-		std::int64_t last_byte = m_chunked_encoding && !m_chunked_ranges.empty()
-			? (std::min)(m_chunked_ranges.back().second, m_recv_pos)
-			: m_content_length < 0
-				? m_recv_pos : (std::min)(m_body_start_pos + m_content_length, m_recv_pos);
+		std::int64_t const received = m_recv_pos - m_body_start_pos;
 
-		TORRENT_ASSERT(last_byte >= m_body_start_pos);
-		return buffer::const_interval(m_recv_buffer.data()
-			+ m_body_start_pos
-			, m_recv_buffer.data() + last_byte);
+		std::int64_t const body_length = m_chunked_encoding && !m_chunked_ranges.empty()
+			? (std::min)(m_chunked_ranges.back().second - m_body_start_pos, received)
+			: m_content_length < 0 ? received : (std::min)(m_content_length, received);
+
+		return m_recv_buffer.subspan(m_body_start_pos, body_length);
 	}
 
 	void http_parser::reset()
@@ -563,7 +561,7 @@ restart_response:
 		// the offsets in the array are from the start of the
 		// buffer, not start of the body, so subtract the size
 		// of the HTTP header from them
-		int offset = body_start();
+		int const offset = body_start();
 		std::vector<std::pair<std::int64_t, std::int64_t> > const& c = chunks();
 		for (std::vector<std::pair<std::int64_t, std::int64_t> >::const_iterator i = c.begin()
 			, end(c.end()); i != end; ++i)

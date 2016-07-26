@@ -700,20 +700,19 @@ namespace libtorrent
 		return -1;
 	}
 
-	void bt_peer_connection::rc4_decrypt(char* const pos, int const len)
+	void bt_peer_connection::rc4_decrypt(span<char> buf)
 	{
 		int consume = 0;
-		int produce = len;
+		int produce = int(buf.size());
 		int packet_size = 0;
-		aux::mutable_buffer vec(pos, len);
-		m_rc4->decrypt(vec, consume, produce, packet_size);
+		m_rc4->decrypt(buf, consume, produce, packet_size);
 	}
 
 	namespace {
 		void regular_c_free(char* buf, void* /* userdata */
 			, block_cache_reference /* ref */)
 		{
-			::free(buf);
+			std::free(buf);
 		}
 	}
 
@@ -728,7 +727,7 @@ namespace libtorrent
 		{
 			// if we're encrypting this buffer, we need to make a copy
 			// since we'll mutate it
-			char* buf = static_cast<char*>(malloc(size));
+			char* buf = static_cast<char*>(std::malloc(size));
 			std::memcpy(buf, buffer, size);
 			append_send_buffer(buf, size, &regular_c_free, nullptr);
 			destructor(const_cast<char*>(buffer), userdata, ref);
@@ -2735,9 +2734,7 @@ namespace libtorrent
 			}
 
 			// verify constant
-			buffer::interval wr_recv_buf = m_recv_buffer.mutable_buffer();
-			rc4_decrypt(wr_recv_buf.begin + 20, 8);
-			wr_recv_buf.begin += 28;
+			rc4_decrypt(m_recv_buffer.mutable_buffer().subspan(20, 8));
 
 			const char sh_vc[] = {0,0,0,0, 0,0,0,0};
 			if (!std::equal(sh_vc, sh_vc + 8, recv_buffer.begin + 20))
@@ -2781,7 +2778,7 @@ namespace libtorrent
 					return;
 				}
 				std::fill(m_sync_vc.get(), m_sync_vc.get() + 8, 0);
-				rc4_decrypt(m_sync_vc.get(), 8);
+				rc4_decrypt({m_sync_vc.get(), 8});
 			}
 
 			TORRENT_ASSERT(m_sync_vc.get());
@@ -2839,8 +2836,10 @@ namespace libtorrent
 
 			if (!m_recv_buffer.packet_finished()) return;
 
-			buffer::interval wr_buf = m_recv_buffer.mutable_buffer();
-			rc4_decrypt(wr_buf.begin, m_recv_buffer.packet_size());
+			// TODO: 3 this is weird buffer handling
+			span<char> const buf = m_recv_buffer.mutable_buffer();
+			TORRENT_ASSERT(buf.size() >= m_recv_buffer.packet_size());
+			rc4_decrypt({buf.data(), size_t(m_recv_buffer.packet_size())});
 
 			recv_buffer = m_recv_buffer.get();
 
@@ -2944,8 +2943,10 @@ namespace libtorrent
 
 			int const pad_size = is_outgoing() ? m_recv_buffer.packet_size() : m_recv_buffer.packet_size() - 2;
 
-			buffer::interval wr_buf = m_recv_buffer.mutable_buffer();
-			rc4_decrypt(wr_buf.begin, m_recv_buffer.packet_size());
+			// TODO: 3 this is weird buffer handling
+			span<char> const buf = m_recv_buffer.mutable_buffer();
+			TORRENT_ASSERT(buf.size() >= m_recv_buffer.packet_size());
+			rc4_decrypt({buf.data(), size_t(m_recv_buffer.packet_size())});
 
 			recv_buffer = m_recv_buffer.get();
 
@@ -3003,8 +3004,10 @@ namespace libtorrent
 			if (!m_recv_buffer.packet_finished()) return;
 
 			// ia is always rc4, so decrypt it
-			buffer::interval wr_buf = m_recv_buffer.mutable_buffer();
-			rc4_decrypt(wr_buf.begin, m_recv_buffer.packet_size());
+			// TODO: 3 this is weird buffer handling
+			span<char> const buf = m_recv_buffer.mutable_buffer();
+			TORRENT_ASSERT(buf.size() >= m_recv_buffer.packet_size());
+			rc4_decrypt({buf.data(), size_t(m_recv_buffer.packet_size())});
 
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "ENCRYPTION"
@@ -3033,13 +3036,13 @@ namespace libtorrent
 			// decrypt remaining received bytes
 			if (m_rc4_encrypted)
 			{
-				buffer::interval wr_buf = m_recv_buffer.mutable_buffer();
-				wr_buf.begin += m_recv_buffer.packet_size();
-				rc4_decrypt(wr_buf.begin, wr_buf.left());
+				span<char> const remaining = m_recv_buffer.mutable_buffer()
+					.subspan(m_recv_buffer.packet_size());
+				rc4_decrypt(remaining);
 
 #ifndef TORRENT_DISABLE_LOGGING
 				peer_log(peer_log_alert::info, "ENCRYPTION"
-					, "decrypted remaining %d bytes", wr_buf.left());
+					, "decrypted remaining %d bytes", int(remaining.size()));
 #endif
 			}
 			m_rc4.reset();

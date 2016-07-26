@@ -95,10 +95,7 @@ namespace libtorrent { namespace
 	struct ut_metadata_plugin final
 		: torrent_plugin
 	{
-		explicit ut_metadata_plugin(torrent& t)
-			: m_torrent(t)
-//			, m_metadata_progress(0)
-			, m_metadata_size(0)
+		explicit ut_metadata_plugin(torrent& t) : m_torrent(t)
 		{
 			// initialize m_metadata_size
 			if (m_torrent.valid_metadata())
@@ -137,9 +134,9 @@ namespace libtorrent { namespace
 			return m_metadata_size;
 		}
 
-		buffer::const_interval metadata() const
+		span<char const> metadata() const
 		{
-			if (!m_torrent.need_loaded()) return buffer::const_interval(nullptr, nullptr);
+			if (!m_torrent.need_loaded()) return span<char const>();
 			TORRENT_ASSERT(m_torrent.valid_metadata());
 			if (!m_metadata)
 			{
@@ -148,8 +145,7 @@ namespace libtorrent { namespace
 				TORRENT_ASSERT(hasher(m_metadata.get(), m_metadata_size).final()
 					== m_torrent.torrent_file().info_hash());
 			}
-			return buffer::const_interval(m_metadata.get(), m_metadata.get()
-				+ m_metadata_size);
+			return span<char const>(m_metadata.get(), m_metadata_size);
 		}
 
 		bool received_metadata(ut_metadata_peer_plugin& source
@@ -159,16 +155,7 @@ namespace libtorrent { namespace
 		// we should request.
 		// returns -1 if we should hold off the request
 		int metadata_request(bool has_metadata);
-/*
-		// this is called from the peer_connection for
-		// each piece of metadata it receives
-		void metadata_progress(int total_size, int received)
-		{
-			m_metadata_progress += received;
-			m_metadata_size = total_size;
-			m_torrent.set_progress_ppm(std::int64_t(m_metadata_progress) * 1000000 / m_metadata_size);
-		}
-*/
+
 		void on_piece_pass(int) override
 		{
 			// if we became a seed, copy the metadata from
@@ -194,8 +181,7 @@ namespace libtorrent { namespace
 		// it is mutable because it's generated lazily
 		mutable boost::shared_array<char> m_metadata;
 
-//		int m_metadata_progress;
-		mutable int m_metadata_size;
+		mutable int m_metadata_size = 0;
 
 		struct metadata_piece
 		{
@@ -300,7 +286,7 @@ namespace libtorrent { namespace
 				// unloaded torrents don't have any metadata. Since we're
 				// about to send the metadata, we need it to be loaded
 				if (!m_tp.need_loaded()) return;
-				metadata = m_tp.metadata().begin + offset;
+				metadata = m_tp.metadata().data() + offset;
 				metadata_piece_size = (std::min)(
 					int(m_tp.get_metadata_size() - offset), 16 * 1024);
 				TORRENT_ASSERT(metadata_piece_size > 0);
