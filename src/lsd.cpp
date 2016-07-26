@@ -61,8 +61,8 @@ namespace libtorrent
 {
 namespace {
 
-int render_lsd_packet(char* dst, int len, int listen_port
-	, char const* info_hash_hex, int m_cookie, char const* host)
+int render_lsd_packet(char* dst, int const len, int const listen_port
+	, char const* info_hash_hex, int const cookie, char const* host)
 {
 	TORRENT_ASSERT(len > 0);
 	return std::snprintf(dst, len,
@@ -71,7 +71,7 @@ int render_lsd_packet(char* dst, int len, int listen_port
 		"Port: %d\r\n"
 		"Infohash: %s\r\n"
 		"cookie: %x\r\n"
-		"\r\n\r\n", host, listen_port, info_hash_hex, m_cookie);
+		"\r\n\r\n", host, listen_port, info_hash_hex, cookie);
 }
 } // anonymous namespace
 
@@ -91,7 +91,7 @@ lsd::lsd(io_service& ios, peer_callback_t const& cb
 	, m_log_cb(log)
 #endif
 	, m_broadcast_timer(ios)
-	, m_cookie(random() & 0x7fffffff)
+	, m_cookie((random() ^ boost::uintptr_t(this)) & 0x7fffffff)
 	, m_disabled(false)
 #if TORRENT_USE_IPV6
 	, m_disabled6(false)
@@ -132,8 +132,8 @@ void lsd::announce(sha1_hash const& ih, int listen_port, bool broadcast)
 	announce_impl(ih, listen_port, broadcast, 0);
 }
 
-void lsd::announce_impl(sha1_hash const& ih, int listen_port, bool broadcast
-	, int retry_count)
+void lsd::announce_impl(sha1_hash const& ih, int const listen_port
+	, bool const broadcast, int retry_count)
 {
 #if TORRENT_USE_IPV6
 	if (m_disabled && m_disabled6) return;
@@ -152,7 +152,7 @@ void lsd::announce_impl(sha1_hash const& ih, int listen_port, bool broadcast
 	error_code ec;
 	if (!m_disabled)
 	{
-		int msg_len = render_lsd_packet(msg, sizeof(msg), listen_port, ih_hex
+		int const msg_len = render_lsd_packet(msg, sizeof(msg), listen_port, ih_hex
 			, m_cookie, "239.192.152.143");
 		m_socket.send(msg, msg_len, ec, broadcast ? broadcast_socket::flag_broadcast : 0);
 		if (ec)
@@ -168,7 +168,7 @@ void lsd::announce_impl(sha1_hash const& ih, int listen_port, bool broadcast
 #if TORRENT_USE_IPV6
 	if (!m_disabled6)
 	{
-		int msg_len = render_lsd_packet(msg, sizeof(msg), listen_port, ih_hex
+		int const msg_len = render_lsd_packet(msg, sizeof(msg), listen_port, ih_hex
 			, m_cookie, "[ff15::efc0:988f]");
 		m_socket6.send(msg, msg_len, ec, broadcast ? broadcast_socket::flag_broadcast : 0);
 		if (ec)
@@ -251,12 +251,12 @@ void lsd::on_announce(udp::endpoint const& from, char* buf
 	{
 		// we expect it to be hexadecimal
 		// if it isn't, it's not our cookie anyway
-		std::int32_t cookie = strtol(cookie_iter->second.c_str(), nullptr, 16);
+		std::int32_t const cookie = strtol(cookie_iter->second.c_str(), nullptr, 16);
 		if (cookie == m_cookie)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			debug_log("<== LSD: ignoring packet (cookie matched our own): %x == %x"
-				, cookie, m_cookie);
+			debug_log("<== LSD: ignoring packet (cookie matched our own): %x"
+				, cookie);
 #endif
 			return;
 		}

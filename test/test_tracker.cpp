@@ -422,8 +422,15 @@ TORRENT_TEST(http_peers)
 	addp.save_path = "tmp2_tracker";
 	torrent_handle h = s->add_torrent(addp);
 
+	libtorrent::torrent_status status = h.status();
+	TEST_CHECK(status.current_tracker.empty());
+
 	// wait to hit the tracker
 	wait_for_alert(*s, tracker_reply_alert::alert_type, "s");
+
+	status = h.status();
+	TEST_CHECK(!status.current_tracker.empty());
+	TEST_CHECK(status.current_tracker == tracker_url);
 
 	// we expect to have certain peers in our peer list now
 	// these peers are hard coded in web_server.py
@@ -454,6 +461,61 @@ TORRENT_TEST(http_peers)
 	std::fprintf(stderr, "stop_web_server\n");
 	stop_web_server();
 	std::fprintf(stderr, "done\n");
+}
+
+TORRENT_TEST(current_tracker)
+{
+	// use a invalid tracker port
+	int http_port = 39527;
+
+	settings_pack pack = settings();
+	pack.set_bool(settings_pack::announce_to_all_trackers, true);
+	pack.set_bool(settings_pack::announce_to_all_tiers, false);
+	pack.set_int(settings_pack::tracker_completion_timeout, 2);
+	pack.set_int(settings_pack::tracker_receive_timeout, 1);
+	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:39775");
+	//pack.set_int(settings_pack::alert_mask, alert::tracker_notification);
+
+	boost::scoped_ptr<lt::session> s(new lt::session(pack));
+
+	error_code ec;
+	remove_all("tmp3_tracker", ec);
+	create_directory("tmp3_tracker", ec);
+	std::ofstream file(combine_path("tmp3_tracker", "temporary").c_str());
+	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
+	file.close();
+
+	char tracker_url[200];
+	snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce"
+		, http_port);
+	t->add_tracker(tracker_url, 0);
+
+	add_torrent_params addp;
+	addp.flags &= ~add_torrent_params::flag_paused;
+	addp.flags &= ~add_torrent_params::flag_auto_managed;
+	addp.flags |= add_torrent_params::flag_seed_mode;
+	addp.ti = t;
+	addp.save_path = "tmp3_tracker";
+	torrent_handle h = s->add_torrent(addp);
+
+	libtorrent::torrent_status status = h.status();
+	TEST_CHECK(status.current_tracker.empty());
+
+	// wait to hit the tracker announce
+	wait_for_alert(*s, tracker_announce_alert::alert_type, "s");
+
+	status = h.status();
+	TEST_CHECK(status.current_tracker.empty());
+
+	// wait to hit the tracker error
+	wait_for_alert(*s, tracker_error_alert::alert_type, "s");
+
+	status = h.status();
+	TEST_CHECK(status.current_tracker.empty());
+
+	fprintf(stderr, "destructing session\n");
+	s.reset();
+	fprintf(stderr, "done\n");
 }
 
 void test_proxy(bool proxy_trackers)
