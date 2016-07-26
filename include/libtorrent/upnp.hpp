@@ -296,10 +296,8 @@ private:
 			TORRENT_ASSERT(magic == 1337);
 			magic = 0;
 		}
-#if __cplusplus >= 201103L
 		rootdevice(rootdevice const&) = default;
 		rootdevice& operator=(rootdevice const&) = default;
-#endif
 #endif
 
 		// the interface url, through which the list of
@@ -418,4 +416,3 @@ namespace boost { namespace system {
 } }
 
 #endif
-

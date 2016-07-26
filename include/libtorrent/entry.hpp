@@ -117,7 +117,7 @@ namespace libtorrent
 		// newly constructed entry
 		entry(dictionary_type);
 		entry(span<char const>);
-		template <typename U, typename = typename std::enable_if<
+		template <typename U, typename Cond = typename std::enable_if<
 			std::is_same<U, entry::string_type>::value
 			|| std::is_same<U, char const*>::value>::type>
 		entry(U v)
@@ -161,7 +161,7 @@ namespace libtorrent
 		entry& operator=(entry&&);
 		entry& operator=(dictionary_type);
 		entry& operator=(span<char const>);
-		template <typename U, typename = typename std::enable_if<
+		template <typename U, typename Cond = typename std::enable_if<
 			std::is_same<U, entry::string_type>::value
 			|| std::is_same<U, char const*>::value>::type>
 		entry& operator=(U v)

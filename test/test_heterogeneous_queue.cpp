@@ -96,7 +96,6 @@ struct F
 		TEST_EQUAL(f_.gutted, false);
 	}
 
-#if __cplusplus >= 201103L
 	F(F&& f_)
 		: self(this)
 		, f(f_.f)
@@ -109,7 +108,6 @@ struct F
 		TEST_EQUAL(f_.gutted, false);
 		f_.gutted = true;
 	}
-#endif
 
 	~F()
 	{
@@ -296,5 +294,3 @@ TORRENT_TEST(nontrivial)
 		q.emplace_back<E>("testing to allocate non-trivial objects");
 	}
 }
-
-
