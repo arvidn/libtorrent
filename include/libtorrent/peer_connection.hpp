@@ -142,9 +142,7 @@ namespace libtorrent
 
 	struct has_block
 	{
-#if __cplusplus >= 201103L
 		has_block(has_block const&) = default;
-#endif
 
 		has_block(piece_block const& b): block(b) {}
 		piece_block const& block;

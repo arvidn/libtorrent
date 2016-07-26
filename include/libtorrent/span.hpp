@@ -78,7 +78,7 @@ namespace libtorrent
 		reverse_iterator rend() const { return reverse_iterator(begin()); }
 
 		T& front() const { TORRENT_ASSERT(m_len > 0); return m_ptr[0]; }
-		T& back() const { TORRENT_ASSERT(m_len > 0); return m_ptr[m_len-1]; }
+		T& back() const { TORRENT_ASSERT(m_len > 0); return m_ptr[m_len - 1]; }
 
 		span<T> first(size_t const n) const
 		{
