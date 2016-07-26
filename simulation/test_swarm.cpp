@@ -308,6 +308,7 @@ TORRENT_TEST(stop_start_seed_graceful)
 	test_stop_start_download(swarm_test::upload, true);
 }
 
+#ifndef TORRENT_NO_DEPRECATE
 TORRENT_TEST(explicit_cache)
 {
 	setup_swarm(2, swarm_test::download
@@ -333,6 +334,7 @@ TORRENT_TEST(explicit_cache)
 			return true;
 		});
 }
+#endif
 
 TORRENT_TEST(shutdown)
 {

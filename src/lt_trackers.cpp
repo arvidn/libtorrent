@@ -30,6 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#ifndef TORRENT_NO_DEPRECATE
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
@@ -389,5 +390,6 @@ namespace libtorrent
 
 }
 
+#endif
 #endif
 

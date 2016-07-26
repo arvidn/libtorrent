@@ -111,6 +111,8 @@ public:
 
 	int num_allocated_observers() const { return m_allocated_observers; }
 
+	void update_node_id(node_id const& id) { m_our_id = id; }
+
 private:
 
 	boost::uint32_t calc_connection_id(udp::endpoint addr);

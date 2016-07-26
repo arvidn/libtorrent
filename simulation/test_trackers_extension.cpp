@@ -30,6 +30,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "test.hpp"
+
+#ifndef TORRENT_NO_DEPRECATE
+
 #include "setup_swarm.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/announce_entry.hpp"
@@ -38,7 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/extensions/lt_trackers.hpp"
 #include "libtorrent/session.hpp"
-#include "test.hpp"
 #include "settings.hpp"
 
 using namespace libtorrent;
@@ -153,4 +156,7 @@ TORRENT_TEST(no_metadata)
 
 	TEST_EQUAL(connected, true);
 }
+#else
+TORRENT_TEST(dummy) {}
+#endif
 

@@ -1,6 +1,7 @@
 1.1.1 release
 
 	* fix value of current_tracker when all tracker failed
+	* deprecate lt_trackers extension
 	* remove load_asnum_db and load_country_db from python bindings
 	* fix crash in session::get_ip_filter when not having set one
 	* fix filename escaping when repairing torrents with broken web seeds
@@ -26,6 +27,7 @@
 	* fix set_settings in python binding
 	* Added missing alert categories in python binding
 	* Added dht_get_peers_reply_alert alert in python binding
+	* fixed updating the node id reported to peers after changing IPs
 
 1.1.0 release
 
