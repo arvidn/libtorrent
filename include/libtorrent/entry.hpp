@@ -117,6 +117,7 @@ namespace libtorrent
 		// newly constructed entry
 		entry(dictionary_type);
 		entry(span<char const>);
+#if __cplusplus >= 201103L
 		template <typename U, typename = typename std::enable_if<
 			std::is_same<U, entry::string_type>::value
 			|| std::is_same<U, char const*>::value>::type>
@@ -129,6 +130,7 @@ namespace libtorrent
 			new(&data) string_type(std::move(v));
 			m_type = string_t;
 		}
+#endif
 		entry(list_type);
 		entry(integer_type);
 		entry(preformatted_type);
@@ -161,6 +163,7 @@ namespace libtorrent
 		entry& operator=(entry&&);
 		entry& operator=(dictionary_type);
 		entry& operator=(span<char const>);
+#if __cplusplus >= 201103L
 		template <typename U, typename = typename std::enable_if<
 			std::is_same<U, entry::string_type>::value
 			|| std::is_same<U, char const*>::value>::type>
@@ -174,6 +177,7 @@ namespace libtorrent
 #endif
 			return *this;
 		}
+#endif
 		entry& operator=(list_type);
 		entry& operator=(integer_type);
 		entry& operator=(preformatted_type);
