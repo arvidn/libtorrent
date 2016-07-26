@@ -60,12 +60,10 @@ namespace libtorrent
 		span(U (&arr)[N])
 			: m_ptr(&arr[0]), m_len(N) {}
 
-#if (defined __GNUC__ || (defined _MSC_VER && _MSC_VER >= 1900))
 		// anything with a .data() member function is considered a container
 		template <typename Cont, typename = decltype(std::declval<Cont>().data())>
 		span(Cont& c)
 			: m_ptr(c.data()), m_len(c.size()) {}
-#endif
 
 		size_t size() const { return m_len; }
 		bool empty() const { return m_len == 0; }
