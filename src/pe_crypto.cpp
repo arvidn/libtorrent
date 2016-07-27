@@ -101,21 +101,21 @@ namespace libtorrent
 		m_xor_mask = hasher(req3).update(buffer).final();
 	}
 
-	std::tuple<int, span<aux::const_buffer>>
+	std::tuple<int, span<span<char const>>>
 	encryption_handler::encrypt(
-		span<aux::mutable_buffer> iovec)
+		span<span<char>> iovec)
 	{
 		TORRENT_ASSERT(!m_send_barriers.empty());
 		TORRENT_ASSERT(m_send_barriers.front().enc_handler);
 
 		int to_process = m_send_barriers.front().next;
 
-		aux::mutable_buffer* bufs;
+		span<char>* bufs;
 		size_t num_bufs;
 		bool need_destruct = false;
 		if (to_process != INT_MAX)
 		{
-			bufs = TORRENT_ALLOCA(aux::mutable_buffer, iovec.size());
+			bufs = TORRENT_ALLOCA(span<char>, iovec.size());
 			need_destruct = true;
 			num_bufs = 0;
 			for (int i = 0; to_process > 0 && i < iovec.size(); ++i)
@@ -124,13 +124,13 @@ namespace libtorrent
 				int const size = int(iovec[i].size());
 				if (to_process < size)
 				{
-					new (&bufs[i]) aux::mutable_buffer(
+					new (&bufs[i]) span<char>(
 						iovec[i].data(), to_process);
 					to_process = 0;
 				}
 				else
 				{
-					new (&bufs[i]) aux::mutable_buffer(iovec[i]);
+					new (&bufs[i]) span<char>(iovec[i]);
 					to_process -= size;
 				}
 			}
@@ -142,7 +142,7 @@ namespace libtorrent
 		}
 
 		int next_barrier = 0;
-		span<aux::const_buffer> out_iovec;
+		span<span<char const>> out_iovec;
 		if (num_bufs != 0)
 		{
 			std::tie(next_barrier, out_iovec)
@@ -198,7 +198,7 @@ namespace libtorrent
 		int consume = 0;
 		if (recv_buffer.crypto_packet_finished())
 		{
-			aux::mutable_buffer wr_buf = recv_buffer.mutable_buffer(bytes_transferred);
+			span<char> wr_buf = recv_buffer.mutable_buffer(bytes_transferred);
 			int packet_size = 0;
 			int produce = int(bytes_transferred);
 			m_dec_handler->decrypt(wr_buf, consume, produce, packet_size);
@@ -244,7 +244,7 @@ namespace libtorrent
 		{
 			int consume = 0;
 			int produce = 0;
-			std::vector<aux::mutable_buffer> wr_buf;
+			std::vector<span<char>> wr_buf;
 			crypto->decrypt(wr_buf, consume, produce, packet_size);
 			TORRENT_ASSERT(wr_buf.empty());
 			TORRENT_ASSERT(consume == 0);
@@ -272,7 +272,7 @@ namespace libtorrent
 		int produce = 0;
 		int packet_size = 0;
 		char buf[1024];
-		aux::mutable_buffer vec(buf, sizeof(buf));
+		span<char> vec(buf, sizeof(buf));
 		decrypt(vec, consume, produce, packet_size);
 	}
 
@@ -282,14 +282,14 @@ namespace libtorrent
 		rc4_init(key, len, &m_rc4_outgoing);
 		// Discard first 1024 bytes
 		char buf[1024];
-		aux::mutable_buffer vec(buf, sizeof(buf));
+		span<char> vec(buf, sizeof(buf));
 		encrypt(vec);
 	}
 
-	std::tuple<int, span<aux::const_buffer>>
-	rc4_handler::encrypt(span<aux::mutable_buffer> bufs)
+	std::tuple<int, span<span<char const>>>
+	rc4_handler::encrypt(span<span<char>> bufs)
 	{
-		span<aux::const_buffer> empty;
+		span<span<char const>> empty;
 		if (!m_encrypt) return std::make_tuple(0, empty);
 		if (bufs.size() == 0) return std::make_tuple(0, empty);
 
@@ -308,7 +308,7 @@ namespace libtorrent
 		return std::make_tuple(bytes_processed, empty);
 	}
 
-	void rc4_handler::decrypt(span<aux::mutable_buffer> bufs
+	void rc4_handler::decrypt(span<span<char>> bufs
 		, int& consume
 		, int& produce
 		, int& packet_size)

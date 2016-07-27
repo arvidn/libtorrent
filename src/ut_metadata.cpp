@@ -315,7 +315,7 @@ namespace libtorrent { namespace
 		}
 
 		bool on_extended(int length
-			, int extended_msg, buffer::const_interval body) override
+			, int extended_msg, span<char const> body) override
 		{
 			if (extended_msg != 2) return false;
 			if (m_message_index == 0) return false;
@@ -333,7 +333,7 @@ namespace libtorrent { namespace
 			if (!m_pc.packet_finished()) return true;
 
 			int len;
-			entry msg = bdecode(body.begin, body.end, len);
+			entry msg = bdecode(body.begin(), body.end(), len);
 			if (msg.type() != entry::dictionary_t)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -369,14 +369,14 @@ namespace libtorrent { namespace
 				case metadata_req:
 				{
 					if (!m_torrent.valid_metadata()
-						|| piece < 0 || piece >= int(m_tp.get_metadata_size() + 16 * 1024 - 1)/(16*1024))
+						|| piece < 0 || piece >= (m_tp.get_metadata_size() + 16 * 1024 - 1) / (16 * 1024))
 					{
 #ifndef TORRENT_DISABLE_LOGGING
 						m_pc.peer_log(peer_log_alert::info, "UT_METADATA"
 							, "have: %d invalid piece %d metadata size: %d"
 							, int(m_torrent.valid_metadata()), piece
 							, m_torrent.valid_metadata()
-								? int(m_tp.get_metadata_size()) : 0);
+								? m_tp.get_metadata_size() : 0);
 #endif
 						write_metadata_packet(metadata_dont_have, piece);
 						return true;
@@ -406,7 +406,7 @@ namespace libtorrent { namespace
 
 					m_sent_requests.erase(i);
 					entry const* total_size = msg.find_key("total_size");
-					m_tp.received_metadata(*this, body.begin + len, body.left() - len, piece
+					m_tp.received_metadata(*this, body.begin() + len, int(body.size()) - len, piece
 						, (total_size && total_size->type() == entry::int_t) ? total_size->integer() : 0);
 					maybe_send_request();
 				}
@@ -664,4 +664,3 @@ namespace libtorrent
 }
 
 #endif
-

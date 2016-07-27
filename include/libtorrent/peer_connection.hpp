@@ -747,11 +747,11 @@ namespace libtorrent
 		void send_piece_suggestions(int num);
 
 		virtual
-		std::tuple<int, span<aux::const_buffer>>
-		hit_send_barrier(span<aux::mutable_buffer> /* iovec */)
+		std::tuple<int, span<span<char const>>>
+		hit_send_barrier(span<span<char>> /* iovec */)
 		{
 			return std::make_tuple(INT_MAX
-				, span<aux::const_buffer>());
+				, span<span<char const>>());
 		}
 
 		void attach_to_torrent(sha1_hash const& ih);

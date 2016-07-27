@@ -136,17 +136,16 @@ void receive_buffer::cut(int const size, int const packet_size, int const offset
 	m_packet_size = packet_size;
 }
 
-buffer::const_interval receive_buffer::get() const
+span<char const> receive_buffer::get() const
 {
 	if (m_recv_buffer.empty())
 	{
 		TORRENT_ASSERT(m_recv_pos == 0);
-		return buffer::const_interval(nullptr,nullptr);
+		return span<char const>();
 	}
 
 	TORRENT_ASSERT(m_recv_start + m_recv_pos <= m_recv_buffer.size());
-	return buffer::const_interval(&m_recv_buffer[0] + m_recv_start
-		, &m_recv_buffer[0] + m_recv_start + m_recv_pos);
+	return span<char const>(m_recv_buffer).subspan(m_recv_start, m_recv_pos);
 }
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
@@ -156,7 +155,7 @@ span<char> receive_buffer::mutable_buffer()
 	return span<char>(m_recv_buffer).subspan(m_recv_start, m_recv_pos);
 }
 
-aux::mutable_buffer receive_buffer::mutable_buffer(int const bytes)
+span<char> receive_buffer::mutable_buffer(int const bytes)
 {
 	INVARIANT_CHECK;
 	// bytes is the number of bytes we just received, and m_recv_pos has
@@ -317,15 +316,15 @@ int crypto_receive_buffer::advance_pos(int bytes)
 	return sub_transferred;
 }
 
-buffer::const_interval crypto_receive_buffer::get() const
+span<char const> crypto_receive_buffer::get() const
 {
-	buffer::const_interval recv_buffer = m_connection_buffer.get();
+	span<char const> recv_buffer = m_connection_buffer.get();
 	if (m_recv_pos < m_connection_buffer.pos())
-		recv_buffer.end = recv_buffer.begin + m_recv_pos;
+		recv_buffer = recv_buffer.subspan(0, m_recv_pos);
 	return recv_buffer;
 }
 
-aux::mutable_buffer crypto_receive_buffer::mutable_buffer(
+span<char> crypto_receive_buffer::mutable_buffer(
 	std::size_t const bytes)
 {
 	int const pending_decryption = (m_recv_pos != INT_MAX)

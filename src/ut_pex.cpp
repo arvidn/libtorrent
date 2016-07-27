@@ -280,7 +280,7 @@ namespace libtorrent { namespace
 			return true;
 		}
 
-		bool on_extended(int length, int msg, buffer::const_interval body) override
+		bool on_extended(int length, int msg, span<char const> body) override
 		{
 			if (msg != extension_index) return false;
 			if (m_message_index == 0) return false;
@@ -291,7 +291,7 @@ namespace libtorrent { namespace
 				return true;
 			}
 
-			if (body.left() < length) return true;
+			if (int(body.size()) < length) return true;
 
 			time_point now = aux::time_now();
 			if (now - seconds(60) <  m_last_pex[0])
@@ -309,7 +309,7 @@ namespace libtorrent { namespace
 
 			bdecode_node pex_msg;
 			error_code ec;
-			int const ret = bdecode(body.begin, body.end, pex_msg, ec);
+			int const ret = bdecode(body.begin(), body.end(), pex_msg, ec);
 			if (ret != 0 || pex_msg.type() != bdecode_node::dict_t)
 			{
 				m_pc.disconnect(errors::invalid_pex_message, op_bittorrent, 2);

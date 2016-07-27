@@ -229,7 +229,7 @@ TORRENT_TEST(recv_buffer_mutable_buffers)
 	b.cut(100, 1000); // packet size = 1000
 	packet_transferred = b.advance_pos(999);
 	TEST_EQUAL(packet_transferred, 999);
-	aux::mutable_buffer vec = b.mutable_buffer(999);
+	span<char> vec = b.mutable_buffer(999);
 
 	// previous packet
 	//   |

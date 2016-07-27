@@ -2497,8 +2497,8 @@ namespace libtorrent
 		check_invariant();
 #endif
 #if TORRENT_USE_ASSERTS
-		buffer::const_interval recv_buffer = m_recv_buffer.get();
-		int recv_pos = recv_buffer.end - recv_buffer.begin;
+		span<char const> recv_buffer = m_recv_buffer.get();
+		int recv_pos = recv_buffer.end() - recv_buffer.begin();
 		TORRENT_ASSERT(recv_pos >= 9);
 #endif
 
@@ -5468,12 +5468,12 @@ namespace libtorrent
 
 		if (m_send_barrier == 0)
 		{
-			std::vector<aux::mutable_buffer> vec;
+			std::vector<span<char>> vec;
 			// limit outgoing crypto messages to 1MB
 			int const send_bytes = (std::min)(m_send_buffer.size(), 1024*1024);
 			m_send_buffer.build_mutable_iovec(send_bytes, vec);
 			int next_barrier;
-			span<aux::const_buffer> inject_vec;
+			span<span<char const>> inject_vec;
 			std::tie(next_barrier, inject_vec) = hit_send_barrier(vec);
 			for (auto i = inject_vec.rbegin(); i != inject_vec.rend(); ++i)
 			{

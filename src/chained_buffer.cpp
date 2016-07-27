@@ -151,7 +151,7 @@ namespace libtorrent
 		return m_tmp_vec;
 	}
 
-	void chained_buffer::build_mutable_iovec(int bytes, std::vector<aux::mutable_buffer> &vec)
+	void chained_buffer::build_mutable_iovec(int bytes, std::vector<span<char>> &vec)
 	{
 		build_vec(bytes, vec);
 	}

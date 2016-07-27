@@ -62,9 +62,9 @@ void test_enc_handler(libtorrent::crypto_plugin& a, libtorrent::crypto_plugin& b
 		using namespace libtorrent::aux;
 
 		{
-			mutable_buffer iovec(&buf[0], buf_len);
+			lt::span<char> iovec(&buf[0], buf_len);
 			int next_barrier;
-			lt::span<const_buffer> iovec_out;
+			lt::span<lt::span<char const>> iovec_out;
 			std::tie(next_barrier, iovec_out) = a.encrypt(iovec);
 			TEST_CHECK(buf != cmp_buf);
 			TEST_EQUAL(iovec_out.size(), 0);
@@ -75,7 +75,7 @@ void test_enc_handler(libtorrent::crypto_plugin& a, libtorrent::crypto_plugin& b
 			int consume = 0;
 			int produce = buf_len;
 			int packet_size = 0;
-			mutable_buffer iovec(&buf[0], buf_len);
+			lt::span<char> iovec(&buf[0], buf_len);
 			b.decrypt(iovec, consume, produce, packet_size);
 			TEST_CHECK(buf == cmp_buf);
 			TEST_EQUAL(consume, 0);
@@ -84,9 +84,9 @@ void test_enc_handler(libtorrent::crypto_plugin& a, libtorrent::crypto_plugin& b
 		}
 
 		{
-			mutable_buffer iovec(&buf[0], buf_len);
+			lt::span<char> iovec(&buf[0], buf_len);
 			int next_barrier;
-			lt::span<const_buffer> iovec_out;
+			lt::span<lt::span<char const>> iovec_out;
 			std::tie(next_barrier, iovec_out) = b.encrypt(iovec);
 			TEST_EQUAL(iovec_out.size(), 0);
 			TEST_CHECK(buf != cmp_buf);
@@ -95,7 +95,7 @@ void test_enc_handler(libtorrent::crypto_plugin& a, libtorrent::crypto_plugin& b
 			int consume = 0;
 			int produce = buf_len;
 			int packet_size = 0;
-			mutable_buffer iovec2(&buf[0], buf_len);
+			lt::span<char> iovec2(&buf[0], buf_len);
 			a.decrypt(iovec2, consume, produce, packet_size);
 			TEST_CHECK(buf == cmp_buf);
 			TEST_EQUAL(consume, 0);

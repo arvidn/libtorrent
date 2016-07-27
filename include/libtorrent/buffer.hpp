@@ -59,13 +59,6 @@ namespace libtorrent {
 		}
 	}
 
-	// TODO: eventually move this file to aux_ or create a new one
-	namespace aux
-	{
-		using mutable_buffer = span<char>;
-		using const_buffer = span<char const>;
-	}
-
 // the buffer is allocated once and cannot be resized. The size() may be
 // larger than requested, in case the underlying allocator over allocated. In
 // order to "grow" an allocation, create a new buffer and initialize it by
@@ -74,36 +67,6 @@ namespace libtorrent {
 class buffer
 {
 public:
-
-	struct const_interval
-	{
-	const_interval(char const* b, char const* e)
-		: begin(b)
-		, end(e)
-		{}
-
-		char operator[](int index) const
-		{
-			TORRENT_ASSERT(begin + index < end);
-			return begin[index];
-		}
-
-		bool operator==(const const_interval& p_interval)
-		{
-			return begin == p_interval.begin
-				&& end == p_interval.end;
-		}
-
-		int left() const
-		{
-			TORRENT_ASSERT(end >= begin);
-			TORRENT_ASSERT(end - begin < (std::numeric_limits<int>::max)());
-			return int(end - begin);
-		}
-
-		char const* begin;
-		char const* end;
-	};
 
 	// allocate an uninitialized buffer of the specified size
 	buffer(std::size_t size = 0)

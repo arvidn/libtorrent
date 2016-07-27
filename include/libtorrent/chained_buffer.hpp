@@ -112,7 +112,7 @@ namespace libtorrent
 
 		void clear();
 
-		void build_mutable_iovec(int bytes, std::vector<aux::mutable_buffer>& vec);
+		void build_mutable_iovec(int bytes, std::vector<span<char>>& vec);
 
 		~chained_buffer();
 
