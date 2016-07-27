@@ -131,6 +131,7 @@ static test_torrent_t test_torrents[] =
 	{ "invalid_name2.torrent" },
 	{ "invalid_name3.torrent" },
 	{ "symlink1.torrent" },
+	{ "unordered.torrent" },
 };
 
 struct test_failing_torrent_t
