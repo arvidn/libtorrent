@@ -94,6 +94,7 @@ EXTRA_DIST = Jamfile \
   test_torrents/string.torrent \
   test_torrents/symlink1.torrent \
   test_torrents/unaligned_pieces.torrent \
+  test_torrents/unordered.torrent \
   test_torrents/url_list.torrent \
   test_torrents/url_list2.torrent \
   test_torrents/url_list3.torrent \
