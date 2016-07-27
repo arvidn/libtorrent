@@ -62,6 +62,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/io.hpp"
+#include "libtorrent/aux_/io.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/version.hpp"
 #include "libtorrent/extensions.hpp"
@@ -1640,9 +1641,7 @@ namespace libtorrent
 		TORRENT_ASSERT(recv_buffer.front() == msg_extended);
 		recv_buffer = recv_buffer.subspan(1);
 
-		char const* pos = recv_buffer.begin();
-		int extended_id = detail::read_uint8(pos);
-		recv_buffer = recv_buffer.subspan(1);
+		int extended_id = aux::read_uint8(recv_buffer);
 
 		if (extended_id == 0)
 		{
@@ -1662,9 +1661,7 @@ namespace libtorrent
 #endif
 				return;
 			}
-			char const* pos1 = recv_buffer.begin();
-			bool ul = detail::read_uint8(pos1) != 0;
-			recv_buffer = recv_buffer.subspan(1);
+			bool ul = aux::read_uint8(recv_buffer) != 0;
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::incoming_message, "UPLOAD_ONLY"
 				, "%s", (ul?"true":"false"));
@@ -1684,9 +1681,7 @@ namespace libtorrent
 #endif
 				return;
 			}
-			char const* pos1 = recv_buffer.begin();
-			bool sm = detail::read_uint8(pos1) != 0;
-			recv_buffer = recv_buffer.subspan(1);
+			bool sm = aux::read_uint8(recv_buffer) != 0;
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::incoming_message, "SHARE_MODE"
 				, "%s", (sm?"true":"false"));
@@ -1716,9 +1711,7 @@ namespace libtorrent
 #endif
 				return;
 			}
-			char const* pos1 = recv_buffer.begin();
-			int piece = detail::read_uint32(pos1);
-			recv_buffer = recv_buffer.subspan(4);
+			int piece = aux::read_uint32(recv_buffer);
 			incoming_dont_have(piece);
 			return;
 		}
@@ -2853,9 +2846,7 @@ namespace libtorrent
 
 			recv_buffer = m_recv_buffer.get();
 
-			char const* pos = recv_buffer.begin();
-			std::uint32_t crypto_field = detail::read_uint32(pos);
-			recv_buffer = recv_buffer.subspan(4);
+			std::uint32_t crypto_field = aux::read_uint32(recv_buffer);
 
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "ENCRYPTION", "crypto %s : [%s%s ]"
@@ -2919,9 +2910,7 @@ namespace libtorrent
 					m_rc4_encrypted = true;
 			}
 
-			char const* pos1 = recv_buffer.begin();
-			int len_pad = detail::read_int16(pos1);
-			recv_buffer = recv_buffer.subspan(2);
+			int len_pad = aux::read_int16(recv_buffer);
 			if (len_pad < 0 || len_pad > 512)
 			{
 				disconnect(errors::invalid_pad_size, op_encryption, 2);
@@ -2967,9 +2956,7 @@ namespace libtorrent
 			if (!is_outgoing())
 			{
 				recv_buffer = recv_buffer.subspan(pad_size);
-				char const* pos = recv_buffer.begin();
-				int len_ia = detail::read_int16(pos);
-				recv_buffer = recv_buffer.subspan(2);
+				int len_ia = aux::read_int16(recv_buffer);
 
 				if (len_ia < 0)
 				{

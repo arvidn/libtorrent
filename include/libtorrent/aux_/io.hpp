@@ -153,4 +153,3 @@ namespace libtorrent { namespace aux
 }}
 
 #endif // TORRENT_AUX_IO_HPP_INCLUDED
-
