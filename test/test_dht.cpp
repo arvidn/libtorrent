@@ -473,11 +473,13 @@ struct obs : dht::dht_observer
 {
 	void set_external_address(address const& addr
 		, address const& source) override
-	{}
+	{
+		m_external_address = addr;
+	}
 
 	address external_address(udp proto) override
 	{
-		return addr4("236.0.0.1");
+		return m_external_address;
 	}
 	void get_peers(sha1_hash const& ih) override {}
 	void outgoing_get_peers(sha1_hash const& target
@@ -499,6 +501,8 @@ struct obs : dht::dht_observer
 #endif
 	bool on_dht_request(char const* query, int query_len
 		, dht::msg const& request, entry& response) override { return false; }
+
+	address m_external_address = addr4("236.0.0.1");
 
 #ifndef TORRENT_DISABLE_LOGGING
 	std::vector<std::string> m_log;
@@ -2695,6 +2699,33 @@ TORRENT_TEST(routing_table_set_id)
 #endif
 }
 
+TORRENT_TEST(node_set_id)
+{
+	dht_test_setup t(udp::endpoint(rand_v4(), 20));
+	node_id old_nid = t.dht_node.nid();
+	t.observer.set_external_address(addr4("237.0.0.1"), rand_v4());
+	t.dht_node.update_node_id();
+	TEST_CHECK(old_nid != t.dht_node.nid());
+	// now that we've changed the node's id,  make sure the id sent in outgoing messages
+	// reflects the change
+
+	bdecode_node response;
+	send_dht_request(t.dht_node, "ping", t.source, &response);
+
+	dht::key_desc_t const pong_desc[] = {
+		{ "y", bdecode_node::string_t, 1, 0 },
+		{ "t", bdecode_node::string_t, 2, 0 },
+		{ "r", bdecode_node::dict_t, 0, key_desc_t::parse_children },
+		{ "id", bdecode_node::string_t, 20, key_desc_t::last_child },
+	};
+	bdecode_node pong_keys[4];
+	bool ret = dht::verify_message(response, pong_desc, pong_keys, t.error_string
+		, sizeof(t.error_string));
+	TEST_CHECK(ret);
+	if (!ret) return;
+
+	TEST_EQUAL(node_id(pong_keys[3].string_ptr()), t.dht_node.nid());
+}
 
 TORRENT_TEST(read_only_node)
 {
