@@ -101,12 +101,11 @@ if test "$ac_cv_boost_python" = "yes"; then
    fi])
   BOOSTLIBDIR=`echo $BOOST_LDFLAGS | sed -e 's/@<:@^\/@:>@*//'`
   for ax_lib in $ax_python_lib $ax_boost_python_lib `ls $BOOSTLIBDIR/libboost_python*.so* $BOOSTLIBDIR/libboost_python*.dylib* $BOOSTLIBDIR/libboost_python*.a* 2>/dev/null | sed 's,.*/,,' | sed -e 's;^lib\(boost_python.*\)\.so.*$;\1;' -e 's;^lib\(boost_python.*\)\.dylib.*$;\1;' -e 's;^lib\(boost_python.*\)\.a.*$;\1;' ` boost_python boost_python3; do
-    AS_VAR_PUSHDEF([ax_Lib], [ax_cv_lib_$ax_lib''_BOOST_PYTHON_MODULE])dnl
+    AS_VAR_PUSHDEF([ax_Lib], [ax_cv_lib_$ax_lib''_main])dnl
     AC_CACHE_CHECK([whether $ax_lib is the correct library], [ax_Lib],
     [LIBS="-l$ax_lib $ax_boost_python_save_LIBS $PYTHON_LIBS"
     AC_LINK_IFELSE([AC_LANG_PROGRAM([[
-#include <boost/python/module.hpp>
-BOOST_PYTHON_MODULE(test) { throw "Boost::Python test."; }]], [])],
+    ]], [])],
         [AS_VAR_SET([ax_Lib], [yes])],
         [AS_VAR_SET([ax_Lib], [no])])])
     AS_VAR_IF([ax_Lib], [yes], [BOOST_PYTHON_LIB=$ax_lib break], [])
