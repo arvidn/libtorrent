@@ -64,7 +64,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include "libtorrent/aux_/io.hpp"
 #include "libtorrent/socket_io.hpp"
-#include "libtorrent/version.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
 #include "libtorrent/alert_types.hpp"
@@ -753,7 +752,7 @@ namespace libtorrent
 
 		// add handshake to the send buffer
 		const char version_string[] = "BitTorrent protocol";
-		const int string_len = sizeof(version_string)-1;
+		const int string_len = sizeof(version_string) - 1;
 
 		char handshake[1 + string_len + 8 + 20 + 20];
 		char* ptr = handshake;

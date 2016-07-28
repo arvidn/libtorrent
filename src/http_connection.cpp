@@ -745,7 +745,7 @@ void http_connection::on_read(error_code const& e
 	{
 		span<char const> rcv_buf(m_recvbuffer);
 		bool error = false;
-		m_parser.incoming(rcv_buf.subspan(0, m_read_pos), error);
+		m_parser.incoming(rcv_buf.first(m_read_pos), error);
 		if (error)
 		{
 			// HTTP parse error

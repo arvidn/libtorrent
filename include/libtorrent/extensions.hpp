@@ -162,10 +162,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 #include "libtorrent/config.hpp"
-#include "libtorrent/buffer.hpp"
-#include "libtorrent/socket.hpp"
 #include "libtorrent/sha1_hash.hpp" // for sha1_hash
-#include "libtorrent/error_code.hpp"
 #include "libtorrent/session_handle.hpp"
 #include "libtorrent/peer_connection_handle.hpp"
 #include "libtorrent/span.hpp"
@@ -268,7 +265,7 @@ namespace libtorrent
 		{ return std::numeric_limits<uint64_t>::max(); }
 
 		// called when saving settings state
-		virtual void save_state(entry&) const {}
+		virtual void save_state(entry&) {}
 
 		// called when loading settings state
 		virtual void load_state(bdecode_node const&) {}

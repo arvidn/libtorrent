@@ -83,7 +83,7 @@ namespace libtorrent
 		span<T> first(size_t const n) const
 		{
 			TORRENT_ASSERT(size() >= n);
-			return { data(), size() - n };
+			return { data(), n };
 		}
 
 		span<T> last(size_t const n) const

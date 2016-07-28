@@ -47,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	// TODO: hide these declarations when deprecaated functions are disabled, and
+	// TODO: hide these declarations when deprecated functions are disabled, and
 	// expose them internally in a header under aux_.
 
 	// these functions don't really need to be public. This mechanism of
@@ -70,4 +70,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_IDENTIFY_CLIENT_HPP_INCLUDED
-

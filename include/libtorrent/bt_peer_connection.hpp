@@ -451,4 +451,3 @@ private:
 }
 
 #endif // TORRENT_BT_PEER_CONNECTION_HPP_INCLUDED
-
