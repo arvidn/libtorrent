@@ -97,7 +97,7 @@ namespace libtorrent
 		sha1_hash m_xor_mask;
 	};
 
-	struct encryption_handler
+	struct TORRENT_EXTRA_EXPORT encryption_handler
 	{
 		std::tuple<int, span<span<char const>>>
 		encrypt(span<span<char>> iovec);
