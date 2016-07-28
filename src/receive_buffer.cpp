@@ -320,7 +320,7 @@ span<char const> crypto_receive_buffer::get() const
 {
 	span<char const> recv_buffer = m_connection_buffer.get();
 	if (m_recv_pos < m_connection_buffer.pos())
-		recv_buffer = recv_buffer.subspan(0, m_recv_pos);
+		recv_buffer = recv_buffer.first(m_recv_pos);
 	return recv_buffer;
 }
 
