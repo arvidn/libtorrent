@@ -161,8 +161,8 @@ namespace libtorrent
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		// next_barrier, buffers-to-prepend
 		virtual
-		std::tuple<int, span<aux::const_buffer>>
-		hit_send_barrier(span<aux::mutable_buffer> iovec) override;
+		std::tuple<int, span<span<char const>>>
+		hit_send_barrier(span<span<char>> iovec) override;
 #endif
 
 		virtual void get_specific_peer_info(peer_info& p) const override;

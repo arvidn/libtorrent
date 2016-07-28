@@ -655,7 +655,7 @@ void web_peer_connection::on_receive(error_code const& error
 
 	// in case the first file on this series of requests is a padfile
 	// we need to handle it right now
-	span<char const> recv_buffer(m_recv_buffer.get().begin, m_recv_buffer.get().left());
+	span<char const> recv_buffer = m_recv_buffer.get();
 	handle_padfile();
 	if (associated_torrent().expired()) return;
 
@@ -927,7 +927,7 @@ void web_peer_connection::on_receive(error_code const& error
 done:
 
 	// now, remove all the bytes we've processed from the receive buffer
-	m_recv_buffer.cut(recv_buffer.data() - m_recv_buffer.get().begin
+	m_recv_buffer.cut(recv_buffer.data() - m_recv_buffer.get().begin()
 		, t->block_size() + request_size_overhead);
 }
 
@@ -1087,4 +1087,3 @@ void web_peer_connection::handle_padfile()
 }
 
 } // libtorrent namespace
-

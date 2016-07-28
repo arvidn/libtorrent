@@ -33,8 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_BLOOM_FILTER_HPP_INCLUDED
 #define TORRENT_BLOOM_FILTER_HPP_INCLUDED
 
-#include "libtorrent/peer_id.hpp" // for sha1_hash
-#include "libtorrent/config.hpp" // for sha1_hash
+#include "libtorrent/sha1_hash.hpp"
 
 #include <cmath> // for log()
 #include <cstdint>
@@ -77,5 +76,4 @@ namespace libtorrent
 
 }
 
-#endif
-
+#endif // TORRENT_BLOOM_FILTER_HPP_INCLUDED

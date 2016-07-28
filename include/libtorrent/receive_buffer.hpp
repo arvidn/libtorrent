@@ -85,8 +85,7 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 
 	// return the interval between the start of the buffer to the read cursor.
 	// This is the "current" packet.
-	// TODO: 3 use span
-	buffer::const_interval get() const;
+	span<char const> get() const;
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 	// returns the buffer from the current packet start position to the last
@@ -94,7 +93,7 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 	span<char> mutable_buffer();
 
 	// returns the last 'bytes' from the receive buffer
-	aux::mutable_buffer mutable_buffer(int bytes);
+	span<char> mutable_buffer(int bytes);
 #endif
 
 	// the purpose of this function is to free up and cut off all messages
@@ -203,10 +202,9 @@ struct crypto_receive_buffer
 
 	int advance_pos(int bytes);
 
-	// TODO: 3 use span
-	buffer::const_interval get() const;
+	span<char const> get() const;
 
-	aux::mutable_buffer mutable_buffer(std::size_t bytes);
+	span<char> mutable_buffer(std::size_t bytes);
 
 private:
 	// explicitly disallow assignment, to silence msvc warning

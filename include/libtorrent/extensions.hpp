@@ -464,12 +464,12 @@ namespace libtorrent
 		// received. The purpose of this is to allow early disconnects for invalid
 		// messages and for reporting progress of receiving large messages.
 		virtual bool on_extended(int /*length*/, int /*msg*/,
-			buffer::const_interval /*body*/)
+			span<char const> /*body*/)
 		{ return false; }
 
 		// this is not called for web seeds
 		virtual bool on_unknown_message(int /*length*/, int /*msg*/,
-			buffer::const_interval /*body*/)
+			span<char const> /*body*/)
 		{ return false; }
 
 		// called when a piece that this peer participated in either

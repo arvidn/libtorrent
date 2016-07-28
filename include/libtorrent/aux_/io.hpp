@@ -72,6 +72,40 @@ namespace libtorrent { namespace aux
 		view = view.subspan(sizeof(T));
 	}
 
+	template <class Byte>
+	inline typename std::enable_if<sizeof(Byte)==1, void>::type
+	write_impl(std::uint8_t val, span<Byte>& view)
+	{
+		view[0] = val;
+		view = view.subspan(1);
+	}
+
+	template <class Byte>
+	inline typename std::enable_if<sizeof(Byte)==1, void>::type
+	write_impl(std::int8_t val, span<Byte>& view)
+	{
+		view[0] = val;
+		view = view.subspan(1);
+	}
+
+	template <class Byte>
+	inline typename std::enable_if<sizeof(Byte)==1, std::uint8_t>::type
+	read_impl(span<Byte>& view, type<std::uint8_t>)
+	{
+		std::uint8_t ret = static_cast<std::uint8_t>(view[0]);
+		view = view.subspan(1);
+		return ret;
+	}
+
+	template <class Byte>
+	inline typename std::enable_if<sizeof(Byte)==1, std::int8_t>::type
+	read_impl(span<Byte>& view, type<std::int8_t>)
+	{
+		std::uint8_t ret = static_cast<std::int8_t>(view[0]);
+		view = view.subspan(1);
+		return ret;
+	}
+
 	// -- adaptors
 
 	template <typename Byte>
@@ -153,4 +187,3 @@ namespace libtorrent { namespace aux
 }}
 
 #endif // TORRENT_AUX_IO_HPP_INCLUDED
-
