@@ -31,13 +31,10 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/assert.hpp" // for print_backtrace
 #include "libtorrent/socket.hpp"
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/error.hpp"
-#include "libtorrent/string_util.hpp" // for allocate_string_copy
-#include "libtorrent/broadcast_socket.hpp" // for is_any
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/error.hpp"
 #include "libtorrent/aux_/time.hpp" // for aux::time_now()
@@ -49,16 +46,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <functional>
 #include <array>
+#include <boost/function/function3.hpp>
 #include <boost/system/system_error.hpp>
 #include <boost/system/error_code.hpp>
 #include <boost/asio/read.hpp>
 #include <boost/asio/ip/v6_only.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-#if defined TORRENT_ASIO_DEBUGGING
-#include "libtorrent/debug.hpp"
-#endif
 
 namespace libtorrent {
 
@@ -70,7 +64,7 @@ using namespace std::placeholders;
 //
 // 1. since its asynchronous functions may refer to it after the udp_socket has
 //    been destructed, it needs to be held by a shared_ptr
-// 2. since using a sokcs proxy is assumed to be a less common case, it makes
+// 2. since using a socks proxy is assumed to be a less common case, it makes
 //    the common case cheaper by not allocating this space unconditionally
 struct socks5 : boost::enable_shared_from_this<socks5>
 {
@@ -762,4 +756,3 @@ void socks5::close()
 }
 
 }
-

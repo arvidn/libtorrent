@@ -39,8 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/version.hpp>
-
 #if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
 // asio assumes that the windows error codes are defined already
 #include <winsock2.h>
@@ -68,5 +66,3 @@ namespace libtorrent
 }
 
 #endif
-
-

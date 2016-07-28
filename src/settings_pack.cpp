@@ -784,4 +784,3 @@ namespace libtorrent
 		m_bools.clear();
 	}
 }
-

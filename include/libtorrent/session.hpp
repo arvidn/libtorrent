@@ -38,16 +38,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <thread>
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/version.hpp"
 #include "libtorrent/build_config.hpp"
 #include "libtorrent/io_service.hpp"
 
 #include "libtorrent/storage.hpp"
-#include "libtorrent/session_settings.hpp"
+#include "libtorrent/settings_pack.hpp"
 #include "libtorrent/session_handle.hpp"
 
 #ifndef TORRENT_NO_DEPRECATE
-#include "libtorrent/settings_pack.hpp"
+#include "libtorrent/session_settings.hpp"
 #include "libtorrent/fingerprint.hpp"
 #include <cstdio> // for snprintf
 #endif
@@ -77,7 +76,7 @@ namespace libtorrent
 	// list for torrents. It performs multiple smaller reads when it hashes
 	// pieces, instead of reading it all into memory before hashing.
 	// 
-	// This configuration is inteded to be the starting point for embedded
+	// This configuration is intended to be the starting point for embedded
 	// devices. It will significantly reduce memory usage.
 	// 
 	// ``high_performance_seed`` returns settings optimized for a seed box,
@@ -148,7 +147,7 @@ namespace libtorrent
 	{
 	public:
 
-		// Constructs the session obects which acts as the container of torrents.
+		// Constructs the session objects which acts as the container of torrents.
 		// It provides configuration options across torrents (such as rate limits,
 		// disk cache, ip filter etc.). In order to avoid a race condition between
 		// starting the session and configuring it, you can pass in a
@@ -294,4 +293,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_SESSION_HPP_INCLUDED
-
