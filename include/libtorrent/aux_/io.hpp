@@ -67,26 +67,13 @@ namespace libtorrent { namespace aux
 		for (int i = 0; i < int(sizeof(T)); ++i)
 		{
 			shift -= 8;
-			view[i] = static_cast<unsigned char>((val >> shift) & 0xff);
+			view[i] = static_cast<Byte>((val >> shift) & 0xff);
 		}
 		view = view.subspan(sizeof(T));
 	}
 
-	template <class Byte>
-	inline typename std::enable_if<sizeof(Byte)==1, void>::type
-	write_impl(std::uint8_t val, span<Byte>& view)
-	{
-		view[0] = val;
-		view = view.subspan(1);
-	}
-
-	template <class Byte>
-	inline typename std::enable_if<sizeof(Byte)==1, void>::type
-	write_impl(std::int8_t val, span<Byte>& view)
-	{
-		view[0] = val;
-		view = view.subspan(1);
-	}
+	// the single-byte case is separate to avoid a warning on the shift-left by
+	// 8 bits (which invokes undefined behavior)
 
 	template <class Byte>
 	inline typename std::enable_if<sizeof(Byte)==1, std::uint8_t>::type
