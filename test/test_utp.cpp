@@ -43,7 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "setup_transfer.hpp"
 #include <fstream>
-#include <iostream>
 
 using namespace libtorrent;
 namespace lt = libtorrent;
@@ -105,7 +104,7 @@ void test_transfer()
 	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, nullptr
 		, true, false, true, "_utp", 0, &t, false, &atp);
 
-	const int timeout = 8;
+	const int timeout = 16;
 
 	for (int i = 0; i < timeout; ++i)
 	{
@@ -144,4 +143,3 @@ TORRENT_TEST(utp)
 	remove_all("./tmp1_utp", ec);
 	remove_all("./tmp2_utp", ec);
 }
-
