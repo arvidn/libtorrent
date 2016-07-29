@@ -670,10 +670,13 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 			if (m_settings.restrict_routing_ips)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
-				char hex_id[41];
-				aux::to_hex(reinterpret_cast<char const*>(&e.id[0]), 20, hex_id);
-				m_log->log(dht_logger::routing_table, "ignoring node (duplicate IP): %s %s"
-					, hex_id, print_address(e.addr()).c_str());
+				if (m_log)
+				{
+					char hex_id[41];
+					aux::to_hex(reinterpret_cast<char const*>(&e.id[0]), 20, hex_id);
+					m_log->log(dht_logger::routing_table, "ignoring node (duplicate IP): %s %s"
+						, hex_id, print_address(e.addr()).c_str());
+				}
 #endif
 				return failed_to_add;
 			}
@@ -704,12 +707,15 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 			// This is the same IP and port, but with a new node ID.
 			// This may indicate a malicious node so remove the entry.
 #ifndef TORRENT_DISABLE_LOGGING
-			char hex_id_new[41];
-			char hex_id_old[41];
-			aux::to_hex(e.id.data(), 20, hex_id_new);
-			aux::to_hex(existing->id.data(), 20, hex_id_old);
-			m_log->log(dht_logger::routing_table, "evicting node (changed ID): old: %s new: %s %s"
-				, hex_id_old, hex_id_new, print_address(e.addr()).c_str());
+			if (m_log)
+			{
+				char hex_id_new[41];
+				char hex_id_old[41];
+				aux::to_hex(e.id.data(), 20, hex_id_new);
+				aux::to_hex(existing->id.data(), 20, hex_id_old);
+				m_log->log(dht_logger::routing_table, "evicting node (changed ID): old: %s new: %s %s"
+					, hex_id_old, hex_id_new, print_address(e.addr()).c_str());
+			}
 #endif
 
 			remove_node(existing, existing_bucket);
@@ -798,13 +804,16 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 		// close to this one. We know that it's not the same, because
 		// it claims a different node-ID. Ignore this to avoid attacks
 #ifndef TORRENT_DISABLE_LOGGING
-		char hex_id1[41];
-		aux::to_hex(e.id.data(), 20, hex_id1);
-		char hex_id2[41];
-		aux::to_hex(j->id.data(), 20, hex_id2);
-		m_log->log(dht_logger::routing_table, "ignoring node: %s %s existing node: %s %s"
-			, hex_id1, print_address(e.addr()).c_str()
-			, hex_id2, print_address(j->addr()).c_str());
+		if (m_log)
+		{
+			char hex_id1[41];
+			aux::to_hex(e.id.data(), 20, hex_id1);
+			char hex_id2[41];
+			aux::to_hex(j->id.data(), 20, hex_id2);
+			m_log->log(dht_logger::routing_table, "ignoring node: %s %s existing node: %s %s"
+				, hex_id1, print_address(e.addr()).c_str()
+				, hex_id2, print_address(j->addr()).c_str());
+		}
 #endif
 		return failed_to_add;
 	}
@@ -1198,13 +1207,16 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 		j->timed_out();
 
 #ifndef TORRENT_DISABLE_LOGGING
-		char hex_id[41];
-		aux::to_hex(nid.data(), 20, hex_id);
-		m_log->log(dht_logger::routing_table, "NODE FAILED id: %s ip: %s fails: %d pinged: %d up-time: %d"
-			, hex_id, print_endpoint(j->ep()).c_str()
-			, int(j->fail_count())
-			, int(j->pinged())
-			, int(total_seconds(aux::time_now() - j->first_seen)));
+		if (m_log)
+		{
+			char hex_id[41];
+			aux::to_hex(nid.data(), 20, hex_id);
+			m_log->log(dht_logger::routing_table, "NODE FAILED id: %s ip: %s fails: %d pinged: %d up-time: %d"
+				, hex_id, print_endpoint(j->ep()).c_str()
+				, int(j->fail_count())
+				, int(j->pinged())
+				, int(total_seconds(aux::time_now() - j->first_seen)));
+		}
 #endif
 		return;
 	}
@@ -1219,13 +1231,16 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 		j->timed_out();
 
 #ifndef TORRENT_DISABLE_LOGGING
-		char hex_id[41];
-		aux::to_hex(nid.data(), 20, hex_id);
-		m_log->log(dht_logger::routing_table, "NODE FAILED id: %s ip: %s fails: %d pinged: %d up-time: %d"
-			, hex_id, print_endpoint(j->ep()).c_str()
-			, int(j->fail_count())
-			, int(j->pinged())
-			, int(total_seconds(aux::time_now() - j->first_seen)));
+		if (m_log)
+		{
+			char hex_id[41];
+			aux::to_hex(nid.data(), 20, hex_id);
+			m_log->log(dht_logger::routing_table, "NODE FAILED id: %s ip: %s fails: %d pinged: %d up-time: %d"
+				, hex_id, print_endpoint(j->ep()).c_str()
+				, int(j->fail_count())
+				, int(j->pinged())
+				, int(total_seconds(aux::time_now() - j->first_seen)));
+		}
 #endif
 
 		// if this node has failed too many times, or if this node
