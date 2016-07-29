@@ -706,8 +706,8 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 #ifndef TORRENT_DISABLE_LOGGING
 			char hex_id_new[41];
 			char hex_id_old[41];
-			aux::to_hex(reinterpret_cast<char const*>(&e.id[0]), 20, hex_id_new);
-			aux::to_hex(reinterpret_cast<char const*>(&existing->id[0]), 20, hex_id_old);
+			aux::to_hex(e.id.data(), 20, hex_id_new);
+			aux::to_hex(existing->id.data(), 20, hex_id_old);
 			m_log->log(dht_logger::routing_table, "evicting node (changed ID): old: %s new: %s %s"
 				, hex_id_old, hex_id_new, print_address(e.addr()).c_str());
 #endif
