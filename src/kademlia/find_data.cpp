@@ -115,7 +115,7 @@ void find_data::got_write_token(node_id const& n, std::string const& write_token
 	get_node().observer()->log(dht_logger::traversal
 		, "[%p] adding write token '%s' under id '%s'"
 		, static_cast<void*>(this), aux::to_hex(write_token).c_str()
-		, aux::to_hex(n.to_string()).c_str());
+		, aux::to_hex(n).c_str());
 #endif
 	m_write_tokens[n] = write_token;
 }

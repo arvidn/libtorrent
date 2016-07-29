@@ -6926,7 +6926,7 @@ namespace aux {
 			i != resp.peers.end(); ++i)
 			{
 				debug_log("  %16s %5d %s %s", i->hostname.c_str(), i->port
-					, i->pid.is_all_zeros()?"":to_hex(i->pid.to_string()).c_str()
+					, i->pid.is_all_zeros()?"":to_hex(i->pid).c_str()
 					, identify_client(i->pid).c_str());
 			}
 			for (std::vector<ipv4_peer_entry>::const_iterator i = resp.peers4.begin();

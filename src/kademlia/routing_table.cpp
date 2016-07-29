@@ -256,7 +256,7 @@ void routing_table::print_state(std::ostream& os) const
 		"number of nodes per bucket:\n"
 		, m_bucket_size
 		, num_global_nodes()
-		, aux::to_hex(m_id.to_string()).c_str());
+		, aux::to_hex(m_id).c_str());
 	if (cursor > buf.size() - 500) buf.resize(buf.size() * 3 / 2);
 
 	int idx = 0;
@@ -318,7 +318,7 @@ void routing_table::print_state(std::ostream& os) const
 			cursor += std::snprintf(&buf[cursor], buf.size() - cursor
 				, " prefix: %2x id: %s"
 				, ((id[0] & top_mask) >> mask_shift)
-				, aux::to_hex(j->id.to_string()).c_str());
+				, aux::to_hex(j->id).c_str());
 
 			if (j->rtt == 0xffff)
 			{
@@ -1000,7 +1000,7 @@ ip_ok:
 			if (m_log)
 			{
 				char hex_id[41];
-				aux::to_hex(e.id.data(), int(e.id.size()), hex_id);
+				aux::to_hex(e.id, hex_id);
 				m_log->log(dht_logger::routing_table, "replacing node with higher RTT: %s %s"
 					, hex_id, print_address(e.addr()).c_str());
 			}

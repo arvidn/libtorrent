@@ -829,7 +829,7 @@ void web_peer_connection::on_receive(error_code const& error
 				std::int64_t chunk_size = 0;
 				span<char const> chunk_start = recv_buffer.subspan(m_chunk_pos);
 				TORRENT_ASSERT(chunk_start[0] == '\r'
-					|| aux::is_hex(chunk_start.data(), 1));
+					|| aux::is_hex({chunk_start.data(), 1}));
 				bool const ret = m_parser.parse_chunk_header(chunk_start, &chunk_size, &header_size);
 				if (!ret)
 				{

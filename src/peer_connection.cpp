@@ -1193,7 +1193,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 			if (t)
 				peer_log(peer_log_alert::info, "ATTACH"
-					, "Delay loaded torrent: %s:", aux::to_hex(ih.to_string()).c_str());
+					, "Delay loaded torrent: %s:", aux::to_hex(ih).c_str());
 #endif
 		}
 
@@ -1203,7 +1203,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "ATTACH"
 				, "couldn't find a torrent with the given info_hash: %s torrents:"
-				, aux::to_hex(ih.to_string()).c_str());
+				, aux::to_hex(ih).c_str());
 #endif
 
 #ifndef TORRENT_DISABLE_DHT
