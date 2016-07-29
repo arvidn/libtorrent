@@ -673,7 +673,7 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 				if (m_log)
 				{
 					char hex_id[41];
-					aux::to_hex(reinterpret_cast<char const*>(&e.id[0]), 20, hex_id);
+					aux::to_hex(e.id, hex_id);
 					m_log->log(dht_logger::routing_table, "ignoring node (duplicate IP): %s %s"
 						, hex_id, print_address(e.addr()).c_str());
 				}
@@ -711,8 +711,8 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 			{
 				char hex_id_new[41];
 				char hex_id_old[41];
-				aux::to_hex(e.id.data(), 20, hex_id_new);
-				aux::to_hex(existing->id.data(), 20, hex_id_old);
+				aux::to_hex(e.id, hex_id_new);
+				aux::to_hex(existing->id, hex_id_old);
 				m_log->log(dht_logger::routing_table, "evicting node (changed ID): old: %s new: %s %s"
 					, hex_id_old, hex_id_new, print_address(e.addr()).c_str());
 			}
@@ -807,9 +807,9 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 		if (m_log)
 		{
 			char hex_id1[41];
-			aux::to_hex(e.id.data(), 20, hex_id1);
+			aux::to_hex(e.id, hex_id1);
 			char hex_id2[41];
-			aux::to_hex(j->id.data(), 20, hex_id2);
+			aux::to_hex(j->id, hex_id2);
 			m_log->log(dht_logger::routing_table, "ignoring node: %s %s existing node: %s %s"
 				, hex_id1, print_address(e.addr()).c_str()
 				, hex_id2, print_address(j->addr()).c_str());
@@ -1210,7 +1210,7 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 		if (m_log)
 		{
 			char hex_id[41];
-			aux::to_hex(nid.data(), 20, hex_id);
+			aux::to_hex(nid, hex_id);
 			m_log->log(dht_logger::routing_table, "NODE FAILED id: %s ip: %s fails: %d pinged: %d up-time: %d"
 				, hex_id, print_endpoint(j->ep()).c_str()
 				, int(j->fail_count())
@@ -1234,7 +1234,7 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 		if (m_log)
 		{
 			char hex_id[41];
-			aux::to_hex(nid.data(), 20, hex_id);
+			aux::to_hex(nid, hex_id);
 			m_log->log(dht_logger::routing_table, "NODE FAILED id: %s ip: %s fails: %d pinged: %d up-time: %d"
 				, hex_id, print_endpoint(j->ep()).c_str()
 				, int(j->fail_count())
