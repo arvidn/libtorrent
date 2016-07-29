@@ -293,6 +293,10 @@ private:
 	node_entry* find_node(udp::endpoint const& ep
 		, routing_table::table_t::iterator* bucket);
 
+	// if the bucket is not full, try to fill it with nodes from the
+	// replacement list
+	void fill_from_replacements(table_t::iterator bucket);
+
 	dht_settings const& m_settings;
 
 	// (k-bucket, replacement cache) pairs

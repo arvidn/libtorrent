@@ -1392,19 +1392,6 @@ void test_routing_table(address(&rand_addr)())
 		TEST_EQUAL(nodes[0].timeout_count, 0);
 	}
 
-	// test adding the same IP:port again with a new node ID (should replace the old one)
-	add_and_replace(tmp, diff);
-	table.node_seen(tmp, udp::endpoint(node_addr, 4), 10);
-	table.find_node(id, nodes, 0, 10);
-	TEST_EQUAL(table.bucket_size(0), 1);
-	TEST_EQUAL(nodes.size(), 1);
-	if (!nodes.empty())
-	{
-		TEST_EQUAL(nodes[0].id, tmp);
-		TEST_EQUAL(nodes[0].addr(), node_addr);
-		TEST_EQUAL(nodes[0].port(), 4);
-	}
-
 	// test adding the same node ID again with a different IP (should be ignored)
 	table.node_seen(tmp, udp::endpoint(node_addr, 5), 10);
 	table.find_node(id, nodes, 0, 10);
@@ -1428,6 +1415,13 @@ void test_routing_table(address(&rand_addr)())
 		TEST_EQUAL(nodes[0].addr(), node_addr);
 		TEST_EQUAL(nodes[0].port(), 4);
 	}
+
+	// test adding the same IP:port again with a new node ID (should remove the node)
+	add_and_replace(tmp, diff);
+	table.node_seen(tmp, udp::endpoint(node_addr, 4), 10);
+	table.find_node(id, nodes, 0, 10);
+	TEST_EQUAL(table.bucket_size(0), 0);
+	TEST_EQUAL(nodes.size(), 0);
 
 	s.restrict_routing_ips = false;
 
@@ -3006,14 +3000,6 @@ TORRENT_TEST(dht_verify_node_address)
 	TEST_EQUAL(std::get<0>(table.size()), 1);
 	TEST_EQUAL(nodes.size(), 1);
 
-	// incorrect data, wrong id
-	table.node_seen(to_hash("0123456789abcdef01232456789abcdef0123456")
-		, udp::endpoint(addr("4.4.4.4"), 4), 10);
-	table.find_node(id, nodes, 0, 10);
-
-	TEST_EQUAL(std::get<0>(table.size()), 1);
-	TEST_EQUAL(nodes.size(), 1);
-
 	// incorrect data, wrong IP
 	table.node_seen(tmp
 		, udp::endpoint(addr("4.4.4.6"), 4), 10);
@@ -3021,6 +3007,14 @@ TORRENT_TEST(dht_verify_node_address)
 
 	TEST_EQUAL(std::get<0>(table.size()), 1);
 	TEST_EQUAL(nodes.size(), 1);
+
+	// incorrect data, wrong id, should cause node to be removed
+	table.node_seen(to_hash("0123456789abcdef01232456789abcdef0123456")
+					, udp::endpoint(addr("4.4.4.4"), 4), 10);
+	table.find_node(id, nodes, 0, 10);
+
+	TEST_EQUAL(std::get<0>(table.size()), 0);
+	TEST_EQUAL(nodes.size(), 0);
 }
 
 TORRENT_TEST(generate_prefix_mask)

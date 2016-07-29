@@ -547,6 +547,29 @@ node_entry* routing_table::find_node(udp::endpoint const& ep
 	return nullptr;
 }
 
+void routing_table::fill_from_replacements(table_t::iterator bucket)
+{
+	bucket_t& b = bucket->live_nodes;
+	bucket_t& rb = bucket->replacements;
+	int const bucket_size = bucket_limit(std::distance(m_buckets.begin(), bucket));
+
+	if (b.size() >= bucket_size) return;
+
+	// sort by RTT first, to find the node with the lowest
+	// RTT that is pinged
+	std::sort(rb.begin(), rb.end()
+		, [](node_entry const& lhs, node_entry const& rhs)
+			{ return lhs.rtt < rhs.rtt; });
+
+	while (b.size() < bucket_size && !rb.empty())
+	{
+		bucket_t::iterator j = std::find_if(rb.begin(), rb.end(), std::bind(&node_entry::pinged, _1));
+		if (j == rb.end()) j = rb.begin();
+		b.push_back(*j);
+		rb.erase(j);
+	}
+}
+
 void routing_table::remove_node(node_entry* n
 	, routing_table::table_t::iterator bucket)
 {
@@ -625,16 +648,12 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 	if (m_router_nodes.find(e.ep()) != m_router_nodes.end())
 		return failed_to_add;
 
-	// don't add ourself
-	if (e.id == m_id) return failed_to_add;
-
 	// do we already have this IP in the table?
 	if (m_ips.count(e.addr()) > 0)
 	{
-		// this exact IP already exists in the table. It might be the case
-		// that the node changed IP. If pinged is true, and the port also
-		// matches then we assume it's in fact the same node, and just update
-		// the routing table
+		// This exact IP already exists in the table. A node with the same IP and
+		// port but a different ID may be a sign of a malicious node. To be
+		// conservative in this case the node is removed.
 		// pinged means that we have sent a message to the IP, port and received
 		// a response with a correct transaction ID, i.e. it is verified to not
 		// be the result of a poisoned routing table
@@ -651,10 +670,13 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 			if (m_settings.restrict_routing_ips)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
-				char hex_id[41];
-				aux::to_hex(reinterpret_cast<char const*>(&e.id[0]), 20, hex_id);
-				m_log->log(dht_logger::routing_table, "ignoring node (duplicate IP): %s %s"
-					, hex_id, print_address(e.addr()).c_str());
+				if (m_log)
+				{
+					char hex_id[41];
+					aux::to_hex(reinterpret_cast<char const*>(&e.id[0]), 20, hex_id);
+					m_log->log(dht_logger::routing_table, "ignoring node (duplicate IP): %s %s"
+						, hex_id, print_address(e.addr()).c_str());
+				}
 #endif
 				return failed_to_add;
 			}
@@ -682,12 +704,39 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 		else
 		{
 			TORRENT_ASSERT(existing->id != e.id);
-			// this is the same IP and port, but with
-			// a new node ID. remove the old entry and
-			// replace it with this new ID
+			// This is the same IP and port, but with a new node ID.
+			// This may indicate a malicious node so remove the entry.
+#ifndef TORRENT_DISABLE_LOGGING
+			if (m_log)
+			{
+				char hex_id_new[41];
+				char hex_id_old[41];
+				aux::to_hex(e.id.data(), 20, hex_id_new);
+				aux::to_hex(existing->id.data(), 20, hex_id_old);
+				m_log->log(dht_logger::routing_table, "evicting node (changed ID): old: %s new: %s %s"
+					, hex_id_old, hex_id_new, print_address(e.addr()).c_str());
+			}
+#endif
+
 			remove_node(existing, existing_bucket);
+			fill_from_replacements(existing_bucket);
+
+			// when we detect possible malicious activity in a bucket,
+			// schedule the other nodes in the bucket to be pinged soon
+			// to clean out any other malicious nodes
+			auto now = aux::time_now();
+			for (auto& node : existing_bucket->live_nodes)
+			{
+				if (now - node.last_queried > minutes(5))
+					node.last_queried = min_time();
+			}
+
+			return failed_to_add;
 		}
 	}
+
+	// don't add ourself
+	if (e.id == m_id) return failed_to_add;
 
 	table_t::iterator i = find_bucket(e.id);
 	bucket_t& b = i->live_nodes;
@@ -755,13 +804,16 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 		// close to this one. We know that it's not the same, because
 		// it claims a different node-ID. Ignore this to avoid attacks
 #ifndef TORRENT_DISABLE_LOGGING
-		char hex_id1[41];
-		aux::to_hex(e.id.data(), 20, hex_id1);
-		char hex_id2[41];
-		aux::to_hex(j->id.data(), 20, hex_id2);
-		m_log->log(dht_logger::routing_table, "ignoring node: %s %s existing node: %s %s"
-			, hex_id1, print_address(e.addr()).c_str()
-			, hex_id2, print_address(j->addr()).c_str());
+		if (m_log)
+		{
+			char hex_id1[41];
+			aux::to_hex(e.id.data(), 20, hex_id1);
+			char hex_id2[41];
+			aux::to_hex(j->id.data(), 20, hex_id2);
+			m_log->log(dht_logger::routing_table, "ignoring node: %s %s existing node: %s %s"
+				, hex_id1, print_address(e.addr()).c_str()
+				, hex_id2, print_address(j->addr()).c_str());
+		}
 #endif
 		return failed_to_add;
 	}
@@ -1155,13 +1207,16 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 		j->timed_out();
 
 #ifndef TORRENT_DISABLE_LOGGING
-		char hex_id[41];
-		aux::to_hex(nid.data(), 20, hex_id);
-		m_log->log(dht_logger::routing_table, "NODE FAILED id: %s ip: %s fails: %d pinged: %d up-time: %d"
-			, hex_id, print_endpoint(j->ep()).c_str()
-			, int(j->fail_count())
-			, int(j->pinged())
-			, int(total_seconds(aux::time_now() - j->first_seen)));
+		if (m_log)
+		{
+			char hex_id[41];
+			aux::to_hex(nid.data(), 20, hex_id);
+			m_log->log(dht_logger::routing_table, "NODE FAILED id: %s ip: %s fails: %d pinged: %d up-time: %d"
+				, hex_id, print_endpoint(j->ep()).c_str()
+				, int(j->fail_count())
+				, int(j->pinged())
+				, int(total_seconds(aux::time_now() - j->first_seen)));
+		}
 #endif
 		return;
 	}
@@ -1176,13 +1231,16 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 		j->timed_out();
 
 #ifndef TORRENT_DISABLE_LOGGING
-		char hex_id[41];
-		aux::to_hex(nid.data(), 20, hex_id);
-		m_log->log(dht_logger::routing_table, "NODE FAILED id: %s ip: %s fails: %d pinged: %d up-time: %d"
-			, hex_id, print_endpoint(j->ep()).c_str()
-			, int(j->fail_count())
-			, int(j->pinged())
-			, int(total_seconds(aux::time_now() - j->first_seen)));
+		if (m_log)
+		{
+			char hex_id[41];
+			aux::to_hex(nid.data(), 20, hex_id);
+			m_log->log(dht_logger::routing_table, "NODE FAILED id: %s ip: %s fails: %d pinged: %d up-time: %d"
+				, hex_id, print_endpoint(j->ep()).c_str()
+				, int(j->fail_count())
+				, int(j->pinged())
+				, int(total_seconds(aux::time_now() - j->first_seen)));
+		}
 #endif
 
 		// if this node has failed too many times, or if this node
@@ -1198,16 +1256,7 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 	m_ips.erase(j->addr());
 	b.erase(j);
 
-	// sort by RTT first, to find the node with the lowest
-	// RTT that is pinged
-	std::sort(rb.begin(), rb.end()
-		, [](node_entry const& lhs, node_entry const& rhs)
-		{ return lhs.rtt < rhs.rtt; });
-
-	j = std::find_if(rb.begin(), rb.end(), std::bind(&node_entry::pinged, _1));
-	if (j == rb.end()) j = rb.begin();
-	b.push_back(*j);
-	rb.erase(j);
+	fill_from_replacements(i);
 }
 
 void routing_table::add_router_node(udp::endpoint router)
