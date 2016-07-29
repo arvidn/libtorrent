@@ -1,3 +1,4 @@
+<break>
 version: "{build}"
 branches:
   only:
