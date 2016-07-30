@@ -41,4 +41,3 @@ void EXPORT test_transfer(libtorrent::session& ses
 	, int proxy = 0, char const* protocol = "http"
 	, bool url_seed = true, bool chunked_encoding = false
 	, bool test_ban = false, bool keepalive = true, bool proxy_peers = true);
-

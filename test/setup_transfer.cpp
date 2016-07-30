@@ -31,7 +31,6 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <fstream>
-#include <deque>
 #include <map>
 #include <tuple>
 #include <functional>
@@ -45,7 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/socket_io.hpp" // print_endpoint
 #include "libtorrent/socket_type.hpp"
-#include "libtorrent/instantiate_connection.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/session_stats.hpp"
 #include "libtorrent/random.hpp"
@@ -1030,4 +1028,3 @@ libtorrent::address_v6 addr6(char const* ip)
 	return ret;
 }
 #endif
-
