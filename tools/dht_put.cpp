@@ -165,8 +165,8 @@ int dump_key(char *filename)
 		, (unsigned char*)sk.data(), seed);
 
 	std::printf("public key: %s\nprivate key: %s\n"
-		, to_hex(std::string(pk.data(), pk.size())).c_str()
-		, to_hex(std::string(sk.data(), sk.size())).c_str());
+		, to_hex(pk).c_str()
+		, to_hex(sk).c_str());
 
 	return 0;
 }
@@ -294,7 +294,7 @@ int main(int argc, char* argv[])
 			usage();
 		}
 		sha1_hash target;
-		bool ret = from_hex(argv[0], 40, (char*)&target[0]);
+		bool ret = from_hex({argv[0], 40}, (char*)&target[0]);
 		if (!ret)
 		{
 			std::fprintf(stderr, "invalid hex encoding of target hash\n");
@@ -304,7 +304,7 @@ int main(int argc, char* argv[])
 		bootstrap(s);
 		s.dht_get_item(target);
 
-		std::printf("GET %s\n", to_hex(target.to_string()).c_str());
+		std::printf("GET %s\n", to_hex(target).c_str());
 
 		alert* a = wait_for_alert(s, dht_immutable_item_alert::alert_type);
 
@@ -325,9 +325,9 @@ int main(int argc, char* argv[])
 		data = std::string(argv[0]);
 
 		bootstrap(s);
-		sha1_hash target = s.dht_put_item(data);
+		sha1_hash const target = s.dht_put_item(data);
 
-		std::printf("PUT %s\n", to_hex(target.to_string()).c_str());
+		std::printf("PUT %s\n", to_hex(target).c_str());
 
 		alert* a = wait_for_alert(s, dht_put_alert::alert_type);
 		dht_put_alert* pa = alert_cast<dht_put_alert>(a);
@@ -364,8 +364,7 @@ int main(int argc, char* argv[])
 		s.dht_put_item(public_key, std::bind(&put_string, _1, _2, _3, _4
 			, public_key, private_key, argv[0]));
 
-		std::printf("MPUT publick key: %s\n", to_hex(std::string(public_key.data()
-			, public_key.size())).c_str());
+		std::printf("MPUT publick key: %s\n", to_hex(public_key).c_str());
 
 		alert* a = wait_for_alert(s, dht_put_alert::alert_type);
 		dht_put_alert* pa = alert_cast<dht_put_alert>(a);
@@ -377,14 +376,14 @@ int main(int argc, char* argv[])
 		--argc;
 		if (argc < 1) usage();
 
-		int len = int(strlen(argv[0]));
+		size_t len = strlen(argv[0]);
 		if (len != 64)
 		{
 			std::fprintf(stderr, "public key is expected to be 64 hex digits\n");
 			return 1;
 		}
 		std::array<char, 32> public_key;
-		bool ret = from_hex(argv[0], len, &public_key[0]);
+		bool ret = from_hex({argv[0], len}, &public_key[0]);
 		if (!ret)
 		{
 			std::fprintf(stderr, "invalid hex encoding of public key\n");

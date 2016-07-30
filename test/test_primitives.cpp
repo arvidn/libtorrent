@@ -44,7 +44,7 @@ using namespace libtorrent;
 sha1_hash to_hash(char const* s)
 {
 	sha1_hash ret;
-	aux::from_hex(s, 40, (char*)&ret[0]);
+	aux::from_hex({s, 40}, (char*)&ret[0]);
 	return ret;
 }
 

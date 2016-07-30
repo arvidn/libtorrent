@@ -131,7 +131,7 @@ namespace libtorrent
 		// shift left ``n`` bits.
 		sha1_hash& operator<<=(int n);
 
-		// shift r ``n`` bits.
+		// shift right ``n`` bits.
 		sha1_hash& operator>>=(int n);
 
 		// standard comparison operators

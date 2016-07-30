@@ -177,7 +177,8 @@ TORRENT_TEST(magnet)
 		std::fprintf(stderr, "3: %s\n", trackers[2].url.c_str());
 	}
 
-	TEST_EQUAL(aux::to_hex(t.info_hash().to_string()), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
+	sha1_hash const ih = t.info_hash();
+	TEST_EQUAL(aux::to_hex(ih), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
 
 	p1 = s->abort();
 	s.reset(new lt::session());

@@ -45,27 +45,27 @@ namespace libtorrent
 		return -1;
 	}
 
-	bool is_hex(char const *in, int len)
+	bool is_hex(span<char const> in)
 	{
-		for (char const* end = in + len; in < end; ++in)
+		for (char const c : in)
 		{
-			int t = hex_to_int(*in);
+			int const t = hex_to_int(c);
 			if (t == -1) return false;
 		}
 		return true;
 	}
 
-	bool from_hex(char const *in, int len, char* out)
+	bool from_hex(span<char const> in, char* out)
 	{
-		for (char const* end = in + len; in < end; ++in, ++out)
+		for (auto i = in.begin(), end = in.end(); i != end; ++i, ++out)
 		{
-			int t = aux::hex_to_int(*in);
-			if (t == -1) return false;
-			*out = t << 4;
-			++in;
-			t = aux::hex_to_int(*in);
-			if (t == -1) return false;
-			*out |= t & 15;
+			int const t1 = aux::hex_to_int(*i);
+			if (t1 == -1) return false;
+			*out = t1 << 4;
+			++i;
+			int const t2 = aux::hex_to_int(*i);
+			if (t2 == -1) return false;
+			*out |= t2 & 15;
 		}
 		return true;
 	}
@@ -74,23 +74,25 @@ namespace libtorrent
 
 	char const hex_chars[] = "0123456789abcdef";
 
-	std::string to_hex(std::string const& s)
+	std::string to_hex(span<char const> s)
 	{
 		std::string ret;
-		for (std::string::const_iterator i = s.begin(); i != s.end(); ++i)
+		ret.resize(s.size() * 2);
+		int idx = 0;
+		for (char const i : s)
 		{
-			ret += hex_chars[std::uint8_t(*i) >> 4];
-			ret += hex_chars[std::uint8_t(*i) & 0xf];
+			ret[idx++] = hex_chars[std::uint8_t(i) >> 4];
+			ret[idx++] = hex_chars[std::uint8_t(i) & 0xf];
 		}
 		return ret;
 	}
 
-	void to_hex(char const *in, int len, char* out)
+	void to_hex(span<char const> in, char* out)
 	{
-		for (char const* end = in + len; in < end; ++in)
+		for (char const i : in)
 		{
-			*out++ = hex_chars[std::uint8_t(*in) >> 4];
-			*out++ = hex_chars[std::uint8_t(*in) & 0xf];
+			*out++ = hex_chars[std::uint8_t(i) >> 4];
+			*out++ = hex_chars[std::uint8_t(i) & 0xf];
 		}
 		*out = '\0';
 	}

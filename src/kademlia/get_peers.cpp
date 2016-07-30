@@ -72,7 +72,7 @@ void get_peers_observer::reply(msg const& m)
 			char const* end = peers + n.list_at(0).string_length();
 
 #ifndef TORRENT_DISABLE_LOGGING
-			bdecode_node id = r.dict_find_string("id");
+			bdecode_node const id = r.dict_find_string("id");
 			if (id && id.string_length() == 20)
 			{
 				get_observer()->log(dht_logger::traversal, "[%p] PEERS "
@@ -81,7 +81,7 @@ void get_peers_observer::reply(msg const& m)
 					, algorithm()->invoke_count()
 					, algorithm()->branch_factor()
 					, print_endpoint(m.addr).c_str()
-					, aux::to_hex(id.string_value()).c_str()
+					, aux::to_hex({id.string_ptr(), size_t(id.string_length())}).c_str()
 					, distance_exp(algorithm()->target(), node_id(id.string_ptr()))
 					, int((end - peers) / 6));
 			}
@@ -94,7 +94,7 @@ void get_peers_observer::reply(msg const& m)
 			// assume it's uTorrent/libtorrent format
 			read_endpoint_list<tcp::endpoint>(n, peer_list);
 #ifndef TORRENT_DISABLE_LOGGING
-			bdecode_node id = r.dict_find_string("id");
+			bdecode_node const id = r.dict_find_string("id");
 			if (id && id.string_length() == 20)
 			{
 				get_observer()->log(dht_logger::traversal, "[%p] PEERS "
@@ -103,7 +103,7 @@ void get_peers_observer::reply(msg const& m)
 					, algorithm()->invoke_count()
 					, algorithm()->branch_factor()
 					, print_endpoint(m.addr).c_str()
-					, aux::to_hex(id.string_value()).c_str()
+					, aux::to_hex({id.string_ptr(), size_t(id.string_length())}).c_str()
 					, distance_exp(algorithm()->target(), node_id(id.string_ptr()))
 					, int(n.list_size()));
 			}

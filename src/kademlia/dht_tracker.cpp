@@ -145,10 +145,10 @@ namespace libtorrent { namespace dht
 
 #ifndef TORRENT_DISABLE_LOGGING
 		m_log->log(dht_logger::tracker, "starting IPv4 DHT tracker with node id: %s"
-			, aux::to_hex(m_dht.nid().to_string()).c_str());
+			, aux::to_hex(m_dht.nid()).c_str());
 	#if TORRENT_USE_IPV6
 		m_log->log(dht_logger::tracker, "starting IPv6 DHT tracker with node id: %s"
-			, aux::to_hex(m_dht6.nid().to_string()).c_str());
+			, aux::to_hex(m_dht6.nid()).c_str());
 	#endif
 #endif
 	}

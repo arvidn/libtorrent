@@ -1092,7 +1092,7 @@ namespace libtorrent
 		std::string name;
 		sanitize_append_path_element(name, name_ent.string_ptr()
 			, name_ent.string_length());
-		if (name.empty()) name = aux::to_hex(m_info_hash.to_string());
+		if (name.empty()) name = aux::to_hex(m_info_hash);
 
 		// extract file list
 		bdecode_node files_node = info.dict_find_list("files");

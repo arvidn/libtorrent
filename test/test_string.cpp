@@ -54,21 +54,21 @@ TORRENT_TEST(hex)
 {
 	static char const str[] = "0123456789012345678901234567890123456789";
 	char bin[20];
-	TEST_CHECK(aux::from_hex(str, 40, bin));
+	TEST_CHECK(aux::from_hex({str, 40}, bin));
 	char hex[41];
-	aux::to_hex(bin, 20, hex);
+	aux::to_hex(bin, hex);
 	TEST_CHECK(strcmp(hex, str) == 0);
 
-	TEST_CHECK(aux::to_hex("\x55\x73") == "5573");
-	TEST_CHECK(aux::to_hex("\xaB\xd0") == "abd0");
+	TEST_CHECK(aux::to_hex({"\x55\x73",2}) == "5573");
+	TEST_CHECK(aux::to_hex({"\xaB\xd0",2}) == "abd0");
 
 	static char const hex_chars[] = "0123456789abcdefABCDEF";
 
 	for (int i = 1; i < 255; ++i)
 	{
-		bool hex = strchr(hex_chars, i) != nullptr;
-		char c = i;
-		TEST_EQUAL(aux::is_hex(&c, 1), hex);
+		bool const hex = strchr(hex_chars, i) != nullptr;
+		char const c = i;
+		TEST_EQUAL(aux::is_hex(c), hex);
 	}
 
 	TEST_EQUAL(aux::hex_to_int('0'), 0);

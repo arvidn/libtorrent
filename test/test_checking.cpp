@@ -117,7 +117,7 @@ void test_checking(int flags = read_only_files)
 	boost::shared_ptr<torrent_info> ti(new torrent_info(&buf[0], int(buf.size()), ec));
 
 	std::fprintf(stderr, "generated torrent: %s tmp1_checking/test_torrent_dir\n"
-		, aux::to_hex(ti->info_hash().to_string()).c_str());
+		, aux::to_hex(ti->info_hash()).c_str());
 
 	// truncate every file in half
 	if (flags & incomplete_files)

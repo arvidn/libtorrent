@@ -46,7 +46,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/limits.hpp>
 #include <boost/function_equal.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/asio/ip/v6_only.hpp>
@@ -276,7 +275,7 @@ namespace aux {
 			return SSL_TLSEXT_ERR_ALERT_FATAL;
 
 		sha1_hash info_hash;
-		bool valid = from_hex(servername, 40, info_hash.data());
+		bool valid = aux::from_hex({servername, 40}, info_hash.data());
 
 		// the server name is not a valid hex-encoded info-hash
 		if (!valid)
@@ -6926,7 +6925,7 @@ namespace aux {
 			i != resp.peers.end(); ++i)
 			{
 				debug_log("  %16s %5d %s %s", i->hostname.c_str(), i->port
-					, i->pid.is_all_zeros()?"":to_hex(i->pid.to_string()).c_str()
+					, i->pid.is_all_zeros()?"":to_hex(i->pid).c_str()
 					, identify_client(i->pid).c_str());
 			}
 			for (std::vector<ipv4_peer_entry>::const_iterator i = resp.peers4.begin();

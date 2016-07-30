@@ -66,15 +66,15 @@ namespace {
 sha1_hash to_hash(char const* s)
 {
 	sha1_hash ret;
-	aux::from_hex(s, 40, (char*)&ret[0]);
+	aux::from_hex({s, 40}, (char*)&ret[0]);
 	return ret;
 }
 
 void get_test_keypair(public_key& pk, secret_key& sk)
 {
-	aux::from_hex("77ff84905a91936367c01360803104f92432fcd904a43511876df5cdf3e7e548", 64, pk.bytes.data());
-	aux::from_hex("e06d3183d14159228433ed599221b80bd0a5ce8352e4bdf0262f76786ef1c74d"
-		"b7e7a9fea2c0eb269d61e3b38e450a22e754941ac78479d6c54e1faf6037881d", 128, sk.bytes.data());
+	aux::from_hex({"77ff84905a91936367c01360803104f92432fcd904a43511876df5cdf3e7e548", 64}, pk.bytes.data());
+	aux::from_hex({"e06d3183d14159228433ed599221b80bd0a5ce8352e4bdf0262f76786ef1c74d"
+		"b7e7a9fea2c0eb269d61e3b38e450a22e754941ac78479d6c54e1faf6037881d", 128}, sk.bytes.data());
 }
 
 sequence_number prev_seq(sequence_number s)
@@ -942,16 +942,17 @@ TORRENT_TEST(bloom_filter)
 	// these are test vectors from BEP 33
 	// http://www.bittorrent.org/beps/bep_0033.html
 	std::fprintf(stderr, "test.size: %f\n", test.size());
-	std::fprintf(stderr, "%s\n", aux::to_hex(test.to_string()).c_str());
+	std::string const bf_str = test.to_string();
+	std::fprintf(stderr, "%s\n", aux::to_hex(bf_str).c_str());
 	if (supports_ipv6())
 	{
 		TEST_CHECK(fabs(test.size() - 1224.93f) < 0.001);
-		TEST_CHECK(aux::to_hex(test.to_string()) == "f6c3f5eaa07ffd91bde89f777f26fb2bff37bdb8fb2bbaa2fd3ddde7bacfff75ee7ccbaefe5eedb1fbfaff67f6abff5e43ddbca3fd9b9ffdf4ffd3e9dff12d1bdf59db53dbe9fa5b7ff3b8fdfcde1afb8bedd7be2f3ee71ebbbfe93bcdeefe148246c2bc5dbff7e7efdcf24fd8dc7adffd8fffdfddfff7a4bbeedf5cb95ce81fc7fcff1ff4ffffdfe5f7fdcbb7fd79b3fa1fc77bfe07fff905b7b7ffc7fefeffe0b8370bb0cd3f5b7f2bd93feb4386cfdd6f7fd5bfaf2e9ebffffeecd67adbf7c67f17efd5d75eba6ffeba7fff47a91eb1bfbb53e8abfb5762abe8ff237279bfefbfeef5ffc5febfdfe5adffadfee1fb737ffffbfd9f6aeffeee76b6fd8f72ef");
+		TEST_CHECK(aux::to_hex(bf_str) == "f6c3f5eaa07ffd91bde89f777f26fb2bff37bdb8fb2bbaa2fd3ddde7bacfff75ee7ccbaefe5eedb1fbfaff67f6abff5e43ddbca3fd9b9ffdf4ffd3e9dff12d1bdf59db53dbe9fa5b7ff3b8fdfcde1afb8bedd7be2f3ee71ebbbfe93bcdeefe148246c2bc5dbff7e7efdcf24fd8dc7adffd8fffdfddfff7a4bbeedf5cb95ce81fc7fcff1ff4ffffdfe5f7fdcbb7fd79b3fa1fc77bfe07fff905b7b7ffc7fefeffe0b8370bb0cd3f5b7f2bd93feb4386cfdd6f7fd5bfaf2e9ebffffeecd67adbf7c67f17efd5d75eba6ffeba7fff47a91eb1bfbb53e8abfb5762abe8ff237279bfefbfeef5ffc5febfdfe5adffadfee1fb737ffffbfd9f6aeffeee76b6fd8f72ef");
 	}
 	else
 	{
 		TEST_CHECK(fabs(test.size() - 257.854f) < 0.001);
-		TEST_CHECK(aux::to_hex(test.to_string()) == "24c0004020043000102012743e00480037110820422110008000c0e302854835a05401a4045021302a306c060001881002d8a0a3a8001901b40a800900310008d2108110c2496a0028700010d804188b01415200082004088026411104a804048002002000080680828c400080cc40020c042c0494447280928041402104080d4240040414a41f0205654800b0811830d2020042b002c5800004a71d0204804a0028120a004c10017801490b834004044106005421000c86900a0020500203510060144e900100924a1018141a028012913f0041802250042280481200002004430804210101c08111c10801001080002038008211004266848606b035001048");
+		TEST_CHECK(aux::to_hex(bf_str) == "24c0004020043000102012743e00480037110820422110008000c0e302854835a05401a4045021302a306c060001881002d8a0a3a8001901b40a800900310008d2108110c2496a0028700010d804188b01415200082004088026411104a804048002002000080680828c400080cc40020c042c0494447280928041402104080d4240040414a41f0205654800b0811830d2020042b002c5800004a71d0204804a0028120a004c10017801490b834004044106005421000c86900a0020500203510060144e900100924a1018141a028012913f0041802250042280481200002004430804210101c08111c10801001080002038008211004266848606b035001048");
 	}
 }
 
@@ -1057,8 +1058,8 @@ void test_put(address(&rand_addr)())
 		ed25519_create_keypair((unsigned char*)pk.bytes.data()
 			, (unsigned char*)sk.bytes.data(), seed);
 		std::fprintf(stderr, "pub: %s priv: %s\n"
-			, aux::to_hex(std::string(pk.bytes.data(), public_key::len)).c_str()
-			, aux::to_hex(std::string(sk.bytes.data(), secret_key::len)).c_str());
+			, aux::to_hex(pk.bytes).c_str()
+			, aux::to_hex(sk.bytes).c_str());
 
 		std::string salt;
 		if (with_salt) salt = "foobar";
@@ -1068,7 +1069,7 @@ void test_put(address(&rand_addr)())
 		sha1_hash target_id = h.final();
 
 		std::fprintf(stderr, "target_id: %s\n"
-			, aux::to_hex(target_id.to_string()).c_str());
+			, aux::to_hex(target_id).c_str());
 
 		send_dht_request(t.dht_node, "get", t.source, &response
 			, msg_args().target(target_id));
@@ -1135,7 +1136,7 @@ void test_put(address(&rand_addr)())
 			, msg_args().target(target_id));
 
 		std::fprintf(stderr, "target_id: %s\n"
-			, aux::to_hex(target_id.to_string()).c_str());
+			, aux::to_hex(target_id).c_str());
 
 		key_desc_t const desc3[] =
 		{
@@ -1516,15 +1517,15 @@ void test_routing_table(address(&rand_addr)())
 
 	for (int i = 0; i < 5; ++i)
 	{
-		address a = addr4(ips[i]);
-		node_id id = generate_id_impl(a, rs[i]);
+		address const a = addr4(ips[i]);
+		node_id const id = generate_id_impl(a, rs[i]);
 		TEST_CHECK(id[0] == prefixes[i][0]);
 		TEST_CHECK(id[1] == prefixes[i][1]);
 		TEST_CHECK((id[2] & 0xf8) == (prefixes[i][2] & 0xf8));
 
 		TEST_CHECK(id[19] == rs[i]);
 		std::fprintf(stderr, "IP address: %s r: %d node ID: %s\n", ips[i]
-			, rs[i], aux::to_hex(id.to_string()).c_str());
+			, rs[i], aux::to_hex(id).c_str());
 	}
 }
 
@@ -2392,12 +2393,12 @@ TORRENT_TEST(signing_test1)
 	signature sig;
 	sign_mutable_item(test_content, empty_salt, sequence_number(1), pk, sk, sig);
 
-	TEST_EQUAL(aux::to_hex(std::string(sig.bytes.data(), signature::len))
+	TEST_EQUAL(aux::to_hex(sig.bytes)
 		, "305ac8aeb6c9c151fa120f120ea2cfb923564e11552d06a5d856091e5e853cff"
 		"1260d3f39e4999684aa92eb73ffd136e6f4f3ecbfda0ce53a1608ecd7ae21f01");
 
-	sha1_hash target_id = item_target_id(empty_salt, pk);
-	TEST_EQUAL(aux::to_hex(target_id.to_string()), "4a533d47ec9c7d95b1ad75f576cffc641853b750");
+	sha1_hash const target_id = item_target_id(empty_salt, pk);
+	TEST_EQUAL(aux::to_hex(target_id), "4a533d47ec9c7d95b1ad75f576cffc641853b750");
 }
 
 TORRENT_TEST(signing_test2)
@@ -2416,12 +2417,12 @@ TORRENT_TEST(signing_test2)
 	// test vector 2 (the keypair is the same as test 1)
 	sign_mutable_item(test_content, test_salt, sequence_number(1), pk, sk, sig);
 
-	TEST_EQUAL(aux::to_hex(std::string(sig.bytes.data(), signature::len))
+	TEST_EQUAL(aux::to_hex(sig.bytes)
 		, "6834284b6b24c3204eb2fea824d82f88883a3d95e8b4a21b8c0ded553d17d17d"
 		"df9a8a7104b1258f30bed3787e6cb896fca78c58f8e03b5f18f14951a87d9a08");
 
 	sha1_hash target_id = item_target_id(test_salt, pk);
-	TEST_EQUAL(aux::to_hex(target_id.to_string()), "411eba73b6f087ca51a3795d9c8c938d365e32c1");
+	TEST_EQUAL(aux::to_hex(target_id), "411eba73b6f087ca51a3795d9c8c938d365e32c1");
 }
 
 TORRENT_TEST(signing_test3)
@@ -2432,7 +2433,7 @@ TORRENT_TEST(signing_test3)
 	span<char const> test_content("12:Hello World!", 15);
 
 	sha1_hash target_id = item_target_id(test_content);
-	TEST_EQUAL(aux::to_hex(target_id.to_string()), "e5f96f6f38320f0f33959cb4d3d656452117aadb");
+	TEST_EQUAL(aux::to_hex(target_id), "e5f96f6f38320f0f33959cb4d3d656452117aadb");
 }
 
 // TODO: 2 split this up into smaller test cases

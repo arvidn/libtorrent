@@ -409,7 +409,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_files.num_files() > 0);
 		m_save_path = complete(params.path);
 		m_part_file_name = "." + (params.info
-			? aux::to_hex(params.info->info_hash().to_string())
+			? aux::to_hex(params.info->info_hash())
 			: params.files->name()) + ".parts";
 	}
 
