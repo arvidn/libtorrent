@@ -727,7 +727,7 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 			auto now = aux::time_now();
 			for (auto& node : existing_bucket->live_nodes)
 			{
-				if (now - node.last_queried > minutes(5))
+				if (node.last_queried + minutes(5) < now)
 					node.last_queried = min_time();
 			}
 
