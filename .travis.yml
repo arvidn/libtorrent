@@ -119,7 +119,7 @@ script:
 # libtorrent is the name of the test suite target
   - cd test
   - 'if [ "$variant" != "" ]; then
-      bjam -j3 warnings-as-errors=on ssl=$ssl crypto=$crypto debug-iterators=on picker-debugging=on invariant-checks=full $toolset variant=$variant libtorrent test_natpmp enum_if -l300 &&
+      bjam -j3 warnings-as-errors=on ssl=$ssl crypto=$crypto debug-iterators=on picker-debugging=on invariant-checks=full $toolset variant=$variant libtorrent test_natpmp enum_if -l900 &&
       if [ "$coverage" == "1" ]; then
         codecov --root .. --gcov-exec gcov-5;
       fi;
