@@ -123,7 +123,8 @@ namespace libtorrent
 			m_cache_pool = 0;
 			// attempt to make MacOS not flush this to disk, making close()
 			// block for a long time
-			ftruncate(m_cache_fd, 0);
+			int const best_effort = ftruncate(m_cache_fd, 0);
+			TORRENT_UNUSED(best_effort);
 			close(m_cache_fd);
 			m_cache_fd = -1;
 		}
@@ -460,7 +461,8 @@ namespace libtorrent
 			m_cache_pool = 0;
 			// attempt to make MacOS not flush this to disk, making close()
 			// block for a long time
-			ftruncate(m_cache_fd, 0);
+			int const best_effort = ftruncate(m_cache_fd, 0);
+			TORRENT_UNUSED(best_effort);
 			close(m_cache_fd);
 			m_cache_fd = -1;
 			std::vector<int>().swap(m_free_list);
@@ -482,7 +484,8 @@ namespace libtorrent
 #ifndef MAP_NOCACHE
 #define MAP_NOCACHE 0
 #endif
-				ftruncate(m_cache_fd, boost::uint64_t(m_max_use) * 0x4000);
+				int const best_effort = ftruncate(m_cache_fd, boost::uint64_t(m_max_use) * 0x4000);
+				TORRENT_UNUSED(best_effort);
 				m_cache_pool = static_cast<char*>(mmap(0, boost::uint64_t(m_max_use) * 0x4000, PROT_READ | PROT_WRITE
 					, MAP_SHARED | MAP_NOCACHE, m_cache_fd, 0));
 				if (intptr_t(m_cache_pool) == -1)
@@ -492,7 +495,8 @@ namespace libtorrent
 					m_cache_pool = 0;
 					// attempt to make MacOS not flush this to disk, making close()
 					// block for a long time
-					ftruncate(m_cache_fd, 0);
+					int const best_effort = ftruncate(m_cache_fd, 0);
+					TORRENT_UNUSED(best_effort);
 					close(m_cache_fd);
 					m_cache_fd = -1;
 				}
