@@ -3147,7 +3147,7 @@ bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 				m_connect_handler = false;
 				utp_stream::on_connect(m_userdata, m_error, false);
 			}
-			// fall through
+			BOOST_FALLTHROUGH;
 		}
 		case UTP_STATE_CONNECTED:
 		{

@@ -41,7 +41,7 @@ namespace libtorrent
 	// to indicate that it has called all the disk job handlers
 	// in the current batch. The intention is for the peer
 	// connections to be able to not issue any sends on their
-	// sockets until they have recevied all the disk jobs
+	// sockets until they have received all the disk jobs
 	// that are ready first. This makes the networking more
 	// efficient since it can send larger buffers down to the
 	// kernel per system call.
@@ -56,4 +56,3 @@ namespace libtorrent
 }
 
 #endif
-

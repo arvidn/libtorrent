@@ -32,7 +32,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/random.hpp"
-#include "libtorrent/assert.hpp"
 
 #include <random>
 
@@ -72,4 +71,3 @@ namespace libtorrent
 	}
 
 }
-
