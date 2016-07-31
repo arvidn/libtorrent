@@ -495,8 +495,8 @@ namespace libtorrent
 					m_cache_pool = 0;
 					// attempt to make MacOS not flush this to disk, making close()
 					// block for a long time
-					int const best_effort = ftruncate(m_cache_fd, 0);
-					TORRENT_UNUSED(best_effort);
+					int const best_effort2 = ftruncate(m_cache_fd, 0);
+					TORRENT_UNUSED(best_effort2);
 					close(m_cache_fd);
 					m_cache_fd = -1;
 				}
