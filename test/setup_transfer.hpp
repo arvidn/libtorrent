@@ -119,4 +119,3 @@ EXPORT libtorrent::address_v6 addr6(char const* ip);
 #endif
 
 #endif
-

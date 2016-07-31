@@ -210,7 +210,7 @@ void test_transfer(lt::session& ses, boost::shared_ptr<torrent_info> torrent_fil
 	}
 	else
 	{
-		// if the web seed senr corrupt data and we banned it, we probably didn't
+		// if the web seed sent corrupt data and we banned it, we probably didn't
 		// end up using all the cache anyway
 		torrent_status st = th.status();
 		TEST_EQUAL(st.is_seeding, true);
@@ -423,4 +423,3 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed
 	stop_web_server();
 	return 0;
 }
-
