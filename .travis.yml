@@ -6,10 +6,6 @@ matrix:
     - env: variant=test_debug sim=1 ssl=openssl crypto=libcrypto toolset=gcc
     - env: variant=test_barebones toolset=gcc
     - env: autotools=1 toolset=gcc
-      addons:
-        apt:
-          packages:
-          - python-docutils
     - os: osx
       osx_image: xcode6.4
       env: variant=test_release docs=1 toolset=darwin
@@ -165,6 +161,7 @@ script:
 # run through autotools and ./configure to make sure it works
   - 'if [[ "$autotools" == "1" ]]; then
       ./autotool.sh &&
+      export CXX=g++-5 &&
       ./configure --enable-debug --enable-examples --enable-tests --enable-python-binding &&
       make -j2 check;
     fi'
