@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/platform_util.hpp"
-#include <boost/scoped_array.hpp>
+
 #include <functional>
 #include <tuple>
 #include <set>
@@ -304,7 +304,7 @@ namespace libtorrent
 			// try to keep it from being flushed, since we'll
 			// need to read it back regardless. Flushing will
 			// save blocks that can be used to "save" other
-			// pieces from being fllushed prematurely
+			// pieces from being flushed prematurely
 			end = int(p->blocks_in_piece);
 		}
 
@@ -396,7 +396,7 @@ namespace libtorrent
 				DLOG("[%d xx] ", i);
 			}
 
-			// TOOD: in this case, the piece should probably not be flushed yet. are there
+			// TODO: in this case, the piece should probably not be flushed yet. are there
 			// any more cases where it should?
 
 			range_full = false;
@@ -513,9 +513,9 @@ namespace libtorrent
 	}
 
 	// iov and flushing are expected to be arrays to at least pe->blocks_in_piece
-	// items in them. Returns the numner of iovecs written to the iov array.
+	// items in them. Returns the number of iovecs written to the iov array.
 	// The same number of block indices are written to the flushing array. These
-	// are block indices that the respecivec iovec structure refers to, since
+	// are block indices that the respective iovec structure refers to, since
 	// we might not be able to flush everything as a single contiguous block,
 	// the block indices indicates where the block run is broken
 	// the cache needs to be locked when calling this function
@@ -564,7 +564,7 @@ namespace libtorrent
 			// if we fail to lock the block, it' no longer in the cache
 			bool locked = m_disk_cache.inc_block_refcount(pe, i, block_cache::ref_flushing);
 
-			// it should always suceed, since it's a dirty block, and
+			// it should always succeed, since it's a dirty block, and
 			// should never have been marked as volatile
 			TORRENT_ASSERT(locked);
 			TORRENT_ASSERT(pe->cache_state != cached_piece_entry::volatile_read_lru);
@@ -1522,7 +1522,7 @@ namespace libtorrent
 	}
 
 	// this function checks to see if a read job is a cache hit,
-	// and if it doesn't have a picece allocated, it allocates
+	// and if it doesn't have a piece allocated, it allocates
 	// one and it sets outstanding_read flag and possibly queues
 	// up the job in the piece read job list
 	// the cache std::mutex must be held when calling this
@@ -2162,9 +2162,9 @@ namespace libtorrent
 		{
 			sha1_hash result = pe->hash->h.final();
 
-			for (tailqueue_iterator<disk_io_job> i = hash_jobs.iterate(); i.get(); i.next())
+			for (auto i = hash_jobs.iterate(); i.get(); i.next())
 			{
-				disk_io_job* hj = const_cast<disk_io_job*>(i.get());
+				disk_io_job* hj = i.get();
 				memcpy(hj->d.piece_hash, result.data(), 20);
 				hj->ret = 0;
 			}
@@ -3587,4 +3587,3 @@ namespace libtorrent
 	}
 #endif
 }
-

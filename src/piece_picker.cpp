@@ -1280,7 +1280,7 @@ namespace libtorrent
 		if (!m_dirty)
 		{
 			// first count how many pieces we're updating. If it's few (less than half)
-			// we'll just update them one at a time. Othewise we'll just update the counters
+			// we'll just update them one at a time. Otherwise we'll just update the counters
 			// and mark the picker as dirty, so we'll rebuild it next time we need it.
 			// this only matters if we're not already dirty, in which case the fasted
 			// thing to do is to just update the counters and be done
@@ -1377,7 +1377,7 @@ namespace libtorrent
 		if (!m_dirty)
 		{
 			// first count how many pieces we're updating. If it's few (less than half)
-			// we'll just update them one at a time. Othewise we'll just update the counters
+			// we'll just update them one at a time. Otherwise we'll just update the counters
 			// and mark the picker as dirty, so we'll rebuild it next time we need it.
 			// this only matters if we're not already dirty, in which case the fasted
 			// thing to do is to just update the counters and be done
@@ -1617,7 +1617,7 @@ namespace libtorrent
 		if (p.priority(this) >= 0) add(index);
 	}
 
-	// this is used to indicate that we succesfully have
+	// this is used to indicate that we successfully have
 	// downloaded a piece, and that no further attempts
 	// to pick that piece should be made. The piece will
 	// be removed from the available piece list.
@@ -1903,7 +1903,7 @@ namespace libtorrent
 	// only one of rarest_first or sequential can be set
 
 	// the return value is a combination of picker_log_alert::picker_flags_t,
-	// indicating which path throught the picker we took to arrive at the
+	// indicating which path thought the picker we took to arrive at the
 	// returned block picks.
 	std::uint32_t piece_picker::pick_pieces(bitfield const& pieces
 		, std::vector<piece_block>& interesting_blocks, int num_blocks
@@ -3716,4 +3716,3 @@ get_out:
 	}
 
 }
-
