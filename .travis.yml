@@ -164,12 +164,9 @@ script:
 
 # run through autotools and ./configure to make sure it works
   - 'if [[ "$autotools" == "1" ]]; then
-      cd docs &&
-      make &&
-      cd .. &&
       ./autotool.sh &&
-      ./configure --enable-examples --enable-tests --enable-python-binding &&
-      make -j2 dist;
+      ./configure --enable-debug --enable-examples --enable-tests --enable-python-binding &&
+      make -j2 check;
     fi'
 
   - 'if [[ "$variant" != "" ]]; then ccache --show-stats; fi'

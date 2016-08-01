@@ -2580,7 +2580,7 @@ TORRENT_TEST(routing_table_uniform)
 	// i.e. no more than 5 levels
 	TEST_EQUAL(tbl.num_active_buckets(), 5);
 
-#if defined TORRENT_DHT_VERBOSE_LOGGING
+#ifndef TORRENT_DISABLE_LOGGING
 	tbl.print_state(std::cerr);
 #endif
 }

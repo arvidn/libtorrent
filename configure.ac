@@ -315,7 +315,7 @@ AS_CASE(["$ARG_ENABLE_DEBUG"],
   ["yes"], [
       AC_MSG_RESULT([yes])
       AC_DEFINE([TORRENT_USE_ASSERTS],[1],[Define to enable debug code.])
-      COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_DEBUG "
+      COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_USE_ASSERTS"
       DEBUGFLAGS="-g"
    ],
   ["no"], [
@@ -408,11 +408,6 @@ AS_CASE(["$ARG_ENABLE_DHT"],
       AC_MSG_RESULT([no])
       AC_DEFINE([TORRENT_DISABLE_DHT],[1],[Define to disable the DHT support.])
       COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_DISABLE_DHT "
-    ],
-  ["logging"], [
-      AC_MSG_RESULT([logging])
-      AC_DEFINE([TORRENT_DHT_VERBOSE_LOGGING],[1],[Define to enable DHT support with verbose logging.])
-      COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_DHT_VERBOSE_LOGGING "
     ],
   [AC_MSG_RESULT([$ARG_ENABLE_DHT])
    AC_MSG_ERROR([Unknown option "$ARG_ENABLE_DHT". Use either "yes", "no" or "logging".])]
