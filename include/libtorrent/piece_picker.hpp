@@ -767,10 +767,10 @@ namespace libtorrent
 		// among pieces with the same priority
 		mutable std::vector<int> m_pieces;
 
-		// these are indices to the priority boundries inside
+		// these are indices to the priority boundaries inside
 		// the m_pieces vector. priority 0 always start at
-		// 0, priority 1 starts at m_priority_boundries[0] etc.
-		mutable std::vector<int> m_priority_boundries;
+		// 0, priority 1 starts at m_priority_boundaries[0] etc.
+		mutable std::vector<int> m_priority_boundaries;
 
 		// each piece that's currently being downloaded has an entry in this list
 		// with block allocations. i.e. it says which parts of the piece that is
