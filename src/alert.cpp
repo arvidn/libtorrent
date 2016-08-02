@@ -37,13 +37,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/alert_types.hpp"
-#include "libtorrent/io_service.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/extensions.hpp"
 #include "libtorrent/torrent.hpp"
-#include "libtorrent/aux_/time.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/stack_allocator.hpp"
 #include "libtorrent/piece_picker.hpp" // for piece_block
@@ -51,9 +48,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/escape_string.hpp" // for convert_from_native
 #include "libtorrent/aux_/max_path.hpp" // for TORRENT_MAX_PATH
-
-#include <functional>
-#include <utility>
 
 namespace libtorrent {
 
@@ -2096,4 +2090,3 @@ namespace libtorrent {
 #endif // TORRENT_DISABLE_LOGGING
 
 } // namespace libtorrent
-

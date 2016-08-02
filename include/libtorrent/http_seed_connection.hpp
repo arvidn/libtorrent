@@ -35,12 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <ctime>
 #include <algorithm>
-#include <deque>
 #include <string>
-#include <array>
 #include <cstdint>
-
-#include "libtorrent/debug.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/optional.hpp>
@@ -48,10 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/web_connection_base.hpp"
-#include "libtorrent/disk_buffer_holder.hpp"
-#include "libtorrent/torrent.hpp"
 #include "libtorrent/piece_block_progress.hpp"
-#include "libtorrent/http_parser.hpp"
 
 namespace libtorrent
 {
@@ -70,7 +63,7 @@ namespace libtorrent
 	public:
 
 		// this is the constructor where the we are the active part.
-		// The peer_conenction should handshake and verify that the
+		// The peer_connection should handshake and verify that the
 		// other end has the correct id
 		http_seed_connection(peer_connection_args const& pack
 			, web_seed_t& web);
@@ -124,4 +117,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_WEB_PEER_CONNECTION_HPP_INCLUDED
-

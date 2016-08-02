@@ -30,23 +30,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/config.hpp"
-
-#include <vector>
-#include <cstdio> // for snprintf
 #include <cinttypes> // for PRId64 et.al.
 
+#include "libtorrent/config.hpp"
 #include "libtorrent/http_seed_connection.hpp"
-#include "libtorrent/session.hpp"
-#include "libtorrent/identify_client.hpp"
-#include "libtorrent/entry.hpp"
-#include "libtorrent/bencode.hpp"
-#include "libtorrent/alert_types.hpp"
 #include "libtorrent/invariant_check.hpp"
-#include "libtorrent/io.hpp"
-#include "libtorrent/version.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
-#include "libtorrent/parse_url.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/hex.hpp" // for is_hex
 
