@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_ALERT_HPP_INCLUDED
 #define TORRENT_ALERT_HPP_INCLUDED
 
+#include <deque>
 #include <string>
 
 // OVERVIEW
