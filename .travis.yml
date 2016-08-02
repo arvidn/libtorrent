@@ -159,10 +159,11 @@ script:
   - cd ..
 
 # run through autotools and ./configure to make sure it works
+# TODO: --enable-python-bindings
   - 'if [[ "$autotools" == "1" ]]; then
       ./autotool.sh &&
       export CXX=g++-5 &&
-      ./configure --enable-debug --enable-encryption --enable-examples --enable-tests --enable-python-binding &&
+      ./configure --enable-debug --enable-encryption --enable-examples --enable-tests &&
       make -j2 check;
     fi'
 
