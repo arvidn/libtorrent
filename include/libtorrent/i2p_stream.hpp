@@ -39,8 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/function/function1.hpp>
-#include <boost/function/function2.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -116,7 +114,7 @@ public:
 		// 4 send command message (CONNECT/ACCEPT)
 
 		// to avoid unnecessary copying of the handler,
-		// store it in a shaed_ptr
+		// store it in a shared_ptr
 		boost::shared_ptr<handler_type> h(new handler_type(handler));
 
 		using std::placeholders::_1;
@@ -186,7 +184,7 @@ public:
 	char const* session_id() const { return m_session_id.c_str(); }
 	std::string const& local_endpoint() const { return m_i2p_local_endpoint; }
 
-	typedef boost::function<void(error_code const&, char const*)> name_lookup_handler;
+	typedef std::function<void(error_code const&, char const*)> name_lookup_handler;
 	void async_name_lookup(char const* name, name_lookup_handler handler);
 
 private:
@@ -213,7 +211,7 @@ private:
 	std::string m_i2p_local_endpoint;
 	std::string m_session_id;
 
-	std::list<std::pair<std::string, name_lookup_handler> > m_name_lookup;
+	std::list<std::pair<std::string, name_lookup_handler>> m_name_lookup;
 
 	enum state_t
 	{
@@ -244,4 +242,3 @@ struct is_error_condition_enum<libtorrent::i2p_error::i2p_error_code>
 #endif // TORRENT_USE_I2P
 
 #endif
-

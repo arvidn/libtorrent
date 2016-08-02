@@ -38,14 +38,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <deque>
 #include <string>
-#include <array>
 #include <cstdint>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/smart_ptr.hpp>
-#include <boost/weak_ptr.hpp>
-#include <boost/noncopyable.hpp>
 #include <boost/optional.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"

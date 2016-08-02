@@ -33,37 +33,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef WEB_CONNECTION_BASE_HPP_INCLUDED
 #define WEB_CONNECTION_BASE_HPP_INCLUDED
 
-#include "libtorrent/debug.hpp"
-
 #include <ctime>
 #include <algorithm>
-#include <vector>
 #include <deque>
 #include <string>
-#include <array>
 #include <cstdint>
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/smart_ptr.hpp>
-#include <boost/weak_ptr.hpp>
-#include <boost/noncopyable.hpp>
-#include <boost/optional.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-#include "libtorrent/buffer.hpp"
 #include "libtorrent/peer_connection.hpp"
-#include "libtorrent/socket.hpp"
-#include "libtorrent/peer_id.hpp"
-#include "libtorrent/storage.hpp"
-#include "libtorrent/stat.hpp"
-#include "libtorrent/alert.hpp"
-#include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/peer_request.hpp"
-#include "libtorrent/piece_block_progress.hpp"
 #include "libtorrent/config.hpp"
-// parse_url
-#include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/http_parser.hpp"
 
 namespace libtorrent
@@ -156,4 +135,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_WEB_CONNECTION_BASE_HPP_INCLUDED
-

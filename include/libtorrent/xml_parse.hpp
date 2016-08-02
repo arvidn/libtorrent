@@ -33,9 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_XML_PARSE_HPP
 #define TORRENT_XML_PARSE_HPP
 
-#include <cctype>
-#include <cstring>
-
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/function.hpp>
@@ -76,4 +73,3 @@ namespace libtorrent
 
 
 #endif
-

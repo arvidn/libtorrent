@@ -32,24 +32,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <vector>
 #include <limits>
-#include <functional>
 #include <cstdlib>
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include "libtorrent/web_connection_base.hpp"
-#include "libtorrent/session.hpp"
-#include "libtorrent/identify_client.hpp"
-#include "libtorrent/entry.hpp"
-#include "libtorrent/bencode.hpp"
-#include "libtorrent/alert_types.hpp"
 #include "libtorrent/invariant_check.hpp"
-#include "libtorrent/io.hpp"
-#include "libtorrent/version.hpp"
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/peer_info.hpp"
 
@@ -212,4 +199,3 @@ namespace libtorrent
 #endif
 
 }
-
