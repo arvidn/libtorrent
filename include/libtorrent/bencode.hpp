@@ -47,10 +47,10 @@ POSSIBILITY OF SUCH DAMAGE.
 // Strings are raw byte buffers of a certain length. If a string is meant to be
 // interpreted as text, it is required to be UTF-8 encoded. See `BEP 3`_.
 //
-// There are two mechanims to *decode* bencoded buffers in libtorrent.
+// There are two mechanisms to *decode* bencoded buffers in libtorrent.
 //
 // The most flexible one is `bdecode() bencode()`_, which returns a structure
-// represented by entry. Oncea buffer has been decoded with this function, it
+// represented by entry. Once a buffer has been decoded with this function, it
 // can be discarded. The entry does not contain any references back to it. This
 // means that bdecode() copies all the data out of the buffer and into its own
 // hierarchy. This makes this function expensive, which might matter if you're
@@ -439,4 +439,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_BENCODE_HPP_INCLUDED
-

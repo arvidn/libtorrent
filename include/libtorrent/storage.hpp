@@ -69,7 +69,7 @@ POSSIBILITY OF SUCH DAMAGE.
 //
 // libtorrent provides a customization point for storage of data. By default,
 // (``default_storage``) downloaded files are saved to disk according with the
-// general conventions of bittorrent clients, mimicing the original file layout
+// general conventions of bittorrent clients, mimicking the original file layout
 // when the torrent was created. The libtorrent user may define a custom
 // storage to store piece data in a different way.
 // 
@@ -634,4 +634,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_STORAGE_HPP_INCLUDED
-

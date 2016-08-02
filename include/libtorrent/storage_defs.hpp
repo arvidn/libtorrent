@@ -34,13 +34,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_STORAGE_DEFS_HPP_INCLUDE
 
 #include "libtorrent/config.hpp"
-#include <boost/function.hpp>
+#include <functional>
 #include <string>
 #include <vector>
 
 namespace libtorrent
 {
-	struct storage_interface;
+	struct TORRENT_EXPORT storage_interface;
 	class file_storage;
 	struct file_pool;
 	class torrent_info;
@@ -72,7 +72,7 @@ namespace libtorrent
 		torrent_info const* info; // optional
 	};
 
-	typedef boost::function<storage_interface*(storage_params const& params)> storage_constructor_type;
+	using storage_constructor_type = std::function<storage_interface*(storage_params const& params)>;
 
 	// the constructor function for the regular file storage. This is the
 	// default value for add_torrent_params::storage.
@@ -87,4 +87,3 @@ namespace libtorrent
 }
 
 #endif
-
