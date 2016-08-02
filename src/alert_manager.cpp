@@ -141,6 +141,4 @@ namespace libtorrent
 		std::swap(m_queue_size_limit, queue_size_limit_);
 		return queue_size_limit_;
 	}
-
 }
-

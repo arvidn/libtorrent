@@ -35,21 +35,18 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/function/function1.hpp>
-#include <boost/function/function2.hpp>
-#include <boost/function/function5.hpp>
-#include <functional>
-#include <boost/shared_ptr.hpp>
+#include <boost/function.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/noncopyable.hpp>
-#include <vector>
-#include <string>
 
 #ifdef TORRENT_USE_OPENSSL
 #include <boost/asio/ssl/context.hpp>
 #endif
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
+
+#include <vector>
+#include <string>
 
 #include "libtorrent/socket.hpp"
 #include "libtorrent/error_code.hpp"
@@ -58,7 +55,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/session_settings.hpp"
-
 #include "libtorrent/i2p_stream.hpp"
 
 namespace libtorrent
@@ -67,7 +63,7 @@ namespace libtorrent
 struct http_connection;
 struct resolver_interface;
 
-const int default_max_bottled_buffer_size = 2*1024*1024;
+const int default_max_bottled_buffer_size = 2 * 1024 * 1024;
 
 typedef boost::function<void(error_code const&
 	, http_parser const&, char const* data, int size, http_connection&)> http_handler;
