@@ -99,7 +99,7 @@ AX_PTHREAD()
 LIBS="$PTHREAD_LIBS $LIBS"
 CFLAGS="$PTHREAD_CFLAGS $CFLAGS"
 CC="$PTHREAD_CC"
-CXXFLAGS="$CXXFLAGS -ftemplate-depth=120"
+CXXFLAGS="$CXXFLAGS -ftemplate-depth=128"
 
 AS_ECHO "Checking for visibility support:"
 AC_CACHE_CHECK([for __attribute__((visibility("hidden")))],
@@ -118,6 +118,8 @@ AS_ECHO
 AS_ECHO "Checking for boost libraries:"
 
 AX_BOOST_BASE([1.54])
+
+AX_CXX_COMPILE_STDCXX_11([noext], [mandatory])
 
 AX_BOOST_SYSTEM()
 AS_IF([test -z "$BOOST_SYSTEM_LIB"],
@@ -313,7 +315,7 @@ AS_CASE(["$ARG_ENABLE_DEBUG"],
   ["yes"], [
       AC_MSG_RESULT([yes])
       AC_DEFINE([TORRENT_USE_ASSERTS],[1],[Define to enable debug code.])
-      COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_DEBUG "
+      COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_USE_ASSERTS"
       DEBUGFLAGS="-g"
    ],
   ["no"], [
@@ -406,11 +408,6 @@ AS_CASE(["$ARG_ENABLE_DHT"],
       AC_MSG_RESULT([no])
       AC_DEFINE([TORRENT_DISABLE_DHT],[1],[Define to disable the DHT support.])
       COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_DISABLE_DHT "
-    ],
-  ["logging"], [
-      AC_MSG_RESULT([logging])
-      AC_DEFINE([TORRENT_DHT_VERBOSE_LOGGING],[1],[Define to enable DHT support with verbose logging.])
-      COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_DHT_VERBOSE_LOGGING "
     ],
   [AC_MSG_RESULT([$ARG_ENABLE_DHT])
    AC_MSG_ERROR([Unknown option "$ARG_ENABLE_DHT". Use either "yes", "no" or "logging".])]

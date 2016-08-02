@@ -5,7 +5,7 @@ matrix:
     - env: variant=test_release coverage=1 toolset=gcc-coverage
     - env: variant=test_debug sim=1 ssl=openssl crypto=libcrypto toolset=gcc
     - env: variant=test_barebones toolset=gcc
-    - env: analyze=1 autotools=1 toolset=gcc
+    - env: autotools=1 toolset=gcc
     - os: osx
       osx_image: xcode6.4
       env: variant=test_release docs=1 toolset=darwin
@@ -44,7 +44,6 @@ addons:
     - libboost1.55-tools-dev
     - python2.7-dev
     - g++-5
-    - cppcheck
 
 before_install:
 
@@ -159,39 +158,13 @@ script:
     fi'
   - cd ..
 
-# run through autotools and ./confiture to make sure it works
+# run through autotools and ./configure to make sure it works
+# TODO: --enable-python-bindings
   - 'if [[ "$autotools" == "1" ]]; then
       ./autotool.sh &&
-      ./configure;
-    fi'
-
-# run cppcheck if enabled
-  - 'if [[ "$analyze" == "1" ]]; then
-      cppcheck --version &&
-      find src test examples tools -type f | grep ".*\.cpp$" >cppcheck.files &&
-      find simulation -maxdepth 1 -type f | grep ".*\.cpp$" >>cppcheck.files &&
-      cppcheck -DTORRENT_USE_IPV6="1" -DTORRENT_USE_I2P="1"
-       -DTORRENT_USE_OPENSSL="1" -DTORRENT_USE_INVARIANT_CHECKS="1"
-       -DTORRENT_EXPENSIVE_INVARIANT_CHECKS="1" -DTORRENT_USE_ASSERTS="1"
-       -UTORRENT_DISABLE_MUTABLE_TORRENTS -UTORRENT_DISABLE_LOGGING
-       -UTORRENT_DEBUG_BUFFERS -UTORRENT_EXPORT_EXTRA
-       --suppress=preprocessorErrorDirective
-       --suppress=uninitVar
-       --suppress=arrayIndexOutOfBounds
-       --suppress=unusedStructMember
-       --suppress=operatorEqVarError
-       --suppress=noConstructor
-       --suppress=syntaxError
-       --enable=style
-       --template "{file}({line}): {severity} ({id}): {message}"
-       --inline-suppr --force --std=c++11 -j2 -I include -I /usr/local/include
-       -I test -I simulation/libsimulator/include
-       --file-list=cppcheck.files 2> cppcheck.txt &&
-      if [ -s cppcheck.txt ]; then
-        echo "   ======= CPPCHECK ERRORS =====";
-        cat cppcheck.txt;
-        exit 1;
-      fi;
+      export CXX=g++-5 &&
+      ./configure --enable-debug --enable-encryption --enable-examples --enable-tests &&
+      make -j2 check;
     fi'
 
   - 'if [[ "$variant" != "" ]]; then ccache --show-stats; fi'

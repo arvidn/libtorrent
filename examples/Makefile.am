@@ -30,5 +30,5 @@ LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
 
 AM_CPPFLAGS = -ftemplate-depth-50 -I$(top_srcdir)/include @DEBUGFLAGS@
 
-AM_LDFLAGS = @BOOST_SYSTEM_LIB@ @BOOST_RANDOM_LIB@ @OPENSSL_LDFLAGS@ @OPENSSL_LIBS@
+AM_LDFLAGS = @BOOST_SYSTEM_LIB@ @OPENSSL_LDFLAGS@ @OPENSSL_LIBS@
 

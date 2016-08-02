@@ -322,7 +322,7 @@ EXPORT int main(int argc, char const* argv[])
 #else
 	chdir(dir);
 #endif
-	std::fprintf(stderr, "cwd = \"%s\"\n", test_dir.c_str());
+	std::fprintf(stderr, "test: %s\ncwd = \"%s\"\n", executable, test_dir.c_str());
 
 	int total_failures = 0;
 

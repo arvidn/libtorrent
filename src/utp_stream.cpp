@@ -3570,9 +3570,16 @@ void utp_socket_impl::tick(time_point now)
 		// TIMEOUT!
 		// set cwnd to 1 MSS
 
-		m_sm->inc_stats_counter(counters::utp_timeout);
-
-		if (m_outbuf.size()) ++m_num_timeouts;
+		// the close_reason here is a bit of a hack. When it's set, it indicates
+		// that the upper layer intends to close the socket. However, it has been
+		// observed that the SSL shutdown sometimes can hang in a state where
+		// there's no outstanding data, and it won't receive any more from the
+		// other end. This catches that case and let the socket time out.
+		if (m_outbuf.size() || m_close_reason != 0)
+		{
+			++m_num_timeouts;
+			m_sm->inc_stats_counter(counters::utp_timeout);
+		}
 
 		UTP_LOGV("%8p: timeout num-timeouts: %d max-resends: %d confirmed: %d "
 			" acked-seq-num: %d mtu-seq: %d\n"

@@ -200,6 +200,7 @@ test_receive_buffer_SOURCES = test_receive_buffer.cpp
 test_storage_SOURCES = test_storage.cpp
 test_time_critical_SOURCES = test_time_critical.cpp
 test_resume_SOURCES = test_resume.cpp
+test_read_resume_SOURCES = test_read_resume.cpp
 test_ssl_SOURCES = test_ssl.cpp
 test_torrent_SOURCES = test_torrent.cpp
 test_tracker_SOURCES = test_tracker.cpp
