@@ -56,12 +56,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-// this is to suppress the warnings for using std::auto_ptr
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-
 namespace libtorrent
 {
 
@@ -2471,10 +2465,4 @@ namespace libtorrent
 	enum { num_alert_types = 90 }; // this enum represents "max_alert_index" + 1
 }
 
-
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
 #endif
-
-#endif
-

@@ -33,11 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_ALERT_HPP_INCLUDED
 #define TORRENT_ALERT_HPP_INCLUDED
 
-#include <memory>
-#include <deque>
 #include <string>
-#include <vector>
-#include <type_traits>
 
 // OVERVIEW
 //
@@ -250,11 +246,6 @@ namespace libtorrent {
 
 #ifndef TORRENT_NO_DEPRECATE
 
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-
 		// determines whether or not an alert is allowed to be discarded
 		// when the alert queue is full. There are a few alerts which may not be discared,
 		// since they would break the user contract, such as save_resume_data_alert.
@@ -267,10 +258,6 @@ namespace libtorrent {
 	protected:
 
 		virtual bool discardable_impl() const { return true; }
-
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
 
 #endif // TORRENT_NO_DEPRECATE
 
@@ -305,4 +292,3 @@ template <class T> T const* alert_cast(alert const* a)
 } // namespace libtorrent
 
 #endif // TORRENT_ALERT_HPP_INCLUDED
-
