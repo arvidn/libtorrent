@@ -162,7 +162,7 @@ script:
   - 'if [[ "$autotools" == "1" ]]; then
       ./autotool.sh &&
       export CXX=g++-5 &&
-      ./configure --enable-debug --enable-examples --enable-tests --enable-python-binding &&
+      ./configure --enable-debug --enable-encryption --enable-examples --enable-tests --enable-python-binding &&
       make -j2 check;
     fi'
 
