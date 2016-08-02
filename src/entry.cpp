@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #if TORRENT_USE_IOSTREAM
 #include <iostream>
 #endif
-#include <algorithm>
 
 #ifndef TORRENT_NO_DEPRECATE
 #include "libtorrent/lazy_entry.hpp"
@@ -753,4 +752,3 @@ namespace libtorrent
 		}
 	}
 }
-
