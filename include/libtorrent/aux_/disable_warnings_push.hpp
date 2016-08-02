@@ -80,6 +80,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma clang diagnostic ignored "-Wgnu-folding-constant"
 #pragma clang diagnostic ignored "-Wdouble-promotion"
 #pragma clang diagnostic ignored "-Wfloat-equal"
+#pragma clang diagnostic ignored "-Wtautological-constant-out-of-range-compare"
 #endif
 
 #ifdef _MSC_VER
@@ -87,4 +88,3 @@ POSSIBILITY OF SUCH DAMAGE.
 // warning C4005: macro redefinition
 #pragma warning( disable : 4005 )
 #endif
-

@@ -30,6 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include <cstring>
 
 #include "libtorrent/xml_parse.hpp"
 #include "libtorrent/string_util.hpp"

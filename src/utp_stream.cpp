@@ -58,8 +58,8 @@ namespace libtorrent {
 
 #if TORRENT_UTP_LOG
 
-char const* packet_type_names[] = { "ST_DATA", "ST_FIN", "ST_STATE", "ST_RESET", "ST_SYN" };
-char const* socket_state_names[] = { "NONE", "SYN_SENT", "CONNECTED", "FIN_SENT", "ERROR", "DELETE" };
+static char const* packet_type_names[] = { "ST_DATA", "ST_FIN", "ST_STATE", "ST_RESET", "ST_SYN" };
+static char const* socket_state_names[] = { "NONE", "SYN_SENT", "CONNECTED", "FIN_SENT", "ERROR", "DELETE" };
 
 static struct utp_logger
 {
@@ -3266,17 +3266,17 @@ bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 					"\n"
 					, static_cast<void*>(this)
 					, sample
-					, float(delay / 1000.f)
-					, float(their_delay / 1000.f)
-					, float(int(m_sm->target_delay() - delay)) / 1000.f
+					, delay / 1000.0
+					, their_delay / 1000.0
+					, int(m_sm->target_delay() - delay) / 1000.0
 					, std::uint32_t(m_cwnd >> 16)
 					, 0
 					, our_delay_base
-					, float(delay + their_delay) / 1000.f
+					, (delay + their_delay) / 1000.0
 					, m_sm->target_delay() / 1000
 					, acked_bytes
 					, m_bytes_in_flight
-					, 0.f // float(scaled_gain)
+					, 0.0 // float(scaled_gain)
 					, m_rtt.mean()
 					, int((m_cwnd * 1000 / (m_rtt.mean()?m_rtt.mean():50)) >> 16)
 					, 0
@@ -3485,9 +3485,9 @@ void utp_socket_impl::do_ledbat(const int acked_bytes, const int delay
 
 	UTP_LOGV("%8p: do_ledbat delay:%d off_target: %d window_factor:%f target_factor:%f "
 		"scaled_gain:%f cwnd:%d slow_start:%d\n"
-		, static_cast<void*>(this), delay, target_delay - delay, window_factor / float(1 << 16)
-		, delay_factor / float(1 << 16)
-		, scaled_gain / float(1 << 16), int(m_cwnd >> 16)
+		, static_cast<void*>(this), delay, target_delay - delay, window_factor / double(1 << 16)
+		, delay_factor / double(1 << 16)
+		, scaled_gain / double(1 << 16), int(m_cwnd >> 16)
 		, int(m_slow_start));
 
 	// if scaled_gain + m_cwnd <= 0, set m_cwnd to 0

@@ -50,8 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <winsock2.h>
 #endif
 
-#include <boost/version.hpp>
-
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ip/udp.hpp>
 #include <boost/asio/write.hpp>
@@ -194,4 +192,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_SOCKET_HPP_INCLUDED
-

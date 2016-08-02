@@ -159,7 +159,7 @@ namespace libtorrent { namespace
 			int read_len = recv(sock, buf, bufsize - msg_len, 0);
 			if (read_len < 0) return -1;
 
-			nl_hdr = (nlmsghdr*)buf;
+			nl_hdr = reinterpret_cast<nlmsghdr*>(buf);
 
 			if ((NLMSG_OK(nl_hdr, read_len) == 0) || (nl_hdr->nlmsg_type == NLMSG_ERROR))
 				return -1;
@@ -177,7 +177,7 @@ namespace libtorrent { namespace
 
 	bool parse_route(int s, nlmsghdr* nl_hdr, ip_route* rt_info)
 	{
-		rtmsg* rt_msg = (rtmsg*)NLMSG_DATA(nl_hdr);
+		rtmsg* rt_msg = reinterpret_cast<rtmsg*>(NLMSG_DATA(nl_hdr));
 
 		if((rt_msg->rtm_family != AF_INET && rt_msg->rtm_family != AF_INET6) || (rt_msg->rtm_table != RT_TABLE_MAIN
 			&& rt_msg->rtm_table != RT_TABLE_LOCAL))
@@ -185,40 +185,47 @@ namespace libtorrent { namespace
 
 		int if_index = 0;
 		int rt_len = RTM_PAYLOAD(nl_hdr);
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-align"
+#endif
 		for (rtattr* rt_attr = (rtattr*)RTM_RTA(rt_msg);
 			RTA_OK(rt_attr,rt_len); rt_attr = RTA_NEXT(rt_attr,rt_len))
 		{
 			switch(rt_attr->rta_type)
 			{
 				case RTA_OIF:
-					if_index = *(int*)RTA_DATA(rt_attr);
+					if_index = *reinterpret_cast<int*>(RTA_DATA(rt_attr));
 					break;
 				case RTA_GATEWAY:
 #if TORRENT_USE_IPV6
 					if (rt_msg->rtm_family == AF_INET6)
 					{
-						rt_info->gateway = inaddr6_to_address((in6_addr*)RTA_DATA(rt_attr));
+						rt_info->gateway = inaddr6_to_address(reinterpret_cast<in6_addr*>(RTA_DATA(rt_attr)));
 					}
 					else
 #endif
 					{
-						rt_info->gateway = inaddr_to_address((in_addr*)RTA_DATA(rt_attr));
+						rt_info->gateway = inaddr_to_address(reinterpret_cast<in_addr*>(RTA_DATA(rt_attr)));
 					}
 					break;
 				case RTA_DST:
 #if TORRENT_USE_IPV6
 					if (rt_msg->rtm_family == AF_INET6)
 					{
-						rt_info->destination = inaddr6_to_address((in6_addr*)RTA_DATA(rt_attr));
+						rt_info->destination = inaddr6_to_address(reinterpret_cast<in6_addr*>(RTA_DATA(rt_attr)));
 					}
 					else
 #endif
 					{
-						rt_info->destination = inaddr_to_address((in_addr*)RTA_DATA(rt_attr));
+						rt_info->destination = inaddr_to_address(reinterpret_cast<in_addr*>(RTA_DATA(rt_attr)));
 					}
 					break;
 			}
 		}
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 		if_indextoname(if_index, rt_info->name);
 		ifreq req;
@@ -493,7 +500,7 @@ namespace libtorrent
 		// make sure the buffer is aligned to hold ifreq structs
 		ifreq buf[40];
 		ifc.ifc_len = sizeof(buf);
-		ifc.ifc_buf = (char*)buf;
+		ifc.ifc_buf = reinterpret_cast<char*>(buf);
 		if (ioctl(s, SIOCGIFCONF, &ifc) < 0)
 		{
 			ec = error_code(errno, system_category());
@@ -501,7 +508,7 @@ namespace libtorrent
 			return ret;
 		}
 
-		char *ifr = (char*)ifc.ifc_req;
+		char *ifr = reinterpret_cast<char*>(ifc.ifc_req);
 		int remaining = ifc.ifc_len;
 
 		while (remaining > 0)
@@ -1084,7 +1091,7 @@ namespace libtorrent
 
 		char msg[BUFSIZE];
 		memset(msg, 0, BUFSIZE);
-		nlmsghdr* nl_msg = (nlmsghdr*)msg;
+		nlmsghdr* nl_msg = reinterpret_cast<nlmsghdr*>(msg);
 
 		nl_msg->nlmsg_len = NLMSG_LENGTH(sizeof(rtmsg));
 		nl_msg->nlmsg_type = RTM_GETROUTE;
@@ -1113,11 +1120,18 @@ namespace libtorrent
 			ec = error_code(errno, system_category());
 			return std::vector<ip_route>();
 		}
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-align"
+#endif
 		for (; NLMSG_OK(nl_msg, len); nl_msg = NLMSG_NEXT(nl_msg, len))
 		{
 			ip_route r;
 			if (parse_route(s, nl_msg, &r)) ret.push_back(r);
 		}
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 		close(s);
 		close(sock);
 
@@ -1148,5 +1162,3 @@ namespace libtorrent
 		return std::string();
 	}
 }
-
-
