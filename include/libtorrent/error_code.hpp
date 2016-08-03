@@ -46,7 +46,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/system/error_code.hpp>
 #include <boost/system/system_error.hpp>
-#include <boost/asio/error.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 

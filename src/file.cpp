@@ -118,14 +118,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifdef TORRENT_LINUX
 // linux specifics
 
-#ifdef TORRENT_ANDROID
-#include <sys/vfs.h>
-#define statvfs statfs
-#define fstatvfs fstatfs
-#else
-#include <sys/statvfs.h>
-#endif
-
 #include <sys/ioctl.h>
 #ifdef TORRENT_ANDROID
 #include <sys/syscall.h>

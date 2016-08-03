@@ -90,7 +90,7 @@ namespace libtorrent
 		{
 			for (int i = 1; i < words + 1; ++i)
 			{
-				uint8x8_t const in_val = vld1_u8((unsigned char *) &m_buf[i]);
+				uint8x8_t const in_val = vld1_u8(reinterpret_cast<unsigned char*>(&m_buf[i]));
 				uint8x8_t const cnt8x8_val = vcnt_u8(in_val);
 				uint16x4_t const cnt16x4_val = vpaddl_u8(cnt8x8_val);
 				uint32x2_t const cnt32x2_val = vpaddl_u16(cnt16x4_val);
@@ -191,4 +191,3 @@ namespace libtorrent
 		TORRENT_ASSERT(size() == bits);
 	}
 }
-

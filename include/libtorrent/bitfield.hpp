@@ -255,4 +255,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_BITFIELD_HPP_INCLUDED
-

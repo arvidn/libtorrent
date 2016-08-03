@@ -167,7 +167,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #elif defined __linux__
 #define TORRENT_LINUX
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30) && !defined __ANDROID__
 # define TORRENT_USE_PREADV 1
 # define TORRENT_USE_PREAD 0
 #else
@@ -183,8 +183,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 // ===== ANDROID ===== (almost linux, sort of)
 #if defined __ANDROID__
-#define TORRENT_USE_PREADV 0
-#define TORRENT_USE_PREAD 1
 #define TORRENT_ANDROID 1
 #define TORRENT_HAS_FALLOCATE 0
 #define TORRENT_USE_ICONV 0

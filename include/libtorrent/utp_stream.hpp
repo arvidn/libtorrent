@@ -63,6 +63,8 @@ namespace libtorrent
 #endif
 
 #if TORRENT_UTP_LOG
+	TORRENT_FORMAT(1, 2)
+	void utp_log(char const* fmt, ...);
 	TORRENT_EXPORT bool is_utp_stream_logging();
 
 	// This function should be used at the very beginning and very end of your program.
