@@ -2203,7 +2203,7 @@ namespace libtorrent
 			// we're not using rarest first (only for the first
 			// bucket, since that's where the currently downloading
 			// pieces are)
-			int start_piece = random(m_piece_map.size()-1);
+			int const start_piece = int(random(m_piece_map.size()-1));
 
 			int piece = start_piece;
 			while (num_blocks > 0)
@@ -2406,7 +2406,7 @@ get_out:
 			if (!temp.empty())
 			{
 				ret |= picker_log_alert::end_game;
-				interesting_blocks.push_back(temp[random(temp.size() - 1)]);
+				interesting_blocks.push_back(temp[random(std::uint32_t(temp.size()) - 1)]);
 				--num_blocks;
 				break;
 			}
