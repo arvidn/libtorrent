@@ -49,7 +49,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/copy_ptr.hpp"
-#include "libtorrent/socket.hpp"
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/file_storage.hpp"
 

@@ -189,7 +189,7 @@ namespace libtorrent { namespace
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wcast-align"
 #endif
-		for (rtattr* rt_attr = (rtattr*)RTM_RTA(rt_msg);
+		for (rtattr* rt_attr = reinterpret_cast<rtattr*>(RTM_RTA(rt_msg));
 			RTA_OK(rt_attr,rt_len); rt_attr = RTA_NEXT(rt_attr,rt_len))
 		{
 			switch(rt_attr->rta_type)
