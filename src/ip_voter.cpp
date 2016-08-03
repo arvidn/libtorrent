@@ -125,8 +125,7 @@ namespace libtorrent
 
 			if (m_external_addresses.size() > 40)
 			{
-				if (random() % 100 < 50)
-					return maybe_rotate();
+				if (random(1)) return maybe_rotate();
 
 				// use stable sort here to maintain the fifo-order
 				// of the entries with the same number of votes

@@ -444,7 +444,7 @@ namespace libtorrent
 
 		// don't use 0, because that has special meaning (unintialized)
 		do {
-			new_tid = random();
+			new_tid = random(0xffffffff);
 		} while (new_tid == 0);
 
 		if (m_transaction_id != 0)

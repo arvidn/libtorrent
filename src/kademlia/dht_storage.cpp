@@ -243,7 +243,7 @@ namespace
 
 				for (int t = 0, m = 0; m < num && iter != v.peers.end(); ++iter, ++t)
 				{
-					if ((random() / float(UINT_MAX + 1.f)) * (num - t) >= num - m) continue;
+					if (random(num - t + 1) >= num - m) continue;
 					if (noseed && iter->seed) continue;
 					endpoint.resize(18);
 					std::string::iterator out = endpoint.begin();
@@ -316,7 +316,7 @@ namespace
 			{
 				// when we're at capacity, there's a 50/50 chance of dropping the
 				// announcing peer or an existing peer
-				if (random() & 1) return;
+				if (random(1)) return;
 				i = v->peers.lower_bound(peer);
 				if (i == v->peers.end()) --i;
 				v->peers.erase(i++);

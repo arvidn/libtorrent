@@ -1363,7 +1363,7 @@ namespace libtorrent
 	{
 		// schedule a disk tick in 2 minutes or so
 		if (m_storage_tick != 0) return;
-		m_storage_tick = 120 + (random() % 60);
+		m_storage_tick = 120 + random(60);
 		update_want_tick();
 	}
 
@@ -1415,7 +1415,7 @@ namespace libtorrent
 	{
 		if (j->ret && m_storage_tick == 0)
 		{
-			m_storage_tick = 120 + (random() % 20);
+			m_storage_tick = 120 + random(20);
 			update_want_tick();
 		}
 	}
@@ -4709,7 +4709,7 @@ namespace libtorrent
 		}
 
 		if (avail_vec.empty()) return -1;
-		return avail_vec[random() % avail_vec.size()];
+		return avail_vec[random(avail_vec.size() - 1)];
 	}
 
 	void torrent::on_files_deleted(disk_io_job const* j)
@@ -9713,7 +9713,7 @@ namespace libtorrent
 			return;
 
 		// now, pick one of the rarest pieces to download
-		int const pick = random() % rarest_pieces.size();
+		int const pick = random(rarest_pieces.size() - 1);
 		bool const was_finished = is_finished();
 		m_picker->set_piece_priority(rarest_pieces[pick], 1);
 		update_gauge();

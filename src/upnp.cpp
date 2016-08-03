@@ -1365,7 +1365,7 @@ void upnp::on_upnp_map_response(error_code const& e
 		// some routers return 501 action failed, instead of 716
 		// The external port conflicts with another mapping
 		// pick a random port
-		m.external_port = 40000 + (random() % 10000);
+		m.external_port = 40000 + random(10000);
 		m.action = mapping_t::action_add;
 		++m.failcount;
 		update_map(d, mapping);

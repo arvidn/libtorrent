@@ -716,7 +716,7 @@ namespace libtorrent
 
 		// fills in the range [start, end) of pieces in
 		// m_pieces that have priority 'prio'
-		void priority_range(int prio, int* start, int* end);
+		std::pair<int, int> priority_range(int prio);
 
 		// adds the piece 'index' to m_pieces
 		void add(int index);

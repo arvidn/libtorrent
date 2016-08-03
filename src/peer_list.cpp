@@ -346,7 +346,7 @@ namespace libtorrent
 		if (m_finished != state->is_finished)
 			recalculate_connect_candidates(state);
 
-		int round_robin = random() % m_peers.size();
+		int round_robin = random(m_peers.size());
 
 		int low_watermark = max_peerlist_size * 95 / 100;
 		if (low_watermark == max_peerlist_size) --low_watermark;

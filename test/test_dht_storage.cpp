@@ -254,7 +254,7 @@ TORRENT_TEST(peer_limit)
 
 	for (int i = 0; i < 200; ++i)
 	{
-		s->announce_peer(n1, tcp::endpoint(rand_v4(), lt::random())
+		s->announce_peer(n1, tcp::endpoint(rand_v4(), lt::random(0xffff))
 			, "torrent_name", false);
 		dht_storage_counters cnt = s->counters();
 		TEST_CHECK(cnt.peers <= 42);
@@ -271,7 +271,7 @@ TORRENT_TEST(torrent_limit)
 
 	for (int i = 0; i < 200; ++i)
 	{
-		s->announce_peer(rand_hash(), tcp::endpoint(rand_v4(), lt::random())
+		s->announce_peer(rand_hash(), tcp::endpoint(rand_v4(), lt::random(0xffff))
 			, "", false);
 		dht_storage_counters cnt = s->counters();
 		TEST_CHECK(cnt.torrents <= 42);

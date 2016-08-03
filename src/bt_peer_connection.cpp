@@ -486,8 +486,7 @@ namespace libtorrent
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 
 	namespace {
-		char random_byte()
-		{ return random() & 0xff; }
+		char random_byte() { return random(0xff); }
 	}
 
 	void bt_peer_connection::write_pe1_2_dhkey()
@@ -511,7 +510,7 @@ namespace libtorrent
 			return;
 		}
 
-		int const pad_size = random() % 512;
+		int const pad_size = random(511);
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, "ENCRYPTION", "pad size: %d", pad_size);
@@ -551,7 +550,7 @@ namespace libtorrent
 		std::array<char, 96> secret;
 		mp::export_bits(secret_key, reinterpret_cast<std::uint8_t*>(secret.data()), 8);
 
-		int pad_size = random() % 512;
+		int pad_size = random(511);
 
 		// synchash,skeyhash,vc,crypto_provide,len(pad),pad,len(ia)
 		char msg[20 + 20 + 8 + 4 + 2 + 512 + 2];
@@ -621,7 +620,7 @@ namespace libtorrent
 		TORRENT_ASSERT(crypto_select == 0x02 || crypto_select == 0x01);
 		TORRENT_ASSERT(!m_sent_handshake);
 
-		int const pad_size = random() % 512;
+		int const pad_size = random(511);
 
 		int const buf_size = 8 + 4 + 2 + pad_size;
 		char msg[512 + 8 + 4 + 2];
@@ -669,7 +668,6 @@ namespace libtorrent
 		detail::write_uint32(crypto_field, write_buf);
 		detail::write_uint16(pad_size, write_buf); // len (pad)
 
-		// fill pad with zeroes
 		std::generate(write_buf, write_buf + pad_size, random_byte);
 		write_buf += pad_size;
 
@@ -809,7 +807,7 @@ namespace libtorrent
 			// in anonymous mode, every peer connection
 			// has a unique peer-id
 			for (int i = 0; i < 20; ++i)
-				m_our_peer_id[i] = random() & 0xff;
+				m_our_peer_id[i] = random(0xff);
 		}
 
 		std::memcpy(ptr, m_our_peer_id.data(), 20);

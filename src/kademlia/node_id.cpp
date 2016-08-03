@@ -132,9 +132,9 @@ node_id generate_id_impl(address const& ip_, std::uint32_t r)
 
 	id[0] = (c >> 24) & 0xff;
 	id[1] = (c >> 16) & 0xff;
-	id[2] = ((c >> 8) & 0xf8) | (random() & 0x7);
+	id[2] = ((c >> 8) & 0xf8) | random(0x7);
 
-	for (int i = 3; i < 19; ++i) id[i] = random() & 0xff;
+	for (int i = 3; i < 19; ++i) id[i] = random(0xff);
 	id[19] = r & 0xff;
 
 	return id;
@@ -144,14 +144,14 @@ static std::uint32_t secret = 0;
 
 void make_id_secret(node_id& in)
 {
-	if (secret == 0) secret = (random() % 0xfffffffe) + 1;
+	if (secret == 0) secret = random(0xfffffffe) + 1;
 
-	std::uint32_t rand = random();
+	std::uint32_t const rand = random(0xffffffff);
 
 	// generate the last 4 bytes as a "signature" of the previous 4 bytes. This
 	// lets us verify whether a hash came from this function or not in the future.
-	hasher h(reinterpret_cast<char*>(&secret), 4);
-	h.update(reinterpret_cast<char*>(&rand), 4);
+	hasher h(reinterpret_cast<char const*>(&secret), 4);
+	h.update(reinterpret_cast<char const*>(&rand), 4);
 	sha1_hash const secret_hash = h.final();
 	memcpy(&in[20-4], &secret_hash[0], 4);
 	memcpy(&in[20-8], &rand, 4);
@@ -160,7 +160,7 @@ void make_id_secret(node_id& in)
 node_id generate_random_id()
 {
 	char r[20];
-	for (int i = 0; i < 20; ++i) r[i] = random() & 0xff;
+	for (int i = 0; i < 20; ++i) r[i] = random(0xff);
 	return hasher(r, 20).final();
 }
 
@@ -195,7 +195,7 @@ bool verify_id(node_id const& nid, address const& source_ip)
 
 node_id generate_id(address const& ip)
 {
-	return generate_id_impl(ip, random());
+	return generate_id_impl(ip, random(0xffffffff));
 }
 
 bool matching_prefix(node_entry const& n, int mask, int prefix, int bucket_index)

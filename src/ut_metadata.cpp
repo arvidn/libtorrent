@@ -471,7 +471,7 @@ namespace libtorrent { namespace
 
 		void failed_hash_check(time_point const& now)
 		{
-			m_request_limit = now + seconds(20 + (std::int64_t(random()) * 50) / UINT_MAX);
+			m_request_limit = now + seconds(20 + random(50));
 		}
 
 	private:
