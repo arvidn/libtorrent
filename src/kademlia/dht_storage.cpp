@@ -236,15 +236,15 @@ namespace
 				// max_peers_reply should probably be specified in bytes
 				if (!v.peers.empty() && v.peers.begin()->addr.protocol() == tcp::v6())
 					max /= 4;
-				int num = (std::min)(int(v.peers.size()), max);
+				int const num = (std::min)(int(v.peers.size()), max);
 				std::set<peer_entry>::const_iterator iter = v.peers.begin();
 				entry::list_type& pe = peers["values"].list();
 				std::string endpoint;
 
 				for (int t = 0, m = 0; m < num && iter != v.peers.end(); ++iter, ++t)
 				{
-					if (random(num - t + 1) >= num - m) continue;
 					if (noseed && iter->seed) continue;
+					if (num - t > 0 && random(num - t - 1) >= num - m) continue;
 					endpoint.resize(18);
 					std::string::iterator out = endpoint.begin();
 					write_endpoint(iter->addr, out);
