@@ -236,15 +236,19 @@ namespace
 				// max_peers_reply should probably be specified in bytes
 				if (!v.peers.empty() && v.peers.begin()->addr.protocol() == tcp::v6())
 					max /= 4;
-				int const num = (std::min)(int(v.peers.size()), max);
+				// we're picking "to_pick" from a list of "num" at random.
+				int const to_pick = (std::min)(int(v.peers.size()), max);
+				int const num = int(v.peers.size());
 				std::set<peer_entry>::const_iterator iter = v.peers.begin();
 				entry::list_type& pe = peers["values"].list();
 				std::string endpoint;
 
-				for (int t = 0, m = 0; m < num && iter != v.peers.end(); ++iter, ++t)
+				for (int t = 0, m = 0; m < to_pick && iter != v.peers.end(); ++iter, ++t)
 				{
+					// if the node asking for peers is a seed, skip seeds from the
+					// peer list
 					if (noseed && iter->seed) continue;
-					if (num - t > 0 && random(num - t - 1) >= num - m) continue;
+					if (num - t > to_pick - m && random(num - t - 1) >= to_pick - m) continue;
 					endpoint.resize(18);
 					std::string::iterator out = endpoint.begin();
 					write_endpoint(iter->addr, out);
