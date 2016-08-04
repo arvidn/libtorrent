@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <functional>
 #include <cstdio>
+#include <sstream>
 
 #ifdef TORRENT_WINDOWS
 #include <direct.h> // for _getcwd
