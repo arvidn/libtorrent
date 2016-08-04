@@ -1680,9 +1680,9 @@ namespace libtorrent
 		};
 	private:
 
-		std::vector<std::pair<std::uint16_t, std::string> > m_strings;
-		std::vector<std::pair<std::uint16_t, int> > m_ints;
-		std::vector<std::pair<std::uint16_t, bool> > m_bools;
+		std::vector<std::pair<std::uint16_t, std::string>> m_strings;
+		std::vector<std::pair<std::uint16_t, int>> m_ints;
+		std::vector<std::pair<std::uint16_t, bool>> m_bools;
 	};
 }
 

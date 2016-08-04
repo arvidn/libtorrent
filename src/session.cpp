@@ -322,7 +322,7 @@ namespace libtorrent
 	// configurations this will give a link error
 	void TORRENT_EXPORT TORRENT_CFG() {}
 
-	void session::start(int flags, settings_pack const& pack, io_service* ios)
+	void session::start(settings_pack const& pack, session_params const& params, io_service* ios)
 	{
 		bool const internal_executor = ios == nullptr;
 
@@ -337,7 +337,7 @@ namespace libtorrent
 		*static_cast<session_handle*>(this) = session_handle(m_impl.get());
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		if (flags & add_default_plugins)
+		if (params.flags & session_params::add_default_plugins)
 		{
 			add_extension(create_ut_pex_plugin);
 			add_extension(create_ut_metadata_plugin);
@@ -346,6 +346,13 @@ namespace libtorrent
 #else
 		TORRENT_UNUSED(flags);
 #endif
+		for (auto const& ext : params.extensions)
+		{
+			add_extension(ext);
+		}
+
+		set_dht_settings(params.dht_settings);
+		set_dht_storage(params.dht_storage_constructor);
 
 		m_impl->start_session(pack);
 
