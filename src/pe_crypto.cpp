@@ -70,7 +70,7 @@ namespace libtorrent
 	dh_key_exchange::dh_key_exchange()
 	{
 		std::array<std::uint8_t, 96> random_key;
-		for (auto& i : random_key) i = random(0xffffffff);
+		for (auto& i : random_key) i = random(0xff);
 
 		// create local key (random)
 		mp::import_bits(m_dh_local_secret, random_key.begin(), random_key.end());

@@ -101,7 +101,7 @@ TORRENT_TEST(dht_bootstrap)
 	sim::default_config cfg;
 	sim::simulation sim{cfg};
 
-	dht_network dht(sim, 1000);
+	dht_network dht(sim, 1100);
 
 	int routing_table_depth = 0;
 	int num_nodes = 0;

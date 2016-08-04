@@ -346,7 +346,7 @@ namespace libtorrent
 		if (m_finished != state->is_finished)
 			recalculate_connect_candidates(state);
 
-		int round_robin = random(std::uint32_t(m_peers.size()));
+		int round_robin = random(std::uint32_t(m_peers.size()-1));
 
 		int low_watermark = max_peerlist_size * 95 / 100;
 		if (low_watermark == max_peerlist_size) --low_watermark;
@@ -361,7 +361,7 @@ namespace libtorrent
 
 			torrent_peer& pe = *m_peers[round_robin];
 			TORRENT_ASSERT(pe.in_use);
-			int current = round_robin;
+			int const current = round_robin;
 
 			if (is_erase_candidate(pe)
 				&& (erase_candidate == -1

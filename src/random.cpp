@@ -46,7 +46,7 @@ namespace libtorrent
 	std::uint32_t random(std::uint32_t max)
 	{
 		// make sure random numbers are deterministic. Seed with a fixed number
-		static mt19937 random_engine(4040);
+		static mt19937 random_engine(0x82daf973);
 		return uniform_int_distribution<std::uint32_t>(0, max)(random_engine);
 	}
 

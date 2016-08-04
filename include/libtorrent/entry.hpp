@@ -94,7 +94,7 @@ namespace libtorrent
 		// to a list). The definition doesn't mention such a limit though.
 		typedef std::map<std::string, entry> dictionary_type;
 		typedef std::string string_type;
-		typedef std::list<entry> list_type;
+		typedef std::vector<entry> list_type;
 		typedef std::int64_t integer_type;
 		typedef std::vector<char> preformatted_type;
 
