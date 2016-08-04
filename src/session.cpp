@@ -322,7 +322,7 @@ namespace libtorrent
 	// configurations this will give a link error
 	void TORRENT_EXPORT TORRENT_CFG() {}
 
-	void session::start(int flags, settings_pack const& pack, io_service* ios)
+	void session::start(int flags, settings_pack pack, io_service* ios)
 	{
 		bool const internal_executor = ios == nullptr;
 
@@ -347,7 +347,7 @@ namespace libtorrent
 		TORRENT_UNUSED(flags);
 #endif
 
-		m_impl->start_session(pack);
+		m_impl->start_session(std::move(pack));
 
 		if (internal_executor)
 		{

@@ -158,7 +158,7 @@ namespace libtorrent
 		// nat-pmp) and default plugins (ut_metadata, ut_pex and smart_ban). The
 		// default is to start those features. If you do not want them to start,
 		// pass 0 as the flags parameter.
-		session(settings_pack const& pack = settings_pack()
+		session(settings_pack pack = settings_pack()
 			, int flags = start_default_features | add_default_plugins)
 			: session_handle(nullptr)
 		{
@@ -187,7 +187,7 @@ namespace libtorrent
 		// 	call session::abort() and save the session_proxy first, then
 		// 	destruct the session object, then sync with the io_service, then
 		// 	destruct the session_proxy object.
-		session(settings_pack const& pack
+		session(settings_pack pack
 			, io_service& ios
 			, int flags = start_default_features | add_default_plugins)
 			: session_handle(nullptr)
@@ -215,7 +215,7 @@ namespace libtorrent
 				pack.set_bool(settings_pack::enable_dht, false);
 			}
 
-			start(flags, pack, nullptr);
+			start(flags, std::move(pack), nullptr);
 		}
 
 		TORRENT_DEPRECATED
@@ -247,7 +247,7 @@ namespace libtorrent
 				pack.set_bool(settings_pack::enable_lsd, false);
 				pack.set_bool(settings_pack::enable_dht, false);
 			}
-			start(flags, pack, nullptr);
+			start(flags, std::move(pack), nullptr);
 		}
 #endif // TORRENT_NO_DEPRECATE
 
@@ -281,7 +281,7 @@ namespace libtorrent
 
 	private:
 
-		void start(int flags, settings_pack const& pack, io_service* ios);
+		void start(int flags, settings_pack pack, io_service* ios);
 
 		// data shared between the main thread
 		// and the working thread

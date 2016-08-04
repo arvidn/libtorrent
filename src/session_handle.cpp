@@ -436,14 +436,14 @@ namespace libtorrent
 	{
 		settings_pack p;
 		p.set_bool(settings_pack::enable_dht, true);
-		apply_settings(p);
+		apply_settings(std::move(p));
 	}
 
 	void session_handle::stop_dht()
 	{
 		settings_pack p;
 		p.set_bool(settings_pack::enable_dht, false);
-		apply_settings(p);
+		apply_settings(std::move(p));
 	}
 #endif // TORRENT_NO_DEPRECATE
 
@@ -700,7 +700,7 @@ namespace libtorrent
 	{
 		settings_pack p;
 		p.set_str(settings_pack::peer_fingerprint, id.to_string());
-		apply_settings(p);
+		apply_settings(std::move(p));
 	}
 #endif
 
@@ -762,9 +762,9 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 	void session_handle::use_interfaces(char const* interfaces)
 	{
-		settings_pack pack;
-		pack.set_str(settings_pack::outgoing_interfaces, interfaces);
-		apply_settings(pack);
+		settings_pack p;
+		p.set_str(settings_pack::outgoing_interfaces, interfaces);
+		apply_settings(std::move(p));
 	}
 
 	void session_handle::listen_on(
@@ -783,7 +783,7 @@ namespace libtorrent
 		p.set_str(settings_pack::listen_interfaces, interfaces_str);
 		p.set_int(settings_pack::max_retry_port_bind, port_range.second - port_range.first);
 		p.set_bool(settings_pack::listen_system_port_fallback, (flags & session::listen_no_system_port) == 0);
-		apply_settings(p);
+		apply_settings(std::move(p));
 	}
 #endif
 
@@ -811,13 +811,13 @@ namespace libtorrent
 
 	void session_handle::set_pe_settings(pe_settings const& r)
 	{
-		settings_pack pack;
-		pack.set_bool(settings_pack::prefer_rc4, r.prefer_rc4);
-		pack.set_int(settings_pack::out_enc_policy, r.out_enc_policy);
-		pack.set_int(settings_pack::in_enc_policy, r.in_enc_policy);
-		pack.set_int(settings_pack::allowed_enc_level, r.allowed_enc_level);
+		settings_pack p;
+		p.set_bool(settings_pack::prefer_rc4, r.prefer_rc4);
+		p.set_int(settings_pack::out_enc_policy, r.out_enc_policy);
+		p.set_int(settings_pack::in_enc_policy, r.in_enc_policy);
+		p.set_int(settings_pack::allowed_enc_level, r.allowed_enc_level);
 
-		apply_settings(pack);
+		apply_settings(std::move(p));
 	}
 
 	pe_settings session_handle::get_pe_settings() const
@@ -833,7 +833,7 @@ namespace libtorrent
 	}
 #endif
 
-	void session_handle::apply_settings(settings_pack const& s)
+	void session_handle::apply_settings(settings_pack s)
 	{
 		TORRENT_ASSERT_PRECOND(!s.has_val(settings_pack::out_enc_policy)
 			|| s.get_int(settings_pack::out_enc_policy)
@@ -845,7 +845,7 @@ namespace libtorrent
 			|| s.get_int(settings_pack::allowed_enc_level)
 				<= settings_pack::pe_both);
 
-		boost::shared_ptr<settings_pack> copy = boost::make_shared<settings_pack>(s);
+		boost::shared_ptr<settings_pack> copy = boost::make_shared<settings_pack>(std::move(s));
 		async_call(&session_impl::apply_settings_pack, copy);
 	}
 
@@ -875,16 +875,16 @@ namespace libtorrent
 
 	void session_handle::set_proxy(proxy_settings const& s)
 	{
-		settings_pack pack;
-		pack.set_str(settings_pack::proxy_hostname, s.hostname);
-		pack.set_str(settings_pack::proxy_username, s.username);
-		pack.set_str(settings_pack::proxy_password, s.password);
-		pack.set_int(settings_pack::proxy_type, s.type);
-		pack.set_int(settings_pack::proxy_port, s.port);
-		pack.set_bool(settings_pack::proxy_hostnames,s.proxy_hostnames);
-		pack.set_bool(settings_pack::proxy_peer_connections, s.proxy_peer_connections);
+		settings_pack p;
+		p.set_str(settings_pack::proxy_hostname, s.hostname);
+		p.set_str(settings_pack::proxy_username, s.username);
+		p.set_str(settings_pack::proxy_password, s.password);
+		p.set_int(settings_pack::proxy_type, s.type);
+		p.set_int(settings_pack::proxy_port, s.port);
+		p.set_bool(settings_pack::proxy_hostnames,s.proxy_hostnames);
+		p.set_bool(settings_pack::proxy_peer_connections, s.proxy_peer_connections);
 
-		apply_settings(pack);
+		apply_settings(std::move(p));
 	}
 
 	proxy_settings session_handle::proxy() const
@@ -1044,7 +1044,7 @@ namespace libtorrent
 
 		settings_pack p;
 		p.set_int(settings_pack::alert_mask, m);
-		apply_settings(p);
+		apply_settings(std::move(p));
 	}
 
 	size_t session_handle::set_alert_queue_size_limit(size_t queue_size_limit_)
@@ -1056,7 +1056,7 @@ namespace libtorrent
 	{
 		settings_pack p;
 		p.set_int(settings_pack::alert_mask, m);
-		apply_settings(p);
+		apply_settings(std::move(p));
 	}
 
 	std::uint32_t session_handle::get_alert_mask() const
@@ -1068,42 +1068,42 @@ namespace libtorrent
 	{
 		settings_pack p;
 		p.set_bool(settings_pack::enable_lsd, true);
-		apply_settings(p);
+		apply_settings(std::move(p));
 	}
 
 	void session_handle::stop_lsd()
 	{
 		settings_pack p;
 		p.set_bool(settings_pack::enable_lsd, false);
-		apply_settings(p);
+		apply_settings(std::move(p));
 	}
 
 	void session_handle::start_upnp()
 	{
 		settings_pack p;
 		p.set_bool(settings_pack::enable_upnp, true);
-		apply_settings(p);
+		apply_settings(std::move(p));
 	}
 
 	void session_handle::stop_upnp()
 	{
 		settings_pack p;
 		p.set_bool(settings_pack::enable_upnp, false);
-		apply_settings(p);
+		apply_settings(std::move(p));
 	}
 
 	void session_handle::start_natpmp()
 	{
 		settings_pack p;
 		p.set_bool(settings_pack::enable_natpmp, true);
-		apply_settings(p);
+		apply_settings(std::move(p));
 	}
 
 	void session_handle::stop_natpmp()
 	{
 		settings_pack p;
 		p.set_bool(settings_pack::enable_natpmp, false);
-		apply_settings(p);
+		apply_settings(std::move(p));
 	}
 #endif // TORRENT_NO_DEPRECATE
 

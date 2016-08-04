@@ -1752,7 +1752,7 @@ int main(int argc, char* argv[])
 					cache_size = (cache_size == 0) ? -1 : 0;
 					settings_pack p;
 					p.set_int(settings_pack::cache_size, cache_size);
-					ses.apply_settings(p);
+					ses.apply_settings(std::move(p));
 				}
 				if (c == 'h')
 				{
