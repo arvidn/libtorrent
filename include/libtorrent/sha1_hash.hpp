@@ -41,18 +41,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/byteswap.hpp"
+#include "libtorrent/aux_/ffs.hpp"
 
 #if TORRENT_USE_IOSTREAM
 #include <iosfwd>
 #endif // TORRENT_USE_IOSTREAM
-
-#ifdef max
-#undef max
-#endif
-
-#ifdef min
-#undef min
-#endif
 
 namespace libtorrent
 {
@@ -80,7 +73,7 @@ namespace libtorrent
 		static sha1_hash max()
 		{
 			sha1_hash ret;
-			memset(ret.m_number, 0xff, size());
+			std::memset(ret.m_number, 0xff, size());
 			return ret;
 		}
 
@@ -90,7 +83,7 @@ namespace libtorrent
 		static sha1_hash min()
 		{
 			sha1_hash ret;
-			memset(ret.m_number, 0, size());
+			std::memset(ret.m_number, 0, size());
 			return ret;
 		}
 
@@ -137,11 +130,11 @@ namespace libtorrent
 		// standard comparison operators
 		bool operator==(sha1_hash const& n) const
 		{
-			return std::equal(n.m_number, n.m_number+number_size, m_number);
+			return std::equal(n.m_number, n.m_number + number_size, m_number);
 		}
 		bool operator!=(sha1_hash const& n) const
 		{
-			return !std::equal(n.m_number, n.m_number+number_size, m_number);
+			return !std::equal(n.m_number, n.m_number + number_size, m_number);
 		}
 		bool operator<(sha1_hash const& n) const
 		{
@@ -155,7 +148,10 @@ namespace libtorrent
 			return false;
 		}
 
-		int count_leading_zeroes() const;
+		int count_leading_zeroes() const
+		{
+			return aux::clz({m_number, number_size});
+		}
 
 		// returns a bit-wise negated copy of the sha1-hash
 		sha1_hash operator~() const
@@ -281,4 +277,3 @@ namespace std {
 }
 
 #endif // TORRENT_SHA1_HASH_HPP_INCLUDED
-

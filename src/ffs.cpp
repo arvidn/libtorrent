@@ -95,4 +95,14 @@ namespace libtorrent { namespace aux
 
 		return num * 32;
 	}
+
+	int clz(span<std::uint32_t const> buf)
+	{
+#if TORRENT_HAS_BUILTIN_CLZ || defined _MSC_VER
+		return aux::clz_hw(buf);
+#else
+		return aux::clz_sw(buf);
+#endif
+	}
+
 }}

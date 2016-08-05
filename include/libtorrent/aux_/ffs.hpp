@@ -41,6 +41,9 @@ namespace libtorrent { namespace aux
 {
 	TORRENT_EXTRA_EXPORT int clz_sw(span<std::uint32_t const> buf);
 	TORRENT_EXTRA_EXPORT int clz_hw(span<std::uint32_t const> buf);
+
+	// this function statically determines if hardware of software is used
+	TORRENT_EXTRA_EXPORT int clz(span<std::uint32_t const> buf);
 }}
 
 #endif // TORRENT_FFS_HPP_INCLUDE

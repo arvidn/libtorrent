@@ -31,8 +31,6 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/sha1_hash.hpp"
-#include "libtorrent/aux_/cpuid.hpp"
-#include "libtorrent/aux_/ffs.hpp"
 #include "libtorrent/hex.hpp" // to_hex, from_hex
 
 #if TORRENT_USE_IOSTREAM
@@ -64,15 +62,6 @@ namespace libtorrent
 
 #endif // TORRENT_USE_IOSTREAM
 
-	int sha1_hash::count_leading_zeroes() const
-	{
-#if TORRENT_HAS_BUILTIN_CLZ || defined _MSC_VER
-		return aux::clz_hw({m_number, number_size});
-#else
-		return aux::clz_sw({m_number, number_size});
-#endif
-	}
-
 	sha1_hash& sha1_hash::operator<<=(int n)
 	{
 		TORRENT_ASSERT(n >= 0);
@@ -101,12 +90,12 @@ namespace libtorrent
 			for (int i = 0; i < number_size - 1; ++i)
 			{
 				m_number[i] <<= n;
-				m_number[i+1] = aux::network_to_host(m_number[i+1]);
-				m_number[i] |= m_number[i+1] >> (32 - n);
+				m_number[i + 1] = aux::network_to_host(m_number[i + 1]);
+				m_number[i] |= m_number[i + 1] >> (32 - n);
 				m_number[i] = aux::host_to_network(m_number[i]);
 			}
-			m_number[number_size-1] <<= n;
-			m_number[number_size-1] = aux::host_to_network(m_number[number_size-1]);
+			m_number[number_size - 1] <<= n;
+			m_number[number_size - 1] = aux::host_to_network(m_number[number_size - 1]);
 		}
 		return *this;
 	}
@@ -133,13 +122,13 @@ namespace libtorrent
 			// byte order, so they have to be byteswapped before
 			// applying the shift operations, and then byteswapped
 			// back again.
-			m_number[number_size-1] = aux::network_to_host(m_number[number_size-1]);
+			m_number[number_size - 1] = aux::network_to_host(m_number[number_size - 1]);
 
 			for (int i = number_size - 1; i > 0; --i)
 			{
 				m_number[i] >>= n;
-				m_number[i-1] = aux::network_to_host(m_number[i-1]);
-				m_number[i] |= (m_number[i-1] << (32 - n)) & 0xffffffff;
+				m_number[i - 1] = aux::network_to_host(m_number[i - 1]);
+				m_number[i] |= (m_number[i - 1] << (32 - n)) & 0xffffffff;
 				m_number[i] = aux::host_to_network(m_number[i]);
 			}
 			m_number[0] >>= n;
@@ -149,4 +138,3 @@ namespace libtorrent
 	}
 
 }
-

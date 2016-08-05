@@ -76,5 +76,10 @@ TORRENT_TEST(clz)
 		to_binary(t.first, buf);
 		TEST_EQUAL(aux::clz_sw({buf, 5}), t.second);
 		TEST_EQUAL(aux::clz_hw({buf, 5}), t.second);
+		TEST_EQUAL(aux::clz({buf, 5}), t.second);
 	}
+
+#if !TORRENT_HAS_BUILTIN_CLZ && !defined _MSC_VER
+#error "expected built-in clz for unit tests architectures"
+#endif
 }
