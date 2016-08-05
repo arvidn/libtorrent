@@ -90,6 +90,8 @@ namespace libtorrent { namespace aux
 			DWORD pos;
 			_BitScanReverse(&pos, v);
 			return i * 32 + 31 - pos;
+#else
+			return -1;
 #endif
 		}
 

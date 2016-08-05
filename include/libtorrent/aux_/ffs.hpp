@@ -39,10 +39,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace aux
 {
+	// these functions expect the range to be in big-endian byte order
 	TORRENT_EXTRA_EXPORT int clz_sw(span<std::uint32_t const> buf);
+	// if this function is called in an unsupported platform, returns -1
+	// consider call always clz(buf)
 	TORRENT_EXTRA_EXPORT int clz_hw(span<std::uint32_t const> buf);
 
-	// this function statically determines if hardware of software is used
+	// this function statically determines if hardware or software is used
+	// and expect the range to be in big-endian byte order
 	TORRENT_EXTRA_EXPORT int clz(span<std::uint32_t const> buf);
 }}
 
