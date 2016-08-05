@@ -46,8 +46,11 @@ namespace libtorrent { namespace aux
 {
 	int clz_sw(span<std::uint32_t const> buf)
 	{
-		int num = int(buf.size());
+		int const num = int(buf.size());
 		std::uint32_t const* ptr = buf.data();
+
+		TORRENT_ASSERT(num >= 0);
+		TORRENT_ASSERT(ptr != nullptr);
 
 		for (int i = 0; i < num; i++)
 		{
@@ -76,8 +79,11 @@ namespace libtorrent { namespace aux
 
 	int clz_hw(span<std::uint32_t const> buf)
 	{
-		int num = int(buf.size());
+		int const num = int(buf.size());
 		std::uint32_t const* ptr = buf.data();
+
+		TORRENT_ASSERT(num >= 0);
+		TORRENT_ASSERT(ptr != nullptr);
 
 		for (int i = 0; i < num; i++)
 		{
@@ -91,6 +97,7 @@ namespace libtorrent { namespace aux
 			_BitScanReverse(&pos, v);
 			return i * 32 + 31 - pos;
 #else
+			TORRENT_ASSERT_FAIL();
 			return -1;
 #endif
 		}
@@ -107,4 +114,63 @@ namespace libtorrent { namespace aux
 #endif
 	}
 
+	int flz_sw(span<std::uint32_t const> buf)
+	{
+		int const num = int(buf.size());
+		std::uint32_t const* ptr = buf.data();
+
+		TORRENT_ASSERT(num >= 0);
+		TORRENT_ASSERT(ptr != nullptr);
+
+		for (int i = num - 1; i >= 0; i--)
+		{
+			if (ptr[i] == 0xffffffff) continue;
+			std::uint32_t v = ~aux::network_to_host(ptr[i]);
+
+			for (int k = 0; k < 32; ++k, v >>= 1)
+			{
+				if ((v & 1) == 0) continue;
+				return i * 32 + 31 - k;
+			}
+		}
+
+		return -1;
+	}
+
+	int flz_hw(span<std::uint32_t const> buf)
+	{
+		int const num = int(buf.size());
+		std::uint32_t const* ptr = buf.data();
+
+		TORRENT_ASSERT(num >= 0);
+		TORRENT_ASSERT(ptr != nullptr);
+
+		for (int i = num - 1; i >= 0; i--)
+		{
+			if (ptr[i] == 0xffffffff) continue;
+			std::uint32_t v = ~aux::network_to_host(ptr[i]);
+
+#if TORRENT_HAS_BUILTIN_CTZ
+			return i * 32 + 31 - __builtin_ctz(v);
+#elif defined _MSC_VER
+			DWORD pos;
+			_BitScanForward(&pos, v);
+			return i * 32 + 31 - pos;
+#else
+			TORRENT_ASSERT_FAIL();
+			return -1;
+#endif
+		}
+
+		return -1;
+	}
+
+	int flz(span<std::uint32_t const> buf)
+	{
+#if TORRENT_HAS_BUILTIN_CTZ || defined _MSC_VER
+		return aux::flz_hw(buf);
+#else
+		return aux::flz_sw(buf);
+#endif
+	}
 }}

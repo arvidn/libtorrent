@@ -48,6 +48,17 @@ namespace libtorrent { namespace aux
 	// this function statically determines if hardware or software is used
 	// and expect the range to be in big-endian byte order
 	TORRENT_EXTRA_EXPORT int clz(span<std::uint32_t const> buf);
+
+	// these functions expect the range to be in big-endian byte order
+	// find last zero (flz)
+	TORRENT_EXTRA_EXPORT int flz_sw(span<std::uint32_t const> buf);
+	// if this function is called in an unsupported platform, returns -1
+	// consider call always flz(buf)
+	TORRENT_EXTRA_EXPORT int flz_hw(span<std::uint32_t const> buf);
+
+	// this function statically determines if hardware or software is used
+	// and expect the range to be in big-endian byte order
+	TORRENT_EXTRA_EXPORT int flz(span<std::uint32_t const> buf);
 }}
 
 #endif // TORRENT_FFS_HPP_INCLUDE

@@ -174,10 +174,10 @@ namespace libtorrent
 			if (b == nullptr) std::terminate();
 #endif
 			b[0] = bits;
-			if (m_buf) memcpy(&b[1], buf(), (std::min)(new_size_words, cur_size_words) * 4);
+			if (m_buf) std::memcpy(&b[1], buf(), (std::min)(new_size_words, cur_size_words) * 4);
 			if (new_size_words > cur_size_words)
 			{
-				memset(&b[1 + cur_size_words], 0
+				std::memset(&b[1 + cur_size_words], 0
 					, (new_size_words - cur_size_words) * 4);
 			}
 			m_buf = std::move(b);

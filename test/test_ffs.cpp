@@ -79,3 +79,26 @@ TORRENT_TEST(clz)
 		TEST_EQUAL(aux::clz({buf, 5}), t.second);
 	}
 }
+
+TORRENT_TEST(flz_u32)
+{
+	std::uint32_t v = 0;
+	TEST_EQUAL(aux::flz_sw(v), 31);
+	TEST_EQUAL(aux::flz_hw(v), 31);
+	TEST_EQUAL(aux::flz(v), 31);
+
+	v = 0xffffffff;
+	TEST_EQUAL(aux::flz_sw(v), -1);
+	TEST_EQUAL(aux::flz_hw(v), -1);
+	TEST_EQUAL(aux::flz(v), -1);
+
+	v = 0xff00ff00;
+	TEST_EQUAL(aux::flz_sw(v), 23);
+	TEST_EQUAL(aux::flz_hw(v), 23);
+	TEST_EQUAL(aux::flz(v), 23);
+
+	v = 0xff0fff00;
+	TEST_EQUAL(aux::flz_sw(v), 19);
+	TEST_EQUAL(aux::flz_hw(v), 19);
+	TEST_EQUAL(aux::flz(v), 19);
+}

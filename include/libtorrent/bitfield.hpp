@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/buffer.hpp"
 #include "libtorrent/aux_/byteswap.hpp"
+#include "libtorrent/aux_/ffs.hpp"
 
 #include <cstring> // for memset and memcpy
 #include <cstdint> // uint32_t
@@ -153,6 +154,23 @@ namespace libtorrent
 
 		// count the number of bits in the bitfield that are set to 1.
 		int count() const;
+		int find_first_set() const
+		{
+			size_t const num = num_words();
+			if (num == 0) return -1;
+			int const clz = aux::clz({&m_buf[1], num});
+			return clz != num * 32 ? clz : -1;
+		}
+		int find_last_clear() const
+		{
+			size_t const num = num_words();
+			if (num == 0) return -1;
+			std::uint32_t const mask = 0xffffffff << (32 - (size() & 31));
+			std::uint32_t const last = m_buf[num] ^ aux::host_to_network(mask);
+			return last != 0
+				? (num - 1) * 32 + aux::flz(~last)
+				: aux::flz({&m_buf[1], num - 1});
+		}
 
 		struct const_iterator
 		{
