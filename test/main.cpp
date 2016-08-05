@@ -322,7 +322,8 @@ EXPORT int main(int argc, char const* argv[])
 #else
 	chdir(dir);
 #endif
-	std::fprintf(stderr, "test: %s\ncwd = \"%s\"\n", executable, test_dir.c_str());
+	std::fprintf(stderr, "test: %s\ncwd = \"%s\"\nrnd: %x\n"
+		, executable, test_dir.c_str(), random(0xffffffff));
 
 	int total_failures = 0;
 
