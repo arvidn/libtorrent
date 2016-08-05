@@ -114,6 +114,7 @@ set(sources
 	ConvertUTF
 	xml_parse
 	version
+	ffs
 
 # -- extensions --
 	ut_pex

@@ -31,7 +31,6 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/sha1_hash.hpp"
-#include "libtorrent/aux_/cpuid.hpp"
 #include "libtorrent/hex.hpp" // to_hex, from_hex
 
 #if TORRENT_USE_IOSTREAM
@@ -63,45 +62,6 @@ namespace libtorrent
 
 #endif // TORRENT_USE_IOSTREAM
 
-	int sha1_hash::count_leading_zeroes() const
-	{
-		int ret = 0;
-		for (int i = 0; i < number_size; ++i)
-		{
-			std::uint32_t v = aux::network_to_host(m_number[i]);
-			if (v == 0)
-			{
-				ret += 32;
-				continue;
-			}
-
-#if TORRENT_HAS_BUILTIN_CLZ
-			return ret + __builtin_clz(v);
-#elif TORRENT_HAS_SSE && defined _MSC_VER
-			DWORD pos;
-			_BitScanReverse(&pos, v);
-			return ret + 31 - pos;
-#else
-			// http://graphics.stanford.edu/~seander/bithacks.html#IntegerLogObvious
-			static const int MultiplyDeBruijnBitPosition[32] =
-			{
-				0, 9, 1, 10, 13, 21, 2, 29, 11, 14, 16, 18, 22, 25, 3, 30,
-				8, 12, 20, 28, 15, 17, 24, 7, 19, 27, 23, 6, 26, 5, 4, 31
-			};
-
-			v |= v >> 1; // first round down to one less than a power of 2
-			v |= v >> 2;
-			v |= v >> 4;
-			v |= v >> 8;
-			v |= v >> 16;
-
-			return ret + MultiplyDeBruijnBitPosition[
-				static_cast<std::uint32_t>(v * 0x07C4ACDDU) >> 27];
-#endif
-		}
-		return ret;
-	}
-
 	sha1_hash& sha1_hash::operator<<=(int n)
 	{
 		TORRENT_ASSERT(n >= 0);
@@ -130,12 +90,12 @@ namespace libtorrent
 			for (int i = 0; i < number_size - 1; ++i)
 			{
 				m_number[i] <<= n;
-				m_number[i+1] = aux::network_to_host(m_number[i+1]);
-				m_number[i] |= m_number[i+1] >> (32 - n);
+				m_number[i + 1] = aux::network_to_host(m_number[i + 1]);
+				m_number[i] |= m_number[i + 1] >> (32 - n);
 				m_number[i] = aux::host_to_network(m_number[i]);
 			}
-			m_number[number_size-1] <<= n;
-			m_number[number_size-1] = aux::host_to_network(m_number[number_size-1]);
+			m_number[number_size - 1] <<= n;
+			m_number[number_size - 1] = aux::host_to_network(m_number[number_size - 1]);
 		}
 		return *this;
 	}
@@ -162,13 +122,13 @@ namespace libtorrent
 			// byte order, so they have to be byteswapped before
 			// applying the shift operations, and then byteswapped
 			// back again.
-			m_number[number_size-1] = aux::network_to_host(m_number[number_size-1]);
+			m_number[number_size - 1] = aux::network_to_host(m_number[number_size - 1]);
 
 			for (int i = number_size - 1; i > 0; --i)
 			{
 				m_number[i] >>= n;
-				m_number[i-1] = aux::network_to_host(m_number[i-1]);
-				m_number[i] |= (m_number[i-1] << (32 - n)) & 0xffffffff;
+				m_number[i - 1] = aux::network_to_host(m_number[i - 1]);
+				m_number[i] |= (m_number[i - 1] << (32 - n)) & 0xffffffff;
 				m_number[i] = aux::host_to_network(m_number[i]);
 			}
 			m_number[0] >>= n;
@@ -178,4 +138,3 @@ namespace libtorrent
 	}
 
 }
-

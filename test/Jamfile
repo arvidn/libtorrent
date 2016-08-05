@@ -153,6 +153,7 @@ test-suite libtorrent :
 	[ run test_sha1_hash.cpp ]
 	[ run test_bitfield.cpp ]
 	[ run test_crc32.cpp ]
+	[ run test_ffs.cpp ]
 	[ run test_receive_buffer.cpp ]
 	[ run test_alert_manager.cpp ]
 	[ run test_magnet.cpp ]
@@ -230,6 +231,7 @@ alias arm-tests :
     test_sha1_hash
     test_bitfield
     test_crc32
+    test_ffs
     ;
 
 explicit arm-tests ;

@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2015, Arvid Norberg
+Copyright (c) 2015, Arvid Norberg, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -31,87 +31,18 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "test.hpp"
-#include "libtorrent/sha1_hash.hpp"
+#include "libtorrent/span.hpp"
 #include "libtorrent/hex.hpp" // from_hex
+#include "libtorrent/aux_/ffs.hpp"
 
 using namespace libtorrent;
 
-static sha1_hash to_hash(char const* s)
+static void to_binary(char const* s, std::uint32_t* buf)
 {
-	sha1_hash ret;
-	aux::from_hex({s, 40}, ret.data());
-	return ret;
+	aux::from_hex({s, 40}, reinterpret_cast<char*>(&buf[0]));
 }
 
-TORRENT_TEST(sha1_hash)
-{
-	sha1_hash h1(nullptr);
-	sha1_hash h2(nullptr);
-	TEST_CHECK(h1 == h2);
-	TEST_CHECK(!(h1 != h2));
-	TEST_CHECK(!(h1 < h2));
-	TEST_CHECK(!(h1 < h2));
-	TEST_CHECK(h1.is_all_zeros());
-
-	h1 = to_hash("0123456789012345678901234567890123456789");
-	h2 = to_hash("0113456789012345678901234567890123456789");
-
-	TEST_CHECK(h2 < h1);
-	TEST_CHECK(h2 == h2);
-	TEST_CHECK(h1 == h1);
-	h2.clear();
-	TEST_CHECK(h2.is_all_zeros());
-
-	h2 = to_hash("ffffffffff0000000000ffffffffff0000000000");
-	h1 = to_hash("fffff00000fffff00000fffff00000fffff00000");
-	h1 &= h2;
-	TEST_CHECK(h1 == to_hash("fffff000000000000000fffff000000000000000"));
-
-	h2 = to_hash("ffffffffff0000000000ffffffffff0000000000");
-	h1 = to_hash("fffff00000fffff00000fffff00000fffff00000");
-	h1 |= h2;
-	TEST_CHECK(h1 == to_hash("fffffffffffffff00000fffffffffffffff00000"));
-
-	h2 = to_hash("0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f");
-	h1 ^= h2;
-	TEST_CHECK(h1 == to_hash("f0f0f0f0f0f0f0ff0f0ff0f0f0f0f0f0f0ff0f0f"));
-	TEST_CHECK(h1 != h2);
-
-	h2 = sha1_hash("                    ");
-	TEST_CHECK(h2 == to_hash("2020202020202020202020202020202020202020"));
-
-	h1 = to_hash("ffffffffff0000000000ffffffffff0000000000");
-	h1 <<= 12;
-	TEST_CHECK(h1 == to_hash("fffffff0000000000ffffffffff0000000000000"));
-	h1 >>= 12;
-	TEST_CHECK(h1 == to_hash("000fffffff0000000000ffffffffff0000000000"));
-
-	h1 = to_hash("7000000000000000000000000000000000000000");
-	h1 <<= 1;
-	TEST_CHECK(h1 == to_hash("e000000000000000000000000000000000000000"));
-
-	h1 = to_hash("0000000000000000000000000000000000000007");
-	h1 <<= 1;
-	TEST_CHECK(h1 == to_hash("000000000000000000000000000000000000000e"));
-
-	h1 = to_hash("0000000000000000000000000000000000000007");
-	h1 >>= 1;
-	TEST_CHECK(h1 == to_hash("0000000000000000000000000000000000000003"));
-
-	h1 = to_hash("7000000000000000000000000000000000000000");
-	h1 >>= 1;
-	TEST_CHECK(h1 == to_hash("3800000000000000000000000000000000000000"));
-
-	h1 = to_hash("7000000000000000000000000000000000000000");
-	h1 >>= 32;
-	TEST_CHECK(h1 == to_hash("0000000070000000000000000000000000000000"));
-	h1 >>= 33;
-	TEST_CHECK(h1 == to_hash("0000000000000000380000000000000000000000"));
-	h1 <<= 33;
-	TEST_CHECK(h1 == to_hash("0000000070000000000000000000000000000000"));
-}
-
-TORRENT_TEST(count_leading_zeroes)
+TORRENT_TEST(clz)
 {
 	std::vector<std::pair<char const*, int>> const tests = {
 		{ "ffffffffffffffffffffffffffffffffffffffff", 0 },
@@ -141,6 +72,10 @@ TORRENT_TEST(count_leading_zeroes)
 	for (auto const& t : tests)
 	{
 		std::fprintf(stderr, "%s\n", t.first);
-		TEST_EQUAL(to_hash(t.first).count_leading_zeroes(), t.second);
+		std::uint32_t buf[5];
+		to_binary(t.first, buf);
+		TEST_EQUAL(aux::clz_sw({buf, 5}), t.second);
+		TEST_EQUAL(aux::clz_hw({buf, 5}), t.second);
+		TEST_EQUAL(aux::clz({buf, 5}), t.second);
 	}
 }

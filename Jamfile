@@ -679,6 +679,7 @@ SOURCES =
 	session_settings
 	proxy_settings
 	file_progress
+	ffs
 
 # -- extensions --
 	ut_pex
