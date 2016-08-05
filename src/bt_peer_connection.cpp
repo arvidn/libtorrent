@@ -42,12 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/multiprecision/integer.hpp>
 
-// for backwards compatibility with boost < 1.60 which was before export_bits
-// and import_bits were introduced
-#if BOOST_VERSION < 106000
-#include "libtorrent/aux_/cppint_import_export.hpp"
-#endif
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -88,6 +82,12 @@ namespace libtorrent
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 	namespace {
 
+	enum
+	{
+		handshake_len = 68,
+		dh_key_len = 96
+	};
+
 	// stream key (info hash of attached torrent)
 	// secret is the DH shared secret
 	// initializes m_enc_handler
@@ -102,8 +102,7 @@ namespace libtorrent
 		// outgoing connection : hash ('keyA',S,SKEY)
 		// incoming connection : hash ('keyB',S,SKEY)
 
-		std::array<char, 96> secret_buf;
-		mp::export_bits(secret, reinterpret_cast<std::uint8_t*>(secret_buf.data()), 8);
+		std::array<char, dh_key_len> const secret_buf = export_key(secret);
 
 		if (outgoing) h.update(keyA); else h.update(keyB);
 		h.update(secret_buf);
@@ -510,7 +509,7 @@ namespace libtorrent
 			return;
 		}
 
-		int const pad_size = random(511);
+		int const pad_size = random(512);
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, "ENCRYPTION", "pad size: %d", pad_size);
@@ -520,8 +519,8 @@ namespace libtorrent
 		char* ptr = msg;
 		int const buf_size = dh_key_len + pad_size;
 
-		mp::export_bits(m_dh_key_exchange->get_local_key()
-			, reinterpret_cast<std::uint8_t*>(ptr), 8);
+		std::array<char, dh_key_len> const local_key = export_key(m_dh_key_exchange->get_local_key());
+		memcpy(ptr, local_key.data(), dh_key_len);
 		ptr += dh_key_len;
 
 		std::generate(ptr, ptr + pad_size, random_byte);
@@ -547,10 +546,9 @@ namespace libtorrent
 		hasher h;
 		sha1_hash const& info_hash = t->torrent_file().info_hash();
 		key_t const secret_key = m_dh_key_exchange->get_secret();
-		std::array<char, 96> secret;
-		mp::export_bits(secret_key, reinterpret_cast<std::uint8_t*>(secret.data()), 8);
+		std::array<char, dh_key_len> const secret = export_key(secret_key);
 
-		int pad_size = random(511);
+		int const pad_size = random(512);
 
 		// synchash,skeyhash,vc,crypto_provide,len(pad),pad,len(ia)
 		char msg[20 + 20 + 8 + 4 + 2 + 512 + 2];
@@ -565,6 +563,12 @@ namespace libtorrent
 
 		std::memcpy(ptr, sync_hash.data(), 20);
 		ptr += 20;
+#ifndef TORRENT_DISABLE_LOGGING
+		peer_log(peer_log_alert::info, "ENCRYPTION"
+			, "writing synchash %s secret: %s"
+			, aux::to_hex(sync_hash).c_str()
+			, aux::to_hex(secret).c_str());
+#endif
 
 		static char const req2[4] = {'r', 'e', 'q', '2'};
 		// stream key obfuscated hash [ hash('req2',SKEY) xor hash('req3',S) ]
@@ -590,13 +594,13 @@ namespace libtorrent
 		m_dh_key_exchange.reset(); // secret should be invalid at this point
 
 		// write the verification constant and crypto field
-		int encrypt_size = sizeof(msg) - 512 + pad_size - 40;
-
-		std::uint8_t crypto_provide = m_settings.get_int(settings_pack::allowed_enc_level);
+		int const encrypt_size = sizeof(msg) - 512 + pad_size - 40;
 
 		// this is an invalid setting, but let's just make the best of the situation
-		if ((crypto_provide & settings_pack::pe_both) == 0)
-			crypto_provide = settings_pack::pe_both;
+		int const enc_level = m_settings.get_int(settings_pack::allowed_enc_level);
+		std::uint8_t const crypto_provide = ((enc_level & settings_pack::pe_both) == 0)
+			? settings_pack::pe_both
+			: enc_level;
 
 #ifndef TORRENT_DISABLE_LOGGING
 		char const* level[] = {"plaintext", "rc4", "plaintext rc4"};
@@ -620,7 +624,7 @@ namespace libtorrent
 		TORRENT_ASSERT(crypto_select == 0x02 || crypto_select == 0x01);
 		TORRENT_ASSERT(!m_sent_handshake);
 
-		int const pad_size = random(511);
+		int const pad_size = random(512);
 
 		int const buf_size = 8 + 4 + 2 + pad_size;
 		char msg[512 + 8 + 4 + 2];
@@ -676,6 +680,7 @@ namespace libtorrent
 			detail::write_uint16(handshake_len, write_buf); // len(IA)
 	}
 
+	// TODO: 3 use span instead of (pointer,len) pairs
 	int bt_peer_connection::get_syncoffset(char const* src, int const src_size
 		, char const* target, int const target_size) const
 	{
@@ -2635,12 +2640,17 @@ namespace libtorrent
 
 				static char const req1[4] = {'r', 'e', 'q', '1'};
 				// compute synchash (hash('req1',S))
-				std::array<char, 96> buffer;
-				mp::export_bits(m_dh_key_exchange->get_secret()
-					, reinterpret_cast<std::uint8_t*>(buffer.data()), 8);
+				std::array<char, dh_key_len> const buffer = export_key(m_dh_key_exchange->get_secret());
 				hasher h(req1);
 				h.update(buffer);
 				m_sync_hash.reset(new sha1_hash(h.final()));
+
+#ifndef TORRENT_DISABLE_LOGGING
+				peer_log(peer_log_alert::info, "ENCRYPTION"
+					, "looking for synchash %s secret: %s"
+					, aux::to_hex(*m_sync_hash).c_str()
+					, aux::to_hex(buffer).c_str());
+#endif
 			}
 
 			int const syncoffset = get_syncoffset(m_sync_hash->data(), 20

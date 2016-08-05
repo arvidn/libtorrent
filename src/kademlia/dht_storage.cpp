@@ -238,19 +238,18 @@ namespace
 					max /= 4;
 				// we're picking "to_pick" from a list of "num" at random.
 				int const to_pick = (std::min)(int(v.peers.size()), max);
-				int const num = int(v.peers.size());
 				std::set<peer_entry>::const_iterator iter = v.peers.begin();
 				entry::list_type& pe = peers["values"].list();
 
-				for (int i = 0, m = 0; m < to_pick && iter != v.peers.end(); ++iter)
+				for (int t = 0, m = 0; m < to_pick && iter != v.peers.end(); ++iter)
 				{
 					// if the node asking for peers is a seed, skip seeds from the
 					// peer list
 					if (noseed && iter->seed) continue;
 
-					++i;
+					++t;
 					std::string* str;
-					if (i <= to_pick)
+					if (t <= to_pick)
 					{
 						pe.push_back(entry());
 						str = &pe.back().string();
@@ -258,7 +257,7 @@ namespace
 					else
 					{
 						// maybe replace an item we've already picked
-						if (random(i-1) >= to_pick) continue;
+						if (random(t-1) >= to_pick) continue;
 						str = &pe[random(to_pick - 1)].string();
 					}
 

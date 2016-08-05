@@ -66,6 +66,23 @@ namespace libtorrent
 			("0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A63A36210000000000090563");
 	}
 
+	std::array<char, 96> export_key(key_t const& k)
+	{
+		std::array<char, 96> ret;
+		std::uint8_t* begin = reinterpret_cast<std::uint8_t*>(ret.data());
+		std::uint8_t* end = mp::export_bits(k, begin, 8);
+
+		// TODO: it would be nice to be able to export to a fixed width field, so
+		// we wouldn't have to shift it later
+		if (end < begin + 96)
+		{
+			int const len = end - begin;
+			memmove(begin + 96 - len, begin, len);
+			memset(begin, 0, 96 - len);
+		}
+		return ret;
+	}
+
 	// Set the prime P and the generator, generate local public key
 	dh_key_exchange::dh_key_exchange()
 	{

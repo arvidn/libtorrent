@@ -324,14 +324,6 @@ private:
 			read_packet
 		};
 
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-		enum
-		{
-			handshake_len = 68,
-			dh_key_len = 96
-		};
-#endif
-
 		// state of on_receive. one of the enums in state_t
 		std::uint8_t m_state;
 
