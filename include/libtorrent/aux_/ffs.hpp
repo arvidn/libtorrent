@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2014, Arvid Norberg
+Copyright (c) 2014-2016, Arvid Norberg, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,18 +30,17 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_CPUID_HPP_INCLUDED
-#define TORRENT_CPUID_HPP_INCLUDED
+#ifndef TORRENT_FFS_HPP_INCLUDE
+#define TORRENT_FFS_HPP_INCLUDE
 
-#include "libtorrent/config.hpp"
+#include <cstdint>
+#include "libtorrent/export.hpp"
+#include "libtorrent/span.hpp"
 
 namespace libtorrent { namespace aux
 {
-	// initialized by static initializers (in cpuid.cpp)
-	TORRENT_EXTRA_EXPORT extern bool const sse42_support;
-	TORRENT_EXTRA_EXPORT extern bool const mmx_support;
-	TORRENT_EXTRA_EXPORT extern bool const arm_neon_support;
-	TORRENT_EXTRA_EXPORT extern bool const arm_crc32c_support;
-} }
+	TORRENT_EXTRA_EXPORT int clz_sw(span<std::uint32_t const> buf);
+	TORRENT_EXTRA_EXPORT int clz_hw(span<std::uint32_t const> buf);
+}}
 
-#endif // TORRENT_CPUID_HPP_INCLUDED
+#endif // TORRENT_FFS_HPP_INCLUDE

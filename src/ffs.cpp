@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2014, Arvid Norberg
+Copyright (c) 2014-2016, Arvid Norberg, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,18 +30,69 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_CPUID_HPP_INCLUDED
-#define TORRENT_CPUID_HPP_INCLUDED
-
 #include "libtorrent/config.hpp"
+#include "libtorrent/aux_/ffs.hpp"
+#include "libtorrent/aux_/byteswap.hpp"
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
+#if (defined _MSC_VER && _MSC_VER >= 1600)
+#include <nmmintrin.h>
+#endif
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent { namespace aux
 {
-	// initialized by static initializers (in cpuid.cpp)
-	TORRENT_EXTRA_EXPORT extern bool const sse42_support;
-	TORRENT_EXTRA_EXPORT extern bool const mmx_support;
-	TORRENT_EXTRA_EXPORT extern bool const arm_neon_support;
-	TORRENT_EXTRA_EXPORT extern bool const arm_crc32c_support;
-} }
+    int clz_sw(span<std::uint32_t const> buf)
+	{
+		int num = buf.size();
+		std::uint32_t const* ptr = buf.data();
 
-#endif // TORRENT_CPUID_HPP_INCLUDED
+		for (int i = 0; i < num; i++)
+		{
+			if (ptr[i] == 0) continue;
+			std::uint32_t v = aux::network_to_host(ptr[i]);
+
+			// http://graphics.stanford.edu/~seander/bithacks.html#IntegerLogObvious
+			static const int MultiplyDeBruijnBitPosition[32] =
+			{
+				0, 9, 1, 10, 13, 21, 2, 29, 11, 14, 16, 18, 22, 25, 3, 30,
+				8, 12, 20, 28, 15, 17, 24, 7, 19, 27, 23, 6, 26, 5, 4, 31
+			};
+
+			v |= v >> 1; // first round down to one less than a power of 2
+			v |= v >> 2;
+			v |= v >> 4;
+			v |= v >> 8;
+			v |= v >> 16;
+
+			return i * 32 + 31 - MultiplyDeBruijnBitPosition[
+				static_cast<std::uint32_t>(v * 0x07C4ACDDU) >> 27];
+		}
+
+		return num * 32;
+	}
+
+	int clz_hw(span<std::uint32_t const> buf)
+	{
+		int num = buf.size();
+		std::uint32_t const* ptr = buf.data();
+
+		for (int i = 0; i < num; i++)
+		{
+			if (ptr[i] == 0) continue;
+			std::uint32_t v = aux::network_to_host(ptr[i]);
+
+#if TORRENT_HAS_BUILTIN_CLZ
+			return i * 32 + __builtin_clz(v);
+#elif defined _MSC_VER
+			DWORD pos;
+			_BitScanReverse(&pos, v);
+			return i * 32 + 31 - pos;
+#endif
+		}
+
+		return num * 32;
+	}
+}}

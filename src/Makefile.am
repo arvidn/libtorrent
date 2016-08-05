@@ -145,6 +145,7 @@ libtorrent_rasterbar_la_SOURCES = \
   xml_parse.cpp                   \
   version.cpp                     \
   file_progress.cpp               \
+  ffs.cpp                         \
   \
   $(KADEMLIA_SOURCES)
 

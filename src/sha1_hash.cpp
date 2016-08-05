@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/aux_/cpuid.hpp"
+#include "libtorrent/aux_/ffs.hpp"
 #include "libtorrent/hex.hpp" // to_hex, from_hex
 
 #if TORRENT_USE_IOSTREAM
@@ -65,41 +66,11 @@ namespace libtorrent
 
 	int sha1_hash::count_leading_zeroes() const
 	{
-		int ret = 0;
-		for (int i = 0; i < number_size; ++i)
-		{
-			std::uint32_t v = aux::network_to_host(m_number[i]);
-			if (v == 0)
-			{
-				ret += 32;
-				continue;
-			}
-
-#if TORRENT_HAS_BUILTIN_CLZ
-			return ret + __builtin_clz(v);
-#elif TORRENT_HAS_SSE && defined _MSC_VER
-			DWORD pos;
-			_BitScanReverse(&pos, v);
-			return ret + 31 - pos;
+#if TORRENT_HAS_BUILTIN_CLZ || defined _MSC_VER
+		return aux::clz_hw({m_number, number_size});
 #else
-			// http://graphics.stanford.edu/~seander/bithacks.html#IntegerLogObvious
-			static const int MultiplyDeBruijnBitPosition[32] =
-			{
-				0, 9, 1, 10, 13, 21, 2, 29, 11, 14, 16, 18, 22, 25, 3, 30,
-				8, 12, 20, 28, 15, 17, 24, 7, 19, 27, 23, 6, 26, 5, 4, 31
-			};
-
-			v |= v >> 1; // first round down to one less than a power of 2
-			v |= v >> 2;
-			v |= v >> 4;
-			v |= v >> 8;
-			v |= v >> 16;
-
-			return ret + MultiplyDeBruijnBitPosition[
-				static_cast<std::uint32_t>(v * 0x07C4ACDDU) >> 27];
+		return aux::clz_sw({m_number, number_size});
 #endif
-		}
-		return ret;
 	}
 
 	sha1_hash& sha1_hash::operator<<=(int n)
