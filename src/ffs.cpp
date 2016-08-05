@@ -44,9 +44,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace aux
 {
-    int clz_sw(span<std::uint32_t const> buf)
+	int clz_sw(span<std::uint32_t const> buf)
 	{
-		int num = buf.size();
+		int num = int(buf.size());
 		std::uint32_t const* ptr = buf.data();
 
 		for (int i = 0; i < num; i++)
@@ -76,7 +76,7 @@ namespace libtorrent { namespace aux
 
 	int clz_hw(span<std::uint32_t const> buf)
 	{
-		int num = buf.size();
+		int num = int(buf.size());
 		std::uint32_t const* ptr = buf.data();
 
 		for (int i = 0; i < num; i++)
