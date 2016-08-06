@@ -117,6 +117,12 @@ extern int EXPORT _g_test_failures;
 		s__ << "TEST_ERROR: equal check failed:\n" #x ": " << (x) << "\nexpected: " << (y); \
 		TEST_REPORT_AUX(s__.str().c_str(), __FILE__, __LINE__); \
 	}
+#define TEST_NE(x, y) \
+	if ((x) == (y)) { \
+		std::stringstream s__; \
+		s__ << "TEST_ERROR: not equal check failed:\n" #x ": " << (x) << "\nexpected not equal to: " << (y); \
+		TEST_REPORT_AUX(s__.str().c_str(), __FILE__, __LINE__); \
+	}
 #else
 #define TEST_CHECK(x) \
 	try \
@@ -138,6 +144,22 @@ extern int EXPORT _g_test_failures;
 		if ((x) != (y)) { \
 			std::stringstream s__; \
 			s__ << "TEST_ERROR: " #x ": " << (x) << " expected: " << (y); \
+			TEST_REPORT_AUX(s__.str().c_str(), __FILE__, __LINE__); \
+		} \
+	} \
+	catch (std::exception& e) \
+	{ \
+		TEST_ERROR("TEST_ERROR: Exception thrown: " #x " :" + std::string(e.what())); \
+	} \
+	catch (...) \
+	{ \
+		TEST_ERROR("TEST_ERROR: Exception thrown: " #x); \
+	}
+#define TEST_NE(x, y) \
+	try { \
+		if ((x) == (y)) { \
+			std::stringstream s__; \
+			s__ << "TEST_ERROR: " #x ": " << (x) << " expected not equal to: " << (y); \
 			TEST_REPORT_AUX(s__.str().c_str(), __FILE__, __LINE__); \
 		} \
 	} \

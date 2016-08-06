@@ -2977,29 +2977,7 @@ get_out:
 
 		return i;
 	}
-/*
-	int piece_picker::get_block_state(piece_block block) const
-	{
-		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
-		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
-		TORRENT_ASSERT(block.piece_index < m_piece_map.size());
 
-		// if we have the piece, the block state is considered finished
-		if (m_piece_map[block.piece_index].index == piece_pos::we_have_index)
-			return block_info::state_finished;
-
-		int state = m_piece_map[block.piece_index].download_queue();
-		if (state == piece_pos::piece_open) return block_info::state_none;
-		std::vector<downloading_piece>::const_iterator i = find_dl_piece(state
-			, block.piece_index);
-
-		TORRENT_ASSERT(i != m_downloads[state].end());
-
-		block_info const* info = blocks_for_piece(*i);
-		TORRENT_ASSERT(info[block.block_index].piece_index == block.piece_index);
-		return info[block.block_index].state;
-	}
-*/
 	bool piece_picker::is_requested(piece_block block) const
 	{
 		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
@@ -3056,6 +3034,7 @@ get_out:
 	}
 
 	// options may be 0 or piece_picker::reverse
+	// returns false if the block could not be marked as downloading
 	bool piece_picker::mark_as_downloading(piece_block block
 		, torrent_peer* peer, int options)
 	{
@@ -3551,27 +3530,6 @@ get_out:
 #endif
 
 	}
-
-/*
-	void piece_picker::mark_as_checking(int index)
-	{
-		int state = m_piece_map[index].download_queue();
-		if (state == piece_pos::piece_open) return;
-		std::vector<downloading_piece>::iterator i = find_dl_piece(state, index);
-		if (i == m_downloads[state].end()) return;
-		TORRENT_ASSERT(i->outstanding_hash_check == false);
-		i->outstanding_hash_check = true;
-	}
-
-	void piece_picker::mark_as_done_checking(int index)
-	{
-		int state = m_piece_map[index].download_queue();
-		if (state == piece_pos::piece_open) return;
-		std::vector<downloading_piece>::iterator i = find_dl_piece(state, index);
-		if (i == m_downloads[state].end()) return;
-		i->outstanding_hash_check = false;
-	}
-*/
 
 	void piece_picker::get_downloaders(std::vector<torrent_peer*>& d, int index) const
 	{
