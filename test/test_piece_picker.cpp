@@ -65,8 +65,6 @@ bitfield string2vec(char const* have_str)
 	return have;
 }
 
-ipv4_peer* tmp_peer = nullptr;
-
 tcp::endpoint endp;
 ipv4_peer tmp0(endp, false, 0);
 ipv4_peer tmp1(endp, false, 0);
@@ -79,8 +77,32 @@ ipv4_peer tmp7(endp, false, 0);
 ipv4_peer tmp8(endp, false, 0);
 ipv4_peer tmp9(endp, false, 0);
 ipv4_peer peer_struct(endp, true, 0);
+ipv4_peer* tmp_peer = &tmp1;
 
-const std::vector<int> empty_vector;
+std::vector<int> const empty_vector;
+
+#if TORRENT_USE_ASSERTS
+namespace {
+	static struct initializer
+	{
+		initializer()
+		{
+			tmp0.in_use = true;
+			tmp1.in_use = true;
+			tmp2.in_use = true;
+			tmp3.in_use = true;
+			tmp4.in_use = true;
+			tmp5.in_use = true;
+			tmp6.in_use = true;
+			tmp7.in_use = true;
+			tmp8.in_use = true;
+			tmp9.in_use = true;
+			peer_struct.in_use = true;
+		}
+
+	} initializer_dummy;
+}
+#endif
 
 // availability is a string where each character is the
 // availability of that piece, '1', '2' etc.
@@ -247,11 +269,6 @@ void print_pick(std::vector<piece_block> const& picked)
 	std::cout << std::endl;
 }
 
-void print_title(char const* name)
-{
-	std::cerr << "==== " << name << " ====\n";
-}
-
 std::vector<piece_block> pick_pieces(boost::shared_ptr<piece_picker> const& p
 	, char const* availability
 	, int num_blocks
@@ -280,33 +297,11 @@ int test_pick(boost::shared_ptr<piece_picker> const& p
 	return picked[0].piece_index;
 }
 
-// TODO: 2 split this up into smaller tests (where we print_title)
-TORRENT_TEST(piece_picker)
+const int options = piece_picker::rarest_first;
+counters pc;
+
+TORRENT_TEST(piece_block)
 {
-	tcp::endpoint endp;
-	piece_picker::downloading_piece st;
-#if TORRENT_USE_ASSERTS
-	tmp0.in_use = true;
-	tmp1.in_use = true;
-	tmp2.in_use = true;
-	tmp3.in_use = true;
-	tmp4.in_use = true;
-	tmp5.in_use = true;
-	tmp6.in_use = true;
-	tmp7.in_use = true;
-	tmp8.in_use = true;
-	tmp9.in_use = true;
-	peer_struct.in_use = true;
-#endif
-	tmp_peer = &tmp1;
-	std::vector<piece_block> picked;
-	boost::shared_ptr<piece_picker> p;
-	const int options = piece_picker::rarest_first;
-	std::pair<int, int> dc;
-	counters pc;
-
-	print_title("test piece_block");
-
 	TEST_CHECK(piece_block(0, 0) != piece_block(0, 1));
 	TEST_CHECK(piece_block(0, 0) != piece_block(1, 0));
 	TEST_CHECK(!(piece_block(0, 0) != piece_block(0, 0)));
@@ -322,14 +317,13 @@ TORRENT_TEST(piece_picker)
 	TEST_CHECK(!(piece_block(0, 0) < piece_block(0, 0)));
 	TEST_CHECK(!(piece_block(1, 0) < piece_block(1, 0)));
 	TEST_CHECK(!(piece_block(0, 1) < piece_block(0, 1)));
+}
 
-// ========================================================
-
+TORRENT_TEST(abort_download)
+{
 	// test abort_download
-	print_title("test abort_download");
-
-	p = setup_picker("1111111", "       ", "7110000", ""); 
-	picked = pick_pieces(p, "*******", blocks_per_piece, 0, tmp_peer
+	auto p = setup_picker("1111111", "       ", "7110000", "");
+	auto picked = pick_pieces(p, "*******", blocks_per_piece, 0, tmp_peer
 		, options, empty_vector);
 	TEST_CHECK(p->is_requested(piece_block(0, 0)) == false);
 	TEST_CHECK(std::find(picked.begin(), picked.end(), piece_block(0,0)) != picked.end());
@@ -382,12 +376,12 @@ TORRENT_TEST(piece_picker)
 		, options, empty_vector);
 	TEST_CHECK(p->is_requested(piece_block(0, 0)) == false);
 	TEST_CHECK(std::find(picked.begin(), picked.end(), piece_block(0,0)) == picked.end());
+}
 
-// ========================================================
-
-	print_title("test abort_download");
-
-	p = setup_picker("1111111", "       ", "7110000", ""); 
+TORRENT_TEST(abort_download2)
+{
+	auto p = setup_picker("1111111", "       ", "7110000", "");
+	piece_picker::downloading_piece st;
 	p->mark_as_downloading(piece_block(0,0), &tmp1);
 	p->mark_as_finished(piece_block(0,1), nullptr);
 	p->piece_info(0, st);
@@ -397,16 +391,15 @@ TORRENT_TEST(piece_picker)
 	p->piece_info(0, st);
 	TEST_EQUAL(st.requested, 0);
 	TEST_EQUAL(st.finished, 1);
-	picked = pick_pieces(p, "*******", blocks_per_piece, 0, nullptr
+	auto picked = pick_pieces(p, "*******", blocks_per_piece, 0, nullptr
 		, options, empty_vector);
 	TEST_CHECK(p->is_requested(piece_block(0, 0)) == false);
 	TEST_CHECK(std::find(picked.begin(), picked.end(), piece_block(0,0)) != picked.end());
+}
 
-// ========================================================
-
-	print_title("test get_downloaders");
-
-	p = setup_picker("1111111", "       ", "7110000", ""); 
+TORRENT_TEST(get_downloaders)
+{
+	auto p = setup_picker("1111111", "       ", "7110000", "");
 
 	p->mark_as_downloading(piece_block(0, 2), &tmp1);
 	p->mark_as_writing(piece_block(0, 2), &tmp1);
@@ -462,24 +455,24 @@ TORRENT_TEST(piece_picker)
 
 	std::fprintf(stderr, "num_peers: %d\n", p->num_peers(piece_block(0, 0)));
 	TEST_EQUAL(p->num_peers(piece_block(0, 0)), 1);
+}
 
-// ========================================================
-
+TORRENT_TEST(pick_lowest_availability)
+{
 	// make sure the block that is picked is from piece 1, since it
 	// it is the piece with the lowest availability
-	print_title("test pick lowest availability");
-	p = setup_picker("2223333", "* * *  ", "", "");
+	auto p = setup_picker("2223333", "* * *  ", "", "");
 	TEST_CHECK(test_pick(p) == 1);
+}
 
-// ========================================================
-
+TORRENT_TEST(random_pick_at_same_priority)
+{
 	// make sure pieces with equal priority and availability
 	// are picked at random
-	print_title("test random pick at same priority");
 	std::map<int, int> random_prio_pieces;
 	for (int i = 0; i < 100; ++i)
 	{
-		p = setup_picker("1111112", "       ", "", "");
+		auto p = setup_picker("1111112", "       ", "", "");
 		++random_prio_pieces[test_pick(p)];
 	}
 	TEST_CHECK(random_prio_pieces.size() == 6);
@@ -487,13 +480,13 @@ TORRENT_TEST(piece_picker)
 		, end(random_prio_pieces.end()); i != end; ++i)
 		std::cout << i->first << ": " << i->second << " ";
 	std::cout << std::endl;
+}
 
-// ========================================================
-
+TORRENT_TEST(pick_highest_priority)
+{
 	// make sure the block that is picked is from piece 5, since it
 	// has the highest priority among the available pieces
-	print_title("test pick highest priority");
-	p = setup_picker("1111111", "       ", "1111121", "");
+	auto p = setup_picker("1111111", "       ", "1111121", "");
 	TEST_CHECK(test_pick(p) == 5);
 
 	p = setup_picker("1111111", "       ", "1171121", "");
@@ -501,12 +494,12 @@ TORRENT_TEST(piece_picker)
 
 	p = setup_picker("1111111", "       ", "1131521", "");
 	TEST_CHECK(test_pick(p) == 4);
+}
 
-// ========================================================
-
-	print_title("test reverse rarest first");
-	p = setup_picker("4179253", "       ", "", "");
-	picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, &peer_struct
+TORRENT_TEST(reverse_rarest_first)
+{
+	auto p = setup_picker("4179253", "       ", "", "");
+	auto picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, &peer_struct
 		, piece_picker::rarest_first | piece_picker::reverse, empty_vector);
 	int expected_common_pieces[] = {3, 2, 5, 0, 6, 4, 1};
 	for (int i = 0; i < int(picked.size()); ++i)
@@ -516,16 +509,16 @@ TORRENT_TEST(piece_picker)
 	// reversed. Reversed partials are considered reversed
 	p = setup_picker("1122111", "       ", "3333333", "   1   ");
 	TEST_CHECK(test_pick(p, piece_picker::rarest_first | piece_picker::reverse) == 2);
+}
 
-// ========================================================
-
+TORRENT_TEST(pick_whole_pieces)
+{
 	// make sure the 4 blocks are picked from the same piece if
 	// whole pieces are preferred. Priority and availability is more
 	// important. Piece 1 has the lowest availability even though
 	// it is not a whole piece
-	print_title("test pick whole pieces");
-	p = setup_picker("2212222", "       ", "1111111", "1023460");
-	picked = pick_pieces(p, "****** ", 1, blocks_per_piece
+	auto p = setup_picker("2212222", "       ", "1111111", "1023460");
+	auto picked = pick_pieces(p, "****** ", 1, blocks_per_piece
 		, &peer_struct, options, empty_vector);
 	TEST_EQUAL(int(picked.size()), 3);
 	for (int i = 0; i < blocks_per_piece && i < int(picked.size()); ++i)
@@ -544,47 +537,47 @@ TORRENT_TEST(piece_picker)
 	TEST_EQUAL(int(picked.size()), 7 * blocks_per_piece);
 	for (int i = 0; i < int(picked.size()); ++i)
 		TEST_CHECK(picked[i] == piece_block(i / blocks_per_piece, i % blocks_per_piece));
+}
 
-// ========================================================
-
+TORRENT_TEST(distributed_copies)
+{
 	// test the distributed copies function. It should include ourself
 	// in the availability. i.e. piece 0 has availability 2.
 	// there are 2 pieces with availability 2 and 5 with availability 3
-	print_title("test distributed copies");
-	p = setup_picker("1233333", "*      ", "", "");
-	dc = p->distributed_copies();
+	auto p = setup_picker("1233333", "*      ", "", "");
+	auto dc = p->distributed_copies();
 	TEST_CHECK(dc == std::make_pair(2, 5000 / 7));
+}
 
-// ========================================================
-	
+TORRENT_TEST(filtered_pieces)
+{
 	// make sure filtered pieces are ignored
-	print_title("test filtered pieces");
-	p = setup_picker("1111111", "       ", "0010000", "");
+	auto p = setup_picker("1111111", "       ", "0010000", "");
 	TEST_CHECK(test_pick(p, piece_picker::rarest_first) == 2);
 	TEST_CHECK(test_pick(p, piece_picker::rarest_first | piece_picker::reverse) == 2);
 	TEST_CHECK(test_pick(p, piece_picker::sequential) == 2);
 	TEST_CHECK(test_pick(p, piece_picker::sequential | piece_picker::reverse) == 2);
+}
 
-// ========================================================
-	
+TORRENT_TEST(we_dont_have)
+{
 	// make sure we_dont_have works
-	print_title("test we_dont_have");
-	p = setup_picker("1111111", "*******", "0100000", "");
+	auto p = setup_picker("1111111", "*******", "0100000", "");
 	TEST_CHECK(p->have_piece(1));
 	TEST_CHECK(p->have_piece(2));
 	p->we_dont_have(1);
 	p->we_dont_have(2);
 	TEST_CHECK(!p->have_piece(1));
 	TEST_CHECK(!p->have_piece(2));
-	picked = pick_pieces(p, "*** ** ", 1, 0, nullptr, options, empty_vector);
+	auto picked = pick_pieces(p, "*** ** ", 1, 0, nullptr, options, empty_vector);
 	TEST_CHECK(int(picked.size()) > 0);
 	TEST_CHECK(picked.front().piece_index == 1);
+}
 
-// ========================================================
-
+TORRENT_TEST(dec_refcount_split_seed)
+{
 	// make sure we can split m_seed when removing a refcount
-	print_title("test dec_refcount split seed");
-	p = setup_picker("0000000", "       ", "0000000", "");
+	auto p = setup_picker("0000000", "       ", "0000000", "");
 	p->inc_refcount_all(nullptr);
 
 	std::vector<int> avail;
@@ -606,12 +599,12 @@ TORRENT_TEST(piece_picker)
 	TEST_CHECK(avail[2] != 0);
 	TEST_CHECK(avail[3] == 0);
 	TEST_CHECK(avail[4] != 0);
+}
 
-// ========================================================
-	
+TORRENT_TEST(init)
+{
 	// make sure init preserves priorities
-	print_title("test init");
-	p = setup_picker("1111111", "       ", "1111111", "");
+	auto p = setup_picker("1111111", "       ", "1111111", "");
 
 	TEST_CHECK(p->num_filtered() == 0);
 	TEST_CHECK(p->num_have_filtered() == 0);
@@ -621,7 +614,7 @@ TORRENT_TEST(piece_picker)
 	TEST_CHECK(p->num_filtered() == 1);
 	TEST_CHECK(p->num_have_filtered() == 0);
 	TEST_CHECK(p->num_have() == 0);
-	
+
 	p->we_have(0);
 
 	TEST_CHECK(p->num_filtered() == 0);
@@ -633,13 +626,13 @@ TORRENT_TEST(piece_picker)
 	TEST_CHECK(p->num_filtered() == 1);
 	TEST_CHECK(p->num_have_filtered() == 0);
 	TEST_CHECK(p->num_have() == 0);
+}
 
-// ========================================================
-	
+TORRENT_TEST(dont_pick_requested_blocks)
+{
 	// make sure requested blocks aren't picked
-	print_title("test don't pick requested blocks");
-	p = setup_picker("1111111", "       ", "", "");
-	picked = pick_pieces(p, "*******", 1, 0, nullptr, options, empty_vector);
+	auto p = setup_picker("1111111", "       ", "", "");
+	auto picked = pick_pieces(p, "*******", 1, 0, nullptr, options, empty_vector);
 	TEST_CHECK(int(picked.size()) > 0);
 	piece_block first = picked.front();
 	p->mark_as_downloading(picked.front(), &peer_struct);
@@ -647,24 +640,25 @@ TORRENT_TEST(piece_picker)
 	picked = pick_pieces(p, "*******", 1, 0, nullptr, options, empty_vector);
 	TEST_CHECK(int(picked.size()) > 0);
 	TEST_CHECK(picked.front() != first);
+}
 
-// ========================================================
-
+TORRENT_TEST(downloading_piece_priority)
+{
 	// make sure downloading pieces have higher priority
-	print_title("test downloading piece priority");
-	p = setup_picker("1111111", "       ", "", "");
-	picked = pick_pieces(p, "*******", 1, 0, nullptr, options, empty_vector);
+	auto p = setup_picker("1111111", "       ", "", "");
+	auto picked = pick_pieces(p, "*******", 1, 0, nullptr, options, empty_vector);
 	TEST_CHECK(int(picked.size()) > 0);
-	first = picked.front();
+	auto first = picked.front();
 	p->mark_as_downloading(picked.front(), &peer_struct);
 	TEST_CHECK(p->num_peers(picked.front()) == 1);
 	picked = pick_pieces(p, "*******", 1, 0, nullptr, options, empty_vector);
 	TEST_CHECK(int(picked.size()) > 0);
 	TEST_CHECK(picked.front() != first);
 	TEST_CHECK(picked.front().piece_index == first.piece_index);
+}
 
-// ========================================================
-
+TORRENT_TEST(partial_piece_order_rarest_first)
+{
 	// when we're prioritizing partial pieces, make sure to first pick the
 	// rarest of them. The blocks in this test are:
 	// 0: [    ] avail: 1
@@ -677,89 +671,91 @@ TORRENT_TEST(piece_picker)
 	// piece 6 does not have any blocks left to pick, even though piece 3 only
 	// has a single block left before it completes, it is less rare than piece
 	// 2. Piece 2 is the best pick in this case.
-	print_title("test partial piece order (rarest first)");
-	p = setup_picker("1112111", "       ", "", "013700f");
-	picked = pick_pieces(p, "*******", 1, 0, nullptr
+	auto p = setup_picker("1112111", "       ", "", "013700f");
+	auto picked = pick_pieces(p, "*******", 1, 0, nullptr
 		, options | piece_picker::prioritize_partials, empty_vector);
 	TEST_CHECK(int(picked.size()) > 0);
 	TEST_CHECK(picked.front() == piece_block(2, 2)
 		|| picked.front() == piece_block(2, 3));
+}
 
+TORRENT_TEST(partial_piece_order_most_complete)
+{
 	// as a tie breaker, make sure downloading pieces closer to completion have
 	// higher priority. piece 3 is only 1 block from being completed, and should
 	// be picked
-
-	print_title("test partial piece order (most complete)");
-	p = setup_picker("1111111", "       ", "", "013700f");
-	picked = pick_pieces(p, "*******", 1, 0, nullptr
+	auto p = setup_picker("1111111", "       ", "", "013700f");
+	auto picked = pick_pieces(p, "*******", 1, 0, nullptr
 		, options | piece_picker::prioritize_partials, empty_vector);
 	TEST_CHECK(int(picked.size()) > 0);
 	TEST_CHECK(picked.front() == piece_block(3, 3));
+}
 
+TORRENT_TEST(partial_piece_order_sequential)
+{
 	// if we don't use rarest first when we prioritize partials, but instead use
 	// sequential order, make sure we pick the right one
-
-	print_title("test partial piece order (sequential)");
-	p = setup_picker("1111111", "       ", "", "013700f");
-	picked = pick_pieces(p, "*******", 1, 0, nullptr
+	auto p = setup_picker("1111111", "       ", "", "013700f");
+	auto picked = pick_pieces(p, "*******", 1, 0, nullptr
 		, piece_picker::sequential | piece_picker::prioritize_partials, empty_vector);
 	TEST_CHECK(int(picked.size()) > 0);
 	TEST_CHECK(picked.front() == piece_block(1, 1)
 		|| picked.front() == piece_block(1, 2)
 		|| picked.front() == piece_block(1, 3));
+}
 
-// ========================================================
-
+TORRENT_TEST(random_picking_downloading_piece)
+{
 	// make sure the random piece picker can still pick partial pieces
-	print_title("test random picking (downloading piece)");
-	p = setup_picker("1111111", "       ", "", "013700f");
-	picked = pick_pieces(p, " ***  *", 1, 0, nullptr
+	auto p = setup_picker("1111111", "       ", "", "013700f");
+	auto picked = pick_pieces(p, " ***  *", 1, 0, nullptr
 		, 0, empty_vector);
 	TEST_CHECK(int(picked.size()) > 0);
 	TEST_CHECK(picked.front() == piece_block(1, 1)
 		|| picked.front() == piece_block(2, 2)
 		|| picked.front() == piece_block(3, 3));
+}
 
+TORRENT_TEST(random_picking_downloading_piece_prefer_contiguous)
+{
 	// make sure the random piece picker can still pick partial pieces
 	// even when prefer_contiguous_blocks is set
-	print_title("test random picking (downloading piece, prefer contiguous)");
-	p = setup_picker("1111111", "       ", "", "013700f");
-	picked = pick_pieces(p, " ***  *", 1, 4, nullptr
+	auto p = setup_picker("1111111", "       ", "", "013700f");
+	auto picked = pick_pieces(p, " ***  *", 1, 4, nullptr
 		, 0, empty_vector);
 	TEST_CHECK(int(picked.size()) > 0);
 	TEST_CHECK(picked.front() == piece_block(1, 1)
 		|| picked.front() == piece_block(2, 2)
 		|| picked.front() == piece_block(3, 3));
+}
 
-
-// ========================================================
-
+TORRENT_TEST(sequential_download)
+{
 	// test sequential download
-	print_title("test sequential download");
-	p = setup_picker("7654321", "       ", "", "");
-	picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, nullptr
+	auto p = setup_picker("7654321", "       ", "", "");
+	auto picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, nullptr
 		, piece_picker::sequential, empty_vector);
 	TEST_CHECK(int(picked.size()) == 7 * blocks_per_piece);
 	for (int i = 0; i < int(picked.size()); ++i)
 		TEST_CHECK(picked[i] == piece_block(i / blocks_per_piece, i % blocks_per_piece));
+}
 
-// ========================================================
-
+TORRENT_TEST(reverse_sequential_download)
+{
 	// test reverse sequential download
-	print_title("test reverse sequential download");
-	p = setup_picker("7654321", "       ", "", "");
-	picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, nullptr
+	auto p = setup_picker("7654321", "       ", "", "");
+	auto picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, nullptr
 		, piece_picker::sequential | piece_picker::reverse, empty_vector);
 	TEST_CHECK(int(picked.size()) == 7 * blocks_per_piece);
 	for (int i = 0; i < int(picked.size()); ++i)
 		TEST_CHECK(picked[i] == piece_block(6 - (i / blocks_per_piece), i % blocks_per_piece));
+}
 
-// ========================================================
-
+TORRENT_TEST(priority_sequential_download)
+{
 	// test priority sequential download
-	print_title("test priority sequential download");
-	p = setup_picker("7654321", "       ", "1117071", "");
-	picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, nullptr
+	auto p = setup_picker("7654321", "       ", "1117071", "");
+	auto picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, nullptr
 		, piece_picker::sequential, empty_vector);
 
 	// the piece with priority 0 was not picked, everything else should
@@ -773,12 +769,12 @@ TORRENT_TEST(piece_picker)
 	int expected[] = {-1, -1, 0, 1, 2, 6};
 	for (int i = 2 * blocks_per_piece; i < int(picked.size()); ++i)
 		TEST_EQUAL(picked[i].piece_index, expected[i / blocks_per_piece]);
+}
 
-// ========================================================
-
+TORRENT_TEST(cursors_sweep_up_we_have)
+{
 	// sweep up, we_have()
-	print_title("test cursors. sweep up, we_have");
-	p = setup_picker("7654321", "       ", "", "");
+	auto p = setup_picker("7654321", "       ", "", "");
 	for (int i = 0; i < 7; ++i)
 	{
 		TEST_EQUAL(p->cursor(), i);
@@ -789,10 +785,12 @@ TORRENT_TEST(piece_picker)
 	TEST_CHECK(p->is_seeding());
 	TEST_EQUAL(p->cursor(), 7);
 	TEST_EQUAL(p->reverse_cursor(), 0);
+}
 
+TORRENT_TEST(cursors_sweep_up_set_piece_priority)
+{
 	// sweep up, set_piece_priority()
-	print_title("test cursors. sweep up, set_piece_priority");
-	p = setup_picker("7654321", "       ", "", "");
+	auto p = setup_picker("7654321", "       ", "", "");
 	for (int i = 0; i < 7; ++i)
 	{
 		TEST_EQUAL(p->cursor(), i);
@@ -803,10 +801,12 @@ TORRENT_TEST(piece_picker)
 	TEST_CHECK(!p->is_seeding());
 	TEST_EQUAL(p->cursor(), 7);
 	TEST_EQUAL(p->reverse_cursor(), 0);
+}
 
+TORRENT_TEST(cursors_sweep_down_we_have)
+{
 	// sweep down, we_have()
-	print_title("test cursors. sweep down, we_have");
-	p = setup_picker("7654321", "       ", "", "");
+	auto p = setup_picker("7654321", "       ", "", "");
 	for (int i = 6; i >= 0; --i)
 	{
 		TEST_EQUAL(p->cursor(), 0);
@@ -817,10 +817,12 @@ TORRENT_TEST(piece_picker)
 	TEST_CHECK(p->is_seeding());
 	TEST_EQUAL(p->cursor(), 7);
 	TEST_EQUAL(p->reverse_cursor(), 0);
+}
 
+TORRENT_TEST(cursors_sweep_down_set_piece_priority)
+{
 	// sweep down, set_piece_priority()
-	print_title("test cursors. sweep down, set_piece_priority");
-	p = setup_picker("7654321", "       ", "", "");
+	auto p = setup_picker("7654321", "       ", "", "");
 	for (int i = 6; i >= 0; --i)
 	{
 		TEST_EQUAL(p->cursor(), 0);
@@ -831,10 +833,12 @@ TORRENT_TEST(piece_picker)
 	TEST_CHECK(!p->is_seeding());
 	TEST_EQUAL(p->cursor(), 7);
 	TEST_EQUAL(p->reverse_cursor(), 0);
+}
 
+TORRENT_TEST(cursors_sweep_in_set_priority)
+{
 	// sweep in, set_piece_priority()
-	print_title("test cursors. sweep in, set_piece_priority");
-	p = setup_picker("7654321", "       ", "", "");
+	auto p = setup_picker("7654321", "       ", "", "");
 	for (int left = 0, right = 6; left <= 3 && right >= 3; ++left, --right)
 	{
 		TEST_EQUAL(p->cursor(), left);
@@ -846,10 +850,12 @@ TORRENT_TEST(piece_picker)
 	TEST_CHECK(!p->is_seeding());
 	TEST_EQUAL(p->cursor(), 7);
 	TEST_EQUAL(p->reverse_cursor(), 0);
+}
 
+TORRENT_TEST(cursors_sweep_in_we_have)
+{
 	// sweep in, we_have()
-	print_title("test cursors. sweep in, we_have");
-	p = setup_picker("7654321", "       ", "", "");
+	auto p = setup_picker("7654321", "       ", "", "");
 	for (int left = 0, right = 6; left <= 3 && right >= 3; ++left, --right)
 	{
 		TEST_EQUAL(p->cursor(), left);
@@ -861,10 +867,11 @@ TORRENT_TEST(piece_picker)
 	TEST_CHECK(p->is_seeding());
 	TEST_EQUAL(p->cursor(), 7);
 	TEST_EQUAL(p->reverse_cursor(), 0);
+}
 
-
-	print_title("test cursors. sweep up, we_dont_have");
-	p = setup_picker("7654321", "*******", "", "");
+TORRENT_TEST(cursors_sweep_up_we_dont_have)
+{
+	auto p = setup_picker("7654321", "*******", "", "");
 	TEST_CHECK(p->is_finished());
 	TEST_CHECK(p->is_seeding());
 	TEST_EQUAL(p->cursor(), 7);
@@ -879,9 +886,11 @@ TORRENT_TEST(piece_picker)
 	TEST_CHECK(!p->is_seeding());
 	TEST_EQUAL(p->cursor(), 0);
 	TEST_EQUAL(p->reverse_cursor(), 7);
+}
 
-	print_title("test cursors. sweep down, we_dont_have");
-	p = setup_picker("7654321", "*******", "", "");
+TORRENT_TEST(cursors_sweep_down_we_dont_have)
+{
+	auto p = setup_picker("7654321", "*******", "", "");
 	TEST_CHECK(p->is_finished());
 	TEST_CHECK(p->is_seeding());
 	TEST_EQUAL(p->cursor(), 7);
@@ -896,9 +905,11 @@ TORRENT_TEST(piece_picker)
 	TEST_CHECK(!p->is_seeding());
 	TEST_EQUAL(p->cursor(), 0);
 	TEST_EQUAL(p->reverse_cursor(), 7);
+}
 
-	print_title("test cursors. sweep out, we_dont_have");
-	p = setup_picker("7654321", "*******", "", "");
+TORRENT_TEST(cursors_sweep_out_we_dont_have)
+{
+	auto p = setup_picker("7654321", "*******", "", "");
 	TEST_CHECK(p->is_finished());
 	TEST_CHECK(p->is_seeding());
 	TEST_EQUAL(p->cursor(), 7);
@@ -914,10 +925,12 @@ TORRENT_TEST(piece_picker)
 	TEST_CHECK(!p->is_seeding());
 	TEST_EQUAL(p->cursor(), 0);
 	TEST_EQUAL(p->reverse_cursor(), 7);
+}
 
+TORRENT_TEST(cursors)
+{
 	// test cursors
-	print_title("test cursors");
-	p = setup_picker("7654321", "       ", "", "");
+	auto p = setup_picker("7654321", "       ", "", "");
 	TEST_EQUAL(p->cursor(), 0);
 	TEST_EQUAL(p->reverse_cursor(), 7);
 	p->we_have(1);
@@ -961,12 +974,12 @@ TORRENT_TEST(piece_picker)
 	p->set_piece_priority(3, 1);
 	TEST_EQUAL(p->cursor(), 3);
 	TEST_EQUAL(p->reverse_cursor(), 4);
+}
 
-// ========================================================
-
+TORRENT_TEST(piece_priorities)
+{
 	// test piece priorities
-	print_title("test piece priorities");
-	p = setup_picker("5555555", "       ", "7654321", "");
+	auto p = setup_picker("5555555", "       ", "7654321", "");
 	TEST_CHECK(p->num_filtered() == 0);
 	TEST_CHECK(p->num_have_filtered() == 0);
 	p->set_piece_priority(0, 0);
@@ -976,17 +989,17 @@ TORRENT_TEST(piece_picker)
 	p->we_have(0);
 	TEST_CHECK(p->num_filtered() == 0);
 	TEST_CHECK(p->num_have_filtered() == 1);
-	
+
 	p->we_dont_have(0);
 	p->set_piece_priority(0, 7);
 
-	picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, nullptr
+	auto picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, nullptr
 		, options, empty_vector);
 	TEST_CHECK(int(picked.size()) == 7 * blocks_per_piece);
 
 	for (int i = 0; i < int(picked.size()); ++i)
 		TEST_CHECK(picked[i] == piece_block(i / blocks_per_piece, i % blocks_per_piece));
-	
+
 	// test changing priority on a piece we have
 	p->we_have(0);
 	p->set_piece_priority(0, 0);
@@ -998,24 +1011,24 @@ TORRENT_TEST(piece_picker)
 	TEST_CHECK(prios.size() == 7);
 	int prio_comp[] = {0, 6, 5, 4, 3, 2, 1};
 	TEST_CHECK(std::equal(prios.begin(), prios.end(), prio_comp));
-	
+
 	std::vector<bool> filter;
 	p->filtered_pieces(filter);
 	TEST_CHECK(prios.size() == 7);
 	bool filter_comp[] = {true, false, false, false, false, false, false};
 	TEST_CHECK(std::equal(filter.begin(), filter.end(), filter_comp));
+}
 
-// ========================================================
-
+TORRENT_TEST(restore_piece)
+{
 	// test restore_piece
-	print_title("test restore piece");
-	p = setup_picker("1234567", "       ", "", "");
+	auto p = setup_picker("1234567", "       ", "", "");
 	p->mark_as_finished(piece_block(0,0), nullptr);
 	p->mark_as_finished(piece_block(0,1), nullptr);
 	p->mark_as_finished(piece_block(0,2), nullptr);
 	p->mark_as_finished(piece_block(0,3), nullptr);
 
-	picked = pick_pieces(p, "*******", 1, 0, nullptr, options, empty_vector);
+	auto picked = pick_pieces(p, "*******", 1, 0, nullptr, options, empty_vector);
 	TEST_CHECK(int(picked.size()) >= 1);
 	TEST_CHECK(picked.front().piece_index == 1);
 
@@ -1043,12 +1056,12 @@ TORRENT_TEST(piece_picker)
 	picked = pick_pieces(p, "*******", 1, 0, nullptr, options, empty_vector);
 	TEST_CHECK(int(picked.size()) >= 1);
 	TEST_CHECK(picked.front().piece_index == 0);
+}
 
-// ========================================================
-
+TORRENT_TEST(random_pick)
+{
 	// test random mode
-	print_title("test random pick");
-	p = setup_picker("1234567", "       ", "1111122", "");
+	auto p = setup_picker("1234567", "       ", "1111122", "");
 	std::set<int> random_pieces;
 	for (int i = 0; i < 100; ++i)
 		random_pieces.insert(test_pick(p, 0));
@@ -1062,16 +1075,17 @@ TORRENT_TEST(piece_picker)
 		random_pieces.insert(piece);
 	}
 	TEST_CHECK(random_pieces.size() == 7);
+}
 
-// ========================================================
-
+TORRENT_TEST(picking_downloading_blocks)
+{
 	// make sure the piece picker will pick pieces that
 	// are already requested from other peers if it has to
-	print_title("test picking downloading blocks");
-	p = setup_picker("1111111", "       ", "", "");
+	auto p = setup_picker("1111111", "       ", "", "");
 	p->mark_as_downloading(piece_block(2,2), &tmp1);
 	p->mark_as_downloading(piece_block(1,2), &tmp1);
 
+	std::vector<piece_block> picked;
 	picked.clear();
 	p->pick_pieces(string2vec("*******"), picked, 7 * blocks_per_piece, 0, nullptr
 		, piece_picker::prioritize_partials, empty_vector, 20
@@ -1159,12 +1173,12 @@ TORRENT_TEST(piece_picker)
 	print_pick(picked);
 	// always only pick one busy piece
 	TEST_EQUAL(picked.size(), 1);
+}
 
-// ========================================================
-	
+TORRENT_TEST(clear_peer)
+{
 	// test clear_peer
-	print_title("test clear_peer");
-	p = setup_picker("1123333", "       ", "", "");
+	auto p = setup_picker("1123333", "       ", "", "");
 	p->mark_as_downloading(piece_block(0, 0), &tmp1);
 	p->mark_as_downloading(piece_block(0, 1), &tmp2);
 	p->mark_as_downloading(piece_block(0, 2), &tmp3);
@@ -1190,13 +1204,13 @@ TORRENT_TEST(piece_picker)
 	p->clear_peer(&tmp2);
 	p->get_downloaders(dls, 0);
 	TEST_CHECK(std::equal(dls.begin(), dls.end(), expected_dls5));
+}
 
-// ========================================================
-	
+TORRENT_TEST(have_all_have_none)
+{
 	// test have_all and have_none
-	print_title("test have_all and have_none");
-	p = setup_picker("0123333", "*      ", "", "");
-	dc = p->distributed_copies();
+	auto p = setup_picker("0123333", "*      ", "", "");
+	auto dc = p->distributed_copies();
 	std::cout << "distributed copies: " << dc.first << "." << (dc.second / 1000.f) << std::endl;
 	TEST_CHECK(dc == std::make_pair(1, 5000 / 7));
 	p->inc_refcount_all(&tmp8);
@@ -1212,13 +1226,13 @@ TORRENT_TEST(piece_picker)
 	std::cout << "distributed copies: " << dc.first << "." << (dc.second / 1000.f) << std::endl;
 	TEST_CHECK(dc == std::make_pair(0, 6000 / 7));
 	TEST_CHECK(test_pick(p) == 2);
+}
 
-// ========================================================
-	
+TORRENT_TEST(have_all_have_none_seq_download)
+{
 	// test have_all and have_none
-	print_title("test have_all and have_none with sequential download");
-	p = setup_picker("0123333", "*      ", "", "");
-	dc = p->distributed_copies();
+	auto p = setup_picker("0123333", "*      ", "", "");
+	auto dc = p->distributed_copies();
 	std::cout << "distributed copies: " << dc.first << "." << (dc.second / 1000.f) << std::endl;
 	TEST_CHECK(dc == std::make_pair(1, 5000 / 7));
 	p->inc_refcount_all(&tmp8);
@@ -1226,12 +1240,12 @@ TORRENT_TEST(piece_picker)
 	std::cout << "distributed copies: " << dc.first << "." << (dc.second / 1000.f) << std::endl;
 	TEST_CHECK(dc == std::make_pair(2, 5000 / 7));
 	TEST_CHECK(test_pick(p) == 1);
+}
 
-// ========================================================
-
+TORRENT_TEST(inc_ref_dec_ref)
+{
 	// test inc_ref and dec_ref
-	print_title("test inc_ref dec_ref");
-	p = setup_picker("1233333", "     * ", "", "");
+	auto p = setup_picker("1233333", "     * ", "", "");
 	TEST_CHECK(test_pick(p) == 0);
 
 	p->dec_refcount(0, &tmp0);
@@ -1265,12 +1279,12 @@ TORRENT_TEST(piece_picker)
 	TEST_EQUAL(bits.get_bit(6), false);
 	p->dec_refcount(bits, &tmp2);
 	TEST_EQUAL(test_pick(p), 0);
+}
 
-// ========================================================
-
+TORRENT_TEST(unverified_blocks)
+{
 	// test unverified_blocks, marking blocks and get_downloader
-	print_title("test unverified blocks");
-	p = setup_picker("1111111", "       ", "", "0300700");
+	auto p = setup_picker("1111111", "       ", "", "0300700");
 	TEST_CHECK(p->unverified_blocks() == 2 + 3);
 	TEST_CHECK(p->get_downloader(piece_block(4, 0)) == tmp_peer);
 	TEST_CHECK(p->get_downloader(piece_block(4, 1)) == tmp_peer);
@@ -1278,6 +1292,8 @@ TORRENT_TEST(piece_picker)
 	TEST_CHECK(p->get_downloader(piece_block(4, 3)) == nullptr);
 	p->mark_as_downloading(piece_block(4, 3), &peer_struct);
 	TEST_CHECK(p->get_downloader(piece_block(4, 3)) == &peer_struct);
+
+	piece_picker::downloading_piece st;
 	p->piece_info(4, st);
 	TEST_CHECK(st.requested == 1);
 	TEST_CHECK(st.writing == 0);
@@ -1304,13 +1320,13 @@ TORRENT_TEST(piece_picker)
 	TEST_CHECK(st.finished == 4);
 	TEST_CHECK(p->get_downloader(piece_block(4, 3)) == nullptr);
 	TEST_CHECK(p->unverified_blocks() == 2);
+}
 
-// ========================================================
-
+TORRENT_TEST(prefer_cnotiguous_blocks)
+{
 	// test prefer_contiguous_blocks
-	print_title("test prefer contiguous blocks");
-	p = setup_picker("1111111", "       ", "", "");
-	picked = pick_pieces(p, "*******", 1, 3 * blocks_per_piece
+	auto p = setup_picker("1111111", "       ", "", "");
+	auto picked = pick_pieces(p, "*******", 1, 3 * blocks_per_piece
 		, nullptr, options, empty_vector);
 	TEST_CHECK(int(picked.size()) >= 3 * blocks_per_piece);
 	piece_block b = picked.front();
@@ -1340,11 +1356,12 @@ TORRENT_TEST(piece_picker)
 		, nullptr, options, empty_vector);
 	TEST_CHECK(picked.size() == 7 * blocks_per_piece - 1);
 	TEST_CHECK(std::find(picked.begin(), picked.end(), piece_block(2,2)) == picked.end());
+}
 
-	// test aligned whole pieces
-	print_title("test prefer aligned whole pieces");
-	p = setup_picker("2222221222222222", "                ", "", "");
-	picked = pick_pieces(p, "****************", 1, 4 * blocks_per_piece, nullptr
+TORRENT_TEST(prefer_aligned_whole_pieces)
+{
+	auto p = setup_picker("2222221222222222", "                ", "", "");
+	auto picked = pick_pieces(p, "****************", 1, 4 * blocks_per_piece, nullptr
 		, options | piece_picker::align_expanded_pieces, empty_vector);
 
 	// the piece picker should pick piece 5, and then align it to even 4 pieces
@@ -1360,23 +1377,21 @@ TORRENT_TEST(piece_picker)
 	TEST_CHECK(picked_pieces.size() == 4);
 	int expected_pieces[] = {4,5,6,7};
 	TEST_CHECK(std::equal(picked_pieces.begin(), picked_pieces.end(), expected_pieces))
+}
 
-//#error test picking with partial pieces and other peers present so that both backup_pieces and backup_pieces2 are used
-	
-// ========================================================
-
+TORRENT_TEST(parole_mode)
+{
 	// test parole mode
-	print_title("test parole mode");
-	p = setup_picker("3333133", "       ", "", "");
+	auto p = setup_picker("3333133", "       ", "", "");
 	p->mark_as_finished(piece_block(0, 0), nullptr);
-	picked = pick_pieces(p, "*******", 1, blocks_per_piece, nullptr
-		
+	auto picked = pick_pieces(p, "*******", 1, blocks_per_piece, nullptr
+
 		, options | piece_picker::on_parole | piece_picker::prioritize_partials, empty_vector);
 	TEST_EQUAL(int(picked.size()), blocks_per_piece - 1);
 	for (int i = 1; i < int(picked.size()); ++i)
 		TEST_CHECK(picked[i] == piece_block(0, i + 1));
 
-	//	make sure that the partial piece is not picked by a
+	// make sure that the partial piece is not picked by a
 	// peer that is has not downloaded/requested the other blocks
 	picked = pick_pieces(p, "*******", 1, blocks_per_piece
 		, &peer_struct
@@ -1384,16 +1399,16 @@ TORRENT_TEST(piece_picker)
 	TEST_EQUAL(int(picked.size()), blocks_per_piece);
 	for (int i = 1; i < int(picked.size()); ++i)
 		TEST_CHECK(picked[i] == piece_block(4, i));
+}
 
-// ========================================================
-
+TORRENT_TEST(suggested_pieces)
+{
 	// test suggested pieces
-	print_title("test suggested pieces");
-	p = setup_picker("1111222233334444", "                ", "", "");
+	auto p = setup_picker("1111222233334444", "                ", "", "");
 	int v[] = {1, 5};
 	const std::vector<int> suggested_pieces(v, v + 2);
-	
-	picked = pick_pieces(p, "****************", 1, blocks_per_piece
+
+	auto picked = pick_pieces(p, "****************", 1, blocks_per_piece
 		, nullptr, options, suggested_pieces);
 	TEST_CHECK(int(picked.size()) >= blocks_per_piece);
 	for (int i = 1; i < int(picked.size()); ++i)
@@ -1415,13 +1430,13 @@ TORRENT_TEST(piece_picker)
 	TEST_CHECK(int(picked.size()) >= blocks_per_piece);
 	for (int i = 1; i < int(picked.size()); ++i)
 		TEST_CHECK(picked[i] == piece_block(5, i));
-	
-// ========================================================
+}
 
+TORRENT_TEST(bitfield_optimization)
+{
 	// test bitfield optimization
-	print_title("test bitfield optimization");
 	// we have less than half of the pieces
-	p = setup_picker("2122222211221222", "                ", "", "");
+	auto p = setup_picker("2122222211221222", "                ", "", "");
 	// make sure it's not dirty
 	pick_pieces(p, "****************", 1, blocks_per_piece, nullptr);
 	print_availability(p);
@@ -1433,12 +1448,12 @@ TORRENT_TEST(piece_picker)
 	p->inc_refcount(string2vec(" **  **  *   *  "), &tmp8);
 	print_availability(p);
 	TEST_CHECK(verify_availability(p, "1132123201220322"));
+}
 
-// ========================================================
-
+TORRENT_TEST(seed_optimization)
+{
 	// test seed optimizaton
-	print_title("test seed optimization");
-	p = setup_picker("0000000000000000", "                ", "", "");
+	auto p = setup_picker("0000000000000000", "                ", "", "");
 
 	// make sure it's not dirty
 	pick_pieces(p, "****************", 1, blocks_per_piece, nullptr);
@@ -1484,12 +1499,12 @@ TORRENT_TEST(piece_picker)
 	p->dec_refcount(string2vec("* * * * * * * * "), &tmp3);
 	print_availability(p);
 	TEST_CHECK(verify_availability(p, "1110111111111111"));
+}
 
-// ========================================================
-
+TORRENT_TEST(reversed_peers)
+{
 	// test reversed peers
-	print_title("test reversed peers");
-	p = setup_picker("3333333", "  *****", "", "");
+	auto p = setup_picker("3333333", "  *****", "", "");
 
 	// a reversed peer picked a block from piece 0
 	// This should make the piece reversed
@@ -1500,13 +1515,12 @@ TORRENT_TEST(piece_picker)
 
 	// make sure another reversed peer pick the same piece
 	TEST_EQUAL(test_pick(p, piece_picker::rarest_first | piece_picker::reverse), 0);
+}
 
-// ========================================================
-
+TORRENT_TEST(reversed_piece_upgrade)
+{
 	// test reversed pieces upgrading to normal pieces
-	print_title("test reversed piece upgrade");
-
-	p = setup_picker("3333333", "  *****", "", "");
+	auto p = setup_picker("3333333", "  *****", "", "");
 
 	// make piece 0 partial and reversed
 	p->mark_as_downloading(piece_block(0,1), &tmp1
@@ -1517,16 +1531,15 @@ TORRENT_TEST(piece_picker)
 	// have turned into a regular one and be prioritized
 	p->mark_as_downloading(piece_block(0,2), &tmp1);
 	TEST_EQUAL(test_pick(p), 0);
+}
 
-
-// ========================================================
-
-	// test pieces downgrading to reversed pieces
-	print_title("test reversed piece downgrade");
+TORRENT_TEST(reversed_piece_downgrade)
+{
+// test pieces downgrading to reversed pieces
 // now make sure a piece can be demoted to reversed if there are no
 // other outstanding requests
 
-	p = setup_picker("3333333", "       ", "", "");
+	auto p = setup_picker("3333333", "       ", "", "");
 
 	// make piece 0 partial and not reversed
 	p->mark_as_finished(piece_block(0,1), &tmp1);
@@ -1537,12 +1550,11 @@ TORRENT_TEST(piece_picker)
 		, piece_picker::reverse);
 
 	TEST_EQUAL(test_pick(p, piece_picker::rarest_first | piece_picker::reverse), 0);
+}
 
-// ========================================================
-
-	print_title("test piece_stats");
-
-	p = setup_picker("3456789", "*      ", "", "0300000");
+TORRENT_TEST(piece_stats)
+{
+	auto p = setup_picker("3456789", "*      ", "", "0300000");
 
 	piece_picker::piece_stats_t stat = p->piece_stats(0);
 	TEST_EQUAL(stat.peer_count, 3);
@@ -1553,12 +1565,11 @@ TORRENT_TEST(piece_picker)
 	TEST_EQUAL(stat.peer_count, 4);
 	TEST_EQUAL(stat.have, 0);
 	TEST_EQUAL(stat.downloading, 1);
+}
 
-// ========================================================
-
-	print_title("test piece passed");
-
-	p = setup_picker("1111111", "*      ", "", "0300000");
+TORRENT_TEST(piece_passed)
+{
+	auto p = setup_picker("1111111", "*      ", "", "0300000");
 
 	TEST_EQUAL(p->has_piece_passed(0), true);
 	TEST_EQUAL(p->has_piece_passed(1), false);
@@ -1586,12 +1597,11 @@ TORRENT_TEST(piece_picker)
 	p->mark_as_finished(piece_block(2,3), &tmp1);
 	TEST_EQUAL(p->num_have(), 3);
 	TEST_EQUAL(p->have_piece(2), true);
+}
 
-// ========================================================
-
-	print_title("test piece passed (causing we_have)");
-
-	p = setup_picker("1111111", "*      ", "", "0700000");
+TORRENT_TEST(piece_passed_causing_we_have)
+{
+	auto p = setup_picker("1111111", "*      ", "", "0700000");
 
 	TEST_EQUAL(p->has_piece_passed(0), true);
 	TEST_EQUAL(p->has_piece_passed(1), false);
@@ -1605,12 +1615,11 @@ TORRENT_TEST(piece_picker)
 	p->piece_passed(1);
 	TEST_EQUAL(p->num_passed(), 2);
 	TEST_EQUAL(p->num_have(), 2);
+}
 
-// ========================================================
-
-	print_title("test break_one_seed");
-
-	p = setup_picker("0000000", "*      ", "", "0700000");
+TORRENT_TEST(break_one_seed)
+{
+	auto p = setup_picker("0000000", "*      ", "", "0700000");
 	p->inc_refcount_all(&tmp1);
 	p->inc_refcount_all(&tmp2);
 	p->inc_refcount_all(&tmp3);
@@ -1623,12 +1632,11 @@ TORRENT_TEST(piece_picker)
 	TEST_EQUAL(p->piece_stats(1).peer_count, 3);
 	TEST_EQUAL(p->piece_stats(2).peer_count, 3);
 	TEST_EQUAL(p->piece_stats(3).peer_count, 3);
+}
 
-// ========================================================
-
-	print_title("test we dont have");
-
-	p = setup_picker("1111111", "* *    ", "1101111", "");
+TORRENT_TEST(we_dont_have2)
+{
+	auto p = setup_picker("1111111", "* *    ", "1101111", "");
 	TEST_EQUAL(p->has_piece_passed(0), true);
 	TEST_EQUAL(p->has_piece_passed(1), false);
 	TEST_EQUAL(p->has_piece_passed(2), true);
@@ -1663,12 +1671,11 @@ TORRENT_TEST(piece_picker)
 	TEST_EQUAL(p->num_passed(), 1);
 	TEST_EQUAL(p->num_have(), 1);
 	TEST_EQUAL(p->num_have_filtered(), 0);
+}
 
-// ========================================================
-
-	print_title("test we dont have (don't have but passed hash check)");
-
-	p = setup_picker("1111111", "* *    ", "1101111", "0200000");
+TORRENT_TEST(dont_have_but_passed_hash_check)
+{
+	auto p = setup_picker("1111111", "* *    ", "1101111", "0200000");
 
 	TEST_EQUAL(p->has_piece_passed(0), true);
 	TEST_EQUAL(p->has_piece_passed(1), false);
@@ -1686,12 +1693,11 @@ TORRENT_TEST(piece_picker)
 	TEST_EQUAL(p->has_piece_passed(0), true);
 	TEST_EQUAL(p->has_piece_passed(1), false);
 	TEST_EQUAL(p->have_piece(1), false)
+}
 
-// ========================================================
-
-	print_title("test write_failed");
-
-	p = setup_picker("1111111", "* *    ", "1101111", "0200000");
+TORRENT_TEST(write_failed)
+{
+	auto p = setup_picker("1111111", "* *    ", "1101111", "0200000");
 
 	TEST_EQUAL(p->has_piece_passed(0), true);
 	TEST_EQUAL(p->has_piece_passed(1), false);
@@ -1715,7 +1721,7 @@ TORRENT_TEST(piece_picker)
 	// also make sure restore_piece() unlocks it and makes
 	// it available for picking again.
 
-	picked = pick_pieces(p, " *     ", 1, blocks_per_piece, nullptr);
+	auto picked = pick_pieces(p, " *     ", 1, blocks_per_piece, nullptr);
 	TEST_EQUAL(picked.size(), 0);
 
 	p->restore_piece(1);
@@ -1729,14 +1735,13 @@ TORRENT_TEST(piece_picker)
 
 	picked = pick_pieces(p, " *     ", 1, blocks_per_piece, nullptr);
 	TEST_EQUAL(picked.size(), 0);
+}
 
-// ========================================================
+TORRENT_TEST(write_failed_clear_piece)
+{
+	auto p = setup_picker("1111111", "* *    ", "1101111", "");
 
-	print_title("test write_failed (clear piece)");
-
-	p = setup_picker("1111111", "* *    ", "1101111", "");
-
-	stat = p->piece_stats(1);
+	auto stat = p->piece_stats(1);
 	TEST_EQUAL(stat.downloading, 0);
 
 	p->mark_as_writing(piece_block(1, 0), &tmp1);
@@ -1748,14 +1753,13 @@ TORRENT_TEST(piece_picker)
 
 	stat = p->piece_stats(1);
 	TEST_EQUAL(stat.downloading, 0);
+}
 
-// ========================================================
+TORRENT_TEST(mark_as_canceled)
+{
+	auto p = setup_picker("1111111", "* *    ", "1101111", "");
 
-	print_title("test mark_as_canceled");
-
-	p = setup_picker("1111111", "* *    ", "1101111", "");
-
-	stat = p->piece_stats(1);
+	auto stat = p->piece_stats(1);
 	TEST_EQUAL(stat.downloading, 0);
 
 	p->mark_as_writing(piece_block(1, 0), &tmp1);
@@ -1766,12 +1770,11 @@ TORRENT_TEST(piece_picker)
 	p->mark_as_canceled(piece_block(1, 0), &tmp1);
 	stat = p->piece_stats(1);
 	TEST_EQUAL(stat.downloading, 0);
+}
 
-// ========================================================
-
-	print_title("test get_download_queue");
-
-	p = setup_picker("1111111", "       ", "1101111", "0327000");
+TORRENT_TEST(get_download_queue)
+{
+	auto p = setup_picker("1111111", "       ", "1101111", "0327000");
 
 	std::vector<piece_picker::downloading_piece> downloads
 		= p->get_download_queue();
@@ -1785,12 +1788,11 @@ TORRENT_TEST(piece_picker)
 		, [](piece_picker::downloading_piece const& p) { return p.index == 2; }), 1);
 	TEST_EQUAL(std::count_if(downloads.begin(), downloads.end()
 		, [](piece_picker::downloading_piece const& p) { return p.index == 3; }), 1);
+}
 
-// ========================================================
-
-	print_title("test get_download_queue_size");
-
-	p = setup_picker("1111111", "       ", "1111111", "0327ff0");
+TORRENT_TEST(get_download_queue_size)
+{
+	auto p = setup_picker("1111111", "       ", "1111111", "0327ff0");
 
 	TEST_EQUAL(p->get_download_queue_size(), 5);
 
@@ -1806,15 +1808,14 @@ TORRENT_TEST(piece_picker)
 	TEST_EQUAL(full, 0);
 	TEST_EQUAL(finished, 2);
 	TEST_EQUAL(zero_prio, 1);
+}
 
-// ========================================================
-
-	print_title("test time_critical_mode");
-
-	p = setup_picker("1111111", "       ", "1654741", "0352000");
+TORRENT_TEST(time_critical_mode)
+{
+	auto p = setup_picker("1111111", "       ", "1654741", "0352000");
 
 	// rarest-first
-	picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, tmp_peer
+	auto picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, tmp_peer
 		, piece_picker::rarest_first | piece_picker::time_critical_mode, empty_vector);
 	TEST_EQUAL(picked.size(), blocks_per_piece);
 	for (int i = 0; i < int(picked.size()); ++i)
@@ -1858,6 +1859,9 @@ TORRENT_TEST(piece_picker)
 		TEST_EQUAL(picked[0].piece_index, 4);
 
 	// even when a non-critical piece is suggested should we ignore it
+	int v[] = {1, 5};
+	const std::vector<int> suggested_pieces(v, v + 2);
+
 	picked = pick_pieces(p, "*******", 7 * blocks_per_piece, 0, tmp_peer
 		, piece_picker::rarest_first | piece_picker::time_critical_mode
 		, suggested_pieces);
@@ -1865,4 +1869,6 @@ TORRENT_TEST(piece_picker)
 	for (int i = 0; i < int(picked.size()); ++i)
 		TEST_EQUAL(picked[0].piece_index, 4);
 }
+
+//TODO: 2 test picking with partial pieces and other peers present so that both backup_pieces and backup_pieces2 are used
 

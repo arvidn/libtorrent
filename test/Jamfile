@@ -124,7 +124,6 @@ test-suite libtorrent :
 		test_tailqueue.cpp
 		test_bandwidth_limiter.cpp
 		test_buffer.cpp
-		test_piece_picker.cpp
 		test_bencoding.cpp
 		test_bdecode.cpp
 		test_http_parser.cpp
@@ -140,6 +139,8 @@ test-suite libtorrent :
 		test_enum_net.cpp
 		test_linked_list.cpp
 		test_file_progress.cpp ]
+
+	[ run test_piece_picker.cpp ]
 
 	[ run test_dht.cpp
 		test_dht_storage.cpp
@@ -223,6 +224,7 @@ alias win-tests :
 	test_resume
 	test_tracker
 	test_checking
+	test_piece_picker
 	;
 
 explicit win-tests ;
