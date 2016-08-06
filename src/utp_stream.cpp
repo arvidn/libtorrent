@@ -1356,7 +1356,7 @@ void utp_socket_impl::send_syn()
 {
 	INVARIANT_CHECK;
 
-	m_seq_nr = random() & 0xffff;
+	m_seq_nr = random(0xffff);
 	m_acked_seq_nr = (m_seq_nr - 1) & ACK_MASK;
 	m_loss_seq_nr = m_acked_seq_nr;
 	m_ack_nr = 0;
@@ -1476,7 +1476,7 @@ void utp_socket_impl::send_reset(utp_header const* ph)
 	h.connection_id = m_send_id;
 	h.timestamp_difference_microseconds = m_reply_micro;
 	h.wnd_size = 0;
-	h.seq_nr = random() & 0xffff;
+	h.seq_nr = random(0xffff);
 	h.ack_nr = ph->seq_nr;
 	time_point now = clock_type::now();
 	h.timestamp_microseconds = std::uint32_t(
@@ -3091,7 +3091,7 @@ bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 				m_port = ep.port();
 
 				m_ack_nr = ph->seq_nr;
-				m_seq_nr = random() & 0xffff;
+				m_seq_nr = random(0xffff);
 				m_acked_seq_nr = (m_seq_nr - 1) & ACK_MASK;
 				m_loss_seq_nr = m_acked_seq_nr;
 				m_fast_resend_seq_nr = m_seq_nr;

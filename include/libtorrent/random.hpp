@@ -35,6 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	std::uint32_t TORRENT_EXTRA_EXPORT random();
-	std::uint32_t TORRENT_EXTRA_EXPORT randint(int i);
+	std::uint32_t TORRENT_EXTRA_EXPORT random(std::uint32_t max);
+	std::uint32_t TORRENT_EXTRA_EXPORT randint(std::uint32_t one_past_end);
 }

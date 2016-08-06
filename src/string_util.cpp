@@ -143,7 +143,7 @@ namespace libtorrent
 
 		// the random number
 		while (begin != end)
-			*begin++ = printable[random() % (sizeof(printable)-1)];
+			*begin++ = printable[random(sizeof(printable)-2)];
 	}
 
 	char* allocate_string_copy(char const* str)

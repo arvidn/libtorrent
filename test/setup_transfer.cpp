@@ -100,7 +100,7 @@ sha1_hash rand_hash()
 {
 	sha1_hash ret;
 	for (int i = 0; i < 20; ++i)
-		ret[i] = boost::uint8_t(lt::random() & 0xff);
+		ret[i] = boost::uint8_t(lt::random(0xff));
 	return ret;
 }
 
@@ -109,7 +109,7 @@ address rand_v6()
 {
 	address_v6::bytes_type bytes;
 	for (int i = 0; i < int(bytes.size()); ++i)
-		bytes[i] = boost::uint8_t(lt::random() & 0xff);
+		bytes[i] = boost::uint8_t(lt::random(0xff));
 	return address_v6(bytes);
 }
 #endif
@@ -533,7 +533,7 @@ int start_proxy(int proxy_type)
 		if (i->second.type == proxy_type) { return i->first; }
 	}
 
-	int port = 2000 + (lt::random() % 6000);
+	int port = 2000 + lt::random(6000);
 	error_code ec;
 	io_service ios;
 
@@ -601,7 +601,7 @@ boost::shared_ptr<T> clone_ptr(boost::shared_ptr<T> const& ptr)
 }
 
 unsigned char random_byte()
-{ return lt::random() & 0xff; }
+{ return lt::random(0xff); }
 
 std::vector<char> generate_piece(int const idx, int const piece_size)
 {
@@ -958,7 +958,7 @@ pid_type web_server_pid = 0;
 
 int start_web_server(bool ssl, bool chunked_encoding, bool keepalive)
 {
-	int port = 2000 + (lt::random() % 6000);
+	int port = 2000 + lt::random(6000);
 	error_code ec;
 	io_service ios;
 

@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/file.hpp"
+#include "libtorrent/random.hpp"
 #include <csignal>
 
 #ifdef _WIN32
@@ -322,7 +323,8 @@ EXPORT int main(int argc, char const* argv[])
 #else
 	chdir(dir);
 #endif
-	std::fprintf(stderr, "test: %s\ncwd = \"%s\"\n", executable, test_dir.c_str());
+	std::fprintf(stderr, "test: %s\ncwd = \"%s\"\nrnd: %x\n"
+		, executable, test_dir.c_str(), libtorrent::random(0xffffffff));
 
 	int total_failures = 0;
 

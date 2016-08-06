@@ -99,7 +99,7 @@ void test_swarm(int flags)
 	// three peers before finishing.
 	float rate_limit = 100000;
 
-	int port = lt::random() % 100;
+	int port = lt::random(100);
 	char iface[50];
 	std::snprintf(iface, sizeof(iface), "0.0.0.0:480%02d", port);
 	pack.set_int(settings_pack::upload_rate_limit, int(rate_limit));

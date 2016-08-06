@@ -773,15 +773,15 @@ namespace libtorrent
 		return std::make_pair(min_availability + m_seeds, fraction_part * 1000 / num_pieces);
 	}
 
-	void piece_picker::priority_range(int prio, int* start, int* end)
+	std::pair<int, int> piece_picker::priority_range(int prio)
 	{
 		TORRENT_ASSERT(prio >= 0);
-		TORRENT_ASSERT(prio < int(m_priority_boundaries.size())
-			|| m_dirty);
-		if (prio == 0) *start = 0;
-		else *start = m_priority_boundaries[prio - 1];
-		*end = m_priority_boundaries[prio];
-		TORRENT_ASSERT(*start <= *end);
+		TORRENT_ASSERT(prio < int(m_priority_boundaries.size()) || m_dirty);
+		std::pair<int, int> const ret{
+			prio == 0 ? 0 : m_priority_boundaries[prio-1]
+			, m_priority_boundaries[prio]};
+		TORRENT_ASSERT(ret.first <= ret.second);
+		return ret;
 	}
 
 	void piece_picker::add(int index)
@@ -802,11 +802,10 @@ namespace libtorrent
 
 		TORRENT_ASSERT(int(m_priority_boundaries.size()) >= priority);
 
-		int range_start, range_end;
-		priority_range(priority, &range_start, &range_end);
-		int new_index;
-		if (range_end == range_start) new_index = range_start;
-		else new_index = random() % (range_end - range_start + 1) + range_start;
+		auto range = priority_range(priority);
+		int new_index = (range.second == range.first)
+			? range.first
+			: random(range.second - range.first) + range.first;
 
 #ifdef TORRENT_PICKER_LOG
 		std::cerr << "[" << this << "] " << "add " << index << " (" << priority << ")" << std::endl;
@@ -1028,10 +1027,8 @@ namespace libtorrent
 		TORRENT_ASSERT(elem_index < int(m_pieces.size()));
 		TORRENT_ASSERT(m_piece_map[m_pieces[elem_index]].priority(this) == priority);
 
-		int range_start, range_end;
-		priority_range(priority, &range_start, &range_end);
-		TORRENT_ASSERT(range_start < range_end);
-		int other_index = random() % (range_end - range_start) + range_start;
+		auto const range = priority_range(priority);
+		int const other_index = random(range.second - range.first - 1) + range.first;
 
 		if (other_index == elem_index) return;
 
@@ -2206,7 +2203,7 @@ namespace libtorrent
 			// we're not using rarest first (only for the first
 			// bucket, since that's where the currently downloading
 			// pieces are)
-			int start_piece = random() % m_piece_map.size();
+			int const start_piece = int(random(std::uint32_t(m_piece_map.size()-1)));
 
 			int piece = start_piece;
 			while (num_blocks > 0)
@@ -2385,7 +2382,7 @@ get_out:
 		while (partials_size > 0)
 		{
 			pc.inc_stats_counter(counters::piece_picker_busy_loops);
-			int piece = random() % partials_size;
+			int piece = random(partials_size-1);
 			downloading_piece const* dp = partials[piece];
 			TORRENT_ASSERT(pieces[dp->index]);
 			TORRENT_ASSERT(piece_priority(dp->index) > 0);
@@ -2409,8 +2406,7 @@ get_out:
 			if (!temp.empty())
 			{
 				ret |= picker_log_alert::end_game;
-
-				interesting_blocks.push_back(temp[random() % temp.size()]);
+				interesting_blocks.push_back(temp[random(std::uint32_t(temp.size()) - 1)]);
 				--num_blocks;
 				break;
 			}

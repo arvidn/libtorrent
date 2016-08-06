@@ -58,6 +58,8 @@ namespace libtorrent
 
 	using key_t = mp::number<mp::cpp_int_backend<768, 768, mp::unsigned_magnitude, mp::unchecked, void>>;
 
+	std::array<char, 96> export_key(key_t const& k);
+
 	// RC4 state from libtomcrypt
 	struct rc4 {
 		int x, y;

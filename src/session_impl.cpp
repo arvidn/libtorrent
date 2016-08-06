@@ -2038,7 +2038,7 @@ namespace aux {
 		socks5_stream& s = *m_socks_listen_socket->get<socks5_stream>();
 
 		m_socks_listen_port = listen_port();
-		if (m_socks_listen_port == 0) m_socks_listen_port = 2000 + random() % 60000;
+		if (m_socks_listen_port == 0) m_socks_listen_port = 2000 + random(60000);
 		s.async_listen(tcp::endpoint(address_v4::any(), m_socks_listen_port)
 			, std::bind(&session_impl::on_socks_listen, this
 				, m_socks_listen_socket, _1));

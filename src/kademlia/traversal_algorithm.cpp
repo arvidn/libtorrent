@@ -158,7 +158,7 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 			{
 				address_v6::bytes_type addr_bytes = o->target_addr().to_v6().to_bytes();
 				address_v6::bytes_type::const_iterator prefix_it = addr_bytes.begin();
-				std::uint64_t prefix6 = detail::read_uint64(prefix_it);
+				std::uint64_t const prefix6 = detail::read_uint64(prefix_it);
 
 				if (m_peer6_prefixes.insert(prefix6).second)
 					goto add_result;
@@ -167,8 +167,8 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 #endif
 			{
 				// mask the lower octet
-				std::uint32_t prefix4 = o->target_addr().to_v4().to_ulong();
-				prefix4 &= 0xffffff00;
+				std::uint32_t const prefix4
+					= o->target_addr().to_v4().to_ulong() & 0xffffff00;
 
 				if (m_peer4_prefixes.insert(prefix4).second)
 					goto add_result;

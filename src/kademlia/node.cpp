@@ -117,8 +117,8 @@ node::node(udp proto, udp_socket_interface* sock
 	, m_counters(cnt)
 	, m_storage(storage)
 {
-	m_secret[0] = random();
-	m_secret[1] = random();
+	m_secret[0] = random(0xffffffff);
+	m_secret[1] = random(0xffffffff);
 }
 
 node::~node() = default;
@@ -242,7 +242,7 @@ int node::bucket_size(int bucket)
 void node::new_write_key()
 {
 	m_secret[1] = m_secret[0];
-	m_secret[0] = random();
+	m_secret[0] = random(0xffffffff);
 }
 
 void node::unreachable(udp::endpoint const& ep)

@@ -61,13 +61,13 @@ namespace {
 	// this is the IP address assigned to node 'idx'
 	asio::ip::address addr_from_int(int /* idx */)
 	{
-		return asio::ip::address_v4(lt::random());
+		return rand_v4();
 	}
 
 	asio::ip::address addr6_from_int(int /* idx */)
 	{
 		asio::ip::address_v6::bytes_type bytes;
-		for (uint8_t& b : bytes) b = uint8_t(lt::random());
+		for (uint8_t& b : bytes) b = uint8_t(lt::random(0xff));
 		return asio::ip::address_v6(bytes);
 	}
 
@@ -217,7 +217,7 @@ struct dht_node final : lt::dht::udp_socket_interface
 			// there are no more slots in this bucket, just move ont
 			if (nodes_per_bucket[bucket] == 0) continue;
 			--nodes_per_bucket[bucket];
-			bool const added = dht().m_table.node_seen(n.first, n.second, (lt::random() % 300) + 10);
+			bool const added = dht().m_table.node_seen(n.first, n.second, lt::random(300) + 10);
 			TEST_CHECK(added);
 			if (m_add_dead_nodes)
 			{
@@ -226,7 +226,7 @@ struct dht_node final : lt::dht::udp_socket_interface
 				dht::node_id target = dht::generate_random_id() & ~mask;
 				target |= id & mask;
 				dht().m_table.node_seen(target, rand_udp_ep(m_ipv6 ? rand_v6 : rand_v4)
-					, (lt::random() % 300) + 10);
+					, lt::random(300) + 10);
 			}
 		}
 /*

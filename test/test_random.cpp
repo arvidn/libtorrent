@@ -48,7 +48,7 @@ TORRENT_TEST(random)
 
 		for (int i = 0; i < repetitions; ++i)
 		{
-			std::uint32_t val = libtorrent::random();
+			std::uint32_t val = libtorrent::random(0xffffffff);
 			val >>= byte * 8;
 			++buckets[val & 0xff];
 		}

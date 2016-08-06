@@ -236,20 +236,35 @@ namespace
 				// max_peers_reply should probably be specified in bytes
 				if (!v.peers.empty() && v.peers.begin()->addr.protocol() == tcp::v6())
 					max /= 4;
-				int num = (std::min)(int(v.peers.size()), max);
+				// we're picking "to_pick" from a list of "num" at random.
+				int const to_pick = (std::min)(int(v.peers.size()), max);
 				std::set<peer_entry>::const_iterator iter = v.peers.begin();
 				entry::list_type& pe = peers["values"].list();
-				std::string endpoint;
 
-				for (int t = 0, m = 0; m < num && iter != v.peers.end(); ++iter, ++t)
+				for (int t = 0, m = 0; m < to_pick && iter != v.peers.end(); ++iter)
 				{
-					if ((random() / float(UINT_MAX + 1.f)) * (num - t) >= num - m) continue;
+					// if the node asking for peers is a seed, skip seeds from the
+					// peer list
 					if (noseed && iter->seed) continue;
-					endpoint.resize(18);
-					std::string::iterator out = endpoint.begin();
+
+					++t;
+					std::string* str;
+					if (t <= to_pick)
+					{
+						pe.push_back(entry());
+						str = &pe.back().string();
+					}
+					else
+					{
+						// maybe replace an item we've already picked
+						if (random(t-1) >= to_pick) continue;
+						str = &pe[random(to_pick - 1)].string();
+					}
+
+					str->resize(18);
+					std::string::iterator out = str->begin();
 					write_endpoint(iter->addr, out);
-					endpoint.resize(out - endpoint.begin());
-					pe.push_back(entry(endpoint));
+					str->resize(out - str->begin());
 
 					++m;
 				}
@@ -316,7 +331,7 @@ namespace
 			{
 				// when we're at capacity, there's a 50/50 chance of dropping the
 				// announcing peer or an existing peer
-				if (random() & 1) return;
+				if (random(1)) return;
 				i = v->peers.lower_bound(peer);
 				if (i == v->peers.end()) --i;
 				v->peers.erase(i++);

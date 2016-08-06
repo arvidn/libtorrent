@@ -78,7 +78,7 @@ namespace
 	{
 		explicit smart_ban_plugin(torrent& t)
 			: m_torrent(t)
-			, m_salt(random())
+			, m_salt(random(0xffffffff))
 		{}
 
 		void on_piece_pass(int p) override

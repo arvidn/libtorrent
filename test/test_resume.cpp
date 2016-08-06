@@ -65,7 +65,7 @@ boost::shared_ptr<torrent_info> generate_torrent()
 	for (int i = 0; i < num; ++i)
 	{
 		sha1_hash ph;
-		for (int k = 0; k < 20; ++k) ph[k] = lt::random();
+		for (int k = 0; k < 20; ++k) ph[k] = lt::random(0xff);
 		t.set_hash(i, ph);
 	}
 
