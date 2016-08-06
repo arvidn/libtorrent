@@ -35,11 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DHT_TRACKER
 #define TORRENT_DHT_TRACKER
 
-#include <fstream>
-#include <set>
-#include <numeric>
 #include <functional>
-#include <boost/ref.hpp>
 #include <boost/smart_ptr/enable_shared_from_this.hpp>
 
 #include "libtorrent/kademlia/node.hpp"
@@ -70,7 +66,7 @@ namespace libtorrent { namespace dht
 		: udp_socket_interface
 		, boost::enable_shared_from_this<dht_tracker>
 	{
-		typedef boost::function<void(udp::endpoint const&
+		typedef std::function<void(udp::endpoint const&
 			, span<char const>, error_code&, int)> send_fun_t;
 
 		dht_tracker(dht_observer* observer

@@ -465,7 +465,7 @@ namespace aux {
 		// ---- auto-cap max connections ----
 		int max_files = max_open_files();
 		// deduct some margin for epoll/kqueue, log files,
-		// futexes, shared objects etc.
+		// mutexes, shared objects etc.
 		// 80% of the available file descriptors should go to connections
 		m_settings.set_int(settings_pack::connections_limit, (std::min)(
 			m_settings.get_int(settings_pack::connections_limit)

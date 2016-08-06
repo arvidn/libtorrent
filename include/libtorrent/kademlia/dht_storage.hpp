@@ -33,11 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DHT_STORAGE_HPP
 #define TORRENT_DHT_STORAGE_HPP
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/function.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <functional>
 
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/types.hpp>
@@ -224,7 +220,7 @@ namespace dht
 	};
 
 	using dht_storage_constructor_type
-		= boost::function<std::unique_ptr<dht_storage_interface>(dht_settings const& settings)>;
+		= std::function<std::unique_ptr<dht_storage_interface>(dht_settings const& settings)>;
 
 	TORRENT_EXPORT std::unique_ptr<dht_storage_interface>
 		dht_default_storage_constructor(dht_settings const& settings);

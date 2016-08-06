@@ -75,7 +75,7 @@ using libtorrent::aux::session_impl;
 
 namespace libtorrent
 {
-	TORRENT_EXPORT void min_memory_usage(settings_pack& set)
+	void min_memory_usage(settings_pack& set)
 	{
 #ifndef TORRENT_NO_DEPRECATE
 		// receive data directly into disk buffers
@@ -164,7 +164,7 @@ namespace libtorrent
 		set.set_bool(settings_pack::coalesce_writes, false);
 	}
 
-	TORRENT_EXPORT void high_performance_seed(settings_pack& set)
+	void high_performance_seed(settings_pack& set)
 	{
 		// don't throttle TCP, assume there is
 		// plenty of bandwidth
@@ -322,7 +322,7 @@ namespace libtorrent
 	// configurations this will give a link error
 	void TORRENT_EXPORT TORRENT_CFG() {}
 
-	void session::start(int flags, settings_pack pack, io_service* ios)
+	void session::start(session_params const params, io_service* ios)
 	{
 		bool const internal_executor = ios == nullptr;
 
@@ -337,17 +337,23 @@ namespace libtorrent
 		*static_cast<session_handle*>(this) = session_handle(m_impl.get());
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		if (flags & add_default_plugins)
+		if (params.start_flags & session_params::add_default_plugins)
 		{
-			add_extension(create_ut_pex_plugin);
-			add_extension(create_ut_metadata_plugin);
-			add_extension(create_smart_ban_plugin);
+			m_impl->add_extension(create_ut_pex_plugin);
+			m_impl->add_extension(create_ut_metadata_plugin);
+			m_impl->add_extension(create_smart_ban_plugin);
 		}
-#else
-		TORRENT_UNUSED(flags);
+
+		for (auto const& ext : params.extensions)
+		{
+			m_impl->add_ses_extension(ext);
+		}
 #endif
 
-		m_impl->start_session(std::move(pack));
+		set_dht_settings(params.dht_settings);
+		set_dht_storage(params.dht_storage_constructor);
+
+		m_impl->start_session(std::move(params.settings));
 
 		if (internal_executor)
 		{
@@ -414,4 +420,3 @@ namespace libtorrent
 			m_thread->join();
 	}
 }
-

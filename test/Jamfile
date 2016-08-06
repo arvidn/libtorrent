@@ -160,6 +160,7 @@ test-suite libtorrent :
 	[ run test_magnet.cpp ]
 	[ run test_storage.cpp ]
 	[ run test_session.cpp ]
+	[ run test_session_params.cpp ]
 	[ run test_read_piece.cpp ]
 
 	[ run test_file.cpp ]
@@ -225,16 +226,18 @@ alias win-tests :
 	test_tracker
 	test_checking
 	test_piece_picker
+	test_ffs
+	test_session_params
 	;
 
 explicit win-tests ;
 
 alias arm-tests :
-    test_sha1_hash
-    test_bitfield
-    test_crc32
-    test_ffs
-    ;
+	test_sha1_hash
+	test_bitfield
+	test_crc32
+	test_ffs
+	;
 
 explicit arm-tests ;
 
