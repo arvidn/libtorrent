@@ -159,7 +159,7 @@ namespace libtorrent
 			size_t const num = num_words();
 			if (num == 0) return -1;
 			int const clz = aux::clz({&m_buf[1], num});
-			return clz != num * 32 ? clz : -1;
+			return clz != int(num) * 32 ? clz : -1;
 		}
 		int find_last_clear() const
 		{
