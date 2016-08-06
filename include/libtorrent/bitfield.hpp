@@ -168,7 +168,7 @@ namespace libtorrent
 			std::uint32_t const mask = 0xffffffff << (32 - (size() & 31));
 			std::uint32_t const last = m_buf[num] ^ aux::host_to_network(mask);
 			return last != 0
-				? (num - 1) * 32 + aux::flz(~last)
+				? (int(num) - 1) * 32 + aux::flz(~last)
 				: aux::flz({&m_buf[1], num - 1});
 		}
 
