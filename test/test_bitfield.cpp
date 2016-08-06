@@ -326,3 +326,11 @@ TORRENT_TEST(find_last_clear_late)
 	test1.clear_bit(98);
 	TEST_EQUAL(test1.find_last_clear(), 98);
 }
+
+TORRENT_TEST(find_last_clear_two)
+{
+	bitfield test1(100, true);
+	test1.clear_bit(11);
+	test1.clear_bit(91);
+	TEST_EQUAL(test1.find_last_clear(), 91);
+}

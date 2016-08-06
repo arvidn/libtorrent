@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/span.hpp"
 #include "libtorrent/hex.hpp" // from_hex
 #include "libtorrent/aux_/ffs.hpp"
+#include "libtorrent/aux_/byteswap.hpp"
 
 using namespace libtorrent;
 
@@ -42,7 +43,7 @@ static void to_binary(char const* s, std::uint32_t* buf)
 	aux::from_hex({s, 40}, reinterpret_cast<char*>(&buf[0]));
 }
 
-TORRENT_TEST(clz)
+TORRENT_TEST(count_leading_zeros)
 {
 	std::vector<std::pair<char const*, int>> const tests = {
 		{ "ffffffffffffffffffffffffffffffffffffffff", 0 },
@@ -74,31 +75,41 @@ TORRENT_TEST(clz)
 		std::fprintf(stderr, "%s\n", t.first);
 		std::uint32_t buf[5];
 		to_binary(t.first, buf);
-		TEST_EQUAL(aux::clz_sw({buf, 5}), t.second);
-		TEST_EQUAL(aux::clz_hw({buf, 5}), t.second);
-		TEST_EQUAL(aux::clz({buf, 5}), t.second);
+		TEST_EQUAL(aux::count_leading_zeros_sw({buf, 5}), t.second);
+		TEST_EQUAL(aux::count_leading_zeros_hw({buf, 5}), t.second);
+		TEST_EQUAL(aux::count_leading_zeros({buf, 5}), t.second);
 	}
 }
 
-TORRENT_TEST(flz_u32)
+TORRENT_TEST(find_last_zero_u32)
 {
 	std::uint32_t v = 0;
-	TEST_EQUAL(aux::flz_sw(v), 31);
-	TEST_EQUAL(aux::flz_hw(v), 31);
-	TEST_EQUAL(aux::flz(v), 31);
+	TEST_EQUAL(aux::find_last_zero_sw(v), 31);
+	TEST_EQUAL(aux::find_last_zero_hw(v), 31);
+	TEST_EQUAL(aux::find_last_zero(v), 31);
 
 	v = 0xffffffff;
-	TEST_EQUAL(aux::flz_sw(v), -1);
-	TEST_EQUAL(aux::flz_hw(v), -1);
-	TEST_EQUAL(aux::flz(v), -1);
+	TEST_EQUAL(aux::find_last_zero_sw(v), -1);
+	TEST_EQUAL(aux::find_last_zero_hw(v), -1);
+	TEST_EQUAL(aux::find_last_zero(v), -1);
 
-	v = 0xff00ff00;
-	TEST_EQUAL(aux::flz_sw(v), 23);
-	TEST_EQUAL(aux::flz_hw(v), 23);
-	TEST_EQUAL(aux::flz(v), 23);
+	v = aux::host_to_network(0xff00ff00);
+	TEST_EQUAL(aux::find_last_zero_sw(v), 31);
+	TEST_EQUAL(aux::find_last_zero_hw(v), 31);
+	TEST_EQUAL(aux::find_last_zero(v), 31);
 
-	v = 0xff0fff00;
-	TEST_EQUAL(aux::flz_sw(v), 19);
-	TEST_EQUAL(aux::flz_hw(v), 19);
-	TEST_EQUAL(aux::flz(v), 19);
+	v = aux::host_to_network(0xff0fff00);
+	TEST_EQUAL(aux::find_last_zero_sw(v), 31);
+	TEST_EQUAL(aux::find_last_zero_hw(v), 31);
+	TEST_EQUAL(aux::find_last_zero(v), 31);
+
+	v = aux::host_to_network(0xf0ff00ff);
+	TEST_EQUAL(aux::find_last_zero_sw(v), 23);
+	TEST_EQUAL(aux::find_last_zero_hw(v), 23);
+	TEST_EQUAL(aux::find_last_zero(v), 23);
+
+	v = aux::host_to_network(0xf0ff0fff);
+	TEST_EQUAL(aux::find_last_zero_sw(v), 19);
+	TEST_EQUAL(aux::find_last_zero_hw(v), 19);
+	TEST_EQUAL(aux::find_last_zero(v), 19);
 }

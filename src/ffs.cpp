@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace aux
 {
-	int clz_sw(span<std::uint32_t const> buf)
+	int count_leading_zeros_sw(span<std::uint32_t const> buf)
 	{
 		int const num = int(buf.size());
 		std::uint32_t const* ptr = buf.data();
@@ -77,7 +77,7 @@ namespace libtorrent { namespace aux
 		return num * 32;
 	}
 
-	int clz_hw(span<std::uint32_t const> buf)
+	int count_leading_zeros_hw(span<std::uint32_t const> buf)
 	{
 		int const num = int(buf.size());
 		std::uint32_t const* ptr = buf.data();
@@ -105,16 +105,16 @@ namespace libtorrent { namespace aux
 		return num * 32;
 	}
 
-	int clz(span<std::uint32_t const> buf)
+	int count_leading_zeros(span<std::uint32_t const> buf)
 	{
 #if TORRENT_HAS_BUILTIN_CLZ || defined _MSC_VER
-		return aux::clz_hw(buf);
+		return aux::count_leading_zeros_hw(buf);
 #else
-		return aux::clz_sw(buf);
+		return aux::count_leading_zeros_sw(buf);
 #endif
 	}
 
-	int flz_sw(span<std::uint32_t const> buf)
+	int find_last_zero_sw(span<std::uint32_t const> buf)
 	{
 		int const num = int(buf.size());
 		std::uint32_t const* ptr = buf.data();
@@ -137,7 +137,7 @@ namespace libtorrent { namespace aux
 		return -1;
 	}
 
-	int flz_hw(span<std::uint32_t const> buf)
+	int find_last_zero_hw(span<std::uint32_t const> buf)
 	{
 		int const num = int(buf.size());
 		std::uint32_t const* ptr = buf.data();
@@ -165,12 +165,12 @@ namespace libtorrent { namespace aux
 		return -1;
 	}
 
-	int flz(span<std::uint32_t const> buf)
+	int find_last_zero(span<std::uint32_t const> buf)
 	{
 #if TORRENT_HAS_BUILTIN_CTZ || defined _MSC_VER
-		return aux::flz_hw(buf);
+		return aux::find_last_zero_hw(buf);
 #else
-		return aux::flz_sw(buf);
+		return aux::find_last_zero_sw(buf);
 #endif
 	}
 }}
