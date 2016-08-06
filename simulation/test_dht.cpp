@@ -101,7 +101,7 @@ TORRENT_TEST(dht_bootstrap)
 	sim::default_config cfg;
 	sim::simulation sim{cfg};
 
-	dht_network dht(sim, 1500);
+	dht_network dht(sim, 1000);
 
 	int routing_table_depth = 0;
 	int num_nodes = 0;
@@ -143,8 +143,8 @@ TORRENT_TEST(dht_bootstrap)
 			{
 				ses.post_session_stats();
 				std::printf("depth: %d nodes: %d\n", routing_table_depth, num_nodes);
-				TEST_CHECK(routing_table_depth >= 9);
-				TEST_CHECK(num_nodes >= 115);
+				TEST_CHECK(routing_table_depth >= 8);
+				TEST_CHECK(num_nodes >= 110);
 				dht.stop();
 				return true;
 			}
