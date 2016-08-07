@@ -136,7 +136,7 @@ variable to configure. See ``configure --help'' for reference.
 	# Check if you have distutils, else fail
 	#
 	AC_MSG_CHECKING([for the distutils Python package])
-	ac_distutils_result=`$PYTHON -c "import distutils" 2>&1`
+	ac_distutils_result=`$PYTHON -c "import distutils" 2>&1 | grep -v '^\[[0-9]\{1,\} refs\]'`
 	if test -z "$ac_distutils_result"; then
 		AC_MSG_RESULT([yes])
 	else

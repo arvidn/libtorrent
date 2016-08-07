@@ -118,8 +118,8 @@ namespace libtorrent
 			m_cache_pool = nullptr;
 			// attempt to make MacOS not flush this to disk, making close()
 			// block for a long time
-			int ignore = ftruncate(m_cache_fd, 0);
-			TORRENT_UNUSED(ignore);
+			int const best_effort = ftruncate(m_cache_fd, 0);
+			TORRENT_UNUSED(best_effort);
 			close(m_cache_fd);
 			m_cache_fd = -1;
 		}
@@ -462,8 +462,8 @@ namespace libtorrent
 			m_cache_pool = nullptr;
 			// attempt to make MacOS not flush this to disk, making close()
 			// block for a long time
-			int ignore = ftruncate(m_cache_fd, 0);
-			TORRENT_UNUSED(ignore);
+			int const best_effort = ftruncate(m_cache_fd, 0);
+			TORRENT_UNUSED(best_effort);
 			close(m_cache_fd);
 			m_cache_fd = -1;
 			std::vector<int>().swap(m_free_list);
@@ -503,8 +503,8 @@ namespace libtorrent
 					m_cache_pool = nullptr;
 					// attempt to make MacOS not flush this to disk, making close()
 					// block for a long time
-					int ignore = ftruncate(m_cache_fd, 0);
-					TORRENT_UNUSED(ignore);
+					int const best_effort2 = ftruncate(m_cache_fd, 0);
+					TORRENT_UNUSED(best_effort2);
 					close(m_cache_fd);
 					m_cache_fd = -1;
 					return;

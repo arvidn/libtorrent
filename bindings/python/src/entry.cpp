@@ -45,6 +45,15 @@ struct entry_to_python
             return convert(e.list());
         case entry::dictionary_t:
             return convert(e.dict());
+        case entry::preformatted_t:
+        {
+            std::vector<char> const& pre = e.preformatted();
+            list l;
+            for (std::vector<char>::const_iterator i = pre.begin()
+               , end(pre.end()); i != end; ++i)
+               l.append(*i);
+            return tuple(l);
+        }
         default:
             return object();
         }
@@ -135,6 +144,19 @@ struct entry_from_python
         else if (extract<entry::integer_type>(e).check())
         {
             return entry(extract<entry::integer_type>(e)());
+        }
+        else if (extract<tuple>(e).check())
+        {
+            tuple t = extract<tuple>(e);
+
+            std::size_t const length = extract<std::size_t>(t.attr("__len__")());
+            std::vector<char> preformatted(length);
+            for (std::size_t i = 0; i < length; ++i)
+            {
+                preformatted[i] = extract<char>(t[i]);
+            }
+
+            return entry(preformatted);
         }
 
         return entry();

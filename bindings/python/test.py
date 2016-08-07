@@ -8,6 +8,20 @@ import os
 import shutil
 import binascii
 
+
+class test_create_torrent(unittest.TestCase):
+
+	def test_from_torrent_info(self):
+		ti = lt.torrent_info('unordered.torrent')
+		ct = lt.create_torrent(ti)
+		entry = ct.generate()
+		content = lt.bencode(entry).strip()
+		with open('unordered.torrent', 'r') as f:
+			file_content = f.read().strip()
+			print file_content
+			print content
+			self.assertEqual(content, file_content)
+
 class test_torrent_handle(unittest.TestCase):
 
 	def test_torrent_handle(self):
@@ -191,5 +205,6 @@ if __name__ == '__main__':
 	print(lt.__version__)
 	shutil.copy(os.path.join('..', '..', 'test', 'test_torrents', 'url_seed_multi.torrent'), '.')
 	shutil.copy(os.path.join('..', '..', 'test', 'test_torrents', 'base.torrent'), '.')
+	shutil.copy(os.path.join('..', '..', 'test', 'test_torrents', 'unordered.torrent'), '.')
 	unittest.main()
 

@@ -28,6 +28,7 @@
 
 1.1.1 release
 
+	* fix piece picker bug that could result in division by zero
 	* fix value of current_tracker when all tracker failed
 	* deprecate lt_trackers extension
 	* remove load_asnum_db and load_country_db from python bindings

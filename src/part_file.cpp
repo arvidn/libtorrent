@@ -330,14 +330,14 @@ namespace libtorrent
 				// don't hold the lock during disk I/O
 				l.unlock();
 
-				file::iovec_t const v = { buf.get(), size_t(block_to_copy) };
-				int ret = m_file.readv(slot_offset + piece_offset, &v, 1, ec);
-				TORRENT_ASSERT(ec || ret == block_to_copy);
-				if (ec || ret != block_to_copy) return;
+				file::iovec_t v = { buf.get(), size_t(block_to_copy) };
+				v.iov_len = m_file.readv(slot_offset + piece_offset, &v, 1, ec);
+				TORRENT_ASSERT(!ec);
+				if (ec || v.iov_len == 0) return;
 
-				ret = f.writev(file_offset, &v, 1, ec);
-				TORRENT_ASSERT(ec || ret == block_to_copy);
-				if (ec || ret != block_to_copy) return;
+				boost::int64_t ret = f.writev(file_offset, &v, 1, ec);
+				TORRENT_ASSERT(ec || ret == v.iov_len);
+				if (ec || ret != v.iov_len) return;
 
 				// we're done with the disk I/O, grab the lock again to update
 				// the slot map
