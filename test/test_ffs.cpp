@@ -81,35 +81,42 @@ TORRENT_TEST(count_leading_zeros)
 	}
 }
 
-TORRENT_TEST(find_last_zero_u32)
+TORRENT_TEST(count_trailing_ones_u32)
 {
 	std::uint32_t v = 0;
-	TEST_EQUAL(aux::find_last_zero_sw(v), 31);
-	TEST_EQUAL(aux::find_last_zero_hw(v), 31);
-	TEST_EQUAL(aux::find_last_zero(v), 31);
+	TEST_EQUAL(aux::count_trailing_ones_sw(v), 0);
+	TEST_EQUAL(aux::count_trailing_ones_hw(v), 0);
+	TEST_EQUAL(aux::count_trailing_ones(v), 0);
 
 	v = 0xffffffff;
-	TEST_EQUAL(aux::find_last_zero_sw(v), -1);
-	TEST_EQUAL(aux::find_last_zero_hw(v), -1);
-	TEST_EQUAL(aux::find_last_zero(v), -1);
+	TEST_EQUAL(aux::count_trailing_ones_sw(v), 32);
+	TEST_EQUAL(aux::count_trailing_ones_hw(v), 32);
+	TEST_EQUAL(aux::count_trailing_ones(v), 32);
 
 	v = aux::host_to_network(0xff00ff00);
-	TEST_EQUAL(aux::find_last_zero_sw(v), 31);
-	TEST_EQUAL(aux::find_last_zero_hw(v), 31);
-	TEST_EQUAL(aux::find_last_zero(v), 31);
+	TEST_EQUAL(aux::count_trailing_ones_sw(v), 0);
+	TEST_EQUAL(aux::count_trailing_ones_hw(v), 0);
+	TEST_EQUAL(aux::count_trailing_ones(v), 0);
 
 	v = aux::host_to_network(0xff0fff00);
-	TEST_EQUAL(aux::find_last_zero_sw(v), 31);
-	TEST_EQUAL(aux::find_last_zero_hw(v), 31);
-	TEST_EQUAL(aux::find_last_zero(v), 31);
+	TEST_EQUAL(aux::count_trailing_ones_sw(v), 0);
+	TEST_EQUAL(aux::count_trailing_ones_hw(v), 0);
+	TEST_EQUAL(aux::count_trailing_ones(v), 0);
 
 	v = aux::host_to_network(0xf0ff00ff);
-	TEST_EQUAL(aux::find_last_zero_sw(v), 23);
-	TEST_EQUAL(aux::find_last_zero_hw(v), 23);
-	TEST_EQUAL(aux::find_last_zero(v), 23);
+	TEST_EQUAL(aux::count_trailing_ones_sw(v), 8);
+	TEST_EQUAL(aux::count_trailing_ones_hw(v), 8);
+	TEST_EQUAL(aux::count_trailing_ones(v), 8);
 
 	v = aux::host_to_network(0xf0ff0fff);
-	TEST_EQUAL(aux::find_last_zero_sw(v), 19);
-	TEST_EQUAL(aux::find_last_zero_hw(v), 19);
-	TEST_EQUAL(aux::find_last_zero(v), 19);
+	TEST_EQUAL(aux::count_trailing_ones_sw(v), 12);
+	TEST_EQUAL(aux::count_trailing_ones_hw(v), 12);
+	TEST_EQUAL(aux::count_trailing_ones(v), 12);
+
+	std::uint32_t const arr[2] = {
+		aux::host_to_network(0xf0ff0fff)
+		, 0xffffffff};
+	TEST_EQUAL(aux::count_trailing_ones_sw(arr), 44);
+	TEST_EQUAL(aux::count_trailing_ones_hw(arr), 44);
+	TEST_EQUAL(aux::count_trailing_ones(arr), 44);
 }

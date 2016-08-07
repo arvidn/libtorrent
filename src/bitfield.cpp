@@ -66,7 +66,7 @@ namespace libtorrent
 #if TORRENT_HAS_SSE
 		if (aux::mmx_support)
 		{
-			for (int i = 1; i < words+1; ++i)
+			for (int i = 1; i < words + 1; ++i)
 			{
 #ifdef __GNUC__
 				std::uint32_t cnt = 0;

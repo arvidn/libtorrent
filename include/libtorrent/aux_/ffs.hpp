@@ -53,14 +53,14 @@ namespace libtorrent { namespace aux
 	TORRENT_EXTRA_EXPORT int count_leading_zeros(span<std::uint32_t const> buf);
 
 	// these functions expect the range to be in big-endian byte order
-	TORRENT_EXTRA_EXPORT int find_last_zero_sw(span<std::uint32_t const> buf);
+	TORRENT_EXTRA_EXPORT int count_trailing_ones_sw(span<std::uint32_t const> buf);
 	// if this function is called in an unsupported platform, returns -1
-	// consider call always find_last_zero(buf)
-	TORRENT_EXTRA_EXPORT int find_last_zero_hw(span<std::uint32_t const> buf);
+	// consider call always count_trailing_ones(buf)
+	TORRENT_EXTRA_EXPORT int count_trailing_ones_hw(span<std::uint32_t const> buf);
 
 	// this function statically determines if hardware or software is used
 	// and expect the range to be in big-endian byte order
-	TORRENT_EXTRA_EXPORT int find_last_zero(span<std::uint32_t const> buf);
+	TORRENT_EXTRA_EXPORT int count_trailing_ones(span<std::uint32_t const> buf);
 }}
 
 #endif // TORRENT_FFS_HPP_INCLUDE

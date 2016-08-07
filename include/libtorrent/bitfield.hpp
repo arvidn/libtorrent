@@ -164,12 +164,15 @@ namespace libtorrent
 		int find_last_clear() const
 		{
 			size_t const num = num_words();
-			if (num == 0) return -1;
-			std::uint32_t const mask = 0xffffffff << (32 - (size() & 31));
+			if (num == 0) return - 1;
+			int const size = this->size();
+			std::uint32_t const mask = 0xffffffff << (32 - (size & 31));
 			std::uint32_t const last = m_buf[num] ^ aux::host_to_network(mask);
-			return last != 0
-				? (int(num) - 1) * 32 + aux::find_last_zero(~last)
-				: aux::find_last_zero({&m_buf[1], num - 1});
+			int const idx1 = aux::count_trailing_ones(~last) - (32 - (size % 32)) + 1;
+			if (last != 0) return (int(num) - 1) * 32 + idx1;
+			int const idx2 = aux::count_trailing_ones({&m_buf[1], num - 1});
+			int count = idx1 + idx2;
+			return count != size ? size - count: -1;
 		}
 
 		struct const_iterator

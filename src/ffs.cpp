@@ -114,7 +114,7 @@ namespace libtorrent { namespace aux
 #endif
 	}
 
-	int find_last_zero_sw(span<std::uint32_t const> buf)
+	int count_trailing_ones_sw(span<std::uint32_t const> buf)
 	{
 		int const num = int(buf.size());
 		std::uint32_t const* ptr = buf.data();
@@ -130,14 +130,14 @@ namespace libtorrent { namespace aux
 			for (int k = 0; k < 32; ++k, v >>= 1)
 			{
 				if ((v & 1) == 0) continue;
-				return i * 32 + 31 - k;
+				return (num - i - 1) * 32 + k;
 			}
 		}
 
-		return -1;
+		return num * 32;
 	}
 
-	int find_last_zero_hw(span<std::uint32_t const> buf)
+	int count_trailing_ones_hw(span<std::uint32_t const> buf)
 	{
 		int const num = int(buf.size());
 		std::uint32_t const* ptr = buf.data();
@@ -151,26 +151,26 @@ namespace libtorrent { namespace aux
 			std::uint32_t v = ~aux::network_to_host(ptr[i]);
 
 #if TORRENT_HAS_BUILTIN_CTZ
-			return i * 32 + 31 - __builtin_ctz(v);
+			return (num - i - 1) * 32 + __builtin_ctz(v);
 #elif defined _MSC_VER
 			DWORD pos;
 			_BitScanForward(&pos, v);
-			return i * 32 + 31 - pos;
+			return i * 32 + pos;
 #else
 			TORRENT_ASSERT_FAIL();
 			return -1;
 #endif
 		}
 
-		return -1;
+		return num * 32;
 	}
 
-	int find_last_zero(span<std::uint32_t const> buf)
+	int count_trailing_ones(span<std::uint32_t const> buf)
 	{
 #if TORRENT_HAS_BUILTIN_CTZ || defined _MSC_VER
-		return aux::find_last_zero_hw(buf);
+		return aux::count_trailing_ones_hw(buf);
 #else
-		return aux::find_last_zero_sw(buf);
+		return aux::count_trailing_ones_sw(buf);
 #endif
 	}
 }}
