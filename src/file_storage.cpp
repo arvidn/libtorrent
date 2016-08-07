@@ -538,10 +538,10 @@ namespace libtorrent
 			, symlink_path);
 	}
 
-	void file_storage::add_file_borrow(char const* filename, int filename_len
-		, std::string const& path, boost::int64_t file_size
-		, boost::uint32_t file_flags, char const* filehash
-		, boost::int64_t mtime, std::string const& symlink_path)
+	void file_storage::add_file_borrow(char const* filename, int const filename_len
+		, std::string const& path, boost::int64_t const file_size
+		, boost::uint32_t const file_flags, char const* filehash
+		, boost::int64_t const mtime, std::string const& symlink_path)
 	{
 		TORRENT_ASSERT_PRECOND(file_size >= 0);
 		if (!has_parent_path(path))
@@ -576,10 +576,10 @@ namespace libtorrent
 
 		e.size = file_size;
 		e.offset = m_total_size;
-		e.pad_file = file_flags & file_storage::flag_pad_file;
-		e.hidden_attribute = file_flags & file_storage::flag_hidden;
-		e.executable_attribute = file_flags & file_storage::flag_executable;
-		e.symlink_attribute = file_flags & file_storage::flag_symlink;
+		e.pad_file = (file_flags & file_storage::flag_pad_file) != 0;
+		e.hidden_attribute = (file_flags & file_storage::flag_hidden) != 0;
+		e.executable_attribute = (file_flags & file_storage::flag_executable) != 0;
+		e.symlink_attribute = (file_flags & file_storage::flag_symlink) != 0;
 
 		if (filehash)
 		{
@@ -611,7 +611,7 @@ namespace libtorrent
 		if (index >= int(m_file_hashes.size())) return sha1_hash(0);
 		return sha1_hash(m_file_hashes[index]);
 	}
-	
+
 	std::string const& file_storage::symlink(int index) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
