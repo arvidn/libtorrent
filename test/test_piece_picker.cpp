@@ -1032,7 +1032,7 @@ TORRENT_TEST(restore_piece)
 	TEST_CHECK(int(picked.size()) >= 1);
 	TEST_CHECK(picked.front().piece_index == 1);
 
-	p->restore_piece(0);	
+	p->restore_piece(0);
 	picked = pick_pieces(p, "*******", 1, 0, nullptr, options, empty_vector);
 	TEST_CHECK(int(picked.size()) >= 1);
 	TEST_CHECK(picked.front().piece_index == 0);
@@ -1882,14 +1882,14 @@ TORRENT_TEST(reprioritize_downloading)
 	TEST_EQUAL(ret, true);
 
 	// make sure we pick the partial piece (i.e. piece 0)
-	TEST_EQUAL(test_pick(p, piece_picker::prioritize_partials), 0);
+	TEST_EQUAL(test_pick(p, piece_picker::rarest_first | piece_picker::prioritize_partials), 0);
 
 	// set the priority of the piece to 0 (while downloading it)
 	ret = p->set_piece_priority(0, 0);
 	TEST_EQUAL(ret, true);
 
 	// make sure we _DON'T_ pick the partial piece, since it has priority zero
-	int const picked_piece = test_pick(p, piece_picker::prioritize_partials);
+	int const picked_piece = test_pick(p, piece_picker::rarest_first | piece_picker::prioritize_partials);
 	TEST_NE(picked_piece, -1);
 	TEST_NE(picked_piece, 0);
 
@@ -1899,7 +1899,88 @@ TORRENT_TEST(reprioritize_downloading)
 	TEST_EQUAL(ret, true);
 
 	// make sure we pick the partial piece
-	TEST_EQUAL(test_pick(p, piece_picker::prioritize_partials), 0);
+	TEST_EQUAL(test_pick(p, piece_picker::rarest_first | piece_picker::prioritize_partials), 0);
+}
+
+TORRENT_TEST(reprioritize_fully_downloading)
+{
+	auto p = setup_picker("1111111", "       ", "", "");
+	bool ret;
+
+	for (int i = 0; i < blocks_per_piece; ++i)
+	{
+		ret = p->mark_as_downloading(piece_block(0, i), tmp_peer);
+		TEST_EQUAL(ret, true);
+	}
+
+	// make sure we _DON'T_ pick the downloading piece
+	{
+		int const picked_piece = test_pick(p, piece_picker::rarest_first | piece_picker::prioritize_partials);
+		TEST_NE(picked_piece, -1);
+		TEST_NE(picked_piece, 0);
+	}
+
+	// set the priority of the piece to 0 (while downloading it)
+	ret = p->set_piece_priority(0, 0);
+	TEST_EQUAL(ret, true);
+
+	// make sure we still _DON'T_ pick the downloading piece
+	{
+		int const picked_piece = test_pick(p, piece_picker::rarest_first | piece_picker::prioritize_partials);
+		TEST_NE(picked_piece, -1);
+		TEST_NE(picked_piece, 0);
+	}
+
+	// set the priority of the piece back to 1. It should now be the best pick
+	// again (since it's partial)
+	ret = p->set_piece_priority(0, 1);
+	TEST_EQUAL(ret, true);
+
+	// make sure we still _DON'T_ pick the downloading piece
+	{
+		int const picked_piece = test_pick(p, piece_picker::rarest_first | piece_picker::prioritize_partials);
+		TEST_NE(picked_piece, -1);
+		TEST_NE(picked_piece, 0);
+	}
+}
+
+TORRENT_TEST(download_filtered_piece)
+{
+	auto p = setup_picker("1111111", "       ", "", "");
+	bool ret;
+
+	// set the priority of the piece to 0
+	ret = p->set_piece_priority(0, 0);
+	TEST_EQUAL(ret, true);
+
+	// make sure we _DON'T_ pick piece 0
+	{
+		int const picked_piece = test_pick(p, piece_picker::rarest_first | piece_picker::prioritize_partials);
+		TEST_NE(picked_piece, -1);
+		TEST_NE(picked_piece, 0);
+	}
+
+	// then mark it for downloading
+	ret = p->mark_as_downloading(piece_block(0, 0), tmp_peer);
+	TEST_EQUAL(ret, true);
+	p->mark_as_finished(piece_block(0, 1), tmp_peer);
+	ret = p->mark_as_writing(piece_block(0, 2), tmp_peer);
+	TEST_EQUAL(ret, true);
+
+	{
+		// we still should not pick it
+		int const picked_piece = test_pick(p, piece_picker::rarest_first | piece_picker::prioritize_partials);
+		TEST_NE(picked_piece, -1);
+		TEST_NE(picked_piece, 0);
+	}
+
+	// set the priority of the piece back to 1. It should now be the best pick
+	// again (since it's partial)
+	ret = p->set_piece_priority(0, 1);
+	TEST_EQUAL(ret, true);
+
+	// make sure we pick piece 0
+	TEST_EQUAL(test_pick(p, piece_picker::rarest_first | piece_picker::prioritize_partials), 0);
 }
 
 //TODO: 2 test picking with partial pieces and other peers present so that both backup_pieces and backup_pieces2 are used
