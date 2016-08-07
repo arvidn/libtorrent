@@ -33,10 +33,10 @@ EXTRA_DIST = \
 if ENABLE_PYTHON_BINDING
 
 all-local:
-	$(PYTHON) $(srcdir)/setup.py build --compiler=$(CXX)
+	$(PYTHON) $(srcdir)/setup.py build
 
 install-exec-local:
-	$(PYTHON) $(srcdir)/setup.py install --compiler=$(CXX) @PYTHON_INSTALL_PARAMS@
+	$(PYTHON) $(srcdir)/setup.py install @PYTHON_INSTALL_PARAMS@
 
 uninstall-local:
 	rm -rf $(DESTDIR)$(libdir)/python*/*-packages/*libtorrent*
