@@ -618,7 +618,7 @@ namespace libtorrent
 		for (std::vector<piece_pos>::const_iterator i = m_piece_map.begin();
 			i != m_piece_map.end(); ++i)
 		{
-			int index = static_cast<int>(i - m_piece_map.begin());
+			int const index = static_cast<int>(i - m_piece_map.begin());
 			piece_pos const& p = *i;
 
 			if (p.filtered())
@@ -644,7 +644,8 @@ namespace libtorrent
 			if (t != nullptr)
 				TORRENT_ASSERT(!t->have_piece(index));
 
-			int prio = p.priority(this);
+			int const prio = p.priority(this);
+
 #if TORRENT_USE_ASSERTS
 			if (p.downloading())
 			{
@@ -661,7 +662,7 @@ namespace libtorrent
 
 			if (!m_dirty)
 			{
-				TORRENT_ASSERT(prio < int(m_priority_boundaries.size()) || m_dirty);
+				TORRENT_ASSERT(prio < int(m_priority_boundaries.size()));
 				if (prio >= 0)
 				{
 					TORRENT_ASSERT(p.index < m_pieces.size());
@@ -1504,9 +1505,9 @@ namespace libtorrent
 			, end(m_piece_map.end()); i != end; ++i, ++index)
 		{
 			piece_pos& p = *i;
-			int prio = p.priority(this);
+			int const prio = p.priority(this);
 			if (prio == -1) continue;
-			int new_index = (prio == 0 ? 0 : m_priority_boundaries[prio - 1]) + p.index;
+			int const new_index = (prio == 0 ? 0 : m_priority_boundaries[prio - 1]) + p.index;
 			m_pieces[new_index] = index;
 		}
 
@@ -1633,8 +1634,8 @@ namespace libtorrent
 			<< index << ")" << std::endl;
 #endif
 		piece_pos& p = m_piece_map[index];
-		int info_index = p.index;
-		int priority = p.priority(this);
+		int const info_index = p.index;
+		int const priority = p.priority(this);
 		TORRENT_ASSERT(priority < int(m_priority_boundaries.size()) || m_dirty);
 
 		if (p.have()) return;
@@ -1694,9 +1695,7 @@ namespace libtorrent
 
 	bool piece_picker::set_piece_priority(int const index, int const new_piece_priority)
 	{
-#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		INVARIANT_CHECK;
-#endif
 
 #ifdef TORRENT_PICKER_LOG
 		std::cerr << "[" << this << "] " << "set_piece_priority(" << index
@@ -1784,6 +1783,12 @@ namespace libtorrent
 		p.piece_priority = new_piece_priority;
 		int const new_priority = p.priority(this);
 
+		if (prev_priority != new_priority && !m_dirty)
+		{
+			if (prev_priority == -1) add(index);
+			else update(prev_priority, p.index);
+		}
+
 		if (p.downloading())
 		{
 			std::vector<downloading_piece>::iterator i = find_dl_piece(
@@ -1792,17 +1797,6 @@ namespace libtorrent
 				update_piece_state(i);
 		}
 
-		if (prev_priority == new_priority) return ret;
-
-		if (m_dirty) return ret;
-		if (prev_priority == -1)
-		{
-			add(index);
-		}
-		else
-		{
-			update(prev_priority, p.index);
-		}
 		return ret;
 	}
 
@@ -2134,8 +2128,8 @@ namespace libtorrent
 			{
 				for (int i = int(m_priority_boundaries.size()) - 1; i >= 0; --i)
 				{
-					int start = (i == 0) ? 0 : m_priority_boundaries[i - 1];
-					int end = m_priority_boundaries[i];
+					int const start = (i == 0) ? 0 : m_priority_boundaries[i - 1];
+					int const end = m_priority_boundaries[i];
 					for (int p = end - 1; p >= start; --p)
 					{
 						pc.inc_stats_counter(counters::piece_picker_reverse_rare_loops);
@@ -2896,7 +2890,7 @@ get_out:
 	}
 
 	std::vector<piece_picker::downloading_piece>::iterator
-		piece_picker::update_piece_state(
+	piece_picker::update_piece_state(
 		std::vector<piece_picker::downloading_piece>::iterator dp)
 	{
 #ifdef TORRENT_PICKER_LOG
@@ -2954,7 +2948,9 @@ get_out:
 		downloading_piece dp_info = *dp;
 		m_downloads[p.download_queue()].erase(dp);
 
-		int prio = p.priority(this);
+		int const prio = p.priority(this);
+		TORRENT_ASSERT(prio < int(m_priority_boundaries.size())
+			|| m_dirty);
 		p.download_state = new_state;
 #ifdef TORRENT_PICKER_LOG
 		std::cerr << "[" << this << "] " << " " << dp_info.index << " state (" << current_state << " -> " << new_state << ")" << std::endl;
@@ -3058,7 +3054,7 @@ get_out:
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 			INVARIANT_CHECK;
 #endif
-			int prio = p.priority(this);
+			int const prio = p.priority(this);
 			TORRENT_ASSERT(prio < int(m_priority_boundaries.size())
 				|| m_dirty);
 
@@ -3207,7 +3203,7 @@ get_out:
 			// if we already have this piece, just ignore this
 			if (have_piece(block.piece_index)) return false;
 
-			int prio = p.priority(this);
+			int const prio = p.priority(this);
 			TORRENT_ASSERT(prio < int(m_priority_boundaries.size())
 				|| m_dirty);
 			p.download_state = piece_pos::piece_downloading;
