@@ -44,10 +44,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace aux
 {
-	int clz_sw(span<std::uint32_t const> buf)
+	int count_leading_zeros_sw(span<std::uint32_t const> buf)
 	{
-		int num = int(buf.size());
+		int const num = int(buf.size());
 		std::uint32_t const* ptr = buf.data();
+
+		TORRENT_ASSERT(num >= 0);
+		TORRENT_ASSERT(ptr != nullptr);
 
 		for (int i = 0; i < num; i++)
 		{
@@ -74,10 +77,13 @@ namespace libtorrent { namespace aux
 		return num * 32;
 	}
 
-	int clz_hw(span<std::uint32_t const> buf)
+	int count_leading_zeros_hw(span<std::uint32_t const> buf)
 	{
-		int num = int(buf.size());
+		int const num = int(buf.size());
 		std::uint32_t const* ptr = buf.data();
+
+		TORRENT_ASSERT(num >= 0);
+		TORRENT_ASSERT(ptr != nullptr);
 
 		for (int i = 0; i < num; i++)
 		{
@@ -91,6 +97,7 @@ namespace libtorrent { namespace aux
 			_BitScanReverse(&pos, v);
 			return i * 32 + 31 - pos;
 #else
+			TORRENT_ASSERT_FAIL();
 			return -1;
 #endif
 		}
@@ -98,13 +105,72 @@ namespace libtorrent { namespace aux
 		return num * 32;
 	}
 
-	int clz(span<std::uint32_t const> buf)
+	int count_leading_zeros(span<std::uint32_t const> buf)
 	{
 #if TORRENT_HAS_BUILTIN_CLZ || defined _MSC_VER
-		return aux::clz_hw(buf);
+		return aux::count_leading_zeros_hw(buf);
 #else
-		return aux::clz_sw(buf);
+		return aux::count_leading_zeros_sw(buf);
 #endif
 	}
 
+	int count_trailing_ones_sw(span<std::uint32_t const> buf)
+	{
+		int const num = int(buf.size());
+		std::uint32_t const* ptr = buf.data();
+
+		TORRENT_ASSERT(num >= 0);
+		TORRENT_ASSERT(ptr != nullptr);
+
+		for (int i = num - 1; i >= 0; i--)
+		{
+			if (ptr[i] == 0xffffffff) continue;
+			std::uint32_t v = ~aux::network_to_host(ptr[i]);
+
+			for (int k = 0; k < 32; ++k, v >>= 1)
+			{
+				if ((v & 1) == 0) continue;
+				return (num - i - 1) * 32 + k;
+			}
+		}
+
+		return num * 32;
+	}
+
+	int count_trailing_ones_hw(span<std::uint32_t const> buf)
+	{
+		int const num = int(buf.size());
+		std::uint32_t const* ptr = buf.data();
+
+		TORRENT_ASSERT(num >= 0);
+		TORRENT_ASSERT(ptr != nullptr);
+
+		for (int i = num - 1; i >= 0; i--)
+		{
+			if (ptr[i] == 0xffffffff) continue;
+			std::uint32_t v = ~aux::network_to_host(ptr[i]);
+
+#if TORRENT_HAS_BUILTIN_CTZ
+			return (num - i - 1) * 32 + __builtin_ctz(v);
+#elif defined _MSC_VER
+			DWORD pos;
+			_BitScanForward(&pos, v);
+			return (num - i - 1) * 32 + pos;
+#else
+			TORRENT_ASSERT_FAIL();
+			return -1;
+#endif
+		}
+
+		return num * 32;
+	}
+
+	int count_trailing_ones(span<std::uint32_t const> buf)
+	{
+#if TORRENT_HAS_BUILTIN_CTZ || defined _MSC_VER
+		return aux::count_trailing_ones_hw(buf);
+#else
+		return aux::count_trailing_ones_sw(buf);
+#endif
+	}
 }}

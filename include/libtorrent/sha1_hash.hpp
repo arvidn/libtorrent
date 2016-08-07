@@ -150,7 +150,7 @@ namespace libtorrent
 
 		int count_leading_zeroes() const
 		{
-			return aux::clz({m_number, number_size});
+			return aux::count_leading_zeros({m_number, number_size});
 		}
 
 		// returns a bit-wise negated copy of the sha1-hash

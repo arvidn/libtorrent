@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/span.hpp"
 #include "libtorrent/hex.hpp" // from_hex
 #include "libtorrent/aux_/ffs.hpp"
+#include "libtorrent/aux_/byteswap.hpp"
 
 using namespace libtorrent;
 
@@ -42,7 +43,7 @@ static void to_binary(char const* s, std::uint32_t* buf)
 	aux::from_hex({s, 40}, reinterpret_cast<char*>(&buf[0]));
 }
 
-TORRENT_TEST(clz)
+TORRENT_TEST(count_leading_zeros)
 {
 	std::vector<std::pair<char const*, int>> const tests = {
 		{ "ffffffffffffffffffffffffffffffffffffffff", 0 },
@@ -74,8 +75,48 @@ TORRENT_TEST(clz)
 		std::fprintf(stderr, "%s\n", t.first);
 		std::uint32_t buf[5];
 		to_binary(t.first, buf);
-		TEST_EQUAL(aux::clz_sw({buf, 5}), t.second);
-		TEST_EQUAL(aux::clz_hw({buf, 5}), t.second);
-		TEST_EQUAL(aux::clz({buf, 5}), t.second);
+		TEST_EQUAL(aux::count_leading_zeros_sw({buf, 5}), t.second);
+		TEST_EQUAL(aux::count_leading_zeros_hw({buf, 5}), t.second);
+		TEST_EQUAL(aux::count_leading_zeros({buf, 5}), t.second);
 	}
+}
+
+TORRENT_TEST(count_trailing_ones_u32)
+{
+	std::uint32_t v = 0;
+	TEST_EQUAL(aux::count_trailing_ones_sw(v), 0);
+	TEST_EQUAL(aux::count_trailing_ones_hw(v), 0);
+	TEST_EQUAL(aux::count_trailing_ones(v), 0);
+
+	v = 0xffffffff;
+	TEST_EQUAL(aux::count_trailing_ones_sw(v), 32);
+	TEST_EQUAL(aux::count_trailing_ones_hw(v), 32);
+	TEST_EQUAL(aux::count_trailing_ones(v), 32);
+
+	v = aux::host_to_network(0xff00ff00);
+	TEST_EQUAL(aux::count_trailing_ones_sw(v), 0);
+	TEST_EQUAL(aux::count_trailing_ones_hw(v), 0);
+	TEST_EQUAL(aux::count_trailing_ones(v), 0);
+
+	v = aux::host_to_network(0xff0fff00);
+	TEST_EQUAL(aux::count_trailing_ones_sw(v), 0);
+	TEST_EQUAL(aux::count_trailing_ones_hw(v), 0);
+	TEST_EQUAL(aux::count_trailing_ones(v), 0);
+
+	v = aux::host_to_network(0xf0ff00ff);
+	TEST_EQUAL(aux::count_trailing_ones_sw(v), 8);
+	TEST_EQUAL(aux::count_trailing_ones_hw(v), 8);
+	TEST_EQUAL(aux::count_trailing_ones(v), 8);
+
+	v = aux::host_to_network(0xf0ff0fff);
+	TEST_EQUAL(aux::count_trailing_ones_sw(v), 12);
+	TEST_EQUAL(aux::count_trailing_ones_hw(v), 12);
+	TEST_EQUAL(aux::count_trailing_ones(v), 12);
+
+	std::uint32_t const arr[2] = {
+		aux::host_to_network(0xf0ff0fff)
+		, 0xffffffff};
+	TEST_EQUAL(aux::count_trailing_ones_sw(arr), 44);
+	TEST_EQUAL(aux::count_trailing_ones_hw(arr), 44);
+	TEST_EQUAL(aux::count_trailing_ones(arr), 44);
 }

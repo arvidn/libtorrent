@@ -540,6 +540,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #	define TORRENT_HAS_BUILTIN_CLZ 0
 #endif // TORRENT_HAS_BUILTIN_CLZ
 
+#if (TORRENT_HAS_SSE && __GNUC__)
+#	define TORRENT_HAS_BUILTIN_CTZ 1
+#elif (TORRENT_HAS_ARM && defined __GNUC__ && !defined __clang__)
+#	define TORRENT_HAS_BUILTIN_CTZ 1
+#elif (defined __clang__ && __has_builtin(__builtin_ctz))
+#	define TORRENT_HAS_BUILTIN_CTZ 1
+#else
+#	define TORRENT_HAS_BUILTIN_CTZ 0
+#endif // TORRENT_HAS_BUILTIN_CTZ
+
 #if TORRENT_HAS_ARM && defined __ARM_NEON
 #	define TORRENT_HAS_ARM_NEON 1
 #else
