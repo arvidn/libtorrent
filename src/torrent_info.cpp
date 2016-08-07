@@ -64,7 +64,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <set>
 #include <ctime>
-#include <stdio.h> // for snprintf
 
 #if !defined TORRENT_NO_DEPRECATE && TORRENT_USE_IOSTREAM
 #include <iostream>
@@ -506,7 +505,7 @@ namespace libtorrent
 				// pad files don't need a path element, we'll just store them
 				// under the .pad directory
 				char cnt[10];
-				std::snprintf(cnt, sizeof(cnt), "%d", pad_file_cnt);
+				snprintf(cnt, sizeof(cnt), "%d", pad_file_cnt);
 				path = combine_path(".pad", cnt);
 				++pad_file_cnt;
 			}
