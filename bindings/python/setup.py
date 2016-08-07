@@ -36,6 +36,12 @@ def arch():
 	if a == 'Power Macintosh': a = 'ppc'
 	return ['-arch', a]
 
+def lang():
+	if 'g++' in os.environ['CXX'] or 'clang' in os.environ['CXX']:
+		return ['-std=c++11']
+	else:
+		return []
+
 def target_specific():
 
 	if platform.system() != 'Darwin': return []
@@ -115,8 +121,8 @@ else:
 			language='c++',
 			include_dirs = flags.include_dirs,
 			library_dirs = flags.library_dirs,
-			extra_link_args = extra_link + arch(),
-			extra_compile_args = extra_compile + arch() + target_specific(),
+			extra_link_args = lang() + extra_link + arch(),
+			extra_compile_args = lang() + extra_compile + arch() + target_specific(),
 			libraries = ['torrent-rasterbar'] + flags.libraries)]
 
 setup(name = 'python-libtorrent',
