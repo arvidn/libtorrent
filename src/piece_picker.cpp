@@ -1834,6 +1834,18 @@ namespace libtorrent
 		p.piece_priority = new_piece_priority;
 		int new_priority = p.priority(this);
 
+		if (prev_priority != new_priority && !m_dirty)
+		{
+			if (prev_priority == -1)
+			{
+				add(index);
+			}
+			else
+			{
+				update(prev_priority, p.index);
+			}
+		}
+
 		if (p.downloading())
 		{
 			std::vector<downloading_piece>::iterator i = find_dl_piece(
@@ -1842,17 +1854,6 @@ namespace libtorrent
 				update_piece_state(i);
 		}
 
-		if (prev_priority == new_priority) return ret;
-
-		if (m_dirty) return ret;
-		if (prev_priority == -1)
-		{
-			add(index);
-		}
-		else
-		{
-			update(prev_priority, p.index);
-		}
 		return ret;
 	}
 
