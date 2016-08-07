@@ -168,11 +168,10 @@ namespace libtorrent
 			int const size = this->size();
 			std::uint32_t const mask = 0xffffffff << (32 - (size & 31));
 			std::uint32_t const last = m_buf[num] ^ aux::host_to_network(mask);
-			int const idx1 = aux::count_trailing_ones(~last) - (32 - (size % 32)) + 1;
-			if (last != 0) return (int(num) - 1) * 32 + idx1;
-			int const idx2 = aux::count_trailing_ones({&m_buf[1], num - 1});
-			int count = idx1 + idx2;
-			return count != size ? size - count: -1;
+			int const ext = aux::count_trailing_ones(~last) - (31 - (size % 32));
+			return last != 0
+				? (int(num) - 1) * 32 + ext
+				: size - (aux::count_trailing_ones({&m_buf[1], num - 1}) + ext);
 		}
 
 		struct const_iterator

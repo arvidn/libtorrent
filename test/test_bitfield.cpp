@@ -327,10 +327,31 @@ TORRENT_TEST(find_last_clear_late)
 	TEST_EQUAL(test1.find_last_clear(), 98);
 }
 
-TORRENT_TEST(find_last_clear_two)
+TORRENT_TEST(find_last_clear_misc)
 {
 	bitfield test1(100, true);
 	test1.clear_bit(11);
 	test1.clear_bit(91);
 	TEST_EQUAL(test1.find_last_clear(), 91);
+
+	bitfield test2(78, true);
+	test2.clear_bit(12);
+	test2.clear_bit(43);
+	test2.clear_bit(34);
+	TEST_EQUAL(test2.find_last_clear(), 43);
+
+	bitfield test3(123, true);
+	test3.clear_bit(49);
+	test3.clear_bit(33);
+	test3.clear_bit(32);
+	test3.clear_bit(50);
+	TEST_EQUAL(test3.find_last_clear(), 50);
+
+	bitfield test4(1000, true);
+	test4.clear_bit(11);
+	test4.clear_bit(91);
+	test4.clear_bit(14);
+	test4.clear_bit(15);
+	test4.clear_bit(89);
+	TEST_EQUAL(test4.find_last_clear(), 91);
 }

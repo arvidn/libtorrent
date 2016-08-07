@@ -155,7 +155,7 @@ namespace libtorrent { namespace aux
 #elif defined _MSC_VER
 			DWORD pos;
 			_BitScanForward(&pos, v);
-			return i * 32 + pos;
+			return (num - i - 1) * 32 + pos;
 #else
 			TORRENT_ASSERT_FAIL();
 			return -1;
