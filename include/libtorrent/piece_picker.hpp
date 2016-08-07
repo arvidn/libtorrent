@@ -330,8 +330,6 @@ namespace libtorrent
 		void check_peers();
 #endif
 
-//		int get_block_state(piece_block block) const;
-
 		// returns true if any client is currently downloading this
 		// piece-block, or if it's queued for downloading by some client
 		// or if it already has been successfully downloaded
@@ -352,7 +350,7 @@ namespace libtorrent
 
 		void mark_as_canceled(piece_block block, torrent_peer* peer);
 		void mark_as_finished(piece_block block, torrent_peer* peer);
-	
+
 		// prevent blocks from being picked from this piece.
 		// to unlock the piece, call restore_piece() on it
 		void lock_piece(int piece);
@@ -361,9 +359,6 @@ namespace libtorrent
 		int num_peers(piece_block block) const;
 
 		void piece_passed(int index);
-
-//		void mark_as_checking(int index);
-//		void mark_as_done_checking(int index);
 
 		// returns information about the given piece
 		void piece_info(int index, piece_picker::downloading_piece& st) const;
