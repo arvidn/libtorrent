@@ -334,7 +334,7 @@ namespace libtorrent
 				TORRENT_ASSERT(!ec);
 				if (ec || v.iov_len == 0) return;
 
-				int64_t ret = f.writev(file_offset, &v, 1, ec);
+				boost::int64_t ret = f.writev(file_offset, &v, 1, ec);
 				TORRENT_ASSERT(ec || ret == v.iov_len);
 				if (ec || ret != v.iov_len) return;
 
