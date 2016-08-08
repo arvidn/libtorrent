@@ -109,7 +109,7 @@ namespace bdecode_errors
 	{
 		// Not an error
 		no_error = 0,
-		// expected string in bencoded string
+		// expected digit in bencoded string
 		expected_digit,
 		// expected colon in bencoded string
 		expected_colon,

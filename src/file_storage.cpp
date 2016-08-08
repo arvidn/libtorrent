@@ -47,8 +47,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
 #define TORRENT_SEPARATOR '\\'
+#define TORRENT_SEPARATOR_STR "\\"
 #else
 #define TORRENT_SEPARATOR '/'
+#define TORRENT_SEPARATOR_STR "/"
 #endif
 
 namespace libtorrent
@@ -538,10 +540,10 @@ namespace libtorrent
 			, symlink_path);
 	}
 
-	void file_storage::add_file_borrow(char const* filename, int filename_len
-		, std::string const& path, boost::int64_t file_size
-		, boost::uint32_t file_flags, char const* filehash
-		, boost::int64_t mtime, std::string const& symlink_path)
+	void file_storage::add_file_borrow(char const* filename, int const filename_len
+		, std::string const& path, boost::int64_t const file_size
+		, boost::uint32_t const file_flags, char const* filehash
+		, boost::int64_t const mtime, std::string const& symlink_path)
 	{
 		TORRENT_ASSERT_PRECOND(file_size >= 0);
 		if (!has_parent_path(path))
@@ -576,10 +578,10 @@ namespace libtorrent
 
 		e.size = file_size;
 		e.offset = m_total_size;
-		e.pad_file = file_flags & file_storage::flag_pad_file;
-		e.hidden_attribute = file_flags & file_storage::flag_hidden;
-		e.executable_attribute = file_flags & file_storage::flag_executable;
-		e.symlink_attribute = file_flags & file_storage::flag_symlink;
+		e.pad_file = (file_flags & file_storage::flag_pad_file) != 0;
+		e.hidden_attribute = (file_flags & file_storage::flag_hidden) != 0;
+		e.executable_attribute = (file_flags & file_storage::flag_executable) != 0;
+		e.symlink_attribute = (file_flags & file_storage::flag_symlink) != 0;
 
 		if (filehash)
 		{
@@ -611,7 +613,7 @@ namespace libtorrent
 		if (index >= int(m_file_hashes.size())) return sha1_hash(0);
 		return sha1_hash(m_file_hashes[index]);
 	}
-	
+
 	std::string const& file_storage::symlink(int index) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
@@ -965,8 +967,8 @@ namespace libtorrent
 
 				if (best_match != i)
 				{
-					int index = best_match - m_files.begin();
-					int cur_index = i - m_files.begin();
+					int const index = best_match - m_files.begin();
+					int const cur_index = i - m_files.begin();
 					reorder_file(index, cur_index);
 					i = m_files.begin() + cur_index;
 				}
@@ -979,8 +981,8 @@ namespace libtorrent
 				// not piece-aligned and the file size exceeds the
 				// limit, and it's not a padding file itself.
 				// so add a padding file in front of it
-				int pad_size = alignment - (off % alignment);
-				
+				int const pad_size = alignment - (off % alignment);
+
 				// find the largest file that fits in pad_size
 				std::vector<internal_file_entry>::iterator best_match = m_files.end();
 
@@ -1064,7 +1066,8 @@ namespace libtorrent
 		e.size = size;
 		e.offset = offset;
 		char name[30];
-		snprintf(name, sizeof(name), ".____padding_file/%d", pad_file_counter);
+		snprintf(name, sizeof(name), ".pad" TORRENT_SEPARATOR_STR "%d"
+			, pad_file_counter);
 		std::string path = combine_path(m_name, name);
 		e.set_name(path.c_str());
 		e.pad_file = true;
