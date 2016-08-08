@@ -376,7 +376,7 @@ namespace libtorrent
 		// this is the first item
 		int token = m_token_idx + 1;
 		int ret = 0;
-		
+
 		// do we have a lookup cached?
 		if (m_last_index != -1)
 		{
@@ -398,7 +398,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(type() == dict_t);
 		TORRENT_ASSERT(m_token_idx != -1);
-	
+
 		bdecode_token const* tokens = m_root_tokens;
 		TORRENT_ASSERT(tokens[m_token_idx].type == bdecode_token::dict);
 
@@ -487,7 +487,7 @@ namespace libtorrent
 		TORRENT_ASSERT(type() == dict_t);
 
 		bdecode_token const* tokens = m_root_tokens;
-	
+
 		// this is the first item
 		int token = m_token_idx + 1;
 
@@ -503,7 +503,7 @@ namespace libtorrent
 				// skip key
 				token += t.next_item;
 				TORRENT_ASSERT(tokens[token].type != bdecode_token::end);
-			
+
 				return bdecode_node(tokens, m_buffer, m_buffer_size, token);
 			}
 
@@ -564,7 +564,7 @@ namespace libtorrent
 		TORRENT_ASSERT(type() == dict_t);
 
 		bdecode_token const* tokens = m_root_tokens;
-	
+
 		// this is the first item
 		int token = m_token_idx + 1;
 
@@ -578,7 +578,7 @@ namespace libtorrent
 				// skip key
 				token += t.next_item;
 				TORRENT_ASSERT(tokens[token].type != bdecode_token::end);
-			
+
 				return bdecode_node(tokens, m_buffer, m_buffer_size, token);
 			}
 
