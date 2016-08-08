@@ -50,6 +50,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	struct plugin;
+
 	// The default values of the session settings are set for a regular
 	// bittorrent client running on a desktop system. There are functions that
 	// can set the session settings to pre set settings for other environments.
@@ -123,36 +125,17 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT session_params
 	{
-		session_params(settings_pack sp = settings_pack()
-			, int flags = default_flags)
-			: settings(sp)
-			, start_flags(flags)
-#ifndef TORRENT_DISABLE_DHT
-			, dht_storage_constructor(dht::dht_default_storage_constructor)
-#endif
-		{}
+		session_params(settings_pack const sp = settings_pack()
+			, bool const default_plugins = true);
+
 		session_params(session_params const&) = default;
 		session_params(session_params&&) = default;
 		session_params& operator=(session_params const&) = default;
 		session_params& operator=(session_params&&) = default;
 
-		// flags to be passed in to the constructor
-		enum session_flags_t
-		{
-			// this will add common extensions like ut_pex, ut_metadata, lt_tex
-			// smart_ban and possibly others.
-			add_default_plugins = 1,
-
-			default_flags = add_default_plugins
-		};
-
 		settings_pack settings;
 
-		int start_flags;
-
-#ifndef TORRENT_DISABLE_EXTENSIONS
 		std::vector<boost::shared_ptr<plugin>> extensions;
-#endif
 
 		libtorrent::dht_settings dht_settings;
 
@@ -201,11 +184,11 @@ namespace libtorrent
 		// default is to start those features. If you do not want them to start,
 		// pass 0 as the flags parameter.
 		session(settings_pack pack
-			, int flags = session_params::default_flags)
+			, bool default_plugins = true)
 			: session_handle(nullptr)
 		{
 			TORRENT_CFG();
-			start({std::move(pack), flags}, nullptr);
+			start({std::move(pack), default_plugins}, nullptr);
 		}
 
 		// moveable
@@ -231,11 +214,11 @@ namespace libtorrent
 		// 	destruct the session_proxy object.
 		session(settings_pack pack
 			, io_service& ios
-			, int flags = session_params::default_flags)
+			, bool default_plugins = true)
 			: session_handle(nullptr)
 		{
 			TORRENT_CFG();
-			start({std::move(pack), flags}, &ios);
+			start({std::move(pack), default_plugins}, &ios);
 		}
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -256,8 +239,7 @@ namespace libtorrent
 				pack.set_bool(settings_pack::enable_lsd, false);
 				pack.set_bool(settings_pack::enable_dht, false);
 			}
-
-			start({std::move(pack), flags}, nullptr);
+			start({std::move(pack), (flags & add_default_plugins) != 0}, nullptr);
 		}
 
 		TORRENT_DEPRECATED
@@ -289,7 +271,7 @@ namespace libtorrent
 				pack.set_bool(settings_pack::enable_lsd, false);
 				pack.set_bool(settings_pack::enable_dht, false);
 			}
-			start({std::move(pack), flags}, nullptr);
+			start({std::move(pack), (flags & add_default_plugins) != 0}, nullptr);
 		}
 #endif // TORRENT_NO_DEPRECATE
 

@@ -31,46 +31,13 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
-
-#include <ctime>
-#include <algorithm>
-#include <set>
-#include <deque>
-#include <cctype>
-#include <algorithm>
-#include <memory>
-#include <thread>
-#include <functional>
-#include <utility>
-
 #include "libtorrent/extensions/ut_pex.hpp"
 #include "libtorrent/extensions/ut_metadata.hpp"
 #include "libtorrent/extensions/smart_ban.hpp"
-#include "libtorrent/peer_id.hpp"
-#include "libtorrent/torrent_info.hpp"
-#include "libtorrent/tracker_manager.hpp"
-#include "libtorrent/bencode.hpp"
-#include "libtorrent/hasher.hpp"
-#include "libtorrent/entry.hpp"
 #include "libtorrent/session.hpp"
-#include "libtorrent/session_handle.hpp"
-#include "libtorrent/fingerprint.hpp"
-#include "libtorrent/entry.hpp"
-#include "libtorrent/alert_types.hpp"
-#include "libtorrent/invariant_check.hpp"
-#include "libtorrent/file.hpp"
-#include "libtorrent/bt_peer_connection.hpp"
-#include "libtorrent/ip_filter.hpp"
-#include "libtorrent/socket.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
-#include "libtorrent/kademlia/dht_tracker.hpp"
-#include "libtorrent/natpmp.hpp"
-#include "libtorrent/upnp.hpp"
-#include "libtorrent/magnet_uri.hpp"
-#include "libtorrent/lazy_entry.hpp"
 #include "libtorrent/aux_/session_call.hpp"
 
-using boost::shared_ptr;
 using libtorrent::aux::session_impl;
 
 namespace libtorrent
@@ -337,13 +304,6 @@ namespace libtorrent
 		*static_cast<session_handle*>(this) = session_handle(m_impl.get());
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		if (params.start_flags & session_params::add_default_plugins)
-		{
-			m_impl->add_extension(create_ut_pex_plugin);
-			m_impl->add_extension(create_ut_metadata_plugin);
-			m_impl->add_extension(create_smart_ban_plugin);
-		}
-
 		for (auto const& ext : params.extensions)
 		{
 			m_impl->add_ses_extension(ext);
@@ -418,5 +378,36 @@ namespace libtorrent
 	{
 		if (m_thread && m_thread.unique())
 			m_thread->join();
+	}
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+	namespace
+	{
+		void add_extension(std::vector<boost::shared_ptr<plugin>>& v
+			, session_impl::ext_function_t ext)
+		{
+			boost::shared_ptr<plugin> p(new session_impl::session_plugin_wrapper(ext));
+			v.push_back(p);
+		}
+	}
+#endif
+
+	session_params::session_params(settings_pack const sp
+		, bool const default_plugins)
+		: settings(sp)
+#ifndef TORRENT_DISABLE_DHT
+		, dht_storage_constructor(dht::dht_default_storage_constructor)
+#endif
+	{
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		if (default_plugins)
+		{
+			add_extension(extensions, create_ut_pex_plugin);
+			add_extension(extensions, create_ut_metadata_plugin);
+			add_extension(extensions, create_smart_ban_plugin);
+		}
+#else
+		TORRENT_UNUSED(default_plugins);
+#endif
 	}
 }

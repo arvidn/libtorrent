@@ -67,6 +67,19 @@ namespace
 #endif
 }
 
+TORRENT_TEST(default_plugins)
+{
+	session_params p1;
+#ifndef TORRENT_DISABLE_EXTENSIONS
+	TEST_EQUAL(int(p1.extensions.size()), 3);
+#else
+	TEST_EQUAL(int(p1.extensions.size()), 0);
+#endif
+
+	session_params p2(settings_pack(), false);
+	TEST_EQUAL(int(p2.extensions.size()), 0);
+}
+
 #ifndef TORRENT_DISABLE_DHT
 TORRENT_TEST(custom_dht_storage)
 {
