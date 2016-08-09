@@ -421,7 +421,7 @@ boost::shared_ptr<torrent_info> setup_peer(tcp::socket& s, sha1_hash& ih
 	sett.set_int(settings_pack::out_enc_policy, settings_pack::pe_disabled);
 	sett.set_bool(settings_pack::enable_outgoing_utp, false);
 	sett.set_bool(settings_pack::enable_incoming_utp, false);
-	ses.reset(new lt::session(sett, true));
+	ses.reset(new lt::session(sett, lt::session::add_default_plugins));
 
 	error_code ec;
 	add_torrent_params p;

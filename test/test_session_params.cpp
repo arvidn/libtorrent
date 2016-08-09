@@ -76,7 +76,8 @@ TORRENT_TEST(default_plugins)
 	TEST_EQUAL(int(p1.extensions.size()), 0);
 #endif
 
-	session_params p2(settings_pack(), false);
+	std::vector<boost::shared_ptr<plugin>> exts;
+	session_params p2(settings_pack(), exts);
 	TEST_EQUAL(int(p2.extensions.size()), 0);
 }
 

@@ -125,8 +125,9 @@ namespace libtorrent
 
 	struct TORRENT_EXPORT session_params
 	{
-		session_params(settings_pack const sp = settings_pack()
-			, bool const default_plugins = true);
+		session_params(settings_pack const sp = settings_pack());
+		session_params(settings_pack const sp
+			, std::vector<boost::shared_ptr<plugin>> const exts);
 
 		session_params(session_params const&) = default;
 		session_params(session_params&&) = default;
@@ -183,12 +184,12 @@ namespace libtorrent
 		// nat-pmp) and default plugins (ut_metadata, ut_pex and smart_ban). The
 		// default is to start those features. If you do not want them to start,
 		// pass 0 as the flags parameter.
-		session(settings_pack pack
-			, bool default_plugins = true)
+		session(settings_pack pack = settings_pack()
+			, int flags = start_default_features | add_default_plugins)
 			: session_handle(nullptr)
 		{
 			TORRENT_CFG();
-			start({std::move(pack), default_plugins}, nullptr);
+			start(flags, pack, nullptr);
 		}
 
 		// moveable
@@ -214,11 +215,11 @@ namespace libtorrent
 		// 	destruct the session_proxy object.
 		session(settings_pack pack
 			, io_service& ios
-			, bool default_plugins = true)
+			, int flags = start_default_features | add_default_plugins)
 			: session_handle(nullptr)
 		{
 			TORRENT_CFG();
-			start({std::move(pack), default_plugins}, &ios);
+			start(flags, pack, &ios);
 		}
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -239,7 +240,8 @@ namespace libtorrent
 				pack.set_bool(settings_pack::enable_lsd, false);
 				pack.set_bool(settings_pack::enable_dht, false);
 			}
-			start({std::move(pack), (flags & add_default_plugins) != 0}, nullptr);
+
+			start(flags, std::move(pack), nullptr);
 		}
 
 		TORRENT_DEPRECATED
@@ -271,7 +273,7 @@ namespace libtorrent
 				pack.set_bool(settings_pack::enable_lsd, false);
 				pack.set_bool(settings_pack::enable_dht, false);
 			}
-			start({std::move(pack), (flags & add_default_plugins) != 0}, nullptr);
+			start(flags, std::move(pack), nullptr);
 		}
 #endif // TORRENT_NO_DEPRECATE
 
@@ -306,6 +308,7 @@ namespace libtorrent
 	private:
 
 		void start(session_params const params, io_service* ios);
+		void start(int const flags, settings_pack const sp, io_service* ios);
 
 		// data shared between the main thread
 		// and the working thread

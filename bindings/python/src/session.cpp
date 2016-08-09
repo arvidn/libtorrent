@@ -631,12 +631,10 @@ void bind_session()
         .value("delete_files", lt::session::delete_files)
     ;
 
-#ifndef TORRENT_NO_DEPRECATE
     enum_<lt::session::session_flags_t>("session_flags_t")
         .value("add_default_plugins", lt::session::add_default_plugins)
         .value("start_default_features", lt::session::start_default_features)
     ;
-#endif
 
     enum_<add_torrent_params::flags_t>("add_torrent_params_flags_t")
         .value("flag_seed_mode", add_torrent_params::flag_seed_mode)
@@ -701,7 +699,8 @@ void bind_session()
         .def("__init__", boost::python::make_constructor(&make_session
                 , default_call_policies()
                 , (arg("settings")
-                , arg("default_plugins") = true))
+                , arg("flags")=lt::session::start_default_features
+                    | lt::session::add_default_plugins))
         )
 #ifndef TORRENT_NO_DEPRECATE
         .def(

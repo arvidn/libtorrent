@@ -746,7 +746,6 @@ namespace libtorrent
 			delete_partfile = 2
 		};
 
-#ifndef TORRENT_NO_DEPRECATE
 		// flags to be passed in to the session constructor
 		enum session_flags_t
 		{
@@ -758,7 +757,6 @@ namespace libtorrent
 			// and NAT-PMP.
 			start_default_features = 2
 		};
-#endif
 
 		// ``remove_torrent()`` will close all peer connections associated with
 		// the torrent and tell the tracker that we've stopped participating in
