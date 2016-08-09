@@ -112,6 +112,9 @@ else:
 		extra_link = flags.parse(ldflags)
 		extra_compile = flags.parse(extra_cmd)
 
+		if 'g++' in os.environ['CXX'] or 'clang' in os.environ['CXX']:
+			os.environ["CC"] = os.environ['CXX']
+
 		ext = [Extension('libtorrent',
 			sources = source_list,
 			language='c++',
