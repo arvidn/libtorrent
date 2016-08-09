@@ -37,10 +37,10 @@ def arch():
 	return ['-arch', a]
 
 def lang():
-	if 'g++' in os.environ['CXX'] or 'clang' in os.environ['CXX']:
-		return ['-std=c++11']
-	else:
-		return []
+	print('CXX = %s' % os.environ['CXX'])
+	arguments = os.environ['CXX'].split(' ')
+	if (len(arguments) > 1) return arguments[1:]
+	else: return []
 
 def target_specific():
 
