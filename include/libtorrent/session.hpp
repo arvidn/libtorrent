@@ -179,12 +179,12 @@ namespace libtorrent
 		// starting the session and configuring it, you can pass in a
 		// settings_pack object. Its settings will take effect before the session
 		// starts up.
-		//
+		// 
 		// The ``flags`` parameter can be used to start default features (upnp &
 		// nat-pmp) and default plugins (ut_metadata, ut_pex and smart_ban). The
 		// default is to start those features. If you do not want them to start,
 		// pass 0 as the flags parameter.
-		session(settings_pack pack = settings_pack()
+		session(settings_pack pack
 			, int flags = start_default_features | add_default_plugins)
 			: session_handle(nullptr)
 		{
@@ -205,7 +205,7 @@ namespace libtorrent
 		// to run multiple sessions on a single io_service, or low resource
 		// systems where additional threads are expensive and sharing an
 		// io_service with other events is fine.
-		//
+		// 
 		// .. warning::
 		// 	The session object does not cleanly terminate with an external
 		// 	``io_service``. The ``io_service::run()`` call _must_ have returned
