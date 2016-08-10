@@ -37,10 +37,11 @@ def arch():
 	return ['-arch', a]
 
 def lang():
-	print('CXX = %s' % os.environ['CXX'])
-	arguments = os.environ['CXX'].split(' ')
-	if len(arguments) > 1: return arguments[1:]
-	else: return []
+#	print('CXX = %s' % os.environ['CXX'])
+#	arguments = os.environ['CXX'].split(' ')
+#	if len(arguments) > 1: return arguments[1:]
+#	else: return []
+	return []
 
 def target_specific():
 
@@ -115,6 +116,8 @@ else:
 		# ldflags must be parsed first to ensure the correct library search path order
 		extra_link = flags.parse(ldflags)
 		extra_compile = flags.parse(extra_cmd)
+
+		os.environ["CC"] = os.environ['CXX']
 
 		ext = [Extension('libtorrent',
 			sources = source_list,
