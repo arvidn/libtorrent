@@ -2,21 +2,21 @@ language: cpp
 
 matrix:
   include:
-#    - env: variant=test_release coverage=1 toolset=gcc-coverage
-#    - env: variant=test_debug sim=1 ssl=openssl crypto=libcrypto toolset=gcc
-#    - env: variant=test_barebones toolset=gcc
+    - env: variant=test_release coverage=1 toolset=gcc-coverage
+    - env: variant=test_debug sim=1 ssl=openssl crypto=libcrypto toolset=gcc
+    - env: variant=test_barebones toolset=gcc
     - env: autotools=1 toolset=gcc
-#    - os: osx
-#      osx_image: xcode6.4
-#      env: variant=test_release docs=1 toolset=darwin
-#    - os: osx
-#      osx_image: xcode6.4
-#      env: variant=test_debug ssl=openssl crypto=libcrypto toolset=darwin
-#    - os: osx
-#      osx_image: xcode6.4
-#      env: variant=test_barebones toolset=darwin
-#    - dist: trusty
-#      env: arch=arm toolset=gcc-arm
+    - os: osx
+      osx_image: xcode6.4
+      env: variant=test_release docs=1 toolset=darwin
+    - os: osx
+      osx_image: xcode6.4
+      env: variant=test_debug ssl=openssl crypto=libcrypto toolset=darwin
+    - os: osx
+      osx_image: xcode6.4
+      env: variant=test_barebones toolset=darwin
+    - dist: trusty
+      env: arch=arm toolset=gcc-arm
 
 git:
   submodules: false

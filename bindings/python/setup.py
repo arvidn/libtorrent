@@ -36,13 +36,6 @@ def arch():
 	if a == 'Power Macintosh': a = 'ppc'
 	return ['-arch', a]
 
-def lang():
-#	print('CXX = %s' % os.environ['CXX'])
-#	arguments = os.environ['CXX'].split(' ')
-#	if len(arguments) > 1: return arguments[1:]
-#	else: return []
-	return []
-
 def target_specific():
 
 	if platform.system() != 'Darwin': return []
@@ -117,6 +110,8 @@ else:
 		extra_link = flags.parse(ldflags)
 		extra_compile = flags.parse(extra_cmd)
 
+		# for some reason distutils uses the CC environment variable to determine
+		# the compiler to use for C++
 		os.environ["CC"] = os.environ['CXX']
 
 		ext = [Extension('libtorrent',
@@ -124,8 +119,8 @@ else:
 			language='c++',
 			include_dirs = flags.include_dirs,
 			library_dirs = flags.library_dirs,
-			extra_link_args = lang() + extra_link + arch(),
-			extra_compile_args = lang() + extra_compile + arch() + target_specific(),
+			extra_link_args = extra_link + arch(),
+			extra_compile_args = extra_compile + arch() + target_specific(),
 			libraries = ['torrent-rasterbar'] + flags.libraries)]
 
 setup(name = 'python-libtorrent',
