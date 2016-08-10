@@ -51,7 +51,7 @@ struct entry_to_python
             list l;
             for (std::vector<char>::const_iterator i = pre.begin()
                , end(pre.end()); i != end; ++i)
-               l.append(*i);
+               l.append(int(*i));
             return tuple(l);
         }
         default:
@@ -153,7 +153,7 @@ struct entry_from_python
             std::vector<char> preformatted(length);
             for (std::size_t i = 0; i < length; ++i)
             {
-                preformatted[i] = extract<char>(t[i]);
+                preformatted[i] = char(extract<int>(t[i]));
             }
 
             return entry(preformatted);
