@@ -330,9 +330,13 @@ namespace libtorrent
 			std::vector<boost::shared_ptr<plugin>> v;
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			using wrapper = session_impl::session_plugin_wrapper;
-			v.push_back(boost::make_shared<wrapper>(wrapper(create_ut_pex_plugin)));
-			v.push_back(boost::make_shared<wrapper>(wrapper(create_ut_metadata_plugin)));
-			v.push_back(boost::make_shared<wrapper>(wrapper(create_smart_ban_plugin)));
+			boost::shared_ptr<plugin> ut_pex(new wrapper(create_ut_pex_plugin));
+			boost::shared_ptr<plugin> ut_metadata(new wrapper(create_ut_metadata_plugin));
+			boost::shared_ptr<plugin> smart_ban(new wrapper(create_smart_ban_plugin));
+
+			v.push_back(ut_pex);
+			v.push_back(ut_metadata);
+			v.push_back(smart_ban);
 #endif
 			return v;
 		}
