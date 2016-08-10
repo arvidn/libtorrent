@@ -39,7 +39,7 @@ def arch():
 def lang():
 	print('CXX = %s' % os.environ['CXX'])
 	arguments = os.environ['CXX'].split(' ')
-	if (len(arguments) > 1) return arguments[1:]
+	if len(arguments) > 1: return arguments[1:]
 	else: return []
 
 def target_specific():

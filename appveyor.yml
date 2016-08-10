@@ -1,3 +1,4 @@
+<disable>
 version: "{build}"
 branches:
   only:
