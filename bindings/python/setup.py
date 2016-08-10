@@ -112,6 +112,10 @@ else:
 		extra_link = flags.parse(ldflags)
 		extra_compile = flags.parse(extra_cmd)
 
+		# for some reason distutils uses the CC environment variable to determine
+		# the compiler to use for C++
+		os.environ["CC"] = os.environ['CXX']
+
 		ext = [Extension('libtorrent',
 			sources = source_list,
 			language='c++',
