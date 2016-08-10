@@ -1332,7 +1332,7 @@ namespace libtorrent
 			// ``utp_syn_resends`` is the number of SYN packets that are sent (and
 			// timed out) before giving up and closing the socket.
 			// ``utp_num_resends`` is the number of times a packet is sent (and
-			// loosed or timed out) before giving up and closing the connection.
+			// lost or timed out) before giving up and closing the connection.
 			// ``utp_connect_timeout`` is the number of milliseconds of timeout
 			// for the initial SYN packet for uTP connections. For each timed out
 			// packet (in a row), the timeout is doubled. ``utp_loss_multiplier``

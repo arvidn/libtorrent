@@ -289,7 +289,7 @@ namespace libtorrent
 	// configurations this will give a link error
 	void TORRENT_EXPORT TORRENT_CFG() {}
 
-	void session::start(session_params const params, io_service* ios)
+	void session::start(session_params params, io_service* ios)
 	{
 		bool const internal_executor = ios == nullptr;
 
@@ -325,29 +325,27 @@ namespace libtorrent
 
 	namespace
 	{
-		std::vector<boost::shared_ptr<plugin>> default_plugins()
+		std::vector<boost::shared_ptr<plugin>> default_plugins(
+			bool empty = false)
 		{
-			std::vector<boost::shared_ptr<plugin>> v;
 #ifndef TORRENT_DISABLE_EXTENSIONS
+			if (empty) return {};
 			using wrapper = session_impl::session_plugin_wrapper;
-			boost::shared_ptr<plugin> ut_pex(new wrapper(create_ut_pex_plugin));
-			boost::shared_ptr<plugin> ut_metadata(new wrapper(create_ut_metadata_plugin));
-			boost::shared_ptr<plugin> smart_ban(new wrapper(create_smart_ban_plugin));
-
-			v.push_back(ut_pex);
-			v.push_back(ut_metadata);
-			v.push_back(smart_ban);
+			return {
+				boost::make_shared<wrapper>(wrapper(create_ut_pex_plugin)),
+				boost::make_shared<wrapper>(wrapper(create_ut_metadata_plugin)),
+				boost::make_shared<wrapper>(wrapper(create_smart_ban_plugin))
+			};
+#else
+			return {};
 #endif
-			return v;
 		}
 	}
 
-	void session::start(int const flags, settings_pack const sp, io_service* ios)
+	void session::start(int flags, settings_pack sp, io_service* ios)
 	{
-		auto exts = (flags & add_default_plugins) != 0
-			? default_plugins()
-			: std::vector<boost::shared_ptr<plugin>>();
-		start({std::move(sp), exts}, ios);
+		start({std::move(sp),
+			default_plugins((flags & add_default_plugins) == 0)}, ios);
 	}
 
 	session::~session()
@@ -407,14 +405,14 @@ namespace libtorrent
 			m_thread->join();
 	}
 
-	session_params::session_params(settings_pack const sp)
+	session_params::session_params(settings_pack sp)
 		: session_params(sp, default_plugins())
 	{}
 
-	session_params::session_params(settings_pack const sp
-		, std::vector<boost::shared_ptr<plugin>> const exts)
-		: settings(sp)
-		, extensions(exts)
+	session_params::session_params(settings_pack sp
+		, std::vector<boost::shared_ptr<plugin>> exts)
+		: settings(std::move(sp))
+		, extensions(std::move(exts))
 #ifndef TORRENT_DISABLE_DHT
 		, dht_storage_constructor(dht::dht_default_storage_constructor)
 #endif

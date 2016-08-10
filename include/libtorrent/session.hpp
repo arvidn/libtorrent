@@ -131,11 +131,11 @@ namespace libtorrent
 		// (ut_metadata, ut_pex and smart_ban). The default values in the
 		// settings is to start the default features like upnp, nat-pmp,
 		// and dht for example.
-		session_params(settings_pack const sp = settings_pack());
+		session_params(settings_pack sp = settings_pack());
 		// This constructor helps to configure the set of initial plugins
 		// to be added to the session before it's started.
-		session_params(settings_pack const sp
-			, std::vector<boost::shared_ptr<plugin>> const exts);
+		session_params(settings_pack sp
+			, std::vector<boost::shared_ptr<plugin>> exts);
 
 		session_params(session_params const&) = default;
 		session_params(session_params&&) = default;
@@ -332,8 +332,8 @@ namespace libtorrent
 
 	private:
 
-		void start(session_params const params, io_service* ios);
-		void start(int const flags, settings_pack const sp, io_service* ios);
+		void start(session_params params, io_service* ios);
+		void start(int flags, settings_pack sp, io_service* ios);
 
 		// data shared between the main thread
 		// and the working thread

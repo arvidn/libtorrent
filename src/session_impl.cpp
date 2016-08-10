@@ -776,9 +776,8 @@ namespace aux {
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT_VAL(ext, ext);
 
-		boost::shared_ptr<plugin> p(new session_plugin_wrapper(ext));
-
-		add_ses_extension(p);
+		add_ses_extension(boost::make_shared<session_plugin_wrapper>(
+			session_plugin_wrapper(ext)));
 	}
 
 	void session_impl::add_ses_extension(boost::shared_ptr<plugin> ext)
