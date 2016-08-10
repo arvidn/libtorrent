@@ -323,17 +323,27 @@ namespace libtorrent
 		}
 	}
 
-	void session::start(int const flags, settings_pack const sp, io_service* ios)
+	namespace
 	{
-		if ((flags & add_default_plugins) != 0)
-		{
-			start({std::move(sp)}, ios);
-		}
-		else
+		std::vector<boost::shared_ptr<plugin>> default_plugins()
 		{
 			std::vector<boost::shared_ptr<plugin>> v;
-			start({std::move(sp), v}, ios);
+#ifndef TORRENT_DISABLE_EXTENSIONS
+			using wrapper = session_impl::session_plugin_wrapper;
+			v.push_back(boost::make_shared<wrapper>(wrapper(create_ut_pex_plugin)));
+			v.push_back(boost::make_shared<wrapper>(wrapper(create_ut_metadata_plugin)));
+			v.push_back(boost::make_shared<wrapper>(wrapper(create_smart_ban_plugin)));
+#endif
+			return v;
 		}
+	}
+
+	void session::start(int const flags, settings_pack const sp, io_service* ios)
+	{
+		auto exts = (flags & add_default_plugins) != 0
+			? default_plugins()
+			: std::vector<boost::shared_ptr<plugin>>();
+		start({std::move(sp), exts}, ios);
 	}
 
 	session::~session()
@@ -391,29 +401,6 @@ namespace libtorrent
 	{
 		if (m_thread && m_thread.unique())
 			m_thread->join();
-	}
-
-	namespace
-	{
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		void add_extension(std::vector<boost::shared_ptr<plugin>>& v
-			, session_impl::ext_function_t ext)
-		{
-			boost::shared_ptr<plugin> p(new session_impl::session_plugin_wrapper(ext));
-			v.push_back(p);
-		}
-#endif
-
-		std::vector<boost::shared_ptr<plugin>> default_plugins()
-		{
-			std::vector<boost::shared_ptr<plugin>> v;
-#ifndef TORRENT_DISABLE_EXTENSIONS
-			add_extension(v, create_ut_pex_plugin);
-			add_extension(v, create_ut_metadata_plugin);
-			add_extension(v, create_smart_ban_plugin);
-#endif
-			return v;
-		}
 	}
 
 	session_params::session_params(settings_pack const sp)

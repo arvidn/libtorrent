@@ -123,9 +123,17 @@ namespace libtorrent
 		boost::shared_ptr<aux::session_impl> m_impl;
 	};
 
+	// The session_params is a parameters pack for configuring the session
+	// before it's started.
 	struct TORRENT_EXPORT session_params
 	{
+		// This constructor can be used to start with the default plugins
+		// (ut_metadata, ut_pex and smart_ban). The default values in the
+		// settings is to start the default features like upnp, nat-pmp,
+		// and dht for example.
 		session_params(settings_pack const sp = settings_pack());
+		// This constructor helps to configure the set of initial plugins
+		// to be added to the session before it's started.
 		session_params(settings_pack const sp
 			, std::vector<boost::shared_ptr<plugin>> const exts);
 
@@ -159,6 +167,10 @@ namespace libtorrent
 	{
 	public:
 
+		// Constructs the session objects which acts as the container of torrents.
+		// In order to avoid a race condition between starting the session and
+		// configuring it, you can pass in a session_params object. Its settings
+		// will take effect before the session starts up.
 		session(session_params params = session_params())
 			: session_handle(nullptr)
 		{
@@ -166,6 +178,19 @@ namespace libtorrent
 			start(std::move(params), nullptr);
 		}
 
+		// Overload of the constructor that takes an external io_service to run
+		// the session object on. This is primarily useful for tests that may want
+		// to run multiple sessions on a single io_service, or low resource
+		// systems where additional threads are expensive and sharing an
+		// io_service with other events is fine.
+		//
+		// .. warning::
+		// 	The session object does not cleanly terminate with an external
+		// 	``io_service``. The ``io_service::run()`` call _must_ have returned
+		// 	before it's safe to destruct the session. Which means you *MUST*
+		// 	call session::abort() and save the session_proxy first, then
+		// 	destruct the session object, then sync with the io_service, then
+		// 	destruct the session_proxy object.
 		session(session_params params, io_service& ios)
 			: session_handle(nullptr)
 		{
