@@ -16,8 +16,11 @@ class test_create_torrent(unittest.TestCase):
 		ct = lt.create_torrent(ti)
 		entry = ct.generate()
 		content = lt.bencode(entry).strip()
-		with open('unordered.torrent', 'r') as f:
-			file_content = f.read().strip()
+		with open('unordered.torrent', 'rb') as f:
+			file_content = bytearray(f.read().strip())
+			print(content)
+			print(file_content)
+			print(entry)
 			self.assertEqual(content, file_content)
 
 class test_torrent_handle(unittest.TestCase):
