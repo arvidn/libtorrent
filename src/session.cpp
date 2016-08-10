@@ -337,6 +337,7 @@ namespace libtorrent
 				boost::make_shared<wrapper>(wrapper(create_smart_ban_plugin))
 			};
 #else
+			TORRENT_UNUSED(empty);
 			return {};
 #endif
 		}
