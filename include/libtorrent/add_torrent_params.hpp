@@ -304,7 +304,7 @@ namespace libtorrent
 
 		// a list of hostname and port pairs, representing DHT nodes to be added
 		// to the session (if DHT is enabled). The hostname may be an IP address.
-		std::vector<std::pair<std::string, int> > dht_nodes;
+		std::vector<std::pair<std::string, int>> dht_nodes;
 		std::string name;
 
 		// the path where the torrent is or will be stored.
@@ -343,7 +343,7 @@ namespace libtorrent
 		// to avoid race conditions. For instance it may be important to have the
 		// plugin catch events that happen very early on after the torrent is
 		// created.
-		std::vector<boost::function<boost::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> >
+		std::vector<boost::function<boost::shared_ptr<torrent_plugin>(torrent_handle const&, void*)>>
 			extensions;
 
 		// the default tracker id to be used when announcing to trackers. By

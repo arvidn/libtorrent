@@ -1429,7 +1429,7 @@ namespace libtorrent
 	{
 		int block_offset = p.block_index * block_size();
 		int block = (std::min)(torrent_file().piece_size(
-			p.piece_index) - block_offset, int(block_size()));
+			p.piece_index) - block_offset, block_size());
 		TORRENT_ASSERT(block > 0);
 		TORRENT_ASSERT(block <= block_size());
 

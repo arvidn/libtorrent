@@ -98,7 +98,7 @@ namespace libtorrent
 
 			char buf[MAX_SYMLINK_PATH];
 			std::string f = convert_to_native(path);
-			int char_read = readlink(f.c_str(),buf,MAX_SYMLINK_PATH);
+			int char_read = readlink(f.c_str(), buf, MAX_SYMLINK_PATH);
 			if (char_read < 0) return "";
 			if (char_read < MAX_SYMLINK_PATH) buf[char_read] = 0;
 			else buf[0] = 0;
@@ -112,7 +112,6 @@ namespace libtorrent
 			TORRENT_UNUSED(p);
 			return "";
 #else
-			std::string path = convert_to_native(p);
 			return get_symlink_path_impl(p.c_str());
 #endif
 		}

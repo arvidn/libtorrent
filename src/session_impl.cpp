@@ -301,7 +301,7 @@ namespace aux {
 
 		return SSL_TLSEXT_ERR_OK;
 	}
-	} // anonymous namesoace
+	} // anonymous namespace
 #endif
 
 	session_impl::session_impl(io_service& ios)
@@ -4675,14 +4675,10 @@ namespace aux {
 		torrent_ptr->start(params);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		typedef std::vector<boost::function<
-			boost::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> >
-			torrent_plugins_t;
-
-		for (torrent_plugins_t::const_iterator i = params.extensions.begin()
-			, end(params.extensions.end()); i != end; ++i)
+		for (auto& ext : params.extensions)
 		{
-			torrent_ptr->add_extension((*i)(handle, params.userdata));
+			boost::shared_ptr<torrent_plugin> tp(ext(handle, params.userdata));
+			if (tp) torrent_ptr->add_extension(tp);
 		}
 
 		add_extensions_to_torrent(torrent_ptr, params.userdata);
