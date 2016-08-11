@@ -270,10 +270,10 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 	// if we don't have the transaction id in our
 	// request list, ignore the packet
 
-	std::string transaction_id = m.message.dict_find_string_value("t");
+	auto transaction_id = m.message.dict_find_string_value("t");
 	if (transaction_id.empty()) return false;
 
-	std::string::const_iterator ptr = transaction_id.begin();
+	auto ptr = transaction_id.begin();
 	int tid = transaction_id.size() != 2 ? -1 : io::read_uint16(ptr);
 
 	observer_ptr o;
@@ -325,7 +325,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 			m_log->log(dht_logger::rpc_manager, "reply with error from %s: (%" PRId64 ") %s"
 				, print_endpoint(m.addr).c_str()
 				, err.list_int_value_at(0)
-				, err.list_string_value_at(1).c_str());
+				, err.list_string_value_at(1).to_string().c_str());
 		}
 		else
 		{

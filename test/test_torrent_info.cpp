@@ -236,11 +236,11 @@ TORRENT_TEST(sanitize_long_path)
 	sanitize_append_path_element(path,
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
-		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_", 250);
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_");
 	sanitize_append_path_element(path,
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
-		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcde.test", 250);
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcde.test");
 	TEST_EQUAL(path,
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
@@ -253,9 +253,9 @@ TORRENT_TEST(sanitize_long_path)
 TORRENT_TEST(sanitize_path_trailing_dots)
 {
 	std::string path;
-	sanitize_append_path_element(path, "a", 1);
-	sanitize_append_path_element(path, "abc...", 6);
-	sanitize_append_path_element(path, "c", 1);
+	sanitize_append_path_element(path, "a");
+	sanitize_append_path_element(path, "abc...");
+	sanitize_append_path_element(path, "c");
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(path, "a" SEPARATOR "abc" SEPARATOR "c");
 #else
@@ -263,7 +263,7 @@ TORRENT_TEST(sanitize_path_trailing_dots)
 #endif
 
 	path.clear();
-	sanitize_append_path_element(path, "abc...", 6);
+	sanitize_append_path_element(path, "abc...");
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(path, "abc");
 #else
@@ -271,7 +271,7 @@ TORRENT_TEST(sanitize_path_trailing_dots)
 #endif
 
 	path.clear();
-	sanitize_append_path_element(path, "abc.", 4);
+	sanitize_append_path_element(path, "abc.");
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(path, "abc");
 #else
@@ -280,7 +280,7 @@ TORRENT_TEST(sanitize_path_trailing_dots)
 
 
 	path.clear();
-	sanitize_append_path_element(path, "a. . .", 6);
+	sanitize_append_path_element(path, "a. . .");
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(path, "a");
 #else
@@ -291,9 +291,9 @@ TORRENT_TEST(sanitize_path_trailing_dots)
 TORRENT_TEST(sanitize_path_trailing_spaces)
 {
 	std::string path;
-	sanitize_append_path_element(path, "a", 1);
-	sanitize_append_path_element(path, "abc   ", 6);
-	sanitize_append_path_element(path, "c", 1);
+	sanitize_append_path_element(path, "a");
+	sanitize_append_path_element(path, "abc   ");
+	sanitize_append_path_element(path, "c");
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(path, "a" SEPARATOR "abc" SEPARATOR "c");
 #else
@@ -301,7 +301,7 @@ TORRENT_TEST(sanitize_path_trailing_spaces)
 #endif
 
 	path.clear();
-	sanitize_append_path_element(path, "abc   ", 6);
+	sanitize_append_path_element(path, "abc   ");
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(path, "abc");
 #else
@@ -309,7 +309,7 @@ TORRENT_TEST(sanitize_path_trailing_spaces)
 #endif
 
 	path.clear();
-	sanitize_append_path_element(path, "abc ", 4);
+	sanitize_append_path_element(path, "abc ");
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(path, "abc");
 #else
@@ -320,34 +320,34 @@ TORRENT_TEST(sanitize_path_trailing_spaces)
 TORRENT_TEST(sanitize_path)
 {
 	std::string path;
-	sanitize_append_path_element(path, "/a/", 3);
-	sanitize_append_path_element(path, "b", 1);
-	sanitize_append_path_element(path, "c", 1);
+	sanitize_append_path_element(path, "/a/");
+	sanitize_append_path_element(path, "b");
+	sanitize_append_path_element(path, "c");
 	TEST_EQUAL(path, "a" SEPARATOR "b" SEPARATOR "c");
 
 	path.clear();
-	sanitize_append_path_element(path, "a...b", 5);
+	sanitize_append_path_element(path, "a...b");
 	TEST_EQUAL(path, "a...b");
 
 	path.clear();
-	sanitize_append_path_element(path, "a", 1);
-	sanitize_append_path_element(path, "..", 2);
-	sanitize_append_path_element(path, "c", 1);
+	sanitize_append_path_element(path, "a");
+	sanitize_append_path_element(path, "..");
+	sanitize_append_path_element(path, "c");
 	TEST_EQUAL(path, "a" SEPARATOR "c");
 
 	path.clear();
-	sanitize_append_path_element(path, "a", 1);
-	sanitize_append_path_element(path, "..", 2);
+	sanitize_append_path_element(path, "a");
+	sanitize_append_path_element(path, "..");
 	TEST_EQUAL(path, "a");
 
 	path.clear();
-	sanitize_append_path_element(path, "/..", 3);
-	sanitize_append_path_element(path, ".", 1);
-	sanitize_append_path_element(path, "c", 1);
+	sanitize_append_path_element(path, "/..");
+	sanitize_append_path_element(path, ".");
+	sanitize_append_path_element(path, "c");
 	TEST_EQUAL(path, "c");
 
 	path.clear();
-	sanitize_append_path_element(path, "dev:", 4);
+	sanitize_append_path_element(path, "dev:");
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(path, "dev");
 #else
@@ -355,8 +355,8 @@ TORRENT_TEST(sanitize_path)
 #endif
 
 	path.clear();
-	sanitize_append_path_element(path, "c:", 2);
-	sanitize_append_path_element(path, "b", 1);
+	sanitize_append_path_element(path, "c:");
+	sanitize_append_path_element(path, "b");
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(path, "c" SEPARATOR "b");
 #else
@@ -364,9 +364,9 @@ TORRENT_TEST(sanitize_path)
 #endif
 
 	path.clear();
-	sanitize_append_path_element(path, "c:", 2);
-	sanitize_append_path_element(path, ".", 1);
-	sanitize_append_path_element(path, "c", 1);
+	sanitize_append_path_element(path, "c:");
+	sanitize_append_path_element(path, ".");
+	sanitize_append_path_element(path, "c");
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(path, "c" SEPARATOR "c");
 #else
@@ -374,33 +374,33 @@ TORRENT_TEST(sanitize_path)
 #endif
 
 	path.clear();
-	sanitize_append_path_element(path, "\\c", 2);
-	sanitize_append_path_element(path, ".", 1);
-	sanitize_append_path_element(path, "c", 1);
+	sanitize_append_path_element(path, "\\c");
+	sanitize_append_path_element(path, ".");
+	sanitize_append_path_element(path, "c");
 	TEST_EQUAL(path, "c" SEPARATOR "c");
 
 	path.clear();
-	sanitize_append_path_element(path, "\b", 1);
+	sanitize_append_path_element(path, "\b");
 	TEST_EQUAL(path, "_");
 
 	path.clear();
-	sanitize_append_path_element(path, "\b", 1);
-	sanitize_append_path_element(path, "filename", 8);
+	sanitize_append_path_element(path, "\b");
+	sanitize_append_path_element(path, "filename");
 	TEST_EQUAL(path, "_" SEPARATOR "filename");
 
 	path.clear();
-	sanitize_append_path_element(path, "filename", 8);
-	sanitize_append_path_element(path, "\b", 1);
+	sanitize_append_path_element(path, "filename");
+	sanitize_append_path_element(path, "\b");
 	TEST_EQUAL(path, "filename" SEPARATOR "_");
 
 	path.clear();
-	sanitize_append_path_element(path, "abc", 3);
-	sanitize_append_path_element(path, "", 0);
+	sanitize_append_path_element(path, "abc");
+	sanitize_append_path_element(path, "");
 	TEST_EQUAL(path, "abc" SEPARATOR "_");
 
 	path.clear();
-	sanitize_append_path_element(path, "abc", 3);
-	sanitize_append_path_element(path, "   ", 3);
+	sanitize_append_path_element(path, "abc");
+	sanitize_append_path_element(path, "   ");
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(path, "abc");
 #else
@@ -408,12 +408,12 @@ TORRENT_TEST(sanitize_path)
 #endif
 
 	path.clear();
-	sanitize_append_path_element(path, "", 0);
-	sanitize_append_path_element(path, "abc", 3);
+	sanitize_append_path_element(path, "");
+	sanitize_append_path_element(path, "abc");
 	TEST_EQUAL(path, "_" SEPARATOR "abc");
 
 	path.clear();
-	sanitize_append_path_element(path, "\b?filename=4", 12);
+	sanitize_append_path_element(path, "\b?filename=4");
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(path, "__filename=4");
 #else
@@ -421,65 +421,65 @@ TORRENT_TEST(sanitize_path)
 #endif
 
 	path.clear();
-	sanitize_append_path_element(path, "filename=4", 10);
+	sanitize_append_path_element(path, "filename=4");
 	TEST_EQUAL(path, "filename=4");
 
 	// valid 2-byte sequence
 	path.clear();
-	sanitize_append_path_element(path, "filename\xc2\xa1", 10);
+	sanitize_append_path_element(path, "filename\xc2\xa1");
 	TEST_EQUAL(path, "filename\xc2\xa1");
 
 	// truncated 2-byte sequence
 	path.clear();
-	sanitize_append_path_element(path, "filename\xc2", 9);
+	sanitize_append_path_element(path, "filename\xc2");
 	TEST_EQUAL(path, "filename_");
 
 	// valid 3-byte sequence
 	path.clear();
-	sanitize_append_path_element(path, "filename\xe2\x9f\xb9", 11);
+	sanitize_append_path_element(path, "filename\xe2\x9f\xb9");
 	TEST_EQUAL(path, "filename\xe2\x9f\xb9");
 
 	// truncated 3-byte sequence
 	path.clear();
-	sanitize_append_path_element(path, "filename\xe2\x9f", 10);
+	sanitize_append_path_element(path, "filename\xe2\x9f");
 	TEST_EQUAL(path, "filename_");
 
 	// truncated 3-byte sequence
 	path.clear();
-	sanitize_append_path_element(path, "filename\xe2", 9);
+	sanitize_append_path_element(path, "filename\xe2");
 	TEST_EQUAL(path, "filename_");
 
 	// valid 4-byte sequence
 	path.clear();
-	sanitize_append_path_element(path, "filename\xf0\x9f\x92\x88", 12);
+	sanitize_append_path_element(path, "filename\xf0\x9f\x92\x88");
 	TEST_EQUAL(path, "filename\xf0\x9f\x92\x88");
 
 	// truncated 4-byte sequence
 	path.clear();
-	sanitize_append_path_element(path, "filename\xf0\x9f\x92", 11);
+	sanitize_append_path_element(path, "filename\xf0\x9f\x92");
 	TEST_EQUAL(path, "filename_");
 
 	// 5-byte utf-8 sequence (not allowed)
 	path.clear();
-	sanitize_append_path_element(path, "filename\xf8\x9f\x9f\x9f\x9f" "foobar", 19);
+	sanitize_append_path_element(path, "filename\xf8\x9f\x9f\x9f\x9f" "foobar");
 	TEST_EQUAL(path, "filename_____foobar");
 
 	// redundant (overlong) 2-byte sequence
 	// ascii code 0x2e encoded with a leading 0
 	path.clear();
-	sanitize_append_path_element(path, "filename\xc0\xae", 10);
+	sanitize_append_path_element(path, "filename\xc0\xae");
 	TEST_EQUAL(path, "filename_");
 
 	// redundant (overlong) 3-byte sequence
 	// ascii code 0x2e encoded with two leading 0s
 	path.clear();
-	sanitize_append_path_element(path, "filename\xe0\x80\xae", 11);
+	sanitize_append_path_element(path, "filename\xe0\x80\xae");
 	TEST_EQUAL(path, "filename_");
 
 	// redundant (overlong) 4-byte sequence
 	// ascii code 0x2e encoded with three leading 0s
 	path.clear();
-	sanitize_append_path_element(path, "filename\xf0\x80\x80\xae", 12);
+	sanitize_append_path_element(path, "filename\xf0\x80\x80\xae");
 	TEST_EQUAL(path, "filename_");
 }
 

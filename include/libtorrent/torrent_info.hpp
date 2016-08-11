@@ -67,7 +67,7 @@ namespace libtorrent
 
 	// internal, exposed for the unit test
 	TORRENT_EXTRA_EXPORT void sanitize_append_path_element(std::string& path
-		, char const* element, int element_len);
+		, boost::string_ref element);
 	TORRENT_EXTRA_EXPORT bool verify_encoding(std::string& target);
 
 	// the web_seed_entry holds information about a web seed (also known
@@ -476,7 +476,7 @@ namespace libtorrent
 		{ return m_comment; }
 
 		// dht nodes to add to the routing table/bootstrap from
-		typedef std::vector<std::pair<std::string, int> > nodes_t;
+		using nodes_t = std::vector<std::pair<std::string, int>>;
 
 		// If this torrent contains any DHT nodes, they are put in this vector in
 		// their original form (host name and port number).

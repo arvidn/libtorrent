@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/smart_ptr.hpp>
+#include <boost/utility/string_ref.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -97,7 +98,7 @@ namespace libtorrent
 		bool has_val(int name) const;
 		void clear();
 
-		std::string get_str(int name) const;
+		std::string const& get_str(int name) const;
 		int get_int(int name) const;
 		bool get_bool(int name) const;
 

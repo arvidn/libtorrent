@@ -1799,8 +1799,8 @@ namespace libtorrent
 		int last_seen_complete = std::uint8_t(root.dict_find_int_value("complete_ago", -1));
 		if (last_seen_complete >= 0) set_last_seen_complete(last_seen_complete);
 
-		std::string client_info = root.dict_find_string_value("v");
-		if (!client_info.empty()) m_client_version = client_info;
+		auto client_info = root.dict_find_string_value("v");
+		if (!client_info.empty()) m_client_version = client_info.to_string();
 
 		int reqq = int(root.dict_find_int_value("reqq"));
 		if (reqq > 0) max_out_request_queue(reqq);
@@ -1812,7 +1812,7 @@ namespace libtorrent
 			&& root.dict_find_int_value("share_mode", 0))
 			set_share_mode(true);
 
-		std::string myip = root.dict_find_string_value("yourip");
+		auto myip = root.dict_find_string_value("yourip");
 		if (!myip.empty())
 		{
 			if (myip.size() == address_v4::bytes_type().size())

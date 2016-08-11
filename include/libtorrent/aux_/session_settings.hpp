@@ -54,8 +54,8 @@ namespace libtorrent { namespace aux
 		friend TORRENT_EXTRA_EXPORT void libtorrent::save_settings_to_dict(
 			aux::session_settings const& s, entry::dictionary_type& sett);
 
-		void set_str(int name, std::string const& value)
-		{ set(m_strings, name, value, settings_pack::string_type_base); }
+		void set_str(int name, std::string value)
+		{ set(m_strings, name, std::move(value), settings_pack::string_type_base); }
 		void set_int(int name, int value)
 		{ set(m_ints, name, value, settings_pack::int_type_base); }
 		void set_bool(int name, bool value)
@@ -73,13 +73,13 @@ namespace libtorrent { namespace aux
 	private:
 
 		template <typename T, size_t N>
-		void set(std::array<T, N>& arr, int const name, T const& val, int const type) const
+		void set(std::array<T, N>& arr, int const name, T val, int const type) const
 		{
 			TORRENT_ASSERT((name & settings_pack::type_mask) == type);
 			if ((name & settings_pack::type_mask) != type) return;
 			size_t const index = name & settings_pack::index_mask;
 			TORRENT_ASSERT(index < N);
-			arr[index] = val;
+			arr[index] = std::move(val);
 		}
 
 		template <typename T, size_t N>
@@ -98,9 +98,6 @@ namespace libtorrent { namespace aux
 		// TODO: make this a bitfield
 		std::array<bool, settings_pack::num_bool_settings> m_bools;
 	};
-
-#undef GET
-#undef SET
 
 } }
 

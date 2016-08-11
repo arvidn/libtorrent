@@ -55,6 +55,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/assert.hpp>
 #include <libtorrent/bloom_filter.hpp>
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/utility/string_ref.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
 #include "libtorrent/socket.hpp"
 
 namespace libtorrent {
@@ -157,7 +161,7 @@ public:
 		, boost::function<void(item const&, int)> f
 		, boost::function<void(item&)> data_cb);
 
-	bool verify_token(std::string const& token, sha1_hash const& info_hash
+	bool verify_token(boost::string_ref token, sha1_hash const& info_hash
 		, udp::endpoint const& addr) const;
 
 	std::string generate_token(udp::endpoint const& addr, sha1_hash const& info_hash);

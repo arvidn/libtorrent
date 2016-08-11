@@ -404,7 +404,7 @@ namespace libtorrent
 			ec.assign(errors::invalid_tracker_response, get_libtorrent_category());
 			return false;
 		}
-		ret.hostname = i.string_value();
+		ret.hostname = i.string_value().to_string();
 
 		// extract port
 		i = info.dict_find_int("port");
@@ -444,20 +444,20 @@ namespace libtorrent
 
 		bdecode_node tracker_id = e.dict_find_string("tracker id");
 		if (tracker_id)
-			resp.trackerid = tracker_id.string_value();
+			resp.trackerid = tracker_id.string_value().to_string();
 
 		// parse the response
 		bdecode_node failure = e.dict_find_string("failure reason");
 		if (failure)
 		{
-			resp.failure_reason = failure.string_value();
+			resp.failure_reason = failure.string_value().to_string();
 			ec.assign(errors::tracker_failure, get_libtorrent_category());
 			return resp;
 		}
 
 		bdecode_node warning = e.dict_find_string("warning message");
 		if (warning)
-			resp.warning_message = warning.string_value();
+			resp.warning_message = warning.string_value().to_string();
 
 		if (0 != (flags & tracker_request::scrape_request))
 		{

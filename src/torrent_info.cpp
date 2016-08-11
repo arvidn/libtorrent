@@ -150,16 +150,16 @@ namespace libtorrent
 		return valid_encoding;
 	}
 
-	void sanitize_append_path_element(std::string& path, char const* element, int element_len)
+	void sanitize_append_path_element(std::string& path, boost::string_ref element)
 	{
-		if (element_len == 1 && element[0] == '.') return;
+		if (element.size() == 1 && element[0] == '.') return;
 
 #ifdef TORRENT_WINDOWS
 #define TORRENT_SEPARATOR "\\"
 #else
 #define TORRENT_SEPARATOR "/"
 #endif
-		path.reserve(path.size() + element_len + 2);
+		path.reserve(path.size() + element.size() + 2);
 		int added_separator = 0;
 		if (!path.empty())
 		{
@@ -167,7 +167,7 @@ namespace libtorrent
 			added_separator = 1;
 		}
 
-		if (element_len == 0)
+		if (element.empty())
 		{
 			path += "_";
 			return;
@@ -188,18 +188,17 @@ namespace libtorrent
 
 		// this is not very efficient, but it only affects some specific
 		// windows builds for now anyway (not even the default windows build)
-		std::string pe(element, element_len);
+		std::string pe = element.to_string();
 		char const* file_end = strrchr(pe.c_str(), '.');
-		std::string name;
-		if (file_end) name.assign(pe.c_str(), file_end);
-		else name = pe;
+		std::string name = file_end
+			? std::string(pe.data(), file_end)
+			: pe;
 		std::transform(name.begin(), name.end(), name.begin(), &to_lower);
 		char const* str = std::find(reserved_names, reserved_names + num_names, name);
 		if (str != reserved + num_names)
 		{
 			pe = "_" + pe;
-			element = pe.c_str();
-			element_len = pe.size();
+			element = boost::string_ref();
 		}
 #endif
 		// this counts the number of unicode characters
@@ -211,7 +210,7 @@ namespace libtorrent
 		// the number of dots we've added
 		char num_dots = 0;
 		bool found_extension = false;
-		for (int i = 0; i < element_len; ++i)
+		for (int i = 0; i < element.size(); ++i)
 		{
 			if (element[i] == '/'
 				|| element[i] == '\\'
@@ -241,7 +240,7 @@ namespace libtorrent
 			else if ((element[i] & 0xe0) == 0xc0)
 			{
 				// 2 bytes
-				if (element_len - i < 2
+				if (element.size() - i < 2
 					|| (element[i+1] & 0xc0) != 0x80)
 				{
 					path += '_';
@@ -264,7 +263,7 @@ namespace libtorrent
 			else if ((element[i] & 0xf0) == 0xe0)
 			{
 				// 3 bytes
-				if (element_len - i < 3
+				if (element.size() - i < 3
 					|| (element[i+1] & 0xc0) != 0x80
 					|| (element[i+2] & 0xc0) != 0x80
 					)
@@ -290,7 +289,7 @@ namespace libtorrent
 			else if ((element[i] & 0xf8) == 0xf0)
 			{
 				// 4 bytes
-				if (element_len - i < 4
+				if (element.size() - i < 4
 					|| (element[i+1] & 0xc0) != 0x80
 					|| (element[i+2] & 0xc0) != 0x80
 					|| (element[i+3] & 0xc0) != 0x80
@@ -336,7 +335,8 @@ namespace libtorrent
 #endif
 			{
 				int dot = -1;
-				for (int j = element_len-1; j > (std::max)(element_len - 10, i); --j)
+				for (int j = element.size()-1;
+					j > (std::max)(int(element.size() - 10), i); --j)
 				{
 					if (element[j] != '.') continue;
 					dot = j;
@@ -417,7 +417,7 @@ namespace libtorrent
 
 			filename = p.string_ptr() + info_ptr_diff;
 			filename_len = p.string_length();
-			sanitize_append_path_element(path, p.string_ptr(), p.string_length());
+			sanitize_append_path_element(path, p.string_value());
 		}
 		else
 		{
@@ -450,7 +450,7 @@ namespace libtorrent
 					filename = e.string_ptr() + info_ptr_diff;
 					filename_len = e.string_length();
 				}
-				sanitize_append_path_element(path, e.string_ptr(), e.string_length());
+				sanitize_append_path_element(path, e.string_value());
 			}
 		}
 
@@ -486,8 +486,8 @@ namespace libtorrent
 		{
 			for (int i = 0, end(s_p.list_size()); i < end; ++i)
 			{
-				std::string pe = s_p.list_at(i).string_value();
-				symlink_path = combine_path(symlink_path, pe);
+				auto pe = s_p.list_at(i).string_value();
+				append_path(symlink_path, pe);
 			}
 		}
 		else
@@ -1036,7 +1036,7 @@ namespace libtorrent
 			if (ec) return "";
 		}
 		if (m_info_dict.type() != bdecode_node::dict_t) return "";
-		return m_info_dict.dict_find_string_value("ssl-cert");
+		return m_info_dict.dict_find_string_value("ssl-cert").to_string();
 	}
 
 	bool torrent_info::parse_info_section(bdecode_node const& info
@@ -1090,8 +1090,7 @@ namespace libtorrent
 		}
 
 		std::string name;
-		sanitize_append_path_element(name, name_ent.string_ptr()
-			, name_ent.string_length());
+		sanitize_append_path_element(name, name_ent.string_value());
 		if (name.empty()) name = aux::to_hex(m_info_hash);
 
 		// extract file list
@@ -1316,10 +1315,10 @@ namespace libtorrent
 			bdecode_node link = torrent_file.dict_find_string("magnet-uri");
 			if (link)
 			{
-				std::string uri = link.string_value();
+				auto uri = link.string_value();
 
 				add_torrent_params p;
-				parse_magnet_uri(uri, p, ec);
+				parse_magnet_uri(uri.to_string(), p, ec);
 				if (ec) return false;
 
 				m_info_hash = p.info_hash;
@@ -1379,7 +1378,7 @@ namespace libtorrent
 				if (tier.type() != bdecode_node::list_t) continue;
 				for (int k = 0, end2(tier.list_size()); k < end2; ++k)
 				{
-					announce_entry e(tier.list_string_value_at(k));
+					announce_entry e(tier.list_string_value_at(k).to_string());
 					e.trim();
 					if (e.url.empty()) continue;
 					e.tier = j;
@@ -1413,7 +1412,7 @@ namespace libtorrent
 
 		if (m_urls.empty())
 		{
-			announce_entry e(torrent_file.dict_find_string_value("announce"));
+			announce_entry e(torrent_file.dict_find_string_value("announce").to_string());
 			e.fail_limit = 0;
 			e.source = announce_entry::source_torrent;
 			e.trim();
@@ -1435,7 +1434,7 @@ namespace libtorrent
 					|| n.list_at(1).type() != bdecode_node::int_t)
 					continue;
 				m_nodes.push_back(std::make_pair(
-					n.list_at(0).string_value()
+					n.list_at(0).string_value().to_string()
 					, int(n.list_at(1).int_value())));
 			}
 		}
@@ -1452,7 +1451,7 @@ namespace libtorrent
 		if (url_seeds && url_seeds.type() == bdecode_node::string_t
 			&& url_seeds.string_length() > 0)
 		{
-			web_seed_entry ent(maybe_url_encode(url_seeds.string_value())
+			web_seed_entry ent(maybe_url_encode(url_seeds.string_value().to_string())
 				, web_seed_entry::url_seed);
 			if ((m_flags & multifile) && ent.url[ent.url.size()-1] != '/') ent.url += '/';
 			m_web_seeds.push_back(ent);
@@ -1466,7 +1465,7 @@ namespace libtorrent
 				bdecode_node url = url_seeds.list_at(i);
 				if (url.type() != bdecode_node::string_t) continue;
 				if (url.string_length() == 0) continue;
-				web_seed_entry ent(maybe_url_encode(url.string_value())
+				web_seed_entry ent(maybe_url_encode(url.string_value().to_string())
 					, web_seed_entry::url_seed);
 				if ((m_flags & multifile) && ent.url[ent.url.size()-1] != '/') ent.url += '/';
 				if (unique.count(ent.url)) continue;
@@ -1480,7 +1479,7 @@ namespace libtorrent
 		if (http_seeds && http_seeds.type() == bdecode_node::string_t
 			&& http_seeds.string_length() > 0)
 		{
-			m_web_seeds.push_back(web_seed_entry(maybe_url_encode(http_seeds.string_value())
+			m_web_seeds.push_back(web_seed_entry(maybe_url_encode(http_seeds.string_value().to_string())
 				, web_seed_entry::http_seed));
 		}
 		else if (http_seeds && http_seeds.type() == bdecode_node::list_t)
@@ -1491,19 +1490,19 @@ namespace libtorrent
 			{
 				bdecode_node url = http_seeds.list_at(i);
 				if (url.type() != bdecode_node::string_t || url.string_length() == 0) continue;
-				std::string u = maybe_url_encode(url.string_value());
+				std::string u = maybe_url_encode(url.string_value().to_string());
 				if (unique.count(u)) continue;
 				unique.insert(u);
 				m_web_seeds.push_back(web_seed_entry(u, web_seed_entry::http_seed));
 			}
 		}
 
-		m_comment = torrent_file.dict_find_string_value("comment.utf-8");
-		if (m_comment.empty()) m_comment = torrent_file.dict_find_string_value("comment");
+		m_comment = torrent_file.dict_find_string_value("comment.utf-8").to_string();
+		if (m_comment.empty()) m_comment = torrent_file.dict_find_string_value("comment").to_string();
 		verify_encoding(m_comment);
 
-		m_created_by = torrent_file.dict_find_string_value("created by.utf-8");
-		if (m_created_by.empty()) m_created_by = torrent_file.dict_find_string_value("created by");
+		m_created_by = torrent_file.dict_find_string_value("created by.utf-8").to_string();
+		if (m_created_by.empty()) m_created_by = torrent_file.dict_find_string_value("created by").to_string();
 		verify_encoding(m_created_by);
 
 		return true;

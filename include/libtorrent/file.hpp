@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/noncopyable.hpp>
 #include <boost/smart_ptr.hpp>
 #include <boost/function.hpp>
+#include <boost/utility/string_ref.hpp>
 
 #ifdef TORRENT_WINDOWS
 // windows part
@@ -160,15 +161,19 @@ namespace libtorrent
 
 	// internal used by create_torrent.hpp
 	TORRENT_EXTRA_EXPORT std::string filename(std::string const& f);
-	TORRENT_EXTRA_EXPORT std::string combine_path(std::string const& lhs
-		, std::string const& rhs);
+	TORRENT_EXTRA_EXPORT std::string combine_path(boost::string_ref lhs
+		, boost::string_ref rhs);
 	TORRENT_EXTRA_EXPORT void append_path(std::string& branch
-		, std::string const& leaf);
+		, boost::string_ref leaf);
+
+	// TODO: this overload should probably be removed
+	// internal
 	TORRENT_EXTRA_EXPORT void append_path(std::string& branch
 		, char const* str, int len);
+
 	// internal used by create_torrent.hpp
 	TORRENT_EXTRA_EXPORT std::string complete(std::string const& f);
-	TORRENT_EXTRA_EXPORT bool is_complete(std::string const& f);
+	TORRENT_EXTRA_EXPORT bool is_complete(boost::string_ref f);
 	TORRENT_EXTRA_EXPORT std::string current_working_directory();
 #if TORRENT_USE_UNC_PATHS
 	TORRENT_EXTRA_EXPORT std::string canonicalize_path(std::string const& f);

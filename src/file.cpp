@@ -913,21 +913,22 @@ namespace libtorrent
 		return std::string(sep + 1);
 	}
 
-	void append_path(std::string& branch, std::string const& leaf)
-	{
-		append_path(branch, leaf.c_str(), int(leaf.size()));
-	}
-
+	// TODO: 3 this overload should be removed
 	void append_path(std::string& branch
 		, char const* str, int len)
 	{
-		TORRENT_ASSERT(!is_complete(std::string(str, len)));
+		append_path(branch, boost::string_ref(str, len));
+	}
+
+	void append_path(std::string& branch, boost::string_ref leaf)
+	{
+		TORRENT_ASSERT(!is_complete(leaf));
 		if (branch.empty() || branch == ".")
 		{
-			branch.assign(str, len);
+			branch.assign(leaf.data(), leaf.size());
 			return;
 		}
-		if (len == 0) return;
+		if (leaf.size() == 0) return;
 
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
 #define TORRENT_SEPARATOR_CHAR '\\'
@@ -939,14 +940,14 @@ namespace libtorrent
 #endif
 
 		if (need_sep) branch += TORRENT_SEPARATOR_CHAR;
-		branch.append(str, len);
+		branch.append(leaf.data(), leaf.size());
 	}
 
-	std::string combine_path(std::string const& lhs, std::string const& rhs)
+	std::string combine_path(boost::string_ref lhs, boost::string_ref rhs)
 	{
 		TORRENT_ASSERT(!is_complete(rhs));
-		if (lhs.empty() || lhs == ".") return rhs;
-		if (rhs.empty() || rhs == ".") return lhs;
+		if (lhs.empty() || lhs == ".") return rhs.to_string();
+		if (rhs.empty() || rhs == ".") return lhs.to_string();
 
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
 #define TORRENT_SEPARATOR "\\"
@@ -958,8 +959,9 @@ namespace libtorrent
 		std::string ret;
 		int target_size = int(lhs.size() + rhs.size() + 2);
 		ret.resize(target_size);
-		target_size = std::snprintf(&ret[0], target_size, "%s%s%s", lhs.c_str()
-			, (need_sep?TORRENT_SEPARATOR:""), rhs.c_str());
+		target_size = std::snprintf(&ret[0], target_size, "%*s%s%*s"
+			, lhs.size(), lhs.data()
+			, (need_sep?TORRENT_SEPARATOR:""), rhs.size(), rhs.data());
 		ret.resize(target_size);
 		return ret;
 	}
@@ -1147,7 +1149,7 @@ namespace libtorrent
 		return combine_path(current_working_directory(), f);
 	}
 
-	bool is_complete(std::string const& f)
+	bool is_complete(boost::string_ref f)
 	{
 		if (f.empty()) return false;
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
