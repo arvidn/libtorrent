@@ -335,7 +335,7 @@ namespace libtorrent
 #endif
 			{
 				int dot = -1;
-				for (int j = element.size()-1;
+				for (int j = int(element.size())-1;
 					j > (std::max)(int(element.size() - 10), i); --j)
 				{
 					if (element[j] != '.') continue;

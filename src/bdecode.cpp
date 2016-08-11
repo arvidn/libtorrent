@@ -925,7 +925,7 @@ done:
 
 	void print_string(std::string& ret, boost::string_ref str, bool single_line)
 	{
-		int const len = str.size();
+		int const len = int(str.size());
 		bool printable = true;
 		for (int i = 0; i < len; ++i)
 		{
