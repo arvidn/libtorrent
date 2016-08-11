@@ -960,8 +960,9 @@ namespace libtorrent
 		int target_size = int(lhs.size() + rhs.size() + 2);
 		ret.resize(target_size);
 		target_size = std::snprintf(&ret[0], target_size, "%*s%s%*s"
-			, lhs.size(), lhs.data()
-			, (need_sep?TORRENT_SEPARATOR:""), rhs.size(), rhs.data());
+			, int(lhs.size()), lhs.data()
+			, (need_sep?TORRENT_SEPARATOR:"")
+			, int(rhs.size()), rhs.data());
 		ret.resize(target_size);
 		return ret;
 	}
