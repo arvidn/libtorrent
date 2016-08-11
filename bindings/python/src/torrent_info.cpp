@@ -91,7 +91,7 @@ namespace
     {
         std::vector<sha1_hash> h;
         for (int i = 0, e = int(len(hashes)); i < e; ++i)
-            h.push_back(sha1_hash(bytes(extract<bytes>(hashes[i])).arr));
+            h.push_back(sha1_hash(bytes(extract<bytes>(hashes[i])).arr.data()));
 
         ti.set_merkle_tree(h);
     }

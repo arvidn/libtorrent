@@ -242,18 +242,18 @@ void render_variant(std::string& out, bdecode_node const& e)
 			print_dict(out);
 			for (int i = 0; i < e.dict_size(); ++i)
 			{
-				std::pair<std::string, bdecode_node> item = e.dict_at(i);
+				std::pair<boost::string_ref, bdecode_node> item = e.dict_at(i);
 				const bool duplicate = g_seed == 1;
 				const bool skipped = g_seed == 2;
 				g_seed -= 2;
 				if (duplicate)
 				{
-					print_string(out, item.first);
+					print_string(out, item.first.to_string());
 					render_variant(out, item.second);
 				}
 				if (!skipped)
 				{
-					print_string(out, item.first);
+					print_string(out, item.first.to_string());
 					render_variant(out, item.second);
 				}
 
@@ -280,7 +280,7 @@ void render_variant(std::string& out, bdecode_node const& e)
 			print_int(out, e.int_value());
 			break;
 		case bdecode_node::string_t:
-			print_string(out, e.string_value());
+			print_string(out, e.string_value().to_string());
 			break;
 		default:
 			abort();
