@@ -4630,7 +4630,7 @@ namespace aux {
 		{
 			boost::shared_ptr<torrent_plugin> tp(e->new_torrent(
 				torrent_ptr->get_handle(), userdata));
-			if (tp) torrent_ptr->add_extension(tp);
+			if (tp) torrent_ptr->add_extension(std::move(tp));
 		}
 	}
 #endif
@@ -4678,7 +4678,7 @@ namespace aux {
 		for (auto& ext : params.extensions)
 		{
 			boost::shared_ptr<torrent_plugin> tp(ext(handle, params.userdata));
-			if (tp) torrent_ptr->add_extension(tp);
+			if (tp) torrent_ptr->add_extension(std::move(tp));
 		}
 
 		add_extensions_to_torrent(torrent_ptr, params.userdata);
