@@ -67,7 +67,7 @@ namespace libtorrent
 
 	// internal, exposed for the unit test
 	TORRENT_EXTRA_EXPORT void sanitize_append_path_element(std::string& path
-		, boost::string_ref element);
+		, boost::string_view element);
 	TORRENT_EXTRA_EXPORT bool verify_encoding(std::string& target);
 
 	// the web_seed_entry holds information about a web seed (also known

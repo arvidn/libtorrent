@@ -917,10 +917,10 @@ namespace libtorrent
 	void append_path(std::string& branch
 		, char const* str, int len)
 	{
-		append_path(branch, boost::string_ref(str, len));
+		append_path(branch, boost::string_view(str, len));
 	}
 
-	void append_path(std::string& branch, boost::string_ref leaf)
+	void append_path(std::string& branch, boost::string_view leaf)
 	{
 		TORRENT_ASSERT(!is_complete(leaf));
 		if (branch.empty() || branch == ".")
@@ -943,7 +943,7 @@ namespace libtorrent
 		branch.append(leaf.data(), leaf.size());
 	}
 
-	std::string combine_path(boost::string_ref lhs, boost::string_ref rhs)
+	std::string combine_path(boost::string_view lhs, boost::string_view rhs)
 	{
 		TORRENT_ASSERT(!is_complete(rhs));
 		if (lhs.empty() || lhs == ".") return rhs.to_string();
@@ -1150,7 +1150,7 @@ namespace libtorrent
 		return combine_path(current_working_directory(), f);
 	}
 
-	bool is_complete(boost::string_ref f)
+	bool is_complete(boost::string_view f)
 	{
 		if (f.empty()) return false;
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)

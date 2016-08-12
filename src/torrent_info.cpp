@@ -150,7 +150,7 @@ namespace libtorrent
 		return valid_encoding;
 	}
 
-	void sanitize_append_path_element(std::string& path, boost::string_ref element)
+	void sanitize_append_path_element(std::string& path, boost::string_view element)
 	{
 		if (element.size() == 1 && element[0] == '.') return;
 
@@ -198,7 +198,7 @@ namespace libtorrent
 		if (str != reserved + num_names)
 		{
 			pe = "_" + pe;
-			element = boost::string_ref();
+			element = boost::string_view();
 		}
 #endif
 		// this counts the number of unicode characters

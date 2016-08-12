@@ -242,7 +242,7 @@ void render_variant(std::string& out, bdecode_node const& e)
 			print_dict(out);
 			for (int i = 0; i < e.dict_size(); ++i)
 			{
-				std::pair<boost::string_ref, bdecode_node> item = e.dict_at(i);
+				std::pair<boost::string_view, bdecode_node> item = e.dict_at(i);
 				const bool duplicate = g_seed == 1;
 				const bool skipped = g_seed == 2;
 				g_seed -= 2;

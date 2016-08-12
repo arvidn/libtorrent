@@ -146,7 +146,7 @@ void node::update_node_id()
 	m_rpc.update_node_id(m_id);
 }
 
-bool node::verify_token(boost::string_ref token, sha1_hash const& info_hash
+bool node::verify_token(boost::string_view token, sha1_hash const& info_hash
 	, udp::endpoint const& addr) const
 {
 	if (token.length() != 4)
@@ -961,7 +961,7 @@ void node::incoming_request(msg const& m, entry& e)
 		m_table.node_seen(id, m.addr, 0xffff);
 
 		tcp::endpoint addr = tcp::endpoint(m.addr.address(), port);
-		boost::string_ref name = msg_keys[3] ? msg_keys[3].string_value() : boost::string_ref();
+		boost::string_view name = msg_keys[3] ? msg_keys[3].string_value() : boost::string_view();
 		bool seed = msg_keys[4] && msg_keys[4].int_value();
 
 		// TODO: 3 should we update the dht storage API to take a string_ref?

@@ -383,7 +383,7 @@ namespace libtorrent
 				dictionary_type& d = this->dict();
 				for (int i = 0; i < e.dict_size(); ++i)
 				{
-					std::pair<boost::string_ref, bdecode_node> elem = e.dict_at(i);
+					std::pair<boost::string_view, bdecode_node> elem = e.dict_at(i);
 					d[std::string(elem.first)] = elem.second;
 				}
 				break;
