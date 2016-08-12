@@ -629,10 +629,10 @@ namespace libtorrent
 			ec.assign(errno, system_category());
 		copyfile_state_free(state);
 #else
-		std::string f1 = convert_to_native(inf);
-		std::string f2 = convert_to_native(newf);
+		std::string const f1 = convert_to_native(inf);
+		std::string const f2 = convert_to_native(newf);
 
-		int infd = ::open(f1.c_str(), O_RDONLY);
+		int const infd = ::open(f1.c_str(), O_RDONLY);
 		if (infd < 0)
 		{
 			ec.assign(errno, system_category());
@@ -641,11 +641,11 @@ namespace libtorrent
 
 		// rely on default umask to filter x and w permissions
 		// for group and others
-		int permissions = S_IRUSR | S_IWUSR
+		int const permissions = S_IRUSR | S_IWUSR
 			| S_IRGRP | S_IWGRP
 			| S_IROTH | S_IWOTH;
 
-		int outfd = ::open(f2.c_str(), O_WRONLY | O_CREAT, permissions);
+		int const outfd = ::open(f2.c_str(), O_WRONLY | O_CREAT, permissions);
 		if (outfd < 0)
 		{
 			close(infd);
@@ -655,14 +655,14 @@ namespace libtorrent
 		char buffer[4096];
 		for (;;)
 		{
-			int num_read = read(infd, buffer, sizeof(buffer));
+			int const num_read = read(infd, buffer, sizeof(buffer));
 			if (num_read == 0) break;
 			if (num_read < 0)
 			{
 				ec.assign(errno, system_category());
 				break;
 			}
-			int num_written = write(outfd, buffer, num_read);
+			int const num_written = write(outfd, buffer, num_read);
 			if (num_written < num_read)
 			{
 				ec.assign(errno, system_category());
@@ -913,13 +913,6 @@ namespace libtorrent
 		return std::string(sep + 1);
 	}
 
-	// TODO: 3 this overload should be removed
-	void append_path(std::string& branch
-		, char const* str, int len)
-	{
-		append_path(branch, boost::string_view(str, len));
-	}
-
 	void append_path(std::string& branch, boost::string_view leaf)
 	{
 		TORRENT_ASSERT(!is_complete(leaf));
@@ -989,20 +982,20 @@ namespace libtorrent
 	}
 
 #if TORRENT_USE_UNC_PATHS
-	std::string canonicalize_path(std::string const& f)
+	std::string canonicalize_path(boost::string_view f)
 	{
 		std::string ret;
 		ret.resize(f.size());
 		char* write_cur = &ret[0];
 		char* last_write_sep = write_cur;
 
-		char const* read_cur = f.c_str();
+		char const* read_cur = f.data();
 		char const* last_read_sep = read_cur;
 
 		// the last_*_sep pointers point to one past
 		// the last path separator encountered and is
-		// initializes to the first character in the path
-		while (*read_cur)
+		// initialized to the first character in the path
+		for (int i = 0; i < int(f.size()); ++i)
 		{
 			if (*read_cur != '\\')
 			{
@@ -1143,9 +1136,9 @@ namespace libtorrent
 		remove(f, ec);
 	}
 
-	std::string complete(std::string const& f)
+	std::string complete(boost::string_view f)
 	{
-		if (is_complete(f)) return f;
+		if (is_complete(f)) return f.to_string();
 		if (f == ".") return current_working_directory();
 		return combine_path(current_working_directory(), f);
 	}
