@@ -62,12 +62,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/alloca.hpp"
-#include "libtorrent/allocator.hpp" // page_size
 #include "libtorrent/file.hpp"
-#include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/max_path.hpp" // for TORRENT_MAX_PATH
 #include <cstring>
-#include <vector>
 
 #ifdef TORRENT_DEBUG_FILE_LEAKS
 #include <set>
@@ -77,8 +74,6 @@ POSSIBILITY OF SUCH DAMAGE.
 // for convert_to_wstring and convert_to_native
 #include "libtorrent/aux_/escape_string.hpp"
 #include "libtorrent/assert.hpp"
-
-#include <boost/scoped_ptr.hpp>
 
 #ifdef TORRENT_DISK_STATS
 #include "libtorrent/io.hpp"
@@ -167,7 +162,7 @@ namespace
 	int preadv(HANDLE fd, libtorrent::file::iovec_t const* bufs, int num_bufs, std::int64_t file_offset)
 	{
 		OVERLAPPED* ol = TORRENT_ALLOCA(OVERLAPPED, num_bufs);
-		memset(ol, 0, sizeof(OVERLAPPED) * num_bufs);
+		std::memset(ol, 0, sizeof(OVERLAPPED) * num_bufs);
 
 		HANDLE* h = TORRENT_ALLOCA(HANDLE, num_bufs);
 
@@ -237,7 +232,7 @@ done:
 	int pwritev(HANDLE fd, libtorrent::file::iovec_t const* bufs, int num_bufs, std::int64_t file_offset)
 	{
 		OVERLAPPED* ol = TORRENT_ALLOCA(OVERLAPPED, num_bufs);
-		memset(ol, 0, sizeof(OVERLAPPED) * num_bufs);
+		std::memset(ol, 0, sizeof(OVERLAPPED) * num_bufs);
 
 		HANDLE* h = TORRENT_ALLOCA(HANDLE, num_bufs);
 
@@ -498,7 +493,7 @@ namespace libtorrent
 			ec.assign(GetLastError(), system_category());
 #else
 		std::string n = convert_to_native(f);
-		int ret = mkdir(n.c_str(), 0777);
+		int ret = ::mkdir(n.c_str(), 0777);
 		if (ret < 0 && errno != EEXIST)
 			ec.assign(errno, system_category());
 #endif
@@ -763,11 +758,11 @@ namespace libtorrent
 
 	std::string remove_extension(std::string const& f)
 	{
-		char const* slash = strrchr(f.c_str(), '/');
+		char const* slash = std::strrchr(f.c_str(), '/');
 #ifdef TORRENT_WINDOWS
-		slash = (std::max)((char const*)strrchr(f.c_str(), '\\'), slash);
+		slash = (std::max)((char const*)std::strrchr(f.c_str(), '\\'), slash);
 #endif
-		char const* ext = strrchr(f.c_str(), '.');
+		char const* ext = std::strrchr(f.c_str(), '.');
 		// if we don't have an extension, just return f
 		if (ext == nullptr || ext == &f[0] || (slash != nullptr && ext < slash)) return f;
 		return f.substr(0, ext - &f[0]);
@@ -871,9 +866,9 @@ namespace libtorrent
 	{
 		if (f == nullptr) return f;
 
-		char const* sep = strrchr(f, '/');
+		char const* sep = std::strrchr(f, '/');
 #ifdef TORRENT_WINDOWS
-		char const* altsep = strrchr(f, '\\');
+		char const* altsep = std::strrchr(f, '\\');
 		if (sep == 0 || altsep > sep) sep = altsep;
 #endif
 		if (sep == nullptr) return f;
@@ -884,9 +879,9 @@ namespace libtorrent
 	{
 		if (f.empty()) return "";
 		char const* first = f.c_str();
-		char const* sep = strrchr(first, '/');
+		char const* sep = std::strrchr(first, '/');
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
-		char const* altsep = strrchr(first, '\\');
+		char const* altsep = std::strrchr(first, '\\');
 		if (sep == 0 || altsep > sep) sep = altsep;
 #endif
 		if (sep == nullptr) return f;
@@ -1007,14 +1002,14 @@ namespace libtorrent
 				continue;
 			}
 			int element_len = read_cur - last_read_sep;
-			if (element_len == 1 && memcmp(last_read_sep, ".", 1) == 0)
+			if (element_len == 1 && std::memcmp(last_read_sep, ".", 1) == 0)
 			{
 				--write_cur;
 				++read_cur;
 				last_read_sep = read_cur;
 				continue;
 			}
-			if (element_len == 2 && memcmp(last_read_sep, "..", 2) == 0)
+			if (element_len == 2 && std::memcmp(last_read_sep, "..", 2) == 0)
 			{
 				// find the previous path separator
 				if (last_write_sep > &ret[0])
@@ -1194,7 +1189,7 @@ namespace libtorrent
 		}
 #else
 
-		memset(&m_dirent, 0, sizeof(dirent));
+		std::memset(&m_dirent, 0, sizeof(dirent));
 		m_name[0] = 0;
 
 		// the path passed to opendir() may not
@@ -1204,7 +1199,7 @@ namespace libtorrent
 			p.resize(path.size()-1);
 
 		p = convert_to_native(p);
-		m_handle = opendir(p.c_str());
+		m_handle = ::opendir(p.c_str());
 		if (m_handle == nullptr)
 		{
 			ec.assign(errno, system_category());
@@ -1285,7 +1280,7 @@ namespace libtorrent
 	{
 		overlapped_t()
 		{
-			memset(&ol, 0, sizeof(ol));
+			std::memset(&ol, 0, sizeof(ol));
 			ol.hEvent = CreateEvent(0, true, false, 0);
 		}
 		~overlapped_t()
@@ -1678,7 +1673,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		std::size_t offset = 0;
 		for (int i = 0; i < num_bufs; ++i)
 		{
-			memcpy(dst + offset, bufs[i].iov_base, bufs[i].iov_len);
+			std::memcpy(dst + offset, bufs[i].iov_base, bufs[i].iov_len);
 			offset += bufs[i].iov_len;
 		}
 	}
@@ -1688,7 +1683,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		std::size_t offset = 0;
 		for (int i = 0; i < num_bufs; ++i)
 		{
-			memcpy(bufs[i].iov_base, src + offset, bufs[i].iov_len);
+			std::memcpy(bufs[i].iov_base, src + offset, bufs[i].iov_len);
 			offset += bufs[i].iov_len;
 		}
 	}
@@ -1697,7 +1692,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		, file::iovec_t* tmp)
 	{
 		int const buf_size = bufs_size(bufs, num_bufs);
-		char* buf = static_cast<char*>(malloc(buf_size));
+		char* buf = static_cast<char*>(std::malloc(buf_size));
 		if (!buf) return false;
 		tmp->iov_base = buf;
 		tmp->iov_len = buf_size;
@@ -1710,14 +1705,14 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		, char* const buf, bool const copy)
 	{
 		if (copy) scatter_copy(bufs, num_bufs, buf);
-		free(buf);
+		std::free(buf);
 	}
 
 	bool coalesce_write_buffers(file::iovec_t const*& bufs, int& num_bufs
 		, file::iovec_t* tmp)
 	{
 		int const buf_size = bufs_size(bufs, num_bufs);
-		char* buf = static_cast<char*>(malloc(buf_size));
+		char* buf = static_cast<char*>(std::malloc(buf_size));
 		if (!buf) return false;
 		gather_copy(bufs, num_bufs, buf);
 		tmp->iov_base = buf;
@@ -1940,7 +1935,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 #endif
 
 		if (flags & file::coalesce_buffers)
-			free(tmp.iov_base);
+			std::free(tmp.iov_base);
 
 #endif
 #if TORRENT_USE_FDATASYNC \
@@ -2360,4 +2355,3 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	}
 #endif
 }
-

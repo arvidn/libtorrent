@@ -1429,7 +1429,7 @@ namespace libtorrent
 	{
 		int block_offset = p.block_index * block_size();
 		int block = (std::min)(torrent_file().piece_size(
-			p.piece_index) - block_offset, int(block_size()));
+			p.piece_index) - block_offset, block_size());
 		TORRENT_ASSERT(block > 0);
 		TORRENT_ASSERT(block <= block_size());
 
@@ -1467,14 +1467,12 @@ namespace libtorrent
 		boost::shared_ptr<torrent_plugin> tp(ext(get_handle(), userdata));
 		if (!tp) return;
 
-		add_extension(tp);
+		add_extension(std::move(tp));
 
-		for (peer_iterator i = m_connections.begin();
-			i != m_connections.end(); ++i)
+		for (auto p : m_connections)
 		{
-			peer_connection* p = *i;
 			boost::shared_ptr<peer_plugin> pp(tp->new_connection(peer_connection_handle(p->self())));
-			if (pp) p->add_extension(pp);
+			if (pp) p->add_extension(std::move(pp));
 		}
 
 		// if files are checked for this torrent, call the extension
