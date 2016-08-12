@@ -331,8 +331,8 @@ namespace libtorrent
 		return bdecode_node(tokens, m_buffer, m_buffer_size, token);
 	}
 
-	boost::string_view bdecode_node::list_string_value_at(int i
-		, boost::string_view default_val)
+	string_view bdecode_node::list_string_value_at(int i
+		, string_view default_val)
 	{
 		bdecode_node n = list_at(i);
 		if (n.type() != bdecode_node::string_t) return default_val;
@@ -378,7 +378,7 @@ namespace libtorrent
 		return ret;
 	}
 
-	std::pair<boost::string_view, bdecode_node> bdecode_node::dict_at(int i) const
+	std::pair<string_view, bdecode_node> bdecode_node::dict_at(int i) const
 	{
 		TORRENT_ASSERT(type() == dict_t);
 		TORRENT_ASSERT(m_token_idx != -1);
@@ -466,7 +466,7 @@ namespace libtorrent
 		return ret;
 	}
 
-	bdecode_node bdecode_node::dict_find(boost::string_view key) const
+	bdecode_node bdecode_node::dict_find(string_view key) const
 	{
 		TORRENT_ASSERT(type() == dict_t);
 
@@ -502,7 +502,7 @@ namespace libtorrent
 		return bdecode_node();
 	}
 
-	bdecode_node bdecode_node::dict_find_list(boost::string_view key) const
+	bdecode_node bdecode_node::dict_find_list(string_view key) const
 	{
 		bdecode_node ret = dict_find(key);
 		if (ret.type() == bdecode_node::list_t)
@@ -510,7 +510,7 @@ namespace libtorrent
 		return bdecode_node();
 	}
 
-	bdecode_node bdecode_node::dict_find_dict(boost::string_view key) const
+	bdecode_node bdecode_node::dict_find_dict(string_view key) const
 	{
 		bdecode_node ret = dict_find(key);
 		if (ret.type() == bdecode_node::dict_t)
@@ -518,7 +518,7 @@ namespace libtorrent
 		return bdecode_node();
 	}
 
-	bdecode_node bdecode_node::dict_find_string(boost::string_view key) const
+	bdecode_node bdecode_node::dict_find_string(string_view key) const
 	{
 		bdecode_node ret = dict_find(key);
 		if (ret.type() == bdecode_node::string_t)
@@ -526,7 +526,7 @@ namespace libtorrent
 		return bdecode_node();
 	}
 
-	bdecode_node bdecode_node::dict_find_int(boost::string_view key) const
+	bdecode_node bdecode_node::dict_find_int(string_view key) const
 	{
 		bdecode_node ret = dict_find(key);
 		if (ret.type() == bdecode_node::int_t)
@@ -534,15 +534,15 @@ namespace libtorrent
 		return bdecode_node();
 	}
 
-	boost::string_view bdecode_node::dict_find_string_value(boost::string_view key
-		, boost::string_view default_value) const
+	string_view bdecode_node::dict_find_string_value(string_view key
+		, string_view default_value) const
 	{
 		bdecode_node n = dict_find(key);
 		if (n.type() != bdecode_node::string_t) return default_value;
 		return n.string_value();
 	}
 
-	std::int64_t bdecode_node::dict_find_int_value(boost::string_view key
+	std::int64_t bdecode_node::dict_find_int_value(string_view key
 		, std::int64_t default_val) const
 	{
 		bdecode_node n = dict_find(key);
@@ -570,14 +570,14 @@ namespace libtorrent
 		return val;
 	}
 
-	boost::string_view bdecode_node::string_value() const
+	string_view bdecode_node::string_value() const
 	{
 		TORRENT_ASSERT(type() == string_t);
 		bdecode_token const& t = m_root_tokens[m_token_idx];
 		size_t const size = m_root_tokens[m_token_idx + 1].offset - t.offset - t.start_offset();
 		TORRENT_ASSERT(t.type == bdecode_token::string);
 
-		return boost::string_view(m_buffer + t.offset + t.start_offset(), size);
+		return string_view(m_buffer + t.offset + t.start_offset(), size);
 	}
 
 	char const* bdecode_node::string_ptr() const
@@ -923,7 +923,7 @@ done:
 		}
 	}
 
-	void print_string(std::string& ret, boost::string_view str, bool single_line)
+	void print_string(std::string& ret, string_view str, bool single_line)
 	{
 		int const len = int(str.size());
 		bool printable = true;
@@ -1013,7 +1013,7 @@ done:
 				for (int i = 0; i < e.dict_size(); ++i)
 				{
 					if (i == 0 && one_liner) ret += " ";
-					std::pair<boost::string_view, bdecode_node> ent = e.dict_at(i);
+					std::pair<string_view, bdecode_node> ent = e.dict_at(i);
 					print_string(ret, ent.first, true);
 					ret += ": ";
 					ret += print_entry(ent.second, single_line, indent + 2);

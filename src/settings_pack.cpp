@@ -393,7 +393,7 @@ namespace libtorrent
 
 		for (int i = 0; i < settings.dict_size(); ++i)
 		{
-			boost::string_view key;
+			string_view key;
 			bdecode_node val;
 			std::tie(key, val) = settings.dict_at(i);
 			switch (val.type())

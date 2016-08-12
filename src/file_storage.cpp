@@ -321,10 +321,10 @@ namespace libtorrent
 		}
 	}
 
-	boost::string_view internal_file_entry::filename() const
+	string_view internal_file_entry::filename() const
 	{
 		if (name_len != name_is_owned) return { name, name_len };
-		return name ? boost::string_view(name) : boost::string_view();
+		return name ? string_view(name) : string_view();
 	}
 
 	void file_storage::apply_pointer_offset(ptrdiff_t off)
@@ -373,7 +373,7 @@ namespace libtorrent
 	}
 
 	void file_storage::add_file(std::wstring const& file, std::int64_t file_size
-		, int file_flags, std::time_t mtime, boost::string_view symlink_path)
+		, int file_flags, std::time_t mtime, string_view symlink_path)
 	{
 		std::string utf8;
 		wchar_utf8(file, utf8);
@@ -555,7 +555,7 @@ namespace libtorrent
 	}
 
 	void file_storage::add_file(std::string const& path, std::int64_t file_size
-		, int file_flags, std::time_t mtime, boost::string_view symlink_path)
+		, int file_flags, std::time_t mtime, string_view symlink_path)
 	{
 		add_file_borrow(nullptr, 0, path, file_size, file_flags, nullptr, mtime
 			, symlink_path);
@@ -564,7 +564,7 @@ namespace libtorrent
 	void file_storage::add_file_borrow(char const* filename, int filename_len
 		, std::string const& path, std::int64_t file_size
 		, std::uint32_t file_flags, char const* filehash
-		, std::int64_t mtime, boost::string_view symlink_path)
+		, std::int64_t mtime, string_view symlink_path)
 	{
 		TORRENT_ASSERT_PRECOND(file_size >= 0);
 		if (!has_parent_path(path))
@@ -652,7 +652,7 @@ namespace libtorrent
 	namespace
 	{
 		template <class CRC>
-		void process_string_lowercase(CRC& crc, boost::string_view str)
+		void process_string_lowercase(CRC& crc, string_view str)
 		{
 			for (char const c : str)
 				crc.process_byte(to_lower(c));
@@ -805,7 +805,7 @@ namespace libtorrent
 		return ret;
 	}
 
-	boost::string_view file_storage::file_name(int index) const
+	string_view file_storage::file_name(int index) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
 		internal_file_entry const& fe = m_files[index];
@@ -914,7 +914,7 @@ namespace libtorrent
 		return file_path(index, save_path);
 	}
 
-	boost::string_view file_storage::file_name(internal_file_entry const& fe) const
+	string_view file_storage::file_name(internal_file_entry const& fe) const
 	{
 		return fe.filename();
 	}

@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/system/error_code.hpp>
-#include <boost/utility/string_view.hpp>
+#include <libtorrent/string_view.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/assert.hpp"
@@ -291,8 +291,8 @@ struct TORRENT_EXPORT bdecode_node
 	// in the list at index ``i``. ``i`` may not be greater than or equal to the
 	// size of the list. ``size()`` returns the size of the list.
 	bdecode_node list_at(int i) const;
-	boost::string_view list_string_value_at(int i
-		, boost::string_view default_val = boost::string_view());
+	string_view list_string_value_at(int i
+		, string_view default_val = string_view());
 	std::int64_t list_int_value_at(int i
 		, std::int64_t default_val = 0);
 	int list_size() const;
@@ -307,15 +307,15 @@ struct TORRENT_EXPORT bdecode_node
 	// Functions with the ``_value`` suffix return the value of the node
 	// directly, rather than the nodes. In case the node is not found, or it has
 	// a different type, a default value is returned (which can be specified).
-	bdecode_node dict_find(boost::string_view key) const;
-	std::pair<boost::string_view, bdecode_node> dict_at(int i) const;
-	bdecode_node dict_find_dict(boost::string_view key) const;
-	bdecode_node dict_find_list(boost::string_view key) const;
-	bdecode_node dict_find_string(boost::string_view key) const;
-	bdecode_node dict_find_int(boost::string_view key) const;
-	boost::string_view dict_find_string_value(boost::string_view key
-		, boost::string_view default_value = boost::string_view()) const;
-	std::int64_t dict_find_int_value(boost::string_view key
+	bdecode_node dict_find(string_view key) const;
+	std::pair<string_view, bdecode_node> dict_at(int i) const;
+	bdecode_node dict_find_dict(string_view key) const;
+	bdecode_node dict_find_list(string_view key) const;
+	bdecode_node dict_find_string(string_view key) const;
+	bdecode_node dict_find_int(string_view key) const;
+	string_view dict_find_string_value(string_view key
+		, string_view default_value = string_view()) const;
+	std::int64_t dict_find_int_value(string_view key
 		, std::int64_t default_val = 0) const;
 	int dict_size() const;
 
@@ -326,7 +326,7 @@ struct TORRENT_EXPORT bdecode_node
 	// these functions are only valid if ``type()`` == ``string_t``. They return
 	// the string values. Note that ``string_ptr()`` is *not* 0-terminated.
 	// ``string_length()`` returns the number of bytes in the string.
-	boost::string_view string_value() const;
+	string_view string_value() const;
 	char const* string_ptr() const;
 	int string_length() const;
 

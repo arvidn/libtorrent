@@ -126,6 +126,7 @@ nobase_include_HEADERS = \
   storage.hpp                  \
   storage_defs.hpp             \
   tailqueue.hpp                \
+  string_view.hpp              \
   string_util.hpp              \
   time.hpp                     \
   timestamp_history.hpp        \

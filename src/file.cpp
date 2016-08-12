@@ -913,7 +913,7 @@ namespace libtorrent
 		return std::string(sep + 1);
 	}
 
-	void append_path(std::string& branch, boost::string_view leaf)
+	void append_path(std::string& branch, string_view leaf)
 	{
 		TORRENT_ASSERT(!is_complete(leaf));
 		if (branch.empty() || branch == ".")
@@ -936,7 +936,7 @@ namespace libtorrent
 		branch.append(leaf.data(), leaf.size());
 	}
 
-	std::string combine_path(boost::string_view lhs, boost::string_view rhs)
+	std::string combine_path(string_view lhs, string_view rhs)
 	{
 		TORRENT_ASSERT(!is_complete(rhs));
 		if (lhs.empty() || lhs == ".") return rhs.to_string();
@@ -982,7 +982,7 @@ namespace libtorrent
 	}
 
 #if TORRENT_USE_UNC_PATHS
-	std::string canonicalize_path(boost::string_view f)
+	std::string canonicalize_path(string_view f)
 	{
 		std::string ret;
 		ret.resize(f.size());
@@ -1136,14 +1136,14 @@ namespace libtorrent
 		remove(f, ec);
 	}
 
-	std::string complete(boost::string_view f)
+	std::string complete(string_view f)
 	{
 		if (is_complete(f)) return f.to_string();
 		if (f == ".") return current_working_directory();
 		return combine_path(current_working_directory(), f);
 	}
 
-	bool is_complete(boost::string_view f)
+	bool is_complete(string_view f)
 	{
 		if (f.empty()) return false;
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)

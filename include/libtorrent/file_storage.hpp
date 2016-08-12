@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/utility/string_view.hpp>
+#include <libtorrent/string_view.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
@@ -131,7 +131,7 @@ namespace libtorrent
 		~internal_file_entry();
 
 		void set_name(char const* n, bool borrow_string = false, int string_len = 0);
-		boost::string_view filename() const;
+		string_view filename() const;
 
 		enum {
 			name_is_owned = (1<<12)-1,
@@ -288,9 +288,9 @@ namespace libtorrent
 		void add_file_borrow(char const* filename, int filename_len
 			, std::string const& path, std::int64_t file_size
 			, std::uint32_t file_flags = 0, char const* filehash = 0
-			, std::int64_t mtime = 0, boost::string_view symlink_path = boost::string_view());
+			, std::int64_t mtime = 0, string_view symlink_path = string_view());
 		void add_file(std::string const& path, std::int64_t file_size, int file_flags = 0
-			, std::time_t mtime = 0, boost::string_view symlink_path = boost::string_view());
+			, std::time_t mtime = 0, string_view symlink_path = string_view());
 
 		// renames the file at ``index`` to ``new_filename``. Keep in mind
 		// that filenames are expected to be UTF-8 encoded.
@@ -306,7 +306,7 @@ namespace libtorrent
 		// and pass in utf8 strings
 		TORRENT_DEPRECATED
 		void add_file(std::wstring const& p, std::int64_t size, int flags = 0
-			, std::time_t mtime = 0, boost::string_view s_p = "");
+			, std::time_t mtime = 0, string_view s_p = "");
 		TORRENT_DEPRECATED
 		void rename_file(int index, std::wstring const& new_filename);
 		TORRENT_DEPRECATED
@@ -469,7 +469,7 @@ namespace libtorrent
 		std::string const& symlink(int index) const;
 		time_t mtime(int index) const;
 		std::string file_path(int index, std::string const& save_path = "") const;
-		boost::string_view file_name(int index) const;
+		string_view file_name(int index) const;
 		std::int64_t file_size(int index) const;
 		bool pad_file_at(int index) const;
 		std::int64_t file_offset(int index) const;
@@ -553,7 +553,7 @@ namespace libtorrent
 		TORRENT_DEPRECATED
 		std::string file_path(internal_file_entry const& fe, std::string const& save_path = "") const;
 		TORRENT_DEPRECATED
-		boost::string_view file_name(internal_file_entry const& fe) const;
+		string_view file_name(internal_file_entry const& fe) const;
 		TORRENT_DEPRECATED
 		std::int64_t file_size(internal_file_entry const& fe) const;
 		TORRENT_DEPRECATED
