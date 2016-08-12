@@ -31,51 +31,18 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
-
-#include <ctime>
-#include <algorithm>
-#include <set>
-#include <deque>
-#include <cctype>
-#include <algorithm>
-#include <memory>
-#include <thread>
-#include <functional>
-#include <utility>
-
 #include "libtorrent/extensions/ut_pex.hpp"
 #include "libtorrent/extensions/ut_metadata.hpp"
 #include "libtorrent/extensions/smart_ban.hpp"
-#include "libtorrent/peer_id.hpp"
-#include "libtorrent/torrent_info.hpp"
-#include "libtorrent/tracker_manager.hpp"
-#include "libtorrent/bencode.hpp"
-#include "libtorrent/hasher.hpp"
-#include "libtorrent/entry.hpp"
 #include "libtorrent/session.hpp"
-#include "libtorrent/session_handle.hpp"
-#include "libtorrent/fingerprint.hpp"
-#include "libtorrent/entry.hpp"
-#include "libtorrent/alert_types.hpp"
-#include "libtorrent/invariant_check.hpp"
-#include "libtorrent/file.hpp"
-#include "libtorrent/bt_peer_connection.hpp"
-#include "libtorrent/ip_filter.hpp"
-#include "libtorrent/socket.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
-#include "libtorrent/kademlia/dht_tracker.hpp"
-#include "libtorrent/natpmp.hpp"
-#include "libtorrent/upnp.hpp"
-#include "libtorrent/magnet_uri.hpp"
-#include "libtorrent/lazy_entry.hpp"
 #include "libtorrent/aux_/session_call.hpp"
 
-using boost::shared_ptr;
 using libtorrent::aux::session_impl;
 
 namespace libtorrent
 {
-	TORRENT_EXPORT void min_memory_usage(settings_pack& set)
+	void min_memory_usage(settings_pack& set)
 	{
 #ifndef TORRENT_NO_DEPRECATE
 		// receive data directly into disk buffers
@@ -164,7 +131,7 @@ namespace libtorrent
 		set.set_bool(settings_pack::coalesce_writes, false);
 	}
 
-	TORRENT_EXPORT void high_performance_seed(settings_pack& set)
+	void high_performance_seed(settings_pack& set)
 	{
 		// don't throttle TCP, assume there is
 		// plenty of bandwidth
@@ -322,7 +289,7 @@ namespace libtorrent
 	// configurations this will give a link error
 	void TORRENT_EXPORT TORRENT_CFG() {}
 
-	void session::start(int flags, settings_pack pack, io_service* ios)
+	void session::start(session_params params, io_service* ios)
 	{
 		bool const internal_executor = ios == nullptr;
 
@@ -337,17 +304,16 @@ namespace libtorrent
 		*static_cast<session_handle*>(this) = session_handle(m_impl.get());
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		if (flags & add_default_plugins)
+		for (auto const& ext : params.extensions)
 		{
-			add_extension(create_ut_pex_plugin);
-			add_extension(create_ut_metadata_plugin);
-			add_extension(create_smart_ban_plugin);
+			m_impl->add_ses_extension(ext);
 		}
-#else
-		TORRENT_UNUSED(flags);
 #endif
 
-		m_impl->start_session(std::move(pack));
+		set_dht_settings(params.dht_settings);
+		set_dht_storage(params.dht_storage_constructor);
+
+		m_impl->start_session(std::move(params.settings));
 
 		if (internal_executor)
 		{
@@ -355,6 +321,32 @@ namespace libtorrent
 			m_thread = std::make_shared<std::thread>(
 				[&]() { m_io_service->run(); });
 		}
+	}
+
+	namespace
+	{
+		std::vector<boost::shared_ptr<plugin>> default_plugins(
+			bool empty = false)
+		{
+#ifndef TORRENT_DISABLE_EXTENSIONS
+			if (empty) return {};
+			using wrapper = session_impl::session_plugin_wrapper;
+			return {
+				boost::make_shared<wrapper>(wrapper(create_ut_pex_plugin)),
+				boost::make_shared<wrapper>(wrapper(create_ut_metadata_plugin)),
+				boost::make_shared<wrapper>(wrapper(create_smart_ban_plugin))
+			};
+#else
+			TORRENT_UNUSED(empty);
+			return {};
+#endif
+		}
+	}
+
+	void session::start(int flags, settings_pack sp, io_service* ios)
+	{
+		start({std::move(sp),
+			default_plugins((flags & add_default_plugins) == 0)}, ios);
 	}
 
 	session::~session()
@@ -413,5 +405,17 @@ namespace libtorrent
 		if (m_thread && m_thread.unique())
 			m_thread->join();
 	}
-}
 
+	session_params::session_params(settings_pack sp)
+		: session_params(sp, default_plugins())
+	{}
+
+	session_params::session_params(settings_pack sp
+		, std::vector<boost::shared_ptr<plugin>> exts)
+		: settings(std::move(sp))
+		, extensions(std::move(exts))
+#ifndef TORRENT_DISABLE_DHT
+		, dht_storage_constructor(dht::dht_default_storage_constructor)
+#endif
+	{}
+}

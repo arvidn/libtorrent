@@ -86,6 +86,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/dht_observer.hpp"
 #include "libtorrent/resolver.hpp"
 #include "libtorrent/invariant_check.hpp"
+#include "libtorrent/extensions.hpp"
 
 #if TORRENT_COMPLETE_TYPES_REQUIRED
 #include "libtorrent/peer_connection.hpp"
@@ -215,6 +216,19 @@ namespace libtorrent
 			void init_peer_class_filter(bool unlimited_local);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
+			using ext_function_t
+				= boost::function<boost::shared_ptr<torrent_plugin>(torrent_handle const&, void*)>;
+
+			struct session_plugin_wrapper : plugin
+			{
+				explicit session_plugin_wrapper(ext_function_t const& f) : m_f(f) {}
+				explicit session_plugin_wrapper(session_plugin_wrapper const& p) : m_f(p.m_f) {}
+
+				boost::shared_ptr<torrent_plugin> new_torrent(torrent_handle const& t, void* user) override
+				{ return m_f(t, user); }
+				ext_function_t m_f;
+			};
+
 			void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(
 				torrent_handle const&, void*)> ext);
 			void add_ses_extension(boost::shared_ptr<plugin> ext);

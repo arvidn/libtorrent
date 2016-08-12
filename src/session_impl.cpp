@@ -91,7 +91,6 @@ const rlim_t rlim_infinity = RLIM_INFINITY;
 #include "libtorrent/instantiate_connection.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/build_config.hpp"
-#include "libtorrent/extensions.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
@@ -772,25 +771,13 @@ namespace aux {
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
-	typedef boost::function<boost::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> ext_function_t;
-
-	struct session_plugin_wrapper : plugin
-	{
-		explicit session_plugin_wrapper(ext_function_t const& f) : m_f(f) {}
-
-		boost::shared_ptr<torrent_plugin> new_torrent(torrent_handle const& t, void* user) override
-		{ return m_f(t, user); }
-		ext_function_t m_f;
-	};
-
 	void session_impl::add_extension(ext_function_t ext)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT_VAL(ext, ext);
 
-		boost::shared_ptr<plugin> p(new session_plugin_wrapper(ext));
-
-		add_ses_extension(p);
+		add_ses_extension(boost::make_shared<session_plugin_wrapper>(
+			session_plugin_wrapper(ext)));
 	}
 
 	void session_impl::add_ses_extension(boost::shared_ptr<plugin> ext)
