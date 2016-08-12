@@ -216,6 +216,13 @@ int main(int argc, char* argv[])
 			, (flags & file_storage::flag_symlink) ? "-> " : ""
 			, (flags & file_storage::flag_symlink) ? st.symlink(i).c_str() : "");
 	}
+	std::printf("web seeds:\n");
+	for (auto const& ws : t.web_seeds())
+	{
+		std::printf("%s %s\n"
+			, ws.type == web_seed_entry::url_seed ? "BEP19" : "BEP17"
+			, ws.url.c_str());
+	}
 
 	return 0;
 }
