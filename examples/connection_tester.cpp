@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/file_pool.hpp"
+#include "libtorrent/random.hpp"
 #include <cstring>
 #include <thread>
 #include <functional>

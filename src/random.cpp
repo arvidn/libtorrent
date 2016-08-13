@@ -37,17 +37,21 @@ namespace libtorrent
 {
 	namespace aux
 	{
+		std::mt19937& random_engine()
+		{
 #ifdef TORRENT_BUILD_SIMULATOR
-		// make sure random numbers are deterministic. Seed with a fixed number
-		std::mt19937 random_engine(0x82daf973);
+			// make sure random numbers are deterministic. Seed with a fixed number
+			static std::mt19937 rng(0x82daf973);
 #else
-		static std::random_device dev;
-		std::mt19937 random_engine(dev());
+			static std::random_device dev;
+			static std::mt19937 rng(dev());
 #endif
+			return rng;
+		}
 	}
 
 	std::uint32_t random(std::uint32_t max)
 	{
-		return std::uniform_int_distribution<std::uint32_t>(0, max)(aux::random_engine);
+		return std::uniform_int_distribution<std::uint32_t>(0, max)(aux::random_engine());
 	}
 }
