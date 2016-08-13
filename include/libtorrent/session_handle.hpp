@@ -58,7 +58,7 @@ namespace libtorrent
 	struct session_status;
 #endif
 
-	typedef boost::function<void(sha1_hash const&, std::vector<char>&
+	typedef std::function<void(sha1_hash const&, std::vector<char>&
 		, error_code&)> user_load_function_t;
 
 	struct TORRENT_EXPORT session_handle
@@ -150,7 +150,7 @@ namespace libtorrent
 		// Any torrent_status object whose ``handle`` member is not referring to
 		// a valid torrent are ignored.
 		void get_torrent_status(std::vector<torrent_status>* ret
-			, boost::function<bool(torrent_status const&)> const& pred
+			, std::function<bool(torrent_status const&)> const& pred
 			, std::uint32_t flags = 0) const;
 		void refresh_torrent_status(std::vector<torrent_status>* ret
 			, std::uint32_t flags = 0) const;
@@ -418,7 +418,7 @@ namespace libtorrent
 		// the DHT works, it is natural to always do a lookup before storing and
 		// calling the callback in between is convenient.
 		void dht_put_item(std::array<char, 32> key
-			, boost::function<void(entry&, std::array<char,64>&
+			, std::function<void(entry&, std::array<char,64>&
 				, std::uint64_t&, std::string const&)> cb
 			, std::string salt = std::string());
 
@@ -479,7 +479,7 @@ namespace libtorrent
 		//
 		//
 		// .. _`libtorrent plugins`: libtorrent_plugins.html
-		void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(
+		void add_extension(std::function<boost::shared_ptr<torrent_plugin>(
 			torrent_handle const&, void*)> ext);
 		void add_extension(boost::shared_ptr<plugin> ext);
 
@@ -942,7 +942,7 @@ namespace libtorrent
 		// It really should just notify the main application thread.
 		void pop_alerts(std::vector<alert*>* alerts);
 		alert* wait_for_alert(time_duration max_wait);
-		void set_alert_notify(boost::function<void()> const& fun);
+		void set_alert_notify(std::function<void()> const& fun);
 
 #ifndef TORRENT_NO_DEPRECATE
 		TORRENT_DEPRECATED

@@ -287,7 +287,7 @@ void setup_swarm(int num_nodes
 		std::snprintf(ep, sizeof(ep), "2000::%X%X", (i + 1) >> 8, (i + 1) & 0xff);
 		ips.push_back(addr(ep));
 		io_service.push_back(boost::make_shared<sim::asio::io_service>(
-			boost::ref(sim), ips));
+			std::ref(sim), ips));
 
 		lt::settings_pack pack = default_settings;
 
@@ -299,7 +299,7 @@ void setup_swarm(int num_nodes
 
 		boost::shared_ptr<lt::session> ses =
 			boost::make_shared<lt::session>(pack
-				, boost::ref(*io_service.back()));
+				, std::ref(*io_service.back()));
 		init_session(*ses);
 		nodes.push_back(ses);
 

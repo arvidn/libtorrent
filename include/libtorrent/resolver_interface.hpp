@@ -34,21 +34,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_RESOLVER_INTERFACE_HPP_INCLUDE
 
 #include <vector>
+#include <functional>
+
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/address.hpp"
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/function.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {
 
 struct TORRENT_EXTRA_EXPORT resolver_interface
 {
-	typedef boost::function<void(error_code const&, std::vector<address> const&)>
+	typedef std::function<void(error_code const&, std::vector<address> const&)>
 		callback_t;
 
 	enum flags_t

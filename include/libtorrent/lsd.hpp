@@ -54,9 +54,9 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-typedef boost::function<void(tcp::endpoint, sha1_hash)> peer_callback_t;
+typedef std::function<void(tcp::endpoint, sha1_hash)> peer_callback_t;
 #ifndef TORRENT_DISABLE_LOGGING
-typedef boost::function<void(char const*)> log_callback_t;
+typedef std::function<void(char const*)> log_callback_t;
 #endif
 
 class lsd : public boost::enable_shared_from_this<lsd>

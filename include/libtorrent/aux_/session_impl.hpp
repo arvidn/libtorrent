@@ -112,7 +112,7 @@ namespace libtorrent
 
 	struct bencode_map_entry;
 
-	typedef boost::function<bool(udp::endpoint const& source
+	typedef std::function<bool(udp::endpoint const& source
 		, bdecode_node const& request, entry& response)> dht_extension_handler_t;
 
 	struct listen_socket_t
@@ -217,7 +217,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			using ext_function_t
-				= boost::function<boost::shared_ptr<torrent_plugin>(torrent_handle const&, void*)>;
+				= std::function<boost::shared_ptr<torrent_plugin>(torrent_handle const&, void*)>;
 
 			struct session_plugin_wrapper : plugin
 			{
@@ -229,7 +229,7 @@ namespace libtorrent
 				ext_function_t m_f;
 			};
 
-			void add_extension(boost::function<boost::shared_ptr<torrent_plugin>(
+			void add_extension(std::function<boost::shared_ptr<torrent_plugin>(
 				torrent_handle const&, void*)> ext);
 			void add_ses_extension(boost::shared_ptr<plugin> ext);
 #endif
@@ -349,7 +349,7 @@ namespace libtorrent
 			void dht_put_immutable_item(entry const& data, sha1_hash target);
 
 			void dht_put_mutable_item(std::array<char, 32> key
-				, boost::function<void(entry&, std::array<char,64>&
+				, std::function<void(entry&, std::array<char,64>&
 				, std::uint64_t&, std::string const&)> cb
 				, std::string salt = std::string());
 
@@ -447,7 +447,7 @@ namespace libtorrent
 			void remove_torrent_impl(boost::shared_ptr<torrent> tptr, int options) override;
 
 			void get_torrent_status(std::vector<torrent_status>* ret
-				, boost::function<bool(torrent_status const&)> const& pred
+				, std::function<bool(torrent_status const&)> const& pred
 				, std::uint32_t flags) const;
 			void refresh_torrent_status(std::vector<torrent_status>* ret
 				, std::uint32_t flags) const;

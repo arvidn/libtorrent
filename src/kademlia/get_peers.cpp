@@ -278,8 +278,8 @@ void obfuscated_get_peers::done()
 	// don't call these when the obfuscated_get_peers
 	// is done, we're passing them on to be called when
 	// ta completes.
-	m_data_callback.clear();
-	m_nodes_callback.clear();
+	m_data_callback = nullptr;
+	m_nodes_callback = nullptr;
 
 #ifndef TORRENT_DISABLE_LOGGING
 		get_node().observer()->log(dht_logger::traversal, "[%p] obfuscated get_peers "

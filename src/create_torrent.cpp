@@ -117,7 +117,7 @@ namespace libtorrent
 		}
 
 		void add_files_impl(file_storage& fs, std::string const& p
-			, std::string const& l, boost::function<bool(std::string)> pred, std::uint32_t flags)
+			, std::string const& l, std::function<bool(std::string)> pred, std::uint32_t flags)
 		{
 			std::string f = combine_path(p, l);
 			if (!pred(f)) return;
@@ -167,7 +167,7 @@ namespace libtorrent
 		void on_hash(disk_io_job const* j, create_torrent* t
 			, boost::shared_ptr<piece_manager> storage, disk_io_thread* iothread
 			, int* piece_counter, int* completed_piece
-			, boost::function<void(int)> const* f, error_code* ec)
+			, std::function<void(int)> const* f, error_code* ec)
 		{
 			if (j->ret != 0)
 			{
@@ -200,7 +200,7 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 
 	void add_files(file_storage& fs, std::wstring const& wfile
-		, boost::function<bool(std::string)> p, std::uint32_t flags)
+		, std::function<bool(std::string)> p, std::uint32_t flags)
 	{
 		std::string utf8;
 		wchar_utf8(wfile, utf8);
@@ -218,7 +218,7 @@ namespace libtorrent
 	}
 
 	void set_piece_hashes(create_torrent& t, std::wstring const& p
-		, boost::function<void(int)> f, error_code& ec)
+		, std::function<void(int)> f, error_code& ec)
 	{
 		std::string utf8;
 		wchar_utf8(p, utf8);
@@ -226,7 +226,7 @@ namespace libtorrent
 	}
 
 	void set_piece_hashes_deprecated(create_torrent& t, std::wstring const& p
-		, boost::function<void(int)> f, error_code& ec)
+		, std::function<void(int)> f, error_code& ec)
 	{
 		std::string utf8;
 		wchar_utf8(p, utf8);
@@ -236,7 +236,7 @@ namespace libtorrent
 #endif
 
 	void add_files(file_storage& fs, std::string const& file
-		, boost::function<bool(std::string)> p, std::uint32_t flags)
+		, std::function<bool(std::string)> p, std::uint32_t flags)
 	{
 		add_files_impl(fs, parent_path(complete(file)), filename(file), p, flags);
 	}
@@ -248,7 +248,7 @@ namespace libtorrent
 	}
 
 	void set_piece_hashes(create_torrent& t, std::string const& p
-		, boost::function<void(int)> const& f, error_code& ec)
+		, std::function<void(int)> const& f, error_code& ec)
 	{
 		// optimized path
 		io_service ios;

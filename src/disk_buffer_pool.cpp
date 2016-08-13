@@ -79,7 +79,7 @@ namespace libtorrent
 	} // anonymous namespace
 
 	disk_buffer_pool::disk_buffer_pool(int block_size, io_service& ios
-		, boost::function<void()> const& trigger_trim)
+		, std::function<void()> const& trigger_trim)
 		: m_block_size(block_size)
 		, m_in_use(0)
 		, m_max_use(64)

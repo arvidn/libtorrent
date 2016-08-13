@@ -33,11 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_XML_PARSE_HPP
 #define TORRENT_XML_PARSE_HPP
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/function.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <functional>
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
@@ -68,7 +64,7 @@ namespace libtorrent
 	// name_len and val_len respectively
 	// TODO: 3 use span<> for the callback
 	TORRENT_EXTRA_EXPORT void xml_parse(span<char const> input
-		, boost::function<void(int,char const*,int,char const*,int)> callback);
+		, std::function<void(int,char const*,int,char const*,int)> callback);
 }
 
 

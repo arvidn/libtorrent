@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 
-#include <boost/function.hpp>
 #include <functional>
 
 namespace libtorrent { namespace aux {

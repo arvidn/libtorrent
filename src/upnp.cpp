@@ -313,7 +313,7 @@ void upnp::resend_request(error_code const& ec)
 			d.upnp_connection.reset(new http_connection(m_io_service
 				, m_resolver
 				, std::bind(&upnp::on_upnp_xml, self(), _1, _2
-				, boost::ref(d), _5)));
+				, std::ref(d), _5)));
 			d.upnp_connection->get(d.url, seconds(30), 1);
 		}
 		TORRENT_CATCH (std::exception& exc)
@@ -774,8 +774,8 @@ void upnp::update_map(rootdevice& d, int i)
 		d.upnp_connection.reset(new http_connection(m_io_service
 			, m_resolver
 			, std::bind(&upnp::on_upnp_map_response, self(), _1, _2
-			, boost::ref(d), i, _5), true, default_max_bottled_buffer_size
-			, std::bind(&upnp::create_port_mapping, self(), _1, boost::ref(d), i)));
+			, std::ref(d), i, _5), true, default_max_bottled_buffer_size
+			, std::bind(&upnp::create_port_mapping, self(), _1, std::ref(d), i)));
 
 		d.upnp_connection->start(d.hostname, d.port
 			, seconds(10), 1);
@@ -786,8 +786,8 @@ void upnp::update_map(rootdevice& d, int i)
 		d.upnp_connection.reset(new http_connection(m_io_service
 			, m_resolver
 			, std::bind(&upnp::on_upnp_unmap_response, self(), _1, _2
-			, boost::ref(d), i, _5), true, default_max_bottled_buffer_size
-			, std::bind(&upnp::delete_port_mapping, self(), boost::ref(d), i)));
+			, std::ref(d), i, _5), true, default_max_bottled_buffer_size
+			, std::bind(&upnp::delete_port_mapping, self(), std::ref(d), i)));
 		d.upnp_connection->start(d.hostname, d.port
 			, seconds(10), 1);
 	}
@@ -940,7 +940,7 @@ void upnp::on_upnp_xml(error_code const& e
 	}
 
 	parse_state s;
-	xml_parse(p.get_body(), std::bind(&find_control_url, _1, _2, _3, boost::ref(s)));
+	xml_parse(p.get_body(), std::bind(&find_control_url, _1, _2, _3, std::ref(s)));
 	if (s.control_url.empty())
 	{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1004,8 +1004,8 @@ void upnp::on_upnp_xml(error_code const& e
 	d.upnp_connection.reset(new http_connection(m_io_service
 		, m_resolver
 		, std::bind(&upnp::on_upnp_get_ip_address_response, self(), _1, _2
-		, boost::ref(d), _5), true, default_max_bottled_buffer_size
-		, std::bind(&upnp::get_ip_address, self(), boost::ref(d))));
+		, std::ref(d), _5), true, default_max_bottled_buffer_size
+		, std::bind(&upnp::get_ip_address, self(), std::ref(d))));
 	d.upnp_connection->start(d.hostname, d.port
 		, seconds(10), 1);
 }
@@ -1237,7 +1237,7 @@ void upnp::on_upnp_get_ip_address_response(error_code const& e
 #endif
 
 	ip_address_parse_state s;
-	xml_parse(body, std::bind(&find_ip_address, _1, _2, boost::ref(s)));
+	xml_parse(body, std::bind(&find_ip_address, _1, _2, std::ref(s)));
 #ifndef TORRENT_DISABLE_LOGGING
 	if (s.error_code != -1)
 	{
@@ -1335,7 +1335,7 @@ void upnp::on_upnp_map_response(error_code const& e
 
 	error_code_parse_state s;
 	span<char const> body = p.get_body();
-	xml_parse(body, std::bind(&find_error_code, _1, _2, boost::ref(s)));
+	xml_parse(body, std::bind(&find_error_code, _1, _2, std::ref(s)));
 
 	if (s.error_code != -1)
 	{
@@ -1475,7 +1475,7 @@ void upnp::on_upnp_unmap_response(error_code const& e
 	error_code_parse_state s;
 	if (p.header_finished())
 	{
-		xml_parse(p.get_body(), std::bind(&find_error_code, _1, _2, boost::ref(s)));
+		xml_parse(p.get_body(), std::bind(&find_error_code, _1, _2, std::ref(s)));
 	}
 
 	int const proto = m_mappings[mapping].protocol;

@@ -39,6 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 
+#include <functional>
+
 #ifndef TORRENT_DISABLE_DHT
 #include "libtorrent/socket.hpp"
 #endif
@@ -48,7 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/weak_ptr.hpp>
-#include <boost/function.hpp>
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include <boost/shared_ptr.hpp>
@@ -155,7 +156,7 @@ namespace libtorrent { namespace aux
 		virtual io_service& get_io_service() = 0;
 		virtual resolver_interface& get_resolver() = 0;
 
-		typedef boost::function<void(error_code const&, std::vector<address> const&)>
+		typedef std::function<void(error_code const&, std::vector<address> const&)>
 			callback_t;
 
 		// TODO: 2 remove this. There's already get_resolver()

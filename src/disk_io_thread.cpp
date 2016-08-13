@@ -1479,7 +1479,7 @@ namespace libtorrent
 	}
 
 	void disk_io_thread::async_read(piece_manager* storage, peer_request const& r
-		, boost::function<void(disk_io_job const*)> handler, void* requester
+		, std::function<void(disk_io_job const*)> handler, void* requester
 		, int flags)
 	{
 		INVARIANT_CHECK;
@@ -1599,7 +1599,7 @@ namespace libtorrent
 
 	void disk_io_thread::async_write(piece_manager* storage, peer_request const& r
 		, disk_buffer_holder buffer
-		, boost::function<void(disk_io_job const*)> handler
+		, std::function<void(disk_io_job const*)> handler
 		, int flags)
 	{
 		INVARIANT_CHECK;
@@ -1709,7 +1709,7 @@ namespace libtorrent
 	}
 
 	void disk_io_thread::async_hash(piece_manager* storage, int piece, int flags
-		, boost::function<void(disk_io_job const*)> handler, void* requester)
+		, std::function<void(disk_io_job const*)> handler, void* requester)
 	{
 #if TORRENT_USE_ASSERTS
 		// the caller must increment the torrent refcount before
@@ -1754,7 +1754,7 @@ namespace libtorrent
 	}
 
 	void disk_io_thread::async_move_storage(piece_manager* storage, std::string const& p, int flags
-		, boost::function<void(disk_io_job const*)> handler)
+		, std::function<void(disk_io_job const*)> handler)
 	{
 #if TORRENT_USE_ASSERTS
 		// the caller must increment the torrent refcount before
@@ -1772,7 +1772,7 @@ namespace libtorrent
 	}
 
 	void disk_io_thread::async_release_files(piece_manager* storage
-		, boost::function<void(disk_io_job const*)> handler)
+		, std::function<void(disk_io_job const*)> handler)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::release_files);
 		j->storage = storage->shared_from_this();
@@ -1783,7 +1783,7 @@ namespace libtorrent
 
 	void disk_io_thread::async_delete_files(piece_manager* storage
 		, int const options
-		, boost::function<void(disk_io_job const*)> handler)
+		, std::function<void(disk_io_job const*)> handler)
 	{
 #if TORRENT_USE_ASSERTS
 		// the caller must increment the torrent refcount before
@@ -1836,7 +1836,7 @@ namespace libtorrent
 	void disk_io_thread::async_check_files(piece_manager* storage
 		, add_torrent_params const* resume_data
 		, std::vector<std::string>& links
-		, boost::function<void(disk_io_job const*)> handler)
+		, std::function<void(disk_io_job const*)> handler)
 	{
 #if TORRENT_USE_ASSERTS
 		// the caller must increment the torrent refcount before
@@ -1858,7 +1858,7 @@ namespace libtorrent
 	}
 
 	void disk_io_thread::async_rename_file(piece_manager* storage, int index, std::string const& name
-		, boost::function<void(disk_io_job const*)> handler)
+		, std::function<void(disk_io_job const*)> handler)
 	{
 #if TORRENT_USE_ASSERTS
 		// the caller must increment the torrent refcount before
@@ -1875,7 +1875,7 @@ namespace libtorrent
 	}
 
 	void disk_io_thread::async_stop_torrent(piece_manager* storage
-		, boost::function<void(disk_io_job const*)> handler)
+		, std::function<void(disk_io_job const*)> handler)
 	{
 		// remove outstanding hash jobs belonging to this torrent
 		std::unique_lock<std::mutex> l2(m_job_mutex);
@@ -1911,7 +1911,7 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 	void disk_io_thread::async_cache_piece(piece_manager* storage, int piece
-		, boost::function<void(disk_io_job const*)> handler)
+		, std::function<void(disk_io_job const*)> handler)
 	{
 #if TORRENT_USE_ASSERTS
 		// the caller must increment the torrent refcount before
@@ -1928,7 +1928,7 @@ namespace libtorrent
 	}
 
 	void disk_io_thread::async_finalize_file(piece_manager* storage, int file
-		, boost::function<void(disk_io_job const*)> handler)
+		, std::function<void(disk_io_job const*)> handler)
 	{
 #if TORRENT_USE_ASSERTS
 		// the caller must increment the torrent refcount before
@@ -1946,7 +1946,7 @@ namespace libtorrent
 #endif // TORRENT_NO_DEPRECATE
 
 	void disk_io_thread::async_flush_piece(piece_manager* storage, int piece
-		, boost::function<void(disk_io_job const*)> handler)
+		, std::function<void(disk_io_job const*)> handler)
 	{
 #if TORRENT_USE_ASSERTS
 		// the caller must increment the torrent refcount before
@@ -1972,7 +1972,7 @@ namespace libtorrent
 
 	void disk_io_thread::async_set_file_priority(piece_manager* storage
 		, std::vector<std::uint8_t> const& prios
-		, boost::function<void(disk_io_job const*)> handler)
+		, std::function<void(disk_io_job const*)> handler)
 	{
 #if TORRENT_USE_ASSERTS
 		// the caller must increment the torrent refcount before
@@ -1991,7 +1991,7 @@ namespace libtorrent
 	}
 
 	void disk_io_thread::async_load_torrent(add_torrent_params* params
-		, boost::function<void(disk_io_job const*)> handler)
+		, std::function<void(disk_io_job const*)> handler)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::load_torrent);
 		j->requester = reinterpret_cast<char*>(params);
@@ -2001,7 +2001,7 @@ namespace libtorrent
 	}
 
 	void disk_io_thread::async_tick_torrent(piece_manager* storage
-		, boost::function<void(disk_io_job const*)> handler)
+		, std::function<void(disk_io_job const*)> handler)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::tick_storage);
 		j->storage = storage->shared_from_this();
@@ -2028,7 +2028,7 @@ namespace libtorrent
 	}
 
 	void disk_io_thread::async_clear_piece(piece_manager* storage, int index
-		, boost::function<void(disk_io_job const*)> handler)
+		, std::function<void(disk_io_job const*)> handler)
 	{
 #if TORRENT_USE_ASSERTS
 		// the caller must increment the torrent refcount before

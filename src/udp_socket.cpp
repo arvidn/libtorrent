@@ -478,7 +478,7 @@ void udp_socket::set_proxy_settings(aux::proxy_settings const& ps)
 	{
 		// connect to socks5 server and open up the UDP tunnel
 
-		m_socks5_connection = boost::make_shared<socks5>(boost::ref(m_socket.get_io_service()));
+		m_socks5_connection = boost::make_shared<socks5>(std::ref(m_socket.get_io_service()));
 		m_socks5_connection->start(ps);
 	}
 }

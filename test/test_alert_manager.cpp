@@ -124,7 +124,7 @@ TORRENT_TEST(notify_function)
 
 	// if there are queued alerts when we set the notify function,
 	// that counts as an edge and it's called
-	mgr.set_notify_function(std::bind(&test_notify_fun, boost::ref(cnt)));
+	mgr.set_notify_function(std::bind(&test_notify_fun, std::ref(cnt)));
 
 	TEST_EQUAL(mgr.pending(), true);
 	TEST_EQUAL(cnt, 1);

@@ -50,7 +50,7 @@ class proxy_base : boost::noncopyable
 {
 public:
 
-	typedef boost::function<void(error_code const&)> handler_type;
+	typedef std::function<void(error_code const&)> handler_type;
 
 	typedef tcp::socket next_layer_type;
 	typedef tcp::socket::lowest_layer_type lowest_layer_type;

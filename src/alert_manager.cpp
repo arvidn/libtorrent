@@ -93,7 +93,7 @@ namespace libtorrent
 #endif
 	}
 
-	void alert_manager::set_notify_function(boost::function<void()> const& fun)
+	void alert_manager::set_notify_function(std::function<void()> const& fun)
 	{
 		std::unique_lock<std::mutex> lock(m_mutex);
 		m_notify = fun;

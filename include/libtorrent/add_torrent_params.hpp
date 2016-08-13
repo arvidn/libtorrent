@@ -36,10 +36,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <vector>
 #include <map>
+#include <functional>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/shared_ptr.hpp>
-#include <boost/function.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/storage_defs.hpp"
@@ -343,7 +343,7 @@ namespace libtorrent
 		// to avoid race conditions. For instance it may be important to have the
 		// plugin catch events that happen very early on after the torrent is
 		// created.
-		std::vector<boost::function<boost::shared_ptr<torrent_plugin>(torrent_handle const&, void*)>>
+		std::vector<std::function<boost::shared_ptr<torrent_plugin>(torrent_handle const&, void*)>>
 			extensions;
 
 		// the default tracker id to be used when announcing to trackers. By

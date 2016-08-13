@@ -63,7 +63,7 @@ class node;
 
 struct find_data : traversal_algorithm
 {
-	typedef boost::function<void(std::vector<std::pair<node_entry, std::string> > const&)> nodes_callback;
+	typedef std::function<void(std::vector<std::pair<node_entry, std::string> > const&)> nodes_callback;
 
 	find_data(node& node, node_id target
 		, nodes_callback const& ncallback);

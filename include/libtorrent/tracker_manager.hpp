@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <utility>
 #include <cstdint>
 #include <tuple>
+#include <functional>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -48,7 +49,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/weak_ptr.hpp>
 #include <boost/unordered_map.hpp>
-#include <boost/function.hpp>
 
 #ifdef TORRENT_USE_OPENSSL
 #include <boost/asio/ssl/context.hpp>
@@ -341,10 +341,10 @@ namespace libtorrent
 	{
 	public:
 
-		typedef boost::function<void(udp::endpoint const&
+		typedef std::function<void(udp::endpoint const&
 			, span<char const>
 			, error_code&, int)> send_fun_t;
-		typedef boost::function<void(char const*, int
+		typedef std::function<void(char const*, int
 			, span<char const>
 			, error_code&, int)> send_fun_hostname_t;
 

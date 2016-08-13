@@ -41,9 +41,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 
-#include <boost/function.hpp>
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <cmath>
 #include <functional>
@@ -153,7 +154,7 @@ static void nop() {}
 
 void run_test(connections_t& v
 	, bandwidth_manager& manager
-	, boost::function<void()> f = &nop)
+	, std::function<void()> f = &nop)
 {
 	std::cerr << "-------------" << std::endl;
 	
@@ -235,7 +236,7 @@ void test_connections_variable_rate(int num, int limit, int torrent_limit)
 		, std::bind(&peer_connection::throttle, _1, limit));
 
 	run_test(v, manager, std::bind(&do_change_peer_rate
-		, boost::ref(v), limit));
+		, std::ref(v), limit));
 
 	if (torrent_limit > 0 && limit * num > torrent_limit)
 		limit = torrent_limit / num;
@@ -359,7 +360,7 @@ void test_torrents_variable_rate(int num, int limit, int global_limit)
 	std::copy(v1.begin(), v1.end(), std::back_inserter(v));
 	std::copy(v2.begin(), v2.end(), std::back_inserter(v));
 
-	run_test(v, manager, std::bind(&do_change_rate, boost::ref(t1), boost::ref(t2), limit));
+	run_test(v, manager, std::bind(&do_change_rate, std::ref(t1), std::ref(t2), limit));
 
 	if (global_limit > 0 && global_limit < 2 * limit)
 		limit = global_limit / 2;

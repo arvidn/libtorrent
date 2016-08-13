@@ -70,7 +70,7 @@ int main(int argc, char* argv[])
 	}
 	add_torrent_params p;
 	p.save_path = "./";
-	p.ti = boost::make_shared<torrent_info>(std::string(argv[1]), boost::ref(ec), 0);
+	p.ti = boost::make_shared<torrent_info>(std::string(argv[1]), std::ref(ec), 0);
 	if (ec)
 	{
 		std::fprintf(stderr, "%s\n", ec.message().c_str());

@@ -32,17 +32,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/version.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include "libtorrent/assert.hpp"
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/file_storage.hpp" // for file_entry
 #include "libtorrent/aux_/time.hpp"
+
+#include <limits>
 
 namespace libtorrent
 {
@@ -230,7 +226,8 @@ namespace libtorrent
 		std::unique_lock<std::mutex> l(m_mutex);
 
 		file_set::const_iterator start = m_files.lower_bound(std::make_pair(st, 0));
-		file_set::const_iterator end = m_files.upper_bound(std::make_pair(st, INT_MAX));
+		file_set::const_iterator end = m_files.upper_bound(std::make_pair(st
+			, std::numeric_limits<int>::max()));
 
 		for (file_set::const_iterator i = start; i != end; ++i)
 		{

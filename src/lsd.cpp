@@ -307,7 +307,7 @@ void lsd::close()
 #if TORRENT_USE_IPV6
 	m_disabled6 = true;
 #endif
-	m_callback.clear();
+	m_callback = nullptr;
 }
 
 } // libtorrent namespace

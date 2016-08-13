@@ -100,7 +100,7 @@ public:
 	SSL* native_handle() { return m_sock.native_handle(); }
 #endif
 
-	typedef boost::function<void(error_code const&)> handler_type;
+	typedef std::function<void(error_code const&)> handler_type;
 
 	template <class Handler>
 	void async_connect(endpoint_type const& endpoint, Handler const& handler)

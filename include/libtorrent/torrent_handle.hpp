@@ -37,10 +37,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 #include <set>
+#include <functional>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/shared_ptr.hpp>
-#include <boost/function.hpp>
 #include <boost/weak_ptr.hpp>
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -508,7 +508,7 @@ namespace libtorrent
 		// pointer. The function is expected to return a shared pointer to
 		// a torrent_plugin instance.
 		void add_extension(
-			boost::function<boost::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> const& ext
+			std::function<boost::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> const& ext
 			, void* userdata = 0);
 
 		// ``set_metadata`` expects the *info* section of metadata. i.e. The
