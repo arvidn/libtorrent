@@ -62,7 +62,7 @@ namespace libtorrent
 
 			bool add_vote(sha1_hash const& k, int type);
 
-			// we want to sort decending
+			// we want to sort descending
 			bool operator<(external_ip_t const& rhs) const
 			{
 				if (num_votes > rhs.num_votes) return true;
@@ -128,4 +128,3 @@ namespace libtorrent
 }
 
 #endif
-
