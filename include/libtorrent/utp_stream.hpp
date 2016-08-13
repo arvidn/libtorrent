@@ -40,17 +40,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/time.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <functional>
-#include <boost/function/function1.hpp>
-#include <boost/function/function2.hpp>
 
 #ifndef BOOST_NO_EXCEPTIONS
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/system/system_error.hpp>
-#endif
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
+#endif
 
 namespace libtorrent
 {
@@ -373,7 +369,7 @@ public:
 	}
 
 	void do_async_connect(endpoint_type const& ep
-		, boost::function<void(error_code const&)> const& handler);
+		, std::function<void(error_code const&)> const& handler);
 
 	template <class Protocol>
 	void open(Protocol const&, error_code&)
@@ -493,9 +489,9 @@ private:
 
 	void cancel_handlers(error_code const&);
 
-	boost::function1<void, error_code const&> m_connect_handler;
-	boost::function2<void, error_code const&, std::size_t> m_read_handler;
-	boost::function2<void, error_code const&, std::size_t> m_write_handler;
+	std::function<void(error_code const&)> m_connect_handler;
+	std::function<void(error_code const&, std::size_t)> m_read_handler;
+	std::function<void(error_code const&, std::size_t)> m_write_handler;
 
 	io_service& m_io_service;
 	utp_socket_impl* m_impl;

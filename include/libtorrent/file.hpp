@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <memory>
 #include <string>
+#include <functional>
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/string_view.hpp"
@@ -43,7 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/noncopyable.hpp>
 #include <boost/smart_ptr.hpp>
-#include <boost/function.hpp>
 
 #ifdef TORRENT_WINDOWS
 // windows part

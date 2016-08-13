@@ -273,7 +273,7 @@ void test_parse(char const* in, char const* expected)
 {
 	std::string out;
 	xml_parse(str(in), std::bind(&parser_callback
-		, boost::ref(out), _1, _2, _3, _4, _5));
+		, std::ref(out), _1, _2, _3, _4, _5));
 	std::fprintf(stderr, "in: %s\n     out: %s\nexpected: %s\n"
 		, in, out.c_str(), expected);
 	TEST_EQUAL(out, expected);
@@ -282,7 +282,7 @@ void test_parse(char const* in, char const* expected)
 TORRENT_TEST(upnp_parser1)
 {
 	parse_state xml_s;
-	xml_parse(upnp_xml, std::bind(&find_control_url, _1, _2, _3, boost::ref(xml_s)));
+	xml_parse(upnp_xml, std::bind(&find_control_url, _1, _2, _3, std::ref(xml_s)));
 
 	std::cerr << "namespace " << xml_s.service_type << std::endl;
 	std::cerr << "url_base: " << xml_s.url_base << std::endl;
@@ -296,7 +296,7 @@ TORRENT_TEST(upnp_parser1)
 TORRENT_TEST(upnp_parser2)
 {
 	parse_state xml_s;
-	xml_parse(upnp_xml2, std::bind(&find_control_url, _1, _2, _3, boost::ref(xml_s)));
+	xml_parse(upnp_xml2, std::bind(&find_control_url, _1, _2, _3, std::ref(xml_s)));
 
 	std::cerr << "namespace " << xml_s.service_type << std::endl;
 	std::cerr << "url_base: " << xml_s.url_base << std::endl;

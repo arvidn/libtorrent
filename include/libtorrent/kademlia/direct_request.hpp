@@ -42,7 +42,7 @@ namespace libtorrent { namespace dht
 
 struct direct_traversal : traversal_algorithm
 {
-	typedef boost::function<void(dht::msg const&)> message_callback;
+	typedef std::function<void(dht::msg const&)> message_callback;
 
 	direct_traversal(node& node
 		, node_id target
@@ -55,10 +55,10 @@ struct direct_traversal : traversal_algorithm
 
 	void invoke_cb(msg const& m)
 	{
-		if (!m_cb.empty())
+		if (m_cb)
 		{
 			m_cb(m);
-			m_cb.clear();
+			m_cb = nullptr;
 			done();
 		}
 	}

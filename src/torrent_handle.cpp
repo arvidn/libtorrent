@@ -206,7 +206,7 @@ namespace libtorrent
 	}
 
 	void torrent_handle::add_extension(
-		boost::function<boost::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> const& ext
+		std::function<boost::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> const& ext
 		, void* userdata)
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS

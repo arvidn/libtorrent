@@ -39,7 +39,7 @@ namespace libtorrent
 {
 
 	TORRENT_EXTRA_EXPORT void xml_parse(span<char const> input
-		, boost::function<void(int,char const*,int,char const*,int)> callback)
+		, std::function<void(int,char const*,int,char const*,int)> callback)
 	{
 		char const* p = input.data();
 		char const* end = input.data() + input.size();

@@ -40,15 +40,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/config.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
+#include <functional>
 #include <list>
 #include <utility> // for std::forward
 #include <mutex>
 #include <condition_variable>
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
 
@@ -113,7 +114,7 @@ namespace libtorrent {
 		int alert_queue_size_limit() const { return m_queue_size_limit; }
 		int set_alert_queue_size_limit(int queue_size_limit_);
 
-		void set_notify_function(boost::function<void()> const& fun);
+		void set_notify_function(std::function<void()> const& fun);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		void add_extension(boost::shared_ptr<plugin> ext);
@@ -138,7 +139,7 @@ namespace libtorrent {
 		// That call will drain every alert in one atomic operation and this
 		// notification function will be called again the next time an alert is
 		// posted to the queue
-		boost::function<void()> m_notify;
+		std::function<void()> m_notify;
 
 		// this is either 0 or 1, it indicates which m_alerts and m_allocations
 		// the alert_manager is allowed to use right now. This is swapped when

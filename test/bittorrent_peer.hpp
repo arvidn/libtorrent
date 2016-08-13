@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "test.hpp" // for EXPORT
-#include <boost/function.hpp>
+#include <functional>
 
 using namespace libtorrent;
 
@@ -50,7 +50,7 @@ struct EXPORT peer_conn
 	{ uploader, downloader, idle };
 
 	peer_conn(io_service& ios
-		, boost::function<void(int, char const*, int)> on_msg
+		, std::function<void(int, char const*, int)> on_msg
 		, libtorrent::torrent_info const& ti
 		, libtorrent::tcp::endpoint const& ep
 		, peer_mode_t mode);
@@ -86,7 +86,7 @@ private:
 
 	int read_pos;
 
-	boost::function<void(int, char const*, int)> m_on_msg;
+	std::function<void(int, char const*, int)> m_on_msg;
 
 	enum state_t
 	{

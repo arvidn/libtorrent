@@ -141,22 +141,22 @@ public:
 
 	enum flags_t { flag_seed = 1, flag_implied_port = 2 };
 	void get_peers(sha1_hash const& info_hash
-		, boost::function<void(std::vector<tcp::endpoint> const&)> dcallback
-		, boost::function<void(std::vector<std::pair<node_entry, std::string> > const&)> ncallback
+		, std::function<void(std::vector<tcp::endpoint> const&)> dcallback
+		, std::function<void(std::vector<std::pair<node_entry, std::string> > const&)> ncallback
 		, bool noseeds);
 	void announce(sha1_hash const& info_hash, int listen_port, int flags
-		, boost::function<void(std::vector<tcp::endpoint> const&)> f);
+		, std::function<void(std::vector<tcp::endpoint> const&)> f);
 
 	void direct_request(udp::endpoint ep, entry& e
-		, boost::function<void(msg const&)> f);
+		, std::function<void(msg const&)> f);
 
-	void get_item(sha1_hash const& target, boost::function<void(item const&)> f);
-	void get_item(public_key const& pk, std::string const& salt, boost::function<void(item const&, bool)> f);
+	void get_item(sha1_hash const& target, std::function<void(item const&)> f);
+	void get_item(public_key const& pk, std::string const& salt, std::function<void(item const&, bool)> f);
 
-	void put_item(sha1_hash const& target, entry const& data, boost::function<void(int)> f);
+	void put_item(sha1_hash const& target, entry const& data, std::function<void(int)> f);
 	void put_item(public_key const& pk, std::string const& salt
-		, boost::function<void(item const&, int)> f
-		, boost::function<void(item&)> data_cb);
+		, std::function<void(item const&, int)> f
+		, std::function<void(item&)> data_cb);
 
 	bool verify_token(string_view token, sha1_hash const& info_hash
 		, udp::endpoint const& addr) const;

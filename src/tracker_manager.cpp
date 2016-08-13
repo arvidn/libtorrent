@@ -289,7 +289,7 @@ namespace libtorrent
 		{
 			boost::shared_ptr<http_tracker_connection> con
 				= boost::make_shared<http_tracker_connection>(
-				boost::ref(ios), boost::ref(*this), boost::cref(req), c);
+				std::ref(ios), std::ref(*this), boost::cref(req), c);
 			m_http_conns.push_back(con);
 			con->start();
 			return;
@@ -298,7 +298,7 @@ namespace libtorrent
 		{
 			boost::shared_ptr<udp_tracker_connection> con
 				= boost::make_shared<udp_tracker_connection>(
-					boost::ref(ios), boost::ref(*this), boost::cref(req) , c);
+					std::ref(ios), std::ref(*this), boost::cref(req) , c);
 			m_udp_conns[con->transaction_id()] = con;
 			con->start();
 			return;

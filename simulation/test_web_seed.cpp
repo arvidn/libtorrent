@@ -71,7 +71,7 @@ boost::shared_ptr<torrent_info> create_torrent(file_storage& fs)
 	bencode(out, tor);
 	error_code ec;
 	return boost::make_shared<torrent_info>(
-		&tmp[0], tmp.size(), boost::ref(ec), 0);
+		&tmp[0], tmp.size(), std::ref(ec), 0);
 }
 // this is the general template for these tests. create the session with custom
 // settings (Settings), set up the test, by adding torrents with certain

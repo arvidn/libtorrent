@@ -395,7 +395,7 @@ namespace libtorrent
 	// The ``flags`` argument should be the same as the flags passed to the `create_torrent`_
 	// constructor.
 	TORRENT_EXPORT void add_files(file_storage& fs, std::string const& file
-		, boost::function<bool(std::string)> p, std::uint32_t flags = 0);
+		, std::function<bool(std::string)> p, std::uint32_t flags = 0);
 	TORRENT_EXPORT void add_files(file_storage& fs, std::string const& file
 		, std::uint32_t flags = 0);
 	
@@ -409,7 +409,7 @@ namespace libtorrent
 	// The overloads that don't take an ``error_code&`` may throw an exception in case of a
 	// file error, the other overloads sets the error code to reflect the error, if any.
 	TORRENT_EXPORT void set_piece_hashes(create_torrent& t, std::string const& p
-		, boost::function<void(int)> const& f, error_code& ec);
+		, std::function<void(int)> const& f, error_code& ec);
 	inline void set_piece_hashes(create_torrent& t, std::string const& p, error_code& ec)
 	{
 		set_piece_hashes(t, p, detail::nop, ec);
@@ -440,7 +440,7 @@ namespace libtorrent
 
 	TORRENT_DEPRECATED
 	TORRENT_EXPORT void add_files(file_storage& fs, std::wstring const& wfile
-		, boost::function<bool(std::string)> p, std::uint32_t flags = 0);
+		, std::function<bool(std::string)> p, std::uint32_t flags = 0);
 
 	TORRENT_DEPRECATED
 	TORRENT_EXPORT void add_files(file_storage& fs, std::wstring const& wfile
@@ -448,11 +448,11 @@ namespace libtorrent
 	
 	TORRENT_DEPRECATED
 	TORRENT_EXPORT void set_piece_hashes(create_torrent& t, std::wstring const& p
-		, boost::function<void(int)> f, error_code& ec);
+		, std::function<void(int)> f, error_code& ec);
 
 	TORRENT_EXPORT void set_piece_hashes_deprecated(create_torrent& t
 		, std::wstring const& p
-		, boost::function<void(int)> f, error_code& ec);
+		, std::function<void(int)> f, error_code& ec);
 
 #ifndef BOOST_NO_EXCEPTIONS
 	template <class Fun>

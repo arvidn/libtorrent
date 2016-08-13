@@ -36,11 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <vector>
-#include <mutex>
 #include <boost/shared_ptr.hpp>
-#include <boost/function.hpp>
 #include <boost/utility.hpp>
 
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
@@ -48,11 +44,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/pool/pool.hpp>
 #endif
 
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
 #if TORRENT_USE_INVARIANT_CHECKS
 #include <set>
 #endif
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <vector>
+#include <mutex>
+#include <functional>
 
 #include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/file.hpp" // for iovec_t
@@ -66,7 +65,7 @@ namespace libtorrent
 	struct TORRENT_EXTRA_EXPORT disk_buffer_pool : boost::noncopyable
 	{
 		disk_buffer_pool(int block_size, io_service& ios
-			, boost::function<void()> const& trigger_trim);
+			, std::function<void()> const& trigger_trim);
 		~disk_buffer_pool();
 
 #if TORRENT_USE_ASSERTS
@@ -125,7 +124,7 @@ namespace libtorrent
 		std::vector<boost::weak_ptr<disk_observer>> m_observers;
 
 		// callback used to tell the cache it needs to free up some blocks
-		boost::function<void()> m_trigger_cache_trim;
+		std::function<void()> m_trigger_cache_trim;
 
 		// set to true to throttle more allocations
 		bool m_exceeded_max_size;

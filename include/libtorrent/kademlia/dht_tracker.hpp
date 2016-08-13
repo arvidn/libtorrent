@@ -93,35 +93,35 @@ namespace libtorrent { namespace dht
 
 		enum flags_t { flag_seed = 1, flag_implied_port = 2 };
 		void get_peers(sha1_hash const& ih
-			, boost::function<void(std::vector<tcp::endpoint> const&)> f);
+			, std::function<void(std::vector<tcp::endpoint> const&)> f);
 		void announce(sha1_hash const& ih, int listen_port, int flags
-			, boost::function<void(std::vector<tcp::endpoint> const&)> f);
+			, std::function<void(std::vector<tcp::endpoint> const&)> f);
 
 		void get_item(sha1_hash const& target
-			, boost::function<void(item const&)> cb);
+			, std::function<void(item const&)> cb);
 
 		// key is a 32-byte binary string, the public key to look up.
 		// the salt is optional
 		void get_item(public_key const& key
-			, boost::function<void(item const&, bool)> cb
+			, std::function<void(item const&, bool)> cb
 			, std::string salt = std::string());
 
 		// for immutable_item.
 		// the callback function will be called when put operation is done.
 		// the int parameter indicates the success numbers of put operation.
 		void put_item(entry const& data
-			, boost::function<void(int)> cb);
+			, std::function<void(int)> cb);
 
 		// for mutable_item.
 		// the data_cb will be called when we get authoritative mutable_item,
 		// the cb is same as put immutable_item.
 		void put_item(public_key const& key
-			, boost::function<void(item const&, int)> cb
-			, boost::function<void(item&)> data_cb, std::string salt = std::string());
+			, std::function<void(item const&, int)> cb
+			, std::function<void(item&)> data_cb, std::string salt = std::string());
 
 		// send an arbitrary DHT request directly to a node
 		void direct_request(udp::endpoint ep, entry& e
-			, boost::function<void(msg const&)> f);
+			, std::function<void(msg const&)> f);
 
 #ifndef TORRENT_NO_DEPRECATE
 		void dht_status(session_status& s);

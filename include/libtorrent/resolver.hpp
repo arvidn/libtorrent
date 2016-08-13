@@ -36,11 +36,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/asio/ip/tcp.hpp>
-#include <boost/function.hpp>
-#include <boost/unordered_map.hpp>
-#include <vector>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
+
+#include <unordered_map>
+#include <functional>
+#include <vector>
 
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/io_service.hpp"
@@ -72,7 +73,7 @@ private:
 		std::vector<address> addresses;
 	};
 
-	typedef boost::unordered_map<std::string, dns_cache_entry> cache_t;
+	using cache_t = std::unordered_map<std::string, dns_cache_entry>;
 	cache_t m_cache;
 	io_service& m_ios;
 

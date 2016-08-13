@@ -300,7 +300,7 @@ namespace libtorrent
 			ios = m_io_service.get();
 		}
 
-		m_impl = boost::make_shared<session_impl>(boost::ref(*ios));
+		m_impl = boost::make_shared<session_impl>(std::ref(*ios));
 		*static_cast<session_handle*>(this) = session_handle(m_impl.get());
 
 #ifndef TORRENT_DISABLE_EXTENSIONS

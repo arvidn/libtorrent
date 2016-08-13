@@ -97,7 +97,7 @@ http_connection::http_connection(io_service& ios
 	, m_abort(false)
 	, m_connecting(false)
 {
-	TORRENT_ASSERT(!m_handler.empty());
+	TORRENT_ASSERT(m_handler);
 }
 
 http_connection::~http_connection()
@@ -470,7 +470,7 @@ void http_connection::close(bool force)
 
 	m_hostname.clear();
 	m_port = 0;
-	m_handler.clear();
+	m_handler = nullptr;
 	m_abort = true;
 }
 

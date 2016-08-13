@@ -106,7 +106,7 @@ namespace libtorrent
 	}
 
 	void session_handle::get_torrent_status(std::vector<torrent_status>* ret
-		, boost::function<bool(torrent_status const&)> const& pred
+		, std::function<bool(torrent_status const&)> const& pred
 		, std::uint32_t flags) const
 	{
 		auto predr = std::ref(pred);
@@ -536,7 +536,7 @@ namespace libtorrent
 	}
 
 	void session_handle::dht_put_item(std::array<char, 32> key
-		, boost::function<void(entry&, std::array<char,64>&
+		, std::function<void(entry&, std::array<char,64>&
 		, std::uint64_t&, std::string const&)> cb
 		, std::string salt)
 	{
@@ -601,7 +601,7 @@ namespace libtorrent
 	}
 #endif // TORRENT_NO_DEPRECATE
 
-	void session_handle::add_extension(boost::function<boost::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> ext)
+	void session_handle::add_extension(std::function<boost::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> ext)
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		async_call(&session_impl::add_extension, ext);
@@ -1020,7 +1020,7 @@ namespace libtorrent
 		return m_impl->wait_for_alert(max_wait);
 	}
 
-	void session_handle::set_alert_notify(boost::function<void()> const& fun)
+	void session_handle::set_alert_notify(std::function<void()> const& fun)
 	{
 		m_impl->alerts().set_notify_function(fun);
 	}

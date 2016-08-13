@@ -774,7 +774,7 @@ namespace aux {
 	void session_impl::add_extension(ext_function_t ext)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		TORRENT_ASSERT_VAL(ext, ext);
+		TORRENT_ASSERT(ext);
 
 		add_ses_extension(boost::make_shared<session_plugin_wrapper>(
 			session_plugin_wrapper(ext)));
@@ -1536,7 +1536,7 @@ namespace aux {
 		// separate function. At least most of it
 		if (!m_settings.get_bool(settings_pack::force_proxy))
 		{
-			ret.sock = boost::make_shared<tcp::acceptor>(boost::ref(m_io_service));
+			ret.sock = boost::make_shared<tcp::acceptor>(std::ref(m_io_service));
 			ret.sock->open(bind_ep.protocol(), ec);
 			last_op = listen_failed_alert::open;
 			if (ec)
@@ -1719,7 +1719,7 @@ namespace aux {
 			}
 		} // force-proxy mode
 
-		ret.udp_sock = boost::make_shared<udp_socket>(boost::ref(m_io_service));
+		ret.udp_sock = boost::make_shared<udp_socket>(std::ref(m_io_service));
 #if TORRENT_HAS_BINDTODEVICE
 		if (!device.empty())
 		{
@@ -2015,7 +2015,7 @@ namespace aux {
 
 		if (m_socks_listen_socket) return;
 
-		m_socks_listen_socket = boost::make_shared<socket_type>(boost::ref(m_io_service));
+		m_socks_listen_socket = boost::make_shared<socket_type>(std::ref(m_io_service));
 		bool const ret = instantiate_connection(m_io_service, proxy()
 			, *m_socks_listen_socket, nullptr, nullptr, false, false);
 		TORRENT_ASSERT_VAL(ret, ret);
@@ -4457,7 +4457,7 @@ namespace aux {
 #endif
 
 	void session_impl::get_torrent_status(std::vector<torrent_status>* ret
-		, boost::function<bool(torrent_status const&)> const& pred
+		, std::function<bool(torrent_status const&)> const& pred
 		, std::uint32_t flags) const
 	{
 		for (torrent_map::const_iterator i
@@ -4783,7 +4783,7 @@ namespace aux {
 		if (string_begins_no_case("file://", params.url.c_str()) && !params.ti)
 		{
 			std::string const filename = resolve_file_url(params.url);
-			boost::shared_ptr<torrent_info> t = boost::make_shared<torrent_info>(filename, boost::ref(ec), 0);
+			boost::shared_ptr<torrent_info> t = boost::make_shared<torrent_info>(filename, std::ref(ec), 0);
 			if (ec) return std::make_pair(ptr_t(), false);
 			params.url.clear();
 			params.ti = t;
@@ -4879,7 +4879,7 @@ namespace aux {
 
 		int queue_pos = ++m_max_queue_pos;
 
-		torrent_ptr = boost::make_shared<torrent>(boost::ref(*this)
+		torrent_ptr = boost::make_shared<torrent>(std::ref(*this)
 			, 16 * 1024, queue_pos, m_paused
 			, boost::cref(params), boost::cref(params.info_hash));
 
@@ -5555,10 +5555,10 @@ namespace aux {
 		m_dht_storage = m_dht_storage_constructor(m_dht_settings);
 		m_dht = boost::make_shared<dht::dht_tracker>(
 			static_cast<dht_observer*>(this)
-			, boost::ref(m_io_service)
+			, std::ref(m_io_service)
 			, std::bind(&session_impl::send_udp_packet, this, false, _1, _2, _3, _4)
 			, boost::cref(m_dht_settings)
-			, boost::ref(m_stats_counters)
+			, std::ref(m_stats_counters)
 			, *m_dht_storage
 			, startup_state);
 
@@ -5575,7 +5575,7 @@ namespace aux {
 		}
 		m_dht_nodes.clear();
 
-		m_dht->start(startup_state, std::bind(&on_bootstrap, boost::ref(m_alerts)));
+		m_dht->start(startup_state, std::bind(&on_bootstrap, std::ref(m_alerts)));
 	}
 
 	void session_impl::stop_dht()
@@ -5739,7 +5739,7 @@ namespace aux {
 		}
 
 		void put_mutable_callback(dht::item& i
-			, boost::function<void(entry&, std::array<char, 64>&
+			, std::function<void(entry&, std::array<char, 64>&
 				, std::uint64_t&, std::string const&)> cb)
 		{
 			entry value = i.value();
@@ -5770,37 +5770,37 @@ namespace aux {
 	void session_impl::dht_put_immutable_item(entry const& data, sha1_hash target)
 	{
 		if (!m_dht) return;
-		m_dht->put_item(data, std::bind(&on_dht_put_immutable_item, boost::ref(m_alerts)
+		m_dht->put_item(data, std::bind(&on_dht_put_immutable_item, std::ref(m_alerts)
 			, target, _1));
 	}
 
 	void session_impl::dht_put_mutable_item(std::array<char, 32> key
-		, boost::function<void(entry&, std::array<char,64>&
+		, std::function<void(entry&, std::array<char,64>&
 		, std::uint64_t&, std::string const&)> cb
 		, std::string salt)
 	{
 		if (!m_dht) return;
 		m_dht->put_item(dht::public_key(key.data())
-			, std::bind(&on_dht_put_mutable_item, boost::ref(m_alerts), _1, _2)
+			, std::bind(&on_dht_put_mutable_item, std::ref(m_alerts), _1, _2)
 			, std::bind(&put_mutable_callback, _1, cb), salt);
 	}
 
 	void session_impl::dht_get_peers(sha1_hash const& info_hash)
 	{
 		if (!m_dht) return;
-		m_dht->get_peers(info_hash, std::bind(&on_dht_get_peers, boost::ref(m_alerts), info_hash, _1));
+		m_dht->get_peers(info_hash, std::bind(&on_dht_get_peers, std::ref(m_alerts), info_hash, _1));
 	}
 
 	void session_impl::dht_announce(sha1_hash const& info_hash, int port, int flags)
 	{
 		if (!m_dht) return;
-		m_dht->announce(info_hash, port, flags, std::bind(&on_dht_get_peers, boost::ref(m_alerts), info_hash, _1));
+		m_dht->announce(info_hash, port, flags, std::bind(&on_dht_get_peers, std::ref(m_alerts), info_hash, _1));
 	}
 
 	void session_impl::dht_direct_request(udp::endpoint ep, entry& e, void* userdata)
 	{
 		if (!m_dht) return;
-		m_dht->direct_request(ep, e, std::bind(&on_direct_response, boost::ref(m_alerts), userdata, _1));
+		m_dht->direct_request(ep, e, std::bind(&on_direct_response, std::ref(m_alerts), userdata, _1));
 	}
 
 #endif
@@ -6422,7 +6422,7 @@ namespace aux {
 
 		if (m_lsd) return;
 
-		m_lsd = boost::make_shared<lsd>(boost::ref(m_io_service)
+		m_lsd = boost::make_shared<lsd>(std::ref(m_io_service)
 			, std::bind(&session_impl::on_lsd_peer, this, _1, _2)
 #ifndef TORRENT_DISABLE_LOGGING
 			, std::bind(&session_impl::on_lsd_log, this, _1)
@@ -6450,7 +6450,7 @@ namespace aux {
 
 		// the natpmp constructor may fail and call the callbacks
 		// into the session_impl.
-		m_natpmp = boost::make_shared<natpmp>(boost::ref(m_io_service)
+		m_natpmp = boost::make_shared<natpmp>(std::ref(m_io_service)
 			, std::bind(&session_impl::on_port_mapping
 				, this, _1, _2, _3, _4, _5, 0)
 			, std::bind(&session_impl::on_port_map_log
@@ -6472,7 +6472,7 @@ namespace aux {
 		if (m_upnp) return m_upnp.get();
 
 		// the upnp constructor may fail and call the callbacks
-		m_upnp = boost::make_shared<upnp>(boost::ref(m_io_service)
+		m_upnp = boost::make_shared<upnp>(std::ref(m_io_service)
 			, m_settings.get_str(settings_pack::user_agent)
 			, std::bind(&session_impl::on_port_mapping
 				, this, _1, _2, _3, _4, _5, 1)

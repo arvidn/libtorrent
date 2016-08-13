@@ -47,7 +47,7 @@ using namespace libtorrent;
 using namespace std::placeholders;
 
 peer_conn::peer_conn(io_service& ios
-	, boost::function<void(int, char const*, int)> on_msg
+	, std::function<void(int, char const*, int)> on_msg
 	, torrent_info const& ti
 	, tcp::endpoint const& ep
 	, peer_mode_t mode)

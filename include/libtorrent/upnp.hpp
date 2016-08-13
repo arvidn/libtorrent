@@ -42,11 +42,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/resolver.hpp"
 #include "libtorrent/debug.hpp"
 
-#include <boost/function/function1.hpp>
-#include <boost/function/function5.hpp>
-#include <boost/noncopyable.hpp>
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
+#include <functional>
 #include <set>
 
 namespace libtorrent
@@ -101,8 +102,8 @@ namespace libtorrent
 // int: protocol (UDP, TCP)
 // std::string: error message
 // an empty string as error means success
-typedef boost::function<void(int, address, int, int, error_code const&)> portmap_callback_t;
-typedef boost::function<void(char const*)> log_callback_t;
+typedef std::function<void(int, address, int, int, error_code const&)> portmap_callback_t;
+typedef std::function<void(char const*)> log_callback_t;
 
 struct parse_state
 {

@@ -338,7 +338,7 @@ namespace libtorrent
 	struct TORRENT_EXTRA_EXPORT block_cache : disk_buffer_pool
 	{
 		block_cache(int block_size, io_service& ios
-			, boost::function<void()> const& trigger_trim);
+			, std::function<void()> const& trigger_trim);
 
 	private:
 

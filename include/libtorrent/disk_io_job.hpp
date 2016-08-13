@@ -164,7 +164,7 @@ namespace libtorrent
 		boost::shared_ptr<piece_manager> storage;
 
 		// this is called when operation completes
-		boost::function<void(disk_io_job const*)> callback;
+		std::function<void(disk_io_job const*)> callback;
 
 		// the error code from the file operation
 		// on error, this also contains the path of the

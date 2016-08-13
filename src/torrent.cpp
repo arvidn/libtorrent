@@ -466,7 +466,7 @@ namespace libtorrent
 		}
 
 		error_code e;
-		boost::shared_ptr<torrent_info> tf(boost::make_shared<torrent_info>(data, size, boost::ref(e), 0));
+		boost::shared_ptr<torrent_info> tf(boost::make_shared<torrent_info>(data, size, std::ref(e), 0));
 		if (e)
 		{
 			set_error(e, torrent_status::error_file_url);
@@ -1461,7 +1461,7 @@ namespace libtorrent
 		m_extensions.erase(i);
 	}
 
-	void torrent::add_extension_fun(boost::function<boost::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> const& ext
+	void torrent::add_extension_fun(std::function<boost::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> const& ext
 		, void* userdata)
 	{
 		boost::shared_ptr<torrent_plugin> tp(ext(get_handle(), userdata));
@@ -1598,7 +1598,7 @@ namespace libtorrent
 		// create the SSL context for this torrent. We need to
 		// inject the root certificate, and no other, to
 		// verify other peers against
-		boost::shared_ptr<context> ctx = boost::make_shared<context>(boost::ref(m_ses.get_io_service()), context::sslv23);
+		boost::shared_ptr<context> ctx = boost::make_shared<context>(std::ref(m_ses.get_io_service()), context::sslv23);
 
 		if (!ctx)
 		{
@@ -2417,7 +2417,7 @@ namespace libtorrent
 		leave_seed_mode(true);
 
 		m_ses.disk_thread().async_release_files(m_storage.get()
-			, boost::function<void(disk_io_job const*)>());
+			, std::function<void(disk_io_job const*)>());
 
 		// forget that we have any pieces
 		m_have_all = false;
@@ -6167,7 +6167,7 @@ namespace libtorrent
 		if (m_ses.is_aborted()) return;
 
 		boost::shared_ptr<socket_type> s
-			= boost::make_shared<socket_type>(boost::ref(m_ses.get_io_service()));
+			= boost::make_shared<socket_type>(std::ref(m_ses.get_io_service()));
 		if (!s) return;
 
 		void* userdata = nullptr;
@@ -6250,12 +6250,12 @@ namespace libtorrent
 		if (web->type == web_seed_entry::url_seed)
 		{
 			c = boost::make_shared<web_peer_connection>(
-				boost::cref(pack), boost::ref(*web));
+				boost::cref(pack), std::ref(*web));
 		}
 		else if (web->type == web_seed_entry::http_seed)
 		{
 			c = boost::make_shared<http_seed_connection>(
-				boost::cref(pack), boost::ref(*web));
+				boost::cref(pack), std::ref(*web));
 		}
 		if (!c) return;
 

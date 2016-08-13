@@ -491,7 +491,7 @@ TORRENT_TEST(reject_fast)
 	allowed_fast.push_back(3);
 
 	std::for_each(allowed_fast.begin(), allowed_fast.end()
-		, std::bind(&send_allow_fast, boost::ref(s), _1));
+		, std::bind(&send_allow_fast, std::ref(s), _1));
 	print_session_log(*ses);
 
 	while (!allowed_fast.empty())
@@ -600,7 +600,7 @@ TORRENT_TEST(reject_suggest)
 	suggested.push_back(3);
 
 	std::for_each(suggested.begin(), suggested.end()
-		, std::bind(&send_suggest_piece, boost::ref(s), _1));
+		, std::bind(&send_suggest_piece, std::ref(s), _1));
 	print_session_log(*ses);
 
 	send_unchoke(s);
@@ -679,7 +679,7 @@ TORRENT_TEST(suggest_order)
 	suggested.push_back(3);
 
 	std::for_each(suggested.begin(), suggested.end()
-		, std::bind(&send_suggest_piece, boost::ref(s), _1));
+		, std::bind(&send_suggest_piece, std::ref(s), _1));
 	print_session_log(*ses);
 
 	send_unchoke(s);

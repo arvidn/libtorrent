@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/function.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/noncopyable.hpp>
 
@@ -45,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
+#include <functional>
 #include <vector>
 #include <string>
 
@@ -65,12 +65,12 @@ struct resolver_interface;
 
 const int default_max_bottled_buffer_size = 2 * 1024 * 1024;
 
-typedef boost::function<void(error_code const&
+typedef std::function<void(error_code const&
 	, http_parser const&, char const* data, int size, http_connection&)> http_handler;
 
-typedef boost::function<void(http_connection&)> http_connect_handler;
+typedef std::function<void(http_connection&)> http_connect_handler;
 
-typedef boost::function<void(http_connection&, std::vector<tcp::endpoint>&)> http_filter_handler;
+typedef std::function<void(http_connection&, std::vector<tcp::endpoint>&)> http_filter_handler;
 
 // when bottled, the last two arguments to the handler
 // will always be 0

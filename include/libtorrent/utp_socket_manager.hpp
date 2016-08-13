@@ -34,18 +34,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_UTP_SOCKET_MANAGER_HPP_INCLUDED
 
 #include <map>
+#include <functional>
 
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/span.hpp"
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/function.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {
@@ -55,11 +50,11 @@ namespace libtorrent
 
 	struct utp_socket_manager final
 	{
-		typedef boost::function<void(udp::endpoint const&
+		typedef std::function<void(udp::endpoint const&
 			, span<char const>
 			, error_code&, int)> send_fun_t;
 
-		typedef boost::function<void(boost::shared_ptr<socket_type> const&)>
+		typedef std::function<void(boost::shared_ptr<socket_type> const&)>
 			incoming_utp_callback_t;
 
 		utp_socket_manager(send_fun_t const& send_fun

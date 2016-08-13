@@ -349,7 +349,7 @@ cached_piece_entry::~cached_piece_entry()
 }
 
 block_cache::block_cache(int block_size, io_service& ios
-	, boost::function<void()> const& trigger_trim)
+	, std::function<void()> const& trigger_trim)
 	: disk_buffer_pool(block_size, ios, trigger_trim)
 	, m_last_cache_op(cache_miss)
 	, m_ghost_size(8)

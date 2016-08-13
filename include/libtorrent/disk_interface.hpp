@@ -53,50 +53,50 @@ namespace libtorrent
 	struct TORRENT_EXTRA_EXPORT disk_interface
 	{
 		virtual void async_read(piece_manager* storage, peer_request const& r
-			, boost::function<void(disk_io_job const*)> handler, void* requester
+			, std::function<void(disk_io_job const*)> handler, void* requester
 			, int flags = 0) = 0;
 		virtual void async_write(piece_manager* storage, peer_request const& r
 			, disk_buffer_holder buffer
-			, boost::function<void(disk_io_job const*)> handler
+			, std::function<void(disk_io_job const*)> handler
 			, int flags = 0) = 0;
 		virtual void async_hash(piece_manager* storage, int piece, int flags
-			, boost::function<void(disk_io_job const*)> handler, void* requester) = 0;
+			, std::function<void(disk_io_job const*)> handler, void* requester) = 0;
 		virtual void async_move_storage(piece_manager* storage, std::string const& p, int flags
-			, boost::function<void(disk_io_job const*)> handler) = 0;
+			, std::function<void(disk_io_job const*)> handler) = 0;
 		virtual void async_release_files(piece_manager* storage
-			, boost::function<void(disk_io_job const*)> handler
-			= boost::function<void(disk_io_job const*)>()) = 0;
+			, std::function<void(disk_io_job const*)> handler
+			= std::function<void(disk_io_job const*)>()) = 0;
 		virtual void async_check_files(piece_manager* storage
 			, add_torrent_params const* resume_data
 			, std::vector<std::string>& links
-			, boost::function<void(disk_io_job const*)> handler) = 0;
+			, std::function<void(disk_io_job const*)> handler) = 0;
 #ifndef TORRENT_NO_DEPRECATE
 		virtual void async_cache_piece(piece_manager* storage, int piece
-			, boost::function<void(disk_io_job const*)> handler) = 0;
+			, std::function<void(disk_io_job const*)> handler) = 0;
 		virtual void async_finalize_file(piece_manager*, int file
-			, boost::function<void(disk_io_job const*)> handler
-			= boost::function<void(disk_io_job const*)>()) = 0;
+			, std::function<void(disk_io_job const*)> handler
+			= std::function<void(disk_io_job const*)>()) = 0;
 #endif
 		virtual void async_flush_piece(piece_manager* storage, int piece
-			, boost::function<void(disk_io_job const*)> handler
-			= boost::function<void(disk_io_job const*)>()) = 0;
+			, std::function<void(disk_io_job const*)> handler
+			= std::function<void(disk_io_job const*)>()) = 0;
 		virtual void async_stop_torrent(piece_manager* storage
-			, boost::function<void(disk_io_job const*)> handler)= 0;
+			, std::function<void(disk_io_job const*)> handler)= 0;
 		virtual void async_rename_file(piece_manager* storage, int index, std::string const& name
-			, boost::function<void(disk_io_job const*)> handler) = 0;
+			, std::function<void(disk_io_job const*)> handler) = 0;
 		virtual void async_delete_files(piece_manager* storage, int options
-			, boost::function<void(disk_io_job const*)> handler) = 0;
+			, std::function<void(disk_io_job const*)> handler) = 0;
 		virtual void async_set_file_priority(piece_manager* storage
 			, std::vector<std::uint8_t> const& prio
-			, boost::function<void(disk_io_job const*)> handler) = 0;
+			, std::function<void(disk_io_job const*)> handler) = 0;
 		virtual void async_load_torrent(add_torrent_params* params
-			, boost::function<void(disk_io_job const*)> handler) = 0;
+			, std::function<void(disk_io_job const*)> handler) = 0;
 		virtual void async_tick_torrent(piece_manager* storage
-			, boost::function<void(disk_io_job const*)> handler) = 0;
+			, std::function<void(disk_io_job const*)> handler) = 0;
 
 		virtual void clear_read_cache(piece_manager* storage) = 0;
 		virtual void async_clear_piece(piece_manager* storage, int index
-			, boost::function<void(disk_io_job const*)> handler) = 0;
+			, std::function<void(disk_io_job const*)> handler) = 0;
 		virtual void clear_piece(piece_manager* storage, int index) = 0;
 
 		virtual void update_stats_counters(counters& c) const = 0;
