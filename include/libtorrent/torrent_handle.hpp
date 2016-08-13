@@ -404,7 +404,7 @@ namespace libtorrent
 		// every interested peer on a high priority torrent will be unchoked
 		// before any other, lower priority, torrents have any peers unchoked.
 		void set_priority(int prio) const;
-		
+
 #ifndef TORRENT_NO_DEPRECATE
 #if !TORRENT_NO_FPU
 		// fills the specified vector with the download progress [0, 1]
@@ -413,6 +413,9 @@ namespace libtorrent
 		TORRENT_DEPRECATED
 		void file_progress(std::vector<float>& progress) const;
 #endif
+
+		TORRENT_DEPRECATED
+		void file_status(std::vector<pool_file_status>& status) const;
 #endif
 
 		// flags to be passed in file_progress().
@@ -442,14 +445,14 @@ namespace libtorrent
 		// already keeps track of this internally and no calculation is required.
 		void file_progress(std::vector<std::int64_t>& progress, int flags = 0) const;
 
-		// This function fills in the passed in vector with status about files
-		// that are open for this torrent. Any file that is not open in this
-		// torrent, will not be reported in the vector, i.e. it's possible that
+		// This function returns a vector with status about files
+		// that are open for this torrent. Any file that is not open
+		// will not be reported in the vector, i.e. it's possible that
 		// the vector is empty when returning, if none of the files in the
 		// torrent are currently open.
 		//
 		// see pool_file_status.
-		void file_status(std::vector<pool_file_status>& status) const;
+		std::vector<pool_file_status> file_status() const;
 
 		// If the torrent is in an error state (i.e. ``torrent_status::error`` is
 		// non-empty), this will clear the error and start the torrent again.

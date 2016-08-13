@@ -48,9 +48,6 @@ namespace libtorrent
 		// file list of this torrent. This starts indexing at 0.
 		int file_index;
 
-		// a (high precision) timestamp of when the file was last used.
-		time_point last_use;
-
 		// ``open_mode`` is a bitmask of the file flags this file is currently opened with. These
 		// are the flags used in the ``file::open()`` function. This enum is defined as a member
 		// of the ``file`` class.
@@ -73,6 +70,9 @@ namespace libtorrent
 		// Note that the read/write mode is not a bitmask. The two least significant bits are used
 		// to represent the read/write mode. Those bits can be masked out using the ``rw_mask`` constant.
 		int open_mode;
+
+		// a (high precision) timestamp of when the file was last used.
+		time_point last_use;
 	};
 
 	// this is an internal cache of open file handles. It's primarily used by
@@ -107,7 +107,7 @@ namespace libtorrent
 
 		// internal
 		void set_low_prio_io(bool b) { m_low_prio_io = b; }
-		void get_status(std::vector<pool_file_status>* files, void* st) const;
+		std::vector<pool_file_status> get_status(void* st) const;
 
 #if TORRENT_USE_ASSERTS
 		bool assert_idle_files(void* st) const;
@@ -136,7 +136,7 @@ namespace libtorrent
 
 		// maps storage pointer, file index pairs to the
 		// lru entry for the file
-		typedef std::map<std::pair<void*, int>, lru_file_entry> file_set;
+		using file_set = std::map<std::pair<void*, int>, lru_file_entry>;
 
 		file_set m_files;
 #if TORRENT_USE_ASSERTS

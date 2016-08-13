@@ -221,22 +221,22 @@ namespace libtorrent
 		return file_ptr;
 	}
 
-	void file_pool::get_status(std::vector<pool_file_status>* files, void* st) const
+	std::vector<pool_file_status> file_pool::get_status(void* st) const
 	{
-		std::unique_lock<std::mutex> l(m_mutex);
-
-		file_set::const_iterator start = m_files.lower_bound(std::make_pair(st, 0));
-		file_set::const_iterator end = m_files.upper_bound(std::make_pair(st
-			, std::numeric_limits<int>::max()));
-
-		for (file_set::const_iterator i = start; i != end; ++i)
+		std::vector<pool_file_status> ret;
 		{
-			pool_file_status s;
-			s.file_index = i->first.second;
-			s.open_mode = i->second.mode;
-			s.last_use = i->second.last_use;
-			files->push_back(s);
+			std::unique_lock<std::mutex> l(m_mutex);
+
+			auto start = m_files.lower_bound(std::make_pair(st, 0));
+			auto end = m_files.upper_bound(std::make_pair(st
+					, std::numeric_limits<int>::max()));
+
+			for (file_set::const_iterator i = start; i != end; ++i)
+			{
+				ret.push_back({i->first.second, i->second.mode, i->second.last_use});
+			}
 		}
+		return ret;
 	}
 
 	void file_pool::remove_oldest(std::unique_lock<std::mutex>& l)
