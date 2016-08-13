@@ -914,9 +914,9 @@ namespace libtorrent
 		return file_path(index, save_path);
 	}
 
-	string_view file_storage::file_name(internal_file_entry const& fe) const
+	std::string file_storage::file_name(internal_file_entry const& fe) const
 	{
-		return fe.filename();
+		return fe.filename().to_string();
 	}
 
 	std::int64_t file_storage::file_size(internal_file_entry const& fe) const

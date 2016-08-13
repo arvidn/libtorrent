@@ -54,10 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/session_settings.hpp>
 #include <libtorrent/assert.hpp>
 #include <libtorrent/bloom_filter.hpp>
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <libtorrent/string_view.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/socket.hpp"
 

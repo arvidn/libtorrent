@@ -39,11 +39,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/system/error_code.hpp>
-#include <libtorrent/string_view.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/span.hpp"
+#include "libtorrent/string_view.hpp"
 
 /*
 

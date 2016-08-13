@@ -43,10 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/peer_id.hpp"
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <libtorrent/string_view.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include "libtorrent/string_view.hpp"
 
 namespace libtorrent
 {
@@ -553,7 +550,7 @@ namespace libtorrent
 		TORRENT_DEPRECATED
 		std::string file_path(internal_file_entry const& fe, std::string const& save_path = "") const;
 		TORRENT_DEPRECATED
-		string_view file_name(internal_file_entry const& fe) const;
+		std::string file_name(internal_file_entry const& fe) const;
 		TORRENT_DEPRECATED
 		std::int64_t file_size(internal_file_entry const& fe) const;
 		TORRENT_DEPRECATED

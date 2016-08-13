@@ -384,7 +384,7 @@ namespace libtorrent
 				for (int i = 0; i < e.dict_size(); ++i)
 				{
 					std::pair<string_view, bdecode_node> elem = e.dict_at(i);
-					d[std::string(elem.first)] = elem.second;
+					d[elem.first.to_string()] = elem.second;
 				}
 				break;
 			}

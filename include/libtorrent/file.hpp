@@ -37,13 +37,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/string_view.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/noncopyable.hpp>
 #include <boost/smart_ptr.hpp>
 #include <boost/function.hpp>
-#include <libtorrent/string_view.hpp>
 
 #ifdef TORRENT_WINDOWS
 // windows part

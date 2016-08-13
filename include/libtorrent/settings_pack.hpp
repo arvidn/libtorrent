@@ -34,13 +34,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_SETTINGS_PACK_HPP_INCLUDED
 
 #include "libtorrent/entry.hpp"
+#include "libtorrent/string_view.hpp"
+
 #include <vector>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <boost/smart_ptr.hpp>
-#include <libtorrent/string_view.hpp>
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 // OVERVIEW

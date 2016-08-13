@@ -35,6 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/version.hpp>
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #if BOOST_VERSION < 106100
 #include <boost/utility/string_ref.hpp>
 namespace libtorrent {
@@ -46,6 +48,8 @@ namespace libtorrent {
 using string_view = boost::string_view;
 }
 #endif
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #endif
 
