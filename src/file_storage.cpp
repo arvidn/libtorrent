@@ -287,7 +287,7 @@ namespace libtorrent
 		return *this;
 	}
 
-	file_storage::file_storage(file_storage&& f) = default;
+	file_storage::file_storage(file_storage&&) = default;
 	file_storage& file_storage::operator=(file_storage&&) = default;
 
 	// if borrow_chars >= 0, don't take ownership over n, just
@@ -323,7 +323,7 @@ namespace libtorrent
 
 	string_view internal_file_entry::filename() const
 	{
-		if (name_len != name_is_owned) return { name, name_len };
+		if (name_len != name_is_owned) return { name, size_t(name_len) };
 		return name ? string_view(name) : string_view();
 	}
 

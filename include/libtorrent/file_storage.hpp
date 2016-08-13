@@ -212,9 +212,9 @@ namespace libtorrent
 		file_storage();
 		// hidden
 		~file_storage();
-		file_storage(file_storage const& f);
+		file_storage(file_storage const&);
 		file_storage& operator=(file_storage const&);
-		file_storage(file_storage&& f);
+		file_storage(file_storage&&);
 		file_storage& operator=(file_storage&&);
 
 		// returns true if the piece length has been initialized
