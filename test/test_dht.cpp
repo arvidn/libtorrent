@@ -2623,7 +2623,7 @@ TORRENT_TEST(routing_table_extended)
 	std::vector<std::uint8_t> node_id_prefix;
 	node_id_prefix.reserve(256);
 	for (int i = 0; i < 256; ++i) node_id_prefix.push_back(i);
-	std::random_shuffle(node_id_prefix.begin(), node_id_prefix.end());
+	aux::random_shuffle(node_id_prefix.begin(), node_id_prefix.end());
 
 	routing_table tbl(id, udp::v4(), 8, sett, &observer);
 	for (int i = 0; i < 256; ++i)
@@ -2657,7 +2657,7 @@ TORRENT_TEST(routing_table_set_id)
 	std::vector<std::uint8_t> node_id_prefix;
 	node_id_prefix.reserve(256);
 	for (int i = 0; i < 256; ++i) node_id_prefix.push_back(i);
-	std::random_shuffle(node_id_prefix.begin(), node_id_prefix.end());
+	aux::random_shuffle(node_id_prefix.begin(), node_id_prefix.end());
 	routing_table tbl(id, udp::v4(), 8, sett, &observer);
 	for (int i = 0; i < 256; ++i)
 	{

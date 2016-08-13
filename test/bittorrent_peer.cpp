@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/io.hpp"
+#include "libtorrent/random.hpp"
 
 #include <cstdlib>
 #include <functional>
@@ -400,7 +401,7 @@ void peer_conn::on_message(error_code const& ec, size_t bytes_transferred)
 			pieces.resize(m_ti.num_pieces());
 			for (int i = 0; i < int(pieces.size()); ++i)
 				pieces[i] = i;
-			std::random_shuffle(pieces.begin(), pieces.end());
+			aux::random_shuffle(pieces.begin(), pieces.end());
 		}
 		else if (msg == 4) // have
 		{
@@ -424,7 +425,7 @@ void peer_conn::on_message(error_code const& ec, size_t bytes_transferred)
 				}
 				++ptr;
 			}
-			std::random_shuffle(pieces.begin(), pieces.end());
+			aux::random_shuffle(pieces.begin(), pieces.end());
 		}
 		else if (msg == 7) // piece
 		{

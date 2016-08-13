@@ -1402,12 +1402,12 @@ namespace libtorrent
 				{
 					if (stop->tier != current_tier)
 					{
-						std::random_shuffle(start, stop, randint);
+						aux::random_shuffle(start, stop);
 						start = stop;
 						current_tier = stop->tier;
 					}
 				}
-				std::random_shuffle(start, stop, randint);
+				aux::random_shuffle(start, stop);
 			}
 		}
 
