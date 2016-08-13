@@ -214,7 +214,7 @@ struct dht_node final : lt::dht::udp_socket_interface
 				, to_hex(dht::distance(id, n.first).to_string()).c_str()
 				, bucket);
 */
-			// there are no more slots in this bucket, just move ont
+			// there are no more slots in this bucket, just move on
 			if (nodes_per_bucket[bucket] == 0) continue;
 			--nodes_per_bucket[bucket];
 			bool const added = dht().m_table.node_seen(n.first, n.second, lt::random(300) + 10);
@@ -292,7 +292,7 @@ dht_network::dht_network(sim::simulation& sim, int num_nodes, std::uint32_t flag
 	for (auto& n : m_nodes)
 	{
 		n.bootstrap(all_nodes);
-		if (++cnt == 50)
+		if (++cnt == 25)
 		{
 			// every now and then, shuffle all_nodes to make the
 			// routing tables more randomly distributed
