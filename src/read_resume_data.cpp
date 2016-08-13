@@ -70,7 +70,8 @@ namespace libtorrent
 		if (bdecode_node alloc = rd.dict_find_string("allocation"))
 		{
 			ret.storage_mode = (alloc.string_value() == "allocate"
-				|| alloc.string_value() == "full") ? storage_mode_allocate : storage_mode_sparse;
+				|| alloc.string_value() == "full")
+				? storage_mode_allocate : storage_mode_sparse;
 		}
 
 		if (rd.dict_find_string_value("file-format")
@@ -80,16 +81,16 @@ namespace libtorrent
 			return ret;
 		}
 
-		std::string info_hash = rd.dict_find_string_value("info-hash");
+		auto info_hash = rd.dict_find_string_value("info-hash");
 		if (info_hash.size() != 20)
 		{
 			ec = error_code(errors::missing_info_hash, get_libtorrent_category());
 			return ret;
 		}
 
-		ret.name = rd.dict_find_string_value("name");
+		ret.name = rd.dict_find_string_value("name").to_string();
 
-		ret.info_hash.assign(info_hash);
+		ret.info_hash.assign(info_hash.data());
 
 		// TODO: 4 add unit test for this, and all other fields of the resume data
 		bdecode_node info = rd.dict_find_dict("info");
@@ -141,12 +142,12 @@ namespace libtorrent
 		apply_flag(ret.flags, rd, "sequential_download", add_torrent_params::flag_sequential_download);
 		apply_flag(ret.flags, rd, "paused", add_torrent_params::flag_paused);
 
-		ret.save_path = rd.dict_find_string_value("save_path");
+		ret.save_path = rd.dict_find_string_value("save_path").to_string();
 
-		ret.url = rd.dict_find_string_value("url");
+		ret.url = rd.dict_find_string_value("url").to_string();
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 1.2
-		ret.uuid = rd.dict_find_string_value("uuid");
+		ret.uuid = rd.dict_find_string_value("uuid").to_string();
 #endif
 
 		bdecode_node mapped_files = rd.dict_find_list("mapped_files");
@@ -154,9 +155,9 @@ namespace libtorrent
 		{
 			for (int i = 0; i < mapped_files.list_size(); ++i)
 			{
-				std::string new_filename = mapped_files.list_string_value_at(i);
+				auto new_filename = mapped_files.list_string_value_at(i);
 				if (new_filename.empty()) continue;
-				ret.renamed_files[i] = new_filename;
+				ret.renamed_files[i] = new_filename.to_string();
 			}
 		}
 
@@ -199,7 +200,7 @@ namespace libtorrent
 
 				for (int j = 0; j < tier_list.list_size(); ++j)
 				{
-					ret.trackers.push_back(tier_list.list_string_value_at(j));
+					ret.trackers.push_back(tier_list.list_string_value_at(j).to_string());
 					ret.tracker_tiers.push_back(tier);
 				}
 				++tier;
@@ -223,9 +224,9 @@ namespace libtorrent
 		{
 			for (int i = 0; i < url_list.list_size(); ++i)
 			{
-				std::string url = url_list.list_string_value_at(i);
+				auto url = url_list.list_string_value_at(i);
 				if (url.empty()) continue;
-				ret.url_seeds.push_back(url);
+				ret.url_seeds.push_back(url.to_string());
 			}
 		}
 
@@ -233,9 +234,9 @@ namespace libtorrent
 		{
 			for (int i = 0; i < httpseeds.list_size(); ++i)
 			{
-				std::string url = httpseeds.list_string_value_at(i);
+				auto url = httpseeds.list_string_value_at(i);
 				if (url.empty()) continue;
-				ret.http_seeds.push_back(url);
+				ret.http_seeds.push_back(url.to_string());
 			}
 		}
 

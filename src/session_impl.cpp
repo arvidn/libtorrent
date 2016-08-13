@@ -711,11 +711,11 @@ namespace aux {
 				val = settings.dict_find_int("proxy_peer_connections");
 				if (val) m_settings.set_bool(settings_pack::proxy_peer_connections, val.int_value() != 0);
 				val = settings.dict_find_string("hostname");
-				if (val) m_settings.set_str(settings_pack::proxy_hostname, val.string_value());
+				if (val) m_settings.set_str(settings_pack::proxy_hostname, val.string_value().to_string());
 				val = settings.dict_find_string("password");
-				if (val) m_settings.set_str(settings_pack::proxy_password, val.string_value());
+				if (val) m_settings.set_str(settings_pack::proxy_password, val.string_value().to_string());
 				val = settings.dict_find_string("username");
-				if (val) m_settings.set_str(settings_pack::proxy_username, val.string_value());
+				if (val) m_settings.set_str(settings_pack::proxy_username, val.string_value().to_string());
 				need_update_proxy = true;
 			}
 		}

@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/peer_id.hpp"
+#include "libtorrent/string_view.hpp"
 
 namespace libtorrent
 {
@@ -119,30 +120,15 @@ namespace libtorrent
 		friend class torrent_info;
 #endif
 
-		internal_file_entry()
-			: offset(0)
-			, symlink_index(not_a_symlink)
-			, no_root_dir(false)
-			, size(0)
-			, name_len(name_is_owned)
-			, pad_file(false)
-			, hidden_attribute(false)
-			, executable_attribute(false)
-			, symlink_attribute(false)
-			, name(nullptr)
-			, path_index(-1)
-		{}
-
+		internal_file_entry();
 		internal_file_entry(internal_file_entry const& fe);
 		internal_file_entry& operator=(internal_file_entry const& fe);
-
+		internal_file_entry(internal_file_entry&& fe);
+		internal_file_entry& operator=(internal_file_entry&& fe);
 		~internal_file_entry();
 
 		void set_name(char const* n, bool borrow_string = false, int string_len = 0);
-		std::string filename() const;
-		char const* filename_ptr() const { return name; }
-		int filename_len() const
-		{ return name_len == name_is_owned?int(strlen(name)):int(name_len); }
+		string_view filename() const;
 
 		enum {
 			name_is_owned = (1<<12)-1,
@@ -223,8 +209,10 @@ namespace libtorrent
 		file_storage();
 		// hidden
 		~file_storage();
-		file_storage(file_storage const& f);
+		file_storage(file_storage const&);
 		file_storage& operator=(file_storage const&);
+		file_storage(file_storage&&);
+		file_storage& operator=(file_storage&&);
 
 		// returns true if the piece length has been initialized
 		// on the file_storage. This is typically taken as a proxy
@@ -297,9 +285,9 @@ namespace libtorrent
 		void add_file_borrow(char const* filename, int filename_len
 			, std::string const& path, std::int64_t file_size
 			, std::uint32_t file_flags = 0, char const* filehash = 0
-			, std::int64_t mtime = 0, std::string const& symlink_path = "");
+			, std::int64_t mtime = 0, string_view symlink_path = string_view());
 		void add_file(std::string const& path, std::int64_t file_size, int file_flags = 0
-			, std::time_t mtime = 0, std::string const& symlink_path = "");
+			, std::time_t mtime = 0, string_view symlink_path = string_view());
 
 		// renames the file at ``index`` to ``new_filename``. Keep in mind
 		// that filenames are expected to be UTF-8 encoded.
@@ -315,7 +303,7 @@ namespace libtorrent
 		// and pass in utf8 strings
 		TORRENT_DEPRECATED
 		void add_file(std::wstring const& p, std::int64_t size, int flags = 0
-			, std::time_t mtime = 0, std::string const& s_p = "");
+			, std::time_t mtime = 0, string_view s_p = "");
 		TORRENT_DEPRECATED
 		void rename_file(int index, std::wstring const& new_filename);
 		TORRENT_DEPRECATED
@@ -478,7 +466,7 @@ namespace libtorrent
 		std::string const& symlink(int index) const;
 		time_t mtime(int index) const;
 		std::string file_path(int index, std::string const& save_path = "") const;
-		std::string file_name(int index) const;
+		string_view file_name(int index) const;
 		std::int64_t file_size(int index) const;
 		bool pad_file_at(int index) const;
 		std::int64_t file_offset(int index) const;

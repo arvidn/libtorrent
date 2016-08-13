@@ -48,13 +48,11 @@ namespace {
 	}
 
 	template <class T>
-	void insort_replace(std::vector<std::pair<std::uint16_t, T> >& c, std::pair<std::uint16_t, T> const& v)
+	void insort_replace(std::vector<std::pair<std::uint16_t, T>>& c, std::pair<std::uint16_t, T> v)
 	{
-		typedef std::vector<std::pair<std::uint16_t, T> > container_t;
-		typename container_t::iterator i = std::lower_bound(c.begin(), c.end(), v
-			, &compare_first<T>);
-		if (i != c.end() && i->first == v.first) i->second = v.second;
-		else c.insert(i, v);
+		auto i = std::lower_bound(c.begin(), c.end(), v, &compare_first<T>);
+		if (i != c.end() && i->first == v.first) i->second = std::move(v.second);
+		else c.emplace(i, std::move(v));
 	}
 }
 
@@ -395,7 +393,7 @@ namespace libtorrent
 
 		for (int i = 0; i < settings.dict_size(); ++i)
 		{
-			std::string key;
+			string_view key;
 			bdecode_node val;
 			std::tie(key, val) = settings.dict_at(i);
 			switch (val.type())
@@ -426,7 +424,7 @@ namespace libtorrent
 				for (int k = 0; k < sizeof(str_settings)/sizeof(str_settings[0]); ++k)
 				{
 					if (key != str_settings[k].name) continue;
-					pack->set_str(settings_pack::string_type_base + k, val.string_value());
+					pack->set_str(settings_pack::string_type_base + k, val.string_value().to_string());
 					break;
 				}
 				break;
@@ -473,7 +471,7 @@ namespace libtorrent
 		{
 			if (str_settings[i].offset == 0) continue;
 			std::string& val = *(std::string*)(((char*)&s) + str_settings[i].offset);
-			int setting_name = settings_pack::string_type_base + i;
+			int const setting_name = settings_pack::string_type_base + i;
 			if (val == current.get_str(setting_name)) continue;
 			p->set_str(setting_name, val);
 		}
@@ -482,7 +480,7 @@ namespace libtorrent
 		{
 			if (int_settings[i].offset == 0) continue;
 			int& val = *(int*)(((char*)&s) + int_settings[i].offset);
-			int setting_name = settings_pack::int_type_base + i;
+			int const setting_name = settings_pack::int_type_base + i;
 			if (val == current.get_int(setting_name)) continue;
 			p->set_int(setting_name, val);
 		}
@@ -491,7 +489,7 @@ namespace libtorrent
 		{
 			if (bool_settings[i].offset == 0) continue;
 			bool& val = *(bool*)(((char*)&s) + bool_settings[i].offset);
-			int setting_name = settings_pack::bool_type_base + i;
+			int const setting_name = settings_pack::bool_type_base + i;
 			if (val == current.get_bool(setting_name)) continue;
 			p->set_bool(setting_name, val);
 		}
@@ -648,15 +646,15 @@ namespace libtorrent
 		}
 	}
 
-	void settings_pack::set_str(int name, std::string val)
+	void settings_pack::set_str(int const name, std::string val)
 	{
 		TORRENT_ASSERT((name & type_mask) == string_type_base);
 		if ((name & type_mask) != string_type_base) return;
-		std::pair<std::uint16_t, std::string> v(name, val);
-		insort_replace(m_strings, v);
+		std::pair<std::uint16_t, std::string> v(name, std::move(val));
+		insort_replace(m_strings, std::move(v));
 	}
 
-	void settings_pack::set_int(int name, int val)
+	void settings_pack::set_int(int const name, int const val)
 	{
 		TORRENT_ASSERT((name & type_mask) == int_type_base);
 		if ((name & type_mask) != int_type_base) return;
@@ -664,7 +662,7 @@ namespace libtorrent
 		insort_replace(m_ints, v);
 	}
 
-	void settings_pack::set_bool(int name, bool val)
+	void settings_pack::set_bool(int const name, bool const val)
 	{
 		TORRENT_ASSERT((name & type_mask) == bool_type_base);
 		if ((name & type_mask) != bool_type_base) return;
@@ -672,7 +670,7 @@ namespace libtorrent
 		insort_replace(m_bools, v);
 	}
 
-	bool settings_pack::has_val(int name) const
+	bool settings_pack::has_val(int const name) const
 	{
 		switch (name & type_mask)
 		{
@@ -683,8 +681,7 @@ namespace libtorrent
 				if (m_strings.size() == settings_pack::num_string_settings)
 					return true;
 				std::pair<std::uint16_t, std::string> v(name, std::string());
-				std::vector<std::pair<std::uint16_t, std::string> >::const_iterator i =
-					std::lower_bound(m_strings.begin(), m_strings.end(), v
+				auto i = std::lower_bound(m_strings.begin(), m_strings.end(), v
 						, &compare_first<std::string>);
 				return i != m_strings.end() && i->first == name;
 			}
@@ -695,8 +692,7 @@ namespace libtorrent
 				if (m_ints.size() == settings_pack::num_int_settings)
 					return true;
 				std::pair<std::uint16_t, int> v(name, 0);
-				std::vector<std::pair<std::uint16_t, int> >::const_iterator i =
-					std::lower_bound(m_ints.begin(), m_ints.end(), v
+				auto i = std::lower_bound(m_ints.begin(), m_ints.end(), v
 						, &compare_first<int>);
 				return i != m_ints.end() && i->first == name;
 			}
@@ -707,8 +703,7 @@ namespace libtorrent
 				if (m_bools.size() == settings_pack::num_bool_settings)
 					return true;
 				std::pair<std::uint16_t, bool> v(name, false);
-				std::vector<std::pair<std::uint16_t, bool> >::const_iterator i =
-					std::lower_bound(m_bools.begin(), m_bools.end(), v
+				auto i = std::lower_bound(m_bools.begin(), m_bools.end(), v
 						, &compare_first<bool>);
 				return i != m_bools.end() && i->first == name;
 			}
@@ -717,10 +712,11 @@ namespace libtorrent
 		return false;
 	}
 
-	std::string settings_pack::get_str(int name) const
+	std::string const& settings_pack::get_str(int name) const
 	{
+		static std::string const empty;
 		TORRENT_ASSERT((name & type_mask) == string_type_base);
-		if ((name & type_mask) != string_type_base) return std::string();
+		if ((name & type_mask) != string_type_base) return empty;
 
 		// this is an optimization. If the settings pack is complete,
 		// i.e. has every key, we don't need to search, it's just a lookup
@@ -730,11 +726,10 @@ namespace libtorrent
 			return m_strings[name & index_mask].second;
 		}
 		std::pair<std::uint16_t, std::string> v(name, std::string());
-		std::vector<std::pair<std::uint16_t, std::string> >::const_iterator i
-			= std::lower_bound(m_strings.begin(), m_strings.end(), v
+		auto i = std::lower_bound(m_strings.begin(), m_strings.end(), v
 				, &compare_first<std::string>);
 		if (i != m_strings.end() && i->first == name) return i->second;
-		return std::string();
+		return empty;
 	}
 
 	int settings_pack::get_int(int name) const
@@ -750,8 +745,7 @@ namespace libtorrent
 			return m_ints[name & index_mask].second;
 		}
 		std::pair<std::uint16_t, int> v(name, 0);
-		std::vector<std::pair<std::uint16_t, int> >::const_iterator i
-			= std::lower_bound(m_ints.begin(), m_ints.end(), v
+		auto i = std::lower_bound(m_ints.begin(), m_ints.end(), v
 				, &compare_first<int>);
 		if (i != m_ints.end() && i->first == name) return i->second;
 		return 0;
@@ -770,8 +764,7 @@ namespace libtorrent
 			return m_bools[name & index_mask].second;
 		}
 		std::pair<std::uint16_t, bool> v(name, false);
-		std::vector<std::pair<std::uint16_t, bool> >::const_iterator i
-			= std::lower_bound(m_bools.begin(), m_bools.end(), v
+		auto i = std::lower_bound(m_bools.begin(), m_bools.end(), v
 					, &compare_first<bool>);
 		if (i != m_bools.end() && i->first == name) return i->second;
 		return false;

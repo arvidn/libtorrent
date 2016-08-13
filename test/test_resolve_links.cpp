@@ -120,7 +120,9 @@ TORRENT_TEST(resolve_links)
 			for (int i = 0; i < int(links.size()); ++i)
 			{
 				TORRENT_ASSERT(i < fs.num_files());
-				std::fprintf(stderr, "%s --> %s : %d\n", fs.file_name(i).c_str()
+				std::fprintf(stderr, "%*s --> %s : %d\n"
+					, int(fs.file_name(i).size())
+					, fs.file_name(i).data()
 					, links[i].ti ? aux::to_hex(links[i].ti->info_hash()).c_str()
 					: "", links[i].file_idx);
 			}

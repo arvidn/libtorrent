@@ -52,6 +52,8 @@ namespace libtorrent
 		};
 
 	}
+
+	// TODO: 3 this should probably take a string_ref
 	TORRENT_EXTRA_EXPORT std::string unescape_string(std::string const& s, error_code& ec);
 	// replaces all disallowed URL characters by their %-encoding
 	TORRENT_EXTRA_EXPORT std::string escape_string(const char* str, int len);

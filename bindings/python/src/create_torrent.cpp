@@ -121,11 +121,11 @@ namespace
 void bind_create_torrent()
 {
     void (file_storage::*add_file0)(std::string const&, std::int64_t
-       , int, std::time_t, std::string const&) = &file_storage::add_file;
+       , int, std::time_t, string_view) = &file_storage::add_file;
 #if !defined TORRENT_NO_DEPRECATE
 #if TORRENT_USE_WSTRING
     void (file_storage::*add_file1)(std::wstring const&, std::int64_t
-       , int, std::time_t, std::string const&) = &file_storage::add_file;
+       , int, std::time_t, string_view) = &file_storage::add_file;
 #endif // TORRENT_USE_WSTRING
 #endif // TORRENT_NO_DEPRECATE
 

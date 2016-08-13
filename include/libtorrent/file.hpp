@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/string_view.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -160,18 +161,17 @@ namespace libtorrent
 
 	// internal used by create_torrent.hpp
 	TORRENT_EXTRA_EXPORT std::string filename(std::string const& f);
-	TORRENT_EXTRA_EXPORT std::string combine_path(std::string const& lhs
-		, std::string const& rhs);
+	TORRENT_EXTRA_EXPORT std::string combine_path(string_view lhs
+		, string_view rhs);
 	TORRENT_EXTRA_EXPORT void append_path(std::string& branch
-		, std::string const& leaf);
-	TORRENT_EXTRA_EXPORT void append_path(std::string& branch
-		, char const* str, int len);
+		, string_view leaf);
+
 	// internal used by create_torrent.hpp
-	TORRENT_EXTRA_EXPORT std::string complete(std::string const& f);
-	TORRENT_EXTRA_EXPORT bool is_complete(std::string const& f);
+	TORRENT_EXTRA_EXPORT std::string complete(string_view f);
+	TORRENT_EXTRA_EXPORT bool is_complete(string_view f);
 	TORRENT_EXTRA_EXPORT std::string current_working_directory();
 #if TORRENT_USE_UNC_PATHS
-	TORRENT_EXTRA_EXPORT std::string canonicalize_path(std::string const& f);
+	TORRENT_EXTRA_EXPORT std::string canonicalize_path(string_view f);
 #endif
 
 	// TODO: move this into a separate header file, TU pair

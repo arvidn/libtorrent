@@ -68,7 +68,7 @@ struct find_data : traversal_algorithm
 	find_data(node& node, node_id target
 		, nodes_callback const& ncallback);
 
-	void got_write_token(node_id const& n, std::string const& write_token);
+	void got_write_token(node_id const& n, std::string write_token);
 
 	virtual void start();
 

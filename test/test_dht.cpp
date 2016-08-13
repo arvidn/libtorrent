@@ -272,7 +272,7 @@ void send_dht_response(node& node, bdecode_node const& request, udp::endpoint co
 {
 	entry e;
 	e["y"] = "r";
-	e["t"] = request.dict_find_string_value("t");
+	e["t"] = request.dict_find_string_value("t").to_string();
 //	e["ip"] = endpoint_to_bytes(ep);
 	e["r"] = args.a;
 	e["r"].dict().insert(std::make_pair("id", generate_next().to_string()));
@@ -342,7 +342,7 @@ void announce_immutable_items(node& node, udp::endpoint const* eps
 			if (ret)
 			{
 				TEST_EQUAL(parsed[4].string_value(), "r");
-				token = parsed[2].string_value();
+				token = parsed[2].string_value().to_string();
 //				std::fprintf(stderr, "got token: %s\n", token.c_str());
 			}
 			else
@@ -671,7 +671,7 @@ TORRENT_TEST(get_peers_announce)
 	if (ret)
 	{
 		TEST_CHECK(peer1_keys[0].string_value() == "r");
-		token = peer1_keys[2].string_value();
+		token = peer1_keys[2].string_value().to_string();
 //		std::fprintf(stderr, "got token: %s\n", token.c_str());
 	}
 	else
@@ -733,7 +733,7 @@ void test_scrape(address(&rand_addr)())
 		if (ret)
 		{
 			TEST_CHECK(peer1_keys[0].string_value() == "r");
-			token = peer1_keys[2].string_value();
+			token = peer1_keys[2].string_value().to_string();
 		}
 		else
 		{
@@ -1091,7 +1091,7 @@ void test_put(address(&rand_addr)())
 		if (ret)
 		{
 			TEST_EQUAL(desc_keys[4].string_value(), "r");
-			token = desc_keys[2].string_value();
+			token = desc_keys[2].string_value().to_string();
 			std::fprintf(stderr, "get response: %s\n"
 				, print_entry(response).c_str());
 			std::fprintf(stderr, "got token: %s\n", aux::to_hex(token).c_str());

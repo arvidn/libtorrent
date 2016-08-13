@@ -226,7 +226,7 @@ TORRENT_TEST(lazy_entry)
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec);
 		TEST_CHECK(ret == 0);
 		TEST_CHECK(e.dict_size() == 1);
-		lazy_entry* d = e.dict_find(std::string("a\0b", 3));
+		lazy_entry* d = e.dict_find({"a\0b", 3});
 		TEST_CHECK(d);
 		TEST_EQUAL(d->type(), lazy_entry::int_t);
 		TEST_EQUAL(d->int_value(), 1);

@@ -73,7 +73,7 @@ void find_data_observer::reply(msg const& m)
 	if (token)
 	{
 		static_cast<find_data*>(algorithm())->got_write_token(
-			node_id(id.string_ptr()), token.string_value());
+			node_id(id.string_ptr()), token.string_value().to_string());
 	}
 
 	traversal_observer::reply(m);
@@ -109,7 +109,7 @@ void find_data::start()
 	traversal_algorithm::start();
 }
 
-void find_data::got_write_token(node_id const& n, std::string const& write_token)
+void find_data::got_write_token(node_id const& n, std::string write_token)
 {
 #ifndef TORRENT_DISABLE_LOGGING
 	get_node().observer()->log(dht_logger::traversal
@@ -117,7 +117,7 @@ void find_data::got_write_token(node_id const& n, std::string const& write_token
 		, static_cast<void*>(this), aux::to_hex(write_token).c_str()
 		, aux::to_hex(n).c_str());
 #endif
-	m_write_tokens[n] = write_token;
+	m_write_tokens[n] = std::move(write_token);
 }
 
 observer_ptr find_data::new_observer(void* ptr

@@ -95,15 +95,22 @@ namespace libtorrent
 			if (s == 0) clear();
 			else std::memcpy(m_number, s, size());
 		}
+#ifndef TORRENT_NO_DEPRECATE
+		TORRENT_DEPRECATED
 		explicit sha1_hash(std::string const& s)
+		{
+			assign(s.data());
+		}
+#endif
+		explicit sha1_hash(span<char const> s)
 		{
 			assign(s);
 		}
-		void assign(std::string const& s)
+		void assign(span<char const> s)
 		{
 			TORRENT_ASSERT(s.size() >= 20);
 			size_t const sl = s.size() < size() ? s.size() : size();
-			std::memcpy(m_number, s.c_str(), sl);
+			std::memcpy(m_number, s.data(), sl);
 		}
 		void assign(char const* str) { std::memcpy(m_number, str, size()); }
 

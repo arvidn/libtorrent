@@ -229,7 +229,7 @@ namespace
 
 
         if (params.has_key("info_hash"))
-            p.info_hash = sha1_hash(bytes(extract<bytes>(params["info_hash"])).arr);
+            p.info_hash = sha1_hash(bytes(extract<bytes>(params["info_hash"])).arr.data());
         if (params.has_key("name"))
             p.name = extract<std::string>(params["name"]);
         p.save_path = extract<std::string>(params["save_path"]);

@@ -159,7 +159,7 @@ namespace libtorrent
 		if (btih.compare(0, 9, "urn:btih:") != 0) return torrent_handle();
 
 		if (btih.size() == 40 + 9) aux::from_hex({&btih[9], 40}, params.info_hash.data());
-		else params.info_hash.assign(base32decode(btih.substr(9)));
+		else params.info_hash.assign(base32decode(btih.substr(9)).c_str());
 
 		return ses.add_torrent(params);
 	}
@@ -175,6 +175,7 @@ namespace libtorrent
 #endif // BOOST_NO_EXCEPTIONS
 #endif // TORRENT_NO_DEPRECATE
 
+	// TODO: 3 take string_ref here instead
 	void parse_magnet_uri(std::string const& uri, add_torrent_params& p, error_code& ec)
 	{
 		ec.clear();

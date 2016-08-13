@@ -146,7 +146,7 @@ void node::update_node_id()
 	m_rpc.update_node_id(m_id);
 }
 
-bool node::verify_token(std::string const& token, sha1_hash const& info_hash
+bool node::verify_token(string_view token, sha1_hash const& info_hash
 	, udp::endpoint const& addr) const
 {
 	if (token.length() != 4)
@@ -337,7 +337,7 @@ void node::incoming(msg const& m)
 				{
 					m_observer->log(dht_logger::node, "INCOMING ERROR: (%" PRId64 ") %s"
 						, err.list_int_value_at(0)
-						, err.list_string_value_at(1).c_str());
+						, err.list_string_value_at(1).to_string().c_str());
 				}
 				else
 				{
@@ -795,7 +795,7 @@ void node::incoming_request(msg const& m, entry& e)
 {
 	e = entry(entry::dictionary_t);
 	e["y"] = "r";
-	e["t"] = m.message.dict_find_string_value("t");
+	e["t"] = m.message.dict_find_string_value("t").to_string();
 
 	key_desc_t top_desc[] = {
 		{"q", bdecode_node::string_t, 0, 0},
@@ -961,10 +961,11 @@ void node::incoming_request(msg const& m, entry& e)
 		m_table.node_seen(id, m.addr, 0xffff);
 
 		tcp::endpoint addr = tcp::endpoint(m.addr.address(), port);
-		std::string name = msg_keys[3] ? msg_keys[3].string_value() : std::string();
+		string_view name = msg_keys[3] ? msg_keys[3].string_value() : string_view();
 		bool seed = msg_keys[4] && msg_keys[4].int_value();
 
-		m_storage.announce_peer(info_hash, addr, name, seed);
+		// TODO: 3 should we update the dht storage API to take a string_ref?
+		m_storage.announce_peer(info_hash, addr, name.to_string(), seed);
 	}
 	else if (query_len == 3 && memcmp(query, "put", 3) == 0)
 	{
@@ -1198,10 +1199,8 @@ void node::write_nodes_entries(sha1_hash const& info_hash
 		bdecode_node wanted = want.list_at(i);
 		if (wanted.type() != bdecode_node::string_t)
 			continue;
-		std::map<std::string, node*>::const_iterator wanted_node
-			= m_nodes.find(wanted.string_value());
-		if (wanted_node == m_nodes.end())
-			continue;
+		auto wanted_node = m_nodes.find(wanted.string_value().to_string());
+		if (wanted_node == m_nodes.end()) continue;
 		nodes_t n;
 		wanted_node->second->m_table.find_node(info_hash, n, 0);
 		write_nodes_entry(r[wanted_node->second->protocol_nodes_key()], n);

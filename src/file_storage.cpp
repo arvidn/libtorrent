@@ -198,6 +198,20 @@ namespace libtorrent
 	file_entry::~file_entry() = default;
 #endif // TORRENT_NO_DEPRECATE
 
+	internal_file_entry::internal_file_entry()
+		: offset(0)
+		, symlink_index(not_a_symlink)
+		, no_root_dir(false)
+		, size(0)
+		, name_len(name_is_owned)
+		, pad_file(false)
+		, hidden_attribute(false)
+		, executable_attribute(false)
+		, symlink_attribute(false)
+		, name(nullptr)
+		, path_index(-1)
+	{}
+
 	internal_file_entry::~internal_file_entry()
 	{
 		if (name_len == name_is_owned) free(const_cast<char*>(name));
@@ -233,14 +247,53 @@ namespace libtorrent
 		executable_attribute = fe.executable_attribute;
 		symlink_attribute = fe.symlink_attribute;
 		no_root_dir = fe.no_root_dir;
-		set_name(fe.filename().c_str());
+		set_name(fe.filename().to_string().c_str());
 		return *this;
 	}
+
+	internal_file_entry::internal_file_entry(internal_file_entry&& fe)
+		: offset(fe.offset)
+		, symlink_index(fe.symlink_index)
+		, no_root_dir(fe.no_root_dir)
+		, size(fe.size)
+		, name_len(fe.name_len)
+		, pad_file(fe.pad_file)
+		, hidden_attribute(fe.hidden_attribute)
+		, executable_attribute(fe.executable_attribute)
+		, symlink_attribute(fe.symlink_attribute)
+		, name(fe.name)
+		, path_index(fe.path_index)
+	{
+		fe.name_len = name_is_owned;
+		fe.name = nullptr;
+	}
+
+	internal_file_entry& internal_file_entry::operator=(internal_file_entry&& fe)
+	{
+		offset = fe.offset;
+		size = fe.size;
+		path_index = fe.path_index;
+		symlink_index = fe.symlink_index;
+		pad_file = fe.pad_file;
+		hidden_attribute = fe.hidden_attribute;
+		executable_attribute = fe.executable_attribute;
+		symlink_attribute = fe.symlink_attribute;
+		no_root_dir = fe.no_root_dir;
+		name = fe.name;
+		name_len = fe.name_len;
+
+		fe.name_len = name_is_owned;
+		fe.name = nullptr;
+		return *this;
+	}
+
+	file_storage::file_storage(file_storage&&) = default;
+	file_storage& file_storage::operator=(file_storage&&) = default;
 
 	// if borrow_chars >= 0, don't take ownership over n, just
 	// point to it. It points to borrow_chars number of characters.
 	// if borrow_chars == -1, n is a 0-terminated string that
-	// should be copied 
+	// should be copied.
 	void internal_file_entry::set_name(char const* n, bool borrow_string, int string_len)
 	{
 		TORRENT_ASSERT(string_len >= 0);
@@ -268,10 +321,10 @@ namespace libtorrent
 		}
 	}
 
-	std::string internal_file_entry::filename() const
+	string_view internal_file_entry::filename() const
 	{
-		if (name_len != name_is_owned) return std::string(name, name_len);
-		return name ? name : "";
+		if (name_len != name_is_owned) return { name, size_t(name_len) };
+		return name ? string_view(name) : string_view();
 	}
 
 	void file_storage::apply_pointer_offset(ptrdiff_t off)
@@ -320,7 +373,7 @@ namespace libtorrent
 	}
 
 	void file_storage::add_file(std::wstring const& file, std::int64_t file_size
-		, int file_flags, std::time_t mtime, std::string const& symlink_path)
+		, int file_flags, std::time_t mtime, string_view symlink_path)
 	{
 		std::string utf8;
 		wchar_utf8(file, utf8);
@@ -502,7 +555,7 @@ namespace libtorrent
 	}
 
 	void file_storage::add_file(std::string const& path, std::int64_t file_size
-		, int file_flags, std::time_t mtime, std::string const& symlink_path)
+		, int file_flags, std::time_t mtime, string_view symlink_path)
 	{
 		add_file_borrow(nullptr, 0, path, file_size, file_flags, nullptr, mtime
 			, symlink_path);
@@ -511,7 +564,7 @@ namespace libtorrent
 	void file_storage::add_file_borrow(char const* filename, int filename_len
 		, std::string const& path, std::int64_t file_size
 		, std::uint32_t file_flags, char const* filehash
-		, std::int64_t mtime, std::string const& symlink_path)
+		, std::int64_t mtime, string_view symlink_path)
 	{
 		TORRENT_ASSERT_PRECOND(file_size >= 0);
 		if (!has_parent_path(path))
@@ -560,7 +613,7 @@ namespace libtorrent
 			&& m_symlinks.size() < internal_file_entry::not_a_symlink - 1)
 		{
 			e.symlink_index = m_symlinks.size();
-			m_symlinks.push_back(symlink_path);
+			m_symlinks.emplace_back(symlink_path.to_string());
 		}
 		else
 		{
@@ -581,7 +634,7 @@ namespace libtorrent
 		if (index >= int(m_file_hashes.size())) return sha1_hash(nullptr);
 		return sha1_hash(m_file_hashes[index]);
 	}
-	
+
 	std::string const& file_storage::symlink(int index) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
@@ -599,10 +652,10 @@ namespace libtorrent
 	namespace
 	{
 		template <class CRC>
-		void process_string_lowercase(CRC& crc, char const* str, int len)
+		void process_string_lowercase(CRC& crc, string_view str)
 		{
-			for (int i = 0; i < len; ++i, ++str)
-				crc.process_byte(to_lower(*str));
+			for (char const c : str)
+				crc.process_byte(to_lower(c));
 		}
 
 		template <class CRC>
@@ -629,7 +682,7 @@ namespace libtorrent
 
 		if (!m_name.empty())
 		{
-			process_string_lowercase(crc, m_name.c_str(), int(m_name.size()));
+			process_string_lowercase(crc, m_name);
 			TORRENT_ASSERT(m_name[m_name.size()-1] != TORRENT_SEPARATOR);
 			crc.process_byte(TORRENT_SEPARATOR);
 		}
@@ -652,45 +705,45 @@ namespace libtorrent
 		if (fe.path_index == -2)
 		{
 			// -2 means this is an absolute path filename
-			process_string_lowercase(crc, fe.filename_ptr(), fe.filename_len());
+			process_string_lowercase(crc, fe.filename());
 		}
 		else if (fe.path_index == -1)
 		{
 			// -1 means no path
 			if (!save_path.empty())
 			{
-				process_string_lowercase(crc, save_path.c_str(), int(save_path.size()));
+				process_string_lowercase(crc, save_path);
 				TORRENT_ASSERT(save_path[save_path.size()-1] != TORRENT_SEPARATOR);
 				crc.process_byte(TORRENT_SEPARATOR);
 			}
-			process_string_lowercase(crc, fe.filename_ptr(), fe.filename_len());
+			process_string_lowercase(crc, fe.filename());
 		}
 		else if (fe.no_root_dir)
 		{
 			if (!save_path.empty())
 			{
-				process_string_lowercase(crc, save_path.c_str(), int(save_path.size()));
+				process_string_lowercase(crc, save_path);
 				TORRENT_ASSERT(save_path[save_path.size()-1] != TORRENT_SEPARATOR);
 				crc.process_byte(TORRENT_SEPARATOR);
 			}
 			std::string const& p = m_paths[fe.path_index];
 			if (!p.empty())
 			{
-				process_string_lowercase(crc, p.c_str(), int(p.size()));
+				process_string_lowercase(crc, p);
 				TORRENT_ASSERT(p[p.size()-1] != TORRENT_SEPARATOR);
 				crc.process_byte(TORRENT_SEPARATOR);
 			}
-			process_string_lowercase(crc, fe.filename_ptr(), fe.filename_len());
+			process_string_lowercase(crc, fe.filename());
 		}
 		else
 		{
 			if (!save_path.empty())
 			{
-				process_string_lowercase(crc, save_path.c_str(), int(save_path.size()));
+				process_string_lowercase(crc, save_path);
 				TORRENT_ASSERT(save_path[save_path.size()-1] != TORRENT_SEPARATOR);
 				crc.process_byte(TORRENT_SEPARATOR);
 			}
-			process_string_lowercase(crc, m_name.c_str(), int(m_name.size()));
+			process_string_lowercase(crc, m_name);
 			TORRENT_ASSERT(m_name.size() > 0);
 			TORRENT_ASSERT(m_name[m_name.size()-1] != TORRENT_SEPARATOR);
 			crc.process_byte(TORRENT_SEPARATOR);
@@ -698,18 +751,18 @@ namespace libtorrent
 			std::string const& p = m_paths[fe.path_index];
 			if (!p.empty())
 			{
-				process_string_lowercase(crc, p.c_str(), int(p.size()));
+				process_string_lowercase(crc, p);
 				TORRENT_ASSERT(p.size() > 0);
 				TORRENT_ASSERT(p[p.size()-1] != TORRENT_SEPARATOR);
 				crc.process_byte(TORRENT_SEPARATOR);
 			}
-			process_string_lowercase(crc, fe.filename_ptr(), fe.filename_len());
+			process_string_lowercase(crc, fe.filename());
 		}
 
 		return crc.checksum();
 	}
 
-	std::string file_storage::file_path(int index, std::string const& save_path) const
+	std::string file_storage::file_path(int const index, std::string const& save_path) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
 		internal_file_entry const& fe = m_files[index];
@@ -719,40 +772,40 @@ namespace libtorrent
 		// -2 means this is an absolute path filename
 		if (fe.path_index == -2)
 		{
-			ret.assign(fe.filename_ptr(), fe.filename_len());
+			ret = fe.filename().to_string();
 		}
 		else if (fe.path_index == -1)
 		{
 			// -1 means no path
-			ret.reserve(save_path.size() + fe.filename_len() + 1);
+			ret.reserve(save_path.size() + fe.filename().size() + 1);
 			ret.assign(save_path);
-			append_path(ret, fe.filename_ptr(), fe.filename_len());
+			append_path(ret, fe.filename());
 		}
 		else if (fe.no_root_dir)
 		{
 			std::string const& p = m_paths[fe.path_index];
 
-			ret.reserve(save_path.size() + p.size() + fe.filename_len() + 2);
+			ret.reserve(save_path.size() + p.size() + fe.filename().size() + 2);
 			ret.assign(save_path);
 			append_path(ret, p);
-			append_path(ret, fe.filename_ptr(), fe.filename_len());
+			append_path(ret, fe.filename());
 		}
 		else
 		{
 			std::string const& p = m_paths[fe.path_index];
 
-			ret.reserve(save_path.size() + m_name.size() + p.size() + fe.filename_len() + 3);
+			ret.reserve(save_path.size() + m_name.size() + p.size() + fe.filename().size() + 3);
 			ret.assign(save_path);
 			append_path(ret, m_name);
 			append_path(ret, p);
-			append_path(ret, fe.filename_ptr(), fe.filename_len());
+			append_path(ret, fe.filename());
 		}
 
 		// a single return statement, just to make NRVO more likely to kick in
 		return ret;
 	}
 
-	std::string file_storage::file_name(int index) const
+	string_view file_storage::file_name(int index) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
 		internal_file_entry const& fe = m_files[index];
@@ -857,13 +910,13 @@ namespace libtorrent
 	std::string file_storage::file_path(internal_file_entry const& fe
 		, std::string const& save_path) const
 	{
-		int index = &fe - &m_files[0];
+		int const index = &fe - &m_files[0];
 		return file_path(index, save_path);
 	}
 
 	std::string file_storage::file_name(internal_file_entry const& fe) const
 	{
-		return fe.filename();
+		return fe.filename().to_string();
 	}
 
 	std::int64_t file_storage::file_size(internal_file_entry const& fe) const

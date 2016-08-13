@@ -2038,7 +2038,7 @@ int main(int argc, char* argv[])
 						if (show_pad_files)
 						{
 							std::snprintf(str, sizeof(str), "\x1b[34m%-70s %s\x1b[0m\x1b[K\n"
-								, ti->files().file_name(i).c_str()
+								, ti->files().file_name(i).to_string().c_str()
 								, add_suffix(ti->files().file_size(i)).c_str());
 							out += str;
 							pos += 1;
@@ -2051,7 +2051,7 @@ int main(int argc, char* argv[])
 
 					bool complete = file_progress[i] == ti->files().file_size(i);
 
-					std::string title = ti->files().file_name(i);
+					std::string title = ti->files().file_name(i).to_string();
 					if (!complete)
 					{
 						std::snprintf(str, sizeof(str), " (%.1f%%)", progress / 10.f);

@@ -34,12 +34,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_SETTINGS_PACK_HPP_INCLUDED
 
 #include "libtorrent/entry.hpp"
+#include "libtorrent/string_view.hpp"
+
 #include <vector>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <boost/smart_ptr.hpp>
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 // OVERVIEW
@@ -97,7 +97,7 @@ namespace libtorrent
 		bool has_val(int name) const;
 		void clear();
 
-		std::string get_str(int name) const;
+		std::string const& get_str(int name) const;
 		int get_int(int name) const;
 		bool get_bool(int name) const;
 

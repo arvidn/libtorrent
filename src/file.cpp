@@ -624,10 +624,10 @@ namespace libtorrent
 			ec.assign(errno, system_category());
 		copyfile_state_free(state);
 #else
-		std::string f1 = convert_to_native(inf);
-		std::string f2 = convert_to_native(newf);
+		std::string const f1 = convert_to_native(inf);
+		std::string const f2 = convert_to_native(newf);
 
-		int infd = ::open(f1.c_str(), O_RDONLY);
+		int const infd = ::open(f1.c_str(), O_RDONLY);
 		if (infd < 0)
 		{
 			ec.assign(errno, system_category());
@@ -636,11 +636,11 @@ namespace libtorrent
 
 		// rely on default umask to filter x and w permissions
 		// for group and others
-		int permissions = S_IRUSR | S_IWUSR
+		int const permissions = S_IRUSR | S_IWUSR
 			| S_IRGRP | S_IWGRP
 			| S_IROTH | S_IWOTH;
 
-		int outfd = ::open(f2.c_str(), O_WRONLY | O_CREAT, permissions);
+		int const outfd = ::open(f2.c_str(), O_WRONLY | O_CREAT, permissions);
 		if (outfd < 0)
 		{
 			close(infd);
@@ -650,14 +650,14 @@ namespace libtorrent
 		char buffer[4096];
 		for (;;)
 		{
-			int num_read = read(infd, buffer, sizeof(buffer));
+			int const num_read = read(infd, buffer, sizeof(buffer));
 			if (num_read == 0) break;
 			if (num_read < 0)
 			{
 				ec.assign(errno, system_category());
 				break;
 			}
-			int num_written = write(outfd, buffer, num_read);
+			int const num_written = write(outfd, buffer, num_read);
 			if (num_written < num_read)
 			{
 				ec.assign(errno, system_category());
@@ -908,21 +908,15 @@ namespace libtorrent
 		return std::string(sep + 1);
 	}
 
-	void append_path(std::string& branch, std::string const& leaf)
+	void append_path(std::string& branch, string_view leaf)
 	{
-		append_path(branch, leaf.c_str(), int(leaf.size()));
-	}
-
-	void append_path(std::string& branch
-		, char const* str, int len)
-	{
-		TORRENT_ASSERT(!is_complete(std::string(str, len)));
+		TORRENT_ASSERT(!is_complete(leaf));
 		if (branch.empty() || branch == ".")
 		{
-			branch.assign(str, len);
+			branch.assign(leaf.data(), leaf.size());
 			return;
 		}
-		if (len == 0) return;
+		if (leaf.size() == 0) return;
 
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
 #define TORRENT_SEPARATOR_CHAR '\\'
@@ -934,14 +928,14 @@ namespace libtorrent
 #endif
 
 		if (need_sep) branch += TORRENT_SEPARATOR_CHAR;
-		branch.append(str, len);
+		branch.append(leaf.data(), leaf.size());
 	}
 
-	std::string combine_path(std::string const& lhs, std::string const& rhs)
+	std::string combine_path(string_view lhs, string_view rhs)
 	{
 		TORRENT_ASSERT(!is_complete(rhs));
-		if (lhs.empty() || lhs == ".") return rhs;
-		if (rhs.empty() || rhs == ".") return lhs;
+		if (lhs.empty() || lhs == ".") return rhs.to_string();
+		if (rhs.empty() || rhs == ".") return lhs.to_string();
 
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
 #define TORRENT_SEPARATOR "\\"
@@ -953,8 +947,10 @@ namespace libtorrent
 		std::string ret;
 		int target_size = int(lhs.size() + rhs.size() + 2);
 		ret.resize(target_size);
-		target_size = std::snprintf(&ret[0], target_size, "%s%s%s", lhs.c_str()
-			, (need_sep?TORRENT_SEPARATOR:""), rhs.c_str());
+		target_size = std::snprintf(&ret[0], target_size, "%*s%s%*s"
+			, int(lhs.size()), lhs.data()
+			, (need_sep?TORRENT_SEPARATOR:"")
+			, int(rhs.size()), rhs.data());
 		ret.resize(target_size);
 		return ret;
 	}
@@ -981,20 +977,20 @@ namespace libtorrent
 	}
 
 #if TORRENT_USE_UNC_PATHS
-	std::string canonicalize_path(std::string const& f)
+	std::string canonicalize_path(string_view f)
 	{
 		std::string ret;
 		ret.resize(f.size());
 		char* write_cur = &ret[0];
 		char* last_write_sep = write_cur;
 
-		char const* read_cur = f.c_str();
+		char const* read_cur = f.data();
 		char const* last_read_sep = read_cur;
 
 		// the last_*_sep pointers point to one past
 		// the last path separator encountered and is
-		// initializes to the first character in the path
-		while (*read_cur)
+		// initialized to the first character in the path
+		for (int i = 0; i < int(f.size()); ++i)
 		{
 			if (*read_cur != '\\')
 			{
@@ -1135,14 +1131,14 @@ namespace libtorrent
 		remove(f, ec);
 	}
 
-	std::string complete(std::string const& f)
+	std::string complete(string_view f)
 	{
-		if (is_complete(f)) return f;
+		if (is_complete(f)) return f.to_string();
 		if (f == ".") return current_working_directory();
 		return combine_path(current_working_directory(), f);
 	}
 
-	bool is_complete(std::string const& f)
+	bool is_complete(string_view f)
 	{
 		if (f.empty()) return false;
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
