@@ -97,8 +97,8 @@ install:
       wget -O boost.zip http://pilotfiber.dl.sourceforge.net/project/boost/boost/1.55.0/boost_1_55_0.zip;
       unzip -qq boost.zip;
       export BOOST_ROOT=$PWD/boost_1_55_0;
-      sudo apt-get install -y qemu-user-static debootstrap;
-      sudo debootstrap --variant=minbase --arch armhf --foreign --include=build-essential testing rootfs;
+      travis_retry sudo apt-get install -y qemu-user-static debootstrap;
+      travis_retry sudo debootstrap --variant=minbase --arch armhf --foreign --include=build-essential testing rootfs;
       sudo cp /usr/bin/qemu-arm-static rootfs/usr/bin/;
       sudo chroot rootfs /debootstrap/debootstrap --second-stage;
       sudo chroot rootfs mount -t proc none /proc;
