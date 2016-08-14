@@ -529,7 +529,7 @@ void http_connection::on_resolve(error_code const& e
 		return;
 	}
 
-	std::random_shuffle(m_endpoints.begin(), m_endpoints.end(), randint);
+	aux::random_shuffle(m_endpoints.begin(), m_endpoints.end());
 
 	// sort the endpoints so that the ones with the same IP version as our
 	// bound listen socket are first. So that when contacting a tracker,

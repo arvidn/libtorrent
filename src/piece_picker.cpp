@@ -1515,7 +1515,7 @@ namespace libtorrent
 		for (int b : m_priority_boundaries)
 		{
 			if (start == b) continue;
-			std::random_shuffle(&m_pieces[0] + start, &m_pieces[0] + b, randint);
+			aux::random_shuffle(&m_pieces[0] + start, &m_pieces[0] + b);
 			start = b;
 		}
 

@@ -123,9 +123,6 @@ POSSIBILITY OF SUCH DAMAGE.
 // 
 // 	virtual std::string message() const;
 // 
-// 	virtual std::auto_ptr<alert> clone() const
-// 	{ return std::auto_ptr<alert>(new name(\*this)); }
-// 
 // 	static const int static_category = *<bitmask of alert::category_t flags>*;
 // 	virtual int category() const { return static_category; }
 // 

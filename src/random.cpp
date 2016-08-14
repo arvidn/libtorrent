@@ -33,41 +33,25 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/random.hpp"
 
-#include <random>
-
 namespace libtorrent
 {
-	using std::random_device;
-	using std::mt19937;
-	using std::uniform_int_distribution;
-
+	namespace aux
+	{
+		std::mt19937& random_engine()
+		{
 #ifdef TORRENT_BUILD_SIMULATOR
-
-	std::uint32_t random(std::uint32_t max)
-	{
-		// make sure random numbers are deterministic. Seed with a fixed number
-		static mt19937 random_engine(0x82daf973);
-		return uniform_int_distribution<std::uint32_t>(0, max)(random_engine);
-	}
-
+			// make sure random numbers are deterministic. Seed with a fixed number
+			static std::mt19937 rng(0x82daf973);
 #else
+			static std::random_device dev;
+			static std::mt19937 rng(dev());
+#endif
+			return rng;
+		}
+	}
 
 	std::uint32_t random(std::uint32_t max)
 	{
-		// TODO: versions prior to msvc-14 (visual studio 2015) do
-		// not generate thread safe initialization of statics
-		static random_device dev;
-		static mt19937 random_engine(dev());
-		return uniform_int_distribution<std::uint32_t>(0, max)(random_engine);
+		return std::uniform_int_distribution<std::uint32_t>(0, max)(aux::random_engine());
 	}
-
-#endif // TORRENT_BUILD_SIMULATOR
-
-
-	std::uint32_t randint(std::uint32_t one_past_end)
-	{
-		return random(one_past_end - 1);
-	}
-
-
 }

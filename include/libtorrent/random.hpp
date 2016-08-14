@@ -31,10 +31,23 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
+
 #include <cstdint>
+#include <random>
+#include <algorithm>
 
 namespace libtorrent
 {
-	std::uint32_t TORRENT_EXTRA_EXPORT random(std::uint32_t max);
-	std::uint32_t TORRENT_EXTRA_EXPORT randint(std::uint32_t one_past_end);
+	namespace aux
+	{
+		TORRENT_EXTRA_EXPORT std::mt19937& random_engine();
+
+		template<class RandomIt>
+		void random_shuffle(RandomIt first, RandomIt last)
+		{
+			std::shuffle(first, last, random_engine());
+		}
+	}
+
+	TORRENT_EXTRA_EXPORT std::uint32_t random(std::uint32_t max);
 }
