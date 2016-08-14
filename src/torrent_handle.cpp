@@ -648,6 +648,16 @@ namespace libtorrent
 		async_call(&torrent::force_tracker_request, aux::time_now()
 			+ seconds(duration.total_seconds()), -1);
 	}
+
+	void torrent_handle::file_status(std::vector<pool_file_status>& status) const
+	{
+		status.clear();
+
+		boost::shared_ptr<torrent> t = m_torrent.lock();
+		if (!t || !t->has_storage()) return;
+		session_impl& ses = static_cast<session_impl&>(t->session());
+		status = ses.disk_thread().files().get_status(&t->storage());
+	}
 #endif
 
 	void torrent_handle::force_dht_announce() const
@@ -662,14 +672,12 @@ namespace libtorrent
 		async_call(&torrent::force_tracker_request, aux::time_now() + seconds(s), idx);
 	}
 
-	void torrent_handle::file_status(std::vector<pool_file_status>& status) const
+	std::vector<pool_file_status> torrent_handle::file_status() const
 	{
-		status.clear();
-
 		boost::shared_ptr<torrent> t = m_torrent.lock();
-		if (!t || !t->has_storage()) return;
+		if (!t || !t->has_storage()) return {};
 		session_impl& ses = static_cast<session_impl&>(t->session());
-		ses.disk_thread().files().get_status(&status, &t->storage());
+		return ses.disk_thread().files().get_status(&t->storage());
 	}
 
 	void torrent_handle::scrape_tracker(int idx) const

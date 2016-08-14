@@ -2021,8 +2021,7 @@ int main(int argc, char* argv[])
 			{
 				std::vector<std::int64_t> file_progress;
 				h.file_progress(file_progress);
-				std::vector<pool_file_status> file_status;
-				h.file_status(file_status);
+				std::vector<pool_file_status> file_status = h.file_status();
 				std::vector<int> file_prio = h.file_priorities();
 				std::vector<pool_file_status>::iterator f = file_status.begin();
 				boost::shared_ptr<const torrent_info> ti = h.torrent_file();
