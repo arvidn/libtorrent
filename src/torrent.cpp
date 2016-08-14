@@ -5244,7 +5244,7 @@ namespace libtorrent
 
 		if (!valid_metadata()) return;
 
-		// stoage may be nullptr during shutdown
+		// storage may be nullptr during shutdown
 		if (m_storage)
 		{
 			inc_refcount("file_priority");

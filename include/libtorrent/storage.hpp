@@ -311,7 +311,7 @@ namespace libtorrent
 		// 
 		virtual void release_files(storage_error& ec) = 0;
 
-		// Rename file with index ``file`` to the thame ``new_name``.
+		// Rename file with index ``index`` to the name ``new_filename``.
 		// 
 		// If an error occurs, ``storage_error`` should be set to reflect it.
 		// 

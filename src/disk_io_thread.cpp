@@ -1082,7 +1082,7 @@ namespace libtorrent
 		if (storage && storage->get_storage_impl()->m_settings == nullptr)
 			storage->get_storage_impl()->m_settings = &m_settings;
 
-		TORRENT_ASSERT(j->action < sizeof(job_functions)/sizeof(job_functions[0]));
+		TORRENT_ASSERT(j->action < sizeof(job_functions) / sizeof(job_functions[0]));
 
 		time_point start_time = clock_type::now();
 
@@ -1091,7 +1091,7 @@ namespace libtorrent
 		// call disk function
 		int ret = (this->*(job_functions[j->action]))(j, completed_jobs);
 
-		// note that -2 erros are OK
+		// note that -2 errors are OK
 		TORRENT_ASSERT(ret != -1 || (j->error.ec && j->error.operation != 0));
 
 		m_stats_counters.inc_stats_counter(counters::num_running_disk_jobs, -1);
@@ -1226,7 +1226,7 @@ namespace libtorrent
 			- (iov_len-1) * block_size, block_size);
 		TORRENT_ASSERT(iov[iov_len-1].iov_len > 0);
 
-		// at this point, all the buffers are allocated and iov is initizalied
+		// at this point, all the buffers are allocated and iov is initialized
 		// and the blocks have their refcounters incremented, so no other thread
 		// can remove them. We can now release the cache std::mutex and dive into the
 		// disk operations.
@@ -2898,7 +2898,7 @@ namespace libtorrent
 
 	int disk_io_thread::do_file_priority(disk_io_job* j, jobqueue_t& /* completed_jobs */ )
 	{
-		std::unique_ptr<std::vector<std::uint8_t> > p(j->buffer.priorities);
+		std::unique_ptr<std::vector<std::uint8_t>> p(j->buffer.priorities);
 		j->storage->get_storage_impl()->set_file_priority(*p, j->error);
 		return 0;
 	}
