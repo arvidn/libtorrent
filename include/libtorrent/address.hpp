@@ -33,7 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_ADDRESS_HPP_INCLUDED
 #define TORRENT_ADDRESS_HPP_INCLUDED
 
-#include <boost/version.hpp>
 #include "libtorrent/config.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
@@ -77,4 +76,3 @@ namespace libtorrent
 }
 
 #endif
-

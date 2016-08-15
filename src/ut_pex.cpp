@@ -53,12 +53,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/shared_ptr.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 namespace libtorrent { namespace
 {
 	const char extension_name[] = "ut_pex";
@@ -252,14 +246,19 @@ namespace libtorrent { namespace
 			, m_message_index(0)
 			, m_first_time(true)
 		{
-			const int num_pex_timers = sizeof(m_last_pex)/sizeof(m_last_pex[0]);
+			const int num_pex_timers = sizeof(m_last_pex) / sizeof(m_last_pex[0]);
 			for (int i = 0; i < num_pex_timers; ++i)
 			{
-				m_last_pex[i]= min_time();
+				m_last_pex[i] = min_time();
 			}
 		}
 
-		char const* type() const override { return "ut_pex"; }
+		// constructor necessary due to compiler error with clang
+		// definition of implicit copy constructor for <class> is deprecated because
+		// it has a user-declared destructor
+		ut_pex_peer_plugin(ut_pex_peer_plugin const& p)
+			: ut_pex_peer_plugin(p.m_torrent, p.m_pc, p.m_tp)
+		{}
 
 		void add_handshake(entry& h) override
 		{
@@ -302,10 +301,10 @@ namespace libtorrent { namespace
 				return true;
 			}
 
-			int const num_pex_timers = sizeof(m_last_pex)/sizeof(m_last_pex[0]);
-			for (int i = 0; i < num_pex_timers-1; ++i)
-				m_last_pex[i] = m_last_pex[i+1];
-			m_last_pex[num_pex_timers-1] = now;
+			int const num_pex_timers = sizeof(m_last_pex) / sizeof(m_last_pex[0]);
+			for (int i = 0; i < num_pex_timers - 1; ++i)
+				m_last_pex[i] = m_last_pex[i + 1];
+			m_last_pex[num_pex_timers - 1] = now;
 
 			bdecode_node pex_msg;
 			error_code ec;
@@ -321,7 +320,7 @@ namespace libtorrent { namespace
 #ifndef TORRENT_DISABLE_LOGGING
 			int num_dropped = 0;
 			int num_added = 0;
-			if (p) num_dropped += p.string_length()/6;
+			if (p) num_dropped += p.string_length() / 6;
 #endif
 			if (p)
 			{
@@ -654,9 +653,9 @@ namespace libtorrent { namespace
 		if (pc.type() != peer_connection::bittorrent_connection)
 			return boost::shared_ptr<peer_plugin>();
 
-		boost::shared_ptr<ut_pex_peer_plugin> p = boost::make_shared<ut_pex_peer_plugin>(
-			ut_pex_peer_plugin(m_torrent, *pc.native_handle(), *this));
-		static_cast<bt_peer_connection*>(pc.native_handle().get())->set_ut_pex(p);
+		bt_peer_connection* c = static_cast<bt_peer_connection*>(pc.native_handle().get());
+		auto p = boost::make_shared<ut_pex_peer_plugin>(ut_pex_peer_plugin(m_torrent, *c, *this));
+		c->set_ut_pex(p);
 		return p;
 	}
 } }
@@ -665,7 +664,24 @@ namespace libtorrent
 {
 	bool ut_pex_peer_store::was_introduced_by(tcp::endpoint const &ep)
 	{
-		return libtorrent::was_introduced_by(this, ep);
+#if TORRENT_USE_IPV6
+		if (ep.address().is_v4())
+		{
+#endif
+			peers4_t::value_type v(ep.address().to_v4().to_bytes(), ep.port());
+			peers4_t::const_iterator i
+				= std::lower_bound(m_peers.begin(), m_peers.end(), v);
+			return i != m_peers.end() && *i == v;
+#if TORRENT_USE_IPV6
+		}
+		else
+		{
+			peers6_t::value_type v(ep.address().to_v6().to_bytes(), ep.port());
+			peers6_t::const_iterator i
+				= std::lower_bound(m_peers6.begin(), m_peers6.end(), v);
+			return i != m_peers6.end() && *i == v;
+		}
+#endif
 	}
 
 	boost::shared_ptr<torrent_plugin> create_ut_pex_plugin(torrent_handle const& th, void*)
@@ -677,28 +693,6 @@ namespace libtorrent
 			return boost::shared_ptr<torrent_plugin>();
 		}
 		return boost::shared_ptr<torrent_plugin>(new ut_pex_plugin(*t));
-	}
-
-	bool was_introduced_by(ut_pex_peer_store const* p, tcp::endpoint const& ep)
-	{
-#if TORRENT_USE_IPV6
-		if (ep.address().is_v4())
-		{
-#endif
-			ut_pex_peer_plugin::peers4_t::value_type v(ep.address().to_v4().to_bytes(), ep.port());
-			ut_pex_peer_plugin::peers4_t::const_iterator i
-				= std::lower_bound(p->m_peers.begin(), p->m_peers.end(), v);
-			return i != p->m_peers.end() && *i == v;
-#if TORRENT_USE_IPV6
-		}
-		else
-		{
-			ut_pex_peer_plugin::peers6_t::value_type v(ep.address().to_v6().to_bytes(), ep.port());
-			ut_pex_peer_plugin::peers6_t::const_iterator i
-				= std::lower_bound(p->m_peers6.begin(), p->m_peers6.end(), v);
-			return i != p->m_peers6.end() && *i == v;
-		}
-#endif
 	}
 }
 

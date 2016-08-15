@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/socket.hpp" // for endpoint
-#include "libtorrent/address.hpp" // for endpoint
+#include "libtorrent/address.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -61,10 +61,10 @@ namespace libtorrent
 		// these are vectors to save memory and keep the items close
 		// together for performance. Inserting and removing is relatively
 		// cheap since the lists' size is limited
-		typedef std::vector<std::pair<address_v4::bytes_type, std::uint16_t>> peers4_t;
+		using peers4_t = std::vector<std::pair<address_v4::bytes_type, std::uint16_t>>;
 		peers4_t m_peers;
 #if TORRENT_USE_IPV6
-		typedef std::vector<std::pair<address_v6::bytes_type, std::uint16_t>> peers6_t;
+		using peers6_t = std::vector<std::pair<address_v6::bytes_type, std::uint16_t>>;
 		peers6_t m_peers6;
 #endif
 
@@ -80,8 +80,6 @@ namespace libtorrent
 	// This can either be passed in the add_torrent_params::extensions field, or
 	// via torrent_handle::add_extension().
 	TORRENT_EXPORT boost::shared_ptr<torrent_plugin> create_ut_pex_plugin(torrent_handle const&, void*);
-
-	bool was_introduced_by(ut_pex_peer_store const* p, tcp::endpoint const& ep);
 }
 
 #endif // TORRENT_DISABLE_EXTENSIONS
