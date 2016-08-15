@@ -274,7 +274,7 @@ namespace
 
 		void announce_peer(sha1_hash const& info_hash
 			, tcp::endpoint const& endp
-			, string_view const name, bool const seed) override
+			, string_view name, bool const seed) override
 		{
 			table_t::iterator ti = m_map.find(info_hash);
 			torrent_entry* v;

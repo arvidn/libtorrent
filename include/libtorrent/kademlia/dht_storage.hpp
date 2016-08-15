@@ -141,7 +141,7 @@ namespace dht
 		//
 		virtual void announce_peer(sha1_hash const& info_hash
 			, tcp::endpoint const& endp
-			, string_view const name, bool seed) = 0;
+			, string_view name, bool seed) = 0;
 
 		// This function retrieves the immutable item given its target hash.
 		//
