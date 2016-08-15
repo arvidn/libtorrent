@@ -311,7 +311,7 @@ namespace libtorrent
 
 	namespace detail
 	{
-		char const* integer_to_str(char* buf, int size
+		TORRENT_EXPORT char const* integer_to_str(char* buf, int size
 			, entry::integer_type val);
 	}
 
