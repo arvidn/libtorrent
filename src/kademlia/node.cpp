@@ -840,7 +840,7 @@ void node::incoming_request(msg const& m, entry& e)
 	string_view query = top_level[0].string_value();
 
 	// TODO: change on_dht_request to string_view
-	if (m_observer && m_observer->on_dht_request(query.data(), query.size(), m, e))
+	if (m_observer && m_observer->on_dht_request(query.data(), int(query.size()), m, e))
 		return;
 
 	if (query == "ping")
