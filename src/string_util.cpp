@@ -143,7 +143,7 @@ namespace libtorrent
 
 		// the random number
 		while (begin != end)
-			*begin++ = printable[random(sizeof(printable)-2)];
+			*begin++ = printable[random(sizeof(printable) - 2)];
 	}
 
 	char* allocate_string_copy(char const* str)
@@ -353,11 +353,10 @@ namespace libtorrent
 		error_code ec;
 		std::tie(ignore, ignore, hostname, ignore, ignore)
 			= parse_url_components(url, ec);
-		char const* top_domain = strrchr(hostname.c_str(), '.');
-		return top_domain && strcmp(top_domain, ".i2p") == 0;
+		char const* top_domain = std::strrchr(hostname.c_str(), '.');
+		return top_domain && std::strcmp(top_domain, ".i2p") == 0;
 	}
 
 #endif
 
 }
-

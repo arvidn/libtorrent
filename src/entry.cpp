@@ -43,15 +43,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/hex.hpp"
 
-namespace
-{
-}
-
 namespace libtorrent
 {
 	namespace detail
 	{
-		TORRENT_EXPORT char const* integer_to_str(char* buf, int size
+		char const* integer_to_str(char* buf, int size
 			, entry::integer_type val)
 		{
 			int sign = 0;

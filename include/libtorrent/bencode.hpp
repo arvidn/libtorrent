@@ -72,7 +72,6 @@ POSSIBILITY OF SUCH DAMAGE.
 // structures it's parsing.
 
 #include <string>
-#include <exception>
 #include <iterator> // for distance
 
 #include "libtorrent/config.hpp"

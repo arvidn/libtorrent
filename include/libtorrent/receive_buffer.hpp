@@ -152,7 +152,7 @@ private:
 	int m_packet_size = 0;
 
 	// keep track of how much of the receive buffer we use, if we're not using
-	// enuogh of it we shrink it
+	// enough of it we shrink it
 	sliding_average<20> m_watermark;
 
 	buffer m_recv_buffer;
