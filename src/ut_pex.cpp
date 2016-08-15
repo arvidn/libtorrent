@@ -655,26 +655,6 @@ namespace libtorrent { namespace
 
 namespace libtorrent
 {
-	bool ut_pex_peer_store::was_introduced_by(tcp::endpoint const &ep)
-	{
-#if TORRENT_USE_IPV6
-		if (ep.address().is_v4())
-		{
-#endif
-			peers4_t::value_type v(ep.address().to_v4().to_bytes(), ep.port());
-			auto i = std::lower_bound(m_peers.begin(), m_peers.end(), v);
-			return i != m_peers.end() && *i == v;
-#if TORRENT_USE_IPV6
-		}
-		else
-		{
-			peers6_t::value_type v(ep.address().to_v6().to_bytes(), ep.port());
-			auto i = std::lower_bound(m_peers6.begin(), m_peers6.end(), v);
-			return i != m_peers6.end() && *i == v;
-		}
-#endif
-	}
-
 	boost::shared_ptr<torrent_plugin> create_ut_pex_plugin(torrent_handle const& th, void*)
 	{
 		torrent* t = th.native_handle().get();
