@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/socket.hpp" // for endpoint
+#include "libtorrent/address.hpp" // for endpoint
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -50,6 +51,26 @@ namespace libtorrent
 	struct peer_plugin;
 	struct torrent_handle;
 
+	struct TORRENT_EXPORT ut_pex_peer_store
+	{
+		// stores all peers this peer is connected to. These lists
+		// are updated with each pex message and are limited in size
+		// to protect against malicious clients. These lists are also
+		// used for looking up which peer a peer that supports holepunch
+		// came from.
+		// these are vectors to save memory and keep the items close
+		// together for performance. Inserting and removing is relatively
+		// cheap since the lists' size is limited
+		typedef std::vector<std::pair<address_v4::bytes_type, std::uint16_t>> peers4_t;
+		peers4_t m_peers;
+#if TORRENT_USE_IPV6
+		typedef std::vector<std::pair<address_v6::bytes_type, std::uint16_t>> peers6_t;
+		peers6_t m_peers6;
+#endif
+
+		bool was_introduced_by(tcp::endpoint const& ep);
+	};
+
 	// constructor function for the ut_pex extension. The ut_pex
 	// extension allows peers to gossip about their connections, allowing
 	// the swarm stay well connected and peers aware of more peers in the
@@ -60,7 +81,7 @@ namespace libtorrent
 	// via torrent_handle::add_extension().
 	TORRENT_EXPORT boost::shared_ptr<torrent_plugin> create_ut_pex_plugin(torrent_handle const&, void*);
 
-	bool was_introduced_by(peer_plugin const* pp, tcp::endpoint const& ep);
+	bool was_introduced_by(ut_pex_peer_store const* p, tcp::endpoint const& ep);
 }
 
 #endif // TORRENT_DISABLE_EXTENSIONS

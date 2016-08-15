@@ -242,7 +242,7 @@ namespace libtorrent { namespace
 	};
 
 	struct ut_pex_peer_plugin final
-		: peer_plugin
+		: ut_pex_peer_store, peer_plugin
 	{
 		ut_pex_peer_plugin(torrent& t, peer_connection& pc, ut_pex_plugin& tp)
 			: m_torrent(t)
@@ -626,20 +626,7 @@ namespace libtorrent { namespace
 		torrent& m_torrent;
 		peer_connection& m_pc;
 		ut_pex_plugin& m_tp;
-		// stores all peers this peer is connected to. These lists
-		// are updated with each pex message and are limited in size
-		// to protect against malicious clients. These lists are also
-		// used for looking up which peer a peer that supports holepunch
-		// came from.
-		// these are vectors to save memory and keep the items close
-		// together for performance. Inserting and removing is relatively
-		// cheap since the lists' size is limited
-		typedef std::vector<std::pair<address_v4::bytes_type, std::uint16_t>> peers4_t;
-		peers4_t m_peers;
-#if TORRENT_USE_IPV6
-		typedef std::vector<std::pair<address_v6::bytes_type, std::uint16_t>> peers6_t;
-		peers6_t m_peers6;
-#endif
+
 		// the last pex messages we received
 		// [0] is the oldest one. There is a problem with
 		// rate limited connections, because we may sit
@@ -667,13 +654,20 @@ namespace libtorrent { namespace
 		if (pc.type() != peer_connection::bittorrent_connection)
 			return boost::shared_ptr<peer_plugin>();
 
-		return boost::shared_ptr<peer_plugin>(new ut_pex_peer_plugin(m_torrent
-			, *pc.native_handle(), *this));
+		boost::shared_ptr<ut_pex_peer_plugin> p = boost::make_shared<ut_pex_peer_plugin>(
+			ut_pex_peer_plugin(m_torrent, *pc.native_handle(), *this));
+		static_cast<bt_peer_connection*>(pc.native_handle().get())->set_ut_pex(p);
+		return p;
 	}
 } }
 
 namespace libtorrent
 {
+	bool ut_pex_peer_store::was_introduced_by(tcp::endpoint const &ep)
+	{
+		return libtorrent::was_introduced_by(this, ep);
+	}
+
 	boost::shared_ptr<torrent_plugin> create_ut_pex_plugin(torrent_handle const& th, void*)
 	{
 		torrent* t = th.native_handle().get();
@@ -685,9 +679,8 @@ namespace libtorrent
 		return boost::shared_ptr<torrent_plugin>(new ut_pex_plugin(*t));
 	}
 
-	bool was_introduced_by(peer_plugin const* pp, tcp::endpoint const& ep)
+	bool was_introduced_by(ut_pex_peer_store const* p, tcp::endpoint const& ep)
 	{
-		ut_pex_peer_plugin const* p = static_cast<ut_pex_peer_plugin const*>(pp);
 #if TORRENT_USE_IPV6
 		if (ep.address().is_v4())
 		{
