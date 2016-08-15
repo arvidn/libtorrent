@@ -33,7 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_ERROR_CODE_HPP_INCLUDED
 #define TORRENT_ERROR_CODE_HPP_INCLUDED
 
-#include <boost/version.hpp>
 #include "libtorrent/config.hpp"
 #include "libtorrent/string_util.hpp" // for allocate_string_copy
 
@@ -48,10 +47,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/system/system_error.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-#ifndef BOOST_SYSTEM_NOEXCEPT
-#define BOOST_SYSTEM_NOEXCEPT TORRENT_EXCEPTION_THROW_SPECIFIER
-#endif
 
 namespace libtorrent
 {
@@ -572,4 +567,3 @@ namespace boost { namespace system {
 } }
 
 #endif
-

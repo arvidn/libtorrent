@@ -6617,19 +6617,18 @@ namespace aux {
 	}
 #endif
 
-	bool session_impl::on_dht_request(char const* query, int query_len
+	bool session_impl::on_dht_request(string_view query
 		, dht::msg const& request, entry& response)
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (auto& ext : m_ses_extensions[plugins_dht_request_idx])
 		{
-			if (ext->on_dht_request(query, query_len
+			if (ext->on_dht_request(query
 				, request.addr, request.message, response))
 				return true;
 		}
 #else
 		TORRENT_UNUSED(query);
-		TORRENT_UNUSED(query_len);
 		TORRENT_UNUSED(request);
 		TORRENT_UNUSED(response);
 #endif
@@ -6949,4 +6948,3 @@ namespace aux {
 		}
 #endif // TORRENT_DISABLE_LOGGING
 }}
-

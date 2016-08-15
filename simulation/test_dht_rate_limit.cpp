@@ -80,7 +80,7 @@ struct obs : dht::dht_observer
 	void log_packet(message_direction_t /* dir */
 		, char const* /* pkt */, int /* len */
 		, udp::endpoint /* node */) override {}
-	bool on_dht_request(char const* /* query */, int /* query_len */
+	bool on_dht_request(string_view /* query */
 		, dht::msg const& /* request */, entry& /* response */) override
 	{ return false; }
 };
@@ -207,4 +207,3 @@ TORRENT_TEST(dht_rate_limit)
 
 #endif // #if !defined TORRENT_DISABLE_EXTENSIONS && !defined TORRENT_DISABLE_DHT
 }
-

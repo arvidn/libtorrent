@@ -532,10 +532,9 @@ namespace libtorrent
 	peer_plugin const* peer_connection::find_plugin(char const* type)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto p : m_extensions)
 		{
-			if (strcmp((*i)->type(), type) == 0) return (*i).get();
+			if (std::strcmp(p->type(), type) == 0) return p.get();
 		}
 		return nullptr;
 	}

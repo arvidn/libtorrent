@@ -837,19 +837,18 @@ void node::incoming_request(msg const& m, entry& e)
 	// mirror back the other node's external port
 	reply["p"] = m.addr.port();
 
-	char const* query = top_level[0].string_ptr();
-	int query_len = top_level[0].string_length();
+	string_view query = top_level[0].string_value();
 
-	if (m_observer && m_observer->on_dht_request(query, query_len, m, e))
+	if (m_observer && m_observer->on_dht_request(query, m, e))
 		return;
 
-	if (query_len == 4 && memcmp(query, "ping", 4) == 0)
+	if (query == "ping")
 	{
 		m_counters.inc_stats_counter(counters::dht_ping_in);
 		// we already have 't' and 'id' in the response
 		// no more left to add
 	}
-	else if (query_len == 9 && memcmp(query, "get_peers", 9) == 0)
+	else if (query == "get_peers")
 	{
 		key_desc_t msg_desc[] = {
 			{"info_hash", bdecode_node::string_t, 20, 0},
@@ -888,7 +887,7 @@ void node::incoming_request(msg const& m, entry& e)
 		}
 #endif
 	}
-	else if (query_len == 9 && memcmp(query, "find_node", 9) == 0)
+	else if (query == "find_node")
 	{
 		key_desc_t msg_desc[] = {
 			{"target", bdecode_node::string_t, 20, 0},
@@ -907,7 +906,7 @@ void node::incoming_request(msg const& m, entry& e)
 
 		write_nodes_entries(target, msg_keys[1], reply);
 	}
-	else if (query_len == 13 && memcmp(query, "announce_peer", 13) == 0)
+	else if (query == "announce_peer")
 	{
 		key_desc_t msg_desc[] = {
 			{"info_hash", bdecode_node::string_t, 20, 0},
@@ -964,10 +963,9 @@ void node::incoming_request(msg const& m, entry& e)
 		string_view name = msg_keys[3] ? msg_keys[3].string_value() : string_view();
 		bool seed = msg_keys[4] && msg_keys[4].int_value();
 
-		// TODO: 3 should we update the dht storage API to take a string_ref?
-		m_storage.announce_peer(info_hash, addr, name.to_string(), seed);
+		m_storage.announce_peer(info_hash, addr, name, seed);
 	}
-	else if (query_len == 3 && memcmp(query, "put", 3) == 0)
+	else if (query == "put")
 	{
 		// the first 2 entries are for both mutable and
 		// immutable puts
@@ -1104,7 +1102,7 @@ void node::incoming_request(msg const& m, entry& e)
 
 		m_table.node_seen(id, m.addr, 0xffff);
 	}
-	else if (query_len == 3 && memcmp(query, "get", 3) == 0)
+	else if (query == "get")
 	{
 		key_desc_t msg_desc[] = {
 			{"seq", bdecode_node::int_t, 0, key_desc_t::optional},

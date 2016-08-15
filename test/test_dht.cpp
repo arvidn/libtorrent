@@ -499,7 +499,7 @@ struct obs : dht::dht_observer
 	void log_packet(message_direction_t dir, char const* pkt, int len
 		, udp::endpoint node) override {}
 #endif
-	bool on_dht_request(char const* query, int query_len
+	bool on_dht_request(string_view query
 		, dht::msg const& request, entry& response) override { return false; }
 
 	address m_external_address = addr4("236.0.0.1");
@@ -3143,4 +3143,3 @@ TORRENT_TEST(dht)
 }
 
 #endif
-
