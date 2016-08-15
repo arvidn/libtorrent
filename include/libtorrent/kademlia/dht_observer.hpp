@@ -75,7 +75,7 @@ namespace libtorrent { namespace dht
 		virtual void outgoing_get_peers(sha1_hash const& target
 			, sha1_hash const& sent_target, udp::endpoint const& ep) = 0;
 		virtual void announce(sha1_hash const& ih, address const& addr, int port) = 0;
-		virtual bool on_dht_request(char const* query, int query_len
+		virtual bool on_dht_request(string_view query
 			, dht::msg const& request, entry& response) = 0;
 
 	protected:
@@ -84,4 +84,3 @@ namespace libtorrent { namespace dht
 }}
 
 #endif
-

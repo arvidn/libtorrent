@@ -839,8 +839,7 @@ void node::incoming_request(msg const& m, entry& e)
 
 	string_view query = top_level[0].string_value();
 
-	// TODO: change on_dht_request to string_view
-	if (m_observer && m_observer->on_dht_request(query.data(), int(query.size()), m, e))
+	if (m_observer && m_observer->on_dht_request(query, m, e))
 		return;
 
 	if (query == "ping")
@@ -964,8 +963,7 @@ void node::incoming_request(msg const& m, entry& e)
 		string_view name = msg_keys[3] ? msg_keys[3].string_value() : string_view();
 		bool seed = msg_keys[4] && msg_keys[4].int_value();
 
-		// TODO: 3 should we update the dht storage API to take a string_ref?
-		m_storage.announce_peer(info_hash, addr, name.to_string(), seed);
+		m_storage.announce_peer(info_hash, addr, name, seed);
 	}
 	else if (query == "put")
 	{

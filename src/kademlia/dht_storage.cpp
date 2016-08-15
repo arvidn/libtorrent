@@ -274,7 +274,7 @@ namespace
 
 		void announce_peer(sha1_hash const& info_hash
 			, tcp::endpoint const& endp
-			, std::string const& name, bool const seed) override
+			, string_view const name, bool const seed) override
 		{
 			table_t::iterator ti = m_map.find(info_hash);
 			torrent_entry* v;
@@ -312,9 +312,7 @@ namespace
 			// for this torrent. Store it.
 			if (!name.empty() && v->name.empty())
 			{
-				std::string tname = name;
-				if (tname.size() > 100) tname.resize(100);
-				v->name = tname;
+				v->name = name.substr(0, 100).to_string();
 			}
 
 			peer_entry peer;

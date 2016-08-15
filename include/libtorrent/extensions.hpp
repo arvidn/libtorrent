@@ -163,6 +163,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_handle.hpp"
 #include "libtorrent/peer_connection_handle.hpp"
 #include "libtorrent/span.hpp"
+#include "libtorrent/string_view.hpp"
 
 namespace libtorrent
 {
@@ -230,7 +231,7 @@ namespace libtorrent
 		// called when a dht request is received.
 		// If your plugin expects this to be called, make sure to include the flag
 		// ``dht_request_feature`` in the return value from implemented_features().
-		virtual bool on_dht_request(char const* /* query */, int const /* query_len */
+		virtual bool on_dht_request(string_view /* query */
 			, udp::endpoint const& /* source */, bdecode_node const& /* message */
 			, entry& /* response */)
 		{ return false; }

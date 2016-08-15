@@ -625,7 +625,7 @@ namespace libtorrent
 				, udp::endpoint node) override;
 #endif
 
-			virtual bool on_dht_request(char const* query, int query_len
+			virtual bool on_dht_request(string_view query
 				, dht::msg const& request, entry& response) override;
 
 			void set_external_address(address const& ip
@@ -1247,6 +1247,4 @@ namespace libtorrent
 	}
 }
 
-
 #endif
-

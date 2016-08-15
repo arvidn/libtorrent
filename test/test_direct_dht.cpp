@@ -52,7 +52,7 @@ struct test_plugin : plugin
 		return plugin::dht_request_feature;
 	}
 
-	bool on_dht_request(char const* /* query */, int const /* query_len */
+	bool on_dht_request(string_view /* query */
 		, udp::endpoint const& /* source */, bdecode_node const& message
 		, entry& response) override
 	{

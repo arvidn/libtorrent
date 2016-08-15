@@ -1,3 +1,4 @@
+	* plugin API changed to handle DHT requests using string_view
 	* removed support for lt_trackers and metadata_transfer extensions
 	  (pre-dating ut_metadata)
 	* support windows' CryptoAPI for SHA-1

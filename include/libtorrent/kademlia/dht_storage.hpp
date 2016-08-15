@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/sha1_hash.hpp>
 #include <libtorrent/address.hpp>
 #include <libtorrent/span.hpp>
+#include <libtorrent/string_view.hpp>
 
 namespace libtorrent
 {
@@ -140,7 +141,7 @@ namespace dht
 		//
 		virtual void announce_peer(sha1_hash const& info_hash
 			, tcp::endpoint const& endp
-			, std::string const& name, bool seed) = 0;
+			, string_view const name, bool seed) = 0;
 
 		// This function retrieves the immutable item given its target hash.
 		//
