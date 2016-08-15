@@ -104,10 +104,6 @@ POSSIBILITY OF SUCH DAMAGE.
 // TODO: factor out cache_status to its own header
 #include "libtorrent/disk_io_thread.hpp" // for cache_status
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
-#include "libtorrent/extensions/ut_pex.hpp" // for was_introduced_by
-#endif
-
 #ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/aux_/session_impl.hpp" // for tracker_logger
 #endif

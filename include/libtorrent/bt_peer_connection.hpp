@@ -61,11 +61,32 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/piece_block_progress.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/pe_crypto.hpp"
-#include "libtorrent/extensions/ut_pex.hpp"
 
 namespace libtorrent
 {
 	class torrent;
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+	struct TORRENT_EXTRA_EXPORT ut_pex_peer_store
+	{
+		// stores all peers this peer is connected to. These lists
+		// are updated with each pex message and are limited in size
+		// to protect against malicious clients. These lists are also
+		// used for looking up which peer a peer that supports holepunch
+		// came from.
+		// these are vectors to save memory and keep the items close
+		// together for performance. Inserting and removing is relatively
+		// cheap since the lists' size is limited
+		using peers4_t = std::vector<std::pair<address_v4::bytes_type, std::uint16_t>>;
+		peers4_t m_peers;
+#if TORRENT_USE_IPV6
+		using peers6_t = std::vector<std::pair<address_v6::bytes_type, std::uint16_t>>;
+		peers6_t m_peers6;
+#endif
+
+		bool was_introduced_by(tcp::endpoint const& ep);
+	};
+#endif
 
 	class TORRENT_EXTRA_EXPORT bt_peer_connection
 		: public peer_connection

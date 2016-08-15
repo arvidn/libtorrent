@@ -253,13 +253,6 @@ namespace libtorrent { namespace
 			}
 		}
 
-		// constructor necessary due to compiler error with clang
-		// definition of implicit copy constructor for <class> is deprecated because
-		// it has a user-declared destructor
-		ut_pex_peer_plugin(ut_pex_peer_plugin const& p)
-			: ut_pex_peer_plugin(p.m_torrent, p.m_pc, p.m_tp)
-		{}
-
 		void add_handshake(entry& h) override
 		{
 			entry& messages = h["m"];
@@ -654,7 +647,7 @@ namespace libtorrent { namespace
 			return boost::shared_ptr<peer_plugin>();
 
 		bt_peer_connection* c = static_cast<bt_peer_connection*>(pc.native_handle().get());
-		auto p = boost::make_shared<ut_pex_peer_plugin>(ut_pex_peer_plugin(m_torrent, *c, *this));
+		auto p = boost::make_shared<ut_pex_peer_plugin>(m_torrent, *c, *this);
 		c->set_ut_pex(p);
 		return p;
 	}
@@ -669,16 +662,14 @@ namespace libtorrent
 		{
 #endif
 			peers4_t::value_type v(ep.address().to_v4().to_bytes(), ep.port());
-			peers4_t::const_iterator i
-				= std::lower_bound(m_peers.begin(), m_peers.end(), v);
+			auto i = std::lower_bound(m_peers.begin(), m_peers.end(), v);
 			return i != m_peers.end() && *i == v;
 #if TORRENT_USE_IPV6
 		}
 		else
 		{
 			peers6_t::value_type v(ep.address().to_v6().to_bytes(), ep.port());
-			peers6_t::const_iterator i
-				= std::lower_bound(m_peers6.begin(), m_peers6.end(), v);
+			auto i = std::lower_bound(m_peers6.begin(), m_peers6.end(), v);
 			return i != m_peers6.end() && *i == v;
 		}
 #endif
@@ -692,7 +683,7 @@ namespace libtorrent
 		{
 			return boost::shared_ptr<torrent_plugin>();
 		}
-		return boost::shared_ptr<torrent_plugin>(new ut_pex_plugin(*t));
+		return boost::make_shared<ut_pex_plugin>(*t);
 	}
 }
 

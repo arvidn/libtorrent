@@ -332,9 +332,9 @@ namespace libtorrent
 			if (empty) return {};
 			using wrapper = session_impl::session_plugin_wrapper;
 			return {
-				boost::make_shared<wrapper>(wrapper(create_ut_pex_plugin)),
-				boost::make_shared<wrapper>(wrapper(create_ut_metadata_plugin)),
-				boost::make_shared<wrapper>(wrapper(create_smart_ban_plugin))
+				boost::make_shared<wrapper>(create_ut_pex_plugin),
+				boost::make_shared<wrapper>(create_ut_metadata_plugin),
+				boost::make_shared<wrapper>(create_smart_ban_plugin)
 			};
 #else
 			TORRENT_UNUSED(empty);

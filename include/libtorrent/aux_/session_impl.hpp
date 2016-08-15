@@ -222,7 +222,6 @@ namespace libtorrent
 			struct session_plugin_wrapper : plugin
 			{
 				explicit session_plugin_wrapper(ext_function_t const& f) : m_f(f) {}
-				explicit session_plugin_wrapper(session_plugin_wrapper const& p) : m_f(p.m_f) {}
 
 				boost::shared_ptr<torrent_plugin> new_torrent(torrent_handle const& t, void* user) override
 				{ return m_f(t, user); }
