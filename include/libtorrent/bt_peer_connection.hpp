@@ -459,7 +459,7 @@ private:
 
 		std::shared_ptr<ut_pex_peer_store> m_ut_pex;
 
-		char m_reserved_bits[8];
+		std::array<char, 8> m_reserved_bits;
 #endif
 
 #if TORRENT_USE_ASSERTS

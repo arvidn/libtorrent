@@ -260,8 +260,8 @@ void setup_swarm(int num_nodes
 	asio::io_service ios(sim);
 	lt::time_point start_time(lt::clock_type::now());
 
-	std::vector<boost::shared_ptr<lt::session> > nodes;
-	std::vector<boost::shared_ptr<sim::asio::io_service> > io_service;
+	std::vector<boost::shared_ptr<lt::session>> nodes;
+	std::vector<boost::shared_ptr<sim::asio::io_service>> io_service;
 	std::vector<lt::session_proxy> zombies;
 	lt::deadline_timer timer(ios);
 
@@ -430,4 +430,3 @@ void setup_swarm(int num_nodes
 
 	sim.run();
 }
-

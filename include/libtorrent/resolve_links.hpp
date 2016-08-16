@@ -34,13 +34,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_RESOLVE_LINKS_HPP
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/shared_ptr.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#include <string>
-#include <unordered_map>
+#include <boost/shared_ptr.hpp>
+#include <boost/unordered_map.hpp>
 #include <vector>
 #include <utility>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/export.hpp"
 
@@ -79,7 +79,7 @@ namespace libtorrent
 		std::vector<link_t> m_links;
 
 		// maps file size to file index, in m_torrent_file
-		std::unordered_multimap<std::int64_t, int> m_file_sizes;
+		boost::unordered_multimap<std::int64_t, int> m_file_sizes;
 	};
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 
