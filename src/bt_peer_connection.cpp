@@ -727,10 +727,7 @@ namespace libtorrent
 
 	void bt_peer_connection::rc4_decrypt(span<char> buf)
 	{
-		int consume = 0;
-		int produce = int(buf.size());
-		int packet_size = 0;
-		m_rc4->decrypt(buf, consume, produce, packet_size);
+		m_rc4->decrypt(buf);
 	}
 
 	namespace {

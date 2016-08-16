@@ -219,9 +219,9 @@ namespace libtorrent
 		if (recv_buffer.crypto_packet_finished())
 		{
 			span<char> wr_buf = recv_buffer.mutable_buffer(bytes_transferred);
+			int produce = 0;
 			int packet_size = 0;
-			int produce = int(bytes_transferred);
-			m_dec_handler->decrypt(wr_buf, consume, produce, packet_size);
+			std::tie(consume, produce, packet_size) = m_dec_handler->decrypt(wr_buf);
 			TORRENT_ASSERT(packet_size || produce);
 			TORRENT_ASSERT(packet_size >= 0);
 			bytes_transferred = produce;
@@ -265,7 +265,7 @@ namespace libtorrent
 			int consume = 0;
 			int produce = 0;
 			std::vector<span<char>> wr_buf;
-			crypto->decrypt(wr_buf, consume, produce, packet_size);
+			std::tie(consume, produce, packet_size) = crypto->decrypt(wr_buf);
 			TORRENT_ASSERT(wr_buf.empty());
 			TORRENT_ASSERT(consume == 0);
 			TORRENT_ASSERT(produce == 0);
@@ -289,12 +289,9 @@ namespace libtorrent
 		rc4_init(reinterpret_cast<unsigned char const*>(key.data())
 			, key.size(), &m_rc4_incoming);
 		// Discard first 1024 bytes
-		int consume = 0;
-		int produce = 0;
-		int packet_size = 0;
 		char buf[1024];
 		span<char> vec(buf, sizeof(buf));
-		decrypt(vec, consume, produce, packet_size);
+		decrypt(vec);
 	}
 
 	void rc4_handler::set_outgoing_key(span<char const> key)
@@ -330,16 +327,9 @@ namespace libtorrent
 		return std::make_tuple(bytes_processed, empty);
 	}
 
-	void rc4_handler::decrypt(span<span<char>> bufs
-		, int& consume
-		, int& produce
-		, int& packet_size)
+	std::tuple<int, int, int> rc4_handler::decrypt(span<span<char>> bufs)
 	{
-		// these are out-parameters that are not set
-		TORRENT_UNUSED(consume);
-		TORRENT_UNUSED(packet_size);
-
-		if (!m_decrypt) return;
+		if (!m_decrypt) std::make_tuple(0, 0, 0);
 
 		int bytes_processed = 0;
 		for (auto& buf : bufs)
@@ -353,7 +343,7 @@ namespace libtorrent
 			bytes_processed += len;
 			rc4_encrypt(pos, len, &m_rc4_incoming);
 		}
-		produce = bytes_processed;
+		return std::make_tuple(0, bytes_processed, 0);
 	}
 
 // All this code is based on libTomCrypt (http://www.libtomcrypt.com/)

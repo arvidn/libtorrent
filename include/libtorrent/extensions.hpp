@@ -498,6 +498,9 @@ namespace libtorrent
 		encrypt(span<span<char>> /*send_vec*/) = 0;
 
 		// decrypt the provided buffers.
+		// returns is a tuple representing the values
+		// (consume, produce, packet_size)
+		//
 		// consume is set to the number of bytes which should be trimmed from the
 		// head of the buffers, default is 0
 		//
@@ -506,8 +509,7 @@ namespace libtorrent
 		//
 		// packet_size is set to the minimum number of bytes which must be read to
 		// advance the next step of decryption. default is 0
-		virtual void decrypt(span<span<char>> /*receive_vec*/
-			, int& /* consume */, int& /*produce*/, int& /*packet_size*/) = 0;
+		virtual std::tuple<int, int, int> decrypt(span<span<char>> /*receive_vec*/) = 0;
 	};
 }
 

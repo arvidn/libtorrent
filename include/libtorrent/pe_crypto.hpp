@@ -145,10 +145,7 @@ namespace libtorrent
 		std::tuple<int, span<span<char const>>>
 		encrypt(span<span<char>> buf) override;
 
-		void decrypt(span<span<char>> buf
-			, int& consume
-			, int& produce
-			, int& packet_size) override;
+		std::tuple<int, int, int> decrypt(span<span<char>> buf) override;
 
 	private:
 		rc4 m_rc4_incoming;
