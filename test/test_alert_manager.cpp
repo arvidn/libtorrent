@@ -172,9 +172,9 @@ TORRENT_TEST(extensions)
 	memset(plugin_alerts, 0, sizeof(plugin_alerts));
 	alert_manager mgr(100, 0xffffffff);
 
-	mgr.add_extension(boost::make_shared<test_plugin>(0));
-	mgr.add_extension(boost::make_shared<test_plugin>(1));
-	mgr.add_extension(boost::make_shared<test_plugin>(2));
+	mgr.add_extension(std::make_shared<test_plugin>(0));
+	mgr.add_extension(std::make_shared<test_plugin>(1));
+	mgr.add_extension(std::make_shared<test_plugin>(2));
 
 	for (int i = 0; i < 53; ++i)
 		mgr.emplace_alert<torrent_added_alert>(torrent_handle());

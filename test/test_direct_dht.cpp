@@ -101,7 +101,7 @@ TORRENT_TEST(direct_dht_request)
 	sp.set_str(settings_pack::listen_interfaces, "127.0.0.1:45434");
 	lt::session requester(sp, 0);
 
-	responder.add_extension(boost::static_pointer_cast<plugin>(boost::make_shared<test_plugin>()));
+	responder.add_extension(std::make_shared<test_plugin>());
 
 	// successful request
 

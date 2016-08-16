@@ -523,7 +523,7 @@ namespace libtorrent
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-	void peer_connection::add_extension(boost::shared_ptr<peer_plugin> ext)
+	void peer_connection::add_extension(std::shared_ptr<peer_plugin> ext)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		m_extensions.push_back(ext);
@@ -2654,10 +2654,9 @@ namespace libtorrent
 		update_desired_queue_size();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto& e : m_extensions)
 		{
-			if ((*i)->on_piece(p, data.get()))
+			if (e->on_piece(p, {data.get(), size_t(p.length)}))
 			{
 #if TORRENT_USE_ASSERTS
 				TORRENT_ASSERT(m_received_in_piece == p.length);

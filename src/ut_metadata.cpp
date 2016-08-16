@@ -57,6 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
+#include "libtorrent/aux_/time.hpp"
 
 using namespace std::placeholders;
 
@@ -125,7 +126,7 @@ namespace libtorrent { namespace
 			metadata();
 		}
 
-		boost::shared_ptr<peer_plugin> new_connection(
+		std::shared_ptr<peer_plugin> new_connection(
 			peer_connection_handle const& pc) override;
 
 		int get_metadata_size() const
@@ -496,14 +497,14 @@ namespace libtorrent { namespace
 		ut_metadata_peer_plugin& operator=(ut_metadata_peer_plugin const&);
 	};
 
-	boost::shared_ptr<peer_plugin> ut_metadata_plugin::new_connection(
+	std::shared_ptr<peer_plugin> ut_metadata_plugin::new_connection(
 		peer_connection_handle const& pc)
 	{
 		if (pc.type() != peer_connection::bittorrent_connection)
-			return boost::shared_ptr<peer_plugin>();
+			return std::shared_ptr<peer_plugin>();
 
 		bt_peer_connection* c = static_cast<bt_peer_connection*>(pc.native_handle().get());
-		return boost::shared_ptr<peer_plugin>(new ut_metadata_peer_plugin(m_torrent, *c, *this));
+		return std::make_shared<ut_metadata_peer_plugin>(m_torrent, *c, *this);
 	}
 
 	// has_metadata is false if the peer making the request has not announced
@@ -650,15 +651,14 @@ namespace libtorrent { namespace
 
 namespace libtorrent
 {
-
-	boost::shared_ptr<torrent_plugin> create_ut_metadata_plugin(torrent_handle const& th, void*)
+	std::shared_ptr<torrent_plugin> create_ut_metadata_plugin(torrent_handle const& th, void*)
 	{
 		torrent* t = th.native_handle().get();
 		// don't add this extension if the torrent is private
-		if (t->valid_metadata() && t->torrent_file().priv()) return boost::shared_ptr<torrent_plugin>();
-		return boost::shared_ptr<torrent_plugin>(new ut_metadata_plugin(*t));
+		if (t->valid_metadata() && t->torrent_file().priv())
+			return std::shared_ptr<torrent_plugin>();
+		return std::make_shared<ut_metadata_plugin>(*t);
 	}
-
 }
 
 #endif

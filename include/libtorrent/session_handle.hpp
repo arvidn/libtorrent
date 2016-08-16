@@ -479,9 +479,9 @@ namespace libtorrent
 		//
 		//
 		// .. _`libtorrent plugins`: libtorrent_plugins.html
-		void add_extension(std::function<boost::shared_ptr<torrent_plugin>(
+		void add_extension(std::function<std::shared_ptr<torrent_plugin>(
 			torrent_handle const&, void*)> ext);
-		void add_extension(boost::shared_ptr<plugin> ext);
+		void add_extension(std::shared_ptr<plugin> ext);
 
 #ifndef TORRENT_NO_DEPRECATE
 		// GeoIP support has been removed from libtorrent internals. If you

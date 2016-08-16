@@ -58,7 +58,7 @@ namespace
 
 	struct custom_plugin : plugin
 	{
-		void added(session_handle h) override
+		void added(session_handle& h) override
 		{
 			TORRENT_UNUSED(h);
 			g_plugin_added_invoked = true;
@@ -76,7 +76,7 @@ TORRENT_TEST(default_plugins)
 	TEST_EQUAL(int(p1.extensions.size()), 0);
 #endif
 
-	std::vector<boost::shared_ptr<plugin>> exts;
+	std::vector<std::shared_ptr<plugin>> exts;
 	session_params p2(settings_pack(), exts);
 	TEST_EQUAL(int(p2.extensions.size()), 0);
 }
@@ -100,7 +100,7 @@ TORRENT_TEST(add_plugin)
 {
 	g_plugin_added_invoked = false;
 	session_params params;
-	params.extensions.push_back(boost::make_shared<custom_plugin>());
+	params.extensions.push_back(std::make_shared<custom_plugin>());
 	lt::session ses(params);
 
 	TEST_EQUAL(g_plugin_added_invoked, true);

@@ -233,7 +233,7 @@ namespace libtorrent
 		return consume;
 	}
 
-	bool encryption_handler::switch_send_crypto(boost::shared_ptr<crypto_plugin> crypto
+	bool encryption_handler::switch_send_crypto(std::shared_ptr<crypto_plugin> crypto
 		, int pending_encryption)
 	{
 		bool place_barrier = false;
@@ -255,7 +255,7 @@ namespace libtorrent
 		return place_barrier;
 	}
 
-	void encryption_handler::switch_recv_crypto(boost::shared_ptr<crypto_plugin> crypto
+	void encryption_handler::switch_recv_crypto(std::shared_ptr<crypto_plugin> crypto
 		, crypto_receive_buffer& recv_buffer)
 	{
 		m_dec_handler = crypto;

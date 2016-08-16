@@ -135,7 +135,7 @@ namespace libtorrent
 		// This constructor helps to configure the set of initial plugins
 		// to be added to the session before it's started.
 		session_params(settings_pack sp
-			, std::vector<boost::shared_ptr<plugin>> exts);
+			, std::vector<std::shared_ptr<plugin>> exts);
 
 		session_params(session_params const&) = default;
 		session_params(session_params&&) = default;
@@ -144,7 +144,7 @@ namespace libtorrent
 
 		settings_pack settings;
 
-		std::vector<boost::shared_ptr<plugin>> extensions;
+		std::vector<std::shared_ptr<plugin>> extensions;
 
 		libtorrent::dht_settings dht_settings;
 

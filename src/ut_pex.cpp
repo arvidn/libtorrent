@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_type.hpp" // for is_utp
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/extensions/ut_pex.hpp"
+#include "libtorrent/aux_/time.hpp"
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
@@ -79,7 +80,7 @@ namespace libtorrent { namespace
 			, m_last_msg(min_time())
 			, m_peers_in_message(0) {}
 
-		boost::shared_ptr<peer_plugin> new_connection(
+		std::shared_ptr<peer_plugin> new_connection(
 			peer_connection_handle const& pc) override;
 
 		std::vector<char>& get_ut_pex_msg()
@@ -633,13 +634,13 @@ namespace libtorrent { namespace
 		ut_pex_peer_plugin& operator=(ut_pex_peer_plugin const&);
 	};
 
-	boost::shared_ptr<peer_plugin> ut_pex_plugin::new_connection(peer_connection_handle const& pc)
+	std::shared_ptr<peer_plugin> ut_pex_plugin::new_connection(peer_connection_handle const& pc)
 	{
 		if (pc.type() != peer_connection::bittorrent_connection)
-			return boost::shared_ptr<peer_plugin>();
+			return std::shared_ptr<peer_plugin>();
 
 		bt_peer_connection* c = static_cast<bt_peer_connection*>(pc.native_handle().get());
-		auto p = boost::make_shared<ut_pex_peer_plugin>(m_torrent, *c, *this);
+		auto p = std::make_shared<ut_pex_peer_plugin>(m_torrent, *c, *this);
 		c->set_ut_pex(p);
 		return p;
 	}
@@ -647,15 +648,15 @@ namespace libtorrent { namespace
 
 namespace libtorrent
 {
-	boost::shared_ptr<torrent_plugin> create_ut_pex_plugin(torrent_handle const& th, void*)
+	std::shared_ptr<torrent_plugin> create_ut_pex_plugin(torrent_handle const& th, void*)
 	{
 		torrent* t = th.native_handle().get();
 		if (t->torrent_file().priv() || (t->torrent_file().is_i2p()
 			&& !t->settings().get_bool(settings_pack::allow_i2p_mixed)))
 		{
-			return boost::shared_ptr<torrent_plugin>();
+			return std::shared_ptr<torrent_plugin>();
 		}
-		return boost::make_shared<ut_pex_plugin>(*t);
+		return std::make_shared<ut_pex_plugin>(*t);
 	}
 }
 

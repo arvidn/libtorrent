@@ -1445,29 +1445,29 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
-	void torrent::add_extension(boost::shared_ptr<torrent_plugin> ext)
+	void torrent::add_extension(std::shared_ptr<torrent_plugin> ext)
 	{
 		m_extensions.push_back(ext);
 	}
 
-	void torrent::remove_extension(boost::shared_ptr<torrent_plugin> ext)
+	void torrent::remove_extension(std::shared_ptr<torrent_plugin> ext)
 	{
 		auto i = std::find(m_extensions.begin(), m_extensions.end(), ext);
 		if (i == m_extensions.end()) return;
 		m_extensions.erase(i);
 	}
 
-	void torrent::add_extension_fun(std::function<boost::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> const& ext
+	void torrent::add_extension_fun(std::function<std::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> const& ext
 		, void* userdata)
 	{
-		boost::shared_ptr<torrent_plugin> tp(ext(get_handle(), userdata));
+		std::shared_ptr<torrent_plugin> tp(ext(get_handle(), userdata));
 		if (!tp) return;
 
 		add_extension(std::move(tp));
 
 		for (auto p : m_connections)
 		{
-			boost::shared_ptr<peer_plugin> pp(tp->new_connection(peer_connection_handle(p->self())));
+			std::shared_ptr<peer_plugin> pp(tp->new_connection(peer_connection_handle(p->self())));
 			if (pp) p->add_extension(std::move(pp));
 		}
 
@@ -6260,7 +6260,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (auto& ext : m_extensions)
 		{
-			boost::shared_ptr<peer_plugin>
+			std::shared_ptr<peer_plugin>
 				pp(ext->new_connection(peer_connection_handle(c->self())));
 			if (pp) c->add_extension(pp);
 		}
@@ -6960,7 +6960,7 @@ namespace libtorrent
 			for (auto& ext : m_extensions)
 			{
 				TORRENT_TRY {
-					boost::shared_ptr<peer_plugin> pp(ext->new_connection(
+					std::shared_ptr<peer_plugin> pp(ext->new_connection(
 						peer_connection_handle(c->self())));
 					if (pp) c->add_extension(pp);
 				} TORRENT_CATCH (std::exception&) {}
@@ -7254,7 +7254,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			for (auto& ext : m_extensions)
 			{
-				boost::shared_ptr<peer_plugin> pp(ext->new_connection(
+				std::shared_ptr<peer_plugin> pp(ext->new_connection(
 					peer_connection_handle(p->self())));
 				if (pp) p->add_extension(pp);
 			}

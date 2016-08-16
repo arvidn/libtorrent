@@ -91,7 +91,7 @@ namespace libtorrent
 	// stream key (info hash of attached torrent)
 	// secret is the DH shared secret
 	// initializes m_enc_handler
-	boost::shared_ptr<rc4_handler> init_pe_rc4_handler(key_t const& secret
+	std::shared_ptr<rc4_handler> init_pe_rc4_handler(key_t const& secret
 		, sha1_hash const& stream_key, bool const outgoing)
 	{
 		hasher h;
@@ -120,7 +120,7 @@ namespace libtorrent
 		h.update(stream_key);
 		sha1_hash const remote_key = h.final();
 
-		boost::shared_ptr<rc4_handler> ret = boost::make_shared<rc4_handler>();
+		std::shared_ptr<rc4_handler> ret = std::make_shared<rc4_handler>();
 
 		ret->set_incoming_key(remote_key);
 		ret->set_outgoing_key(local_key);
@@ -192,7 +192,7 @@ namespace libtorrent
 		m_in_constructor = false;
 #endif
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		memset(m_reserved_bits, 0, sizeof(m_reserved_bits));
+		m_reserved_bits.fill(0);
 #endif
 	}
 
@@ -209,13 +209,13 @@ namespace libtorrent
 	bt_peer_connection::~bt_peer_connection() = default;
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-	void bt_peer_connection::switch_send_crypto(boost::shared_ptr<crypto_plugin> crypto)
+	void bt_peer_connection::switch_send_crypto(std::shared_ptr<crypto_plugin> crypto)
 	{
 		if (m_enc_handler.switch_send_crypto(crypto, send_buffer_size() - get_send_barrier()))
 			set_send_barrier(send_buffer_size());
 	}
 
-	void bt_peer_connection::switch_recv_crypto(boost::shared_ptr<crypto_plugin> crypto)
+	void bt_peer_connection::switch_recv_crypto(std::shared_ptr<crypto_plugin> crypto)
 	{
 		m_enc_handler.switch_recv_crypto(crypto, m_recv_buffer);
 	}
@@ -2618,7 +2618,7 @@ namespace libtorrent
 				// again according to peer selection.
 				switch_send_crypto(m_rc4);
 				write_handshake();
-				switch_send_crypto(boost::shared_ptr<crypto_plugin>());
+				switch_send_crypto(std::shared_ptr<crypto_plugin>());
 
 				// vc,crypto_select,len(pad),pad, encrypt(handshake)
 				// 8+4+2+0+handshake_len
@@ -3212,7 +3212,7 @@ namespace libtorrent
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-			std::memcpy(m_reserved_bits, recv_buffer.begin(), 8);
+			std::memcpy(m_reserved_bits.data(), recv_buffer.begin(), 8);
 			if ((recv_buffer[5] & 0x10))
 				m_supports_extensions = true;
 #endif
