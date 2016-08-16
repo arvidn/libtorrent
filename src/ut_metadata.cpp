@@ -217,8 +217,6 @@ namespace libtorrent { namespace
 			, m_tp(tp)
 		{}
 
-		char const* type() const override { return "ut_metadata"; }
-
 		// can add entries to the extension handshake
 		void add_handshake(entry& h) override
 		{

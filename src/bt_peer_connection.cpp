@@ -131,6 +131,28 @@ namespace libtorrent
 	} // anonymous namespace
 #endif
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+	bool ut_pex_peer_store::was_introduced_by(tcp::endpoint const &ep)
+	{
+#if TORRENT_USE_IPV6
+		if (ep.address().is_v4())
+		{
+#endif
+			peers4_t::value_type v(ep.address().to_v4().to_bytes(), ep.port());
+			auto i = std::lower_bound(m_peers.begin(), m_peers.end(), v);
+			return i != m_peers.end() && *i == v;
+#if TORRENT_USE_IPV6
+		}
+		else
+		{
+			peers6_t::value_type v(ep.address().to_v6().to_bytes(), ep.port());
+			auto i = std::lower_bound(m_peers6.begin(), m_peers6.end(), v);
+			return i != m_peers6.end() && *i == v;
+		}
+#endif
+	}
+#endif // TORRENT_DISABLE_EXTENSIONS
+
 	bt_peer_connection::bt_peer_connection(peer_connection_args const& pack
 		, peer_id const& pid)
 		: peer_connection(pack)

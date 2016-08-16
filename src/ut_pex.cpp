@@ -53,12 +53,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/shared_ptr.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 namespace libtorrent { namespace
 {
 	const char extension_name[] = "ut_pex";
@@ -242,7 +236,7 @@ namespace libtorrent { namespace
 	};
 
 	struct ut_pex_peer_plugin final
-		: peer_plugin
+		: ut_pex_peer_store, peer_plugin
 	{
 		ut_pex_peer_plugin(torrent& t, peer_connection& pc, ut_pex_plugin& tp)
 			: m_torrent(t)
@@ -252,14 +246,12 @@ namespace libtorrent { namespace
 			, m_message_index(0)
 			, m_first_time(true)
 		{
-			const int num_pex_timers = sizeof(m_last_pex)/sizeof(m_last_pex[0]);
+			const int num_pex_timers = sizeof(m_last_pex) / sizeof(m_last_pex[0]);
 			for (int i = 0; i < num_pex_timers; ++i)
 			{
-				m_last_pex[i]= min_time();
+				m_last_pex[i] = min_time();
 			}
 		}
-
-		char const* type() const override { return "ut_pex"; }
 
 		void add_handshake(entry& h) override
 		{
@@ -302,10 +294,10 @@ namespace libtorrent { namespace
 				return true;
 			}
 
-			int const num_pex_timers = sizeof(m_last_pex)/sizeof(m_last_pex[0]);
-			for (int i = 0; i < num_pex_timers-1; ++i)
-				m_last_pex[i] = m_last_pex[i+1];
-			m_last_pex[num_pex_timers-1] = now;
+			int const num_pex_timers = sizeof(m_last_pex) / sizeof(m_last_pex[0]);
+			for (int i = 0; i < num_pex_timers - 1; ++i)
+				m_last_pex[i] = m_last_pex[i + 1];
+			m_last_pex[num_pex_timers - 1] = now;
 
 			bdecode_node pex_msg;
 			error_code ec;
@@ -321,7 +313,7 @@ namespace libtorrent { namespace
 #ifndef TORRENT_DISABLE_LOGGING
 			int num_dropped = 0;
 			int num_added = 0;
-			if (p) num_dropped += p.string_length()/6;
+			if (p) num_dropped += p.string_length() / 6;
 #endif
 			if (p)
 			{
@@ -626,20 +618,7 @@ namespace libtorrent { namespace
 		torrent& m_torrent;
 		peer_connection& m_pc;
 		ut_pex_plugin& m_tp;
-		// stores all peers this peer is connected to. These lists
-		// are updated with each pex message and are limited in size
-		// to protect against malicious clients. These lists are also
-		// used for looking up which peer a peer that supports holepunch
-		// came from.
-		// these are vectors to save memory and keep the items close
-		// together for performance. Inserting and removing is relatively
-		// cheap since the lists' size is limited
-		typedef std::vector<std::pair<address_v4::bytes_type, std::uint16_t>> peers4_t;
-		peers4_t m_peers;
-#if TORRENT_USE_IPV6
-		typedef std::vector<std::pair<address_v6::bytes_type, std::uint16_t>> peers6_t;
-		peers6_t m_peers6;
-#endif
+
 		// the last pex messages we received
 		// [0] is the oldest one. There is a problem with
 		// rate limited connections, because we may sit
@@ -667,8 +646,10 @@ namespace libtorrent { namespace
 		if (pc.type() != peer_connection::bittorrent_connection)
 			return boost::shared_ptr<peer_plugin>();
 
-		return boost::shared_ptr<peer_plugin>(new ut_pex_peer_plugin(m_torrent
-			, *pc.native_handle(), *this));
+		bt_peer_connection* c = static_cast<bt_peer_connection*>(pc.native_handle().get());
+		auto p = boost::make_shared<ut_pex_peer_plugin>(m_torrent, *c, *this);
+		c->set_ut_pex(p);
+		return p;
 	}
 } }
 
@@ -682,30 +663,7 @@ namespace libtorrent
 		{
 			return boost::shared_ptr<torrent_plugin>();
 		}
-		return boost::shared_ptr<torrent_plugin>(new ut_pex_plugin(*t));
-	}
-
-	bool was_introduced_by(peer_plugin const* pp, tcp::endpoint const& ep)
-	{
-		ut_pex_peer_plugin const* p = static_cast<ut_pex_peer_plugin const*>(pp);
-#if TORRENT_USE_IPV6
-		if (ep.address().is_v4())
-		{
-#endif
-			ut_pex_peer_plugin::peers4_t::value_type v(ep.address().to_v4().to_bytes(), ep.port());
-			ut_pex_peer_plugin::peers4_t::const_iterator i
-				= std::lower_bound(p->m_peers.begin(), p->m_peers.end(), v);
-			return i != p->m_peers.end() && *i == v;
-#if TORRENT_USE_IPV6
-		}
-		else
-		{
-			ut_pex_peer_plugin::peers6_t::value_type v(ep.address().to_v6().to_bytes(), ep.port());
-			ut_pex_peer_plugin::peers6_t::const_iterator i
-				= std::lower_bound(p->m_peers6.begin(), p->m_peers6.end(), v);
-			return i != p->m_peers6.end() && *i == v;
-		}
-#endif
+		return boost::make_shared<ut_pex_plugin>(*t);
 	}
 }
 
