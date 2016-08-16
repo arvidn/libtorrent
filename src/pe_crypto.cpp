@@ -77,11 +77,14 @@ namespace libtorrent
 		if (end < begin + 96)
 		{
 			int const len = end - begin;
-			memmove(begin + 96 - len, begin, len);
-			memset(begin, 0, 96 - len);
+			std::memmove(begin + 96 - len, begin, len);
+			std::memset(begin, 0, 96 - len);
 		}
 		return ret;
 	}
+
+	void rc4_init(const unsigned char* in, unsigned long len, rc4 *state);
+	unsigned long rc4_encrypt(unsigned char *out, unsigned long outlen, rc4 *state);
 
 	// Set the prime P and the generator, generate local public key
 	dh_key_exchange::dh_key_exchange()
@@ -280,10 +283,11 @@ namespace libtorrent
 		m_rc4_outgoing.y = 0;
 	}
 
-	void rc4_handler::set_incoming_key(unsigned char const* key, int len)
+	void rc4_handler::set_incoming_key(span<char const> key)
 	{
 		m_decrypt = true;
-		rc4_init(key, len, &m_rc4_incoming);
+		rc4_init(reinterpret_cast<unsigned char const*>(key.data())
+			, key.size(), &m_rc4_incoming);
 		// Discard first 1024 bytes
 		int consume = 0;
 		int produce = 0;
@@ -293,10 +297,11 @@ namespace libtorrent
 		decrypt(vec, consume, produce, packet_size);
 	}
 
-	void rc4_handler::set_outgoing_key(unsigned char const* key, int len)
+	void rc4_handler::set_outgoing_key(span<char const> key)
 	{
 		m_encrypt = true;
-		rc4_init(key, len, &m_rc4_outgoing);
+		rc4_init(reinterpret_cast<unsigned char const*>(key.data())
+			, key.size(), &m_rc4_outgoing);
 		// Discard first 1024 bytes
 		char buf[1024];
 		span<char> vec(buf, sizeof(buf));

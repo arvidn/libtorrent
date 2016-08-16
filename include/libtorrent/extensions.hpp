@@ -482,8 +482,8 @@ namespace libtorrent
 		// hidden
 		virtual ~crypto_plugin() {}
 
-		virtual void set_incoming_key(unsigned char const* key, int len) = 0;
-		virtual void set_outgoing_key(unsigned char const* key, int len) = 0;
+		virtual void set_incoming_key(span<char const> key) = 0;
+		virtual void set_outgoing_key(span<char const> key) = 0;
 
 		// encrypted the provided buffers and returns the number of bytes which
 		// are now ready to be sent to the lower layer. This must be at least

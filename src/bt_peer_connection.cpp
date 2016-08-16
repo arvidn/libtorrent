@@ -122,8 +122,8 @@ namespace libtorrent
 
 		boost::shared_ptr<rc4_handler> ret = boost::make_shared<rc4_handler>();
 
-		ret->set_incoming_key(&remote_key[0], 20);
-		ret->set_outgoing_key(&local_key[0], 20);
+		ret->set_incoming_key(remote_key);
+		ret->set_outgoing_key(local_key);
 
 		return ret;
 	}
@@ -542,7 +542,7 @@ namespace libtorrent
 		int const buf_size = dh_key_len + pad_size;
 
 		std::array<char, dh_key_len> const local_key = export_key(m_dh_key_exchange->get_local_key());
-		memcpy(ptr, local_key.data(), dh_key_len);
+		std::memcpy(ptr, local_key.data(), dh_key_len);
 		ptr += dh_key_len;
 
 		std::generate(ptr, ptr + pad_size, random_byte);

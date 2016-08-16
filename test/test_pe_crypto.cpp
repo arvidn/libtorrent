@@ -145,11 +145,11 @@ TORRENT_TEST(rc4)
 
 	std::fprintf(stderr, "testing RC4 handler\n");
 	rc4_handler rc41;
-	rc41.set_incoming_key(&test2_key[0], 20);
-	rc41.set_outgoing_key(&test1_key[0], 20);
+	rc41.set_incoming_key(test2_key);
+	rc41.set_outgoing_key(test1_key);
 	rc4_handler rc42;
-	rc42.set_incoming_key(&test1_key[0], 20);
-	rc42.set_outgoing_key(&test2_key[0], 20);
+	rc42.set_incoming_key(test1_key);
+	rc42.set_outgoing_key(test2_key);
 	test_enc_handler(rc41, rc42);
 }
 
