@@ -259,7 +259,7 @@ namespace libtorrent
 		// ``optimistic_unchoke_feature`` in the return value from implemented_features().
 		// If multiple plugins implement this function the lowest return value
 		// (i.e. the highest priority) is used.
-		virtual uint64_t get_unchoke_priority(peer_connection_handle /* peer */)
+		virtual uint64_t get_unchoke_priority(peer_connection_handle const& /* peer */)
 		{ return std::numeric_limits<uint64_t>::max(); }
 
 		// called when saving settings state
@@ -482,8 +482,8 @@ namespace libtorrent
 		// hidden
 		virtual ~crypto_plugin() {}
 
-		virtual void set_incoming_key(unsigned char const* key, int len) = 0;
-		virtual void set_outgoing_key(unsigned char const* key, int len) = 0;
+		virtual void set_incoming_key(span<char const> key) = 0;
+		virtual void set_outgoing_key(span<char const> key) = 0;
 
 		// encrypted the provided buffers and returns the number of bytes which
 		// are now ready to be sent to the lower layer. This must be at least
@@ -498,6 +498,9 @@ namespace libtorrent
 		encrypt(span<span<char>> /*send_vec*/) = 0;
 
 		// decrypt the provided buffers.
+		// returns is a tuple representing the values
+		// (consume, produce, packet_size)
+		//
 		// consume is set to the number of bytes which should be trimmed from the
 		// head of the buffers, default is 0
 		//
@@ -506,8 +509,7 @@ namespace libtorrent
 		//
 		// packet_size is set to the minimum number of bytes which must be read to
 		// advance the next step of decryption. default is 0
-		virtual void decrypt(span<span<char>> /*receive_vec*/
-			, int& /* consume */, int& /*produce*/, int& /*packet_size*/) = 0;
+		virtual std::tuple<int, int, int> decrypt(span<span<char>> /*receive_vec*/) = 0;
 	};
 }
 

@@ -58,16 +58,13 @@ namespace libtorrent
 
 	using key_t = mp::number<mp::cpp_int_backend<768, 768, mp::unsigned_magnitude, mp::unchecked, void>>;
 
-	std::array<char, 96> export_key(key_t const& k);
+	TORRENT_EXTRA_EXPORT std::array<char, 96> export_key(key_t const& k);
 
 	// RC4 state from libtomcrypt
 	struct rc4 {
 		int x, y;
 		std::array<std::uint8_t, 256> buf;
 	};
-
-	void TORRENT_EXTRA_EXPORT rc4_init(const unsigned char* in, unsigned long len, rc4 *state);
-	unsigned long TORRENT_EXTRA_EXPORT rc4_encrypt(unsigned char *out, unsigned long outlen, rc4 *state);
 
 	// TODO: 3 dh_key_exchange should probably move into its own file
 	class TORRENT_EXTRA_EXPORT dh_key_exchange
@@ -142,17 +139,13 @@ namespace libtorrent
 		rc4_handler();
 
 		// Input keys must be 20 bytes
-		// TODO: 4 use uint768_t here instead of pointer + length
-		void set_incoming_key(unsigned char const* key, int len) override;
-		void set_outgoing_key(unsigned char const* key, int len) override;
+		void set_incoming_key(span<char const> key) override;
+		void set_outgoing_key(span<char const> key) override;
 
 		std::tuple<int, span<span<char const>>>
 		encrypt(span<span<char>> buf) override;
 
-		void decrypt(span<span<char>> buf
-			, int& consume
-			, int& produce
-			, int& packet_size) override;
+		std::tuple<int, int, int> decrypt(span<span<char>> buf) override;
 
 	private:
 		rc4 m_rc4_incoming;

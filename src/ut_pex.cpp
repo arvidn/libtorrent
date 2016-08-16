@@ -31,25 +31,17 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/peer_connection.hpp"
 #include "libtorrent/bt_peer_connection.hpp"
 #include "libtorrent/peer_connection_handle.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent.hpp"
-#include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/peer_info.hpp"
-#include "libtorrent/random.hpp"
 #include "libtorrent/socket_type.hpp" // for is_utp
 #include "libtorrent/performance_counters.hpp" // for counters
-
 #include "libtorrent/extensions/ut_pex.hpp"
-
-#ifndef TORRENT_DISABLE_LOGGING
-#include "libtorrent/lazy_entry.hpp"
-#endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 

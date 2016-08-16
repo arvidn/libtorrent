@@ -73,10 +73,10 @@ void test_enc_handler(libtorrent::crypto_plugin& a, libtorrent::crypto_plugin& b
 
 		{
 			int consume = 0;
-			int produce = buf_len;
+			int produce = 0;
 			int packet_size = 0;
 			lt::span<char> iovec(&buf[0], buf_len);
-			b.decrypt(iovec, consume, produce, packet_size);
+			std::tie(consume, produce, packet_size) = b.decrypt(iovec);
 			TEST_CHECK(buf == cmp_buf);
 			TEST_EQUAL(consume, 0);
 			TEST_EQUAL(produce, buf_len);
@@ -93,10 +93,10 @@ void test_enc_handler(libtorrent::crypto_plugin& a, libtorrent::crypto_plugin& b
 			TEST_EQUAL(next_barrier, buf_len);
 
 			int consume = 0;
-			int produce = buf_len;
+			int produce = 0;
 			int packet_size = 0;
 			lt::span<char> iovec2(&buf[0], buf_len);
-			a.decrypt(iovec2, consume, produce, packet_size);
+			std::tie(consume, produce, packet_size) = a.decrypt(iovec2);
 			TEST_CHECK(buf == cmp_buf);
 			TEST_EQUAL(consume, 0);
 			TEST_EQUAL(produce, buf_len);
@@ -145,11 +145,11 @@ TORRENT_TEST(rc4)
 
 	std::fprintf(stderr, "testing RC4 handler\n");
 	rc4_handler rc41;
-	rc41.set_incoming_key(&test2_key[0], 20);
-	rc41.set_outgoing_key(&test1_key[0], 20);
+	rc41.set_incoming_key(test2_key);
+	rc41.set_outgoing_key(test1_key);
 	rc4_handler rc42;
-	rc42.set_incoming_key(&test1_key[0], 20);
-	rc42.set_outgoing_key(&test2_key[0], 20);
+	rc42.set_incoming_key(test1_key);
+	rc42.set_outgoing_key(test2_key);
 	test_enc_handler(rc41, rc42);
 }
 
