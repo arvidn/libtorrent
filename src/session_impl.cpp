@@ -776,13 +776,13 @@ namespace aux {
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(ext);
 
-		add_ses_extension(boost::make_shared<session_plugin_wrapper>(ext));
+		add_ses_extension(std::make_shared<session_plugin_wrapper>(ext));
 	}
 
-	void session_impl::add_ses_extension(boost::shared_ptr<plugin> ext)
+	void session_impl::add_ses_extension(std::shared_ptr<plugin> ext)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		TORRENT_ASSERT_VAL(ext, ext);
+		TORRENT_ASSERT(ext);
 
 		std::uint32_t const features = ext->implemented_features();
 
@@ -796,7 +796,8 @@ namespace aux {
 			m_ses_extensions[plugins_dht_request_idx].push_back(ext);
 		if (features & plugin::alert_feature)
 			m_alerts.add_extension(ext);
-		ext->added(session_handle(this));
+		session_handle h(this);
+		ext->added(h);
 	}
 
 #endif // TORRENT_DISABLE_EXTENSIONS
@@ -3739,11 +3740,11 @@ namespace aux {
 		struct last_optimistic_unchoke_cmp
 		{
 #ifndef TORRENT_DISABLE_EXTENSIONS
-			explicit last_optimistic_unchoke_cmp(std::vector<boost::shared_ptr<plugin>>& ps)
+			explicit last_optimistic_unchoke_cmp(std::vector<std::shared_ptr<plugin>>& ps)
 				: plugins(ps)
 			{}
 
-			std::vector<boost::shared_ptr<plugin>>& plugins;
+			std::vector<std::shared_ptr<plugin>>& plugins;
 #endif
 
 			uint64_t get_ext_priority(opt_unchoke_candidate const& peer) const
@@ -4627,7 +4628,7 @@ namespace aux {
 	{
 		for (auto& e : m_ses_extensions[plugins_all_idx])
 		{
-			boost::shared_ptr<torrent_plugin> tp(e->new_torrent(
+			std::shared_ptr<torrent_plugin> tp(e->new_torrent(
 				torrent_ptr->get_handle(), userdata));
 			if (tp) torrent_ptr->add_extension(std::move(tp));
 		}
@@ -4654,11 +4655,9 @@ namespace aux {
 #ifndef TORRENT_DISABLE_DHT
 		if (params.ti)
 		{
-			torrent_info::nodes_t const& nodes = params.ti->nodes();
-			for (std::vector<std::pair<std::string, int> >::const_iterator i = nodes.begin()
-				, end(nodes.end()); i != end; ++i)
+			for (auto const& n : params.ti->nodes())
 			{
-				add_dht_node_name(*i);
+				add_dht_node_name(n);
 			}
 		}
 #endif
@@ -4676,7 +4675,7 @@ namespace aux {
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (auto& ext : params.extensions)
 		{
-			boost::shared_ptr<torrent_plugin> tp(ext(handle, params.userdata));
+			std::shared_ptr<torrent_plugin> tp(ext(handle, params.userdata));
 			if (tp) torrent_ptr->add_extension(std::move(tp));
 		}
 

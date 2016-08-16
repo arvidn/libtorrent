@@ -48,7 +48,7 @@ int peer_connection_handle::type() const
 	return pc->type();
 }
 
-void peer_connection_handle::add_extension(boost::shared_ptr<peer_plugin> ext)
+void peer_connection_handle::add_extension(std::shared_ptr<peer_plugin> ext)
 {
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	boost::shared_ptr<peer_connection> pc = native_handle();
@@ -299,7 +299,7 @@ bool bt_peer_connection_handle::supports_encryption() const
 #endif
 }
 
-void bt_peer_connection_handle::switch_send_crypto(boost::shared_ptr<crypto_plugin> crypto)
+void bt_peer_connection_handle::switch_send_crypto(std::shared_ptr<crypto_plugin> crypto)
 {
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 	boost::shared_ptr<bt_peer_connection> pc = native_handle();
@@ -310,7 +310,7 @@ void bt_peer_connection_handle::switch_send_crypto(boost::shared_ptr<crypto_plug
 #endif
 }
 
-void bt_peer_connection_handle::switch_recv_crypto(boost::shared_ptr<crypto_plugin> crypto)
+void bt_peer_connection_handle::switch_recv_crypto(std::shared_ptr<crypto_plugin> crypto)
 {
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 	boost::shared_ptr<bt_peer_connection> pc = native_handle();

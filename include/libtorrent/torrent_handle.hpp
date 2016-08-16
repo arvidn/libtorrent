@@ -248,8 +248,8 @@ namespace libtorrent
 		// i.e. is_valid() will return false.
 		torrent_handle() {}
 
-		torrent_handle(torrent_handle const& t) = default;
-		torrent_handle(torrent_handle&& t) = default;
+		torrent_handle(torrent_handle const&) = default;
+		torrent_handle(torrent_handle&&) = default;
 		torrent_handle& operator=(torrent_handle const&) = default;
 		torrent_handle& operator=(torrent_handle&&) = default;
 
@@ -511,7 +511,7 @@ namespace libtorrent
 		// pointer. The function is expected to return a shared pointer to
 		// a torrent_plugin instance.
 		void add_extension(
-			std::function<boost::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> const& ext
+			std::function<std::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> const& ext
 			, void* userdata = 0);
 
 		// ``set_metadata`` expects the *info* section of metadata. i.e. The

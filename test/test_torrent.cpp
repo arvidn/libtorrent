@@ -314,11 +314,11 @@ struct plugin_creator
 {
 	explicit plugin_creator(int& c) : m_called(c) {}
 
-	boost::shared_ptr<libtorrent::torrent_plugin>
+	std::shared_ptr<libtorrent::torrent_plugin>
 	operator()(torrent_handle const&, void*)
 	{
 		++m_called;
-		return boost::make_shared<test_plugin>();
+		return std::make_shared<test_plugin>();
 	}
 
 	int& m_called;

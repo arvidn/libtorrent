@@ -330,7 +330,7 @@ namespace libtorrent
 		void send_allowed_set();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		void add_extension(boost::shared_ptr<peer_plugin>);
+		void add_extension(std::shared_ptr<peer_plugin>);
 #endif
 
 		// this function is called once the torrent associated
@@ -867,7 +867,7 @@ namespace libtorrent
 
 	public:
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		typedef std::list<boost::shared_ptr<peer_plugin>> extension_list_t;
+		typedef std::list<std::shared_ptr<peer_plugin>> extension_list_t;
 		extension_list_t m_extensions;
 #endif
 	private:

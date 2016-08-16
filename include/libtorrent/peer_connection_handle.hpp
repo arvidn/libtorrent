@@ -59,7 +59,7 @@ struct TORRENT_EXPORT peer_connection_handle
 
 	int type() const;
 
-	void add_extension(boost::shared_ptr<peer_plugin>);
+	void add_extension(std::shared_ptr<peer_plugin>);
 
 	bool is_seed() const;
 
@@ -139,8 +139,8 @@ struct TORRENT_EXPORT bt_peer_connection_handle : public peer_connection_handle
 
 	bool supports_encryption() const;
 
-	void switch_send_crypto(boost::shared_ptr<crypto_plugin> crypto);
-	void switch_recv_crypto(boost::shared_ptr<crypto_plugin> crypto);
+	void switch_send_crypto(std::shared_ptr<crypto_plugin> crypto);
+	void switch_recv_crypto(std::shared_ptr<crypto_plugin> crypto);
 
 	boost::shared_ptr<bt_peer_connection> native_handle() const;
 };
