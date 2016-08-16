@@ -87,12 +87,11 @@ static test_torrent_t test_torrents[] = {
 
 TORRENT_TEST(resolve_links)
 {
-
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 	std::string path = combine_path(parent_path(current_working_directory())
 		, "mutable_test_torrents");
 
-	for (int i = 0; i < int(sizeof(test_torrents)/sizeof(test_torrents[0])); ++i)
+	for (int i = 0; i < int(sizeof(test_torrents) / sizeof(test_torrents[0])); ++i)
 	{
 		test_torrent_t const& e = test_torrents[i];
 
@@ -133,4 +132,3 @@ TORRENT_TEST(resolve_links)
 	}
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 }
-
