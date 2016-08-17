@@ -48,7 +48,7 @@ int peer_connection_handle::type() const
 	return pc->type();
 }
 
-void peer_connection_handle::add_extension(boost::shared_ptr<peer_plugin> ext)
+void peer_connection_handle::add_extension(std::shared_ptr<peer_plugin> ext)
 {
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	boost::shared_ptr<peer_connection> pc = native_handle();

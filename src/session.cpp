@@ -325,16 +325,16 @@ namespace libtorrent
 
 	namespace
 	{
-		std::vector<boost::shared_ptr<plugin>> default_plugins(
+		std::vector<std::shared_ptr<plugin>> default_plugins(
 			bool empty = false)
 		{
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			if (empty) return {};
 			using wrapper = session_impl::session_plugin_wrapper;
 			return {
-				boost::make_shared<wrapper>(create_ut_pex_plugin),
-				boost::make_shared<wrapper>(create_ut_metadata_plugin),
-				boost::make_shared<wrapper>(create_smart_ban_plugin)
+				std::make_shared<wrapper>(create_ut_pex_plugin),
+				std::make_shared<wrapper>(create_ut_metadata_plugin),
+				std::make_shared<wrapper>(create_smart_ban_plugin)
 			};
 #else
 			TORRENT_UNUSED(empty);
@@ -411,7 +411,7 @@ namespace libtorrent
 	{}
 
 	session_params::session_params(settings_pack sp
-		, std::vector<boost::shared_ptr<plugin>> exts)
+		, std::vector<std::shared_ptr<plugin>> exts)
 		: settings(std::move(sp))
 		, extensions(std::move(exts))
 #ifndef TORRENT_DISABLE_DHT

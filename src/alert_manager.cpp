@@ -106,7 +106,7 @@ namespace libtorrent
 	}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-	void alert_manager::add_extension(boost::shared_ptr<plugin> ext)
+	void alert_manager::add_extension(std::shared_ptr<plugin> ext)
 	{
 		m_ses_extensions.push_back(ext);
 	}

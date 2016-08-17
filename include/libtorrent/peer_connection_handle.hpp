@@ -59,7 +59,7 @@ struct TORRENT_EXPORT peer_connection_handle
 
 	int type() const;
 
-	void add_extension(boost::shared_ptr<peer_plugin>);
+	void add_extension(std::shared_ptr<peer_plugin>);
 
 	bool is_seed() const;
 

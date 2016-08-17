@@ -523,7 +523,7 @@ namespace libtorrent
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-	void peer_connection::add_extension(boost::shared_ptr<peer_plugin> ext)
+	void peer_connection::add_extension(std::shared_ptr<peer_plugin> ext)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		m_extensions.push_back(ext);

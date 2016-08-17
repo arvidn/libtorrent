@@ -117,7 +117,7 @@ namespace libtorrent {
 		void set_notify_function(std::function<void()> const& fun);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		void add_extension(boost::shared_ptr<plugin> ext);
+		void add_extension(std::shared_ptr<plugin> ext);
 #endif
 
 	private:
@@ -159,7 +159,7 @@ namespace libtorrent {
 		aux::stack_allocator m_allocations[2];
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		std::list<boost::shared_ptr<plugin>> m_ses_extensions;
+		std::list<std::shared_ptr<plugin>> m_ses_extensions;
 #endif
 	};
 }

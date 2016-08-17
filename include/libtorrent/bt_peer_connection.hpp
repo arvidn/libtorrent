@@ -194,10 +194,10 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		bool supports_holepunch() const { return m_holepunch_id != 0; }
-		void set_ut_pex(boost::shared_ptr<ut_pex_peer_store> ut_pex)
-		{ m_ut_pex = ut_pex; }
+		void set_ut_pex(std::weak_ptr<ut_pex_peer_store> ut_pex)
+		{ m_ut_pex.swap(ut_pex); }
 		bool was_introduced_by(tcp::endpoint const& ep) const
-		{ return m_ut_pex && m_ut_pex->was_introduced_by(ep); }
+		{ auto p = m_ut_pex.lock(); return p && p->was_introduced_by(ep); }
 #endif
 
 		bool support_extensions() const { return m_supports_extensions; }
@@ -459,7 +459,7 @@ private:
 		// 0 if not supported
 		std::uint8_t m_share_mode_id;
 
-		boost::shared_ptr<ut_pex_peer_store> m_ut_pex;
+		std::weak_ptr<ut_pex_peer_store> m_ut_pex;
 
 		std::array<char, 8> m_reserved_bits;
 #endif

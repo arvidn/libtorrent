@@ -217,20 +217,20 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			using ext_function_t
-				= std::function<boost::shared_ptr<torrent_plugin>(torrent_handle const&, void*)>;
+				= std::function<std::shared_ptr<torrent_plugin>(torrent_handle const&, void*)>;
 
 			struct session_plugin_wrapper : plugin
 			{
 				explicit session_plugin_wrapper(ext_function_t const& f) : m_f(f) {}
 
-				boost::shared_ptr<torrent_plugin> new_torrent(torrent_handle const& t, void* user) override
+				std::shared_ptr<torrent_plugin> new_torrent(torrent_handle const& t, void* user) override
 				{ return m_f(t, user); }
 				ext_function_t m_f;
 			};
 
-			void add_extension(std::function<boost::shared_ptr<torrent_plugin>(
+			void add_extension(std::function<std::shared_ptr<torrent_plugin>(
 				torrent_handle const&, void*)> ext);
-			void add_ses_extension(boost::shared_ptr<plugin> ext);
+			void add_ses_extension(std::shared_ptr<plugin> ext);
 #endif
 #if TORRENT_USE_ASSERTS
 			bool has_peer(peer_connection const* p) const override;
@@ -1178,7 +1178,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			// this is a list to allow extensions to potentially remove themselves.
-			std::array<std::vector<boost::shared_ptr<plugin>>, 4> m_ses_extensions;
+			std::array<std::vector<std::shared_ptr<plugin>>, 4> m_ses_extensions;
 #endif
 
 			// if this function is set, it indicates that torrents are allowed

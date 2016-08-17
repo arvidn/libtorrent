@@ -92,19 +92,19 @@ POSSIBILITY OF SUCH DAMAGE.
 // 
 // The signature of the function is::
 // 
-// 	boost::shared_ptr<torrent_plugin> (*)(torrent_handle const&, void*);
+// 	std::shared_ptr<torrent_plugin> (*)(torrent_handle const&, void*);
 // 
 // The second argument is the userdata passed to ``session::add_torrent()`` or
 // ``torrent_handle::add_extension()``.
 // 
-// The function should return a ``boost::shared_ptr<torrent_plugin>`` which
+// The function should return a ``std::shared_ptr<torrent_plugin>`` which
 // may or may not be 0. If it is a nullptr, the extension is simply ignored
 // for this torrent. If it is a valid pointer (to a class inheriting
 // ``torrent_plugin``), it will be associated with this torrent and callbacks
 // will be made on torrent events.
 // 
 // For more elaborate plugins which require session wide state, you would
-// implement ``plugin``, construct an object (in a ``boost::shared_ptr``) and pass
+// implement ``plugin``, construct an object (in a ``std::shared_ptr``) and pass
 // it in to ``session::add_extension()``.
 // 
 // custom alerts
@@ -224,8 +224,8 @@ namespace libtorrent
 		// If the plugin returns a torrent_plugin instance, it will be added
 		// to the new torrent. Otherwise, return an empty shared_ptr to a
 		// torrent_plugin (the default).
-		virtual boost::shared_ptr<torrent_plugin> new_torrent(torrent_handle const&, void*)
-		{ return boost::shared_ptr<torrent_plugin>(); }
+		virtual std::shared_ptr<torrent_plugin> new_torrent(torrent_handle const&, void*)
+		{ return std::shared_ptr<torrent_plugin>(); }
 
 		// called when plugin is added to a session
 		virtual void added(session_handle const&) {}
@@ -294,8 +294,8 @@ namespace libtorrent
 		// to it, use ``weak_ptr``.
 		// 
 		// If this function throws an exception, the connection will be closed.
-		virtual boost::shared_ptr<peer_plugin> new_connection(peer_connection_handle const&)
-		{ return boost::shared_ptr<peer_plugin>(); }
+		virtual std::shared_ptr<peer_plugin> new_connection(peer_connection_handle const&)
+		{ return std::shared_ptr<peer_plugin>(); }
 
 		// These hooks are called when a piece passes the hash check or fails the hash
 		// check, respectively. The ``index`` is the piece index that was downloaded.
