@@ -36,17 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/torrent_info.hpp"
 
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated"
-#endif
-
-#include <boost/make_shared.hpp>
-
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
-
 int main(int argc, char* argv[])
 {
 	using namespace libtorrent;
@@ -70,7 +59,7 @@ int main(int argc, char* argv[])
 	}
 	add_torrent_params p;
 	p.save_path = "./";
-	p.ti = boost::make_shared<torrent_info>(std::string(argv[1]), std::ref(ec), 0);
+	p.ti = std::make_shared<torrent_info>(std::string(argv[1]), std::ref(ec), 0);
 	if (ec)
 	{
 		std::fprintf(stderr, "%s\n", ec.message().c_str());

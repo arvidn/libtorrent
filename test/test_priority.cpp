@@ -119,7 +119,7 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 	error_code ec;
 	create_directory("tmp1_priority", ec);
 	std::ofstream file("tmp1_priority/temporary");
-	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
+	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
 	file.close();
 
 	add_torrent_params addp;

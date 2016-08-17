@@ -89,7 +89,7 @@ TORRENT_TEST(recheck)
 	create_directory("tmp1_recheck", ec);
 	if (ec) std::fprintf(stderr, "create_directory: %s\n", ec.message().c_str());
 	std::ofstream file("tmp1_recheck/temporary");
-	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 4 * 1024 * 1024
+	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 4 * 1024 * 1024
 		, 7, false);
 	file.close();
 

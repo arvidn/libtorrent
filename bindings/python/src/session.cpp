@@ -223,7 +223,7 @@ namespace
            // on the C++ side, it will end up freeing the python object
            // without holding the GIL and likely crash.
            // https://mail.python.org/pipermail/cplusplus-sig/2007-June/012130.html
-           p.ti = boost::make_shared<torrent_info>(
+           p.ti = std::make_shared<torrent_info>(
               extract<torrent_info const&>(params["ti"]));
         }
 

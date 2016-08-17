@@ -105,7 +105,7 @@ namespace libtorrent
 			// only require the info-hash to match if we actually passed in one
 			if (resume_ih == ret.info_hash)
 			{
-				ret.ti = boost::make_shared<torrent_info>(resume_ih);
+				ret.ti = std::make_shared<torrent_info>(resume_ih);
 
 				error_code err;
 				if (!ret.ti->parse_info_section(info, err, 0))

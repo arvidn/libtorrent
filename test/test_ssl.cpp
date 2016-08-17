@@ -183,7 +183,7 @@ void test_ssl(int test_idx, bool use_utp)
 
 	create_directory("tmp1_ssl", ec);
 	std::ofstream file("tmp1_ssl/temporary");
-	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary"
+	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary"
 		, 16 * 1024, 13, false, combine_path("..", combine_path("ssl", "root_ca_cert.pem")));
 	file.close();
 
@@ -345,7 +345,7 @@ attack_t attacks[] =
 const int num_attacks = sizeof(attacks)/sizeof(attacks[0]);
 
 bool try_connect(libtorrent::session& ses1, int port
-	, boost::shared_ptr<torrent_info> const& t, std::uint32_t flags)
+	, std::shared_ptr<torrent_info> const& t, std::uint32_t flags)
 {
 	using boost::asio::ssl::context;
 
@@ -565,7 +565,7 @@ void test_malicious_peer()
 	// create torrent
 	create_directory("tmp3_ssl", ec);
 	std::ofstream file("tmp3_ssl/temporary");
-	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary"
+	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary"
 		, 16 * 1024, 13, false, combine_path("..", combine_path("ssl", "root_ca_cert.pem")));
 	file.close();
 

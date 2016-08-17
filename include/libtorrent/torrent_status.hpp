@@ -161,7 +161,7 @@ namespace libtorrent
 		// set to point to the ``torrent_info`` object for this torrent. It's
 		// only included if the torrent status is queried with
 		// ``torrent_handle::query_torrent_file``.
-		boost::weak_ptr<const torrent_info> torrent_file;
+		std::weak_ptr<const torrent_info> torrent_file;
 
 		// the time until the torrent will announce itself to the tracker.
 		time_duration next_announce;

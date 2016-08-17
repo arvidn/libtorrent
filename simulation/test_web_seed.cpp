@@ -48,7 +48,7 @@ using namespace libtorrent;
 
 namespace lt = libtorrent;
 
-boost::shared_ptr<torrent_info> create_torrent(file_storage& fs)
+std::shared_ptr<torrent_info> create_torrent(file_storage& fs)
 {
 	int const piece_size = 0x4000;
 	libtorrent::create_torrent t(fs, piece_size);
@@ -70,8 +70,8 @@ boost::shared_ptr<torrent_info> create_torrent(file_storage& fs)
 
 	bencode(out, tor);
 	error_code ec;
-	return boost::make_shared<torrent_info>(
-		&tmp[0], tmp.size(), std::ref(ec), 0);
+	return std::make_shared<torrent_info>(
+		&tmp[0], int(tmp.size()), std::ref(ec), 0);
 }
 // this is the general template for these tests. create the session with custom
 // settings (Settings), set up the test, by adding torrents with certain

@@ -38,18 +38,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/heterogeneous_queue.hpp"
 #include "libtorrent/stack_allocator.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/shared_ptr.hpp>
-#include <boost/config.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include <functional>
 #include <list>
 #include <utility> // for std::forward
 #include <mutex>
 #include <condition_variable>
-
 
 namespace libtorrent {
 

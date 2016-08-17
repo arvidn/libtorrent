@@ -4615,7 +4615,7 @@ namespace aux {
 		else
 		{
 			params->url.clear();
-			params->ti = boost::shared_ptr<torrent_info>(j->buffer.torrent_file);
+			params->ti = std::shared_ptr<torrent_info>(j->buffer.torrent_file);
 			handle = add_torrent(*params, ec);
 		}
 
@@ -4783,7 +4783,7 @@ namespace aux {
 		if (string_begins_no_case("file://", params.url.c_str()) && !params.ti)
 		{
 			std::string const filename = resolve_file_url(params.url);
-			boost::shared_ptr<torrent_info> t = boost::make_shared<torrent_info>(filename, std::ref(ec), 0);
+			auto t = std::make_shared<torrent_info>(filename, std::ref(ec), 0);
 			if (ec) return std::make_pair(ptr_t(), false);
 			params.url.clear();
 			params.ti = t;

@@ -34,13 +34,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_RESOLVE_LINKS_HPP
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/shared_ptr.hpp>
 #include <boost/unordered_map.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
 #include <vector>
 #include <utility>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/export.hpp"
 
@@ -55,15 +53,15 @@ namespace libtorrent
 	{
 		struct TORRENT_EXTRA_EXPORT link_t
 		{
-			boost::shared_ptr<const torrent_info> ti;
+			std::shared_ptr<const torrent_info> ti;
 			std::string save_path;
 			int file_idx;
 		};
 
-		resolve_links(boost::shared_ptr<torrent_info> ti);
+		resolve_links(std::shared_ptr<torrent_info> ti);
 
 		// check to see if any files are shared with this torrent
-		void match(boost::shared_ptr<const torrent_info> const& ti
+		void match(std::shared_ptr<const torrent_info> const& ti
 			, std::string const& save_path);
 
 		std::vector<link_t> const& get_links() const
@@ -71,7 +69,7 @@ namespace libtorrent
 
 	private:
 		// this is the torrent we're trying to find files for.
-		boost::shared_ptr<torrent_info> m_torrent_file;
+		std::shared_ptr<torrent_info> m_torrent_file;
 
 		// each file in m_torrent_file has an entry in this vector. Any file
 		// that also exists somewhere else, is filled in with the corresponding
@@ -86,4 +84,3 @@ namespace libtorrent
 }
 
 #endif
-

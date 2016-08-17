@@ -38,11 +38,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/tailqueue.hpp"
 #include "libtorrent/peer_id.hpp"
 
+#include <string>
+
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <string>
 #include <boost/function/function1.hpp>
-#include <boost/shared_ptr.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -241,4 +241,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_DISK_IO_JOB_HPP
-

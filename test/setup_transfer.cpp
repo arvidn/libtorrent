@@ -51,8 +51,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp" // for supports_ipv6()
 #include "libtorrent/hex.hpp" // to_hex
 
-#include <boost/make_shared.hpp>
-
 #include "test.hpp"
 #include "test_utils.hpp"
 #include "setup_transfer.hpp"
@@ -595,9 +593,9 @@ int start_proxy(int proxy_type)
 using namespace libtorrent;
 
 template <class T>
-boost::shared_ptr<T> clone_ptr(boost::shared_ptr<T> const& ptr)
+std::shared_ptr<T> clone_ptr(std::shared_ptr<T> const& ptr)
 {
-	return boost::make_shared<T>(*ptr);
+	return std::make_shared<T>(*ptr);
 }
 
 unsigned char random_byte()
@@ -640,7 +638,7 @@ lt::file_storage make_file_storage(const int file_sizes[], int num_files
 	return fs;
 }
 
-boost::shared_ptr<lt::torrent_info> make_torrent(const int file_sizes[]
+std::shared_ptr<lt::torrent_info> make_torrent(const int file_sizes[]
 	, int const num_files, int const piece_size)
 {
 	using namespace libtorrent;
@@ -658,7 +656,7 @@ boost::shared_ptr<lt::torrent_info> make_torrent(const int file_sizes[]
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), ct.generate());
 	error_code ec;
-	return boost::make_shared<torrent_info>(&buf[0], int(buf.size()), ec);
+	return std::make_shared<torrent_info>(&buf[0], int(buf.size()), ec);
 }
 
 void create_random_files(std::string const& path, const int file_sizes[], int num_files)
@@ -696,11 +694,11 @@ void create_random_files(std::string const& path, const int file_sizes[], int nu
 	free(random_data);
 }
 
-boost::shared_ptr<torrent_info> create_torrent(std::ostream* file
+std::shared_ptr<torrent_info> create_torrent(std::ostream* file
 	, char const* name, int piece_size
 	, int num_pieces, bool add_tracker, std::string ssl_certificate)
 {
-	// excercise the path when encountering invalid urls
+	// exercise the path when encountering invalid urls
 	char const* invalid_tracker_url = "http:";
 	char const* invalid_tracker_protocol = "foo://non/existent-name.com/announce";
 
@@ -757,17 +755,17 @@ boost::shared_ptr<torrent_info> create_torrent(std::ostream* file
 
 	bencode(out, tor);
 	error_code ec;
-	return boost::make_shared<torrent_info>(
-		&tmp[0], tmp.size(), std::ref(ec), 0);
+	return std::make_shared<torrent_info>(
+		&tmp[0], int(tmp.size()), std::ref(ec), 0);
 }
 
 std::tuple<torrent_handle, torrent_handle, torrent_handle>
 setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 	, bool clear_files, bool use_metadata_transfer, bool connect_peers
 	, std::string suffix, int piece_size
-	, boost::shared_ptr<torrent_info>* torrent, bool super_seeding
+	, std::shared_ptr<torrent_info>* torrent, bool super_seeding
 	, add_torrent_params const* p, bool stop_lsd, bool use_ssl_ports
-	, boost::shared_ptr<torrent_info>* torrent2)
+	, std::shared_ptr<torrent_info>* torrent2)
 {
 	TORRENT_ASSERT(ses1);
 	TORRENT_ASSERT(ses2);
@@ -820,7 +818,7 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 	TORRENT_ASSERT(ses1->id() != ses2->id());
 	if (ses3) TORRENT_ASSERT(ses3->id() != ses2->id());
 
-	boost::shared_ptr<torrent_info> t;
+	std::shared_ptr<torrent_info> t;
 	if (torrent == nullptr)
 	{
 		error_code ec;

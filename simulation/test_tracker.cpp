@@ -696,7 +696,7 @@ TORRENT_TEST(try_next)
 	TEST_EQUAL(got_announce, true);
 }
 
-boost::shared_ptr<torrent_info> make_torrent(bool priv)
+std::shared_ptr<torrent_info> make_torrent(bool priv)
 {
 	file_storage fs;
 	fs.add_file("foobar", 13241);
@@ -713,7 +713,7 @@ boost::shared_ptr<torrent_info> make_torrent(bool priv)
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), e);
 	error_code ec;
-	return boost::make_shared<torrent_info>(buf.data(), buf.size(), ec);
+	return std::make_shared<torrent_info>(buf.data(), int(buf.size()), ec);
 }
 
 // make sure we _do_ send our IPv6 address to trackers for private torrents

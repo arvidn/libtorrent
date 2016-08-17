@@ -404,11 +404,11 @@ entry read_ut_metadata_msg(tcp::socket& s, char* recv_buffer, int size)
 	}
 }
 
-boost::shared_ptr<torrent_info> setup_peer(tcp::socket& s, sha1_hash& ih
+std::shared_ptr<torrent_info> setup_peer(tcp::socket& s, sha1_hash& ih
 	, boost::shared_ptr<lt::session>& ses, bool incoming = true
 	, int flags = 0, torrent_handle* th = nullptr)
 {
-	boost::shared_ptr<torrent_info> t = ::create_torrent();
+	std::shared_ptr<torrent_info> t = ::create_torrent();
 	ih = t->info_hash();
 	settings_pack sett;
 	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:48900");
@@ -724,7 +724,7 @@ TORRENT_TEST(multiple_bitfields)
 	boost::shared_ptr<lt::session> ses;
 	io_service ios;
 	tcp::socket s(ios);
-	boost::shared_ptr<torrent_info> ti = setup_peer(s, ih, ses);
+	std::shared_ptr<torrent_info> ti = setup_peer(s, ih, ses);
 	print_session_log(*ses);
 
 	char recv_buffer[1000];
@@ -758,7 +758,7 @@ TORRENT_TEST(multiple_have_all)
 	boost::shared_ptr<lt::session> ses;
 	io_service ios;
 	tcp::socket s(ios);
-	boost::shared_ptr<torrent_info> ti = setup_peer(s, ih, ses);
+	std::shared_ptr<torrent_info> ti = setup_peer(s, ih, ses);
 
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);
@@ -793,7 +793,7 @@ TORRENT_TEST(dont_have)
 	boost::shared_ptr<lt::session> ses;
 	io_service ios;
 	tcp::socket s(ios);
-	boost::shared_ptr<torrent_info> ti = setup_peer(s, ih, ses, true, 0, &th);
+	std::shared_ptr<torrent_info> ti = setup_peer(s, ih, ses, true, 0, &th);
 
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);
@@ -895,7 +895,7 @@ TORRENT_TEST(invalid_metadata_request)
 	boost::shared_ptr<lt::session> ses;
 	io_service ios;
 	tcp::socket s(ios);
-	boost::shared_ptr<torrent_info> ti = setup_peer(s, ih, ses);
+	std::shared_ptr<torrent_info> ti = setup_peer(s, ih, ses);
 
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);

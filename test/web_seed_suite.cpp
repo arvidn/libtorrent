@@ -47,7 +47,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "make_torrent.hpp"
 
 #include <tuple>
-#include <boost/make_shared.hpp>
 #include <fstream>
 #include "setup_transfer.hpp"
 
@@ -75,7 +74,7 @@ static char const* proxy_name[] = {"", "_socks4", "_socks5", "_socks5_pw", "_htt
 } // anonymous namespace
 
 // proxy: 0=none, 1=socks4, 2=socks5, 3=socks5_pw 4=http 5=http_pw
-void test_transfer(lt::session& ses, boost::shared_ptr<torrent_info> torrent_file
+void test_transfer(lt::session& ses, std::shared_ptr<torrent_info> torrent_file
 	, int proxy, char const* protocol, bool url_seed
 	, bool chunked_encoding, bool test_ban, bool keepalive, bool proxy_peers)
 {
@@ -377,7 +376,7 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed
 	{
 		std::fprintf(stderr, "\n\n ====  test case %d ====\n\n\n", a);
 
-		boost::shared_ptr<torrent_info> torrent_file = make_test_torrent(test_cases[a]);
+		std::shared_ptr<torrent_info> torrent_file = make_test_torrent(test_cases[a]);
 
 		// if test_ban is true, we create the files with alternate content (that
 		// doesn't match the hashes in the .torrent file)

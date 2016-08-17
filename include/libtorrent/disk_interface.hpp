@@ -33,9 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DISK_INTERFACE_HPP
 #define TORRENT_DISK_INTERFACE_HPP
 
-#include <boost/function/function1.hpp>
-#include <boost/shared_ptr.hpp>
-
 #include "libtorrent/bdecode.hpp"
 
 #include <string>
@@ -114,4 +111,3 @@ namespace libtorrent
 }
 
 #endif
-

@@ -119,7 +119,7 @@ TORRENT_TEST(socks5_tcp_accept)
 			}
 		},
 		[](sim::simulation& sim, lt::session&
-			, boost::shared_ptr<lt::torrent_info> ti)
+			, std::shared_ptr<lt::torrent_info> ti)
 		{
 			// test connecting to the client via its socks5 listen port
 		// TODO: maybe we could use peer_conn here instead
@@ -161,7 +161,7 @@ TORRENT_TEST(socks4_tcp_accept)
 			}
 		},
 		[](sim::simulation& sim, lt::session&
-			, boost::shared_ptr<lt::torrent_info> ti)
+			, std::shared_ptr<lt::torrent_info> ti)
 		{
 			fake_peer peer1(sim, "60.0.0.0");
 
@@ -200,7 +200,7 @@ TORRENT_TEST(socks4_tcp_listen_alert)
 			}
 		},
 		[](sim::simulation& sim, lt::session&
-			, boost::shared_ptr<lt::torrent_info> ti)
+			, std::shared_ptr<lt::torrent_info> ti)
 		{
 			sim.run();
 		}
@@ -230,7 +230,7 @@ TORRENT_TEST(socks5_tcp_listen_alert)
 			}
 		},
 		[](sim::simulation& sim, lt::session&
-			, boost::shared_ptr<lt::torrent_info> ti)
+			, std::shared_ptr<lt::torrent_info> ti)
 		{
 			sim.run();
 		}
@@ -265,7 +265,7 @@ TORRENT_TEST(socks5_tcp_announce)
 			}
 		},
 		[&tracker_port](sim::simulation& sim, lt::session&
-			, boost::shared_ptr<lt::torrent_info> ti)
+			, std::shared_ptr<lt::torrent_info> ti)
 		{
 			sim::asio::io_service web_server(sim, address_v4::from_string("2.2.2.2"));
 			// listen on port 8080
