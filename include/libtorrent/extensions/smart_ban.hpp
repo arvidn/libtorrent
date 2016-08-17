@@ -37,11 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/shared_ptr.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <memory>
 
 namespace libtorrent
 {
@@ -54,7 +50,7 @@ namespace libtorrent
 	// out to have sent corrupt data.
 	// This function can either be passed in the add_torrent_params::extensions
 	// field, or via torrent_handle::add_extension().
-	TORRENT_EXPORT boost::shared_ptr<torrent_plugin> create_smart_ban_plugin(torrent_handle const&, void*);
+	TORRENT_EXPORT std::shared_ptr<torrent_plugin> create_smart_ban_plugin(torrent_handle const&, void*);
 }
 
 #endif // TORRENT_DISABLE_EXTENSIONS

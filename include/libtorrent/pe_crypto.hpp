@@ -104,10 +104,10 @@ namespace libtorrent
 		int decrypt(crypto_receive_buffer& recv_buffer
 			, std::size_t& bytes_transferred);
 
-		bool switch_send_crypto(boost::shared_ptr<crypto_plugin> crypto
+		bool switch_send_crypto(std::shared_ptr<crypto_plugin> crypto
 			, int pending_encryption);
 
-		void switch_recv_crypto(boost::shared_ptr<crypto_plugin> crypto
+		void switch_recv_crypto(std::shared_ptr<crypto_plugin> crypto
 			, crypto_receive_buffer& recv_buffer);
 
 		bool is_send_plaintext() const
@@ -123,14 +123,14 @@ namespace libtorrent
 	private:
 		struct barrier
 		{
-			barrier(boost::shared_ptr<crypto_plugin> plugin, int n)
+			barrier(std::shared_ptr<crypto_plugin> plugin, int n)
 				: enc_handler(plugin), next(n) {}
-			boost::shared_ptr<crypto_plugin> enc_handler;
+			std::shared_ptr<crypto_plugin> enc_handler;
 			// number of bytes to next barrier
 			int next;
 		};
 		std::list<barrier> m_send_barriers;
-		boost::shared_ptr<crypto_plugin> m_dec_handler;
+		std::shared_ptr<crypto_plugin> m_dec_handler;
 	};
 
 	struct TORRENT_EXTRA_EXPORT rc4_handler : crypto_plugin

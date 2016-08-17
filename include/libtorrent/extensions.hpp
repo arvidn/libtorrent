@@ -92,19 +92,19 @@ POSSIBILITY OF SUCH DAMAGE.
 // 
 // The signature of the function is::
 // 
-// 	boost::shared_ptr<torrent_plugin> (*)(torrent_handle const&, void*);
+// 	std::shared_ptr<torrent_plugin> (*)(torrent_handle const&, void*);
 // 
 // The second argument is the userdata passed to ``session::add_torrent()`` or
 // ``torrent_handle::add_extension()``.
 // 
-// The function should return a ``boost::shared_ptr<torrent_plugin>`` which
+// The function should return a ``std::shared_ptr<torrent_plugin>`` which
 // may or may not be 0. If it is a nullptr, the extension is simply ignored
 // for this torrent. If it is a valid pointer (to a class inheriting
 // ``torrent_plugin``), it will be associated with this torrent and callbacks
 // will be made on torrent events.
 // 
 // For more elaborate plugins which require session wide state, you would
-// implement ``plugin``, construct an object (in a ``boost::shared_ptr``) and pass
+// implement ``plugin``, construct an object (in a ``std::shared_ptr``) and pass
 // it in to ``session::add_extension()``.
 // 
 // custom alerts
@@ -158,12 +158,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
 #include <vector>
+
 #include "libtorrent/config.hpp"
-#include "libtorrent/sha1_hash.hpp" // for sha1_hash
-#include "libtorrent/session_handle.hpp"
-#include "libtorrent/peer_connection_handle.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/string_view.hpp"
+#include "libtorrent/socket.hpp"
 
 namespace libtorrent
 {
@@ -176,6 +175,9 @@ namespace libtorrent
 	struct torrent_plugin;
 	struct add_torrent_params;
 	struct torrent_handle;
+	class sha1_hash;
+	struct session_handle;
+	struct peer_connection_handle;
 
 	// this is the base class for a session plugin. One primary feature
 	// is that it is notified of all torrents that are added to the session,
@@ -222,11 +224,11 @@ namespace libtorrent
 		// If the plugin returns a torrent_plugin instance, it will be added
 		// to the new torrent. Otherwise, return an empty shared_ptr to a
 		// torrent_plugin (the default).
-		virtual boost::shared_ptr<torrent_plugin> new_torrent(torrent_handle const&, void*)
-		{ return boost::shared_ptr<torrent_plugin>(); }
+		virtual std::shared_ptr<torrent_plugin> new_torrent(torrent_handle const&, void*)
+		{ return std::shared_ptr<torrent_plugin>(); }
 
 		// called when plugin is added to a session
-		virtual void added(session_handle) {}
+		virtual void added(session_handle const&) {}
 
 		// called when a dht request is received.
 		// If your plugin expects this to be called, make sure to include the flag
@@ -292,8 +294,8 @@ namespace libtorrent
 		// to it, use ``weak_ptr``.
 		// 
 		// If this function throws an exception, the connection will be closed.
-		virtual boost::shared_ptr<peer_plugin> new_connection(peer_connection_handle const&)
-		{ return boost::shared_ptr<peer_plugin>(); }
+		virtual std::shared_ptr<peer_plugin> new_connection(peer_connection_handle const&)
+		{ return std::shared_ptr<peer_plugin>(); }
 
 		// These hooks are called when a piece passes the hash check or fails the hash
 		// check, respectively. The ``index`` is the piece index that was downloaded.
@@ -394,7 +396,7 @@ namespace libtorrent
 		// means that the other end doesn't support this extension and will remove
 		// it from the list of plugins.
 		// this is not called for web seeds
-		virtual bool on_handshake(char const* /*reserved_bits*/) { return true; }
+		virtual bool on_handshake(span<char const> /*reserved_bits*/) { return true; }
 
 		// called when the extension handshake from the other end is received
 		// if this returns false, it means that this extension isn't
@@ -427,7 +429,7 @@ namespace libtorrent
 		// returns true to indicate that the piece is handled and the
 		// rest of the logic should be ignored.
 		virtual bool on_piece(peer_request const& /*piece*/
-			, char const* /*buf*/) { return false; }
+			, span<char const> /*buf*/) { return false; }
 
 		virtual bool on_cancel(peer_request const&) { return false; }
 		virtual bool on_reject(peer_request const&) { return false; }

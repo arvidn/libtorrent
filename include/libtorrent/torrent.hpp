@@ -298,9 +298,9 @@ namespace libtorrent
 		int current_stats_state() const;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		void add_extension(boost::shared_ptr<torrent_plugin>);
-		void remove_extension(boost::shared_ptr<torrent_plugin>);
-		void add_extension_fun(std::function<boost::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> const& ext
+		void add_extension(std::shared_ptr<torrent_plugin>);
+		void remove_extension(std::shared_ptr<torrent_plugin>);
+		void add_extension_fun(std::function<std::shared_ptr<torrent_plugin>(torrent_handle const&, void*)> const& ext
 			, void* userdata);
 		void notify_extension_add_peer(tcp::endpoint const& ip, int src, int flags);
 #endif
@@ -1205,7 +1205,7 @@ namespace libtorrent
 		std::list<web_seed_t> m_web_seeds;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		std::list<boost::shared_ptr<torrent_plugin>> m_extensions;
+		std::list<std::shared_ptr<torrent_plugin>> m_extensions;
 #endif
 
 		// used for tracker announces

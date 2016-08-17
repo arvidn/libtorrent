@@ -343,7 +343,7 @@ namespace libtorrent
 		// to avoid race conditions. For instance it may be important to have the
 		// plugin catch events that happen very early on after the torrent is
 		// created.
-		std::vector<std::function<boost::shared_ptr<torrent_plugin>(torrent_handle const&, void*)>>
+		std::vector<std::function<std::shared_ptr<torrent_plugin>(torrent_handle const&, void*)>>
 			extensions;
 
 		// the default tracker id to be used when announcing to trackers. By
