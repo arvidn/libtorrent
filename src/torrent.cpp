@@ -307,7 +307,7 @@ namespace libtorrent
 		}
 
 		if (!m_torrent_file)
-			m_torrent_file = (p.ti ? p.ti : boost::make_shared<torrent_info>(info_hash));
+			m_torrent_file = (p.ti ? p.ti : std::make_shared<torrent_info>(info_hash));
 
 		// --- WEB SEEDS ---
 
@@ -462,7 +462,7 @@ namespace libtorrent
 		}
 
 		error_code e;
-		boost::shared_ptr<torrent_info> tf(boost::make_shared<torrent_info>(data, size, std::ref(e), 0));
+		auto tf = std::make_shared<torrent_info>(data, size, std::ref(e), 0);
 		if (e)
 		{
 			set_error(e, torrent_status::error_file_url);
@@ -2138,7 +2138,7 @@ namespace libtorrent
 		// as soon as the user is done with its copy of torrent_info
 		// it will be freed, and we'll have the unloaded version left
 		if (!m_torrent_file.unique())
-			m_torrent_file = boost::make_shared<torrent_info>(*m_torrent_file);
+			m_torrent_file = std::make_shared<torrent_info>(*m_torrent_file);
 
 		m_torrent_file->unload();
 		inc_stats_counter(counters::num_loaded_torrents, -1);
@@ -6316,10 +6316,10 @@ namespace libtorrent
 		}
 	}
 
-	boost::shared_ptr<const torrent_info> torrent::get_torrent_copy()
+	std::shared_ptr<const torrent_info> torrent::get_torrent_copy()
 	{
-		if (!m_torrent_file->is_valid()) return boost::shared_ptr<const torrent_info>();
-		if (!need_loaded()) return boost::shared_ptr<const torrent_info>();
+		if (!m_torrent_file->is_valid()) return std::shared_ptr<const torrent_info>();
+		if (!need_loaded()) return std::shared_ptr<const torrent_info>();
 
 		return m_torrent_file;
 	}

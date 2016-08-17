@@ -42,17 +42,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <tuple>
 #include <iostream>
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/make_shared.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include "test.hpp"
 #include "setup_transfer.hpp"
 
 using namespace libtorrent;
 namespace lt = libtorrent;
 
-void test_running_torrent(boost::shared_ptr<torrent_info> info, std::int64_t file_size)
+void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_size)
 {
 	settings_pack pack;
 	pack.set_int(settings_pack::alert_mask, alert::storage_notification);
@@ -171,7 +167,7 @@ TORRENT_TEST(long_names)
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), torrent);
 	error_code ec;
-	boost::shared_ptr<torrent_info> ti(boost::make_shared<torrent_info>(&buf[0], buf.size(), std::ref(ec)));
+	auto ti = std::make_shared<torrent_info>(&buf[0], int(buf.size()), std::ref(ec));
 	TEST_CHECK(!ec);
 }
 
@@ -188,8 +184,8 @@ TORRENT_TEST(total_wanted)
 	std::vector<char> tmp;
 	bencode(std::back_inserter(tmp), t.generate());
 	error_code ec;
-	boost::shared_ptr<torrent_info> info(boost::make_shared<torrent_info>(
-		&tmp[0], tmp.size(), std::ref(ec)));
+	auto info = std::make_shared<torrent_info>(
+		&tmp[0], int(tmp.size()), std::ref(ec));
 
 	settings_pack pack;
 	pack.set_int(settings_pack::alert_mask, alert::storage_notification);
@@ -226,8 +222,8 @@ TORRENT_TEST(added_peers)
 	std::vector<char> tmp;
 	bencode(std::back_inserter(tmp), t.generate());
 	error_code ec;
-	boost::shared_ptr<torrent_info> info(boost::make_shared<torrent_info>(
-		&tmp[0], tmp.size(), std::ref(ec)));
+	auto info = std::make_shared<torrent_info>(
+		&tmp[0], int(tmp.size()), std::ref(ec));
 
 	settings_pack pack;
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48130");
@@ -275,7 +271,7 @@ TORRENT_TEST(torrent)
 		std::back_insert_iterator<std::vector<char> > out(tmp);
 		bencode(out, t.generate());
 		error_code ec;
-		boost::shared_ptr<torrent_info> info(boost::make_shared<torrent_info>(&tmp[0], tmp.size(), std::ref(ec), 0));
+		auto info = std::make_shared<torrent_info>(&tmp[0], int(tmp.size()), std::ref(ec), 0);
 		TEST_CHECK(info->num_pieces() > 0);
 
 		test_running_torrent(info, file_size);
@@ -299,10 +295,10 @@ TORRENT_TEST(torrent)
 			t.set_hash(i, ph);
 
 		std::vector<char> tmp;
-		std::back_insert_iterator<std::vector<char> > out(tmp);
+		std::back_insert_iterator<std::vector<char>> out(tmp);
 		bencode(out, t.generate());
 		error_code ec;
-		boost::shared_ptr<torrent_info> info(boost::make_shared<torrent_info>(&tmp[0], tmp.size(), std::ref(ec), 0));
+		auto info = std::make_shared<torrent_info>(&tmp[0], int(tmp.size()), std::ref(ec), 0);
 		test_running_torrent(info, 1024);
 	}
 }
@@ -351,7 +347,7 @@ TORRENT_TEST(duplicate_is_not_error)
 	plugin_creator creator(called);
 
 	add_torrent_params p;
-	p.ti = boost::make_shared<torrent_info>(&tmp[0], tmp.size(), std::ref(ec), 0);
+	p.ti = std::make_shared<torrent_info>(&tmp[0], int(tmp.size()), std::ref(ec), 0);
 	p.flags &= ~add_torrent_params::flag_paused;
 	p.flags &= ~add_torrent_params::flag_auto_managed;
 	p.flags &= ~add_torrent_params::flag_duplicate_is_error;
@@ -402,10 +398,10 @@ TORRENT_TEST(rename_file)
 	libtorrent::create_torrent t(fs, 128 * 1024, 6);
 
 	std::vector<char> tmp;
-	std::back_insert_iterator<std::vector<char> > out(tmp);
+	std::back_insert_iterator<std::vector<char>> out(tmp);
 	bencode(out, t.generate());
 	error_code ec;
-	boost::shared_ptr<torrent_info> info(boost::make_shared<torrent_info>(&tmp[0], tmp.size(), std::ref(ec), 0));
+	auto info = std::make_shared<torrent_info>(&tmp[0], int(tmp.size()), std::ref(ec), 0);
 
 	TEST_EQUAL(info->files().file_path(0), combine_path("test3","tmp1"));
 

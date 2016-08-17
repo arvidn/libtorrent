@@ -444,13 +444,13 @@ namespace libtorrent
 
 		// This function adds an extension to this session. The argument is a
 		// function object that is called with a ``torrent_handle`` and which should
-		// return a ``boost::shared_ptr<torrent_plugin>``. To write custom
+		// return a ``std::shared_ptr<torrent_plugin>``. To write custom
 		// plugins, see `libtorrent plugins`_. For the typical bittorrent client
 		// all of these extensions should be added. The main plugins implemented
 		// in libtorrent are:
 		//
 		// uTorrent metadata
-		// 	Allows peers to download the metadata (.torren files) from the swarm
+		// 	Allows peers to download the metadata (.torrent files) from the swarm
 		// 	directly. Makes it possible to join a swarm with just a tracker and
 		// 	info-hash.
 		//

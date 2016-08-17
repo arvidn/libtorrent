@@ -55,15 +55,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/lazy_entry.hpp"
 #endif
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <unordered_set>
 #include <iterator>
 #include <algorithm>
 #include <set>
 #include <ctime>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {

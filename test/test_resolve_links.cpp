@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/resolve_links.hpp"
 #include "libtorrent/file.hpp" // for combine_path
 #include "libtorrent/hex.hpp" // to_hex
-#include <boost/make_shared.hpp>
+
 #include <functional>
 
 using namespace libtorrent;
@@ -98,11 +98,11 @@ TORRENT_TEST(resolve_links)
 
 		std::string p = combine_path(path, e.filename1) + ".torrent";
 		std::fprintf(stderr, "loading %s\n", p.c_str());
-		boost::shared_ptr<torrent_info> ti1 = boost::make_shared<torrent_info>(p);
+		std::shared_ptr<torrent_info> ti1 = std::make_shared<torrent_info>(p);
 
 		p = combine_path(path, e.filename2) + ".torrent";
 		std::fprintf(stderr, "loading %s\n", p.c_str());
-		boost::shared_ptr<torrent_info> ti2 = boost::make_shared<torrent_info>(p);
+		std::shared_ptr<torrent_info> ti2 = std::make_shared<torrent_info>(p);
 
 		std::fprintf(stderr, "resolving\n");
 		resolve_links l(ti1);

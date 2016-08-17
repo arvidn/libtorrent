@@ -139,7 +139,7 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 	remove_all("tmp1_privacy", ec);
 	create_directory("tmp1_privacy", ec);
 	std::ofstream file(combine_path("tmp1_privacy", "temporary").c_str());
-	boost::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
+	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
 	file.close();
 
 	char http_tracker_url[200];

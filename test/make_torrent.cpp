@@ -30,10 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/make_shared.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include <deque>
 
 #include "make_torrent.hpp"
@@ -46,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-boost::shared_ptr<libtorrent::torrent_info> make_test_torrent(
+std::shared_ptr<libtorrent::torrent_info> make_test_torrent(
 	torrent_args const& args)
 {
 	entry e;
@@ -163,7 +159,7 @@ boost::shared_ptr<libtorrent::torrent_info> make_test_torrent(
 	fwrite(&tmp[0], 1, tmp.size(), f);
 	fclose(f);
 
-	return boost::make_shared<torrent_info>(&tmp[0], int(tmp.size()));
+	return std::make_shared<torrent_info>(&tmp[0], int(tmp.size()));
 }
 
 void generate_files(libtorrent::torrent_info const& ti, std::string const& path

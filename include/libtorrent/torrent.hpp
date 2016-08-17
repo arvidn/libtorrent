@@ -188,7 +188,7 @@ namespace libtorrent
 
 		// TODO: make this a raw pointer. perhaps keep the shared_ptr
 		// around further down the object to maintain an owner
-		boost::shared_ptr<torrent_info> m_torrent_file;
+		std::shared_ptr<torrent_info> m_torrent_file;
 
 		// a back reference to the session
 		// this torrent belongs to.
@@ -945,7 +945,7 @@ namespace libtorrent
 		torrent_info const& torrent_file() const
 		{ return *m_torrent_file; }
 
-		boost::shared_ptr<const torrent_info> get_torrent_copy();
+		std::shared_ptr<const torrent_info> get_torrent_copy();
 
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 1.2

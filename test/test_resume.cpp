@@ -40,8 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/read_resume_data.hpp"
 
-#include <boost/make_shared.hpp>
-
 #include "test.hpp"
 #include "settings.hpp"
 #include "setup_transfer.hpp"
@@ -49,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 namespace lt = libtorrent;
 
-boost::shared_ptr<torrent_info> generate_torrent()
+std::shared_ptr<torrent_info> generate_torrent()
 {
 	file_storage fs;
 	fs.add_file("test_resume/tmp1", 128 * 1024 * 8);
@@ -71,7 +69,7 @@ boost::shared_ptr<torrent_info> generate_torrent()
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
-	return boost::make_shared<torrent_info>(&buf[0], buf.size());
+	return std::make_shared<torrent_info>(&buf[0], int(buf.size()));
 }
 
 std::vector<char> generate_resume_data(torrent_info* ti
@@ -136,7 +134,7 @@ torrent_handle test_resume_flags(lt::session& ses, int flags
 	, char const* file_priorities = "1111", char const* resume_file_prio = ""
 	, bool const test_deprecated = false)
 {
-	boost::shared_ptr<torrent_info> ti = generate_torrent();
+	std::shared_ptr<torrent_info> ti = generate_torrent();
 
 	add_torrent_params p;
 	std::vector<char> rd = generate_resume_data(ti.get(), resume_file_prio);
@@ -203,7 +201,7 @@ void test_piece_priorities(bool test_deprecated = false)
 {
 	settings_pack sett = settings();
 	lt::session ses(sett);
-	boost::shared_ptr<torrent_info> ti = generate_torrent();
+	std::shared_ptr<torrent_info> ti = generate_torrent();
 	add_torrent_params p;
 	p.ti = ti;
 	p.save_path = ".";
@@ -717,7 +715,7 @@ void test_zero_file_prio(bool test_deprecated = false)
 	std::fprintf(stderr, "test_file_prio\n");
 
 	lt::session ses;
-	boost::shared_ptr<torrent_info> ti = generate_torrent();
+	std::shared_ptr<torrent_info> ti = generate_torrent();
 	add_torrent_params p;
 	p.ti = ti;
 	p.save_path = ".";
@@ -785,7 +783,7 @@ void test_seed_mode(bool const file_prio, bool const pieces_have, bool const pie
 
 	settings_pack sett = settings();
 	lt::session ses(sett);
-	boost::shared_ptr<torrent_info> ti = generate_torrent();
+	std::shared_ptr<torrent_info> ti = generate_torrent();
 	add_torrent_params p;
 	p.ti = ti;
 	p.save_path = ".";

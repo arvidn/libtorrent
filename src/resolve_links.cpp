@@ -31,18 +31,13 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/resolve_links.hpp"
-
 #include "libtorrent/torrent_info.hpp"
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/shared_ptr.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
-resolve_links::resolve_links(boost::shared_ptr<torrent_info> ti)
+resolve_links::resolve_links(std::shared_ptr<torrent_info> ti)
 	: m_torrent_file(ti)
 {
 	TORRENT_ASSERT(ti);
@@ -65,7 +60,7 @@ resolve_links::resolve_links(boost::shared_ptr<torrent_info> ti)
 	m_links.resize(m_torrent_file->num_files());
 }
 
-void resolve_links::match(boost::shared_ptr<const torrent_info> const& ti
+void resolve_links::match(std::shared_ptr<const torrent_info> const& ti
 	, std::string const& save_path)
 {
 	if (!ti) return;
@@ -138,4 +133,3 @@ void resolve_links::match(boost::shared_ptr<const torrent_info> const& ti
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 
 } // namespace libtorrent
-

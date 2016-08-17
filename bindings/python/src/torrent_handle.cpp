@@ -95,7 +95,7 @@ list file_progress(torrent_handle& handle, int flags)
 
     {
         allow_threading_guard guard;
-        boost::shared_ptr<const torrent_info> ti = handle.torrent_file();
+        std::shared_ptr<const torrent_info> ti = handle.torrent_file();
         if (ti)
         {
            p.reserve(ti->num_files());
@@ -310,7 +310,7 @@ void set_metadata(torrent_handle& handle, std::string const& buf)
 #ifndef TORRENT_NO_DEPRECATE
 #if BOOST_VERSION > 104200
 
-boost::shared_ptr<const torrent_info> get_torrent_info(torrent_handle const& h)
+std::shared_ptr<const torrent_info> get_torrent_info(torrent_handle const& h)
 {
 	allow_threading_guard guard;
 	return h.torrent_file();
@@ -318,13 +318,13 @@ boost::shared_ptr<const torrent_info> get_torrent_info(torrent_handle const& h)
 
 #else
 
-boost::shared_ptr<torrent_info> get_torrent_info(torrent_handle const& h)
+std::shared_ptr<torrent_info> get_torrent_info(torrent_handle const& h)
 {
 	// I can't figure out how to expose shared_ptr<const torrent_info>
 	// as well as supporting mutable instances. So, this hack is better
 	// than compilation errors. It seems to work on newer versions of boost though
 	allow_threading_guard guard;
-	return boost::const_pointer_cast<torrent_info>(h.torrent_file());
+	return std::const_pointer_cast<torrent_info>(h.torrent_file());
 }
 
 #endif

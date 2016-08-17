@@ -592,10 +592,10 @@ namespace libtorrent
 		return !m_torrent.expired();
 	}
 
-	boost::shared_ptr<const torrent_info> torrent_handle::torrent_file() const
+	std::shared_ptr<const torrent_info> torrent_handle::torrent_file() const
 	{
-		return sync_call_ret<boost::shared_ptr<const torrent_info>>(
-			boost::shared_ptr<const torrent_info>(), &torrent::get_torrent_copy);
+		return sync_call_ret<std::shared_ptr<const torrent_info>>(
+			std::shared_ptr<const torrent_info>(), &torrent::get_torrent_copy);
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -604,11 +604,11 @@ namespace libtorrent
 	// forces the torrent to stay loaded while the client holds it
 	torrent_info const& torrent_handle::get_torrent_info() const
 	{
-		static boost::shared_ptr<const torrent_info> holder[4];
+		static std::shared_ptr<const torrent_info> holder[4];
 		static int cursor = 0;
 		static std::mutex holder_mutex;
 
-		boost::shared_ptr<const torrent_info> r = torrent_file();
+		std::shared_ptr<const torrent_info> r = torrent_file();
 
 		std::lock_guard<std::mutex> l(holder_mutex);
 		holder[cursor++] = r;

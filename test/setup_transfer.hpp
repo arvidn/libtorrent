@@ -84,12 +84,12 @@ EXPORT void wait_for_downloading(libtorrent::session& ses, char const* name);
 EXPORT std::vector<char> generate_piece(int idx, int const piece_size = 0x4000);
 EXPORT libtorrent::file_storage make_file_storage(const int file_sizes[], int num_files
 	, int const piece_size, std::string base_name = "test_dir-");
-EXPORT boost::shared_ptr<libtorrent::torrent_info> make_torrent(const int file_sizes[]
+EXPORT std::shared_ptr<libtorrent::torrent_info> make_torrent(const int file_sizes[]
 	, int num_files, int piece_size);
 EXPORT void create_random_files(std::string const& path, const int file_sizes[]
 	, int num_files);
 
-EXPORT boost::shared_ptr<libtorrent::torrent_info> create_torrent(std::ostream* file = 0
+EXPORT std::shared_ptr<libtorrent::torrent_info> create_torrent(std::ostream* file = 0
 	, char const* name = "temporary", int piece_size = 16 * 1024, int num_pieces = 13
 	, bool add_tracker = true, std::string ssl_certificate = "");
 
@@ -99,9 +99,9 @@ EXPORT std::tuple<libtorrent::torrent_handle
 setup_transfer(libtorrent::session* ses1, libtorrent::session* ses2
 	, libtorrent::session* ses3, bool clear_files, bool use_metadata_transfer = true
 	, bool connect = true, std::string suffix = "", int piece_size = 16 * 1024
-	, boost::shared_ptr<libtorrent::torrent_info>* torrent = 0, bool super_seeding = false
+	, std::shared_ptr<libtorrent::torrent_info>* torrent = 0, bool super_seeding = false
 	, libtorrent::add_torrent_params const* p = 0, bool stop_lsd = true, bool use_ssl_ports = false
-	, boost::shared_ptr<libtorrent::torrent_info>* torrent2 = 0);
+	, std::shared_ptr<libtorrent::torrent_info>* torrent2 = 0);
 
 EXPORT int start_web_server(bool ssl = false, bool chunked = false
 	, bool keepalive = true);

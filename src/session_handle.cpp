@@ -327,9 +327,8 @@ namespace libtorrent
 		, bool paused
 		, storage_constructor_type sc)
 	{
-		boost::shared_ptr<torrent_info> tip(boost::make_shared<torrent_info>(ti));
 		add_torrent_params p(sc);
-		p.ti = tip;
+		p.ti = std::make_shared<torrent_info>(ti);
 		p.save_path = save_path;
 		if (resume_data.type() != entry::undefined_t)
 		{

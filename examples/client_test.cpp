@@ -952,7 +952,7 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 		torrent_handle h = p->handle;
 		if (h.is_valid())
 		{
-			boost::shared_ptr<const torrent_info> ti = h.torrent_file();
+			std::shared_ptr<const torrent_info> ti = h.torrent_file();
 			create_torrent ct(*ti);
 			entry te = ct.generate();
 			std::vector<char> buffer;
@@ -2024,7 +2024,7 @@ int main(int argc, char* argv[])
 				std::vector<pool_file_status> file_status = h.file_status();
 				std::vector<int> file_prio = h.file_priorities();
 				std::vector<pool_file_status>::iterator f = file_status.begin();
-				boost::shared_ptr<const torrent_info> ti = h.torrent_file();
+				std::shared_ptr<const torrent_info> ti = h.torrent_file();
 
 				int p = 0; // this is horizontal position
 				for (int i = 0; i < ti->num_files(); ++i)
