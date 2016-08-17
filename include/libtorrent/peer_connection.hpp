@@ -865,7 +865,7 @@ namespace libtorrent
 		// io service
 		io_service& m_ios;
 
-	public:
+	protected:
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		typedef std::list<std::shared_ptr<peer_plugin>> extension_list_t;
 		extension_list_t m_extensions;

@@ -45,7 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/smart_ptr.hpp>
 #include <boost/optional.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -124,8 +123,8 @@ namespace libtorrent
 		bool rc4_encrypted() const
 		{ return m_rc4_encrypted; }
 
-		void switch_send_crypto(boost::shared_ptr<crypto_plugin> crypto);
-		void switch_recv_crypto(boost::shared_ptr<crypto_plugin> crypto);
+		void switch_send_crypto(std::shared_ptr<crypto_plugin> crypto);
+		void switch_recv_crypto(std::shared_ptr<crypto_plugin> crypto);
 #endif
 
 		virtual int type() const override
@@ -195,7 +194,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		bool supports_holepunch() const { return m_holepunch_id != 0; }
 		void set_ut_pex(std::weak_ptr<ut_pex_peer_store> ut_pex)
-		{ m_ut_pex.swap(ut_pex); }
+		{ m_ut_pex = std::move(ut_pex); }
 		bool was_introduced_by(tcp::endpoint const& ep) const
 		{ auto p = m_ut_pex.lock(); return p && p->was_introduced_by(ep); }
 #endif
@@ -421,7 +420,7 @@ private:
 		// used during an encrypted handshake then moved
 		// into m_enc_handler if rc4 encryption is negotiated
 		// otherwise it is destroyed when the handshake completes
-		boost::shared_ptr<rc4_handler> m_rc4;
+		std::shared_ptr<rc4_handler> m_rc4;
 
 		// if encryption is negotiated, this is used for
 		// encryption/decryption during the entire session.
