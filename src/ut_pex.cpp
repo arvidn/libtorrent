@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_type.hpp" // for is_utp
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/extensions/ut_pex.hpp"
+#include "libtorrent/aux_/time.hpp"
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 

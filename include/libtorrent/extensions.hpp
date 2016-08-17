@@ -158,12 +158,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
 #include <vector>
+
 #include "libtorrent/config.hpp"
-#include "libtorrent/sha1_hash.hpp" // for sha1_hash
-#include "libtorrent/session_handle.hpp"
-#include "libtorrent/peer_connection_handle.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/string_view.hpp"
+#include "libtorrent/socket.hpp"
 
 namespace libtorrent
 {
@@ -176,6 +175,9 @@ namespace libtorrent
 	struct torrent_plugin;
 	struct add_torrent_params;
 	struct torrent_handle;
+	class sha1_hash;
+	struct session_handle;
+	struct peer_connection_handle;
 
 	// this is the base class for a session plugin. One primary feature
 	// is that it is notified of all torrents that are added to the session,
@@ -226,7 +228,7 @@ namespace libtorrent
 		{ return boost::shared_ptr<torrent_plugin>(); }
 
 		// called when plugin is added to a session
-		virtual void added(session_handle) {}
+		virtual void added(session_handle const&) {}
 
 		// called when a dht request is received.
 		// If your plugin expects this to be called, make sure to include the flag
@@ -394,7 +396,7 @@ namespace libtorrent
 		// means that the other end doesn't support this extension and will remove
 		// it from the list of plugins.
 		// this is not called for web seeds
-		virtual bool on_handshake(char const* /*reserved_bits*/) { return true; }
+		virtual bool on_handshake(span<char const> /*reserved_bits*/) { return true; }
 
 		// called when the extension handshake from the other end is received
 		// if this returns false, it means that this extension isn't
@@ -427,7 +429,7 @@ namespace libtorrent
 		// returns true to indicate that the piece is handled and the
 		// rest of the logic should be ignored.
 		virtual bool on_piece(peer_request const& /*piece*/
-			, char const* /*buf*/) { return false; }
+			, span<char const> /*buf*/) { return false; }
 
 		virtual bool on_cancel(peer_request const&) { return false; }
 		virtual bool on_reject(peer_request const&) { return false; }

@@ -58,7 +58,7 @@ namespace
 
 	struct custom_plugin : plugin
 	{
-		void added(session_handle h) override
+		void added(session_handle const& h) override
 		{
 			TORRENT_UNUSED(h);
 			g_plugin_added_invoked = true;

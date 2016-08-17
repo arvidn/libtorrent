@@ -35,14 +35,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <functional>
 
-#include <libtorrent/kademlia/node_id.hpp>
-#include <libtorrent/kademlia/types.hpp>
+#include "libtorrent/kademlia/node_id.hpp"
+#include "libtorrent/kademlia/types.hpp"
 
-#include <libtorrent/socket.hpp>
-#include <libtorrent/sha1_hash.hpp>
-#include <libtorrent/address.hpp>
-#include <libtorrent/span.hpp>
-#include <libtorrent/string_view.hpp>
+#include "libtorrent/socket.hpp"
+#include "libtorrent/sha1_hash.hpp"
+#include "libtorrent/address.hpp"
+#include "libtorrent/span.hpp"
+#include "libtorrent/string_view.hpp"
 
 namespace libtorrent
 {

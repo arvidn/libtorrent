@@ -57,6 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
+#include "libtorrent/aux_/time.hpp"
 
 using namespace std::placeholders;
 

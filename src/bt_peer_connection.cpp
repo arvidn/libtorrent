@@ -192,7 +192,7 @@ namespace libtorrent
 		m_in_constructor = false;
 #endif
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		memset(m_reserved_bits, 0, sizeof(m_reserved_bits));
+		m_reserved_bits.fill(0);
 #endif
 	}
 
@@ -3212,7 +3212,7 @@ namespace libtorrent
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-			std::memcpy(m_reserved_bits, recv_buffer.begin(), 8);
+			std::memcpy(m_reserved_bits.data(), recv_buffer.begin(), 8);
 			if ((recv_buffer[5] & 0x10))
 				m_supports_extensions = true;
 #endif

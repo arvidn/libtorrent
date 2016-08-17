@@ -796,7 +796,8 @@ namespace aux {
 			m_ses_extensions[plugins_dht_request_idx].push_back(ext);
 		if (features & plugin::alert_feature)
 			m_alerts.add_extension(ext);
-		ext->added(session_handle(this));
+		session_handle h(this);
+		ext->added(h);
 	}
 
 #endif // TORRENT_DISABLE_EXTENSIONS
