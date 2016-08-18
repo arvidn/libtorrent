@@ -294,7 +294,7 @@ namespace libtorrent
 			, int block_size = 16 * 1024);
 		~disk_io_thread();
 
-		void set_settings(settings_pack const* sett, alert_manager& alerts);
+		void set_settings(settings_pack const& sett, alert_manager& alerts);
 		void set_num_threads(int i);
 
 		void abort(bool wait);
@@ -570,7 +570,7 @@ namespace libtorrent
 		job_queue m_hash_io_jobs;
 		disk_io_thread_pool m_hash_threads;
 
-		aux::session_settings m_settings;
+		settings_pack m_settings;
 
 		// userdata pointer for the complete_job function, which
 		// is posted to the network thread when jobs complete

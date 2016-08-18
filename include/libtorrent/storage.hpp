@@ -149,7 +149,7 @@ namespace libtorrent
 	struct disk_io_job;
 	struct disk_buffer_pool;
 	struct cache_status;
-	namespace aux { struct session_settings; }
+	struct settings_pack;
 	struct cached_piece_entry;
 	struct add_torrent_params;
 
@@ -365,13 +365,13 @@ namespace libtorrent
 		virtual bool tick() { return false; }
 
 		// access global session_settings
-		aux::session_settings const& settings() const { return *m_settings; }
+		settings_pack const& settings() const { return *m_settings; }
 
 		// hidden
 		virtual ~storage_interface() {}
 
 		// initialized in disk_io_thread::perform_async_job
-		aux::session_settings* m_settings;
+		settings_pack* m_settings;
 	};
 
 	// The default implementation of storage_interface. Behaves as a normal

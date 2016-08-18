@@ -1454,7 +1454,7 @@ namespace aux {
 					!= m_settings.get_str(settings_pack::listen_interfaces));
 
 		apply_pack(&pack, m_settings, this);
-		m_disk_thread.set_settings(&pack, m_alerts);
+		m_disk_thread.set_settings(pack, m_alerts);
 
 		if (init)
 			update_listen_interfaces();
