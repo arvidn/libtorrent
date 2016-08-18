@@ -49,15 +49,15 @@ struct test_storage_impl : storage_interface
 {
 	void initialize(storage_error& ec) override {}
 
-	int readv(file::iovec_t const* bufs, int num_bufs
+	int readv(span<file::iovec_t const> bufs
 		, int piece, int offset, int flags, storage_error& ec) override
 	{
-		return bufs_size(bufs, num_bufs);
+		return bufs_size(bufs.data(), int(bufs.size()));
 	}
-	int writev(file::iovec_t const* bufs, int num_bufs
+	int writev(span<file::iovec_t const> bufs
 		, int piece, int offset, int flags, storage_error& ec) override
 	{
-		return bufs_size(bufs, num_bufs);
+		return bufs_size(bufs.data(), int(bufs.size()));
 	}
 
 	bool has_any_file(storage_error& ec) override { return false; }
@@ -66,10 +66,10 @@ struct test_storage_impl : storage_interface
 	int move_storage(std::string const& save_path, int flags
 		, storage_error& ec) override { return 0; }
 	bool verify_resume_data(add_torrent_params const& rd
-		, std::vector<std::string> const* links
+		, std::vector<std::string> const& links
 		, storage_error& ec) override { return true; }
 	void release_files(storage_error& ec) override {}
-	void rename_file(int index, std::string const& new_filenamem
+	void rename_file(int index, std::string const& new_filename
 		, storage_error& ec) override {}
 	void delete_files(int, storage_error& ec) override {}
 #ifndef TORRENT_NO_DEPRECATE

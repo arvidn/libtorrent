@@ -45,7 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/types.h>
 #include <boost/function/function2.hpp>
 #include <boost/function/function0.hpp>
-#include <boost/limits.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
 
@@ -64,6 +63,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/performance_counters.hpp"
+#include "libtorrent/span.hpp"
 
 // OVERVIEW
 //
@@ -246,9 +246,9 @@ namespace libtorrent
 		// The number of bytes read or written should be returned, or -1 on
 		// error. If there's an error, the ``storage_error`` must be filled out
 		// to represent the error that occurred.
-		virtual int readv(file::iovec_t const* bufs, int num_bufs
+		virtual int readv(span<file::iovec_t const> bufs
 			, int piece, int offset, int flags, storage_error& ec) = 0;
-		virtual int writev(file::iovec_t const* bufs, int num_bufs
+		virtual int writev(span<file::iovec_t const> bufs
 			, int piece, int offset, int flags, storage_error& ec) = 0;
 
 		// This function is called when first checking (or re-checking) the
@@ -294,13 +294,13 @@ namespace libtorrent
 		// on disk. If the resume data seems to be up-to-date, return true. If
 		// not, set ``error`` to a description of what mismatched and return false.
 		// 
-		// If the ``links`` pointer is non-nullptr, it has the same number
+		// If the ``links`` pointer is non-empty, it has the same number
 		// of elements as there are files. Each element is either empty or contains
 		// the absolute path to a file identical to the corresponding file in this
 		// torrent. The storage must create hard links (or copy) those files. If
 		// any file does not exist or is inaccessible, the disk job must fail.
 		virtual bool verify_resume_data(add_torrent_params const& rd
-			, std::vector<std::string> const* links
+			, std::vector<std::string> const& links
 			, storage_error& ec) = 0;
 
 		// This function should release all the file handles that it keeps open
@@ -412,18 +412,18 @@ namespace libtorrent
 		virtual int move_storage(std::string const& save_path, int flags
 			, storage_error& ec) override;
 		virtual bool verify_resume_data(add_torrent_params const& rd
-			, std::vector<std::string> const* links
+			, std::vector<std::string> const& links
 			, storage_error& error) override;
 		virtual bool tick() override;
 
-		int readv(file::iovec_t const* bufs, int num_bufs
+		int readv(span<file::iovec_t const> bufs
 			, int piece, int offset, int flags, storage_error& ec) override;
-		int writev(file::iovec_t const* bufs, int num_bufs
+		int writev(span<file::iovec_t const> bufs
 			, int piece, int offset, int flags, storage_error& ec) override;
 
 		// if the files in this storage are mapped, returns the mapped
 		// file_storage, otherwise returns the original file_storage object.
-		file_storage const& files() const { return m_mapped_files?*m_mapped_files:m_files; }
+		file_storage const& files() const { return m_mapped_files ? *m_mapped_files : m_files; }
 
 #ifdef TORRENT_DISK_STATS
 		static bool disk_write_access_log();
@@ -593,7 +593,7 @@ namespace libtorrent
 		// if 'fatal_disk_error' is returned, the error message indicates what
 		// when wrong in the disk access
 		int check_fastresume(add_torrent_params const& rd
-			, std::vector<std::string> const* links
+			, std::vector<std::string> const& links
 			, storage_error& error);
 
 		// helper functions for check_fastresume
