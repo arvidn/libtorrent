@@ -617,8 +617,8 @@ namespace libtorrent
 		for (int i = 1; i <= num_blocks; ++i)
 		{
 			if (i < num_blocks && flushing[i] == flushing[i - 1] + 1) continue;
-			int ret = pe->storage->get_storage_impl()->writev({iov_start
-					, size_t(i - flushing_start)}
+			int ret = pe->storage->get_storage_impl()->writev(
+				{iov_start, size_t(i - flushing_start)}
 				, piece + flushing[flushing_start] / blocks_in_piece
 				, (flushing[flushing_start] % blocks_in_piece) * block_size
 				, file_flags, error);
@@ -1160,7 +1160,7 @@ namespace libtorrent
 			, m_settings.get_bool(settings_pack::coalesce_reads));
 		file::iovec_t b = { j->buffer.disk_block, size_t(j->d.io.buffer_size) };
 
-		int ret = j->storage->get_storage_impl()->readv({b}
+		int ret = j->storage->get_storage_impl()->readv(b
 			, j->piece, j->d.io.offset, file_flags, j->error);
 
 		TORRENT_ASSERT(ret >= 0 || j->error.ec);
@@ -1396,7 +1396,7 @@ namespace libtorrent
 		m_stats_counters.inc_stats_counter(counters::num_writing_threads, 1);
 
 		// the actual write operation
-		int ret = j->storage->get_storage_impl()->writev({b}
+		int ret = j->storage->get_storage_impl()->writev(b
 			, j->piece, j->d.io.offset, file_flags, j->error);
 
 		m_stats_counters.inc_stats_counter(counters::num_writing_threads, -1);
@@ -2205,7 +2205,7 @@ namespace libtorrent
 			time_point start_time = clock_type::now();
 
 			iov.iov_len = (std::min)(block_size, piece_size - offset);
-			ret = j->storage->get_storage_impl()->readv({iov}, j->piece
+			ret = j->storage->get_storage_impl()->readv(iov, j->piece
 				, offset, file_flags, j->error);
 			if (ret < 0) break;
 
@@ -2394,7 +2394,7 @@ namespace libtorrent
 				time_point start_time = clock_type::now();
 
 				TORRENT_PIECE_ASSERT(ph->offset == i * block_size, pe);
-				ret = j->storage->get_storage_impl()->readv({iov}, j->piece
+				ret = j->storage->get_storage_impl()->readv(iov, j->piece
 						, ph->offset, file_flags, j->error);
 
 				if (ret < 0)
@@ -2632,7 +2632,7 @@ namespace libtorrent
 
 			time_point start_time = clock_type::now();
 
-			ret = j->storage->get_storage_impl()->readv({iov}, j->piece
+			ret = j->storage->get_storage_impl()->readv(iov, j->piece
 				, offset, file_flags, j->error);
 
 			if (ret < 0)

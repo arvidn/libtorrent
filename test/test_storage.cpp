@@ -232,25 +232,25 @@ void run_storage_tests(std::shared_ptr<torrent_info> info
 
 	// write piece 1 (in slot 0)
 	file::iovec_t iov = { piece1.data(), half};
-	ret = s->writev({iov}, 0, 0, 0, ec);
+	ret = s->writev(iov, 0, 0, 0, ec);
 	if (ret != half) print_error("writev", ret, ec);
 
 	iov.iov_base = piece1.data() + half;
 	iov.iov_len = half;
-	ret = s->writev({iov}, 0, half, 0, ec);
+	ret = s->writev(iov, 0, half, 0, ec);
 	if (ret != half) print_error("writev", ret, ec);
 
 	// test unaligned read (where the bytes are aligned)
 	iov.iov_base = piece + 3;
 	iov.iov_len = piece_size - 9;
-	ret = s->readv({iov}, 0, 3, 0, ec);
+	ret = s->readv(iov, 0, 3, 0, ec);
 	if (ret != piece_size - 9) print_error("readv",ret, ec);
 	TEST_CHECK(std::equal(piece+3, piece + piece_size-9, piece1.data()+3));
 
 	// test unaligned read (where the bytes are not aligned)
 	iov.iov_base = piece;
 	iov.iov_len = piece_size - 9;
-	ret = s->readv({iov}, 0, 3, 0, ec);
+	ret = s->readv(iov, 0, 3, 0, ec);
 	TEST_CHECK(ret == piece_size - 9);
 	if (ret != piece_size - 9) print_error("readv", ret, ec);
 	TEST_CHECK(std::equal(piece, piece + piece_size-9, piece1.data()+3));
@@ -258,7 +258,7 @@ void run_storage_tests(std::shared_ptr<torrent_info> info
 	// verify piece 1
 	iov.iov_base = piece;
 	iov.iov_len = piece_size;
-	ret = s->readv({iov}, 0, 0, 0, ec);
+	ret = s->readv(iov, 0, 0, 0, ec);
 	TEST_CHECK(ret == piece_size);
 	if (ret != piece_size) print_error("readv", ret, ec);
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece1.data()));
@@ -266,24 +266,24 @@ void run_storage_tests(std::shared_ptr<torrent_info> info
 	// do the same with piece 0 and 2 (in slot 1 and 2)
 	iov.iov_base = piece0.data();
 	iov.iov_len = piece_size;
-	ret = s->writev({iov}, 1, 0, 0, ec);
+	ret = s->writev(iov, 1, 0, 0, ec);
 	if (ret != piece_size) print_error("writev", ret, ec);
 
 	iov.iov_base = piece2.data();
 	iov.iov_len = piece_size;
-	ret = s->writev({iov}, 2, 0, 0, ec);
+	ret = s->writev(iov, 2, 0, 0, ec);
 	if (ret != piece_size) print_error("writev", ret, ec);
 
 	// verify piece 0 and 2
 	iov.iov_base = piece;
 	iov.iov_len = piece_size;
-	ret = s->readv({iov}, 1, 0, 0, ec);
+	ret = s->readv(iov, 1, 0, 0, ec);
 	if (ret != piece_size) print_error("readv", ret, ec);
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece0.data()));
 
 	iov.iov_base = piece;
 	iov.iov_len = piece_size;
-	ret = s->readv({iov}, 2, 0, 0, ec);
+	ret = s->readv(iov, 2, 0, 0, ec);
 	if (ret != piece_size) print_error("readv", ret, ec);
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece2.data()));
 
@@ -335,7 +335,7 @@ void test_remove(std::string const& test_path, bool unbuffered)
 
 	file::iovec_t b = {&buf[0], 4};
 	storage_error se;
-	s->writev({b}, 2, 0, 0, se);
+	s->writev(b, 2, 0, 0, se);
 
 	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage"
 		, combine_path("folder1", "test2.tmp")))));
@@ -346,7 +346,7 @@ void test_remove(std::string const& test_path, bool unbuffered)
 		, combine_path("folder1", "test2.tmp"))), &st, ec);
 	TEST_EQUAL(st.file_size, 8);
 
-	s->writev({b}, 4, 0, 0, se);
+	s->writev(b, 4, 0, 0, se);
 
 	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage"
 		, combine_path("_folder3", combine_path("subfolder", "test5.tmp"))))));
@@ -1289,7 +1289,7 @@ TORRENT_TEST(move_storage_into_self)
 
 	file::iovec_t const b = {&buf[0], 4};
 	storage_error se;
-	s->writev({b}, 2, 0, 0, se);
+	s->writev(b, 2, 0, 0, se);
 
 	std::string const test_path = combine_path(save_path, combine_path("temp_storage", "folder1"));
 	s->move_storage(test_path, 0, se);
@@ -1335,7 +1335,7 @@ TORRENT_TEST(dont_move_intermingled_files)
 
 	file::iovec_t b = {&buf[0], 4};
 	storage_error se;
-	s->writev({b}, 2, 0, 0, se);
+	s->writev(b, 2, 0, 0, se);
 
 	error_code ec;
 	create_directory(combine_path(save_path, combine_path("temp_storage"
