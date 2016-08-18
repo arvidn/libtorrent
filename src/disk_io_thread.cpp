@@ -164,6 +164,7 @@ namespace libtorrent
 		, m_jobs_aborted(false)
 #endif
 	{
+		initialize_default_settings(m_settings);
 		ADD_OUTSTANDING_ASYNC("disk_io_thread::work");
 		error_code ec;
 		m_disk_cache.set_settings(m_settings, ec);
@@ -250,7 +251,7 @@ namespace libtorrent
 		m_blocks_to_reclaim.clear();
 	}
 
-	void disk_io_thread::set_settings(settings_pack const* pack, alert_manager& alerts)
+	void disk_io_thread::set_settings(settings_pack const& pack, alert_manager& alerts)
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
 		std::unique_lock<std::mutex> l(m_cache_mutex);

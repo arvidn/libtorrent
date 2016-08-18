@@ -122,7 +122,7 @@ boost::shared_ptr<default_storage> setup_torrent(file_storage& fs
 	, file_pool& fp
 	, std::vector<char>& buf
 	, std::string const& test_path
-	, aux::session_settings& set)
+	, settings_pack& set)
 {
 	fs.add_file(combine_path("temp_storage", "test1.tmp"), 8);
 	fs.add_file(combine_path("temp_storage", combine_path("folder1", "test2.tmp")), 8);
@@ -201,7 +201,7 @@ void run_storage_tests(std::shared_ptr<torrent_info> info
 	std::vector<char> piece1 = new_piece(piece_size);
 	std::vector<char> piece2 = new_piece(piece_size);
 
-	aux::session_settings set;
+	settings_pack set;
 	set.set_int(settings_pack::disk_io_write_mode
 		, unbuffered ? settings_pack::disable_os_cache
 		: settings_pack::enable_os_cache);
@@ -308,7 +308,7 @@ void test_remove(std::string const& test_path, bool unbuffered)
 	io_service ios;
 	disk_buffer_pool dp(16 * 1024, ios, std::bind(&nop));
 
-	aux::session_settings set;
+	settings_pack set;
 	set.set_int(settings_pack::disk_io_write_mode
 		, unbuffered ? settings_pack::disable_os_cache
 		: settings_pack::enable_os_cache);
@@ -380,7 +380,7 @@ void test_rename(std::string const& test_path)
 	file_pool fp;
 	io_service ios;
 	disk_buffer_pool dp(16 * 1024, ios, std::bind(&nop));
-	aux::session_settings set;
+	settings_pack set;
 
 	boost::shared_ptr<default_storage> s = setup_torrent(fs, fp, buf, test_path
 		, set);
@@ -1279,7 +1279,7 @@ TORRENT_TEST(move_storage_into_self)
 	std::string const save_path = current_working_directory();
 	delete_dirs(combine_path(save_path, "temp_storage"));
 
-	aux::session_settings set;
+	settings_pack set;
 	file_storage fs;
 	std::vector<char> buf;
 	file_pool fp;
@@ -1325,7 +1325,7 @@ TORRENT_TEST(dont_move_intermingled_files)
 	std::string test_path = combine_path(current_working_directory(), "save_path_2");
 	delete_dirs(combine_path(test_path, "temp_storage"));
 
-	aux::session_settings set;
+	settings_pack set;
 	file_storage fs;
 	std::vector<char> buf;
 	file_pool fp;

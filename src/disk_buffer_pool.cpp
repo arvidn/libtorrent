@@ -352,7 +352,7 @@ namespace libtorrent
 		check_buffer_level(l);
 	}
 
-	void disk_buffer_pool::set_settings(aux::session_settings const& sett
+	void disk_buffer_pool::set_settings(settings_pack const& sett
 		, error_code& ec)
 	{
 		TORRENT_UNUSED(ec);

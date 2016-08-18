@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 using namespace libtorrent::aux;
 
-TORRENT_TEST(default_settings)
+TORRENT_TEST(default_session_settings)
 {
 	aux::session_settings sett;
 	initialize_default_settings(sett);
@@ -57,7 +57,26 @@ TORRENT_TEST(default_settings)
 #endif
 }
 
-TORRENT_TEST(apply_pack)
+TORRENT_TEST(default_settings)
+{
+	settings_pack sett;
+	initialize_default_settings(sett);
+
+	entry e;
+	aux::session_settings temp;
+	apply_pack(&sett, temp);
+	save_settings_to_dict(temp, e.dict());
+	// all default values are supposed to be skipped
+	// by save_settings
+	TEST_EQUAL(e.dict().size(), 0);
+
+#if TORRENT_USE_IOSTREAM
+	if (e.dict().size() > 0)
+		std::cerr << e << std::endl;
+#endif
+}
+
+TORRENT_TEST(apply_pack_session_settings)
 {
 	aux::session_settings sett;
 	initialize_default_settings(sett);
@@ -71,6 +90,29 @@ TORRENT_TEST(apply_pack)
 	TEST_EQUAL(sett.get_int(settings_pack::max_out_request_queue), 1337);
 	entry e;
 	save_settings_to_dict(sett, e.dict());
+	TEST_EQUAL(e.dict().size(), 1);
+
+	std::string out;
+	bencode(std::back_inserter(out), e);
+	TEST_EQUAL(out, "d21:max_out_request_queuei1337ee");
+}
+
+TORRENT_TEST(apply_pack)
+{
+	settings_pack sett;
+	initialize_default_settings(sett);
+	settings_pack sp;
+	sp.set_int(settings_pack::max_out_request_queue, 1337);
+
+	TEST_CHECK(sett.get_int(settings_pack::max_out_request_queue) != 1337);
+
+	apply_pack(sp, sett);
+
+	TEST_EQUAL(sett.get_int(settings_pack::max_out_request_queue), 1337);
+	entry e;
+	aux::session_settings temp;
+	apply_pack(&sett, temp);
+	save_settings_to_dict(temp, e.dict());
 	TEST_EQUAL(e.dict().size(), 1);
 
 	std::string out;

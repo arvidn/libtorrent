@@ -295,7 +295,7 @@ namespace libtorrent
 
 		// TODO: this should probably be optional
 		alert_manager dummy2(0, 0);
-		disk_thread.set_settings(&sett, dummy2);
+		disk_thread.set_settings(sett, dummy2);
 
 		int piece_counter = 0;
 		int completed_piece = 0;

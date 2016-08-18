@@ -1591,7 +1591,7 @@ void block_cache::get_stats(cache_status* ret) const
 }
 #endif
 
-void block_cache::set_settings(aux::session_settings const& sett, error_code& ec)
+void block_cache::set_settings(settings_pack const& sett, error_code& ec)
 {
 	// the ghost size is the number of pieces to keep track of
 	// after they are evicted. Since cache_size is blocks, the

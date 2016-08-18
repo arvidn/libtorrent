@@ -548,6 +548,28 @@ namespace libtorrent
 
 #endif
 
+	void initialize_default_settings(settings_pack& s)
+	{
+		for (int i = 0; i < settings_pack::num_string_settings; ++i)
+		{
+			if (str_settings[i].default_value == nullptr) continue;
+			s.set_str(settings_pack::string_type_base + i, str_settings[i].default_value);
+			TORRENT_ASSERT(s.get_str(settings_pack::string_type_base + i) == str_settings[i].default_value);
+		}
+
+		for (int i = 0; i < settings_pack::num_int_settings; ++i)
+		{
+			s.set_int(settings_pack::int_type_base + i, int_settings[i].default_value);
+			TORRENT_ASSERT(s.get_int(settings_pack::int_type_base + i) == int_settings[i].default_value);
+		}
+
+		for (int i = 0; i < settings_pack::num_bool_settings; ++i)
+		{
+			s.set_bool(settings_pack::bool_type_base + i, bool_settings[i].default_value);
+			TORRENT_ASSERT(s.get_bool(settings_pack::bool_type_base + i) == bool_settings[i].default_value);
+		}
+	}
+
 	void initialize_default_settings(aux::session_settings& s)
 	{
 		for (int i = 0; i < settings_pack::num_string_settings; ++i)
@@ -642,6 +664,77 @@ namespace libtorrent
 			i != end; ++i)
 		{
 			fun_t const& f = *i;
+			(ses->*f)();
+		}
+	}
+
+	void apply_pack(settings_pack const& pack, settings_pack& sett
+		, aux::session_impl* ses)
+	{
+		typedef void (aux::session_impl::*fun_t)();
+		std::vector<fun_t> callbacks;
+
+		for (auto const& p : pack.m_strings)
+		{
+			// disregard setting indices that are not string types
+			if ((p.first & settings_pack::type_mask) != settings_pack::string_type_base)
+				continue;
+
+			// ignore settings that are out of bounds
+			int const index = p.first & settings_pack::index_mask;
+			TORRENT_ASSERT_PRECOND(index >= 0 && index < settings_pack::num_string_settings);
+			if (index < 0 || index >= settings_pack::num_string_settings)
+				continue;
+
+			sett.set_str(p.first, p.second);
+			str_setting_entry_t const& sa = str_settings[index];
+			if (sa.fun && ses
+				&& std::find(callbacks.begin(), callbacks.end(), sa.fun) == callbacks.end())
+				callbacks.push_back(sa.fun);
+		}
+
+		for (auto const& p : pack.m_ints)
+		{
+			// disregard setting indices that are not int types
+			if ((p.first & settings_pack::type_mask) != settings_pack::int_type_base)
+				continue;
+
+			// ignore settings that are out of bounds
+			int const index = p.first & settings_pack::index_mask;
+			TORRENT_ASSERT_PRECOND(index >= 0 && index < settings_pack::num_int_settings);
+			if (index < 0 || index >= settings_pack::num_int_settings)
+				continue;
+
+			sett.set_int(p.first, p.second);
+			int_setting_entry_t const& sa = int_settings[index];
+			if (sa.fun && ses
+				&& std::find(callbacks.begin(), callbacks.end(), sa.fun) == callbacks.end())
+				callbacks.push_back(sa.fun);
+		}
+
+		for (auto const& p : pack.m_bools)
+		{
+			// disregard setting indices that are not bool types
+			if ((p.first & settings_pack::type_mask) != settings_pack::bool_type_base)
+				continue;
+
+			// ignore settings that are out of bounds
+			int const index = p.first & settings_pack::index_mask;
+			TORRENT_ASSERT_PRECOND(index >= 0 && index < settings_pack::num_bool_settings);
+			if (index < 0 || index >= settings_pack::num_bool_settings)
+				continue;
+
+			sett.set_bool(p.first, p.second);
+			bool_setting_entry_t const& sa = bool_settings[index];
+			if (sa.fun && ses
+				&& std::find(callbacks.begin(), callbacks.end(), sa.fun) == callbacks.end())
+				callbacks.push_back(sa.fun);
+		}
+
+		// call the callbacks once all the settings have been applied, and
+		// only once per callback
+		for (auto const& f : callbacks)
+		{
 			(ses->*f)();
 		}
 	}

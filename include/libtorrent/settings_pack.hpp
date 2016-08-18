@@ -59,9 +59,14 @@ namespace libtorrent
 	struct settings_pack;
 	struct bdecode_node;
 
+	TORRENT_EXTRA_EXPORT void initialize_default_settings(settings_pack& s);
+
 	TORRENT_EXTRA_EXPORT boost::shared_ptr<settings_pack> load_pack_from_dict(bdecode_node const& settings);
 	TORRENT_EXTRA_EXPORT void save_settings_to_dict(aux::session_settings const& s, entry::dictionary_type& sett);
-	TORRENT_EXTRA_EXPORT void apply_pack(settings_pack const* pack, aux::session_settings& sett, aux::session_impl* ses = 0);
+	TORRENT_EXTRA_EXPORT void apply_pack(settings_pack const* pack, aux::session_settings& sett
+			, aux::session_impl* ses = nullptr);
+	TORRENT_EXTRA_EXPORT void apply_pack(settings_pack const& pack, settings_pack& sett
+			, aux::session_impl* ses = nullptr);
 
 	TORRENT_EXPORT int setting_by_name(std::string const& name);
 	TORRENT_EXPORT char const* name_for_setting(int s);
@@ -83,7 +88,8 @@ namespace libtorrent
 	//
 	struct TORRENT_EXPORT settings_pack
 	{
-		friend TORRENT_EXTRA_EXPORT void apply_pack(settings_pack const* pack, aux::session_settings& sett, aux::session_impl* ses);
+		friend void apply_pack(settings_pack const* pack, aux::session_settings& sett, aux::session_impl* ses);
+		friend void apply_pack(settings_pack const& pack, settings_pack& sett, aux::session_impl* ses);
 
 		settings_pack() = default;
 		settings_pack(settings_pack const&) = default;
