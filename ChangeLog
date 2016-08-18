@@ -1,3 +1,4 @@
+	* storage_interface API changed to use span and references
 	* changes in public API to work with std::shared_ptr<torrent_info>
 	* extensions API changed to use span and std::shared_ptr
 	* plugin API changed to handle DHT requests using string_view

@@ -837,14 +837,15 @@ namespace libtorrent
 	}
 
 	bool default_storage::verify_resume_data(add_torrent_params const& rd
-		, std::vector<std::string> const* links
+		, std::vector<std::string> const& links
 		, storage_error& ec)
 	{
 		file_storage const& fs = files();
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
-		if (links)
+		if (!links.empty())
 		{
+			TORRENT_ASSERT(int(links.size()) == fs.num_files());
 			// if this is a mutable torrent, and we need to pick up some files
 			// from other torrents, do that now. Note that there is an inherent
 			// race condition here. We checked if the files existed on a different
@@ -852,15 +853,14 @@ namespace libtorrent
 			// moved. If so, we just fail. The user is responsible to not touch
 			// other torrents until a new mutable torrent has been completely
 			// added.
-			int idx = 0;
-			for (std::vector<std::string>::const_iterator i = links->begin();
-				i != links->end(); ++i, ++idx)
+			for (int idx = 0; idx < fs.num_files(); idx++)
 			{
-				if (i->empty()) continue;
+				std::string const& s = links[idx];
+				if (s.empty()) continue;
 
 				error_code err;
 				std::string file_path = fs.file_path(idx, m_save_path);
-				hard_link(*i, file_path, err);
+				hard_link(s, file_path, err);
 
 				// if the file already exists, that's not an error
 				// TODO: 2 is this risky? The upper layer will assume we have the
@@ -1099,7 +1099,7 @@ namespace libtorrent
 		return ret;
 	}
 
-	int default_storage::readv(file::iovec_t const* bufs, int num_bufs
+	int default_storage::readv(span<file::iovec_t const> bufs
 		, int piece, int offset, int flags, storage_error& ec)
 	{
 		read_fileop op(*this, flags);
@@ -1108,14 +1108,14 @@ namespace libtorrent
 		boost::thread::sleep(boost::get_system_time()
 			+ boost::posix_time::milliseconds(1000));
 #endif
-		return readwritev(files(), bufs, piece, offset, num_bufs, op, ec);
+		return readwritev(files(), bufs.data(), piece, offset, int(bufs.size()), op, ec);
 	}
 
-	int default_storage::writev(file::iovec_t const* bufs, int num_bufs
+	int default_storage::writev(span<file::iovec_t const> bufs
 		, int piece, int offset, int flags, storage_error& ec)
 	{
 		write_fileop op(*this, flags);
-		return readwritev(files(), bufs, piece, offset, num_bufs, op, ec);
+		return readwritev(files(), bufs.data(), piece, offset, int(bufs.size()), op, ec);
 	}
 
 	// much of what needs to be done when reading and writing is buffer
@@ -1374,19 +1374,19 @@ namespace libtorrent
 			void initialize(storage_error&) override {}
 			int move_storage(std::string const&, int, storage_error&) override { return 0; }
 
-			int readv(file::iovec_t const* bufs, int num_bufs
+			int readv(span<file::iovec_t const> bufs
 				, int, int, int, storage_error&) override
 			{
-				return bufs_size(bufs, num_bufs);
+				return bufs_size(bufs.data(), int(bufs.size()));
 			}
-			int writev(file::iovec_t const* bufs, int num_bufs
+			int writev(span<file::iovec_t const> bufs
 				, int, int, int, storage_error&) override
 			{
-				return bufs_size(bufs, num_bufs);
+				return bufs_size(bufs.data(), int(bufs.size()));
 			}
 
 			bool verify_resume_data(add_torrent_params const&
-				, std::vector<std::string> const*
+				, std::vector<std::string> const&
 				, storage_error&) override { return false; }
 		};
 	}
@@ -1407,22 +1407,22 @@ namespace libtorrent
 		{
 			void initialize(storage_error&) override {}
 
-			int readv(file::iovec_t const* bufs, int num_bufs
+			int readv(span<file::iovec_t const> bufs
 				, int, int, int, storage_error&) override
 			{
 				int ret = 0;
-				for (int i = 0; i < num_bufs; ++i)
+				for (int i = 0; i < int(bufs.size()); ++i)
 				{
 					memset(bufs[i].iov_base, 0, bufs[i].iov_len);
 					ret += int(bufs[i].iov_len);
 				}
 				return 0;
 			}
-			int writev(file::iovec_t const* bufs, int num_bufs
+			int writev(span<file::iovec_t const> bufs
 				, int, int, int, storage_error&) override
 			{
 				int ret = 0;
-				for (int i = 0; i < num_bufs; ++i)
+				for (int i = 0; i < int(bufs.size()); ++i)
 					ret += int(bufs[i].iov_len);
 				return 0;
 			}
@@ -1433,12 +1433,12 @@ namespace libtorrent
 			int move_storage(std::string const& /* save_path */
 				, int /* flags */, storage_error&) override { return 0; }
 			bool verify_resume_data(add_torrent_params const& /* rd */
-				, std::vector<std::string> const* /* links */
+				, std::vector<std::string> const& /* links */
 				, storage_error&) override
 			{ return false; }
 			void release_files(storage_error&) override {}
 			void rename_file(int /* index */
-				, std::string const& /* new_filenamem */, storage_error&) override {}
+				, std::string const& /* new_filename */, storage_error&) override {}
 			void delete_files(int, storage_error&) override {}
 		};
 	}
@@ -1548,7 +1548,7 @@ namespace libtorrent
 	// any file does not exist or is inaccessible, the disk job must fail.
 	int piece_manager::check_fastresume(
 		add_torrent_params const& rd
-		, std::vector<std::string> const* links
+		, std::vector<std::string> const& links
 		, storage_error& ec)
 	{
 		TORRENT_ASSERT(m_files.piece_length() > 0);

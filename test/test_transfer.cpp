@@ -87,8 +87,7 @@ struct test_storage : default_storage
 	}
 
 	int writev(
-		file::iovec_t const* bufs
-		, int num_bufs
+		span<file::iovec_t const> bufs
 		, int piece_index
 		, int offset
 		, int flags
@@ -104,10 +103,9 @@ struct test_storage : default_storage
 			return 0;
 		}
 
-		for (int i = 0; i < num_bufs; ++i)
-			m_written += int(bufs[i].iov_len);
+		for (auto const& b : bufs) m_written += int(b.iov_len);
 		l.unlock();
-		return default_storage::writev(bufs, num_bufs, piece_index, offset, flags, se);
+		return default_storage::writev(bufs, piece_index, offset, flags, se);
 	}
 
 	~test_storage() override = default;
