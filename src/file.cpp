@@ -63,6 +63,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/alloca.hpp"
 #include "libtorrent/file.hpp"
+#include "libtorrent/string_util.hpp"
 #include "libtorrent/aux_/max_path.hpp" // for TORRENT_MAX_PATH
 #include <cstring>
 

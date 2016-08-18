@@ -34,18 +34,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_ERROR_CODE_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/string_util.hpp" // for allocate_string_copy
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
-// asio assumes that the windows error codes are defined already
-#include <winsock2.h>
-#endif
-
 #include <boost/system/error_code.hpp>
 #include <boost/system/system_error.hpp>
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent

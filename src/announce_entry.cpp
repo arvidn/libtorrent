@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/announce_entry.hpp"
+#include "libtorrent/string_util.hpp" // for is_space
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 
@@ -131,4 +132,3 @@ namespace libtorrent
 	}
 
 }
-

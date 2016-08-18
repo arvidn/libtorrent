@@ -31,10 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/socks5_stream.hpp"
-#include "libtorrent/assert.hpp"
 #include "libtorrent/socket_io.hpp"
-
-#include <functional>
 
 using namespace std::placeholders;
 
@@ -134,7 +131,7 @@ namespace libtorrent
 	}
 
 	void socks5_stream::name_lookup(error_code const& e, tcp::resolver::iterator i
-		, boost::shared_ptr<handler_type> h)
+		, std::shared_ptr<handler_type> h)
 	{
 		COMPLETE_ASYNC("socks5_stream::name_lookup");
 		if (handle_error(e, h)) return;
@@ -153,7 +150,7 @@ namespace libtorrent
 			&socks5_stream::connected, this, _1, h));
 	}
 
-	void socks5_stream::connected(error_code const& e, boost::shared_ptr<handler_type> h)
+	void socks5_stream::connected(error_code const& e, std::shared_ptr<handler_type> h)
 	{
 		COMPLETE_ASYNC("socks5_stream::connected");
 		if (handle_error(e, h)) return;
@@ -190,7 +187,7 @@ namespace libtorrent
 		}
 	}
 
-	void socks5_stream::handshake1(error_code const& e, boost::shared_ptr<handler_type> h)
+	void socks5_stream::handshake1(error_code const& e, std::shared_ptr<handler_type> h)
 	{
 		COMPLETE_ASYNC("socks5_stream::handshake1");
 		if (handle_error(e, h)) return;
@@ -201,7 +198,7 @@ namespace libtorrent
 			, std::bind(&socks5_stream::handshake2, this, _1, h));
 	}
 
-	void socks5_stream::handshake2(error_code const& e, boost::shared_ptr<handler_type> h)
+	void socks5_stream::handshake2(error_code const& e, std::shared_ptr<handler_type> h)
 	{
 		COMPLETE_ASYNC("socks5_stream::handshake2");
 		if (handle_error(e, h)) return;
@@ -253,7 +250,7 @@ namespace libtorrent
 	}
 
 	void socks5_stream::handshake3(error_code const& e
-		, boost::shared_ptr<handler_type> h)
+		, std::shared_ptr<handler_type> h)
 	{
 		COMPLETE_ASYNC("socks5_stream::handshake3");
 		if (handle_error(e, h)) return;
@@ -265,7 +262,7 @@ namespace libtorrent
 	}
 
 	void socks5_stream::handshake4(error_code const& e
-		, boost::shared_ptr<handler_type> h)
+		, std::shared_ptr<handler_type> h)
 	{
 		COMPLETE_ASYNC("socks5_stream::handshake4");
 		if (handle_error(e, h)) return;
@@ -292,7 +289,7 @@ namespace libtorrent
 		socks_connect(h);
 	}
 
-	void socks5_stream::socks_connect(boost::shared_ptr<handler_type> h)
+	void socks5_stream::socks_connect(std::shared_ptr<handler_type> h)
 	{
 		using namespace libtorrent::detail;
 
@@ -354,7 +351,7 @@ namespace libtorrent
 			, std::bind(&socks5_stream::connect1, this, _1, h));
 	}
 
-	void socks5_stream::connect1(error_code const& e, boost::shared_ptr<handler_type> h)
+	void socks5_stream::connect1(error_code const& e, std::shared_ptr<handler_type> h)
 	{
 		COMPLETE_ASYNC("socks5_stream::connect1");
 		if (handle_error(e, h)) return;
@@ -369,7 +366,7 @@ namespace libtorrent
 			, std::bind(&socks5_stream::connect2, this, _1, h));
 	}
 
-	void socks5_stream::connect2(error_code const& e, boost::shared_ptr<handler_type> h)
+	void socks5_stream::connect2(error_code const& e, std::shared_ptr<handler_type> h)
 	{
 		COMPLETE_ASYNC("socks5_stream::connect2");
 		if (handle_error(e, h)) return;
@@ -497,7 +494,7 @@ namespace libtorrent
 		}
 	}
 
-	void socks5_stream::connect3(error_code const& e, boost::shared_ptr<handler_type> h)
+	void socks5_stream::connect3(error_code const& e, std::shared_ptr<handler_type> h)
 	{
 		COMPLETE_ASYNC("socks5_stream::connect3");
 		using namespace libtorrent::detail;
@@ -520,4 +517,3 @@ namespace libtorrent
 		(*h)(e);
 	}
 }
-

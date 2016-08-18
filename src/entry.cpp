@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/hex.hpp"
+#include "libtorrent/string_util.hpp"
 
 namespace libtorrent
 {

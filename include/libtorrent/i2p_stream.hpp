@@ -37,12 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if TORRENT_USE_I2P
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/shared_ptr.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include <list>
 #include <string>
 #include <vector>
@@ -115,7 +109,7 @@ public:
 
 		// to avoid unnecessary copying of the handler,
 		// store it in a shared_ptr
-		boost::shared_ptr<handler_type> h(new handler_type(handler));
+		std::shared_ptr<handler_type> h(new handler_type(handler));
 
 		using std::placeholders::_1;
 		using std::placeholders::_2;
@@ -127,20 +121,20 @@ public:
 	std::string name_lookup() const { return m_name_lookup; }
 	void set_name_lookup(char const* name) { m_name_lookup = name; }
 
-	void send_name_lookup(boost::shared_ptr<handler_type> h);
+	void send_name_lookup(std::shared_ptr<handler_type> h);
 
 private:
 	// explicitly disallow assignment, to silence msvc warning
 	i2p_stream& operator=(i2p_stream const&);
 
 	void do_connect(error_code const& e, tcp::resolver::iterator i
-		, boost::shared_ptr<handler_type> h);
-	void connected(error_code const& e, boost::shared_ptr<handler_type> h);
-	void start_read_line(error_code const& e, boost::shared_ptr<handler_type> h);
-	void read_line(error_code const& e, boost::shared_ptr<handler_type> h);
-	void send_connect(boost::shared_ptr<handler_type> h);
-	void send_accept(boost::shared_ptr<handler_type> h);
-	void send_session_create(boost::shared_ptr<handler_type> h);
+		, std::shared_ptr<handler_type> h);
+	void connected(error_code const& e, std::shared_ptr<handler_type> h);
+	void start_read_line(error_code const& e, std::shared_ptr<handler_type> h);
+	void read_line(error_code const& e, std::shared_ptr<handler_type> h);
+	void send_connect(std::shared_ptr<handler_type> h);
+	void send_accept(std::shared_ptr<handler_type> h);
+	void send_session_create(std::shared_ptr<handler_type> h);
 
 	// send and receive buffer
 	std::vector<char> m_buffer;
@@ -192,18 +186,18 @@ private:
 	i2p_connection& operator=(i2p_connection const&);
 
 	void on_sam_connect(error_code const& ec, i2p_stream::handler_type const& h
-		, boost::shared_ptr<i2p_stream>);
+		, std::shared_ptr<i2p_stream>);
 	void do_name_lookup(std::string const& name
 		, name_lookup_handler const& h);
 	void on_name_lookup(error_code const& ec
 		, name_lookup_handler handler
-		, boost::shared_ptr<i2p_stream>);
+		, std::shared_ptr<i2p_stream>);
 
 	void set_local_endpoint(error_code const& ec, char const* dest
 		, i2p_stream::handler_type const& h);
 
 	// to talk to i2p SAM bridge
-	boost::shared_ptr<i2p_stream> m_sam_socket;
+	std::shared_ptr<i2p_stream> m_sam_socket;
 	std::string m_hostname;
 	int m_port;
 
