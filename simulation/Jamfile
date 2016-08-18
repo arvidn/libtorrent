@@ -37,6 +37,7 @@ alias libtorrent-sims :
 	[ run test_super_seeding.cpp ]
 	[ run test_utp.cpp ]
 	[ run test_dht.cpp ]
+	[ run test_dht_bootstrap.cpp ]
 	[ run test_dht_storage.cpp ]
 	[ run test_pe_crypto.cpp ]
 	[ run test_metadata_extension.cpp ]

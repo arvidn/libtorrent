@@ -633,6 +633,7 @@ namespace aux {
 		update_lsd();
 		update_dht();
 		update_peer_fingerprint();
+		update_dht_bootstrap_nodes();
 
 		if (m_listen_sockets.empty())
 		{
@@ -5480,6 +5481,20 @@ retry:
 		{
 			url_random(m_peer_id.data() + print.length(), m_peer_id.data() + 20);
 		}
+	}
+
+	void session_impl::update_dht_bootstrap_nodes()
+	{
+#ifndef TORRENT_DISABLE_DHT
+		std::string const& node_list = m_settings.get_str(settings_pack::dht_bootstrap_nodes);
+		std::vector<std::pair<std::string, int> > nodes;
+		parse_comma_separated_string_port(node_list, nodes);
+
+		for (int i = 0; i < nodes.size(); ++i)
+		{
+			add_dht_router(nodes[i]);
+		}
+#endif
 	}
 
 	void session_impl::update_count_slow()

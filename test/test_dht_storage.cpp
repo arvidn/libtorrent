@@ -199,6 +199,7 @@ TORRENT_TEST(set_custom)
 	g_storage_constructor_invoked = false;
 	settings_pack p;
 	p.set_bool(settings_pack::enable_dht, false);
+	p.set_str(settings_pack::dht_bootstrap_nodes, "");
 	lt::session ses(p);
 
 	TEST_EQUAL(g_storage_constructor_invoked, false);
@@ -208,6 +209,7 @@ TORRENT_TEST(set_custom)
 	ses.set_dht_storage(dht_custom_storage_constructor);
 
 	p.set_bool(settings_pack::enable_dht, true);
+	p.set_str(settings_pack::dht_bootstrap_nodes, "");
 	ses.apply_settings(p); // async with dispatch
 	r = ses.is_dht_running();
 	TEST_CHECK(r);
@@ -219,6 +221,7 @@ TORRENT_TEST(default_set_custom)
 	g_storage_constructor_invoked = false;
 	settings_pack p;
 	p.set_bool(settings_pack::enable_dht, true);
+	p.set_str(settings_pack::dht_bootstrap_nodes, "");
 	lt::session ses(p);
 
 	bool r = ses.is_dht_running();

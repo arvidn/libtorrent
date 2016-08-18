@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/io.hpp"
+#include "libtorrent/bdecode.hpp"
 
 using namespace sim;
 
@@ -179,6 +180,56 @@ private:
 	asio::ip::tcp::acceptor m_acceptor;
 	asio::ip::tcp::socket m_in_socket;
 	asio::ip::tcp::socket m_out_socket;
+	bool m_tripped;
+
+	std::vector<char> m_send_buffer;
+};
+
+struct fake_node
+{
+	fake_node(simulation& sim, char const* ip, int port = 6881)
+		: m_ios(sim, asio::ip::address::from_string(ip))
+		, m_socket(m_ios)
+		, m_tripped(false)
+	{
+		boost::system::error_code ec;
+		m_socket.open(asio::ip::udp::v4(), ec);
+		TEST_CHECK(!ec);
+		m_socket.bind(asio::ip::udp::endpoint(asio::ip::address_v4::any(), port), ec);
+		TEST_CHECK(!ec);
+
+		fprintf(stderr, "fake_node::async_read_some\n");
+		m_socket.async_receive(boost::asio::buffer(m_in_buffer)
+			, [&] (boost::system::error_code const& ec, size_t bytes_transferred)
+		{
+			fprintf(stderr, "fake_node::async_read_some callback. ec: %s transferred: %d\n"
+				, ec.message().c_str(), int(bytes_transferred));
+			if (ec) return;
+
+			lt::bdecode_node n;
+			boost::system::error_code err;
+			int const ret = bdecode(m_in_buffer, m_in_buffer + bytes_transferred
+				, n, err, nullptr, 10, 200);
+			TEST_EQUAL(ret, 0);
+
+			// TODO: ideally we would validate the DHT message
+			m_tripped = true;
+		});
+	}
+
+	void close()
+	{
+		m_socket.close();
+	}
+
+	bool tripped() const { return m_tripped; }
+
+private:
+
+	char m_in_buffer[300];
+
+	asio::io_service m_ios;
+	asio::ip::udp::socket m_socket;
 	bool m_tripped;
 
 	std::vector<char> m_send_buffer;

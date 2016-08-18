@@ -137,7 +137,8 @@ namespace libtorrent
 		SET_NOPREV(proxy_username, "", &session_impl::update_proxy),
 		SET_NOPREV(proxy_password, "", &session_impl::update_proxy),
 		SET_NOPREV(i2p_hostname, "", &session_impl::update_i2p_bridge),
-		SET_NOPREV(peer_fingerprint, "-LT1110-", &session_impl::update_peer_fingerprint)
+		SET_NOPREV(peer_fingerprint, "-LT1110-", &session_impl::update_peer_fingerprint),
+		SET_NOPREV(dht_bootstrap_nodes, "dht.libtorrent.org:25401", &session_impl::update_dht_bootstrap_nodes)
 	};
 
 	bool_setting_entry_t bool_settings[settings_pack::num_bool_settings] =
