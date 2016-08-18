@@ -43,7 +43,7 @@ namespace libtorrent
 
 	proxy_base::~proxy_base() = default;
 
-	bool proxy_base::handle_error(error_code const& e, boost::shared_ptr<handler_type> const& h)
+	bool proxy_base::handle_error(error_code const& e, std::shared_ptr<handler_type> const& h)
 	{
 		if (!e) return false;
 		(*h)(e);
@@ -52,4 +52,3 @@ namespace libtorrent
 		return true;
 	}
 }
-

@@ -38,9 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/http_parser.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/parse_url.hpp" // for parse_url_components
+#include "libtorrent/string_util.hpp" // for allocate_string_copy
 #include "libtorrent/aux_/escape_string.hpp" // for read_until
-
-using namespace libtorrent;
 
 namespace libtorrent
 {
@@ -577,4 +576,3 @@ restart_response:
 		return size;
 	}
 }
-

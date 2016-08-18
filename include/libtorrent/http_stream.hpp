@@ -33,13 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_HTTP_STREAM_HPP_INCLUDED
 #define TORRENT_HTTP_STREAM_HPP_INCLUDED
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/function/function1.hpp>
 #include <functional>
-#include <boost/shared_ptr.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/proxy_base.hpp"
 #include "libtorrent/string_util.hpp"
@@ -96,7 +90,7 @@ public:
 
 		// to avoid unnecessary copying of the handler,
 		// store it in a shared_ptr
-		boost::shared_ptr<handler_type> h(new handler_type(handler));
+		std::shared_ptr<handler_type> h(new handler_type(handler));
 
 		using std::placeholders::_1;
 		using std::placeholders::_2;
@@ -108,10 +102,10 @@ public:
 private:
 
 	void name_lookup(error_code const& e, tcp::resolver::iterator i
-		, boost::shared_ptr<handler_type> h);
-	void connected(error_code const& e, boost::shared_ptr<handler_type> h);
-	void handshake1(error_code const& e, boost::shared_ptr<handler_type> h);
-	void handshake2(error_code const& e, boost::shared_ptr<handler_type> h);
+		, std::shared_ptr<handler_type> h);
+	void connected(error_code const& e, std::shared_ptr<handler_type> h);
+	void handshake1(error_code const& e, std::shared_ptr<handler_type> h);
+	void handshake2(error_code const& e, std::shared_ptr<handler_type> h);
 
 	// send and receive buffer
 	std::vector<char> m_buffer;

@@ -55,4 +55,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_PEER_REQUEST_HPP_INCLUDED
-

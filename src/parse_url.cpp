@@ -30,8 +30,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/parse_url.hpp"
 #include <algorithm>
+
+#include "libtorrent/parse_url.hpp"
+#include "libtorrent/string_util.hpp"
 
 namespace libtorrent
 {
@@ -131,4 +133,3 @@ exit:
 	}
 
 }
-

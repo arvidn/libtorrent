@@ -33,7 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_ERROR_HPP_INCLUDED
 #define TORRENT_ERROR_HPP_INCLUDED
 
-#include <boost/version.hpp>
 #include "libtorrent/config.hpp"
 
 #if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN

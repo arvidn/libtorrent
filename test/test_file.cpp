@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/file.hpp"
+#include "libtorrent/string_util.hpp" // for split_string
 #include "test.hpp"
 #include <cstring> // for std::strcmp
 #include <vector>
@@ -392,4 +393,3 @@ TORRENT_TEST(coalesce_buffer)
 	TEST_CHECK(std::strcmp(test_buf2, "foobar") == 0);
 	f.close();
 }
-

@@ -33,19 +33,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SOCKS5_STREAM_HPP_INCLUDED
 #define TORRENT_SOCKS5_STREAM_HPP_INCLUDED
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/shared_ptr.hpp>
-#include <boost/make_shared.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include <functional>
 
 #include "libtorrent/proxy_base.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for is_ip_address
 #include "libtorrent/assert.hpp"
 #include "libtorrent/debug.hpp"
+#include "libtorrent/string_util.hpp" // for to_string
 
 namespace libtorrent {
 namespace socks_error {
@@ -122,7 +116,7 @@ public:
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("socks5_stream::connect1");
 #endif
-		connect1(e, boost::make_shared<handler_type>(handler));
+		connect1(e, std::make_shared<handler_type>(handler));
 	}
 
 	template <typename Handler>
@@ -133,8 +127,8 @@ public:
 		m_remote_endpoint = ep;
 
 		// to avoid unnecessary copying of the handler,
-		// store it in a shaed_ptr
-		boost::shared_ptr<handler_type> h(new handler_type(handler));
+		// store it in a shared_ptr
+		std::shared_ptr<handler_type> h(new handler_type(handler));
 
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("socks5_stream::name_lookup");
@@ -206,8 +200,8 @@ public:
 		// 4. send SOCKS command message
 
 		// to avoid unnecessary copying of the handler,
-		// store it in a shaed_ptr
-		boost::shared_ptr<handler_type> h(new handler_type(handler));
+		// store it in a shared_ptr
+		std::shared_ptr<handler_type> h(new handler_type(handler));
 
 		using std::placeholders::_1;
 		using std::placeholders::_2;
@@ -220,16 +214,16 @@ public:
 private:
 
 	void name_lookup(error_code const& e, tcp::resolver::iterator i
-		, boost::shared_ptr<handler_type> h);
-	void connected(error_code const& e, boost::shared_ptr<handler_type> h);
-	void handshake1(error_code const& e, boost::shared_ptr<handler_type> h);
-	void handshake2(error_code const& e, boost::shared_ptr<handler_type> h);
-	void handshake3(error_code const& e, boost::shared_ptr<handler_type> h);
-	void handshake4(error_code const& e, boost::shared_ptr<handler_type> h);
-	void socks_connect(boost::shared_ptr<handler_type> h);
-	void connect1(error_code const& e, boost::shared_ptr<handler_type> h);
-	void connect2(error_code const& e, boost::shared_ptr<handler_type> h);
-	void connect3(error_code const& e, boost::shared_ptr<handler_type> h);
+		, std::shared_ptr<handler_type> h);
+	void connected(error_code const& e, std::shared_ptr<handler_type> h);
+	void handshake1(error_code const& e, std::shared_ptr<handler_type> h);
+	void handshake2(error_code const& e, std::shared_ptr<handler_type> h);
+	void handshake3(error_code const& e, std::shared_ptr<handler_type> h);
+	void handshake4(error_code const& e, std::shared_ptr<handler_type> h);
+	void socks_connect(std::shared_ptr<handler_type> h);
+	void connect1(error_code const& e, std::shared_ptr<handler_type> h);
+	void connect2(error_code const& e, std::shared_ptr<handler_type> h);
+	void connect3(error_code const& e, std::shared_ptr<handler_type> h);
 
 	// send and receive buffer
 	std::vector<char> m_buffer;
@@ -265,4 +259,3 @@ namespace boost { namespace system {
 } }
 
 #endif
-
