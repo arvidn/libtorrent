@@ -47,7 +47,7 @@ using namespace libtorrent;
 
 struct test_storage_impl : storage_interface
 {
-	void initialize(int const flags, storage_error& ec) override {}
+	void initialize(int flags, storage_error& ec) override {}
 
 	int readv(span<file::iovec_t const> bufs
 		, int piece, int offset, int flags, storage_error& ec) override
@@ -62,7 +62,7 @@ struct test_storage_impl : storage_interface
 
 	bool has_any_file(storage_error& ec) override { return false; }
 	void set_file_priority(std::vector<std::uint8_t> const& prio
-		, int const flags, storage_error& ec) override {}
+		, int flags, storage_error& ec) override {}
 	int move_storage(std::string const& save_path, int flags
 		, storage_error& ec) override { return 0; }
 	bool verify_resume_data(add_torrent_params const& rd
