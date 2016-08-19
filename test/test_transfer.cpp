@@ -78,7 +78,7 @@ struct test_storage : default_storage
 	{}
 
 	void set_file_priority(std::vector<std::uint8_t> const& p
-		, int flags, storage_error& ec) override {}
+		, int const flags, storage_error& ec) override {}
 
 	void set_limit(int lim)
 	{

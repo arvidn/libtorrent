@@ -433,7 +433,7 @@ namespace libtorrent
 	}
 
 	void default_storage::set_file_priority(std::vector<std::uint8_t> const& prio
-		, int flags, storage_error& ec)
+		, int const flags, storage_error& ec)
 	{
 		// extend our file priorities in case it's truncated
 		// the default assumed priority is 1
@@ -507,7 +507,7 @@ namespace libtorrent
 		}
 	}
 
-	void default_storage::initialize(int flags, storage_error& ec)
+	void default_storage::initialize(int const flags, storage_error& ec)
 	{
 		m_stat_cache.reserve(files().num_files());
 
@@ -1217,7 +1217,7 @@ namespace libtorrent
 	}
 
 	file_handle default_storage::open_file(int file, int mode
-		, int flags, storage_error& ec) const
+		, int const flags, storage_error& ec) const
 	{
 		file_handle h = open_file_impl(file, mode, flags, ec.ec);
 		if (((mode & file::rw_mask) != file::read_only)
@@ -1276,7 +1276,7 @@ namespace libtorrent
 	}
 
 	file_handle default_storage::open_file_impl(int file, int mode
-		, int flags, error_code& ec) const
+		, int const flags, error_code& ec) const
 	{
 		if (flags & file::lock_file) mode |= file::lock_file;
 
@@ -1493,7 +1493,7 @@ namespace libtorrent
 	}
 #endif
 
-	int piece_manager::check_no_fastresume(int flags, storage_error& ec)
+	int piece_manager::check_no_fastresume(int const flags, storage_error& ec)
 	{
 		storage_error se;
 		bool const has_files = m_storage->has_any_file(se);
@@ -1514,7 +1514,7 @@ namespace libtorrent
 		return check_init_storage(flags, ec);
 	}
 
-	int piece_manager::check_init_storage(int flags, storage_error& ec)
+	int piece_manager::check_init_storage(int const flags, storage_error& ec)
 	{
 		storage_error se;
 		// initialize may clear the error we pass in and it's important to
@@ -1540,7 +1540,7 @@ namespace libtorrent
 		add_torrent_params const& rd
 		, std::vector<std::string> const& links
 		, aux::session_settings const& settings
-		, int flags
+		, int const flags
 		, storage_error& ec)
 	{
 		TORRENT_ASSERT(m_files.piece_length() > 0);
