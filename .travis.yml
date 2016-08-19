@@ -162,6 +162,8 @@ script:
   - 'if [[ "$autotools" == "1" ]]; then
       ./autotool.sh &&
       export CXX=g++-5 &&
+      export CC=gcc-5 &&
+      export CXXFLAGS="-Werror -Wno-deprecated-declarations" &&
       ./configure --enable-debug --enable-encryption --enable-examples --enable-tests --enable-python-binding &&
       make -j2 check;
     fi'

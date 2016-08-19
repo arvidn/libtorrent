@@ -321,7 +321,13 @@ EXPORT int main(int argc, char const* argv[])
 #ifdef TORRENT_WINDOWS
 	SetCurrentDirectoryA(dir);
 #else
-	chdir(dir);
+	int ret = chdir(dir);
+	if (ret != 0)
+	{
+		std::fprintf(stderr, "failed to change directory to \"%s\": %s"
+			, dir, strerror(errno));
+		return 1;
+	}
 #endif
 	std::fprintf(stderr, "test: %s\ncwd = \"%s\"\nrnd: %x\n"
 		, executable, test_dir.c_str(), libtorrent::random(0xffffffff));

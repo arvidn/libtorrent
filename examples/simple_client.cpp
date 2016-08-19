@@ -74,7 +74,8 @@ int main(int argc, char* argv[])
 
 	// wait for the user to end
 	char a;
-	std::scanf("%c\n", &a);
+	int ret = std::scanf("%c\n", &a);
+	(void)ret; // ignore
 	return 0;
 }
 
