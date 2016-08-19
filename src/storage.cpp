@@ -611,7 +611,6 @@ namespace libtorrent
 	{
 		m_stat_cache.reserve(files().num_files());
 
-		std::string file_path;
 		for (int i = 0; i < files().num_files(); ++i)
 		{
 			std::int64_t sz = m_stat_cache.get_filesize(
@@ -1494,27 +1493,22 @@ namespace libtorrent
 	}
 #endif
 
-	int piece_manager::check_no_fastresume(bool no_recheck_incomplete_resume
-		, int flags, storage_error& ec)
+	int piece_manager::check_no_fastresume(int flags, storage_error& ec)
 	{
-		bool has_files = false;
-		if (!no_recheck_incomplete_resume)
+		storage_error se;
+		bool const has_files = m_storage->has_any_file(se);
+
+		if (se)
 		{
-			storage_error se;
-			has_files = m_storage->has_any_file(se);
+			ec = se;
+			return fatal_disk_error;
+		}
 
-			if (se)
-			{
-				ec = se;
-				return fatal_disk_error;
-			}
-
-			if (has_files)
-			{
-				// always initialize the storage
-				int ret = check_init_storage(flags, ec);
-				return ret != no_error ? ret : need_full_check;
-			}
+		if (has_files)
+		{
+			// always initialize the storage
+			int ret = check_init_storage(flags, ec);
+			return ret != no_error ? ret : need_full_check;
 		}
 
 		return check_init_storage(flags, ec);
@@ -1537,7 +1531,7 @@ namespace libtorrent
 	// check if the fastresume data is up to date
 	// if it is, use it and return true. If it
 	// isn't return false and the full check
-	// will be run. If the links pointer is non-nullptr, it has the same number
+	// will be run. If the links pointer is non-empty, it has the same number
 	// of elements as there are files. Each element is either empty or contains
 	// the absolute path to a file identical to the corresponding file in this
 	// torrent. The storage must create hard links (or copy) those files. If
@@ -1545,18 +1539,19 @@ namespace libtorrent
 	int piece_manager::check_fastresume(
 		add_torrent_params const& rd
 		, std::vector<std::string> const& links
-		, bool no_recheck_incomplete_resume
+		, aux::session_settings const& settings
 		, int flags
 		, storage_error& ec)
 	{
 		TORRENT_ASSERT(m_files.piece_length() > 0);
 
-		// if we don't have any resume data, return
-		if (rd.have_pieces.empty())
-			return check_no_fastresume(no_recheck_incomplete_resume, flags, ec);
-
-		if (!m_storage->verify_resume_data(rd, links, ec))
-			return check_no_fastresume(no_recheck_incomplete_resume, flags, ec);
+		if (rd.have_pieces.empty()
+			|| !m_storage->verify_resume_data(rd, links, ec))
+		{
+			return settings.get_bool(settings_pack::no_recheck_incomplete_resume)
+				? check_init_storage(flags, ec)
+				: check_no_fastresume(flags, ec);
+		}
 
 		return check_init_storage(flags, ec);
 	}

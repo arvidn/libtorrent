@@ -2521,12 +2521,10 @@ namespace libtorrent
 		if (rd == nullptr) rd = &tmp;
 
 		std::unique_ptr<std::vector<std::string>> links(j->d.links);
-		bool no_recheck_incomplete_resume
-			= m_settings.get_bool(settings_pack::no_recheck_incomplete_resume);
 		int const file_flags = file_flags_for_job(j, m_settings);
 		return j->storage->check_fastresume(*rd
 			, links ? *links : std::vector<std::string>()
-			, no_recheck_incomplete_resume
+			, m_settings
 			, file_flags, j->error);
 	}
 

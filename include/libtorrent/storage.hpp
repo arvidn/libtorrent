@@ -584,12 +584,11 @@ namespace libtorrent
 		// when wrong in the disk access
 		int check_fastresume(add_torrent_params const& rd
 			, std::vector<std::string> const& links
-			, bool no_recheck_incomplete_resume
+			, aux::session_settings const& settings
 			, int flags, storage_error& error);
 
 		// helper functions for check_fastresume
-		int check_no_fastresume(bool no_recheck_incomplete_resume
-			, int flags, storage_error& error);
+		int check_no_fastresume(int flags, storage_error& error);
 		int check_init_storage(int flags, storage_error& error);
 
 #if TORRENT_USE_INVARIANT_CHECKS
