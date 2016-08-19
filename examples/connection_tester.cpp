@@ -835,7 +835,7 @@ void generate_data(char const* path, torrent_info const& ti)
 
 	{
 		storage_error error;
-		st->initialize(error);
+		st->initialize(0, error);
 	}
 
 	std::uint32_t piece[0x4000 / 4];
