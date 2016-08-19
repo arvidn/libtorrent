@@ -127,11 +127,19 @@ namespace libtorrent
 
 
 	int file_flags_for_job(disk_io_job* j
-		, bool const coalesce_buffers)
+		, aux::session_settings const& settings)
 	{
 		int ret = 0;
-		if (!(j->flags & disk_io_job::sequential_access)) ret |= file::random_access;
-		if (coalesce_buffers) ret |= file::coalesce_buffers;
+		if (j != nullptr && !(j->flags & disk_io_job::sequential_access))
+			ret |= file::random_access;
+
+		if (settings.get_bool(settings_pack::coalesce_reads)) ret |= file::coalesce_buffers;
+		if (settings.get_bool(settings_pack::lock_files)) ret |= file::lock_file;
+		if (settings.get_bool(settings_pack::no_atime_storage)) ret |= file::no_atime;
+
+		if (settings.get_int(settings_pack::disk_io_write_mode)
+			== settings_pack::disable_os_cache) ret |= file::no_cache;
+
 		return ret;
 	}
 
@@ -606,8 +614,7 @@ namespace libtorrent
 		DLOG("]\n");
 #endif
 
-		int const file_flags = m_settings.get_bool(settings_pack::coalesce_writes)
-			? file::coalesce_buffers : 0;
+		int const file_flags = file_flags_for_job(nullptr, m_settings);
 
 		// issue the actual write operation
 		file::iovec_t const* iov_start = iov;
@@ -1074,15 +1081,6 @@ namespace libtorrent
 		}
 #endif
 
-		boost::shared_ptr<piece_manager> storage = j->storage;
-
-		// TODO: instead of doing this. pass in the settings to each storage_interface
-		// call. Each disk thread could hold its most recent understanding of the settings
-		// in a shared_ptr, and update it every time it wakes up from a job. That way
-		// each access to the settings won't require a std::mutex to be held.
-		if (storage && storage->get_storage_impl()->m_settings == nullptr)
-			storage->get_storage_impl()->m_settings = &m_settings;
-
 		TORRENT_ASSERT(j->action < sizeof(job_functions) / sizeof(job_functions[0]));
 
 		time_point start_time = clock_type::now();
@@ -1157,8 +1155,7 @@ namespace libtorrent
 
 		time_point start_time = clock_type::now();
 
-		int const file_flags = file_flags_for_job(j
-			, m_settings.get_bool(settings_pack::coalesce_reads));
+		int const file_flags = file_flags_for_job(j, m_settings);
 		file::iovec_t b = { j->buffer.disk_block, size_t(j->d.io.buffer_size) };
 
 		int ret = j->storage->get_storage_impl()->readv(b
@@ -1232,8 +1229,7 @@ namespace libtorrent
 		// can remove them. We can now release the cache std::mutex and dive into the
 		// disk operations.
 
-		int const file_flags = file_flags_for_job(j
-			, m_settings.get_bool(settings_pack::coalesce_reads));
+		int const file_flags = file_flags_for_job(j, m_settings);
 		time_point start_time = clock_type::now();
 
 		ret = j->storage->get_storage_impl()->readv({iov, size_t(iov_len)}
@@ -1391,8 +1387,7 @@ namespace libtorrent
 		time_point start_time = clock_type::now();
 
 		file::iovec_t const b = { j->buffer.disk_block, size_t(j->d.io.buffer_size) };
-		int const file_flags = file_flags_for_job(j
-			, m_settings.get_bool(settings_pack::coalesce_writes));
+		int const file_flags = file_flags_for_job(j, m_settings);
 
 		m_stats_counters.inc_stats_counter(counters::num_writing_threads, 1);
 
@@ -2190,8 +2185,7 @@ namespace libtorrent
 		int const piece_size = j->storage->files()->piece_size(j->piece);
 		int const block_size = m_disk_cache.block_size();
 		int const blocks_in_piece = (piece_size + block_size - 1) / block_size;
-		int const file_flags = file_flags_for_job(j
-			, m_settings.get_bool(settings_pack::coalesce_reads));
+		int const file_flags = file_flags_for_job(j, m_settings);
 
 		file::iovec_t iov;
 		iov.iov_base = m_disk_cache.allocate_buffer("hashing");
@@ -2237,8 +2231,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		int const piece_size = j->storage->files()->piece_size(j->piece);
-		int const file_flags = file_flags_for_job(j
-			, m_settings.get_bool(settings_pack::coalesce_reads));
+		int const file_flags = file_flags_for_job(j, m_settings);
 
 		std::unique_lock<std::mutex> l(m_cache_mutex);
 
@@ -2528,8 +2521,13 @@ namespace libtorrent
 		if (rd == nullptr) rd = &tmp;
 
 		std::unique_ptr<std::vector<std::string>> links(j->d.links);
+		bool no_recheck_incomplete_resume
+			= m_settings.get_bool(settings_pack::no_recheck_incomplete_resume);
+		int const file_flags = file_flags_for_job(j, m_settings);
 		return j->storage->check_fastresume(*rd
-			, links ? *links : std::vector<std::string>(), j->error);
+			, links ? *links : std::vector<std::string>()
+			, no_recheck_incomplete_resume
+			, file_flags, j->error);
 	}
 
 	int disk_io_thread::do_rename_file(disk_io_job* j, jobqueue_t& /* completed_jobs */ )
@@ -2571,8 +2569,7 @@ namespace libtorrent
 			|| m_settings.get_bool(settings_pack::use_read_cache) == false)
 			return 0;
 
-		int const file_flags = file_flags_for_job(j
-			, m_settings.get_bool(settings_pack::coalesce_reads));
+		int const file_flags = file_flags_for_job(j, m_settings);
 
 		std::unique_lock<std::mutex> l(m_cache_mutex);
 
@@ -2901,7 +2898,8 @@ namespace libtorrent
 	int disk_io_thread::do_file_priority(disk_io_job* j, jobqueue_t& /* completed_jobs */ )
 	{
 		std::unique_ptr<std::vector<std::uint8_t>> p(j->buffer.priorities);
-		j->storage->get_storage_impl()->set_file_priority(*p, j->error);
+		int const file_flags = file_flags_for_job(j, m_settings);
+		j->storage->get_storage_impl()->set_file_priority(*p, file_flags, j->error);
 		return 0;
 	}
 

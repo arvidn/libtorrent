@@ -55,6 +55,23 @@ using namespace std::placeholders;
 using namespace libtorrent;
 namespace lt = libtorrent;
 
+namespace {
+
+	int file_flags(aux::session_settings const& settings)
+	{
+		int ret = 0;
+
+		if (settings.get_bool(settings_pack::coalesce_reads)) ret |= file::coalesce_buffers;
+		if (settings.get_bool(settings_pack::lock_files)) ret |= file::lock_file;
+		if (settings.get_bool(settings_pack::no_atime_storage)) ret |= file::no_atime;
+
+		if (settings.get_int(settings_pack::disk_io_write_mode)
+			== settings_pack::disable_os_cache) ret |= file::no_cache;
+
+		return ret;
+	}
+}
+
 const int piece_size = 16 * 1024 * 16;
 const int half = piece_size / 2;
 
@@ -153,11 +170,10 @@ boost::shared_ptr<default_storage> setup_torrent(file_storage& fs
 	p.path = test_path;
 	p.mode = storage_mode_allocate;
 	boost::shared_ptr<default_storage> s(new default_storage(p));
-	s->m_settings = &set;
 
 	// allocate the files and create the directories
 	storage_error se;
-	s->initialize(se);
+	s->initialize(file_flags(set), se);
 	if (se)
 	{
 		TEST_ERROR(se.ec.message().c_str());
@@ -221,10 +237,9 @@ void run_storage_tests(std::shared_ptr<torrent_info> info
 	p.pool = &fp;
 	p.mode = storage_mode;
 	std::unique_ptr<storage_interface> s(new default_storage(p));
-	s->m_settings = &set;
 
 	storage_error ec;
-	s->initialize(ec);
+	s->initialize(file_flags(set), ec);
 	TEST_CHECK(!ec);
 	if (ec) print_error("initialize", 0, ec);
 
