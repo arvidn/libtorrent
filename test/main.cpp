@@ -318,10 +318,17 @@ EXPORT int main(int argc, char const* argv[])
 		std::fprintf(stderr, "Failed to create test directory: %s\n", ec.message().c_str());
 		return 1;
 	}
+	int ret;
 #ifdef TORRENT_WINDOWS
 	SetCurrentDirectoryA(dir);
 #else
-	chdir(dir);
+	ret = chdir(dir);
+	if (ret != 0)
+	{
+		std::fprintf(stderr, "failed to change directory to \"%s\": %s"
+			, dir, strerror(errno));
+		return 1;
+	}
 #endif
 	std::fprintf(stderr, "test: %s\ncwd = \"%s\"\nrnd: %x\n"
 		, executable, test_dir.c_str(), libtorrent::random(0xffffffff));
@@ -467,7 +474,7 @@ EXPORT int main(int argc, char const* argv[])
 		fflush(stderr);
 	}
 
-	int ret = print_failures();
+	ret = print_failures();
 #if !defined TORRENT_LOGGING
 	if (ret == 0 && !keep_files)
 	{

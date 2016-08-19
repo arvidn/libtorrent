@@ -609,7 +609,8 @@ std::string path_to_url(std::string f)
 #if defined TORRENT_WINDOWS && !defined TORRENT_MINGW
 		_getcwd(cwd, sizeof(cwd));
 #else
-		getcwd(cwd, sizeof(cwd));
+		char const* ret = getcwd(cwd, sizeof(cwd));
+		(void)ret; // best effort
 #endif
 		f = path_append(cwd, f);
 	}
@@ -1575,10 +1576,10 @@ int main(int argc, char* argv[])
 				{
 					char url[4096];
 					puts("Enter magnet link:\n");
-					std::scanf("%4095s", url);
+					int ret = std::scanf("%4095s", url);
 
 					add_torrent_params p;
-					if (std::strstr(url, "magnet:") == url)
+					if (ret == 1 && std::strstr(url, "magnet:") == url)
 					{
 						add_torrent_params tmp;
 						parse_magnet_uri(url, tmp, ec);
@@ -1634,8 +1635,8 @@ int main(int argc, char* argv[])
 					std::printf("\n\nARE YOU SURE YOU WANT TO DELETE THE FILES FOR '%s'. THIS OPERATION CANNOT BE UNDONE. (y/N)"
 						, st.name.c_str());
 					char response = 'n';
-					std::scanf("%c", &response);
-					if (response == 'y')
+					int ret = std::scanf("%c", &response);
+					if (ret == 1 && response == 'y')
 					{
 						// also delete the .torrent file from the torrent directory
 						handles_t::iterator i = std::find_if(files.begin(), files.end()

@@ -342,7 +342,13 @@ int main(int argc, char* argv[])
 			_getcwd(cwd, sizeof(cwd));
 			full_path = cwd + ("\\" + full_path);
 #else
-			getcwd(cwd, sizeof(cwd));
+			char const* ret = getcwd(cwd, sizeof(cwd));
+			if (ret == NULL)
+			{
+				std::fprintf(stderr, "failed to get current working directory: %s\n"
+					, strerror(errno));
+				return 1;
+			}
 			full_path = cwd + ("/" + full_path);
 #endif
 		}
