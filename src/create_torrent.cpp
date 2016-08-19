@@ -42,7 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/alert_manager.hpp"
 
-#include <boost/next_prior.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 
@@ -55,9 +54,6 @@ using namespace std::placeholders;
 
 namespace libtorrent
 {
-
-	class alert;
-
 	namespace
 	{
 		inline bool default_pred(std::string const&) { return true; }
@@ -740,6 +736,4 @@ namespace libtorrent
 		if (str == nullptr) m_created_by.clear();
 		else m_created_by = str;
 	}
-
 }
-

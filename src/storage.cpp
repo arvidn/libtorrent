@@ -610,7 +610,6 @@ namespace libtorrent
 	{
 		m_stat_cache.reserve(files().num_files());
 
-		std::string file_path;
 		for (int i = 0; i < files().num_files(); ++i)
 		{
 			std::int64_t sz = m_stat_cache.get_filesize(
@@ -1541,7 +1540,7 @@ namespace libtorrent
 	// check if the fastresume data is up to date
 	// if it is, use it and return true. If it
 	// isn't return false and the full check
-	// will be run. If the links pointer is non-nullptr, it has the same number
+	// will be run. If the links pointer is non-empty, it has the same number
 	// of elements as there are files. Each element is either empty or contains
 	// the absolute path to a file identical to the corresponding file in this
 	// torrent. The storage must create hard links (or copy) those files. If

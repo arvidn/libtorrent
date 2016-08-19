@@ -33,7 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_AUX_SESSION_SETTINGS_HPP_INCLUDED
 #define TORRENT_AUX_SESSION_SETTINGS_HPP_INCLUDED
 
-#include "libtorrent/version.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/assert.hpp"
@@ -102,4 +101,3 @@ namespace libtorrent { namespace aux
 } }
 
 #endif
-

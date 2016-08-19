@@ -80,7 +80,7 @@ namespace libtorrent
 	} // anonymous namespace
 
 	// fixes invalid UTF-8 sequences
-	TORRENT_EXTRA_EXPORT bool verify_encoding(std::string& target)
+	bool verify_encoding(std::string& target)
 	{
 		if (target.empty()) return true;
 

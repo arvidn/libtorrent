@@ -99,14 +99,14 @@ namespace libtorrent
 		min_announce = min_time();
 	}
 
-	void announce_entry::failed(aux::session_settings const& sett, int retry_interval)
+	void announce_entry::failed(int const tracker_backoff, int const retry_interval)
 	{
 		++fails;
 		// the exponential back-off ends up being:
 		// 7, 15, 27, 45, 95, 127, 165, ... seconds
 		// with the default tracker_backoff of 250
 		int delay = (std::min)(tracker_retry_delay_min + int(fails) * int(fails)
-			* tracker_retry_delay_min * sett.get_int(settings_pack::tracker_backoff) / 100
+			* tracker_retry_delay_min * tracker_backoff / 100
 			, int(tracker_retry_delay_max));
 		delay = (std::max)(delay, retry_interval);
 		next_announce = aux::time_now() + seconds(delay);

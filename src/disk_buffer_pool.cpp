@@ -36,17 +36,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/allocator.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/io_service.hpp"
-#include "libtorrent/alert.hpp"
-#include "libtorrent/alert_types.hpp"
 #include "libtorrent/disk_observer.hpp"
 #include "libtorrent/platform_util.hpp" // for total_physical_ram
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <algorithm>
-#include <functional>
-#include <boost/system/error_code.hpp>
-#include <boost/shared_ptr.hpp>
 
 #if TORRENT_HAVE_MMAP
 #include <sys/mman.h>

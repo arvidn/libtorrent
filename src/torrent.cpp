@@ -11256,7 +11256,7 @@ namespace libtorrent
 			announce_entry* ae = find_tracker(r);
 			if (ae)
 			{
-				ae->failed(settings(), retry_interval);
+				ae->failed(settings().get_int(settings_pack::tracker_backoff), retry_interval);
 				ae->last_error = ec;
 				ae->message = msg;
 				int tracker_index = ae - &m_trackers[0];
@@ -11272,7 +11272,7 @@ namespace libtorrent
 				|| r.triggered_manually)
 			{
 				m_ses.alerts().emplace_alert<tracker_error_alert>(get_handle()
-					, ae?ae->fails:0, response_code, r.url, ec, msg);
+					, ae ? ae->fails : 0, response_code, r.url, ec, msg);
 			}
 		}
 		else
