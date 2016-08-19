@@ -83,7 +83,7 @@ namespace libtorrent
 		static sha1_hash min()
 		{
 			sha1_hash ret;
-			std::memset(ret.m_number, 0, size());
+			// all bits are already 0
 			return ret;
 		}
 
@@ -92,7 +92,7 @@ namespace libtorrent
 		// are ignored, ``s`` is treated like a raw memory buffer.
 		explicit sha1_hash(char const* s)
 		{
-			if (s == 0) clear();
+			if (s == nullptr) clear();
 			else std::memcpy(m_number, s, size());
 		}
 #ifndef TORRENT_NO_DEPRECATE

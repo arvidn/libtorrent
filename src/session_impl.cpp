@@ -4655,12 +4655,8 @@ namespace aux {
 #ifndef TORRENT_DISABLE_DHT
 		if (params.ti)
 		{
-			torrent_info::nodes_t const& nodes = params.ti->nodes();
-			for (std::vector<std::pair<std::string, int> >::const_iterator i = nodes.begin()
-				, end(nodes.end()); i != end; ++i)
-			{
-				add_dht_node_name(*i);
-			}
+			for (auto const& n : params.ti->nodes())
+				add_dht_node_name(n);
 		}
 #endif
 

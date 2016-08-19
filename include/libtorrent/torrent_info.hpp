@@ -475,12 +475,9 @@ namespace libtorrent
 		const std::string& comment() const
 		{ return m_comment; }
 
-		// dht nodes to add to the routing table/bootstrap from
-		using nodes_t = std::vector<std::pair<std::string, int>>;
-
 		// If this torrent contains any DHT nodes, they are put in this vector in
 		// their original form (host name and port number).
-		nodes_t const& nodes() const
+		std::vector<std::pair<std::string, int>> const& nodes() const
 		{ return m_nodes; }
 
 		// This is used when creating torrent. Use this to add a known DHT node.
@@ -551,7 +548,8 @@ namespace libtorrent
 		// the urls to the trackers
 		std::vector<announce_entry> m_urls;
 		std::vector<web_seed_entry> m_web_seeds;
-		nodes_t m_nodes;
+		// dht nodes to add to the routing table/bootstrap from
+		std::vector<std::pair<std::string, int>> m_nodes;
 
 		// the info-hashes (20 bytes each) in the "similar" key. The pointers
 		// point directly into the info_section. When copied, these pointers must
