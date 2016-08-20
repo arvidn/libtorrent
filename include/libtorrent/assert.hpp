@@ -42,7 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 std::string demangle(char const* name);
-TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth = 0);
+TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth = 0
+	, void* ctx = NULL);
 #endif
 
 // this is to disable the warning of conditional expressions
