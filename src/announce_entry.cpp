@@ -41,10 +41,10 @@ namespace libtorrent
 	enum
 	{
 		// wait at least 5 seconds before retrying a failed tracker
-		tracker_retry_delay_min = 5
+		tracker_retry_delay_min = 5,
 		// when tracker_failed_max trackers
 		// has failed, wait 60 minutes instead
-		, tracker_retry_delay_max = 60 * 60
+		tracker_retry_delay_max = 60 * 60
 	};
 
 	announce_entry::announce_entry(std::string const& u)
@@ -99,14 +99,15 @@ namespace libtorrent
 		min_announce = min_time();
 	}
 
-	void announce_entry::failed(int const tracker_backoff, int const retry_interval)
+	void announce_entry::failed(time_duration const tracker_backoff, int const retry_interval)
 	{
 		++fails;
 		// the exponential back-off ends up being:
 		// 7, 15, 27, 45, 95, 127, 165, ... seconds
 		// with the default tracker_backoff of 250
+		int const tracker_backoff_seconds = total_seconds(tracker_backoff);
 		int delay = (std::min)(tracker_retry_delay_min + int(fails) * int(fails)
-			* tracker_retry_delay_min * tracker_backoff / 100
+			* tracker_retry_delay_min * tracker_backoff_seconds / 100
 			, int(tracker_retry_delay_max));
 		delay = (std::max)(delay, retry_interval);
 		next_announce = aux::time_now() + seconds(delay);

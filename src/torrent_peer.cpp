@@ -82,7 +82,7 @@ namespace libtorrent
 		if (e1.address() == e2.address())
 		{
 			if (e1.port() > e2.port())
-				std::swap(e1, e2);
+				swap(e1, e2);
 			std::uint32_t p;
 #if defined BOOST_BIG_ENDIAN
 			p = e1.port() << 16;
@@ -107,13 +107,13 @@ namespace libtorrent
 			if (e1 > e2) swap(e1, e2);
 			address_v6::bytes_type b1 = e1.address().to_v6().to_bytes();
 			address_v6::bytes_type b2 = e2.address().to_v6().to_bytes();
-			int mask = std::memcmp(&b1[0], &b2[0], 4) ? 0
-				: std::memcmp(&b1[0], &b2[0], 6) ? 1 : 2;
-			apply_mask(&b1[0], v6mask[mask], 8);
-			apply_mask(&b2[0], v6mask[mask], 8);
+			int const mask = std::memcmp(b1.data(), b2.data(), 4) ? 0
+				: std::memcmp(b1.data(), b2.data(), 6) ? 1 : 2;
+			apply_mask(b1.data(), v6mask[mask], 8);
+			apply_mask(b2.data(), v6mask[mask], 8);
 			std::uint64_t addrbuf[4];
-			memcpy(&addrbuf[0], &b1[0], 16);
-			memcpy(&addrbuf[2], &b2[0], 16);
+			memcpy(&addrbuf[0], b1.data(), 16);
+			memcpy(&addrbuf[2], b2.data(), 16);
 			ret = crc32c(addrbuf, 4);
 		}
 #endif

@@ -71,7 +71,7 @@ TORRENT_TEST(primitives)
 	// on failing announces
 	announce_entry ae("dummy");
 	int last = 0;
-	int const tracker_backoff = 250;
+	auto const tracker_backoff = seconds(250);
 	for (int i = 0; i < 10; ++i)
 	{
 		ae.failed(tracker_backoff, 5);

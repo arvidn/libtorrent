@@ -11256,7 +11256,8 @@ namespace libtorrent
 			announce_entry* ae = find_tracker(r);
 			if (ae)
 			{
-				ae->failed(settings().get_int(settings_pack::tracker_backoff), retry_interval);
+				ae->failed(seconds(settings().get_int(settings_pack::tracker_backoff))
+					, retry_interval);
 				ae->last_error = ec;
 				ae->message = msg;
 				int tracker_index = ae - &m_trackers[0];

@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_ANNOUNCE_ENTRY_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/time.hpp" // for time_point
+#include "libtorrent/time.hpp"
 #include "libtorrent/error_code.hpp"
 
 #include <string>
@@ -157,7 +157,7 @@ namespace libtorrent
 
 		// updates the failure counter and time-outs for re-trying.
 		// This is called when the tracker announce fails.
-		void failed(int tracker_backoff, int retry_interval = 0);
+		void failed(time_duration tracker_backoff, int retry_interval = 0);
 
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 1.0
