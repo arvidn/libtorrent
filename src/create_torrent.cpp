@@ -395,10 +395,8 @@ namespace libtorrent
 		if (!ti.creator().empty()) set_creator(ti.creator().c_str());
 		if (!ti.comment().empty()) set_comment(ti.comment().c_str());
 
-		torrent_info::nodes_t const& nodes = ti.nodes();
-		for (torrent_info::nodes_t::const_iterator i = nodes.begin()
-			, end(nodes.end()); i != end; ++i)
-			add_node(*i);
+		for (auto const& n : ti.nodes())
+			add_node(n);
 
 		std::vector<libtorrent::announce_entry> const& trackers = ti.trackers();
 		for (std::vector<libtorrent::announce_entry>::const_iterator i = trackers.begin()
