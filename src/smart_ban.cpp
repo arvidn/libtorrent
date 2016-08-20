@@ -32,13 +32,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/shared_ptr.hpp>
-#include <boost/enable_shared_from_this.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include <vector>
 #include <map>
 #include <utility>
@@ -91,10 +84,10 @@ namespace
 			// CRCs from the time it failed and ban the peers that
 			// sent bad blocks
 			std::map<piece_block, block_entry>::iterator i = m_block_hashes.lower_bound(piece_block(p, 0));
-			if (i == m_block_hashes.end() || int(i->first.piece_index) != p) return;
+			if (i == m_block_hashes.end() || i->first.piece_index != p) return;
 
 			int size = m_torrent.torrent_file().piece_size(p);
-			peer_request r = {p, 0, (std::min)(16*1024, size)};
+			peer_request r = {p, 0, (std::min)(16 * 1024, size)};
 			piece_block pb(p, 0);
 			while (size > 0)
 			{
@@ -114,9 +107,9 @@ namespace
 				if (i == m_block_hashes.end() || int(i->first.piece_index) != p)
 					break;
 
-				r.start += 16*1024;
-				size -= 16*1024;
-				r.length = (std::min)(16*1024, size);
+				r.start += 16 * 1024;
+				size -= 16 * 1024;
+				r.length = (std::min)(16 * 1024, size);
 				++pb.block_index;
 			}
 

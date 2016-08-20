@@ -1223,7 +1223,7 @@ namespace libtorrent
 		// directory, if there is one. The source files will still be removed in
 		// that case.
 		// 
-		// Files that have been renamed to have absolute pahts are not moved by
+		// Files that have been renamed to have absolute paths are not moved by
 		// this function. Keep in mind that files that don't belong to the
 		// torrent but are stored in the torrent's directory may be moved as
 		// well. This goes for files that have been renamed to absolute paths

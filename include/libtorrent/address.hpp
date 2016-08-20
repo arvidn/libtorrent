@@ -35,28 +35,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#ifdef __OBJC__
-#define Protocol Protocol_
-#endif
-
-#if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
-// asio assumes that the windows error codes are defined already
-#include <winsock2.h>
-#endif
-
-#include <boost/asio/ip/address.hpp>
-
 #if defined TORRENT_BUILD_SIMULATOR
 #include "simulator/simulator.hpp"
-#endif
-
+#else
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/asio/ip/address.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-#ifdef __OBJC__
-#undef Protocol
-#endif
+#endif // SIMULATOR
 
 namespace libtorrent
 {

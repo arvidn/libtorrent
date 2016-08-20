@@ -75,4 +75,3 @@ proxy_settings::proxy_settings(aux::session_settings const& sett)
 
 } // namespace aux
 } // namespace libtorrent
-

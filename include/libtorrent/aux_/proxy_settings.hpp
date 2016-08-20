@@ -33,7 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_PROXY_SETTINGS_HPP_INCLUDED
 #define TORRENT_PROXY_SETTINGS_HPP_INCLUDED
 
-#include "libtorrent/version.hpp"
 #include "libtorrent/config.hpp"
 
 #include <string>
@@ -138,8 +137,6 @@ namespace aux {
 	};
 
 
-}
-}
+}}
 
 #endif
-

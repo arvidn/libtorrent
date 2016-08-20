@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_ANNOUNCE_ENTRY_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/time.hpp" // for time_point
+#include "libtorrent/time.hpp"
 #include "libtorrent/error_code.hpp"
 
 #include <string>
@@ -42,10 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	namespace aux {
-		struct session_settings;
-	}
-
 	// this class holds information about one bittorrent tracker, as it
 	// relates to a specific torrent.
 	struct TORRENT_EXPORT announce_entry
@@ -161,7 +157,7 @@ namespace libtorrent
 
 		// updates the failure counter and time-outs for re-trying.
 		// This is called when the tracker announce fails.
-		void failed(aux::session_settings const& sett, int retry_interval = 0);
+		void failed(time_duration tracker_backoff, int retry_interval = 0);
 
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 1.0
