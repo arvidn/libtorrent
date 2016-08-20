@@ -265,7 +265,7 @@ namespace libtorrent
 			m_storage.m_stat_cache.set_dirty(file_index);
 
 			file_handle handle = m_storage.open_file(file_index
-				, file::read_write, ec);
+				, file::read_write, m_flags, ec);
 			if (ec) return -1;
 
 			// please ignore the adjusted_offset. It's just file_offset.
@@ -353,7 +353,7 @@ namespace libtorrent
 			}
 
 			file_handle handle = m_storage.open_file(file_index
-				, file::read_only | m_flags, ec);
+				, file::read_only, m_flags, ec);
 			if (ec) return -1;
 
 			// please ignore the adjusted_offset. It's just file_offset.
@@ -432,7 +432,8 @@ namespace libtorrent
 			, m_files.num_pieces(), m_files.piece_length()));
 	}
 
-	void default_storage::set_file_priority(std::vector<std::uint8_t> const& prio, storage_error& ec)
+	void default_storage::set_file_priority(std::vector<std::uint8_t> const& prio
+		, int const flags, storage_error& ec)
 	{
 		// extend our file priorities in case it's truncated
 		// the default assumed priority is 1
@@ -447,7 +448,7 @@ namespace libtorrent
 			if (old_prio == 0 && new_prio != 0)
 			{
 				// move stuff out of the part file
-				file_handle f = open_file(i, file::read_write, ec);
+				file_handle f = open_file(i, file::read_write, flags, ec);
 				if (ec) return;
 
 				need_partfile();
@@ -506,7 +507,7 @@ namespace libtorrent
 		}
 	}
 
-	void default_storage::initialize(storage_error& ec)
+	void default_storage::initialize(int const flags, storage_error& ec)
 	{
 		m_stat_cache.reserve(files().num_files());
 
@@ -574,7 +575,7 @@ namespace libtorrent
 				}
 				ec.ec.clear();
 				file_handle f = open_file(file_index, file::read_write
-					| file::random_access, ec);
+					| file::random_access, flags, ec);
 				if (ec)
 				{
 					ec.file = file_index;
@@ -610,7 +611,6 @@ namespace libtorrent
 	{
 		m_stat_cache.reserve(files().num_files());
 
-		std::string file_path;
 		for (int i = 0; i < files().num_files(); ++i)
 		{
 			std::int64_t sz = m_stat_cache.get_filesize(
@@ -1217,9 +1217,9 @@ namespace libtorrent
 	}
 
 	file_handle default_storage::open_file(int file, int mode
-		, storage_error& ec) const
+		, int const flags, storage_error& ec) const
 	{
-		file_handle h = open_file_impl(file, mode, ec.ec);
+		file_handle h = open_file_impl(file, mode, flags, ec.ec);
 		if (((mode & file::rw_mask) != file::read_only)
 			&& ec.ec == boost::system::errc::no_such_file_or_directory)
 		{
@@ -1238,7 +1238,7 @@ namespace libtorrent
 
 			// if the directory creation failed, don't try to open the file again
 			// but actually just fail
-			h = open_file_impl(file, mode, ec.ec);
+			h = open_file_impl(file, mode, flags, ec.ec);
 		}
 		if (ec.ec)
 		{
@@ -1276,10 +1276,9 @@ namespace libtorrent
 	}
 
 	file_handle default_storage::open_file_impl(int file, int mode
-		, error_code& ec) const
+		, int const flags, error_code& ec) const
 	{
-		bool lock_files = m_settings ? settings().get_bool(settings_pack::lock_files) : false;
-		if (lock_files) mode |= file::lock_file;
+		if (flags & file::lock_file) mode |= file::lock_file;
 
 		if (!m_allocate_files) mode |= file::sparse;
 
@@ -1287,15 +1286,10 @@ namespace libtorrent
 		if (int(m_file_priority.size()) > file && m_file_priority[file] == 0)
 			mode |= file::sparse;
 
-		if (m_settings && settings().get_bool(settings_pack::no_atime_storage)) mode |= file::no_atime;
+		if (flags & file::no_atime) mode |= file::no_atime;
 
 		// if we have a cache already, don't store the data twice by leaving it in the OS cache as well
-		if (m_settings
-			&& settings().get_int(settings_pack::disk_io_write_mode)
-			== settings_pack::disable_os_cache)
-		{
-			mode |= file::no_cache;
-		}
+		if (flags & file::no_cache) mode |= file::no_cache;
 
 		file_handle ret = m_pool.open_file(const_cast<default_storage*>(this)
 			, m_save_path, file, files(), mode, ec);
@@ -1367,11 +1361,11 @@ namespace libtorrent
 		public:
 			bool has_any_file(storage_error&) override { return false; }
 			void set_file_priority(std::vector<std::uint8_t> const&
-				, storage_error&) override {}
+				, int, storage_error&) override {}
 			void rename_file(int, std::string const&, storage_error&) override {}
 			void release_files(storage_error&) override {}
 			void delete_files(int, storage_error&) override {}
-			void initialize(storage_error&) override {}
+			void initialize(int, storage_error&) override {}
 			int move_storage(std::string const&, int, storage_error&) override { return 0; }
 
 			int readv(span<file::iovec_t const> bufs
@@ -1405,7 +1399,7 @@ namespace libtorrent
 		// anything written to it
 		struct zero_storage final : storage_interface
 		{
-			void initialize(storage_error&) override {}
+			void initialize(int, storage_error&) override {}
 
 			int readv(span<file::iovec_t const> bufs
 				, int, int, int, storage_error&) override
@@ -1429,7 +1423,7 @@ namespace libtorrent
 
 			bool has_any_file(storage_error&) override { return false; }
 			void set_file_priority(std::vector<std::uint8_t> const& /* prio */
-				, storage_error&) override {}
+				, int, storage_error&) override {}
 			int move_storage(std::string const& /* save_path */
 				, int /* flags */, storage_error&) override { return 0; }
 			bool verify_resume_data(add_torrent_params const& /* rd */
@@ -1499,37 +1493,33 @@ namespace libtorrent
 	}
 #endif
 
-	int piece_manager::check_no_fastresume(storage_error& ec)
+	int piece_manager::check_no_fastresume(int const flags, storage_error& ec)
 	{
-		bool has_files = false;
-		if (!m_storage->settings().get_bool(settings_pack::no_recheck_incomplete_resume))
+		storage_error se;
+		bool const has_files = m_storage->has_any_file(se);
+
+		if (se)
 		{
-			storage_error se;
-			has_files = m_storage->has_any_file(se);
-
-			if (se)
-			{
-				ec = se;
-				return fatal_disk_error;
-			}
-
-			if (has_files)
-			{
-				// always initialize the storage
-				int ret = check_init_storage(ec);
-				return ret != no_error ? ret : need_full_check;
-			}
+			ec = se;
+			return fatal_disk_error;
 		}
 
-		return check_init_storage(ec);
+		if (has_files)
+		{
+			// always initialize the storage
+			int ret = check_init_storage(flags, ec);
+			return ret != no_error ? ret : need_full_check;
+		}
+
+		return check_init_storage(flags, ec);
 	}
 
-	int piece_manager::check_init_storage(storage_error& ec)
+	int piece_manager::check_init_storage(int const flags, storage_error& ec)
 	{
 		storage_error se;
 		// initialize may clear the error we pass in and it's important to
 		// preserve the error code in ec, even when initialize() is successful
-		m_storage->initialize(se);
+		m_storage->initialize(flags, se);
 		if (se)
 		{
 			ec = se;
@@ -1541,7 +1531,7 @@ namespace libtorrent
 	// check if the fastresume data is up to date
 	// if it is, use it and return true. If it
 	// isn't return false and the full check
-	// will be run. If the links pointer is non-nullptr, it has the same number
+	// will be run. If the links pointer is non-empty, it has the same number
 	// of elements as there are files. Each element is either empty or contains
 	// the absolute path to a file identical to the corresponding file in this
 	// torrent. The storage must create hard links (or copy) those files. If
@@ -1549,17 +1539,21 @@ namespace libtorrent
 	int piece_manager::check_fastresume(
 		add_torrent_params const& rd
 		, std::vector<std::string> const& links
+		, aux::session_settings const& settings
+		, int const flags
 		, storage_error& ec)
 	{
 		TORRENT_ASSERT(m_files.piece_length() > 0);
 
-		// if we don't have any resume data, return
-		if (rd.have_pieces.empty()) return check_no_fastresume(ec);
+		if (rd.have_pieces.empty()
+			|| !m_storage->verify_resume_data(rd, links, ec))
+		{
+			return settings.get_bool(settings_pack::no_recheck_incomplete_resume)
+				? check_init_storage(flags, ec)
+				: check_no_fastresume(flags, ec);
+		}
 
-		if (!m_storage->verify_resume_data(rd, links, ec))
-			return check_no_fastresume(ec);
-
-		return check_init_storage(ec);
+		return check_init_storage(flags, ec);
 	}
 
 	// ====== disk_job_fence implementation ========

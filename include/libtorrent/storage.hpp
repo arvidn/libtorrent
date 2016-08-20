@@ -205,17 +205,13 @@ namespace libtorrent
 	//
 	struct TORRENT_EXPORT storage_interface
 	{
-		// hidden
-		storage_interface(): m_settings(0) {}
-
-
 		// This function is called when the storage is to be initialized. The
 		// default storage will create directories and empty files at this point.
 		// If ``allocate_files`` is true, it will also ``ftruncate`` all files to
 		// their target size.
 		//
 		// If an error occurs, ``storage_error`` should be set to reflect it.
-		virtual void initialize(storage_error& ec) = 0;
+		virtual void initialize(int flags, storage_error& ec) = 0;
 
 		// These functions should read and write the data in or to the given
 		// ``piece`` at the given ``offset``. It should read or write
@@ -238,7 +234,7 @@ namespace libtorrent
 		// bytes though. This is useful when reading and writing the last piece
 		// of a file in unbuffered mode.
 		// 
-		// The ``offset`` is aligned to 16 kiB boundaries  *most of the time*, but
+		// The ``offset`` is aligned to 16 kiB boundaries *most of the time*, but
 		// there are rare exceptions when it's not. Specifically if the read
 		// cache is disabled/or full and a peer requests unaligned data. Most
 		// clients request aligned data.
@@ -263,7 +259,7 @@ namespace libtorrent
 		// guaranteed to be the only running function on this storage
 		// when called
 		virtual void set_file_priority(std::vector<std::uint8_t> const& prio
-			, storage_error& ec) = 0;
+			, int flags, storage_error& ec) = 0;
 
 		// This function should move all the files belonging to the storage to
 		// the new save_path. The default storage moves the single file or the
@@ -364,14 +360,8 @@ namespace libtorrent
 		// off again.
 		virtual bool tick() { return false; }
 
-		// access global session_settings
-		aux::session_settings const& settings() const { return *m_settings; }
-
 		// hidden
 		virtual ~storage_interface() {}
-
-		// initialized in disk_io_thread::perform_async_job
-		aux::session_settings* m_settings;
 	};
 
 	// The default implementation of storage_interface. Behaves as a normal
@@ -403,12 +393,12 @@ namespace libtorrent
 #endif
 		virtual bool has_any_file(storage_error& ec) override;
 		virtual void set_file_priority(std::vector<std::uint8_t> const& prio
-			, storage_error& ec) override;
+			, int flags, storage_error& ec) override;
 		virtual void rename_file(int index, std::string const& new_filename
 			, storage_error& ec) override;
 		virtual void release_files(storage_error& ec) override;
 		virtual void delete_files(int options, storage_error& ec) override;
-		virtual void initialize(storage_error& ec) override;
+		virtual void initialize(int flags, storage_error& ec) override;
 		virtual int move_storage(std::string const& save_path, int flags
 			, storage_error& ec) override;
 		virtual bool verify_resume_data(add_torrent_params const& rd
@@ -446,8 +436,8 @@ namespace libtorrent
 		mutable stat_cache m_stat_cache;
 
 		// helper function to open a file in the file pool with the right mode
-		file_handle open_file(int file, int mode, storage_error& ec) const;
-		file_handle open_file_impl(int file, int mode, error_code& ec) const;
+		file_handle open_file(int file, int mode, int flags, storage_error& ec) const;
+		file_handle open_file_impl(int file, int mode, int flags, error_code& ec) const;
 
 		std::vector<std::uint8_t> m_file_priority;
 		std::string m_save_path;
@@ -594,11 +584,12 @@ namespace libtorrent
 		// when wrong in the disk access
 		int check_fastresume(add_torrent_params const& rd
 			, std::vector<std::string> const& links
-			, storage_error& error);
+			, aux::session_settings const& settings
+			, int flags, storage_error& error);
 
 		// helper functions for check_fastresume
-		int check_no_fastresume(storage_error& error);
-		int check_init_storage(storage_error& error);
+		int check_no_fastresume(int flags, storage_error& error);
+		int check_init_storage(int flags, storage_error& error);
 
 #if TORRENT_USE_INVARIANT_CHECKS
 		void check_invariant() const;
