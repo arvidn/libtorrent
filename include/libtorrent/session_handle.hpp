@@ -45,6 +45,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/kademlia/dht_storage.hpp"
 
+#ifndef TORRENT_NO_DEPRECATE
+#include <deque>
+#endif
+
 namespace libtorrent
 {
 	struct plugin;
