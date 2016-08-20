@@ -79,7 +79,6 @@ TORRENT_TEST(dht_bootstrap)
 	lt::deadline_timer timer(ios);
 	timer.expires_from_now(lt::seconds(10));
 	timer.async_wait([&](lt::error_code const& ec) {
-		ses->set_alert_notify([]() {});
 		zombies.push_back(ses->abort());
 		node.close();
 		ses.reset();
