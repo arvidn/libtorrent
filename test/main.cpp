@@ -97,6 +97,62 @@ void output_test_log_to_terminal()
 	} while (size > 0);
 }
 
+#ifdef _WIN32
+LONG WINAPI seh_exception_handler(LPEXCEPTION_POINTERS p)
+{
+	char stack_text[10000];
+
+#if TORRENT_USE_ASSERTS \
+	|| defined TORRENT_ASIO_DEBUGGING \
+	|| defined TORRENT_PROFILE_CALLS \
+	|| defined TORRENT_DEBUG_BUFFERS
+	print_backtrace(stack_text, sizeof(stack_text), 30
+		, p->ContextRecord);
+#elif defined __FUNCTION__
+	strcat(stack_text, __FUNCTION__);
+#else
+	stack_text[0] = 0;
+	strcat(stack_text, "<stack traces disabled>");
+#endif
+
+	int const code = p->ExceptionRecord->ExceptionCode;
+	char const* name = "<unknown exception>";
+	switch (code)
+	{
+#define EXC(x) case x: name = #x; break
+		EXC(EXCEPTION_ACCESS_VIOLATION);
+		EXC(EXCEPTION_ARRAY_BOUNDS_EXCEEDED);
+		EXC(EXCEPTION_BREAKPOINT);
+		EXC(EXCEPTION_DATATYPE_MISALIGNMENT);
+		EXC(EXCEPTION_FLT_DENORMAL_OPERAND);
+		EXC(EXCEPTION_FLT_DIVIDE_BY_ZERO);
+		EXC(EXCEPTION_FLT_INEXACT_RESULT);
+		EXC(EXCEPTION_FLT_INVALID_OPERATION);
+		EXC(EXCEPTION_FLT_OVERFLOW);
+		EXC(EXCEPTION_FLT_STACK_CHECK);
+		EXC(EXCEPTION_FLT_UNDERFLOW);
+		EXC(EXCEPTION_ILLEGAL_INSTRUCTION);
+		EXC(EXCEPTION_IN_PAGE_ERROR);
+		EXC(EXCEPTION_INT_DIVIDE_BY_ZERO);
+		EXC(EXCEPTION_INT_OVERFLOW);
+		EXC(EXCEPTION_INVALID_DISPOSITION);
+		EXC(EXCEPTION_NONCONTINUABLE_EXCEPTION);
+		EXC(EXCEPTION_PRIV_INSTRUCTION);
+		EXC(EXCEPTION_SINGLE_STEP);
+		EXC(EXCEPTION_STACK_OVERFLOW);
+#undef EXC
+	};
+
+	std::fprintf(stderr, "exception: (0x%x) %s caught:\n%s\n"
+		, code, name, stack_text);
+
+	output_test_log_to_terminal();
+
+	exit(code);
+}
+
+#else
+
 void sig_handler(int sig)
 {
 	char stack_text[10000];
@@ -142,6 +198,8 @@ void sig_handler(int sig)
 #endif
 }
 
+#endif // _WIN32
+
 void print_usage(char const* executable)
 {
 	printf("%s [options] [tests...]\n"
@@ -158,17 +216,6 @@ void print_usage(char const* executable)
 		"for tests, specify one or more test names as printed\n"
 		"by -l. If no test is specified, all tests are run\n", executable);
 }
-
-#ifdef WIN32
-LONG WINAPI seh_exception_handler(LPEXCEPTION_POINTERS p)
-{
-	int sig = p->ExceptionRecord->ExceptionCode;
-	fprintf(stderr, "SEH exception: %u\n"
-		, p->ExceptionRecord->ExceptionCode);
-	sig_handler(sig);
-	exit(sig);
-}
-#endif
 
 EXPORT int main(int argc, char const* argv[])
 {
@@ -218,6 +265,16 @@ EXPORT int main(int argc, char const* argv[])
 		filter = true;
 	}
 
+#ifdef O_NONBLOCK
+	// on darwin, stdout is set to non-blocking mode by default
+	// which sometimes causes tests to fail with EAGAIN just
+	// by printing logs
+	int flags = fcntl(fileno(stdout), F_GETFL, 0);
+	fcntl(fileno(stdout), F_SETFL, flags & ~O_NONBLOCK);
+	flags = fcntl(fileno(stderr), F_GETFL, 0);
+	fcntl(fileno(stderr), F_SETFL, flags & ~O_NONBLOCK);
+#endif
+
 #ifdef WIN32
 	// try to suppress hanging the process by windows displaying
 	// modal dialogs.
@@ -231,16 +288,6 @@ EXPORT int main(int argc, char const* argv[])
 	_CrtSetReportFile(_CRT_ERROR, _CRTDBG_FILE_STDERR);
 #endif
 
-#endif
-
-#ifdef O_NONBLOCK
-	// on darwin, stdout is set to non-blocking mode by default
-	// which sometimes causes tests to fail with EAGAIN just
-	// by printing logs
-	int flags = fcntl(fileno(stdout), F_GETFL, 0);
-	fcntl(fileno(stdout), F_SETFL, flags & ~O_NONBLOCK);
-	flags = fcntl(fileno(stderr), F_GETFL, 0);
-	fcntl(fileno(stderr), F_SETFL, flags & ~O_NONBLOCK);
 #endif
 
 	signal(SIGSEGV, &sig_handler);
