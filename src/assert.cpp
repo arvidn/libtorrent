@@ -39,10 +39,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/atomic.hpp>
 #endif
 
-#if (defined TORRENT_DEBUG && TORRENT_USE_ASSERTS) \
+#if TORRENT_USE_ASSERTS \
 	|| defined TORRENT_ASIO_DEBUGGING \
 	|| defined TORRENT_PROFILE_CALLS \
-	|| defined TORRENT_RELEASE_ASSERTS \
 	|| defined TORRENT_DEBUG_BUFFERS
 
 #ifdef __APPLE__
@@ -51,8 +50,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <cstring>
-#include <stdlib.h>
-#include <stdarg.h>
+#include <cstdlib>
+#include <cstdarg>
+#include <cstdio> // for snprintf
+#include <cinttypes> // for PRId64 et.al.
+#include <boost/array.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -67,7 +69,7 @@ std::string demangle(char const* name)
 // in case this string comes
 	// this is needed on linux
 	char const* start = strchr(name, '(');
-	if (start != 0)
+	if (start != nullptr)
 	{
 		++start;
 	}
@@ -75,10 +77,10 @@ std::string demangle(char const* name)
 	{
 		// this is needed on macos x
 		start = strstr(name, "0x");
-		if (start != 0)
+		if (start != nullptr)
 		{
 			start = strchr(start, ' ');
-			if (start != 0) ++start;
+			if (start != nullptr) ++start;
 			else start = name;
 		}
 		else start = name;
@@ -88,13 +90,13 @@ std::string demangle(char const* name)
 	if (end) while (*(end-1) == ' ') --end;
 
 	std::string in;
-	if (end == 0) in.assign(start);
+	if (end == nullptr) in.assign(start);
 	else in.assign(start, end);
 
 	size_t len;
 	int status;
-	char* unmangled = ::abi::__cxa_demangle(in.c_str(), 0, &len, &status);
-	if (unmangled == 0) return in;
+	char* unmangled = ::abi::__cxa_demangle(in.c_str(), nullptr, &len, &status);
+	if (unmangled == nullptr) return in;
 	std::string ret(unmangled);
 	free(unmangled);
 	return ret;
@@ -116,15 +118,15 @@ std::string demangle(char const* name)
 std::string demangle(char const* name) { return name; }
 #endif
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <signal.h>
+#include <cstdlib>
+#include <cstdio>
+#include <csignal>
 #include "libtorrent/version.hpp"
 
 #if TORRENT_USE_EXECINFO
 #include <execinfo.h>
 
-TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth)
+TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth, void*)
 {
 	void* stack[50];
 	int size = backtrace(stack, 50);
@@ -132,7 +134,7 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth)
 
 	for (int i = 1; i < size && len > 0; ++i)
 	{
-		int ret = snprintf(out, len, "%d: %s\n", i, demangle(symbols[i]).c_str());
+		int ret = std::snprintf(out, len, "%d: %s\n", i, demangle(symbols[i]).c_str());
 		out += ret;
 		len -= ret;
 		if (i - 1 == max_depth && max_depth > 0) break;
@@ -141,77 +143,124 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth)
 	free(symbols);
 }
 
-// visual studio 9 and up appears to support this
-#elif defined _WIN32 && _MSC_VER >= 1500
+#elif defined _WIN32
 
 #include "windows.h"
 #include "libtorrent/utf8.hpp"
-#include "libtorrent/thread.hpp"
+#include <mutex>
 
 #include "winbase.h"
 #include "dbghelp.h"
 
-static libtorrent::mutex dbghlp_mutex;
-
-TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth)
+TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth
+	, void* ctx)
 {
 	// all calls to DbgHlp.dll are thread-unsafe. i.e. they all need to be
 	// synchronized and not called concurrently. This mutex serializes access
-	libtorrent::mutex::scoped_lock l(dbghlp_mutex);
+	static std::mutex dbghlp_mutex;
+	std::lock_guard<std::mutex> l(dbghlp_mutex);
 
-	typedef USHORT (WINAPI *RtlCaptureStackBackTrace_t)(
-		__in ULONG FramesToSkip,
-		__in ULONG FramesToCapture,
-		__out PVOID *BackTrace,
-		__out_opt PULONG BackTraceHash);
-
-	static RtlCaptureStackBackTrace_t RtlCaptureStackBackTrace = 0;
-
-	if (RtlCaptureStackBackTrace == 0)
+	CONTEXT context_record;
+	if (ctx)
 	{
-		// we don't actually have to free this library, everyone has it loaded
-		HMODULE lib = LoadLibrary(TEXT("kernel32.dll"));
-		RtlCaptureStackBackTrace = (RtlCaptureStackBackTrace_t)GetProcAddress(lib, "RtlCaptureStackBackTrace");
-		if (RtlCaptureStackBackTrace == 0)
-		{
-			out[0] = 0;
-			return;
-		}
+		context_record = *static_cast<CONTEXT*>(ctx);
+	}
+	else
+	{
+		// use the current thread's context
+		RtlCaptureContext(&context_record);
 	}
 
-	int i;
-	void* stack[50];
-	int size = CaptureStackBackTrace(0, 50, stack, 0);
+	int size = 0;
+	boost::array<void*, 50> stack;
 
-	SYMBOL_INFO* symbol = (SYMBOL_INFO*)calloc(sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR), 1);
-	symbol->MaxNameLen = MAX_SYM_NAME;
-	symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+	STACKFRAME64 stack_frame;
+	memset(&stack_frame, 0, sizeof(stack_frame));
+#if defined(_WIN64)
+	int const machine_type = IMAGE_FILE_MACHINE_AMD64;
+	stack_frame.AddrPC.Offset = context_record.Rip;
+	stack_frame.AddrFrame.Offset = context_record.Rbp;
+	stack_frame.AddrStack.Offset = context_record.Rsp;
+#else
+	int const machine_type = IMAGE_FILE_MACHINE_I386;
+	stack_frame.AddrPC.Offset = context_record.Eip;
+	stack_frame.AddrFrame.Offset = context_record.Ebp;
+	stack_frame.AddrStack.Offset = context_record.Esp;
+#endif
+	stack_frame.AddrPC.Mode = AddrModeFlat;
+	stack_frame.AddrFrame.Mode = AddrModeFlat;
+	stack_frame.AddrStack.Mode = AddrModeFlat;
+	while (StackWalk64(machine_type,
+		GetCurrentProcess(),
+		GetCurrentThread(),
+		&stack_frame,
+		&context_record,
+		nullptr,
+		&SymFunctionTableAccess64,
+		&SymGetModuleBase64,
+		nullptr) && size < stack.size())
+	{
+		stack[size++] = reinterpret_cast<void*>(stack_frame.AddrPC.Offset);
+	}
+
+	struct symbol_bundle : SYMBOL_INFO
+	{
+		wchar_t name[MAX_SYM_NAME];
+	};
 
 	HANDLE p = GetCurrentProcess();
 	static bool sym_initialized = false;
 	if (!sym_initialized)
 	{
 		sym_initialized = true;
-		SymInitialize(p, NULL, true);
+		SymInitialize(p, nullptr, true);
 	}
-	for (i = 0; i < size && len > 0; ++i)
+	SymRefreshModuleList(p);
+	for (int i = 0; i < size && len > 0; ++i)
 	{
-		int ret;
-		if (SymFromAddr(p, uintptr_t(stack[i]), 0, symbol))
-			ret = snprintf(out, len, "%d: %s\n", i, symbol->Name);
-		else
-			ret = snprintf(out, len, "%d: <unknown>\n", i);
+		DWORD_PTR frame_ptr = reinterpret_cast<DWORD_PTR>(stack[i]);
 
+		DWORD64 displacement = 0;
+		symbol_bundle symbol;
+		symbol.MaxNameLen = MAX_SYM_NAME;
+		symbol.SizeOfStruct = sizeof(SYMBOL_INFO);
+		BOOL const has_symbol = SymFromAddr(p, frame_ptr, &displacement, &symbol);
+
+		DWORD line_displacement = 0;
+		IMAGEHLP_LINE64 line = {};
+		line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
+		BOOL const has_line = SymGetLineFromAddr64(GetCurrentProcess(), frame_ptr,
+			&line_displacement, &line);
+
+		int ret = std::snprintf(out, len, "%2d: %p", i, stack[i]);
+		out += ret; len -= ret; if (len <= 0) break;
+
+		if (has_symbol)
+		{
+			ret = std::snprintf(out, len, " %s +%-4" PRId64
+				, demangle(symbol.Name).c_str(), displacement);
+			out += ret; len -= ret; if (len <= 0) break;
+		}
+
+		if (has_line)
+		{
+			ret = std::snprintf(out, len, " %s:%d"
+				, line.FileName, line.LineNumber);
+			out += ret; len -= ret; if (len <= 0) break;
+		}
+
+
+		ret = std::snprintf(out, len, "\n");
 		out += ret;
 		len -= ret;
+
 		if (i == max_depth && max_depth > 0) break;
 	}
-	free(symbol);
 }
 
 #else
 
-TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth)
+TORRENT_EXPORT void print_backtrace(char* out, int len, int /*max_depth*/, void* /* ctx */)
 {
 	out[0] = 0;
 	strncat(out, "<not supported>", len);
@@ -227,7 +276,7 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth)
 char const* libtorrent_assert_log = "asserts.log";
 namespace {
 // the number of asserts we've printed to the log
-boost::atomic<int> assert_counter(0);
+std::atomic<int> assert_counter(0);
 }
 #endif
 
