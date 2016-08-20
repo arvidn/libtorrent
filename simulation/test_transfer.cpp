@@ -139,7 +139,6 @@ void run_test(
 		int idx = 0;
 		for (auto& s : ses)
 		{
-			s->set_alert_notify([]{});
 			zombie[idx++] = s->abort();
 			s.reset();
 		}

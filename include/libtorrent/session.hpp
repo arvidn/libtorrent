@@ -281,7 +281,7 @@ namespace libtorrent
 		// 		session_proxy();
 		// 		~session_proxy()
 		// 	};
-		session_proxy abort() { return session_proxy(m_io_service, m_thread, m_impl); }
+		session_proxy abort();
 
 	private:
 

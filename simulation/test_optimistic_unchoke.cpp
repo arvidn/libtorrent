@@ -148,7 +148,6 @@ TORRENT_TEST(optimistic_unchoke)
 		{
 			p->abort();
 		}
-		ses->set_alert_notify([]{});
 		proxy = ses->abort();
 		ses.reset();
 	});

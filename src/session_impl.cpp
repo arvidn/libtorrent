@@ -1076,6 +1076,10 @@ namespace aux {
 		session_log(" *** ABORT CALLED ***");
 #endif
 
+		// at this point we cannot call the notify function anymore, since the
+		// session will become invalid.
+		m_alerts.set_notify_function(boost::function<void()>());
+
 		// this will cancel requests that are not critical for shutting down
 		// cleanly. i.e. essentially tracker hostname lookups that we're not
 		// about to send event=stopped to

@@ -409,6 +409,14 @@ namespace libtorrent
 			m_thread->join();
 	}
 
+	session_proxy session::abort()
+	{
+		// stop calling the alert notify function now, to avoid it thinking the
+		// session is still alive
+		m_impl->alerts().set_notify_function(boost::function<void()>());
+		return session_proxy(m_io_service, m_thread, m_impl);
+	}
+
 #ifndef TORRENT_NO_DEPRECATE
 	session_settings::session_settings(std::string const& user_agent_)
 	{
