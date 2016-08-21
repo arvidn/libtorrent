@@ -146,7 +146,7 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth, void*)
 
 #include "windows.h"
 #include "libtorrent/utf8.hpp"
-#include <mutex>
+#include <boost/mutex.hpp>
 
 #include "winbase.h"
 #include "dbghelp.h"
