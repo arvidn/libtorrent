@@ -25,9 +25,7 @@
 /*
  * See puff.c for purpose and usage.
  */
-#include <cstdint>
-
 int puff(unsigned char *dest,           /* pointer to destination pointer */
-         std::uint32_t *destlen,        /* amount of output space */
-         const unsigned char *source,         /* pointer to source data pointer */
-         std::uint32_t *sourcelen);     /* amount of input available */
+         unsigned long *destlen,        /* amount of output space */
+         const unsigned char *source,   /* pointer to source data pointer */
+         unsigned long *sourcelen);     /* amount of input available */

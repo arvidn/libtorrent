@@ -26,7 +26,7 @@ class test_create_torrent(unittest.TestCase):
 class test_torrent_handle(unittest.TestCase):
 
 	def test_torrent_handle(self):
-		ses = lt.session({'alert_mask': lt.alert.category_t.all_categories})
+		ses = lt.session({'alert_mask': lt.alert.category_t.all_categories, 'enable_dht': False})
 		ti = lt.torrent_info('url_seed_multi.torrent');
 		h = ses.add_torrent({'ti': ti, 'save_path': os.getcwd()})
 
@@ -92,7 +92,7 @@ class test_torrent_info(unittest.TestCase):
 		# the file_strage object is only iterable for backwards compatibility
 		if not hasattr(lt, 'version'): return
 
-		ses = lt.session({'alert_mask': lt.alert.category_t.all_categories})
+		ses = lt.session({'alert_mask': lt.alert.category_t.all_categories, 'enable_dht': False})
 		ti = lt.torrent_info('url_seed_multi.torrent');
 		files = ti.files()
 
@@ -109,7 +109,7 @@ class test_alerts(unittest.TestCase):
 
 	def test_alert(self):
 
-		ses = lt.session({'alert_mask': lt.alert.category_t.all_categories})
+		ses = lt.session({'alert_mask': lt.alert.category_t.all_categories, 'enable_dht': False})
 		ti = lt.torrent_info('base.torrent');
 		h = ses.add_torrent({'ti': ti, 'save_path': os.getcwd()})
 		st = h.status()
@@ -134,7 +134,7 @@ class test_alerts(unittest.TestCase):
 		self.assertEqual(st.save_path, os.getcwd())
 
 	def test_pop_alerts(self):
-		ses = lt.session({'alert_mask': lt.alert.category_t.all_categories})
+		ses = lt.session({'alert_mask': lt.alert.category_t.all_categories, 'enable_dht': False})
 
 		ses.async_add_torrent({"ti": lt.torrent_info("base.torrent"), "save_path": "."})
 # this will cause an error (because of duplicate torrents) and the
@@ -176,7 +176,7 @@ class test_sha1hash(unittest.TestCase):
 class test_session(unittest.TestCase):
 
 	def test_post_session_stats(self):
-		s = lt.session({'alert_mask': lt.alert.category_t.stats_notification})
+		s = lt.session({'alert_mask': lt.alert.category_t.stats_notification, 'enable_dht': False})
 		s.post_session_stats()
 		a = s.wait_for_alert(1000)
 		self.assertTrue(isinstance(a, lt.session_stats_alert))
@@ -187,7 +187,7 @@ class test_session(unittest.TestCase):
 
 		# this detects whether libtorrent was built with deprecated APIs
 		if hasattr(lt, 'version'):
-			s = lt.session({})
+			s = lt.session({'enable_dht': False})
 			sett = lt.session_settings()
 			sett.num_want = 10;
 			s.set_settings(sett)
@@ -196,7 +196,7 @@ class test_session(unittest.TestCase):
 
 	def test_apply_settings(self):
 
-		s = lt.session({})
+		s = lt.session({'enable_dht': False})
 		s.apply_settings({'num_want': 66, 'user_agent': 'test123'})
 		self.assertEqual(s.get_settings()['num_want'], 66)
 		self.assertEqual(s.get_settings()['user_agent'], 'test123')

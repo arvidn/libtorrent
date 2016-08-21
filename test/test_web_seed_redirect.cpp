@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "setup_transfer.hpp"
 #include "web_seed_suite.hpp"
+#include "settings.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/torrent_info.hpp"
 
@@ -88,10 +89,10 @@ TORRENT_TEST(web_seed_redirect)
 		, int(buf.size()), ec);
 
 	{
-		settings_pack settings;
-		settings.set_int(settings_pack::max_queued_disk_bytes, 256 * 1024);
-		settings.set_int(settings_pack::alert_mask, ~(alert::progress_notification | alert::stats_notification));
-		libtorrent::session ses(settings);
+		settings_pack p = settings();
+		p.set_int(settings_pack::max_queued_disk_bytes, 256 * 1024);
+		p.set_int(settings_pack::alert_mask, ~(alert::progress_notification | alert::stats_notification));
+		libtorrent::session ses(p);
 
 		// disable keep-alive because otherwise the test will choke on seeing
 		// the disconnect (from the redirect)

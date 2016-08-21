@@ -544,7 +544,7 @@ namespace libtorrent
 		{
 			if (m_include_mtime) info["mtime"] = m_files.mtime(0);
 			info["length"] = m_files.file_size(0);
-			int flags = m_files.file_flags(0);
+			int const flags = m_files.file_flags(0);
 			if (flags & (file_storage::flag_pad_file
 				| file_storage::flag_hidden
 				| file_storage::flag_executable

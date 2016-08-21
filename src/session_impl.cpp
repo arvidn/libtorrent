@@ -556,6 +556,7 @@ namespace aux {
 		update_lsd();
 		update_dht();
 		update_peer_fingerprint();
+		update_dht_bootstrap_nodes();
 #ifndef TORRENT_DISABLE_DHT
 		update_dht_announce_interval();
 #endif
@@ -838,6 +839,10 @@ namespace aux {
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log(" *** ABORT CALLED ***");
 #endif
+
+		// at this point we cannot call the notify function anymore, since the
+		// session will become invalid.
+		m_alerts.set_notify_function(std::function<void()>());
 
 		// this will cancel requests that are not critical for shutting down
 		// cleanly. i.e. essentially tracker hostname lookups that we're not
@@ -5238,6 +5243,20 @@ namespace aux {
 		{
 			url_random(m_peer_id.data() + print.length(), m_peer_id.data() + 20);
 		}
+	}
+
+	void session_impl::update_dht_bootstrap_nodes()
+	{
+#ifndef TORRENT_DISABLE_DHT
+		std::string const& node_list = m_settings.get_str(settings_pack::dht_bootstrap_nodes);
+		std::vector<std::pair<std::string, int> > nodes;
+		parse_comma_separated_string_port(node_list, nodes);
+
+		for (int i = 0; i < nodes.size(); ++i)
+		{
+			add_dht_router(nodes[i]);
+		}
+#endif
 	}
 
 	void session_impl::update_count_slow()

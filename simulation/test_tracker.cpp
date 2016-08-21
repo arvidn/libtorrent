@@ -354,7 +354,6 @@ TORRENT_TEST(ipv6_support)
 			, [&ses,&zombie](boost::system::error_code const&)
 		{
 			zombie = ses->abort();
-			ses->set_alert_notify([]{});
 			ses.reset();
 		});
 
@@ -429,7 +428,6 @@ void tracker_test(Setup setup, Announce a, Test1 test1, Test2 test2
 		, [&ses,&zombie](boost::system::error_code const&)
 	{
 		zombie = ses->abort();
-		ses->set_alert_notify([]{});
 		ses.reset();
 	});
 

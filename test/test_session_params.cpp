@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/extensions.hpp"
+#include "settings.hpp"
 
 #include "test.hpp"
 
@@ -85,10 +86,11 @@ TORRENT_TEST(default_plugins)
 TORRENT_TEST(custom_dht_storage)
 {
 	g_storage_constructor_invoked = false;
-	session_params params;
+	settings_pack p = settings();
+	p.set_bool(settings_pack::enable_dht, true);
+	session_params params(p);
 	params.dht_storage_constructor = dht_custom_storage_constructor;
 	lt::session ses(params);
-
 
 	TEST_CHECK(ses.is_dht_running() == true);
 	TEST_EQUAL(g_storage_constructor_invoked, true);
@@ -99,7 +101,7 @@ TORRENT_TEST(custom_dht_storage)
 TORRENT_TEST(add_plugin)
 {
 	g_plugin_added_invoked = false;
-	session_params params;
+	session_params params(settings());
 	params.extensions.push_back(std::make_shared<custom_plugin>());
 	lt::session ses(params);
 

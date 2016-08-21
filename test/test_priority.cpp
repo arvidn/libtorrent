@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
+#include "settings.hpp"
 #include <fstream>
 #include <iostream>
 
@@ -386,7 +387,7 @@ done:
 TORRENT_TEST(priority)
 {
 	using namespace libtorrent;
-	settings_pack p;
+	settings_pack p = settings();
 	test_transfer(p);
 	cleanup();
 }
@@ -405,7 +406,7 @@ TORRENT_TEST(priority_deprecated)
 // yet
 TORRENT_TEST(no_metadata_file_prio)
 {
-	settings_pack pack;
+	settings_pack pack = settings();
 	lt::session ses(pack);
 
 	add_torrent_params addp;
@@ -425,7 +426,7 @@ TORRENT_TEST(no_metadata_file_prio)
 
 TORRENT_TEST(no_metadata_piece_prio)
 {
-	settings_pack pack;
+	settings_pack pack = settings();
 	lt::session ses(pack);
 
 	add_torrent_params addp;

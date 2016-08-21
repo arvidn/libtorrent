@@ -212,9 +212,9 @@ namespace libtorrent
 
 		// start off with 4 kilobytes and grow
 		// if needed
-		std::uint32_t destlen = 4096;
+		unsigned long destlen = 4096;
 		int ret = 0;
-		std::uint32_t srclen = size - header_len;
+		unsigned long srclen = size - header_len;
 		in += header_len;
 
 		do

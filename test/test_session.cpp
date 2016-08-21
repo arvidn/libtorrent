@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent_info.hpp"
+#include "settings.hpp"
 
 #include <fstream>
 
@@ -50,11 +51,11 @@ namespace lt = libtorrent;
 
 TORRENT_TEST(session)
 {
-	settings_pack p;
+	settings_pack p = settings();
 	p.set_int(settings_pack::alert_mask, ~0);
 	lt::session ses(p);
 
-	settings_pack sett;
+	settings_pack sett = settings();
 	sett.set_int(settings_pack::cache_size, 100);
 	sett.set_int(settings_pack::max_queued_disk_bytes, 1000 * 16 * 1024);
 
@@ -98,7 +99,7 @@ TORRENT_TEST(session)
 
 TORRENT_TEST(async_add_torrent_duplicate_error)
 {
-	settings_pack p;
+	settings_pack p = settings();
 	p.set_int(settings_pack::alert_mask, ~0);
 	lt::session ses(p);
 
@@ -122,7 +123,7 @@ TORRENT_TEST(async_add_torrent_duplicate_error)
 
 TORRENT_TEST(async_add_torrent_duplicate)
 {
-	settings_pack p;
+	settings_pack p = settings();
 	p.set_int(settings_pack::alert_mask, ~0);
 	lt::session ses(p);
 
@@ -148,7 +149,7 @@ TORRENT_TEST(async_add_torrent_duplicate)
 
 TORRENT_TEST(load_empty_file)
 {
-	settings_pack p;
+	settings_pack p = settings();
 	p.set_int(settings_pack::alert_mask, ~0);
 	lt::session ses(p);
 
@@ -180,7 +181,7 @@ TORRENT_TEST(session_stats)
 
 TORRENT_TEST(paused_session)
 {
-	lt::session s;
+	lt::session s(settings());
 	s.pause();
 
 	lt::add_torrent_params ps;
@@ -203,14 +204,14 @@ void test_save_restore(Set setup, Save s, Default d, Load l)
 {
 	entry st;
 	{
-		settings_pack p;
+		settings_pack p = settings();
 		setup(p);
 		lt::session ses(p);
 		s(ses, st);
 	}
 
 	{
-		settings_pack p;
+		settings_pack p = settings();
 		d(p);
 		lt::session ses(p);
 		// the loading function takes a bdecode_node, so we have to transform the

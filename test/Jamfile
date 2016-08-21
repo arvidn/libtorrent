@@ -113,7 +113,6 @@ test-suite libtorrent :
 		test_sliding_average.cpp
 		test_socket_io.cpp
 #		test_random.cpp
-		test_gzip.cpp
 		test_part_file.cpp
 		test_peer_list.cpp
 		test_torrent_info.cpp
@@ -155,6 +154,7 @@ test-suite libtorrent :
 	[ run test_bitfield.cpp ]
 	[ run test_crc32.cpp ]
 	[ run test_ffs.cpp ]
+	[ run test_gzip.cpp ]
 	[ run test_receive_buffer.cpp ]
 	[ run test_alert_manager.cpp ]
 	[ run test_magnet.cpp ]
@@ -225,6 +225,7 @@ alias win-tests :
 	test_resume
 	test_tracker
 	test_checking
+	test_gzip
 	test_piece_picker
 	test_ffs
 	test_session_params

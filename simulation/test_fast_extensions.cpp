@@ -79,7 +79,6 @@ void run_fake_peer_test(
 	sim::timer t(sim, lt::seconds(1)
 		, [&](boost::system::error_code const&)
 	{
-		ses->set_alert_notify([]{});
 		// shut down
 		zombie = ses->abort();
 

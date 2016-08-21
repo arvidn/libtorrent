@@ -75,6 +75,7 @@ EXTRA_DIST = Jamfile \
   test_torrents/invalid_pieces.torrent \
   test_torrents/invalid_root_hash.torrent \
   test_torrents/invalid_root_hash2.torrent \
+  test_torrents/invalid_symlink.torrent \
   test_torrents/long_name.torrent \
   test_torrents/missing_path_list.torrent \
   test_torrents/missing_piece_len.torrent \
@@ -84,6 +85,7 @@ EXTRA_DIST = Jamfile \
   test_torrents/no_creation_date.torrent \
   test_torrents/no_name.torrent \
   test_torrents/pad_file.torrent \
+  test_torrents/pad_file_no_path.torrent \
   test_torrents/parent_path.torrent \
   test_torrents/root_hash.torrent \
   test_torrents/sample.torrent \
@@ -93,6 +95,7 @@ EXTRA_DIST = Jamfile \
   test_torrents/slash_path3.torrent \
   test_torrents/string.torrent \
   test_torrents/symlink1.torrent \
+  test_torrents/symlink_zero_size.torrent \
   test_torrents/unaligned_pieces.torrent \
   test_torrents/unordered.torrent \
   test_torrents/url_list.torrent \
@@ -112,6 +115,7 @@ EXTRA_DIST = Jamfile \
   mutable_test_torrents/test3.torrent \
   mutable_test_torrents/test3_pad_files.torrent \
   zeroes.gz \
+  corrupt.gz \
   utf8_test.txt \
   web_server.py \
   socks.py \

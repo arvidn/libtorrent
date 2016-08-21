@@ -89,7 +89,6 @@ void run_test(Setup const& setup
 	{
 		test(*ses, test_peers);
 
-		ses->set_alert_notify([]{});
 		// shut down
 		zombie = ses->abort();
 

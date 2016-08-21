@@ -128,6 +128,8 @@ static test_torrent_t test_torrents[] =
 	{ "invalid_name3.torrent" },
 	{ "symlink1.torrent" },
 	{ "unordered.torrent" },
+	{ "symlink_zero_size.torrent" },
+	{ "pad_file_no_path.torrent" },
 };
 
 struct test_failing_torrent_t
@@ -147,13 +149,14 @@ test_failing_torrent_t test_error_torrents[] =
 	{ "string.torrent", errors::torrent_is_no_dict },
 	{ "negative_size.torrent", errors::torrent_invalid_length },
 	{ "negative_file_size.torrent", errors::torrent_invalid_length },
-	{ "invalid_path_list.torrent", errors::torrent_missing_name},
+	{ "invalid_path_list.torrent", errors::torrent_invalid_name},
 	{ "missing_path_list.torrent", errors::torrent_missing_name },
 	{ "invalid_pieces.torrent", errors::torrent_missing_pieces },
 	{ "unaligned_pieces.torrent", errors::torrent_invalid_hashes },
 	{ "invalid_root_hash.torrent", errors::torrent_invalid_hashes },
 	{ "invalid_root_hash2.torrent", errors::torrent_missing_pieces },
 	{ "invalid_file_size.torrent", errors::torrent_invalid_length },
+	{ "invalid_symlink.torrent", errors::torrent_invalid_name },
 };
 
 // TODO: test remap_files
@@ -164,7 +167,6 @@ test_failing_torrent_t test_error_torrents[] =
 // TODO: torrent with 'l' (symlink) attribute
 // TODO: creating a merkle torrent (torrent_info::build_merkle_list)
 // TODO: torrent with multiple trackers in multiple tiers, making sure we shuffle them (how do you test shuffling?, load it multiple times and make sure it's in different order at least once)
-// TODO: torrents with a missing name
 // TODO: torrents with a zero-length name
 // TODO: torrents with a merkle tree and add_merkle_nodes
 // TODO: torrent with a non-dictionary info-section
@@ -713,6 +715,16 @@ TORRENT_TEST(parse_torrents)
 		{
 			TEST_EQUAL(ti->num_files(), 1);
 			TEST_EQUAL(ti->files().file_path(0), "temp....abc");
+		}
+		else if (std::string(test_torrents[i].file) == "symlink_zero_size.torrent")
+		{
+			TEST_EQUAL(ti->num_files(), 2);
+			TEST_EQUAL(ti->files().symlink(1), combine_path("foo", "bar"));
+		}
+		else if (std::string(test_torrents[i].file) == "pad_file_no_path.torrent")
+		{
+			TEST_EQUAL(ti->num_files(), 2);
+			TEST_EQUAL(ti->files().file_path(1), combine_path(".pad", "0"));
 		}
 
 		file_storage const& fs = ti->files();

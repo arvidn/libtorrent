@@ -69,7 +69,6 @@ void run_test(Setup const& setup, Test const& test)
 		test(*ses);
 
 		// shut down
-		ses->set_alert_notify([]{});
 		zombie = ses->abort();
 		ses.reset();
 	});
