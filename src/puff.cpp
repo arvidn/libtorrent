@@ -84,7 +84,7 @@
 
 #include <setjmp.h>             /* for setjmp(), longjmp(), and jmp_buf */
 #include <string.h>             /* for NULL */
-#include "puff.hpp"             /* prototype for puff() */
+#include "libtorrent/puff.hpp"             /* prototype for puff() */
 
 #define local static            /* for local function definitions */
 
