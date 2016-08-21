@@ -1,5 +1,6 @@
 1.1.1 release
 
+	* update puff.c for gzip inflation
 	* add dht_bootstrap_node a setting in settings_pack (and add default)
 	* make pad-file and symlink support conform to BEP47
 	* fix piece picker bug that could result in division by zero
