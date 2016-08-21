@@ -55,8 +55,7 @@ TORRENT_TEST(recv_buffer_pos_at_end_false)
 
 	b.cut(0, 1000);
 	// allocate some space to receive into
-	boost::asio::mutable_buffer vec
-		= b.reserve(1000);
+	b.reserve(1000);
 
 	b.received(1000);
 	b.advance_pos(999);
@@ -69,7 +68,7 @@ TORRENT_TEST(recv_buffer_pos_at_end_true)
 	receive_buffer b;
 	b.cut(0, 1000);
 	b.reserve(1000);
-	boost::asio::mutable_buffer vec = b.reserve(1000);
+	b.reserve(1000);
 	b.received(1000);
 	b.advance_pos(1000);
 	TEST_EQUAL(b.pos_at_end(), true);
@@ -81,7 +80,7 @@ TORRENT_TEST(recv_buffer_packet_finished)
 	// packet_size = 10
 	b.cut(0, 10);
 	b.reserve(1000);
-	boost::asio::mutable_buffer vec = b.reserve(1000);
+	b.reserve(1000);
 	b.received(1000);
 
 	for (int i = 0; i < 10; ++i)
@@ -160,12 +159,10 @@ TORRENT_TEST(recv_buffer_reserve)
 
 	auto range2 = b.reserve(50);
 
-	using namespace boost::asio;
-
 	TEST_EQUAL(b.capacity(), capacity);
-	TEST_EQUAL(buffer_cast<char*>(range1) + 20, buffer_cast<char*>(range2));
-	TEST_CHECK(buffer_size(range1) >= 20);
-	TEST_CHECK(buffer_size(range2) >= 50);
+	TEST_EQUAL(range1.begin() + 20, range2.begin());
+	TEST_CHECK(range1.size() >= 20);
+	TEST_CHECK(range2.size() >= 50);
 }
 
 TORRENT_TEST(receive_buffer_normalize)

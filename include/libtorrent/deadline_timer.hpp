@@ -35,15 +35,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/asio/high_resolution_timer.hpp>
-
 #if defined TORRENT_BUILD_SIMULATOR
 #include "simulator/simulator.hpp"
-#endif
-
+#else
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/asio/high_resolution_timer.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
+#endif // SIMULATOR
 
 namespace libtorrent
 {
@@ -55,4 +53,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_DEADLINE_TIMER_HPP_INCLUDED
-
