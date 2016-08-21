@@ -53,7 +53,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdlib>
 #include <cstdarg>
 #include <cstdio> // for snprintf
-#include <cinttypes> // for PRId64 et.al.
 #include <boost/array.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -69,7 +68,7 @@ std::string demangle(char const* name)
 // in case this string comes
 	// this is needed on linux
 	char const* start = strchr(name, '(');
-	if (start != nullptr)
+	if (start != NULL)
 	{
 		++start;
 	}
@@ -77,10 +76,10 @@ std::string demangle(char const* name)
 	{
 		// this is needed on macos x
 		start = strstr(name, "0x");
-		if (start != nullptr)
+		if (start != NULL)
 		{
 			start = strchr(start, ' ');
-			if (start != nullptr) ++start;
+			if (start != NULL) ++start;
 			else start = name;
 		}
 		else start = name;
@@ -90,13 +89,13 @@ std::string demangle(char const* name)
 	if (end) while (*(end-1) == ' ') --end;
 
 	std::string in;
-	if (end == nullptr) in.assign(start);
+	if (end == NULL) in.assign(start);
 	else in.assign(start, end);
 
 	size_t len;
 	int status;
-	char* unmangled = ::abi::__cxa_demangle(in.c_str(), nullptr, &len, &status);
-	if (unmangled == nullptr) return in;
+	char* unmangled = ::abi::__cxa_demangle(in.c_str(), NULL, &len, &status);
+	if (unmangled == NULL) return in;
 	std::string ret(unmangled);
 	free(unmangled);
 	return ret;
@@ -157,8 +156,8 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth
 {
 	// all calls to DbgHlp.dll are thread-unsafe. i.e. they all need to be
 	// synchronized and not called concurrently. This mutex serializes access
-	static std::mutex dbghlp_mutex;
-	std::lock_guard<std::mutex> l(dbghlp_mutex);
+	static boost::mutex dbghlp_mutex;
+	boost::mutex::scoped_lock l(dbghlp_mutex);
 
 	CONTEXT context_record;
 	if (ctx)
@@ -195,10 +194,10 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth
 		GetCurrentThread(),
 		&stack_frame,
 		&context_record,
-		nullptr,
+		NULL,
 		&SymFunctionTableAccess64,
 		&SymGetModuleBase64,
-		nullptr) && size < stack.size())
+		NULL) && size < stack.size())
 	{
 		stack[size++] = reinterpret_cast<void*>(stack_frame.AddrPC.Offset);
 	}
@@ -213,7 +212,7 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth
 	if (!sym_initialized)
 	{
 		sym_initialized = true;
-		SymInitialize(p, nullptr, true);
+		SymInitialize(p, NULL, true);
 	}
 	SymRefreshModuleList(p);
 	for (int i = 0; i < size && len > 0; ++i)
@@ -276,7 +275,7 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int /*max_depth*/, void*
 char const* libtorrent_assert_log = "asserts.log";
 namespace {
 // the number of asserts we've printed to the log
-std::atomic<int> assert_counter(0);
+boost::atomic<int> assert_counter(0);
 }
 #endif
 

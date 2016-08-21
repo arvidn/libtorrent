@@ -288,7 +288,7 @@ EXPORT int main(int argc, char const* argv[])
 	_CrtSetReportFile(_CRT_ERROR, _CRTDBG_FILE_STDERR);
 #endif
 
-#endif
+#else
 
 	signal(SIGSEGV, &sig_handler);
 #ifdef SIGBUS
@@ -301,6 +301,8 @@ EXPORT int main(int argc, char const* argv[])
 #ifdef SIGSYS
 	signal(SIGSYS, &sig_handler);
 #endif
+
+#endif // WIN32
 
 	int process_id = -1;
 #ifdef _WIN32
