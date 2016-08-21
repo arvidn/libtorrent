@@ -1015,7 +1015,7 @@ namespace libtorrent
 		// to the checker thread for initial checking
 		// of the storage.
 		// a return value of false indicates an error
-		bool set_metadata(char const* metadata_buf, int metadata_size);
+		bool set_metadata(span<char const> metadata);
 
 #ifndef TORRENT_NO_DEPRECATE
 		void on_torrent_download(error_code const& ec, http_parser const& parser

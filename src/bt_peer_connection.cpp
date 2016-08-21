@@ -1743,10 +1743,9 @@ namespace libtorrent
 				, "msg: %d size: %d", extended_id, m_recv_buffer.packet_size());
 #endif
 
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto const& e : m_extensions)
 		{
-			if ((*i)->on_extended(m_recv_buffer.packet_size() - 2, extended_id
+			if (e->on_extended(m_recv_buffer.packet_size() - 2, extended_id
 				, recv_buffer))
 				return;
 		}

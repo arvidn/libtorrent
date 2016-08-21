@@ -166,7 +166,7 @@ TORRENT_TEST(read_resume_mismatching_torrent)
 	TEST_CHECK(!atp.ti);
 }
 
-boost::shared_ptr<torrent_info> generate_torrent()
+std::shared_ptr<torrent_info> generate_torrent()
 {
 	file_storage fs;
 	fs.add_file("test_resume/tmp1", 128 * 1024 * 8);
@@ -188,12 +188,12 @@ boost::shared_ptr<torrent_info> generate_torrent()
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
-	return boost::make_shared<torrent_info>(&buf[0], buf.size());
+	return std::make_shared<torrent_info>(&buf[0], buf.size());
 }
 
 TORRENT_TEST(read_resume_torrent)
 {
-	boost::shared_ptr<torrent_info> ti = generate_torrent();
+	std::shared_ptr<torrent_info> ti = generate_torrent();
 
 	entry rd;
 	rd["file-format"] = "libtorrent resume file";

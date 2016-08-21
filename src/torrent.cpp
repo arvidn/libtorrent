@@ -6375,8 +6375,7 @@ namespace libtorrent
 		}
 
 		// blocks per piece
-		int num_blocks_per_piece =
-			static_cast<int>(torrent_file().piece_length()) / block_size();
+		int num_blocks_per_piece = torrent_file().piece_length() / block_size();
 		ret["blocks per piece"] = num_blocks_per_piece;
 
 		if (m_torrent_file->is_merkle_torrent())
@@ -7002,15 +7001,14 @@ namespace libtorrent
 		return peerinfo->connection != nullptr;
 	}
 
-	// TODO: 3 make this take a span<char const> instead
-	bool torrent::set_metadata(char const* metadata_buf, int metadata_size)
+	bool torrent::set_metadata(span<char const> metadata_buf)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
 		if (m_torrent_file->is_valid()) return false;
 
-		sha1_hash const info_hash = hasher(metadata_buf, metadata_size).final();
+		sha1_hash const info_hash = hasher(metadata_buf).final();
 		if (info_hash != m_torrent_file->info_hash())
 		{
 			if (alerts().should_post<metadata_failed_alert>())
@@ -7023,8 +7021,7 @@ namespace libtorrent
 
 		bdecode_node metadata;
 		error_code ec;
-		int ret = bdecode(metadata_buf
-			, metadata_buf + metadata_size, metadata, ec);
+		int ret = bdecode(metadata_buf.begin(), metadata_buf.end(), metadata, ec);
 		if (ret != 0 || !m_torrent_file->parse_info_section(metadata, ec, 0))
 		{
 			update_gauge();

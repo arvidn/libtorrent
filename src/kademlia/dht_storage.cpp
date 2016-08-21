@@ -112,13 +112,13 @@ namespace
 		std::string salt;
 	};
 
-	void touch_item(dht_immutable_item* f, address const& address)
+	void touch_item(dht_immutable_item* f, address const& addr)
 	{
 		f->last_seen = aux::time_now();
 
 		// maybe increase num_announcers if we haven't seen this IP before
 		sha1_hash iphash;
-		hash_address(address, iphash);
+		hash_address(addr, iphash);
 		if (!f->ips.find(iphash))
 		{
 			f->ips.set(iphash);

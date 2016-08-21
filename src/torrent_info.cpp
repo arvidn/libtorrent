@@ -662,9 +662,8 @@ namespace libtorrent
 		if (m_info_section_size == 0) return;
 		TORRENT_ASSERT(m_piece_hashes);
 
-		error_code ec;
 		m_info_section.reset(new char[m_info_section_size]);
-		memcpy(m_info_section.get(), t.m_info_section.get(), m_info_section_size);
+		std::memcpy(m_info_section.get(), t.m_info_section.get(), m_info_section_size);
 
 		ptrdiff_t offset = m_info_section.get() - t.m_info_section.get();
 
@@ -1544,16 +1543,6 @@ namespace libtorrent
 		verify_encoding(m_created_by);
 
 		return true;
-	}
-
-	boost::optional<time_t>
-	torrent_info::creation_date() const
-	{
-		if (m_creation_date != 0)
-		{
-			return boost::optional<time_t>(m_creation_date);
-		}
-		return boost::optional<time_t>();
 	}
 
 	void torrent_info::add_tracker(std::string const& url, int tier)

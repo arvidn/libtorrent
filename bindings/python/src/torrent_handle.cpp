@@ -304,7 +304,7 @@ list get_download_queue(torrent_handle& handle)
 
 void set_metadata(torrent_handle& handle, std::string const& buf)
 {
-   handle.set_metadata(buf.c_str(), int(buf.size()));
+   handle.set_metadata(buf);
 }
 
 #ifndef TORRENT_NO_DEPRECATE

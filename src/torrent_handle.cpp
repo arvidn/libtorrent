@@ -217,9 +217,9 @@ namespace libtorrent
 #endif
 	}
 
-	bool torrent_handle::set_metadata(char const* metadata, int size) const
+	bool torrent_handle::set_metadata(span<char const> metadata) const
 	{
-		return sync_call_ret<bool>(false, &torrent::set_metadata, metadata, size);
+		return sync_call_ret<bool>(false, &torrent::set_metadata, metadata);
 	}
 
 	void torrent_handle::pause(int flags) const
