@@ -38,13 +38,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent_info.hpp" // for announce_entry
 #include "libtorrent/announce_entry.hpp"
+#include "settings.hpp"
 
 using namespace libtorrent;
 namespace lt = libtorrent;
 
 void test_remove_url(std::string url)
 {
-	lt::session s;
+	lt::session s(settings());
 	add_torrent_params p;
 	p.flags &= ~add_torrent_params::flag_paused;
 	p.flags &= ~add_torrent_params::flag_auto_managed;
@@ -76,7 +77,7 @@ TORRENT_TEST(magnet)
 	session_proxy p2;
 
 	// test session state load/restore
-	settings_pack pack;
+	settings_pack pack = settings();
 	pack.set_str(settings_pack::user_agent, "test");
 	pack.set_int(settings_pack::tracker_receive_timeout, 1234);
 	pack.set_int(settings_pack::file_pool_size, 543);
@@ -177,7 +178,7 @@ TORRENT_TEST(magnet)
 	TEST_EQUAL(to_hex(t.info_hash().to_string()), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
 
 	p1 = s->abort();
-	s.reset(new lt::session());
+	s.reset(new lt::session(settings()));
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), session_state);

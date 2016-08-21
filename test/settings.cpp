@@ -49,6 +49,7 @@ libtorrent::settings_pack settings()
 	pack.set_bool(settings_pack::enable_natpmp, false);
 	pack.set_bool(settings_pack::enable_upnp, false);
 	pack.set_bool(settings_pack::enable_dht, false);
+	pack.set_str(settings_pack::dht_bootstrap_nodes, "");
 
 	pack.set_bool(settings_pack::prefer_rc4, false);
 	pack.set_int(settings_pack::in_enc_policy, settings_pack::pe_disabled);

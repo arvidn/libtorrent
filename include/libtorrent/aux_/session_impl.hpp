@@ -656,6 +656,7 @@ namespace libtorrent
 			void update_dht();
 			void update_count_slow();
 			void update_peer_fingerprint();
+			void update_dht_bootstrap_nodes();
 
 			void update_socket_buffer_size();
 			void update_dht_announce_interval();

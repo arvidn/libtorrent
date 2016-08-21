@@ -204,6 +204,15 @@ namespace libtorrent
 			// used as the peer-id
 			peer_fingerprint,
 
+			// This is a comma-separated list of IP port-pairs. They will be added
+			// to the DHT node (if it's enabled) as back-up nodes in case we don't
+			// know of any. This setting will contain one or more bootstrap nodes
+			// by default.
+			// 
+			// Changing these after the DHT has been started may not have any
+			// effect until the DHT is restarted.
+			dht_bootstrap_nodes,
+
 			max_string_setting_internal
 		};
 

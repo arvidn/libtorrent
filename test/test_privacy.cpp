@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "peer_server.hpp"
 #include "udp_tracker.hpp"
 #include "test_utils.hpp"
+#include "settings.hpp"
 
 #include "libtorrent/alert.hpp"
 #include "libtorrent/random.hpp"
@@ -101,7 +102,7 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 		& ~alert::progress_notification
 		& ~alert::stats_notification;
 
-	settings_pack sett;
+	settings_pack sett = settings();
 	sett.set_int(settings_pack::stop_tracker_timeout, 2);
 	sett.set_int(settings_pack::tracker_completion_timeout, 2);
 	sett.set_int(settings_pack::tracker_receive_timeout, 2);

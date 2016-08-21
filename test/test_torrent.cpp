@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/extensions.hpp"
+#include "settings.hpp"
 #include <boost/tuple/tuple.hpp>
 #include <boost/make_shared.hpp>
 #include <iostream>
@@ -52,7 +53,7 @@ namespace lt = libtorrent;
 
 void test_running_torrent(boost::shared_ptr<torrent_info> info, boost::int64_t file_size)
 {
-	settings_pack pack;
+	settings_pack pack = settings();
 	pack.set_int(settings_pack::alert_mask, alert::storage_notification);
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48130");
 	pack.set_int(settings_pack::max_retry_port_bind, 10);
@@ -189,7 +190,7 @@ TORRENT_TEST(total_wanted)
 	boost::shared_ptr<torrent_info> info(boost::make_shared<torrent_info>(
 		&tmp[0], tmp.size(), boost::ref(ec)));
 
-	settings_pack pack;
+	settings_pack pack = settings();
 	pack.set_int(settings_pack::alert_mask, alert::storage_notification);
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48130");
 	pack.set_int(settings_pack::max_retry_port_bind, 10);
@@ -227,7 +228,7 @@ TORRENT_TEST(added_peers)
 	boost::shared_ptr<torrent_info> info(boost::make_shared<torrent_info>(
 		&tmp[0], tmp.size(), boost::ref(ec)));
 
-	settings_pack pack;
+	settings_pack pack = settings();
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48130");
 	pack.set_int(settings_pack::max_retry_port_bind, 10);
 	lt::session ses(pack);
@@ -356,7 +357,7 @@ TORRENT_TEST(duplicate_is_not_error)
 	p.save_path = ".";
 	p.extensions.push_back(creator);
 
-	lt::session ses;
+	lt::session ses(settings());
 	ses.async_add_torrent(p);
 	ses.async_add_torrent(p);
 
