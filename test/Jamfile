@@ -91,7 +91,6 @@ test-suite libtorrent :
 		test_socket_io.cpp
 #		test_random.cpp
 		test_utf8.cpp
-		test_gzip.cpp
 		test_bitfield.cpp
 		test_part_file.cpp
 		test_peer_list.cpp
@@ -123,6 +122,7 @@ test-suite libtorrent :
 		test_linked_list.cpp
 		test_file_progress.cpp ]
 
+	[ run test_gzip.cpp ]
 	[ run test_receive_buffer.cpp ]
 	[ run test_alert_manager.cpp ]
 	[ run test_direct_dht.cpp ]
@@ -188,6 +188,7 @@ alias win-tests :
 	test_resume
 	test_tracker
 	test_checking
+	test_gzip
 	;
 
 # the openssl test hangs on the travis osx machine. difficult to debug
@@ -227,6 +228,7 @@ alias osx-tests :
 	test_time_critical
 	test_pex
 	test_priority
+	test_gzip
 ;
 
 explicit win-tests ;

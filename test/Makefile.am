@@ -115,6 +115,7 @@ EXTRA_DIST = Jamfile \
   mutable_test_torrents/test3.torrent \
   mutable_test_torrents/test3_pad_files.torrent \
   zeroes.gz \
+  corrupt.gz \
   utf8_test.txt \
   web_server.py \
   socks.py \
