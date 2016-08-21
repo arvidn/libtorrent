@@ -69,6 +69,9 @@ TORRENT_TEST(dht_bootstrap)
 	fake_node node(sim, "10.0.0.10", 25401);
 
 	lt::settings_pack pack;
+	// we use 0 threads (disk I/O operations will be performed in the network
+	// thread) to be simulator friendly.
+	pack.set_int(lt::settings_pack::aio_threads, 0);
 	pack.set_bool(lt::settings_pack::enable_lsd, false);
 	pack.set_bool(lt::settings_pack::enable_upnp, false);
 	pack.set_bool(lt::settings_pack::enable_natpmp, false);
