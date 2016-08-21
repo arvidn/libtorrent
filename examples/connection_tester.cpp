@@ -835,7 +835,7 @@ void generate_data(char const* path, torrent_info const& ti)
 
 	{
 		storage_error error;
-		st->initialize(error);
+		st->initialize(0, error);
 	}
 
 	std::uint32_t piece[0x4000 / 4];
@@ -846,7 +846,7 @@ void generate_data(char const* path, torrent_info const& ti)
 			generate_block(piece, i, j, 0x4000);
 			file::iovec_t b = { piece, 0x4000};
 			storage_error error;
-			st->writev(b, i, j, 0, error);
+			st->writev(b, i, j, 0, 0, error);
 			if (error)
 				std::fprintf(stderr, "storage error: %s\n", error.ec.message().c_str());
 		}

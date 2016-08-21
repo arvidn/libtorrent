@@ -78,7 +78,7 @@ struct test_storage : default_storage
 	{}
 
 	void set_file_priority(std::vector<std::uint8_t> const& p
-		, storage_error& ec) override {}
+		, int, storage_error& ec) override {}
 
 	void set_limit(int lim)
 	{
@@ -91,6 +91,7 @@ struct test_storage : default_storage
 		, int piece_index
 		, int offset
 		, int flags
+		, int open_flags
 		, storage_error& se) override
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
@@ -105,7 +106,7 @@ struct test_storage : default_storage
 
 		for (auto const& b : bufs) m_written += int(b.iov_len);
 		l.unlock();
-		return default_storage::writev(bufs, piece_index, offset, flags, se);
+		return default_storage::writev(bufs, piece_index, offset, flags, open_flags, se);
 	}
 
 	~test_storage() override = default;
