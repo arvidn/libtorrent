@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <set>
 #include <list>
+#include <deque>
 #include <condition_variable>
 #include <mutex>
 #include <cstdarg> // for va_start, va_end
