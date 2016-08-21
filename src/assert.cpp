@@ -133,7 +133,7 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth, void*)
 
 	for (int i = 1; i < size && len > 0; ++i)
 	{
-		int ret = std::snprintf(out, len, "%d: %s\n", i, demangle(symbols[i]).c_str());
+		int ret = snprintf(out, len, "%d: %s\n", i, demangle(symbols[i]).c_str());
 		out += ret;
 		len -= ret;
 		if (i - 1 == max_depth && max_depth > 0) break;
@@ -231,25 +231,25 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth
 		BOOL const has_line = SymGetLineFromAddr64(GetCurrentProcess(), frame_ptr,
 			&line_displacement, &line);
 
-		int ret = std::snprintf(out, len, "%2d: %p", i, stack[i]);
+		int ret = snprintf(out, len, "%2d: %p", i, stack[i]);
 		out += ret; len -= ret; if (len <= 0) break;
 
 		if (has_symbol)
 		{
-			ret = std::snprintf(out, len, " %s +%-4" PRId64
+			ret = snprintf(out, len, " %s +%-4" PRId64
 				, demangle(symbol.Name).c_str(), displacement);
 			out += ret; len -= ret; if (len <= 0) break;
 		}
 
 		if (has_line)
 		{
-			ret = std::snprintf(out, len, " %s:%d"
+			ret = snprintf(out, len, " %s:%d"
 				, line.FileName, line.LineNumber);
 			out += ret; len -= ret; if (len <= 0) break;
 		}
 
 
-		ret = std::snprintf(out, len, "\n");
+		ret = snprintf(out, len, "\n");
 		out += ret;
 		len -= ret;
 
