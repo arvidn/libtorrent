@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <string>
 #include <cstdint>
+#include <memory>
 
 namespace libtorrent
 {
