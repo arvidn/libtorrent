@@ -69,7 +69,7 @@ TORRENT_TEST(corrupt)
 	TEST_CHECK(!ec);
 
 	std::vector<char> inflated;
-	inflate_gzip(&zipped[0], zipped.size(), inflated, 1000000, ec);
+	inflate_gzip(&zipped[0], int(zipped.size()), inflated, 1000000, ec);
 
 	// we expect this to fail
 	TEST_CHECK(ec);
