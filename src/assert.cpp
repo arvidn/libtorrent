@@ -146,7 +146,7 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth, void*)
 
 #include "windows.h"
 #include "libtorrent/utf8.hpp"
-#include <boost/mutex.hpp>
+#include "libtorrent/thread.hpp"
 
 #include "winbase.h"
 #include "dbghelp.h"
@@ -156,8 +156,8 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth
 {
 	// all calls to DbgHlp.dll are thread-unsafe. i.e. they all need to be
 	// synchronized and not called concurrently. This mutex serializes access
-	static boost::mutex dbghlp_mutex;
-	boost::mutex::scoped_lock l(dbghlp_mutex);
+	static libtorrent::mutex dbghlp_mutex;
+	libtorrent::mutex::scoped_lock l(dbghlp_mutex);
 
 	CONTEXT context_record;
 	if (ctx)
