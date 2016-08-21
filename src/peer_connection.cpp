@@ -36,14 +36,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/peer_connection.hpp"
-#include "libtorrent/identify_client.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/file.hpp"
-#include "libtorrent/version.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
 #include "libtorrent/peer_list.hpp"
@@ -5652,7 +5650,7 @@ namespace libtorrent
 
 		if (max_receive == 0) return;
 
-		boost::asio::mutable_buffer const vec = m_recv_buffer.reserve(max_receive);
+		span<char> const vec = m_recv_buffer.reserve(max_receive);
 		TORRENT_ASSERT((m_channel_state[download_channel] & peer_info::bw_network) == 0);
 		m_channel_state[download_channel] |= peer_info::bw_network;
 #ifndef TORRENT_DISABLE_LOGGING
@@ -5663,7 +5661,7 @@ namespace libtorrent
 		// utp sockets aren't thread safe...
 		ADD_OUTSTANDING_ASYNC("peer_connection::on_receive_data");
 		m_socket->async_read_some(
-			boost::asio::mutable_buffers_1(vec), make_read_handler(
+			boost::asio::mutable_buffers_1(vec.data(), vec.size()), make_read_handler(
 				std::bind(&peer_connection::on_receive_data, self(), _1, _2)));
 	}
 
@@ -5859,8 +5857,9 @@ namespace libtorrent
 			if (buffer_size > quota_left) buffer_size = quota_left;
 			if (buffer_size > 0)
 			{
-				boost::asio::mutable_buffer const vec = m_recv_buffer.reserve(buffer_size);
-				size_t bytes = m_socket->read_some(boost::asio::mutable_buffers_1(vec), ec);
+				span<char> const vec = m_recv_buffer.reserve(buffer_size);
+				size_t bytes = m_socket->read_some(
+					boost::asio::mutable_buffers_1(vec.data(), vec.size()), ec);
 
 				// this is weird. You would imagine read_some() would do this
 				if (bytes == 0 && !ec) ec = boost::asio::error::eof;

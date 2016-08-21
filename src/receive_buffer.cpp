@@ -40,7 +40,7 @@ int receive_buffer::max_receive() const
 	return int(m_recv_buffer.size() - m_recv_end);
 }
 
-boost::asio::mutable_buffer receive_buffer::reserve(int size)
+span<char> receive_buffer::reserve(int size)
 {
 	INVARIANT_CHECK;
 	TORRENT_ASSERT(size > 0);
@@ -61,7 +61,7 @@ boost::asio::mutable_buffer receive_buffer::reserve(int size)
 		m_watermark = sliding_average<20>();
 	}
 
-	return boost::asio::buffer(&m_recv_buffer[0] + m_recv_end, size);
+	return span<char>(m_recv_buffer).subspan(m_recv_end, size);
 }
 
 void receive_buffer::grow(int const limit)

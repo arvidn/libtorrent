@@ -85,11 +85,11 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(m_peer_classes.size() < 0x10000);
 			ret = peer_class_t(m_peer_classes.size());
-			m_peer_classes.push_back(boost::shared_ptr<peer_class>());
+			m_peer_classes.push_back(std::shared_ptr<peer_class>());
 		}
 
 		TORRENT_ASSERT(m_peer_classes[ret].get() == nullptr);
-		m_peer_classes[ret] = boost::make_shared<peer_class>(label);
+		m_peer_classes[ret] = std::make_shared<peer_class>(label);
 		return ret;
 	}
 
@@ -123,6 +123,4 @@ namespace libtorrent
 		if (c >= m_peer_classes.size()) return nullptr;
 		return m_peer_classes[c].get();
 	}
-
 }
-

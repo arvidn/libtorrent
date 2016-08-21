@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/buffer.hpp>
 #include <libtorrent/disk_buffer_holder.hpp>
 #include <libtorrent/sliding_average.hpp>
-#include <boost/asio/buffer.hpp>
 
 namespace libtorrent {
 
@@ -59,7 +58,7 @@ struct TORRENT_EXTRA_EXPORT receive_buffer
 	int capacity() const { return int(m_recv_buffer.size()); }
 	int watermark() const { return m_watermark.mean(); }
 
-	boost::asio::mutable_buffer reserve(int size);
+	span<char> reserve(int size);
 	void grow(int limit);
 
 	// tell the buffer we just received more bytes at the end of it. This will

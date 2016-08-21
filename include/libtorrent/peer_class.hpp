@@ -39,10 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <string>
 #include <cstdint>
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/smart_ptr.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <memory>
 
 namespace libtorrent
 {
@@ -85,7 +82,7 @@ namespace libtorrent
 		int download_priority;
 	};
 
-	struct TORRENT_EXTRA_EXPORT peer_class : boost::enable_shared_from_this<peer_class>
+	struct TORRENT_EXTRA_EXPORT peer_class : std::enable_shared_from_this<peer_class>
 	{
 		friend struct peer_class_pool;
 
@@ -137,7 +134,7 @@ namespace libtorrent
 
 		// state for peer classes (a peer can belong to multiple classes)
 		// this can control
-		std::vector<boost::shared_ptr<peer_class> > m_peer_classes;
+		std::vector<std::shared_ptr<peer_class>> m_peer_classes;
 
 		// indices in m_peer_classes that are no longer used
 		std::vector<peer_class_t> m_free_list;
@@ -145,4 +142,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_PEER_CLASS_HPP_INCLUDED
-
