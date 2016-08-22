@@ -37,6 +37,7 @@ set(sources
 	file
 	gzip
 	hasher
+	hasher512
 	hex
 	http_connection
 	http_stream
@@ -216,6 +217,7 @@ if (encryption)
 else()
 	add_definitions(-DTORRENT_DISABLE_ENCRYPTION)
 	list(APPEND sources sha1)
+	list(APPEND sources sha512)
 endif (encryption)
 
 if (NOT logging)

@@ -29,10 +29,8 @@ namespace libtorrent
 	// we don't want these to clash with openssl's libcrypto
 	TORRENT_EXTRA_EXPORT void SHA1_init(sha_ctx* context);
 	TORRENT_EXTRA_EXPORT void SHA1_update(sha_ctx* context
-		, std::uint8_t const* data
-		, std::uint32_t len);
+		, std::uint8_t const* data, std::uint32_t len);
 	TORRENT_EXTRA_EXPORT void SHA1_final(std::uint8_t* digest, sha_ctx* context);
 }
 
 #endif
-

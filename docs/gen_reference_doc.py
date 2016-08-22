@@ -94,6 +94,7 @@ category_mapping = {
 	'bitfield.hpp': 'Utility',
 	'sha1_hash.hpp': 'Utility',
 	'hasher.hpp': 'Utility',
+	'hasher512.hpp': 'Utility',
 	'identify_client.hpp': 'Utility',
 	'ip_filter.hpp': 'Filter',
 	'session_settings.hpp': 'Settings',

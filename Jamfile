@@ -344,6 +344,7 @@ rule building ( properties * )
 	if <crypo>built-in in $(properties)
 	{
 		result += <source>src/sha1.cpp ;
+		result += <source>src/sha512.cpp ;
 	}
 
 	if ( <toolset>darwin in $(properties)
@@ -604,6 +605,7 @@ SOURCES =
 	file
 	gzip
 	hasher
+	hasher512
 	hex
 	http_connection
 	http_stream
@@ -653,6 +655,7 @@ SOURCES =
 	http_tracker_connection
 	udp_tracker_connection
 	sha1
+	sha512
 	timestamp_history
 	udp_socket
 	upnp
