@@ -469,7 +469,7 @@ namespace libtorrent
 
 			if (p && p.list_size() > 0)
 			{
-				int const preallocate = path.size() + path_length(p, ec);
+				size_t const preallocate = path.size() + path_length(p, ec);
 				if (ec) return false;
 				path.reserve(preallocate);
 
