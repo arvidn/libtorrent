@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/address.hpp"
 #include "libtorrent/socket.hpp" // tcp::endpoint
+#include "libtorrent/span.hpp"
 
 namespace libtorrent
 {
@@ -521,7 +522,13 @@ namespace libtorrent
 		// if the metadata is successfully set on the torrent, and false
 		// otherwise. If the torrent already has metadata, this function will not
 		// affect the torrent, and false will be returned.
-		bool set_metadata(char const* metadata, int size) const;
+		bool set_metadata(span<char const> metadata) const;
+
+#ifndef TORRENT_NO_DEPRECATE
+		TORRENT_DEPRECATED
+		bool set_metadata(char const* metadata, int size) const
+		{ return set_metadata({metadata, size_t(size)}); }
+#endif
 
 		// Returns true if this handle refers to a valid torrent and false if it
 		// hasn't been initialized or if the torrent it refers to has been

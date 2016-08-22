@@ -36,12 +36,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <vector>
 #include <map>
+#include <memory>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/optional.hpp>
 #include <boost/shared_array.hpp>
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/config.hpp"
@@ -63,8 +61,6 @@ namespace libtorrent
 	struct announce_entry;
 	struct lazy_entry;
 
-	namespace aux { struct session_settings; }
-
 	// internal, exposed for the unit test
 	TORRENT_EXTRA_EXPORT void sanitize_append_path_element(std::string& path
 		, string_view element);
@@ -80,7 +76,7 @@ namespace libtorrent
 		// http seed spec. by John Hoffman
 		enum type_t { url_seed, http_seed };
 
-		typedef std::vector<std::pair<std::string, std::string> > headers_t;
+		typedef std::vector<std::pair<std::string, std::string>> headers_t;
 
 		web_seed_entry(std::string const& url_, type_t type_
 			, std::string const& auth_ = std::string()
@@ -399,7 +395,7 @@ namespace libtorrent
 		// returns true if this torrent_info object has a torrent loaded.
 		// This is primarily used to determine if a magnet link has had its
 		// metadata resolved yet or not.
-		bool is_valid() const { return (m_files.is_valid()) != 0; }
+		bool is_valid() const { return m_files.is_valid(); }
 
 		// returns true if this torrent is private. i.e., it should not be
 		// distributed on the trackerless network (the kademlia DHT).
@@ -469,7 +465,8 @@ namespace libtorrent
 		// 
 		// .. _`posix time`: http://www.opengroup.org/onlinepubs/009695399/functions/time.html
 		const std::string& name() const { return m_files.name(); }
-		boost::optional<time_t> creation_date() const;
+		time_t creation_date() const
+		{ return m_creation_date; }
 		const std::string& creator() const
 		{ return m_created_by; }
 		const std::string& comment() const
@@ -565,7 +562,7 @@ namespace libtorrent
 		// pointers point directly into the info_section buffer and when copied,
 		// these pointers must be corrected to point into the new buffer. The
 		// int is the length of the string. Strings are not 0-terminated.
-		std::vector<std::pair<char const*, int> > m_collections;
+		std::vector<std::pair<char const*, int>> m_collections;
 
 		// these are the collections from outside of the info-dict. These are
 		// owning strings, since we only keep the info-section around, these
@@ -580,6 +577,7 @@ namespace libtorrent
 		// this is a copy of the info section from the torrent.
 		// it use maintained in this flat format in order to
 		// make it available through the metadata extension
+		// TODO: change the type to std::shared_ptr in C++17
 		boost::shared_array<char> m_info_section;
 
 		// this is a pointer into the m_info_section buffer
@@ -640,4 +638,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_TORRENT_INFO_HPP_INCLUDED
-

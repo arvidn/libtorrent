@@ -386,7 +386,7 @@ namespace libtorrent
 		TORRENT_ASSERT(ti.num_files() > 0);
 		TORRENT_ASSERT(ti.total_size() > 0);
 
-		if (ti.creation_date()) m_creation_date = *ti.creation_date();
+		if (ti.creation_date() > 0) m_creation_date = ti.creation_date();
 
 		if (!ti.creator().empty()) set_creator(ti.creator().c_str());
 		if (!ti.comment().empty()) set_comment(ti.comment().c_str());
@@ -394,19 +394,15 @@ namespace libtorrent
 		for (auto const& n : ti.nodes())
 			add_node(n);
 
-		std::vector<libtorrent::announce_entry> const& trackers = ti.trackers();
-		for (std::vector<libtorrent::announce_entry>::const_iterator i = trackers.begin()
-			, end(trackers.end()); i != end; ++i)
-			add_tracker(i->url, i->tier);
+		for (auto const& t : ti.trackers())
+			add_tracker(t.url, t.tier);
 
-		std::vector<web_seed_entry> const& web_seeds = ti.web_seeds();
-		for (std::vector<web_seed_entry>::const_iterator i = web_seeds.begin()
-			, end(web_seeds.end()); i != end; ++i)
+		for (auto const& s : ti.web_seeds())
 		{
-			if (i->type == web_seed_entry::url_seed)
-				add_url_seed(i->url);
-			else if (i->type == web_seed_entry::http_seed)
-				add_http_seed(i->url);
+			if (s.type == web_seed_entry::url_seed)
+				add_url_seed(s.url);
+			else if (s.type == web_seed_entry::http_seed)
+				add_http_seed(s.url);
 		}
 
 		m_piece_hash.resize(m_files.num_pieces());

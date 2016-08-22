@@ -53,8 +53,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/aux_/time.hpp"
 
-using namespace std::placeholders;
-
 namespace libtorrent { namespace
 {
 	enum
@@ -604,7 +602,7 @@ namespace libtorrent { namespace
 
 		if (!have_all) return false;
 
-		if (!m_torrent.set_metadata(&m_metadata[0], m_metadata_size))
+		if (!m_torrent.set_metadata({m_metadata.get(), size_t(m_metadata_size)}))
 		{
 			if (!m_torrent.valid_metadata())
 			{

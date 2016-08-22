@@ -38,10 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/escape_string.hpp" // for convert_path_to_posix
 #include "libtorrent/hex.hpp" // to_hex
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/make_shared.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include <iostream>
 
 using namespace libtorrent;
@@ -617,7 +613,7 @@ TORRENT_TEST(parse_torrents)
 		std::fprintf(stderr, "loading %s\n", test_torrents[i].file);
 		std::string filename = combine_path(combine_path(root_dir, "test_torrents")
 			, test_torrents[i].file);
-		auto ti = boost::make_shared<torrent_info>(filename, ec);
+		auto ti = std::make_shared<torrent_info>(filename, ec);
 		TEST_CHECK(!ec);
 		if (ec) std::fprintf(stderr, " loading(\"%s\") -> failed %s\n", filename.c_str()
 			, ec.message().c_str());
@@ -644,7 +640,7 @@ TORRENT_TEST(parse_torrents)
 		}
 		else if (std::string(test_torrents[i].file) == "creation_date.torrent")
 		{
-			TEST_EQUAL(*ti->creation_date(), 1234567);
+			TEST_EQUAL(ti->creation_date(), 1234567);
 		}
 		else if (std::string(test_torrents[i].file) == "duplicate_web_seeds.torrent")
 		{
@@ -753,7 +749,7 @@ TORRENT_TEST(parse_torrents)
 	{
 		error_code ec;
 		std::fprintf(stderr, "loading %s\n", test_error_torrents[i].file);
-		auto ti = boost::make_shared<torrent_info>(combine_path(
+		auto ti = std::make_shared<torrent_info>(combine_path(
 			combine_path(root_dir, "test_torrents"), test_error_torrents[i].file), ec);
 		std::fprintf(stderr, "E:        \"%s\"\nexpected: \"%s\"\n", ec.message().c_str()
 			, test_error_torrents[i].error.message().c_str());
@@ -859,7 +855,7 @@ TORRENT_TEST(resolve_duplicates)
 TORRENT_TEST(empty_file)
 {
 	error_code ec;
-	auto ti = boost::make_shared<torrent_info>("", 0, ec);
+	auto ti = std::make_shared<torrent_info>("", 0, ec);
 	TEST_CHECK(ec);
 }
 
@@ -867,7 +863,7 @@ TORRENT_TEST(empty_file2)
 {
 	try
 	{
-		auto ti = boost::make_shared<torrent_info>("", 0);
+		auto ti = std::make_shared<torrent_info>("", 0);
 		TEST_ERROR("expected exception thrown");
 	}
 	catch (system_error& e)
@@ -880,9 +876,9 @@ TORRENT_TEST(copy)
 {
 	using namespace libtorrent;
 
-	boost::shared_ptr<torrent_info> a(boost::make_shared<torrent_info>(
+	std::shared_ptr<torrent_info> a = std::make_shared<torrent_info>(
 		combine_path(parent_path(current_working_directory())
-		, combine_path("test_torrents", "sample.torrent"))));
+		, combine_path("test_torrents", "sample.torrent")));
 
 	char const* expected_files[] =
 	{
@@ -909,12 +905,12 @@ TORRENT_TEST(copy)
 	}
 
 	// copy the torrent_info object
-	boost::shared_ptr<torrent_info> b(boost::make_shared<torrent_info>(*a));
+	std::shared_ptr<torrent_info> b = std::make_shared<torrent_info>(*a);
 
 	// clear out the  buffer for a, just to make sure b doesn't have any
 	// references into it by mistake
 	int s = a->metadata_size();
-	memset(a->metadata().get(), 0, s);
+	std::memset(a->metadata().get(), 0, s);
 
 	a.reset();
 
@@ -930,5 +926,3 @@ TORRENT_TEST(copy)
 		TEST_EQUAL(b->files().hash(i), file_hashes[i]);
 	}
 }
-
-
