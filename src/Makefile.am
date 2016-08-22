@@ -86,7 +86,7 @@ libtorrent_rasterbar_la_SOURCES = \
   magnet_uri.cpp                  \
   merkle.cpp                      \
   metadata_transfer.cpp           \
-  mpi.c                           \
+  mpi.cpp                         \
   natpmp.cpp                      \
   parse_url.cpp                   \
   part_file.cpp                   \
