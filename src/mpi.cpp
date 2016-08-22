@@ -1,3 +1,5 @@
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 /* Start: bn_error.c */
 #include "libtorrent/tommath_private.h"
 #ifdef BN_ERROR_C
