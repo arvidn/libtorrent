@@ -137,6 +137,7 @@ int main(int argc, char const* argv[])
 		// save resume data once every 30 seconds
 		if (clk::now() - last_save_resume > std::chrono::seconds(30)) {
 			h.save_resume_data();
+			last_save_resume = clk::now();
 		}
 	}
 
