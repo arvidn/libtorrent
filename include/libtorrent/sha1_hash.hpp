@@ -75,6 +75,11 @@ namespace libtorrent
 		// constructs an all-zero digest
 		digest32() { clear(); }
 
+		digest32(digest32 const&) = default;
+		digest32(digest32&&) = default;
+		digest32& operator=(digest32 const&) = default;
+		digest32& operator=(digest32&&) = default;
+
 		// returns an all-F digest. i.e. the maximum value
 		// representable by an N bit number (N/8 bytes). This is
 		// a static member function.

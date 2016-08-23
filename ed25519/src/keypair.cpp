@@ -10,9 +10,8 @@ using namespace libtorrent;
 void ed25519_create_keypair(unsigned char *public_key, unsigned char *private_key, const unsigned char *seed) {
     ge_p3 A;
 
-    hasher512 hash;
-    hash.update({reinterpret_cast<char const*>(seed), 32});
-    std::memcmp(private_key, hash.final().data(), 64);
+    hasher512 hash({reinterpret_cast<char const*>(seed), 32});
+    std::memcpy(private_key, hash.final().data(), 64);
     private_key[0] &= 248;
     private_key[31] &= 63;
     private_key[31] |= 64;
