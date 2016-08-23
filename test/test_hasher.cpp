@@ -60,7 +60,7 @@ char const* result_array[4] =
 	"DEA356A2CDDD90C7A7ECEDC5EBB563934F460452"
 };
 
-void test_vector(std::string s, std::string output, int n = 1)
+void test_vector(std::string s, std::string output, int const n = 1)
 {
 	hasher h;
 	for (int i = 0; i < n; i++)

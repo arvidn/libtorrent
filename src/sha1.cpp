@@ -120,7 +120,7 @@ namespace
 	}
 
 #ifdef VERBOSE
-	void SHAPrintContext(sha_ctx *context, char *msg)
+	void SHAPrintContext(sha1_ctx *context, char *msg)
 	{
 		using namespace std;
 		std::printf("%s (%d,%d) %x %x %x %x %x\n"
@@ -135,7 +135,7 @@ namespace
 #endif
 
 	template <class BlkFun>
-	void internal_update(sha_ctx* context, u8 const* data, u32 len)
+	void internal_update(sha1_ctx* context, u8 const* data, u32 len)
 	{
 		using namespace std;
 		u32 i, j;	// JHB
@@ -177,7 +177,7 @@ namespace
 
 // SHA1Init - Initialize new context
 
-void SHA1_init(sha_ctx* context)
+void SHA1_init(sha1_ctx* context)
 {
     // SHA1 initialization constants
     context->state[0] = 0x67452301;
@@ -191,7 +191,7 @@ void SHA1_init(sha_ctx* context)
 
 // Run your data through this.
 
-void SHA1_update(sha_ctx* context, u8 const* data, u32 len)
+void SHA1_update(sha1_ctx* context, u8 const* data, u32 len)
 {
 	// GCC standard defines for endianness
 	// test with: cpp -dM /dev/null
@@ -212,7 +212,7 @@ void SHA1_update(sha_ctx* context, u8 const* data, u32 len)
 
 // Add padding and return the message digest.
 
-void SHA1_final(u8* digest, sha_ctx* context)
+void SHA1_final(u8* digest, sha1_ctx* context)
 {
 	u8 finalcount[8];
 

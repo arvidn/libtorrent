@@ -7,7 +7,7 @@
 namespace libtorrent
 {
 
-	struct TORRENT_EXTRA_EXPORT sha512_ctx
+	struct sha512_ctx
 	{
 		std::uint64_t length, state[8];
 		size_t curlen;

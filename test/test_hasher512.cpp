@@ -39,13 +39,12 @@ using namespace libtorrent;
 
 namespace
 {
-	void test_vector(std::string s, std::string output, int n = 1)
+	void test_vector(std::string s, std::string output, int const n = 1)
 	{
 		hasher512 h;
 		for (int i = 0; i < n; i++)
 			h.update(s);
-		char digest[64];
-		h.final(digest);
+		std::string digest = h.final().to_string();
 		TEST_EQUAL(aux::to_hex(digest), output);
 	}
 }

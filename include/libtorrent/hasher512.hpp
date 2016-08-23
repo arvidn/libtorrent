@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_HASHER512_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/span.hpp"
 
 #include <cstdint>
@@ -60,6 +61,8 @@ extern "C" {
 
 namespace libtorrent
 {
+	using sha512_hash = digest32<512>;
+
 	// this is a SHA-512 hash class.
 	//
 	// You use it by first instantiating it, then call ``update()`` to feed it
@@ -83,19 +86,17 @@ namespace libtorrent
 		hasher512();
 
 		// this is the same as default constructing followed by a call to
-		// ``update(data, len)``.
-		hasher512(char const* data, int len);
-		hasher512(span<char const> data);
+		// ``update(data)``.
+		explicit hasher512(span<char const> data);
 		hasher512(hasher512 const&);
 		hasher512& operator=(hasher512 const&);
 
 		// append the following bytes to what is being hashed
 		hasher512& update(span<char const> data);
-		hasher512& update(char const* data, int len);
 
 		// store the SHA-512 digest of the buffers previously passed to
 		// update() and the hasher constructor.
-		void final(span<char> digest);
+		sha512_hash final();
 
 		// restore the hasher state to be as if the hasher has just been
 		// default constructed.

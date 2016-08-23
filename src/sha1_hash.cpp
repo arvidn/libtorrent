@@ -62,21 +62,24 @@ namespace libtorrent
 
 #endif // TORRENT_USE_IOSTREAM
 
-	sha1_hash& sha1_hash::operator<<=(int n)
+namespace aux
+{
+	void bits_shift_left(span<std::uint32_t> number, int n)
 	{
 		TORRENT_ASSERT(n >= 0);
-		const int num_words = n / 32;
+		int const num_words = n / 32;
+		int const number_size = int(number.size());
 		if (num_words >= number_size)
 		{
-			std::memset(m_number, 0, size());
-			return *this;
+			std::memset(number.data(), 0, number_size * 4);
+			return;
 		}
 
 		if (num_words > 0)
 		{
-			std::memmove(m_number, m_number + num_words
+			std::memmove(number.data(), number.data() + num_words
 				, (number_size - num_words) * sizeof(std::uint32_t));
-			std::memset(m_number + (number_size - num_words)
+			std::memset(number.data() + (number_size - num_words)
 				, 0, num_words * sizeof(std::uint32_t));
 			n -= num_words * 32;
 		}
@@ -86,34 +89,34 @@ namespace libtorrent
 			// byte order, so they have to be byteswapped before
 			// applying the shift operations, and then byteswapped
 			// back again.
-			m_number[0] = aux::network_to_host(m_number[0]);
+			number[0] = aux::network_to_host(number[0]);
 			for (int i = 0; i < number_size - 1; ++i)
 			{
-				m_number[i] <<= n;
-				m_number[i + 1] = aux::network_to_host(m_number[i + 1]);
-				m_number[i] |= m_number[i + 1] >> (32 - n);
-				m_number[i] = aux::host_to_network(m_number[i]);
+				number[i] <<= n;
+				number[i + 1] = aux::network_to_host(number[i + 1]);
+				number[i] |= number[i + 1] >> (32 - n);
+				number[i] = aux::host_to_network(number[i]);
 			}
-			m_number[number_size - 1] <<= n;
-			m_number[number_size - 1] = aux::host_to_network(m_number[number_size - 1]);
+			number[number_size - 1] <<= n;
+			number[number_size - 1] = aux::host_to_network(number[number_size - 1]);
 		}
-		return *this;
 	}
 
-	sha1_hash& sha1_hash::operator>>=(int n)
+	void bits_shift_right(span<std::uint32_t> number, int n)
 	{
 		TORRENT_ASSERT(n >= 0);
-		const int num_words = n / 32;
+		int const num_words = n / 32;
+		int const number_size = int(number.size());
 		if (num_words >= number_size)
 		{
-			std::memset(m_number, 0, size());
-			return *this;
+			std::memset(number.data(), 0, number_size * 4);
+			return;
 		}
 		if (num_words > 0)
 		{
-			std::memmove(m_number + num_words
-				, m_number, (number_size - num_words) * sizeof(std::uint32_t));
-			std::memset(m_number, 0, num_words * sizeof(std::uint32_t));
+			std::memmove(number.data() + num_words
+				, number.data(), (number_size - num_words) * sizeof(std::uint32_t));
+			std::memset(number.data(), 0, num_words * sizeof(std::uint32_t));
 			n -= num_words * 32;
 		}
 		if (n > 0)
@@ -122,19 +125,18 @@ namespace libtorrent
 			// byte order, so they have to be byteswapped before
 			// applying the shift operations, and then byteswapped
 			// back again.
-			m_number[number_size - 1] = aux::network_to_host(m_number[number_size - 1]);
+			number[number_size - 1] = aux::network_to_host(number[number_size - 1]);
 
 			for (int i = number_size - 1; i > 0; --i)
 			{
-				m_number[i] >>= n;
-				m_number[i - 1] = aux::network_to_host(m_number[i - 1]);
-				m_number[i] |= (m_number[i - 1] << (32 - n)) & 0xffffffff;
-				m_number[i] = aux::host_to_network(m_number[i]);
+				number[i] >>= n;
+				number[i - 1] = aux::network_to_host(number[i - 1]);
+				number[i] |= (number[i - 1] << (32 - n)) & 0xffffffff;
+				number[i] = aux::host_to_network(number[i]);
 			}
-			m_number[0] >>= n;
-			m_number[0] = aux::host_to_network(m_number[0]);
+			number[0] >>= n;
+			number[0] = aux::host_to_network(number[0]);
 		}
-		return *this;
 	}
-
+}
 }

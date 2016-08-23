@@ -717,7 +717,6 @@ ED25519_SOURCES =
 	keypair
 	sc
 	seed
-	sha512
 	sign
 	verify
 	;

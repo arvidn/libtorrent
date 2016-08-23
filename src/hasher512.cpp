@@ -92,13 +92,6 @@ namespace libtorrent
 		update(data);
 	}
 
-	hasher512::hasher512(char const* data, int len)
-		: hasher512()
-	{
-		TORRENT_ASSERT(len > 0);
-		update({data, size_t(len)});
-	}
-
 #ifdef TORRENT_USE_LIBGCRYPT
 	hasher512::hasher512(hasher512 const& h)
 	{
@@ -144,11 +137,6 @@ namespace libtorrent
 	hasher512& hasher512::operator=(hasher512 const&) = default;
 #endif
 
-	hasher512& hasher512::update(char const* data, int len)
-	{
-		return update({data, size_t(len)});
-	}
-
 	hasher512& hasher512::update(span<char const> data)
 	{
 		TORRENT_ASSERT(!data.empty());
@@ -173,19 +161,19 @@ namespace libtorrent
 		return *this;
 	}
 
-	void hasher512::final(span<char> digest)
+	sha512_hash hasher512::final()
 	{
-		TORRENT_ASSERT(int(digest.size()) == 64);
+		sha512_hash digest;
 #ifdef TORRENT_USE_LIBGCRYPT
 		gcry_md_final(m_context);
-		std::memcpy(digest.begin(), (char const*)gcry_md_read(m_context, 0), 64);
+		digest.assign((char const*)gcry_md_read(m_context, 0));
 #elif TORRENT_USE_COMMONCRYPTO
-		CC_SHA512_Final(reinterpret_cast<unsigned char*>(digest.begin()), &m_context);
+		CC_SHA512_Final(reinterpret_cast<unsigned char*>(digest.data()), &m_context);
 #elif TORRENT_USE_CRYPTOAPI
 
 		DWORD size = DWORD(digest.size());
 		if (CryptGetHashParam(m_context, HP_HASHVAL
-			, reinterpret_cast<BYTE*>(digest.begin()), &size, 0) == false)
+			, reinterpret_cast<BYTE*>(digest.data()), &size, 0) == false)
 		{
 #ifndef BOOST_NO_EXCEPTIONS
 			throw system_error(error_code(GetLastError(), system_category()));
@@ -195,10 +183,11 @@ namespace libtorrent
 		}
 		TORRENT_ASSERT(size == digest.size());
 #elif defined TORRENT_USE_LIBCRYPTO
-		SHA512_Final(reinterpret_cast<unsigned char*>(digest.begin()), &m_context);
+		SHA512_Final(reinterpret_cast<unsigned char*>(digest.data()), &m_context);
 #else
-		SHA512_final(reinterpret_cast<unsigned char*>(digest.begin()), &m_context);
+		SHA512_final(reinterpret_cast<unsigned char*>(digest.data()), &m_context);
 #endif
+		return digest;
 	}
 
 	void hasher512::reset()

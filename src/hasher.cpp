@@ -180,7 +180,7 @@ namespace libtorrent
 		gcry_md_final(m_context);
 		digest.assign((char const*)gcry_md_read(m_context, 0));
 #elif TORRENT_USE_COMMONCRYPTO
-		CC_SHA1_Final(digest.begin(), &m_context);
+		CC_SHA1_Final(reinterpret_cast<unsigned char*>(digest.data()), &m_context);
 #elif TORRENT_USE_CRYPTOAPI
 
 		DWORD size = DWORD(digest.size());
@@ -195,9 +195,9 @@ namespace libtorrent
 		}
 		TORRENT_ASSERT(size == digest.size());
 #elif defined TORRENT_USE_LIBCRYPTO
-		SHA1_Final(digest.begin(), &m_context);
+		SHA1_Final(reinterpret_cast<unsigned char*>(digest.data()), &m_context);
 #else
-		SHA1_final(digest.begin(), &m_context);
+		SHA1_final(reinterpret_cast<unsigned char*>(digest.data()), &m_context);
 #endif
 		return digest;
 	}

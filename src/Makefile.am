@@ -27,7 +27,6 @@ KADEMLIA_SOURCES = \
   ../ed25519/src/keypair.cpp    \
   ../ed25519/src/sc.cpp         \
   ../ed25519/src/seed.cpp       \
-  ../ed25519/src/sha512.cpp     \
   ../ed25519/src/sign.cpp       \
   ../ed25519/src/verify.cpp
 endif

@@ -116,7 +116,7 @@ namespace libtorrent
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA_CTX m_context;
 #else
-		sha_ctx m_context;
+		sha1_ctx m_context;
 #endif
 	};
 

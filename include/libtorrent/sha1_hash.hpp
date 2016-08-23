@@ -49,66 +49,74 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	// TODO: find a better place for these functions
+	namespace aux
+	{
+		TORRENT_EXTRA_EXPORT void bits_shift_left(span<std::uint32_t> number, int n);
+		TORRENT_EXTRA_EXPORT void bits_shift_right(span<std::uint32_t> number, int n);
+	}
 
-	// This type holds a SHA-1 digest or any other kind of 20 byte
+	// This type holds an N digest or any other kind of N bits
 	// sequence. It implements a number of convenience functions, such
 	// as bit operations, comparison operators etc.
 	//
-	// In libtorrent it is primarily used to hold info-hashes, piece-hashes,
-	// peer IDs, node IDs etc.
-	class TORRENT_EXPORT sha1_hash
+	// This data structure is 32 bits aligned, like it's the case for
+	// each SHA-N specification.
+	template <int N>
+	class digest32
 	{
-		enum { number_size = 5 };
+		static_assert(N % 32 == 0, "N must be a multiple of 32");
+		enum { number_size = N / 32 };
 	public:
 
 		// the size of the hash in bytes
-		static constexpr size_t size() { return number_size * sizeof(std::uint32_t); }
+		static constexpr size_t size() { return N / 8; }
 
-		// constructs an all-zero sha1-hash
-		sha1_hash() { clear(); }
+		// constructs an all-zero digest
+		digest32() { clear(); }
 
-		// returns an all-F sha1-hash. i.e. the maximum value
-		// representable by a 160 bit number (20 bytes). This is
+		// returns an all-F digest. i.e. the maximum value
+		// representable by an N bit number (N/8 bytes). This is
 		// a static member function.
-		static sha1_hash max()
+		static digest32 max()
 		{
-			sha1_hash ret;
+			digest32 ret;
 			std::memset(ret.m_number, 0xff, size());
 			return ret;
 		}
 
-		// returns an all-zero sha1-hash. i.e. the minimum value
-		// representable by a 160 bit number (20 bytes). This is
+		// returns an all-zero digest. i.e. the minimum value
+		// representable by an N bit number (N/8 bytes). This is
 		// a static member function.
-		static sha1_hash min()
+		static digest32 min()
 		{
-			sha1_hash ret;
+			digest32 ret;
 			// all bits are already 0
 			return ret;
 		}
 
-		// copies 20 bytes from the pointer provided, into the sha1-hash.
-		// The passed in string MUST be at least 20 bytes. 0-terminators
+		// copies N/8 bytes from the pointer provided, into the digest.
+		// The passed in string MUST be at least N/8 bytes. 0-terminators
 		// are ignored, ``s`` is treated like a raw memory buffer.
-		explicit sha1_hash(char const* s)
+		explicit digest32(char const* s)
 		{
 			if (s == nullptr) clear();
 			else std::memcpy(m_number, s, size());
 		}
 #ifndef TORRENT_NO_DEPRECATE
 		TORRENT_DEPRECATED
-		explicit sha1_hash(std::string const& s)
+		explicit digest32(std::string const& s)
 		{
 			assign(s.data());
 		}
 #endif
-		explicit sha1_hash(span<char const> s)
+		explicit digest32(span<char const> s)
 		{
 			assign(s);
 		}
 		void assign(span<char const> s)
 		{
-			TORRENT_ASSERT(s.size() >= 20);
+			TORRENT_ASSERT(s.size() >= N / 8);
 			size_t const sl = s.size() < size() ? s.size() : size();
 			std::memcpy(m_number, s.data(), sl);
 		}
@@ -117,10 +125,10 @@ namespace libtorrent
 		char const* data() const { return reinterpret_cast<char const*>(&m_number[0]); }
 		char* data() { return reinterpret_cast<char*>(&m_number[0]); }
 
-		// set the sha1-hash to all zeroes.
+		// set the digest to all zeroes.
 		void clear() { std::memset(m_number, 0, size()); }
 
-		// return true if the sha1-hash is all zero.
+		// return true if the digest is all zero.
 		bool is_all_zeros() const
 		{
 			for (int i = 0; i < number_size; ++i)
@@ -129,21 +137,29 @@ namespace libtorrent
 		}
 
 		// shift left ``n`` bits.
-		sha1_hash& operator<<=(int n);
+		digest32& operator<<=(int n)
+		{
+			aux::bits_shift_left({m_number, number_size}, n);
+			return *this;
+		}
 
 		// shift right ``n`` bits.
-		sha1_hash& operator>>=(int n);
+		digest32& operator>>=(int n)
+		{
+			aux::bits_shift_right({m_number, number_size}, n);
+			return *this;
+		}
 
 		// standard comparison operators
-		bool operator==(sha1_hash const& n) const
+		bool operator==(digest32 const& n) const
 		{
 			return std::equal(n.m_number, n.m_number + number_size, m_number);
 		}
-		bool operator!=(sha1_hash const& n) const
+		bool operator!=(digest32 const& n) const
 		{
 			return !std::equal(n.m_number, n.m_number + number_size, m_number);
 		}
-		bool operator<(sha1_hash const& n) const
+		bool operator<(digest32 const& n) const
 		{
 			for (int i = 0; i < number_size; ++i)
 			{
@@ -160,49 +176,49 @@ namespace libtorrent
 			return aux::count_leading_zeros({m_number, number_size});
 		}
 
-		// returns a bit-wise negated copy of the sha1-hash
-		sha1_hash operator~() const
+		// returns a bit-wise negated copy of the digest
+		digest32 operator~() const
 		{
-			sha1_hash ret;
+			digest32 ret;
 			for (int i = 0; i < number_size; ++i)
 				ret.m_number[i] = ~m_number[i];
 			return ret;
 		}
 
-		// returns the bit-wise XOR of the two sha1-hashes.
-		sha1_hash operator^(sha1_hash const& n) const
+		// returns the bit-wise XOR of the two digests.
+		digest32 operator^(digest32 const& n) const
 		{
-			sha1_hash ret = *this;
+			digest32 ret = *this;
 			ret ^= n;
 			return ret;
 		}
 
-		// in-place bit-wise XOR with the passed in sha1_hash.
-		sha1_hash& operator^=(sha1_hash const& n)
+		// in-place bit-wise XOR with the passed in digest.
+		digest32& operator^=(digest32 const& n)
 		{
 			for (int i = 0; i < number_size; ++i)
 				m_number[i] ^= n.m_number[i];
 			return *this;
 		}
 
-		// returns the bit-wise AND of the two sha1-hashes.
-		sha1_hash operator&(sha1_hash const& n) const
+		// returns the bit-wise AND of the two digests.
+		digest32 operator&(digest32 const& n) const
 		{
-			sha1_hash ret = *this;
+			digest32 ret = *this;
 			ret &= n;
 			return ret;
 		}
 
-		// in-place bit-wise AND of the passed in sha1_hash
-		sha1_hash& operator&=(sha1_hash const& n)
+		// in-place bit-wise AND of the passed in digest
+		digest32& operator&=(digest32 const& n)
 		{
 			for (int i = 0; i < number_size; ++i)
 				m_number[i] &= n.m_number[i];
 			return *this;
 		}
 
-		// in-place bit-wise OR of the two sha1-hash.
-		sha1_hash& operator|=(sha1_hash const& n)
+		// in-place bit-wise OR of the two digests.
+		digest32& operator|=(digest32 const& n)
 		{
 			for (int i = 0; i < number_size; ++i)
 				m_number[i] |= n.m_number[i];
@@ -235,8 +251,8 @@ namespace libtorrent
 		iterator end()
 		{ return reinterpret_cast<std::uint8_t*>(m_number) + size(); }
 
-		// return a copy of the 20 bytes representing the sha1-hash as a std::string.
-		// It's still a binary string with 20 binary characters.
+		// return a copy of the N/8 bytes representing the digest as a std::string.
+		// It's still a binary string with N/8 binary characters.
 		std::string to_string() const
 		{
 			return std::string(reinterpret_cast<char const*>(&m_number[0]), size());
@@ -247,6 +263,14 @@ namespace libtorrent
 		std::uint32_t m_number[number_size];
 
 	};
+
+	// This type holds a SHA-1 digest or any other kind of 20 byte
+	// sequence. It implements a number of convenience functions, such
+	// as bit operations, comparison operators etc.
+	//
+	// In libtorrent it is primarily used to hold info-hashes, piece-hashes,
+	// peer IDs, node IDs etc.
+	using sha1_hash = digest32<160>;
 
 	// this is here to support usage of sha1_hash in boost unordered containers
 	typedef sha1_hash peer_id;

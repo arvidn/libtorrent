@@ -2,14 +2,17 @@
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include "libtorrent/ed25519.hpp"
-#include "sha512.h"
+#include "libtorrent/hasher512.hpp"
 #include "ge.h"
 
+using namespace libtorrent;
 
 void ed25519_create_keypair(unsigned char *public_key, unsigned char *private_key, const unsigned char *seed) {
     ge_p3 A;
 
-    sha512(seed, 32, private_key);
+    hasher512 hash;
+    hash.update({reinterpret_cast<char const*>(seed), 32});
+    std::memcmp(private_key, hash.final().data(), 64);
     private_key[0] &= 248;
     private_key[31] &= 63;
     private_key[31] |= 64;

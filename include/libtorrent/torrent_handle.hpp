@@ -52,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/socket.hpp" // tcp::endpoint
 #include "libtorrent/span.hpp"
+#include "libtorrent/sha1_hash.hpp"
 
 namespace libtorrent
 {
@@ -69,7 +70,6 @@ namespace libtorrent
 	struct peer_list_entry;
 	struct torrent_status;
 	struct torrent_handle;
-	class sha1_hash;
 	struct storage_interface;
 	class torrent;
 

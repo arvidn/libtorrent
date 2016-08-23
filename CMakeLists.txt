@@ -152,7 +152,6 @@ set(ed25519_sources
 	keypair
 	sc
 	seed
-	sha512
 	sign
 	verify
 )
