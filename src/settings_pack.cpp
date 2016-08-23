@@ -598,6 +598,9 @@ namespace libtorrent
 			if (index < 0 || index >= settings_pack::num_string_settings)
 				continue;
 
+			// if the vaue did not change, don't call the update callback
+			if (sett.get_str(i->first) == i->second) continue;
+
 			sett.set_str(i->first, i->second);
 			str_setting_entry_t const& sa = str_settings[i->first & settings_pack::index_mask];
 			if (sa.fun && ses
@@ -617,6 +620,9 @@ namespace libtorrent
 			if (index < 0 || index >= settings_pack::num_int_settings)
 				continue;
 
+			// if the vaue did not change, don't call the update callback
+			if (sett.get_int(i->first) == i->second) continue;
+
 			sett.set_int(i->first, i->second);
 			int_setting_entry_t const& sa = int_settings[i->first & settings_pack::index_mask];
 			if (sa.fun && ses
@@ -635,6 +641,9 @@ namespace libtorrent
 			int index = i->first & settings_pack::index_mask;
 			if (index < 0 || index >= settings_pack::num_bool_settings)
 				continue;
+
+			// if the vaue did not change, don't call the update callback
+			if (sett.get_bool(i->first) == i->second) continue;
 
 			sett.set_bool(i->first, i->second);
 			bool_setting_entry_t const& sa = bool_settings[i->first & settings_pack::index_mask];
