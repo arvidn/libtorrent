@@ -30,6 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#ifndef TORRENT_DISABLE_DHT
+
 #include "libtorrent/hasher512.hpp"
 #include "libtorrent/hex.hpp"
 
@@ -85,3 +87,5 @@ TORRENT_TEST(hasher512_test_vec1)
 		, 16777216
 	);
 }
+
+#endif // TORRENT_DISABLE_DHT

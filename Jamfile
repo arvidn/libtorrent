@@ -341,16 +341,21 @@ rule building ( properties * )
 		result += <source>src/pe_crypto.cpp ;
 	}
 
-	if <crypo>built-in in $(properties)
+	if <crypto>built-in in $(properties)
+		&& ! <target-os>windows in $(properties)
+		&& ! <target-os>darwin in $(properties)
 	{
 		result += <source>src/sha1.cpp ;
-		result += <source>src/sha512.cpp ;
+		if <dht>on in $(properties)
+		{
+			result += <source>src/sha512.cpp ;
+		}
 	}
 
 	if ( <toolset>darwin in $(properties)
 		|| <toolset>gcc in $(properties)
-		|| <toolset>clang in $(propertoes)
-		|| <toolset>clang-darwin in $(propertoes) )
+		|| <toolset>clang in $(properties)
+		|| <toolset>clang-darwin in $(properties) )
 		&& <link>shared in $(properties)
 		# on GCC, enabling debugging in libstdc++
 		# breaks the ABI and its ability to appear
@@ -605,7 +610,6 @@ SOURCES =
 	file
 	gzip
 	hasher
-	hasher512
 	hex
 	http_connection
 	http_stream
@@ -654,8 +658,6 @@ SOURCES =
 	tracker_manager
 	http_tracker_connection
 	udp_tracker_connection
-	sha1
-	sha512
 	timestamp_history
 	udp_socket
 	upnp
@@ -768,6 +770,7 @@ lib torrent
 
 	<dht>on:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
 	<dht>on:<source>ed25519/src/$(ED25519_SOURCES).cpp
+	<dht>on:<source>src/hasher512.cpp
 	<variant>debug:<asserts>on
 	<variant>debug:<invariant-checks>on
 

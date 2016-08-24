@@ -37,7 +37,6 @@ set(sources
 	file
 	gzip
 	hasher
-	hasher512
 	hex
 	http_connection
 	http_stream
@@ -215,8 +214,9 @@ if (encryption)
 	include_directories(${OPENSSL_INCLUDE_DIR})
 else()
 	add_definitions(-DTORRENT_DISABLE_ENCRYPTION)
-	list(APPEND sources sha1)
-	list(APPEND sources sha512)
+	if (NOT WIN32 AND NOT APPLE)
+		list(APPEND sources sha1)
+	endif()
 endif (encryption)
 
 if (NOT logging)
@@ -234,6 +234,10 @@ if (dht)
 	foreach(s ${ed25519_sources})
 		list(APPEND sources2 ed25519/src/${s})
 	endforeach(s)
+	list(APPEND sources2 src/hasher512)
+	if (NOT encryption AND NOT WIN32 AND NOT APPLE)
+		list(APPEND sources2 src/sha512)
+	endif()
 else()
 	add_definitions(-DTORRENT_DISABLE_DHT)
 endif()
