@@ -239,20 +239,20 @@ int SHA512_final(std::uint8_t* out, sha512_ctx* md)
     if (out == NULL) return 1;
 
     if (md->curlen >= sizeof(md->buf)) {
-     return 1;
- }
+        return 1;
+    }
 
     /* increase the length of the message */
- md->length += md->curlen * UINT64_C(8);
+    md->length += md->curlen * UINT64_C(8);
 
     /* append the '1' bit */
- md->buf[md->curlen++] = (unsigned char)0x80;
+    md->buf[md->curlen++] = (unsigned char)0x80;
 
     /* if the length is currently above 112 bytes we append zeros
      * then compress.  Then we can fall back to padding zeros and length
      * encoding like normal.
      */
-     if (md->curlen > 112) {
+    if (md->curlen > 112) {
         while (md->curlen < 128) {
             md->buf[md->curlen++] = (unsigned char)0;
         }
@@ -264,20 +264,20 @@ int SHA512_final(std::uint8_t* out, sha512_ctx* md)
      * note: that from 112 to 120 is the 64 MSB of the length.  We assume that you won't hash
      * > 2^64 bits of data... :-)
      */
-while (md->curlen < 120) {
-    md->buf[md->curlen++] = (unsigned char)0;
-}
+    while (md->curlen < 120) {
+        md->buf[md->curlen++] = (unsigned char)0;
+    }
 
     /* store length */
-STORE64H(md->length, md->buf+120);
-sha512_compress(md, md->buf);
+    STORE64H(md->length, md->buf+120);
+    sha512_compress(md, md->buf);
 
     /* copy output */
-for (i = 0; i < 8; i++) {
-    STORE64H(md->state[i], out+(8*i));
-}
+    for (i = 0; i < 8; i++) {
+        STORE64H(md->state[i], out+(8*i));
+    }
 
-return 0;
+    return 0;
 }
 
 } // libtorrent namespace
