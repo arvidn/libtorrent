@@ -384,6 +384,7 @@ namespace libtorrent
 		void reset_piece_deadline(int index) const;
 		void clear_piece_deadlines() const;
 
+#ifndef TORRENT_NO_DEPRECATE
 		// This sets the bandwidth priority of this torrent. The priority of a
 		// torrent determines how much bandwidth its peers are assigned when
 		// distributing upload and download rate quotas. A high number gives more
@@ -404,9 +405,9 @@ namespace libtorrent
 		// distributing unchoke slots. This is a strict prioritization where
 		// every interested peer on a high priority torrent will be unchoked
 		// before any other, lower priority, torrents have any peers unchoked.
+		TORRENT_DEPRECATED
 		void set_priority(int prio) const;
 
-#ifndef TORRENT_NO_DEPRECATE
 #if !TORRENT_NO_FPU
 		// fills the specified vector with the download progress [0, 1]
 		// of each file in the torrent. The files are ordered as in
