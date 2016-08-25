@@ -72,7 +72,7 @@ bool TORRENT_EXTRA_EXPORT verify_secret_id(node_id const& nid);
 node_id TORRENT_EXTRA_EXPORT generate_id_impl(address const& ip_, boost::uint32_t r);
 
 bool TORRENT_EXTRA_EXPORT verify_id(node_id const& nid, address const& source_ip);
-bool TORRENT_EXTRA_EXPORT matching_prefix(node_entry const& n, int mask, int prefix, int bucket_index);
+bool TORRENT_EXTRA_EXPORT matching_prefix(node_entry const& n, int mask, int prefix, int offset);
 node_id TORRENT_EXTRA_EXPORT generate_prefix_mask(int bits);
 
 } } // namespace libtorrent::dht
