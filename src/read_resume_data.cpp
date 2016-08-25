@@ -32,14 +32,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstdint>
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/make_shared.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/read_resume_data.hpp"
 #include "libtorrent/add_torrent_params.hpp"
-#include "libtorrent/announce_entry.hpp"
 #include "libtorrent/socket_io.hpp" // for read_*_endpoint()
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/torrent_info.hpp"
@@ -340,4 +335,3 @@ namespace libtorrent
 		return read_resume_data(rd, ec);
 	}
 }
-

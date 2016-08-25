@@ -42,12 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/address.hpp>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <boost/noncopyable.hpp>
 #include <boost/intrusive_ptr.hpp>
-#include <functional>
-#include <boost/pool/pool.hpp>
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent { struct dht_lookup; }

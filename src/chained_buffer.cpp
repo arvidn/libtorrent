@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/chained_buffer.hpp"
 #include "libtorrent/assert.hpp"
 
+#include <cstring> // for memcpy
+
 namespace libtorrent
 {
 	void chained_buffer::pop_front(int bytes_to_pop)
@@ -123,7 +125,7 @@ namespace libtorrent
 		TORRENT_ASSERT(is_single_thread());
 		char* insert = allocate_appendix(s);
 		if (insert == nullptr) return nullptr;
-		memcpy(insert, buf, s);
+		std::memcpy(insert, buf, s);
 		return insert;
 	}
 

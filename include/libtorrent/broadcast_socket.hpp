@@ -40,12 +40,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <boost/shared_ptr.hpp>
-#include <boost/function/function3.hpp>
-#include <list>
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
+
+#include <list>
 
 namespace libtorrent
 {

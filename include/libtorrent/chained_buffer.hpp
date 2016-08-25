@@ -38,14 +38,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 #include "libtorrent/buffer.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/version.hpp>
-#include <boost/asio/buffer.hpp>
 #include <deque>
 #include <vector>
-#include <string.h> // for memcpy
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/asio/buffer.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent

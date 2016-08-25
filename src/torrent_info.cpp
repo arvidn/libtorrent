@@ -1075,7 +1075,7 @@ namespace libtorrent
 	}
 
 	bool torrent_info::parse_info_section(bdecode_node const& info
-		, error_code& ec, int flags)
+		, error_code& ec, int const flags)
 	{
 		TORRENT_UNUSED(flags);
 		if (info.type() != bdecode_node::dict_t)
@@ -1129,7 +1129,7 @@ namespace libtorrent
 		if (name.empty()) name = aux::to_hex(m_info_hash);
 
 		// extract file list
-		bdecode_node files_node = info.dict_find_list("files");
+		bdecode_node const files_node = info.dict_find_list("files");
 		if (!files_node)
 		{
 			// if there's no list of files, there has to be a length
@@ -1264,13 +1264,12 @@ namespace libtorrent
 
 
 	bool torrent_info::add_merkle_nodes(std::map<int, sha1_hash> const& subtree
-		, int piece)
+		, int const piece)
 	{
 		INVARIANT_CHECK;
 
 		int n = m_merkle_first_leaf + piece;
-		typedef std::map<int, sha1_hash>::const_iterator iter;
-		iter it = subtree.find(n);
+		auto const it = subtree.find(n);
 		if (it == subtree.end()) return false;
 		sha1_hash h = it->second;
 
@@ -1282,7 +1281,7 @@ namespace libtorrent
 		{
 			int const sibling = merkle_get_sibling(n);
 			int const parent = merkle_get_parent(n);
-			iter const sibling_hash = subtree.find(sibling);
+			auto const sibling_hash = subtree.find(sibling);
 			if (sibling_hash == subtree.end())
 				return false;
 			to_add[n] = h;
@@ -1306,17 +1305,16 @@ namespace libtorrent
 		// the nodes and piece hash matched the root-hash
 		// insert them into our tree
 
-		for (std::map<int, sha1_hash>::iterator i = to_add.begin()
-			, end(to_add.end()); i != end; ++i)
+		for (auto const& i : to_add)
 		{
-			m_merkle_tree[i->first] = i->second;
+			m_merkle_tree[i.first] = i.second;
 		}
 		return true;
 	}
 
 	// builds a list of nodes that are required to verify
 	// the given piece
-	std::map<int, sha1_hash> torrent_info::build_merkle_list(int piece) const
+	std::map<int, sha1_hash> torrent_info::build_merkle_list(int const piece) const
 	{
 		INVARIANT_CHECK;
 
@@ -1338,7 +1336,7 @@ namespace libtorrent
 	}
 
 	bool torrent_info::parse_torrent_file(bdecode_node const& torrent_file
-		, error_code& ec, int flags)
+		, error_code& ec, int const flags)
 	{
 		if (torrent_file.type() != bdecode_node::dict_t)
 		{

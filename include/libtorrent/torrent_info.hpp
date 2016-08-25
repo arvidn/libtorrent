@@ -414,7 +414,7 @@ namespace libtorrent
 		// for the piece. Note that the string is not 0-terminated.
 		int piece_size(int index) const { return m_files.piece_size(index); }
 		sha1_hash hash_for_piece(int index) const;
-		char const* hash_for_piece_ptr(int index) const
+		char const* hash_for_piece_ptr(int const index) const
 		{
 			TORRENT_ASSERT(index >= 0);
 			TORRENT_ASSERT(index < m_files.num_pieces());
@@ -430,7 +430,7 @@ namespace libtorrent
 				TORRENT_ASSERT(m_piece_hashes >= m_info_section.get());
 				TORRENT_ASSERT(m_piece_hashes < m_info_section.get() + m_info_section_size);
 				TORRENT_ASSERT(index < int(m_info_section_size / 20));
-				return &m_piece_hashes[index*20];
+				return &m_piece_hashes[index * 20];
 			}
 		}
 

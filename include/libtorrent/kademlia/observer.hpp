@@ -39,10 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/address.hpp>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/pool/pool.hpp>
 #include <boost/intrusive_ptr.hpp>
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
@@ -177,4 +174,3 @@ typedef boost::intrusive_ptr<observer> observer_ptr;
 } }
 
 #endif
-

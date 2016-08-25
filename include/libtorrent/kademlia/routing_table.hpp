@@ -40,10 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <tuple>
 #include <array>
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-//#include <boost/utility.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/node_entry.hpp>
 #include <libtorrent/session_settings.hpp>
@@ -336,4 +332,3 @@ private:
 } } // namespace libtorrent::dht
 
 #endif // ROUTING_TABLE_HPP
-

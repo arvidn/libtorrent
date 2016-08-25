@@ -54,10 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifdef TORRENT_USE_OPENSSL
 #include "libtorrent/ssl_stream.hpp"
 #include <boost/asio/ssl/context.hpp>
-#include <openssl/rand.h>
-#if BOOST_VERSION >= 104700
 #include <boost/asio/ssl/verify_context.hpp>
-#endif // BOOST_VERSION
 #endif // TORRENT_USE_OPENSSL
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -1481,7 +1478,6 @@ namespace libtorrent
 
 #ifdef TORRENT_USE_OPENSSL
 
-#if BOOST_VERSION >= 104700
 	bool torrent::verify_peer_cert(bool preverified, boost::asio::ssl::verify_context& ctx)
 	{
 		// if the cert wasn't signed by the correct CA, fail the verification
@@ -1573,7 +1569,6 @@ namespace libtorrent
 		return false;
 #endif
 	}
-#endif // BOOST_VERSION
 
 	void torrent::init_ssl(std::string const& cert)
 	{
@@ -1590,7 +1585,6 @@ namespace libtorrent
 
 		TORRENT_ASSERT(RAND_status() == 1);
 
-#if BOOST_VERSION >= 104700
 		// create the SSL context for this torrent. We need to
 		// inject the root certificate, and no other, to
 		// verify other peers against
@@ -1683,10 +1677,6 @@ namespace libtorrent
 		m_ssl_ctx = ctx;
 		// tell the client we need a cert for this torrent
 		alerts().emplace_alert<torrent_need_cert_alert>(get_handle());
-#else
-		set_error(boost::asio::error::operation_not_supported, torrent_status::error_file_ssl_ctx);
-		pause();
-#endif
 	}
 
 #endif // TORRENT_OPENSSL
@@ -5694,11 +5684,6 @@ namespace libtorrent
 	{
 		if (!m_ssl_ctx) return;
 
-#if BOOST_VERSION < 105400
-		if (alerts().should_post<torrent_error_alert>())
-			alerts().emplace_alert<torrent_error_alert>(get_handle()
-				, error_code(boost::system::errc::not_supported, generic_category()), "[certificate]");
-#else
 		boost::asio::const_buffer certificate_buf(certificate.c_str(), certificate.size());
 
 		using boost::asio::ssl::context;
@@ -5725,7 +5710,6 @@ namespace libtorrent
 			if (alerts().should_post<torrent_error_alert>())
 				alerts().emplace_alert<torrent_error_alert>(get_handle(), ec, "[dh params]");
 		}
-#endif // BOOST_VERSION
 	}
 
 #endif
@@ -6905,14 +6889,14 @@ namespace libtorrent
 			(void)ret;
 			TORRENT_ASSERT(ret);
 
-#if defined TORRENT_USE_OPENSSL && BOOST_VERSION >= 104700
+#if defined TORRENT_USE_OPENSSL
 			if (is_ssl_torrent())
 			{
 				// for ssl sockets, set the hostname
 				std::string host_name = aux::to_hex(m_torrent_file->info_hash());
 
-#define CASE(t) case socket_type_int_impl<ssl_stream<t> >::value: \
-	s->get<ssl_stream<t> >()->set_host_name(host_name); break;
+#define CASE(t) case socket_type_int_impl<ssl_stream<t>>::value: \
+	s->get<ssl_stream<t>>()->set_host_name(host_name); break;
 
 				switch (s->type())
 				{
@@ -7096,15 +7080,14 @@ namespace libtorrent
 //		INVARIANT_CHECK;
 
 #ifdef TORRENT_USE_OPENSSL
-#if BOOST_VERSION >= 104700
 		if (is_ssl_torrent())
 		{
 			// if this is an SSL torrent, don't allow non SSL peers on it
 			boost::shared_ptr<socket_type> s = p->get_socket();
 
 			//
-#define SSL(t) socket_type_int_impl<ssl_stream<t> >::value: \
-			ssl_conn = s->get<ssl_stream<t> >()->native_handle(); \
+#define SSL(t) socket_type_int_impl<ssl_stream<t>>::value: \
+			ssl_conn = s->get<ssl_stream<t>>()->native_handle(); \
 			break;
 
 			SSL* ssl_conn = nullptr;
@@ -7144,13 +7127,6 @@ namespace libtorrent
 				return false;
 			}
 		}
-#else // BOOST_VERSION
-		if (is_ssl_torrent())
-		{
-			p->disconnect(boost::asio::error::operation_not_supported, op_bittorrent);
-			return false;
-		}
-#endif
 #else // TORRENT_USE_OPENSSL
 		if (is_ssl_torrent())
 		{

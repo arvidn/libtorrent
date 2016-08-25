@@ -301,6 +301,7 @@ namespace libtorrent
 		// a list of hostname and port pairs, representing DHT nodes to be added
 		// to the session (if DHT is enabled). The hostname may be an IP address.
 		std::vector<std::pair<std::string, int>> dht_nodes;
+
 		std::string name;
 
 		// the path where the torrent is or will be stored.
