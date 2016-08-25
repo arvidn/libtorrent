@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2016, Arvid Norberg
+Copyright (c) 2003-2016, Arvid Norberg, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_HASHER_HPP_INCLUDED
-#define TORRENT_HASHER_HPP_INCLUDED
+#ifndef TORRENT_HASHER512_HPP_INCLUDED
+#define TORRENT_HASHER512_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/sha1_hash.hpp"
@@ -56,70 +56,69 @@ extern "C" {
 }
 
 #else
-#include "libtorrent/sha1.hpp"
+#include "libtorrent/sha512.hpp"
 #endif
 
 namespace libtorrent
 {
-	// this is a SHA-1 hash class.
-	// 
+	using sha512_hash = digest32<512>;
+
+	// this is a SHA-512 hash class.
+	//
 	// You use it by first instantiating it, then call ``update()`` to feed it
 	// with data. i.e. you don't have to keep the entire buffer of which you want to
 	// create the hash in memory. You can feed the hasher parts of it at a time. When
 	// You have fed the hasher with all the data, you call ``final()`` and it
 	// will return the sha1-hash of the data.
-	// 
+	//
 	// The constructor that takes a ``char const*`` and an integer will construct the
 	// sha1 context and feed it the data passed in.
-	// 
+	//
 	// If you want to reuse the hasher object once you have created a hash, you have to
 	// call ``reset()`` to reinitialize it.
-	// 
-	// The built-in software version of sha1-algorithm was implemented
-	// by Steve Reid and released as public domain.
-	// For more info, see ``src/sha1.cpp``.
-	class TORRENT_EXPORT hasher
+	//
+	// The built-in software version of the sha512-algorithm is from LibTomCrypt
+	// For more info, see ``src/sha512.cpp``.
+	class TORRENT_EXPORT hasher512
 	{
 	public:
 
-		hasher();
+		hasher512();
 
 		// this is the same as default constructing followed by a call to
-		// ``update(data, len)``.
-		hasher(char const* data, int len);
-		hasher(span<char const> data);
-		hasher(hasher const&);
-		hasher& operator=(hasher const&);
+		// ``update(data)``.
+		explicit hasher512(span<char const> data);
+		hasher512(hasher512 const&);
+		hasher512& operator=(hasher512 const&);
 
 		// append the following bytes to what is being hashed
-		hasher& update(span<char const> data);
-		hasher& update(char const* data, int len);
+		hasher512& update(span<char const> data);
 
-		// returns the SHA-1 digest of the buffers previously passed to
+		// store the SHA-512 digest of the buffers previously passed to
 		// update() and the hasher constructor.
-		sha1_hash final();
+		sha512_hash final();
 
 		// restore the hasher state to be as if the hasher has just been
 		// default constructed.
 		void reset();
 
-		~hasher();
+		~hasher512();
 
 	private:
 
 #ifdef TORRENT_USE_LIBGCRYPT
 		gcry_md_hd_t m_context;
 #elif TORRENT_USE_COMMONCRYPTO
-		CC_SHA1_CTX m_context;
+		CC_SHA512_CTX m_context;
 #elif TORRENT_USE_CRYPTOAPI
 		HCRYPTHASH m_context;
 #elif defined TORRENT_USE_LIBCRYPTO
-		SHA_CTX m_context;
+		SHA512_CTX m_context;
 #else
-		sha1_ctx m_context;
+		sha512_ctx m_context;
 #endif
 	};
 
 }
 
-#endif // TORRENT_HASHER_HPP_INCLUDED
+#endif // TORRENT_HASHER512_HPP_INCLUDED

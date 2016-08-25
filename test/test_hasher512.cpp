@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2008, Arvid Norberg
+Copyright (c) 2016, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/hasher.hpp"
+#ifndef TORRENT_DISABLE_DHT
+
+#include "libtorrent/hasher512.hpp"
 #include "libtorrent/hex.hpp"
 
 #include "test.hpp"
@@ -39,80 +41,51 @@ using namespace libtorrent;
 
 namespace
 {
-// test vectors from RFC 3174
-// http://www.faqs.org/rfcs/rfc3174.html
-
-char const* test_array[4] =
-{
-	"abc",
-	"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq",
-	"a",
-	"0123456701234567012345670123456701234567012345670123456701234567"
-};
-
-long int repeat_count[4] = { 1, 1, 1000000, 10 };
-
-char const* result_array[4] =
-{
-	"A9993E364706816ABA3E25717850C26C9CD0D89D",
-	"84983E441C3BD26EBAAE4AA1F95129E5E54670F1",
-	"34AA973CD4C4DAA4F61EEB2BDBAD27316534016F",
-	"DEA356A2CDDD90C7A7ECEDC5EBB563934F460452"
-};
-
-void test_vector(std::string s, std::string output, int const n = 1)
-{
-	hasher h;
-	for (int i = 0; i < n; i++)
-		h.update(s);
-	std::string digest = h.final().to_string();
-	TEST_EQUAL(aux::to_hex(digest), output);
-}
-
-}
-
-TORRENT_TEST(hasher)
-{
-	for (int test = 0; test < 4; ++test)
+	void test_vector(std::string s, std::string output, int const n = 1)
 	{
-		hasher h;
-		for (int i = 0; i < repeat_count[test]; ++i)
-			h.update(test_array[test], int(std::strlen(test_array[test])));
-
-		sha1_hash result;
-		aux::from_hex({result_array[test], 40}, (char*)&result[0]);
-		TEST_CHECK(result == h.final());
+		hasher512 h;
+		for (int i = 0; i < n; i++)
+			h.update(s);
+		std::string digest = h.final().to_string();
+		TEST_EQUAL(aux::to_hex(digest), output);
 	}
 }
 
 // http://www.di-mgt.com.au/sha_testvectors.html
-TORRENT_TEST(hasher_test_vec1)
+TORRENT_TEST(hasher512_test_vec1)
 {
 	test_vector(
 		"abc"
-		, "a9993e364706816aba3e25717850c26c9cd0d89d"
+		, "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a"
+		  "2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f"
 	);
 
 	test_vector(
 		"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"
-		, "84983e441c3bd26ebaae4aa1f95129e5e54670f1"
+		, "204a8fc6dda82f0a0ced7beb8e08a41657c16ef468b228a8279be331a703c335"
+		  "96fd15c13b1b07f9aa1d3bea57789ca031ad85c7a71dd70354ec631238ca3445"
 	);
 
 	test_vector(
 		"abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhi"
 		"jklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu"
-		, "a49b2446a02c645bf419f995b67091253a04a259"
+		, "8e959b75dae313da8cf4f72814fc143f8f7779c6eb9f7fa17299aeadb6889018"
+		  "501d289e4900f7e4331b99dec4b5433ac7d329eeb6dd26545e96e55b874be909"
 	);
 
 	test_vector(
 		"a"
-		, "34aa973cd4c4daa4f61eeb2bdbad27316534016f"
+		, "e718483d0ce769644e2e42c7bc15b4638e1f98b13b2044285632a803afa973eb"
+		  "de0ff244877ea60a4cb0432ce577c31beb009c5c2c49aa2e4eadb217ad8cc09b"
 		, 1000000
 	);
 
 	test_vector(
 		"abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmno"
-		, "7789f0c9ef7bfc40d93311143dfbe69e2017f592"
+		, "b47c933421ea2db149ad6e10fce6c7f93d0752380180ffd7f4629a712134831d"
+		  "77be6091b819ed352c2967a2e2d4fa5050723c9630691f1a05a7281dbe6c1086"
 		, 16777216
 	);
 }
+
+#endif // TORRENT_DISABLE_DHT

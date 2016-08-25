@@ -161,6 +161,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/span.hpp"
+#include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/socket.hpp"
 
@@ -175,7 +176,6 @@ namespace libtorrent
 	struct torrent_plugin;
 	struct add_torrent_params;
 	struct torrent_handle;
-	class sha1_hash;
 	struct session_handle;
 	struct peer_connection_handle;
 

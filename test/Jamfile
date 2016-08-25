@@ -144,6 +144,8 @@ test-suite libtorrent :
 	[ run test_dht.cpp
 		test_dht_storage.cpp
 		test_direct_dht.cpp
+		test_hasher512.cpp
+		test_ed25519.cpp
 		]
 
 	[ run test_string.cpp

@@ -180,6 +180,8 @@ test_primitives_SOURCES = \
   test_xml.cpp \
   test_ip_filter.cpp \
   test_hasher.cpp \
+  test_hasher512.cpp \
+  test_ed25519.cpp \
   test_dht_storage.cpp \
   test_dht.cpp \
   test_block_cache.cpp \

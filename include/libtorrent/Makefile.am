@@ -54,6 +54,7 @@ nobase_include_HEADERS = \
   fingerprint.hpp              \
   gzip.hpp                     \
   hasher.hpp                   \
+  hasher512.hpp                \
   hex.hpp                      \
   heterogeneous_queue.hpp      \
   http_connection.hpp          \
@@ -112,6 +113,7 @@ nobase_include_HEADERS = \
   session_status.hpp           \
   settings_pack.hpp            \
   sha1.hpp                     \
+  sha512.hpp                   \
   sha1_hash.hpp                \
   sliding_average.hpp          \
   socket.hpp                   \

@@ -27,9 +27,15 @@ KADEMLIA_SOURCES = \
   ../ed25519/src/keypair.cpp    \
   ../ed25519/src/sc.cpp         \
   ../ed25519/src/seed.cpp       \
-  ../ed25519/src/sha512.cpp     \
   ../ed25519/src/sign.cpp       \
-  ../ed25519/src/verify.cpp
+  ../ed25519/src/verify.cpp     \
+  hasher512.cpp
+endif
+
+if ! WITH_OPENSSL
+BUILTIN_CRYPTO_SOURCES = \
+  sha1.cpp                      \
+  sha512.cpp
 endif
 
 libtorrent_rasterbar_la_SOURCES = \
@@ -113,7 +119,6 @@ libtorrent_rasterbar_la_SOURCES = \
   session_settings.cpp            \
   proxy_settings.cpp              \
   settings_pack.cpp               \
-  sha1.cpp                        \
   sha1_hash.cpp                   \
   smart_ban.cpp                   \
   socket_io.cpp                   \
@@ -147,7 +152,9 @@ libtorrent_rasterbar_la_SOURCES = \
   file_progress.cpp               \
   ffs.cpp                         \
   \
-  $(KADEMLIA_SOURCES)
+  $(KADEMLIA_SOURCES)             \
+  \
+  $(BUILTIN_CRYPTO_SOURCES)
 
 libtorrent_rasterbar_la_LDFLAGS = -version-info $(INTERFACE_VERSION_INFO)
 libtorrent_rasterbar_la_LIBADD = @OPENSSL_LIBS@
