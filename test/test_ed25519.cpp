@@ -55,19 +55,19 @@ namespace
 		unsigned char pk[32];
 		unsigned char sig[64];
 		int msg_size = int(message.size()) / 2;
-		std::unique_ptr<unsigned char[]> msg(new unsigned char[msg_size]);
+		std::vector<unsigned char> msg(msg_size);
 
 		from_hex(seed, s);
 		ed25519_create_keypair(pk, sk, s);
 
 		TEST_EQUAL(aux::to_hex({reinterpret_cast<char const*>(pk), 32}), pub);
 
-		from_hex(message, msg.get());
-		ed25519_sign(sig, msg.get(), msg_size, pk, sk);
+		from_hex(message, msg.data());
+		ed25519_sign(sig, msg.data(), msg_size, pk, sk);
 
 		TEST_EQUAL(aux::to_hex({reinterpret_cast<char const*>(sig), 64}), signature);
 
-		int r = ed25519_verify(sig, msg.get(), msg_size, pk);
+		int r = ed25519_verify(sig, msg.data(), msg_size, pk);
 
 		TEST_CHECK(r);
 	}

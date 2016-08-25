@@ -17,9 +17,9 @@
  * Tom St Denis, tomstdenis@gmail.com, http://libtom.org
  */
 
-typedef std::uint64_t u64;
-typedef std::int64_t i64;
-typedef std::int32_t i32;
+using u64 = std::uint64_t;
+using i64 = std::int64_t;
+using i32 = std::int32_t;
 
 #ifndef UINT64_C
 #define UINT64_C(x) x ## LL
