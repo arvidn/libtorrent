@@ -176,7 +176,7 @@ namespace libtorrent
 		METRIC(net, recv_tracker_bytes)
 
 		// the number of sockets currently waiting for upload and download
-		// bandwidht from the rate limiter.
+		// bandwidth from the rate limiter.
 		METRIC(net, limiter_up_queue)
 		METRIC(net, limiter_down_queue)
 

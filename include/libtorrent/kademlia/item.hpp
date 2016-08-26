@@ -39,10 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/span.hpp>
 #include <libtorrent/kademlia/types.hpp>
 
-#include <vector>
-#include <exception>
-#include <array>
-
 namespace libtorrent { namespace dht
 {
 

@@ -39,7 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 #include <vector>
-#include <bitset>
 #include <utility>
 #include <cstdint>
 #include <tuple>

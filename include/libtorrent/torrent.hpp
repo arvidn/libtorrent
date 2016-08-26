@@ -45,7 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/shared_ptr.hpp>
-#include <boost/version.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -98,12 +97,6 @@ namespace libtorrent
 	struct storage_interface;
 	class bt_peer_connection;
 	struct listen_socket_t;
-
-
-	namespace aux
-	{
-		struct piece_checker_data;
-	}
 
 	struct time_critical_piece
 	{
@@ -1189,9 +1182,7 @@ namespace libtorrent
 #ifdef TORRENT_USE_OPENSSL
 		boost::shared_ptr<boost::asio::ssl::context> m_ssl_ctx;
 
-#if BOOST_VERSION >= 104700
 		bool verify_peer_cert(bool preverified, boost::asio::ssl::verify_context& ctx);
-#endif
 
 		void init_ssl(std::string const& cert);
 #endif

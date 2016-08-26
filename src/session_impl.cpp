@@ -257,7 +257,7 @@ namespace aux {
 #endif
 	}
 
-#if defined TORRENT_USE_OPENSSL && BOOST_VERSION >= 104700 && OPENSSL_VERSION_NUMBER >= 0x90812f
+#if defined TORRENT_USE_OPENSSL && OPENSSL_VERSION_NUMBER >= 0x90812f
 	namespace {
 	// when running bittorrent over SSL, the SNI (server name indication)
 	// extension is used to know which torrent the incoming connection is
@@ -415,13 +415,11 @@ namespace aux {
 		error_code ec;
 #ifdef TORRENT_USE_OPENSSL
 		m_ssl_ctx.set_verify_mode(boost::asio::ssl::context::verify_none, ec);
-#if BOOST_VERSION >= 104700
 #if OPENSSL_VERSION_NUMBER >= 0x90812f
 		aux::openssl_set_tlsext_servername_callback(m_ssl_ctx.native_handle()
 			, servername_callback);
 		aux::openssl_set_tlsext_servername_arg(m_ssl_ctx.native_handle(), this);
 #endif // OPENSSL_VERSION_NUMBER
-#endif // BOOST_VERSION
 #endif
 
 #ifndef TORRENT_DISABLE_DHT

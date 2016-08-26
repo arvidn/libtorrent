@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/span.hpp"
 
 #include <string>
-#include <array>
 
 namespace libtorrent
 {
@@ -80,4 +79,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_HEX_HPP_INCLUDED
-

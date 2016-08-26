@@ -222,4 +222,3 @@ void item::assign(entry v, span<char const> salt
 }
 
 } } // namespace libtorrent::dht
-

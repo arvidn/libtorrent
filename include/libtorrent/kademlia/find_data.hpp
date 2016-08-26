@@ -40,15 +40,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/observer.hpp>
 #include <libtorrent/kademlia/msg.hpp>
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <vector>
 #include <map>
 
-#include <boost/optional.hpp>
-#include <boost/function/function1.hpp>
-#include <boost/function/function2.hpp>
-
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/intrusive_ptr.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent { namespace dht
@@ -101,4 +97,3 @@ struct find_data_observer : traversal_observer
 } } // namespace libtorrent::dht
 
 #endif // FIND_DATA_050323_HPP
-
