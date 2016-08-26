@@ -106,9 +106,21 @@ TORRENT_TEST(string_equal_no_case)
 	TEST_CHECK(string_equal_no_case("foobar", "foobar"));
 	TEST_CHECK(!string_equal_no_case("foobar", "foobar "));
 	TEST_CHECK(!string_equal_no_case("foobar", "F00"));
+	TEST_CHECK(!string_equal_no_case("foobar", "foo"));
+	TEST_CHECK(!string_equal_no_case("foo", "foobar"));
 
 	TEST_CHECK(string_begins_no_case("foobar", "FoobAR --"));
+	TEST_CHECK(string_begins_no_case("foo", "foobar"));
 	TEST_CHECK(!string_begins_no_case("foobar", "F00"));
+	TEST_CHECK(!string_begins_no_case("foobar", "foo"));
+
+	TEST_CHECK(string_ends_with("foobar", "bar"));
+	TEST_CHECK(string_ends_with("name.txt", ".txt"));
+	TEST_CHECK(string_ends_with("name.a.b", ".a.b"));
+	TEST_CHECK(!string_ends_with("-- FoobAR", "foobar"));
+	TEST_CHECK(!string_ends_with("foobar", "F00"));
+	TEST_CHECK(!string_ends_with("foobar", "foo"));
+	TEST_CHECK(!string_ends_with("foo", "foobar"));
 }
 
 TORRENT_TEST(to_string)
@@ -366,3 +378,12 @@ TORRENT_TEST(tokenize)
 		, convert_to_native("foo") + convert_to_native("bar"));
 }
 
+#if TORRENT_USE_I2P
+TORRENT_TEST(i2p_url)
+{
+	TEST_CHECK(is_i2p_url("http://a.i2p/a"));
+	TEST_CHECK(!is_i2p_url("http://a.I2P/a"));
+	TEST_CHECK(!is_i2p_url("http://c.i3p"));
+	TEST_CHECK(!is_i2p_url("http://i2p/foo bar"));
+}
+#endif

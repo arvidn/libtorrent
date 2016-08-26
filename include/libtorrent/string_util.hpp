@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_STRING_UTIL_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/string_view.hpp"
 
 #include <vector>
 #include <string>
@@ -63,6 +64,8 @@ namespace libtorrent
 
 	TORRENT_EXTRA_EXPORT void url_random(char* begin, char* end);
 
+	TORRENT_EXTRA_EXPORT bool string_ends_with(string_view s1, string_view s2);
+
 	struct listen_interface_t
 	{
 		std::string device;
@@ -79,7 +82,7 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT std::string print_listen_interfaces(
 		std::vector<listen_interface_t> const& in);
 
-	// this parses the string that's used as the liste_interfaces setting.
+	// this parses the string that's used as the listen_interfaces setting.
 	// it is a comma-separated list of IP or device names with ports. For
 	// example: "eth0:6881,eth1:6881" or "127.0.0.1:6881"
 	TORRENT_EXTRA_EXPORT void parse_comma_separated_string_port(
@@ -112,10 +115,9 @@ namespace libtorrent
 
 #if TORRENT_USE_I2P
 
-	bool is_i2p_url(std::string const& url);
+	TORRENT_EXTRA_EXPORT bool is_i2p_url(std::string const& url);
 
 #endif
 }
 
 #endif
-

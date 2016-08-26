@@ -36,8 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/address.hpp"
+#include "libtorrent/assert.hpp"
 
-#include <tuple> // for tie
 #include <cstdlib> // for malloc
 #include <cstring> // for memmov/strcpy/strlen
 
@@ -113,6 +113,9 @@ namespace libtorrent
 
 	bool string_begins_no_case(char const* s1, char const* s2)
 	{
+		TORRENT_ASSERT(s1 != nullptr);
+		TORRENT_ASSERT(s2 != nullptr);
+
 		while (*s1 != 0)
 		{
 			if (to_lower(*s1) != to_lower(*s2)) return false;
@@ -124,6 +127,9 @@ namespace libtorrent
 
 	bool string_equal_no_case(char const* s1, char const* s2)
 	{
+		TORRENT_ASSERT(s1 != nullptr);
+		TORRENT_ASSERT(s2 != nullptr);
+
 		while (to_lower(*s1) == to_lower(*s2))
 		{
 			if (*s1 == 0) return true;
@@ -144,6 +150,11 @@ namespace libtorrent
 		// the random number
 		while (begin != end)
 			*begin++ = printable[random(sizeof(printable) - 2)];
+	}
+
+	bool string_ends_with(string_view s1, string_view s2)
+	{
+		return s1.size() >= s2.size() && std::equal(s2.rbegin(), s2.rend(), s1.rbegin());
 	}
 
 	char* allocate_string_copy(char const* str)
@@ -398,8 +409,7 @@ namespace libtorrent
 		error_code ec;
 		std::tie(ignore, ignore, hostname, ignore, ignore)
 			= parse_url_components(url, ec);
-		char const* top_domain = std::strrchr(hostname.c_str(), '.');
-		return top_domain && std::strcmp(top_domain, ".i2p") == 0;
+		return string_ends_with(hostname, ".i2p");
 	}
 
 #endif
