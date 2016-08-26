@@ -115,7 +115,7 @@ namespace libtorrent
 
 #if TORRENT_USE_I2P
 
-	bool is_i2p_url(std::string const& url);
+	TORRENT_EXTRA_EXPORT bool is_i2p_url(std::string const& url);
 
 #endif
 }
