@@ -47,9 +47,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/make_shared.hpp>
-#if TORRENT_USE_I2P
-#  include <boost/algorithm/string/predicate.hpp>
-#endif
 
 #ifdef TORRENT_USE_OPENSSL
 #include "libtorrent/ssl_stream.hpp"
@@ -3317,11 +3314,11 @@ namespace libtorrent
 				continue;
 
 #if TORRENT_USE_I2P
-			if (r.i2pconn && boost::algorithm::ends_with(i->hostname, ".i2p"))
+			if (r.i2pconn && string_ends_with(i->hostname, ".i2p"))
 			{
-				// this is an i2p name, we need to use the sam connection
+				// this is an i2p name, we need to use the same connection
 				// to do the name lookup
-				if (boost::algorithm::ends_with(i->hostname, ".b32.i2p"))
+				if (string_ends_with(i->hostname, ".b32.i2p"))
 				{
 					ADD_OUTSTANDING_ASYNC("torrent::on_i2p_resolve");
 					r.i2pconn->async_name_lookup(i->hostname.c_str()
