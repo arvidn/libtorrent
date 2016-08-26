@@ -416,8 +416,13 @@ namespace libtorrent
 		// If it has never done that, this value is -1.
 		int last_scrape;
 
+#ifndef TORRENT_NO_DEPRECATE
 		// the priority of this torrent
 		int priority;
+#else
+		// hidden
+		int deprecated_priority;
+#endif
 
 		// the main state the torrent is in. See torrent_status::state_t.
 		state_t state;

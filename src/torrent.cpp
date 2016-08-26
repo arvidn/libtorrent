@@ -244,7 +244,7 @@ namespace libtorrent
 		, m_apply_ip_filter((p.flags & add_torrent_params::flag_apply_ip_filter) != 0)
 		, m_pending_active_change(false)
 		, m_padding(0)
-		, m_priority(0)
+		, m_storage_tick(0)
 		, m_incomplete(0xffffff)
 		, m_announce_to_dht((p.flags & add_torrent_params::flag_paused) == 0)
 		, m_in_state_updates(false)
@@ -257,7 +257,6 @@ namespace libtorrent
 		, m_last_download((std::numeric_limits<std::int16_t>::min)())
 		, m_num_seeds(0)
 		, m_last_upload((std::numeric_limits<std::int16_t>::min)())
-		, m_storage_tick(0)
 		, m_auto_managed((p.flags & add_torrent_params::flag_auto_managed) != 0)
 		, m_current_gauge_state(no_gauge_state)
 		, m_moving_storage(false)
@@ -10978,6 +10977,7 @@ namespace libtorrent
 		st->upload_mode = m_upload_mode;
 		st->up_bandwidth_queue = 0;
 		st->down_bandwidth_queue = 0;
+#ifndef TORRENT_NO_DEPRECATE
 		int priority = 0;
 		for (int i = 0; i < num_classes(); ++i)
 		{
@@ -10988,6 +10988,7 @@ namespace libtorrent
 				priority = prio[peer_connection::download_channel];
 		}
 		st->priority = priority;
+#endif
 
 		st->num_peers = int(m_connections.size()) - m_num_connecting;
 

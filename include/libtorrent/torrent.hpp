@@ -545,16 +545,6 @@ namespace libtorrent
 		void connect_to_url_seed(std::list<web_seed_t>::iterator url);
 		bool connect_to_peer(torrent_peer* peerinfo, bool ignore_limit = false);
 
-		int priority() const { return m_priority; }
-		void set_priority(int prio)
-		{
-			TORRENT_ASSERT(prio <= 255 && prio >= 0);
-			if (prio > 255) prio = 255;
-			else if (prio < 0) prio = 0;
-			m_priority = prio;
-			state_updated();
-		}
-
 // --------------------------------------------
 		// BANDWIDTH MANAGEMENT
 
@@ -1535,15 +1525,19 @@ namespace libtorrent
 		// flapping. If the state changes back during this period, we cancel the
 		// quarantine
 		bool m_pending_active_change:1;
+
 // ----
 
 		// the number of bytes of padding files
 		std::uint32_t m_padding:24;
 
-		// this is the priority of the torrent. The higher
-		// the value is, the more bandwidth is assigned to
-		// the torrent's peers
-		std::uint32_t m_priority:8;
+		// this is a second count-down to when we should tick the
+		// storage for this torrent. Ticking the storage is used
+		// to periodically flush the partfile metadata and possibly
+		// other deferred flushing. Any disk operation starts this
+		// counter (unless it's already counting down). 0 means no
+		// ticking is needed.
+		std::uint32_t m_storage_tick:8;
 
 // ----
 
@@ -1602,14 +1596,6 @@ namespace libtorrent
 		// session_time. This is signed because it must be able to represent time
 		// before the session started.
 		std::int16_t m_last_upload;
-
-		// this is a second count-down to when we should tick the
-		// storage for this torrent. Ticking the storage is used
-		// to periodically flush the partfile metadata and possibly
-		// other deferred flushing. Any disk operation starts this
-		// counter (unless it's already counting down). 0 means no
-		// ticking is needed.
-		std::uint8_t m_storage_tick;
 
 // ----
 

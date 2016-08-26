@@ -84,7 +84,9 @@ namespace libtorrent
 		, seeding_time(0)
 		, seed_rank(0)
 		, last_scrape(0)
+#ifndef TORRENT_NO_DEPRECATE
 		, priority(0)
+#endif
 		, state(checking_resume_data)
 		, need_save_resume(false)
 		, ip_filter_applies(true)

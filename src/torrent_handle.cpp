@@ -307,11 +307,6 @@ namespace libtorrent
 		async_call(&torrent::auto_managed, m);
 	}
 
-	void torrent_handle::set_priority(int p) const
-	{
-		async_call(&torrent::set_priority, p);
-	}
-
 	int torrent_handle::queue_position() const
 	{
 		return sync_call_ret<int>(-1, &torrent::queue_position);
@@ -343,6 +338,8 @@ namespace libtorrent
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
+	void torrent_handle::set_priority(int) const {}
+
 	void torrent_handle::set_tracker_login(std::string const& name
 		, std::string const& password) const
 	{
