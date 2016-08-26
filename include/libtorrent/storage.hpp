@@ -205,17 +205,13 @@ namespace libtorrent
 	//
 	struct TORRENT_EXPORT storage_interface
 	{
-		// hidden
-		storage_interface(): m_settings(0) {}
-
-
 		// This function is called when the storage is to be initialized. The
 		// default storage will create directories and empty files at this point.
 		// If ``allocate_files`` is true, it will also ``ftruncate`` all files to
 		// their target size.
 		//
 		// If an error occurs, ``storage_error`` should be set to reflect it.
-		virtual void initialize(storage_error& ec) = 0;
+		virtual void initialize(int open_flags, storage_error& ec) = 0;
 
 		// These functions should read and write the data in or to the given
 		// ``piece`` at the given ``offset``. It should read or write
@@ -247,9 +243,9 @@ namespace libtorrent
 		// error. If there's an error, the ``storage_error`` must be filled out
 		// to represent the error that occurred.
 		virtual int readv(span<file::iovec_t const> bufs
-			, int piece, int offset, int flags, storage_error& ec) = 0;
+			, int piece, int offset, int flags, int open_flags, storage_error& ec) = 0;
 		virtual int writev(span<file::iovec_t const> bufs
-			, int piece, int offset, int flags, storage_error& ec) = 0;
+			, int piece, int offset, int flags, int open_flags, storage_error& ec) = 0;
 
 		// This function is called when first checking (or re-checking) the
 		// storage for a torrent. It should return true if any of the files that
@@ -263,7 +259,7 @@ namespace libtorrent
 		// guaranteed to be the only running function on this storage
 		// when called
 		virtual void set_file_priority(std::vector<std::uint8_t> const& prio
-			, storage_error& ec) = 0;
+			, int open_flags, storage_error& ec) = 0;
 
 		// This function should move all the files belonging to the storage to
 		// the new save_path. The default storage moves the single file or the
@@ -364,14 +360,8 @@ namespace libtorrent
 		// off again.
 		virtual bool tick() { return false; }
 
-		// access global session_settings
-		aux::session_settings const& settings() const { return *m_settings; }
-
 		// hidden
 		virtual ~storage_interface() {}
-
-		// initialized in disk_io_thread::perform_async_job
-		aux::session_settings* m_settings;
 	};
 
 	// The default implementation of storage_interface. Behaves as a normal
@@ -403,12 +393,12 @@ namespace libtorrent
 #endif
 		virtual bool has_any_file(storage_error& ec) override;
 		virtual void set_file_priority(std::vector<std::uint8_t> const& prio
-			, storage_error& ec) override;
+			, int open_flags, storage_error& ec) override;
 		virtual void rename_file(int index, std::string const& new_filename
 			, storage_error& ec) override;
 		virtual void release_files(storage_error& ec) override;
 		virtual void delete_files(int options, storage_error& ec) override;
-		virtual void initialize(storage_error& ec) override;
+		virtual void initialize(int open_flags, storage_error& ec) override;
 		virtual int move_storage(std::string const& save_path, int flags
 			, storage_error& ec) override;
 		virtual bool verify_resume_data(add_torrent_params const& rd
@@ -417,9 +407,9 @@ namespace libtorrent
 		virtual bool tick() override;
 
 		int readv(span<file::iovec_t const> bufs
-			, int piece, int offset, int flags, storage_error& ec) override;
+			, int piece, int offset, int flags, int open_flags, storage_error& ec) override;
 		int writev(span<file::iovec_t const> bufs
-			, int piece, int offset, int flags, storage_error& ec) override;
+			, int piece, int offset, int flags, int open_flags, storage_error& ec) override;
 
 		// if the files in this storage are mapped, returns the mapped
 		// file_storage, otherwise returns the original file_storage object.
@@ -594,11 +584,14 @@ namespace libtorrent
 		// when wrong in the disk access
 		int check_fastresume(add_torrent_params const& rd
 			, std::vector<std::string> const& links
+			, aux::session_settings const& settings
+			, int open_flags
 			, storage_error& error);
 
 		// helper functions for check_fastresume
-		int check_no_fastresume(storage_error& error);
-		int check_init_storage(storage_error& error);
+		int check_no_fastresume(aux::session_settings const& settings
+			, int open_flags, storage_error& error);
+		int check_init_storage(int open_flags, storage_error& error);
 
 #if TORRENT_USE_INVARIANT_CHECKS
 		void check_invariant() const;

@@ -220,9 +220,10 @@ namespace libtorrent
 
 	struct write_fileop : fileop
 	{
-		write_fileop(default_storage& st, int flags)
+		write_fileop(default_storage& st, int const flags, int const open_flags)
 			: m_storage(st)
 			, m_flags(flags)
+			, m_open_flags(open_flags)
 		{}
 
 		int file_op(int const file_index
@@ -265,7 +266,7 @@ namespace libtorrent
 			m_storage.m_stat_cache.set_dirty(file_index);
 
 			file_handle handle = m_storage.open_file(file_index
-				, file::read_write, ec);
+				, file::read_write | m_open_flags, ec);
 			if (ec) return -1;
 
 			// please ignore the adjusted_offset. It's just file_offset.
@@ -306,14 +307,16 @@ namespace libtorrent
 		}
 	private:
 		default_storage& m_storage;
-		int m_flags;
+		int const m_flags;
+		int const m_open_flags;
 	};
 
 	struct read_fileop : fileop
 	{
-		read_fileop(default_storage& st, int const flags)
+		read_fileop(default_storage& st, int const flags, int const open_flags)
 			: m_storage(st)
 			, m_flags(flags)
+			, m_open_flags(open_flags)
 		{}
 
 		int file_op(int const file_index
@@ -353,7 +356,7 @@ namespace libtorrent
 			}
 
 			file_handle handle = m_storage.open_file(file_index
-				, file::read_only | m_flags, ec);
+				, file::read_only | m_flags | m_open_flags, ec);
 			if (ec) return -1;
 
 			// please ignore the adjusted_offset. It's just file_offset.
@@ -396,6 +399,7 @@ namespace libtorrent
 	private:
 		default_storage& m_storage;
 		int const m_flags;
+		int const m_open_flags;
 	};
 
 	default_storage::default_storage(storage_params const& params)
@@ -432,7 +436,8 @@ namespace libtorrent
 			, m_files.num_pieces(), m_files.piece_length()));
 	}
 
-	void default_storage::set_file_priority(std::vector<std::uint8_t> const& prio, storage_error& ec)
+	void default_storage::set_file_priority(std::vector<std::uint8_t> const& prio
+		, int const open_flags, storage_error& ec)
 	{
 		// extend our file priorities in case it's truncated
 		// the default assumed priority is 1
@@ -447,7 +452,7 @@ namespace libtorrent
 			if (old_prio == 0 && new_prio != 0)
 			{
 				// move stuff out of the part file
-				file_handle f = open_file(i, file::read_write, ec);
+				file_handle f = open_file(i, file::read_write | open_flags, ec);
 				if (ec) return;
 
 				need_partfile();
@@ -506,7 +511,7 @@ namespace libtorrent
 		}
 	}
 
-	void default_storage::initialize(storage_error& ec)
+	void default_storage::initialize(int const open_flags, storage_error& ec)
 	{
 		m_stat_cache.reserve(files().num_files());
 
@@ -574,7 +579,7 @@ namespace libtorrent
 				}
 				ec.ec.clear();
 				file_handle f = open_file(file_index, file::read_write
-					| file::random_access, ec);
+					| file::random_access | open_flags, ec);
 				if (ec)
 				{
 					ec.file = file_index;
@@ -1099,9 +1104,9 @@ namespace libtorrent
 	}
 
 	int default_storage::readv(span<file::iovec_t const> bufs
-		, int piece, int offset, int flags, storage_error& ec)
+		, int piece, int offset, int flags, int const open_flags, storage_error& ec)
 	{
-		read_fileop op(*this, flags);
+		read_fileop op(*this, flags, open_flags);
 
 #ifdef TORRENT_SIMULATE_SLOW_READ
 		boost::thread::sleep(boost::get_system_time()
@@ -1111,9 +1116,9 @@ namespace libtorrent
 	}
 
 	int default_storage::writev(span<file::iovec_t const> bufs
-		, int piece, int offset, int flags, storage_error& ec)
+		, int piece, int offset, int flags, int const open_flags, storage_error& ec)
 	{
-		write_fileop op(*this, flags);
+		write_fileop op(*this, flags, open_flags);
 		return readwritev(files(), bufs.data(), piece, offset, int(bufs.size()), op, ec);
 	}
 
@@ -1277,24 +1282,11 @@ namespace libtorrent
 	file_handle default_storage::open_file_impl(int file, int mode
 		, error_code& ec) const
 	{
-		bool lock_files = m_settings ? settings().get_bool(settings_pack::lock_files) : false;
-		if (lock_files) mode |= file::lock_file;
-
 		if (!m_allocate_files) mode |= file::sparse;
 
 		// files with priority 0 should always be sparse
 		if (int(m_file_priority.size()) > file && m_file_priority[file] == 0)
 			mode |= file::sparse;
-
-		if (m_settings && settings().get_bool(settings_pack::no_atime_storage)) mode |= file::no_atime;
-
-		// if we have a cache already, don't store the data twice by leaving it in the OS cache as well
-		if (m_settings
-			&& settings().get_int(settings_pack::disk_io_write_mode)
-			== settings_pack::disable_os_cache)
-		{
-			mode |= file::no_cache;
-		}
 
 		file_handle ret = m_pool.open_file(const_cast<default_storage*>(this)
 			, m_save_path, file, files(), mode, ec);
@@ -1366,20 +1358,20 @@ namespace libtorrent
 		public:
 			bool has_any_file(storage_error&) override { return false; }
 			void set_file_priority(std::vector<std::uint8_t> const&
-				, storage_error&) override {}
+				, int, storage_error&) override {}
 			void rename_file(int, std::string const&, storage_error&) override {}
 			void release_files(storage_error&) override {}
 			void delete_files(int, storage_error&) override {}
-			void initialize(storage_error&) override {}
+			void initialize(int, storage_error&) override {}
 			int move_storage(std::string const&, int, storage_error&) override { return 0; }
 
 			int readv(span<file::iovec_t const> bufs
-				, int, int, int, storage_error&) override
+				, int, int, int, int, storage_error&) override
 			{
 				return bufs_size(bufs.data(), int(bufs.size()));
 			}
 			int writev(span<file::iovec_t const> bufs
-				, int, int, int, storage_error&) override
+				, int, int, int, int, storage_error&) override
 			{
 				return bufs_size(bufs.data(), int(bufs.size()));
 			}
@@ -1404,10 +1396,10 @@ namespace libtorrent
 		// anything written to it
 		struct zero_storage final : storage_interface
 		{
-			void initialize(storage_error&) override {}
+			void initialize(int, storage_error&) override {}
 
 			int readv(span<file::iovec_t const> bufs
-				, int, int, int, storage_error&) override
+				, int, int, int, int, storage_error&) override
 			{
 				int ret = 0;
 				for (int i = 0; i < int(bufs.size()); ++i)
@@ -1418,7 +1410,7 @@ namespace libtorrent
 				return 0;
 			}
 			int writev(span<file::iovec_t const> bufs
-				, int, int, int, storage_error&) override
+				, int, int, int, int, storage_error&) override
 			{
 				int ret = 0;
 				for (int i = 0; i < int(bufs.size()); ++i)
@@ -1428,7 +1420,7 @@ namespace libtorrent
 
 			bool has_any_file(storage_error&) override { return false; }
 			void set_file_priority(std::vector<std::uint8_t> const& /* prio */
-				, storage_error&) override {}
+				, int, storage_error&) override {}
 			int move_storage(std::string const& /* save_path */
 				, int /* flags */, storage_error&) override { return 0; }
 			bool verify_resume_data(add_torrent_params const& /* rd */
@@ -1498,13 +1490,13 @@ namespace libtorrent
 	}
 #endif
 
-	int piece_manager::check_no_fastresume(storage_error& ec)
+	int piece_manager::check_no_fastresume(aux::session_settings const& settings
+		, int const open_flags, storage_error& ec)
 	{
-		bool has_files = false;
-		if (!m_storage->settings().get_bool(settings_pack::no_recheck_incomplete_resume))
+		if (!settings.get_bool(settings_pack::no_recheck_incomplete_resume))
 		{
 			storage_error se;
-			has_files = m_storage->has_any_file(se);
+			bool const has_files = m_storage->has_any_file(se);
 
 			if (se)
 			{
@@ -1515,20 +1507,20 @@ namespace libtorrent
 			if (has_files)
 			{
 				// always initialize the storage
-				int ret = check_init_storage(ec);
+				int ret = check_init_storage(open_flags, ec);
 				return ret != no_error ? ret : need_full_check;
 			}
 		}
 
-		return check_init_storage(ec);
+		return check_init_storage(open_flags, ec);
 	}
 
-	int piece_manager::check_init_storage(storage_error& ec)
+	int piece_manager::check_init_storage(int const open_flags, storage_error& ec)
 	{
 		storage_error se;
 		// initialize may clear the error we pass in and it's important to
 		// preserve the error code in ec, even when initialize() is successful
-		m_storage->initialize(se);
+		m_storage->initialize(open_flags, se);
 		if (se)
 		{
 			ec = se;
@@ -1548,17 +1540,20 @@ namespace libtorrent
 	int piece_manager::check_fastresume(
 		add_torrent_params const& rd
 		, std::vector<std::string> const& links
+		, aux::session_settings const& settings
+		, int const open_flags
 		, storage_error& ec)
 	{
 		TORRENT_ASSERT(m_files.piece_length() > 0);
 
 		// if we don't have any resume data, return
-		if (rd.have_pieces.empty()) return check_no_fastresume(ec);
+		if (rd.have_pieces.empty())
+			return check_no_fastresume(settings, open_flags, ec);
 
 		if (!m_storage->verify_resume_data(rd, links, ec))
-			return check_no_fastresume(ec);
+			return check_no_fastresume(settings, open_flags, ec);
 
-		return check_init_storage(ec);
+		return check_init_storage(open_flags, ec);
 	}
 
 	// ====== disk_job_fence implementation ========

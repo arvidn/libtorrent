@@ -47,22 +47,22 @@ using namespace libtorrent;
 
 struct test_storage_impl : storage_interface
 {
-	void initialize(storage_error& ec) override {}
+	void initialize(int, storage_error& ec) override {}
 
 	int readv(span<file::iovec_t const> bufs
-		, int piece, int offset, int flags, storage_error& ec) override
+		, int piece, int offset, int flags, int, storage_error& ec) override
 	{
 		return bufs_size(bufs.data(), int(bufs.size()));
 	}
 	int writev(span<file::iovec_t const> bufs
-		, int piece, int offset, int flags, storage_error& ec) override
+		, int piece, int offset, int flags, int, storage_error& ec) override
 	{
 		return bufs_size(bufs.data(), int(bufs.size()));
 	}
 
 	bool has_any_file(storage_error& ec) override { return false; }
 	void set_file_priority(std::vector<std::uint8_t> const& prio
-		, storage_error& ec) override {}
+		, int, storage_error& ec) override {}
 	int move_storage(std::string const& save_path, int flags
 		, storage_error& ec) override { return 0; }
 	bool verify_resume_data(add_torrent_params const& rd
@@ -104,7 +104,6 @@ static void nop() {}
 	boost::shared_ptr<piece_manager> pm(boost::make_shared<piece_manager>(st, boost::shared_ptr<int>(new int), &fs)); \
 	error_code ec; \
 	bc.set_settings(sett, ec); \
-	st->m_settings = &sett; \
 	disk_io_job rj; \
 	disk_io_job wj; \
 	INITIALIZE_JOB(rj) \
