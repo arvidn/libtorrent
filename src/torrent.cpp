@@ -11004,6 +11004,7 @@ namespace libtorrent
 		st->upload_mode = m_upload_mode;
 		st->up_bandwidth_queue = 0;
 		st->down_bandwidth_queue = 0;
+#ifndef TORRENT_NO_DEPRECATE
 		int priority = 0;
 		for (int i = 0; i < num_classes(); ++i)
 		{
@@ -11014,6 +11015,7 @@ namespace libtorrent
 				priority = prio[peer_connection::download_channel];
 		}
 		st->priority = priority;
+#endif
 
 		st->num_peers = int(m_connections.size()) - m_num_connecting;
 

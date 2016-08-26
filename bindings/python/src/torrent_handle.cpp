@@ -383,7 +383,6 @@ void bind_torrent_handle()
         .def("resume", _(&torrent_handle::resume))
         .def("stop_when_ready", _(&torrent_handle::stop_when_ready))
         .def("clear_error", _(&torrent_handle::clear_error))
-        .def("set_priority", _(&torrent_handle::set_priority))
         .def("super_seeding", super_seeding1)
 
         .def("auto_managed", _(&torrent_handle::auto_managed))
@@ -395,6 +394,7 @@ void bind_torrent_handle()
 
         // deprecated
 #ifndef TORRENT_NO_DEPRECATE
+        .def("set_priority", _(&torrent_handle::set_priority))
         .def("get_torrent_info", &get_torrent_info)
         .def("super_seeding", super_seeding0)
         .def("filter_piece", _(&torrent_handle::filter_piece))

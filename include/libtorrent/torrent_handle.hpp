@@ -405,6 +405,7 @@ namespace libtorrent
 		// distributing unchoke slots. This is a strict prioritization where
 		// every interested peer on a high priority torrent will be unchoked
 		// before any other, lower priority, torrents have any peers unchoked.
+		// deprecated in 1.2
 		TORRENT_DEPRECATED
 		void set_priority(int prio) const;
 
