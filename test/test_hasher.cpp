@@ -86,32 +86,32 @@ TORRENT_TEST(hasher)
 }
 
 // http://www.di-mgt.com.au/sha_testvectors.html
-TORRENT_TEST(hasher_test_vec1)
+TORRENT_TEST(test_vec1)
 {
 	test_vector(
-		"abc"
+		  "abc"
 		, "a9993e364706816aba3e25717850c26c9cd0d89d"
 	);
 
 	test_vector(
-		"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"
+		  "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"
 		, "84983e441c3bd26ebaae4aa1f95129e5e54670f1"
 	);
 
 	test_vector(
-		"abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhi"
-		"jklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu"
+		  "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhi"
+		  "jklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu"
 		, "a49b2446a02c645bf419f995b67091253a04a259"
 	);
 
 	test_vector(
-		"a"
+		  "a"
 		, "34aa973cd4c4daa4f61eeb2bdbad27316534016f"
 		, 1000000
 	);
 
 	test_vector(
-		"abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmno"
+		  "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmno"
 		, "7789f0c9ef7bfc40d93311143dfbe69e2017f592"
 		, 16777216
 	);

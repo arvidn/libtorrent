@@ -1,8 +1,9 @@
 // ignore warnings in this file
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include "fixedint.h"
-#include "fe.h"
+#include "libtorrent/ed25519/fixedint.hpp"
+#include "libtorrent/ed25519/fe.hpp"
+namespace libtorrent { namespace ed25519 {
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -1502,3 +1503,4 @@ void fe_tobytes(unsigned char *s, const fe h) {
 #pragma warning(pop)
 #endif // _MSC_VER
 
+}}

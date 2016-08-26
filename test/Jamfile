@@ -145,7 +145,6 @@ test-suite libtorrent :
 		test_dht_storage.cpp
 		test_direct_dht.cpp
 		test_hasher512.cpp
-		test_ed25519.cpp
 		]
 
 	[ run test_string.cpp
@@ -156,6 +155,7 @@ test-suite libtorrent :
 	[ run test_bitfield.cpp ]
 	[ run test_crc32.cpp ]
 	[ run test_ffs.cpp ]
+	[ run test_ed25519.cpp ]
 	[ run test_gzip.cpp ]
 	[ run test_receive_buffer.cpp ]
 	[ run test_alert_manager.cpp ]
@@ -230,6 +230,7 @@ alias win-tests :
 	test_gzip
 	test_piece_picker
 	test_ffs
+	test_ed25519
 	test_session_params
 	;
 
@@ -240,6 +241,7 @@ alias arm-tests :
 	test_bitfield
 	test_crc32
 	test_ffs
+	test_ed25519
 	;
 
 explicit arm-tests ;

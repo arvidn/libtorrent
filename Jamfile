@@ -709,15 +709,10 @@ KADEMLIA_SOURCES =
 	;
 
 ED25519_SOURCES =
-	add_scalar
+	ed25519
 	fe
 	ge
-	key_exchange
-	keypair
 	sc
-	seed
-	sign
-	verify
 	;
 
 local usage-requirements =
@@ -758,7 +753,6 @@ lib torrent
 	src/$(SOURCES).cpp
 
 	: # requirements
-	<include>./ed25519/src
 	<threading>multi
 	<define>TORRENT_BUILDING_LIBRARY
 	<link>shared:<define>TORRENT_BUILDING_SHARED
@@ -766,7 +760,7 @@ lib torrent
 	<link>shared:<define>BOOST_SYSTEM_SOURCE
 
 	<dht>on:<source>src/kademlia/$(KADEMLIA_SOURCES).cpp
-	<dht>on:<source>ed25519/src/$(ED25519_SOURCES).cpp
+	<dht>on:<source>src/ed25519/$(ED25519_SOURCES).cpp
 	<dht>on:<source>src/hasher512.cpp
 	<variant>debug:<asserts>on
 	<variant>debug:<invariant-checks>on
@@ -796,4 +790,3 @@ package.install install
 	: torrent
 	: $(headers)
 	;
-
