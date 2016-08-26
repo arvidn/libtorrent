@@ -116,8 +116,6 @@ namespace libtorrent
 		TORRENT_ASSERT(s1 != nullptr);
 		TORRENT_ASSERT(s2 != nullptr);
 
-		if (s1 == nullptr || s2 == nullptr) return false;
-
 		while (*s1 != 0)
 		{
 			if (to_lower(*s1) != to_lower(*s2)) return false;
@@ -131,8 +129,6 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(s1 != nullptr);
 		TORRENT_ASSERT(s2 != nullptr);
-
-		if (s1 == nullptr || s2 == nullptr) return false;
 
 		while (to_lower(*s1) == to_lower(*s2))
 		{
@@ -156,7 +152,7 @@ namespace libtorrent
 			*begin++ = printable[random(sizeof(printable) - 2)];
 	}
 
-	bool string_ends_with(std::string const& s1, std::string const& s2)
+	bool string_ends_with(string_view s1, string_view s2)
 	{
 		return s1.size() >= s2.size() && std::equal(s2.rbegin(), s2.rend(), s1.rbegin());
 	}

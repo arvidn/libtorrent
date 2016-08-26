@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_STRING_UTIL_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/string_view.hpp"
 
 #include <vector>
 #include <string>
@@ -63,7 +64,7 @@ namespace libtorrent
 
 	TORRENT_EXTRA_EXPORT void url_random(char* begin, char* end);
 
-	TORRENT_EXTRA_EXPORT bool string_ends_with(std::string const& s1, std::string const& s2);
+	TORRENT_EXTRA_EXPORT bool string_ends_with(string_view s1, string_view s2);
 
 	struct listen_interface_t
 	{

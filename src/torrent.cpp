@@ -3316,7 +3316,7 @@ namespace libtorrent
 #if TORRENT_USE_I2P
 			if (r.i2pconn && string_ends_with(i->hostname, ".i2p"))
 			{
-				// this is an i2p name, we need to use the same connection
+				// this is an i2p name, we need to use the SAM connection
 				// to do the name lookup
 				if (string_ends_with(i->hostname, ".b32.i2p"))
 				{
