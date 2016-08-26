@@ -35,7 +35,7 @@ namespace ed25519
 #endif
 		}
 
-		if (!CryptGenRandom(prov, 32, reinterpret_cast<BYTE*>(seed.data())))
+		if (!CryptGenRandom(prov, int(seed.size()), reinterpret_cast<BYTE*>(seed.data())))
 		{
 			CryptReleaseContext(prov, 0);
 #ifndef BOOST_NO_EXCEPTIONS
@@ -67,8 +67,8 @@ namespace ed25519
 	void ed25519_create_keypair(ed25519_public_key& public_key
 		, ed25519_private_key& private_key, ed25519_seed const& seed)
 	{
-		auto public_key_ptr = reinterpret_cast<unsigned char*>(public_key.data());
-		auto private_key_ptr = reinterpret_cast<unsigned char*>(private_key.data());
+		auto const public_key_ptr = reinterpret_cast<unsigned char*>(public_key.data());
+		auto const private_key_ptr = reinterpret_cast<unsigned char*>(private_key.data());
 
 		ge_p3 A;
 
@@ -95,9 +95,9 @@ namespace ed25519
 		hash.update(message);
 		sha512_hash r = hash.final();
 
-		auto signature_ptr = reinterpret_cast<unsigned char*>(signature.data());
-		auto private_key_ptr = reinterpret_cast<unsigned char const*>(private_key.data());
-		auto r_ptr = reinterpret_cast<unsigned char*>(r.data());
+		auto const signature_ptr = reinterpret_cast<unsigned char*>(signature.data());
+		auto const private_key_ptr = reinterpret_cast<unsigned char const*>(private_key.data());
+		auto const r_ptr = reinterpret_cast<unsigned char*>(r.data());
 
 		sc_reduce(r_ptr);
 		ge_scalarmult_base(&R, r_ptr);
@@ -108,7 +108,7 @@ namespace ed25519
 		hash.update(public_key);
 		hash.update(message);
 		sha512_hash hram = hash.final();
-		auto hram_ptr = reinterpret_cast<unsigned char*>(hram.data());
+		auto const hram_ptr = reinterpret_cast<unsigned char*>(hram.data());
 
 		sc_reduce(hram_ptr);
 		sc_muladd(signature_ptr + 32
@@ -174,8 +174,8 @@ namespace ed25519
 			return false;
 		}
 
-		auto signature_ptr = reinterpret_cast<unsigned char const*>(signature.data());
-		auto public_key_ptr = reinterpret_cast<unsigned char const*>(public_key.data());
+		auto const signature_ptr = reinterpret_cast<unsigned char const*>(signature.data());
+		auto const public_key_ptr = reinterpret_cast<unsigned char const*>(public_key.data());
 
 		if (ge_frombytes_negate_vartime(&A, public_key_ptr) != 0) {
 			return false;
@@ -186,7 +186,7 @@ namespace ed25519
 		hash.update(public_key);
 		hash.update(message);
 		sha512_hash h = hash.final();
-		auto h_ptr = reinterpret_cast<unsigned char*>(h.data());
+		auto const h_ptr = reinterpret_cast<unsigned char*>(h.data());
 
 		sc_reduce(h_ptr);
 		ge_double_scalarmult_vartime(&R, h_ptr
@@ -223,7 +223,7 @@ namespace ed25519
 
 		/* private key: a = n + t */
 		if (private_key) {
-			auto private_key_ptr = reinterpret_cast<unsigned char*>(private_key->data());
+			auto const private_key_ptr = reinterpret_cast<unsigned char*>(private_key->data());
 			sc_muladd(private_key_ptr, SC_1, n, private_key_ptr);
 
 			// https://github.com/orlp/ed25519/issues/3

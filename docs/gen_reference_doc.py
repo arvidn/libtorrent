@@ -8,7 +8,10 @@ verbose = '--verbose' in sys.argv
 dump = '--dump' in sys.argv
 internal = '--internal' in sys.argv
 
-paths = ['include/libtorrent/*.hpp', 'include/libtorrent/kademlia/*.hpp', 'include/libtorrent/extensions/*.hpp']
+paths = ['include/libtorrent/*.hpp',
+		'include/libtorrent/ed25519/*.hpp',
+		'include/libtorrent/kademlia/*.hpp',
+		'include/libtorrent/extensions/*.hpp']
 
 if internal:
 	paths.append('include/libtorrent/aux_/*.hpp')
