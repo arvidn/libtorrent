@@ -402,9 +402,6 @@ feature.compose <sanitize>address : <cflags>-fsanitize=address <linkflags>-fsani
 # RTC (runtime check) is an msvc feature
 feature.compose <sanitize>rtc : <cflags>/RTCc <cflags>/RTCsu ;
 
-feature fiemap : off on : composite propagated ;
-feature.compose <fiemap>on : <define>HAVE_LINUX_FIEMAP_H ;
-
 feature file-leak-logging : off on : composite propagated ;
 feature.compose <file-leak-logging>on : <define>TORRENT_DEBUG_FILE_LEAKS=1 ;
 
