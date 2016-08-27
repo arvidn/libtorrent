@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	// TODO: 2 facto these functions out
+	// TODO: 2 factor these functions out
 	TORRENT_EXTRA_EXPORT bool is_local(address const& a);
 	TORRENT_EXTRA_EXPORT bool is_loopback(address const& addr);
 	TORRENT_EXTRA_EXPORT bool is_any(address const& addr);
