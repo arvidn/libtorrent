@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.12: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
 <title>Bencoding</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;libtorrent.org" />
 <meta name=viewport content="width=device-width, initial-scale=1">
@@ -42,7 +42,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;libtorrent.org">arvid&#64;libtorrent.org</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>1.0.9</td></tr>
+<td>1.0.10</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -112,6 +112,7 @@ class entry
    <strong>entry</strong> (integer_type const&amp;);
    <strong>entry</strong> (dictionary_type const&amp;);
    <strong>entry</strong> (string_type const&amp;);
+   <strong>entry</strong> (preformatted_type const&amp;);
    <strong>entry</strong> (data_type t);
    void <strong>operator=</strong> (string_type const&amp;);
    void <strong>operator=</strong> (entry const&amp;);
@@ -119,8 +120,11 @@ class entry
    void <strong>operator=</strong> (lazy_entry const&amp;);
    void <strong>operator=</strong> (dictionary_type const&amp;);
    void <strong>operator=</strong> (list_type const&amp;);
+   void <strong>operator=</strong> (preformatted_type const&amp;);
+   preformatted_type&amp; <strong>preformatted</strong> ();
    const integer_type&amp; <strong>integer</strong> () const;
    const string_type&amp; <strong>string</strong> () const;
+   const preformatted_type&amp; <strong>preformatted</strong> () const;
    const dictionary_type&amp; <strong>dict</strong> () const;
    string_type&amp; <strong>string</strong> ();
    list_type&amp; <strong>list</strong> ();
@@ -145,6 +149,7 @@ class entry
       list_t,
       dictionary_t,
       undefined_t,
+      preformatted_t,
    };
 
    mutable boost::uint8_t m_type_queried:1;
@@ -164,6 +169,7 @@ data_type <strong>type</strong> () const;
 <strong>entry</strong> (integer_type const&amp;);
 <strong>entry</strong> (dictionary_type const&amp;);
 <strong>entry</strong> (string_type const&amp;);
+<strong>entry</strong> (preformatted_type const&amp;);
 </pre>
 <p>constructors directly from a specific type.
 The content of the argument is copied into the
@@ -186,18 +192,22 @@ void <strong>operator=</strong> (integer_type const&amp;);
 void <strong>operator=</strong> (lazy_entry const&amp;);
 void <strong>operator=</strong> (dictionary_type const&amp;);
 void <strong>operator=</strong> (list_type const&amp;);
+void <strong>operator=</strong> (preformatted_type const&amp;);
 </pre>
 <p>copies the structure of the right hand side into this
 <a class="reference external" href="reference-Bencoding.html#entry">entry</a>.</p>
 <a name="string()"></a>
-<a name="dict()"></a>
 <a name="integer()"></a>
+<a name="dict()"></a>
+<a name="preformatted()"></a>
 <a name="list()"></a></div>
-<div class="section" id="string-dict-integer-list">
-<h2>string() dict() integer() list()</h2>
+<div class="section" id="string-integer-dict-preformatted-list">
+<h2>string() integer() dict() preformatted() list()</h2>
 <pre class="literal-block">
+preformatted_type&amp; <strong>preformatted</strong> ();
 const integer_type&amp; <strong>integer</strong> () const;
 const string_type&amp; <strong>string</strong> () const;
+const preformatted_type&amp; <strong>preformatted</strong> () const;
 const dictionary_type&amp; <strong>dict</strong> () const;
 string_type&amp; <strong>string</strong> ();
 list_type&amp; <strong>list</strong> ();
@@ -297,9 +307,9 @@ of the bencoded structure, with JSON-style syntax</p>
 <p>Declared in &quot;<a class="reference external" href="../include/libtorrent/entry.hpp">libtorrent/entry.hpp</a>&quot;</p>
 <table border="1" class="docutils">
 <colgroup>
-<col width="41%" />
-<col width="21%" />
-<col width="38%" />
+<col width="44%" />
+<col width="19%" />
+<col width="36%" />
 </colgroup>
 <thead valign="bottom">
 <tr><th class="head">name</th>
@@ -326,6 +336,10 @@ of the bencoded structure, with JSON-style syntax</p>
 </tr>
 <tr><td>undefined_t</td>
 <td>4</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>preformatted_t</td>
+<td>5</td>
 <td>&nbsp;</td>
 </tr>
 </tbody>
