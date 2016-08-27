@@ -104,15 +104,6 @@ DOCS_PAGES = \
   docs/reference-Utility.html     \
   docs/reference.html
 
-ED25519_SOURCE = \
-  ed25519/readme.md \
-  ed25519/test.c \
-  ed25519/src/fe.h \
-  ed25519/src/fixedint.h \
-  ed25519/src/ge.h \
-  ed25519/src/precomp_data.h \
-  ed25519/src/sc.h
-
 EXTRA_DIST = \
   Jamfile \
   Jamroot.jam \
@@ -121,8 +112,7 @@ EXTRA_DIST = \
   LICENSE \
   README.rst \
   $(DOCS_PAGES) \
-  $(DOCS_IMAGES) \
-  $(ED25519_SOURCE)
+  $(DOCS_IMAGES)
 
 pkgconfigdir   = $(libdir)/pkgconfig
 pkgconfig_DATA = libtorrent-rasterbar.pc

@@ -41,7 +41,6 @@ nobase_include_HEADERS = \
   disk_io_thread_pool.hpp      \
   disk_observer.hpp            \
   disk_job_pool.hpp            \
-  ed25519.hpp                  \
   entry.hpp                    \
   enum_net.hpp                 \
   error.hpp                    \
@@ -179,6 +178,13 @@ nobase_include_HEADERS = \
   extensions/smart_ban.hpp          \
   extensions/ut_metadata.hpp        \
   extensions/ut_pex.hpp             \
+  \
+  ed25519/ed25519.hpp               \
+  ed25519/fixedint.hpp              \
+  ed25519/precomp_data.hpp          \
+  ed25519/fe.hpp                    \
+  ed25519/ge.hpp                    \
+  ed25519/sc.hpp                    \
   \
   kademlia/dht_storage.hpp          \
   kademlia/dht_tracker.hpp          \

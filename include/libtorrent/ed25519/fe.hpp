@@ -1,8 +1,9 @@
 #ifndef FE_H
 #define FE_H
 
-#include "fixedint.h"
+#include "libtorrent/ed25519/fixedint.hpp"
 
+namespace libtorrent { namespace ed25519 {
 
 /*
     fe means field element.
@@ -38,4 +39,5 @@ void fe_mul121666(fe h, fe f);
 void fe_pow22523(fe out, const fe z);
 void fe_sub(fe h, const fe f, const fe g);
 
+}}
 #endif

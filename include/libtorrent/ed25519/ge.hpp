@@ -1,8 +1,9 @@
 #ifndef GE_H
 #define GE_H
 
-#include "fe.h"
+#include "libtorrent/ed25519/fe.hpp"
 
+namespace libtorrent { namespace ed25519 {
 
 /*
 ge means group element.
@@ -71,4 +72,5 @@ void ge_p3_dbl(ge_p1p1 *r, const ge_p3 *p);
 void ge_p3_to_cached(ge_cached *r, const ge_p3 *p);
 void ge_p3_to_p2(ge_p2 *r, const ge_p3 *p);
 
+}}
 #endif

@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/bencode.hpp" // for bencode()
 #include "libtorrent/kademlia/item.hpp" // for sign_mutable_item
-#include "libtorrent/ed25519.hpp"
+#include "libtorrent/ed25519/ed25519.hpp"
 #include "libtorrent/span.hpp"
 
 #include <functional>
@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdlib>
 
 using namespace libtorrent;
+using namespace libtorrent::ed25519;
 using namespace std::placeholders;
 namespace lt = libtorrent;
 
@@ -150,8 +151,8 @@ int dump_key(char *filename)
 		return 1;
 	}
 
-	unsigned char seed[32];
-	int size = int(fread(seed, 1, 32, f));
+	std::array<char, 32> seed;
+	int size = int(fread(seed.data(), 1, 32, f));
 	if (size != 32)
 	{
 		std::fprintf(stderr, "invalid key file.\n");
@@ -161,8 +162,7 @@ int dump_key(char *filename)
 
 	std::array<char, 32> pk;
 	std::array<char, 64> sk;
-	ed25519_create_keypair((unsigned char*)pk.data()
-		, (unsigned char*)sk.data(), seed);
+	ed25519_create_keypair(pk, sk, seed);
 
 	std::printf("public key: %s\nprivate key: %s\n"
 		, to_hex(pk).c_str()
@@ -173,7 +173,7 @@ int dump_key(char *filename)
 
 int generate_key(char* filename)
 {
-	unsigned char seed[32];
+	ed25519_seed seed;
 	ed25519_create_seed(seed);
 
 	FILE* f = std::fopen(filename, "wb+");
@@ -184,7 +184,7 @@ int generate_key(char* filename)
 		return 1;
 	}
 
-	int size = int(std::fwrite(seed, 1, 32, f));
+	int size = int(std::fwrite(seed.data(), 1, 32, f));
 	if (size != 32)
 	{
 		std::fprintf(stderr, "failed to write key file.\n");
@@ -347,8 +347,8 @@ int main(int argc, char* argv[])
 			return 1;
 		}
 
-		unsigned char seed[32];
-		fread(seed, 1, 32, f);
+		std::array<char, 32> seed;
+		fread(seed.data(), 1, 32, f);
 		std::fclose(f);
 
 		++argv;
@@ -357,8 +357,7 @@ int main(int argc, char* argv[])
 
 		std::array<char, 32> public_key;
 		std::array<char, 64> private_key;
-		ed25519_create_keypair((unsigned char*)public_key.data()
-			, (unsigned char*)private_key.data(), seed);
+		ed25519_create_keypair(public_key, private_key, seed);
 
 		bootstrap(s);
 		s.dht_put_item(public_key, std::bind(&put_string, _1, _2, _3, _4

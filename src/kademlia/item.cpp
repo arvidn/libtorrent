@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/item.hpp>
 #include <libtorrent/bencode.hpp>
 #include <libtorrent/span.hpp>
-#include <libtorrent/ed25519.hpp>
+#include <libtorrent/ed25519/ed25519.hpp>
 
 #include <cstdio> // for snprintf
 #include <cinttypes> // for PRId64 et.al.
@@ -106,10 +106,7 @@ bool verify_mutable_item(
 	char str[1200];
 	int len = canonical_string(v, seq, salt, str);
 
-	return ed25519_verify(reinterpret_cast<unsigned char const*>(sig.bytes.data())
-		, reinterpret_cast<unsigned char const*>(str)
-		, len
-		, reinterpret_cast<unsigned char const*>(pk.bytes.data())) == 1;
+	return ed25519::ed25519_verify(sig.bytes, {str, size_t(len)}, pk.bytes);
 }
 
 // given the bencoded buffer ``v``, the salt (which is optional and may have
@@ -129,11 +126,10 @@ void sign_mutable_item(
 	char str[1200];
 	int const len = canonical_string(v, seq, salt, str);
 
-	ed25519_sign(reinterpret_cast<unsigned char*>(sig.bytes.data())
-		, reinterpret_cast<unsigned char const*>(str)
-		, len
-		, reinterpret_cast<unsigned char const*>(pk.bytes.data())
-		, reinterpret_cast<unsigned char const*>(sk.bytes.data())
+	ed25519::ed25519_sign(sig.bytes
+		, {str, size_t(len)}
+		, pk.bytes
+		, sk.bytes
 	);
 }
 

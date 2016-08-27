@@ -144,18 +144,13 @@ set(kademlia_sources
 
 # -- ed25519 --
 set(ed25519_sources
-	add_scalar
+	ed25519
 	fe
 	ge
-	key_exchange
-	keypair
 	sc
-	seed
-	sign
-	verify
 )
 
-set(includes include ed25519/src)
+set(includes include)
 
 option(shared "build libtorrent as a shared library" ON)
 option(static_runtime "build libtorrent with static runtime" OFF)
@@ -232,7 +227,7 @@ if (dht)
 		list(APPEND sources2 src/kademlia/${s})
 	endforeach(s)
 	foreach(s ${ed25519_sources})
-		list(APPEND sources2 ed25519/src/${s})
+		list(APPEND sources2 src/ed25519/${s})
 	endforeach(s)
 	list(APPEND sources2 src/hasher512)
 	if (NOT encryption AND NOT WIN32 AND NOT APPLE)

@@ -1,9 +1,10 @@
 // ignore warnings in this file
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include "ge.h"
-#include "precomp_data.h"
+#include "libtorrent/ed25519/ge.hpp"
+#include "libtorrent/ed25519/precomp_data.hpp"
 
+namespace libtorrent { namespace ed25519 {
 
 /*
 r = p + q
@@ -468,3 +469,4 @@ void ge_tobytes(unsigned char *s, const ge_p2 *h) {
     fe_tobytes(s, y);
     s[31] ^= fe_isnegative(x) << 7;
 }
+}}
