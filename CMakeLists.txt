@@ -140,6 +140,7 @@ set(kademlia_sources
 	item
 	get_peers
 	get_item
+	ed25519
 )
 
 # -- ed25519 --
@@ -150,7 +151,6 @@ set(ed25519_sources
 	key_exchange
 	keypair
 	sc
-	seed
 	sign
 	verify
 )

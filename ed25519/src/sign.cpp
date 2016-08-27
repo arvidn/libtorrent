@@ -6,7 +6,8 @@
 #include "ge.h"
 #include "sc.h"
 
-using namespace libtorrent;
+namespace libtorrent
+{
 
 void ed25519_sign(unsigned char *signature, const unsigned char *message, size_t message_len, const unsigned char *public_key, const unsigned char *private_key) {
     ge_p3 R;
@@ -31,4 +32,6 @@ void ed25519_sign(unsigned char *signature, const unsigned char *message, size_t
         , reinterpret_cast<unsigned char*>(hram.data())
         , private_key
         , reinterpret_cast<unsigned char*>(r.data()));
+}
+
 }

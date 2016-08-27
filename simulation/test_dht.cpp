@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp"
 #include "setup_swarm.hpp"
 #include "setup_dht.hpp"
-#include "libtorrent/ed25519.hpp"
+#include "libtorrent/kademlia/ed25519.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/kademlia/item.hpp"
 #include <boost/bind.hpp>
@@ -314,9 +314,8 @@ TORRENT_TEST(dht_dual_stack_mutable_item)
 			}
 			if (ticks == 2)
 			{
-				std::array<unsigned char, ed25519_seed_size> seed;
-				ed25519_create_keypair((unsigned char*)pk.bytes.data()
-					, (unsigned char*)sk.bytes.data(), seed.data());
+				std::array<char, 32> seed;
+				ed25519_create_keypair(pk, sk, seed);
 
 				ses.dht_put_item(pk.bytes, [&](lt::entry& item, std::array<char, 64>& sig
 					, std::uint64_t& seq, std::string const& salt)

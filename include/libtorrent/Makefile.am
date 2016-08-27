@@ -197,6 +197,7 @@ nobase_include_HEADERS = \
   kademlia/rpc_manager.hpp          \
   kademlia/traversal_algorithm.hpp  \
   kademlia/types.hpp                \
+  kademlia/ed25519.hpp              \
   kademlia/item.hpp                 \
   kademlia/get_item.hpp             \
   kademlia/get_peers.hpp

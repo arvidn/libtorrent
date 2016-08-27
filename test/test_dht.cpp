@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp" // for supports_ipv6
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/random.hpp"
-#include "libtorrent/ed25519.hpp"
+#include "libtorrent/kademlia/ed25519.hpp"
 #include "libtorrent/hex.hpp" // to_hex, from_hex
 
 #include "libtorrent/kademlia/node_id.hpp"
@@ -1052,11 +1052,10 @@ void test_put(address(&rand_addr)())
 		seq = sequence_number(4);
 		std::fprintf(stderr, "\nTEST GET/PUT%s \ngenerating ed25519 keys\n\n"
 			, with_salt ? " with-salt" : " no-salt");
-		unsigned char seed[32];
+		std::array<char, 32> seed;
 		ed25519_create_seed(seed);
 
-		ed25519_create_keypair((unsigned char*)pk.bytes.data()
-			, (unsigned char*)sk.bytes.data(), seed);
+		ed25519_create_keypair(pk, sk, seed);
 		std::fprintf(stderr, "pub: %s priv: %s\n"
 			, aux::to_hex(pk.bytes).c_str()
 			, aux::to_hex(sk.bytes).c_str());

@@ -30,44 +30,39 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "test.hpp"
+
 #ifndef TORRENT_DISABLE_DHT
 
 #include <memory>
 
-#include "libtorrent/ed25519.hpp"
+#include "libtorrent/kademlia/ed25519.hpp"
 #include "libtorrent/hex.hpp"
 
-#include "test.hpp"
-
 using namespace libtorrent;
+using namespace libtorrent::dht;
 
 namespace
 {
-	void from_hex(std::string s, unsigned char* out)
+	void test_vector(std::string seed, std::string pub, std::string sig_hex, std::string message)
 	{
-		aux::from_hex(s, reinterpret_cast<char*>(out));
-	}
+		std::array<char, 32> s;
+		secret_key sk;
+		public_key pk;
+		signature sig;
+		std::vector<char> msg(int(message.size()) / 2);
 
-	void test_vector(std::string seed, std::string pub, std::string signature, std::string message)
-	{
-		unsigned char s[32];
-		unsigned char sk[64];
-		unsigned char pk[32];
-		unsigned char sig[64];
-		int msg_size = int(message.size()) / 2;
-		std::vector<unsigned char> msg(msg_size);
-
-		from_hex(seed, s);
+		aux::from_hex(seed, s.data());
 		ed25519_create_keypair(pk, sk, s);
 
-		TEST_EQUAL(aux::to_hex({reinterpret_cast<char const*>(pk), 32}), pub);
+		TEST_EQUAL(aux::to_hex(pk.bytes), pub);
 
-		from_hex(message, msg.data());
-		ed25519_sign(sig, msg.data(), msg_size, pk, sk);
+		aux::from_hex(message, msg.data());
+		ed25519_sign(sig, msg, pk, sk);
 
-		TEST_EQUAL(aux::to_hex({reinterpret_cast<char const*>(sig), 64}), signature);
+		TEST_EQUAL(aux::to_hex(sig.bytes), sig_hex);
 
-		int r = ed25519_verify(sig, msg.data(), msg_size, pk);
+		bool r = ed25519_verify(sig, msg, pk);
 
 		TEST_CHECK(r);
 	}
@@ -172,6 +167,134 @@ TORRENT_TEST(ed25519_test_vec1)
 		, "f8b21962447b0a8f2e4279de411bea128e0be44b6915e6cda88341a68a0d8183"
 		  "57db938eac73e0af6d31206b3948f8c48a447308"
 	);
+
+	// TST: 224
+	test_vector(
+		  "ae1d2c6b171be24c2e413d364dcda97fa476aaf9123d3366b0be03a142fe6e7d"
+		, "d437f57542c681dd543487408ec7a44bd42a5fd545ce2f4c8297d67bb0b3aa7b"
+		, "909008f3fcfff43988aee1314b15b1822caaa8dab120bd452af494e08335b44a"
+		  "94c313c4b145eadd5166eaac034e29b7e6ac7941d5961fc49d260e1c4820b00e"
+		, "9e6c2fc76e30f17cd8b498845da44f22d55bec150c6130b411c6339d14b39969"
+		  "ab1033be687569a991a06f70b2a8a6931a777b0e4be6723cd75e5aa7532813ef"
+		  "50b3d37271640fa2fb287c0355257641ea935c851c0b6ac68be72c88dfc5856f"
+		  "b53543fb377b0dbf64808afcc4274aa456855ad28f61267a419bc72166b9ca73"
+		  "cd3bb79bf7dd259baa75911440974b68e8ba95a78cbbe1cb6ad807a33a1cce2f"
+		  "406ff7bcbd058b44a311b38ab4d4e61416c4a74d883d6a6a794abd9cf1c03902"
+		  "8bf1b20e3d4990aae86f32bf06cd8349a7a884cce0165e36a0640e987b9d51"
+	);
+
+	// TST: 225
+	test_vector(
+		  "0265a7944baccfebf417b87ae1e6df2ff2a544ffb58225a08e092be03f026097"
+		, "63d327615ea0139be0740b618aff1acfa818d4b0c2cfeaf0da93cdd5245fb5a9"
+		, "b6c445b7eddca5935c61708d44ea5906bd19cc54224eae3c8e46ce99f5cbbd34"
+		  "1f26623938f5fe04070b1b02e71fbb7c78a90c0dda66cb143fab02e6a0bae306"
+		, "874ed712a2c41c26a2d9527c55233fde0a4ffb86af8e8a1dd0a820502c5a2693"
+		  "2bf87ee0de72a8874ef2eebf83384d443f7a5f46a1233b4fb514a24699818248"
+		  "94f325bf86aa0fe1217153d40f3556c43a8ea9269444e149fb70e9415ae0766c"
+		  "565d93d1d6368f9a23a0ad76f9a09dbf79634aa97178677734d04ef1a5b3f87c"
+		  "e1ee9fc5a9ac4e7a72c9d7d31ec89e28a845d2e1103c15d6410ce3c723b0cc22"
+		  "09f698aa9fa288bbbecfd9e5f89cdcb09d3c215feb47a58b71ea70e2abead67f"
+		  "1b08ea6f561fb93ef05232eedabfc1c7702ab039bc465cf57e207f1093fc8208"
+	);
 }
 
+TORRENT_TEST(create_seed)
+{
+	std::array<char, 32> s1;
+	std::array<char, 32> s2;
+	s1.fill(0);
+	s2.fill(0);
+
+	TEST_CHECK(s1 == s2);
+	ed25519_create_seed(s1);
+	ed25519_create_seed(s2);
+	TEST_CHECK(s1 != s2); // what are the odds
+
+	int n1 = 0;
+	int n2 = 0;
+	for (int i = 0; i < 32; i++)
+	{
+		if (s1[i] != 0) n1++;
+		if (s2[i] != 0) n2++;
+	}
+	TEST_CHECK(n1 > 0);
+	TEST_CHECK(n2 > 0);
+}
+
+TORRENT_TEST(add_scalar)
+{
+	// client
+	std::array<char, 32> s1;
+	ed25519_create_seed(s1);
+
+	public_key pk1;
+	secret_key sk1;
+	ed25519_create_keypair(pk1, sk1, s1);
+
+	// client sends to server the public key
+
+	// server generates another seed, it could be an scalar
+	// n = HMAC(k, pk1) and sends it back to the client
+	// see http://crypto.stackexchange.com/a/6215/4697
+	std::array<char, 32> n;
+	ed25519_create_seed(n);
+
+	// now the server knows that the client's public key
+	// must be (or assigns) pk1 + n
+	ed25519_add_scalar(&pk1, nullptr, n);
+
+	// server sends n to the client
+
+	// the client, in order to properly sign messages, must
+	// adjust the private key
+	ed25519_add_scalar(nullptr, &sk1, n);
+
+	// test sign and verification
+	std::string msg = "Hello world";
+	signature sig;
+	ed25519_sign(sig, msg, pk1, sk1);
+	bool r = ed25519_verify(sig, msg, pk1);
+	TEST_CHECK(r);
+}
+
+TORRENT_TEST(key_exchange)
+{
+	// user A
+	std::array<char, 32> s1;
+	ed25519_create_seed(s1);
+
+	public_key pk1;
+	secret_key sk1;
+	ed25519_create_keypair(pk1, sk1, s1);
+
+	// user A sends to user B the public key
+
+	// user B
+	std::array<char, 32> s2;
+	ed25519_create_seed(s2);
+
+	public_key pk2;
+	secret_key sk2;
+	ed25519_create_keypair(pk2, sk2, s2);
+
+	// user B performs the key exchange
+	std::array<char, 32> secretB;
+	ed25519_key_exchange(secretB, pk1, sk2);
+
+	// user B sends to user A the public key
+
+	// user A performs the key exchange
+	std::array<char, 32> secretA;
+	ed25519_key_exchange(secretA, pk2, sk1);
+
+	// now both users A and B must shared the same secret
+	TEST_EQUAL(aux::to_hex(secretA), aux::to_hex(secretB));
+}
+
+#else
+TORRENT_TEST(empty)
+{
+	TEST_CHECK(true);
+}
 #endif // TORRENT_DISABLE_DHT
