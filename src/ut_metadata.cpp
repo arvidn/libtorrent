@@ -279,7 +279,7 @@ namespace libtorrent { namespace
 				if (!m_tp.need_loaded()) return;
 				metadata = m_tp.metadata().data() + offset;
 				metadata_piece_size = (std::min)(
-					int(m_tp.get_metadata_size() - offset), 16 * 1024);
+					m_tp.get_metadata_size() - offset, 16 * 1024);
 				TORRENT_ASSERT(metadata_piece_size > 0);
 				TORRENT_ASSERT(offset >= 0);
 				TORRENT_ASSERT(offset + metadata_piece_size <= int(m_tp.get_metadata_size()));

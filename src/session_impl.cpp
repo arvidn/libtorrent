@@ -2492,7 +2492,7 @@ namespace aux {
 			// for SSL connections, incoming_connection() is called
 			// after the handshake is done
 			ADD_OUTSTANDING_ASYNC("session_impl::ssl_handshake");
-			s->get<ssl_stream<tcp::socket> >()->async_accept_handshake(
+			s->get<ssl_stream<tcp::socket>>()->async_accept_handshake(
 				std::bind(&session_impl::ssl_handshake, this, _1, s));
 			m_incoming_sockets.insert(s);
 		}

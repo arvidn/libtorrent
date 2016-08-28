@@ -1049,11 +1049,10 @@ namespace libtorrent
 //		INVARIANT_CHECK;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto const& e : m_extensions)
 		{
 			TORRENT_TRY {
-				(*i)->on_piece_pass(index);
+				e->on_piece_pass(index);
 			} TORRENT_CATCH(std::exception&) {}
 		}
 #else
@@ -1070,11 +1069,10 @@ namespace libtorrent
 		TORRENT_UNUSED(single_peer);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto const& e : m_extensions)
 		{
 			TORRENT_TRY {
-				(*i)->on_piece_failed(index);
+				e->on_piece_failed(index);
 			} TORRENT_CATCH(std::exception&) {}
 		}
 #else
@@ -1461,10 +1459,9 @@ namespace libtorrent
 		if (!t) return;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto const& e : m_extensions)
 		{
-			if ((*i)->on_suggest(index)) return;
+			if (e->on_suggest(index)) return;
 		}
 #endif
 
@@ -1529,10 +1526,9 @@ namespace libtorrent
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto const& e : m_extensions)
 		{
-			if ((*i)->on_unchoke()) return;
+			if (e->on_unchoke()) return;
 		}
 #endif
 
@@ -1567,10 +1563,9 @@ namespace libtorrent
 		TORRENT_ASSERT(t);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto const& e : m_extensions)
 		{
-			if ((*i)->on_interested()) return;
+			if (e->on_interested()) return;
 		}
 #endif
 
@@ -1660,10 +1655,9 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto const& e : m_extensions)
 		{
-			if ((*i)->on_not_interested()) return;
+			if (e->on_not_interested()) return;
 		}
 #endif
 
@@ -1720,10 +1714,9 @@ namespace libtorrent
 		TORRENT_ASSERT(t);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto const& e : m_extensions)
 		{
-			if ((*i)->on_have(index)) return;
+			if (e->on_have(index)) return;
 		}
 #endif
 
@@ -1952,10 +1945,9 @@ namespace libtorrent
 		TORRENT_ASSERT(t);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto const& e : m_extensions)
 		{
-			if ((*i)->on_bitfield(bits)) return;
+			if (e->on_bitfield(bits)) return;
 		}
 #endif
 
@@ -2119,10 +2111,9 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(is_single_thread());
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::const_iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto const& e : m_extensions)
 		{
-			if (!(*i)->can_disconnect(ec)) return false;
+			if (!e->can_disconnect(ec)) return false;
 		}
 #else
 		TORRENT_UNUSED(ec);
@@ -2189,10 +2180,9 @@ namespace libtorrent
 		if (is_disconnecting()) return;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto const& e : m_extensions)
 		{
-			if ((*i)->on_request(r)) return;
+			if (e->on_request(r)) return;
 		}
 #endif
 		if (is_disconnecting()) return;
@@ -3094,10 +3084,9 @@ namespace libtorrent
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto const& e : m_extensions)
 		{
-			if ((*i)->on_have_all()) return;
+			if (e->on_have_all()) return;
 		}
 #endif
 		if (is_disconnecting()) return;
@@ -3176,10 +3165,9 @@ namespace libtorrent
 		TORRENT_ASSERT(t);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto const& e : m_extensions)
 		{
-			if ((*i)->on_have_none()) return;
+			if (e->on_have_none()) return;
 		}
 #endif
 		if (is_disconnecting()) return;
@@ -3233,10 +3221,9 @@ namespace libtorrent
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto const& e : m_extensions)
 		{
-			if ((*i)->on_allowed_fast(index)) return;
+			if (e->on_allowed_fast(index)) return;
 		}
 #endif
 		if (is_disconnecting()) return;
@@ -4151,10 +4138,9 @@ namespace libtorrent
 		if (t) handle = t->get_handle();
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto const& e : m_extensions)
 		{
-			(*i)->on_disconnect(ec);
+			e->on_disconnect(ec);
 		}
 #endif
 
