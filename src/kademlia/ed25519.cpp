@@ -74,12 +74,12 @@ namespace dht
 		return libtorrent::ed25519_verify(sig_ptr, msg_ptr, msg.size(), pk_ptr) == 1;
 	}
 
-	void ed25519_add_scalar(public_key* pk
-		, secret_key* sk, std::array<char, 32> const& scalar)
+	void ed25519_add_scalar(std::shared_ptr<public_key> pk
+		, std::shared_ptr<secret_key> sk, std::array<char, 32> const& scalar)
 	{
-		auto const pk_ptr = pk != nullptr
+		auto const pk_ptr = pk
 			? reinterpret_cast<unsigned char*>(pk->bytes.data()) : nullptr;
-		auto const sk_ptr = sk != nullptr
+		auto const sk_ptr = sk
 			? reinterpret_cast<unsigned char*>(sk->bytes.data()) : nullptr;
 		auto const scalar_ptr = reinterpret_cast<unsigned char const*>(scalar.data());
 

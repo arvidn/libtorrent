@@ -242,13 +242,15 @@ TORRENT_TEST(add_scalar)
 
 	// now the server knows that the client's public key
 	// must be (or assigns) pk1 + n
-	ed25519_add_scalar(&pk1, nullptr, n);
+	ed25519_add_scalar(std::make_shared<public_key>(pk1)
+		, std::make_shared<secret_key>(), n);
 
 	// server sends n to the client
 
 	// the client, in order to properly sign messages, must
 	// adjust the private key
-	ed25519_add_scalar(nullptr, &sk1, n);
+	ed25519_add_scalar(std::make_shared<public_key>()
+		, std::make_shared<secret_key>(sk1), n);
 
 	// test sign and verification
 	std::string msg = "Hello world";

@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/types.hpp>
 
 #include <array>
+#include <memory>
 
 namespace libtorrent {
 namespace dht
@@ -74,7 +75,7 @@ namespace dht
 	// (possibly generated with `ed25519_create_seed`), generating a new key pair.
 	//
 	// You can calculate the public key sum without knowing the private key and
-	// vice versa by passing in `nullptr` for the key you don't know. This is useful
+	// vice versa by passing in null for the key you don't know. This is useful
 	// when a third party (an authoritative server for example) needs to enforce
 	// randomness on a key pair while only knowing the public key of the other
 	// side.
@@ -84,8 +85,8 @@ namespace dht
 	//
 	// see http://crypto.stackexchange.com/a/6215/4697
 	// see test_ed25519 for a practical example
-	TORRENT_EXPORT void ed25519_add_scalar(public_key* pk
-		, secret_key* sk, std::array<char, 32> const& scalar);
+	TORRENT_EXPORT void ed25519_add_scalar(std::shared_ptr<public_key> pk
+		, std::shared_ptr<secret_key> sk, std::array<char, 32> const& scalar);
 
 	// Performs a key exchange on the given public key and private key, producing a
 	// shared secret. It is recommended to hash the shared secret before using it.
