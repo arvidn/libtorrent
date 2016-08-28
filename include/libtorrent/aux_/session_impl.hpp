@@ -240,7 +240,7 @@ namespace libtorrent
 			bool is_posting_torrent_updates() const override { return m_posting_torrent_updates; }
 			// this is set while the session is building the
 			// torrent status update message
-			bool m_posting_torrent_updates;
+			bool m_posting_torrent_updates = false;
 #endif
 
 			void reopen_listen_sockets();
@@ -744,7 +744,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 			// this pool is used to allocate and recycle send
 			// buffers from.
-			boost::pool<> m_send_buffers;
+			boost::pool<> m_send_buffers{send_buffer_size_impl};
 #endif
 
 			io_service& m_io_service;
@@ -766,7 +766,7 @@ namespace libtorrent
 			// the client. This is the offset into m_alert_pointers where the next
 			// alert is. If this is greater than or equal to m_alert_pointers.size()
 			// it means we need to request new alerts from the main thread.
-			mutable int m_alert_pointer_pos;
+			mutable int m_alert_pointer_pos = 0;
 #endif
 
 			// handles disk io requests asynchronously
@@ -787,7 +787,7 @@ namespace libtorrent
 			bandwidth_manager m_upload_rate;
 
 			// the peer class that all peers belong to by default
-			peer_class_t m_global_class;
+			peer_class_t m_global_class = 0;
 
 			// the peer class all TCP peers belong to by default
 			// all tcp peer connections are subject to these
@@ -796,10 +796,10 @@ namespace libtorrent
 			// throttle TCP that passes over the internet
 			// bottleneck (i.e. modem) to avoid starving out
 			// uTP connections.
-			peer_class_t m_tcp_peer_class;
+			peer_class_t m_tcp_peer_class = 0;
 
 			// peer class for local peers
-			peer_class_t m_local_peer_class;
+			peer_class_t m_local_peer_class = 0;
 
 			tracker_manager m_tracker_manager;
 			torrent_map m_torrents;
@@ -865,12 +865,12 @@ namespace libtorrent
 			// in this session. queue positions are packed (i.e. there
 			// are no gaps). If there are no torrents with queue positions
 			// this is -1.
-			int m_max_queue_pos;
+			int m_max_queue_pos = -1;
 
 			// the key is an id that is used to identify the
 			// client with the tracker only. It is randomized
 			// at startup
-			int m_key;
+			int m_key = 0;
 
 			// the addresses or device names of the interfaces we are supposed to
 			// listen on. if empty, it means that we should let the os decide
@@ -904,10 +904,10 @@ namespace libtorrent
 			// when as a socks proxy is used for peers, also
 			// listen for incoming connections on a socks connection
 			boost::shared_ptr<socket_type> m_socks_listen_socket;
-			std::uint16_t m_socks_listen_port;
+			std::uint16_t m_socks_listen_port = 0;
 
 			// round-robin index into m_outgoing_interfaces
-			mutable std::uint8_t m_interface_index;
+			mutable std::uint8_t m_interface_index = 0;
 
 			void open_new_incoming_socks_connection();
 
@@ -929,30 +929,30 @@ namespace libtorrent
 			// unchoke_interval and the unchoke set is
 			// recomputed.
 			// TODO: replace this by a proper asio timer
-			int m_unchoke_time_scaler;
+			int m_unchoke_time_scaler = 0;
 
 			// this is used to decide when to recalculate which
 			// torrents to keep queued and which to activate
 			// TODO: replace this by a proper asio timer
-			int m_auto_manage_time_scaler;
+			int m_auto_manage_time_scaler = 0;
 
 			// works like unchoke_time_scaler but it
 			// is only decreased when the unchoke set
 			// is recomputed, and when it reaches zero,
 			// the optimistic unchoke is moved to another peer.
 			// TODO: replace this by a proper asio timer
-			int m_optimistic_unchoke_time_scaler;
+			int m_optimistic_unchoke_time_scaler = 0;
 
 			// works like unchoke_time_scaler. Each time
 			// it reaches 0, and all the connections are
 			// used, the worst connection will be disconnected
 			// from the torrent with the most peers
-			int m_disconnect_time_scaler;
+			int m_disconnect_time_scaler = 90;
 
 			// when this scaler reaches zero, it will
 			// scrape one of the auto managed, paused,
 			// torrents.
-			int m_auto_scrape_time_scaler;
+			int m_auto_scrape_time_scaler = 180;
 
 			// statistics gathered from all torrents.
 			stat m_stat;
@@ -964,8 +964,8 @@ namespace libtorrent
 			virtual void sent_syn(bool ipv6) override;
 			virtual void received_synack(bool ipv6) override;
 
-			int m_peak_up_rate;
-			int m_peak_down_rate;
+			int m_peak_up_rate = 0;
+			int m_peak_down_rate = 0;
 
 			void on_tick(error_code const& e);
 
@@ -1005,13 +1005,14 @@ namespace libtorrent
 
 			// when outgoing_ports is configured, this is the
 			// port we'll bind the next outgoing socket to
-			mutable int m_next_port;
+			mutable int m_next_port = 0;
 
 #ifndef TORRENT_DISABLE_DHT
 			std::unique_ptr<dht::dht_storage_interface> m_dht_storage;
 			boost::shared_ptr<dht::dht_tracker> m_dht;
 			dht_settings m_dht_settings;
-			dht::dht_storage_constructor_type m_dht_storage_constructor;
+			dht::dht_storage_constructor_type m_dht_storage_constructor
+				= dht::dht_default_storage_constructor;
 
 			// these are used when starting the DHT
 			// (and bootstrapping it), and then erased
@@ -1031,11 +1032,11 @@ namespace libtorrent
 			// compared to this number, the DHT announce interval
 			// is updated again. This especially matters for
 			// small numbers.
-			int m_dht_interval_update_torrents;
+			int m_dht_interval_update_torrents = 0;
 
 			// the number of DHT router lookups there are currently outstanding. As
 			// long as this is > 0, we'll postpone starting the DHT
-			int m_outstanding_router_lookups;
+			int m_outstanding_router_lookups = 0;
 #endif
 
 			void send_udp_packet_hostname(char const* hostname
@@ -1065,7 +1066,7 @@ namespace libtorrent
 			// the number of torrent connection boosts
 			// connections that have been made this second
 			// this is deducted from the connect speed
-			int m_boost_connections;
+			int m_boost_connections = 0;
 
 			boost::shared_ptr<natpmp> m_natpmp;
 			boost::shared_ptr<upnp> m_upnp;
@@ -1133,18 +1134,18 @@ namespace libtorrent
 			// m_torrent_lists[torrent_want_peers_downloading]
 			// (which is a list of torrent pointers with all
 			// torrents that want peers and are downloading)
-			int m_next_downloading_connect_torrent;
-			int m_next_finished_connect_torrent;
+			int m_next_downloading_connect_torrent = 0;
+			int m_next_finished_connect_torrent = 0;
 
 			// this is the number of attempts of connecting to
 			// peers we have given to downloading torrents.
 			// when this gets high enough, we try to connect
 			// a peer from a finished torrent
-			int m_download_connect_attempts;
+			int m_download_connect_attempts = 0;
 
 			// index into m_torrent_lists[torrent_want_scrape] referring
 			// to the next torrent to auto-scrape
-			int m_next_scrape_torrent;
+			int m_next_scrape_torrent = 0;
 
 #if TORRENT_USE_INVARIANT_CHECKS
 			void check_invariant() const;
@@ -1163,7 +1164,7 @@ namespace libtorrent
 			// this keeps the timers more accurate over time
 			// as a kind of "leap second" to adjust for the
 			// accumulated error
-			std::uint16_t m_tick_residual;
+			std::uint16_t m_tick_residual = 0;
 
 #ifndef TORRENT_DISABLE_LOGGING
 			virtual void session_log(char const* fmt, ...) const override TORRENT_FORMAT(2,3);
@@ -1189,29 +1190,29 @@ namespace libtorrent
 
 			// this is true whenever we have posted a deferred-disk job
 			// it means we don't need to post another one
-			bool m_deferred_submit_disk_jobs;
+			bool m_deferred_submit_disk_jobs = false;
 
 			// this is set to true when a torrent auto-manage
 			// event is triggered, and reset whenever the message
 			// is delivered and the auto-manage is executed.
 			// there should never be more than a single pending auto-manage
 			// message in-flight at any given time.
-			bool m_pending_auto_manage;
+			bool m_pending_auto_manage = false;
 
 			// this is also set to true when triggering an auto-manage
 			// of the torrents. However, if the normal auto-manage
 			// timer comes along and executes the auto-management,
 			// this is set to false, which means the triggered event
 			// no longer needs to execute the auto-management.
-			bool m_need_auto_manage;
+			bool m_need_auto_manage = false;
 
 			// set to true when the session object
 			// is being destructed and the thread
 			// should exit
-			bool m_abort;
+			bool m_abort = false;
 
 			// is true if the session is paused
-			bool m_paused;
+			bool m_paused = false;
 
 			// this is a list of peer connections who have been
 			// corked (i.e. their network socket) and needs to be

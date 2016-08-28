@@ -34,6 +34,9 @@
 *.deps
 *.cache
 *.dirstamp
+*.swp
+*.orig
+*.rej
 
 bin
 config*
@@ -41,6 +44,10 @@ Makefile
 build-aux
 test_tmp_*
 libtool
+docs/reference*
+docs/*.html
+docs/*.png
+docs/*-ref.rst
 
 .DS_Store
 .idea

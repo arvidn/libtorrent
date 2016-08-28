@@ -110,7 +110,6 @@ namespace libtorrent
 	}
 #endif
 
-	// outbound connection
 	peer_connection::peer_connection(peer_connection_args const& pack)
 		: peer_connection_hot_members(pack.tor, *pack.ses, *pack.sett)
 		, m_socket(pack.s)
@@ -123,42 +122,6 @@ namespace libtorrent
 		, m_allocator(*pack.allocator)
 		, m_ios(*pack.ios)
 		, m_work(m_ios)
-		, m_last_piece(aux::time_now())
-		, m_last_request(aux::time_now())
-		, m_last_incoming_request(min_time())
-		, m_last_unchoke(aux::time_now())
-		, m_last_unchoked(aux::time_now())
-		, m_last_choke(min_time())
-		, m_last_receive(aux::time_now())
-		, m_last_sent(aux::time_now())
-		, m_last_sent_payload(aux::time_now())
-		, m_requested(min_time())
-		, m_remote_dl_update(aux::time_now())
-		, m_connect(aux::time_now())
-		, m_became_uninterested(aux::time_now())
-		, m_became_uninteresting(aux::time_now())
-		, m_downloaded_at_last_round(0)
-		, m_uploaded_at_last_round(0)
-		, m_uploaded_at_last_unchoke(0)
-		, m_downloaded_last_second(0)
-		, m_uploaded_last_second(0)
-		, m_outstanding_bytes(0)
-		, m_last_seen_complete(0)
-		, m_receiving_block(piece_block::invalid)
-		, m_extension_outstanding_bytes(0)
-		, m_queued_time_critical(0)
-		, m_reading_bytes(0)
-		, m_picker_options(0)
-		, m_num_invalid_requests(0)
-		, m_remote_pieces_dled(0)
-		, m_remote_dl_rate(0)
-		, m_outstanding_writing_bytes(0)
-		, m_download_rate_peak(0)
-		, m_upload_rate_peak(0)
-		, m_send_barrier(INT_MAX)
-		, m_desired_queue_size(4)
-		, m_prefer_contiguous_blocks(0)
-		, m_disk_read_failures(0)
 		, m_outstanding_piece_verification(0)
 		, m_outgoing(!pack.tor.expired())
 		, m_received_listen_port(false)
@@ -178,15 +141,6 @@ namespace libtorrent
 		, m_has_metadata(true)
 		, m_exceeded_limit(false)
 		, m_slow_start(true)
-#if TORRENT_USE_ASSERTS
-		, m_in_constructor(true)
-		, m_disconnect_started(false)
-		, m_initialized(false)
-		, m_in_use(1337)
-		, m_received_in_piece(0)
-		, m_destructed(false)
-		, m_socket_is_writing(false)
-#endif
 	{
 		m_counters.inc_stats_counter(counters::num_tcp_peers + m_socket->type() - 1);
 
@@ -195,8 +149,6 @@ namespace libtorrent
 		else if (m_connecting)
 			m_counters.inc_stats_counter(counters::num_peers_half_open);
 
-		m_superseed_piece[0] = -1;
-		m_superseed_piece[1] = -1;
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		// if t is nullptr, we better not be connecting, since
 		// we can't decrement the connecting counter

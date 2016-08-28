@@ -60,6 +60,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/receive_buffer.hpp"
 #include "libtorrent/aux_/allocating_handler.hpp"
+#include "libtorrent/aux_/time.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/span.hpp"
 
@@ -888,33 +889,33 @@ namespace libtorrent
 
 		// the time when we last got a part of a
 		// piece packet from this peer
-		time_point m_last_piece;
+		time_point m_last_piece = aux::time_now();
 
 		// the time we sent a request to
 		// this peer the last time
-		time_point m_last_request;
+		time_point m_last_request = aux::time_now();
 		// the time we received the last
 		// piece request from the peer
-		time_point m_last_incoming_request;
+		time_point m_last_incoming_request = min_time();
 
 		// the time when we unchoked this peer
-		time_point m_last_unchoke;
+		time_point m_last_unchoke = aux::time_now();
 
 		// if we're unchoked by this peer, this
 		// was the time
-		time_point m_last_unchoked;
+		time_point m_last_unchoked = aux::time_now();
 
 		// the time we last choked this peer. min_time() in
 		// case we never unchoked it
-		time_point m_last_choke;
+		time_point m_last_choke = min_time();
 
 		// timeouts
-		time_point m_last_receive;
-		time_point m_last_sent;
+		time_point m_last_receive = aux::time_now();
+		time_point m_last_sent = aux::time_now();
 
 		// the last time we filled our send buffer with payload
 		// this is used for timeouts
-		time_point m_last_sent_payload;
+		time_point m_last_sent_payload = aux::time_now();
 
 		// the time when the first entry in the request queue was requested. Used
 		// for request timeout. it doesn't necessarily represent the time when a
@@ -923,31 +924,31 @@ namespace libtorrent
 		// Once we get that response, we set it to the current time.
 		// for more information, see the blog post at:
 		// http://blog.libtorrent.org/2011/11/block-request-time-outs/
-		time_point m_requested;
+		time_point m_requested = aux::time_now();
 
 		// a timestamp when the remote download rate
 		// was last updated
-		time_point m_remote_dl_update;
+		time_point m_remote_dl_update = aux::time_now();
 
 		// the time when async_connect was called
 		// or when the incoming connection was established
-		time_point m_connect;
+		time_point m_connect = aux::time_now();
 
 		// the time when this peer sent us a not_interested message
 		// the last time.
-		time_point m_became_uninterested;
+		time_point m_became_uninterested = aux::time_now();
 
 		// the time when we sent a not_interested message to
 		// this peer the last time.
-		time_point m_became_uninteresting;
+		time_point m_became_uninteresting = aux::time_now();
 
 		// the total payload download bytes
 		// at the last unchoke round. This is used to
 		// measure the number of bytes transferred during
 		// an unchoke cycle, to unchoke peers the more bytes
 		// they sent us
-		std::int64_t m_downloaded_at_last_round;
-		std::int64_t m_uploaded_at_last_round;
+		std::int64_t m_downloaded_at_last_round = 0;
+		std::int64_t m_uploaded_at_last_round = 0;
 
 		// this is the number of bytes we had uploaded the
 		// last time this peer was unchoked. This does not
@@ -955,19 +956,19 @@ namespace libtorrent
 		// track upload across rounds, for the full duration of
 		// the peer being unchoked. Specifically, it's used
 		// for the round-robin unchoke algorithm.
-		std::int64_t m_uploaded_at_last_unchoke;
+		std::int64_t m_uploaded_at_last_unchoke = 0;
 
 		// the number of payload bytes downloaded last second tick
-		std::int32_t m_downloaded_last_second;
+		std::int32_t m_downloaded_last_second = 0;
 
 		// the number of payload bytes uploaded last second tick
-		std::int32_t m_uploaded_last_second;
+		std::int32_t m_uploaded_last_second = 0;
 
 		// the number of bytes that the other
 		// end has to send us in order to respond
 		// to all outstanding piece requests we
 		// have sent to it
-		int m_outstanding_bytes;
+		int m_outstanding_bytes = 0;
 
 		aux::handler_storage<TORRENT_READ_HANDLER_MAX_SIZE> m_read_handler_storage;
 		aux::handler_storage<TORRENT_WRITE_HANDLER_MAX_SIZE> m_write_handler_storage;
@@ -998,11 +999,11 @@ namespace libtorrent
 
 		// the time when this peer last saw a complete copy
 		// of this torrent
-		time_t m_last_seen_complete;
+		time_t m_last_seen_complete = 0;
 
 		// the block we're currently receiving. Or
 		// (-1, -1) if we're not receiving one
-		piece_block m_receiving_block;
+		piece_block m_receiving_block = piece_block::invalid;
 
 		// the local endpoint for this peer, i.e. our address
 		// and our port. If this is set for outgoing connections
@@ -1029,7 +1030,7 @@ namespace libtorrent
 
 		// the number of outstanding bytes expected
 		// to be received by extensions
-		int m_extension_outstanding_bytes;
+		int m_extension_outstanding_bytes = 0;
 
 		// the number of time critical requests
 		// queued up in the m_request_queue that
@@ -1039,18 +1040,18 @@ namespace libtorrent
 		// requests and take the previous requests
 		// into account without submitting it all
 		// immediately
-		int m_queued_time_critical;
+		int m_queued_time_critical = 0;
 
 		// the number of bytes we are currently reading
 		// from disk, that will be added to the send
 		// buffer as soon as they complete
-		int m_reading_bytes;
+		int m_reading_bytes = 0;
 
 		// options used for the piece picker. These flags will
 		// be augmented with flags controlled by other settings
 		// like sequential download etc. These are here to
 		// let plugins control flags that should always be set
-		int m_picker_options;
+		int m_picker_options = 0;
 
 		// the number of invalid piece-requests
 		// we have got from this peer. If the request
@@ -1059,30 +1060,30 @@ namespace libtorrent
 		// peer is waiting for those pieces.
 		// we can then clear its download queue
 		// by sending choke, unchoke.
-		int m_num_invalid_requests;
+		int m_num_invalid_requests = 0;
 
 		// if [0] is -1, superseeding is not active. If it is >= 0
 		// this is the piece that is available to this peer. Only
 		// these two pieces can be downloaded from us by this peer.
 		// This will remain the current piece for this peer until
 		// another peer sends us a have message for this piece
-		int m_superseed_piece[2];
+		int m_superseed_piece[2] = {-1, -1};
 
 		// pieces downloaded since last second
 		// timer timeout; used for determining
 		// approx download rate
-		int m_remote_pieces_dled;
+		int m_remote_pieces_dled = 0;
 
 		// approximate peer download rate
-		int m_remote_dl_rate;
+		int m_remote_dl_rate = 0;
 
 		// the number of bytes send to the disk-io
 		// thread that hasn't yet been completely written.
-		int m_outstanding_writing_bytes;
+		int m_outstanding_writing_bytes = 0;
 
 		// max transfer rates seen on this peer
-		int m_download_rate_peak;
-		int m_upload_rate_peak;
+		int m_download_rate_peak = 0;
+		int m_upload_rate_peak = 0;
 
 		// when using the BitTyrant choker, this is our
 		// estimated reciprocation rate. i.e. the rate
@@ -1091,12 +1092,12 @@ namespace libtorrent
 		int m_est_reciprocation_rate;
 
 		// stop sending data after this many bytes, INT_MAX = inf
-		int m_send_barrier;
+		int m_send_barrier = INT_MAX;
 
 		// the number of request we should queue up
 		// at the remote end.
 		// TODO: 2 rename this target queue size
-		std::uint16_t m_desired_queue_size;
+		std::uint16_t m_desired_queue_size = 4;
 
 		// if set to non-zero, this peer will always prefer
 		// to request entire n pieces, rather than blocks.
@@ -1104,14 +1105,14 @@ namespace libtorrent
 		// if it is 0, the download rate limit setting
 		// will be used to determine if whole pieces
 		// are preferred.
-		std::uint8_t m_prefer_contiguous_blocks;
+		std::uint8_t m_prefer_contiguous_blocks = 0;
 
 		// this is the number of times this peer has had
 		// a request rejected because of a disk I/O failure.
 		// once this reaches a certain threshold, the
 		// peer is disconnected in order to avoid infinite
 		// loops of consistent failures
-		std::uint8_t m_disk_read_failures;
+		std::uint8_t m_disk_read_failures = 0;
 
 		// this is used in seed mode whenever we trigger a hash check
 		// for a piece, before we read it. It's used to throttle
@@ -1229,15 +1230,15 @@ namespace libtorrent
 
 #if TORRENT_USE_ASSERTS
 	public:
-		bool m_in_constructor;
-		bool m_disconnect_started;
-		bool m_initialized;
-		int m_in_use;
-		int m_received_in_piece;
-		bool m_destructed;
+		bool m_in_constructor = true;
+		bool m_disconnect_started = false;
+		bool m_initialized = false;
+		int m_in_use = 1337;
+		int m_received_in_piece = 0;
+		bool m_destructed = false;
 		// this is true while there is an outstanding
 		// async write job on the socket
-		bool m_socket_is_writing;
+		bool m_socket_is_writing = false;
 		bool is_single_thread() const;
 #endif
 	};
