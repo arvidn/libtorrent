@@ -56,22 +56,19 @@ namespace libtorrent
 		if (!st.name.empty())
 		{
 			ret += "&dn=";
-			ret += escape_string(st.name.c_str(), int(st.name.length()));
+			ret += escape_string(st.name);
 		}
 
-		std::vector<announce_entry> const& tr = handle.trackers();
-		for (std::vector<announce_entry>::const_iterator i = tr.begin(), end(tr.end()); i != end; ++i)
+		for (auto const& tr : handle.trackers())
 		{
 			ret += "&tr=";
-			ret += escape_string(i->url.c_str(), int(i->url.length()));
+			ret += escape_string(tr.url);
 		}
 
-		std::set<std::string> seeds = handle.url_seeds();
-		for (std::set<std::string>::iterator i = seeds.begin()
-			, end(seeds.end()); i != end; ++i)
+		for (auto const& s : handle.url_seeds())
 		{
 			ret += "&ws=";
-			ret += escape_string(i->c_str(), int(i->length()));
+			ret += escape_string(s);
 		}
 
 		return ret;
@@ -89,25 +86,21 @@ namespace libtorrent
 		if (!name.empty())
 		{
 			ret += "&dn=";
-			ret += escape_string(name.c_str(), int(name.length()));
+			ret += escape_string(name);
 		}
 
-		std::vector<announce_entry> const& tr = info.trackers();
-
-		for (std::vector<announce_entry>::const_iterator i = tr.begin(), end(tr.end()); i != end; ++i)
+		for (auto const& tr : info.trackers())
 		{
 			ret += "&tr=";
-			ret += escape_string(i->url.c_str(), int(i->url.length()));
+			ret += escape_string(tr.url);
 		}
 
-		std::vector<web_seed_entry> const& seeds = info.web_seeds();
-		for (std::vector<web_seed_entry>::const_iterator i = seeds.begin()
-			, end(seeds.end()); i != end; ++i)
+		for (auto const& s : info.web_seeds())
 		{
-			if (i->type != web_seed_entry::url_seed) continue;
+			if (s.type != web_seed_entry::url_seed) continue;
 
 			ret += "&ws=";
-			ret += escape_string(i->url.c_str(), int(i->url.length()));
+			ret += escape_string(s.url);
 		}
 
 		return ret;

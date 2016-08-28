@@ -37,8 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include <mutex>
 #include <cstring>
-#include <array>
-#include <tuple>
 
 #ifdef TORRENT_WINDOWS
 #ifndef WIN32_LEAN_AND_MEAN
@@ -54,7 +52,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/parse_url.hpp"
-#include "libtorrent/random.hpp"
 
 #include "libtorrent/utf8.hpp"
 #include "libtorrent/aux_/escape_string.hpp"
@@ -146,12 +143,12 @@ namespace libtorrent
 		TORRENT_ASSERT(str != nullptr);
 		TORRENT_ASSERT(len >= 0);
 		TORRENT_ASSERT(offset >= 0);
-		TORRENT_ASSERT(offset < int(sizeof(unreserved_chars))-1);
+		TORRENT_ASSERT(offset < int(sizeof(unreserved_chars)) - 1);
 
 		std::string ret;
 		for (int i = 0; i < len; ++i)
 		{
-			if (std::strchr(unreserved_chars+offset, *str) && *str != 0)
+			if (std::strchr(unreserved_chars + offset, *str) && *str != 0)
 			{
 				ret += *str;
 			}
@@ -168,14 +165,14 @@ namespace libtorrent
 
 	} // anonymous namespace
 
-	std::string escape_string(const char* str, int len)
+	std::string escape_string(string_view str)
 	{
-		return escape_string_impl(str, len, 11);
+		return escape_string_impl(str.data(), int(str.size()), 11);
 	}
 
-	std::string escape_path(const char* str, int len)
+	std::string escape_path(string_view str)
 	{
-		return escape_string_impl(str, len, 10);
+		return escape_string_impl(str.data(), int(str.size()), 10);
 	}
 
 	bool need_encoding(char const* str, int len)
@@ -238,7 +235,7 @@ namespace libtorrent
 			, auth.empty()?"":"@", host.c_str()
 			, port == -1 ? "" : ":"
 			, port == -1 ? "" : to_string(port).data()
-			, escape_path(path.c_str(), int(path.size())).c_str());
+			, escape_path(path).c_str());
 		return msg;
 	}
 
@@ -619,4 +616,3 @@ namespace libtorrent
 #endif
 
 }
-

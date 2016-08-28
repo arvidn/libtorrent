@@ -187,15 +187,15 @@ TORRENT_TEST(escape_string)
 {
 	// escape_string
 	char const* test_string = "!@#$%^&*()-_=+/,. %?";
-	TEST_EQUAL(escape_string(test_string, int(strlen(test_string)))
+	TEST_EQUAL(escape_string(test_string)
 		, "!%40%23%24%25%5e%26*()-_%3d%2b%2f%2c.%20%25%3f");
 
 	// escape_path
-	TEST_EQUAL(escape_path(test_string, int(strlen(test_string)))
+	TEST_EQUAL(escape_path(test_string)
 		, "!%40%23%24%25%5e%26*()-_%3d%2b/%2c.%20%25%3f");
 
 	error_code ec;
-	TEST_CHECK(unescape_string(escape_path(test_string, int(strlen(test_string))), ec) == test_string);
+	TEST_CHECK(unescape_string(escape_path(test_string), ec) == test_string);
 	TEST_CHECK(!ec);
 	if (ec) std::fprintf(stderr, "%s\n", ec.message().c_str());
 
@@ -212,9 +212,9 @@ TORRENT_TEST(escape_string)
 	TEST_EQUAL(maybe_url_encode("?&"), "?&");
 
 	// unescape_string
-	TEST_CHECK(unescape_string(escape_string(test_string, int(strlen(test_string))), ec)
+	TEST_CHECK(unescape_string(escape_string(test_string), ec)
 		== test_string);
-	std::cerr << unescape_string(escape_string(test_string, int(strlen(test_string))), ec) << std::endl;
+	std::cerr << unescape_string(escape_string(test_string), ec) << std::endl;
 	// prematurely terminated string
 	unescape_string("%", ec);
 	TEST_CHECK(ec == error_code(errors::invalid_escaped_string));
