@@ -75,10 +75,13 @@ TESTS = $(check_PROGRAMS)
 
 EXTRA_DIST = Jamfile \
   test_torrents/base.torrent \
+  test_torrents/empty_path.torrent \
   test_torrents/parent_path.torrent \
   test_torrents/hidden_parent_path.torrent \
   test_torrents/single_multi_file.torrent \
   test_torrents/slash_path.torrent \
+  test_torrents/slash_path2.torrent \
+  test_torrents/slash_path3.torrent \
   test_torrents/backslash_path.torrent \
   test_torrents/url_list.torrent \
   test_torrents/url_list2.torrent \
@@ -94,6 +97,7 @@ EXTRA_DIST = Jamfile \
   test_torrents/no_name.torrent \
   test_torrents/invalid_name.torrent \
   test_torrents/invalid_name2.torrent \
+  test_torrents/invalid_name3.torrent \
   test_torrents/invalid_info.torrent \
   test_torrents/string.torrent \
   test_torrents/negative_size.torrent \
@@ -105,6 +109,7 @@ EXTRA_DIST = Jamfile \
   test_torrents/unaligned_pieces.torrent \
   test_torrents/creation_date.torrent \
   test_torrents/no_creation_date.torrent \
+  test_torrents/symlink1.torrent \
   test_torrents/url_seed.torrent \
   test_torrents/url_seed_multi.torrent \
   test_torrents/url_seed_multi_space.torrent \
