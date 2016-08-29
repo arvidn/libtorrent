@@ -5818,10 +5818,11 @@ namespace libtorrent
 					disconnect(ec, op_sock_read);
 					return;
 				}
-
-				account_received_bytes(bytes);
-
-				bytes_transferred += bytes;
+				else
+				{
+					account_received_bytes(bytes);
+					bytes_transferred += bytes;
+				}
 			}
 		}
 
