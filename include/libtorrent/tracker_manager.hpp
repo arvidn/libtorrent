@@ -219,7 +219,7 @@ namespace libtorrent
 		int incomplete;
 
 		// if supported by the tracker, the number of actively downloading peers.
-		// i.e. partial seeds. If not suppored, -1
+		// i.e. partial seeds. If not supported, -1
 		int downloaders;
 
 		// the number of times the torrent has been downloaded
@@ -254,7 +254,7 @@ namespace libtorrent
 	};
 
 	struct TORRENT_EXTRA_EXPORT timeout_handler
-		: boost::enable_shared_from_this<timeout_handler>
+		: std::enable_shared_from_this<timeout_handler>
 		, boost::noncopyable
 	{
 		timeout_handler(io_service& str);
@@ -315,9 +315,9 @@ namespace libtorrent
 		void sent_bytes(int bytes);
 		void received_bytes(int bytes);
 
-		boost::shared_ptr<tracker_connection> shared_from_this()
+		std::shared_ptr<tracker_connection> shared_from_this()
 		{
-			return boost::static_pointer_cast<tracker_connection>(
+			return std::static_pointer_cast<tracker_connection>(
 				timeout_handler::shared_from_this());
 		}
 
@@ -383,7 +383,7 @@ namespace libtorrent
 		bool incoming_packet(char const* hostname, span<char const> buf);
 
 		void update_transaction_id(
-			boost::shared_ptr<udp_tracker_connection> c
+			std::shared_ptr<udp_tracker_connection> c
 			, std::uint64_t tid);
 
 		aux::session_settings const& settings() const { return m_settings; }
@@ -401,10 +401,10 @@ namespace libtorrent
 		// These must use shared_ptr to avoid a dangling reference
 		// if a connection is erased while a timeout event is in the queue
 		typedef boost::unordered_map<std::uint32_t
-			, boost::shared_ptr<udp_tracker_connection> > udp_conns_t;
+			, std::shared_ptr<udp_tracker_connection>> udp_conns_t;
 		udp_conns_t m_udp_conns;
 
-		typedef std::vector<boost::shared_ptr<http_tracker_connection> > http_conns_t;
+		typedef std::vector<std::shared_ptr<http_tracker_connection>> http_conns_t;
 		http_conns_t m_http_conns;
 
 		send_fun_t m_send_fun;
@@ -421,4 +421,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_TRACKER_MANAGER_HPP_INCLUDED
-

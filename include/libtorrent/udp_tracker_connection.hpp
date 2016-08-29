@@ -80,9 +80,9 @@ namespace libtorrent
 			action_error
 		};
 
-		boost::shared_ptr<udp_tracker_connection> shared_from_this()
+		std::shared_ptr<udp_tracker_connection> shared_from_this()
 		{
-			return boost::static_pointer_cast<udp_tracker_connection>(
+			return std::static_pointer_cast<udp_tracker_connection>(
 				tracker_connection::shared_from_this());
 		}
 

@@ -77,9 +77,9 @@ namespace libtorrent
 
 	private:
 
-		boost::shared_ptr<http_tracker_connection> shared_from_this()
+		std::shared_ptr<http_tracker_connection> shared_from_this()
 		{
-			return boost::static_pointer_cast<http_tracker_connection>(
+			return std::static_pointer_cast<http_tracker_connection>(
 				tracker_connection::shared_from_this());
 		}
 

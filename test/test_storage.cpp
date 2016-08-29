@@ -463,7 +463,7 @@ void test_check_files(std::string const& test_path
 	p.mode = storage_mode;
 
 	boost::shared_ptr<void> dummy;
-	boost::shared_ptr<piece_manager> pm = boost::make_shared<piece_manager>(new default_storage(p), dummy, &fs);
+	std::shared_ptr<piece_manager> pm = std::make_shared<piece_manager>(new default_storage(p), dummy, &fs);
 	std::mutex lock;
 
 	bool done = false;
@@ -1377,4 +1377,3 @@ TORRENT_TEST(dont_move_intermingled_files)
 	TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage"
 		, combine_path("_folder3", "alien_folder1")))));
 }
-

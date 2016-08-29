@@ -44,7 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/shared_ptr.hpp>
-#include <boost/enable_shared_from_this.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <functional>
@@ -131,7 +130,7 @@ TORRENT_EXTRA_EXPORT void find_control_url(int type, char const* string
 
 // TODO: support using the windows API for UPnP operations as well
 struct TORRENT_EXTRA_EXPORT upnp final
-	: boost::enable_shared_from_this<upnp>
+	: std::enable_shared_from_this<upnp>
 	, single_threaded
 {
 	upnp(io_service& ios
@@ -182,7 +181,7 @@ struct TORRENT_EXTRA_EXPORT upnp final
 
 private:
 
-	boost::shared_ptr<upnp> self() { return shared_from_this(); }
+	std::shared_ptr<upnp> self() { return shared_from_this(); }
 
 	void map_timer(error_code const& ec);
 	void try_map_upnp(bool timer = false);

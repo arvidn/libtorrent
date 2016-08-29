@@ -5521,11 +5521,11 @@ namespace aux {
 		if (m_outstanding_router_lookups > 0) return;
 
 		m_dht_storage = m_dht_storage_constructor(m_dht_settings);
-		m_dht = boost::make_shared<dht::dht_tracker>(
+		m_dht = std::make_shared<dht::dht_tracker>(
 			static_cast<dht_observer*>(this)
 			, std::ref(m_io_service)
 			, std::bind(&session_impl::send_udp_packet, this, false, _1, _2, _3, _4)
-			, boost::cref(m_dht_settings)
+			, std::cref(m_dht_settings)
 			, std::ref(m_stats_counters)
 			, *m_dht_storage
 			, startup_state);
@@ -6390,7 +6390,7 @@ namespace aux {
 
 		if (m_lsd) return;
 
-		m_lsd = boost::make_shared<lsd>(std::ref(m_io_service)
+		m_lsd = std::make_shared<lsd>(std::ref(m_io_service)
 			, std::bind(&session_impl::on_lsd_peer, this, _1, _2)
 #ifndef TORRENT_DISABLE_LOGGING
 			, std::bind(&session_impl::on_lsd_log, this, _1)
@@ -6418,7 +6418,7 @@ namespace aux {
 
 		// the natpmp constructor may fail and call the callbacks
 		// into the session_impl.
-		m_natpmp = boost::make_shared<natpmp>(std::ref(m_io_service)
+		m_natpmp = std::make_shared<natpmp>(std::ref(m_io_service)
 			, std::bind(&session_impl::on_port_mapping
 				, this, _1, _2, _3, _4, _5, 0)
 			, std::bind(&session_impl::on_port_map_log
@@ -6440,7 +6440,7 @@ namespace aux {
 		if (m_upnp) return m_upnp.get();
 
 		// the upnp constructor may fail and call the callbacks
-		m_upnp = boost::make_shared<upnp>(std::ref(m_io_service)
+		m_upnp = std::make_shared<upnp>(std::ref(m_io_service)
 			, m_settings.get_str(settings_pack::user_agent)
 			, std::bind(&session_impl::on_port_mapping
 				, this, _1, _2, _3, _4, _5, 1)

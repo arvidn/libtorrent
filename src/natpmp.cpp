@@ -37,7 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <pthread.h>
 #endif
 
-#include <boost/version.hpp>
 #include <boost/asio/ip/host_name.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -657,4 +656,3 @@ void natpmp::close_impl()
 	m_currently_mapping = -1;
 	update_mapping(0);
 }
-

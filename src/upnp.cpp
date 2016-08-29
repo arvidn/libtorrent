@@ -43,7 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/ref.hpp>
 #include <boost/asio/ip/host_name.hpp>
 #include <boost/asio/ip/multicast.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -274,7 +273,7 @@ void upnp::resend_request(error_code const& ec)
 	COMPLETE_ASYNC("upnp::resend_request");
 	if (ec) return;
 
-	boost::shared_ptr<upnp> me(self());
+	std::shared_ptr<upnp> me(self());
 
 	if (m_closing) return;
 
@@ -332,7 +331,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 	, std::size_t bytes_transferred)
 {
 	TORRENT_ASSERT(is_single_thread());
-	boost::shared_ptr<upnp> me(self());
+	std::shared_ptr<upnp> me(self());
 
 	using namespace libtorrent::detail;
 
@@ -739,7 +738,7 @@ void upnp::update_map(rootdevice& d, int i)
 
 	if (d.upnp_connection) return;
 
-	boost::shared_ptr<upnp> me(self());
+	std::shared_ptr<upnp> me(self());
 
 	mapping_t& m = d.mapping[i];
 
@@ -900,7 +899,7 @@ void upnp::on_upnp_xml(error_code const& e
 	, http_connection& c)
 {
 	TORRENT_ASSERT(is_single_thread());
-	boost::shared_ptr<upnp> me(self());
+	std::shared_ptr<upnp> me(self());
 
 	TORRENT_ASSERT(d.magic == 1337);
 	if (d.upnp_connection && d.upnp_connection.get() == &c)
@@ -1181,7 +1180,7 @@ void upnp::on_upnp_get_ip_address_response(error_code const& e
 	, http_connection& c)
 {
 	TORRENT_ASSERT(is_single_thread());
-	boost::shared_ptr<upnp> me(self());
+	std::shared_ptr<upnp> me(self());
 
 	TORRENT_ASSERT(d.magic == 1337);
 	if (d.upnp_connection && d.upnp_connection.get() == &c)
@@ -1267,7 +1266,7 @@ void upnp::on_upnp_map_response(error_code const& e
 	, http_connection& c)
 {
 	TORRENT_ASSERT(is_single_thread());
-	boost::shared_ptr<upnp> me(self());
+	std::shared_ptr<upnp> me(self());
 
 	TORRENT_ASSERT(d.magic == 1337);
 	if (d.upnp_connection && d.upnp_connection.get() == &c)
@@ -1434,7 +1433,7 @@ void upnp::on_upnp_unmap_response(error_code const& e
 	, http_connection& c)
 {
 	TORRENT_ASSERT(is_single_thread());
-	boost::shared_ptr<upnp> me(self());
+	std::shared_ptr<upnp> me(self());
 
 	TORRENT_ASSERT(d.magic == 1337);
 	if (d.upnp_connection && d.upnp_connection.get() == &c)
@@ -1562,4 +1561,3 @@ void upnp::close()
 }
 
 }
-

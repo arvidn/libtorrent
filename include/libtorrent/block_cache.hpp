@@ -36,13 +36,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/unordered_set.hpp>
-#include <cstdint>
-#include <boost/shared_ptr.hpp>
 #include <boost/shared_array.hpp>
-#include <list>
-#include <vector>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
+
+#include <cstdint>
+#include <list>
+#include <vector>
 
 #include "libtorrent/time.hpp"
 #include "libtorrent/error_code.hpp"
@@ -187,7 +187,7 @@ namespace libtorrent
 		}
 
 		// storage this piece belongs to
-		boost::shared_ptr<piece_manager> storage;
+		std::shared_ptr<piece_manager> storage;
 
 		// write jobs hanging off of this piece
 		tailqueue<disk_io_job> jobs;

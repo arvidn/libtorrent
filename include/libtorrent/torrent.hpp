@@ -1167,7 +1167,7 @@ namespace libtorrent
 		// the piece_manager, and stored in the
 		// torrent, so the torrent cannot destruct
 		// before the piece_manager.
-		boost::shared_ptr<piece_manager> m_storage;
+		std::shared_ptr<piece_manager> m_storage;
 
 #ifdef TORRENT_USE_OPENSSL
 		boost::shared_ptr<boost::asio::ssl::context> m_ssl_ctx;

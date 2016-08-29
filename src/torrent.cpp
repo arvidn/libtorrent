@@ -1675,7 +1675,7 @@ namespace libtorrent
 
 		// the shared_from_this() will create an intentional
 		// cycle of ownership, se the hpp file for description.
-		m_storage = boost::make_shared<piece_manager>(
+		m_storage = std::make_shared<piece_manager>(
 			storage_impl, shared_from_this()
 			, const_cast<file_storage*>(&m_torrent_file->files()));
 	}

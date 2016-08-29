@@ -31,9 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/disk_io_job.hpp"
-#include "libtorrent/storage.hpp"
 #include "libtorrent/block_cache.hpp" // for cached_piece_entry
-#include "libtorrent/entry.hpp"
 
 namespace libtorrent
 {
@@ -68,7 +66,7 @@ namespace libtorrent
 	{
 		if (action != write) return false;
 
-		int block_offset = d.io.offset & (block_size-1);
+		int block_offset = d.io.offset & (block_size - 1);
 		int size = d.io.buffer_size;
 		int start = d.io.offset / block_size;
 		int end = block_offset > 0 && (size > block_size - block_offset) ? start + 2 : start + 1;
@@ -81,4 +79,3 @@ namespace libtorrent
 		return true;
 	}
 }
-

@@ -238,7 +238,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(is_single_thread());
 		http_conns_t::iterator i = std::find_if(m_http_conns.begin(), m_http_conns.end()
-			, [c] (boost::shared_ptr<http_tracker_connection> const& ptr) { return ptr.get() == c; });
+			, [c] (std::shared_ptr<http_tracker_connection> const& ptr) { return ptr.get() == c; });
 		if (i != m_http_conns.end())
 		{
 			m_http_conns.erase(i);
@@ -255,7 +255,7 @@ namespace libtorrent
 	}
 
 	void tracker_manager::update_transaction_id(
-		boost::shared_ptr<udp_tracker_connection> c
+		std::shared_ptr<udp_tracker_connection> c
 		, std::uint64_t tid)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -287,18 +287,18 @@ namespace libtorrent
 		if (protocol == "http")
 #endif
 		{
-			boost::shared_ptr<http_tracker_connection> con
-				= boost::make_shared<http_tracker_connection>(
-				std::ref(ios), std::ref(*this), boost::cref(req), c);
+			std::shared_ptr<http_tracker_connection> con
+				= std::make_shared<http_tracker_connection>(
+					std::ref(ios), std::ref(*this), std::cref(req), c);
 			m_http_conns.push_back(con);
 			con->start();
 			return;
 		}
 		else if (protocol == "udp")
 		{
-			boost::shared_ptr<udp_tracker_connection> con
-				= boost::make_shared<udp_tracker_connection>(
-					std::ref(ios), std::ref(*this), boost::cref(req) , c);
+			std::shared_ptr<udp_tracker_connection> con
+				= std::make_shared<udp_tracker_connection>(
+					std::ref(ios), std::ref(*this), std::cref(req) , c);
 			m_udp_conns[con->transaction_id()] = con;
 			con->start();
 			return;
@@ -344,7 +344,7 @@ namespace libtorrent
 			return false;
 		}
 
-		boost::shared_ptr<udp_tracker_connection> const p = i->second;
+		std::shared_ptr<udp_tracker_connection> const p = i->second;
 		// on_receive() may remove the tracker connection from the list
 		return p->on_receive(ep, buf);
 	}
@@ -383,7 +383,7 @@ namespace libtorrent
 			return false;
 		}
 
-		boost::shared_ptr<udp_tracker_connection> const p = i->second;
+		std::shared_ptr<udp_tracker_connection> const p = i->second;
 		// on_receive() may remove the tracker connection from the list
 		return p->on_receive_hostname(hostname, buf);
 	}
@@ -412,7 +412,7 @@ namespace libtorrent
 
 		m_abort = true;
 		http_conns_t close_http_connections;
-		std::vector<boost::shared_ptr<udp_tracker_connection> > close_udp_connections;
+		std::vector<std::shared_ptr<udp_tracker_connection>> close_udp_connections;
 
 		for (http_conns_t::iterator i = m_http_conns.begin()
 			, end(m_http_conns.end()); i != end; ++i)
@@ -432,7 +432,7 @@ namespace libtorrent
 		for (udp_conns_t::iterator i = m_udp_conns.begin()
 			, end(m_udp_conns.end()); i != end; ++i)
 		{
-			boost::shared_ptr<udp_tracker_connection> c = i->second;
+			std::shared_ptr<udp_tracker_connection> c = i->second;
 			tracker_request const& req = c->tracker_req();
 			if (req.event == tracker_request::stopped && !all)
 				continue;
@@ -451,11 +451,9 @@ namespace libtorrent
 			(*i)->close();
 		}
 
-		for (std::vector<boost::shared_ptr<udp_tracker_connection> >::iterator i
-			= close_udp_connections.begin()
-			, end(close_udp_connections.end()); i != end; ++i)
+		for (auto const& c : close_udp_connections)
 		{
-			(*i)->close();
+			c->close();
 		}
 	}
 

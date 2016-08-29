@@ -297,7 +297,7 @@ namespace libtorrent
 		, http_parser const& parser, char const* data, int size)
 	{
 		// keep this alive
-		boost::shared_ptr<http_tracker_connection> me(shared_from_this());
+		std::shared_ptr<http_tracker_connection> me(shared_from_this());
 
 		if (ec && ec != boost::asio::error::eof)
 		{

@@ -41,14 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/debug.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/function/function1.hpp>
-#include <boost/function/function5.hpp>
-#include <boost/enable_shared_from_this.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 namespace libtorrent
 {
 
@@ -59,7 +51,7 @@ typedef std::function<void(int, address, int, int, error_code const&)> portmap_c
 typedef std::function<void(char const*)> log_callback_t;
 
 struct TORRENT_EXTRA_EXPORT natpmp
-	: boost::enable_shared_from_this<natpmp>
+	: std::enable_shared_from_this<natpmp>
 	, single_threaded
 {
 	natpmp(io_service& ios, portmap_callback_t const& cb
@@ -78,7 +70,7 @@ struct TORRENT_EXTRA_EXPORT natpmp
 
 private:
 
-	boost::shared_ptr<natpmp> self() { return shared_from_this(); }
+	std::shared_ptr<natpmp> self() { return shared_from_this(); }
 
 	void update_mapping(int i);
 	void send_map_request(int i);
@@ -182,6 +174,4 @@ private:
 
 }
 
-
 #endif
-
