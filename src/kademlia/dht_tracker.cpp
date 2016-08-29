@@ -709,4 +709,3 @@ namespace libtorrent { namespace dht
 	}
 
 }}
-

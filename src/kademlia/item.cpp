@@ -115,18 +115,17 @@ bool verify_mutable_item(
 // key) a signature ``sig`` is produced. The ``sig`` pointer must point to
 // at least 64 bytes of available space. This space is where the signature is
 // written.
-void sign_mutable_item(
+signature sign_mutable_item(
 	span<char const> v
 	, span<char const> salt
 	, sequence_number const seq
 	, public_key const& pk
-	, secret_key const& sk
-	, signature& sig)
+	, secret_key const& sk)
 {
 	char str[1200];
 	int const len = canonical_string(v, seq, salt, str);
 
-	ed25519_sign(sig, {str, size_t(len)}, pk, sk);
+	return ed25519_sign({str, size_t(len)}, pk, sk);
 }
 
 item::item(public_key const& pk, span<char const> salt)
@@ -166,8 +165,8 @@ void item::assign(entry v, span<char const> salt
 	char buffer[1000];
 	int bsize = bencode(buffer, v);
 	TORRENT_ASSERT(bsize <= 1000);
-	sign_mutable_item(span<char const>(buffer, bsize)
-		, salt, seq, pk, sk, m_sig);
+	m_sig = sign_mutable_item(span<char const>(buffer, bsize)
+		, salt, seq, pk, sk);
 	m_salt.assign(salt.data(), salt.size());
 	m_pk = pk;
 	m_seq = seq;

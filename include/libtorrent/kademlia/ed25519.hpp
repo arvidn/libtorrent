@@ -38,14 +38,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/types.hpp>
 
 #include <array>
-#include <memory>
+#include <tuple>
 
 namespace libtorrent {
 namespace dht
 {
 
 	// See documentation of internal random_bytes
-	TORRENT_EXPORT void ed25519_create_seed(std::array<char, 32>& seed);
+	TORRENT_EXPORT std::array<char, 32> ed25519_create_seed();
 
 	// Creates a new key pair from the given seed.
 	//
@@ -60,11 +60,11 @@ namespace dht
 	//
 	// The smaller format is not weaker by any means, in fact, it is only
 	// the seed (32 bytes) that determines the point in the curve.
-	TORRENT_EXPORT void ed25519_create_keypair(public_key& pk
-		, secret_key& sk, std::array<char, 32> const& seed);
+	TORRENT_EXPORT std::tuple<public_key, secret_key> ed25519_create_keypair(
+		std::array<char, 32> const& seed);
 
 	// Creates a signature of the given message with the given key pair.
-	TORRENT_EXPORT void ed25519_sign(signature& sig, span<char const> msg
+	TORRENT_EXPORT signature ed25519_sign(span<char const> msg
 		, public_key const& pk, secret_key const& sk);
 
 	// Verifies the signature on the given message using ``pk``
@@ -85,8 +85,10 @@ namespace dht
 	//
 	// see http://crypto.stackexchange.com/a/6215/4697
 	// see test_ed25519 for a practical example
-	TORRENT_EXPORT void ed25519_add_scalar(std::shared_ptr<public_key> pk
-		, std::shared_ptr<secret_key> sk, std::array<char, 32> const& scalar);
+	TORRENT_EXPORT public_key ed25519_add_scalar(public_key const& pk
+		, std::array<char, 32> const& scalar);
+	TORRENT_EXPORT secret_key ed25519_add_scalar(secret_key const& sk
+		, std::array<char, 32> const& scalar);
 
 	// Performs a key exchange on the given public key and private key, producing a
 	// shared secret. It is recommended to hash the shared secret before using it.
@@ -94,8 +96,8 @@ namespace dht
 	// This is useful when two parties want to share a secret but both only knows
 	// their respective public keys.
 	// see test_ed25519 for a practical example
-	TORRENT_EXPORT void ed25519_key_exchange(std::array<char, 32>& secret
-		, public_key const& pk, secret_key const& sk);
+	TORRENT_EXPORT std::array<char, 32> ed25519_key_exchange(
+		public_key const& pk, secret_key const& sk);
 
 }}
 

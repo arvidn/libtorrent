@@ -38,30 +38,41 @@ namespace libtorrent {
 namespace dht
 {
 
-	void ed25519_create_seed(std::array<char, 32>& seed)
+	std::array<char, 32> ed25519_create_seed()
 	{
+		std::array<char, 32> seed;
 		aux::random_bytes(seed);
+		return seed;
 	}
 
-	void ed25519_create_keypair(public_key& pk
-		, secret_key& sk, std::array<char, 32> const& seed)
+	std::tuple<public_key, secret_key> ed25519_create_keypair(
+		std::array<char, 32> const& seed)
 	{
+		public_key pk;
+		secret_key sk;
+
 		auto const pk_ptr = reinterpret_cast<unsigned char*>(pk.bytes.data());
 		auto const sk_ptr = reinterpret_cast<unsigned char*>(sk.bytes.data());
 		auto const seed_ptr = reinterpret_cast<unsigned char const*>(seed.data());
 
 		libtorrent::ed25519_create_keypair(pk_ptr, sk_ptr, seed_ptr);
+
+		return std::make_tuple(pk, sk);
 	}
 
-	void ed25519_sign(signature& sig, span<char const> msg
+	signature ed25519_sign(span<char const> msg
 		, public_key const& pk, secret_key const& sk)
 	{
+		signature sig;
+
 		auto const sig_ptr = reinterpret_cast<unsigned char*>(sig.bytes.data());
 		auto const msg_ptr = reinterpret_cast<unsigned char const*>(msg.data());
 		auto const pk_ptr = reinterpret_cast<unsigned char const*>(pk.bytes.data());
 		auto const sk_ptr = reinterpret_cast<unsigned char const*>(sk.bytes.data());
 
 		libtorrent::ed25519_sign(sig_ptr, msg_ptr, msg.size(), pk_ptr, sk_ptr);
+
+		return sig;
 	}
 
 	bool ed25519_verify(signature const& sig
@@ -74,26 +85,44 @@ namespace dht
 		return libtorrent::ed25519_verify(sig_ptr, msg_ptr, msg.size(), pk_ptr) == 1;
 	}
 
-	void ed25519_add_scalar(std::shared_ptr<public_key> pk
-		, std::shared_ptr<secret_key> sk, std::array<char, 32> const& scalar)
+	public_key ed25519_add_scalar(public_key const& pk
+		, std::array<char, 32> const& scalar)
 	{
-		auto const pk_ptr = pk
-			? reinterpret_cast<unsigned char*>(pk->bytes.data()) : nullptr;
-		auto const sk_ptr = sk
-			? reinterpret_cast<unsigned char*>(sk->bytes.data()) : nullptr;
+		public_key ret(pk.bytes.data());
+
+		auto const ret_ptr = reinterpret_cast<unsigned char*>(ret.bytes.data());
 		auto const scalar_ptr = reinterpret_cast<unsigned char const*>(scalar.data());
 
-		libtorrent::ed25519_add_scalar(pk_ptr, sk_ptr, scalar_ptr);
+		libtorrent::ed25519_add_scalar(ret_ptr, nullptr, scalar_ptr);
+
+		return ret;
 	}
 
-	void ed25519_key_exchange(std::array<char, 32>& secret
-		, public_key const& pk, secret_key const& sk)
+	secret_key ed25519_add_scalar(secret_key const& sk
+		, std::array<char, 32> const& scalar)
 	{
+		secret_key ret(sk.bytes.data());
+
+		auto const ret_ptr = reinterpret_cast<unsigned char*>(ret.bytes.data());
+		auto const scalar_ptr = reinterpret_cast<unsigned char const*>(scalar.data());
+
+		libtorrent::ed25519_add_scalar(nullptr, ret_ptr, scalar_ptr);
+
+		return ret;
+	}
+
+	std::array<char, 32> ed25519_key_exchange(
+		public_key const& pk, secret_key const& sk)
+	{
+		std::array<char, 32> secret;
+
 		auto const secret_ptr = reinterpret_cast<unsigned char*>(secret.data());
 		auto const pk_ptr = reinterpret_cast<unsigned char const*>(pk.bytes.data());
 		auto const sk_ptr = reinterpret_cast<unsigned char const*>(sk.bytes.data());
 
 		libtorrent::ed25519_key_exchange(secret_ptr, pk_ptr, sk_ptr);
+
+		return secret;
 	}
 
 }}

@@ -128,9 +128,9 @@ void put_string(entry& e, std::array<char, 64>& sig
 	bencode(std::back_inserter(buf), e);
 	dht::signature sign;
 	++seq;
-	sign_mutable_item(buf, salt, dht::sequence_number(seq)
+	sign = sign_mutable_item(buf, salt, dht::sequence_number(seq)
 		, dht::public_key(pk.data())
-		, dht::secret_key(sk.data()), sign);
+		, dht::secret_key(sk.data()));
 	sig = sign.bytes;
 }
 
@@ -162,7 +162,7 @@ int dump_key(char *filename)
 
 	public_key pk;
 	secret_key sk;
-	ed25519_create_keypair(pk, sk, seed);
+	std::tie(pk, sk) = ed25519_create_keypair(seed);
 
 	std::printf("public key: %s\nprivate key: %s\n"
 		, to_hex(pk.bytes).c_str()
@@ -173,8 +173,7 @@ int dump_key(char *filename)
 
 int generate_key(char* filename)
 {
-	std::array<char, 32> seed;
-	ed25519_create_seed(seed);
+	std::array<char, 32> seed = ed25519_create_seed();
 
 	FILE* f = std::fopen(filename, "wb+");
 	if (f == nullptr)
@@ -357,7 +356,7 @@ int main(int argc, char* argv[])
 
 		public_key pk;
 		secret_key sk;
-		ed25519_create_keypair(pk, sk, seed);
+		std::tie(pk, sk) = ed25519_create_keypair(seed);
 
 		bootstrap(s);
 		s.dht_put_item(pk.bytes, std::bind(&put_string, _1, _2, _3, _4

@@ -171,7 +171,7 @@ public:
 	void new_write_key();
 
 	// pings the given node, and adds it to
-	// the routing table if it respons and if the
+	// the routing table if it response and if the
 	// bucket is not full.
 	void add_node(udp::endpoint node);
 

@@ -5704,7 +5704,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::incoming, "READ"
-			, "%d bytes", int(bytes_transferred));
+			, "%d bytes", bytes_transferred);
 #endif
 	}
 
@@ -6063,7 +6063,7 @@ namespace libtorrent
 	// --------------------------
 
 	void peer_connection::on_send_data(error_code const& error
-		, std::size_t bytes_transferred)
+		, std::size_t const bytes_transferred)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		m_counters.inc_stats_counter(counters::on_write_counter);

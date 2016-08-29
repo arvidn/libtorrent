@@ -53,12 +53,12 @@ namespace
 		std::vector<char> msg(int(message.size()) / 2);
 
 		aux::from_hex(seed, s.data());
-		ed25519_create_keypair(pk, sk, s);
+		std::tie(pk, sk) = ed25519_create_keypair(s);
 
 		TEST_EQUAL(aux::to_hex(pk.bytes), pub);
 
 		aux::from_hex(message, msg.data());
-		ed25519_sign(sig, msg, pk, sk);
+		sig = ed25519_sign(msg, pk, sk);
 
 		TEST_EQUAL(aux::to_hex(sig.bytes), sig_hex);
 
@@ -201,14 +201,9 @@ TORRENT_TEST(ed25519_test_vec1)
 
 TORRENT_TEST(create_seed)
 {
-	std::array<char, 32> s1;
-	std::array<char, 32> s2;
-	s1.fill(0);
-	s2.fill(0);
+	std::array<char, 32> s1 = ed25519_create_seed();
+	std::array<char, 32> s2 = ed25519_create_seed();
 
-	TEST_CHECK(s1 == s2);
-	ed25519_create_seed(s1);
-	ed25519_create_seed(s2);
 	TEST_CHECK(s1 != s2); // what are the odds
 
 	int n1 = 0;
@@ -225,37 +220,32 @@ TORRENT_TEST(create_seed)
 TORRENT_TEST(add_scalar)
 {
 	// client
-	std::array<char, 32> s1;
-	ed25519_create_seed(s1);
+	std::array<char, 32> s1 = ed25519_create_seed();
 
 	public_key pk1;
 	secret_key sk1;
-	ed25519_create_keypair(pk1, sk1, s1);
+	std::tie(pk1, sk1) = ed25519_create_keypair(s1);
 
 	// client sends to server the public key
 
 	// server generates another seed, it could be an scalar
 	// n = HMAC(k, pk1) and sends it back to the client
 	// see http://crypto.stackexchange.com/a/6215/4697
-	std::array<char, 32> n;
-	ed25519_create_seed(n);
+	std::array<char, 32> n = ed25519_create_seed();
 
 	// now the server knows that the client's public key
 	// must be (or assigns) pk1 + n
-	ed25519_add_scalar(std::make_shared<public_key>(pk1)
-		, std::make_shared<secret_key>(), n);
+	pk1 = ed25519_add_scalar(pk1, n);
 
 	// server sends n to the client
 
 	// the client, in order to properly sign messages, must
 	// adjust the private key
-	ed25519_add_scalar(std::make_shared<public_key>()
-		, std::make_shared<secret_key>(sk1), n);
+	sk1 = ed25519_add_scalar(sk1, n);
 
 	// test sign and verification
 	std::string msg = "Hello world";
-	signature sig;
-	ed25519_sign(sig, msg, pk1, sk1);
+	signature sig = ed25519_sign(msg, pk1, sk1);
 	bool r = ed25519_verify(sig, msg, pk1);
 	TEST_CHECK(r);
 }
@@ -263,32 +253,28 @@ TORRENT_TEST(add_scalar)
 TORRENT_TEST(key_exchange)
 {
 	// user A
-	std::array<char, 32> s1;
-	ed25519_create_seed(s1);
+	std::array<char, 32> s1 = ed25519_create_seed();
 
 	public_key pk1;
 	secret_key sk1;
-	ed25519_create_keypair(pk1, sk1, s1);
+	std::tie(pk1, sk1) = ed25519_create_keypair(s1);
 
 	// user A sends to user B the public key
 
 	// user B
-	std::array<char, 32> s2;
-	ed25519_create_seed(s2);
+	std::array<char, 32> s2 = ed25519_create_seed();
 
 	public_key pk2;
 	secret_key sk2;
-	ed25519_create_keypair(pk2, sk2, s2);
+	std::tie(pk2, sk2) = ed25519_create_keypair(s2);
 
 	// user B performs the key exchange
-	std::array<char, 32> secretB;
-	ed25519_key_exchange(secretB, pk1, sk2);
+	std::array<char, 32> secretB = ed25519_key_exchange(pk1, sk2);
 
 	// user B sends to user A the public key
 
 	// user A performs the key exchange
-	std::array<char, 32> secretA;
-	ed25519_key_exchange(secretA, pk2, sk1);
+	std::array<char, 32> secretA = ed25519_key_exchange(pk2, sk1);
 
 	// now both users A and B must shared the same secret
 	TEST_EQUAL(aux::to_hex(secretA), aux::to_hex(secretB));

@@ -57,9 +57,9 @@ namespace libtorrent
 		{ return std::string(reinterpret_cast<char const*>(&bits[0]), N); }
 
 		void from_string(char const* str)
-		{ memcpy(bits, str, N); }
+		{ std::memcpy(bits, str, N); }
 
-		void clear() { memset(bits, 0, N); }
+		void clear() { std::memset(bits, 0, N); }
 
 		float size() const
 		{
