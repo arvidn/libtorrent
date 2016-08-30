@@ -2034,24 +2034,22 @@ namespace libtorrent
 		}
 
 		state_updated();
-/*
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		// create the extensions again
 
-		// TOOD: should we store add_torrent_params::userdata
+		// TODO: should we store add_torrent_params::userdata
 		// in torrent just to have it available here?
-		m_ses.add_extensions_to_torrent(shared_from_this(), nullptr);
+		//m_ses.add_extensions_to_torrent(shared_from_this(), nullptr);
 
 		// and call on_load() on them
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto const& e : m_extensions)
 		{
 			TORRENT_TRY {
-				(*i)->on_load();
+				e->on_load();
 			} TORRENT_CATCH (std::exception&) {}
 		}
 #endif
-*/
 
 		inc_stats_counter(counters::num_loaded_torrents);
 
@@ -2076,10 +2074,10 @@ namespace libtorrent
 
 		// call on_unload() on extensions
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto& ext : m_extensions)
+		for (auto const& e : m_extensions)
 		{
 			TORRENT_TRY {
-				ext->on_unload();
+				e->on_unload();
 			} TORRENT_CATCH (std::exception&) {}
 		}
 

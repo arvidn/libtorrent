@@ -868,8 +868,7 @@ namespace libtorrent
 
 	protected:
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		typedef std::list<std::shared_ptr<peer_plugin>> extension_list_t;
-		extension_list_t m_extensions;
+		std::list<std::shared_ptr<peer_plugin>> m_extensions;
 #endif
 	private:
 

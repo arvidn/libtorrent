@@ -1771,7 +1771,7 @@ namespace libtorrent
 			, "%s", print_entry(root).c_str());
 #endif
 
-		for (extension_list_t::iterator i = m_extensions.begin();
+		for (auto i = m_extensions.begin();
 			!m_extensions.empty() && i != m_extensions.end();)
 		{
 			// a false return value means that the extension
@@ -1911,10 +1911,9 @@ namespace libtorrent
 			default:
 			{
 #ifndef TORRENT_DISABLE_EXTENSIONS
-				for (extension_list_t::iterator i = m_extensions.begin()
-					, end(m_extensions.end()); i != end; ++i)
+				for (auto const& e : m_extensions)
 				{
-					if ((*i)->on_unknown_message(m_recv_buffer.packet_size(), packet_type
+					if (e->on_unknown_message(m_recv_buffer.packet_size(), packet_type
 						, recv_buffer.subspan(1)))
 						return m_recv_buffer.packet_finished();
 				}
@@ -2238,10 +2237,9 @@ namespace libtorrent
 
 		// loop backwards, to make the first extension be the last
 		// to fill in the handshake (i.e. give the first extensions priority)
-		for (extension_list_t::reverse_iterator i = m_extensions.rbegin()
-			, end(m_extensions.rend()); i != end; ++i)
+		for (auto const& e : m_extensions)
 		{
-			(*i)->add_handshake(handshake);
+			e->add_handshake(handshake);
 		}
 
 #ifndef NDEBUG
@@ -2307,10 +2305,9 @@ namespace libtorrent
 		stats_counters().inc_stats_counter(counters::num_outgoing_unchoke);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (extension_list_t::iterator i = m_extensions.begin()
-			, end(m_extensions.end()); i != end; ++i)
+		for (auto const& e : m_extensions)
 		{
-			(*i)->sent_unchoke();
+			e->sent_unchoke();
 		}
 #endif
 	}
@@ -3339,7 +3336,7 @@ namespace libtorrent
 			}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-			for (extension_list_t::iterator i = m_extensions.begin()
+			for (auto i = m_extensions.begin()
 				, end(m_extensions.end()); i != end;)
 			{
 				if (!(*i)->on_handshake(m_reserved_bits))
