@@ -20,13 +20,13 @@ KADEMLIA_SOURCES = \
   kademlia/get_peers.cpp        \
   kademlia/get_item.cpp         \
   kademlia/item.cpp             \
+  kademlia/ed25519.cpp          \
   ../ed25519/src/add_scalar.cpp \
   ../ed25519/src/fe.cpp         \
   ../ed25519/src/ge.cpp         \
   ../ed25519/src/key_exchange.cpp \
   ../ed25519/src/keypair.cpp    \
   ../ed25519/src/sc.cpp         \
-  ../ed25519/src/seed.cpp       \
   ../ed25519/src/sign.cpp       \
   ../ed25519/src/verify.cpp     \
   hasher512.cpp

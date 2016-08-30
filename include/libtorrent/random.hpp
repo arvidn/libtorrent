@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/span.hpp"
 
 #include <cstdint>
 #include <random>
@@ -47,6 +48,17 @@ namespace libtorrent
 		{
 			std::shuffle(first, last, random_engine());
 		}
+
+		// Fills the buffer with random bytes.
+		//
+		// This functions perform differently under different setups
+		// For Windows and all platforms when compiled with libcrypto, it
+		// generates cryptographically random bytes.
+		// If the above conditions are not true, then a standard
+		// std::independent_bits_engine<std::mt19937, 8, std::uint8_t>
+		// generator is used.
+		//
+		TORRENT_EXTRA_EXPORT void random_bytes(span<char> buffer);
 	}
 
 	TORRENT_EXTRA_EXPORT std::uint32_t random(std::uint32_t max);
