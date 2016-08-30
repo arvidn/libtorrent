@@ -47,8 +47,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/time.hpp"
 
-namespace libtorrent { namespace aux { struct session_impl; } }
-
 namespace libtorrent { struct dht_settings; class entry; }
 
 namespace libtorrent { namespace dht
