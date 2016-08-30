@@ -305,26 +305,15 @@ namespace aux {
 #endif
 
 	session_impl::session_impl(io_service& ios)
-		:
-#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-		m_send_buffers(send_buffer_size())
-		,
-#endif
-		m_io_service(ios)
+		: m_io_service(ios)
 #ifdef TORRENT_USE_OPENSSL
 		, m_ssl_ctx(m_io_service, boost::asio::ssl::context::sslv23)
 #endif
 		, m_alerts(m_settings.get_int(settings_pack::alert_queue_size), alert::all_categories)
-#ifndef TORRENT_NO_DEPRECATE
-		, m_alert_pointer_pos(0)
-#endif
 		, m_disk_thread(m_io_service, m_stats_counters
 			, static_cast<uncork_interface*>(this))
 		, m_download_rate(peer_connection::download_channel)
 		, m_upload_rate(peer_connection::upload_channel)
-		, m_global_class(0)
-		, m_tcp_peer_class(0)
-		, m_local_peer_class(0)
 		, m_tracker_manager(
 			std::bind(&session_impl::send_udp_packet, this, false, _1, _2, _3, _4)
 			, std::bind(&session_impl::send_udp_packet_hostname, this, _1, _2, _3, _4, _5)
@@ -336,31 +325,16 @@ namespace aux {
 #endif
 			)
 		, m_work(io_service::work(m_io_service))
-		, m_max_queue_pos(-1)
-		, m_key(0)
 #if TORRENT_USE_I2P
 		, m_i2p_conn(m_io_service)
 #endif
-		, m_socks_listen_port(0)
-		, m_interface_index(0)
-		, m_unchoke_time_scaler(0)
-		, m_auto_manage_time_scaler(0)
-		, m_optimistic_unchoke_time_scaler(0)
-		, m_disconnect_time_scaler(90)
-		, m_auto_scrape_time_scaler(180)
-		, m_peak_up_rate(0)
-		, m_peak_down_rate(0)
 		, m_created(clock_type::now())
 		, m_last_tick(m_created)
 		, m_last_second_tick(m_created - milliseconds(900))
 		, m_last_choke(m_created)
 		, m_last_auto_manage(m_created)
-		, m_next_port(0)
 #ifndef TORRENT_DISABLE_DHT
-		, m_dht_storage_constructor(dht::dht_default_storage_constructor)
 		, m_dht_announce_timer(m_io_service)
-		, m_dht_interval_update_torrents(0)
-		, m_outstanding_router_lookups(0)
 #endif
 		, m_utp_socket_manager(
 			std::bind(&session_impl::send_udp_packet, this, false, _1, _2, _3, _4)
@@ -375,25 +349,10 @@ namespace aux {
 			, m_settings, m_stats_counters
 			, &m_ssl_ctx)
 #endif
-		, m_boost_connections(0)
 		, m_timer(m_io_service)
 		, m_lsd_announce_timer(m_io_service)
 		, m_host_resolver(m_io_service)
-		, m_next_downloading_connect_torrent(0)
-		, m_next_finished_connect_torrent(0)
-		, m_download_connect_attempts(0)
-		, m_next_scrape_torrent(0)
-		, m_tick_residual(0)
-		, m_deferred_submit_disk_jobs(false)
-		, m_pending_auto_manage(false)
-		, m_need_auto_manage(false)
-		, m_abort(false)
-		, m_paused(false)
 	{
-#if TORRENT_USE_ASSERTS
-		m_posting_torrent_updates = false;
-#endif
-
 		update_time_now();
 	}
 
@@ -447,9 +406,6 @@ namespace aux {
 		m_peer_class_type_filter.add(peer_class_type_filter::ssl_tcp_socket, m_tcp_peer_class);
 		m_peer_class_type_filter.add(peer_class_type_filter::i2p_socket, m_tcp_peer_class);
 
-		// TODO: there's no rule here to make uTP connections not have the global or
-		// local rate limits apply to it. This used to be the default.
-
 #ifndef TORRENT_DISABLE_LOGGING
 
 		session_log("config: %s version: %s revision: %s"
@@ -471,7 +427,6 @@ namespace aux {
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log("   max connections: %d", m_settings.get_int(settings_pack::connections_limit));
 		session_log("   max files: %d", max_files);
-
 		session_log(" generated peer ID: %s", m_peer_id.to_string().c_str());
 #endif
 

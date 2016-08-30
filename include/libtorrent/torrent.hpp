@@ -1147,8 +1147,8 @@ namespace libtorrent
 
 		// all time totals of uploaded and downloaded payload
 		// stored in resume data
-		std::int64_t m_total_uploaded;
-		std::int64_t m_total_downloaded;
+		std::int64_t m_total_uploaded = 0;
+		std::int64_t m_total_downloaded = 0;
 
 		// if this pointer is 0, the torrent is in
 		// a state where the metadata hasn't been
@@ -1289,14 +1289,14 @@ namespace libtorrent
 		// it was completed. If the torrent isn't yet
 		// completed, m_completed_time is 0
 		time_t m_added_time;
-		time_t m_completed_time;
+		time_t m_completed_time = 0;
 
 		// this was the last time _we_ saw a seed in this swarm
-		time_t m_last_seen_complete;
+		time_t m_last_seen_complete = 0;
 
 		// this is the time last any of our peers saw a seed
 		// in this swarm
-		time_t m_swarm_last_seen_complete;
+		time_t m_swarm_last_seen_complete = 0;
 
 		// keep a copy if the info-hash here, so it can be accessed from multiple
 		// threads, and be cheap to access from the client
@@ -1317,7 +1317,7 @@ namespace libtorrent
 	private:
 
 		// m_num_verified = m_verified.count()
-		std::uint32_t m_num_verified;
+		std::uint32_t m_num_verified = 0;
 
 		// this timestamp is kept in session-time, to
 		// make it fit in 16 bits
@@ -1335,23 +1335,23 @@ namespace libtorrent
 
 		// if we're a seed, this is the session time
 		// timestamp of when we became one
-		std::uint16_t m_became_seed;
+		std::uint16_t m_became_seed = 0;
 
 		// if we're finished, this is the session time
 		// timestamp of when we finished
-		std::uint16_t m_became_finished;
+		std::uint16_t m_became_finished = 0;
 
 		// when checking, this is the first piece we have not
 		// issued a hash job for
-		int m_checking_piece;
+		int m_checking_piece = 0;
 
 		// the number of pieces we completed the check of
-		int m_num_checked_pieces;
+		int m_num_checked_pieces = 0;
 
 		// the number of async. operations that need this torrent
 		// loaded in RAM. having a refcount > 0 prevents it from
 		// being unloaded.
-		int m_refcount;
+		int m_refcount = 0;
 
 		// if the error ocurred on a file, this is the index of that file
 		// there are a few special cases, when this is negative. See
@@ -1359,15 +1359,15 @@ namespace libtorrent
 		int m_error_file;
 
 		// the average time it takes to download one time critical piece
-		std::uint32_t m_average_piece_time;
+		std::uint32_t m_average_piece_time = 0;
 
 		// the average piece download time deviation
-		std::uint32_t m_piece_time_deviation;
+		std::uint32_t m_piece_time_deviation = 0;
 
 		// the number of bytes that has been
 		// downloaded that failed the hash-test
-		std::uint32_t m_total_failed_bytes;
-		std::uint32_t m_total_redundant_bytes;
+		std::uint32_t m_total_failed_bytes = 0;
+		std::uint32_t m_total_redundant_bytes = 0;
 
 		// the sequence number for this torrent, this is a
 		// monotonically increasing number for each added torrent
@@ -1375,14 +1375,14 @@ namespace libtorrent
 
 		// for torrents who have a bandwidth limit, this is != 0
 		// and refers to a peer_class in the session.
-		std::uint16_t m_peer_class;
+		std::uint16_t m_peer_class = 0;
 
 		// of all peers in m_connections, this is the number
 		// of peers that are outgoing and still waiting to
 		// complete the connection. This is used to possibly
 		// kick out these connections when we get incoming
 		// connections (if we've reached the connection limit)
-		std::uint16_t m_num_connecting;
+		std::uint16_t m_num_connecting = 0;
 
 		// ==============================
 		// The following members are specifically
@@ -1393,7 +1393,7 @@ namespace libtorrent
 
 		// the session time timestamp of when we entered upload mode
 		// if we're currently in upload-mode
-		std::uint16_t m_upload_mode_time;
+		std::uint16_t m_upload_mode_time = 0;
 
 		// true when this torrent should announce to
 		// trackers
@@ -1434,7 +1434,7 @@ namespace libtorrent
 		unsigned int m_active_time:24;
 
 		// the index to the last tracker that worked
-		std::int8_t m_last_working_tracker;
+		std::int8_t m_last_working_tracker = -1;
 
 // ----
 
@@ -1586,16 +1586,16 @@ namespace libtorrent
 		// the timestamp of the last piece passed for this torrent specified in
 		// session_time. This is signed because it must be able to represent time
 		// before the session started
-		std::int16_t m_last_download;
+		std::int16_t m_last_download = (std::numeric_limits<std::int16_t>::min)();
 
 		// the number of peer connections to seeds. This should be the same as
 		// counting the peer connections that say true for is_seed()
-		std::uint16_t m_num_seeds;
+		std::uint16_t m_num_seeds = 0;
 
 		// the timestamp of the last byte uploaded from this torrent specified in
 		// session_time. This is signed because it must be able to represent time
 		// before the session started.
-		std::int16_t m_last_upload;
+		std::int16_t m_last_upload = (std::numeric_limits<std::int16_t>::min)();
 
 // ----
 
@@ -1627,7 +1627,7 @@ namespace libtorrent
 		// the timestamp of the last scrape request to one of the trackers in
 		// this torrent specified in session_time. This is signed because it must
 		// be able to represent time before the session started
-		std::int16_t m_last_scrape;
+		std::int16_t m_last_scrape = (std::numeric_limits<std::int16_t>::min)();
 
 // ----
 
@@ -1637,8 +1637,8 @@ namespace libtorrent
 
 #if TORRENT_USE_ASSERTS
 		// set to true when torrent is start()ed. It may only be started once
-		bool m_was_started;
-		bool m_outstanding_check_files;
+		bool m_was_started = false;
+		bool m_outstanding_check_files = false;
 #endif
 	};
 

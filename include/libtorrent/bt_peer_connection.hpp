@@ -327,7 +327,7 @@ public:
 
 private:
 
-		enum state_t
+		enum class state_t : std::uint8_t
 		{
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 			read_pe_dhkey = 0,
@@ -351,7 +351,7 @@ private:
 		};
 
 		// state of on_receive. one of the enums in state_t
-		std::uint8_t m_state;
+		state_t m_state = state_t::read_protocol_identifier;
 
 		// this is set to true if the handshake from
 		// the peer indicated that it supports the
@@ -440,23 +440,23 @@ private:
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		// used to disconnect peer if sync points are not found within
 		// the maximum number of bytes
-		int m_sync_bytes_read;
+		int m_sync_bytes_read = 0;
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		// the message ID for upload only message
 		// 0 if not supported
-		std::uint8_t m_upload_only_id;
+		std::uint8_t m_upload_only_id = 0;
 
 		// the message ID for holepunch messages
-		std::uint8_t m_holepunch_id;
+		std::uint8_t m_holepunch_id = 0;
 
 		// the message ID for don't-have message
-		std::uint8_t m_dont_have_id;
+		std::uint8_t m_dont_have_id = 0;
 
 		// the message ID for share mode message
 		// 0 if not supported
-		std::uint8_t m_share_mode_id;
+		std::uint8_t m_share_mode_id = 0;
 
 		std::weak_ptr<ut_pex_peer_store> m_ut_pex;
 
@@ -464,7 +464,7 @@ private:
 #endif
 
 #if TORRENT_USE_ASSERTS
-		bool m_in_constructor;
+		bool m_in_constructor = true;
 #endif
 
 	};
