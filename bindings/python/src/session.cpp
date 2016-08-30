@@ -456,12 +456,10 @@ namespace
         std::vector<char> buf;
         bencode(std::back_inserter(buf), e);
         ++seq;
-        dht::signature sign;
-        sign_mutable_item(buf, salt
+        dht::signature sign = sign_mutable_item(buf, salt
             , dht::sequence_number(seq)
             , dht::public_key(pk.data())
-            , dht::secret_key(sk.data())
-            , sign);
+            , dht::secret_key(sk.data()));
         sig = sign.bytes;
     }
 

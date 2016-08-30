@@ -33,7 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DIRECT_REQUEST_HPP
 #define TORRENT_DIRECT_REQUEST_HPP
 
-#include <boost/function/function1.hpp>
 #include <libtorrent/kademlia/msg.hpp>
 #include <libtorrent/kademlia/traversal_algorithm.hpp>
 

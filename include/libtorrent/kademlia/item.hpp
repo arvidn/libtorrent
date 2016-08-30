@@ -65,13 +65,12 @@ bool TORRENT_EXTRA_EXPORT verify_mutable_item(
 // is written into a 64 byte buffer pointed to by ``sig``. The caller
 // is responsible for allocating the destination buffer that's passed in
 // as the ``sig`` argument. Typically it would be allocated on the stack.
-void TORRENT_EXPORT sign_mutable_item(
+signature TORRENT_EXPORT sign_mutable_item(
 	span<char const> v
 	, span<char const> salt
 	, sequence_number seq
 	, public_key const& pk
-	, secret_key const& sk
-	, signature& sig);
+	, secret_key const& sk);
 
 class TORRENT_EXTRA_EXPORT item
 {

@@ -1052,10 +1052,9 @@ void test_put(address(&rand_addr)())
 		seq = sequence_number(4);
 		std::fprintf(stderr, "\nTEST GET/PUT%s \ngenerating ed25519 keys\n\n"
 			, with_salt ? " with-salt" : " no-salt");
-		std::array<char, 32> seed;
-		ed25519_create_seed(seed);
+		std::array<char, 32> seed = ed25519_create_seed();
 
-		ed25519_create_keypair(pk, sk, seed);
+		std::tie(pk, sk) = ed25519_create_keypair(seed);
 		std::fprintf(stderr, "pub: %s priv: %s\n"
 			, aux::to_hex(pk.bytes).c_str()
 			, aux::to_hex(sk.bytes).c_str());
@@ -1104,7 +1103,7 @@ void test_put(address(&rand_addr)())
 		}
 
 		itemv = span<char const>(buffer, bencode(buffer, items[0].ent));
-		sign_mutable_item(itemv, salt, seq, pk, sk, sig);
+		sig = sign_mutable_item(itemv, salt, seq, pk, sk);
 		TEST_EQUAL(verify_mutable_item(itemv, salt, seq, pk, sig), true);
 
 		send_dht_request(t.dht_node, "put", t.source, &response
@@ -1175,7 +1174,7 @@ void test_put(address(&rand_addr)())
 		// also test that invalid signatures fail!
 
 		itemv = span<char const>(buffer, bencode(buffer, items[0].ent));
-		sign_mutable_item(itemv, salt, seq, pk, sk, sig);
+		sig = sign_mutable_item(itemv, salt, seq, pk, sk);
 		TEST_EQUAL(verify_mutable_item(itemv, salt, seq, pk, sig), 1);
 		// break the signature
 		sig.bytes[2] ^= 0xaa;
@@ -1240,7 +1239,7 @@ void test_put(address(&rand_addr)())
 		seq = next_seq(seq);
 		// put item 1
 		itemv = span<char const>(buffer, bencode(buffer, items[1].ent));
-		sign_mutable_item(itemv, salt, seq, pk, sk, sig);
+		sig = sign_mutable_item(itemv, salt, seq, pk, sk);
 		TEST_EQUAL(verify_mutable_item(itemv, salt, seq, pk, sig), 1);
 
 		TEST_CHECK(item_target_id(salt, pk) == target_id);
@@ -1844,7 +1843,7 @@ void test_mutable_get(address(&rand_addr)(), bool const with_salt)
 
 	signature sig;
 	itemv = span<char const>(buffer, bencode(buffer, items[0].ent));
-	sign_mutable_item(itemv, salt, seq, pk, sk, sig);
+	sig = sign_mutable_item(itemv, salt, seq, pk, sk);
 	send_dht_response(t.dht_node, response, initial_node
 		, msg_args()
 			.token("10")
@@ -2390,7 +2389,7 @@ TORRENT_TEST(signing_test1)
 	span<char const> empty_salt;
 
 	signature sig;
-	sign_mutable_item(test_content, empty_salt, sequence_number(1), pk, sk, sig);
+	sig = sign_mutable_item(test_content, empty_salt, sequence_number(1), pk, sk);
 
 	TEST_EQUAL(aux::to_hex(sig.bytes)
 		, "305ac8aeb6c9c151fa120f120ea2cfb923564e11552d06a5d856091e5e853cff"
@@ -2414,7 +2413,7 @@ TORRENT_TEST(signing_test2)
 	span<char const> test_salt("foobar", 6);
 
 	// test vector 2 (the keypair is the same as test 1)
-	sign_mutable_item(test_content, test_salt, sequence_number(1), pk, sk, sig);
+	sig = sign_mutable_item(test_content, test_salt, sequence_number(1), pk, sk);
 
 	TEST_EQUAL(aux::to_hex(sig.bytes)
 		, "6834284b6b24c3204eb2fea824d82f88883a3d95e8b4a21b8c0ded553d17d17d"

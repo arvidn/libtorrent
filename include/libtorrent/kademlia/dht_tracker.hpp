@@ -51,7 +51,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	namespace aux { struct session_impl; }
 	struct counters;
 #ifndef TORRENT_NO_DEPRECATE
 	struct session_status;
