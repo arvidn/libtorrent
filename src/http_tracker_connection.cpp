@@ -109,7 +109,7 @@ namespace libtorrent
 			url += "?";
 
 		url += "info_hash=";
-		url += escape_string(tracker_req().info_hash.data(), 20);
+		url += escape_string({tracker_req().info_hash.data(), 20});
 
 		if (0 == (tracker_req().kind & tracker_request::scrape_request))
 		{
@@ -129,7 +129,7 @@ namespace libtorrent
 				"&numwant=%d"
 				"&compact=1"
 				"&no_peer_id=1"
-				, escape_string(tracker_req().pid.data(), 20).c_str()
+				, escape_string({tracker_req().pid.data(), 20}).c_str()
 				// the i2p tracker seems to verify that the port is not 0,
 				// even though it ignores it otherwise
 				, i2p ? 1 : tracker_req().listen_port
@@ -154,9 +154,8 @@ namespace libtorrent
 			}
 			if (!tracker_req().trackerid.empty())
 			{
-				std::string id = tracker_req().trackerid;
 				url += "&trackerid=";
-				url += escape_string(id.c_str(), int(id.length()));
+				url += escape_string(tracker_req().trackerid);
 			}
 
 #if TORRENT_USE_I2P
@@ -179,7 +178,7 @@ namespace libtorrent
 				std::string announce_ip = settings.get_str(settings_pack::announce_ip);
 				if (!announce_ip.empty())
 				{
-					url += "&ip=" + escape_string(announce_ip.c_str(), int(announce_ip.size()));
+					url += "&ip=" + escape_string(announce_ip);
 				}
 			}
 		}

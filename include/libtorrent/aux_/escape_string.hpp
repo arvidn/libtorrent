@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include "libtorrent/config.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/string_view.hpp"
 
 namespace libtorrent
 {
@@ -56,9 +57,9 @@ namespace libtorrent
 	// TODO: 3 this should probably take a string_ref
 	TORRENT_EXTRA_EXPORT std::string unescape_string(std::string const& s, error_code& ec);
 	// replaces all disallowed URL characters by their %-encoding
-	TORRENT_EXTRA_EXPORT std::string escape_string(const char* str, int len);
+	TORRENT_EXTRA_EXPORT std::string escape_string(string_view str);
 	// same as escape_string but does not encode '/'
-	TORRENT_EXTRA_EXPORT std::string escape_path(const char* str, int len);
+	TORRENT_EXTRA_EXPORT std::string escape_path(string_view str);
 	// if the url does not appear to be encoded, and it contains illegal url characters
 	// it will be encoded
 	TORRENT_EXTRA_EXPORT std::string maybe_url_encode(std::string const& url);
@@ -105,4 +106,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_ESCAPE_STRING_HPP_INCLUDED
-

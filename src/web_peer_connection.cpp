@@ -115,8 +115,7 @@ web_peer_connection::web_peer_connection(peer_connection_args const& pack
 		if (m_path.empty()) m_path += '/';
 		if (m_path[m_path.size()-1] == '/')
 		{
-			std::string const& name = t->torrent_file().name();
-			m_path += escape_string(name.c_str(), int(name.size()));
+			m_path += escape_string(t->torrent_file().name());
 		}
 
 		if (!m_url.empty() && m_url[m_url.size() - 1] == '/')
@@ -125,8 +124,7 @@ web_peer_connection::web_peer_connection(peer_connection_args const& pack
 #ifdef TORRENT_WINDOWS
 			convert_path_to_posix(tmp);
 #endif
-			tmp = escape_path(tmp.c_str(), int(tmp.size()));
-			m_url += tmp;
+			m_url += escape_path(tmp);
 		}
 	}
 
@@ -390,7 +388,7 @@ void web_peer_connection::write_request(peer_request const& r)
 #ifdef TORRENT_WINDOWS
 				convert_path_to_posix(path);
 #endif
-				request += escape_path(path.c_str(), int(path.length()));
+				request += escape_path(path);
 			}
 			else
 			{
@@ -402,7 +400,7 @@ void web_peer_connection::write_request(peer_request const& r)
 #ifdef TORRENT_WINDOWS
 				convert_path_to_posix(path);
 #endif
-				request += escape_path(path.c_str(), int(path.length()));
+				request += escape_path(path);
 			}
 			request += " HTTP/1.1\r\n";
 			add_headers(request, m_settings, using_proxy);
@@ -609,7 +607,7 @@ void web_peer_connection::handle_redirect(int bytes_left)
 #ifdef TORRENT_WINDOWS
 		convert_path_to_posix(path);
 #endif
-		path = escape_path(path.c_str(), int(path.length()));
+		path = escape_path(path);
 		size_t i = location.rfind(path);
 		if (i == std::string::npos)
 		{
