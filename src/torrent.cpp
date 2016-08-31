@@ -441,7 +441,7 @@ namespace libtorrent
 		// as we replace the torrent_info object
 		// we're about to erase the session's reference to this
 		// torrent, create another reference
-		boost::shared_ptr<torrent> me(shared_from_this());
+		std::shared_ptr<torrent> me(shared_from_this());
 
 		m_ses.remove_torrent_impl(me, 0);
 
@@ -452,7 +452,7 @@ namespace libtorrent
 		m_info_hash = tf->info_hash();
 
 		// now, we might already have this torrent in the session.
-		boost::shared_ptr<torrent> t = m_ses.find_torrent(m_torrent_file->info_hash()).lock();
+		std::shared_ptr<torrent> t = m_ses.find_torrent(m_torrent_file->info_hash()).lock();
 		if (t)
 		{
 			if (!m_uuid.empty() && t->uuid().empty())
@@ -1896,7 +1896,7 @@ namespace libtorrent
 			for (std::vector<sha1_hash>::iterator i = s.begin(), end(s.end());
 				i != end; ++i)
 			{
-				boost::shared_ptr<torrent> t = m_ses.find_torrent(*i).lock();
+				std::shared_ptr<torrent> t = m_ses.find_torrent(*i).lock();
 				if (!t) continue;
 
 				// Only attempt to reuse files from torrents that are seeding.
@@ -1910,9 +1910,9 @@ namespace libtorrent
 			for (std::vector<std::string>::iterator i = c.begin(), end(c.end());
 				i != end; ++i)
 			{
-				std::vector<boost::shared_ptr<torrent> > ts = m_ses.find_collection(*i);
+				std::vector<std::shared_ptr<torrent> > ts = m_ses.find_collection(*i);
 
-				for (std::vector<boost::shared_ptr<torrent> >::iterator k = ts.begin()
+				for (std::vector<std::shared_ptr<torrent> >::iterator k = ts.begin()
 					, end2(ts.end()); k != end2; ++k)
 				{
 					// Only attempt to reuse files from torrents that are seeding.
@@ -2667,11 +2667,11 @@ namespace libtorrent
 	}
 #endif
 
-	void torrent::on_tracker_announce_disp(boost::weak_ptr<torrent> p
+	void torrent::on_tracker_announce_disp(std::weak_ptr<torrent> p
 		, error_code const& e)
 	{
 		COMPLETE_ASYNC("tracker::on_tracker_announce_disp");
-		boost::shared_ptr<torrent> t = p.lock();
+		std::shared_ptr<torrent> t = p.lock();
 		if (!t) return;
 		t->m_waiting_tracker = false;
 
@@ -2797,16 +2797,16 @@ namespace libtorrent
 		if (settings().get_bool(settings_pack::enable_incoming_utp))
 			flags |= dht::dht_tracker::flag_implied_port;
 
-		boost::weak_ptr<torrent> self(shared_from_this());
+		std::weak_ptr<torrent> self(shared_from_this());
 		m_ses.dht()->announce(m_torrent_file->info_hash()
 			, port, flags
 			, std::bind(&torrent::on_dht_announce_response_disp, self, _1));
 	}
 
-	void torrent::on_dht_announce_response_disp(boost::weak_ptr<libtorrent::torrent> t
+	void torrent::on_dht_announce_response_disp(std::weak_ptr<torrent> t
 		, std::vector<tcp::endpoint> const& peers)
 	{
-		boost::shared_ptr<libtorrent::torrent> tor = t.lock();
+		std::shared_ptr<torrent> tor = t.lock();
 		if (!tor) return;
 		tor->on_dht_announce_response(peers);
 	}
@@ -3044,7 +3044,7 @@ namespace libtorrent
 			// observer object just for logging
 			if (m_abort && alerts().should_post<log_alert>())
 			{
-				boost::shared_ptr<aux::tracker_logger> tl(new aux::tracker_logger(m_ses));
+				std::shared_ptr<aux::tracker_logger> tl(new aux::tracker_logger(m_ses));
 				m_ses.queue_tracker_request(req, tl);
 			}
 			else
@@ -9153,7 +9153,7 @@ namespace libtorrent
 
 		m_waiting_tracker = true;
 		error_code ec;
-		boost::weak_ptr<torrent> self(shared_from_this());
+		std::weak_ptr<torrent> self(shared_from_this());
 
 		ADD_OUTSTANDING_ASYNC("tracker::on_tracker_announce_disp");
 		m_tracker_timer.expires_at(next_announce, ec);
@@ -9276,10 +9276,10 @@ namespace libtorrent
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
-		boost::weak_ptr<torrent> self(shared_from_this());
+		std::weak_ptr<torrent> self(shared_from_this());
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto& ext : m_extensions)
+		for (auto const& ext : m_extensions)
 		{
 			TORRENT_TRY {
 				ext->tick();

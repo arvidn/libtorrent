@@ -281,7 +281,7 @@ namespace aux {
 			return SSL_TLSEXT_ERR_ALERT_FATAL;
 
 		// see if there is a torrent with this info-hash
-		boost::shared_ptr<torrent> t = ses->find_torrent(info_hash).lock();
+		std::shared_ptr<torrent> t = ses->find_torrent(info_hash).lock();
 
 		// if there isn't, fail
 		if (!t) return SSL_TLSEXT_ERR_ALERT_FATAL;
@@ -1059,7 +1059,7 @@ namespace aux {
 	}
 
 	void session_impl::queue_tracker_request(tracker_request& req
-		, boost::weak_ptr<request_callback> c)
+		, std::weak_ptr<request_callback> c)
 	{
 		req.listen_port = listen_port();
 		if (m_key) req.key = m_key;
@@ -2764,7 +2764,7 @@ namespace aux {
 		pack.allocator = this;
 		pack.disk_thread = &m_disk_thread;
 		pack.ios = &m_io_service;
-		pack.tor = boost::weak_ptr<torrent>();
+		pack.tor = std::weak_ptr<torrent>();
 		pack.s = s;
 		pack.endp = endp;
 		pack.peerinfo = nullptr;
@@ -3314,7 +3314,7 @@ namespace aux {
 					for (torrent_map::iterator i = m_torrents.begin()
 						, end(m_torrents.end()); i != end; ++i)
 					{
-						boost::shared_ptr<torrent> t = i->second;
+						std::shared_ptr<torrent> t = i->second;
 
 						// ths disconnect logic is disabled for torrents with
 						// too low connection limit
@@ -3371,7 +3371,7 @@ namespace aux {
 		m_stats_counters.inc_stats_counter(counters::socket_send_size3 + index);
 	}
 
-	void session_impl::prioritize_connections(boost::weak_ptr<torrent> t)
+	void session_impl::prioritize_connections(std::weak_ptr<torrent> t)
 	{
 		m_prio_torrents.push_back(std::make_pair(t, 10));
 	}
@@ -3391,7 +3391,7 @@ namespace aux {
 		return m_dht.get() != nullptr;
 	}
 
-	void session_impl::prioritize_dht(boost::weak_ptr<torrent> t)
+	void session_impl::prioritize_dht(std::weak_ptr<torrent> t)
 	{
 		TORRENT_ASSERT(!m_abort);
 		if (m_abort) return;
@@ -3399,7 +3399,7 @@ namespace aux {
 		TORRENT_ASSERT(m_dht);
 		m_dht_torrents.push_back(t);
 #ifndef TORRENT_DISABLE_LOGGING
-		boost::shared_ptr<torrent> tor = t.lock();
+		std::shared_ptr<torrent> tor = t.lock();
 		if (tor)
 			session_log("prioritizing DHT announce: \"%s\"", tor->name().c_str());
 #endif
@@ -3466,7 +3466,7 @@ namespace aux {
 
 		if (!m_dht_torrents.empty())
 		{
-			boost::shared_ptr<torrent> t;
+			std::shared_ptr<torrent> t;
 			do
 			{
 				t = m_dht_torrents.front().lock();
@@ -3843,7 +3843,7 @@ namespace aux {
 			else
 			{
 				TORRENT_ASSERT(p->is_choked());
-				boost::shared_ptr<torrent> t = p->associated_torrent().lock();
+				std::shared_ptr<torrent> t = p->associated_torrent().lock();
 				bool ret = t->unchoke_peer(*p, true);
 				TORRENT_ASSERT(ret);
 				if (ret)
@@ -3864,7 +3864,7 @@ namespace aux {
 		{
 			TORRENT_ASSERT(pi->optimistically_unchoked);
 			peer_connection* p = static_cast<peer_connection*>(pi->connection);
-			boost::shared_ptr<torrent> t = p->associated_torrent().lock();
+			std::shared_ptr<torrent> t = p->associated_torrent().lock();
 			pi->optimistically_unchoked = false;
 			m_stats_counters.inc_stats_counter(counters::num_peers_up_unchoked_optimistic, -1);
 			t->choke_peer(*p);
@@ -4184,7 +4184,7 @@ namespace aux {
 		m_delayed_uncorks.clear();
 	}
 
-	boost::shared_ptr<torrent> session_impl::delay_load_torrent(sha1_hash const& info_hash
+	std::shared_ptr<torrent> session_impl::delay_load_torrent(sha1_hash const& info_hash
 		, peer_connection* pc)
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -4203,12 +4203,12 @@ namespace aux {
 		TORRENT_UNUSED(pc);
 		TORRENT_UNUSED(info_hash);
 #endif
-		return boost::shared_ptr<torrent>();
+		return std::shared_ptr<torrent>();
 	}
 
 	// the return value from this function is valid only as long as the
 	// session is locked!
-	boost::weak_ptr<torrent> session_impl::find_torrent(sha1_hash const& info_hash) const
+	std::weak_ptr<torrent> session_impl::find_torrent(sha1_hash const& info_hash) const
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -4222,10 +4222,10 @@ namespace aux {
 		}
 #endif
 		if (i != m_torrents.end()) return i->second;
-		return boost::weak_ptr<torrent>();
+		return std::weak_ptr<torrent>();
 	}
 
-	void session_impl::insert_torrent(sha1_hash const& ih, boost::shared_ptr<torrent> const& t
+	void session_impl::insert_torrent(sha1_hash const& ih, std::shared_ptr<torrent> const& t
 		, std::string uuid)
 	{
 		m_torrents.insert(std::make_pair(ih, t));
@@ -4333,26 +4333,26 @@ namespace aux {
 
 #ifndef TORRENT_NO_DEPRECATE
 	//deprecated in 1.2
-	boost::weak_ptr<torrent> session_impl::find_torrent(std::string const& uuid) const
+	std::weak_ptr<torrent> session_impl::find_torrent(std::string const& uuid) const
 	{
 		TORRENT_ASSERT(is_single_thread());
 
-		std::map<std::string, boost::shared_ptr<torrent> >::const_iterator i
+		std::map<std::string, std::shared_ptr<torrent> >::const_iterator i
 			= m_uuids.find(uuid);
 		if (i != m_uuids.end()) return i->second;
-		return boost::weak_ptr<torrent>();
+		return std::weak_ptr<torrent>();
 	}
 #endif
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
-	std::vector<boost::shared_ptr<torrent> > session_impl::find_collection(
+	std::vector<std::shared_ptr<torrent> > session_impl::find_collection(
 		std::string const& collection) const
 	{
-		std::vector<boost::shared_ptr<torrent> > ret;
+		std::vector<std::shared_ptr<torrent> > ret;
 		for (session_impl::torrent_map::const_iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)
 		{
-			boost::shared_ptr<torrent> t = i->second;
+			std::shared_ptr<torrent> t = i->second;
 			if (!t) continue;
 			std::vector<std::string> const& c = t->torrent_file().collections();
 			if (std::count(c.begin(), c.end(), collection) == 0) continue;
@@ -4383,13 +4383,13 @@ namespace aux {
 
 	} // anonymous namespace
 
-	boost::weak_ptr<torrent> session_impl::find_disconnect_candidate_torrent() const
+	std::weak_ptr<torrent> session_impl::find_disconnect_candidate_torrent() const
 	{
 		aux::session_impl::torrent_map::const_iterator i = std::min_element(m_torrents.begin(), m_torrents.end()
 			, &compare_disconnect_torrent);
 
 		TORRENT_ASSERT(i != m_torrents.end());
-		if (i == m_torrents.end()) return boost::shared_ptr<torrent>();
+		if (i == m_torrents.end()) return std::shared_ptr<torrent>();
 
 		return i->second;
 	}
@@ -4436,7 +4436,7 @@ namespace aux {
 		for (std::vector<torrent_status>::iterator i
 			= ret->begin(), end(ret->end()); i != end; ++i)
 		{
-			boost::shared_ptr<torrent> t = i->handle.m_torrent.lock();
+			std::shared_ptr<torrent> t = i->handle.m_torrent.lock();
 			if (!t) continue;
 			t->status(&*i, flags);
 		}
@@ -4582,7 +4582,7 @@ namespace aux {
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	void session_impl::add_extensions_to_torrent(
-		boost::shared_ptr<torrent> const& torrent_ptr, void* userdata)
+		std::shared_ptr<torrent> const& torrent_ptr, void* userdata)
 	{
 		for (auto& e : m_ses_extensions[plugins_all_idx])
 		{
@@ -4598,7 +4598,7 @@ namespace aux {
 	{
 		// params is updated by add_torrent_impl()
 		add_torrent_params params = p;
-		boost::shared_ptr<torrent> torrent_ptr;
+		std::shared_ptr<torrent> torrent_ptr;
 		bool added;
 		boost::tie(torrent_ptr, added) = add_torrent_impl(params, ec);
 
@@ -4718,14 +4718,14 @@ namespace aux {
 		return handle;
 	}
 
-	std::pair<boost::shared_ptr<torrent>, bool>
+	std::pair<std::shared_ptr<torrent>, bool>
 	session_impl::add_torrent_impl(
 		add_torrent_params& params
 		, error_code& ec)
 	{
 		TORRENT_ASSERT(!params.save_path.empty());
 
-		using ptr_t = boost::shared_ptr<torrent>;
+		using ptr_t = std::shared_ptr<torrent>;
 
 		if (string_begins_no_case("magnet:", params.url.c_str()))
 		{
@@ -4798,7 +4798,7 @@ namespace aux {
 		}
 
 		// is the torrent already active?
-		boost::shared_ptr<torrent> torrent_ptr = find_torrent(params.info_hash).lock();
+		std::shared_ptr<torrent> torrent_ptr = find_torrent(params.info_hash).lock();
 #ifndef TORRENT_NO_DEPRECATE
 		//deprecated in 1.2
 		if (!torrent_ptr && !params.uuid.empty()) torrent_ptr = find_torrent(params.uuid).lock();
@@ -4833,7 +4833,7 @@ namespace aux {
 
 		int queue_pos = ++m_max_queue_pos;
 
-		torrent_ptr = boost::make_shared<torrent>(std::ref(*this)
+		torrent_ptr = std::make_shared<torrent>(std::ref(*this)
 			, 16 * 1024, queue_pos, m_paused
 			, boost::cref(params), boost::cref(params.info_hash));
 
@@ -4946,7 +4946,7 @@ namespace aux {
 	{
 		INVARIANT_CHECK;
 
-		boost::shared_ptr<torrent> tptr = h.m_torrent.lock();
+		std::shared_ptr<torrent> tptr = h.m_torrent.lock();
 		if (!tptr) return;
 
 		m_alerts.emplace_alert<torrent_removed_alert>(tptr->get_handle()
@@ -4958,7 +4958,7 @@ namespace aux {
 		tptr->set_queue_position(-1);
 	}
 
-	void session_impl::remove_torrent_impl(boost::shared_ptr<torrent> tptr
+	void session_impl::remove_torrent_impl(std::shared_ptr<torrent> tptr
 		, int options)
 	{
 #ifndef TORRENT_NO_DEPRECATE
@@ -4966,7 +4966,7 @@ namespace aux {
 		// remove from uuid list
 		if (!tptr->uuid().empty())
 		{
-			std::map<std::string, boost::shared_ptr<torrent> >::iterator j
+			std::map<std::string, std::shared_ptr<torrent> >::iterator j
 				= m_uuids.find(tptr->uuid());
 			if (j != m_uuids.end()) m_uuids.erase(j);
 		}
@@ -5276,7 +5276,7 @@ namespace aux {
 
 		INVARIANT_CHECK;
 
-		boost::shared_ptr<torrent> t = find_torrent(ih).lock();
+		std::shared_ptr<torrent> t = find_torrent(ih).lock();
 		if (!t) return;
 		// don't add peers from lsd to private torrents
 		if (t->torrent_file().priv() || (t->torrent_file().is_i2p()
@@ -5523,23 +5523,21 @@ namespace aux {
 		m_dht_storage = m_dht_storage_constructor(m_dht_settings);
 		m_dht = std::make_shared<dht::dht_tracker>(
 			static_cast<dht_observer*>(this)
-			, std::ref(m_io_service)
+			, m_io_service
 			, std::bind(&session_impl::send_udp_packet, this, false, _1, _2, _3, _4)
-			, std::cref(m_dht_settings)
-			, std::ref(m_stats_counters)
+			, m_dht_settings
+			, m_stats_counters
 			, *m_dht_storage
 			, startup_state);
 
-		for (std::vector<udp::endpoint>::iterator i = m_dht_router_nodes.begin()
-			, end(m_dht_router_nodes.end()); i != end; ++i)
+		for (auto const& n : m_dht_router_nodes)
 		{
-			m_dht->add_router_node(*i);
+			m_dht->add_router_node(n);
 		}
 
-		for (std::vector<udp::endpoint>::iterator i = m_dht_nodes.begin()
-			, end(m_dht_nodes.end()); i != end; ++i)
+		for (auto const& n : m_dht_nodes)
 		{
-			m_dht->add_node(*i);
+			m_dht->add_node(n);
 		}
 		m_dht_nodes.clear();
 
@@ -5775,7 +5773,7 @@ namespace aux {
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 	void session_impl::add_obfuscated_hash(sha1_hash const& obfuscated
-		, boost::weak_ptr<torrent> const& t)
+		, std::weak_ptr<torrent> const& t)
 	{
 		m_obfuscated_torrents.insert(std::make_pair(obfuscated, t.lock()));
 	}
@@ -6726,7 +6724,7 @@ namespace aux {
 		for (torrent_map::const_iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)
 		{
-			boost::shared_ptr<torrent> t = i->second;
+			std::shared_ptr<torrent> t = i->second;
 			if (t->want_peers_download()) ++num_active_downloading;
 			if (t->want_peers_finished()) ++num_active_finished;
 			TORRENT_ASSERT(!(t->want_peers_download() && t->want_peers_finished()));
@@ -6769,7 +6767,7 @@ namespace aux {
 			i != m_connections.end(); ++i)
 		{
 			TORRENT_ASSERT(*i);
-			boost::shared_ptr<torrent> t = (*i)->associated_torrent().lock();
+			std::shared_ptr<torrent> t = (*i)->associated_torrent().lock();
 			TORRENT_ASSERT(unique_peers.find(i->get()) == unique_peers.end());
 			unique_peers.insert(i->get());
 

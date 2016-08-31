@@ -297,12 +297,12 @@ namespace libtorrent
 		tracker_connection(tracker_manager& man
 			, tracker_request const& req
 			, io_service& ios
-			, boost::weak_ptr<request_callback> r);
+			, std::weak_ptr<request_callback> r);
 
 		void update_transaction_id(boost::shared_ptr<udp_tracker_connection> c
 			, std::uint64_t tid);
 
-		boost::shared_ptr<request_callback> requester() const;
+		std::shared_ptr<request_callback> requester() const;
 		virtual ~tracker_connection() {}
 
 		tracker_request const& tracker_req() const { return m_req; }
@@ -330,7 +330,7 @@ namespace libtorrent
 		void fail_impl(error_code const& ec, int code = -1, std::string msg = std::string()
 			, int interval = 0, int min_interval = 0);
 
-		boost::weak_ptr<request_callback> m_requester;
+		std::weak_ptr<request_callback> m_requester;
 
 		tracker_manager& m_man;
 	};
@@ -362,8 +362,8 @@ namespace libtorrent
 		void queue_request(
 			io_service& ios
 			, tracker_request r
-			, boost::weak_ptr<request_callback> c
-				= boost::weak_ptr<request_callback>());
+			, std::weak_ptr<request_callback> c
+				= std::weak_ptr<request_callback>());
 		void abort_all_requests(bool all = false);
 
 		void remove_request(tracker_connection const*);

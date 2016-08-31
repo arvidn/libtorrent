@@ -140,7 +140,7 @@ torrent_handle peer_connection_handle::associated_torrent() const
 {
 	boost::shared_ptr<peer_connection> pc = native_handle();
 	if (!pc) return torrent_handle();
-	boost::shared_ptr<torrent> t = pc->associated_torrent().lock();
+	std::shared_ptr<torrent> t = pc->associated_torrent().lock();
 	if (!t) return torrent_handle();
 	return t->get_handle();
 }

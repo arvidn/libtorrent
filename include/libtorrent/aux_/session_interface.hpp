@@ -169,7 +169,7 @@ namespace libtorrent { namespace aux
 		virtual void evict_torrent(torrent* t) = 0;
 
 		virtual void remove_torrent(torrent_handle const& h, int options = 0) = 0;
-		virtual void remove_torrent_impl(boost::shared_ptr<torrent> tptr, int options) = 0;
+		virtual void remove_torrent_impl(std::shared_ptr<torrent> tptr, int options) = 0;
 
 		// port filter
 		virtual port_filter const& get_port_filter() const = 0;
@@ -183,15 +183,15 @@ namespace libtorrent { namespace aux
 		virtual void trigger_optimistic_unchoke() = 0;
 		virtual void trigger_unchoke() = 0;
 
-		virtual boost::weak_ptr<torrent> find_torrent(sha1_hash const& info_hash) const = 0;
-		virtual boost::weak_ptr<torrent> find_disconnect_candidate_torrent() const = 0;
-		virtual boost::shared_ptr<torrent> delay_load_torrent(sha1_hash const& info_hash
+		virtual std::weak_ptr<torrent> find_torrent(sha1_hash const& info_hash) const = 0;
+		virtual std::weak_ptr<torrent> find_disconnect_candidate_torrent() const = 0;
+		virtual std::shared_ptr<torrent> delay_load_torrent(sha1_hash const& info_hash
 			, peer_connection* pc) = 0;
-		virtual void insert_torrent(sha1_hash const& ih, boost::shared_ptr<torrent> const& t
+		virtual void insert_torrent(sha1_hash const& ih, std::shared_ptr<torrent> const& t
 			, std::string uuid) = 0;
 #ifndef TORRENT_NO_DEPRECATE
 		//deprecated in 1.2
-		virtual void insert_uuid_torrent(std::string uuid, boost::shared_ptr<torrent> const& t) = 0;
+		virtual void insert_uuid_torrent(std::string uuid, std::shared_ptr<torrent> const& t) = 0;
 #endif
 		virtual void set_queue_position(torrent* t, int p) = 0;
 		virtual int num_torrents() const = 0;
@@ -229,7 +229,7 @@ namespace libtorrent { namespace aux
 			, error_code& ec) = 0;
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
-		virtual std::vector<boost::shared_ptr<torrent> > find_collection(
+		virtual std::vector<std::shared_ptr<torrent>> find_collection(
 			std::string const& collection) const = 0;
 #endif
 
@@ -241,7 +241,7 @@ namespace libtorrent { namespace aux
 		virtual char const* i2p_session() const = 0;
 #endif
 
-		virtual void prioritize_connections(boost::weak_ptr<torrent> t) = 0;
+		virtual void prioritize_connections(std::weak_ptr<torrent> t) = 0;
 
 		virtual tcp::endpoint get_ipv4_interface() const = 0;
 		virtual tcp::endpoint get_ipv6_interface() const = 0;
@@ -252,7 +252,7 @@ namespace libtorrent { namespace aux
 		virtual session_settings const& settings() const = 0;
 
 		virtual void queue_tracker_request(tracker_request& req
-			, boost::weak_ptr<request_callback> c) = 0;
+			, std::weak_ptr<request_callback> c) = 0;
 
 		// peer-classes
 		virtual void set_peer_classes(peer_class_set* s, address const& a, int st) = 0;
@@ -323,7 +323,7 @@ namespace libtorrent { namespace aux
 		virtual torrent const* find_encrypted_torrent(
 			sha1_hash const& info_hash, sha1_hash const& xor_mask) = 0;
 		virtual void add_obfuscated_hash(sha1_hash const& obfuscated
-			, boost::weak_ptr<torrent> const& t) = 0;
+			, std::weak_ptr<torrent> const& t) = 0;
 #endif
 
 #ifndef TORRENT_DISABLE_DHT
@@ -332,7 +332,7 @@ namespace libtorrent { namespace aux
 		virtual bool has_dht() const = 0;
 		virtual int external_udp_port() const = 0;
 		virtual dht::dht_tracker* dht() = 0;
-		virtual void prioritize_dht(boost::weak_ptr<torrent> t) = 0;
+		virtual void prioritize_dht(std::weak_ptr<torrent> t) = 0;
 #endif
 
 		virtual counters& stats_counters() = 0;
