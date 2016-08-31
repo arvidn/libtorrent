@@ -510,4 +510,3 @@ observer::~observer()
 }
 
 } } // namespace libtorrent::dht
-

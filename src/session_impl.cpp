@@ -567,7 +567,7 @@ namespace aux {
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto& ext : m_ses_extensions[plugins_all_idx])
+		for (auto const& ext : m_ses_extensions[plugins_all_idx])
 		{
 			TORRENT_TRY {
 				ext->save_state(*eptr);
@@ -6589,7 +6589,7 @@ namespace aux {
 		, dht::msg const& request, entry& response)
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto& ext : m_ses_extensions[plugins_dht_request_idx])
+		for (auto const& ext : m_ses_extensions[plugins_dht_request_idx])
 		{
 			if (ext->on_dht_request(query
 				, request.addr, request.message, response))
@@ -6875,7 +6875,7 @@ namespace aux {
 			i != resp.peers.end(); ++i)
 			{
 				debug_log("  %16s %5d %s %s", i->hostname.c_str(), i->port
-					, i->pid.is_all_zeros()?"":to_hex(i->pid).c_str()
+					, i->pid.is_all_zeros() ? "" : to_hex(i->pid).c_str()
 					, identify_client(i->pid).c_str());
 			}
 			for (std::vector<ipv4_peer_entry>::const_iterator i = resp.peers4.begin();

@@ -34,6 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/error_code.hpp"
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #if TORRENT_USE_CRYPTOAPI
 #include <windows.h>
 #include <wincrypt.h>
@@ -45,6 +47,8 @@ extern "C" {
 }
 
 #endif
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {

@@ -422,7 +422,7 @@ namespace libtorrent
 		// the DHT works, it is natural to always do a lookup before storing and
 		// calling the callback in between is convenient.
 		void dht_put_item(std::array<char, 32> key
-			, std::function<void(entry&, std::array<char,64>&
+			, std::function<void(entry&, std::array<char, 64>&
 				, std::uint64_t&, std::string const&)> cb
 			, std::string salt = std::string());
 
@@ -435,7 +435,7 @@ namespace libtorrent
 		// with the response (if any) and the userdata pointer passed in here.
 		// Since this alert is a response to an explicit call, it will always be
 		// posted, regardless of the alert mask.
-		void dht_direct_request(udp::endpoint ep, entry const& e, void* userdata = 0);
+		void dht_direct_request(udp::endpoint ep, entry const& e, void* userdata = nullptr);
 
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 0.15

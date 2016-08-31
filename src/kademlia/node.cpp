@@ -197,7 +197,7 @@ std::string node::generate_token(udp::endpoint const& addr
 	h.update(info_hash);
 
 	sha1_hash const hash = h.final();
-	std::copy(hash.begin(), hash.begin() + 4, reinterpret_cast<char*>(&token[0]));
+	std::copy(hash.begin(), hash.begin() + 4, token.begin());
 	TORRENT_ASSERT(std::equal(token.begin(), token.end(), hash.data()));
 	return token;
 }
@@ -866,11 +866,11 @@ void node::incoming_request(msg const& m, entry& e)
 			return;
 		}
 
-		reply["token"] = generate_token(m.addr, sha1_hash(msg_keys[0].string_ptr()));
+		sha1_hash const info_hash(msg_keys[0].string_ptr());
+		reply["token"] = generate_token(m.addr, info_hash);
 
 		m_counters.inc_stats_counter(counters::dht_get_peers_in);
 
-		sha1_hash info_hash(msg_keys[0].string_ptr());
 		// always return nodes as well as peers
 		write_nodes_entries(info_hash, msg_keys[3], reply);
 
