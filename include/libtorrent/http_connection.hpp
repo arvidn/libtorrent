@@ -75,7 +75,7 @@ typedef std::function<void(http_connection&, std::vector<tcp::endpoint>&)> http_
 // when bottled, the last two arguments to the handler
 // will always be 0
 struct TORRENT_EXTRA_EXPORT http_connection
-	: boost::enable_shared_from_this<http_connection>
+	: std::enable_shared_from_this<http_connection>
 	, boost::noncopyable
 {
 	http_connection(io_service& ios
@@ -138,7 +138,7 @@ private:
 	void on_connect(error_code const& e);
 	void on_write(error_code const& e);
 	void on_read(error_code const& e, std::size_t bytes_transferred);
-	static void on_timeout(boost::weak_ptr<http_connection> p
+	static void on_timeout(std::weak_ptr<http_connection> p
 		, error_code const& e);
 	void on_assign_bandwidth(error_code const& e);
 

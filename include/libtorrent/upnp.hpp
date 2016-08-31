@@ -333,7 +333,7 @@ private:
 		// this is only relevant if ignore_non_routers is set.
 		bool non_router;
 
-		mutable boost::shared_ptr<http_connection> upnp_connection;
+		mutable std::shared_ptr<http_connection> upnp_connection;
 
 #if TORRENT_USE_ASSERTS
 		int magic;

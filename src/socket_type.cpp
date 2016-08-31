@@ -36,10 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef TORRENT_USE_OPENSSL
 #include <boost/asio/ssl/context.hpp>
-
-#if BOOST_VERSION >= 104700
 #include <boost/asio/ssl/rfc2818_verification.hpp>
-#endif
 
 #endif
 
@@ -137,7 +134,7 @@ namespace libtorrent
 #ifdef TORRENT_USE_OPENSSL
 	namespace {
 
-	void on_close_socket(socket_type* s, boost::shared_ptr<void>)
+	void on_close_socket(socket_type* s, std::shared_ptr<void>)
 	{
 		COMPLETE_ASYNC("on_close_socket");
 		error_code ec;
@@ -149,7 +146,7 @@ namespace libtorrent
 
 	// the second argument is a shared pointer to an object that
 	// will keep the socket (s) alive for the duration of the async operation
-	void async_shutdown(socket_type& s, boost::shared_ptr<void> holder)
+	void async_shutdown(socket_type& s, std::shared_ptr<void> holder)
 	{
 		error_code e;
 
@@ -161,9 +158,9 @@ namespace libtorrent
 #define MAYBE_ASIO_DEBUGGING
 #endif
 
-#define CASE(t) case socket_type_int_impl<ssl_stream<t> >::value: \
+#define CASE(t) case socket_type_int_impl<ssl_stream<t>>::value: \
 	MAYBE_ASIO_DEBUGGING \
-	s.get<ssl_stream<t> >()->async_shutdown(std::bind(&on_close_socket, &s, holder)); \
+	s.get<ssl_stream<t>>()->async_shutdown(std::bind(&on_close_socket, &s, holder)); \
 	break;
 
 		switch (s.type())
@@ -205,17 +202,17 @@ namespace libtorrent
 				break;
 #endif
 #ifdef TORRENT_USE_OPENSSL
-			case socket_type_int_impl<ssl_stream<tcp::socket> >::value:
-				get<ssl_stream<tcp::socket> >()->~ssl_stream();
+			case socket_type_int_impl<ssl_stream<tcp::socket>>::value:
+				get<ssl_stream<tcp::socket>>()->~ssl_stream();
 				break;
-			case socket_type_int_impl<ssl_stream<socks5_stream> >::value:
-				get<ssl_stream<socks5_stream> >()->~ssl_stream();
+			case socket_type_int_impl<ssl_stream<socks5_stream>>::value:
+				get<ssl_stream<socks5_stream>>()->~ssl_stream();
 				break;
-			case socket_type_int_impl<ssl_stream<http_stream> >::value:
-				get<ssl_stream<http_stream> >()->~ssl_stream();
+			case socket_type_int_impl<ssl_stream<http_stream>>::value:
+				get<ssl_stream<http_stream>>()->~ssl_stream();
 				break;
-			case socket_type_int_impl<ssl_stream<utp_stream> >::value:
-				get<ssl_stream<utp_stream> >()->~ssl_stream();
+			case socket_type_int_impl<ssl_stream<utp_stream>>::value:
+				get<ssl_stream<utp_stream>>()->~ssl_stream();
 				break;
 #endif
 			default: TORRENT_ASSERT_FAIL();
@@ -251,22 +248,22 @@ namespace libtorrent
 				break;
 #endif
 #ifdef TORRENT_USE_OPENSSL
-			case socket_type_int_impl<ssl_stream<tcp::socket> >::value:
+			case socket_type_int_impl<ssl_stream<tcp::socket>>::value:
 				TORRENT_ASSERT(userdata);
 				new (reinterpret_cast<ssl_stream<tcp::socket>*>(&m_data)) ssl_stream<tcp::socket>(m_io_service
 					, *static_cast<ssl::context*>(userdata));
 				break;
-			case socket_type_int_impl<ssl_stream<socks5_stream> >::value:
+			case socket_type_int_impl<ssl_stream<socks5_stream>>::value:
 				TORRENT_ASSERT(userdata);
 				new (reinterpret_cast<ssl_stream<socks5_stream>*>(&m_data)) ssl_stream<socks5_stream>(m_io_service
 					, *static_cast<ssl::context*>(userdata));
 				break;
-			case socket_type_int_impl<ssl_stream<http_stream> >::value:
+			case socket_type_int_impl<ssl_stream<http_stream>>::value:
 				TORRENT_ASSERT(userdata);
 				new (reinterpret_cast<ssl_stream<http_stream>*>(&m_data)) ssl_stream<http_stream>(m_io_service
 					, *static_cast<ssl::context*>(userdata));
 				break;
-			case socket_type_int_impl<ssl_stream<utp_stream> >::value:
+			case socket_type_int_impl<ssl_stream<utp_stream>>::value:
 				TORRENT_ASSERT(userdata);
 				new (reinterpret_cast<ssl_stream<utp_stream>*>(&m_data)) ssl_stream<utp_stream>(m_io_service
 					, *static_cast<ssl::context*>(userdata));
@@ -348,7 +345,7 @@ namespace libtorrent
 			case socket_type_int_impl<utp_stream>::value:
 				return get<utp_stream>()->get_close_reason();
 #ifdef TORRENT_USE_OPENSSL
-			case socket_type_int_impl<ssl_stream<utp_stream> >::value:
+			case socket_type_int_impl<ssl_stream<utp_stream>>::value:
 				return get<ssl_stream<utp_stream> >()->lowest_layer().get_close_reason();
 #endif
 			default: return 0;
@@ -393,4 +390,3 @@ namespace libtorrent
 #endif
 
 }
-

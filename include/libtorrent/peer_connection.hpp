@@ -164,7 +164,7 @@ namespace libtorrent
 		disk_interface* disk_thread;
 		io_service* ios;
 		std::weak_ptr<torrent> tor;
-		boost::shared_ptr<socket_type> s;
+		std::shared_ptr<socket_type> s;
 		tcp::endpoint endp;
 		torrent_peer* peerinfo;
 	};
@@ -467,7 +467,7 @@ namespace libtorrent
 
 		void timeout_requests();
 
-		boost::shared_ptr<socket_type> get_socket() const { return m_socket; }
+		std::shared_ptr<socket_type> get_socket() const { return m_socket; }
 		tcp::endpoint const& remote() const { return m_remote; }
 		tcp::endpoint local_endpoint() const { return m_local; }
 
@@ -798,7 +798,7 @@ namespace libtorrent
 		int wanted_transfer(int channel);
 		int request_bandwidth(int channel, int bytes = 0);
 
-		boost::shared_ptr<socket_type> m_socket;
+		std::shared_ptr<socket_type> m_socket;
 
 		// the queue of blocks we have requested
 		// from this peer

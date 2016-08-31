@@ -74,24 +74,24 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifdef TORRENT_USE_OPENSSL
 
 #define TORRENT_SOCKTYPE_SSL_FORWARD(x) \
-		case socket_type_int_impl<ssl_stream<tcp::socket> >::value: \
-			get<ssl_stream<tcp::socket> >()->x; break; \
-		case socket_type_int_impl<ssl_stream<socks5_stream> >::value: \
-			get<ssl_stream<socks5_stream> >()->x; break; \
-		case socket_type_int_impl<ssl_stream<http_stream> >::value: \
-			get<ssl_stream<http_stream> >()->x; break; \
-		case socket_type_int_impl<ssl_stream<utp_stream> >::value: \
-			get<ssl_stream<utp_stream> >()->x; break;
+		case socket_type_int_impl<ssl_stream<tcp::socket>>::value: \
+			get<ssl_stream<tcp::socket>>()->x; break; \
+		case socket_type_int_impl<ssl_stream<socks5_stream>>::value: \
+			get<ssl_stream<socks5_stream>>()->x; break; \
+		case socket_type_int_impl<ssl_stream<http_stream>>::value: \
+			get<ssl_stream<http_stream>>()->x; break; \
+		case socket_type_int_impl<ssl_stream<utp_stream>>::value: \
+			get<ssl_stream<utp_stream>>()->x; break;
 
 #define TORRENT_SOCKTYPE_SSL_FORWARD_RET(x, def) \
-		case socket_type_int_impl<ssl_stream<tcp::socket> >::value: \
+		case socket_type_int_impl<ssl_stream<tcp::socket>>::value: \
 			return get<ssl_stream<tcp::socket> >()->x; \
-		case socket_type_int_impl<ssl_stream<socks5_stream> >::value: \
+		case socket_type_int_impl<ssl_stream<socks5_stream>>::value: \
 			return get<ssl_stream<socks5_stream> >()->x; \
-		case socket_type_int_impl<ssl_stream<http_stream> >::value: \
+		case socket_type_int_impl<ssl_stream<http_stream>>::value: \
 			return get<ssl_stream<http_stream> >()->x; \
-		case socket_type_int_impl<ssl_stream<utp_stream> >::value: \
-			return get<ssl_stream<utp_stream> >()->x;
+		case socket_type_int_impl<ssl_stream<utp_stream>>::value: \
+			return get<ssl_stream<utp_stream>>()->x;
 
 #else
 
@@ -161,19 +161,19 @@ namespace libtorrent
 
 #ifdef TORRENT_USE_OPENSSL
 	template <>
-	struct socket_type_int_impl<ssl_stream<tcp::socket> >
+	struct socket_type_int_impl<ssl_stream<tcp::socket>>
 	{ enum { value = 6 }; };
 
 	template <>
-	struct socket_type_int_impl<ssl_stream<socks5_stream> >
+	struct socket_type_int_impl<ssl_stream<socks5_stream>>
 	{ enum { value = 7 }; };
 
 	template <>
-	struct socket_type_int_impl<ssl_stream<http_stream> >
+	struct socket_type_int_impl<ssl_stream<http_stream>>
 	{ enum { value = 8 }; };
 
 	template <>
-	struct socket_type_int_impl<ssl_stream<utp_stream> >
+	struct socket_type_int_impl<ssl_stream<utp_stream>>
 	{ enum { value = 9 }; };
 #endif
 
@@ -333,8 +333,7 @@ namespace libtorrent
 	void setup_ssl_hostname(socket_type& s, std::string const& hostname, error_code& ec);
 
 	// properly shuts down SSL sockets. holder keeps s alive
-	void async_shutdown(socket_type& s, boost::shared_ptr<void> holder);
+	void async_shutdown(socket_type& s, std::shared_ptr<void> holder);
 }
 
 #endif
-

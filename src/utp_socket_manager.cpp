@@ -215,7 +215,7 @@ namespace libtorrent
 
 //			UTP_LOGV("not found, new connection id:%d\n", m_new_connection);
 
-			boost::shared_ptr<socket_type> c(new (std::nothrow) socket_type(m_ios));
+			std::shared_ptr<socket_type> c(new (std::nothrow) socket_type(m_ios));
 			if (!c) return false;
 
 			TORRENT_ASSERT(m_new_connection == -1);
@@ -228,7 +228,7 @@ namespace libtorrent
 			utp_stream* str = nullptr;
 #ifdef TORRENT_USE_OPENSSL
 			if (is_ssl(*c))
-				str = &c->get<ssl_stream<utp_stream> >()->next_layer();
+				str = &c->get<ssl_stream<utp_stream>>()->next_layer();
 			else
 #endif
 				str = c->get<utp_stream>();
@@ -346,4 +346,3 @@ namespace libtorrent
 		return impl;
 	}
 }
-

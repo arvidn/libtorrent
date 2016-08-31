@@ -110,7 +110,7 @@ std::string chunk_string(std::string s)
 	return ret;
 }
 
-boost::shared_ptr<http_connection> test_request(io_service& ios
+std::shared_ptr<http_connection> test_request(io_service& ios
 	, resolver& res
 	, std::string const& url
 	, char const* expected_data
@@ -124,7 +124,7 @@ boost::shared_ptr<http_connection> test_request(io_service& ios
 {
 	std::fprintf(stderr, " ===== TESTING: %s =====\n", url.c_str());
 
-	auto h = boost::make_shared<http_connection>(ios
+	auto h = std::make_shared<http_connection>(ios
 		, res
 		, [=](error_code const& ec, http_parser const& parser
 			, char const* data, const int size, http_connection&)

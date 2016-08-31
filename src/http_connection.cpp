@@ -137,7 +137,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 
 	// keep ourselves alive even if the callback function
 	// deletes this object
-	boost::shared_ptr<http_connection> me(shared_from_this());
+	std::shared_ptr<http_connection> me(shared_from_this());
 
 	if (ec)
 	{
@@ -240,7 +240,7 @@ void http_connection::start(std::string const& hostname, int port
 
 	// keep ourselves alive even if the callback function
 	// deletes this object
-	boost::shared_ptr<http_connection> me(shared_from_this());
+	std::shared_ptr<http_connection> me(shared_from_this());
 
 	m_completion_timeout = timeout;
 	m_read_timeout = seconds(5);
@@ -250,7 +250,7 @@ void http_connection::start(std::string const& hostname, int port
 		m_read_timeout, m_completion_timeout), ec);
 	ADD_OUTSTANDING_ASYNC("http_connection::on_timeout");
 	m_timer.async_wait(std::bind(&http_connection::on_timeout
-		, boost::weak_ptr<http_connection>(me), _1));
+		, std::weak_ptr<http_connection>(me), _1));
 	m_called = false;
 	m_parser.reset();
 	m_recvbuffer.clear();
@@ -411,11 +411,11 @@ void http_connection::start(std::string const& hostname, int port
 	}
 }
 
-void http_connection::on_timeout(boost::weak_ptr<http_connection> p
+void http_connection::on_timeout(std::weak_ptr<http_connection> p
 	, error_code const& e)
 {
 	COMPLETE_ASYNC("http_connection::on_timeout");
-	boost::shared_ptr<http_connection> c = p.lock();
+	std::shared_ptr<http_connection> c = p.lock();
 	if (!c) return;
 
 	if (e == boost::asio::error::operation_aborted) return;
@@ -546,7 +546,7 @@ void http_connection::connect()
 {
 	TORRENT_ASSERT(m_next_ep < m_endpoints.size());
 
-	boost::shared_ptr<http_connection> me(shared_from_this());
+	std::shared_ptr<http_connection> me(shared_from_this());
 
 	if (m_proxy.proxy_hostnames
 		&& (m_proxy.type == settings_pack::socks5
@@ -713,7 +713,7 @@ void http_connection::on_read(error_code const& e
 
 	// keep ourselves alive even if the callback function
 	// deletes this object
-	boost::shared_ptr<http_connection> me(shared_from_this());
+	std::shared_ptr<http_connection> me(shared_from_this());
 
 	// when using the asio SSL wrapper, it seems like
 	// we get the shut_down error instead of EOF

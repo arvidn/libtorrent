@@ -119,8 +119,8 @@ void run_test(std::string const& url, int size, int status, int connected
 		<< " connected: " << connected
 		<< " error: " << (ec?ec->message():"no error") << std::endl;
 
-	boost::shared_ptr<http_connection> h(new http_connection(ios
-		, res, &::http_handler, true, 1024*1024, &::http_connect_handler));
+	std::shared_ptr<http_connection> h = std::make_shared<http_connection>(ios
+		, res, &::http_handler, true, 1024*1024, &::http_connect_handler);
 	h->get(url, seconds(1), 0, &ps, 5, "test/user-agent", address_v4::any()
 		, 0, auth);
 	ios.reset();
@@ -225,4 +225,3 @@ TORRENT_TEST(no_keepalive)
 {
 	run_suite("http", settings_pack::none, 0);
 }
-

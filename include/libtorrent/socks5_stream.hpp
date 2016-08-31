@@ -111,7 +111,7 @@ public:
 		TORRENT_ASSERT(m_command == socks5_bind);
 
 		// to avoid unnecessary copying of the handler,
-		// store it in a shaed_ptr
+		// store it in a shared_ptr
 		error_code e;
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("socks5_stream::connect1");
