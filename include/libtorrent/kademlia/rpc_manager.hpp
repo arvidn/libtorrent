@@ -114,7 +114,6 @@ private:
 	dht_logger* m_log;
 	dht_settings const& m_settings;
 	routing_table& m_table;
-	time_point m_timer;
 	node_id m_our_id;
 	std::uint32_t m_allocated_observers:31;
 	std::uint32_t m_destructing:1;

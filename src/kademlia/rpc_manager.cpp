@@ -182,7 +182,6 @@ rpc_manager::rpc_manager(node_id const& our_id
 	, m_log(log)
 	, m_settings(settings)
 	, m_table(table)
-	, m_timer(aux::time_now())
 	, m_our_id(our_id)
 	, m_allocated_observers(0)
 	, m_destructing(false)
