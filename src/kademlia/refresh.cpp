@@ -65,6 +65,14 @@ bool bootstrap::invoke(observer_ptr o)
 	make_id_secret(target);
 	a["info_hash"] = target.to_string();
 
+	if (o->flags & observer::flag_initial)
+	{
+		// if this packet is being sent to a bootstrap/router node, let it know
+		// that we're actualy bootstrapping (as opposed to being collateral
+		// traffic).
+		a["bs"] = 1;
+	}
+
 //	e["q"] = "find_node";
 //	a["target"] = target.to_string();
 	m_node.stats_counters().inc_stats_counter(counters::dht_get_peers_out);
