@@ -101,7 +101,7 @@ static void nop() {}
 	fs.set_piece_length(0x8000); \
 	fs.set_num_pieces(5); \
 	test_storage_impl* st = new test_storage_impl; \
-	boost::shared_ptr<piece_manager> pm(boost::make_shared<piece_manager>(st, boost::shared_ptr<int>(new int), &fs)); \
+	std::shared_ptr<piece_manager> pm = std::make_shared<piece_manager>(st, boost::shared_ptr<int>(new int), &fs); \
 	error_code ec; \
 	bc.set_settings(sett, ec); \
 	st->m_settings = &sett; \

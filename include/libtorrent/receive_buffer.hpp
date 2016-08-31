@@ -37,6 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/disk_buffer_holder.hpp>
 #include <libtorrent/sliding_average.hpp>
 
+#include <climits>
+
 namespace libtorrent {
 
 struct TORRENT_EXTRA_EXPORT receive_buffer

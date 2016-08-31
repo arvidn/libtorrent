@@ -161,8 +161,8 @@ void run_upnp_test(char const* root_filename, char const* router_model, char con
 
 	std::string user_agent = "test agent";
 
-	boost::shared_ptr<upnp> upnp_handler(new upnp(std::ref(ios)
-		, user_agent, &callback, &log_callback, false));
+	std::shared_ptr<upnp> upnp_handler = std::make_shared<upnp>(std::ref(ios)
+		, user_agent, &callback, &log_callback, false);
 	upnp_handler->start();
 	upnp_handler->discover_device();
 

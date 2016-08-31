@@ -33,26 +33,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_DISK_IO_JOB_HPP
 #define TORRENT_DISK_IO_JOB_HPP
 
-#include "libtorrent/time.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/tailqueue.hpp"
-#include "libtorrent/peer_id.hpp"
 
 #include <string>
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/function/function1.hpp>
-#include <boost/shared_ptr.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <vector>
+#include <memory>
+#include <functional>
 
 namespace libtorrent
 {
-	class entry;
 	class piece_manager;
 	struct cached_piece_entry;
-	struct bdecode_node;
 	class torrent_info;
 	struct add_torrent_params;
 
@@ -161,7 +153,7 @@ namespace libtorrent
 		} buffer;
 
 		// the disk storage this job applies to (if applicable)
-		boost::shared_ptr<piece_manager> storage;
+		std::shared_ptr<piece_manager> storage;
 
 		// this is called when operation completes
 		std::function<void(disk_io_job const*)> callback;

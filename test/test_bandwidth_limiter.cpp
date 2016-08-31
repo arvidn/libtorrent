@@ -43,7 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/shared_ptr.hpp>
-#include <boost/enable_shared_from_this.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <cmath>
@@ -117,7 +116,7 @@ void peer_connection::start()
 }
 
 
-typedef std::vector<boost::shared_ptr<peer_connection> > connections_t;
+typedef std::vector<boost::shared_ptr<peer_connection>> connections_t;
 
 void do_change_rate(bandwidth_channel& t1, bandwidth_channel& t2, int limit)
 {
@@ -184,7 +183,7 @@ void spawn_connections(connections_t& v, bandwidth_manager& bwm
 	{
 		char name[200];
 		std::snprintf(name, sizeof(name), "%s%d", prefix, i);
-		v.push_back(boost::shared_ptr<peer_connection>(new peer_connection(bwm, bwc, 200, false, name)));
+		v.push_back(boost::make_shared<peer_connection>(bwm, bwc, 200, false, name));
 	}
 }
 
@@ -404,8 +403,8 @@ void test_peer_priority(int limit, bool torrent_limit)
 	spawn_connections(v1, manager, t1, 10, "p");
 	connections_t v;
 	std::copy(v1.begin(), v1.end(), std::back_inserter(v));
-	boost::shared_ptr<peer_connection> p(
-		new peer_connection(manager, t1, 1, false, "no-priority"));
+	boost::shared_ptr<peer_connection> p =
+		boost::make_shared<peer_connection>(manager, t1, 1, false, "no-priority");
 	v.push_back(p);
 	run_test(v, manager);
 
@@ -440,8 +439,8 @@ void test_no_starvation(int limit)
 	spawn_connections(v1, manager, t1, num_peers, "p");
 	connections_t v;
 	std::copy(v1.begin(), v1.end(), std::back_inserter(v));
-	boost::shared_ptr<peer_connection> p(
-		new peer_connection(manager, t2, 1, false, "no-priority"));
+	boost::shared_ptr<peer_connection> p =
+		boost::make_shared<peer_connection>(manager, t2, 1, false, "no-priority");
 	v.push_back(p);
 	run_test(v, manager);
 
@@ -517,5 +516,3 @@ TORRENT_TEST(no_starvation)
 {
 	test_no_starvation(40000);
 }
-
-

@@ -43,10 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <sys/types.h>
-#include <boost/function/function2.hpp>
-#include <boost/function/function0.hpp>
 #include <boost/shared_ptr.hpp>
-#include <boost/enable_shared_from_this.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -554,7 +551,7 @@ namespace libtorrent
 	};
 
 	class TORRENT_EXTRA_EXPORT piece_manager
-		: public boost::enable_shared_from_this<piece_manager>
+		: public std::enable_shared_from_this<piece_manager>
 		, public disk_job_fence
 		, public storage_piece_set
 		, boost::noncopyable

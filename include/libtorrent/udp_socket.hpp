@@ -141,7 +141,7 @@ namespace libtorrent
 
 		aux::proxy_settings m_proxy_settings;
 
-		boost::shared_ptr<socks5> m_socks5_connection;
+		std::shared_ptr<socks5> m_socks5_connection;
 
 		// TODO: 3 add a unit test for force-proxy
 		bool m_force_proxy:1;
@@ -155,4 +155,3 @@ namespace libtorrent
 }
 
 #endif
-

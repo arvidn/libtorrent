@@ -311,5 +311,3 @@ void lsd::close()
 }
 
 } // libtorrent namespace
-
-

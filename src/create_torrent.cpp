@@ -161,7 +161,7 @@ namespace libtorrent
 		}
 
 		void on_hash(disk_io_job const* j, create_torrent* t
-			, boost::shared_ptr<piece_manager> storage, disk_io_thread* iothread
+			, std::shared_ptr<piece_manager> storage, disk_io_thread* iothread
 			, int* piece_counter, int* completed_piece
 			, std::function<void(int)> const* f, error_code* ec)
 		{
@@ -282,7 +282,7 @@ namespace libtorrent
 
 		storage_interface* storage_impl = default_storage_constructor(params);
 
-		boost::shared_ptr<piece_manager> storage = boost::make_shared<piece_manager>(
+		std::shared_ptr<piece_manager> storage = std::make_shared<piece_manager>(
 			storage_impl, dummy, const_cast<file_storage*>(&t.files()));
 
 		settings_pack sett;

@@ -1009,7 +1009,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_DHT
 			std::unique_ptr<dht::dht_storage_interface> m_dht_storage;
-			boost::shared_ptr<dht::dht_tracker> m_dht;
+			std::shared_ptr<dht::dht_tracker> m_dht;
 			dht_settings m_dht_settings;
 			dht::dht_storage_constructor_type m_dht_storage_constructor
 				= dht::dht_default_storage_constructor;
@@ -1068,9 +1068,9 @@ namespace libtorrent
 			// this is deducted from the connect speed
 			int m_boost_connections = 0;
 
-			boost::shared_ptr<natpmp> m_natpmp;
-			boost::shared_ptr<upnp> m_upnp;
-			boost::shared_ptr<lsd> m_lsd;
+			std::shared_ptr<natpmp> m_natpmp;
+			std::shared_ptr<upnp> m_upnp;
+			std::shared_ptr<lsd> m_lsd;
 
 			// mask is a bitmask of which protocols to remap on:
 			// 1: NAT-PMP

@@ -56,14 +56,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hex.hpp" // to_hex
 #endif
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <functional>
-#include <boost/function/function0.hpp>
-#include <boost/ref.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 using libtorrent::dht::node;
 using libtorrent::dht::node_id;
 using libtorrent::dht::packet_t;
@@ -363,7 +355,7 @@ namespace libtorrent { namespace dht
 
 	// these functions provide a slightly higher level
 	// interface to the get/put functionality in the DHT
-	void get_immutable_item_callback(item const& it, boost::shared_ptr<get_immutable_item_ctx> ctx
+	void get_immutable_item_callback(item const& it, std::shared_ptr<get_immutable_item_ctx> ctx
 		, std::function<void(item const&)> f)
 	{
 		// the reason to wrap here is to control the return value
@@ -385,7 +377,7 @@ namespace libtorrent { namespace dht
 	};
 
 	void get_mutable_item_callback(item const& it, bool authoritative
-		, boost::shared_ptr<get_mutable_item_ctx> ctx
+		, std::shared_ptr<get_mutable_item_ctx> ctx
 		, std::function<void(item const&, bool)> f)
 	{
 		TORRENT_ASSERT(it.is_mutable());
@@ -411,7 +403,7 @@ namespace libtorrent { namespace dht
 		int response_count;
 	};
 
-	void put_immutable_item_callback(int responses, boost::shared_ptr<put_item_ctx> ctx
+	void put_immutable_item_callback(int responses, std::shared_ptr<put_item_ctx> ctx
 		, std::function<void(int)> f)
 	{
 		ctx->response_count += responses;
@@ -419,7 +411,7 @@ namespace libtorrent { namespace dht
 			f(ctx->response_count);
 	}
 
-	void put_mutable_item_callback(item const& it, int responses, boost::shared_ptr<put_item_ctx> ctx
+	void put_mutable_item_callback(item const& it, int responses, std::shared_ptr<put_item_ctx> ctx
 		, std::function<void(item const&, int)> cb)
 	{
 		ctx->response_count += responses;
@@ -432,8 +424,8 @@ namespace libtorrent { namespace dht
 	void dht_tracker::get_item(sha1_hash const& target
 		, std::function<void(item const&)> cb)
 	{
-		boost::shared_ptr<get_immutable_item_ctx>
-			ctx = boost::make_shared<get_immutable_item_ctx>((TORRENT_USE_IPV6) ? 2 : 1);
+		std::shared_ptr<get_immutable_item_ctx>
+			ctx = std::make_shared<get_immutable_item_ctx>((TORRENT_USE_IPV6) ? 2 : 1);
 		m_dht.get_item(target, std::bind(&get_immutable_item_callback, _1, ctx, cb));
 #if TORRENT_USE_IPV6
 		m_dht6.get_item(target, std::bind(&get_immutable_item_callback, _1, ctx, cb));
@@ -446,8 +438,8 @@ namespace libtorrent { namespace dht
 		, std::function<void(item const&, bool)> cb
 		, std::string salt)
 	{
-		boost::shared_ptr<get_mutable_item_ctx>
-			ctx = boost::make_shared<get_mutable_item_ctx>((TORRENT_USE_IPV6) ? 2 : 1);
+		std::shared_ptr<get_mutable_item_ctx>
+			ctx = std::make_shared<get_mutable_item_ctx>((TORRENT_USE_IPV6) ? 2 : 1);
 		m_dht.get_item(key, salt, std::bind(&get_mutable_item_callback, _1, _2, ctx, cb));
 #if TORRENT_USE_IPV6
 		m_dht6.get_item(key, salt, std::bind(&get_mutable_item_callback, _1, _2, ctx, cb));
@@ -461,8 +453,8 @@ namespace libtorrent { namespace dht
 		bencode(std::back_inserter(flat_data), data);
 		sha1_hash const target = item_target_id(flat_data);
 
-		boost::shared_ptr<put_item_ctx>
-			ctx = boost::make_shared<put_item_ctx>((TORRENT_USE_IPV6) ? 2 : 1);
+		std::shared_ptr<put_item_ctx>
+			ctx = std::make_shared<put_item_ctx>((TORRENT_USE_IPV6) ? 2 : 1);
 		m_dht.put_item(target, data, std::bind(&put_immutable_item_callback
 			, _1, ctx, cb));
 #if TORRENT_USE_IPV6
@@ -475,8 +467,8 @@ namespace libtorrent { namespace dht
 		, std::function<void(item const&, int)> cb
 		, std::function<void(item&)> data_cb, std::string salt)
 	{
-		boost::shared_ptr<put_item_ctx>
-			ctx = boost::make_shared<put_item_ctx>((TORRENT_USE_IPV6) ? 2 : 1);
+		std::shared_ptr<put_item_ctx>
+			ctx = std::make_shared<put_item_ctx>((TORRENT_USE_IPV6) ? 2 : 1);
 
 		m_dht.put_item(key, salt, std::bind(&put_mutable_item_callback
 			, _1, _2, ctx, cb), data_cb);

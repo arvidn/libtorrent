@@ -1074,7 +1074,7 @@ namespace libtorrent
 		}
 #endif
 
-		boost::shared_ptr<piece_manager> storage = j->storage;
+		std::shared_ptr<piece_manager> storage = j->storage;
 
 		// TODO: instead of doing this. pass in the settings to each storage_interface
 		// call. Each disk thread could hold its most recent understanding of the settings

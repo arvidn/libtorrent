@@ -38,19 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/deadline_timer.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/function/function2.hpp>
-#include <boost/noncopyable.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/enable_shared_from_this.hpp>
-
-#ifndef TORRENT_DISABLE_LOGGING
-#include <boost/function/function1.hpp>
-#endif
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 namespace libtorrent
 {
 
@@ -59,7 +46,7 @@ typedef std::function<void(tcp::endpoint, sha1_hash)> peer_callback_t;
 typedef std::function<void(char const*)> log_callback_t;
 #endif
 
-class lsd : public boost::enable_shared_from_this<lsd>
+class lsd : public std::enable_shared_from_this<lsd>
 {
 public:
 	lsd(io_service& ios, peer_callback_t const& cb
@@ -76,7 +63,7 @@ public:
 
 private:
 
-	boost::shared_ptr<lsd> self() { return shared_from_this(); }
+	std::shared_ptr<lsd> self() { return shared_from_this(); }
 
 	void announce_impl(sha1_hash const& ih, int listen_port
 		, bool broadcast, int retry_count);
@@ -117,6 +104,4 @@ private:
 
 }
 
-
 #endif
-

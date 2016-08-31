@@ -41,12 +41,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 
 #include <cstdlib>
+#include <functional>
+#include <array>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <functional>
-#include <array>
-#include <boost/function/function3.hpp>
 #include <boost/system/system_error.hpp>
 #include <boost/system/error_code.hpp>
 #include <boost/asio/read.hpp>
@@ -66,7 +65,7 @@ using namespace std::placeholders;
 //    been destructed, it needs to be held by a shared_ptr
 // 2. since using a socks proxy is assumed to be a less common case, it makes
 //    the common case cheaper by not allocating this space unconditionally
-struct socks5 : boost::enable_shared_from_this<socks5>
+struct socks5 : std::enable_shared_from_this<socks5>
 {
 	explicit socks5(io_service& ios)
 		: m_socks5_sock(ios)
@@ -75,7 +74,7 @@ struct socks5 : boost::enable_shared_from_this<socks5>
 		, m_abort(false)
 		, m_active(false)
 	{
-		memset(m_tmp_buf, 0, sizeof(m_tmp_buf));
+		std::memset(m_tmp_buf, 0, sizeof(m_tmp_buf));
 	}
 
 	void start(aux::proxy_settings const& ps);
@@ -86,7 +85,7 @@ struct socks5 : boost::enable_shared_from_this<socks5>
 
 private:
 
-	boost::shared_ptr<socks5> self() { return shared_from_this(); }
+	std::shared_ptr<socks5> self() { return shared_from_this(); }
 
 	void on_name_lookup(error_code const& e, tcp::resolver::iterator i);
 	void on_connect_timeout(error_code const& ec);
@@ -478,7 +477,7 @@ void udp_socket::set_proxy_settings(aux::proxy_settings const& ps)
 	{
 		// connect to socks5 server and open up the UDP tunnel
 
-		m_socks5_connection = boost::make_shared<socks5>(std::ref(m_socket.get_io_service()));
+		m_socks5_connection = std::make_shared<socks5>(std::ref(m_socket.get_io_service()));
 		m_socks5_connection->start(ps);
 	}
 }
