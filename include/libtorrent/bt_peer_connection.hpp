@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
+#include <boost/scoped_array.hpp>
 #include <boost/optional.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"

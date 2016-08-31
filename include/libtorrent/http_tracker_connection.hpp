@@ -35,12 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <vector>
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/shared_ptr.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <memory>
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/lazy_entry.hpp"

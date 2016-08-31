@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/aux_/escape_string.hpp" // for convert_path_to_posix
-#include <boost/make_shared.hpp>
+
 #include <cstring>
 
 namespace lt = libtorrent;

@@ -38,11 +38,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <set>
 #include <functional>
+#include <memory>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/shared_ptr.hpp>
-#include <boost/weak_ptr.hpp>
-
 #ifndef TORRENT_NO_DEPRECATE
 // for deprecated force_reannounce
 #include <boost/date_time/posix_time/posix_time_duration.hpp>

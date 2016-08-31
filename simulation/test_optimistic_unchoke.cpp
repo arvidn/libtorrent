@@ -47,10 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/deadline_timer.hpp"
 
-#include <boost/bind.hpp>
-#include <boost/make_shared.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/ref.hpp>
+#include <memory>
 
 struct choke_state
 {

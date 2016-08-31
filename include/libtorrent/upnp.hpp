@@ -42,10 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/resolver.hpp"
 #include "libtorrent/debug.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/shared_ptr.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
+#include <memory>
 #include <functional>
 #include <set>
 

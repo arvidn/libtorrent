@@ -36,12 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/random.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/shared_ptr.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
+#include <memory>
 #include <functional>
 #include <algorithm>
 #include <vector>
@@ -109,7 +104,7 @@ namespace {
 // have_str is a string where each character represents a
 // piece, ' ' means we don't have the piece and any other
 // character means we have it
-boost::shared_ptr<piece_picker> setup_picker(
+std::shared_ptr<piece_picker> setup_picker(
 	char const* availability
 	, char const* have_str
 	, char const* priority
@@ -118,7 +113,7 @@ boost::shared_ptr<piece_picker> setup_picker(
 	const int num_pieces = int(strlen(availability));
 	TORRENT_ASSERT(int(strlen(have_str)) == num_pieces);
 
-	boost::shared_ptr<piece_picker> p(new piece_picker);
+	std::shared_ptr<piece_picker> p(new piece_picker);
 	p->init(blocks_per_piece, blocks_per_piece, num_pieces);
 
 	for (int i = 0; i < num_pieces; ++i)
@@ -212,7 +207,7 @@ boost::shared_ptr<piece_picker> setup_picker(
 	return p;
 }
 
-bool verify_pick(boost::shared_ptr<piece_picker> p
+bool verify_pick(std::shared_ptr<piece_picker> p
 	, std::vector<piece_block> const& picked, bool allow_multi_blocks = false)
 {
 #if TORRENT_USE_INVARIANT_CHECKS
@@ -235,7 +230,7 @@ bool verify_pick(boost::shared_ptr<piece_picker> p
 	return picked.size() == blocks.size();
 }
 
-void print_availability(boost::shared_ptr<piece_picker> const& p)
+void print_availability(std::shared_ptr<piece_picker> const& p)
 {
 	std::vector<int> avail;
 	p->get_availability(avail);
@@ -248,7 +243,7 @@ void print_availability(boost::shared_ptr<piece_picker> const& p)
 	std::printf("]\n");
 }
 
-bool verify_availability(boost::shared_ptr<piece_picker> const& p, char const* a)
+bool verify_availability(std::shared_ptr<piece_picker> const& p, char const* a)
 {
 	std::vector<int> avail;
 	p->get_availability(avail);
@@ -269,7 +264,7 @@ void print_pick(std::vector<piece_block> const& picked)
 	std::cout << std::endl;
 }
 
-std::vector<piece_block> pick_pieces(boost::shared_ptr<piece_picker> const& p
+std::vector<piece_block> pick_pieces(std::shared_ptr<piece_picker> const& p
 	, char const* availability
 	, int num_blocks
 	, int prefer_contiguous_blocks
@@ -287,7 +282,7 @@ std::vector<piece_block> pick_pieces(boost::shared_ptr<piece_picker> const& p
 	return picked;
 }
 
-int test_pick(boost::shared_ptr<piece_picker> const& p
+int test_pick(std::shared_ptr<piece_picker> const& p
 	, int options = piece_picker::rarest_first)
 {
 	const std::vector<int> empty_vector;

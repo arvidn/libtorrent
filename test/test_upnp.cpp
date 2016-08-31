@@ -38,9 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 #include <functional>
 #include <iostream>
-
-#include <boost/smart_ptr.hpp>
-#include <boost/ref.hpp>
+#include <memory>
 
 namespace lt = libtorrent;
 using namespace libtorrent;

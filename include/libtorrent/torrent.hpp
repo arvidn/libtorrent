@@ -41,13 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <limits> // for numeric_limits
 #include <memory> // for unique_ptr
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/enable_shared_from_this.hpp>
-#include <boost/shared_ptr.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/torrent_info.hpp"
@@ -382,7 +375,7 @@ namespace libtorrent
 		};
 		void read_piece(int piece);
 		void on_disk_read_complete(disk_io_job const* j, peer_request r
-			, boost::shared_ptr<read_piece_struct> rp);
+			, std::shared_ptr<read_piece_struct> rp);
 
 		storage_mode_t storage_mode() const;
 		storage_interface* get_storage();
@@ -434,7 +427,7 @@ namespace libtorrent
 		void sent_syn(bool ipv6);
 		void received_synack(bool ipv6);
 
-		void set_ip_filter(boost::shared_ptr<const ip_filter> ipf);
+		void set_ip_filter(std::shared_ptr<const ip_filter> ipf);
 		void port_filter_updated();
 		ip_filter const* get_ip_filter() { return m_ip_filter.get(); }
 
@@ -1143,7 +1136,7 @@ namespace libtorrent
 
 		void need_peer_list();
 
-		boost::shared_ptr<const ip_filter> m_ip_filter;
+		std::shared_ptr<const ip_filter> m_ip_filter;
 
 		// all time totals of uploaded and downloaded payload
 		// stored in resume data
@@ -1170,7 +1163,7 @@ namespace libtorrent
 		std::shared_ptr<piece_manager> m_storage;
 
 #ifdef TORRENT_USE_OPENSSL
-		boost::shared_ptr<boost::asio::ssl::context> m_ssl_ctx;
+		std::shared_ptr<boost::asio::ssl::context> m_ssl_ctx;
 
 		bool verify_peer_cert(bool preverified, boost::asio::ssl::verify_context& ctx);
 

@@ -989,7 +989,7 @@ namespace libtorrent
 	{
 		// internal
 		save_resume_data_alert(aux::stack_allocator& alloc
-			, boost::shared_ptr<entry> const& rd
+			, std::shared_ptr<entry> const& rd
 			, torrent_handle const& h);
 
 		TORRENT_DEFINE_ALERT_PRIO(save_resume_data_alert, 37)
@@ -998,7 +998,7 @@ namespace libtorrent
 		virtual std::string message() const override;
 
 		// points to the resume data.
-		boost::shared_ptr<entry> resume_data;
+		std::shared_ptr<entry> resume_data;
 	};
 
 	// This alert is generated instead of ``save_resume_data_alert`` if there was an error
@@ -1170,7 +1170,7 @@ namespace libtorrent
 	// 
 	//	torrent_handle h = alert->handle();
 	//	if (h.is_valid()) {
-	//		boost::shared_ptr<torrent_info const> ti = h.torrent_file();
+	//		std::shared_ptr<torrent_info const> ti = h.torrent_file();
 	//		create_torrent ct(*ti);
 	//		entry te = ct.generate();
 	//		std::vector<char> buffer;

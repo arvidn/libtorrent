@@ -213,7 +213,7 @@ namespace libtorrent
 	{
 		using namespace boost::asio::ip::multicast;
 
-		boost::shared_ptr<udp::socket> s(new udp::socket(ios));
+		std::shared_ptr<udp::socket> s = std::make_shared<udp::socket>(ios);
 		s->open(addr.is_v4() ? udp::v4() : udp::v6(), ec);
 		if (ec) return;
 		s->set_option(udp::socket::reuse_address(true), ec);
@@ -238,7 +238,7 @@ namespace libtorrent
 		, address_v4 const& mask)
 	{
 		error_code ec;
-		boost::shared_ptr<udp::socket> s(new udp::socket(ios));
+		std::shared_ptr<udp::socket> s = std::make_shared<udp::socket>(ios);
 		s->open(addr.is_v4() ? udp::v4() : udp::v6(), ec);
 		if (ec) return;
 		s->bind(udp::endpoint(addr, 0), ec);

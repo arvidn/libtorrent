@@ -45,7 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/read_resume_data.hpp"
 
-#include <boost/make_shared.hpp>
 #include <boost/utility.hpp>
 
 #include <iostream>
@@ -118,7 +117,7 @@ void run_until(io_service& ios, bool const& done)
 
 void nop() {}
 
-boost::shared_ptr<default_storage> setup_torrent(file_storage& fs
+std::shared_ptr<default_storage> setup_torrent(file_storage& fs
 	, file_pool& fp
 	, std::vector<char>& buf
 	, std::string const& test_path
@@ -152,7 +151,7 @@ boost::shared_ptr<default_storage> setup_torrent(file_storage& fs
 	p.pool = &fp;
 	p.path = test_path;
 	p.mode = storage_mode_allocate;
-	boost::shared_ptr<default_storage> s(new default_storage(p));
+	std::shared_ptr<default_storage> s(new default_storage(p));
 	s->m_settings = &set;
 
 	// allocate the files and create the directories
@@ -316,7 +315,7 @@ void test_remove(std::string const& test_path, bool unbuffered)
 		, unbuffered ? settings_pack::disable_os_cache
 		: settings_pack::enable_os_cache);
 
-	boost::shared_ptr<default_storage> s = setup_torrent(fs, fp, buf, test_path, set);
+	std::shared_ptr<default_storage> s = setup_torrent(fs, fp, buf, test_path, set);
 
 	// directories are not created up-front, unless they contain
 	// an empty file (all of which are created up-front, along with
@@ -382,7 +381,7 @@ void test_rename(std::string const& test_path)
 	disk_buffer_pool dp(16 * 1024, ios, std::bind(&nop));
 	aux::session_settings set;
 
-	boost::shared_ptr<default_storage> s = setup_torrent(fs, fp, buf, test_path
+	std::shared_ptr<default_storage> s = setup_torrent(fs, fp, buf, test_path
 		, set);
 
 	// directories are not created up-front, unless they contain
@@ -1285,7 +1284,7 @@ TORRENT_TEST(move_storage_into_self)
 	file_pool fp;
 	io_service ios;
 	disk_buffer_pool dp(16 * 1024, ios, std::bind(&nop));
-	boost::shared_ptr<default_storage> s = setup_torrent(fs, fp, buf, save_path, set);
+	std::shared_ptr<default_storage> s = setup_torrent(fs, fp, buf, save_path, set);
 
 	file::iovec_t const b = {&buf[0], 4};
 	storage_error se;
@@ -1331,7 +1330,7 @@ TORRENT_TEST(dont_move_intermingled_files)
 	file_pool fp;
 	io_service ios;
 	disk_buffer_pool dp(16 * 1024, ios, std::bind(&nop));
-	boost::shared_ptr<default_storage> s = setup_torrent(fs, fp, buf, save_path, set);
+	std::shared_ptr<default_storage> s = setup_torrent(fs, fp, buf, save_path, set);
 
 	file::iovec_t b = {&buf[0], 4};
 	storage_error se;

@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_buffer_holder.hpp"
 
 #include <functional>
+#include <memory>
 
 #ifndef TORRENT_DISABLE_DHT
 #include "libtorrent/socket.hpp"
@@ -48,12 +49,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp" // for tcp::endpoint
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/weak_ptr.hpp>
-
-#ifndef TORRENT_DISABLE_LOGGING
-#include <boost/shared_ptr.hpp>
-#endif
 
 #ifdef TORRENT_USE_OPENSSL
 #include <boost/asio/ssl/context.hpp>
@@ -164,7 +159,7 @@ namespace libtorrent { namespace aux
 			, callback_t const& h) = 0;
 
 		virtual bool has_connection(peer_connection* p) const = 0;
-		virtual void insert_peer(boost::shared_ptr<peer_connection> const& c) = 0;
+		virtual void insert_peer(std::shared_ptr<peer_connection> const& c) = 0;
 
 		virtual void evict_torrent(torrent* t) = 0;
 
@@ -248,7 +243,7 @@ namespace libtorrent { namespace aux
 
 		virtual void trigger_auto_manage() = 0;
 
-		virtual void apply_settings_pack(boost::shared_ptr<settings_pack> pack) = 0;
+		virtual void apply_settings_pack(std::shared_ptr<settings_pack> pack) = 0;
 		virtual session_settings const& settings() const = 0;
 
 		virtual void queue_tracker_request(tracker_request& req

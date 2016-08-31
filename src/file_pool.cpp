@@ -171,7 +171,7 @@ namespace libtorrent
 				// file, we can only delete our reference to it.
 				// if this is the only reference to the file, it will be closed
 				defer_destruction = e.file_ptr;
-				e.file_ptr = boost::make_shared<file>();
+				e.file_ptr = std::make_shared<file>();
 
 				std::string full_path = fs.file_path(file_index, p);
 				if (!e.file_ptr->open(full_path, m, ec))
@@ -191,7 +191,7 @@ namespace libtorrent
 		}
 
 		lru_file_entry e;
-		e.file_ptr = boost::make_shared<file>();
+		e.file_ptr = std::make_shared<file>();
 		if (!e.file_ptr)
 		{
 			ec = error_code(boost::system::errc::not_enough_memory, generic_category());

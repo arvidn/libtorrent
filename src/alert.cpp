@@ -739,7 +739,7 @@ namespace libtorrent {
 	}
 
 	save_resume_data_alert::save_resume_data_alert(aux::stack_allocator& alloc
-		, boost::shared_ptr<entry> const& rd
+		, std::shared_ptr<entry> const& rd
 		, torrent_handle const& h)
 		: torrent_alert(alloc, h)
 		, resume_data(rd)

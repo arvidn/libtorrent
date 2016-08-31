@@ -42,13 +42,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/alert_manager.hpp"
 
-#include <boost/shared_ptr.hpp>
-#include <boost/make_shared.hpp>
-
 #include <sys/types.h>
 #include <sys/stat.h>
 
 #include <functional>
+#include <memory>
 
 using namespace std::placeholders;
 

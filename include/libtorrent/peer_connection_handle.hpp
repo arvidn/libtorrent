@@ -53,7 +53,7 @@ typedef boost::system::error_code error_code;
 // hidden
 struct TORRENT_EXPORT peer_connection_handle
 {
-	peer_connection_handle(boost::weak_ptr<peer_connection> impl)
+	peer_connection_handle(std::weak_ptr<peer_connection> impl)
 		: m_connection(impl)
 	{}
 
@@ -113,19 +113,26 @@ struct TORRENT_EXPORT peer_connection_handle
 	time_point time_of_last_unchoke() const;
 
 	bool operator==(peer_connection_handle const& o) const
-	{ return !(m_connection < o.m_connection) && !(o.m_connection < m_connection); }
+	{ return !lt(m_connection, o.m_connection) && !lt(o.m_connection, m_connection); }
 	bool operator!=(peer_connection_handle const& o) const
-	{ return m_connection < o.m_connection || o.m_connection < m_connection; }
+	{ return lt(m_connection, o.m_connection) || lt(o.m_connection, m_connection); }
 	bool operator<(peer_connection_handle const& o) const
-	{ return m_connection < o.m_connection; }
+	{ return lt(m_connection, o.m_connection); }
 
-	boost::shared_ptr<peer_connection> native_handle() const
+	std::shared_ptr<peer_connection> native_handle() const
 	{
 		return m_connection.lock();
 	}
 
 private:
-	boost::weak_ptr<peer_connection> m_connection;
+	std::weak_ptr<peer_connection> m_connection;
+
+	// copied from boost::weak_ptr
+	bool lt(std::weak_ptr<peer_connection> const& a
+		, std::weak_ptr<peer_connection> const& b) const
+	{
+		return a.owner_before(b);
+	}
 };
 
 struct TORRENT_EXPORT bt_peer_connection_handle : public peer_connection_handle
@@ -142,7 +149,7 @@ struct TORRENT_EXPORT bt_peer_connection_handle : public peer_connection_handle
 	void switch_send_crypto(std::shared_ptr<crypto_plugin> crypto);
 	void switch_recv_crypto(std::shared_ptr<crypto_plugin> crypto);
 
-	boost::shared_ptr<bt_peer_connection> native_handle() const;
+	std::shared_ptr<bt_peer_connection> native_handle() const;
 };
 
 } // namespace libtorrent

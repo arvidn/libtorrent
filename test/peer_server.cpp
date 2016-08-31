@@ -42,12 +42,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test_utils.hpp"
 
 #include <boost/detail/atomic_count.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/make_shared.hpp>
 
 #include <functional>
 #include <thread>
 #include <condition_variable>
+#include <memory>
 
 using namespace libtorrent;
 using namespace std::placeholders;
@@ -148,7 +147,7 @@ struct peer_server
 	}
 };
 
-boost::shared_ptr<peer_server> g_peer;
+std::shared_ptr<peer_server> g_peer;
 
 int start_peer()
 {

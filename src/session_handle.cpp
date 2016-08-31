@@ -680,7 +680,7 @@ namespace libtorrent
 
 	void session_handle::set_ip_filter(ip_filter const& f)
 	{
-		boost::shared_ptr<ip_filter> copy = boost::make_shared<ip_filter>(f);
+		std::shared_ptr<ip_filter> copy = std::make_shared<ip_filter>(f);
 		async_call(&session_impl::set_ip_filter, copy);
 	}
 
@@ -844,7 +844,7 @@ namespace libtorrent
 			|| s.get_int(settings_pack::allowed_enc_level)
 				<= settings_pack::pe_both);
 
-		boost::shared_ptr<settings_pack> copy = boost::make_shared<settings_pack>(std::move(s));
+		std::shared_ptr<settings_pack> copy = std::make_shared<settings_pack>(std::move(s));
 		async_call(&session_impl::apply_settings_pack, copy);
 	}
 

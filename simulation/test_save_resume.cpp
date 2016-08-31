@@ -41,7 +41,7 @@ using namespace libtorrent;
 
 TORRENT_TEST(seed_and_suggest_mode)
 {
-	boost::shared_ptr<entry> resume_data;
+	std::shared_ptr<entry> resume_data;
 
 	// with seed mode
 	setup_swarm(2, swarm_test::upload

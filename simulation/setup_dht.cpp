@@ -254,7 +254,7 @@ struct dht_node final : lt::dht::udp_socket_interface
 
 private:
 	asio::io_service m_io_service;
-	boost::shared_ptr<dht::dht_storage_interface> m_dht_storage;
+	std::shared_ptr<dht::dht_storage_interface> m_dht_storage;
 #if LIBSIMULATOR_USE_MOVE
 	lt::udp::socket m_socket;
 	lt::udp::socket& sock() { return m_socket; }

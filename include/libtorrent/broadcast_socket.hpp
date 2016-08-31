@@ -39,10 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/error_code.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/shared_ptr.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
+#include <memory>
 #include <list>
 
 namespace libtorrent
@@ -82,12 +79,12 @@ namespace libtorrent
 
 		struct socket_entry
 		{
-			socket_entry(boost::shared_ptr<udp::socket> const& s)
-				: socket(s), broadcast(false) { memset(buffer, 0, sizeof(buffer)); }
-			socket_entry(boost::shared_ptr<udp::socket> const& s
+			socket_entry(std::shared_ptr<udp::socket> const& s)
+				: socket(s), broadcast(false) { std::memset(buffer, 0, sizeof(buffer)); }
+			socket_entry(std::shared_ptr<udp::socket> const& s
 				, address_v4 const& mask): socket(s), netmask(mask), broadcast(false)
-			{ memset(buffer, 0, sizeof(buffer)); }
-			boost::shared_ptr<udp::socket> socket;
+			{ std::memset(buffer, 0, sizeof(buffer)); }
+			std::shared_ptr<udp::socket> socket;
 			char buffer[1500];
 			udp::endpoint remote;
 			address_v4 netmask;

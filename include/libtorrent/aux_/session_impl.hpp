@@ -203,7 +203,7 @@ namespace libtorrent
 #if TORRENT_USE_INVARIANT_CHECKS
 			friend class libtorrent::invariant_access;
 #endif
-			typedef std::set<boost::shared_ptr<peer_connection>> connection_map;
+			typedef std::set<std::shared_ptr<peer_connection>> connection_map;
 			typedef std::unordered_map<sha1_hash, std::shared_ptr<torrent>> torrent_map;
 
 			session_impl(io_service& ios);
@@ -311,7 +311,7 @@ namespace libtorrent
 			libtorrent::session_settings deprecated_settings() const;
 #endif
 
-			void apply_settings_pack(boost::shared_ptr<settings_pack> pack) override;
+			void apply_settings_pack(std::shared_ptr<settings_pack> pack) override;
 			void apply_settings_pack_impl(settings_pack const& pack
 				, bool const init = false);
 			session_settings const& settings() const override { return m_settings; }
@@ -395,7 +395,7 @@ namespace libtorrent
 			void pause();
 			void resume();
 
-			void set_ip_filter(boost::shared_ptr<ip_filter> const& f);
+			void set_ip_filter(std::shared_ptr<ip_filter> const& f);
 			ip_filter const& get_ip_filter();
 
 			void set_port_filter(port_filter const& f);
@@ -531,7 +531,7 @@ namespace libtorrent
 			void load_state(bdecode_node const* e, std::uint32_t flags);
 
 			bool has_connection(peer_connection* p) const override;
-			void insert_peer(boost::shared_ptr<peer_connection> const& c) override;
+			void insert_peer(std::shared_ptr<peer_connection> const& c) override;
 
 			proxy_settings proxy() const override;
 
@@ -602,7 +602,7 @@ namespace libtorrent
 			void free_disk_buffer(char* buf) override;
 			disk_buffer_holder allocate_disk_buffer(char const* category) override;
 			disk_buffer_holder allocate_disk_buffer(bool& exceeded
-				, boost::shared_ptr<disk_observer> o
+				, std::shared_ptr<disk_observer> o
 				, char const* category) override;
 			void reclaim_block(block_cache_reference ref) override;
 
@@ -719,7 +719,7 @@ namespace libtorrent
 
 			peer_class_pool m_classes;
 
-			void init(boost::shared_ptr<settings_pack> pack);
+			void init(std::shared_ptr<settings_pack> pack);
 
 			void submit_disk_jobs();
 
@@ -827,7 +827,7 @@ namespace libtorrent
 			// once a peer is disconnected, it's put in this list and
 			// every second their refcount is checked, and if it's 1,
 			// they are deleted (from the network thread)
-			std::vector<boost::shared_ptr<peer_connection>> m_undead_peers;
+			std::vector<std::shared_ptr<peer_connection>> m_undead_peers;
 
 			// keep the io_service alive until we have posted the job
 			// to clear the undead peers
@@ -853,7 +853,7 @@ namespace libtorrent
 			peer_class_type_filter m_peer_class_type_filter;
 
 			// filters incoming connections
-			boost::shared_ptr<ip_filter> m_ip_filter;
+			std::shared_ptr<ip_filter> m_ip_filter;
 
 			// filters outgoing connections
 			port_filter m_port_filter;
@@ -1173,7 +1173,7 @@ namespace libtorrent
 			// this list of tracker loggers serves as tracker_callbacks when
 			// shutting down. This list is just here to keep them alive during
 			// whe shutting down process
-			std::list<boost::shared_ptr<tracker_logger> > m_tracker_loggers;
+			std::list<std::shared_ptr<tracker_logger>> m_tracker_loggers;
 #endif
 
 			// state for keeping track of external IPs

@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/shared_ptr.hpp>
 #include <boost/utility.hpp>
 
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
@@ -52,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <mutex>
 #include <functional>
+#include <memory>
 
 #include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/file.hpp" // for iovec_t
@@ -75,7 +75,7 @@ namespace libtorrent
 #endif
 
 		char* allocate_buffer(char const* category);
-		char* allocate_buffer(bool& exceeded, boost::shared_ptr<disk_observer> o
+		char* allocate_buffer(bool& exceeded, std::shared_ptr<disk_observer> o
 			, char const* category);
 		void free_buffer(char* buf);
 		void free_multiple_buffers(char** bufvec, int numbufs);
@@ -121,7 +121,7 @@ namespace libtorrent
 		// adding up callbacks to this queue. Once the number
 		// of buffers in use drops below the low watermark,
 		// we start calling these functions back
-		std::vector<boost::weak_ptr<disk_observer>> m_observers;
+		std::vector<std::weak_ptr<disk_observer>> m_observers;
 
 		// callback used to tell the cache it needs to free up some blocks
 		std::function<void()> m_trigger_cache_trim;

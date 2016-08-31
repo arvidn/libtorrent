@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/enable_shared_from_this.hpp>
 #include <boost/noncopyable.hpp>
 
 #ifdef TORRENT_USE_OPENSSL
