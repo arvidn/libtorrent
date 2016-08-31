@@ -266,7 +266,7 @@ namespace libtorrent
 		, private torrent_hot_members
 		, public request_callback
 		, public peer_class_set
-		, public boost::enable_shared_from_this<torrent>
+		, public std::enable_shared_from_this<torrent>
 		, public list_node<torrent> // used for torrent activity LRU
 	{
 	public:
@@ -1125,13 +1125,13 @@ namespace libtorrent
 
 		void update_tracker_timer(time_point now);
 
-		static void on_tracker_announce_disp(boost::weak_ptr<torrent> p
+		static void on_tracker_announce_disp(std::weak_ptr<torrent> p
 			, error_code const& e);
 
 		void on_tracker_announce();
 
 #ifndef TORRENT_DISABLE_DHT
-		static void on_dht_announce_response_disp(boost::weak_ptr<torrent> t
+		static void on_dht_announce_response_disp(std::weak_ptr<torrent> t
 			, std::vector<tcp::endpoint> const& peers);
 		void on_dht_announce_response(std::vector<tcp::endpoint> const& peers);
 		bool should_announce_dht() const;

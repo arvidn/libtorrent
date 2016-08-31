@@ -109,7 +109,7 @@ namespace libtorrent
 
 	void web_connection_base::on_connected()
 	{
-		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		std::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 
 		// this is always a seed

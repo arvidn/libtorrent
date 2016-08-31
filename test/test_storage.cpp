@@ -462,7 +462,7 @@ void test_check_files(std::string const& test_path
 	p.pool = &fp;
 	p.mode = storage_mode;
 
-	boost::shared_ptr<void> dummy;
+	std::shared_ptr<void> dummy;
 	std::shared_ptr<piece_manager> pm = std::make_shared<piece_manager>(new default_storage(p), dummy, &fs);
 	std::mutex lock;
 

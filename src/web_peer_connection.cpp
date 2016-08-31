@@ -85,7 +85,7 @@ web_peer_connection::web_peer_connection(peer_connection_args const& pack
 	if (!m_settings.get_bool(settings_pack::report_web_seed_downloads))
 		ignore_stats(true);
 
-	shared_ptr<torrent> tor = pack.tor.lock();
+	std::shared_ptr<torrent> tor = pack.tor.lock();
 	TORRENT_ASSERT(tor);
 
 	// we always prefer downloading 1 MiB chunks
@@ -99,7 +99,7 @@ web_peer_connection::web_peer_connection(peer_connection_args const& pack
 
 	prefer_contiguous_blocks((std::max)(preferred_size / tor->block_size(), 1));
 
-	boost::shared_ptr<torrent> t = associated_torrent().lock();
+	std::shared_ptr<torrent> t = associated_torrent().lock();
 	bool const single_file_request = t->torrent_file().num_files() == 1;
 
 	if (!single_file_request)
@@ -186,7 +186,7 @@ void web_peer_connection::disconnect(error_code const& ec
 		m_web->endpoints.erase(m_web->endpoints.begin());
 	}
 
-	boost::shared_ptr<torrent> t = associated_torrent().lock();
+	std::shared_ptr<torrent> t = associated_torrent().lock();
 
 	if (!m_requests.empty() && !m_file_requests.empty()
 		&& !m_piece.empty() && m_web)
@@ -230,7 +230,7 @@ web_peer_connection::downloading_piece_progress() const
 	if (m_requests.empty())
 		return boost::optional<piece_block_progress>();
 
-	boost::shared_ptr<torrent> t = associated_torrent().lock();
+	std::shared_ptr<torrent> t = associated_torrent().lock();
 	TORRENT_ASSERT(t);
 
 	piece_block_progress ret;
@@ -257,7 +257,7 @@ void web_peer_connection::write_request(peer_request const& r)
 {
 	INVARIANT_CHECK;
 
-	boost::shared_ptr<torrent> t = associated_torrent().lock();
+	std::shared_ptr<torrent> t = associated_torrent().lock();
 	TORRENT_ASSERT(t);
 
 	TORRENT_ASSERT(t->valid_metadata());
@@ -504,7 +504,7 @@ bool web_peer_connection::received_invalid_data(int index, bool single_peer)
 	// 3. if it's a single file torrent, just ban it right away
 	// this handles the case where web seeds may have some files updated but not other
 
-	boost::shared_ptr<torrent> t = associated_torrent().lock();
+	std::shared_ptr<torrent> t = associated_torrent().lock();
 	file_storage const& fs = t->torrent_file().files();
 
 	// single file torrent
@@ -544,7 +544,7 @@ void web_peer_connection::on_receive_padfile()
 
 void web_peer_connection::handle_error(int bytes_left)
 {
-	boost::shared_ptr<torrent> t = associated_torrent().lock();
+	std::shared_ptr<torrent> t = associated_torrent().lock();
 	TORRENT_ASSERT(t);
 
 	// TODO: 2 just make this peer not have the pieces
@@ -573,7 +573,7 @@ void web_peer_connection::handle_redirect(int bytes_left)
 	std::string location = m_parser.header("location");
 	received_bytes(0, bytes_left);
 
-	boost::shared_ptr<torrent> t = associated_torrent().lock();
+	std::shared_ptr<torrent> t = associated_torrent().lock();
 	TORRENT_ASSERT(t);
 
 	if (location.empty())
@@ -648,7 +648,7 @@ void web_peer_connection::on_receive(error_code const& error
 		return;
 	}
 
-	boost::shared_ptr<torrent> t = associated_torrent().lock();
+	std::shared_ptr<torrent> t = associated_torrent().lock();
 	TORRENT_ASSERT(t);
 
 	// in case the first file on this series of requests is a padfile
@@ -967,7 +967,7 @@ void web_peer_connection::incoming_payload(char const* buf, int len)
 		TORRENT_ASSERT(front_request.length >= piece_size);
 		if (int(m_piece.size()) == front_request.length)
 		{
-			boost::shared_ptr<torrent> t = associated_torrent().lock();
+			std::shared_ptr<torrent> t = associated_torrent().lock();
 			TORRENT_ASSERT(t);
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1019,7 +1019,7 @@ void web_peer_connection::maybe_harvest_piece()
 	TORRENT_ASSERT(front_request.length >= int(m_piece.size()));
 	if (int(m_piece.size()) != front_request.length) return;
 
-	boost::shared_ptr<torrent> t = associated_torrent().lock();
+	std::shared_ptr<torrent> t = associated_torrent().lock();
 	TORRENT_ASSERT(t);
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1045,7 +1045,7 @@ void web_peer_connection::handle_padfile()
 	if (m_file_requests.empty()) return;
 	if (m_requests.empty()) return;
 
-	boost::shared_ptr<torrent> t = associated_torrent().lock();
+	std::shared_ptr<torrent> t = associated_torrent().lock();
 	TORRENT_ASSERT(t);
 	torrent_info const& info = t->torrent_file();
 

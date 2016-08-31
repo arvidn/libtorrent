@@ -1285,7 +1285,7 @@ namespace libtorrent
 		// This function is intended only for use by plugins and the alert
 		// dispatch function. This type does not have a stable API and should
 		// be relied on as little as possible.
-		boost::shared_ptr<torrent> native_handle() const;
+		std::shared_ptr<torrent> native_handle() const;
 
 	private:
 
@@ -1298,10 +1298,10 @@ namespace libtorrent
 		template<typename Ret, typename Fun, typename... Args>
 		Ret sync_call_ret(Ret def, Fun f, Args&&... a) const;
 
-		torrent_handle(boost::weak_ptr<torrent> const& t)
+		torrent_handle(std::weak_ptr<torrent> const& t)
 		{ if (!t.expired()) m_torrent = t; }
 
-		boost::weak_ptr<torrent> m_torrent;
+		std::weak_ptr<torrent> m_torrent;
 
 	};
 

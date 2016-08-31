@@ -163,7 +163,7 @@ namespace libtorrent
 		buffer_allocator_interface* allocator;
 		disk_interface* disk_thread;
 		io_service* ios;
-		boost::weak_ptr<torrent> tor;
+		std::weak_ptr<torrent> tor;
 		boost::shared_ptr<socket_type> s;
 		tcp::endpoint endp;
 		torrent_peer* peerinfo;
@@ -176,7 +176,7 @@ namespace libtorrent
 	{
 		// if tor is set, this is an outgoing connection
 		peer_connection_hot_members(
-			boost::weak_ptr<torrent> t
+			std::weak_ptr<torrent> t
 			, aux::session_interface& ses
 			, aux::session_settings const& sett)
 			: m_torrent(t)
@@ -207,7 +207,7 @@ namespace libtorrent
 		// the first cache line) and make the constructor
 		// take a raw pointer. torrent objects should always
 		// outlive their peers
-		boost::weak_ptr<torrent> m_torrent;
+		std::weak_ptr<torrent> m_torrent;
 
 	public:
 
@@ -451,7 +451,7 @@ namespace libtorrent
 		// may be zero if the connection is an incoming connection
 		// and it hasn't received enough information to determine
 		// which torrent it should be associated with
-		boost::weak_ptr<torrent> associated_torrent() const
+		std::weak_ptr<torrent> associated_torrent() const
 		{ return m_torrent; }
 
 		stat const& statistics() const { return m_statistics; }
@@ -790,7 +790,7 @@ namespace libtorrent
 		void on_disk_read_complete(disk_io_job const* j, peer_request r
 			, time_point issue_time);
 		void on_disk_write_complete(disk_io_job const* j
-			, peer_request r, boost::shared_ptr<torrent> t);
+			, peer_request r, std::shared_ptr<torrent> t);
 		void on_seed_mode_hashed(disk_io_job const* j);
 		int request_timeout() const;
 		void check_graceful_pause();

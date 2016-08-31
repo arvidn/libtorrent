@@ -57,7 +57,7 @@ namespace libtorrent
 		if (!m_settings.get_bool(settings_pack::report_web_seed_downloads))
 			ignore_stats(true);
 
-		shared_ptr<torrent> tor = pack.tor.lock();
+		std::shared_ptr<torrent> tor = pack.tor.lock();
 		TORRENT_ASSERT(tor);
 		int blocks_per_piece = tor->torrent_file().piece_length() / tor->block_size();
 
@@ -85,7 +85,7 @@ namespace libtorrent
 			m_web->endpoints.erase(m_web->endpoints.begin());
 		}
 
-		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		std::shared_ptr<torrent> t = associated_torrent().lock();
 		peer_connection::disconnect(ec, op, error);
 		if (t) t->disconnect_web_seed(this);
 	}
@@ -96,7 +96,7 @@ namespace libtorrent
 		if (m_requests.empty())
 			return boost::optional<piece_block_progress>();
 
-		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		std::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 
 		piece_block_progress ret;
@@ -132,7 +132,7 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		std::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 
 		TORRENT_ASSERT(t->valid_metadata());
@@ -210,7 +210,7 @@ namespace libtorrent
 			return;
 		}
 
-		boost::shared_ptr<torrent> t = associated_torrent().lock();
+		std::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 
 		for (;;)

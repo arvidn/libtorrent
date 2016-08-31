@@ -151,14 +151,14 @@ namespace libtorrent
 		tracker_manager& man
 		, tracker_request const& req
 		, io_service& ios
-		, boost::weak_ptr<request_callback> r)
+		, std::weak_ptr<request_callback> r)
 		: timeout_handler(ios)
 		, m_req(req)
 		, m_requester(std::move(r))
 		, m_man(man)
 	{}
 
-	boost::shared_ptr<request_callback> tracker_connection::requester() const
+	std::shared_ptr<request_callback> tracker_connection::requester() const
 	{
 		return m_requester.lock();
 	}
@@ -174,7 +174,7 @@ namespace libtorrent
 	void tracker_connection::fail_impl(error_code const& ec, int code
 		, std::string msg, int interval, int min_interval)
 	{
-		boost::shared_ptr<request_callback> cb = requester();
+		std::shared_ptr<request_callback> cb = requester();
 		if (cb) cb->tracker_request_error(m_req, code, ec, msg.c_str()
 			, interval == 0 ? min_interval : interval);
 		close();
@@ -266,7 +266,7 @@ namespace libtorrent
 	void tracker_manager::queue_request(
 		io_service& ios
 		, tracker_request req
-		, boost::weak_ptr<request_callback> c)
+		, std::weak_ptr<request_callback> c)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(req.num_want >= 0);
@@ -305,7 +305,7 @@ namespace libtorrent
 		}
 
 		// we need to post the error to avoid deadlock
-		if (boost::shared_ptr<request_callback> r = c.lock())
+		if (std::shared_ptr<request_callback> r = c.lock())
 			ios.post(std::bind(&request_callback::tracker_request_error, r, req
 				, -1, error_code(errors::unsupported_url_protocol)
 				, "", 0));
@@ -425,7 +425,7 @@ namespace libtorrent
 			close_http_connections.push_back(*i);
 
 #ifndef TORRENT_DISABLE_LOGGING
-			boost::shared_ptr<request_callback> rc = c->requester();
+			std::shared_ptr<request_callback> rc = c->requester();
 			if (rc) rc->debug_log("aborting: %s", req.url.c_str());
 #endif
 		}
@@ -440,7 +440,7 @@ namespace libtorrent
 			close_udp_connections.push_back(c);
 
 #ifndef TORRENT_DISABLE_LOGGING
-			boost::shared_ptr<request_callback> rc = c->requester();
+			std::shared_ptr<request_callback> rc = c->requester();
 			if (rc) rc->debug_log("aborting: %s", req.url.c_str());
 #endif
 		}

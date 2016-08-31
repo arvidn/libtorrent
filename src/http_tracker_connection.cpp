@@ -65,7 +65,7 @@ namespace libtorrent
 		io_service& ios
 		, tracker_manager& man
 		, tracker_request const& req
-		, boost::weak_ptr<request_callback> c)
+		, std::weak_ptr<request_callback> c)
 		: tracker_connection(man, req, ios, c)
 		, m_man(man)
 #if TORRENT_USE_I2P
@@ -239,7 +239,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_LOGGING
 
-		boost::shared_ptr<request_callback> cb = requester();
+		std::shared_ptr<request_callback> cb = requester();
 		if (cb)
 		{
 			cb->debug_log("==> TRACKER_REQUEST [ url: %s ]", url.c_str());
@@ -275,7 +275,7 @@ namespace libtorrent
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
-		boost::shared_ptr<request_callback> cb = requester();
+		std::shared_ptr<request_callback> cb = requester();
 		if (cb)
 		{
 			cb->debug_log("*** TRACKER_FILTER");
@@ -290,7 +290,7 @@ namespace libtorrent
 		error_code ec;
 		tcp::endpoint ep = c.socket().remote_endpoint(ec);
 		m_tracker_ip = ep.address();
-		boost::shared_ptr<request_callback> cb = requester();
+		std::shared_ptr<request_callback> cb = requester();
 	}
 
 	void http_tracker_connection::on_response(error_code const& ec
@@ -329,7 +329,7 @@ namespace libtorrent
 		// handle tracker response
 		error_code ecode;
 
-		boost::shared_ptr<request_callback> cb = requester();
+		std::shared_ptr<request_callback> cb = requester();
 		if (!cb)
 		{
 			close();

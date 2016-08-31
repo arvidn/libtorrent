@@ -268,7 +268,7 @@ namespace libtorrent
 		}
 
 		// dummy torrent object pointer
-		boost::shared_ptr<char> dummy;
+		std::shared_ptr<char> dummy;
 		counters cnt;
 		disk_io_thread disk_thread(ios, cnt, nullptr);
 		disk_thread.set_num_threads(1);

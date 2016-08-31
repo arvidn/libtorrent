@@ -561,7 +561,7 @@ namespace libtorrent
 
 		piece_manager(
 			storage_interface* storage_impl
-			, boost::shared_ptr<void> const& torrent
+			, std::shared_ptr<void> const& torrent
 			, file_storage* files);
 
 		~piece_manager();
@@ -610,7 +610,7 @@ namespace libtorrent
 		// to keep the torrent object alive until
 		// the piece_manager destructs. This is because
 		// the torrent_info object is owned by the torrent.
-		boost::shared_ptr<void> m_torrent;
+		std::shared_ptr<void> m_torrent;
 	};
 
 	// this identifies a read or write operation so that readwritev() knows

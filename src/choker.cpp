@@ -50,9 +50,9 @@ namespace libtorrent
 	{
 		// if one peer belongs to a higher priority torrent than the other one
 		// that one should be unchoked.
-		boost::shared_ptr<torrent> t1 = lhs->associated_torrent().lock();
+		std::shared_ptr<torrent> t1 = lhs->associated_torrent().lock();
 		TORRENT_ASSERT(t1);
-		boost::shared_ptr<torrent> t2 = rhs->associated_torrent().lock();
+		std::shared_ptr<torrent> t2 = rhs->associated_torrent().lock();
 		TORRENT_ASSERT(t2);
 
 		int prio1 = lhs->get_priority(peer_connection::upload_channel);
@@ -113,9 +113,9 @@ namespace libtorrent
 	{
 		// if one peer belongs to a higher priority torrent than the other one
 		// that one should be unchoked.
-		boost::shared_ptr<torrent> t1 = lhs->associated_torrent().lock();
+		std::shared_ptr<torrent> t1 = lhs->associated_torrent().lock();
 		TORRENT_ASSERT(t1);
-		boost::shared_ptr<torrent> t2 = rhs->associated_torrent().lock();
+		std::shared_ptr<torrent> t2 = rhs->associated_torrent().lock();
 		TORRENT_ASSERT(t2);
 
 		int prio1 = lhs->get_priority(peer_connection::upload_channel);
@@ -155,9 +155,9 @@ namespace libtorrent
 	{
 		// if one peer belongs to a higher priority torrent than the other one
 		// that one should be unchoked.
-		boost::shared_ptr<torrent> t1 = lhs->associated_torrent().lock();
+		std::shared_ptr<torrent> t1 = lhs->associated_torrent().lock();
 		TORRENT_ASSERT(t1);
-		boost::shared_ptr<torrent> t2 = rhs->associated_torrent().lock();
+		std::shared_ptr<torrent> t2 = rhs->associated_torrent().lock();
 		TORRENT_ASSERT(t2);
 
 		int prio1 = lhs->get_priority(peer_connection::upload_channel);

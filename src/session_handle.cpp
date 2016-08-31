@@ -419,7 +419,7 @@ namespace libtorrent
 		, torrent_handle h, int flags) const
 	{
 		piece_manager* st = nullptr;
-		boost::shared_ptr<torrent> t = h.m_torrent.lock();
+		std::shared_ptr<torrent> t = h.m_torrent.lock();
 		if (t)
 		{
 			if (t->has_storage())

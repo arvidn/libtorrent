@@ -73,7 +73,7 @@ namespace libtorrent
 		io_service& ios
 		, tracker_manager& man
 		, tracker_request const& req
-		, boost::weak_ptr<request_callback> c)
+		, std::weak_ptr<request_callback> c)
 		: tracker_connection(man, req, ios, c)
 		, m_transaction_id(0)
 		, m_attempts(0)
@@ -126,7 +126,7 @@ namespace libtorrent
 					, shared_from_this(), _1, _2, port));
 
 #ifndef TORRENT_DISABLE_LOGGING
-			boost::shared_ptr<request_callback> cb = requester();
+			std::shared_ptr<request_callback> cb = requester();
 			if (cb) cb->debug_log("*** UDP_TRACKER [ initiating name lookup: \"%s\" ]"
 				, hostname.c_str());
 #endif
@@ -155,7 +155,7 @@ namespace libtorrent
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
-		boost::shared_ptr<request_callback> cb = requester();
+		std::shared_ptr<request_callback> cb = requester();
 		if (cb) cb->debug_log("*** UDP_TRACKER [ host: \"%s\" ip: \"%s\" | error: \"%s\" ]"
 			, m_hostname.c_str(), print_endpoint(m_target).c_str(), ec.message().c_str());
 #endif
@@ -189,7 +189,7 @@ namespace libtorrent
 			return;
 		}
 
-		boost::shared_ptr<request_callback> cb = requester();
+		std::shared_ptr<request_callback> cb = requester();
 #ifndef TORRENT_DISABLE_LOGGING
 		if (cb) cb->debug_log("*** UDP_TRACKER [ name lookup successful ]");
 #endif
@@ -254,7 +254,7 @@ namespace libtorrent
 			if (iter == m_endpoints.end())
 			{
 				TORRENT_ASSERT(target.address().is_v4() != bind_interface().is_v4());
-				boost::shared_ptr<request_callback> cb = requester();
+				std::shared_ptr<request_callback> cb = requester();
 				if (cb)
 				{
 					char const* tracker_address_type = target.address().is_v4() ? "IPv4" : "IPv6";
@@ -312,7 +312,7 @@ namespace libtorrent
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
-		boost::shared_ptr<request_callback> cb = requester();
+		std::shared_ptr<request_callback> cb = requester();
 		if (cb) cb->debug_log("*** UDP_TRACKER [ timed out url: %s ]", tracker_req().url.c_str());
 #endif
 		fail(error_code(errors::timed_out));
@@ -339,7 +339,7 @@ namespace libtorrent
 		, span<char const> const buf)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		boost::shared_ptr<request_callback> cb = requester();
+		std::shared_ptr<request_callback> cb = requester();
 #endif
 
 		// ignore resposes before we've sent any requests
@@ -479,7 +479,7 @@ namespace libtorrent
 	void udp_tracker_connection::send_udp_connect()
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		boost::shared_ptr<request_callback> cb = requester();
+		std::shared_ptr<request_callback> cb = requester();
 #endif
 
 		if (m_abort)
@@ -606,7 +606,7 @@ namespace libtorrent
 			return false;
 		}
 
-		boost::shared_ptr<request_callback> cb = requester();
+		std::shared_ptr<request_callback> cb = requester();
 #ifndef TORRENT_DISABLE_LOGGING
 		if (cb)
 		{
@@ -682,7 +682,7 @@ namespace libtorrent
 		int const downloaded = aux::read_int32(buf);
 		int const incomplete = aux::read_int32(buf);
 
-		boost::shared_ptr<request_callback> cb = requester();
+		std::shared_ptr<request_callback> cb = requester();
 		if (!cb)
 		{
 			close();
@@ -757,7 +757,7 @@ namespace libtorrent
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
-		boost::shared_ptr<request_callback> cb = requester();
+		std::shared_ptr<request_callback> cb = requester();
 		if (cb)
 		{
 			char hex_ih[41];

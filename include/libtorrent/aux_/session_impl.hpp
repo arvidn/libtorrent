@@ -203,8 +203,8 @@ namespace libtorrent
 #if TORRENT_USE_INVARIANT_CHECKS
 			friend class libtorrent::invariant_access;
 #endif
-			typedef std::set<boost::shared_ptr<peer_connection> > connection_map;
-			typedef std::unordered_map<sha1_hash, boost::shared_ptr<torrent> > torrent_map;
+			typedef std::set<boost::shared_ptr<peer_connection>> connection_map;
+			typedef std::unordered_map<sha1_hash, std::shared_ptr<torrent>> torrent_map;
 
 			session_impl(io_service& ios);
 			virtual ~session_impl();
@@ -264,7 +264,7 @@ namespace libtorrent
 			// attempts, because this torrent needs more peers.
 			// this is typically done when a torrent starts out and
 			// need the initial push to connect peers
-			void prioritize_connections(boost::weak_ptr<torrent> t) override;
+			void prioritize_connections(std::weak_ptr<torrent> t) override;
 
 			tcp::endpoint get_ipv6_interface() const override;
 			tcp::endpoint get_ipv4_interface() const override;
@@ -279,26 +279,26 @@ namespace libtorrent
 
 			void incoming_connection(boost::shared_ptr<socket_type> const& s);
 
-			boost::weak_ptr<torrent> find_torrent(sha1_hash const& info_hash) const override;
+			std::weak_ptr<torrent> find_torrent(sha1_hash const& info_hash) const override;
 #ifndef TORRENT_NO_DEPRECATE
 			//deprecated in 1.2
-			boost::weak_ptr<torrent> find_torrent(std::string const& uuid) const;
+			std::weak_ptr<torrent> find_torrent(std::string const& uuid) const;
 #endif
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
-			std::vector<boost::shared_ptr<torrent> > find_collection(
+			std::vector<std::shared_ptr<torrent>> find_collection(
 				std::string const& collection) const override;
 #endif
-			boost::weak_ptr<torrent> find_disconnect_candidate_torrent() const override;
+			std::weak_ptr<torrent> find_disconnect_candidate_torrent() const override;
 			int num_torrents() const override { return int(m_torrents.size()); }
 
-			void insert_torrent(sha1_hash const& ih, boost::shared_ptr<torrent> const& t
+			void insert_torrent(sha1_hash const& ih, std::shared_ptr<torrent> const& t
 				, std::string uuid) override;
 #ifndef TORRENT_NO_DEPRECATE
 			//deprecated in 1.2
-			void insert_uuid_torrent(std::string uuid, boost::shared_ptr<torrent> const& t) override
+			void insert_uuid_torrent(std::string uuid, std::shared_ptr<torrent> const& t) override
 			{ m_uuids.insert(std::make_pair(uuid, t)); }
 #endif
-			boost::shared_ptr<torrent> delay_load_torrent(sha1_hash const& info_hash
+			std::shared_ptr<torrent> delay_load_torrent(sha1_hash const& info_hash
 				, peer_connection* pc) override;
 			void set_queue_position(torrent* t, int p) override;
 
@@ -335,7 +335,7 @@ namespace libtorrent
 			// this is called for torrents when they are started
 			// it will prioritize them for announcing to
 			// the DHT, to get the initial peers quickly
-			void prioritize_dht(boost::weak_ptr<torrent> t) override;
+			void prioritize_dht(std::weak_ptr<torrent> t) override;
 
 			void get_immutable_callback(sha1_hash target
 				, dht::item const& i);
@@ -374,7 +374,7 @@ namespace libtorrent
 			torrent const* find_encrypted_torrent(
 				sha1_hash const& info_hash, sha1_hash const& xor_mask) override;
 
-			void add_obfuscated_hash(sha1_hash const& obfuscated, boost::weak_ptr<torrent> const& t) override;
+			void add_obfuscated_hash(sha1_hash const& obfuscated, std::weak_ptr<torrent> const& t) override;
 #endif
 
 			void on_port_map_log(char const* msg, int map_transport);
@@ -403,7 +403,7 @@ namespace libtorrent
 			void ban_ip(address addr) override;
 
 			void queue_tracker_request(tracker_request& req
-				, boost::weak_ptr<request_callback> c) override;
+				, std::weak_ptr<request_callback> c) override;
 
 			// ==== peer class operations ====
 
@@ -432,19 +432,19 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			void add_extensions_to_torrent(
-				boost::shared_ptr<torrent> const& torrent_ptr, void* userdata);
+				std::shared_ptr<torrent> const& torrent_ptr, void* userdata);
 #endif
 
 			torrent_handle add_torrent(add_torrent_params const&, error_code& ec);
 			// second return value is true if the torrent was added and false if an
 			// existing one was found.
-			std::pair<boost::shared_ptr<torrent>, bool>
+			std::pair<std::shared_ptr<torrent>, bool>
 			add_torrent_impl(add_torrent_params& p, error_code& ec);
 			void async_add_torrent(add_torrent_params* params);
 			void on_async_load_torrent(disk_io_job const* j);
 
 			void remove_torrent(torrent_handle const& h, int options) override;
-			void remove_torrent_impl(boost::shared_ptr<torrent> tptr, int options) override;
+			void remove_torrent_impl(std::shared_ptr<torrent> tptr, int options) override;
 
 			void get_torrent_status(std::vector<torrent_status>* ret
 				, std::function<bool(torrent_status const&)> const& pred
@@ -818,7 +818,7 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 			//deprecated in 1.2
-			std::map<std::string, boost::shared_ptr<torrent> > m_uuids;
+			std::map<std::string, std::shared_ptr<torrent>> m_uuids;
 #endif
 
 			// peer connections are put here when disconnected to avoid
@@ -827,7 +827,7 @@ namespace libtorrent
 			// once a peer is disconnected, it's put in this list and
 			// every second their refcount is checked, and if it's 1,
 			// they are deleted (from the network thread)
-			std::vector<boost::shared_ptr<peer_connection> > m_undead_peers;
+			std::vector<boost::shared_ptr<peer_connection>> m_undead_peers;
 
 			// keep the io_service alive until we have posted the job
 			// to clear the undead peers
@@ -1115,11 +1115,11 @@ namespace libtorrent
 			// in this queue and get announced the next time
 			// the timer fires, instead of the next one in
 			// the round-robin sequence.
-			std::deque<boost::weak_ptr<torrent> > m_dht_torrents;
+			std::deque<std::weak_ptr<torrent>> m_dht_torrents;
 #endif
 
 			// torrents prioritized to get connection attempts
-			std::deque<std::pair<boost::weak_ptr<torrent>, int> > m_prio_torrents;
+			std::deque<std::pair<std::weak_ptr<torrent>, int>> m_prio_torrents;
 
 			// this announce timer is used
 			// by Local service discovery

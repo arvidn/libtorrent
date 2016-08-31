@@ -69,7 +69,7 @@ namespace libtorrent
 	template<typename Fun, typename... Args>
 	void torrent_handle::async_call(Fun f, Args&&... a) const
 	{
-		boost::shared_ptr<torrent> t = m_torrent.lock();
+		std::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT_PRECOND(t);
 		if (!t) return;
 		session_impl& ses = static_cast<session_impl&>(t->session());
@@ -79,7 +79,7 @@ namespace libtorrent
 	template<typename Fun, typename... Args>
 	void torrent_handle::sync_call(Fun f, Args&&... a) const
 	{
-		boost::shared_ptr<torrent> t = m_torrent.lock();
+		std::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT_PRECOND(t);
 		if (!t) return;
 		session_impl& ses = static_cast<session_impl&>(t->session());
@@ -101,7 +101,7 @@ namespace libtorrent
 	template<typename Ret, typename Fun, typename... Args>
 	Ret torrent_handle::sync_call_ret(Ret def, Fun f, Args&&... a) const
 	{
-		boost::shared_ptr<torrent> t = m_torrent.lock();
+		std::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT_PRECOND(t);
 		Ret r = def;
 		if (!t) return r;
@@ -125,7 +125,7 @@ namespace libtorrent
 
 	sha1_hash torrent_handle::info_hash() const
 	{
-		boost::shared_ptr<torrent> t = m_torrent.lock();
+		std::shared_ptr<torrent> t = m_torrent.lock();
 		static const sha1_hash empty;
 		if (!t) return empty;
 		return t->info_hash();
@@ -650,7 +650,7 @@ namespace libtorrent
 	{
 		status.clear();
 
-		boost::shared_ptr<torrent> t = m_torrent.lock();
+		std::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t || !t->has_storage()) return;
 		session_impl& ses = static_cast<session_impl&>(t->session());
 		status = ses.disk_thread().files().get_status(&t->storage());
@@ -671,7 +671,7 @@ namespace libtorrent
 
 	std::vector<pool_file_status> torrent_handle::file_status() const
 	{
-		boost::shared_ptr<torrent> t = m_torrent.lock();
+		std::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t || !t->has_storage()) return {};
 		session_impl& ses = static_cast<session_impl&>(t->session());
 		return ses.disk_thread().files().get_status(&t->storage());
@@ -722,7 +722,7 @@ namespace libtorrent
 		async_call(&torrent::clear_time_critical);
 	}
 
-	boost::shared_ptr<torrent> torrent_handle::native_handle() const
+	std::shared_ptr<torrent> torrent_handle::native_handle() const
 	{
 		return m_torrent.lock();
 	}

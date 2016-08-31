@@ -60,7 +60,7 @@ namespace libtorrent {
 		: handle(h)
 		, m_alloc(alloc)
 	{
-		boost::shared_ptr<torrent> t = h.native_handle();
+		std::shared_ptr<torrent> t = h.native_handle();
 		if (t)
 		{
 			std::string name_str = t->name();
