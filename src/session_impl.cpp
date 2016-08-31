@@ -817,10 +817,9 @@ namespace aux {
 #endif
 		m_lsd_announce_timer.cancel(ec);
 
-		for (std::set<boost::shared_ptr<socket_type> >::iterator i = m_incoming_sockets.begin()
-			, end(m_incoming_sockets.end()); i != end; ++i)
+		for (auto const& s : m_incoming_sockets)
 		{
-			(*i)->close(ec);
+			s->close(ec);
 			TORRENT_ASSERT(!ec);
 		}
 		m_incoming_sockets.clear();
@@ -1494,7 +1493,7 @@ namespace aux {
 		// separate function. At least most of it
 		if (!m_settings.get_bool(settings_pack::force_proxy))
 		{
-			ret.sock = boost::make_shared<tcp::acceptor>(std::ref(m_io_service));
+			ret.sock = std::make_shared<tcp::acceptor>(m_io_service);
 			ret.sock->open(bind_ep.protocol(), ec);
 			last_op = listen_failed_alert::open;
 			if (ec)
@@ -1677,7 +1676,7 @@ namespace aux {
 			}
 		} // force-proxy mode
 
-		ret.udp_sock = boost::make_shared<udp_socket>(std::ref(m_io_service));
+		ret.udp_sock = std::make_shared<udp_socket>(m_io_service);
 #if TORRENT_HAS_BINDTODEVICE
 		if (!device.empty())
 		{
@@ -1736,7 +1735,7 @@ namespace aux {
 		// TODO: 2 use a handler allocator here
 		ADD_OUTSTANDING_ASYNC("session_impl::on_udp_packet");
 		ret.udp_sock->async_read(std::bind(&session_impl::on_udp_packet
-			, this, boost::weak_ptr<udp_socket>(ret.udp_sock), ret.ssl, _1));
+			, this, std::weak_ptr<udp_socket>(ret.udp_sock), ret.ssl, _1));
 
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log(" listening on: %s TCP port: %d UDP port: %d"
@@ -1973,7 +1972,7 @@ namespace aux {
 
 		if (m_socks_listen_socket) return;
 
-		m_socks_listen_socket = boost::make_shared<socket_type>(std::ref(m_io_service));
+		m_socks_listen_socket = std::make_shared<socket_type>(m_io_service);
 		bool const ret = instantiate_connection(m_io_service, proxy()
 			, *m_socks_listen_socket, nullptr, nullptr, false, false);
 		TORRENT_ASSERT_VAL(ret, ret);
@@ -1989,7 +1988,7 @@ namespace aux {
 				, m_socks_listen_socket, _1));
 	}
 
-	void session_impl::on_socks_listen(boost::shared_ptr<socket_type> const& sock
+	void session_impl::on_socks_listen(std::shared_ptr<socket_type> const& sock
 		, error_code const& e)
 	{
 #if defined TORRENT_ASIO_DEBUGGING
@@ -2026,7 +2025,7 @@ namespace aux {
 				, m_socks_listen_socket, _1));
 	}
 
-	void session_impl::on_socks_accept(boost::shared_ptr<socket_type> const& s
+	void session_impl::on_socks_accept(std::shared_ptr<socket_type> const& s
 		, error_code const& e)
 	{
 		COMPLETE_ASYNC("session_impl::on_socks_accept");
@@ -2100,7 +2099,7 @@ namespace aux {
 
 		if (m_i2p_listen_socket) return;
 
-		m_i2p_listen_socket = boost::shared_ptr<socket_type>(new socket_type(m_io_service));
+		m_i2p_listen_socket = std::shared_ptr<socket_type>(new socket_type(m_io_service));
 		bool ret = instantiate_connection(m_io_service, m_i2p_conn.proxy()
 			, *m_i2p_listen_socket, nullptr, nullptr, true, false);
 		TORRENT_ASSERT_VAL(ret, ret);
@@ -2115,7 +2114,7 @@ namespace aux {
 			, std::bind(&session_impl::on_i2p_accept, this, m_i2p_listen_socket, _1));
 	}
 
-	void session_impl::on_i2p_accept(boost::shared_ptr<socket_type> const& s
+	void session_impl::on_i2p_accept(std::shared_ptr<socket_type> const& s
 		, error_code const& e)
 	{
 		COMPLETE_ASYNC("session_impl::on_i2p_accept");
@@ -2163,7 +2162,7 @@ namespace aux {
 				i->udp_write_blocked = true;
 				ADD_OUTSTANDING_ASYNC("session_impl::on_udp_writeable");
 				i->udp_sock->async_write(std::bind(&session_impl::on_udp_writeable
-					, this, boost::weak_ptr<udp_socket>(i->udp_sock), _1));
+					, this, std::weak_ptr<udp_socket>(i->udp_sock), _1));
 			}
 			return;
 		}
@@ -2196,19 +2195,19 @@ namespace aux {
 				i->udp_write_blocked = true;
 				ADD_OUTSTANDING_ASYNC("session_impl::on_udp_writeable");
 				i->udp_sock->async_write(std::bind(&session_impl::on_udp_writeable
-					, this, boost::weak_ptr<udp_socket>(i->udp_sock), _1));
+					, this, std::weak_ptr<udp_socket>(i->udp_sock), _1));
 			}
 			return;
 		}
 		ec = boost::asio::error::operation_not_supported;
 	}
 
-	void session_impl::on_udp_writeable(boost::weak_ptr<udp_socket> s, error_code const& ec)
+	void session_impl::on_udp_writeable(std::weak_ptr<udp_socket> s, error_code const& ec)
 	{
 		COMPLETE_ASYNC("session_impl::on_udp_writeable");
 		if (ec) return;
 
-		boost::shared_ptr<udp_socket> sock = s.lock();
+		std::shared_ptr<udp_socket> sock = s.lock();
 		if (!sock) return;
 
 		std::list<listen_socket_t>::iterator i = std::find_if(
@@ -2230,13 +2229,13 @@ namespace aux {
 	}
 
 
-	void session_impl::on_udp_packet(boost::weak_ptr<udp_socket> const& socket
+	void session_impl::on_udp_packet(std::weak_ptr<udp_socket> const& socket
 		, bool const ssl, error_code const& ec)
 	{
 		COMPLETE_ASYNC("session_impl::on_udp_packet");
 		if (ec)
 		{
-			boost::shared_ptr<udp_socket> s = socket.lock();
+			std::shared_ptr<udp_socket> s = socket.lock();
 			udp::endpoint ep;
 			error_code best_effort;
 			if (s) ep = s->local_endpoint(best_effort);
@@ -2258,7 +2257,7 @@ namespace aux {
 
 		m_stats_counters.inc_stats_counter(counters::on_udp_counter);
 
-		boost::shared_ptr<udp_socket> s = socket.lock();
+		std::shared_ptr<udp_socket> s = socket.lock();
 		if (!s) return;
 
 		struct utp_socket_manager& mgr =
@@ -2372,10 +2371,10 @@ namespace aux {
 			, this, socket, ssl, _1));
 	}
 
-	void session_impl::async_accept(boost::shared_ptr<tcp::acceptor> const& listener, bool ssl)
+	void session_impl::async_accept(std::shared_ptr<tcp::acceptor> const& listener, bool ssl)
 	{
 		TORRENT_ASSERT(!m_abort);
-		shared_ptr<socket_type> c(new socket_type(m_io_service));
+		std::shared_ptr<socket_type> c = std::make_shared<socket_type>(m_io_service);
 		tcp::socket* str = nullptr;
 
 #ifdef TORRENT_USE_OPENSSL
@@ -2403,17 +2402,17 @@ namespace aux {
 
 		listener->async_accept(*str
 			, std::bind(&session_impl::on_accept_connection, this, c
-			, boost::weak_ptr<tcp::acceptor>(listener), _1, ssl));
+			, std::weak_ptr<tcp::acceptor>(listener), _1, ssl));
 	}
 
-	void session_impl::on_accept_connection(shared_ptr<socket_type> const& s
-		, weak_ptr<tcp::acceptor> listen_socket, error_code const& e
+	void session_impl::on_accept_connection(std::shared_ptr<socket_type> const& s
+		, std::weak_ptr<tcp::acceptor> listen_socket, error_code const& e
 		, bool const ssl)
 	{
 		COMPLETE_ASYNC("session_impl::on_accept_connection");
 		m_stats_counters.inc_stats_counter(counters::on_accept_counter);
 		TORRENT_ASSERT(is_single_thread());
-		boost::shared_ptr<tcp::acceptor> listener = listen_socket.lock();
+		std::shared_ptr<tcp::acceptor> listener = listen_socket.lock();
 		if (!listener) return;
 
 		if (e == boost::asio::error::operation_aborted) return;
@@ -2505,14 +2504,14 @@ namespace aux {
 
 #ifdef TORRENT_USE_OPENSSL
 
-	void session_impl::on_incoming_utp_ssl(boost::shared_ptr<socket_type> const& s)
+	void session_impl::on_incoming_utp_ssl(std::shared_ptr<socket_type> const& s)
 	{
 		TORRENT_ASSERT(is_ssl(*s));
 
 		// for SSL connections, incoming_connection() is called
 		// after the handshake is done
 		ADD_OUTSTANDING_ASYNC("session_impl::ssl_handshake");
-		s->get<ssl_stream<utp_stream> >()->async_accept_handshake(
+		s->get<ssl_stream<utp_stream>>()->async_accept_handshake(
 			std::bind(&session_impl::ssl_handshake, this, _1, s));
 		m_incoming_sockets.insert(s);
 	}
@@ -2523,7 +2522,7 @@ namespace aux {
 	//   -CAfile <torrent-cert>.pem  -debug -connect 127.0.0.1:4433 -tls1
 	//   -servername <hex-encoded-info-hash>
 
-	void session_impl::ssl_handshake(error_code const& ec, boost::shared_ptr<socket_type> s)
+	void session_impl::ssl_handshake(error_code const& ec, std::shared_ptr<socket_type> s)
 	{
 		COMPLETE_ASYNC("session_impl::ssl_handshake");
 		TORRENT_ASSERT(is_ssl(*s));
@@ -2554,7 +2553,7 @@ namespace aux {
 
 #endif // TORRENT_USE_OPENSSL
 
-	void session_impl::incoming_connection(boost::shared_ptr<socket_type> const& s)
+	void session_impl::incoming_connection(std::shared_ptr<socket_type> const& s)
 	{
 		TORRENT_ASSERT(is_single_thread());
 

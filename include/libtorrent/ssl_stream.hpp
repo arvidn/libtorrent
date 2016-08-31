@@ -96,9 +96,7 @@ public:
 	void set_verify_callback(T const& fun, error_code& ec)
 	{ m_sock.set_verify_callback(fun, ec); }
 
-#if BOOST_VERSION >= 104700
 	SSL* native_handle() { return m_sock.native_handle(); }
-#endif
 
 	typedef std::function<void(error_code const&)> handler_type;
 
@@ -111,7 +109,7 @@ public:
 
 		// to avoid unnecessary copying of the handler,
 		// store it in a shared_ptr
-		boost::shared_ptr<handler_type> h(new handler_type(handler));
+		std::shared_ptr<handler_type> h(new handler_type(handler));
 
 		using std::placeholders::_1;
 		m_sock.next_layer().async_connect(endpoint
@@ -122,7 +120,7 @@ public:
 	void async_accept_handshake(Handler const& handler)
 	{
 		// this is used for accepting SSL connections
-		boost::shared_ptr<handler_type> h(new handler_type(handler));
+		std::shared_ptr<handler_type> h(new handler_type(handler));
 		using std::placeholders::_1;
 		m_sock.async_handshake(ssl::stream_base::server
 			, std::bind(&ssl_stream::handshake, this, _1, h));
@@ -312,7 +310,7 @@ public:
 
 private:
 
-	void connected(error_code const& e, boost::shared_ptr<handler_type> h)
+	void connected(error_code const& e, std::shared_ptr<handler_type> h)
 	{
 		if (e)
 		{
@@ -325,7 +323,7 @@ private:
 			, std::bind(&ssl_stream::handshake, this, _1, h));
 	}
 
-	void handshake(error_code const& e, boost::shared_ptr<handler_type> h)
+	void handshake(error_code const& e, std::shared_ptr<handler_type> h)
 	{
 		(*h)(e);
 	}
@@ -338,4 +336,3 @@ private:
 #endif // TORRENT_USE_OPENSSL
 
 #endif
-

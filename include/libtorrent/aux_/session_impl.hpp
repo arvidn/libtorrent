@@ -165,8 +165,8 @@ namespace libtorrent
 		// pointers may be nullptr!
 		// These must be shared_ptr to avoid a dangling reference if an
 		// incoming packet is in the event queue when the socket is erased
-		boost::shared_ptr<tcp::acceptor> sock;
-		boost::shared_ptr<udp_socket> udp_sock;
+		std::shared_ptr<tcp::acceptor> sock;
+		std::shared_ptr<udp_socket> udp_sock;
 	};
 
 	namespace aux
@@ -269,15 +269,15 @@ namespace libtorrent
 			tcp::endpoint get_ipv6_interface() const override;
 			tcp::endpoint get_ipv4_interface() const override;
 
-			void async_accept(boost::shared_ptr<tcp::acceptor> const& listener, bool ssl);
-			void on_accept_connection(boost::shared_ptr<socket_type> const& s
-				, boost::weak_ptr<tcp::acceptor> listener, error_code const& e, bool ssl);
-			void on_socks_listen(boost::shared_ptr<socket_type> const& s
+			void async_accept(std::shared_ptr<tcp::acceptor> const& listener, bool ssl);
+			void on_accept_connection(std::shared_ptr<socket_type> const& s
+				, std::weak_ptr<tcp::acceptor> listener, error_code const& e, bool ssl);
+			void on_socks_listen(std::shared_ptr<socket_type> const& s
 				, error_code const& e);
-			void on_socks_accept(boost::shared_ptr<socket_type> const& s
+			void on_socks_accept(std::shared_ptr<socket_type> const& s
 				, error_code const& e);
 
-			void incoming_connection(boost::shared_ptr<socket_type> const& s);
+			void incoming_connection(std::shared_ptr<socket_type> const& s);
 
 			std::weak_ptr<torrent> find_torrent(sha1_hash const& info_hash) const override;
 #ifndef TORRENT_NO_DEPRECATE
@@ -554,7 +554,7 @@ namespace libtorrent
 
 			void on_i2p_open(error_code const& ec);
 			void open_new_incoming_i2p_connection();
-			void on_i2p_accept(boost::shared_ptr<socket_type> const& s
+			void on_i2p_accept(std::shared_ptr<socket_type> const& s
 				, error_code const& e);
 #endif
 
@@ -842,7 +842,7 @@ namespace libtorrent
 			// are performing SSL handshake. When we shut down
 			// the session, all of these are disconnected, otherwise
 			// they would linger and stall or hang session shutdown
-			std::set<boost::shared_ptr<socket_type> > m_incoming_sockets;
+			std::set<std::shared_ptr<socket_type>> m_incoming_sockets;
 
 			// maps IP ranges to bitfields representing peer class IDs
 			// to assign peers matching a specific IP range based on its
@@ -892,18 +892,18 @@ namespace libtorrent
 
 #if TORRENT_USE_I2P
 			i2p_connection m_i2p_conn;
-			boost::shared_ptr<socket_type> m_i2p_listen_socket;
+			std::shared_ptr<socket_type> m_i2p_listen_socket;
 #endif
 
 #ifdef TORRENT_USE_OPENSSL
 			ssl::context* ssl_ctx() override { return &m_ssl_ctx; }
-			void on_incoming_utp_ssl(boost::shared_ptr<socket_type> const& s);
-			void ssl_handshake(error_code const& ec, boost::shared_ptr<socket_type> s);
+			void on_incoming_utp_ssl(std::shared_ptr<socket_type> const& s);
+			void ssl_handshake(error_code const& ec, std::shared_ptr<socket_type> s);
 #endif
 
 			// when as a socks proxy is used for peers, also
 			// listen for incoming connections on a socks connection
-			boost::shared_ptr<socket_type> m_socks_listen_socket;
+			std::shared_ptr<socket_type> m_socks_listen_socket;
 			std::uint16_t m_socks_listen_port = 0;
 
 			// round-robin index into m_outgoing_interfaces
@@ -1051,9 +1051,9 @@ namespace libtorrent
 				, error_code& ec
 				, int flags);
 
-			void on_udp_writeable(boost::weak_ptr<udp_socket> s, error_code const& ec);
+			void on_udp_writeable(std::weak_ptr<udp_socket> s, error_code const& ec);
 
-			void on_udp_packet(boost::weak_ptr<udp_socket> const& s
+			void on_udp_packet(std::weak_ptr<udp_socket> const& s
 				, bool ssl, error_code const& ec);
 
 			libtorrent::utp_socket_manager m_utp_socket_manager;

@@ -54,7 +54,7 @@ namespace libtorrent
 			, span<char const>
 			, error_code&, int)> send_fun_t;
 
-		typedef std::function<void(boost::shared_ptr<socket_type> const&)>
+		typedef std::function<void(std::shared_ptr<socket_type> const&)>
 			incoming_utp_callback_t;
 
 		utp_socket_manager(send_fun_t const& send_fun
@@ -186,4 +186,3 @@ namespace libtorrent
 }
 
 #endif
-

@@ -737,7 +737,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(!m_url.empty());
 		TORRENT_ASSERT(!m_torrent_file->is_valid());
-		boost::shared_ptr<http_connection> conn(
+		std::shared_ptr<http_connection> conn(
 			new http_connection(m_ses.get_io_service()
 				, m_ses.get_resolver()
 				, std::bind(&torrent::on_torrent_download, shared_from_this()
@@ -6111,8 +6111,8 @@ namespace libtorrent
 		if (is_paused()) return;
 		if (m_ses.is_aborted()) return;
 
-		boost::shared_ptr<socket_type> s
-			= boost::make_shared<socket_type>(std::ref(m_ses.get_io_service()));
+		std::shared_ptr<socket_type> s
+			= std::make_shared<socket_type>(m_ses.get_io_service());
 		if (!s) return;
 
 		void* userdata = nullptr;
@@ -6787,7 +6787,7 @@ namespace libtorrent
 			|| !m_ip_filter
 			|| (m_ip_filter->access(peerinfo->address()) & ip_filter::blocked) == 0);
 
-		boost::shared_ptr<socket_type> s(new socket_type(m_ses.get_io_service()));
+		std::shared_ptr<socket_type> s = std::make_shared<socket_type>(m_ses.get_io_service());
 
 #if TORRENT_USE_I2P
 		bool i2p = peerinfo->is_i2p_addr;
@@ -7050,7 +7050,7 @@ namespace libtorrent
 		if (is_ssl_torrent())
 		{
 			// if this is an SSL torrent, don't allow non SSL peers on it
-			boost::shared_ptr<socket_type> s = p->get_socket();
+			std::shared_ptr<socket_type> s = p->get_socket();
 
 			//
 #define SSL(t) socket_type_int_impl<ssl_stream<t>>::value: \
