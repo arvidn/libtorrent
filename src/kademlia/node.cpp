@@ -35,13 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <utility>
 #include <cinttypes> // for PRId64 et.al.
 #include <functional>
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <tuple>
-#include <boost/function/function1.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/hex.hpp" // to_hex

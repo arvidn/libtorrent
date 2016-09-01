@@ -6205,7 +6205,7 @@ namespace libtorrent
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto& ext : m_extensions)
+		for (auto const& ext : m_extensions)
 		{
 			std::shared_ptr<peer_plugin>
 				pp(ext->new_connection(peer_connection_handle(c->self())));
@@ -6217,7 +6217,7 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(!c->m_in_constructor);
 			// add the newly connected peer to this torrent's peer list
-			sorted_insert(m_connections, boost::get_pointer(c));
+			sorted_insert(m_connections, c.get());
 			update_want_peers();
 			update_want_tick();
 			m_ses.insert_peer(c);
@@ -6903,7 +6903,7 @@ namespace libtorrent
 			peerinfo->prev_amount_upload = 0;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-			for (auto& ext : m_extensions)
+			for (auto const& ext : m_extensions)
 			{
 				TORRENT_TRY {
 					std::shared_ptr<peer_plugin> pp(ext->new_connection(
@@ -6914,7 +6914,7 @@ namespace libtorrent
 #endif
 
 			// add the newly connected peer to this torrent's peer list
-			sorted_insert(m_connections, boost::get_pointer(c));
+			sorted_insert(m_connections, c.get());
 			m_ses.insert_peer(c);
 			need_peer_list();
 			m_peer_list->set_connection(peerinfo, c.get());
@@ -6931,7 +6931,7 @@ namespace libtorrent
 		}
 		TORRENT_CATCH (std::exception&)
 		{
-			peer_iterator i = sorted_find(m_connections, boost::get_pointer(c));
+			peer_iterator i = sorted_find(m_connections, c.get());
 			if (i != m_connections.end())
 			{
 				m_connections.erase(i);
@@ -7036,7 +7036,7 @@ namespace libtorrent
 		return lhs->connected_time() > rhs->connected_time();
 	}
 
-	} // anonymous namespaec
+	} // anonymous namespace
 
 	bool torrent::attach_peer(peer_connection* p)
 	{
