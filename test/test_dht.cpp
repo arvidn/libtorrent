@@ -1643,6 +1643,93 @@ TORRENT_TEST(bootstrap_v6)
 }
 #endif
 
+// test that the node ignores a nodes entry which is too short
+void test_short_nodes(address(&rand_addr)())
+{
+	dht_test_setup t(udp::endpoint(rand_addr(), 20));
+	bdecode_node response;
+	bool ret;
+
+	dht::key_desc_t const find_node_desc[] = {
+		{ "y", bdecode_node::string_t, 1, 0 },
+		{ "t", bdecode_node::string_t, 2, 0 },
+		{ "q", bdecode_node::string_t, 9, 0 },
+		{ "a", bdecode_node::dict_t, 0, key_desc_t::parse_children },
+		{ "id", bdecode_node::string_t, 20, 0 },
+		{ "target", bdecode_node::string_t, 20, key_desc_t::optional },
+		{ "info_hash", bdecode_node::string_t, 20, key_desc_t::optional | key_desc_t::last_child },
+	};
+
+	bdecode_node find_node_keys[7];
+
+	// bootstrap
+
+	g_sent_packets.clear();
+
+	udp::endpoint initial_node(rand_addr(), 1234);
+	std::vector<udp::endpoint> nodesv;
+	nodesv.push_back(initial_node);
+	t.dht_node.bootstrap(nodesv, std::bind(&nop_node));
+
+	TEST_EQUAL(g_sent_packets.size(), 1);
+	if (g_sent_packets.empty()) return;
+	TEST_EQUAL(g_sent_packets.front().first, initial_node);
+
+	lazy_from_entry(g_sent_packets.front().second, response);
+	ret = verify_message(response, find_node_desc, find_node_keys, t.error_string
+						 , sizeof(t.error_string));
+	if (ret)
+	{
+		TEST_EQUAL(find_node_keys[0].string_value(), "q");
+		TEST_CHECK(find_node_keys[2].string_value() == "find_node"
+				   || find_node_keys[2].string_value() == "get_peers");
+
+		if (find_node_keys[0].string_value() != "q"
+			|| (find_node_keys[2].string_value() != "find_node"
+				&& find_node_keys[2].string_value() != "get_peers")) return;
+	}
+	else
+	{
+		std::fprintf(stderr, "   invalid find_node request: %s\n", print_entry(response).c_str());
+		TEST_ERROR(t.error_string);
+		return;
+	}
+
+	udp::endpoint found_node(rand_addr(), 2235);
+	nodes_t nodes;
+	nodes.push_back(found_node);
+	g_sent_packets.clear();
+	msg_args args;
+	// chop one byte off of the nodes string
+	if (initial_node.address().is_v4())
+	{
+		args.nodes(nodes);
+		args.a["nodes"] = args.a["nodes"].string().substr(1);
+	}
+	else
+	{
+		args.nodes6(nodes);
+		args.a["nodes6"] = args.a["nodes6"].string().substr(1);
+	}
+
+	send_dht_response(t.dht_node, response, initial_node, args);
+
+	TEST_EQUAL(g_sent_packets.size(), 0);
+}
+
+TORRENT_TEST(short_nodes_v4)
+{
+	test_short_nodes(rand_v4);
+}
+
+#if TORRENT_USE_IPV6
+TORRENT_TEST(short_nodes_v6)
+{
+	if (supports_ipv6())
+		test_short_nodes(rand_v6);
+}
+#endif
+
 void test_get_peers(address(&rand_addr)())
 {
 	dht_test_setup t(udp::endpoint(rand_addr(), 20));
