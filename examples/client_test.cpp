@@ -395,7 +395,7 @@ int print_peer_info(std::string& out
 	if (print_timers) out += "inactive wait timeout q-time ";
 	out += "  v disk ^    rtt  ";
 	if (print_block) out += "block-progress ";
-	if (print_peer_rate) out += "peer-rate est.rec.rate ";
+	if (print_peer_rate) out += "est.rec.rate ";
 	out += "client \x1b[K\n";
 	++pos;
 
@@ -521,8 +521,7 @@ int print_peer_info(std::string& out
 		{
 			bool unchoked = (i->flags & peer_info::choked) == 0;
 
-			std::snprintf(str, sizeof(str), " %s %s"
-				, add_suffix(i->remote_dl_rate, "/s").c_str()
+			std::snprintf(str, sizeof(str), " %s"
 				, unchoked ? add_suffix(i->estimated_reciprocation_rate, "/s").c_str() : "      ");
 			out += str;
 		}

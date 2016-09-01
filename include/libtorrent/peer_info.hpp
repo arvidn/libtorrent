@@ -312,9 +312,13 @@ namespace libtorrent
 		// the kind of connection this peer uses. See connection_type_t.
 		int connection_type;
 
+#ifndef TORRENT_NO_DEPRECATE
 		// an estimate of the rate this peer is downloading at, in
 		// bytes per second.
 		int remote_dl_rate;
+#else
+		int deprecated_remote_dl_rate;
+#endif
 
 		// the number of bytes this peer has pending in the disk-io thread.
 		// Downloaded and waiting to be written to disk. This is what is capped
