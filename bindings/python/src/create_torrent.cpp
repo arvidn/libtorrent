@@ -29,23 +29,18 @@ namespace
         c.set_file_hash(f, sha1_hash(b.arr));
     }
 
-    void call_python_object(boost::python::object const& obj, int i)
-    {
-       obj(i);
-    }
-
 #ifndef BOOST_NO_EXCEPTIONS
     void set_piece_hashes_callback(create_torrent& c, std::string const& p
         , boost::python::object cb)
     {
-        set_piece_hashes(c, p, boost::bind(call_python_object, cb, _1));
+        set_piece_hashes(c, p, [&](int const i) { cb(i); });
     }
 #else
     void set_piece_hashes_callback(create_torrent& c, std::string const& p
         , boost::python::object cb)
     {
         error_code ec;
-        set_piece_hashes(c, p, boost::bind(call_python_object, cb, _1), ec);
+        set_piece_hashes(c, p, [&](int const i) { cb(i); }, ec);
     }
 
     void set_piece_hashes0(create_torrent& c, std::string const & s)
@@ -105,15 +100,10 @@ namespace
     { return FileIter(self, self.num_files()); }
 #endif
 
-    bool call_python_object2(boost::python::object& obj, std::string const& i)
-    {
-       return obj(i);
-    }
-
     void add_files_callback(file_storage& fs, std::string const& file
        , boost::python::object cb, std::uint32_t flags)
     {
-        add_files(fs, file, boost::bind(&call_python_object2, cb, _1), flags);
+        add_files(fs, file, [&](std::string const& i) { return cb(i); }, flags);
     }
 
 }

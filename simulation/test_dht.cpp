@@ -48,7 +48,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/ed25519.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/kademlia/item.hpp"
-#include <boost/bind.hpp>
 
 namespace lt = libtorrent;
 

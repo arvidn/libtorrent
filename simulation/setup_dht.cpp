@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/node.hpp"
 #include "libtorrent/kademlia/dht_observer.hpp"
 #include "setup_transfer.hpp"
-#include <boost/bind.hpp>
 #include <memory> // for unique_ptr
 #include <random>
 #include "libtorrent/socket_io.hpp" // print_endpoint
@@ -108,7 +107,8 @@ struct dht_node final : lt::dht::udp_socket_interface
 		udp::socket::non_blocking_io ioc(true);
 		sock().io_control(ioc);
 		sock().async_receive_from(asio::mutable_buffers_1(m_buffer, sizeof(m_buffer))
-			, m_ep, boost::bind(&dht_node::on_read, this, _1, _2));
+			, m_ep, [&](lt::error_code const& ec, std::size_t bytes_transferred)
+				{ this->on_read(ec, bytes_transferred); });
 	}
 
 #if LIBSIMULATOR_USE_MOVE
@@ -161,7 +161,8 @@ struct dht_node final : lt::dht::udp_socket_interface
 		dht().incoming(m);
 
 		sock().async_receive_from(asio::mutable_buffers_1(m_buffer, sizeof(m_buffer))
-			, m_ep, boost::bind(&dht_node::on_read, this, _1, _2));
+			, m_ep, [&](lt::error_code const& ec, std::size_t bytes_transferred)
+				{ this->on_read(ec, bytes_transferred); });
 	}
 
 	bool has_quota() override { return true; }

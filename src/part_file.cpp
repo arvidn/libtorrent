@@ -65,11 +65,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include "libtorrent/assert.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-// TODO: 3 use std::unique_ptr
-#include <boost/scoped_array.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 namespace
 {
 	// round up to even kilobyte
@@ -98,7 +93,7 @@ namespace libtorrent
 		if (!ec)
 		{
 			// parse header
-			boost::scoped_array<std::uint32_t> header(new std::uint32_t[m_header_size]);
+			std::unique_ptr<std::uint32_t[]> header(new std::uint32_t[m_header_size]);
 			file::iovec_t b = {header.get(), size_t(m_header_size) };
 			int n = m_file.readv(0, &b, 1, ec);
 			if (ec) return;
@@ -308,7 +303,7 @@ namespace libtorrent
 		int piece = offset / m_piece_size;
 		int const end = ((offset + size) + m_piece_size - 1) / m_piece_size;
 
-		boost::scoped_array<char> buf;
+		std::unique_ptr<char[]> buf;
 
 		std::int64_t piece_offset = offset - std::int64_t(piece) * m_piece_size;
 		std::int64_t file_offset = 0;
@@ -397,7 +392,7 @@ namespace libtorrent
 		open_file(file::read_write, ec);
 		if (ec) return;
 
-		boost::scoped_array<std::uint32_t> header(new std::uint32_t[m_header_size]);
+		std::unique_ptr<std::uint32_t[]> header(new std::uint32_t[m_header_size]);
 
 		using namespace libtorrent::detail;
 
