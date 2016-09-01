@@ -621,7 +621,7 @@ struct ping_observer : observer
 			char const* nodes = n.string_ptr();
 			char const* end = nodes + n.string_length();
 
-			while (end - nodes >= 26)
+			while (end - nodes >= 20 + detail::address_size(protocol) + 2)
 			{
 				node_id id;
 				std::copy(nodes, nodes + 20, id.begin());

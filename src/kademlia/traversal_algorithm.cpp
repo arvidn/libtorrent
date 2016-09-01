@@ -52,6 +52,7 @@ using namespace std::placeholders;
 
 namespace libtorrent { namespace dht
 {
+using detail::address_size;
 using detail::read_v4_endpoint;
 #if TORRENT_USE_IPV6
 using detail::read_v6_endpoint;
@@ -608,7 +609,7 @@ void traversal_observer::reply(msg const& m)
 		char const* nodes = n.string_ptr();
 		char const* end = nodes + n.string_length();
 
-		while (end - nodes >= 26)
+		while (end - nodes >= 20 + address_size(protocol) + 2)
 		{
 			node_id id;
 			std::copy(nodes, nodes + 20, id.begin());

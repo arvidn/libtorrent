@@ -206,9 +206,9 @@ public:
 
 	dht_observer* observer() const { return m_observer; }
 
-	udp protocol() { return m_protocol.protocol; }
-	char const* protocol_family_name() { return m_protocol.family_name; }
-	char const* protocol_nodes_key() { return m_protocol.nodes_key; }
+	udp protocol() const { return m_protocol.protocol; }
+	char const* protocol_family_name() const { return m_protocol.family_name; }
+	char const* protocol_nodes_key() const { return m_protocol.nodes_key; }
 
 	bool native_address(udp::endpoint ep) const
 	{ return ep.protocol().family() == m_protocol.protocol.family(); }
