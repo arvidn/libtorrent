@@ -71,7 +71,7 @@ protected:
 struct put_data_observer : traversal_observer
 {
 	put_data_observer(
-		boost::intrusive_ptr<traversal_algorithm> const& algorithm
+		std::shared_ptr<traversal_algorithm> const& algorithm
 		, udp::endpoint const& ep, node_id const& id, std::string const& token)
 		: traversal_observer(algorithm, ep, id)
 		, m_token(token)

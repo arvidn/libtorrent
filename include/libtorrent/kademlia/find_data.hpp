@@ -43,10 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <map>
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/intrusive_ptr.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 namespace libtorrent { namespace dht
 {
 
@@ -86,7 +82,7 @@ protected:
 struct find_data_observer : traversal_observer
 {
 	find_data_observer(
-		boost::intrusive_ptr<traversal_algorithm> const& algorithm
+		std::shared_ptr<traversal_algorithm> const& algorithm
 		, udp::endpoint const& ep, node_id const& id)
 		: traversal_observer(algorithm, ep, id)
 	{}

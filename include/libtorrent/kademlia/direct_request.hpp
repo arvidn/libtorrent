@@ -68,7 +68,7 @@ protected:
 
 struct direct_observer : observer
 {
-	direct_observer(boost::intrusive_ptr<traversal_algorithm> const& algo
+	direct_observer(std::shared_ptr<traversal_algorithm> const& algo
 		, udp::endpoint const& ep, node_id const& id)
 		: observer(algo, ep, id)
 	{}

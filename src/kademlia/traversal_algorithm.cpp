@@ -79,7 +79,7 @@ bool is_sorted(It b, It e, Cmp cmp)
 observer_ptr traversal_algorithm::new_observer(void* ptr
 	, udp::endpoint const& ep, node_id const& id)
 {
-	observer_ptr o(new (ptr) null_observer(boost::intrusive_ptr<traversal_algorithm>(this), ep, id));
+	observer_ptr o(new (ptr) null_observer(self(), ep, id));
 #if TORRENT_USE_ASSERTS
 	o->m_in_constructor = false;
 #endif
@@ -91,7 +91,6 @@ traversal_algorithm::traversal_algorithm(
 	, node_id target)
 	: m_node(dht_node)
 	, m_target(target)
-	, m_ref_count(0)
 	, m_invoke_count(0)
 	, m_branch_factor(3)
 	, m_responses(0)
@@ -385,10 +384,8 @@ void traversal_algorithm::done()
 	int closest_target = 160;
 #endif
 
-	for (std::vector<observer_ptr>::iterator i = m_results.begin()
-		, end(m_results.end()); i != end; ++i)
+	for (auto const& o : m_results)
 	{
-		boost::intrusive_ptr<observer> o = *i;
 		if ((o->flags & (observer::flag_queried | observer::flag_failed)) == observer::flag_queried)
 		{
 			// set the done flag on any outstanding queries to prevent them from
@@ -524,10 +521,10 @@ void traversal_algorithm::add_router_entries()
 			, static_cast<void*>(this), int(std::distance(m_node.m_table.router_begin(), m_node.m_table.router_end())));
 	}
 #endif
-	for (routing_table::router_iterator i = m_node.m_table.router_begin()
+	for (auto i = m_node.m_table.router_begin()
 		, end(m_node.m_table.router_end()); i != end; ++i)
 	{
-		add_entry(node_id(nullptr), *i, observer::flag_initial);
+		add_entry(node_id(), *i, observer::flag_initial);
 	}
 }
 
@@ -644,4 +641,3 @@ void traversal_observer::reply(msg const& m)
 }
 
 } } // namespace libtorrent::dht
-

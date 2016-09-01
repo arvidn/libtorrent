@@ -85,7 +85,7 @@ private:
 struct get_peers_observer : find_data_observer
 {
 	get_peers_observer(
-		boost::intrusive_ptr<traversal_algorithm> const& algorithm
+		std::shared_ptr<traversal_algorithm> const& algorithm
 		, udp::endpoint const& ep, node_id const& id)
 		: find_data_observer(algorithm, ep, id)
 	{}
@@ -96,7 +96,7 @@ struct get_peers_observer : find_data_observer
 struct obfuscated_get_peers_observer : traversal_observer
 {
 	obfuscated_get_peers_observer(
-		boost::intrusive_ptr<traversal_algorithm> const& algorithm
+		std::shared_ptr<traversal_algorithm> const& algorithm
 		, udp::endpoint const& ep, node_id const& id)
 		: traversal_observer(algorithm, ep, id)
 	{}

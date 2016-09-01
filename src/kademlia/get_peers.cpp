@@ -163,7 +163,7 @@ bool get_peers::invoke(observer_ptr o)
 observer_ptr get_peers::new_observer(void* ptr
 	, udp::endpoint const& ep, node_id const& id)
 {
-	observer_ptr o(new (ptr) get_peers_observer(this, ep, id));
+	observer_ptr o(new (ptr) get_peers_observer(self(), ep, id));
 #if TORRENT_USE_ASSERTS
 	o->m_in_constructor = false;
 #endif
@@ -189,7 +189,7 @@ observer_ptr obfuscated_get_peers::new_observer(void* ptr
 {
 	if (m_obfuscated)
 	{
-		observer_ptr o(new (ptr) obfuscated_get_peers_observer(this, ep, id));
+		observer_ptr o(new (ptr) obfuscated_get_peers_observer(self(), ep, id));
 #if TORRENT_USE_ASSERTS
 		o->m_in_constructor = false;
 #endif
@@ -197,7 +197,7 @@ observer_ptr obfuscated_get_peers::new_observer(void* ptr
 	}
 	else
 	{
-		observer_ptr o(new (ptr) get_peers_observer(this, ep, id));
+		observer_ptr o(new (ptr) get_peers_observer(self(), ep, id));
 #if TORRENT_USE_ASSERTS
 		o->m_in_constructor = false;
 #endif
@@ -222,10 +222,8 @@ bool obfuscated_get_peers::invoke(observer_ptr o)
 		// our node-list for this traversal algorithm, to
 		// allow the get_peers traversal to regress in case
 		// nodes further down end up being dead
-		for (std::vector<observer_ptr>::iterator i = m_results.begin()
-			, end(m_results.end()); i != end; ++i)
+		for (auto const& node : m_results)
 		{
-			observer* const node = i->get();
 			// don't re-request from nodes that didn't respond
 			if (node->flags & observer::flag_failed) continue;
 			// don't interrupt with queries that are already in-flight
@@ -270,10 +268,8 @@ void obfuscated_get_peers::done()
 	// oops, we failed to switch over to the non-obfuscated
 	// mode early enough. do it now
 
-	boost::intrusive_ptr<get_peers> ta(new get_peers(m_node, m_target
-		, m_data_callback
-		, m_nodes_callback
-		, m_noseeds));
+	auto ta = std::make_shared<get_peers>(m_node, m_target
+		, m_data_callback, m_nodes_callback, m_noseeds);
 
 	// don't call these when the obfuscated_get_peers
 	// is done, we're passing them on to be called when

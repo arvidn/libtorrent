@@ -53,8 +53,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alloca.hpp"
 #include "libtorrent/pe_crypto.hpp"
 #include "libtorrent/hasher.hpp"
-#include "libtorrent/assert.hpp"
-#include "libtorrent/span.hpp"
 
 namespace libtorrent
 {

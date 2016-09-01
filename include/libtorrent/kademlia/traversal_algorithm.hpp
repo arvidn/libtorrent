@@ -41,10 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/observer.hpp>
 #include <libtorrent/address.hpp>
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/noncopyable.hpp>
-#include <boost/intrusive_ptr.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent { struct dht_lookup; }
 namespace libtorrent { namespace dht
@@ -55,6 +52,7 @@ class node;
 
 // this class may not be instantiated as a stack object
 struct TORRENT_EXTRA_EXPORT traversal_algorithm : boost::noncopyable
+	, std::enable_shared_from_this<traversal_algorithm>
 {
 	void traverse(node_id const& id, udp::endpoint addr);
 	void finished(observer_ptr o);
@@ -83,6 +81,9 @@ struct TORRENT_EXTRA_EXPORT traversal_algorithm : boost::noncopyable
 
 protected:
 
+	std::shared_ptr<traversal_algorithm> self()
+	{ return shared_from_this(); }
+
 	// returns true if we're done
 	bool add_requests();
 
@@ -97,22 +98,9 @@ protected:
 
 	virtual bool invoke(observer_ptr) { return false; }
 
-	friend void intrusive_ptr_add_ref(traversal_algorithm* p)
-	{
-		TORRENT_ASSERT(p->m_ref_count < 0xffff);
-		p->m_ref_count++;
-	}
-
-	friend void intrusive_ptr_release(traversal_algorithm* p)
-	{
-		if (--p->m_ref_count == 0)
-			delete p;
-	}
-
 	node& m_node;
 	std::vector<observer_ptr> m_results;
 	node_id const m_target;
-	std::uint16_t m_ref_count;
 	std::uint16_t m_invoke_count;
 	std::uint16_t m_branch_factor;
 	std::uint16_t m_responses;
@@ -128,7 +116,7 @@ protected:
 struct traversal_observer : observer
 {
 	traversal_observer(
-		boost::intrusive_ptr<traversal_algorithm> const& algorithm
+		std::shared_ptr<traversal_algorithm> const& algorithm
 		, udp::endpoint const& ep, node_id const& id)
 		: observer(algorithm, ep, id)
 	{}

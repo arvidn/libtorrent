@@ -57,7 +57,7 @@ struct udp_socket_interface;
 
 struct TORRENT_EXTRA_EXPORT null_observer : public observer
 {
-	null_observer(boost::intrusive_ptr<traversal_algorithm> const& a
+	null_observer(std::shared_ptr<traversal_algorithm> const& a
 		, udp::endpoint const& ep, node_id const& id): observer(a, ep, id) {}
 	virtual void reply(msg const&) { flags |= flag_done; }
 };

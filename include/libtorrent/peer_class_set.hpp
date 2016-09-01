@@ -67,4 +67,3 @@ namespace libtorrent {
 }
 
 #endif // TORRENT_PEER_CLASS_SET_HPP_INCLUDED
-

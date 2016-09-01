@@ -31,8 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/peer_class_set.hpp"
-#include "libtorrent/peer_class.hpp"
-#include <vector>
+
 #include <algorithm> // for find
 
 namespace libtorrent
@@ -72,4 +71,3 @@ namespace libtorrent
 		pool.decref(c);
 	}
 }
-
