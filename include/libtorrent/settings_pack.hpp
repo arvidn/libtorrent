@@ -378,6 +378,7 @@ namespace libtorrent
 			// to connect to i2p peers.
 			allow_i2p_mixed,
 
+#ifndef TORRENT_NO_DEPRECATE
 			// ``low_prio_disk`` determines if the disk I/O should use a normal or
 			// low priority policy. This defaults to true, which means that it's
 			// low priority by default. Other processes doing disk I/O will
@@ -386,6 +387,9 @@ namespace libtorrent
 			// background. For high-performance server setups, this might not be
 			// desirable.
 			low_prio_disk,
+#else
+			deprecated17,
+#endif
 
 			// ``volatile_read_cache``, if this is set to true, read cache blocks
 			// that are hit by peer read requests are removed from the disk cache
@@ -500,19 +504,23 @@ namespace libtorrent
 			// libtorrent API.
 			report_web_seed_downloads,
 
+#ifndef TORRENT_NO_DEPRECATE
 			// set to true if uTP connections should be rate limited This option
 			// is *DEPRECATED*, please use set_peer_class_filter() instead.
-#ifndef TORRENT_NO_DEPRECATE
 			rate_limit_utp,
 #else
 			deprecated2,
 #endif
 
+#ifndef TORRENT_NO_DEPRECATE
 			// if this is true, the ``&ip=`` argument in tracker requests (unless
 			// otherwise specified) will be set to the intermediate IP address if
 			// the user is double NATed. If the user is not double NATed, this
 			// option does not have an affect
 			announce_double_nat,
+#else
+			deprecated18,
+#endif
 
 			// ``seeding_outgoing_connections`` determines if seeding (and
 			// finished) torrents should attempt to make outgoing connections or
@@ -547,10 +555,14 @@ namespace libtorrent
 			// is one). If no IP filter is set, this setting is irrelevant.
 			apply_ip_filter_to_trackers,
 
+#ifndef TORRENT_NO_DEPRECATE
 			// ``use_disk_read_ahead`` defaults to true and will attempt to
 			// optimize disk reads by giving the operating system heads up of disk
 			// read requests as they are queued in the disk job queue.
 			use_disk_read_ahead,
+#else
+			deprecated19,
+#endif
 
 			// ``lock_files`` determines whether or not to lock files which
 			// libtorrent is downloading to or seeding from. This is implemented

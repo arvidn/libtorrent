@@ -110,7 +110,6 @@ namespace libtorrent
 		set.set_int(settings_pack::cache_size, 0);
 		set.set_int(settings_pack::cache_buffer_chunk_size, 1);
 		set.set_bool(settings_pack::use_read_cache, false);
-		set.set_bool(settings_pack::use_disk_read_ahead, false);
 
 		set.set_bool(settings_pack::close_redundant_connections, true);
 
@@ -174,7 +173,6 @@ namespace libtorrent
 		set.set_int(settings_pack::cache_buffer_chunk_size, 0);
 		set.set_int(settings_pack::read_cache_line_size, 32);
 		set.set_int(settings_pack::write_cache_line_size, 256);
-		set.set_bool(settings_pack::low_prio_disk, false);
 		// 30 seconds expiration to save cache
 		// space for active pieces
 		set.set_int(settings_pack::cache_expiry, 30);
