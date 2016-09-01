@@ -40,7 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/alert_types.hpp"
-#include <boost/bind.hpp>
 #include <fstream>
 
 #include "settings.hpp"

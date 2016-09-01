@@ -470,8 +470,9 @@ namespace
         TORRENT_ASSERT(public_key.size() == 32);
         std::array<char, 32> key;
         std::copy(public_key.begin(), public_key.end(), key.begin());
-        ses.dht_put_item(key, boost::bind(&put_string, _1, _2, _3, _4
-            , public_key, private_key, data)
+        ses.dht_put_item(key, [&](entry& e, std::array<char, 64>& sig, std::uint64_t& seq
+            , std::string const& salt) { put_string(e, sig, seq, salt
+                , public_key, private_key, data); }
             , salt);
     }
 #endif

@@ -44,10 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/scoped_array.hpp>
 #include <boost/optional.hpp>
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/buffer.hpp"
@@ -430,7 +427,7 @@ private:
 		// (outgoing only) synchronize verification constant with
 		// remote peer, this will hold rc4_decrypt(vc). Destroyed
 		// after the sync step.
-		boost::scoped_array<char> m_sync_vc;
+		std::unique_ptr<char[]> m_sync_vc;
 
 		// (incoming only) synchronize hash with remote peer, holds
 		// the sync hash (hash("req1",secret)). Destroyed after the

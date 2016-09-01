@@ -56,7 +56,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #if TORRENT_USE_SYSCTL
 #include <sys/sysctl.h>
 #include <net/route.h>
-#include <boost/scoped_array.hpp>
 #endif
 
 #if TORRENT_USE_GETIPFORWARDTABLE || TORRENT_USE_GETADAPTERSADDRESSES
@@ -866,7 +865,7 @@ namespace libtorrent
 		return std::vector<ip_route>();
 	}
 
-	boost::scoped_array<char> buf(new (std::nothrow) char[needed]);
+	std::unique_ptr<char[]> buf(new (std::nothrow) char[needed]);
 	if (buf.get() == nullptr)
 	{
 		ec = boost::asio::error::no_memory;

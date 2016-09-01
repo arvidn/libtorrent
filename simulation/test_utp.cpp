@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/time.hpp" // for clock_type
-#include <boost/bind.hpp>
 
 #include "test.hpp"
 #include "setup_swarm.hpp"
