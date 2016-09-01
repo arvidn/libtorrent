@@ -59,6 +59,7 @@ namespace libtorrent
 		template <class Proto>
 		size_t address_size(Proto p)
 		{
+			TORRENT_UNUSED(p);
 #if TORRENT_USE_IPV6
 			if (p == Proto::v6())
 				return address_v6::bytes_type().size();
