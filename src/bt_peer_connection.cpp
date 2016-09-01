@@ -73,8 +73,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #endif
 
-using boost::shared_ptr;
-
 namespace libtorrent
 {
 	namespace mp = boost::multiprecision;

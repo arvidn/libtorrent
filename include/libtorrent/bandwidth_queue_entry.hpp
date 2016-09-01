@@ -33,9 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_BANDWIDTH_QUEUE_ENTRY_HPP_INCLUDED
 #define TORRENT_BANDWIDTH_QUEUE_ENTRY_HPP_INCLUDED
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/shared_ptr.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <memory>
 
 #include "libtorrent/bandwidth_limit.hpp"
 #include "libtorrent/bandwidth_socket.hpp"
@@ -44,10 +42,10 @@ namespace libtorrent {
 
 struct TORRENT_EXTRA_EXPORT bw_request
 {
-	bw_request(boost::shared_ptr<bandwidth_socket> const& pe
+	bw_request(std::shared_ptr<bandwidth_socket> const& pe
 		, int blk, int prio);
 
-	boost::shared_ptr<bandwidth_socket> peer;
+	std::shared_ptr<bandwidth_socket> peer;
 	// 1 is normal prio
 	int priority;
 	// the number of bytes assigned to this request so far

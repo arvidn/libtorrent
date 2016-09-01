@@ -388,9 +388,9 @@ namespace libtorrent
 		return "";
 	}
 
-	boost::shared_ptr<settings_pack> load_pack_from_dict(bdecode_node const& settings)
+	std::shared_ptr<settings_pack> load_pack_from_dict(bdecode_node const& settings)
 	{
-		boost::shared_ptr<settings_pack> pack = boost::make_shared<settings_pack>();
+		std::shared_ptr<settings_pack> pack = std::make_shared<settings_pack>();
 
 		for (int i = 0; i < settings.dict_size(); ++i)
 		{
@@ -463,10 +463,10 @@ namespace libtorrent
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-	boost::shared_ptr<settings_pack> load_pack_from_struct(
+	std::shared_ptr<settings_pack> load_pack_from_struct(
 		aux::session_settings const& current, session_settings const& s)
 	{
-		boost::shared_ptr<settings_pack> p = boost::make_shared<settings_pack>();
+		std::shared_ptr<settings_pack> p = std::make_shared<settings_pack>();
 
 		for (int i = 0; i < settings_pack::num_string_settings; ++i)
 		{

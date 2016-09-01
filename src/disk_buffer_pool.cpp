@@ -60,11 +60,11 @@ namespace libtorrent
 	namespace {
 
 	// this is posted to the network thread
-	void watermark_callback(std::vector<boost::weak_ptr<disk_observer>> const& cbs)
+	void watermark_callback(std::vector<std::weak_ptr<disk_observer>> const& cbs)
 	{
 		for (auto const& i : cbs)
 		{
-			boost::shared_ptr<disk_observer> o = i.lock();
+			std::shared_ptr<disk_observer> o = i.lock();
 			if (o) o->on_disk();
 		}
 	}
@@ -148,7 +148,7 @@ namespace libtorrent
 
 		m_exceeded_max_size = false;
 
-		std::vector<boost::weak_ptr<disk_observer>> cbs;
+		std::vector<std::weak_ptr<disk_observer>> cbs;
 		m_observers.swap(cbs);
 		l.unlock();
 		m_ios.post(std::bind(&watermark_callback, std::move(cbs)));
@@ -205,7 +205,7 @@ namespace libtorrent
 	// that there's more room in the pool now. This caps the amount of over-
 	// allocation to one block per peer connection.
 	char* disk_buffer_pool::allocate_buffer(bool& exceeded
-		, boost::shared_ptr<disk_observer> o, char const* category)
+		, std::shared_ptr<disk_observer> o, char const* category)
 	{
 		std::unique_lock<std::mutex> l(m_pool_mutex);
 		char* ret = allocate_buffer_impl(l, category);

@@ -75,8 +75,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/smart_ptr.hpp>
-#include <boost/weak_ptr.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/optional.hpp>
 
@@ -273,7 +271,7 @@ namespace libtorrent
 		, public peer_class_set
 		, public disk_observer
 		, public peer_connection_interface
-		, public boost::enable_shared_from_this<peer_connection>
+		, public std::enable_shared_from_this<peer_connection>
 	{
 	friend class invariant_access;
 	friend class torrent;
@@ -705,7 +703,7 @@ namespace libtorrent
 		enum sync_t { read_async, read_sync };
 		void setup_receive();
 
-		boost::shared_ptr<peer_connection> self()
+		std::shared_ptr<peer_connection> self()
 		{
 			TORRENT_ASSERT(!m_in_constructor);
 			return shared_from_this();

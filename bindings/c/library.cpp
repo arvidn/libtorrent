@@ -60,7 +60,7 @@ namespace
 	int add_handle(libtorrent::torrent_handle const& h)
 	{
 		std::vector<libtorrent::torrent_handle>::iterator i = std::find_if(handles.begin()
-			, handles.end(), !boost::bind(&libtorrent::torrent_handle::is_valid, _1));
+			, handles.end(), !std::bind(&libtorrent::torrent_handle::is_valid, _1));
 		if (i != handles.end())
 		{
 			*i = h;

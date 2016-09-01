@@ -33,11 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_BANDWIDTH_MANAGER_HPP_INCLUDED
 #define TORRENT_BANDWIDTH_MANAGER_HPP_INCLUDED
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/shared_ptr.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <memory>
 
 #include "libtorrent/socket.hpp"
 #include "libtorrent/error_code.hpp"
@@ -68,7 +64,7 @@ struct TORRENT_EXTRA_EXPORT bandwidth_manager
 	// this is used by web seeds
 	// returns the number of bytes to assign to the peer, or 0
 	// if the peer's 'assign_bandwidth' callback will be called later
-	int request_bandwidth(boost::shared_ptr<bandwidth_socket> const& peer
+	int request_bandwidth(std::shared_ptr<bandwidth_socket> const& peer
 		, int blk, int priority, bandwidth_channel** chan, int num_channels);
 
 #if TORRENT_USE_INVARIANT_CHECKS

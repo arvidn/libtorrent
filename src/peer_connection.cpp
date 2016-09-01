@@ -80,7 +80,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 //#define TORRENT_CORRUPT_DATA
 
-using boost::shared_ptr;
 using namespace std::placeholders;
 
 namespace libtorrent
@@ -1376,7 +1375,7 @@ namespace libtorrent
 
 		std::vector<pending_block>::iterator dlq_iter = std::find_if(
 			m_download_queue.begin(), m_download_queue.end()
-			, std::bind(match_request, boost::cref(r), std::bind(&pending_block::block, _1)
+			, std::bind(match_request, std::cref(r), std::bind(&pending_block::block, _1)
 			, t->block_size()));
 
 		if (dlq_iter != m_download_queue.end())
@@ -4111,7 +4110,7 @@ namespace libtorrent
 #endif // TORRENT_DISABLE_ENCRYPTION
 		}
 
-		boost::shared_ptr<peer_connection> me(self());
+		std::shared_ptr<peer_connection> me(self());
 
 		INVARIANT_CHECK;
 
@@ -4530,7 +4529,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(is_single_thread());
 		time_point now = aux::time_now();
-		boost::shared_ptr<peer_connection> me(self());
+		std::shared_ptr<peer_connection> me(self());
 
 		// the invariant check must be run before me is destructed
 		// in case the peer got disconnected
@@ -5515,7 +5514,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(is_single_thread());
 		if ((m_channel_state[download_channel] & peer_info::bw_disk) == 0) return;
-		boost::shared_ptr<peer_connection> me(self());
+		std::shared_ptr<peer_connection> me(self());
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, "DISK", "dropped below disk buffer watermark");
@@ -5739,7 +5738,7 @@ namespace libtorrent
 		// case we disconnect
 		// this needs to be created before the invariant check,
 		// to keep the object alive through the exit check
-		boost::shared_ptr<peer_connection> me(self());
+		std::shared_ptr<peer_connection> me(self());
 
 		// flush the send buffer at the end of this function
 		cork _c(*this);
@@ -6074,7 +6073,7 @@ namespace libtorrent
 		COMPLETE_ASYNC("peer_connection::on_send_data");
 		// keep ourselves alive in until this function exits in
 		// case we disconnect
-		boost::shared_ptr<peer_connection> me(self());
+		std::shared_ptr<peer_connection> me(self());
 
 		TORRENT_ASSERT(m_channel_state[upload_channel] & peer_info::bw_network);
 

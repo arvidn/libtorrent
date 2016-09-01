@@ -296,11 +296,11 @@ namespace libtorrent
 		if (internal_executor)
 		{
 			// the user did not provide an executor, we have to use our own
-			m_io_service = boost::make_shared<io_service>();
+			m_io_service = std::make_shared<io_service>();
 			ios = m_io_service.get();
 		}
 
-		m_impl = boost::make_shared<session_impl>(std::ref(*ios));
+		m_impl = std::make_shared<session_impl>(*ios);
 		*static_cast<session_handle*>(this) = session_handle(m_impl.get());
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -354,7 +354,7 @@ namespace libtorrent
 		aux::dump_call_profile();
 
 		TORRENT_ASSERT(m_impl);
-		boost::shared_ptr<session_impl> ptr = m_impl;
+		std::shared_ptr<session_impl> ptr = m_impl;
 
 		// capture the shared_ptr in the dispatched function
 		// to keep the session_impl alive
@@ -399,9 +399,9 @@ namespace libtorrent
 #endif // TORRENT_NO_DEPRECATE
 
 	session_proxy::session_proxy() = default;
-	session_proxy::session_proxy(boost::shared_ptr<io_service> ios
+	session_proxy::session_proxy(std::shared_ptr<io_service> ios
 		, std::shared_ptr<std::thread> t
-		, boost::shared_ptr<aux::session_impl> impl)
+		, std::shared_ptr<aux::session_impl> impl)
 		: m_io_service(std::move(ios))
 		, m_thread(std::move(t))
 		, m_impl(impl)

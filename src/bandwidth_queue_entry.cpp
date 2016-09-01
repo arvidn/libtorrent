@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	bw_request::bw_request(boost::shared_ptr<bandwidth_socket> const& pe
+	bw_request::bw_request(std::shared_ptr<bandwidth_socket> const& pe
 		, int blk, int prio)
 		: peer(pe)
 		, priority(prio)

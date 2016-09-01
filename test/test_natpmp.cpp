@@ -35,10 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp"
 #include <functional>
 #include <iostream>
-
-#include <boost/shared_ptr.hpp>
-#include <boost/make_shared.hpp>
-#include <boost/ref.hpp>
+#include <memory>
 
 using namespace libtorrent;
 
@@ -68,7 +65,7 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	boost::shared_ptr<natpmp> natpmp_handler(new natpmp(
+	std::shared_ptr<natpmp> natpmp_handler(new natpmp(
 		ios, &callback, &log_callback));
 
 	deadline_timer timer(ios);

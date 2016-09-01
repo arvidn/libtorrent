@@ -3353,7 +3353,7 @@ namespace libtorrent
 	}
 
 	disk_buffer_holder disk_io_thread::allocate_disk_buffer(bool& exceeded
-		, boost::shared_ptr<disk_observer> o
+		, std::shared_ptr<disk_observer> o
 		, char const* category)
 	{
 		char* ret = m_disk_cache.allocate_buffer(exceeded, o, category);

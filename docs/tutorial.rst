@@ -215,7 +215,7 @@ The save_resume_data_alert_ looks something like this:
 		virtual std::string message() const;
 
 		// points to the resume data.
-		boost::shared_ptr<entry> resume_data;
+		std::shared_ptr<entry> resume_data;
 	};
 
 ``resume_data`` points to an entry_ object. This represents a node or a tree of

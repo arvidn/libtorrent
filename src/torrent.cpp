@@ -46,8 +46,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/make_shared.hpp>
-
 #ifdef TORRENT_USE_OPENSSL
 #include "libtorrent/ssl_stream.hpp"
 #include <boost/asio/ssl/context.hpp>
@@ -774,7 +772,7 @@ namespace libtorrent
 		state_updated();
 	}
 
-	void torrent::set_ip_filter(boost::shared_ptr<const ip_filter> ipf)
+	void torrent::set_ip_filter(std::shared_ptr<const ip_filter> ipf)
 	{
 		m_ip_filter = ipf;
 		if (!m_apply_ip_filter) return;
@@ -883,7 +881,7 @@ namespace libtorrent
 			return;
 		}
 
-		boost::shared_ptr<read_piece_struct> rp = boost::make_shared<read_piece_struct>();
+		std::shared_ptr<read_piece_struct> rp = std::make_shared<read_piece_struct>();
 		rp->piece_data.reset(new (std::nothrow) char[piece_size]);
 		rp->blocks_left = 0;
 		rp->fail = false;
@@ -938,7 +936,7 @@ namespace libtorrent
 			bt_peer_connection* p = static_cast<bt_peer_connection*>(*i);
 			if (p->type() == peer_connection::bittorrent_connection)
 			{
-				boost::shared_ptr<peer_connection> me(p->self());
+				std::shared_ptr<peer_connection> me(p->self());
 				if (!p->is_disconnecting())
 				{
 					p->send_not_interested();
@@ -1163,7 +1161,7 @@ namespace libtorrent
 	}
 
 	void torrent::on_disk_read_complete(disk_io_job const* j, peer_request r
-		, boost::shared_ptr<read_piece_struct> rp)
+		, std::shared_ptr<read_piece_struct> rp)
 	{
 		// hold a reference until this function returns
 		torrent_ref_holder h(this, "read_piece");
@@ -1557,7 +1555,7 @@ namespace libtorrent
 		// create the SSL context for this torrent. We need to
 		// inject the root certificate, and no other, to
 		// verify other peers against
-		boost::shared_ptr<context> ctx = boost::make_shared<context>(std::ref(m_ses.get_io_service()), context::sslv23);
+		std::shared_ptr<context> ctx = std::make_shared<context>(m_ses.get_io_service(), context::sslv23);
 
 		if (!ctx)
 		{
@@ -2661,7 +2659,7 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 	void torrent::use_interface(std::string net_interfaces)
 	{
-		boost::shared_ptr<settings_pack> p = boost::make_shared<settings_pack>();
+		std::shared_ptr<settings_pack> p = std::make_shared<settings_pack>();
 		p->set_str(settings_pack::outgoing_interfaces, net_interfaces);
 		m_ses.apply_settings_pack(p);
 	}
@@ -4031,7 +4029,7 @@ namespace libtorrent
 
 		for (peer_iterator i = peers.begin(); i != peers.end(); ++i)
 		{
-			boost::shared_ptr<peer_connection> p = (*i)->self();
+			std::shared_ptr<peer_connection> p = (*i)->self();
 
 			// received_piece will check to see if we're still interested
 			// in this peer, and if neither of us is interested in the other,
@@ -6180,7 +6178,7 @@ namespace libtorrent
 			return;
 		}
 
-		boost::shared_ptr<peer_connection> c;
+		std::shared_ptr<peer_connection> c;
 		peer_connection_args pack;
 		pack.ses = &m_ses;
 		pack.sett = &settings();
@@ -6194,13 +6192,11 @@ namespace libtorrent
 		pack.peerinfo = &web->peer_info;
 		if (web->type == web_seed_entry::url_seed)
 		{
-			c = boost::make_shared<web_peer_connection>(
-				boost::cref(pack), std::ref(*web));
+			c = std::make_shared<web_peer_connection>(pack, *web);
 		}
 		else if (web->type == web_seed_entry::http_seed)
 		{
-			c = boost::make_shared<http_seed_connection>(
-				boost::cref(pack), std::ref(*web));
+			c = std::make_shared<http_seed_connection>(pack, *web);
 		}
 		if (!c) return;
 
@@ -6892,8 +6888,8 @@ namespace libtorrent
 		pack.endp = a;
 		pack.peerinfo = peerinfo;
 
-		boost::shared_ptr<peer_connection> c = boost::make_shared<bt_peer_connection>(
-			boost::cref(pack), m_ses.get_peer_id());
+		std::shared_ptr<peer_connection> c = std::make_shared<bt_peer_connection>(
+			pack, m_ses.get_peer_id());
 
 		TORRENT_TRY
 		{
@@ -8737,7 +8733,7 @@ namespace libtorrent
 
 		state_updated();
 
-		boost::shared_ptr<entry> rd(new entry);
+		std::shared_ptr<entry> rd(new entry);
 		write_resume_data(*rd);
 		alerts().emplace_alert<save_resume_data_alert>(rd, get_handle());
 	}
@@ -9388,7 +9384,7 @@ namespace libtorrent
 		{
 			// keep the peer object alive while we're
 			// inspecting it
-			boost::shared_ptr<peer_connection> p = (*i)->self();
+			std::shared_ptr<peer_connection> p = (*i)->self();
 			++i;
 
 			// look for the peer that saw a seed most recently

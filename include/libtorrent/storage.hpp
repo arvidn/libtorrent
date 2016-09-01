@@ -39,12 +39,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <mutex>
 #include <atomic>
 #include <unordered_set>
+#include <memory>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <sys/types.h>
-#include <boost/shared_ptr.hpp>
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/piece_picker.hpp"

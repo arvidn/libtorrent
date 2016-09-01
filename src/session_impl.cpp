@@ -47,7 +47,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/function_equal.hpp>
-#include <boost/make_shared.hpp>
 #include <boost/asio/ip/v6_only.hpp>
 
 #if TORRENT_USE_RLIMIT
@@ -169,8 +168,6 @@ namespace
 #include <winerror.h>
 #endif
 
-using boost::shared_ptr;
-using boost::weak_ptr;
 using libtorrent::aux::session_impl;
 using namespace std::placeholders;
 
@@ -430,11 +427,11 @@ namespace aux {
 		session_log(" generated peer ID: %s", m_peer_id.to_string().c_str());
 #endif
 
-		boost::shared_ptr<settings_pack> copy = boost::make_shared<settings_pack>(pack);
+		std::shared_ptr<settings_pack> copy = std::make_shared<settings_pack>(pack);
 		m_io_service.post(std::bind(&session_impl::init, this, copy));
 	}
 
-	void session_impl::init(boost::shared_ptr<settings_pack> pack)
+	void session_impl::init(std::shared_ptr<settings_pack> pack)
 	{
 		// this is a debug facility
 		// see single_threaded in debug.hpp
@@ -695,7 +692,7 @@ namespace aux {
 			if (settings)
 			{
 				// apply_settings_pack will update dht and proxy
-				boost::shared_ptr<settings_pack> pack = load_pack_from_dict(settings);
+				std::shared_ptr<settings_pack> pack = load_pack_from_dict(settings);
 				apply_settings_pack(pack);
 #ifndef TORRENT_DISABLE_DHT
 				need_update_dht = false;
@@ -918,7 +915,7 @@ namespace aux {
 		return m_connections.find(p->self()) != m_connections.end();
 	}
 
-	void session_impl::insert_peer(boost::shared_ptr<peer_connection> const& c)
+	void session_impl::insert_peer(std::shared_ptr<peer_connection> const& c)
 	{
 		TORRENT_ASSERT(!c->m_in_constructor);
 		m_connections.insert(c);
@@ -936,7 +933,7 @@ namespace aux {
 			i->second->port_filter_updated();
 	}
 
-	void session_impl::set_ip_filter(boost::shared_ptr<ip_filter> const& f)
+	void session_impl::set_ip_filter(std::shared_ptr<ip_filter> const& f)
 	{
 		INVARIANT_CHECK;
 
@@ -952,7 +949,7 @@ namespace aux {
 	void session_impl::ban_ip(address addr)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		if (!m_ip_filter) m_ip_filter = boost::make_shared<ip_filter>();
+		if (!m_ip_filter) m_ip_filter = std::make_shared<ip_filter>();
 		m_ip_filter->add_rule(addr, addr, ip_filter::blocked);
 		for (torrent_map::iterator i = m_torrents.begin()
 			, end(m_torrents.end()); i != end; ++i)
@@ -962,7 +959,7 @@ namespace aux {
 	ip_filter const& session_impl::get_ip_filter()
 	{
 		TORRENT_ASSERT(is_single_thread());
-		if (!m_ip_filter) m_ip_filter = boost::make_shared<ip_filter>();
+		if (!m_ip_filter) m_ip_filter = std::make_shared<ip_filter>();
 		return *m_ip_filter;
 	}
 
@@ -1369,7 +1366,7 @@ namespace aux {
 	}
 
 	// session_impl is responsible for deleting 'pack'
-	void session_impl::apply_settings_pack(boost::shared_ptr<settings_pack> pack)
+	void session_impl::apply_settings_pack(std::shared_ptr<settings_pack> pack)
 	{
 		apply_settings_pack_impl(*pack);
 	}
@@ -1427,7 +1424,7 @@ namespace aux {
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(is_single_thread());
-		boost::shared_ptr<settings_pack> p = load_pack_from_struct(m_settings, s);
+		std::shared_ptr<settings_pack> p = load_pack_from_struct(m_settings, s);
 		apply_settings_pack(p);
 	}
 
@@ -2768,9 +2765,8 @@ namespace aux {
 		pack.endp = endp;
 		pack.peerinfo = nullptr;
 
-		boost::shared_ptr<peer_connection> c
-			= boost::make_shared<bt_peer_connection>(boost::cref(pack)
-				, get_peer_id());
+		std::shared_ptr<peer_connection> c
+			= std::make_shared<bt_peer_connection>(pack, get_peer_id());
 #if TORRENT_USE_ASSERTS
 		c->m_in_constructor = false;
 #endif
@@ -2803,7 +2799,7 @@ namespace aux {
 		, error_code const& ec)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		boost::shared_ptr<peer_connection> sp(p->self());
+		std::shared_ptr<peer_connection> sp(p->self());
 
 		// someone else is holding a reference, it's important that
 		// it's destructed from the network thread. Make sure the
@@ -2903,7 +2899,7 @@ namespace aux {
 	{
 		TORRENT_ASSERT(is_single_thread());
 		return std::any_of(m_connections.begin(), m_connections.end()
-			, [p] (boost::shared_ptr<peer_connection> const& pr)
+			, [p] (std::shared_ptr<peer_connection> const& pr)
 			{ return pr.get() == p; });
 	}
 
@@ -2966,9 +2962,9 @@ namespace aux {
 		// remove undead peers that only have this list as their reference keeping them alive
 		if (!m_undead_peers.empty())
 		{
-			std::vector<boost::shared_ptr<peer_connection> >::iterator remove_it
+			std::vector<std::shared_ptr<peer_connection> >::iterator remove_it
 				= std::remove_if(m_undead_peers.begin(), m_undead_peers.end()
-				, std::bind(&boost::shared_ptr<peer_connection>::unique, _1));
+				, std::bind(&std::shared_ptr<peer_connection>::unique, _1));
 			m_undead_peers.erase(remove_it, m_undead_peers.end());
 			if (m_undead_peers.empty())
 			{
@@ -3681,11 +3677,11 @@ namespace aux {
 
 		struct opt_unchoke_candidate
 		{
-			explicit opt_unchoke_candidate(boost::shared_ptr<peer_connection> const* tp)
+			explicit opt_unchoke_candidate(std::shared_ptr<peer_connection> const* tp)
 				: peer(tp)
 			{}
 
-			boost::shared_ptr<peer_connection> const* peer;
+			std::shared_ptr<peer_connection> const* peer;
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			// this is mutable because comparison functors passed to std::partial_sort
 			// are not supposed to modify the elements they are sorting. Here the mutation
@@ -4035,7 +4031,7 @@ namespace aux {
 		for (connection_map::iterator i = m_connections.begin();
 			i != m_connections.end();)
 		{
-			boost::shared_ptr<peer_connection> p = *i;
+			std::shared_ptr<peer_connection> p = *i;
 			TORRENT_ASSERT(p);
 			++i;
 			torrent* const t = p->associated_torrent().lock().get();
@@ -4832,9 +4828,9 @@ namespace aux {
 
 		int queue_pos = ++m_max_queue_pos;
 
-		torrent_ptr = std::make_shared<torrent>(std::ref(*this)
+		torrent_ptr = std::make_shared<torrent>(*this
 			, 16 * 1024, queue_pos, m_paused
-			, boost::cref(params), boost::cref(params.info_hash));
+			, params, params.info_hash);
 
 		return std::make_pair(torrent_ptr, true);
 	}
@@ -6649,7 +6645,7 @@ namespace aux {
 	}
 
 	disk_buffer_holder session_impl::allocate_disk_buffer(bool& exceeded
-		, boost::shared_ptr<disk_observer> o
+		, std::shared_ptr<disk_observer> o
 		, char const* category)
 	{
 		return m_disk_thread.allocate_disk_buffer(exceeded, o, category);
@@ -6794,7 +6790,7 @@ namespace aux {
 			}
 		}
 
-		for (std::vector<boost::shared_ptr<peer_connection> >::const_iterator i
+		for (std::vector<std::shared_ptr<peer_connection> >::const_iterator i
 			= m_undead_peers.begin(); i != m_undead_peers.end(); ++i)
 		{
 			peer_connection* p = i->get();

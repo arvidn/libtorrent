@@ -53,7 +53,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/noncopyable.hpp>
 #include <boost/shared_array.hpp>
 #include <boost/optional.hpp>
-#include <boost/shared_ptr.hpp>
 #include <thread>
 #include <mutex>
 #include <condition_variable>
@@ -63,6 +62,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <atomic>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
+
+#include <memory>
 
 namespace libtorrent
 {
@@ -357,11 +358,11 @@ namespace libtorrent
 		disk_buffer_holder allocate_disk_buffer(char const* category) override
 		{
 			bool exceed = false;
-			return allocate_disk_buffer(exceed, boost::shared_ptr<disk_observer>(), category);
+			return allocate_disk_buffer(exceed, std::shared_ptr<disk_observer>(), category);
 		}
 
 		void trigger_cache_trim();
-		disk_buffer_holder allocate_disk_buffer(bool& exceeded, boost::shared_ptr<disk_observer> o
+		disk_buffer_holder allocate_disk_buffer(bool& exceeded, std::shared_ptr<disk_observer> o
 			, char const* category) override;
 
 		bool exceeded_cache_use() const

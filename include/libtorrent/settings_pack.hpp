@@ -37,10 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_view.hpp"
 
 #include <vector>
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/smart_ptr.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <memory>
 
 // OVERVIEW
 // 
@@ -59,7 +56,7 @@ namespace libtorrent
 	struct settings_pack;
 	struct bdecode_node;
 
-	TORRENT_EXTRA_EXPORT boost::shared_ptr<settings_pack> load_pack_from_dict(bdecode_node const& settings);
+	TORRENT_EXTRA_EXPORT std::shared_ptr<settings_pack> load_pack_from_dict(bdecode_node const& settings);
 	TORRENT_EXTRA_EXPORT void save_settings_to_dict(aux::session_settings const& s, entry::dictionary_type& sett);
 	TORRENT_EXTRA_EXPORT void apply_pack(settings_pack const* pack, aux::session_settings& sett
 		, aux::session_impl* ses = nullptr);
@@ -69,7 +66,7 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 	struct session_settings;
-	boost::shared_ptr<settings_pack> load_pack_from_struct(aux::session_settings const& current, session_settings const& s);
+	std::shared_ptr<settings_pack> load_pack_from_struct(aux::session_settings const& current, session_settings const& s);
 	void load_struct_from_settings(aux::session_settings const& current, session_settings& ret);
 #endif
 

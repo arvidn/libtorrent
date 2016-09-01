@@ -42,12 +42,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 #include <tuple>
 #include <functional>
+#include <memory>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/shared_ptr.hpp>
-#include <boost/enable_shared_from_this.hpp>
-#include <boost/weak_ptr.hpp>
 #include <boost/unordered_map.hpp>
 
 #ifdef TORRENT_USE_OPENSSL
@@ -136,7 +134,7 @@ namespace libtorrent
 		std::string auth;
 #endif
 
-		boost::shared_ptr<const ip_filter> filter;
+		std::shared_ptr<const ip_filter> filter;
 
 		std::int64_t downloaded;
 		std::int64_t uploaded;
@@ -299,7 +297,7 @@ namespace libtorrent
 			, io_service& ios
 			, std::weak_ptr<request_callback> r);
 
-		void update_transaction_id(boost::shared_ptr<udp_tracker_connection> c
+		void update_transaction_id(std::shared_ptr<udp_tracker_connection> c
 			, std::uint64_t tid);
 
 		std::shared_ptr<request_callback> requester() const;

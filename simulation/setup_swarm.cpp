@@ -260,8 +260,8 @@ void setup_swarm(int num_nodes
 	asio::io_service ios(sim);
 	lt::time_point start_time(lt::clock_type::now());
 
-	std::vector<boost::shared_ptr<lt::session> > nodes;
-	std::vector<boost::shared_ptr<sim::asio::io_service> > io_service;
+	std::vector<std::shared_ptr<lt::session>> nodes;
+	std::vector<std::shared_ptr<sim::asio::io_service>> io_service;
 	std::vector<lt::session_proxy> zombies;
 	lt::deadline_timer timer(ios);
 
@@ -286,8 +286,7 @@ void setup_swarm(int num_nodes
 		ips.push_back(addr(ep));
 		std::snprintf(ep, sizeof(ep), "2000::%X%X", (i + 1) >> 8, (i + 1) & 0xff);
 		ips.push_back(addr(ep));
-		io_service.push_back(boost::make_shared<sim::asio::io_service>(
-			std::ref(sim), ips));
+		io_service.push_back(std::make_shared<sim::asio::io_service>(sim, ips));
 
 		lt::settings_pack pack = default_settings;
 
@@ -297,9 +296,8 @@ void setup_swarm(int num_nodes
 		pack.set_str(lt::settings_pack::peer_fingerprint, pid.to_string());
 		if (i == 0) new_session(pack);
 
-		boost::shared_ptr<lt::session> ses =
-			boost::make_shared<lt::session>(pack
-				, std::ref(*io_service.back()));
+		std::shared_ptr<lt::session> ses =
+			std::make_shared<lt::session>(pack, *io_service.back());
 		init_session(*ses);
 		nodes.push_back(ses);
 
@@ -396,7 +394,7 @@ void setup_swarm(int num_nodes
 		if (type == swarm_test::upload)
 		{
 			shut_down |= std::all_of(nodes.begin() + 1, nodes.end()
-				, [](boost::shared_ptr<lt::session> const& s)
+				, [](std::shared_ptr<lt::session> const& s)
 				{ return is_seed(*s); });
 
 			if (tick > 88 * (num_nodes - 1) && !shut_down)

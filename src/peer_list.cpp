@@ -30,12 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/utility.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include <functional>
 
 #include "libtorrent/peer_connection.hpp"
@@ -53,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/torrent_peer_allocator.hpp"
+#include "libtorrent/ip_voter.hpp" // for external_ip
 
 #if TORRENT_USE_ASSERTS
 #include "libtorrent/socket_io.hpp" // for print_endpoint
@@ -60,7 +55,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/socket_io.hpp" // for print_endpoint
-#include "libtorrent/ip_voter.hpp" // for external_ip
 #endif
 
 using namespace std::placeholders;
@@ -550,7 +544,7 @@ namespace libtorrent
 
 			// insert this candidate sorted into peers
 			std::vector<torrent_peer*>::iterator i = std::lower_bound(peers.begin(), peers.end()
-				, &pe, std::bind(&peer_list::compare_peer, this, _1, _2, boost::cref(external), external_port));
+				, &pe, std::bind(&peer_list::compare_peer, this, _1, _2, std::cref(external), external_port));
 
 			peers.insert(i, &pe);
 		}

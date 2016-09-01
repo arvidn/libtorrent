@@ -39,8 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/hex.hpp" // for is_hex
 
-using boost::shared_ptr;
-
 namespace libtorrent
 {
 	http_seed_connection::http_seed_connection(peer_connection_args const& pack

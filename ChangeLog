@@ -1,3 +1,4 @@
+	* source code migration from boost::shared_ptr to std::shared_ptr
 	* storage_interface API changed to use span and references
 	* changes in public API to work with std::shared_ptr<torrent_info>
 	* extensions API changed to use span and std::shared_ptr

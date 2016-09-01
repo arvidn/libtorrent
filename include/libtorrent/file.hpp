@@ -43,7 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/noncopyable.hpp>
-#include <boost/smart_ptr.hpp>
 
 #ifdef TORRENT_WINDOWS
 // windows part
@@ -224,12 +223,12 @@ namespace libtorrent
 
 		char stack[2048];
 	private:
-		boost::shared_ptr<file> m_file;
+		std::shared_ptr<file> m_file;
 	};
 
 	void TORRENT_EXTRA_EXPORT print_open_files(char const* event, char const* name);
 #else
-	using file_handle = boost::shared_ptr<file>;
+	using file_handle = std::shared_ptr<file>;
 #endif
 
 	struct TORRENT_EXTRA_EXPORT file: boost::noncopyable
@@ -358,4 +357,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_FILE_HPP_INCLUDED
-

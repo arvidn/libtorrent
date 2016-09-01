@@ -114,13 +114,13 @@ namespace libtorrent
 		session_proxy& operator=(session_proxy const&);
 	private:
 		session_proxy(
-			boost::shared_ptr<io_service> ios
+			std::shared_ptr<io_service> ios
 			, std::shared_ptr<std::thread> t
-			, boost::shared_ptr<aux::session_impl> impl);
+			, std::shared_ptr<aux::session_impl> impl);
 
-		boost::shared_ptr<io_service> m_io_service;
+		std::shared_ptr<io_service> m_io_service;
 		std::shared_ptr<std::thread> m_thread;
-		boost::shared_ptr<aux::session_impl> m_impl;
+		std::shared_ptr<aux::session_impl> m_impl;
 	};
 
 	// The session_params is a parameters pack for configuring the session
@@ -337,9 +337,9 @@ namespace libtorrent
 
 		// data shared between the main thread
 		// and the working thread
-		boost::shared_ptr<io_service> m_io_service;
+		std::shared_ptr<io_service> m_io_service;
 		std::shared_ptr<std::thread> m_thread;
-		boost::shared_ptr<aux::session_impl> m_impl;
+		std::shared_ptr<aux::session_impl> m_impl;
 	};
 
 }

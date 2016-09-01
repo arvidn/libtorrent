@@ -2,12 +2,8 @@
 // subject to the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include "boost_python.hpp"
-#include <boost/shared_ptr.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <memory>
 
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/session_settings.hpp"
@@ -142,39 +138,39 @@ namespace
 
 } // namespace unnamed
 
-boost::shared_ptr<torrent_info> buffer_constructor0(char const* buf, int len, int flags)
+std::shared_ptr<torrent_info> buffer_constructor0(char const* buf, int len, int flags)
 {
    error_code ec;
-   boost::shared_ptr<torrent_info> ret(boost::make_shared<torrent_info>(buf
-		, len, boost::ref(ec), flags));
+   std::shared_ptr<torrent_info> ret = std::make_shared<torrent_info>(buf
+		, len, ec, flags);
 #ifndef BOOST_NO_EXCEPTIONS
    if (ec) throw system_error(ec);
 #endif
    return ret;
 }
 
-boost::shared_ptr<torrent_info> buffer_constructor1(char const* buf, int len)
+std::shared_ptr<torrent_info> buffer_constructor1(char const* buf, int len)
 {
 	return buffer_constructor0(buf, len, 0);
 }
 
-boost::shared_ptr<torrent_info> file_constructor0(std::string const& filename, int flags)
+std::shared_ptr<torrent_info> file_constructor0(std::string const& filename, int flags)
 {
    error_code ec;
-   boost::shared_ptr<torrent_info> ret(boost::make_shared<torrent_info>(filename
-		, boost::ref(ec), flags));
+   std::shared_ptr<torrent_info> ret = std::make_shared<torrent_info>(filename
+		, ec, flags);
 #ifndef BOOST_NO_EXCEPTIONS
    if (ec) throw system_error(ec);
 #endif
    return ret;
 }
 
-boost::shared_ptr<torrent_info> file_constructor1(std::string const& filename)
+std::shared_ptr<torrent_info> file_constructor1(std::string const& filename)
 {
 	return file_constructor0(filename, 0);
 }
 
-boost::shared_ptr<torrent_info> bencoded_constructor0(entry const& ent, int flags)
+std::shared_ptr<torrent_info> bencoded_constructor0(entry const& ent, int flags)
 {
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), ent);
@@ -188,15 +184,15 @@ boost::shared_ptr<torrent_info> bencoded_constructor0(entry const& ent, int flag
 #endif
 	}
 
-	boost::shared_ptr<torrent_info> ret(boost::make_shared<torrent_info>(e
-			, boost::ref(ec), flags));
+	std::shared_ptr<torrent_info> ret = std::make_shared<torrent_info>(e
+			, ec, flags);
 #ifndef BOOST_NO_EXCEPTIONS
 	if (ec) throw system_error(ec);
 #endif
 	return ret;
 }
 
-boost::shared_ptr<torrent_info> bencoded_constructor1(entry const& ent)
+std::shared_ptr<torrent_info> bencoded_constructor1(entry const& ent)
 {
 	return bencoded_constructor0(ent, 0);
 }
@@ -216,7 +212,7 @@ void bind_torrent_info()
         .def_readwrite("size", &file_slice::size)
         ;
 
-    class_<torrent_info, boost::shared_ptr<torrent_info> >("torrent_info", no_init)
+    class_<torrent_info, std::shared_ptr<torrent_info> >("torrent_info", no_init)
         .def(init<sha1_hash const&, int>((arg("info_hash"), arg("flags") = 0)))
         .def("__init__", make_constructor(&bencoded_constructor0))
         .def("__init__", make_constructor(&bencoded_constructor1))
@@ -314,10 +310,8 @@ void bind_torrent_info()
         .value("source_tex", announce_entry::source_tex)
     ;
 
-#if BOOST_VERSION > 104200
-    implicitly_convertible<boost::shared_ptr<torrent_info>, boost::shared_ptr<const torrent_info> >();
-    boost::python::register_ptr_to_python<boost::shared_ptr<const torrent_info> >();
-#endif
+    implicitly_convertible<std::shared_ptr<torrent_info>, std::shared_ptr<const torrent_info>>();
+    boost::python::register_ptr_to_python<std::shared_ptr<const torrent_info>>();
 }
 
 #ifdef _MSC_VER

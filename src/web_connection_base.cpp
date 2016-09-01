@@ -40,8 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/peer_info.hpp"
 
-using boost::shared_ptr;
-
 namespace libtorrent
 {
 	web_connection_base::web_connection_base(

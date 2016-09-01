@@ -476,7 +476,7 @@ TORRENT_TEST(current_tracker)
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:39775");
 	//pack.set_int(settings_pack::alert_mask, alert::tracker_notification);
 
-	boost::scoped_ptr<lt::session> s(new lt::session(pack));
+	std::unique_ptr<lt::session> s(new lt::session(pack));
 
 	error_code ec;
 	remove_all("tmp3_tracker", ec);

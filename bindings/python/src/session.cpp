@@ -138,11 +138,11 @@ namespace
 		}
 	}
 
-	boost::shared_ptr<lt::session> make_session(boost::python::dict sett, int flags)
+	std::shared_ptr<lt::session> make_session(boost::python::dict sett, int flags)
 	{
 		settings_pack p;
 		make_settings_pack(p, sett);
-		return boost::make_shared<lt::session>(p, flags);
+		return std::make_shared<lt::session>(p, flags);
 	}
 
 #ifndef TORRENT_NO_DEPRECATE

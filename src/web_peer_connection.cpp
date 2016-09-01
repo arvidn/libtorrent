@@ -59,8 +59,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/escape_string.hpp" // for escape_path
 #include "libtorrent/hex.hpp" // for is_hex
 
-using boost::shared_ptr;
-
 namespace libtorrent
 {
 enum
@@ -426,7 +424,7 @@ void web_peer_connection::write_request(peer_request const& r)
 	{
 		get_io_service().post(std::bind(
 			&web_peer_connection::on_receive_padfile,
-			boost::static_pointer_cast<web_peer_connection>(self())));
+			std::static_pointer_cast<web_peer_connection>(self())));
 		return;
 	}
 
