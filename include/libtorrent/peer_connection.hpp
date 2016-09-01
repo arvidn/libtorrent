@@ -923,10 +923,6 @@ namespace libtorrent
 		// http://blog.libtorrent.org/2011/11/block-request-time-outs/
 		time_point m_requested = aux::time_now();
 
-		// a timestamp when the remote download rate
-		// was last updated
-		time_point m_remote_dl_update = aux::time_now();
-
 		// the time when async_connect was called
 		// or when the incoming connection was established
 		time_point m_connect = aux::time_now();
@@ -1065,14 +1061,6 @@ namespace libtorrent
 		// This will remain the current piece for this peer until
 		// another peer sends us a have message for this piece
 		int m_superseed_piece[2] = {-1, -1};
-
-		// pieces downloaded since last second
-		// timer timeout; used for determining
-		// approx download rate
-		int m_remote_pieces_dled = 0;
-
-		// approximate peer download rate
-		int m_remote_dl_rate = 0;
 
 		// the number of bytes send to the disk-io
 		// thread that hasn't yet been completely written.

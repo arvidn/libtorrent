@@ -1808,17 +1808,6 @@ namespace libtorrent
 
 		t->peer_has(index, this);
 
-		// this will disregard all have messages we get within
-		// the first two seconds. Since some clients implements
-		// lazy bitfields, these will not be reliable to use
-		// for an estimated peer download rate.
-		if (!peer_info_struct()
-			|| m_ses.session_time() - peer_info_struct()->last_connected > 2)
-		{
-			// update bytes downloaded since last timer
-			++m_remote_pieces_dled;
-		}
-
 		// it's important to not disconnect before we have
 		// updated the piece picker, otherwise we will incorrectly
 		// decrement the piece count without first incrementing it
@@ -4381,7 +4370,9 @@ namespace libtorrent
 			p.num_hashfails = 0;
 		}
 
-		p.remote_dl_rate = m_remote_dl_rate;
+#ifndef TORRENT_NO_DEPRECATE
+		p.remote_dl_rate = 0;
+#endif
 		p.send_buffer_size = m_send_buffer.capacity();
 		p.used_send_buffer = m_send_buffer.size();
 		p.receive_buffer_size = m_recv_buffer.capacity();
@@ -4811,22 +4802,6 @@ namespace libtorrent
 #endif
 
 			snub_peer();
-		}
-
-		// update once every minute
-		if (now - m_remote_dl_update >= seconds(60))
-		{
-			std::int64_t piece_size = t->torrent_file().piece_length();
-
-			if (m_remote_dl_rate > 0)
-				m_remote_dl_rate = int((m_remote_dl_rate * 2 / 3)
-					+ ((std::int64_t(m_remote_pieces_dled) * piece_size / 3) / 60));
-			else
-				m_remote_dl_rate = int(std::int64_t(m_remote_pieces_dled)
-					* piece_size / 60);
-
-			m_remote_pieces_dled = 0;
-			m_remote_dl_update = now;
 		}
 
 		fill_send_buffer();
