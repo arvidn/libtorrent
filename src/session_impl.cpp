@@ -46,7 +46,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/function_equal.hpp>
 #include <boost/asio/ip/v6_only.hpp>
 
 #if TORRENT_USE_RLIMIT
@@ -4209,11 +4208,9 @@ namespace aux {
 
 		torrent_map::const_iterator i = m_torrents.find(info_hash);
 #if TORRENT_USE_INVARIANT_CHECKS
-		for (torrent_map::const_iterator j
-			= m_torrents.begin(); j != m_torrents.end(); ++j)
+		for (auto const& te : m_torrents)
 		{
-			torrent* p = boost::get_pointer(j->second);
-			TORRENT_ASSERT(p);
+			TORRENT_ASSERT(te.second);
 		}
 #endif
 		if (i != m_torrents.end()) return i->second;
@@ -6833,10 +6830,9 @@ namespace aux {
 		TORRENT_ASSERT_VAL(unchoked_counter == unchokes, unchokes);
 		TORRENT_ASSERT_VAL(unchoked_counter_optimistic == num_optimistic, num_optimistic);
 
-		for (torrent_map::const_iterator j
-			= m_torrents.begin(); j != m_torrents.end(); ++j)
+		for (auto const& te : m_torrents)
 		{
-			TORRENT_ASSERT(boost::get_pointer(j->second));
+			TORRENT_ASSERT(te.second);
 		}
 	}
 #endif // TORRENT_USE_INVARIANT_CHECKS

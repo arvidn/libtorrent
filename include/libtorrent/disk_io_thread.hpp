@@ -47,30 +47,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/function/function0.hpp>
-#include <boost/noncopyable.hpp>
-#include <boost/shared_array.hpp>
-#include <boost/optional.hpp>
-#include <thread>
 #include <mutex>
 #include <condition_variable>
-#ifndef TORRENT_DISABLE_POOL_ALLOCATOR
-#include <boost/pool/pool.hpp>
-#endif
 #include <atomic>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include <memory>
+#include <vector>
 
 namespace libtorrent
 {
 	class alert;
 	struct add_torrent_params;
 	struct counters;
-	class  alert_manager;
+	class alert_manager;
 
 	struct cached_piece_info
 	{
@@ -647,4 +635,3 @@ namespace libtorrent
 }
 
 #endif
-

@@ -42,16 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_peer_allocator.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
 
-#include <algorithm>
-#include <vector>
-#include <set>
-#include <list>
-#include <deque>
-#include <condition_variable>
-#include <mutex>
-#include <cstdarg> // for va_start, va_end
-#include <unordered_map>
-
 #ifdef TORRENT_USE_OPENSSL
 #include "libtorrent/ssl_stream.hpp"
 #endif
@@ -92,6 +82,20 @@ POSSIBILITY OF SUCH DAMAGE.
 #if TORRENT_COMPLETE_TYPES_REQUIRED
 #include "libtorrent/peer_connection.hpp"
 #endif
+
+#include <algorithm>
+#include <vector>
+#include <set>
+#include <list>
+#include <deque>
+#include <condition_variable>
+#include <mutex>
+#include <cstdarg> // for va_start, va_end
+#include <unordered_map>
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/optional.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {

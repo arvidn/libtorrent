@@ -38,13 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/observer.hpp>
 #include <libtorrent/kademlia/item.hpp>
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/function/function1.hpp>
-#include <boost/function/function2.hpp>
 #include <vector>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent { namespace dht
 {
@@ -92,4 +86,3 @@ struct put_data_observer : traversal_observer
 } } // namespace libtorrent::dht
 
 #endif // TORRENT_PUT_DATA_HPP
-

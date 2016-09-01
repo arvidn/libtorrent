@@ -42,12 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/platform_util.hpp"
-
-#include <functional>
-#include <tuple>
-#include <set>
-#include <vector>
-
 #include "libtorrent/time.hpp"
 #include "libtorrent/disk_buffer_pool.hpp"
 #include "libtorrent/disk_io_job.hpp"
@@ -55,8 +49,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/uncork_interface.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/alert_manager.hpp"
-
 #include "libtorrent/debug.hpp"
+
+#include <functional>
 
 #if TORRENT_USE_RLIMIT
 #include <sys/resource.h>

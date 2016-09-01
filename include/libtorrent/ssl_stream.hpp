@@ -43,18 +43,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/function/function1.hpp>
 #include <boost/asio/ssl.hpp>
-
-// openssl seems to believe it owns
-// this name in every single scope
-#undef set_key
-
 #if defined TORRENT_BUILD_SIMULATOR
 #include "simulator/simulator.hpp"
 #endif
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {

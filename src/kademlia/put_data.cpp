@@ -119,4 +119,3 @@ bool put_data::invoke(observer_ptr o)
 }
 
 } } // namespace libtorrent::dht
-
