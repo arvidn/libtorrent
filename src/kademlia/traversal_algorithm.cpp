@@ -521,11 +521,10 @@ void traversal_algorithm::add_router_entries()
 			, static_cast<void*>(this), int(std::distance(m_node.m_table.router_begin(), m_node.m_table.router_end())));
 	}
 #endif
-	for (auto i = m_node.m_table.router_begin()
-		, end(m_node.m_table.router_end()); i != end; ++i)
-	{
-		add_entry(node_id(), *i, observer::flag_initial);
-	}
+	std::for_each(m_node.m_table.router_begin()
+		, m_node.m_table.router_end()
+		, std::bind(&traversal_algorithm::add_entry
+			, this, node_id(), _1, observer::flag_initial));
 }
 
 void traversal_algorithm::init()
