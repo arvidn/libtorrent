@@ -544,7 +544,7 @@ namespace libtorrent { namespace
 			source.m_pc.peer_log(peer_log_alert::info, "UT_METADATA"
 				, "already have metadata");
 #endif
-			m_torrent.add_redundant_bytes(size, torrent::piece_unknown);
+			m_torrent.add_redundant_bytes(size, waste_reason::piece_unknown);
 			return false;
 		}
 

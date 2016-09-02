@@ -4714,9 +4714,9 @@ namespace libtorrent
 
 	std::uint32_t torrent::tracker_key() const
 	{
-		uintptr_t self = reinterpret_cast<uintptr_t>(this);
-		uintptr_t ses = reinterpret_cast<uintptr_t>(&m_ses);
-		uintptr_t storage = reinterpret_cast<uintptr_t>(m_storage.get());
+		uintptr_t const self = reinterpret_cast<uintptr_t>(this);
+		uintptr_t const ses = reinterpret_cast<uintptr_t>(&m_ses);
+		uintptr_t const storage = reinterpret_cast<uintptr_t>(m_storage.get());
 		sha1_hash const h = hasher(reinterpret_cast<char const*>(&self), sizeof(self))
 			.update(reinterpret_cast<char const*>(&storage), sizeof(storage))
 			.update(reinterpret_cast<char const*>(&ses), sizeof(ses))
@@ -5433,8 +5433,8 @@ namespace libtorrent
 				if (!bitmask[i])
 				{
 					// mark all pieces of the file as downloadable
-					int start_piece = int(start / piece_length);
-					int last_piece = int(position / piece_length);
+					int const start_piece = int(start / piece_length);
+					int const last_piece = int(position / piece_length);
 					// if one piece spans several files, we might
 					// come here several times with the same start_piece, end_piece
 					std::fill(piece_filter.begin() + start_piece, piece_filter.begin()
@@ -8647,7 +8647,7 @@ namespace libtorrent
 		// if we haven't yet met the seed limits, set the seed_ratio_not_met
 		// flag. That will make this seed prioritized
 		// downloaded may be 0 if the torrent is 0-sized
-		std::int64_t downloaded = (std::max)(m_total_downloaded, m_torrent_file->total_size());
+		std::int64_t const downloaded = (std::max)(m_total_downloaded, m_torrent_file->total_size());
 		if (fin_time < s.get_int(settings_pack::seed_time_limit)
 			&& (download_time > 1
 				&& fin_time * 100 / download_time < s.get_int(settings_pack::seed_time_ratio_limit))
@@ -11139,17 +11139,17 @@ namespace libtorrent
 		st->last_seen_complete = m_swarm_last_seen_complete;
 	}
 
-	void torrent::add_redundant_bytes(int b, torrent::wasted_reason_t reason)
+	void torrent::add_redundant_bytes(int b, waste_reason reason)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(b > 0);
 		m_total_redundant_bytes += b;
 
 		TORRENT_ASSERT(b > 0);
-		TORRENT_ASSERT(reason >= 0);
-		TORRENT_ASSERT(reason < waste_reason_max);
+		TORRENT_ASSERT(static_cast<int>(reason) >= 0);
+		TORRENT_ASSERT(static_cast<int>(reason) < static_cast<int>(waste_reason::max));
 		m_stats_counters.inc_stats_counter(counters::recv_redundant_bytes, b);
-		m_stats_counters.inc_stats_counter(counters::waste_piece_timed_out + reason, b);
+		m_stats_counters.inc_stats_counter(counters::waste_piece_timed_out + static_cast<int>(reason), b);
 	}
 
 	void torrent::add_failed_bytes(int b)

@@ -91,6 +91,13 @@ namespace libtorrent
 	class bt_peer_connection;
 	struct listen_socket_t;
 
+	enum class waste_reason
+	{
+		piece_timed_out, piece_cancelled, piece_unknown, piece_seed
+		, piece_end_game, piece_closing
+		, max
+	};
+
 	struct time_critical_piece
 	{
 		// when this piece was first requested
@@ -660,12 +667,14 @@ namespace libtorrent
 
 		void update_scrape_state();
 
+#ifndef TORRENT_NO_DEPRECATE
 		// if no password and username is set
 		// this will return an empty string, otherwise
 		// it will concatenate the login and password
 		// ready to be sent over http (but without
 		// base64 encoding).
 		std::string tracker_login() const;
+#endif
 
 		// generate the tracker key for this torrent.
 		// The key is passed to http trackers as ``&key=``.
@@ -870,13 +879,7 @@ namespace libtorrent
 		// this is the handler for write failure piece synchronization
 		void on_piece_fail_sync(disk_io_job const* j, piece_block b);
 
-		enum wasted_reason_t
-		{
-			piece_timed_out, piece_cancelled, piece_unknown, piece_seed
-			, piece_end_game, piece_closing
-			, waste_reason_max
-		};
-		void add_redundant_bytes(int b, wasted_reason_t reason);
+		void add_redundant_bytes(int b, waste_reason reason);
 		void add_failed_bytes(int b);
 
 		// this is true if we have all the pieces, but not necessarily flushed them to disk
