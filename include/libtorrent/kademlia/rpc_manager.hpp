@@ -105,7 +105,7 @@ public:
 			o->~observer();
 			free_observer(o);
 		};
-		return std::shared_ptr<T>(new (ptr) T(args...), deleter);
+		return std::shared_ptr<T>(new (ptr) T(std::forward<Args>(args)...), deleter);
 	}
 
 	int num_allocated_observers() const { return m_allocated_observers; }
