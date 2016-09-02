@@ -76,12 +76,12 @@ bool is_sorted(It b, It e, Cmp cmp)
 }
 #endif
 
-observer_ptr traversal_algorithm::new_observer(void* ptr
-	, udp::endpoint const& ep, node_id const& id)
+observer_ptr traversal_algorithm::new_observer(udp::endpoint const& ep
+	, node_id const& id)
 {
-	observer_ptr o(new (ptr) null_observer(self(), ep, id));
+	auto o = m_node.m_rpc.allocate_observer<null_observer>(self(), ep, id);
 #if TORRENT_USE_ASSERTS
-	o->m_in_constructor = false;
+	if (o) o->m_in_constructor = false;
 #endif
 	return o;
 }
@@ -117,8 +117,8 @@ void traversal_algorithm::resort_results()
 void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsigned char flags)
 {
 	TORRENT_ASSERT(m_node.m_rpc.allocation_size() >= sizeof(find_data_observer));
-	void* ptr = m_node.m_rpc.allocate_observer();
-	if (ptr == nullptr)
+	auto o = new_observer(addr, id);
+	if (!o)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		if (get_node().observer())
@@ -130,7 +130,6 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 		done();
 		return;
 	}
-	observer_ptr o = new_observer(ptr, addr, id);
 	if (id.is_all_zeros())
 	{
 		o->set_id(generate_random_id());
@@ -244,16 +243,6 @@ void traversal_algorithm::start()
 	init();
 	bool is_done = add_requests();
 	if (is_done) done();
-}
-
-void* traversal_algorithm::allocate_observer()
-{
-	return m_node.m_rpc.allocate_observer();
-}
-
-void traversal_algorithm::free_observer(void* ptr)
-{
-	m_node.m_rpc.free_observer(ptr);
 }
 
 char const* traversal_algorithm::name() const

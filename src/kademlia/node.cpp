@@ -373,9 +373,9 @@ namespace
 			}
 #endif
 
-			void* ptr = node.m_rpc.allocate_observer();
-			if (ptr == nullptr) return;
-			observer_ptr o(new (ptr) announce_observer(algo, p.first.ep(), p.first.id));
+			auto o = node.m_rpc.allocate_observer<announce_observer>(algo
+				, p.first.ep(), p.first.id);
+			if (!o) return;
 #if TORRENT_USE_ASSERTS
 			o->m_in_constructor = false;
 #endif
@@ -459,9 +459,8 @@ void node::direct_request(udp::endpoint ep, entry& e
 	// not really a traversal
 	auto algo = std::make_shared<direct_traversal>(*this, node_id(), f);
 
-	void* ptr = m_rpc.allocate_observer();
-	if (ptr == nullptr) return;
-	observer_ptr o(new (ptr) direct_observer(algo, ep, node_id()));
+	auto o = m_rpc.allocate_observer<direct_observer>(algo, ep, node_id());
+	if (!o) return;
 #if TORRENT_USE_ASSERTS
 	o->m_in_constructor = false;
 #endif
@@ -658,9 +657,6 @@ void node::send_single_refresh(udp::endpoint const& ep, int bucket
 	, node_id const& id)
 {
 	TORRENT_ASSERT(id != m_id);
-	void* ptr = m_rpc.allocate_observer();
-	if (ptr == nullptr) return;
-
 	TORRENT_ASSERT(bucket >= 0);
 	TORRENT_ASSERT(bucket <= 159);
 
@@ -675,7 +671,8 @@ void node::send_single_refresh(udp::endpoint const& ep, int bucket
 	// this is unfortunately necessary for the observer
 	// to free itself from the pool when it's being released
 	auto algo = std::make_shared<traversal_algorithm>(*this, node_id());
-	observer_ptr o(new (ptr) ping_observer(algo, ep, id));
+	auto o = m_rpc.allocate_observer<ping_observer>(algo, ep, id);
+	if (!o) return;
 #if TORRENT_USE_ASSERTS
 	o->m_in_constructor = false;
 #endif

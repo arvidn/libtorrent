@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 #include <set>
+#include <memory>
 
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/routing_table.hpp>
@@ -64,9 +65,6 @@ struct TORRENT_EXTRA_EXPORT traversal_algorithm : boost::noncopyable
 	virtual ~traversal_algorithm();
 	void status(dht_lookup& l);
 
-	void* allocate_observer();
-	void free_observer(void* ptr);
-
 	virtual char const* name() const;
 	virtual void start();
 
@@ -95,8 +93,8 @@ protected:
 	virtual void done();
 	// should construct an algorithm dependent
 	// observer in ptr.
-	virtual observer_ptr new_observer(void* ptr
-		, udp::endpoint const& ep, node_id const& id);
+	virtual observer_ptr new_observer(udp::endpoint const& ep
+		, node_id const& id);
 
 	virtual bool invoke(observer_ptr) { return false; }
 

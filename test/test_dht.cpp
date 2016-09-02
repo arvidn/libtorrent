@@ -2968,7 +2968,7 @@ TORRENT_TEST(rpc_invalid_error_msg)
 	g_sent_packets.clear();
 	auto algo = std::make_shared<dht::traversal_algorithm>(node, node_id());
 
-	observer_ptr o(new (rpc.allocate_observer()) null_observer(algo, source, node_id()));
+	auto o = rpc.allocate_observer<null_observer>(algo, source, node_id());
 #if TORRENT_USE_ASSERTS
 	o->m_in_constructor = false;
 #endif

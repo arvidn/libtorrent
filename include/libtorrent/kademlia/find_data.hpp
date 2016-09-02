@@ -71,7 +71,7 @@ struct find_data : traversal_algorithm
 protected:
 
 	virtual void done();
-	virtual observer_ptr new_observer(void* ptr, udp::endpoint const& ep
+	virtual observer_ptr new_observer(udp::endpoint const& ep
 		, node_id const& id);
 
 	nodes_callback m_nodes_callback;

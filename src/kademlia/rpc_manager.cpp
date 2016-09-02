@@ -69,25 +69,6 @@ namespace libtorrent { namespace dht
 
 namespace io = libtorrent::detail;
 
-void intrusive_ptr_add_ref(observer const* o)
-{
-	TORRENT_ASSERT(o != nullptr);
-	TORRENT_ASSERT(o->m_refs < 0xffff);
-	++o->m_refs;
-}
-
-void intrusive_ptr_release(observer const* o)
-{
-	TORRENT_ASSERT(o != nullptr);
-	TORRENT_ASSERT(o->m_refs > 0);
-	if (--o->m_refs == 0)
-	{
-		auto ta = o->algorithm()->shared_from_this();
-		(const_cast<observer*>(o))->~observer();
-		ta->free_observer(const_cast<observer*>(o));
-	}
-}
-
 // TODO: 3 move this into it's own .cpp file
 dht_observer* observer::get_observer() const
 {
@@ -132,27 +113,27 @@ void observer::abort()
 {
 	if (flags & flag_done) return;
 	flags |= flag_done;
-	m_algorithm->failed(observer_ptr(this), traversal_algorithm::prevent_request);
+	m_algorithm->failed(self(), traversal_algorithm::prevent_request);
 }
 
 void observer::done()
 {
 	if (flags & flag_done) return;
 	flags |= flag_done;
-	m_algorithm->finished(observer_ptr(this));
+	m_algorithm->finished(self());
 }
 
 void observer::short_timeout()
 {
 	if (flags & flag_short_timeout) return;
-	m_algorithm->failed(observer_ptr(this), traversal_algorithm::short_timeout);
+	m_algorithm->failed(self(), traversal_algorithm::short_timeout);
 }
 
 void observer::timeout()
 {
 	if (flags & flag_done) return;
 	flags |= flag_done;
-	m_algorithm->failed(observer_ptr(this));
+	m_algorithm->failed(self());
 }
 
 void observer::set_id(node_id const& id)

@@ -94,14 +94,28 @@ public:
 	void check_invariant() const;
 #endif
 
-	void* allocate_observer();
-	void free_observer(void* ptr);
+	template <typename T, typename... Args>
+	std::shared_ptr<T> allocate_observer(Args&&... args)
+	{
+		void* ptr = allocate_observer();
+		if (ptr == nullptr) return std::shared_ptr<T>();
+
+		auto deleter = [this](observer* o)
+		{
+			o->~observer();
+			free_observer(o);
+		};
+		return std::shared_ptr<T>(new (ptr) T(args...), deleter);
+	}
 
 	int num_allocated_observers() const { return m_allocated_observers; }
 
 	void update_node_id(node_id const& id) { m_our_id = id; }
 
 private:
+
+	void* allocate_observer();
+	void free_observer(void* ptr);
 
 	std::uint32_t calc_connection_id(udp::endpoint addr);
 

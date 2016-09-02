@@ -34,13 +34,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #define OBSERVER_HPP
 
 #include <cstdint>
+#include <memory>
 
 #include <libtorrent/time.hpp>
 #include <libtorrent/address.hpp>
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/intrusive_ptr.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
 namespace dht {
@@ -50,21 +47,14 @@ struct observer;
 struct msg;
 struct traversal_algorithm;
 
-// defined in rpc_manager.cpp
-TORRENT_EXTRA_EXPORT void intrusive_ptr_add_ref(observer const*);
-TORRENT_EXTRA_EXPORT void intrusive_ptr_release(observer const*);
-
 struct TORRENT_EXTRA_EXPORT observer : boost::noncopyable
+	, std::enable_shared_from_this<observer>
 {
-	friend TORRENT_EXTRA_EXPORT void intrusive_ptr_add_ref(observer const*);
-	friend TORRENT_EXTRA_EXPORT void intrusive_ptr_release(observer const*);
-
 	observer(std::shared_ptr<traversal_algorithm> const& a
 		, udp::endpoint const& ep, node_id const& id)
 		: m_sent()
 		, m_algorithm(a)
 		, m_id(id)
-		, m_refs(0)
 		, m_port(0)
 		, m_transaction_id()
 		, flags(0)
@@ -137,6 +127,9 @@ protected:
 
 private:
 
+	std::shared_ptr<observer> self()
+	{ return shared_from_this(); }
+
 	time_point m_sent;
 
 	const std::shared_ptr<traversal_algorithm> m_algorithm;
@@ -150,9 +143,6 @@ private:
 #endif
 		address_v4::bytes_type v4;
 	} m_addr;
-
-	// reference counter for intrusive_ptr
-	mutable std::uint16_t m_refs;
 
 	std::uint16_t m_port;
 
@@ -169,7 +159,7 @@ public:
 #endif
 };
 
-typedef boost::intrusive_ptr<observer> observer_ptr;
+typedef std::shared_ptr<observer> observer_ptr;
 
 } }
 
