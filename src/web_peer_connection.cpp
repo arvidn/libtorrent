@@ -201,7 +201,7 @@ void web_peer_connection::disconnect(error_code const& ec
 			// we're about to replace a different restart piece
 			// buffer. So it was wasted download
 			if (t) t->add_redundant_bytes(int(m_web->restart_piece.size())
-				, torrent::piece_closing);
+				, waste_reason::piece_closing);
 		}
 		m_web->restart_piece.swap(m_piece);
 

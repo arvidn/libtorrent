@@ -2629,7 +2629,7 @@ namespace libtorrent
 				if (m_download_queue.empty())
 					m_counters.inc_stats_counter(counters::num_peers_down_requests, -1);
 			}
-			t->add_redundant_bytes(p.length, torrent::piece_seed);
+			t->add_redundant_bytes(p.length, waste_reason::piece_seed);
 			return;
 		}
 
@@ -2663,7 +2663,7 @@ namespace libtorrent
 			TORRENT_ASSERT_VAL(m_received_in_piece == p.length, m_received_in_piece);
 			m_received_in_piece = 0;
 #endif
-			t->add_redundant_bytes(p.length, torrent::piece_unknown);
+			t->add_redundant_bytes(p.length, waste_reason::piece_unknown);
 
 			// the bytes of the piece we just completed have been deducted from
 			// m_outstanding_bytes as we received it, in incoming_piece_fragment.
@@ -2684,11 +2684,11 @@ namespace libtorrent
 		// if the block we got is already finished, then ignore it
 		if (picker.is_downloaded(block_finished))
 		{
-			torrent::wasted_reason_t reason;
-			if (b->timed_out) reason = torrent::piece_timed_out;
-			else if (b->not_wanted) reason = torrent::piece_cancelled;
-			else if (b->busy) reason = torrent::piece_end_game;
-			else reason = torrent::piece_unknown;
+			waste_reason reason;
+			if (b->timed_out) reason = waste_reason::piece_timed_out;
+			else if (b->not_wanted) reason = waste_reason::piece_cancelled;
+			else if (b->busy) reason = waste_reason::piece_end_game;
+			else reason = waste_reason::piece_unknown;
 
 			t->add_redundant_bytes(p.length, reason);
 
@@ -2745,7 +2745,7 @@ namespace libtorrent
 
 		if (!t->need_loaded())
 		{
-			t->add_redundant_bytes(p.length, torrent::piece_unknown);
+			t->add_redundant_bytes(p.length, waste_reason::piece_unknown);
 			return;
 		}
 		t->inc_refcount("async_write");
@@ -4168,7 +4168,7 @@ namespace libtorrent
 					&& pbp->bytes_downloaded > 0
 					&& pbp->bytes_downloaded < pbp->full_block_bytes)
 				{
-					t->add_redundant_bytes(pbp->bytes_downloaded, torrent::piece_closing);
+					t->add_redundant_bytes(pbp->bytes_downloaded, waste_reason::piece_closing);
 				}
 			}
 
