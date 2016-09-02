@@ -128,7 +128,7 @@ char const* get_item::name() const { return "get"; }
 observer_ptr get_item::new_observer(void* ptr
 	, udp::endpoint const& ep, node_id const& id)
 {
-	observer_ptr o(new (ptr) get_item_observer(this, ep, id));
+	observer_ptr o(new (ptr) get_item_observer(self(), ep, id));
 #if TORRENT_USE_ASSERTS
 	o->m_in_constructor = false;
 #endif

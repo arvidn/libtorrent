@@ -79,7 +79,7 @@ class get_item_observer : public find_data_observer
 {
 public:
 	get_item_observer(
-		boost::intrusive_ptr<traversal_algorithm> const& algorithm
+		std::shared_ptr<traversal_algorithm> const& algorithm
 		, udp::endpoint const& ep, node_id const& id)
 		: find_data_observer(algorithm, ep, id)
 	{}

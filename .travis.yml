@@ -90,9 +90,9 @@ install:
 
   - 'if [ $arch == "arm" ]; then
       cd test;
-      wget https://releases.linaro.org/components/toolchain/binaries/latest-5/armv8l-linux-gnueabihf/gcc-linaro-5.3-2016.02-x86_64_armv8l-linux-gnueabihf.tar.xz;
-      tar xf gcc-linaro-5.3-2016.02-x86_64_armv8l-linux-gnueabihf.tar.xz;
-      export PATH=${PWD}/gcc-linaro-5.3-2016.02-x86_64_armv8l-linux-gnueabihf/bin:${PATH};
+      wget -O gcc-linaro.tar.xz https://releases.linaro.org/components/toolchain/binaries/5.3-2016.05/armv8l-linux-gnueabihf/gcc-linaro-5.3.1-2016.05-x86_64_armv8l-linux-gnueabihf.tar.xz;
+      tar xf gcc-linaro.tar.xz;
+      export PATH=${PWD}/gcc-linaro-5.3.1-2016.05-x86_64_armv8l-linux-gnueabihf/bin:${PATH};
       armv8l-linux-gnueabihf-g++ --version;
       wget -O boost.zip http://pilotfiber.dl.sourceforge.net/project/boost/boost/1.55.0/boost_1_55_0.zip;
       unzip -qq boost.zip;

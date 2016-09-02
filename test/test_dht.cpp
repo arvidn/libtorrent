@@ -2966,8 +2966,7 @@ TORRENT_TEST(rpc_invalid_error_msg)
 	req["t"] = "\0\0\0\0";
 
 	g_sent_packets.clear();
-	boost::intrusive_ptr<traversal_algorithm> algo(new dht::traversal_algorithm(
-			node, node_id()));
+	auto algo = std::make_shared<dht::traversal_algorithm>(node, node_id());
 
 	observer_ptr o(new (rpc.allocate_observer()) null_observer(algo, source, node_id()));
 #if TORRENT_USE_ASSERTS

@@ -202,20 +202,19 @@ void node::bootstrap(std::vector<udp::endpoint> const& nodes
 	node_id target = m_id;
 	make_id_secret(target);
 
-	boost::intrusive_ptr<dht::bootstrap> r(new dht::bootstrap(*this, target, f));
+	auto r = std::make_shared<dht::bootstrap>(*this, target, f);
 	m_last_self_refresh = aux::time_now();
 
 #ifndef TORRENT_DISABLE_LOGGING
 	int count = 0;
 #endif
 
-	for (std::vector<udp::endpoint>::const_iterator i = nodes.begin()
-		, end(nodes.end()); i != end; ++i)
+	for (auto const& n : nodes)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		++count;
 #endif
-		r->add_entry(node_id(nullptr), *i, observer::flag_initial);
+		r->add_entry(node_id(nullptr), n, observer::flag_initial);
 	}
 
 	// make us start as far away from our node ID as possible
@@ -348,7 +347,7 @@ void node::incoming(msg const& m)
 
 namespace
 {
-	void announce_fun(std::vector<std::pair<node_entry, std::string> > const& v
+	void announce_fun(std::vector<std::pair<node_entry, std::string>> const& v
 		, node& node, int listen_port, sha1_hash const& ih, int flags)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -362,23 +361,21 @@ namespace
 #endif
 
 		// create a dummy traversal_algorithm
-		boost::intrusive_ptr<traversal_algorithm> algo(
-			new traversal_algorithm(node, (node_id::min)()));
+		auto algo = std::make_shared<traversal_algorithm>(node, node_id());
 		// store on the first k nodes
-		for (std::vector<std::pair<node_entry, std::string> >::const_iterator i = v.begin()
-			, end(v.end()); i != end; ++i)
+		for (auto const& p : v)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			if (node.observer())
 			{
 				node.observer()->log(dht_logger::node, "announce-distance: %d"
-					, (160 - distance_exp(ih, i->first.id)));
+					, (160 - distance_exp(ih, p.first.id)));
 			}
 #endif
 
 			void* ptr = node.m_rpc.allocate_observer();
 			if (ptr == nullptr) return;
-			observer_ptr o(new (ptr) announce_observer(algo, i->first.ep(), i->first.id));
+			observer_ptr o(new (ptr) announce_observer(algo, p.first.ep(), p.first.id));
 #if TORRENT_USE_ASSERTS
 			o->m_in_constructor = false;
 #endif
@@ -388,11 +385,11 @@ namespace
 			entry& a = e["a"];
 			a["info_hash"] = ih;
 			a["port"] = listen_port;
-			a["token"] = i->second;
+			a["token"] = p.second;
 			a["seed"] = (flags & node::flag_seed) ? 1 : 0;
 			if (flags & node::flag_implied_port) a["implied_port"] = 1;
 			node.stats_counters().inc_stats_counter(counters::dht_announce_peer_out);
-			node.m_rpc.invoke(e, i->first.ep(), o);
+			node.m_rpc.invoke(e, p.first.ep(), o);
 		}
 	}
 }
@@ -425,7 +422,7 @@ void node::get_peers(sha1_hash const& info_hash
 	// search for nodes with ids close to id or with peers
 	// for info-hash id. then send announce_peer to them.
 
-	boost::intrusive_ptr<dht::get_peers> ta;
+	std::shared_ptr<dht::get_peers> ta;
 	if (m_settings.privacy_lookups)
 	{
 		ta.reset(new dht::obfuscated_get_peers(*this, info_hash, dcallback, ncallback, noseeds));
@@ -460,12 +457,11 @@ void node::direct_request(udp::endpoint ep, entry& e
 	, std::function<void(msg const&)> f)
 {
 	// not really a traversal
-	boost::intrusive_ptr<direct_traversal> algo(
-		new direct_traversal(*this, (node_id::min)(), f));
+	auto algo = std::make_shared<direct_traversal>(*this, node_id(), f);
 
 	void* ptr = m_rpc.allocate_observer();
 	if (ptr == nullptr) return;
-	observer_ptr o(new (ptr) direct_observer(algo, ep, (node_id::min)()));
+	observer_ptr o(new (ptr) direct_observer(algo, ep, node_id()));
 #if TORRENT_USE_ASSERTS
 	o->m_in_constructor = false;
 #endif
@@ -485,8 +481,8 @@ void node::get_item(sha1_hash const& target
 	}
 #endif
 
-	boost::intrusive_ptr<dht::get_item> ta;
-	ta.reset(new dht::get_item(*this, target, std::bind(f, _1), find_data::nodes_callback()));
+	auto ta = std::make_shared<dht::get_item>(*this, target
+		, std::bind(f, _1), find_data::nodes_callback());
 	ta->start();
 }
 
@@ -502,22 +498,22 @@ void node::get_item(public_key const& pk, std::string const& salt
 	}
 #endif
 
-	boost::intrusive_ptr<dht::get_item> ta;
-	ta.reset(new dht::get_item(*this, pk, salt, f, find_data::nodes_callback()));
+	auto ta = std::make_shared<dht::get_item>(*this, pk, salt, f
+		, find_data::nodes_callback());
 	ta->start();
 }
 
 namespace {
 
-void put(std::vector<std::pair<node_entry, std::string> > const& nodes
-	, boost::intrusive_ptr<dht::put_data> ta)
+void put(std::vector<std::pair<node_entry, std::string>> const& nodes
+	, std::shared_ptr<put_data> ta)
 {
 	ta->set_targets(nodes);
 	ta->start();
 }
 
 void put_data_cb(item i, bool auth
-	, boost::intrusive_ptr<put_data> ta
+	, std::shared_ptr<put_data> ta
 	, std::function<void(item&)> f)
 {
 	// call data_callback only when we got authoritative data.
@@ -544,13 +540,11 @@ void node::put_item(sha1_hash const& target, entry const& data, std::function<vo
 
 	item i;
 	i.assign(data);
-	boost::intrusive_ptr<dht::put_data> put_ta;
-	put_ta.reset(new dht::put_data(*this, std::bind(f, _2)));
+	auto put_ta = std::make_shared<dht::put_data>(*this, std::bind(f, _2));
 	put_ta->set_data(i);
 
-	boost::intrusive_ptr<dht::get_item> ta;
-	ta.reset(new dht::get_item(*this, target, get_item::data_callback(),
-		std::bind(&put, _1, put_ta)));
+	auto ta = std::make_shared<dht::get_item>(*this, target
+		, get_item::data_callback(), std::bind(&put, _1, put_ta));
 	ta->start();
 }
 
@@ -567,20 +561,18 @@ void node::put_item(public_key const& pk, std::string const& salt
 	}
 	#endif
 
-	boost::intrusive_ptr<dht::put_data> put_ta;
-	put_ta.reset(new dht::put_data(*this, f));
+	auto put_ta = std::make_shared<dht::put_data>(*this, f);
 
-	boost::intrusive_ptr<dht::get_item> ta;
-	ta.reset(new dht::get_item(*this, pk, salt
+	auto ta = std::make_shared<dht::get_item>(*this, pk, salt
 		, std::bind(&put_data_cb, _1, _2, put_ta, data_cb)
-		, std::bind(&put, _1, put_ta)));
+		, std::bind(&put, _1, put_ta));
 	ta->start();
 }
 
 struct ping_observer : observer
 {
 	ping_observer(
-		boost::intrusive_ptr<traversal_algorithm> const& algorithm
+		std::shared_ptr<traversal_algorithm> const& algorithm
 		, udp::endpoint const& ep, node_id const& id)
 		: observer(algorithm, ep, id)
 	{}
@@ -644,8 +636,7 @@ void node::tick()
 	{
 		node_id target = m_id;
 		make_id_secret(target);
-		boost::intrusive_ptr<dht::bootstrap> r(new dht::bootstrap(*this, target
-			, std::bind(&nop)));
+		auto r = std::make_shared<dht::bootstrap>(*this, target, std::bind(&nop));
 		r->start();
 		m_last_self_refresh = now;
 		return;
@@ -683,8 +674,7 @@ void node::send_single_refresh(udp::endpoint const& ep, int bucket
 	// create a dummy traversal_algorithm
 	// this is unfortunately necessary for the observer
 	// to free itself from the pool when it's being released
-	boost::intrusive_ptr<traversal_algorithm> algo(
-		new traversal_algorithm(*this, (node_id::min)()));
+	auto algo = std::make_shared<traversal_algorithm>(*this, node_id());
 	observer_ptr o(new (ptr) ping_observer(algo, ep, id));
 #if TORRENT_USE_ASSERTS
 	o->m_in_constructor = false;

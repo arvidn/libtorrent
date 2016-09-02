@@ -171,8 +171,8 @@ public:
 
 	// iterates over the router nodes added
 	typedef std::set<udp::endpoint>::const_iterator router_iterator;
-	router_iterator router_begin() const { return m_router_nodes.begin(); }
-	router_iterator router_end() const { return m_router_nodes.end(); }
+	router_iterator begin() const { return m_router_nodes.begin(); }
+	router_iterator end() const { return m_router_nodes.end(); }
 
 	enum add_node_status_t {
 		failed_to_add = 0,

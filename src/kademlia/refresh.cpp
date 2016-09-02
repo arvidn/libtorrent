@@ -44,7 +44,7 @@ namespace libtorrent { namespace dht
 observer_ptr bootstrap::new_observer(void* ptr
 	, udp::endpoint const& ep, node_id const& id)
 {
-	observer_ptr o(new (ptr) get_peers_observer(this, ep, id));
+	observer_ptr o(new (ptr) get_peers_observer(self(), ep, id));
 #if TORRENT_USE_ASSERTS
 	o->m_in_constructor = false;
 #endif
@@ -97,15 +97,13 @@ void bootstrap::done()
 		, static_cast<void*>(this));
 #endif
 
-	for (std::vector<observer_ptr>::iterator i = m_results.begin()
-		, end(m_results.end()); i != end; ++i)
+	for (auto const& o : m_results)
 	{
-		if ((*i)->flags & observer::flag_queried) continue;
+		if (o->flags & observer::flag_queried) continue;
 		// this will send a ping
-		m_node.add_node((*i)->target_ep());
+		m_node.add_node(o->target_ep());
 	}
 	get_peers::done();
 }
 
 } } // namespace libtorrent::dht
-

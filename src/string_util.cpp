@@ -310,7 +310,7 @@ namespace libtorrent
 	// it is a comma-separated list of IP or device names with ports. For
 	// example: "eth0:6881,eth1:6881" or "127.0.0.1:6881"
 	void parse_comma_separated_string_port(std::string const& in
-		, std::vector<std::pair<std::string, int> >& out)
+		, std::vector<std::pair<std::string, int>>& out)
 	{
 		out.clear();
 

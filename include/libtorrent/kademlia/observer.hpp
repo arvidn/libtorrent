@@ -59,7 +59,7 @@ struct TORRENT_EXTRA_EXPORT observer : boost::noncopyable
 	friend TORRENT_EXTRA_EXPORT void intrusive_ptr_add_ref(observer const*);
 	friend TORRENT_EXTRA_EXPORT void intrusive_ptr_release(observer const*);
 
-	observer(boost::intrusive_ptr<traversal_algorithm> const& a
+	observer(std::shared_ptr<traversal_algorithm> const& a
 		, udp::endpoint const& ep, node_id const& id)
 		: m_sent()
 		, m_algorithm(a)
@@ -139,7 +139,7 @@ private:
 
 	time_point m_sent;
 
-	const boost::intrusive_ptr<traversal_algorithm> m_algorithm;
+	const std::shared_ptr<traversal_algorithm> m_algorithm;
 
 	node_id m_id;
 

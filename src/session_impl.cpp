@@ -5194,7 +5194,7 @@ namespace aux {
 	{
 #ifndef TORRENT_DISABLE_DHT
 		std::string const& node_list = m_settings.get_str(settings_pack::dht_bootstrap_nodes);
-		std::vector<std::pair<std::string, int> > nodes;
+		std::vector<std::pair<std::string, int>> nodes;
 		parse_comma_separated_string_port(node_list, nodes);
 
 		for (int i = 0; i < nodes.size(); ++i)

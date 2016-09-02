@@ -82,7 +82,7 @@ void intrusive_ptr_release(observer const* o)
 	TORRENT_ASSERT(o->m_refs > 0);
 	if (--o->m_refs == 0)
 	{
-		boost::intrusive_ptr<traversal_algorithm> ta = o->algorithm();
+		auto ta = o->algorithm()->shared_from_this();
 		(const_cast<observer*>(o))->~observer();
 		ta->free_observer(const_cast<observer*>(o));
 	}
