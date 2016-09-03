@@ -3816,9 +3816,8 @@ namespace libtorrent
 		TORRENT_ASSERT(st.total_done >= st.total_wanted_done);
 
 		std::map<piece_block, int> downloading_piece;
-		for (const_peer_iterator i = begin(); i != end(); ++i)
+		for (auto const& pc : *this)
 		{
-			peer_connection* pc = *i;
 			piece_block_progress p = pc->downloading_piece_progress();
 			if (p.piece_index == piece_block_progress::invalid_index)
 				continue;
@@ -3830,8 +3829,7 @@ namespace libtorrent
 			if (m_picker->is_finished(block))
 				continue;
 
-			std::map<piece_block, int>::iterator dp
-				= downloading_piece.find(block);
+			auto dp = downloading_piece.find(block);
 			if (dp != downloading_piece.end())
 			{
 				if (dp->second < p.bytes_downloaded)
@@ -3845,12 +3843,11 @@ namespace libtorrent
 			TORRENT_ASSERT(p.full_block_bytes == to_req(piece_block(
 				p.piece_index, p.block_index)).length);
 		}
-		for (std::map<piece_block, int>::iterator i = downloading_piece.begin();
-			i != downloading_piece.end(); ++i)
+		for (auto const& p : downloading_piece)
 		{
-			int done = (std::min)(block_bytes_wanted(i->first), i->second);
+			int done = (std::min)(block_bytes_wanted(p.first), p.second);
 			st.total_done += done;
-			if (m_picker->piece_priority(i->first.piece_index) != 0)
+			if (m_picker->piece_priority(p.first.piece_index) != 0)
 				st.total_wanted_done += done;
 		}
 
@@ -3861,14 +3858,13 @@ namespace libtorrent
 
 		if (st.total_done >= m_torrent_file->total_size())
 		{
-			// Thist happens when a piece has been downloaded completely
+			// This happens when a piece has been downloaded completely
 			// but not yet verified against the hash
 			std::fprintf(stderr, "num_have: %d\nunfinished:\n", num_have());
-			for (std::vector<piece_picker::downloading_piece>::const_iterator i =
-				dl_queue.begin(); i != dl_queue.end(); ++i)
+			for (auto const& dp : dl_queue)
 			{
-				std::fprintf(stderr, "  %d ", i->index);
-				piece_picker::block_info* info = m_picker->blocks_for_piece(*i);
+				std::fprintf(stderr, "  %d ", dp.index);
+				piece_picker::block_info* info = m_picker->blocks_for_piece(dp);
 				for (int j = 0; j < blocks_per_piece; ++j)
 				{
 					char const* state = info[j].state
@@ -3880,10 +3876,9 @@ namespace libtorrent
 
 			fputs("downloading pieces:\n", stderr);
 
-			for (std::map<piece_block, int>::iterator i = downloading_piece.begin();
-				i != downloading_piece.end(); ++i)
+			for (auto const& p : downloading_piece)
 			{
-				std::fprintf(stderr, "   %d:%d  %d\n", int(i->first.piece_index), int(i->first.block_index), i->second);
+				std::fprintf(stderr, "   %d:%d  %d\n", p.first.piece_index, p.first.block_index, p.second);
 			}
 
 		}
@@ -10679,8 +10674,8 @@ namespace libtorrent
 				if (info[k].state == piece_picker::block_info::state_requested)
 				{
 					block = 0;
-					torrent_peer* p = static_cast<torrent_peer*>(info[k].peer);
-					if (p && p->connection)
+					torrent_peer* p = info[k].peer;
+					if (p != nullptr && p->connection)
 					{
 						peer_connection* peer = static_cast<peer_connection*>(p->connection);
 						auto pbp = peer->downloading_piece_progress();

@@ -42,11 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 
 #include "libtorrent/debug.hpp"
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/optional.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include "libtorrent/buffer.hpp"
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/socket.hpp"
