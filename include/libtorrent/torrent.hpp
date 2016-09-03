@@ -163,6 +163,16 @@ namespace libtorrent
 		// connection to pick up
 		peer_request restart_request;
 		std::vector<char> restart_piece;
+
+		// this maps file index to a URL it has been redirected to. If an entry is
+		// missing, it means it has not been redirected and the full path should
+		// be constructed normally based on the filename. All redirections are
+		// relative to the web seed hostname root.
+		std::map<int, std::string> redirects;
+
+		// if this bitfield is non-empty, it represents the files this web server
+		// has.
+		bitfield have_files;
 	};
 
 	struct TORRENT_EXTRA_EXPORT torrent_hot_members
@@ -564,9 +574,9 @@ namespace libtorrent
 // --------------------------------------------
 		// PEER MANAGEMENT
 
-		// add or remove a url that will be attempted for
-		// finding the file(s) in this torrent.
-		void add_web_seed(std::string const& url
+		// add_web_seed won't add duplicates. If we have already added an entry
+		// with this URL, we'll get back the existing entry
+		web_seed_t* add_web_seed(std::string const& url
 			, web_seed_t::type_t type
 			, std::string const& auth = std::string()
 			, web_seed_t::headers_t const& extra_headers = web_seed_entry::headers_t());

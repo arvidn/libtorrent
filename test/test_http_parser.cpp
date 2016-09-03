@@ -395,6 +395,47 @@ TORRENT_TEST(http_parser)
 	TEST_CHECK(ec == error_code(errors::unsupported_url_protocol));
 	ec.clear();
 
+	// test split_url
+
+	TEST_CHECK(split_url("http://foo:bar@host.com:80/path/to/file", ec)
+		== std::make_tuple("http://foo:bar@host.com:80", "/path/to/file"));
+
+	TEST_CHECK(split_url("http://host.com/path/to/file", ec)
+		== std::make_tuple("http://host.com", "/path/to/file"));
+
+	TEST_CHECK(split_url("ftp://host.com:21/path/to/file", ec)
+		== std::make_tuple("ftp://host.com:21", "/path/to/file"));
+
+	TEST_CHECK(split_url("http://host.com/path?foo:bar@foo:", ec)
+		== std::make_tuple("http://host.com", "/path?foo:bar@foo:"));
+
+	TEST_CHECK(split_url("http://192.168.0.1/path/to/file", ec)
+		== std::make_tuple("http://192.168.0.1", "/path/to/file"));
+
+	TEST_CHECK(split_url("http://[2001:ff00::1]:42/path/to/file", ec)
+		== std::make_tuple("http://[2001:ff00::1]:42", "/path/to/file"));
+
+	TEST_CHECK(split_url("http://[2001:ff00::1]:42", ec)
+		== std::make_tuple("http://[2001:ff00::1]:42", ""));
+
+	TEST_CHECK(split_url("bla://[2001:ff00::1]:42/path/to/file", ec)
+		== std::make_tuple("bla://[2001:ff00::1]:42", "/path/to/file"));
+
+	ec.clear();
+	TEST_CHECK(split_url("foo:/[2001:ff00::1]:42/path/to/file", ec)
+		== std::make_tuple("foo:/[2001:ff00::1]:42/path/to/file", ""));
+	TEST_CHECK(ec == error_code(errors::unsupported_url_protocol));
+
+	ec.clear();
+	TEST_CHECK(split_url("//[2001:ff00::1]:42/path/to/file", ec)
+		== std::make_tuple("//[2001:ff00::1]:42/path/to/file", ""));
+	TEST_CHECK(ec == error_code(errors::unsupported_url_protocol));
+
+	ec.clear();
+	TEST_CHECK(split_url("//host.com/path?foo:bar@foo:", ec)
+		== std::make_tuple("//host.com/path?foo:bar@foo:", ""));
+	TEST_CHECK(ec == error_code(errors::unsupported_url_protocol));
+
 	// test resolve_redirect_location
 
 	TEST_EQUAL(resolve_redirect_location("http://example.com/a/b", "a")

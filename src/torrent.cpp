@@ -9008,16 +9008,18 @@ namespace libtorrent
 
 	// add or remove a url that will be attempted for
 	// finding the file(s) in this torrent.
-	void torrent::add_web_seed(std::string const& url
+	web_seed_t* torrent::add_web_seed(std::string const& url
 		, web_seed_entry::type_t type
 		, std::string const& auth
 		, web_seed_entry::headers_t const& extra_headers)
 	{
 		web_seed_t ent(url, type, auth, extra_headers);
 		// don't add duplicates
-		if (std::find(m_web_seeds.begin(), m_web_seeds.end(), ent) != m_web_seeds.end()) return;
+		auto it = std::find(m_web_seeds.begin(), m_web_seeds.end(), ent);
+		if (it != m_web_seeds.end()) return &*it;
 		m_web_seeds.push_back(ent);
 		set_need_save_resume();
+		return &m_web_seeds.back();
 	}
 
 	void torrent::set_session_paused(bool const b)

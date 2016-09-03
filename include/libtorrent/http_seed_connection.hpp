@@ -67,6 +67,8 @@ namespace libtorrent
 		virtual void on_receive(error_code const& error
 			, std::size_t bytes_transferred) override;
 
+		virtual void on_connected() override;
+
 		std::string const& url() const override { return m_url; }
 
 		virtual void get_specific_peer_info(peer_info& p) const override;

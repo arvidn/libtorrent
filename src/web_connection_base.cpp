@@ -110,9 +110,6 @@ namespace libtorrent
 		std::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 
-		// this is always a seed
-		incoming_have_all();
-
 		// it is always possible to request pieces
 		incoming_unchoke();
 
