@@ -41,8 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/version.hpp>
-
 #if defined(__APPLE__)
 // for getattrlist()
 #include <sys/attr.h>

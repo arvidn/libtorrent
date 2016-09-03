@@ -160,12 +160,12 @@ bool get_peers::invoke(observer_ptr o)
 	return m_node.m_rpc.invoke(e, o->target_ep(), o);
 }
 
-observer_ptr get_peers::new_observer(void* ptr
-	, udp::endpoint const& ep, node_id const& id)
+observer_ptr get_peers::new_observer(udp::endpoint const& ep
+	, node_id const& id)
 {
-	observer_ptr o(new (ptr) get_peers_observer(self(), ep, id));
+	auto o = m_node.m_rpc.allocate_observer<get_peers_observer>(self(), ep, id);
 #if TORRENT_USE_ASSERTS
-	o->m_in_constructor = false;
+	if (o) o->m_in_constructor = false;
 #endif
 	return o;
 }
@@ -184,22 +184,24 @@ obfuscated_get_peers::obfuscated_get_peers(
 char const* obfuscated_get_peers::name() const
 { return !m_obfuscated ? get_peers::name() : "get_peers [obfuscated]"; }
 
-observer_ptr obfuscated_get_peers::new_observer(void* ptr
-	, udp::endpoint const& ep, node_id const& id)
+observer_ptr obfuscated_get_peers::new_observer(udp::endpoint const& ep
+	, node_id const& id)
 {
 	if (m_obfuscated)
 	{
-		observer_ptr o(new (ptr) obfuscated_get_peers_observer(self(), ep, id));
+		auto o = m_node.m_rpc.allocate_observer<obfuscated_get_peers_observer>(self()
+			, ep, id);
 #if TORRENT_USE_ASSERTS
-		o->m_in_constructor = false;
+		if (o) o->m_in_constructor = false;
 #endif
 		return o;
 	}
 	else
 	{
-		observer_ptr o(new (ptr) get_peers_observer(self(), ep, id));
+		auto o = m_node.m_rpc.allocate_observer<get_peers_observer>(self()
+			, ep, id);
 #if TORRENT_USE_ASSERTS
-		o->m_in_constructor = false;
+		if (o) o->m_in_constructor = false;
 #endif
 		return o;
 	}

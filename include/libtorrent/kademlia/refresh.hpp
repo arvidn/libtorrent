@@ -52,7 +52,7 @@ public:
 		, done_callback const& callback);
 	virtual char const* name() const;
 
-	observer_ptr new_observer(void* ptr, udp::endpoint const& ep
+	observer_ptr new_observer(udp::endpoint const& ep
 		, node_id const& id);
 
 	void trim_seed_nodes();

@@ -118,12 +118,12 @@ void find_data::got_write_token(node_id const& n, std::string write_token)
 	m_write_tokens[n] = std::move(write_token);
 }
 
-observer_ptr find_data::new_observer(void* ptr
-	, udp::endpoint const& ep, node_id const& id)
+observer_ptr find_data::new_observer(udp::endpoint const& ep
+	, node_id const& id)
 {
-	observer_ptr o(new (ptr) find_data_observer(self(), ep, id));
+	auto o = m_node.m_rpc.allocate_observer<find_data_observer>(self(), ep, id);
 #if TORRENT_USE_ASSERTS
-	o->m_in_constructor = false;
+	if (o) o->m_in_constructor = false;
 #endif
 	return o;
 }

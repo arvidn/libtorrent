@@ -55,16 +55,13 @@ void put_data::start()
 	if (is_done) done();
 }
 
-void put_data::set_targets(std::vector<std::pair<node_entry, std::string> > const& targets)
+void put_data::set_targets(std::vector<std::pair<node_entry, std::string>> const& targets)
 {
-	for (std::vector<std::pair<node_entry, std::string> >::const_iterator i = targets.begin()
-		, end(targets.end()); i != end; ++i)
+	for (auto const& p : targets)
 	{
-		void* ptr = m_node.m_rpc.allocate_observer();
-		if (ptr == nullptr) return;
-
-		observer_ptr o(new (ptr) put_data_observer(self(), i->first.ep()
-			, i->first.id, i->second));
+		auto o = m_node.m_rpc.allocate_observer<put_data_observer>(self(), p.first.ep()
+			, p.first.id, p.second);
+		if (!o) return;
 
 	#if TORRENT_USE_ASSERTS
 		o->m_in_constructor = false;

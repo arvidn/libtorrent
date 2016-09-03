@@ -41,12 +41,12 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { namespace dht
 {
 
-observer_ptr bootstrap::new_observer(void* ptr
-	, udp::endpoint const& ep, node_id const& id)
+observer_ptr bootstrap::new_observer(udp::endpoint const& ep
+	, node_id const& id)
 {
-	observer_ptr o(new (ptr) get_peers_observer(self(), ep, id));
+	auto o = m_node.m_rpc.allocate_observer<get_peers_observer>(self(), ep, id);
 #if TORRENT_USE_ASSERTS
-	o->m_in_constructor = false;
+	if (o) o->m_in_constructor = false;
 #endif
 	return o;
 }
