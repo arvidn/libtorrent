@@ -6135,6 +6135,12 @@ namespace libtorrent
 		if (is_paused()) return;
 		if (m_ses.is_aborted()) return;
 
+		// this web seed may have redirected all files to other URLs, leaving it
+		// having no file left, and there's no longer any point in connecting to
+		// it.
+		if (!web->have_files.empty()
+			&& web->have_files.none_set()) return;
+
 		std::shared_ptr<socket_type> s
 			= std::make_shared<socket_type>(m_ses.get_io_service());
 		if (!s) return;

@@ -680,19 +680,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		if (m_web->have_files.get_bit(file_index) == true)
 		{
 			m_web->have_files.clear_bit(file_index);
-
-			// this web seed doesn't actually have this file. The host we just
-			// redirected to has it. Tell the bittorrent engine
-			file_storage const& fs = t->torrent_file().files();
-			std::tuple<int, int> const range = aux::file_piece_range_inclusive(fs, file_index);
-			bitfield have;
-			for (int i = std::get<0>(range); i < std::get<1>(range); ++i)
-				incoming_dont_have(i);
-			// all requests for this file must be rejected from this peer now. To
-			// keep things simple though, reject all outstanding requests and make
-			// the engine issue new requests.
-			clear_request_queue();
-			clear_download_queue();
+			disconnect(errors::redirecting, op_bittorrent, 2);
 		}
 	}
 	else

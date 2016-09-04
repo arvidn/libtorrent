@@ -39,7 +39,7 @@ namespace lt = libtorrent;
 
 std::string save_path(int idx)
 {
-	int swarm_id = test_counter();
+	int const swarm_id = test_counter();
 	char path[200];
 	std::snprintf(path, sizeof(path), "swarm-%04d-peer-%02d"
 		, swarm_id, idx);

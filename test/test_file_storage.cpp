@@ -311,7 +311,7 @@ TORRENT_TEST(piece_range_exclusive)
 	fs.add_file(combine_path("temp_storage", "0"), piece_size);
 	fs.add_file(combine_path("temp_storage", "1"), piece_size * 4 + 1);
 	fs.add_file(combine_path("temp_storage", "2"), piece_size * 4 - 1);
-	fs.set_num_pieces((fs.total_size() + piece_size - 1) / piece_size);
+	fs.set_num_pieces(int((fs.total_size() + piece_size - 1) / piece_size));
 	//        +---+---+---+---+---+---+---+---+---+
 	// pieces | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
 	//        +---+---+---+---+---+---+---+---+---+
@@ -331,7 +331,7 @@ TORRENT_TEST(piece_range_inclusive)
 	fs.add_file(combine_path("temp_storage", "0"), piece_size);
 	fs.add_file(combine_path("temp_storage", "1"), piece_size * 4 + 1);
 	fs.add_file(combine_path("temp_storage", "2"), piece_size * 4 - 1);
-	fs.set_num_pieces((fs.total_size() + piece_size - 1) / piece_size);
+	fs.set_num_pieces(int((fs.total_size() + piece_size - 1) / piece_size));
 	//        +---+---+---+---+---+---+---+---+---+
 	// pieces | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
 	//        +---+---+---+---+---+---+---+---+---+
