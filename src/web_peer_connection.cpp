@@ -141,17 +141,23 @@ void web_peer_connection::on_connected()
 
 		// only advertise pieces that are contained within the files we have as
 		// indicated by m_web->have_files AND padfiles!
+		// it's important to include pieces that may overlap many files, as long
+		// as we have all those files, so instead of starting with a clear bitfied
+		// and setting the pieces corresponding to files we have, we do it the
+		// other way around. Start with assuming we have all files, and clear
+		// pieces overlapping with files we *don't* have.
 		bitfield have;
 		file_storage const& fs = t->torrent_file().files();
-		have.resize(fs.num_pieces(), false);
+		have.resize(fs.num_pieces(), true);
 		int const num_files = m_web->have_files.size();
 		for (int i = 0; i < num_files; ++i)
 		{
-			if (m_web->have_files.get_bit(i) == false
-				&& !fs.pad_file_at(i)) continue;
-			std::tuple<int, int> const range = aux::file_piece_range_exclusive(fs, i);
+			// if we have the file, no need to do anything
+			if (m_web->have_files.get_bit(i) || fs.pad_file_at(i)) continue;
+
+			std::tuple<int, int> const range = aux::file_piece_range_inclusive(fs, i);
 			for (int k = std::get<0>(range); k < std::get<1>(range); ++k)
-				have.set_bit(k);
+				have.clear_bit(k);
 		}
 		incoming_bitfield(have);
 	}
