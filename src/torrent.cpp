@@ -6771,7 +6771,6 @@ namespace libtorrent
 
 	bool torrent::connect_to_peer(torrent_peer* peerinfo, bool const ignore_limit)
 	{
-		return false; // TEMP
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 		TORRENT_UNUSED(ignore_limit);
