@@ -839,7 +839,7 @@ namespace libtorrent
 		send_buffer(handshake, sizeof(handshake));
 	}
 
-	boost::optional<piece_block_progress> bt_peer_connection::downloading_piece_progress() const
+	piece_block_progress bt_peer_connection::downloading_piece_progress() const
 	{
 		std::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
@@ -849,7 +849,7 @@ namespace libtorrent
 		if (m_state != state_t::read_packet
 			|| int(recv_buffer.size()) <= 9
 			|| recv_buffer[0] != msg_piece)
-			return boost::optional<piece_block_progress>();
+			return piece_block_progress();
 
 		const char* ptr = recv_buffer.begin() + 1;
 		peer_request r;
@@ -859,7 +859,7 @@ namespace libtorrent
 
 		// is any of the piece message header data invalid?
 		if (!verify_piece(r))
-			return boost::optional<piece_block_progress>();
+			return piece_block_progress();
 
 		piece_block_progress p;
 
@@ -868,7 +868,7 @@ namespace libtorrent
 		p.bytes_downloaded = int(recv_buffer.size()) - 9;
 		p.full_block_bytes = r.length;
 
-		return boost::optional<piece_block_progress>(p);
+		return p;
 	}
 
 

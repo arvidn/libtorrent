@@ -640,10 +640,10 @@ namespace libtorrent
 		// returns the block currently being
 		// downloaded. And the progress of that
 		// block. If the peer isn't downloading
-		// a piece for the moment, the boost::optional
-		// will be invalid.
-		virtual boost::optional<piece_block_progress>
-		downloading_piece_progress() const;
+		// a piece for the moment, implementors
+		// must return an object with the piece_index
+		// value invalid (the default constructor).
+		virtual piece_block_progress downloading_piece_progress() const;
 
 		enum message_type_flags { message_type_request = 1 };
 		void send_buffer(char const* begin, int size, int flags = 0);

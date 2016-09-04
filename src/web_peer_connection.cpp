@@ -222,11 +222,10 @@ void web_peer_connection::disconnect(error_code const& ec
 	if (t) t->disconnect_web_seed(this);
 }
 
-boost::optional<piece_block_progress>
-web_peer_connection::downloading_piece_progress() const
+piece_block_progress web_peer_connection::downloading_piece_progress() const
 {
 	if (m_requests.empty())
-		return boost::optional<piece_block_progress>();
+		return piece_block_progress();
 
 	std::shared_ptr<torrent> t = associated_torrent().lock();
 	TORRENT_ASSERT(t);

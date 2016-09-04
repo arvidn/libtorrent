@@ -85,7 +85,7 @@ namespace libtorrent
 		// block. If the peer isn't downloading
 		// a piece for the moment, the boost::optional
 		// will be invalid.
-		boost::optional<piece_block_progress> downloading_piece_progress() const override;
+		piece_block_progress downloading_piece_progress() const override;
 
 		// this is const since it's used as a key in the web seed list in the torrent
 		// if it's changed referencing back into that list will fail

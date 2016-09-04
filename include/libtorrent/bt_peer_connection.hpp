@@ -284,7 +284,7 @@ namespace libtorrent
 		// block. If the peer isn't downloading
 		// a piece for the moment, the boost::optional
 		// will be invalid.
-		boost::optional<piece_block_progress> downloading_piece_progress() const override;
+		piece_block_progress downloading_piece_progress() const override;
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 
