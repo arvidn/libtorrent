@@ -4163,12 +4163,12 @@ namespace libtorrent
 			if (!m_ignore_stats)
 			{
 				// report any partially received payload as redundant
-				boost::optional<piece_block_progress> pbp = downloading_piece_progress();
-				if (pbp
-					&& pbp->bytes_downloaded > 0
-					&& pbp->bytes_downloaded < pbp->full_block_bytes)
+				piece_block_progress pbp = downloading_piece_progress();
+				if (pbp.piece_index != piece_block_progress::invalid_index
+					&& pbp.bytes_downloaded > 0
+					&& pbp.bytes_downloaded < pbp.full_block_bytes)
 				{
-					t->add_redundant_bytes(pbp->bytes_downloaded, waste_reason::piece_closing);
+					t->add_redundant_bytes(pbp.bytes_downloaded, waste_reason::piece_closing);
 				}
 			}
 
@@ -4325,12 +4325,13 @@ namespace libtorrent
 			if (i->busy) ++p.busy_requests;
 		}
 
-		if (boost::optional<piece_block_progress> ret = downloading_piece_progress())
+		piece_block_progress ret = downloading_piece_progress();
+		if (ret.piece_index != piece_block_progress::invalid_index)
 		{
-			p.downloading_piece_index = ret->piece_index;
-			p.downloading_block_index = ret->block_index;
-			p.downloading_progress = ret->bytes_downloaded;
-			p.downloading_total = ret->full_block_bytes;
+			p.downloading_piece_index = ret.piece_index;
+			p.downloading_block_index = ret.block_index;
+			p.downloading_progress = ret.bytes_downloaded;
+			p.downloading_total = ret.full_block_bytes;
 		}
 		else
 		{
@@ -5582,14 +5583,13 @@ namespace libtorrent
 			, userdata, ref);
 	}
 
-	boost::optional<piece_block_progress>
-	peer_connection::downloading_piece_progress() const
+	piece_block_progress peer_connection::downloading_piece_progress() const
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, "ERROR"
 			, "downloading_piece_progress() dispatched to the base class!");
 #endif
-		return boost::optional<piece_block_progress>();
+		return piece_block_progress();
 	}
 
 	namespace {

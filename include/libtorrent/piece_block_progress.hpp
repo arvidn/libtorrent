@@ -39,11 +39,13 @@ namespace libtorrent
 {
 	struct piece_block_progress
 	{
+		constexpr static int invalid_index = -1;
+
 		// the piece and block index
 		// determines exactly which
 		// part of the torrent that
 		// is currently being downloaded
-		int piece_index;
+		int piece_index = invalid_index;
 		int block_index;
 		// the number of bytes we have received
 		// of this block
@@ -54,4 +56,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_PIECE_BLOCK_PROGRESS_HPP_INCLUDED
-

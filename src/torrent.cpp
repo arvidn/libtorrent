@@ -3819,14 +3819,14 @@ namespace libtorrent
 		for (const_peer_iterator i = begin(); i != end(); ++i)
 		{
 			peer_connection* pc = *i;
-			boost::optional<piece_block_progress> p
-				= pc->downloading_piece_progress();
-			if (!p) continue;
-
-			if (m_picker->has_piece_passed(p->piece_index))
+			piece_block_progress p = pc->downloading_piece_progress();
+			if (p.piece_index == piece_block_progress::invalid_index)
 				continue;
 
-			piece_block block(p->piece_index, p->block_index);
+			if (m_picker->has_piece_passed(p.piece_index))
+				continue;
+
+			piece_block block(p.piece_index, p.block_index);
 			if (m_picker->is_finished(block))
 				continue;
 
@@ -3834,16 +3834,16 @@ namespace libtorrent
 				= downloading_piece.find(block);
 			if (dp != downloading_piece.end())
 			{
-				if (dp->second < p->bytes_downloaded)
-					dp->second = p->bytes_downloaded;
+				if (dp->second < p.bytes_downloaded)
+					dp->second = p.bytes_downloaded;
 			}
 			else
 			{
-				downloading_piece[block] = p->bytes_downloaded;
+				downloading_piece[block] = p.bytes_downloaded;
 			}
-			TORRENT_ASSERT(p->bytes_downloaded <= p->full_block_bytes);
-			TORRENT_ASSERT(p->full_block_bytes == to_req(piece_block(
-				p->piece_index, p->block_index)).length);
+			TORRENT_ASSERT(p.bytes_downloaded <= p.full_block_bytes);
+			TORRENT_ASSERT(p.full_block_bytes == to_req(piece_block(
+				p.piece_index, p.block_index)).length);
 		}
 		for (std::map<piece_block, int>::iterator i = downloading_piece.begin();
 			i != downloading_piece.end(); ++i)
@@ -6713,11 +6713,10 @@ namespace libtorrent
 						bi.set_peer(peer->remote());
 						if (bi.state == block_info::requested)
 						{
-							boost::optional<piece_block_progress> pbp
-								= peer->downloading_piece_progress();
-							if (pbp && pbp->piece_index == i->index && pbp->block_index == j)
+							auto pbp = peer->downloading_piece_progress();
+							if (pbp.piece_index == i->index && pbp.block_index == j)
 							{
-								bi.bytes_progress = pbp->bytes_downloaded;
+								bi.bytes_progress = pbp.bytes_downloaded;
 								TORRENT_ASSERT(bi.bytes_progress <= bi.block_size);
 							}
 							else
@@ -10684,10 +10683,9 @@ namespace libtorrent
 					if (p && p->connection)
 					{
 						peer_connection* peer = static_cast<peer_connection*>(p->connection);
-						boost::optional<piece_block_progress> pbp
-							= peer->downloading_piece_progress();
-						if (pbp && pbp->piece_index == i->index && pbp->block_index == k)
-							block = pbp->bytes_downloaded;
+						auto pbp = peer->downloading_piece_progress();
+						if (pbp.piece_index == i->index && pbp.block_index == k)
+							block = pbp.bytes_downloaded;
 						TORRENT_ASSERT(block <= block_size());
 					}
 
