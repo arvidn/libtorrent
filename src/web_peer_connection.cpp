@@ -135,14 +135,23 @@ namespace {
 	// the one-past the last piece that entierly falls within the file. i.e. They
 	// can conveniently be used as loop boundaries. No edge partial pieces will
 	// be included.
-	std::tuple<int, int> file_piece_range(file_storage const& fs, int file)
+	std::tuple<int, int> file_piece_range_exclusive(file_storage const& fs, int file)
 	{
 		peer_request const range = fs.map_file(file, 0, 1);
 		std::int64_t const file_size = fs.file_size(file);
 		std::int64_t const piece_size = fs.piece_length();
 		int const begin_piece = range.start == 0 ? range.piece : range.piece + 1;
-		int const end_piece = (range.piece * piece_size + file_size + 1) / piece_size;
+		int const end_piece = (range.piece * piece_size + range.start + file_size + 1) / piece_size;
 		return std::make_tuple(begin_piece, end_piece);
+	}
+
+	std::tuple<int, int> file_piece_range_inclusive(file_storage const& fs, int file)
+	{
+		peer_request const range = fs.map_file(file, 0, 1);
+		std::int64_t const file_size = fs.file_size(file);
+		std::int64_t const piece_size = fs.piece_length();
+		int const end_piece = (range.piece * piece_size + range.start + file_size) / piece_size + 1;
+		return std::make_tuple(range.piece, end_piece);
 	}
 }
 
@@ -166,7 +175,7 @@ void web_peer_connection::on_connected()
 		{
 			if (m_web->have_files.get_bit(i) == false
 				&& !fs.pad_file_at(i)) continue;
-			std::tuple<int, int> const range = file_piece_range(fs, i);
+			std::tuple<int, int> const range = file_piece_range_exclusive(fs, i);
 			for (int k = std::get<0>(range); k < std::get<1>(range); ++k)
 				have.set_bit(k);
 		}
@@ -400,6 +409,8 @@ void web_peer_connection::write_request(peer_request const& r)
 			i != files.end(); ++i)
 		{
 			file_slice const& f = *i;
+			TORRENT_ASSERT(m_web->have_files.empty()
+				|| m_web->have_files.get_bit(f.file_index));
 
 			file_request_t file_req;
 			file_req.file_index = f.file_index;
@@ -420,12 +431,6 @@ void web_peer_connection::write_request(peer_request const& r)
 				// with the correct slashes. Don't encode it again
 				request += m_url;
 			}
-			else
-			{
-				// m_path is already a properly escaped URL
-				// with the correct slashes. Don't encode it again
-				request += m_path;
-			}
 
 			auto redirection = m_web->redirects.find(f.file_index);
 			if (redirection != m_web->redirects.end())
@@ -434,6 +439,13 @@ void web_peer_connection::write_request(peer_request const& r)
 			}
 			else
 			{
+				if (!using_proxy)
+				{
+					// m_path is already a properly escaped URL
+					// with the correct slashes. Don't encode it again
+					request += m_path;
+				}
+
 				std::string path = info.orig_files().file_path(f.file_index);
 #ifdef TORRENT_WINDOWS
 				convert_path_to_posix(path);
@@ -643,6 +655,9 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, "LOCATION", "%s", location.c_str());
 #endif
+		// TODO: 3 this could be made more efficient for the case when we use an
+		// HTTP proxy. Then we wouldn't need to add new web seeds to the torrent,
+		// we could just make the redirect table contain full URLs.
 		std::string redirect_base;
 		std::string redirect_path;
 		error_code ec;
@@ -674,7 +689,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 				// connected to it. Make it advertise that it has this file to the
 				// bittorrent engine
 				file_storage const& fs = t->torrent_file().files();
-				std::tuple<int, int> const range = file_piece_range(fs, file_index);
+				std::tuple<int, int> const range = file_piece_range_exclusive(fs, file_index);
 				for (int i = std::get<0>(range); i < std::get<1>(range); ++i)
 					pc->incoming_have(i);
 			}
@@ -689,9 +704,15 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 			// this web seed doesn't actually have this file. The host we just
 			// redirected to has it. Tell the bittorrent engine
 			file_storage const& fs = t->torrent_file().files();
-			std::tuple<int, int> const range = file_piece_range(fs, file_index);
+			std::tuple<int, int> const range = file_piece_range_inclusive(fs, file_index);
+			bitfield have;
 			for (int i = std::get<0>(range); i < std::get<1>(range); ++i)
 				incoming_dont_have(i);
+			// all requests for this file must be rejected from this peer now. To
+			// keep things simple though, reject all outstanding requests and make
+			// the engine issue new requests.
+			clear_request_queue();
+			clear_download_queue();
 		}
 	}
 	else
@@ -701,7 +722,11 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		peer_log(peer_log_alert::info, "LOCATION", "%s", location.c_str());
 #endif
 		t->add_web_seed(location, web_seed_entry::url_seed, m_external_auth, m_extra_headers);
-		t->remove_web_seed_conn(this, errors::redirecting, op_bittorrent, 2);
+
+		// this web seed doesn't have any files. Don't try to request from it
+		// again this session
+		m_web->have_files.resize(t->torrent_file().num_files(), false);
+		disconnect(errors::redirecting, op_bittorrent, 2);
 		m_web = nullptr;
 		TORRENT_ASSERT(is_disconnecting());
 	}

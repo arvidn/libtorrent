@@ -522,7 +522,7 @@ namespace libtorrent
 	void torrent_handle::add_url_seed(std::string const& url) const
 	{
 		async_call(&torrent::add_web_seed, url, web_seed_entry::url_seed
-			, std::string(), web_seed_entry::headers_t());
+			, std::string(), web_seed_entry::headers_t(), false);
 	}
 
 	void torrent_handle::remove_url_seed(std::string const& url) const
@@ -539,7 +539,7 @@ namespace libtorrent
 	void torrent_handle::add_http_seed(std::string const& url) const
 	{
 		async_call(&torrent::add_web_seed, url, web_seed_entry::http_seed
-			, std::string(), web_seed_entry::headers_t());
+			, std::string(), web_seed_entry::headers_t(), false);
 	}
 
 	void torrent_handle::remove_http_seed(std::string const& url) const

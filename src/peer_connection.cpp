@@ -1364,6 +1364,22 @@ namespace libtorrent
 		}
 	}
 
+	void peer_connection::clear_download_queue()
+	{
+		std::shared_ptr<torrent> t = m_torrent.lock();
+		piece_picker& picker = t->picker();
+		torrent_peer* self_peer = peer_info_struct();
+		while (!m_download_queue.empty())
+		{
+			pending_block& qe = m_download_queue.back();
+			if (!qe.timed_out && !qe.not_wanted)
+				picker.abort_download(qe.block, self_peer);
+			m_outstanding_bytes -= t->to_req(qe.block).length;
+			if (m_outstanding_bytes < 0) m_outstanding_bytes = 0;
+			m_download_queue.pop_back();
+		}
+	}
+
 	namespace {
 
 	bool match_request(peer_request const& r, piece_block const& b, int const block_size)
@@ -3579,8 +3595,8 @@ namespace libtorrent
 			return;
 		}
 
-		int block_offset = block.block_index * t->block_size();
-		int block_size
+		int const block_offset = block.block_index * t->block_size();
+		int const block_size
 			= (std::min)(t->torrent_file().piece_size(block.piece_index)-block_offset,
 			t->block_size());
 		TORRENT_ASSERT(block_size > 0);
@@ -4247,17 +4263,8 @@ namespace libtorrent
 
 			if (t->has_picker())
 			{
+				clear_download_queue();
 				piece_picker& picker = t->picker();
-
-				while (!m_download_queue.empty())
-				{
-					pending_block& qe = m_download_queue.back();
-					if (!qe.timed_out && !qe.not_wanted)
-						picker.abort_download(qe.block, self_peer);
-					m_outstanding_bytes -= t->to_req(qe.block).length;
-					if (m_outstanding_bytes < 0) m_outstanding_bytes = 0;
-					m_download_queue.pop_back();
-				}
 				while (!m_request_queue.empty())
 				{
 					pending_block& qe = m_request_queue.back();

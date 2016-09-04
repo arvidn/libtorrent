@@ -127,32 +127,16 @@ namespace libtorrent
 
 	web_seed_t::web_seed_t(web_seed_entry const& wse)
 		: web_seed_entry(wse)
-		, retry(aux::time_now())
-		, peer_info(tcp::endpoint(), true, 0)
-		, supports_keepalive(true)
-		, resolving(false)
-		, removed(false)
 	{
 		peer_info.web_seed = true;
-		restart_request.piece = -1;
-		restart_request.start = -1;
-		restart_request.length = -1;
 	}
 
 	web_seed_t::web_seed_t(std::string const& url_, web_seed_entry::type_t type_
 		, std::string const& auth_
 		, web_seed_entry::headers_t const& extra_headers_)
 		: web_seed_entry(url_, type_, auth_, extra_headers_)
-		, retry(aux::time_now())
-		, peer_info(tcp::endpoint(), true, 0)
-		, supports_keepalive(true)
-		, resolving(false)
-		, removed(false)
 	{
 		peer_info.web_seed = true;
-		restart_request.piece = -1;
-		restart_request.start = -1;
-		restart_request.length = -1;
 	}
 
 	torrent_hot_members::torrent_hot_members(aux::session_interface& ses
@@ -6448,7 +6432,7 @@ namespace libtorrent
 			entry::list_type& httpseed_list = ret["httpseeds"].list();
 			for (web_seed_t const& ws : m_web_seeds)
 			{
-				if (ws.removed) continue;
+				if (ws.removed || ws.ephemeral) continue;
 				if (ws.type == web_seed_entry::url_seed)
 					url_list.push_back(ws.url);
 				else if (ws.type == web_seed_entry::http_seed)
@@ -6787,6 +6771,7 @@ namespace libtorrent
 
 	bool torrent::connect_to_peer(torrent_peer* peerinfo, bool const ignore_limit)
 	{
+		return false; // TEMP
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 		TORRENT_UNUSED(ignore_limit);
@@ -9011,9 +8996,12 @@ namespace libtorrent
 	web_seed_t* torrent::add_web_seed(std::string const& url
 		, web_seed_entry::type_t type
 		, std::string const& auth
-		, web_seed_entry::headers_t const& extra_headers)
+		, web_seed_entry::headers_t const& extra_headers
+		, bool const ephemeral)
 	{
 		web_seed_t ent(url, type, auth, extra_headers);
+		ent.ephemeral = ephemeral;
+
 		// don't add duplicates
 		auto it = std::find(m_web_seeds.begin(), m_web_seeds.end(), ent);
 		if (it != m_web_seeds.end()) return &*it;
