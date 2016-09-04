@@ -3321,8 +3321,8 @@ namespace libtorrent
 
 		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
 		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
-		TORRENT_ASSERT(int(block.piece_index) < t->torrent_file().num_pieces());
-		TORRENT_ASSERT(int(block.block_index) < t->torrent_file().piece_size(block.piece_index));
+		TORRENT_ASSERT(block.piece_index < t->torrent_file().num_pieces());
+		TORRENT_ASSERT(block.block_index < t->torrent_file().piece_size(block.piece_index));
 		TORRENT_ASSERT(!t->picker().is_requested(block) || (t->picker().num_peers(block) > 0));
 		TORRENT_ASSERT(!t->have_piece(block.piece_index));
 		TORRENT_ASSERT(std::find_if(m_download_queue.begin(), m_download_queue.end()

@@ -3143,7 +3143,7 @@ get_out:
 		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
 		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
 		TORRENT_ASSERT(block.piece_index < m_piece_map.size());
-		TORRENT_ASSERT(int(block.block_index) < blocks_in_piece(block.piece_index));
+		TORRENT_ASSERT(block.block_index < blocks_in_piece(block.piece_index));
 
 		piece_pos const& p = m_piece_map[block.piece_index];
 		if (!p.downloading()) return 0;
