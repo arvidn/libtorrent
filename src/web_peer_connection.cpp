@@ -129,32 +129,6 @@ web_peer_connection::web_peer_connection(peer_connection_args const& pack
 #endif
 }
 
-namespace {
-
-	// returns the first piece that entirely falls within the specified file and
-	// the one-past the last piece that entierly falls within the file. i.e. They
-	// can conveniently be used as loop boundaries. No edge partial pieces will
-	// be included.
-	std::tuple<int, int> file_piece_range_exclusive(file_storage const& fs, int file)
-	{
-		peer_request const range = fs.map_file(file, 0, 1);
-		std::int64_t const file_size = fs.file_size(file);
-		std::int64_t const piece_size = fs.piece_length();
-		int const begin_piece = range.start == 0 ? range.piece : range.piece + 1;
-		int const end_piece = (range.piece * piece_size + range.start + file_size + 1) / piece_size;
-		return std::make_tuple(begin_piece, end_piece);
-	}
-
-	std::tuple<int, int> file_piece_range_inclusive(file_storage const& fs, int file)
-	{
-		peer_request const range = fs.map_file(file, 0, 1);
-		std::int64_t const file_size = fs.file_size(file);
-		std::int64_t const piece_size = fs.piece_length();
-		int const end_piece = (range.piece * piece_size + range.start + file_size) / piece_size + 1;
-		return std::make_tuple(range.piece, end_piece);
-	}
-}
-
 void web_peer_connection::on_connected()
 {
 	if (m_web->have_files.empty())
@@ -175,7 +149,7 @@ void web_peer_connection::on_connected()
 		{
 			if (m_web->have_files.get_bit(i) == false
 				&& !fs.pad_file_at(i)) continue;
-			std::tuple<int, int> const range = file_piece_range_exclusive(fs, i);
+			std::tuple<int, int> const range = aux::file_piece_range_exclusive(fs, i);
 			for (int k = std::get<0>(range); k < std::get<1>(range); ++k)
 				have.set_bit(k);
 		}
@@ -689,7 +663,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 				// connected to it. Make it advertise that it has this file to the
 				// bittorrent engine
 				file_storage const& fs = t->torrent_file().files();
-				std::tuple<int, int> const range = file_piece_range_exclusive(fs, file_index);
+				std::tuple<int, int> const range = aux::file_piece_range_exclusive(fs, file_index);
 				for (int i = std::get<0>(range); i < std::get<1>(range); ++i)
 					pc->incoming_have(i);
 			}
@@ -704,7 +678,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 			// this web seed doesn't actually have this file. The host we just
 			// redirected to has it. Tell the bittorrent engine
 			file_storage const& fs = t->torrent_file().files();
-			std::tuple<int, int> const range = file_piece_range_inclusive(fs, file_index);
+			std::tuple<int, int> const range = aux::file_piece_range_inclusive(fs, file_index);
 			bitfield have;
 			for (int i = std::get<0>(range); i < std::get<1>(range); ++i)
 				incoming_dont_have(i);

@@ -629,6 +629,21 @@ namespace libtorrent
 		// the torrent is unloaded
 		int m_num_files;
 	};
-}
+
+	namespace aux {
+
+	// returns the piece range that entirely falls within the specified file. the
+	// end piece is one-past the last piece that entierly falls within the file.
+	// i.e. They can conveniently be used as loop boundaries. No edge partial
+	// pieces will be included.
+	TORRENT_EXTRA_EXPORT std::tuple<int, int> file_piece_range_exclusive(file_storage const& fs, int file);
+
+	// returns the piece range of pieces that overlaps with the specified file.
+	// the end piece is one-past the last piece. i.e. They can conveniently be
+	// used as loop boundaries.
+	TORRENT_EXTRA_EXPORT std::tuple<int, int> file_piece_range_inclusive(file_storage const& fs, int file);
+
+} // namespace aux
+} // namespace libtorrent
 
 #endif // TORRENT_FILE_STORAGE_HPP_INCLUDED

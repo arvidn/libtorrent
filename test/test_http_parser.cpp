@@ -427,6 +427,11 @@ TORRENT_TEST(http_parser)
 	TEST_CHECK(ec == error_code(errors::unsupported_url_protocol));
 
 	ec.clear();
+	TEST_CHECK(split_url("foo:/", ec)
+		== std::make_tuple("foo:/", ""));
+	TEST_CHECK(ec == error_code(errors::unsupported_url_protocol));
+
+	ec.clear();
 	TEST_CHECK(split_url("//[2001:ff00::1]:42/path/to/file", ec)
 		== std::make_tuple("//[2001:ff00::1]:42/path/to/file", ""));
 	TEST_CHECK(ec == error_code(errors::unsupported_url_protocol));

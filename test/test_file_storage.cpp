@@ -303,7 +303,47 @@ TORRENT_TEST(optimize_pad_fillers)
 	TEST_EQUAL(fs.pad_file_at(3), false);
 }
 
-// TODO: add more optimize() tests
+TORRENT_TEST(piece_range_exclusive)
+{
+	int const piece_size = 16;
+	file_storage fs;
+	fs.set_piece_length(piece_size);
+	fs.add_file(combine_path("temp_storage", "0"), piece_size);
+	fs.add_file(combine_path("temp_storage", "1"), piece_size * 4 + 1);
+	fs.add_file(combine_path("temp_storage", "2"), piece_size * 4 - 1);
+	fs.set_num_pieces((fs.total_size() + piece_size - 1) / piece_size);
+	//        +---+---+---+---+---+---+---+---+---+
+	// pieces | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+	//        +---+---+---+---+---+---+---+---+---+
+	// files  | 0 |        1       |        2     |
+	//        +---+----------------+--------------+
+
+	TEST_CHECK(aux::file_piece_range_exclusive(fs, 0) == std::make_tuple(0, 1));
+	TEST_CHECK(aux::file_piece_range_exclusive(fs, 1) == std::make_tuple(1, 5));
+	TEST_CHECK(aux::file_piece_range_exclusive(fs, 2) == std::make_tuple(6, 9));
+}
+
+TORRENT_TEST(piece_range_inclusive)
+{
+	int const piece_size = 16;
+	file_storage fs;
+	fs.set_piece_length(piece_size);
+	fs.add_file(combine_path("temp_storage", "0"), piece_size);
+	fs.add_file(combine_path("temp_storage", "1"), piece_size * 4 + 1);
+	fs.add_file(combine_path("temp_storage", "2"), piece_size * 4 - 1);
+	fs.set_num_pieces((fs.total_size() + piece_size - 1) / piece_size);
+	//        +---+---+---+---+---+---+---+---+---+
+	// pieces | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+	//        +---+---+---+---+---+---+---+---+---+
+	// files  | 0 |        1       |        2     |
+	//        +---+----------------+--------------+
+
+	TEST_CHECK(aux::file_piece_range_inclusive(fs, 0) == std::make_tuple(0, 1));
+	TEST_CHECK(aux::file_piece_range_inclusive(fs, 1) == std::make_tuple(1, 6));
+	TEST_CHECK(aux::file_piece_range_inclusive(fs, 2) == std::make_tuple(5, 9));
+}
+
+// TODO: test file_storage::optimize
 // TODO: test map_block
 // TODO: test piece_size(int piece)
 // TODO: test file_index_at_offset
