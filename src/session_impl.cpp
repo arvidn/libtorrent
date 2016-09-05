@@ -320,7 +320,7 @@ namespace aux {
 			, *this
 #endif
 			)
-		, m_work(io_service::work(m_io_service))
+		, m_work(new io_service::work(m_io_service))
 #if TORRENT_USE_I2P
 		, m_i2p_conn(m_io_service)
 #endif
@@ -821,20 +821,19 @@ namespace aux {
 		m_incoming_sockets.clear();
 
 		// close the listen sockets
-		for (std::list<listen_socket_t>::iterator i = m_listen_sockets.begin()
-			, end(m_listen_sockets.end()); i != end; ++i)
+		for (auto const& l : m_listen_sockets)
 		{
-			if (i->sock)
+			if (l.sock)
 			{
-				i->sock->close(ec);
+				l.sock->close(ec);
 				TORRENT_ASSERT(!ec);
 			}
 
 			// TODO: 3 closing the udp sockets here means that
 			// the uTP connections cannot be closed gracefully
-			if (i->udp_sock)
+			if (l.udp_sock)
 			{
-				i->udp_sock->close();
+				l.udp_sock->close();
 			}
 		}
 		if (m_socks_listen_socket && m_socks_listen_socket->is_open())
@@ -857,10 +856,9 @@ namespace aux {
 		session_log(" aborting all torrents (%d)", int(m_torrents.size()));
 #endif
 		// abort all torrents
-		for (torrent_map::iterator i = m_torrents.begin()
-			, end(m_torrents.end()); i != end; ++i)
+		for (auto const& te : m_torrents)
 		{
-			i->second->abort();
+			te.second->abort();
 		}
 		m_torrents.clear();
 
