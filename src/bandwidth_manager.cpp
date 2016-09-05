@@ -31,7 +31,10 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/bandwidth_manager.hpp"
-#include "libtorrent/time.hpp"
+
+#if TORRENT_USE_ASSERTS
+#include <climits>
+#endif
 
 namespace libtorrent
 {
@@ -47,7 +50,7 @@ namespace libtorrent
 	{
 		m_abort = true;
 
-		queue_t tm;
+		std::vector<bw_request> tm;
 		tm.swap(m_queue);
 		m_queued_bytes = 0;
 
@@ -62,10 +65,9 @@ namespace libtorrent
 #if TORRENT_USE_ASSERTS
 	bool bandwidth_manager::is_queued(bandwidth_socket const* peer) const
 	{
-		for (queue_t::const_iterator i = m_queue.begin()
-			, end(m_queue.end()); i != end; ++i)
+		for (auto const& r : m_queue)
 		{
-			if (i->peer.get() == peer) return true;
+			if (r.peer.get() == peer) return true;
 		}
 		return false;
 	}
@@ -125,10 +127,9 @@ namespace libtorrent
 	void bandwidth_manager::check_invariant() const
 	{
 		std::int64_t queued = 0;
-		for (queue_t::const_iterator i = m_queue.begin()
-			, end(m_queue.end()); i != end; ++i)
+		for (auto const& r : m_queue)
 		{
-			queued += i->request_size - i->assigned;
+			queued += r.request_size - r.assigned;
 		}
 		TORRENT_ASSERT(queued == m_queued_bytes);
 	}
@@ -148,10 +149,9 @@ namespace libtorrent
 
 		std::vector<bandwidth_channel*> channels;
 
-		queue_t tm;
+		std::vector<bw_request> tm;
 
-		for (queue_t::iterator i = m_queue.begin();
-			i != m_queue.end();)
+		for (auto i = m_queue.begin(); i != m_queue.end();)
 		{
 			if (i->peer->is_disconnecting())
 			{
@@ -178,26 +178,23 @@ namespace libtorrent
 			++i;
 		}
 
-		for (queue_t::iterator i = m_queue.begin()
-			, end(m_queue.end()); i != end; ++i)
+		for (auto const& r : m_queue)
 		{
-			for (int j = 0; j < bw_request::max_bandwidth_channels && i->channel[j]; ++j)
+			for (int j = 0; j < bw_request::max_bandwidth_channels && r.channel[j]; ++j)
 			{
-				bandwidth_channel* bwc = i->channel[j];
+				bandwidth_channel* bwc = r.channel[j];
 				if (bwc->tmp == 0) channels.push_back(bwc);
-				TORRENT_ASSERT(INT_MAX - bwc->tmp > i->priority);
-				bwc->tmp += i->priority;
+				TORRENT_ASSERT(INT_MAX - bwc->tmp > r.priority);
+				bwc->tmp += r.priority;
 			}
 		}
 
-		for (std::vector<bandwidth_channel*>::iterator i = channels.begin()
-			, end(channels.end()); i != end; ++i)
+		for (auto const& ch : channels)
 		{
-			(*i)->update_quota(int(dt_milliseconds));
+			ch->update_quota(int(dt_milliseconds));
 		}
 
-		for (queue_t::iterator i = m_queue.begin();
-			i != m_queue.end();)
+		for (auto i = m_queue.begin(); i != m_queue.end();)
 		{
 			int a = i->assign_bandwidth();
 			if (i->assigned == i->request_size
@@ -223,4 +220,3 @@ namespace libtorrent
 		}
 	}
 }
-

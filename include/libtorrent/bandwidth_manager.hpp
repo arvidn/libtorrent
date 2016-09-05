@@ -34,9 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_BANDWIDTH_MANAGER_HPP_INCLUDED
 
 #include <memory>
+#include <vector>
 
-#include "libtorrent/socket.hpp"
-#include "libtorrent/error_code.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/bandwidth_limit.hpp"
@@ -76,8 +75,7 @@ struct TORRENT_EXTRA_EXPORT bandwidth_manager
 private:
 
 	// these are the consumers that want bandwidth
-	typedef std::vector<bw_request> queue_t;
-	queue_t m_queue;
+	std::vector<bw_request> m_queue;
 	// the number of bytes all the requests in queue are for
 	std::int64_t m_queued_bytes;
 
@@ -91,4 +89,3 @@ private:
 }
 
 #endif
-

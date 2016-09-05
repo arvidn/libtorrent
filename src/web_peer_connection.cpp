@@ -32,12 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <functional>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include <vector>
 #include <cstdlib>
 #include <cstdio> // for snprintf
@@ -61,10 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-enum
-{
-	request_size_overhead = 5000
-};
+constexpr int request_size_overhead = 5000;
 
 struct disk_interface;
 

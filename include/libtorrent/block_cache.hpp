@@ -355,7 +355,7 @@ namespace libtorrent
 
 		void reclaim_block(block_cache_reference const& ref);
 
-		// returns a range of all pieces. This migh be a very
+		// returns a range of all pieces. This might be a very
 		// long list, use carefully
 		std::pair<iterator, iterator> all_pieces() const;
 		int num_pieces() const { return int(m_pieces.size()); }
@@ -536,7 +536,7 @@ namespace libtorrent
 		int m_pinned_blocks;
 
 #if TORRENT_USE_ASSERTS
-		std::vector<std::pair<std::string, void const*> > m_deleted_storages;
+		std::vector<std::pair<std::string, void const*>> m_deleted_storages;
 #endif
 	};
 
