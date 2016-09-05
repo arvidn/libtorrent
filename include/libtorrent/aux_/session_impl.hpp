@@ -93,10 +93,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdarg> // for va_start, va_end
 #include <unordered_map>
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/optional.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 namespace libtorrent
 {
 
@@ -835,7 +831,7 @@ namespace libtorrent
 
 			// keep the io_service alive until we have posted the job
 			// to clear the undead peers
-			boost::optional<io_service::work> m_work;
+			std::unique_ptr<io_service::work> m_work;
 
 			// this maps sockets to their peer_connection
 			// object. It is the complete list of all connected
