@@ -146,7 +146,7 @@ exit:
 		std::string::iterator pos
 			= std::find(url.begin(), url.end(), ':');
 
-		if (pos == url.end() || url.end() - pos < 2
+		if (pos == url.end() || url.end() - pos < 3
 			|| *(pos + 1) != '/' || *(pos + 2) != '/')
 		{
 			ec = errors::unsupported_url_protocol;
