@@ -209,7 +209,7 @@ std::string generate_content(lt::file_storage const& fs, int file
 	ret.reserve(len);
 	std::int64_t const file_offset = fs.file_offset(file);
 	int const piece_size = fs.piece_length();
-	for (int i = offset; i < offset + len; ++i)
+	for (std::int64_t i = offset; i < offset + len; ++i)
 		ret.push_back((((i + file_offset) % piece_size) % 26) + 'A');
 	return ret;
 }
