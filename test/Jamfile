@@ -206,6 +206,7 @@ test-suite libtorrent :
 # transitioned into simulations
 alias win-tests :
 	test_primitives
+	test_string
 	test_dht
 	test_sha1_hash
 	test_bitfield

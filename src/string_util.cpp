@@ -272,8 +272,15 @@ namespace libtorrent
 			while (start < in.size() && is_digit(in[start]) && in[start] != ',')
 				port += in[start++];
 
-			if (port.empty()) iface.port = -1;
-			else iface.port = std::atoi(port.c_str());
+			if (port.empty() || port.size() > 5)
+			{
+				iface.port = -1;
+			}
+			else
+			{
+				iface.port = std::atoi(port.c_str());
+				if (iface.port <= 0 || iface.port > 65535) iface.port = -1;
+			}
 
 			// skip spaces
 			while (start < in.size() && is_space(in[start]))
