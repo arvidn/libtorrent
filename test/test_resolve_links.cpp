@@ -31,10 +31,14 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "test.hpp"
+
+#ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
+
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/resolve_links.hpp"
 #include "libtorrent/file.hpp" // for combine_path
 #include "libtorrent/hex.hpp" // to_hex
+#include "libtorrent/create_torrent.hpp"
 
 #include <functional>
 
@@ -87,8 +91,6 @@ static test_torrent_t test_torrents[] = {
 
 TORRENT_TEST(resolve_links)
 {
-
-#ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 	std::string path = combine_path(parent_path(current_working_directory())
 		, "mutable_test_torrents");
 
@@ -131,6 +133,48 @@ TORRENT_TEST(resolve_links)
 		TEST_EQUAL(num_matches, e.expected_matches);
 
 	}
-#endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 }
 
+// this ensure that internally the is a range lookup
+// since the zero-hash piece is in the second place
+TORRENT_TEST(range_lookup_duplicated_files)
+{
+	file_storage fs1;
+	file_storage fs2;
+
+	fs1.add_file("test_resolve_links_dir/tmp1", 1024);
+	fs1.add_file("test_resolve_links_dir/tmp2", 1024);
+	fs2.add_file("test_resolve_links_dir/tmp1", 1024);
+	fs2.add_file("test_resolve_links_dir/tmp2", 1024);
+
+	libtorrent::create_torrent t1(fs1, 1024);
+	libtorrent::create_torrent t2(fs2, 1024);
+
+	t1.set_hash(0, sha1_hash::max());
+
+	std::vector<char> tmp1;
+	std::vector<char> tmp2;
+	bencode(std::back_inserter(tmp1), t1.generate());
+	bencode(std::back_inserter(tmp2), t2.generate());
+	error_code ec;
+	auto ti1 = std::make_shared<torrent_info>(&tmp1[0], int(tmp1.size()), ec);
+	auto ti2 = std::make_shared<torrent_info>(&tmp2[0], int(tmp2.size()), ec);
+
+	std::fprintf(stderr, "resolving\n");
+	resolve_links l(ti1);
+	l.match(ti2, ".");
+
+	std::vector<resolve_links::link_t> const& links = l.get_links();
+
+	std::string::size_type num_matches = std::count_if(links.begin(), links.end()
+		, std::bind(&resolve_links::link_t::ti, _1));
+
+	TEST_EQUAL(num_matches, 1);
+}
+
+#else
+TORRENT_TEST(empty)
+{
+	TEST_CHECK(true);
+}
+#endif // TORRENT_DISABLE_MUTABLE_TORRENTS

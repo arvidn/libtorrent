@@ -87,9 +87,6 @@ void resolve_links::match(std::shared_ptr<const torrent_info> const& ti
 		auto range = m_file_sizes.equal_range(file_size);
 		for (auto iter = range.first; iter != range.second; ++iter)
 		{
-			// we don't have a file whose size matches, look at the next one
-			if (iter == m_file_sizes.end()) continue;
-
 			TORRENT_ASSERT(iter->second < m_torrent_file->files().num_files());
 			TORRENT_ASSERT(iter->second >= 0);
 
@@ -104,14 +101,16 @@ void resolve_links::match(std::shared_ptr<const torrent_info> const& ti
 			int their_piece = fs.map_file(i, 0, 0).piece;
 			// the pieces of "this" file (from m_torrent_file)
 			int our_piece = m_torrent_file->files().map_file(
-					iter->second, 0, 0).piece;
+				iter->second, 0, 0).piece;
 
 			int num_pieces = (file_size + piece_size - 1) / piece_size;
 
 			bool match = true;
-			for (int p = 0; p < num_pieces; ++p, ++their_piece, ++our_piece) {
+			for (int p = 0; p < num_pieces; ++p, ++their_piece, ++our_piece)
+			{
 				if (m_torrent_file->hash_for_piece(our_piece)
-					!= ti->hash_for_piece(their_piece)) {
+					!= ti->hash_for_piece(their_piece))
+				{
 					match = false;
 					break;
 				}
