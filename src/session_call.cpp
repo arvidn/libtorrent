@@ -36,7 +36,7 @@ namespace libtorrent { namespace aux {
 
 #ifdef TORRENT_PROFILE_CALLS
 static std::mutex g_calls_mutex;
-static boost::unordered_map<std::string, int> g_blocking_calls;
+static std::unordered_map<std::string, int> g_blocking_calls;
 #endif
 
 void blocking_call()
@@ -57,10 +57,9 @@ void dump_call_profile()
 	std::map<int, std::string> profile;
 
 	std::unique_lock<std::mutex> l(g_calls_mutex);
-	for (boost::unordered_map<std::string, int>::const_iterator i = g_blocking_calls.begin()
-		, end(g_blocking_calls.end()); i != end; ++i)
+	for (auto const& c : g_blocking_calls)
 	{
-		profile[i->second] = i->first;
+		profile[c.second] = c.first;
 	}
 	for (std::map<int, std::string>::const_reverse_iterator i = profile.rbegin()
 		, end(profile.rend()); i != end; ++i)

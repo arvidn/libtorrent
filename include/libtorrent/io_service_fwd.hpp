@@ -33,29 +33,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_IO_SERVICE_FWD_HPP_INCLUDED
 #define TORRENT_IO_SERVICE_FWD_HPP_INCLUDED
 
-#ifdef __OBJC__
-#define Protocol Protocol_
-#endif
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/version.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-#ifdef __OBJC__
-#undef Protocol
-#endif
+#include "libtorrent/config.hpp"
 
 #if defined TORRENT_BUILD_SIMULATOR
 namespace sim { namespace asio {
 	struct io_service;
 }}
-#endif
-
+#else
 namespace boost { namespace asio {
 	class io_service;
 }}
+#endif
 
 namespace libtorrent
 {
@@ -67,4 +55,3 @@ namespace libtorrent
 }
 
 #endif
-

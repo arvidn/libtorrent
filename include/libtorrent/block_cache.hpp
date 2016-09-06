@@ -34,15 +34,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_BLOCK_CACHE
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/unordered_set.hpp>
 #include <boost/shared_array.hpp>
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <cstdint>
 #include <list>
 #include <vector>
+#include <unordered_set>
 
 #include "libtorrent/time.hpp"
 #include "libtorrent/error_code.hpp"
@@ -329,12 +327,6 @@ namespace libtorrent
 #endif
 	};
 
-	// internal
-	inline std::size_t hash_value(cached_piece_entry const& p)
-	{
-		return std::size_t(p.storage.get()) + std::size_t(p.piece);
-	}
-
 	struct TORRENT_EXTRA_EXPORT block_cache : disk_buffer_pool
 	{
 		block_cache(int block_size, io_service& ios
@@ -342,11 +334,15 @@ namespace libtorrent
 
 	private:
 
-		typedef boost::unordered_set<cached_piece_entry> cache_t;
+		struct hash_value
+		{
+			std::size_t operator()(cached_piece_entry const& p) const
+			{ return std::size_t(p.storage.get()) + std::size_t(p.piece); }
+		};
+		typedef std::unordered_set<cached_piece_entry, hash_value> cache_t;
 
 	public:
 
-		typedef cache_t::iterator iterator;
 		typedef cache_t::const_iterator const_iterator;
 
 		// returns the number of blocks this job would cause to be read in
@@ -357,7 +353,7 @@ namespace libtorrent
 
 		// returns a range of all pieces. This might be a very
 		// long list, use carefully
-		std::pair<iterator, iterator> all_pieces() const;
+		std::pair<const_iterator, const_iterator> all_pieces() const;
 		int num_pieces() const { return int(m_pieces.size()); }
 
 		list_iterator<cached_piece_entry> write_lru_pieces() const

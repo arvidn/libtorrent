@@ -521,4 +521,16 @@ namespace libtorrent
 
 }
 
+namespace std
+{
+	template <>
+	struct hash<libtorrent::torrent_status>
+	{
+		std::size_t operator()(libtorrent::torrent_status const& ts) const
+		{
+			return libtorrent::hash_value(ts.handle);
+		}
+	};
+}
+
 #endif // TORRENT_TORRENT_STATUS_HPP_INCLUDED

@@ -3781,8 +3781,7 @@ namespace libtorrent
 			TORRENT_ASSERT(i->finished <= m_picker->blocks_in_piece(index));
 
 #if TORRENT_USE_ASSERTS
-			for (std::vector<piece_picker::downloading_piece>::const_iterator j = boost::next(i);
-				j != dl_queue.end(); ++j)
+			for (auto j = std::next(i); j != dl_queue.end(); ++j)
 			{
 				TORRENT_ASSERT(j->index != index);
 			}
@@ -4800,14 +4799,14 @@ namespace libtorrent
 			i->flags = flags;
 
 			// resort i since deadline might have changed
-			while (boost::next(i) != m_time_critical_pieces.end() && i->deadline > boost::next(i)->deadline)
+			while (std::next(i) != m_time_critical_pieces.end() && i->deadline > std::next(i)->deadline)
 			{
-				std::iter_swap(i, boost::next(i));
+				std::iter_swap(i, std::next(i));
 				++i;
 			}
-			while (i != m_time_critical_pieces.begin() && i->deadline < boost::prior(i)->deadline)
+			while (i != m_time_critical_pieces.begin() && i->deadline < std::prev(i)->deadline)
 			{
-				std::iter_swap(i, boost::prior(i));
+				std::iter_swap(i, std::prev(i));
 				--i;
 			}
 			// just in case this piece had priority 0

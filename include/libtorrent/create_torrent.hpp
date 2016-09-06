@@ -40,14 +40,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/file.hpp" // for combine_path etc.
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <vector>
 #include <string>
 #include <utility>
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/config.hpp>
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 // OVERVIEW

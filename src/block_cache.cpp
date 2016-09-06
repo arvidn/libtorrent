@@ -853,7 +853,7 @@ void block_cache::blocks_flushed(cached_piece_entry* pe, int const* flushed, int
 	update_cache_state(pe);
 }
 
-std::pair<block_cache::iterator, block_cache::iterator> block_cache::all_pieces() const
+std::pair<block_cache::const_iterator, block_cache::const_iterator> block_cache::all_pieces() const
 {
 	return std::make_pair(m_pieces.begin(), m_pieces.end());
 }
@@ -1662,7 +1662,7 @@ void block_cache::check_invariant() const
 		}
 	}
 
-	boost::unordered_set<char*> buffers;
+	std::unordered_set<char*> buffers;
 	for (auto const& p :m_pieces)
 	{
 		TORRENT_PIECE_ASSERT(p.blocks, &p);

@@ -71,9 +71,6 @@ namespace libtorrent
 	struct storage_interface;
 	class torrent;
 
-	// allows torrent_handle to be used in unordered_map and unordered_set.
-	TORRENT_EXPORT std::size_t hash_value(torrent_status const& ts);
-
 #ifndef BOOST_NO_EXCEPTIONS
 	void throw_invalid_handle() TORRENT_NO_RETURN;
 #endif
@@ -199,8 +196,8 @@ namespace libtorrent
 		state_t piece_state;
 	};
 
-	// for boost::hash (and to support using this type in unordered_map etc.)
-	std::size_t hash_value(torrent_handle const& h);
+	// for std::hash (and to support using this type in unordered_map etc.)
+	TORRENT_EXPORT std::size_t hash_value(torrent_handle const& h);
 
 	// You will usually have to store your torrent handles somewhere, since it's
 	// the object through which you retrieve information about the torrent and
@@ -241,7 +238,7 @@ namespace libtorrent
 		friend struct aux::session_impl;
 		friend struct session_handle;
 		friend class torrent;
-		friend std::size_t hash_value(torrent_handle const& th);
+		friend TORRENT_EXPORT std::size_t hash_value(torrent_handle const& th);
 
 		// constructs a torrent handle that does not refer to a torrent.
 		// i.e. is_valid() will return false.
@@ -1303,6 +1300,18 @@ namespace libtorrent
 
 	};
 
+}
+
+namespace std
+{
+	template <>
+	struct hash<libtorrent::torrent_handle>
+	{
+		std::size_t operator()(libtorrent::torrent_handle const& th) const
+		{
+			return libtorrent::hash_value(th);
+		}
+	};
 }
 
 #endif // TORRENT_TORRENT_HANDLE_HPP_INCLUDED
