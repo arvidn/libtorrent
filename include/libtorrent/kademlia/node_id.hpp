@@ -36,9 +36,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <cstdint>
 
-#include "libtorrent/config.hpp"
-#include "libtorrent/peer_id.hpp"
-#include "libtorrent/address.hpp"
+#include <libtorrent/config.hpp>
+#include <libtorrent/peer_id.hpp>
+#include <libtorrent/address.hpp>
 
 namespace libtorrent { namespace dht
 {

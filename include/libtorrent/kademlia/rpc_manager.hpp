@@ -33,7 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef RPC_MANAGER_HPP
 #define RPC_MANAGER_HPP
 
-
 #include <unordered_map>
 #include <cstdint>
 
@@ -42,10 +41,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <libtorrent/socket.hpp>
+#include <libtorrent/time.hpp>
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/observer.hpp>
-
-#include "libtorrent/time.hpp"
 
 namespace libtorrent { struct dht_settings; class entry; }
 
@@ -117,12 +115,9 @@ private:
 	void* allocate_observer();
 	void free_observer(void* ptr);
 
-	std::uint32_t calc_connection_id(udp::endpoint addr);
-
 	mutable boost::pool<> m_pool_allocator;
 
-	typedef std::unordered_multimap<int, observer_ptr> transactions_t;
-	transactions_t m_transactions;
+	std::unordered_multimap<int, observer_ptr> m_transactions;
 
 	udp_socket_interface* m_sock;
 	dht_logger* m_log;
@@ -136,5 +131,3 @@ private:
 } } // namespace libtorrent::dht
 
 #endif
-
-

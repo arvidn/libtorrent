@@ -940,17 +940,17 @@ namespace libtorrent
 
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
 #define TORRENT_SEPARATOR "\\"
-		bool const need_sep = lhs[lhs.size()-1] != '\\' && lhs[lhs.size()-1] != '/';
+		bool const need_sep = lhs[lhs.size() - 1] != '\\' && lhs[lhs.size() - 1] != '/';
 #else
 #define TORRENT_SEPARATOR "/"
-		bool const need_sep = lhs[lhs.size()-1] != '/';
+		bool const need_sep = lhs[lhs.size() - 1] != '/';
 #endif
 		std::string ret;
 		int target_size = int(lhs.size() + rhs.size() + 2);
 		ret.resize(target_size);
 		target_size = std::snprintf(&ret[0], target_size, "%*s%s%*s"
 			, int(lhs.size()), lhs.data()
-			, (need_sep?TORRENT_SEPARATOR:"")
+			, (need_sep ? TORRENT_SEPARATOR : "")
 			, int(rhs.size()), rhs.data());
 		ret.resize(target_size);
 		return ret;
