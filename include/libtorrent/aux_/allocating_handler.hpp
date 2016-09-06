@@ -35,9 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/aligned_storage.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include <type_traits>
 
 namespace libtorrent { namespace aux
 {
@@ -58,7 +56,7 @@ namespace libtorrent { namespace aux
 #else
 		handler_storage() {}
 #endif
-		boost::aligned_storage<Size> bytes;
+		typename std::aligned_storage<Size>::type bytes;
 	private:
 		handler_storage(handler_storage const&);
 	};
