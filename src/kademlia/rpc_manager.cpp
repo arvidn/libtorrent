@@ -30,9 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/config.hpp"
-#include "libtorrent/socket.hpp"
-
+#include <libtorrent/config.hpp>
 #include <libtorrent/io.hpp>
 #include <libtorrent/random.hpp>
 #include <libtorrent/invariant_check.hpp>
@@ -43,7 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/put_data.hpp>
 #include <libtorrent/kademlia/refresh.hpp>
 #include <libtorrent/kademlia/node.hpp>
-#include <libtorrent/kademlia/observer.hpp>
 #include <libtorrent/kademlia/dht_observer.hpp>
 #include <libtorrent/kademlia/direct_request.hpp>
 #include <libtorrent/kademlia/get_item.hpp>
@@ -51,16 +48,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/socket_io.hpp> // for print_endpoint
 #include <libtorrent/hasher.hpp>
 #include <libtorrent/session_settings.hpp> // for dht_settings
-#include <libtorrent/time.hpp>
 #include <libtorrent/aux_/time.hpp> // for aux::time_now
 
 #include <type_traits>
+#include <functional>
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include <cinttypes> // for PRId64 et.al.
 #endif
-
-#include <functional>
 
 using namespace std::placeholders;
 
@@ -173,10 +168,9 @@ rpc_manager::~rpc_manager()
 	TORRENT_ASSERT(!m_destructing);
 	m_destructing = true;
 
-	for (transactions_t::iterator i = m_transactions.begin()
-		, end(m_transactions.end()); i != end; ++i)
+	for (auto const& t : m_transactions)
 	{
-		i->second->abort();
+		t.second->abort();
 	}
 }
 
@@ -184,13 +178,13 @@ void* rpc_manager::allocate_observer()
 {
 	m_pool_allocator.set_next_size(10);
 	void* ret = m_pool_allocator.malloc();
-	if (ret) ++m_allocated_observers;
+	if (ret != nullptr) ++m_allocated_observers;
 	return ret;
 }
 
 void rpc_manager::free_observer(void* ptr)
 {
-	if (!ptr) return;
+	if (ptr == nullptr) return;
 	--m_allocated_observers;
 	TORRENT_ASSERT(reinterpret_cast<observer*>(ptr)->m_in_use == false);
 	m_pool_allocator.free(ptr);
@@ -205,10 +199,9 @@ size_t rpc_manager::allocation_size() const
 #if TORRENT_USE_INVARIANT_CHECKS
 void rpc_manager::check_invariant() const
 {
-	for (transactions_t::const_iterator i = m_transactions.begin()
-		, end(m_transactions.end()); i != end; ++i)
+	for (auto const& t : m_transactions)
 	{
-		TORRENT_ASSERT(i->second);
+		TORRENT_ASSERT(t.second);
 	}
 }
 #endif
@@ -220,8 +213,7 @@ void rpc_manager::unreachable(udp::endpoint const& ep)
 		, print_endpoint(ep).c_str());
 #endif
 
-	for (transactions_t::iterator i = m_transactions.begin();
-		i != m_transactions.end();)
+	for (auto i = m_transactions.begin(); i != m_transactions.end();)
 	{
 		TORRENT_ASSERT(i->second);
 		observer_ptr const& o = i->second;
@@ -257,8 +249,8 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 	int tid = transaction_id.size() != 2 ? -1 : io::read_uint16(ptr);
 
 	observer_ptr o;
-	std::pair<transactions_t::iterator, transactions_t::iterator> range = m_transactions.equal_range(tid);
-	for (transactions_t::iterator i = range.first; i != range.second; ++i)
+	auto range = m_transactions.equal_range(tid);
+	for (auto i = range.first; i != range.second; ++i)
 	{
 		if (m.addr.address() != i->second->target_addr()) continue;
 		o = i->second;
@@ -366,8 +358,8 @@ time_duration rpc_manager::tick()
 {
 	INVARIANT_CHECK;
 
-	static const int short_timeout = 1;
-	static const int timeout = 15;
+	constexpr int short_timeout = 1;
+	constexpr int timeout = 15;
 
 	// look for observers that have timed out
 
@@ -379,8 +371,7 @@ time_duration rpc_manager::tick()
 	time_duration ret = seconds(short_timeout);
 	time_point now = aux::time_now();
 
-	for (transactions_t::iterator i = m_transactions.begin();
-		i != m_transactions.end();)
+	for (auto i = m_transactions.begin(); i != m_transactions.end();)
 	{
 		observer_ptr o = i->second;
 

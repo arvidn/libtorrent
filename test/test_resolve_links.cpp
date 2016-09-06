@@ -135,7 +135,7 @@ TORRENT_TEST(resolve_links)
 	}
 }
 
-// this ensure that internally the is a range lookup
+// this ensure that internally there is a range lookup
 // since the zero-hash piece is in the second place
 TORRENT_TEST(range_lookup_duplicated_files)
 {
