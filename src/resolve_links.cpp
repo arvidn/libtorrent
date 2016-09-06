@@ -84,48 +84,48 @@ void resolve_links::match(std::shared_ptr<const torrent_info> const& ti
 
 		std::int64_t file_size = fs.file_size(i);
 
-		auto iter = m_file_sizes.find(file_size);
-
-		// we don't have a file whose size matches, look at the next one
-		if (iter == m_file_sizes.end()) continue;
-
-		TORRENT_ASSERT(iter->second < m_torrent_file->files().num_files());
-		TORRENT_ASSERT(iter->second >= 0);
-
-		// if we already have found a duplicate for this file, no need
-		// to keep looking
-		if (m_links[iter->second].ti) continue;
-
-		// files are aligned and have the same size, now start comparing
-		// piece hashes, to see if the files are identical
-
-		// the pieces of the incoming file
-		int their_piece = fs.map_file(i, 0, 0).piece;
-		// the pieces of "this" file (from m_torrent_file)
-		int our_piece = m_torrent_file->files().map_file(
-			iter->second, 0, 0).piece;
-
-		int num_pieces = (file_size + piece_size - 1) / piece_size;
-
-		bool match = true;
-		for (int p = 0; p < num_pieces; ++p, ++their_piece, ++our_piece)
+		auto range = m_file_sizes.equal_range(file_size);
+		for (auto iter = range.first; iter != range.second; ++iter)
 		{
-			if (m_torrent_file->hash_for_piece(our_piece)
-				!= ti->hash_for_piece(their_piece))
+			TORRENT_ASSERT(iter->second < m_torrent_file->files().num_files());
+			TORRENT_ASSERT(iter->second >= 0);
+
+			// if we already have found a duplicate for this file, no need
+			// to keep looking
+			if (m_links[iter->second].ti) continue;
+
+			// files are aligned and have the same size, now start comparing
+			// piece hashes, to see if the files are identical
+
+			// the pieces of the incoming file
+			int their_piece = fs.map_file(i, 0, 0).piece;
+			// the pieces of "this" file (from m_torrent_file)
+			int our_piece = m_torrent_file->files().map_file(
+				iter->second, 0, 0).piece;
+
+			int num_pieces = (file_size + piece_size - 1) / piece_size;
+
+			bool match = true;
+			for (int p = 0; p < num_pieces; ++p, ++their_piece, ++our_piece)
 			{
-				match = false;
-				break;
+				if (m_torrent_file->hash_for_piece(our_piece)
+					!= ti->hash_for_piece(their_piece))
+				{
+					match = false;
+					break;
+				}
 			}
+			if (!match) continue;
+
+			m_links[iter->second].ti = ti;
+			m_links[iter->second].save_path = save_path;
+			m_links[iter->second].file_idx = i;
+
+			// since we have a duplicate for this file, we may as well remove
+			// it from the file-size map, so we won't find it again.
+			m_file_sizes.erase(iter);
+			break;
 		}
-		if (!match) continue;
-
-		m_links[iter->second].ti = ti;
-		m_links[iter->second].save_path = save_path;
-		m_links[iter->second].file_idx = i;
-
-		// since we have a duplicate for this file, we may as well remove
-		// it from the file-size map, so we won't find it again.
-		m_file_sizes.erase(iter);
 	}
 
 }
