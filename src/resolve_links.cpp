@@ -132,6 +132,7 @@ void resolve_links::match(boost::shared_ptr<const torrent_info> const& ti
 			// since we have a duplicate for this file, we may as well remove
 			// it from the file-size map, so we won't find it again.
 			m_file_sizes.erase(iter);
+			break;
 		}
 	}
 
