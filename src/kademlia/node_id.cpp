@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/node_entry.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for is_local et.al
-#include "libtorrent/socket_io.hpp" // for hash_address
 #include "libtorrent/random.hpp" // for random
 #include "libtorrent/hasher.hpp" // for hasher
 #include "libtorrent/crc32c.hpp" // for crc32c
@@ -153,13 +152,14 @@ void make_id_secret(node_id& in)
 	hasher h(reinterpret_cast<char const*>(&secret), 4);
 	h.update(reinterpret_cast<char const*>(&rand), 4);
 	sha1_hash const secret_hash = h.final();
-	memcpy(&in[20-4], &secret_hash[0], 4);
-	memcpy(&in[20-8], &rand, 4);
+	std::memcpy(&in[20 - 4], &secret_hash[0], 4);
+	std::memcpy(&in[20 - 8], &rand, 4);
 }
 
 node_id generate_random_id()
 {
 	char r[20];
+	// TODO: use here aux::random_bytes?
 	for (int i = 0; i < 20; ++i) r[i] = random(0xff);
 	return hasher(r, 20).final();
 }
@@ -176,9 +176,9 @@ bool verify_secret_id(node_id const& nid)
 	if (secret == 0) return false;
 
 	hasher h(reinterpret_cast<char*>(&secret), 4);
-	h.update(reinterpret_cast<char const*>(&nid[20-8]), 4);
+	h.update(reinterpret_cast<char const*>(&nid[20 - 8]), 4);
 	sha1_hash secret_hash = h.final();
-	return memcmp(&nid[20-4], &secret_hash[0], 4) == 0;
+	return std::memcmp(&nid[20 - 4], &secret_hash[0], 4) == 0;
 }
 
 // verifies whether a node-id matches the IP it's used from
@@ -211,10 +211,9 @@ node_id generate_prefix_mask(int bits)
 	TORRENT_ASSERT(bits <= 160);
 	node_id mask(nullptr);
 	int b = 0;
-	for (; b < bits - 7; b += 8) mask[b/8] |= 0xff;
-	if (bits < 160) mask[b/8] |= (0xff << (8 - (bits&7))) & 0xff;
+	for (; b < bits - 7; b += 8) mask[b / 8] |= 0xff;
+	if (bits < 160) mask[b / 8] |= (0xff << (8 - (bits & 7))) & 0xff;
 	return mask;
 }
 
 } }  // namespace libtorrent::dht
-

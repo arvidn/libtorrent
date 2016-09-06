@@ -180,8 +180,7 @@ namespace libtorrent
 
 #if TORRENT_USE_ASSERTS
 		// by now, all pieces should have been evicted
-		std::pair<block_cache::iterator, block_cache::iterator> pieces
-			= m_disk_cache.all_pieces();
+		auto pieces = m_disk_cache.all_pieces();
 		TORRENT_ASSERT(pieces.first == pieces.second);
 #endif
 
@@ -837,7 +836,7 @@ namespace libtorrent
 		}
 		else
 		{
-			std::pair<block_cache::iterator, block_cache::iterator> range = m_disk_cache.all_pieces();
+			auto range = m_disk_cache.all_pieces();
 			while (range.first != range.second)
 			{
 				// TODO: it would be nice to optimize this by having the cache
@@ -1635,8 +1634,8 @@ namespace libtorrent
 
 #if TORRENT_USE_ASSERTS && defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		std::unique_lock<std::mutex> l2_(m_cache_mutex);
-		std::pair<block_cache::iterator, block_cache::iterator> range = m_disk_cache.all_pieces();
-		for (block_cache::iterator i = range.first; i != range.second; ++i)
+		auto range = m_disk_cache.all_pieces();
+		for (auto i = range.first; i != range.second; ++i)
 		{
 			cached_piece_entry const& p = *i;
 			int bs = m_disk_cache.block_size();
@@ -2784,10 +2783,8 @@ namespace libtorrent
 			{
 				ret->pieces.reserve(m_disk_cache.num_pieces());
 
-				std::pair<block_cache::iterator, block_cache::iterator> range
-					= m_disk_cache.all_pieces();
-
-				for (block_cache::iterator i = range.first; i != range.second; ++i)
+				auto range = m_disk_cache.all_pieces();
+				for (auto i = range.first; i != range.second; ++i)
 				{
 					if (i->cache_state == cached_piece_entry::read_lru2_ghost
 						|| i->cache_state == cached_piece_entry::read_lru1_ghost)
@@ -3308,8 +3305,7 @@ namespace libtorrent
 
 #if TORRENT_USE_ASSERTS
 		// by now, all pieces should have been evicted
-		std::pair<block_cache::iterator, block_cache::iterator> pieces
-			= m_disk_cache.all_pieces();
+		auto pieces = m_disk_cache.all_pieces();
 		TORRENT_ASSERT(pieces.first == pieces.second);
 #endif
 

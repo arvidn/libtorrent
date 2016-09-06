@@ -63,7 +63,7 @@ struct TORRENT_EXTRA_EXPORT bw_request
 	// from the most limiting one
 	int assign_bandwidth();
 
-	enum { max_bandwidth_channels = 10 };
+	constexpr static int max_bandwidth_channels = 10;
 	// we don't actually support more than 10 channels per peer
 	bandwidth_channel* channel[max_bandwidth_channels];
 };
@@ -71,4 +71,3 @@ struct TORRENT_EXTRA_EXPORT bw_request
 }
 
 #endif
-

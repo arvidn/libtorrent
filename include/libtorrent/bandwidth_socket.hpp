@@ -30,9 +30,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-
 #ifndef TORRENT_BANDWIDTH_SOCKET_HPP_INCLUDED
 #define TORRENT_BANDWIDTH_SOCKET_HPP_INCLUDED
+
+#include "libtorrent/export.hpp"
 
 namespace libtorrent
 {
@@ -45,4 +46,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_BANDWIDTH_SOCKET_HPP_INCLUDED
-

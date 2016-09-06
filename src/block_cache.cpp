@@ -1222,10 +1222,9 @@ void block_cache::clear(tailqueue<disk_io_job>& jobs)
 	// at the end
 	std::vector<char*> bufs;
 
-	for (iterator p = m_pieces.begin()
-		, end(m_pieces.end()); p != end; ++p)
+	for (auto const& p : m_pieces)
 	{
-		cached_piece_entry& pe = const_cast<cached_piece_entry&>(*p);
+		cached_piece_entry& pe = const_cast<cached_piece_entry&>(p);
 #if TORRENT_USE_ASSERTS
 		for (tailqueue_iterator<disk_io_job> i = pe.jobs.iterate(); i.get(); i.next())
 			TORRENT_PIECE_ASSERT((static_cast<disk_io_job const*>(i.get()))->piece == pe.piece, &pe);
@@ -1664,9 +1663,8 @@ void block_cache::check_invariant() const
 	}
 
 	boost::unordered_set<char*> buffers;
-	for (iterator i = m_pieces.begin(), end(m_pieces.end()); i != end; ++i)
+	for (auto const& p :m_pieces)
 	{
-		cached_piece_entry const& p = *i;
 		TORRENT_PIECE_ASSERT(p.blocks, &p);
 
 		TORRENT_PIECE_ASSERT(p.storage, &p);
@@ -1887,7 +1885,7 @@ cached_piece_entry* block_cache::find_piece(piece_manager* st, int piece)
 	cached_piece_entry model;
 	model.storage = st->shared_from_this();
 	model.piece = piece;
-	iterator i = m_pieces.find(model);
+	auto i = m_pieces.find(model);
 	TORRENT_ASSERT(i == m_pieces.end() || (i->storage.get() == st && i->piece == piece));
 	if (i == m_pieces.end()) return nullptr;
 	TORRENT_PIECE_ASSERT(i->in_use, &*i);
@@ -1904,4 +1902,3 @@ cached_piece_entry* block_cache::find_piece(piece_manager* st, int piece)
 }
 
 }
-

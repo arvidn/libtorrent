@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/peer_id.hpp"
-#include "libtorrent/assert.hpp"
 #include "libtorrent/address.hpp"
 
 namespace libtorrent { namespace dht
@@ -77,4 +76,3 @@ node_id TORRENT_EXTRA_EXPORT generate_prefix_mask(int bits);
 } } // namespace libtorrent::dht
 
 #endif // NODE_ID_HPP
-

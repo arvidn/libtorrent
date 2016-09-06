@@ -49,7 +49,7 @@ resolve_links::resolve_links(std::shared_ptr<torrent_info> ti)
 	for (int i = 0; i < fs.num_files(); ++i)
 	{
 		// don't match pad-files, and don't match files that aren't aligned to
-		// ieces. Files are matched by comparing piece hashes, so pieces must
+		// pieces. Files are matched by comparing piece hashes, so pieces must
 		// be aligned and the same size
 		if (fs.pad_file_at(i)) continue;
 		if ((fs.file_offset(i) % piece_size) != 0) continue;
@@ -84,8 +84,7 @@ void resolve_links::match(std::shared_ptr<const torrent_info> const& ti
 
 		std::int64_t file_size = fs.file_size(i);
 
-		typedef boost::unordered_multimap<std::int64_t, int>::iterator iterator;
-		iterator iter = m_file_sizes.find(file_size);
+		auto iter = m_file_sizes.find(file_size);
 
 		// we don't have a file whose size matches, look at the next one
 		if (iter == m_file_sizes.end()) continue;

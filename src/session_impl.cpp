@@ -4590,7 +4590,7 @@ namespace aux {
 		add_torrent_params params = p;
 		std::shared_ptr<torrent> torrent_ptr;
 		bool added;
-		boost::tie(torrent_ptr, added) = add_torrent_impl(params, ec);
+		std::tie(torrent_ptr, added) = add_torrent_impl(params, ec);
 
 		torrent_handle const handle(torrent_ptr);
 		m_alerts.emplace_alert<add_torrent_alert>(handle, params, ec);

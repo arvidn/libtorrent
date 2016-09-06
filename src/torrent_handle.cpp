@@ -740,4 +740,3 @@ namespace libtorrent
 	}
 
 }
-
