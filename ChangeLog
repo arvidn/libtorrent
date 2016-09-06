@@ -1,3 +1,4 @@
+	* fix internal resolve links lookup for mutable torrents
 	* hint DHT bootstrap nodes of actual bootstrap request
 
 1.1.1 release
