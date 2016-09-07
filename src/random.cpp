@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/aux_/openssl.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -94,6 +95,10 @@ namespace libtorrent
 
 			CryptReleaseContext(prov, 0);
 #elif defined TORRENT_USE_LIBCRYPTO
+#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
 			int r = RAND_bytes(reinterpret_cast<unsigned char*>(buffer.data())
 				, int(buffer.size()));
 			if (r != 1)
@@ -104,6 +109,9 @@ namespace libtorrent
 				std::terminate();
 #endif
 			}
+#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
+#pragma clang diagnostic pop
+#endif
 #else
 			std::uint32_t s = random(0xffffffff);
 			std::independent_bits_engine<std::mt19937, 8, std::uint8_t> generator(s);

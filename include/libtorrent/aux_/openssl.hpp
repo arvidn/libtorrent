@@ -33,6 +33,22 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_OPENSSL_HPP_INCLUDED
 #define TORRENT_OPENSSL_HPP_INCLUDED
 
+#ifdef TORRENT_USE_LIBCRYPTO
+
+#include "libtorrent/config.hpp"
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <openssl/opensslv.h> // for OPENSSL_VERSION_NUMBER
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
+#if defined __APPLE__ \
+	&& MAC_OS_X_VERSION_MIN_REQUIRED >= 1070 \
+	&& OPENSSL_VERSION_NUMBER <= 0x009081dfL
+#define TORRENT_MACOS_DEPRECATED_LIBCRYPTO 1
+#endif
+
+#endif // TORRENT_USE_LIBCRYPTO
+
 #ifdef TORRENT_USE_OPENSSL
 
 // all of OpenSSL causes warnings, so we just have to disable them

@@ -39,7 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/config.hpp>
 #include <boost/asio/detail/config.hpp>
-#include <boost/version.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 

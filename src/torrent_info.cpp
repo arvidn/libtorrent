@@ -375,9 +375,9 @@ namespace libtorrent
 
 	namespace {
 
-	boost::uint32_t get_file_attributes(bdecode_node const& dict)
+	std::uint32_t get_file_attributes(bdecode_node const& dict)
 	{
-		boost::uint32_t file_flags = 0;
+		std::uint32_t file_flags = 0;
 		bdecode_node attr = dict.dict_find_string("attr");
 		if (attr)
 		{
@@ -397,7 +397,7 @@ namespace libtorrent
 
 	// iterates an array of strings and returns the sum of the lengths of all
 	// strings + one additional character per entry (to account for the presumed
-	// forward- or backslash to seaprate directory entries)
+	// forward- or backslash to separate directory entries)
 	int path_length(bdecode_node const& p, error_code& ec)
 	{
 		int ret = 0;
@@ -426,11 +426,11 @@ namespace libtorrent
 	{
 		if (dict.type() != bdecode_node::dict_t) return false;
 
-		boost::uint32_t file_flags = get_file_attributes(dict);
+		std::uint32_t file_flags = get_file_attributes(dict);
 
 		// symlinks have an implied "size" of zero. i.e. they use up 0 bytes of
 		// the torrent payload space
-		boost::int64_t const file_size = (file_flags & file_storage::flag_symlink)
+		std::int64_t const file_size = (file_flags & file_storage::flag_symlink)
 			? 0
 			: dict.dict_find_int_value("length", -1);
 		if (file_size < 0 )
@@ -439,10 +439,9 @@ namespace libtorrent
 			return false;
 		}
 
-		boost::int64_t const mtime = dict.dict_find_int_value("mtime", 0);
+		std::int64_t const mtime = dict.dict_find_int_value("mtime", 0);
 
 		std::string path = root_dir;
-		std::string path_element;
 		char const* filename = nullptr;
 		int filename_len = 0;
 
@@ -1488,7 +1487,7 @@ namespace libtorrent
 		{
 			web_seed_entry ent(maybe_url_encode(url_seeds.string_value().to_string())
 				, web_seed_entry::url_seed);
-			if ((m_flags & multifile) && ent.url[ent.url.size()-1] != '/') ent.url += '/';
+			if ((m_flags & multifile) && ent.url[ent.url.size() - 1] != '/') ent.url += '/';
 			m_web_seeds.push_back(ent);
 		}
 		else if (url_seeds && url_seeds.type() == bdecode_node::list_t)
@@ -1502,7 +1501,7 @@ namespace libtorrent
 				if (url.string_length() == 0) continue;
 				web_seed_entry ent(maybe_url_encode(url.string_value().to_string())
 					, web_seed_entry::url_seed);
-				if ((m_flags & multifile) && ent.url[ent.url.size()-1] != '/') ent.url += '/';
+				if ((m_flags & multifile) && ent.url[ent.url.size() - 1] != '/') ent.url += '/';
 				if (unique.count(ent.url)) continue;
 				unique.insert(ent.url);
 				m_web_seeds.push_back(ent);
@@ -1675,4 +1674,3 @@ namespace libtorrent
 #endif
 
 }
-

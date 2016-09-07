@@ -48,7 +48,7 @@ namespace libtorrent
 	bool is_ssl(socket_type const& s)
 	{
 #ifdef TORRENT_USE_OPENSSL
-#define CASE(t) case socket_type_int_impl<ssl_stream<t> >::value:
+#define CASE(t) case socket_type_int_impl<ssl_stream<t>>::value:
 		switch (s.type())
 		{
 			CASE(tcp::socket)
@@ -69,7 +69,7 @@ namespace libtorrent
 	{
 		return s.get<utp_stream>() != nullptr
 #ifdef TORRENT_USE_OPENSSL
-			|| s.get<ssl_stream<utp_stream> >() != nullptr
+			|| s.get<ssl_stream<utp_stream>>() != nullptr
 #endif
 			;
 	}
@@ -79,7 +79,7 @@ namespace libtorrent
 	{
 		return s.get<i2p_stream>() != nullptr
 #ifdef TORRENT_USE_OPENSSL
-			|| s.get<ssl_stream<i2p_stream> >() != nullptr
+			|| s.get<ssl_stream<i2p_stream>>() != nullptr
 #endif
 			;
 	}
@@ -87,13 +87,17 @@ namespace libtorrent
 
 	void setup_ssl_hostname(socket_type& s, std::string const& hostname, error_code& ec)
 	{
-#if defined TORRENT_USE_OPENSSL && BOOST_VERSION >= 104700
+#if defined TORRENT_USE_OPENSSL
+#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
 		// for SSL connections, make sure to authenticate the hostname
 		// of the certificate
-#define CASE(t) case socket_type_int_impl<ssl_stream<t> >::value: \
-		s.get<ssl_stream<t> >()->set_verify_callback( \
+#define CASE(t) case socket_type_int_impl<ssl_stream<t>>::value: \
+		s.get<ssl_stream<t>>()->set_verify_callback( \
 			boost::asio::ssl::rfc2818_verification(hostname), ec); \
-		ssl = s.get<ssl_stream<t> >()->native_handle(); \
+		ssl = s.get<ssl_stream<t>>()->native_handle(); \
 		ctx = SSL_get_SSL_CTX(ssl); \
 		break;
 
@@ -128,6 +132,9 @@ namespace libtorrent
 		TORRENT_UNUSED(ec);
 		TORRENT_UNUSED(hostname);
 		TORRENT_UNUSED(s);
+#endif
+#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
+#pragma clang diagnostic pop
 #endif
 	}
 
@@ -330,8 +337,8 @@ namespace libtorrent
 				get<utp_stream>()->set_close_reason(code);
 				break;
 #ifdef TORRENT_USE_OPENSSL
-			case socket_type_int_impl<ssl_stream<utp_stream> >::value:
-				get<ssl_stream<utp_stream> >()->lowest_layer().set_close_reason(code);
+			case socket_type_int_impl<ssl_stream<utp_stream>>::value:
+				get<ssl_stream<utp_stream>>()->lowest_layer().set_close_reason(code);
 				break;
 #endif
 			default: break;
@@ -346,7 +353,7 @@ namespace libtorrent
 				return get<utp_stream>()->get_close_reason();
 #ifdef TORRENT_USE_OPENSSL
 			case socket_type_int_impl<ssl_stream<utp_stream>>::value:
-				return get<ssl_stream<utp_stream> >()->lowest_layer().get_close_reason();
+				return get<ssl_stream<utp_stream>>()->lowest_layer().get_close_reason();
 #endif
 			default: return 0;
 		}

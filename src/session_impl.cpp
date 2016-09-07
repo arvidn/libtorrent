@@ -156,7 +156,14 @@ namespace
 	// structures it allocates
 	struct openssl_cleanup
 	{
+#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
 		~openssl_cleanup() { CRYPTO_cleanup_all_ex_data(); }
+#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
+#pragma clang diagnostic pop
+#endif
 	} openssl_global_destructor;
 }
 
@@ -254,6 +261,10 @@ namespace aux {
 	}
 
 #if defined TORRENT_USE_OPENSSL && OPENSSL_VERSION_NUMBER >= 0x90812f
+#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
 	namespace {
 	// when running bittorrent over SSL, the SNI (server name indication)
 	// extension is used to know which torrent the incoming connection is
@@ -298,6 +309,9 @@ namespace aux {
 		return SSL_TLSEXT_ERR_OK;
 	}
 	} // anonymous namespace
+#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
+#pragma clang diagnostic pop
+#endif
 #endif
 
 	session_impl::session_impl(io_service& ios)
@@ -2552,11 +2566,18 @@ namespace aux {
 		TORRENT_ASSERT(is_single_thread());
 
 #ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
 		// add the current time to the PRNG, to add more unpredictability
 		std::uint64_t now = clock_type::now().time_since_epoch().count();
 		// assume 12 bits of entropy (i.e. about 8 milliseconds)
 		RAND_add(&now, 8, 1.5);
+#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
+#pragma clang diagnostic pop
 #endif
+#endif // TORRENT_USE_OPENSSL
 
 		if (m_paused)
 		{

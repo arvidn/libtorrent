@@ -258,27 +258,27 @@ namespace libtorrent
 		++m_outstanding_operations;
 	}
 
-	void broadcast_socket::send(char const* buffer, int size, error_code& ec, int flags)
+	void broadcast_socket::send(char const* buffer, int const size
+		, error_code& ec, int const flags)
 	{
 		bool all_fail = true;
 		error_code e;
 
-		for (std::list<socket_entry>::iterator i = m_unicast_sockets.begin()
-			, end(m_unicast_sockets.end()); i != end; ++i)
+		for (auto& s : m_unicast_sockets)
 		{
-			if (!i->socket) continue;
-			i->socket->send_to(boost::asio::buffer(buffer, size), m_multicast_endpoint, 0, e);
+			if (!s.socket) continue;
+			s.socket->send_to(boost::asio::buffer(buffer, size), m_multicast_endpoint, 0, e);
 
 			// if the user specified the broadcast flag, send one to the broadcast
 			// address as well
-			if ((flags & broadcast_socket::flag_broadcast) && i->can_broadcast())
-				i->socket->send_to(boost::asio::buffer(buffer, size)
-					, udp::endpoint(i->broadcast_address(), m_multicast_endpoint.port()), 0, e);
+			if ((flags & broadcast_socket::flag_broadcast) && s.can_broadcast())
+				s.socket->send_to(boost::asio::buffer(buffer, size)
+					, udp::endpoint(s.broadcast_address(), m_multicast_endpoint.port()), 0, e);
 
 			if (e)
 			{
-				i->socket->close(e);
-				i->socket.reset();
+				s.socket->close(e);
+				s.socket.reset();
 			}
 			else
 			{
@@ -286,15 +286,14 @@ namespace libtorrent
 			}
 		}
 
-		for (std::list<socket_entry>::iterator i = m_sockets.begin()
-			, end(m_sockets.end()); i != end; ++i)
+		for (auto& s : m_sockets)
 		{
-			if (!i->socket) continue;
-			i->socket->send_to(boost::asio::buffer(buffer, size), m_multicast_endpoint, 0, e);
+			if (!s.socket) continue;
+			s.socket->send_to(boost::asio::buffer(buffer, size), m_multicast_endpoint, 0, e);
 			if (e)
 			{
-				i->socket->close(e);
-				i->socket.reset();
+				s.socket->close(e);
+				s.socket.reset();
 			}
 			else
 			{

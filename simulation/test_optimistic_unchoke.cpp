@@ -85,8 +85,8 @@ TORRENT_TEST(optimistic_unchoke)
 	auto ses = std::make_shared<lt::session>(std::ref(pack), std::ref(ios));
 	ses->async_add_torrent(atp);
 
-	std::vector<std::shared_ptr<sim::asio::io_service> > io_service;
-	std::vector<std::shared_ptr<peer_conn> > peers;
+	std::vector<std::shared_ptr<sim::asio::io_service>> io_service;
+	std::vector<std::shared_ptr<peer_conn>> peers;
 
 	print_alerts(*ses);
 
@@ -129,7 +129,7 @@ TORRENT_TEST(optimistic_unchoke)
 					char const* msg_str[] = {"choke", "unchoke"};
 
 					lt::time_duration d = lt::clock_type::now() - start_time;
-					std::uint32_t const millis = boost::uint32_t(
+					std::uint32_t const millis = std::uint32_t(
 						lt::duration_cast<lt::milliseconds>(d).count());
 					printf("\x1b[35m%4d.%03d: [%d] %s (%d ms)\x1b[0m\n"
 						, millis / 1000, millis % 1000, i, msg_str[msg]
@@ -168,4 +168,3 @@ TORRENT_TEST(optimistic_unchoke)
 		TEST_CHECK(std::abs(unchoke_duration - average_unchoke_time) < 1500);
 	}
 }
-
