@@ -57,8 +57,8 @@ namespace libtorrent
 #ifdef TORRENT_USE_OPENSSL
 			if (ssl_context)
 			{
-				s.instantiate<ssl_stream<utp_stream> >(ios, ssl_context);
-				str = &s.get<ssl_stream<utp_stream> >()->next_layer();
+				s.instantiate<ssl_stream<utp_stream>>(ios, ssl_context);
+				str = &s.get<ssl_stream<utp_stream>>()->next_layer();
 			}
 			else
 #endif
@@ -84,7 +84,7 @@ namespace libtorrent
 #ifdef TORRENT_USE_OPENSSL
 			if (ssl_context)
 			{
-				s.instantiate<ssl_stream<tcp::socket> >(ios, ssl_context);
+				s.instantiate<ssl_stream<tcp::socket>>(ios, ssl_context);
 			}
 			else
 #endif
@@ -99,8 +99,8 @@ namespace libtorrent
 #ifdef TORRENT_USE_OPENSSL
 			if (ssl_context)
 			{
-				s.instantiate<ssl_stream<http_stream> >(ios, ssl_context);
-				str = &s.get<ssl_stream<http_stream> >()->next_layer();
+				s.instantiate<ssl_stream<http_stream>>(ios, ssl_context);
+				str = &s.get<ssl_stream<http_stream>>()->next_layer();
 			}
 			else
 #endif
@@ -121,8 +121,8 @@ namespace libtorrent
 #ifdef TORRENT_USE_OPENSSL
 			if (ssl_context)
 			{
-				s.instantiate<ssl_stream<socks5_stream> >(ios, ssl_context);
-				str = &s.get<ssl_stream<socks5_stream> >()->next_layer();
+				s.instantiate<ssl_stream<socks5_stream>>(ios, ssl_context);
+				str = &s.get<ssl_stream<socks5_stream>>()->next_layer();
 			}
 			else
 #endif
@@ -145,4 +145,3 @@ namespace libtorrent
 	}
 
 }
-

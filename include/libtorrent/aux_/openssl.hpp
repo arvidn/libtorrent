@@ -43,9 +43,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <winsock2.h>
 #endif
 
+#include <openssl/opensslv.h> // for OPENSSL_VERSION_NUMBER
 #include <openssl/ssl.h>
 #include <openssl/safestack.h> // for sk_GENERAL_NAME_value
 #include <openssl/x509v3.h> // for GENERAL_NAME
+
+#if defined TORRENT_USE_LIBCRYPTO \
+	&& defined __clang__ \
+	&& OPENSSL_VERSION_NUMBER <= 0x009081dfL
+#define TORRENT_MACOS_DEPRECATED_LIBCRYPTO 1
+#endif
 
 namespace libtorrent {
 namespace aux {

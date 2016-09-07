@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/aux_/openssl.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 

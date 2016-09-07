@@ -138,11 +138,6 @@ POSSIBILITY OF SUCH DAMAGE.
 # if !defined TORRENT_USE_LIBCRYPTO && !defined TORRENT_USE_LIBGCRYPT
 #  define TORRENT_USE_COMMONCRYPTO 1
 # endif // TORRENT_USE_OPENSSL
-# if defined TORRENT_USE_LIBCRYPTO \
-	&& defined __clang__ \
-	&& OPENSSL_VERSION_NUMBER <= 0x009081dfL
-#  define TORRENT_MACOS_DEPRECATED_LIBCRYPTO
-# endif
 #endif // MAC_OS_X_VERSION_MIN_REQUIRED
 
 // execinfo.h is available in the MacOS X 10.5 SDK.
