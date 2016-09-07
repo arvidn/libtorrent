@@ -84,7 +84,7 @@ int get_cache_size(lt::session& ses)
 	ses.post_session_stats();
 	std::vector<alert*> alerts;
 	ses.pop_alerts(&alerts);
-	boost::int64_t cache_size = -1;
+	std::int64_t cache_size = -1;
 	for (auto const a : alerts)
 	{
 		if (auto const* st = alert_cast<session_stats_alert>(a))
@@ -146,4 +146,3 @@ std::unique_ptr<sim::asio::io_service> make_io_service(sim::simulation& sim, int
 	return std::unique_ptr<sim::asio::io_service>(new sim::asio::io_service(
 		sim, lt::address_v4::from_string(ep)));
 }
-

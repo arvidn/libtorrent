@@ -98,7 +98,7 @@ sha1_hash rand_hash()
 {
 	sha1_hash ret;
 	for (int i = 0; i < 20; ++i)
-		ret[i] = boost::uint8_t(lt::random(0xff));
+		ret[i] = std::uint8_t(lt::random(0xff));
 	return ret;
 }
 
@@ -107,7 +107,7 @@ address rand_v6()
 {
 	address_v6::bytes_type bytes;
 	for (int i = 0; i < int(bytes.size()); ++i)
-		bytes[i] = boost::uint8_t(lt::random(0xff));
+		bytes[i] = std::uint8_t(lt::random(0xff));
 	return address_v6(bytes);
 }
 #endif
@@ -542,7 +542,7 @@ int start_proxy(int proxy_type)
 		s.open(tcp::v4(), ec);
 		if (ec) break;
 		s.bind(tcp::endpoint(address::from_string("127.0.0.1")
-			, boost::uint16_t(port)), ec);
+			, std::uint16_t(port)), ec);
 	} while (ec);
 
 
@@ -749,7 +749,7 @@ std::shared_ptr<torrent_info> create_torrent(std::ostream* file
 	}
 
 	std::vector<char> tmp;
-	std::back_insert_iterator<std::vector<char> > out(tmp);
+	std::back_insert_iterator<std::vector<char>> out(tmp);
 
 	entry tor = t.generate();
 
@@ -919,7 +919,7 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 		std::fprintf(stderr, "%s: ses1: connecting peer port: %d\n"
 			, time_now_string(), port);
 		tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec)
-			, boost::uint16_t(port)));
+			, std::uint16_t(port)));
 
 		if (ses3)
 		{
@@ -941,11 +941,11 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 
 			std::fprintf(stderr, "ses3: connecting peer port: %d\n", port);
 			tor3.connect_peer(tcp::endpoint(
-					address::from_string("127.0.0.1", ec), boost::uint16_t(port)));
+					address::from_string("127.0.0.1", ec), std::uint16_t(port)));
 			std::fprintf(stderr, "ses3: connecting peer port: %d\n", port2);
 				tor3.connect_peer(tcp::endpoint(
 					address::from_string("127.0.0.1", ec)
-					, boost::uint16_t(port2)));
+					, std::uint16_t(port2)));
 		}
 	}
 
@@ -967,7 +967,7 @@ int start_web_server(bool ssl, bool chunked_encoding, bool keepalive)
 		s.open(tcp::v4(), ec);
 		if (ec) break;
 		s.bind(tcp::endpoint(address::from_string("127.0.0.1")
-			, boost::uint16_t(port)), ec);
+			, std::uint16_t(port)), ec);
 	} while (ec);
 
 	char buf[200];
@@ -996,7 +996,7 @@ void stop_web_server()
 tcp::endpoint ep(char const* ip, int port)
 {
 	error_code ec;
-	tcp::endpoint ret(address::from_string(ip, ec), boost::uint16_t(port));
+	tcp::endpoint ret(address::from_string(ip, ec), std::uint16_t(port));
 	TEST_CHECK(!ec);
 	return ret;
 }

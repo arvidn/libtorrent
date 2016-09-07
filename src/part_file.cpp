@@ -330,7 +330,7 @@ namespace libtorrent
 				TORRENT_ASSERT(!ec);
 				if (ec || v.iov_len == 0) return;
 
-				boost::int64_t ret = f.writev(file_offset, &v, 1, ec);
+				std::int64_t ret = f.writev(file_offset, &v, 1, ec);
 				TORRENT_ASSERT(ec || ret == v.iov_len);
 				if (ec || ret != v.iov_len) return;
 
@@ -409,11 +409,10 @@ namespace libtorrent
 				slot = i->second;
 			write_uint32(slot, ptr);
 		}
-		memset(ptr, 0, m_header_size - (ptr - reinterpret_cast<char*>(header.get())));
+		std::memset(ptr, 0, m_header_size - (ptr - reinterpret_cast<char*>(header.get())));
 
 		file::iovec_t b = {header.get(), size_t(m_header_size) };
 		m_file.writev(0, &b, 1, ec);
 		if (ec) return;
 	}
 }
-

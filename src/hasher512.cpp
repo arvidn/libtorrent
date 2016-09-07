@@ -64,6 +64,11 @@ namespace
 
 namespace libtorrent
 {
+#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 	hasher512::hasher512()
 	{
 #ifdef TORRENT_USE_LIBGCRYPT
@@ -221,4 +226,8 @@ namespace libtorrent
 		gcry_md_close(m_context);
 #endif
 	}
+
+#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
+#pragma clang diagnostic pop
+#endif
 }

@@ -90,7 +90,7 @@ lsd::lsd(io_service& ios, peer_callback_t const& cb
 	, m_log_cb(log)
 #endif
 	, m_broadcast_timer(ios)
-	, m_cookie((random(0x7fffffff) ^ boost::uintptr_t(this)) & 0x7fffffff)
+	, m_cookie((random(0x7fffffff) ^ std::uintptr_t(this)) & 0x7fffffff)
 	, m_disabled(false)
 #if TORRENT_USE_IPV6
 	, m_disabled6(false)

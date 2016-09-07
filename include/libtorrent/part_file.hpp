@@ -111,4 +111,3 @@ namespace libtorrent
 		file m_file;
 	};
 }
-

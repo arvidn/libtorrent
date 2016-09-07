@@ -85,11 +85,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #define TORRENT_SOCKTYPE_SSL_FORWARD_RET(x, def) \
 		case socket_type_int_impl<ssl_stream<tcp::socket>>::value: \
-			return get<ssl_stream<tcp::socket> >()->x; \
+			return get<ssl_stream<tcp::socket>>()->x; \
 		case socket_type_int_impl<ssl_stream<socks5_stream>>::value: \
-			return get<ssl_stream<socks5_stream> >()->x; \
+			return get<ssl_stream<socks5_stream>>()->x; \
 		case socket_type_int_impl<ssl_stream<http_stream>>::value: \
-			return get<ssl_stream<http_stream> >()->x; \
+			return get<ssl_stream<http_stream>>()->x; \
 		case socket_type_int_impl<ssl_stream<utp_stream>>::value: \
 			return get<ssl_stream<utp_stream>>()->x;
 

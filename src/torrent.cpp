@@ -1444,6 +1444,10 @@ namespace libtorrent
 #endif
 
 #ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
 
 	bool torrent::verify_peer_cert(bool preverified, boost::asio::ssl::verify_context& ctx)
 	{
@@ -1645,7 +1649,9 @@ namespace libtorrent
 		// tell the client we need a cert for this torrent
 		alerts().emplace_alert<torrent_need_cert_alert>(get_handle());
 	}
-
+#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
+#pragma clang diagnostic pop
+#endif
 #endif // TORRENT_OPENSSL
 
 	void torrent::construct_storage()
@@ -7036,6 +7042,10 @@ namespace libtorrent
 //		INVARIANT_CHECK;
 
 #ifdef TORRENT_USE_OPENSSL
+#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
 		if (is_ssl_torrent())
 		{
 			// if this is an SSL torrent, don't allow non SSL peers on it
@@ -7083,6 +7093,9 @@ namespace libtorrent
 				return false;
 			}
 		}
+#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
+#pragma clang diagnostic pop
+#endif
 #else // TORRENT_USE_OPENSSL
 		if (is_ssl_torrent())
 		{
@@ -7724,10 +7737,10 @@ namespace libtorrent
 		TORRENT_ASSERT(index < int(m_trackers.size()));
 		if (index >= int(m_trackers.size())) return -1;
 
-		while (index > 0 && m_trackers[index].tier == m_trackers[index-1].tier)
+		while (index > 0 && m_trackers[index].tier == m_trackers[index - 1].tier)
 		{
 			using std::swap;
-			swap(m_trackers[index], m_trackers[index-1]);
+			swap(m_trackers[index], m_trackers[index - 1]);
 			if (m_last_working_tracker == index) --m_last_working_tracker;
 			else if (m_last_working_tracker == index - 1) ++m_last_working_tracker;
 			--index;
