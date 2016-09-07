@@ -45,8 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/read_resume_data.hpp"
 
-#include <boost/utility.hpp>
-
 #include <iostream>
 #include <fstream>
 

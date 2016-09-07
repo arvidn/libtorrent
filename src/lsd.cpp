@@ -47,7 +47,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/asio/ip/host_name.hpp>
 #include <boost/asio/ip/multicast.hpp>
-#include <boost/config.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 

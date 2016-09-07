@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/utility.hpp>
 
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 #include "libtorrent/allocator.hpp" // for page_aligned_allocator

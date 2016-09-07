@@ -43,16 +43,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <tuple>
 #include <functional>
 #include <memory>
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
 
 #ifdef TORRENT_USE_OPENSSL
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/asio/ssl/context.hpp>
-#endif
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
+#endif
 
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"
@@ -395,11 +392,11 @@ namespace libtorrent
 		// maps transactionid to the udp_tracker_connection
 		// These must use shared_ptr to avoid a dangling reference
 		// if a connection is erased while a timeout event is in the queue
-		typedef boost::unordered_map<std::uint32_t
-			, std::shared_ptr<udp_tracker_connection>> udp_conns_t;
+		using udp_conns_t = std::unordered_map<std::uint32_t
+			, std::shared_ptr<udp_tracker_connection>> ;
 		udp_conns_t m_udp_conns;
 
-		typedef std::vector<std::shared_ptr<http_tracker_connection>> http_conns_t;
+		using http_conns_t = std::vector<std::shared_ptr<http_tracker_connection>>;
 		http_conns_t m_http_conns;
 
 		send_fun_t m_send_fun;

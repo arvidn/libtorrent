@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdlib> // for atoi
 #include <cstring>
 #include <utility>
+#include <deque>
 
 #include "libtorrent/config.hpp"
 

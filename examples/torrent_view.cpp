@@ -103,7 +103,7 @@ void torrent_view::update_torrents(std::vector<lt::torrent_status> const& st)
 	for (std::vector<lt::torrent_status>::const_iterator i = st.begin();
 		i != st.end(); ++i)
 	{
-		boost::unordered_set<lt::torrent_status>::iterator j = m_all_handles.find(*i);
+		auto j = m_all_handles.find(*i);
 		// add new entries here
 		if (j == m_all_handles.end())
 		{
@@ -370,11 +370,10 @@ void torrent_view::update_filtered_torrents()
 {
 	m_scroll_position = 0;
 	m_filtered_handles.clear();
-	for (boost::unordered_set<lt::torrent_status>::iterator i = m_all_handles.begin()
-		, end(m_all_handles.end()); i != end; ++i)
+	for (auto const& h : m_all_handles)
 	{
-		if (!show_torrent(*i)) continue;
-		m_filtered_handles.push_back(&*i);
+		if (!show_torrent(h)) continue;
+		m_filtered_handles.push_back(&h);
 	}
 	if (m_active_torrent >= int(m_filtered_handles.size())) m_active_torrent = int(m_filtered_handles.size()) - 1;
 	if (m_active_torrent < 0) m_active_torrent = 0;

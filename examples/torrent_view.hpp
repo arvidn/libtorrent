@@ -3,9 +3,10 @@
 
 #include <set>
 #include <vector>
-#include <boost/unordered_set.hpp>
+#include <unordered_set>
 
 #include "libtorrent/torrent_handle.hpp"
+#include "libtorrent/torrent_status.hpp"
 
 namespace lt = libtorrent;
 
@@ -62,7 +63,7 @@ private:
 	void update_filtered_torrents();
 
 	// all torrents
-	boost::unordered_set<lt::torrent_status> m_all_handles;
+	std::unordered_set<lt::torrent_status> m_all_handles;
 
 	// pointers into m_all_handles of the remaining torrents after filtering
 	std::vector<lt::torrent_status const*> m_filtered_handles;

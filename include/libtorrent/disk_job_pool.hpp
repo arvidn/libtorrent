@@ -37,9 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <mutex>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/pool/object_pool.hpp>
-
+#include <boost/pool/pool.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
