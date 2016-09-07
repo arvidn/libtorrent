@@ -149,7 +149,7 @@ namespace libtorrent
 		// be a multiple of 16 kiB. If a piece size of 0 is specified, a
 		// piece_size will be calculated such that the torrent file is roughly 40 kB.
 		// 
-		// If a ``pad_size_limit`` is specified (other than -1), any file larger than
+		// If a ``pad_file_limit`` is specified (other than -1), any file larger than
 		// the specified number of bytes will be preceded by a pad file to align it
 		// with the start of a piece. The pad_file_limit is ignored unless the
 		// ``optimize_alignment`` flag is passed. Typically it doesn't make sense
@@ -168,7 +168,7 @@ namespace libtorrent
 		// ``alignment`` is used when pad files are enabled. This is the size
 		// eligible files are aligned to. The default is -1, which means the
 		// piece size of the torrent.
-		create_torrent(file_storage& fs, int piece_size = 0
+		explicit create_torrent(file_storage& fs, int piece_size = 0
 			, int pad_file_limit = -1, int flags = optimize_alignment
 			, int alignment = -1);
 		create_torrent(torrent_info const& ti);

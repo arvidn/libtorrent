@@ -343,6 +343,27 @@ TORRENT_TEST(piece_range_inclusive)
 	TEST_CHECK(aux::file_piece_range_inclusive(fs, 2) == std::make_tuple(5, 9));
 }
 
+TORRENT_TEST(piece_range)
+{
+	int const piece_size = 0x4000;
+	file_storage fs;
+	fs.set_piece_length(piece_size);
+	fs.add_file(combine_path("temp_storage", "0"), piece_size * 3);
+	fs.add_file(combine_path("temp_storage", "1"), piece_size * 3 + 0x30);
+	fs.set_num_pieces(int((fs.total_size() + piece_size - 1) / piece_size));
+	//        +---+---+---+---+---+---+---+
+	// pieces | 0 | 1 | 2 | 3 | 4 | 5 | 6 |
+	//        +---+---+---+---+---+---+---+
+	// files  |      0    |      1     |
+	//        +---+-------+------------+
+
+	TEST_CHECK(aux::file_piece_range_inclusive(fs, 0) == std::make_tuple(0, 3));
+	TEST_CHECK(aux::file_piece_range_inclusive(fs, 1) == std::make_tuple(3, 7));
+
+	TEST_CHECK(aux::file_piece_range_exclusive(fs, 0) == std::make_tuple(0, 3));
+	TEST_CHECK(aux::file_piece_range_exclusive(fs, 1) == std::make_tuple(3, 7));
+}
+
 // TODO: test file_storage::optimize
 // TODO: test map_block
 // TODO: test piece_size(int piece)

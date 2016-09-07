@@ -389,8 +389,6 @@ void web_peer_connection::write_request(peer_request const& r)
 			i != files.end(); ++i)
 		{
 			file_slice const& f = *i;
-			TORRENT_ASSERT(m_web->have_files.empty()
-				|| m_web->have_files.get_bit(f.file_index));
 
 			file_request_t file_req;
 			file_req.file_index = f.file_index;
@@ -403,6 +401,9 @@ void web_peer_connection::write_request(peer_request const& r)
 				++num_pad_files;
 				continue;
 			}
+
+			TORRENT_ASSERT(m_web->have_files.empty()
+				|| m_web->have_files.get_bit(f.file_index));
 
 			request += "GET ";
 			if (using_proxy)
