@@ -594,16 +594,23 @@ namespace aux {
 	void session_impl::load_state(bdecode_node const* e
 		, std::uint32_t const flags)
 	{
+		settings_pack sp;
+		load_state_impl(*e, flags, sp, true);
+	}
+
+	void session_impl::load_state_impl(bdecode_node const& e
+		, std::uint32_t const flags, settings_pack& pack, bool const apply)
+	{
 		TORRENT_ASSERT(is_single_thread());
 
 		bdecode_node settings;
-		if (e->type() != bdecode_node::dict_t) return;
+		if (e.type() != bdecode_node::dict_t) return;
 
 #ifndef TORRENT_DISABLE_DHT
 		bool need_update_dht = false;
 		if (flags & session::save_dht_settings)
 		{
-			settings = e->dict_find_dict("dht");
+			settings = e.dict_find_dict("dht");
 			if (settings)
 			{
 				bdecode_node val;
@@ -648,7 +655,7 @@ namespace aux {
 
 		if (flags & session::save_dht_state)
 		{
-			settings = e->dict_find_dict("dht state");
+			settings = e.dict_find_dict("dht state");
 			if (settings)
 			{
 				m_dht_state = settings;
@@ -661,7 +668,7 @@ namespace aux {
 		bool need_update_proxy = false;
 		if (flags & session::save_proxy)
 		{
-			settings = e->dict_find_dict("proxy");
+			settings = e.dict_find_dict("proxy");
 			if (settings)
 			{
 				bdecode_node val;
@@ -683,7 +690,7 @@ namespace aux {
 			}
 		}
 
-		settings = e->dict_find_dict("encryption");
+		settings = e.dict_find_dict("encryption");
 		if (settings)
 		{
 			bdecode_node val;
@@ -697,15 +704,15 @@ namespace aux {
 			if (val) m_settings.set_int(settings_pack::allowed_enc_level, val.int_value());
 		}
 #endif
-
+		bool need_apply = false;
 		if (flags & session::save_settings)
 		{
-			settings = e->dict_find_dict("settings");
+			settings = e.dict_find_dict("settings");
 			if (settings)
 			{
+				load_pack_from_dict(settings, pack);
 				// apply_settings_pack will update dht and proxy
-				std::shared_ptr<settings_pack> pack = load_pack_from_dict(settings);
-				apply_settings_pack(pack);
+				need_apply = true;
 #ifndef TORRENT_DISABLE_DHT
 				need_update_dht = false;
 #endif
@@ -715,21 +722,25 @@ namespace aux {
 			}
 		}
 
-#ifndef TORRENT_DISABLE_DHT
-		if (need_update_dht) update_dht();
-#endif
-#ifndef TORRENT_NO_DEPRECATE
-		if (need_update_proxy) update_proxy();
-#endif
-
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (auto& ext : m_ses_extensions[plugins_all_idx])
 		{
 			TORRENT_TRY {
-				ext->load_state(*e);
+				ext->load_state(e);
 			} TORRENT_CATCH(std::exception&) {}
 		}
 #endif
+
+		if (apply)
+		{
+			if (need_apply) apply_settings_pack_impl(pack);
+#ifndef TORRENT_DISABLE_DHT
+			if (need_update_dht) update_dht();
+#endif
+#ifndef TORRENT_NO_DEPRECATE
+			if (need_update_proxy) update_proxy();
+#endif
+		}
 	}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
