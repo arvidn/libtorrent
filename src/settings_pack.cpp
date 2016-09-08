@@ -577,60 +577,57 @@ namespace libtorrent
 		typedef void (aux::session_impl::*fun_t)();
 		std::vector<fun_t> callbacks;
 
-		for (std::vector<std::pair<std::uint16_t, std::string> >::const_iterator i = pack->m_strings.begin()
-			, end(pack->m_strings.end()); i != end; ++i)
+		for (auto const& p : pack->m_strings)
 		{
 			// disregard setting indices that are not string types
-			if ((i->first & settings_pack::type_mask) != settings_pack::string_type_base)
+			if ((p.first & settings_pack::type_mask) != settings_pack::string_type_base)
 				continue;
 
 			// ignore settings that are out of bounds
-			int const index = i->first & settings_pack::index_mask;
+			int const index = p.first & settings_pack::index_mask;
 			TORRENT_ASSERT_PRECOND(index >= 0 && index < settings_pack::num_string_settings);
 			if (index < 0 || index >= settings_pack::num_string_settings)
 				continue;
 
-			sett.set_str(i->first, i->second);
+			sett.set_str(p.first, p.second);
 			str_setting_entry_t const& sa = str_settings[index];
 			if (sa.fun && ses
 				&& std::find(callbacks.begin(), callbacks.end(), sa.fun) == callbacks.end())
 				callbacks.push_back(sa.fun);
 		}
 
-		for (std::vector<std::pair<std::uint16_t, int> >::const_iterator i = pack->m_ints.begin()
-			, end(pack->m_ints.end()); i != end; ++i)
+		for (auto const& p : pack->m_ints)
 		{
 			// disregard setting indices that are not int types
-			if ((i->first & settings_pack::type_mask) != settings_pack::int_type_base)
+			if ((p.first & settings_pack::type_mask) != settings_pack::int_type_base)
 				continue;
 
 			// ignore settings that are out of bounds
-			int const index = i->first & settings_pack::index_mask;
+			int const index = p.first & settings_pack::index_mask;
 			TORRENT_ASSERT_PRECOND(index >= 0 && index < settings_pack::num_int_settings);
 			if (index < 0 || index >= settings_pack::num_int_settings)
 				continue;
 
-			sett.set_int(i->first, i->second);
+			sett.set_int(p.first, p.second);
 			int_setting_entry_t const& sa = int_settings[index];
 			if (sa.fun && ses
 				&& std::find(callbacks.begin(), callbacks.end(), sa.fun) == callbacks.end())
 				callbacks.push_back(sa.fun);
 		}
 
-		for (std::vector<std::pair<std::uint16_t, bool> >::const_iterator i = pack->m_bools.begin()
-			, end(pack->m_bools.end()); i != end; ++i)
+		for (auto const& p : pack->m_bools)
 		{
 			// disregard setting indices that are not bool types
-			if ((i->first & settings_pack::type_mask) != settings_pack::bool_type_base)
+			if ((p.first & settings_pack::type_mask) != settings_pack::bool_type_base)
 				continue;
 
 			// ignore settings that are out of bounds
-			int const index = i->first & settings_pack::index_mask;
+			int const index = p.first & settings_pack::index_mask;
 			TORRENT_ASSERT_PRECOND(index >= 0 && index < settings_pack::num_bool_settings);
 			if (index < 0 || index >= settings_pack::num_bool_settings)
 				continue;
 
-			sett.set_bool(i->first, i->second);
+			sett.set_bool(p.first, p.second);
 			bool_setting_entry_t const& sa = bool_settings[index];
 			if (sa.fun && ses
 				&& std::find(callbacks.begin(), callbacks.end(), sa.fun) == callbacks.end())
@@ -639,10 +636,8 @@ namespace libtorrent
 
 		// call the callbacks once all the settings have been applied, and
 		// only once per callback
-		for (std::vector<fun_t>::iterator i = callbacks.begin(), end(callbacks.end());
-			i != end; ++i)
+		for (auto const& f : callbacks)
 		{
-			fun_t const& f = *i;
 			(ses->*f)();
 		}
 	}

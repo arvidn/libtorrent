@@ -214,7 +214,7 @@ void node::bootstrap(std::vector<udp::endpoint> const& nodes
 #ifndef TORRENT_DISABLE_LOGGING
 		++count;
 #endif
-		r->add_entry(node_id(nullptr), n, observer::flag_initial);
+		r->add_entry(node_id(), n, observer::flag_initial);
 	}
 
 	// make us start as far away from our node ID as possible

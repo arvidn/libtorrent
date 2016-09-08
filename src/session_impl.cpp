@@ -592,7 +592,7 @@ namespace aux {
 	}
 
 	void session_impl::load_state(bdecode_node const* e
-		, std::uint32_t const flags = 0xffffffff)
+		, std::uint32_t const flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -601,7 +601,6 @@ namespace aux {
 
 #ifndef TORRENT_DISABLE_DHT
 		bool need_update_dht = false;
-		// load from the old settings names
 		if (flags & session::save_dht_settings)
 		{
 			settings = e->dict_find_dict("dht");
@@ -939,9 +938,8 @@ namespace aux {
 			m_port_filter.add_rule(0, 1024, port_filter::blocked);
 		// Close connections whose endpoint is filtered
 		// by the new ip-filter
-		for (torrent_map::iterator i = m_torrents.begin()
-			, end(m_torrents.end()); i != end; ++i)
-			i->second->port_filter_updated();
+		for (auto const& t : m_torrents)
+			t.second->port_filter_updated();
 	}
 
 	void session_impl::set_ip_filter(std::shared_ptr<ip_filter> const& f)
@@ -1771,11 +1769,10 @@ namespace aux {
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log("closing all listen sockets");
 #endif
-		for (std::list<listen_socket_t>::iterator i = m_listen_sockets.begin()
-			, end(m_listen_sockets.end()); i != end; ++i)
+		for (auto const& s : m_listen_sockets)
 		{
-			if (i->sock) i->sock->close(ec);
-			if (i->udp_sock) i->udp_sock->close();
+			if (s.sock) s.sock->close(ec);
+			if (s.udp_sock) s.udp_sock->close();
 		}
 
 		m_listen_sockets.clear();
@@ -1923,11 +1920,10 @@ namespace aux {
 		ec.clear();
 
 		// initiate accepting on the listen sockets
-		for (std::list<listen_socket_t>::iterator i = m_listen_sockets.begin()
-			, end(m_listen_sockets.end()); i != end; ++i)
+		for (auto& s : m_listen_sockets)
 		{
-			if (i->sock) async_accept(i->sock, i->ssl);
-			remap_ports(remap_natpmp_and_upnp, *i);
+			if (s.sock) async_accept(s.sock, s.ssl);
+			remap_ports(remap_natpmp_and_upnp, s);
 		}
 
 		open_new_incoming_socks_connection();
@@ -6570,8 +6566,13 @@ namespace aux {
 	}
 
 #ifndef TORRENT_DISABLE_LOGGING
+	bool session_impl::should_log(module_t) const
+	{
+		return m_alerts.should_post<dht_log_alert>();
+	}
+
 	TORRENT_FORMAT(3,4)
-	void session_impl::log(libtorrent::dht::dht_logger::module_t m, char const* fmt, ...)
+	void session_impl::log(module_t m, char const* fmt, ...)
 	{
 		if (!m_alerts.should_post<dht_log_alert>()) return;
 

@@ -69,6 +69,7 @@ struct obs : dht::dht_observer
 		, sha1_hash const& /* sent_target */, udp::endpoint const& /* ep */) override {}
 	void announce(sha1_hash const& /* ih */
 		, address const& /* addr */, int /* port */) override {}
+	bool should_log(module_t) const override { return true; }
 	void log(dht_logger::module_t l, char const* fmt, ...) override
 	{
 		va_list v;

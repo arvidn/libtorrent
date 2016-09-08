@@ -57,7 +57,7 @@ class node;
 struct TORRENT_EXTRA_EXPORT traversal_algorithm : boost::noncopyable
 	, std::enable_shared_from_this<traversal_algorithm>
 {
-	void traverse(node_id const& id, udp::endpoint addr);
+	void traverse(node_id const& id, udp::endpoint const& addr);
 	void finished(observer_ptr o);
 
 	enum flags_t { prevent_request = 1, short_timeout = 2 };
@@ -71,7 +71,7 @@ struct TORRENT_EXTRA_EXPORT traversal_algorithm : boost::noncopyable
 	node_id const& target() const { return m_target; }
 
 	void resort_results();
-	void add_entry(node_id const& id, udp::endpoint addr, unsigned char flags);
+	void add_entry(node_id const& id, udp::endpoint const& addr, unsigned char flags);
 
 	traversal_algorithm(node & node, node_id target);
 	int invoke_count() const { return m_invoke_count; }
@@ -128,4 +128,3 @@ struct traversal_observer : observer
 } } // namespace libtorrent::dht
 
 #endif // TRAVERSAL_ALGORITHM_050324_HPP
-

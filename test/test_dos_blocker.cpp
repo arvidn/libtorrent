@@ -45,6 +45,8 @@ using namespace libtorrent;
 #ifndef TORRENT_DISABLE_LOGGING
 struct log_t : libtorrent::dht::dht_logger
 {
+	bool should_log(module_t) const override { return true; }
+
 	void log(dht_logger::module_t m, char const* fmt, ...)
 		override TORRENT_FORMAT(3, 4)
 	{

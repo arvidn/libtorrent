@@ -385,7 +385,7 @@ namespace libtorrent
 		enum seed_choking_algorithm_t
 		{
 			// round-robins the peers that are unchoked when seeding. This
-			// distributes the upload bandwidht uniformly and fairly. It minimizes
+			// distributes the upload bandwidth uniformly and fairly. It minimizes
 			// the ability for a peer to download everything without
 			// redistributing it.
 			round_robin,
@@ -811,7 +811,7 @@ namespace libtorrent
 		// if this is true, disk read operations are sorted by their physical
 		// offset on disk before issued to the operating system. This is useful
 		// if async I/O is not supported. It defaults to true if async I/O is not
-		// supported and fals otherwise. disk I/O operations are likely to be
+		// supported and fails otherwise. disk I/O operations are likely to be
 		// reordered regardless of this setting when async I/O is supported by
 		// the OS.
 		bool allow_reordered_disk_operations;
@@ -1173,7 +1173,7 @@ namespace libtorrent
 
 		// if true, the ``&ip=`` argument in tracker requests (unless otherwise
 		// specified) will be set to the intermediate IP address, if the user is
-		// double NATed. If ther user is not double NATed, this option has no
+		// double NATed. If the user is not double NATed, this option has no
 		// affect.
 		bool announce_double_nat;
 
@@ -1348,7 +1348,7 @@ namespace libtorrent
 		// active by the queuing mechanism. A torrent whose download rate is less
 		// than ``inactive_down_rate`` and whose upload rate is less than
 		// ``inactive_up_rate`` for ``auto_manage_startup`` seconds, is
-		// considered inactive, and another queued torrent may be startert.
+		// considered inactive, and another queued torrent may be started.
 		// This logic is disabled if ``dont_count_slow_torrents`` is false.
 		int inactive_down_rate;
 		int inactive_up_rate;
