@@ -529,6 +529,8 @@ namespace libtorrent
 
 			void save_state(entry* e, std::uint32_t flags) const;
 			void load_state(bdecode_node const* e, std::uint32_t flags);
+			void load_state_impl(bdecode_node const& e, std::uint32_t flags
+				, settings_pack& pack, bool apply);
 
 			bool has_connection(peer_connection* p) const override;
 			void insert_peer(std::shared_ptr<peer_connection> const& c) override;

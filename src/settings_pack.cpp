@@ -388,10 +388,8 @@ namespace libtorrent
 		return "";
 	}
 
-	std::shared_ptr<settings_pack> load_pack_from_dict(bdecode_node const& settings)
+	void load_pack_from_dict(bdecode_node const& settings, settings_pack& pack)
 	{
-		std::shared_ptr<settings_pack> pack = std::make_shared<settings_pack>();
-
 		for (int i = 0; i < settings.dict_size(); ++i)
 		{
 			string_view key;
@@ -408,7 +406,7 @@ namespace libtorrent
 					for (int k = 0; k < sizeof(int_settings)/sizeof(int_settings[0]); ++k)
 					{
 						if (key != int_settings[k].name) continue;
-						pack->set_int(settings_pack::int_type_base + k, val.int_value());
+						pack.set_int(settings_pack::int_type_base + k, val.int_value());
 						found = true;
 						break;
 					}
@@ -416,7 +414,7 @@ namespace libtorrent
 					for (int k = 0; k < sizeof(bool_settings)/sizeof(bool_settings[0]); ++k)
 					{
 						if (key != bool_settings[k].name) continue;
-						pack->set_bool(settings_pack::bool_type_base + k, val.int_value() != 0);
+						pack.set_bool(settings_pack::bool_type_base + k, val.int_value() != 0);
 						break;
 					}
 				}
@@ -425,7 +423,7 @@ namespace libtorrent
 				for (int k = 0; k < sizeof(str_settings)/sizeof(str_settings[0]); ++k)
 				{
 					if (key != str_settings[k].name) continue;
-					pack->set_str(settings_pack::string_type_base + k, val.string_value().to_string());
+					pack.set_str(settings_pack::string_type_base + k, val.string_value().to_string());
 					break;
 				}
 				break;
@@ -433,7 +431,6 @@ namespace libtorrent
 				break;
 			}
 		}
-		return pack;
 	}
 
 	void save_settings_to_dict(aux::session_settings const& s, entry::dictionary_type& sett)

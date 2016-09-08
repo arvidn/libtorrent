@@ -311,6 +311,7 @@ namespace libtorrent
 		set_dht_settings(params.dht_settings);
 		set_dht_storage(params.dht_storage_constructor);
 
+		m_impl->load_state_impl(params.state, 0xffffffff, params.settings, false);
 		m_impl->start_session(std::move(params.settings));
 
 		if (internal_executor)

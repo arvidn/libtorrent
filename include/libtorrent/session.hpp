@@ -149,6 +149,8 @@ namespace libtorrent
 		libtorrent::dht_settings dht_settings;
 
 		dht::dht_storage_constructor_type dht_storage_constructor;
+
+		bdecode_node state;
 	};
 
 	// The session holds all state that spans multiple torrents. Among other
