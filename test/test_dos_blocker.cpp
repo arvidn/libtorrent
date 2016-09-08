@@ -48,7 +48,7 @@ struct log_t : libtorrent::dht::dht_logger
 	bool should_log(module_t) const override { return true; }
 
 	void log(dht_logger::module_t m, char const* fmt, ...)
-		const override TORRENT_FORMAT(3, 4)
+		override TORRENT_FORMAT(3, 4)
 	{
 		va_list v;
 		va_start(v, fmt);
@@ -57,7 +57,7 @@ struct log_t : libtorrent::dht::dht_logger
 	}
 
 	void log_packet(message_direction_t dir, char const* pkt, int len
-		, udp::endpoint node) const override
+		, udp::endpoint node) override
 	{
 		libtorrent::bdecode_node print;
 		libtorrent::error_code ec;

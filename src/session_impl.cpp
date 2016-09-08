@@ -6572,7 +6572,7 @@ namespace aux {
 	}
 
 	TORRENT_FORMAT(3,4)
-	void session_impl::log(module_t m, char const* fmt, ...) const
+	void session_impl::log(module_t m, char const* fmt, ...)
 	{
 		if (!m_alerts.should_post<dht_log_alert>()) return;
 
@@ -6584,7 +6584,7 @@ namespace aux {
 	}
 
 	void session_impl::log_packet(message_direction_t dir, char const* pkt, int len
-		, udp::endpoint node) const
+		, udp::endpoint node)
 	{
 		if (!m_alerts.should_post<dht_pkt_alert>()) return;
 

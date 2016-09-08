@@ -621,9 +621,9 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 			virtual bool should_log(module_t m) const override;
 			virtual void log(module_t m, char const* fmt, ...)
-				const override TORRENT_FORMAT(3,4);
+				override TORRENT_FORMAT(3,4);
 			virtual void log_packet(message_direction_t dir, char const* pkt, int len
-				, udp::endpoint node) const override;
+				, udp::endpoint node) override;
 #endif
 
 			virtual bool on_dht_request(string_view query

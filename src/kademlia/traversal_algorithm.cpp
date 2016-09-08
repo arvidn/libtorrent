@@ -95,7 +95,7 @@ traversal_algorithm::traversal_algorithm(
 	, m_timeouts(0)
 {
 #ifndef TORRENT_DISABLE_LOGGING
-	dht_observer const* logger = get_node().observer();
+	dht_observer* logger = get_node().observer();
 	if (logger != nullptr && logger->should_log(dht_logger::traversal))
 	{
 		char hex_target[41];
@@ -176,7 +176,7 @@ void traversal_algorithm::add_entry(node_id const& id
 			// close to this one. We know that it's not the same, because
 			// it claims a different node-ID. Ignore this to avoid attacks
 #ifndef TORRENT_DISABLE_LOGGING
-			dht_observer const* logger = get_node().observer();
+			dht_observer* logger = get_node().observer();
 			if (logger != nullptr && logger->should_log(dht_logger::traversal))
 			{
 				char hex_id[41];
@@ -196,7 +196,7 @@ void traversal_algorithm::add_entry(node_id const& id
 			, [&id](observer_ptr const& ob) { return ob->id() == id; }));
 
 #ifndef TORRENT_DISABLE_LOGGING
-		dht_observer const* logger = get_node().observer();
+		dht_observer* logger = get_node().observer();
 		if (logger != nullptr && logger->should_log(dht_logger::traversal))
 		{
 			char hex_id[41];
@@ -318,7 +318,7 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 			++m_branch_factor;
 		o->flags |= observer::flag_short_timeout;
 #ifndef TORRENT_DISABLE_LOGGING
-		dht_observer const* logger = get_node().observer();
+		dht_observer* logger = get_node().observer();
 		if (logger != nullptr && logger->should_log(dht_logger::traversal))
 		{
 			char hex_id[41];
@@ -341,7 +341,7 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 			--m_branch_factor;
 
 #ifndef TORRENT_DISABLE_LOGGING
-		dht_observer const* logger = get_node().observer();
+		dht_observer* logger = get_node().observer();
 		if (logger != nullptr && logger->should_log(dht_logger::traversal))
 		{
 			char hex_id[41];
@@ -387,7 +387,7 @@ void traversal_algorithm::done()
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
-		dht_observer const* logger = get_node().observer();
+		dht_observer* logger = get_node().observer();
 		if (results_target > 0 && (o->flags & observer::flag_alive)
 			&& logger != nullptr && logger->should_log(dht_logger::traversal))
 		{
@@ -470,7 +470,7 @@ bool traversal_algorithm::add_requests()
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
-		dht_observer const* logger = get_node().observer();
+		dht_observer* logger = get_node().observer();
 		if (logger != nullptr && logger->should_log(dht_logger::traversal))
 		{
 			char hex_id[41];
@@ -509,7 +509,7 @@ bool traversal_algorithm::add_requests()
 void traversal_algorithm::add_router_entries()
 {
 #ifndef TORRENT_DISABLE_LOGGING
-	dht_observer const* logger = get_node().observer();
+	dht_observer* logger = get_node().observer();
 	if (logger != nullptr && logger->should_log(dht_logger::traversal))
 	{
 		logger->log(dht_logger::traversal
@@ -575,7 +575,7 @@ void traversal_observer::reply(msg const& m)
 	}
 
 #ifndef TORRENT_DISABLE_LOGGING
-	dht_observer const* logger = get_observer();
+	dht_observer* logger = get_observer();
 	if (logger != nullptr && logger->should_log(dht_logger::traversal))
 	{
 		bdecode_node nid = r.dict_find_string("id");
