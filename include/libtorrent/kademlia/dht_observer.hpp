@@ -57,9 +57,10 @@ namespace libtorrent { namespace dht
 			outgoing_message
 		};
 
-		virtual void log(module_t m, char const* fmt, ...) TORRENT_FORMAT(3,4) = 0;
+		virtual bool should_log(module_t m) const = 0;
+		virtual void log(module_t m, char const* fmt, ...) const TORRENT_FORMAT(3,4) = 0;
 		virtual void log_packet(message_direction_t dir, char const* pkt, int len
-			, udp::endpoint node) = 0;
+			, udp::endpoint node) const = 0;
 #endif
 
 	protected:

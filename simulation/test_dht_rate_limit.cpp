@@ -69,7 +69,8 @@ struct obs : dht::dht_observer
 		, sha1_hash const& /* sent_target */, udp::endpoint const& /* ep */) override {}
 	void announce(sha1_hash const& /* ih */
 		, address const& /* addr */, int /* port */) override {}
-	void log(dht_logger::module_t l, char const* fmt, ...) override
+	bool should_log(module_t) const override { return true; }
+	void log(dht_logger::module_t l, char const* fmt, ...) const override
 	{
 		va_list v;
 		va_start(v, fmt);
@@ -79,7 +80,7 @@ struct obs : dht::dht_observer
 	}
 	void log_packet(message_direction_t /* dir */
 		, char const* /* pkt */, int /* len */
-		, udp::endpoint /* node */) override {}
+		, udp::endpoint /* node */) const override {}
 	bool on_dht_request(string_view /* query */
 		, dht::msg const& /* request */, entry& /* response */) override
 	{ return false; }

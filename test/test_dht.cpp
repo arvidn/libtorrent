@@ -486,7 +486,8 @@ struct obs : dht::dht_observer
 		, sha1_hash const& sent_target, udp::endpoint const& ep) override {}
 	void announce(sha1_hash const& ih, address const& addr, int port) override {}
 #ifndef TORRENT_DISABLE_LOGGING
-	void log(dht_logger::module_t l, char const* fmt, ...) override
+	bool should_log(module_t) const override { return true; }
+	void log(dht_logger::module_t l, char const* fmt, ...) const override
 	{
 		va_list v;
 		va_start(v, fmt);
@@ -497,7 +498,7 @@ struct obs : dht::dht_observer
 		m_log.push_back(buf);
 	}
 	void log_packet(message_direction_t dir, char const* pkt, int len
-		, udp::endpoint node) override {}
+		, udp::endpoint node) const override {}
 #endif
 	bool on_dht_request(string_view query
 		, dht::msg const& request, entry& response) override { return false; }
@@ -505,7 +506,7 @@ struct obs : dht::dht_observer
 	address m_external_address = addr4("236.0.0.1");
 
 #ifndef TORRENT_DISABLE_LOGGING
-	std::vector<std::string> m_log;
+	mutable std::vector<std::string> m_log;
 #endif
 };
 

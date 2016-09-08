@@ -91,7 +91,7 @@ namespace libtorrent
 		return r;
 	}
 
-	void session_handle::save_state(entry& e, std::uint32_t flags) const
+	void session_handle::save_state(entry& e, std::uint32_t const flags) const
 	{
 		entry* ep = &e;
 		sync_call(&session_impl::save_state, ep, flags);
@@ -107,10 +107,9 @@ namespace libtorrent
 
 	void session_handle::get_torrent_status(std::vector<torrent_status>* ret
 		, std::function<bool(torrent_status const&)> const& pred
-		, std::uint32_t flags) const
+		, std::uint32_t const flags) const
 	{
-		auto predr = std::ref(pred);
-		sync_call(&session_impl::get_torrent_status, ret, predr, flags);
+		sync_call(&session_impl::get_torrent_status, ret, pred, flags);
 	}
 
 	void session_handle::refresh_torrent_status(std::vector<torrent_status>* ret

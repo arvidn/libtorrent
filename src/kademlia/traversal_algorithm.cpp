@@ -46,8 +46,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/hex.hpp> // to_hex
 #endif
 
-#include <functional>
-
 using namespace std::placeholders;
 
 namespace libtorrent { namespace dht
@@ -97,12 +95,13 @@ traversal_algorithm::traversal_algorithm(
 	, m_timeouts(0)
 {
 #ifndef TORRENT_DISABLE_LOGGING
-	if (get_node().observer())
+	dht_observer const* logger = get_node().observer();
+	if (logger != nullptr && logger->should_log(dht_logger::traversal))
 	{
 		char hex_target[41];
 		aux::to_hex(target, hex_target);
-		get_node().observer()->log(dht_logger::traversal, "[%p] NEW target: %s k: %d"
-			, static_cast<void*>(this), hex_target, int(m_node.m_table.bucket_size()));
+		logger->log(dht_logger::traversal, "[%p] NEW target: %s k: %d"
+			, static_cast<void*>(this), hex_target, m_node.m_table.bucket_size());
 	}
 #endif
 }
@@ -114,14 +113,15 @@ void traversal_algorithm::resort_results()
 		{ return compare_ref(lhs->id(), rhs->id(), m_target); });
 }
 
-void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsigned char flags)
+void traversal_algorithm::add_entry(node_id const& id
+	, udp::endpoint const& addr, unsigned char const flags)
 {
 	TORRENT_ASSERT(m_node.m_rpc.allocation_size() >= sizeof(find_data_observer));
 	auto o = new_observer(addr, id);
 	if (!o)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		if (get_node().observer())
+		if (get_node().observer() != nullptr)
 		{
 			get_node().observer()->log(dht_logger::traversal, "[%p] failed to allocate memory or observer. aborting!"
 				, static_cast<void*>(this));
@@ -142,8 +142,7 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 		, [this](observer_ptr const& lhs, observer_ptr const& rhs)
 		{ return compare_ref(lhs->id(), rhs->id(), m_target); }));
 
-	std::vector<observer_ptr>::iterator iter = std::lower_bound(
-		m_results.begin(), m_results.end(), o
+	auto iter = std::lower_bound(m_results.begin(), m_results.end(), o
 		, [this](observer_ptr const& lhs, observer_ptr const& rhs)
 		{ return compare_ref(lhs->id(), rhs->id(), m_target); });
 
@@ -177,11 +176,12 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 			// close to this one. We know that it's not the same, because
 			// it claims a different node-ID. Ignore this to avoid attacks
 #ifndef TORRENT_DISABLE_LOGGING
-			if (get_node().observer())
+			dht_observer const* logger = get_node().observer();
+			if (logger != nullptr && logger->should_log(dht_logger::traversal))
 			{
 				char hex_id[41];
 				aux::to_hex(o->id(), hex_id);
-				get_node().observer()->log(dht_logger::traversal
+				logger->log(dht_logger::traversal
 					, "[%p] traversal DUPLICATE node. id: %s addr: %s type: %s"
 					, static_cast<void*>(this), hex_id, print_address(o->target_addr()).c_str(), name());
 			}
@@ -196,11 +196,12 @@ void traversal_algorithm::add_entry(node_id const& id, udp::endpoint addr, unsig
 			, [&id](observer_ptr const& ob) { return ob->id() == id; }));
 
 #ifndef TORRENT_DISABLE_LOGGING
-		if (get_node().observer())
+		dht_observer const* logger = get_node().observer();
+		if (logger != nullptr && logger->should_log(dht_logger::traversal))
 		{
 			char hex_id[41];
 			aux::to_hex(id, hex_id);
-			get_node().observer()->log(dht_logger::traversal
+			logger->log(dht_logger::traversal
 				, "[%p] ADD id: %s addr: %s distance: %d invoke-count: %d type: %s"
 				, static_cast<void*>(this), hex_id, print_endpoint(addr).c_str()
 				, distance_exp(m_target, id), m_invoke_count, name());
@@ -250,10 +251,10 @@ char const* traversal_algorithm::name() const
 	return "traversal_algorithm";
 }
 
-void traversal_algorithm::traverse(node_id const& id, udp::endpoint addr)
+void traversal_algorithm::traverse(node_id const& id, udp::endpoint const& addr)
 {
 #ifndef TORRENT_DISABLE_LOGGING
-	if (id.is_all_zeros() && get_node().observer())
+	if (id.is_all_zeros() && get_node().observer() != nullptr)
 	{
 		get_node().observer()->log(dht_logger::traversal
 			, "[%p] WARNING node returned a list which included a node with id 0"
@@ -317,11 +318,12 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 			++m_branch_factor;
 		o->flags |= observer::flag_short_timeout;
 #ifndef TORRENT_DISABLE_LOGGING
-		if (get_node().observer())
+		dht_observer const* logger = get_node().observer();
+		if (logger != nullptr && logger->should_log(dht_logger::traversal))
 		{
 			char hex_id[41];
 			aux::to_hex(o->id(), hex_id);
-			get_node().observer()->log(dht_logger::traversal
+			logger->log(dht_logger::traversal
 				, "[%p] 1ST_TIMEOUT id: %s distance: %d addr: %s branch-factor: %d "
 				"invoke-count: %d type: %s"
 				, static_cast<void*>(this), hex_id, distance_exp(m_target, o->id())
@@ -339,11 +341,12 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 			--m_branch_factor;
 
 #ifndef TORRENT_DISABLE_LOGGING
-		if (get_node().observer())
+		dht_observer const* logger = get_node().observer();
+		if (logger != nullptr && logger->should_log(dht_logger::traversal))
 		{
 			char hex_id[41];
 			aux::to_hex(o->id(), hex_id);
-			get_node().observer()->log(dht_logger::traversal
+			logger->log(dht_logger::traversal
 				, "[%p] TIMEOUT id: %s distance: %d addr: %s branch-factor: %d "
 				"invoke-count: %d type: %s"
 				, static_cast<void*>(this), hex_id, distance_exp(m_target, o->id())
@@ -384,12 +387,14 @@ void traversal_algorithm::done()
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
-		if (results_target > 0 && (o->flags & observer::flag_alive) && get_node().observer())
+		dht_observer const* logger = get_node().observer();
+		if (results_target > 0 && (o->flags & observer::flag_alive)
+			&& logger != nullptr && logger->should_log(dht_logger::traversal))
 		{
 			TORRENT_ASSERT(o->flags & observer::flag_queried);
 			char hex_id[41];
 			aux::to_hex(o->id(), hex_id);
-			get_node().observer()->log(dht_logger::traversal
+			logger->log(dht_logger::traversal
 				, "[%p] id: %s distance: %d addr: %s"
 				, static_cast<void*>(this), hex_id, closest_target
 				, print_endpoint(o->target_ep()).c_str());
@@ -402,7 +407,7 @@ void traversal_algorithm::done()
 	}
 
 #ifndef TORRENT_DISABLE_LOGGING
-	if (get_node().observer())
+	if (get_node().observer() != nullptr)
 	{
 		get_node().observer()->log(dht_logger::traversal
 			, "[%p] COMPLETED distance: %d type: %s"
@@ -465,11 +470,12 @@ bool traversal_algorithm::add_requests()
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
-		if (get_node().observer())
+		dht_observer const* logger = get_node().observer();
+		if (logger != nullptr && logger->should_log(dht_logger::traversal))
 		{
 			char hex_id[41];
 			aux::to_hex(o->id(), hex_id);
-			get_node().observer()->log(dht_logger::traversal
+			logger->log(dht_logger::traversal
 				, "[%p] INVOKE nodes-left: %d top-invoke-count: %d "
 				"invoke-count: %d branch-factor: %d "
 				"distance: %d id: %s addr: %s type: %s"
@@ -503,9 +509,10 @@ bool traversal_algorithm::add_requests()
 void traversal_algorithm::add_router_entries()
 {
 #ifndef TORRENT_DISABLE_LOGGING
-	if (get_node().observer())
+	dht_observer const* logger = get_node().observer();
+	if (logger != nullptr && logger->should_log(dht_logger::traversal))
 	{
-		get_node().observer()->log(dht_logger::traversal
+		logger->log(dht_logger::traversal
 			, "[%p] using router nodes to initiate traversal algorithm %d routers"
 			, static_cast<void*>(this), int(std::distance(m_node.m_table.begin(), m_node.m_table.end())));
 	}
@@ -537,10 +544,9 @@ void traversal_algorithm::status(dht_lookup& l)
 
 	int last_sent = INT_MAX;
 	time_point now = aux::time_now();
-	for (std::vector<observer_ptr>::iterator i = m_results.begin()
-		, end(m_results.end()); i != end; ++i)
+	for (auto const& r : m_results)
 	{
-		observer& o = **i;
+		observer const& o = *r;
 		if (o.flags & observer::flag_queried)
 		{
 			last_sent = (std::min)(last_sent, int(total_seconds(now - o.sent())));
@@ -569,12 +575,13 @@ void traversal_observer::reply(msg const& m)
 	}
 
 #ifndef TORRENT_DISABLE_LOGGING
-	if (get_observer())
+	dht_observer const* logger = get_observer();
+	if (logger != nullptr && logger->should_log(dht_logger::traversal))
 	{
 		bdecode_node nid = r.dict_find_string("id");
 		char hex_id[41];
 		aux::to_hex({nid.string_ptr(), 20}, hex_id);
-		get_observer()->log(dht_logger::traversal
+		logger->log(dht_logger::traversal
 			, "[%p] RESPONSE id: %s invoke-count: %d addr: %s type: %s"
 			, static_cast<void*>(algorithm()), hex_id, algorithm()->invoke_count()
 			, print_endpoint(target_ep()).c_str(), algorithm()->name());
