@@ -71,6 +71,7 @@ namespace libtorrent { namespace dht
 	time_duration const key_refresh
 		= duration_cast<time_duration>(minutes(5));
 
+	// TODO: delete this
 	node_id extract_node_id(entry const& e, std::string const& key)
 	{
 		if (e.type() != entry::dictionary_t) return (node_id::min)();
@@ -100,13 +101,17 @@ namespace libtorrent { namespace dht
 		, dht_settings const& settings
 		, counters& cnt
 		, dht_storage_interface& storage
-		, entry const& state)
+		, node_id const& nid
+#if TORRENT_USE_IPV6
+		, node_id const& nid6
+#endif
+		)
 		: m_counters(cnt)
 		, m_storage(storage)
-		, m_dht(udp::v4(), this, settings, extract_node_id(state, "node-id")
+		, m_dht(udp::v4(), this, settings, nid
 			, observer, cnt, m_nodes, storage)
 #if TORRENT_USE_IPV6
-		, m_dht6(udp::v6(), this, settings, extract_node_id(state, "node-id6")
+		, m_dht6(udp::v6(), this, settings, nid6
 			, observer, cnt, m_nodes, storage)
 #endif
 		, m_send_fun(send_fun)
@@ -157,28 +162,12 @@ namespace libtorrent { namespace dht
 	// defined in node.cpp
 	void nop();
 
-	void dht_tracker::start(entry const& bootstrap
+	void dht_tracker::start(std::vector<udp::endpoint> const& nodes
+#if TORRENT_USE_IPV6
+		, std::vector<udp::endpoint> const& nodes6
+#endif
 		, find_data::nodes_callback const& f)
 	{
-		std::vector<udp::endpoint> initial_nodes;
-#if TORRENT_USE_IPV6
-		std::vector<udp::endpoint> initial_nodes6;
-#endif
-
-		if (bootstrap.type() == entry::dictionary_t)
-		{
-			TORRENT_TRY {
-				if (entry const* nodes = bootstrap.find_key("nodes"))
-					read_endpoint_list<udp::endpoint>(nodes, initial_nodes);
-			} TORRENT_CATCH(std::exception&) {}
-#if TORRENT_USE_IPV6
-			TORRENT_TRY{
-				if (entry const* nodes = bootstrap.find_key("nodes6"))
-					read_endpoint_list<udp::endpoint>(nodes, initial_nodes6);
-			} TORRENT_CATCH(std::exception&) {}
-#endif
-		}
-
 		error_code ec;
 		refresh_key(ec);
 
@@ -194,9 +183,9 @@ namespace libtorrent { namespace dht
 
 		m_refresh_timer.expires_from_now(seconds(5), ec);
 		m_refresh_timer.async_wait(std::bind(&dht_tracker::refresh_timeout, self(), _1));
-		m_dht.bootstrap(initial_nodes, f);
+		m_dht.bootstrap(nodes, f);
 #if TORRENT_USE_IPV6
-		m_dht6.bootstrap(initial_nodes6, f);
+		m_dht6.bootstrap(nodes6, f);
 #endif
 	}
 

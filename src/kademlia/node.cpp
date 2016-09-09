@@ -93,7 +93,8 @@ node_id calculate_node_id(node_id const& nid, dht_observer* observer, udp protoc
 } // anonymous namespace
 
 node::node(udp proto, udp_socket_interface* sock
-	, dht_settings const& settings, node_id nid
+	, dht_settings const& settings
+	, node_id const& nid
 	, dht_observer* observer
 	, counters& cnt
 	, std::map<std::string, node*> const& nodes

@@ -151,6 +151,7 @@ namespace libtorrent
 		}
 	}
 
+	// TODO: delete this
 	template <class EndpointType>
 	void read_endpoint_list(libtorrent::entry const* n, std::vector<EndpointType>& epl)
 	{

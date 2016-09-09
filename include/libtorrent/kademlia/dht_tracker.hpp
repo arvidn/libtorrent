@@ -73,10 +73,17 @@ namespace libtorrent { namespace dht
 			, dht_settings const& settings
 			, counters& cnt
 			, dht_storage_interface& storage
-			, entry const& state);
+			, node_id const& nid
+#if TORRENT_USE_IPV6
+			, node_id const& nid6
+#endif
+			);
 		virtual ~dht_tracker();
 
-		void start(entry const& bootstrap
+		void start(std::vector<udp::endpoint> const& nodes
+#if TORRENT_USE_IPV6
+			, std::vector<udp::endpoint> const& nodes6
+#endif
 			, find_data::nodes_callback const& f);
 		void stop();
 

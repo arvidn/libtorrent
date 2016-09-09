@@ -326,10 +326,16 @@ namespace libtorrent
 			void add_dht_router(std::pair<std::string, int> const& node);
 			void set_dht_settings(dht_settings const& s);
 			dht_settings const& get_dht_settings() const { return m_dht_settings; }
+			void set_dht_state(dht::node_id const& nid
+				, std::vector<udp::endpoint> const& bootstrap_nodes
+#if TORRENT_USE_IPV6
+				, dht::node_id const& nid6
+				, std::vector<udp::endpoint> const& bootstrap_nodes6
+#endif
+				);
 			void set_dht_storage(dht::dht_storage_constructor_type sc);
 			void start_dht();
 			void stop_dht();
-			void start_dht(entry const& startup_state);
 			bool has_dht() const override;
 
 			// this is called for torrents when they are started
@@ -921,8 +927,13 @@ namespace libtorrent
 				, tcp::endpoint bind_ep, int flags, error_code& ec);
 
 #ifndef TORRENT_DISABLE_DHT
-			entry m_dht_state;
+			dht::node_id m_dht_nid;
+			std::vector<udp::endpoint> m_dht_bootstrap_nodes;
+#if TORRENT_USE_IPV6
+			dht::node_id m_dht_nid6;
+			std::vector<udp::endpoint> m_dht_bootstrap_nodes6;
 #endif
+#endif // TORRENT_DISABLE_DHT
 
 			// this is initialized to the unchoke_interval
 			// session_setting and decreased every second.
