@@ -523,8 +523,7 @@ namespace libtorrent { namespace dht
 			static std::uint8_t const class_a[] = { 3, 6, 7, 9, 11, 19, 21, 22, 25
 				, 26, 28, 29, 30, 33, 34, 48, 51, 56 };
 
-			int num = sizeof(class_a) / sizeof(class_a[0]);
-			if (std::find(class_a, class_a + num, b[0]) != class_a + num)
+			if (std::find(std::begin(class_a), std::end(class_a), b[0]) != std::end(class_a))
 			{
 				m_counters.inc_stats_counter(counters::dht_messages_in_dropped);
 				return true;
