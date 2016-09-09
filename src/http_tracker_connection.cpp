@@ -361,12 +361,9 @@ namespace libtorrent
 			std::list<address> ip_list;
 			if (m_tracker_connection)
 			{
-				error_code ignore;
-				std::vector<tcp::endpoint> const& epts = m_tracker_connection->endpoints();
-				for (std::vector<tcp::endpoint>::const_iterator i = epts.begin()
-					, end(epts.end()); i != end; ++i)
+				for (auto const& endp : m_tracker_connection->endpoints())
 				{
-					ip_list.push_back(i->address());
+					ip_list.push_back(endp.address());
 				}
 			}
 
@@ -388,7 +385,7 @@ namespace libtorrent
 		bdecode_node i = info.dict_find_string("peer id");
 		if (i && i.string_length() == 20)
 		{
-			std::copy(i.string_ptr(), i.string_ptr()+20, ret.pid.begin());
+			std::copy(i.string_ptr(), i.string_ptr() + 20, ret.pid.begin());
 		}
 		else
 		{
@@ -596,4 +593,3 @@ namespace libtorrent
 		return resp;
 	}
 }
-

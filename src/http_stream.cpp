@@ -64,7 +64,7 @@ namespace libtorrent
 		}
 
 		// send CONNECT
-		std::back_insert_iterator<std::vector<char> > p(m_buffer);
+		std::back_insert_iterator<std::vector<char>> p(m_buffer);
 		std::string endpoint;
 		if (!m_hostname.empty())
 		{
@@ -99,7 +99,7 @@ namespace libtorrent
 	{
 		if (handle_error(e, h)) return;
 
-		int read_pos = int(m_buffer.size());
+		int const read_pos = int(m_buffer.size());
 		// look for \n\n and \r\n\r\n
 		// both of which means end of http response header
 		bool found_end = false;
@@ -152,4 +152,3 @@ namespace libtorrent
 	}
 
 }
-

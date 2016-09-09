@@ -72,7 +72,7 @@ namespace libtorrent { namespace dht
 struct traversal_algorithm;
 struct dht_observer;
 
-void TORRENT_EXTRA_EXPORT write_nodes_entry(entry& r, nodes_t const& nodes);
+TORRENT_EXTRA_EXPORT void write_nodes_entry(entry& r, nodes_t const& nodes);
 
 struct null_type {};
 
@@ -142,7 +142,7 @@ public:
 	enum flags_t { flag_seed = 1, flag_implied_port = 2 };
 	void get_peers(sha1_hash const& info_hash
 		, std::function<void(std::vector<tcp::endpoint> const&)> dcallback
-		, std::function<void(std::vector<std::pair<node_entry, std::string> > const&)> ncallback
+		, std::function<void(std::vector<std::pair<node_entry, std::string>> const&)> ncallback
 		, bool noseeds);
 	void announce(sha1_hash const& info_hash, int listen_port, int flags
 		, std::function<void(std::vector<tcp::endpoint> const&)> f);
@@ -173,7 +173,7 @@ public:
 	// pings the given node, and adds it to
 	// the routing table if it response and if the
 	// bucket is not full.
-	void add_node(udp::endpoint node);
+	void add_node(udp::endpoint const& node);
 
 	void replacement_cache(bucket_t& nodes) const
 	{ m_table.replacement_cache(nodes); }
@@ -210,7 +210,7 @@ public:
 	char const* protocol_family_name() const { return m_protocol.family_name; }
 	char const* protocol_nodes_key() const { return m_protocol.nodes_key; }
 
-	bool native_address(udp::endpoint ep) const
+	bool native_address(udp::endpoint const& ep) const
 	{ return ep.protocol().family() == m_protocol.protocol.family(); }
 	bool native_address(tcp::endpoint ep) const
 	{ return ep.protocol().family() == m_protocol.protocol.family(); }

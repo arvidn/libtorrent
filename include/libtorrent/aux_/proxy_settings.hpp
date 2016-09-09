@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 
 #include <string>
-#include <cstdint>
 
 namespace libtorrent {
 struct settings_pack;

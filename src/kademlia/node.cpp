@@ -95,7 +95,7 @@ node_id calculate_node_id(node_id const& nid, dht_observer* observer, udp protoc
 node::node(udp proto, udp_socket_interface* sock
 	, dht_settings const& settings, node_id nid
 	, dht_observer* observer
-	, struct counters& cnt
+	, counters& cnt
 	, std::map<std::string, node*> const& nodes
 	, dht_storage_interface& storage)
 	: m_settings(settings)
@@ -146,7 +146,7 @@ bool node::verify_token(string_view token, sha1_hash const& info_hash
 	if (token.length() != 4)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		if (m_observer)
+		if (m_observer != nullptr)
 		{
 			m_observer->log(dht_logger::node, "token of incorrect length: %d"
 				, int(token.length()));
@@ -221,7 +221,7 @@ void node::bootstrap(std::vector<udp::endpoint> const& nodes
 	r->trim_seed_nodes();
 
 #ifndef TORRENT_DISABLE_LOGGING
-	if (m_observer)
+	if (m_observer != nullptr)
 		m_observer->log(dht_logger::node, "bootstrapping with %d nodes", count);
 #endif
 	r->start();
@@ -274,8 +274,8 @@ void node::incoming(msg const& m)
 	{
 		// this node claims we use the wrong node-ID!
 		address_v6::bytes_type b;
-		memcpy(&b[0], ext_ip.string_ptr(), 16);
-		if (m_observer)
+		std::memcpy(&b[0], ext_ip.string_ptr(), 16);
+		if (m_observer != nullptr)
 			m_observer->set_external_address(address_v6(b)
 				, m.addr.address());
 	} else
@@ -283,8 +283,8 @@ void node::incoming(msg const& m)
 	if (ext_ip && ext_ip.string_length() >= 4)
 	{
 		address_v4::bytes_type b;
-		memcpy(&b[0], ext_ip.string_ptr(), 4);
-		if (m_observer)
+		std::memcpy(&b[0], ext_ip.string_ptr(), 4);
+		if (m_observer != nullptr)
 			m_observer->set_external_address(address_v4(b)
 				, m.addr.address());
 	}
@@ -320,13 +320,12 @@ void node::incoming(msg const& m)
 		case 'e':
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			if (m_observer)
+			if (m_observer != nullptr && m_observer->should_log(dht_logger::node))
 			{
 				bdecode_node err = m.message.dict_find_list("e");
 				if (err && err.list_size() >= 2
 					&& err.list_at(0).type() == bdecode_node::int_t
-					&& err.list_at(1).type() == bdecode_node::string_t
-					&& m_observer)
+					&& err.list_at(1).type() == bdecode_node::string_t)
 				{
 					m_observer->log(dht_logger::node, "INCOMING ERROR: (%" PRId64 ") %s"
 						, err.list_int_value_at(0)
@@ -351,7 +350,8 @@ namespace
 		, node& node, int listen_port, sha1_hash const& ih, int flags)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		if (node.observer())
+		if (node.observer() != nullptr
+			&& node.observer()->should_log(dht_logger::node))
 		{
 			char hex_ih[41];
 			aux::to_hex(ih, hex_ih);
@@ -366,7 +366,8 @@ namespace
 		for (auto const& p : v)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			if (node.observer())
+			if (node.observer() != nullptr
+				&& node.observer()->should_log(dht_logger::node))
 			{
 				node.observer()->log(dht_logger::node, "announce-distance: %d"
 					, (160 - distance_exp(ih, p.first.id)));
@@ -397,7 +398,7 @@ namespace
 void node::add_router_node(udp::endpoint router)
 {
 #ifndef TORRENT_DISABLE_LOGGING
-	if (m_observer)
+	if (m_observer != nullptr && m_observer->should_log(dht_logger::node))
 	{
 		m_observer->log(dht_logger::node, "adding router node: %s"
 			, print_endpoint(router).c_str());
@@ -406,7 +407,7 @@ void node::add_router_node(udp::endpoint router)
 	m_table.add_router_node(router);
 }
 
-void node::add_node(udp::endpoint node)
+void node::add_node(udp::endpoint const& node)
 {
 	if (!native_address(node)) return;
 	// ping the node, and if we get a reply, it
@@ -439,7 +440,7 @@ void node::announce(sha1_hash const& info_hash, int listen_port, int flags
 	, std::function<void(std::vector<tcp::endpoint> const&)> f)
 {
 #ifndef TORRENT_DISABLE_LOGGING
-	if (m_observer)
+	if (m_observer != nullptr && m_observer->should_log(dht_logger::node))
 	{
 		char hex_ih[41];
 		aux::to_hex(info_hash, hex_ih);
@@ -471,7 +472,7 @@ void node::get_item(sha1_hash const& target
 	, std::function<void(item const&)> f)
 {
 #ifndef TORRENT_DISABLE_LOGGING
-	if (m_observer)
+	if (m_observer != nullptr && m_observer->should_log(dht_logger::node))
 	{
 		char hex_target[41];
 		aux::to_hex(target, hex_target);
@@ -489,7 +490,7 @@ void node::get_item(public_key const& pk, std::string const& salt
 	, std::function<void(item const&, bool)> f)
 {
 #ifndef TORRENT_DISABLE_LOGGING
-	if (m_observer)
+	if (m_observer != nullptr && m_observer->should_log(dht_logger::node))
 	{
 		char hex_key[65];
 		aux::to_hex(pk.bytes, hex_key);
@@ -528,7 +529,7 @@ void put_data_cb(item i, bool auth
 void node::put_item(sha1_hash const& target, entry const& data, std::function<void(int)> f)
 {
 #ifndef TORRENT_DISABLE_LOGGING
-	if (m_observer)
+	if (m_observer != nullptr && m_observer->should_log(dht_logger::node))
 	{
 		char hex_target[41];
 		aux::to_hex(target, hex_target);
@@ -551,14 +552,14 @@ void node::put_item(public_key const& pk, std::string const& salt
 	, std::function<void(item const&, int)> f
 	, std::function<void(item&)> data_cb)
 {
-	#ifndef TORRENT_DISABLE_LOGGING
-	if (m_observer)
+#ifndef TORRENT_DISABLE_LOGGING
+	if (m_observer != nullptr && m_observer->should_log(dht_logger::node))
 	{
 		char hex_key[65];
 		aux::to_hex(pk.bytes, hex_key);
 		m_observer->log(dht_logger::node, "starting get for [ key: %s ]", hex_key);
 	}
-	#endif
+#endif
 
 	auto put_ta = std::make_shared<dht::put_data>(*this, f);
 
@@ -630,12 +631,12 @@ void node::tick()
 	// expanding the routing table buckets closer to us.
 	// if m_table.depth() < 4, means routing_table doesn't
 	// have enough nodes.
-	time_point now = aux::time_now();
+	time_point const now = aux::time_now();
 	if (m_last_self_refresh + minutes(10) < now && m_table.depth() < 4)
 	{
 		node_id target = m_id;
 		make_id_secret(target);
-		auto r = std::make_shared<dht::bootstrap>(*this, target, std::bind(&nop));
+		auto const r = std::make_shared<dht::bootstrap>(*this, target, std::bind(&nop));
 		r->start();
 		m_last_self_refresh = now;
 		return;
@@ -648,12 +649,12 @@ void node::tick()
 	TORRENT_ASSERT(m_id != ne->id);
 	if (ne->id == m_id) return;
 
-	int bucket = 159 - distance_exp(m_id, ne->id);
+	int const bucket = 159 - distance_exp(m_id, ne->id);
 	TORRENT_ASSERT(bucket < 160);
 	send_single_refresh(ne->ep(), bucket, ne->id);
 }
 
-void node::send_single_refresh(udp::endpoint const& ep, int bucket
+void node::send_single_refresh(udp::endpoint const& ep, int const bucket
 	, node_id const& id)
 {
 	TORRENT_ASSERT(id != m_id);
@@ -668,9 +669,7 @@ void node::send_single_refresh(udp::endpoint const& ep, int bucket
 	target |= m_id & mask;
 
 	// create a dummy traversal_algorithm
-	// this is unfortunately necessary for the observer
-	// to free itself from the pool when it's being released
-	auto algo = std::make_shared<traversal_algorithm>(*this, node_id());
+	auto const algo = std::make_shared<traversal_algorithm>(*this, node_id());
 	auto o = m_rpc.allocate_observer<ping_observer>(algo, ep, id);
 	if (!o) return;
 #if TORRENT_USE_ASSERTS
@@ -717,12 +716,11 @@ void node::status(std::vector<dht_routing_bucket>& table
 
 	m_table.status(table);
 
-	for (std::set<traversal_algorithm*>::iterator i = m_running_requests.begin()
-		, end(m_running_requests.end()); i != end; ++i)
+	for (auto const& r : m_running_requests)
 	{
 		requests.push_back(dht_lookup());
 		dht_lookup& lookup = requests.back();
-		(*i)->status(lookup);
+		r->status(lookup);
 	}
 }
 
@@ -760,14 +758,13 @@ void node::lookup_peers(sha1_hash const& info_hash, entry& reply
 	m_storage.get_peers(info_hash, noseed, scrape, reply);
 }
 
-void TORRENT_EXTRA_EXPORT write_nodes_entry(entry& n, nodes_t const& nodes)
+void write_nodes_entry(entry& r, nodes_t const& nodes)
 {
-	std::back_insert_iterator<std::string> out(n.string());
-	for (nodes_t::const_iterator i = nodes.begin()
-		, end(nodes.end()); i != end; ++i)
+	std::back_insert_iterator<std::string> out(r.string());
+	for (auto const& n : nodes)
 	{
-		std::copy(i->id.begin(), i->id.end(), out);
-		write_endpoint(udp::endpoint(i->addr(), i->port()), out);
+		std::copy(n.id.begin(), n.id.end(), out);
+		write_endpoint(udp::endpoint(n.addr(), n.port()), out);
 	}
 }
 
