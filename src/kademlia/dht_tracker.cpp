@@ -65,8 +65,6 @@ using namespace std::placeholders;
 
 namespace libtorrent { namespace dht
 {
-	void incoming_error(entry& e, char const* msg);
-
 	namespace {
 
 	// generate a new write token key every 5 minutes
@@ -626,7 +624,7 @@ namespace libtorrent { namespace dht
 		return ret;
 	}
 
-	void dht_tracker::add_node(udp::endpoint node)
+	void dht_tracker::add_node(udp::endpoint const& node)
 	{
 		m_dht.add_node(node);
 #if TORRENT_USE_IPV6

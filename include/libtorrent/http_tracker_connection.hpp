@@ -102,4 +102,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_HTTP_TRACKER_CONNECTION_HPP_INCLUDED
-

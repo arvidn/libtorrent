@@ -1658,4 +1658,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_TORRENT_HPP_INCLUDED
-

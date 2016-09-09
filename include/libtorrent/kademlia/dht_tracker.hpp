@@ -84,7 +84,7 @@ namespace libtorrent { namespace dht
 		// understanding of its external address (which may have changed)
 		void update_node_id();
 
-		void add_node(udp::endpoint node);
+		void add_node(udp::endpoint const& node);
 		void add_router_node(udp::endpoint const& node);
 
 		entry state() const;

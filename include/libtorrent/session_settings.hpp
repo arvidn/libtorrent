@@ -33,15 +33,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SESSION_SETTINGS_HPP_INCLUDED
 #define TORRENT_SESSION_SETTINGS_HPP_INCLUDED
 
-#include "libtorrent/version.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/aux_/proxy_settings.hpp"
+#ifndef TORRENT_NO_DEPRECATE
+#include "libtorrent/version.hpp"
+#endif
 
-#include <cstdint>
 #include <string>
-#include <vector>
-#include <utility>
 
 namespace libtorrent
 {

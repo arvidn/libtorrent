@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-macros"
+#pragma clang diagnostic ignored "-Wreserved-id-macro"
 #endif
 
 // these defines are just in case the system we're on needs them for 64 bit file
@@ -127,7 +128,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #endif
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wreserved-id-macro"
+#endif
 #undef _FILE_OFFSET_BITS
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 // make sure the _FILE_OFFSET_BITS define worked
 // on this platform. It's supposed to make file

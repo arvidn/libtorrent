@@ -322,7 +322,7 @@ namespace libtorrent
 			bool announce_dht() const override { return !m_listen_sockets.empty(); }
 
 			void add_dht_node_name(std::pair<std::string, int> const& node);
-			void add_dht_node(udp::endpoint n) override;
+			void add_dht_node(udp::endpoint const& n) override;
 			void add_dht_router(std::pair<std::string, int> const& node);
 			void set_dht_settings(dht_settings const& s);
 			dht_settings const& get_dht_settings() const { return m_dht_settings; }
