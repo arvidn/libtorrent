@@ -323,7 +323,7 @@ namespace libtorrent { namespace dht
 	void dht_tracker::get_peers(sha1_hash const& ih
 		, std::function<void(std::vector<tcp::endpoint> const&)> f)
 	{
-		std::function<void(std::vector<std::pair<node_entry, std::string> > const&)> empty;
+		std::function<void(std::vector<std::pair<node_entry, std::string>> const&)> empty;
 		m_dht.get_peers(ih, f, empty, false);
 #if TORRENT_USE_IPV6
 		m_dht6.get_peers(ih, f, empty, false);
@@ -422,8 +422,7 @@ namespace libtorrent { namespace dht
 	void dht_tracker::get_item(sha1_hash const& target
 		, std::function<void(item const&)> cb)
 	{
-		std::shared_ptr<get_immutable_item_ctx>
-			ctx = std::make_shared<get_immutable_item_ctx>((TORRENT_USE_IPV6) ? 2 : 1);
+		auto ctx = std::make_shared<get_immutable_item_ctx>((TORRENT_USE_IPV6) ? 2 : 1);
 		m_dht.get_item(target, std::bind(&get_immutable_item_callback, _1, ctx, cb));
 #if TORRENT_USE_IPV6
 		m_dht6.get_item(target, std::bind(&get_immutable_item_callback, _1, ctx, cb));
@@ -436,8 +435,7 @@ namespace libtorrent { namespace dht
 		, std::function<void(item const&, bool)> cb
 		, std::string salt)
 	{
-		std::shared_ptr<get_mutable_item_ctx>
-			ctx = std::make_shared<get_mutable_item_ctx>((TORRENT_USE_IPV6) ? 2 : 1);
+		auto ctx = std::make_shared<get_mutable_item_ctx>((TORRENT_USE_IPV6) ? 2 : 1);
 		m_dht.get_item(key, salt, std::bind(&get_mutable_item_callback, _1, _2, ctx, cb));
 #if TORRENT_USE_IPV6
 		m_dht6.get_item(key, salt, std::bind(&get_mutable_item_callback, _1, _2, ctx, cb));
@@ -451,8 +449,7 @@ namespace libtorrent { namespace dht
 		bencode(std::back_inserter(flat_data), data);
 		sha1_hash const target = item_target_id(flat_data);
 
-		std::shared_ptr<put_item_ctx>
-			ctx = std::make_shared<put_item_ctx>((TORRENT_USE_IPV6) ? 2 : 1);
+		auto ctx = std::make_shared<put_item_ctx>((TORRENT_USE_IPV6) ? 2 : 1);
 		m_dht.put_item(target, data, std::bind(&put_immutable_item_callback
 			, _1, ctx, cb));
 #if TORRENT_USE_IPV6
@@ -465,9 +462,7 @@ namespace libtorrent { namespace dht
 		, std::function<void(item const&, int)> cb
 		, std::function<void(item&)> data_cb, std::string salt)
 	{
-		std::shared_ptr<put_item_ctx>
-			ctx = std::make_shared<put_item_ctx>((TORRENT_USE_IPV6) ? 2 : 1);
-
+		auto ctx = std::make_shared<put_item_ctx>((TORRENT_USE_IPV6) ? 2 : 1);
 		m_dht.put_item(key, salt, std::bind(&put_mutable_item_callback
 			, _1, _2, ctx, cb), data_cb);
 #if TORRENT_USE_IPV6
@@ -508,10 +503,10 @@ namespace libtorrent { namespace dht
 		}
 	}
 
-	bool dht_tracker::incoming_packet( udp::endpoint const& ep
+	bool dht_tracker::incoming_packet(udp::endpoint const& ep
 		, char const* buf, int size)
 	{
-		if (size <= 20 || *buf != 'd' || buf[size-1] != 'e') return false;
+		if (size <= 20 || *buf != 'd' || buf[size - 1] != 'e') return false;
 
 		m_counters.inc_stats_counter(counters::dht_bytes_in, size);
 		// account for IP and UDP overhead
@@ -528,7 +523,7 @@ namespace libtorrent { namespace dht
 			static std::uint8_t const class_a[] = { 3, 6, 7, 9, 11, 19, 21, 22, 25
 				, 26, 28, 29, 30, 33, 34, 48, 51, 56 };
 
-			int num = sizeof(class_a)/sizeof(class_a[0]);
+			int num = sizeof(class_a) / sizeof(class_a[0]);
 			if (std::find(class_a, class_a + num, b[0]) != class_a + num)
 			{
 				m_counters.inc_stats_counter(counters::dht_messages_in_dropped);
@@ -598,12 +593,11 @@ namespace libtorrent { namespace dht
 		dht.m_table.for_each_node(&add_node_fun, &add_node_fun, &nodes);
 		bucket_t cache;
 		dht.replacement_cache(cache);
-		for (bucket_t::iterator i(cache.begin())
-			 , end(cache.end()); i != end; ++i)
+		for (auto const& b : cache)
 		{
 			std::string node;
 			std::back_insert_iterator<std::string> out(node);
-			write_endpoint(i->ep(), out);
+			write_endpoint(b.ep(), out);
 			nodes.list().push_back(entry(node));
 		}
 		if (!nodes.list().empty())
@@ -674,8 +668,7 @@ namespace libtorrent { namespace dht
 		m_send_quota -= int(m_send_buf.size());
 
 		error_code ec;
-		m_send_fun(addr, span<char const>(&m_send_buf[0]
-			, int(m_send_buf.size())), ec, 0);
+		m_send_fun(addr, m_send_buf, ec, 0);
 		if (ec)
 		{
 			m_counters.inc_stats_counter(counters::dht_messages_out_dropped);

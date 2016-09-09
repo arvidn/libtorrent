@@ -350,7 +350,8 @@ namespace
 		, node& node, int listen_port, sha1_hash const& ih, int flags)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		if (node.observer())
+		if (node.observer() != nullptr
+			&& node.observer()->should_log(dht_logger::node))
 		{
 			char hex_ih[41];
 			aux::to_hex(ih, hex_ih);
@@ -365,7 +366,8 @@ namespace
 		for (auto const& p : v)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			if (node.observer())
+			if (node.observer() != nullptr
+				&& node.observer()->should_log(dht_logger::node))
 			{
 				node.observer()->log(dht_logger::node, "announce-distance: %d"
 					, (160 - distance_exp(ih, p.first.id)));
@@ -396,7 +398,7 @@ namespace
 void node::add_router_node(udp::endpoint router)
 {
 #ifndef TORRENT_DISABLE_LOGGING
-	if (m_observer)
+	if (m_observer != nullptr && m_observer->should_log(dht_logger::node))
 	{
 		m_observer->log(dht_logger::node, "adding router node: %s"
 			, print_endpoint(router).c_str());
@@ -438,7 +440,7 @@ void node::announce(sha1_hash const& info_hash, int listen_port, int flags
 	, std::function<void(std::vector<tcp::endpoint> const&)> f)
 {
 #ifndef TORRENT_DISABLE_LOGGING
-	if (m_observer)
+	if (m_observer != nullptr && m_observer->should_log(dht_logger::node))
 	{
 		char hex_ih[41];
 		aux::to_hex(info_hash, hex_ih);
@@ -470,7 +472,7 @@ void node::get_item(sha1_hash const& target
 	, std::function<void(item const&)> f)
 {
 #ifndef TORRENT_DISABLE_LOGGING
-	if (m_observer)
+	if (m_observer != nullptr && m_observer->should_log(dht_logger::node))
 	{
 		char hex_target[41];
 		aux::to_hex(target, hex_target);
@@ -488,7 +490,7 @@ void node::get_item(public_key const& pk, std::string const& salt
 	, std::function<void(item const&, bool)> f)
 {
 #ifndef TORRENT_DISABLE_LOGGING
-	if (m_observer)
+	if (m_observer != nullptr && m_observer->should_log(dht_logger::node))
 	{
 		char hex_key[65];
 		aux::to_hex(pk.bytes, hex_key);
@@ -527,7 +529,7 @@ void put_data_cb(item i, bool auth
 void node::put_item(sha1_hash const& target, entry const& data, std::function<void(int)> f)
 {
 #ifndef TORRENT_DISABLE_LOGGING
-	if (m_observer)
+	if (m_observer != nullptr && m_observer->should_log(dht_logger::node))
 	{
 		char hex_target[41];
 		aux::to_hex(target, hex_target);
@@ -550,14 +552,14 @@ void node::put_item(public_key const& pk, std::string const& salt
 	, std::function<void(item const&, int)> f
 	, std::function<void(item&)> data_cb)
 {
-	#ifndef TORRENT_DISABLE_LOGGING
-	if (m_observer)
+#ifndef TORRENT_DISABLE_LOGGING
+	if (m_observer != nullptr && m_observer->should_log(dht_logger::node))
 	{
 		char hex_key[65];
 		aux::to_hex(pk.bytes, hex_key);
 		m_observer->log(dht_logger::node, "starting get for [ key: %s ]", hex_key);
 	}
-	#endif
+#endif
 
 	auto put_ta = std::make_shared<dht::put_data>(*this, f);
 

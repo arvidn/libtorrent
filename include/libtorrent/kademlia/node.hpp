@@ -142,7 +142,7 @@ public:
 	enum flags_t { flag_seed = 1, flag_implied_port = 2 };
 	void get_peers(sha1_hash const& info_hash
 		, std::function<void(std::vector<tcp::endpoint> const&)> dcallback
-		, std::function<void(std::vector<std::pair<node_entry, std::string> > const&)> ncallback
+		, std::function<void(std::vector<std::pair<node_entry, std::string>> const&)> ncallback
 		, bool noseeds);
 	void announce(sha1_hash const& info_hash, int listen_port, int flags
 		, std::function<void(std::vector<tcp::endpoint> const&)> f);

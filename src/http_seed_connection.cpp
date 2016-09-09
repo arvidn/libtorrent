@@ -115,10 +115,10 @@ namespace libtorrent
 		// this is used to make sure that the block_index stays within
 		// bounds. If the entire piece is downloaded, the block_index
 		// would otherwise point to one past the end
-		int correction = ret.bytes_downloaded ? -1 : 0;
+		int const correction = ret.bytes_downloaded ? -1 : 0;
 		ret.block_index = (pr.start + ret.bytes_downloaded + correction) / t->block_size();
 		ret.full_block_bytes = t->block_size();
-		const int last_piece = t->torrent_file().num_pieces() - 1;
+		int const last_piece = t->torrent_file().num_pieces() - 1;
 		if (ret.piece_index == last_piece && ret.block_index
 			== t->torrent_file().piece_size(last_piece) / t->block_size())
 			ret.full_block_bytes = t->torrent_file().piece_size(last_piece) % t->block_size();
