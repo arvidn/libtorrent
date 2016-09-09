@@ -308,8 +308,17 @@ namespace libtorrent
 		}
 #endif
 
-		set_dht_settings(params.dht_settings);
-		set_dht_storage(params.dht_storage_constructor);
+#ifndef TORRENT_DISABLE_DHT
+		m_impl->set_dht_settings(params.dht_settings);
+		m_impl->set_dht_state(params.dht_nid
+			, params.bootstrap_nodes
+#if TORRENT_USE_IPV6
+			, params.dht_nid6
+			, params.bootstrap_nodes6
+#endif
+			);
+		m_impl->set_dht_storage(params.dht_storage_constructor);
+#endif
 
 		m_impl->start_session(std::move(params.settings));
 

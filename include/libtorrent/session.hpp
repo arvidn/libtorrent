@@ -148,6 +148,12 @@ namespace libtorrent
 
 		libtorrent::dht_settings dht_settings;
 
+		dht::node_id dht_nid;
+		dht::node_id dht_nid6;
+
+		std::vector<udp::endpoint> bootstrap_nodes;
+		std::vector<udp::endpoint> bootstrap_nodes6;
+
 		dht::dht_storage_constructor_type dht_storage_constructor;
 	};
 

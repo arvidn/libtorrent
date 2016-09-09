@@ -99,7 +99,8 @@ class TORRENT_EXTRA_EXPORT node : boost::noncopyable
 {
 public:
 	node(udp proto, udp_socket_interface* sock
-		, libtorrent::dht_settings const& settings, node_id nid
+		, libtorrent::dht_settings const& settings
+		, node_id const& nid
 		, dht_observer* observer, counters& cnt
 		, std::map<std::string, node*> const& nodes
 		, dht_storage_interface& storage);

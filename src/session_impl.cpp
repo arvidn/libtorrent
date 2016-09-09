@@ -591,6 +591,40 @@ namespace aux {
 		return proxy_settings(m_settings);
 	}
 
+// TODO: move inside deprecated when load_state is deprecated
+#ifndef TORRENT_DISABLE_DHT
+	namespace
+	{
+		dht::node_id extract_node_id(entry const& e, std::string const& key)
+		{
+			if (e.type() != entry::dictionary_t) return dht::node_id::min();
+			entry const* nid = e.find_key(key);
+			if (nid == nullptr || nid->type() != entry::string_t || nid->string().length() != 20)
+				return dht::node_id::min();
+			return dht::node_id(nid->string().c_str());
+		}
+
+		void read_endpoint_list(entry const* n, std::vector<udp::endpoint>& epl)
+		{
+			if (n->type() != entry::list_t) return;
+			entry::list_type const& contacts = n->list();
+			for (auto const& c : contacts)
+			{
+				if (c.type() != entry::string_t) return;
+				std::string const& p = c.string();
+				if (p.size() < 6) continue;
+				auto in = p.begin();
+				if (p.size() == 6)
+					epl.push_back(detail::read_v4_endpoint<udp::endpoint>(in));
+#if TORRENT_USE_IPV6
+				else if (p.size() == 18)
+					epl.push_back(detail::read_v6_endpoint<udp::endpoint>(in));
+#endif
+			}
+		}
+	}
+#endif
+
 	void session_impl::load_state(bdecode_node const* e
 		, std::uint32_t const flags)
 	{
@@ -651,11 +685,24 @@ namespace aux {
 			settings = e->dict_find_dict("dht state");
 			if (settings)
 			{
-				m_dht_state = settings;
+				entry state;
+				state = settings;
+				m_dht_nid = extract_node_id(state, "node-id");
+				TORRENT_TRY {
+					if (entry const* nodes = state.find_key("nodes"))
+						read_endpoint_list(nodes, m_dht_bootstrap_nodes);
+				} TORRENT_CATCH(std::exception&) {}
+#if TORRENT_USE_IPV6
+				m_dht_nid6 = extract_node_id(state, "node-id6");
+				TORRENT_TRY{
+					if (entry const* nodes = state.find_key("nodes6"))
+						read_endpoint_list(nodes, m_dht_bootstrap_nodes6);
+				} TORRENT_CATCH(std::exception&) {}
+#endif
 				need_update_dht = true;
 			}
 		}
-#endif
+#endif // TORRENT_DISABLE_DHT
 
 #ifndef TORRENT_NO_DEPRECATE
 		bool need_update_proxy = false;
@@ -5506,9 +5553,6 @@ namespace aux {
 
 #ifndef TORRENT_DISABLE_DHT
 
-	void session_impl::start_dht()
-	{ start_dht(m_dht_state); }
-
 	namespace {
 
 		void on_bootstrap(alert_manager& alerts)
@@ -5518,7 +5562,7 @@ namespace aux {
 		}
 	}
 
-	void session_impl::start_dht(entry const& startup_state)
+	void session_impl::start_dht()
 	{
 		INVARIANT_CHECK;
 
@@ -5535,7 +5579,11 @@ namespace aux {
 			, m_dht_settings
 			, m_stats_counters
 			, *m_dht_storage
-			, startup_state);
+			, m_dht_nid
+#if TORRENT_USE_IPV6
+			, m_dht_nid6
+#endif
+			);
 
 		for (auto const& n : m_dht_router_nodes)
 		{
@@ -5548,7 +5596,11 @@ namespace aux {
 		}
 		m_dht_nodes.clear();
 
-		m_dht->start(startup_state, std::bind(&on_bootstrap, std::ref(m_alerts)));
+		m_dht->start(m_dht_bootstrap_nodes
+#if TORRENT_USE_IPV6
+			, m_dht_bootstrap_nodes6
+#endif
+			, std::bind(&on_bootstrap, std::ref(m_alerts)));
 	}
 
 	void session_impl::stop_dht()
@@ -5567,6 +5619,22 @@ namespace aux {
 		m_dht_settings = settings;
 	}
 
+	void session_impl::set_dht_state(dht::node_id const& nid
+		, std::vector<udp::endpoint> const& bootstrap_nodes
+#if TORRENT_USE_IPV6
+		, dht::node_id const& nid6
+		, std::vector<udp::endpoint> const& bootstrap_nodes6
+#endif
+		)
+	{
+		m_dht_nid = nid;
+		m_dht_bootstrap_nodes = bootstrap_nodes;
+#if TORRENT_USE_IPV6
+		m_dht_nid6 = nid6;
+		m_dht_bootstrap_nodes = bootstrap_nodes6;
+#endif
+	}
+
 	void session_impl::set_dht_storage(dht::dht_storage_constructor_type sc)
 	{
 		m_dht_storage_constructor = sc;
@@ -5579,10 +5647,23 @@ namespace aux {
 		return m_dht->state();
 	}
 
-	void session_impl::start_dht_deprecated(entry const& startup_state)
+	void session_impl::start_dht_deprecated(entry const& state)
 	{
 		m_settings.set_bool(settings_pack::enable_dht, true);
-		start_dht(startup_state);
+
+		m_dht_nid = extract_node_id(state, "node-id");
+		TORRENT_TRY {
+			if (entry const* nodes = state.find_key("nodes"))
+				read_endpoint_list(nodes, m_dht_bootstrap_nodes);
+		} TORRENT_CATCH(std::exception&) {}
+#if TORRENT_USE_IPV6
+		m_dht_nid6 = extract_node_id(state, "node-id6");
+		TORRENT_TRY{
+			if (entry const* nodes = state.find_key("nodes6"))
+				read_endpoint_list(nodes, m_dht_bootstrap_nodes6);
+		} TORRENT_CATCH(std::exception&) {}
+#endif
+		start_dht();
 	}
 #endif
 
