@@ -30,11 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-
 #ifndef TORRENT_BENCODE_HPP_INCLUDED
 #define TORRENT_BENCODE_HPP_INCLUDED
-
-
 
 // OVERVIEW
 // 
@@ -82,11 +79,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-
-#ifndef TORRENT_NO_DEPRECATE
-	using invalid_encoding = system_error;
-#endif
-
 	namespace detail
 	{
 		template <class OutIt>

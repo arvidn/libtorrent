@@ -64,8 +64,8 @@ namespace libtorrent { namespace dht
 		: udp_socket_interface
 		, std::enable_shared_from_this<dht_tracker>
 	{
-		typedef std::function<void(udp::endpoint const&
-			, span<char const>, error_code&, int)> send_fun_t;
+		using send_fun_t = std::function<void(udp::endpoint const&
+			, span<char const>, error_code&, int)>;
 
 		dht_tracker(dht_observer* observer
 			, io_service& ios
@@ -129,7 +129,7 @@ namespace libtorrent { namespace dht
 		void update_stats_counters(counters& c) const;
 
 		void incoming_error(error_code const& ec, udp::endpoint const&);
-		bool incoming_packet(udp::endpoint const&, char const* buf, int size);
+		bool incoming_packet(udp::endpoint const& ep, span<char const> buf);
 
 	private:
 

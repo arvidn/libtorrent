@@ -122,7 +122,7 @@ void get_peers::got_peers(std::vector<tcp::endpoint> const& peers)
 
 get_peers::get_peers(
 	node& dht_node
-	, node_id target
+	, node_id const& target
 	, data_callback const& dcallback
 	, nodes_callback const& ncallback
 	, bool noseeds)

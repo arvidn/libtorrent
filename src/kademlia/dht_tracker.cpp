@@ -136,10 +136,10 @@ namespace libtorrent { namespace dht
 #ifndef TORRENT_DISABLE_LOGGING
 		m_log->log(dht_logger::tracker, "starting IPv4 DHT tracker with node id: %s"
 			, aux::to_hex(m_dht.nid()).c_str());
-	#if TORRENT_USE_IPV6
+#if TORRENT_USE_IPV6
 		m_log->log(dht_logger::tracker, "starting IPv6 DHT tracker with node id: %s"
 			, aux::to_hex(m_dht6.nid()).c_str());
-	#endif
+#endif
 #endif
 	}
 
@@ -504,11 +504,14 @@ namespace libtorrent { namespace dht
 	}
 
 	bool dht_tracker::incoming_packet(udp::endpoint const& ep
-		, char const* buf, int size)
+		, span<char const> const buf)
 	{
-		if (size <= 20 || *buf != 'd' || buf[size - 1] != 'e') return false;
+		int const buf_size = int(buf.size());
+		if (buf_size <= 20
+			|| buf.front() != 'd'
+			|| buf.back() != 'e') return false;
 
-		m_counters.inc_stats_counter(counters::dht_bytes_in, size);
+		m_counters.inc_stats_counter(counters::dht_bytes_in, buf_size);
 		// account for IP and UDP overhead
 		m_counters.inc_stats_counter(counters::recv_ip_overhead_bytes
 			, ep.address().is_v6() ? 48 : 28);
@@ -539,16 +542,16 @@ namespace libtorrent { namespace dht
 		using libtorrent::entry;
 		using libtorrent::bdecode;
 
-		TORRENT_ASSERT(size > 0);
+		TORRENT_ASSERT(buf_size > 0);
 
 		int pos;
 		error_code err;
-		int ret = bdecode(buf, buf + size, m_msg, err, &pos, 10, 500);
+		int ret = bdecode(buf.data(), buf.data() + buf_size, m_msg, err, &pos, 10, 500);
 		if (ret != 0)
 		{
 			m_counters.inc_stats_counter(counters::dht_messages_in_dropped);
 #ifndef TORRENT_DISABLE_LOGGING
-			m_log->log_packet(dht_logger::incoming_message, buf, size, ep);
+			m_log->log_packet(dht_logger::incoming_message, buf.data(), buf_size, ep);
 #endif
 			return false;
 		}
@@ -556,15 +559,14 @@ namespace libtorrent { namespace dht
 		if (m_msg.type() != bdecode_node::dict_t)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			m_log->log_packet(dht_logger::incoming_message, buf, size, ep);
+			m_log->log_packet(dht_logger::incoming_message, buf.data(), buf_size, ep);
 #endif
 			// it's not a good idea to send a response to an invalid messages
 			return false;
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
-		m_log->log_packet(dht_logger::incoming_message, buf
-			, size, ep);
+		m_log->log_packet(dht_logger::incoming_message, buf.data(), buf_size, ep);
 #endif
 
 		libtorrent::dht::msg m(m_msg, ep);

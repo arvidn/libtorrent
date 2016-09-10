@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
+#include "libtorrent/bdecode.hpp"
 #include <iostream>
 
 using namespace libtorrent;
@@ -142,5 +143,27 @@ TORRENT_TEST(duplicates)
 	TEST_EQUAL(p.get_str(settings_pack::peer_fingerprint), "hij");
 }
 
-// TODO: load_pack_from_dict
+TORRENT_TEST(load_pack_from_dict)
+{
+	aux::session_settings p1;
+	p1.set_str(settings_pack::peer_fingerprint, "abc");
+	p1.set_int(settings_pack::max_out_request_queue, 1337);
+	p1.set_bool(settings_pack::send_redundant_have, false);
 
+	entry e;
+	save_settings_to_dict(p1, e.dict());
+
+	std::string s;
+	bencode(std::back_inserter(s), e);
+
+	bdecode_node n;
+	error_code ec;
+	int ret = bdecode(s.data(), s.data() + int(s.size()), n, ec);
+	TEST_EQUAL(ret, 0);
+	TEST_CHECK(!ec);
+
+	settings_pack p2 = load_pack_from_dict(n);
+	TEST_EQUAL(p2.get_str(settings_pack::peer_fingerprint), "abc");
+	TEST_EQUAL(p2.get_int(settings_pack::max_out_request_queue), 1337);
+	TEST_EQUAL(p2.get_bool(settings_pack::send_redundant_have), false);
+}

@@ -55,9 +55,9 @@ class node;
 
 struct find_data : traversal_algorithm
 {
-	typedef std::function<void(std::vector<std::pair<node_entry, std::string> > const&)> nodes_callback;
+	typedef std::function<void(std::vector<std::pair<node_entry, std::string>> const&)> nodes_callback;
 
-	find_data(node& node, node_id target
+	find_data(node& node, node_id const& target
 		, nodes_callback const& ncallback);
 
 	void got_write_token(node_id const& n, std::string write_token);
@@ -66,7 +66,7 @@ struct find_data : traversal_algorithm
 
 	virtual char const* name() const;
 
-	node_id const target() const { return m_target; }
+	node_id const& target() const { return m_target; }
 
 protected:
 

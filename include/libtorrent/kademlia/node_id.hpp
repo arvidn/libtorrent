@@ -64,7 +64,7 @@ int TORRENT_EXTRA_EXPORT min_distance_exp(node_id const& n1, std::vector<node_id
 
 node_id TORRENT_EXTRA_EXPORT generate_id(address const& external_ip);
 node_id TORRENT_EXTRA_EXPORT generate_random_id();
-void TORRENT_EXTRA_EXPORT make_id_secret(node_id& in);
+TORRENT_EXTRA_EXPORT void make_id_secret(node_id& in);
 node_id TORRENT_EXTRA_EXPORT generate_secret_id();
 bool TORRENT_EXTRA_EXPORT verify_secret_id(node_id const& nid);
 node_id TORRENT_EXTRA_EXPORT generate_id_impl(address const& ip_, std::uint32_t r);

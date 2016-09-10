@@ -388,9 +388,9 @@ namespace libtorrent
 		return "";
 	}
 
-	std::shared_ptr<settings_pack> load_pack_from_dict(bdecode_node const& settings)
+	settings_pack load_pack_from_dict(bdecode_node const& settings)
 	{
-		std::shared_ptr<settings_pack> pack = std::make_shared<settings_pack>();
+		settings_pack pack;
 
 		for (int i = 0; i < settings.dict_size(); ++i)
 		{
@@ -405,27 +405,27 @@ namespace libtorrent
 				case bdecode_node::int_t:
 				{
 					bool found = false;
-					for (int k = 0; k < sizeof(int_settings)/sizeof(int_settings[0]); ++k)
+					for (int k = 0; k < sizeof(int_settings) / sizeof(int_settings[0]); ++k)
 					{
 						if (key != int_settings[k].name) continue;
-						pack->set_int(settings_pack::int_type_base + k, val.int_value());
+						pack.set_int(settings_pack::int_type_base + k, val.int_value());
 						found = true;
 						break;
 					}
 					if (found) continue;
-					for (int k = 0; k < sizeof(bool_settings)/sizeof(bool_settings[0]); ++k)
+					for (int k = 0; k < sizeof(bool_settings) / sizeof(bool_settings[0]); ++k)
 					{
 						if (key != bool_settings[k].name) continue;
-						pack->set_bool(settings_pack::bool_type_base + k, val.int_value() != 0);
+						pack.set_bool(settings_pack::bool_type_base + k, val.int_value() != 0);
 						break;
 					}
 				}
 				break;
 			case bdecode_node::string_t:
-				for (int k = 0; k < sizeof(str_settings)/sizeof(str_settings[0]); ++k)
+				for (int k = 0; k < sizeof(str_settings) / sizeof(str_settings[0]); ++k)
 				{
 					if (key != str_settings[k].name) continue;
-					pack->set_str(settings_pack::string_type_base + k, val.string_value().to_string());
+					pack.set_str(settings_pack::string_type_base + k, val.string_value().to_string());
 					break;
 				}
 				break;
@@ -547,7 +547,7 @@ namespace libtorrent
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#endif
+#endif // TORRENT_NO_DEPRECATE
 
 	void initialize_default_settings(aux::session_settings& s)
 	{
