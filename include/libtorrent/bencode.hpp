@@ -79,6 +79,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+
+#ifndef TORRENT_NO_DEPRECATE
+	using invalid_encoding = system_error;
+#endif
+
 	namespace detail
 	{
 		template <class OutIt>

@@ -77,6 +77,8 @@ namespace libtorrent
 {
 #ifndef TORRENT_NO_DEPRECATE
 	struct lazy_entry;
+	// backwards compatibility
+	using type_error = system_error;
 #endif
 	struct bdecode_node;
 

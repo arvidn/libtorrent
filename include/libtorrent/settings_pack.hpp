@@ -244,7 +244,6 @@ namespace libtorrent
 			// ``send_redundant_have`` controls if have messages will be sent to
 			// peers that already have the piece. This is typically not necessary,
 			// but it might be necessary for collecting statistics in some cases.
-			// Default is true.
 			send_redundant_have,
 
 #ifndef TORRENT_NO_DEPRECATE
