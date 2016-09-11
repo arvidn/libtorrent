@@ -99,7 +99,8 @@ class TORRENT_EXTRA_EXPORT node : boost::noncopyable
 {
 public:
 	node(udp proto, udp_socket_interface* sock
-		, libtorrent::dht_settings const& settings, node_id nid
+		, libtorrent::dht_settings const& settings
+		, node_id const& nid
 		, dht_observer* observer, counters& cnt
 		, std::map<std::string, node*> const& nodes
 		, dht_storage_interface& storage);
@@ -247,7 +248,6 @@ private:
 public:
 	routing_table m_table;
 	rpc_manager m_rpc;
-	std::map<std::string, node*> const& m_nodes;
 
 private:
 #ifdef _MSC_VER
@@ -268,6 +268,8 @@ private:
 #pragma warning(pop)
 #endif
 	static protocol_descriptor const& map_protocol_to_descriptor(udp protocol);
+
+	std::map<std::string, node*> const& m_nodes;
 
 	dht_observer* m_observer;
 

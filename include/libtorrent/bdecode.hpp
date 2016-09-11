@@ -418,4 +418,3 @@ TORRENT_EXPORT int bdecode(char const* start, char const* end, bdecode_node& ret
 }
 
 #endif // TORRENT_BDECODE_HPP
-

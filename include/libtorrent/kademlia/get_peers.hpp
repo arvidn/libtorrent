@@ -44,7 +44,7 @@ struct get_peers : find_data
 
 	void got_peers(std::vector<tcp::endpoint> const& peers);
 
-	get_peers(node& dht_node, node_id target
+	get_peers(node& dht_node, node_id const& target
 		, data_callback const& dcallback
 		, nodes_callback const& ncallback
 		, bool noseeds);

@@ -48,7 +48,7 @@ class bootstrap : public get_peers
 public:
 	typedef get_peers::nodes_callback done_callback;
 
-	bootstrap(node& dht_node, node_id target
+	bootstrap(node& dht_node, node_id const& target
 		, done_callback const& callback);
 	virtual char const* name() const;
 
@@ -68,4 +68,3 @@ protected:
 } } // namespace libtorrent::dht
 
 #endif // REFRESH_050324_HPP
-

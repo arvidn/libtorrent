@@ -75,16 +75,16 @@ void nop() {}
 node_id calculate_node_id(node_id const& nid, dht_observer* observer, udp protocol)
 {
 	address external_address;
-	if (observer) external_address = observer->external_address(protocol);
+	if (observer != nullptr) external_address = observer->external_address(protocol);
 
 	// if we don't have an observer, don't pretend that external_address is valid
 	// generating an ID based on 0.0.0.0 would be terrible. random is better
-	if (!observer || external_address.is_unspecified())
+	if (observer == nullptr || external_address.is_unspecified())
 	{
 		return generate_random_id();
 	}
 
-	if (nid == (node_id::min)() || !verify_id(nid, external_address))
+	if (nid == node_id::min() || !verify_id(nid, external_address))
 		return generate_id(external_address);
 
 	return nid;
@@ -93,7 +93,8 @@ node_id calculate_node_id(node_id const& nid, dht_observer* observer, udp protoc
 } // anonymous namespace
 
 node::node(udp proto, udp_socket_interface* sock
-	, dht_settings const& settings, node_id nid
+	, dht_settings const& settings
+	, node_id const& nid
 	, dht_observer* observer
 	, counters& cnt
 	, std::map<std::string, node*> const& nodes

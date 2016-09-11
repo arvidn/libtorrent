@@ -252,7 +252,7 @@ namespace libtorrent
 	// this function returns a session_settings object
 	// which will optimize libtorrent for minimum memory
 	// usage, with no consideration of performance.
-	TORRENT_EXPORT session_settings min_memory_usage()
+	session_settings min_memory_usage()
 	{
 		aux::session_settings def;
 		initialize_default_settings(def);
@@ -264,7 +264,7 @@ namespace libtorrent
 		return ret;
 	}
 
-	TORRENT_EXPORT session_settings high_performance_seed()
+	session_settings high_performance_seed()
 	{
 		aux::session_settings def;
 		initialize_default_settings(def);
@@ -285,7 +285,7 @@ namespace libtorrent
 	// on the configuration. The session.hpp file will reference
 	// it and if the library and the client are built with different
 	// configurations this will give a link error
-	void TORRENT_EXPORT TORRENT_CFG() {}
+	void TORRENT_CFG() {}
 
 	void session::start(session_params params, io_service* ios)
 	{

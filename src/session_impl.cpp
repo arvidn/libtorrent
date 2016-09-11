@@ -704,8 +704,8 @@ namespace aux {
 			if (settings)
 			{
 				// apply_settings_pack will update dht and proxy
-				std::shared_ptr<settings_pack> pack = load_pack_from_dict(settings);
-				apply_settings_pack(pack);
+				settings_pack pack = load_pack_from_dict(settings);
+				apply_settings_pack_impl(pack);
 #ifndef TORRENT_DISABLE_DHT
 				need_update_dht = false;
 #endif
@@ -2306,7 +2306,7 @@ namespace aux {
 #ifndef TORRENT_DISABLE_DHT
 					if (m_dht && buf.size() > 20 && buf.front() == 'd' && buf.back() == 'e')
 					{
-						handled = m_dht->incoming_packet(packet.from, buf.data(), int(buf.size()));
+						handled = m_dht->incoming_packet(packet.from, buf);
 					}
 #endif
 
