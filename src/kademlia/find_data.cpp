@@ -97,10 +97,9 @@ void find_data::start()
 		std::vector<node_entry> nodes;
 		m_node.m_table.find_node(m_target, nodes, routing_table::include_failed);
 
-		for (std::vector<node_entry>::iterator i = nodes.begin()
-			, end(nodes.end()); i != end; ++i)
+		for (auto const& n : nodes)
 		{
-			add_entry(i->id, i->ep(), observer::flag_initial);
+			add_entry(n.id, n.ep(), observer::flag_initial);
 		}
 	}
 
@@ -110,10 +109,12 @@ void find_data::start()
 void find_data::got_write_token(node_id const& n, std::string write_token)
 {
 #ifndef TORRENT_DISABLE_LOGGING
-	get_node().observer()->log(dht_logger::traversal
-		, "[%p] adding write token '%s' under id '%s'"
-		, static_cast<void*>(this), aux::to_hex(write_token).c_str()
-		, aux::to_hex(n).c_str());
+	auto logger = get_node().observer();
+	if (logger != nullptr && logger->should_log(dht_logger::traversal))
+		logger->log(dht_logger::traversal
+			, "[%p] adding write token '%s' under id '%s'"
+			, static_cast<void*>(this), aux::to_hex(write_token).c_str()
+			, aux::to_hex(n).c_str());
 #endif
 	m_write_tokens[n] = std::move(write_token);
 }
@@ -135,8 +136,10 @@ void find_data::done()
 	m_done = true;
 
 #ifndef TORRENT_DISABLE_LOGGING
-	get_node().observer()->log(dht_logger::traversal, "[%p] %s DONE"
-		, static_cast<void*>(this), name());
+	auto logger = get_node().observer();
+	if (logger != nullptr)
+		logger->log(dht_logger::traversal, "[%p] %s DONE"
+			, static_cast<void*>(this), name());
 #endif
 
 	std::vector<std::pair<node_entry, std::string> > results;
@@ -148,8 +151,9 @@ void find_data::done()
 		if ((o->flags & observer::flag_alive) == 0)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			get_node().observer()->log(dht_logger::traversal, "[%p] not alive: %s"
-				, static_cast<void*>(this), print_endpoint(o->target_ep()).c_str());
+			if (logger != nullptr && logger->should_log(dht_logger::traversal))
+				logger->log(dht_logger::traversal, "[%p] not alive: %s"
+					, static_cast<void*>(this), print_endpoint(o->target_ep()).c_str());
 #endif
 			continue;
 		}
@@ -157,14 +161,16 @@ void find_data::done()
 		if (j == m_write_tokens.end())
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			get_node().observer()->log(dht_logger::traversal, "[%p] no write token: %s"
-				, static_cast<void*>(this), print_endpoint(o->target_ep()).c_str());
+			if (logger != nullptr && logger->should_log(dht_logger::traversal))
+				logger->log(dht_logger::traversal, "[%p] no write token: %s"
+					, static_cast<void*>(this), print_endpoint(o->target_ep()).c_str());
 #endif
 			continue;
 		}
 		results.push_back(std::make_pair(node_entry(o->id(), o->target_ep()), j->second));
 #ifndef TORRENT_DISABLE_LOGGING
-			get_node().observer()->log(dht_logger::traversal, "[%p] %s"
+		if (logger != nullptr && logger->should_log(dht_logger::traversal))
+			logger->log(dht_logger::traversal, "[%p] %s"
 				, static_cast<void*>(this), print_endpoint(o->target_ep()).c_str());
 #endif
 		--num_results;
