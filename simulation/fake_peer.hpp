@@ -306,9 +306,11 @@ struct fake_node
 
 			lt::bdecode_node n;
 			boost::system::error_code err;
-			int const ret = bdecode(m_in_buffer, m_in_buffer + bytes_transferred
+			int const ret = bdecode(m_in_buffer.data(), m_in_buffer.data() + bytes_transferred
 				, n, err, nullptr, 10, 200);
 			TEST_EQUAL(ret, 0);
+
+			m_incoming_packets.emplace_back(m_in_buffer.data(), m_in_buffer.data() + bytes_transferred);
 
 			// TODO: ideally we would validate the DHT message
 			m_tripped = true;
@@ -322,9 +324,14 @@ struct fake_node
 
 	bool tripped() const { return m_tripped; }
 
+	std::vector<std::vector<char>> const& incoming_packets() const
+	{ return m_incoming_packets; }
+
 private:
 
-	char m_in_buffer[300];
+	std::array<char, 300> m_in_buffer;
+
+	std::vector<std::vector<char>> m_incoming_packets;
 
 	asio::io_service m_ios;
 	asio::ip::udp::socket m_socket;

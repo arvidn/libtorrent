@@ -198,10 +198,10 @@ node_id generate_id(address const& ip)
 	return generate_id_impl(ip, random(0xffffffff));
 }
 
-bool matching_prefix(node_entry const& n, int mask, int prefix, int bucket_index)
+bool matching_prefix(node_entry const& n, int mask, int prefix, int offset)
 {
 	node_id id = n.id;
-	id <<= bucket_index + 1;
+	id <<= offset;
 	return (id[0] & mask) == prefix;
 }
 
