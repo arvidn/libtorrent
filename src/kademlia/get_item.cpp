@@ -101,7 +101,7 @@ void get_item::got_data(bdecode_node const& v,
 
 get_item::get_item(
 	node& dht_node
-	, node_id target
+	, node_id const& target
 	, data_callback const& dcallback
 	, nodes_callback const& ncallback)
 	: find_data(dht_node, target, ncallback)

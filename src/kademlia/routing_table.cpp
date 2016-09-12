@@ -932,7 +932,7 @@ ip_ok:
 			// have a unique prefix
 
 			// find node entries with duplicate prefixes in O(1)
-			std::vector<bucket_t::iterator> prefix(1 << (8 - mask_shift), b.end());
+			std::vector<bucket_t::iterator> prefix(int(1 << (8 - mask_shift)), b.end());
 			TORRENT_ASSERT(int(prefix.size()) >= bucket_size_limit);
 
 			// the begin iterator from this object is used as a placeholder
@@ -1277,14 +1277,14 @@ bool routing_table::node_seen(node_id const& id, udp::endpoint const& ep, int rt
 // fills the vector with the k nodes from our buckets that
 // are nearest to the given id.
 void routing_table::find_node(node_id const& target
-	, std::vector<node_entry>& l, int options, int count)
+	, std::vector<node_entry>& l, int const options, int count)
 {
 	l.clear();
 	if (count == 0) count = m_bucket_size;
 
 	table_t::iterator i = find_bucket(target);
-	int bucket_index = std::distance(m_buckets.begin(), i);
-	int bucket_size_limit = bucket_limit(bucket_index);
+	int const bucket_index = std::distance(m_buckets.begin(), i);
+	int const bucket_size_limit = bucket_limit(bucket_index);
 
 	l.reserve(bucket_size_limit);
 
