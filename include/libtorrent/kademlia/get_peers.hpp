@@ -64,7 +64,7 @@ struct obfuscated_get_peers : get_peers
 {
 	typedef get_peers::nodes_callback done_callback;
 
-	obfuscated_get_peers(node& dht_node, node_id target
+	obfuscated_get_peers(node& dht_node, node_id const& target
 		, data_callback const& dcallback
 		, nodes_callback const& ncallback
 		, bool noseeds);

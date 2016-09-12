@@ -73,19 +73,21 @@ void get_peers_observer::reply(msg const& m)
 
 #ifndef TORRENT_DISABLE_LOGGING
 			auto logger = get_observer();
-			bdecode_node const id = r.dict_find_string("id");
-			if (logger != nullptr && logger->should_log(dht_logger::traversal)
-				&& id && id.string_length() == 20)
+			if (logger != nullptr && logger->should_log(dht_logger::traversal))
 			{
-				logger->log(dht_logger::traversal, "[%p] PEERS "
-					"invoke-count: %d branch-factor: %d addr: %s id: %s distance: %d p: %d"
-					, static_cast<void*>(algorithm())
-					, algorithm()->invoke_count()
-					, algorithm()->branch_factor()
-					, print_endpoint(m.addr).c_str()
-					, aux::to_hex({id.string_ptr(), size_t(id.string_length())}).c_str()
-					, distance_exp(algorithm()->target(), node_id(id.string_ptr()))
-					, int((end - peers) / 6));
+				bdecode_node const id = r.dict_find_string("id");
+				if (id && id.string_length() == 20)
+				{
+					logger->log(dht_logger::traversal, "[%p] PEERS "
+						"invoke-count: %d branch-factor: %d addr: %s id: %s distance: %d p: %d"
+						, static_cast<void*>(algorithm())
+						, algorithm()->invoke_count()
+						, algorithm()->branch_factor()
+						, print_endpoint(m.addr).c_str()
+						, aux::to_hex({id.string_ptr(), size_t(id.string_length())}).c_str()
+						, distance_exp(algorithm()->target(), node_id(id.string_ptr()))
+						, int((end - peers) / 6));
+				}
 			}
 #endif
 			while (end - peers >= 6)
@@ -97,19 +99,21 @@ void get_peers_observer::reply(msg const& m)
 			read_endpoint_list<tcp::endpoint>(n, peer_list);
 #ifndef TORRENT_DISABLE_LOGGING
 			auto logger = get_observer();
-			bdecode_node const id = r.dict_find_string("id");
-			if (logger != nullptr && logger->should_log(dht_logger::traversal)
-				&& id && id.string_length() == 20)
+			if (logger != nullptr && logger->should_log(dht_logger::traversal))
 			{
-				logger->log(dht_logger::traversal, "[%p] PEERS "
-					"invoke-count: %d branch-factor: %d addr: %s id: %s distance: %d p: %d"
-					, static_cast<void*>(algorithm())
-					, algorithm()->invoke_count()
-					, algorithm()->branch_factor()
-					, print_endpoint(m.addr).c_str()
-					, aux::to_hex({id.string_ptr(), size_t(id.string_length())}).c_str()
-					, distance_exp(algorithm()->target(), node_id(id.string_ptr()))
-					, n.list_size());
+				bdecode_node const id = r.dict_find_string("id");
+				if (id && id.string_length() == 20)
+				{
+					logger->log(dht_logger::traversal, "[%p] PEERS "
+						"invoke-count: %d branch-factor: %d addr: %s id: %s distance: %d p: %d"
+						, static_cast<void*>(algorithm())
+						, algorithm()->invoke_count()
+						, algorithm()->branch_factor()
+						, print_endpoint(m.addr).c_str()
+						, aux::to_hex({id.string_ptr(), size_t(id.string_length())}).c_str()
+						, distance_exp(algorithm()->target(), node_id(id.string_ptr()))
+						, n.list_size());
+				}
 			}
 #endif
 		}
@@ -154,7 +158,7 @@ bool get_peers::invoke(observer_ptr o)
 	a["info_hash"] = m_target.to_string();
 	if (m_noseeds) a["noseed"] = 1;
 
-	if (m_node.observer())
+	if (m_node.observer() != nullptr)
 	{
 		m_node.observer()->outgoing_get_peers(m_target, m_target, o->target_ep());
 	}
@@ -176,7 +180,7 @@ observer_ptr get_peers::new_observer(udp::endpoint const& ep
 
 obfuscated_get_peers::obfuscated_get_peers(
 	node& dht_node
-	, node_id info_hash
+	, node_id const& info_hash
 	, data_callback const& dcallback
 	, nodes_callback const& ncallback
 	, bool noseeds)
@@ -215,8 +219,8 @@ bool obfuscated_get_peers::invoke(observer_ptr o)
 {
 	if (!m_obfuscated) return get_peers::invoke(o);
 
-	const node_id id = o->id();
-	const int shared_prefix = 160 - distance_exp(id, m_target);
+	node_id const& id = o->id();
+	int const shared_prefix = 160 - distance_exp(id, m_target);
 
 	// when we get close to the target zone in the DHT
 	// start using the correct info-hash, in order to
@@ -256,7 +260,7 @@ bool obfuscated_get_peers::invoke(observer_ptr o)
 	obfuscated_target |= m_target & mask;
 	a["info_hash"] = obfuscated_target.to_string();
 
-	if (m_node.observer())
+	if (m_node.observer() != nullptr)
 	{
 		m_node.observer()->outgoing_get_peers(m_target, obfuscated_target
 			, o->target_ep());

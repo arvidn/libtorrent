@@ -348,15 +348,15 @@ void node::incoming(msg const& m)
 namespace
 {
 	void announce_fun(std::vector<std::pair<node_entry, std::string>> const& v
-		, node& node, int listen_port, sha1_hash const& ih, int flags)
+		, node& node, int const listen_port, sha1_hash const& ih, int const flags)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		if (node.observer() != nullptr
-			&& node.observer()->should_log(dht_logger::node))
+		auto logger = node.observer();
+		if (logger != nullptr && logger->should_log(dht_logger::node))
 		{
 			char hex_ih[41];
 			aux::to_hex(ih, hex_ih);
-			node.observer()->log(dht_logger::node, "sending announce_peer [ ih: %s "
+			logger->log(dht_logger::node, "sending announce_peer [ ih: %s "
 				" p: %d nodes: %d ]", hex_ih, listen_port, int(v.size()));
 		}
 #endif
@@ -367,10 +367,9 @@ namespace
 		for (auto const& p : v)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			if (node.observer() != nullptr
-				&& node.observer()->should_log(dht_logger::node))
+			if (logger != nullptr && logger->should_log(dht_logger::node))
 			{
-				node.observer()->log(dht_logger::node, "announce-distance: %d"
+				logger->log(dht_logger::node, "announce-distance: %d"
 					, (160 - distance_exp(ih, p.first.id)));
 			}
 #endif
@@ -396,7 +395,7 @@ namespace
 	}
 }
 
-void node::add_router_node(udp::endpoint router)
+void node::add_router_node(udp::endpoint const& router)
 {
 #ifndef TORRENT_DISABLE_LOGGING
 	if (m_observer != nullptr && m_observer->should_log(dht_logger::node))
@@ -418,7 +417,7 @@ void node::add_node(udp::endpoint const& node)
 
 void node::get_peers(sha1_hash const& info_hash
 	, std::function<void(std::vector<tcp::endpoint> const&)> dcallback
-	, std::function<void(std::vector<std::pair<node_entry, std::string> > const&)> ncallback
+	, std::function<void(std::vector<std::pair<node_entry, std::string>> const&)> ncallback
 	, bool noseeds)
 {
 	// search for nodes with ids close to id or with peers

@@ -111,10 +111,12 @@ void find_data::got_write_token(node_id const& n, std::string write_token)
 #ifndef TORRENT_DISABLE_LOGGING
 	auto logger = get_node().observer();
 	if (logger != nullptr && logger->should_log(dht_logger::traversal))
+	{
 		logger->log(dht_logger::traversal
 			, "[%p] adding write token '%s' under id '%s'"
 			, static_cast<void*>(this), aux::to_hex(write_token).c_str()
 			, aux::to_hex(n).c_str());
+	}
 #endif
 	m_write_tokens[n] = std::move(write_token);
 }
@@ -138,11 +140,13 @@ void find_data::done()
 #ifndef TORRENT_DISABLE_LOGGING
 	auto logger = get_node().observer();
 	if (logger != nullptr)
+	{
 		logger->log(dht_logger::traversal, "[%p] %s DONE"
 			, static_cast<void*>(this), name());
+	}
 #endif
 
-	std::vector<std::pair<node_entry, std::string> > results;
+	std::vector<std::pair<node_entry, std::string>> results;
 	int num_results = m_node.m_table.bucket_size();
 	for (std::vector<observer_ptr>::iterator i = m_results.begin()
 		, end(m_results.end()); i != end && num_results > 0; ++i)
@@ -152,26 +156,32 @@ void find_data::done()
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			if (logger != nullptr && logger->should_log(dht_logger::traversal))
+			{
 				logger->log(dht_logger::traversal, "[%p] not alive: %s"
 					, static_cast<void*>(this), print_endpoint(o->target_ep()).c_str());
+			}
 #endif
 			continue;
 		}
-		std::map<node_id, std::string>::iterator j = m_write_tokens.find(o->id());
+		auto j = m_write_tokens.find(o->id());
 		if (j == m_write_tokens.end())
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			if (logger != nullptr && logger->should_log(dht_logger::traversal))
+			{
 				logger->log(dht_logger::traversal, "[%p] no write token: %s"
 					, static_cast<void*>(this), print_endpoint(o->target_ep()).c_str());
+			}
 #endif
 			continue;
 		}
 		results.push_back(std::make_pair(node_entry(o->id(), o->target_ep()), j->second));
 #ifndef TORRENT_DISABLE_LOGGING
 		if (logger != nullptr && logger->should_log(dht_logger::traversal))
+		{
 			logger->log(dht_logger::traversal, "[%p] %s"
 				, static_cast<void*>(this), print_endpoint(o->target_ep()).c_str());
+		}
 #endif
 		--num_results;
 	}

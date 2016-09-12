@@ -90,9 +90,9 @@ struct ipv6_hash
 
 struct ip_set
 {
-	void insert(address addr);
-	size_t count(address addr);
-	void erase(address addr);
+	void insert(address const& addr);
+	size_t count(address const& addr);
+	void erase(address const& addr);
 
 	void clear()
 	{
@@ -167,7 +167,7 @@ public:
 
 	// adds an endpoint that will never be added to
 	// the routing table
-	void add_router_node(udp::endpoint router);
+	void add_router_node(udp::endpoint const& router);
 
 	// iterates over the router nodes added
 	typedef std::set<udp::endpoint>::const_iterator router_iterator;
@@ -187,7 +187,7 @@ public:
 	// a sign of a node being alive. This node will either
 	// be inserted in the k-buckets or be moved to the top
 	// of its bucket.
-	bool node_seen(node_id const& id, udp::endpoint ep, int rtt);
+	bool node_seen(node_id const& id, udp::endpoint const& ep, int rtt);
 
 	// this may add a node to the routing table and mark it as
 	// not pinged. If the bucket the node falls into is full,
@@ -196,7 +196,7 @@ public:
 
 	// change our node ID. This can be expensive since nodes must be moved around
 	// and potentially dropped
-	void update_node_id(node_id id);
+	void update_node_id(node_id const& id);
 
 	node_entry const* next_refresh();
 
