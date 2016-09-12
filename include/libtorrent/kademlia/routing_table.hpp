@@ -250,12 +250,6 @@ public:
 
 	void replacement_cache(bucket_t& nodes) const;
 
-#if TORRENT_USE_IOSTREAM
-	// used for debug and monitoring purposes. This will print out
-	// the state of the routing table to the given stream
-	void print_state(std::ostream& os) const;
-#endif
-
 	int bucket_limit(int bucket) const;
 
 #if TORRENT_USE_INVARIANT_CHECKS
@@ -272,6 +266,12 @@ public:
 
 	bool native_endpoint(udp::endpoint const& ep) const
 	{ return ep.protocol() == m_protocol; }
+
+	node_id const& id() const
+	{ return m_id; }
+
+	table_t const& buckets() const
+	{ return m_buckets; }
 
 private:
 
@@ -326,7 +326,7 @@ private:
 	ip_set m_ips;
 
 	// constant called k in paper
-	int m_bucket_size;
+	int const m_bucket_size;
 };
 
 } } // namespace libtorrent::dht

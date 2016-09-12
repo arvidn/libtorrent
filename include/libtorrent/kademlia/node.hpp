@@ -134,12 +134,6 @@ public:
 	int data_size() const { return int(m_storage.num_torrents()); }
 #endif
 
-#if TORRENT_USE_IOSTREAM
-	// TODO: 3 make this print to the DHT logger instead
-	void print_state(std::ostream& os) const
-	{ m_table.print_state(os); }
-#endif
-
 	enum flags_t { flag_seed = 1, flag_implied_port = 2 };
 	void get_peers(sha1_hash const& info_hash
 		, std::function<void(std::vector<tcp::endpoint> const&)> dcallback
