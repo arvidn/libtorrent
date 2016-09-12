@@ -134,7 +134,7 @@ public:
 	int data_size() const { return int(m_storage.num_torrents()); }
 #endif
 
-#ifndef TORRENT_DISABLE_LOGGING
+#if TORRENT_USE_IOSTREAM
 	// TODO: 3 make this print to the DHT logger instead
 	void print_state(std::ostream& os) const
 	{ m_table.print_state(os); }

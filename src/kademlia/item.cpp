@@ -68,6 +68,7 @@ namespace
 			left = out.size() - (ptr - out.data());
 			std::memcpy(ptr, salt.data(), (std::min)(salt.size(), left));
 			ptr += (std::min)(salt.size(), left);
+			left = out.size() - (ptr - out.data());
 		}
 		ptr += std::snprintf(ptr, out.size() - (ptr - out.data())
 			, "3:seqi%" PRId64 "e1:v", seq.value);
