@@ -123,7 +123,7 @@ void node::update_node_id()
 	// if we don't have an observer, we can't ask for the external IP (and our
 	// current node ID is likely not generated from an external address), so we
 	// can just stop here in that case.
-	if (!m_observer) return;
+	if (m_observer == nullptr) return;
 
 	// it's possible that our external address hasn't actually changed. If our
 	// current ID is still valid, don't do anything.
@@ -131,7 +131,7 @@ void node::update_node_id()
 		return;
 
 #ifndef TORRENT_DISABLE_LOGGING
-	if (m_observer) m_observer->log(dht_logger::node
+	if (m_observer != nullptr) m_observer->log(dht_logger::node
 		, "updating node ID (because external IP address changed)");
 #endif
 
@@ -436,7 +436,7 @@ void node::get_peers(sha1_hash const& info_hash
 	ta->start();
 }
 
-void node::announce(sha1_hash const& info_hash, int listen_port, int flags
+void node::announce(sha1_hash const& info_hash, int const listen_port, int const flags
 	, std::function<void(std::vector<tcp::endpoint> const&)> f)
 {
 #ifndef TORRENT_DISABLE_LOGGING
@@ -454,7 +454,7 @@ void node::announce(sha1_hash const& info_hash, int listen_port, int flags
 		, listen_port, info_hash, flags), flags & node::flag_seed);
 }
 
-void node::direct_request(udp::endpoint ep, entry& e
+void node::direct_request(udp::endpoint const& ep, entry& e
 	, std::function<void(msg const&)> f)
 {
 	// not really a traversal

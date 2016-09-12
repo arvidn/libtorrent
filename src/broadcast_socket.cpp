@@ -349,5 +349,3 @@ namespace libtorrent
 		maybe_abort();
 	}
 }
-
-

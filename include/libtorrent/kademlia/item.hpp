@@ -43,13 +43,13 @@ namespace libtorrent { namespace dht
 {
 
 // calculate the target hash for an immutable item.
-sha1_hash TORRENT_EXTRA_EXPORT item_target_id(span<char const> v);
+TORRENT_EXTRA_EXPORT sha1_hash item_target_id(span<char const> v);
 
 // calculate the target hash for a mutable item.
-sha1_hash TORRENT_EXTRA_EXPORT item_target_id(span<char const> salt
+TORRENT_EXTRA_EXPORT sha1_hash item_target_id(span<char const> salt
 	, public_key const& pk);
 
-bool TORRENT_EXTRA_EXPORT verify_mutable_item(
+TORRENT_EXTRA_EXPORT bool verify_mutable_item(
 	span<char const> v
 	, span<char const> salt
 	, sequence_number seq
@@ -65,7 +65,7 @@ bool TORRENT_EXTRA_EXPORT verify_mutable_item(
 // is written into a 64 byte buffer pointed to by ``sig``. The caller
 // is responsible for allocating the destination buffer that's passed in
 // as the ``sig`` argument. Typically it would be allocated on the stack.
-signature TORRENT_EXPORT sign_mutable_item(
+TORRENT_EXPORT signature sign_mutable_item(
 	span<char const> v
 	, span<char const> salt
 	, sequence_number seq

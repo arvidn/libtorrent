@@ -148,7 +148,7 @@ public:
 	void announce(sha1_hash const& info_hash, int listen_port, int flags
 		, std::function<void(std::vector<tcp::endpoint> const&)> f);
 
-	void direct_request(udp::endpoint ep, entry& e
+	void direct_request(udp::endpoint const& ep, entry& e
 		, std::function<void(msg const&)> f);
 
 	void get_item(sha1_hash const& target, std::function<void(item const&)> f);
@@ -213,9 +213,9 @@ public:
 
 	bool native_address(udp::endpoint const& ep) const
 	{ return ep.protocol().family() == m_protocol.protocol.family(); }
-	bool native_address(tcp::endpoint ep) const
+	bool native_address(tcp::endpoint const& ep) const
 	{ return ep.protocol().family() == m_protocol.protocol.family(); }
-	bool native_address(address addr) const
+	bool native_address(address const& addr) const
 	{
 		return (addr.is_v4() && m_protocol.protocol == m_protocol.protocol.v4())
 			|| (addr.is_v6() && m_protocol.protocol == m_protocol.protocol.v6());

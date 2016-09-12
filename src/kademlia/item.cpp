@@ -33,7 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/hasher.hpp>
 #include <libtorrent/kademlia/item.hpp>
 #include <libtorrent/bencode.hpp>
-#include <libtorrent/span.hpp>
 #include <libtorrent/kademlia/ed25519.hpp>
 
 #include <cstdio> // for snprintf
@@ -69,7 +68,6 @@ namespace
 			left = out.size() - (ptr - out.data());
 			std::memcpy(ptr, salt.data(), (std::min)(salt.size(), left));
 			ptr += (std::min)(salt.size(), left);
-			left = out.size() - (ptr - out.data());
 		}
 		ptr += std::snprintf(ptr, out.size() - (ptr - out.data())
 			, "3:seqi%" PRId64 "e1:v", seq.value);

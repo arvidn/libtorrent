@@ -181,7 +181,7 @@ public:
 	};
 	add_node_status_t add_node_impl(node_entry e);
 
-	bool add_node(node_entry e);
+	bool add_node(node_entry const& e);
 
 	// this function is called every time the node sees
 	// a sign of a node being alive. This node will either
@@ -250,7 +250,7 @@ public:
 
 	void replacement_cache(bucket_t& nodes) const;
 
-#ifndef TORRENT_DISABLE_LOGGING
+#if TORRENT_USE_IOSTREAM
 	// used for debug and monitoring purposes. This will print out
 	// the state of the routing table to the given stream
 	void print_state(std::ostream& os) const;
@@ -270,7 +270,7 @@ public:
 			|| (addr.is_v6() && m_protocol == udp::v6());
 	}
 
-	bool native_endpoint(udp::endpoint ep) const
+	bool native_endpoint(udp::endpoint const& ep) const
 	{ return ep.protocol() == m_protocol; }
 
 private:

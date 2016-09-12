@@ -44,7 +44,7 @@ struct direct_traversal : traversal_algorithm
 	typedef std::function<void(dht::msg const&)> message_callback;
 
 	direct_traversal(node& node
-		, node_id target
+		, node_id const& target
 		, message_callback cb)
 		: traversal_algorithm(node, target)
 		, m_cb(cb)

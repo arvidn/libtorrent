@@ -44,13 +44,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-
 	// TODO: 2 factor these functions out
 	TORRENT_EXTRA_EXPORT bool is_local(address const& a);
 	TORRENT_EXTRA_EXPORT bool is_loopback(address const& addr);
 	TORRENT_EXTRA_EXPORT bool is_any(address const& addr);
 	TORRENT_EXTRA_EXPORT bool is_teredo(address const& addr);
-	TORRENT_EXTRA_EXPORT int cidr_distance(address const& a1, address const& a2);
 	bool is_ip_address(char const* host);
 
 	// determines if the operating system supports IPv6
@@ -146,4 +144,3 @@ namespace libtorrent
 }
 	
 #endif
-
