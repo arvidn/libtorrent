@@ -322,7 +322,7 @@ namespace libtorrent
 		mutable std::vector<sha1_hash> m_merkle_tree;
 
 		// dht nodes to add to the routing table/bootstrap from
-		typedef std::vector<std::pair<std::string, int> > nodes_t;
+		using nodes_t = std::vector<std::pair<std::string, int>>;
 		nodes_t m_nodes;
 
 		// the hash that identifies this torrent

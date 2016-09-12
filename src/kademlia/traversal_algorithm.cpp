@@ -86,7 +86,7 @@ observer_ptr traversal_algorithm::new_observer(udp::endpoint const& ep
 
 traversal_algorithm::traversal_algorithm(
 	node& dht_node
-	, node_id target)
+	, node_id const& target)
 	: m_node(dht_node)
 	, m_target(target)
 	, m_invoke_count(0)

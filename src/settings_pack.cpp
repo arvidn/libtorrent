@@ -388,9 +388,9 @@ namespace libtorrent
 		return "";
 	}
 
-	std::shared_ptr<settings_pack> load_pack_from_dict(bdecode_node const& settings)
+	settings_pack load_pack_from_dict(bdecode_node const& settings)
 	{
-		std::shared_ptr<settings_pack> pack = std::make_shared<settings_pack>();
+		settings_pack pack;
 
 		for (int i = 0; i < settings.dict_size(); ++i)
 		{
@@ -405,27 +405,27 @@ namespace libtorrent
 				case bdecode_node::int_t:
 				{
 					bool found = false;
-					for (int k = 0; k < sizeof(int_settings)/sizeof(int_settings[0]); ++k)
+					for (int k = 0; k < sizeof(int_settings) / sizeof(int_settings[0]); ++k)
 					{
 						if (key != int_settings[k].name) continue;
-						pack->set_int(settings_pack::int_type_base + k, val.int_value());
+						pack.set_int(settings_pack::int_type_base + k, val.int_value());
 						found = true;
 						break;
 					}
 					if (found) continue;
-					for (int k = 0; k < sizeof(bool_settings)/sizeof(bool_settings[0]); ++k)
+					for (int k = 0; k < sizeof(bool_settings) / sizeof(bool_settings[0]); ++k)
 					{
 						if (key != bool_settings[k].name) continue;
-						pack->set_bool(settings_pack::bool_type_base + k, val.int_value() != 0);
+						pack.set_bool(settings_pack::bool_type_base + k, val.int_value() != 0);
 						break;
 					}
 				}
 				break;
 			case bdecode_node::string_t:
-				for (int k = 0; k < sizeof(str_settings)/sizeof(str_settings[0]); ++k)
+				for (int k = 0; k < sizeof(str_settings) / sizeof(str_settings[0]); ++k)
 				{
 					if (key != str_settings[k].name) continue;
-					pack->set_str(settings_pack::string_type_base + k, val.string_value().to_string());
+					pack.set_str(settings_pack::string_type_base + k, val.string_value().to_string());
 					break;
 				}
 				break;
@@ -547,7 +547,7 @@ namespace libtorrent
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#endif
+#endif // TORRENT_NO_DEPRECATE
 
 	void initialize_default_settings(aux::session_settings& s)
 	{
@@ -589,8 +589,12 @@ namespace libtorrent
 			if (index < 0 || index >= settings_pack::num_string_settings)
 				continue;
 
+			// if the vaue did not change, don't call the update callback
+			if (sett.get_str(p.first) == p.second) continue;
+
 			sett.set_str(p.first, p.second);
 			str_setting_entry_t const& sa = str_settings[index];
+
 			if (sa.fun && ses
 				&& std::find(callbacks.begin(), callbacks.end(), sa.fun) == callbacks.end())
 				callbacks.push_back(sa.fun);
@@ -607,6 +611,9 @@ namespace libtorrent
 			TORRENT_ASSERT_PRECOND(index >= 0 && index < settings_pack::num_int_settings);
 			if (index < 0 || index >= settings_pack::num_int_settings)
 				continue;
+
+			// if the vaue did not change, don't call the update callback
+			if (sett.get_int(p.first) == p.second) continue;
 
 			sett.set_int(p.first, p.second);
 			int_setting_entry_t const& sa = int_settings[index];
@@ -626,6 +633,9 @@ namespace libtorrent
 			TORRENT_ASSERT_PRECOND(index >= 0 && index < settings_pack::num_bool_settings);
 			if (index < 0 || index >= settings_pack::num_bool_settings)
 				continue;
+
+			// if the vaue did not change, don't call the update callback
+			if (sett.get_bool(p.first) == p.second) continue;
 
 			sett.set_bool(p.first, p.second);
 			bool_setting_entry_t const& sa = bool_settings[index];

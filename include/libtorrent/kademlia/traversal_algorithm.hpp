@@ -73,7 +73,7 @@ struct TORRENT_EXTRA_EXPORT traversal_algorithm : boost::noncopyable
 	void resort_results();
 	void add_entry(node_id const& id, udp::endpoint const& addr, unsigned char flags);
 
-	traversal_algorithm(node & node, node_id target);
+	traversal_algorithm(node& dht_node, node_id const& target);
 	int invoke_count() const { return m_invoke_count; }
 	int branch_factor() const { return m_branch_factor; }
 

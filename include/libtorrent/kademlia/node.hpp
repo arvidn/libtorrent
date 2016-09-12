@@ -72,7 +72,7 @@ namespace libtorrent { namespace dht
 struct traversal_algorithm;
 struct dht_observer;
 
-void TORRENT_EXTRA_EXPORT write_nodes_entry(entry& r, nodes_t const& nodes);
+TORRENT_EXTRA_EXPORT void write_nodes_entry(entry& r, nodes_t const& nodes);
 
 struct null_type {};
 
@@ -99,7 +99,8 @@ class TORRENT_EXTRA_EXPORT node : boost::noncopyable
 {
 public:
 	node(udp proto, udp_socket_interface* sock
-		, libtorrent::dht_settings const& settings, node_id nid
+		, libtorrent::dht_settings const& settings
+		, node_id const& nid
 		, dht_observer* observer, counters& cnt
 		, std::map<std::string, node*> const& nodes
 		, dht_storage_interface& storage);
@@ -111,7 +112,7 @@ public:
 	void tick();
 	void bootstrap(std::vector<udp::endpoint> const& nodes
 		, find_data::nodes_callback const& f);
-	void add_router_node(udp::endpoint router);
+	void add_router_node(udp::endpoint const& router);
 
 	void unreachable(udp::endpoint const& ep);
 	void incoming(msg const& m);
@@ -142,7 +143,7 @@ public:
 	enum flags_t { flag_seed = 1, flag_implied_port = 2 };
 	void get_peers(sha1_hash const& info_hash
 		, std::function<void(std::vector<tcp::endpoint> const&)> dcallback
-		, std::function<void(std::vector<std::pair<node_entry, std::string> > const&)> ncallback
+		, std::function<void(std::vector<std::pair<node_entry, std::string>> const&)> ncallback
 		, bool noseeds);
 	void announce(sha1_hash const& info_hash, int listen_port, int flags
 		, std::function<void(std::vector<tcp::endpoint> const&)> f);
@@ -173,7 +174,7 @@ public:
 	// pings the given node, and adds it to
 	// the routing table if it response and if the
 	// bucket is not full.
-	void add_node(udp::endpoint node);
+	void add_node(udp::endpoint const& node);
 
 	void replacement_cache(bucket_t& nodes) const
 	{ m_table.replacement_cache(nodes); }
@@ -210,7 +211,7 @@ public:
 	char const* protocol_family_name() const { return m_protocol.family_name; }
 	char const* protocol_nodes_key() const { return m_protocol.nodes_key; }
 
-	bool native_address(udp::endpoint ep) const
+	bool native_address(udp::endpoint const& ep) const
 	{ return ep.protocol().family() == m_protocol.protocol.family(); }
 	bool native_address(tcp::endpoint ep) const
 	{ return ep.protocol().family() == m_protocol.protocol.family(); }
@@ -247,7 +248,6 @@ private:
 public:
 	routing_table m_table;
 	rpc_manager m_rpc;
-	std::map<std::string, node*> const& m_nodes;
 
 private:
 #ifdef _MSC_VER
@@ -268,6 +268,8 @@ private:
 #pragma warning(pop)
 #endif
 	static protocol_descriptor const& map_protocol_to_descriptor(udp protocol);
+
+	std::map<std::string, node*> const& m_nodes;
 
 	dht_observer* m_observer;
 

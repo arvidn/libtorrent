@@ -65,7 +65,7 @@ void resolve_links::match(std::shared_ptr<const torrent_info> const& ti
 {
 	if (!ti) return;
 
-	// only torrents with the same 
+	// only torrents with the same piece size
 	if (ti->piece_length() != m_torrent_file->piece_length()) return;
 
 	int piece_size = ti->piece_length();
@@ -82,7 +82,7 @@ void resolve_links::match(std::shared_ptr<const torrent_info> const& ti
 		if ((fs.file_offset(i) % piece_size) != 0) continue;
 		if (fs.pad_file_at(i)) continue;
 
-		std::int64_t file_size = fs.file_size(i);
+		std::int64_t const file_size = fs.file_size(i);
 
 		auto range = m_file_sizes.equal_range(file_size);
 		for (auto iter = range.first; iter != range.second; ++iter)

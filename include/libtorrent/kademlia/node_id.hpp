@@ -45,33 +45,33 @@ namespace libtorrent { namespace dht
 
 struct node_entry;
 
-typedef libtorrent::sha1_hash node_id;
+using node_id = libtorrent::sha1_hash;
 
 // returns the distance between the two nodes
 // using the kademlia XOR-metric
-node_id TORRENT_EXTRA_EXPORT distance(node_id const& n1, node_id const& n2);
+TORRENT_EXTRA_EXPORT node_id distance(node_id const& n1, node_id const& n2);
 
 // returns true if: distance(n1, ref) < distance(n2, ref)
-bool TORRENT_EXTRA_EXPORT compare_ref(node_id const& n1, node_id const& n2, node_id const& ref);
+TORRENT_EXTRA_EXPORT bool compare_ref(node_id const& n1, node_id const& n2, node_id const& ref);
 
 // returns n in: 2^n <= distance(n1, n2) < 2^(n+1)
 // useful for finding out which bucket a node belongs to
 // the value that's returned is the number of trailing bits
 // after the shared bit prefix of ``n1`` and ``n2``.
 // if the first bits are different, that's 160.
-int TORRENT_EXTRA_EXPORT distance_exp(node_id const& n1, node_id const& n2);
-int TORRENT_EXTRA_EXPORT min_distance_exp(node_id const& n1, std::vector<node_id> const& ids);
+TORRENT_EXTRA_EXPORT int distance_exp(node_id const& n1, node_id const& n2);
+TORRENT_EXTRA_EXPORT int min_distance_exp(node_id const& n1, std::vector<node_id> const& ids);
 
-node_id TORRENT_EXTRA_EXPORT generate_id(address const& external_ip);
-node_id TORRENT_EXTRA_EXPORT generate_random_id();
-void TORRENT_EXTRA_EXPORT make_id_secret(node_id& in);
-node_id TORRENT_EXTRA_EXPORT generate_secret_id();
-bool TORRENT_EXTRA_EXPORT verify_secret_id(node_id const& nid);
-node_id TORRENT_EXTRA_EXPORT generate_id_impl(address const& ip_, std::uint32_t r);
+TORRENT_EXTRA_EXPORT node_id generate_id(address const& external_ip);
+TORRENT_EXTRA_EXPORT node_id generate_random_id();
+TORRENT_EXTRA_EXPORT void make_id_secret(node_id& in);
+TORRENT_EXTRA_EXPORT node_id generate_secret_id();
+TORRENT_EXTRA_EXPORT bool verify_secret_id(node_id const& nid);
+TORRENT_EXTRA_EXPORT node_id generate_id_impl(address const& ip_, std::uint32_t r);
 
-bool TORRENT_EXTRA_EXPORT verify_id(node_id const& nid, address const& source_ip);
-bool TORRENT_EXTRA_EXPORT matching_prefix(node_entry const& n, int mask, int prefix, int bucket_index);
-node_id TORRENT_EXTRA_EXPORT generate_prefix_mask(int bits);
+TORRENT_EXTRA_EXPORT bool verify_id(node_id const& nid, address const& source_ip);
+TORRENT_EXTRA_EXPORT bool matching_prefix(node_entry const& n, int mask, int prefix, int offset);
+TORRENT_EXTRA_EXPORT node_id generate_prefix_mask(int bits);
 
 } } // namespace libtorrent::dht
 

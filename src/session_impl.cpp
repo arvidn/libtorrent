@@ -704,8 +704,8 @@ namespace aux {
 			if (settings)
 			{
 				// apply_settings_pack will update dht and proxy
-				std::shared_ptr<settings_pack> pack = load_pack_from_dict(settings);
-				apply_settings_pack(pack);
+				settings_pack pack = load_pack_from_dict(settings);
+				apply_settings_pack_impl(pack);
 #ifndef TORRENT_DISABLE_DHT
 				need_update_dht = false;
 #endif
@@ -2306,7 +2306,7 @@ namespace aux {
 #ifndef TORRENT_DISABLE_DHT
 					if (m_dht && buf.size() > 20 && buf.front() == 'd' && buf.back() == 'e')
 					{
-						handled = m_dht->incoming_packet(packet.from, buf.data(), int(buf.size()));
+						handled = m_dht->incoming_packet(packet.from, buf);
 					}
 #endif
 
@@ -3387,7 +3387,7 @@ namespace aux {
 
 #ifndef TORRENT_DISABLE_DHT
 
-	void session_impl::add_dht_node(udp::endpoint n)
+	void session_impl::add_dht_node(udp::endpoint const& n)
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -5607,10 +5607,9 @@ namespace aux {
 			return;
 		}
 
-		for (std::vector<address>::const_iterator i = addresses.begin()
-			, end(addresses.end()); i != end; ++i)
+		for (auto const& addr : addresses)
 		{
-			udp::endpoint ep(*i, port);
+			udp::endpoint ep(addr, port);
 			add_dht_node(ep);
 		}
 	}
@@ -5641,11 +5640,10 @@ namespace aux {
 		}
 
 
-		for (std::vector<address>::const_iterator i = addresses.begin()
-			, end(addresses.end()); i != end; ++i)
+		for (auto const& addr : addresses)
 		{
 			// router nodes should be added before the DHT is started (and bootstrapped)
-			udp::endpoint ep(*i, port);
+			udp::endpoint ep(addr, port);
 			if (m_dht) m_dht->add_router_node(ep);
 			m_dht_router_nodes.push_back(ep);
 		}
@@ -6259,10 +6257,9 @@ namespace aux {
 			{
 				// the number of torrents that are above average
 				int num_above = 0;
-				for (torrent_map::iterator i = m_torrents.begin()
-					, end(m_torrents.end()); i != end; ++i)
+				for (auto const& t : m_torrents)
 				{
-					int num = i->second->num_peers();
+					int const num = t.second->num_peers();
 					if (num <= last_average) continue;
 					if (num > average) ++num_above;
 					if (num < average) extra += average - num;
@@ -6493,11 +6490,10 @@ namespace aux {
 		if (!m_natpmp) return;
 
 		m_natpmp->close();
-		for (std::list<listen_socket_t>::iterator i = m_listen_sockets.begin()
-			, end(m_listen_sockets.end()); i != end; ++i)
+		for (auto& s : m_listen_sockets)
 		{
-			i->tcp_port_mapping[0] = -1;
-			i->udp_port_mapping[0] = -1;
+			s.tcp_port_mapping[0] = -1;
+			s.udp_port_mapping[0] = -1;
 		}
 
 		m_natpmp.reset();
@@ -6508,11 +6504,10 @@ namespace aux {
 		if (!m_upnp) return;
 
 		m_upnp->close();
-		for (std::list<listen_socket_t>::iterator i = m_listen_sockets.begin()
-			, end(m_listen_sockets.end()); i != end; ++i)
+		for (auto& s : m_listen_sockets)
 		{
-			i->tcp_port_mapping[1] = -1;
-			i->udp_port_mapping[1] = -1;
+			s.tcp_port_mapping[1] = -1;
+			s.udp_port_mapping[1] = -1;
 		}
 		m_upnp.reset();
 	}
@@ -6630,10 +6625,9 @@ namespace aux {
 		if (m_alerts.should_post<external_ip_alert>())
 			m_alerts.emplace_alert<external_ip_alert>(ip);
 
-		for (torrent_map::iterator i = m_torrents.begin()
-			, end(m_torrents.end()); i != end; ++i)
+		for (auto const& t : m_torrents)
 		{
-			i->second->new_external_ip();
+			t.second->new_external_ip();
 		}
 
 		// since we have a new external IP now, we need to

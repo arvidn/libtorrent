@@ -78,7 +78,7 @@ namespace
 	}
 }
 
-void ip_set::insert(address addr)
+void ip_set::insert(address const& addr)
 {
 #if TORRENT_USE_IPV6
 	if (addr.is_v6())
@@ -88,7 +88,7 @@ void ip_set::insert(address addr)
 		m_ip4s.insert(addr.to_v4().to_bytes());
 }
 
-size_t ip_set::count(address addr)
+size_t ip_set::count(address const& addr)
 {
 #if TORRENT_USE_IPV6
 	if (addr.is_v6())
@@ -98,7 +98,7 @@ size_t ip_set::count(address addr)
 		return m_ip4s.count(addr.to_v4().to_bytes());
 }
 
-void ip_set::erase(address addr)
+void ip_set::erase(address const& addr)
 {
 #if TORRENT_USE_IPV6
 	if (addr.is_v6())
@@ -607,7 +607,7 @@ bool routing_table::add_node(node_entry e)
 		split_bucket();
 
 		// if this assert triggers a lot in the wild, we should probably
-		// harden our resistence towards this attack. Perhaps by never
+		// harden our resistance towards this attack. Perhaps by never
 		// splitting a bucket (and discard nodes) if the two buckets above it
 		// are empty or close to empty
 //		TORRENT_ASSERT(m_buckets.size() <= 50);
@@ -909,18 +909,19 @@ ip_ok:
 		std::vector<bucket_t::iterator> nodes;
 		bool force_replace = false;
 
+		// the last bucket is special, since it hasn't been split yet, it
+		// includes that top bit as well
+		int const prefix_offset =
+			bucket_index + 1 == m_buckets.size() ? bucket_index : bucket_index + 1;
+
 		{
 			node_id id = e.id;
-			// the last bucket is special, since it hasn't been split yet, it
-			// includes that top bit as well
-			if (bucket_index + 1 == m_buckets.size())
-				id <<= bucket_index;
-			else
-				id <<= bucket_index + 1;
+			id <<= prefix_offset;
+			int const candidate_prefix = id[0] & mask;
 
 			for (j = b.begin(); j != b.end(); ++j)
 			{
-				if (!matching_prefix(*j, mask, id[0] & mask, bucket_index)) continue;
+				if (!matching_prefix(*j, mask, candidate_prefix, prefix_offset)) continue;
 				nodes.push_back(j);
 			}
 		}
@@ -950,7 +951,7 @@ ip_ok:
 			for (j = b.begin(); j != b.end(); ++j)
 			{
 				node_id id = j->id;
-				id <<= bucket_index + 1;
+				id <<= prefix_offset;
 				int this_prefix = (id[0] & mask) >> mask_shift;
 				TORRENT_ASSERT(this_prefix >= 0);
 				TORRENT_ASSERT(this_prefix < int(prefix.size()));
@@ -1125,7 +1126,7 @@ void routing_table::split_bucket()
 	}
 }
 
-void routing_table::update_node_id(node_id id)
+void routing_table::update_node_id(node_id const& id)
 {
 	m_id = id;
 
@@ -1259,7 +1260,7 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 	fill_from_replacements(i);
 }
 
-void routing_table::add_router_node(udp::endpoint router)
+void routing_table::add_router_node(udp::endpoint const& router)
 {
 	m_router_nodes.insert(router);
 }
@@ -1277,7 +1278,7 @@ void routing_table::heard_about(node_id const& id, udp::endpoint const& ep)
 // top of its bucket. the return value indicates if the table needs a refresh.
 // if true, the node should refresh the table (i.e. do a find_node on its own
 // id)
-bool routing_table::node_seen(node_id const& id, udp::endpoint ep, int rtt)
+bool routing_table::node_seen(node_id const& id, udp::endpoint const& ep, int rtt)
 {
 	if (!verify_node_address(m_settings, id, ep.address())) return false;
 	return add_node(node_entry(id, ep, rtt, true));

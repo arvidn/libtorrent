@@ -93,5 +93,15 @@ TORRENT_TEST(dht_bootstrap)
 	sim.run();
 
 	TEST_EQUAL(node.tripped(), true);
+
+	std::vector<char> const& p = node.incoming_packets().front();
+	lt::bdecode_node n;
+	boost::system::error_code err;
+	int const ret = bdecode(p.data(), p.data() + p.size()
+		, n, err, nullptr, 10, 200);
+	TEST_EQUAL(ret, 0);
+
+	lt::bdecode_node a = n.dict_find_dict("a");
+	TEST_CHECK(a.dict_find_int_value("bs", -1) == 1);
 }
 

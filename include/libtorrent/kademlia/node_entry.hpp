@@ -82,4 +82,3 @@ struct TORRENT_EXTRA_EXPORT node_entry
 } } // namespace libtorrent::dht
 
 #endif
-
