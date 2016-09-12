@@ -1,8 +1,8 @@
 /*
  * puff.c
- * Copyright (C) 2002, 2003 Mark Adler
+ * Copyright (C) 2002-2013 Mark Adler
  * For conditions of distribution and use, see copyright notice in puff.h
- * version 1.7, 3 Mar 2003
+ * version 2.3, 21 Jan 2013
  *
  * puff.c is a simple inflate written to be an unambiguous way to specify the
  * deflate format.  It is not written for speed but rather simplicity.  As a
@@ -49,9 +49,9 @@
  *                      - Fix fixed codes table error
  *                      - Provide a scanning mode for determining size of
  *                        uncompressed data
- * 1.3  20 Mar 2002     - Go back to lengths for puff() parameters [Jean-loup]
+ * 1.3  20 Mar 2002     - Go back to lengths for puff() parameters [Gailly]
  *                      - Add a puff.h file for the interface
- *                      - Add braces in puff() for else do [Jean-loup]
+ *                      - Add braces in puff() for else do [Gailly]
  *                      - Use indexes instead of pointers for readability
  * 1.4  31 Mar 2002     - Simplify construct() code set check
  *                      - Fix some comments
@@ -60,22 +60,30 @@
  * 1.6   7 Aug 2002     - Minor format changes
  * 1.7   3 Mar 2003     - Added test code for distribution
  *                      - Added zlib-like license
+ * 1.8   9 Jan 2004     - Added some comments on no distance codes case
+ * 1.9  21 Feb 2008     - Fix bug on 16-bit integer architectures [Pohland]
+ *                      - Catch missing end-of-block symbol error
+ * 2.0  25 Jul 2008     - Add #define to permit distance too far back
+ *                      - Add option in TEST code for puff to write the data
+ *                      - Add option in TEST code to skip input bytes
+ *                      - Allow TEST code to read from piped stdin
+ * 2.1   4 Apr 2010     - Avoid variable initialization for happier compilers
+ *                      - Avoid unsigned comparisons for even happier compilers
+ * 2.2  25 Apr 2010     - Fix bug in variable initializations [Oberhumer]
+ *                      - Add const where appropriate [Oberhumer]
+ *                      - Split if's and ?'s for coverage testing
+ *                      - Break out test code to separate file
+ *                      - Move NIL to puff.h
+ *                      - Allow incomplete code only if single code length is 1
+ *                      - Add full code coverage test to Makefile
+ * 2.3  21 Jan 2013     - Check for invalid code length codes in dynamic blocks
  */
 
-/*
-note by Arvid Norberg.
-This file was turned into a .cpp file in order to
-be able to take advantage of boost's cstdint.hpp file
-All "short" has been replaced with boost::int16_t
-and all "long" with boost::int32_t according to the
-type width assuptions in the comment above.
-*/
 #include <setjmp.h>             /* for setjmp(), longjmp(), and jmp_buf */
-#include <boost/cstdint.hpp>    /* for types with size guarantees */
-#include "libtorrent/puff.hpp"  /* prototype for puff() */
+#include <string.h>             /* for NULL */
+#include "libtorrent/puff.hpp"             /* prototype for puff() */
 
 #define local static            /* for local function definitions */
-#define NIL ((unsigned char *)0)        /* for no output option */
 
 /*
  * Maximums for allocations and loops.  It is not useful to change these --
@@ -91,13 +99,13 @@ type width assuptions in the comment above.
 struct state {
     /* output state */
     unsigned char *out;         /* output buffer */
-    boost::uint32_t outlen;       /* available space at out */
-    boost::uint32_t outcnt;       /* bytes written to out so far */
+    unsigned long outlen;       /* available space at out */
+    unsigned long outcnt;       /* bytes written to out so far */
 
     /* input state */
-    unsigned char *in;          /* input buffer */
-    boost::uint32_t inlen;        /* available input at in */
-    boost::uint32_t incnt;        /* bytes read so far */
+    const unsigned char *in;    /* input buffer */
+    unsigned long inlen;        /* available input at in */
+    unsigned long incnt;        /* bytes read so far */
     int bitbuf;                 /* bit buffer */
     int bitcnt;                 /* number of bits in bit buffer */
 
@@ -118,22 +126,23 @@ struct state {
  */
 local int bits(struct state *s, int need)
 {
-	boost::int32_t val;           /* bit accumulator (can use up to 20 bits) */
+    long val;           /* bit accumulator (can use up to 20 bits) */
 
     /* load at least need bits into val */
     val = s->bitbuf;
     while (s->bitcnt < need) {
-        if (s->incnt == s->inlen) longjmp(s->env, 1);   /* out of input */
-        val |= (boost::int32_t)(s->in[s->incnt++]) << s->bitcnt;  /* load eight bits */
+        if (s->incnt == s->inlen)
+            longjmp(s->env, 1);         /* out of input */
+        val |= long(s->in[s->incnt++]) << s->bitcnt;  /* load eight bits */
         s->bitcnt += 8;
     }
 
     /* drop need bits and update buffer, always zero to seven bits left */
-    s->bitbuf = (int)(val >> need);
+    s->bitbuf = int(val >> need);
     s->bitcnt -= need;
 
     /* return need bits, zeroing the bits above that */
-    return (int)(val & ((1L << need) - 1));
+    return int(val & ((1L << need) - 1));
 }
 
 /*
@@ -162,7 +171,8 @@ local int stored(struct state *s)
     s->bitcnt = 0;
 
     /* get length and check against its one's complement */
-    if (s->incnt + 4 > s->inlen) return 2;      /* not enough input */
+    if (s->incnt + 4 > s->inlen)
+        return 2;                               /* not enough input */
     len = s->in[s->incnt++];
     len |= s->in[s->incnt++] << 8;
     if (s->in[s->incnt++] != (~len & 0xff) ||
@@ -170,8 +180,9 @@ local int stored(struct state *s)
         return -2;                              /* didn't match complement! */
 
     /* copy len bytes from in to out */
-    if (s->incnt + len > s->inlen) return 2;    /* not enough input */
-    if (s->out != NIL) {
+    if (s->incnt + len > s->inlen)
+        return 2;                               /* not enough input */
+    if (s->out != NULL) {
         if (s->outcnt + len > s->outlen)
             return 1;                           /* not enough output space */
         while (len--)
@@ -194,15 +205,15 @@ local int stored(struct state *s)
  * seen in the function decode() below.
  */
 struct huffman {
-    boost::int16_t *count;       /* number of symbols of each length */
-    boost::int16_t *symbol;      /* canonically ordered symbols */
+    short *count;       /* number of symbols of each length */
+    short *symbol;      /* canonically ordered symbols */
 };
 
 /*
  * Decode a code from the stream s using huffman table h.  Return the symbol or
  * a negative value if there is an error.  If all of the lengths are zero, i.e.
  * an empty code, or if the code is incomplete and an invalid code is received,
- * then -9 is returned after reading MAXBITS bits.
+ * then -10 is returned after reading MAXBITS bits.
  *
  * Format notes:
  *
@@ -222,7 +233,7 @@ struct huffman {
  *   in the deflate format.  See the format notes for fixed() and dynamic().
  */
 #ifdef SLOW
-local int decode(struct state *s, struct huffman *h)
+local int decode(struct state *s, const struct huffman *h)
 {
     int len;            /* current number of bits in code */
     int code;           /* len bits being decoded */
@@ -234,14 +245,14 @@ local int decode(struct state *s, struct huffman *h)
     for (len = 1; len <= MAXBITS; len++) {
         code |= bits(s, 1);             /* get next bit */
         count = h->count[len];
-        if (code < first + count)       /* if length len, return symbol */
+        if (code - count < first)       /* if length len, return symbol */
             return h->symbol[index + (code - first)];
         index += count;                 /* else update for next length */
         first += count;
         first <<= 1;
         code <<= 1;
     }
-    return -9;                          /* ran out of codes */
+    return -10;                         /* ran out of codes */
 }
 
 /*
@@ -250,7 +261,7 @@ local int decode(struct state *s, struct huffman *h)
  * a few percent larger.
  */
 #else /* !SLOW */
-local int decode(struct state *s, struct huffman *h)
+local int decode(struct state *s, const struct huffman *h)
 {
     int len;            /* current number of bits in code */
     int code;           /* len bits being decoded */
@@ -259,7 +270,7 @@ local int decode(struct state *s, struct huffman *h)
     int index;          /* index of first code of length len in symbol table */
     int bitbuf;         /* bits from stream */
     int left;           /* bits left in next or left to process */
-	 boost::int16_t *next;        /* next number of codes */
+    short *next;        /* next number of codes */
 
     bitbuf = s->bitbuf;
     left = s->bitcnt;
@@ -271,7 +282,7 @@ local int decode(struct state *s, struct huffman *h)
             code |= bitbuf & 1;
             bitbuf >>= 1;
             count = *next++;
-            if (code < first + count) { /* if length len, return symbol */
+            if (code - count < first) { /* if length len, return symbol */
                 s->bitbuf = bitbuf;
                 s->bitcnt = (s->bitcnt - len) & 7;
                 return h->symbol[index + (code - first)];
@@ -283,12 +294,15 @@ local int decode(struct state *s, struct huffman *h)
             len++;
         }
         left = (MAXBITS+1) - len;
-        if (left == 0) break;
-        if (s->incnt == s->inlen) longjmp(s->env, 1);   /* out of input */
+        if (left == 0)
+            break;
+        if (s->incnt == s->inlen)
+            longjmp(s->env, 1);         /* out of input */
         bitbuf = s->in[s->incnt++];
-        if (left > 8) left = 8;
+        if (left > 8)
+            left = 8;
     }
-    return -9;                          /* ran out of codes */
+    return -10;                         /* ran out of codes */
 }
 #endif /* SLOW */
 
@@ -324,12 +338,12 @@ local int decode(struct state *s, struct huffman *h)
  * - Within a given code length, the symbols are kept in ascending order for
  *   the code bits definition.
  */
-local int construct(struct huffman *h, boost::int16_t *length, int n)
+local int construct(struct huffman *h, const short *length, int n)
 {
     int symbol;         /* current symbol when stepping through length[] */
     int len;            /* current length when stepping through h->count[] */
     int left;           /* number of possible codes left of current length */
-	 boost::int16_t offs[MAXBITS+1];      /* offsets in symbol table for each length */
+    short offs[MAXBITS+1];      /* offsets in symbol table for each length */
 
     /* count number of codes of each length */
     for (len = 0; len <= MAXBITS; len++)
@@ -344,7 +358,8 @@ local int construct(struct huffman *h, boost::int16_t *length, int n)
     for (len = 1; len <= MAXBITS; len++) {
         left <<= 1;                     /* one more bit, double codes left */
         left -= h->count[len];          /* deduct count from possible codes */
-        if (left < 0) return left;      /* over-subscribed--return negative */
+        if (left < 0)
+            return left;                /* over-subscribed--return negative */
     }                                   /* left > 0 means incomplete */
 
     /* generate offsets into symbol table for each length for sorting */
@@ -420,23 +435,23 @@ local int construct(struct huffman *h, boost::int16_t *length, int n)
  *   defined to do the wrong thing in this case.
  */
 local int codes(struct state *s,
-                struct huffman *lencode,
-                struct huffman *distcode)
+                const struct huffman *lencode,
+                const struct huffman *distcode)
 {
     int symbol;         /* decoded symbol */
     int len;            /* length for copy */
     unsigned dist;      /* distance for copy */
-    static const boost::int16_t lens[29] = { /* Size base for length codes 257..285 */
+    static const short lens[29] = { /* Size base for length codes 257..285 */
         3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31,
         35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258};
-    static const boost::int16_t lext[29] = { /* Extra bits for length codes 257..285 */
+    static const short lext[29] = { /* Extra bits for length codes 257..285 */
         0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2,
         3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0};
-    static const boost::int16_t dists[30] = { /* Offset base for distance codes 0..29 */
+    static const short dists[30] = { /* Offset base for distance codes 0..29 */
         1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193,
         257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145,
         8193, 12289, 16385, 24577};
-    static const boost::int16_t dext[30] = { /* Extra bits for distance codes 0..29 */
+    static const short dext[30] = { /* Extra bits for distance codes 0..29 */
         0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6,
         7, 7, 8, 8, 9, 9, 10, 10, 11, 11,
         12, 12, 13, 13};
@@ -444,11 +459,13 @@ local int codes(struct state *s,
     /* decode literals and length/distance pairs */
     do {
         symbol = decode(s, lencode);
-        if (symbol < 0) return symbol;  /* invalid symbol */
+        if (symbol < 0)
+            return symbol;              /* invalid symbol */
         if (symbol < 256) {             /* literal: symbol is the byte */
             /* write out the literal */
-            if (s->out != NIL) {
-                if (s->outcnt == s->outlen) return 1;
+            if (s->out != NULL) {
+                if (s->outcnt == s->outlen)
+                    return 1;
                 s->out[s->outcnt] = symbol;
             }
             s->outcnt++;
@@ -456,21 +473,31 @@ local int codes(struct state *s,
         else if (symbol > 256) {        /* length */
             /* get and compute length */
             symbol -= 257;
-            if (symbol >= 29) return -9;        /* invalid fixed code */
+            if (symbol >= 29)
+                return -10;             /* invalid fixed code */
             len = lens[symbol] + bits(s, lext[symbol]);
 
             /* get and check distance */
             symbol = decode(s, distcode);
-            if (symbol < 0) return symbol;      /* invalid symbol */
+            if (symbol < 0)
+                return symbol;          /* invalid symbol */
             dist = dists[symbol] + bits(s, dext[symbol]);
+#ifndef INFLATE_ALLOW_INVALID_DISTANCE_TOOFAR_ARRR
             if (dist > s->outcnt)
-                return -10;     /* distance too far back */
+                return -11;     /* distance too far back */
+#endif
 
             /* copy length bytes from distance bytes back */
-            if (s->out != NIL) {
-                if (s->outcnt + len > s->outlen) return 1;
+            if (s->out != NULL) {
+                if (s->outcnt + len > s->outlen)
+                    return 1;
                 while (len--) {
-                    s->out[s->outcnt] = s->out[s->outcnt - dist];
+                    s->out[s->outcnt] =
+#ifdef INFLATE_ALLOW_INVALID_DISTANCE_TOOFAR_ARRR
+                        dist > s->outcnt ?
+                            0 :
+#endif
+                            s->out[s->outcnt - dist];
                     s->outcnt++;
                 }
             }
@@ -510,15 +537,20 @@ local int codes(struct state *s,
 local int fixed(struct state *s)
 {
     static int virgin = 1;
-    static boost::int16_t lencnt[MAXBITS+1], lensym[FIXLCODES];
-    static boost::int16_t distcnt[MAXBITS+1], distsym[MAXDCODES];
-    static struct huffman lencode = {lencnt, lensym};
-    static struct huffman distcode = {distcnt, distsym};
+    static short lencnt[MAXBITS+1], lensym[FIXLCODES];
+    static short distcnt[MAXBITS+1], distsym[MAXDCODES];
+    static struct huffman lencode, distcode;
 
     /* build fixed huffman tables if first call (may not be thread safe) */
     if (virgin) {
         int symbol;
-        boost::int16_t lengths[FIXLCODES];
+        short lengths[FIXLCODES];
+
+        /* construct lencode and distcode */
+        lencode.count = lencnt;
+        lencode.symbol = lensym;
+        distcode.count = distcnt;
+        distcode.symbol = distsym;
 
         /* literal/length table */
         for (symbol = 0; symbol < 144; symbol++)
@@ -586,6 +618,9 @@ local int fixed(struct state *s)
  *   block is fewer bits), but it is allowed by the format.  So incomplete
  *   literal/length codes of one symbol should also be permitted.
  *
+ * - If there are only literal codes and no lengths, then there are no distance
+ *   codes.  This is represented by one distance code with zero bits.
+ *
  * - The list of up to 286 length/literal lengths and up to 30 distance lengths
  *   are themselves compressed using Huffman codes and run-length encoding.  In
  *   the list of code lengths, a 0 symbol means no code, a 1..15 symbol means
@@ -633,13 +668,18 @@ local int dynamic(struct state *s)
     int nlen, ndist, ncode;             /* number of lengths in descriptor */
     int index;                          /* index of lengths[] */
     int err;                            /* construct() return value */
-    boost::int16_t lengths[MAXCODES];            /* descriptor code lengths */
-    boost::int16_t lencnt[MAXBITS+1], lensym[MAXLCODES];         /* lencode memory */
-    boost::int16_t distcnt[MAXBITS+1], distsym[MAXDCODES];       /* distcode memory */
-    struct huffman lencode = {lencnt, lensym};          /* length code */
-    struct huffman distcode = {distcnt, distsym};       /* distance code */
-    static const boost::int16_t order[19] =      /* permutation of code length codes */
+    short lengths[MAXCODES];            /* descriptor code lengths */
+    short lencnt[MAXBITS+1], lensym[MAXLCODES];         /* lencode memory */
+    short distcnt[MAXBITS+1], distsym[MAXDCODES];       /* distcode memory */
+    struct huffman lencode, distcode;   /* length and distance codes */
+    static const short order[19] =      /* permutation of code length codes */
         {16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15};
+
+    /* construct lencode and distcode */
+    lencode.count = lencnt;
+    lencode.symbol = lensym;
+    distcode.count = distcnt;
+    distcode.symbol = distsym;
 
     /* get number of lengths in each table, check lengths */
     nlen = bits(s, 5) + 257;
@@ -656,21 +696,25 @@ local int dynamic(struct state *s)
 
     /* build huffman table for code lengths codes (use lencode temporarily) */
     err = construct(&lencode, lengths, 19);
-    if (err != 0) return -4;            /* require complete code set here */
+    if (err != 0)               /* require complete code set here */
+        return -4;
 
     /* read length/literal and distance code length tables */
     index = 0;
     while (index < nlen + ndist) {
         int symbol;             /* decoded value */
-        int len;                /* last length to repeat */
 
         symbol = decode(s, &lencode);
+        if (symbol < 0)
+            return symbol;          /* invalid symbol */
         if (symbol < 16)                /* length in 0..15 */
             lengths[index++] = symbol;
         else {                          /* repeat instruction */
-            len = 0;                    /* assume repeating zeros */
+            int len = 0;                /* last length to repeat */
+                                        /* assume repeating zeros */
             if (symbol == 16) {         /* repeat last length 3..6 times */
-                if (index == 0) return -5;      /* no last length! */
+                if (index == 0)
+                    return -5;          /* no last length! */
                 len = lengths[index - 1];       /* last length */
                 symbol = 3 + bits(s, 2);
             }
@@ -685,15 +729,19 @@ local int dynamic(struct state *s)
         }
     }
 
+    /* check for end-of-block code -- there better be one! */
+    if (lengths[256] == 0)
+        return -9;
+
     /* build huffman table for literal/length codes */
     err = construct(&lencode, lengths, nlen);
-    if (err < 0 || (err > 0 && nlen - lencode.count[0] != 1))
-        return -7;      /* only allow incomplete codes if just one code */
+    if (err && (err < 0 || nlen != lencode.count[0] + lencode.count[1]))
+        return -7;      /* incomplete code ok only for single length 1 code */
 
     /* build huffman table for distance codes */
     err = construct(&distcode, lengths + nlen, ndist);
-    if (err < 0 || (err > 0 && ndist - distcode.count[0] != 1))
-        return -8;      /* only allow incomplete codes if just one code */
+    if (err && (err < 0 || ndist != distcode.count[0] + distcode.count[1]))
+        return -8;      /* incomplete code ok only for single length 1 code */
 
     /* decode data until end-of-block code */
     return codes(s, &lencode, &distcode);
@@ -729,8 +777,9 @@ local int dynamic(struct state *s)
  *  -6:  dynamic block code description: repeat more than specified lengths
  *  -7:  dynamic block code description: invalid literal/length code lengths
  *  -8:  dynamic block code description: invalid distance code lengths
- *  -9:  invalid literal/length or distance code in fixed or dynamic block
- * -10:  distance is too far back in fixed or dynamic block
+ *  -9:  dynamic block code description: missing end-of-block code
+ * -10:  invalid literal/length or distance code in fixed or dynamic block
+ * -11:  distance is too far back in fixed or dynamic block
  *
  * Format notes:
  *
@@ -743,9 +792,9 @@ local int dynamic(struct state *s)
  *   expected values to check.
  */
 int puff(unsigned char *dest,           /* pointer to destination pointer */
-         boost::uint32_t *destlen,        /* amount of output space */
-         unsigned char *source,         /* pointer to source data pointer */
-         boost::uint32_t *sourcelen)      /* amount of input available */
+         unsigned long *destlen,        /* amount of output space */
+         const unsigned char *source,   /* pointer to source data pointer */
+         unsigned long *sourcelen)      /* amount of input available */
 {
     struct state s;             /* input/output state */
     int last, type;             /* block information */
@@ -771,11 +820,15 @@ int puff(unsigned char *dest,           /* pointer to destination pointer */
         do {
             last = bits(&s, 1);         /* one if last block */
             type = bits(&s, 2);         /* block type 0..3 */
-            err = type == 0 ? stored(&s) :
-                  (type == 1 ? fixed(&s) :
-                   (type == 2 ? dynamic(&s) :
-                    -1));               /* type == 3, invalid */
-            if (err != 0) break;        /* return with error */
+            err = type == 0 ?
+                    stored(&s) :
+                    (type == 1 ?
+                        fixed(&s) :
+                        (type == 2 ?
+                            dynamic(&s) :
+                            -1));       /* type == 3, invalid */
+            if (err != 0)
+                break;                  /* return with error */
         } while (!last);
     }
 
@@ -786,57 +839,3 @@ int puff(unsigned char *dest,           /* pointer to destination pointer */
     }
     return err;
 }
-
-#ifdef TEST
-/* Example of how to use puff() */
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-
-local unsigned char *yank(char *name, boost::uint32_t *len)
-{
-    boost::uint32_t size;
-    unsigned char *buf;
-    FILE *in;
-    struct stat s;
-
-    *len = 0;
-    if (stat(name, &s)) return NULL;
-    if ((s.st_mode & S_IFMT) != S_IFREG) return NULL;
-    size = (boost::uint32_t)(s.st_size);
-    if (size == 0 || (off_t)size != s.st_size) return NULL;
-    in = fopen(name, "r");
-    if (in == NULL) return NULL;
-    buf = malloc(size);
-    if (buf != NULL && fread(buf, 1, size, in) != size) {
-        free(buf);
-        buf = NULL;
-    }
-    fclose(in);
-    *len = size;
-    return buf;
-}
-
-int main(int argc, char **argv)
-{
-    int ret;
-    unsigned char *source;
-    boost::uint32_t len, sourcelen, destlen;
-
-    if (argc < 2) return 2;
-    source = yank(argv[1], &len);
-    if (source == NULL) return 2;
-    sourcelen = len;
-    ret = puff(NIL, &destlen, source, &sourcelen);
-    if (ret)
-        printf("puff() failed with return code %d\n", ret);
-    else {
-        printf("puff() succeeded uncompressing %lu bytes\n", destlen);
-        if (sourcelen < len) printf("%lu compressed bytes unused\n",
-                                    len - sourcelen);
-    }
-    free(source);
-    return ret;
-}
-#endif

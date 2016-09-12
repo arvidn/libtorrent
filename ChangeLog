@@ -1,3 +1,5 @@
+	* update puff to fix gzip crash
+
 1.0.10 release
 
 	* fixed inverted priority of incoming piece suggestions
