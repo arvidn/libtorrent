@@ -81,13 +81,17 @@ namespace libtorrent {
 		template <class T>
 		bool should_post() const
 		{
+			if ((m_alert_mask & T::static_category) == 0)
+				return false;
+
 			std::lock_guard<std::mutex> lock(m_mutex);
 			if (m_alerts[m_generation].size() >= m_queue_size_limit
 				* (1 + T::priority))
 			{
 				return false;
 			}
-			return (m_alert_mask & T::static_category) != 0;
+
+			return true;
 		}
 
 		alert* wait_for_alert(time_duration max_wait);
