@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/assert.hpp"
 
+#ifdef BOOST_NO_CXX11_HDR_RANDOM
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/random/random_device.hpp>
@@ -41,6 +42,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/random/uniform_int_distribution.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
+#else
+#include <random>
+#endif
 
 #if !TORRENT_THREADSAFE_STATIC
 #include "libtorrent/thread.hpp"
@@ -48,9 +52,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+#ifdef BOOST_NO_CXX11_HDR_RANDOM
 	using boost::random::random_device;
 	using boost::random::mt19937;
 	using boost::random::uniform_int_distribution;
+#else
+	using std::random_device;
+	using std::mt19937;
+	using std::uniform_int_distribution;
+#endif
 
 #ifdef TORRENT_BUILD_SIMULATOR
 
