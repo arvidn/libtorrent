@@ -576,8 +576,179 @@ dht::key_desc_t const put_mutable_item_desc[] = {
 		{"v", bdecode_node::none_t, 0, key_desc_t::last_child},
 };
 
+void print_state(std::ostream& os, routing_table const& table)
+{
+	std::vector<char> buf(2048);
+	int cursor = 0;
 
-} // annonymous namespace
+	cursor += std::snprintf(&buf[cursor], buf.size() - cursor
+		, "kademlia routing table state\n"
+		"bucket_size: %d\n"
+		"global node count: %" PRId64 "\n"
+		"node_id: %s\n\n"
+		"number of nodes per bucket:\n"
+		, table.bucket_size()
+		, table.num_global_nodes()
+		, aux::to_hex(table.id()).c_str());
+	if (cursor > int(buf.size()) - 500) buf.resize(buf.size() * 3 / 2);
+
+	int idx = 0;
+
+	for (auto i = table.buckets().begin(), end(table.buckets().end());
+		i != end; ++i, ++idx)
+	{
+		cursor += std::snprintf(&buf[cursor], buf.size() - cursor
+			, "%2d: ", idx);
+		for (int k = 0; k < int(i->live_nodes.size()); ++k)
+			cursor += std::snprintf(&buf[cursor], buf.size() - cursor, "#");
+		for (int k = 0; k < int(i->replacements.size()); ++k)
+			cursor += std::snprintf(&buf[cursor], buf.size() - cursor, "-");
+		cursor += std::snprintf(&buf[cursor], buf.size() - cursor, "\n");
+
+		if (cursor > int(buf.size()) - 500) buf.resize(buf.size() * 3 / 2);
+	}
+
+	time_point now = aux::time_now();
+
+	cursor += std::snprintf(&buf[cursor], buf.size() - cursor
+		, "\nnodes:");
+
+	int bucket_index = 0;
+	for (auto i = table.buckets().begin(), end(table.buckets().end());
+		i != end; ++i, ++bucket_index)
+	{
+		cursor += std::snprintf(&buf[cursor], buf.size() - cursor
+			, "\n=== BUCKET == %d == %d|%d ==== \n"
+			, bucket_index, int(i->live_nodes.size())
+			, int(i->replacements.size()));
+		if (cursor > int(buf.size()) - 500) buf.resize(buf.size() * 3 / 2);
+
+		int id_shift;
+		// the last bucket is special, since it hasn't been split yet, it
+		// includes that top bit as well
+		if (bucket_index + 1 == int(table.buckets().size()))
+			id_shift = bucket_index;
+		else
+			id_shift = bucket_index + 1;
+
+		for (bucket_t::const_iterator j = i->live_nodes.begin()
+			, end2(i->live_nodes.end()); j != end2; ++j)
+		{
+			int bucket_size_limit = table.bucket_limit(bucket_index);
+			std::uint32_t top_mask = bucket_size_limit - 1;
+			int mask_shift = 0;
+			TORRENT_ASSERT_VAL(bucket_size_limit > 0, bucket_size_limit);
+			while ((top_mask & 0x80) == 0)
+			{
+				top_mask <<= 1;
+				++mask_shift;
+			}
+			top_mask = (0xff << mask_shift) & 0xff;
+
+			node_id id = j->id;
+			id <<= id_shift;
+
+			cursor += std::snprintf(&buf[cursor], buf.size() - cursor
+				, " prefix: %2x id: %s"
+				, ((id[0] & top_mask) >> mask_shift)
+				, aux::to_hex(j->id).c_str());
+
+			if (j->rtt == 0xffff)
+			{
+				cursor += std::snprintf(&buf[cursor], buf.size() - cursor
+					, " rtt:     ");
+			}
+			else
+			{
+				cursor += std::snprintf(&buf[cursor], buf.size() - cursor
+					, " rtt: %4d", j->rtt);
+			}
+
+			cursor += std::snprintf(&buf[cursor], buf.size() - cursor
+				, " fail: %4d ping: %d dist: %3d"
+				, j->fail_count()
+				, j->pinged()
+				, distance_exp(table.id(), j->id));
+
+			if (j->last_queried == min_time())
+			{
+				cursor += std::snprintf(&buf[cursor], buf.size() - cursor
+					, " query:    ");
+			}
+			else
+			{
+				cursor += std::snprintf(&buf[cursor], buf.size() - cursor
+					, " query: %3d", int(total_seconds(now - j->last_queried)));
+			}
+
+			cursor += std::snprintf(&buf[cursor], buf.size() - cursor
+				, " ip: %s\n", print_endpoint(j->ep()).c_str());
+			if (cursor > int(buf.size()) - 500) buf.resize(buf.size() * 3 / 2);
+		}
+	}
+
+	cursor += std::snprintf(&buf[cursor], buf.size() - cursor
+		, "\nnode spread per bucket:\n");
+	bucket_index = 0;
+	for (auto i = table.buckets().begin(), end(table.buckets().end());
+		i != end; ++i, ++bucket_index)
+	{
+		int bucket_size_limit = table.bucket_limit(bucket_index);
+
+		// mask out the first 3 bits, or more depending
+		// on the bucket_size_limit
+		// we have all the lower bits set in (bucket_size_limit-1)
+		// but we want the left-most bits to be set. Shift it
+		// until the MSB is set
+		std::uint32_t top_mask = bucket_size_limit - 1;
+		int mask_shift = 0;
+		TORRENT_ASSERT_VAL(bucket_size_limit > 0, bucket_size_limit);
+		while ((top_mask & 0x80) == 0)
+		{
+			top_mask <<= 1;
+			++mask_shift;
+		}
+		top_mask = (0xff << mask_shift) & 0xff;
+		bucket_size_limit = (top_mask >> mask_shift) + 1;
+		TORRENT_ASSERT_VAL(bucket_size_limit <= 256, bucket_size_limit);
+		bool sub_buckets[256];
+		std::memset(sub_buckets, 0, sizeof(sub_buckets));
+
+		int id_shift;
+		// the last bucket is special, since it hasn't been split yet, it
+		// includes that top bit as well
+		if (bucket_index + 1 == int(table.buckets().size()))
+			id_shift = bucket_index;
+		else
+			id_shift = bucket_index + 1;
+
+		for (bucket_t::const_iterator j = i->live_nodes.begin()
+			, end2(i->live_nodes.end()); j != end2; ++j)
+		{
+			node_id id = j->id;
+			id <<= id_shift;
+			int b = (id[0] & top_mask) >> mask_shift;
+			TORRENT_ASSERT(b >= 0 && b < int(sizeof(sub_buckets)/sizeof(sub_buckets[0])));
+			sub_buckets[b] = true;
+		}
+
+		cursor += std::snprintf(&buf[cursor], buf.size() - cursor
+			, "%2d mask: %2x: [", bucket_index, (top_mask >> mask_shift));
+
+		for (int j = 0; j < bucket_size_limit; ++j)
+		{
+			cursor += std::snprintf(&buf[cursor], buf.size() - cursor
+				, (sub_buckets[j] ? "X" : " "));
+		}
+		cursor += std::snprintf(&buf[cursor], buf.size() - cursor
+			, "]\n");
+		if (cursor > int(buf.size()) - 500) buf.resize(buf.size() * 3 / 2);
+	}
+	buf[cursor] = '\0';
+	os << &buf[0];
+}
+
+} // anonymous namespace
 
 TORRENT_TEST(ping)
 {
@@ -1442,9 +1613,7 @@ void test_routing_table(address(&rand_addr)())
 	//TODO: 2 test num_global_nodes
 	//TODO: 2 test need_refresh
 
-#ifndef TORRENT_DISABLE_LOGGING
-	table.print_state(std::cerr);
-#endif
+	print_state(std::cerr, table);
 
 	table.for_each_node(node_push_back, nop, &nodes);
 
@@ -2666,9 +2835,7 @@ TORRENT_TEST(routing_table_uniform)
 	// i.e. no more than 5 levels
 	TEST_EQUAL(tbl.num_active_buckets(), 5);
 
-#ifndef TORRENT_DISABLE_LOGGING
-	tbl.print_state(std::cerr);
-#endif
+	print_state(std::cerr, tbl);
 }
 
 TORRENT_TEST(routing_table_balance)
@@ -2691,9 +2858,7 @@ TORRENT_TEST(routing_table_balance)
 	std::printf("num_active_buckets: %d\n", tbl.num_active_buckets());
 	TEST_EQUAL(tbl.num_active_buckets(), 2);
 
-#ifndef TORRENT_DISABLE_LOGGING
-	tbl.print_state(std::cerr);
-#endif
+	print_state(std::cerr, tbl);
 }
 
 TORRENT_TEST(routing_table_extended)
@@ -2720,9 +2885,7 @@ TORRENT_TEST(routing_table_extended)
 	}
 	TEST_EQUAL(tbl.num_active_buckets(), 6);
 
-#ifndef TORRENT_DISABLE_LOGGING
-	tbl.print_state(std::cerr);
-#endif
+	print_state(std::cerr, tbl);
 }
 
 void inserter(std::set<node_id>* nodes, node_entry const& ne)
@@ -2755,9 +2918,7 @@ TORRENT_TEST(routing_table_set_id)
 	std::set<node_id> original_nodes;
 	tbl.for_each_node(std::bind(&inserter, &original_nodes, _1));
 
-#ifndef TORRENT_DISABLE_LOGGING
-	tbl.print_state(std::cerr);
-#endif
+	print_state(std::cerr, tbl);
 
 	id = to_hash("ffffffffffffffffffffffffffffffffffffffff");
 
@@ -2775,9 +2936,7 @@ TORRENT_TEST(routing_table_set_id)
 	// all remaining nodes also exist in the original nodes
 	TEST_EQUAL(intersection.size(), remaining_nodes.size());
 
-#ifndef TORRENT_DISABLE_LOGGING
-	tbl.print_state(std::cerr);
-#endif
+	print_state(std::cerr, tbl);
 }
 
 TORRENT_TEST(node_set_id)

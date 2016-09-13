@@ -134,12 +134,6 @@ public:
 	int data_size() const { return int(m_storage.num_torrents()); }
 #endif
 
-#ifndef TORRENT_DISABLE_LOGGING
-	// TODO: 3 make this print to the DHT logger instead
-	void print_state(std::ostream& os) const
-	{ m_table.print_state(os); }
-#endif
-
 	enum flags_t { flag_seed = 1, flag_implied_port = 2 };
 	void get_peers(sha1_hash const& info_hash
 		, std::function<void(std::vector<tcp::endpoint> const&)> dcallback
@@ -148,7 +142,7 @@ public:
 	void announce(sha1_hash const& info_hash, int listen_port, int flags
 		, std::function<void(std::vector<tcp::endpoint> const&)> f);
 
-	void direct_request(udp::endpoint ep, entry& e
+	void direct_request(udp::endpoint const& ep, entry& e
 		, std::function<void(msg const&)> f);
 
 	void get_item(sha1_hash const& target, std::function<void(item const&)> f);
@@ -213,9 +207,9 @@ public:
 
 	bool native_address(udp::endpoint const& ep) const
 	{ return ep.protocol().family() == m_protocol.protocol.family(); }
-	bool native_address(tcp::endpoint ep) const
+	bool native_address(tcp::endpoint const& ep) const
 	{ return ep.protocol().family() == m_protocol.protocol.family(); }
-	bool native_address(address addr) const
+	bool native_address(address const& addr) const
 	{
 		return (addr.is_v4() && m_protocol.protocol == m_protocol.protocol.v4())
 			|| (addr.is_v6() && m_protocol.protocol == m_protocol.protocol.v6());

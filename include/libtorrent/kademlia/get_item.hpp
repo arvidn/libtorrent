@@ -52,7 +52,7 @@ public:
 
 	// for immutable itms
 	get_item(node& dht_node
-		, node_id target
+		, node_id const& target
 		, data_callback const& dcallback
 		, nodes_callback const& ncallback);
 

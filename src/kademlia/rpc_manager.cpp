@@ -418,7 +418,7 @@ void rpc_manager::add_our_id(entry& e)
 	e["id"] = m_our_id.to_string();
 }
 
-bool rpc_manager::invoke(entry& e, udp::endpoint target_addr
+bool rpc_manager::invoke(entry& e, udp::endpoint const& target_addr
 	, observer_ptr o)
 {
 	INVARIANT_CHECK;
@@ -450,9 +450,12 @@ bool rpc_manager::invoke(entry& e, udp::endpoint target_addr
 	o->set_transaction_id(tid);
 
 #ifndef TORRENT_DISABLE_LOGGING
-	m_log->log(dht_logger::rpc_manager, "[%p] invoking %s -> %s"
-		, static_cast<void*>(o->algorithm()), e["q"].string().c_str()
-		, print_endpoint(target_addr).c_str());
+	if (m_log != nullptr && m_log->should_log(dht_logger::rpc_manager))
+	{
+		m_log->log(dht_logger::rpc_manager, "[%p] invoking %s -> %s"
+			, static_cast<void*>(o->algorithm()), e["q"].string().c_str()
+			, print_endpoint(target_addr).c_str());
+	}
 #endif
 
 	if (m_sock->send_packet(e, target_addr))

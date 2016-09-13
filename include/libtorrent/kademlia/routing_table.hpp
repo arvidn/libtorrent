@@ -181,7 +181,7 @@ public:
 	};
 	add_node_status_t add_node_impl(node_entry e);
 
-	bool add_node(node_entry e);
+	bool add_node(node_entry const& e);
 
 	// this function is called every time the node sees
 	// a sign of a node being alive. This node will either
@@ -250,12 +250,6 @@ public:
 
 	void replacement_cache(bucket_t& nodes) const;
 
-#ifndef TORRENT_DISABLE_LOGGING
-	// used for debug and monitoring purposes. This will print out
-	// the state of the routing table to the given stream
-	void print_state(std::ostream& os) const;
-#endif
-
 	int bucket_limit(int bucket) const;
 
 #if TORRENT_USE_INVARIANT_CHECKS
@@ -270,8 +264,14 @@ public:
 			|| (addr.is_v6() && m_protocol == udp::v6());
 	}
 
-	bool native_endpoint(udp::endpoint ep) const
+	bool native_endpoint(udp::endpoint const& ep) const
 	{ return ep.protocol() == m_protocol; }
+
+	node_id const& id() const
+	{ return m_id; }
+
+	table_t const& buckets() const
+	{ return m_buckets; }
 
 private:
 
@@ -326,7 +326,7 @@ private:
 	ip_set m_ips;
 
 	// constant called k in paper
-	int m_bucket_size;
+	int const m_bucket_size;
 };
 
 } } // namespace libtorrent::dht

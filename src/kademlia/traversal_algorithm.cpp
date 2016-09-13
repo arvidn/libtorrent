@@ -296,7 +296,7 @@ void traversal_algorithm::finished(observer_ptr o)
 // prevent request means that the total number of requests has
 // overflown. This query failed because it was the oldest one.
 // So, if this is true, don't make another request
-void traversal_algorithm::failed(observer_ptr o, int flags)
+void traversal_algorithm::failed(observer_ptr o, int const flags)
 {
 	// don't tell the routing table about
 	// node ids that we just generated ourself
@@ -564,7 +564,7 @@ void traversal_observer::reply(msg const& m)
 	if (!r)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		if (get_observer())
+		if (get_observer() != nullptr)
 		{
 			get_observer()->log(dht_logger::traversal
 				, "[%p] missing response dict"
@@ -619,7 +619,7 @@ void traversal_observer::reply(msg const& m)
 	if (!id || id.string_length() != 20)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		if (get_observer())
+		if (get_observer() != nullptr)
 		{
 			get_observer()->log(dht_logger::traversal, "[%p] invalid id in response"
 				, static_cast<void*>(algorithm()));

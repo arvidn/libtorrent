@@ -33,7 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/hasher.hpp>
 #include <libtorrent/kademlia/item.hpp>
 #include <libtorrent/bencode.hpp>
-#include <libtorrent/span.hpp>
 #include <libtorrent/kademlia/ed25519.hpp>
 
 #include <cstdio> // for snprintf

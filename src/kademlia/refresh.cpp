@@ -68,7 +68,7 @@ bool bootstrap::invoke(observer_ptr o)
 	if (o->flags & observer::flag_initial)
 	{
 		// if this packet is being sent to a bootstrap/router node, let it know
-		// that we're actualy bootstrapping (as opposed to being collateral
+		// that we're actually bootstrapping (as opposed to being collateral
 		// traffic).
 		a["bs"] = 1;
 	}

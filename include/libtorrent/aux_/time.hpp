@@ -40,7 +40,7 @@ namespace libtorrent { namespace aux
 {
 	// returns the current time, as represented by time_point. The
 	// resolution of this timer is about 100 ms.
-	time_point time_now();
+	TORRENT_EXTRA_EXPORT time_point time_now();
 
 	TORRENT_EXTRA_EXPORT void update_time_now();
 

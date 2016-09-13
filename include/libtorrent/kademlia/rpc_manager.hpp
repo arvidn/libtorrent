@@ -80,7 +80,7 @@ public:
 	bool incoming(msg const&, node_id* id);
 	time_duration tick();
 
-	bool invoke(entry& e, udp::endpoint target
+	bool invoke(entry& e, udp::endpoint const& target
 		, observer_ptr o);
 
 	void add_our_id(entry& e);
