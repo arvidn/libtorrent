@@ -1924,6 +1924,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 #ifdef TORRENT_DEBUG
 		p->num_fast_resend = 0;
 #endif
+		p->mtu_probe = false;
 		p->need_resend = false;
 		ptr = p->buf;
 		h = reinterpret_cast<utp_header*>(ptr);
