@@ -70,6 +70,9 @@ struct mock_peer_connection
 	virtual ~mock_peer_connection() = default;
 
 #if !defined TORRENT_DISABLE_LOGGING
+	bool should_log(peer_log_alert::direction_t) const override
+	{ return true; }
+
 	void peer_log(peer_log_alert::direction_t dir, char const* event
 		, char const* fmt, ...) const override
 	{

@@ -414,7 +414,7 @@ namespace libtorrent
 		void keep_alive();
 
 		peer_id const& pid() const { return m_peer_id; }
-		void set_pid(const peer_id& peer_id) { m_peer_id = peer_id; }
+		void set_pid(peer_id const& peer_id) { m_peer_id = peer_id; }
 		bool has_piece(int i) const;
 
 		std::vector<pending_block> const& download_queue() const;
@@ -542,6 +542,7 @@ namespace libtorrent
 		int est_reciprocation_rate() const { return m_est_reciprocation_rate; }
 
 #ifndef TORRENT_DISABLE_LOGGING
+		bool should_log(peer_log_alert::direction_t direction) const;
 		void peer_log(peer_log_alert::direction_t direction
 			, char const* event, char const* fmt, ...) const TORRENT_FORMAT(4,5);
 		void peer_log(peer_log_alert::direction_t direction

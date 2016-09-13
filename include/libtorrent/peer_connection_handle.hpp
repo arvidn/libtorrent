@@ -96,6 +96,7 @@ struct TORRENT_EXPORT peer_connection_handle
 
 #ifndef TORRENT_DISABLE_LOGGING
 
+	bool should_log(peer_log_alert::direction_t direction) const;
 	void peer_log(peer_log_alert::direction_t direction
 		, char const* event, char const* fmt = "", ...) const TORRENT_FORMAT(4,5);
 

@@ -8934,10 +8934,17 @@ namespace libtorrent
 	void torrent::log_to_all_peers(char const* message)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		for (peer_iterator i = m_connections.begin();
-				i != m_connections.end(); ++i)
+
+		auto it = m_connections.begin();
+		bool log_peers = it != m_connections.end()
+			&& (*it)->should_log(peer_log_alert::info);
+
+		if (log_peers)
 		{
-			(*i)->peer_log(peer_log_alert::info, "TORRENT", "%s", message);
+			for (auto const& c : m_connections)
+			{
+				c->peer_log(peer_log_alert::info, "TORRENT", "%s", message);
+			}
 		}
 
 		debug_log("%s", message);

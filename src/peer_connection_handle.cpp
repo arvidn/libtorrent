@@ -210,6 +210,13 @@ bool peer_connection_handle::failed() const
 
 #ifndef TORRENT_DISABLE_LOGGING
 
+bool peer_connection_handle::should_log(peer_log_alert::direction_t direction) const
+{
+	std::shared_ptr<peer_connection> pc = native_handle();
+	TORRENT_ASSERT(pc);
+	return pc->should_log(direction);
+}
+
 TORRENT_FORMAT(4,5)
 void peer_connection_handle::peer_log(peer_log_alert::direction_t direction
 	, char const* event, char const* fmt, ...) const

@@ -927,7 +927,7 @@ namespace libtorrent
 				// set the length of the request to not
 				// exceed the end of the torrent. This is
 				// necessary in order to maintain a correct
-				// m_outsanding_bytes
+				// m_outstanding_bytes
 				if (r.piece == t->torrent_file().num_pieces() - 1)
 				{
 					r.length = (std::min)(t->torrent_file().piece_size(
@@ -1046,7 +1046,7 @@ namespace libtorrent
 		TORRENT_ASSERT(t);
 
 		received_bytes(0, received);
-		// if we don't have the metedata, we cannot
+		// if we don't have the metadata, we cannot
 		// verify the bitfield size
 		if (t->valid_metadata()
 			&& m_recv_buffer.packet_size() - 1 != (t->torrent_file().num_pieces() + 7) / 8)
@@ -1592,7 +1592,6 @@ namespace libtorrent
 		detail::write_endpoint(ep, ptr);
 
 #ifndef TORRENT_DISABLE_LOGGING
-		error_code ec;
 		static const char* hp_msg_name[] = {"rendezvous", "connect", "failed"};
 		static const char* hp_error_string[] = {"", "no such peer", "not connected", "no support", "no self"};
 		peer_log(peer_log_alert::outgoing_message, "HOLEPUNCH"
@@ -2119,7 +2118,7 @@ namespace libtorrent
 
 		if (t->is_seed())
 		{
-			memset(ptr, 0xff, packet_size - 5);
+			std::memset(ptr, 0xff, packet_size - 5);
 
 			// Clear trailing bits
 			unsigned char *p = msg + packet_size - 1;
@@ -2127,7 +2126,7 @@ namespace libtorrent
 		}
 		else
 		{
-			memset(ptr, 0, packet_size - 5);
+			std::memset(ptr, 0, packet_size - 5);
 			piece_picker const& p = t->picker();
 			int mask = 0x80;
 			for (int i = 0; i < num_pieces; ++i)
