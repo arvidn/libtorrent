@@ -1989,9 +1989,10 @@ namespace libtorrent
 		file_storage const& fs = m_torrent_file->files();
 		for (int i = 0; i < fs.num_files(); ++i)
 		{
+			if (!fs.pad_file_at(i) || fs.file_size(i) == 0) continue;
+
 			if (fs.pad_file_at(i)) ++num_pad_files;
 
-			if (!fs.pad_file_at(i) || fs.file_size(i) == 0) continue;
 			m_padding += boost::uint32_t(fs.file_size(i));
 
 			// TODO: instead of creating the picker up front here,
