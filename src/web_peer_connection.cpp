@@ -182,10 +182,13 @@ void web_peer_connection::disconnect(error_code const& ec
 		&& !m_piece.empty() && m_web)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::info, "SAVE_RESTART_DATA"
-			, "data: %d req: %d off: %d"
-			, int(m_piece.size()), int(m_requests.front().piece)
-			, int(m_requests.front().start));
+		if (should_log(peer_log_alert::info))
+		{
+			peer_log(peer_log_alert::info, "SAVE_RESTART_DATA"
+				, "data: %d req: %d off: %d"
+				, int(m_piece.size()), int(m_requests.front().piece)
+				, int(m_requests.front().start));
+		}
 #endif
 		m_web->restart_request = m_requests.front();
 		if (!m_web->restart_piece.empty())
@@ -277,13 +280,16 @@ void web_peer_connection::write_request(peer_request const& r)
 		if (m_web->restart_request == m_requests.front())
 		{
 			m_piece.swap(m_web->restart_piece);
-			peer_request& front = m_requests.front();
+			peer_request const& front = m_requests.front();
 			TORRENT_ASSERT(front.length > int(m_piece.size()));
 
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, "RESTART_DATA", "data: %d req: (%d, %d) size: %d"
-				, int(m_piece.size()), int(front.piece), int(front.start)
-				, int (front.start + front.length - 1));
+			if (should_log(peer_log_alert::info))
+			{
+				peer_log(peer_log_alert::info, "RESTART_DATA", "data: %d req: (%d, %d) size: %d"
+					, int(m_piece.size()), front.piece, front.start
+					, front.start + front.length - 1);
+			}
 #else
 			TORRENT_UNUSED(front);
 #endif
@@ -631,8 +637,11 @@ void web_peer_connection::on_receive(error_code const& error
 	{
 		received_bytes(0, int(bytes_transferred));
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::info, "ERROR"
-			, "web_peer_connection error: %s", error.message().c_str());
+		if (should_log(peer_log_alert::info))
+		{
+			peer_log(peer_log_alert::info, "ERROR"
+				, "web_peer_connection error: %s", error.message().c_str());
+		}
 #endif
 		return;
 	}
@@ -662,8 +671,11 @@ void web_peer_connection::on_receive(error_code const& error
 			{
 				received_bytes(0, int(recv_buffer.size()));
 #ifndef TORRENT_DISABLE_LOGGING
-				peer_log(peer_log_alert::info, "RECEIVE_BYTES"
-					, "%s", std::string(recv_buffer.data(), recv_buffer.size()).c_str());
+				if (should_log(peer_log_alert::info))
+				{
+					peer_log(peer_log_alert::info, "RECEIVE_BYTES"
+						, "%s", std::string(recv_buffer.data(), recv_buffer.size()).c_str());
+				}
 #endif
 				disconnect(errors::http_parse_error, op_bittorrent, 2);
 				return;
@@ -702,12 +714,15 @@ void web_peer_connection::on_receive(error_code const& error
 			}
 
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, "STATUS"
-				, "%d %s", m_parser.status_code(), m_parser.message().c_str());
-			std::multimap<std::string, std::string> const& headers = m_parser.headers();
-			for (std::multimap<std::string, std::string>::const_iterator i = headers.begin()
-				, end(headers.end()); i != end; ++i)
-				peer_log(peer_log_alert::info, "STATUS", "   %s: %s", i->first.c_str(), i->second.c_str());
+			if (should_log(peer_log_alert::info))
+			{
+				peer_log(peer_log_alert::info, "STATUS"
+					, "%d %s", m_parser.status_code(), m_parser.message().c_str());
+				std::multimap<std::string, std::string> const& headers = m_parser.headers();
+				for (std::multimap<std::string, std::string>::const_iterator i = headers.begin()
+					, end(headers.end()); i != end; ++i)
+					peer_log(peer_log_alert::info, "STATUS", "   %s: %s", i->first.c_str(), i->second.c_str());
+			}
 #endif
 
 			// if the status code is not one of the accepted ones, abort
@@ -764,10 +779,13 @@ void web_peer_connection::on_receive(error_code const& error
 			received_bytes(0, int(recv_buffer.size()));
 
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::incoming, "INVALID HTTP RESPONSE"
-				, "in=(%d, %" PRId64 "-%" PRId64 ") expected=(%d, %" PRId64 "-%" PRId64 ") ]"
-				, file_req.file_index, range_start, range_end
-				, file_req.file_index, file_req.start, file_req.start + file_req.length - 1);
+			if (should_log(peer_log_alert::incoming))
+			{
+				peer_log(peer_log_alert::incoming, "INVALID HTTP RESPONSE"
+					, "in=(%d, %" PRId64 "-%" PRId64 ") expected=(%d, %" PRId64 "-%" PRId64 ") ]"
+					, file_req.file_index, range_start, range_end
+					, file_req.file_index, file_req.start, file_req.start + file_req.length - 1);
+			}
 #endif
 			disconnect(errors::invalid_range, op_bittorrent, 2);
 			return;
@@ -1061,11 +1079,14 @@ void web_peer_connection::handle_padfile()
 			incoming_zeroes(pad_size);
 
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, "HANDLE_PADFILE"
-				, "file: %d start: %" PRId64 " len: %d"
-				, m_file_requests.front().file_index
-				, m_file_requests.front().start
-				, m_file_requests.front().length);
+			if (should_log(peer_log_alert::info))
+			{
+				peer_log(peer_log_alert::info, "HANDLE_PADFILE"
+					, "file: %d start: %" PRId64 " len: %d"
+					, m_file_requests.front().file_index
+					, m_file_requests.front().start
+					, m_file_requests.front().length);
+			}
 #endif
 		}
 

@@ -491,24 +491,27 @@ namespace libtorrent { namespace
 			m_pc.stats_counters().inc_stats_counter(counters::num_outgoing_pex);
 
 #ifndef TORRENT_DISABLE_LOGGING
-			bdecode_node m;
-			error_code ec;
-			int ret = bdecode(&pex_msg[0], &pex_msg[0] + pex_msg.size(), m, ec);
-			TORRENT_ASSERT(ret == 0);
-			TORRENT_ASSERT(!ec);
-			TORRENT_UNUSED(ret);
-			int num_dropped = 0;
-			int num_added = 0;
-			bdecode_node e = m.dict_find_string("added");
-			if (e) num_added += e.string_length() / 6;
-			e = m.dict_find_string("dropped");
-			if (e) num_dropped += e.string_length() / 6;
-			e = m.dict_find_string("added6");
-			if (e) num_added += e.string_length() / 18;
-			e = m.dict_find_string("dropped6");
-			if (e) num_dropped += e.string_length() / 18;
-			m_pc.peer_log(peer_log_alert::outgoing_message, "PEX_DIFF", "dropped: %d added: %d msg_size: %d"
-				, num_dropped, num_added, int(pex_msg.size()));
+			if (m_pc.should_log(peer_log_alert::outgoing_message))
+			{
+				bdecode_node m;
+				error_code ec;
+				int ret = bdecode(&pex_msg[0], &pex_msg[0] + pex_msg.size(), m, ec);
+				TORRENT_ASSERT(ret == 0);
+				TORRENT_ASSERT(!ec);
+				TORRENT_UNUSED(ret);
+				int num_dropped = 0;
+				int num_added = 0;
+				bdecode_node e = m.dict_find_string("added");
+				if (e) num_added += e.string_length() / 6;
+				e = m.dict_find_string("dropped");
+				if (e) num_dropped += e.string_length() / 6;
+				e = m.dict_find_string("added6");
+				if (e) num_added += e.string_length() / 18;
+				e = m.dict_find_string("dropped6");
+				if (e) num_dropped += e.string_length() / 18;
+				m_pc.peer_log(peer_log_alert::outgoing_message, "PEX_DIFF", "dropped: %d added: %d msg_size: %d"
+					, num_dropped, num_added, int(pex_msg.size()));
+			}
 #endif
 		}
 

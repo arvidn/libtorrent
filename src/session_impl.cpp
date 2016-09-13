@@ -435,9 +435,12 @@ namespace aux {
 			, (std::max)(5, (max_files - 20) * 8 / 10)));
 		// 20% goes towards regular files (see disk_io_thread)
 #ifndef TORRENT_DISABLE_LOGGING
-		session_log("   max connections: %d", m_settings.get_int(settings_pack::connections_limit));
-		session_log("   max files: %d", max_files);
-		session_log(" generated peer ID: %s", m_peer_id.to_string().c_str());
+		if (should_log())
+		{
+			session_log("   max connections: %d", m_settings.get_int(settings_pack::connections_limit));
+			session_log("   max files: %d", max_files);
+			session_log(" generated peer ID: %s", m_peer_id.to_string().c_str());
+		}
 #endif
 
 		std::shared_ptr<settings_pack> copy = std::make_shared<settings_pack>(pack);
@@ -1481,8 +1484,11 @@ namespace aux {
 		int retries = m_settings.get_int(settings_pack::max_retry_port_bind);
 
 #ifndef TORRENT_DISABLE_LOGGING
-		session_log("attempting to to open listen socket to: %s on device: %s flags: %x"
-			, print_endpoint(bind_ep).c_str(), device.c_str(), flags);
+		if (should_log())
+		{
+			session_log("attempting to to open listen socket to: %s on device: %s flags: %x"
+				, print_endpoint(bind_ep).c_str(), device.c_str(), flags);
+		}
 #endif
 
 		listen_socket_t ret;
@@ -1505,8 +1511,11 @@ namespace aux {
 			if (ec)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
-				session_log("failed to open socket: %s"
-					, ec.message().c_str());
+				if (should_log())
+				{
+					session_log("failed to open socket: %s"
+						, ec.message().c_str());
+				}
 #endif
 
 				if (m_alerts.should_post<listen_failed_alert>())
@@ -1521,7 +1530,7 @@ namespace aux {
 				error_code err;
 				ret.sock->set_option(exclusive_address_use(true), err);
 #ifndef TORRENT_DISABLE_LOGGING
-				if (err)
+				if (err && should_log())
 				{
 					session_log("failed enable exclusive address use on listen socket: %s"
 						, err.message().c_str());
@@ -1535,7 +1544,7 @@ namespace aux {
 				error_code err;
 				ret.sock->set_option(tcp::acceptor::reuse_address(true), err);
 #ifndef TORRENT_DISABLE_LOGGING
-				if (err)
+				if (err && should_log())
 				{
 					session_log("failed enable reuse-address on listen socket: %s"
 						, err.message().c_str());
@@ -1549,7 +1558,7 @@ namespace aux {
 				error_code err; // ignore errors here
 				ret.sock->set_option(boost::asio::ip::v6_only(true), err);
 #ifndef TORRENT_DISABLE_LOGGING
-				if (err)
+				if (err && should_log())
 				{
 					session_log("failed enable v6 only on listen socket: %s"
 						, err.message().c_str());
@@ -1560,7 +1569,7 @@ namespace aux {
 				// enable Teredo on windows
 				ret.sock->set_option(v6_protection_level(PROTECTION_LEVEL_UNRESTRICTED), err);
 #ifndef TORRENT_DISABLE_LOGGING
-				if (err)
+				if (err && should_log())
 				{
 					session_log("failed enable IPv6 unrestricted protection level on "
 						"listen socket: %s", err.message().c_str());
@@ -1579,8 +1588,11 @@ namespace aux {
 				if (ec)
 				{
 #ifndef TORRENT_DISABLE_LOGGING
-					session_log("bind to device failed (device: %s): %s"
-						, device.c_str(), ec.message().c_str());
+					if (should_log())
+					{
+						session_log("bind to device failed (device: %s): %s"
+							, device.c_str(), ec.message().c_str());
+					}
 #endif // TORRENT_DISABLE_LOGGING
 
 					last_op = listen_failed_alert::bind_to_device;
@@ -1601,13 +1613,15 @@ namespace aux {
 			{
 				TORRENT_ASSERT_VAL(ec, ec);
 #ifndef TORRENT_DISABLE_LOGGING
-				error_code ignore;
-				session_log("failed to bind listen socket to: %s on device: %s :"
-					" [%s] (%d) %s (retries: %d)"
-					, print_endpoint(bind_ep).c_str()
-					, device.c_str()
-					, ec.category().name(), ec.value(), ec.message().c_str()
-					, retries);
+				if (should_log())
+				{
+					session_log("failed to bind listen socket to: %s on device: %s :"
+						" [%s] (%d) %s (retries: %d)"
+						, print_endpoint(bind_ep).c_str()
+						, device.c_str()
+						, ec.category().name(), ec.value(), ec.message().c_str()
+						, retries);
+				}
 #endif
 				ec.clear();
 				--retries;
@@ -1630,12 +1644,14 @@ namespace aux {
 				// not even that worked, give up
 
 #ifndef TORRENT_DISABLE_LOGGING
-				error_code ignore;
-				session_log("failed to bind listen socket to: %s on device: %s :"
-					" [%s] (%d) %s (giving up)"
-					, print_endpoint(bind_ep).c_str()
-					, device.c_str()
-					, ec.category().name(), ec.value(), ec.message().c_str());
+				if (should_log())
+				{
+					session_log("failed to bind listen socket to: %s on device: %s :"
+						" [%s] (%d) %s (giving up)"
+						, print_endpoint(bind_ep).c_str()
+						, device.c_str()
+						, ec.category().name(), ec.value(), ec.message().c_str());
+				}
 #endif
 				if (m_alerts.should_post<listen_failed_alert>())
 				{
@@ -1650,8 +1666,11 @@ namespace aux {
 			if (ec)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
-				session_log("get_sockname failed on listen socket: %s"
-					, ec.message().c_str());
+				if (should_log())
+				{
+					session_log("get_sockname failed on listen socket: %s"
+						, ec.message().c_str());
+				}
 #endif
 				if (m_alerts.should_post<listen_failed_alert>())
 				{
@@ -1670,8 +1689,11 @@ namespace aux {
 			if (ec)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
-				session_log("cannot listen on interface \"%s\": %s"
-					, device.c_str(), ec.message().c_str());
+				if (should_log())
+				{
+					session_log("cannot listen on interface \"%s\": %s"
+						, device.c_str(), ec.message().c_str());
+				}
 #endif
 				if (m_alerts.should_post<listen_failed_alert>())
 				{
@@ -1690,8 +1712,11 @@ namespace aux {
 			if (ec)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
-				session_log("bind to device failed (device: %s): %s"
-					, device.c_str(), ec.message().c_str());
+				if (should_log())
+				{
+					session_log("bind to device failed (device: %s): %s"
+						, device.c_str(), ec.message().c_str());
+				}
 #endif // TORRENT_DISABLE_LOGGING
 
 				last_op = listen_failed_alert::bind_to_device;
@@ -1711,8 +1736,11 @@ namespace aux {
 		if (ec)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			session_log("failed to open UDP socket: %s: %s"
-				, device.c_str(), ec.message().c_str());
+			if (should_log())
+			{
+				session_log("failed to open UDP socket: %s: %s"
+					, device.c_str(), ec.message().c_str());
+			}
 #endif
 
 			listen_failed_alert::socket_type_t const udp_sock_type
@@ -1744,9 +1772,12 @@ namespace aux {
 			, this, std::weak_ptr<udp_socket>(ret.udp_sock), ret.ssl, _1));
 
 #ifndef TORRENT_DISABLE_LOGGING
-		session_log(" listening on: %s TCP port: %d UDP port: %d"
-			, bind_ep.address().to_string().c_str()
-			, ret.tcp_external_port, ret.udp_external_port);
+		if (should_log())
+		{
+			session_log(" listening on: %s TCP port: %d UDP port: %d"
+				, bind_ep.address().to_string().c_str()
+				, ret.tcp_external_port, ret.udp_external_port);
+		}
 #endif
 		return ret;
 	}
@@ -1833,8 +1864,11 @@ namespace aux {
 				if (ec)
 				{
 #ifndef TORRENT_DISABLE_LOGGING
-					session_log("failed to enumerate IPs on device: \"%s\": %s"
-						, device.c_str(), ec.message().c_str());
+					if (should_log())
+					{
+						session_log("failed to enumerate IPs on device: \"%s\": %s"
+							, device.c_str(), ec.message().c_str());
+					}
 #endif
 					if (m_alerts.should_post<listen_failed_alert>())
 					{
@@ -2087,7 +2121,8 @@ namespace aux {
 				m_alerts.emplace_alert<i2p_alert>(ec);
 
 #ifndef TORRENT_DISABLE_LOGGING
-			session_log("i2p open failed (%d) %s", ec.value(), ec.message().c_str());
+			if (should_log())
+				session_log("i2p open failed (%d) %s", ec.value(), ec.message().c_str());
 #endif
 		}
 		// now that we have our i2p connection established
@@ -2133,7 +2168,8 @@ namespace aux {
 					, e, listen_failed_alert::i2p);
 			}
 #ifndef TORRENT_DISABLE_LOGGING
-			session_log("i2p SAM connection failure: %s", e.message().c_str());
+			if (should_log())
+				session_log("i2p SAM connection failure: %s", e.message().c_str());
 #endif
 			return;
 		}
@@ -2253,8 +2289,11 @@ namespace aux {
 			}
 
 #ifndef TORRENT_DISABLE_LOGGING
-			session_log("UDP error: %s (%d) %s"
-				, print_endpoint(ep).c_str(), ec.value(), ec.message().c_str());
+			if (should_log())
+			{
+				session_log("UDP error: %s (%d) %s"
+					, print_endpoint(ep).c_str(), ec.value(), ec.message().c_str());
+			}
 #endif
 			return;
 		}
@@ -2333,8 +2372,11 @@ namespace aux {
 					m_alerts.emplace_alert<udp_error_alert>(ep, err);
 
 #ifndef TORRENT_DISABLE_LOGGING
-				session_log("UDP error: %s (%d) %s"
-					, print_endpoint(ep).c_str(), ec.value(), ec.message().c_str());
+				if (should_log())
+				{
+					session_log("UDP error: %s (%d) %s"
+						, print_endpoint(ep).c_str(), ec.value(), ec.message().c_str());
+				}
 #endif
 
 				// any error other than these ones are considered fatal errors, and
@@ -2428,8 +2470,11 @@ namespace aux {
 		{
 			tcp::endpoint ep = listener->local_endpoint(ec);
 #ifndef TORRENT_DISABLE_LOGGING
-			session_log("error accepting connection on '%s': %s"
-				, print_endpoint(ep).c_str(), e.message().c_str());
+			if (should_log())
+			{
+				session_log("error accepting connection on '%s': %s"
+					, print_endpoint(ep).c_str(), e.message().c_str());
+			}
 #endif
 #ifdef TORRENT_WINDOWS
 			// Windows sometimes generates this error. It seems to be
@@ -2538,8 +2583,11 @@ namespace aux {
 		if (e) return;
 
 #ifndef TORRENT_DISABLE_LOGGING
-		session_log(" *** peer SSL handshake done [ ip: %s ec: %s socket: %s ]"
-			, print_endpoint(endp).c_str(), ec.message().c_str(), s->type_name());
+		if (should_log())
+		{
+			session_log(" *** peer SSL handshake done [ ip: %s ec: %s socket: %s ]"
+				, print_endpoint(endp).c_str(), ec.message().c_str(), s->type_name());
+		}
 #endif
 
 		if (ec)
@@ -2590,16 +2638,22 @@ namespace aux {
 		if (ec)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			session_log(" <== INCOMING CONNECTION FAILED, could "
-				"not retrieve remote endpoint: %s"
-				, ec.message().c_str());
+			if (should_log())
+			{
+				session_log(" <== INCOMING CONNECTION FAILED, could "
+					"not retrieve remote endpoint: %s"
+					, ec.message().c_str());
+			}
 #endif
 			return;
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
-		session_log(" <== INCOMING CONNECTION %s type: %s"
-			, print_endpoint(endp).c_str(), s->type_name());
+		if (should_log())
+		{
+			session_log(" <== INCOMING CONNECTION %s type: %s"
+				, print_endpoint(endp).c_str(), s->type_name());
+		}
 #endif
 
 		if (!m_settings.get_bool(settings_pack::enable_incoming_utp)
@@ -2634,8 +2688,11 @@ namespace aux {
 			if (ec)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
-				session_log("    rejected connection: (%d) %s", ec.value()
-					, ec.message().c_str());
+				if (should_log())
+				{
+					session_log("    rejected connection: (%d) %s", ec.value()
+						, ec.message().c_str());
+				}
 #endif
 				return;
 			}
@@ -2645,16 +2702,22 @@ namespace aux {
 				if (ec)
 				{
 #ifndef TORRENT_DISABLE_LOGGING
-					session_log("    rejected connection, not allowed local interface: (%d) %s"
-						, ec.value(), ec.message().c_str());
+					if (should_log())
+					{
+						session_log("    rejected connection, not allowed local interface: (%d) %s"
+							, ec.value(), ec.message().c_str());
+					}
 #endif
 					return;
 				}
 
 #ifndef TORRENT_DISABLE_LOGGING
-				error_code err;
-				session_log("    rejected connection, not allowed local interface: %s"
-					, local.address().to_string(err).c_str());
+				if (should_log())
+				{
+					error_code err;
+					session_log("    rejected connection, not allowed local interface: %s"
+						, local.address().to_string(err).c_str());
+				}
 #endif
 				if (m_alerts.should_post<peer_blocked_alert>())
 					m_alerts.emplace_alert<peer_blocked_alert>(torrent_handle()
@@ -2727,9 +2790,12 @@ namespace aux {
 						, close_no_reason);
 			}
 #ifndef TORRENT_DISABLE_LOGGING
-			session_log("number of connections limit exceeded (conns: %d, limit: %d, slack: %d), connection rejected"
-				, num_connections(), m_settings.get_int(settings_pack::connections_limit)
-				, m_settings.get_int(settings_pack::connections_slack));
+			if (should_log())
+			{
+				session_log("number of connections limit exceeded (conns: %d, limit: %d, slack: %d), connection rejected"
+					, num_connections(), m_settings.get_int(settings_pack::connections_limit)
+					, m_settings.get_int(settings_pack::connections_slack));
+			}
 #endif
 			return;
 		}
@@ -2822,8 +2888,11 @@ namespace aux {
 			m_undead_peers.push_back(sp);
 
 #ifndef TORRENT_DISABLE_LOGGING
-		session_log(" CLOSING CONNECTION %s : %s"
-			, print_endpoint(p->remote()).c_str(), ec.message().c_str());
+		if (should_log())
+		{
+			session_log(" CLOSING CONNECTION %s : %s"
+				, print_endpoint(p->remote()).c_str(), ec.message().c_str());
+		}
 #else
 		TORRENT_UNUSED(ec);
 #endif
@@ -3024,7 +3093,8 @@ namespace aux {
 		if (e)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			session_log("*** TICK TIMER FAILED %s", e.message().c_str());
+			if (should_log())
+				session_log("*** TICK TIMER FAILED %s", e.message().c_str());
 #endif
 			std::abort();
 		}
@@ -3409,7 +3479,7 @@ namespace aux {
 		m_dht_torrents.push_back(t);
 #ifndef TORRENT_DISABLE_LOGGING
 		std::shared_ptr<torrent> tor = t.lock();
-		if (tor)
+		if (tor && should_log())
 			session_log("prioritizing DHT announce: \"%s\"", tor->name().c_str());
 #endif
 		// trigger a DHT announce right away if we just added a new torrent and
@@ -3433,8 +3503,11 @@ namespace aux {
 		if (e)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			session_log("aborting DHT announce timer (%d): %s"
-				, e.value(), e.message().c_str());
+			if (should_log())
+			{
+				session_log("aborting DHT announce timer (%d): %s"
+					, e.value(), e.message().c_str());
+			}
 #endif
 			return;
 		}
@@ -4109,14 +4182,17 @@ namespace aux {
 			, allowed_upload_slots);
 
 #ifndef TORRENT_DISABLE_LOGGING
-		session_log("RECALCULATE UNCHOKE SLOTS: [ peers: %d "
-			"eligible-peers: %d"
-			" max_upload_rate: %d"
-			" allowed-slots: %d ]"
-			, int(m_connections.size())
-			, int(peers.size())
-			, max_upload_rate
-			, allowed_upload_slots);
+		if (should_log())
+		{
+			session_log("RECALCULATE UNCHOKE SLOTS: [ peers: %d "
+				"eligible-peers: %d"
+				" max_upload_rate: %d"
+				" allowed-slots: %d ]"
+				, int(m_connections.size())
+				, int(peers.size())
+				, max_upload_rate
+				, allowed_upload_slots);
+		}
 #endif
 
 		int const unchoked_counter_optimistic
@@ -4392,7 +4468,7 @@ namespace aux {
 
 	std::weak_ptr<torrent> session_impl::find_disconnect_candidate_torrent() const
 	{
-		aux::session_impl::torrent_map::const_iterator i = std::min_element(m_torrents.begin(), m_torrents.end()
+		auto i = std::min_element(m_torrents.begin(), m_torrents.end()
 			, &compare_disconnect_torrent);
 
 		TORRENT_ASSERT(i != m_torrents.end());
@@ -4402,6 +4478,11 @@ namespace aux {
 	}
 
 #ifndef TORRENT_DISABLE_LOGGING
+	bool session_impl::should_log() const
+	{
+		return m_alerts.should_post<log_alert>();
+	}
+
 	TORRENT_FORMAT(2,3)
 	void session_impl::session_log(char const* fmt, ...) const
 	{
@@ -4409,15 +4490,8 @@ namespace aux {
 
 		va_list v;
 		va_start(v, fmt);
-		session_vlog(fmt, v);
-		va_end(v);
-	}
-
-	TORRENT_FORMAT(2, 0)
-	void session_impl::session_vlog(char const* fmt, va_list& v) const
-	{
-		if (!m_alerts.should_post<log_alert>()) return;
 		m_alerts.emplace_alert<log_alert>(fmt, v);
+		va_end(v);
 	}
 #endif
 
@@ -5290,7 +5364,8 @@ namespace aux {
 			&& !m_settings.get_bool(settings_pack::allow_i2p_mixed))) return;
 
 #ifndef TORRENT_DISABLE_LOGGING
-		session_log("added peer from local discovery: %s", print_endpoint(peer).c_str());
+		if (should_log())
+			session_log("added peer from local discovery: %s", print_endpoint(peer).c_str());
 #endif
 		t->add_peer(peer, peer_info::lsd);
 		t->do_connect_boost();
@@ -5941,19 +6016,26 @@ namespace aux {
 			set_tos(*i->sock, tos, ec);
 
 #ifndef TORRENT_DISABLE_LOGGING
-			error_code err;
-			session_log(">>> SET_TOS [ tcp (%s %d) tos: %x e: %s ]"
-				, i->sock->local_endpoint(err).address().to_string().c_str()
-				, i->sock->local_endpoint(err).port(), tos, ec.message().c_str());
+			if (should_log())
+			{
+				error_code err;
+				session_log(">>> SET_TOS [ tcp (%s %d) tos: %x e: %s ]"
+					, i->sock->local_endpoint(err).address().to_string().c_str()
+					, i->sock->local_endpoint(err).port(), tos, ec.message().c_str());
+			}
 #endif
 			ec.clear();
 			set_tos(*i->udp_sock, tos, ec);
 
 #ifndef TORRENT_DISABLE_LOGGING
-			session_log(">>> SET_TOS [ udp (%s %d) tos: %x e: %s ]"
-				, i->udp_sock->local_endpoint(err).address().to_string().c_str()
-				, i->udp_sock->local_port()
-				, tos, ec.message().c_str());
+			if (should_log())
+			{
+				error_code err;
+				session_log(">>> SET_TOS [ udp (%s %d) tos: %x e: %s ]"
+					, i->udp_sock->local_endpoint(err).address().to_string().c_str()
+					, i->udp_sock->local_port()
+					, tos, ec.message().c_str());
+			}
 #endif
 		}
 	}
@@ -6103,7 +6185,7 @@ namespace aux {
 			error_code ec;
 			set_socket_buffer_size(*i->udp_sock, m_settings, ec);
 #ifndef TORRENT_DISABLE_LOGGING
-			if (ec)
+			if (ec && should_log())
 			{
 				error_code err;
 				session_log("socket buffer size [ udp %s %d]: (%d) %s"
@@ -6114,7 +6196,7 @@ namespace aux {
 			ec.clear();
 			set_socket_buffer_size(*i->sock, m_settings, ec);
 #ifndef TORRENT_DISABLE_LOGGING
-			if (ec)
+			if (ec && should_log())
 			{
 				error_code err;
 				session_log("socket buffer size [ udp %s %d]: (%d) %s"
@@ -6583,7 +6665,7 @@ namespace aux {
 	{
 		if (!m_alerts.should_post<dht_pkt_alert>()) return;
 
-		dht_pkt_alert::direction_t d = dir == dht_logger::incoming_message
+		dht_pkt_alert::direction_t d = dir == dht::dht_logger::incoming_message
 			? dht_pkt_alert::incoming : dht_pkt_alert::outgoing;
 
 		m_alerts.emplace_alert<dht_pkt_alert>(pkt, len, d, node);
@@ -6612,8 +6694,11 @@ namespace aux {
 		, int source_type, address const& source)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		session_log(": set_external_address(%s, %d, %s)", print_address(ip).c_str()
-			, source_type, print_address(source).c_str());
+		if (should_log())
+		{
+			session_log(": set_external_address(%s, %d, %s)", print_address(ip).c_str()
+				, source_type, print_address(source).c_str());
+		}
 #endif
 
 		if (!m_external_ip.cast_vote(ip, source_type, source)) return;
@@ -6865,6 +6950,7 @@ namespace aux {
 			, struct tracker_response const& resp)
 		{
 			TORRENT_UNUSED(tracker_ips);
+			if (!should_log()) return;
 			debug_log("TRACKER RESPONSE\n"
 				"interval: %d\n"
 				"external ip: %s\n"
@@ -6874,31 +6960,22 @@ namespace aux {
 				, print_address(resp.external_ip).c_str()
 				, print_address(tracker_ip).c_str());
 
-			for (std::vector<peer_entry>::const_iterator i = resp.peers.begin();
-			i != resp.peers.end(); ++i)
+			for (auto const& p : resp.peers)
 			{
-				debug_log("  %16s %5d %s %s", i->hostname.c_str(), i->port
-					, i->pid.is_all_zeros() ? "" : to_hex(i->pid).c_str()
-					, identify_client(i->pid).c_str());
+				debug_log("  %16s %5d %s %s", p.hostname.c_str(), p.port
+					, p.pid.is_all_zeros() ? "" : to_hex(p.pid).c_str()
+					, identify_client(p.pid).c_str());
 			}
-			for (std::vector<ipv4_peer_entry>::const_iterator i = resp.peers4.begin();
-				i != resp.peers4.end(); ++i)
+			for (auto const& p : resp.peers4)
 			{
-				debug_log("  %s:%d", print_address(address_v4(i->ip)).c_str(), i->port);
+				debug_log("  %s:%d", print_address(address_v4(p.ip)).c_str(), p.port);
 			}
 #if TORRENT_USE_IPV6
-			for (std::vector<ipv6_peer_entry>::const_iterator i = resp.peers6.begin();
-				i != resp.peers6.end(); ++i)
+			for (auto const& p : resp.peers6)
 			{
-				debug_log("  [%s]:%d", print_address(address_v6(i->ip)).c_str(), i->port);
+				debug_log("  [%s]:%d", print_address(address_v6(p.ip)).c_str(), p.port);
 			}
 #endif
-		}
-
-		void tracker_logger::tracker_request_timed_out(
-			tracker_request const&)
-		{
-			debug_log("*** tracker timed out");
 		}
 
 		void tracker_logger::tracker_request_error(tracker_request const&
@@ -6906,15 +6983,23 @@ namespace aux {
 			, int retry_interval)
 		{
 			TORRENT_UNUSED(retry_interval);
+			if (!should_log()) return;
 			debug_log("*** tracker error: %d: %s %s"
 				, response_code, ec.message().c_str(), str.c_str());
 		}
 
+		bool tracker_logger::should_log() const
+		{
+			return m_ses.alerts().should_post<log_alert>();
+		}
+
 		void tracker_logger::debug_log(const char* fmt, ...) const
 		{
+			if (!m_ses.alerts().should_post<log_alert>()) return;
+
 			va_list v;
 			va_start(v, fmt);
-			m_ses.session_vlog(fmt, v);
+			m_ses.alerts().emplace_alert<log_alert>(fmt, v);
 			va_end(v);
 		}
 #endif // TORRENT_DISABLE_LOGGING

@@ -363,11 +363,14 @@ namespace libtorrent { namespace
 						|| piece < 0 || piece >= (m_tp.get_metadata_size() + 16 * 1024 - 1) / (16 * 1024))
 					{
 #ifndef TORRENT_DISABLE_LOGGING
-						m_pc.peer_log(peer_log_alert::info, "UT_METADATA"
-							, "have: %d invalid piece %d metadata size: %d"
-							, int(m_torrent.valid_metadata()), piece
-							, m_torrent.valid_metadata()
-								? m_tp.get_metadata_size() : 0);
+						if (m_pc.should_log(peer_log_alert::info))
+						{
+							m_pc.peer_log(peer_log_alert::info, "UT_METADATA"
+								, "have: %d invalid piece %d metadata size: %d"
+								, int(m_torrent.valid_metadata()), piece
+								, m_torrent.valid_metadata()
+									? m_tp.get_metadata_size() : 0);
+						}
 #endif
 						write_metadata_packet(metadata_dont_have, piece);
 						return true;

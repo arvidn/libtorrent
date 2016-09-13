@@ -201,8 +201,11 @@ namespace libtorrent
 		{
 			received_bytes(0, int(bytes_transferred));
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, "ERROR"
-				, "http_seed_connection error: %s", error.message().c_str());
+			if (should_log(peer_log_alert::info))
+			{
+				peer_log(peer_log_alert::info, "ERROR"
+					, "http_seed_connection error: %s", error.message().c_str());
+			}
 #endif
 			return;
 		}

@@ -2782,9 +2782,11 @@ namespace libtorrent
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
-		// TODO: filter torrent expensive debug log
-		t->debug_log("PIECE [%p] (%d ms) (%d)", static_cast<void*>(this)
-			, int(total_milliseconds(now - m_unchoke_time)), t->num_have());
+		if (t->should_log())
+		{
+			t->debug_log("PIECE [%p] (%d ms) (%d)", static_cast<void*>(this)
+				, int(total_milliseconds(now - m_unchoke_time)), t->num_have());
+		}
 
 		peer_log(peer_log_alert::info, "FILE_ASYNC_WRITE", "piece: %d s: %x l: %x"
 			, p.piece, p.start, p.length);
@@ -3256,6 +3258,7 @@ namespace libtorrent
 		TORRENT_ASSERT(t);
 
 #ifndef TORRENT_DISABLE_LOGGING
+		if (t->should_log())
 		{
 			time_point const now = clock_type::now();
 			t->debug_log("ALLOW FAST [%p] (%d ms)"
@@ -3958,8 +3961,8 @@ namespace libtorrent
 		}
 #endif
 #ifndef TORRENT_DISABLE_LOGGING
-		// TODO: filter session log
-		m_ses.session_log("CONNECTION FAILED: %s", print_endpoint(m_remote).c_str());
+		if (m_ses.should_log())
+			m_ses.session_log("CONNECTION FAILED: %s", print_endpoint(m_remote).c_str());
 #endif
 
 		m_counters.inc_stats_counter(counters::connect_timeouts);

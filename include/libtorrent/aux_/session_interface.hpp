@@ -105,8 +105,8 @@ namespace libtorrent { namespace aux
 	struct TORRENT_EXTRA_EXPORT session_logger
 	{
 #ifndef TORRENT_DISABLE_LOGGING
+		virtual bool should_log() const = 0;
 		virtual void session_log(char const* fmt, ...) const TORRENT_FORMAT(2,3) = 0;
-		virtual void session_vlog(char const* fmt, va_list& va) const = 0;
 #endif
 
 #if TORRENT_USE_ASSERTS
