@@ -978,9 +978,9 @@ void web_peer_connection::incoming_payload(char const* buf, int len)
 				, "piece: %d start: %d len: %d"
 				, front_request.piece, front_request.start, front_request.length);
 #endif
-			m_requests.pop_front();
 
 			incoming_piece(front_request, &m_piece[0]);
+			m_requests.pop_front();
 			m_piece.clear();
 		}
 	}
