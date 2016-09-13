@@ -84,16 +84,11 @@ namespace libtorrent {
 		{
 			if ((m_alert_mask.load(std::memory_order_relaxed)
 				& T::static_category) == 0)
-				return false;
-
-			std::lock_guard<std::mutex> lock(m_mutex);
-			if (m_alerts[m_generation].size() >= m_queue_size_limit
-				* (1 + T::priority))
 			{
 				return false;
 			}
 
-			return true;
+			return should_post_impl(T::priority);
 		}
 
 		alert* wait_for_alert(time_duration max_wait);
@@ -123,6 +118,7 @@ namespace libtorrent {
 		alert_manager(alert_manager const&);
 		alert_manager& operator=(alert_manager const&);
 
+		bool should_post_impl(int priority) const;
 		void maybe_notify(alert* a, std::unique_lock<std::mutex>& lock);
 
 		mutable std::mutex m_mutex;
