@@ -956,6 +956,7 @@ namespace libtorrent
 
 		// LOGGING
 #ifndef TORRENT_DISABLE_LOGGING
+		virtual bool should_log() const override;
 		virtual void debug_log(const char* fmt, ...) const override TORRENT_FORMAT(2,3);
 
 		void log_to_all_peers(char const* message);

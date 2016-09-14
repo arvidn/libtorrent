@@ -440,9 +440,12 @@ namespace libtorrent
 		TORRENT_ASSERT(t->valid_metadata());
 
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::outgoing_message, "SUGGEST"
-			, "piece: %d num_peers: %d", piece
-			, t->has_picker() ? t->picker().get_availability(piece) : -1);
+		if (should_log(peer_log_alert::outgoing_message))
+		{
+			peer_log(peer_log_alert::outgoing_message, "SUGGEST"
+				, "piece: %d num_peers: %d", piece
+				, t->has_picker() ? t->picker().get_availability(piece) : -1);
+		}
 #endif
 
 		char msg[] = {0,0,0,5, msg_suggest_piece, 0, 0, 0, 0};
@@ -573,10 +576,13 @@ namespace libtorrent
 		std::memcpy(ptr, sync_hash.data(), 20);
 		ptr += 20;
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::info, "ENCRYPTION"
-			, "writing synchash %s secret: %s"
-			, aux::to_hex(sync_hash).c_str()
-			, aux::to_hex(secret).c_str());
+		if (should_log(peer_log_alert::info))
+		{
+			peer_log(peer_log_alert::info, "ENCRYPTION"
+				, "writing synchash %s secret: %s"
+				, aux::to_hex(sync_hash).c_str()
+				, aux::to_hex(secret).c_str());
+		}
 #endif
 
 		static char const req2[4] = {'r', 'e', 'q', '2'};
@@ -614,7 +620,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 		char const* level[] = {"plaintext", "rc4", "plaintext rc4"};
 		peer_log(peer_log_alert::info, "ENCRYPTION"
-			, "%s", level[crypto_provide-1]);
+			, "%s", level[crypto_provide - 1]);
 #endif
 
 		write_pe_vc_cryptofield(ptr, encrypt_size, crypto_provide, pad_size);
@@ -793,17 +799,20 @@ namespace libtorrent
 		*(ptr + 7) |= 0x04;
 
 #ifndef TORRENT_DISABLE_LOGGING
-		std::string bitmask;
-		for (int k = 0; k < 8; ++k)
+		if (should_log(peer_log_alert::outgoing_message))
 		{
-			for (int j = 0; j < 8; ++j)
+			std::string bitmask;
+			for (int k = 0; k < 8; ++k)
 			{
-				if (ptr[k] & (0x80 >> j)) bitmask += '1';
-				else bitmask += '0';
+				for (int j = 0; j < 8; ++j)
+				{
+					if (ptr[k] & (0x80 >> j)) bitmask += '1';
+					else bitmask += '0';
+				}
 			}
+			peer_log(peer_log_alert::outgoing_message, "EXTENSIONS"
+				, "%s", bitmask.c_str());
 		}
-		peer_log(peer_log_alert::outgoing_message, "EXTENSIONS"
-			, "%s", bitmask.c_str());
 #endif
 		ptr += 8;
 
@@ -825,6 +834,7 @@ namespace libtorrent
 		ptr += 20;
 
 #ifndef TORRENT_DISABLE_LOGGING
+		if (should_log(peer_log_alert::outgoing))
 		{
 			char hex_pid[41];
 			aux::to_hex(m_our_peer_id, hex_pid);
@@ -833,8 +843,11 @@ namespace libtorrent
 				, "sent peer_id: %s client: %s"
 				, hex_pid, identify_client(m_our_peer_id).c_str());
 		}
-		peer_log(peer_log_alert::outgoing_message, "HANDSHAKE"
-			, "ih: %s", aux::to_hex(ih).c_str());
+		if (should_log(peer_log_alert::outgoing_message))
+		{
+			peer_log(peer_log_alert::outgoing_message, "HANDSHAKE"
+				, "ih: %s", aux::to_hex(ih).c_str());
+		}
 #endif
 		send_buffer(handshake, sizeof(handshake));
 	}
@@ -1471,11 +1484,14 @@ namespace libtorrent
 		else
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			static const char* hp_msg_name[] = {"rendezvous", "connect", "failed"};
-			peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
-				, "msg: %s from %s to: unknown address type"
-				, (msg_type >= 0 && msg_type < 3 ? hp_msg_name[msg_type] : "unknown message type")
-				, print_address(remote().address()).c_str());
+			if (should_log(peer_log_alert::incoming_message))
+			{
+				static const char* hp_msg_name[] = {"rendezvous", "connect", "failed"};
+				peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
+					, "msg: %s from %s to: unknown address type"
+					, (msg_type >= 0 && msg_type < 3 ? hp_msg_name[msg_type] : "unknown message type")
+					, print_address(remote().address()).c_str());
+			}
 #endif
 
 			return; // unknown address type
@@ -1489,8 +1505,11 @@ namespace libtorrent
 			case hp_rendezvous: // rendezvous
 			{
 #ifndef TORRENT_DISABLE_LOGGING
-				peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
-					, "msg: rendezvous to: %s", print_address(ep.address()).c_str());
+				if (should_log(peer_log_alert::incoming_message))
+				{
+					peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
+						, "msg: rendezvous to: %s", print_address(ep.address()).c_str());
+				}
 #endif
 				// this peer is asking us to introduce it to
 				// the peer at 'ep'. We need to find which of
@@ -1523,9 +1542,12 @@ namespace libtorrent
 				if (p == nullptr || p->connection)
 				{
 #ifndef TORRENT_DISABLE_LOGGING
-					peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
-						, "msg:connect to: %s error: failed to add peer"
-						, print_address(ep.address()).c_str());
+					if (should_log(peer_log_alert::incoming_message))
+					{
+						peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
+							, "msg:connect to: %s error: failed to add peer"
+							, print_address(ep.address()).c_str());
+					}
 #endif
 					// we either couldn't add this peer, or it's
 					// already connected. Just ignore the connect message
@@ -1534,8 +1556,11 @@ namespace libtorrent
 				if (p->banned)
 				{
 #ifndef TORRENT_DISABLE_LOGGING
-					peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
-						, "msg:connect to: %s error: peer banned", print_address(ep.address()).c_str());
+					if (should_log(peer_log_alert::incoming_message))
+					{
+						peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
+							, "msg:connect to: %s error: peer banned", print_address(ep.address()).c_str());
+					}
 #endif
 					// this peer is banned, don't connect to it
 					break;
@@ -1552,20 +1577,25 @@ namespace libtorrent
 				if (p->connection)
 					p->connection->set_holepunch_mode();
 #ifndef TORRENT_DISABLE_LOGGING
+				if (should_log(peer_log_alert::incoming_message))
+				{
 					peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
 						, "msg:connect to: %s"
 						, print_address(ep.address()).c_str());
+				}
 #endif
 			} break;
 			case hp_failed:
 			{
 				std::uint32_t error = detail::read_uint32(ptr);
 #ifndef TORRENT_DISABLE_LOGGING
-				error_code ec;
-				char const* err_msg[] = {"no such peer", "not connected", "no support", "no self"};
-				peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
-					, "msg:failed error: %d msg: %s", error
-					, ((error > 0 && error < 5)?err_msg[error-1]:"unknown message id"));
+				if (should_log(peer_log_alert::incoming_message))
+				{
+					char const* err_msg[] = {"no such peer", "not connected", "no support", "no self"};
+					peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
+						, "msg:failed error: %d msg: %s", error
+						, ((error > 0 && error < 5)?err_msg[error-1]:"unknown message id"));
+				}
 #endif
 				// #error deal with holepunch errors
 				(void)error;
@@ -1573,10 +1603,12 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 			default:
 			{
-				error_code ec;
-				peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
-					, "msg: unknown message type (%d) to: %s"
-					, msg_type, print_address(ep.address()).c_str());
+				if (should_log(peer_log_alert::incoming_message))
+				{
+					peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
+						, "msg: unknown message type (%d) to: %s"
+						, msg_type, print_address(ep.address()).c_str());
+				}
 			}
 #endif
 		}
@@ -1592,13 +1624,16 @@ namespace libtorrent
 		detail::write_endpoint(ep, ptr);
 
 #ifndef TORRENT_DISABLE_LOGGING
-		static const char* hp_msg_name[] = {"rendezvous", "connect", "failed"};
-		static const char* hp_error_string[] = {"", "no such peer", "not connected", "no support", "no self"};
-		peer_log(peer_log_alert::outgoing_message, "HOLEPUNCH"
-			, "msg: %s to: %s error: %s"
-			, (type >= 0 && type < 3 ? hp_msg_name[type] : "unknown message type")
-			, print_address(ep.address()).c_str()
-			, hp_error_string[error]);
+		if (should_log(peer_log_alert::outgoing_message))
+		{
+			static const char* hp_msg_name[] = {"rendezvous", "connect", "failed"};
+			static const char* hp_error_string[] = {"", "no such peer", "not connected", "no support", "no self"};
+			peer_log(peer_log_alert::outgoing_message, "HOLEPUNCH"
+				, "msg: %s to: %s error: %s"
+				, (type >= 0 && type < 3 ? hp_msg_name[type] : "unknown message type")
+				, print_address(ep.address()).c_str()
+				, hp_error_string[error]);
+		}
 #endif
 		if (type == hp_failed)
 		{
@@ -1756,16 +1791,22 @@ namespace libtorrent
 		if (ret != 0 || ec || root.type() != bdecode_node::dict_t)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, "EXTENSION_MESSAGE"
-				, "invalid extended handshake: %s pos: %d"
-				, ec.message().c_str(), pos);
+			if (should_log(peer_log_alert::info))
+			{
+				peer_log(peer_log_alert::info, "EXTENSION_MESSAGE"
+					, "invalid extended handshake: %s pos: %d"
+					, ec.message().c_str(), pos);
+			}
 #endif
 			return;
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::incoming_message, "EXTENDED_HANDSHAKE"
-			, "%s", print_entry(root).c_str());
+		if (should_log(peer_log_alert::incoming_message))
+		{
+			peer_log(peer_log_alert::incoming_message, "EXTENDED_HANDSHAKE"
+				, "%s", print_entry(root).c_str());
+		}
 #endif
 
 		for (auto i = m_extensions.begin();
@@ -1962,8 +2003,11 @@ namespace libtorrent
 		if (!m_settings.get_bool(settings_pack::close_redundant_connections)) return;
 
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::outgoing_message, "UPLOAD_ONLY", "%d"
-			, int(t->is_upload_only() && !t->super_seeding()));
+		if (should_log(peer_log_alert::outgoing_message))
+		{
+			peer_log(peer_log_alert::outgoing_message, "UPLOAD_ONLY", "%d"
+				, int(t->is_upload_only() && !t->super_seeding()));
+		}
 #endif
 
 		char msg[7] = {0, 0, 0, 3, msg_extended};
@@ -2147,15 +2191,18 @@ namespace libtorrent
 			msg[5 + p / 8] |= (0x80 >> (p & 7));
 
 #ifndef TORRENT_DISABLE_LOGGING
-		std::string bitfield_string;
-		bitfield_string.resize(num_pieces);
-		for (int k = 0; k < num_pieces; ++k)
+		if (should_log(peer_log_alert::outgoing_message))
 		{
-			if (msg[5 + k / 8] & (0x80 >> (k % 8))) bitfield_string[k] = '1';
-			else bitfield_string[k] = '0';
+			std::string bitfield_string;
+			bitfield_string.resize(num_pieces);
+			for (int k = 0; k < num_pieces; ++k)
+			{
+				if (msg[5 + k / 8] & (0x80 >> (k % 8))) bitfield_string[k] = '1';
+				else bitfield_string[k] = '0';
+			}
+			peer_log(peer_log_alert::outgoing_message, "BITFIELD"
+				, "%s", bitfield_string.c_str());
 		}
-		peer_log(peer_log_alert::outgoing_message, "BITFIELD"
-			, "%s", bitfield_string.c_str());
 #endif
 		m_sent_bitfield = true;
 
@@ -2269,8 +2316,11 @@ namespace libtorrent
 		stats_counters().inc_stats_counter(counters::num_outgoing_ext_handshake);
 
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::outgoing_message, "EXTENDED_HANDSHAKE"
-			, "%s", handshake.to_string().c_str());
+		if (should_log(peer_log_alert::outgoing_message))
+		{
+			peer_log(peer_log_alert::outgoing_message, "EXTENDED_HANDSHAKE"
+				, "%s", handshake.to_string().c_str());
+		}
 #endif
 	}
 #endif
@@ -2647,10 +2697,13 @@ namespace libtorrent
 				m_sync_hash.reset(new sha1_hash(h.final()));
 
 #ifndef TORRENT_DISABLE_LOGGING
-				peer_log(peer_log_alert::info, "ENCRYPTION"
-					, "looking for synchash %s secret: %s"
-					, aux::to_hex(*m_sync_hash).c_str()
-					, aux::to_hex(buffer).c_str());
+				if (should_log(peer_log_alert::info))
+				{
+					peer_log(peer_log_alert::info, "ENCRYPTION"
+						, "looking for synchash %s secret: %s"
+						, aux::to_hex(*m_sync_hash).c_str()
+						, aux::to_hex(buffer).c_str());
+				}
 #endif
 			}
 
@@ -3186,11 +3239,14 @@ namespace libtorrent
 					else extensions[i*8+j] = '0';
 				}
 			}
-			peer_log(peer_log_alert::incoming_message, "EXTENSIONS", "%s ext: %s%s%s"
-				, extensions.c_str()
-				, (recv_buffer[7] & 0x01) ? "DHT " : ""
-				, (recv_buffer[7] & 0x04) ? "FAST " : ""
-				, (recv_buffer[5] & 0x10) ? "extension " : "");
+			if (should_log(peer_log_alert::incoming_message))
+			{
+				peer_log(peer_log_alert::incoming_message, "EXTENSIONS", "%s ext: %s%s%s"
+					, extensions.c_str()
+					, (recv_buffer[7] & 0x01) ? "DHT " : ""
+					, (recv_buffer[7] & 0x04) ? "FAST " : ""
+					, (recv_buffer[5] & 0x10) ? "extension " : "");
+			}
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -3269,6 +3325,7 @@ namespace libtorrent
 			recv_buffer = m_recv_buffer.get();
 
 #ifndef TORRENT_DISABLE_LOGGING
+			if (should_log(peer_log_alert::incoming))
 			{
 				char hex_pid[41];
 				aux::to_hex({recv_buffer.data(), 20}, hex_pid);

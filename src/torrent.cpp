@@ -622,38 +622,41 @@ namespace libtorrent
 // TODO: 3 why isn't this done in the constructor?
 
 #ifndef TORRENT_DISABLE_LOGGING
-		debug_log("creating torrent: %s max-uploads: %d max-connections: %d "
-			"upload-limit: %d download-limit: %d flags: %s%s%s%s%s%s%s%s%s%s%s"
-			"save-path: %s"
-			, torrent_file().name().c_str()
-			, p.max_uploads
-			, p.max_connections
-			, p.upload_limit
-			, p.download_limit
-			, (p.flags & add_torrent_params::flag_seed_mode)
-				? "seed-mode " : ""
-			, (p.flags & add_torrent_params::flag_upload_mode)
-				? "upload-mode " : ""
-			, (p.flags & add_torrent_params::flag_share_mode)
-				? "share-mode " : ""
-			, (p.flags & add_torrent_params::flag_apply_ip_filter)
-				? "apply-ip-filter " : ""
-			, (p.flags & add_torrent_params::flag_paused)
-				? "paused " : ""
-			, (p.flags & add_torrent_params::flag_auto_managed)
-				? "auto-managed " : ""
-			, (p.flags & add_torrent_params::flag_update_subscribe)
-				? "update-subscribe " : ""
-			, (p.flags & add_torrent_params::flag_super_seeding)
-				? "super-seeding " : ""
-			, (p.flags & add_torrent_params::flag_sequential_download)
-				? "sequential-download " : ""
-			, (p.flags & add_torrent_params::flag_override_trackers)
-				? "override-trackers"  : ""
-			, (p.flags & add_torrent_params::flag_override_web_seeds)
-				? "override-web-seeds " : ""
-			, p.save_path.c_str()
-			);
+		if (should_log())
+		{
+			debug_log("creating torrent: %s max-uploads: %d max-connections: %d "
+				"upload-limit: %d download-limit: %d flags: %s%s%s%s%s%s%s%s%s%s%s"
+				"save-path: %s"
+				, torrent_file().name().c_str()
+				, p.max_uploads
+				, p.max_connections
+				, p.upload_limit
+				, p.download_limit
+				, (p.flags & add_torrent_params::flag_seed_mode)
+					? "seed-mode " : ""
+				, (p.flags & add_torrent_params::flag_upload_mode)
+					? "upload-mode " : ""
+				, (p.flags & add_torrent_params::flag_share_mode)
+					? "share-mode " : ""
+				, (p.flags & add_torrent_params::flag_apply_ip_filter)
+					? "apply-ip-filter " : ""
+				, (p.flags & add_torrent_params::flag_paused)
+					? "paused " : ""
+				, (p.flags & add_torrent_params::flag_auto_managed)
+					? "auto-managed " : ""
+				, (p.flags & add_torrent_params::flag_update_subscribe)
+					? "update-subscribe " : ""
+				, (p.flags & add_torrent_params::flag_super_seeding)
+					? "super-seeding " : ""
+				, (p.flags & add_torrent_params::flag_sequential_download)
+					? "sequential-download " : ""
+				, (p.flags & add_torrent_params::flag_override_trackers)
+					? "override-trackers"  : ""
+				, (p.flags & add_torrent_params::flag_override_web_seeds)
+					? "override-web-seeds " : ""
+				, p.save_path.c_str()
+				);
+		}
 #endif
 		if (p.flags & add_torrent_params::flag_sequential_download)
 			m_sequential_download = true;
@@ -1039,8 +1042,11 @@ namespace libtorrent
 		if (!j->error) return;
 
 #ifndef TORRENT_DISABLE_LOGGING
-		debug_log("disk error: (%d) %s in file: %s", j->error.ec.value(), j->error.ec.message().c_str()
-			, resolve_filename(j->error.file).c_str());
+		if (should_log())
+		{
+			debug_log("disk error: (%d) %s in file: %s", j->error.ec.value(), j->error.ec.message().c_str()
+				, resolve_filename(j->error.file).c_str());
+		}
 #endif
 
 		if (j->action == disk_io_job::write)
@@ -2222,14 +2228,17 @@ namespace libtorrent
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
-		if (j->ret != 0)
+		if (should_log())
 		{
-			debug_log("fastresume data rejected: ret: %d (%d) %s"
-				, j->ret, j->error.ec.value(), j->error.ec.message().c_str());
-		}
-		else
-		{
-			debug_log("fastresume data accepted");
+			if (j->ret != 0)
+			{
+				debug_log("fastresume data rejected: ret: %d (%d) %s"
+					, j->ret, j->error.ec.value(), j->error.ec.message().c_str());
+			}
+			else
+			{
+				debug_log("fastresume data accepted");
+			}
 		}
 #endif
 
@@ -2554,7 +2563,8 @@ namespace libtorrent
 						resolve_filename(j->error.file), j->error.operation_str(), get_handle());
 
 #ifndef TORRENT_DISABLE_LOGGING
-				debug_log("on_piece_hashed, fatal disk error: (%d) %s", j->error.ec.value(), j->error.ec.message().c_str());
+				if (should_log())
+					debug_log("on_piece_hashed, fatal disk error: (%d) %s", j->error.ec.value(), j->error.ec.message().c_str());
 #endif
 				auto_managed(false);
 				pause();
@@ -2744,36 +2754,39 @@ namespace libtorrent
 		if (!should_announce_dht())
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			if (!m_ses.announce_dht())
-				debug_log("DHT: no listen sockets");
+			if (should_log())
+			{
+				if (!m_ses.announce_dht())
+					debug_log("DHT: no listen sockets");
 
-			if (m_torrent_file->is_valid() && !m_files_checked)
-				debug_log("DHT: files not checked, skipping DHT announce");
+				if (m_torrent_file->is_valid() && !m_files_checked)
+					debug_log("DHT: files not checked, skipping DHT announce");
 
-			if (!m_announce_to_dht)
-				debug_log("DHT: queueing disabled DHT announce");
+				if (!m_announce_to_dht)
+					debug_log("DHT: queueing disabled DHT announce");
 
-			if (m_paused)
-				debug_log("DHT: torrent paused, no DHT announce");
+				if (m_paused)
+					debug_log("DHT: torrent paused, no DHT announce");
 
 #ifndef TORRENT_NO_DEPRECATE
-			// deprecated in 1.2
-			if (!m_torrent_file->is_valid() && !m_url.empty())
-				debug_log("DHT: no info-hash, waiting for \"%s\"", m_url.c_str());
+				// deprecated in 1.2
+				if (!m_torrent_file->is_valid() && !m_url.empty())
+					debug_log("DHT: no info-hash, waiting for \"%s\"", m_url.c_str());
 #endif
 
-			if (m_torrent_file->is_valid() && m_torrent_file->priv())
-				debug_log("DHT: private torrent, no DHT announce");
+				if (m_torrent_file->is_valid() && m_torrent_file->priv())
+					debug_log("DHT: private torrent, no DHT announce");
 
-			if (settings().get_bool(settings_pack::use_dht_as_fallback))
-			{
-				int verified_trackers = 0;
-				for (std::vector<announce_entry>::const_iterator i = m_trackers.begin()
-					, end(m_trackers.end()); i != end; ++i)
-					if (i->verified) ++verified_trackers;
+				if (settings().get_bool(settings_pack::use_dht_as_fallback))
+				{
+					int verified_trackers = 0;
+					for (std::vector<announce_entry>::const_iterator i = m_trackers.begin()
+						, end(m_trackers.end()); i != end; ++i)
+						if (i->verified) ++verified_trackers;
 
-				if (verified_trackers > 0)
-					debug_log("DHT: only using DHT as fallback, and there are %d working trackers", verified_trackers);
+					if (verified_trackers > 0)
+						debug_log("DHT: only using DHT as fallback, and there are %d working trackers", verified_trackers);
+				}
 			}
 #endif
 			return;
@@ -2942,15 +2955,18 @@ namespace libtorrent
 		{
 			announce_entry& ae = m_trackers[i];
 #ifndef TORRENT_DISABLE_LOGGING
-			debug_log("*** tracker: \"%s\" "
-				"[ tiers: %d trackers: %d"
-				" i->tier: %d tier: %d"
-				" working: %d fails: %d limit: %d upd: %d"
-				" can: %d sent: %d ]"
-				, ae.url.c_str(), settings().get_bool(settings_pack::announce_to_all_tiers)
-				, settings().get_bool(settings_pack::announce_to_all_trackers)
-				, ae.tier, tier, ae.is_working(), ae.fails, ae.fail_limit
-				, ae.updating, ae.can_announce(now, is_seed()), sent_announce);
+			if (should_log())
+			{
+				debug_log("*** tracker: \"%s\" "
+					"[ tiers: %d trackers: %d"
+					" i->tier: %d tier: %d"
+					" working: %d fails: %d limit: %d upd: %d"
+					" can: %d sent: %d ]"
+					, ae.url.c_str(), settings().get_bool(settings_pack::announce_to_all_tiers)
+					, settings().get_bool(settings_pack::announce_to_all_trackers)
+					, ae.tier, tier, ae.is_working(), ae.fails, ae.fail_limit
+					, ae.updating, ae.can_announce(now, is_seed()), sent_announce);
+			}
 #endif
 			if (settings().get_bool(settings_pack::announce_to_all_tiers)
 				&& !settings().get_bool(settings_pack::announce_to_all_trackers)
@@ -3046,7 +3062,7 @@ namespace libtorrent
 
 			// if we're not logging session logs, don't bother creating an
 			// observer object just for logging
-			if (m_abort && alerts().should_post<log_alert>())
+			if (m_abort && m_ses.should_log())
 			{
 				std::shared_ptr<aux::tracker_logger> tl(new aux::tracker_logger(m_ses));
 				m_ses.queue_tracker_request(req, tl);
@@ -3240,43 +3256,46 @@ namespace libtorrent
 			m_last_scrape = m_ses.session_time();
 
 #ifndef TORRENT_DISABLE_LOGGING
-		std::string resolved_to;
-		for (std::list<address>::const_iterator i = tracker_ips.begin()
-			, end(tracker_ips.end()); i != end; ++i)
+		if (should_log())
 		{
-			resolved_to += i->to_string();
-			resolved_to += ", ";
-		}
-		debug_log("TRACKER RESPONSE\n"
-				"interval: %d\n"
-				"external ip: %s\n"
-				"resolved to: %s\n"
-				"we connected to: %s\n"
-				"peers:"
-			, interval
-			, print_address(resp.external_ip).c_str()
-			, resolved_to.c_str()
-			, print_address(tracker_ip).c_str());
+			std::string resolved_to;
+			for (std::list<address>::const_iterator i = tracker_ips.begin()
+				, end(tracker_ips.end()); i != end; ++i)
+			{
+				resolved_to += i->to_string();
+				resolved_to += ", ";
+			}
+			debug_log("TRACKER RESPONSE\n"
+					"interval: %d\n"
+					"external ip: %s\n"
+					"resolved to: %s\n"
+					"we connected to: %s\n"
+					"peers:"
+				, interval
+				, print_address(resp.external_ip).c_str()
+				, resolved_to.c_str()
+				, print_address(tracker_ip).c_str());
 
-		for (std::vector<peer_entry>::const_iterator i = resp.peers.begin();
-			i != resp.peers.end(); ++i)
-		{
-			debug_log("  %16s %5d %s %s", i->hostname.c_str(), i->port
-				, i->pid.is_all_zeros()?"":aux::to_hex(i->pid).c_str()
-				, identify_client(i->pid).c_str());
-		}
-		for (std::vector<ipv4_peer_entry>::const_iterator i = resp.peers4.begin();
-			i != resp.peers4.end(); ++i)
-		{
-			debug_log("  %s:%d", print_address(address_v4(i->ip)).c_str(), i->port);
-		}
+			for (std::vector<peer_entry>::const_iterator i = resp.peers.begin();
+				i != resp.peers.end(); ++i)
+			{
+				debug_log("  %16s %5d %s %s", i->hostname.c_str(), i->port
+					, i->pid.is_all_zeros()?"":aux::to_hex(i->pid).c_str()
+					, identify_client(i->pid).c_str());
+			}
+			for (std::vector<ipv4_peer_entry>::const_iterator i = resp.peers4.begin();
+				i != resp.peers4.end(); ++i)
+			{
+				debug_log("  %s:%d", print_address(address_v4(i->ip)).c_str(), i->port);
+			}
 #if TORRENT_USE_IPV6
-		for (std::vector<ipv6_peer_entry>::const_iterator i = resp.peers6.begin();
-			i != resp.peers6.end(); ++i)
-		{
-			debug_log("  [%s]:%d", print_address(address_v6(i->ip)).c_str(), i->port);
-		}
+			for (std::vector<ipv6_peer_entry>::const_iterator i = resp.peers6.begin();
+				i != resp.peers6.end(); ++i)
+			{
+				debug_log("  [%s]:%d", print_address(address_v6(i->ip)).c_str(), i->port);
+			}
 #endif
+		}
 #endif
 
 		// for each of the peers we got from the tracker
@@ -3394,8 +3413,11 @@ namespace libtorrent
 					? m_ses.get_ipv6_interface().address()
 					: m_ses.get_ipv4_interface().address();
 #ifndef TORRENT_DISABLE_LOGGING
-				debug_log("announce again using %s as the bind interface"
-					, print_address(req.bind_ip).c_str());
+				if (should_log())
+				{
+					debug_log("announce again using %s as the bind interface"
+						, print_address(req.bind_ip).c_str());
+				}
 #endif
 				m_ses.queue_tracker_request(req, shared_from_this());
 			}
@@ -3461,13 +3483,16 @@ namespace libtorrent
 			}
 
 #ifndef TORRENT_DISABLE_LOGGING
-			external_ip const& external = m_ses.external_address();
-			debug_log(" *** FOUND CONNECTION CANDIDATE ["
-				" ip: %s rank: %u external: %s t: %d ]"
-				, print_endpoint(p->ip()).c_str()
-				, p->rank(external, m_ses.listen_port())
-				, print_address(external.external_address(p->address())).c_str()
-				, int(m_ses.session_time() - p->last_connected));
+			if (should_log())
+			{
+				external_ip const& external = m_ses.external_address();
+				debug_log(" *** FOUND CONNECTION CANDIDATE ["
+					" ip: %s rank: %u external: %s t: %d ]"
+					, print_endpoint(p->ip()).c_str()
+					, p->rank(external, m_ses.listen_port())
+					, print_address(external.external_address(p->address())).c_str()
+					, int(m_ses.session_time() - p->last_connected));
+			}
 #endif
 
 			if (!connect_to_peer(p))
@@ -3496,16 +3521,15 @@ namespace libtorrent
 	// this is the entry point for the client to force a re-announce. It's
 	// considered a client-initiated announce (as opposed to the regular ones,
 	// issued by libtorrent)
-	void torrent::force_tracker_request(time_point t, int tracker_idx)
+	void torrent::force_tracker_request(time_point const t, int const tracker_idx)
 	{
 		if (is_paused()) return;
 		if (tracker_idx == -1)
 		{
-			for (std::vector<announce_entry>::iterator i = m_trackers.begin()
-				, end(m_trackers.end()); i != end; ++i)
+			for (auto& e : m_trackers)
 			{
-				i->next_announce = (std::max)(t, i->min_announce) + seconds(1);
-				i->triggered_manually = true;
+				e.next_announce = std::max(t, e.min_announce) + seconds(1);
+				e.triggered_manually = true;
 			}
 		}
 		else
@@ -3514,7 +3538,7 @@ namespace libtorrent
 			if (tracker_idx < 0 || tracker_idx >= int(m_trackers.size()))
 				return;
 			announce_entry& e = m_trackers[tracker_idx];
-			e.next_announce = (std::max)(t, e.min_announce) + seconds(1);
+			e.next_announce = std::max(t, e.min_announce) + seconds(1);
 			e.triggered_manually = true;
 		}
 		update_tracker_timer(clock_type::now());
@@ -3539,7 +3563,7 @@ namespace libtorrent
 
 		COMPLETE_ASYNC("torrent::on_i2p_resolve");
 #ifndef TORRENT_DISABLE_LOGGING
-		if (ec)
+		if (ec && should_log())
 			debug_log("i2p_resolve error: %s", ec.message().c_str());
 #endif
 		if (ec || m_abort || m_ses.is_aborted()) return;
@@ -3562,7 +3586,7 @@ namespace libtorrent
 		COMPLETE_ASYNC("torrent::on_peer_name_lookup");
 
 #ifndef TORRENT_DISABLE_LOGGING
-		if (e)
+		if (e && should_log())
 			debug_log("peer name lookup error: %s", e.message().c_str());
 #endif
 
@@ -3574,8 +3598,11 @@ namespace libtorrent
 		if (m_ip_filter && m_ip_filter->access(host.address()) & ip_filter::blocked)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			error_code ec;
-			debug_log("blocked ip from tracker: %s", host.address().to_string(ec).c_str());
+			if (should_log())
+			{
+				error_code ec;
+				debug_log("blocked ip from tracker: %s", host.address().to_string(ec).c_str());
+			}
 #endif
 			if (m_ses.alerts().should_post<peer_blocked_alert>())
 				m_ses.alerts().emplace_alert<peer_blocked_alert>(get_handle()
@@ -3932,11 +3959,14 @@ namespace libtorrent
 		// -2: piece failed check
 
 #ifndef TORRENT_DISABLE_LOGGING
-		debug_log("*** PIECE_FINISHED [ p: %d | chk: %s | size: %d ]"
-			, j->piece, ((ret == 0)
-				?"passed":ret == -1
-				?"disk failed":"failed")
-			, m_torrent_file->piece_size(j->piece));
+		if (should_log())
+		{
+			debug_log("*** PIECE_FINISHED [ p: %d | chk: %s | size: %d ]"
+				, j->piece, ((ret == 0)
+					?"passed":ret == -1
+					?"disk failed":"failed")
+				, m_torrent_file->piece_size(j->piece));
+		}
 #endif
 		TORRENT_ASSERT(valid_metadata());
 
@@ -4116,7 +4146,8 @@ namespace libtorrent
 		TORRENT_ASSERT(!m_picker->has_piece_passed(index));
 
 #ifndef TORRENT_DISABLE_LOGGING
-		debug_log("PIECE_PASSED (%d)", num_passed());
+		if (should_log())
+			debug_log("PIECE_PASSED (%d)", num_passed());
 #endif
 
 //		std::fprintf(stderr, "torrent::piece_passed piece:%d\n", index);
@@ -4344,10 +4375,11 @@ namespace libtorrent
 				{
 					peer_connection* peer = static_cast<peer_connection*>(p->connection);
 #ifndef TORRENT_DISABLE_LOGGING
-					debug_log("*** BANNING PEER: \"%s\" Too many corrupt pieces"
-						, print_endpoint(p->ip()).c_str());
-#endif
-#ifndef TORRENT_DISABLE_LOGGING
+					if (should_log())
+					{
+						debug_log("*** BANNING PEER: \"%s\" Too many corrupt pieces"
+							, print_endpoint(p->ip()).c_str());
+					}
 					peer->peer_log(peer_log_alert::info, "BANNING_PEER", "Too many corrupt pieces");
 #endif
 					peer->disconnect(errors::too_many_corrupt_pieces, op_bittorrent);
@@ -5309,8 +5341,11 @@ namespace libtorrent
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
-		debug_log("*** UPDATE_PEER_INTEREST [ finished: %d was_finished %d ]"
-			, is_finished(), was_finished);
+		if (should_log())
+		{
+			debug_log("*** UPDATE_PEER_INTEREST [ finished: %d was_finished %d ]"
+				, is_finished(), was_finished);
+		}
 #endif
 
 		// the torrent just became finished
@@ -5620,7 +5655,8 @@ namespace libtorrent
 				alerts().emplace_alert<torrent_error_alert>(get_handle(), ec, certificate);
 		}
 #ifndef TORRENT_DISABLE_LOGGING
-		debug_log("*** use certificate file: %s", ec.message().c_str());
+		if (should_log())
+			debug_log("*** use certificate file: %s", ec.message().c_str());
 #endif
 		m_ssl_ctx->use_private_key_file(private_key, context::pem, ec);
 		if (ec)
@@ -5629,7 +5665,8 @@ namespace libtorrent
 				alerts().emplace_alert<torrent_error_alert>(get_handle(), ec, private_key);
 		}
 #ifndef TORRENT_DISABLE_LOGGING
-		debug_log("*** use private key file: %s", ec.message().c_str());
+		if (should_log())
+			debug_log("*** use private key file: %s", ec.message().c_str());
 #endif
 		m_ssl_ctx->use_tmp_dh_file(dh_params, ec);
 		if (ec)
@@ -5638,7 +5675,8 @@ namespace libtorrent
 				alerts().emplace_alert<torrent_error_alert>(get_handle(), ec, dh_params);
 		}
 #ifndef TORRENT_DISABLE_LOGGING
-		debug_log("*** use DH file: %s", ec.message().c_str());
+		if (should_log())
+			debug_log("*** use DH file: %s", ec.message().c_str());
 #endif
 	}
 
@@ -5823,7 +5861,8 @@ namespace libtorrent
 		if (ec)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			debug_log("failed to parse web seed url: %s", ec.message().c_str());
+			if (should_log())
+				debug_log("failed to parse web seed url: %s", ec.message().c_str());
 #endif
 			if (m_ses.alerts().should_post<url_seed_alert>())
 			{
@@ -5953,7 +5992,7 @@ namespace libtorrent
 		TORRENT_ASSERT(web->resolving == true);
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("completed resolve proxy hostname for: %s", web->url.c_str());
-		if (e)
+		if (e && should_log())
 			debug_log("proxy name lookup error: %s", e.message().c_str());
 #endif
 		web->resolving = false;
@@ -6054,8 +6093,11 @@ namespace libtorrent
 			if (m_ses.alerts().should_post<url_seed_alert>())
 				m_ses.alerts().emplace_alert<url_seed_alert>(get_handle(), web->url, e);
 #ifndef TORRENT_DISABLE_LOGGING
-			debug_log("*** HOSTNAME LOOKUP FAILED: %s: (%d) %s"
-				, web->url.c_str(), e.value(), e.message().c_str());
+			if (should_log())
+			{
+				debug_log("*** HOSTNAME LOOKUP FAILED: %s: (%d) %s"
+					, web->url.c_str(), e.value(), e.message().c_str());
+			}
 #endif
 
 			// unavailable, retry in 30 minutes
@@ -6070,7 +6112,8 @@ namespace libtorrent
 			web->endpoints.push_back(tcp::endpoint(*i, port));
 
 #ifndef TORRENT_DISABLE_LOGGING
-			debug_log("  -> %s", print_endpoint(tcp::endpoint(*i, port)).c_str());
+			if (should_log())
+				debug_log("  -> %s", print_endpoint(tcp::endpoint(*i, port)).c_str());
 #endif
 		}
 
@@ -6238,8 +6281,11 @@ namespace libtorrent
 			web->peer_info.prev_amount_download = 0;
 			web->peer_info.prev_amount_upload = 0;
 #ifndef TORRENT_DISABLE_LOGGING
-			debug_log("web seed connection started: [%s] %s"
-				, print_endpoint(a).c_str(), web->url.c_str());
+			if (should_log())
+			{
+				debug_log("web seed connection started: [%s] %s"
+					, print_endpoint(a).c_str(), web->url.c_str());
+			}
 #endif
 
 			c->start();
@@ -7206,11 +7252,14 @@ namespace libtorrent
 			{
 				peers_erased(st.erased);
 #ifndef TORRENT_DISABLE_LOGGING
-				debug_log("CLOSING CONNECTION \"%s\" peer list full "
-					"connections: %d limit: %d"
-					, print_endpoint(p->remote()).c_str()
-					, int(m_connections.size())
-					, m_max_connections);
+				if (should_log())
+				{
+					debug_log("CLOSING CONNECTION \"%s\" peer list full "
+						"connections: %d limit: %d"
+						, print_endpoint(p->remote()).c_str()
+						, int(m_connections.size())
+						, m_max_connections);
+				}
 #endif
 				p->disconnect(errors::too_many_connections, op_bittorrent);
 				return false;
@@ -7223,8 +7272,11 @@ namespace libtorrent
 			TORRENT_DECLARE_DUMMY(std::exception, e);
 			(void)e;
 #ifndef TORRENT_DISABLE_LOGGING
-			debug_log("CLOSING CONNECTION \"%s\" caught exception: %s"
-				, print_endpoint(p->remote()).c_str(), e.what());
+			if (should_log())
+			{
+				debug_log("CLOSING CONNECTION \"%s\" caught exception: %s"
+					, print_endpoint(p->remote()).c_str(), e.what());
+			}
 #endif
 			p->disconnect(errors::no_error, op_bittorrent);
 			return false;
@@ -7266,11 +7318,14 @@ namespace libtorrent
 			if (peer && peer->peer_rank() < p->peer_rank())
 			{
 #ifndef TORRENT_DISABLE_LOGGING
-				debug_log("CLOSING CONNECTION \"%s\" peer list full (low peer rank) "
-					"connections: %d limit: %d"
-					, print_endpoint(peer->remote()).c_str()
-					, int(m_connections.size())
-					, m_max_connections);
+				if (should_log())
+				{
+					debug_log("CLOSING CONNECTION \"%s\" peer list full (low peer rank) "
+						"connections: %d limit: %d"
+						, print_endpoint(peer->remote()).c_str()
+						, int(m_connections.size())
+						, m_max_connections);
+				}
 #endif
 				peer->disconnect(errors::too_many_connections, op_bittorrent);
 				p->peer_disconnected_other();
@@ -7278,11 +7333,14 @@ namespace libtorrent
 			else
 			{
 #ifndef TORRENT_DISABLE_LOGGING
-				debug_log("CLOSING CONNECTION \"%s\" peer list full (low peer rank) "
-					"connections: %d limit: %d"
-					, print_endpoint(p->remote()).c_str()
-					, int(m_connections.size())
-					, m_max_connections);
+				if (should_log())
+				{
+					debug_log("CLOSING CONNECTION \"%s\" peer list full (low peer rank) "
+						"connections: %d limit: %d"
+						, print_endpoint(p->remote()).c_str()
+						, int(m_connections.size())
+						, m_max_connections);
+				}
 #endif
 				p->disconnect(errors::too_many_connections, op_bittorrent);
 				// we have to do this here because from the peer's point of
@@ -7301,9 +7359,12 @@ namespace libtorrent
 			recalc_share_mode();
 
 #ifndef TORRENT_DISABLE_LOGGING
-		debug_log("ATTACHED CONNECTION \"%s\" connections: %d limit: %d"
-			, print_endpoint(p->remote()).c_str(), int(m_connections.size())
-			, m_max_connections);
+		if (should_log())
+		{
+			debug_log("ATTACHED CONNECTION \"%s\" connections: %d limit: %d"
+				, print_endpoint(p->remote()).c_str(), int(m_connections.size())
+				, m_max_connections);
+		}
 #endif
 
 		return true;
@@ -7473,7 +7534,8 @@ namespace libtorrent
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
-		debug_log("*** UPDATE LIST [ %s : %d ]", list_name(list), int(in));
+		if (should_log())
+			debug_log("*** UPDATE LIST [ %s : %d ]", list_name(list), int(in));
 #endif
 	}
 
@@ -9111,14 +9173,17 @@ namespace libtorrent
 			, end(m_trackers.end()); i != end; ++i)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			debug_log("*** tracker: \"%s\" "
-				"[ tiers: %d trackers: %d"
-				" found: %d i->tier: %d tier: %d"
-				" working: %d fails: %d limit: %d upd: %d ]"
-				, i->url.c_str(), settings().get_bool(settings_pack::announce_to_all_tiers)
-				, settings().get_bool(settings_pack::announce_to_all_trackers), found_working
-				, i->tier, tier, i->is_working(), i->fails, i->fail_limit
-				, i->updating);
+			if (should_log())
+			{
+				debug_log("*** tracker: \"%s\" "
+					"[ tiers: %d trackers: %d"
+					" found: %d i->tier: %d tier: %d"
+					" working: %d fails: %d limit: %d upd: %d ]"
+					, i->url.c_str(), settings().get_bool(settings_pack::announce_to_all_tiers)
+					, settings().get_bool(settings_pack::announce_to_all_trackers), found_working
+					, i->tier, tier, i->is_working(), i->fails, i->fail_limit
+					, i->updating);
+			}
 #endif
 			if (settings().get_bool(settings_pack::announce_to_all_tiers)
 				&& found_working
@@ -10429,9 +10494,12 @@ namespace libtorrent
 		peers_erased(st.erased);
 
 #ifndef TORRENT_DISABLE_LOGGING
+		if (should_log())
+		{
 			error_code ec;
 			debug_log("add_peer() %s connect-candidates: %d"
 				, adr.address().to_string(ec).c_str(), m_peer_list->num_connect_candidates());
+		}
 #endif
 
 		if (p)
@@ -11196,8 +11264,11 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 #ifndef TORRENT_DISABLE_LOGGING
-		debug_log("*** tracker error: (%d) %s %s", ec.value()
-			, ec.message().c_str(), msg.c_str());
+		if (should_log())
+		{
+			debug_log("*** tracker error: (%d) %s %s", ec.value()
+				, ec.message().c_str(), msg.c_str());
+		}
 #endif
 		if (0 == (r.kind & tracker_request::scrape_request))
 		{
@@ -11251,6 +11322,11 @@ namespace libtorrent
 	}
 
 #ifndef TORRENT_DISABLE_LOGGING
+	bool torrent::should_log() const
+	{
+		return alerts().should_post<torrent_log_alert>();
+	}
+
 	TORRENT_FORMAT(2,3)
 	void torrent::debug_log(char const* fmt, ...) const
 	{

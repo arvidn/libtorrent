@@ -156,16 +156,22 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_LOGGING
 		std::shared_ptr<request_callback> cb = requester();
-		if (cb) cb->debug_log("*** UDP_TRACKER [ host: \"%s\" ip: \"%s\" | error: \"%s\" ]"
-			, m_hostname.c_str(), print_endpoint(m_target).c_str(), ec.message().c_str());
+		if (cb && cb->should_log())
+		{
+			cb->debug_log("*** UDP_TRACKER [ host: \"%s\" ip: \"%s\" | error: \"%s\" ]"
+				, m_hostname.c_str(), print_endpoint(m_target).c_str(), ec.message().c_str());
+		}
 #endif
 
 		// pick another target endpoint and try again
 		m_target = pick_target_endpoint();
 
 #ifndef TORRENT_DISABLE_LOGGING
-		if (cb) cb->debug_log("*** UDP_TRACKER trying next IP [ host: \"%s\" ip: \"%s\" ]"
-			, m_hostname.c_str(), print_endpoint(m_target).c_str());
+		if (cb && cb->should_log())
+		{
+			cb->debug_log("*** UDP_TRACKER trying next IP [ host: \"%s\" ip: \"%s\" ]"
+				, m_hostname.c_str(), print_endpoint(m_target).c_str());
+		}
 #endif
 		get_io_service().post(std::bind(
 			&udp_tracker_connection::start_announce, shared_from_this()));
@@ -218,8 +224,11 @@ namespace libtorrent
 				if (tracker_req().filter->access(k->address()) == ip_filter::blocked) 
 				{
 #ifndef TORRENT_DISABLE_LOGGING
-					if (cb) cb->debug_log("*** UDP_TRACKER [ IP blocked by filter: %s ]"
-						, print_address(k->address()).c_str());
+					if (cb && cb->should_log())
+					{
+						cb->debug_log("*** UDP_TRACKER [ IP blocked by filter: %s ]"
+							, print_address(k->address()).c_str());
+					}
 #endif
 					k = m_endpoints.erase(k);
 				}
@@ -366,10 +375,13 @@ namespace libtorrent
 		if (!is_any(m_target.address()) && m_target != ep)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			if (cb) cb->debug_log("<== UDP_TRACKER [ unexpected source IP: %s "
-				"expected: %s ]"
-				, print_endpoint(ep).c_str()
-				, print_endpoint(m_target).c_str());
+			if (cb && cb->should_log())
+			{
+				cb->debug_log("<== UDP_TRACKER [ unexpected source IP: %s "
+					"expected: %s ]"
+					, print_endpoint(ep).c_str()
+					, print_endpoint(m_target).c_str());
+			}
 #endif
 			return false;
 		}
@@ -518,15 +530,18 @@ namespace libtorrent
 		if (ec)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			if (cb) cb->debug_log("==> UDP_TRACKER_CONNECT [ failed: %s ]"
-				, ec.message().c_str());
+			if (cb && cb->should_log())
+			{
+				cb->debug_log("==> UDP_TRACKER_CONNECT [ failed: %s ]"
+					, ec.message().c_str());
+			}
 #endif
 			fail(ec);
 			return;
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
-		if (cb)
+		if (cb && cb->should_log())
 		{
 			char hex_ih[41];
 			aux::to_hex(tracker_req().info_hash, hex_ih);
@@ -758,7 +773,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_LOGGING
 		std::shared_ptr<request_callback> cb = requester();
-		if (cb)
+		if (cb && cb->should_log())
 		{
 			char hex_ih[41];
 			aux::to_hex(req.info_hash, hex_ih);

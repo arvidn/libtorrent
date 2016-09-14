@@ -1168,8 +1168,8 @@ namespace libtorrent
 			std::uint16_t m_tick_residual = 0;
 
 #ifndef TORRENT_DISABLE_LOGGING
+			virtual bool should_log() const override;
 			virtual void session_log(char const* fmt, ...) const override TORRENT_FORMAT(2,3);
-			virtual void session_vlog(char const* fmt, va_list& va) const override TORRENT_FORMAT(2,0);
 
 			// this list of tracker loggers serves as tracker_callbacks when
 			// shutting down. This list is just here to keep them alive during
@@ -1234,11 +1234,10 @@ namespace libtorrent
 				, libtorrent::address const& tracker_ip
 				, std::list<address> const& ip_list
 				, struct tracker_response const& resp);
-			void tracker_request_timed_out(
-				tracker_request const&);
 			void tracker_request_error(tracker_request const& r
 				, int response_code, error_code const& ec, const std::string& str
 				, int retry_interval);
+			bool should_log() const;
 			void debug_log(const char* fmt, ...) const TORRENT_FORMAT(2,3);
 			session_interface& m_ses;
 		private:

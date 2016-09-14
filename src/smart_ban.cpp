@@ -74,7 +74,7 @@ namespace
 			, m_salt(random(0xffffffff))
 		{}
 
-		void on_piece_pass(int p) override
+		void on_piece_pass(int const p) override
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			m_torrent.debug_log(" PIECE PASS [ p: %d | block_hash_size: %d ]"
@@ -210,19 +210,22 @@ namespace
 					// from the first time it sent it
 					// at least one of them must be bad
 #ifndef TORRENT_DISABLE_LOGGING
-					char const* client = "-";
-					peer_info info;
-					if (p->connection)
+					if (m_torrent.should_log())
 					{
-						p->connection->get_peer_info(info);
-						client = info.client.c_str();
+						char const* client = "-";
+						peer_info info;
+						if (p->connection)
+						{
+							p->connection->get_peer_info(info);
+							client = info.client.c_str();
+						}
+						m_torrent.debug_log(" BANNING PEER [ p: %d | b: %d | c: %s"
+							" | hash1: %s | hash2: %s | ip: %s ]"
+							, b.piece_index, b.block_index, client
+							, aux::to_hex(i->second.digest).c_str()
+							, aux::to_hex(e.digest).c_str()
+							, print_endpoint(p->ip()).c_str());
 					}
-					m_torrent.debug_log(" BANNING PEER [ p: %d | b: %d | c: %s"
-						" | hash1: %s | hash2: %s | ip: %s ]"
-						, b.piece_index, b.block_index, client
-						, aux::to_hex(i->second.digest).c_str()
-						, aux::to_hex(e.digest).c_str()
-						, print_endpoint(p->ip()).c_str());
 #endif
 					m_torrent.ban_peer(p);
 					if (p->connection) p->connection->disconnect(
@@ -236,18 +239,21 @@ namespace
 			m_block_hashes.insert(i, std::pair<const piece_block, block_entry>(b, e));
 
 #ifndef TORRENT_DISABLE_LOGGING
-			char const* client = "-";
-			peer_info info;
-			if (p->connection)
+			if (m_torrent.should_log())
 			{
-				p->connection->get_peer_info(info);
-				client = info.client.c_str();
+				char const* client = "-";
+				peer_info info;
+				if (p->connection)
+				{
+					p->connection->get_peer_info(info);
+					client = info.client.c_str();
+				}
+				m_torrent.debug_log(" STORE BLOCK CRC [ p: %d | b: %d | c: %s"
+					" | digest: %s | ip: %s ]"
+					, b.piece_index, b.block_index, client
+					, aux::to_hex(e.digest).c_str()
+					, print_address(p->ip().address()).c_str());
 			}
-			m_torrent.debug_log(" STORE BLOCK CRC [ p: %d | b: %d | c: %s"
-				" | digest: %s | ip: %s ]"
-				, b.piece_index, b.block_index, client
-				, aux::to_hex(e.digest).c_str()
-				, print_address(p->ip().address()).c_str());
 #endif
 		}
 
@@ -280,19 +286,22 @@ namespace
 			if (p == nullptr) return;
 
 #ifndef TORRENT_DISABLE_LOGGING
-			char const* client = "-";
-			peer_info info;
-			if (p->connection)
+			if (m_torrent.should_log())
 			{
-				p->connection->get_peer_info(info);
-				client = info.client.c_str();
+				char const* client = "-";
+				peer_info info;
+				if (p->connection)
+				{
+					p->connection->get_peer_info(info);
+					client = info.client.c_str();
+				}
+				m_torrent.debug_log(" BANNING PEER [ p: %d | b: %d | c: %s"
+					" | ok_digest: %s | bad_digest: %s | ip: %s ]"
+					, b.first.piece_index, b.first.block_index, client
+					, aux::to_hex(ok_digest).c_str()
+					, aux::to_hex(b.second.digest).c_str()
+					, print_address(p->ip().address()).c_str());
 			}
-			m_torrent.debug_log(" BANNING PEER [ p: %d | b: %d | c: %s"
-				" | ok_digest: %s | bad_digest: %s | ip: %s ]"
-				, b.first.piece_index, b.first.block_index, client
-				, aux::to_hex(ok_digest).c_str()
-				, aux::to_hex(b.second.digest).c_str()
-				, print_address(p->ip().address()).c_str());
 #endif
 			m_torrent.ban_peer(p);
 			if (p->connection) p->connection->disconnect(

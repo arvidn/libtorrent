@@ -313,8 +313,11 @@ namespace libtorrent
 		if (buf.size() < 8)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			m_ses.session_log("incoming packet from %s, not a UDP tracker message "
-				"(%d Bytes)", print_endpoint(ep).c_str(), int(buf.size()));
+			if (m_ses.should_log())
+			{
+				m_ses.session_log("incoming packet from %s, not a UDP tracker message "
+					"(%d Bytes)", print_endpoint(ep).c_str(), int(buf.size()));
+			}
 #endif
 			return false;
 		}
@@ -331,9 +334,12 @@ namespace libtorrent
 		if (i == m_udp_conns.end())
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			m_ses.session_log("incoming UDP tracker packet from %s has invalid "
-				"transaction ID (%x)", print_endpoint(ep).c_str()
-				, transaction);
+			if (m_ses.should_log())
+			{
+				m_ses.session_log("incoming UDP tracker packet from %s has invalid "
+					"transaction ID (%x)", print_endpoint(ep).c_str()
+					, transaction);
+			}
 #endif
 			return false;
 		}

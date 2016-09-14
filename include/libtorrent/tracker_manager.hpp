@@ -244,6 +244,7 @@ namespace libtorrent
 			, int retry_interval) = 0;
 
 #ifndef TORRENT_DISABLE_LOGGING
+		virtual bool should_log() const = 0;
 		virtual void debug_log(const char* fmt, ...) const TORRENT_FORMAT(2,3) = 0;
 #endif
 	};
