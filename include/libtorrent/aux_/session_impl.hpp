@@ -623,7 +623,7 @@ namespace libtorrent
 			virtual void log(module_t m, char const* fmt, ...)
 				override TORRENT_FORMAT(3,4);
 			virtual void log_packet(message_direction_t dir, char const* pkt, int len
-				, udp::endpoint node) override;
+				, udp::endpoint const& node) override;
 #endif
 
 			virtual bool on_dht_request(string_view query

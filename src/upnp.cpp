@@ -541,14 +541,13 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 		d.non_router = non_router;
 
 		TORRENT_ASSERT(d.mapping.empty());
-		for (std::vector<global_mapping_t>::iterator j = m_mappings.begin()
-			, end(m_mappings.end()); j != end; ++j)
+		for (auto const& j : m_mappings)
 		{
 			mapping_t m;
 			m.action = mapping_t::action_add;
-			m.local_port = j->local_port;
-			m.external_port = j->external_port;
-			m.protocol = j->protocol;
+			m.local_port = j.local_port;
+			m.external_port = j.external_port;
+			m.protocol = j.protocol;
 			d.mapping.push_back(m);
 		}
 		std::tie(i, std::ignore) = m_devices.insert(d);

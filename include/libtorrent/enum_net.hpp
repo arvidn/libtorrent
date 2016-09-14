@@ -164,6 +164,7 @@ namespace libtorrent
 		return bind_ep.address();
 	}
 
+	// TODO: function not used and not exported in release?
 	// returns true if the given device exists
 	TORRENT_EXTRA_EXPORT bool has_interface(char const* name, io_service& ios
 		, error_code& ec);
