@@ -49,6 +49,13 @@ namespace libtorrent
 
 	alert_manager::~alert_manager() = default;
 
+	bool alert_manager::should_post_impl(int const priority) const
+	{
+		std::lock_guard<std::mutex> lock(m_mutex);
+		return m_alerts[m_generation].size()
+			< m_queue_size_limit * (1 + priority);
+	}
+
 	alert* alert_manager::wait_for_alert(time_duration max_wait)
 	{
 		std::unique_lock<std::mutex> lock(m_mutex);
