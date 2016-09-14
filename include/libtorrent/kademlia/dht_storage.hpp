@@ -125,7 +125,7 @@ namespace dht
 		// returns true if an entry with the info_hash is found and
 		// the data is returned inside the (entry) out parameter peers.
 		//
-		virtual bool get_peers(sha1_hash const& info_hash
+		virtual bool get_peers(sha1_hash const& info_hash, udp protocol
 			, bool noseed, bool scrape
 			, entry& peers) const = 0;
 
