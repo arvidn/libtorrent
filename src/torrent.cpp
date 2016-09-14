@@ -3062,7 +3062,7 @@ namespace libtorrent
 
 			// if we're not logging session logs, don't bother creating an
 			// observer object just for logging
-			if (m_abort && alerts().should_post<log_alert>())
+			if (m_abort && m_ses.should_log())
 			{
 				std::shared_ptr<aux::tracker_logger> tl(new aux::tracker_logger(m_ses));
 				m_ses.queue_tracker_request(req, tl);
@@ -3521,16 +3521,15 @@ namespace libtorrent
 	// this is the entry point for the client to force a re-announce. It's
 	// considered a client-initiated announce (as opposed to the regular ones,
 	// issued by libtorrent)
-	void torrent::force_tracker_request(time_point t, int tracker_idx)
+	void torrent::force_tracker_request(time_point const t, int const tracker_idx)
 	{
 		if (is_paused()) return;
 		if (tracker_idx == -1)
 		{
-			for (std::vector<announce_entry>::iterator i = m_trackers.begin()
-				, end(m_trackers.end()); i != end; ++i)
+			for (auto& e : m_trackers)
 			{
-				i->next_announce = (std::max)(t, i->min_announce) + seconds(1);
-				i->triggered_manually = true;
+				e.next_announce = std::max(t, e.min_announce) + seconds(1);
+				e.triggered_manually = true;
 			}
 		}
 		else
@@ -3539,7 +3538,7 @@ namespace libtorrent
 			if (tracker_idx < 0 || tracker_idx >= int(m_trackers.size()))
 				return;
 			announce_entry& e = m_trackers[tracker_idx];
-			e.next_announce = (std::max)(t, e.min_announce) + seconds(1);
+			e.next_announce = std::max(t, e.min_announce) + seconds(1);
 			e.triggered_manually = true;
 		}
 		update_tracker_timer(clock_type::now());

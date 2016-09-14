@@ -6950,7 +6950,6 @@ namespace aux {
 			, struct tracker_response const& resp)
 		{
 			TORRENT_UNUSED(tracker_ips);
-			if (!should_log()) return;
 			debug_log("TRACKER RESPONSE\n"
 				"interval: %d\n"
 				"external ip: %s\n"
@@ -6983,7 +6982,6 @@ namespace aux {
 			, int retry_interval)
 		{
 			TORRENT_UNUSED(retry_interval);
-			if (!should_log()) return;
 			debug_log("*** tracker error: %d: %s %s"
 				, response_code, ec.message().c_str(), str.c_str());
 		}
