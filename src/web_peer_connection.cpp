@@ -979,8 +979,11 @@ void web_peer_connection::incoming_payload(char const* buf, int len)
 				, front_request.piece, front_request.start, front_request.length);
 #endif
 
-			incoming_piece(front_request, &m_piece[0]);
+			peer_request const front_request_copy = front_request;
 			m_requests.pop_front();
+
+			incoming_piece(front_request_copy, &m_piece[0]);
+
 			m_piece.clear();
 		}
 	}
