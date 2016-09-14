@@ -979,6 +979,10 @@ void web_peer_connection::incoming_payload(char const* buf, int len)
 				, front_request.piece, front_request.start, front_request.length);
 #endif
 
+			// Make a copy of the request and pop it off the queue before calling
+			// incoming_piece because that may lead to a call to disconnect()
+			// which will clear the request queue and invalidate any references
+			// to the request
 			peer_request const front_request_copy = front_request;
 			m_requests.pop_front();
 
