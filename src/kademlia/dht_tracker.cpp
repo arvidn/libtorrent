@@ -30,30 +30,31 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/kademlia/dht_tracker.hpp"
+
 #include <set>
 #include <numeric>
 
-#include "libtorrent/config.hpp"
+#include <libtorrent/config.hpp>
 
-#include "libtorrent/kademlia/node.hpp"
-#include "libtorrent/kademlia/node_id.hpp"
-#include "libtorrent/kademlia/traversal_algorithm.hpp"
-#include "libtorrent/kademlia/dht_tracker.hpp"
-#include "libtorrent/kademlia/msg.hpp"
-#include "libtorrent/kademlia/dht_observer.hpp"
+#include <libtorrent/kademlia/node.hpp>
+#include <libtorrent/kademlia/node_id.hpp>
+#include <libtorrent/kademlia/traversal_algorithm.hpp>
+#include <libtorrent/kademlia/msg.hpp>
+#include <libtorrent/kademlia/dht_observer.hpp>
 
-#include "libtorrent/socket.hpp"
-#include "libtorrent/socket_io.hpp"
-#include "libtorrent/bencode.hpp"
-#include "libtorrent/io.hpp"
-#include "libtorrent/version.hpp"
-#include "libtorrent/time.hpp"
-#include "libtorrent/performance_counters.hpp" // for counters
-#include "libtorrent/aux_/time.hpp"
-#include "libtorrent/session_status.hpp"
+#include <libtorrent/socket.hpp>
+#include <libtorrent/socket_io.hpp>
+#include <libtorrent/bencode.hpp>
+#include <libtorrent/io.hpp>
+#include <libtorrent/version.hpp>
+#include <libtorrent/time.hpp>
+#include <libtorrent/performance_counters.hpp> // for counters
+#include <libtorrent/aux_/time.hpp>
+#include <libtorrent/session_status.hpp>
 
 #ifndef TORRENT_DISABLE_LOGGING
-#include "libtorrent/hex.hpp" // to_hex
+#include <libtorrent/hex.hpp> // to_hex
 #endif
 
 using libtorrent::dht::node;
@@ -134,12 +135,15 @@ namespace libtorrent { namespace dht
 		update_storage_node_ids();
 
 #ifndef TORRENT_DISABLE_LOGGING
-		m_log->log(dht_logger::tracker, "starting IPv4 DHT tracker with node id: %s"
-			, aux::to_hex(m_dht.nid()).c_str());
+		if (m_log->should_log(dht_logger::tracker))
+		{
+			m_log->log(dht_logger::tracker, "starting IPv4 DHT tracker with node id: %s"
+				, aux::to_hex(m_dht.nid()).c_str());
 #if TORRENT_USE_IPV6
-		m_log->log(dht_logger::tracker, "starting IPv6 DHT tracker with node id: %s"
-			, aux::to_hex(m_dht6.nid()).c_str());
+			m_log->log(dht_logger::tracker, "starting IPv6 DHT tracker with node id: %s"
+				, aux::to_hex(m_dht6.nid()).c_str());
 #endif
+		}
 #endif
 	}
 
@@ -471,7 +475,7 @@ namespace libtorrent { namespace dht
 #endif
 	}
 
-	void dht_tracker::direct_request(udp::endpoint ep, entry& e
+	void dht_tracker::direct_request(udp::endpoint const& ep, entry& e
 		, std::function<void(msg const&)> f)
 	{
 #if TORRENT_USE_IPV6

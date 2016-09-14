@@ -37,16 +37,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <functional>
 
-#include "libtorrent/kademlia/node.hpp"
-#include "libtorrent/kademlia/node_id.hpp"
-#include "libtorrent/kademlia/traversal_algorithm.hpp"
-#include "libtorrent/kademlia/dos_blocker.hpp"
+#include <libtorrent/kademlia/node.hpp>
+#include <libtorrent/kademlia/node_id.hpp>
+#include <libtorrent/kademlia/traversal_algorithm.hpp>
+#include <libtorrent/kademlia/dos_blocker.hpp>
 
-#include "libtorrent/session_settings.hpp"
-#include "libtorrent/udp_socket.hpp"
-#include "libtorrent/socket.hpp"
-#include "libtorrent/deadline_timer.hpp"
-#include "libtorrent/span.hpp"
+#include <libtorrent/session_settings.hpp>
+#include <libtorrent/udp_socket.hpp>
+#include <libtorrent/socket.hpp>
+#include <libtorrent/deadline_timer.hpp>
+#include <libtorrent/span.hpp>
 
 namespace libtorrent
 {
@@ -58,8 +58,6 @@ namespace libtorrent
 
 namespace libtorrent { namespace dht
 {
-	struct dht_tracker;
-
 	struct TORRENT_EXTRA_EXPORT dht_tracker final
 		: udp_socket_interface
 		, std::enable_shared_from_this<dht_tracker>
@@ -118,7 +116,7 @@ namespace libtorrent { namespace dht
 			, std::function<void(item&)> data_cb, std::string salt = std::string());
 
 		// send an arbitrary DHT request directly to a node
-		void direct_request(udp::endpoint ep, entry& e
+		void direct_request(udp::endpoint const& ep, entry& e
 			, std::function<void(msg const&)> f);
 
 #ifndef TORRENT_NO_DEPRECATE

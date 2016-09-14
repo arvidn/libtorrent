@@ -30,6 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-macros"
@@ -60,6 +62,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma GCC diagnostic pop
 #endif
 
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
 #include "libtorrent/config.hpp"
 #include "libtorrent/alloca.hpp"
 #include "libtorrent/file.hpp"
@@ -79,6 +83,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifdef TORRENT_DISK_STATS
 #include "libtorrent/io.hpp"
 #endif
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <sys/stat.h>
 #include <climits> // for IOV_MAX
@@ -137,6 +143,8 @@ POSSIBILITY OF SUCH DAMAGE.
 static_assert(sizeof(lseek(0, 0, 0)) >= 8, "64 bit file operations are required");
 
 #endif // posix part
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #if TORRENT_USE_PREADV
 # if defined TORRENT_WINDOWS
