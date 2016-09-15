@@ -5374,21 +5374,6 @@ namespace aux {
 			m_alerts.emplace_alert<lsd_peer_alert>(t->get_handle(), peer);
 	}
 
-	// TODO: perhaps this function should not exist when logging is disabled
-	void session_impl::on_port_map_log(
-		char const* msg, int map_transport)
-	{
-#ifndef TORRENT_DISABLE_LOGGING
-		TORRENT_ASSERT(map_transport >= 0 && map_transport <= 1);
-		// log message
-		if (m_alerts.should_post<portmap_log_alert>())
-			m_alerts.emplace_alert<portmap_log_alert>(map_transport, msg);
-#else
-		TORRENT_UNUSED(msg);
-		TORRENT_UNUSED(map_transport);
-#endif
-	}
-
 	namespace {
 		bool find_tcp_port_mapping(int transport, int mapping, listen_socket_t const& ls)
 		{
@@ -6502,11 +6487,7 @@ namespace aux {
 
 		// the natpmp constructor may fail and call the callbacks
 		// into the session_impl.
-		m_natpmp = std::make_shared<natpmp>(std::ref(m_io_service)
-			, std::bind(&session_impl::on_port_mapping
-				, this, _1, _2, _3, _4, _5, 0)
-			, std::bind(&session_impl::on_port_map_log
-				, this, _1, 0));
+		m_natpmp = std::make_shared<natpmp>(std::ref(m_io_service), *this);
 		m_natpmp->start();
 
 		for (auto& s : m_listen_sockets)
@@ -6525,10 +6506,7 @@ namespace aux {
 		// the upnp constructor may fail and call the callbacks
 		m_upnp = std::make_shared<upnp>(std::ref(m_io_service)
 			, m_settings.get_str(settings_pack::user_agent)
-			, std::bind(&session_impl::on_port_mapping
-				, this, _1, _2, _3, _4, _5, 1)
-			, std::bind(&session_impl::on_port_map_log
-				, this, _1, 1)
+			, *this
 			, m_settings.get_bool(settings_pack::upnp_ignore_nonrouters));
 		m_upnp->start();
 
@@ -6667,6 +6645,20 @@ namespace aux {
 			? dht_pkt_alert::incoming : dht_pkt_alert::outgoing;
 
 		m_alerts.emplace_alert<dht_pkt_alert>(pkt, len, d, node);
+	}
+
+	bool session_impl::should_log_portmap(int map_transport) const
+	{
+		TORRENT_UNUSED(map_transport);
+		return m_alerts.should_post<portmap_log_alert>();
+	}
+
+	void session_impl::log_portmap(int map_transport, char const* msg) const
+	{
+		TORRENT_ASSERT(map_transport >= 0 && map_transport <= 1);
+
+		if (m_alerts.should_post<portmap_log_alert>())
+			m_alerts.emplace_alert<portmap_log_alert>(map_transport, msg);
 	}
 #endif
 

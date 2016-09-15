@@ -96,6 +96,7 @@ nobase_include_HEADERS = \
   piece_block_progress.hpp     \
   piece_picker.hpp             \
   platform_util.hpp            \
+  portmap.hpp                  \
   peer_list.hpp                \
   proxy_base.hpp               \
   puff.hpp                     \

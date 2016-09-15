@@ -40,22 +40,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/debug.hpp"
+#include "libtorrent/portmap.hpp"
 
 namespace libtorrent
 {
-
-// int: port mapping index
-// int: external port
-// std::string: error message
-typedef std::function<void(int, address, int, int, error_code const&)> portmap_callback_t;
-typedef std::function<void(char const*)> log_callback_t;
 
 struct TORRENT_EXTRA_EXPORT natpmp
 	: std::enable_shared_from_this<natpmp>
 	, single_threaded
 {
-	natpmp(io_service& ios, portmap_callback_t const& cb
-		, log_callback_t const& lcb);
+	natpmp(io_service& ios, portmap_callback& cb);
 
 	void start();
 
@@ -84,6 +78,7 @@ private:
 	void close_impl();
 
 #ifndef TORRENT_DISABLE_LOGGING
+	bool should_log() const;
 	void log(char const* fmt, ...) const TORRENT_FORMAT(2, 3);
 #endif
 
@@ -126,10 +121,7 @@ private:
 		bool outstanding_request;
 	};
 
-	portmap_callback_t m_callback;
-#ifndef TORRENT_DISABLE_LOGGING
-	log_callback_t m_log_callback;
-#endif
+	portmap_callback& m_callback;
 
 	std::vector<mapping_t> m_mappings;
 

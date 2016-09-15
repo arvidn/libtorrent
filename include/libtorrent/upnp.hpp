@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/resolver.hpp"
 #include "libtorrent/debug.hpp"
+#include "libtorrent/portmap.hpp"
 
 #include <memory>
 #include <functional>
@@ -92,15 +93,6 @@ namespace libtorrent
 	// the boost.system error category for UPnP errors
 	TORRENT_EXPORT boost::system::error_category& get_upnp_category();
 
-// int: port-mapping index
-// address: external address as queried from router
-// int: external port
-// int: protocol (UDP, TCP)
-// std::string: error message
-// an empty string as error means success
-typedef std::function<void(int, address, int, int, error_code const&)> portmap_callback_t;
-typedef std::function<void(char const*)> log_callback_t;
-
 struct parse_state
 {
 	parse_state(): in_service(false) {}
@@ -132,7 +124,7 @@ struct TORRENT_EXTRA_EXPORT upnp final
 {
 	upnp(io_service& ios
 		, std::string const& user_agent
-		, portmap_callback_t const& cb, log_callback_t const& lcb
+		, portmap_callback& cb
 		, bool ignore_nonrouters);
 	~upnp();
 
@@ -218,6 +210,7 @@ private:
 	void disable(error_code const& ec);
 	void return_error(int mapping, int code);
 #ifndef TORRENT_DISABLE_LOGGING
+	bool should_log() const;
 	void log(char const* msg, ...) const TORRENT_FORMAT(2,3);
 #endif
 
@@ -360,10 +353,7 @@ private:
 	// the set of devices we've found
 	std::set<rootdevice> m_devices;
 
-	portmap_callback_t m_callback;
-#ifndef TORRENT_DISABLE_LOGGING
-	log_callback_t m_log_callback;
-#endif
+	portmap_callback& m_callback;
 
 	// current retry count
 	int m_retry_count;
