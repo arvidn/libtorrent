@@ -1654,6 +1654,7 @@ bool utp_socket_impl::send_pkt(int flags)
 	int payload_size = m_write_buffer_size;
 	if (m_mtu - header_size < payload_size)
 		payload_size = m_mtu - header_size;
+	TORRENT_ASSERT(payload_size >= 0);
 
 	// if we have one MSS worth of data, make sure it fits in our
 	// congestion window and the advertized receive window from
@@ -1726,7 +1727,7 @@ bool utp_socket_impl::send_pkt(int flags)
 	{
 		// we only need a heap allocation if we have payload and
 		// need to keep the packet around (in the outbuf)
-		if (payload_size) 
+		if (payload_size)
 		{
 			p = (packet*)malloc(sizeof(packet) + m_mtu);
 			p->allocated = m_mtu;
@@ -1756,6 +1757,7 @@ bool utp_socket_impl::send_pkt(int flags)
 #ifdef TORRENT_DEBUG
 		p->num_fast_resend = 0;
 #endif
+		p->mtu_probe = false;
 		p->need_resend = false;
 		ptr = p->buf;
 		h = (utp_header*)ptr;
