@@ -209,8 +209,11 @@ void rpc_manager::check_invariant() const
 void rpc_manager::unreachable(udp::endpoint const& ep)
 {
 #ifndef TORRENT_DISABLE_LOGGING
-	m_log->log(dht_logger::rpc_manager, "PORT_UNREACHABLE [ ip: %s ]"
-		, print_endpoint(ep).c_str());
+	if (m_log->should_log(dht_logger::rpc_manager))
+	{
+		m_log->log(dht_logger::rpc_manager, "PORT_UNREACHABLE [ ip: %s ]"
+			, print_endpoint(ep).c_str());
+	}
 #endif
 
 	for (auto i = m_transactions.begin(); i != m_transactions.end();)
@@ -261,7 +264,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 	if (!o)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		if (m_table.native_endpoint(m.addr))
+		if (m_table.native_endpoint(m.addr) && m_log->should_log(dht_logger::rpc_manager))
 		{
 			m_log->log(dht_logger::rpc_manager, "reply with unknown transaction id size: %d from %s"
 				, int(transaction_id.size()), print_endpoint(m.addr).c_str());
@@ -281,28 +284,34 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 	time_point now = clock_type::now();
 
 #ifndef TORRENT_DISABLE_LOGGING
-	m_log->log(dht_logger::rpc_manager, "round trip time(ms): %" PRId64 " from %s"
-		, total_milliseconds(now - o->sent()), print_endpoint(m.addr).c_str());
+	if (m_log->should_log(dht_logger::rpc_manager))
+	{
+		m_log->log(dht_logger::rpc_manager, "round trip time(ms): %" PRId64 " from %s"
+			, total_milliseconds(now - o->sent()), print_endpoint(m.addr).c_str());
+	}
 #endif
 
 	if (m.message.dict_find_string_value("y") == "e")
 	{
 		// It's an error.
 #ifndef TORRENT_DISABLE_LOGGING
-		bdecode_node err = m.message.dict_find_list("e");
-		if (err && err.list_size() >= 2
-			&& err.list_at(0).type() == bdecode_node::int_t
-			&& err.list_at(1).type() == bdecode_node::string_t)
+		if (m_log->should_log(dht_logger::rpc_manager))
 		{
-			m_log->log(dht_logger::rpc_manager, "reply with error from %s: (%" PRId64 ") %s"
-				, print_endpoint(m.addr).c_str()
-				, err.list_int_value_at(0)
-				, err.list_string_value_at(1).to_string().c_str());
-		}
-		else
-		{
-			m_log->log(dht_logger::rpc_manager, "reply with (malformed) error from %s"
-				, print_endpoint(m.addr).c_str());
+			bdecode_node err = m.message.dict_find_list("e");
+			if (err && err.list_size() >= 2
+				&& err.list_at(0).type() == bdecode_node::int_t
+				&& err.list_at(1).type() == bdecode_node::string_t)
+			{
+				m_log->log(dht_logger::rpc_manager, "reply with error from %s: (%" PRId64 ") %s"
+					, print_endpoint(m.addr).c_str()
+					, err.list_int_value_at(0)
+					, err.list_string_value_at(1).to_string().c_str());
+			}
+			else
+			{
+				m_log->log(dht_logger::rpc_manager, "reply with (malformed) error from %s"
+					, print_endpoint(m.addr).c_str());
+			}
 		}
 #endif
 		// Logically, we should call o->reply(m) since we get a reply.
@@ -340,9 +349,12 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 	}
 
 #ifndef TORRENT_DISABLE_LOGGING
-	m_log->log(dht_logger::rpc_manager, "[%p] reply with transaction id: %d from %s"
-		, static_cast<void*>(o->algorithm()), int(transaction_id.size())
-		, print_endpoint(m.addr).c_str());
+	if (m_log->should_log(dht_logger::rpc_manager))
+	{
+		m_log->log(dht_logger::rpc_manager, "[%p] reply with transaction id: %d from %s"
+			, static_cast<void*>(o->algorithm()), int(transaction_id.size())
+			, print_endpoint(m.addr).c_str());
+	}
 #endif
 	o->reply(m);
 	*id = nid;
@@ -379,9 +391,12 @@ time_duration rpc_manager::tick()
 		if (diff >= seconds(timeout))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			m_log->log(dht_logger::rpc_manager, "[%p] timing out transaction id: %d from: %s"
-				, static_cast<void*>(o->algorithm()), o->transaction_id()
-				, print_endpoint(o->target_ep()).c_str());
+			if (m_log->should_log(dht_logger::rpc_manager))
+			{
+				m_log->log(dht_logger::rpc_manager, "[%p] timing out transaction id: %d from: %s"
+					, static_cast<void*>(o->algorithm()), o->transaction_id()
+					, print_endpoint(o->target_ep()).c_str());
+			}
 #endif
 			m_transactions.erase(i++);
 			timeouts.push_back(o);
@@ -393,9 +408,12 @@ time_duration rpc_manager::tick()
 		if (diff >= seconds(short_timeout) && !o->has_short_timeout())
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			m_log->log(dht_logger::rpc_manager, "[%p] short-timing out transaction id: %d from: %s"
-				, static_cast<void*>(o->algorithm()), o->transaction_id()
-				, print_endpoint(o->target_ep()).c_str());
+			if (m_log->should_log(dht_logger::rpc_manager))
+			{
+				m_log->log(dht_logger::rpc_manager, "[%p] short-timing out transaction id: %d from: %s"
+					, static_cast<void*>(o->algorithm()), o->transaction_id()
+					, print_endpoint(o->target_ep()).c_str());
+			}
 #endif
 			++i;
 

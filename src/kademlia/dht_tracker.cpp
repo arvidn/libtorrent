@@ -508,7 +508,7 @@ namespace libtorrent { namespace dht
 	}
 
 	bool dht_tracker::incoming_packet(udp::endpoint const& ep
-		, span<char const> const buf)
+		, span<char const> const buf, udp::endpoint const& socket_addr)
 	{
 		int const buf_size = int(buf.size());
 		if (buf_size <= 20
@@ -573,7 +573,7 @@ namespace libtorrent { namespace dht
 		m_log->log_packet(dht_logger::incoming_message, buf.data(), buf_size, ep);
 #endif
 
-		libtorrent::dht::msg m(m_msg, ep);
+		libtorrent::dht::msg m(m_msg, ep, socket_addr);
 		m_dht.incoming(m);
 #if TORRENT_USE_IPV6
 		m_dht6.incoming(m);

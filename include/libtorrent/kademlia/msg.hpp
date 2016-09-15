@@ -50,13 +50,24 @@ typedef std::vector<tcp::endpoint> peers_t;
 
 struct msg
 {
-	msg(bdecode_node const& m, udp::endpoint const& ep): message(m), addr(ep) {}
+	msg(bdecode_node const& m
+		, udp::endpoint const& ep
+		, udp::endpoint const& socket_ep = udp::endpoint())
+		: message(m)
+		, addr(ep)
+		, socket_addr(socket_ep)
+	{}
+
 	// the message
 	bdecode_node const& message;
 
 	// the address of the process sending or receiving
 	// the message.
 	udp::endpoint addr;
+
+	// the local endpoint of the socket receiving
+	// the message
+	udp::endpoint socket_addr;
 private:
 	// explicitly disallow assignment, to silence msvc warning
 	msg& operator=(msg const&);
