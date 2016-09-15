@@ -111,7 +111,7 @@ namespace libtorrent
 
 		// this is the key to use for the bloom filters
 		// it represents the identity of the voter
-		sha1_hash k = hash_address(source);
+		sha1_hash const k = hash_address(source);
 
 		// do we already have an entry for this external IP?
 		std::vector<external_ip_t>::iterator i = std::find_if(m_external_addresses.begin()
@@ -187,4 +187,3 @@ namespace libtorrent
 		return ext;
 	}
 }
-

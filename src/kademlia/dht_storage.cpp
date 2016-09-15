@@ -117,7 +117,7 @@ namespace
 		f->last_seen = aux::time_now();
 
 		// maybe increase num_announcers if we haven't seen this IP before
-		sha1_hash iphash = hash_address(addr);
+		sha1_hash const iphash = hash_address(addr);
 		if (!f->ips.find(iphash))
 		{
 			f->ips.set(iphash);
@@ -217,7 +217,7 @@ namespace
 
 				for (auto const& p : v.peers)
 				{
-					sha1_hash iphash = hash_address(p.addr.address());
+					sha1_hash const iphash = hash_address(p.addr.address());
 					if (p.seed) seeds.set(iphash);
 					else downloaders.set(iphash);
 				}

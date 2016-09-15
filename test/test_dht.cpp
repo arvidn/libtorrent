@@ -1093,7 +1093,7 @@ TORRENT_TEST(bloom_filter)
 		char adr[50];
 		std::snprintf(adr, 50, "192.0.2.%d", i);
 		address a = addr(adr);
-		sha1_hash iphash = hash_address(a);
+		sha1_hash const iphash = hash_address(a);
 		test.set(iphash);
 	}
 
@@ -1104,7 +1104,7 @@ TORRENT_TEST(bloom_filter)
 			char adr[50];
 			std::snprintf(adr, 50, "2001:db8::%x", i);
 			address a = addr(adr);
-			sha1_hash iphash = hash_address(a);
+			sha1_hash const iphash = hash_address(a);
 			test.set(iphash);
 		}
 	}
