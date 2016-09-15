@@ -125,6 +125,15 @@
 	* almost completely changed the storage interface (for custom storage)
 	* added support for hashing pieces in multiple threads
 
+	* fix padfile issue
+	* fix PMTUd bug
+	* update puff to fix gzip crash
+
+1.0.10 release
+
+	* fixed inverted priority of incoming piece suggestions
+	* fixed crash on invalid input in http_parser
+	* added a new "preformatted" type to bencode entry variant type
 	* fix division by zero in super-seeding logic
 
 1.0.9 release
