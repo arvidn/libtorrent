@@ -35,8 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include <functional>
-
 namespace libtorrent
 {
 	struct TORRENT_EXTRA_EXPORT portmap_callback

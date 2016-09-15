@@ -125,6 +125,7 @@ TORRENT_FORMAT(2,3)
 void upnp::log(char const* fmt, ...) const
 {
 	TORRENT_ASSERT(is_single_thread());
+	if (!should_log()) return;
 	va_list v;
 	va_start(v, fmt);
 	char msg[500];

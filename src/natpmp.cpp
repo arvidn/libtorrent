@@ -181,13 +181,12 @@ TORRENT_FORMAT(2, 3)
 void natpmp::log(char const* fmt, ...) const
 {
 	TORRENT_ASSERT(is_single_thread());
+	if (!should_log()) return;
 	char msg[200];
-
 	va_list v;
 	va_start(v, fmt);
 	std::vsnprintf(msg, sizeof(msg), fmt, v);
 	va_end(v);
-
 	m_callback.log_portmap(portmap_callback::map_transport_natpmp, msg);
 }
 #endif
