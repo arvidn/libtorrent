@@ -79,6 +79,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/aux_/portmap.hpp"
+#include "libtorrent/aux_/lsd.hpp"
 
 #if TORRENT_COMPLETE_TYPES_REQUIRED
 #include "libtorrent/peer_connection.hpp"
@@ -187,6 +188,7 @@ namespace libtorrent
 			: session_interface
 			, dht::dht_observer
 			, aux::portmap_callback
+			, aux::lsd_callback
 			, boost::noncopyable
 			, uncork_interface
 			, single_threaded
@@ -380,9 +382,6 @@ namespace libtorrent
 #endif
 
 			void on_lsd_announce(error_code const& e);
-#ifndef TORRENT_DISABLE_LOGGING
-			void on_lsd_log(char const* log);
-#endif
 
 			// called when a port mapping is successful, or a router returns
 			// a failure to map a port
@@ -629,6 +628,9 @@ namespace libtorrent
 			virtual bool should_log_portmap(aux::portmap_transport transport) const override;
 			virtual void log_portmap(aux::portmap_transport transport, char const* msg)
 				const override;
+
+			virtual bool should_log_lsd() const override;
+			virtual void log_lsd(char const* msg) const override;
 #endif
 
 			virtual bool on_dht_request(string_view query
@@ -731,7 +733,7 @@ namespace libtorrent
 
 			void on_trigger_auto_manage();
 
-			void on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih);
+			void on_lsd_peer(tcp::endpoint const& peer, sha1_hash const& ih) override;
 			void setup_socket_buffers(socket_type& s) override;
 
 			// the settings for the client

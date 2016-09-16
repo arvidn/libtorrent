@@ -37,23 +37,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/deadline_timer.hpp"
+#include "libtorrent/aux_/lsd.hpp"
 
 namespace libtorrent
 {
 
-typedef std::function<void(tcp::endpoint, sha1_hash)> peer_callback_t;
-#ifndef TORRENT_DISABLE_LOGGING
-typedef std::function<void(char const*)> log_callback_t;
-#endif
-
 class lsd : public std::enable_shared_from_this<lsd>
 {
 public:
-	lsd(io_service& ios, peer_callback_t const& cb
-#ifndef TORRENT_DISABLE_LOGGING
-		, log_callback_t const& log
-#endif
-		);
+	lsd(io_service& ios, aux::lsd_callback& cb);
 	~lsd();
 
 	void start(error_code& ec);
@@ -69,10 +61,10 @@ private:
 		, bool broadcast, int retry_count);
 	void resend_announce(error_code const& e, sha1_hash const& ih
 		, int listen_port, int retry_count);
-	void on_announce(udp::endpoint const& from, char* buffer
+	void on_announce(udp::endpoint const& from, char const* buffer
 		, std::size_t bytes_transferred);
 
-	peer_callback_t m_callback;
+	aux::lsd_callback& m_callback;
 
 	// the udp socket used to send and receive
 	// multicast messages on
@@ -81,7 +73,7 @@ private:
 	broadcast_socket m_socket6;
 #endif
 #ifndef TORRENT_DISABLE_LOGGING
-	log_callback_t m_log_cb;
+	bool should_log() const;
 	void debug_log(char const* fmt, ...) const TORRENT_FORMAT(2,3);
 #endif
 
