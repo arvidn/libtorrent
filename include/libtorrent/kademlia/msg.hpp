@@ -51,6 +51,7 @@ typedef std::vector<tcp::endpoint> peers_t;
 struct msg
 {
 	msg(bdecode_node const& m, udp::endpoint const& ep): message(m), addr(ep) {}
+
 	// the message
 	bdecode_node const& message;
 

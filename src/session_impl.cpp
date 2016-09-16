@@ -1983,9 +1983,8 @@ namespace aux {
 	void session_impl::remap_ports(remap_port_mask_t const mask
 		, listen_socket_t& s)
 	{
-		error_code ec;
-		tcp::endpoint const tcp_ep = s.sock ? s.sock->local_endpoint(ec) : tcp::endpoint();
-		udp::endpoint const udp_ep = s.udp_sock ? s.udp_sock->local_endpoint(ec) : udp::endpoint();
+		tcp::endpoint const tcp_ep = s.sock ? s.sock->local_endpoint() : tcp::endpoint();
+		udp::endpoint const udp_ep = s.udp_sock ? s.udp_sock->local_endpoint() : udp::endpoint();
 
 		if ((mask & remap_natpmp) && m_natpmp)
 		{
@@ -2277,8 +2276,7 @@ namespace aux {
 		{
 			std::shared_ptr<udp_socket> s = socket.lock();
 			udp::endpoint ep;
-			error_code best_effort;
-			if (s) ep = s->local_endpoint(best_effort);
+			if (s) ep = s->local_endpoint();
 
 			// don't bubble up operation aborted errors to the user
 			if (ec != boost::asio::error::operation_aborted
@@ -2364,8 +2362,7 @@ namespace aux {
 
 			if (err)
 			{
-				error_code best_effort;
-				udp::endpoint ep = s->local_endpoint(best_effort);
+				udp::endpoint const ep = s->local_endpoint();
 
 				if (err != boost::asio::error::operation_aborted
 					&& m_alerts.should_post<udp_error_alert>())
@@ -6009,31 +6006,28 @@ namespace aux {
 	void session_impl::update_peer_tos()
 	{
 		int const tos = m_settings.get_int(settings_pack::peer_tos);
-		for (std::list<listen_socket_t>::iterator i = m_listen_sockets.begin()
-			, end(m_listen_sockets.end()); i != end; ++i)
+		for (auto const& l : m_listen_sockets)
 		{
 			error_code ec;
-			set_tos(*i->sock, tos, ec);
+			set_tos(*l.sock, tos, ec);
 
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log())
 			{
-				error_code err;
 				session_log(">>> SET_TOS [ tcp (%s %d) tos: %x e: %s ]"
-					, i->sock->local_endpoint(err).address().to_string().c_str()
-					, i->sock->local_endpoint(err).port(), tos, ec.message().c_str());
+					, l.sock->local_endpoint().address().to_string().c_str()
+					, l.sock->local_endpoint().port(), tos, ec.message().c_str());
 			}
 #endif
 			ec.clear();
-			set_tos(*i->udp_sock, tos, ec);
+			set_tos(*l.udp_sock, tos, ec);
 
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log())
 			{
-				error_code err;
 				session_log(">>> SET_TOS [ udp (%s %d) tos: %x e: %s ]"
-					, i->udp_sock->local_endpoint(err).address().to_string().c_str()
-					, i->udp_sock->local_port()
+					, l.udp_sock->local_endpoint().address().to_string().c_str()
+					, l.udp_sock->local_port()
 					, tos, ec.message().c_str());
 			}
 #endif
@@ -6179,29 +6173,28 @@ namespace aux {
 
 	void session_impl::update_socket_buffer_size()
 	{
-		for (std::list<listen_socket_t>::iterator i = m_listen_sockets.begin()
-			, end(m_listen_sockets.end()); i != end; ++i)
+		for (auto const& l : m_listen_sockets)
 		{
 			error_code ec;
-			set_socket_buffer_size(*i->udp_sock, m_settings, ec);
+			set_socket_buffer_size(*l.udp_sock, m_settings, ec);
 #ifndef TORRENT_DISABLE_LOGGING
 			if (ec && should_log())
 			{
 				error_code err;
 				session_log("socket buffer size [ udp %s %d]: (%d) %s"
-				, i->udp_sock->local_endpoint(err).address().to_string(err).c_str()
-				, i->udp_sock->local_port(), ec.value(), ec.message().c_str());
+					, l.udp_sock->local_endpoint().address().to_string(err).c_str()
+					, l.udp_sock->local_port(), ec.value(), ec.message().c_str());
 			}
 #endif
 			ec.clear();
-			set_socket_buffer_size(*i->sock, m_settings, ec);
+			set_socket_buffer_size(*l.sock, m_settings, ec);
 #ifndef TORRENT_DISABLE_LOGGING
 			if (ec && should_log())
 			{
 				error_code err;
 				session_log("socket buffer size [ udp %s %d]: (%d) %s"
-				, i->sock->local_endpoint(err).address().to_string(err).c_str()
-				, i->sock->local_endpoint(err).port(), ec.value(), ec.message().c_str());
+					, l.sock->local_endpoint().address().to_string(err).c_str()
+					, l.sock->local_endpoint().port(), ec.value(), ec.message().c_str());
 			}
 #endif
 		}

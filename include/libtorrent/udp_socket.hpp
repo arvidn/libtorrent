@@ -100,6 +100,13 @@ namespace libtorrent
 		bool is_closed() const { return m_abort; }
 		udp::endpoint local_endpoint(error_code& ec) const
 		{ return m_socket.local_endpoint(ec); }
+		// best effort, if you want to know the error, use
+		// ``local_endpoint(error_code& ec)``
+		udp::endpoint local_endpoint() const
+		{
+			error_code ec;
+			return local_endpoint(ec);
+		}
 
 		typedef udp::socket::receive_buffer_size receive_buffer_size;
 		typedef udp::socket::send_buffer_size send_buffer_size;
