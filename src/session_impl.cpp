@@ -6509,10 +6509,9 @@ namespace aux {
 				, this, _1, 0));
 		m_natpmp->start();
 
-		for (std::list<listen_socket_t>::iterator i = m_listen_sockets.begin()
-			, end(m_listen_sockets.end()); i != end; ++i)
+		for (auto& s : m_listen_sockets)
 		{
-			remap_ports(remap_natpmp, *i);
+			remap_ports(remap_natpmp, s);
 		}
 		return m_natpmp.get();
 	}
@@ -6535,10 +6534,9 @@ namespace aux {
 
 		m_upnp->discover_device();
 
-		for (std::list<listen_socket_t>::iterator i = m_listen_sockets.begin()
-			, end(m_listen_sockets.end()); i != end; ++i)
+		for (auto& s : m_listen_sockets)
 		{
-			remap_ports(remap_upnp, *i);
+			remap_ports(remap_upnp, s);
 		}
 		return m_upnp.get();
 	}
@@ -6661,7 +6659,7 @@ namespace aux {
 	}
 
 	void session_impl::log_packet(message_direction_t dir, char const* pkt, int len
-		, udp::endpoint node)
+		, udp::endpoint const& node)
 	{
 		if (!m_alerts.should_post<dht_pkt_alert>()) return;
 
@@ -6691,7 +6689,7 @@ namespace aux {
 	}
 
 	void session_impl::set_external_address(address const& ip
-		, int source_type, address const& source)
+		, int const source_type, address const& source)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())

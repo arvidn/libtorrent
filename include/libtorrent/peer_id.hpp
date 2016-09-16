@@ -41,4 +41,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_PEER_ID_HPP_INCLUDED
-

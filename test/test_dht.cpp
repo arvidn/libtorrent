@@ -498,7 +498,7 @@ struct obs : dht::dht_observer
 		m_log.push_back(buf);
 	}
 	void log_packet(message_direction_t dir, char const* pkt, int len
-		, udp::endpoint node) override {}
+		, udp::endpoint const& node) override {}
 #endif
 	bool on_dht_request(string_view query
 		, dht::msg const& request, entry& response) override { return false; }
@@ -1093,8 +1093,7 @@ TORRENT_TEST(bloom_filter)
 		char adr[50];
 		std::snprintf(adr, 50, "192.0.2.%d", i);
 		address a = addr(adr);
-		sha1_hash iphash;
-		hash_address(a, iphash);
+		sha1_hash const iphash = hash_address(a);
 		test.set(iphash);
 	}
 
@@ -1105,8 +1104,7 @@ TORRENT_TEST(bloom_filter)
 			char adr[50];
 			std::snprintf(adr, 50, "2001:db8::%x", i);
 			address a = addr(adr);
-			sha1_hash iphash;
-			hash_address(a, iphash);
+			sha1_hash const iphash = hash_address(a);
 			test.set(iphash);
 		}
 	}

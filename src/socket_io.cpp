@@ -145,21 +145,20 @@ namespace libtorrent
 		return ret;
 	}
 
-	void hash_address(address const& ip, sha1_hash& h)
+	sha1_hash hash_address(address const& ip)
 	{
 #if TORRENT_USE_IPV6
 		if (ip.is_v6())
 		{
 			address_v6::bytes_type b = ip.to_v6().to_bytes();
-			h = hasher(reinterpret_cast<char const*>(b.data()), int(b.size())).final();
+			return hasher(reinterpret_cast<char const*>(b.data()), int(b.size())).final();
 		}
 		else
 #endif
 		{
 			address_v4::bytes_type b = ip.to_v4().to_bytes();
-			h = hasher(reinterpret_cast<char const*>(b.data()), int(b.size())).final();
+			return hasher(reinterpret_cast<char const*>(b.data()), int(b.size())).final();
 		}
 	}
 
 }
-

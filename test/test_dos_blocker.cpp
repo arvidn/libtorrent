@@ -57,7 +57,7 @@ struct log_t : libtorrent::dht::dht_logger
 	}
 
 	void log_packet(message_direction_t dir, char const* pkt, int len
-		, udp::endpoint node) override
+		, udp::endpoint const& node) override
 	{
 		libtorrent::bdecode_node print;
 		libtorrent::error_code ec;

@@ -117,8 +117,7 @@ namespace
 		f->last_seen = aux::time_now();
 
 		// maybe increase num_announcers if we haven't seen this IP before
-		sha1_hash iphash;
-		hash_address(addr, iphash);
+		sha1_hash const iphash = hash_address(addr);
 		if (!f->ips.find(iphash))
 		{
 			f->ips.set(iphash);
@@ -216,12 +215,10 @@ namespace
 				bloom_filter<256> downloaders;
 				bloom_filter<256> seeds;
 
-				for (std::set<peer_entry>::const_iterator peer_it = v.peers.begin()
-					, end(v.peers.end()); peer_it != end; ++peer_it)
+				for (auto const& p : v.peers)
 				{
-					sha1_hash iphash;
-					hash_address(peer_it->addr.address(), iphash);
-					if (peer_it->seed) seeds.set(iphash);
+					sha1_hash const iphash = hash_address(p.addr.address());
+					if (p.seed) seeds.set(iphash);
 					else downloaders.set(iphash);
 				}
 

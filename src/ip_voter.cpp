@@ -98,7 +98,7 @@ namespace libtorrent
 	}
 
 	bool ip_voter::cast_vote(address const& ip
-		, int source_type, address const& source)
+		, int const source_type, address const& source)
 	{
 		if (is_any(ip)) return false;
 		if (is_local(ip)) return false;
@@ -111,8 +111,7 @@ namespace libtorrent
 
 		// this is the key to use for the bloom filters
 		// it represents the identity of the voter
-		sha1_hash k;
-		hash_address(source, k);
+		sha1_hash const k = hash_address(source);
 
 		// do we already have an entry for this external IP?
 		std::vector<external_ip_t>::iterator i = std::find_if(m_external_addresses.begin()
@@ -153,7 +152,7 @@ namespace libtorrent
 
 		if (i->addr == m_external_address) return maybe_rotate();
 
-		if (m_external_address != address_v4())
+		if (m_external_address != address())
 		{
 			// we have a temporary external address. As soon as we have
 			// more than 25 votes, consider deciding which one to settle for
@@ -188,4 +187,3 @@ namespace libtorrent
 		return ext;
 	}
 }
-
