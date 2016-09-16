@@ -32,27 +32,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstdlib>
 #include <cstdarg>
+#include <functional>
 
 #include "libtorrent/lsd.hpp"
 #include "libtorrent/io.hpp"
-#include "libtorrent/http_tracker_connection.hpp"
-#include "libtorrent/buffer.hpp"
+#include "libtorrent/time.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/http_parser.hpp"
 #include "libtorrent/socket_io.hpp" // for print_address
 #include "libtorrent/debug.hpp"
 #include "libtorrent/hex.hpp" // to_hex, from_hex
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/asio/ip/host_name.hpp>
-#include <boost/asio/ip/multicast.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-#include <cstdlib>
-#include <functional>
-#include <cstdarg>
 
 using namespace std::placeholders;
 
@@ -76,18 +65,11 @@ int render_lsd_packet(char* dst, int const len, int const listen_port
 
 static error_code dummy;
 
-lsd::lsd(io_service& ios, peer_callback_t const& cb
-#ifndef TORRENT_DISABLE_LOGGING
-	, log_callback_t const& log
-#endif
-	)
+lsd::lsd(io_service& ios, aux::lsd_callback& cb)
 	: m_callback(cb)
 	, m_socket(udp::endpoint(address_v4::from_string("239.192.152.143", dummy), 6771))
 #if TORRENT_USE_IPV6
 	, m_socket6(udp::endpoint(address_v6::from_string("ff15::efc0:988f", dummy), 6771))
-#endif
-#ifndef TORRENT_DISABLE_LOGGING
-	, m_log_cb(log)
 #endif
 	, m_broadcast_timer(ios)
 	, m_cookie((random(0x7fffffff) ^ std::uintptr_t(this)) & 0x7fffffff)
@@ -99,16 +81,22 @@ lsd::lsd(io_service& ios, peer_callback_t const& cb
 }
 
 #ifndef TORRENT_DISABLE_LOGGING
+bool lsd::should_log() const
+{
+	return m_callback.should_log_lsd();
+}
+
 TORRENT_FORMAT(2,3)
 void lsd::debug_log(char const* fmt, ...) const
 {
+	if (!should_log()) return;
 	va_list v;
 	va_start(v, fmt);
 
 	char buf[1024];
 	vsnprintf(buf, sizeof(buf), fmt, v);
 	va_end(v);
-	m_log_cb(buf);
+	m_callback.log_lsd(buf);
 }
 #endif
 
@@ -158,8 +146,11 @@ void lsd::announce_impl(sha1_hash const& ih, int const listen_port
 		{
 			m_disabled = true;
 #ifndef TORRENT_DISABLE_LOGGING
-			debug_log("*** LSD: failed to send message: (%d) %s", ec.value()
-				, ec.message().c_str());
+			if (should_log())
+			{
+				debug_log("*** LSD: failed to send message: (%d) %s", ec.value()
+					, ec.message().c_str());
+			}
 #endif
 		}
 	}
@@ -174,8 +165,11 @@ void lsd::announce_impl(sha1_hash const& ih, int const listen_port
 		{
 			m_disabled6 = true;
 #ifndef TORRENT_DISABLE_LOGGING
-			debug_log("*** LSD: failed to send message6: (%d) %s", ec.value()
-				, ec.message().c_str());
+			if (should_log())
+			{
+				debug_log("*** LSD: failed to send message6: (%d) %s", ec.value()
+					, ec.message().c_str());
+			}
 #endif
 		}
 	}
@@ -205,11 +199,9 @@ void lsd::resend_announce(error_code const& e, sha1_hash const& info_hash
 	announce_impl(info_hash, listen_port, false, retry_count);
 }
 
-void lsd::on_announce(udp::endpoint const& from, char* buf
-	, std::size_t bytes_transferred)
+void lsd::on_announce(udp::endpoint const& from, char const* buf
+	, std::size_t const bytes_transferred)
 {
-	using namespace libtorrent::detail;
-
 	http_parser p;
 
 	bool error = false;
@@ -240,12 +232,11 @@ void lsd::on_announce(udp::endpoint const& from, char* buf
 		return;
 	}
 
-	int port = std::atoi(port_str.c_str());
+	int const port = std::atoi(port_str.c_str());
 
-	typedef std::multimap<std::string, std::string> headers_t;
-	headers_t const& headers = p.headers();
+	auto const& headers = p.headers();
 
-	headers_t::const_iterator cookie_iter = headers.find("cookie");
+	auto const cookie_iter = headers.find("cookie");
 	if (cookie_iter != headers.end())
 	{
 		// we expect it to be hexadecimal
@@ -261,10 +252,8 @@ void lsd::on_announce(udp::endpoint const& from, char* buf
 		}
 	}
 
-	std::pair<headers_t::const_iterator, headers_t::const_iterator> ihs
-		= headers.equal_range("infohash");
-
-	for (headers_t::const_iterator i = ihs.first; i != ihs.second; ++i)
+	auto const ihs = headers.equal_range("infohash");
+	for (auto i = ihs.first; i != ihs.second; ++i)
 	{
 		std::string const& ih_str = i->second;
 		if (ih_str.size() != 40)
@@ -282,13 +271,16 @@ void lsd::on_announce(udp::endpoint const& from, char* buf
 		if (!ih.is_all_zeros() && port != 0)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			debug_log("<== LSD: %s:%d ih: %s"
-				, print_address(from.address()).c_str()
-				, port, ih_str.c_str());
+			if (should_log())
+			{
+				debug_log("<== LSD: %s:%d ih: %s"
+					, print_address(from.address()).c_str()
+					, port, ih_str.c_str());
+			}
 #endif
 			// we got an announce, pass it on through the callback
 			TORRENT_TRY {
-				m_callback(tcp::endpoint(from.address(), port), ih);
+				m_callback.on_lsd_peer(tcp::endpoint(from.address(), port), ih);
 			} TORRENT_CATCH(std::exception&) {}
 		}
 	}
@@ -306,7 +298,6 @@ void lsd::close()
 #if TORRENT_USE_IPV6
 	m_disabled6 = true;
 #endif
-	m_callback = nullptr;
 }
 
 } // libtorrent namespace

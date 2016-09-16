@@ -5348,7 +5348,7 @@ namespace aux {
 			m_lsd->announce(ih, port, broadcast);
 	}
 
-	void session_impl::on_lsd_peer(tcp::endpoint peer, sha1_hash const& ih)
+	void session_impl::on_lsd_peer(tcp::endpoint const& peer, sha1_hash const& ih)
 	{
 		m_stats_counters.inc_stats_counter(counters::on_lsd_peer_counter);
 		TORRENT_ASSERT(is_single_thread());
@@ -6456,25 +6456,12 @@ namespace aux {
 
 		if (m_lsd) return;
 
-		m_lsd = std::make_shared<lsd>(std::ref(m_io_service)
-			, std::bind(&session_impl::on_lsd_peer, this, _1, _2)
-#ifndef TORRENT_DISABLE_LOGGING
-			, std::bind(&session_impl::on_lsd_log, this, _1)
-#endif
-			);
+		m_lsd = std::make_shared<lsd>(m_io_service, *this);
 		error_code ec;
 		m_lsd->start(ec);
 		if (ec && m_alerts.should_post<lsd_error_alert>())
 			m_alerts.emplace_alert<lsd_error_alert>(ec);
 	}
-
-#ifndef TORRENT_DISABLE_LOGGING
-	void session_impl::on_lsd_log(char const* log)
-	{
-		if (!m_alerts.should_post<log_alert>()) return;
-		m_alerts.emplace_alert<log_alert>(log);
-	}
-#endif
 
 	natpmp* session_impl::start_natpmp()
 	{
@@ -6484,7 +6471,7 @@ namespace aux {
 
 		// the natpmp constructor may fail and call the callbacks
 		// into the session_impl.
-		m_natpmp = std::make_shared<natpmp>(std::ref(m_io_service), *this);
+		m_natpmp = std::make_shared<natpmp>(m_io_service, *this);
 		m_natpmp->start();
 
 		for (auto& s : m_listen_sockets)
@@ -6501,7 +6488,7 @@ namespace aux {
 		if (m_upnp) return m_upnp.get();
 
 		// the upnp constructor may fail and call the callbacks
-		m_upnp = std::make_shared<upnp>(std::ref(m_io_service)
+		m_upnp = std::make_shared<upnp>(m_io_service
 			, m_settings.get_str(settings_pack::user_agent)
 			, *this
 			, m_settings.get_bool(settings_pack::upnp_ignore_nonrouters));
@@ -6657,6 +6644,17 @@ namespace aux {
 
 		if (m_alerts.should_post<portmap_log_alert>())
 			m_alerts.emplace_alert<portmap_log_alert>(map_transport, msg);
+	}
+
+	bool session_impl::should_log_lsd() const
+	{
+		return m_alerts.should_post<log_alert>();
+	}
+
+	void session_impl::log_lsd(char const* msg) const
+	{
+		if (m_alerts.should_post<log_alert>())
+			m_alerts.emplace_alert<log_alert>(msg);
 	}
 #endif
 

@@ -176,6 +176,7 @@ nobase_include_HEADERS = \
   aux_/cppint_import_export.hpp     \
   aux_/ffs.hpp                      \
   aux_/portmap.hpp                  \
+  aux_/lsd.hpp                      \
   \
   extensions/smart_ban.hpp          \
   extensions/ut_metadata.hpp        \
