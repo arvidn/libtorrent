@@ -41,10 +41,11 @@ using namespace libtorrent;
 
 namespace
 {
-	struct natpmp_callback : portmap_callback
+	struct natpmp_callback : aux::portmap_callback
 	{
 		void on_port_mapping(int mapping, address const& ip, int port
-				, int protocol, error_code const& err, int map_transport) override
+			, int protocol, error_code const& err
+			, aux::portmap_transport transport) override
 		{
 			std::cerr
 				<< "mapping: " << mapping
@@ -54,12 +55,12 @@ namespace
 				<< ", error: \"" << err.message() << "\"\n";
 		}
 #ifndef TORRENT_DISABLE_LOGGING
-		virtual bool should_log_portmap(int map_transport) const override
+		virtual bool should_log_portmap(aux::portmap_transport transport) const override
 		{
 			return true;
 		}
 
-		virtual void log_portmap(int map_transport, char const* msg) const override
+		virtual void log_portmap(aux::portmap_transport transport, char const* msg) const override
 		{
 			std::cerr << msg << std::endl;
 		}

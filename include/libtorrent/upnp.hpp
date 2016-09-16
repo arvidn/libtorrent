@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/resolver.hpp"
 #include "libtorrent/debug.hpp"
-#include "libtorrent/portmap.hpp"
+#include "libtorrent/aux_/portmap.hpp"
 
 #include <memory>
 #include <functional>
@@ -124,7 +124,7 @@ struct TORRENT_EXTRA_EXPORT upnp final
 {
 	upnp(io_service& ios
 		, std::string const& user_agent
-		, portmap_callback& cb
+		, aux::portmap_callback& cb
 		, bool ignore_nonrouters);
 	~upnp();
 
@@ -353,7 +353,7 @@ private:
 	// the set of devices we've found
 	std::set<rootdevice> m_devices;
 
-	portmap_callback& m_callback;
+	aux::portmap_callback& m_callback;
 
 	// current retry count
 	int m_retry_count;

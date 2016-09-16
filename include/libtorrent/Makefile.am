@@ -96,7 +96,6 @@ nobase_include_HEADERS = \
   piece_block_progress.hpp     \
   piece_picker.hpp             \
   platform_util.hpp            \
-  portmap.hpp                  \
   peer_list.hpp                \
   proxy_base.hpp               \
   puff.hpp                     \
@@ -176,6 +175,7 @@ nobase_include_HEADERS = \
   aux_/byteswap.hpp                 \
   aux_/cppint_import_export.hpp     \
   aux_/ffs.hpp                      \
+  aux_/portmap.hpp                  \
   \
   extensions/smart_ban.hpp          \
   extensions/ut_metadata.hpp        \

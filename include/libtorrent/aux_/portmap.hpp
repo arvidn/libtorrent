@@ -35,13 +35,19 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-namespace libtorrent
+namespace libtorrent {
+namespace aux
 {
+	// TODO: move this for a better place and integrate it with
+	// portmap error alerts
+	enum class portmap_transport
+	{
+		natpmp = 0,
+		upnp = 1
+	};
+
 	struct TORRENT_EXTRA_EXPORT portmap_callback
 	{
-		constexpr static int map_transport_natpmp = 0;
-		constexpr static int map_transport_upnp = 1;
-
 		// int: port-mapping index
 		// address: external address as queried from router
 		// int: external port
@@ -49,15 +55,15 @@ namespace libtorrent
 		// error_code: error, an empty error means success
 		// int: transport is 0 for NAT-PMP and 1 for UPnP
 		virtual void on_port_mapping(int mapping, address const& ip, int port
-			, int protocol, error_code const& ec, int map_transport) = 0;
+			, int protocol, error_code const& ec, portmap_transport transport) = 0;
 #ifndef TORRENT_DISABLE_LOGGING
-		virtual bool should_log_portmap(int map_transport) const = 0;
-		virtual void log_portmap(int map_transport, char const* msg) const = 0;
+		virtual bool should_log_portmap(portmap_transport transport) const = 0;
+		virtual void log_portmap(portmap_transport transport, char const* msg) const = 0;
 #endif
 
 	protected:
 		~portmap_callback() {}
 	};
-}
+}}
 
 #endif // LIBTORRENT_PORTMAP_HPP

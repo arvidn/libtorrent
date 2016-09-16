@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/debug.hpp"
-#include "libtorrent/portmap.hpp"
+#include "libtorrent/aux_/portmap.hpp"
 
 namespace libtorrent
 {
@@ -49,7 +49,7 @@ struct TORRENT_EXTRA_EXPORT natpmp
 	: std::enable_shared_from_this<natpmp>
 	, single_threaded
 {
-	natpmp(io_service& ios, portmap_callback& cb);
+	natpmp(io_service& ios, aux::portmap_callback& cb);
 
 	void start();
 
@@ -121,7 +121,7 @@ private:
 		bool outstanding_request;
 	};
 
-	portmap_callback& m_callback;
+	aux::portmap_callback& m_callback;
 
 	std::vector<mapping_t> m_mappings;
 

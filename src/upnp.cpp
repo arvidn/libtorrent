@@ -72,7 +72,7 @@ static error_code ignore_error;
 // interface by default
 upnp::upnp(io_service& ios
 	, std::string const& user_agent
-	, portmap_callback& cb
+	, aux::portmap_callback& cb
 	, bool ignore_nonrouters)
 	: m_user_agent(user_agent)
 	, m_callback(cb)
@@ -118,7 +118,7 @@ void upnp::discover_device()
 #ifndef TORRENT_DISABLE_LOGGING
 bool upnp::should_log() const
 {
-	return m_callback.should_log_portmap(portmap_callback::map_transport_upnp);
+	return m_callback.should_log_portmap(aux::portmap_transport::upnp);
 }
 
 TORRENT_FORMAT(2,3)
@@ -131,7 +131,7 @@ void upnp::log(char const* fmt, ...) const
 	char msg[500];
 	std::vsnprintf(msg, sizeof(msg), fmt, v);
 	va_end(v);
-	m_callback.log_portmap(portmap_callback::map_transport_upnp, msg);
+	m_callback.log_portmap(aux::portmap_transport::upnp, msg);
 }
 #endif
 
@@ -1099,7 +1099,7 @@ void upnp::disable(error_code const& ec)
 		int const proto = i->protocol;
 		i->protocol = none;
 		m_callback.on_port_mapping(i - m_mappings.begin(), address(), 0, proto, ec
-			, portmap_callback::map_transport_upnp);
+			, aux::portmap_transport::upnp);
 	}
 
 	// we cannot clear the devices since there
@@ -1446,7 +1446,7 @@ void upnp::on_upnp_map_response(error_code const& e
 	if (s.error_code == -1)
 	{
 		m_callback.on_port_mapping(mapping, d.external_ip, m.external_port, m.protocol, error_code()
-			, portmap_callback::map_transport_upnp);
+			, aux::portmap_transport::upnp);
 		if (d.lease_duration > 0)
 		{
 			m.expires = aux::time_now()
@@ -1490,7 +1490,7 @@ void upnp::return_error(int mapping, int code)
 	}
 	const int proto = m_mappings[mapping].protocol;
 	m_callback.on_port_mapping(mapping, address(), 0, proto, error_code(code, get_upnp_category())
-		, portmap_callback::map_transport_upnp);
+		, aux::portmap_transport::upnp);
 }
 
 void upnp::on_upnp_unmap_response(error_code const& e
@@ -1556,7 +1556,7 @@ void upnp::on_upnp_unmap_response(error_code const& e
 	m_callback.on_port_mapping(mapping, address(), 0, proto, p.status_code() != 200
 		? error_code(p.status_code(), get_http_category())
 		: error_code(s.error_code, get_upnp_category())
-		, portmap_callback::map_transport_upnp);
+		, aux::portmap_transport::upnp);
 
 	d.mapping[mapping].protocol = none;
 

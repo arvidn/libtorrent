@@ -60,7 +60,7 @@ using namespace libtorrent;
 using namespace std::placeholders;
 
 natpmp::natpmp(io_service& ios
-	, portmap_callback& cb)
+	, aux::portmap_callback& cb)
 	: m_callback(cb)
 	, m_currently_mapping(-1)
 	, m_retry_count(0)
@@ -174,7 +174,7 @@ bool natpmp::get_mapping(int index, int& local_port, int& external_port, int& pr
 #ifndef TORRENT_DISABLE_LOGGING
 bool natpmp::should_log() const
 {
-	return m_callback.should_log_portmap(portmap_callback::map_transport_natpmp);
+	return m_callback.should_log_portmap(aux::portmap_transport::natpmp);
 }
 
 TORRENT_FORMAT(2, 3)
@@ -187,7 +187,7 @@ void natpmp::log(char const* fmt, ...) const
 	va_start(v, fmt);
 	std::vsnprintf(msg, sizeof(msg), fmt, v);
 	va_end(v);
-	m_callback.log_portmap(portmap_callback::map_transport_natpmp, msg);
+	m_callback.log_portmap(aux::portmap_transport::natpmp, msg);
 }
 #endif
 
@@ -204,7 +204,7 @@ void natpmp::disable(error_code const& ec)
 		i->protocol = none;
 		int index = i - m_mappings.begin();
 		m_callback.on_port_mapping(index, address(), 0, proto, ec
-			, portmap_callback::map_transport_natpmp);
+			, aux::portmap_transport::natpmp);
 	}
 	close_impl();
 }
@@ -578,14 +578,14 @@ void natpmp::on_reply(error_code const& e
 		int const proto = m->protocol;
 		m_callback.on_port_mapping(index, address(), 0, proto
 			, error_code(ev, get_libtorrent_category())
-			, portmap_callback::map_transport_natpmp);
+			, aux::portmap_transport::natpmp);
 	}
 	else if (m->action == mapping_t::action_add)
 	{
 		int const proto = m->protocol;
 		m_callback.on_port_mapping(index, m_external_ip, m->external_port, proto
 			, error_code(errors::no_error, get_libtorrent_category())
-			, portmap_callback::map_transport_natpmp);
+			, aux::portmap_transport::natpmp);
 	}
 
 	if (m_abort) return;

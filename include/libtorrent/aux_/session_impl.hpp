@@ -78,7 +78,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/resolver.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/extensions.hpp"
-#include "libtorrent/portmap.hpp"
+#include "libtorrent/aux_/portmap.hpp"
 
 #if TORRENT_COMPLETE_TYPES_REQUIRED
 #include "libtorrent/peer_connection.hpp"
@@ -186,7 +186,7 @@ namespace libtorrent
 		struct TORRENT_EXTRA_EXPORT session_impl final
 			: session_interface
 			, dht::dht_observer
-			, portmap_callback
+			, aux::portmap_callback
 			, boost::noncopyable
 			, uncork_interface
 			, single_threaded
@@ -387,7 +387,8 @@ namespace libtorrent
 			// called when a port mapping is successful, or a router returns
 			// a failure to map a port
 			void on_port_mapping(int mapping, address const& ip, int port
-				, int protocol, error_code const& ec, int map_transport) override;
+				, int protocol, error_code const& ec
+				, aux::portmap_transport transport) override;
 
 			bool is_aborted() const override { return m_abort; }
 			bool is_paused() const { return m_paused; }
@@ -625,8 +626,8 @@ namespace libtorrent
 			virtual void log_packet(message_direction_t dir, char const* pkt, int len
 				, udp::endpoint const& node) override;
 
-			virtual bool should_log_portmap(int map_transport) const override;
-			virtual void log_portmap(int map_transport, char const* msg)
+			virtual bool should_log_portmap(aux::portmap_transport transport) const override;
+			virtual void log_portmap(aux::portmap_transport transport, char const* msg)
 				const override;
 #endif
 
