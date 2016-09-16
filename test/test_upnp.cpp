@@ -102,12 +102,6 @@ void incoming_msearch(udp::endpoint const& from, char* buffer
 	if (ec) std::cerr << "*** error sending " << ec.message() << std::endl;
 }
 
-void log_callback(char const* err)
-{
-	std::cerr << "UPnP: " << err << std::endl;
-	//TODO: store the log and verify that some key messages are there
-}
-
 struct callback_info
 {
 	int mapping;
@@ -119,12 +113,32 @@ struct callback_info
 
 std::list<callback_info> callbacks;
 
-void callback(int mapping, address const& ip, int port, int protocol, error_code const& err)
+namespace
 {
-	callback_info info = {mapping, port, err};
-	callbacks.push_back(info);
-	std::cerr << "mapping: " << mapping << ", port: " << port << ", IP: " << ip
-		<< ", proto: " << protocol << ", error: \"" << err.message() << "\"\n";
+	struct upnp_callback : aux::portmap_callback
+	{
+		void on_port_mapping(int mapping, address const& ip, int port
+			, int protocol, error_code const& err
+			, aux::portmap_transport transport) override
+		{
+			callback_info info = {mapping, port, err};
+			callbacks.push_back(info);
+			std::cerr << "mapping: " << mapping << ", port: " << port << ", IP: " << ip
+				<< ", proto: " << protocol << ", error: \"" << err.message() << "\"\n";
+		}
+	#ifndef TORRENT_DISABLE_LOGGING
+		virtual bool should_log_portmap(aux::portmap_transport transport) const override
+		{
+			return true;
+		}
+
+		virtual void log_portmap(aux::portmap_transport transport, char const* msg) const override
+		{
+			std::cerr << "UPnP: " << msg << std::endl;
+			//TODO: store the log and verify that some key messages are there
+		}
+	#endif
+	};
 }
 
 void run_upnp_test(char const* root_filename, char const* router_model, char const* control_name, int igd_version)
@@ -159,8 +173,8 @@ void run_upnp_test(char const* root_filename, char const* router_model, char con
 
 	std::string user_agent = "test agent";
 
-	std::shared_ptr<upnp> upnp_handler = std::make_shared<upnp>(std::ref(ios)
-		, user_agent, &callback, &log_callback, false);
+	upnp_callback cb;
+	auto upnp_handler = std::make_shared<upnp>(ios, user_agent, cb, false);
 	upnp_handler->start();
 	upnp_handler->discover_device();
 

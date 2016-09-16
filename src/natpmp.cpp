@@ -60,11 +60,8 @@ using namespace libtorrent;
 using namespace std::placeholders;
 
 natpmp::natpmp(io_service& ios
-	, portmap_callback_t const& cb, log_callback_t const& lcb)
+	, aux::portmap_callback& cb)
 	: m_callback(cb)
-#ifndef TORRENT_DISABLE_LOGGING
-	, m_log_callback(lcb)
-#endif
 	, m_currently_mapping(-1)
 	, m_retry_count(0)
 	, m_socket(ios)
@@ -74,7 +71,6 @@ natpmp::natpmp(io_service& ios
 	, m_disabled(false)
 	, m_abort(false)
 {
-	TORRENT_UNUSED(lcb);
 	// unfortunately async operations rely on the storage
 	// for this array not to be reallocated, by passing
 	// around pointers to its elements. so reserve size for now
@@ -90,8 +86,11 @@ void natpmp::start()
 	if (ec)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		log("failed to find default route: %s"
-			, convert_from_native(ec.message()).c_str());
+		if (should_log())
+		{
+			log("failed to find default route: %s"
+				, convert_from_native(ec.message()).c_str());
+		}
 #endif
 		disable(ec);
 		return;
@@ -104,8 +103,11 @@ void natpmp::start()
 	m_nat_endpoint = nat_endpoint;
 
 #ifndef TORRENT_DISABLE_LOGGING
-	log("found router at: %s"
-		, print_address(m_nat_endpoint.address()).c_str());
+	if (should_log())
+	{
+		log("found router at: %s"
+			, print_address(m_nat_endpoint.address()).c_str());
+	}
 #endif
 
 	m_socket.open(udp::v4(), ec);
@@ -170,18 +172,22 @@ bool natpmp::get_mapping(int index, int& local_port, int& external_port, int& pr
 }
 
 #ifndef TORRENT_DISABLE_LOGGING
+bool natpmp::should_log() const
+{
+	return m_callback.should_log_portmap(aux::portmap_transport::natpmp);
+}
+
 TORRENT_FORMAT(2, 3)
 void natpmp::log(char const* fmt, ...) const
 {
 	TORRENT_ASSERT(is_single_thread());
+	if (!should_log()) return;
 	char msg[200];
-
 	va_list v;
 	va_start(v, fmt);
 	std::vsnprintf(msg, sizeof(msg), fmt, v);
 	va_end(v);
-
-	m_log_callback(msg);
+	m_callback.log_portmap(aux::portmap_transport::natpmp, msg);
 }
 #endif
 
@@ -197,7 +203,8 @@ void natpmp::disable(error_code const& ec)
 		int const proto = i->protocol;
 		i->protocol = none;
 		int index = i - m_mappings.begin();
-		m_callback(index, address(), 0, proto, ec);
+		m_callback.on_port_mapping(index, address(), 0, proto, ec
+			, aux::portmap_transport::natpmp);
 	}
 	close_impl();
 }
@@ -243,15 +250,18 @@ int natpmp::add_mapping(protocol_type p, int const external_port
 
 	int const mapping_index = i - m_mappings.begin();
 #ifndef TORRENT_DISABLE_LOGGING
-	natpmp::mapping_t const& m = *i;
-	log("add-mapping: proto: %s port: %d local-port: %d action: %s ttl: %" PRId64
-		, (m.protocol == none
-			? "none" : m.protocol == tcp ? "tcp" : "udp")
-		, m.external_port
-		, m.local_port
-		, (m.action == mapping_t::action_none
-			? "none" : m.action == mapping_t::action_add ? "add" : "delete")
-		, total_seconds(m.expires - aux::time_now()));
+	if (should_log())
+	{
+		natpmp::mapping_t const& m = *i;
+		log("add-mapping: proto: %s port: %d local-port: %d action: %s ttl: %" PRId64
+			, (m.protocol == none
+				? "none" : m.protocol == tcp ? "tcp" : "udp")
+			, m.external_port
+			, m.local_port
+			, (m.action == mapping_t::action_none
+				? "none" : m.action == mapping_t::action_add ? "add" : "delete")
+			, total_seconds(m.expires - aux::time_now()));
+	}
 #endif
 
 	update_mapping(mapping_index);
@@ -302,14 +312,17 @@ void natpmp::update_mapping(int const i)
 	natpmp::mapping_t const& m = m_mappings[i];
 
 #ifndef TORRENT_DISABLE_LOGGING
-	log("update-mapping: proto: %s port: %d local-port: %d action: %s ttl: %" PRId64
-		, (m.protocol == none
-			? "none" : m.protocol == tcp ? "tcp" : "udp")
-		, m.external_port
-		, m.local_port
-		, (m.action == mapping_t::action_none
-			? "none" : m.action == mapping_t::action_add ? "add" : "delete")
-		, total_seconds(m.expires - aux::time_now()));
+	if (should_log())
+	{
+		log("update-mapping: proto: %s port: %d local-port: %d action: %s ttl: %" PRId64
+			, (m.protocol == none
+				? "none" : m.protocol == tcp ? "tcp" : "udp")
+			, m.external_port
+			, m.local_port
+			, (m.action == mapping_t::action_none
+				? "none" : m.action == mapping_t::action_add ? "add" : "delete")
+			, total_seconds(m.expires - aux::time_now()));
+	}
 #endif
 
 	if (m.action == mapping_t::action_none
@@ -349,11 +362,14 @@ void natpmp::send_map_request(int const i)
 	write_uint32(ttl, out); // port mapping lifetime
 
 #ifndef TORRENT_DISABLE_LOGGING
-	log("==> port map [ mapping: %d action: %s"
-		" proto: %s local: %u external: %u ttl: %u ]"
-		, i, m.action == mapping_t::action_add ? "add" : "delete"
-		, m.protocol == udp ? "udp" : "tcp"
-		, m.local_port, m.external_port, ttl);
+	if (should_log())
+	{
+		log("==> port map [ mapping: %d action: %s"
+			" proto: %s local: %u external: %u ttl: %u ]"
+			, i, m.action == mapping_t::action_add ? "add" : "delete"
+			, m.protocol == udp ? "udp" : "tcp"
+			, m.local_port, m.external_port, ttl);
+	}
 #endif
 
 	error_code ec;
@@ -411,8 +427,11 @@ void natpmp::on_reply(error_code const& e
 	if (e)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		log("error on receiving reply: %s"
-			, convert_from_native(e.message()).c_str());
+		if (should_log())
+		{
+			log("error on receiving reply: %s"
+				, convert_from_native(e.message()).c_str());
+		}
 #endif
 		return;
 	}
@@ -430,8 +449,11 @@ void natpmp::on_reply(error_code const& e
 	if (m_remote != m_nat_endpoint)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		log("received packet from wrong IP: %s"
-			, print_endpoint(m_remote).c_str());
+		if (should_log())
+		{
+			log("received packet from wrong IP: %s"
+				, print_endpoint(m_remote).c_str());
+		}
 #endif
 		return;
 	}
@@ -461,7 +483,10 @@ void natpmp::on_reply(error_code const& e
 		m_external_ip = read_v4_address(in);
 
 #ifndef TORRENT_DISABLE_LOGGING
-		log("<== public IP address [ %s ]", print_address(m_external_ip).c_str());
+		if (should_log())
+		{
+			log("<== public IP address [ %s ]", print_address(m_external_ip).c_str());
+		}
 #endif
 		return;
 
@@ -551,14 +576,16 @@ void natpmp::on_reply(error_code const& e
 
 		m->expires = aux::time_now() + hours(2);
 		int const proto = m->protocol;
-		m_callback(index, address(), 0, proto
-			, error_code(ev, get_libtorrent_category()));
+		m_callback.on_port_mapping(index, address(), 0, proto
+			, error_code(ev, get_libtorrent_category())
+			, aux::portmap_transport::natpmp);
 	}
 	else if (m->action == mapping_t::action_add)
 	{
 		int const proto = m->protocol;
-		m_callback(index, m_external_ip, m->external_port, proto
-			, error_code(errors::no_error, get_libtorrent_category()));
+		m_callback.on_port_mapping(index, m_external_ip, m->external_port, proto
+			, error_code(errors::no_error, get_libtorrent_category())
+			, aux::portmap_transport::natpmp);
 	}
 
 	if (m_abort) return;

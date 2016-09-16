@@ -39,19 +39,33 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-void callback(int mapping, address extip, int port, int protocol, error_code const& err)
+namespace
 {
-	std::cerr
-		<< "mapping: " << mapping
-		<< ", port: " << port
-		<< ", protocol: " << protocol
-		<< ", external-IP: " << print_address(extip)
-		<< ", error: \"" << err.message() << "\"\n";
-}
+	struct natpmp_callback : aux::portmap_callback
+	{
+		void on_port_mapping(int mapping, address const& ip, int port
+			, int protocol, error_code const& err
+			, aux::portmap_transport transport) override
+		{
+			std::cerr
+				<< "mapping: " << mapping
+				<< ", port: " << port
+				<< ", protocol: " << protocol
+				<< ", external-IP: " << print_address(ip)
+				<< ", error: \"" << err.message() << "\"\n";
+		}
+#ifndef TORRENT_DISABLE_LOGGING
+		virtual bool should_log_portmap(aux::portmap_transport transport) const override
+		{
+			return true;
+		}
 
-void log_callback(char const* line)
-{
-	std::cerr << line << std::endl;
+		virtual void log_portmap(aux::portmap_transport transport, char const* msg) const override
+		{
+			std::cerr << msg << std::endl;
+		}
+#endif
+	};
 }
 
 int main(int argc, char* argv[])
@@ -65,8 +79,8 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	std::shared_ptr<natpmp> natpmp_handler(new natpmp(
-		ios, &callback, &log_callback));
+	natpmp_callback cb;
+	auto natpmp_handler = std::make_shared<natpmp>(ios, cb);
 
 	deadline_timer timer(ios);
 
@@ -95,5 +109,3 @@ int main(int argc, char* argv[])
 	ios.run(ec);
 	std::cerr << "closing" << std::endl;
 }
-
-

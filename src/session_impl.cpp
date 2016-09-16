@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdio> // for snprintf
 #include <cinttypes> // for PRId64 et.al.
 #include <functional>
+#include <type_traits>
 
 #if TORRENT_USE_INVARIANT_CHECKS
 #include <unordered_set>
@@ -5371,21 +5372,6 @@ namespace aux {
 			m_alerts.emplace_alert<lsd_peer_alert>(t->get_handle(), peer);
 	}
 
-	// TODO: perhaps this function should not exist when logging is disabled
-	void session_impl::on_port_map_log(
-		char const* msg, int map_transport)
-	{
-#ifndef TORRENT_DISABLE_LOGGING
-		TORRENT_ASSERT(map_transport >= 0 && map_transport <= 1);
-		// log message
-		if (m_alerts.should_post<portmap_log_alert>())
-			m_alerts.emplace_alert<portmap_log_alert>(map_transport, msg);
-#else
-		TORRENT_UNUSED(msg);
-		TORRENT_UNUSED(map_transport);
-#endif
-	}
-
 	namespace {
 		bool find_tcp_port_mapping(int transport, int mapping, listen_socket_t const& ls)
 		{
@@ -5400,10 +5386,13 @@ namespace aux {
 
 	// transport is 0 for NAT-PMP and 1 for UPnP
 	void session_impl::on_port_mapping(int mapping, address const& ip, int port
-		, int const protocol, error_code const& ec, int map_transport)
+		, int const protocol, error_code const& ec
+		, aux::portmap_transport transport)
 	{
 		TORRENT_ASSERT(is_single_thread());
 
+		int map_transport =
+			static_cast<std::underlying_type<aux::portmap_transport>::type>(transport);
 		TORRENT_ASSERT(map_transport >= 0 && map_transport <= 1);
 
 		if (ec && m_alerts.should_post<portmap_error_alert>())
@@ -6495,11 +6484,7 @@ namespace aux {
 
 		// the natpmp constructor may fail and call the callbacks
 		// into the session_impl.
-		m_natpmp = std::make_shared<natpmp>(std::ref(m_io_service)
-			, std::bind(&session_impl::on_port_mapping
-				, this, _1, _2, _3, _4, _5, 0)
-			, std::bind(&session_impl::on_port_map_log
-				, this, _1, 0));
+		m_natpmp = std::make_shared<natpmp>(std::ref(m_io_service), *this);
 		m_natpmp->start();
 
 		for (auto& s : m_listen_sockets)
@@ -6518,10 +6503,7 @@ namespace aux {
 		// the upnp constructor may fail and call the callbacks
 		m_upnp = std::make_shared<upnp>(std::ref(m_io_service)
 			, m_settings.get_str(settings_pack::user_agent)
-			, std::bind(&session_impl::on_port_mapping
-				, this, _1, _2, _3, _4, _5, 1)
-			, std::bind(&session_impl::on_port_map_log
-				, this, _1, 1)
+			, *this
 			, m_settings.get_bool(settings_pack::upnp_ignore_nonrouters));
 		m_upnp->start();
 
@@ -6660,6 +6642,21 @@ namespace aux {
 			? dht_pkt_alert::incoming : dht_pkt_alert::outgoing;
 
 		m_alerts.emplace_alert<dht_pkt_alert>(pkt, len, d, node);
+	}
+
+	bool session_impl::should_log_portmap(aux::portmap_transport) const
+	{
+		return m_alerts.should_post<portmap_log_alert>();
+	}
+
+	void session_impl::log_portmap(aux::portmap_transport transport, char const* msg) const
+	{
+		int map_transport =
+			static_cast<std::underlying_type<aux::portmap_transport>::type>(transport);
+		TORRENT_ASSERT(map_transport >= 0 && map_transport <= 1);
+
+		if (m_alerts.should_post<portmap_log_alert>())
+			m_alerts.emplace_alert<portmap_log_alert>(map_transport, msg);
 	}
 #endif
 
