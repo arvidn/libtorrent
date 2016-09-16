@@ -690,6 +690,7 @@ SOURCES =
 	;
 
 KADEMLIA_SOURCES =
+	dht_state
 	dht_storage
 	dht_tracker
 	msg

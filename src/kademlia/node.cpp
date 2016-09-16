@@ -212,6 +212,7 @@ void node::bootstrap(std::vector<udp::endpoint> const& nodes
 
 	for (auto const& n : nodes)
 	{
+		if (n.protocol() != protocol()) continue;
 #ifndef TORRENT_DISABLE_LOGGING
 		++count;
 #endif
@@ -1196,7 +1197,11 @@ node::protocol_descriptor const& node::map_protocol_to_descriptor(udp protocol)
 	}
 
 	TORRENT_ASSERT_FAIL();
+#ifndef BOOST_NO_EXCEPTIONS
 	throw std::out_of_range("unknown protocol");
+#else
+	std::terminate();
+#endif
 }
 
 } } // namespace libtorrent::dht

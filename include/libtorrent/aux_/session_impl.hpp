@@ -75,6 +75,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_io_job.hpp" // block_cache_reference
 #include "libtorrent/peer_class_type_filter.hpp"
 #include "libtorrent/kademlia/dht_observer.hpp"
+#include "libtorrent/kademlia/dht_state.hpp"
 #include "libtorrent/resolver.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/extensions.hpp"
@@ -112,11 +113,6 @@ namespace libtorrent
 		struct dht_tracker;
 		class item;
 	}
-
-	struct bencode_map_entry;
-
-	typedef std::function<bool(udp::endpoint const& source
-		, bdecode_node const& request, entry& response)> dht_extension_handler_t;
 
 	struct listen_socket_t
 	{
@@ -180,7 +176,10 @@ namespace libtorrent
 		struct tracker_logger;
 #endif
 
-		TORRENT_EXPORT std::pair<bencode_map_entry*, int> settings_map();
+#ifndef TORRENT_DISABLE_DHT
+		TORRENT_EXTRA_EXPORT dht_settings read_dht_settings(bdecode_node const& e);
+		TORRENT_EXTRA_EXPORT entry save_dht_settings(dht_settings const& settings);
+#endif
 
 		// this is the link between the main thread and the
 		// thread started to run the main downloader loop
@@ -330,10 +329,11 @@ namespace libtorrent
 			void add_dht_router(std::pair<std::string, int> const& node);
 			void set_dht_settings(dht_settings const& s);
 			dht_settings const& get_dht_settings() const { return m_dht_settings; }
+			void set_dht_state(dht::dht_state const& state);
 			void set_dht_storage(dht::dht_storage_constructor_type sc);
 			void start_dht();
 			void stop_dht();
-			void start_dht(entry const& startup_state);
+			void start_dht(dht::dht_state const& startup_state);
 			bool has_dht() const override;
 
 			// this is called for torrents when they are started
@@ -928,7 +928,7 @@ namespace libtorrent
 				, tcp::endpoint bind_ep, int flags, error_code& ec);
 
 #ifndef TORRENT_DISABLE_DHT
-			entry m_dht_state;
+			dht::dht_state m_dht_state;
 #endif
 
 			// this is initialized to the unchoke_interval

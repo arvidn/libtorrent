@@ -72,15 +72,6 @@ namespace libtorrent { namespace dht
 	time_duration const key_refresh
 		= duration_cast<time_duration>(minutes(5));
 
-	node_id extract_node_id(entry const& e, std::string const& key)
-	{
-		if (e.type() != entry::dictionary_t) return (node_id::min)();
-		entry const* nid = e.find_key(key);
-		if (nid == nullptr || nid->type() != entry::string_t || nid->string().length() != 20)
-			return (node_id::min)();
-		return node_id(nid->string().c_str());
-	}
-
 	void add_dht_counters(node const& dht, counters& c)
 	{
 		int nodes, replacements, allocated_observers;
@@ -101,13 +92,13 @@ namespace libtorrent { namespace dht
 		, dht_settings const& settings
 		, counters& cnt
 		, dht_storage_interface& storage
-		, entry const& state)
+		, dht_state const& state)
 		: m_counters(cnt)
 		, m_storage(storage)
-		, m_dht(udp::v4(), this, settings, extract_node_id(state, "node-id")
+		, m_dht(udp::v4(), this, settings, state.nid
 			, observer, cnt, m_nodes, storage)
 #if TORRENT_USE_IPV6
-		, m_dht6(udp::v6(), this, settings, extract_node_id(state, "node-id6")
+		, m_dht6(udp::v6(), this, settings, state.nid6
 			, observer, cnt, m_nodes, storage)
 #endif
 		, m_send_fun(send_fun)
@@ -161,28 +152,9 @@ namespace libtorrent { namespace dht
 	// defined in node.cpp
 	void nop();
 
-	void dht_tracker::start(entry const& bootstrap
+	void dht_tracker::start(dht_state const& bootstrap
 		, find_data::nodes_callback const& f)
 	{
-		std::vector<udp::endpoint> initial_nodes;
-#if TORRENT_USE_IPV6
-		std::vector<udp::endpoint> initial_nodes6;
-#endif
-
-		if (bootstrap.type() == entry::dictionary_t)
-		{
-			TORRENT_TRY {
-				if (entry const* nodes = bootstrap.find_key("nodes"))
-					read_endpoint_list<udp::endpoint>(nodes, initial_nodes);
-			} TORRENT_CATCH(std::exception&) {}
-#if TORRENT_USE_IPV6
-			TORRENT_TRY{
-				if (entry const* nodes = bootstrap.find_key("nodes6"))
-					read_endpoint_list<udp::endpoint>(nodes, initial_nodes6);
-			} TORRENT_CATCH(std::exception&) {}
-#endif
-		}
-
 		error_code ec;
 		refresh_key(ec);
 
@@ -198,9 +170,9 @@ namespace libtorrent { namespace dht
 
 		m_refresh_timer.expires_from_now(seconds(5), ec);
 		m_refresh_timer.async_wait(std::bind(&dht_tracker::refresh_timeout, self(), _1));
-		m_dht.bootstrap(initial_nodes, f);
+		m_dht.bootstrap(bootstrap.nodes, f);
 #if TORRENT_USE_IPV6
-		m_dht6.bootstrap(initial_nodes6, f);
+		m_dht6.bootstrap(bootstrap.nodes6, f);
 #endif
 	}
 
@@ -585,40 +557,31 @@ namespace libtorrent { namespace dht
 
 	void add_node_fun(void* userdata, node_entry const& e)
 	{
-		entry* n = static_cast<entry*>(userdata);
-		std::string node;
-		std::back_insert_iterator<std::string> out(node);
-		write_endpoint(e.ep(), out);
-		n->list().push_back(entry(node));
+		auto v = static_cast<std::vector<udp::endpoint>*>(userdata);
+		v->push_back(e.ep());
 	}
 
-	void save_nodes(entry& ret, node const& dht, std::string const& key)
+	void save_nodes(std::vector<udp::endpoint>& ret, node const& dht)
 	{
-		entry nodes(entry::list_t);
-		dht.m_table.for_each_node(&add_node_fun, &add_node_fun, &nodes);
+		dht.m_table.for_each_node(&add_node_fun, &add_node_fun, &ret);
 		bucket_t cache;
 		dht.replacement_cache(cache);
 		for (auto const& b : cache)
 		{
-			std::string node;
-			std::back_insert_iterator<std::string> out(node);
-			write_endpoint(b.ep(), out);
-			nodes.list().push_back(entry(node));
+			ret.push_back(b.ep());
 		}
-		if (!nodes.list().empty())
-			ret[key] = nodes;
 	}
 
 	} // anonymous namespace
 
-	entry dht_tracker::state() const
+	dht_state dht_tracker::state() const
 	{
-		entry ret(entry::dictionary_t);
-		save_nodes(ret, m_dht, "nodes");
-		ret["node-id"] = m_dht.nid().to_string();
+		dht_state ret;
+		ret.nid = m_dht.nid();
+		save_nodes(ret.nodes, m_dht);
 #if TORRENT_USE_IPV6
-		save_nodes(ret, m_dht6, "nodes6");
-		ret["node-id6"] = m_dht6.nid().to_string();
+		ret.nid6 = m_dht6.nid();
+		save_nodes(ret.nodes6, m_dht6);
 #endif
 		return ret;
 	}

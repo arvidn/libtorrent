@@ -195,6 +195,82 @@ namespace libtorrent {
 
 namespace aux {
 
+#ifndef TORRENT_DISABLE_DHT
+	dht_settings read_dht_settings(bdecode_node const& e)
+	{
+		dht_settings sett;
+
+		if (e.type() != bdecode_node::dict_t) return sett;
+
+		bdecode_node val;
+		val = e.dict_find_int("max_peers_reply");
+		if (val) sett.max_peers_reply = val.int_value();
+		val = e.dict_find_int("search_branching");
+		if (val) sett.search_branching = val.int_value();
+		val = e.dict_find_int("max_fail_count");
+		if (val) sett.max_fail_count = val.int_value();
+		val = e.dict_find_int("max_torrents");
+		if (val) sett.max_torrents = val.int_value();
+		val = e.dict_find_int("max_dht_items");
+		if (val) sett.max_dht_items = val.int_value();
+		val = e.dict_find_int("max_peers");
+		if (val) sett.max_peers = val.int_value();
+		val = e.dict_find_int("max_torrent_search_reply");
+		if (val) sett.max_torrent_search_reply = val.int_value();
+		val = e.dict_find_int("restrict_routing_ips");
+		if (val) sett.restrict_routing_ips = (val.int_value() != 0);
+		val = e.dict_find_int("restrict_search_ips");
+		if (val) sett.restrict_search_ips = (val.int_value() != 0);
+		val = e.dict_find_int("extended_routing_table");
+		if (val) sett.extended_routing_table = (val.int_value() != 0);
+		val = e.dict_find_int("aggressive_lookups");
+		if (val) sett.aggressive_lookups = (val.int_value() != 0);
+		val = e.dict_find_int("privacy_lookups");
+		if (val) sett.privacy_lookups = (val.int_value() != 0);
+		val = e.dict_find_int("enforce_node_id");
+		if (val) sett.enforce_node_id = (val.int_value() != 0);
+		val = e.dict_find_int("ignore_dark_internet");
+		if (val) sett.ignore_dark_internet = (val.int_value() != 0);
+		val = e.dict_find_int("block_timeout");
+		if (val) sett.block_timeout = val.int_value();
+		val = e.dict_find_int("block_ratelimit");
+		if (val) sett.block_ratelimit = val.int_value();
+		val = e.dict_find_int("read_only");
+		if (val) sett.read_only = (val.int_value() != 0);
+		val = e.dict_find_int("item_lifetime");
+		if (val) sett.item_lifetime = val.int_value();
+
+		return sett;
+	}
+
+	entry save_dht_settings(dht_settings const& settings)
+	{
+		entry e;
+		entry::dictionary_type& dht_sett = e.dict();
+
+		dht_sett["max_peers_reply"] = settings.max_peers_reply;
+		dht_sett["search_branching"] = settings.search_branching;
+		dht_sett["max_fail_count"] = settings.max_fail_count;
+		dht_sett["max_torrents"] = settings.max_torrents;
+		dht_sett["max_dht_items"] = settings.max_dht_items;
+		dht_sett["max_peers"] = settings.max_peers;
+		dht_sett["max_torrent_search_reply"] = settings.max_torrent_search_reply;
+		dht_sett["restrict_routing_ips"] = settings.restrict_routing_ips;
+		dht_sett["restrict_search_ips"] = settings.restrict_search_ips;
+		dht_sett["extended_routing_table"] = settings.extended_routing_table;
+		dht_sett["aggressive_lookups"] = settings.aggressive_lookups;
+		dht_sett["privacy_lookups"] = settings.privacy_lookups;
+		dht_sett["enforce_node_id"] = settings.enforce_node_id;
+		dht_sett["ignore_dark_internet"] = settings.ignore_dark_internet;
+		dht_sett["block_timeout"] = settings.block_timeout;
+		dht_sett["block_ratelimit"] = settings.block_ratelimit;
+		dht_sett["read_only"] = settings.read_only;
+		dht_sett["item_lifetime"] = settings.item_lifetime;
+
+		return e;
+	}
+#endif // TORRENT_DISABLE_DHT
+
 	void session_impl::init_peer_class_filter(bool unlimited_local)
 	{
 		// set the default peer_class_filter to use the local peer class
@@ -552,31 +628,12 @@ namespace aux {
 #ifndef TORRENT_DISABLE_DHT
 		if (flags & session::save_dht_settings)
 		{
-			entry::dictionary_type& dht_sett = e["dht"].dict();
-
-			dht_sett["max_peers_reply"] = m_dht_settings.max_peers_reply;
-			dht_sett["search_branching"] = m_dht_settings.search_branching;
-			dht_sett["max_fail_count"] = m_dht_settings.max_fail_count;
-			dht_sett["max_torrents"] = m_dht_settings.max_torrents;
-			dht_sett["max_dht_items"] = m_dht_settings.max_dht_items;
-			dht_sett["max_peers"] = m_dht_settings.max_peers;
-			dht_sett["max_torrent_search_reply"] = m_dht_settings.max_torrent_search_reply;
-			dht_sett["restrict_routing_ips"] = m_dht_settings.restrict_routing_ips;
-			dht_sett["restrict_search_ips"] = m_dht_settings.restrict_search_ips;
-			dht_sett["extended_routing_table"] = m_dht_settings.extended_routing_table;
-			dht_sett["aggressive_lookups"] = m_dht_settings.aggressive_lookups;
-			dht_sett["privacy_lookups"] = m_dht_settings.privacy_lookups;
-			dht_sett["enforce_node_id"] = m_dht_settings.enforce_node_id;
-			dht_sett["ignore_dark_internet"] = m_dht_settings.ignore_dark_internet;
-			dht_sett["block_timeout"] = m_dht_settings.block_timeout;
-			dht_sett["block_ratelimit"] = m_dht_settings.block_ratelimit;
-			dht_sett["read_only"] = m_dht_settings.read_only;
-			dht_sett["item_lifetime"] = m_dht_settings.item_lifetime;
+			e["dht"] = save_dht_settings(m_dht_settings);
 		}
 
 		if (m_dht && (flags & session::save_dht_state))
 		{
-			e["dht state"] = m_dht->state();
+			e["dht state"] = dht::save_dht_state(m_dht->state());
 		}
 #endif
 
@@ -605,57 +662,21 @@ namespace aux {
 
 #ifndef TORRENT_DISABLE_DHT
 		bool need_update_dht = false;
-		if (flags & session::save_dht_settings)
+		if (flags & session_handle::save_dht_settings)
 		{
 			settings = e->dict_find_dict("dht");
 			if (settings)
 			{
-				bdecode_node val;
-				val = settings.dict_find_int("max_peers_reply");
-				if (val) m_dht_settings.max_peers_reply = val.int_value();
-				val = settings.dict_find_int("search_branching");
-				if (val) m_dht_settings.search_branching = val.int_value();
-				val = settings.dict_find_int("max_fail_count");
-				if (val) m_dht_settings.max_fail_count = val.int_value();
-				val = settings.dict_find_int("max_torrents");
-				if (val) m_dht_settings.max_torrents = val.int_value();
-				val = settings.dict_find_int("max_dht_items");
-				if (val) m_dht_settings.max_dht_items = val.int_value();
-				val = settings.dict_find_int("max_peers");
-				if (val) m_dht_settings.max_peers = val.int_value();
-				val = settings.dict_find_int("max_torrent_search_reply");
-				if (val) m_dht_settings.max_torrent_search_reply = val.int_value();
-				val = settings.dict_find_int("restrict_routing_ips");
-				if (val) m_dht_settings.restrict_routing_ips = (val.int_value() != 0);
-				val = settings.dict_find_int("restrict_search_ips");
-				if (val) m_dht_settings.restrict_search_ips = (val.int_value() != 0);
-				val = settings.dict_find_int("extended_routing_table");
-				if (val) m_dht_settings.extended_routing_table = (val.int_value() != 0);
-				val = settings.dict_find_int("aggressive_lookups");
-				if (val) m_dht_settings.aggressive_lookups = (val.int_value() != 0);
-				val = settings.dict_find_int("privacy_lookups");
-				if (val) m_dht_settings.privacy_lookups = (val.int_value() != 0);
-				val = settings.dict_find_int("enforce_node_id");
-				if (val) m_dht_settings.enforce_node_id = (val.int_value() != 0);
-				val = settings.dict_find_int("ignore_dark_internet");
-				if (val) m_dht_settings.ignore_dark_internet = (val.int_value() != 0);
-				val = settings.dict_find_int("block_timeout");
-				if (val) m_dht_settings.block_timeout = val.int_value();
-				val = settings.dict_find_int("block_ratelimit");
-				if (val) m_dht_settings.block_ratelimit = val.int_value();
-				val = settings.dict_find_int("read_only");
-				if (val) m_dht_settings.read_only = (val.int_value() != 0);
-				val = settings.dict_find_int("item_lifetime");
-				if (val) m_dht_settings.item_lifetime = val.int_value();
+				m_dht_settings = read_dht_settings(settings);
 			}
 		}
 
-		if (flags & session::save_dht_state)
+		if (flags & session_handle::save_dht_state)
 		{
 			settings = e->dict_find_dict("dht state");
 			if (settings)
 			{
-				m_dht_state = settings;
+				m_dht_state = dht::read_dht_state(settings);
 				need_update_dht = true;
 			}
 		}
@@ -663,7 +684,7 @@ namespace aux {
 
 #ifndef TORRENT_NO_DEPRECATE
 		bool need_update_proxy = false;
-		if (flags & session::save_proxy)
+		if (flags & session_handle::save_proxy)
 		{
 			settings = e->dict_find_dict("proxy");
 			if (settings)
@@ -702,7 +723,7 @@ namespace aux {
 		}
 #endif
 
-		if (flags & session::save_settings)
+		if (flags & session_handle::save_settings)
 		{
 			settings = e->dict_find_dict("settings");
 			if (settings)
@@ -5579,7 +5600,7 @@ namespace aux {
 		}
 	}
 
-	void session_impl::start_dht(entry const& startup_state)
+	void session_impl::start_dht(dht::dht_state const& startup_state)
 	{
 		INVARIANT_CHECK;
 
@@ -5590,7 +5611,7 @@ namespace aux {
 
 		m_dht_storage = m_dht_storage_constructor(m_dht_settings);
 		m_dht = std::make_shared<dht::dht_tracker>(
-			static_cast<dht_observer*>(this)
+			static_cast<dht::dht_observer*>(this)
 			, m_io_service
 			, std::bind(&session_impl::send_udp_packet, this, false, _1, _2, _3, _4)
 			, m_dht_settings
@@ -5628,6 +5649,11 @@ namespace aux {
 		m_dht_settings = settings;
 	}
 
+	void session_impl::set_dht_state(dht::dht_state const& state)
+	{
+		m_dht_state = state;
+	}
+
 	void session_impl::set_dht_storage(dht::dht_storage_constructor_type sc)
 	{
 		m_dht_storage_constructor = sc;
@@ -5636,14 +5662,21 @@ namespace aux {
 #ifndef TORRENT_NO_DEPRECATE
 	entry session_impl::dht_state() const
 	{
-		if (!m_dht) return entry();
-		return m_dht->state();
+		return m_dht ? dht::save_dht_state(m_dht->state()) : entry();
 	}
 
 	void session_impl::start_dht_deprecated(entry const& startup_state)
 	{
 		m_settings.set_bool(settings_pack::enable_dht, true);
-		start_dht(startup_state);
+		std::vector<char> tmp;
+		std::back_insert_iterator<std::vector<char>> out(tmp);
+		bencode(out, startup_state);
+
+		bdecode_node e;
+		error_code ec;
+		if (tmp.empty() || bdecode(&tmp[0], &tmp[0] + tmp.size(), e, ec) != 0)
+			return;
+		start_dht(dht::read_dht_state(e));
 	}
 #endif
 

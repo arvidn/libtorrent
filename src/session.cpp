@@ -287,6 +287,45 @@ namespace libtorrent
 	// configurations this will give a link error
 	void TORRENT_CFG() {}
 
+	session_params read_session_params(bdecode_node const& e, std::uint32_t const flags)
+	{
+		session_params params;
+
+		bdecode_node settings;
+		if (e.type() != bdecode_node::dict_t) return params;
+
+		if (flags & session_handle::save_settings)
+		{
+			settings = e.dict_find_dict("settings");
+			if (settings)
+			{
+				params.settings = load_pack_from_dict(settings);
+			}
+		}
+
+#ifndef TORRENT_DISABLE_DHT
+		if (flags & session_handle::save_dht_settings)
+		{
+			settings = e.dict_find_dict("dht");
+			if (settings)
+			{
+				params.dht_settings = aux::read_dht_settings(settings);
+			}
+		}
+
+		if (flags & session_handle::save_dht_state)
+		{
+			settings = e.dict_find_dict("dht state");
+			if (settings)
+			{
+				params.dht_state = dht::read_dht_state(settings);
+			}
+		}
+#endif
+
+		return params;
+	}
+
 	void session::start(session_params params, io_service* ios)
 	{
 		bool const internal_executor = ios == nullptr;
@@ -308,8 +347,11 @@ namespace libtorrent
 		}
 #endif
 
-		set_dht_settings(params.dht_settings);
-		set_dht_storage(params.dht_storage_constructor);
+#ifndef TORRENT_DISABLE_DHT
+		m_impl->set_dht_settings(params.dht_settings);
+		m_impl->set_dht_state(std::move(params.dht_state));
+		m_impl->set_dht_storage(params.dht_storage_constructor);
+#endif
 
 		m_impl->start_session(std::move(params.settings));
 
