@@ -2343,8 +2343,7 @@ namespace aux {
 #ifndef TORRENT_DISABLE_DHT
 					if (m_dht && buf.size() > 20 && buf.front() == 'd' && buf.back() == 'e')
 					{
-						handled = m_dht->incoming_packet(packet.from, buf
-							, s->local_endpoint());
+						handled = m_dht->incoming_packet(packet.from, buf);
 					}
 #endif
 

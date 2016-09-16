@@ -127,8 +127,7 @@ namespace libtorrent { namespace dht
 		void update_stats_counters(counters& c) const;
 
 		void incoming_error(error_code const& ec, udp::endpoint const&);
-		bool incoming_packet(udp::endpoint const& ep, span<char const> buf
-			, udp::endpoint const& socket_addr);
+		bool incoming_packet(udp::endpoint const& ep, span<char const> buf);
 
 	private:
 
