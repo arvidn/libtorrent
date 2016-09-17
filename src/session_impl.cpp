@@ -2010,13 +2010,13 @@ namespace aux {
 
 		if ((mask & remap_natpmp) && m_natpmp)
 		{
-			map_port(*m_natpmp, natpmp::tcp, tcp_ep, s.tcp_port_mapping[0]);
-			map_port(*m_natpmp, natpmp::udp, udp_ep, s.udp_port_mapping[0]);
+			map_port(*m_natpmp, portmap_protocol::tcp, tcp_ep, s.tcp_port_mapping[0]);
+			map_port(*m_natpmp, portmap_protocol::udp, udp_ep, s.udp_port_mapping[0]);
 		}
 		if ((mask & remap_upnp) && m_upnp)
 		{
-			map_port(*m_upnp, upnp::tcp, tcp_ep, s.tcp_port_mapping[1]);
-			map_port(*m_upnp, upnp::udp, udp_ep, s.udp_port_mapping[1]);
+			map_port(*m_upnp, portmap_protocol::tcp, tcp_ep, s.tcp_port_mapping[1]);
+			map_port(*m_upnp, portmap_protocol::udp, udp_ep, s.udp_port_mapping[1]);
 		}
 	}
 
@@ -5407,7 +5407,7 @@ namespace aux {
 
 	// transport is 0 for NAT-PMP and 1 for UPnP
 	void session_impl::on_port_mapping(int mapping, address const& ip, int port
-		, int const protocol, error_code const& ec
+		, portmap_protocol const proto, error_code const& ec
 		, aux::portmap_transport transport)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -5454,7 +5454,7 @@ namespace aux {
 		if (!ec && m_alerts.should_post<portmap_alert>())
 		{
 			m_alerts.emplace_alert<portmap_alert>(mapping, port
-				, map_transport, protocol == natpmp::udp
+				, map_transport, proto == portmap_protocol::udp
 				? portmap_alert::udp : portmap_alert::tcp);
 		}
 	}
@@ -6539,9 +6539,9 @@ namespace aux {
 		, int local_port)
 	{
 		int ret = 0;
-		if (m_upnp) ret = m_upnp->add_mapping(static_cast<upnp::protocol_type>(t), external_port
+		if (m_upnp) ret = m_upnp->add_mapping(static_cast<portmap_protocol>(t), external_port
 			, local_port);
-		if (m_natpmp) ret = m_natpmp->add_mapping(static_cast<natpmp::protocol_type>(t), external_port
+		if (m_natpmp) ret = m_natpmp->add_mapping(static_cast<portmap_protocol>(t), external_port
 			, local_port);
 		return ret;
 	}

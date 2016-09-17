@@ -130,8 +130,6 @@ struct TORRENT_EXTRA_EXPORT upnp final
 
 	void start();
 
-	enum protocol_type { none = 0, udp = 1, tcp = 2 };
-
 	// Attempts to add a port mapping for the specified protocol. Valid protocols are
 	// ``upnp::tcp`` and ``upnp::udp`` for the UPnP class and ``natpmp::tcp`` and
 	// ``natpmp::udp`` for the NAT-PMP class.
@@ -149,13 +147,14 @@ struct TORRENT_EXTRA_EXPORT upnp final
 	// portmap_alert_ respectively. If The mapping fails immediately, the return value
 	// is -1, which means failure. There will not be any error alert notification for
 	// mappings that fail with a -1 return value.
-	int add_mapping(protocol_type p, int external_port, int local_port);
+	int add_mapping(aux::portmap_protocol p, int external_port, int local_port);
 
 	// This function removes a port mapping. ``mapping_index`` is the index that refers
 	// to the mapping you want to remove, which was returned from add_mapping().
 	void delete_mapping(int mapping_index);
 
-	bool get_mapping(int mapping_index, int& local_port, int& external_port, int& protocol) const;
+	bool get_mapping(int mapping_index, int& local_port, int& external_port
+		, aux::portmap_protocol& protocol) const;
 
 	void discover_device();
 	void close();
@@ -224,63 +223,44 @@ private:
 
 	struct global_mapping_t
 	{
-		global_mapping_t()
-			: protocol(none)
-			, external_port(0)
-			, local_port(0)
-		{}
-		int protocol;
-		int external_port;
-		int local_port;
+		aux::portmap_protocol protocol = aux::portmap_protocol::none;
+		int external_port = 0;
+		int local_port = 0;
 	};
 
 	struct mapping_t
 	{
-		enum action_t { action_none, action_add, action_delete };
-		mapping_t()
-			: action(action_none)
-			, local_port(0)
-			, external_port(0)
-			, protocol(none)
-			, failcount(0)
-		{}
+		enum class action : std::uint8_t { none, add, del };
 
 		// the time the port mapping will expire
 		time_point expires;
 
-		int action;
+		action action = action::none;
 
 		// the local port for this mapping. If this is set
 		// to 0, the mapping is not in use
-		int local_port;
+		int local_port = 0;
 
 		// the external (on the NAT router) port
 		// for the mapping. This is the port we
 		// should announce to others
-		int external_port;
+		int external_port = 0;
 
 		// 2 = udp, 1 = tcp
-		int protocol;
+		aux::portmap_protocol protocol = aux::portmap_protocol::none;
 
 		// the number of times this mapping has failed
-		int failcount;
+		int failcount = 0;
 	};
 
 	struct rootdevice
 	{
-		rootdevice(): service_namespace(0)
-			, port(0)
-			, lease_duration(default_lease_time)
-			, supports_specific_external(true)
-			, disabled(false)
-			, non_router(false)
-		{
 #if TORRENT_USE_ASSERTS
+		rootdevice()
+		{
 			magic = 1337;
-#endif
 		}
 
-#if TORRENT_USE_ASSERTS
 		~rootdevice()
 		{
 			TORRENT_ASSERT(magic == 1337);
@@ -297,7 +277,7 @@ private:
 		// the url to the WANIP or WANPPP interface
 		std::string control_url;
 		// either the WANIP namespace or the WANPPP namespace
-		char const* service_namespace;
+		char const* service_namespace = nullptr;
 
 		std::vector<mapping_t> mapping;
 
@@ -305,23 +285,24 @@ private:
 		// component of the url or the control_url
 		// if it has been found
 		std::string hostname;
-		int port;
+		int port = 0;
 		std::string path;
 		address external_ip;
 
-		int lease_duration;
+		int lease_duration = default_lease_time;
+
 		// true if the device supports specifying a
 		// specific external port, false if it doesn't
-		bool supports_specific_external;
+		bool supports_specific_external = true;
 
-		bool disabled;
+		bool disabled = false;
 
 		// this is true if the IP of this device is not
 		// one of our default routes. i.e. it may be someone
 		// else's router, we just happen to have multicast
 		// enabled across networks
 		// this is only relevant if ignore_non_routers is set.
-		bool non_router;
+		bool non_router = false;
 
 		mutable std::shared_ptr<http_connection> upnp_connection;
 
