@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <deque>
 #include <limits> // for numeric_limits
 #include <memory> // for unique_ptr
+#include <bitset>
 
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/entry.hpp"
