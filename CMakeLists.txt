@@ -124,6 +124,7 @@ set(sources
 
 # -- kademlia --
 set(kademlia_sources
+	dht_state
 	dht_storage
 	dos_blocker
 	dht_tracker

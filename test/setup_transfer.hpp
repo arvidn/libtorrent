@@ -60,6 +60,7 @@ EXPORT libtorrent::tcp::endpoint rand_tcp_ep();
 EXPORT libtorrent::udp::endpoint rand_udp_ep(libtorrent::address(&rand_addr)() = rand_v4);
 
 EXPORT libtorrent::sha1_hash rand_hash();
+EXPORT libtorrent::sha1_hash to_hash(char const* s);
 
 EXPORT std::map<std::string, std::int64_t> get_counters(libtorrent::session& s);
 
@@ -112,6 +113,7 @@ EXPORT void stop_proxy(int port);
 EXPORT void stop_all_proxies();
 
 EXPORT libtorrent::tcp::endpoint ep(char const* ip, int port);
+EXPORT libtorrent::udp::endpoint uep(char const* ip, int port);
 EXPORT libtorrent::address addr(char const* ip);
 EXPORT libtorrent::address_v4 addr4(char const* ip);
 #if TORRENT_USE_IPV6

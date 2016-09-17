@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/traversal_algorithm.hpp>
 #include <libtorrent/kademlia/dos_blocker.hpp>
+#include <libtorrent/kademlia/dht_state.hpp>
 
 #include <libtorrent/session_settings.hpp>
 #include <libtorrent/udp_socket.hpp>
@@ -71,10 +72,10 @@ namespace libtorrent { namespace dht
 			, dht_settings const& settings
 			, counters& cnt
 			, dht_storage_interface& storage
-			, entry const& state);
+			, dht_state const& state);
 		virtual ~dht_tracker();
 
-		void start(entry const& bootstrap
+		void start(dht_state const& bootstrap
 			, find_data::nodes_callback const& f);
 		void stop();
 
@@ -85,7 +86,7 @@ namespace libtorrent { namespace dht
 		void add_node(udp::endpoint const& node);
 		void add_router_node(udp::endpoint const& node);
 
-		entry state() const;
+		dht_state state() const;
 
 		enum flags_t { flag_seed = 1, flag_implied_port = 2 };
 		void get_peers(sha1_hash const& ih

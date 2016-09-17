@@ -33,9 +33,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/extensions.hpp"
+#include "libtorrent/bencode.hpp"
+#include "libtorrent/bdecode.hpp"
+#include "libtorrent/hex.hpp"
 #include "settings.hpp"
 
 #include "test.hpp"
+#include "setup_transfer.hpp"
 
 using namespace libtorrent;
 using namespace libtorrent::dht;
@@ -94,6 +98,52 @@ TORRENT_TEST(custom_dht_storage)
 
 	TEST_CHECK(ses.is_dht_running() == true);
 	TEST_EQUAL(g_storage_constructor_invoked, true);
+}
+
+TORRENT_TEST(dht_state)
+{
+	settings_pack p = settings();
+	p.set_bool(settings_pack::enable_dht, true);
+
+	dht_settings sett;
+	sett.max_dht_items = 10000;
+	sett.max_peers = 20000;
+
+	dht_state s;
+	s.nid = to_hash("0000000000000000000000000000000000000001");
+	s.nodes.push_back(uep("1.1.1.1", 1));
+	s.nodes.push_back(uep("2.2.2.2", 2));
+	// not important that IPv6 is disabled here
+	s.nid6 = to_hash("0000000000000000000000000000000000000002");
+	s.nodes6.push_back(uep("3.3.3.3", 3));
+	s.nodes6.push_back(uep("4.4.4.4", 4));
+
+	session_params params(p);
+	params.dht_settings = sett;
+	params.dht_state = s;
+
+	lt::session ses1(params);
+	TEST_CHECK(ses1.is_dht_running() == true);
+	entry e;
+	ses1.save_state(e);
+
+	std::vector<char> tmp;
+	bencode(std::back_inserter(tmp), e);
+
+	bdecode_node n;
+	error_code ec;
+	int r = bdecode(&tmp[0], &tmp[0] + tmp.size(), n, ec);
+	TEST_CHECK(!r);
+
+	session_params params1 = read_session_params(n);
+	TEST_EQUAL(params1.dht_settings.max_dht_items, 10000);
+	TEST_EQUAL(params1.dht_settings.max_peers, 20000);
+
+	// not a chance the nid will be the fake initial ones
+	TEST_CHECK(params1.dht_state.nid != s.nid);
+#if TORRENT_USE_IPV6
+	TEST_CHECK(params1.dht_state.nid6 != s.nid6);
+#endif
 }
 #endif
 

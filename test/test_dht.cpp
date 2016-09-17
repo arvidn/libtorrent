@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/kademlia/node.hpp" // for verify_message
 #include "libtorrent/bencode.hpp"
+#include "libtorrent/bdecode.hpp"
 #include "libtorrent/socket_io.hpp" // for hash_address
 #include "libtorrent/broadcast_socket.hpp" // for supports_ipv6
 #include "libtorrent/performance_counters.hpp" // for counters
@@ -62,13 +63,6 @@ using namespace libtorrent::dht;
 using namespace std::placeholders;
 
 namespace {
-
-sha1_hash to_hash(char const* s)
-{
-	sha1_hash ret;
-	aux::from_hex({s, 40}, (char*)&ret[0]);
-	return ret;
-}
 
 void get_test_keypair(public_key& pk, secret_key& sk)
 {
@@ -3373,6 +3367,43 @@ TORRENT_TEST(compare_ip_cidr)
 			addr6(std::get<0>(t)), addr6(std::get<1>(t))), std::get<2>(t));
 	}
 #endif
+}
+
+TORRENT_TEST(dht_state)
+{
+	dht_state s;
+
+	s.nid = to_hash("0000000000000000000000000000000000000001");
+	s.nodes.push_back(uep("1.1.1.1", 1));
+	s.nodes.push_back(uep("2.2.2.2", 2));
+	// not important that IPv6 is disabled here
+	s.nid6 = to_hash("0000000000000000000000000000000000000002");
+	s.nodes6.push_back(uep("3.3.3.3", 3));
+	s.nodes6.push_back(uep("4.4.4.4", 4));
+
+	entry const e = save_dht_state(s);
+
+	std::vector<char> tmp;
+	bencode(std::back_inserter(tmp), e);
+
+	bdecode_node n;
+	error_code ec;
+	int r = bdecode(&tmp[0], &tmp[0] + tmp.size(), n, ec);
+	TEST_CHECK(!r);
+
+	dht_state const s1 = read_dht_state(n);
+	TEST_EQUAL(s1.nid, s.nid);
+	TEST_CHECK(s1.nodes == s.nodes);
+	TEST_EQUAL(s1.nid6, s.nid6);
+	TEST_CHECK(s1.nodes6 == s.nodes6);
+
+	// empty
+	bdecode_node n1;
+	dht_state const s2 = read_dht_state(n1);
+	TEST_EQUAL(s2.nid, node_id());
+	TEST_CHECK(s2.nodes.empty());
+	TEST_EQUAL(s2.nid6, node_id());
+	TEST_CHECK(s2.nodes6.empty());
 }
 
 // TODO: test obfuscated_get_peers
