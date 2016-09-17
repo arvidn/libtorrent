@@ -7,6 +7,8 @@ exe test_natpmp : test_natpmp.cpp
 	: # requirements
 	<library>/torrent//torrent
 	<export-extra>on
+# disable warning C4373: virtual function overrides, previous versions of the compiler did not override when parameters only differed by const/volatile qualifiers
+	<toolset>msvc:<cflags>/wd4373
 	: # default-build
 	<threading>multi
 	<asserts>on
@@ -21,6 +23,8 @@ exe enum_if : enum_if.cpp
 	: # requirements
 	<library>/torrent//torrent
 	<export-extra>on
+# disable warning C4373: virtual function overrides, previous versions of the compiler did not override when parameters only differed by const/volatile qualifiers
+	<toolset>msvc:<cflags>/wd4373
 	: # default-build
 	<threading>multi
 	<asserts>on
