@@ -50,7 +50,7 @@ before_install:
   - git submodule update --init --recursive
   - 'if [[ $ssl == "" ]]; then export ssl=off; fi'
   - 'if [[ $crypto == "" ]]; then export crypto=built-in; fi'
-  - 'if [[ $TRAVIS_OS_NAME == "osx" && "$variant" != "" ]]; then brew update > /dev/null && brew install --quiet ccache boost-build boost-python; fi'
+  - 'if [[ $TRAVIS_OS_NAME == "osx" && "$variant" != "" ]]; then brew update && brew install --quiet ccache boost-build boost-python; fi'
   - 'if [ "$docs" = "1" ]; then
     brew install --quiet docutils;
     mkdir -p /Users/travis/Library/Python/2.7/lib/python/site-packages;
