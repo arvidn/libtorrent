@@ -164,7 +164,7 @@ namespace libtorrent
 		{
 			error_code ec;
 			TORRENT_ASSERT(m_socket->remote_endpoint(ec) == m_remote || ec);
-			tcp::endpoint local_ep = m_socket->local_endpoint(ec);
+			tcp::endpoint const local_ep = m_socket->local_endpoint(ec);
 
 			peer_log(m_outgoing ? peer_log_alert::outgoing : peer_log_alert::incoming
 				, m_outgoing ? "OUTGOING_CONNECTION" : "INCOMING_CONNECTION"
@@ -391,7 +391,7 @@ namespace libtorrent
 			// any potential other messages already in the queue
 			// to not trigger another one. This effectively defer
 			// the update until the current message queue is
-			// flushed
+			// drained
 			m_ios.post(std::bind(&peer_connection::do_update_interest, self()));
 		}
 		m_need_interest_update = true;
@@ -5366,7 +5366,7 @@ namespace libtorrent
 		// deduct the bytes we already have quota for
 		bytes -= m_quota[channel];
 
-		int priority = get_priority(channel);
+		int const priority = get_priority(channel);
 
 		int max_channels = num_classes() + (t ? t->num_classes() : 0) + 2;
 		bandwidth_channel** channels = TORRENT_ALLOCA(bandwidth_channel*, max_channels);
@@ -5397,7 +5397,7 @@ namespace libtorrent
 
 		bandwidth_manager* manager = m_ses.get_bandwidth_manager(channel);
 
-		int ret = manager->request_bandwidth(self()
+		int const ret = manager->request_bandwidth(self()
 			, bytes, priority, channels, c);
 
 		if (ret == 0)

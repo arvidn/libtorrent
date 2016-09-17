@@ -32,10 +32,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/bandwidth_manager.hpp"
 
-#if TORRENT_USE_ASSERTS
-#include <climits>
-#endif
-
 namespace libtorrent
 {
 
@@ -82,12 +78,13 @@ namespace libtorrent
 	{
 		return m_queued_bytes;
 	}
-	
+
 	// non prioritized means that, if there's a line for bandwidth,
 	// others will cut in front of the non-prioritized peers.
 	// this is used by web seeds
 	int bandwidth_manager::request_bandwidth(std::shared_ptr<bandwidth_socket> const& peer
-		, int blk, int priority, bandwidth_channel** chan, int num_channels)
+		, int const blk, int const priority, bandwidth_channel** chan
+		, int const num_channels)
 	{
 		INVARIANT_CHECK;
 		if (m_abort) return 0;
