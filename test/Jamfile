@@ -62,6 +62,8 @@ lib libtorrent_test
 	<toolset>darwin:<cflags>-Wno-unused-command-line-argument
 # disable warning C4275: non DLL-interface classkey 'identifier' used as base for DLL-interface classkey 'identifier'
 	<toolset>msvc:<cflags>/wd4275
+# disable warning C4373: virtual function overrides, previous versions of the compiler did not override when parameters only differed by const/volatile qualifiers
+	<toolset>msvc:<cflags>/wd4373
 
 	: # default build
 	<link>shared
@@ -83,6 +85,8 @@ project
 	<toolset>darwin:<cflags>-Wno-unused-command-line-argument
 # disable warning C4275: non DLL-interface classkey 'identifier' used as base for DLL-interface classkey 'identifier'
 	<toolset>msvc:<cflags>/wd4275
+# disable warning C4373: virtual function overrides, previous versions of the compiler did not override when parameters only differed by const/volatile qualifiers
+	<toolset>msvc:<cflags>/wd4373
 	<toolset>msvc:<define>_SCL_SECURE_NO_WARNINGS
 	<export-extra>on
 	: default-build
