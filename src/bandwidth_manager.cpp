@@ -32,6 +32,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/bandwidth_manager.hpp"
 
+#if TORRENT_USE_ASSERTS
+#include <limits>
+#endif
+
 namespace libtorrent
 {
 
@@ -181,7 +185,7 @@ namespace libtorrent
 			{
 				bandwidth_channel* bwc = r.channel[j];
 				if (bwc->tmp == 0) channels.push_back(bwc);
-				TORRENT_ASSERT(INT_MAX - bwc->tmp > r.priority);
+				TORRENT_ASSERT(std::numeric_limits<int>::max() - bwc->tmp > r.priority);
 				bwc->tmp += r.priority;
 			}
 		}
