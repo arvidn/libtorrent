@@ -235,7 +235,7 @@ private:
 		// the time the port mapping will expire
 		time_point expires;
 
-		action action = action::none;
+		action act = action::none;
 
 		// the local port for this mapping. If this is set
 		// to 0, the mapping is not in use

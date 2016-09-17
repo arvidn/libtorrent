@@ -90,7 +90,7 @@ private:
 
 		// indicates that the mapping has changed
 		// and needs an update
-		action action = action::none;
+		action act = action::none;
 
 		// the time the port mapping will expire
 		time_point expires;

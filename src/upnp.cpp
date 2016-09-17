@@ -220,7 +220,7 @@ int upnp::add_mapping(portmap_protocol const p, int const external_port
 			d.mapping.resize(mapping_index + 1);
 		mapping_t& m = d.mapping[mapping_index];
 
-		m.action = mapping_t::action::add;
+		m.act = mapping_t::action::add;
 		m.protocol = p;
 		m.external_port = external_port;
 		m.local_port = local_port;
@@ -253,7 +253,7 @@ void upnp::delete_mapping(int mapping)
 		TORRENT_ASSERT(d.magic == 1337);
 
 		TORRENT_ASSERT(mapping < int(d.mapping.size()));
-		d.mapping[mapping].action = mapping_t::action::del;
+		d.mapping[mapping].act = mapping_t::action::del;
 
 		if (d.service_namespace) update_map(d, mapping);
 	}
@@ -586,7 +586,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 		for (auto const& j : m_mappings)
 		{
 			mapping_t m;
-			m.action = mapping_t::action::add;
+			m.act = mapping_t::action::add;
 			m.local_port = j.local_port;
 			m.external_port = j.external_port;
 			m.protocol = j.protocol;
@@ -763,7 +763,7 @@ void upnp::next(rootdevice& d, int i)
 	else
 	{
 		std::vector<mapping_t>::iterator j = std::find_if(d.mapping.begin(), d.mapping.end()
-			, [] (mapping_t const& m) { return m.action != mapping_t::action::none; });
+			, [] (mapping_t const& m) { return m.act != mapping_t::action::none; });
 		if (j == d.mapping.end()) return;
 
 		update_map(d, j - d.mapping.begin());
@@ -783,13 +783,13 @@ void upnp::update_map(rootdevice& d, int i)
 
 	mapping_t& m = d.mapping[i];
 
-	if (m.action == mapping_t::action::none
+	if (m.act == mapping_t::action::none
 		|| m.protocol == portmap_protocol::none)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		log("mapping %u does not need updating, skipping", i);
 #endif
-		m.action = mapping_t::action::none;
+		m.act = mapping_t::action::none;
 		next(d, i);
 		return;
 	}
@@ -800,11 +800,11 @@ void upnp::update_map(rootdevice& d, int i)
 #ifndef TORRENT_DISABLE_LOGGING
 	log("connecting to %s", d.hostname.c_str());
 #endif
-	if (m.action == mapping_t::action::add)
+	if (m.act == mapping_t::action::add)
 	{
 		if (m.failcount > 5)
 		{
-			m.action = mapping_t::action::none;
+			m.act = mapping_t::action::none;
 			// giving up
 			next(d, i);
 			return;
@@ -820,7 +820,7 @@ void upnp::update_map(rootdevice& d, int i)
 		d.upnp_connection->start(d.hostname, d.port
 			, seconds(10), 1);
 	}
-	else if (m.action == mapping_t::action::del)
+	else if (m.act == mapping_t::action::del)
 	{
 		if (d.upnp_connection) d.upnp_connection->close();
 		d.upnp_connection.reset(new http_connection(m_io_service
@@ -832,7 +832,7 @@ void upnp::update_map(rootdevice& d, int i)
 			, seconds(10), 1);
 	}
 
-	m.action = mapping_t::action::none;
+	m.act = mapping_t::action::none;
 }
 
 void upnp::delete_port_mapping(rootdevice& d, int i)
@@ -1414,7 +1414,7 @@ void upnp::on_upnp_map_response(error_code const& e
 	{
 		// only permanent leases supported
 		d.lease_duration = 0;
-		m.action = mapping_t::action::add;
+		m.act = mapping_t::action::add;
 		++m.failcount;
 		update_map(d, mapping);
 		return;
@@ -1429,7 +1429,7 @@ void upnp::on_upnp_map_response(error_code const& e
 		// The external port conflicts with another mapping
 		// pick a random port
 		m.external_port = 40000 + random(10000);
-		m.action = mapping_t::action::add;
+		m.act = mapping_t::action::add;
 		++m.failcount;
 		update_map(d, mapping);
 		return;
@@ -1627,12 +1627,12 @@ void upnp::close()
 			, end2(d.mapping.end()); j != end2; ++j)
 		{
 			if (j->protocol == portmap_protocol::none) continue;
-			if (j->action == mapping_t::action::add)
+			if (j->act == mapping_t::action::add)
 			{
-				j->action = mapping_t::action::none;
+				j->act = mapping_t::action::none;
 				continue;
 			}
-			j->action = mapping_t::action::del;
+			j->act = mapping_t::action::del;
 			m_mappings[j - d.mapping.begin()].protocol = portmap_protocol::none;
 		}
 		if (num_mappings() > 0) update_map(d, 0);
