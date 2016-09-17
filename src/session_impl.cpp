@@ -5669,8 +5669,7 @@ namespace aux {
 	{
 		m_settings.set_bool(settings_pack::enable_dht, true);
 		std::vector<char> tmp;
-		std::back_insert_iterator<std::vector<char>> out(tmp);
-		bencode(out, startup_state);
+		bencode(std::back_inserter(tmp), startup_state);
 
 		bdecode_node e;
 		error_code ec;

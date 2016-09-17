@@ -68,13 +68,6 @@ namespace
 		return sett;
 	}
 
-	sha1_hash to_hash(char const *s) {
-		std::stringstream hash(s);
-		sha1_hash ret;
-		hash >> ret;
-		return ret;
-	}
-
 	bool g_storage_constructor_invoked = false;
 
 	std::unique_ptr<dht_storage_interface> dht_custom_storage_constructor(

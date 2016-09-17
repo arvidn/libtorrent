@@ -102,6 +102,13 @@ sha1_hash rand_hash()
 	return ret;
 }
 
+sha1_hash to_hash(char const* s)
+{
+	sha1_hash ret;
+	aux::from_hex({s, 40}, (char*)&ret[0]);
+	return ret;
+}
+
 #if TORRENT_USE_IPV6
 address rand_v6()
 {
@@ -997,6 +1004,14 @@ tcp::endpoint ep(char const* ip, int port)
 {
 	error_code ec;
 	tcp::endpoint ret(address::from_string(ip, ec), std::uint16_t(port));
+	TEST_CHECK(!ec);
+	return ret;
+}
+
+udp::endpoint uep(char const* ip, int port)
+{
+	error_code ec;
+	udp::endpoint ret(address::from_string(ip, ec), std::uint16_t(port));
 	TEST_CHECK(!ec);
 	return ret;
 }

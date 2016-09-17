@@ -56,13 +56,6 @@ namespace
 		g_storage_constructor_invoked = true;
 		return dht_default_storage_constructor(settings);
 	}
-
-	sha1_hash to_hash(char const* s)
-	{
-		sha1_hash ret;
-		aux::from_hex({s, 40}, (char*)&ret[0]);
-		return ret;
-	}
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -118,12 +111,12 @@ TORRENT_TEST(dht_state)
 
 	dht_state s;
 	s.nid = to_hash("0000000000000000000000000000000000000001");
-	s.nodes.push_back(udp::endpoint(addr("1.1.1.1"), 1));
-	s.nodes.push_back(udp::endpoint(addr("2.2.2.2"), 2));
+	s.nodes.push_back(uep("1.1.1.1", 1));
+	s.nodes.push_back(uep("2.2.2.2", 2));
 	// not important that IPv6 is disabled here
 	s.nid6 = to_hash("0000000000000000000000000000000000000002");
-	s.nodes6.push_back(udp::endpoint(addr("3.3.3.3"), 3));
-	s.nodes6.push_back(udp::endpoint(addr("4.4.4.4"), 4));
+	s.nodes6.push_back(uep("3.3.3.3", 3));
+	s.nodes6.push_back(uep("4.4.4.4", 4));
 
 	session_params params(p);
 	params.dht_settings = sett;
@@ -135,8 +128,7 @@ TORRENT_TEST(dht_state)
 	ses1.save_state(e);
 
 	std::vector<char> tmp;
-	std::back_insert_iterator<std::vector<char>> out(tmp);
-	bencode(out, e);
+	bencode(std::back_inserter(tmp), e);
 
 	bdecode_node n;
 	error_code ec;

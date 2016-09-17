@@ -68,14 +68,6 @@ namespace
 		return sett;
 	}
 
-	sha1_hash to_hash(char const *s) {
-		std::stringstream hash(s);
-		sha1_hash ret;
-		hash >> ret;
-		TORRENT_ASSERT(!hash.fail());
-		return ret;
-	}
-
 	std::unique_ptr<dht_storage_interface> create_default_dht_storage(
 		dht_settings const& sett)
 	{

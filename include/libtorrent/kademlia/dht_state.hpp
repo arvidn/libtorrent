@@ -58,10 +58,6 @@ namespace dht
 	struct TORRENT_EXPORT dht_state
 	{
 		dht_state() = default;
-		dht_state(dht_state const&) = default;
-		dht_state(dht_state&&) = default;
-		dht_state& operator=(dht_state const&) = default;
-		dht_state& operator=(dht_state&&) = default;
 
 		// the id of the IPv4 node
 		node_id nid;

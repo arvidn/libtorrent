@@ -561,8 +561,9 @@ namespace libtorrent { namespace dht
 		v->push_back(e.ep());
 	}
 
-	void save_nodes(std::vector<udp::endpoint>& ret, node const& dht)
+	std::vector<udp::endpoint> save_nodes(node const& dht)
 	{
+		std::vector<udp::endpoint> ret;
 		dht.m_table.for_each_node(&add_node_fun, &add_node_fun, &ret);
 		bucket_t cache;
 		dht.replacement_cache(cache);
@@ -570,6 +571,7 @@ namespace libtorrent { namespace dht
 		{
 			ret.push_back(b.ep());
 		}
+		return ret;
 	}
 
 	} // anonymous namespace
@@ -578,10 +580,10 @@ namespace libtorrent { namespace dht
 	{
 		dht_state ret;
 		ret.nid = m_dht.nid();
-		save_nodes(ret.nodes, m_dht);
+		ret.nodes = save_nodes(m_dht);
 #if TORRENT_USE_IPV6
 		ret.nid6 = m_dht6.nid();
-		save_nodes(ret.nodes6, m_dht6);
+		ret.nodes6 = save_nodes(m_dht6);
 #endif
 		return ret;
 	}

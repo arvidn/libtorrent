@@ -48,19 +48,18 @@ namespace
 		return node_id(nid);
 	}
 
-	void save_nodes(entry& ret, std::vector<udp::endpoint> const& v
-		, std::string const& key)
+	entry save_nodes(std::vector<udp::endpoint> const& nodes)
 	{
-		entry nodes(entry::list_t);
-		for (auto const& ep : v)
+		entry ret(entry::list_t);
+		entry::list_type& list = ret.list();
+		for (auto const& ep : nodes)
 		{
 			std::string node;
 			std::back_insert_iterator<std::string> out(node);
 			detail::write_endpoint(ep, out);
-			nodes.list().push_back(entry(node));
+			list.push_back(entry(node));
 		}
-		if (!nodes.list().empty())
-			ret[key] = nodes;
+		return ret;
 	}
 } // anonymous namespace
 
@@ -75,15 +74,11 @@ namespace
 		ret.nid6 = extract_node_id(e, "node-id6");
 #endif
 
-		TORRENT_TRY {
-			if (bdecode_node const nodes = e.dict_find_list("nodes"))
-				detail::read_endpoint_list<udp::endpoint>(nodes, ret.nodes);
-		} TORRENT_CATCH(std::exception&) {}
+		if (bdecode_node const nodes = e.dict_find_list("nodes"))
+			detail::read_endpoint_list<udp::endpoint>(nodes, ret.nodes);
 #if TORRENT_USE_IPV6
-		TORRENT_TRY{
-			if (bdecode_node const nodes = e.dict_find_list("nodes6"))
-				detail::read_endpoint_list<udp::endpoint>(nodes, ret.nodes6);
-		} TORRENT_CATCH(std::exception&) {}
+		if (bdecode_node const nodes = e.dict_find_list("nodes6"))
+			detail::read_endpoint_list<udp::endpoint>(nodes, ret.nodes6);
 #endif
 
 		return ret;
@@ -93,10 +88,12 @@ namespace
 	{
 		entry ret(entry::dictionary_t);
 		ret["node-id"] = state.nid.to_string();
-		save_nodes(ret, state.nodes, "nodes");
+		entry const nodes = save_nodes(state.nodes);
+		if (!nodes.list().empty()) ret["nodes"] = nodes;
 #if TORRENT_USE_IPV6
 		ret["node-id6"] = state.nid6.to_string();
-		save_nodes(ret, state.nodes6, "nodes6");
+		entry const nodes6 = save_nodes(state.nodes6);
+		if (!nodes6.list().empty()) ret["nodes6"] = nodes6;
 #endif
 		return ret;
 	}

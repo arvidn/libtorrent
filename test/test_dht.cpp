@@ -64,13 +64,6 @@ using namespace std::placeholders;
 
 namespace {
 
-sha1_hash to_hash(char const* s)
-{
-	sha1_hash ret;
-	aux::from_hex({s, 40}, (char*)&ret[0]);
-	return ret;
-}
-
 void get_test_keypair(public_key& pk, secret_key& sk)
 {
 	aux::from_hex({"77ff84905a91936367c01360803104f92432fcd904a43511876df5cdf3e7e548", 64}, pk.bytes.data());
@@ -3381,18 +3374,17 @@ TORRENT_TEST(dht_state)
 	dht_state s;
 
 	s.nid = to_hash("0000000000000000000000000000000000000001");
-	s.nodes.push_back(udp::endpoint(addr("1.1.1.1"), 1));
-	s.nodes.push_back(udp::endpoint(addr("2.2.2.2"), 2));
+	s.nodes.push_back(uep("1.1.1.1", 1));
+	s.nodes.push_back(uep("2.2.2.2", 2));
 	// not important that IPv6 is disabled here
 	s.nid6 = to_hash("0000000000000000000000000000000000000002");
-	s.nodes6.push_back(udp::endpoint(addr("3.3.3.3"), 3));
-	s.nodes6.push_back(udp::endpoint(addr("4.4.4.4"), 4));
+	s.nodes6.push_back(uep("3.3.3.3", 3));
+	s.nodes6.push_back(uep("4.4.4.4", 4));
 
 	entry const e = save_dht_state(s);
 
 	std::vector<char> tmp;
-	std::back_insert_iterator<std::vector<char>> out(tmp);
-	bencode(out, e);
+	bencode(std::back_inserter(tmp), e);
 
 	bdecode_node n;
 	error_code ec;
