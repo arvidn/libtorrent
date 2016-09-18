@@ -96,18 +96,6 @@ namespace libtorrent
 
 	namespace
 	{
-		bool compare_string(char const* str, int len, std::string const& str2)
-		{
-			if (str2.size() != len) return false;
-			return memcmp(str2.c_str(), str, len) == 0;
-		}
-
-		bool compare_file_entry_size(internal_file_entry const& fe1
-			, internal_file_entry const& fe2)
-		{
-			return fe1.size < fe2.size;
-		}
-
 		bool compare_file_offset(internal_file_entry const& lhs
 			, internal_file_entry const& rhs)
 		{
@@ -156,7 +144,7 @@ namespace libtorrent
 			&& std::memcmp(branch_path, m_name.c_str(), m_name.size()) == 0)
 		{
 			// the +1 is to skip the trailing '/' (or '\')
-			int offset = int(m_name.size())
+			int const offset = int(m_name.size())
 				+ (m_name.size() == branch_len?0:1);
 			branch_path += offset;
 			branch_len -= offset;
@@ -168,9 +156,12 @@ namespace libtorrent
 		}
 
 		// do we already have this path in the path list?
-		std::vector<std::string>::reverse_iterator p
-			= std::find_if(m_paths.rbegin(), m_paths.rend()
-				, std::bind(&compare_string, branch_path, branch_len, _1));
+		auto p = std::find_if(m_paths.rbegin(), m_paths.rend()
+			, [&] (std::string const& str)
+			{
+				if (str.size() != branch_len) return false;
+				return memcmp(str.c_str(), branch_path, branch_len) == 0;
+			});
 
 		if (p == m_paths.rend())
 		{
@@ -403,7 +394,7 @@ namespace libtorrent
 		target.offset = offset;
 		TORRENT_ASSERT(!compare_file_offset(target, m_files.front()));
 
-		std::vector<internal_file_entry>::const_iterator file_iter = std::upper_bound(
+		auto file_iter = std::upper_bound(
 			begin_deprecated(), end_deprecated(), target, compare_file_offset);
 
 		TORRENT_ASSERT(file_iter != begin_deprecated());
@@ -424,7 +415,7 @@ namespace libtorrent
 		target.offset = offset;
 		TORRENT_ASSERT(!compare_file_offset(target, m_files.front()));
 
-		std::vector<internal_file_entry>::const_iterator file_iter = std::upper_bound(
+		auto file_iter = std::upper_bound(
 			m_files.begin(), m_files.end(), target, compare_file_offset);
 
 		TORRENT_ASSERT(file_iter != m_files.begin());
@@ -463,7 +454,7 @@ namespace libtorrent
 		if (std::int64_t(target.offset + size) > m_total_size)
 			size = m_total_size - target.offset;
 
-		std::vector<internal_file_entry>::const_iterator file_iter = std::upper_bound(
+		auto file_iter = std::upper_bound(
 			m_files.begin(), m_files.end(), target, compare_file_offset);
 
 		TORRENT_ASSERT(file_iter != m_files.begin());
@@ -969,11 +960,13 @@ namespace libtorrent
 #endif // TORRENT_DEPRECATED
 	}
 
-	void file_storage::optimize(int pad_file_limit, int alignment
-		, bool tail_padding)
+	void file_storage::optimize(int const pad_file_limit, int alignment
+		, bool const tail_padding)
 	{
 		if (alignment == -1)
 			alignment = m_piece_length;
+
+		// TODO: padfiles should be removed
 
 		std::int64_t off = 0;
 		int padding_file = 0;
@@ -983,10 +976,24 @@ namespace libtorrent
 			if ((off % alignment) == 0)
 			{
 				// this file position is aligned, pick the largest
-				// available file to put here
-				std::vector<internal_file_entry>::iterator best_match
-					= std::max_element(i, m_files.end()
-						, &compare_file_entry_size);
+				// available file to put here. If we encounter a file whose size is
+				// divisible by `alignment`, we pick that immediately, since that
+				// will not affect whether we're at an aligned position and will
+				// improve packing of files
+				std::vector<internal_file_entry>::iterator best_match = i;
+				for (auto k = i; k != m_files.end(); ++k)
+				{
+					// a file whose size fits the alignment always takes priority,
+					// since it will let us keep placing aligned files
+					if ((k->size % alignment) == 0)
+					{
+						best_match = k;
+						break;
+					}
+					// otherwise, pick the largest file, to have as many bytes be
+					// aligned.
+					if (best_match->size < k->size) best_match = k;
+				}
 
 				if (best_match != i)
 				{
@@ -1062,14 +1069,15 @@ namespace libtorrent
 				// skip the file we just put in place, so we put the pad
 				// file after it
 				++i;
-				if (i == m_files.end()) break;
 
 				// tail-padding is enabled, and the offset after this file is not
-				// aligned and it's not the last file. The last file must be padded
-				// too, in order to match an equivalent tail-padded file.
+				// aligned. The last file must be padded too, in order to match an
+				// equivalent tail-padded file.
 				add_pad_file(alignment - (off % alignment), i, off, padding_file);
 
 				TORRENT_ASSERT((off % alignment) == 0);
+
+				if (i == m_files.end()) break;
 			}
 		}
 		m_total_size = off;
@@ -1080,8 +1088,8 @@ namespace libtorrent
 		, std::int64_t& offset
 		, int& pad_file_counter)
 	{
-		int cur_index = i - m_files.begin();
-		int index = int(m_files.size());
+		int const cur_index = i - m_files.begin();
+		int const index = int(m_files.size());
 		m_files.push_back(internal_file_entry());
 		++m_num_files;
 		internal_file_entry& e = m_files.back();
@@ -1104,7 +1112,7 @@ namespace libtorrent
 		if (!m_file_base.empty()) m_file_base.resize(index + 1, 0);
 #endif
 
-		reorder_file(index, cur_index);
+		if (index != cur_index) reorder_file(index, cur_index);
 	}
 
 	void file_storage::unload()
