@@ -75,10 +75,10 @@ namespace
 #endif
 
 		if (bdecode_node const nodes = e.dict_find_list("nodes"))
-			detail::read_endpoint_list<udp::endpoint>(nodes, ret.nodes);
+			ret.nodes = detail::read_endpoint_list<udp::endpoint>(nodes);
 #if TORRENT_USE_IPV6
 		if (bdecode_node const nodes = e.dict_find_list("nodes6"))
-			detail::read_endpoint_list<udp::endpoint>(nodes, ret.nodes6);
+			ret.nodes6 = detail::read_endpoint_list<udp::endpoint>(nodes);
 #endif
 
 		return ret;

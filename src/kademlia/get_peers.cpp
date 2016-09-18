@@ -96,7 +96,7 @@ void get_peers_observer::reply(msg const& m)
 		else
 		{
 			// assume it's uTorrent/libtorrent format
-			read_endpoint_list<tcp::endpoint>(n, peer_list);
+			peer_list = read_endpoint_list<tcp::endpoint>(n);
 #ifndef TORRENT_DISABLE_LOGGING
 			auto logger = get_observer();
 			if (logger != nullptr && logger->should_log(dht_logger::traversal))
