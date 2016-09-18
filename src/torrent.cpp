@@ -882,7 +882,9 @@ namespace libtorrent
 				));
 		aux::proxy_settings ps = m_ses.proxy();
 		conn->get(m_url, seconds(30), 0, &ps
-			, 5, settings().get_str(settings_pack::user_agent));
+			, 5
+			, settings().get_bool(settings_pack::anonymous_mode)
+				? "" : settings().get_str(settings_pack::user_agent));
 		set_state(torrent_status::downloading_metadata);
 	}
 

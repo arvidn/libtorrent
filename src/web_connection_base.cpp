@@ -140,7 +140,8 @@ namespace libtorrent
 	{
 		request += "Host: ";
 		request += m_host;
-		if (m_first_request || m_settings.get_bool(settings_pack::always_send_user_agent)) {
+		if ((m_first_request || m_settings.get_bool(settings_pack::always_send_user_agent))
+			&& !m_settings.get_bool(settings_pack::anonymous_mode)) {
 			request += "\r\nUser-Agent: ";
 			request += m_settings.get_str(settings_pack::user_agent);
 		}

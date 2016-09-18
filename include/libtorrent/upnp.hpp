@@ -138,6 +138,8 @@ public:
 		, bool ignore_nonrouters);
 	~upnp();
 
+	void set_user_agent(std::string const& v) { m_user_agent = v; }
+
 	void start();
 
 	enum protocol_type { none = 0, udp = 1, tcp = 2 };
@@ -357,7 +359,7 @@ private:
 
 	std::vector<global_mapping_t> m_mappings;
 
-	std::string const& m_user_agent;
+	std::string m_user_agent;
 
 	// the set of devices we've found
 	std::set<rootdevice> m_devices;
