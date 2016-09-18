@@ -149,7 +149,7 @@ private:
 	deadline_timer m_refresh_timer;
 
 	// the mapping index that will expire next
-	int m_next_refresh = 1;
+	int m_next_refresh = -1;
 
 	bool m_disabled = false;
 

@@ -256,11 +256,7 @@ private:
 	struct rootdevice
 	{
 #if TORRENT_USE_ASSERTS
-		rootdevice()
-		{
-			magic = 1337;
-		}
-
+		rootdevice() {}
 		~rootdevice()
 		{
 			TORRENT_ASSERT(magic == 1337);
@@ -307,7 +303,7 @@ private:
 		mutable std::shared_ptr<http_connection> upnp_connection;
 
 #if TORRENT_USE_ASSERTS
-		int magic;
+		int magic = 1337;
 #endif
 		void close() const
 		{
