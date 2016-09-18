@@ -277,8 +277,6 @@ namespace libtorrent
 	// peer IDs, node IDs etc.
 	using sha1_hash = digest32<160>;
 
-	typedef sha1_hash peer_id;
-
 #if TORRENT_USE_IOSTREAM
 
 	// print a sha1_hash object to an ostream as 40 hexadecimal digits
