@@ -1,3 +1,4 @@
+	* improve file layout optimization when creating torrents with padfiles
 	* remove remote_dl_rate feature
 	* source code migration from boost::shared_ptr to std::shared_ptr
 	* storage_interface API changed to use span and references
