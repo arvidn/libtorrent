@@ -87,7 +87,7 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 		, priority(0)
 #endif
-		, state(checking_resume_data)
+		, state(torrent_status::checking_resume_data)
 		, need_save_resume(false)
 		, ip_filter_applies(true)
 		, upload_mode(false)
