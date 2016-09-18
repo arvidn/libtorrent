@@ -222,7 +222,7 @@ namespace
 					max /= 4;
 				// we're picking "to_pick" from a list of "num" at random.
 				int const to_pick = std::min(int(v.peers.size()), max);
-				auto iter = v.peers.begin();
+				std::set<peer_entry>::const_iterator iter = v.peers.begin();
 				entry::list_type& pe = peers["values"].list();
 
 				for (int t = 0, m = 0; m < to_pick && iter != v.peers.end(); ++iter)
