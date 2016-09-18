@@ -211,7 +211,66 @@ TORRENT_TEST(file_path_hash)
 	TEST_EQUAL(file_hash0, file_hash1);
 }
 
-// TODO: test file_storage::optimize
+// make sure we pad the end of the torrent when tail_padding is specified
+TORRENT_TEST(optimize_tail_padding)
+{
+	file_storage fs;
+	fs.set_piece_length(512);
+	fs.add_file(combine_path("s", "1"), 700);
+
+	fs.optimize(512, 512, true);
+
+	// since the size of file 3 is a multiple of the alignment (512), it should
+	// be prioritized, to minimize the amount of padding.
+	// after that, we want to pick the largest file (2), and since file 1 is
+	// smaller than the pad-file limit (512) we won't pad it. Since tail_padding
+	// is false, we won't pad the tail of the torrent either
+
+	TEST_EQUAL(fs.num_files(), 2);
+
+	TEST_EQUAL(fs.file_size(0), 700);
+	TEST_EQUAL(fs.file_name(0), "1");
+	TEST_EQUAL(fs.pad_file_at(0), false);
+
+	TEST_EQUAL(fs.file_size(1), 1024 - 700);
+	TEST_EQUAL(fs.pad_file_at(1), true);
+}
+
+
+// make sure we fill in padding with small files
+TORRENT_TEST(optimize_pad_fillers)
+{
+	file_storage fs;
+	fs.set_piece_length(512);
+	fs.add_file(combine_path("s", "1"), 1);
+	fs.add_file(combine_path("s", "2"), 1000);
+	fs.add_file(combine_path("s", "3"), 1001);
+
+	fs.optimize(512, 512, false);
+
+	// first we pick the largest file, then we need to add padding, since file 1
+	// is smaller than the pad file limit, it won't be aligned anyway, so we
+	// place that as part of the padding
+
+	TEST_EQUAL(fs.num_files(), 4);
+
+	TEST_EQUAL(fs.file_size(0), 1001);
+	TEST_EQUAL(fs.file_name(0), "3");
+	TEST_EQUAL(fs.pad_file_at(0), false);
+
+	TEST_EQUAL(fs.file_size(1), 1);
+	TEST_EQUAL(fs.file_name(1), "1");
+	TEST_EQUAL(fs.pad_file_at(1), false);
+
+	TEST_EQUAL(fs.file_size(2), 1024 - (1001 + 1));
+	TEST_EQUAL(fs.pad_file_at(2), true);
+
+	TEST_EQUAL(fs.file_size(3), 1000);
+	TEST_EQUAL(fs.file_name(3), "2");
+	TEST_EQUAL(fs.pad_file_at(3), false);
+}
+
+// TODO: add more optimize() tests
 // TODO: test map_block
 // TODO: test piece_size(int piece)
 // TODO: test file_index_at_offset
