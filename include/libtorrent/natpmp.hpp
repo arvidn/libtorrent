@@ -55,10 +55,10 @@ struct TORRENT_EXTRA_EXPORT natpmp
 
 	// maps the ports, if a port is set to 0
 	// it will not be mapped
-	enum protocol_type { none = 0, udp = 1, tcp = 2 };
-	int add_mapping(protocol_type p, int external_port, int local_port);
+	int add_mapping(aux::portmap_protocol p, int external_port, int local_port);
 	void delete_mapping(int mapping_index);
-	bool get_mapping(int mapping_index, int& local_port, int& external_port, int& protocol) const;
+	bool get_mapping(int mapping_index, int& local_port, int& external_port
+		, aux::portmap_protocol& protocol) const;
 
 	void close();
 
@@ -86,39 +86,31 @@ private:
 
 	struct mapping_t
 	{
-		enum action_t { action_none, action_add, action_delete };
-		mapping_t()
-			: action(action_none)
-			, local_port(0)
-			, external_port(0)
-			, protocol(none)
-			, map_sent(false)
-			, outstanding_request(false)
-		{}
+		enum class action : std::uint8_t { none, add, del };
 
 		// indicates that the mapping has changed
 		// and needs an update
-		int action;
+		action act = action::none;
 
 		// the time the port mapping will expire
 		time_point expires;
 
 		// the local port for this mapping. If this is set
 		// to 0, the mapping is not in use
-		int local_port;
+		int local_port = 0;
 
 		// the external (on the NAT router) port
 		// for the mapping. This is the port we
 		// should announce to others
-		int external_port;
+		int external_port = 0;
 
-		int protocol;
+		aux::portmap_protocol protocol = aux::portmap_protocol::none;
 
 		// set to true when the first map request is sent
-		bool map_sent;
+		bool map_sent = false;
 
 		// set to true while we're waiting for a response
-		bool outstanding_request;
+		bool outstanding_request = false;
 	};
 
 	aux::portmap_callback& m_callback;
@@ -131,10 +123,10 @@ private:
 	// this is the mapping that is currently
 	// being updated. It is -1 in case no
 	// mapping is being updated at the moment
-	int m_currently_mapping;
+	int m_currently_mapping = -1;
 
 	// current retry count
-	int m_retry_count;
+	int m_retry_count = 0;
 
 	// used to receive responses in
 	char m_response_buffer[16];
@@ -157,11 +149,11 @@ private:
 	deadline_timer m_refresh_timer;
 
 	// the mapping index that will expire next
-	int m_next_refresh;
+	int m_next_refresh = -1;
 
-	bool m_disabled;
+	bool m_disabled = false;
 
-	bool m_abort;
+	bool m_abort = false;
 };
 
 }

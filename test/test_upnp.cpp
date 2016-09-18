@@ -43,6 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace lt = libtorrent;
 using namespace libtorrent;
 
+using libtorrent::aux::portmap_protocol;
+
 broadcast_socket* sock = nullptr;
 int g_port = 0;
 
@@ -118,13 +120,14 @@ namespace
 	struct upnp_callback : aux::portmap_callback
 	{
 		void on_port_mapping(int mapping, address const& ip, int port
-			, int protocol, error_code const& err
+			, portmap_protocol const protocol, error_code const& err
 			, aux::portmap_transport transport) override
 		{
 			callback_info info = {mapping, port, err};
 			callbacks.push_back(info);
 			std::cerr << "mapping: " << mapping << ", port: " << port << ", IP: " << ip
-				<< ", proto: " << protocol << ", error: \"" << err.message() << "\"\n";
+				<< ", proto: " << static_cast<int>(protocol)
+				<< ", error: \"" << err.message() << "\"\n";
 		}
 	#ifndef TORRENT_DISABLE_LOGGING
 		virtual bool should_log_portmap(aux::portmap_transport transport) const override
@@ -195,8 +198,8 @@ void run_upnp_test(char const* root_filename, char const* router_model, char con
 	std::cerr << "router: " << upnp_handler->router_model() << std::endl;
 	TEST_EQUAL(upnp_handler->router_model(), router_model);
 
-	int mapping1 = upnp_handler->add_mapping(upnp::tcp, 500, 500);
-	int mapping2 = upnp_handler->add_mapping(upnp::udp, 501, 501);
+	int mapping1 = upnp_handler->add_mapping(portmap_protocol::tcp, 500, 500);
+	int mapping2 = upnp_handler->add_mapping(portmap_protocol::udp, 501, 501);
 
 	for (int i = 0; i < 40; ++i)
 	{

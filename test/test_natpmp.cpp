@@ -39,18 +39,20 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
+using libtorrent::aux::portmap_protocol;
+
 namespace
 {
 	struct natpmp_callback : aux::portmap_callback
 	{
 		void on_port_mapping(int mapping, address const& ip, int port
-			, int protocol, error_code const& err
+			, portmap_protocol const protocol, error_code const& err
 			, aux::portmap_transport transport) override
 		{
 			std::cerr
 				<< "mapping: " << mapping
 				<< ", port: " << port
-				<< ", protocol: " << protocol
+				<< ", protocol: " << static_cast<int>(protocol)
 				<< ", external-IP: " << print_address(ip)
 				<< ", error: \"" << err.message() << "\"\n";
 		}
@@ -84,8 +86,8 @@ int main(int argc, char* argv[])
 
 	deadline_timer timer(ios);
 
-	int const tcp_map = natpmp_handler->add_mapping(natpmp::tcp, atoi(argv[1]), atoi(argv[1]));
-	natpmp_handler->add_mapping(natpmp::udp, atoi(argv[2]), atoi(argv[2]));
+	int const tcp_map = natpmp_handler->add_mapping(portmap_protocol::tcp, atoi(argv[1]), atoi(argv[1]));
+	natpmp_handler->add_mapping(portmap_protocol::udp, atoi(argv[2]), atoi(argv[2]));
 
 	error_code ec;
 	timer.expires_from_now(seconds(2), ec);
