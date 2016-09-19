@@ -8272,8 +8272,7 @@ namespace libtorrent
 			else if (m_state == torrent_status::downloading_metadata
 				|| m_state == torrent_status::downloading
 				|| m_state == torrent_status::finished
-				|| m_state == torrent_status::seeding
-				|| m_state == torrent_status::downloading)
+				|| m_state == torrent_status::seeding)
 			{
 				// torrents that are started (not paused) and
 				// inactive are not part of any list. They will not be touched because
