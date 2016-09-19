@@ -589,7 +589,7 @@ namespace libtorrent
 			if (index < 0 || index >= settings_pack::num_string_settings)
 				continue;
 
-			// if the vaue did not change, don't call the update callback
+			// if the value did not change, don't call the update callback
 			if (sett.get_str(p.first) == p.second) continue;
 
 			sett.set_str(p.first, p.second);
@@ -612,7 +612,7 @@ namespace libtorrent
 			if (index < 0 || index >= settings_pack::num_int_settings)
 				continue;
 
-			// if the vaue did not change, don't call the update callback
+			// if the value did not change, don't call the update callback
 			if (sett.get_int(p.first) == p.second) continue;
 
 			sett.set_int(p.first, p.second);
@@ -634,7 +634,7 @@ namespace libtorrent
 			if (index < 0 || index >= settings_pack::num_bool_settings)
 				continue;
 
-			// if the vaue did not change, don't call the update callback
+			// if the value did not change, don't call the update callback
 			if (sett.get_bool(p.first) == p.second) continue;
 
 			sett.set_bool(p.first, p.second);
