@@ -74,7 +74,7 @@ namespace
 			, m_salt(random(0xffffffff))
 		{}
 
-		void on_piece_pass(int const p) override
+		void on_piece_pass(int p) override
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			m_torrent.debug_log(" PIECE PASS [ p: %d | block_hash_size: %d ]"
