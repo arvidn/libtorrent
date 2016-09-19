@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #include <string>
 
+#include <libtorrent/io.hpp>
 #include <libtorrent/socket_io.hpp>
 #include <libtorrent/aux_/time.hpp>
 #include <libtorrent/config.hpp>
@@ -46,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/bloom_filter.hpp>
 #include <libtorrent/session_settings.hpp>
 #include <libtorrent/random.hpp>
+#include <libtorrent/string_view.hpp>
 
 namespace libtorrent {
 namespace dht {
@@ -115,6 +117,144 @@ namespace
 			++f.num_announcers;
 		}
 	}
+
+	// --- begin default storage serialization ---------
+
+	bool read_immutable_item(bdecode_node const& n, dht_immutable_item& item)
+	{
+		if (n.type() != bdecode_node::dict_t) return false;
+
+		bdecode_node data;
+
+		data = n.dict_find_string("val");
+		if (!data) return false;
+		item.size = data.string_length();
+		item.value.reset(new char[item.size]);
+		std::memcpy(item.value.get(), data.string_ptr(), item.size);
+
+		data = n.dict_find_string("ips");
+		if (!data || data.string_length() != 128) return false;
+		item.ips.from_string(data.string_ptr());
+
+		data = n.dict_find_string("ext");
+		if (!data || data.string_length() != (8 + 4)) return false;
+		char const* ptr = data.string_ptr();
+		item.last_seen = time_point(seconds(detail::read_int64(ptr)));
+		item.num_announcers = detail::read_int32(ptr);
+
+		return true;
+	}
+
+	entry write_immutable_item(dht_immutable_item const& item)
+	{
+		entry ret(entry::dictionary_t);
+
+		ret["val"] = std::string(item.value.get(), item.size);
+		ret["ips"] = item.ips.to_string();
+
+		entry::string_type& d = ret["ext"].string();
+		d.resize((8 + 4));
+		char* ptr = &d[0];
+		detail::write_int64(total_seconds(item.last_seen.time_since_epoch()), ptr);
+		detail::write_int32(item.num_announcers, ptr);
+
+		return ret;
+	}
+
+	bool read_mutable_item(bdecode_node const& n, dht_mutable_item& item)
+	{
+		if (!read_immutable_item(n, item)) return false;
+
+		bdecode_node data;
+
+		data = n.dict_find_string("sig");
+		if (!data || data.string_length() != item.sig.len) return false;
+		std::memcpy(item.sig.bytes.data(), data.string_ptr(), item.sig.len);
+
+		data = n.dict_find_int("seq");
+		if (!data) return false;
+		item.seq.value = std::uint64_t(data.int_value());
+
+		data = n.dict_find_string("key");
+		if (!data || data.string_length() != item.key.len) return false;
+		std::memcpy(item.key.bytes.data(), data.string_ptr(), item.key.len);
+
+		data = n.dict_find_string("slt");
+		if (!data) return false;
+		item.salt = data.string_value().to_string();
+
+		return true;
+	}
+
+	entry write_mutable_item(dht_mutable_item const& item)
+	{
+		entry ret = write_immutable_item(item);
+
+		ret["sig"] = std::string(item.sig.bytes.data(), item.sig.len);
+		ret["seq"] = std::int64_t(item.seq.value);
+		ret["key"] = std::string(item.key.bytes.data(), item.key.len);
+		ret["slt"] = item.salt;
+
+		return ret;
+	}
+
+	std::map<node_id, dht_immutable_item> read_immutable_items(
+		libtorrent::bdecode_node const& n)
+	{
+		std::map<node_id, dht_immutable_item> ret;
+		if (n.type() != bdecode_node::dict_t) return ret;
+		for (int i = 0; i < n.dict_size(); i++)
+		{
+			std::pair<string_view, bdecode_node> const p = n.dict_at(i);
+
+			if (int(p.first.size()) != 20) continue;
+
+			dht_immutable_item item;
+			if (!read_immutable_item(p.second, item)) continue;
+
+			ret.insert(std::make_pair(node_id(p.first), std::move(item)));
+		}
+		return ret;
+	}
+
+	entry write_immutable_items(
+		std::map<node_id, dht_immutable_item> const& items)
+	{
+		entry ret(entry::dictionary_t);
+		for (auto const& p : items)
+			ret[p.first.to_string()] = write_immutable_item(p.second);
+		return ret;
+	}
+
+	std::map<node_id, dht_mutable_item> read_mutable_items(
+		libtorrent::bdecode_node const& n)
+	{
+		std::map<node_id, dht_mutable_item> ret;
+		if (n.type() != bdecode_node::dict_t) return ret;
+		for (int i = 0; i < n.dict_size(); i++)
+		{
+			std::pair<string_view, bdecode_node> const p = n.dict_at(i);
+
+			if (int(p.first.size()) != 20) continue;
+
+			dht_mutable_item item;
+			if (!read_mutable_item(p.second, item)) continue;
+
+			ret.insert(std::make_pair(node_id(p.first), std::move(item)));
+		}
+		return ret;
+	}
+
+	entry write_mutable_items(
+		std::map<node_id, dht_mutable_item> const& items)
+	{
+		entry ret(entry::dictionary_t);
+		for (auto const& p : items)
+			ret[p.first.to_string()] = write_mutable_item(p.second);
+		return ret;
+	}
+
+	// --- end default storage serialization ---------
 
 	// return true of the first argument is a better candidate for removal, i.e.
 	// less important to keep
@@ -501,6 +641,49 @@ namespace
 		dht_storage_counters counters() const override
 		{
 			return m_counters;
+		}
+
+		void load_state(std::vector<char> const& state) override
+		{
+			bdecode_node e;
+			error_code ec;
+			int r = bdecode(state.data(), state.data() + int(state.size()), e, ec);
+			if (r || e.type() != bdecode_node::dict_t) return;
+
+			if (e.dict_find_string_value("type") != "dht_default_storage.v1")
+				return;
+
+			if (bdecode_node const items = e.dict_find_dict("immutable-items"))
+			{
+				m_immutable_table = read_immutable_items(items);
+				m_counters.immutable_data = int(m_immutable_table.size());
+			}
+			if (bdecode_node const items = e.dict_find_dict("mutable-items"))
+			{
+				m_mutable_table = read_mutable_items(items);
+				m_counters.mutable_data = int(m_mutable_table.size());
+			}
+		}
+
+		virtual std::vector<char> save_state() const override
+		{
+			entry e(entry::dictionary_t);
+
+			e["type"] = "dht_default_storage.v1";
+
+			// the torrents table is not saved to avoid stale data
+
+			entry const immutable_items = write_immutable_items(m_immutable_table);
+			if (!immutable_items.dict().empty())
+				e["immutable-items"] = immutable_items;
+			entry const mutable_items = write_mutable_items(m_mutable_table);
+			if (!mutable_items.dict().empty())
+				e["mutable-items"] = mutable_items;
+
+			std::vector<char> ret;
+			bencode(std::back_inserter(ret), e);
+
+			return ret;
 		}
 
 	private:

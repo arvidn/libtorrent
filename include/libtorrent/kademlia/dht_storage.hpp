@@ -216,6 +216,10 @@ namespace dht
 
 		virtual dht_storage_counters counters() const = 0;
 
+		virtual void load_state(std::vector<char> const& state) = 0;
+
+		virtual std::vector<char> save_state() const = 0;
+
 		virtual ~dht_storage_interface() {}
 	};
 

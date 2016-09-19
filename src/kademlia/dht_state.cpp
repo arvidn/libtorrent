@@ -63,6 +63,15 @@ namespace
 	}
 } // anonymous namespace
 
+	void dht_state::clear()
+	{
+		nid.clear();
+		nid6.clear();
+		nodes.clear();
+		nodes6.clear();
+		storage_state.clear();
+	}
+
 	dht_state read_dht_state(bdecode_node const& e)
 	{
 		dht_state ret;
@@ -81,6 +90,12 @@ namespace
 			ret.nodes6 = detail::read_endpoint_list<udp::endpoint>(nodes);
 #endif
 
+		if (bdecode_node const st = e.dict_find_string("storage-state"))
+		{
+			char const* ptr = st.string_ptr();
+			ret.storage_state = {ptr, ptr + st.string_length()};
+		}
+
 		return ret;
 	}
 
@@ -95,6 +110,11 @@ namespace
 		entry const nodes6 = save_nodes(state.nodes6);
 		if (!nodes6.list().empty()) ret["nodes6"] = nodes6;
 #endif
+		if (!state.storage_state.empty())
+		{
+			entry::string_type& st = ret["storage-state"].string();
+			st.assign(state.storage_state.begin(), state.storage_state.end());
+		}
 		return ret;
 	}
 }}

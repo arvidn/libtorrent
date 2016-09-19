@@ -5623,6 +5623,8 @@ namespace aux {
 		m_dht_nodes.clear();
 
 		m_dht->start(startup_state, std::bind(&on_bootstrap, std::ref(m_alerts)));
+
+		m_dht_state.clear();
 	}
 
 	void session_impl::stop_dht()

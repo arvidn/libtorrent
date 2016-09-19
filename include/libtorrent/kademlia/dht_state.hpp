@@ -68,6 +68,13 @@ namespace dht
 		std::vector<udp::endpoint> nodes;
 		// the bootstrap nodes saved from the IPv6 buckets node
 		std::vector<udp::endpoint> nodes6;
+
+		// a blob that allows to reconstruct the state of the
+		// internal DHT storage. This data is very particular
+		// of a storage implementation.
+		std::vector<char> storage_state;
+
+		void clear();
 	};
 
 	TORRENT_EXTRA_EXPORT dht_state read_dht_state(bdecode_node const& e);
