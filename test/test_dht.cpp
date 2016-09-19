@@ -140,9 +140,10 @@ void lazy_from_entry(entry const& e, bdecode_node& l)
 	TEST_CHECK(ret == 0);
 }
 
-void write_peers(entry::dictionary_type& r, std::set<tcp::endpoint> const& peers)
+entry write_peers(std::set<tcp::endpoint> const& peers)
 {
-	entry::list_type& pe = r["values"].list();
+	entry r;
+	entry::list_type& pe = r.list();
 	for (auto const& p : peers)
 	{
 		std::string endpoint(18, '\0');
@@ -151,6 +152,7 @@ void write_peers(entry::dictionary_type& r, std::set<tcp::endpoint> const& peers
 		endpoint.resize(out - endpoint.begin());
 		pe.push_back(entry(endpoint));
 	}
+	return r;
 }
 
 struct msg_args
@@ -200,14 +202,14 @@ struct msg_args
 	msg_args& want(std::string w)
 	{ a["want"].list().push_back(w); return *this; }
 
-	msg_args& nodes(nodes_t const& n)
-	{ if (!n.empty()) dht::write_nodes_entry(a["nodes"], n); return *this; }
+	msg_args& nodes(std::vector<node_entry> const& n)
+	{ if (!n.empty()) a["nodes"] = dht::write_nodes_entry(n); return *this; }
 
-	msg_args& nodes6(nodes_t const& n)
-	{ if (!n.empty()) dht::write_nodes_entry(a["nodes6"], n); return *this; }
+	msg_args& nodes6(std::vector<node_entry> const& n)
+	{ if (!n.empty()) a["nodes6"] = dht::write_nodes_entry(n); return *this; }
 
 	msg_args& peers(std::set<tcp::endpoint> const& p)
-	{ if (!p.empty()) write_peers(a.dict(), p); return *this; }
+	{ if (!p.empty()) a.dict()["values"] = write_peers(p); return *this; }
 
 	entry a;
 };
@@ -1754,7 +1756,7 @@ void test_bootstrap(address(&rand_addr)())
 	}
 
 	udp::endpoint found_node(rand_addr(), 2235);
-	nodes_t nodes;
+	std::vector<node_entry> nodes;
 	nodes.push_back(found_node);
 	g_sent_packets.clear();
 	if (initial_node.address().is_v4())
@@ -1858,7 +1860,7 @@ void test_short_nodes(address(&rand_addr)())
 	}
 
 	udp::endpoint found_node(rand_addr(), 2235);
-	nodes_t nodes;
+	std::vector<node_entry> nodes;
 	nodes.push_back(found_node);
 	g_sent_packets.clear();
 	msg_args args;
@@ -1949,7 +1951,7 @@ void test_get_peers(address(&rand_addr)())
 	peers[0].insert(tcp::endpoint(rand_addr(), 4113));
 
 	udp::endpoint next_node(rand_addr(), 2235);
-	nodes_t nodes;
+	std::vector<node_entry> nodes;
 	nodes.push_back(next_node);
 
 	g_sent_packets.clear();
@@ -2250,7 +2252,7 @@ TORRENT_TEST(immutable_put)
 			std::snprintf(tok, sizeof(tok), "%02d", i);
 
 			msg_args args;
-			args.token(tok).port(1234).nid(nodes[i].id).nodes(nodes_t(1, nodes[i]));
+			args.token(tok).port(1234).nid(nodes[i].id).nodes({nodes[i]});
 			send_dht_response(t.dht_node, response, nodes[i].ep(), args);
 			g_sent_packets.erase(packet);
 		}
@@ -2352,7 +2354,7 @@ TORRENT_TEST(mutable_put)
 			std::snprintf(tok, sizeof(tok), "%02d", i);
 
 			msg_args args;
-			args.token(tok).port(1234).nid(nodes[i].id).nodes(nodes_t(1, nodes[i]));
+			args.token(tok).port(1234).nid(nodes[i].id).nodes({nodes[i]});
 			send_dht_response(t.dht_node, response, nodes[i].ep(), args);
 			g_sent_packets.erase(packet);
 		}
@@ -2472,7 +2474,7 @@ TORRENT_TEST(traversal_done)
 
 		// add the address of the closest node to the first response
 		if (i == 1)
-			args.nodes(nodes_t(1, nodes[8]));
+			args.nodes({nodes[8]});
 
 		send_dht_response(t.dht_node, response, nodes[i].ep(), args);
 		g_sent_packets.erase(packet);

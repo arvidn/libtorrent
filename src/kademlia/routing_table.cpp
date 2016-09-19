@@ -740,7 +740,7 @@ ip_ok:
 
 			for (j = b.begin(); j != b.end(); ++j)
 			{
-				if (!matching_prefix(*j, mask, candidate_prefix, prefix_offset)) continue;
+				if (!matching_prefix(j->id, mask, candidate_prefix, prefix_offset)) continue;
 				nodes.push_back(j);
 			}
 		}

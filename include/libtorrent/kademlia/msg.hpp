@@ -33,9 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_KADEMLIA_MSG_HPP
 #define TORRENT_KADEMLIA_MSG_HPP
 
-#include <string>
 #include "libtorrent/socket.hpp"
-#include "libtorrent/kademlia/node_id.hpp"
 
 namespace libtorrent {
 
@@ -43,10 +41,6 @@ struct bdecode_node;
 class entry;
 
 namespace dht {
-
-typedef std::vector<char> packet_t;
-typedef std::vector<node_entry> nodes_t;
-typedef std::vector<tcp::endpoint> peers_t;
 
 struct msg
 {

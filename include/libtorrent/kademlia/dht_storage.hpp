@@ -39,7 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/types.hpp>
 
 #include <libtorrent/socket.hpp>
-#include <libtorrent/sha1_hash.hpp>
 #include <libtorrent/address.hpp>
 #include <libtorrent/span.hpp>
 #include <libtorrent/string_view.hpp>
@@ -109,7 +108,7 @@ namespace dht
 		// If the torrent tracked contains a name, such a name
 		// must be stored as a string in peers["n"]
 		//
-		// If the scrape parameter is true, you should fill these keys::
+		// If the scrape parameter is true, you should fill these keys:
 		// 
 		//    peers["BFpe"] - with the standard bit representation of a
 		//                    256 bloom filter containing the downloaders

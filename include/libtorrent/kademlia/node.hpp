@@ -72,7 +72,7 @@ namespace libtorrent { namespace dht
 struct traversal_algorithm;
 struct dht_observer;
 
-TORRENT_EXTRA_EXPORT void write_nodes_entry(entry& r, nodes_t const& nodes);
+TORRENT_EXTRA_EXPORT entry write_nodes_entry(std::vector<node_entry> const& nodes);
 
 struct null_type {};
 

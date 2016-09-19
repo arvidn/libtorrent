@@ -759,14 +759,16 @@ void node::lookup_peers(sha1_hash const& info_hash, entry& reply
 	m_storage.get_peers(info_hash, protocol(), noseed, scrape, reply);
 }
 
-void write_nodes_entry(entry& r, nodes_t const& nodes)
+entry write_nodes_entry(std::vector<node_entry> const& nodes)
 {
+	entry r;
 	std::back_insert_iterator<std::string> out(r.string());
 	for (auto const& n : nodes)
 	{
 		std::copy(n.id.begin(), n.id.end(), out);
 		write_endpoint(udp::endpoint(n.addr(), n.port()), out);
 	}
+	return r;
 }
 
 // build response
@@ -1160,9 +1162,9 @@ void node::write_nodes_entries(sha1_hash const& info_hash
 	// entry based on the protocol the request came in with
 	if (want.type() != bdecode_node::list_t)
 	{
-		nodes_t n;
+		std::vector<node_entry> n;
 		m_table.find_node(info_hash, n, 0);
-		write_nodes_entry(r[protocol_nodes_key()], n);
+		r[protocol_nodes_key()] = write_nodes_entry(n);
 		return;
 	}
 
@@ -1178,9 +1180,9 @@ void node::write_nodes_entries(sha1_hash const& info_hash
 			continue;
 		auto wanted_node = m_nodes.find(wanted.string_value().to_string());
 		if (wanted_node == m_nodes.end()) continue;
-		nodes_t n;
+		std::vector<node_entry> n;
 		wanted_node->second->m_table.find_node(info_hash, n, 0);
-		write_nodes_entry(r[wanted_node->second->protocol_nodes_key()], n);
+		r[wanted_node->second->protocol_nodes_key()] = write_nodes_entry(n);
 	}
 }
 
