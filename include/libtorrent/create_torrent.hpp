@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/storage.hpp"
 #include "libtorrent/hasher.hpp"
-#include "libtorrent/file.hpp" // for combine_path etc.
+#include "libtorrent/string_view.hpp"
 
 #include <vector>
 #include <string>
@@ -233,8 +233,8 @@ namespace libtorrent
 		// files of the torrent in it.
 		// 
 		// The second function, ``add_http_seed()`` adds an HTTP seed instead.
-		void add_url_seed(std::string const& url);
-		void add_http_seed(std::string const& url);
+		void add_url_seed(string_view url);
+		void add_http_seed(string_view url);
 
 		// This adds a DHT node to the torrent. This especially useful if you're creating a
 		// tracker less torrent. It can be used by clients to bootstrap their DHT node from.
@@ -248,16 +248,16 @@ namespace libtorrent
 		// info-hash. The tier is the fallback priority of the tracker. All trackers with tier 0 are
 		// tried first (in any order). If all fail, trackers with tier 1 are tried. If all of those
 		// fail, trackers with tier 2 are tried, and so on.
-		void add_tracker(std::string const& url, int tier = 0);
+		void add_tracker(string_view url, int tier = 0);
 
 		// This function sets an X.509 certificate in PEM format to the torrent. This makes the
 		// torrent an *SSL torrent*. An SSL torrent requires that each peer has a valid certificate
 		// signed by this root certificate. For SSL torrents, all peers are connecting over SSL
 		// connections. For more information, see the section on ssl-torrents_.
 		// 
-		// The string is not the path to the cert, it's the actual content of the certificate,
-		// loaded into a std::string.
-		void set_root_cert(std::string const& pem);
+		// The string is not the path to the cert, it's the actual content of the
+		// certificate.
+		void set_root_cert(string_view pem);
 
 		// Sets and queries the private flag of the torrent.
 		// Torrents with the private flag set ask clients to not use any other
@@ -292,7 +292,7 @@ namespace libtorrent
 		// 
 		// .. _`BEP 38`: http://www.bittorrent.org/beps/bep_0038.html
 		void add_similar_torrent(sha1_hash ih);
-		void add_collection(std::string c);
+		void add_collection(string_view c);
 
 	private:
 

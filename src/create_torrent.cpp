@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/alert_manager.hpp"
+#include "libtorrent/file.hpp" // for combine_path etc.
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -59,7 +60,7 @@ namespace libtorrent
 		inline bool ignore_subdir(std::string const& leaf)
 		{ return leaf == ".." || leaf == "."; }
 
-		int get_file_attributes(std::string const& p)
+		int get_file_attributes(string_view p)
 		{
 #ifdef TORRENT_WINDOWS
 			WIN32_FILE_ATTRIBUTE_DATA attr;
@@ -75,7 +76,7 @@ namespace libtorrent
 			return 0;
 #else
 			struct stat s;
-			if (lstat(convert_to_native(p).c_str(), &s) < 0) return 0;
+			if (lstat(convert_to_native(std::string(p)).c_str(), &s) < 0) return 0;
 			int file_attr = 0;
 			if (s.st_mode & S_IXUSR)
 				file_attr += file_storage::attribute_executable;
@@ -665,18 +666,18 @@ namespace libtorrent
 		return dict;
 	}
 
-	void create_torrent::add_tracker(std::string const& url, int tier)
+	void create_torrent::add_tracker(string_view url, int const tier)
 	{
-		m_urls.push_back(announce_entry(url, tier));
+		m_urls.push_back(announce_entry(std::string(url), tier));
 
 		std::sort(m_urls.begin(), m_urls.end()
 			, [] (announce_entry const& lhs, announce_entry const& rhs)
 			{ return lhs.second < rhs.second; } );
 	}
 
-	void create_torrent::set_root_cert(std::string const& cert)
+	void create_torrent::set_root_cert(string_view cert)
 	{
-		m_root_cert = cert;
+		m_root_cert.assign(cert.data(), cert.size());
 	}
 
 	void create_torrent::add_similar_torrent(sha1_hash ih)
@@ -684,9 +685,9 @@ namespace libtorrent
 		m_similar.push_back(ih);
 	}
 
-	void create_torrent::add_collection(std::string c)
+	void create_torrent::add_collection(string_view c)
 	{
-		m_collections.push_back(c);
+		m_collections.emplace_back(c);
 	}
 
 	void create_torrent::set_hash(int index, sha1_hash const& h)
@@ -709,14 +710,14 @@ namespace libtorrent
 		m_nodes.push_back(node);
 	}
 
-	void create_torrent::add_url_seed(std::string const& url)
+	void create_torrent::add_url_seed(string_view url)
 	{
-		m_url_seeds.push_back(url);
+		m_url_seeds.emplace_back(url);
 	}
 
-	void create_torrent::add_http_seed(std::string const& url)
+	void create_torrent::add_http_seed(string_view url)
 	{
-		m_http_seeds.push_back(url);
+		m_http_seeds.emplace_back(url);
 	}
 
 	void create_torrent::set_comment(char const* str)
