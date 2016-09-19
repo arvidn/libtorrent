@@ -40,7 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/session_handle.hpp"
-#include "libtorrent/session_settings.hpp"
 #include "libtorrent/kademlia/dht_state.hpp"
 #include "libtorrent/kademlia/dht_storage.hpp"
 
@@ -78,13 +77,6 @@ namespace libtorrent
 	// upload rates by allowing large send buffers.
 	TORRENT_EXPORT void min_memory_usage(settings_pack& set);
 	TORRENT_EXPORT void high_performance_seed(settings_pack& set);
-
-#ifndef TORRENT_NO_DEPRECATE
-	TORRENT_DEPRECATED
-	TORRENT_EXPORT session_settings min_memory_usage();
-	TORRENT_DEPRECATED
-	TORRENT_EXPORT session_settings high_performance_seed();
-#endif
 
 #ifndef TORRENT_CFG
 #error TORRENT_CFG is not defined!

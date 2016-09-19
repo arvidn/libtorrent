@@ -248,35 +248,6 @@ namespace libtorrent
 		set.set_bool(settings_pack::use_disk_cache_pool, true);
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
-	// this function returns a session_settings object
-	// which will optimize libtorrent for minimum memory
-	// usage, with no consideration of performance.
-	session_settings min_memory_usage()
-	{
-		aux::session_settings def;
-		initialize_default_settings(def);
-		settings_pack pack;
-		min_memory_usage(pack);
-		apply_pack(&pack, def, nullptr);
-		session_settings ret;
-		load_struct_from_settings(def, ret);
-		return ret;
-	}
-
-	session_settings high_performance_seed()
-	{
-		aux::session_settings def;
-		initialize_default_settings(def);
-		settings_pack pack;
-		high_performance_seed(pack);
-		apply_pack(&pack, def, nullptr);
-		session_settings ret;
-		load_struct_from_settings(def, ret);
-		return ret;
-	}
-#endif
-
 #ifndef TORRENT_CFG
 #error TORRENT_CFG is not defined!
 #endif
@@ -425,18 +396,6 @@ namespace libtorrent
 		m_impl->alerts().set_notify_function(std::function<void()>());
 		return session_proxy(m_io_service, m_thread, m_impl);
 	}
-
-#ifndef TORRENT_NO_DEPRECATE
-	session_settings::session_settings(std::string const& user_agent_)
-	{
-		aux::session_settings def;
-		initialize_default_settings(def);
-		def.set_str(settings_pack::user_agent, user_agent_);
-		load_struct_from_settings(def, *this);
-	}
-
-	session_settings::~session_settings() = default;
-#endif // TORRENT_NO_DEPRECATE
 
 	session_proxy::session_proxy() = default;
 	session_proxy::session_proxy(std::shared_ptr<io_service> ios

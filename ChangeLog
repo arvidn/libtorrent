@@ -1,3 +1,4 @@
+	* deprecate old session_settings API (use settings_pack instead)
 	* improve file layout optimization when creating torrents with padfiles
 	* remove remote_dl_rate feature
 	* source code migration from boost::shared_ptr to std::shared_ptr

@@ -65,11 +65,6 @@ namespace libtorrent
 		// if present, this function is called when the setting is changed
 		void (aux::session_impl::*fun)();
 		char const *default_value;
-#ifndef TORRENT_NO_DEPRECATE
-		// offset into session_settings, used to map
-		// settings to the deprecated settings struct
-		int offset;
-#endif
 	};
 
 	struct int_setting_entry_t
@@ -79,11 +74,6 @@ namespace libtorrent
 		// if present, this function is called when the setting is changed
 		void (aux::session_impl::*fun)();
 		int default_value;
-#ifndef TORRENT_NO_DEPRECATE
-		// offset into session_settings, used to map
-		// settings to the deprecated settings struct
-		int offset;
-#endif
 	};
 
 	struct bool_setting_entry_t
@@ -93,30 +83,15 @@ namespace libtorrent
 		// if present, this function is called when the setting is changed
 		void (aux::session_impl::*fun)();
 		bool default_value;
-#ifndef TORRENT_NO_DEPRECATE
-		// offset into session_settings, used to map
-		// settings to the deprecated settings struct
-		int offset;
-#endif
 	};
 
 
-// SET_NOPREV - this is used for new settings that don't exist in the
-//              deprecated session_settings.
-
-#ifdef TORRENT_NO_DEPRECATE
 #define SET(name, default_value, fun) { #name, fun, default_value }
-#define SET_NOPREV(name, default_value, fun) { #name, fun, default_value }
-#define DEPRECATED_SET(name, default_value, fun) { "", nullptr, 0 }
-#else
-#define SET(name, default_value, fun) { #name, fun, default_value, offsetof(libtorrent::session_settings, name) }
-#define SET_NOPREV(name, default_value, fun) { #name, fun, default_value, 0 }
-#define DEPRECATED_SET(name, default_value, fun) { #name, fun, default_value, offsetof(libtorrent::session_settings, name) }
-#endif
 
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Winvalid-offsetof"
+#ifndef TORRENT_NO_DEPRECATE
+#define DEPRECATED_SET(name, default_value, fun) { #name, fun, default_value }
+#else
+#define DEPRECATED_SET(name, default_value, fun) { "", nullptr, 0 }
 #endif
 
 	namespace {
@@ -129,18 +104,18 @@ namespace libtorrent
 		SET(announce_ip, nullptr, nullptr),
 		SET(mmap_cache, nullptr, nullptr),
 		SET(handshake_client_version, nullptr, nullptr),
-		SET_NOPREV(outgoing_interfaces, "", &session_impl::update_outgoing_interfaces),
+		SET(outgoing_interfaces, "", &session_impl::update_outgoing_interfaces),
 #if !TORRENT_USE_IPV6
-		SET_NOPREV(listen_interfaces, "0.0.0.0:6881", &session_impl::update_listen_interfaces),
+		SET(listen_interfaces, "0.0.0.0:6881", &session_impl::update_listen_interfaces),
 #else
-		SET_NOPREV(listen_interfaces, "0.0.0.0:6881,[::]:6881", &session_impl::update_listen_interfaces),
+		SET(listen_interfaces, "0.0.0.0:6881,[::]:6881", &session_impl::update_listen_interfaces),
 #endif
-		SET_NOPREV(proxy_hostname, "", &session_impl::update_proxy),
-		SET_NOPREV(proxy_username, "", &session_impl::update_proxy),
-		SET_NOPREV(proxy_password, "", &session_impl::update_proxy),
-		SET_NOPREV(i2p_hostname, "", &session_impl::update_i2p_bridge),
-		SET_NOPREV(peer_fingerprint, "-LT1200-", &session_impl::update_peer_fingerprint),
-		SET_NOPREV(dht_bootstrap_nodes, "dht.libtorrent.org:25401", &session_impl::update_dht_bootstrap_nodes)
+		SET(proxy_hostname, "", &session_impl::update_proxy),
+		SET(proxy_username, "", &session_impl::update_proxy),
+		SET(proxy_password, "", &session_impl::update_proxy),
+		SET(i2p_hostname, "", &session_impl::update_i2p_bridge),
+		SET(peer_fingerprint, "-LT1200-", &session_impl::update_peer_fingerprint),
+		SET(dht_bootstrap_nodes, "dht.libtorrent.org:25401", &session_impl::update_dht_bootstrap_nodes)
 	};
 
 	bool_setting_entry_t bool_settings[settings_pack::num_bool_settings] =
@@ -196,23 +171,23 @@ namespace libtorrent
 		SET(lock_files, false, nullptr),
 		DEPRECATED_SET(contiguous_recv_buffer, true, nullptr),
 		SET(ban_web_seeds, true, nullptr),
-		SET_NOPREV(allow_partial_disk_writes, true, nullptr),
+		SET(allow_partial_disk_writes, true, nullptr),
 		SET(force_proxy, false, &session_impl::update_force_proxy),
 		SET(support_share_mode, true, nullptr),
 		SET(support_merkle_torrents, true, nullptr),
 		SET(report_redundant_bytes, true, nullptr),
-		SET_NOPREV(listen_system_port_fallback, true, nullptr),
+		SET(listen_system_port_fallback, true, nullptr),
 		SET(use_disk_cache_pool, true, nullptr),
-		SET_NOPREV(announce_crypto_support, true, nullptr),
-		SET_NOPREV(enable_upnp, true, &session_impl::update_upnp),
-		SET_NOPREV(enable_natpmp, true, &session_impl::update_natpmp),
-		SET_NOPREV(enable_lsd, true, &session_impl::update_lsd),
-		SET_NOPREV(enable_dht, true, &session_impl::update_dht),
-		SET_NOPREV(prefer_rc4, false, nullptr),
-		SET_NOPREV(proxy_hostnames, true, nullptr),
-		SET_NOPREV(proxy_peer_connections, true, nullptr),
-		SET_NOPREV(auto_sequential, true, &session_impl::update_auto_sequential),
-		SET_NOPREV(proxy_tracker_connections, true, nullptr),
+		SET(announce_crypto_support, true, nullptr),
+		SET(enable_upnp, true, &session_impl::update_upnp),
+		SET(enable_natpmp, true, &session_impl::update_natpmp),
+		SET(enable_lsd, true, &session_impl::update_lsd),
+		SET(enable_dht, true, &session_impl::update_dht),
+		SET(prefer_rc4, false, nullptr),
+		SET(proxy_hostnames, true, nullptr),
+		SET(proxy_peer_connections, true, nullptr),
+		SET(auto_sequential, true, &session_impl::update_auto_sequential),
+		SET(proxy_tracker_connections, true, nullptr),
 	};
 
 	int_setting_entry_t int_settings[settings_pack::num_int_settings] =
@@ -260,12 +235,12 @@ namespace libtorrent
 		SET(peer_tos, 0, &session_impl::update_peer_tos),
 		SET(active_downloads, 3, &session_impl::trigger_auto_manage),
 		SET(active_seeds, 5, &session_impl::trigger_auto_manage),
-		SET_NOPREV(active_checking, 1, &session_impl::trigger_auto_manage),
+		SET(active_checking, 1, &session_impl::trigger_auto_manage),
 		SET(active_dht_limit, 88, nullptr),
 		SET(active_tracker_limit, 1600, nullptr),
 		SET(active_lsd_limit, 60, nullptr),
 		SET(active_limit, 15, &session_impl::trigger_auto_manage),
-		SET_NOPREV(active_loaded_limit, 100, &session_impl::trigger_auto_manage),
+		SET(active_loaded_limit, 100, &session_impl::trigger_auto_manage),
 		SET(auto_manage_interval, 30, nullptr),
 		SET(seed_time_limit, 24 * 60 * 60, nullptr),
 		SET(auto_scrape_interval, 1800, nullptr),
@@ -278,7 +253,7 @@ namespace libtorrent
 		SET(max_rejects, 50, nullptr),
 		SET(recv_socket_buffer_size, 0, &session_impl::update_socket_buffer_size),
 		SET(send_socket_buffer_size, 0, &session_impl::update_socket_buffer_size),
-		SET_NOPREV(max_peer_recv_buffer_size, 2 * 1024 * 1024, nullptr),
+		SET(max_peer_recv_buffer_size, 2 * 1024 * 1024, nullptr),
 		SET(file_checks_delay_per_block, 0, nullptr),
 		SET(read_cache_line_size, 32, nullptr),
 		SET(write_cache_line_size, 16, nullptr),
@@ -326,31 +301,28 @@ namespace libtorrent
 		SET(network_threads, 0, nullptr),
 		DEPRECATED_SET(ssl_listen, 0, &session_impl::update_ssl_listen),
 		SET(tracker_backoff, 250, nullptr),
-		SET_NOPREV(share_ratio_limit, 200, nullptr),
-		SET_NOPREV(seed_time_ratio_limit, 700, nullptr),
-		SET_NOPREV(peer_turnover, 4, nullptr),
-		SET_NOPREV(peer_turnover_cutoff, 90, nullptr),
+		SET(share_ratio_limit, 200, nullptr),
+		SET(seed_time_ratio_limit, 700, nullptr),
+		SET(peer_turnover, 4, nullptr),
+		SET(peer_turnover_cutoff, 90, nullptr),
 		SET(peer_turnover_interval, 300, nullptr),
-		SET_NOPREV(connect_seed_every_n_download, 10, nullptr),
+		SET(connect_seed_every_n_download, 10, nullptr),
 		SET(max_http_recv_buffer_size, 4*1024*204, nullptr),
-		SET_NOPREV(max_retry_port_bind, 10, nullptr),
-		SET_NOPREV(alert_mask, alert::error_notification, &session_impl::update_alert_mask),
-		SET_NOPREV(out_enc_policy, settings_pack::pe_enabled, nullptr),
-		SET_NOPREV(in_enc_policy, settings_pack::pe_enabled, nullptr),
-		SET_NOPREV(allowed_enc_level, settings_pack::pe_both, nullptr),
+		SET(max_retry_port_bind, 10, nullptr),
+		SET(alert_mask, alert::error_notification, &session_impl::update_alert_mask),
+		SET(out_enc_policy, settings_pack::pe_enabled, nullptr),
+		SET(in_enc_policy, settings_pack::pe_enabled, nullptr),
+		SET(allowed_enc_level, settings_pack::pe_both, nullptr),
 		SET(inactive_down_rate, 2048, nullptr),
 		SET(inactive_up_rate, 2048, nullptr),
-		SET_NOPREV(proxy_type, settings_pack::none, &session_impl::update_proxy),
-		SET_NOPREV(proxy_port, 0, &session_impl::update_proxy),
-		SET_NOPREV(i2p_port, 0, &session_impl::update_i2p_bridge),
-		SET_NOPREV(cache_size_volatile, 256, nullptr)
+		SET(proxy_type, settings_pack::none, &session_impl::update_proxy),
+		SET(proxy_port, 0, &session_impl::update_proxy),
+		SET(i2p_port, 0, &session_impl::update_i2p_bridge),
+		SET(cache_size_volatile, 256, nullptr)
 	};
 
 #undef SET
-
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
+#undef SET_DEPRECATED
 
 	} // anonymous namespace
 
@@ -458,96 +430,6 @@ namespace libtorrent
 			sett[bool_settings[i].name] = s.m_bools[i];
 		}
 	}
-
-#ifndef TORRENT_NO_DEPRECATE
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-	std::shared_ptr<settings_pack> load_pack_from_struct(
-		aux::session_settings const& current, session_settings const& s)
-	{
-		std::shared_ptr<settings_pack> p = std::make_shared<settings_pack>();
-
-		for (int i = 0; i < settings_pack::num_string_settings; ++i)
-		{
-			if (str_settings[i].offset == 0) continue;
-			std::string& val = *(std::string*)(((char*)&s) + str_settings[i].offset);
-			int const setting_name = settings_pack::string_type_base + i;
-			if (val == current.get_str(setting_name)) continue;
-			p->set_str(setting_name, val);
-		}
-
-		for (int i = 0; i < settings_pack::num_int_settings; ++i)
-		{
-			if (int_settings[i].offset == 0) continue;
-			int& val = *(int*)(((char*)&s) + int_settings[i].offset);
-			int const setting_name = settings_pack::int_type_base + i;
-			if (val == current.get_int(setting_name)) continue;
-			p->set_int(setting_name, val);
-		}
-
-		for (int i = 0; i < settings_pack::num_bool_settings; ++i)
-		{
-			if (bool_settings[i].offset == 0) continue;
-			bool& val = *(bool*)(((char*)&s) + bool_settings[i].offset);
-			int const setting_name = settings_pack::bool_type_base + i;
-			if (val == current.get_bool(setting_name)) continue;
-			p->set_bool(setting_name, val);
-		}
-
-		// special case for deprecated float values
-		int val = current.get_int(settings_pack::share_ratio_limit);
-		if (fabs(s.share_ratio_limit - float(val) / 100.f) > 0.001f)
-			p->set_int(settings_pack::share_ratio_limit, s.share_ratio_limit * 100);
-
-		val = current.get_int(settings_pack::seed_time_ratio_limit);
-		if (fabs(s.seed_time_ratio_limit - float(val) / 100.f) > 0.001f)
-			p->set_int(settings_pack::seed_time_ratio_limit, s.seed_time_ratio_limit * 100);
-
-		val = current.get_int(settings_pack::peer_turnover);
-		if (fabs(s.peer_turnover - float(val) / 100.f) > 0.001)
-			p->set_int(settings_pack::peer_turnover, s.peer_turnover * 100);
-
-		val = current.get_int(settings_pack::peer_turnover_cutoff);
-		if (fabs(s.peer_turnover_cutoff - float(val) / 100.f) > 0.001)
-			p->set_int(settings_pack::peer_turnover_cutoff, s.peer_turnover_cutoff * 100);
-
-		return p;
-	}
-
-	void load_struct_from_settings(aux::session_settings const& current, session_settings& ret)
-	{
-		for (int i = 0; i < settings_pack::num_string_settings; ++i)
-		{
-			if (str_settings[i].offset == 0) continue;
-			std::string& val = *(std::string*)(((char*)&ret) + str_settings[i].offset);
-			val = current.get_str(settings_pack::string_type_base + i);
-		}
-
-		for (int i = 0; i < settings_pack::num_int_settings; ++i)
-		{
-			if (int_settings[i].offset == 0) continue;
-			int& val = *(int*)(((char*)&ret) + int_settings[i].offset);
-			val = current.get_int(settings_pack::int_type_base + i);
-		}
-
-		for (int i = 0; i < settings_pack::num_bool_settings; ++i)
-		{
-			if (bool_settings[i].offset == 0) continue;
-			bool& val = *(bool*)(((char*)&ret) + bool_settings[i].offset);
-			val = current.get_bool(settings_pack::bool_type_base + i);
-		}
-
-		// special case for deprecated float values
-		ret.share_ratio_limit = float(current.get_int(settings_pack::share_ratio_limit)) / 100.f;
-		ret.seed_time_ratio_limit = float(current.get_int(settings_pack::seed_time_ratio_limit)) / 100.f;
-		ret.peer_turnover = float(current.get_int(settings_pack::peer_turnover)) / 100.f;
-		ret.peer_turnover_cutoff = float(current.get_int(settings_pack::peer_turnover_cutoff)) / 100.f;
-	}
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-#endif // TORRENT_NO_DEPRECATE
 
 	void initialize_default_settings(aux::session_settings& s)
 	{
