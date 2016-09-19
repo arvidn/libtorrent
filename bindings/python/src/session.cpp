@@ -145,25 +145,6 @@ namespace
 		return std::make_shared<lt::session>(p, flags);
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
-	void session_set_settings(lt::session& ses, object const& sett)
-	{
-		extract<session_settings> old_settings(sett);
-		if (old_settings.check())
-		{
-			allow_threading_guard guard;
-			ses.set_settings(old_settings);
-		}
-		else
-		{
-			settings_pack p;
-			make_settings_pack(p, extract<dict>(sett));
-			allow_threading_guard guard;
-			ses.apply_settings(p);
-		}
-	}
-#endif
-
 	void session_apply_settings(lt::session& ses, dict const& sett_dict)
 	{
 		settings_pack p;
@@ -749,8 +730,6 @@ void bind_session()
         .def("remove_torrent", allow_threads(&lt::session::remove_torrent), arg("option") = 0)
 #ifndef TORRENT_NO_DEPRECATE
         .def("status", allow_threads(&lt::session::status))
-        .def("settings", &lt::session::settings)
-        .def("set_settings", &session_set_settings)
 #endif
         .def("get_settings", &session_get_settings)
         .def("apply_settings", &session_apply_settings)
@@ -862,15 +841,6 @@ void bind_session()
 
     typedef void (*mem_preset2)(settings_pack& s);
     typedef void (*perf_preset2)(settings_pack& s);
-
-#ifndef TORRENT_NO_DEPRECATE
-
-    typedef session_settings (*mem_preset1)();
-    typedef session_settings (*perf_preset1)();
-
-    def("high_performance_seed", (perf_preset1)high_performance_seed);
-    def("min_memory_usage", (mem_preset1)min_memory_usage);
-#endif
 
     def("high_performance_seed", (perf_preset2)high_performance_seed);
     def("min_memory_usage", (mem_preset2)min_memory_usage);
