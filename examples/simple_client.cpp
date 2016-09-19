@@ -52,14 +52,9 @@ int main(int argc, char* argv[])
 	settings_pack sett;
 	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:6881");
 	lt::session s(sett);
-	error_code ec;
-	if (ec)
-	{
-		fprintf(stderr, "failed to open listen socket: %s\n", ec.message().c_str());
-		return 1;
-	}
 	add_torrent_params p;
 	p.save_path = "./";
+	error_code ec;
 	p.ti = boost::make_shared<torrent_info>(std::string(argv[1]), boost::ref(ec), 0);
 	if (ec)
 	{
