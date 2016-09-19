@@ -57,6 +57,21 @@ tuple dht_outgoing_get_peers_alert_ip(dht_outgoing_get_peers_alert const& a)
     return endpoint_to_tuple(a.ip);
 }
 
+tuple listen_succeeded_alert_endpoint(listen_succeeded_alert const& a)
+{
+    return endpoint_to_tuple(a.endpoint);
+}
+
+tuple listen_failed_alert_endpoint(listen_failed_alert const& a)
+{
+    return endpoint_to_tuple(a.endpoint);
+}
+
+tuple udp_error_alert_endpoint(udp_error_alert const& a)
+{
+    return endpoint_to_tuple(a.endpoint);
+}
+
 std::string external_ip_alert_ip(external_ip_alert const& eia)
 {
     return eia.external_address.to_string();
@@ -432,7 +447,7 @@ void bind_alert()
 
     class_<listen_failed_alert, bases<alert>, noncopyable>(
         "listen_failed_alert", no_init)
-        .def_readonly("endpoint", &listen_failed_alert::endpoint)
+        .add_property("endpoint", &listen_failed_alert_endpoint)
         .def("listen_interface", &listen_failed_alert::listen_interface)
         .def_readonly("error", &listen_failed_alert::error)
         .def_readonly("operation", &listen_failed_alert::operation)
@@ -441,7 +456,7 @@ void bind_alert()
 
     class_<listen_succeeded_alert, bases<alert>, noncopyable>(
         "listen_succeeded_alert", no_init)
-        .def_readonly("endpoint", &listen_succeeded_alert::endpoint)
+        .add_property("endpoint", &listen_succeeded_alert_endpoint)
         ;
 
     class_<portmap_error_alert, bases<alert>, noncopyable>(
@@ -507,7 +522,7 @@ void bind_alert()
 
     class_<udp_error_alert, bases<alert>, noncopyable>(
         "udp_error_alert", no_init)
-        .def_readonly("endpoint", &udp_error_alert::endpoint)
+        .add_property("endpoint", &udp_error_alert_endpoint)
         .def_readonly("error", &udp_error_alert::error)
         ;
 
