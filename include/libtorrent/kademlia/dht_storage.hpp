@@ -125,7 +125,7 @@ namespace dht
 		// for this info_hash.
 		//
 		virtual bool get_peers(sha1_hash const& info_hash, udp protocol
-			, bool noseed, bool scrape
+			, bool noseed, bool scrape, address const& requester
 			, entry& peers) const = 0;
 
 		// This function is named announce_peer for consistency with the

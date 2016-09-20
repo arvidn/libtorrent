@@ -751,12 +751,12 @@ void node::status(session_status& s)
 #endif
 
 bool node::lookup_peers(sha1_hash const& info_hash, entry& reply
-	, bool noseed, bool scrape) const
+	, bool noseed, bool scrape, address const& requester) const
 {
 	if (m_observer)
 		m_observer->get_peers(info_hash);
 
-	return m_storage.get_peers(info_hash, protocol(), noseed, scrape, reply);
+	return m_storage.get_peers(info_hash, protocol(), noseed, scrape, requester, reply);
 }
 
 entry write_nodes_entry(std::vector<node_entry> const& nodes)
@@ -858,7 +858,10 @@ void node::incoming_request(msg const& m, entry& e)
 		bool scrape = false;
 		if (msg_keys[1] && msg_keys[1].int_value() != 0) noseed = true;
 		if (msg_keys[2] && msg_keys[2].int_value() != 0) scrape = true;
-		bool full = lookup_peers(info_hash, reply, noseed, scrape);
+		// If our storage is full we want to withhold the write token so that
+		// announces will spill over to our neighbors. This widens the
+		// perimeter of nodes which store peers for this torrent
+		bool full = lookup_peers(info_hash, reply, noseed, scrape, m.addr.address());
 		if (!full) reply["token"] = generate_token(m.addr, info_hash);
 
 #ifndef TORRENT_DISABLE_LOGGING

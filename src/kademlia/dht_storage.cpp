@@ -186,7 +186,7 @@ namespace
 		}
 
 		bool get_peers(sha1_hash const& info_hash, udp const protocol
-			, bool const noseed, bool const scrape
+			, bool const noseed, bool const scrape, address const& requester
 			, entry& peers) const override
 		{
 			auto const i = m_map.find(info_hash);
@@ -256,7 +256,19 @@ namespace
 					++m;
 				}
 			}
-			return int(i->second.peers.size()) >= m_settings.max_peers;
+
+			if (int(i->second.peers.size()) < m_settings.max_peers)
+				return false;
+
+			// we're at the max peers stored for this torrent
+			// only send a write token if the requester is already in the set
+			// only check for a match on IP because the peer may be announcing
+			// a different port than the one it is using to send DHT messages
+			peer_entry requester_entry;
+			requester_entry.addr.address(requester);
+			auto requester_iter = i->second.peers.lower_bound(requester_entry);
+			return requester_iter == i->second.peers.end()
+				|| requester_iter->addr.address() != requester;
 		}
 
 		void announce_peer(sha1_hash const& info_hash

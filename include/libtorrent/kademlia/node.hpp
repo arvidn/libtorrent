@@ -220,7 +220,7 @@ private:
 	void send_single_refresh(udp::endpoint const& ep, int bucket
 		, node_id const& id = node_id());
 	bool lookup_peers(sha1_hash const& info_hash, entry& reply
-		, bool noseed, bool scrape) const;
+		, bool noseed, bool scrape, address const& requester) const;
 
 	libtorrent::dht_settings const& m_settings;
 
