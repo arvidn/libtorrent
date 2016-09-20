@@ -189,9 +189,8 @@ namespace
 			, bool const noseed, bool const scrape
 			, entry& peers) const override
 		{
-			auto const i = m_map.lower_bound(info_hash);
-			if (i == m_map.end()) return false;
-			if (i->first != info_hash) return false;
+			auto const i = m_map.find(info_hash);
+			if (i == m_map.end()) return int(m_map.size()) >= m_settings.max_torrents;
 
 			torrent_entry const& v = i->second;
 
@@ -257,7 +256,7 @@ namespace
 					++m;
 				}
 			}
-			return true;
+			return int(i->second.peers.size()) >= m_settings.max_peers;
 		}
 
 		void announce_peer(sha1_hash const& info_hash

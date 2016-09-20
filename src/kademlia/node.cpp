@@ -750,13 +750,13 @@ void node::status(session_status& s)
 }
 #endif
 
-void node::lookup_peers(sha1_hash const& info_hash, entry& reply
+bool node::lookup_peers(sha1_hash const& info_hash, entry& reply
 	, bool noseed, bool scrape) const
 {
 	if (m_observer)
 		m_observer->get_peers(info_hash);
 
-	m_storage.get_peers(info_hash, protocol(), noseed, scrape, reply);
+	return m_storage.get_peers(info_hash, protocol(), noseed, scrape, reply);
 }
 
 entry write_nodes_entry(std::vector<node_entry> const& nodes)
@@ -848,7 +848,6 @@ void node::incoming_request(msg const& m, entry& e)
 		}
 
 		sha1_hash const info_hash(msg_keys[0].string_ptr());
-		reply["token"] = generate_token(m.addr, info_hash);
 
 		m_counters.inc_stats_counter(counters::dht_get_peers_in);
 
@@ -859,7 +858,9 @@ void node::incoming_request(msg const& m, entry& e)
 		bool scrape = false;
 		if (msg_keys[1] && msg_keys[1].int_value() != 0) noseed = true;
 		if (msg_keys[2] && msg_keys[2].int_value() != 0) scrape = true;
-		lookup_peers(info_hash, reply, noseed, scrape);
+		bool full = lookup_peers(info_hash, reply, noseed, scrape);
+		if (!full) reply["token"] = generate_token(m.addr, info_hash);
+
 #ifndef TORRENT_DISABLE_LOGGING
 		if (reply.find_key("values") && m_observer)
 		{
