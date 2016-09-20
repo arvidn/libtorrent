@@ -342,6 +342,10 @@ TORRENT_TEST(parse_list)
 	test_parse_interface("nic :", {}, "");
 	test_parse_interface("nic ", {}, "");
 	test_parse_interface("nic s", {}, "");
+
+	// parse interface with port 0
+	test_parse_interface("127.0.0.1:0"
+		, {{"127.0.0.1", 0, false}}, "127.0.0.1:0");
 }
 
 TORRENT_TEST(tokenize)

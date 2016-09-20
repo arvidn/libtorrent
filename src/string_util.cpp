@@ -279,7 +279,7 @@ namespace libtorrent
 			else
 			{
 				iface.port = std::atoi(port.c_str());
-				if (iface.port <= 0 || iface.port > 65535) iface.port = -1;
+				if (iface.port < 0 || iface.port > 65535) iface.port = -1;
 			}
 
 			// skip spaces

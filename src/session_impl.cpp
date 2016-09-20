@@ -1652,7 +1652,8 @@ namespace aux {
 			}
 
 			if (ec == error_code(error::address_in_use)
-				&& !(flags & listen_no_system_port))
+				&& !(flags & listen_no_system_port)
+				&& bind_ep.port() != 0)
 			{
 				// instead of giving up, try let the OS pick a port
 				bind_ep.port(0);
