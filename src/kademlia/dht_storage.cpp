@@ -267,26 +267,12 @@ namespace
 			torrent_entry* v;
 			if (ti == m_map.end())
 			{
-				// we don't have this torrent, add it
-				// do we need to remove another one first?
-				if (!m_map.empty() && int(m_map.size()) >= m_settings.max_torrents)
+				if (int(m_map.size()) >= m_settings.max_torrents)
 				{
-					// we need to remove some. Remove the ones with the
-					// fewest peers
-					int num_peers = int(m_map.begin()->second.peers.size());
-					auto candidate = m_map.begin();
-					for (auto i = m_map.begin()
-						, end(m_map.end()); i != end; ++i)
-					{
-						if (int(i->second.peers.size()) > num_peers) continue;
-						if (i->first == info_hash) continue;
-						num_peers = int(i->second.peers.size());
-						candidate = i;
-					}
-					m_map.erase(candidate);
-					m_counters.peers -= num_peers;
-					m_counters.torrents -= 1;
+					// we're at capacity, drop the announce
+					return;
 				}
+
 				m_counters.torrents += 1;
 				v = &m_map[info_hash];
 			}
@@ -314,13 +300,8 @@ namespace
 			}
 			else if (v->peers.size() >= m_settings.max_peers)
 			{
-				// when we're at capacity, there's a 50/50 chance of dropping the
-				// announcing peer or an existing peer
-				if (random(1)) return;
-				i = v->peers.lower_bound(peer);
-				if (i == v->peers.end()) --i;
-				v->peers.erase(i++);
-				m_counters.peers -= 1;
+				// we're at capacity, drop the announce
+				return;
 			}
 			v->peers.insert(i, peer);
 			m_counters.peers += 1;

@@ -111,6 +111,7 @@ TORRENT_TEST(announce_peer)
 	tcp::endpoint const p4 = ep("124.31.75.24", 1);
 
 	s->announce_peer(n1, p1, "torrent_name", false);
+	peers = entry();
 	s->get_peers(n1, udp::v4(), false, false, peers);
 	TEST_EQUAL(peers["n"].string(), "torrent_name")
 	TEST_EQUAL(peers["values"].list().size(), 1)
@@ -118,8 +119,9 @@ TORRENT_TEST(announce_peer)
 	s->announce_peer(n2, p2, "torrent_name1", false);
 	s->announce_peer(n2, p3, "torrent_name1", false);
 	s->announce_peer(n3, p4, "torrent_name2", false);
-	bool r = s->get_peers(n1, udp::v4(), false, false, peers);
-	TEST_CHECK(!r);
+	peers = entry();
+	s->get_peers(n3, udp::v4(), false, false, peers);
+	TEST_CHECK(!peers.find_key("values"));
 }
 
 TORRENT_TEST(dual_stack)
