@@ -1441,11 +1441,19 @@ namespace aux {
 				&& pack.get_str(settings_pack::listen_interfaces)
 					!= m_settings.get_str(settings_pack::listen_interfaces));
 
+#ifndef TORRENT_DISABLE_LOGGING
+		session_log("applying settings pack, init=%s, reopen_listen_port=%s"
+			, init ? "true" : "false", reopen_listen_port ? "true" : "false");
+#endif
+
 		apply_pack(&pack, m_settings, this);
 		m_disk_thread.set_settings(&pack, m_alerts);
 
-		if (init)
+		if (init && !reopen_listen_port)
+		{	// no need to call this if reopen_listen_port is true
+			// since the apply_pack will do it
 			update_listen_interfaces();
+		}
 
 		if (init || reopen_listen_port)
 		{
@@ -1808,7 +1816,7 @@ namespace aux {
 	void session_impl::reopen_listen_sockets()
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		session_log("open listen port");
+		session_log("reopen listen sockets");
 #endif
 
 		TORRENT_ASSERT(is_single_thread());
@@ -1821,7 +1829,10 @@ namespace aux {
 		// close the open listen sockets
 		// close the listen sockets
 #ifndef TORRENT_DISABLE_LOGGING
-		session_log("closing all listen sockets");
+		if (m_listen_sockets.empty())
+			session_log("no currently open sockets to close");
+		else
+			session_log("closing all listen sockets (%d)", int(m_listen_sockets.size()));
 #endif
 		for (auto const& s : m_listen_sockets)
 		{
@@ -1883,7 +1894,7 @@ namespace aux {
 				// enumerate all IPs associated with this device
 
 				// TODO: 3 only run this once, not every turn through the loop
-				std::vector<ip_interface> ifs = enum_net_interfaces(m_io_service, ec);
+				std::vector<ip_interface> const ifs = enum_net_interfaces(m_io_service, ec);
 				if (ec)
 				{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1933,32 +1944,31 @@ namespace aux {
 		// listening on
 		if (m_alerts.should_post<listen_succeeded_alert>())
 		{
-			for (std::list<listen_socket_t>::iterator i = m_listen_sockets.begin()
-				, end(m_listen_sockets.end()); i != end; ++i)
+			for (auto const& l : m_listen_sockets)
 			{
 				error_code err;
-				if (i->sock)
+				if (l.sock)
 				{
-					tcp::endpoint const tcp_ep = i->sock->local_endpoint(err);
+					tcp::endpoint const tcp_ep = l.sock->local_endpoint(err);
 					if (!err)
 					{
 						listen_succeeded_alert::socket_type_t const socket_type
-							= i->ssl
+							= l.ssl
 							? listen_succeeded_alert::tcp_ssl
 							: listen_succeeded_alert::tcp;
 
 						m_alerts.emplace_alert<listen_succeeded_alert>(
-							tcp_ep , socket_type);
+							tcp_ep, socket_type);
 					}
 				}
 
-				if (i->udp_sock)
+				if (l.udp_sock)
 				{
-					udp::endpoint const udp_ep = i->udp_sock->local_endpoint(err);
-					if (!err && i->udp_sock->is_open())
+					udp::endpoint const udp_ep = l.udp_sock->local_endpoint(err);
+					if (!err && l.udp_sock->is_open())
 					{
 						listen_succeeded_alert::socket_type_t const socket_type
-							= i->ssl
+							= l.ssl
 							? listen_succeeded_alert::utp_ssl
 							: listen_succeeded_alert::udp;
 
@@ -4488,7 +4498,7 @@ namespace aux {
 
 	std::weak_ptr<torrent> session_impl::find_disconnect_candidate_torrent() const
 	{
-		auto i = std::min_element(m_torrents.begin(), m_torrents.end()
+		auto const i = std::min_element(m_torrents.begin(), m_torrents.end()
 			, &compare_disconnect_torrent);
 
 		TORRENT_ASSERT(i != m_torrents.end());
@@ -5158,9 +5168,8 @@ namespace aux {
 		// this function maps the previous functionality of just setting the ssl
 		// listen port in order to enable the ssl listen sockets, to the new
 		// mechanism where SSL sockets are specified in listen_interfaces.
-		std::vector<listen_interface_t> current_ifaces;
-		parse_listen_interfaces(m_settings.get_str(settings_pack::listen_interfaces)
-			, current_ifaces);
+		auto current_ifaces = parse_listen_interfaces(
+			m_settings.get_str(settings_pack::listen_interfaces));
 		// these are the current interfaces we have, first remove all the SSL
 		// interfaces
 		current_ifaces.erase(std::remove_if(current_ifaces.begin(), current_ifaces.end()
@@ -5192,17 +5201,18 @@ namespace aux {
 	{
 		INVARIANT_CHECK;
 
-		std::string net_interfaces = m_settings.get_str(settings_pack::listen_interfaces);
-		std::vector<listen_interface_t> new_listen_interfaces;
-
-		// declared in string_util.hpp
-		parse_listen_interfaces(net_interfaces, new_listen_interfaces);
+		std::string const net_interfaces = m_settings.get_str(settings_pack::listen_interfaces);
+		m_listen_interfaces = parse_listen_interfaces(net_interfaces);
 
 #ifndef TORRENT_DISABLE_LOGGING
-		session_log("update listen interfaces: %s", net_interfaces.c_str());
+		if (should_log())
+		{
+			session_log("update listen interfaces: %s", net_interfaces.c_str());
+			session_log("parsed listen interfaces count: %d, ifaces: %s"
+				, int(m_listen_interfaces.size())
+				, print_listen_interfaces(m_listen_interfaces).c_str());
+		}
 #endif
-
-		m_listen_interfaces = new_listen_interfaces;
 	}
 
 	void session_impl::update_privileged_ports()
@@ -5213,9 +5223,8 @@ namespace aux {
 
 			// Close connections whose endpoint is filtered
 			// by the new ip-filter
-			for (torrent_map::iterator i = m_torrents.begin()
-				, end(m_torrents.end()); i != end; ++i)
-				i->second->port_filter_updated();
+			for (auto const& t : m_torrents)
+				t.second->port_filter_updated();
 		}
 		else
 		{
@@ -6371,10 +6380,9 @@ namespace aux {
 				extra = extra % num_above;
 			}
 
-			for (torrent_map::iterator i = m_torrents.begin()
-				, end(m_torrents.end()); i != end; ++i)
+			for (auto const& t : m_torrents)
 			{
-				int num = i->second->num_peers();
+				int const num = t.second->num_peers();
 				if (num <= average) continue;
 
 				// distribute the remainder
@@ -6385,9 +6393,9 @@ namespace aux {
 					--extra;
 				}
 
-				int disconnect = (std::min)(to_disconnect, num - my_average);
+				int const disconnect = std::min(to_disconnect, num - my_average);
 				to_disconnect -= disconnect;
-				i->second->disconnect_peers(disconnect
+				t.second->disconnect_peers(disconnect
 					, error_code(errors::too_many_connections, get_libtorrent_category()));
 			}
 		}

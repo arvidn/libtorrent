@@ -279,8 +279,7 @@ void test_parse_interface(char const* input
 	, std::string output)
 {
 	std::fprintf(stderr, "parse interface: %s\n", input);
-	std::vector<listen_interface_t> list;
-	parse_listen_interfaces(input, list);
+	auto const list = parse_listen_interfaces(input);
 	TEST_EQUAL(list.size(), expected.size());
 	if (list.size() == expected.size())
 	{
