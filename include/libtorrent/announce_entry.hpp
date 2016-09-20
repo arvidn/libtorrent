@@ -144,8 +144,14 @@ namespace libtorrent
 		// set to true when we send a event=completed.
 		bool complete_sent:1;
 
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 1.2
 		// this is false the stats sent to this tracker will be 0
 		bool send_stats:1;
+#else
+		// hidden
+		bool deprecated_send_stats:1;
+#endif
 
 		// internal
 		bool triggered_manually:1;

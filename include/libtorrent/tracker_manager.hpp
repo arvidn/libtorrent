@@ -96,7 +96,6 @@ namespace libtorrent
 			, kind(announce_request)
 			, key(0)
 			, num_want(0)
-			, send_stats(true)
 			, triggered_manually(false)
 #ifdef TORRENT_USE_OPENSSL
 			, ssl_ctx(0)
@@ -154,8 +153,6 @@ namespace libtorrent
 		sha1_hash info_hash;
 		peer_id pid;
 		address bind_ip;
-
-		bool send_stats;
 
 		// this is set to true if this request was triggered by a "manual" call to
 		// scrape_tracker() or force_reannounce()
