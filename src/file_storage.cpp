@@ -78,14 +78,14 @@ namespace libtorrent
 		m_files.reserve(num_files);
 	}
 
-	int file_storage::piece_size(int index) const
+	int file_storage::piece_size(int const index) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= 0 && index < num_pieces());
-		if (index == num_pieces()-1)
+		if (index == num_pieces() - 1)
 		{
-			std::int64_t size_except_last = num_pieces() - 1;
-			size_except_last *= std::int64_t(piece_length());
-			std::int64_t size = total_size() - size_except_last;
+			std::int64_t const size_except_last
+				= (num_pieces() - 1) * std::int64_t(piece_length());
+			std::int64_t const size = total_size() - size_except_last;
 			TORRENT_ASSERT(size > 0);
 			TORRENT_ASSERT(size <= piece_length());
 			return int(size);
@@ -105,7 +105,7 @@ namespace libtorrent
 
 	// path is not supposed to include the name of the torrent itself.
 	void file_storage::update_path_index(internal_file_entry& e
-		, std::string const& path, bool set_name)
+		, std::string const& path, bool const set_name)
 	{
 		if (is_complete(path))
 		{
@@ -145,7 +145,7 @@ namespace libtorrent
 		{
 			// the +1 is to skip the trailing '/' (or '\')
 			int const offset = int(m_name.size())
-				+ (m_name.size() == branch_len?0:1);
+				+ (m_name.size() == branch_len ? 0 : 1);
 			branch_path += offset;
 			branch_len -= offset;
 			e.no_root_dir = false;
@@ -160,7 +160,7 @@ namespace libtorrent
 			, [&] (std::string const& str)
 			{
 				if (str.size() != branch_len) return false;
-				return memcmp(str.c_str(), branch_path, branch_len) == 0;
+				return std::memcmp(str.c_str(), branch_path, branch_len) == 0;
 			});
 
 		if (p == m_paths.rend())
@@ -287,7 +287,8 @@ namespace libtorrent
 	// point to it. It points to borrow_chars number of characters.
 	// if borrow_chars == -1, n is a 0-terminated string that
 	// should be copied.
-	void internal_file_entry::set_name(char const* n, bool borrow_string, int string_len)
+	void internal_file_entry::set_name(char const* n, bool const borrow_string
+		, int string_len)
 	{
 		TORRENT_ASSERT(string_len >= 0);
 
@@ -320,7 +321,7 @@ namespace libtorrent
 		return name ? string_view(name) : string_view();
 	}
 
-	void file_storage::apply_pointer_offset(ptrdiff_t off)
+	void file_storage::apply_pointer_offset(ptrdiff_t const off)
 	{
 		for (int i = 0; i < m_files.size(); ++i)
 		{
@@ -408,7 +409,7 @@ namespace libtorrent
 	}
 #endif
 
-	int file_storage::file_index_at_offset(std::int64_t offset) const
+	int file_storage::file_index_at_offset(std::int64_t const offset) const
 	{
 		// find the file iterator and file offset
 		internal_file_entry target;
@@ -436,8 +437,7 @@ namespace libtorrent
 	}
 
 	std::vector<file_slice> file_storage::map_block(int const piece
-		, std::int64_t const offset
-		, int size) const
+		, std::int64_t const offset, int size) const
 	{
 		TORRENT_ASSERT_PRECOND(num_files() > 0);
 		std::vector<file_slice> ret;
@@ -512,8 +512,8 @@ namespace libtorrent
 	}
 #endif // TORRENT_NO_DEPRECATE
 
-	peer_request file_storage::map_file(int file_index, std::int64_t file_offset
-		, int size) const
+	peer_request file_storage::map_file(int const file_index
+		, std::int64_t const file_offset, int size) const
 	{
 		TORRENT_ASSERT_PRECOND(file_index < num_files());
 		TORRENT_ASSERT_PRECOND(file_index >= 0);
@@ -528,7 +528,7 @@ namespace libtorrent
 			return ret;
 		}
 
-		std::int64_t offset = file_offset + this->file_offset(file_index);
+		std::int64_t const offset = file_offset + this->file_offset(file_index);
 
 		if (offset >= total_size())
 		{
@@ -624,7 +624,7 @@ namespace libtorrent
 
 	sha1_hash file_storage::hash(int index) const
 	{
-		if (index >= int(m_file_hashes.size())) return sha1_hash(nullptr);
+		if (index >= int(m_file_hashes.size())) return sha1_hash();
 		return sha1_hash(m_file_hashes[index]);
 	}
 
@@ -687,7 +687,7 @@ namespace libtorrent
 		}
 	}
 
-	std::uint32_t file_storage::file_path_hash(int index
+	std::uint32_t file_storage::file_path_hash(int const index
 		, std::string const& save_path) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
@@ -931,7 +931,7 @@ namespace libtorrent
 	{ return at_deprecated(i - m_files.begin()); }
 #endif // TORRENT_NO_DEPRECATE
 
-	void file_storage::reorder_file(int index, int dst)
+	void file_storage::reorder_file(int const index, int const dst)
 	{
 		TORRENT_ASSERT(index < int(m_files.size()));
 		TORRENT_ASSERT(dst < int(m_files.size()));
@@ -970,8 +970,7 @@ namespace libtorrent
 
 		std::int64_t off = 0;
 		int padding_file = 0;
-		for (std::vector<internal_file_entry>::iterator i = m_files.begin();
-			i != m_files.end(); ++i)
+		for (auto i = m_files.begin(); i != m_files.end(); ++i)
 		{
 			if ((off % alignment) == 0)
 			{
@@ -980,7 +979,7 @@ namespace libtorrent
 				// divisible by `alignment`, we pick that immediately, since that
 				// will not affect whether we're at an aligned position and will
 				// improve packing of files
-				std::vector<internal_file_entry>::iterator best_match = i;
+				auto best_match = i;
 				for (auto k = i; k != m_files.end(); ++k)
 				{
 					// a file whose size fits the alignment always takes priority,
@@ -1014,13 +1013,13 @@ namespace libtorrent
 				int const pad_size = alignment - (off % alignment);
 
 				// find the largest file that fits in pad_size
-				std::vector<internal_file_entry>::iterator best_match = m_files.end();
+				auto best_match = m_files.end();
 
 				// if pad_file_limit is 0, it means all files are padded, there's
 				// no point in trying to find smaller files to use as filling
 				if (pad_file_limit > 0)
 				{
-					for (std::vector<internal_file_entry>::iterator j = i+1; j < m_files.end(); ++j)
+					for (auto j = i + 1; j < m_files.end(); ++j)
 					{
 						if (j->size > std::uint32_t(pad_size)) continue;
 						if (best_match == m_files.end() || j->size > best_match->size)
@@ -1083,7 +1082,7 @@ namespace libtorrent
 		m_total_size = off;
 	}
 
-	void file_storage::add_pad_file(int size
+	void file_storage::add_pad_file(int const size
 		, std::vector<internal_file_entry>::iterator& i
 		, std::int64_t& offset
 		, int& pad_file_counter)
@@ -1127,4 +1126,3 @@ namespace libtorrent
 		std::vector<std::string>().swap(m_paths);
 	}
 }
-

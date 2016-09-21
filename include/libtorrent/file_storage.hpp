@@ -42,13 +42,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/peer_request.hpp"
-#include "libtorrent/peer_id.hpp"
+#include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/string_view.hpp"
 
 namespace libtorrent
 {
-	struct file;
-
 #ifndef TORRENT_NO_DEPRECATE
 	// information about a file in a file_storage
 	struct TORRENT_EXPORT file_entry
@@ -94,7 +92,7 @@ namespace libtorrent
 
 		// set to true for files that are not part of the data of the torrent.
 		// They are just there to make sure the next file is aligned to a particular byte offset
-		// or piece boundry. These files should typically be hidden from an end user. They are
+		// or piece boundary. These files should typically be hidden from an end user. They are
 		// not written to disk.
 		bool pad_file:1;
 
