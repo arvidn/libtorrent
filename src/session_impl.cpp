@@ -4450,7 +4450,7 @@ namespace aux {
 			std::shared_ptr<torrent> t = i->second;
 			if (!t) continue;
 			std::vector<std::string> const& c = t->torrent_file().collections();
-			if (std::count(c.begin(), c.end(), collection) == 0) continue;
+			if (std::find(c.begin(), c.end(), collection) == c.end()) continue;
 			ret.push_back(t);
 		}
 		return ret;
