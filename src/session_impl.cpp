@@ -6501,8 +6501,15 @@ retry:
 
 	void session_impl::update_anonymous_mode()
 	{
-		if (!m_settings.get_bool(settings_pack::anonymous_mode)) return;
+		if (!m_settings.get_bool(settings_pack::anonymous_mode))
+		{
+			if (m_upnp)
+				m_upnp->set_user_agent(m_settings.get_str(settings_pack::user_agent));
+			return;
+		}
 
+		if (m_upnp)
+			m_upnp->set_user_agent("");
 		m_settings.set_str(settings_pack::user_agent, "");
 		url_random(m_peer_id.data(), m_peer_id.data() + 20);
 	}
@@ -6825,7 +6832,8 @@ retry:
 		// the upnp constructor may fail and call the callbacks
 		m_upnp = boost::make_shared<upnp>(boost::ref(m_io_service)
 			, m_listen_interface.address()
-			, m_settings.get_str(settings_pack::user_agent)
+			, m_settings.get_bool(settings_pack::anonymous_mode)
+				? "" : m_settings.get_str(settings_pack::user_agent)
 			, boost::bind(&session_impl::on_port_mapping
 				, this, _1, _2, _3, _4, _5, 1)
 			, boost::bind(&session_impl::on_port_map_log
