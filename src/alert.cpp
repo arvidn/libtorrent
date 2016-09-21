@@ -1358,8 +1358,8 @@ namespace libtorrent {
 		return msg;
 	}
 
-	add_torrent_alert::add_torrent_alert(aux::stack_allocator& alloc, torrent_handle h
-		, add_torrent_params const& p, error_code ec)
+	add_torrent_alert::add_torrent_alert(aux::stack_allocator& alloc, torrent_handle const& h
+		, add_torrent_params const& p, error_code const& ec)
 		: torrent_alert(alloc, h)
 		, params(p)
 		, error(ec)

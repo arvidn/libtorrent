@@ -1815,8 +1815,8 @@ namespace libtorrent
 	struct TORRENT_EXPORT add_torrent_alert final : torrent_alert
 	{
 		// internal
-		add_torrent_alert(aux::stack_allocator& alloc, torrent_handle h
-			, add_torrent_params const& p, error_code ec);
+		add_torrent_alert(aux::stack_allocator& alloc, torrent_handle const& h
+			, add_torrent_params const& p, error_code const& ec);
 
 		TORRENT_DEFINE_ALERT_PRIO(add_torrent_alert, 67)
 
