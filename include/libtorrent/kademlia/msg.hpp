@@ -34,11 +34,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_KADEMLIA_MSG_HPP
 
 #include "libtorrent/socket.hpp"
+#include "libtorrent/span.hpp"
 
 namespace libtorrent {
 
 struct bdecode_node;
-class entry;
 
 namespace dht {
 
@@ -82,25 +82,17 @@ struct key_desc_t
 	};
 };
 
-// generate an error response message
-void incoming_error(entry& e, char const* msg, int error_code = 203);
-
-// given a redundant name to avoid clashing with libtorrent::detail
-namespace dht_detail {
-
-//#error move this to its own .hpp/.cpp pair and make it take an span instead of being a template
-TORRENT_EXPORT bool verify_message(bdecode_node const& msg, key_desc_t const desc[]
-	, bdecode_node ret[], int size, char* error, int error_size);
-
-}
+// TODO: move this to its own .hpp/.cpp pair?
+TORRENT_EXTRA_EXPORT bool verify_message_impl(bdecode_node const& msg, span<key_desc_t const> desc
+	, span<bdecode_node> ret, span<char> error);
 
 // verifies that a message has all the required
 // entries and returns them in ret
 template <int Size>
 bool verify_message(bdecode_node const& msg, key_desc_t const (&desc)[Size]
-	, bdecode_node (&ret)[Size], char* error, int error_size)
+	, bdecode_node (&ret)[Size], span<char> error)
 {
-	return dht_detail::verify_message(msg, desc, ret, Size, error, error_size);
+	return verify_message_impl(msg, desc, ret, error);
 }
 
 } }
