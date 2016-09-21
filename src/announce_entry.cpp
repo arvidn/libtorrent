@@ -49,13 +49,6 @@ namespace libtorrent
 
 	announce_entry::announce_entry(std::string const& u)
 		: url(u)
-		, next_announce(min_time())
-		, min_announce(min_time())
-		, scrape_incomplete(-1)
-		, scrape_complete(-1)
-		, scrape_downloaded(-1)
-		, tier(0)
-		, fail_limit(0)
 		, fails(0)
 		, updating(false)
 		, source(0)
@@ -67,14 +60,7 @@ namespace libtorrent
 	{}
 
 	announce_entry::announce_entry()
-		: next_announce(min_time())
-		, min_announce(min_time())
-		, scrape_incomplete(-1)
-		, scrape_complete(-1)
-		, scrape_downloaded(-1)
-		, tier(0)
-		, fail_limit(0)
-		, fails(0)
+		: fails(0)
 		, updating(false)
 		, source(0)
 		, verified(false)
@@ -106,10 +92,9 @@ namespace libtorrent
 		// 7, 15, 27, 45, 95, 127, 165, ... seconds
 		// with the default tracker_backoff of 250
 		int const tracker_backoff_seconds = total_seconds(tracker_backoff);
-		int delay = (std::min)(tracker_retry_delay_min + int(fails) * int(fails)
+		int const delay = std::max(std::min(tracker_retry_delay_min + int(fails) * int(fails)
 			* tracker_retry_delay_min * tracker_backoff_seconds / 100
-			, int(tracker_retry_delay_max));
-		delay = (std::max)(delay, retry_interval);
+			, int(tracker_retry_delay_max)), retry_interval);
 		next_announce = aux::time_now() + seconds(delay);
 		updating = false;
 	}
@@ -118,7 +103,7 @@ namespace libtorrent
 	{
 		// if we're a seed and we haven't sent a completed
 		// event, we need to let this announce through
-		bool need_send_complete = is_seed && !complete_sent;
+		bool const need_send_complete = is_seed && !complete_sent;
 
 		return now >= next_announce
 			&& (now >= min_announce || need_send_complete)
