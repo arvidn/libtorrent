@@ -1453,24 +1453,6 @@ namespace aux {
 		}
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
-	void session_impl::set_settings(libtorrent::session_settings const& s)
-	{
-		INVARIANT_CHECK;
-		TORRENT_ASSERT(is_single_thread());
-		std::shared_ptr<settings_pack> p = load_pack_from_struct(m_settings, s);
-		apply_settings_pack(p);
-	}
-
-	libtorrent::session_settings session_impl::deprecated_settings() const
-	{
-		libtorrent::session_settings ret;
-
-		load_struct_from_settings(m_settings, ret);
-		return ret;
-	}
-#endif
-
 	// TODO: 3 try to remove these functions. They are misleading and not very
 	// useful. Anything using these should probably be fixed to do something more
 	// multi-homed friendly

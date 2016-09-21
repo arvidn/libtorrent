@@ -55,7 +55,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 #include "libtorrent/piece_block_progress.hpp"
 #include "libtorrent/ip_filter.hpp"
-#include "libtorrent/session_settings.hpp"
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/stat.hpp"
@@ -81,6 +80,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/aux_/portmap.hpp"
 #include "libtorrent/aux_/lsd.hpp"
+
+#ifndef TORRENT_NO_DEPRECATE
+#include "libtorrent/session_settings.hpp"
+#endif
 
 #if TORRENT_COMPLETE_TYPES_REQUIRED
 #include "libtorrent/peer_connection.hpp"
@@ -308,11 +311,6 @@ namespace libtorrent
 			peer_id const& get_peer_id() const override { return m_peer_id; }
 
 			void close_connection(peer_connection* p, error_code const& ec) override;
-
-#ifndef TORRENT_NO_DEPRECATE
-			void set_settings(libtorrent::session_settings const& s);
-			libtorrent::session_settings deprecated_settings() const;
-#endif
 
 			void apply_settings_pack(std::shared_ptr<settings_pack> pack) override;
 			void apply_settings_pack_impl(settings_pack const& pack

@@ -95,7 +95,7 @@ TORRENT_TEST(test_name)
 {
 #define TEST_NAME(n) \
 	TEST_EQUAL(setting_by_name(#n), settings_pack:: n) \
-	TEST_CHECK(strcmp(name_for_setting(settings_pack:: n), #n) == 0)
+	TEST_EQUAL(name_for_setting(settings_pack:: n), std::string(#n))
 
 #ifndef TORRENT_NO_DEPRECATE
 	TEST_NAME(contiguous_recv_buffer);
