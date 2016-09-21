@@ -186,12 +186,11 @@ namespace
 		}
 
 		bool get_peers(sha1_hash const& info_hash, udp const protocol
-			, bool const noseed, bool const scrape
+			, bool const noseed, bool const scrape, address const& requester
 			, entry& peers) const override
 		{
-			auto const i = m_map.lower_bound(info_hash);
-			if (i == m_map.end()) return false;
-			if (i->first != info_hash) return false;
+			auto const i = m_map.find(info_hash);
+			if (i == m_map.end()) return int(m_map.size()) >= m_settings.max_torrents;
 
 			torrent_entry const& v = i->second;
 
@@ -257,7 +256,19 @@ namespace
 					++m;
 				}
 			}
-			return true;
+
+			if (int(i->second.peers.size()) < m_settings.max_peers)
+				return false;
+
+			// we're at the max peers stored for this torrent
+			// only send a write token if the requester is already in the set
+			// only check for a match on IP because the peer may be announcing
+			// a different port than the one it is using to send DHT messages
+			peer_entry requester_entry;
+			requester_entry.addr.address(requester);
+			auto requester_iter = i->second.peers.lower_bound(requester_entry);
+			return requester_iter == i->second.peers.end()
+				|| requester_iter->addr.address() != requester;
 		}
 
 		void announce_peer(sha1_hash const& info_hash
@@ -268,26 +279,12 @@ namespace
 			torrent_entry* v;
 			if (ti == m_map.end())
 			{
-				// we don't have this torrent, add it
-				// do we need to remove another one first?
-				if (!m_map.empty() && int(m_map.size()) >= m_settings.max_torrents)
+				if (int(m_map.size()) >= m_settings.max_torrents)
 				{
-					// we need to remove some. Remove the ones with the
-					// fewest peers
-					int num_peers = int(m_map.begin()->second.peers.size());
-					auto candidate = m_map.begin();
-					for (auto i = m_map.begin()
-						, end(m_map.end()); i != end; ++i)
-					{
-						if (int(i->second.peers.size()) > num_peers) continue;
-						if (i->first == info_hash) continue;
-						num_peers = int(i->second.peers.size());
-						candidate = i;
-					}
-					m_map.erase(candidate);
-					m_counters.peers -= num_peers;
-					m_counters.torrents -= 1;
+					// we're at capacity, drop the announce
+					return;
 				}
+
 				m_counters.torrents += 1;
 				v = &m_map[info_hash];
 			}
@@ -315,13 +312,8 @@ namespace
 			}
 			else if (v->peers.size() >= m_settings.max_peers)
 			{
-				// when we're at capacity, there's a 50/50 chance of dropping the
-				// announcing peer or an existing peer
-				if (random(1)) return;
-				i = v->peers.lower_bound(peer);
-				if (i == v->peers.end()) --i;
-				v->peers.erase(i++);
-				m_counters.peers -= 1;
+				// we're at capacity, drop the announce
+				return;
 			}
 			v->peers.insert(i, peer);
 			m_counters.peers += 1;

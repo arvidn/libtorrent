@@ -219,10 +219,8 @@ private:
 
 	void send_single_refresh(udp::endpoint const& ep, int bucket
 		, node_id const& id = node_id());
-	void lookup_peers(sha1_hash const& info_hash, entry& reply
-		, bool noseed, bool scrape) const;
-	bool lookup_torrents(sha1_hash const& target, entry& reply
-		, char* tags) const;
+	bool lookup_peers(sha1_hash const& info_hash, entry& reply
+		, bool noseed, bool scrape, address const& requester) const;
 
 	libtorrent::dht_settings const& m_settings;
 
