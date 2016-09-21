@@ -668,7 +668,7 @@ namespace libtorrent
 
 	void create_torrent::add_tracker(string_view url, int const tier)
 	{
-		m_urls.push_back(announce_entry(std::string(url), tier));
+		m_urls.push_back(announce_entry(url.to_string(), tier));
 
 		std::sort(m_urls.begin(), m_urls.end()
 			, [] (announce_entry const& lhs, announce_entry const& rhs)
