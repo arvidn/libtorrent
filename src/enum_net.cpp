@@ -474,9 +474,9 @@ namespace libtorrent
 				if (iface_from_ifaddrs(ifa, iface))
 				{
 					ifreq req;
-					memset(&req, 0, sizeof(req));
+					std::memset(&req, 0, sizeof(req));
 					// -1 to leave a 0-terminator
-					strncpy(req.ifr_name, iface.name, IF_NAMESIZE - 1);
+					std::strncpy(req.ifr_name, iface.name, IF_NAMESIZE - 1);
 
 					// ignore errors here. This is best-effort
 					ioctl(s, siocgifmtu, &req);

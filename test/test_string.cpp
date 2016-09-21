@@ -279,8 +279,7 @@ void test_parse_interface(char const* input
 	, std::string output)
 {
 	std::fprintf(stderr, "parse interface: %s\n", input);
-	std::vector<listen_interface_t> list;
-	parse_listen_interfaces(input, list);
+	auto const list = parse_listen_interfaces(input);
 	TEST_EQUAL(list.size(), expected.size());
 	if (list.size() == expected.size())
 	{
@@ -342,6 +341,10 @@ TORRENT_TEST(parse_list)
 	test_parse_interface("nic :", {}, "");
 	test_parse_interface("nic ", {}, "");
 	test_parse_interface("nic s", {}, "");
+
+	// parse interface with port 0
+	test_parse_interface("127.0.0.1:0"
+		, {{"127.0.0.1", 0, false}}, "127.0.0.1:0");
 }
 
 TORRENT_TEST(tokenize)
