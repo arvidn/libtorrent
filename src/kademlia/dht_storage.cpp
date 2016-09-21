@@ -185,7 +185,7 @@ namespace
 			m_node_ids = ids;
 		}
 
-		bool get_peers(sha1_hash const& info_hash, udp const protocol
+		bool get_peers(sha1_hash const& info_hash
 			, bool const noseed, bool const scrape, address const& requester
 			, entry& peers) const override
 		{
@@ -213,11 +213,12 @@ namespace
 			}
 			else
 			{
+				tcp const protocol = requester.is_v4() ? tcp::v4() : tcp::v6();
 				int max = m_settings.max_peers_reply;
 				// if these are IPv6 peers their addresses are 4x the size of IPv4
 				// so reduce the max peers 4 fold to compensate
 				// max_peers_reply should probably be specified in bytes
-				if (!v.peers.empty() && protocol == udp::v6())
+				if (!v.peers.empty() && protocol == tcp::v6())
 					max /= 4;
 				// we're picking "to_pick" from a list of "num" at random.
 				int const to_pick = std::min(int(v.peers.size()), max);
@@ -231,7 +232,7 @@ namespace
 					if (noseed && iter->seed) continue;
 
 					// only include peers with the right address family
-					if (iter->addr.protocol().family() != protocol.family())
+					if (iter->addr.protocol() != protocol)
 						continue;
 
 					++t;

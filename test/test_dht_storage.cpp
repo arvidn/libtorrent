@@ -100,7 +100,7 @@ TORRENT_TEST(announce_peer)
 	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
 	entry peers;
-	s->get_peers(n1, udp::v4(), false, false, address(), peers);
+	s->get_peers(n1, false, false, address(), peers);
 
 	TEST_CHECK(peers["n"].string().empty())
 	TEST_CHECK(peers["values"].list().empty());
@@ -112,7 +112,7 @@ TORRENT_TEST(announce_peer)
 
 	s->announce_peer(n1, p1, "torrent_name", false);
 	peers = entry();
-	s->get_peers(n1, udp::v4(), false, false, address(), peers);
+	s->get_peers(n1, false, false, address(), peers);
 	TEST_EQUAL(peers["n"].string(), "torrent_name")
 	TEST_EQUAL(peers["values"].list().size(), 1)
 
@@ -120,7 +120,7 @@ TORRENT_TEST(announce_peer)
 	s->announce_peer(n2, p3, "torrent_name1", false);
 	s->announce_peer(n3, p4, "torrent_name2", false);
 	peers = entry();
-	s->get_peers(n3, udp::v4(), false, false, address(), peers);
+	s->get_peers(n3, false, false, address(), peers);
 	TEST_CHECK(!peers.find_key("values"));
 }
 
@@ -142,11 +142,11 @@ TORRENT_TEST(dual_stack)
 	s->announce_peer(n1, p5, "torrent_name", false);
 
 	entry peers4;
-	s->get_peers(n1, udp::v4(), false, false, address(), peers4);
+	s->get_peers(n1, false, false, address(), peers4);
 	TEST_EQUAL(peers4["values"].list().size(), 3);
 
 	entry peers6;
-	s->get_peers(n1, udp::v6(), false, false, address(), peers6);
+	s->get_peers(n1, false, false, address_v6(), peers6);
 	TEST_EQUAL(peers6["values"].list().size(), 2);
 }
 
