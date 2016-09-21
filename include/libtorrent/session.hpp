@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/session_handle.hpp"
+#include "libtorrent/session_settings.hpp" // for dht_settings
 #include "libtorrent/kademlia/dht_state.hpp"
 #include "libtorrent/kademlia/dht_storage.hpp"
 
