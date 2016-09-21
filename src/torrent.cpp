@@ -6429,10 +6429,6 @@ namespace libtorrent
 		int tier = 0;
 		for (announce_entry const& tr : m_trackers)
 		{
-			// don't save trackers we can't trust
-			// TODO: 1 save the send_stats state instead of throwing them away
-			// it may pose an issue when downgrading though
-			if (tr.send_stats == false) continue;
 			if (tr.tier == tier)
 			{
 				tr_list.back().list().push_back(tr.url);

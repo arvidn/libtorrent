@@ -116,7 +116,6 @@ namespace libtorrent
 			const char* event_string[] = {"completed", "started", "stopped", "paused"};
 
 			char str[1024];
-			const bool stats = tracker_req().send_stats;
 			std::snprintf(str, sizeof(str)
 				, "&peer_id=%s"
 				"&port=%d"
@@ -133,10 +132,10 @@ namespace libtorrent
 				// the i2p tracker seems to verify that the port is not 0,
 				// even though it ignores it otherwise
 				, i2p ? 1 : tracker_req().listen_port
-				, stats ? tracker_req().uploaded : 0
-				, stats ? tracker_req().downloaded : 0
-				, stats ? tracker_req().left : 0
-				, stats ? tracker_req().corrupt : 0
+				, tracker_req().uploaded
+				, tracker_req().downloaded
+				, tracker_req().left
+				, tracker_req().corrupt
 				, tracker_req().key
 				, (tracker_req().event != tracker_request::none) ? "&event=" : ""
 				, (tracker_req().event != tracker_request::none) ? event_string[tracker_req().event - 1] : ""
@@ -147,7 +146,7 @@ namespace libtorrent
 				&& settings.get_bool(settings_pack::announce_crypto_support))
 				url += "&supportcrypto=1";
 #endif
-			if (stats && settings.get_bool(settings_pack::report_redundant_bytes))
+			if (settings.get_bool(settings_pack::report_redundant_bytes))
 			{
 				url += "&redundant=";
 				url += to_string(tracker_req().redundant).data();
@@ -168,7 +167,7 @@ namespace libtorrent
 				}
 				else
 				{
-					url += "&ip=" + tracker_req ().i2pconn->local_endpoint () + ".i2p";
+					url += "&ip=" + tracker_req().i2pconn->local_endpoint () + ".i2p";
 				}
 			}
 			else

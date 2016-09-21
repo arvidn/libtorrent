@@ -719,7 +719,6 @@ namespace libtorrent
 		span<char> out = buf;
 
 		tracker_request const& req = tracker_req();
-		bool const stats = req.send_stats;
 		aux::session_settings const& settings = m_man.settings();
 
 		std::map<address, connection_cache_entry>::iterator i
@@ -735,9 +734,9 @@ namespace libtorrent
 		out.subspan(20);
 		std::copy(req.pid.begin(), req.pid.end(), out.data()); // peer_id
 		out.subspan(20);
-		aux::write_int64(stats ? req.downloaded : 0, out); // downloaded
-		aux::write_int64(stats ? req.left : 0, out); // left
-		aux::write_int64(stats ? req.uploaded : 0, out); // uploaded
+		aux::write_int64(req.downloaded, out); // downloaded
+		aux::write_int64(req.left, out); // left
+		aux::write_int64(req.uploaded, out); // uploaded
 		aux::write_int32(req.event, out); // event
 		// ip address
 		address_v4 announce_ip;

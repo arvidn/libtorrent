@@ -62,7 +62,6 @@ namespace libtorrent
 		, verified(false)
 		, start_sent(false)
 		, complete_sent(false)
-		, send_stats(true)
 		, triggered_manually(false)
 	{}
 
@@ -80,7 +79,6 @@ namespace libtorrent
 		, verified(false)
 		, start_sent(false)
 		, complete_sent(false)
-		, send_stats(true)
 		, triggered_manually(false)
 	{}
 
