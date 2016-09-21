@@ -65,10 +65,10 @@ namespace libtorrent
 #ifdef TORRENT_WINDOWS
 			WIN32_FILE_ATTRIBUTE_DATA attr;
 #if TORRENT_USE_WSTRING
-			std::wstring path = convert_to_wstring(p);
+			std::wstring path = convert_to_wstring(std::string(p));
 			GetFileAttributesExW(path.c_str(), GetFileExInfoStandard, &attr);
 #else
-			std::string path = convert_to_native(p);
+			std::string path = convert_to_native(std::string(p));
 			GetFileAttributesExA(path.c_str(), GetFileExInfoStandard, &attr);
 #endif // TORRENT_USE_WSTRING
 			if (attr.dwFileAttributes == INVALID_FILE_ATTRIBUTES) return 0;
