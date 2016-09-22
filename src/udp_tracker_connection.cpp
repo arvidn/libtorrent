@@ -635,7 +635,6 @@ namespace libtorrent
 			return true;
 		}
 
-		std::vector<peer_entry> peer_list;
 		resp.peers4.reserve(num_peers);
 		for (int i = 0; i < num_peers; ++i)
 		{

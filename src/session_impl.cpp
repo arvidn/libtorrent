@@ -6246,8 +6246,15 @@ namespace aux {
 
 	void session_impl::update_anonymous_mode()
 	{
-		if (!m_settings.get_bool(settings_pack::anonymous_mode)) return;
+		if (!m_settings.get_bool(settings_pack::anonymous_mode))
+		{
+			if (m_upnp)
+				m_upnp->set_user_agent(m_settings.get_str(settings_pack::user_agent));
+			return;
+		}
 
+		if (m_upnp)
+			m_upnp->set_user_agent("");
 		m_settings.set_str(settings_pack::user_agent, "");
 		url_random(m_peer_id.data(), m_peer_id.data() + 20);
 	}
@@ -6512,7 +6519,8 @@ namespace aux {
 
 		// the upnp constructor may fail and call the callbacks
 		m_upnp = std::make_shared<upnp>(m_io_service
-			, m_settings.get_str(settings_pack::user_agent)
+			, m_settings.get_bool(settings_pack::anonymous_mode)
+				? "" : m_settings.get_str(settings_pack::user_agent)
 			, *this
 			, m_settings.get_bool(settings_pack::upnp_ignore_nonrouters));
 		m_upnp->start();

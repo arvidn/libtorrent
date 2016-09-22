@@ -1813,6 +1813,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 	int const effective_mtu = mtu_probe ? m_mtu : m_mtu_floor;
 	int payload_size = (std::min)(m_write_buffer_size
 		, effective_mtu - header_size);
+	TORRENT_ASSERT(payload_size >= 0);
 
 	// if we have one MSS worth of data, make sure it fits in our
 	// congestion window and the advertised receive window from
@@ -1915,6 +1916,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 #if TORRENT_USE_ASSERTS
 		p->num_fast_resend = 0;
 #endif
+		p->mtu_probe = false;
 		p->need_resend = false;
 		ptr = p->buf;
 		h = reinterpret_cast<utp_header*>(ptr);
