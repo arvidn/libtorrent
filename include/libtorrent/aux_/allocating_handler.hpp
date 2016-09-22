@@ -69,14 +69,8 @@ namespace libtorrent { namespace aux
 	struct allocating_handler
 	{
 		allocating_handler(
-			Handler&& h, handler_storage<Size>& s)
+			Handler h, handler_storage<Size>& s)
 			: handler(std::move(h))
-			, storage(s)
-		{}
-
-		allocating_handler(
-			Handler const& h, handler_storage<Size>& s)
-			: handler(h)
 			, storage(s)
 		{}
 
