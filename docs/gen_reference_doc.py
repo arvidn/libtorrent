@@ -616,7 +616,6 @@ for filename in files:
 			continue
 
 		if (l == 'namespace detail' or \
-			l == 'namespace dht_detail' or \
 			l == 'namespace impl' or \
 			l == 'namespace aux') \
 			and not internal:

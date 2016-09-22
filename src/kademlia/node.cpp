@@ -60,6 +60,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/refresh.hpp"
 #include "libtorrent/kademlia/get_peers.hpp"
 #include "libtorrent/kademlia/get_item.hpp"
+#include "libtorrent/kademlia/msg.hpp"
 
 using namespace std::placeholders;
 
@@ -88,6 +89,15 @@ node_id calculate_node_id(node_id const& nid, dht_observer* observer, udp protoc
 		return generate_id(external_address);
 
 	return nid;
+}
+
+// generate an error response message
+void incoming_error(entry& e, char const* msg, int error_code = 203)
+{
+	e["y"] = "e";
+	entry::list_type& l = e["e"].list();
+	l.push_back(entry(error_code));
+	l.push_back(entry(msg));
 }
 
 } // anonymous namespace
@@ -778,7 +788,7 @@ void node::incoming_request(msg const& m, entry& e)
 	e["y"] = "r";
 	e["t"] = m.message.dict_find_string_value("t").to_string();
 
-	key_desc_t top_desc[] = {
+	key_desc_t const top_desc[] = {
 		{"q", bdecode_node::string_t, 0, 0},
 		{"ro", bdecode_node::int_t, 0, key_desc_t::optional},
 		{"a", bdecode_node::dict_t, 0, key_desc_t::parse_children},
@@ -787,8 +797,7 @@ void node::incoming_request(msg const& m, entry& e)
 
 	bdecode_node top_level[4];
 	char error_string[200];
-	if (!verify_message(m.message, top_desc, top_level, error_string
-		, sizeof(error_string)))
+	if (!verify_message(m.message, top_desc, top_level, error_string))
 	{
 		incoming_error(e, error_string);
 		return;
@@ -831,7 +840,7 @@ void node::incoming_request(msg const& m, entry& e)
 	}
 	else if (query == "get_peers")
 	{
-		key_desc_t msg_desc[] = {
+		key_desc_t const msg_desc[] = {
 			{"info_hash", bdecode_node::string_t, 20, 0},
 			{"noseed", bdecode_node::int_t, 0, key_desc_t::optional},
 			{"scrape", bdecode_node::int_t, 0, key_desc_t::optional},
@@ -839,8 +848,7 @@ void node::incoming_request(msg const& m, entry& e)
 		};
 
 		bdecode_node msg_keys[4];
-		if (!verify_message(arg_ent, msg_desc, msg_keys, error_string
-			, sizeof(error_string)))
+		if (!verify_message(arg_ent, msg_desc, msg_keys, error_string))
 		{
 			m_counters.inc_stats_counter(counters::dht_invalid_get_peers);
 			incoming_error(e, error_string);
@@ -874,13 +882,13 @@ void node::incoming_request(msg const& m, entry& e)
 	}
 	else if (query == "find_node")
 	{
-		key_desc_t msg_desc[] = {
+		key_desc_t const msg_desc[] = {
 			{"target", bdecode_node::string_t, 20, 0},
 			{"want", bdecode_node::list_t, 0, key_desc_t::optional},
 		};
 
 		bdecode_node msg_keys[2];
-		if (!verify_message(arg_ent, msg_desc, msg_keys, error_string, sizeof(error_string)))
+		if (!verify_message(arg_ent, msg_desc, msg_keys, error_string))
 		{
 			incoming_error(e, error_string);
 			return;
@@ -893,7 +901,7 @@ void node::incoming_request(msg const& m, entry& e)
 	}
 	else if (query == "announce_peer")
 	{
-		key_desc_t msg_desc[] = {
+		key_desc_t const msg_desc[] = {
 			{"info_hash", bdecode_node::string_t, 20, 0},
 			{"port", bdecode_node::int_t, 0, 0},
 			{"token", bdecode_node::string_t, 0, 0},
@@ -903,7 +911,7 @@ void node::incoming_request(msg const& m, entry& e)
 		};
 
 		bdecode_node msg_keys[6];
-		if (!verify_message(arg_ent, msg_desc, msg_keys, error_string, sizeof(error_string)))
+		if (!verify_message(arg_ent, msg_desc, msg_keys, error_string))
 		{
 			m_counters.inc_stats_counter(counters::dht_invalid_announce);
 			incoming_error(e, error_string);
@@ -967,7 +975,7 @@ void node::incoming_request(msg const& m, entry& e)
 
 		// attempt to parse the message
 		bdecode_node msg_keys[7];
-		if (!verify_message(arg_ent, msg_desc, msg_keys, error_string, sizeof(error_string)))
+		if (!verify_message(arg_ent, msg_desc, msg_keys, error_string))
 		{
 			m_counters.inc_stats_counter(counters::dht_invalid_put);
 			incoming_error(e, error_string);
@@ -1099,8 +1107,7 @@ void node::incoming_request(msg const& m, entry& e)
 
 		// attempt to parse the message
 		bdecode_node msg_keys[3];
-		if (!verify_message(arg_ent, msg_desc, msg_keys, error_string
-			, sizeof(error_string)))
+		if (!verify_message(arg_ent, msg_desc, msg_keys, error_string))
 		{
 			m_counters.inc_stats_counter(counters::dht_invalid_get);
 			incoming_error(e, error_string);

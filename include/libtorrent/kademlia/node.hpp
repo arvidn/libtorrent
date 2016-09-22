@@ -44,7 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/routing_table.hpp>
 #include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/kademlia/node_id.hpp>
-#include <libtorrent/kademlia/msg.hpp>
 #include <libtorrent/kademlia/find_data.hpp>
 #include <libtorrent/kademlia/put_data.hpp>
 #include <libtorrent/kademlia/item.hpp>
@@ -71,6 +70,7 @@ namespace libtorrent { namespace dht
 
 struct traversal_algorithm;
 struct dht_observer;
+struct msg;
 
 TORRENT_EXTRA_EXPORT entry write_nodes_entry(std::vector<node_entry> const& nodes);
 
