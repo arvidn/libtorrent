@@ -52,7 +52,7 @@ namespace libtorrent
 		m_stat_cache[i].file_size = size;
 	}
 
-	void stat_cache::set_error(int i, error_code const& ec)
+	void stat_cache::set_error(int const i, error_code const& ec)
 	{
 		TORRENT_ASSERT(i >= 0);
 		if (i >= int(m_stat_cache.size()))
@@ -62,14 +62,14 @@ namespace libtorrent
 		m_stat_cache[i].file_size = file_error - error_index;
 	}
 
-	void stat_cache::set_dirty(int i)
+	void stat_cache::set_dirty(int const i)
 	{
 		TORRENT_ASSERT(i >= 0);
 		if (i >= int(m_stat_cache.size())) return;
 		m_stat_cache[i].file_size = not_in_cache;
 	}
 
-	std::int64_t stat_cache::get_filesize(int i, file_storage const& fs
+	std::int64_t stat_cache::get_filesize(int const i, file_storage const& fs
 		, std::string const& save_path, error_code& ec)
 	{
 		TORRENT_ASSERT(i < int(fs.num_files()));
@@ -84,7 +84,7 @@ namespace libtorrent
 		{
 			// query the filesystem
 			file_status s;
-			std::string file_path = fs.file_path(i, save_path);
+			std::string const file_path = fs.file_path(i, save_path);
 			stat_file(file_path, &s, ec);
 			if (ec)
 			{

@@ -610,7 +610,7 @@ namespace libtorrent
 
 		for (int i = 0; i < files().num_files(); ++i)
 		{
-			std::int64_t sz = m_stat_cache.get_filesize(
+			std::int64_t const sz = m_stat_cache.get_filesize(
 				i, files(), m_save_path, ec.ec);
 
 			if (sz < 0)
@@ -645,7 +645,7 @@ namespace libtorrent
 		return false;
 	}
 
-	void default_storage::rename_file(int index, std::string const& new_filename
+	void default_storage::rename_file(int const index, std::string const& new_filename
 		, storage_error& ec)
 	{
 		if (index < 0 || index >= files().num_files()) return;
@@ -1498,11 +1498,10 @@ namespace libtorrent
 
 	int piece_manager::check_no_fastresume(storage_error& ec)
 	{
-		bool has_files = false;
 		if (!m_storage->settings().get_bool(settings_pack::no_recheck_incomplete_resume))
 		{
 			storage_error se;
-			has_files = m_storage->has_any_file(se);
+			bool const has_files = m_storage->has_any_file(se);
 
 			if (se)
 			{
