@@ -124,7 +124,7 @@ namespace dht
 		// returns true if the maximum number of peers are stored
 		// for this info_hash.
 		//
-		virtual bool get_peers(sha1_hash const& info_hash, udp protocol
+		virtual bool get_peers(sha1_hash const& info_hash
 			, bool noseed, bool scrape, address const& requester
 			, entry& peers) const = 0;
 

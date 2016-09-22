@@ -756,7 +756,7 @@ bool node::lookup_peers(sha1_hash const& info_hash, entry& reply
 	if (m_observer)
 		m_observer->get_peers(info_hash);
 
-	return m_storage.get_peers(info_hash, protocol(), noseed, scrape, requester, reply);
+	return m_storage.get_peers(info_hash, noseed, scrape, requester, reply);
 }
 
 entry write_nodes_entry(std::vector<node_entry> const& nodes)
