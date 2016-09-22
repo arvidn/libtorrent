@@ -1681,6 +1681,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 	namespace {
 
+#if !TORRENT_USE_PREADV
 	void gather_copy(file::iovec_t const* bufs, int num_bufs, char* dst)
 	{
 		std::size_t offset = 0;
@@ -1701,7 +1702,6 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		}
 	}
 
-#if !TORRENT_USE_PREADV
 	bool coalesce_read_buffers(file::iovec_t const*& bufs, int& num_bufs
 		, file::iovec_t* tmp)
 	{
