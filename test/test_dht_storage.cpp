@@ -339,6 +339,41 @@ TORRENT_TEST(mutable_item_limit)
 	TEST_EQUAL(cnt.mutable_data, 42);
 }
 
+TORRENT_TEST(get_peers_dist)
+{
+	// test that get_peers returns reasonably disjoint sets of peers with each call
+	// take two samples of 100 peers from 1000 and make sure there aren't too many
+	// peers found in both lists
+	dht_settings sett = test_settings();
+	sett.max_peers = 1000;
+	sett.max_peers_reply = 100;
+	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
+
+	address addr = rand_v4();
+	for (int i = 0; i < 1000; ++i)
+	{
+		s->announce_peer(n1, tcp::endpoint(addr, uint16_t(i))
+			, "torrent_name", false);
+	}
+
+	std::set<int> peer_set;
+	int duplicates = 0;
+	for (int i = 0; i < 2; ++i)
+	{
+		entry peers;
+		s->get_peers(n1, false, false, address(), peers);
+		TEST_EQUAL(peers["values"].list().size(), 100);
+		for (auto const& p : peers["values"].list())
+		{
+			int port = detail::read_v4_endpoint<tcp::endpoint>(p.string().begin()).port();
+			if (!peer_set.insert(port).second)
+				++duplicates;
+		}
+	}
+	std::printf("duplicate peers found: %d\n", duplicates);
+	TEST_CHECK(duplicates < 20);
+}
+
 TORRENT_TEST(update_node_ids)
 {
 	dht_settings sett = test_settings();

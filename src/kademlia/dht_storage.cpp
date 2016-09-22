@@ -214,18 +214,15 @@ namespace
 			else
 			{
 				tcp const protocol = requester.is_v4() ? tcp::v4() : tcp::v6();
-				int max = m_settings.max_peers_reply;
+				int to_pick = m_settings.max_peers_reply;
 				// if these are IPv6 peers their addresses are 4x the size of IPv4
 				// so reduce the max peers 4 fold to compensate
 				// max_peers_reply should probably be specified in bytes
 				if (!v.peers.empty() && protocol == tcp::v6())
-					max /= 4;
-				// we're picking "to_pick" from a list of "num" at random.
-				int const to_pick = std::min(int(v.peers.size()), max);
-				std::set<peer_entry>::const_iterator iter = v.peers.begin();
+					to_pick /= 4;
 				entry::list_type& pe = peers["values"].list();
 
-				for (int t = 0, m = 0; m < to_pick && iter != v.peers.end(); ++iter)
+				for (auto iter = v.peers.begin(); to_pick > 0 && iter != v.peers.end(); ++iter)
 				{
 					// if the node asking for peers is a seed, skip seeds from the
 					// peer list
@@ -235,26 +232,20 @@ namespace
 					if (iter->addr.protocol() != protocol)
 						continue;
 
-					++t;
-					std::string* str;
-					if (t <= to_pick)
-					{
-						pe.push_back(entry());
-						str = &pe.back().string();
-					}
-					else
-					{
-						// maybe replace an item we've already picked
-						if (random(t - 1) >= to_pick) continue;
-						str = &pe[random(to_pick - 1)].string();
-					}
+					// pick this peer with probability
+					// <peers left to pick> / <peers left in the set>
+					if (random(uint32_t(std::distance(iter, v.peers.end()))) > to_pick)
+						continue;
 
-					str->resize(18);
-					std::string::iterator out = str->begin();
+					pe.push_back(entry());
+					std::string& str = pe.back().string();
+
+					str.resize(18);
+					std::string::iterator out = str.begin();
 					detail::write_endpoint(iter->addr, out);
-					str->resize(out - str->begin());
+					str.resize(out - str.begin());
 
-					++m;
+					--to_pick;
 				}
 			}
 
