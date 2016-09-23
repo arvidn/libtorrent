@@ -782,14 +782,24 @@ void bind_alert()
 
     class_<dht_mutable_item_alert, bases<alert>, noncopyable>(
        "dht_mutable_item_alert", no_init)
+        .def_readonly("key", &dht_mutable_item_alert::key)
+        .def_readonly("signature", &dht_mutable_item_alert::signature)
+        .def_readonly("seq", &dht_mutable_item_alert::seq)
+        .def_readonly("salt", &dht_mutable_item_alert::salt)
         .add_property("item", &dht_mutable_item)
+        .def_readonly("authoritative", &dht_mutable_item_alert::authoritative)
         ;
 
     class_<dht_put_alert, bases<alert>, noncopyable>(
        "dht_put_alert", no_init)
         .def_readonly("target", &dht_put_alert::target)
-        .add_property("item", &dht_put_item)
+        .def_readonly("public_key", &dht_put_alert::public_key)
+        .def_readonly("signature", &dht_put_alert::signature)
+        .def_readonly("salt", &dht_put_alert::salt)
+        .def_readonly("seq", &dht_put_alert::seq)
+        .def_readonly("num_success", &dht_put_alert::num_success)
         ;
+
     class_<session_stats_alert, bases<alert>, noncopyable>(
         "session_stats_alert", no_init)
         .add_property("values", &session_stats_values)
