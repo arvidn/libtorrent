@@ -345,7 +345,7 @@ TORRENT_TEST(get_peers_dist)
 	// take two samples of 100 peers from 1000 and make sure there aren't too many
 	// peers found in both lists
 	dht_settings sett = test_settings();
-	sett.max_peers = 1000;
+	sett.max_peers = 2000;
 	sett.max_peers_reply = 100;
 	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
@@ -372,6 +372,20 @@ TORRENT_TEST(get_peers_dist)
 	}
 	std::printf("duplicate peers found: %d\n", duplicates);
 	TEST_CHECK(duplicates < 20);
+
+	// add 1000 seeds to the mix and make sure we still pick the desired number
+	// of peers if we select only non-seeds
+	for (int i = 1000; i < 2000; ++i)
+	{
+		s->announce_peer(n1, tcp::endpoint(addr, uint16_t(i))
+			, "torrent_name", true);
+	}
+
+	{
+		entry peers;
+		s->get_peers(n1, true, false, address(), peers);
+		TEST_EQUAL(peers["values"].list().size(), 100);
+	}
 }
 
 TORRENT_TEST(update_node_ids)
