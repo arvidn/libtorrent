@@ -4535,7 +4535,7 @@ namespace aux {
 		}
 	}
 
-	void session_impl::post_torrent_updates(std::uint32_t flags)
+	void session_impl::post_torrent_updates(std::uint32_t const flags)
 	{
 		INVARIANT_CHECK;
 
@@ -4557,10 +4557,8 @@ namespace aux {
 		// pushed back. Perhaps the status_update_alert could even have a fixed
 		// array of n entries rather than a vector, to further improve memory
 		// locality.
-		for (std::vector<torrent*>::iterator i = state_updates.begin()
-			, end(state_updates.end()); i != end; ++i)
+		for (auto& t : state_updates)
 		{
-			torrent* t = *i;
 			TORRENT_ASSERT(t->m_links[aux::session_impl::torrent_state_updates].in_list());
 			status.push_back(torrent_status());
 			// querying accurate download counters may require
@@ -4649,25 +4647,25 @@ namespace aux {
 		}
 
 		error_code ec;
-		torrent_handle handle = add_torrent(*params, ec);
+		add_torrent(*params, ec);
 		delete params;
 	}
 
 	void session_impl::on_async_load_torrent(disk_io_job const* j)
 	{
-		add_torrent_params* params = static_cast<add_torrent_params*>(j->requester);
-		error_code ec;
-		torrent_handle handle;
+		add_torrent_params* params = reinterpret_cast<add_torrent_params*>(j->requester);
 		if (j->error.ec)
 		{
-			ec = j->error.ec;
-			m_alerts.emplace_alert<add_torrent_alert>(handle, *params, ec);
+			m_alerts.emplace_alert<add_torrent_alert>(torrent_handle()
+				, *params, j->error.ec);
 		}
 		else
 		{
 			params->url.clear();
 			params->ti = std::shared_ptr<torrent_info>(j->buffer.torrent_file);
-			handle = add_torrent(*params, ec);
+
+			error_code ec;
+			add_torrent(*params, ec);
 		}
 
 		delete params;

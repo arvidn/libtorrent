@@ -1989,7 +1989,7 @@ namespace libtorrent
 		, std::function<void(disk_io_job const*)> handler)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::load_torrent);
-		j->requester = reinterpret_cast<char*>(params);
+		j->requester = reinterpret_cast<void*>(params);
 		j->callback = std::move(handler);
 
 		add_job(j);

@@ -362,7 +362,7 @@ namespace libtorrent
 #endif
 
 	void stat_file(std::string const& inf, file_status* s
-		, error_code& ec, int flags)
+		, error_code& ec, int const flags)
 	{
 		ec.clear();
 #ifdef TORRENT_WINDOWS

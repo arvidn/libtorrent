@@ -625,7 +625,7 @@ namespace libtorrent
 		if (should_log())
 		{
 			debug_log("creating torrent: %s max-uploads: %d max-connections: %d "
-				"upload-limit: %d download-limit: %d flags: %s%s%s%s%s%s%s%s%s%s%s"
+				"upload-limit: %d download-limit: %d flags: %s%s%s%s%s%s%s%s%s%s%s "
 				"save-path: %s"
 				, torrent_file().name().c_str()
 				, p.max_uploads
@@ -1248,10 +1248,9 @@ namespace libtorrent
 
 		update_gauge();
 
-		for (peer_iterator i = m_connections.begin()
-			, end(m_connections.end()); i != end; ++i)
+		for (auto const& p : m_connections)
 		{
-			peer_has((*i)->get_bitfield(), *i);
+			peer_has(p->get_bitfield(), p);
 		}
 	}
 
@@ -2298,12 +2297,10 @@ namespace libtorrent
 
 				int const num_blocks_per_piece = torrent_file().piece_length() / block_size();
 
-				for (std::map<int, bitfield>::const_iterator i
-					= m_add_torrent_params->unfinished_pieces.begin()
-					, end(m_add_torrent_params->unfinished_pieces.end()); i != end; ++i)
+				for (auto const& p : m_add_torrent_params->unfinished_pieces)
 				{
-					int const piece = i->first;
-					bitfield const& blocks = i->second;
+					int const piece = p.first;
+					bitfield const& blocks = p.second;
 
 					if (piece < 0 || piece > torrent_file().num_pieces()) continue;
 
@@ -7881,9 +7878,8 @@ namespace libtorrent
 		}
 		else
 		{
-			for (std::vector<announce_entry>::iterator i = m_trackers.begin()
-				, end(m_trackers.end()); i != end; ++i)
-				i->complete_sent = true;
+			for (auto& t : m_trackers)
+				t.complete_sent = true;
 
 			if (m_state != torrent_status::finished
 				&& m_state != torrent_status::seeding)
@@ -10856,7 +10852,7 @@ namespace libtorrent
 		}
 	}
 
-	void torrent::set_state(torrent_status::state_t s)
+	void torrent::set_state(torrent_status::state_t const s)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(s != 0); // this state isn't used anymore
