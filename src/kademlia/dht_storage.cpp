@@ -525,6 +525,9 @@ namespace
 
 			m_counters.peers -= std::distance(new_end, peers.end());
 			peers.erase(new_end, peers.end());
+			// if we're using less than 1/4 of the capacity free up the excess
+			if (!peers.empty() && peers.capacity() / peers.size() >= 4u)
+				peers.shrink_to_fit();
 		}
 	};
 }
