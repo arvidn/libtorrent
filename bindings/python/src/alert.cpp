@@ -309,6 +309,7 @@ void bind_alert()
 
     class_<read_piece_alert, bases<torrent_alert>, noncopyable>(
         "read_piece_alert", 0, no_init)
+        .def_readonly("ec", &read_piece_alert::ec)
         .add_property("buffer", get_buffer)
         .def_readonly("piece", &read_piece_alert::piece)
         .def_readonly("size", &read_piece_alert::size)
@@ -426,7 +427,9 @@ void bind_alert()
         .def_readonly("url", &url_seed_alert::url)
         .def_readonly("msg", &url_seed_alert::msg)
 #endif
+        .def_readonly("error", &url_seed_alert::error)
         .def("server_url", &url_seed_alert::server_url)
+        .def("error_message", &url_seed_alert::error_message)
         ;
 
     class_<file_error_alert, bases<torrent_alert>, noncopyable>(
@@ -440,7 +443,9 @@ void bind_alert()
         ;
 
     class_<metadata_failed_alert, bases<torrent_alert>, noncopyable>(
-        "metadata_failed_alert", no_init);
+        "metadata_failed_alert", no_init)
+        .def_readonly("error", &metadata_failed_alert::error)
+        ;
 
     class_<metadata_received_alert, bases<torrent_alert>, noncopyable>(
         "metadata_received_alert", no_init);
@@ -518,6 +523,7 @@ void bind_alert()
         .def_readonly("msg", &scrape_failed_alert::msg)
 #endif
         .def("error_message", &scrape_failed_alert::error_message)
+        .def_readonly("error", &scrape_failed_alert::error)
         ;
 
     class_<udp_error_alert, bases<alert>, noncopyable>(
