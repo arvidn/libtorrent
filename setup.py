@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
 import os
+import sys
+
 os.chdir('bindings/python')
-execfile('setup.py')
+with open('setup.py) as filename:
+    exec(filename.read())
