@@ -1604,7 +1604,7 @@ namespace libtorrent
 			, auth, extra_headers));
 	}
 
-	void torrent_info::set_web_seeds(std::vector<web_seed_entry> seeds)
+	void torrent_info::set_web_seeds(std::vector<web_seed_entry> const& seeds)
 	{
 		m_web_seeds = seeds;
 	}
