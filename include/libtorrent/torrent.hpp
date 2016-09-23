@@ -228,7 +228,7 @@ namespace libtorrent
 
 		// this is true if we have all pieces. If it's false,
 		// it means we either don't have any pieces, or, if
-		// there is a piece_picker object present, it contans
+		// there is a piece_picker object present, it contains
 		// the state of how many pieces we have
 		bool m_have_all:1;
 

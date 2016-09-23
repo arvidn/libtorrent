@@ -2276,11 +2276,11 @@ namespace libtorrent
 				for (int i = 0; i < num_pieces; ++i)
 				{
 					if (m_add_torrent_params->have_pieces[i] == false) continue;
-						need_picker();
-						m_picker->we_have(i);
-						inc_stats_counter(counters::num_piece_passed);
-						update_gauge();
-						we_have(i);
+					need_picker();
+					m_picker->we_have(i);
+					inc_stats_counter(counters::num_piece_passed);
+					update_gauge();
+					we_have(i);
 				}
 
 				if (m_seed_mode)
@@ -6717,7 +6717,7 @@ namespace libtorrent
 		// unless it's zeroed out here (block_info has a construct that's
 		// supposed to initialize it)
 		if (!blk.empty())
-			memset(&blk[0], 0, sizeof(blk[0]) * blk.size());
+			std::memset(&blk[0], 0, sizeof(blk[0]) * blk.size());
 
 		int counter = 0;
 		for (std::vector<piece_picker::downloading_piece>::const_iterator i
@@ -6787,7 +6787,7 @@ namespace libtorrent
 
 	}
 
-	bool torrent::connect_to_peer(torrent_peer* peerinfo, bool ignore_limit)
+	bool torrent::connect_to_peer(torrent_peer* peerinfo, bool const ignore_limit)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -7210,10 +7210,9 @@ namespace libtorrent
 				// find one of the connecting peers and disconnect it
 				// find any peer that's connecting (i.e. a half-open TCP connection)
 				// that's also not disconnecting
-				// disconnect the peer that's been wating to establish a connection
+				// disconnect the peer that's been waiting to establish a connection
 				// the longest
-				std::vector<peer_connection*>::iterator i = std::max_element(begin(), end()
-					, &connecting_time_compare);
+				auto i = std::max_element(begin(), end(), &connecting_time_compare);
 
 				if (i == end() || !(*i)->is_connecting() || (*i)->is_disconnecting())
 				{
@@ -10681,7 +10680,7 @@ namespace libtorrent
 	}
 #endif
 
-	void torrent::file_progress(std::vector<std::int64_t>& fp, int flags)
+	void torrent::file_progress(std::vector<std::int64_t>& fp, int const flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		if (!valid_metadata())
@@ -11108,12 +11107,11 @@ namespace libtorrent
 		}
 		else
 		{
-			std::vector<announce_entry>::const_iterator i;
-			for (i = m_trackers.begin(); i != m_trackers.end(); ++i)
+			for (auto const& t : m_trackers)
 			{
-				if (i->updating) continue;
-				if (!i->verified) continue;
-				st->current_tracker = i->url;
+				if (t.updating) continue;
+				if (!t.verified) continue;
+				st->current_tracker = t.url;
 				break;
 			}
 		}
