@@ -360,9 +360,9 @@ namespace libtorrent
 			// that case. Also, if the resume data says we're missing a piece, we
 			// can't be in seed-mode.
 			m_seed_mode = (p.flags & add_torrent_params::flag_seed_mode) != 0
-				&& std::count(p.file_priorities.begin(), p.file_priorities.end(), 0) == 0
-				&& std::count(p.piece_priorities.begin(), p.piece_priorities.end(), 0) == 0
-				&& std::count(p.have_pieces.begin(), p.have_pieces.end(), false) == 0;
+				&& std::find(p.file_priorities.begin(), p.file_priorities.end(), 0) == p.file_priorities.end()
+				&& std::find(p.piece_priorities.begin(), p.piece_priorities.end(), 0) == p.piece_priorities.end()
+				&& std::find(p.have_pieces.begin(), p.have_pieces.end(), false) == p.have_pieces.end();
 
 			m_connections_initialized = true;
 			m_block_size_shift = root2((std::min)(block_size, m_torrent_file->piece_length()));
@@ -754,7 +754,9 @@ namespace libtorrent
 				));
 		aux::proxy_settings ps = m_ses.proxy();
 		conn->get(m_url, seconds(30), 0, &ps
-			, 5, settings().get_str(settings_pack::user_agent));
+			, 5
+			, settings().get_bool(settings_pack::anonymous_mode)
+				? "" : settings().get_str(settings_pack::user_agent));
 		set_state(torrent_status::downloading_metadata);
 	}
 #endif
@@ -6429,10 +6431,6 @@ namespace libtorrent
 		int tier = 0;
 		for (announce_entry const& tr : m_trackers)
 		{
-			// don't save trackers we can't trust
-			// TODO: 1 save the send_stats state instead of throwing them away
-			// it may pose an issue when downgrading though
-			if (tr.send_stats == false) continue;
 			if (tr.tier == tier)
 			{
 				tr_list.back().list().push_back(tr.url);
@@ -7416,8 +7414,7 @@ namespace libtorrent
 			else if (m_state == torrent_status::downloading_metadata
 				|| m_state == torrent_status::downloading
 				|| m_state == torrent_status::finished
-				|| m_state == torrent_status::seeding
-				|| m_state == torrent_status::downloading)
+				|| m_state == torrent_status::seeding)
 			{
 				// torrents that are started (not paused) and
 				// inactive are not part of any list. They will not be touched because

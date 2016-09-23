@@ -41,11 +41,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert.hpp" // alert::error_notification
 #include "libtorrent/peer_class.hpp"
 #include "libtorrent/peer_class_type_filter.hpp"
-#include "libtorrent/session_settings.hpp"
 
 #include "libtorrent/kademlia/dht_storage.hpp"
 
 #ifndef TORRENT_NO_DEPRECATE
+#include "libtorrent/session_settings.hpp"
 #include <deque>
 #endif
 
@@ -776,15 +776,6 @@ namespace libtorrent
 		void remove_torrent(const torrent_handle& h, int options = 0);
 
 #ifndef TORRENT_NO_DEPRECATE
-		// deprecated in aio-branch
-		// Sets the session settings and the packet encryption settings
-		// respectively. See session_settings and pe_settings for more
-		// information on available options.
-		TORRENT_DEPRECATED
-		void set_settings(session_settings const& s);
-		TORRENT_DEPRECATED
-		session_settings settings() const;
-
 		// deprecated in libtorrent 1.1. use settings_pack instead
 		TORRENT_DEPRECATED
 		void set_pe_settings(pe_settings const& settings);

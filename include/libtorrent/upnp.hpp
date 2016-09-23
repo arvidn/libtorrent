@@ -128,6 +128,8 @@ struct TORRENT_EXTRA_EXPORT upnp final
 		, bool ignore_nonrouters);
 	~upnp();
 
+	void set_user_agent(std::string const& v) { m_user_agent = v; }
+
 	void start();
 
 	// Attempts to add a port mapping for the specified protocol. Valid protocols are
@@ -325,7 +327,7 @@ private:
 
 	std::vector<global_mapping_t> m_mappings;
 
-	std::string const& m_user_agent;
+	std::string m_user_agent;
 
 	// the set of devices we've found
 	std::set<rootdevice> m_devices;

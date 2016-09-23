@@ -200,8 +200,10 @@ void dict_to_announce_entry(dict d, announce_entry& ae)
       ae.source = extract<int>(d["source"]);
    if (d.has_key("verified"))
       ae.verified = extract<bool>(d["verified"]);
+#ifndef TORRENT_NO_DEPRECATE
    if (d.has_key("send_stats"))
       ae.send_stats = extract<bool>(d["send_stats"]);
+#endif
 }
 
 void replace_trackers(torrent_handle& h, object trackers)
@@ -258,7 +260,9 @@ list trackers(torrent_handle& h)
         d["updating"] = i->updating;
         d["start_sent"] = i->start_sent;
         d["complete_sent"] = i->complete_sent;
+#ifndef TORRENT_NO_DEPRECATE
         d["send_stats"] = i->send_stats;
+#endif
         ret.append(d);
     }
     return ret;

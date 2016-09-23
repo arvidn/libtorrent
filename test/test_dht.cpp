@@ -36,7 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/session.hpp"
-#include "libtorrent/kademlia/node.hpp" // for verify_message
+#include "libtorrent/kademlia/msg.hpp" // for verify_message
+#include "libtorrent/kademlia/node.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/socket_io.hpp" // for hash_address
@@ -333,8 +334,7 @@ void announce_immutable_items(node& node, udp::endpoint const* eps
 			char error_string[200];
 
 //			std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-			int ret = verify_message(response, desc, parsed, error_string
-				, sizeof(error_string));
+			int ret = verify_message(response, desc, parsed, error_string);
 			if (ret)
 			{
 				TEST_EQUAL(parsed[4].string_value(), "r");
@@ -368,8 +368,7 @@ void announce_immutable_items(node& node, udp::endpoint const* eps
 			};
 
 			bdecode_node parsed2[1];
-			ret = verify_message(response, desc2, parsed2, error_string
-				, sizeof(error_string));
+			ret = verify_message(response, desc2, parsed2, error_string);
 			if (ret)
 			{
 				if (parsed2[0].string_value() != "r")
@@ -404,8 +403,7 @@ void announce_immutable_items(node& node, udp::endpoint const* eps
 		bdecode_node parsed[4];
 		char error_string[200];
 
-		int ret = verify_message(response, desc, parsed, error_string
-			, sizeof(error_string));
+		int ret = verify_message(response, desc, parsed, error_string);
 		if (ret)
 		{
 			items_num.insert(items_num.begin(), j);
@@ -763,8 +761,7 @@ TORRENT_TEST(ping)
 	bdecode_node pong_keys[4];
 
 	std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-	bool ret = dht::verify_message(response, pong_desc, pong_keys, t.error_string
-		, sizeof(t.error_string));
+	bool ret = dht::verify_message(response, pong_desc, pong_keys, t.error_string);
 	TEST_CHECK(ret);
 	if (ret)
 	{
@@ -786,8 +783,7 @@ TORRENT_TEST(invalid_message)
 	send_dht_request(t.dht_node, "find_node", t.source, &response);
 
 	std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-	bool ret = dht::verify_message(response, err_desc, err_keys, t.error_string
-		, sizeof(t.error_string));
+	bool ret = dht::verify_message(response, err_desc, err_keys, t.error_string);
 	TEST_CHECK(ret);
 	if (ret)
 	{
@@ -833,8 +829,7 @@ TORRENT_TEST(get_peers_announce)
 
 	std::string token;
 	std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-	bool ret = dht::verify_message(response, peer1_desc, peer1_keys, t.error_string
-		, sizeof(t.error_string));
+	bool ret = dht::verify_message(response, peer1_desc, peer1_keys, t.error_string);
 	TEST_CHECK(ret);
 	if (ret)
 	{
@@ -864,8 +859,7 @@ TORRENT_TEST(get_peers_announce)
 	bdecode_node ann_keys[3];
 
 	std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-	ret = dht::verify_message(response, ann_desc, ann_keys, t.error_string
-		, sizeof(t.error_string));
+	ret = dht::verify_message(response, ann_desc, ann_keys, t.error_string);
 	TEST_CHECK(ret);
 	if (ret)
 	{
@@ -894,8 +888,7 @@ void test_scrape(address(&rand_addr)())
 			, msg_args().info_hash("01010101010101010101"));
 
 		bdecode_node peer1_keys[4];
-		bool ret = dht::verify_message(response, peer1_desc, peer1_keys, t.error_string
-			, sizeof(t.error_string));
+		bool ret = dht::verify_message(response, peer1_desc, peer1_keys, t.error_string);
 
 		std::string token;
 		if (ret)
@@ -936,8 +929,7 @@ void test_scrape(address(&rand_addr)())
 	bdecode_node peer2_keys[5];
 
 	std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-	bool ret = dht::verify_message(response, peer2_desc, peer2_keys, t.error_string
-		, sizeof(t.error_string));
+	bool ret = dht::verify_message(response, peer2_desc, peer2_keys, t.error_string);
 	TEST_CHECK(ret);
 	if (ret)
 	{
@@ -1007,8 +999,7 @@ void test_id_enforcement(address(&rand_addr)())
 			.nid(nid));
 
 	bdecode_node err_keys[2];
-	bool ret = dht::verify_message(response, err_desc, err_keys, t.error_string
-		, sizeof(t.error_string));
+	bool ret = dht::verify_message(response, err_desc, err_keys, t.error_string);
 	TEST_CHECK(ret);
 	if (ret)
 	{
@@ -1052,8 +1043,7 @@ void test_id_enforcement(address(&rand_addr)())
 	bdecode_node nodes_keys[3];
 
 	std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-	ret = dht::verify_message(response, nodes_desc, nodes_keys, t.error_string
-		, sizeof(t.error_string));
+	ret = dht::verify_message(response, nodes_desc, nodes_keys, t.error_string);
 	TEST_CHECK(ret);
 	if (ret)
 	{
@@ -1249,8 +1239,7 @@ void test_put(address(&rand_addr)())
 
 		bdecode_node desc_keys[5];
 
-		ret = verify_message(response, desc, desc_keys, t.error_string
-			, sizeof(t.error_string));
+		ret = verify_message(response, desc, desc_keys, t.error_string);
 		std::string token;
 		if (ret)
 		{
@@ -1281,8 +1270,7 @@ void test_put(address(&rand_addr)())
 				.seq(seq)
 				.salt(salt));
 
-		ret = verify_message(response, desc2, desc2_keys, t.error_string
-			, sizeof(t.error_string));
+		ret = verify_message(response, desc2, desc2_keys, t.error_string);
 		if (ret)
 		{
 			std::fprintf(stderr, "put response: %s\n"
@@ -1315,8 +1303,7 @@ void test_put(address(&rand_addr)())
 
 		bdecode_node desc3_keys[7];
 
-		ret = verify_message(response, desc3, desc3_keys, t.error_string
-			, sizeof(t.error_string));
+		ret = verify_message(response, desc3, desc3_keys, t.error_string);
 		if (ret == 0)
 		{
 			std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
@@ -1358,8 +1345,7 @@ void test_put(address(&rand_addr)())
 				.seq(seq)
 				.salt(salt));
 
-		ret = verify_message(response, desc_error, desc_error_keys, t.error_string
-			, sizeof(t.error_string));
+		ret = verify_message(response, desc_error, desc_error_keys, t.error_string);
 		if (ret)
 		{
 			std::fprintf(stderr, "put response: %s\n", print_entry(response).c_str());
@@ -1422,8 +1408,7 @@ void test_put(address(&rand_addr)())
 				.cas(cas)
 				.salt(salt));
 
-		ret = verify_message(response, desc2, desc2_keys, t.error_string
-			, sizeof(t.error_string));
+		ret = verify_message(response, desc2, desc2_keys, t.error_string);
 		if (ret)
 		{
 			std::fprintf(stderr, "put response: %s\n"
@@ -1452,8 +1437,7 @@ void test_put(address(&rand_addr)())
 				.cas(cas)
 				.salt(salt));
 
-		ret = verify_message(response, desc_error, desc_error_keys, t.error_string
-			, sizeof(t.error_string));
+		ret = verify_message(response, desc_error, desc_error_keys, t.error_string);
 		if (ret)
 		{
 			std::fprintf(stderr, "put response: %s\n"
@@ -1736,8 +1720,7 @@ void test_bootstrap(address(&rand_addr)())
 	TEST_EQUAL(g_sent_packets.front().first, initial_node);
 
 	lazy_from_entry(g_sent_packets.front().second, response);
-	ret = verify_message(response, find_node_desc, find_node_keys, t.error_string
-		, sizeof(t.error_string));
+	ret = verify_message(response, find_node_desc, find_node_keys, t.error_string);
 	if (ret)
 	{
 		TEST_EQUAL(find_node_keys[0].string_value(), "q");
@@ -1769,8 +1752,7 @@ void test_bootstrap(address(&rand_addr)())
 	TEST_EQUAL(g_sent_packets.front().first, found_node);
 
 	lazy_from_entry(g_sent_packets.front().second, response);
-	ret = verify_message(response, find_node_desc, find_node_keys, t.error_string
-		, sizeof(t.error_string));
+	ret = verify_message(response, find_node_desc, find_node_keys, t.error_string);
 	if (ret)
 	{
 		TEST_EQUAL(find_node_keys[0].string_value(), "q");
@@ -1840,8 +1822,7 @@ void test_short_nodes(address(&rand_addr)())
 	TEST_EQUAL(g_sent_packets.front().first, initial_node);
 
 	lazy_from_entry(g_sent_packets.front().second, response);
-	ret = verify_message(response, find_node_desc, find_node_keys, t.error_string
-						 , sizeof(t.error_string));
+	ret = verify_message(response, find_node_desc, find_node_keys, t.error_string);
 	if (ret)
 	{
 		TEST_EQUAL(find_node_keys[0].string_value(), "q");
@@ -1927,8 +1908,7 @@ void test_get_peers(address(&rand_addr)())
 	TEST_EQUAL(g_sent_packets.front().first, initial_node);
 
 	lazy_from_entry(g_sent_packets.front().second, response);
-	ret = verify_message(response, get_peers_desc, get_peers_keys, t.error_string
-		, sizeof(t.error_string));
+	ret = verify_message(response, get_peers_desc, get_peers_keys, t.error_string);
 	if (ret)
 	{
 		TEST_EQUAL(get_peers_keys[0].string_value(), "q");
@@ -1971,8 +1951,7 @@ void test_get_peers(address(&rand_addr)())
 	TEST_EQUAL(g_sent_packets.front().first, next_node);
 
 	lazy_from_entry(g_sent_packets.front().second, response);
-	ret = verify_message(response, get_peers_desc, get_peers_keys, t.error_string
-		, sizeof(t.error_string));
+	ret = verify_message(response, get_peers_desc, get_peers_keys, t.error_string);
 	if (ret)
 	{
 		TEST_EQUAL(get_peers_keys[0].string_value(), "q");
@@ -2073,8 +2052,7 @@ void test_mutable_get(address(&rand_addr)(), bool const with_salt)
 
 	lazy_from_entry(g_sent_packets.front().second, response);
 	bdecode_node get_item_keys[6];
-	bool const ret = verify_message(response, get_item_desc, get_item_keys, t.error_string
-		, sizeof(t.error_string));
+	bool const ret = verify_message(response, get_item_desc, get_item_keys, t.error_string);
 	if (ret)
 	{
 		TEST_EQUAL(get_item_keys[0].string_value(), "q");
@@ -2160,8 +2138,7 @@ TORRENT_TEST(immutable_get)
 
 	lazy_from_entry(g_sent_packets.front().second, response);
 	bdecode_node get_item_keys[6];
-	bool const ret = verify_message(response, get_item_desc, get_item_keys, t.error_string
-		, sizeof(t.error_string));
+	bool const ret = verify_message(response, get_item_desc, get_item_keys, t.error_string);
 	if (ret)
 	{
 		TEST_EQUAL(get_item_keys[0].string_value(), "q");
@@ -2240,8 +2217,7 @@ TORRENT_TEST(immutable_put)
 
 			lazy_from_entry(packet->second, response);
 			bdecode_node get_item_keys[6];
-			bool const ret = verify_message(response, get_item_desc, get_item_keys, t.error_string
-				, sizeof(t.error_string));
+			bool const ret = verify_message(response, get_item_desc, get_item_keys, t.error_string);
 			if (!ret)
 			{
 				std::fprintf(stderr, "   invalid get request: %s\n", print_entry(response).c_str());
@@ -2270,7 +2246,7 @@ TORRENT_TEST(immutable_put)
 
 			lazy_from_entry(packet->second, response);
 			bool const ret = verify_message(response, put_immutable_item_desc, put_immutable_item_keys
-				, t.error_string, sizeof(t.error_string));
+				, t.error_string);
 			if (ret)
 			{
 				TEST_EQUAL(put_immutable_item_keys[0].string_value(), "q");
@@ -2342,8 +2318,7 @@ TORRENT_TEST(mutable_put)
 
 			lazy_from_entry(packet->second, response);
 			bdecode_node get_item_keys[6];
-			bool const ret = verify_message(response, get_item_desc, get_item_keys, t.error_string
-				, sizeof(t.error_string));
+			bool const ret = verify_message(response, get_item_desc, get_item_keys, t.error_string);
 			if (!ret)
 			{
 				std::fprintf(stderr, "   invalid get request: %s\n", print_entry(response).c_str());
@@ -2372,7 +2347,7 @@ TORRENT_TEST(mutable_put)
 
 			lazy_from_entry(packet->second, response);
 			bool const ret = verify_message(response, put_mutable_item_desc, put_mutable_item_keys
-				, t.error_string, sizeof(t.error_string));
+				, t.error_string);
 			if (ret)
 			{
 				TEST_EQUAL(put_mutable_item_keys[0].string_value(), "q");
@@ -2458,8 +2433,7 @@ TORRENT_TEST(traversal_done)
 
 		lazy_from_entry(packet->second, response);
 		bdecode_node get_item_keys[6];
-		bool const ret = verify_message(response, get_item_desc, get_item_keys, t.error_string
-			, sizeof(t.error_string));
+		bool const ret = verify_message(response, get_item_desc, get_item_keys, t.error_string);
 		if (!ret)
 		{
 			std::fprintf(stderr, "   invalid get request: %s\n", print_entry(response).c_str());
@@ -2534,8 +2508,7 @@ TORRENT_TEST(dht_dual_stack)
 
 	bdecode_node nodes6_keys[4];
 
-	ret = verify_message(response, nodes6_desc, nodes6_keys, error_string
-		, sizeof(error_string));
+	ret = verify_message(response, nodes6_desc, nodes6_keys, error_string);
 
 	if (ret)
 	{
@@ -2567,8 +2540,7 @@ TORRENT_TEST(dht_dual_stack)
 
 	bdecode_node nodes_keys[4];
 
-	ret = verify_message(response, nodes_desc, nodes_keys, error_string
-		, sizeof(error_string));
+	ret = verify_message(response, nodes_desc, nodes_keys, error_string);
 
 	if (ret)
 	{
@@ -2601,8 +2573,7 @@ TORRENT_TEST(dht_dual_stack)
 
 	bdecode_node nodes46_keys[5];
 
-	ret = verify_message(response, nodes46_desc, nodes46_keys, error_string
-		, sizeof(error_string));
+	ret = verify_message(response, nodes46_desc, nodes46_keys, error_string);
 
 	if (ret)
 	{
@@ -2710,8 +2681,7 @@ TORRENT_TEST(verify_message)
 	bdecode(test_msg, test_msg + sizeof(test_msg)-1, ent, ec);
 	std::fprintf(stderr, "%s\n", print_entry(ent).c_str());
 
-	bool ret = verify_message(ent, msg_desc, msg_keys, error_string
-		, sizeof(error_string));
+	bool ret = verify_message(ent, msg_desc, msg_keys, error_string);
 	TEST_CHECK(ret);
 	TEST_CHECK(msg_keys[0]);
 	if (msg_keys[0]) TEST_EQUAL(msg_keys[0].string_value(), "test");
@@ -2728,8 +2698,7 @@ TORRENT_TEST(verify_message)
 	bdecode(test_msg2, test_msg2 + sizeof(test_msg2)-1, ent, ec);
 	std::fprintf(stderr, "%s\n", print_entry(ent).c_str());
 
-	ret = verify_message(ent, msg_desc, msg_keys, error_string
-		, sizeof(error_string));
+	ret = verify_message(ent, msg_desc, msg_keys, error_string);
 	TEST_CHECK(ret);
 	TEST_CHECK(msg_keys[0]);
 	if (msg_keys[0]) TEST_EQUAL(msg_keys[0].string_value(), "test");
@@ -2747,8 +2716,7 @@ TORRENT_TEST(verify_message)
 	bdecode(test_msg3, test_msg3 + sizeof(test_msg3)-1, ent, ec);
 	std::fprintf(stderr, "%s\n", print_entry(ent).c_str());
 
-	ret = verify_message(ent, msg_desc, msg_keys, error_string
-		, sizeof(error_string));
+	ret = verify_message(ent, msg_desc, msg_keys, error_string);
 	TEST_CHECK(!ret);
 	std::fprintf(stderr, "%s\n", error_string);
 	TEST_EQUAL(error_string, std::string("missing 'A' key"));
@@ -2757,8 +2725,7 @@ TORRENT_TEST(verify_message)
 	bdecode(test_msg4, test_msg4 + sizeof(test_msg4)-1, ent, ec);
 	std::fprintf(stderr, "%s\n", print_entry(ent).c_str());
 
-	ret = verify_message(ent, msg_desc, msg_keys, error_string
-		, sizeof(error_string));
+	ret = verify_message(ent, msg_desc, msg_keys, error_string);
 	TEST_CHECK(!ret);
 	std::fprintf(stderr, "%s\n", error_string);
 	TEST_EQUAL(error_string, std::string("invalid value for 'A'"));
@@ -2767,8 +2734,7 @@ TORRENT_TEST(verify_message)
 	bdecode(test_msg5, test_msg5 + sizeof(test_msg5)-1, ent, ec);
 	std::fprintf(stderr, "%s\n", print_entry(ent).c_str());
 
-	ret = verify_message(ent, msg_desc, msg_keys, error_string
-		, sizeof(error_string));
+	ret = verify_message(ent, msg_desc, msg_keys, error_string);
 	TEST_CHECK(!ret);
 	std::fprintf(stderr, "%s\n", error_string);
 	TEST_EQUAL(error_string, std::string("missing 'C2' key"));
@@ -2953,8 +2919,7 @@ TORRENT_TEST(node_set_id)
 		{ "id", bdecode_node::string_t, 20, key_desc_t::last_child },
 	};
 	bdecode_node pong_keys[4];
-	bool ret = dht::verify_message(response, pong_desc, pong_keys, t.error_string
-		, sizeof(t.error_string));
+	bool ret = dht::verify_message(response, pong_desc, pong_keys, t.error_string);
 	TEST_CHECK(ret);
 	if (!ret) return;
 
@@ -3013,8 +2978,7 @@ TORRENT_TEST(read_only_node)
 	};
 
 	lazy_from_entry(g_sent_packets.front().second, request);
-	bool ret = verify_message(request, get_item_desc, parsed, error_string
-		, sizeof(error_string));
+	bool ret = verify_message(request, get_item_desc, parsed, error_string);
 
 	TEST_CHECK(ret);
 	TEST_EQUAL(parsed[3].int_value(), 1);
@@ -3039,15 +3003,13 @@ TORRENT_TEST(read_only_node)
 
 	// both of them shouldn't have a 'ro' key.
 	lazy_from_entry(g_sent_packets.front().second, request);
-	ret = verify_message(request, get_item_desc, parsed, error_string
-		, sizeof(error_string));
+	ret = verify_message(request, get_item_desc, parsed, error_string);
 
 	TEST_CHECK(ret);
 	TEST_CHECK(!parsed[3]);
 
 	lazy_from_entry(g_sent_packets.back().second, request);
-	ret = verify_message(request, get_item_desc, parsed, error_string
-		, sizeof(error_string));
+	ret = verify_message(request, get_item_desc, parsed, error_string);
 
 	TEST_CHECK(ret);
 	TEST_CHECK(!parsed[3]);

@@ -214,10 +214,9 @@ namespace libtorrent
 	// this parses the string that's used as the listen_interfaces setting.
 	// it is a comma-separated list of IP or device names with ports. For
 	// example: "eth0:6881,eth1:6881" or "127.0.0.1:6881"
-	void parse_listen_interfaces(std::string const& in
-		, std::vector<listen_interface_t>& out)
+	std::vector<listen_interface_t> parse_listen_interfaces(std::string const& in)
 	{
-		out.clear();
+		std::vector<listen_interface_t> out;
 
 		std::string::size_type start = 0;
 
@@ -227,7 +226,7 @@ namespace libtorrent
 			while (start < in.size() && is_space(in[start]))
 				++start;
 
-			if (start == in.size()) return;
+			if (start == in.size()) return out;
 
 			listen_interface_t iface;
 			iface.ssl = false;
@@ -260,7 +259,7 @@ namespace libtorrent
 			while (start < in.size() && is_space(in[start]))
 				++start;
 
-			if (start == in.size() || in[start] != ':') return;
+			if (start == in.size() || in[start] != ':') return out;
 			++start; // skip colon
 
 			// skip spaces
@@ -279,7 +278,7 @@ namespace libtorrent
 			else
 			{
 				iface.port = std::atoi(port.c_str());
-				if (iface.port <= 0 || iface.port > 65535) iface.port = -1;
+				if (iface.port < 0 || iface.port > 65535) iface.port = -1;
 			}
 
 			// skip spaces
@@ -311,6 +310,8 @@ namespace libtorrent
 				++start;
 
 		}
+
+		return out;
 	}
 
 	// this parses the string that's used as the listen_interfaces setting.

@@ -52,11 +52,6 @@ int main(int argc, char* argv[])
 	sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:6881");
 	lt::session s(sett);
 	error_code ec;
-	if (ec)
-	{
-		std::fprintf(stderr, "failed to open listen socket: %s\n", ec.message().c_str());
-		return 1;
-	}
 	add_torrent_params p;
 	p.save_path = "./";
 	p.ti = std::make_shared<torrent_info>(std::string(argv[1]), std::ref(ec), 0);

@@ -76,8 +76,8 @@ namespace libtorrent
 	// this parses the string that's used as the listen_interfaces setting.
 	// it is a comma-separated list of IP or device names with ports. For
 	// example: "eth0:6881,eth1:6881" or "127.0.0.1:6881"
-	TORRENT_EXTRA_EXPORT void parse_listen_interfaces(
-		std::string const& in, std::vector<listen_interface_t>& out);
+	TORRENT_EXTRA_EXPORT std::vector<listen_interface_t> parse_listen_interfaces(
+		std::string const& in);
 
 	TORRENT_EXTRA_EXPORT std::string print_listen_interfaces(
 		std::vector<listen_interface_t> const& in);

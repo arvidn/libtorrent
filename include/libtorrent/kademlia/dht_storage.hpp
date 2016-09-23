@@ -121,11 +121,11 @@ namespace dht
 		// consider the value of dht_settings::max_peers_reply.
 		// If noseed is true only peers marked as no seed should be included.
 		//
-		// returns true if an entry with the info_hash is found and
-		// the data is returned inside the (entry) out parameter peers.
+		// returns true if the maximum number of peers are stored
+		// for this info_hash.
 		//
-		virtual bool get_peers(sha1_hash const& info_hash, udp protocol
-			, bool noseed, bool scrape
+		virtual bool get_peers(sha1_hash const& info_hash
+			, bool noseed, bool scrape, address const& requester
 			, entry& peers) const = 0;
 
 		// This function is named announce_peer for consistency with the

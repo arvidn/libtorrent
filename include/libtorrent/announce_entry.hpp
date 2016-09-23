@@ -79,10 +79,10 @@ namespace libtorrent
 		int min_announce_in() const;
 
 		// the time of next tracker announce
-		time_point next_announce;
+		time_point next_announce = min_time();
 
 		// no announces before this time
-		time_point min_announce;
+		time_point min_announce = min_time();
 
 		// TODO: include the number of peers received from this tracker, at last
 		// announce
@@ -97,16 +97,16 @@ namespace libtorrent
 		// if this tracker has returned scrape data, these fields are filled in
 		// with valid numbers. Otherwise they are set to -1. the number of
 		// current downloaders
-		int scrape_incomplete;
-		int scrape_complete;
-		int scrape_downloaded;
+		int scrape_incomplete = -1;
+		int scrape_complete = -1;
+		int scrape_downloaded = -1;
 
 		// the tier this tracker belongs to
-		std::uint8_t tier;
+		std::uint8_t tier = 0;
 
 		// the max number of failures to announce to this tracker in
 		// a row, before this tracker is not used anymore. 0 means unlimited
-		std::uint8_t fail_limit;
+		std::uint8_t fail_limit = 0;
 
 		// the number of times in a row we have failed to announce to this
 		// tracker.
@@ -144,8 +144,14 @@ namespace libtorrent
 		// set to true when we send a event=completed.
 		bool complete_sent:1;
 
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 1.2
 		// this is false the stats sent to this tracker will be 0
 		bool send_stats:1;
+#else
+		// hidden
+		bool deprecated_send_stats:1;
+#endif
 
 		// internal
 		bool triggered_manually:1;

@@ -36,11 +36,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace dht {
 
-namespace dht_detail {
-
-bool verify_message(bdecode_node const& message, key_desc_t const desc[]
-	, bdecode_node ret[], int size, char* error, int error_size)
+bool verify_message_impl(bdecode_node const& message, span<key_desc_t const> desc
+	, span<bdecode_node> ret, span<char> error)
 {
+	TORRENT_ASSERT(desc.size() == ret.size());
+
+	int const size = int(ret.size());
+
 	// get a non-root bdecode_node that still
 	// points to the root. message should not be copied
 	bdecode_node msg = message.non_owning();
@@ -56,7 +58,7 @@ bool verify_message(bdecode_node const& message, key_desc_t const desc[]
 
 	if (msg.type() != bdecode_node::dict_t)
 	{
-		std::snprintf(error, error_size, "not a dictionary");
+		std::snprintf(error.data(), error.size(), "not a dictionary");
 		return false;
 	}
 	++stack_ptr;
@@ -74,7 +76,7 @@ bool verify_message(bdecode_node const& message, key_desc_t const desc[]
 		if (ret[i] == 0 && (k.flags & key_desc_t::optional) == 0)
 		{
 			// the key was not found, and it's not an optional key
-			std::snprintf(error, error_size, "missing '%s' key", k.name);
+			std::snprintf(error.data(), error.size(), "missing '%s' key", k.name);
 			return false;
 		}
 
@@ -82,11 +84,9 @@ bool verify_message(bdecode_node const& message, key_desc_t const desc[]
 			&& ret[i]
 			&& k.type == bdecode_node::string_t)
 		{
-			bool invalid = false;
-			if (k.flags & key_desc_t::size_divisible)
-				invalid = (ret[i].string_length() % k.size) != 0;
-			else
-				invalid = ret[i].string_length() != k.size;
+			bool const invalid = k.flags & key_desc_t::size_divisible
+				? (ret[i].string_length() % k.size) != 0
+				: ret[i].string_length() != k.size;
 
 			if (invalid)
 			{
@@ -94,7 +94,7 @@ bool verify_message(bdecode_node const& message, key_desc_t const desc[]
 				ret[i].clear();
 				if ((k.flags & key_desc_t::optional) == 0)
 				{
-					std::snprintf(error, error_size, "invalid value for '%s'", k.name);
+					std::snprintf(error.data(), error.size(), "invalid value for '%s'", k.name);
 					return false;
 				}
 			}
@@ -130,16 +130,6 @@ bool verify_message(bdecode_node const& message, key_desc_t const desc[]
 		}
 	}
 	return true;
-}
-
-}
-
-void incoming_error(entry& e, char const* msg, int error_code)
-{
-	e["y"] = "e";
-	entry::list_type& l = e["e"].list();
-	l.push_back(entry(error_code));
-	l.push_back(entry(msg));
 }
 
 } }

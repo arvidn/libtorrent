@@ -606,18 +606,13 @@ namespace libtorrent
 	}
 
 	int load_file(std::string const& filename, std::vector<char>& v
-		, error_code& ec, int limit = 8000000)
+		, error_code& ec)
 	{
 		ec.clear();
 		file f;
 		if (!f.open(filename, file::read_only, ec)) return -1;
 		std::int64_t s = f.get_size(ec);
 		if (ec) return -1;
-		if (s > limit)
-		{
-			ec = errors::metadata_too_large;
-			return -2;
-		}
 		v.resize(std::size_t(s));
 		if (s == 0) return 0;
 		file::iovec_t b = {&v[0], size_t(s) };

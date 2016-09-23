@@ -33,9 +33,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef LIBTORRENT_GET_ITEM_HPP
 #define LIBTORRENT_GET_ITEM_HPP
 
-#include <string>
 #include <libtorrent/kademlia/find_data.hpp>
 #include <libtorrent/kademlia/item.hpp>
+
+#include <memory>
 
 namespace libtorrent { namespace dht
 {
@@ -50,7 +51,7 @@ public:
 		sequence_number seq,
 		signature const& sig);
 
-	// for immutable itms
+	// for immutable items
 	get_item(node& dht_node
 		, node_id const& target
 		, data_callback const& dcallback

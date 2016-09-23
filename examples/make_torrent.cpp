@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 #include <cstdio>
 #include <sstream>
+#include <fstream>
 
 #ifdef TORRENT_WINDOWS
 #include <direct.h> // for _getcwd
@@ -52,65 +53,18 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 using namespace std::placeholders;
 
-int load_file(std::string const& filename, std::vector<char>& v, libtorrent::error_code& ec, int limit = 8000000)
+std::vector<char> load_file(std::string const& filename)
 {
-	ec.clear();
-	FILE* f = std::fopen(filename.c_str(), "rb");
-	if (f == nullptr)
-	{
-		ec.assign(errno, boost::system::system_category());
-		return -1;
-	}
-
-	int r = fseek(f, 0, SEEK_END);
-	if (r != 0)
-	{
-		ec.assign(errno, boost::system::system_category());
-		std::fclose(f);
-		return -1;
-	}
-	long s = ftell(f);
-	if (s < 0)
-	{
-		ec.assign(errno, boost::system::system_category());
-		std::fclose(f);
-		return -1;
-	}
-
-	if (s > limit)
-	{
-		std::fclose(f);
-		return -2;
-	}
-
-	r = fseek(f, 0, SEEK_SET);
-	if (r != 0)
-	{
-		ec.assign(errno, boost::system::system_category());
-		std::fclose(f);
-		return -1;
-	}
-
-	v.resize(s);
-	if (s == 0)
-	{
-		std::fclose(f);
-		return 0;
-	}
-
-	r = int(fread(&v[0], 1, v.size(), f));
-	if (r < 0)
-	{
-		ec.assign(errno, boost::system::system_category());
-		std::fclose(f);
-		return -1;
-	}
-
-	std::fclose(f);
-
-	if (r != s) return -3;
-
-	return 0;
+	std::vector<char> ret;
+	std::fstream in;
+	in.exceptions(std::ifstream::failbit);
+	in.open(filename.c_str(), std::ios_base::in | std::ios_base::binary);
+	in.seekg(0, std::ios_base::end);
+	size_t const size = in.tellg();
+	in.seekg(0, std::ios_base::beg);
+	ret.resize(size);
+	in.read(ret.data(), ret.size());
+	return ret;
 }
 
 std::string branch_path(std::string const& f)
@@ -394,51 +348,31 @@ int main(int argc, char* argv[])
 
 		if (!root_cert.empty())
 		{
-			std::vector<char> pem;
-			load_file(root_cert, pem, ec, 10000);
-			if (ec)
-			{
-				std::fprintf(stderr, "failed to load root certificate for tracker: %s\n", ec.message().c_str());
-			}
-			else
-			{
-				t.set_root_cert(std::string(&pem[0], pem.size()));
-			}
+			std::vector<char> pem = load_file(root_cert);
+			t.set_root_cert(std::string(&pem[0], pem.size()));
 		}
 
 		// create the torrent and print it to stdout
 		std::vector<char> torrent;
 		bencode(back_inserter(torrent), t.generate());
-		FILE* output = stdout;
 		if (!outfile.empty())
-			output = std::fopen(outfile.c_str(), "wb+");
-		if (output == nullptr)
 		{
-			std::fprintf(stderr, "failed to open file \"%s\": (%d) %s\n"
-				, outfile.c_str(), errno, std::strerror(errno));
-			return 1;
+			std::fstream out;
+			out.exceptions(std::ifstream::failbit);
+			out.open(outfile.c_str(), std::ios_base::out | std::ios_base::binary);
+			out.write(&torrent[0], torrent.size());
 		}
-		fwrite(&torrent[0], 1, torrent.size(), output);
-
-		if (output != stdout)
-			std::fclose(output);
+		else
+		{
+			fwrite(&torrent[0], 1, torrent.size(), stdout);
+		}
 
 		if (!merklefile.empty())
 		{
-			output = std::fopen(merklefile.c_str(), "wb+");
-			if (output == nullptr)
-			{
-				std::fprintf(stderr, "failed to open file \"%s\": (%d) %s\n"
-					, merklefile.c_str(), errno, std::strerror(errno));
-				return 1;
-			}
-			int ret = int(fwrite(&t.merkle_tree()[0], 20, t.merkle_tree().size(), output));
-			if (ret != int(t.merkle_tree().size()))
-			{
-				std::fprintf(stderr, "failed to write %s: (%d) %s\n"
-					, merklefile.c_str(), errno, std::strerror(errno));
-			}
-			std::fclose(output);
+			std::fstream merkle;
+			merkle.exceptions(std::ifstream::failbit);
+			merkle.open(merklefile.c_str(), std::ios_base::out | std::ios_base::binary);
+			merkle.write(reinterpret_cast<char const*>(&t.merkle_tree()[0]), t.merkle_tree().size() * 20);
 		}
 
 #ifndef BOOST_NO_EXCEPTIONS

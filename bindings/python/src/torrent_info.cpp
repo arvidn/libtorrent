@@ -123,9 +123,9 @@ namespace
     bool get_updating(announce_entry const& ae) { return ae.updating; }
     bool get_start_sent(announce_entry const& ae) { return ae.start_sent; }
     bool get_complete_sent(announce_entry const& ae) { return ae.complete_sent; }
-    bool get_send_stats(announce_entry const& ae) { return ae.send_stats; }
 
 #if !defined TORRENT_NO_DEPRECATE
+    bool get_send_stats(announce_entry const& ae) { return ae.send_stats; }
     std::int64_t get_size(file_entry const& fe) { return fe.size; }
     std::int64_t get_offset(file_entry const& fe) { return fe.offset; }
     std::int64_t get_file_base(file_entry const& fe) { return fe.file_base; }
@@ -295,7 +295,9 @@ void bind_torrent_info()
         .add_property("updating", &get_updating)
         .add_property("start_sent", &get_start_sent)
         .add_property("complete_sent", &get_complete_sent)
+#if !defined TORRENT_NO_DEPRECATE
         .add_property("send_stats", &get_send_stats)
+#endif
 
         .def("reset", &announce_entry::reset)
         .def("can_announce", &announce_entry::can_announce)

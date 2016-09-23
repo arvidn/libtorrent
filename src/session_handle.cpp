@@ -797,16 +797,6 @@ namespace libtorrent
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
-	void session_handle::set_settings(session_settings const& s)
-	{
-		async_call(&session_impl::set_settings, s);
-	}
-
-	session_settings session_handle::settings() const
-	{
-		return sync_call_ret<session_settings>(&session_impl::deprecated_settings);
-	}
-
 	void session_handle::set_pe_settings(pe_settings const& r)
 	{
 		settings_pack p;

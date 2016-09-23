@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "settings.hpp"
 #include "setup_transfer.hpp" // for ep()
 #include "libtorrent/config.hpp"
-#include "libtorrent/kademlia/node.hpp" // for verify_message
 #include "libtorrent/kademlia/dht_storage.hpp"
 
 #include "libtorrent/io_service.hpp"
