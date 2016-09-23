@@ -99,6 +99,7 @@ namespace libtorrent
 		// current downloaders
 		int scrape_incomplete = -1;
 		int scrape_complete = -1;
+
 		int scrape_downloaded = -1;
 
 		// the tier this tracker belongs to
