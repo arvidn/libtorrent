@@ -393,3 +393,12 @@ TORRENT_TEST(coalesce_buffer)
 	TEST_CHECK(std::strcmp(test_buf2, "foobar") == 0);
 	f.close();
 }
+
+TORRENT_TEST(stat_file)
+{
+	file_status st;
+	error_code ec;
+	stat_file("no_such_file_or_directory.file", &st, ec);
+	TEST_CHECK(ec);
+	TEST_EQUAL(ec, boost::system::errc::no_such_file_or_directory);
+}

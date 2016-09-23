@@ -1498,7 +1498,7 @@ namespace aux {
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
 		{
-			session_log("attempting to to open listen socket to: %s on device: %s flags: %x"
+			session_log("attempting to open listen socket to: %s on device: %s flags: %x"
 				, print_endpoint(bind_ep).c_str(), device.c_str(), flags);
 		}
 #endif

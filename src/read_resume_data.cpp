@@ -247,9 +247,10 @@ namespace libtorrent
 		if (bdecode_node pieces = rd.dict_find_string("pieces"))
 		{
 			char const* pieces_str = pieces.string_ptr();
-			ret.have_pieces.resize(pieces.string_length());
-			ret.verified_pieces.resize(pieces.string_length());
-			for (int i = 0, end(pieces.string_length()); i < end; ++i)
+			int const pieces_len = pieces.string_length();
+			ret.have_pieces.resize(pieces_len);
+			ret.verified_pieces.resize(pieces_len);
+			for (int i = 0; i < pieces_len; ++i)
 			{
 				// being in seed mode and missing a piece is not compatible.
 				// Leave seed mode if that happens
