@@ -73,7 +73,8 @@ namespace
 	struct torrent_entry
 	{
 		std::string name;
-		std::set<peer_entry> peers;
+		std::vector<peer_entry> peers4;
+		std::vector<peer_entry> peers6;
 	};
 
 	// TODO: 2 make this configurable in dht_settings
@@ -176,7 +177,7 @@ namespace
 		{
 			size_t ret = 0;
 			for (auto const& t : m_map)
-				ret += t.second.peers.size();
+				ret += t.second.peers4.size() + t.second.peers6.size();
 			return ret;
 		}
 #endif
@@ -193,6 +194,7 @@ namespace
 			if (i == m_map.end()) return int(m_map.size()) >= m_settings.max_torrents;
 
 			torrent_entry const& v = i->second;
+			auto const& peersv = requester.is_v4() ? v.peers4 : v.peers6;
 
 			if (!v.name.empty()) peers["n"] = v.name;
 
@@ -201,7 +203,7 @@ namespace
 				bloom_filter<256> downloaders;
 				bloom_filter<256> seeds;
 
-				for (auto const& p : v.peers)
+				for (auto const& p : peersv)
 				{
 					sha1_hash const iphash = hash_address(p.addr.address());
 					if (p.seed) seeds.set(iphash);
@@ -214,51 +216,45 @@ namespace
 			else
 			{
 				tcp const protocol = requester.is_v4() ? tcp::v4() : tcp::v6();
-				int max = m_settings.max_peers_reply;
+				int to_pick = m_settings.max_peers_reply;
 				// if these are IPv6 peers their addresses are 4x the size of IPv4
 				// so reduce the max peers 4 fold to compensate
 				// max_peers_reply should probably be specified in bytes
-				if (!v.peers.empty() && protocol == tcp::v6())
-					max /= 4;
-				// we're picking "to_pick" from a list of "num" at random.
-				int const to_pick = std::min(int(v.peers.size()), max);
-				std::set<peer_entry>::const_iterator iter = v.peers.begin();
+				if (!peersv.empty() && protocol == tcp::v6())
+					to_pick /= 4;
 				entry::list_type& pe = peers["values"].list();
 
-				for (int t = 0, m = 0; m < to_pick && iter != v.peers.end(); ++iter)
+				int candidates = int(std::count_if(peersv.begin(), peersv.end()
+					, [=](peer_entry const& e) { return !(noseed && e.seed); }));
+
+				to_pick = (std::min)(to_pick, candidates);
+
+				for (auto iter = peersv.begin(); to_pick > 0; ++iter)
 				{
 					// if the node asking for peers is a seed, skip seeds from the
 					// peer list
 					if (noseed && iter->seed) continue;
 
-					// only include peers with the right address family
-					if (iter->addr.protocol() != protocol)
+					TORRENT_ASSERT(candidates >= to_pick);
+
+					// pick this peer with probability
+					// <peers left to pick> / <peers left in the set>
+					if (random(uint32_t(candidates--)) > to_pick)
 						continue;
 
-					++t;
-					std::string* str;
-					if (t <= to_pick)
-					{
-						pe.push_back(entry());
-						str = &pe.back().string();
-					}
-					else
-					{
-						// maybe replace an item we've already picked
-						if (random(t - 1) >= to_pick) continue;
-						str = &pe[random(to_pick - 1)].string();
-					}
+					pe.push_back(entry());
+					std::string& str = pe.back().string();
 
-					str->resize(18);
-					std::string::iterator out = str->begin();
+					str.resize(18);
+					std::string::iterator out = str.begin();
 					detail::write_endpoint(iter->addr, out);
-					str->resize(out - str->begin());
+					str.resize(out - str.begin());
 
-					++m;
+					--to_pick;
 				}
 			}
 
-			if (int(i->second.peers.size()) < m_settings.max_peers)
+			if (int(peersv.size()) < m_settings.max_peers)
 				return false;
 
 			// we're at the max peers stored for this torrent
@@ -267,8 +263,8 @@ namespace
 			// a different port than the one it is using to send DHT messages
 			peer_entry requester_entry;
 			requester_entry.addr.address(requester);
-			auto requester_iter = i->second.peers.lower_bound(requester_entry);
-			return requester_iter == i->second.peers.end()
+			auto requester_iter = std::lower_bound(peersv.begin(), peersv.end(), requester_entry);
+			return requester_iter == peersv.end()
 				|| requester_iter->addr.address() != requester;
 		}
 
@@ -301,23 +297,27 @@ namespace
 				v->name = name.substr(0, 100).to_string();
 			}
 
+			auto& peersv = endp.protocol() == tcp::v4() ? v->peers4 : v->peers6;
+
 			peer_entry peer;
 			peer.addr = endp;
 			peer.added = aux::time_now();
 			peer.seed = seed;
-			auto i = v->peers.find(peer);
-			if (i != v->peers.end())
+			auto i = std::lower_bound(peersv.begin(), peersv.end(), peer);
+			if (i != peersv.end() && i->addr == endp)
 			{
-				v->peers.erase(i++);
-				m_counters.peers -= 1;
+				*i = peer;
 			}
-			else if (v->peers.size() >= m_settings.max_peers)
+			else if (peersv.size() >= m_settings.max_peers)
 			{
 				// we're at capacity, drop the announce
 				return;
 			}
-			v->peers.insert(i, peer);
-			m_counters.peers += 1;
+			else
+			{
+				peersv.insert(i, peer);
+				m_counters.peers += 1;
+			}
 		}
 
 		bool get_immutable_item(sha1_hash const& target
@@ -457,9 +457,10 @@ namespace
 			for (auto i = m_map.begin(), end(m_map.end()); i != end;)
 			{
 				torrent_entry& t = i->second;
-				purge_peers(t.peers);
+				purge_peers(t.peers4);
+				purge_peers(t.peers6);
 
-				if (!t.peers.empty())
+				if (!t.peers4.empty() || !t.peers6.empty())
 				{
 					++i;
 					continue;
@@ -513,19 +514,20 @@ namespace
 		std::map<node_id, dht_immutable_item> m_immutable_table;
 		std::map<node_id, dht_mutable_item> m_mutable_table;
 
-		void purge_peers(std::set<peer_entry>& peers)
+		void purge_peers(std::vector<peer_entry>& peers)
 		{
-			for (auto i = peers.begin(), end(peers.end()); i != end;)
+			auto now = aux::time_now();
+			auto new_end = std::remove_if(peers.begin(), peers.end()
+				, [=](peer_entry const& e)
 			{
-				// the peer has timed out
-				if (i->added + minutes(int(announce_interval * 3 / 2)) < aux::time_now())
-				{
-					peers.erase(i++);
-					m_counters.peers -= 1;
-				}
-				else
-					++i;
-			}
+				return e.added + minutes(int(announce_interval * 3 / 2)) < now;
+			});
+
+			m_counters.peers -= std::distance(new_end, peers.end());
+			peers.erase(new_end, peers.end());
+			// if we're using less than 1/4 of the capacity free up the excess
+			if (!peers.empty() && peers.capacity() / peers.size() >= 4u)
+				peers.shrink_to_fit();
 		}
 	};
 }
