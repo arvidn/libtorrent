@@ -408,6 +408,8 @@ void bind_alert()
     class_<storage_moved_failed_alert, bases<torrent_alert>, noncopyable>(
         "storage_moved_failed_alert", no_init)
         .def_readonly("error", &storage_moved_failed_alert::error)
+        .def("file_path", &storage_moved_failed_alert::file_path)
+        .def_readonly("operation", &storage_moved_failed_alert::operation)
         ;
 
     class_<torrent_deleted_alert, bases<torrent_alert>, noncopyable>(
@@ -504,6 +506,8 @@ void bind_alert()
 #ifndef TORRENT_NO_DEPRECATE
         .def_readonly("msg", &fastresume_rejected_alert::msg)
 #endif
+        .def("file_path", &fastresume_rejected_alert::file_path)
+        .def_readonly("operation", &fastresume_rejected_alert::operation)
         ;
 
     class_<peer_blocked_alert, bases<alert>, noncopyable>(
