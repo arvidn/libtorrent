@@ -648,6 +648,7 @@ void bind_alert()
         .def_readonly("msg", &torrent_delete_failed_alert::msg)
 #endif
         .def_readonly("error", &torrent_delete_failed_alert::error)
+        .def_readonly("info_hash", &torrent_delete_failed_alert::info_hash)
         ;
 
     class_<save_resume_data_failed_alert, bases<torrent_alert>, noncopyable>(
@@ -775,6 +776,7 @@ void bind_alert()
 
     class_<dht_immutable_item_alert, bases<alert>, noncopyable>(
        "dht_immutable_item_alert", no_init)
+        .def_readonly("target", &dht_immutable_item_alert::target)
         .add_property("item", &dht_immutable_item)
         ;
 
@@ -785,6 +787,7 @@ void bind_alert()
 
     class_<dht_put_alert, bases<alert>, noncopyable>(
        "dht_put_alert", no_init)
+        .def_readonly("target", &dht_put_alert::target)
         .add_property("item", &dht_put_item)
         ;
     class_<session_stats_alert, bases<alert>, noncopyable>(
