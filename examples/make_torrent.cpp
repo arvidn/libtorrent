@@ -60,7 +60,7 @@ std::vector<char> load_file(std::string const& filename)
 	in.exceptions(std::ifstream::failbit);
 	in.open(filename.c_str(), std::ios_base::in | std::ios_base::binary);
 	in.seekg(0, std::ios_base::end);
-	size_t const size = in.tellg();
+	size_t const size = size_t(in.tellg());
 	in.seekg(0, std::ios_base::beg);
 	ret.resize(size);
 	in.read(ret.data(), ret.size());
