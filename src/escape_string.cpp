@@ -464,9 +464,9 @@ namespace libtorrent
 #if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING
 	std::wstring convert_to_wstring(std::string const& s)
 	{
-		std::wstring ret;
-		int result = libtorrent::utf8_wchar(s, ret);
-		if (result == 0) return ret;
+		error_code ec;
+		std::wstring ret = libtorrent::utf8_wchar(s, ec);
+		if (!ec) return ret;
 
 		ret.clear();
 		const char* end = &s[0] + s.size();
@@ -483,9 +483,9 @@ namespace libtorrent
 
 	std::string convert_from_wstring(std::wstring const& s)
 	{
-		std::string ret;
-		int result = libtorrent::wchar_utf8(s, ret);
-		if (result == 0) return ret;
+		error_code ec;
+		std::string ret = libtorrent::wchar_utf8(s, ec);
+		if (!ec) return ret;
 
 		ret.clear();
 		const wchar_t* end = &s[0] + s.size();
@@ -562,8 +562,7 @@ namespace libtorrent
 
 	std::string convert_to_native(std::string const& s)
 	{
-		std::wstring ws;
-		libtorrent::utf8_wchar(s, ws);
+		std::wstring ws = libtorrent::utf8_wchar(s);
 		std::string ret;
 		ret.resize(ws.size() * 4 + 1);
 		std::size_t size = WideCharToMultiByte(CP_ACP, 0, ws.c_str(), -1, &ret[0], int(ret.size()), nullptr, nullptr);
@@ -581,17 +580,14 @@ namespace libtorrent
 		if (size == std::size_t(-1)) return s;
 		if (size != 0 && ws[size - 1] == '\0') --size;
 		ws.resize(size);
-		std::string ret;
-		libtorrent::wchar_utf8(ws, ret);
-		return ret;
+		return libtorrent::wchar_utf8(ws);
 	}
 
 #elif TORRENT_USE_LOCALE
 
 	std::string convert_to_native(std::string const& s)
 	{
-		std::wstring ws;
-		libtorrent::utf8_wchar(s, ws);
+		std::wstring ws = libtorrent::utf8_wchar(s);
 		std::size_t size = wcstombs(0, ws.c_str(), 0);
 		if (size == std::size_t(-1)) return s;
 		std::string ret;
@@ -609,8 +605,7 @@ namespace libtorrent
 		std::size_t size = mbstowcs(&ws[0], s.c_str(), s.size());
 		if (size == std::size_t(-1)) return s;
 		std::string ret;
-		libtorrent::wchar_utf8(ws, ret);
-		return ret;
+		return libtorrent::wchar_utf8(ws);
 	}
 
 #endif

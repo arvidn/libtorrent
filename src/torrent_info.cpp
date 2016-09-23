@@ -891,10 +891,8 @@ namespace libtorrent
 		, int const flags)
 	{
 		std::vector<char> buf;
-		std::string utf8;
-		wchar_utf8(filename, utf8);
 		error_code ec;
-		int ret = load_file(utf8, buf, ec);
+		int ret = load_file(wchar_utf8(filename), buf, ec);
 		if (ret < 0) throw system_error(ec);
 
 		bdecode_node e;
@@ -961,9 +959,7 @@ namespace libtorrent
 		, int const flags)
 	{
 		std::vector<char> buf;
-		std::string utf8;
-		wchar_utf8(filename, utf8);
-		int ret = load_file(utf8, buf, ec);
+		int ret = load_file(wchar_utf8(filename), buf, ec);
 		if (ret < 0) return;
 
 		bdecode_node e;
