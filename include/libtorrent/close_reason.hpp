@@ -154,4 +154,3 @@ namespace libtorrent
 }
 
 #endif
-
