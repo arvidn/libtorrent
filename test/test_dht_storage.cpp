@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/dht_observer.hpp"
 
 #include <numeric>
+#include <iostream>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -149,7 +150,7 @@ TORRENT_TEST(dual_stack)
 	TEST_EQUAL(peers6["values"].list().size(), 2);
 }
 
-TORRENT_TEST(put_immutable_item)
+TORRENT_TEST(put_items)
 {
 	dht_settings sett = test_settings();
 	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
@@ -386,6 +387,94 @@ TORRENT_TEST(update_node_ids)
 	TEST_CHECK(!r);
 	r = s->get_immutable_item(h3, item);
 	TEST_CHECK(r);
+}
+
+TORRENT_TEST(load_save_state)
+{
+	dht_settings sett = test_settings();
+	sett.max_dht_items = 10;
+	std::unique_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
+	TEST_CHECK(s);
+	s->update_node_ids({node_id()});
+
+	sha1_hash const n1 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee401");
+	sha1_hash const n2 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee402");
+	sha1_hash const n3 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee403");
+	sha1_hash const n4 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee404");
+	sha1_hash const n5 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee405");
+
+	s->put_immutable_item(n1, {"121", 3}, addr("124.31.75.21"));
+	s->put_immutable_item(n2, {"122", 3}, addr("124.31.75.21"));
+	s->put_immutable_item(n3, {"123", 3}, addr("124.31.75.21"));
+
+	public_key pk;
+	signature sig;
+	s->put_mutable_item(n4, {"124", 3}, sig, sequence_number(1), pk
+		, {"salt", 4}, addr("124.31.75.21"));
+	s->put_mutable_item(n5, {"125", 3}, sig, sequence_number(1), pk
+		, {"salt", 4}, addr("124.31.75.21"));
+
+	TEST_EQUAL(s->counters().immutable_data, 3);
+	TEST_EQUAL(s->counters().mutable_data, 2);
+
+	std::vector<char> const state = s->save_state();
+	s.reset();
+
+	std::unique_ptr<dht_storage_interface> s1(dht_default_storage_constructor(sett));
+	TEST_CHECK(s1);
+	s1->update_node_ids({node_id()});
+
+	bdecode_node e;
+	error_code ec;
+	int r = bdecode(state.data(), state.data() + int(state.size()), e, ec);
+	TEST_CHECK(!r);
+	std::cerr << "saved state" << std::endl;
+	std::cerr << print_entry(e) << std::endl;
+	TEST_EQUAL(e.type(), bdecode_node::dict_t);
+	TEST_EQUAL(e.dict_find_string_value("type"), "dht_default_storage.v1");
+	TEST_CHECK(e.dict_find_dict("immutable-items"));
+	TEST_EQUAL(e.dict_find_dict("immutable-items").dict_size(), 3);
+	TEST_CHECK(e.dict_find_dict("mutable-items"));
+	TEST_EQUAL(e.dict_find_dict("mutable-items").dict_size(), 2);
+
+	TEST_EQUAL(s1->counters().immutable_data, 0);
+	TEST_EQUAL(s1->counters().mutable_data, 0);
+	s1->load_state(state);
+	TEST_EQUAL(s1->counters().immutable_data, 3);
+	TEST_EQUAL(s1->counters().mutable_data, 2);
+
+	// corrupt a little bit the data
+	std::unique_ptr<dht_storage_interface> s2(dht_default_storage_constructor(sett));
+	TEST_CHECK(s2);
+	s2->update_node_ids({node_id()});
+	std::vector<char> state1;
+
+	entry e1 = bdecode(state.begin(), state.end());
+	e1["type"] = "dht_default_storage.v1--";
+	bencode(std::back_inserter(state1), e1);
+
+	r = bdecode(state1.data(), state1.data() + int(state1.size()), e, ec);
+	TEST_CHECK(!r);
+	std::cerr << "corrupt state 1" << std::endl;
+	std::cerr << print_entry(e) << std::endl;
+
+	s2->load_state(state1);
+	TEST_EQUAL(s2->counters().immutable_data, 0);
+	TEST_EQUAL(s2->counters().mutable_data, 0);
+
+	entry e2 = bdecode(state.begin(), state.end());
+	e2["immutable-items"][n1.to_string()].dict().clear();
+	state1.clear();
+	bencode(std::back_inserter(state1), e2);
+
+	r = bdecode(state1.data(), state1.data() + int(state1.size()), e, ec);
+	TEST_CHECK(!r);
+	std::cerr << "corrupt state 2" << std::endl;
+	std::cerr << print_entry(e) << std::endl;
+
+	s2->load_state(state1);
+	TEST_EQUAL(s2->counters().immutable_data, 2);
+	TEST_EQUAL(s2->counters().mutable_data, 2);
 }
 
 #endif
