@@ -570,7 +570,7 @@ namespace libtorrent
 					return true;
 				std::pair<std::uint16_t, std::string> v(name, std::string());
 				auto i = std::lower_bound(m_strings.begin(), m_strings.end(), v
-						, &compare_first<std::string>);
+					, &compare_first<std::string>);
 				return i != m_strings.end() && i->first == name;
 			}
 			case int_type_base:
@@ -581,7 +581,7 @@ namespace libtorrent
 					return true;
 				std::pair<std::uint16_t, int> v(name, 0);
 				auto i = std::lower_bound(m_ints.begin(), m_ints.end(), v
-						, &compare_first<int>);
+					, &compare_first<int>);
 				return i != m_ints.end() && i->first == name;
 			}
 			case bool_type_base:
@@ -592,7 +592,7 @@ namespace libtorrent
 					return true;
 				std::pair<std::uint16_t, bool> v(name, false);
 				auto i = std::lower_bound(m_bools.begin(), m_bools.end(), v
-						, &compare_first<bool>);
+					, &compare_first<bool>);
 				return i != m_bools.end() && i->first == name;
 			}
 		}
@@ -615,7 +615,7 @@ namespace libtorrent
 		}
 		std::pair<std::uint16_t, std::string> v(name, std::string());
 		auto i = std::lower_bound(m_strings.begin(), m_strings.end(), v
-				, &compare_first<std::string>);
+			, &compare_first<std::string>);
 		if (i != m_strings.end() && i->first == name) return i->second;
 		return empty;
 	}
@@ -634,7 +634,7 @@ namespace libtorrent
 		}
 		std::pair<std::uint16_t, int> v(name, 0);
 		auto i = std::lower_bound(m_ints.begin(), m_ints.end(), v
-				, &compare_first<int>);
+			, &compare_first<int>);
 		if (i != m_ints.end() && i->first == name) return i->second;
 		return 0;
 	}
@@ -653,7 +653,7 @@ namespace libtorrent
 		}
 		std::pair<std::uint16_t, bool> v(name, false);
 		auto i = std::lower_bound(m_bools.begin(), m_bools.end(), v
-					, &compare_first<bool>);
+			, &compare_first<bool>);
 		if (i != m_bools.end() && i->first == name) return i->second;
 		return false;
 	}
