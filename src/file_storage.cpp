@@ -351,7 +351,7 @@ namespace libtorrent
 	}
 
 #if TORRENT_USE_WSTRING
-	void file_storage::set_name(wstring_view n)
+	void file_storage::set_name(std::wstring const& n)
 	{
 		m_name = wchar_utf8(n);
 	}
