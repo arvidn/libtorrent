@@ -918,7 +918,7 @@ namespace libtorrent
 		for (peer_iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
 		{
-			if ((*i)->type() != peer_connection::bittorrent_connection) continue;
+			if ((*i)->type() != connection_type::bittorrent) continue;
 			bt_peer_connection* p = static_cast<bt_peer_connection*>(*i);
 			p->write_share_mode();
 		}
@@ -939,7 +939,7 @@ namespace libtorrent
 			// delete the entry from this container, make sure
 			// to increment the iterator early
 			bt_peer_connection* p = static_cast<bt_peer_connection*>(*i);
-			if (p->type() == peer_connection::bittorrent_connection)
+			if (p->type() == connection_type::bittorrent)
 			{
 				std::shared_ptr<peer_connection> me(p->self());
 				if (!p->is_disconnecting())
@@ -2121,7 +2121,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (auto pe : m_connections)
 		{
-			if (pe->type() != peer_connection::bittorrent_connection) continue;
+			if (pe->type() != connection_type::bittorrent) continue;
 			bt_peer_connection* p = static_cast<bt_peer_connection*>(pe);
 			if (!p->supports_holepunch()) continue;
 			if (p->was_introduced_by(ep)) return p;
@@ -2136,7 +2136,7 @@ namespace libtorrent
 	{
 		for (auto p : m_connections)
 		{
-			if (p->type() != peer_connection::bittorrent_connection) continue;
+			if (p->type() != connection_type::bittorrent) continue;
 			if (p->remote() == ep) return static_cast<bt_peer_connection*>(p);
 		}
 		return nullptr;
@@ -6804,11 +6804,11 @@ namespace libtorrent
 				, [peerinfo] (peer_connection const* p) { return p->remote() == peerinfo->ip(); });
 #if TORRENT_USE_I2P
 			TORRENT_ASSERT(i_ == m_connections.end()
-				|| (*i_)->type() != peer_connection::bittorrent_connection
+				|| (*i_)->type() != connection_type::bittorrent
 				|| peerinfo->is_i2p_addr);
 #else
 			TORRENT_ASSERT(i_ == m_connections.end()
-				|| (*i_)->type() != peer_connection::bittorrent_connection);
+				|| (*i_)->type() != connection_type::bittorrent);
 #endif
 		}
 #endif // TORRENT_USE_ASSERTS

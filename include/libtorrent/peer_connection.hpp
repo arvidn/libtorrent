@@ -262,6 +262,13 @@ namespace libtorrent
 		peer_connection_hot_members& operator=(peer_connection_hot_members const&);
 	};
 
+	enum class connection_type : std::uint8_t
+	{
+		bittorrent,
+		url_seed,
+		http_seed
+	};
+
 	class TORRENT_EXTRA_EXPORT peer_connection
 		: public peer_connection_hot_members
 		, public bandwidth_socket
@@ -274,14 +281,7 @@ namespace libtorrent
 	friend class torrent;
 	public:
 
-		enum connection_type
-		{
-			bittorrent_connection = 0,
-			url_seed_connection = 1,
-			http_seed_connection = 2
-		};
-
-		virtual int type() const = 0;
+		virtual connection_type type() const = 0;
 
 		enum channels
 		{

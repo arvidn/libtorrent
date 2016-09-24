@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-int peer_connection_handle::type() const
+connection_type peer_connection_handle::type() const
 {
 	std::shared_ptr<peer_connection> pc = native_handle();
 	TORRENT_ASSERT(pc);

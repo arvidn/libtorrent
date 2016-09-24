@@ -76,9 +76,10 @@ namespace libtorrent
 		// we don't want to request more blocks while trying to gracefully pause
 		if (t.graceful_pause()) return false;
 
-		TORRENT_ASSERT(c.peer_info_struct() != nullptr || c.type() != peer_connection::bittorrent_connection);
+		TORRENT_ASSERT(c.peer_info_struct() != nullptr
+			|| c.type() != connection_type::bittorrent);
 
-		bool time_critical_mode = t.num_time_critical_pieces() > 0;
+		bool const time_critical_mode = t.num_time_critical_pieces() > 0;
 
 		// in time critical mode, only have 1 outstanding request at a time
 		// via normal requests
@@ -160,7 +161,7 @@ namespace libtorrent
 		// the last argument is if we should prefer whole pieces
 		// for this peer. If we're downloading one piece in 20 seconds
 		// then use this mode.
-		std::uint32_t flags = p.pick_pieces(*bits, interesting_pieces
+		std::uint32_t const flags = p.pick_pieces(*bits, interesting_pieces
 			, num_requests, prefer_contiguous_blocks, c.peer_info_struct()
 			, c.picker_options(), suggested, t.num_peers()
 			, ses.stats_counters());
