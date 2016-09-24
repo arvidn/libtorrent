@@ -67,8 +67,6 @@ using namespace std::placeholders;
 namespace libtorrent { namespace dht
 {
 
-using detail::write_endpoint;
-
 namespace {
 
 void nop() {}
@@ -776,7 +774,7 @@ entry write_nodes_entry(std::vector<node_entry> const& nodes)
 	for (auto const& n : nodes)
 	{
 		std::copy(n.id.begin(), n.id.end(), out);
-		write_endpoint(udp::endpoint(n.addr(), n.port()), out);
+		detail::write_endpoint(udp::endpoint(n.addr(), n.port()), out);
 	}
 	return r;
 }

@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_DISABLE_DHT
-
 #ifndef TORRENT_DHT_TRACKER
 #define TORRENT_DHT_TRACKER
 
@@ -182,5 +180,4 @@ namespace libtorrent { namespace dht
 	};
 }}
 
-#endif
 #endif

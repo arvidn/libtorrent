@@ -46,9 +46,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { namespace dht
 {
 
-typedef std::vector<char> packet_t;
-
-class rpc_manager;
 class node;
 
 // -------- find data -----------

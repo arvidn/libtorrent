@@ -50,7 +50,6 @@ namespace libtorrent { struct dht_lookup; }
 namespace libtorrent { namespace dht
 {
 
-class rpc_manager;
 class node;
 
 // this class may not be instantiated as a stack object

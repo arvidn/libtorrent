@@ -43,9 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { namespace dht
 {
 
-using detail::read_endpoint_list;
-using detail::read_v4_endpoint;
-
 void get_peers_observer::reply(msg const& m)
 {
 	bdecode_node r = m.message.dict_find_dict("r");
@@ -91,12 +88,12 @@ void get_peers_observer::reply(msg const& m)
 			}
 #endif
 			while (end - peers >= 6)
-				peer_list.push_back(read_v4_endpoint<tcp::endpoint>(peers));
+				peer_list.push_back(detail::read_v4_endpoint<tcp::endpoint>(peers));
 		}
 		else
 		{
 			// assume it's uTorrent/libtorrent format
-			peer_list = read_endpoint_list<tcp::endpoint>(n);
+			peer_list = detail::read_endpoint_list<tcp::endpoint>(n);
 #ifndef TORRENT_DISABLE_LOGGING
 			auto logger = get_observer();
 			if (logger != nullptr && logger->should_log(dht_logger::traversal))

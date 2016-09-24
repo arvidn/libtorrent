@@ -31,16 +31,8 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/close_reason.hpp"
-#include "libtorrent/error_code.hpp"
+#include "libtorrent/error.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/error_code.hpp"
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/system/error_code.hpp>
-#include <boost/asio/error.hpp>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {
@@ -173,4 +165,3 @@ namespace libtorrent
 		return close_no_reason;
 	}
 }
-

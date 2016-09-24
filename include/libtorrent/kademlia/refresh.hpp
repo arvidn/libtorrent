@@ -33,15 +33,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef REFRESH_050324_HPP
 #define REFRESH_050324_HPP
 
-#include <libtorrent/kademlia/traversal_algorithm.hpp>
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/get_peers.hpp>
 
 namespace libtorrent { namespace dht
 {
-
-class routing_table;
-class rpc_manager;
 
 class bootstrap : public get_peers
 {
