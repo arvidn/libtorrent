@@ -277,13 +277,6 @@ namespace libtorrent
 			disconnect(ec, op_unknown, 2);
 		}
 
-		enum connection_type
-		{
-			bittorrent_connection = 0,
-			url_seed_connection = 1,
-			http_seed_connection = 2
-		};
-
 		virtual connection_type type() const = 0;
 
 		enum channels
