@@ -340,9 +340,11 @@ TORRENT_TEST(get_peers_dist)
 		entry peers;
 		s->get_peers(n1, false, false, peers);
 		TEST_EQUAL(peers["values"].list().size(), 100);
-		for (auto const& p : peers["values"].list())
+		entry::list_type const& peers_list = peers["values"].list();
+		for (entry::list_type::const_iterator p = peers_list.begin();
+			p != peers_list.end(); ++p)
 		{
-			std::string::const_iterator it = p.string().begin();
+			std::string::const_iterator it = p->string().begin();
 			int port = detail::read_v4_endpoint<tcp::endpoint>(it).port();
 			if (!peer_set.insert(port).second)
 				++duplicates;
