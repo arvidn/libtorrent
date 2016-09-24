@@ -241,22 +241,28 @@ namespace
 			}
 			else
 			{
-				int num = (std::min)(int(v.peers.size()), m_settings.max_peers_reply);
+				int to_pick = m_settings.max_peers_reply;
+				int candidates = int(v.peers.size());
 				std::set<peer_entry>::const_iterator iter = v.peers.begin();
 				entry::list_type& pe = peers["values"].list();
 				std::string endpoint;
 
-				for (int t = 0, m = 0; m < num && iter != v.peers.end(); ++iter, ++t)
+				for (; to_pick > 0 && iter != v.peers.end(); ++iter, --candidates)
 				{
-					if ((random() / float(UINT_MAX + 1.f)) * (num - t) >= num - m) continue;
 					if (noseed && iter->seed) continue;
+
+					// pick this peer with probability
+					// <peers left to pick> / <peers left in the set>
+					if (random() % candidates > to_pick)
+						continue;
+
 					endpoint.resize(18);
 					std::string::iterator out = endpoint.begin();
 					write_endpoint(iter->addr, out);
 					endpoint.resize(out - endpoint.begin());
 					pe.push_back(entry(endpoint));
 
-					++m;
+					--to_pick;
 				}
 			}
 			return true;
