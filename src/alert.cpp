@@ -1455,6 +1455,7 @@ namespace libtorrent {
 			"connect",
 			"ssl_handshake",
 			"get_interface",
+			"unknown",
 		};
 
 		if (op < 0 || op >= int(sizeof(names)/sizeof(names[0])))
