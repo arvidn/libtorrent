@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "libtorrent/bdecode.hpp"
+#include "libtorrent/entry.hpp"
 
 using namespace libtorrent;
 
@@ -49,6 +50,31 @@ TORRENT_TEST(integer)
 	TEST_EQUAL(section.size(), sizeof(b) - 1);
 	TEST_EQUAL(e.type(), bdecode_node::int_t);
 	TEST_EQUAL(e.int_value(), 12453);
+}
+
+TORRENT_TEST(construct_string)
+{
+	entry e(std::string("abc123"));
+	TEST_EQUAL(e.string(), "abc123");
+}
+
+TORRENT_TEST(construct_string_literal)
+{
+	entry e("abc123");
+	TEST_EQUAL(e.string(), "abc123");
+}
+
+
+TORRENT_TEST(construct_string_view)
+{
+	entry e(string_view("abc123"));
+	TEST_EQUAL(e.string(), "abc123");
+}
+
+TORRENT_TEST(construct_integer)
+{
+	entry e(4);
+	TEST_EQUAL(e.integer(), 4);
 }
 
 // test string

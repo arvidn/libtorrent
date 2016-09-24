@@ -72,6 +72,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/span.hpp"
+#include "libtorrent/string_view.hpp"
 
 namespace libtorrent
 {
@@ -81,6 +82,21 @@ namespace libtorrent
 	using type_error = system_error;
 #endif
 	struct bdecode_node;
+
+#if __cplusplus > 201103
+	namespace aux
+	{
+		// this enables us to compare a string_view against the std::string that's
+		// held by the std::map
+		struct strview_less
+		{
+			using is_transparent = std::true_type;
+			template <typename T1, typename T2>
+			bool operator()(T1 const& rhs, T2 const& lhs) const
+			{ return rhs < lhs; }
+		};
+	};
+#endif
 
 	// The ``entry`` class represents one node in a bencoded hierarchy. It works as a
 	// variant type, it can be either a list, a dictionary (``std::map``), an integer
@@ -92,7 +108,11 @@ namespace libtorrent
 		// the key is always a string. If a generic entry would be allowed
 		// as a key, sorting would become a problem (e.g. to compare a string
 		// to a list). The definition doesn't mention such a limit though.
+#if __cplusplus <= 201103
 		typedef std::map<std::string, entry> dictionary_type;
+#else
+		typedef std::map<std::string, entry, aux::strview_less> dictionary_type;
+#endif
 		typedef std::string string_type;
 		typedef std::vector<entry> list_type;
 		typedef std::int64_t integer_type;
@@ -119,6 +139,7 @@ namespace libtorrent
 		entry(span<char const>);
 		template <typename U, typename Cond = typename std::enable_if<
 			std::is_same<U, entry::string_type>::value
+			|| std::is_same<U, string_view>::value
 			|| std::is_same<U, char const*>::value>::type>
 		entry(U v)
 			: m_type(undefined_t)
@@ -250,21 +271,17 @@ namespace libtorrent
 		// The const version of ``operator[]`` will only return a reference to an
 		// existing element at the given key. If the key is not found, it will
 		// throw ``system_error``.
-		entry& operator[](char const* key);
-		entry& operator[](std::string const& key);
-		const entry& operator[](char const* key) const;
-		const entry& operator[](std::string const& key) const;
+		entry& operator[](string_view key);
+		const entry& operator[](string_view key) const;
 
 		// These functions requires the entry to be a dictionary, if it isn't
 		// they will throw ``system_error``.
 		//
 		// They will look for an element at the given key in the dictionary, if
-		// the element cannot be found, they will return 0. If an element with
-		// the given key is found, the return a pointer to it.
-		entry* find_key(char const* key);
-		entry const* find_key(char const* key) const;
-		entry* find_key(std::string const& key);
-		entry const* find_key(std::string const& key) const;
+		// the element cannot be found, they will return nullptr. If an element
+		// with the given key is found, the return a pointer to it.
+		entry* find_key(string_view key);
+		entry const* find_key(string_view key) const;
 
 		// returns a pretty-printed string representation
 		// of the bencoded structure, with JSON-style syntax

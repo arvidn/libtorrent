@@ -41,9 +41,7 @@ namespace libtorrent { namespace dht
 put_data::put_data(node& dht_node, put_callback const& callback)
 	: traversal_algorithm(dht_node, (node_id::min)())
 	, m_put_callback(callback)
-	, m_done(false)
-{
-}
+{}
 
 char const* put_data::name() const { return "put_data"; }
 
@@ -51,7 +49,7 @@ void put_data::start()
 {
 	// router nodes must not be added to puts
 	init();
-	bool is_done = add_requests();
+	bool const is_done = add_requests();
 	if (is_done) done();
 }
 
@@ -66,7 +64,7 @@ void put_data::set_targets(std::vector<std::pair<node_entry, std::string>> const
 	#if TORRENT_USE_ASSERTS
 		o->m_in_constructor = false;
 	#endif
-		m_results.push_back(o);
+		m_results.push_back(std::move(o));
 	}
 }
 

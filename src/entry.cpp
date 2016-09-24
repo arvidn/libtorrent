@@ -89,62 +89,50 @@ namespace libtorrent
 		}
 	}
 
-	entry& entry::operator[](char const* key)
+	entry& entry::operator[](string_view key)
 	{
+#if __cplusplus <= 201103
+		dictionary_type::iterator i = dict().find(key.to_string());
+#else
 		dictionary_type::iterator i = dict().find(key);
+#endif
 		if (i != dict().end()) return i->second;
 		dictionary_type::iterator ret = dict().insert(
-			std::pair<const std::string, entry>(key, entry())).first;
+			std::make_pair(key.to_string(), entry())).first;
 		return ret->second;
 	}
 
-	entry& entry::operator[](std::string const& key)
+	const entry& entry::operator[](string_view key) const
 	{
-		dictionary_type::iterator i = dict().find(key);
-		if (i != dict().end()) return i->second;
-		dictionary_type::iterator ret = dict().insert(
-			std::make_pair(key, entry())).first;
-		return ret->second;
-	}
-
-	entry* entry::find_key(char const* key)
-	{
-		dictionary_type::iterator i = dict().find(key);
-		if (i == dict().end()) return nullptr;
-		return &i->second;
-	}
-
-	entry const* entry::find_key(char const* key) const
-	{
+#if __cplusplus <= 201103
+		dictionary_type::const_iterator i = dict().find(key.to_string());
+#else
 		dictionary_type::const_iterator i = dict().find(key);
-		if (i == dict().end()) return nullptr;
-		return &i->second;
-	}
-
-	entry* entry::find_key(std::string const& key)
-	{
-		dictionary_type::iterator i = dict().find(key);
-		if (i == dict().end()) return nullptr;
-		return &i->second;
-	}
-
-	entry const* entry::find_key(std::string const& key) const
-	{
-		dictionary_type::const_iterator i = dict().find(key);
-		if (i == dict().end()) return nullptr;
-		return &i->second;
-	}
-
-	const entry& entry::operator[](char const* key) const
-	{
-		return (*this)[std::string(key)];
-	}
-
-	const entry& entry::operator[](std::string const& key) const
-	{
-		dictionary_type::const_iterator i = dict().find(key);
+#endif
 		if (i == dict().end()) throw_error();
 		return i->second;
+	}
+
+	entry* entry::find_key(string_view key)
+	{
+#if __cplusplus <= 201103
+		dictionary_type::iterator i = dict().find(key.to_string());
+#else
+		dictionary_type::iterator i = dict().find(key);
+#endif
+		if (i == dict().end()) return nullptr;
+		return &i->second;
+	}
+
+	entry const* entry::find_key(string_view key) const
+	{
+#if __cplusplus <= 201103
+		dictionary_type::const_iterator i = dict().find(key.to_string());
+#else
+		dictionary_type::const_iterator i = dict().find(key);
+#endif
+		if (i == dict().end()) return nullptr;
+		return &i->second;
 	}
 
 	entry::data_type entry::type() const

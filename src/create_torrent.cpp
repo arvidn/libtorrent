@@ -705,9 +705,9 @@ namespace libtorrent
 		m_filehashes[index] = h;
 	}
 
-	void create_torrent::add_node(std::pair<std::string, int> const& node)
+	void create_torrent::add_node(std::pair<std::string, int> node)
 	{
-		m_nodes.push_back(node);
+		m_nodes.emplace_back(std::move(node));
 	}
 
 	void create_torrent::add_url_seed(string_view url)
