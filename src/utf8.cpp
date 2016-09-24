@@ -213,11 +213,11 @@ namespace libtorrent
 	{
 		boost::system::error_code make_error_code(utf8_errors::error_code_enum e)
 		{
-			return error_code(e, get_utf8_category());
+			return error_code(e, utf8_category());
 		}
 	} // utf_errors namespace
 
-	boost::system::error_category& get_utf8_category()
+	boost::system::error_category const& utf8_category()
 	{
 		static utf8_error_category cat;
 		return cat;

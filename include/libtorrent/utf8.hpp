@@ -69,7 +69,7 @@ namespace libtorrent
 		TORRENT_EXPORT error_code make_error_code(error_code_enum e);
 	}
 
-	TORRENT_EXPORT boost::system::error_category& get_utf8_category();
+	TORRENT_EXPORT boost::system::error_category const& utf8_category();
 
 	// ``utf8_wchar`` converts a UTF-8 string (``utf8``) to a wide character
 	// string (``wide``). ``wchar_utf8`` converts a wide character string
