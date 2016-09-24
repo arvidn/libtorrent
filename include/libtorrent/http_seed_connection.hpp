@@ -59,8 +59,8 @@ namespace libtorrent
 		http_seed_connection(peer_connection_args const& pack
 			, web_seed_t& web);
 
-		virtual int type() const override
-		{ return peer_connection::http_seed_connection; }
+		virtual connection_type type() const override
+		{ return connection_type::http_seed; }
 
 		// called from the main loop when this connection has any
 		// work to do.

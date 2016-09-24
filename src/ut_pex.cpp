@@ -144,7 +144,7 @@ namespace libtorrent { namespace
 					if (num_added >= max_peer_entries) break;
 
 					// only send proper bittorrent peers
-					if (peer->type() != peer_connection::bittorrent_connection)
+					if (peer->type() != connection_type::bittorrent)
 						continue;
 
 					bt_peer_connection* p = static_cast<bt_peer_connection*>(peer);
@@ -544,7 +544,7 @@ namespace libtorrent { namespace
 				if (num_added >= max_peer_entries) break;
 
 				// only send proper bittorrent peers
-				if (peer->type() != peer_connection::bittorrent_connection)
+				if (peer->type() != connection_type::bittorrent)
 					continue;
 
 				bt_peer_connection* p = static_cast<bt_peer_connection*>(peer);
@@ -639,7 +639,7 @@ namespace libtorrent { namespace
 
 	std::shared_ptr<peer_plugin> ut_pex_plugin::new_connection(peer_connection_handle const& pc)
 	{
-		if (pc.type() != peer_connection::bittorrent_connection)
+		if (pc.type() != connection_type::bittorrent)
 			return std::shared_ptr<peer_plugin>();
 
 		bt_peer_connection* c = static_cast<bt_peer_connection*>(pc.native_handle().get());

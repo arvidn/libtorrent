@@ -2060,6 +2060,8 @@ namespace aux {
 			return;
 		}
 
+		if (m_abort) return;
+
 		error_code ec;
 		tcp::endpoint ep = sock->local_endpoint(ec);
 		TORRENT_ASSERT(!ec);
@@ -2092,6 +2094,7 @@ namespace aux {
 					, listen_failed_alert::socks5);
 			return;
 		}
+		if (m_abort) return;
 		open_new_incoming_socks_connection();
 		incoming_connection(s);
 	}
@@ -6143,9 +6146,9 @@ namespace aux {
 		for (connection_map::iterator i = m_connections.begin()
 			, end(m_connections.end()); i != end; ++i)
 		{
-			int type = (*i)->type();
-			if (type == peer_connection::url_seed_connection
-				|| type == peer_connection::http_seed_connection)
+			connection_type const type = (*i)->type();
+			if (type == connection_type::url_seed
+				|| type == connection_type::http_seed)
 				(*i)->ignore_stats(!report);
 		}
 	}

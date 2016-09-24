@@ -495,7 +495,7 @@ namespace libtorrent { namespace
 	std::shared_ptr<peer_plugin> ut_metadata_plugin::new_connection(
 		peer_connection_handle const& pc)
 	{
-		if (pc.type() != peer_connection::bittorrent_connection)
+		if (pc.type() != connection_type::bittorrent)
 			return std::shared_ptr<peer_plugin>();
 
 		bt_peer_connection* c = static_cast<bt_peer_connection*>(pc.native_handle().get());

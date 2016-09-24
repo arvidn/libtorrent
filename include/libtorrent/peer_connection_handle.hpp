@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/operations.hpp"
 #include "libtorrent/alert_types.hpp"
+#include "libtorrent/peer_connection.hpp" // for connection_type
 
 namespace libtorrent
 {
@@ -57,7 +58,7 @@ struct TORRENT_EXPORT peer_connection_handle
 		: m_connection(impl)
 	{}
 
-	int type() const;
+	connection_type type() const;
 
 	void add_extension(std::shared_ptr<peer_plugin>);
 

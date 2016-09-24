@@ -66,8 +66,8 @@ namespace libtorrent
 
 		virtual void on_connected() override;
 
-		virtual int type() const override
-		{ return peer_connection::url_seed_connection; }
+		virtual connection_type type() const override
+		{ return connection_type::url_seed; }
 
 		// called from the main loop when this connection has any
 		// work to do.

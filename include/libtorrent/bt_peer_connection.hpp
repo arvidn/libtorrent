@@ -120,8 +120,8 @@ namespace libtorrent
 		void switch_recv_crypto(std::shared_ptr<crypto_plugin> crypto);
 #endif
 
-		virtual int type() const override
-		{ return peer_connection::bittorrent_connection; }
+		virtual connection_type type() const override
+		{ return connection_type::bittorrent; }
 
 		enum message_type
 		{
