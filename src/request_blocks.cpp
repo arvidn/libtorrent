@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/request_blocks.hpp"
 #include "libtorrent/alert_manager.hpp"
+#include "libtorrent/aux_/has_block.hpp"
 
 #include <vector>
 
@@ -231,12 +232,12 @@ namespace libtorrent
 			// pieces we didn't request. Those aren't marked in the
 			// piece picker, but we still keep track of them in the
 			// download queue
-			if (std::find_if(dq.begin(), dq.end(), has_block(*i)) != dq.end()
-				|| std::find_if(rq.begin(), rq.end(), has_block(*i)) != rq.end())
+			if (std::find_if(dq.begin(), dq.end(), aux::has_block(*i)) != dq.end()
+				|| std::find_if(rq.begin(), rq.end(), aux::has_block(*i)) != rq.end())
 			{
 #if TORRENT_USE_ASSERTS
 				std::vector<pending_block>::const_iterator j
-					= std::find_if(dq.begin(), dq.end(), has_block(*i));
+					= std::find_if(dq.begin(), dq.end(), aux::has_block(*i));
 				if (j != dq.end()) TORRENT_ASSERT(j->timed_out || j->not_wanted);
 #endif
 #ifndef TORRENT_DISABLE_LOGGING

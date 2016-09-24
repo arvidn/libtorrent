@@ -89,6 +89,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alloca.hpp"
 #include "libtorrent/resolve_links.hpp"
 #include "libtorrent/aux_/file_progress.hpp"
+#include "libtorrent/aux_/has_block.hpp"
 #include "libtorrent/alert_manager.hpp"
 #include "libtorrent/disk_interface.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for is_ip_address
@@ -10013,8 +10014,8 @@ namespace libtorrent
 			// same peer
 			std::vector<pending_block> const& dq = c.download_queue();
 
-			bool already_requested = std::find_if(dq.begin(), dq.end()
-				, has_block(b)) != dq.end();
+			bool const already_requested = std::find_if(dq.begin(), dq.end()
+				, aux::has_block(b)) != dq.end();
 
 			if (already_requested)
 			{
@@ -10035,8 +10036,8 @@ namespace libtorrent
 
 			std::vector<pending_block> const& rq = c.request_queue();
 
-			bool already_in_queue = std::find_if(rq.begin(), rq.end()
-				, has_block(b)) != rq.end();
+			bool const already_in_queue = std::find_if(rq.begin(), rq.end()
+				, aux::has_block(b)) != rq.end();
 
 			if (already_in_queue)
 			{

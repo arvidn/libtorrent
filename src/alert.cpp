@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/stack_allocator.hpp"
-#include "libtorrent/piece_picker.hpp" // for piece_block
+#include "libtorrent/piece_block.hpp"
 #include "libtorrent/hex.hpp" // to_hex
 
 #include "libtorrent/aux_/escape_string.hpp" // for convert_from_native

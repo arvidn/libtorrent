@@ -93,6 +93,7 @@ nobase_include_HEADERS = \
   peer_id.hpp                  \
   peer_info.hpp                \
   peer_request.hpp             \
+  piece_block.hpp              \
   piece_block_progress.hpp     \
   piece_picker.hpp             \
   platform_util.hpp            \
@@ -177,6 +178,7 @@ nobase_include_HEADERS = \
   aux_/ffs.hpp                      \
   aux_/portmap.hpp                  \
   aux_/lsd.hpp                      \
+  aux_/has_block.hpp                \
   \
   extensions/smart_ban.hpp          \
   extensions/ut_metadata.hpp        \

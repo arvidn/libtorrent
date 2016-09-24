@@ -61,6 +61,7 @@ using namespace std::placeholders;
 namespace libtorrent
 {
 
+	// TODO: find a better place for this
 	const piece_block piece_block::invalid((std::numeric_limits<int>::max)(), (std::numeric_limits<int>::max)());
 
 	piece_picker::piece_picker()
