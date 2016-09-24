@@ -47,8 +47,8 @@ namespace libtorrent
 		tracker_retry_delay_max = 60 * 60
 	};
 
-	announce_entry::announce_entry(std::string const& u)
-		: url(u)
+	announce_entry::announce_entry(std::string u)
+		: url(std::move(u))
 		, fails(0)
 		, updating(false)
 		, source(0)

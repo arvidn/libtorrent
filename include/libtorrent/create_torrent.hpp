@@ -240,7 +240,7 @@ namespace libtorrent
 		// tracker less torrent. It can be used by clients to bootstrap their DHT node from.
 		// The node is a hostname and a port number where there is a DHT node running.
 		// You can have any number of DHT nodes in a torrent.
-		void add_node(std::pair<std::string, int> const& node);
+		void add_node(std::pair<std::string, int> node);
 
 		// Adds a tracker to the torrent. This is not strictly required, but most torrents
 		// use a tracker as their main source of peers. The url should be an http:// or udp://

@@ -65,7 +65,7 @@ protected:
 
 	put_callback m_put_callback;
 	item m_data;
-	bool m_done;
+	bool m_done = false;
 };
 
 struct put_data_observer : traversal_observer
