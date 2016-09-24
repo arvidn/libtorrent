@@ -65,6 +65,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/vector_utils.hpp"
 #include "libtorrent/linked_list.hpp"
 #include "libtorrent/debug.hpp"
+#include "libtorrent/piece_block.hpp"
 #include "libtorrent/aux_/file_progress.hpp"
 #include "libtorrent/aux_/suggest_piece.hpp"
 

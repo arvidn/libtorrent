@@ -54,6 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/time.hpp"
+#include "libtorrent/piece_block.hpp"
 
 namespace libtorrent
 {
@@ -63,33 +64,6 @@ namespace libtorrent
 	struct bitfield;
 	struct counters;
 	struct torrent_peer;
-
-	struct TORRENT_EXTRA_EXPORT piece_block
-	{
-		static const piece_block invalid;
-
-		piece_block() {}
-		piece_block(int p_index, int b_index)
-			: piece_index(p_index)
-			, block_index(b_index)
-		{
-		}
-		int piece_index;
-		int block_index;
-
-		bool operator<(piece_block const& b) const
-		{
-			if (piece_index < b.piece_index) return true;
-			if (piece_index == b.piece_index) return block_index < b.block_index;
-			return false;
-		}
-
-		bool operator==(piece_block const& b) const
-		{ return piece_index == b.piece_index && block_index == b.block_index; }
-
-		bool operator!=(piece_block const& b) const
-		{ return piece_index != b.piece_index || block_index != b.block_index; }
-	};
 
 	class TORRENT_EXTRA_EXPORT piece_picker
 	{

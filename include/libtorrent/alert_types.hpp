@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/operations.hpp" // for operation_t enum
 #include "libtorrent/close_reason.hpp"
+#include "libtorrent/piece_block.hpp"
 #include "libtorrent/aux_/escape_string.hpp" // for convert_from_native
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
@@ -62,7 +63,6 @@ namespace libtorrent
 	namespace aux {
 		struct stack_allocator;
 	}
-	struct piece_block;
 
 	// maps an operation id (from peer_error_alert and peer_disconnected_alert)
 	// to its name. See peer_connection for the constants

@@ -55,7 +55,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/disk_observer.hpp"
 #include "libtorrent/peer_connection_interface.hpp"
-#include "libtorrent/piece_picker.hpp" // for piece_block
 #include "libtorrent/socket.hpp" // for tcp::endpoint
 #include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/receive_buffer.hpp"
@@ -63,6 +62,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/span.hpp"
+#include "libtorrent/piece_block.hpp"
 
 #include <ctime>
 #include <algorithm>
@@ -72,10 +72,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <tuple> // for make_tuple
 #include <array>
 #include <cstdint>
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/noncopyable.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {
@@ -134,19 +130,6 @@ namespace libtorrent
 				&& b.not_wanted == not_wanted
 				&& b.timed_out == timed_out;
 		}
-	};
-
-	struct has_block
-	{
-		has_block(has_block const&) = default;
-
-		has_block(piece_block const& b): block(b) {}
-		piece_block const& block;
-		bool operator()(pending_block const& pb) const
-		{ return pb.block == block; }
-	private:
-		// explicitly disallow assignment, to silence msvc warning
-		has_block& operator=(has_block const&);
 	};
 
 	// argument pack passed to peer_connection constructor

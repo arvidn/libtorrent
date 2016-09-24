@@ -61,6 +61,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/close_reason.hpp"
+#include "libtorrent/aux_/has_block.hpp"
 #include "libtorrent/aux_/time.hpp"
 
 #if TORRENT_USE_ASSERTS
@@ -2471,7 +2472,7 @@ namespace libtorrent
 			return;
 		}
 
-		piece_block b(r.piece, r.start / t->block_size());
+		piece_block const b(r.piece, r.start / t->block_size());
 		m_receiving_block = b;
 
 		bool in_req_queue = false;
@@ -2694,7 +2695,7 @@ namespace libtorrent
 			= std::find_if(
 				m_download_queue.begin()
 				, m_download_queue.end()
-				, has_block(block_finished));
+				, aux::has_block(block_finished));
 
 		if (b == m_download_queue.end())
 		{
@@ -3352,7 +3353,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(is_single_thread());
 		std::vector<pending_block>::iterator rit = std::find_if(m_request_queue.begin()
-			, m_request_queue.end(), has_block(block));
+			, m_request_queue.end(), aux::has_block(block));
 		if (rit == m_request_queue.end()) return false;
 #if TORRENT_USE_ASSERTS
 		std::shared_ptr<torrent> t = m_torrent.lock();
@@ -3387,7 +3388,7 @@ namespace libtorrent
 		TORRENT_ASSERT(!t->picker().is_requested(block) || (t->picker().num_peers(block) > 0));
 		TORRENT_ASSERT(!t->have_piece(block.piece_index));
 		TORRENT_ASSERT(std::find_if(m_download_queue.begin(), m_download_queue.end()
-			, has_block(block)) == m_download_queue.end());
+			, aux::has_block(block)) == m_download_queue.end());
 		TORRENT_ASSERT(std::find(m_request_queue.begin(), m_request_queue.end()
 			, block) == m_request_queue.end());
 
@@ -3556,11 +3557,12 @@ namespace libtorrent
 		if (!t->picker().is_requested(block)) return;
 
 		std::vector<pending_block>::iterator it
-			= std::find_if(m_download_queue.begin(), m_download_queue.end(), has_block(block));
+			= std::find_if(m_download_queue.begin(), m_download_queue.end()
+				, aux::has_block(block));
 		if (it == m_download_queue.end())
 		{
 			std::vector<pending_block>::iterator rit = std::find_if(m_request_queue.begin()
-				, m_request_queue.end(), has_block(block));
+				, m_request_queue.end(), aux::has_block(block));
 
 			// when a multi block is received, it is cancelled
 			// from all peers, so if this one hasn't requested
