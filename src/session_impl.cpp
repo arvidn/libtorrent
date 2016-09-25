@@ -1795,6 +1795,19 @@ namespace aux {
 		return ret;
 	}
 
+	void session_impl::on_exception(std::exception const& e)
+	{
+		session_log("FATAL SESSION ERROR [%s]", e.what());
+		this->abort();
+	}
+
+	void session_impl::on_error(error_code const& ec)
+	{
+		session_log("FATAL SESSION ERROR (%s : %d) [%s]"
+			, ec.category().name(), ec.value(), ec.message().c_str());
+		this->abort();
+	}
+
 	void session_impl::reopen_listen_sockets()
 	{
 #ifndef TORRENT_DISABLE_LOGGING
