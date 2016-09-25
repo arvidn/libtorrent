@@ -50,11 +50,6 @@ using namespace std::placeholders;
 
 namespace libtorrent { namespace dht
 {
-using detail::address_size;
-using detail::read_v4_endpoint;
-#if TORRENT_USE_IPV6
-using detail::read_v6_endpoint;
-#endif
 
 #if TORRENT_USE_ASSERTS
 template <class It, class Cmp>
@@ -599,7 +594,7 @@ void traversal_observer::reply(msg const& m)
 		char const* nodes = n.string_ptr();
 		char const* end = nodes + n.string_length();
 
-		while (end - nodes >= 20 + address_size(protocol) + 2)
+		while (end - nodes >= 20 + detail::address_size(protocol) + 2)
 		{
 			node_id id;
 			std::copy(nodes, nodes + 20, id.begin());
@@ -607,10 +602,10 @@ void traversal_observer::reply(msg const& m)
 			udp::endpoint ep;
 #if TORRENT_USE_IPV6
 			if (protocol == udp::v6())
-				ep = read_v6_endpoint<udp::endpoint>(nodes);
+				ep = detail::read_v6_endpoint<udp::endpoint>(nodes);
 			else
 #endif
-				ep = read_v4_endpoint<udp::endpoint>(nodes);
+				ep = detail::read_v4_endpoint<udp::endpoint>(nodes);
 			algorithm()->traverse(id, ep);
 		}
 	}

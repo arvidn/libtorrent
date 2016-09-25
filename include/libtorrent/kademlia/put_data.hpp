@@ -56,7 +56,7 @@ struct put_data: traversal_algorithm
 
 	void set_data(item const& data) { m_data = data; }
 
-	void set_targets(std::vector<std::pair<node_entry, std::string> > const& targets);
+	void set_targets(std::vector<std::pair<node_entry, std::string>> const& targets);
 
 protected:
 

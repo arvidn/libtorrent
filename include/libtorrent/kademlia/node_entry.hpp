@@ -44,9 +44,9 @@ namespace libtorrent { namespace dht
 
 struct TORRENT_EXTRA_EXPORT node_entry
 {
-	node_entry(node_id const& id_, udp::endpoint ep, int roundtriptime = 0xffff
+	node_entry(node_id const& id_, udp::endpoint const& ep, int roundtriptime = 0xffff
 		, bool pinged = false);
-	node_entry(udp::endpoint ep);
+	node_entry(udp::endpoint const& ep);
 	node_entry();
 	void update_rtt(int new_rtt);
 

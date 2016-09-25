@@ -93,4 +93,3 @@ namespace libtorrent { namespace dht
 }}
 
 #endif // LIBTORRENT_TYPES_HPP
-

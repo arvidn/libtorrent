@@ -57,10 +57,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/hex.hpp> // to_hex
 #endif
 
-using libtorrent::dht::node;
-using libtorrent::dht::node_id;
-using libtorrent::dht::packet_t;
-using libtorrent::dht::msg;
 using libtorrent::detail::write_endpoint;
 using namespace std::placeholders;
 
@@ -148,9 +144,6 @@ namespace libtorrent { namespace dht
 #endif
 		update_storage_node_ids();
 	}
-
-	// defined in node.cpp
-	void nop();
 
 	void dht_tracker::start(dht_state const& bootstrap
 		, find_data::nodes_callback const& f)

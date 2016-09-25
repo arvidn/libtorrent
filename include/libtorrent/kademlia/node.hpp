@@ -58,9 +58,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 
 namespace libtorrent {
-	class alert_manager;
-	struct alert_dispatcher;
-	class alert;
 	struct counters;
 	struct dht_routing_bucket;
 }
@@ -73,8 +70,6 @@ struct dht_observer;
 struct msg;
 
 TORRENT_EXTRA_EXPORT entry write_nodes_entry(std::vector<node_entry> const& nodes);
-
-struct null_type {};
 
 class announce_observer : public observer
 {
