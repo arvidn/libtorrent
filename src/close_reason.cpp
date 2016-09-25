@@ -138,7 +138,7 @@ namespace libtorrent
 					return close_no_reason;
 			}
 		}
-		else if (ec.category() == boost::system::system_category())
+		else if (ec.category() == generic_category())
 		{
 			switch (ec.value())
 			{
