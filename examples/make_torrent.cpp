@@ -377,7 +377,7 @@ int main(int argc, char* argv[])
 
 #ifndef BOOST_NO_EXCEPTIONS
 	}
-	catch (std::exception& e)
+	catch (std::exception const& e)
 	{
 		std::fprintf(stderr, "%s\n", e.what());
 	}

@@ -259,10 +259,14 @@ namespace libtorrent
 		, public disk_observer
 		, public peer_connection_interface
 		, public std::enable_shared_from_this<peer_connection>
+		, public aux::error_handler_interface
 	{
 	friend class invariant_access;
 	friend class torrent;
 	public:
+
+		void on_exception(std::exception const& e) override;
+		void on_error(error_code const& ec) override;
 
 		virtual connection_type type() const = 0;
 
@@ -283,14 +287,14 @@ namespace libtorrent
 
 		virtual ~peer_connection();
 
-		void set_peer_info(torrent_peer* pi)
+		void set_peer_info(torrent_peer* pi) override
 		{
 			TORRENT_ASSERT(m_peer_info == 0 || pi == 0 );
 			TORRENT_ASSERT(pi != nullptr || m_disconnect_started);
 			m_peer_info = pi;
 		}
 
-		torrent_peer* peer_info_struct() const
+		torrent_peer* peer_info_struct() const override
 		{ return m_peer_info; }
 
 		// this is called when the peer object is created, in case
@@ -358,7 +362,7 @@ namespace libtorrent
 		std::uint32_t peer_rank() const;
 
 		void fast_reconnect(bool r);
-		bool fast_reconnect() const { return m_fast_reconnect; }
+		bool fast_reconnect() const override { return m_fast_reconnect; }
 
 		// this is called when we receive a new piece
 		// (and it has passed the hash check)
@@ -391,12 +395,12 @@ namespace libtorrent
 		void set_upload_only(bool u);
 		bool upload_only() const { return m_upload_only; }
 
-		void set_holepunch_mode();
+		void set_holepunch_mode() override;
 
 		// will send a keep-alive message to the peer
 		void keep_alive();
 
-		peer_id const& pid() const { return m_peer_id; }
+		peer_id const& pid() const override { return m_peer_id; }
 		void set_pid(peer_id const& peer_id) { m_peer_id = peer_id; }
 		bool has_piece(int i) const;
 
@@ -413,7 +417,7 @@ namespace libtorrent
 		time_duration download_queue_time(int extra_bytes = 0) const;
 
 		bool is_interesting() const { return m_interesting; }
-		bool is_choked() const { return m_choked; }
+		bool is_choked() const override { return m_choked; }
 
 		bool is_peer_interested() const { return m_peer_interested; }
 		bool has_peer_choked() const { return m_peer_choked; }
@@ -423,7 +427,7 @@ namespace libtorrent
 
 		void update_interest();
 
-		virtual void get_peer_info(peer_info& p) const;
+		void get_peer_info(peer_info& p) const override;
 
 		// returns the torrent this connection is a part of
 		// may be zero if the connection is an incoming connection
@@ -432,8 +436,8 @@ namespace libtorrent
 		std::weak_ptr<torrent> associated_torrent() const
 		{ return m_torrent; }
 
-		stat const& statistics() const { return m_statistics; }
-		void add_stat(std::int64_t downloaded, std::int64_t uploaded);
+		stat const& statistics() const override { return m_statistics; }
+		void add_stat(std::int64_t downloaded, std::int64_t uploaded) override;
 		void sent_bytes(int bytes_payload, int bytes_protocol);
 		void received_bytes(int bytes_payload, int bytes_protocol);
 		void trancieve_ip_packet(int bytes, bool ipv6);
@@ -446,8 +450,8 @@ namespace libtorrent
 		void timeout_requests();
 
 		std::shared_ptr<socket_type> get_socket() const { return m_socket; }
-		tcp::endpoint const& remote() const { return m_remote; }
-		tcp::endpoint local_endpoint() const { return m_local; }
+		tcp::endpoint const& remote() const override { return m_remote; }
+		tcp::endpoint local_endpoint() const override { return m_local; }
 
 		bitfield const& get_bitfield() const;
 		std::vector<int> const& allowed_fast();
@@ -457,13 +461,13 @@ namespace libtorrent
 		time_point last_received() const { return m_last_receive; }
 
 		// this will cause this peer_connection to be disconnected.
-		virtual void disconnect(error_code const& ec
-			, operation_t op, int error = 0);
+		void disconnect(error_code const& ec
+			, operation_t op, int error = 0) override;
 
 		// called when a connect attempt fails (not when an
 		// established connection fails)
 		void connect_failed(error_code const& e);
-		bool is_disconnecting() const { return m_disconnecting; }
+		bool is_disconnecting() const override { return m_disconnecting; }
 
 		// this is called when the connection attempt has succeeded
 		// and the peer_connection is supposed to set m_connecting
@@ -487,7 +491,7 @@ namespace libtorrent
 
 		// a connection is local if it was initiated by us.
 		// if it was an incoming connection, it is remote
-		bool is_outgoing() const { return m_outgoing; }
+		bool is_outgoing() const override { return m_outgoing; }
 
 		bool received_listen_port() const { return m_received_listen_port; }
 		void received_listen_port()
@@ -496,7 +500,7 @@ namespace libtorrent
 		bool on_local_network() const;
 		bool ignore_unchoke_slots() const;
 
-		bool failed() const { return m_failed; }
+		bool failed() const override { return m_failed; }
 
 		int desired_queue_size() const
 		{
@@ -525,9 +529,9 @@ namespace libtorrent
 		int est_reciprocation_rate() const { return m_est_reciprocation_rate; }
 
 #ifndef TORRENT_DISABLE_LOGGING
-		bool should_log(peer_log_alert::direction_t direction) const;
+		bool should_log(peer_log_alert::direction_t direction) const override;
 		void peer_log(peer_log_alert::direction_t direction
-			, char const* event, char const* fmt, ...) const TORRENT_FORMAT(4,5);
+			, char const* event, char const* fmt, ...) const override TORRENT_FORMAT(4,5);
 		void peer_log(peer_log_alert::direction_t direction
 			, char const* event) const;
 
@@ -608,7 +612,7 @@ namespace libtorrent
 		void cancel_request(piece_block const& b, bool force = false);
 		void send_block_requests();
 
-		void assign_bandwidth(int channel, int amount);
+		void assign_bandwidth(int channel, int amount) override;
 
 #if TORRENT_USE_INVARIANT_CHECKS
 		void check_invariant() const;
@@ -677,7 +681,7 @@ namespace libtorrent
 
 		// called when the disk write buffer is drained again, and we can
 		// start downloading payload again
-		void on_disk();
+		void on_disk() override;
 
 		int num_reading_bytes() const { return m_reading_bytes; }
 
@@ -1181,7 +1185,7 @@ namespace libtorrent
 			make_read_handler(Handler const& handler)
 		{
 			return aux::allocating_handler<Handler, TORRENT_READ_HANDLER_MAX_SIZE>(
-				handler, m_read_handler_storage
+				handler, m_read_handler_storage, *this
 			);
 		}
 
@@ -1190,7 +1194,7 @@ namespace libtorrent
 			make_write_handler(Handler const& handler)
 		{
 			return aux::allocating_handler<Handler, TORRENT_WRITE_HANDLER_MAX_SIZE>(
-				handler, m_write_handler_storage
+				handler, m_write_handler_storage, *this
 			);
 		}
 

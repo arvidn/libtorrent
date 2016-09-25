@@ -866,7 +866,7 @@ TORRENT_TEST(empty_file2)
 		auto ti = std::make_shared<torrent_info>("", 0);
 		TEST_ERROR("expected exception thrown");
 	}
-	catch (system_error& e)
+	catch (system_error const& e)
 	{
 		std::printf("Expected error: %s\n", e.code().message().c_str());
 	}

@@ -642,7 +642,7 @@ namespace aux {
 		{
 			TORRENT_TRY {
 				ext->save_state(*eptr);
-			} TORRENT_CATCH(std::exception&) {}
+			} TORRENT_CATCH (std::exception const&) {}
 		}
 #endif
 	}
@@ -752,7 +752,7 @@ namespace aux {
 		{
 			TORRENT_TRY {
 				ext->load_state(*e);
-			} TORRENT_CATCH(std::exception&) {}
+			} TORRENT_CATCH (std::exception const&) {}
 		}
 #endif
 	}
@@ -1793,6 +1793,25 @@ namespace aux {
 		}
 #endif
 		return ret;
+	}
+
+	void session_impl::on_exception(std::exception const& e)
+	{
+		TORRENT_UNUSED(e);
+#ifndef TORRENT_DISABLE_LOGGING
+		session_log("FATAL SESSION ERROR [%s]", e.what());
+#endif
+		this->abort();
+	}
+
+	void session_impl::on_error(error_code const& ec)
+	{
+		TORRENT_UNUSED(ec);
+#ifndef TORRENT_DISABLE_LOGGING
+		session_log("FATAL SESSION ERROR (%s : %d) [%s]"
+			, ec.category().name(), ec.value(), ec.message().c_str());
+#endif
+		this->abort();
 	}
 
 	void session_impl::reopen_listen_sockets()
@@ -3167,7 +3186,7 @@ namespace aux {
 		{
 			TORRENT_TRY {
 				ext->on_tick();
-			} TORRENT_CATCH(std::exception&) {}
+			} TORRENT_CATCH (std::exception const&) {}
 		}
 #endif
 

@@ -99,7 +99,7 @@ AX_PTHREAD()
 LIBS="$PTHREAD_LIBS $LIBS"
 CFLAGS="$PTHREAD_CFLAGS $CFLAGS"
 CC="$PTHREAD_CC"
-CXXFLAGS="$CXXFLAGS -ftemplate-depth=128"
+CXXFLAGS="$CXXFLAGS -ftemplate-depth=128 -Wno-format-zero-length"
 
 AS_ECHO "Checking for visibility support:"
 AC_CACHE_CHECK([for __attribute__((visibility("hidden")))],
@@ -166,9 +166,9 @@ AC_ARG_ENABLE(
   [logging],
   [AS_HELP_STRING(
     [--enable-logging],
-    [enable logging to disk (use value "verbose" to enable verbose peer wire logging or "errors" limit logging to errors ) [default=no]])],
+    [enable logging support, enabled by alert mask [default=yes]])],
   [[ARG_ENABLE_LOGGING=$enableval]],
-  [[ARG_ENABLE_LOGGING=no]]
+  [[ARG_ENABLE_LOGGING=yes]]
 )
 
 AC_ARG_ENABLE(
@@ -190,7 +190,7 @@ AC_ARG_ENABLE(
   [dht],
   [AS_HELP_STRING(
     [--enable-dht],
-    [enable dht support (use value "logging" to add extra logging) [default=yes]])],
+    [enable dht support [default=yes]])],
   [[ARG_ENABLE_DHT=$enableval]],
   [[ARG_ENABLE_DHT=yes]]
 )

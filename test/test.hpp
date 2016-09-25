@@ -130,7 +130,7 @@ extern int EXPORT _g_test_failures;
 		if (!(x)) \
 			TEST_REPORT_AUX("TEST_ERROR: check failed: \"" #x "\"", __FILE__, __LINE__); \
 	} \
-	catch (std::exception& e) \
+	catch (std::exception const& e) \
 	{ \
 		TEST_ERROR("TEST_ERROR: Exception thrown: " #x " :" + std::string(e.what())); \
 	} \
@@ -147,7 +147,7 @@ extern int EXPORT _g_test_failures;
 			TEST_REPORT_AUX(s__.str().c_str(), __FILE__, __LINE__); \
 		} \
 	} \
-	catch (std::exception& e) \
+	catch (std::exception const& e) \
 	{ \
 		TEST_ERROR("TEST_ERROR: Exception thrown: " #x " :" + std::string(e.what())); \
 	} \
@@ -163,7 +163,7 @@ extern int EXPORT _g_test_failures;
 			TEST_REPORT_AUX(s__.str().c_str(), __FILE__, __LINE__); \
 		} \
 	} \
-	catch (std::exception& e) \
+	catch (std::exception const& e) \
 	{ \
 		TEST_ERROR("TEST_ERROR: Exception thrown: " #x " :" + std::string(e.what())); \
 	} \

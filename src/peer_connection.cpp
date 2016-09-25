@@ -196,6 +196,21 @@ namespace libtorrent
 		return ret;
 	}
 
+	void peer_connection::on_exception(std::exception const& e)
+	{
+		TORRENT_UNUSED(e);
+#ifndef TORRENT_DISABLE_LOGGING
+		peer_log(peer_log_alert::info, "PEER_ERROR" ,"error: %s"
+			, e.what());
+#endif
+		disconnect(error_code(), op_unknown, 2);
+	}
+
+	void peer_connection::on_error(error_code const& ec)
+	{
+		disconnect(ec, op_unknown, 2);
+	}
+
 	void peer_connection::increase_est_reciprocation_rate()
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -1076,7 +1091,7 @@ namespace libtorrent
 		{
 			TORRENT_TRY {
 				e->on_piece_pass(index);
-			} TORRENT_CATCH(std::exception&) {}
+			} TORRENT_CATCH (std::exception const&) {}
 		}
 #else
 		TORRENT_UNUSED(index);
@@ -1096,7 +1111,7 @@ namespace libtorrent
 		{
 			TORRENT_TRY {
 				e->on_piece_failed(index);
-			} TORRENT_CATCH(std::exception&) {}
+			} TORRENT_CATCH (std::exception const&) {}
 		}
 #else
 		TORRENT_UNUSED(index);

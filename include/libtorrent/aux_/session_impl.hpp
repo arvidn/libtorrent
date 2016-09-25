@@ -194,6 +194,7 @@ namespace libtorrent
 			, boost::noncopyable
 			, uncork_interface
 			, single_threaded
+			, aux::error_handler_interface
 		{
 			// the size of each allocation that is chained in the send buffer
 			enum { send_buffer_size_impl = 128 };
@@ -248,6 +249,9 @@ namespace libtorrent
 			// torrent status update message
 			bool m_posting_torrent_updates = false;
 #endif
+
+			void on_exception(std::exception const& e) override;
+			void on_error(error_code const& ec) override;
 
 			void reopen_listen_sockets();
 
@@ -1099,7 +1103,7 @@ namespace libtorrent
 			make_tick_handler(Handler const& handler)
 			{
 				return aux::allocating_handler<Handler, TORRENT_READ_HANDLER_MAX_SIZE>(
-					handler, m_tick_handler_storage);
+					handler, m_tick_handler_storage, *this);
 			}
 
 			// torrents are announced on the local network in a

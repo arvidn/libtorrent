@@ -96,7 +96,10 @@ namespace libtorrent
 		op_ssl_handshake,
 
 		// a connection failed to satisfy the bind interface setting
-		op_get_interface
+		op_get_interface,
+
+		// the error was unexpected and it is unknown which operation caused it
+		op_unknown,
 	};
 
 }

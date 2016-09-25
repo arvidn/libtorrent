@@ -61,6 +61,12 @@ namespace libtorrent { namespace aux
 		handler_storage(handler_storage const&);
 	};
 
+	struct error_handler_interface
+	{
+		virtual void on_exception(std::exception const&) = 0;
+		virtual void on_error(error_code const&) = 0;
+	};
+
 	// this class is a wrapper for an asio handler object. Its main purpose
 	// is to pass along additional parameters to the asio handler allocator
 	// function, as well as providing a distinct type for the handler
@@ -69,15 +75,38 @@ namespace libtorrent { namespace aux
 	struct allocating_handler
 	{
 		allocating_handler(
-			Handler h, handler_storage<Size>& s)
+			Handler h, handler_storage<Size>& s, error_handler_interface& eh)
 			: handler(std::move(h))
 			, storage(s)
+			, error_handler(eh)
 		{}
 
 		template <class... A>
 		void operator()(A&&... a) const
 		{
+#ifdef BOOST_NO_EXCEPTIONS
 			handler(std::forward<A>(a)...);
+#else
+			try
+			{
+				handler(std::forward<A>(a)...);
+			}
+			catch (system_error const& e)
+			{
+				error_handler.on_error(e.code());
+			}
+			catch (std::exception const& e)
+			{
+				error_handler.on_exception(e);
+			}
+			catch (...)
+			{
+				// this is pretty bad
+				TORRENT_ASSERT(false);
+				std::runtime_error e("unknown exception");
+				error_handler.on_exception(e);
+			}
+#endif
 		}
 
 		friend void* asio_handler_allocate(
@@ -108,6 +137,7 @@ namespace libtorrent { namespace aux
 
 		Handler handler;
 		handler_storage<Size>& storage;
+		error_handler_interface& error_handler;
 	};
 
 }
