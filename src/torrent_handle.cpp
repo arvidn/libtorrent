@@ -186,16 +186,12 @@ namespace libtorrent
 	void torrent_handle::move_storage(
 		std::wstring const& save_path, int flags) const
 	{
-		std::string utf8;
-		wchar_utf8(save_path, utf8);
-		async_call(&torrent::move_storage, utf8, flags);
+		async_call(&torrent::move_storage, wchar_utf8(save_path), flags);
 	}
 
 	void torrent_handle::rename_file(int index, std::wstring const& new_name) const
 	{
-		std::string utf8;
-		wchar_utf8(new_name, utf8);
-		async_call(&torrent::rename_file, index, utf8);
+		async_call(&torrent::rename_file, index, wchar_utf8(new_name));
 	}
 #endif // TORRENT_NO_DEPRECATE
 #endif // TORRENT_USE_WSTRING

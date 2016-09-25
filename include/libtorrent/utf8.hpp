@@ -42,35 +42,43 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <cwchar>
 
+#include "libtorrent/string_view.hpp"
+#include "libtorrent/error_code.hpp"
+
 namespace libtorrent
 {
 
-	// internal
-	// results from UTF-8 conversion functions utf8_wchar and
-	// wchar_utf8
-	enum utf8_conv_result_t
+	namespace utf8_errors
 	{
-		// conversion successful
-		conversion_ok,
+		enum error_code_enum
+		{
+			// conversion successful
+			conversion_ok,
 
-		// partial character in source, but hit end
-		source_exhausted,
+			// partial character in source, but hit end
+			source_exhausted,
 
-		// insuff. room in target for conversion
-		target_exhausted,
+			// insuff. room in target for conversion
+			target_exhausted,
 
-		// source sequence is illegal/malformed
-		source_illegal
-	};
+			// source sequence is illegal/malformed
+			source_illegal
+		};
+
+		// hidden
+		TORRENT_EXPORT error_code make_error_code(error_code_enum e);
+	}
+
+	TORRENT_EXPORT boost::system::error_category const& utf8_category();
 
 	// ``utf8_wchar`` converts a UTF-8 string (``utf8``) to a wide character
 	// string (``wide``). ``wchar_utf8`` converts a wide character string
 	// (``wide``) to a UTF-8 string (``utf8``). The return value is one of
 	// the enumeration values from utf8_conv_result_t.
-	TORRENT_EXTRA_EXPORT utf8_conv_result_t utf8_wchar(
-		const std::string &utf8, std::wstring &wide);
-	TORRENT_EXTRA_EXPORT utf8_conv_result_t wchar_utf8(
-		const std::wstring &wide, std::string &utf8);
+	TORRENT_EXTRA_EXPORT std::wstring utf8_wchar(string_view utf8, error_code& ec);
+	TORRENT_EXTRA_EXPORT std::wstring utf8_wchar(string_view utf8);
+	TORRENT_EXTRA_EXPORT std::string wchar_utf8(wstring_view wide, error_code& ec);
+	TORRENT_EXTRA_EXPORT std::string wchar_utf8(wstring_view wide);
 }
 #endif // !BOOST_NO_STD_WSTRING
 

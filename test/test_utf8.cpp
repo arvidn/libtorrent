@@ -242,13 +242,8 @@ TORRENT_TEST(utf8)
 	std::string utf8;
 	std::copy(utf8_source.begin(), utf8_source.end(), std::back_inserter(utf8));
 
-	std::wstring wide;
-	utf8_conv_result_t ret = utf8_wchar(utf8, wide);
-	TEST_EQUAL(ret, conversion_ok);
-
-	std::string identity;
-	ret = wchar_utf8(wide, identity);
-	TEST_EQUAL(ret, conversion_ok);
+	std::wstring const wide = utf8_wchar(utf8);
+	std::string const identity = wchar_utf8(wide);
 
 	TEST_EQUAL(utf8, identity);
 }
@@ -261,8 +256,9 @@ TORRENT_TEST(invalid_encoding)
 		0xee, 0xf1, 0x2e, 0x32, 0x30, 0x31, 0x34, 0x2e, 0x42, 0x44, 0x52, 0x69,
 		0x70, 0x2e, 0x31, 0x30, 0x38, 0x30, 0x70, 0x2e, 0x6d, 0x6b, 0x76, 0x00
 	};
-	std::wstring wide;
-	utf8_wchar((const char*)test_string, wide);
+	error_code ec;
+	std::wstring wide = utf8_wchar((char const*)test_string, ec);
+	TEST_CHECK(ec);
 
 	std::wstring cmp_wide;
 	std::copy(test_string, test_string + sizeof(test_string) - 1,

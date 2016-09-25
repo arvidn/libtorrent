@@ -197,8 +197,7 @@ namespace libtorrent
 	void add_files(file_storage& fs, std::wstring const& wfile
 		, std::function<bool(std::string)> p, std::uint32_t flags)
 	{
-		std::string utf8;
-		wchar_utf8(wfile, utf8);
+		std::string utf8 = wchar_utf8(wfile);
 		add_files_impl(fs, parent_path(complete(utf8))
 			, filename(utf8), p, flags);
 	}
@@ -206,8 +205,7 @@ namespace libtorrent
 	void add_files(file_storage& fs
 		, std::wstring const& wfile, std::uint32_t flags)
 	{
-		std::string utf8;
-		wchar_utf8(wfile, utf8);
+		std::string utf8 = wchar_utf8(wfile);
 		add_files_impl(fs, parent_path(complete(utf8))
 			, filename(utf8), default_pred, flags);
 	}
@@ -215,16 +213,14 @@ namespace libtorrent
 	void set_piece_hashes(create_torrent& t, std::wstring const& p
 		, std::function<void(int)> f, error_code& ec)
 	{
-		std::string utf8;
-		wchar_utf8(p, utf8);
+		std::string utf8 = wchar_utf8(p);
 		set_piece_hashes(t, utf8, f, ec);
 	}
 
 	void set_piece_hashes_deprecated(create_torrent& t, std::wstring const& p
 		, std::function<void(int)> f, error_code& ec)
 	{
-		std::string utf8;
-		wchar_utf8(p, utf8);
+		std::string utf8 = wchar_utf8(p);
 		set_piece_hashes(t, utf8, f, ec);
 	}
 #endif
