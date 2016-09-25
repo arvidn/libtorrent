@@ -198,8 +198,10 @@ namespace libtorrent
 
 	void peer_connection::on_exception(std::exception const& e)
 	{
+#ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, "PEER_ERROR" ,"error: %s"
 			, e.what());
+#endif
 		disconnect(error_code(), op_unknown, 2);
 	}
 
