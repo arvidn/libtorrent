@@ -473,7 +473,7 @@ namespace libtorrent
 		for (const char* i = &s[0]; i < end;)
 		{
 			wchar_t c = '.';
-			result = std::mbtowc(&c, i, end - i);
+			int const result = std::mbtowc(&c, i, end - i);
 			if (result > 0) i += result;
 			else ++i;
 			ret += c;
@@ -493,7 +493,7 @@ namespace libtorrent
 		{
 			char c[10];
 			TORRENT_ASSERT(sizeof(c) >= MB_CUR_MAX);
-			result = std::wctomb(c, *i);
+			int const result = std::wctomb(c, *i);
 			if (result > 0)
 			{
 				i += result;
