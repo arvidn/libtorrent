@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/entry.hpp>
 
 #include <libtorrent/kademlia/node_id.hpp>
+#include <libtorrent/kademlia/dht_storage.hpp>
 
 #include <vector>
 
@@ -68,6 +69,8 @@ namespace dht
 		std::vector<udp::endpoint> nodes;
 		// the bootstrap nodes saved from the IPv6 buckets node
 		std::vector<udp::endpoint> nodes6;
+
+		dht_storage_data storage_data;
 	};
 
 	TORRENT_EXTRA_EXPORT dht_state read_dht_state(bdecode_node const& e);

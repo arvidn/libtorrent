@@ -505,6 +505,20 @@ namespace
 			return m_counters;
 		}
 
+		dht_storage_data save_data() const override
+		{
+			dht_storage_data ret;
+
+			// TODO: implement here
+
+			return ret;
+		}
+
+		void load_data(dht_storage_data const& /*data*/) override
+		{
+			// TODO: implement here
+		}
+
 	private:
 		dht_settings const& m_settings;
 		dht_storage_counters m_counters;

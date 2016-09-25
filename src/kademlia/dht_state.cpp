@@ -81,6 +81,8 @@ namespace
 			ret.nodes6 = detail::read_endpoint_list<udp::endpoint>(nodes);
 #endif
 
+		// TODO: read dht_storage_data
+
 		return ret;
 	}
 
@@ -95,6 +97,7 @@ namespace
 		entry const nodes6 = save_nodes(state.nodes6);
 		if (!nodes6.list().empty()) ret["nodes6"] = nodes6;
 #endif
+		// TODO: save dht_storage_data
 		return ret;
 	}
 }}

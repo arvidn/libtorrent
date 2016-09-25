@@ -34,6 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_DHT_STORAGE_HPP
 
 #include <functional>
+#include <vector>
+#include <array>
 
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/types.hpp>
@@ -42,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/address.hpp>
 #include <libtorrent/span.hpp>
 #include <libtorrent/string_view.hpp>
+#include <libtorrent/time.hpp>
 
 namespace libtorrent
 {
@@ -62,6 +65,44 @@ namespace dht
 
 		// This member function set the counters to zero.
 		void reset();
+	};
+
+	struct announce_peer_data
+	{
+		time_point added;
+		tcp::endpoint addr;
+		bool seed;
+	};
+
+	struct announce_data
+	{
+		sha1_hash info_hash;
+		std::string name;
+		std::vector<announce_peer_data> peers4;
+		std::vector<announce_peer_data> peers6;
+	};
+
+	struct dht_immutable_data
+	{
+		sha1_hash target;
+		std::vector<char> value;
+		std::array<char, 128> ips;
+		time_point last_seen;
+	};
+
+	struct dht_mutable_data : dht_immutable_data
+	{
+		std::array<char, signature::len> sig;
+		std::uint64_t seq;
+		std::array<char, public_key::len> key;
+		std::string salt;
+	};
+
+	struct dht_storage_data
+	{
+		std::vector<announce_data> torrents;
+		std::vector<dht_immutable_data> immutable_items;
+		std::vector<dht_mutable_data> mutable_items;
 	};
 
 	// The DHT storage interface is a pure virtual class that can
@@ -215,6 +256,10 @@ namespace dht
 		virtual void tick() = 0;
 
 		virtual dht_storage_counters counters() const = 0;
+
+		virtual dht_storage_data save_data() const = 0;
+
+		virtual void load_data(dht_storage_data const& data) = 0;
 
 		virtual ~dht_storage_interface() {}
 	};
