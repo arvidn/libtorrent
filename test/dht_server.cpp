@@ -149,7 +149,7 @@ struct dht_server
 #endif
 				++m_dht_requests;
 			}
-			catch (std::exception& e)
+			catch (std::exception const& e)
 			{
 				std::fprintf(stderr, "failed to decode DHT message: %s\n", e.what());
 			}

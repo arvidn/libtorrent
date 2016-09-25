@@ -81,7 +81,7 @@ namespace libtorrent
 				|| (ip & 0xffff0000) == 0xc0a80000 // 192.168.x.x
 				|| (ip & 0xffff0000) == 0xa9fe0000 // 169.254.x.x
 				|| (ip & 0xff000000) == 0x7f000000); // 127.x.x.x
-		} TORRENT_CATCH(std::exception&) { return false; }
+		} TORRENT_CATCH(std::exception const&) { return false; }
 	}
 
 	bool is_loopback(address const& addr)
@@ -92,7 +92,7 @@ namespace libtorrent
 				return addr.to_v4() == address_v4::loopback();
 			else
 				return addr.to_v6() == address_v6::loopback();
-		} TORRENT_CATCH(std::exception&) { return false; }
+		} TORRENT_CATCH(std::exception const&) { return false; }
 #else
 		return addr.to_v4() == address_v4::loopback();
 #endif
@@ -111,7 +111,7 @@ namespace libtorrent
 #else
 		return addr.to_v4() == address_v4::any();
 #endif
-		} TORRENT_CATCH(std::exception&) { return false; }
+		} TORRENT_CATCH(std::exception const&) { return false; }
 	}
 
 	bool is_teredo(address const& addr)
@@ -122,7 +122,7 @@ namespace libtorrent
 			std::uint8_t teredo_prefix[] = {0x20, 0x01, 0, 0};
 			address_v6::bytes_type b = addr.to_v6().to_bytes();
 			return memcmp(&b[0], teredo_prefix, 4) == 0;
-		} TORRENT_CATCH(std::exception&) { return false; }
+		} TORRENT_CATCH(std::exception const&) { return false; }
 #else
 		TORRENT_UNUSED(addr);
 		return false;
@@ -140,7 +140,7 @@ namespace libtorrent
 			error_code ec;
 			address::from_string("::1", ec);
 			return !ec;
-		} TORRENT_CATCH(std::exception&) { return false; }
+		} TORRENT_CATCH(std::exception const&) { return false; }
 #else
 		io_service ios;
 		tcp::socket test(ios);

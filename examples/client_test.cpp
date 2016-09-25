@@ -1802,7 +1802,7 @@ int main(int argc, char* argv[])
 		for (std::vector<alert*>::iterator i = alerts.begin()
 			, end(alerts.end()); i != end; ++i)
 		{
-			TORRENT_TRY
+			try
 			{
 				if (!::handle_alert(ses, *i, files, non_files))
 				{
@@ -1812,7 +1812,7 @@ int main(int argc, char* argv[])
 					events.push_back(event_string);
 					if (events.size() >= 20) events.pop_front();
 				}
-			} TORRENT_CATCH(std::exception& ) {}
+			} catch (std::exception const&) {}
 		}
 		alerts.clear();
 

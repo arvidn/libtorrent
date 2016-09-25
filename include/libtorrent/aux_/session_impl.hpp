@@ -250,7 +250,7 @@ namespace libtorrent
 			bool m_posting_torrent_updates = false;
 #endif
 
-			void on_exception(std::exception& e) override
+			void on_exception(std::exception const& e) override
 			{
 				session_log("FATAL SESSION ERROR [%s]", e.what());
 				this->abort();

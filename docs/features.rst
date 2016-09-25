@@ -305,7 +305,7 @@ code to implement a simple bittorrent client::
 		std::cin >> a;
 		return 0;
 	}
-	catch (std::exception& e)
+	catch (std::exception const& e)
 	{
 		std::cerr << ec.what() << std::endl;
 		return 1;

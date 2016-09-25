@@ -63,7 +63,7 @@ namespace libtorrent { namespace aux
 
 	struct error_handler_interface
 	{
-		virtual void on_exception(std::exception&) = 0;
+		virtual void on_exception(std::exception const&) = 0;
 		virtual void on_error(error_code const&) = 0;
 	};
 
@@ -91,11 +91,11 @@ namespace libtorrent { namespace aux
 			{
 				handler(std::forward<A>(a)...);
 			}
-			catch (system_error& e)
+			catch (system_error const& e)
 			{
 				error_handler.on_error(e.code());
 			}
-			catch (std::exception& e)
+			catch (std::exception const& e)
 			{
 				error_handler.on_exception(e);
 			}

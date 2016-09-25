@@ -642,7 +642,7 @@ namespace aux {
 		{
 			TORRENT_TRY {
 				ext->save_state(*eptr);
-			} TORRENT_CATCH(std::exception&) {}
+			} TORRENT_CATCH (std::exception const&) {}
 		}
 #endif
 	}
@@ -752,7 +752,7 @@ namespace aux {
 		{
 			TORRENT_TRY {
 				ext->load_state(*e);
-			} TORRENT_CATCH(std::exception&) {}
+			} TORRENT_CATCH (std::exception const&) {}
 		}
 #endif
 	}
@@ -3167,7 +3167,7 @@ namespace aux {
 		{
 			TORRENT_TRY {
 				ext->on_tick();
-			} TORRENT_CATCH(std::exception&) {}
+			} TORRENT_CATCH (std::exception const&) {}
 		}
 #endif
 

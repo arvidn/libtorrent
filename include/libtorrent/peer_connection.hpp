@@ -265,17 +265,8 @@ namespace libtorrent
 	friend class torrent;
 	public:
 
-		void on_exception(std::exception& e) override
-		{
-			peer_log(peer_log_alert::info, "PEER_ERROR" ,"error: %s"
-				, e.what());
-			disconnect(error_code(), op_unknown, 2);
-		}
-
-		void on_error(error_code const& ec) override
-		{
-			disconnect(ec, op_unknown, 2);
-		}
+		void on_exception(std::exception const& e) override;
+		void on_error(error_code const& ec) override;
 
 		virtual connection_type type() const = 0;
 
