@@ -67,21 +67,6 @@ namespace dht
 		void reset();
 	};
 
-	struct announce_peer_data
-	{
-		time_point added;
-		tcp::endpoint addr;
-		bool seed;
-	};
-
-	struct announce_data
-	{
-		sha1_hash info_hash;
-		std::string name;
-		std::vector<announce_peer_data> peers4;
-		std::vector<announce_peer_data> peers6;
-	};
-
 	struct dht_immutable_data
 	{
 		sha1_hash target;
@@ -92,17 +77,16 @@ namespace dht
 
 	struct dht_mutable_data : dht_immutable_data
 	{
-		std::array<char, signature::len> sig;
-		std::uint64_t seq;
-		std::array<char, public_key::len> key;
+		std::array<char, signature::len> signature;
+		std::uint64_t sequence;
+		std::array<char, public_key::len> public_key;
 		std::string salt;
 	};
 
-	struct dht_storage_data
+	struct dht_storage_items
 	{
-		std::vector<announce_data> torrents;
-		std::vector<dht_immutable_data> immutable_items;
-		std::vector<dht_mutable_data> mutable_items;
+		std::vector<dht_immutable_data> immutables;
+		std::vector<dht_mutable_data> mutables;
 	};
 
 	// The DHT storage interface is a pure virtual class that can
@@ -257,9 +241,9 @@ namespace dht
 
 		virtual dht_storage_counters counters() const = 0;
 
-		virtual dht_storage_data save_data() const = 0;
+		virtual dht_storage_items save_items(int max_items) const = 0;
 
-		virtual void load_data(dht_storage_data const& data) = 0;
+		virtual void load_items(dht_storage_items const& items) = 0;
 
 		virtual ~dht_storage_interface() {}
 	};

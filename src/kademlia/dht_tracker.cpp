@@ -119,7 +119,7 @@ namespace libtorrent { namespace dht
 		m_nodes.insert(std::make_pair(m_dht6.protocol_family_name(), &m_dht6));
 #endif
 
-		m_storage.load_data(state.storage_data);
+		m_storage.load_items(state.items);
 		update_storage_node_ids();
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -579,6 +579,7 @@ namespace libtorrent { namespace dht
 		ret.nid6 = m_dht6.nid();
 		ret.nodes6 = save_nodes(m_dht6);
 #endif
+		ret.items = m_storage.save_items(100); // TODO: put this in settings
 		return ret;
 	}
 

@@ -70,7 +70,7 @@ namespace dht
 		// the bootstrap nodes saved from the IPv6 buckets node
 		std::vector<udp::endpoint> nodes6;
 
-		dht_storage_data storage_data;
+		dht_storage_items items;
 	};
 
 	TORRENT_EXTRA_EXPORT dht_state read_dht_state(bdecode_node const& e);

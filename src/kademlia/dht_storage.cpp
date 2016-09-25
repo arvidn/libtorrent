@@ -505,16 +505,16 @@ namespace
 			return m_counters;
 		}
 
-		dht_storage_data save_data() const override
+		dht_storage_items save_items(int const /*max_items*/) const override
 		{
-			dht_storage_data ret;
+			dht_storage_items ret;
 
 			// TODO: implement here
 
 			return ret;
 		}
 
-		void load_data(dht_storage_data const& /*data*/) override
+		void load_items(dht_storage_items const& /*data*/) override
 		{
 			// TODO: implement here
 		}
