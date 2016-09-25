@@ -1797,6 +1797,7 @@ namespace aux {
 
 	void session_impl::on_exception(std::exception const& e)
 	{
+		TORRENT_UNUSED(e);
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log("FATAL SESSION ERROR [%s]", e.what());
 #endif
@@ -1805,6 +1806,7 @@ namespace aux {
 
 	void session_impl::on_error(error_code const& ec)
 	{
+		TORRENT_UNUSED(ec);
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log("FATAL SESSION ERROR (%s : %d) [%s]"
 			, ec.category().name(), ec.value(), ec.message().c_str());
