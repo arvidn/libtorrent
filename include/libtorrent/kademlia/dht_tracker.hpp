@@ -36,20 +36,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 
 #include <libtorrent/kademlia/node.hpp>
-#include <libtorrent/kademlia/node_id.hpp>
-#include <libtorrent/kademlia/traversal_algorithm.hpp>
 #include <libtorrent/kademlia/dos_blocker.hpp>
 #include <libtorrent/kademlia/dht_state.hpp>
 
-#include <libtorrent/session_settings.hpp>
-#include <libtorrent/udp_socket.hpp>
 #include <libtorrent/socket.hpp>
 #include <libtorrent/deadline_timer.hpp>
 #include <libtorrent/span.hpp>
+#include <libtorrent/io_service.hpp>
 
 namespace libtorrent
 {
 	struct counters;
+	struct dht_settings;
 #ifndef TORRENT_NO_DEPRECATE
 	struct session_status;
 #endif

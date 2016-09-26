@@ -41,18 +41,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hex.hpp" // to_hex
 #endif
 
-#include "libtorrent/io.hpp"
+#include <libtorrent/socket_io.hpp>
+#include <libtorrent/session_status.hpp>
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/hasher.hpp"
-#include "libtorrent/socket.hpp"
 #include "libtorrent/random.hpp"
-#include "libtorrent/aux_/session_impl.hpp"
+#include <libtorrent/assert.hpp>
+#include <libtorrent/aux_/time.hpp>
 #include "libtorrent/alert_types.hpp" // for dht_lookup
 #include "libtorrent/performance_counters.hpp" // for counters
 
-#include "libtorrent/kademlia/node_id.hpp"
-#include "libtorrent/kademlia/rpc_manager.hpp"
-#include "libtorrent/kademlia/routing_table.hpp"
 #include "libtorrent/kademlia/node.hpp"
 #include "libtorrent/kademlia/dht_observer.hpp"
 #include "libtorrent/kademlia/direct_request.hpp"
@@ -61,6 +59,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/get_peers.hpp"
 #include "libtorrent/kademlia/get_item.hpp"
 #include "libtorrent/kademlia/msg.hpp"
+#include <libtorrent/kademlia/put_data.hpp>
 
 using namespace std::placeholders;
 
@@ -1164,6 +1163,7 @@ void node::incoming_request(msg const& m, entry& e)
 	}
 }
 
+// TODO: limit number of entries in the result
 void node::write_nodes_entries(sha1_hash const& info_hash
 	, bdecode_node const& want, entry& r)
 {
