@@ -51,6 +51,10 @@ void check_chain(tailqueue<test_node>& chain, char const* expected)
 		i.next();
 		++expected;
 	}
+	if (!chain.empty())
+	{
+		TEST_CHECK(chain.last() == nullptr || chain.last()->next == nullptr);
+	}
 	TEST_EQUAL(expected[0], 0);
 }
 

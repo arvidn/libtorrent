@@ -110,7 +110,7 @@ static void nop() {}
 	INITIALIZE_JOB(wj) \
 	rj.storage = pm; \
 	wj.storage = pm; \
-	cached_piece_entry* pe = NULL; \
+	cached_piece_entry* pe = nullptr; \
 	int ret = 0; \
 	file::iovec_t iov[1]; \
 	(void)iov[0]; \

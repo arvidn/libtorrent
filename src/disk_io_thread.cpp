@@ -1176,10 +1176,10 @@ namespace libtorrent
 
 	int disk_io_thread::do_read(disk_io_job* j, jobqueue_t& completed_jobs)
 	{
-		int block_size = m_disk_cache.block_size();
-		int piece_size = j->storage->files()->piece_size(j->piece);
-		int blocks_in_piece = (piece_size + block_size - 1) / block_size;
-		int iov_len = m_disk_cache.pad_job(j, blocks_in_piece
+		int const block_size = m_disk_cache.block_size();
+		int const piece_size = j->storage->files()->piece_size(j->piece);
+		int const blocks_in_piece = (piece_size + block_size - 1) / block_size;
+		int const iov_len = m_disk_cache.pad_job(j, blocks_in_piece
 			, m_settings.get_int(settings_pack::read_cache_line_size));
 
 		file::iovec_t* iov = TORRENT_ALLOCA(file::iovec_t, iov_len);
@@ -1213,7 +1213,7 @@ namespace libtorrent
 		}
 
 		// this is the offset that's aligned to block boundaries
-		std::int64_t adjusted_offset = j->d.io.offset & ~(block_size-1);
+		std::int64_t const adjusted_offset = j->d.io.offset & ~(block_size-1);
 
 		// if this is the last piece, adjust the size of the
 		// last buffer to match up

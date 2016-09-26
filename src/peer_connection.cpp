@@ -544,6 +544,8 @@ namespace libtorrent
 		int const num_allowed_pieces = m_settings.get_int(settings_pack::allowed_fast_set_size);
 		if (num_allowed_pieces == 0) return;
 
+		if (!t->valid_metadata()) return;
+
 		int const num_pieces = t->torrent_file().num_pieces();
 
 		if (num_allowed_pieces >= num_pieces)
@@ -2441,7 +2443,7 @@ namespace libtorrent
 		}
 	}
 
-	void peer_connection::incoming_piece_fragment(int bytes)
+	void peer_connection::incoming_piece_fragment(int const bytes)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		m_last_piece = aux::time_now();
@@ -3385,7 +3387,7 @@ namespace libtorrent
 		return true;
 	}
 
-	bool peer_connection::add_request(piece_block const& block, int flags)
+	bool peer_connection::add_request(piece_block const& block, int const flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -4727,7 +4729,7 @@ namespace libtorrent
 		// if we can't read, it means we're blocked on the rate-limiter
 		// or the disk, not the peer itself. In this case, don't blame
 		// the peer and disconnect it
-		bool may_timeout = (m_channel_state[download_channel] & peer_info::bw_network) != 0;
+		bool const may_timeout = (m_channel_state[download_channel] & peer_info::bw_network) != 0;
 
 		// TODO: 2 use a deadline_timer for timeouts. Don't rely on second_tick()!
 		// Hook this up to connect timeout as well. This would improve performance

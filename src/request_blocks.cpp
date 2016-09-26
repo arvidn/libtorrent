@@ -188,7 +188,7 @@ namespace libtorrent
 		// also, if we already have at least one outstanding
 		// request, we shouldn't pick any busy pieces either
 		// in time critical mode, it's OK to request busy blocks
-		bool dont_pick_busy_blocks
+		bool const dont_pick_busy_blocks
 			= ((ses.settings().get_bool(settings_pack::strict_end_game_mode)
 				&& p.get_download_queue_size() < p.num_want_left())
 				|| dq.size() + rq.size() > 0)

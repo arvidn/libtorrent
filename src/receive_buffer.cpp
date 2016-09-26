@@ -84,7 +84,7 @@ void receive_buffer::grow(int const limit)
 	m_watermark = sliding_average<20>();
 }
 
-int receive_buffer::advance_pos(int bytes)
+int receive_buffer::advance_pos(int const bytes)
 {
 	INVARIANT_CHECK;
 	int const limit = m_packet_size > m_recv_pos ? m_packet_size - m_recv_pos : m_packet_size;
