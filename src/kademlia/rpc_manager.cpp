@@ -457,9 +457,9 @@ bool rpc_manager::invoke(entry& e, udp::endpoint const& target_addr
 	if (m_settings.read_only) e["ro"] = 1;
 
 	node& n = o->algorithm()->get_node();
-	if (!n.native_address(o->target_addr()))
+	if (!n.protocol().is_native(o->target_addr()))
 	{
-		a["want"].list().push_back(entry(n.protocol_family_name()));
+		a["want"].list().push_back(entry(n.protocol().family_name()));
 	}
 
 	o->set_target(target_addr);

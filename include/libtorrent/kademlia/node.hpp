@@ -90,6 +90,50 @@ protected:
 	~udp_socket_interface() {}
 };
 
+// This type provides information that maps the IP protocol
+// version (IPv4 or IPv6) to the relevant keys in the DHT
+// messages.
+struct TORRENT_EXTRA_EXPORT protocol_descriptor
+{
+	// noncopyable
+	protocol_descriptor(protocol_descriptor const&) = delete;
+	protocol_descriptor& operator=(protocol_descriptor const&) = delete;
+
+	udp protocol() const { return m_protocol; }
+	char const* family_name() const { return m_family_name; }
+	char const* nodes_key() const { return m_nodes_key; }
+
+	bool is_v4() const { return m_protocol == udp::v4(); }
+	bool is_v6() const { return m_protocol == udp::v6(); }
+
+	bool is_native(udp::endpoint const& ep) const
+	{ return ep.protocol() == m_protocol; }
+	bool is_native(address const& addr) const
+	{
+		return (addr.is_v4() && is_v4())
+			|| (addr.is_v6() && is_v6());
+	}
+
+	static protocol_descriptor const& v4();
+	static protocol_descriptor const& v6();
+	static protocol_descriptor const& from_protocol(udp protocol);
+
+	operator udp() const { return m_protocol; }
+
+private:
+
+	explicit protocol_descriptor(udp protocol
+		, char const* family_name
+		, char const* nodes_key)
+		: m_protocol(protocol)
+		, m_family_name(family_name)
+		, m_nodes_key(nodes_key)
+	{}
+	udp m_protocol;
+	char const* m_family_name;
+	char const* m_nodes_key;
+};
+
 class TORRENT_EXTRA_EXPORT node : boost::noncopyable
 {
 public:
@@ -196,19 +240,7 @@ public:
 
 	dht_observer* observer() const { return m_observer; }
 
-	udp protocol() const { return m_protocol.protocol; }
-	char const* protocol_family_name() const { return m_protocol.family_name; }
-	char const* protocol_nodes_key() const { return m_protocol.nodes_key; }
-
-	bool native_address(udp::endpoint const& ep) const
-	{ return ep.protocol().family() == m_protocol.protocol.family(); }
-	bool native_address(tcp::endpoint const& ep) const
-	{ return ep.protocol().family() == m_protocol.protocol.family(); }
-	bool native_address(address const& addr) const
-	{
-		return (addr.is_v4() && m_protocol.protocol == m_protocol.protocol.v4())
-			|| (addr.is_v6() && m_protocol.protocol == m_protocol.protocol.v6());
-	}
+	protocol_descriptor const& protocol() const { return m_protocol; }
 
 private:
 
@@ -237,24 +269,6 @@ public:
 	rpc_manager m_rpc;
 
 private:
-#ifdef _MSC_VER
-#pragma warning(push)
-// warning: default constructor could not be generated
-#pragma warning(disable: 4510)
-// warning: struct can never be instantiated
-#pragma warning(disable: 4610)
-#endif
-	struct protocol_descriptor
-	{
-		udp protocol;
-		char const* family_name;
-		char const* nodes_key;
-	};
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-	static protocol_descriptor const& map_protocol_to_descriptor(udp protocol);
 
 	std::map<std::string, node*> const& m_nodes;
 

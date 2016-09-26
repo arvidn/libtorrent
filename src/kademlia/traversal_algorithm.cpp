@@ -584,24 +584,21 @@ void traversal_observer::reply(msg const& m)
 #endif
 
 	// look for nodes
-#if TORRENT_USE_IPV6
-	udp protocol = algorithm()->get_node().protocol();
-#endif
-	char const* nodes_key = algorithm()->get_node().protocol_nodes_key();
-	bdecode_node n = r.dict_find_string(nodes_key);
+	protocol_descriptor const& protocol = algorithm()->get_node().protocol();
+	bdecode_node n = r.dict_find_string(protocol.nodes_key());
 	if (n)
 	{
 		char const* nodes = n.string_ptr();
 		char const* end = nodes + n.string_length();
 
-		while (end - nodes >= 20 + detail::address_size(protocol) + 2)
+		while (end - nodes >= 20 + detail::address_size(protocol.protocol()) + 2)
 		{
 			node_id id;
 			std::copy(nodes, nodes + 20, id.begin());
 			nodes += 20;
 			udp::endpoint ep;
 #if TORRENT_USE_IPV6
-			if (protocol == udp::v6())
+			if (protocol.is_v6())
 				ep = detail::read_v6_endpoint<udp::endpoint>(nodes);
 			else
 #endif
