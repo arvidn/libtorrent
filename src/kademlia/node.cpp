@@ -1215,17 +1215,17 @@ char const* protocol_descriptor::nodes_key() const
 
 bool protocol_descriptor::is_v4() const
 {
-	return m_data.is_v4;
+	return protocol() == udp::v4();
 }
 
 bool protocol_descriptor::is_v6() const
 {
-	return !m_data.is_v4;
+	return protocol() == udp::v6();
 }
 
 bool protocol_descriptor::is_native(udp::endpoint const& ep) const
 {
-	return ep.protocol() == m_data.protocol;
+	return ep.protocol() == protocol();
 }
 
 bool protocol_descriptor::is_native(address const& addr) const
@@ -1236,13 +1236,13 @@ bool protocol_descriptor::is_native(address const& addr) const
 
 protocol_descriptor protocol_descriptor::v4()
 {
-	static descriptor_data const data = {udp::v4(), "n4", "nodes", true};
+	static descriptor_data const data = {udp::v4(), "n4", "nodes"};
 	return protocol_descriptor(data);
 }
 
 protocol_descriptor protocol_descriptor::v6()
 {
-	static descriptor_data const data = {udp::v6(), "n6", "nodes6", false};
+	static descriptor_data const data = {udp::v6(), "n6", "nodes6"};
 	return protocol_descriptor(data);
 }
 

@@ -116,7 +116,6 @@ private:
 		udp protocol;
 		char const* family_name;
 		char const* nodes_key;
-		bool is_v4;
 	};
 
 	explicit protocol_descriptor(descriptor_data const& data)
