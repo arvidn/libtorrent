@@ -32,32 +32,23 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/kademlia/dht_tracker.hpp"
 
-#include <set>
-#include <numeric>
-
 #include <libtorrent/config.hpp>
 
-#include <libtorrent/kademlia/node.hpp>
-#include <libtorrent/kademlia/node_id.hpp>
-#include <libtorrent/kademlia/traversal_algorithm.hpp>
 #include <libtorrent/kademlia/msg.hpp>
 #include <libtorrent/kademlia/dht_observer.hpp>
 
-#include <libtorrent/socket.hpp>
-#include <libtorrent/socket_io.hpp>
 #include <libtorrent/bencode.hpp>
-#include <libtorrent/io.hpp>
 #include <libtorrent/version.hpp>
 #include <libtorrent/time.hpp>
 #include <libtorrent/performance_counters.hpp> // for counters
 #include <libtorrent/aux_/time.hpp>
 #include <libtorrent/session_status.hpp>
+#include <libtorrent/session_settings.hpp>
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include <libtorrent/hex.hpp> // to_hex
 #endif
 
-using libtorrent::detail::write_endpoint;
 using namespace std::placeholders;
 
 namespace libtorrent { namespace dht

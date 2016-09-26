@@ -33,7 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef NODE_HPP
 #define NODE_HPP
 
-#include <algorithm>
 #include <map>
 #include <set>
 #include <mutex>
@@ -45,21 +44,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/find_data.hpp>
-#include <libtorrent/kademlia/put_data.hpp>
 #include <libtorrent/kademlia/item.hpp>
 
-#include <libtorrent/io.hpp>
 #include <libtorrent/socket.hpp> // for udp::endpoint
-#include <libtorrent/session_settings.hpp>
-#include <libtorrent/assert.hpp>
-#include <libtorrent/bloom_filter.hpp>
 #include <libtorrent/string_view.hpp>
-
-#include "libtorrent/socket.hpp"
 
 namespace libtorrent {
 	struct counters;
 	struct dht_routing_bucket;
+	struct dht_settings;
 }
 
 namespace libtorrent { namespace dht
@@ -237,13 +230,7 @@ public:
 	rpc_manager m_rpc;
 
 private:
-#ifdef _MSC_VER
-#pragma warning(push)
-// warning: default constructor could not be generated
-#pragma warning(disable: 4510)
-// warning: struct can never be instantiated
-#pragma warning(disable: 4610)
-#endif
+
 	struct protocol_descriptor
 	{
 		udp protocol;
@@ -251,9 +238,6 @@ private:
 		char const* nodes_key;
 	};
 
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
 	static protocol_descriptor const& map_protocol_to_descriptor(udp protocol);
 
 	std::map<std::string, node*> const& m_nodes;
