@@ -2748,11 +2748,11 @@ namespace libtorrent
 		// if the block we got is already finished, then ignore it
 		if (picker.is_downloaded(block_finished))
 		{
-			waste_reason reason;
-			if (b->timed_out) reason = waste_reason::piece_timed_out;
-			else if (b->not_wanted) reason = waste_reason::piece_cancelled;
-			else if (b->busy) reason = waste_reason::piece_end_game;
-			else reason = waste_reason::piece_unknown;
+			waste_reason const reason
+				= (b->timed_out) ? waste_reason::piece_timed_out
+				: (b->not_wanted) ? waste_reason::piece_cancelled
+				: (b->busy) ? waste_reason::piece_end_game
+				: waste_reason::piece_unknown;
 
 			t->add_redundant_bytes(p.length, reason);
 

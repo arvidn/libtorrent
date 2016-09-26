@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-	disk_buffer_holder::disk_buffer_holder(buffer_allocator_interface& alloc, char* buf)
+	disk_buffer_holder::disk_buffer_holder(buffer_allocator_interface& alloc, char* buf) noexcept
 		: m_allocator(&alloc), m_buf(buf)
 	{
 		m_ref.storage = nullptr;
@@ -44,20 +44,20 @@ namespace libtorrent
 		m_ref.block = -1;
 	}
 
-	disk_buffer_holder& disk_buffer_holder::operator=(disk_buffer_holder&& h)
+	disk_buffer_holder& disk_buffer_holder::operator=(disk_buffer_holder&& h) noexcept
 	{
 		disk_buffer_holder(std::move(h)).swap(*this);
 		return *this;
 	}
 
-	disk_buffer_holder::disk_buffer_holder(disk_buffer_holder&& h)
+	disk_buffer_holder::disk_buffer_holder(disk_buffer_holder&& h) noexcept
 		: m_allocator(h.m_allocator), m_buf(h.m_buf), m_ref(h.m_ref)
 	{
 		// we own this buffer now
 		h.release();
 	}
 
-	disk_buffer_holder::disk_buffer_holder(buffer_allocator_interface& alloc, disk_io_job const& j)
+	disk_buffer_holder::disk_buffer_holder(buffer_allocator_interface& alloc, disk_io_job const& j) noexcept
 		: m_allocator(&alloc), m_buf(j.buffer.disk_block), m_ref(j.d.io.ref)
 	{
 		TORRENT_ASSERT(m_ref.storage == nullptr || m_ref.piece >= 0);
@@ -94,7 +94,7 @@ namespace libtorrent
 		m_ref.storage = nullptr;
 	}
 
-	char* disk_buffer_holder::release()
+	char* disk_buffer_holder::release() noexcept
 	{
 		char* ret = m_buf;
 		m_buf = nullptr;

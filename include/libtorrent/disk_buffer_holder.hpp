@@ -66,10 +66,10 @@ namespace libtorrent
 	struct TORRENT_EXTRA_EXPORT disk_buffer_holder
 	{
 		// internal
-		disk_buffer_holder(buffer_allocator_interface& alloc, char* buf);
+		disk_buffer_holder(buffer_allocator_interface& alloc, char* buf) noexcept;
 
-		disk_buffer_holder& operator=(disk_buffer_holder&&);
-		disk_buffer_holder(disk_buffer_holder&&);
+		disk_buffer_holder& operator=(disk_buffer_holder&&) noexcept;
+		disk_buffer_holder(disk_buffer_holder&&) noexcept;
 
 		disk_buffer_holder& operator=(disk_buffer_holder const&) = delete;
 		disk_buffer_holder(disk_buffer_holder const&) = delete;
@@ -77,7 +77,7 @@ namespace libtorrent
 		// construct a buffer holder that will free the held buffer
 		// using a disk buffer pool directly (there's only one
 		// disk_buffer_pool per session)
-		disk_buffer_holder(buffer_allocator_interface& alloc, disk_io_job const& j);
+		disk_buffer_holder(buffer_allocator_interface& alloc, disk_io_job const& j) noexcept;
 
 		// frees any unreleased disk buffer held by this object
 		~disk_buffer_holder();
@@ -85,10 +85,10 @@ namespace libtorrent
 		// return the held disk buffer and clear it from the
 		// holder. The responsibility to free it is passed on
 		// to the caller
-		char* release();
+		char* release() noexcept;
 
 		// return a pointer to the held buffer
-		char* get() const { return m_buf; }
+		char* get() const noexcept { return m_buf; }
 
 		// set the holder object to hold the specified buffer
 		// (or nullptr by default). If it's already holding a
@@ -97,18 +97,18 @@ namespace libtorrent
 		void reset(disk_io_job const& j);
 
 		// swap pointers of two disk buffer holders.
-		void swap(disk_buffer_holder& h)
+		void swap(disk_buffer_holder& h) noexcept
 		{
 			TORRENT_ASSERT(h.m_allocator == m_allocator);
 			std::swap(h.m_buf, m_buf);
 			std::swap(h.m_ref, m_ref);
 		}
 
-		block_cache_reference ref() const { return m_ref; }
+		block_cache_reference ref() const noexcept { return m_ref; }
 
 		// implicitly convertible to true if the object is currently holding a
 		// buffer
-		explicit operator bool() const { return m_buf != nullptr; }
+		explicit operator bool() const noexcept { return m_buf != nullptr; }
 
 	private:
 
