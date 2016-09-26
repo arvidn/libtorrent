@@ -119,7 +119,6 @@ namespace libtorrent
 
 			swap(rhs);
 			append(rhs);
-// #error make sure the m_last pointer is updated correctly here
 			TORRENT_ASSERT(m_last == nullptr || m_last->next == nullptr);
 			TORRENT_ASSERT(rhs.m_last == nullptr || rhs.m_last->next == nullptr);
 		}
