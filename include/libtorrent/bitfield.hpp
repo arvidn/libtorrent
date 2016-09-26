@@ -154,25 +154,8 @@ namespace libtorrent
 
 		// count the number of bits in the bitfield that are set to 1.
 		int count() const;
-		int find_first_set() const
-		{
-			size_t const num = num_words();
-			if (num == 0) return -1;
-			int const count = aux::count_leading_zeros({&m_buf[1], num});
-			return count != int(num) * 32 ? count : -1;
-		}
-		int find_last_clear() const
-		{
-			size_t const num = num_words();
-			if (num == 0) return - 1;
-			int const size = this->size();
-			std::uint32_t const mask = 0xffffffff << (32 - (size & 31));
-			std::uint32_t const last = m_buf[num] ^ aux::host_to_network(mask);
-			int const ext = aux::count_trailing_ones(~last) - (31 - (size % 32));
-			return last != 0
-				? (int(num) - 1) * 32 + ext
-				: size - (aux::count_trailing_ones({&m_buf[1], num - 1}) + ext);
-		}
+		int find_first_set() const;
+		int find_last_clear() const;
 
 		struct const_iterator
 		{
