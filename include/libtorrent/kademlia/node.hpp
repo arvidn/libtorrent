@@ -90,37 +90,48 @@ protected:
 	~udp_socket_interface() {}
 };
 
+// This type provides information that maps the IP protocol
+// version (IPv4 or IPv6) to the relevant keys in the DHT
+// messages.
 struct TORRENT_EXTRA_EXPORT protocol_descriptor
 {
-	protocol_descriptor(udp protocol);
+	// noncopyable
+	protocol_descriptor(protocol_descriptor const&) = delete;
+	protocol_descriptor& operator=(protocol_descriptor const&) = delete;
 
-	udp protocol() const;
-	char const* family_name() const;
-	char const* nodes_key() const;
+	udp protocol() const { return m_protocol; }
+	char const* family_name() const { return m_family_name; }
+	char const* nodes_key() const { return m_nodes_key; }
 
-	bool is_v4() const;
-	bool is_v6() const;
+	bool is_v4() const { return m_protocol == udp::v4(); }
+	bool is_v6() const { return m_protocol == udp::v6(); }
 
-	bool is_native(udp::endpoint const& ep) const;
-	bool is_native(address const& addr) const;
+	bool is_native(udp::endpoint const& ep) const
+	{ return ep.protocol() == m_protocol; }
+	bool is_native(address const& addr) const
+	{
+		return (addr.is_v4() && is_v4())
+			|| (addr.is_v6() && is_v6());
+	}
 
-	static protocol_descriptor v4();
-	static protocol_descriptor v6();
+	static protocol_descriptor const& v4();
+	static protocol_descriptor const& v6();
+	static protocol_descriptor const& from_protocol(udp protocol);
 
-	operator udp() const { return m_data.protocol; }
+	operator udp() const { return m_protocol; }
 
 private:
 
-	struct descriptor_data
-	{
-		udp protocol;
-		char const* family_name;
-		char const* nodes_key;
-	};
-
-	explicit protocol_descriptor(descriptor_data const& data)
-		: m_data(data) {}
-	descriptor_data const& m_data;
+	explicit protocol_descriptor(udp protocol
+		, char const* family_name
+		, char const* nodes_key)
+		: m_protocol(protocol)
+		, m_family_name(family_name)
+		, m_nodes_key(nodes_key)
+	{}
+	udp m_protocol;
+	char const* m_family_name;
+	char const* m_nodes_key;
 };
 
 class TORRENT_EXTRA_EXPORT node : boost::noncopyable
@@ -229,7 +240,7 @@ public:
 
 	dht_observer* observer() const { return m_observer; }
 
-	protocol_descriptor protocol() const { return m_protocol; }
+	protocol_descriptor const& protocol() const { return m_protocol; }
 
 private:
 
@@ -263,7 +274,7 @@ private:
 
 	dht_observer* m_observer;
 
-	protocol_descriptor const m_protocol;
+	protocol_descriptor const& m_protocol;
 
 	time_point m_last_tracker_tick;
 

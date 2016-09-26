@@ -584,7 +584,7 @@ void traversal_observer::reply(msg const& m)
 #endif
 
 	// look for nodes
-	protocol_descriptor const protocol = algorithm()->get_node().protocol();
+	protocol_descriptor const& protocol = algorithm()->get_node().protocol();
 	bdecode_node n = r.dict_find_string(protocol.nodes_key());
 	if (n)
 	{

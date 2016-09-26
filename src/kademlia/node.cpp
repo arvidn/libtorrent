@@ -113,7 +113,7 @@ node::node(udp proto, udp_socket_interface* sock
 	, m_rpc(m_id, m_settings, m_table, sock, observer)
 	, m_nodes(nodes)
 	, m_observer(observer)
-	, m_protocol(proto)
+	, m_protocol(protocol_descriptor::from_protocol(proto))
 	, m_last_tracker_tick(aux::time_now())
 	, m_last_self_refresh(min_time())
 	, m_sock(sock)
@@ -606,7 +606,7 @@ struct ping_observer : observer
 		}
 
 		// look for nodes
-		protocol_descriptor const protocol = algorithm()->get_node().protocol();
+		protocol_descriptor const& protocol = algorithm()->get_node().protocol();
 		bdecode_node n = r.dict_find_string(protocol.nodes_key());
 		if (n)
 		{
@@ -1194,56 +1194,29 @@ void node::write_nodes_entries(sha1_hash const& info_hash
 	}
 }
 
-protocol_descriptor::protocol_descriptor(udp protocol)
-	: m_data(protocol == udp::v4() ? v4().m_data : v6().m_data)
-{}
-
-udp protocol_descriptor::protocol() const
+protocol_descriptor const& protocol_descriptor::v4()
 {
-	return m_data.protocol;
+	static protocol_descriptor const ret(udp::v4(), "n4", "nodes");
+	return ret;
 }
 
-char const* protocol_descriptor::family_name() const
+protocol_descriptor const& protocol_descriptor::v6()
 {
-	return m_data.family_name;
+	static protocol_descriptor const ret(udp::v6(), "n6", "nodes6");
+	return ret;
 }
 
-char const* protocol_descriptor::nodes_key() const
+protocol_descriptor const& protocol_descriptor::from_protocol(udp protocol)
 {
-	return m_data.nodes_key;
-}
+	if (protocol == udp::v4()) return protocol_descriptor::v4();
+	if (protocol == udp::v6()) return protocol_descriptor::v6();
 
-bool protocol_descriptor::is_v4() const
-{
-	return protocol() == udp::v4();
-}
-
-bool protocol_descriptor::is_v6() const
-{
-	return protocol() == udp::v6();
-}
-
-bool protocol_descriptor::is_native(udp::endpoint const& ep) const
-{
-	return ep.protocol() == protocol();
-}
-
-bool protocol_descriptor::is_native(address const& addr) const
-{
-	return (addr.is_v4() && is_v4())
-		|| (addr.is_v6() && is_v6());
-}
-
-protocol_descriptor protocol_descriptor::v4()
-{
-	static descriptor_data const data = {udp::v4(), "n4", "nodes"};
-	return protocol_descriptor(data);
-}
-
-protocol_descriptor protocol_descriptor::v6()
-{
-	static descriptor_data const data = {udp::v6(), "n6", "nodes6"};
-	return protocol_descriptor(data);
+	TORRENT_ASSERT_FAIL();
+#ifndef BOOST_NO_EXCEPTIONS
+	throw std::out_of_range("unknown protocol");
+#else
+	std::terminate();
+#endif
 }
 
 } } // namespace libtorrent::dht
