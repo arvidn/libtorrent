@@ -92,8 +92,7 @@ protected:
 
 struct TORRENT_EXTRA_EXPORT protocol_descriptor
 {
-	protocol_descriptor(udp protocol)
-		: m_protocol(protocol) {}
+	protocol_descriptor(udp protocol);
 
 	udp protocol() const;
 	char const* family_name() const;
@@ -105,10 +104,24 @@ struct TORRENT_EXTRA_EXPORT protocol_descriptor
 	bool is_native(udp::endpoint const& ep) const;
 	bool is_native(address const& addr) const;
 
-	operator udp() const { return m_protocol; }
+	static protocol_descriptor v4();
+	static protocol_descriptor v6();
+
+	operator udp() const { return m_data.protocol; }
 
 private:
-	udp const m_protocol;
+
+	struct descriptor_data
+	{
+		udp protocol;
+		char const* family_name;
+		char const* nodes_key;
+		bool is_v4;
+	};
+
+	explicit protocol_descriptor(descriptor_data const& data)
+		: m_data(data) {}
+	descriptor_data const& m_data;
 };
 
 class TORRENT_EXTRA_EXPORT node : boost::noncopyable

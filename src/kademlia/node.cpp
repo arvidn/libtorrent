@@ -1194,40 +1194,56 @@ void node::write_nodes_entries(sha1_hash const& info_hash
 	}
 }
 
+protocol_descriptor::protocol_descriptor(udp protocol)
+	: m_data(protocol == udp::v4() ? v4().m_data : v6().m_data)
+{}
+
 udp protocol_descriptor::protocol() const
 {
-	return m_protocol;
+	return m_data.protocol;
 }
 
 char const* protocol_descriptor::family_name() const
 {
-	return is_v4() ? "n4" : "n6";
+	return m_data.family_name;
 }
 
 char const* protocol_descriptor::nodes_key() const
 {
-	return is_v4() ? "nodes" : "nodes6";
+	return m_data.nodes_key;
 }
 
 bool protocol_descriptor::is_v4() const
 {
-	return protocol() == udp::v4();
+	return m_data.is_v4;
 }
 
 bool protocol_descriptor::is_v6() const
 {
-	return protocol() == udp::v6();
+	return !m_data.is_v4;
 }
 
 bool protocol_descriptor::is_native(udp::endpoint const& ep) const
 {
-	return ep.protocol() == protocol();
+	return ep.protocol() == m_data.protocol;
 }
 
 bool protocol_descriptor::is_native(address const& addr) const
 {
 	return (addr.is_v4() && is_v4())
 		|| (addr.is_v6() && is_v6());
+}
+
+protocol_descriptor protocol_descriptor::v4()
+{
+	static descriptor_data const data = {udp::v4(), "n4", "nodes", true};
+	return protocol_descriptor(data);
+}
+
+protocol_descriptor protocol_descriptor::v6()
+{
+	static descriptor_data const data = {udp::v6(), "n6", "nodes6", false};
+	return protocol_descriptor(data);
 }
 
 } } // namespace libtorrent::dht
