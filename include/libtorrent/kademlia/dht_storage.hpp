@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 #include <vector>
 #include <array>
+#include <ctime>
 
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/types.hpp>
@@ -44,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/address.hpp>
 #include <libtorrent/span.hpp>
 #include <libtorrent/string_view.hpp>
-#include <libtorrent/time.hpp>
+#include <libtorrent/bloom_filter.hpp>
 
 namespace libtorrent
 {
@@ -71,15 +72,15 @@ namespace dht
 	{
 		sha1_hash target;
 		std::vector<char> value;
-		std::array<char, 128> ips;
-		time_point last_seen;
+		bloom_filter<128> ips;
+		std::time_t last_seen;
 	};
 
 	struct dht_mutable_data : dht_immutable_data
 	{
-		std::array<char, signature::len> signature;
-		std::uint64_t sequence;
-		std::array<char, public_key::len> public_key;
+		signature sig;
+		sequence_number seq;
+		public_key key;
 		std::string salt;
 	};
 
@@ -243,7 +244,7 @@ namespace dht
 
 		virtual dht_storage_items save_items(int max_items) const = 0;
 
-		virtual void load_items(dht_storage_items const& items) = 0;
+		virtual void load_items(dht_storage_items items) = 0;
 
 		virtual ~dht_storage_interface() {}
 	};

@@ -69,6 +69,7 @@ namespace libtorrent
 			, max_fail_count(20)
 			, max_torrents(2000)
 			, max_dht_items(700)
+			, max_save_dht_items(700)
 			, max_peers(5000)
 			, max_torrent_search_reply(20)
 			, restrict_routing_ips(true)
@@ -113,6 +114,9 @@ namespace libtorrent
 
 		// max number of items the DHT will store
 		int max_dht_items;
+
+		// max number of items to save from the DHT store
+		int max_save_dht_items;
 
 		// the max number of peers to store per torrent (for the DHT)
 		int max_peers;

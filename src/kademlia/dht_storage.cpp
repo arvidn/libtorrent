@@ -43,7 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/aux_/time.hpp>
 #include <libtorrent/config.hpp>
 #include <libtorrent/time.hpp>
-#include <libtorrent/bloom_filter.hpp>
 #include <libtorrent/session_settings.hpp>
 #include <libtorrent/random.hpp>
 
@@ -82,22 +81,42 @@ namespace
 
 	struct dht_immutable_item
 	{
+		dht_immutable_item() {}
+		dht_immutable_item(dht_immutable_data const& d)
+			: size(int(d.value.size()))
+			, value(new char[size])
+			, ips(d.ips)
+			, num_announcers(int(d.ips.size()))
+			, last_seen(seconds(d.last_seen))
+		{
+			std::memcpy(value.get(), d.value.data(), size);
+		}
+
+		// size of malloced space pointed to by value
+		int size = 0;
 		// the actual value
 		std::unique_ptr<char[]> value;
 		// this counts the number of IPs we have seen
 		// announcing this item, this is used to determine
 		// popularity if we reach the limit of items to store
 		bloom_filter<128> ips;
-		// the last time we heard about this
-		time_point last_seen;
 		// number of IPs in the bloom filter
 		int num_announcers = 0;
-		// size of malloced space pointed to by value
-		int size = 0;
+		// the last time we heard about this
+		time_point last_seen;
 	};
 
 	struct dht_mutable_item : dht_immutable_item
 	{
+		dht_mutable_item() {}
+		dht_mutable_item(dht_mutable_data const& d)
+			: dht_immutable_item(d)
+			, sig(d.sig)
+			, seq(d.seq)
+			, key(d.key)
+			, salt(d.salt)
+		{}
+
 		signature sig;
 		sequence_number seq;
 		public_key key;
@@ -124,6 +143,27 @@ namespace
 		explicit immutable_item_comparator(std::vector<node_id> const& node_ids) : m_node_ids(node_ids) {}
 		immutable_item_comparator(immutable_item_comparator const&) = default;
 
+		int score(int const announcers, int const distance) const
+		{
+			// this is a score taking the popularity (number of announcers) and the
+			// fit, in terms of distance from ideal storing node, into account.
+			// each additional 5 announcers is worth one extra bit in the distance.
+			// that is, an item with 10 announcers is allowed to be twice as far
+			// from another item with 5 announcers, from our node ID. Twice as far
+			// because it gets one more bit.
+			return announcers / 5 - distance;
+		}
+
+		template <typename Item>
+		bool operator()(Item const& lhs, Item const& rhs) const
+		{
+			bool const has_nodes = !m_node_ids.empty();
+			int const l_distance = has_nodes ? min_distance_exp(lhs.target, m_node_ids) : 0;
+			int const r_distance = has_nodes ? min_distance_exp(rhs.target, m_node_ids) : 0;
+
+			return score(int(lhs.ips.size()), l_distance) < score(int(rhs.ips.size()), r_distance);
+		}
+
 		template <typename Item>
 		bool operator()(std::pair<node_id const, Item> const& lhs
 			, std::pair<node_id const, Item> const& rhs) const
@@ -131,13 +171,7 @@ namespace
 			int const l_distance = min_distance_exp(lhs.first, m_node_ids);
 			int const r_distance = min_distance_exp(rhs.first, m_node_ids);
 
-			// this is a score taking the popularity (number of announcers) and the
-			// fit, in terms of distance from ideal storing node, into account.
-			// each additional 5 announcers is worth one extra bit in the distance.
-			// that is, an item with 10 announcers is allowed to be twice as far
-			// from another item with 5 announcers, from our node ID. Twice as far
-			// because it gets one more bit.
-			return lhs.second.num_announcers / 5 - l_distance < rhs.second.num_announcers / 5 - r_distance;
+			return score(lhs.second.num_announcers, l_distance) < score(rhs.second.num_announcers, r_distance);
 		}
 
 	private:
@@ -157,6 +191,16 @@ namespace
 	{
 		return std::min_element(table.begin(), table.end()
 			, immutable_item_comparator(node_ids));
+	}
+
+	template<class Item>
+	void trim_items(std::vector<Item>& items
+		, std::vector<node_id> const& node_ids, int max)
+	{
+		if (int(items.size()) <= 0) return;
+
+		std::sort(items.begin(), items.end(), immutable_item_comparator(node_ids));
+		items.erase(items.begin(), std::prev(items.end(), max));
 	}
 
 	class dht_default_storage final : public dht_storage_interface, boost::noncopyable
@@ -505,18 +549,57 @@ namespace
 			return m_counters;
 		}
 
-		dht_storage_items save_items(int const /*max_items*/) const override
+		dht_storage_items save_items(int const max_items) const override
 		{
 			dht_storage_items ret;
 
-			// TODO: implement here
+			auto copy_immutable_part = [](dht_immutable_data& d
+				, dht_immutable_item const& item)
+				{
+					d.value = {item.value.get(), item.value.get() + item.size};
+					d.ips = item.ips;
+					d.last_seen = total_seconds(item.last_seen.time_since_epoch());
+				};
+
+			for (auto const& p : m_immutable_table)
+			{
+				dht_mutable_data d;
+				d.target = p.first;
+				copy_immutable_part(d, p.second);
+				ret.immutables.push_back(std::move(d));
+			}
+			trim_items(ret.immutables, m_node_ids, max_items);
+
+			for (auto const& p : m_mutable_table)
+			{
+				dht_mutable_item const& item = p.second;
+
+				dht_mutable_data d;
+				d.target = p.first;
+				copy_immutable_part(d, item);
+				d.sig = item.sig;
+				d.seq = item.seq;
+				d.key = item.key;
+				d.salt = item.salt;
+
+				ret.mutables.push_back(std::move(d));
+			}
+			trim_items(ret.mutables, m_node_ids, max_items);
 
 			return ret;
 		}
 
-		void load_items(dht_storage_items const& /*data*/) override
+		void load_items(dht_storage_items items) override
 		{
-			// TODO: implement here
+			trim_items(items.immutables, m_node_ids, m_settings.max_dht_items);
+			for (auto const& item : items.immutables)
+				m_immutable_table.emplace(item.target, item);
+			m_counters.immutable_data = int(m_immutable_table.size());
+
+			trim_items(items.mutables, m_node_ids, m_settings.max_dht_items);
+			for (auto const& item : items.mutables)
+				m_mutable_table.emplace(item.target, item);
+			m_counters.mutable_data = int(m_mutable_table.size());
 		}
 
 	private:
