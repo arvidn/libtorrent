@@ -113,7 +113,7 @@ node::node(udp proto, udp_socket_interface* sock
 	, m_rpc(m_id, m_settings, m_table, sock, observer)
 	, m_nodes(nodes)
 	, m_observer(observer)
-	, m_protocol(map_protocol_to_descriptor(proto))
+	, m_protocol(proto)
 	, m_last_tracker_tick(aux::time_now())
 	, m_last_self_refresh(min_time())
 	, m_sock(sock)
@@ -220,7 +220,7 @@ void node::bootstrap(std::vector<udp::endpoint> const& nodes
 
 	for (auto const& n : nodes)
 	{
-		if (n.protocol() != protocol()) continue;
+		if (!protocol().is_native(n)) continue;
 #ifndef TORRENT_DISABLE_LOGGING
 		++count;
 #endif
@@ -314,7 +314,7 @@ void node::incoming(msg const& m)
 			// responds to 'query' messages that it receives.
 			if (m_settings.read_only) break;
 
-			if (!native_address(m.addr)) break;
+			if (!protocol().is_native(m.addr)) break;
 
 			if (!m_sock->has_quota())
 			{
@@ -418,7 +418,7 @@ void node::add_router_node(udp::endpoint const& router)
 
 void node::add_node(udp::endpoint const& node)
 {
-	if (!native_address(node)) return;
+	if (!protocol().is_native(node)) return;
 	// ping the node, and if we get a reply, it
 	// will be added to the routing table
 	send_single_refresh(node, m_table.num_active_buckets());
@@ -606,24 +606,21 @@ struct ping_observer : observer
 		}
 
 		// look for nodes
-#if TORRENT_USE_IPV6
-		udp protocol = algorithm()->get_node().protocol();
-#endif
-		char const* nodes_key = algorithm()->get_node().protocol_nodes_key();
-		bdecode_node n = r.dict_find_string(nodes_key);
+		protocol_descriptor const protocol = algorithm()->get_node().protocol();
+		bdecode_node n = r.dict_find_string(protocol.nodes_key());
 		if (n)
 		{
 			char const* nodes = n.string_ptr();
 			char const* end = nodes + n.string_length();
 
-			while (end - nodes >= 20 + detail::address_size(protocol) + 2)
+			while (end - nodes >= 20 + detail::address_size(protocol.protocol()) + 2)
 			{
 				node_id id;
 				std::copy(nodes, nodes + 20, id.begin());
 				nodes += 20;
 				udp::endpoint ep;
 #if TORRENT_USE_IPV6
-				if (protocol == udp::v6())
+				if (protocol.is_v6())
 					ep = detail::read_v6_endpoint<udp::endpoint>(nodes);
 				else
 #endif
@@ -1167,13 +1164,15 @@ void node::incoming_request(msg const& m, entry& e)
 void node::write_nodes_entries(sha1_hash const& info_hash
 	, bdecode_node const& want, entry& r)
 {
+	// TODO: limit number of entries in the result
+
 	// if no wants entry was specified, include a nodes
 	// entry based on the protocol the request came in with
 	if (want.type() != bdecode_node::list_t)
 	{
 		std::vector<node_entry> n;
 		m_table.find_node(info_hash, n, 0);
-		r[protocol_nodes_key()] = write_nodes_entry(n);
+		r[protocol().nodes_key()] = write_nodes_entry(n);
 		return;
 	}
 
@@ -1191,28 +1190,44 @@ void node::write_nodes_entries(sha1_hash const& info_hash
 		if (wanted_node == m_nodes.end()) continue;
 		std::vector<node_entry> n;
 		wanted_node->second->m_table.find_node(info_hash, n, 0);
-		r[wanted_node->second->protocol_nodes_key()] = write_nodes_entry(n);
+		r[wanted_node->second->protocol().nodes_key()] = write_nodes_entry(n);
 	}
 }
 
-node::protocol_descriptor const& node::map_protocol_to_descriptor(udp protocol)
+udp protocol_descriptor::protocol() const
 {
-	static protocol_descriptor descriptors[] =
-		{ {udp::v4(), "n4", "nodes"}
-		, {udp::v6(), "n6", "nodes6"} };
+	return m_protocol;
+}
 
-	for (int i = 0; i < sizeof(descriptors) / sizeof(protocol_descriptor); ++i)
-	{
-		if (descriptors[i].protocol == protocol)
-			return descriptors[i];
-	}
+char const* protocol_descriptor::family_name() const
+{
+	return is_v4() ? "n4" : "n6";
+}
 
-	TORRENT_ASSERT_FAIL();
-#ifndef BOOST_NO_EXCEPTIONS
-	throw std::out_of_range("unknown protocol");
-#else
-	std::terminate();
-#endif
+char const* protocol_descriptor::nodes_key() const
+{
+	return is_v4() ? "nodes" : "nodes6";
+}
+
+bool protocol_descriptor::is_v4() const
+{
+	return protocol() == udp::v4();
+}
+
+bool protocol_descriptor::is_v6() const
+{
+	return protocol() == udp::v6();
+}
+
+bool protocol_descriptor::is_native(udp::endpoint const& ep) const
+{
+	return ep.protocol() == protocol();
+}
+
+bool protocol_descriptor::is_native(address const& addr) const
+{
+	return (addr.is_v4() && is_v4())
+		|| (addr.is_v6() && is_v6());
 }
 
 } } // namespace libtorrent::dht

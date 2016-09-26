@@ -57,7 +57,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/hex.hpp> // to_hex
 #endif
 
-using libtorrent::detail::write_endpoint;
 using namespace std::placeholders;
 
 namespace libtorrent { namespace dht
@@ -114,9 +113,9 @@ namespace libtorrent { namespace dht
 		m_blocker.set_block_timer(m_settings.block_timeout);
 		m_blocker.set_rate_limit(m_settings.block_ratelimit);
 
-		m_nodes.insert(std::make_pair(m_dht.protocol_family_name(), &m_dht));
+		m_nodes.insert(std::make_pair(m_dht.protocol().family_name(), &m_dht));
 #if TORRENT_USE_IPV6
-		m_nodes.insert(std::make_pair(m_dht6.protocol_family_name(), &m_dht6));
+		m_nodes.insert(std::make_pair(m_dht6.protocol().family_name(), &m_dht6));
 #endif
 
 		update_storage_node_ids();
@@ -235,7 +234,7 @@ namespace libtorrent { namespace dht
 		time_duration d = n.connection_timeout();
 		error_code ec;
 #if TORRENT_USE_IPV6
-		deadline_timer& timer = n.protocol() == udp::v4() ? m_connection_timer : m_connection_timer6;
+		deadline_timer& timer = n.protocol().is_v4() ? m_connection_timer : m_connection_timer6;
 #else
 		deadline_timer& timer = m_connection_timer;
 #endif

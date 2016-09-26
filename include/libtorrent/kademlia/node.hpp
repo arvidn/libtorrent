@@ -90,6 +90,27 @@ protected:
 	~udp_socket_interface() {}
 };
 
+struct TORRENT_EXTRA_EXPORT protocol_descriptor
+{
+	protocol_descriptor(udp protocol)
+		: m_protocol(protocol) {}
+
+	udp protocol() const;
+	char const* family_name() const;
+	char const* nodes_key() const;
+
+	bool is_v4() const;
+	bool is_v6() const;
+
+	bool is_native(udp::endpoint const& ep) const;
+	bool is_native(address const& addr) const;
+
+	operator udp() const { return m_protocol; }
+
+private:
+	udp const m_protocol;
+};
+
 class TORRENT_EXTRA_EXPORT node : boost::noncopyable
 {
 public:
@@ -196,19 +217,7 @@ public:
 
 	dht_observer* observer() const { return m_observer; }
 
-	udp protocol() const { return m_protocol.protocol; }
-	char const* protocol_family_name() const { return m_protocol.family_name; }
-	char const* protocol_nodes_key() const { return m_protocol.nodes_key; }
-
-	bool native_address(udp::endpoint const& ep) const
-	{ return ep.protocol().family() == m_protocol.protocol.family(); }
-	bool native_address(tcp::endpoint const& ep) const
-	{ return ep.protocol().family() == m_protocol.protocol.family(); }
-	bool native_address(address const& addr) const
-	{
-		return (addr.is_v4() && m_protocol.protocol == m_protocol.protocol.v4())
-			|| (addr.is_v6() && m_protocol.protocol == m_protocol.protocol.v6());
-	}
+	protocol_descriptor protocol() const { return m_protocol; }
 
 private:
 
@@ -237,30 +246,12 @@ public:
 	rpc_manager m_rpc;
 
 private:
-#ifdef _MSC_VER
-#pragma warning(push)
-// warning: default constructor could not be generated
-#pragma warning(disable: 4510)
-// warning: struct can never be instantiated
-#pragma warning(disable: 4610)
-#endif
-	struct protocol_descriptor
-	{
-		udp protocol;
-		char const* family_name;
-		char const* nodes_key;
-	};
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-	static protocol_descriptor const& map_protocol_to_descriptor(udp protocol);
 
 	std::map<std::string, node*> const& m_nodes;
 
 	dht_observer* m_observer;
 
-	protocol_descriptor const& m_protocol;
+	protocol_descriptor const m_protocol;
 
 	time_point m_last_tracker_tick;
 
