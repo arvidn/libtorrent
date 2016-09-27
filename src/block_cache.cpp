@@ -219,7 +219,7 @@ static_assert(sizeof(job_action_name)/sizeof(job_action_name[0])
 	== disk_io_job::num_job_ids, "disk-job-action and action-name-array mismatch");
 #endif
 
-#ifndef TORRENT_DISABLE_LOGGING
+#if TORRENT_USE_ASSERTS || !defined TORRENT_DISABLE_LOGGING
 
 	char const* const piece_log_t::job_names[7] =
 	{

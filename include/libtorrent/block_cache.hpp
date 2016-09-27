@@ -70,7 +70,7 @@ namespace libtorrent
 	class file_storage;
 #endif
 
-#ifndef TORRENT_DISABLE_LOGGING
+#if TORRENT_USE_ASSERTS || !defined TORRENT_DISABLE_LOGGING
 
 	struct piece_log_t
 	{
