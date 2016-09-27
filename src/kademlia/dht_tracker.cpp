@@ -499,9 +499,6 @@ namespace libtorrent { namespace dht
 			return true;
 		}
 
-		using libtorrent::entry;
-		using libtorrent::bdecode;
-
 		TORRENT_ASSERT(buf_size > 0);
 
 		int pos;
@@ -511,7 +508,7 @@ namespace libtorrent { namespace dht
 		{
 			m_counters.inc_stats_counter(counters::dht_messages_in_dropped);
 #ifndef TORRENT_DISABLE_LOGGING
-			m_log->log_packet(dht_logger::incoming_message, buf.data(), buf_size, ep);
+			m_log->log_packet(dht_logger::incoming_message, buf, ep);
 #endif
 			return false;
 		}
@@ -519,14 +516,14 @@ namespace libtorrent { namespace dht
 		if (m_msg.type() != bdecode_node::dict_t)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			m_log->log_packet(dht_logger::incoming_message, buf.data(), buf_size, ep);
+			m_log->log_packet(dht_logger::incoming_message, buf, ep);
 #endif
 			// it's not a good idea to send a response to an invalid messages
 			return false;
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
-		m_log->log_packet(dht_logger::incoming_message, buf.data(), buf_size, ep);
+		m_log->log_packet(dht_logger::incoming_message, buf, ep);
 #endif
 
 		libtorrent::dht::msg m(m_msg, ep);
@@ -605,10 +602,8 @@ namespace libtorrent { namespace dht
 		return m_send_quota > 0;
 	}
 
-	bool dht_tracker::send_packet(libtorrent::entry& e, udp::endpoint const& addr)
+	bool dht_tracker::send_packet(entry& e, udp::endpoint const& addr)
 	{
-		using libtorrent::bencode;
-
 		static char const version_str[] = {'L', 'T'
 			, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR};
 		e["v"] = std::string(version_str, version_str + 4);
@@ -627,8 +622,7 @@ namespace libtorrent { namespace dht
 		{
 			m_counters.inc_stats_counter(counters::dht_messages_out_dropped);
 #ifndef TORRENT_DISABLE_LOGGING
-			m_log->log_packet(dht_logger::outgoing_message, &m_send_buf[0]
-				, int(m_send_buf.size()), addr);
+			m_log->log_packet(dht_logger::outgoing_message, m_send_buf, addr);
 #endif
 			return false;
 		}
@@ -639,8 +633,7 @@ namespace libtorrent { namespace dht
 			, addr.address().is_v6() ? 48 : 28);
 		m_counters.inc_stats_counter(counters::dht_messages_out);
 #ifndef TORRENT_DISABLE_LOGGING
-		m_log->log_packet(dht_logger::outgoing_message, &m_send_buf[0]
-			, int(m_send_buf.size()), addr);
+		m_log->log_packet(dht_logger::outgoing_message, m_send_buf, addr);
 #endif
 		return true;
 	}

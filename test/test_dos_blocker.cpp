@@ -56,12 +56,12 @@ struct log_t : libtorrent::dht::dht_logger
 		va_end(v);
 	}
 
-	void log_packet(message_direction_t dir, char const* pkt, int len
+	void log_packet(message_direction_t dir, span<char const> pkt
 		, udp::endpoint const& node) override
 	{
 		libtorrent::bdecode_node print;
 		libtorrent::error_code ec;
-		int ret = bdecode(pkt, pkt + len, print, ec, nullptr, 100, 100);
+		int ret = bdecode(pkt.data(), pkt.data() + int(pkt.size()), print, ec, nullptr, 100, 100);
 		TEST_EQUAL(ret, 0);
 
 		std::string msg = print_entry(print, true);

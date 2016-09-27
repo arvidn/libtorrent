@@ -6671,7 +6671,7 @@ namespace aux {
 		va_end(v);
 	}
 
-	void session_impl::log_packet(message_direction_t dir, char const* pkt, int len
+	void session_impl::log_packet(message_direction_t dir, span<char const> pkt
 		, udp::endpoint const& node)
 	{
 		if (!m_alerts.should_post<dht_pkt_alert>()) return;
@@ -6679,7 +6679,7 @@ namespace aux {
 		dht_pkt_alert::direction_t d = dir == dht::dht_logger::incoming_message
 			? dht_pkt_alert::incoming : dht_pkt_alert::outgoing;
 
-		m_alerts.emplace_alert<dht_pkt_alert>(pkt, len, d, node);
+		m_alerts.emplace_alert<dht_pkt_alert>(pkt, d, node);
 	}
 
 	bool session_impl::should_log_portmap(aux::portmap_transport) const

@@ -219,7 +219,7 @@ static_assert(sizeof(job_action_name)/sizeof(job_action_name[0])
 	== disk_io_job::num_job_ids, "disk-job-action and action-name-array mismatch");
 #endif
 
-#if TORRENT_USE_ASSERTS
+#ifndef TORRENT_DISABLE_LOGGING
 
 	char const* const piece_log_t::job_names[7] =
 	{
@@ -241,6 +241,10 @@ static_assert(sizeof(job_action_name)/sizeof(job_action_name[0])
 			return job_action_name[j];
 		return piece_log_t::job_names[j - piece_log_t::flushing];
 	}
+
+#endif // TORRENT_DISABLE_LOGGING
+
+#if TORRENT_USE_ASSERTS
 
 	void print_piece_log(std::vector<piece_log_t> const& piece_log)
 	{
