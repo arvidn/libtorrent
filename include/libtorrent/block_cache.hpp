@@ -53,7 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_buffer_pool.hpp"
 #include "libtorrent/file.hpp" // for iovec_t
 
-#ifndef TORRENT_DISABLE_LOGGING
+#if TORRENT_USE_ASSERTS || !defined TORRENT_DISABLE_LOGGING
 #include "libtorrent/disk_io_job.hpp"
 #endif
 
@@ -61,7 +61,6 @@ namespace libtorrent
 {
 	struct disk_io_job;
 	class piece_manager;
-	struct disk_buffer_pool;
 	struct cache_status;
 	struct block_cache_reference;
 	struct counters;

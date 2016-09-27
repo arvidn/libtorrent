@@ -232,7 +232,7 @@ static_assert(sizeof(job_action_name)/sizeof(job_action_name[0])
 		"set_outstanding_jobs",
 	};
 
-	char const* job_name(int j)
+	char const* job_name(int const j)
 	{
 		if (j < 0 || j >= piece_log_t::last_job)
 			return "unknown";
