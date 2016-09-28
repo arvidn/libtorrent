@@ -512,6 +512,12 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 			}
 			return node_added;
 		}
+		else if (existing->id.is_all_zeros())
+		{
+			// this node's ID was unknown. remove the old entry and
+			// replace it with the node's real ID
+			remove_node(existing, existing_bucket);
+		}
 		else if (!e.pinged())
 		{
 			// this may be a routing table poison attack. If we haven't confirmed

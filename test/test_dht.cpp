@@ -1761,7 +1761,7 @@ void test_bootstrap(address(&rand_addr)())
 			|| find_node_keys[2].string_value() == "get_peers");
 		if (find_node_keys[0].string_value() != "q"
 			|| (find_node_keys[2].string_value() != "find_node"
-				&& find_node_keys[2].string_value() == "get_peers")) return;
+				&& find_node_keys[2].string_value() != "get_peers")) return;
 	}
 	else
 	{
