@@ -515,6 +515,7 @@ namespace libtorrent { namespace dht
 
 		if (m_msg.type() != bdecode_node::dict_t)
 		{
+			m_counters.inc_stats_counter(counters::dht_messages_in_dropped);
 #ifndef TORRENT_DISABLE_LOGGING
 			m_log->log_packet(dht_logger::incoming_message, buf, ep);
 #endif

@@ -556,7 +556,7 @@ void block_cache::try_evict_one_volatile()
 
 	for (list_iterator<cached_piece_entry> i = piece_list->iterate(); i.get();)
 	{
-		cached_piece_entry* pe = reinterpret_cast<cached_piece_entry*>(i.get());
+		cached_piece_entry* pe = i.get();
 		TORRENT_PIECE_ASSERT(pe->in_use, pe);
 		i.next();
 
@@ -1070,7 +1070,7 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 		// weren't in this list
 		for (list_iterator<cached_piece_entry> i = lru_list[end]->iterate(); i.get() && num > 0;)
 		{
-			cached_piece_entry* pe = reinterpret_cast<cached_piece_entry*>(i.get());
+			cached_piece_entry* pe = i.get();
 			TORRENT_PIECE_ASSERT(pe->in_use, pe);
 			i.next();
 
@@ -1142,7 +1142,7 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 		{
 			for (list_iterator<cached_piece_entry> i = m_lru[cached_piece_entry::write_lru].iterate(); i.get() && num > 0;)
 			{
-				cached_piece_entry* pe = reinterpret_cast<cached_piece_entry*>(i.get());
+				cached_piece_entry* pe = i.get();
 				TORRENT_PIECE_ASSERT(pe->in_use, pe);
 
 				i.next();
