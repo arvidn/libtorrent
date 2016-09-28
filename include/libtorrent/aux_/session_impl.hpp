@@ -216,7 +216,7 @@ namespace libtorrent
 			session_impl(io_service& ios);
 			virtual ~session_impl();
 
-			void start_session(settings_pack const& pack);
+			void start_session(settings_pack pack);
 
 			void set_load_function(user_load_function_t fun)
 			{ m_user_load_torrent = fun; }

@@ -76,8 +76,16 @@ namespace libtorrent
 	// serving many peers and that doesn't do any downloading. It has a 128 MB
 	// disk cache and has a limit of 400 files in its file pool. It support fast
 	// upload rates by allowing large send buffers.
-	TORRENT_EXPORT void min_memory_usage(settings_pack& set);
-	TORRENT_EXPORT void high_performance_seed(settings_pack& set);
+	TORRENT_EXPORT settings_pack min_memory_usage();
+	TORRENT_EXPORT settings_pack high_performance_seed();
+#ifndef TORRENT_NO_DEPRECATE
+	TORRENT_DEPRECATED
+	inline void min_memory_usage(settings_pack& set)
+	{ set = min_memory_usage(); }
+	TORRENT_DEPRECATED
+	inline void high_performance_seed(settings_pack& set)
+	{ set = high_performance_seed(); }
+#endif
 
 #ifndef TORRENT_CFG
 #error TORRENT_CFG is not defined!
@@ -215,7 +223,7 @@ namespace libtorrent
 			: session_handle(nullptr)
 		{
 			TORRENT_CFG();
-			start(flags, pack, nullptr);
+			start(flags, std::move(pack), nullptr);
 		}
 
 		// moveable
@@ -245,7 +253,7 @@ namespace libtorrent
 			: session_handle(nullptr)
 		{
 			TORRENT_CFG();
-			start(flags, pack, &ios);
+			start(flags, std::move(pack), &ios);
 		}
 
 #ifndef TORRENT_NO_DEPRECATE

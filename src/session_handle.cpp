@@ -833,7 +833,7 @@ namespace libtorrent
 			|| s.get_int(settings_pack::allowed_enc_level)
 				<= settings_pack::pe_both);
 
-		std::shared_ptr<settings_pack> copy = std::make_shared<settings_pack>(std::move(s));
+		auto copy = std::make_shared<settings_pack>(std::move(s));
 		async_call(&session_impl::apply_settings_pack, copy);
 	}
 

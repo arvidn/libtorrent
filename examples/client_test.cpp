@@ -1311,7 +1311,7 @@ int main(int argc, char* argv[])
 		switch (argv[i][1])
 		{
 			case 'f': g_log_file = std::fopen(arg, "w+"); break;
-			case 'k': high_performance_seed(settings); --i; break;
+			case 'k': settings = high_performance_seed(); --i; break;
 			case 'G': seed_mode = true; --i; break;
 			case 's': save_path = arg; break;
 			case 'U': torrent_upload_limit = atoi(arg) * 1000; break;
