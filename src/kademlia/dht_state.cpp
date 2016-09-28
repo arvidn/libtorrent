@@ -63,6 +63,17 @@ namespace
 	}
 } // anonymous namespace
 
+	void dht_state::clear()
+	{
+		nid.clear();
+		nid6.clear();
+
+		nodes.clear();
+		nodes.shrink_to_fit();
+		nodes6.clear();
+		nodes6.shrink_to_fit();
+	}
+
 	dht_state read_dht_state(bdecode_node const& e)
 	{
 		dht_state ret;

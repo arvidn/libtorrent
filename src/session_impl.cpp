@@ -5628,7 +5628,8 @@ namespace aux {
 		{
 			m_dht->add_node(n);
 		}
-		std::vector<udp::endpoint>().swap(m_dht_nodes);
+		m_dht_nodes.clear();
+		m_dht_nodes.shrink_to_fit();
 
 		auto cb = [this]
 		{

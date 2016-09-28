@@ -146,11 +146,10 @@ namespace libtorrent { namespace dht
 
 		counters& m_counters;
 		dht_storage_interface& m_storage;
+		dht_state m_state; // to be used only once
 		node m_dht;
-		std::vector<udp::endpoint> m_bootstrap_nodes;
 #if TORRENT_USE_IPV6
 		node m_dht6;
-		std::vector<udp::endpoint> m_bootstrap_nodes6;
 #endif
 		send_fun_t m_send_fun;
 		dht_logger* m_log;
