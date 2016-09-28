@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 #include <set>
 #include <string>
+#include <ctime>
 
 #include <libtorrent/socket_io.hpp>
 #include <libtorrent/aux_/time.hpp>
@@ -83,17 +84,15 @@ namespace
 	struct dht_immutable_item
 	{
 		// the actual value
-		std::unique_ptr<char[]> value;
+		std::vector<char> value;
 		// this counts the number of IPs we have seen
 		// announcing this item, this is used to determine
 		// popularity if we reach the limit of items to store
 		bloom_filter<128> ips;
 		// the last time we heard about this
-		time_point last_seen;
+		std::time_t last_seen;
 		// number of IPs in the bloom filter
 		int num_announcers = 0;
-		// size of malloced space pointed to by value
-		int size = 0;
 	};
 
 	struct dht_mutable_item : dht_immutable_item
@@ -106,7 +105,7 @@ namespace
 
 	void touch_item(dht_immutable_item& f, address const& addr)
 	{
-		f.last_seen = aux::time_now();
+		f.last_seen = total_seconds(aux::time_now().time_since_epoch());
 
 		// maybe increase num_announcers if we haven't seen this IP before
 		sha1_hash const iphash = hash_address(addr);
@@ -326,8 +325,8 @@ namespace
 			auto const i = m_immutable_table.find(target);
 			if (i == m_immutable_table.end()) return false;
 
-			item["v"] = bdecode(i->second.value.get()
-				, i->second.value.get() + i->second.size);
+			item["v"] = bdecode(i->second.value.begin()
+				, i->second.value.end());
 			return true;
 		}
 
@@ -350,9 +349,7 @@ namespace
 					m_counters.immutable_data -= 1;
 				}
 				dht_immutable_item to_add;
-				to_add.value.reset(new char[buf.size()]);
-				to_add.size = int(buf.size());
-				std::memcpy(to_add.value.get(), buf.data(), buf.size());
+				to_add.value = {buf.begin(), buf.end()};
 
 				std::tie(i, std::ignore) = m_immutable_table.insert(
 					std::make_pair(target, std::move(to_add)));
@@ -385,7 +382,7 @@ namespace
 			item["seq"] = f.seq.value;
 			if (force_fill || (sequence_number(0) <= seq && seq < f.seq))
 			{
-				item["v"] = bdecode(f.value.get(), f.value.get() + f.size);
+				item["v"] = bdecode(f.value.begin(), f.value.end());
 				item["sig"] = f.sig.bytes;
 				item["k"] = f.key.bytes;
 			}
@@ -416,13 +413,11 @@ namespace
 					m_counters.mutable_data -= 1;
 				}
 				dht_mutable_item to_add;
-				to_add.value.reset(new char[buf.size()]);
-				to_add.size = int(buf.size());
+				to_add.value = {buf.begin(), buf.end()};
 				to_add.seq = seq;
-				to_add.salt.assign(salt.data(), salt.size());
+				to_add.salt = {salt.begin(), salt.end()};
 				to_add.sig = sig;
 				to_add.key = pk;
-				std::memcpy(to_add.value.get(), buf.data(), buf.size());
 
 				std::tie(i, std::ignore) = m_mutable_table.insert(
 					std::make_pair(target, std::move(to_add)));
@@ -435,14 +430,9 @@ namespace
 
 				if (item.seq < seq)
 				{
-					if (item.size != buf.size())
-					{
-						item.value.reset(new char[buf.size()]);
-						item.size = int(buf.size());
-					}
+					item.value = {buf.begin(), buf.end()};
 					item.seq = seq;
 					item.sig = sig;
-					std::memcpy(item.value.get(), buf.data(), buf.size());
 				}
 			}
 
@@ -479,7 +469,8 @@ namespace
 
 			for (auto i = m_immutable_table.begin(); i != m_immutable_table.end();)
 			{
-				if (i->second.last_seen + lifetime > now)
+				time_point const t = time_point(seconds(i->second.last_seen));
+				if (t + lifetime > now)
 				{
 					++i;
 					continue;
@@ -490,7 +481,8 @@ namespace
 
 			for (auto i = m_mutable_table.begin(); i != m_mutable_table.end();)
 			{
-				if (i->second.last_seen + lifetime > now)
+				time_point const t = time_point(seconds(i->second.last_seen));
+				if (t + lifetime > now)
 				{
 					++i;
 					continue;
