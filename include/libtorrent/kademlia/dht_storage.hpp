@@ -34,6 +34,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_DHT_STORAGE_HPP
 
 #include <functional>
+#include <vector>
+#include <array>
+#include <ctime>
 
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/types.hpp>
@@ -42,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/address.hpp>
 #include <libtorrent/span.hpp>
 #include <libtorrent/string_view.hpp>
+#include <libtorrent/bloom_filter.hpp>
 
 namespace libtorrent
 {
@@ -62,6 +66,28 @@ namespace dht
 
 		// This member function set the counters to zero.
 		void reset();
+	};
+
+	struct dht_immutable_data
+	{
+		sha1_hash target;
+		std::vector<char> value;
+		bloom_filter<128> ips;
+		std::time_t last_seen;
+	};
+
+	struct dht_mutable_data : dht_immutable_data
+	{
+		signature sig;
+		sequence_number seq;
+		public_key key;
+		std::string salt;
+	};
+
+	struct dht_storage_items
+	{
+		std::vector<dht_immutable_data> immutables;
+		std::vector<dht_mutable_data> mutables;
 	};
 
 	// The DHT storage interface is a pure virtual class that can
@@ -215,6 +241,10 @@ namespace dht
 		virtual void tick() = 0;
 
 		virtual dht_storage_counters counters() const = 0;
+
+		virtual dht_storage_items save_items(int max_items) const = 0;
+
+		virtual void load_items(dht_storage_items items) = 0;
 
 		virtual ~dht_storage_interface() {}
 	};

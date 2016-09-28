@@ -213,6 +213,8 @@ namespace aux {
 		if (val) sett.max_torrents = val.int_value();
 		val = e.dict_find_int("max_dht_items");
 		if (val) sett.max_dht_items = val.int_value();
+		val = e.dict_find_int("max_save_dht_items");
+		if (val) sett.max_save_dht_items = val.int_value();
 		val = e.dict_find_int("max_peers");
 		if (val) sett.max_peers = val.int_value();
 		val = e.dict_find_int("max_torrent_search_reply");
@@ -253,6 +255,7 @@ namespace aux {
 		dht_sett["max_fail_count"] = settings.max_fail_count;
 		dht_sett["max_torrents"] = settings.max_torrents;
 		dht_sett["max_dht_items"] = settings.max_dht_items;
+		dht_sett["max_save_dht_items"] = settings.max_save_dht_items;
 		dht_sett["max_peers"] = settings.max_peers;
 		dht_sett["max_torrent_search_reply"] = settings.max_torrent_search_reply;
 		dht_sett["restrict_routing_ips"] = settings.restrict_routing_ips;

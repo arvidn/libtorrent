@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/entry.hpp>
 
 #include <libtorrent/kademlia/node_id.hpp>
+#include <libtorrent/kademlia/dht_storage.hpp>
 
 #include <vector>
 
@@ -57,8 +58,6 @@ namespace dht
 	// .. _BEP32: http://bittorrent.org/beps/bep_0032.html
 	struct TORRENT_EXPORT dht_state
 	{
-		dht_state() = default;
-
 		// the id of the IPv4 node
 		node_id nid;
 		// the id of the IPv6 node
@@ -68,6 +67,8 @@ namespace dht
 		std::vector<udp::endpoint> nodes;
 		// the bootstrap nodes saved from the IPv6 buckets node
 		std::vector<udp::endpoint> nodes6;
+
+		dht_storage_items items;
 	};
 
 	TORRENT_EXTRA_EXPORT dht_state read_dht_state(bdecode_node const& e);
