@@ -57,8 +57,6 @@ namespace dht
 	// .. _BEP32: http://bittorrent.org/beps/bep_0032.html
 	struct TORRENT_EXPORT dht_state
 	{
-		dht_state() = default;
-
 		// the id of the IPv4 node
 		node_id nid;
 		// the id of the IPv6 node

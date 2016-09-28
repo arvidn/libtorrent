@@ -5601,18 +5601,6 @@ namespace aux {
 #ifndef TORRENT_DISABLE_DHT
 
 	void session_impl::start_dht()
-	{ start_dht(m_dht_state); }
-
-	namespace {
-
-		void on_bootstrap(alert_manager& alerts)
-		{
-			if (alerts.should_post<dht_bootstrap_alert>())
-				alerts.emplace_alert<dht_bootstrap_alert>();
-		}
-	}
-
-	void session_impl::start_dht(dht::dht_state const& startup_state)
 	{
 		INVARIANT_CHECK;
 
@@ -5629,7 +5617,7 @@ namespace aux {
 			, m_dht_settings
 			, m_stats_counters
 			, *m_dht_storage
-			, startup_state);
+			, std::move(m_dht_state));
 
 		for (auto const& n : m_dht_router_nodes)
 		{
@@ -5640,9 +5628,14 @@ namespace aux {
 		{
 			m_dht->add_node(n);
 		}
-		m_dht_nodes.clear();
+		std::vector<udp::endpoint>().swap(m_dht_nodes);
 
-		m_dht->start(startup_state, std::bind(&on_bootstrap, std::ref(m_alerts)));
+		auto cb = [this]
+		{
+			if (m_alerts.should_post<dht_bootstrap_alert>())
+				m_alerts.emplace_alert<dht_bootstrap_alert>();
+		};
+		m_dht->start(std::bind(cb));
 	}
 
 	void session_impl::stop_dht()
@@ -5661,7 +5654,7 @@ namespace aux {
 		m_dht_settings = settings;
 	}
 
-	void session_impl::set_dht_state(dht::dht_state const& state)
+	void session_impl::set_dht_state(dht::dht_state state)
 	{
 		m_dht_state = state;
 	}
@@ -5687,7 +5680,8 @@ namespace aux {
 		error_code ec;
 		if (tmp.empty() || bdecode(&tmp[0], &tmp[0] + tmp.size(), e, ec) != 0)
 			return;
-		start_dht(dht::read_dht_state(e));
+		m_dht_state = dht::read_dht_state(e);
+		start_dht();
 	}
 #endif
 
