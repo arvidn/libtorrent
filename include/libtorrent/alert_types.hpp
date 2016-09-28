@@ -1436,8 +1436,6 @@ namespace libtorrent
 		int protocol;
 	};
 
-#ifndef TORRENT_DISABLE_LOGGING
-
 	// This alert is generated to log informational events related to either
 	// UPnP or NAT-PMP. They contain a log line and the type (0 = NAT-PMP
 	// and 1 = UPnP). Displaying these messages to an end user is only useful
@@ -1470,8 +1468,6 @@ namespace libtorrent
 
 		int m_log_idx;
 	};
-
-#endif
 
 	// This alert is generated when a fastresume file has been passed to
 	// add_torrent() but the files on disk did not match the fastresume file.
@@ -2077,7 +2073,6 @@ namespace libtorrent
 		udp::endpoint ip;
 	};
 
-#ifndef TORRENT_DISABLE_LOGGING
 	// This alert is posted by some session wide event. Its main purpose is
 	// trouble shooting and debugging. It's not enabled by the default alert
 	// mask and is enabled by the ``alert::session_log_notification`` bit.
@@ -2163,8 +2158,6 @@ namespace libtorrent
 	private:
 		int m_str_idx;
 	};
-
-#endif
 
 	// posted if the local service discovery socket fails to start properly.
 	// it's categorized as ``error_notification``.
@@ -2318,8 +2311,8 @@ namespace libtorrent
 		enum direction_t
 		{ incoming, outgoing };
 
-		dht_pkt_alert(aux::stack_allocator& alloc, char const* buf, int size
-			, dht_pkt_alert::direction_t d, udp::endpoint ep);
+		dht_pkt_alert(aux::stack_allocator& alloc, span<char const> buf
+			, dht_pkt_alert::direction_t d, udp::endpoint const& ep);
 
 		static const int static_category = alert::dht_log_notification;
 		TORRENT_DEFINE_ALERT(dht_pkt_alert, 86)
@@ -2330,20 +2323,19 @@ namespace libtorrent
 		// respectively. This buffer is only valid for as long as the alert itself
 		// is valid, which is owned by libtorrent and reclaimed whenever
 		// pop_alerts() is called on the session.
-		char const* pkt_buf() const;
-		int pkt_size() const;
+		span<char const> pkt_buf() const;
 
 		// whether this is an incoming or outgoing packet.
-		direction_t dir;
+		direction_t const dir;
 
 		// the DHT node we received this packet from, or sent this packet to
 		// (depending on ``dir``).
-		udp::endpoint node;
+		udp::endpoint const node;
 
 	private:
 		std::reference_wrapper<aux::stack_allocator> m_alloc;
-		int m_msg_idx;
-		int m_size;
+		int const m_msg_idx;
+		int const m_size;
 	};
 
 	struct TORRENT_EXPORT dht_get_peers_reply_alert final : alert {
@@ -2369,7 +2361,7 @@ namespace libtorrent
 
 	private:
 		std::reference_wrapper<aux::stack_allocator> m_alloc;
-		int m_num_peers;
+		int const m_num_peers;
 		int m_peers_idx;
 	};
 
@@ -2389,15 +2381,15 @@ namespace libtorrent
 		static const int static_category = alert::dht_notification;
 		virtual std::string message() const override;
 
-		void* userdata;
-		udp::endpoint addr;
+		void const* userdata;
+		udp::endpoint const addr;
 
 		bdecode_node response() const;
 
 	private:
 		std::reference_wrapper<aux::stack_allocator> m_alloc;
-		int m_response_idx;
-		int m_response_size;
+		int const m_response_idx;
+		int const m_response_size;
 	};
 
 	// this is posted when one or more blocks are picked by the piece picker,
@@ -2405,8 +2397,6 @@ namespace libtorrent
 	// picker_log_notification).
 	struct TORRENT_EXPORT picker_log_alert : peer_alert
 	{
-#ifndef TORRENT_DISABLE_LOGGING
-
 		// internal
 		picker_log_alert(aux::stack_allocator& alloc, torrent_handle const& h
 			, tcp::endpoint const& ep, peer_id const& peer_id, std::uint32_t flags
@@ -2416,8 +2406,6 @@ namespace libtorrent
 
 		static const int static_category = alert::picker_log_notification;
 		virtual std::string message() const override;
-
-#endif // TORRENT_DISABLE_LOGGING
 
 		enum picker_flags_t
 		{
@@ -2441,21 +2429,15 @@ namespace libtorrent
 			end_game               = 0x8000
 		};
 
-#ifndef TORRENT_DISABLE_LOGGING
-
 		// this is a bitmask of which features were enabled for this particular
 		// pick. The bits are defined in the picker_flags_t enum.
-		std::uint32_t picker_flags;
+		std::uint32_t const picker_flags;
 
 		std::vector<piece_block> blocks() const;
 
 	private:
-		int m_array_idx;
-		int m_num_blocks;
-#else
-	picker_log_alert(aux::stack_allocator& alloc)
-		: peer_alert(alloc, torrent_handle(), tcp::endpoint(), peer_id()) {}
-#endif // TORRENT_DISABLE_LOGGING
+		int const m_array_idx;
+		int const m_num_blocks;
 	};
 
 #undef TORRENT_DEFINE_ALERT_IMPL

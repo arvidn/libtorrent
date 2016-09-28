@@ -138,7 +138,7 @@ namespace libtorrent { namespace dht
 
 		// implements udp_socket_interface
 		virtual bool has_quota() override;
-		virtual bool send_packet(libtorrent::entry& e, udp::endpoint const& addr) override;
+		virtual bool send_packet(entry& e, udp::endpoint const& addr) override;
 
 		// this is the bdecode_node DHT messages are parsed into. It's a member
 		// in order to avoid having to deallocate and re-allocate it for every

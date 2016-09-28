@@ -33,7 +33,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_STACK_ALLOCATOR
 
 #include "libtorrent/assert.hpp"
-#include "libtorrent/buffer.hpp"
+#include "libtorrent/span.hpp"
+
+#include <cstring>
 
 namespace libtorrent { namespace aux
 {
@@ -48,18 +50,18 @@ namespace libtorrent { namespace aux
 
 		int copy_string(std::string const& str)
 		{
-			int ret = int(m_storage.size());
+			int const ret = int(m_storage.size());
 			m_storage.resize(ret + str.length() + 1);
-			strcpy(&m_storage[ret], str.c_str());
+			std::strcpy(&m_storage[ret], str.c_str());
 			return ret;
 		}
 
 		int copy_string(char const* str)
 		{
-			int ret = int(m_storage.size());
-			int len = int(strlen(str));
+			int const ret = int(m_storage.size());
+			int const len = int(std::strlen(str));
 			m_storage.resize(ret + len + 1);
-			strcpy(&m_storage[ret], str);
+			std::strcpy(&m_storage[ret], str);
 			return ret;
 		}
 
@@ -84,19 +86,19 @@ namespace libtorrent { namespace aux
 			return ret;
 		}
 
-		// TODO: 3 use span<> here
-		int copy_buffer(char const* buf, int const size)
+		int copy_buffer(span<char const> buf)
 		{
 			int const ret = int(m_storage.size());
+			int const size = int(buf.size());
 			m_storage.resize(ret + size);
-			memcpy(&m_storage[ret], buf, size);
+			std::memcpy(&m_storage[ret], buf.data(), size);
 			return ret;
 		}
 
 		int allocate(int const bytes)
 		{
 			TORRENT_ASSERT(bytes >= 0);
-			int ret = int(m_storage.size());
+			int const ret = int(m_storage.size());
 			m_storage.resize(ret + bytes);
 			return ret;
 		}
@@ -133,4 +135,3 @@ namespace libtorrent { namespace aux
 } }
 
 #endif
-

@@ -80,7 +80,7 @@ struct obs : dht::dht_observer
 		puts("\n");
 	}
 	void log_packet(message_direction_t /* dir */
-		, char const* /* pkt */, int /* len */
+		, span<char const> /* pkt */
 		, udp::endpoint const& /* node */) override {}
 	bool on_dht_request(string_view /* query */
 		, dht::msg const& /* request */, entry& /* response */) override

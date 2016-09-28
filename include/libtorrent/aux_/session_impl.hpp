@@ -624,7 +624,7 @@ namespace libtorrent
 			virtual bool should_log(module_t m) const override;
 			virtual void log(module_t m, char const* fmt, ...)
 				override TORRENT_FORMAT(3,4);
-			virtual void log_packet(message_direction_t dir, char const* pkt, int len
+			virtual void log_packet(message_direction_t dir, span<char const> pkt
 				, udp::endpoint const& node) override;
 
 			virtual bool should_log_portmap(aux::portmap_transport transport) const override;

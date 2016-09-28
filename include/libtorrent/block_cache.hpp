@@ -53,7 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_buffer_pool.hpp"
 #include "libtorrent/file.hpp" // for iovec_t
 
-#if TORRENT_USE_ASSERTS
+#if TORRENT_USE_ASSERTS || !defined TORRENT_DISABLE_LOGGING
 #include "libtorrent/disk_io_job.hpp"
 #endif
 
@@ -61,7 +61,6 @@ namespace libtorrent
 {
 	struct disk_io_job;
 	class piece_manager;
-	struct disk_buffer_pool;
 	struct cache_status;
 	struct block_cache_reference;
 	struct counters;
@@ -70,7 +69,8 @@ namespace libtorrent
 	class file_storage;
 #endif
 
-#if TORRENT_USE_ASSERTS
+#if TORRENT_USE_ASSERTS || !defined TORRENT_DISABLE_LOGGING
+
 	struct piece_log_t
 	{
 		piece_log_t(int j, int b= -1): job(j), block(b) {}
@@ -97,9 +97,11 @@ namespace libtorrent
 
 	char const* job_name(int j);
 
+#endif // TORRENT_DISABLE_LOGGING
+
+#if TORRENT_USE_ASSERTS
 	void print_piece_log(std::vector<piece_log_t> const& piece_log);
 	void assert_print_piece(cached_piece_entry const* pe);
-
 #endif
 
 	extern const char* const job_action_name[];

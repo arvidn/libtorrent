@@ -1029,8 +1029,6 @@ namespace libtorrent {
 		return ret;
 	}
 
-#ifndef TORRENT_DISABLE_LOGGING
-
 	portmap_log_alert::portmap_log_alert(aux::stack_allocator& alloc, int t, const char* m)
 		: map_type(t)
 #ifndef TORRENT_NO_DEPRECATE
@@ -1056,8 +1054,6 @@ namespace libtorrent {
 			, log_message());
 		return ret;
 	}
-
-#endif
 
 	fastresume_rejected_alert::fastresume_rejected_alert(
 		aux::stack_allocator& alloc
@@ -1649,8 +1645,6 @@ namespace libtorrent {
 		return msg;
 	}
 
-#ifndef TORRENT_DISABLE_LOGGING
-
 	log_alert::log_alert(aux::stack_allocator& alloc, char const* log)
 		: m_alloc(alloc)
 		, m_str_idx(alloc.copy_string(log))
@@ -1709,8 +1703,6 @@ namespace libtorrent {
 		return torrent_alert::message() + " [" + print_endpoint(ip) + "] "
 			+ mode[direction] + " " + event_type + " [ " + msg() + " ]";
 	}
-
-#endif
 
 	lsd_error_alert::lsd_error_alert(aux::stack_allocator&, error_code const& ec)
 		: alert()
@@ -1881,24 +1873,19 @@ namespace libtorrent {
 		return ret;
 	}
 
-	// TODO: 3 use span<> here
 	dht_pkt_alert::dht_pkt_alert(aux::stack_allocator& alloc
-		, char const* buf, int size, dht_pkt_alert::direction_t d, udp::endpoint ep)
+		, span<char const> buf, dht_pkt_alert::direction_t d
+		, udp::endpoint const& ep)
 		: dir(d)
 		, node(std::move(ep))
 		, m_alloc(alloc)
-		, m_msg_idx(alloc.copy_buffer(buf, size))
-		, m_size(size)
+		, m_msg_idx(alloc.copy_buffer(buf))
+		, m_size(int(buf.size()))
 	{}
 
-	char const* dht_pkt_alert::pkt_buf() const
+	span<char const> dht_pkt_alert::pkt_buf() const
 	{
-		return m_alloc.get().ptr(m_msg_idx);
-	}
-
-	int dht_pkt_alert::pkt_size() const
-	{
-		return m_size;
+		return {m_alloc.get().ptr(m_msg_idx), size_t(m_size)};
 	}
 
 	std::string dht_pkt_alert::message() const
@@ -1908,7 +1895,8 @@ namespace libtorrent {
 
 		// ignore errors here. This is best-effort. It may be a broken encoding
 		// but at least we'll print the valid parts
-		bdecode(pkt_buf(), pkt_buf() + pkt_size(), print, ec, nullptr, 100, 100);
+		span<char const> pkt = pkt_buf();
+		bdecode(pkt.data(), pkt.data() + int(pkt.size()), print, ec, nullptr, 100, 100);
 
 		std::string msg = print_entry(print, true);
 
@@ -1940,7 +1928,7 @@ namespace libtorrent {
 			std::size_t size = endp.size();
 			TORRENT_ASSERT(size < 0x100);
 			detail::write_uint8(uint8_t(size), ptr);
-			memcpy(ptr, endp.data(), size);
+			std::memcpy(ptr, endp.data(), size);
 			ptr += size;
 		}
 	}
@@ -1972,7 +1960,7 @@ namespace libtorrent {
 		const char *ptr = m_alloc.get().ptr(m_peers_idx);
 		for (int i = 0; i < m_num_peers; i++) {
 			std::size_t size = detail::read_uint8(ptr);
-			memcpy(peers[i].data(), ptr, size);
+			std::memcpy(peers[i].data(), ptr, size);
 			ptr += size;
 		}
 
@@ -1983,8 +1971,7 @@ namespace libtorrent {
 		aux::stack_allocator& alloc, void* userdata_
 		, udp::endpoint const& addr_, bdecode_node const& response)
 		: userdata(userdata_), addr(addr_), m_alloc(alloc)
-		, m_response_idx(alloc.copy_buffer(response.data_section().data()
-				, int(response.data_section().size())))
+		, m_response_idx(alloc.copy_buffer(response.data_section()))
 		, m_response_size(int(response.data_section().size()))
 	{}
 
@@ -2017,27 +2004,25 @@ namespace libtorrent {
 		return ret;
 	}
 
-#ifndef TORRENT_DISABLE_LOGGING
-
 	picker_log_alert::picker_log_alert(aux::stack_allocator& alloc, torrent_handle const& h
 		, tcp::endpoint const& ep, peer_id const& peer_id, std::uint32_t flags
 		, piece_block const* blocks, int num_blocks)
 		: peer_alert(alloc, h, ep, peer_id)
 		, picker_flags(flags)
-		, m_array_idx(alloc.copy_buffer(reinterpret_cast<char const*>(blocks)
-			, num_blocks * sizeof(piece_block)))
+		, m_array_idx(alloc.copy_buffer({reinterpret_cast<char const*>(blocks)
+			, num_blocks * sizeof(piece_block)}))
 		, m_num_blocks(num_blocks)
 	{}
 
 	std::vector<piece_block> picker_log_alert::blocks() const
 	{
 		// we need to copy this array to make sure the structures are properly
-		// aigned, not just to have a nice API
+		// aligned, not just to have a nice API
 		std::vector<piece_block> ret;
 		ret.resize(m_num_blocks);
 
 		char const* start = m_alloc.get().ptr(m_array_idx);
-		memcpy(&ret[0], start, m_num_blocks * sizeof(piece_block));
+		std::memcpy(&ret[0], start, m_num_blocks * sizeof(piece_block));
 
 		return ret;
 	}
@@ -2087,7 +2072,5 @@ namespace libtorrent {
 		}
 		return ret;
 	}
-
-#endif // TORRENT_DISABLE_LOGGING
 
 } // namespace libtorrent

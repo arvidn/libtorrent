@@ -492,7 +492,7 @@ struct obs : dht::dht_observer
 		fprintf(stderr, "%s\n", buf);
 		m_log.push_back(buf);
 	}
-	void log_packet(message_direction_t dir, char const* pkt, int len
+	void log_packet(message_direction_t dir, span<char const> pkt
 		, udp::endpoint const& node) override {}
 #endif
 	bool on_dht_request(string_view query
