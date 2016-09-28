@@ -38,12 +38,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/aux_/session_call.hpp"
 
-using libtorrent::aux::session_impl;
-
 namespace libtorrent
 {
-	void min_memory_usage(settings_pack& set)
+	settings_pack min_memory_usage()
 	{
+		settings_pack set;
 #ifndef TORRENT_NO_DEPRECATE
 		// receive data directly into disk buffers
 		// this yields more system calls to read() and
@@ -128,10 +127,12 @@ namespace libtorrent
 		// whole pieces
 		set.set_bool(settings_pack::coalesce_reads, false);
 		set.set_bool(settings_pack::coalesce_writes, false);
+		return set;
 	}
 
-	void high_performance_seed(settings_pack& set)
+	settings_pack high_performance_seed()
 	{
+		settings_pack set;
 		// don't throttle TCP, assume there is
 		// plenty of bandwidth
 		set.set_int(settings_pack::mixed_mode_algorithm, settings_pack::prefer_tcp);
@@ -246,6 +247,7 @@ namespace libtorrent
 
 		// the disk cache performs better with the pool allocator
 		set.set_bool(settings_pack::use_disk_cache_pool, true);
+		return set;
 	}
 
 #ifndef TORRENT_CFG
@@ -308,7 +310,7 @@ namespace libtorrent
 			ios = m_io_service.get();
 		}
 
-		m_impl = std::make_shared<session_impl>(*ios);
+		m_impl = std::make_shared<aux::session_impl>(*ios);
 		*static_cast<session_handle*>(this) = session_handle(m_impl.get());
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -330,7 +332,7 @@ namespace libtorrent
 		{
 			// start a thread for the message pump
 			m_thread = std::make_shared<std::thread>(
-				[&]() { m_io_service->run(); });
+				[&] { m_io_service->run(); });
 		}
 	}
 
@@ -341,7 +343,7 @@ namespace libtorrent
 		{
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			if (empty) return {};
-			using wrapper = session_impl::session_plugin_wrapper;
+			using wrapper = aux::session_impl::session_plugin_wrapper;
 			return {
 				std::make_shared<wrapper>(create_ut_pex_plugin),
 				std::make_shared<wrapper>(create_ut_metadata_plugin),
@@ -365,11 +367,11 @@ namespace libtorrent
 		aux::dump_call_profile();
 
 		TORRENT_ASSERT(m_impl);
-		std::shared_ptr<session_impl> ptr = m_impl;
+		std::shared_ptr<aux::session_impl> ptr = m_impl;
 
 		// capture the shared_ptr in the dispatched function
 		// to keep the session_impl alive
-		m_impl->get_io_service().dispatch([=]() { ptr->abort(); });
+		m_impl->get_io_service().dispatch([=] { ptr->abort(); });
 
 #if defined TORRENT_ASIO_DEBUGGING
 		int counter = 0;

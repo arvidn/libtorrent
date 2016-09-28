@@ -447,7 +447,7 @@ namespace aux {
 	// io_service thread.
 	// TODO: 2 is there a reason not to move all of this into init()? and just
 	// post it to the io_service?
-	void session_impl::start_session(settings_pack const& pack)
+	void session_impl::start_session(settings_pack pack)
 	{
 		if (pack.has_val(settings_pack::alert_mask))
 		{
@@ -520,7 +520,7 @@ namespace aux {
 		}
 #endif
 
-		std::shared_ptr<settings_pack> copy = std::make_shared<settings_pack>(pack);
+		auto copy = std::make_shared<settings_pack>(std::move(pack));
 		m_io_service.post(std::bind(&session_impl::init, this, copy));
 	}
 
