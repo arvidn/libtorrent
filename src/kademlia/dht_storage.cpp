@@ -88,16 +88,16 @@ namespace
 	{
 		// the actual value
 		std::unique_ptr<char[]> value;
-		// size of malloced space pointed to by value
-		int size = 0;
 		// this counts the number of IPs we have seen
 		// announcing this item, this is used to determine
 		// popularity if we reach the limit of items to store
 		bloom_filter<128> ips;
-		// number of IPs in the bloom filter
-		int num_announcers = 0;
 		// the last time we heard about this
 		std::time_t last_seen;
+		// number of IPs in the bloom filter
+		int num_announcers = 0;
+		// size of malloced space pointed to by value
+		int size = 0;
 	};
 
 	struct dht_mutable_item : dht_immutable_item
