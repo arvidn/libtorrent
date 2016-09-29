@@ -80,6 +80,7 @@ const rlim_t rlim_infinity = RLIM_INFINITY;
 #ifndef TORRENT_DISABLE_DHT
 #include "libtorrent/kademlia/dht_tracker.hpp"
 #include "libtorrent/kademlia/types.hpp"
+#include "libtorrent/kademlia/node_entry.hpp"
 #endif
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/config.hpp"
@@ -5631,12 +5632,13 @@ namespace aux {
 		m_dht_nodes.clear();
 		m_dht_nodes.shrink_to_fit();
 
-		auto cb = [this]
+		auto cb = [this](
+			std::vector<std::pair<dht::node_entry, std::string>> const&)
 		{
 			if (m_alerts.should_post<dht_bootstrap_alert>())
 				m_alerts.emplace_alert<dht_bootstrap_alert>();
 		};
-		m_dht->start(std::bind(cb));
+		m_dht->start(cb);
 	}
 
 	void session_impl::stop_dht()
@@ -5657,7 +5659,7 @@ namespace aux {
 
 	void session_impl::set_dht_state(dht::dht_state state)
 	{
-		m_dht_state = state;
+		m_dht_state = std::move(state);
 	}
 
 	void session_impl::set_dht_storage(dht::dht_storage_constructor_type sc)
