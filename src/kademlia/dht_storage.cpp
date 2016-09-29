@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 #include <set>
 #include <string>
-#include <ctime>
 #include <chrono>
 
 #include <libtorrent/socket_io.hpp>
@@ -124,8 +123,7 @@ namespace
 		static auto const stime = system_clock::now();
 		static auto const ctime = aux::time_now();
 
-		auto const secs = total_seconds(aux::time_now() - ctime);
-		return stime + seconds(secs);
+		return stime + duration_cast<seconds>(aux::time_now() - ctime);
 	}
 
 	void touch_item(dht_immutable_item& f, address const& addr)
