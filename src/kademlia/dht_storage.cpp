@@ -93,7 +93,7 @@ namespace
 		// popularity if we reach the limit of items to store
 		bloom_filter<128> ips;
 		// the last time we heard about this
-		std::time_t last_seen;
+		system_clock::time_point last_seen;
 		// number of IPs in the bloom filter
 		int num_announcers = 0;
 		// size of malloced space pointed to by value
@@ -119,9 +119,18 @@ namespace
 		std::memcpy(item.value.get(), buf.data(), size);
 	}
 
+	system_clock::time_point clock_now()
+	{
+		static auto const stime = system_clock::now();
+		static auto const ctime = aux::time_now();
+
+		auto const secs = total_seconds(aux::time_now() - ctime);
+		return stime + seconds(secs);
+	}
+
 	void touch_item(dht_immutable_item& f, address const& addr)
 	{
-		f.last_seen = system_clock::to_time_t(system_clock::now());
+		f.last_seen = clock_now();
 
 		// maybe increase num_announcers if we haven't seen this IP before
 		sha1_hash const iphash = hash_address(addr);
@@ -477,17 +486,14 @@ namespace
 
 			if (0 == m_settings.item_lifetime) return;
 
-			static auto const stime = system_clock::now();
-			static auto const ctime = aux::time_now();
-
-			auto const now = stime + (aux::time_now() - ctime);
+			system_clock::time_point const now = clock_now();
 			time_duration lifetime = seconds(m_settings.item_lifetime);
 			// item lifetime must >= 120 minutes.
 			if (lifetime < minutes(120)) lifetime = minutes(120);
 
 			for (auto i = m_immutable_table.begin(); i != m_immutable_table.end();)
 			{
-				if (system_clock::from_time_t(i->second.last_seen) + lifetime > now)
+				if (i->second.last_seen + lifetime > now)
 				{
 					++i;
 					continue;
@@ -498,7 +504,7 @@ namespace
 
 			for (auto i = m_mutable_table.begin(); i != m_mutable_table.end();)
 			{
-				if (system_clock::from_time_t(i->second.last_seen) + lifetime > now)
+				if (i->second.last_seen + lifetime > now)
 				{
 					++i;
 					continue;
