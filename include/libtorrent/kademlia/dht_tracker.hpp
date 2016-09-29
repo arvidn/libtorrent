@@ -123,7 +123,7 @@ namespace libtorrent { namespace dht
 			, std::vector<dht_lookup>& requests);
 		void update_stats_counters(counters& c) const;
 
-		void incoming_error(error_code const& ec, udp::endpoint const&);
+		void incoming_error(error_code const& ec, udp::endpoint const& ep);
 		bool incoming_packet(udp::endpoint const& ep, span<char const> buf);
 
 	private:
