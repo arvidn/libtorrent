@@ -79,13 +79,14 @@ namespace libtorrent { namespace dht
 		, dht_settings const& settings
 		, counters& cnt
 		, dht_storage_interface& storage
-		, dht_state const& state)
+		, dht_state state)
 		: m_counters(cnt)
 		, m_storage(storage)
-		, m_dht(udp::v4(), this, settings, state.nid
+		, m_state(std::move(state))
+		, m_dht(udp::v4(), this, settings, m_state.nid
 			, observer, cnt, m_nodes, storage)
 #if TORRENT_USE_IPV6
-		, m_dht6(udp::v6(), this, settings, state.nid6
+		, m_dht6(udp::v6(), this, settings, m_state.nid6
 			, observer, cnt, m_nodes, storage)
 #endif
 		, m_send_fun(send_fun)
@@ -136,8 +137,7 @@ namespace libtorrent { namespace dht
 		update_storage_node_ids();
 	}
 
-	void dht_tracker::start(dht_state const& bootstrap
-		, find_data::nodes_callback const& f)
+	void dht_tracker::start(find_data::nodes_callback const& f)
 	{
 		error_code ec;
 		refresh_key(ec);
@@ -154,10 +154,12 @@ namespace libtorrent { namespace dht
 
 		m_refresh_timer.expires_from_now(seconds(5), ec);
 		m_refresh_timer.async_wait(std::bind(&dht_tracker::refresh_timeout, self(), _1));
-		m_dht.bootstrap(bootstrap.nodes, f);
+
+		m_dht.bootstrap(m_state.nodes, f);
 #if TORRENT_USE_IPV6
-		m_dht6.bootstrap(bootstrap.nodes6, f);
+		m_dht6.bootstrap(m_state.nodes6, f);
 #endif
+		m_state.clear();
 	}
 
 	void dht_tracker::stop()
@@ -440,7 +442,6 @@ namespace libtorrent { namespace dht
 		else
 #endif
 			m_dht.direct_request(ep, e, f);
-
 	}
 
 	void dht_tracker::incoming_error(error_code const& ec, udp::endpoint const& ep)

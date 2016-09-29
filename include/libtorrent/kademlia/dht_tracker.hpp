@@ -68,11 +68,10 @@ namespace libtorrent { namespace dht
 			, dht_settings const& settings
 			, counters& cnt
 			, dht_storage_interface& storage
-			, dht_state const& state);
+			, dht_state state);
 		virtual ~dht_tracker();
 
-		void start(dht_state const& bootstrap
-			, find_data::nodes_callback const& f);
+		void start(find_data::nodes_callback const& f);
 		void stop();
 
 		// tell the node to recalculate its node id based on the current
@@ -147,6 +146,7 @@ namespace libtorrent { namespace dht
 
 		counters& m_counters;
 		dht_storage_interface& m_storage;
+		dht_state m_state; // to be used only once
 		node m_dht;
 #if TORRENT_USE_IPV6
 		node m_dht6;
