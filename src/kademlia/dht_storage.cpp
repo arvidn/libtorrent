@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #include <string>
 #include <ctime>
+#include <chrono>
 
 #include <libtorrent/socket_io.hpp>
 #include <libtorrent/aux_/time.hpp>
@@ -52,6 +53,8 @@ namespace libtorrent {
 namespace dht {
 namespace
 {
+	using std::chrono::system_clock;
+
 	// this is the entry for every peer
 	// the timestamp is there to make it possible
 	// to remove stale peers
@@ -84,15 +87,17 @@ namespace
 	struct dht_immutable_item
 	{
 		// the actual value
-		std::vector<char> value;
+		std::unique_ptr<char[]> value;
+		// size of malloced space pointed to by value
+		int size = 0;
 		// this counts the number of IPs we have seen
 		// announcing this item, this is used to determine
 		// popularity if we reach the limit of items to store
 		bloom_filter<128> ips;
-		// the last time we heard about this
-		std::time_t last_seen;
 		// number of IPs in the bloom filter
 		int num_announcers = 0;
+		// the last time we heard about this
+		std::time_t last_seen;
 	};
 
 	struct dht_mutable_item : dht_immutable_item
@@ -103,9 +108,20 @@ namespace
 		std::string salt;
 	};
 
+	void set_value(dht_immutable_item& item, span<char const> buf)
+	{
+		int const size = int(buf.size());
+		if (item.size != size)
+		{
+			item.value.reset(new char[size]);
+			item.size = size;
+		}
+		std::memcpy(item.value.get(), buf.data(), size);
+	}
+
 	void touch_item(dht_immutable_item& f, address const& addr)
 	{
-		f.last_seen = total_seconds(aux::time_now().time_since_epoch());
+		f.last_seen = system_clock::to_time_t(system_clock::now());
 
 		// maybe increase num_announcers if we haven't seen this IP before
 		sha1_hash const iphash = hash_address(addr);
@@ -325,8 +341,8 @@ namespace
 			auto const i = m_immutable_table.find(target);
 			if (i == m_immutable_table.end()) return false;
 
-			item["v"] = bdecode(i->second.value.begin()
-				, i->second.value.end());
+			item["v"] = bdecode(i->second.value.get()
+				, i->second.value.get() + i->second.size);
 			return true;
 		}
 
@@ -349,7 +365,7 @@ namespace
 					m_counters.immutable_data -= 1;
 				}
 				dht_immutable_item to_add;
-				to_add.value = {buf.begin(), buf.end()};
+				set_value(to_add, buf);
 
 				std::tie(i, std::ignore) = m_immutable_table.insert(
 					std::make_pair(target, std::move(to_add)));
@@ -382,7 +398,7 @@ namespace
 			item["seq"] = f.seq.value;
 			if (force_fill || (sequence_number(0) <= seq && seq < f.seq))
 			{
-				item["v"] = bdecode(f.value.begin(), f.value.end());
+				item["v"] = bdecode(f.value.get(), f.value.get() + f.size);
 				item["sig"] = f.sig.bytes;
 				item["k"] = f.key.bytes;
 			}
@@ -413,7 +429,7 @@ namespace
 					m_counters.mutable_data -= 1;
 				}
 				dht_mutable_item to_add;
-				to_add.value = {buf.begin(), buf.end()};
+				set_value(to_add, buf);
 				to_add.seq = seq;
 				to_add.salt = {salt.begin(), salt.end()};
 				to_add.sig = sig;
@@ -430,7 +446,7 @@ namespace
 
 				if (item.seq < seq)
 				{
-					item.value = {buf.begin(), buf.end()};
+					set_value(item, buf);
 					item.seq = seq;
 					item.sig = sig;
 				}
@@ -441,8 +457,6 @@ namespace
 
 		void tick() override
 		{
-			time_point const now(aux::time_now());
-
 			// look through all peers and see if any have timed out
 			for (auto i = m_map.begin(), end(m_map.end()); i != end;)
 			{
@@ -463,14 +477,17 @@ namespace
 
 			if (0 == m_settings.item_lifetime) return;
 
+			static auto const stime = system_clock::now();
+			static auto const ctime = aux::time_now();
+
+			auto const now = stime + (aux::time_now() - ctime);
 			time_duration lifetime = seconds(m_settings.item_lifetime);
 			// item lifetime must >= 120 minutes.
 			if (lifetime < minutes(120)) lifetime = minutes(120);
 
 			for (auto i = m_immutable_table.begin(); i != m_immutable_table.end();)
 			{
-				time_point const t = time_point(seconds(i->second.last_seen));
-				if (t + lifetime > now)
+				if (system_clock::from_time_t(i->second.last_seen) + lifetime > now)
 				{
 					++i;
 					continue;
@@ -481,8 +498,7 @@ namespace
 
 			for (auto i = m_mutable_table.begin(); i != m_mutable_table.end();)
 			{
-				time_point const t = time_point(seconds(i->second.last_seen));
-				if (t + lifetime > now)
+				if (system_clock::from_time_t(i->second.last_seen) + lifetime > now)
 				{
 					++i;
 					continue;
