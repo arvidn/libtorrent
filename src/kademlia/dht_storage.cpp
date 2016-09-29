@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 #include <set>
 #include <string>
-#include <chrono>
 
 #include <libtorrent/socket_io.hpp>
 #include <libtorrent/aux_/time.hpp>
@@ -52,8 +51,6 @@ namespace libtorrent {
 namespace dht {
 namespace
 {
-	using std::chrono::system_clock;
-
 	// this is the entry for every peer
 	// the timestamp is there to make it possible
 	// to remove stale peers
@@ -91,8 +88,10 @@ namespace
 		// announcing this item, this is used to determine
 		// popularity if we reach the limit of items to store
 		bloom_filter<128> ips;
-		// the last time we heard about this
-		system_clock::time_point last_seen;
+		// the last time we heard about this item
+		// the correct interpretation of this field
+		// requires a time reference
+		time_point last_seen;
 		// number of IPs in the bloom filter
 		int num_announcers = 0;
 		// size of malloced space pointed to by value
@@ -118,17 +117,9 @@ namespace
 		std::memcpy(item.value.get(), buf.data(), size);
 	}
 
-	system_clock::time_point clock_now()
-	{
-		static auto const stime = system_clock::now();
-		static auto const ctime = aux::time_now();
-
-		return stime + duration_cast<seconds>(aux::time_now() - ctime);
-	}
-
 	void touch_item(dht_immutable_item& f, address const& addr)
 	{
-		f.last_seen = clock_now();
+		f.last_seen = aux::time_now();
 
 		// maybe increase num_announcers if we haven't seen this IP before
 		sha1_hash const iphash = hash_address(addr);
@@ -484,7 +475,7 @@ namespace
 
 			if (0 == m_settings.item_lifetime) return;
 
-			system_clock::time_point const now = clock_now();
+			time_point const now = aux::time_now();
 			time_duration lifetime = seconds(m_settings.item_lifetime);
 			// item lifetime must >= 120 minutes.
 			if (lifetime < minutes(120)) lifetime = minutes(120);
