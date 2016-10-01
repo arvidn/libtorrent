@@ -4233,7 +4233,7 @@ namespace libtorrent
 		{
 			if (ec)
 			{
-				if ((error > 1 || ec.category() == get_socks_category())
+				if ((error > 1 || ec.category() == socks_category())
 					&& t->alerts().should_post<peer_error_alert>())
 				{
 					t->alerts().emplace_alert<peer_error_alert>(handle, remote()
