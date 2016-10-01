@@ -171,7 +171,7 @@ TORRENT_TEST(error_condition)
 {
 	error_code ec(boost::system::errc::no_such_file_or_directory, generic_category());
 #ifdef TORRENT_WINDOWS
-	TEST_CHECK(ec == error_condition(error_code(ERROR_HANDLE_EOF, system_category()))
+	TEST_CHECK(ec == error_condition(error_code(ERROR_HANDLE_EOF, system_category())))
 #endif
 }
 
