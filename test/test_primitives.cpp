@@ -170,7 +170,7 @@ TORRENT_TEST(printf_trunc)
 TORRENT_TEST(error_condition)
 {
 #ifdef TORRENT_WINDOWS
-	error_code ec(ERROR_FILE_NOT_FOUND, system_category())
+	error_code ec(ERROR_FILE_NOT_FOUND, system_category());
 #else
 	error_code ec(ENOENT, system_category());
 #endif
