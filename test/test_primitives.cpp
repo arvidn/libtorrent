@@ -169,9 +169,11 @@ TORRENT_TEST(printf_trunc)
 
 TORRENT_TEST(error_condition)
 {
-	error_code ec(boost::system::errc::no_such_file_or_directory, generic_category());
 #ifdef TORRENT_WINDOWS
-	TEST_CHECK(ec == error_condition(error_code(ERROR_HANDLE_EOF, system_category())))
+	error_code ec(ERROR_FILE_NOT_FOUND, system_category())
+#else
+	error_code ec(ENOENT, system_category())
 #endif
+	TEST_CHECK(ec == boost::system::errc::no_such_file_or_directory);
 }
 

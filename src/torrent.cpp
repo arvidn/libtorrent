@@ -2537,7 +2537,11 @@ namespace libtorrent
 		if (j->ret < 0)
 		{
 			if (j->error.ec == boost::system::errc::no_such_file_or_directory
-				|| j->error.ec == boost::asio::error::eof)
+				|| j->error.ec == boost::asio::error::eof
+#ifdef TORRENT_WINDOWS
+				|| j->error.ec == error_code(ERROR_HANDLE_EOF, system_category())
+#endif
+				)
 			{
 				TORRENT_ASSERT(j->error.file >= 0);
 
