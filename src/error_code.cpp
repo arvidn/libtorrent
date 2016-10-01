@@ -270,7 +270,7 @@ namespace libtorrent
 		return msgs[ev];
 	}
 
-	boost::system::error_category& get_libtorrent_category()
+	boost::system::error_category& libtorrent_category()
 	{
 		static libtorrent_error_category libtorrent_category;
 		return libtorrent_category;
@@ -313,7 +313,7 @@ namespace libtorrent
 		{ return boost::system::error_condition(ev, *this); }
 	};
 
-	boost::system::error_category& get_http_category()
+	boost::system::error_category& http_category()
 	{
 		static http_error_category http_category;
 		return http_category;
@@ -324,7 +324,7 @@ namespace libtorrent
 		// hidden
 		boost::system::error_code make_error_code(error_code_enum e)
 		{
-			return boost::system::error_code(e, get_libtorrent_category());
+			return boost::system::error_code(e, libtorrent_category());
 		}
 	}
 

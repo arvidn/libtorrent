@@ -312,7 +312,7 @@ namespace libtorrent
 
 		if (parser.status_code() != 200)
 		{
-			fail(error_code(parser.status_code(), get_http_category())
+			fail(error_code(parser.status_code(), http_category())
 				, parser.status_code(), parser.message().c_str());
 			return;
 		}
@@ -378,7 +378,7 @@ namespace libtorrent
 		// extract peer id (if any)
 		if (info.type() != bdecode_node::dict_t)
 		{
-			ec.assign(errors::invalid_peer_dict, get_libtorrent_category());
+			ec = error_code(errors::invalid_peer_dict);
 			return false;
 		}
 		bdecode_node i = info.dict_find_string("peer id");
@@ -396,7 +396,7 @@ namespace libtorrent
 		i = info.dict_find_string("ip");
 		if (i == 0)
 		{
-			ec.assign(errors::invalid_tracker_response, get_libtorrent_category());
+			ec = error_code(errors::invalid_tracker_response);
 			return false;
 		}
 		ret.hostname = i.string_value().to_string();
@@ -405,7 +405,7 @@ namespace libtorrent
 		i = info.dict_find_int("port");
 		if (i == 0)
 		{
-			ec.assign(errors::invalid_tracker_response, get_libtorrent_category());
+			ec = error_code(errors::invalid_tracker_response);
 			return false;
 		}
 		ret.port = std::uint16_t(i.int_value());
@@ -425,7 +425,7 @@ namespace libtorrent
 
 		if (res != 0 || e.type() != bdecode_node::dict_t)
 		{
-			ec.assign(errors::invalid_tracker_response, get_libtorrent_category());
+			ec = error_code(errors::invalid_tracker_response);
 			return resp;
 		}
 
@@ -446,7 +446,7 @@ namespace libtorrent
 		if (failure)
 		{
 			resp.failure_reason = failure.string_value().to_string();
-			ec.assign(errors::tracker_failure, get_libtorrent_category());
+			ec = error_code(errors::tracker_failure);
 			return resp;
 		}
 
@@ -459,7 +459,7 @@ namespace libtorrent
 			bdecode_node files = e.dict_find_dict("files");
 			if (!files)
 			{
-				ec.assign(errors::invalid_files_entry, get_libtorrent_category());
+				ec = error_code(errors::invalid_files_entry);
 				return resp;
 			}
 
@@ -468,7 +468,7 @@ namespace libtorrent
 
 			if (!scrape_data)
 			{
-				ec.assign(errors::invalid_hash_entry, get_libtorrent_category());
+				ec = error_code(errors::invalid_hash_entry);
 				return resp;
 			}
 
@@ -573,7 +573,7 @@ namespace libtorrent
 		if (peers_ent == 0 && ipv6_peers == 0
 			&& tracker_req().event != tracker_request::stopped)
 		{
-			ec.assign(errors::invalid_peers_entry, get_libtorrent_category());
+			ec = error_code(errors::invalid_peers_entry);
 			return resp;
 		}
 */

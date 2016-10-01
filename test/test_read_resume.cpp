@@ -124,7 +124,7 @@ TORRENT_TEST(read_resume_missing_info_hash)
 
 	error_code ec;
 	add_torrent_params atp = read_resume_data(&resume_data[0], int(resume_data.size()), ec);
-	TEST_EQUAL(ec, error_code(errors::missing_info_hash, get_libtorrent_category()));
+	TEST_EQUAL(ec, error_code(errors::missing_info_hash));
 }
 
 TORRENT_TEST(read_resume_missing_file_format)
@@ -140,7 +140,7 @@ TORRENT_TEST(read_resume_missing_file_format)
 
 	error_code ec;
 	add_torrent_params atp = read_resume_data(&resume_data[0], int(resume_data.size()), ec);
-	TEST_EQUAL(ec, error_code(errors::invalid_file_tag, get_libtorrent_category()));
+	TEST_EQUAL(ec, error_code(errors::invalid_file_tag));
 }
 
 TORRENT_TEST(read_resume_mismatching_torrent)

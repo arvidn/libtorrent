@@ -296,21 +296,21 @@ TORRENT_TEST(extract_peer_not_a_dictionary)
 {
 	// not a dictionary
 	peer_entry result = extract_peer("2:ip11:example.com"
-		, error_code(errors::invalid_peer_dict, get_libtorrent_category()), false);
+		, error_code(errors::invalid_peer_dict), false);
 }
 
 TORRENT_TEST(extract_peer_missing_ip)
 {
 	// missing IP
 	peer_entry result = extract_peer("d7:peer id20:abababababababababab4:porti1337ee"
-		, error_code(errors::invalid_tracker_response, get_libtorrent_category()), false);
+		, error_code(errors::invalid_tracker_response), false);
 }
 
 TORRENT_TEST(extract_peer_missing_port)
 {
 	// missing port
 	peer_entry result = extract_peer("d7:peer id20:abababababababababab2:ip4:abcde"
-		, error_code(errors::invalid_tracker_response, get_libtorrent_category()), false);
+		, error_code(errors::invalid_tracker_response), false);
 }
 
 TORRENT_TEST(udp_tracker)

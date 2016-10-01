@@ -2124,7 +2124,7 @@ namespace libtorrent
 		if (t->share_mode()) return false;
 
 		if (m_upload_only && t->is_upload_only()
-			&& can_disconnect(error_code(errors::upload_upload_connection, get_libtorrent_category())))
+			&& can_disconnect(errors::upload_upload_connection))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "UPLOAD_ONLY", "the peer is upload-only and our torrent is also upload-only");
@@ -2137,7 +2137,7 @@ namespace libtorrent
 			&& !m_interesting
 			&& m_bitfield_received
 			&& t->are_files_checked()
-			&& can_disconnect(error_code(errors::uninteresting_upload_peer, get_libtorrent_category())))
+			&& can_disconnect(error_code(errors::uninteresting_upload_peer)))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "UPLOAD_ONLY", "the peer is upload-only and we're not interested in it");
@@ -2352,8 +2352,7 @@ namespace libtorrent
 				// may be a legitimate number of requests to have in flight when
 				// getting choked
 				if (m_num_invalid_requests > 300 && !m_peer_choked
-					&& can_disconnect(error_code(errors::too_many_requests_when_choked
-						, get_libtorrent_category())))
+					&& can_disconnect(error_code(errors::too_many_requests_when_choked)))
 				{
 					disconnect(errors::too_many_requests_when_choked, op_bittorrent, 2);
 					return;
@@ -2375,7 +2374,7 @@ namespace libtorrent
 		// disconnect peers that downloads more than foo times an allowed
 		// fast piece
 		if (m_choked && fast_idx != -1 && m_accept_fast_piece_cnt[fast_idx] >= 3 * blocks_per_piece
-			&& can_disconnect(error_code(errors::too_many_requests_when_choked, get_libtorrent_category())))
+			&& can_disconnect(error_code(errors::too_many_requests_when_choked)))
 		{
 			disconnect(errors::too_many_requests_when_choked, op_bittorrent, 2);
 			return;
@@ -2394,7 +2393,7 @@ namespace libtorrent
 			// allow peers to send request up to 2 seconds after getting choked,
 			// then disconnect them
 			if (aux::time_now() - seconds(2) > m_last_choke
-				&& can_disconnect(error_code(errors::too_many_requests_when_choked, get_libtorrent_category())))
+				&& can_disconnect(error_code(errors::too_many_requests_when_choked)))
 			{
 				disconnect(errors::too_many_requests_when_choked, op_bittorrent, 2);
 				return;
@@ -4079,8 +4078,7 @@ namespace libtorrent
 				break;
 			}
 
-			if (ec == error_code(boost::asio::error::eof
-				, boost::asio::error::get_misc_category())
+			if (ec == boost::asio::error::eof
 				&& !in_handshake()
 				&& !is_connecting()
 				&& aux::time_now() - connected_time() < seconds(15))
@@ -4144,29 +4142,29 @@ namespace libtorrent
 			m_counters.inc_stats_counter(counters::invalid_arg_peers);
 		else if (ec == error::operation_aborted)
 			m_counters.inc_stats_counter(counters::aborted_peers);
-		else if (ec == error_code(errors::upload_upload_connection)
-			|| ec == error_code(errors::uninteresting_upload_peer)
-			|| ec == error_code(errors::torrent_aborted)
-			|| ec == error_code(errors::self_connection)
-			|| ec == error_code(errors::torrent_paused))
+		else if (ec == errors::upload_upload_connection
+			|| ec == errors::uninteresting_upload_peer
+			|| ec == errors::torrent_aborted
+			|| ec == errors::self_connection
+			|| ec == errors::torrent_paused)
 			m_counters.inc_stats_counter(counters::uninteresting_peers);
 
-		if (ec == error_code(errors::timed_out)
+		if (ec == errors::timed_out
 			|| ec == error::timed_out)
 			m_counters.inc_stats_counter(counters::transport_timeout_peers);
 
-		if (ec == error_code(errors::timed_out_inactivity)
-			|| ec == error_code(errors::timed_out_no_request)
-			|| ec == error_code(errors::timed_out_no_interest))
+		if (ec == errors::timed_out_inactivity
+			|| ec == errors::timed_out_no_request
+			|| ec == errors::timed_out_no_interest)
 			m_counters.inc_stats_counter(counters::timeout_peers);
 
-		if (ec == error_code(errors::no_memory))
+		if (ec == errors::no_memory)
 			m_counters.inc_stats_counter(counters::no_memory_peers);
 
-		if (ec == error_code(errors::too_many_connections))
+		if (ec == errors::too_many_connections)
 			m_counters.inc_stats_counter(counters::too_many_peers);
 
-		if (ec == error_code(errors::timed_out_no_handshake))
+		if (ec == errors::timed_out_no_handshake)
 			m_counters.inc_stats_counter(counters::connect_timeouts);
 
 		if (error > 0)
@@ -4715,7 +4713,7 @@ namespace libtorrent
 #endif
 
 			if (d > seconds(connect_timeout)
-				&& can_disconnect(error_code(errors::timed_out, get_libtorrent_category())))
+				&& can_disconnect(error_code(errors::timed_out)))
 			{
 #ifndef TORRENT_DISABLE_LOGGING
 				peer_log(peer_log_alert::info, "CONNECT_FAILED", "waited %d seconds"
@@ -4736,7 +4734,7 @@ namespace libtorrent
 		// because of less work in second_tick(), and might let use remove ticking
 		// entirely eventually
 		if (may_timeout && d > seconds(timeout()) && !m_connecting && m_reading_bytes == 0
-			&& can_disconnect(error_code(errors::timed_out_inactivity, get_libtorrent_category())))
+			&& can_disconnect(error_code(errors::timed_out_inactivity)))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "LAST_ACTIVITY", "%d seconds ago"
@@ -4779,7 +4777,7 @@ namespace libtorrent
 			&& m_peer_interested
 			&& t && t->is_upload_only()
 			&& d > seconds(60)
-			&& can_disconnect(error_code(errors::timed_out_no_request, get_libtorrent_category())))
+			&& can_disconnect(error_code(errors::timed_out_no_request)))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "NO_REQUEST", "waited %d seconds"

@@ -74,10 +74,10 @@ namespace libtorrent
 		{ return boost::system::error_condition(ev, *this); }
 	};
 
-	TORRENT_EXPORT boost::system::error_category& get_socks_category()
+	TORRENT_EXPORT boost::system::error_category& socks_category()
 	{
-		static socks_error_category socks_category;
-		return socks_category;
+		static socks_error_category cat;
+		return cat;
 	}
 
 	namespace
