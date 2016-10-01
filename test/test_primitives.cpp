@@ -172,7 +172,7 @@ TORRENT_TEST(error_condition)
 #ifdef TORRENT_WINDOWS
 	error_code ec(ERROR_FILE_NOT_FOUND, system_category())
 #else
-	error_code ec(ENOENT, system_category())
+	error_code ec(ENOENT, system_category());
 #endif
 	TEST_CHECK(ec == boost::system::errc::no_such_file_or_directory);
 }
