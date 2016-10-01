@@ -632,7 +632,7 @@ namespace libtorrent
 	}
 
 #define TORRENT_FAIL_BDECODE(code) do { \
-	ec = error_code(code); \
+	ec = code; \
 	if (error_pos) *error_pos = start - orig_start; \
 	goto done; \
 	} TORRENT_WHILE_0
@@ -646,7 +646,7 @@ namespace libtorrent
 		if (end - start > bdecode_token::max_offset)
 		{
 			if (error_pos) *error_pos = 0;
-			ec = error_code(bdecode_errors::limit_exceeded);
+			ec = bdecode_errors::limit_exceeded;
 			return -1;
 		}
 

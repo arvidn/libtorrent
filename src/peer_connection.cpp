@@ -2137,7 +2137,7 @@ namespace libtorrent
 			&& !m_interesting
 			&& m_bitfield_received
 			&& t->are_files_checked()
-			&& can_disconnect(error_code(errors::uninteresting_upload_peer)))
+			&& can_disconnect(errors::uninteresting_upload_peer))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "UPLOAD_ONLY", "the peer is upload-only and we're not interested in it");
@@ -2352,7 +2352,7 @@ namespace libtorrent
 				// may be a legitimate number of requests to have in flight when
 				// getting choked
 				if (m_num_invalid_requests > 300 && !m_peer_choked
-					&& can_disconnect(error_code(errors::too_many_requests_when_choked)))
+					&& can_disconnect(errors::too_many_requests_when_choked))
 				{
 					disconnect(errors::too_many_requests_when_choked, op_bittorrent, 2);
 					return;
@@ -2374,7 +2374,7 @@ namespace libtorrent
 		// disconnect peers that downloads more than foo times an allowed
 		// fast piece
 		if (m_choked && fast_idx != -1 && m_accept_fast_piece_cnt[fast_idx] >= 3 * blocks_per_piece
-			&& can_disconnect(error_code(errors::too_many_requests_when_choked)))
+			&& can_disconnect(errors::too_many_requests_when_choked))
 		{
 			disconnect(errors::too_many_requests_when_choked, op_bittorrent, 2);
 			return;
@@ -2393,7 +2393,7 @@ namespace libtorrent
 			// allow peers to send request up to 2 seconds after getting choked,
 			// then disconnect them
 			if (aux::time_now() - seconds(2) > m_last_choke
-				&& can_disconnect(error_code(errors::too_many_requests_when_choked)))
+				&& can_disconnect(errors::too_many_requests_when_choked))
 			{
 				disconnect(errors::too_many_requests_when_choked, op_bittorrent, 2);
 				return;
@@ -4713,7 +4713,7 @@ namespace libtorrent
 #endif
 
 			if (d > seconds(connect_timeout)
-				&& can_disconnect(error_code(errors::timed_out)))
+				&& can_disconnect(errors::timed_out))
 			{
 #ifndef TORRENT_DISABLE_LOGGING
 				peer_log(peer_log_alert::info, "CONNECT_FAILED", "waited %d seconds"
@@ -4734,7 +4734,7 @@ namespace libtorrent
 		// because of less work in second_tick(), and might let use remove ticking
 		// entirely eventually
 		if (may_timeout && d > seconds(timeout()) && !m_connecting && m_reading_bytes == 0
-			&& can_disconnect(error_code(errors::timed_out_inactivity)))
+			&& can_disconnect(errors::timed_out_inactivity))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "LAST_ACTIVITY", "%d seconds ago"
@@ -4777,7 +4777,7 @@ namespace libtorrent
 			&& m_peer_interested
 			&& t && t->is_upload_only()
 			&& d > seconds(60)
-			&& can_disconnect(error_code(errors::timed_out_no_request)))
+			&& can_disconnect(errors::timed_out_no_request))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "NO_REQUEST", "waited %d seconds"
@@ -4807,7 +4807,7 @@ namespace libtorrent
 			&& d2 > time_limit
 			&& (m_ses.num_connections() >= m_settings.get_int(settings_pack::connections_limit)
 				|| (t && t->num_peers() >= t->max_connections()))
-			&& can_disconnect(error_code(errors::timed_out_no_interest)))
+			&& can_disconnect(errors::timed_out_no_interest))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log(peer_log_alert::info))
@@ -6400,12 +6400,12 @@ namespace libtorrent
 			&& !t->share_mode())
 		{
 			bool const ok_to_disconnect =
-				can_disconnect(error_code(errors::upload_upload_connection))
-					|| can_disconnect(error_code(errors::uninteresting_upload_peer))
-					|| can_disconnect(error_code(errors::too_many_requests_when_choked))
-					|| can_disconnect(error_code(errors::timed_out_no_interest))
-					|| can_disconnect(error_code(errors::timed_out_no_request))
-					|| can_disconnect(error_code(errors::timed_out_inactivity));
+				can_disconnect(errors::upload_upload_connection)
+					|| can_disconnect(errors::uninteresting_upload_peer)
+					|| can_disconnect(errors::too_many_requests_when_choked)
+					|| can_disconnect(errors::timed_out_no_interest)
+					|| can_disconnect(errors::timed_out_no_request)
+					|| can_disconnect(errors::timed_out_inactivity);
 
 			// make sure upload only peers are disconnected
 			if (t->is_upload_only()

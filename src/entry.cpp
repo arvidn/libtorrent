@@ -74,7 +74,7 @@ namespace libtorrent
 		TORRENT_NO_RETURN inline void throw_error()
 		{
 #ifndef BOOST_NO_EXCEPTIONS
-			throw system_error(error_code(errors::invalid_entry_type));
+			throw system_error(errors::invalid_entry_type);
 #else
 			std::terminate();
 #endif

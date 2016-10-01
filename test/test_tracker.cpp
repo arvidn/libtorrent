@@ -201,7 +201,7 @@ TORRENT_TEST(parse_failure_reason)
 	tracker_response resp = parse_tracker_response(response, sizeof(response) - 1
 		, ec, false, sha1_hash());
 
-	TEST_EQUAL(ec, error_code(errors::tracker_failure));
+	TEST_EQUAL(ec, errors::tracker_failure);
 	TEST_EQUAL(resp.peers.size(), 0);
 	TEST_EQUAL(resp.failure_reason, "test message");
 }
@@ -296,21 +296,21 @@ TORRENT_TEST(extract_peer_not_a_dictionary)
 {
 	// not a dictionary
 	peer_entry result = extract_peer("2:ip11:example.com"
-		, error_code(errors::invalid_peer_dict), false);
+		, errors::invalid_peer_dict, false);
 }
 
 TORRENT_TEST(extract_peer_missing_ip)
 {
 	// missing IP
 	peer_entry result = extract_peer("d7:peer id20:abababababababababab4:porti1337ee"
-		, error_code(errors::invalid_tracker_response), false);
+		, errors::invalid_tracker_response, false);
 }
 
 TORRENT_TEST(extract_peer_missing_port)
 {
 	// missing port
 	peer_entry result = extract_peer("d7:peer id20:abababababababababab2:ip4:abcde"
-		, error_code(errors::invalid_tracker_response), false);
+		, errors::invalid_tracker_response, false);
 }
 
 TORRENT_TEST(udp_tracker)

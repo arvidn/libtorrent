@@ -578,13 +578,13 @@ void natpmp::on_reply(error_code const& e
 		m->expires = aux::time_now() + hours(2);
 		portmap_protocol const proto = m->protocol;
 		m_callback.on_port_mapping(index, address(), 0, proto
-			, error_code(ev), aux::portmap_transport::natpmp);
+			, ev, aux::portmap_transport::natpmp);
 	}
 	else if (m->act == mapping_t::action::add)
 	{
 		portmap_protocol const proto = m->protocol;
 		m_callback.on_port_mapping(index, m_external_ip, m->external_port, proto
-			, error_code(errors::no_error), aux::portmap_transport::natpmp);
+			, errors::no_error, aux::portmap_transport::natpmp);
 	}
 
 	if (m_abort) return;
