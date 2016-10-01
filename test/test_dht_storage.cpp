@@ -149,7 +149,7 @@ TORRENT_TEST(dual_stack)
 	TEST_EQUAL(peers6["values"].list().size(), 2);
 }
 
-TORRENT_TEST(put_immutable_item)
+TORRENT_TEST(put_items)
 {
 	dht_settings sett = test_settings();
 	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
@@ -435,6 +435,117 @@ TORRENT_TEST(update_node_ids)
 	TEST_CHECK(!r);
 	r = s->get_immutable_item(h3, item);
 	TEST_CHECK(r);
+}
+
+TORRENT_TEST(save_load_items)
+{
+	dht_settings sett = test_settings();
+	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
+
+	span<char const> buf1 = {"123", 3};
+	span<char const> buf2 = {"1234", 4};
+	sha1_hash const t1 = item_target_id(buf1);
+	sha1_hash const t2 = item_target_id(buf2);
+
+	s->put_immutable_item(t1, buf1, addr("124.31.75.21"));
+	s->put_immutable_item(t2, buf2, addr("124.31.75.21"));
+
+	public_key pk;
+	signature sig;
+
+	span<char const> buf3 = {"12345", 5};
+	span<char const> buf4 = {"123456", 6};
+	span<char const> salt1 = {"salt1", 5};
+	span<char const> salt2 = {"salt2", 5};
+	sha1_hash const t3 = item_target_id(salt1, pk);
+	sha1_hash const t4 = item_target_id(salt2, pk);
+
+	s->put_mutable_item(t3, buf3, sig, sequence_number(1), pk
+		, salt1, addr("124.31.75.21"));
+	s->put_mutable_item(t4, buf4, sig, sequence_number(1), pk
+		, salt2, addr("124.31.75.21"));
+
+	TEST_EQUAL(s->counters().immutable_data, 2);
+	TEST_EQUAL(s->counters().mutable_data, 2);
+
+	dht_storage_items items = s->save_items();
+	TEST_EQUAL(items.immutables.size(), 2);
+	TEST_EQUAL(items.mutables.size(), 2);
+
+	s->load_items(std::move(items)); // test move
+	TEST_EQUAL(s->counters().immutable_data, 2);
+	TEST_EQUAL(s->counters().mutable_data, 2);
+	entry item;
+	bool r;
+	r = s->get_immutable_item(t1, item);
+	TEST_CHECK(r);
+	r = s->get_immutable_item(t2, item);
+	TEST_CHECK(r);
+	r = s->get_mutable_item(t3, sequence_number(0), false, item);
+	TEST_CHECK(r);
+	r = s->get_mutable_item(t4, sequence_number(0), false, item);
+	TEST_CHECK(r);
+
+	{
+		items = s->save_items();
+		TEST_EQUAL(items.immutables.size(), 2);
+		TEST_EQUAL(items.mutables.size(), 2);
+		sett.max_dht_items = 1;
+		std::unique_ptr<dht_storage_interface> s2(create_default_dht_storage(sett));
+		dht_immutable_item const& i1q = items.immutables[0];
+		dht_immutable_item const& i2q = items.immutables[1];
+		dht_mutable_item const& i3q = items.mutables[0];
+		dht_mutable_item const& i4q = items.mutables[1];
+		sha1_hash const t1q = item_target_id({i1q.value.get(), size_t(i1q.size)});
+		sha1_hash const t2q = item_target_id({i2q.value.get(), size_t(i2q.size)});
+		sha1_hash const t3q = item_target_id(i3q.salt, i3q.key);
+		sha1_hash const t4q = item_target_id(i4q.salt, i4q.key);
+		s2->load_items(items);
+		r = s2->get_immutable_item(t1q, item);
+		TEST_CHECK(r);
+		r = s2->get_immutable_item(t2q, item);
+		TEST_CHECK(!r);
+		r = s2->get_mutable_item(t3q, sequence_number(0), false, item);
+		TEST_CHECK(r);
+		r = s2->get_mutable_item(t4q, sequence_number(0), false, item);
+		TEST_CHECK(!r);
+	}
+
+	{
+		items = s->save_items();
+		TEST_EQUAL(items.immutables.size(), 2);
+		TEST_EQUAL(items.mutables.size(), 2);
+		items.immutables[0].last_seen = time_point(seconds(120));
+		items.immutables[1].last_seen = time_point(seconds(20));
+		items.mutables[0].last_seen = time_point(seconds(120));
+		items.mutables[1].last_seen = time_point(seconds(20));
+		sett.max_dht_items = 2;
+		sett.item_lifetime = 60;
+		std::unique_ptr<dht_storage_interface> s3(create_default_dht_storage(sett));
+		dht_immutable_item const& i1q = items.immutables[0];
+		dht_immutable_item const& i2q = items.immutables[1];
+		dht_mutable_item const& i3q = items.mutables[0];
+		dht_mutable_item const& i4q = items.mutables[1];
+		sha1_hash const t1q = item_target_id({i1q.value.get(), size_t(i1q.size)});
+		sha1_hash const t2q = item_target_id({i2q.value.get(), size_t(i2q.size)});
+		sha1_hash const t3q = item_target_id(i3q.salt, i3q.key);
+		sha1_hash const t4q = item_target_id(i4q.salt, i4q.key);
+		s3->load_items(items);
+		r = s3->get_immutable_item(t1q, item);
+		TEST_CHECK(!r);
+		r = s3->get_immutable_item(t2q, item);
+		TEST_CHECK(r);
+		r = s3->get_mutable_item(t3q, sequence_number(0), false, item);
+		TEST_CHECK(!r);
+		r = s3->get_mutable_item(t4q, sequence_number(0), false, item);
+		TEST_CHECK(r);
+	}
+
+	// item move test
+	dht_immutable_item i1;
+	i1.value.reset(new char[20]);
+	dht_immutable_item i2 = std::move(i1);
+	TEST_CHECK(!i1.value);
 }
 
 #endif

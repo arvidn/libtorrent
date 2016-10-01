@@ -34,6 +34,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_DHT_STORAGE_HPP
 
 #include <functional>
+#include <memory>
+#include <ctime>
+#include <vector>
+#include <string>
 
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/types.hpp>
@@ -42,6 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/address.hpp>
 #include <libtorrent/span.hpp>
 #include <libtorrent/string_view.hpp>
+#include <libtorrent/bloom_filter.hpp>
+#include <libtorrent/time.hpp>
 
 namespace libtorrent
 {
@@ -62,6 +68,50 @@ namespace dht
 
 		// This member function set the counters to zero.
 		void reset();
+	};
+
+	struct TORRENT_EXPORT dht_immutable_item
+	{
+		dht_immutable_item() = default;
+		dht_immutable_item(dht_immutable_item const& item);
+		dht_immutable_item(dht_immutable_item&&) = default;
+		dht_immutable_item& operator=(dht_immutable_item const& item);
+		dht_immutable_item& operator=(dht_immutable_item&&) = default;
+
+		// the actual value
+		std::unique_ptr<char[]> value;
+		// this counts the number of IPs we have seen
+		// announcing this item, this is used to determine
+		// popularity if we reach the limit of items to store
+		bloom_filter<128> ips;
+		// the last time we heard about this item
+		// the correct interpretation of this field
+		// requires a time reference
+		time_point last_seen;
+		// number of IPs in the bloom filter
+		int num_announcers = 0;
+		// size of malloced space pointed to by value
+		int size = 0;
+	};
+
+	struct TORRENT_EXPORT dht_mutable_item : dht_immutable_item
+	{
+		signature sig;
+		sequence_number seq;
+		public_key key;
+		std::string salt;
+	};
+
+	// This structure hold the DHT items (immutable and mutable)
+	// exported by the DHT's storage.
+	struct TORRENT_EXPORT dht_storage_items
+	{
+		// time reference to interpret the item's ``last_seen``
+		// actual last_seen time is (timestamp - total_seconds(last_seen))
+		std::time_t timestamp;
+
+		std::vector<dht_immutable_item> immutables;
+		std::vector<dht_mutable_item> mutables;
 	};
 
 	// The DHT storage interface is a pure virtual class that can
@@ -213,6 +263,24 @@ namespace dht
 		// storage cleanup.
 		//
 		virtual void tick() = 0;
+
+		// Exports the stored items (immutable and mutable).
+		//
+		// For implementers:
+		// In case you provide a custom implementation, take in consideration
+		// that the data could be used, saved or loaded and that means that
+		// you should take care of the amount of data you want to return. It's
+		// advisable that you save no more than ``dht_settings::max_dht_items``
+		// for each item's type.
+		virtual dht_storage_items save_items() const = 0;
+
+		// Loads the items in the storage.
+		//
+		// For implementers:
+		// It's recommended that you take in consideration the ``last_seen``
+		// field in the items during the load phase. Similarly you should not
+		// store more than ``dht_settings::max_dht_items``.
+		virtual void load_items(dht_storage_items items) = 0;
 
 		virtual dht_storage_counters counters() const = 0;
 

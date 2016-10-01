@@ -37,15 +37,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <utility>
 #include <map>
 #include <set>
-#include <string>
+#include <chrono>
 
 #include <libtorrent/socket_io.hpp>
 #include <libtorrent/aux_/time.hpp>
 #include <libtorrent/config.hpp>
-#include <libtorrent/time.hpp>
-#include <libtorrent/bloom_filter.hpp>
 #include <libtorrent/session_settings.hpp>
 #include <libtorrent/random.hpp>
+
+#include <libtorrent/kademlia/item.hpp>
 
 namespace libtorrent {
 namespace dht {
@@ -79,32 +79,6 @@ namespace
 
 	// TODO: 2 make this configurable in dht_settings
 	enum { announce_interval = 30 };
-
-	struct dht_immutable_item
-	{
-		// the actual value
-		std::unique_ptr<char[]> value;
-		// this counts the number of IPs we have seen
-		// announcing this item, this is used to determine
-		// popularity if we reach the limit of items to store
-		bloom_filter<128> ips;
-		// the last time we heard about this item
-		// the correct interpretation of this field
-		// requires a time reference
-		time_point last_seen;
-		// number of IPs in the bloom filter
-		int num_announcers = 0;
-		// size of malloced space pointed to by value
-		int size = 0;
-	};
-
-	struct dht_mutable_item : dht_immutable_item
-	{
-		signature sig;
-		sequence_number seq;
-		public_key key;
-		std::string salt;
-	};
 
 	void set_value(dht_immutable_item& item, span<char const> buf)
 	{
@@ -503,6 +477,83 @@ namespace
 			}
 		}
 
+		dht_storage_items save_items() const override
+		{
+			using std::chrono::system_clock;
+
+			dht_storage_items ret;
+
+			auto const now = aux::time_now();
+			ret.timestamp = system_clock::to_time_t(system_clock::now());
+
+			for (auto const& p : m_immutable_table)
+			{
+				dht_immutable_item item = p.second;
+				item.last_seen = time_point(now - item.last_seen);
+				ret.immutables.push_back(std::move(item));
+			}
+
+			for (auto const& p : m_mutable_table)
+			{
+				dht_mutable_item item = p.second;
+				item.last_seen = time_point(now - item.last_seen);
+				ret.mutables.push_back(std::move(item));
+			}
+
+			return ret;
+		}
+
+		void load_items(dht_storage_items items) override
+		{
+			using std::chrono::system_clock;
+
+			// Ideally the two list should be sorted by priority and
+			// trimmed, in practice this is a costly proposition due
+			// to the need of the target calculation.
+			//
+			// item.last_seen.time_since_epoch() is the internal duration
+			// of the (steady_clock::)time_point
+
+			auto const now = aux::time_now();
+			auto const offset_time = system_clock::now() -
+				system_clock::from_time_t(items.timestamp);
+			auto const lifetime = seconds(m_settings.item_lifetime);
+
+			// returns true if not expired, always set last_seen
+			auto touch = [&](dht_immutable_item& item)
+			{
+				item.last_seen = now -
+					(offset_time + item.last_seen.time_since_epoch());
+				return lifetime.count() == 0
+					|| (item.last_seen + lifetime > now);
+			};
+
+			m_immutable_table.clear();
+			m_counters.immutable_data = 0;
+			for (auto& item : items.immutables)
+			{
+				if (!touch(item)) continue;
+
+				span<char const> buf = {item.value.get(), size_t(item.size)};
+				m_immutable_table.insert(std::make_pair(
+					item_target_id(buf), std::move(item)));
+				m_counters.immutable_data += 1;
+				if (m_counters.immutable_data >= m_settings.max_dht_items) break;
+			}
+
+			m_mutable_table.clear();
+			m_counters.mutable_data = 0;
+			for (auto& item : items.mutables)
+			{
+				if (!touch(item)) continue;
+
+				m_mutable_table.insert(std::make_pair(
+					item_target_id(item.salt, item.key), std::move(item)));
+				m_counters.mutable_data += 1;
+				if (m_counters.mutable_data >= m_settings.max_dht_items) break;
+			}
+		}
+
 		dht_storage_counters counters() const override
 		{
 			return m_counters;
@@ -541,6 +592,21 @@ void dht_storage_counters::reset()
 	peers = 0;
 	immutable_data = 0;
 	mutable_data = 0;
+}
+
+dht_immutable_item::dht_immutable_item(dht_immutable_item const& item)
+	: ips(item.ips), last_seen(item.last_seen), num_announcers(item.num_announcers)
+{
+	set_value(*this, {item.value.get(), size_t(item.size)});
+}
+
+dht_immutable_item& dht_immutable_item::operator=(dht_immutable_item const& item)
+{
+	set_value(*this, {item.value.get(), size_t(item.size)});
+	ips = item.ips;
+	last_seen = item.last_seen;
+	num_announcers = item.num_announcers;
+	return *this;
 }
 
 std::unique_ptr<dht_storage_interface> dht_default_storage_constructor(
