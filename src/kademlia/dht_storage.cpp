@@ -88,7 +88,9 @@ namespace
 		// announcing this item, this is used to determine
 		// popularity if we reach the limit of items to store
 		bloom_filter<128> ips;
-		// the last time we heard about this
+		// the last time we heard about this item
+		// the correct interpretation of this field
+		// requires a time reference
 		time_point last_seen;
 		// number of IPs in the bloom filter
 		int num_announcers = 0;
@@ -103,6 +105,17 @@ namespace
 		public_key key;
 		std::string salt;
 	};
+
+	void set_value(dht_immutable_item& item, span<char const> buf)
+	{
+		int const size = int(buf.size());
+		if (item.size != size)
+		{
+			item.value.reset(new char[size]);
+			item.size = size;
+		}
+		std::memcpy(item.value.get(), buf.data(), size);
+	}
 
 	void touch_item(dht_immutable_item& f, address const& addr)
 	{
@@ -350,9 +363,7 @@ namespace
 					m_counters.immutable_data -= 1;
 				}
 				dht_immutable_item to_add;
-				to_add.value.reset(new char[buf.size()]);
-				to_add.size = int(buf.size());
-				std::memcpy(to_add.value.get(), buf.data(), buf.size());
+				set_value(to_add, buf);
 
 				std::tie(i, std::ignore) = m_immutable_table.insert(
 					std::make_pair(target, std::move(to_add)));
@@ -416,13 +427,11 @@ namespace
 					m_counters.mutable_data -= 1;
 				}
 				dht_mutable_item to_add;
-				to_add.value.reset(new char[buf.size()]);
-				to_add.size = int(buf.size());
+				set_value(to_add, buf);
 				to_add.seq = seq;
-				to_add.salt.assign(salt.data(), salt.size());
+				to_add.salt = {salt.begin(), salt.end()};
 				to_add.sig = sig;
 				to_add.key = pk;
-				std::memcpy(to_add.value.get(), buf.data(), buf.size());
 
 				std::tie(i, std::ignore) = m_mutable_table.insert(
 					std::make_pair(target, std::move(to_add)));
@@ -435,14 +444,9 @@ namespace
 
 				if (item.seq < seq)
 				{
-					if (item.size != buf.size())
-					{
-						item.value.reset(new char[buf.size()]);
-						item.size = int(buf.size());
-					}
+					set_value(item, buf);
 					item.seq = seq;
 					item.sig = sig;
-					std::memcpy(item.value.get(), buf.data(), buf.size());
 				}
 			}
 
@@ -451,8 +455,6 @@ namespace
 
 		void tick() override
 		{
-			time_point const now(aux::time_now());
-
 			// look through all peers and see if any have timed out
 			for (auto i = m_map.begin(), end(m_map.end()); i != end;)
 			{
@@ -473,6 +475,7 @@ namespace
 
 			if (0 == m_settings.item_lifetime) return;
 
+			time_point const now = aux::time_now();
 			time_duration lifetime = seconds(m_settings.item_lifetime);
 			// item lifetime must >= 120 minutes.
 			if (lifetime < minutes(120)) lifetime = minutes(120);
