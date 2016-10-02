@@ -179,7 +179,7 @@ namespace libtorrent
 		return msgs[ev];
 	}
 
-	boost::system::error_category& get_bdecode_category()
+	boost::system::error_category& bdecode_category()
 	{
 		static bdecode_error_category bdecode_category;
 		return bdecode_category;
@@ -189,7 +189,7 @@ namespace libtorrent
 	{
 		boost::system::error_code make_error_code(error_code_enum e)
 		{
-			return boost::system::error_code(e, get_bdecode_category());
+			return boost::system::error_code(e, bdecode_category());
 		}
 	}
 
@@ -632,7 +632,7 @@ namespace libtorrent
 	}
 
 #define TORRENT_FAIL_BDECODE(code) do { \
-	ec = make_error_code(code); \
+	ec = code; \
 	if (error_pos) *error_pos = start - orig_start; \
 	goto done; \
 	} TORRENT_WHILE_0
@@ -646,7 +646,7 @@ namespace libtorrent
 		if (end - start > bdecode_token::max_offset)
 		{
 			if (error_pos) *error_pos = 0;
-			ec = make_error_code(bdecode_errors::limit_exceeded);
+			ec = bdecode_errors::limit_exceeded;
 			return -1;
 		}
 

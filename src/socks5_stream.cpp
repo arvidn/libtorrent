@@ -42,7 +42,7 @@ namespace libtorrent
 	{
 		boost::system::error_code make_error_code(socks_error_code e)
 		{
-			return error_code(e, get_socks_category());
+			return error_code(e, socks_category());
 		}
 	}
 
@@ -74,10 +74,10 @@ namespace libtorrent
 		{ return boost::system::error_condition(ev, *this); }
 	};
 
-	TORRENT_EXPORT boost::system::error_category& get_socks_category()
+	TORRENT_EXPORT boost::system::error_category& socks_category()
 	{
-		static socks_error_category socks_category;
-		return socks_category;
+		static socks_error_category cat;
+		return cat;
 	}
 
 	namespace
@@ -386,7 +386,7 @@ namespace libtorrent
 			}
 			if (response != 0)
 			{
-				error_code ec(socks_error::general_failure, get_socks_category());
+				error_code ec(socks_error::general_failure);
 				switch (response)
 				{
 					case 2: ec = boost::asio::error::no_permission; break;
@@ -483,7 +483,7 @@ namespace libtorrent
 				return;
 			}
 
-			error_code ec(socks_error::general_failure, get_socks_category());
+			error_code ec(socks_error::general_failure);
 			switch (response)
 			{
 				case 91: ec = boost::asio::error::connection_refused; break;

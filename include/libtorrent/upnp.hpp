@@ -91,7 +91,13 @@ namespace libtorrent
 	}
 
 	// the boost.system error category for UPnP errors
-	TORRENT_EXPORT boost::system::error_category& get_upnp_category();
+	TORRENT_EXPORT boost::system::error_category& upnp_category();
+
+#ifndef TORRENT_NO_DEPRECATED
+	TORRENT_DEPRECATED
+	inline boost::system::error_category& get_upnp_category()
+	{ return upnp_category(); }
+#endif
 
 struct parse_state
 {
@@ -192,7 +198,6 @@ private:
 	struct rootdevice;
 	void next(rootdevice& d, int i);
 	void update_map(rootdevice& d, int i);
-
 
 	void on_upnp_xml(error_code const& e
 		, libtorrent::http_parser const& p, rootdevice& d
@@ -377,8 +382,6 @@ namespace boost { namespace system {
 	template<> struct is_error_code_enum<libtorrent::upnp_errors::error_code_enum>
 	{ static const bool value = true; };
 
-	template<> struct is_error_condition_enum<libtorrent::upnp_errors::error_code_enum>
-	{ static const bool value = true; };
 } }
 
 #endif

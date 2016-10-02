@@ -532,7 +532,7 @@ namespace libtorrent
 		// something failed. Does the filesystem not support hard links?
 		// TODO: 3 find out what error code is reported when the filesystem
 		// does not support hard links.
-		DWORD error = GetLastError();
+		DWORD const error = GetLastError();
 		if (error != ERROR_NOT_SUPPORTED && error != ERROR_ACCESS_DENIED)
 		{
 			// it's possible CreateHardLink will copy the file internally too,

@@ -252,13 +252,13 @@ namespace libtorrent
 
 		if (t.files().num_files() == 0)
 		{
-			ec = error_code(errors::no_files_in_torrent, get_libtorrent_category());
+			ec = errors::no_files_in_torrent;
 			return;
 		}
 
 		if (t.files().total_size() == 0)
 		{
-			ec = error_code(errors::torrent_invalid_length, get_libtorrent_category());
+			ec = errors::torrent_invalid_length;
 			return;
 		}
 

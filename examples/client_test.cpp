@@ -934,8 +934,7 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 		// handshake. The peers that we successfully connect to and then
 		// disconnect is more interesting.
 		if (pd->operation == op_connect
-			|| pd->error == error_code(errors::timed_out_no_handshake
-				, get_libtorrent_category()))
+			|| pd->error == errors::timed_out_no_handshake)
 			return true;
 	}
 

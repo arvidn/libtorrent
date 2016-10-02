@@ -39,7 +39,7 @@ namespace libtorrent
 
 	close_reason_t error_to_close_reason(error_code const& ec)
 	{
-		if (ec.category() == get_libtorrent_category())
+		if (ec.category() == libtorrent_category())
 		{
 #define TORRENT_MAP(error, close_reason) \
 	case errors:: error : \
@@ -157,7 +157,7 @@ namespace libtorrent
 					return close_no_memory;
 			}
 		}
-		else if (ec.category() == get_http_category())
+		else if (ec.category() == http_category())
 		{
 			return close_no_memory;
 		}

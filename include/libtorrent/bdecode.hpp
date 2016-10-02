@@ -99,12 +99,18 @@ example layout:
 
 namespace libtorrent {
 
-TORRENT_EXPORT boost::system::error_category& get_bdecode_category();
+TORRENT_EXPORT boost::system::error_category& bdecode_category();
+
+#ifndef TORRENT_NO_DEPRECATED
+TORRENT_DEPRECATED
+inline boost::system::error_category& get_bdecode_category()
+{ return bdecode_category(); }
+#endif
 
 namespace bdecode_errors
 {
 	// libtorrent uses boost.system's ``error_code`` class to represent
-	// errors. libtorrent has its own error category get_bdecode_category()
+	// errors. libtorrent has its own error category bdecode_category()
 	// with the error codes defined by error_code_enum.
 	enum error_code_enum
 	{
@@ -139,8 +145,6 @@ namespace boost { namespace system {
 	template<> struct is_error_code_enum<libtorrent::bdecode_errors::error_code_enum>
 	{ static const bool value = true; };
 
-	template<> struct is_error_condition_enum<libtorrent::bdecode_errors::error_code_enum>
-	{ static const bool value = true; };
 } }
 
 namespace libtorrent {

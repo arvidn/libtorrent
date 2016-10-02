@@ -137,27 +137,16 @@ namespace libtorrent
 	disk_io_thread::disk_io_thread(io_service& ios
 		, counters& cnt
 		, void* userdata
-		, int block_size)
-		: m_abort(false)
-		, m_num_running_threads(0)
-		, m_generic_io_jobs(*this, generic_thread)
+		, int const block_size)
+		: m_generic_io_jobs(*this, generic_thread)
 		, m_generic_threads(m_generic_io_jobs, ios)
 		, m_hash_io_jobs(*this, hasher_thread)
 		, m_hash_threads(m_hash_io_jobs, ios)
 		, m_userdata(userdata)
-		, m_last_cache_expiry(min_time())
 		, m_last_file_check(clock_type::now())
-		, m_file_pool(40)
 		, m_disk_cache(block_size, ios, std::bind(&disk_io_thread::trigger_cache_trim, this))
-		, m_cache_check_state(cache_check_idle)
 		, m_stats_counters(cnt)
 		, m_ios(ios)
-		, m_last_disk_aio_performance_warning(min_time())
-		, m_outstanding_reclaim_message(false)
-#if TORRENT_USE_ASSERTS
-		, m_magic(0x1337)
-		, m_jobs_aborted(false)
-#endif
 	{
 		ADD_OUTSTANDING_ASYNC("disk_io_thread::work");
 		error_code ec;
@@ -168,8 +157,8 @@ namespace libtorrent
 		// futexes, shared objects etc.
 		// 80% of the available file descriptors should go to connections
 		// 20% goes towards regular files
-		const int max_files = (std::min)((std::max)(5
-				, (max_open_files() - 20) * 2 / 10)
+		const int max_files = std::min(std::max(5
+			, (max_open_files() - 20) * 2 / 10)
 			, m_file_pool.size_limit());
 		m_file_pool.resize(max_files);
 	}

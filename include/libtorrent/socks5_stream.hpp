@@ -69,7 +69,13 @@ namespace socks_error {
 } // namespace socks_error
 
 // returns the error_category for SOCKS5 errors
-TORRENT_EXPORT boost::system::error_category& get_socks_category();
+TORRENT_EXPORT boost::system::error_category& socks_category();
+
+#ifndef TORRENT_NO_DEPRECATE
+TORRENT_DEPRECATED
+inline boost::system::error_category& get_socks_category()
+{ return socks_category(); }
+#endif
 
 class socks5_stream : public proxy_base
 {
@@ -254,8 +260,6 @@ namespace boost { namespace system {
 	template<> struct is_error_code_enum<libtorrent::socks_error::socks_error_code>
 	{ static const bool value = true; };
 
-	template<> struct is_error_condition_enum<libtorrent::socks_error::socks_error_code>
-	{ static const bool value = true; };
 } }
 
 #endif

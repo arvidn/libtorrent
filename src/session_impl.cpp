@@ -2821,7 +2821,7 @@ namespace aux {
 			{
 				m_alerts.emplace_alert<peer_disconnected_alert>(torrent_handle(), endp, peer_id()
 						, op_bittorrent, s->type()
-						, error_code(errors::too_many_connections, get_libtorrent_category())
+						, error_code(errors::too_many_connections)
 						, close_no_reason);
 			}
 #ifndef TORRENT_DISABLE_LOGGING
@@ -3419,7 +3419,7 @@ namespace aux {
 						int(i->second->num_peers() * m_settings.get_int(settings_pack::peer_turnover) / 100), 1)
 						, i->second->num_connect_candidates());
 					i->second->disconnect_peers(peers_to_disconnect
-						, error_code(errors::optimistic_disconnect, get_libtorrent_category()));
+						, error_code(errors::optimistic_disconnect));
 				}
 				else
 				{
@@ -3441,7 +3441,7 @@ namespace aux {
 							* m_settings.get_int(settings_pack::peer_turnover) / 100), 1)
 							, t->num_connect_candidates());
 						t->disconnect_peers(peers_to_disconnect
-							, error_code(errors::optimistic_disconnect, get_libtorrent_category()));
+							, error_code(errors::optimistic_disconnect));
 					}
 				}
 			}
@@ -6402,7 +6402,7 @@ namespace aux {
 				int const disconnect = std::min(to_disconnect, num - my_average);
 				to_disconnect -= disconnect;
 				t.second->disconnect_peers(disconnect
-					, error_code(errors::too_many_connections, get_libtorrent_category()));
+					, error_code(errors::too_many_connections));
 			}
 		}
 	}

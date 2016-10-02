@@ -78,7 +78,7 @@ namespace libtorrent
 	};
 
 
-	boost::system::error_category& get_i2p_category()
+	boost::system::error_category& i2p_category()
 	{
 		static i2p_error_category i2p_category;
 		return i2p_category;
@@ -88,7 +88,7 @@ namespace libtorrent
 	{
 		boost::system::error_code make_error_code(i2p_error_code e)
 		{
-			return error_code(e, get_i2p_category());
+			return error_code(e, i2p_category());
 		}
 	}
 
@@ -307,7 +307,7 @@ namespace libtorrent
 		}
 
 		error_code invalid_response(i2p_error::parse_failed
-			, get_i2p_category());
+			, i2p_category());
 
 		// 0-terminate the string and parse it
 		m_buffer.push_back(0);
@@ -391,7 +391,7 @@ namespace libtorrent
 			}
 		}
 
-		error_code ec(result, get_i2p_category());
+		error_code ec(result, i2p_category());
 		switch (result)
 		{
 			case i2p_error::no_error:

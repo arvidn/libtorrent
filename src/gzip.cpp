@@ -95,17 +95,17 @@ namespace libtorrent
 		return msgs[ev];
 	}
 
-	boost::system::error_category& get_gzip_category()
+	boost::system::error_category& gzip_category()
 	{
-		static gzip_error_category gzip_category;
-		return gzip_category;
+		static gzip_error_category category;
+		return category;
 	}
 
 	namespace gzip_errors
 	{
 		boost::system::error_code make_error_code(error_code_enum e)
 		{
-			return boost::system::error_code(e, get_gzip_category());
+			return boost::system::error_code(e, gzip_category());
 		}
 	}
 

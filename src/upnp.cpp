@@ -62,7 +62,7 @@ namespace upnp_errors
 {
 	boost::system::error_code make_error_code(error_code_enum e)
 	{
-		return error_code(e, get_upnp_category());
+		return error_code(e, upnp_category());
 	}
 
 } // upnp_errors namespace
@@ -1221,7 +1221,7 @@ struct upnp_error_category : boost::system::error_category
 	}
 };
 
-boost::system::error_category& get_upnp_category()
+boost::system::error_category& upnp_category()
 {
 	static upnp_error_category cat;
 	return cat;
@@ -1493,7 +1493,7 @@ void upnp::return_error(int mapping, int code)
 		error_string += e->msg;
 	}
 	portmap_protocol const proto = m_mappings[mapping].protocol;
-	m_callback.on_port_mapping(mapping, address(), 0, proto, error_code(code, get_upnp_category())
+	m_callback.on_port_mapping(mapping, address(), 0, proto, error_code(code, upnp_category())
 		, aux::portmap_transport::upnp);
 }
 
@@ -1558,8 +1558,8 @@ void upnp::on_upnp_unmap_response(error_code const& e
 	portmap_protocol const proto = m_mappings[mapping].protocol;
 
 	m_callback.on_port_mapping(mapping, address(), 0, proto, p.status_code() != 200
-		? error_code(p.status_code(), get_http_category())
-		: error_code(s.error_code, get_upnp_category())
+		? error_code(p.status_code(), http_category())
+		: error_code(s.error_code, upnp_category())
 		, aux::portmap_transport::upnp);
 
 	d.mapping[mapping].protocol = portmap_protocol::none;

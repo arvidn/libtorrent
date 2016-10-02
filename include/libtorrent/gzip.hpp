@@ -48,7 +48,13 @@ namespace libtorrent
 		, error_code& error);
 
 	// get the ``error_category`` for zip errors
-	TORRENT_EXPORT boost::system::error_category& get_gzip_category();
+	TORRENT_EXPORT boost::system::error_category& gzip_category();
+
+#ifndef TORRENT_NO_DEPRECATE
+	TORRENT_DEPRECATED
+	inline boost::system::error_category& get_gzip_category()
+	{ return gzip_category(); }
+#endif
 
 	namespace gzip_errors
 	{

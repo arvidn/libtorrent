@@ -540,13 +540,13 @@ namespace libtorrent
 		disk_io_thread_pool& pool_for_job(disk_io_job* j);
 
 		// set to true once we start shutting down
-		std::atomic<bool> m_abort;
+		std::atomic<bool> m_abort{false};
 
 		// this is a counter of how many threads are currently running.
 		// it's used to identify the last thread still running while
 		// shutting down. This last thread is responsible for cleanup
 		// must hold the job mutex to access
-		int m_num_running_threads;
+		int m_num_running_threads = 0;
 
 		// std::mutex to protect the m_generic_io_jobs and m_hash_io_jobs lists
 		mutable std::mutex m_job_mutex;
@@ -566,12 +566,12 @@ namespace libtorrent
 		void* m_userdata;
 
 		// the last time we expired write blocks from the cache
-		time_point m_last_cache_expiry;
+		time_point m_last_cache_expiry = min_time();
 
 		time_point m_last_file_check;
 
 		// LRU cache of open files
-		file_pool m_file_pool;
+		file_pool m_file_pool{40};
 
 		// disk cache
 		mutable std::mutex m_cache_mutex;
@@ -582,7 +582,7 @@ namespace libtorrent
 			cache_check_active,
 			cache_check_reinvoke
 		};
-		int m_cache_check_state;
+		int m_cache_check_state = cache_check_idle;
 
 		// total number of blocks in use by both the read
 		// and the write cache. This is not supposed to
@@ -608,7 +608,7 @@ namespace libtorrent
 		io_service& m_ios;
 
 		// used to rate limit disk performance warnings
-		time_point m_last_disk_aio_performance_warning;
+		time_point m_last_disk_aio_performance_warning = min_time();
 
 		// jobs that are completed are put on this queue
 		// whenever the queue size grows from 0 to 1
@@ -626,10 +626,10 @@ namespace libtorrent
 		// when this is true, there is an outstanding message in the
 		// message queue that will reclaim all blocks in
 		// m_blocks_to_reclaim, there's no need to send another one
-		bool m_outstanding_reclaim_message;
+		bool m_outstanding_reclaim_message = false;
 #if TORRENT_USE_ASSERTS
-		int m_magic;
-		std::atomic<bool> m_jobs_aborted;
+		int m_magic = 0x1337;
+		std::atomic<bool> m_jobs_aborted{false};
 #endif
 	};
 }

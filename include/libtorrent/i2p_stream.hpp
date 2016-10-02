@@ -70,7 +70,13 @@ namespace libtorrent {
 	}
 
 	// returns the error category for I2P errors
-	TORRENT_EXPORT boost::system::error_category& get_i2p_category();
+	TORRENT_EXPORT boost::system::error_category& i2p_category();
+
+#ifndef TORRENT_NO_DEPRECATE
+	TORRENT_DEPRECATED
+	inline boost::system::error_category& get_i2p_category()
+	{ return i2p_category(); }
+#endif
 
 class i2p_stream : public proxy_base
 {
@@ -225,10 +231,6 @@ namespace boost { namespace system {
 
 template<>
 struct is_error_code_enum<libtorrent::i2p_error::i2p_error_code>
-{ static const bool value = true; };
-
-template<>
-struct is_error_condition_enum<libtorrent::i2p_error::i2p_error_code>
 { static const bool value = true; };
 
 } }

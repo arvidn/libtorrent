@@ -298,7 +298,7 @@ void http_connection::start(std::string const& hostname, int port
 		if (is_i2p && i2p_conn->proxy().type != settings_pack::i2p_proxy)
 		{
 			m_timer.get_io_service().post(std::bind(&http_connection::callback
-				, me, error_code(errors::no_i2p_router, get_libtorrent_category()), static_cast<char*>(nullptr), 0));
+				, me, error_code(errors::no_i2p_router), static_cast<char*>(nullptr), 0));
 			return;
 		}
 #endif

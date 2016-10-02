@@ -72,14 +72,14 @@ namespace libtorrent
 		if (rd.dict_find_string_value("file-format")
 			!= "libtorrent resume file")
 		{
-			ec = error_code(errors::invalid_file_tag, get_libtorrent_category());
+			ec = errors::invalid_file_tag;
 			return ret;
 		}
 
 		auto info_hash = rd.dict_find_string_value("info-hash");
 		if (info_hash.size() != 20)
 		{
-			ec = error_code(errors::missing_info_hash, get_libtorrent_category());
+			ec = errors::missing_info_hash;
 			return ret;
 		}
 
