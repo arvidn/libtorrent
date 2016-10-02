@@ -476,8 +476,7 @@ TORRENT_TEST(test_error)
 			TEST_EQUAL(ae.is_working(), false);
 			TEST_EQUAL(ae.message, "test");
 			TEST_EQUAL(ae.url, "http://tracker.com:8080/announce");
-			TEST_EQUAL(ae.last_error, error_code(errors::tracker_failure
-				, get_libtorrent_category()));
+			TEST_EQUAL(ae.last_error, error_code(errors::tracker_failure));
 			TEST_EQUAL(ae.fails, 1);
 		});
 }
