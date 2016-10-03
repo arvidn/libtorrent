@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstdint>
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 #ifdef TORRENT_USE_LIBGCRYPT
 #include <gcrypt.h>
 
@@ -58,6 +59,7 @@ extern "C" {
 #else
 #include "libtorrent/sha512.hpp"
 #endif
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {
