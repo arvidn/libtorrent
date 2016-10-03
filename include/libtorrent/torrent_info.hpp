@@ -147,18 +147,18 @@ namespace libtorrent
 		// 
 		// The ``flags`` argument is currently unused.
 #ifndef BOOST_NO_EXCEPTIONS
-		torrent_info(bdecode_node const& torrent_file, int flags = 0);
-		torrent_info(char const* buffer, int size, int flags = 0);
-		torrent_info(std::string const& filename, int flags = 0);
+		explicit torrent_info(bdecode_node const& torrent_file, int flags = 0);
+		explicit torrent_info(char const* buffer, int size, int flags = 0);
+		explicit torrent_info(std::string const& filename, int flags = 0);
 #endif // BOOST_NO_EXCEPTIONS
-		torrent_info(torrent_info const& t);
-		torrent_info(sha1_hash const& info_hash, int flags = 0);
+		explicit torrent_info(torrent_info const& t);
+		explicit torrent_info(sha1_hash const& info_hash, int flags = 0);
 		torrent_info(bdecode_node const& torrent_file, error_code& ec, int flags = 0);
 		torrent_info(char const* buffer, int size, error_code& ec, int flags = 0);
 		torrent_info(std::string const& filename, error_code& ec, int flags = 0);
 #ifndef TORRENT_NO_DEPRECATE
 		TORRENT_DEPRECATED
-		torrent_info(lazy_entry const& torrent_file, int flags = 0);
+		explicit torrent_info(lazy_entry const& torrent_file, int flags = 0);
 		TORRENT_DEPRECATED
 		torrent_info(lazy_entry const& torrent_file, error_code& ec
 			, int flags = 0);
@@ -169,7 +169,7 @@ namespace libtorrent
 		torrent_info(std::wstring const& filename, error_code& ec
 			, int flags = 0);
 		TORRENT_DEPRECATED
-		torrent_info(std::wstring const& filename, int flags = 0);
+		explicit torrent_info(std::wstring const& filename, int flags = 0);
 #endif // TORRENT_USE_WSTRING
 #endif // TORRENT_NO_DEPRECATE
 

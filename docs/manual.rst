@@ -557,6 +557,10 @@ torrent, only that filename is appended. If the torrent is a multi-file
 torrent, the torrent's name '/' the file name is appended. This is the same
 directory structure that libtorrent will download torrents into.
 
+There is limited support for HTTP redirects. In case some files are redirected
+to *different hosts*, the files must be piece aligned or padded to be piece
+aligned.
+
 .. _`BEP 17`: http://bittorrent.org/beps/bep_0017.html
 .. _`BEP 19`: http://bittorrent.org/beps/bep_0019.html
 

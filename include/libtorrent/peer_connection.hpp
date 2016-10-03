@@ -409,6 +409,7 @@ namespace libtorrent
 		std::vector<peer_request> const& upload_queue() const;
 
 		void clear_request_queue();
+		void clear_download_queue();
 
 		// estimate of how long it will take until we have
 		// received all piece requests that we have sent

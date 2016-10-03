@@ -131,7 +131,36 @@ web_peer_connection::web_peer_connection(peer_connection_args const& pack
 
 void web_peer_connection::on_connected()
 {
-	incoming_have_all();
+	if (m_web->have_files.empty())
+	{
+		incoming_have_all();
+	}
+	else
+	{
+		std::shared_ptr<torrent> t = associated_torrent().lock();
+
+		// only advertise pieces that are contained within the files we have as
+		// indicated by m_web->have_files AND padfiles!
+		// it's important to include pieces that may overlap many files, as long
+		// as we have all those files, so instead of starting with a clear bitfied
+		// and setting the pieces corresponding to files we have, we do it the
+		// other way around. Start with assuming we have all files, and clear
+		// pieces overlapping with files we *don't* have.
+		bitfield have;
+		file_storage const& fs = t->torrent_file().files();
+		have.resize(fs.num_pieces(), true);
+		int const num_files = m_web->have_files.size();
+		for (int i = 0; i < num_files; ++i)
+		{
+			// if we have the file, no need to do anything
+			if (m_web->have_files.get_bit(i) || fs.pad_file_at(i)) continue;
+
+			std::tuple<int, int> const range = aux::file_piece_range_inclusive(fs, i);
+			for (int k = std::get<0>(range); k < std::get<1>(range); ++k)
+				have.clear_bit(k);
+		}
+		incoming_bitfield(have);
+	}
 	if (m_web->restart_request.piece != -1)
 	{
 		// increase the chances of requesting the block
@@ -320,7 +349,7 @@ void web_peer_connection::write_request(peer_request const& r)
 	// pretend read callback where we can deliver the zeroes for the partfile
 	int num_pad_files = 0;
 
-	// TODO: 2 do we really need a special case here? wouldn't the multi-file
+	// TODO: 3 do we really need a special case here? wouldn't the multi-file
 	// case handle single file torrents correctly too?
 	if (single_file_request)
 	{
@@ -373,23 +402,30 @@ void web_peer_connection::write_request(peer_request const& r)
 				continue;
 			}
 
+			TORRENT_ASSERT(m_web->have_files.empty()
+				|| m_web->have_files.get_bit(f.file_index));
+
 			request += "GET ";
 			if (using_proxy)
 			{
 				// m_url is already a properly escaped URL
 				// with the correct slashes. Don't encode it again
 				request += m_url;
-				std::string path = info.orig_files().file_path(f.file_index);
-#ifdef TORRENT_WINDOWS
-				convert_path_to_posix(path);
-#endif
-				request += escape_path(path);
+			}
+
+			auto redirection = m_web->redirects.find(f.file_index);
+			if (redirection != m_web->redirects.end())
+			{
+				request += redirection->second;
 			}
 			else
 			{
-				// m_path is already a properly escaped URL
-				// with the correct slashes. Don't encode it again
-				request += m_path;
+				if (!using_proxy)
+				{
+					// m_path is already a properly escaped URL
+					// with the correct slashes. Don't encode it again
+					request += m_path;
+				}
 
 				std::string path = info.orig_files().file_path(f.file_index);
 #ifdef TORRENT_WINDOWS
@@ -537,7 +573,7 @@ void web_peer_connection::on_receive_padfile()
 	handle_padfile();
 }
 
-void web_peer_connection::handle_error(int bytes_left)
+void web_peer_connection::handle_error(int const bytes_left)
 {
 	std::shared_ptr<torrent> t = associated_torrent().lock();
 	TORRENT_ASSERT(t);
@@ -545,6 +581,7 @@ void web_peer_connection::handle_error(int bytes_left)
 	// TODO: 2 just make this peer not have the pieces
 	// associated with the file we just requested. Only
 	// when it doesn't have any of the file do the following
+	// pad files will make it complicated
 	int retry_time = atoi(m_parser.header("retry-after").c_str());
 	if (retry_time <= 0) retry_time = m_settings.get_int(settings_pack::urlseed_wait_retry);
 	// temporarily unavailable, retry later
@@ -561,7 +598,7 @@ void web_peer_connection::handle_error(int bytes_left)
 	return;
 }
 
-void web_peer_connection::handle_redirect(int bytes_left)
+void web_peer_connection::handle_redirect(int const bytes_left)
 {
 	// this means we got a redirection request
 	// look for the location header
@@ -594,37 +631,74 @@ void web_peer_connection::handle_redirect(int bytes_left)
 			disconnect(errors::torrent_aborted, op_bittorrent);
 			return;
 		}
-		// TODO: 2 create a mapping of file-index to redirection URLs. Use that to form
-		// URLs instead. Support to reconnect to a new server without destructing this
-		// peer_connection
-		torrent_info const& info = t->torrent_file();
-		std::string path = info.orig_files().file_path(file_index);
-#ifdef TORRENT_WINDOWS
-		convert_path_to_posix(path);
+
+		location = resolve_redirect_location(m_url, location);
+#ifndef TORRENT_DISABLE_LOGGING
+		peer_log(peer_log_alert::info, "LOCATION", "%s", location.c_str());
 #endif
-		path = escape_path(path);
-		size_t i = location.rfind(path);
-		if (i == std::string::npos)
+		// TODO: 3 this could be made more efficient for the case when we use an
+		// HTTP proxy. Then we wouldn't need to add new web seeds to the torrent,
+		// we could just make the redirect table contain full URLs.
+		std::string redirect_base;
+		std::string redirect_path;
+		error_code ec;
+		std::tie(redirect_base, redirect_path) = split_url(location, ec);
+
+		if (ec)
 		{
-			t->remove_web_seed_conn(this, errors::invalid_redirection, op_bittorrent, 2);
-			m_web = nullptr;
-			TORRENT_ASSERT(is_disconnecting());
+			// we should not try this server again.
+			disconnect(errors::missing_location, op_bittorrent, 1);
 			return;
 		}
-		location.resize(i);
+
+		// add_web_seed won't add duplicates. If we have already added an entry
+		// with this URL, we'll get back the existing entry
+		web_seed_t* web = t->add_web_seed(redirect_base, web_seed_entry::url_seed, m_external_auth, m_extra_headers);
+		web->have_files.resize(t->torrent_file().num_files(), false);
+
+		// the new web seed we're adding only has this file for now
+		// we may add more files later
+		web->redirects[file_index] = redirect_path;
+		if (web->have_files.get_bit(file_index) == false)
+		{
+			web->have_files.set_bit(file_index);
+			if (web->peer_info.connection)
+			{
+				peer_connection* pc = static_cast<peer_connection*>(web->peer_info.connection);
+
+				// we just learned that this host has this file, and we're currently
+				// connected to it. Make it advertise that it has this file to the
+				// bittorrent engine
+				file_storage const& fs = t->torrent_file().files();
+				std::tuple<int, int> const range = aux::file_piece_range_exclusive(fs, file_index);
+				for (int i = std::get<0>(range); i < std::get<1>(range); ++i)
+					pc->incoming_have(i);
+			}
+		}
+
+		// we don't have this file on this server. Don't ask for it again
+		m_web->have_files.resize(t->torrent_file().num_files(), true);
+		if (m_web->have_files.get_bit(file_index) == true)
+		{
+			m_web->have_files.clear_bit(file_index);
+			disconnect(errors::redirecting, op_bittorrent, 2);
+		}
 	}
 	else
 	{
 		location = resolve_redirect_location(m_url, location);
-	}
-
 #ifndef TORRENT_DISABLE_LOGGING
-	peer_log(peer_log_alert::info, "LOCATION", "%s", location.c_str());
+		peer_log(peer_log_alert::info, "LOCATION", "%s", location.c_str());
 #endif
-	t->add_web_seed(location, web_seed_entry::url_seed, m_external_auth, m_extra_headers);
-	t->remove_web_seed_conn(this, errors::redirecting, op_bittorrent, 2);
-	m_web = nullptr;
-	TORRENT_ASSERT(is_disconnecting());
+		t->add_web_seed(location, web_seed_entry::url_seed, m_external_auth, m_extra_headers);
+
+		// this web seed doesn't have any files. Don't try to request from it
+		// again this session
+		m_web->have_files.resize(t->torrent_file().num_files(), false);
+		disconnect(errors::redirecting, op_bittorrent, 2);
+		m_web = nullptr;
+		TORRENT_ASSERT(is_disconnecting());
+	}
 	return;
 }
 
@@ -728,6 +802,9 @@ void web_peer_connection::on_receive(error_code const& error
 			// if the status code is not one of the accepted ones, abort
 			if (!is_ok_status(m_parser.status_code()))
 			{
+				file_request_t const& file_req = m_file_requests.front();
+				m_web->have_files.resize(t->torrent_file().num_files(), true);
+				m_web->have_files.clear_bit(file_req.file_index);
 				handle_error(int(recv_buffer.size()));
 				return;
 			}

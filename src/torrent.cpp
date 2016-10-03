@@ -127,32 +127,16 @@ namespace libtorrent
 
 	web_seed_t::web_seed_t(web_seed_entry const& wse)
 		: web_seed_entry(wse)
-		, retry(aux::time_now())
-		, peer_info(tcp::endpoint(), true, 0)
-		, supports_keepalive(true)
-		, resolving(false)
-		, removed(false)
 	{
 		peer_info.web_seed = true;
-		restart_request.piece = -1;
-		restart_request.start = -1;
-		restart_request.length = -1;
 	}
 
 	web_seed_t::web_seed_t(std::string const& url_, web_seed_entry::type_t type_
 		, std::string const& auth_
 		, web_seed_entry::headers_t const& extra_headers_)
 		: web_seed_entry(url_, type_, auth_, extra_headers_)
-		, retry(aux::time_now())
-		, peer_info(tcp::endpoint(), true, 0)
-		, supports_keepalive(true)
-		, resolving(false)
-		, removed(false)
 	{
 		peer_info.web_seed = true;
-		restart_request.piece = -1;
-		restart_request.start = -1;
-		restart_request.length = -1;
 	}
 
 	torrent_hot_members::torrent_hot_members(aux::session_interface& ses
@@ -6153,6 +6137,12 @@ namespace libtorrent
 		if (is_paused()) return;
 		if (m_ses.is_aborted()) return;
 
+		// this web seed may have redirected all files to other URLs, leaving it
+		// having no file left, and there's no longer any point in connecting to
+		// it.
+		if (!web->have_files.empty()
+			&& web->have_files.none_set()) return;
+
 		std::shared_ptr<socket_type> s
 			= std::make_shared<socket_type>(m_ses.get_io_service());
 		if (!s) return;
@@ -6450,7 +6440,7 @@ namespace libtorrent
 			entry::list_type& httpseed_list = ret["httpseeds"].list();
 			for (web_seed_t const& ws : m_web_seeds)
 			{
-				if (ws.removed) continue;
+				if (ws.removed || ws.ephemeral) continue;
 				if (ws.type == web_seed_entry::url_seed)
 					url_list.push_back(ws.url);
 				else if (ws.type == web_seed_entry::http_seed)
@@ -9008,16 +8998,21 @@ namespace libtorrent
 
 	// add or remove a url that will be attempted for
 	// finding the file(s) in this torrent.
-	void torrent::add_web_seed(std::string const& url
+	web_seed_t* torrent::add_web_seed(std::string const& url
 		, web_seed_entry::type_t type
 		, std::string const& auth
-		, web_seed_entry::headers_t const& extra_headers)
+		, web_seed_entry::headers_t const& extra_headers
+		, bool const ephemeral)
 	{
 		web_seed_t ent(url, type, auth, extra_headers);
+		ent.ephemeral = ephemeral;
+
 		// don't add duplicates
-		if (std::find(m_web_seeds.begin(), m_web_seeds.end(), ent) != m_web_seeds.end()) return;
+		auto it = std::find(m_web_seeds.begin(), m_web_seeds.end(), ent);
+		if (it != m_web_seeds.end()) return &*it;
 		m_web_seeds.push_back(ent);
 		set_need_save_resume();
+		return &m_web_seeds.back();
 	}
 
 	void torrent::set_session_paused(bool const b)

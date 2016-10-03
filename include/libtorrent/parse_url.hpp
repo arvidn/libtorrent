@@ -48,6 +48,9 @@ namespace libtorrent
 		, std::string, int, std::string>
 		parse_url_components(std::string url, error_code& ec);
 
+	// split a URL in its base and path parts
+	TORRENT_EXTRA_EXPORT std::tuple<std::string, std::string>
+		split_url(std::string url, error_code& ec);
 }
 
 #endif

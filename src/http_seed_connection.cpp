@@ -71,6 +71,13 @@ namespace libtorrent
 #endif
 	}
 
+	void http_seed_connection::on_connected()
+	{
+		// this is always a seed
+		incoming_have_all();
+		web_connection_base::on_connected();
+	}
+
 	void http_seed_connection::disconnect(error_code const& ec
 		, operation_t op, int error)
 	{

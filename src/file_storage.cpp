@@ -1119,4 +1119,34 @@ namespace libtorrent
 #endif
 		std::vector<std::string>().swap(m_paths);
 	}
+
+	namespace aux
+	{
+
+	std::tuple<int, int> file_piece_range_exclusive(file_storage const& fs, int file)
+	{
+		peer_request const range = fs.map_file(file, 0, 1);
+		std::int64_t const file_size = fs.file_size(file);
+		std::int64_t const piece_size = fs.piece_length();
+		int const begin_piece = range.start == 0 ? range.piece : range.piece + 1;
+		// the last piece is potentially smaller than the other pieces, so the
+		// generic logic doesn't really work. If this file is the last file, the
+		// last piece doesn't overlap with any other file and it's entirely
+		// contained within the last file.
+		int const end_piece = (file == fs.num_files() - 1)
+			? fs.num_pieces()
+			: (range.piece * piece_size + range.start + file_size + 1) / piece_size;
+		return std::make_tuple(begin_piece, end_piece);
+	}
+
+	std::tuple<int, int> file_piece_range_inclusive(file_storage const& fs, int file)
+	{
+		peer_request const range = fs.map_file(file, 0, 1);
+		std::int64_t const file_size = fs.file_size(file);
+		std::int64_t const piece_size = fs.piece_length();
+		int const end_piece = (range.piece * piece_size + range.start + file_size - 1) / piece_size + 1;
+		return std::make_tuple(range.piece, end_piece);
+	}
+
+	} // namespace aux
 }

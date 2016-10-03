@@ -587,10 +587,7 @@ namespace libtorrent
 			TORRENT_ASSERT(m_priority_boundaries.back() == int(m_pieces.size()));
 		}
 
-#ifndef TORRENT_EXPENSIVE_INVARIANT_CHECKS
-		return;
-#endif
-
+#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		{
 			int index = 0;
 			for (std::vector<piece_pos>::const_iterator i = m_piece_map.begin()
@@ -736,6 +733,7 @@ namespace libtorrent
 				TORRENT_ASSERT(m_piece_map[*i].priority(this) >= 0);
 			}
 		}
+#endif // TORRENT_EXPENSIVE_INVARIANT_CHECKS
 	}
 #endif
 

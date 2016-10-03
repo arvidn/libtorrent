@@ -59,6 +59,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
+#include "libtorrent/aux_/time.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/peer_class_set.hpp"
 #include "libtorrent/link.hpp"
@@ -131,7 +132,7 @@ namespace libtorrent
 			, web_seed_entry::headers_t const& extra_headers_ = web_seed_entry::headers_t());
 
 		// if this is > now, we can't reconnect yet
-		time_point retry;
+		time_point retry = aux::time_now();
 
 		// if the hostname of the web seed has been resolved,
 		// these are its IP addresses
@@ -141,28 +142,42 @@ namespace libtorrent
 		// connection, just to count hash failures
 		// it's also used to hold the peer_connection
 		// pointer, when the web seed is connected
-		ipv4_peer peer_info;
+		ipv4_peer peer_info{tcp::endpoint(), true, 0};
 
 		// this is initialized to true, but if we discover the
 		// server not to support it, it's set to false, and we
 		// make larger requests.
-		bool supports_keepalive;
+		bool supports_keepalive = true;
 
 		// this indicates whether or not we're resolving the
 		// hostname of this URL
-		bool resolving;
+		bool resolving = false;
 
 		// if the user wanted to remove this while
 		// we were resolving it. In this case, we set
 		// the removed flag to true, to make the resolver
 		// callback remove it
-		bool removed;
+		bool removed = false;
+
+		// if this is true, this URL was created by a redirect and should not be
+		// saved in the resume data
+		bool ephemeral = false;
 
 		// if the web server doesn't support keepalive or a block request was
 		// interrupted, the block received so far is kept here for the next
 		// connection to pick up
-		peer_request restart_request;
+		peer_request restart_request = { -1, -1, -1};
 		std::vector<char> restart_piece;
+
+		// this maps file index to a URL it has been redirected to. If an entry is
+		// missing, it means it has not been redirected and the full path should
+		// be constructed normally based on the filename. All redirections are
+		// relative to the web seed hostname root.
+		std::map<int, std::string> redirects;
+
+		// if this bitfield is non-empty, it represents the files this web server
+		// has.
+		bitfield have_files;
 	};
 
 	struct TORRENT_EXTRA_EXPORT torrent_hot_members
@@ -564,12 +579,13 @@ namespace libtorrent
 // --------------------------------------------
 		// PEER MANAGEMENT
 
-		// add or remove a url that will be attempted for
-		// finding the file(s) in this torrent.
-		void add_web_seed(std::string const& url
+		// add_web_seed won't add duplicates. If we have already added an entry
+		// with this URL, we'll get back the existing entry
+		web_seed_t* add_web_seed(std::string const& url
 			, web_seed_t::type_t type
 			, std::string const& auth = std::string()
-			, web_seed_t::headers_t const& extra_headers = web_seed_entry::headers_t());
+			, web_seed_t::headers_t const& extra_headers = web_seed_entry::headers_t()
+			, bool ephemeral = false);
 
 		void remove_web_seed(std::string const& url, web_seed_t::type_t type);
 		void disconnect_web_seed(peer_connection* p);
