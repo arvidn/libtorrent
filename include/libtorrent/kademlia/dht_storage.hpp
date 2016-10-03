@@ -34,6 +34,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_DHT_STORAGE_HPP
 
 #include <functional>
+#include <memory>
+#include <ctime>
+#include <vector>
+#include <string>
 
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/types.hpp>
@@ -42,6 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/address.hpp>
 #include <libtorrent/span.hpp>
 #include <libtorrent/string_view.hpp>
+#include <libtorrent/bloom_filter.hpp>
+#include <libtorrent/time.hpp>
 
 namespace libtorrent
 {
@@ -62,6 +68,30 @@ namespace dht
 
 		// This member function set the counters to zero.
 		void reset();
+	};
+
+	struct TORRENT_EXPORT dht_immutable_data
+	{
+		// the actual value
+		std::vector<char> value;
+		// the last time we heard about this item
+		std::time_t last_seen;
+	};
+
+	struct TORRENT_EXPORT dht_mutable_data : dht_immutable_data
+	{
+		dht::signature signature;
+		sequence_number sequence;
+		public_key key;
+		std::string salt;
+	};
+
+	// This structure hold the DHT items (immutable and mutable)
+	// exported by the DHT's storage.
+	struct TORRENT_EXPORT dht_storage_items
+	{
+		std::vector<dht_immutable_data> immutables;
+		std::vector<dht_mutable_data> mutables;
 	};
 
 	// The DHT storage interface is a pure virtual class that can
@@ -214,16 +244,28 @@ namespace dht
 		//
 		virtual void tick() = 0;
 
+		// Exports the stored items (immutable and mutable).
+		//
+		// For implementers:
+		// In case you provide a custom implementation, take in consideration
+		// that the data could be used, saved or loaded and that means that
+		// you should take care of the amount of data you want to return. It's
+		// advisable that you save no more than ``dht_settings::max_dht_items``
+		// for each item's type.
+		virtual dht_storage_items export_items() const = 0;
+
 		virtual dht_storage_counters counters() const = 0;
 
 		virtual ~dht_storage_interface() {}
 	};
 
 	using dht_storage_constructor_type
-		= std::function<std::unique_ptr<dht_storage_interface>(dht_settings const& settings)>;
+		= std::function<std::unique_ptr<dht_storage_interface>(
+			dht_settings const& settings, dht_storage_items items)>;
 
 	TORRENT_EXPORT std::unique_ptr<dht_storage_interface>
-		dht_default_storage_constructor(dht_settings const& settings);
+		dht_default_storage_constructor(
+			dht_settings const& settings, dht_storage_items items = dht_storage_items());
 
 } } // namespace libtorrent::dht
 

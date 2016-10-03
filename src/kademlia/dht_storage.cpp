@@ -37,15 +37,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <utility>
 #include <map>
 #include <set>
-#include <string>
+#include <chrono>
 
 #include <libtorrent/socket_io.hpp>
 #include <libtorrent/aux_/time.hpp>
 #include <libtorrent/config.hpp>
-#include <libtorrent/time.hpp>
-#include <libtorrent/bloom_filter.hpp>
 #include <libtorrent/session_settings.hpp>
 #include <libtorrent/random.hpp>
+
+#include <libtorrent/kademlia/item.hpp>
 
 namespace libtorrent {
 namespace dht {
@@ -176,10 +176,11 @@ namespace
 	{
 	public:
 
-		explicit dht_default_storage(dht_settings const& settings)
+		explicit dht_default_storage(dht_settings const& settings, dht_storage_items items)
 			: m_settings(settings)
 		{
 			m_counters.reset();
+			load_items(std::move(items));
 		}
 
 		~dht_default_storage() override = default;
@@ -503,6 +504,48 @@ namespace
 			}
 		}
 
+		dht_storage_items export_items() const override
+		{
+			using std::chrono::system_clock;
+
+			dht_storage_items ret;
+
+			auto const now = aux::time_now();
+			auto const clock_now = system_clock::now();
+
+			auto copy = [&](dht_immutable_data& d, dht_immutable_item const& item)
+			{
+				d.value = {item.value.get(), item.value.get() + item.size};
+				d.last_seen = system_clock::to_time_t(
+					clock_now - duration_cast<seconds>(now - item.last_seen));
+			};
+
+			std::transform(m_immutable_table.begin(), m_immutable_table.end()
+				, std::back_inserter(ret.immutables)
+				, [&](std::pair<node_id const, dht_immutable_item> const& p)
+			{
+				dht_immutable_data d;
+				copy(d, p.second);
+				return d;
+			});
+
+			std::transform(m_mutable_table.begin(), m_mutable_table.end()
+				, std::back_inserter(ret.mutables)
+				, [&](std::pair<node_id const, dht_mutable_item> const& p)
+			{
+				dht_mutable_item const& item = p.second;
+				dht_mutable_data d;
+				copy(d, item);
+				d.signature = item.sig;
+				d.sequence = item.seq;
+				d.key = item.key;
+				d.salt = item.salt;
+				return d;
+			});
+
+			return ret;
+		}
+
 		dht_storage_counters counters() const override
 		{
 			return m_counters;
@@ -532,6 +575,55 @@ namespace
 			if (!peers.empty() && peers.capacity() / peers.size() >= 4u)
 				peers.shrink_to_fit();
 		}
+
+		void load_items(dht_storage_items items)
+		{
+			using std::chrono::system_clock;
+
+			// Ideally the two list should be sorted by priority and
+			// trimmed, in practice this is a costly proposition due
+			// to the need of the target calculation.
+
+			auto const now = aux::time_now();
+			auto const clock_now = system_clock::now();
+			auto const lifetime = seconds(m_settings.item_lifetime);
+
+			// returns true if not expired, always set last_seen
+			auto copy = [&](dht_immutable_item& item, dht_immutable_data const& d)
+			{
+				set_value(item, d.value);
+				item.last_seen = now -
+					(clock_now - system_clock::from_time_t(d.last_seen));
+				return lifetime.count() == 0
+					|| (item.last_seen + lifetime > now);
+			};
+
+			for (auto const& d : items.immutables)
+			{
+				dht_immutable_item item;
+				if (!copy(item, d)) continue;
+
+				m_immutable_table.insert(std::make_pair(
+					item_target_id(d.value), std::move(item)));
+				m_counters.immutable_data += 1;
+				if (m_counters.immutable_data >= m_settings.max_dht_items) break;
+			}
+
+			for (auto const& d : items.mutables)
+			{
+				dht_mutable_item item;
+				if (!copy(item, d)) continue;
+				item.sig = d.signature;
+				item.seq = d.sequence;
+				item.key = d.key;
+				item.salt = d.salt;
+
+				m_mutable_table.insert(std::make_pair(
+					item_target_id(item.salt, item.key), std::move(item)));
+				m_counters.mutable_data += 1;
+				if (m_counters.mutable_data >= m_settings.max_dht_items) break;
+			}
+		}
 	};
 }
 
@@ -544,9 +636,10 @@ void dht_storage_counters::reset()
 }
 
 std::unique_ptr<dht_storage_interface> dht_default_storage_constructor(
-	dht_settings const& settings)
+	dht_settings const& settings, dht_storage_items items)
 {
-	return std::unique_ptr<dht_default_storage>(new dht_default_storage(settings));
+	return std::unique_ptr<dht_default_storage>(
+		new dht_default_storage(settings, std::move(items)));
 }
 
 } } // namespace libtorrent::dht

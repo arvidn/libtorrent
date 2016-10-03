@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/dht_observer.hpp"
 
 #include <numeric>
+#include <chrono>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -70,16 +71,17 @@ namespace
 	bool g_storage_constructor_invoked = false;
 
 	std::unique_ptr<dht_storage_interface> dht_custom_storage_constructor(
-		dht_settings const& settings)
+		dht_settings const& settings, dht_storage_items items)
 	{
 		g_storage_constructor_invoked = true;
 		return dht_default_storage_constructor(settings);
 	}
 
 	std::unique_ptr<dht_storage_interface> create_default_dht_storage(
-		dht_settings const& sett)
+		dht_settings const& sett, dht_storage_items items = dht_storage_items())
 	{
-		std::unique_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
+		std::unique_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett
+			, std::move(items)));
 		TEST_CHECK(s != nullptr);
 
 		s->update_node_ids({to_hash("0000000000000000000000000000000000000200")});
@@ -149,7 +151,7 @@ TORRENT_TEST(dual_stack)
 	TEST_EQUAL(peers6["values"].list().size(), 2);
 }
 
-TORRENT_TEST(put_immutable_item)
+TORRENT_TEST(put_items)
 {
 	dht_settings sett = test_settings();
 	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
@@ -435,6 +437,120 @@ TORRENT_TEST(update_node_ids)
 	TEST_CHECK(!r);
 	r = s->get_immutable_item(h3, item);
 	TEST_CHECK(r);
+}
+
+TORRENT_TEST(export_load_items)
+{
+	dht_settings sett = test_settings();
+	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
+
+	span<char const> buf1 = {"123", 3};
+	span<char const> buf2 = {"1234", 4};
+	sha1_hash const t1 = item_target_id(buf1);
+	sha1_hash const t2 = item_target_id(buf2);
+
+	s->put_immutable_item(t1, buf1, addr("124.31.75.21"));
+	s->put_immutable_item(t2, buf2, addr("124.31.75.21"));
+
+	public_key pk;
+	signature sig;
+
+	span<char const> buf3 = {"12345", 5};
+	span<char const> buf4 = {"123456", 6};
+	span<char const> salt1 = {"salt1", 5};
+	span<char const> salt2 = {"salt2", 5};
+	sha1_hash const t3 = item_target_id(salt1, pk);
+	sha1_hash const t4 = item_target_id(salt2, pk);
+
+	s->put_mutable_item(t3, buf3, sig, sequence_number(1), pk
+		, salt1, addr("124.31.75.21"));
+	s->put_mutable_item(t4, buf4, sig, sequence_number(1), pk
+		, salt2, addr("124.31.75.21"));
+
+	TEST_EQUAL(s->counters().immutable_data, 2);
+	TEST_EQUAL(s->counters().mutable_data, 2);
+
+	dht_storage_items items = s->export_items();
+	TEST_EQUAL(items.immutables.size(), 2);
+	TEST_EQUAL(items.mutables.size(), 2);
+
+	entry item;
+	bool r;
+
+	{
+		std::unique_ptr<dht_storage_interface> s2(create_default_dht_storage(sett, items));
+		TEST_EQUAL(s2->counters().immutable_data, 2);
+		TEST_EQUAL(s2->counters().mutable_data, 2);
+		r = s2->get_immutable_item(t1, item);
+		TEST_CHECK(r);
+		r = s2->get_immutable_item(t2, item);
+		TEST_CHECK(r);
+		r = s2->get_mutable_item(t3, sequence_number(0), false, item);
+		TEST_CHECK(r);
+		r = s2->get_mutable_item(t4, sequence_number(0), false, item);
+		TEST_CHECK(r);
+	}
+
+	{
+		items = s->export_items();
+		TEST_EQUAL(items.immutables.size(), 2);
+		TEST_EQUAL(items.mutables.size(), 2);
+		sett.max_dht_items = 1;
+		dht_immutable_data const& i1q = items.immutables[0];
+		dht_immutable_data const& i2q = items.immutables[1];
+		dht_mutable_data const& i3q = items.mutables[0];
+		dht_mutable_data const& i4q = items.mutables[1];
+		sha1_hash const t1q = item_target_id(i1q.value);
+		sha1_hash const t2q = item_target_id(i2q.value);
+		sha1_hash const t3q = item_target_id(i3q.salt, i3q.key);
+		sha1_hash const t4q = item_target_id(i4q.salt, i4q.key);
+		std::unique_ptr<dht_storage_interface> s2(create_default_dht_storage(sett, items));
+		r = s2->get_immutable_item(t1q, item);
+		TEST_CHECK(r);
+		r = s2->get_immutable_item(t2q, item);
+		TEST_CHECK(!r);
+		r = s2->get_mutable_item(t3q, sequence_number(0), false, item);
+		TEST_CHECK(r);
+		r = s2->get_mutable_item(t4q, sequence_number(0), false, item);
+		TEST_CHECK(!r);
+	}
+
+	{
+		using std::chrono::system_clock;
+
+		auto substract_seconds = [](dht_immutable_data& d, int n)
+		{
+			d.last_seen = system_clock::to_time_t(
+				system_clock::from_time_t(d.last_seen) - seconds(n));
+		};
+
+		items = s->export_items();
+		TEST_EQUAL(items.immutables.size(), 2);
+		TEST_EQUAL(items.mutables.size(), 2);
+		substract_seconds(items.immutables[0], 120);
+		substract_seconds(items.immutables[1], 20);
+		substract_seconds(items.mutables[0], 120);
+		substract_seconds(items.mutables[1], 20);
+		sett.max_dht_items = 2;
+		sett.item_lifetime = 60;
+		dht_immutable_data const& i1q = items.immutables[0];
+		dht_immutable_data const& i2q = items.immutables[1];
+		dht_mutable_data const& i3q = items.mutables[0];
+		dht_mutable_data const& i4q = items.mutables[1];
+		sha1_hash const t1q = item_target_id(i1q.value);
+		sha1_hash const t2q = item_target_id(i2q.value);
+		sha1_hash const t3q = item_target_id(i3q.salt, i3q.key);
+		sha1_hash const t4q = item_target_id(i4q.salt, i4q.key);
+		std::unique_ptr<dht_storage_interface> s3(create_default_dht_storage(sett, items));
+		r = s3->get_immutable_item(t1q, item);
+		TEST_CHECK(!r);
+		r = s3->get_immutable_item(t2q, item);
+		TEST_CHECK(r);
+		r = s3->get_mutable_item(t3q, sequence_number(0), false, item);
+		TEST_CHECK(!r);
+		r = s3->get_mutable_item(t4q, sequence_number(0), false, item);
+		TEST_CHECK(r);
+	}
 }
 
 #endif

@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp" // for ep()
 #include "libtorrent/config.hpp"
 #include "libtorrent/kademlia/dht_storage.hpp"
+#include "libtorrent/kademlia/item.hpp"
 
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/address.hpp"
@@ -46,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <functional>
 #include <sstream>
+#include <chrono>
 
 using namespace libtorrent;
 using namespace libtorrent::dht;
@@ -68,9 +70,10 @@ namespace
 	}
 
 	std::unique_ptr<dht_storage_interface> create_default_dht_storage(
-		dht_settings const& sett)
+		dht_settings const& sett, dht_storage_items items = dht_storage_items())
 	{
-		std::unique_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
+		std::unique_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett
+			, std::move(items)));
 		TEST_CHECK(s.get() != nullptr);
 
 		s->update_node_ids({to_hash("0000000000000000000000000000000000000200")});
@@ -106,6 +109,30 @@ void test_expiration(high_resolution_clock::duration const& expiry_time
 
 	boost::system::error_code ec;
 	sim.run(ec);
+}
+
+dht_storage_items test_save_expiration(high_resolution_clock::duration const& expiry_time
+	, std::unique_ptr<dht_storage_interface>& s)
+{
+	dht_storage_items ret;
+
+	default_config cfg;
+	simulation sim(cfg);
+	sim::asio::io_service ios(sim, addr("10.0.0.1"));
+
+	sim::asio::high_resolution_timer timer(ios);
+	timer.expires_from_now(expiry_time);
+	timer.async_wait([&](boost::system::error_code const&)
+	{
+		libtorrent::aux::update_time_now();
+		s->tick();
+		ret = s->export_items();
+	});
+
+	boost::system::error_code ec;
+	sim.run(ec);
+
+	return ret;
 }
 
 TORRENT_TEST(dht_storage_counters)
@@ -160,6 +187,62 @@ TORRENT_TEST(dht_storage_counters)
 	c.immutable_data = 0;
 	c.mutable_data = 0;
 	test_expiration(hours(1), s, c); // test expiration of everything after 3 hours
+}
+
+TORRENT_TEST(export_load_items)
+{
+	using std::chrono::system_clock;
+
+	dht_settings sett = test_settings();
+	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
+
+	span<char const> buf1 = {"123", 3};
+	span<char const> buf2 = {"1234", 4};
+	sha1_hash const t1 = item_target_id(buf1);
+	sha1_hash const t2 = item_target_id(buf2);
+
+	s->put_immutable_item(t1, buf1, addr("124.31.75.21"));
+	s->put_immutable_item(t2, buf2, addr("124.31.75.21"));
+
+	public_key pk;
+	signature sig;
+
+	span<char const> buf3 = {"12345", 5};
+	span<char const> buf4 = {"123456", 6};
+	span<char const> salt1 = {"salt1", 5};
+	span<char const> salt2 = {"salt2", 5};
+	sha1_hash const t3 = item_target_id(salt1, pk);
+	sha1_hash const t4 = item_target_id(salt2, pk);
+
+	s->put_mutable_item(t3, buf3, sig, sequence_number(1), pk
+	, salt1, addr("124.31.75.21"));
+	s->put_mutable_item(t4, buf4, sig, sequence_number(1), pk
+	, salt2, addr("124.31.75.21"));
+
+	TEST_EQUAL(s->counters().immutable_data, 2);
+	TEST_EQUAL(s->counters().mutable_data, 2);
+
+	dht_storage_items items = test_save_expiration(hours(1), s);
+	TEST_EQUAL(items.immutables.size(), 2);
+	TEST_EQUAL(items.mutables.size(), 2);
+	auto const diff_time = system_clock::now() -
+		system_clock::from_time_t(items.immutables[0].last_seen);
+	TEST_CHECK(diff_time > hours(1));
+
+	auto substract_hours = [](dht_immutable_data& d, int n)
+	{
+		d.last_seen = system_clock::to_time_t(
+			system_clock::from_time_t(d.last_seen) - hours(n));
+	};
+
+	sett.item_lifetime = int(total_seconds(hours(2)));
+	substract_hours(items.immutables[0], 1);
+	substract_hours(items.immutables[1], 1);
+	substract_hours(items.mutables[0], 1);
+	substract_hours(items.mutables[1], 1);
+	std::unique_ptr<dht_storage_interface> s1(create_default_dht_storage(sett, std::move(items)));
+	TEST_EQUAL(s1->counters().immutable_data, 0);
+	TEST_EQUAL(s1->counters().mutable_data, 0);
 }
 
 #endif // TORRENT_DISABLE_DHT
