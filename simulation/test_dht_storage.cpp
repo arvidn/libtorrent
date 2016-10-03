@@ -70,9 +70,10 @@ namespace
 	}
 
 	std::unique_ptr<dht_storage_interface> create_default_dht_storage(
-		dht_settings const& sett)
+		dht_settings const& sett, dht_storage_items items = dht_storage_items())
 	{
-		std::unique_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett));
+		std::unique_ptr<dht_storage_interface> s(dht_default_storage_constructor(sett
+			, std::move(items)));
 		TEST_CHECK(s.get() != nullptr);
 
 		s->update_node_ids({to_hash("0000000000000000000000000000000000000200")});
@@ -125,7 +126,7 @@ dht_storage_items test_save_expiration(high_resolution_clock::duration const& ex
 	{
 		libtorrent::aux::update_time_now();
 		s->tick();
-		ret = s->save_items();
+		ret = s->export_items();
 	});
 
 	boost::system::error_code ec;
@@ -188,7 +189,7 @@ TORRENT_TEST(dht_storage_counters)
 	test_expiration(hours(1), s, c); // test expiration of everything after 3 hours
 }
 
-TORRENT_TEST(save_load_items)
+TORRENT_TEST(export_load_items)
 {
 	using std::chrono::system_clock;
 
@@ -230,10 +231,9 @@ TORRENT_TEST(save_load_items)
 	TEST_CHECK(items.immutables[0].last_seen.time_since_epoch() >= hours(1));
 
 	sett.item_lifetime = int(total_seconds(hours(2)));
-	std::unique_ptr<dht_storage_interface> s1(create_default_dht_storage(sett));
 	items.timestamp = system_clock::to_time_t(
 		system_clock::from_time_t(items.timestamp) - hours(1));
-	s1->load_items(std::move(items));
+	std::unique_ptr<dht_storage_interface> s1(create_default_dht_storage(sett, std::move(items)));
 	TEST_EQUAL(s1->counters().immutable_data, 0);
 	TEST_EQUAL(s1->counters().mutable_data, 0);
 }

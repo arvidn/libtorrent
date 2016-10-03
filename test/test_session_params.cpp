@@ -51,10 +51,10 @@ namespace
 	bool g_storage_constructor_invoked = false;
 
 	std::unique_ptr<dht_storage_interface> dht_custom_storage_constructor(
-		dht_settings const& settings)
+		dht_settings const& settings, dht_storage_items items = dht_storage_items())
 	{
 		g_storage_constructor_invoked = true;
-		return dht_default_storage_constructor(settings);
+		return dht_default_storage_constructor(settings, std::move(items));
 	}
 #endif
 

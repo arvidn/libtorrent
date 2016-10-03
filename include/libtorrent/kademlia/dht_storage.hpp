@@ -70,34 +70,24 @@ namespace dht
 		void reset();
 	};
 
-	struct TORRENT_EXPORT dht_immutable_item
+	struct TORRENT_EXPORT dht_immutable_data
 	{
-		dht_immutable_item() = default;
-		dht_immutable_item(dht_immutable_item const& item);
-		dht_immutable_item(dht_immutable_item&&) = default;
-		dht_immutable_item& operator=(dht_immutable_item const& item);
-		dht_immutable_item& operator=(dht_immutable_item&&) = default;
-
 		// the actual value
-		std::unique_ptr<char[]> value;
+		std::vector<char> value;
 		// this counts the number of IPs we have seen
 		// announcing this item, this is used to determine
 		// popularity if we reach the limit of items to store
-		bloom_filter<128> ips;
+		bloom_filter<128> popularity;
 		// the last time we heard about this item
 		// the correct interpretation of this field
 		// requires a time reference
 		time_point last_seen;
-		// number of IPs in the bloom filter
-		int num_announcers = 0;
-		// size of malloced space pointed to by value
-		int size = 0;
 	};
 
-	struct TORRENT_EXPORT dht_mutable_item : dht_immutable_item
+	struct TORRENT_EXPORT dht_mutable_data : dht_immutable_data
 	{
-		signature sig;
-		sequence_number seq;
+		dht::signature signature;
+		sequence_number sequence;
 		public_key key;
 		std::string salt;
 	};
@@ -107,11 +97,12 @@ namespace dht
 	struct TORRENT_EXPORT dht_storage_items
 	{
 		// time reference to interpret the item's ``last_seen``
-		// actual last_seen time is (timestamp - total_seconds(last_seen))
+		// actual last_seen time is
+		// (timestamp - total_seconds(last_seen.time_since_epoch()))
 		std::time_t timestamp;
 
-		std::vector<dht_immutable_item> immutables;
-		std::vector<dht_mutable_item> mutables;
+		std::vector<dht_immutable_data> immutables;
+		std::vector<dht_mutable_data> mutables;
 	};
 
 	// The DHT storage interface is a pure virtual class that can
@@ -272,15 +263,7 @@ namespace dht
 		// you should take care of the amount of data you want to return. It's
 		// advisable that you save no more than ``dht_settings::max_dht_items``
 		// for each item's type.
-		virtual dht_storage_items save_items() const = 0;
-
-		// Loads the items in the storage.
-		//
-		// For implementers:
-		// It's recommended that you take in consideration the ``last_seen``
-		// field in the items during the load phase. Similarly you should not
-		// store more than ``dht_settings::max_dht_items``.
-		virtual void load_items(dht_storage_items items) = 0;
+		virtual dht_storage_items export_items() const = 0;
 
 		virtual dht_storage_counters counters() const = 0;
 
@@ -288,10 +271,12 @@ namespace dht
 	};
 
 	using dht_storage_constructor_type
-		= std::function<std::unique_ptr<dht_storage_interface>(dht_settings const& settings)>;
+		= std::function<std::unique_ptr<dht_storage_interface>(
+			dht_settings const& settings, dht_storage_items items)>;
 
 	TORRENT_EXPORT std::unique_ptr<dht_storage_interface>
-		dht_default_storage_constructor(dht_settings const& settings);
+		dht_default_storage_constructor(
+			dht_settings const& settings, dht_storage_items items = dht_storage_items());
 
 } } // namespace libtorrent::dht
 
