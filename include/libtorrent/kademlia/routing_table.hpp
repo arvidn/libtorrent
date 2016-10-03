@@ -258,7 +258,7 @@ public:
 
 	bool is_full(int bucket) const;
 
-	bool native_address(address addr) const
+	bool native_address(address const& addr) const
 	{
 		return (addr.is_v4() && m_protocol == udp::v4())
 			|| (addr.is_v6() && m_protocol == udp::v6());

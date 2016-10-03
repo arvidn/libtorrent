@@ -149,7 +149,7 @@ TORRENT_TEST(dual_stack)
 	TEST_EQUAL(peers6["values"].list().size(), 2);
 }
 
-TORRENT_TEST(put_immutable_item)
+TORRENT_TEST(put_items)
 {
 	dht_settings sett = test_settings();
 	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
