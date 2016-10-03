@@ -563,7 +563,7 @@ void web_peer_connection::handle_error(int bytes_left)
 			, error_msg);
 	}
 	received_bytes(0, bytes_left);
-	disconnect(error_code(m_parser.status_code(), get_http_category()), op_bittorrent, 1);
+	disconnect(error_code(m_parser.status_code(), http_category()), op_bittorrent, 1);
 	return;
 }
 

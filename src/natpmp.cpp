@@ -554,7 +554,8 @@ void natpmp::on_reply(error_code const& e
 
 	if (result != 0)
 	{
-		int errors[] =
+		// TODO: 3 it would be nice to have a separate NAT-PMP error category
+		errors::error_code_enum errors[] =
 		{
 			errors::unsupported_protocol_version,
 			errors::natpmp_not_authorized,
@@ -562,14 +563,13 @@ void natpmp::on_reply(error_code const& e
 			errors::no_resources,
 			errors::unsupported_opcode,
 		};
-		int ev = errors::no_error;
+		errors::error_code_enum ev = errors::no_error;
 		if (result >= 1 && result <= 5) ev = errors[result - 1];
 
 		m->expires = aux::time_now() + hours(2);
 		int const proto = m->protocol;
 		l.unlock();
-		m_callback(index, address(), 0, proto
-			, error_code(ev, get_libtorrent_category()));
+		m_callback(index, address(), 0, proto, ev);
 		l.lock();
 	}
 	else if (m->action == mapping_t::action_add)
@@ -577,7 +577,7 @@ void natpmp::on_reply(error_code const& e
 		int const proto = m->protocol;
 		l.unlock();
 		m_callback(index, m_external_ip, m->external_port, proto
-			, error_code(errors::no_error, get_libtorrent_category()));
+			, errors::no_error);
 		l.lock();
 	}
 
