@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/file_pool.hpp"
-#include "libtorrent/random.hpp"
+#include <random>
 #include <cstring>
 #include <thread>
 #include <functional>
@@ -146,6 +146,11 @@ std::string leaf_path(std::string f)
 		return std::string(first, len);
 	}
 	return std::string(sep + 1);
+}
+
+namespace {
+std::random_device dev;
+std::mt19937 rng(dev());
 }
 
 struct peer_conn
@@ -554,7 +559,7 @@ struct peer_conn
 				pieces.resize(num_pieces);
 				for (int i = 0; i < int(pieces.size()); ++i)
 					pieces[i] = i;
-				aux::random_shuffle(pieces.begin(), pieces.end());
+				std::shuffle(pieces.begin(), pieces.end(), rng);
 			}
 			else if (msg == 4) // have
 			{
@@ -578,7 +583,7 @@ struct peer_conn
 					}
 					++ptr;
 				}
-				aux::random_shuffle(pieces.begin(), pieces.end());
+				std::shuffle(pieces.begin(), pieces.end(), rng);
 			}
 			else if (msg == 7) // piece
 			{
