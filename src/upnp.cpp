@@ -62,7 +62,7 @@ namespace upnp_errors
 {
 	boost::system::error_code make_error_code(error_code_enum e)
 	{
-		return error_code(e, get_upnp_category());
+		return error_code(e, upnp_category());
 	}
 
 } // upnp_errors namespace
@@ -1165,11 +1165,16 @@ struct upnp_error_category : boost::system::error_category
 	}
 };
 
-boost::system::error_category& get_upnp_category()
+boost::system::error_category& upnp_category()
 {
 	static upnp_error_category cat;
 	return cat;
 }
+
+#ifndef TORRENT_NO_DEPRECATED
+	boost::system::error_category& get_upnp_category()
+	{ return upnp_category(); }
+#endif
 
 void upnp::on_upnp_get_ip_address_response(error_code const& e
 	, libtorrent::http_parser const& p, rootdevice& d
@@ -1420,7 +1425,7 @@ void upnp::return_error(int mapping, int code, mutex::scoped_lock& l)
 	}
 	const int proto = m_mappings[mapping].protocol;
 	l.unlock();
-	m_callback(mapping, address(), 0, proto, error_code(code, get_upnp_category()));
+	m_callback(mapping, address(), 0, proto, error_code(code, upnp_category()));
 	l.lock();
 }
 
@@ -1477,8 +1482,8 @@ void upnp::on_upnp_unmap_response(error_code const& e
 
 	l.unlock();
 	m_callback(mapping, address(), 0, proto, p.status_code() != 200
-		? error_code(p.status_code(), get_http_category())
-		: error_code(s.error_code, get_upnp_category()));
+		? error_code(p.status_code(), http_category())
+		: error_code(s.error_code, upnp_category()));
 	l.lock();
 
 	d.mapping[mapping].protocol = none;

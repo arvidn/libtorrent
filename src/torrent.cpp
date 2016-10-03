@@ -394,7 +394,7 @@ namespace libtorrent
 
 		if (parser.header_finished() && parser.status_code() != 200)
 		{
-			set_error(error_code(parser.status_code(), get_http_category()), error_file_url);
+			set_error(error_code(parser.status_code(), http_category()), error_file_url);
 			pause();
 			return;
 		}
@@ -470,7 +470,7 @@ namespace libtorrent
 			// TODO: if the existing torrent doesn't have metadata, insert
 			// the metadata we just downloaded into it.
 
-			set_error(error_code(errors::duplicate_torrent, get_libtorrent_category()), error_file_url);
+			set_error(errors::duplicate_torrent, error_file_url);
 			abort();
 			return;
 		}
@@ -533,7 +533,7 @@ namespace libtorrent
 
 		if (parser.status_code() != 200)
 		{
-			set_error(error_code(parser.status_code(), get_http_category()), torrent_status::error_file_url);
+			set_error(error_code(parser.status_code(), http_category()), torrent_status::error_file_url);
 			pause();
 			return;
 		}
@@ -582,7 +582,7 @@ namespace libtorrent
 			// TODO: if the existing torrent doesn't have metadata, insert
 			// the metadata we just downloaded into it.
 
-			set_error(error_code(errors::duplicate_torrent, get_libtorrent_category()), torrent_status::error_file_url);
+			set_error(errors::duplicate_torrent, torrent_status::error_file_url);
 			abort();
 			return;
 		}
@@ -1869,7 +1869,7 @@ namespace libtorrent
 
 		if (m_resume_data && m_resume_data->node.type() == bdecode_node::dict_t)
 		{
-			int ev = 0;
+			errors::error_code_enum ev = errors::no_error;
 			if (m_resume_data->node.dict_find_string_value("file-format")
 				!= "libtorrent resume file")
 			{
@@ -1885,16 +1885,15 @@ namespace libtorrent
 
 			if (ev && m_ses.alerts().should_post<fastresume_rejected_alert>())
 			{
-				error_code ec = error_code(ev, get_libtorrent_category());
 				m_ses.alerts().emplace_alert<fastresume_rejected_alert>(get_handle()
-					, ec, "", static_cast<char const*>(0));
+					, error_code(ev), "", static_cast<char const*>(0));
 			}
 
 			if (ev)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
 				debug_log("fastresume data rejected: %s"
-					, error_code(ev, get_libtorrent_category()).message().c_str());
+					, error_code(ev).message().c_str());
 #endif
 				m_resume_data.reset();
 			}
@@ -6043,7 +6042,7 @@ namespace libtorrent
 		{
 			if (alerts().should_post<torrent_error_alert>())
 				alerts().emplace_alert<torrent_error_alert>(get_handle()
-					, error_code(errors::not_an_ssl_torrent), "");
+					, errors::not_an_ssl_torrent, "");
 			return;
 		}
 
@@ -6291,7 +6290,7 @@ namespace libtorrent
 			if (m_ses.alerts().should_post<url_seed_alert>())
 			{
 				m_ses.alerts().emplace_alert<url_seed_alert>(get_handle(), web->url
-					, error_code(libtorrent::errors::peer_banned, get_libtorrent_category()));
+					, libtorrent::errors::peer_banned);
 			}
 			// never try it again
 			remove_web_seed(web);
@@ -7708,8 +7707,7 @@ namespace libtorrent
 				// we have an i2p torrent, but we're not connected to an i2p
 				// SAM proxy.
 				if (alerts().should_post<i2p_alert>())
-					alerts().emplace_alert<i2p_alert>(error_code(errors::no_i2p_router
-						, get_libtorrent_category()));
+					alerts().emplace_alert<i2p_alert>(errors::no_i2p_router);
 				return false;
 			}
 
@@ -7876,7 +7874,7 @@ namespace libtorrent
 			if (alerts().should_post<metadata_failed_alert>())
 			{
 				alerts().emplace_alert<metadata_failed_alert>(get_handle()
-					, error_code(errors::mismatching_info_hash, get_libtorrent_category()));
+					, errors::mismatching_info_hash);
 			}
 			return false;
 		}
@@ -8850,8 +8848,7 @@ namespace libtorrent
 		{
 			if (alerts().should_post<file_rename_failed_alert>())
 				alerts().emplace_alert<file_rename_failed_alert>(get_handle()
-					, index, error_code(errors::session_is_closing
-						, get_libtorrent_category()));
+					, index, errors::session_is_closing);
 			return;
 		}
 
@@ -9280,7 +9277,7 @@ namespace libtorrent
 		if (num_peers() > int(m_max_connections))
 		{
 			disconnect_peers(num_peers() - m_max_connections
-				, error_code(errors::too_many_connections, get_libtorrent_category()));
+				, errors::too_many_connections);
 		}
 
 		if (state_update)

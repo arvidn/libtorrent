@@ -90,8 +90,8 @@ TORRENT_TEST(primitives)
 	TEST_CHECK(error_code(errors::http_parse_error).message() == "Invalid HTTP header");
 	TEST_CHECK(error_code(errors::error_code_max).message() == "Unknown error");
 
-	TEST_CHECK(error_code(errors::unauthorized, get_http_category()).message() == "401 Unauthorized");
-	TEST_CHECK(error_code(errors::service_unavailable, get_http_category()).message() == "503 Service Unavailable");
+	TEST_CHECK(error_code(errors::unauthorized, http_category()).message() == "401 Unauthorized");
+	TEST_CHECK(error_code(errors::service_unavailable, http_category()).message() == "503 Service Unavailable");
 
 	// test snprintf
 
@@ -146,11 +146,11 @@ TORRENT_TEST(primitives)
 #if TORRENT_USE_IPV6
 	TEST_EQUAL(print_address(v6("2001:ff::1")), "2001:ff::1");
 	parse_endpoint("[ff::1]", ec);
-	TEST_EQUAL(ec, error_code(errors::invalid_port, get_libtorrent_category()));
+	TEST_EQUAL(ec, error_code(errors::invalid_port));
 #endif
 
 	parse_endpoint("[ff::1:5", ec);
-	TEST_EQUAL(ec, error_code(errors::expected_close_bracket_in_address, get_libtorrent_category()));
+	TEST_EQUAL(ec, error_code(errors::expected_close_bracket_in_address));
 
 	// test address_to_bytes
 	TEST_EQUAL(address_to_bytes(address_v4::from_string("10.11.12.13")), "\x0a\x0b\x0c\x0d");

@@ -323,8 +323,7 @@ namespace libtorrent
 	// internal
 	TORRENT_NO_RETURN inline void throw_type_error()
 	{
-		throw libtorrent_exception(error_code(errors::invalid_entry_type
-			, get_libtorrent_category()));
+		throw libtorrent_exception(errors::invalid_entry_type);
 	}
 #endif
 

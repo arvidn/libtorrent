@@ -60,30 +60,30 @@ void bind_error_code()
         .def("assign", &error_code::assign)
         ;
 
-    def("get_libtorrent_category", &get_libtorrent_category
-       , return_internal_reference<>());
+using return_existing = return_value_policy<reference_existing_object>;
 
-    def("get_upnp_category", &get_upnp_category
-       , return_internal_reference<>());
-
-    def("get_http_category", &get_http_category
-       , return_internal_reference<>());
-
-    def("get_socks_category", &get_socks_category
-       , return_internal_reference<>());
-
+    def("libtorrent_category", &libtorrent_category, return_existin());
+    def("upnp_category", &upnp_category, return_existing());
+    def("http_category", &http_category, return_existing());
+    def("socks_category", &socks_category, return_existing());
+    def("bdecode_category", &bdecode_category, return_existing());
 #if TORRENT_USE_I2P
-    def("get_i2p_category", &get_i2p_category
-       , return_internal_reference<>());
+    def("i2p_category", &i2p_category, return_existing());
 #endif
 
-    def("get_bdecode_category", &get_bdecode_category
-       , return_internal_reference<>());
+#ifndef TORRENT_NO_DEPRECATE
+    def("get_libtorrent_category", &libtorrent_category, return_existin());
+    def("get_upnp_category", &upnp_category, return_existing());
+    def("get_http_category", &http_category, return_existing());
+    def("get_socks_category", &socks_category, return_existing());
+    def("get_bdecode_category", &bdecode_category, return_existing());
+#if TORRENT_USE_I2P
+    def("get_i2p_category", &i2p_category, return_existing());
+#endif
+#endif // TORRENT_NO_DEPRECATE
 
-    def("generic_category", &boost::system::generic_category
-       , return_internal_reference<>());
+    def("generic_category", &boost::system::generic_category, return_existing());
 
-    def("system_category", &boost::system::system_category
-       , return_internal_reference<>());
+    def("system_category", &boost::system::system_category, return_existing());
 }
 

@@ -474,8 +474,7 @@ TORRENT_TEST(test_error)
 			TEST_EQUAL(ae.is_working(), false);
 			TEST_EQUAL(ae.message, "test");
 			TEST_EQUAL(ae.url, "http://tracker.com:8080/announce");
-			TEST_EQUAL(ae.last_error, error_code(errors::tracker_failure
-				, get_libtorrent_category()));
+			TEST_EQUAL(ae.last_error, error_code(errors::tracker_failure));
 			TEST_EQUAL(ae.fails, 1);
 		});
 }
@@ -572,7 +571,7 @@ TORRENT_TEST(test_http_status)
 			TEST_EQUAL(ae.is_working(), false);
 			TEST_EQUAL(ae.message, "Not A Tracker");
 			TEST_EQUAL(ae.url, "http://tracker.com:8080/announce");
-			TEST_EQUAL(ae.last_error, error_code(410, get_http_category()));
+			TEST_EQUAL(ae.last_error, error_code(410, http_category()));
 			TEST_EQUAL(ae.fails, 1);
 		});
 }
@@ -619,7 +618,7 @@ TORRENT_TEST(test_invalid_bencoding)
 			TEST_EQUAL(ae.message, "");
 			TEST_EQUAL(ae.url, "http://tracker.com:8080/announce");
 			TEST_EQUAL(ae.last_error, error_code(bdecode_errors::expected_value
-				, get_bdecode_category()));
+				, bdecode_category()));
 			TEST_EQUAL(ae.fails, 1);
 		});
 }
