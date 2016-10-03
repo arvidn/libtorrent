@@ -31,12 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/peer_connection_handle.hpp"
-#include "libtorrent/peer_connection.hpp"
 #include "libtorrent/bt_peer_connection.hpp"
-
-#ifndef TORRENT_DISABLE_LOGGING
-#include <cstdarg> // for va_start, va_end
-#endif
 
 namespace libtorrent
 {
@@ -207,37 +202,6 @@ bool peer_connection_handle::failed() const
 	TORRENT_ASSERT(pc);
 	return pc->failed();
 }
-
-#ifndef TORRENT_DISABLE_LOGGING
-
-bool peer_connection_handle::should_log(peer_log_alert::direction_t direction) const
-{
-	std::shared_ptr<peer_connection> pc = native_handle();
-	TORRENT_ASSERT(pc);
-	return pc->should_log(direction);
-}
-
-TORRENT_FORMAT(4,5)
-void peer_connection_handle::peer_log(peer_log_alert::direction_t direction
-	, char const* event, char const* fmt, ...) const
-{
-	std::shared_ptr<peer_connection> pc = native_handle();
-	TORRENT_ASSERT(pc);
-	va_list v;
-	va_start(v, fmt);
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wformat-nonliteral"
-#pragma clang diagnostic ignored "-Wclass-varargs"
-#endif
-	pc->peer_log(direction, event, fmt, v);
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
-	va_end(v);
-}
-
-#endif // TORRENT_DISABLE_LOGGING
 
 bool peer_connection_handle::can_disconnect(error_code const& ec) const
 {

@@ -36,22 +36,18 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/operations.hpp"
-#include "libtorrent/alert_types.hpp"
 #include "libtorrent/peer_connection.hpp" // for connection_type
+#include "libtorrent/error_code.hpp"
 
 namespace libtorrent
 {
 
-class peer_connection;
 class bt_peer_connection;
 struct torrent_handle;
 struct peer_plugin;
 struct peer_info;
 struct crypto_plugin;
 
-typedef boost::system::error_code error_code;
-
-// hidden
 struct TORRENT_EXPORT peer_connection_handle
 {
 	peer_connection_handle(std::weak_ptr<peer_connection> impl)
@@ -94,14 +90,6 @@ struct TORRENT_EXPORT peer_connection_handle
 	bool ignore_unchoke_slots() const;
 
 	bool failed() const;
-
-#ifndef TORRENT_DISABLE_LOGGING
-
-	bool should_log(peer_log_alert::direction_t direction) const;
-	void peer_log(peer_log_alert::direction_t direction
-		, char const* event, char const* fmt = "", ...) const TORRENT_FORMAT(4,5);
-
-#endif // TORRENT_DISABLE_LOGGING
 
 	bool can_disconnect(error_code const& ec) const;
 
