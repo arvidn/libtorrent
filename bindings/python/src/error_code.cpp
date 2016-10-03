@@ -60,9 +60,9 @@ void bind_error_code()
         .def("assign", &error_code::assign)
         ;
 
-using return_existing = return_value_policy<reference_existing_object>;
+typedef return_value_policy<reference_existing_object> return_existing;
 
-    def("libtorrent_category", &libtorrent_category, return_existin());
+    def("libtorrent_category", &libtorrent_category, return_existing());
     def("upnp_category", &upnp_category, return_existing());
     def("http_category", &http_category, return_existing());
     def("socks_category", &socks_category, return_existing());
@@ -72,7 +72,7 @@ using return_existing = return_value_policy<reference_existing_object>;
 #endif
 
 #ifndef TORRENT_NO_DEPRECATE
-    def("get_libtorrent_category", &libtorrent_category, return_existin());
+    def("get_libtorrent_category", &libtorrent_category, return_existing());
     def("get_upnp_category", &upnp_category, return_existing());
     def("get_http_category", &http_category, return_existing());
     def("get_socks_category", &socks_category, return_existing());
