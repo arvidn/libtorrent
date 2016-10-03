@@ -274,7 +274,6 @@ rule warnings ( properties * )
 	{
 # disable warning C4503: decorated name length exceeded, name was truncated
 		result += <cflags>/wd4503 ;
-		result += <warnings>all ;
 
 # enable these warnings again, once the other ones are dealt with
 

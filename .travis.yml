@@ -73,7 +73,7 @@ install:
 # shipping with the system having marked all functions as deprecated. Since
 # we're building with -Werror, we can't have those warnings
   - 'echo "using darwin : cpp11 : ccache clang++ : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>-Wno-deprecated-declarations ;" >> ~/user-config.jam'
-  - 'echo "using darwin : cpp98 : ccache clang++ : <cflags>-std=c99 <cxxflags>-std=c++98 <compileflags>-Wno-deprecated-declarations ;" >> ~/user-config.jam'
+  - 'echo "using darwin : cpp98 : ccache clang++ : <warnings>off <cflags>-std=c99 <cxxflags>-std=c++98 <compileflags>-Wno-deprecated-declarations ;" >> ~/user-config.jam'
   - 'echo "using python : 2.7 ;" >> ~/user-config.jam'
   - ccache -V && ccache --show-stats && ccache --zero-stats
   - if [[ $docs == "1" && $TRAVIS_OS_NAME == "osx" ]]; then rst2html.py --version; fi
