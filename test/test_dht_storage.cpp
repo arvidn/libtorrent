@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/dht_observer.hpp"
 
 #include <numeric>
+#include <chrono>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -515,13 +516,21 @@ TORRENT_TEST(export_load_items)
 	}
 
 	{
+		using std::chrono::system_clock;
+
+		auto substract_seconds = [](dht_immutable_data& d, int n)
+		{
+			d.last_seen = system_clock::to_time_t(
+				system_clock::from_time_t(d.last_seen) - seconds(n));
+		};
+
 		items = s->export_items();
 		TEST_EQUAL(items.immutables.size(), 2);
 		TEST_EQUAL(items.mutables.size(), 2);
-		items.immutables[0].last_seen = time_point(seconds(120));
-		items.immutables[1].last_seen = time_point(seconds(20));
-		items.mutables[0].last_seen = time_point(seconds(120));
-		items.mutables[1].last_seen = time_point(seconds(20));
+		substract_seconds(items.immutables[0], 120);
+		substract_seconds(items.immutables[1], 20);
+		substract_seconds(items.mutables[0], 120);
+		substract_seconds(items.mutables[1], 20);
 		sett.max_dht_items = 2;
 		sett.item_lifetime = 60;
 		dht_immutable_data const& i1q = items.immutables[0];

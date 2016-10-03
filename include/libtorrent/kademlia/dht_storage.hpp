@@ -74,14 +74,8 @@ namespace dht
 	{
 		// the actual value
 		std::vector<char> value;
-		// this counts the number of IPs we have seen
-		// announcing this item, this is used to determine
-		// popularity if we reach the limit of items to store
-		bloom_filter<128> popularity;
 		// the last time we heard about this item
-		// the correct interpretation of this field
-		// requires a time reference
-		time_point last_seen;
+		std::time_t last_seen;
 	};
 
 	struct TORRENT_EXPORT dht_mutable_data : dht_immutable_data
@@ -96,11 +90,6 @@ namespace dht
 	// exported by the DHT's storage.
 	struct TORRENT_EXPORT dht_storage_items
 	{
-		// time reference to interpret the item's ``last_seen``
-		// actual last_seen time is
-		// (timestamp - total_seconds(last_seen.time_since_epoch()))
-		std::time_t timestamp;
-
 		std::vector<dht_immutable_data> immutables;
 		std::vector<dht_mutable_data> mutables;
 	};

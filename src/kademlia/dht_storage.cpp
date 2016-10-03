@@ -511,24 +511,27 @@ namespace
 			dht_storage_items ret;
 
 			auto const now = aux::time_now();
-			ret.timestamp = system_clock::to_time_t(system_clock::now());
+			auto const clock_now = system_clock::now();
 
 			auto copy = [&](dht_immutable_data& d, dht_immutable_item const& item)
 			{
 				d.value = {item.value.get(), item.value.get() + item.size};
-				d.popularity = item.ips;
-				d.last_seen = time_point(now - item.last_seen);
+				d.last_seen = system_clock::to_time_t(
+					clock_now - duration_cast<seconds>(now - item.last_seen));
 			};
 
-			for (auto const& p : m_immutable_table)
+			std::transform(m_immutable_table.begin(), m_immutable_table.end()
+				, std::back_inserter(ret.immutables)
+				, [&](std::pair<node_id const, dht_immutable_item> const& p)
 			{
-				dht_immutable_item const& item = p.second;
 				dht_immutable_data d;
-				copy(d, item);
-				ret.immutables.push_back(std::move(d));
-			}
+				copy(d, p.second);
+				return d;
+			});
 
-			for (auto const& p : m_mutable_table)
+			std::transform(m_mutable_table.begin(), m_mutable_table.end()
+				, std::back_inserter(ret.mutables)
+				, [&](std::pair<node_id const, dht_mutable_item> const& p)
 			{
 				dht_mutable_item const& item = p.second;
 				dht_mutable_data d;
@@ -537,8 +540,8 @@ namespace
 				d.sequence = item.seq;
 				d.key = item.key;
 				d.salt = item.salt;
-				ret.mutables.push_back(std::move(d));
-			}
+				return d;
+			});
 
 			return ret;
 		}
@@ -580,29 +583,21 @@ namespace
 			// Ideally the two list should be sorted by priority and
 			// trimmed, in practice this is a costly proposition due
 			// to the need of the target calculation.
-			//
-			// item.last_seen.time_since_epoch() is the internal duration
-			// of the (steady_clock::)time_point
 
 			auto const now = aux::time_now();
-			auto const offset_time = system_clock::now() -
-				system_clock::from_time_t(items.timestamp);
+			auto const clock_now = system_clock::now();
 			auto const lifetime = seconds(m_settings.item_lifetime);
 
 			// returns true if not expired, always set last_seen
 			auto copy = [&](dht_immutable_item& item, dht_immutable_data const& d)
 			{
 				set_value(item, d.value);
-				item.ips = d.popularity;
-				item.num_announcers = int(d.popularity.size());
 				item.last_seen = now -
-					(offset_time + d.last_seen.time_since_epoch());
+					(clock_now - system_clock::from_time_t(d.last_seen));
 				return lifetime.count() == 0
 					|| (item.last_seen + lifetime > now);
 			};
 
-			m_immutable_table.clear();
-			m_counters.immutable_data = 0;
 			for (auto const& d : items.immutables)
 			{
 				dht_immutable_item item;
@@ -614,8 +609,6 @@ namespace
 				if (m_counters.immutable_data >= m_settings.max_dht_items) break;
 			}
 
-			m_mutable_table.clear();
-			m_counters.mutable_data = 0;
 			for (auto const& d : items.mutables)
 			{
 				dht_mutable_item item;

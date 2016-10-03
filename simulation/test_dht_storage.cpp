@@ -225,14 +225,21 @@ TORRENT_TEST(export_load_items)
 	dht_storage_items items = test_save_expiration(hours(1), s);
 	TEST_EQUAL(items.immutables.size(), 2);
 	TEST_EQUAL(items.mutables.size(), 2);
-	auto const offset_time = system_clock::now() -
-		system_clock::from_time_t(items.timestamp);
-	TEST_CHECK(offset_time < minutes(1));
-	TEST_CHECK(items.immutables[0].last_seen.time_since_epoch() >= hours(1));
+	auto const diff_time = system_clock::now() -
+		system_clock::from_time_t(items.immutables[0].last_seen);
+	TEST_CHECK(diff_time > hours(1));
+
+	auto substract_hours = [](dht_immutable_data& d, int n)
+	{
+		d.last_seen = system_clock::to_time_t(
+			system_clock::from_time_t(d.last_seen) - hours(n));
+	};
 
 	sett.item_lifetime = int(total_seconds(hours(2)));
-	items.timestamp = system_clock::to_time_t(
-		system_clock::from_time_t(items.timestamp) - hours(1));
+	substract_hours(items.immutables[0], 1);
+	substract_hours(items.immutables[1], 1);
+	substract_hours(items.mutables[0], 1);
+	substract_hours(items.mutables[1], 1);
 	std::unique_ptr<dht_storage_interface> s1(create_default_dht_storage(sett, std::move(items)));
 	TEST_EQUAL(s1->counters().immutable_data, 0);
 	TEST_EQUAL(s1->counters().mutable_data, 0);
