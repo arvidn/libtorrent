@@ -249,9 +249,10 @@ char const* traversal_algorithm::name() const
 void traversal_algorithm::traverse(node_id const& id, udp::endpoint const& addr)
 {
 #ifndef TORRENT_DISABLE_LOGGING
-	if (id.is_all_zeros() && get_node().observer() != nullptr)
+	dht_observer* logger = get_node().observer();
+	if (logger != nullptr && logger->should_log(dht_logger::traversal) && id.is_all_zeros())
 	{
-		get_node().observer()->log(dht_logger::traversal
+		logger->log(dht_logger::traversal
 			, "[%p] WARNING node returned a list which included a node with id 0"
 			, static_cast<void*>(this));
 	}
