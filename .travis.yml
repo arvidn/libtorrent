@@ -67,8 +67,12 @@ before_install:
     else
     export coverage_toolset=$toolset;
     fi
-  - 'echo "using toolset: " ${toolset}'
-  - if [[ $lang == "ubsan" ]]; then export test_args="testing.arg=-n"; fi
+  - 'if [[ $lang == "ubsan" ]]; then export test_args=testing.arg="-n"; fi'
+  - 'echo "toolset: " ${toolset}'
+  - 'echo "target: " ${target}'
+  - 'echo "coverage_toolset: " ${coverage_toolset}'
+  - 'echo "test_args: " ${test_args}'
+  - 'echo "variant: " ${variant}'
 
 install:
   - 'if [[ $toolset == "gcc" ]]; then g++-5 --version; fi'
