@@ -67,7 +67,7 @@ before_install:
     else
     export coverage_toolset=$toolset;
     fi
-  - 'if [[ $lang == "ubsan" ]]; then export test_args=testing.arg="-n"; fi'
+  - 'if [[ $lang == "ubsan" ]]; then export test_args=testing.arg="--no-stderr-redirect"; fi'
   - 'echo "toolset: " ${toolset}'
   - 'echo "target: " ${target}'
   - 'echo "coverage_toolset: " ${coverage_toolset}'
