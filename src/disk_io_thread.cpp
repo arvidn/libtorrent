@@ -76,7 +76,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #if DEBUG_DISK_THREAD
 #define DLOG debug_log
 #else
-inline void dummy(char const* fmt, ...) {}
+inline void dummy(char const*, ...) {}
 #define DLOG TORRENT_WHILE_0 dummy
 #endif
 

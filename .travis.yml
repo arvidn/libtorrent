@@ -68,6 +68,7 @@ before_install:
     export coverage_toolset=$toolset;
     fi
   - 'echo "using toolset: " ${toolset}'
+  - if [[ $lang == "ubsan" ]]; then export test_args="testing.arg=-n"; fi
 
 install:
   - 'if [[ $toolset == "gcc" ]]; then g++-5 --version; fi'
@@ -92,7 +93,7 @@ script:
   - cd ..
 
   - cd test
-  - bjam --hash -j3 warnings-as-errors=on invariant-checks=full variant=$variant -l900 $coverage_toolset $target
+  - bjam --hash -j3 warnings-as-errors=on invariant-checks=full variant=$variant -l900 $coverage_toolset $target $test_args
 # if we're building with code coverage, report it as soon as possible
   - if [[ $TRAVIS_OS_NAME == "linux" && $coverage == "1" ]]; then
     codecov --root .. --gcov-exec gcov-4.8;
@@ -118,7 +119,7 @@ script:
 
   - cd simulation
   - if [ $sim = "1" ]; then
-    bjam --hash -j2 crypto=built-in warnings-as-errors=on $coverage_toolset;
+    bjam --hash -j2 crypto=built-in warnings-as-errors=on $coverage_toolset $test_args;
     fi
   - cd ..
   - ccache --show-stats
