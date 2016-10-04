@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/operations.hpp"
+#include "libtorrent/alert_types.hpp"
 #include "libtorrent/peer_connection.hpp" // for connection_type
 #include "libtorrent/error_code.hpp"
 
@@ -90,6 +91,10 @@ struct TORRENT_EXPORT peer_connection_handle
 	bool ignore_unchoke_slots() const;
 
 	bool failed() const;
+
+	bool should_log(peer_log_alert::direction_t direction) const;
+	void peer_log(peer_log_alert::direction_t direction
+		, char const* event, char const* fmt = "", ...) const TORRENT_FORMAT(4,5);
 
 	bool can_disconnect(error_code const& ec) const;
 
