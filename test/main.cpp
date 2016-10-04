@@ -68,7 +68,7 @@ using namespace libtorrent;
 // out, such as the log
 int old_stdout = -1;
 int old_stderr = -1;
-bool redirect_output = true;
+bool redirect_output = false; // TODO: TEMP!
 bool keep_files = false;
 
 extern int _g_test_idx;
