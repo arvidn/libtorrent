@@ -73,7 +73,25 @@ namespace libtorrent
 		TORRENT_ASSERT_PRECOND(t);
 		if (!t) return;
 		session_impl& ses = static_cast<session_impl&>(t->session());
-		ses.get_io_service().dispatch([=] () { (t.get()->*f)(a...); } );
+		ses.get_io_service().dispatch([=,&ses] ()
+		{
+#ifndef BOOST_NO_EXCEPTIONS
+			try {
+#endif
+				(t.get()->*f)(a...);
+#ifndef BOOST_NO_EXCEPTIONS
+			} catch (system_error const& e) {
+				ses.alerts().emplace_alert<torrent_error_alert>(torrent_handle(m_torrent)
+					, e.code(), e.what());
+			} catch (std::exception const& e) {
+				ses.alerts().emplace_alert<torrent_error_alert>(torrent_handle(m_torrent)
+					, error_code(), e.what());
+			} catch (...) {
+				ses.alerts().emplace_alert<torrent_error_alert>(torrent_handle(m_torrent)
+					, error_code(), "unknown error");
+			}
+#endif
+		} );
 	}
 
 	template<typename Fun, typename... Args>
@@ -87,15 +105,25 @@ namespace libtorrent
 		// this is the flag to indicate the call has completed
 		bool done = false;
 
-		ses.get_io_service().dispatch([=,&done,&ses] ()
+		std::exception_ptr ex;
+		ses.get_io_service().dispatch([=,&done,&ses,&ex] ()
 		{
-			(t.get()->*f)(a...);
+#ifndef BOOST_NO_EXCEPTIONS
+			try {
+#endif
+				(t.get()->*f)(a...);
+#ifndef BOOST_NO_EXCEPTIONS
+			} catch (...) {
+				ex = std::current_exception();
+			}
+#endif
 			std::unique_lock<std::mutex> l(ses.mut);
 			done = true;
 			ses.cond.notify_all();
 		} );
 
 		aux::torrent_wait(done, ses);
+		if (ex) std::rethrow_exception(ex);
 	}
 
 	template<typename Ret, typename Fun, typename... Args>
@@ -110,9 +138,18 @@ namespace libtorrent
 		// this is the flag to indicate the call has completed
 		bool done = false;
 
-		ses.get_io_service().dispatch([=,&r,&done,&ses] ()
+		std::exception_ptr ex;
+		ses.get_io_service().dispatch([=,&r,&done,&ses,&ex] ()
 		{
-			r = (t.get()->*f)(a...);
+#ifndef BOOST_NO_EXCEPTIONS
+			try {
+#endif
+				r = (t.get()->*f)(a...);
+#ifndef BOOST_NO_EXCEPTIONS
+			} catch (...) {
+				ex = std::current_exception();
+			}
+#endif
 			std::unique_lock<std::mutex> l(ses.mut);
 			done = true;
 			ses.cond.notify_all();
@@ -120,6 +157,7 @@ namespace libtorrent
 
 		aux::torrent_wait(done, ses);
 
+		if (ex) std::rethrow_exception(ex);
 		return r;
 	}
 

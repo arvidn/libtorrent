@@ -49,7 +49,21 @@ namespace libtorrent
 	void session_handle::async_call(Fun f, Args&&... a) const
 	{
 		m_impl->get_io_service().dispatch([=]() mutable
-		{ (m_impl->*f)(a...); });
+		{
+#ifndef BOOST_NO_EXCEPTIONS
+			try {
+#endif
+				(m_impl->*f)(a...);
+#ifndef BOOST_NO_EXCEPTIONS
+			} catch (system_error const& e) {
+				m_impl->alerts().emplace_alert<session_error_alert>(e.code(), e.what());
+			} catch (std::exception const& e) {
+				m_impl->alerts().emplace_alert<session_error_alert>(error_code(), e.what());
+			} catch (...) {
+				m_impl->alerts().emplace_alert<session_error_alert>(error_code(), "unknown error");
+			}
+#endif
+		});
 	}
 
 	template<typename Fun, typename... Args>
@@ -60,15 +74,25 @@ namespace libtorrent
 		// and simplify the capture expression
 		bool done = false;
 
-		m_impl->get_io_service().dispatch([=,&done]() mutable
+		std::exception_ptr ex;
+		m_impl->get_io_service().dispatch([=,&done,&ex]() mutable
 		{
-			(m_impl->*f)(a...);
+#ifndef BOOST_NO_EXCEPTIONS
+			try {
+#endif
+				(m_impl->*f)(a...);
+#ifndef BOOST_NO_EXCEPTIONS
+			} catch (...) {
+				ex = std::current_exception();
+			}
+#endif
 			std::unique_lock<std::mutex> l(m_impl->mut);
 			done = true;
 			m_impl->cond.notify_all();
 		});
 
 		aux::torrent_wait(done, *m_impl);
+		if (ex) std::rethrow_exception(ex);
 	}
 
 	template<typename Ret, typename Fun, typename... Args>
@@ -79,15 +103,25 @@ namespace libtorrent
 		// and simplify the capture expression
 		bool done = false;
 		Ret r;
-		m_impl->get_io_service().dispatch([=,&r,&done]() mutable
+		std::exception_ptr ex;
+		m_impl->get_io_service().dispatch([=,&r,&done,&ex]() mutable
 		{
-			r = (m_impl->*f)(a...);
+#ifndef BOOST_NO_EXCEPTIONS
+			try {
+#endif
+				r = (m_impl->*f)(a...);
+#ifndef BOOST_NO_EXCEPTIONS
+			} catch (...) {
+				ex = std::current_exception();
+			}
+#endif
 			std::unique_lock<std::mutex> l(m_impl->mut);
 			done = true;
 			m_impl->cond.notify_all();
 		});
 
 		aux::torrent_wait(done, *m_impl);
+		if (ex) std::rethrow_exception(ex);
 		return r;
 	}
 

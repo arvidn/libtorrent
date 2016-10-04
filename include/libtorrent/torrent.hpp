@@ -971,6 +971,9 @@ namespace libtorrent
 		int time_since_complete() const { return int(time(0) - m_last_seen_complete); }
 		time_t last_seen_complete() const { return m_last_seen_complete; }
 
+		template <typename Fun, typename... Args>
+		void wrap(Fun f, Args&&... a);
+
 		// LOGGING
 #ifndef TORRENT_DISABLE_LOGGING
 		virtual bool should_log() const override;
@@ -1139,10 +1142,7 @@ namespace libtorrent
 
 		void update_tracker_timer(time_point now);
 
-		static void on_tracker_announce_disp(std::weak_ptr<torrent> p
-			, error_code const& e);
-
-		void on_tracker_announce();
+		void on_tracker_announce(error_code const& ec);
 
 #ifndef TORRENT_DISABLE_DHT
 		static void on_dht_announce_response_disp(std::weak_ptr<torrent> t
@@ -1433,10 +1433,10 @@ namespace libtorrent
 		// is is disabled while paused and checking files
 		bool m_announcing:1;
 
-		// this is true while the tracker deadline timer
+		// this is > 0 while the tracker deadline timer
 		// is in use. i.e. one or more trackers are waiting
 		// for a reannounce
-		bool m_waiting_tracker:1;
+		std::int8_t m_waiting_tracker = 0;
 
 // ----
 
@@ -1503,7 +1503,7 @@ namespace libtorrent
 
 		// these are the flags sent in on a call to save_resume_data
 		// we need to save them to check them in write_resume_data
-		std::uint8_t m_save_resume_flags;
+		std::uint8_t m_save_resume_flags = 0;
 
 // ----
 

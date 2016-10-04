@@ -1283,8 +1283,17 @@ namespace libtorrent {
 
 	std::string torrent_error_alert::message() const
 	{
-		char msg[200];
-		std::snprintf(msg, sizeof(msg), " ERROR: %s", convert_from_native(error.message()).c_str());
+		char msg[400];
+		if (error)
+		{
+			std::snprintf(msg, sizeof(msg), " ERROR: (%d %s) %s"
+				, error.value(), convert_from_native(error.message()).c_str()
+				, filename());
+		}
+		else
+		{
+			std::snprintf(msg, sizeof(msg), " ERROR: %s", filename());
+		}
 		return torrent_alert::message() + msg;
 	}
 
@@ -1711,7 +1720,7 @@ namespace libtorrent {
 
 	std::string lsd_error_alert::message() const
 	{
-		return "Local Service Discovery error: " + error.message();
+		return "Local Service Discovery error: " + convert_from_native(error.message());
 	}
 
 	session_stats_alert::session_stats_alert(aux::stack_allocator&, counters const& cnt)
@@ -2073,4 +2082,29 @@ namespace libtorrent {
 		return ret;
 	}
 
+	session_error_alert::session_error_alert(aux::stack_allocator& alloc
+		, error_code e, string_view error_str)
+		: error(e)
+		, m_alloc(alloc)
+		, m_msg_idx(alloc.copy_buffer(error_str))
+	{}
+
+	std::string session_error_alert::message() const
+	{
+		char buf[400];
+		if (error)
+		{
+			std::snprintf(buf, sizeof(buf), "session error: (%d %s) %s"
+				, error.value(), convert_from_native(error.message()).c_str()
+				, m_alloc.get().ptr(m_msg_idx));
+		}
+		else
+		{
+			std::snprintf(buf, sizeof(buf), "session error: %s"
+				, m_alloc.get().ptr(m_msg_idx));
+		}
+		return buf;
+	}
+
 } // namespace libtorrent
+
