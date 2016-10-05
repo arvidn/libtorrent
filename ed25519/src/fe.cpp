@@ -527,7 +527,9 @@ int fe_isnonzero(const fe f) {
     return r != 0;
 }
 
-
+inline i64 shift_left(i64 v, int s) {
+	return i64(u64(v) << s);
+}
 
 /*
     h = f * g
@@ -719,46 +721,46 @@ void fe_mul(fe h, const fe f, const fe g) {
 
     carry0 = (h0 + (i64) (1 << 25)) >> 26;
     h1 += carry0;
-    h0 -= (i64)(((u64)carry0) << 26);
+    h0 -= shift_left(carry0, 26);
     carry4 = (h4 + (i64) (1 << 25)) >> 26;
     h5 += carry4;
-    h4 -= carry4 << 26;
+    h4 -= shift_left(carry4, 26);
 
     carry1 = (h1 + (i64) (1 << 24)) >> 25;
     h2 += carry1;
-    h1 -= carry1 << 25;
+    h1 -= shift_left(carry1, 25);
     carry5 = (h5 + (i64) (1 << 24)) >> 25;
     h6 += carry5;
-    h5 -= carry5 << 25;
+    h5 -= shift_left(carry5, 25);
 
     carry2 = (h2 + (i64) (1 << 25)) >> 26;
     h3 += carry2;
-    h2 -= carry2 << 26;
+    h2 -= shift_left(carry2, 26);
     carry6 = (h6 + (i64) (1 << 25)) >> 26;
     h7 += carry6;
-    h6 -= carry6 << 26;
+    h6 -= shift_left(carry6, 26);
 
     carry3 = (h3 + (i64) (1 << 24)) >> 25;
     h4 += carry3;
-    h3 -= carry3 << 25;
+    h3 -= shift_left(carry3, 25);
     carry7 = (h7 + (i64) (1 << 24)) >> 25;
     h8 += carry7;
-    h7 -= carry7 << 25;
+    h7 -= shift_left(carry7, 25);
 
     carry4 = (h4 + (i64) (1 << 25)) >> 26;
     h5 += carry4;
-    h4 -= carry4 << 26;
+    h4 -= shift_left(carry4, 26);
     carry8 = (h8 + (i64) (1 << 25)) >> 26;
     h9 += carry8;
-    h8 -= carry8 << 26;
+    h8 -= shift_left(carry8, 26);
 
     carry9 = (h9 + (i64) (1 << 24)) >> 25;
     h0 += carry9 * 19;
-    h9 -= carry9 << 25;
+    h9 -= shift_left(carry9, 25);
 
     carry0 = (h0 + (i64) (1 << 25)) >> 26;
     h1 += carry0;
-    h0 -= carry0 << 26;
+    h0 -= shift_left(carry0, 26);
 
     h[0] = (i32) h0;
     h[1] = (i32) h1;
