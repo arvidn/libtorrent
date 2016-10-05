@@ -4741,22 +4741,28 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 	catch (system_error const& e)
 	{
+#ifndef TORRENT_DISABLE_LOGGING
 		debug_log("EXCEPTION: (%d %s) %s"
 			, e.code().value()
 			, e.code().message().c_str()
 			, e.what());
+#endif
 		set_error(e.code(), torrent_status::error_file_exception);
 		pause();
 	}
 	catch (std::exception const& e)
 	{
+#ifndef TORRENT_DISABLE_LOGGING
 		debug_log("EXCEPTION: %s", e.what());
+#endif
 		set_error(error_code(), torrent_status::error_file_exception);
 		pause();
 	}
 	catch (...)
 	{
+#ifndef TORRENT_DISABLE_LOGGING
 		debug_log("EXCEPTION: unknown");
+#endif
 		set_error(error_code(), torrent_status::error_file_exception);
 		pause();
 	}
