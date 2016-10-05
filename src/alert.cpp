@@ -116,8 +116,7 @@ namespace libtorrent {
 	}
 
 	tracker_alert::tracker_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h
-		, std::string const& u)
+		, torrent_handle const& h, string_view u)
 		: torrent_alert(alloc, h)
 #ifndef TORRENT_NO_DEPRECATE
 		, url(u)
@@ -189,9 +188,7 @@ namespace libtorrent {
 	}
 
 	file_renamed_alert::file_renamed_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h
-		, std::string const& n
-		, int idx)
+		, torrent_handle const& h, string_view n, int const idx)
 		: torrent_alert(alloc, h)
 #ifndef TORRENT_NO_DEPRECATE
 		, name(n)
@@ -283,12 +280,8 @@ namespace libtorrent {
 	}
 
 	tracker_error_alert::tracker_error_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h
-		, int times
-		, int status
-		, std::string const& u
-		, error_code const& e
-		, std::string const& m)
+		, torrent_handle const& h, int times, int status, string_view u
+		, error_code const& e, string_view m)
 		: tracker_alert(alloc, h, u)
 		, times_in_row(times)
 		, status_code(status)
@@ -321,9 +314,7 @@ namespace libtorrent {
 	}
 
 	tracker_warning_alert::tracker_warning_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h
-		, std::string const& u
-		, std::string const& m)
+		, torrent_handle const& h, string_view u, string_view m)
 		: tracker_alert(alloc, h, u)
 #ifndef TORRENT_NO_DEPRECATE
 		, msg(m)
@@ -348,10 +339,7 @@ namespace libtorrent {
 	}
 
 	scrape_reply_alert::scrape_reply_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h
-		, int incomp
-		, int comp
-		, std::string const& u)
+		, torrent_handle const& h, int incomp, int comp, string_view u)
 		: tracker_alert(alloc, h, u)
 		, incomplete(incomp)
 		, complete(comp)
@@ -368,9 +356,7 @@ namespace libtorrent {
 	}
 
 	scrape_failed_alert::scrape_failed_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h
-		, std::string const& u
-		, error_code const& e)
+		, torrent_handle const& h, string_view u, error_code const& e)
 		: tracker_alert(alloc, h, u)
 #ifndef TORRENT_NO_DEPRECATE
 		, msg(convert_from_native(e.message()))
@@ -382,9 +368,7 @@ namespace libtorrent {
 	}
 
 	scrape_failed_alert::scrape_failed_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h
-		, std::string const& u
-		, std::string const& m)
+		, torrent_handle const& h, string_view u, string_view m)
 		: tracker_alert(alloc, h, u)
 #ifndef TORRENT_NO_DEPRECATE
 		, msg(m)
@@ -411,9 +395,7 @@ namespace libtorrent {
 	}
 
 	tracker_reply_alert::tracker_reply_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h
-		, int np
-		, std::string const& u)
+		, torrent_handle const& h, int np, string_view u)
 		: tracker_alert(alloc, h, u)
 		, num_peers(np)
 	{
@@ -444,8 +426,7 @@ namespace libtorrent {
 	}
 
 	tracker_announce_alert::tracker_announce_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h
-		, std::string const& u, int e)
+		, torrent_handle const& h, string_view u, int e)
 		: tracker_alert(alloc, h, u)
 		, event(e)
 	{
@@ -656,7 +637,7 @@ namespace libtorrent {
 	}
 
 	storage_moved_alert::storage_moved_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, std::string const& p)
+		, torrent_handle const& h, string_view p)
 		: torrent_alert(alloc, h)
 #ifndef TORRENT_NO_DEPRECATE
 		, path(p)
@@ -680,11 +661,8 @@ namespace libtorrent {
 	}
 
 	storage_moved_failed_alert::storage_moved_failed_alert(
-		aux::stack_allocator& alloc
-		, torrent_handle const& h
-		, error_code const& e
-		, std::string const& f
-		, char const* op)
+		aux::stack_allocator& alloc, torrent_handle const& h, error_code const& e
+		, string_view f, char const* op)
 		: torrent_alert(alloc, h)
 		, error(e)
 #ifndef TORRENT_NO_DEPRECATE
@@ -823,7 +801,7 @@ namespace libtorrent {
 
 	listen_failed_alert::listen_failed_alert(
 		aux::stack_allocator& alloc
-		, std::string const& iface
+		, string_view iface
 		, libtorrent::address const& listen_addr
 		, int listen_port
 		, int op
@@ -843,7 +821,7 @@ namespace libtorrent {
 
 	listen_failed_alert::listen_failed_alert(
 		aux::stack_allocator& alloc
-		, std::string const& iface
+		, string_view iface
 		, tcp::endpoint const& ep
 		, int op
 		, error_code const& ec
@@ -859,7 +837,7 @@ namespace libtorrent {
 
 	listen_failed_alert::listen_failed_alert(
 		aux::stack_allocator& alloc
-		, std::string const& iface
+		, string_view iface
 		, udp::endpoint const& ep
 		, int op
 		, error_code const& ec
@@ -875,7 +853,7 @@ namespace libtorrent {
 
 	listen_failed_alert::listen_failed_alert(
 		aux::stack_allocator& alloc
-		, std::string const& iface
+		, string_view iface
 		, int op
 		, error_code const& ec
 		, socket_type_t t)
@@ -1059,7 +1037,7 @@ namespace libtorrent {
 		aux::stack_allocator& alloc
 		, torrent_handle const& h
 		, error_code const& ec
-		, std::string const& f
+		, string_view f
 		, char const* op)
 		: torrent_alert(alloc, h)
 		, error(ec)
@@ -1204,7 +1182,7 @@ namespace libtorrent {
 		: torrent_alert(alloc, h) {}
 
 	anonymous_mode_alert::anonymous_mode_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, int k, std::string const& s)
+		, torrent_handle const& h, int k, string_view s)
 		: torrent_alert(alloc, h)
 		, kind(k)
 		, str(s)
@@ -1238,7 +1216,7 @@ namespace libtorrent {
 	trackerid_alert::trackerid_alert(
 		aux::stack_allocator& alloc
 		, torrent_handle const& h
-		, std::string const& u
+		, string_view u
 		, const std::string& id)
 		: tracker_alert(alloc, h, u)
 #ifndef TORRENT_NO_DEPRECATE
@@ -1272,7 +1250,7 @@ namespace libtorrent {
 	torrent_error_alert::torrent_error_alert(
 		aux::stack_allocator& alloc
 		, torrent_handle const& h
-		, error_code const& e, std::string const& f)
+		, error_code const& e, string_view f)
 		: torrent_alert(alloc, h)
 		, error(e)
 #ifndef TORRENT_NO_DEPRECATE
@@ -1550,7 +1528,7 @@ namespace libtorrent {
 		, std::array<char, 32> k
 		, std::array<char, 64> sig
 		, std::uint64_t sequence
-		, std::string const& s
+		, string_view s
 		, entry const& i
 		, bool a)
 		: key(k), signature(sig), seq(sequence), salt(s), item(i), authoritative(a)
@@ -1756,7 +1734,7 @@ namespace libtorrent {
 	}
 
 	url_seed_alert::url_seed_alert(aux::stack_allocator& alloc, torrent_handle const& h
-		, std::string const& u, error_code const& e)
+		, string_view u, error_code const& e)
 		: torrent_alert(alloc, h)
 #ifndef TORRENT_NO_DEPRECATE
 		, url(u)
@@ -1768,7 +1746,7 @@ namespace libtorrent {
 	{}
 
 	url_seed_alert::url_seed_alert(aux::stack_allocator& alloc, torrent_handle const& h
-		, std::string const& u, std::string const& m)
+		, string_view u, string_view m)
 		: torrent_alert(alloc, h)
 #ifndef TORRENT_NO_DEPRECATE
 		, url(u)
@@ -1800,9 +1778,7 @@ namespace libtorrent {
 	}
 
 	file_error_alert::file_error_alert(aux::stack_allocator& alloc
-		, error_code const& ec
-		, std::string const& f
-		, char const* op
+		, error_code const& ec, string_view f, char const* op
 		, torrent_handle const& h)
 		: torrent_alert(alloc, h)
 #ifndef TORRENT_NO_DEPRECATE

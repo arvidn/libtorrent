@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/span.hpp"
+#include "libtorrent/string_view.hpp"
 
 #include <cstring>
 
@@ -48,11 +49,12 @@ namespace libtorrent { namespace aux
 		stack_allocator(stack_allocator const&) = delete;
 		stack_allocator& operator=(stack_allocator const&) = delete;
 
-		int copy_string(std::string const& str)
+		int copy_string(string_view str)
 		{
 			int const ret = int(m_storage.size());
-			m_storage.resize(ret + str.length() + 1);
-			std::strcpy(&m_storage[ret], str.c_str());
+			m_storage.resize(ret + str.size() + 1);
+			std::memcpy(&m_storage[ret], str.data(), str.size());
+			m_storage[ret + str.length()] = '\0';
 			return ret;
 		}
 
