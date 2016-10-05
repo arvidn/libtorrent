@@ -569,6 +569,7 @@ namespace libtorrent
 			if (r == ERROR_BUFFER_OVERFLOW)
 			{
 				buffer.resize(buf_size);
+				adapter_addresses = reinterpret_cast<IP_ADAPTER_ADDRESSES*>(&buffer[0]);
 				r = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER
 					| GAA_FLAG_SKIP_ANYCAST, NULL, adapter_addresses, &buf_size);
 			}

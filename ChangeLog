@@ -1,3 +1,4 @@
+	* fix bug in enumeration of network interfaces on windows
 	* fix padfile issue
 	* fix PMTUd bug
 	* update puff to fix gzip crash
