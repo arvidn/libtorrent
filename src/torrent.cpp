@@ -4739,31 +4739,29 @@ namespace libtorrent
 		(this->*f)(std::forward<Args>(a)...);
 	}
 #ifndef BOOST_NO_EXCEPTIONS
-	catch (system_error const& e)
-	{
+	catch (system_error const& e) {
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("EXCEPTION: (%d %s) %s"
 			, e.code().value()
 			, e.code().message().c_str()
 			, e.what());
 #endif
-		set_error(e.code(), torrent_status::error_file_exception);
+		ses.alerts().emplace_alert<torrent_error_alert>(torrent_handle(m_torrent)
+			, e.code(), e.what());
 		pause();
-	}
-	catch (std::exception const& e)
-	{
+	} catch (std::exception const& e) {
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("EXCEPTION: %s", e.what());
 #endif
-		set_error(error_code(), torrent_status::error_file_exception);
+		ses.alerts().emplace_alert<torrent_error_alert>(torrent_handle(m_torrent)
+			, error_code(), e.what());
 		pause();
-	}
-	catch (...)
-	{
+	} catch (...) {
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("EXCEPTION: unknown");
 #endif
-		set_error(error_code(), torrent_status::error_file_exception);
+		ses.alerts().emplace_alert<torrent_error_alert>(torrent_handle(m_torrent)
+			, error_code(), "unknown error");
 		pause();
 	}
 #endif
