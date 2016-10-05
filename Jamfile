@@ -224,6 +224,7 @@ rule linking ( properties * )
 
 	result += <define>BOOST_ALL_NO_LIB
 		<define>BOOST_MULTI_INDEX_DISABLE_SERIALIZATION
+		<define>BOOST_SYSTEM_NO_DEPRECATED
 		;
 
 	return $(result) ;

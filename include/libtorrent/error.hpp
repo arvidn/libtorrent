@@ -35,12 +35,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 #if defined TORRENT_WINDOWS || defined TORRENT_CYGWIN
 // asio assumes that the windows error codes are defined already
 #include <winsock2.h>
 #endif
 
 #include <boost/asio/error.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {
