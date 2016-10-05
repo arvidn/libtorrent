@@ -3,7 +3,6 @@
 
 #include "ge.h"
 #include "precomp_data.h"
-#include <cstdint>
 
 
 /*

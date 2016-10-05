@@ -719,7 +719,7 @@ void fe_mul(fe h, const fe f, const fe g) {
 
     carry0 = (h0 + (i64) (1 << 25)) >> 26;
     h1 += carry0;
-    h0 -= carry0 << 26;
+    h0 -= (i64)(((u64)carry0) << 26);
     carry4 = (h4 + (i64) (1 << 25)) >> 26;
     h5 += carry4;
     h4 -= carry4 << 26;
