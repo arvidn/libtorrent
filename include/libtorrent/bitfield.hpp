@@ -226,11 +226,13 @@ namespace libtorrent
 		// set all bits in the bitfield to 1 (set_all) or 0 (clear_all).
 		void set_all()
 		{
+			if (m_buf == nullptr) return;
 			std::memset(m_buf, 0xff, size_t(num_words() * 4));
 			clear_trailing_bits();
 		}
 		void clear_all()
 		{
+			if (m_buf == nullptr) return;
 			std::memset(m_buf, 0x00, size_t(num_words() * 4));
 		}
 
