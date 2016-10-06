@@ -1067,10 +1067,10 @@ namespace libtorrent
 			{
 				bt_peer_connection* btp = static_cast<bt_peer_connection*>(*i);
 				boost::shared_ptr<peer_connection> me(btp->self());
-				if (!p->is_disconnecting())
+				if (!btp->is_disconnecting())
 				{
-					p->send_not_interested();
-					p->write_upload_only();
+					btp->send_not_interested();
+					btp->write_upload_only();
 				}
 			}
 
