@@ -1062,10 +1062,11 @@ namespace libtorrent
 			// since the call to disconnect_if_redundant() may
 			// delete the entry from this container, make sure
 			// to increment the iterator early
-			bt_peer_connection* p = static_cast<bt_peer_connection*>(*i);
+			peer_connection* p = *i;
 			if (p->type() == peer_connection::bittorrent_connection)
 			{
-				boost::shared_ptr<peer_connection> me(p->self());
+				bt_peer_connection* btp = static_cast<bt_peer_connection*>(*i);
+				boost::shared_ptr<peer_connection> me(btp->self());
 				if (!p->is_disconnecting())
 				{
 					p->send_not_interested();
