@@ -807,7 +807,7 @@ void utp_socket_impl::update_mtu_limits()
 
 	m_mtu = (m_mtu_floor + m_mtu_ceiling) / 2;
 
-	if ((m_cwnd >> 16) < m_mtu) m_cwnd = boost::int64_t(m_mtu) << 16;
+	if ((m_cwnd >> 16) < m_mtu) m_cwnd = boost::int64_t(m_mtu) * (1 << 16);
 
 	UTP_LOGV("%8p: updating MTU to: %d [%d, %d]\n"
 		, static_cast<void*>(this), m_mtu, m_mtu_floor, m_mtu_ceiling);
@@ -2338,7 +2338,8 @@ void utp_socket_impl::experienced_loss(int const seq_nr)
 	if (compare_less_wrap(seq_nr, m_loss_seq_nr + 1, ACK_MASK)) return;
 
 	// cut window size in 2
-	m_cwnd = (std::max)(m_cwnd * m_sm->loss_multiplier() / 100, boost::int64_t(m_mtu << 16));
+	m_cwnd = std::max(m_cwnd * m_sm->loss_multiplier() / 100
+		, boost::int64_t(m_mtu) * (1 << 16));
 	m_loss_seq_nr = m_seq_nr;
 	UTP_LOGV("%8p: Lost packet %d caused cwnd cut\n", static_cast<void*>(this), seq_nr);
 
@@ -2699,7 +2700,7 @@ void utp_socket_impl::init_mtu(int link_mtu, int utp_mtu)
 
 	// if the window size is smaller than one packet size
 	// set it to one
-	if ((m_cwnd >> 16) < m_mtu) m_cwnd = boost::int64_t(m_mtu) << 16;
+	if ((m_cwnd >> 16) < m_mtu) m_cwnd = boost::int64_t(m_mtu) * (1 << 16);
 
 	UTP_LOGV("%8p: initializing MTU to: %d [%d, %d]\n"
 		, static_cast<void*>(this), m_mtu, m_mtu_floor, m_mtu_ceiling);
@@ -3424,8 +3425,8 @@ void utp_socket_impl::do_ledbat(const int acked_bytes, const int delay
 	const bool cwnd_saturated = (m_bytes_in_flight + acked_bytes + m_mtu > (m_cwnd >> 16));
 
 	// all of these are fixed points with 16 bits fraction portion
-	const boost::int64_t window_factor = (boost::int64_t(acked_bytes) << 16) / in_flight;
-	const boost::int64_t delay_factor = (boost::int64_t(target_delay - delay) << 16) / target_delay;
+	const boost::int64_t window_factor = (boost::int64_t(acked_bytes) * (1 << 16)) / in_flight;
+	const boost::int64_t delay_factor = (boost::int64_t(target_delay - delay) * (1 << 16)) / target_delay;
 	boost::int64_t scaled_gain;
 
 	if (delay >= target_delay)
@@ -3452,7 +3453,7 @@ void utp_socket_impl::do_ledbat(const int acked_bytes, const int delay
 	// congestion window), don't adjust it at all.
 	if (cwnd_saturated)
 	{
-		boost::int64_t exponential_gain = boost::int64_t(acked_bytes) << 16;
+		boost::int64_t exponential_gain = boost::int64_t(acked_bytes) * (1 << 16);
 		if (m_slow_start)
 		{
 			// mimic TCP slow-start by adding the number of acked
@@ -3623,13 +3624,13 @@ void utp_socket_impl::tick(time_point now)
 		{
 			// this is just a timeout because this direction of
 			// the stream is idle. Don't reset the cwnd, just decay it
-			m_cwnd = (std::max)(m_cwnd * 2 / 3, boost::int64_t(m_mtu) << 16);
+			m_cwnd = std::max(m_cwnd * 2 / 3, boost::int64_t(m_mtu) * (1 << 16));
 		}
 		else
 		{
 			// we timed out because a packet was not ACKed or because
 			// the cwnd was made smaller than one packet
-			m_cwnd = boost::int64_t(m_mtu) << 16;
+			m_cwnd = boost::int64_t(m_mtu) * (1 << 16);
 		}
 
 		TORRENT_ASSERT(m_cwnd >= 0);
