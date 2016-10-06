@@ -2396,11 +2396,32 @@ namespace libtorrent
 		int const m_num_blocks;
 	};
 
+	// this alert is posted when the session encounters a serious error,
+	// potentially fatal
+	struct TORRENT_EXPORT session_error_alert : alert
+	{
+		// internal
+		session_error_alert(aux::stack_allocator& alloc, error_code err
+			, string_view error_str);
+
+		TORRENT_DEFINE_ALERT(session_error_alert, 90)
+
+		static const int static_category = alert::error_notification;
+		std::string message() const override;
+
+		// The error code, if one is associated with this error
+		error_code error;
+
+	private:
+		std::reference_wrapper<aux::stack_allocator> m_alloc;
+		int const m_msg_idx;
+	};
+
 #undef TORRENT_DEFINE_ALERT_IMPL
 #undef TORRENT_DEFINE_ALERT
 #undef TORRENT_DEFINE_ALERT_PRIO
 
-	enum { num_alert_types = 90 }; // this enum represents "max_alert_index" + 1
+	enum { num_alert_types = 91 }; // this enum represents "max_alert_index" + 1
 }
 
 #endif

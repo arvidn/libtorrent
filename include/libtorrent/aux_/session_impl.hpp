@@ -207,6 +207,9 @@ namespace libtorrent
 				plugins_dht_request_idx = 3 // dht_request_feature
 			};
 
+			template <typename Fun, typename... Args>
+			void wrap(Fun f, Args&&... a);
+
 #if TORRENT_USE_INVARIANT_CHECKS
 			friend class libtorrent::invariant_access;
 #endif

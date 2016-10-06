@@ -3509,7 +3509,7 @@ namespace libtorrent
 
 		std::unique_lock<std::mutex> l(m_completed_jobs_mutex);
 
-		bool need_post = m_completed_jobs.size() == 0;
+		bool const need_post = m_completed_jobs.size() == 0;
 		m_completed_jobs.append(jobs);
 		l.unlock();
 
@@ -3524,6 +3524,9 @@ namespace libtorrent
 	}
 
 	// This is run in the network thread
+	// TODO: 2 it would be nice to get rid of m_userdata and just have a function
+	// object to pass all the job completions to. It could in turn be responsible
+	// for posting them to the correct io_servive
 	void disk_io_thread::call_job_handlers(void* userdata)
 	{
 		std::unique_lock<std::mutex> l(m_completed_jobs_mutex);
@@ -3532,7 +3535,7 @@ namespace libtorrent
 		DLOG("call_job_handlers (%d)\n", m_completed_jobs.size());
 #endif
 
-		int num_jobs = m_completed_jobs.size();
+		int const num_jobs = m_completed_jobs.size();
 		disk_io_job* j = m_completed_jobs.get_all();
 		l.unlock();
 

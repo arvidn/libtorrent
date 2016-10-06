@@ -195,6 +195,7 @@ namespace libtorrent {
 
 namespace aux {
 
+	// TODO: 3 move this out of this file
 #ifndef TORRENT_DISABLE_DHT
 	dht_settings read_dht_settings(bdecode_node const& e)
 	{
@@ -443,6 +444,27 @@ namespace aux {
 		update_time_now();
 	}
 
+	template <typename Fun, typename... Args>
+	void session_impl::wrap(Fun f, Args&&... a)
+#ifndef BOOST_NO_EXCEPTIONS
+		try
+#endif
+	{
+		(this->*f)(std::forward<Args>(a)...);
+	}
+#ifndef BOOST_NO_EXCEPTIONS
+	catch (system_error const& e) {
+		alerts().emplace_alert<session_error_alert>(e.code(), e.what());
+		pause();
+	} catch (std::exception const& e) {
+		alerts().emplace_alert<session_error_alert>(error_code(), e.what());
+		pause();
+	} catch (...) {
+		alerts().emplace_alert<session_error_alert>(error_code(), "unknown error");
+		pause();
+	}
+#endif
+
 	// This function is called by the creating thread, not in the message loop's
 	// io_service thread.
 	// TODO: 2 is there a reason not to move all of this into init()? and just
@@ -520,8 +542,10 @@ namespace aux {
 		}
 #endif
 
+		// TODO: 3 make this move all the way through to the init() call
+		// if we're in C++14
 		auto copy = std::make_shared<settings_pack>(std::move(pack));
-		m_io_service.post(std::bind(&session_impl::init, this, copy));
+		m_io_service.post([this, copy] { this->wrap(&session_impl::init, copy); });
 	}
 
 	void session_impl::init(std::shared_ptr<settings_pack> pack)
@@ -566,15 +590,15 @@ namespace aux {
 		async_inc_threads();
 		add_outstanding_async("session_impl::on_tick");
 #endif
-		error_code ec;
-		m_io_service.post(std::bind(&session_impl::on_tick, this, ec));
+		m_io_service.post([this]{ this->wrap(&session_impl::on_tick, error_code()); });
 
+		error_code ec;
 		ADD_OUTSTANDING_ASYNC("session_impl::on_lsd_announce");
-		int delay = (std::max)(m_settings.get_int(settings_pack::local_service_announce_interval)
-			/ (std::max)(int(m_torrents.size()), 1), 1);
+		int const delay = std::max(m_settings.get_int(settings_pack::local_service_announce_interval)
+			/ std::max(int(m_torrents.size()), 1), 1);
 		m_lsd_announce_timer.expires_from_now(seconds(delay), ec);
-		m_lsd_announce_timer.async_wait(
-			std::bind(&session_impl::on_lsd_announce, this, _1));
+		m_lsd_announce_timer.async_wait([this](error_code const& e) {
+			this->wrap(&session_impl::on_lsd_announce, e); } );
 		TORRENT_ASSERT(!ec);
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1339,7 +1363,7 @@ namespace aux {
 	{
 		if (m_deferred_submit_disk_jobs) return;
 		m_deferred_submit_disk_jobs = true;
-		m_io_service.post(std::bind(&session_impl::submit_disk_jobs, this));
+		m_io_service.post([this] { this->wrap(&session_impl::submit_disk_jobs); } );
 	}
 
 	void session_impl::submit_disk_jobs()
@@ -3136,7 +3160,8 @@ namespace aux {
 		ADD_OUTSTANDING_ASYNC("session_impl::on_tick");
 		error_code ec;
 		m_timer.expires_at(now + milliseconds(m_settings.get_int(settings_pack::tick_interval)), ec);
-		m_timer.async_wait(make_tick_handler(std::bind(&session_impl::on_tick, this, _1)));
+		m_timer.async_wait(make_tick_handler([this](error_code const& err) {
+			this->wrap(&session_impl::on_tick, err); }));
 
 		m_download_rate.update_quotas(now - m_last_tick);
 		m_upload_rate.update_quotas(now - m_last_tick);
@@ -3525,8 +3550,8 @@ namespace aux {
 			ADD_OUTSTANDING_ASYNC("session_impl::on_dht_announce");
 			error_code ec;
 			m_dht_announce_timer.expires_from_now(seconds(0), ec);
-			m_dht_announce_timer.async_wait(
-				std::bind(&session_impl::on_dht_announce, this, _1));
+			m_dht_announce_timer.async_wait([this](error_code const& err) {
+				this->wrap(&session_impl::on_dht_announce, err); });
 		}
 	}
 
@@ -3577,8 +3602,9 @@ namespace aux {
 		ADD_OUTSTANDING_ASYNC("session_impl::on_dht_announce");
 		error_code ec;
 		m_dht_announce_timer.expires_from_now(seconds(delay), ec);
-		m_dht_announce_timer.async_wait(
-			std::bind(&session_impl::on_dht_announce, this, _1));
+		m_dht_announce_timer.async_wait([this](error_code const& err) {
+				this->wrap(&session_impl::on_dht_announce, err); }
+			);
 
 		if (!m_dht_torrents.empty())
 		{
@@ -3623,8 +3649,8 @@ namespace aux {
 			/ (std::max)(int(m_torrents.size()), 1), 1);
 		error_code ec;
 		m_lsd_announce_timer.expires_from_now(seconds(delay), ec);
-		m_lsd_announce_timer.async_wait(
-			std::bind(&session_impl::on_lsd_announce, this, _1));
+		m_lsd_announce_timer.async_wait([this](error_code const& err) {
+			this->wrap(&session_impl::on_lsd_announce, err); });
 
 		if (m_torrents.empty()) return;
 
@@ -4358,6 +4384,8 @@ namespace aux {
 
 	void session_impl::set_queue_position(torrent* me, int p)
 	{
+		// TODO: Maybe the queue position should be maintained as a vector of
+		// torrent pointers. Maybe this logic could be simplified
 		if (p >= 0 && me->queue_position() == -1)
 		{
 			for (session_impl::torrent_map::iterator i = m_torrents.begin()
@@ -4531,29 +4559,26 @@ namespace aux {
 
 	void session_impl::get_torrent_status(std::vector<torrent_status>* ret
 		, std::function<bool(torrent_status const&)> const& pred
-		, std::uint32_t flags) const
+		, std::uint32_t const flags) const
 	{
-		for (torrent_map::const_iterator i
-			= m_torrents.begin(), end(m_torrents.end());
-			i != end; ++i)
+		for (auto const& t : m_torrents)
 		{
-			if (i->second->is_aborted()) continue;
+			if (t.second->is_aborted()) continue;
 			torrent_status st;
-			i->second->status(&st, flags);
+			t.second->status(&st, flags);
 			if (!pred(st)) continue;
-			ret->push_back(st);
+			ret->push_back(std::move(st));
 		}
 	}
 
 	void session_impl::refresh_torrent_status(std::vector<torrent_status>* ret
-		, std::uint32_t flags) const
+		, std::uint32_t const flags) const
 	{
-		for (std::vector<torrent_status>::iterator i
-			= ret->begin(), end(ret->end()); i != end; ++i)
+		for (auto& st : *ret)
 		{
-			std::shared_ptr<torrent> t = i->handle.m_torrent.lock();
+			auto t = st.handle.m_torrent.lock();
 			if (!t) continue;
-			t->status(&*i, flags);
+			t->status(&st, flags);
 		}
 	}
 
@@ -6183,7 +6208,7 @@ namespace aux {
 		m_pending_auto_manage = true;
 		m_need_auto_manage = true;
 
-		m_io_service.post(std::bind(&session_impl::on_trigger_auto_manage, this));
+		m_io_service.post([this]{ this->wrap(&session_impl::on_trigger_auto_manage); });
 	}
 
 	void session_impl::on_trigger_auto_manage()
@@ -6256,8 +6281,8 @@ namespace aux {
 		int delay = (std::max)(m_settings.get_int(settings_pack::dht_announce_interval)
 			/ (std::max)(int(m_torrents.size()), 1), 1);
 		m_dht_announce_timer.expires_from_now(seconds(delay), ec);
-		m_dht_announce_timer.async_wait(
-			std::bind(&session_impl::on_dht_announce, this, _1));
+		m_dht_announce_timer.async_wait([this](error_code const& e) {
+			this->wrap(&session_impl::on_dht_announce, e); });
 #endif
 	}
 

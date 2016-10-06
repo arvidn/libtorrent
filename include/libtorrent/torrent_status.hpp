@@ -140,7 +140,11 @@ namespace libtorrent
 
 			// the error occurred while loading the .torrent file via the user
 			// supplied load function
-			error_file_metadata = -4
+			error_file_metadata = -4,
+
+			// there was a serious error reported in this torrent. The error code
+			// or a torrent log alert may provide more information.
+			error_file_exception = -5,
 		};
 
 		// the path to the directory where this torrent's files are stored.
