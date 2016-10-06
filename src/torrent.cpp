@@ -302,7 +302,10 @@ namespace libtorrent
 			e.fail_limit = 0;
 			e.source = announce_entry::source_magnet_link;
 			e.tier = tier;
-			m_trackers.push_back(e);
+			if (!find_tracker(e.url))
+			{
+				m_trackers.push_back(e);
+			}
 		}
 
 		std::sort(m_trackers.begin(), m_trackers.end()
@@ -5551,14 +5554,12 @@ namespace libtorrent
 
 	bool torrent::add_tracker(announce_entry const& url)
 	{
-		std::vector<announce_entry>::iterator k = std::find_if(m_trackers.begin()
-			, m_trackers.end(), [&url] (announce_entry const& u) { return u.url == url.url; });
-		if (k != m_trackers.end())
+		if(auto k = find_tracker(url.url))
 		{
 			k->source |= url.source;
 			return false;
 		}
-		k = std::upper_bound(m_trackers.begin(), m_trackers.end(), url
+		auto k = std::upper_bound(m_trackers.begin(), m_trackers.end(), url
 			, [] (announce_entry const& lhs, announce_entry const& rhs)
 			{ return lhs.tier < rhs.tier; });
 		if (k - m_trackers.begin() < m_last_working_tracker) ++m_last_working_tracker;
@@ -10613,14 +10614,16 @@ namespace libtorrent
 			, std::bind(&torrent::on_piece_verified, shared_from_this(), _1)
 			, reinterpret_cast<void*>(1));
 	}
-
-	announce_entry* torrent::find_tracker(tracker_request const& r)
+	announce_entry* torrent::find_tracker(std::string const& url)
 	{
-		std::vector<announce_entry>::iterator i = std::find_if(
-			m_trackers.begin(), m_trackers.end()
-			, [&r] (announce_entry const& ae) { return ae.url == r.url; });
+		std::vector<announce_entry>::iterator i = std::find_if(m_trackers.begin(), m_trackers.end()
+			, [&url](announce_entry const& ae) { return ae.url == url; });
 		if (i == m_trackers.end()) return nullptr;
 		return &*i;
+	}
+	announce_entry* torrent::find_tracker(tracker_request const& r)
+	{
+		return find_tracker(r.url);
 	}
 
 	void torrent::ip_filter_updated()

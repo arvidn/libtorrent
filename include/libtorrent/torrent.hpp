@@ -727,7 +727,9 @@ namespace libtorrent
 #endif
 
 		announce_entry* find_tracker(tracker_request const& r);
-
+	private:
+		announce_entry* find_tracker(std::string const& url);
+	public:
 // --------------------------------------------
 		// PIECE MANAGEMENT
 
