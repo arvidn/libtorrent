@@ -115,11 +115,14 @@ script:
 # as the main library, so we can't stage them to the same directory
   - bjam --hash -j3 warnings-as-errors=on link=shared debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset install location=./lib
 
-  - cd bindings/python
 # here we specify the temporary lib dir as a path to look for the main library
-  - bjam --hash -j3 warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset stage_module libtorrent-link=shared install-type=LIB dll-path=../../lib
-  - LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib python test.py
-  - cd ../..
+# a binary built with ubsan does not interact well with python
+  - 'if [[ $lang != "ubsan" ]]; then
+    cd bindings/python;
+    bjam --hash -j3 warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset stage_module libtorrent-link=shared install-type=LIB dll-path=../../lib;
+    LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib python test.py;
+    cd ../..;
+    fi'
 
   - cd simulation
   - if [ $sim = "1" ]; then
