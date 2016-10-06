@@ -52,13 +52,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	namespace {
-		inline std::size_t round_up8(std::size_t const v)
-		{
-			return (v + 7) & (~std::size_t(0x7));
-		}
-	}
-
 // the buffer is allocated once and cannot be resized. The size() may be
 // larger than requested, in case the underlying allocator over allocated. In
 // order to "grow" an allocation, create a new buffer and initialize it by
@@ -75,7 +68,7 @@ public:
 
 		if (size == 0) return;
 
-		size = round_up8(size);
+		size = (size + 7) & (~std::size_t(0x7)); //round_up8(size);
 
 		m_begin = static_cast<char*>(std::malloc(size));
 		if (m_begin == nullptr)
@@ -108,7 +101,7 @@ public:
 		TORRENT_ASSERT(initialize.size() <= size);
 		if (initialize.size() > 0)
 		{
-			memcpy(m_begin, initialize.data(), (std::min)(initialize.size(), size));
+			std::memcpy(m_begin, initialize.data(), (std::min)(initialize.size(), size));
 		}
 	}
 

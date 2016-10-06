@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/config.hpp"
-#include "libtorrent/buffer.hpp"
 #include "libtorrent/aux_/byteswap.hpp"
 #include "libtorrent/aux_/ffs.hpp"
 
