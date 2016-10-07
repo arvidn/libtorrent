@@ -726,8 +726,7 @@ namespace libtorrent
 		void set_tracker_login(std::string const& name, std::string const& pw);
 #endif
 
-		announce_entry* find_tracker(tracker_request const& r);
-
+		announce_entry* find_tracker(std::string const& url);
 // --------------------------------------------
 		// PIECE MANAGEMENT
 
