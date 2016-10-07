@@ -45,7 +45,8 @@ test_programs = \
   test_enum_net              \
   test_file_progress         \
   test_linked_list           \
-  test_direct_dht
+  test_direct_dht            \
+  test_ed25519.cpp
 
 if ENABLE_TESTS
 check_PROGRAMS = $(test_programs) $(benchmark_programs)
