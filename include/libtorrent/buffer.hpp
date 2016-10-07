@@ -68,7 +68,10 @@ public:
 
 		if (size == 0) return;
 
-		size = (size + 7) & (~std::size_t(0x7)); //round_up8(size);
+		// this rounds up the size to be 8 bytes aligned
+		// it mostly makes sense for platforms with support
+		// for a variation of "malloc_size()"
+		size = (size + 7) & (~std::size_t(0x7));
 
 		m_begin = static_cast<char*>(std::malloc(size));
 		if (m_begin == nullptr)
