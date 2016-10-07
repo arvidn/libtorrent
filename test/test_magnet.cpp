@@ -120,6 +120,7 @@ TORRENT_TEST(magnet)
 		"&tr=http://1"
 		"&tr=http://2"
 		"&tr=http://3"
+		"&tr=http://3"
 		"&dn=foo"
 		"&dht=127.0.0.1:43";
 	torrent_handle t = s->add_torrent(p, ec);
