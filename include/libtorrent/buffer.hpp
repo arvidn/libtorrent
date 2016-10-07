@@ -69,7 +69,7 @@ public:
 		if (size == 0) return;
 
 		// this rounds up the size to be 8 bytes aligned
-		// it mostly makes sense for platforms with support
+		// it mostly makes sense for platforms without support
 		// for a variation of "malloc_size()"
 		size = (size + 7) & (~std::size_t(0x7));
 
