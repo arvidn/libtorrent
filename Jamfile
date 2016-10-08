@@ -505,7 +505,7 @@ feature export-extra : off on : composite propagated ;
 variant test_release : release
 	: <asserts>production <debug-symbols>on
 	  <invariant-checks>full <boost-link>shared <optimization>off
-	  <export-extra>on <debug-iterators>on <threading>multi
+	  <export-extra>on <debug-iterators>on <threading>multi <inlining>on
 	;
 variant test_debug : debug
 	: <crypto>openssl <logging>on <disk-stats>on
