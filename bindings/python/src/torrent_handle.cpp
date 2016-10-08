@@ -434,7 +434,7 @@ void bind_torrent_handle()
 #ifndef TORRENT_DISABLE_DHT
         .def("force_dht_announce", _(&torrent_handle::force_dht_announce))
 #endif
-        .def("scrape_tracker", _(&torrent_handle::scrape_tracker))
+        .def("scrape_tracker", _(&torrent_handle::scrape_tracker), arg("index") = -1)
         .def("set_upload_mode", _(&torrent_handle::set_upload_mode))
         .def("set_share_mode", _(&torrent_handle::set_share_mode))
         .def("flush_cache", &torrent_handle::flush_cache)

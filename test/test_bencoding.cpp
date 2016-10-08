@@ -240,8 +240,7 @@ TORRENT_TEST(lazy_entry)
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec);
 		TEST_CHECK(ret != 0);
 		std::printf("%s\n", print_entry(e).c_str());
-		TEST_CHECK(ec == error_code(bdecode_errors::expected_value
-			, get_bdecode_category()));
+		TEST_EQUAL(ec, error_code(bdecode_errors::expected_value));
 	}
 
 	// test strings with overflow length-prefix
@@ -252,8 +251,7 @@ TORRENT_TEST(lazy_entry)
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec);
 		TEST_CHECK(ret != 0);
 		std::printf("%s\n", print_entry(e).c_str());
-		TEST_CHECK(ec == error_code(bdecode_errors::overflow
-			, get_bdecode_category()));
+		TEST_EQUAL(ec, error_code(bdecode_errors::overflow));
 	}
 
 	// test integers that don't fit in 64 bits
@@ -330,8 +328,7 @@ TORRENT_TEST(lazy_entry)
 		error_code ec;
 		int ret = lazy_bdecode(b, b + sizeof(b), e, ec);
 		TEST_CHECK(ret != 0);
-		TEST_EQUAL(ec, error_code(bdecode_errors::depth_exceeded
-			, get_bdecode_category()));
+		TEST_EQUAL(ec, error_code(bdecode_errors::depth_exceeded));
 	}
 
 	// test the item limit
@@ -347,8 +344,7 @@ TORRENT_TEST(lazy_entry)
 		error_code ec;
 		int ret = lazy_bdecode(b, b + i + 1, e, ec, nullptr, 1000, 1000);
 		TEST_CHECK(ret != 0);
-		TEST_EQUAL(ec, error_code(bdecode_errors::limit_exceeded
-			, get_bdecode_category()));
+		TEST_EQUAL(ec, error_code(bdecode_errors::limit_exceeded));
 	}
 
 	// test unexpected EOF
@@ -360,8 +356,7 @@ TORRENT_TEST(lazy_entry)
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_CHECK(ret != 0);
 		std::printf("%s\n", print_entry(e).c_str());
-		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof
-			, get_bdecode_category()));
+		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof));
 	}
 
 	// test unexpected EOF (really expected terminator)
@@ -373,8 +368,7 @@ TORRENT_TEST(lazy_entry)
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_CHECK(ret != 0);
 		std::printf("%s\n", print_entry(e).c_str());
-		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof
-			, get_bdecode_category()));
+		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof));
 	}
 
 	// test expected string
@@ -387,8 +381,7 @@ TORRENT_TEST(lazy_entry)
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_CHECK(ret != 0);
 		std::printf("%s\n", print_entry(e).c_str());
-		TEST_EQUAL(ec, error_code(bdecode_errors::expected_digit
-			, get_bdecode_category()));
+		TEST_EQUAL(ec, error_code(bdecode_errors::expected_digit));
 	}
 
 	// test unexpected EOF while parsing dict key
@@ -400,8 +393,7 @@ TORRENT_TEST(lazy_entry)
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_CHECK(ret != 0);
 		std::printf("%s\n", print_entry(e).c_str());
-		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof
-			, get_bdecode_category()));
+		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof));
 	}
 
 	// test unexpected EOF while parsing dict key
@@ -413,8 +405,7 @@ TORRENT_TEST(lazy_entry)
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_CHECK(ret != 0);
 		std::printf("%s\n", print_entry(e).c_str());
-		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof
-			, get_bdecode_category()));
+		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof));
 	}
 
 	// test expected string while parsing dict key
@@ -426,8 +417,7 @@ TORRENT_TEST(lazy_entry)
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_CHECK(ret != 0);
 		std::printf("%s\n", print_entry(e).c_str());
-		TEST_EQUAL(ec, error_code(bdecode_errors::expected_digit
-			, get_bdecode_category()));
+		TEST_EQUAL(ec, error_code(bdecode_errors::expected_digit));
 	}
 
 	// test unexpected EOF while parsing int
@@ -439,8 +429,7 @@ TORRENT_TEST(lazy_entry)
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_CHECK(ret != 0);
 		std::printf("%s\n", print_entry(e).c_str());
-		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof
-			, get_bdecode_category()));
+		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof));
 	}
 
 	// test unexpected EOF while parsing int
@@ -452,8 +441,7 @@ TORRENT_TEST(lazy_entry)
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_CHECK(ret != 0);
 		std::printf("%s\n", print_entry(e).c_str());
-		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof
-			, get_bdecode_category()));
+		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof));
 	}
 
 
@@ -466,8 +454,7 @@ TORRENT_TEST(lazy_entry)
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_CHECK(ret != 0);
 		std::printf("%s\n", print_entry(e).c_str());
-		TEST_EQUAL(ec, error_code(bdecode_errors::expected_colon
-			, get_bdecode_category()));
+		TEST_EQUAL(ec, error_code(bdecode_errors::expected_colon));
 	}
 
 	// test empty string
@@ -478,8 +465,7 @@ TORRENT_TEST(lazy_entry)
 		error_code ec;
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_EQUAL(ret, -1);
-		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof
-			, get_bdecode_category()));
+		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof));
 		std::printf("%s\n", print_entry(e).c_str());
 	}
 
@@ -492,8 +478,7 @@ TORRENT_TEST(lazy_entry)
 		int ret = lazy_bdecode(b, b + sizeof(b)-1, e, ec, nullptr);
 		TEST_CHECK(ret != 0);
 		std::printf("%s\n", print_entry(e).c_str());
-		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof
-			, get_bdecode_category()));
+		TEST_EQUAL(ec, error_code(bdecode_errors::unexpected_eof));
 	}
 
 	// test pascal string dict

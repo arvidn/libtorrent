@@ -6426,8 +6426,7 @@ namespace aux {
 
 				int const disconnect = std::min(to_disconnect, num - my_average);
 				to_disconnect -= disconnect;
-				t.second->disconnect_peers(disconnect
-					, error_code(errors::too_many_connections));
+				t.second->disconnect_peers(disconnect, errors::too_many_connections);
 			}
 		}
 	}

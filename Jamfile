@@ -288,7 +288,6 @@ rule warnings ( properties * )
 	{
 # disable warning C4503: decorated name length exceeded, name was truncated
 		result += <cflags>/wd4503 ;
-		result += <warnings>all ;
 
 # enable these warnings again, once the other ones are dealt with
 
@@ -521,7 +520,7 @@ variant test_release : release
 	: <asserts>production <debug-symbols>on
 	<invariant-checks>full <boost-link>shared <optimization>off
 	<export-extra>on <debug-iterators>on <threading>multi
-	<inlining>off
+	<inlining>on
 	;
 variant test_debug : debug
 	: <logging>on <disk-stats>on

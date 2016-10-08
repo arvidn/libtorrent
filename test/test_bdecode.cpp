@@ -365,7 +365,7 @@ TORRENT_TEST(bdecode_error)
 	error_code ec(bdecode_errors::overflow);
 	TEST_EQUAL(ec.message(), "integer overflow");
 	TEST_EQUAL(ec.category().name(), std::string("bdecode error"));
-	ec.assign(5434, get_bdecode_category());
+	ec.assign(5434, bdecode_category());
 	TEST_EQUAL(ec.message(), "Unknown error");
 }
 
@@ -448,8 +448,7 @@ TORRENT_TEST(depth_limit)
 	error_code ec;
 	int ret = bdecode(b, b + sizeof(b), e, ec, nullptr, 100);
 	TEST_CHECK(ret != 0);
-	TEST_EQUAL(ec, error_code(bdecode_errors::depth_exceeded
-		, get_bdecode_category()));
+	TEST_EQUAL(ec, error_code(bdecode_errors::depth_exceeded));
 }
 
 // test the item limit
@@ -466,8 +465,7 @@ TORRENT_TEST(item_limit)
 	error_code ec;
 	int ret = bdecode(b, b + i + 1, e, ec, nullptr, 1000, 1000);
 	TEST_CHECK(ret != 0);
-	TEST_EQUAL(ec, error_code(bdecode_errors::limit_exceeded
-		, get_bdecode_category()));
+	TEST_EQUAL(ec, error_code(bdecode_errors::limit_exceeded));
 }
 
 // test unexpected EOF

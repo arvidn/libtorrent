@@ -89,7 +89,6 @@ namespace libtorrent
 
 	void debug_log(char const* fmt, ...)
 	{
-#if DEBUG_DISK_THREAD
 		static std::mutex log_mutex;
 		static const time_point start = clock_type::now();
 		va_list v;
@@ -113,13 +112,9 @@ namespace libtorrent
 		prepend_time = (usr[len-1] == '\n');
 		std::unique_lock<std::mutex> l(log_mutex);
 		fputs(buf, stderr);
-#else
-	TORRENT_UNUSED(fmt);
-#endif
 	}
 
 #endif // DEBUG_DISK_THREAD
-
 
 	int file_flags_for_job(disk_io_job* j
 		, bool const coalesce_buffers)

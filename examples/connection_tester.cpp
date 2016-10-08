@@ -849,7 +849,8 @@ void generate_data(char const* path, torrent_info const& ti)
 		for (int j = 0; j < ti.piece_size(i); j += 0x4000)
 		{
 			generate_block(piece, i, j, 0x4000);
-			file::iovec_t b = { piece, 0x4000};
+			int const left_in_piece = ti.piece_size(i) - j;
+			file::iovec_t const b = { piece, size_t(std::min(left_in_piece, 0x4000))};
 			storage_error error;
 			st->writev(b, i, j, 0, error);
 			if (error)

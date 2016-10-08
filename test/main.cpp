@@ -70,7 +70,8 @@ using namespace libtorrent;
 // out, such as the log
 int old_stdout = -1;
 int old_stderr = -1;
-bool redirect_output = true;
+bool redirect_stdout = true;
+bool redirect_stderr = true;
 bool keep_files = false;
 
 extern int _g_test_idx;
@@ -81,7 +82,7 @@ unit_test_t* current_test = nullptr;
 void output_test_log_to_terminal()
 {
 	if (current_test == nullptr || old_stdout == -1 || old_stderr == -1
-		|| !redirect_output || current_test->output == nullptr)
+		|| !redirect_stdout || current_test->output == nullptr)
 		return;
 
 	fflush(stdout);
@@ -95,7 +96,7 @@ void output_test_log_to_terminal()
 	int size = 0;
 	do {
 		size = int(fread(buf, 1, sizeof(buf), current_test->output));
-		if (size > 0) fwrite(buf, 1, size, stderr);
+		if (size > 0) fwrite(buf, 1, size, stdout);
 	} while (size > 0);
 }
 
@@ -203,13 +204,17 @@ void print_usage(char const* executable)
 	std::printf("%s [options] [tests...]\n"
 		"\n"
 		"OPTIONS:\n"
-		"-h,--help           show this help\n"
-		"-l,--list           list the tests available to run\n"
-		"-k,--keep           keep files created by the test\n"
-		"                    regardless of whether it passed or not\n"
-		"-n,--no-redirect    don't redirect test output to\n"
-		"                    temporary file, but let it go straight\n"
-		"                    to stdout\n"
+		"-h,--help            show this help\n"
+		"-l,--list            list the tests available to run\n"
+		"-k,--keep            keep files created by the test\n"
+		"                     regardless of whether it passed or not\n"
+		"-n,--no-redirect     don't redirect test output to\n"
+		"                     temporary file, but let it go straight\n"
+		"                     to stdout\n"
+		"--no-stderr-redirect don't redirect stderr, but still redirect\n"
+		"                     stdout. This is useful when building with\n"
+		"                     sanitizers, which rely on being able to print\n"
+		"                     to stderr and exit\n"
 		"\n"
 		"for tests, specify one or more test names as printed\n"
 		"by -l. If no test is specified, all tests are run\n", executable);
@@ -243,7 +248,13 @@ EXPORT int main(int argc, char const* argv[])
 
 		if (strcmp(argv[0], "-n") == 0 || strcmp(argv[0], "--no-redirect") == 0)
 		{
-			redirect_output = false;
+			redirect_stdout = false;
+			redirect_stderr = false;
+		}
+
+		if (strcmp(argv[0], "--no-stderr-redirect") == 0)
+		{
+			redirect_stderr = false;
 		}
 
 		if (strcmp(argv[0], "-k") == 0 || strcmp(argv[0], "--keep") == 0)
@@ -341,11 +352,8 @@ EXPORT int main(int argc, char const* argv[])
 		return 1;
 	}
 
-	if (redirect_output)
-	{
-		old_stdout = dup(fileno(stdout));
-		old_stderr = dup(fileno(stderr));
-	}
+	if (redirect_stdout) old_stdout = dup(fileno(stdout));
+	if (redirect_stderr) old_stderr = dup(fileno(stderr));
 
 	int num_run = 0;
 	for (int i = 0; i < _g_num_unit_tests; ++i)
@@ -355,7 +363,7 @@ EXPORT int main(int argc, char const* argv[])
 
 		unit_test_t& t = _g_unit_tests[i];
 
-		if (redirect_output)
+		if (redirect_stdout)
 		{
 			// redirect test output to a temporary file
 			fflush(stdout);
@@ -365,7 +373,7 @@ EXPORT int main(int argc, char const* argv[])
 			if (f != nullptr)
 			{
 				int ret1 = dup2(fileno(f), fileno(stdout));
-				dup2(fileno(f), fileno(stderr));
+				if (redirect_stderr) dup2(fileno(f), fileno(stderr));
 				if (ret1 >= 0)
 				{
 					t.output = f;
@@ -432,17 +440,12 @@ EXPORT int main(int argc, char const* argv[])
 		total_failures += _g_test_failures;
 		++num_run;
 
-		if (redirect_output && t.output)
-		{
+		if (redirect_stdout && t.output)
 			fclose(t.output);
-		}
 	}
 
-	if (redirect_output)
-	{
-		dup2(old_stdout, fileno(stdout));
-		dup2(old_stderr, fileno(stderr));
-	}
+	if (redirect_stdout) dup2(old_stdout, fileno(stdout));
+	if (redirect_stderr) dup2(old_stderr, fileno(stderr));
 
 	if (!tests_to_run.empty())
 	{
@@ -468,11 +471,8 @@ EXPORT int main(int argc, char const* argv[])
 	stop_peer();
 	stop_dht();
 
-	if (redirect_output)
-	{
-		fflush(stdout);
-		fflush(stderr);
-	}
+	if (redirect_stdout) fflush(stdout);
+	if (redirect_stderr) fflush(stderr);
 
 	ret = print_failures();
 #if !defined TORRENT_LOGGING
