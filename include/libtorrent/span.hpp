@@ -46,23 +46,23 @@ namespace libtorrent
 		span() : m_ptr(nullptr), m_len(0) {}
 
 		template <typename U>
-		span(span<U> const& v)
+		span(span<U> const& v) // NOLINT
 			: m_ptr(v.data()), m_len(v.size()) {}
 
-		span(T& p) : m_ptr(&p), m_len(1) {}
-		span(T* p, size_t const l) : m_ptr(p), m_len(l) {}
+		span(T& p) : m_ptr(&p), m_len(1) {} // NOLINT
+		span(T* p, size_t const l) : m_ptr(p), m_len(l) {} // NOLINT
 
 		template <typename U, size_t N>
-		span(std::array<U, N>& arr)
+		span(std::array<U, N>& arr) // NOLINT
 			: m_ptr(arr.data()), m_len(arr.size()) {}
 
 		template <typename U, size_t N>
-		span(U (&arr)[N])
+		span(U (&arr)[N]) // NOLINT
 			: m_ptr(&arr[0]), m_len(N) {}
 
 		// anything with a .data() member function is considered a container
 		template <typename Cont, typename = decltype(std::declval<Cont>().data())>
-		span(Cont& c)
+		span(Cont& c) // NOLINT
 			: m_ptr(c.data()), m_len(c.size()) {}
 
 		size_t size() const { return m_len; }

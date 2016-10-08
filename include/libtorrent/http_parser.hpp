@@ -58,7 +58,7 @@ namespace libtorrent
 	{
 	public:
 		enum flags_t { dont_parse_chunks = 1 };
-		http_parser(int flags = 0);
+		explicit http_parser(int flags = 0);
 		~http_parser();
 		std::string const& header(char const* key) const
 		{

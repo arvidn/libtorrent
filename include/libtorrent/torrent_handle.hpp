@@ -1293,7 +1293,7 @@ namespace libtorrent
 		template<typename Ret, typename Fun, typename... Args>
 		Ret sync_call_ret(Ret def, Fun f, Args&&... a) const;
 
-		torrent_handle(std::weak_ptr<torrent> const& t)
+		explicit torrent_handle(std::weak_ptr<torrent> const& t)
 		{ if (!t.expired()) m_torrent = t; }
 
 		std::weak_ptr<torrent> m_torrent;

@@ -50,7 +50,7 @@ namespace libtorrent
 	class TORRENT_EXTRA_EXPORT udp_socket : single_threaded
 	{
 	public:
-		udp_socket(io_service& ios);
+		explicit udp_socket(io_service& ios);
 
 		enum flags_t {
 			peer_connection = 1

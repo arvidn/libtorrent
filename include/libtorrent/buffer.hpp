@@ -62,7 +62,7 @@ class buffer
 public:
 
 	// allocate an uninitialized buffer of the specified size
-	buffer(std::size_t size = 0)
+	explicit buffer(std::size_t size = 0)
 	{
 		TORRENT_ASSERT(size < std::size_t((std::numeric_limits<std::int32_t>::max)()));
 

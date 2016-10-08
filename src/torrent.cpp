@@ -294,8 +294,9 @@ namespace libtorrent
 
 		int tier = 0;
 		auto tier_iter = p.tracker_tiers.begin();
-		for (announce_entry e : p.trackers)
+		for (auto const& url : p.trackers)
 		{
+			announce_entry e(url);
 			if (tier_iter != p.tracker_tiers.end())
 				tier = *tier_iter++;
 

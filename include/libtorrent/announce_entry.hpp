@@ -47,7 +47,7 @@ namespace libtorrent
 	struct TORRENT_EXPORT announce_entry
 	{
 		// constructs a tracker announce entry with ``u`` as the URL.
-		announce_entry(std::string u);
+		explicit announce_entry(std::string u);
 		announce_entry();
 		~announce_entry();
 		announce_entry(announce_entry const&) = default;

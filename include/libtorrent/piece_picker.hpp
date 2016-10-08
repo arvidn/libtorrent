@@ -418,7 +418,7 @@ namespace libtorrent
 		// functor that compares indices on downloading_pieces
 		struct has_index
 		{
-			has_index(int i): index(std::uint32_t(i)) { TORRENT_ASSERT(i >= 0); }
+			explicit has_index(int i): index(std::uint32_t(i)) { TORRENT_ASSERT(i >= 0); }
 			bool operator()(const downloading_piece& p) const
 			{ return p.index == index; }
 			std::uint32_t index;

@@ -61,7 +61,7 @@ namespace libtorrent
 		void next() { m_current = m_current->next; }
 
 	private:
-		tailqueue_iterator(T* cur)
+		explicit tailqueue_iterator(T* cur)
 			: m_current(cur) {}
 		// the current element
 		T* m_current;

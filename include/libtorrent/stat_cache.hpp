@@ -78,7 +78,7 @@ namespace libtorrent
 
 		struct stat_cache_t
 		{
-			stat_cache_t(std::int64_t s): file_size(s) {}
+			stat_cache_t(std::int64_t s): file_size(s) {} // NOLINT
 
 			// the size of the file. Negative values have special meaning. -1 means
 			// not-in-cache (i.e. there's no data for this file in the cache).

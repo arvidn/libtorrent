@@ -77,7 +77,7 @@ namespace libtorrent
 		// The constructor can be used to initialize the storage constructor,
 		// which determines the storage mechanism for the downloaded or seeding
 		// data for the torrent. For more information, see the ``storage`` field.
-		add_torrent_params(storage_constructor_type sc = default_storage_constructor)
+		explicit add_torrent_params(storage_constructor_type sc = default_storage_constructor)
 			: version(LIBTORRENT_VERSION_NUM)
 			, storage_mode(storage_mode_sparse)
 			, storage(sc)

@@ -89,7 +89,7 @@ namespace libtorrent
 		// this is the same as default constructing followed by a call to
 		// ``update(data, len)``.
 		hasher(char const* data, int len);
-		hasher(span<char const> data);
+		explicit hasher(span<char const> data);
 		hasher(hasher const&);
 		hasher& operator=(hasher const&);
 

@@ -57,7 +57,7 @@ namespace libtorrent
 		void prev() { m_current = m_current->prev; }
 
 	private:
-		list_iterator(T* cur)
+		explicit list_iterator(T* cur)
 			: m_current(cur) {}
 		// the current element
 		T* m_current;
