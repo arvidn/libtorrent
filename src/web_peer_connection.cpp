@@ -142,7 +142,7 @@ void web_peer_connection::on_connected()
 		// only advertise pieces that are contained within the files we have as
 		// indicated by m_web->have_files AND padfiles!
 		// it's important to include pieces that may overlap many files, as long
-		// as we have all those files, so instead of starting with a clear bitfied
+		// as we have all those files, so instead of starting with a clear bitfield
 		// and setting the pieces corresponding to files we have, we do it the
 		// other way around. Start with assuming we have all files, and clear
 		// pieces overlapping with files we *don't* have.
