@@ -78,7 +78,7 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 			try {
 #endif
-				(t.get()->*f)(a...);
+				(t.get()->*f)(std::forward<Args>(a)...);
 #ifndef BOOST_NO_EXCEPTIONS
 			} catch (system_error const& e) {
 				ses.alerts().emplace_alert<torrent_error_alert>(torrent_handle(m_torrent)
@@ -111,7 +111,7 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 			try {
 #endif
-				(t.get()->*f)(a...);
+				(t.get()->*f)(std::forward<Args>(a)...);
 #ifndef BOOST_NO_EXCEPTIONS
 			} catch (...) {
 				ex = std::current_exception();
@@ -144,7 +144,7 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 			try {
 #endif
-				r = (t.get()->*f)(a...);
+				r = (t.get()->*f)(std::forward<Args>(a)...);
 #ifndef BOOST_NO_EXCEPTIONS
 			} catch (...) {
 				ex = std::current_exception();
