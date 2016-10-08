@@ -1,14 +1,21 @@
 language: cpp
 
-os:
-  - linux
-  - osx
+matrix:
+  include:
+    - env: variant=test_release lang=cpp11 sim=0 coverage=1 docs=1
+    - env: variant=test_debug lang=ubsan sim=1 coverage=0
+    - env: variant=test_debug lang=cpp98 sim=0 coverage=0
+    - env: variant=test_barebones lang=cpp11 sim=0 coverage=0
 
-env:
-  - variant=test_release lang=cpp11 sim=0 coverage=1 docs=1
-  - variant=test_debug lang=cpp11 sim=1 coverage=0
-  - variant=test_debug lang=cpp98 sim=0 coverage=0
-  - variant=test_barebones lang=cpp11 sim=0 coverage=0
+    - env: variant=test_debug lang=cpp11 sim=0 coverage=0 target=osx-tests
+      os: osx
+      osx_image: xcode6.4
+    - env: variant=test_release lang=cpp11 sim=0 coverage=0 docs=1 target=osx-tests
+      os: osx
+      osx_image: xcode6.4
+    - env: variant=test_debug lang=cpp98 sim=0 coverage=0 target=osx-tests
+      os: osx
+      osx_image: xcode6.4
 
 git:
   submodules: false
@@ -36,7 +43,7 @@ addons:
     - libboost1.55-all-dev
     - libboost1.55-tools-dev
     - python2.7-dev
-    - g++-4.8
+    - g++-5
 
 before_install:
   - git submodule update --init --recursive
@@ -52,8 +59,7 @@ before_install:
     fi'
 
 # disable simulations on OSX for now. It hangs on travis
-  - if [ $TRAVIS_OS_NAME == "osx" ]; then export toolset="darwin-${lang}"; export sim="0"; fi
-  - if [ $TRAVIS_OS_NAME == "osx" ]; then export target="osx-tests"; fi
+  - if [ $TRAVIS_OS_NAME == "osx" ]; then export toolset="darwin-${lang}"; fi
   - if [ $TRAVIS_OS_NAME == "linux" ]; then export toolset="gcc-${lang}"; fi
   - if [[ $TRAVIS_OS_NAME == "linux" && $coverage == "1" ]]; then
     export coverage_toolset=gcc-coverage;
@@ -61,13 +67,19 @@ before_install:
     else
     export coverage_toolset=$toolset;
     fi
-  - 'echo "using toolset: " ${toolset}'
+  - 'if [[ $lang == "ubsan" ]]; then export test_args=testing.arg="--no-stderr-redirect"; fi'
+  - 'echo "toolset: " ${toolset}'
+  - 'echo "target: " ${target}'
+  - 'echo "coverage_toolset: " ${coverage_toolset}'
+  - 'echo "test_args: " ${test_args}'
+  - 'echo "variant: " ${variant}'
 
 install:
-  - g++-4.8 --version
-  - 'echo "using gcc : cpp11 : ccache g++-4.8 : <cflags>-std=c11 <cxxflags>-std=c++11 ;" > ~/user-config.jam'
-  - 'echo "using gcc : coverage : ccache g++-4.8 : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>--coverage <linkflags>--coverage ;" >> ~/user-config.jam'
-  - 'echo "using gcc : cpp98 : ccache g++-4.8 : <cflags>-std=c99 <cxxflags>-std=c++98 ;" >> ~/user-config.jam'
+  - 'if [[ $toolset == "gcc" ]]; then g++-5 --version; fi'
+  - 'echo "using gcc : cpp11 : ccache g++-5 : <cflags>-std=c11 <cxxflags>-std=c++11 ;" > ~/user-config.jam'
+  - 'echo "using gcc : ubsan : ccache g++-5 : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>-fsanitize=undefined <compileflags>-fno-sanitize-recover=undefined <linkflags>-fsanitize=undefined <linkflags>-fno-sanitize-recover=undefined ;" >> ~/user-config.jam'
+  - 'echo "using gcc : coverage : ccache g++-5 : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>--coverage <linkflags>--coverage ;" >> ~/user-config.jam'
+  - 'echo "using gcc : cpp98 : ccache g++-5 : <cflags>-std=c99 <cxxflags>-std=c++98 ;" >> ~/user-config.jam'
 
 # osx builds need to disable the deprecated warning because of the openssl
 # shipping with the system having marked all functions as deprecated. Since
@@ -85,7 +97,7 @@ script:
   - cd ..
 
   - cd test
-  - bjam --hash -j3 warnings-as-errors=on invariant-checks=full variant=$variant -l900 $coverage_toolset $target
+  - bjam --hash -j3 warnings-as-errors=on invariant-checks=full variant=$variant -l900 $coverage_toolset $target $test_args
 # if we're building with code coverage, report it as soon as possible
   - if [[ $TRAVIS_OS_NAME == "linux" && $coverage == "1" ]]; then
     codecov --root .. --gcov-exec gcov-4.8;
@@ -103,15 +115,18 @@ script:
 # as the main library, so we can't stage them to the same directory
   - bjam --hash -j3 warnings-as-errors=on link=shared debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset install location=./lib
 
-  - cd bindings/python
 # here we specify the temporary lib dir as a path to look for the main library
-  - bjam --hash -j3 warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset stage_module libtorrent-link=shared install-type=LIB dll-path=../../lib
-  - LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib python test.py
-  - cd ../..
+# a binary built with ubsan does not interact well with python
+  - 'if [[ $lang != "ubsan" ]]; then
+    cd bindings/python;
+    bjam --hash -j3 warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset stage_module libtorrent-link=shared install-type=LIB dll-path=../../lib;
+    LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib python test.py;
+    cd ../..;
+    fi'
 
   - cd simulation
   - if [ $sim = "1" ]; then
-    bjam --hash -j2 crypto=built-in warnings-as-errors=on $coverage_toolset;
+    bjam --hash -j2 crypto=built-in warnings-as-errors=on $coverage_toolset $test_args;
     fi
   - cd ..
   - ccache --show-stats

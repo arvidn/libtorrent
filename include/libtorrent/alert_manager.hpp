@@ -74,7 +74,8 @@ namespace libtorrent {
 			, boost::uint32_t alert_mask = alert::error_notification);
 		~alert_manager();
 
-#ifndef BOOST_NO_CXX11_VARIADIC_TEMPLATES
+#if !defined BOOST_NO_CXX11_VARIADIC_TEMPLATES \
+	&& !defined BOOST_NO_CXX11_RVALUE_REFERENCES
 
 		template <class T, typename... Args>
 		void emplace_alert(Args&&... args)

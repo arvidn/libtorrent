@@ -151,6 +151,7 @@ test-suite libtorrent :
 	[ run test_web_seed_chunked.cpp ]
 	[ run test_web_seed_ban.cpp ]
 	[ run test_pe_crypto.cpp ]
+	[ run test_ed25519.cpp ]
 
 	[ run test_remap_files.cpp ]
 	[ run test_utp.cpp ]
