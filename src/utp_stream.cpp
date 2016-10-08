@@ -282,8 +282,7 @@ struct utp_socket_impl
 	{
 		m_sm->inc_stats_counter(counters::num_utp_idle);
 		TORRENT_ASSERT(m_userdata);
-		for (int i = 0; i != num_delay_hist; ++i)
-			m_delay_sample_hist[i] = (std::numeric_limits<std::uint32_t>::max)();
+		m_delay_sample_hist.fill(std::numeric_limits<std::uint32_t>::max());
 	}
 
 	~utp_socket_impl();
@@ -499,8 +498,7 @@ public:
 	// the lowest of the 3 last ones is used in the congestion
 	// controller. This is to not completely close the cwnd
 	// by a single outlier.
-	enum { num_delay_hist = 3 };
-	std::array<std::uint32_t, num_delay_hist> m_delay_sample_hist;
+	std::array<std::uint32_t, 3> m_delay_sample_hist;
 
 	// counters
 	std::uint32_t m_in_packets = 0;
@@ -2854,7 +2852,8 @@ bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 	{
 		delay = m_delay_hist.add_sample(sample, step);
 		m_delay_sample_hist[m_delay_sample_idx++] = delay;
-		if (m_delay_sample_idx >= num_delay_hist) m_delay_sample_idx = 0;
+		if (m_delay_sample_idx >= m_delay_sample_hist.size())
+			m_delay_sample_idx = 0;
 	}
 
 	int acked_bytes = 0;
@@ -3115,7 +3114,8 @@ bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 			if (sample && acked_bytes && prev_bytes_in_flight)
 			{
 				// only use the minimum from the last 3 delay measurements
-				delay = *std::min_element(m_delay_sample_hist, m_delay_sample_hist + num_delay_hist);
+				delay = *std::min_element(m_delay_sample_hist.begin()
+					, m_delay_sample_hist.end());
 
 				// it's impossible for delay to be more than the RTT, so make
 				// sure to clamp it as a sanity check
