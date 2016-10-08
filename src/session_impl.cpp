@@ -595,6 +595,7 @@ namespace aux {
 			= m_settings.get_int(settings_pack::local_service_announce_interval);
 		int const delay = std::max(lsd_announce_interval
 			/ std::max(static_cast<int>(m_torrents.size()), 1), 1);
+		error_code ec;
 		m_lsd_announce_timer.expires_from_now(seconds(delay), ec);
 		ADD_OUTSTANDING_ASYNC("session_impl::on_lsd_announce");
 		m_lsd_announce_timer.async_wait([this](error_code const& e) {
