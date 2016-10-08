@@ -69,7 +69,7 @@ namespace libtorrent
 	{
 		session_handle() : m_impl(nullptr) {}
 
-		session_handle(aux::session_impl* impl)
+		explicit session_handle(aux::session_impl* impl)
 			: m_impl(impl)
 		{}
 

@@ -40,7 +40,7 @@ namespace libtorrent { namespace aux {
 	{
 		has_block(has_block const&) = default;
 
-		has_block(piece_block const& b): block(b) {}
+		explicit has_block(piece_block const& b): block(b) {}
 		bool operator()(pending_block const& pb) const
 		{ return pb.block == block; }
 	private:

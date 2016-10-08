@@ -209,7 +209,7 @@ namespace libtorrent
 	struct file_handle
 	{
 		file_handle();
-		file_handle(file* f);
+		explicit file_handle(file* f);
 		file_handle(file_handle const& fh);
 		~file_handle();
 		file* operator->();

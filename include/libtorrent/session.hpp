@@ -133,7 +133,7 @@ namespace libtorrent
 		// (ut_metadata, ut_pex and smart_ban). The default values in the
 		// settings is to start the default features like upnp, nat-pmp,
 		// and dht for example.
-		session_params(settings_pack sp = settings_pack());
+		explicit session_params(settings_pack sp = settings_pack());
 		// This constructor helps to configure the set of initial plugins
 		// to be added to the session before it's started.
 		session_params(settings_pack sp
@@ -180,7 +180,7 @@ namespace libtorrent
 		// In order to avoid a race condition between starting the session and
 		// configuring it, you can pass in a session_params object. Its settings
 		// will take effect before the session starts up.
-		session(session_params params = session_params())
+		explicit session(session_params params = session_params())
 			: session_handle(nullptr)
 		{
 			TORRENT_CFG();

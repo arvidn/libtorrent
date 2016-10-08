@@ -1741,7 +1741,7 @@ void test_bootstrap(address(&rand_addr)())
 
 	udp::endpoint found_node(rand_addr(), 2235);
 	std::vector<node_entry> nodes;
-	nodes.push_back(found_node);
+	nodes.push_back(node_entry{found_node});
 	g_sent_packets.clear();
 	if (initial_node.address().is_v4())
 		send_dht_response(t.dht_node, response, initial_node, msg_args().nodes(nodes));
@@ -1843,7 +1843,7 @@ void test_short_nodes(address(&rand_addr)())
 
 	udp::endpoint found_node(rand_addr(), 2235);
 	std::vector<node_entry> nodes;
-	nodes.push_back(found_node);
+	nodes.push_back(node_entry{found_node});
 	g_sent_packets.clear();
 	msg_args args;
 	// chop one byte off of the nodes string
@@ -1900,7 +1900,7 @@ void test_get_peers(address(&rand_addr)())
 	dht::node_id const target = to_hash("1234876923549721020394873245098347598635");
 
 	udp::endpoint const initial_node(rand_addr(), 1234);
-	t.dht_node.m_table.add_node(initial_node);
+	t.dht_node.m_table.add_node(node_entry{initial_node});
 
 	t.dht_node.announce(target, 1234, false, get_peers_cb);
 
@@ -1933,7 +1933,7 @@ void test_get_peers(address(&rand_addr)())
 
 	udp::endpoint next_node(rand_addr(), 2235);
 	std::vector<node_entry> nodes;
-	nodes.push_back(next_node);
+	nodes.push_back(node_entry{next_node});
 
 	g_sent_packets.clear();
 	if (initial_node.address().is_v4())
@@ -2032,7 +2032,7 @@ void test_mutable_get(address(&rand_addr)(), bool const with_salt)
 	g_sent_packets.clear();
 
 	udp::endpoint const initial_node(rand_addr(), 1234);
-	t.dht_node.m_table.add_node(initial_node);
+	t.dht_node.m_table.add_node(node_entry{initial_node});
 
 	g_put_item.assign(items[0].ent, salt, seq, pk, sk);
 	t.dht_node.put_item(pk, std::string()
@@ -2129,7 +2129,7 @@ TORRENT_TEST(immutable_get)
 	g_sent_packets.clear();
 
 	udp::endpoint initial_node(addr4("4.4.4.4"), 1234);
-	t.dht_node.m_table.add_node(initial_node);
+	t.dht_node.m_table.add_node(node_entry{initial_node});
 
 	t.dht_node.get_item(items[0].target, get_immutable_item_cb);
 
@@ -2960,7 +2960,7 @@ TORRENT_TEST(read_only_node)
 	bdecode_node parsed[7];
 	char error_string[200];
 	udp::endpoint initial_node(addr("4.4.4.4"), 1234);
-	node.m_table.add_node(initial_node);
+	node.m_table.add_node(node_entry{initial_node});
 	bdecode_node request;
 	sha1_hash target = generate_next();
 

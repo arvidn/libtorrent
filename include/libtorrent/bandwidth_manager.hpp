@@ -47,7 +47,7 @@ namespace libtorrent {
 
 struct TORRENT_EXTRA_EXPORT bandwidth_manager
 {
-	bandwidth_manager(int channel);
+	explicit bandwidth_manager(int channel);
 
 	void close();
 
@@ -57,7 +57,7 @@ struct TORRENT_EXTRA_EXPORT bandwidth_manager
 
 	int queue_size() const;
 	std::int64_t queued_bytes() const;
-	
+
 	// non prioritized means that, if there's a line for bandwidth,
 	// others will cut in front of the non-prioritized peers.
 	// this is used by web seeds

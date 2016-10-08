@@ -94,7 +94,7 @@ namespace libtorrent
 
 	struct v6_protection_level
 	{
-		v6_protection_level(int level): m_value(level) {}
+		explicit v6_protection_level(int level): m_value(level) {}
 		template<class Protocol>
 		int level(Protocol const&) const { return IPPROTO_IPV6; }
 		template<class Protocol>
@@ -108,7 +108,7 @@ namespace libtorrent
 
 	struct exclusive_address_use
 	{
-		exclusive_address_use(int enable): m_value(enable) {}
+		explicit exclusive_address_use(int enable): m_value(enable) {}
 		template<class Protocol>
 		int level(Protocol const&) const { return SOL_SOCKET; }
 		template<class Protocol>
@@ -124,7 +124,7 @@ namespace libtorrent
 #ifdef IPV6_TCLASS
 	struct traffic_class
 	{
-		traffic_class(char val): m_value(val) {}
+		explicit traffic_class(char val): m_value(val) {}
 		template<class Protocol>
 		int level(Protocol const&) const { return IPPROTO_IPV6; }
 		template<class Protocol>
@@ -140,11 +140,11 @@ namespace libtorrent
 	struct type_of_service
 	{
 #ifdef _WIN32
-		typedef DWORD tos_t;
+		using tos_t = DWORD;
 #else
-		typedef int tos_t;
+		using tos_t = int;
 #endif
-		type_of_service(char val): m_value(val) {}
+		explicit type_of_service(char val): m_value(val) {}
 		template<class Protocol>
 		int level(Protocol const&) const { return IPPROTO_IP; }
 		template<class Protocol>
@@ -163,7 +163,7 @@ namespace libtorrent
 #ifdef TORRENT_HAS_DONT_FRAGMENT
 	struct dont_fragment
 	{
-		dont_fragment(bool val)
+		explicit dont_fragment(bool val)
 #ifdef IP_PMTUDISCOVER_DO
 			: m_value(val ? IP_PMTUDISC_DO : IP_PMTUDISC_DONT) {}
 #else

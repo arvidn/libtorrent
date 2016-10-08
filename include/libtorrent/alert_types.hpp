@@ -1674,7 +1674,7 @@ namespace libtorrent
 	struct TORRENT_EXPORT dht_bootstrap_alert final : alert
 	{
 		// internal
-		dht_bootstrap_alert(aux::stack_allocator& alloc);
+		explicit dht_bootstrap_alert(aux::stack_allocator& alloc);
 
 		TORRENT_DEFINE_ALERT(dht_bootstrap_alert, 62)
 

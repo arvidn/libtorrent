@@ -2521,7 +2521,7 @@ namespace libtorrent
 		// if we're disconnecting, we shouldn't add pieces
 		if (!in_req_queue && !m_disconnecting)
 		{
-			for (std::vector<pending_block>::iterator i = m_request_queue.begin()
+			for (auto i = m_request_queue.begin()
 				, end(m_request_queue.end()); i != end; ++i)
 			{
 				if (i->block != b) continue;

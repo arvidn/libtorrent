@@ -86,7 +86,7 @@ namespace libtorrent
 	{
 		friend struct peer_class_pool;
 
-		peer_class(std::string const& l)
+		explicit peer_class(std::string const& l)
 			: ignore_unchoke_slots(false)
 			, connection_limit_factor(100)
 			, label(l)

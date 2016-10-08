@@ -167,7 +167,7 @@ private:
 class i2p_connection
 {
 public:
-	i2p_connection(io_service& ios);
+	explicit i2p_connection(io_service& ios);
 	~i2p_connection();
 
 	aux::proxy_settings proxy() const;

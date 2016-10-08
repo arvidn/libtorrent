@@ -126,7 +126,7 @@ namespace libtorrent
 	// this is the internal representation of web seeds
 	struct web_seed_t : web_seed_entry
 	{
-		web_seed_t(web_seed_entry const& wse);
+		explicit web_seed_t(web_seed_entry const& wse);
 		web_seed_t(std::string const& url_, web_seed_entry::type_t type_
 			, std::string const& auth_ = std::string()
 			, web_seed_entry::headers_t const& extra_headers_ = web_seed_entry::headers_t());

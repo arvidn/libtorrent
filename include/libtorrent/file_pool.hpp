@@ -84,7 +84,7 @@ namespace libtorrent
 	{
 		// ``size`` specifies the number of allowed files handles
 		// to hold open at any given time.
-		file_pool(int size = 40);
+		explicit file_pool(int size = 40);
 		~file_pool();
 
 		// return an open file handle to file at ``file_index`` in the

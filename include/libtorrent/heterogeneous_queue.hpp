@@ -158,7 +158,7 @@ namespace libtorrent {
 			void (*move)(uintptr_t* dst, uintptr_t* src);
 		};
 
-		const static int header_size = (sizeof(header_t) + sizeof(uintptr_t)
+		static int const header_size = (sizeof(header_t) + sizeof(uintptr_t)
 			- 1) / sizeof(uintptr_t);
 
 		void grow_capacity(int const size)

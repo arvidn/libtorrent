@@ -109,14 +109,14 @@ namespace libtorrent
 		// as a key, sorting would become a problem (e.g. to compare a string
 		// to a list). The definition doesn't mention such a limit though.
 #if __cplusplus <= 201103
-		typedef std::map<std::string, entry> dictionary_type;
+		using dictionary_type = std::map<std::string, entry>;
 #else
-		typedef std::map<std::string, entry, aux::strview_less> dictionary_type;
+		using dictionary_type = std::map<std::string, entry, aux::strview_less>;
 #endif
-		typedef std::string string_type;
-		typedef std::vector<entry> list_type;
-		typedef std::int64_t integer_type;
-		typedef std::vector<char> preformatted_type;
+		using string_type = std::string;
+		using list_type = std::vector<entry>;
+		using integer_type = std::int64_t;
+		using preformatted_type = std::vector<char>;
 
 		// the types an entry can have
 		enum data_type
@@ -135,13 +135,13 @@ namespace libtorrent
 		// constructors directly from a specific type.
 		// The content of the argument is copied into the
 		// newly constructed entry
-		entry(dictionary_type);
-		entry(span<char const>);
+		entry(dictionary_type); // NOLINT
+		entry(span<char const>); // NOLINT
 		template <typename U, typename Cond = typename std::enable_if<
 			std::is_same<U, entry::string_type>::value
 			|| std::is_same<U, string_view>::value
 			|| std::is_same<U, char const*>::value>::type>
-		entry(U v)
+		entry(U v) // NOLINT
 			: m_type(undefined_t)
 		{
 #if TORRENT_USE_ASSERTS
@@ -150,13 +150,13 @@ namespace libtorrent
 			new(&data) string_type(std::move(v));
 			m_type = string_t;
 		}
-		entry(list_type);
-		entry(integer_type);
-		entry(preformatted_type);
+		entry(list_type); // NOLINT
+		entry(integer_type); // NOLINT
+		entry(preformatted_type); // NOLINT
 
 		// construct an empty entry of the specified type.
 		// see data_type enum.
-		entry(data_type t);
+		entry(data_type t); // NOLINT
 
 		// hidden
 		entry(entry const& e);

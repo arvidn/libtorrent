@@ -167,7 +167,7 @@ private:
 // tracks the state of the bittorrent protocol.
 struct crypto_receive_buffer
 {
-	crypto_receive_buffer(receive_buffer& next)
+	explicit crypto_receive_buffer(receive_buffer& next)
 		: m_connection_buffer(next)
 	{}
 

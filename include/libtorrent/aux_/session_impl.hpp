@@ -216,7 +216,7 @@ namespace libtorrent
 			typedef std::set<std::shared_ptr<peer_connection>> connection_map;
 			typedef std::unordered_map<sha1_hash, std::shared_ptr<torrent>> torrent_map;
 
-			session_impl(io_service& ios);
+			explicit session_impl(io_service& ios);
 			virtual ~session_impl();
 
 			void start_session(settings_pack pack);
@@ -1238,7 +1238,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 		struct tracker_logger : request_callback
 		{
-			tracker_logger(session_interface& ses);
+			explicit tracker_logger(session_interface& ses);
 			void tracker_warning(tracker_request const& req
 				, std::string const& str);
 			void tracker_response(tracker_request const&

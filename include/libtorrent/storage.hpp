@@ -388,7 +388,7 @@ namespace libtorrent
 		// an empty vector. Any file whose index is not represented by the vector
 		// (because the vector is too short) are assumed to have priority 1.
 		// this is used to treat files with priority 0 slightly differently.
-		default_storage(storage_params const& params);
+		explicit default_storage(storage_params const& params);
 
 		// hidden
 		~default_storage();

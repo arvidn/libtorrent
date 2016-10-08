@@ -77,13 +77,13 @@ class TORRENT_EXTRA_EXPORT item
 public:
 	item() : m_seq(0), m_mutable(false)  {}
 	item(public_key const& pk, span<char const> salt);
-	item(entry v);
+	explicit item(entry v);
 	item(entry v
 		, span<char const> salt
 		, sequence_number seq
 		, public_key const& pk
 		, secret_key const& sk);
-	item(bdecode_node const& v);
+	explicit item(bdecode_node const& v);
 
 	void assign(entry v);
 	void assign(entry v, span<char const> salt

@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <ctime>
 #include <algorithm>
 #include <cctype>
-#include <algorithm>
 #include <cstdio> // for snprintf
 #include <cinttypes> // for PRId64 et.al.
 #include <functional>
@@ -82,7 +81,6 @@ const rlim_t rlim_infinity = RLIM_INFINITY;
 #include "libtorrent/kademlia/node_entry.hpp"
 #endif
 #include "libtorrent/enum_net.hpp"
-#include "libtorrent/config.hpp"
 #include "libtorrent/utf8.hpp"
 #include "libtorrent/upnp.hpp"
 #include "libtorrent/natpmp.hpp"
@@ -382,7 +380,8 @@ namespace aux {
 		SSL_CTX *torrent_context = t->ssl_ctx()->native_handle();
 
 		SSL_set_SSL_CTX(s, torrent_context);
-		SSL_set_verify(s, SSL_CTX_get_verify_mode(torrent_context), SSL_CTX_get_verify_callback(torrent_context));
+		SSL_set_verify(s, SSL_CTX_get_verify_mode(torrent_context)
+			, SSL_CTX_get_verify_callback(torrent_context));
 
 		return SSL_TLSEXT_ERR_OK;
 	}
@@ -592,11 +591,13 @@ namespace aux {
 #endif
 		m_io_service.post([this]{ this->wrap(&session_impl::on_tick, error_code()); });
 
+		int const lsd_announce_interval
+			= m_settings.get_int(settings_pack::local_service_announce_interval);
+		int const delay = std::max(lsd_announce_interval
+			/ std::max(static_cast<int>(m_torrents.size()), 1), 1);
 		error_code ec;
-		ADD_OUTSTANDING_ASYNC("session_impl::on_lsd_announce");
-		int const delay = std::max(m_settings.get_int(settings_pack::local_service_announce_interval)
-			/ std::max(int(m_torrents.size()), 1), 1);
 		m_lsd_announce_timer.expires_from_now(seconds(delay), ec);
+		ADD_OUTSTANDING_ASYNC("session_impl::on_lsd_announce");
 		m_lsd_announce_timer.async_wait([this](error_code const& e) {
 			this->wrap(&session_impl::on_lsd_announce, e); } );
 		TORRENT_ASSERT(!ec);
