@@ -117,6 +117,4 @@ namespace libtorrent
 	};
 }
 
-#undef implicit
-
 #endif // TORRENT_SPAN_HPP_INCLUDED
