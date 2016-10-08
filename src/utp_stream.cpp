@@ -264,45 +264,9 @@ struct utp_socket_impl
 		, void* userdata, utp_socket_manager* sm)
 		: m_sm(sm)
 		, m_userdata(userdata)
-		, m_nagle_packet(nullptr)
-		, m_read_handler(false)
-		, m_write_handler(false)
-		, m_connect_handler(false)
-		, m_remote_address()
 		, m_timeout(clock_type::now() + milliseconds(m_sm->connect_timeout()))
-		, m_last_history_step(clock_type::now())
-		, m_cwnd(TORRENT_ETHERNET_MTU << 16)
-		, m_ssthres(0)
-		, m_buffered_incoming_bytes(0)
-		, m_reply_micro(0)
-		, m_adv_wnd(TORRENT_ETHERNET_MTU)
-		, m_bytes_in_flight(0)
-		, m_read(0)
-		, m_write_buffer_size(0)
-		, m_written(0)
-		, m_receive_buffer_size(0)
-		, m_read_buffer_size(0)
-		, m_in_buf_size(1024 * 1024)
-		, m_in_packets(0)
-		, m_out_packets(0)
-		, m_send_delay(0)
-		, m_recv_delay(0)
-		, m_close_reason(0)
-		, m_port(0)
 		, m_send_id(send_id)
 		, m_recv_id(recv_id)
-		, m_ack_nr(0)
-		, m_seq_nr(0)
-		, m_acked_seq_nr(0)
-		, m_fast_resend_seq_nr(0)
-		, m_eof_seq_nr(0)
-		, m_loss_seq_nr(0)
-		, m_mtu(TORRENT_ETHERNET_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER - 8 - 24 - 36)
-		, m_mtu_floor(TORRENT_INET_MIN_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER)
-		, m_mtu_ceiling(TORRENT_ETHERNET_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER)
-		, m_mtu_seq(0)
-		, m_duplicate_acks(0)
-		, m_num_timeouts(0)
 		, m_delay_sample_idx(0)
 		, m_state(UTP_STATE_NONE)
 		, m_eof(false)
@@ -318,8 +282,7 @@ struct utp_socket_impl
 	{
 		m_sm->inc_stats_counter(counters::num_utp_idle);
 		TORRENT_ASSERT(m_userdata);
-		for (int i = 0; i != num_delay_hist; ++i)
-			m_delay_sample_hist[i] = (std::numeric_limits<std::uint32_t>::max)();
+		m_delay_sample_hist.fill(std::numeric_limits<std::uint32_t>::max());
 	}
 
 	~utp_socket_impl();
@@ -431,7 +394,7 @@ public:
 	// if this is non nullptr, it's a packet. This packet was held off because
 	// of NAGLE. We couldn't send it immediately. It's left
 	// here to accrue more bytes before we send it.
-	packet* m_nagle_packet;
+	packet* m_nagle_packet = nullptr;
 
 	// the user provided read buffer. If this has a size greater
 	// than 0, we'll always prefer using it over putting received
@@ -454,9 +417,9 @@ public:
 
 	// these indicate whether or not there is an outstanding read/write or
 	// connect operation. i.e. is there upper layer subscribed to these events.
-	bool m_read_handler;
-	bool m_write_handler;
-	bool m_connect_handler;
+	bool m_read_handler = false;
+	bool m_write_handler = false;
+	bool m_connect_handler = false;
 
 	// the address of the remote endpoint
 	address m_remote_address;
@@ -477,13 +440,13 @@ public:
 	time_point m_timeout;
 
 	// the last time we stepped the timestamp history
-	time_point m_last_history_step;
+	time_point m_last_history_step = clock_type::now();
 
 	// the max number of bytes in-flight. This is a fixed point
 	// value, to get the true number of bytes, shift right 16 bits
 	// the value is always >= 0, but the calculations performed on
 	// it in do_ledbat() are signed.
-	std::int64_t m_cwnd;
+	std::int64_t m_cwnd = TORRENT_ETHERNET_MTU << 16;
 
 	timestamp_history m_delay_hist;
 	timestamp_history m_their_delay_hist;
@@ -491,61 +454,60 @@ public:
 	// the slow-start threshold. This is the congestion window size (m_cwnd)
 	// in bytes the last time we left slow-start mode. This is used as a
 	// threshold to leave slow-start earlier next time, to avoid packet-loss
-	std::int32_t m_ssthres;
+	std::int32_t m_ssthres = 0;
 
 	// the number of bytes we have buffered in m_inbuf
-	std::int32_t m_buffered_incoming_bytes;
+	std::int32_t m_buffered_incoming_bytes = 0;
 
 	// the timestamp diff in the last packet received
 	// this is what we'll send back
-	std::uint32_t m_reply_micro;
+	std::uint32_t m_reply_micro = 0;
 
 	// this is the advertised receive window the other end sent
 	// we'll never have more un-acked bytes in flight
 	// if this ever gets set to zero, we'll try one packet every
 	// second until the window opens up again
-	std::uint32_t m_adv_wnd;
+	std::uint32_t m_adv_wnd = TORRENT_ETHERNET_MTU;
 
 	// the number of un-acked bytes we have sent
-	std::int32_t m_bytes_in_flight;
+	std::int32_t m_bytes_in_flight = 0;
 
 	// the number of bytes read into the user provided
 	// buffer. If this grows too big, we'll trigger the
 	// read handler.
-	std::int32_t m_read;
+	std::int32_t m_read = 0;
 
 	// the sum of the lengths of all iovec in m_write_buffer
-	std::int32_t m_write_buffer_size;
+	std::int32_t m_write_buffer_size = 0;
 
 	// the number of bytes already written to packets
 	// from m_write_buffer
-	std::int32_t m_written;
+	std::int32_t m_written = 0;
 
 	// the sum of all packets stored in m_receive_buffer
-	std::int32_t m_receive_buffer_size;
+	std::int32_t m_receive_buffer_size = 0;
 
 	// the sum of all buffers in m_read_buffer
-	std::int32_t m_read_buffer_size;
+	std::int32_t m_read_buffer_size = 0;
 
 	// max number of bytes to allocate for receive buffer
-	std::int32_t m_in_buf_size;
+	std::int32_t m_in_buf_size = 1024 * 1024;
 
 	// this holds the 3 last delay measurements,
 	// these are the actual corrected delay measurements.
 	// the lowest of the 3 last ones is used in the congestion
 	// controller. This is to not completely close the cwnd
 	// by a single outlier.
-	enum { num_delay_hist = 3 };
-	std::uint32_t m_delay_sample_hist[num_delay_hist];
+	std::array<std::uint32_t, 3> m_delay_sample_hist;
 
 	// counters
-	std::uint32_t m_in_packets;
-	std::uint32_t m_out_packets;
+	std::uint32_t m_in_packets = 0;
+	std::uint32_t m_out_packets = 0;
 
 	// the last send delay sample
-	std::int32_t m_send_delay;
+	std::int32_t m_send_delay = 0;
 	// the last receive delay sample
-	std::int32_t m_recv_delay;
+	std::int32_t m_recv_delay = 0;
 
 	// average RTT
 	sliding_average<16> m_rtt;
@@ -553,74 +515,74 @@ public:
 	// if this is != 0, it means the upper layer provided a reason for why
 	// the connection is being closed. The reason is indicated by this
 	// non-zero value which is included in a packet header extension
-	std::uint16_t m_close_reason;
+	std::uint16_t m_close_reason = 0;
 
 	// port of destination endpoint
-	std::uint16_t m_port;
+	std::uint16_t m_port = 0;
 
 	std::uint16_t m_send_id;
 	std::uint16_t m_recv_id;
 
 	// this is the ack we're sending back. We have
 	// received all packets up to this sequence number
-	std::uint16_t m_ack_nr;
+	std::uint16_t m_ack_nr = 0;
 
 	// the sequence number of the next packet
 	// we'll send
-	std::uint16_t m_seq_nr;
+	std::uint16_t m_seq_nr = 0;
 
 	// this is the sequence number of the packet that
 	// everything has been ACKed up to. Everything we've
 	// sent up to this point has been received by the other
 	// end.
-	std::uint16_t m_acked_seq_nr;
+	std::uint16_t m_acked_seq_nr = 0;
 
 	// each packet gets one chance of "fast resend". i.e.
 	// if we have multiple duplicate acks, we may send a
 	// packet immediately, if m_fast_resend_seq_nr is set
 	// to that packet's sequence number
-	std::uint16_t m_fast_resend_seq_nr;
+	std::uint16_t m_fast_resend_seq_nr = 0;
 
 	// this is the sequence number of the FIN packet
 	// we've received. This sequence number is only
 	// valid if m_eof is true. We should not accept
 	// any packets beyond this sequence number from the
 	// other end
-	std::uint16_t m_eof_seq_nr;
+	std::uint16_t m_eof_seq_nr = 0;
 
 	// this is the lowest sequence number that, when lost,
 	// will cause the window size to be cut in half
-	std::uint16_t m_loss_seq_nr;
+	std::uint16_t m_loss_seq_nr = 0;
 
 	// the max number of bytes we can send in a packet
 	// including the header
-	std::uint16_t m_mtu;
+	std::uint16_t m_mtu = TORRENT_ETHERNET_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER - 8 - 24 - 36;
 
 	// the floor is the largest packet that we have
 	// been able to get through without fragmentation
-	std::uint16_t m_mtu_floor;
+	std::uint16_t m_mtu_floor = TORRENT_INET_MIN_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER;
 
 	// the ceiling is the largest packet that we might
 	// be able to get through without fragmentation.
 	// i.e. ceiling +1 is very likely to not get through
 	// or we have in fact experienced a drop or ICMP
 	// message indicating that it is
-	std::uint16_t m_mtu_ceiling;
+	std::uint16_t m_mtu_ceiling = TORRENT_ETHERNET_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER;
 
 	// the sequence number of the probe in-flight
 	// this is 0 if there is no probe in flight
-	std::uint16_t m_mtu_seq;
+	std::uint16_t m_mtu_seq = 0;
 
 	// this is a counter of how many times the current m_acked_seq_nr
 	// has been ACKed. If it's ACKed more than 3 times, we assume the
 	// packet with the next sequence number has been lost, and we trigger
 	// a re-send. Obviously an ACK only counts as a duplicate as long as
 	// we have outstanding packets following it.
-	std::uint8_t m_duplicate_acks;
+	std::uint8_t m_duplicate_acks = 0;
 
 	// the number of packet timeouts we've seen in a row
 	// this affects the packet timeout time
-	std::uint8_t m_num_timeouts;
+	std::uint8_t m_num_timeouts = 0;
 
 	// it's important that these match the enums in performance_counters for
 	// num_utp_idle etc.
@@ -2890,7 +2852,8 @@ bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 	{
 		delay = m_delay_hist.add_sample(sample, step);
 		m_delay_sample_hist[m_delay_sample_idx++] = delay;
-		if (m_delay_sample_idx >= num_delay_hist) m_delay_sample_idx = 0;
+		if (m_delay_sample_idx >= m_delay_sample_hist.size())
+			m_delay_sample_idx = 0;
 	}
 
 	int acked_bytes = 0;
@@ -3151,7 +3114,8 @@ bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 			if (sample && acked_bytes && prev_bytes_in_flight)
 			{
 				// only use the minimum from the last 3 delay measurements
-				delay = *std::min_element(m_delay_sample_hist, m_delay_sample_hist + num_delay_hist);
+				delay = *std::min_element(m_delay_sample_hist.begin()
+					, m_delay_sample_hist.end());
 
 				// it's impossible for delay to be more than the RTT, so make
 				// sure to clamp it as a sanity check
