@@ -77,7 +77,7 @@ before_install:
 install:
   - 'if [[ $toolset == "gcc" ]]; then g++-5 --version; fi'
   - 'echo "using gcc : cpp11 : ccache g++-5 : <cflags>-std=c11 <cxxflags>-std=c++11 ;" > ~/user-config.jam'
-  - 'echo "using gcc : sanitizer : ccache g++-5 : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>-fsanitize=address,undefined <compileflags>-fno-sanitize-recover=undefined <linkflags>-fsanitize=address,undefined <linkflags>-fno-sanitize-recover=undefined ;" >> ~/user-config.jam'
+  - 'echo "using gcc : sanitizer : ccache g++-5 : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>-fsanitize=address,undefined <compileflags>-fno-sanitize-recover=undefined <linkflags>-fuse-ld=gold <linkflags>-fsanitize=address,undefined <linkflags>-fno-sanitize-recover=undefined ;" >> ~/user-config.jam'
   - 'echo "using gcc : coverage : ccache g++-5 : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>--coverage <linkflags>--coverage ;" >> ~/user-config.jam'
   - 'echo "using gcc : cpp98 : ccache g++-5 : <cflags>-std=c99 <cxxflags>-std=c++98 ;" >> ~/user-config.jam'
 
