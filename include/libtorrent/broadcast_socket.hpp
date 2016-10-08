@@ -60,7 +60,7 @@ namespace libtorrent
 	class TORRENT_EXTRA_EXPORT broadcast_socket
 	{
 	public:
-		broadcast_socket(udp::endpoint const& multicast_endpoint);
+		explicit broadcast_socket(udp::endpoint const& multicast_endpoint);
 		~broadcast_socket() { close(); }
 
 		void open(receive_handler_t const& handler, io_service& ios
@@ -77,7 +77,7 @@ namespace libtorrent
 
 		struct socket_entry
 		{
-			socket_entry(std::shared_ptr<udp::socket> const& s)
+			explicit socket_entry(std::shared_ptr<udp::socket> const& s)
 				: socket(s), broadcast(false) { std::memset(buffer, 0, sizeof(buffer)); }
 			socket_entry(std::shared_ptr<udp::socket> const& s
 				, address_v4 const& mask): socket(s), netmask(mask), broadcast(false)

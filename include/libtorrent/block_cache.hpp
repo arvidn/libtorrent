@@ -73,7 +73,7 @@ namespace libtorrent
 
 	struct piece_log_t
 	{
-		piece_log_t(int j, int b= -1): job(j), block(b) {}
+		explicit piece_log_t(int j, int b= -1): job(j), block(b) {}
 		int job;
 		int block;
 

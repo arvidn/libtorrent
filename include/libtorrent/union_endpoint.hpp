@@ -40,16 +40,8 @@ namespace libtorrent
 {
 	struct union_address
 	{
-		union_address()
-		{
-			*this = address();
-		}
-
-		union_address(address const& a)
-		{
-			*this = a;
-		}
-
+		union_address() { *this = address(); }
+		explicit union_address(address const& a) { *this = a; }
 		union_address& operator=(address const& a)
 		{
 #if TORRENT_USE_IPV6
@@ -106,20 +98,9 @@ namespace libtorrent
 
 	struct union_endpoint
 	{
-		union_endpoint(tcp::endpoint const& ep)
-		{
-			*this = ep;
-		}
-
-		union_endpoint(udp::endpoint const& ep)
-		{
-			*this = ep;
-		}
-
-		union_endpoint()
-		{
-			*this = tcp::endpoint();
-		}
+		explicit union_endpoint(tcp::endpoint const& ep) { *this = ep; }
+		explicit union_endpoint(udp::endpoint const& ep) { *this = ep; }
+		union_endpoint() { *this = tcp::endpoint(); }
 
 		union_endpoint& operator=(udp::endpoint const& ep)
 		{
@@ -128,10 +109,7 @@ namespace libtorrent
 			return *this;
 		}
 
-		operator udp::endpoint() const
-		{
-			return udp::endpoint(addr, port);
-		}
+		operator udp::endpoint() const { return udp::endpoint(addr, port); }
 
 		union_endpoint& operator=(tcp::endpoint const& ep)
 		{
@@ -140,15 +118,8 @@ namespace libtorrent
 			return *this;
 		}
 
-		libtorrent::address address() const
-		{
-			return addr;
-		}
-
-		operator tcp::endpoint() const
-		{
-			return tcp::endpoint(addr, port);
-		}
+		libtorrent::address address() const { return addr; }
+		operator tcp::endpoint() const { return tcp::endpoint(addr, port); }
 
 		union_address addr;
 		std::uint16_t port;

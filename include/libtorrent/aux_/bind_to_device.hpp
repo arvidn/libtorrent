@@ -47,7 +47,7 @@ namespace libtorrent { namespace aux {
 
 	struct bind_to_device
 	{
-		bind_to_device(char const* device): m_value(device) {}
+		explicit bind_to_device(char const* device): m_value(device) {}
 		template<class Protocol>
 		int level(Protocol const&) const { return SOL_SOCKET; }
 		template<class Protocol>
@@ -66,7 +66,7 @@ namespace libtorrent { namespace aux {
 
 	struct bind_to_device
 	{
-		bind_to_device(char const* device): m_value(if_nametoindex(device)) {}
+		explicit bind_to_device(char const* device): m_value(if_nametoindex(device)) {}
 		template<class Protocol>
 		int level(Protocol const&) const { return IPPROTO_IP; }
 		template<class Protocol>
@@ -85,7 +85,7 @@ namespace libtorrent { namespace aux {
 
 	struct bind_to_device
 	{
-		bind_to_device(char const* device): m_value(device) {}
+		explicit bind_to_device(char const* device): m_value(device) {}
 		template<class Protocol>
 		int level(Protocol const&) const { return SOL_SOCKET; }
 		template<class Protocol>

@@ -92,7 +92,7 @@ namespace libtorrent
 
 	struct pending_block
 	{
-		pending_block(piece_block const& b)
+		pending_block(piece_block const& b) // NOLINT
 			: block(b), send_buffer_offset(not_in_buffer), not_wanted(false)
 			, timed_out(false), busy(false)
 		{}
@@ -277,7 +277,7 @@ namespace libtorrent
 			num_channels
 		};
 
-		peer_connection(peer_connection_args const& pack);
+		explicit peer_connection(peer_connection_args const& pack);
 
 		// this function is called after it has been constructed and properly
 		// reference counted. It is safe to call self() in this function
@@ -1216,7 +1216,7 @@ namespace libtorrent
 
 	struct cork
 	{
-		cork(peer_connection& p): m_pc(p), m_need_uncork(false)
+		explicit cork(peer_connection& p): m_pc(p)
 		{
 			if (m_pc.is_corked()) return;
 			m_pc.cork_socket();
@@ -1225,7 +1225,7 @@ namespace libtorrent
 		~cork() { if (m_need_uncork) m_pc.uncork_socket(); }
 	private:
 		peer_connection& m_pc;
-		bool m_need_uncork;
+		bool m_need_uncork = false;
 
 		cork& operator=(cork const&);
 	};

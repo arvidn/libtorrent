@@ -171,7 +171,7 @@ namespace libtorrent
 		explicit create_torrent(file_storage& fs, int piece_size = 0
 			, int pad_file_limit = -1, int flags = optimize_alignment
 			, int alignment = -1);
-		create_torrent(torrent_info const& ti);
+		explicit create_torrent(torrent_info const& ti);
 
 		// internal
 		~create_torrent();

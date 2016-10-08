@@ -35,7 +35,7 @@ namespace libtorrent
 	template<class T>
 	struct invariant_checker_impl : invariant_checker
 	{
-		invariant_checker_impl(T const& self_)
+		explicit invariant_checker_impl(T const& self_)
 			: self(self_)
 		{
 			TORRENT_TRY

@@ -145,8 +145,8 @@ namespace detail
 			TORRENT_ASSERT(!m_access_list.empty());
 			TORRENT_ASSERT(first < last || first == last);
 
-			typename range_t::iterator i = m_access_list.upper_bound(first);
-			typename range_t::iterator j = m_access_list.upper_bound(last);
+			auto i = m_access_list.upper_bound(first);
+			auto j = m_access_list.upper_bound(last);
 
 			if (i != m_access_list.begin()) --i;
 
@@ -198,7 +198,7 @@ namespace detail
 		std::uint32_t access(Addr const& addr) const
 		{
 			TORRENT_ASSERT(!m_access_list.empty());
-			typename range_t::const_iterator i = m_access_list.upper_bound(addr);
+			auto i = m_access_list.upper_bound(addr);
 			if (i != m_access_list.begin()) --i;
 			TORRENT_ASSERT(i != m_access_list.end());
 			TORRENT_ASSERT(i->start <= addr && (std::next(i) == m_access_list.end()
@@ -234,20 +234,17 @@ namespace detail
 
 		struct range
 		{
-			range(Addr addr, int a = 0): start(addr), access(a) {}
-			bool operator<(range const& r) const
-			{ return start < r.start; }
-			bool operator<(Addr const& a) const
-			{ return start < a; }
+			range(Addr addr, int a = 0): start(addr), access(a) {} // NOLINT
+			bool operator<(range const& r) const { return start < r.start; }
+			bool operator<(Addr const& a) const { return start < a; }
 			Addr start;
 			// the end of the range is implicit
 			// and given by the next entry in the set
 			std::uint32_t access;
 		};
 
-		typedef std::set<range> range_t;
+		using range_t = std::set<range>;
 		range_t m_access_list;
-	
 	};
 
 }

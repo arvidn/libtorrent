@@ -250,7 +250,7 @@ namespace libtorrent
 		: std::enable_shared_from_this<timeout_handler>
 		, boost::noncopyable
 	{
-		timeout_handler(io_service& str);
+		explicit timeout_handler(io_service& str);
 
 		void set_timeout(int completion_timeout, int read_timeout);
 		void restart_read_timeout();

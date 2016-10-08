@@ -51,7 +51,7 @@ struct crypto_plugin;
 
 struct TORRENT_EXPORT peer_connection_handle
 {
-	peer_connection_handle(std::weak_ptr<peer_connection> impl)
+	explicit peer_connection_handle(std::weak_ptr<peer_connection> impl)
 		: m_connection(impl)
 	{}
 

@@ -1347,9 +1347,8 @@ namespace libtorrent
 				if (ec) return false;
 
 				m_info_hash = p.info_hash;
-				for (std::vector<std::string>::iterator i = p.trackers.begin()
-					, end(p.trackers.end()); i != end; ++i)
-					m_urls.push_back(*i);
+				for (auto const& url : p.trackers)
+					m_urls.push_back(announce_entry(url));
 
 				return true;
 			}
