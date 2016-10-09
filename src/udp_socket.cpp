@@ -102,9 +102,10 @@ udp_socket::udp_socket(io_service& ios)
 
 udp_socket::~udp_socket()
 {
-	for (auto& p : m_queue)
+	for (std::deque<queued_packet>::iterator i = m_queue.begin()
+		, end(m_queue.end()); i != end; ++i)
 	{
-		if (p.hostname) std::free(p.hostname);
+		if (i->hostname) std::free(i->hostname);
 	}
 	std::free(m_buf);
 #if TORRENT_USE_IPV6
