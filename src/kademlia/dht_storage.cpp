@@ -198,7 +198,22 @@ namespace
 			memset(&m_counters, 0, sizeof(m_counters));
 		}
 
-		~dht_default_storage() {}
+		~dht_default_storage()
+		{
+			for (dht_mutable_table_t::iterator i = m_mutable_table.begin();
+				i != m_mutable_table.end(); ++i)
+			{
+					std::free(i->second.value);
+					std::free(i->second.salt);
+			}
+			m_counters.mutable_data -= m_mutable_table.size();
+
+			for (dht_immutable_table_t::iterator i = m_immutable_table.begin();
+				i != m_immutable_table.end(); ++i)
+			{
+				std::free(i->second.value);
+			}
+		}
 
 #ifndef TORRENT_NO_DEPRECATE
 		size_t num_torrents() const TORRENT_OVERRIDE { return m_map.size(); }
@@ -365,12 +380,12 @@ namespace
 						, immutable_item_comparator(m_id));
 
 					TORRENT_ASSERT(j != m_immutable_table.end());
-					free(j->second.value);
+					std::free(j->second.value);
 					m_immutable_table.erase(j);
 					m_counters.immutable_data -= 1;
 				}
 				dht_immutable_item to_add;
-				to_add.value = static_cast<char*>(malloc(size));
+				to_add.value = static_cast<char*>(std::malloc(size));
 				to_add.size = size;
 				memcpy(to_add.value, buf, size);
 
@@ -437,20 +452,20 @@ namespace
 						< boost::bind(&dht_immutable_item::num_announcers
 							, boost::bind(&dht_mutable_table_t::value_type::second, _2)));
 					TORRENT_ASSERT(j != m_mutable_table.end());
-					free(j->second.value);
-					free(j->second.salt);
+					std::free(j->second.value);
+					std::free(j->second.salt);
 					m_mutable_table.erase(j);
 					m_counters.mutable_data -= 1;
 				}
 				dht_mutable_item to_add;
-				to_add.value = static_cast<char*>(malloc(size));
+				to_add.value = static_cast<char*>(std::malloc(size));
 				to_add.size = size;
 				to_add.seq = seq;
 				to_add.salt = NULL;
 				to_add.salt_size = 0;
 				if (salt_size > 0)
 				{
-					to_add.salt = static_cast<char*>(malloc(salt_size));
+					to_add.salt = static_cast<char*>(std::malloc(salt_size));
 					to_add.salt_size = salt_size;
 					memcpy(to_add.salt, salt, salt_size);
 				}
@@ -473,8 +488,8 @@ namespace
 				{
 					if (item->size != size)
 					{
-						free(item->value);
-						item->value = static_cast<char*>(malloc(size));
+						std::free(item->value);
+						item->value = static_cast<char*>(std::malloc(size));
 						item->size = size;
 					}
 					item->seq = seq;
@@ -521,7 +536,7 @@ namespace
 					++i;
 					continue;
 				}
-				free(i->second.value);
+				std::free(i->second.value);
 				m_immutable_table.erase(i++);
 				m_counters.immutable_data -= 1;
 			}
@@ -534,8 +549,8 @@ namespace
 					++i;
 					continue;
 				}
-				free(i->second.value);
-				free(i->second.salt);
+				std::free(i->second.value);
+				std::free(i->second.salt);
 				m_mutable_table.erase(i++);
 				m_counters.mutable_data -= 1;
 			}

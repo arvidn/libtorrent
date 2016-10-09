@@ -61,7 +61,7 @@ void test_checking(int flags = read_only_files)
 	using namespace libtorrent;
 	namespace lt = libtorrent;
 
-	fprintf(stderr, "\n==== TEST CHECKING %s%s%s=====\n\n"
+	fprintf(stdout, "\n==== TEST CHECKING %s%s%s=====\n\n"
 		, (flags & read_only_files) ? "read-only-files ":""
 		, (flags & corrupt_files) ? "corrupt ":""
 		, (flags & incomplete_files) ? "incomplete ":"");
@@ -85,14 +85,14 @@ void test_checking(int flags = read_only_files)
 	// in case the previous run was terminated
 	error_code ec;
 	remove_all("tmp1_checking", ec);
-	if (ec) fprintf(stderr, "ERROR: removing tmp1_checking: (%d) %s\n"
+	if (ec) fprintf(stdout, "ERROR: removing tmp1_checking: (%d) %s\n"
 		, ec.value(), ec.message().c_str());
 
 	create_directory("tmp1_checking", ec);
-	if (ec) fprintf(stderr, "ERROR: creating directory tmp1_checking: (%d) %s\n"
+	if (ec) fprintf(stdout, "ERROR: creating directory tmp1_checking: (%d) %s\n"
 		, ec.value(), ec.message().c_str());
 	create_directory(combine_path("tmp1_checking", "test_torrent_dir"), ec);
-	if (ec) fprintf(stderr, "ERROR: creating directory test_torrent_dir: (%d) %s\n"
+	if (ec) fprintf(stdout, "ERROR: creating directory test_torrent_dir: (%d) %s\n"
 		, ec.value(), ec.message().c_str());
 
 	file_storage fs;
@@ -108,14 +108,14 @@ void test_checking(int flags = read_only_files)
 
 	// calculate the hash for all pieces
 	set_piece_hashes(t, "tmp1_checking", ec);
-	if (ec) fprintf(stderr, "ERROR: set_piece_hashes: (%d) %s\n"
+	if (ec) fprintf(stdout, "ERROR: set_piece_hashes: (%d) %s\n"
 		, ec.value(), ec.message().c_str());
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
 	boost::shared_ptr<torrent_info> ti(new torrent_info(&buf[0], buf.size(), ec));
 
-	fprintf(stderr, "generated torrent: %s tmp1_checking/test_torrent_dir\n"
+	fprintf(stdout, "generated torrent: %s tmp1_checking/test_torrent_dir\n"
 		, to_hex(ti->info_hash().to_string()).c_str());
 
 	// truncate every file in half
@@ -132,10 +132,10 @@ void test_checking(int flags = read_only_files)
 
 			error_code ec;
 			file f(path, file::read_write, ec);
-			if (ec) fprintf(stderr, "ERROR: opening file \"%s\": (%d) %s\n"
+			if (ec) fprintf(stdout, "ERROR: opening file \"%s\": (%d) %s\n"
 				, path.c_str(), ec.value(), ec.message().c_str());
 			f.set_size(file_sizes[i] / 2, ec);
-			if (ec) fprintf(stderr, "ERROR: truncating file \"%s\": (%d) %s\n"
+			if (ec) fprintf(stdout, "ERROR: truncating file \"%s\": (%d) %s\n"
 				, path.c_str(), ec.value(), ec.message().c_str());
 		}
 	}
@@ -143,7 +143,7 @@ void test_checking(int flags = read_only_files)
 	// overwrite the files with new random data
 	if (flags & corrupt_files)
 	{
-		fprintf(stderr, "corrupt file test. overwriting files\n");
+		fprintf(stdout, "corrupt file test. overwriting files\n");
 		// increase the size of some files. When they're read only that forces
 		// the checker to open them in write-mode to truncate them
 		static const int file_sizes2[] =
@@ -155,7 +155,7 @@ void test_checking(int flags = read_only_files)
 	// make the files read only
 	if (flags & read_only_files)
 	{
-		fprintf(stderr, "making files read-only\n");
+		fprintf(stdout, "making files read-only\n");
 		for (int i = 0; i < num_files; ++i)
 		{
 			char name[1024];
@@ -165,7 +165,7 @@ void test_checking(int flags = read_only_files)
 
 			std::string path = combine_path(combine_path("tmp1_checking", "test_torrent_dir"), dirname);
 			path = combine_path(path, name);
-			fprintf(stderr, "   %s\n", path.c_str());
+			fprintf(stdout, "   %s\n", path.c_str());
 
 #ifdef TORRENT_WINDOWS
 			SetFileAttributesA(path.c_str(), FILE_ATTRIBUTE_READONLY);
@@ -236,7 +236,7 @@ void test_checking(int flags = read_only_files)
 			// read-only here, we expect the checking to fail.
 			TEST_CHECK(st.errc);
 			if (st.errc)
-				fprintf(stderr, "error: %s\n", st.errc.message().c_str());
+				fprintf(stdout, "error: %s\n", st.errc.message().c_str());
 
 			// wait a while to make sure libtorrent survived the error
 			test_sleep(1000);
@@ -245,13 +245,13 @@ void test_checking(int flags = read_only_files)
 			TEST_CHECK(!st.is_seeding);
 			TEST_CHECK(st.errc);
 			if (st.errc)
-				fprintf(stderr, "error: %s\n", st.errc.message().c_str());
+				fprintf(stdout, "error: %s\n", st.errc.message().c_str());
 		}
 		else
 		{
 			TEST_CHECK(!st.errc);
 			if (st.errc)
-				fprintf(stderr, "error: %s\n", st.errc.message().c_str());
+				fprintf(stdout, "error: %s\n", st.errc.message().c_str());
 		}
 	}
 
@@ -259,7 +259,7 @@ void test_checking(int flags = read_only_files)
 	{
 		TEST_CHECK(st.is_seeding);
 		if (st.errc)
-			fprintf(stderr, "error: %s\n", st.errc.message().c_str());
+			fprintf(stdout, "error: %s\n", st.errc.message().c_str());
 	}
 
 	// make the files writable again
@@ -283,7 +283,7 @@ void test_checking(int flags = read_only_files)
 	}
 
 	remove_all("tmp1_checking", ec);
-	if (ec) fprintf(stderr, "ERROR: removing tmp1_checking: (%d) %s\n"
+	if (ec) fprintf(stdout, "ERROR: removing tmp1_checking: (%d) %s\n"
 		, ec.value(), ec.message().c_str());
 }
 

@@ -75,7 +75,7 @@ void test_running_torrent(boost::shared_ptr<torrent_info> info, boost::int64_t f
 	torrent_handle h = ses.add_torrent(p, ec);
 	if (ec)
 	{
-		fprintf(stderr, "add_torrent: %s\n", ec.message().c_str());
+		fprintf(stdout, "add_torrent: %s\n", ec.message().c_str());
 		return;
 	}
 

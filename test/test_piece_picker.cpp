@@ -207,7 +207,7 @@ bool verify_pick(boost::shared_ptr<piece_picker> p
 	std::set<piece_block> blocks;
 	std::copy(picked.begin(), picked.end()
 		, std::insert_iterator<std::set<piece_block> >(blocks, blocks.end()));
-	std::cerr << " verify: " << picked.size() << " " << blocks.size() << std::endl;
+	std::cout << " verify: " << picked.size() << " " << blocks.size() << std::endl;
 	return picked.size() == blocks.size();
 }
 
@@ -247,7 +247,7 @@ void print_pick(std::vector<piece_block> const& picked)
 
 void print_title(char const* name)
 {
-	std::cerr << "==== " << name << " ====\n";
+	std::cout << "==== " << name << " ====\n";
 }
 
 std::vector<piece_block> pick_pieces(boost::shared_ptr<piece_picker> const& p
@@ -453,12 +453,12 @@ TORRENT_TEST(piece_picker)
 
 	p->mark_as_downloading(piece_block(0, 0), &tmp2);
 
-	fprintf(stderr, "num_peers: %d\n", p->num_peers(piece_block(0, 0)));
+	fprintf(stdout, "num_peers: %d\n", p->num_peers(piece_block(0, 0)));
 	TEST_EQUAL(p->num_peers(piece_block(0, 0)), 2);
 
 	p->abort_download(piece_block(0, 0), &tmp1);
 
-	fprintf(stderr, "num_peers: %d\n", p->num_peers(piece_block(0, 0)));
+	fprintf(stdout, "num_peers: %d\n", p->num_peers(piece_block(0, 0)));
 	TEST_EQUAL(p->num_peers(piece_block(0, 0)), 1);
 
 // ========================================================
@@ -468,7 +468,7 @@ TORRENT_TEST(piece_picker)
 	print_title("test pick lowest availability");
 	p = setup_picker("2223333", "* * *  ", "", "");
 	TEST_CHECK(test_pick(p) == 1);
-	
+
 // ========================================================
 
 	// make sure pieces with equal priority and availability
@@ -554,7 +554,7 @@ TORRENT_TEST(piece_picker)
 	TEST_CHECK(dc == std::make_pair(2, 5000 / 7));
 
 // ========================================================
-	
+
 	// make sure filtered pieces are ignored
 	print_title("test filtered pieces");
 	p = setup_picker("1111111", "       ", "0010000", "");
@@ -564,7 +564,7 @@ TORRENT_TEST(piece_picker)
 	TEST_CHECK(test_pick(p, piece_picker::sequential | piece_picker::reverse) == 2);
 
 // ========================================================
-	
+
 	// make sure we_dont_have works
 	print_title("test we_dont_have");
 	p = setup_picker("1111111", "*******", "0100000", "");
@@ -606,7 +606,7 @@ TORRENT_TEST(piece_picker)
 	TEST_CHECK(avail[4] != 0);
 
 // ========================================================
-	
+
 	// make sure init preserves priorities
 	print_title("test init");
 	p = setup_picker("1111111", "       ", "1111111", "");
@@ -619,7 +619,7 @@ TORRENT_TEST(piece_picker)
 	TEST_CHECK(p->num_filtered() == 1);
 	TEST_CHECK(p->num_have_filtered() == 0);
 	TEST_CHECK(p->num_have() == 0);
-	
+
 	p->we_have(0);
 
 	TEST_CHECK(p->num_filtered() == 0);
@@ -633,7 +633,7 @@ TORRENT_TEST(piece_picker)
 	TEST_CHECK(p->num_have() == 0);
 
 // ========================================================
-	
+
 	// make sure requested blocks aren't picked
 	print_title("test don't pick requested blocks");
 	p = setup_picker("1111111", "       ", "", "");
@@ -974,7 +974,7 @@ TORRENT_TEST(piece_picker)
 	p->we_have(0);
 	TEST_CHECK(p->num_filtered() == 0);
 	TEST_CHECK(p->num_have_filtered() == 1);
-	
+
 	p->we_dont_have(0);
 	p->set_piece_priority(0, 7);
 
@@ -984,7 +984,7 @@ TORRENT_TEST(piece_picker)
 
 	for (int i = 0; i < int(picked.size()); ++i)
 		TEST_CHECK(picked[i] == piece_block(i / blocks_per_piece, i % blocks_per_piece));
-	
+
 	// test changing priority on a piece we have
 	p->we_have(0);
 	p->set_piece_priority(0, 0);
@@ -996,7 +996,7 @@ TORRENT_TEST(piece_picker)
 	TEST_CHECK(prios.size() == 7);
 	int prio_comp[] = {0, 6, 5, 4, 3, 2, 1};
 	TEST_CHECK(std::equal(prios.begin(), prios.end(), prio_comp));
-	
+
 	std::vector<bool> filter;
 	p->filtered_pieces(filter);
 	TEST_CHECK(prios.size() == 7);
@@ -1017,7 +1017,7 @@ TORRENT_TEST(piece_picker)
 	TEST_CHECK(int(picked.size()) >= 1);
 	TEST_CHECK(picked.front().piece_index == 1);
 
-	p->restore_piece(0);	
+	p->restore_piece(0);
 	picked = pick_pieces(p, "*******", 1, 0, 0, options, empty_vector);
 	TEST_CHECK(int(picked.size()) >= 1);
 	TEST_CHECK(picked.front().piece_index == 0);
@@ -1032,7 +1032,7 @@ TORRENT_TEST(piece_picker)
 	TEST_CHECK(int(picked.size()) >= 1);
 	TEST_CHECK(picked.front().piece_index == 1);
 
-	p->restore_piece(0);	
+	p->restore_piece(0);
 	picked = pick_pieces(p, "*******", 1, 0, 0, options, empty_vector);
 	TEST_CHECK(int(picked.size()) >= 1);
 	TEST_CHECK(picked.front().piece_index == 1);
@@ -1159,7 +1159,7 @@ TORRENT_TEST(piece_picker)
 	TEST_EQUAL(picked.size(), 1);
 
 // ========================================================
-	
+
 	// test clear_peer
 	print_title("test clear_peer");
 	p = setup_picker("1123333", "       ", "", "");
@@ -1190,7 +1190,7 @@ TORRENT_TEST(piece_picker)
 	TEST_CHECK(std::equal(dls.begin(), dls.end(), expected_dls5));
 
 // ========================================================
-	
+
 	// test have_all and have_none
 	print_title("test have_all and have_none");
 	p = setup_picker("0123333", "*      ", "", "");
@@ -1212,7 +1212,7 @@ TORRENT_TEST(piece_picker)
 	TEST_CHECK(test_pick(p) == 2);
 
 // ========================================================
-	
+
 	// test have_all and have_none
 	print_title("test have_all and have_none with sequential download");
 	p = setup_picker("0123333", "*      ", "", "");
@@ -1360,7 +1360,7 @@ TORRENT_TEST(piece_picker)
 	TEST_CHECK(std::equal(picked_pieces.begin(), picked_pieces.end(), expected_pieces))
 
 //#error test picking with partial pieces and other peers present so that both backup_pieces and backup_pieces2 are used
-	
+
 // ========================================================
 
 	// test parole mode
@@ -1368,7 +1368,7 @@ TORRENT_TEST(piece_picker)
 	p = setup_picker("3333133", "       ", "", "");
 	p->mark_as_finished(piece_block(0, 0), 0);
 	picked = pick_pieces(p, "*******", 1, blocks_per_piece, 0
-		
+
 		, options | piece_picker::on_parole | piece_picker::prioritize_partials, empty_vector);
 	TEST_EQUAL(int(picked.size()), blocks_per_piece - 1);
 	for (int i = 1; i < int(picked.size()); ++i)
@@ -1390,7 +1390,7 @@ TORRENT_TEST(piece_picker)
 	p = setup_picker("1111222233334444", "                ", "", "");
 	int v[] = {1, 5};
 	const std::vector<int> suggested_pieces(v, v + 2);
-	
+
 	picked = pick_pieces(p, "****************", 1, blocks_per_piece
 		, 0, options, suggested_pieces);
 	TEST_CHECK(int(picked.size()) >= blocks_per_piece);
@@ -1413,7 +1413,7 @@ TORRENT_TEST(piece_picker)
 	TEST_CHECK(int(picked.size()) >= blocks_per_piece);
 	for (int i = 1; i < int(picked.size()); ++i)
 		TEST_CHECK(picked[i] == piece_block(5, i));
-	
+
 // ========================================================
 
 	// test bitfield optimization

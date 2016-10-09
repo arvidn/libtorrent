@@ -192,7 +192,7 @@ TORRENT_TEST(event_completed)
 		// we there can only be one event
 		const bool has_event = str.find("&event=") != std::string::npos;
 
-		fprintf(stderr, "- %s\n", str.c_str());
+		fprintf(stdout, "- %s\n", str.c_str());
 
 		// there is exactly 0 or 1 events.
 		TEST_EQUAL(int(has_start) + int(has_completed) + int(has_stopped)
@@ -662,7 +662,7 @@ TORRENT_TEST(try_next)
 
 			for (int i = 0; i < int(tr.size()); ++i)
 			{
-				fprintf(stderr, "tracker \"%s\"\n", tr[i].url.c_str());
+				fprintf(stdout, "tracker \"%s\"\n", tr[i].url.c_str());
 				if (tr[i].url == "http://tracker.com:8080/announce")
 				{
 					TEST_EQUAL(tr[i].fails, 0);

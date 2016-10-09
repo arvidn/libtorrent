@@ -3,7 +3,7 @@ language: cpp
 matrix:
   include:
     - env: variant=test_release lang=cpp11 sim=0 coverage=1 docs=1
-    - env: variant=test_debug lang=ubsan sim=1 coverage=0
+    - env: variant=test_debug lang=sanitizer sim=1 coverage=0
     - env: variant=test_debug lang=cpp98 sim=0 coverage=0
     - env: variant=test_barebones lang=cpp11 sim=0 coverage=0
 
@@ -67,17 +67,20 @@ before_install:
     else
     export coverage_toolset=$toolset;
     fi
-  - 'if [[ $lang == "ubsan" ]]; then export test_args=testing.arg="--no-stderr-redirect"; fi'
+  - 'if [[ $lang == "sanitizer" ]]; then export test_args=testing.arg="--no-stderr-redirect"; fi'
   - 'echo "toolset: " ${toolset}'
   - 'echo "target: " ${target}'
   - 'echo "coverage_toolset: " ${coverage_toolset}'
   - 'echo "test_args: " ${test_args}'
   - 'echo "variant: " ${variant}'
+# disable leak checking for now. it reports some suspicious reports against some
+# tests
+  - export ASAN_OPTIONS=detect_leaks=0;
 
 install:
   - 'if [[ $toolset == "gcc" ]]; then g++-5 --version; fi'
   - 'echo "using gcc : cpp11 : ccache g++-5 : <cflags>-std=c11 <cxxflags>-std=c++11 ;" > ~/user-config.jam'
-  - 'echo "using gcc : ubsan : ccache g++-5 : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>-fsanitize=undefined <compileflags>-fno-sanitize-recover=undefined <linkflags>-fsanitize=undefined <linkflags>-fno-sanitize-recover=undefined ;" >> ~/user-config.jam'
+  - 'echo "using gcc : sanitizer : ccache g++-5 : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>-fsanitize=address,undefined <compileflags>-fno-sanitize-recover=undefined <linkflags>-fuse-ld=gold <linkflags>-fsanitize=address,undefined <linkflags>-fno-sanitize-recover=undefined ;" >> ~/user-config.jam'
   - 'echo "using gcc : coverage : ccache g++-5 : <cflags>-std=c11 <cxxflags>-std=c++11 <compileflags>--coverage <linkflags>--coverage ;" >> ~/user-config.jam'
   - 'echo "using gcc : cpp98 : ccache g++-5 : <cflags>-std=c99 <cxxflags>-std=c++98 ;" >> ~/user-config.jam'
 
@@ -116,8 +119,8 @@ script:
   - bjam --hash -j3 warnings-as-errors=on link=shared debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset install location=./lib
 
 # here we specify the temporary lib dir as a path to look for the main library
-# a binary built with ubsan does not interact well with python
-  - 'if [[ $lang != "ubsan" ]]; then
+# a binary built with sanitizer does not interact well with python
+  - 'if [[ $lang != "sanitizer" ]]; then
     cd bindings/python;
     bjam --hash -j3 warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset stage_module libtorrent-link=shared install-type=LIB dll-path=../../lib;
     LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib python test.py;
