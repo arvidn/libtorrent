@@ -516,7 +516,7 @@ dht_settings test_settings()
 
 struct dht_test_setup
 {
-	dht_test_setup(udp::endpoint src)
+	explicit dht_test_setup(udp::endpoint src)
 		: sett(test_settings())
 		, dht_storage(dht_default_storage_constructor(sett))
 		, source(src)
