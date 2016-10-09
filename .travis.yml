@@ -151,7 +151,7 @@ script:
     fi'
 
   - cd bindings/python
-  - 'if [[ "$lang" != "ubsan" && "$variant" != "" ]]; then
+  - 'if [[ "$lang" != "gcc-ubsan" && "$variant" != "" ]]; then
       bjam -j3 warnings-as-errors=on ssl=$ssl crypto=$crypto debug-iterators=on picker-debugging=on invariant-checks=full $toolset variant=$variant stage_module libtorrent-link=shared install-type=LIB dll-path=../../lib &&
       LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib python test.py;
     fi'
