@@ -97,12 +97,16 @@ udp_socket::udp_socket(io_service& ios)
 
 	m_buf_size = 2048;
 	m_new_buf_size = m_buf_size;
-	m_buf = static_cast<char*>(malloc(m_buf_size));
+	m_buf = static_cast<char*>(std::malloc(m_buf_size));
 }
 
 udp_socket::~udp_socket()
 {
-	free(m_buf);
+	for (auto& p : m_queue)
+	{
+		if (p.hostname) std::free(p.hostname);
+	}
+	std::free(m_buf);
 #if TORRENT_USE_IPV6
 	TORRENT_ASSERT_VAL(m_v6_outstanding == 0, m_v6_outstanding);
 #endif
@@ -741,7 +745,7 @@ void udp_socket::set_buf_size(int s)
 
 	if (no_mem)
 	{
-		free(m_buf);
+		std::free(m_buf);
 		m_buf = 0;
 		m_buf_size = 0;
 		m_new_buf_size = 0;
@@ -1470,7 +1474,7 @@ void udp_socket::drain_queue()
 		{
 			udp_socket::send_hostname(p.hostname, p.ep.port(), &p.buf[0]
 				, p.buf.size(), ec, p.flags | dont_queue);
-			free(p.hostname);
+			std::free(p.hostname);
 		}
 		else
 		{

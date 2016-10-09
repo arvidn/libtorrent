@@ -226,7 +226,7 @@ void send_dht_request(node& node, char const* msg, udp::endpoint const& ep
 	int size = bencode(msg_buf, e);
 #if defined TORRENT_DEBUG && TORRENT_USE_IOSTREAM
 // this yields a lot of output. too much
-//	std::cerr << "sending: " <<  e << "\n";
+//	std::cout << "sending: " <<  e << "\n";
 #endif
 
 #ifdef TORRENT_USE_VALGRIND
@@ -1354,7 +1354,7 @@ TORRENT_TEST(dht)
 		//#error test need_refresh
 
 #if defined TORRENT_DEBUG
-		table.print_state(std::cerr);
+		table.print_state(std::cout);
 #endif
 
 		table.for_each_node(node_push_back, nop, &nodes);
@@ -2283,7 +2283,7 @@ TORRENT_TEST(routing_table_uniform)
 	TEST_EQUAL(tbl.num_active_buckets(), 5);
 
 #if defined TORRENT_DHT_VERBOSE_LOGGING || defined TORRENT_DEBUG
-	tbl.print_state(std::cerr);
+	tbl.print_state(std::cout);
 #endif
 }
 
@@ -2308,7 +2308,7 @@ TORRENT_TEST(routing_table_balance)
 	TEST_EQUAL(tbl.num_active_buckets(), 2);
 
 #if defined TORRENT_DEBUG
-	tbl.print_state(std::cerr);
+	tbl.print_state(std::cout);
 #endif
 }
 
@@ -2337,7 +2337,7 @@ TORRENT_TEST(routing_table_extended)
 	TEST_EQUAL(tbl.num_active_buckets(), 6);
 
 #if defined TORRENT_DEBUG
-	tbl.print_state(std::cerr);
+	tbl.print_state(std::cout);
 #endif
 }
 
@@ -2372,7 +2372,7 @@ TORRENT_TEST(routing_table_set_id)
 	tbl.for_each_node(boost::bind(&inserter, &original_nodes, _1));
 
 #if defined TORRENT_DEBUG
-	tbl.print_state(std::cerr);
+	tbl.print_state(std::cout);
 #endif
 
 	id = to_hash("ffffffffffffffffffffffffffffffffffffffff");
@@ -2392,7 +2392,7 @@ TORRENT_TEST(routing_table_set_id)
 	TEST_EQUAL(intersection.size(), remaining_nodes.size());
 
 #if defined TORRENT_DEBUG
-	tbl.print_state(std::cerr);
+	tbl.print_state(std::cout);
 #endif
 }
 
