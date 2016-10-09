@@ -118,7 +118,7 @@ boost::shared_ptr<http_connection> test_request(io_service& ios
 	, int* handler_called
 	, std::string const& auth = std::string())
 {
-	fprintf(stderr, " ===== TESTING: %s =====\n", url.c_str());
+	fprintf(stdout, " ===== TESTING: %s =====\n", url.c_str());
 
 	auto h = boost::make_shared<http_connection>(ios
 		, res
@@ -401,7 +401,7 @@ void run_test(lt::aux::proxy_settings ps, std::string url, int expect_size, int 
 	TEST_EQUAL(counters.size(), expect_counters.size());
 	for (int i = 0; i < int(counters.size()); ++i)
 	{
-		if (counters[i] != expect_counters[i]) fprintf(stderr, "i=%d\n", i);
+		if (counters[i] != expect_counters[i]) fprintf(stdout, "i=%d\n", i);
 		TEST_EQUAL(counters[i], expect_counters[i]);
 	}
 }
