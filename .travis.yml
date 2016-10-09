@@ -3,7 +3,7 @@ language: cpp
 matrix:
   include:
     - env: variant=test_release coverage=1 toolset=gcc-coverage
-    - env: variant=test_debug sim=1 ssl=openssl crypto=libcrypto toolset=ubsan
+    - env: variant=test_debug sim=1 ssl=openssl crypto=libcrypto toolset=gcc-ubsan
     - env: variant=test_barebones toolset=gcc
     - env: autotools=1 toolset=gcc
     - os: osx
@@ -64,7 +64,7 @@ before_install:
   - if [ "$coverage" == "1" ]; then
     pip install --user codecov;
     fi
-  - 'if [[ $lang == "ubsan" ]]; then export test_args=testing.arg="--no-stderr-redirect"; fi'
+  - 'if [[ $toolset == "gcc-ubsan" ]]; then export test_args=testing.arg="--no-stderr-redirect"; fi'
   - 'echo "toolset: " ${toolset}'
   - 'echo "coverage_toolset: " ${coverage_toolset}'
   - 'echo "variant: " ${variant}'
@@ -94,7 +94,7 @@ install:
 # we're building with -Werror, we can't have those warnings
   - 'if [[ "$variant" != "" ]]; then ccache -V && ccache --show-stats && ccache --zero-stats; fi'
 
-  - 'if [ $arch == "arm" ]; then
+  - 'if [[ "$arch" == "arm" ]]; then
       cd test;
       wget -O gcc-linaro.tar.xz https://releases.linaro.org/components/toolchain/binaries/5.3-2016.05/armv8l-linux-gnueabihf/gcc-linaro-5.3.1-2016.05-x86_64_armv8l-linux-gnueabihf.tar.xz;
       tar xf gcc-linaro.tar.xz;
@@ -124,7 +124,7 @@ script:
 # libtorrent is the name of the test suite target
   - cd test
   - 'if [ "$variant" != "" ]; then
-      travis_retry bjam -j3 warnings-as-errors=on ssl=$ssl crypto=$crypto debug-iterators=on picker-debugging=on invariant-checks=full $toolset variant=$variant libtorrent test_natpmp enum_if -l300 &&
+      travis_retry bjam -j3 warnings-as-errors=on ssl=$ssl crypto=$crypto debug-iterators=on picker-debugging=on invariant-checks=full $toolset variant=$variant $test_args libtorrent test_natpmp enum_if -l300 &&
       if [ "$coverage" == "1" ]; then
         codecov --root .. --gcov-exec gcov-5;
       fi;
@@ -151,7 +151,7 @@ script:
     fi'
 
   - cd bindings/python
-  - 'if [[ "$lang" != "ubsan" && "$variant" != "" ]]; then
+  - 'if [[ "$toolset" != "gcc-ubsan" && "$variant" != "" ]]; then
       bjam -j3 warnings-as-errors=on ssl=$ssl crypto=$crypto debug-iterators=on picker-debugging=on invariant-checks=full $toolset variant=$variant stage_module libtorrent-link=shared install-type=LIB dll-path=../../lib &&
       LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib python test.py;
     fi'
@@ -160,7 +160,7 @@ script:
 # simulation
   - cd simulation
   - 'if [[ "$variant" != "" && "$sim" == "1" ]]; then
-      bjam -j2 crypto=built-in ssl=off warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full $toolset;
+      bjam -j2 crypto=built-in ssl=off warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full $test_args $toolset;
     fi'
   - cd ..
 
@@ -177,7 +177,7 @@ script:
   - 'if [[ "$variant" != "" ]]; then ccache --show-stats; fi'
 
   - cd test
-  - 'if [ $arch == "arm" ];
+  - 'if [[ "$arch" == "arm" ]];
     then
       bjam arm-tests warnings-as-errors=on ssl=$ssl crypto=$crypto variant=test_arm $toolset target-os=linux link=static testing.launcher="sudo cp -R bin rootfs/; sudo chroot rootfs";
     fi'
