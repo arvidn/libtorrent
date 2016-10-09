@@ -2,9 +2,9 @@ language: cpp
 
 matrix:
   include:
-    - env: variant=test_release coverage=1 toolset=gcc-coverage
+    - env: variant=test_barebones toolset=gcc lint=1
     - env: variant=test_debug sim=1 ssl=openssl crypto=libcrypto toolset=gcc-ubsan
-    - env: variant=test_barebones toolset=gcc
+    - env: variant=test_release coverage=1 toolset=gcc-coverage
     - env: autotools=1 toolset=gcc
     - os: osx
       osx_image: xcode6.4
@@ -88,6 +88,7 @@ install:
   - 'echo "using darwin : : ccache clang++ : <cxxflags>-std=c++11 ;" >> ~/user-config.jam'
   - 'echo "using python : 2.7 ;" >> ~/user-config.jam'
   - if [ "$docs" == "1" ]; then rst2html.py --version; fi
+  - 'if [ "$lint" == "1" ]; then curl "https://raw.githubusercontent.com/google/styleguide/71ec7f1e524969c19ce33cfc72e8e023f2b98ee2/cpplint/cpplint.py" >~/cpplint.py; fi'
 
 # osx builds need to disable the deprecated warning because of the openssl
 # shipping with the system having marked all functions as deprecated. Since
@@ -118,6 +119,10 @@ script:
       make RST2HTML=rst2html.py;
     fi'
   - cd ..
+
+  - 'if [ "$lint" == "1" ]; then
+      python ~/cpplint.py --extensions=cpp --headers=hpp --filter=-,+runtime/explicit --linelength=90 test/*.{cpp,hpp} src/*.cpp include/libtorrent/*.hpp include/libtorrent/kademlia/*.hpp src/kademlia/*.cpp include/libtorrent/aux_/*.hpp include/libtorrent/extensions/*.hpp simulation/*.{cpp,hpp} tools/*.{cpp,hpp} examples/*.{cpp,hpp};
+    fi'
 
 # if variant is not set, we do not want to build anything
 # if we are building with code coverage, report it as soon as possible
