@@ -200,16 +200,18 @@ namespace
 
 		~dht_default_storage()
 		{
-			for (auto& i : m_mutable_table)
+			for (dht_mutable_table_t::iterator i = m_mutable_table.begin();
+				i != m_mutable_table.end(); ++i)
 			{
-					std::free(i.second.value);
-					std::free(i.second.salt);
+					std::free(i->second.value);
+					std::free(i->second.salt);
 			}
 			m_counters.mutable_data -= m_mutable_table.size();
 
-			for (auto& i : m_immutable_table)
+			for (dht_immutable_table_t::iterator i = m_immutable_table.begin();
+				i != m_immutable_table.end(); ++i)
 			{
-				std::free(i.second.value);
+				std::free(i->second.value);
 			}
 		}
 
