@@ -64,7 +64,7 @@ before_install:
   - if [ "$coverage" == "1" ]; then
     pip install --user codecov;
     fi
-  - 'if [[ $lang == "gcc-ubsan" ]]; then export test_args=testing.arg="--no-stderr-redirect"; fi'
+  - 'if [[ $toolset == "gcc-ubsan" ]]; then export test_args=testing.arg="--no-stderr-redirect"; fi'
   - 'echo "toolset: " ${toolset}'
   - 'echo "coverage_toolset: " ${coverage_toolset}'
   - 'echo "variant: " ${variant}'
@@ -151,7 +151,7 @@ script:
     fi'
 
   - cd bindings/python
-  - 'if [[ "$lang" != "gcc-ubsan" && "$variant" != "" ]]; then
+  - 'if [[ "$toolset" != "gcc-ubsan" && "$variant" != "" ]]; then
       bjam -j3 warnings-as-errors=on ssl=$ssl crypto=$crypto debug-iterators=on picker-debugging=on invariant-checks=full $toolset variant=$variant stage_module libtorrent-link=shared install-type=LIB dll-path=../../lib &&
       LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib python test.py;
     fi'
