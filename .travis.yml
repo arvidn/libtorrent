@@ -73,6 +73,9 @@ before_install:
   - 'echo "coverage_toolset: " ${coverage_toolset}'
   - 'echo "test_args: " ${test_args}'
   - 'echo "variant: " ${variant}'
+# disable leak checking for now. it reports some suspicious reports against some
+# tests
+  - export ASAN_OPTIONS=detect_leaks=0;
 
 install:
   - 'if [[ $toolset == "gcc" ]]; then g++-5 --version; fi'
@@ -124,11 +127,8 @@ script:
     cd ../..;
     fi'
 
-# LeakSanitizer is disabled for now. there are some strange leaks reported
-# against the simulator.
   - cd simulation
   - if [ $sim = "1" ]; then
-    export ASAN_OPTIONS=detect_leaks=0;
     bjam --hash -j2 crypto=built-in warnings-as-errors=on $coverage_toolset $test_args;
     fi
   - cd ..
