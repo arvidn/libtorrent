@@ -46,11 +46,11 @@ using namespace libtorrent;
 
 void fun(condition_variable* s, libtorrent::mutex* m, int* waiting, int i)
 {
-	fprintf(stderr, "thread %d waiting\n", i);
+	fprintf(stdout, "thread %d waiting\n", i);
 	libtorrent::mutex::scoped_lock l(*m);
 	*waiting += 1;
 	s->wait(l);
-	fprintf(stderr, "thread %d done\n", i);
+	fprintf(stdout, "thread %d done\n", i);
 }
 
 void increment(condition_variable* s, libtorrent::mutex* m, int* waiting, boost::atomic<int>* c)

@@ -78,9 +78,9 @@ TORRENT_TEST(primitives)
 		int delay = ae.next_announce_in();
 		TEST_CHECK(delay > last);
 		last = delay;
-		fprintf(stderr, "%d, ", delay);
+		fprintf(stdout, "%d, ", delay);
 	}
-	fprintf(stderr, "\n");
+	fprintf(stdout, "\n");
 
 	// test error codes
 	TEST_CHECK(error_code(errors::http_error).message() == "HTTP error");
