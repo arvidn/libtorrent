@@ -57,12 +57,12 @@ char data_buffer[4000];
 
 void print_http_header(http_parser const& p)
 {
-	std::cerr << time_now_string() << " < " << p.status_code() << " " << p.message() << std::endl;
+	std::cout << time_now_string() << " < " << p.status_code() << " " << p.message() << std::endl;
 
 	for (std::multimap<std::string, std::string>::const_iterator i
 		= p.headers().begin(), end(p.headers().end()); i != end; ++i)
 	{
-		std::cerr << time_now_string() << " < " << i->first << ": " << i->second << std::endl;
+		std::cout << time_now_string() << " < " << i->first << ": " << i->second << std::endl;
 	}
 }
 
@@ -71,7 +71,7 @@ void http_connect_handler(http_connection& c)
 	++connect_handler_called;
 	TEST_CHECK(c.socket().is_open());
 	error_code ec;
-	std::cerr << time_now_string() << " connected to: " << print_endpoint(c.socket().remote_endpoint(ec))
+	std::cout << time_now_string() << " connected to: " << print_endpoint(c.socket().remote_endpoint(ec))
 		<< std::endl;
 // this is not necessarily true when using a proxy and proxying hostnames
 //	TEST_CHECK(c.socket().remote_endpoint(ec).address() == address::from_string("127.0.0.1", ec));
@@ -111,9 +111,9 @@ void run_test(std::string const& url, int size, int status, int connected
 {
 	reset_globals();
 
-	std::cerr << " ===== TESTING: " << url << " =====" << std::endl;
+	std::cout << " ===== TESTING: " << url << " =====" << std::endl;
 
-	std::cerr << time_now_string()
+	std::cout << time_now_string()
 		<< " expecting: size: " << size
 		<< " status: " << status
 		<< " connected: " << connected
@@ -126,14 +126,14 @@ void run_test(std::string const& url, int size, int status, int connected
 	ios.reset();
 	error_code e;
 	ios.run(e);
-	if (e) std::cerr << time_now_string() << " run failed: " << e.message() << std::endl;
+	if (e) std::cout << time_now_string() << " run failed: " << e.message() << std::endl;
 
-	std::cerr << time_now_string() << " connect_handler_called: " << connect_handler_called << std::endl;
-	std::cerr << time_now_string() << " handler_called: " << handler_called << std::endl;
-	std::cerr << time_now_string() << " status: " << http_status << std::endl;
-	std::cerr << time_now_string() << " size: " << data_size << std::endl;
-	std::cerr << time_now_string() << " expected-size: " << size << std::endl;
-	std::cerr << time_now_string() << " error_code: " << g_error_code.message() << std::endl;
+	std::cout << time_now_string() << " connect_handler_called: " << connect_handler_called << std::endl;
+	std::cout << time_now_string() << " handler_called: " << handler_called << std::endl;
+	std::cout << time_now_string() << " status: " << http_status << std::endl;
+	std::cout << time_now_string() << " size: " << data_size << std::endl;
+	std::cout << time_now_string() << " expected-size: " << size << std::endl;
+	std::cout << time_now_string() << " error_code: " << g_error_code.message() << std::endl;
 	TEST_CHECK(connect_handler_called == connected);
 	TEST_CHECK(handler_called == 1);
 	TEST_CHECK(data_size == size || size == -1);
@@ -148,11 +148,11 @@ void write_test_file()
 	error_code ec;
 	file test_file("test_file", file::write_only, ec);
 	TEST_CHECK(!ec);
-	if (ec) std::fprintf(stderr, "file error: %s\n", ec.message().c_str());
+	if (ec) std::fprintf(stdout, "file error: %s\n", ec.message().c_str());
 	file::iovec_t b = { data_buffer, 3216};
 	test_file.writev(0, &b, 1, ec);
 	TEST_CHECK(!ec);
-	if (ec) std::fprintf(stderr, "file error: %s\n", ec.message().c_str());
+	if (ec) std::fprintf(stdout, "file error: %s\n", ec.message().c_str());
 	test_file.close();
 }
 

@@ -226,7 +226,7 @@ bool verify_pick(std::shared_ptr<piece_picker> p
 	std::set<piece_block> blocks;
 	std::copy(picked.begin(), picked.end()
 		, std::insert_iterator<std::set<piece_block> >(blocks, blocks.end()));
-	std::cerr << " verify: " << picked.size() << " " << blocks.size() << std::endl;
+	std::cout << " verify: " << picked.size() << " " << blocks.size() << std::endl;
 	return picked.size() == blocks.size();
 }
 
@@ -443,12 +443,12 @@ TORRENT_TEST(get_downloaders)
 
 	p->mark_as_downloading(piece_block(0, 0), &tmp2);
 
-	std::fprintf(stderr, "num_peers: %d\n", p->num_peers(piece_block(0, 0)));
+	std::fprintf(stdout, "num_peers: %d\n", p->num_peers(piece_block(0, 0)));
 	TEST_EQUAL(p->num_peers(piece_block(0, 0)), 2);
 
 	p->abort_download(piece_block(0, 0), &tmp1);
 
-	std::fprintf(stderr, "num_peers: %d\n", p->num_peers(piece_block(0, 0)));
+	std::fprintf(stdout, "num_peers: %d\n", p->num_peers(piece_block(0, 0)));
 	TEST_EQUAL(p->num_peers(piece_block(0, 0)), 1);
 }
 
@@ -1042,7 +1042,7 @@ TORRENT_TEST(restore_piece)
 	TEST_CHECK(int(picked.size()) >= 1);
 	TEST_CHECK(picked.front().piece_index == 1);
 
-	p->restore_piece(0);	
+	p->restore_piece(0);
 	picked = pick_pieces(p, "*******", 1, 0, nullptr, options, empty_vector);
 	TEST_CHECK(int(picked.size()) >= 1);
 	TEST_CHECK(picked.front().piece_index == 1);

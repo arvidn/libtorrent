@@ -235,7 +235,7 @@ void send_dht_request(node& node, char const* msg, udp::endpoint const& ep
 	bdecode_node decoded;
 	error_code ec;
 	bdecode(msg_buf, msg_buf + size, decoded, ec);
-	if (ec) std::fprintf(stderr, "bdecode failed: %s\n", ec.message().c_str());
+	if (ec) std::fprintf(stdout, "bdecode failed: %s\n", ec.message().c_str());
 
 	dht::msg m(decoded, ep);
 	node.incoming(m);
@@ -280,7 +280,7 @@ void send_dht_response(node& node, bdecode_node const& request, udp::endpoint co
 	bdecode_node decoded;
 	error_code ec;
 	bdecode(msg_buf, msg_buf + size, decoded, ec);
-	if (ec) std::fprintf(stderr, "bdecode failed: %s\n", ec.message().c_str());
+	if (ec) std::fprintf(stdout, "bdecode failed: %s\n", ec.message().c_str());
 
 	dht::msg m(decoded, ep);
 	node.incoming(m);
@@ -334,18 +334,18 @@ void announce_immutable_items(node& node, udp::endpoint const* eps
 			bdecode_node parsed[5];
 			char error_string[200];
 
-//			std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
+//			std::fprintf(stdout, "msg: %s\n", print_entry(response).c_str());
 			int ret = verify_message(response, desc, parsed, error_string);
 			if (ret)
 			{
 				TEST_EQUAL(parsed[4].string_value(), "r");
 				token = parsed[2].string_value().to_string();
-//				std::fprintf(stderr, "got token: %s\n", token.c_str());
+//				std::fprintf(stdout, "got token: %s\n", token.c_str());
 			}
 			else
 			{
-				std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-				std::fprintf(stderr, "   invalid get response: %s\n", error_string);
+				std::fprintf(stdout, "msg: %s\n", print_entry(response).c_str());
+				std::fprintf(stdout, "   invalid get response: %s\n", error_string);
 				TEST_ERROR(error_string);
 			}
 
@@ -373,14 +373,14 @@ void announce_immutable_items(node& node, udp::endpoint const* eps
 			if (ret)
 			{
 				if (parsed2[0].string_value() != "r")
-					std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
+					std::fprintf(stdout, "msg: %s\n", print_entry(response).c_str());
 
 				TEST_EQUAL(parsed2[0].string_value(), "r");
 			}
 			else
 			{
-				std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-				std::fprintf(stderr, "   invalid put response: %s\n", error_string);
+				std::fprintf(stdout, "msg: %s\n", print_entry(response).c_str());
+				std::fprintf(stdout, "   invalid put response: %s\n", error_string);
 				TEST_ERROR(error_string);
 			}
 		}
@@ -489,7 +489,7 @@ struct obs : dht::dht_observer
 		char buf[1024];
 		vsnprintf(buf, sizeof(buf), fmt, v);
 		va_end(v);
-		fprintf(stderr, "%s\n", buf);
+		std::fprintf(stdout, "%s\n", buf);
 		m_log.push_back(buf);
 	}
 	void log_packet(message_direction_t dir, span<char const> pkt
@@ -761,7 +761,7 @@ TORRENT_TEST(ping)
 
 	bdecode_node pong_keys[4];
 
-	std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
+	std::fprintf(stdout, "msg: %s\n", print_entry(response).c_str());
 	bool ret = dht::verify_message(response, pong_desc, pong_keys, t.error_string);
 	TEST_CHECK(ret);
 	if (ret)
@@ -771,7 +771,7 @@ TORRENT_TEST(ping)
 	}
 	else
 	{
-		std::fprintf(stderr, "   invalid ping response: %s\n", t.error_string);
+		std::fprintf(stdout, "   invalid ping response: %s\n", t.error_string);
 	}
 }
 
@@ -783,7 +783,7 @@ TORRENT_TEST(invalid_message)
 
 	send_dht_request(t.dht_node, "find_node", t.source, &response);
 
-	std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
+	std::fprintf(stdout, "msg: %s\n", print_entry(response).c_str());
 	bool ret = dht::verify_message(response, err_desc, err_keys, t.error_string);
 	TEST_CHECK(ret);
 	if (ret)
@@ -801,7 +801,7 @@ TORRENT_TEST(invalid_message)
 	}
 	else
 	{
-		std::fprintf(stderr, "   invalid error response: %s\n", t.error_string);
+		std::fprintf(stdout, "   invalid error response: %s\n", t.error_string);
 	}
 }
 
@@ -829,19 +829,19 @@ TORRENT_TEST(get_peers_announce)
 	bdecode_node peer1_keys[4];
 
 	std::string token;
-	std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
+	std::fprintf(stdout, "msg: %s\n", print_entry(response).c_str());
 	bool ret = dht::verify_message(response, peer1_desc, peer1_keys, t.error_string);
 	TEST_CHECK(ret);
 	if (ret)
 	{
 		TEST_CHECK(peer1_keys[0].string_value() == "r");
 		token = peer1_keys[2].string_value().to_string();
-//		std::fprintf(stderr, "got token: %s\n", token.c_str());
+//		std::fprintf(stdout, "got token: %s\n", token.c_str());
 	}
 	else
 	{
-		std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-		std::fprintf(stderr, "   invalid get_peers response: %s\n", t.error_string);
+		std::fprintf(stdout, "msg: %s\n", print_entry(response).c_str());
+		std::fprintf(stdout, "   invalid get_peers response: %s\n", t.error_string);
 	}
 
 	send_dht_request(t.dht_node, "announce_peer", t.source, &response
@@ -859,7 +859,7 @@ TORRENT_TEST(get_peers_announce)
 
 	bdecode_node ann_keys[3];
 
-	std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
+	std::fprintf(stdout, "msg: %s\n", print_entry(response).c_str());
 	ret = dht::verify_message(response, ann_desc, ann_keys, t.error_string);
 	TEST_CHECK(ret);
 	if (ret)
@@ -868,7 +868,7 @@ TORRENT_TEST(get_peers_announce)
 	}
 	else
 	{
-		std::fprintf(stderr, "   invalid announce response:\n");
+		std::fprintf(stdout, "   invalid announce response:\n");
 		TEST_ERROR(t.error_string);
 	}
 }
@@ -899,8 +899,8 @@ void test_scrape(address(&rand_addr)())
 		}
 		else
 		{
-			std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-			std::fprintf(stderr, "   invalid get_peers response: %s\n", t.error_string);
+			std::fprintf(stdout, "msg: %s\n", print_entry(response).c_str());
+			std::fprintf(stdout, "   invalid get_peers response: %s\n", t.error_string);
 		}
 		response.clear();
 		send_dht_request(t.dht_node, "announce_peer", t.source, &response
@@ -929,7 +929,7 @@ void test_scrape(address(&rand_addr)())
 
 	bdecode_node peer2_keys[5];
 
-	std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
+	std::fprintf(stdout, "msg: %s\n", print_entry(response).c_str());
 	bool ret = dht::verify_message(response, peer2_desc, peer2_keys, t.error_string);
 	TEST_CHECK(ret);
 	if (ret)
@@ -942,15 +942,15 @@ void test_scrape(address(&rand_addr)())
 		downloaders.from_string(peer2_keys[2].string_ptr());
 		seeds.from_string(peer2_keys[3].string_ptr());
 
-		std::fprintf(stderr, "seeds: %f\n", seeds.size());
-		std::fprintf(stderr, "downloaders: %f\n", downloaders.size());
+		std::fprintf(stdout, "seeds: %f\n", seeds.size());
+		std::fprintf(stdout, "downloaders: %f\n", downloaders.size());
 
 		TEST_CHECK(fabs(seeds.size() - 50.f) <= 3.f);
 		TEST_CHECK(fabs(downloaders.size() - 50.f) <= 3.f);
 	}
 	else
 	{
-		std::fprintf(stderr, "invalid get_peers response:\n");
+		std::fprintf(stdout, "invalid get_peers response:\n");
 		TEST_ERROR(t.error_string);
 	}
 }
@@ -1012,14 +1012,14 @@ void test_id_enforcement(address(&rand_addr)())
 		}
 		else
 		{
-			std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
+			std::fprintf(stdout, "msg: %s\n", print_entry(response).c_str());
 			TEST_ERROR("invalid error response");
 		}
 	}
 	else
 	{
-		std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-		std::fprintf(stderr, "   invalid error response: %s\n", t.error_string);
+		std::fprintf(stdout, "msg: %s\n", print_entry(response).c_str());
+		std::fprintf(stdout, "   invalid error response: %s\n", t.error_string);
 	}
 
 	// a node with invalid node-id shouldn't be added to routing table.
@@ -1043,7 +1043,7 @@ void test_id_enforcement(address(&rand_addr)())
 
 	bdecode_node nodes_keys[3];
 
-	std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
+	std::fprintf(stdout, "msg: %s\n", print_entry(response).c_str());
 	ret = dht::verify_message(response, nodes_desc, nodes_keys, t.error_string);
 	TEST_CHECK(ret);
 	if (ret)
@@ -1052,8 +1052,8 @@ void test_id_enforcement(address(&rand_addr)())
 	}
 	else
 	{
-		std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-		std::fprintf(stderr, "   invalid error response: %s\n", t.error_string);
+		std::fprintf(stdout, "msg: %s\n", print_entry(response).c_str());
+		std::fprintf(stdout, "   invalid error response: %s\n", t.error_string);
 	}
 	// node with valid node-id should be added to routing table.
 	TEST_EQUAL(std::get<0>(t.dht_node.size()), nodes_num + 1);
@@ -1098,9 +1098,9 @@ TORRENT_TEST(bloom_filter)
 
 	// these are test vectors from BEP 33
 	// http://www.bittorrent.org/beps/bep_0033.html
-	std::fprintf(stderr, "test.size: %f\n", test.size());
+	std::fprintf(stdout, "test.size: %f\n", test.size());
 	std::string const bf_str = test.to_string();
-	std::fprintf(stderr, "%s\n", aux::to_hex(bf_str).c_str());
+	std::fprintf(stdout, "%s\n", aux::to_hex(bf_str).c_str());
 	if (supports_ipv6())
 	{
 		TEST_CHECK(fabs(test.size() - 1224.93f) < 0.001);
@@ -1207,12 +1207,12 @@ void test_put(address(&rand_addr)())
 	for (int with_salt = 0; with_salt < 2; ++with_salt)
 	{
 		seq = sequence_number(4);
-		std::fprintf(stderr, "\nTEST GET/PUT%s \ngenerating ed25519 keys\n\n"
+		std::fprintf(stdout, "\nTEST GET/PUT%s \ngenerating ed25519 keys\n\n"
 			, with_salt ? " with-salt" : " no-salt");
 		std::array<char, 32> seed = ed25519_create_seed();
 
 		std::tie(pk, sk) = ed25519_create_keypair(seed);
-		std::fprintf(stderr, "pub: %s priv: %s\n"
+		std::fprintf(stdout, "pub: %s priv: %s\n"
 			, aux::to_hex(pk.bytes).c_str()
 			, aux::to_hex(sk.bytes).c_str());
 
@@ -1223,7 +1223,7 @@ void test_put(address(&rand_addr)())
 		if (with_salt) h.update(salt);
 		sha1_hash target_id = h.final();
 
-		std::fprintf(stderr, "target_id: %s\n"
+		std::fprintf(stdout, "target_id: %s\n"
 			, aux::to_hex(target_id).c_str());
 
 		send_dht_request(t.dht_node, "get", t.source, &response
@@ -1246,14 +1246,14 @@ void test_put(address(&rand_addr)())
 		{
 			TEST_EQUAL(desc_keys[4].string_value(), "r");
 			token = desc_keys[2].string_value().to_string();
-			std::fprintf(stderr, "get response: %s\n"
+			std::fprintf(stdout, "get response: %s\n"
 				, print_entry(response).c_str());
-			std::fprintf(stderr, "got token: %s\n", aux::to_hex(token).c_str());
+			std::fprintf(stdout, "got token: %s\n", aux::to_hex(token).c_str());
 		}
 		else
 		{
-			std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-			std::fprintf(stderr, "   invalid get response: %s\n%s\n"
+			std::fprintf(stdout, "msg: %s\n", print_entry(response).c_str());
+			std::fprintf(stdout, "   invalid get response: %s\n%s\n"
 				, t.error_string, print_entry(response).c_str());
 			TEST_ERROR(t.error_string);
 		}
@@ -1274,13 +1274,13 @@ void test_put(address(&rand_addr)())
 		ret = verify_message(response, desc2, desc2_keys, t.error_string);
 		if (ret)
 		{
-			std::fprintf(stderr, "put response: %s\n"
+			std::fprintf(stdout, "put response: %s\n"
 				, print_entry(response).c_str());
 			TEST_EQUAL(desc2_keys[0].string_value(), "r");
 		}
 		else
 		{
-			std::fprintf(stderr, "   invalid put response: %s\n%s\n"
+			std::fprintf(stdout, "   invalid put response: %s\n%s\n"
 				, t.error_string, print_entry(response).c_str());
 			TEST_ERROR(t.error_string);
 		}
@@ -1288,7 +1288,7 @@ void test_put(address(&rand_addr)())
 		send_dht_request(t.dht_node, "get", t.source, &response
 			, msg_args().target(target_id));
 
-		std::fprintf(stderr, "target_id: %s\n"
+		std::fprintf(stdout, "target_id: %s\n"
 			, aux::to_hex(target_id).c_str());
 
 		key_desc_t const desc3[] =
@@ -1307,14 +1307,14 @@ void test_put(address(&rand_addr)())
 		ret = verify_message(response, desc3, desc3_keys, t.error_string);
 		if (ret == 0)
 		{
-			std::fprintf(stderr, "msg: %s\n", print_entry(response).c_str());
-			std::fprintf(stderr, "   invalid get response: %s\n%s\n"
+			std::fprintf(stdout, "msg: %s\n", print_entry(response).c_str());
+			std::fprintf(stdout, "   invalid get response: %s\n%s\n"
 				, t.error_string, print_entry(response).c_str());
 			TEST_ERROR(t.error_string);
 		}
 		else
 		{
-			std::fprintf(stderr, "get response: %s\n"
+			std::fprintf(stdout, "get response: %s\n"
 				, print_entry(response).c_str());
 			char value[1020];
 			char* ptr = value;
@@ -1333,7 +1333,7 @@ void test_put(address(&rand_addr)())
 		// break the signature
 		sig.bytes[2] ^= 0xaa;
 
-		std::fprintf(stderr, "PUT broken signature\n");
+		std::fprintf(stdout, "PUT broken signature\n");
 
 		TEST_CHECK(verify_mutable_item(itemv, salt, seq, pk, sig) != 1);
 
@@ -1349,14 +1349,14 @@ void test_put(address(&rand_addr)())
 		ret = verify_message(response, desc_error, desc_error_keys, t.error_string);
 		if (ret)
 		{
-			std::fprintf(stderr, "put response: %s\n", print_entry(response).c_str());
+			std::fprintf(stdout, "put response: %s\n", print_entry(response).c_str());
 			TEST_EQUAL(desc_error_keys[1].string_value(), "e");
 			// 206 is the code for invalid signature
 			TEST_EQUAL(desc_error_keys[0].list_int_value_at(0), 206);
 		}
 		else
 		{
-			std::fprintf(stderr, "   invalid put response: %s\n%s\n"
+			std::fprintf(stdout, "   invalid put response: %s\n%s\n"
 				, t.error_string, print_entry(response).c_str());
 			TEST_ERROR(t.error_string);
 		}
@@ -1397,7 +1397,7 @@ void test_put(address(&rand_addr)())
 
 		TEST_CHECK(item_target_id(salt, pk) == target_id);
 
-		std::fprintf(stderr, "PUT CAS 1\n");
+		std::fprintf(stdout, "PUT CAS 1\n");
 
 		send_dht_request(t.dht_node, "put", t.source, &response
 			, msg_args()
@@ -1412,18 +1412,18 @@ void test_put(address(&rand_addr)())
 		ret = verify_message(response, desc2, desc2_keys, t.error_string);
 		if (ret)
 		{
-			std::fprintf(stderr, "put response: %s\n"
+			std::fprintf(stdout, "put response: %s\n"
 				, print_entry(response).c_str());
 			TEST_EQUAL(desc2_keys[0].string_value(), "r");
 		}
 		else
 		{
-			std::fprintf(stderr, "   invalid put response: %s\n%s\n"
+			std::fprintf(stdout, "   invalid put response: %s\n%s\n"
 				, t.error_string, print_entry(response).c_str());
 			TEST_ERROR(t.error_string);
 		}
 
-		std::fprintf(stderr, "PUT CAS 2\n");
+		std::fprintf(stdout, "PUT CAS 2\n");
 
 		// put the same message again. This should fail because the
 		// CAS hash is outdated, it's not the hash of the value that's
@@ -1441,7 +1441,7 @@ void test_put(address(&rand_addr)())
 		ret = verify_message(response, desc_error, desc_error_keys, t.error_string);
 		if (ret)
 		{
-			std::fprintf(stderr, "put response: %s\n"
+			std::fprintf(stdout, "put response: %s\n"
 				, print_entry(response).c_str());
 			TEST_EQUAL(desc_error_keys[1].string_value(), "e");
 			// 301 is the error code for CAS hash mismatch
@@ -1449,7 +1449,7 @@ void test_put(address(&rand_addr)())
 		}
 		else
 		{
-			std::fprintf(stderr, "   invalid put response: %s\n%s\nExpected failure 301 (CAS hash mismatch)\n"
+			std::fprintf(stdout, "   invalid put response: %s\n%s\nExpected failure 301 (CAS hash mismatch)\n"
 				, t.error_string, print_entry(response).c_str());
 			TEST_ERROR(t.error_string);
 		}
@@ -1671,7 +1671,7 @@ void test_routing_table(address(&rand_addr)())
 		TEST_CHECK((id[2] & 0xf8) == (prefixes[i][2] & 0xf8));
 
 		TEST_CHECK(id[19] == rs[i]);
-		std::fprintf(stderr, "IP address: %s r: %d node ID: %s\n", ips[i]
+		std::fprintf(stdout, "IP address: %s r: %d node ID: %s\n", ips[i]
 			, rs[i], aux::to_hex(id).c_str());
 	}
 }
@@ -1734,7 +1734,7 @@ void test_bootstrap(address(&rand_addr)())
 	}
 	else
 	{
-		std::fprintf(stderr, "   invalid find_node request: %s\n", print_entry(response).c_str());
+		std::fprintf(stdout, "   invalid find_node request: %s\n", print_entry(response).c_str());
 		TEST_ERROR(t.error_string);
 		return;
 	}
@@ -1765,7 +1765,7 @@ void test_bootstrap(address(&rand_addr)())
 	}
 	else
 	{
-		std::fprintf(stderr, "   invalid find_node request: %s\n", print_entry(response).c_str());
+		std::fprintf(stdout, "   invalid find_node request: %s\n", print_entry(response).c_str());
 		TEST_ERROR(t.error_string);
 		return;
 	}
@@ -1836,7 +1836,7 @@ void test_short_nodes(address(&rand_addr)())
 	}
 	else
 	{
-		std::fprintf(stderr, "   invalid find_node request: %s\n", print_entry(response).c_str());
+		std::fprintf(stdout, "   invalid find_node request: %s\n", print_entry(response).c_str());
 		TEST_ERROR(t.error_string);
 		return;
 	}
@@ -1921,7 +1921,7 @@ void test_get_peers(address(&rand_addr)())
 	}
 	else
 	{
-		std::fprintf(stderr, "   invalid get_peers request: %s\n", print_entry(response).c_str());
+		std::fprintf(stdout, "   invalid get_peers request: %s\n", print_entry(response).c_str());
 		TEST_ERROR(t.error_string);
 		return;
 	}
@@ -1964,7 +1964,7 @@ void test_get_peers(address(&rand_addr)())
 	}
 	else
 	{
-		std::fprintf(stderr, "   invalid get_peers request: %s\n", print_entry(response).c_str());
+		std::fprintf(stdout, "   invalid get_peers request: %s\n", print_entry(response).c_str());
 		TEST_ERROR(t.error_string);
 		return;
 	}
@@ -1980,7 +1980,7 @@ void test_get_peers(address(&rand_addr)())
 	for (std::list<std::pair<udp::endpoint, entry> >::iterator i = g_sent_packets.begin()
 		, end(g_sent_packets.end()); i != end; ++i)
 	{
-//		std::fprintf(stderr, " %s:%d: %s\n", i->first.address().to_string(ec).c_str()
+//		std::fprintf(stdout, " %s:%d: %s\n", i->first.address().to_string(ec).c_str()
 //			, i->first.port(), i->second.to_string().c_str());
 		TEST_EQUAL(i->second["q"].string(), "announce_peer");
 	}
@@ -2064,7 +2064,7 @@ void test_mutable_get(address(&rand_addr)(), bool const with_salt)
 	}
 	else
 	{
-		std::fprintf(stderr, "   invalid get request: %s\n", print_entry(response).c_str());
+		std::fprintf(stdout, "   invalid get request: %s\n", print_entry(response).c_str());
 		TEST_ERROR(t.error_string);
 		return;
 	}
@@ -2149,7 +2149,7 @@ TORRENT_TEST(immutable_get)
 	}
 	else
 	{
-		std::fprintf(stderr, "   invalid get request: %s\n", print_entry(response).c_str());
+		std::fprintf(stdout, "   invalid get request: %s\n", print_entry(response).c_str());
 		TEST_ERROR(t.error_string);
 		return;
 	}
@@ -2221,7 +2221,7 @@ TORRENT_TEST(immutable_put)
 			bool const ret = verify_message(response, get_item_desc, get_item_keys, t.error_string);
 			if (!ret)
 			{
-				std::fprintf(stderr, "   invalid get request: %s\n", print_entry(response).c_str());
+				std::fprintf(stdout, "   invalid get request: %s\n", print_entry(response).c_str());
 				TEST_ERROR(t.error_string);
 				continue;
 			}
@@ -2264,7 +2264,7 @@ TORRENT_TEST(immutable_put)
 			}
 			else
 			{
-				std::fprintf(stderr, "   invalid immutable put request: %s\n", print_entry(response).c_str());
+				std::fprintf(stdout, "   invalid immutable put request: %s\n", print_entry(response).c_str());
 				TEST_ERROR(t.error_string);
 				continue;
 			}
@@ -2322,7 +2322,7 @@ TORRENT_TEST(mutable_put)
 			bool const ret = verify_message(response, get_item_desc, get_item_keys, t.error_string);
 			if (!ret)
 			{
-				std::fprintf(stderr, "   invalid get request: %s\n", print_entry(response).c_str());
+				std::fprintf(stdout, "   invalid get request: %s\n", print_entry(response).c_str());
 				TEST_ERROR(t.error_string);
 				continue;
 			}
@@ -2369,7 +2369,7 @@ TORRENT_TEST(mutable_put)
 			}
 			else
 			{
-				std::fprintf(stderr, "   invalid put request: %s\n", print_entry(response).c_str());
+				std::fprintf(stdout, "   invalid put request: %s\n", print_entry(response).c_str());
 				TEST_ERROR(t.error_string);
 				continue;
 			}
@@ -2437,7 +2437,7 @@ TORRENT_TEST(traversal_done)
 		bool const ret = verify_message(response, get_item_desc, get_item_keys, t.error_string);
 		if (!ret)
 		{
-			std::fprintf(stderr, "   invalid get request: %s\n", print_entry(response).c_str());
+			std::fprintf(stdout, "   invalid get request: %s\n", print_entry(response).c_str());
 			TEST_ERROR(t.error_string);
 			continue;
 		}
@@ -2521,7 +2521,7 @@ TORRENT_TEST(dht_dual_stack)
 	}
 	else
 	{
-		std::fprintf(stderr, "find_node response: %s\n", print_entry(response).c_str());
+		std::fprintf(stdout, "find_node response: %s\n", print_entry(response).c_str());
 		TEST_ERROR(error_string);
 	}
 
@@ -2553,7 +2553,7 @@ TORRENT_TEST(dht_dual_stack)
 	}
 	else
 	{
-		std::fprintf(stderr, "find_node response: %s\n", print_entry(response).c_str());
+		std::fprintf(stdout, "find_node response: %s\n", print_entry(response).c_str());
 		TEST_ERROR(error_string);
 	}
 
@@ -2592,7 +2592,7 @@ TORRENT_TEST(dht_dual_stack)
 	}
 	else
 	{
-		std::fprintf(stderr, "find_node response: %s\n", print_entry(response).c_str());
+		std::fprintf(stdout, "find_node response: %s\n", print_entry(response).c_str());
 		TEST_ERROR(error_string);
 	}
 }
@@ -2680,7 +2680,7 @@ TORRENT_TEST(verify_message)
 	error_code ec;
 	char const test_msg[] = "d1:A4:test1:Bd2:B15:test22:B25:test3ee";
 	bdecode(test_msg, test_msg + sizeof(test_msg)-1, ent, ec);
-	std::fprintf(stderr, "%s\n", print_entry(ent).c_str());
+	std::fprintf(stdout, "%s\n", print_entry(ent).c_str());
 
 	bool ret = verify_message(ent, msg_desc, msg_keys, error_string);
 	TEST_CHECK(ret);
@@ -2697,7 +2697,7 @@ TORRENT_TEST(verify_message)
 
 	char const test_msg2[] = "d1:A4:test1:Cd2:C15:test22:C25:test3ee";
 	bdecode(test_msg2, test_msg2 + sizeof(test_msg2)-1, ent, ec);
-	std::fprintf(stderr, "%s\n", print_entry(ent).c_str());
+	std::fprintf(stdout, "%s\n", print_entry(ent).c_str());
 
 	ret = verify_message(ent, msg_desc, msg_keys, error_string);
 	TEST_CHECK(ret);
@@ -2715,35 +2715,35 @@ TORRENT_TEST(verify_message)
 
 	char const test_msg3[] = "d1:Cd2:C15:test22:C25:test3ee";
 	bdecode(test_msg3, test_msg3 + sizeof(test_msg3)-1, ent, ec);
-	std::fprintf(stderr, "%s\n", print_entry(ent).c_str());
+	std::fprintf(stdout, "%s\n", print_entry(ent).c_str());
 
 	ret = verify_message(ent, msg_desc, msg_keys, error_string);
 	TEST_CHECK(!ret);
-	std::fprintf(stderr, "%s\n", error_string);
+	std::fprintf(stdout, "%s\n", error_string);
 	TEST_EQUAL(error_string, std::string("missing 'A' key"));
 
 	char const test_msg4[] = "d1:A6:foobare";
 	bdecode(test_msg4, test_msg4 + sizeof(test_msg4)-1, ent, ec);
-	std::fprintf(stderr, "%s\n", print_entry(ent).c_str());
+	std::fprintf(stdout, "%s\n", print_entry(ent).c_str());
 
 	ret = verify_message(ent, msg_desc, msg_keys, error_string);
 	TEST_CHECK(!ret);
-	std::fprintf(stderr, "%s\n", error_string);
+	std::fprintf(stdout, "%s\n", error_string);
 	TEST_EQUAL(error_string, std::string("invalid value for 'A'"));
 
 	char const test_msg5[] = "d1:A4:test1:Cd2:C15:test2ee";
 	bdecode(test_msg5, test_msg5 + sizeof(test_msg5)-1, ent, ec);
-	std::fprintf(stderr, "%s\n", print_entry(ent).c_str());
+	std::fprintf(stdout, "%s\n", print_entry(ent).c_str());
 
 	ret = verify_message(ent, msg_desc, msg_keys, error_string);
 	TEST_CHECK(!ret);
-	std::fprintf(stderr, "%s\n", error_string);
+	std::fprintf(stdout, "%s\n", error_string);
 	TEST_EQUAL(error_string, std::string("missing 'C2' key"));
 
 	// test empty strings [ { "":1 }, "" ]
 	char const test_msg6[] = "ld0:i1ee0:e";
 	bdecode(test_msg6, test_msg6 + sizeof(test_msg6)-1, ent, ec);
-	std::fprintf(stderr, "%s\n", print_entry(ent).c_str());
+	std::fprintf(stdout, "%s\n", print_entry(ent).c_str());
 	TEST_CHECK(ent.type() == bdecode_node::list_t);
 	if (ent.type() == bdecode_node::list_t)
 	{
@@ -3040,7 +3040,7 @@ TORRENT_TEST(invalid_error_msg)
 	bdecode_node decoded;
 	error_code ec;
 	bdecode(msg_buf, msg_buf + size, decoded, ec);
-	if (ec) std::fprintf(stderr, "bdecode failed: %s\n", ec.message().c_str());
+	if (ec) std::fprintf(stdout, "bdecode failed: %s\n", ec.message().c_str());
 
 	dht::msg m(decoded, source);
 	node.incoming(m);
@@ -3102,7 +3102,7 @@ TORRENT_TEST(rpc_invalid_error_msg)
 	bdecode_node decoded;
 	error_code ec;
 	bdecode(msg_buf, msg_buf + size, decoded, ec);
-	if (ec) std::fprintf(stderr, "bdecode failed: %s\n", ec.message().c_str());
+	if (ec) std::fprintf(stdout, "bdecode failed: %s\n", ec.message().c_str());
 
 	dht::msg m(decoded, source);
 	node_id nid;
@@ -3281,7 +3281,7 @@ TORRENT_TEST(distance_exp)
 
 	for (auto const& t : distance_tests)
 	{
-		std::fprintf(stderr, "%s %s: %d\n"
+		std::fprintf(stdout, "%s %s: %d\n"
 			, std::get<0>(t), std::get<1>(t), std::get<2>(t));
 
 		TEST_EQUAL(distance_exp(
@@ -3307,7 +3307,7 @@ TORRENT_TEST(compare_ip_cidr)
 
 	for (auto const& t : v4tests)
 	{
-		std::fprintf(stderr, "%s %s\n", std::get<0>(t), std::get<1>(t));
+		std::fprintf(stdout, "%s %s\n", std::get<0>(t), std::get<1>(t));
 		TEST_EQUAL(compare_ip_cidr(
 			addr4(std::get<0>(t)), addr4(std::get<1>(t))), std::get<2>(t));
 	}

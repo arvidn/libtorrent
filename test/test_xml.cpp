@@ -274,7 +274,7 @@ void test_parse(char const* in, char const* expected)
 	std::string out;
 	xml_parse(str(in), std::bind(&parser_callback
 		, std::ref(out), _1, _2, _3, _4, _5));
-	std::fprintf(stderr, "in: %s\n     out: %s\nexpected: %s\n"
+	std::fprintf(stdout, "in: %s\n     out: %s\nexpected: %s\n"
 		, in, out.c_str(), expected);
 	TEST_EQUAL(out, expected);
 }
@@ -284,10 +284,10 @@ TORRENT_TEST(upnp_parser1)
 	parse_state xml_s;
 	xml_parse(upnp_xml, std::bind(&find_control_url, _1, _2, _3, std::ref(xml_s)));
 
-	std::cerr << "namespace " << xml_s.service_type << std::endl;
-	std::cerr << "url_base: " << xml_s.url_base << std::endl;
-	std::cerr << "control_url: " << xml_s.control_url << std::endl;
-	std::cerr << "model: " << xml_s.model << std::endl;
+	std::cout << "namespace " << xml_s.service_type << std::endl;
+	std::cout << "url_base: " << xml_s.url_base << std::endl;
+	std::cout << "control_url: " << xml_s.control_url << std::endl;
+	std::cout << "model: " << xml_s.model << std::endl;
 	TEST_EQUAL(xml_s.url_base, "http://192.168.0.1:5678");
 	TEST_EQUAL(xml_s.control_url, "/WANIPConnection");
 	TEST_EQUAL(xml_s.model, "D-Link Router");
@@ -298,10 +298,10 @@ TORRENT_TEST(upnp_parser2)
 	parse_state xml_s;
 	xml_parse(upnp_xml2, std::bind(&find_control_url, _1, _2, _3, std::ref(xml_s)));
 
-	std::cerr << "namespace " << xml_s.service_type << std::endl;
-	std::cerr << "url_base: " << xml_s.url_base << std::endl;
-	std::cerr << "control_url: " << xml_s.control_url << std::endl;
-	std::cerr << "model: " << xml_s.model << std::endl;
+	std::cout << "namespace " << xml_s.service_type << std::endl;
+	std::cout << "url_base: " << xml_s.url_base << std::endl;
+	std::cout << "control_url: " << xml_s.control_url << std::endl;
+	std::cout << "model: " << xml_s.model << std::endl;
 	TEST_EQUAL(xml_s.url_base, "http://192.168.1.1:49152");
 	TEST_EQUAL(xml_s.control_url, "/upnp/control/WANPPPConn1");
 	TEST_EQUAL(xml_s.model, "Wireless-G ADSL Home Gateway");

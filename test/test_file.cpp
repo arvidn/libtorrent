@@ -99,7 +99,7 @@ TORRENT_TEST(file_status)
 	TEST_CHECK(!ec);
 
 	int diff = int(st2.mtime - st1.mtime);
-	std::fprintf(stderr, "timestamp difference: %d seconds. expected approx. 3 seconds\n"
+	std::fprintf(stdout, "timestamp difference: %d seconds. expected approx. 3 seconds\n"
 		, diff);
 
 	TEST_CHECK(diff >= 2 && diff <= 4);
@@ -110,7 +110,7 @@ TORRENT_TEST(directory)
 	error_code ec;
 
 	create_directory("file_test_dir", ec);
-	if (ec) std::fprintf(stderr, "create_directory: %s\n", ec.message().c_str());
+	if (ec) std::fprintf(stdout, "create_directory: %s\n", ec.message().c_str());
 	TEST_CHECK(!ec);
 
 	std::string cwd = current_working_directory();
@@ -125,7 +125,7 @@ TORRENT_TEST(directory)
 		std::string f = i.file();
 		TEST_CHECK(files.count(f) == 0);
 		files.insert(f);
-		std::fprintf(stderr, " %s\n", f.c_str());
+		std::fprintf(stdout, " %s\n", f.c_str());
 	}
 
 	TEST_CHECK(files.count("abc") == 1);
@@ -142,13 +142,13 @@ TORRENT_TEST(directory)
 		std::string f = i.file();
 		TEST_CHECK(files.count(f) == 0);
 		files.insert(f);
-		std::fprintf(stderr, " %s\n", f.c_str());
+		std::fprintf(stdout, " %s\n", f.c_str());
 	}
 
 	remove_all("file_test_dir", ec);
-	if (ec) std::fprintf(stderr, "remove_all: %s\n", ec.message().c_str());
+	if (ec) std::fprintf(stdout, "remove_all: %s\n", ec.message().c_str());
 	remove_all("file_test_dir2", ec);
-	if (ec) std::fprintf(stderr, "remove_all: %s\n", ec.message().c_str());
+	if (ec) std::fprintf(stdout, "remove_all: %s\n", ec.message().c_str());
 }
 
 // test path functions
@@ -291,20 +291,20 @@ TORRENT_TEST(file)
 	TEST_CHECK(f.open("test_file", file::read_write, ec));
 #endif
 	if (ec)
-		std::fprintf(stderr, "open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+		std::fprintf(stdout, "open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_EQUAL(ec, error_code());
-	if (ec) std::fprintf(stderr, "%s\n", ec.message().c_str());
+	if (ec) std::fprintf(stdout, "%s\n", ec.message().c_str());
 	file::iovec_t b = {(void*)"test", 4};
 	TEST_EQUAL(f.writev(0, &b, 1, ec), 4);
 	if (ec)
-		std::fprintf(stderr, "writev failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+		std::fprintf(stdout, "writev failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_CHECK(!ec);
 	char test_buf[5] = {0};
 	b.iov_base = test_buf;
 	b.iov_len = 4;
 	TEST_EQUAL(f.readv(0, &b, 1, ec), 4);
 	if (ec)
-		std::fprintf(stderr, "readv failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+		std::fprintf(stdout, "readv failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_EQUAL(ec, error_code());
 	TEST_CHECK(std::strcmp(test_buf, "test") == 0);
 	f.close();
@@ -321,26 +321,26 @@ TORRENT_TEST(hard_link)
 	file f;
 	TEST_CHECK(f.open("original_file", file::read_write, ec));
 	if (ec)
-		std::fprintf(stderr, "open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+		std::fprintf(stdout, "open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_EQUAL(ec, error_code());
 
 	file::iovec_t b = {(void*)"abcdefghijklmnopqrstuvwxyz", 26};
 	TEST_EQUAL(f.writev(0, &b, 1, ec), 26);
 	if (ec)
-		std::fprintf(stderr, "writev failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+		std::fprintf(stdout, "writev failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_EQUAL(ec, error_code());
 	f.close();
 
 	hard_link("original_file", "second_link", ec);
 
 	if (ec)
-		std::fprintf(stderr, "hard_link failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+		std::fprintf(stdout, "hard_link failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_EQUAL(ec, error_code());
 
 
 	TEST_CHECK(f.open("second_link", file::read_write, ec));
 	if (ec)
-		std::fprintf(stderr, "open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+		std::fprintf(stdout, "open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_EQUAL(ec, error_code());
 
 	char test_buf[27] = {0};
@@ -348,18 +348,18 @@ TORRENT_TEST(hard_link)
 	b.iov_len = 27;
 	TEST_EQUAL(f.readv(0, &b, 1, ec), 26);
 	if (ec)
-		std::fprintf(stderr, "readv failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+		std::fprintf(stdout, "readv failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_EQUAL(ec, error_code());
 	TEST_CHECK(std::strcmp(test_buf, "abcdefghijklmnopqrstuvwxyz") == 0);
 	f.close();
 
 	remove("original_file", ec);
 	if (ec)
-		std::fprintf(stderr, "remove failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+		std::fprintf(stdout, "remove failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 
 	remove("second_link", ec);
 	if (ec)
-		std::fprintf(stderr, "remove failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+		std::fprintf(stdout, "remove failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 }
 
 TORRENT_TEST(coalesce_buffer)
@@ -368,13 +368,13 @@ TORRENT_TEST(coalesce_buffer)
 	file f;
 	TEST_CHECK(f.open("test_file", file::read_write, ec));
 	if (ec)
-		std::fprintf(stderr, "open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+		std::fprintf(stdout, "open failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_EQUAL(ec, error_code());
-	if (ec) std::fprintf(stderr, "%s\n", ec.message().c_str());
+	if (ec) std::fprintf(stdout, "%s\n", ec.message().c_str());
 	file::iovec_t b[2] = {{(void*)"test", 4}, {(void*)"foobar", 6}};
 	TEST_EQUAL(f.writev(0, b, 2, ec, file::coalesce_buffers), 4 + 6);
 	if (ec)
-		std::fprintf(stderr, "writev failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
+		std::fprintf(stdout, "writev failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_CHECK(!ec);
 	char test_buf1[5] = {0};
 	char test_buf2[7] = {0};
@@ -385,7 +385,7 @@ TORRENT_TEST(coalesce_buffer)
 	TEST_EQUAL(f.readv(0, b, 2, ec), 4 + 6);
 	if (ec)
 	{
-		std::fprintf(stderr, "readv failed: [%s] %s\n"
+		std::fprintf(stdout, "readv failed: [%s] %s\n"
 			, ec.category().name(), ec.message().c_str());
 	}
 	TEST_EQUAL(ec, error_code());

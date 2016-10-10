@@ -64,7 +64,7 @@ TORRENT_TEST(corrupt)
 	std::vector<char> zipped;
 	error_code ec;
 	load_file(combine_path("..", "corrupt.gz"), zipped, ec, 1000000);
-	if (ec) fprintf(stderr, "failed to open file: (%d) %s\n", ec.value()
+	if (ec) std::fprintf(stderr, "failed to open file: (%d) %s\n", ec.value()
 		, ec.message().c_str());
 	TEST_CHECK(!ec);
 

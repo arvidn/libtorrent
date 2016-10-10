@@ -486,7 +486,7 @@ TORRENT_TEST(current_tracker)
 	file.close();
 
 	char tracker_url[200];
-	snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce"
+	std::snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce"
 		, http_port);
 	t->add_tracker(tracker_url, 0);
 
@@ -513,9 +513,9 @@ TORRENT_TEST(current_tracker)
 	status = h.status();
 	TEST_CHECK(status.current_tracker.empty());
 
-	fprintf(stderr, "destructing session\n");
+	std::fprintf(stderr, "destructing session\n");
 	s.reset();
-	fprintf(stderr, "done\n");
+	std::fprintf(stderr, "done\n");
 }
 
 void test_proxy(bool proxy_trackers)

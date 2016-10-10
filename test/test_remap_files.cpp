@@ -169,7 +169,7 @@ void test_remap_files(storage_mode_t storage_mode = storage_mode_sparse)
 			print_alerts(ses, "ses");
 		}
 
-		fprintf(stderr, "%s\n", name.c_str());
+		std::fprintf(stderr, "%s\n", name.c_str());
 		TEST_CHECK(exists(name));
 	}
 

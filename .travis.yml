@@ -3,7 +3,7 @@ language: cpp
 matrix:
   include:
     - env: variant=test_barebones toolset=gcc lint=1
-    - env: variant=test_debug sim=1 ssl=openssl crypto=libcrypto toolset=gcc-ubsan
+    - env: variant=test_debug sim=1 ssl=openssl crypto=libcrypto toolset=gcc-sanitizer
     - env: variant=test_release coverage=1 toolset=gcc-coverage
     - env: autotools=1 toolset=gcc
     - os: osx
@@ -64,10 +64,13 @@ before_install:
   - if [ "$coverage" == "1" ]; then
     pip install --user codecov;
     fi
-  - 'if [[ $toolset == "gcc-ubsan" ]]; then export test_args=testing.arg="--no-stderr-redirect"; fi'
+  - 'if [[ $toolset == "gcc-sanitizer" ]]; then export test_args=testing.arg="--no-stderr-redirect"; fi'
   - 'echo "toolset: " ${toolset}'
   - 'echo "coverage_toolset: " ${coverage_toolset}'
   - 'echo "variant: " ${variant}'
+# disable leak checking for now. it reports some suspicious reports against some
+# tests
+  - export ASAN_OPTIONS=detect_leaks=0;
 
 install:
 
@@ -76,8 +79,8 @@ install:
       g++-5 --version;
       echo "using gcc : : ccache g++-5 : <cxxflags>-std=c++11 ;" >> ~/user-config.jam;
     fi'
-  - 'if [[ $toolset == "gcc-ubsan" ]]; then
-      echo "using gcc : ubsan : ccache g++-5 : <cxxflags>-std=c++11 <compileflags>-fsanitize=undefined <compileflags>-fno-sanitize-recover=undefined <linkflags>-fsanitize=undefined <linkflags>-fno-sanitize-recover=undefined ;" >> ~/user-config.jam;
+  - 'if [[ $toolset == "gcc-sanitizer" ]]; then
+      echo "using gcc : sanitizer : ccache g++-5 : <cxxflags>-std=c++11 <compileflags>-fsanitize=address,undefined <compileflags>-fno-sanitize-recover=address,undefined <linkflags>-fsanitize=address,undefined <linkflags>-fno-sanitize-recover=address,undefined ;" >> ~/user-config.jam;
     fi'
   - 'if [[ $toolset == "gcc-coverage" ]]; then
       echo "using gcc : coverage : ccache g++-5 --coverage : <cxxflags>-std=c++11 <linkflags>--coverage ;" >> ~/user-config.jam;
@@ -155,8 +158,9 @@ script:
       bjam -j3 warnings-as-errors=on ssl=$ssl crypto=$crypto debug-iterators=on picker-debugging=on invariant-checks=full $toolset variant=$variant link=shared install location=./lib;
     fi'
 
+# a binary built with sanitizer does not interact well with python
   - cd bindings/python
-  - 'if [[ "$toolset" != "gcc-ubsan" && "$variant" != "" ]]; then
+  - 'if [[ "$toolset" != "gcc-sanitizer" && "$variant" != "" ]]; then
       bjam -j3 warnings-as-errors=on ssl=$ssl crypto=$crypto debug-iterators=on picker-debugging=on invariant-checks=full $toolset variant=$variant stage_module libtorrent-link=shared install-type=LIB dll-path=../../lib &&
       LD_LIBRARY_PATH=../../lib DYLD_LIBRARY_PATH=../../lib python test.py;
     fi'

@@ -99,14 +99,14 @@ TORRENT_TEST(resolve_links)
 		test_torrent_t const& e = test_torrents[i];
 
 		std::string p = combine_path(path, e.filename1) + ".torrent";
-		std::fprintf(stderr, "loading %s\n", p.c_str());
+		std::fprintf(stdout, "loading %s\n", p.c_str());
 		std::shared_ptr<torrent_info> ti1 = std::make_shared<torrent_info>(p);
 
 		p = combine_path(path, e.filename2) + ".torrent";
-		std::fprintf(stderr, "loading %s\n", p.c_str());
+		std::fprintf(stdout, "loading %s\n", p.c_str());
 		std::shared_ptr<torrent_info> ti2 = std::make_shared<torrent_info>(p);
 
-		std::fprintf(stderr, "resolving\n");
+		std::fprintf(stdout, "resolving\n");
 		resolve_links l(ti1);
 		l.match(ti2, ".");
 
@@ -122,7 +122,7 @@ TORRENT_TEST(resolve_links)
 			for (int i = 0; i < int(links.size()); ++i)
 			{
 				TORRENT_ASSERT(i < fs.num_files());
-				std::fprintf(stderr, "%*s --> %s : %d\n"
+				std::fprintf(stdout, "%*s --> %s : %d\n"
 					, int(fs.file_name(i).size())
 					, fs.file_name(i).data()
 					, links[i].ti ? aux::to_hex(links[i].ti->info_hash()).c_str()

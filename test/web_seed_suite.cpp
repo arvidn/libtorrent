@@ -90,7 +90,7 @@ void test_transfer(lt::session& ses, std::shared_ptr<torrent_info> torrent_file
 
 	static char const* test_name[] = {"no", "SOCKS4", "SOCKS5", "SOCKS5 password", "HTTP", "HTTP password"};
 
-	std::fprintf(stderr, "\n\n  ==== TESTING === proxy: %s ==== protocol: %s "
+	std::fprintf(stdout, "\n\n  ==== TESTING === proxy: %s ==== protocol: %s "
 		"==== seed: %s === transfer-encoding: %s === corruption: %s "
 		"==== keepalive: %s\n\n\n"
 		, test_name[proxy], protocol, url_seed ? "URL seed" : "HTTP seed"
@@ -169,17 +169,17 @@ void test_transfer(lt::session& ses, std::shared_ptr<torrent_info> torrent_file
 
 		if (test_ban && th.url_seeds().empty() && th.http_seeds().empty())
 		{
-			std::fprintf(stderr, "testing ban: URL seed removed\n");
+			std::fprintf(stdout, "testing ban: URL seed removed\n");
 			// when we don't have any web seeds left, we know we successfully banned it
 			break;
 		}
 
 		if (s.is_seeding)
 		{
-			std::fprintf(stderr, "SEEDING\n");
-			std::fprintf(stderr, "session.payload: %d session.redundant: %d\n"
+			std::fprintf(stdout, "SEEDING\n");
+			std::fprintf(stdout, "session.payload: %d session.redundant: %d\n"
 				, int(cnt["net.recv_payload_bytes"]), int(cnt["net.recv_redundant_bytes"]));
-			std::fprintf(stderr, "torrent.payload: %d torrent.redundant: %d\n"
+			std::fprintf(stdout, "torrent.payload: %d torrent.redundant: %d\n"
 				, int(s.total_payload_download), int(s.total_redundant_bytes));
 
 			TEST_EQUAL(s.total_payload_download - s.total_redundant_bytes, total_size - pad_file_size);
@@ -226,7 +226,7 @@ void test_transfer(lt::session& ses, std::shared_ptr<torrent_info> torrent_file
 					&& cnt["disk.disk_blocks_in_use"]
 						== (torrent_file->total_size() + 0x3fff) / 0x4000)
 					break;
-				std::fprintf(stderr, "cache_size: %d/%d\n", int(cnt["disk.read_cache_blocks"])
+				std::fprintf(stdout, "cache_size: %d/%d\n", int(cnt["disk.read_cache_blocks"])
 					, int(cnt["disk.disk_blocks_in_use"]));
 				std::this_thread::sleep_for(lt::milliseconds(100));
 			}
@@ -262,7 +262,7 @@ void test_transfer(lt::session& ses, std::shared_ptr<torrent_info> torrent_file
 		{
 			bool const expect = !fs.pad_file_at(i);
 			std::string file_path = combine_path(save_path, fs.file_path(i));
-			std::fprintf(stderr, "checking file: %s\n", file_path.c_str());
+			std::fprintf(stdout, "checking file: %s\n", file_path.c_str());
 			TEST_EQUAL(exists(file_path), expect);
 		}
 	}
@@ -291,7 +291,7 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed
 	{
 		char url[512];
 		std::snprintf(url, sizeof(url), ("%s://127.0.0.1:%d/" + save_path).c_str(), protocol, port);
-		std::fprintf(stderr, "testing: %s\n", url);
+		std::fprintf(stdout, "testing: %s\n", url);
 
 		create_directories(combine_path(save_path, "torrent_dir"), ec);
 
@@ -365,7 +365,7 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed
 	{
 		char url[512];
 		std::snprintf(url, sizeof(url), "%s://127.0.0.1:%d/%s/seed", protocol, port, save_path.c_str());
-		std::fprintf(stderr, "testing: %s\n", url);
+		std::fprintf(stdout, "testing: %s\n", url);
 
 		// there's really just one test case for http seeds
 		test_cases.push_back(torrent_args().file("589824,name=seed")
@@ -374,7 +374,7 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed
 
 	for (int a = 0; a < int(test_cases.size()); ++a)
 	{
-		std::fprintf(stderr, "\n\n ====  test case %d ====\n\n\n", a);
+		std::fprintf(stdout, "\n\n ====  test case %d ====\n\n\n", a);
 
 		std::shared_ptr<torrent_info> torrent_file = make_test_torrent(test_cases[a]);
 

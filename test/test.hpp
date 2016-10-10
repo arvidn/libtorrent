@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <exception>
 #include <sstream>
 #include <vector>
-#include <cstdio> // for snprintf
+#include <cstdio> // for std::snprintf
 #include <cinttypes> // for PRId64 et.al.
 
 #include <boost/preprocessor/cat.hpp>

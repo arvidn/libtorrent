@@ -67,7 +67,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #define DEBUG_WEB_SERVER 0
 
-#define DLOG if (DEBUG_WEB_SERVER) fprintf
+#define DLOG if (DEBUG_WEB_SERVER) std::fprintf
 
 using namespace libtorrent;
 namespace lt = libtorrent;
@@ -192,7 +192,7 @@ alert const* wait_for_alert(lt::session& ses, int type, char const* name)
 		{
 			if (should_print(a))
 			{
-				std::fprintf(stderr, "%s: %s: [%s] %s\n", time_now_string(), name
+				std::fprintf(stdout, "%s: %s: [%s] %s\n", time_now_string(), name
 					, a->what(), a->message().c_str());
 			}
 			if (a->type() == type && !ret)
@@ -273,7 +273,7 @@ void save_file(char const* filename, char const* data, int size)
 	TEST_CHECK(!ec);
 	if (ec)
 	{
-		std::fprintf(stderr, "ERROR opening file '%s': %s\n", filename, ec.message().c_str());
+		std::fprintf(stdout, "ERROR opening file '%s': %s\n", filename, ec.message().c_str());
 		return;
 	}
 	file::iovec_t b = { (void*)data, size_t(size) };
@@ -281,7 +281,7 @@ void save_file(char const* filename, char const* data, int size)
 	TEST_CHECK(!ec);
 	if (ec)
 	{
-		std::fprintf(stderr, "ERROR writing file '%s': %s\n", filename, ec.message().c_str());
+		std::fprintf(stdout, "ERROR writing file '%s': %s\n", filename, ec.message().c_str());
 		return;
 	}
 
@@ -303,12 +303,12 @@ bool print_alerts(lt::session& ses, char const* name
 		if (predicate && predicate(a)) ret = true;
 		if (peer_disconnected_alert const* p = alert_cast<peer_disconnected_alert>(a))
 		{
-			std::fprintf(stderr, "%s: %s: [%s] (%s): %s\n", time_now_string(), name, (a)->what(), print_endpoint(p->ip).c_str(), p->message().c_str());
+			std::fprintf(stdout, "%s: %s: [%s] (%s): %s\n", time_now_string(), name, (a)->what(), print_endpoint(p->ip).c_str(), p->message().c_str());
 		}
 		else if (should_print(a)
 			&& !no_output)
 		{
-			std::fprintf(stderr, "%s: %s: [%s] %s\n", time_now_string(), name, (a)->what(), (a)->message().c_str());
+			std::fprintf(stdout, "%s: %s: [%s] %s\n", time_now_string(), name, (a)->what(), (a)->message().c_str());
 		}
 
 		TEST_CHECK(alert_cast<fastresume_rejected_alert>(a) == nullptr || allow_failed_fastresume);
@@ -316,7 +316,7 @@ bool print_alerts(lt::session& ses, char const* name
 		peer_error_alert const* pea = alert_cast<peer_error_alert>(a);
 		if (pea)
 		{
-			std::fprintf(stderr, "%s: peer error: %s\n", time_now_string(), pea->error.message().c_str());
+			std::fprintf(stdout, "%s: peer error: %s\n", time_now_string(), pea->error.message().c_str());
 			TEST_CHECK((!handles.empty() && h.status().is_seeding)
 				|| pea->error.message() == "connecting to peer"
 				|| pea->error.message() == "closing connection to ourself"
@@ -334,7 +334,7 @@ bool print_alerts(lt::session& ses, char const* name
 		invalid_request_alert const* ira = alert_cast<invalid_request_alert>(a);
 		if (ira)
 		{
-			std::fprintf(stderr, "peer error: %s\n", ira->message().c_str());
+			std::fprintf(stdout, "peer error: %s\n", ira->message().c_str());
 			TEST_CHECK(false);
 		}
 	}
@@ -387,7 +387,7 @@ void wait_for_downloading(lt::session& ses, char const* name)
 	} while (a);
 	if (!downloading_done)
 	{
-		std::fprintf(stderr, "%s: did not receive a state_changed_alert indicating "
+		std::fprintf(stdout, "%s: did not receive a state_changed_alert indicating "
 			"the torrent is downloading. waited: %d ms\n"
 			, name, int(total_milliseconds(clock_type::now() - start)));
 	}
@@ -400,7 +400,7 @@ void print_ses_rate(float time
 {
 	if (st1)
 	{
-		std::fprintf(stderr, "%3.1fs | %dkB/s %dkB/s %d%% %d cc:%d%s", time
+		std::fprintf(stdout, "%3.1fs | %dkB/s %dkB/s %d%% %d cc:%d%s", time
 			, int(st1->download_payload_rate / 1000)
 			, int(st1->upload_payload_rate / 1000)
 			, int(st1->progress * 100)
@@ -409,7 +409,7 @@ void print_ses_rate(float time
 			, st1->errc ? (" [" + st1->errc.message() + "]").c_str() : "");
 	}
 	if (st2)
-		std::fprintf(stderr, " : %3.1fs | %dkB/s %dkB/s %d%% %d cc:%d%s", time
+		std::fprintf(stdout, " : %3.1fs | %dkB/s %dkB/s %d%% %d cc:%d%s", time
 			, int(st2->download_payload_rate / 1000)
 			, int(st2->upload_payload_rate / 1000)
 			, int(st2->progress * 100)
@@ -417,7 +417,7 @@ void print_ses_rate(float time
 			, st2->connect_candidates
 			, st2->errc ? (" [" + st1->errc.message() + "]").c_str() : "");
 	if (st3)
-		std::fprintf(stderr, " : %3.1fs | %dkB/s %dkB/s %d%% %d cc:%d%s", time
+		std::fprintf(stdout, " : %3.1fs | %dkB/s %dkB/s %d%% %d cc:%d%s", time
 			, int(st3->download_payload_rate / 1000)
 			, int(st3->upload_payload_rate / 1000)
 			, int(st3->progress * 100)
@@ -425,7 +425,7 @@ void print_ses_rate(float time
 			, st3->connect_candidates
 			, st3->errc ? (" [" + st1->errc.message() + "]").c_str() : "");
 
-	std::fprintf(stderr, "\n");
+	std::fprintf(stdout, "\n");
 }
 
 #ifdef _WIN32
@@ -445,7 +445,7 @@ static std::map<int, proxy_t> running_proxies;
 
 void stop_proxy(int port)
 {
-	std::fprintf(stderr, "stopping proxy on port %d\n", port);
+	std::fprintf(stdout, "stopping proxy on port %d\n", port);
 	// don't shut down proxies until the test is
 	// completely done. This saves a lot of time.
 	// they're closed at the end of main() by
@@ -471,7 +471,7 @@ pid_type async_run(char const* cmdline)
 	if (ret == 0)
 	{
 		int error = GetLastError();
-		std::fprintf(stderr, "failed (%d) %s\n", error, error_code(error, system_category()).message().c_str());
+		std::fprintf(stdout, "failed (%d) %s\n", error, error_code(error, system_category()).message().c_str());
 		return 0;
 	}
 	return pi.dwProcessId;
@@ -497,7 +497,7 @@ pid_type async_run(char const* cmdline)
 	int ret = posix_spawnp(&p, argv[0], nullptr, nullptr, &argv[0], nullptr);
 	if (ret != 0)
 	{
-		std::fprintf(stderr, "failed (%d) %s\n", errno, strerror(errno));
+		std::fprintf(stdout, "failed (%d) %s\n", errno, strerror(errno));
 		return 0;
 	}
 	return p;
@@ -586,13 +586,13 @@ int start_proxy(int proxy_type)
 	char buf[512];
 	std::snprintf(buf, sizeof(buf), "%s --port %d%s", cmd, port, auth);
 
-	std::fprintf(stderr, "%s starting proxy on port %d (%s %s)...\n", time_now_string(), port, type, auth);
-	std::fprintf(stderr, "%s\n", buf);
+	std::fprintf(stdout, "%s starting proxy on port %d (%s %s)...\n", time_now_string(), port, type, auth);
+	std::fprintf(stdout, "%s\n", buf);
 	pid_type r = async_run(buf);
 	if (r == 0) abort();
 	proxy_t t = { r, proxy_type };
 	running_proxies.insert(std::make_pair(port, t));
-	std::fprintf(stderr, "%s launched\n", time_now_string());
+	std::fprintf(stdout, "%s launched\n", time_now_string());
 	std::this_thread::sleep_for(lt::milliseconds(500));
 	return port;
 }
@@ -684,7 +684,7 @@ void create_random_files(std::string const& path, const int file_sizes[], int nu
 
 		int to_write = file_sizes[i];
 		file f(full_path, file::write_only, ec);
-		if (ec) std::fprintf(stderr, "failed to create file \"%s\": (%d) %s\n"
+		if (ec) std::fprintf(stdout, "failed to create file \"%s\": (%d) %s\n"
 			, full_path.c_str(), ec.value(), ec.message().c_str());
 		std::int64_t offset = 0;
 		while (to_write > 0)
@@ -692,7 +692,7 @@ void create_random_files(std::string const& path, const int file_sizes[], int nu
 			int s = (std::min)(to_write, 300000);
 			file::iovec_t b = { random_data, size_t(s)};
 			f.writev(offset, &b, 1, ec);
-			if (ec) std::fprintf(stderr, "failed to write file \"%s\": (%d) %s\n"
+			if (ec) std::fprintf(stdout, "failed to write file \"%s\": (%d) %s\n"
 				, full_path.c_str(), ec.value(), ec.message().c_str());
 			offset += s;
 			to_write -= s;
@@ -726,7 +726,7 @@ std::shared_ptr<torrent_info> create_torrent(std::ostream* file
 		int res = load_file(ssl_certificate, file_buf, ec);
 		if (ec || res < 0)
 		{
-			std::fprintf(stderr, "failed to load SSL certificate: %s\n", ec.message().c_str());
+			std::fprintf(stdout, "failed to load SSL certificate: %s\n", ec.message().c_str());
 		}
 		else
 		{
@@ -840,7 +840,7 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 		}
 		char ih_hex[41];
 		aux::to_hex(t->info_hash(), ih_hex);
-		std::fprintf(stderr, "generated torrent: %s tmp1%s/temporary\n", ih_hex, suffix.c_str());
+		std::fprintf(stdout, "generated torrent: %s tmp1%s/temporary\n", ih_hex, suffix.c_str());
 	}
 	else
 	{
@@ -861,7 +861,7 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 	torrent_handle tor1 = ses1->add_torrent(param, ec);
 	if (ec)
 	{
-		std::fprintf(stderr, "ses1.add_torrent: %s\n", ec.message().c_str());
+		std::fprintf(stdout, "ses1.add_torrent: %s\n", ec.message().c_str());
 		return std::make_tuple(torrent_handle(), torrent_handle(), torrent_handle());
 	}
 	tor1.super_seeding(super_seeding);
@@ -914,16 +914,16 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 		if (use_ssl_ports)
 		{
 			port = ses2->ssl_listen_port();
-			std::fprintf(stderr, "%s: ses2->ssl_listen_port(): %d\n", time_now_string(), port);
+			std::fprintf(stdout, "%s: ses2->ssl_listen_port(): %d\n", time_now_string(), port);
 		}
 
 		if (port == 0)
 		{
 			port = ses2->listen_port();
-			std::fprintf(stderr, "%s: ses2->listen_port(): %d\n", time_now_string(), port);
+			std::fprintf(stdout, "%s: ses2->listen_port(): %d\n", time_now_string(), port);
 		}
 
-		std::fprintf(stderr, "%s: ses1: connecting peer port: %d\n"
+		std::fprintf(stdout, "%s: ses1: connecting peer port: %d\n"
 			, time_now_string(), port);
 		tor1.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec)
 			, std::uint16_t(port)));
@@ -946,10 +946,10 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 			if (port == 0) port = ses2->listen_port();
 			if (port2 == 0) port2 = ses1->listen_port();
 
-			std::fprintf(stderr, "ses3: connecting peer port: %d\n", port);
+			std::fprintf(stdout, "ses3: connecting peer port: %d\n", port);
 			tor3.connect_peer(tcp::endpoint(
 					address::from_string("127.0.0.1", ec), std::uint16_t(port)));
-			std::fprintf(stderr, "ses3: connecting peer port: %d\n", port2);
+			std::fprintf(stdout, "ses3: connecting peer port: %d\n", port2);
 				tor3.connect_peer(tcp::endpoint(
 					address::from_string("127.0.0.1", ec)
 					, std::uint16_t(port2)));
@@ -981,13 +981,13 @@ int start_web_server(bool ssl, bool chunked_encoding, bool keepalive)
 	std::snprintf(buf, sizeof(buf), "python ../web_server.py %d %d %d %d"
 		, port, chunked_encoding , ssl, keepalive);
 
-	std::fprintf(stderr, "%s starting web_server on port %d...\n", time_now_string(), port);
+	std::fprintf(stdout, "%s starting web_server on port %d...\n", time_now_string(), port);
 
-	std::fprintf(stderr, "%s\n", buf);
+	std::fprintf(stdout, "%s\n", buf);
 	pid_type r = async_run(buf);
 	if (r == 0) abort();
 	web_server_pid = r;
-	std::fprintf(stderr, "%s launched\n", time_now_string());
+	std::fprintf(stdout, "%s launched\n", time_now_string());
 	std::this_thread::sleep_for(lt::milliseconds(500));
 	return port;
 }
@@ -995,7 +995,7 @@ int start_web_server(bool ssl, bool chunked_encoding, bool keepalive)
 void stop_web_server()
 {
 	if (web_server_pid == 0) return;
-	std::fprintf(stderr, "stopping web server\n");
+	std::fprintf(stdout, "stopping web server\n");
 	stop_process(web_server_pid);
 	web_server_pid = 0;
 }

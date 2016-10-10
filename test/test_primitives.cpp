@@ -71,9 +71,9 @@ TORRENT_TEST(primitives)
 		int delay = ae.next_announce_in();
 		TEST_CHECK(delay > last);
 		last = delay;
-		std::fprintf(stderr, "%d, ", delay);
+		std::fprintf(stdout, "%d, ", delay);
 	}
-	std::fprintf(stderr, "\n");
+	std::fprintf(stdout, "\n");
 
 	// test error codes
 	TEST_CHECK(error_code(errors::http_error).message() == "HTTP error");
@@ -86,7 +86,7 @@ TORRENT_TEST(primitives)
 	TEST_CHECK(error_code(errors::unauthorized, http_category()).message() == "401 Unauthorized");
 	TEST_CHECK(error_code(errors::service_unavailable, http_category()).message() == "503 Service Unavailable");
 
-	// test snprintf
+	// test std::snprintf
 
 	char msg[10];
 	std::snprintf(msg, sizeof(msg), "too %s format string", "long");

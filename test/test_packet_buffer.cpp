@@ -92,12 +92,12 @@ TORRENT_TEST(insert)
 	{
 		int index = (i + 0xfff0) & 0xffff;
 		pb.insert(index, reinterpret_cast<int*>(size_t(index) + 1));
-		std::fprintf(stderr, "insert: %u (mask: %x)\n", index, int(pb.capacity() - 1));
+		std::fprintf(stdout, "insert: %u (mask: %x)\n", index, int(pb.capacity() - 1));
 		TEST_EQUAL(pb.capacity(), 512);
 		if (i >= 14)
 		{
 			index = (index - 14) & 0xffff;
-			std::fprintf(stderr, "remove: %u\n", index);
+			std::fprintf(stdout, "remove: %u\n", index);
 			TEST_CHECK(pb.remove(index) == reinterpret_cast<int*>(size_t(index) + 1));
 			TEST_EQUAL(pb.size(), 14);
 		}
