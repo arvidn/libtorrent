@@ -72,7 +72,7 @@ TORRENT_TEST(count_leading_zeros)
 
 	for (auto const& t : tests)
 	{
-		std::fprintf(stderr, "%s\n", t.first);
+		std::printf("%s\n", t.first);
 		std::uint32_t buf[5];
 		to_binary(t.first, buf);
 		TEST_EQUAL(aux::count_leading_zeros_sw({buf, 5}), t.second);

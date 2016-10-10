@@ -70,30 +70,30 @@ struct peer_server
 		m_acceptor.open(tcp::v4(), ec);
 		if (ec)
 		{
-			std::fprintf(stderr, "PEER Error opening peer listen socket: %s\n", ec.message().c_str());
+			std::printf("PEER Error opening peer listen socket: %s\n", ec.message().c_str());
 			return;
 		}
 
 		m_acceptor.bind(tcp::endpoint(address_v4::any(), 0), ec);
 		if (ec)
 		{
-			std::fprintf(stderr, "PEER Error binding peer socket to port 0: %s\n", ec.message().c_str());
+			std::printf("PEER Error binding peer socket to port 0: %s\n", ec.message().c_str());
 			return;
 		}
 		m_port = m_acceptor.local_endpoint(ec).port();
 		if (ec)
 		{
-			std::fprintf(stderr, "PEER Error getting local endpoint of peer socket: %s\n", ec.message().c_str());
+			std::printf("PEER Error getting local endpoint of peer socket: %s\n", ec.message().c_str());
 			return;
 		}
 		m_acceptor.listen(10, ec);
 		if (ec)
 		{
-			std::fprintf(stderr, "PEER Error listening on peer socket: %s\n", ec.message().c_str());
+			std::printf("PEER Error listening on peer socket: %s\n", ec.message().c_str());
 			return;
 		}
 
-		std::fprintf(stderr, "%s: PEER peer initialized on port %d\n", time_now_string(), m_port);
+		std::printf("%s: PEER peer initialized on port %d\n", time_now_string(), m_port);
 
 		m_thread = std::make_shared<std::thread>(&peer_server::thread_fun, this);
 	}
@@ -136,11 +136,11 @@ struct peer_server
 
 			if (ec)
 			{
-				std::fprintf(stderr, "PEER Error accepting connection on peer socket: %s\n", ec.message().c_str());
+				std::printf("PEER Error accepting connection on peer socket: %s\n", ec.message().c_str());
 				return;
 			}
 
-			std::fprintf(stderr, "%s: PEER incoming peer connection\n", time_now_string());
+			std::printf("%s: PEER incoming peer connection\n", time_now_string());
 			++m_peer_requests;
 			socket.close(ec);
 		}

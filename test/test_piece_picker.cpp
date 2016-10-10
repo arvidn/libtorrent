@@ -443,12 +443,12 @@ TORRENT_TEST(get_downloaders)
 
 	p->mark_as_downloading(piece_block(0, 0), &tmp2);
 
-	std::fprintf(stdout, "num_peers: %d\n", p->num_peers(piece_block(0, 0)));
+	std::printf("num_peers: %d\n", p->num_peers(piece_block(0, 0)));
 	TEST_EQUAL(p->num_peers(piece_block(0, 0)), 2);
 
 	p->abort_download(piece_block(0, 0), &tmp1);
 
-	std::fprintf(stdout, "num_peers: %d\n", p->num_peers(piece_block(0, 0)));
+	std::printf("num_peers: %d\n", p->num_peers(piece_block(0, 0)));
 	TEST_EQUAL(p->num_peers(piece_block(0, 0)), 1);
 }
 

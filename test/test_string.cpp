@@ -197,7 +197,7 @@ TORRENT_TEST(escape_string)
 	error_code ec;
 	TEST_CHECK(unescape_string(escape_path(test_string), ec) == test_string);
 	TEST_CHECK(!ec);
-	if (ec) std::fprintf(stderr, "%s\n", ec.message().c_str());
+	if (ec) std::printf("%s\n", ec.message().c_str());
 
 	// need_encoding
 	char const* test_string2 = "!@$&()-_/,.%?";
@@ -278,7 +278,7 @@ void test_parse_interface(char const* input
 	, std::vector<listen_interface_t> expected
 	, std::string output)
 {
-	std::fprintf(stderr, "parse interface: %s\n", input);
+	std::printf("parse interface: %s\n", input);
 	auto const list = parse_listen_interfaces(input);
 	TEST_EQUAL(list.size(), expected.size());
 	if (list.size() == expected.size())

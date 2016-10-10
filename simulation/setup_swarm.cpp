@@ -268,7 +268,7 @@ void setup_swarm(int num_nodes
 	int const swarm_id = test_counter();
 	std::string path = save_path(swarm_id, 0);
 	lt::create_directory(path, ec);
-	if (ec) std::fprintf(stderr, "failed to create directory: \"%s\": %s\n"
+	if (ec) std::printf("failed to create directory: \"%s\": %s\n"
 		, path.c_str(), ec.message().c_str());
 	std::ofstream file(lt::combine_path(path, "temporary").c_str());
 	auto ti = ::create_torrent(&file, "temporary", 0x4000, 9, false);

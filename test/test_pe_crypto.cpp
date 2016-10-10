@@ -143,7 +143,7 @@ TORRENT_TEST(rc4)
 	sha1_hash test1_key = hasher("test1_key",8).final();
 	sha1_hash test2_key = hasher("test2_key",8).final();
 
-	std::fprintf(stderr, "testing RC4 handler\n");
+	std::printf("testing RC4 handler\n");
 	rc4_handler rc41;
 	rc41.set_incoming_key(test2_key);
 	rc41.set_outgoing_key(test1_key);
@@ -156,6 +156,6 @@ TORRENT_TEST(rc4)
 #else
 TORRENT_TEST(disabled)
 {
-	std::fprintf(stderr, "PE test not run because it's disabled\n");
+	std::printf("PE test not run because it's disabled\n");
 }
 #endif

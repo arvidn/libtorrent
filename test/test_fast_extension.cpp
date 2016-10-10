@@ -62,7 +62,7 @@ void log(char const* fmt, ...)
 	vsnprintf(buf, sizeof(buf), fmt, v);
 	va_end(v);
 
-	std::fprintf(stderr, "\x1b[1m\x1b[36m%s: %s\x1b[0m\n"
+	std::printf("\x1b[1m\x1b[36m%s: %s\x1b[0m\n"
 		, time_now_string(), buf);
 }
 

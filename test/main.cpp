@@ -91,7 +91,7 @@ void output_test_log_to_terminal()
 	dup2(old_stderr, fileno(stderr));
 
 	fseek(current_test->output, 0, SEEK_SET);
-	std::fprintf(stderr, "\x1b[1m[%s]\x1b[0m\n\n", current_test->name);
+	std::printf("\x1b[1m[%s]\x1b[0m\n\n", current_test->name);
 	char buf[4096];
 	int size = 0;
 	do {
@@ -146,7 +146,7 @@ LONG WINAPI seh_exception_handler(LPEXCEPTION_POINTERS p)
 #undef EXC
 	};
 
-	std::fprintf(stderr, "exception: (0x%x) %s caught:\n%s\n"
+	std::printf("exception: (0x%x) %s caught:\n%s\n"
 		, code, name, stack_text);
 
 	output_test_log_to_terminal();
@@ -189,7 +189,7 @@ void sig_handler(int sig)
 #endif
 #undef SIG
 	};
-	std::fprintf(stderr, "signal: (%d) %s caught:\n%s\n"
+	std::printf("signal: (%d) %s caught:\n%s\n"
 		, sig, name, stack_text);
 
 	output_test_log_to_terminal();
@@ -326,7 +326,7 @@ EXPORT int main(int argc, char const* argv[])
 	create_directory(test_dir, ec);
 	if (ec)
 	{
-		std::fprintf(stderr, "Failed to create test directory: %s\n", ec.message().c_str());
+		std::printf("Failed to create test directory: %s\n", ec.message().c_str());
 		return 1;
 	}
 	int ret;
@@ -336,19 +336,19 @@ EXPORT int main(int argc, char const* argv[])
 	ret = chdir(dir);
 	if (ret != 0)
 	{
-		std::fprintf(stderr, "failed to change directory to \"%s\": %s"
+		std::printf("failed to change directory to \"%s\": %s"
 			, dir, strerror(errno));
 		return 1;
 	}
 #endif
-	std::fprintf(stderr, "test: %s\ncwd = \"%s\"\nrnd: %x\n"
+	std::printf("test: %s\ncwd = \"%s\"\nrnd: %x\n"
 		, executable, test_dir.c_str(), libtorrent::random(0xffffffff));
 
 	int total_failures = 0;
 
 	if (_g_num_unit_tests == 0)
 	{
-		std::fprintf(stderr, "\x1b[31mTEST_ERROR: no unit tests registered\x1b[0m\n");
+		std::printf("\x1b[31mTEST_ERROR: no unit tests registered\x1b[0m\n");
 		return 1;
 	}
 
@@ -380,13 +380,13 @@ EXPORT int main(int argc, char const* argv[])
 				}
 				else
 				{
-					std::fprintf(stderr, "failed to redirect output: (%d) %s\n"
+					std::printf("failed to redirect output: (%d) %s\n"
 						, errno, strerror(errno));
 				}
 			}
 			else
 			{
-				std::fprintf(stderr, "failed to create temporary file for redirecting "
+				std::printf("failed to create temporary file for redirecting "
 					"output: (%d) %s\n", errno, strerror(errno));
 			}
 		}
@@ -449,17 +449,17 @@ EXPORT int main(int argc, char const* argv[])
 
 	if (!tests_to_run.empty())
 	{
-		std::fprintf(stderr, "\x1b[1mUNKONWN tests:\x1b[0m\n");
+		std::printf("\x1b[1mUNKONWN tests:\x1b[0m\n");
 		for (std::set<std::string>::iterator i = tests_to_run.begin()
 			, end(tests_to_run.end()); i != end; ++i)
 		{
-			std::fprintf(stderr, "  %s\n", i->c_str());
+			std::printf("  %s\n", i->c_str());
 		}
 	}
 
 	if (num_run == 0)
 	{
-		std::fprintf(stderr, "\x1b[31mTEST_ERROR: no unit tests run\x1b[0m\n");
+		std::printf("\x1b[31mTEST_ERROR: no unit tests run\x1b[0m\n");
 		return 1;
 	}
 
@@ -480,7 +480,7 @@ EXPORT int main(int argc, char const* argv[])
 	{
 		remove_all(test_dir, ec);
 		if (ec)
-			std::fprintf(stderr, "failed to remove test dir: %s\n", ec.message().c_str());
+			std::printf("failed to remove test dir: %s\n", ec.message().c_str());
 	}
 #endif
 

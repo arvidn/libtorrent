@@ -99,14 +99,14 @@ TORRENT_TEST(resolve_links)
 		test_torrent_t const& e = test_torrents[i];
 
 		std::string p = combine_path(path, e.filename1) + ".torrent";
-		std::fprintf(stdout, "loading %s\n", p.c_str());
+		std::printf("loading %s\n", p.c_str());
 		std::shared_ptr<torrent_info> ti1 = std::make_shared<torrent_info>(p);
 
 		p = combine_path(path, e.filename2) + ".torrent";
-		std::fprintf(stdout, "loading %s\n", p.c_str());
+		std::printf("loading %s\n", p.c_str());
 		std::shared_ptr<torrent_info> ti2 = std::make_shared<torrent_info>(p);
 
-		std::fprintf(stdout, "resolving\n");
+		std::printf("resolving\n");
 		resolve_links l(ti1);
 		l.match(ti2, ".");
 
@@ -122,7 +122,7 @@ TORRENT_TEST(resolve_links)
 			for (int i = 0; i < int(links.size()); ++i)
 			{
 				TORRENT_ASSERT(i < fs.num_files());
-				std::fprintf(stdout, "%*s --> %s : %d\n"
+				std::printf("%*s --> %s : %d\n"
 					, int(fs.file_name(i).size())
 					, fs.file_name(i).data()
 					, links[i].ti ? aux::to_hex(links[i].ti->info_hash()).c_str()
@@ -160,7 +160,7 @@ TORRENT_TEST(range_lookup_duplicated_files)
 	auto ti1 = std::make_shared<torrent_info>(&tmp1[0], int(tmp1.size()), ec);
 	auto ti2 = std::make_shared<torrent_info>(&tmp2[0], int(tmp2.size()), ec);
 
-	std::fprintf(stderr, "resolving\n");
+	std::printf("resolving\n");
 	resolve_links l(ti1);
 	l.match(ti2, ".");
 

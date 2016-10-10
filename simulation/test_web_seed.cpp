@@ -148,7 +148,7 @@ void run_test(Setup const& setup
 	// happened
 	sim::timer t(sim, lt::seconds(100), [&](boost::system::error_code const& ec)
 	{
-		fprintf(stderr, "shutting down\n");
+		std::printf("shutting down\n");
 		// shut down
 		zombie = ses->abort();
 		ses.reset();

@@ -125,7 +125,7 @@ TORRENT_TEST(magnet)
 		"&dht=127.0.0.1:43";
 	torrent_handle t = s->add_torrent(p, ec);
 	TEST_CHECK(!ec);
-	if (ec) std::fprintf(stderr, "%s\n", ec.message().c_str());
+	if (ec) std::printf("%s\n", ec.message().c_str());
 
 	std::vector<announce_entry> trackers = t.trackers();
 	TEST_EQUAL(trackers.size(), 3);
@@ -146,7 +146,7 @@ TORRENT_TEST(magnet)
 		"&xt=urn:btih:c352cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd";
 	torrent_handle t2 = s->add_torrent(p, ec);
 	TEST_CHECK(!ec);
-	if (ec) std::fprintf(stderr, "%s\n", ec.message().c_str());
+	if (ec) std::printf("%s\n", ec.message().c_str());
 
 	trackers = t2.trackers();
 	TEST_EQUAL(trackers.size(), 2);
@@ -159,24 +159,24 @@ TORRENT_TEST(magnet)
 		"&dn=Ubuntu+11.04+%28Final%29";
 	torrent_handle t3 = s->add_torrent(p, ec);
 	TEST_CHECK(!ec);
-	if (ec) std::fprintf(stderr, "%s\n", ec.message().c_str());
+	if (ec) std::printf("%s\n", ec.message().c_str());
 
 	trackers = t3.trackers();
 	TEST_EQUAL(trackers.size(), 3);
 	if (trackers.size() > 0)
 	{
 		TEST_EQUAL(trackers[0].url, "udp://tracker.openbittorrent.com:80");
-		std::fprintf(stderr, "1: %s\n", trackers[0].url.c_str());
+		std::printf("1: %s\n", trackers[0].url.c_str());
 	}
 	if (trackers.size() > 1)
 	{
 		TEST_EQUAL(trackers[1].url, "udp://tracker.publicbt.com:80");
-		std::fprintf(stderr, "2: %s\n", trackers[1].url.c_str());
+		std::printf("2: %s\n", trackers[1].url.c_str());
 	}
 	if (trackers.size() > 2)
 	{
 		TEST_EQUAL(trackers[2].url, "udp://tracker.ccc.de:80");
-		std::fprintf(stderr, "3: %s\n", trackers[2].url.c_str());
+		std::printf("3: %s\n", trackers[2].url.c_str());
 	}
 
 	sha1_hash const ih = t.info_hash();
@@ -191,7 +191,7 @@ TORRENT_TEST(magnet)
 	int ret = bdecode(&buf[0], &buf[0] + buf.size(), session_state2, ec);
 	TEST_CHECK(ret == 0);
 
-	std::fprintf(stderr, "session_state\n%s\n", print_entry(session_state2).c_str());
+	std::printf("session_state\n%s\n", print_entry(session_state2).c_str());
 
 	// make sure settings that haven't been changed from their defaults are not saved
 	TEST_CHECK(session_state2.dict_find("settings")
@@ -199,7 +199,7 @@ TORRENT_TEST(magnet)
 
 	s->load_state(session_state2);
 
-#define CMP_SET(x) std::fprintf(stderr, #x ": %d %d\n"\
+#define CMP_SET(x) std::printf(#x ": %d %d\n"\
 	, s->get_settings().get_int(settings_pack:: x)\
 	, pack.get_int(settings_pack:: x)); \
 	TEST_EQUAL(s->get_settings().get_int(settings_pack:: x), pack.get_int(settings_pack:: x))
@@ -307,7 +307,7 @@ TORRENT_TEST(parse_dht_node)
 	add_torrent_params p;
 	parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd&dn=foo&dht=127.0.0.1:43", p, ec);
 	TEST_CHECK(!ec);
-	if (ec) std::fprintf(stderr, "%s\n", ec.message().c_str());
+	if (ec) std::printf("%s\n", ec.message().c_str());
 	ec.clear();
 
 	TEST_EQUAL(p.dht_nodes.size(), 1);

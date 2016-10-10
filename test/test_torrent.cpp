@@ -73,7 +73,7 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 	torrent_handle h = ses.add_torrent(p, ec);
 	if (ec)
 	{
-		std::fprintf(stdout, "add_torrent: %s\n", ec.message().c_str());
+		std::printf("add_torrent: %s\n", ec.message().c_str());
 		return;
 	}
 

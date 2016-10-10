@@ -45,12 +45,12 @@ using namespace libtorrent;
 bool cast_vote(ip_voter& ipv, address ext_ip, address voter)
 {
 	bool new_ip = ipv.cast_vote(ext_ip, 1, voter);
-	std::fprintf(stdout, "%15s -> %-15s\n"
+	std::printf("%15s -> %-15s\n"
 		, print_address(voter).c_str()
 		, print_address(ext_ip).c_str());
 	if (new_ip)
 	{
-		std::fprintf(stdout, "   \x1b[1mnew external IP: %s\x1b[0m\n"
+		std::printf("   \x1b[1mnew external IP: %s\x1b[0m\n"
 			, print_address(ipv.external_address()).c_str());
 	}
 	return new_ip;

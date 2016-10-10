@@ -356,7 +356,7 @@ TORRENT_TEST(udp_tracker)
 			break;
 
 		std::this_thread::sleep_for(lt::milliseconds(100));
-		std::fprintf(stderr, "UDP: %d / %d\n", int(num_udp_announces())
+		std::printf("UDP: %d / %d\n", int(num_udp_announces())
 			, int(prev_udp_announces) + 1);
 	}
 
@@ -376,13 +376,13 @@ TORRENT_TEST(udp_tracker)
 			break;
 
 		std::this_thread::sleep_for(lt::milliseconds(100));
-		std::fprintf(stderr, "UDP: %d / %d\n", int(num_udp_announces())
+		std::printf("UDP: %d / %d\n", int(num_udp_announces())
 			, int(prev_udp_announces) + 1);
 	}
 
-	std::fprintf(stderr, "destructing session\n");
+	std::printf("destructing session\n");
 	s.reset();
-	std::fprintf(stderr, "done\n");
+	std::printf("done\n");
 
 	// we should have announced the stopped event now
 	TEST_EQUAL(num_udp_announces(), prev_udp_announces + 2);
@@ -454,13 +454,13 @@ TORRENT_TEST(http_peers)
 		TEST_EQUAL(expected_peers.count(i->ip), 1);
 	}
 
-	std::fprintf(stderr, "destructing session\n");
+	std::printf("destructing session\n");
 	s.reset();
-	std::fprintf(stderr, "done\n");
+	std::printf("done\n");
 
-	std::fprintf(stderr, "stop_web_server\n");
+	std::printf("stop_web_server\n");
 	stop_web_server();
-	std::fprintf(stderr, "done\n");
+	std::printf("done\n");
 }
 
 TORRENT_TEST(current_tracker)
@@ -513,9 +513,9 @@ TORRENT_TEST(current_tracker)
 	status = h.status();
 	TEST_CHECK(status.current_tracker.empty());
 
-	std::fprintf(stderr, "destructing session\n");
+	std::printf("destructing session\n");
 	s.reset();
-	std::fprintf(stderr, "done\n");
+	std::printf("done\n");
 }
 
 void test_proxy(bool proxy_trackers)
@@ -569,21 +569,21 @@ void test_proxy(bool proxy_trackers)
 		TEST_CHECK(a != nullptr);
 	}
 
-	std::fprintf(stderr, "destructing session\n");
+	std::printf("destructing session\n");
 	s.reset();
-	std::fprintf(stderr, "done\n");
+	std::printf("done\n");
 
-	std::fprintf(stderr, "stop_web_server\n");
+	std::printf("stop_web_server\n");
 	stop_web_server();
-	std::fprintf(stderr, "done\n");
+	std::printf("done\n");
 }
 
 TORRENT_TEST(tracker_proxy)
 {
-	std::fprintf(stderr, "\n\nnot proxying tracker connections (expect to reach the tracker)\n\n");
+	std::printf("\n\nnot proxying tracker connections (expect to reach the tracker)\n\n");
 	test_proxy(false);
 
-	std::fprintf(stderr, "\n\nproxying tracker connections through non-existent proxy (do not expect to reach the tracker)\n\n");
+	std::printf("\n\nproxying tracker connections through non-existent proxy (do not expect to reach the tracker)\n\n");
 	test_proxy(true);
 }
 

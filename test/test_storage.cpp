@@ -93,7 +93,7 @@ void on_check_resume_data(disk_io_job const* j, bool* done)
 
 void print_error(char const* call, int ret, storage_error const& ec)
 {
-	std::fprintf(stderr, "%s: %s() returned: %d error: \"%s\" in file: %d operation: %d\n"
+	std::printf("%s: %s() returned: %d error: \"%s\" in file: %d operation: %d\n"
 		, time_now_string(), call, ret, ec.ec.message().c_str(), ec.file, ec.operation);
 }
 
@@ -140,7 +140,7 @@ std::shared_ptr<default_storage> setup_torrent(file_storage& fs
 
 	if (ec)
 	{
-		std::fprintf(stderr, "torrent_info constructor failed: %s\n"
+		std::printf("torrent_info constructor failed: %s\n"
 			, ec.message().c_str());
 	}
 
@@ -158,7 +158,7 @@ std::shared_ptr<default_storage> setup_torrent(file_storage& fs
 	if (se)
 	{
 		TEST_ERROR(se.ec.message().c_str());
-		std::fprintf(stderr, "default_storage::initialize %s: %d\n", se.ec.message().c_str(), int(se.file));
+		std::printf("default_storage::initialize %s: %d\n", se.ec.message().c_str(), int(se.file));
 	}
 
 	return s;
@@ -357,7 +357,7 @@ void test_remove(std::string const& test_path, bool unbuffered)
 	if (se)
 	{
 		TEST_ERROR(se.ec.message().c_str());
-		std::fprintf(stderr, "default_storage::delete_files %s: %d\n", se.ec.message().c_str(), int(se.file));
+		std::printf("default_storage::delete_files %s: %d\n", se.ec.message().c_str(), int(se.file));
 	}
 
 	TEST_CHECK(!exists(combine_path(test_path, "temp_storage")));
@@ -395,7 +395,7 @@ void test_rename(std::string const& test_path)
 	s->rename_file(0, "new_filename", se);
 	if (se.ec)
 	{
-		std::fprintf(stderr, "default_storage::rename_file failed: %s\n"
+		std::printf("default_storage::rename_file failed: %s\n"
 			, se.ec.message().c_str());
 	}
 	TEST_CHECK(!se.ec);
@@ -528,7 +528,7 @@ void run_test(bool unbuffered)
 
 	// make sure the files have the correct size
 	std::string base = combine_path(test_path, "temp_storage");
-	std::fprintf(stderr, "base = \"%s\"\n", base.c_str());
+	std::printf("base = \"%s\"\n", base.c_str());
 	TEST_EQUAL(file_size(combine_path(base, "test1.tmp")), 17);
 	TEST_EQUAL(file_size(combine_path(base, "test2.tmp")), 612);
 
@@ -1265,7 +1265,7 @@ void delete_dirs(std::string path)
 	remove_all(path, ec);
 	if (ec && ec != boost::system::errc::no_such_file_or_directory)
 	{
-		std::fprintf(stderr, "remove_all \"%s\": %s\n"
+		std::printf("remove_all \"%s\": %s\n"
 			, path.c_str(), ec.message().c_str());
 	}
 	TEST_CHECK(!exists(path));

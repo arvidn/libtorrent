@@ -50,7 +50,7 @@ void report_failure(char const* err, char const* file, int line)
 {
 	char buf[500];
 	std::snprintf(buf, sizeof(buf), "\x1b[41m***** %s:%d \"%s\" *****\x1b[0m\n", file, line, err);
-	std::fprintf(stderr, "\n%s\n", buf);
+	std::printf("\n%s\n", buf);
 	failure_strings.push_back(buf);
 	++_g_test_failures;
 }
@@ -64,7 +64,7 @@ int print_failures()
 		if (len > longest_name) longest_name = len;
 	}
 
-	std::fprintf(stderr, "\n\n");
+	std::printf("\n\n");
 
 	for (int i = 0; i < _g_num_unit_tests; ++i)
 	{
@@ -72,22 +72,22 @@ int print_failures()
 
 		if (_g_unit_tests[i].num_failures == 0)
 		{
-			std::fprintf(stderr, "\x1b[32m[%-*s] ***PASS***\n"
+			std::printf("\x1b[32m[%-*s] ***PASS***\n"
 				, longest_name, _g_unit_tests[i].name);
 		}
 		else
 		{
-			std::fprintf(stderr, "\x1b[31m[%-*s] %d FAILURES\n"
+			std::printf("\x1b[31m[%-*s] %d FAILURES\n"
 				, longest_name
 				, _g_unit_tests[i].name
 				, _g_unit_tests[i].num_failures);
 		}
 	}
 
-	std::fprintf(stderr, "\x1b[0m");
+	std::printf("\x1b[0m");
 
 	if (_g_test_failures > 0)
-		std::fprintf(stderr, "\n\n\x1b[41m   == %d TEST(S) FAILED ==\x1b[0m\n\n\n", _g_test_failures);
+		std::printf("\n\n\x1b[41m   == %d TEST(S) FAILED ==\x1b[0m\n\n\n", _g_test_failures);
 	return _g_test_failures;
 }
 

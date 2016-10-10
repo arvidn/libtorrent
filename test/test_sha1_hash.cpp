@@ -140,7 +140,7 @@ TORRENT_TEST(count_leading_zeroes)
 
 	for (auto const& t : tests)
 	{
-		std::fprintf(stderr, "%s\n", t.first);
+		std::printf("%s\n", t.first);
 		TEST_EQUAL(to_hash(t.first).count_leading_zeroes(), t.second);
 	}
 }

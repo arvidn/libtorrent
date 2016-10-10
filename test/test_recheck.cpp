@@ -60,7 +60,7 @@ void wait_for_complete(lt::session& ses, torrent_handle h)
 	{
 		print_alerts(ses, "ses1");
 		torrent_status st = h.status();
-		std::fprintf(stderr, "%f s -  %f %%\n"
+		std::printf("%f s -  %f %%\n"
 			, total_milliseconds(clock_type::now() - last_change) / 1000.f
 			, st.progress_ppm / 10000.f);
 		if (st.progress_ppm == 1000000) return;
@@ -87,7 +87,7 @@ TORRENT_TEST(recheck)
 	sett.set_bool(settings_pack::enable_dht, false);
 	lt::session ses1(sett);
 	create_directory("tmp1_recheck", ec);
-	if (ec) std::fprintf(stderr, "create_directory: %s\n", ec.message().c_str());
+	if (ec) std::printf("create_directory: %s\n", ec.message().c_str());
 	std::ofstream file("tmp1_recheck/temporary");
 	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 4 * 1024 * 1024
 		, 7, false);
@@ -100,7 +100,7 @@ TORRENT_TEST(recheck)
 	param.save_path = "tmp1_recheck";
 	param.flags |= add_torrent_params::flag_seed_mode;
 	torrent_handle tor1 = ses1.add_torrent(param, ec);
-	if (ec) std::fprintf(stderr, "add_torrent: %s\n", ec.message().c_str());
+	if (ec) std::printf("add_torrent: %s\n", ec.message().c_str());
 
 	wait_for_listen(ses1, "ses1");
 

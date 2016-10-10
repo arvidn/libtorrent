@@ -90,7 +90,7 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 	// if DHT is disabled, we won't get any requests to it
 	flags &= ~expect_dht_msg;
 #endif
-	std::fprintf(stderr, "\n=== TEST == proxy: %s anonymous-mode: %s\n\n", proxy_name[proxy_type], (flags & force_proxy_mode) ? "yes" : "no");
+	std::printf("\n=== TEST == proxy: %s anonymous-mode: %s\n\n", proxy_name[proxy_type], (flags & force_proxy_mode) ? "yes" : "no");
 	int http_port = start_web_server();
 	int udp_port = start_udp_tracker();
 	int dht_port = start_dht();
@@ -227,7 +227,7 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 	if (flags & expect_http_reject)
 		TEST_CHECK(std::find(rejected_trackers.begin(), rejected_trackers.end(), http_tracker_url) != rejected_trackers.end());
 
-	std::fprintf(stderr, "%s: ~session\n", time_now_string());
+	std::printf("%s: ~session\n", time_now_string());
 	session_proxy pr = s->abort();
 	delete s;
 

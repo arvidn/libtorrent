@@ -148,11 +148,11 @@ void write_test_file()
 	error_code ec;
 	file test_file("test_file", file::write_only, ec);
 	TEST_CHECK(!ec);
-	if (ec) std::fprintf(stdout, "file error: %s\n", ec.message().c_str());
+	if (ec) std::printf("file error: %s\n", ec.message().c_str());
 	file::iovec_t b = { data_buffer, 3216};
 	test_file.writev(0, &b, 1, ec);
 	TEST_CHECK(!ec);
-	if (ec) std::fprintf(stdout, "file error: %s\n", ec.message().c_str());
+	if (ec) std::printf("file error: %s\n", ec.message().c_str());
 	test_file.close();
 }
 

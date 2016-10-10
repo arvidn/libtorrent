@@ -66,13 +66,13 @@ struct udp_tracker
 	{
 		if (ec)
 		{
-			std::fprintf(stderr, "%s: UDP tracker, read failed: %s\n", time_now_string(), ec.message().c_str());
+			std::printf("%s: UDP tracker, read failed: %s\n", time_now_string(), ec.message().c_str());
 			return;
 		}
 
 		if (bytes_transferred < 16)
 		{
-			std::fprintf(stderr, "%s: UDP message too short (from: %s)\n", time_now_string(), print_endpoint(*from).c_str());
+			std::printf("%s: UDP message too short (from: %s)\n", time_now_string(), print_endpoint(*from).c_str());
 			return;
 		}
 
@@ -81,7 +81,7 @@ struct udp_tracker
 			return;
 		}
 
-		std::fprintf(stderr, "%s: UDP message %d bytes\n", time_now_string(), int(bytes_transferred));
+		std::printf("%s: UDP message %d bytes\n", time_now_string(), int(bytes_transferred));
 
 		char* ptr = buffer;
 		detail::read_uint64(ptr);
@@ -94,23 +94,23 @@ struct udp_tracker
 		{
 			case 0: // connect
 
-				std::fprintf(stderr, "%s: UDP connect from %s\n", time_now_string()
+				std::printf("%s: UDP connect from %s\n", time_now_string()
 					, print_endpoint(*from).c_str());
 				ptr = buffer;
 				detail::write_uint32(0, ptr); // action = connect
 				detail::write_uint32(transaction_id, ptr); // transaction_id
 				detail::write_uint64(10, ptr); // connection_id
 				m_socket.send_to(boost::asio::buffer(buffer, 16), *from, 0, e);
-				if (e) std::fprintf(stderr, "%s: UDP send_to failed. ERROR: %s\n"
+				if (e) std::printf("%s: UDP send_to failed. ERROR: %s\n"
 					, time_now_string(), e.message().c_str());
-				else std::fprintf(stderr, "%s: UDP sent response to: %s\n"
+				else std::printf("%s: UDP sent response to: %s\n"
 					, time_now_string(), print_endpoint(*from).c_str());
 				break;
 
 			case 1: // announce
 
 				++m_udp_announces;
-				std::fprintf(stderr, "%s: UDP announce [%d]\n", time_now_string()
+				std::printf("%s: UDP announce [%d]\n", time_now_string()
 					, int(m_udp_announces));
 				ptr = buffer;
 				detail::write_uint32(1, ptr); // action = announce
@@ -120,17 +120,17 @@ struct udp_tracker
 				detail::write_uint32(1, ptr); // complete
 				// 0 peers
 				m_socket.send_to(boost::asio::buffer(buffer, 20), *from, 0, e);
-				if (e) std::fprintf(stderr, "%s: UDP send_to failed. ERROR: %s\n"
+				if (e) std::printf("%s: UDP send_to failed. ERROR: %s\n"
 					, time_now_string(), e.message().c_str());
-				else std::fprintf(stderr, "%s: UDP sent response to: %s\n"
+				else std::printf("%s: UDP sent response to: %s\n"
 					, time_now_string(), print_endpoint(*from).c_str());
 				break;
 			case 2:
 				// ignore scrapes
-				std::fprintf(stderr, "%s: UDP scrape (ignored)\n", time_now_string());
+				std::printf("%s: UDP scrape (ignored)\n", time_now_string());
 				break;
 			default:
-				std::fprintf(stderr, "%s: UDP unknown message: %d\n", time_now_string()
+				std::printf("%s: UDP unknown message: %d\n", time_now_string()
 					, action);
 				break;
 		}
@@ -150,24 +150,24 @@ struct udp_tracker
 		m_socket.open(udp::v4(), ec);
 		if (ec)
 		{
-			std::fprintf(stderr, "UDP Error opening listen UDP tracker socket: %s\n", ec.message().c_str());
+			std::printf("UDP Error opening listen UDP tracker socket: %s\n", ec.message().c_str());
 			return;
 		}
 
 		m_socket.bind(udp::endpoint(address_v4::any(), 0), ec);
 		if (ec)
 		{
-			std::fprintf(stderr, "UDP Error binding UDP tracker socket to port 0: %s\n", ec.message().c_str());
+			std::printf("UDP Error binding UDP tracker socket to port 0: %s\n", ec.message().c_str());
 			return;
 		}
 		m_port = m_socket.local_endpoint(ec).port();
 		if (ec)
 		{
-			std::fprintf(stderr, "UDP Error getting local endpoint of UDP tracker socket: %s\n", ec.message().c_str());
+			std::printf("UDP Error getting local endpoint of UDP tracker socket: %s\n", ec.message().c_str());
 			return;
 		}
 
-		std::fprintf(stderr, "%s: UDP tracker initialized on port %d\n", time_now_string(), m_port);
+		std::printf("%s: UDP tracker initialized on port %d\n", time_now_string(), m_port);
 
 		m_thread = std::make_shared<std::thread>(&udp_tracker::thread_fun, this);
 	}
@@ -210,11 +210,11 @@ struct udp_tracker
 
 		if (ec)
 		{
-			std::fprintf(stderr, "UDP Error running UDP tracker service: %s\n", ec.message().c_str());
+			std::printf("UDP Error running UDP tracker service: %s\n", ec.message().c_str());
 			return;
 		}
 
-		std::fprintf(stderr, "UDP exiting UDP tracker thread\n");
+		std::printf("UDP exiting UDP tracker thread\n");
 	}
 };
 

@@ -329,7 +329,7 @@ void peer_conn::on_msg_length(error_code const& ec, size_t)
 	unsigned int length = read_uint32(ptr);
 	if (length > sizeof(buffer))
 	{
-		std::fprintf(stderr, "len: %u\n", length);
+		std::printf("len: %u\n", length);
 		close("ERROR RECEIVE MESSAGE PREFIX: packet too big", error_code());
 		return;
 	}
@@ -482,7 +482,7 @@ void peer_conn::on_message(error_code const& ec, size_t bytes_transferred)
 				}
 			}
 			--outstanding_requests;
-			std::fprintf(stderr, "REJECT: [ piece: %d start: %d length: %d ]\n", piece, start, length);
+			std::printf("REJECT: [ piece: %d start: %d length: %d ]\n", piece, start, length);
 		}
 		else if (msg == 0) // choke
 		{
@@ -520,7 +520,7 @@ bool peer_conn::verify_piece(int piece, int start, char const* ptr, int size)
 	{
 		if (buf[i] != fill)
 		{
-			std::fprintf(stderr, "received invalid block. piece %d block %d\n", piece, start / 0x4000);
+			std::printf("received invalid block. piece %d block %d\n", piece, start / 0x4000);
 			exit(1);
 			return false;
 		}

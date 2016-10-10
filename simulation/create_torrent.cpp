@@ -58,7 +58,7 @@ lt::add_torrent_params create_torrent(int const idx, bool const seed
 	std::string path = save_path(idx);
 	lt::error_code ec;
 	lt::create_directory(path, ec);
-	if (ec) std::fprintf(stderr, "failed to create directory: \"%s\": %s\n"
+	if (ec) std::printf("failed to create directory: \"%s\": %s\n"
 		, path.c_str(), ec.message().c_str());
 	std::ofstream file(lt::combine_path(path, name).c_str());
 	params.ti = ::create_torrent(&file, name, 0x4000, num_pieces + idx, false);

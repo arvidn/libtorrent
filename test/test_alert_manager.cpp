@@ -205,7 +205,7 @@ TORRENT_TEST(wait_for_alert)
 
 	time_point end = clock_type::now();
 	TEST_EQUAL(a, static_cast<alert*>(nullptr));
-	std::fprintf(stderr, "delay: %d ms (expected 1 second)\n"
+	std::printf("delay: %d ms (expected 1 second)\n"
 		, int(total_milliseconds(end - start)));
 	TEST_CHECK(end - start > milliseconds(900));
 	TEST_CHECK(end - start < milliseconds(1100));
@@ -216,7 +216,7 @@ TORRENT_TEST(wait_for_alert)
 	a = mgr.wait_for_alert(seconds(1));
 	end = clock_type::now();
 
-	std::fprintf(stderr, "delay: %d ms\n", int(total_milliseconds(end - start)));
+	std::printf("delay: %d ms\n", int(total_milliseconds(end - start)));
 	TEST_CHECK(end - start < milliseconds(1));
 	TEST_CHECK(a->type() == torrent_added_alert::alert_type);
 
@@ -229,7 +229,7 @@ TORRENT_TEST(wait_for_alert)
 	a = mgr.wait_for_alert(seconds(10));
 	end = clock_type::now();
 
-	std::fprintf(stderr, "delay: %d ms\n", int(total_milliseconds(end - start)));
+	std::printf("delay: %d ms\n", int(total_milliseconds(end - start)));
 	TEST_CHECK(end - start < milliseconds(500));
 	TEST_CHECK(a->type() == torrent_added_alert::alert_type);
 

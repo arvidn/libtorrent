@@ -274,7 +274,7 @@ void test_parse(char const* in, char const* expected)
 	std::string out;
 	xml_parse(str(in), std::bind(&parser_callback
 		, std::ref(out), _1, _2, _3, _4, _5));
-	std::fprintf(stdout, "in: %s\n     out: %s\nexpected: %s\n"
+	std::printf("in: %s\n     out: %s\nexpected: %s\n"
 		, in, out.c_str(), expected);
 	TEST_EQUAL(out, expected);
 }

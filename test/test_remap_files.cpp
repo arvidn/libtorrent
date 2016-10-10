@@ -169,7 +169,7 @@ void test_remap_files(storage_mode_t storage_mode = storage_mode_sparse)
 			print_alerts(ses, "ses");
 		}
 
-		std::fprintf(stderr, "%s\n", name.c_str());
+		std::printf("%s\n", name.c_str());
 		TEST_CHECK(exists(name));
 	}
 
@@ -178,7 +178,7 @@ void test_remap_files(storage_mode_t storage_mode = storage_mode_sparse)
 	torrent_status st = tor1.status();
 	TEST_EQUAL(st.is_seeding, true);
 
-	std::fprintf(stderr, "\ntesting force recheck\n\n");
+	std::printf("\ntesting force recheck\n\n");
 
 	// test force rechecking a seeding torrent with remapped files
 	tor1.force_recheck();

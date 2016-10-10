@@ -54,7 +54,7 @@ void test_swarm(int flags)
 	using namespace libtorrent;
 	namespace lt = libtorrent;
 
-	std::fprintf(stderr, "\n\n ==== TEST SWARM === %s%s%s%s%s ===\n\n\n"
+	std::printf("\n\n ==== TEST SWARM === %s%s%s%s%s ===\n\n\n"
 		, (flags & super_seeding) ? "super-seeding ": ""
 		, (flags & strict_super_seeding) ? "strict-super-seeding ": ""
 		, (flags & seed_mode) ? "seed-mode ": ""
@@ -207,19 +207,19 @@ void test_swarm(int flags)
 	alert const* ret;
 	while ((ret = ses1.wait_for_alert(seconds(2))))
 	{
-		std::fprintf(stderr, "wait returned: %d ms\n"
+		std::printf("wait returned: %d ms\n"
 			, int(total_milliseconds(clock_type::now() - start)));
 		std::vector<alert*> alerts;
 		ses1.pop_alerts(&alerts);
 		for (std::vector<alert*>::iterator i = alerts.begin()
 			, end(alerts.end()); i != end; ++i)
 		{
-			std::fprintf(stderr, "%s\n", ret->message().c_str());
+			std::printf("%s\n", ret->message().c_str());
 		}
 		start = clock_type::now();
 	}
 
-	std::fprintf(stderr, "loop returned: %d ms\n"
+	std::printf("loop returned: %d ms\n"
 		, int(total_milliseconds(clock_type::now() - start)));
 
 	// this allows shutting down the sessions in parallel
@@ -229,7 +229,7 @@ void test_swarm(int flags)
 
 	time_point end = clock_type::now();
 
-	std::fprintf(stderr, "time: %d ms\n", int(total_milliseconds(end - start)));
+	std::printf("time: %d ms\n", int(total_milliseconds(end - start)));
 	TEST_CHECK(end - start < milliseconds(3000));
 	TEST_CHECK(end - start > milliseconds(1900));
 

@@ -99,7 +99,7 @@ void test_swarm()
 
 	std::map<std::string, std::int64_t> cnt = get_counters(ses1);
 
-	std::fprintf(stderr, "allowed_upload_slots: %d\n", int(cnt["ses.num_unchoke_slots"]));
+	std::printf("allowed_upload_slots: %d\n", int(cnt["ses.num_unchoke_slots"]));
 	TEST_EQUAL(cnt["ses.num_unchoke_slots"], 1);
 	for (int i = 0; i < 200; ++i)
 	{
@@ -108,7 +108,7 @@ void test_swarm()
 		print_alerts(ses3, "ses3");
 
 		cnt = get_counters(ses1);
-		std::fprintf(stderr, "allowed unchoked: %d\n", int(cnt["ses.num_unchoke_slots"]));
+		std::printf("allowed unchoked: %d\n", int(cnt["ses.num_unchoke_slots"]));
 		if (cnt["ses.num_unchoke_slots"] >= 2) break;
 
 		torrent_status st1 = tor1.status();

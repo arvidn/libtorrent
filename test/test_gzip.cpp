@@ -43,7 +43,7 @@ TORRENT_TEST(zeroes)
 	std::vector<char> zipped;
 	error_code ec;
 	load_file(combine_path("..", "zeroes.gz"), zipped, ec, 1000000);
-	if (ec) std::fprintf(stderr, "failed to open file: (%d) %s\n", ec.value()
+	if (ec) std::printf("failed to open file: (%d) %s\n", ec.value()
 		, ec.message().c_str());
 	TEST_CHECK(!ec);
 
@@ -51,7 +51,7 @@ TORRENT_TEST(zeroes)
 	inflate_gzip(&zipped[0], int(zipped.size()), inflated, 1000000, ec);
 
 	if (ec) {
-		std::fprintf(stderr, "failed to unzip: %s\n", ec.message().c_str());
+		std::printf("failed to unzip: %s\n", ec.message().c_str());
 	}
 	TEST_CHECK(!ec);
 	TEST_CHECK(inflated.size() > 0);
@@ -64,7 +64,7 @@ TORRENT_TEST(corrupt)
 	std::vector<char> zipped;
 	error_code ec;
 	load_file(combine_path("..", "corrupt.gz"), zipped, ec, 1000000);
-	if (ec) std::fprintf(stderr, "failed to open file: (%d) %s\n", ec.value()
+	if (ec) std::printf("failed to open file: (%d) %s\n", ec.value()
 		, ec.message().c_str());
 	TEST_CHECK(!ec);
 

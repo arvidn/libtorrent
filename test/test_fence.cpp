@@ -153,7 +153,7 @@ TORRENT_TEST(double_fence)
 	// since we have outstanding jobs, no need
 	// to post anything
 	TEST_CHECK(ret_int == disk_job_fence::fence_post_none);
-	std::fprintf(stderr, "ret: %d\n", ret_int);
+	std::printf("ret: %d\n", ret_int);
 
 	ret = fence.is_blocked(&test_job[9]);
 	TEST_CHECK(ret == true);

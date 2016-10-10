@@ -53,7 +53,7 @@ TORRENT_TEST(web_seed_redirect)
 	file f("test_file", file::write_only, ec);
 	if (ec)
 	{
-		std::fprintf(stderr, "failed to create file \"test_file\": (%d) %s\n"
+		std::printf("failed to create file \"test_file\": (%d) %s\n"
 			, ec.value(), ec.message().c_str());
 		TEST_ERROR("failed to create file");
 		return;
@@ -77,7 +77,7 @@ TORRENT_TEST(web_seed_redirect)
 
 	if (ec)
 	{
-		std::fprintf(stderr, "error creating hashes for test torrent: %s\n"
+		std::printf("error creating hashes for test torrent: %s\n"
 			, ec.message().c_str());
 		TEST_ERROR("failed to create hashes");
 		return;

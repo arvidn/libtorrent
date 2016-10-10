@@ -49,20 +49,20 @@ void test_read_piece(int flags)
 	using namespace libtorrent;
 	namespace lt = libtorrent;
 
-	std::fprintf(stderr, "==== TEST READ PIECE =====\n");
+	std::printf("==== TEST READ PIECE =====\n");
 
 	// in case the previous run was terminated
 	error_code ec;
 	remove_all("tmp1_read_piece", ec);
-	if (ec) std::fprintf(stderr, "ERROR: removing tmp1_read_piece: (%d) %s\n"
+	if (ec) std::printf("ERROR: removing tmp1_read_piece: (%d) %s\n"
 		, ec.value(), ec.message().c_str());
 
 	create_directory("tmp1_read_piece", ec);
-	if (ec) std::fprintf(stderr, "ERROR: creating directory tmp1_read_piece: (%d) %s\n"
+	if (ec) std::printf("ERROR: creating directory tmp1_read_piece: (%d) %s\n"
 		, ec.value(), ec.message().c_str());
 
 	create_directory(combine_path("tmp1_read_piece", "test_torrent"), ec);
-	if (ec) std::fprintf(stderr, "ERROR: creating directory test_torrent: (%d) %s\n"
+	if (ec) std::printf("ERROR: creating directory test_torrent: (%d) %s\n"
 		, ec.value(), ec.message().c_str());
 
 	file_storage fs;
@@ -79,14 +79,14 @@ void test_read_piece(int flags)
 
 	// calculate the hash for all pieces
 	set_piece_hashes(t, "tmp1_read_piece", ec);
-	if (ec) std::fprintf(stderr, "ERROR: set_piece_hashes: (%d) %s\n"
+	if (ec) std::printf("ERROR: set_piece_hashes: (%d) %s\n"
 		, ec.value(), ec.message().c_str());
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
 	auto ti = std::make_shared<torrent_info>(&buf[0], int(buf.size()), ec);
 
-	std::fprintf(stderr, "generated torrent: %s tmp1_read_piece/test_torrent\n"
+	std::printf("generated torrent: %s tmp1_read_piece/test_torrent\n"
 		, aux::to_hex(ti->info_hash()).c_str());
 
 	const int mask = alert::all_categories
@@ -143,7 +143,7 @@ void test_read_piece(int flags)
 	}
 
 	remove_all("tmp1_read_piece", ec);
-	if (ec) std::fprintf(stderr, "ERROR: removing tmp1_read_piece: (%d) %s\n"
+	if (ec) std::printf("ERROR: removing tmp1_read_piece: (%d) %s\n"
 		, ec.value(), ec.message().c_str());
 }
 

@@ -57,7 +57,7 @@ TORRENT_TEST(random)
 		{
 			const int expected = repetitions / 256;
 			// expect each bucket to be within 15% of the expected value
-			std::fprintf(stderr, "%d: %f\n", i, float(buckets[i] - expected) * 100.f / expected);
+			std::printf("%d: %f\n", i, float(buckets[i] - expected) * 100.f / expected);
 			TEST_CHECK(abs(buckets[i] - expected) < expected / 6);
 		}
 	}

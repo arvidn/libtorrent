@@ -329,13 +329,13 @@ TORRENT_TEST(seed_limit)
 			int num_seeding = 0;
 			for (alert* a : alerts)
 			{
-				std::fprintf(stderr, "%-3d %s\n", int(duration_cast<lt::seconds>(a->timestamp()
+				std::printf("%-3d %s\n", int(duration_cast<lt::seconds>(a->timestamp()
 						- start_time).count()), a->message().c_str());
 				if (alert_cast<torrent_resumed_alert>(a))
 				{
 					++num_started;
 
-					std::fprintf(stderr, "started: %d checking: %d seeding: %d\n"
+					std::printf("started: %d checking: %d seeding: %d\n"
 						, num_started, num_checking, num_seeding);
 				}
 				else if (alert_cast<torrent_paused_alert>(a))
@@ -343,7 +343,7 @@ TORRENT_TEST(seed_limit)
 					TEST_CHECK(num_started > 0);
 					--num_started;
 
-					std::fprintf(stderr, "started: %d checking: %d seeding: %d\n"
+					std::printf("started: %d checking: %d seeding: %d\n"
 						, num_started, num_checking, num_seeding);
 				}
 				else if (state_changed_alert* sc = alert_cast<state_changed_alert>(a))
@@ -358,7 +358,7 @@ TORRENT_TEST(seed_limit)
 					else if (sc->state == torrent_status::seeding)
 						++num_seeding;
 
-					std::fprintf(stderr, "started: %d checking: %d seeding: %d\n"
+					std::printf("started: %d checking: %d seeding: %d\n"
 						, num_started, num_checking, num_seeding);
 
 					// while at least one torrent is checking, there may be another
@@ -418,13 +418,13 @@ TORRENT_TEST(download_limit)
 			int num_downloading = 0;
 			for (alert* a : alerts)
 			{
-				std::fprintf(stderr, "%-3d %s\n", int(duration_cast<lt::seconds>(a->timestamp()
+				std::printf("%-3d %s\n", int(duration_cast<lt::seconds>(a->timestamp()
 						- start_time).count()), a->message().c_str());
 				if (alert_cast<torrent_resumed_alert>(a))
 				{
 					++num_started;
 
-					std::fprintf(stderr, "started: %d checking: %d downloading: %d\n"
+					std::printf("started: %d checking: %d downloading: %d\n"
 						, num_started, num_checking, num_downloading);
 				}
 				else if (alert_cast<torrent_paused_alert>(a))
@@ -432,7 +432,7 @@ TORRENT_TEST(download_limit)
 					TEST_CHECK(num_started > 0);
 					--num_started;
 
-					std::fprintf(stderr, "started: %d checking: %d downloading: %d\n"
+					std::printf("started: %d checking: %d downloading: %d\n"
 						, num_started, num_checking, num_downloading);
 				}
 				else if (state_changed_alert* sc = alert_cast<state_changed_alert>(a))
@@ -447,7 +447,7 @@ TORRENT_TEST(download_limit)
 					else if (sc->state == torrent_status::downloading)
 						++num_downloading;
 
-					std::fprintf(stderr, "started: %d checking: %d downloading: %d\n"
+					std::printf("started: %d checking: %d downloading: %d\n"
 						, num_started, num_checking, num_downloading);
 
 					// while at least one torrent is checking, there may be another
@@ -514,7 +514,7 @@ TORRENT_TEST(checking_announce)
 			int num_announce = 0;
 			for (alert* a : alerts)
 			{
-				std::fprintf(stderr, "%-3d %s\n", int(duration_cast<lt::seconds>(a->timestamp()
+				std::printf("%-3d %s\n", int(duration_cast<lt::seconds>(a->timestamp()
 						- start_time).count()), a->message().c_str());
 				if (alert_cast<tracker_announce_alert>(a))
 					++num_announce;
@@ -564,7 +564,7 @@ TORRENT_TEST(paused_checking)
 
 			for (alert* a : alerts)
 			{
-				std::fprintf(stderr, "%-3d %s\n", int(duration_cast<lt::seconds>(a->timestamp()
+				std::printf("%-3d %s\n", int(duration_cast<lt::seconds>(a->timestamp()
 						- start_time).count()), a->message().c_str());
 				if (state_changed_alert* sc = alert_cast<state_changed_alert>(a))
 				{
@@ -613,7 +613,7 @@ TORRENT_TEST(stop_when_ready)
 			int num_paused = 0;
 			for (alert* a : alerts)
 			{
-				std::fprintf(stderr, "%-3d %s\n", int(duration_cast<lt::seconds>(a->timestamp()
+				std::printf("%-3d %s\n", int(duration_cast<lt::seconds>(a->timestamp()
 						- start_time).count()), a->message().c_str());
 
 				if (alert_cast<torrent_paused_alert>(a))
@@ -685,7 +685,7 @@ TORRENT_TEST(resume_reject_when_paused)
 
 			for (alert* a : alerts)
 			{
-				std::fprintf(stderr, "%-3d %-25s %s\n", int(duration_cast<lt::seconds>(a->timestamp()
+				std::printf("%-3d %-25s %s\n", int(duration_cast<lt::seconds>(a->timestamp()
 						- start_time).count())
 					, a->what()
 					, a->message().c_str());
@@ -756,7 +756,7 @@ TORRENT_TEST(no_resume_when_paused)
 
 			for (alert* a : alerts)
 			{
-				std::fprintf(stderr, "%-3d %-25s %s\n", int(duration_cast<lt::seconds>(a->timestamp()
+				std::printf("%-3d %-25s %s\n", int(duration_cast<lt::seconds>(a->timestamp()
 						- start_time).count())
 					, a->what()
 					, a->message().c_str());
@@ -818,7 +818,7 @@ TORRENT_TEST(no_resume_when_started)
 
 			for (alert* a : alerts)
 			{
-				std::fprintf(stderr, "%-3d %-25s %s\n", int(duration_cast<lt::seconds>(a->timestamp()
+				std::printf("%-3d %-25s %s\n", int(duration_cast<lt::seconds>(a->timestamp()
 						- start_time).count())
 					, a->what()
 					, a->message().c_str());

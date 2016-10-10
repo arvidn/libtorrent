@@ -126,7 +126,7 @@ std::vector<char> generate_resume_data(torrent_info* ti
 	std::vector<char> ret;
 	bencode(back_inserter(ret), rd);
 
-	std::fprintf(stderr, "%s\n", rd.to_string().c_str());
+	std::printf("%s\n", rd.to_string().c_str());
 
 	return ret;
 }
@@ -216,7 +216,7 @@ void test_piece_priorities(bool test_deprecated = false)
 	TEST_CHECK(a);
 	if (save_resume_data_alert const* ra = alert_cast<save_resume_data_alert>(a))
 	{
-		std::fprintf(stderr, "%s\n", ra->resume_data->to_string().c_str());
+		std::printf("%s\n", ra->resume_data->to_string().c_str());
 		entry::string_type prios = (*ra->resume_data)["piece_priority"].string();
 		TEST_EQUAL(int(prios.size()), ti->num_pieces());
 		TEST_EQUAL(prios[0], '\0');
@@ -616,7 +616,7 @@ TORRENT_TEST(paused_deprecated)
 TORRENT_TEST(url_seed_resume_data_deprecated)
 {
 	// merge url seeds with resume data
-	std::fprintf(stderr, "flags: merge_resume_http_seeds\n");
+	std::printf("flags: merge_resume_http_seeds\n");
 	lt::session ses(settings());
 	torrent_handle h = test_resume_flags(ses,
 		add_torrent_params::flag_merge_resume_http_seeds, "", "", true);
@@ -639,7 +639,7 @@ TORRENT_TEST(url_seed_resume_data_deprecated)
 TORRENT_TEST(resume_override_torrent_deprecated)
 {
 	// resume data overrides the .torrent_file
-	std::fprintf(stderr, "flags: no merge_resume_http_seed\n");
+	std::printf("flags: no merge_resume_http_seed\n");
 	lt::session ses(settings());
 	torrent_handle h = test_resume_flags(ses,
 		add_torrent_params::flag_merge_resume_trackers, "", "", true);
@@ -695,7 +695,7 @@ TORRENT_TEST(file_priorities_seed_mode)
 
 void test_zero_file_prio(bool test_deprecated = false)
 {
-	std::fprintf(stderr, "test_file_prio\n");
+	std::printf("test_file_prio\n");
 
 	lt::session ses(settings());
 	std::shared_ptr<torrent_info> ti = generate_torrent();
@@ -761,7 +761,7 @@ TORRENT_TEST(zero_file_prio)
 void test_seed_mode(bool const file_prio, bool const pieces_have, bool const piece_prio
 	, bool const all_files_zero = false, bool const test_deprecated = false)
 {
-	std::fprintf(stderr, "test_seed_mode file_prio: %d pieces_have: %d piece_prio: %d\n"
+	std::printf("test_seed_mode file_prio: %d pieces_have: %d piece_prio: %d\n"
 		, file_prio, pieces_have, piece_prio);
 
 	lt::session ses(settings());
@@ -925,7 +925,7 @@ TORRENT_TEST(resume_save_load_resume)
 	entry::list_type& l = e["file_priority"].list();
 	entry::list_type::iterator i = l.begin();
 
-	std::fprintf(stderr, "%s\n", e.to_string().c_str());
+	std::printf("%s\n", e.to_string().c_str());
 
 	TEST_EQUAL(l.size(), 3);
 	TEST_EQUAL(*i++, 1);

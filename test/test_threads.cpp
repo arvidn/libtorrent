@@ -45,11 +45,11 @@ using namespace libtorrent;
 
 void fun(std::condition_variable* s, std::mutex* m, int* waiting, int i)
 {
-	std::fprintf(stdout, "thread %d waiting\n", i);
+	std::printf("thread %d waiting\n", i);
 	std::unique_lock<std::mutex> l(*m);
 	*waiting += 1;
 	s->wait(l);
-	std::fprintf(stdout, "thread %d done\n", i);
+	std::printf("thread %d done\n", i);
 }
 
 void increment(std::condition_variable* s, std::mutex* m, int* waiting, std::atomic<int>* c)

@@ -45,7 +45,7 @@ int main()
 	address def_gw = get_default_gateway(ios, ec);
 	if (ec)
 	{
-		std::fprintf(stderr, "%s\n", ec.message().c_str());
+		std::printf("%s\n", ec.message().c_str());
 		return 1;
 	}
 

@@ -57,7 +57,7 @@ void verify_transforms(char const* utf8_source, int utf8_source_len = -1)
 		if (ret != conversionOK && utf8_source_len < 10)
 		{
 			for (char const* i = utf8_source; *i != 0; ++i)
-				std::fprintf(stderr, "%x ", UTF8(*i));
+				std::printf("%x ", UTF8(*i));
 		}
 
 		std::vector<UTF32> utf32(utf8_source_len);
@@ -70,7 +70,7 @@ void verify_transforms(char const* utf8_source, int utf8_source_len = -1)
 		if (ret != conversionOK && utf8_source_len < 10)
 		{
 			for (char const* i = utf8_source; *i != 0; ++i)
-				std::fprintf(stderr, "%x ", UTF8(*i));
+				std::printf("%x ", UTF8(*i));
 		}
 
 		std::vector<UTF8> utf8(utf8_source_len);
@@ -83,7 +83,7 @@ void verify_transforms(char const* utf8_source, int utf8_source_len = -1)
 		if (ret != conversionOK && utf8_source_len < 10)
 		{
 			for (char const* i = utf8_source; *i != 0; ++i)
-				std::fprintf(stderr, "%x ", UTF8(*i));
+				std::printf("%x ", UTF8(*i));
 		}
 
 		TEST_EQUAL(out8 - &utf8[0], utf8_source_len);
@@ -102,7 +102,7 @@ void verify_transforms(char const* utf8_source, int utf8_source_len = -1)
 		if (ret != conversionOK && utf8_source_len < 10)
 		{
 			for (char const* i = utf8_source; *i != 0; ++i)
-				std::fprintf(stderr, "%x ", UTF8(*i));
+				std::printf("%x ", UTF8(*i));
 		}
 
 		std::vector<UTF16> utf16(utf8_source_len);
@@ -115,7 +115,7 @@ void verify_transforms(char const* utf8_source, int utf8_source_len = -1)
 		if (ret != conversionOK && utf8_source_len < 10)
 		{
 			for (char const* i = utf8_source; *i != 0; ++i)
-				std::fprintf(stderr, "%x ", UTF8(*i));
+				std::printf("%x ", UTF8(*i));
 		}
 
 		std::vector<UTF8> utf8(utf8_source_len);
@@ -128,7 +128,7 @@ void verify_transforms(char const* utf8_source, int utf8_source_len = -1)
 		if (ret != conversionOK && utf8_source_len < 10)
 		{
 			for (char const* i = utf8_source; *i != 0; ++i)
-				std::fprintf(stderr, "%x ", UTF8(*i));
+				std::printf("%x ", UTF8(*i));
 		}
 
 		TEST_EQUAL(out8 - &utf8[0], utf8_source_len);
@@ -147,9 +147,9 @@ void expect_error(char const* utf8, ConversionResult expect)
 	TEST_EQUAL(ret, expect);
 	if (ret != expect)
 	{
-		std::fprintf(stderr, "%d expected %d\n", ret, expect);
+		std::printf("%d expected %d\n", ret, expect);
 		for (char const* i = utf8; *i != 0; ++i)
-			std::fprintf(stderr, "%x ", UTF8(*i));
+			std::printf("%x ", UTF8(*i));
 	}
 
 	in8 = (UTF8 const*)utf8;
@@ -161,9 +161,9 @@ void expect_error(char const* utf8, ConversionResult expect)
 	TEST_EQUAL(ret, expect);
 	if (ret != expect)
 	{
-		std::fprintf(stderr, "%d expected %d\n", ret, expect);
+		std::printf("%d expected %d\n", ret, expect);
 		for (char const* i = utf8; *i != 0; ++i)
-			std::fprintf(stderr, "%x ", UTF8(*i));
+			std::printf("%x ", UTF8(*i));
 	}
 }
 
@@ -172,7 +172,7 @@ TORRENT_TEST(utf8)
 	std::vector<char> utf8_source;
 	error_code ec;
 	load_file(combine_path("..", "utf8_test.txt"), utf8_source, ec, 1000000);
-	if (ec) std::fprintf(stderr, "failed to open file: (%d) %s\n", ec.value()
+	if (ec) std::printf("failed to open file: (%d) %s\n", ec.value()
 		, ec.message().c_str());
 	TEST_CHECK(!ec);
 
