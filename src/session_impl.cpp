@@ -5805,6 +5805,8 @@ retry:
 		// postpone starting the DHT if we're still resolving the DHT router
 		if (m_outstanding_router_lookups > 0) return;
 
+		if (m_abort) return;
+
 		m_dht = boost::make_shared<dht::dht_tracker>(static_cast<dht_observer*>(this)
 			, boost::ref(m_udp_socket), boost::cref(m_dht_settings)
 			, boost::ref(m_stats_counters)
