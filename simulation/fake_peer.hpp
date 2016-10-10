@@ -300,7 +300,7 @@ struct fake_node
 		m_socket.async_receive(boost::asio::buffer(m_in_buffer)
 			, [&] (boost::system::error_code const& ec, size_t bytes_transferred)
 		{
-			std::fprintf("fake_node::async_read_some callback. ec: %s transferred: %d\n"
+			std::printf("fake_node::async_read_some callback. ec: %s transferred: %d\n"
 				, ec.message().c_str(), int(bytes_transferred));
 			if (ec) return;
 
