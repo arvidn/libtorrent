@@ -256,5 +256,11 @@ TORRENT_TEST(save_restore_state_load_filter)
 		});
 }
 
+TORRENT_TEST(session_shutdown)
+{
+	lt::settings_pack pack;
+	lt::session ses(pack);
+}
+
 #endif
 
