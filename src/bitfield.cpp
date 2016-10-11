@@ -81,7 +81,7 @@ namespace libtorrent
 		}
 #endif // TORRENT_HAS_SSE
 
-#if TORRENT_HAS_ARM_NEON
+#if TORRENT_HAS_ARM_NEON && defined __arm__
 		if (aux::arm_neon_support)
 		{
 			for (int i = 1; i < words + 1; ++i)

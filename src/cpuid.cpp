@@ -101,7 +101,9 @@ namespace libtorrent { namespace aux
 		return (getauxval(16) & (1 << 12));
 #elif defined __aarch64__
 		//return (getauxval(AT_HWCAP) & HWCAP_ASIMD);
-		return (getauxval(16) & (1 << 1));
+		//return (getauxval(16) & (1 << 1));
+		// TODO: enable when aarch64 is really tested
+		return false;
 #endif
 #else
 		return false;
