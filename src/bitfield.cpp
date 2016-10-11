@@ -37,10 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <intrin.h>
 #endif
 
-#if TORRENT_HAS_ARM_NEON
-#include <arm_neon.h>
-#endif
-
 namespace libtorrent
 {
 	bool bitfield::all_set() const
@@ -90,13 +86,15 @@ namespace libtorrent
 		{
 			for (int i = 1; i < words + 1; ++i)
 			{
-				uint8x8_t const in_val = uint8x8_t(vld1_u32(&m_buf[i]));
-				uint8x8_t const cnt8x8_val = vcnt_u8(in_val);
-				uint16x4_t const cnt16x4_val = vpaddl_u8(cnt8x8_val);
-				uint32x2_t const cnt32x2_val = vpaddl_u16(cnt16x4_val);
-				uint32_t cnt;
-				vst1_u32(&cnt, cnt32x2_val);
-
+				std::uint32_t cnt;
+				__asm__(
+					"vld1.u32 d0[0], [%1] \n"
+					"vcnt.u8 d0, d0 \n"
+					"vpaddl.u8 d0, d0 \n"
+					"vpaddl.u16 d0, d0 \n"
+					"vst1.u32 d0[0], [%0]"
+					:: "r"(&cnt), "r"(&m_buf[i])
+					: "d0", "memory");
 				ret += cnt;
 			}
 
