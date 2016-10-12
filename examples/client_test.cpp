@@ -1841,8 +1841,7 @@ int main(int argc, char* argv[])
 */
 
 			int bucket = 0;
-			for (std::vector<dht_routing_bucket>::iterator i = dht_routing_table.begin()
-				, end(dht_routing_table.end()); i != end; ++i, ++bucket)
+			for (dht_routing_bucket const& n : dht_routing_table)
 			{
 				char const* progress_bar =
 					"################################"
@@ -1852,32 +1851,34 @@ int main(int argc, char* argv[])
 				char const* short_progress_bar = "--------";
 				std::snprintf(str, sizeof(str)
 					, "%3d [%3d, %d] %s%s\x1b[K\n"
-					, bucket, i->num_nodes, i->num_replacements
-					, progress_bar + (128 - i->num_nodes)
-					, short_progress_bar + (8 - (std::min)(8, i->num_replacements)));
+					, bucket, n.num_nodes, n.num_replacements
+					, progress_bar + (128 - n.num_nodes)
+					, short_progress_bar + (8 - (std::min)(8, n.num_replacements)));
 				out += str;
 				pos += 1;
 			}
 
-			for (std::vector<dht_lookup>::iterator i = dht_active_requests.begin()
-				, end(dht_active_requests.end()); i != end; ++i)
+			for (dht_lookup const& l : dht_active_requests)
 			{
 				std::snprintf(str, sizeof(str)
-					, "  %10s [limit: %2d] "
+					, "  %10s target: %s "
+					"[limit: %2d] "
 					"in-flight: %-2d "
 					"left: %-3d "
 					"1st-timeout: %-2d "
 					"timeouts: %-2d "
 					"responses: %-2d "
-					"last_sent: %-2d\x1b[K\n"
-					, i->type
-					, i->branch_factor
-					, i->outstanding_requests
-					, i->nodes_left
-					, i->first_timeout
-					, i->timeouts
-					, i->responses
-					, i->last_sent);
+					"last_sent: %-2d "
+					"\x1b[K\n"
+					, l.type
+					, to_hex(l.target).c_str()
+					, l.branch_factor
+					, l.outstanding_requests
+					, l.nodes_left
+					, l.first_timeout
+					, l.timeouts
+					, l.responses
+					, l.last_sent);
 				out += str;
 				pos += 1;
 			}
@@ -1899,19 +1900,17 @@ int main(int argc, char* argv[])
 
 			if (print_trackers)
 			{
-				std::vector<announce_entry> tr = h.trackers();
 				time_point const now = clock_type::now();
-				for (std::vector<announce_entry>::iterator i = tr.begin()
-					, end(tr.end()); i != end; ++i)
+				for (announce_entry const& ae : h.trackers())
 				{
 					if (pos + 1 >= terminal_height) break;
 					std::snprintf(str, sizeof(str), "%2d %-55s fails: %-3d (%-3d) %s %s %5d \"%s\" %s\x1b[K\n"
-						, i->tier, i->url.c_str(), i->fails, i->fail_limit, i->verified?"OK ":"-  "
-						, i->updating?"updating"
-							:to_string(int(total_seconds(i->next_announce - now)), 8).c_str()
-						, int(i->min_announce > now ? total_seconds(i->min_announce - now) : 0)
-						, i->last_error ? i->last_error.message().c_str() : ""
-						, i->message.c_str());
+						, ae.tier, ae.url.c_str(), ae.fails, ae.fail_limit, ae.verified?"OK ":"-  "
+						, ae.updating?"updating"
+							:to_string(int(total_seconds(ae.next_announce - now)), 8).c_str()
+						, int(ae.min_announce > now ? total_seconds(ae.min_announce - now) : 0)
+						, ae.last_error ? ae.last_error.message().c_str() : ""
+						, ae.message.c_str());
 					out += str;
 					pos += 1;
 				}

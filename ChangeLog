@@ -1,3 +1,4 @@
+	* include target in DHT lookups, when queried from the session
 	* improve support for HTTP redirects for web seeds
 	* use string_view in entry interface
 	* deprecate "send_stats" property on trackers (since lt_tracker extension has

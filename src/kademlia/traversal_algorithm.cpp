@@ -537,6 +537,7 @@ void traversal_algorithm::status(dht_lookup& l)
 	l.type = name();
 	l.nodes_left = 0;
 	l.first_timeout = 0;
+	l.target = m_target;
 
 	int last_sent = INT_MAX;
 	time_point now = aux::time_now();

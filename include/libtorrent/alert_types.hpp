@@ -2174,6 +2174,9 @@ namespace libtorrent
 		// sense that they increased the branch
 		// factor
 		int first_timeout;
+
+		// the node-id or info-hash target for this lookup
+		sha1_hash target;
 	};
 
 	// struct to hold information about a single DHT routing table bucket
