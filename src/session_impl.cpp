@@ -6429,7 +6429,20 @@ retry:
 			entry* nodes2 = m_dht_state.find_key("nodes");
 			if (nodes2 && nodes2->type() == entry::list_t) prev_state = nodes2->list().size();
 			if (cur_state > prev_state) m_dht_state = s;
+			std::vector<dht::node_id> torrents;
+			m_dht->get_announces(&torrents);
 			start_dht(m_dht_state);
+
+			// force re-announce any torrent that had a DHT announce in flight
+			for (std::vector<dht::node_id>::iterator i = torrents.begin()
+				, end(torrents.end()); i != end; ++i)
+			{
+				boost::weak_ptr<torrent> wt = find_torrent(*i);
+				boost::shared_ptr<torrent> t = wt.lock();
+				if (!t) continue;
+
+				prioritize_dht(t);
+			}
 		}
 #endif
 	}

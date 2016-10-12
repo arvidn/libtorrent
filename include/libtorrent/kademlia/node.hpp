@@ -274,6 +274,8 @@ public:
 
 	void status(libtorrent::session_status& s);
 
+	void get_announces(std::vector<node_id>* out);
+
 	libtorrent::dht_settings const& settings() const { return m_settings; }
 
 protected:

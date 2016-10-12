@@ -267,6 +267,11 @@ namespace libtorrent { namespace dht
 		m_dht.status(s);
 	}
 
+	void dht_tracker::get_announces(std::vector<node_id>* out)
+	{
+		m_dht.get_announces(out);
+	}
+
 	void dht_tracker::network_stats(int& sent, int& received)
 	{
 		sent = m_sent_bytes;

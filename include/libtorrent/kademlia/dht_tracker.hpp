@@ -111,6 +111,7 @@ namespace libtorrent { namespace dht
 
 		void dht_status(session_status& s);
 		void network_stats(int& sent, int& received);
+		void get_announces(std::vector<node_id>* out);
 
 		// translate bittorrent kademlia message into the generic kademlia message
 		// used by the library
