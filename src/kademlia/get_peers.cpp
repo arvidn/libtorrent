@@ -134,11 +134,7 @@ char const* get_peers::name() const { return "get_peers"; }
 
 bool get_peers::invoke(observer_ptr o)
 {
-	if (m_done)
-	{
-		m_invoke_count = -1;
-		return false;
-	}
+	if (m_done) return false;
 
 	entry e;
 	e["y"] = "q";

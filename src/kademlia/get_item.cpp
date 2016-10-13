@@ -141,11 +141,7 @@ observer_ptr get_item::new_observer(void* ptr
 
 bool get_item::invoke(observer_ptr o)
 {
-	if (m_done)
-	{
-		m_invoke_count = -1;
-		return false;
-	}
+	if (m_done) return false;
 
 	entry e;
 	e["y"] = "q";
