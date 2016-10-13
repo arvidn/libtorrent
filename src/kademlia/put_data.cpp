@@ -74,20 +74,16 @@ void put_data::done()
 
 #ifndef TORRENT_DISABLE_LOGGING
 	get_node().observer()->log(dht_logger::traversal, "[%p] %s DONE, response %d, timeout %d"
-		, static_cast<void*>(this), name(), m_responses, m_timeouts);
+		, static_cast<void*>(this), name(), num_responses(), num_timeouts());
 #endif
 
-	m_put_callback(m_data, m_responses);
+	m_put_callback(m_data, num_responses());
 	traversal_algorithm::done();
 }
 
 bool put_data::invoke(observer_ptr o)
 {
-	if (m_done)
-	{
-		m_invoke_count = -1;
-		return false;
-	}
+	if (m_done) return false;
 
 	// TODO: what if o is not an isntance of put_data_observer? This need to be
 	// redesigned for better type saftey.

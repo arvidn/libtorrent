@@ -63,8 +63,6 @@ struct find_data : traversal_algorithm
 
 	virtual char const* name() const;
 
-	node_id const& target() const { return m_target; }
-
 protected:
 
 	virtual void done();

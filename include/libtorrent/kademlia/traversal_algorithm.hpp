@@ -73,8 +73,8 @@ struct TORRENT_EXTRA_EXPORT traversal_algorithm : boost::noncopyable
 	void add_entry(node_id const& id, udp::endpoint const& addr, unsigned char flags);
 
 	traversal_algorithm(node& dht_node, node_id const& target);
-	int invoke_count() const { return m_invoke_count; }
-	int branch_factor() const { return m_branch_factor; }
+	int invoke_count() const { TORRENT_ASSERT(m_invoke_count >= 0); return m_invoke_count; }
+	int branch_factor() const { TORRENT_ASSERT(m_branch_factor >= 0); return m_branch_factor; }
 
 	node& get_node() const { return m_node; }
 
@@ -97,8 +97,14 @@ protected:
 
 	virtual bool invoke(observer_ptr) { return false; }
 
+	int num_responses() const { return m_responses; }
+	int num_timeouts() const { return m_timeouts; }
+
 	node& m_node;
 	std::vector<observer_ptr> m_results;
+
+private:
+
 	node_id const m_target;
 	std::int16_t m_invoke_count = 0;
 	std::int16_t m_branch_factor = 3;

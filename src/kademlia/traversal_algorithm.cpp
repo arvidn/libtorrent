@@ -297,6 +297,8 @@ void traversal_algorithm::failed(observer_ptr o, int const flags)
 
 	if (m_results.empty()) return;
 
+	bool decrement_branch_factor = false;
+
 	TORRENT_ASSERT(o->flags & observer::flag_queried);
 	if (flags & short_timeout)
 	{
@@ -332,11 +334,7 @@ void traversal_algorithm::failed(observer_ptr o, int const flags)
 		o->flags |= observer::flag_failed;
 		// if this flag is set, it means we increased the
 		// branch factor for it, and we should restore it
-		if (o->flags & observer::flag_short_timeout)
-		{
-			TORRENT_ASSERT(m_branch_factor > 0);
-			--m_branch_factor;
-		}
+		decrement_branch_factor = (o->flags & observer::flag_short_timeout);
 
 #ifndef TORRENT_DISABLE_LOGGING
 		dht_observer* logger = get_node().observer();
@@ -358,13 +356,18 @@ void traversal_algorithm::failed(observer_ptr o, int const flags)
 		--m_invoke_count;
 	}
 
-	if (flags & prevent_request)
+	// this is another reason to decrement the branch factor, to prevent another
+	// request from filling this slot. Only ever decrement once per response though
+	decrement_branch_factor |= (flags & prevent_request);
+
+	if (decrement_branch_factor)
 	{
 		TORRENT_ASSERT(m_branch_factor > 0);
 		--m_branch_factor;
 		if (m_branch_factor <= 0) m_branch_factor = 1;
 	}
-	bool is_done = add_requests();
+
+	bool const is_done = add_requests();
 	if (is_done) done();
 }
 

@@ -95,7 +95,7 @@ void find_data::start()
 	if (m_results.empty())
 	{
 		std::vector<node_entry> nodes;
-		m_node.m_table.find_node(m_target, nodes, routing_table::include_failed);
+		m_node.m_table.find_node(target(), nodes, routing_table::include_failed);
 
 		for (auto const& n : nodes)
 		{
