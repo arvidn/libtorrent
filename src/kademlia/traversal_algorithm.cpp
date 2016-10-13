@@ -84,10 +84,6 @@ traversal_algorithm::traversal_algorithm(
 	, node_id const& target)
 	: m_node(dht_node)
 	, m_target(target)
-	, m_invoke_count(0)
-	, m_branch_factor(3)
-	, m_responses(0)
-	, m_timeouts(0)
 {
 #ifndef TORRENT_DISABLE_LOGGING
 	dht_observer* logger = get_node().observer();
@@ -311,7 +307,10 @@ void traversal_algorithm::failed(observer_ptr o, int const flags)
 		// around for some more, but open up the slot
 		// by increasing the branch factor
 		if ((o->flags & observer::flag_short_timeout) == 0)
+		{
+			TORRENT_ASSERT(m_branch_factor < (std::numeric_limits<std::int16_t>::max)());
 			++m_branch_factor;
+		}
 		o->flags |= observer::flag_short_timeout;
 #ifndef TORRENT_DISABLE_LOGGING
 		dht_observer* logger = get_node().observer();
@@ -334,7 +333,10 @@ void traversal_algorithm::failed(observer_ptr o, int const flags)
 		// if this flag is set, it means we increased the
 		// branch factor for it, and we should restore it
 		if (o->flags & observer::flag_short_timeout)
+		{
+			TORRENT_ASSERT(m_branch_factor > 0);
 			--m_branch_factor;
+		}
 
 #ifndef TORRENT_DISABLE_LOGGING
 		dht_observer* logger = get_node().observer();
@@ -358,6 +360,7 @@ void traversal_algorithm::failed(observer_ptr o, int const flags)
 
 	if (flags & prevent_request)
 	{
+		TORRENT_ASSERT(m_branch_factor > 0);
 		--m_branch_factor;
 		if (m_branch_factor <= 0) m_branch_factor = 1;
 	}
@@ -484,7 +487,7 @@ bool traversal_algorithm::add_requests()
 		o->flags |= observer::flag_queried;
 		if (invoke(*i))
 		{
-			TORRENT_ASSERT(m_invoke_count < (std::numeric_limits<std::uint16_t>::max)());
+			TORRENT_ASSERT(m_invoke_count < (std::numeric_limits<std::int16_t>::max)());
 			++m_invoke_count;
 			++outstanding;
 		}

@@ -100,10 +100,10 @@ protected:
 	node& m_node;
 	std::vector<observer_ptr> m_results;
 	node_id const m_target;
-	std::uint16_t m_invoke_count;
-	std::uint16_t m_branch_factor;
-	std::uint16_t m_responses;
-	std::uint16_t m_timeouts;
+	std::int16_t m_invoke_count = 0;
+	std::int16_t m_branch_factor = 3;
+	std::int16_t m_responses = 0;
+	std::int16_t m_timeouts = 0;
 
 	// the IP addresses of the nodes in m_results
 	std::set<std::uint32_t> m_peer4_prefixes;
