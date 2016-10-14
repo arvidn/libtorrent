@@ -334,7 +334,7 @@ void traversal_algorithm::failed(observer_ptr o, int const flags)
 		o->flags |= observer::flag_failed;
 		// if this flag is set, it means we increased the
 		// branch factor for it, and we should restore it
-		decrement_branch_factor = bool(o->flags & observer::flag_short_timeout);
+		decrement_branch_factor = (o->flags & observer::flag_short_timeout) != 0;
 
 #ifndef TORRENT_DISABLE_LOGGING
 		dht_observer* logger = get_node().observer();
