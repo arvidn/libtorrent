@@ -70,7 +70,7 @@ namespace
 		, node_id const& id, address const& addr)
 	{
 		// only when the node_id pass the verification, add it to routing table.
-		return !(settings.enforce_node_id && !verify_id(id, addr));
+		return !settings.enforce_node_id || verify_id(id, addr);
 	}
 }
 
