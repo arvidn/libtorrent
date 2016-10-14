@@ -180,9 +180,7 @@ bool node::verify_token(string_view token, sha1_hash const& info_hash
 	h2.update(reinterpret_cast<char const*>(&m_secret[1]), sizeof(m_secret[1]));
 	h2.update(info_hash);
 	h = h2.final();
-	if (std::equal(token.begin(), token.end(), reinterpret_cast<char*>(&h[0])))
-		return true;
-	return false;
+    return std::equal(token.begin(), token.end(), reinterpret_cast<char*>(&h[0]));
 }
 
 std::string node::generate_token(udp::endpoint const& addr
