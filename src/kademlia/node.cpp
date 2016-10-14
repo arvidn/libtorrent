@@ -564,6 +564,17 @@ void node_impl::status(session_status& s)
 	}
 }
 
+void node_impl::get_announces(std::vector<node_id>* out)
+{
+	for (std::set<traversal_algorithm*>::iterator i = m_running_requests.begin()
+		, end(m_running_requests.end()); i != end; ++i)
+	{
+		traversal_algorithm const& a = **i;
+		if (std::string(a.name()).substr(0, 9) != "get_peers") continue;
+		out->push_back(a.target());
+	}
+}
+
 void node_impl::lookup_peers(sha1_hash const& info_hash, entry& reply
 	, bool noseed, bool scrape) const
 {
