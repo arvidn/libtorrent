@@ -1,3 +1,4 @@
+	* changed session_stats_alert counters type to signed (std::int64_t)
 	* remove torrent eviction/ghost torrent feature
 	* include target in DHT lookups, when queried from the session
 	* improve support for HTTP redirects for web seeds
