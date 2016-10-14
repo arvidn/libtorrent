@@ -262,7 +262,7 @@ namespace libtorrent {
 #endif // TORRENT_NO_DEPRECATE
 
 	private:
-		time_point m_timestamp;
+		time_point const m_timestamp;
 	};
 
 // When you get an alert, you can use ``alert_cast<>`` to attempt to cast the

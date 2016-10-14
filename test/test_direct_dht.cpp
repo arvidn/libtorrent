@@ -116,8 +116,8 @@ TORRENT_TEST(direct_dht_request)
 	if (ra)
 	{
 		bdecode_node response = ra->response();
-		TEST_EQUAL(ra->addr.address(), address::from_string("127.0.0.1"));
-		TEST_EQUAL(ra->addr.port(), responder.listen_port());
+		TEST_EQUAL(ra->endpoint.address(), address::from_string("127.0.0.1"));
+		TEST_EQUAL(ra->endpoint.port(), responder.listen_port());
 		TEST_EQUAL(response.type(), bdecode_node::dict_t);
 		TEST_EQUAL(response.dict_find_dict("r").dict_find_int_value("good"), 1);
 		TEST_EQUAL(ra->userdata, (void*)12345);
@@ -132,8 +132,8 @@ TORRENT_TEST(direct_dht_request)
 	TEST_CHECK(ra);
 	if (ra)
 	{
-		TEST_EQUAL(ra->addr.address(), address::from_string("127.0.0.1"));
-		TEST_EQUAL(ra->addr.port(), 53545);
+		TEST_EQUAL(ra->endpoint.address(), address::from_string("127.0.0.1"));
+		TEST_EQUAL(ra->endpoint.port(), 53545);
 		TEST_EQUAL(ra->response().type(), bdecode_node::none_t);
 		TEST_EQUAL(ra->userdata, (void*)123456);
 	}

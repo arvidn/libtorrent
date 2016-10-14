@@ -44,6 +44,7 @@ namespace libtorrent
 {
 	struct TORRENT_EXTRA_EXPORT counters
 	{
+		// TODO: move this out of counters
 		enum stats_counter_t
 		{
 			// the number of peers that were disconnected this

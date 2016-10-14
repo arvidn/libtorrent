@@ -303,7 +303,8 @@ bool print_alerts(lt::session& ses, char const* name
 		if (predicate && predicate(a)) ret = true;
 		if (peer_disconnected_alert const* p = alert_cast<peer_disconnected_alert>(a))
 		{
-			std::printf("%s: %s: [%s] (%s): %s\n", time_now_string(), name, (a)->what(), print_endpoint(p->ip).c_str(), p->message().c_str());
+			std::printf("%s: %s: [%s] (%s): %s\n", time_now_string(), name, (a)->what()
+				, print_endpoint(p->endpoint).c_str(), p->message().c_str());
 		}
 		else if (should_print(a)
 			&& !no_output)

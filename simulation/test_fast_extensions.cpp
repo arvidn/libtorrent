@@ -122,7 +122,7 @@ TORRENT_TEST(allow_fast)
 			{
 				if (strcmp(l->event_type, "ALLOWED_FAST") != 0) return;
 
-				int const piece = atoi(l->msg());
+				int const piece = atoi(l->log_message());
 				// make sure we don't get the same allowed piece more than once
 				TEST_EQUAL(local_allowed_fast.count(piece), 0);
 
@@ -184,7 +184,7 @@ TORRENT_TEST(allow_fast_stress)
 		{
 			if (strcmp(l->event_type, "ALLOWED_FAST") != 0) return;
 
-			int const piece = atoi(l->msg());
+			int const piece = atoi(l->log_message());
 
 			// make sure we don't get the same allowed piece more than once
 			TEST_EQUAL(allowed_fast.count(piece), 0);
