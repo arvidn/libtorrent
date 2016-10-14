@@ -412,7 +412,7 @@ namespace libtorrent
 			{
 				if (!m_parser.finished()) return;
 
-				int retry_time = atol(std::string(recv_buffer.begin(), recv_buffer.end()).c_str());
+				int retry_time = std::atoi(std::string(recv_buffer.begin(), recv_buffer.end()).c_str());
 				if (retry_time <= 0) retry_time = 60;
 #ifndef TORRENT_DISABLE_LOGGING
 				peer_log(peer_log_alert::info, "CONNECT", "retrying in %d seconds", retry_time);

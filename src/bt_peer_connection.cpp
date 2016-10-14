@@ -497,7 +497,7 @@ namespace libtorrent
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 
 	namespace {
-		char random_byte() { return random(0xff); }
+		char random_byte() { return char(random(0xff)); }
 	}
 
 	void bt_peer_connection::write_pe1_2_dhkey()
@@ -2572,7 +2572,7 @@ namespace libtorrent
 
 			int sub_transferred = 0;
 			while (bytes_transferred > 0 &&
-				((sub_transferred = int(m_recv_buffer.advance_pos(int(bytes_transferred)))) > 0))
+				((sub_transferred = m_recv_buffer.advance_pos(int(bytes_transferred))) > 0))
 			{
 	#if TORRENT_USE_ASSERTS
 				std::int64_t cur_payload_dl = m_statistics.last_payload_downloaded();
