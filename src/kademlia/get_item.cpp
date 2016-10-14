@@ -61,7 +61,7 @@ void get_item::got_data(bdecode_node const& v,
 		if (!m_data.empty()) return;
 
 		sha1_hash incoming_target = item_target_id(v.data_section());
-		if (incoming_target != m_target) return;
+		if (incoming_target != target()) return;
 
 		m_data.assign(v);
 
@@ -79,7 +79,7 @@ void get_item::got_data(bdecode_node const& v,
 
 	std::string const salt_copy(m_data.salt());
 	sha1_hash const incoming_target = item_target_id(salt_copy, pk);
-	if (incoming_target != m_target) return;
+	if (incoming_target != target()) return;
 
 	// this is mutable data. If it passes the signature
 	// check, remember it. Just keep the version with
@@ -137,18 +137,14 @@ observer_ptr get_item::new_observer(udp::endpoint const& ep
 
 bool get_item::invoke(observer_ptr o)
 {
-	if (m_done)
-	{
-		m_invoke_count = -1;
-		return false;
-	}
+	if (m_done) return false;
 
 	entry e;
 	e["y"] = "q";
 	entry& a = e["a"];
 
 	e["q"] = "get";
-	a["target"] = m_target.to_string();
+	a["target"] = target().to_string();
 
 	return m_node.m_rpc.invoke(e, o->target_ep(), o);
 }
@@ -168,7 +164,7 @@ void get_item::done()
 #if TORRENT_USE_ASSERTS
 		if (m_data.is_mutable())
 		{
-			TORRENT_ASSERT(m_target == item_target_id(m_data.salt(), m_data.pk()));
+			TORRENT_ASSERT(target() == item_target_id(m_data.salt(), m_data.pk()));
 		}
 #endif
 	}

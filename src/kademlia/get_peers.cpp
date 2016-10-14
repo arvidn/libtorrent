@@ -141,23 +141,19 @@ char const* get_peers::name() const { return "get_peers"; }
 
 bool get_peers::invoke(observer_ptr o)
 {
-	if (m_done)
-	{
-		m_invoke_count = -1;
-		return false;
-	}
+	if (m_done) return false;
 
 	entry e;
 	e["y"] = "q";
 	entry& a = e["a"];
 
 	e["q"] = "get_peers";
-	a["info_hash"] = m_target.to_string();
+	a["info_hash"] = target().to_string();
 	if (m_noseeds) a["noseed"] = 1;
 
 	if (m_node.observer() != nullptr)
 	{
-		m_node.observer()->outgoing_get_peers(m_target, m_target, o->target_ep());
+		m_node.observer()->outgoing_get_peers(target(), target(), o->target_ep());
 	}
 
 	m_node.stats_counters().inc_stats_counter(counters::dht_get_peers_out);
@@ -217,7 +213,7 @@ bool obfuscated_get_peers::invoke(observer_ptr o)
 	if (!m_obfuscated) return get_peers::invoke(o);
 
 	node_id const& id = o->id();
-	int const shared_prefix = 160 - distance_exp(id, m_target);
+	int const shared_prefix = 160 - distance_exp(id, target());
 
 	// when we get close to the target zone in the DHT
 	// start using the correct info-hash, in order to
@@ -254,12 +250,12 @@ bool obfuscated_get_peers::invoke(observer_ptr o)
 	// now, obfuscate the bits past shared_prefix + 3
 	node_id mask = generate_prefix_mask(shared_prefix + 3);
 	node_id obfuscated_target = generate_random_id() & ~mask;
-	obfuscated_target |= m_target & mask;
+	obfuscated_target |= target() & mask;
 	a["info_hash"] = obfuscated_target.to_string();
 
 	if (m_node.observer() != nullptr)
 	{
-		m_node.observer()->outgoing_get_peers(m_target, obfuscated_target
+		m_node.observer()->outgoing_get_peers(target(), obfuscated_target
 			, o->target_ep());
 	}
 
@@ -275,7 +271,7 @@ void obfuscated_get_peers::done()
 	// oops, we failed to switch over to the non-obfuscated
 	// mode early enough. do it now
 
-	auto ta = std::make_shared<get_peers>(m_node, m_target
+	auto ta = std::make_shared<get_peers>(m_node, target()
 		, m_data_callback, m_nodes_callback, m_noseeds);
 
 	// don't call these when the obfuscated_get_peers
