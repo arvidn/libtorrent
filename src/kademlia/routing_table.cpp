@@ -70,9 +70,7 @@ namespace
 		, node_id const& id, address const& addr)
 	{
 		// only when the node_id pass the verification, add it to routing table.
-		if (settings.enforce_node_id && !verify_id(id, addr)) return false;
-
-		return true;
+		return !settings.enforce_node_id || verify_id(id, addr);
 	}
 }
 
@@ -437,8 +435,7 @@ bool routing_table::add_node(node_entry const& e)
 			// be a bug in the bucket splitting logic, or there may be someone
 			// playing a prank on us, spoofing node IDs.
 			s = add_node_impl(e);
-			if (s == node_added) return true;
-			return false;
+			return s == node_added;
 		}
 
 		// if the new bucket still has too many nodes in it, we need to keep
@@ -1102,8 +1099,7 @@ void routing_table::heard_about(node_id const& id, udp::endpoint const& ep)
 // id)
 bool routing_table::node_seen(node_id const& id, udp::endpoint const& ep, int rtt)
 {
-	if (!verify_node_address(m_settings, id, ep.address())) return false;
-	return add_node(node_entry(id, ep, rtt, true));
+	return verify_node_address(m_settings, id, ep.address()) && add_node(node_entry(id, ep, rtt, true));
 }
 
 // fills the vector with the k nodes from our buckets that
