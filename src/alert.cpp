@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/socket_io.hpp"
-#include "libtorrent/time.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/performance_counters.hpp"
@@ -110,7 +109,6 @@ namespace libtorrent {
 
 	std::string peer_alert::message() const
 	{
-		error_code ec;
 		return torrent_alert::message() + " peer (" + print_endpoint(ip)
 			+ ", " + identify_client(pid) + ")";
 	}
@@ -1076,7 +1074,6 @@ namespace libtorrent {
 
 	std::string peer_blocked_alert::message() const
 	{
-		error_code ec;
 		char ret[600];
 		static char const* reason_str[] =
 		{
@@ -1320,7 +1317,6 @@ namespace libtorrent {
 	std::string incoming_connection_alert::message() const
 	{
 		char msg[600];
-		error_code ec;
 		std::snprintf(msg, sizeof(msg), "incoming connection from %s (%s)"
 			, print_endpoint(ip).c_str(), socket_type_str[socket_type]);
 		return msg;
@@ -1335,7 +1331,6 @@ namespace libtorrent {
 	std::string peer_connect_alert::message() const
 	{
 		char msg[600];
-		error_code ec;
 		std::snprintf(msg, sizeof(msg), "%s connecting to peer (%s)"
 			, peer_alert::message().c_str(), socket_type_str[socket_type]);
 		return msg;
@@ -1900,7 +1895,7 @@ namespace libtorrent {
 		, m_alloc(alloc)
 		, m_num_peers(int(peers.size()))
 	{
-		std::size_t total_size = m_num_peers; // num bytes for sizes
+		std::size_t total_size = 0; // num bytes for sizes
 		for (int i = 0; i < m_num_peers; i++) {
 			total_size += peers[i].size();
 		}
@@ -1909,7 +1904,7 @@ namespace libtorrent {
 
 		char *ptr = alloc.ptr(m_peers_idx);
 		for (int i = 0; i < m_num_peers; i++) {
-			tcp::endpoint endp = peers[i];
+			tcp::endpoint const& endp = peers[i];
 			std::size_t size = endp.size();
 			TORRENT_ASSERT(size < 0x100);
 			detail::write_uint8(uint8_t(size), ptr);
@@ -2003,8 +1998,7 @@ namespace libtorrent {
 	{
 		// we need to copy this array to make sure the structures are properly
 		// aligned, not just to have a nice API
-		std::vector<piece_block> ret;
-		ret.resize(m_num_blocks);
+		std::vector<piece_block> ret(m_num_blocks);
 
 		char const* start = m_alloc.get().ptr(m_array_idx);
 		std::memcpy(&ret[0], start, m_num_blocks * sizeof(piece_block));
