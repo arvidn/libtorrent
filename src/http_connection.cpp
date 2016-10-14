@@ -395,7 +395,7 @@ void http_connection::start(std::string const& hostname, int port
 				|| ps->type == settings_pack::socks5_pw))
 		{
 			m_hostname = hostname;
-			m_port = port;
+			m_port = std::uint16_t(port);
 			m_endpoints.push_back(tcp::endpoint(address(), port));
 			connect();
 		}
@@ -407,7 +407,7 @@ void http_connection::start(std::string const& hostname, int port
 				, me, _1, _2));
 		}
 		m_hostname = hostname;
-		m_port = port;
+		m_port = std::uint16_t(port);
 	}
 }
 

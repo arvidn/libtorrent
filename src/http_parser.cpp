@@ -218,8 +218,8 @@ restart_response:
 
 			while (newline != recv_buffer.end() && m_state == read_header)
 			{
-				// if the LF character is preceeded by a CR
-				// charachter, don't copy it into the line string.
+				// if the LF character is preceded by a CR
+				// character, don't copy it into the line string.
 				char const* line_end = newline;
 				if (pos != line_end && *(line_end - 1) == '\r') --line_end;
 				line.assign(pos, line_end);
@@ -473,8 +473,8 @@ restart_response:
 		std::string line;
 		while (newline != buf.end())
 		{
-			// if the LF character is preceeded by a CR
-			// charachter, don't copy it into the line string.
+			// if the LF character is preceded by a CR
+			// character, don't copy it into the line string.
 			char const* line_end = newline;
 			if (pos != line_end && *(line_end - 1) == '\r') --line_end;
 			line.assign(pos, line_end);
@@ -492,11 +492,10 @@ restart_response:
 				// the newline alone is two bytes
 				TORRENT_ASSERT(newline - buf.data() > 2);
 
-				// we were successfull in parsing the headers.
+				// we were successful in parsing the headers.
 				// add them to the headers in the parser
-				for (std::map<std::string, std::string>::const_iterator i = tail_headers.begin();
-					i != tail_headers.end(); ++i)
-					m_header.insert(std::make_pair(i->first, i->second));
+				for (auto const& p : tail_headers)
+					m_header.insert(p);
 
 				return true;
 			}
@@ -561,15 +560,13 @@ restart_response:
 		// buffer, not start of the body, so subtract the size
 		// of the HTTP header from them
 		int const offset = body_start();
-		std::vector<std::pair<std::int64_t, std::int64_t> > const& c = chunks();
-		for (std::vector<std::pair<std::int64_t, std::int64_t> >::const_iterator i = c.begin()
-			, end(c.end()); i != end; ++i)
+		for (auto const& i : chunks())
 		{
-			TORRENT_ASSERT(i->second - i->first < (std::numeric_limits<int>::max)());
-			TORRENT_ASSERT(i->second - offset <= size);
-			int len = int(i->second - i->first);
-			if (i->first - offset + len > size) len = size - int(i->first) + offset;
-			memmove(write_ptr, buffer + i->first - offset, len);
+			TORRENT_ASSERT(i.second - i.first < (std::numeric_limits<int>::max)());
+			TORRENT_ASSERT(i.second - offset <= size);
+			int len = int(i.second - i.first);
+			if (i.first - offset + len > size) len = size - int(i.first) + offset;
+			std::memmove(write_ptr, buffer + i.first - offset, len);
 			write_ptr += len;
 		}
 		size = write_ptr - buffer;

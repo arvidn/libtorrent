@@ -289,7 +289,6 @@ namespace libtorrent
 		error_code ec;
 		tcp::endpoint ep = c.socket().remote_endpoint(ec);
 		m_tracker_ip = ep.address();
-		std::shared_ptr<request_callback> cb = requester();
 	}
 
 	void http_tracker_connection::on_response(error_code const& ec
@@ -493,7 +492,6 @@ namespace libtorrent
 #if TORRENT_USE_I2P
 			if (0 != (flags & tracker_request::i2p))
 			{
-				error_code parse_error;
 				for (int i = 0; i < len; i += 32)
 				{
 					if (len - i < 32) break;

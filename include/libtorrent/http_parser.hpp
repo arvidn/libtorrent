@@ -119,7 +119,7 @@ namespace libtorrent
 		bool connection_close() const { return m_connection_close; }
 
 		std::multimap<std::string, std::string> const& headers() const { return m_header; }
-		std::vector<std::pair<std::int64_t, std::int64_t> > const& chunks() const { return m_chunked_ranges; }
+		std::vector<std::pair<std::int64_t, std::int64_t>> const& chunks() const { return m_chunked_ranges; }
 
 	private:
 		std::int64_t m_recv_pos = 0;
