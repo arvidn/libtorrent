@@ -189,7 +189,7 @@ void session_view::render()
 	}
 }
 
-void session_view::update_counters(std::uint64_t* stats_counters
+void session_view::update_counters(std::int64_t* stats_counters
 	, int num_cnt, std::uint64_t t)
 {
 	// only update the previous counters if there's been enough

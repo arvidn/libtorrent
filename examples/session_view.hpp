@@ -21,7 +21,7 @@ struct session_view
 	void print_utp_stats(bool p) { m_print_utp_stats = p; }
 	bool print_utp_stats() const { return m_print_utp_stats; }
 
-	void update_counters(std::uint64_t* stats_counters, int num_cnt
+	void update_counters(std::int64_t* stats_counters, int num_cnt
 		, std::uint64_t t);
 
 private:
@@ -31,7 +31,7 @@ private:
 
 	// there are two sets of counters. the current one and the last one. This
 	// is used to calculate rates
-	std::vector<std::uint64_t> m_cnt[2];
+	std::vector<std::int64_t> m_cnt[2];
 
 	// the timestamps of the counters in m_cnt[0] and m_cnt[1]
 	// respectively. The timestamps are microseconds since session start
