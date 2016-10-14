@@ -332,7 +332,7 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 		// by increasing the branch factor
 		if ((o->flags & observer::flag_short_timeout) == 0)
 		{
-			TORRENT_ASSERT(m_branch_factor < (std::numeric_limits<std::int16_t>::max)());
+			TORRENT_ASSERT(m_branch_factor < (std::numeric_limits<boost::int16_t>::max)());
 			++m_branch_factor;
 		}
 		o->flags |= observer::flag_short_timeout;
@@ -355,7 +355,7 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 		o->flags |= observer::flag_failed;
 		// if this flag is set, it means we increased the
 		// branch factor for it, and we should restore it
-		decrement_branch_factor = (o->flags & observer::flag_short_timeout);
+		decrement_branch_factor = (o->flags & observer::flag_short_timeout) != 0;
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (get_node().observer())
@@ -509,7 +509,7 @@ bool traversal_algorithm::add_requests()
 		o->flags |= observer::flag_queried;
 		if (invoke(*i))
 		{
-			TORRENT_ASSERT(m_invoke_count < (std::numeric_limits<std::int16_t>::max)());
+			TORRENT_ASSERT(m_invoke_count < (std::numeric_limits<boost::int16_t>::max)());
 			++m_invoke_count;
 			++outstanding;
 		}
