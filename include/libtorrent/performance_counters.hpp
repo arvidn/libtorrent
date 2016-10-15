@@ -328,10 +328,6 @@ namespace libtorrent
 			// IP filter applied to them.
 			non_filter_torrents,
 
-			// counters related to evicting torrents
-			num_loaded_torrents,
-			num_pinned_torrents,
-
 			// these counter indices deliberately
 			// match the order of socket type IDs
 			// defined in socket_type.hpp.

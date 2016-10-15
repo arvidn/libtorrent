@@ -219,10 +219,6 @@ namespace libtorrent
 		// IP filter applied to them.
 		METRIC(ses, non_filter_torrents)
 
-		// the number of torrents that are currently loaded
-		METRIC(ses, num_loaded_torrents)
-		METRIC(ses, num_pinned_torrents)
-
 		// these count the number of times a piece has passed the
 		// hash check, the number of times a piece was successfully
 		// written to disk and the number of total possible pieces

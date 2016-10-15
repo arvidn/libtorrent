@@ -376,12 +376,6 @@ void web_peer_connection::write_request(peer_request const& r)
 	}
 	else
 	{
-		if (!t->need_loaded())
-		{
-			disconnect(errors::torrent_aborted, op_bittorrent);
-			return;
-		}
-
 		std::vector<file_slice> files = info.orig_files().map_block(req.piece, req.start
 			, req.length);
 
@@ -625,12 +619,6 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 	{
 		TORRENT_ASSERT(!m_file_requests.empty());
 		int const file_index = m_file_requests.front().file_index;
-
-		if (!t->need_loaded())
-		{
-			disconnect(errors::torrent_aborted, op_bittorrent);
-			return;
-		}
 
 		location = resolve_redirect_location(m_url, location);
 #ifndef TORRENT_DISABLE_LOGGING

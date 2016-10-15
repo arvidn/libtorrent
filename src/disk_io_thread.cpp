@@ -1463,12 +1463,6 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-#if TORRENT_USE_ASSERTS
-		// the caller must increment the torrent refcount before
-		// issuing an async disk request
-		storage->assert_torrent_refcount();
-#endif
-
 		TORRENT_ASSERT(r.length <= m_disk_cache.block_size());
 		TORRENT_ASSERT(r.length <= 16 * 1024);
 
@@ -1583,12 +1577,6 @@ namespace libtorrent
 	{
 		INVARIANT_CHECK;
 
-#if TORRENT_USE_ASSERTS
-		// the caller must increment the torrent refcount before
-		// issuing an async disk request
-		storage->assert_torrent_refcount();
-#endif
-
 		TORRENT_ASSERT(r.length <= m_disk_cache.block_size());
 		TORRENT_ASSERT(r.length <= 16 * 1024);
 
@@ -1690,12 +1678,6 @@ namespace libtorrent
 	void disk_io_thread::async_hash(piece_manager* storage, int piece, int flags
 		, std::function<void(disk_io_job const*)> handler, void* requester)
 	{
-#if TORRENT_USE_ASSERTS
-		// the caller must increment the torrent refcount before
-		// issuing an async disk request
-		storage->assert_torrent_refcount();
-#endif
-
 		disk_io_job* j = allocate_job(disk_io_job::hash);
 		j->storage = storage->shared_from_this();
 		j->piece = piece;
@@ -1735,12 +1717,6 @@ namespace libtorrent
 	void disk_io_thread::async_move_storage(piece_manager* storage, std::string const& p, int flags
 		, std::function<void(disk_io_job const*)> handler)
 	{
-#if TORRENT_USE_ASSERTS
-		// the caller must increment the torrent refcount before
-		// issuing an async disk request
-		storage->assert_torrent_refcount();
-#endif
-
 		disk_io_job* j = allocate_job(disk_io_job::move_storage);
 		j->storage = storage->shared_from_this();
 		j->buffer.string = allocate_string_copy(p.c_str());
@@ -1764,12 +1740,6 @@ namespace libtorrent
 		, int const options
 		, std::function<void(disk_io_job const*)> handler)
 	{
-#if TORRENT_USE_ASSERTS
-		// the caller must increment the torrent refcount before
-		// issuing an async disk request
-		storage->assert_torrent_refcount();
-#endif
-
 		// remove cache blocks belonging to this torrent
 		jobqueue_t completed_jobs;
 
@@ -1817,12 +1787,6 @@ namespace libtorrent
 		, std::vector<std::string>& links
 		, std::function<void(disk_io_job const*)> handler)
 	{
-#if TORRENT_USE_ASSERTS
-		// the caller must increment the torrent refcount before
-		// issuing an async disk request
-		storage->assert_torrent_refcount();
-#endif
-
 		std::vector<std::string>* links_vector
 			= new std::vector<std::string>();
 		links_vector->swap(links);
@@ -1839,12 +1803,6 @@ namespace libtorrent
 	void disk_io_thread::async_rename_file(piece_manager* storage, int index, std::string const& name
 		, std::function<void(disk_io_job const*)> handler)
 	{
-#if TORRENT_USE_ASSERTS
-		// the caller must increment the torrent refcount before
-		// issuing an async disk request
-		storage->assert_torrent_refcount();
-#endif
-
 		disk_io_job* j = allocate_job(disk_io_job::rename_file);
 		j->storage = storage->shared_from_this();
 		j->piece = index;
@@ -1892,12 +1850,6 @@ namespace libtorrent
 	void disk_io_thread::async_cache_piece(piece_manager* storage, int piece
 		, std::function<void(disk_io_job const*)> handler)
 	{
-#if TORRENT_USE_ASSERTS
-		// the caller must increment the torrent refcount before
-		// issuing an async disk request
-		storage->assert_torrent_refcount();
-#endif
-
 		disk_io_job* j = allocate_job(disk_io_job::cache_piece);
 		j->storage = storage->shared_from_this();
 		j->piece = piece;
@@ -1909,12 +1861,6 @@ namespace libtorrent
 	void disk_io_thread::async_finalize_file(piece_manager* storage, int file
 		, std::function<void(disk_io_job const*)> handler)
 	{
-#if TORRENT_USE_ASSERTS
-		// the caller must increment the torrent refcount before
-		// issuing an async disk request
-		storage->assert_torrent_refcount();
-#endif
-
 		disk_io_job* j = allocate_job(disk_io_job::finalize_file);
 		j->storage = storage->shared_from_this();
 		j->piece = file;
@@ -1927,12 +1873,6 @@ namespace libtorrent
 	void disk_io_thread::async_flush_piece(piece_manager* storage, int piece
 		, std::function<void(disk_io_job const*)> handler)
 	{
-#if TORRENT_USE_ASSERTS
-		// the caller must increment the torrent refcount before
-		// issuing an async disk request
-		storage->assert_torrent_refcount();
-#endif
-
 		disk_io_job* j = allocate_job(disk_io_job::flush_piece);
 		j->storage = storage->shared_from_this();
 		j->piece = piece;
@@ -1953,12 +1893,6 @@ namespace libtorrent
 		, std::vector<std::uint8_t> const& prios
 		, std::function<void(disk_io_job const*)> handler)
 	{
-#if TORRENT_USE_ASSERTS
-		// the caller must increment the torrent refcount before
-		// issuing an async disk request
-		storage->assert_torrent_refcount();
-#endif
-
 		std::vector<std::uint8_t>* p = new std::vector<std::uint8_t>(prios);
 
 		disk_io_job* j = allocate_job(disk_io_job::file_priority);
@@ -2009,12 +1943,6 @@ namespace libtorrent
 	void disk_io_thread::async_clear_piece(piece_manager* storage, int index
 		, std::function<void(disk_io_job const*)> handler)
 	{
-#if TORRENT_USE_ASSERTS
-		// the caller must increment the torrent refcount before
-		// issuing an async disk request
-		storage->assert_torrent_refcount();
-#endif
-
 		disk_io_job* j = allocate_job(disk_io_job::clear_piece);
 		j->storage = storage->shared_from_this();
 		j->piece = index;

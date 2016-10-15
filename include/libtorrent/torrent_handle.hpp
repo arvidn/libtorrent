@@ -1101,6 +1101,7 @@ namespace libtorrent
 		void set_download_limit(int limit) const;
 		int download_limit() const;
 
+#ifndef TORRENT_NO_DEPRECATE
 		// A pinned torrent may not be unloaded by libtorrent. When the dynamic
 		// loading and unloading of torrents is enabled (by setting a load
 		// function on the session), this can be used to exempt certain torrents
@@ -1116,6 +1117,7 @@ namespace libtorrent
 		// see dynamic-loading-of-torrent-files_.
 		// 
 		void set_pinned(bool p) const;
+#endif
 
 		// ``set_sequential_download()`` enables or disables *sequential
 		// download*. When enabled, the piece picker will pick pieces in sequence

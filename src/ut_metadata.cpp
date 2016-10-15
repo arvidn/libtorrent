@@ -95,21 +95,6 @@ namespace libtorrent { namespace
 				metadata();
 		}
 
-		bool need_loaded()
-		{ return m_torrent.need_loaded(); }
-
-		void on_unload() override
-		{
-			m_metadata.reset();
-		}
-
-		void on_load() override
-		{
-			// initialize m_metadata_size
-			TORRENT_ASSERT(m_torrent.is_loaded());
-			metadata();
-		}
-
 		void on_files_checked() override
 		{
 			// TODO: 2 if we were to initialize m_metadata_size lazily instead,
@@ -129,7 +114,6 @@ namespace libtorrent { namespace
 
 		span<char const> metadata() const
 		{
-			if (!m_torrent.need_loaded()) return span<char const>();
 			TORRENT_ASSERT(m_torrent.valid_metadata());
 			if (!m_metadata)
 			{
@@ -274,9 +258,6 @@ namespace libtorrent { namespace
 				TORRENT_ASSERT(m_torrent.valid_metadata());
 
 				int offset = piece * 16 * 1024;
-				// unloaded torrents don't have any metadata. Since we're
-				// about to send the metadata, we need it to be loaded
-				if (!m_tp.need_loaded()) return;
 				metadata = m_tp.metadata().data() + offset;
 				metadata_piece_size = (std::min)(
 					m_tp.get_metadata_size() - offset, 16 * 1024);

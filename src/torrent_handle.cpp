@@ -379,6 +379,8 @@ namespace libtorrent
 	{
 		async_call(&torrent::set_tracker_login, name, password);
 	}
+
+	void torrent_handle::set_pinned(bool) const {}
 #endif
 
 	void torrent_handle::file_progress(std::vector<std::int64_t>& progress, int flags) const
@@ -391,11 +393,6 @@ namespace libtorrent
 		torrent_status st;
 		sync_call(&torrent::status, &st, flags);
 		return st;
-	}
-
-	void torrent_handle::set_pinned(bool p) const
-	{
-		async_call(&torrent::set_pinned, p);
 	}
 
 	void torrent_handle::set_sequential_download(bool sd) const
