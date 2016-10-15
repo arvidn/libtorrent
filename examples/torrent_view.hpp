@@ -24,7 +24,6 @@ struct torrent_view
 		torrents_queued,
 		torrents_stopped,
 		torrents_checking,
-		torrents_loaded,
 
 		torrents_max
 	};

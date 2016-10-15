@@ -356,7 +356,6 @@ bool torrent_view::show_torrent(lt::torrent_status const& st)
 		case torrents_queued: return st.paused && st.auto_managed;
 		case torrents_stopped: return st.paused && !st.auto_managed;
 		case torrents_checking: return st.state == lt::torrent_status::checking_files;
-		case torrents_loaded: return st.is_loaded;
 	}
 	return true;
 }
