@@ -102,7 +102,9 @@ namespace libtorrent
 		, has_incoming(false)
 		, seed_mode(false)
 		, moving_storage(false)
+#ifndef TORRENT_NO_DEPRECATE
 		, is_loaded(true)
+#endif
 		, announcing_to_trackers(false)
 		, announcing_to_lsd(false)
 		, announcing_to_dht(false)

@@ -114,7 +114,9 @@ void bind_torrent_status()
         .def_readonly("need_save_resume", &torrent_status::need_save_resume)
         .def_readonly("ip_filter_applies", &torrent_status::ip_filter_applies)
         .def_readonly("moving_storage", &torrent_status::moving_storage)
+#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("is_loaded", &torrent_status::is_loaded)
+#endif
         .def_readonly("announcing_to_trackers", &torrent_status::announcing_to_trackers)
         .def_readonly("announcing_to_lsd", &torrent_status::announcing_to_lsd)
         .def_readonly("announcing_to_dht", &torrent_status::announcing_to_dht)

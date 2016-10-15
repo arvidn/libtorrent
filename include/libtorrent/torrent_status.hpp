@@ -501,12 +501,13 @@ namespace libtorrent
 		// if a large file ends up being copied from one drive to another.
 		bool moving_storage;
 
+#ifndef TORRENT_NO_DEPRECATE
 		// true if this torrent is loaded into RAM. A torrent can be started
 		// and still not loaded into RAM, in case it has not had any peers interested in it
 		// yet. Torrents are loaded on demand.
-#ifndef TORRENT_NO_DEPRECATE
 		bool is_loaded;
 #else
+		// hidden
 		bool deprecated_is_loaded;
 #endif
 
