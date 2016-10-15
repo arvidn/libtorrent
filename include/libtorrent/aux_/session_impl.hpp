@@ -576,23 +576,6 @@ namespace libtorrent
 
 			int next_port() const;
 
-			// load the specified torrent, also
-			// pick the least recently used torrent and unload it, unless
-			// t is the least recently used, then the next least recently
-			// used is picked
-			// returns true if the torrent was loaded successfully
-			bool load_torrent(torrent* t) override;
-
-			// bump t to the top of the list of least recently used. i.e.
-			// make it the most recently used. This is done every time
-			// an action is performed that required the torrent to be
-			// loaded, indicating activity
-			void bump_torrent(torrent* t, bool back = true) override;
-
-			// evict torrents until there's space for one new torrent,
-			void evict_torrents_except(torrent* ignore);
-			void evict_torrent(torrent* t) override;
-
 			void deferred_submit_jobs() override;
 
 			char* allocate_buffer() override;
@@ -821,12 +804,6 @@ namespace libtorrent
 			// used when encryption is enabled
 			torrent_map m_obfuscated_torrents;
 #endif
-
-			// this is an LRU for torrents. It's used to determine
-			// which torrents should be loaded into RAM and which ones
-			// shouldn't. Each torrent that's loaded is part of this
-			// list.
-			linked_list<torrent> m_torrent_lru;
 
 #ifndef TORRENT_NO_DEPRECATE
 			//deprecated in 1.2

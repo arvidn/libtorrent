@@ -1484,17 +1484,6 @@ namespace libtorrent
 
 	piece_manager::~piece_manager() = default;
 
-#if TORRENT_USE_ASSERTS
-	void piece_manager::assert_torrent_refcount() const
-	{
-		if (!m_torrent) return;
-		// sorry about this layer violation, but it's
-		// quite convenient to make sure the torrent won't
-		// get unloaded under our feet later
-		TORRENT_ASSERT(static_cast<torrent*>(m_torrent.get())->refcount() > 0);
-	}
-#endif
-
 	int piece_manager::check_no_fastresume(storage_error& ec)
 	{
 		if (!m_storage->settings().get_bool(settings_pack::no_recheck_incomplete_resume))

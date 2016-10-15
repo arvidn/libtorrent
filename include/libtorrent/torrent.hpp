@@ -283,7 +283,6 @@ namespace libtorrent
 		, public request_callback
 		, public peer_class_set
 		, public std::enable_shared_from_this<torrent>
-		, public list_node<torrent> // used for torrent activity LRU
 	{
 	public:
 
@@ -325,25 +324,6 @@ namespace libtorrent
 		// this is called when the torrent has metadata.
 		// it will initialize the storage and the piece-picker
 		void init();
-
-		// called every time we actually need the torrent_info
-		// object to be fully loaded. If it isn't, this triggers
-		// loading it from disk
-		// the return value indicates success. If it failed to
-		// load, the torrent will be set to an error state and
-		// return false
-		bool need_loaded();
-
-		// unload the torrent file to save memory
-		void unload();
-		// returns true if parsed successfully
-		bool load(std::vector<char>& buffer);
-
-		// pinned torrents may not be unloaded
-		bool is_pinned() const { return m_pinned; }
-		void set_pinned(bool p);
-		bool is_loaded() const { return m_torrent_file->is_loaded(); }
-		bool should_be_loaded() const { return m_should_be_loaded; }
 
 		// find the peer that introduced us to the given endpoint. This is
 		// used when trying to holepunch. We need the introducer so that we
@@ -1073,10 +1053,6 @@ namespace libtorrent
 			m_links[aux::session_interface::torrent_state_updates].clear();
 		}
 
-		void dec_refcount(char const* purpose);
-		void inc_refcount(char const* purpose);
-		int refcount() const { return m_refcount; }
-
 		void inc_num_connecting()
 		{ ++m_num_connecting; }
 		void dec_num_connecting()
@@ -1361,11 +1337,6 @@ namespace libtorrent
 		// the number of pieces we completed the check of
 		int m_num_checked_pieces = 0;
 
-		// the number of async. operations that need this torrent
-		// loaded in RAM. having a refcount > 0 prevents it from
-		// being unloaded.
-		int m_refcount = 0;
-
 		// if the error ocurred on a file, this is the index of that file
 		// there are a few special cases, when this is negative. See
 		// set_error()
@@ -1584,16 +1555,6 @@ namespace libtorrent
 		// more blocks to disk!
 		bool m_deleted:1;
 
-		// pinned torrents are locked in RAM and won't be unloaded
-		// in favor of more active torrents. When the torrent is added,
-		// the user may choose to initialize this to 1, in which case
-		// it will never be unloaded from RAM
-		bool m_pinned:1;
-
-		// when this is false, we should unload the torrent as soon
-		// as the no other async. job needs the torrent loaded
-		bool m_should_be_loaded:1;
-
 // ----
 
 		// the timestamp of the last piece passed for this torrent specified in
@@ -1654,24 +1615,6 @@ namespace libtorrent
 		bool m_outstanding_check_files = false;
 #endif
 	};
-
-	struct torrent_ref_holder
-	{
-		torrent_ref_holder(torrent* t, char const* p)
-			: m_torrent(t)
-			, m_purpose(p)
-		{
-			if (m_torrent) m_torrent->inc_refcount(m_purpose);
-		}
-
-		~torrent_ref_holder()
-		{
-			if (m_torrent) m_torrent->dec_refcount(m_purpose);
-		}
-		torrent* m_torrent;
-		char const* m_purpose;
-	};
-
 }
 
 #endif // TORRENT_TORRENT_HPP_INCLUDED

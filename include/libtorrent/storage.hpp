@@ -578,9 +578,6 @@ namespace libtorrent
 
 		storage_interface* get_storage_impl() { return m_storage.get(); }
 
-#if TORRENT_USE_ASSERTS
-		void assert_torrent_refcount() const;
-#endif
 	private:
 
 		// if error is set and return value is 'no_error' or 'need_full_check'

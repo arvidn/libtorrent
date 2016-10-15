@@ -1211,155 +1211,6 @@ namespace aux {
 			? &m_download_rate : &m_upload_rate;
 	}
 
-	// the back argument determines whether this bump causes the torrent
-	// to be the most recently used or the least recently used. Putting
-	// the torrent at the back of the queue makes it the most recently
-	// used and the least likely to be evicted. This is the default.
-	// if back is false, the torrent is moved to the front of the queue,
-	// and made the most likely to be evicted. This is used for torrents
-	// that are paused, to give up their slot among the loaded torrents
-	void session_impl::bump_torrent(torrent* t, bool back)
-	{
-		if (t->is_aborted()) return;
-
-		bool new_torrent = false;
-
-		// if t is the only torrent in the LRU list, both
-		// its prev and next links will be nullptr, even though
-		// it's already in the list. Cover this case by also
-		// checking to see if it's the first item
-		if (t->next != nullptr || t->prev != nullptr || m_torrent_lru.front() == t)
-		{
-#if TORRENT_USE_ASSERTS
-			torrent* i = m_torrent_lru.front();
-			while (i != nullptr && i != t) i = i->next;
-			TORRENT_ASSERT(i == t);
-#endif
-
-			// this torrent is in the list already.
-			// first remove it
-			m_torrent_lru.erase(t);
-		}
-		else
-		{
-			new_torrent = true;
-		}
-
-		// pinned torrents should not be part of the LRU, since
-		// the LRU is only used to evict torrents
-		if (t->is_pinned()) return;
-
-		if (back)
-			m_torrent_lru.push_back(t);
-		else
-			m_torrent_lru.push_front(t);
-
-		if (new_torrent) evict_torrents_except(t);
-	}
-
-	void session_impl::evict_torrent(torrent* t)
-	{
-		TORRENT_ASSERT(!t->is_pinned());
-
-		// if there's no user-load function set, we cannot evict
-		// torrents. The feature is not enabled
-		if (!m_user_load_torrent) return;
-
-		// if it's already evicted, there's nothing to do
-		if (!t->is_loaded() || !t->should_be_loaded()) return;
-
-		TORRENT_ASSERT(t->next != nullptr || t->prev != nullptr || m_torrent_lru.front() == t);
-
-#if TORRENT_USE_ASSERTS
-		torrent* i = m_torrent_lru.front();
-		while (i != nullptr && i != t) i = i->next;
-		TORRENT_ASSERT(i == t);
-#endif
-
-		int loaded_limit = m_settings.get_int(settings_pack::active_loaded_limit);
-
-		// 0 means unlimited, never evict anything
-		if (loaded_limit == 0) return;
-
-		if (m_torrent_lru.size() > loaded_limit)
-		{
-			// just evict the torrent
-			m_stats_counters.inc_stats_counter(counters::torrent_evicted_counter);
-			TORRENT_ASSERT(t->is_pinned() == false);
-			t->unload();
-			m_torrent_lru.erase(t);
-			return;
-		}
-
-		// move this torrent to be the first to be evicted whenever
-		// another torrent need its slot
-		bump_torrent(t, false);
-	}
-
-	void session_impl::evict_torrents_except(torrent* ignore)
-	{
-		if (!m_user_load_torrent) return;
-
-		int loaded_limit = m_settings.get_int(settings_pack::active_loaded_limit);
-
-		// 0 means unlimited, never evict anything
-		if (loaded_limit == 0) return;
-
-		// if the torrent we're ignoring (i.e. making room for), allow
-		// one more torrent in the list.
-		if (ignore->next != nullptr || ignore->prev != nullptr || m_torrent_lru.front() == ignore)
-		{
-#if TORRENT_USE_ASSERTS
-			torrent* i = m_torrent_lru.front();
-			while (i != nullptr && i != ignore) i = i->next;
-			TORRENT_ASSERT(i == ignore);
-#endif
-			++loaded_limit;
-		}
-
-		while (m_torrent_lru.size() >= loaded_limit)
-		{
-			// we're at the limit of loaded torrents. Find the least important
-			// torrent and unload it. This is done with an LRU.
-			torrent* i = m_torrent_lru.front();
-
-			if (i == ignore)
-			{
-				i = i->next;
-				if (i == nullptr) break;
-			}
-			m_stats_counters.inc_stats_counter(counters::torrent_evicted_counter);
-			TORRENT_ASSERT(i->is_pinned() == false);
-			i->unload();
-			m_torrent_lru.erase(i);
-		}
-	}
-
-	bool session_impl::load_torrent(torrent* t)
-	{
-		TORRENT_ASSERT(is_single_thread());
-		evict_torrents_except(t);
-
-		// we wouldn't be loading the torrent if it was already
-		// in the LRU (and loaded)
-		TORRENT_ASSERT(t->next == nullptr && t->prev == nullptr && m_torrent_lru.front() != t);
-		TORRENT_ASSERT(m_user_load_torrent);
-
-		// now, load t into RAM
-		std::vector<char> buffer;
-		error_code ec;
-		m_user_load_torrent(t->info_hash(), buffer, ec);
-		if (ec)
-		{
-			t->set_error(ec, torrent_status::error_file_metadata);
-			t->pause(false);
-			return false;
-		}
-		bool ret = t->load(buffer);
-		if (ret) bump_torrent(t);
-		return ret;
-	}
-
 	void session_impl::deferred_submit_jobs()
 	{
 		if (m_deferred_submit_disk_jobs) return;
@@ -4379,8 +4230,6 @@ namespace aux {
 #else
 		TORRENT_UNUSED(uuid);
 #endif
-
-		TORRENT_ASSERT(m_torrents.size() >= m_torrent_lru.size());
 	}
 
 	void session_impl::set_queue_position(torrent* me, int p)
@@ -4789,8 +4638,6 @@ namespace aux {
 
 		m_torrents.insert(std::make_pair(params.info_hash, torrent_ptr));
 
-		TORRENT_ASSERT(m_torrents.size() >= m_torrent_lru.size());
-
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		static char const req2[4] = {'r', 'e', 'q', '2'};
 		hasher h(req2);
@@ -4799,12 +4646,6 @@ namespace aux {
 		// encrypted hand shakes
 		m_obfuscated_torrents.insert(std::make_pair(h.final(), torrent_ptr));
 #endif
-
-		if (torrent_ptr->is_pinned() == false)
-		{
-			evict_torrents_except(torrent_ptr.get());
-			bump_torrent(torrent_ptr.get());
-		}
 
 		// if this insert made the hash grow, the iterators became invalid
 		// we need to reset them
@@ -5137,12 +4978,6 @@ namespace aux {
 			}
 		}
 
-		if (m_torrent_lru.size() > 0
-			&& (t.prev != nullptr || t.next != nullptr || m_torrent_lru.front() == &t))
-			m_torrent_lru.erase(&t);
-
-		TORRENT_ASSERT(t.prev == nullptr && t.next == nullptr);
-
 		tptr->update_gauge();
 
 #if TORRENT_USE_ASSERTS
@@ -5156,8 +4991,6 @@ namespace aux {
 			++m_next_lsd_torrent;
 
 		m_torrents.erase(i);
-
-		TORRENT_ASSERT(m_torrents.size() >= m_torrent_lru.size());
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		static char const req2[4] = {'r', 'e', 'q', '2'};
@@ -5951,22 +5784,6 @@ namespace aux {
 			fclose(f);
 		}
 #endif
-
-		// clear the torrent LRU. We do this to avoid having the torrent
-		// destructor assert because it's still linked into the lru list
-#if TORRENT_USE_ASSERTS
-		list_node<torrent>* i = m_torrent_lru.get_all();
-		// clear the prev and next pointers in all torrents
-		// to avoid the assert when destructing them
-		while (i)
-		{
-			list_node<torrent>* tmp = i;
-			i = i->next;
-			tmp->next = nullptr;
-			tmp->prev = nullptr;
-		}
-#endif
-
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -6834,8 +6651,6 @@ namespace aux {
 	{
 		TORRENT_ASSERT(is_single_thread());
 
-		TORRENT_ASSERT(m_torrents.size() >= m_torrent_lru.size());
-
 		if (m_settings.get_int(settings_pack::unchoke_slots_limit) < 0
 			&& m_settings.get_int(settings_pack::choking_algorithm) == settings_pack::fixed_slots_choker)
 			TORRENT_ASSERT(m_stats_counters[counters::num_unchoke_slots] == (std::numeric_limits<int>::max)());
@@ -6849,16 +6664,6 @@ namespace aux {
 				TORRENT_ASSERT((*i)->m_links[l].in_list());
 			}
 		}
-
-		std::unordered_set<torrent*> unique_torrents;
-		for (list_iterator<torrent> i = m_torrent_lru.iterate(); i.get(); i.next())
-		{
-			torrent* t = i.get();
-			TORRENT_ASSERT(t->is_loaded());
-			TORRENT_ASSERT(unique_torrents.count(t) == 0);
-			unique_torrents.insert(t);
-		}
-		TORRENT_ASSERT(unique_torrents.size() == m_torrent_lru.size());
 
 		int torrent_state_gauges[counters::num_error_torrents - counters::num_checking_torrents + 1];
 		memset(torrent_state_gauges, 0, sizeof(torrent_state_gauges));

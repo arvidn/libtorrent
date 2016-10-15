@@ -161,8 +161,6 @@ namespace libtorrent { namespace aux
 		virtual bool has_connection(peer_connection* p) const = 0;
 		virtual void insert_peer(std::shared_ptr<peer_connection> const& c) = 0;
 
-		virtual void evict_torrent(torrent* t) = 0;
-
 		virtual void remove_torrent(torrent_handle const& h, int options = 0) = 0;
 		virtual void remove_torrent_impl(std::shared_ptr<torrent> tptr, int options) = 0;
 
@@ -208,14 +206,6 @@ namespace libtorrent { namespace aux
 
 		virtual std::uint16_t listen_port() const = 0;
 		virtual std::uint16_t ssl_listen_port() const = 0;
-
-		// load the specified torrent. also evict one torrent, except
-		// for the one specified, if we are at the limit of loaded torrents
-		virtual bool load_torrent(torrent* t) = 0;
-
-		// bump the specified torrent to make it the most recently used one
-		// in the torrent LRU (i.e. the least likely to get unloaded)
-		virtual void bump_torrent(torrent* t, bool back = true) = 0;
 
 		// ask for which interface and port to bind outgoing peer connections on
 		virtual tcp::endpoint bind_outgoing_socket(socket_type& s, address const&

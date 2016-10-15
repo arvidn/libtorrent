@@ -2830,12 +2830,6 @@ namespace libtorrent
 
 		if (t->is_deleted()) return;
 
-		if (!t->need_loaded())
-		{
-			t->add_redundant_bytes(p.length, waste_reason::piece_unknown);
-			return;
-		}
-		t->inc_refcount("async_write");
 		m_disk_thread.async_write(&t->storage(), p, std::move(data)
 			, std::bind(&peer_connection::on_disk_write_complete
 			, self(), _1, p, t));
@@ -2974,9 +2968,6 @@ namespace libtorrent
 		, peer_request p, std::shared_ptr<torrent> t)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		torrent_ref_holder h(t.get(), "async_write");
-		if (t) t->dec_refcount("async_write");
-
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::info))
 		{
@@ -5096,8 +5087,6 @@ namespace libtorrent
 #endif
 				// this means we're in seed mode and we haven't yet
 				// verified this piece (r.piece)
-				if (!t->need_loaded()) return;
-				t->inc_refcount("async_seed_hash");
 				m_disk_thread.async_hash(&t->storage(), r.piece, 0
 					, std::bind(&peer_connection::on_seed_mode_hashed, self(), _1)
 					, this);
@@ -5129,13 +5118,11 @@ namespace libtorrent
 				sent_a_piece = true;
 
 				// the callback function may be called immediately, instead of being posted
-				if (!t->need_loaded()) return;
 
 				TORRENT_ASSERT(t->valid_metadata());
 				TORRENT_ASSERT(r.piece >= 0);
 				TORRENT_ASSERT(r.piece < t->torrent_file().num_pieces());
 
-				t->inc_refcount("async_read");
 				m_disk_thread.async_read(&t->storage(), r
 					, std::bind(&peer_connection::on_disk_read_complete
 					, self(), _1, r, clock_type::now()), this);
@@ -5161,8 +5148,6 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		std::shared_ptr<torrent> t = m_torrent.lock();
-		torrent_ref_holder h(t.get(), "async_seed_hash");
-		if (t) t->dec_refcount("async_seed_hash");
 
 		TORRENT_ASSERT(m_outstanding_piece_verification > 0);
 		--m_outstanding_piece_verification;
@@ -5177,8 +5162,6 @@ namespace libtorrent
 		}
 
 		// we're using the piece hashes here, we need the torrent to be loaded
-		if (!t->need_loaded()) return;
-
 		if (!m_settings.get_bool(settings_pack::disable_hash_checks)
 			&& sha1_hash(j->d.piece_hash) != t->torrent_file().hash_for_piece(j->piece))
 		{
@@ -5235,9 +5218,6 @@ namespace libtorrent
 		m_reading_bytes -= r.length;
 
 		std::shared_ptr<torrent> t = m_torrent.lock();
-		torrent_ref_holder h(t.get(), "async_read");
-		if (t) t->dec_refcount("async_read");
-
 		if (j->ret < 0)
 		{
 			if (!t)

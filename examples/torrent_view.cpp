@@ -314,10 +314,9 @@ void torrent_view::print_torrent(lt::torrent_status const& s, bool selected)
 	else if (s.current_tracker.empty())
 		progress_bar_color = col_green;
 
-	pos += std::snprintf(str + pos, sizeof(str) - pos, "%s%c%-3s %-50s %s%s %s (%s) "
+	pos += std::snprintf(str + pos, sizeof(str) - pos, "%s%-3s %-50s %s%s %s (%s) "
 		"%s (%s) %5d:%-5d %s %s %c"
 		, selection
-		, s.is_loaded ? 'L' : ' '
 		, queue_pos
 		, name.c_str()
 		, progress_bar(s.progress_ppm / 1000, 35, progress_bar_color, '-', '#', torrent_state(s)).c_str()
@@ -357,7 +356,6 @@ bool torrent_view::show_torrent(lt::torrent_status const& st)
 		case torrents_queued: return st.paused && st.auto_managed;
 		case torrents_stopped: return st.paused && !st.auto_managed;
 		case torrents_checking: return st.state == lt::torrent_status::checking_files;
-		case torrents_loaded: return st.is_loaded;
 	}
 	return true;
 }
