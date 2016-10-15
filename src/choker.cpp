@@ -80,9 +80,9 @@ namespace libtorrent
 		// peers that are unchoked, but have sent more than one quota
 		// since they were unchoked, they get de-prioritized.
 
-		// if a peer is already unchoked, and the number of bytes sent since it was unchoked
-		// is greater than the send quanta, then it's done with it' upload slot, and we
-		// can de-prioritize it
+		// if a peer is already unchoked, the number of bytes sent since it was unchoked
+		// is greater than the send quanta, and it has been unchoked for at least one minute
+		// then it's done with its upload slot, and we can de-prioritize it
 		bool c1_quota_complete = !lhs->is_choked()
 			&& c1 > t1->torrent_file().piece_length() * pieces
 			&& aux::time_now() - lhs->time_of_last_unchoke() > minutes(1);
