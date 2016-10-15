@@ -117,10 +117,10 @@ protected:
 	std::vector<observer_ptr> m_results;
 	node_id const m_target;
 	boost::uint16_t m_ref_count;
-	boost::uint16_t m_invoke_count;
-	boost::uint16_t m_branch_factor;
-	boost::uint16_t m_responses;
-	boost::uint16_t m_timeouts;
+	boost::int16_t m_invoke_count;
+	boost::int16_t m_branch_factor;
+	boost::int16_t m_responses;
+	boost::int16_t m_timeouts;
 
 	// the IP addresses of the nodes in m_results
 	std::set<boost::uint32_t> m_peer4_prefixes;

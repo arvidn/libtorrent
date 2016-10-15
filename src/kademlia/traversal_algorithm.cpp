@@ -319,6 +319,8 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 
 	if (m_results.empty()) return;
 
+	bool decrement_branch_factor = false;
+
 	TORRENT_ASSERT(o->flags & observer::flag_queried);
 	if (flags & short_timeout)
 	{
@@ -329,7 +331,10 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 		// around for some more, but open up the slot
 		// by increasing the branch factor
 		if ((o->flags & observer::flag_short_timeout) == 0)
+		{
+			TORRENT_ASSERT(m_branch_factor < (std::numeric_limits<boost::int16_t>::max)());
 			++m_branch_factor;
+		}
 		o->flags |= observer::flag_short_timeout;
 #ifndef TORRENT_DISABLE_LOGGING
 		if (get_node().observer())
@@ -350,8 +355,7 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 		o->flags |= observer::flag_failed;
 		// if this flag is set, it means we increased the
 		// branch factor for it, and we should restore it
-		if (o->flags & observer::flag_short_timeout)
-			--m_branch_factor;
+		decrement_branch_factor = (o->flags & observer::flag_short_timeout) != 0;
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (get_node().observer())
@@ -372,12 +376,18 @@ void traversal_algorithm::failed(observer_ptr o, int flags)
 		--m_invoke_count;
 	}
 
-	if (flags & prevent_request)
+	// this is another reason to decrement the branch factor, to prevent another
+	// request from filling this slot. Only ever decrement once per response though
+	decrement_branch_factor |= (flags & prevent_request);
+
+	if (decrement_branch_factor)
 	{
+		TORRENT_ASSERT(m_branch_factor > 0);
 		--m_branch_factor;
 		if (m_branch_factor <= 0) m_branch_factor = 1;
 	}
-	bool is_done = add_requests();
+
+	bool const is_done = add_requests();
 	if (is_done) done();
 }
 
@@ -499,7 +509,7 @@ bool traversal_algorithm::add_requests()
 		o->flags |= observer::flag_queried;
 		if (invoke(*i))
 		{
-			TORRENT_ASSERT(m_invoke_count < (std::numeric_limits<boost::uint16_t>::max)());
+			TORRENT_ASSERT(m_invoke_count < (std::numeric_limits<boost::int16_t>::max)());
 			++m_invoke_count;
 			++outstanding;
 		}
