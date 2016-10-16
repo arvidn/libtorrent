@@ -117,10 +117,10 @@ namespace libtorrent
 		virtual std::string message() const override;
 
 		// The peer's IP address and port.
-		tcp::endpoint ip;
+		tcp::endpoint const ip;
 
 		// the peer ID, if known.
-		peer_id pid;
+		peer_id const pid;
 	};
 
 	// This is a base class used for alerts that are associated with a
@@ -671,7 +671,7 @@ namespace libtorrent
 		static const int static_category = alert::debug_notification;
 		virtual std::string message() const override;
 
-		int socket_type;
+		int const socket_type;
 	};
 
 	// This alert is generated when a peer is disconnected for any reason (other than the ones
@@ -1501,7 +1501,7 @@ namespace libtorrent
 
 		// the reason for the peer being blocked. Is one of the values from the
 		// reason_t enum.
-		int reason;
+		int const reason;
 	};
 
 	// This alert is generated when a DHT node announces to an info-hash on our
@@ -1758,10 +1758,10 @@ namespace libtorrent
 		// 8. HTTPS (SSL/HTTP)
 		// 9. SSL/uTP
 		// 
-		int socket_type;
+		int const socket_type;
 
 		// is the IP address and port the connection came from.
-		tcp::endpoint ip;
+		tcp::endpoint const ip;
 	};
 
 	// This alert is always posted when a torrent was attempted to be added
@@ -1781,10 +1781,10 @@ namespace libtorrent
 
 		// a copy of the parameters used when adding the torrent, it can be used
 		// to identify which invocation to ``async_add_torrent()`` caused this alert.
-		add_torrent_params params;
+		add_torrent_params const params;
 
 		// set to the error, if one occurred while adding the torrent.
-		error_code error;
+		error_code const error;
 	};
 
 	// This alert is only posted when requested by the user, by calling
@@ -1843,7 +1843,7 @@ namespace libtorrent
 		// interpret these values throughout the process' runtime.
 		//
 		// For more information, see the session-statistics_ section.
-		std::uint64_t values[counters::num_counters];
+		std::int64_t values[counters::num_counters];
 	};
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -2308,7 +2308,7 @@ namespace libtorrent
 
 		virtual std::string message() const override;
 
-		sha1_hash info_hash;
+		sha1_hash const info_hash;
 
 		int num_peers() const;
 
@@ -2413,7 +2413,7 @@ namespace libtorrent
 		std::string message() const override;
 
 		// The error code, if one is associated with this error
-		error_code error;
+		error_code const error;
 
 	private:
 		std::reference_wrapper<aux::stack_allocator> m_alloc;
