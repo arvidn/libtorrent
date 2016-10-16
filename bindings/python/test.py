@@ -40,6 +40,14 @@ class test_torrent_handle(unittest.TestCase):
 		h.prioritize_pieces([(0, 1)])
 		self.assertEqual(h.piece_priorities(), [1])
 
+	def test_scrape(self):
+		ses = lt.session({'alert_mask': lt.alert.category_t.all_categories, 'enable_dht': False})
+		ti = lt.torrent_info('url_seed_multi.torrent');
+		h = ses.add_torrent({'ti': ti, 'save_path': os.getcwd()})
+		# this is just to make sure this function can be called like this
+		# from python
+		h.scrape_tracker()
+
 class test_torrent_info(unittest.TestCase):
 
 	def test_bencoded_constructor(self):
