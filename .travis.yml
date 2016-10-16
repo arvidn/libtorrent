@@ -66,7 +66,6 @@ before_install:
     fi
   - 'if [[ $toolset == "gcc-sanitizer" ]]; then export test_args=testing.arg="--no-stderr-redirect"; fi'
   - 'echo "toolset: " ${toolset}'
-  - 'echo "coverage_toolset: " ${coverage_toolset}'
   - 'echo "variant: " ${variant}'
 # disable leak checking for now. it reports some suspicious reports against some
 # tests

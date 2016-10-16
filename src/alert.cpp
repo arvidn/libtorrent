@@ -1895,7 +1895,7 @@ namespace libtorrent {
 		, m_alloc(alloc)
 		, m_num_peers(int(peers.size()))
 	{
-		std::size_t total_size = 0; // num bytes for sizes
+		std::size_t total_size = peers.size(); // num bytes for sizes
 		for (int i = 0; i < m_num_peers; i++) {
 			total_size += peers[i].size();
 		}
@@ -1905,7 +1905,7 @@ namespace libtorrent {
 		char *ptr = alloc.ptr(m_peers_idx);
 		for (int i = 0; i < m_num_peers; i++) {
 			tcp::endpoint const& endp = peers[i];
-			std::size_t size = endp.size();
+			std::size_t const size = endp.size();
 			TORRENT_ASSERT(size < 0x100);
 			detail::write_uint8(uint8_t(size), ptr);
 			std::memcpy(ptr, endp.data(), size);
