@@ -121,6 +121,11 @@ namespace libtorrent
 
 		// the peer ID, if known.
 		peer_id const pid;
+
+#ifndef TORRENT_NO_DEPRECATE
+		// The peer's IP address and port.
+		tcp::endpoint const ip;
+#endif
 	};
 
 	// This is a base class used for alerts that are associated with a
@@ -224,6 +229,10 @@ namespace libtorrent
 		boost::shared_array<char> const buffer;
 		int const piece;
 		int const size;
+
+#ifndef TORRENT_NO_DEPRECATE
+		error_code ec;
+#endif
 	};
 
 	// This is posted whenever an individual file completes its download. i.e.
@@ -1282,6 +1291,9 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 		// the address and port libtorrent attempted to listen on
 		tcp::endpoint endpoint;
+
+		// the type of listen socket this alert refers to.
+		socket_type_t sock_type;
 #endif
 
 	private:
@@ -1322,14 +1334,17 @@ namespace libtorrent
 		// the port libtorrent ended up listening on.
 		int const port;
 
+		// the type of listen socket this alert refers to.
+		socket_type_t const socket_type;
+
 #ifndef TORRENT_NO_DEPRECATE
 		// the endpoint libtorrent ended up listening on. The address
 		// refers to the local interface and the port is the listen port.
 		tcp::endpoint endpoint;
-#endif
 
 		// the type of listen socket this alert refers to.
-		socket_type_t const socket_type;
+		socket_type_t sock_type;
+#endif
 	};
 
 	// This alert is generated when a NAT router was successfully found but some
@@ -1761,6 +1776,11 @@ namespace libtorrent
 
 		// is the IP address and port the connection came from.
 		tcp::endpoint const endpoint;
+
+#ifndef TORRENT_NO_DEPRECATE
+		// is the IP address and port the connection came from.
+		tcp::endpoint const ip;
+#endif
 	};
 
 	// This alert is always posted when a torrent was attempted to be added
@@ -1865,10 +1885,9 @@ namespace libtorrent
 		static const int static_category = alert::status_notification;
 		virtual std::string message() const override;
 
-		// ``old_ih`` and ``new_ih`` are the previous and
-		// new info-hash for the torrent, respectively.
-		sha1_hash const old_ih;
-		sha1_hash const new_ih;
+		// ``old_ih`` and ``new_ih`` are the previous and new info-hash for the torrent, respectively.
+		sha1_hash old_ih;
+		sha1_hash new_ih;
 	};
 #endif
 
@@ -2027,6 +2046,11 @@ namespace libtorrent
 
 		// the endpoint we're sending this query to
 		udp::endpoint const endpoint;
+
+#ifndef TORRENT_NO_DEPRECATE
+		// the endpoint we're sending this query to
+		udp::endpoint ip;
+#endif
 	};
 
 	// This alert is posted by some session wide event. Its main purpose is
@@ -2046,6 +2070,12 @@ namespace libtorrent
 
 		// returns the log message
 		char const* log_message() const;
+
+#ifndef TORRENT_NO_DEPRECATE
+		// returns the log message
+		TORRENT_DEPRECATED
+		char const* msg() const;
+#endif
 
 	private:
 		std::reference_wrapper<aux::stack_allocator const> m_alloc;
@@ -2069,6 +2099,12 @@ namespace libtorrent
 
 		// returns the log message
 		char const* log_message() const;
+
+#ifndef TORRENT_NO_DEPRECATE
+		// returns the log message
+		TORRENT_DEPRECATED
+		char const* msg() const;
+#endif
 
 	private:
 		int const m_str_idx;
@@ -2110,6 +2146,12 @@ namespace libtorrent
 
 		// returns the log message
 		char const* log_message() const;
+
+#ifndef TORRENT_NO_DEPRECATE
+		// returns the log message
+		TORRENT_DEPRECATED
+		char const* msg() const;
+#endif
 
 	private:
 		int const m_str_idx;
@@ -2291,6 +2333,10 @@ namespace libtorrent
 		// (depending on ``direction``).
 		udp::endpoint const node;
 
+#ifndef TORRENT_NO_DEPRECATE
+		direction_t const dir;
+#endif
+
 	private:
 		std::reference_wrapper<aux::stack_allocator> m_alloc;
 		int const m_msg_idx;
@@ -2344,6 +2390,10 @@ namespace libtorrent
 		udp::endpoint const endpoint;
 
 		bdecode_node response() const;
+
+#ifndef TORRENT_NO_DEPRECATE
+		udp::endpoint const addr;
+#endif
 
 	private:
 		std::reference_wrapper<aux::stack_allocator> m_alloc;

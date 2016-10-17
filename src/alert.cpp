@@ -105,6 +105,9 @@ namespace libtorrent {
 		: torrent_alert(alloc, h)
 		, endpoint(i)
 		, pid(pi)
+#ifndef TORRENT_NO_DEPRECATE
+		, ip(i)
+#endif
 	{}
 
 	std::string peer_alert::message() const
@@ -151,6 +154,9 @@ namespace libtorrent {
 		, error(e)
 		, piece(p)
 		, size(0)
+#ifndef TORRENT_NO_DEPRECATE
+		, ec(e)
+#endif
 	{}
 
 	std::string read_piece_alert::message() const
@@ -812,6 +818,7 @@ namespace libtorrent {
 		, port(listen_port)
 #ifndef TORRENT_NO_DEPRECATE
 		, endpoint(listen_addr, listen_port)
+		, sock_type(t)
 #endif
 		, m_alloc(alloc)
 		, m_interface_idx(alloc.copy_string(iface))
@@ -944,10 +951,11 @@ namespace libtorrent {
 		, socket_type_t t)
 		: address(listen_addr)
 		, port(listen_port)
+		, socket_type(t)
 #ifndef TORRENT_NO_DEPRECATE
 		, endpoint(listen_addr, listen_port)
+		, sock_type(t)
 #endif
-		, socket_type(t)
 	{}
 
 	listen_succeeded_alert::listen_succeeded_alert(aux::stack_allocator& alloc
@@ -1322,6 +1330,9 @@ namespace libtorrent {
 		, tcp::endpoint const& i)
 		: socket_type(t)
 		, endpoint(i)
+#ifndef TORRENT_NO_DEPRECATE
+		, ip(i)
+#endif
 	{}
 
 	std::string incoming_connection_alert::message() const
@@ -1621,6 +1632,9 @@ namespace libtorrent {
 		: info_hash(ih)
 		, obfuscated_info_hash(obfih)
 		, endpoint(std::move(ep))
+#ifndef TORRENT_NO_DEPRECATE
+		, ip(endpoint)
+#endif
 	{}
 
 	std::string dht_outgoing_get_peers_alert::message() const
@@ -1654,6 +1668,13 @@ namespace libtorrent {
 		return m_alloc.get().ptr(m_str_idx);
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
+	char const* log_alert::msg() const
+	{
+		return log_message();
+	}
+#endif
+
 	std::string log_alert::message() const
 	{
 		return log_message();
@@ -1669,6 +1690,13 @@ namespace libtorrent {
 	{
 		return m_alloc.get().ptr(m_str_idx);
 	}
+
+#ifndef TORRENT_NO_DEPRECATE
+	char const* torrent_log_alert::msg() const
+	{
+		return log_message();
+	}
+#endif
 
 	std::string torrent_log_alert::message() const
 	{
@@ -1690,6 +1718,13 @@ namespace libtorrent {
 	{
 		return m_alloc.get().ptr(m_str_idx);
 	}
+
+#ifndef TORRENT_NO_DEPRECATE
+	char const* peer_log_alert::msg() const
+	{
+		return log_message();
+	}
+#endif
 
 	std::string peer_log_alert::message() const
 	{
@@ -1882,6 +1917,9 @@ namespace libtorrent {
 		, udp::endpoint const& ep)
 		: direction(d)
 		, node(std::move(ep))
+#ifndef TORRENT_NO_DEPRECATE
+		, dir(d)
+#endif
 		, m_alloc(alloc)
 		, m_msg_idx(alloc.copy_buffer(buf))
 		, m_size(int(buf.size()))
@@ -1974,7 +2012,11 @@ namespace libtorrent {
 	dht_direct_response_alert::dht_direct_response_alert(
 		aux::stack_allocator& alloc, void* userdata_
 		, udp::endpoint const& addr_, bdecode_node const& response)
-		: userdata(userdata_), endpoint(addr_), m_alloc(alloc)
+		: userdata(userdata_), endpoint(addr_)
+#ifndef TORRENT_NO_DEPRECATE
+		, addr(addr_)
+#endif
+		, m_alloc(alloc)
 		, m_response_idx(alloc.copy_buffer(response.data_section()))
 		, m_response_size(int(response.data_section().size()))
 	{}
@@ -1983,7 +2025,11 @@ namespace libtorrent {
 		aux::stack_allocator& alloc
 		, void* userdata_
 		, udp::endpoint const& addr_)
-		: userdata(userdata_), endpoint(addr_), m_alloc(alloc)
+		: userdata(userdata_), endpoint(addr_)
+#ifndef TORRENT_NO_DEPRECATE
+		, addr(addr_)
+#endif
+		, m_alloc(alloc)
 		, m_response_idx(-1), m_response_size(0)
 	{}
 
