@@ -98,6 +98,7 @@ const rlim_t rlim_infinity = RLIM_INFINITY;
 #include "libtorrent/platform_util.hpp"
 #include "libtorrent/aux_/bind_to_device.hpp"
 #include "libtorrent/hex.hpp" // to_hex, from_hex
+#include "libtorrent/aux_/scope_end.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
 
@@ -4536,6 +4537,8 @@ namespace aux {
 
 	void session_impl::async_add_torrent(add_torrent_params* params)
 	{
+		std::unique_ptr<add_torrent_params> holder(params);
+
 		if (string_begins_no_case("file://", params->url.c_str()) && !params->ti)
 		{
 			m_disk_thread.async_load_torrent(params
@@ -4545,12 +4548,12 @@ namespace aux {
 
 		error_code ec;
 		add_torrent(*params, ec);
-		delete params;
 	}
 
 	void session_impl::on_async_load_torrent(disk_io_job const* j)
 	{
 		add_torrent_params* params = reinterpret_cast<add_torrent_params*>(j->requester);
+		std::unique_ptr<add_torrent_params> holder(params);
 		if (j->error.ec)
 		{
 			m_alerts.emplace_alert<add_torrent_alert>(torrent_handle()
@@ -4564,8 +4567,6 @@ namespace aux {
 			error_code ec;
 			add_torrent(*params, ec);
 		}
-
-		delete params;
 	}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -4587,6 +4588,11 @@ namespace aux {
 		// params is updated by add_torrent_impl()
 		add_torrent_params params = p;
 		std::shared_ptr<torrent> torrent_ptr;
+
+		// in case there's an error, make sure to abort the torrent before leaving
+		// the scope
+		auto abort_torrent = aux::scope_end([&]{ if (torrent_ptr) torrent_ptr->abort(); });
+
 		bool added;
 		std::tie(torrent_ptr, added) = add_torrent_impl(params, ec);
 
@@ -4634,7 +4640,7 @@ namespace aux {
 		if (m_next_dht_torrent != m_torrents.end())
 			next_dht = m_next_dht_torrent->first;
 #endif
-		float load_factor = m_torrents.load_factor();
+		float const load_factor = m_torrents.load_factor();
 
 		m_torrents.insert(std::make_pair(params.info_hash, torrent_ptr));
 
@@ -4646,6 +4652,10 @@ namespace aux {
 		// encrypted hand shakes
 		m_obfuscated_torrents.insert(std::make_pair(h.final(), torrent_ptr));
 #endif
+
+		// once we successfully add the torrent, we can disarm the abort action
+		abort_torrent.disarm();
+		torrent_ptr->added();
 
 		// if this insert made the hash grow, the iterators became invalid
 		// we need to reset them
@@ -4991,6 +5001,7 @@ namespace aux {
 			++m_next_lsd_torrent;
 
 		m_torrents.erase(i);
+		tptr->removed();
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		static char const req2[4] = {'r', 'e', 'q', '2'};
@@ -5755,8 +5766,7 @@ namespace aux {
 		// this is not allowed to be the network thread!
 //		TORRENT_ASSERT(is_not_thread());
 
-		TORRENT_ASSERT(m_torrents.empty());
-		TORRENT_ASSERT(m_connections.empty());
+// TODO: asserts that no outstanding async operations are still in flight
 
 #if defined TORRENT_ASIO_DEBUGGING
 		FILE* f = fopen("wakeups.log", "w+");
@@ -6676,10 +6686,9 @@ namespace aux {
 		int num_active_downloading = 0;
 		int num_active_finished = 0;
 		int total_downloaders = 0;
-		for (torrent_map::const_iterator i = m_torrents.begin()
-			, end(m_torrents.end()); i != end; ++i)
+		for (auto const& tor : m_torrents)
 		{
-			std::shared_ptr<torrent> t = i->second;
+			std::shared_ptr<torrent> const& t = tor.second;
 			if (t->want_peers_download()) ++num_active_downloading;
 			if (t->want_peers_finished()) ++num_active_finished;
 			TORRENT_ASSERT(!(t->want_peers_download() && t->want_peers_finished()));

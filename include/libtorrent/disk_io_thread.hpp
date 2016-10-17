@@ -618,6 +618,12 @@ namespace libtorrent
 		std::mutex m_completed_jobs_mutex;
 		jobqueue_t m_completed_jobs;
 
+		// this is protected by the completed_jobs_mutex. It's true whenever
+		// there's a call_job_handlers message in-flight to the network thread. We
+		// only ever keep one such message in flight at a time, and coalesce
+		// completion callbacks in m_completed jobs
+		bool m_job_completions_in_flight = false;
+
 		// these are blocks that have been returned by the main thread
 		// but they haven't been freed yet. This is used to batch
 		// reclaiming of blocks, to only need one std::mutex lock per cycle

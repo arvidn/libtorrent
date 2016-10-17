@@ -530,7 +530,8 @@ namespace libtorrent
 			partfile_read,
 			partfile_write,
 			check_resume,
-			hard_link
+			hard_link,
+			exception
 		};
 
 		// Returns a string literal representing the file operation
@@ -543,7 +544,7 @@ namespace libtorrent
 				"", "stat", "mkdir", "open", "rename", "remove", "copy"
 				, "read", "write", "fallocate", "allocate cache piece"
 				, "partfile move", "partfile read", "partfile write"
-				, "check resume", "hard_link"
+				, "check resume", "hard_link", "exception"
 			};
 			return ops[operation];
 		}

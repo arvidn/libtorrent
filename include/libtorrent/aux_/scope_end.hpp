@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2011-2016, Arvid Norberg
+Copyright (c) 2016, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,48 +30,35 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_LINK_HPP_INCLUDED
-#define TORRENT_LINK_HPP_INCLUDED
+#ifndef TORRENT_SCOPE_END_HPP_INCLUDED
+#define TORRENT_SCOPE_END_HPP_INCLUDED
 
-namespace libtorrent
-{
-	struct link
+#include <utility>
+
+namespace libtorrent { namespace aux {
+
+	template <typename Fun>
+	struct scope_end_impl
 	{
-		link() : index(-1) {}
-		// this is either -1 (not in the list)
-		// or the index of where in the list this
-		// element is found
-		int index;
+		scope_end_impl(Fun f) : m_fun(std::move(f)) {}
+		~scope_end_impl() { if (m_armed) m_fun(); }
 
-		bool in_list() const { return index >= 0; }
+		// movable
+		scope_end_impl(scope_end_impl&&) = default;
+		scope_end_impl& operator=(scope_end_impl&&) = default;
 
-		void clear() { index = -1; }
-
-		template <class T>
-		void unlink(std::vector<T*>& list, int link_index)
-		{
-			if (index == -1) return;
-			TORRENT_ASSERT(index >= 0 && index < int(list.size()));
-			int const last = int(list.size()) - 1;
-			if (index < last)
-			{
-				list[last]->m_links[link_index].index = index;
-				list[index] = list[last];
-			}
-			list.resize(last);
-			index = -1;
-		}
-
-		template <class T>
-		void insert(std::vector<T*>& list, T* self)
-		{
-			if (index >= 0) return;
-			TORRENT_ASSERT(index == -1);
-			list.push_back(self);
-			index = int(list.size()) - 1;
-		}
+		// non-copyable
+		scope_end_impl(scope_end_impl const&) = delete;
+		scope_end_impl& operator=(scope_end_impl const&) = delete;
+		void disarm() { m_armed = false; }
+	private:
+		Fun m_fun;
+		bool m_armed = true;
 	};
-}
+
+	template <typename Fun>
+	scope_end_impl<Fun> scope_end(Fun f) { return scope_end_impl<Fun>(std::move(f)); }
+}}
 
 #endif
 

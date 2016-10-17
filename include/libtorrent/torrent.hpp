@@ -299,6 +299,21 @@ namespace libtorrent
 		// starts the announce timer
 		void start(add_torrent_params const& p);
 
+		void added()
+		{
+			TORRENT_ASSERT(m_added == false);
+			m_added = true;
+			update_gauge();
+		}
+
+		void removed()
+		{
+			TORRENT_ASSERT(m_added == true);
+			m_added = false;
+			// make sure we decrement the gauge counter for this torrent
+			update_gauge();
+		}
+
 		void start_download_url();
 
 		// returns which stats gauge this torrent currently
@@ -1402,6 +1417,10 @@ namespace libtorrent
 		// this is true while tracker announcing is enabled
 		// is is disabled while paused and checking files
 		bool m_announcing:1;
+
+		// this is true when the torrent has been added to the session. Before
+		// then, it isn't included in the counters (session_stats)
+		bool m_added:1;
 
 		// this is > 0 while the tracker deadline timer
 		// is in use. i.e. one or more trackers are waiting

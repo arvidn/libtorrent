@@ -52,3 +52,6 @@ alias libtorrent-sims :
 	[ run test_save_resume.cpp ]
 	;
 
+run test_error_handling.cpp ;
+explicit test_error_handling ;
+

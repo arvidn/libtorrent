@@ -70,8 +70,14 @@ namespace libtorrent
 	void torrent_handle::async_call(Fun f, Args&&... a) const
 	{
 		std::shared_ptr<torrent> t = m_torrent.lock();
-		TORRENT_ASSERT_PRECOND(t);
-		if (!t) return;
+		if (!t)
+		{
+#ifndef BOOST_NO_EXCEPTIONS
+			throw_invalid_handle();
+#else
+			std::terminate();
+#endif
+		}
 		session_impl& ses = static_cast<session_impl&>(t->session());
 		ses.get_io_service().dispatch([=,&ses] ()
 		{
@@ -98,8 +104,14 @@ namespace libtorrent
 	void torrent_handle::sync_call(Fun f, Args&&... a) const
 	{
 		std::shared_ptr<torrent> t = m_torrent.lock();
-		TORRENT_ASSERT_PRECOND(t);
-		if (!t) return;
+		if (!t)
+		{
+#ifndef BOOST_NO_EXCEPTIONS
+			throw_invalid_handle();
+#else
+			std::terminate();
+#endif
+		}
 		session_impl& ses = static_cast<session_impl&>(t->session());
 
 		// this is the flag to indicate the call has completed
@@ -130,9 +142,12 @@ namespace libtorrent
 	Ret torrent_handle::sync_call_ret(Ret def, Fun f, Args&&... a) const
 	{
 		std::shared_ptr<torrent> t = m_torrent.lock();
-		TORRENT_ASSERT_PRECOND(t);
 		Ret r = def;
+#ifndef BOOST_NO_EXCEPTIONS
+		if (!t) throw_invalid_handle();
+#else
 		if (!t) return r;
+#endif
 		session_impl& ses = static_cast<session_impl&>(t->session());
 
 		// this is the flag to indicate the call has completed
