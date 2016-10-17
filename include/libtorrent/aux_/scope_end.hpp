@@ -40,7 +40,7 @@ namespace libtorrent { namespace aux {
 	template <typename Fun>
 	struct scope_end_impl
 	{
-		scope_end_impl(Fun f) : m_fun(std::move(f)) {}
+		explicit scope_end_impl(Fun f) : m_fun(std::move(f)) {}
 		~scope_end_impl() { if (m_armed) m_fun(); }
 
 		// movable

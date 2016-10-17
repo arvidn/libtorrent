@@ -538,6 +538,7 @@ namespace libtorrent
 
 	void disk_buffer_pool::remove_buffer_in_use(char* buf)
 	{
+		TORRENT_UNUSED(buf);
 #if TORRENT_USE_INVARIANT_CHECKS
 		std::set<char*>::iterator i = m_buffers_in_use.find(buf);
 		TORRENT_ASSERT(i != m_buffers_in_use.end());

@@ -1098,6 +1098,8 @@ namespace libtorrent
 		}
 		void add_suggest_piece(int index);
 
+		enum { no_gauge_state = 0xf };
+
 	private:
 
 		void ip_filter_updated();
@@ -1599,7 +1601,6 @@ namespace libtorrent
 		// slots.
 		bool m_auto_managed:1;
 
-		enum { no_gauge_state = 0xf };
 		// the current stats gauge this torrent counts against
 		std::uint32_t m_current_gauge_state:4;
 

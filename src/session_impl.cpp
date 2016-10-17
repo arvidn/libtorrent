@@ -6675,8 +6675,9 @@ namespace aux {
 			}
 		}
 
-		int torrent_state_gauges[counters::num_error_torrents - counters::num_checking_torrents + 1];
-		memset(torrent_state_gauges, 0, sizeof(torrent_state_gauges));
+		int const num_gauges = counters::num_error_torrents - counters::num_checking_torrents + 1;
+		std::array<int, num_gauges> torrent_state_gauges;
+		torrent_state_gauges.fill(0);
 
 #if defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
 
@@ -6693,7 +6694,11 @@ namespace aux {
 			if (t->want_peers_finished()) ++num_active_finished;
 			TORRENT_ASSERT(!(t->want_peers_download() && t->want_peers_finished()));
 
-			++torrent_state_gauges[t->current_stats_state() - counters::num_checking_torrents];
+			int const state = t->current_stats_state() - counters::num_checking_torrents;
+			if (state != torrent::no_gauge_state)
+			{
+				++torrent_state_gauges[state];
+			}
 
 			int pos = t->queue_position();
 			if (pos < 0)

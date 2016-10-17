@@ -127,7 +127,7 @@ namespace libtorrent
 
 	struct piece_refcount_holder
 	{
-		piece_refcount_holder(cached_piece_entry* p) : m_pe(p)
+		explicit piece_refcount_holder(cached_piece_entry* p) : m_pe(p)
 		{ ++m_pe->piece_refcount; }
 		~piece_refcount_holder()
 		{
@@ -154,7 +154,7 @@ namespace libtorrent
 	template <typename Lock>
 	struct scoped_unlocker_impl
 	{
-		scoped_unlocker_impl(Lock& l) : m_lock(&l) { m_lock->unlock(); }
+		explicit scoped_unlocker_impl(Lock& l) : m_lock(&l) { m_lock->unlock(); }
 		~scoped_unlocker_impl() { if (m_lock) m_lock->lock(); }
 		scoped_unlocker_impl(scoped_unlocker_impl&& rhs) : m_lock(rhs.m_lock)
 		{ rhs.m_lock = nullptr; }
