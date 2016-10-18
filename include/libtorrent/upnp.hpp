@@ -280,7 +280,7 @@ private:
 		// the url to the WANIP or WANPPP interface
 		std::string control_url;
 		// either the WANIP namespace or the WANPPP namespace
-		char const* service_namespace = nullptr;
+		std::string service_namespace;
 
 		std::vector<mapping_t> mapping;
 
