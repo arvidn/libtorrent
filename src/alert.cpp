@@ -780,15 +780,20 @@ namespace libtorrent {
 
 	namespace
 	{
+		int sock_type_idx(socket_type_t type)
+		{
+			int idx =
+				static_cast<std::underlying_type<socket_type_t>::type>(type);
+			TORRENT_ASSERT(0 <= idx && idx < 6);
+			return idx;
+		}
+
 		char const* sock_type_str(socket_type_t type)
 		{
 			static char const* type_str[] =
 				{ "TCP", "TCP/SSL", "UDP", "I2P", "Socks5", "uTP/SSL" };
 
-			int idx =
-				static_cast<std::underlying_type<socket_type_t>::type>(type);
-			TORRENT_ASSERT(0 <= idx && idx < 6);
-			return type_str[idx];
+			return type_str[sock_type_idx(type)];
 		}
 
 		static char const* const nat_type_str[] = {"NAT-PMP", "UPnP"};
@@ -816,7 +821,7 @@ namespace libtorrent {
 		, int listen_port
 		, int op
 		, error_code const& ec
-		, socket_type_t t)
+		, libtorrent::socket_type_t t)
 		: error(ec)
 		, operation(op)
 		, socket_type(t)
@@ -824,7 +829,7 @@ namespace libtorrent {
 		, port(listen_port)
 #ifndef TORRENT_NO_DEPRECATE
 		, endpoint(listen_addr, listen_port)
-		, sock_type(t)
+		, sock_type(static_cast<socket_type_t>(sock_type_idx(t)))
 #endif
 		, m_alloc(alloc)
 		, m_interface_idx(alloc.copy_string(iface))
@@ -836,7 +841,7 @@ namespace libtorrent {
 		, tcp::endpoint const& ep
 		, int op
 		, error_code const& ec
-		, socket_type_t t)
+		, libtorrent::socket_type_t t)
 		: listen_failed_alert(alloc
 			, iface
 			, ep.address()
@@ -852,7 +857,7 @@ namespace libtorrent {
 		, udp::endpoint const& ep
 		, int op
 		, error_code const& ec
-		, socket_type_t t)
+		, libtorrent::socket_type_t t)
 		: listen_failed_alert(alloc
 			, iface
 			, ep.address()
@@ -867,7 +872,7 @@ namespace libtorrent {
 		, string_view iface
 		, int op
 		, error_code const& ec
-		, socket_type_t t)
+		, libtorrent::socket_type_t t)
 		: listen_failed_alert(alloc
 			, iface
 			, libtorrent::address()
@@ -954,19 +959,19 @@ namespace libtorrent {
 	listen_succeeded_alert::listen_succeeded_alert(aux::stack_allocator&
 		, libtorrent::address const& listen_addr
 		, int listen_port
-		, socket_type_t t)
+		, libtorrent::socket_type_t t)
 		: address(listen_addr)
 		, port(listen_port)
 		, socket_type(t)
 #ifndef TORRENT_NO_DEPRECATE
 		, endpoint(listen_addr, listen_port)
-		, sock_type(t)
+		, sock_type(static_cast<socket_type_t>(sock_type_idx(t)))
 #endif
 	{}
 
 	listen_succeeded_alert::listen_succeeded_alert(aux::stack_allocator& alloc
 		, tcp::endpoint const& ep
-		, socket_type_t t)
+		, libtorrent::socket_type_t t)
 		: listen_succeeded_alert(alloc
 			, ep.address()
 			, ep.port()
@@ -975,7 +980,7 @@ namespace libtorrent {
 
 	listen_succeeded_alert::listen_succeeded_alert(aux::stack_allocator& alloc
 		, udp::endpoint const& ep
-		, socket_type_t t)
+		, libtorrent::socket_type_t t)
 		: listen_succeeded_alert(alloc
 			, ep.address()
 			, ep.port()
