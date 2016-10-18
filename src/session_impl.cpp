@@ -4543,6 +4543,7 @@ namespace aux {
 		{
 			m_disk_thread.async_load_torrent(params
 				, std::bind(&session_impl::on_async_load_torrent, this, _1));
+			holder.release();
 			return;
 		}
 
