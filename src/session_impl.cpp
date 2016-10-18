@@ -1382,10 +1382,10 @@ namespace aux {
 		listen_socket_t ret;
 		ret.ssl = (flags & open_ssl_socket) != 0;
 		int last_op = 0;
-		listen_failed_alert::socket_type_t const sock_type
+		socket_type_t const sock_type
 			= (flags & open_ssl_socket)
-			? listen_failed_alert::tcp_ssl
-			: listen_failed_alert::tcp;
+			? socket_type_t::tcp_ssl
+			: socket_type_t::tcp;
 
 		// if we're in force-proxy mode, don't open TCP listen sockets. We cannot
 		// accept connections on our local machine in this case.
@@ -1632,10 +1632,10 @@ namespace aux {
 			}
 #endif
 
-			listen_failed_alert::socket_type_t const udp_sock_type
+			socket_type_t const udp_sock_type
 				= (flags & open_ssl_socket)
-				? listen_failed_alert::utp_ssl
-				: listen_failed_alert::udp;
+				? socket_type_t::utp_ssl
+				: socket_type_t::udp;
 
 			if (m_alerts.should_post<listen_failed_alert>())
 				m_alerts.emplace_alert<listen_failed_alert>(device
@@ -1741,7 +1741,7 @@ namespace aux {
 					m_alerts.emplace_alert<listen_failed_alert>(device
 						, listen_failed_alert::open
 						, boost::asio::error::operation_not_supported
-						, listen_failed_alert::tcp_ssl);
+						, socket_type_t::tcp_ssl);
 				}
 				continue;
 			}
@@ -1785,7 +1785,7 @@ namespace aux {
 					{
 						m_alerts.emplace_alert<listen_failed_alert>(device
 							, listen_failed_alert::enum_if, ec
-							, listen_failed_alert::tcp);
+							, socket_type_t::tcp);
 					}
 					continue;
 				}
@@ -1829,10 +1829,10 @@ namespace aux {
 					tcp::endpoint const tcp_ep = l.sock->local_endpoint(err);
 					if (!err)
 					{
-						listen_succeeded_alert::socket_type_t const socket_type
+						socket_type_t const socket_type
 							= l.ssl
-							? listen_succeeded_alert::tcp_ssl
-							: listen_succeeded_alert::tcp;
+							? socket_type_t::tcp_ssl
+							: socket_type_t::tcp;
 
 						m_alerts.emplace_alert<listen_succeeded_alert>(
 							tcp_ep, socket_type);
@@ -1844,10 +1844,10 @@ namespace aux {
 					udp::endpoint const udp_ep = l.udp_sock->local_endpoint(err);
 					if (!err && l.udp_sock->is_open())
 					{
-						listen_succeeded_alert::socket_type_t const socket_type
+						socket_type_t const socket_type
 							= l.ssl
-							? listen_succeeded_alert::utp_ssl
-							: listen_succeeded_alert::udp;
+							? socket_type_t::utp_ssl
+							: socket_type_t::udp;
 
 						m_alerts.emplace_alert<listen_succeeded_alert>(
 							udp_ep, socket_type);
@@ -1951,7 +1951,7 @@ namespace aux {
 			if (m_alerts.should_post<listen_failed_alert>())
 				m_alerts.emplace_alert<listen_failed_alert>("socks5"
 					, listen_failed_alert::accept, e
-					, listen_failed_alert::socks5);
+					, socket_type_t::socks5);
 			return;
 		}
 
@@ -1964,7 +1964,7 @@ namespace aux {
 
 		if (m_alerts.should_post<listen_succeeded_alert>())
 			m_alerts.emplace_alert<listen_succeeded_alert>(
-				ep, listen_succeeded_alert::socks5);
+				ep, socket_type_t::socks5);
 
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("session_impl::on_socks_accept");
@@ -1986,7 +1986,7 @@ namespace aux {
 			if (m_alerts.should_post<listen_failed_alert>())
 				m_alerts.emplace_alert<listen_failed_alert>("socks5"
 					, listen_failed_alert::accept, e
-					, listen_failed_alert::socks5);
+					, socket_type_t::socks5);
 			return;
 		}
 		if (m_abort) return;
@@ -2077,7 +2077,7 @@ namespace aux {
 			{
 				m_alerts.emplace_alert<listen_failed_alert>("i2p"
 					, listen_failed_alert::accept
-					, e, listen_failed_alert::i2p);
+					, e, socket_type_t::i2p);
 			}
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log())
@@ -2436,7 +2436,7 @@ namespace aux {
 				error_code err;
 				m_alerts.emplace_alert<listen_failed_alert>(ep.address().to_string(err)
 					, ep, listen_failed_alert::accept, e
-					, ssl ? listen_failed_alert::tcp_ssl : listen_failed_alert::tcp);
+					, ssl ? socket_type_t::tcp_ssl : socket_type_t::tcp);
 			}
 			return;
 		}

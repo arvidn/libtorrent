@@ -780,10 +780,16 @@ namespace libtorrent {
 
 	namespace
 	{
-		static char const* const sock_type_str[] =
+		char const* sock_type_str(socket_type_t type)
 		{
-			"TCP", "TCP/SSL", "UDP", "I2P", "Socks5", "uTP/SSL"
-		};
+			static char const* type_str[] =
+				{ "TCP", "TCP/SSL", "UDP", "I2P", "Socks5", "uTP/SSL" };
+
+			int idx =
+				static_cast<std::underlying_type<socket_type_t>::type>(type);
+			TORRENT_ASSERT(0 <= idx && idx < 6);
+			return type_str[idx];
+		}
 
 		static char const* const nat_type_str[] = {"NAT-PMP", "UPnP"};
 
@@ -894,7 +900,7 @@ namespace libtorrent {
 			, print_endpoint(address, port).c_str()
 			, listen_interface()
 			, op_str[operation]
-			, sock_type_str[socket_type]
+			, sock_type_str(socket_type)
 			, convert_from_native(error.message()).c_str());
 		return ret;
 	}
@@ -978,10 +984,9 @@ namespace libtorrent {
 
 	std::string listen_succeeded_alert::message() const
 	{
-		char const* type_str[] = { "TCP", "SSL/TCP", "UDP", "i2p", "socks5", "SSL/uTP" };
 		char ret[200];
 		std::snprintf(ret, sizeof(ret), "successfully listening on [%s] %s"
-			, type_str[socket_type], print_endpoint(address, port).c_str());
+			, sock_type_str(socket_type), print_endpoint(address, port).c_str());
 		return ret;
 	}
 

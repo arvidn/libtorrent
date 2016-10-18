@@ -1223,6 +1223,11 @@ namespace libtorrent
 		address const external_address;
 	};
 
+	enum class socket_type_t : std::uint8_t
+	{
+		tcp, tcp_ssl, udp, i2p, socks5, utp_ssl
+	};
+
 	// This alert is generated when none of the ports, given in the port range, to
 	// session can be opened for listening. The ``listen_interface`` member is the
 	// interface that failed, ``error`` is the error code describing the failure.
@@ -1240,8 +1245,6 @@ namespace libtorrent
 	// listen on it.
 	struct TORRENT_EXPORT listen_failed_alert final : alert
 	{
-		enum socket_type_t { tcp, tcp_ssl, udp, i2p, socks5, utp_ssl };
-
 		// internal
 		listen_failed_alert(aux::stack_allocator& alloc, string_view iface
 			, libtorrent::address const& listen_addr, int listen_port
@@ -1306,8 +1309,6 @@ namespace libtorrent
 	// successfully was opened for listening.
 	struct TORRENT_EXPORT listen_succeeded_alert final : alert
 	{
-		enum socket_type_t { tcp, tcp_ssl, udp, i2p, socks5, utp_ssl };
-
 		// internal
 		listen_succeeded_alert(aux::stack_allocator& alloc
 			, libtorrent::address const& listen_addr
