@@ -1347,6 +1347,7 @@ namespace libtorrent
 				if (ec) return false;
 
 				m_info_hash = p.info_hash;
+				m_urls.reserve(m_urls.size() + p.trackers.size());
 				for (auto const& url : p.trackers)
 					m_urls.push_back(announce_entry(url));
 
