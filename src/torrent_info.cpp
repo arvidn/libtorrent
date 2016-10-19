@@ -1347,6 +1347,7 @@ namespace libtorrent
 				if (ec) return false;
 
 				m_info_hash = p.info_hash;
+				m_urls.reserve(m_urls.size() + p.trackers.size());
 				for (auto const& url : p.trackers)
 					m_urls.push_back(announce_entry(url));
 
@@ -1534,6 +1535,10 @@ namespace libtorrent
 
 	void torrent_info::add_tracker(std::string const& url, int tier)
 	{
+		auto i = std::find_if(m_urls.begin(), m_urls.end()
+			, [&url](announce_entry const& ae) { return ae.url == url; });
+		if (i != m_urls.end()) return;
+
 		announce_entry e(url);
 		e.tier = tier;
 		e.source = announce_entry::source_client;
