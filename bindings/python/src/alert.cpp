@@ -347,6 +347,7 @@ void bind_alert()
 
     class_<read_piece_alert, bases<torrent_alert>, noncopyable>(
         "read_piece_alert", nullptr, no_init)
+        .def_readonly("error", &read_piece_alert::error)
         .add_property("buffer", get_buffer)
         .def_readonly("piece", &read_piece_alert::piece)
         .def_readonly("size", &read_piece_alert::size)
@@ -354,7 +355,11 @@ void bind_alert()
 
     class_<peer_alert, bases<torrent_alert>, noncopyable>(
         "peer_alert", no_init)
+#ifndef TORRENT_NO_DEPRECATE
         .add_property("ip", make_getter(&peer_alert::ip
+            , return_value_policy<return_by_value>()))
+#endif
+        .add_property("endpoint", make_getter(&peer_alert::endpoint
             , return_value_policy<return_by_value>()))
         .def_readonly("pid", &peer_alert::pid)
     ;
@@ -494,7 +499,10 @@ void bind_alert()
         .def("listen_interface", &listen_failed_alert::listen_interface)
         .def_readonly("error", &listen_failed_alert::error)
         .def_readonly("operation", &listen_failed_alert::operation)
+#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("sock_type", &listen_failed_alert::sock_type)
+#endif
+        .def_readonly("socket_type", &listen_failed_alert::socket_type)
         ;
 
     class_<listen_succeeded_alert, bases<alert>, noncopyable>(
@@ -504,7 +512,10 @@ void bind_alert()
 #endif
         .def_readonly("address", &listen_succeeded_alert::address)
         .def_readonly("port", &listen_succeeded_alert::port)
+#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("sock_type", &listen_succeeded_alert::sock_type)
+#endif
+        .def_readonly("socket_type", &listen_succeeded_alert::socket_type)
         ;
 
     class_<portmap_error_alert, bases<alert>, noncopyable>(
@@ -761,7 +772,11 @@ void bind_alert()
     class_<incoming_connection_alert, bases<alert>, noncopyable>(
         "incoming_connection_alert", no_init)
         .def_readonly("socket_type", &incoming_connection_alert::socket_type)
+#ifndef TORRENT_NO_DEPRECATE
         .add_property("ip", make_getter(&incoming_connection_alert::ip
+            , return_value_policy<return_by_value>()))
+#endif
+        .add_property("endpoint", make_getter(&incoming_connection_alert::endpoint
             , return_value_policy<return_by_value>()))
         ;
     class_<torrent_need_cert_alert, bases<torrent_alert>, noncopyable>(
@@ -787,25 +802,36 @@ void bind_alert()
        "dht_outgoing_get_peers_alert", no_init)
         .def_readonly("info_hash", &dht_outgoing_get_peers_alert::info_hash)
         .def_readonly("obfuscated_info_hash", &dht_outgoing_get_peers_alert::obfuscated_info_hash)
+#ifndef TORRENT_NO_DEPRECATE
         .add_property("ip", make_getter(&dht_outgoing_get_peers_alert::ip
+            , return_value_policy<return_by_value>()))
+#endif
+        .add_property("endpoint", make_getter(&dht_outgoing_get_peers_alert::endpoint
             , return_value_policy<return_by_value>()))
         ;
 
-#ifndef TORRENT_DISABLE_LOGGING
-
     class_<log_alert, bases<alert>, noncopyable>(
        "log_alert", no_init)
+#ifndef TORRENT_NO_DEPRECATE
         .def("msg", &log_alert::msg)
+#endif
+        .def("log_message", &log_alert::log_message)
         ;
 
     class_<torrent_log_alert, bases<torrent_alert>, noncopyable>(
        "torrent_log_alert", no_init)
+#ifndef TORRENT_NO_DEPRECATE
         .def("msg", &torrent_log_alert::msg)
+#endif
+        .def("log_message", &torrent_log_alert::log_message)
         ;
 
     class_<peer_log_alert, bases<peer_alert>, noncopyable>(
        "peer_log_alert", no_init)
+#ifndef TORRENT_NO_DEPRECATE
         .def("msg", &peer_log_alert::msg)
+#endif
+        .def("log_message", &peer_log_alert::log_message)
         ;
 
     class_<picker_log_alert, bases<peer_alert>, noncopyable>(
@@ -813,8 +839,6 @@ void bind_alert()
         .add_property("picker_flags", &picker_log_alert::picker_flags)
         .def("blocks", &picker_log_alert::blocks)
         ;
-
-#endif // TORRENT_DISABLE_LOGGING
 
     class_<lsd_error_alert, bases<alert>, noncopyable>(
        "lsd_error_alert", no_init)

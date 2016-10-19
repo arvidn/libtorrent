@@ -308,11 +308,9 @@ int main(int argc, char* argv[])
 		alert* a = wait_for_alert(s, dht_immutable_item_alert::alert_type);
 
 		dht_immutable_item_alert* item = alert_cast<dht_immutable_item_alert>(a);
-		entry data;
-		if (item)
-			data.swap(item->item);
 
-		std::printf("%s", data.to_string().c_str());
+		std::string str = item->item.to_string();
+		std::printf("%s", str.c_str());
 	}
 	else if (strcmp(argv[0], "put") == 0)
 	{
@@ -399,12 +397,10 @@ int main(int argc, char* argv[])
 			alert* a = wait_for_alert(s, dht_mutable_item_alert::alert_type);
 
 			dht_mutable_item_alert* item = alert_cast<dht_mutable_item_alert>(a);
-			entry data;
-			if (item)
-				data.swap(item->item);
 
 			authoritative = item->authoritative;
-			std::printf("%s: %s", authoritative ? "auth" : "non-auth", data.to_string().c_str());
+			std::string str = item->item.to_string();
+			std::printf("%s: %s", authoritative ? "auth" : "non-auth", str.c_str());
 		}
 	}
 	else

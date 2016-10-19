@@ -862,7 +862,7 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 
 	if (session_stats_alert* s = alert_cast<session_stats_alert>(a))
 	{
-		ses_view.update_counters(s->values, sizeof(s->values)/sizeof(s->values[0])
+		ses_view.update_counters(s->values.data(), int(s->values.size())
 			, duration_cast<microseconds>(s->timestamp().time_since_epoch()).count());
 		return true;
 	}
