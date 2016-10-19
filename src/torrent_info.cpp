@@ -1537,8 +1537,8 @@ namespace libtorrent
 	{
 		auto i = std::find_if(m_urls.begin(), m_urls.end()
 			, [&url](announce_entry const& ae) { return ae.url == url; });
-		if (i == m_urls.end())
-		{
+		if (i != m_urls.end()) return;
+
 		announce_entry e(url);
 		e.tier = tier;
 		e.source = announce_entry::source_client;
@@ -1547,7 +1547,6 @@ namespace libtorrent
 		std::sort(m_urls.begin(), m_urls.end()
 			, [] (announce_entry const& lhs, announce_entry const& rhs)
 			{ return lhs.tier < rhs.tier; });
-		}
 	}
 
 #ifndef TORRENT_NO_DEPRECATE

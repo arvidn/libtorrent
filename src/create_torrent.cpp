@@ -666,14 +666,12 @@ namespace libtorrent
 	{
 		auto i = std::find_if(m_urls.begin(), m_urls.end()
 			, [&url](announce_entry const& ae) { return ae.first == url.to_string(); });
-		if (i == m_urls.end())
-		{
+		if (i != m_urls.end()) return;
 		m_urls.push_back(announce_entry(url.to_string(), tier));
 
 		std::sort(m_urls.begin(), m_urls.end()
 			, [] (announce_entry const& lhs, announce_entry const& rhs)
 			{ return lhs.second < rhs.second; } );
-		}
 	}
 
 	void create_torrent::set_root_cert(string_view cert)
