@@ -54,11 +54,9 @@ public:
 	void trim_seed_nodes();
 
 protected:
-
 	virtual bool invoke(observer_ptr o);
 
 	virtual void done();
-
 };
 
 } } // namespace libtorrent::dht

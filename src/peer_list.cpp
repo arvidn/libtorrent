@@ -585,8 +585,7 @@ namespace libtorrent
 		{
 			iter = std::lower_bound(
 				m_peers.begin(), m_peers.end()
-				, c.remote().address(), peer_address_compare()
-			);
+				, c.remote().address(), peer_address_compare());
 
 			if (iter != m_peers.end() && (*iter)->address() == c.remote().address())
 			{
@@ -737,8 +736,7 @@ namespace libtorrent
 				// restore it
 				iter = std::lower_bound(
 					m_peers.begin(), m_peers.end()
-					, c.remote().address(), peer_address_compare()
-				);
+					, c.remote().address(), peer_address_compare());
 			}
 
 #if TORRENT_USE_IPV6
@@ -1012,10 +1010,8 @@ namespace libtorrent
 		INVARIANT_CHECK;
 
 		bool found = false;
-		iterator iter = std::lower_bound(
-			m_peers.begin(), m_peers.end()
-			, destination, peer_address_compare()
-		);
+		iterator iter = std::lower_bound(m_peers.begin(), m_peers.end()
+			, destination, peer_address_compare());
 
 		if (iter != m_peers.end() && strcmp((*iter)->dest(), destination) == 0)
 			found = true;
@@ -1084,10 +1080,8 @@ namespace libtorrent
 		}
 		else
 		{
-			iter = std::lower_bound(
-				m_peers.begin(), m_peers.end()
-				, remote.address(), peer_address_compare()
-			);
+			iter = std::lower_bound(m_peers.begin(), m_peers.end()
+				, remote.address(), peer_address_compare());
 
 			if (iter != m_peers.end() && (*iter)->address() == remote.address()) found = true;
 		}
@@ -1335,7 +1329,6 @@ namespace libtorrent
 
 		TORRENT_ASSERT(m_num_connect_candidates == connect_candidates);
 #endif // TORRENT_EXPENSIVE_INVARIANT_CHECKS
-
 	}
 #endif
 

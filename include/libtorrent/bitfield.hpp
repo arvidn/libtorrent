@@ -240,7 +240,6 @@ namespace libtorrent
 		void clear() { m_buf.reset(); }
 
 	private:
-
 		std::uint32_t const* buf() const { TORRENT_ASSERT(m_buf); return &m_buf[1]; }
 		std::uint32_t* buf() { TORRENT_ASSERT(m_buf); return &m_buf[1]; }
 		void clear_trailing_bits()

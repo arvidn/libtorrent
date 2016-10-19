@@ -106,7 +106,6 @@ void run_metadata_test(int flags)
 		}
 		// on alert
 		, [&](lt::alert const* a, lt::session& ses) {
-
 			if (alert_cast<metadata_received_alert>(a))
 			{
 				metadata_alerts += 1;

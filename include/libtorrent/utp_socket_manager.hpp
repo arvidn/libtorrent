@@ -50,19 +50,17 @@ namespace libtorrent
 
 	struct utp_socket_manager final
 	{
-		typedef std::function<void(udp::endpoint const&
+		using send_fun_t = std::function<void(udp::endpoint const&
 			, span<char const>
-			, error_code&, int)> send_fun_t;
+			, error_code&, int)>;
 
-		typedef std::function<void(std::shared_ptr<socket_type> const&)>
-			incoming_utp_callback_t;
+		using incoming_utp_callback_t = std::function<void(std::shared_ptr<socket_type> const&)>;
 
 		utp_socket_manager(send_fun_t const& send_fun
 			, incoming_utp_callback_t const& cb
 			, io_service& ios
 			, aux::session_settings const& sett
-			, counters& cnt, void* ssl_context
-			);
+			, counters& cnt, void* ssl_context);
 		~utp_socket_manager();
 
 		// return false if this is not a uTP packet

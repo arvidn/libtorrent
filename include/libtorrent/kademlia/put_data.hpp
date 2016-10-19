@@ -45,9 +45,9 @@ namespace libtorrent { namespace dht
 struct msg;
 class node;
 
-struct put_data: traversal_algorithm
+struct put_data : traversal_algorithm
 {
-	typedef std::function<void(item const&, int)> put_callback;
+	using put_callback = std::function<void(item const&, int)>;
 
 	put_data(node& node, put_callback const& callback);
 
@@ -59,7 +59,6 @@ struct put_data: traversal_algorithm
 	void set_targets(std::vector<std::pair<node_entry, std::string>> const& targets);
 
 protected:
-
 	virtual void done() override;
 	virtual bool invoke(observer_ptr o) override;
 

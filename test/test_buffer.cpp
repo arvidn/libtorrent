@@ -49,7 +49,6 @@ static char const data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 
 TORRENT_TEST(buffer_constructor)
 {
-
 	{
 		buffer b;
 		TEST_CHECK(b.size() == 0);

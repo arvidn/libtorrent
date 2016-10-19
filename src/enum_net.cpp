@@ -169,8 +169,7 @@ namespace libtorrent { namespace
 			msg_len += read_len;
 
 			if ((nl_hdr->nlmsg_flags & NLM_F_MULTI) == 0) break;
-
-		} while((nl_hdr->nlmsg_seq != seq) || (nl_hdr->nlmsg_pid != pid));
+		} while ((nl_hdr->nlmsg_seq != seq) || (nl_hdr->nlmsg_pid != pid));
 		return msg_len;
 	}
 
@@ -178,7 +177,8 @@ namespace libtorrent { namespace
 	{
 		rtmsg* rt_msg = reinterpret_cast<rtmsg*>(NLMSG_DATA(nl_hdr));
 
-		if((rt_msg->rtm_family != AF_INET && rt_msg->rtm_family != AF_INET6) || (rt_msg->rtm_table != RT_TABLE_MAIN
+		if((rt_msg->rtm_family != AF_INET && rt_msg->rtm_family != AF_INET6)
+			|| (rt_msg->rtm_table != RT_TABLE_MAIN
 			&& rt_msg->rtm_table != RT_TABLE_LOCAL))
 			return false;
 
@@ -275,7 +275,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 #if TORRENT_USE_IPV6
 				&& sa->sa_family != AF_INET6
 #endif
-				))
+				)) // NOLINT
 			return false;
 
 		rt_info->gateway = sockaddr_to_address(rti_info[RTAX_GATEWAY]);
@@ -680,7 +680,7 @@ namespace libtorrent
 #else
 
 #ifdef _MSC_VER
-#pragma message ( "THIS OS IS NOT RECOGNIZED, enum_net_interfaces WILL PROBABLY NOT WORK" )
+#pragma message ( "THIS OS IS NOT RECOGNIZED, enum_net_interfaces WILL PROBABLY NOT WORK" ) // NOLINT
 #else
 #warning "THIS OS IS NOT RECOGNIZED, enum_net_interfaces WILL PROBABLY NOT WORK"
 #endif

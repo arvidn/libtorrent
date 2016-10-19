@@ -390,7 +390,8 @@ int print_peer_info(std::string& out
 	using namespace libtorrent;
 	int pos = 0;
 	if (print_ip) out += "IP                             ";
-	out += "progress        down     (total | peak   )  up      (total | peak   ) sent-req tmo bsy rcv flags         dn  up  source  ";
+	out += "progress        down     (total | peak   )  up      "
+		"(total | peak   ) sent-req tmo bsy rcv flags         dn  up  source  ";
 	if (print_fails) out += "fail hshf ";
 	if (print_send_bufs) out += "rq sndb (recvb |alloc | wmrk ) q-bytes ";
 	if (print_timers) out += "inactive wait timeout q-time ";
@@ -411,8 +412,7 @@ int print_peer_info(std::string& out
 		{
 			std::snprintf(str, sizeof(str), "%-30s ", (::print_endpoint(i->ip) +
 				(i->flags & peer_info::utp_socket ? " [uTP]" : "") +
-				(i->flags & peer_info::i2p_socket ? " [i2p]" : "")
-				).c_str());
+				(i->flags & peer_info::i2p_socket ? " [i2p]" : "")).c_str());
 			out += str;
 		}
 
@@ -425,7 +425,8 @@ int print_peer_info(std::string& out
 		char peer_progress[10];
 		std::snprintf(peer_progress, sizeof(peer_progress), "%.1f%%", i->progress_ppm / 10000.f);
 		std::snprintf(str, sizeof(str)
-			, "%s %s%s (%s|%s) %s%s (%s|%s) %s%7s %4d%4d%4d %s%s%s%s%s%s%s%s%s%s%s%s%s %s%s%s %s%s%s %s%s%s%s%s%s "
+			, "%s %s%s (%s|%s) %s%s (%s|%s) %s%7s %4d%4d%4d %s%s%s%s%s%s%s%s%s%s%s%s%s "
+				"%s%s%s %s%s%s %s%s%s%s%s%s "
 			, progress_bar(i->progress_ppm / 1000, 15, col_green, '#', '-', peer_progress).c_str()
 			, esc("32"), add_suffix(i->down_speed, "/s").c_str()
 			, add_suffix(i->total_download).c_str(), add_suffix(i->download_rate_peak, "/s").c_str()
@@ -448,7 +449,8 @@ int print_peer_info(std::string& out
 			, color("S", (i->flags & peer_info::snubbed)?col_white:col_blue).c_str()
 			, color("U", (i->flags & peer_info::upload_only)?col_white:col_blue).c_str()
 			, color("e", (i->flags & peer_info::endgame_mode)?col_white:col_blue).c_str()
-			, color("E", (i->flags & peer_info::rc4_encrypted)?col_white:(i->flags & peer_info::plaintext_encrypted)?col_cyan:col_blue).c_str()
+			, color("E", (i->flags & peer_info::rc4_encrypted)?col_white:(
+				i->flags & peer_info::plaintext_encrypted)?col_cyan:col_blue).c_str()
 			, color("h", (i->flags & peer_info::holepunched)?col_white:col_blue).c_str()
 
 			, color("d", (i->read_state & peer_info::bw_disk)?col_white:col_blue).c_str()
@@ -687,7 +689,6 @@ std::vector<std::string> list_dir(std::string path
 		std::string p = fd.cFileName;
 		if (filter_fun(p))
 			ret.push_back(p);
-
 	} while (FindNextFileA(handle, &fd));
 	FindClose(handle);
 #else
@@ -1081,7 +1082,6 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-
 }
 
 void print_piece(libtorrent::partial_piece_info* pp
@@ -1359,8 +1359,7 @@ int main(int argc, char* argv[])
 		+ alert::torrent_log_notification
 		+ alert::peer_log_notification
 		+ alert::dht_log_notification
-		+ alert::picker_log_notification
-		));
+		+ alert::picker_log_notification));
 
 	libtorrent::session ses(settings);
 
@@ -1470,7 +1469,6 @@ int main(int argc, char* argv[])
 		int c = 0;
 		if (sleep_and_input(&c, refresh_delay))
 		{
-
 #ifdef _WIN32
 #define ESCAPE_SEQ 224
 #define LEFT_ARROW 75
@@ -1759,12 +1757,10 @@ int main(int argc, char* argv[])
 						"[1] toggle IP column                            [2]\n"
 						"[3] toggle timers column                        [4] toggle block progress column\n"
 						"[5] toggle peer rate column                     [6] toggle failures column\n"
-						"[7] toggle send buffers column\n"
-						);
+						"[7] toggle send buffers column\n");
 					int tmp;
 					while (sleep_and_input(&tmp, 500) == false);
 				}
-
 			} while (sleep_and_input(&c, 0));
 			if (c == 'q') break;
 		}
@@ -1979,13 +1975,14 @@ int main(int argc, char* argv[])
 					pos += 1;
 				}
 
-				std::snprintf(str, sizeof(str), "%s %s read cache | %s %s downloading | %s %s cached | %s %s flushed | %s %s snubbed\x1b[K\n"
+				std::snprintf(str, sizeof(str), "%s %s read cache "
+					"| %s %s downloading | %s %s cached | %s %s flushed "
+					"| %s %s snubbed\x1b[K\n"
 					, esc("34;7"), esc("0") // read cache
 					, esc("33;7"), esc("0") // downloading
 					, esc("36;7"), esc("0") // cached
 					, esc("32;7"), esc("0") // flushed
-					, esc("35;7"), esc("0") // snubbed
-					);
+					, esc("35;7"), esc("0")); // snubbed
 				out += str;
 				pos += 1;
 			}

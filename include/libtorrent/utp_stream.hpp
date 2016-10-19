@@ -193,7 +193,6 @@ void utp_writable(utp_socket_impl* s);
 class TORRENT_EXTRA_EXPORT utp_stream
 {
 public:
-
 	typedef utp_stream lowest_layer_type;
 	typedef tcp::socket::endpoint_type endpoint_type;
 	typedef tcp::socket::protocol_type protocol_type;

@@ -121,8 +121,8 @@ void set_utp_stream_logging(bool enable) {
 
 #if __cplusplus >= 201103L || defined __clang__
 
-#define UTP_LOG(...) do {} while(false)
-#define UTP_LOGV(...) do {} while(false)
+#define UTP_LOG(...) do {} while (false)
+#define UTP_LOGV(...) do {} while (false)
 
 #else
 
@@ -342,14 +342,12 @@ struct utp_socket_impl
 	void set_state(int s);
 
 private:
-
 	// non-copyable
 	utp_socket_impl(utp_socket_impl const&);
 	utp_socket_impl const& operator=(utp_socket_impl const&);
 
 	// TODO: 2 it would be nice if not everything would have to be public here
 public:
-
 	void check_receive_buffers() const;
 
 #if TORRENT_USE_INVARIANT_CHECKS
@@ -1693,7 +1691,6 @@ struct holder
 	}
 
 private:
-
 	// not copyable
 	holder(holder const&);
 	holder& operator=(holder const&);

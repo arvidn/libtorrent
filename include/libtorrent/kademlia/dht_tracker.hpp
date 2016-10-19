@@ -126,9 +126,7 @@ namespace libtorrent { namespace dht
 		bool incoming_packet(udp::endpoint const& ep, span<char const> buf);
 
 	private:
-
-		std::shared_ptr<dht_tracker> self()
-		{ return shared_from_this(); }
+		std::shared_ptr<dht_tracker> self() { return shared_from_this(); }
 
 		void connection_timeout(node& n, error_code const& e);
 		void refresh_timeout(error_code const& e);

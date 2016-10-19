@@ -61,7 +61,8 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT std::array<char, 96> export_key(key_t const& k);
 
 	// RC4 state from libtomcrypt
-	struct rc4 {
+	struct rc4
+	{
 		int x, y;
 		std::array<std::uint8_t, 256> buf;
 	};
@@ -86,7 +87,6 @@ namespace libtorrent
 		sha1_hash const& get_hash_xor_mask() const { return m_xor_mask; }
 
 	private:
-
 		int get_local_key_size() const
 		{ return sizeof(m_dh_local_key); }
 

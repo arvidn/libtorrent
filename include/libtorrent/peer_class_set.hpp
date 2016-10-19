@@ -54,7 +54,6 @@ namespace libtorrent {
 		}
 
 	private:
-
 		// the number of elements used in the m_class array
 		std::uint8_t m_size;
 

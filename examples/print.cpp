@@ -67,7 +67,8 @@ std::string add_suffix_float(float val, char const* suffix)
 		if (std::fabs(val) < 1000.f) break;
 	}
 	char ret[100];
-	std::snprintf(ret, sizeof(ret), "%4.*f%s%s", val < 99 ? 1 : 0, val, prefix[i], suffix ? suffix : "");
+	std::snprintf(ret, sizeof(ret), "%4.*f%s%s", val < 99 ? 1 : 0
+		, val, prefix[i], suffix ? suffix : "");
 	return ret;
 }
 

@@ -67,7 +67,6 @@ template <class Stream>
 class ssl_stream
 {
 public:
-
 	explicit ssl_stream(io_service& io_service, ssl::context& ctx)
 		: m_sock(io_service, ctx)
 	{
@@ -301,7 +300,6 @@ public:
 	}
 
 private:
-
 	void connected(error_code const& e, std::shared_ptr<handler_type> h)
 	{
 		if (e)

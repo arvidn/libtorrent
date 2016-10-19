@@ -403,7 +403,6 @@ namespace libtorrent
 #endif
 
 	private:
-
 		void delete_one_file(std::string const& p, error_code& ec);
 
 		void need_partfile();
@@ -533,7 +532,6 @@ namespace libtorrent
 	{
 	friend struct disk_io_thread;
 	public:
-
 		piece_manager(
 			storage_interface* storage_impl
 			, std::shared_ptr<void> const& torrent

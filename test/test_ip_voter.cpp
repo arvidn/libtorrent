@@ -128,7 +128,6 @@ TORRENT_TEST(one_ip)
 		if (new_ip) break;
 		new_ip = cast_vote(ipv, addr1, rand_v4());
 		if (new_ip) break;
-
 	}
 
 	TEST_CHECK(ipv.external_address() == addr1);
@@ -211,6 +210,5 @@ TORRENT_TEST(externa_ip_2)
 	if (supports_ipv6())
 		TEST_CHECK(ipv2.external_address(rand_v6()) == real_external2);
 #endif
-
 }
 

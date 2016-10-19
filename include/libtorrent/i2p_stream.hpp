@@ -81,7 +81,6 @@ namespace libtorrent {
 class i2p_stream : public proxy_base
 {
 public:
-
 	explicit i2p_stream(io_service& io_service);
 	~i2p_stream();
 

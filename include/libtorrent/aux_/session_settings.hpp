@@ -70,7 +70,6 @@ namespace libtorrent { namespace aux
 		session_settings();
 
 	private:
-
 		template <typename T, size_t N>
 		void set(std::array<T, N>& arr, int const name, T val, int const type) const
 		{

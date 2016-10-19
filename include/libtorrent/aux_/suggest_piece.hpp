@@ -110,7 +110,6 @@ struct suggest_piece
 	}
 
 private:
-
 	// these are pieces that would be good candidates for suggesting
 	// to a peer. They represent low availability pieces that we recently
 	// read from disk (and are likely in our read cache).

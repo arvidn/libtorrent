@@ -95,7 +95,8 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	std::printf("\x1b[1m\n\n===================== done mapping. Now deleting mappings ========================\n\n\n\x1b[0m");
+	std::printf("\x1b[1m\n\n===================== done mapping. "
+		"Now deleting mappings ========================\n\n\n\x1b[0m");
 
 	for (;;)
 	{

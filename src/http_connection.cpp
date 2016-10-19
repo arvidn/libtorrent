@@ -219,7 +219,7 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 #if TORRENT_USE_I2P
 		, i2p_conn
 #endif
-		);
+		); // NOLINT
 }
 
 void http_connection::start(std::string const& hostname, int port
@@ -783,7 +783,7 @@ void http_connection::on_read(error_code const& e
 #if TORRENT_USE_I2P
 					, m_i2p_conn
 #endif
-					);
+					); // NOLINT
 				return;
 			}
 

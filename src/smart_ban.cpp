@@ -166,7 +166,6 @@ namespace
 		}
 
 	private:
-
 		// this entry ties a specific block CRC to
 		// a peer.
 		struct block_entry

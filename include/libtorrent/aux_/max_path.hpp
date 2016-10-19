@@ -57,7 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_MAX_PATH 255
 
 #ifdef _MSC_VER
-#pragma message ( "unknown platform, assuming the longest path is 255" )
+#pragma message ( "unknown platform, assuming the longest path is 255" ) // NOLINT
 #else
 #warning "unknown platform, assuming the longest path is 255"
 #endif

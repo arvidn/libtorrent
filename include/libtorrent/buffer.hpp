@@ -60,7 +60,6 @@ namespace libtorrent {
 class buffer
 {
 public:
-
 	// allocate an uninitialized buffer of the specified size
 	explicit buffer(std::size_t size = 0)
 	{

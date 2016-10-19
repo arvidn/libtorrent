@@ -84,7 +84,6 @@ struct socks5 : std::enable_shared_from_this<socks5>
 	udp::endpoint target() const { return m_udp_proxy_addr; }
 
 private:
-
 	std::shared_ptr<socks5> self() { return shared_from_this(); }
 
 	void on_name_lookup(error_code const& e, tcp::resolver::iterator i);

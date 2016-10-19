@@ -286,7 +286,6 @@ void save_file(char const* filename, char const* data, int size)
 		std::printf("ERROR writing file '%s': %s\n", filename, ec.message().c_str());
 		return;
 	}
-
 }
 
 bool print_alerts(lt::session& ses, char const* name

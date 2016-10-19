@@ -109,7 +109,6 @@ namespace libtorrent
 	class TORRENT_EXTRA_EXPORT peer_list : single_threaded
 	{
 	public:
-
 		peer_list();
 
 #if TORRENT_USE_I2P
@@ -210,7 +209,6 @@ namespace libtorrent
 		void set_max_failcount(torrent_state* st);
 
 	private:
-
 		void recalculate_connect_candidates(torrent_state* state);
 
 		void update_connect_candidates(int delta);

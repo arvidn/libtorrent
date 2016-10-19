@@ -635,8 +635,7 @@ namespace libtorrent
 					? "override-trackers"  : ""
 				, (p.flags & add_torrent_params::flag_override_web_seeds)
 					? "override-web-seeds " : ""
-				, p.save_path.c_str()
-				);
+				, p.save_path.c_str());
 		}
 #endif
 		if (p.flags & add_torrent_params::flag_sequential_download)
@@ -722,7 +721,7 @@ namespace libtorrent
 #ifdef TORRENT_USE_OPENSSL
 				, m_ssl_ctx.get()
 #endif
-				));
+				)); // NOLINT
 		aux::proxy_settings ps = m_ses.proxy();
 		conn->get(m_url, seconds(30), 0, &ps
 			, 5
@@ -3694,7 +3693,6 @@ namespace libtorrent
 			{
 				std::fprintf(stderr, "   %d:%d  %d\n", p.first.piece_index, p.first.block_index, p.second);
 			}
-
 		}
 
 		TORRENT_ASSERT(st.total_done <= m_torrent_file->total_size());
@@ -4828,7 +4826,6 @@ namespace libtorrent
 			update_peer_interest(was_finished);
 			if (priority == 0) remove_time_critical_piece(index);
 		}
-
 	}
 
 	int torrent::piece_priority(int index) const
@@ -6011,7 +6008,7 @@ namespace libtorrent
 #ifdef TORRENT_USE_OPENSSL
 				|| s->get<ssl_stream<socks5_stream>>()
 #endif
-				))
+				)) // NOLINT
 		{
 			// we're using a socks proxy and we're resolving
 			// hostnames through it
@@ -6423,7 +6420,6 @@ namespace libtorrent
 		// are file priorities set, don't save piece priorities.
 		if (!m_file_priority.empty())
 		{
-
 			// when in seed mode (i.e. the client promises that we have all files)
 			// it does not make sense to save file priorities.
 			if (!m_seed_mode)
@@ -6581,7 +6577,6 @@ namespace libtorrent
 			pi.piece_index = i->index;
 			queue->push_back(pi);
 		}
-
 	}
 
 	bool torrent::connect_to_peer(torrent_peer* peerinfo, bool const ignore_limit)
@@ -6765,7 +6760,7 @@ namespace libtorrent
 
 			if (c->is_disconnecting()) return false;
 		}
-		TORRENT_CATCH (std::exception const&)
+		TORRENT_CATCH(std::exception const&)
 		{
 			peer_iterator i = sorted_find(m_connections, c.get());
 			if (i != m_connections.end())
@@ -7915,7 +7910,8 @@ namespace libtorrent
 		TORRENT_ASSERT(want_peers_download() == m_links[aux::session_interface::torrent_want_peers_download].in_list());
 		TORRENT_ASSERT(want_peers_finished() == m_links[aux::session_interface::torrent_want_peers_finished].in_list());
 		TORRENT_ASSERT(want_tick() == m_links[aux::session_interface::torrent_want_tick].in_list());
-		TORRENT_ASSERT((m_paused && m_auto_managed && !m_abort) == m_links[aux::session_interface::torrent_want_scrape].in_list());
+		TORRENT_ASSERT((m_paused && m_auto_managed && !m_abort)
+			== m_links[aux::session_interface::torrent_want_scrape].in_list());
 
 		bool is_checking = false;
 		bool is_downloading = false;

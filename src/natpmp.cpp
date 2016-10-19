@@ -487,7 +487,6 @@ void natpmp::on_reply(error_code const& e
 		}
 #endif
 		return;
-
 	}
 
 	if (bytes_transferred != 16)

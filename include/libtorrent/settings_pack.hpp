@@ -81,7 +81,8 @@ namespace libtorrent
 	//
 	struct TORRENT_EXPORT settings_pack
 	{
-		friend TORRENT_EXTRA_EXPORT void apply_pack(settings_pack const* pack, aux::session_settings& sett, aux::session_impl* ses);
+		friend TORRENT_EXTRA_EXPORT void apply_pack(settings_pack const* pack
+			, aux::session_settings& sett, aux::session_impl* ses);
 
 		settings_pack() = default;
 		settings_pack(settings_pack const&) = default;
@@ -1713,8 +1714,8 @@ namespace libtorrent
 			// route through a i2p SAM proxy
 			i2p_proxy
 		};
-	private:
 
+	private:
 		std::vector<std::pair<std::uint16_t, std::string>> m_strings;
 		std::vector<std::pair<std::uint16_t, int>> m_ints;
 		std::vector<std::pair<std::uint16_t, bool>> m_bools;

@@ -831,7 +831,6 @@ ip_ok:
 			return node_added;
 		}
 		// in order to keep lookup times small, prefer nodes with low RTTs
-
 	}
 
 	// if we can't split, try to insert into the replacement bucket

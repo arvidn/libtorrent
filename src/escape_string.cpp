@@ -88,9 +88,9 @@ namespace libtorrent
 				}
 
 				int high;
-				if(*i >= '0' && *i <= '9') high = *i - '0';
-				else if(*i >= 'A' && *i <= 'F') high = *i + 10 - 'A';
-				else if(*i >= 'a' && *i <= 'f') high = *i + 10 - 'a';
+				if (*i >= '0' && *i <= '9') high = *i - '0';
+				else if (*i >= 'A' && *i <= 'F') high = *i + 10 - 'A';
+				else if (*i >= 'a' && *i <= 'f') high = *i + 10 - 'a';
 				else
 				{
 					ec = errors::invalid_escaped_string;
@@ -105,9 +105,9 @@ namespace libtorrent
 				}
 
 				int low;
-				if(*i >= '0' && *i <= '9') low = *i - '0';
-				else if(*i >= 'A' && *i <= 'F') low = *i + 10 - 'A';
-				else if(*i >= 'a' && *i <= 'f') low = *i + 10 - 'a';
+				if (*i >= '0' && *i <= '9') low = *i - '0';
+				else if (*i >= 'A' && *i <= 'F') low = *i + 10 - 'A';
+				else if (*i >= 'a' && *i <= 'f') low = *i + 10 - 'a';
 				else
 				{
 					ec = errors::invalid_escaped_string;

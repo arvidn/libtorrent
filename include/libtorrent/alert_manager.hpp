@@ -113,7 +113,6 @@ namespace libtorrent {
 #endif
 
 	private:
-
 		// non-copyable
 		alert_manager(alert_manager const&);
 		alert_manager& operator=(alert_manager const&);

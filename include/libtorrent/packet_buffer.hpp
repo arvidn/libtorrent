@@ -69,7 +69,7 @@ namespace libtorrent
 	class TORRENT_EXTRA_EXPORT packet_buffer_impl
 	{
 	public:
-		typedef std::uint32_t index_type;
+		using index_type = std::uint32_t;
 
 		packet_buffer_impl();
 		~packet_buffer_impl();
@@ -116,7 +116,6 @@ namespace libtorrent
 	class packet_buffer : packet_buffer_impl
 	{
 	public:
-
 		using packet_buffer_impl::index_type;
 		using packet_buffer_impl::size;
 		using packet_buffer_impl::capacity;

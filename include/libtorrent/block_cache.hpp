@@ -333,7 +333,6 @@ namespace libtorrent
 			, std::function<void()> const& trigger_trim);
 
 	private:
-
 		struct hash_value
 		{
 			std::size_t operator()(cached_piece_entry const& p) const
@@ -342,8 +341,7 @@ namespace libtorrent
 		typedef std::unordered_set<cached_piece_entry, hash_value> cache_t;
 
 	public:
-
-		typedef cache_t::const_iterator const_iterator;
+		using const_iterator = cache_t::const_iterator;
 
 		// returns the number of blocks this job would cause to be read in
 		int pad_job(disk_io_job const* j, int blocks_in_piece
@@ -463,7 +461,6 @@ namespace libtorrent
 		int read_cache_size() const { return m_read_cache_size; }
 
 	private:
-
 		// returns number of bytes read on success, -1 on cache miss
 		// (just because the piece is in the cache, doesn't mean all
 		// the blocks are there)
@@ -527,7 +524,6 @@ namespace libtorrent
 		// they may not be evicted
 		int m_pinned_blocks;
 	};
-
 }
 
 #endif // TORRENT_BLOCK_CACHE

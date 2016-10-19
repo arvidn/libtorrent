@@ -602,7 +602,6 @@ void run_test(bool unbuffered)
 	if (ec && ec != boost::system::errc::no_such_file_or_directory)
 		std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
 		<< "': " << ec.message() << std::endl;
-
 	}
 
 // ==============================================

@@ -58,7 +58,6 @@ namespace libtorrent
 		int write_jobs_in_use() const { return m_write_jobs; }
 
 	private:
-
 		// total number of in-use jobs
 		int m_jobs_in_use;
 		// total number of in-use read jobs

@@ -84,7 +84,6 @@ namespace libtorrent
 	class TORRENT_EXPORT hasher512
 	{
 	public:
-
 		hasher512();
 
 		// this is the same as default constructing followed by a call to
@@ -107,7 +106,6 @@ namespace libtorrent
 		~hasher512();
 
 	private:
-
 #ifdef TORRENT_USE_LIBGCRYPT
 		gcry_md_hd_t m_context;
 #elif TORRENT_USE_COMMONCRYPTO

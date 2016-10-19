@@ -87,7 +87,7 @@ struct TORRENT_EXTRA_EXPORT http_connection
 #ifdef TORRENT_USE_OPENSSL
 		, ssl::context* ssl_ctx = 0
 #endif
-		);
+		); // NOLINT
 
 	virtual ~http_connection();
 
@@ -106,7 +106,7 @@ struct TORRENT_EXTRA_EXPORT http_connection
 #if TORRENT_USE_I2P
 		, i2p_connection* i2p_conn = 0
 #endif
-		);
+		); // NOLINT
 
 	void start(std::string const& hostname, int port
 		, time_duration timeout, int prio = 0, aux::proxy_settings const* ps = 0
@@ -116,7 +116,7 @@ struct TORRENT_EXTRA_EXPORT http_connection
 #if TORRENT_USE_I2P
 		, i2p_connection* i2p_conn = 0
 #endif
-		);
+		); // NOLINT
 
 	void close(bool force = false);
 
@@ -125,7 +125,6 @@ struct TORRENT_EXTRA_EXPORT http_connection
 	std::vector<tcp::endpoint> const& endpoints() const { return m_endpoints; }
 
 private:
-
 #if TORRENT_USE_I2P
 	void connect_i2p_tracker(char const* destination);
 	void on_i2p_resolve(error_code const& e

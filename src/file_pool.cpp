@@ -83,7 +83,9 @@ namespace libtorrent
 			PRIORITY_HINT_LOCAL PriorityHint;
 		} FILE_IO_PRIORITY_HINT_INFO_LOCAL;
 
-		typedef BOOL (WINAPI *SetFileInformationByHandle_t)(HANDLE hFile, FILE_INFO_BY_HANDLE_CLASS_LOCAL FileInformationClass, LPVOID lpFileInformation, DWORD dwBufferSize);
+		typedef BOOL (WINAPI *SetFileInformationByHandle_t)(HANDLE hFile
+			, FILE_INFO_BY_HANDLE_CLASS_LOCAL FileInformationClass
+			, LPVOID lpFileInformation, DWORD dwBufferSize);
 		static SetFileInformationByHandle_t SetFileInformationByHandle = nullptr;
 
 		static bool failed_kernel_load = false;

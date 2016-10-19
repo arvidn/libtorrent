@@ -54,7 +54,6 @@ public:
 	void close();
 
 private:
-
 	std::shared_ptr<lsd> self() { return shared_from_this(); }
 
 	void announce_impl(sha1_hash const& ih, int listen_port
@@ -68,9 +67,11 @@ private:
 
 	// the udp socket used to send and receive
 	// multicast messages on
-	broadcast_socket m_socket;
+	broadcast_socket m_socket {
+		udp::endpoint(address_v4::from_string("239.192.152.143"), 6771) };
 #if TORRENT_USE_IPV6
-	broadcast_socket m_socket6;
+	broadcast_socket m_socket6 {
+		udp::endpoint(address_v6::from_string("ff15::efc0:988f"), 6771) };
 #endif
 #ifndef TORRENT_DISABLE_LOGGING
 	bool should_log() const;
@@ -88,9 +89,9 @@ private:
 	// as a peer
 	int m_cookie;
 
-	bool m_disabled;
+	bool m_disabled = false;
 #if TORRENT_USE_IPV6
-	bool m_disabled6;
+	bool m_disabled6 = false;
 #endif
 };
 

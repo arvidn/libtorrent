@@ -67,8 +67,8 @@ namespace libtorrent
 	{
 		static_assert(N % 32 == 0, "N must be a multiple of 32");
 		enum { number_size = N / 32 };
-	public:
 
+	public:
 		// the size of the hash in bytes
 		static constexpr size_t size() { return N / 8; }
 
@@ -264,9 +264,7 @@ namespace libtorrent
 		}
 
 	private:
-
 		std::uint32_t m_number[number_size];
-
 	};
 
 	// This type holds a SHA-1 digest or any other kind of 20 byte

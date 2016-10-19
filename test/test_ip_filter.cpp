@@ -129,7 +129,6 @@ TORRENT_TEST(ip_filter)
 
 		TEST_CHECK(range.size() == 3);
 		TEST_CHECK(std::equal(range.begin(), range.end(), expected1, &compare<address_v4>));
-
 	}
 
 	// **** test joining of ranges at the start ****
@@ -148,7 +147,6 @@ TORRENT_TEST(ip_filter)
 
 		TEST_CHECK(range.size() == 3);
 		TEST_CHECK(std::equal(range.begin(), range.end(), expected1, &compare<address_v4>));
-
 	}
 
 
@@ -168,7 +166,6 @@ TORRENT_TEST(ip_filter)
 
 		TEST_CHECK(range.size() == 3);
 		TEST_CHECK(std::equal(range.begin(), range.end(), expected1, &compare<address_v4>));
-
 	}
 
 
@@ -188,7 +185,6 @@ TORRENT_TEST(ip_filter)
 
 		TEST_CHECK(range.size() == 3);
 		TEST_CHECK(std::equal(range.begin(), range.end(), expected1, &compare<address_v4>));
-
 	}
 
 
@@ -219,7 +215,6 @@ TORRENT_TEST(ip_filter)
 		};
 
 		TEST_CHECK(std::equal(range.begin(), range.end(), expected, &compare<address_v4>));
-
 	}
 
 	// **** test joining of multiple overlapping ranges 2 ****
@@ -249,7 +244,6 @@ TORRENT_TEST(ip_filter)
 		};
 
 		TEST_CHECK(std::equal(range.begin(), range.end(), expected, &compare<address_v4>));
-
 	}
 
 	// **** test IPv6 ****
@@ -274,7 +268,6 @@ TORRENT_TEST(ip_filter)
 
 		TEST_EQUAL(range.size(), 3);
 		TEST_CHECK(std::equal(range.begin(), range.end(), expected2, &compare<address_v6>));
-
 	}
 #endif
 

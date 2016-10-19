@@ -204,7 +204,6 @@ public:
 	}
 
 private:
-
 	void send_single_refresh(udp::endpoint const& ep, int bucket
 		, node_id const& id = node_id());
 	bool lookup_peers(sha1_hash const& info_hash, entry& reply
@@ -230,7 +229,6 @@ public:
 	rpc_manager m_rpc;
 
 private:
-
 	struct protocol_descriptor
 	{
 		udp protocol;

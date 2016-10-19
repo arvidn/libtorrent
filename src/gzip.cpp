@@ -221,7 +221,7 @@ namespace libtorrent
 		{
 			TORRENT_TRY {
 				buffer.resize(destlen);
-			} TORRENT_CATCH (std::exception const&) {
+			} TORRENT_CATCH(std::exception const&) {
 				ec = errors::no_memory;
 				return;
 			}

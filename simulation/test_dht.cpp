@@ -152,9 +152,7 @@ TORRENT_TEST(dht_bootstrap)
 		});
 
 	sim.run();
-
 #endif // TORRENT_DISABLE_DHT
-
 }
 
 TORRENT_TEST(dht_dual_stack_get_peers)

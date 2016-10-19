@@ -196,7 +196,7 @@ int SHA512_update(sha512_ctx* md, std::uint8_t const* in, std::uint32_t inlen)
     }
     while (inlen > 0) {
         if (md->curlen == 0 && inlen >= 128) {
-           if ((err = sha512_compress (md, (unsigned char *)in)) != 0) {
+           if ((err = sha512_compress(md, (unsigned char *)in)) != 0) {
               return err;
            }
            md->length += 128 * 8;
@@ -214,7 +214,7 @@ int SHA512_update(sha512_ctx* md, std::uint8_t const* in, std::uint32_t inlen)
            in             += n;
            inlen          -= n;
            if (md->curlen == 128) {
-              if ((err = sha512_compress (md, md->buf)) != 0) {
+              if ((err = sha512_compress(md, md->buf)) != 0) {
                  return err;
               }
               md->length += 8*128;

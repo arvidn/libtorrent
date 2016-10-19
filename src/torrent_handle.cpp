@@ -97,7 +97,7 @@ namespace libtorrent
 					, error_code(), "unknown error");
 			}
 #endif
-		} );
+		});
 	}
 
 	template<typename Fun, typename... Args>
@@ -132,7 +132,7 @@ namespace libtorrent
 			std::unique_lock<std::mutex> l(ses.mut);
 			done = true;
 			ses.cond.notify_all();
-		} );
+		});
 
 		aux::torrent_wait(done, ses);
 		if (ex) std::rethrow_exception(ex);
@@ -168,7 +168,7 @@ namespace libtorrent
 			std::unique_lock<std::mutex> l(ses.mut);
 			done = true;
 			ses.cond.notify_all();
-		} );
+		});
 
 		aux::torrent_wait(done, ses);
 

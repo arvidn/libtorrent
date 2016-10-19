@@ -485,7 +485,6 @@ namespace libtorrent
 		std::vector<char> deprecated3;
 		error_code deprecated4;
 #endif
-
 	};
 }
 

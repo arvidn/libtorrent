@@ -95,7 +95,6 @@ void test_interval(int interval)
 		}
 		// on alert
 		, [&](lt::alert const* a, lt::session&) {
-
 			if (lt::alert_cast<lt::tracker_announce_alert>(a))
 			{
 				std::uint32_t const seconds = std::uint32_t(chrono::duration_cast<lt::seconds>(

@@ -139,7 +139,6 @@ struct fake_peer
 	}
 
 private:
-
 	void write_handshake(boost::system::error_code const& ec
 		, lt::sha1_hash ih)
 	{
@@ -328,7 +327,6 @@ struct fake_node
 	{ return m_incoming_packets; }
 
 private:
-
 	std::array<char, 300> m_in_buffer;
 
 	std::vector<std::vector<char>> m_incoming_packets;

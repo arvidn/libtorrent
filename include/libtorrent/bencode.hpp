@@ -226,7 +226,6 @@ namespace libtorrent
 			}
 			switch (*in)
 			{
-
 			// ----------------------------------------------
 			// integer
 			case 'i':

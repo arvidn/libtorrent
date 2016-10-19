@@ -63,7 +63,6 @@ struct TORRENT_EXTRA_EXPORT natpmp
 	void close();
 
 private:
-
 	std::shared_ptr<natpmp> self() { return shared_from_this(); }
 
 	void update_mapping(int i);

@@ -62,7 +62,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sstream>
 #define DLOG(...) debug_log(__VA_ARGS__)
 #else
-#define DLOG(...) do {} while(false)
+#define DLOG(...) do {} while (false)
 #endif
 
 namespace libtorrent
@@ -71,10 +71,18 @@ namespace libtorrent
 #if TORRENT_USE_ASSERTS
 
 #define TORRENT_PIECE_ASSERT(cond, piece) \
-	do { if (!(cond)) { assert_print_piece(piece); assert_fail(#cond, __LINE__, __FILE__, TORRENT_FUNCTION, 0); } } TORRENT_WHILE_0
+	do { \
+		if (!(cond)) { \
+			assert_print_piece(piece); \
+			assert_fail(#cond, __LINE__, __FILE__, TORRENT_FUNCTION, 0); \
+		} \
+	} TORRENT_WHILE_0
 
 #define TORRENT_PIECE_ASSERT_FAIL(piece) \
-	do { assert_print_piece(piece); assert_fail("<unconditional>", __LINE__, __FILE__, TORRENT_FUNCTION, 0); } TORRENT_WHILE_0
+	do { \
+		assert_print_piece(piece); \
+		assert_fail("<unconditional>", __LINE__, __FILE__, TORRENT_FUNCTION, 0); \
+	} TORRENT_WHILE_0
 
 #else
 #define TORRENT_PIECE_ASSERT(cond, piece) do {} TORRENT_WHILE_0
@@ -459,7 +467,8 @@ namespace libtorrent
 
 			iovec_offset[i] = iov_len;
 			refcount_pieces[i] = 1;
-			TORRENT_ASSERT_VAL(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2, pe);
+			TORRENT_ASSERT_VAL(pe->cache_state <= cached_piece_entry::read_lru1
+				|| pe->cache_state == cached_piece_entry::read_lru2, pe);
 #if TORRENT_USE_ASSERTS
 			pe->piece_log.push_back(piece_log_t(piece_log_t::flushing, -1));
 #endif
@@ -735,7 +744,8 @@ namespace libtorrent
 		int iov_len = build_iovec(pe, start, end, iov, flushing, 0);
 		if (iov_len == 0) return 0;
 
-		TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2, pe);
+		TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1
+			|| pe->cache_state == cached_piece_entry::read_lru2, pe);
 #if TORRENT_USE_ASSERTS
 		pe->piece_log.push_back(piece_log_t(piece_log_t::flush_range, -1));
 #endif
@@ -981,7 +991,8 @@ namespace libtorrent
 			if (now - e->expire < expiration_limit) break;
 			if (e->num_dirty == 0) continue;
 
-			TORRENT_PIECE_ASSERT(e->cache_state <= cached_piece_entry::read_lru1 || e->cache_state == cached_piece_entry::read_lru2, e);
+			TORRENT_PIECE_ASSERT(e->cache_state <= cached_piece_entry::read_lru1
+				|| e->cache_state == cached_piece_entry::read_lru2, e);
 #if TORRENT_USE_ASSERTS
 			e->piece_log.push_back(piece_log_t(piece_log_t::flush_expired, -1));
 #endif
@@ -1483,13 +1494,15 @@ namespace libtorrent
 				m_disk_cache.update_cache_state(pe);
 			}
 
-			TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2, pe);
+			TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1
+				|| pe->cache_state == cached_piece_entry::read_lru2, pe);
 			++pe->piece_refcount;
 
 			// see if we can progress the hash cursor with this new block
 			kick_hasher(pe, l);
 
-			TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2, pe);
+			TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1
+				|| pe->cache_state == cached_piece_entry::read_lru2, pe);
 
 			// flushes the piece to disk in case
 			// it satisfies the condition for a write
@@ -2146,13 +2159,16 @@ namespace libtorrent
 #endif
 			m_disk_cache.cache_hit(pe, j->requester, (j->flags & disk_io_job::volatile_read) != 0);
 
-			TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2, pe);
+			TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1
+				|| pe->cache_state == cached_piece_entry::read_lru2, pe);
+
 			{
 				piece_refcount_holder h(pe);
 				kick_hasher(pe, l);
 			}
 
-			TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2, pe);
+			TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1
+				|| pe->cache_state == cached_piece_entry::read_lru2, pe);
 
 			// are we already done hashing?
 			if (pe->hash && !pe->hashing && pe->hash->offset == piece_size)
@@ -2700,7 +2716,8 @@ namespace libtorrent
 			// see if we can progress the hash cursor with this new block
 			kick_hasher(pe, l);
 
-			TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2, pe);
+			TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1
+				|| pe->cache_state == cached_piece_entry::read_lru2, pe);
 		}
 
 		// flushes the piece to disk in case
@@ -3299,7 +3316,8 @@ namespace libtorrent
 					m_disk_cache.update_cache_state(pe);
 				}
 
-				TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2, pe);
+				TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1
+					|| pe->cache_state == cached_piece_entry::read_lru2, pe);
 
 				if (pe->outstanding_flush == 0)
 				{

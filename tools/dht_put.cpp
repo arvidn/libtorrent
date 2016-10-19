@@ -78,8 +78,7 @@ void usage()
 		"mput <key-file> <string>  - puts the specified string as a mutable\n"
 		"                            object under the public key in key-file\n"
 		"mget <public-key>         - get a mutable object under the specified\n"
-		"                            public key\n"
-		);
+		"                            public key\n");
 	exit(1);
 }
 

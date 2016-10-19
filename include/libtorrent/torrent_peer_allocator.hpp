@@ -56,6 +56,7 @@ namespace libtorrent
 
 		virtual torrent_peer* allocate_peer_entry(int type) = 0;
 		virtual void free_peer_entry(torrent_peer* p) = 0;
+
 	protected:
 		~torrent_peer_allocator_interface() {}
 	};
@@ -74,12 +75,10 @@ namespace libtorrent
 		int live_allocations() const { return m_live_allocations; }
 
 	private:
-
 		// this is a shared pool where torrent_peer objects
 		// are allocated. It's a pool since we're likely
 		// to have tens of thousands of peers, and a pool
 		// saves significant overhead
-
 		boost::pool<> m_ipv4_peer_pool;
 #if TORRENT_USE_IPV6
 		boost::pool<> m_ipv6_peer_pool;

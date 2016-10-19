@@ -80,7 +80,6 @@ inline boost::system::error_category& get_socks_category()
 class socks5_stream : public proxy_base
 {
 public:
-
 	// commands
 	enum {
 		socks5_connect = 1,
@@ -218,7 +217,6 @@ public:
 	}
 
 private:
-
 	void name_lookup(error_code const& e, tcp::resolver::iterator i
 		, std::shared_ptr<handler_type> h);
 	void connected(error_code const& e, std::shared_ptr<handler_type> h);

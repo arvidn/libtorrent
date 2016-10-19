@@ -67,7 +67,6 @@ namespace libtorrent { namespace dht
 		}
 
 	private:
-
 		// used to ignore abusive dht nodes
 		struct node_ban_entry
 		{

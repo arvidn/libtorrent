@@ -295,7 +295,6 @@ namespace libtorrent
 		void add_collection(string_view c);
 
 	private:
-
 		file_storage& m_files;
 		// if m_info_dict is initialized, it is
 		// used instead of m_files to generate

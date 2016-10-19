@@ -44,13 +44,12 @@ namespace libtorrent {
 class proxy_base : boost::noncopyable
 {
 public:
+	using handler_type = std::function<void(error_code const&)>;
 
-	typedef std::function<void(error_code const&)> handler_type;
-
-	typedef tcp::socket next_layer_type;
-	typedef tcp::socket::lowest_layer_type lowest_layer_type;
-	typedef tcp::socket::endpoint_type endpoint_type;
-	typedef tcp::socket::protocol_type protocol_type;
+	using next_layer_type = tcp::socket;
+	using lowest_layer_type = tcp::socket::lowest_layer_type;
+	using endpoint_type = tcp::socket::endpoint_type;
+	using protocol_type = tcp::socket::protocol_type;
 
 	explicit proxy_base(io_service& io_service);
 	~proxy_base();
@@ -243,7 +242,6 @@ public:
 	bool is_open() const { return m_sock.is_open(); }
 
 protected:
-
 	bool handle_error(error_code const& e, std::shared_ptr<handler_type> const& h);
 
 	tcp::socket m_sock;

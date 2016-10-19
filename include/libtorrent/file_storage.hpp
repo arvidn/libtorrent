@@ -164,7 +164,6 @@ namespace libtorrent
 		// that's why it's private, to keep people away from it
 		char const* name;
 	public:
-
 		// the index into file_storage::m_paths. To get
 		// the full path to this file, concatenate the path
 		// from that array with the 'name' field in
@@ -562,7 +561,6 @@ namespace libtorrent
 		void apply_pointer_offset(ptrdiff_t off);
 
 	private:
-
 		void add_pad_file(int size
 			, std::vector<internal_file_entry>::iterator& i
 			, std::int64_t& offset

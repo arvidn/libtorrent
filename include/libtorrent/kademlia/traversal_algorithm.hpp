@@ -79,7 +79,6 @@ struct TORRENT_EXTRA_EXPORT traversal_algorithm : boost::noncopyable
 	node& get_node() const { return m_node; }
 
 protected:
-
 	std::shared_ptr<traversal_algorithm> self()
 	{ return shared_from_this(); }
 
@@ -104,7 +103,6 @@ protected:
 	std::vector<observer_ptr> m_results;
 
 private:
-
 	node_id const m_target;
 	std::int16_t m_invoke_count = 0;
 	std::int16_t m_branch_factor = 3;

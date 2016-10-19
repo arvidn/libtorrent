@@ -53,7 +53,6 @@ using namespace std::placeholders;
 
 struct peer_server
 {
-
 	libtorrent::io_service m_ios;
 	boost::detail::atomic_count m_peer_requests;
 	tcp::acceptor m_acceptor;

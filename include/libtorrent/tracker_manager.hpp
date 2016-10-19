@@ -263,7 +263,6 @@ namespace libtorrent
 		io_service& get_io_service() { return m_timeout.get_io_service(); }
 
 	private:
-
 		void timeout_callback(error_code const&);
 
 		int m_completion_timeout = 0;
@@ -315,11 +314,9 @@ namespace libtorrent
 		}
 
 	private:
-
 		const tracker_request m_req;
 
 	protected:
-
 		void fail_impl(error_code const& ec, int code = -1, std::string msg = std::string()
 			, int interval = 0, int min_interval = 0);
 
@@ -333,7 +330,6 @@ namespace libtorrent
 		, single_threaded
 	{
 	public:
-
 		typedef std::function<void(udp::endpoint const&
 			, span<char const>
 			, error_code&, int)> send_fun_t;
@@ -349,7 +345,7 @@ namespace libtorrent
 #if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 			, aux::session_logger& ses
 #endif
-			);
+			); // NOLINT
 		virtual ~tracker_manager();
 
 		void queue_request(
@@ -389,7 +385,6 @@ namespace libtorrent
 			, error_code& ec, int flags = 0);
 
 	private:
-
 		// maps transactionid to the udp_tracker_connection
 		// These must use shared_ptr to avoid a dangling reference
 		// if a connection is erased while a timeout event is in the queue
