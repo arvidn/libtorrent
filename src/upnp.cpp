@@ -211,7 +211,7 @@ int upnp::add_mapping(upnp::protocol_type p, int external_port, int local_port)
 		m.external_port = external_port;
 		m.local_port = local_port;
 
-		if (d.service_namespace) update_map(d, mapping_index, l);
+		if (!d.service_namespace.empty()) update_map(d, mapping_index, l);
 	}
 
 	return mapping_index;
@@ -242,7 +242,7 @@ void upnp::delete_mapping(int mapping)
 		TORRENT_ASSERT(mapping < int(d.mapping.size()));
 		d.mapping[mapping].action = mapping_t::action_delete;
 
-		if (d.service_namespace) update_map(d, mapping, l);
+		if (!d.service_namespace.empty()) update_map(d, mapping, l);
 	}
 }
 
@@ -654,7 +654,7 @@ void upnp::post(upnp::rootdevice const& d, char const* soap
 		"Soapaction: \"%s#%s\"\r\n\r\n"
 		"%s"
 		, d.path.c_str(), d.hostname.c_str(), d.port
-		, int(strlen(soap)), d.service_namespace, soap_action
+		, int(strlen(soap)), d.service_namespace.c_str(), soap_action
 		, soap);
 
 	d.upnp_connection->m_sendbuffer = header;
@@ -698,7 +698,7 @@ void upnp::create_port_mapping(http_connection& c, rootdevice& d, int i)
 		"<NewPortMappingDescription>%s at %s:%d</NewPortMappingDescription>"
 		"<NewLeaseDuration>%u</NewLeaseDuration>"
 		"</u:%s></s:Body></s:Envelope>"
-		, soap_action, d.service_namespace, d.mapping[i].external_port
+		, soap_action, d.service_namespace.c_str(), d.mapping[i].external_port
 		, (d.mapping[i].protocol == udp ? "UDP" : "TCP")
 		, d.mapping[i].local_port
 		, local_endpoint.c_str()
@@ -749,7 +749,7 @@ void upnp::update_map(rootdevice& d, int i, mutex::scoped_lock& l)
 	}
 
 	TORRENT_ASSERT(!d.upnp_connection);
-	TORRENT_ASSERT(d.service_namespace);
+	TORRENT_ASSERT(!d.service_namespace.empty());
 
 	char msg[500];
 	snprintf(msg, sizeof(msg), "connecting to %s", d.hostname.c_str());
@@ -816,7 +816,7 @@ void upnp::delete_port_mapping(rootdevice& d, int i)
 		"<NewExternalPort>%u</NewExternalPort>"
 		"<NewProtocol>%s</NewProtocol>"
 		"</u:%s></s:Body></s:Envelope>"
-		, soap_action, d.service_namespace
+		, soap_action, d.service_namespace.c_str()
 		, d.mapping[i].external_port
 		, (d.mapping[i].protocol == udp ? "UDP" : "TCP")
 		, soap_action);
@@ -945,9 +945,10 @@ void upnp::on_upnp_xml(error_code const& e
 		d.disabled = true;
 		return;
 	}
-	static std::string service_type;
-	service_type.swap(s.service_type);
-	d.service_namespace = service_type.c_str();
+	d.service_namespace = s.service_type;
+
+	TORRENT_ASSERT(!d.service_namespace.empty());
+
 	if (!s.model.empty()) m_model = s.model;
 
 	if (!s.url_base.empty() && s.control_url.substr(0, 7) != "http://")
@@ -977,7 +978,7 @@ void upnp::on_upnp_xml(error_code const& e
 		char msg[500];
 		snprintf(msg, sizeof(msg), "found control URL: %s namespace %s "
 			"urlbase: %s in response from %s"
-			, d.control_url.c_str(), d.service_namespace
+			, d.control_url.c_str(), d.service_namespace.c_str()
 			, s.url_base.c_str(), d.url.c_str());
 		log(msg, l);
 	}
@@ -1029,7 +1030,7 @@ void upnp::get_ip_address(rootdevice& d)
 		"s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
 		"<s:Body><u:%s xmlns:u=\"%s\">"
 		"</u:%s></s:Body></s:Envelope>"
-		, soap_action, d.service_namespace
+		, soap_action, d.service_namespace.c_str()
 		, soap_action);
 
 	post(d, soap, soap_action, l);

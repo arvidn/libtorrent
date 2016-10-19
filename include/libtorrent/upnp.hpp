@@ -277,8 +277,7 @@ private:
 
 	struct rootdevice
 	{
-		rootdevice(): service_namespace(0)
-			, port(0)
+		rootdevice(): port(0)
 			, lease_duration(default_lease_time)
 			, supports_specific_external(true)
 			, disabled(false)
@@ -308,7 +307,7 @@ private:
 		// the url to the WANIP or WANPPP interface
 		std::string control_url;
 		// either the WANIP namespace or the WANPPP namespace
-		char const* service_namespace;
+		std::string service_namespace;
 
 		std::vector<mapping_t> mapping;
 
