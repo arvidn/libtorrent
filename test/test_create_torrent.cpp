@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/aux_/escape_string.hpp" // for convert_path_to_posix
+#include "libtorrent/announce_entry.hpp"
 
 #include <cstring>
 
@@ -49,6 +50,10 @@ TORRENT_TEST(create_verbatim_torrent)
 
 	lt::torrent_info info(test_torrent, sizeof(test_torrent) - 1);
 
+	info.add_tracker("http://test.com");
+	info.add_tracker("http://test.com");
+	TEST_EQUAL(info.trackers().size(), 1);
+	
 	lt::create_torrent t(info);
 
 	std::vector<char> buffer;
