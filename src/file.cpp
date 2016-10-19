@@ -124,6 +124,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifdef TORRENT_ANDROID
 #include <sys/syscall.h>
 #define lseek lseek64
+#define pread pread64
+#define pwrite pwrite64
+#define ftruncate ftruncate64
 #endif
 
 #elif defined __APPLE__ && defined __MACH__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
