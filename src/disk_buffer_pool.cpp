@@ -232,7 +232,12 @@ namespace libtorrent
 				// we need to roll back and free all the buffers
 				// we've already allocated
 				for (int j = 0; j < i; ++j)
-					free_buffer_impl(static_cast<char*>(iov[j].iov_base), l);
+				{
+					char* buf = static_cast<char*>(iov[j].iov_base);
+					TORRENT_ASSERT(is_disk_buffer(buf, l));
+					free_buffer_impl(buf, l);
+					remove_buffer_in_use(buf);
+				}
 				return -1;
 			}
 		}
@@ -244,7 +249,12 @@ namespace libtorrent
 		// TODO: perhaps we should sort the buffers here?
 		std::unique_lock<std::mutex> l(m_pool_mutex);
 		for (int i = 0; i < iov_len; ++i)
-			free_buffer_impl(static_cast<char*>(iov[i].iov_base), l);
+		{
+			char* buf = static_cast<char*>(iov[i].iov_base);
+			TORRENT_ASSERT(is_disk_buffer(buf, l));
+			free_buffer_impl(buf, l);
+			remove_buffer_in_use(buf);
+		}
 		check_buffer_level(l);
 	}
 
@@ -304,12 +314,21 @@ namespace libtorrent
 			}
 		}
 
+		++m_in_use;
+
 #if TORRENT_USE_INVARIANT_CHECKS
-		TORRENT_ASSERT(m_buffers_in_use.count(ret) == 0);
-		m_buffers_in_use.insert(ret);
+		try
+		{
+			TORRENT_ASSERT(m_buffers_in_use.count(ret) == 0);
+			m_buffers_in_use.insert(ret);
+		}
+		catch (...)
+		{
+			free_buffer_impl(ret, l);
+			return nullptr;
+		}
 #endif
 
-		++m_in_use;
 		if (m_in_use >= m_low_watermark + (m_max_use - m_low_watermark)
 			/ 2 && !m_exceeded_max_size)
 		{
@@ -331,8 +350,9 @@ namespace libtorrent
 		for (; bufvec != end; ++bufvec)
 		{
 			char* buf = *bufvec;
-			TORRENT_ASSERT(buf);
+			TORRENT_ASSERT(is_disk_buffer(buf, l));
 			free_buffer_impl(buf, l);
+			remove_buffer_in_use(buf);
 		}
 
 		check_buffer_level(l);
@@ -341,7 +361,9 @@ namespace libtorrent
 	void disk_buffer_pool::free_buffer(char* buf)
 	{
 		std::unique_lock<std::mutex> l(m_pool_mutex);
+		TORRENT_ASSERT(is_disk_buffer(buf, l));
 		free_buffer_impl(buf, l);
+		remove_buffer_in_use(buf);
 		check_buffer_level(l);
 	}
 
@@ -514,12 +536,21 @@ namespace libtorrent
 #endif
 	}
 
+	void disk_buffer_pool::remove_buffer_in_use(char* buf)
+	{
+		TORRENT_UNUSED(buf);
+#if TORRENT_USE_INVARIANT_CHECKS
+		std::set<char*>::iterator i = m_buffers_in_use.find(buf);
+		TORRENT_ASSERT(i != m_buffers_in_use.end());
+		m_buffers_in_use.erase(i);
+#endif
+	}
+
 	void disk_buffer_pool::free_buffer_impl(char* buf, std::unique_lock<std::mutex>& l)
 	{
 		TORRENT_ASSERT(buf);
 		TORRENT_ASSERT(m_magic == 0x1337);
 		TORRENT_ASSERT(m_settings_set);
-		TORRENT_ASSERT(is_disk_buffer(buf, l));
 		TORRENT_ASSERT(l.owns_lock());
 		TORRENT_UNUSED(l);
 
@@ -557,12 +588,6 @@ namespace libtorrent
 			page_aligned_allocator::free(buf);
 #endif // TORRENT_DISABLE_POOL_ALLOCATOR
 		}
-
-#if TORRENT_USE_INVARIANT_CHECKS
-		std::set<char*>::iterator i = m_buffers_in_use.find(buf);
-		TORRENT_ASSERT(i != m_buffers_in_use.end());
-		m_buffers_in_use.erase(i);
-#endif
 
 		--m_in_use;
 

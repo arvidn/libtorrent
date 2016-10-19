@@ -60,13 +60,15 @@ namespace libtorrent
 	using namespace libtorrent::aux;
 
 	timeout_handler::timeout_handler(io_service& ios)
-		: m_completion_timeout(0)
-		, m_start_time(clock_type::now())
+		: m_start_time(clock_type::now())
 		, m_read_time(m_start_time)
 		, m_timeout(ios)
-		, m_read_timeout(0)
-		, m_abort(false)
 	{}
+
+	timeout_handler::~timeout_handler()
+	{
+		TORRENT_ASSERT(m_outstanding_timer_wait == 0);
+	}
 
 	void timeout_handler::set_timeout(int completion_timeout, int read_timeout)
 	{
@@ -92,6 +94,9 @@ namespace libtorrent
 		m_timeout.expires_at(m_read_time + seconds(timeout), ec);
 		m_timeout.async_wait(std::bind(
 			&timeout_handler::timeout_callback, shared_from_this(), _1));
+#if TORRENT_USE_ASSERTS
+		++m_outstanding_timer_wait;
+#endif
 	}
 
 	void timeout_handler::restart_read_timeout()
@@ -110,6 +115,10 @@ namespace libtorrent
 	void timeout_handler::timeout_callback(error_code const& error)
 	{
 		COMPLETE_ASYNC("timeout_handler::timeout_callback");
+#if TORRENT_USE_ASSERTS
+		TORRENT_ASSERT(m_outstanding_timer_wait > 0);
+		--m_outstanding_timer_wait;
+#endif
 		if (m_abort) return;
 
 		time_point now = clock_type::now();
@@ -139,6 +148,9 @@ namespace libtorrent
 		m_timeout.expires_at(m_read_time + seconds(timeout), ec);
 		m_timeout.async_wait(
 			std::bind(&timeout_handler::timeout_callback, shared_from_this(), _1));
+#if TORRENT_USE_ASSERTS
+		++m_outstanding_timer_wait;
+#endif
 	}
 
 	tracker_connection::tracker_connection(
@@ -207,12 +219,10 @@ namespace libtorrent
 #if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 		, m_ses(ses)
 #endif
-		, m_abort(false)
 	{}
 
 	tracker_manager::~tracker_manager()
 	{
-		TORRENT_ASSERT(m_abort);
 		abort_all_requests(true);
 	}
 

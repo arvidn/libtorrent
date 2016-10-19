@@ -258,7 +258,7 @@ namespace libtorrent
 		bool cancelled() const { return m_abort; }
 
 		virtual void on_timeout(error_code const& ec) = 0;
-		virtual ~timeout_handler() {}
+		virtual ~timeout_handler();
 
 		io_service& get_io_service() { return m_timeout.get_io_service(); }
 
@@ -266,7 +266,7 @@ namespace libtorrent
 
 		void timeout_callback(error_code const&);
 
-		int m_completion_timeout;
+		int m_completion_timeout = 0;
 
 		// used for timeouts
 		// this is set when the request has been sent
@@ -278,9 +278,12 @@ namespace libtorrent
 		// the asio async operation
 		deadline_timer m_timeout;
 
-		int m_read_timeout;
+		int m_read_timeout = 0;
 
-		bool m_abort;
+		bool m_abort = false;
+#if TORRENT_USE_ASSERTS
+		int m_outstanding_timer_wait = 0;
+#endif
 	};
 
 	// TODO: 2 this class probably doesn't need to have virtual functions.
@@ -402,11 +405,10 @@ namespace libtorrent
 		resolver_interface& m_host_resolver;
 		aux::session_settings const& m_settings;
 		counters& m_stats_counters;
+		bool m_abort = false;
 #if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 		aux::session_logger& m_ses;
 #endif
-
-		bool m_abort;
 	};
 }
 

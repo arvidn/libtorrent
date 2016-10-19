@@ -320,17 +320,11 @@ cached_piece_entry::cached_piece_entry()
 	, hashing_done(0)
 	, marked_for_deletion(false)
 	, need_readback(false)
-	, cache_state(read_lru1)
+	, cache_state(none)
 	, piece_refcount(0)
 	, outstanding_flush(0)
 	, outstanding_read(0)
 	, pinned(0)
-	, refcount(0)
-#if TORRENT_USE_ASSERTS
-	, hash_passes(0)
-	, in_storage(false)
-	, in_use(true)
-#endif
 {}
 
 cached_piece_entry::~cached_piece_entry()
@@ -339,13 +333,16 @@ cached_piece_entry::~cached_piece_entry()
 	TORRENT_ASSERT(jobs.size() == 0);
 	TORRENT_ASSERT(read_jobs.size() == 0);
 #if TORRENT_USE_ASSERTS
-	for (int i = 0; i < blocks_in_piece; ++i)
+	if (blocks)
 	{
-		TORRENT_ASSERT(blocks[i].buf == nullptr);
-		TORRENT_ASSERT(!blocks[i].pending);
-		TORRENT_ASSERT(blocks[i].refcount == 0);
-		TORRENT_ASSERT(blocks[i].hashing_count == 0);
-		TORRENT_ASSERT(blocks[i].flushing_count == 0);
+		for (int i = 0; i < blocks_in_piece; ++i)
+		{
+			TORRENT_ASSERT(blocks[i].buf == nullptr);
+			TORRENT_ASSERT(!blocks[i].pending);
+			TORRENT_ASSERT(blocks[i].refcount == 0);
+			TORRENT_ASSERT(blocks[i].hashing_count == 0);
+			TORRENT_ASSERT(blocks[i].flushing_count == 0);
+		}
 	}
 	in_use = false;
 #endif
@@ -646,14 +643,14 @@ cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, int cache_
 		pe.storage = j->storage;
 		pe.expire = aux::time_now();
 		pe.blocks_in_piece = blocks_in_piece;
+
 		pe.blocks.reset(new (std::nothrow) cached_block_entry[blocks_in_piece]);
-		pe.cache_state = cache_state;
-		pe.last_requester = j->requester;
-		TORRENT_PIECE_ASSERT(pe.blocks, &pe);
 		if (!pe.blocks) return nullptr;
+		pe.last_requester = j->requester;
 		p = const_cast<cached_piece_entry*>(&*m_pieces.insert(pe).first);
 
 		j->storage->add_piece(p);
+		p->cache_state = cache_state;
 
 		TORRENT_PIECE_ASSERT(p->cache_state < cached_piece_entry::num_lrus, p);
 		linked_list<cached_piece_entry>* lru_list = &m_lru[p->cache_state];
@@ -1667,7 +1664,7 @@ void block_cache::check_invariant() const
 	}
 
 	std::unordered_set<char*> buffers;
-	for (auto const& p :m_pieces)
+	for (auto const& p : m_pieces)
 	{
 		TORRENT_PIECE_ASSERT(p.blocks, &p);
 
@@ -1677,7 +1674,7 @@ void block_cache::check_invariant() const
 		int num_pending = 0;
 		int num_refcount = 0;
 
-		bool in_storage = p.storage->has_piece(&p);
+		bool const in_storage = p.storage->has_piece(&p);
 		switch (p.cache_state)
 		{
 			case cached_piece_entry::write_lru:

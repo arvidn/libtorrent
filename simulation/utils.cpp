@@ -126,15 +126,22 @@ void print_alerts(lt::session& ses
 	ses.set_alert_notify([&ses,start_time,on_alert] {
 		ses.get_io_service().post([&ses,start_time,on_alert] {
 
-		std::vector<lt::alert*> alerts;
-		ses.pop_alerts(&alerts);
+		try {
+			std::vector<lt::alert*> alerts;
+			ses.pop_alerts(&alerts);
 
-		for (lt::alert const* a : alerts)
-		{
-			std::printf("%-3d [0] %s\n", int(lt::duration_cast<lt::seconds>(a->timestamp()
-				- start_time).count()), a->message().c_str());
-			// call the user handler
-			on_alert(ses, a);
+			for (lt::alert const* a : alerts)
+			{
+				std::printf("%-3d [0] %s\n", int(lt::duration_cast<lt::seconds>(a->timestamp()
+					- start_time).count()), a->message().c_str());
+				// call the user handler
+				on_alert(ses, a);
+			}
+		} catch (std::exception const& e) {
+			std::printf("print alerts: ERROR failed with exception: %s"
+				, e.what());
+		} catch (...) {
+			std::printf("print alerts: ERROR failed with (unknown) exception");
 		}
 	} ); } );
 }

@@ -257,6 +257,9 @@ namespace libtorrent
 		// indicates which LRU list this piece is chained into
 		enum cache_state_t
 		{
+			// not added to the cache
+			none,
+
 			// this is the LRU list for pieces with dirty blocks
 			write_lru,
 
@@ -314,18 +317,18 @@ namespace libtorrent
 		// ---- 32 bit boundary ---
 
 		// the sum of all refcounts in all blocks
-		std::uint32_t refcount;
+		std::uint32_t refcount = 0;
 
 #if TORRENT_USE_ASSERTS
 		// the number of times this piece has finished hashing
-		int hash_passes;
+		int hash_passes = 0;
 
 		// this is a debug facility to keep a log
 		// of which operations have been run on this piece
 		std::vector<piece_log_t> piece_log;
 
-		bool in_storage;
-		bool in_use;
+		bool in_storage = false;
+		bool in_use = true;
 #endif
 	};
 

@@ -189,6 +189,7 @@ namespace libtorrent
 		, m_files_checked(false)
 		, m_storage_mode(p.storage_mode)
 		, m_announcing(false)
+		, m_added(false)
 		, m_active_time(0)
 		, m_finished_time(0)
 		, m_sequential_download(false)
@@ -499,7 +500,8 @@ namespace libtorrent
 
 	int torrent::current_stats_state() const
 	{
-		if (m_abort) return counters::num_checking_torrents + no_gauge_state;
+		if (m_abort || !m_added)
+			return counters::num_checking_torrents + no_gauge_state;
 
 		if (has_error()) return counters::num_error_torrents;
 		if (m_paused || m_graceful_pause_mode)
@@ -521,7 +523,7 @@ namespace libtorrent
 
 	void torrent::update_gauge()
 	{
-		int new_gauge_state = current_stats_state() - counters::num_checking_torrents;
+		int const new_gauge_state = current_stats_state() - counters::num_checking_torrents;
 		TORRENT_ASSERT(new_gauge_state >= 0);
 		TORRENT_ASSERT(new_gauge_state <= no_gauge_state);
 
@@ -790,7 +792,8 @@ namespace libtorrent
 
 	torrent::~torrent()
 	{
-		TORRENT_ASSERT(m_abort);
+		// TODO: 3 assert there are no outstanding async operations on this
+		// torrent
 
 #if TORRENT_USE_ASSERTS
 		for (int i = 0; i < aux::session_interface::num_torrent_lists; ++i)
@@ -815,7 +818,6 @@ namespace libtorrent
 		// network thread cannot be maintained
 
 		TORRENT_ASSERT(m_peer_class == 0);
-		TORRENT_ASSERT(m_abort);
 		TORRENT_ASSERT(m_connections.empty());
 		if (!m_connections.empty())
 			disconnect_all(errors::torrent_aborted, op_bittorrent);
@@ -1892,15 +1894,15 @@ namespace libtorrent
 		}
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 
+		m_ses.disk_thread().async_check_files(
+			m_storage.get(), m_add_torrent_params ? m_add_torrent_params.get() : nullptr
+			, links, std::bind(&torrent::on_resume_data_checked
+			, shared_from_this(), _1));
 		// async_check_files will gut links
 #if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT(m_outstanding_check_files == false);
 		m_outstanding_check_files = true;
 #endif
-		m_ses.disk_thread().async_check_files(
-			m_storage.get(), m_add_torrent_params ? m_add_torrent_params.get() : nullptr
-			, links, std::bind(&torrent::on_resume_data_checked
-			, shared_from_this(), _1));
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("init, async_check_files");
 #endif
@@ -4287,7 +4289,6 @@ namespace libtorrent
 	void torrent::abort()
 	{
 		TORRENT_ASSERT(is_single_thread());
-		INVARIANT_CHECK;
 
 		if (m_abort) return;
 

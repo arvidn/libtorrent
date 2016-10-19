@@ -27,7 +27,23 @@ namespace libtorrent
 	template<class T>
 	void check_invariant(T const& x)
 	{
-		invariant_access::check_invariant(x);
+#ifndef BOOST_NO_EXCEPTIONS
+			try
+			{
+				invariant_access::check_invariant(x);
+			}
+			catch (std::exception const& err)
+			{
+				std::fprintf(stderr, "invariant_check failed with exception: %s"
+					, err.what());
+			}
+			catch (...)
+			{
+				std::fprintf(stderr, "invariant_check failed with exception");
+			}
+#else
+			invariant_access::check_invariant(x);
+#endif
 	}
 
 	struct invariant_checker {};
@@ -38,14 +54,7 @@ namespace libtorrent
 		explicit invariant_checker_impl(T const& self_)
 			: self(self_)
 		{
-			TORRENT_TRY
-			{
-				check_invariant(self);
-			}
-			TORRENT_CATCH_ALL
-			{
-				TORRENT_ASSERT_FAIL();
-			}
+			check_invariant(self);
 		}
 
 		invariant_checker_impl(invariant_checker_impl const& rhs)
@@ -53,14 +62,7 @@ namespace libtorrent
 
 		~invariant_checker_impl()
 		{
-			TORRENT_TRY
-			{
-				check_invariant(self);
-			}
-			TORRENT_CATCH_ALL
-			{
-				TORRENT_ASSERT_FAIL();
-			}
+			check_invariant(self);
 		}
 
 		T const& self;

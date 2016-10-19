@@ -179,6 +179,7 @@ nobase_include_HEADERS = \
   aux_/portmap.hpp                  \
   aux_/lsd.hpp                      \
   aux_/has_block.hpp                \
+  aux_/scope_end.hpp                \
   \
   extensions/smart_ban.hpp          \
   extensions/ut_metadata.hpp        \

@@ -136,6 +136,7 @@ namespace libtorrent
 	private:
 
 		void check_buffer_level(std::unique_lock<std::mutex>& l);
+		void remove_buffer_in_use(char* buf);
 
 		mutable std::mutex m_pool_mutex;
 
