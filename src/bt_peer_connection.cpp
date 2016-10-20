@@ -1773,9 +1773,9 @@ namespace libtorrent
 		// there should be a version too
 		// but where do we put that info?
 
-		int last_seen_complete = boost::uint8_t(root.dict_find_int_value("complete_ago", -1));
+		int last_seen_complete = root.dict_find_int_value("complete_ago", -1);
 		if (last_seen_complete >= 0) set_last_seen_complete(last_seen_complete);
-		
+
 		std::string client_info = root.dict_find_string_value("v");
 		if (!client_info.empty()) m_client_version = client_info;
 
