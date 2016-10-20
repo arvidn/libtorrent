@@ -42,6 +42,7 @@
 	* resume data no longer has timestamps of files
 	* require C++11 to build libtorrent
 
+	* fix bug in last-seen-complete
 	* remove file size limit in torrent_info filename constructor
 	* fix tail-padding for last file in create_torrent
 	* don't send user-agent in metadata http downloads or UPnP requests when

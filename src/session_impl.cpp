@@ -5480,6 +5480,8 @@ namespace aux {
 		// postpone starting the DHT if we're still resolving the DHT router
 		if (m_outstanding_router_lookups > 0) return;
 
+		if (m_abort) return;
+
 		// TODO: refactor, move the storage to dht_tracker
 		m_dht_storage = m_dht_storage_constructor(m_dht_settings);
 		m_dht = std::make_shared<dht::dht_tracker>(

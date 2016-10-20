@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/choker.hpp"
 #include "libtorrent/peer_connection.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
+#include "libtorrent/aux_/time.hpp"
 #include "libtorrent/torrent.hpp"
 
 #include <functional>
@@ -81,24 +82,33 @@ namespace libtorrent
 		// peers that are unchoked, but have sent more than one quota
 		// since they were unchoked, they get de-prioritized.
 
-		// if a peer is already unchoked, and the number of bytes sent since it was unchoked
-		// is greater than the send quanta, then it's done with it' upload slot, and we
-		// can de-prioritize it
-		bool c1_quota_complete = !lhs->is_choked() && c1
-			> (std::max)(t1->torrent_file().piece_length() * pieces, 256 * 1024);
-		bool c2_quota_complete = !rhs->is_choked() && c2
-			> (std::max)(t2->torrent_file().piece_length() * pieces, 256 * 1024);
+		// if a peer is already unchoked, the number of bytes sent since it was unchoked
+		// is greater than the send quanta, and it has been unchoked for at least one minute
+		// then it's done with its upload slot, and we can de-prioritize it
+		bool c1_quota_complete = !lhs->is_choked()
+			&& c1 > t1->torrent_file().piece_length() * pieces
+			&& aux::time_now() - lhs->time_of_last_unchoke() > minutes(1);
+		bool c2_quota_complete = !rhs->is_choked()
+			&& c2 > t2->torrent_file().piece_length() * pieces
+			&& aux::time_now() - rhs->time_of_last_unchoke() > minutes(1);
 
 		// if c2 has completed a quanta, it should be de-prioritized
 		// and vice versa
 		if (c1_quota_complete < c2_quota_complete) return true;
 		if (c1_quota_complete > c2_quota_complete) return false;
 
-		// if both peers have either completed a quanta, or not.
-		// keep unchoked peers prioritized over choked ones, to let
-		// peers keep working on uploading a full quanta
-		if (lhs->is_choked() < rhs->is_choked()) return true;
-		if (lhs->is_choked() > rhs->is_choked()) return false;
+		// when seeding, prefer the peer we're uploading the fastest to
+
+		// force the upload rate to zero for choked peers because
+		// if the peers just got choked the previous round
+		// there may have been a residual transfer which was already
+		// in-flight at the time and we don't want that to cause the peer
+		// to be ranked at the top of the choked peers
+		c1 = lhs->is_choked() ? 0 : lhs->uploaded_in_last_round();
+		c2 = rhs->is_choked() ? 0 : rhs->uploaded_in_last_round();
+
+		if (c1 > c2) return true;
+		if (c2 > c1) return false;
 
 		// if the peers are still identical (say, they're both waiting to be unchoked)
 		// prioritize the one that has waited the longest to be unchoked
@@ -135,10 +145,6 @@ namespace libtorrent
 		// when seeding, prefer the peer we're uploading the fastest to
 		c1 = lhs->uploaded_in_last_round();
 		c2 = rhs->uploaded_in_last_round();
-
-		// take torrent priority into account
-		c1 *= prio1;
-		c2 *= prio2;
 
 		if (c1 > c2) return true;
 		if (c2 > c1) return false;
