@@ -719,9 +719,9 @@ bool utp_incoming_packet(utp_socket_impl* s
 
 bool utp_match(utp_socket_impl* s, udp::endpoint const& ep, std::uint16_t id)
 {
-	return s->m_remote_address == ep.address()
+	return s->m_recv_id == id
 		&& s->m_port == ep.port()
-		&& s->m_recv_id == id;
+		&& s->m_remote_address == ep.address();
 }
 
 udp::endpoint utp_remote_endpoint(utp_socket_impl* s)
