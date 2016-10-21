@@ -9604,8 +9604,7 @@ namespace libtorrent
 		// busy blocks we may pick
 		// first, figure out which blocks are eligible for picking
 		// in "busy-mode"
-		busy_block_t* busy_blocks
-			= TORRENT_ALLOCA(busy_block_t, blocks_in_piece);
+		TORRENT_ALLOCA(busy_blocks, busy_block_t, blocks_in_piece);
 		int busy_count = 0;
 
 		piece_picker::block_info const* info = picker->blocks_for_piece(pi);
@@ -9637,16 +9636,18 @@ namespace libtorrent
 		std::printf("\n");
 #endif
 
+		busy_blocks = busy_blocks.first(busy_count);
+
 		// then sort blocks by the number of peers with requests
 		// to the blocks (request the blocks with the fewest peers
 		// first)
-		std::sort(busy_blocks, busy_blocks + busy_count);
+		std::sort(busy_blocks.begin(), busy_blocks.end());
 
 		// then insert them into the interesting_blocks vector
-		for (int k = 0; k < busy_count; ++k)
+		for (auto block : busy_blocks)
 		{
 			interesting_blocks.push_back(
-				piece_block(piece, busy_blocks[k].index));
+				piece_block(piece, block.index));
 		}
 	}
 

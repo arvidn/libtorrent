@@ -653,7 +653,7 @@ namespace libtorrent
 		// this is the stack of bdecode_token indices, into m_tokens.
 		// sp is the stack pointer, as index into the array, stack
 		int sp = 0;
-		stack_frame* stack = TORRENT_ALLOCA(stack_frame, depth_limit);
+		TORRENT_ALLOCA(stack, stack_frame, depth_limit);
 
 		char const* const orig_start = start;
 

@@ -978,21 +978,20 @@ TORRENT_TEST(iovec_advance_bufs)
 
 	memcpy(iov2, iov1, sizeof(iov1));
 
-	file::iovec_t* iov = iov2;
-	file::iovec_t* end = iov2 + 10;
+	span<file::iovec_t> iov = iov2;
 
 	// advance iov 13 bytes. Make sure what's left fits pattern 1 shifted
 	// 13 bytes
-	advance_bufs(iov, 13);
+	iov = advance_bufs(iov, 13);
 
 	// make sure what's in
 	int counter = 13;
-	for (int i = 0; i < end - iov; ++i)
+	for (auto buf : iov)
 	{
-		unsigned char* buf = (unsigned char*)iov[i].iov_base;
-		for (int k = 0; k < int(iov[i].iov_len); ++k)
+		unsigned char* buf_base = (unsigned char*)buf.iov_base;
+		for (int k = 0; k < int(buf.iov_len); ++k)
 		{
-			TEST_EQUAL(int(buf[k]), (counter & 0xff));
+			TEST_EQUAL(int(buf_base[k]), (counter & 0xff));
 			++counter;
 		}
 	}

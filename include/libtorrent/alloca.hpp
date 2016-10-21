@@ -33,21 +33,28 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_ALLOCA
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/span.hpp"
 
 #if defined TORRENT_WINDOWS || defined TORRENT_MINGW
 
 #include <malloc.h>
-#define TORRENT_ALLOCA(t, n) static_cast<t*>(_alloca(sizeof(t) * (n)))
+#define TORRENT_ALLOCA(v, t, n) ::libtorrent::span<t> v; { \
+	t* TORRENT_ALLOCA_tmp = static_cast<t*>(_alloca(sizeof(t) * (n))); \
+	v = ::libtorrent::span<t>(TORRENT_ALLOCA_tmp, n); }
 
 #elif defined TORRENT_BSD
 
 #include <stdlib.h>
-#define TORRENT_ALLOCA(t, n) static_cast<t*>(alloca(sizeof(t) * (n)))
+#define TORRENT_ALLOCA(v, t, n) ::libtorrent::span<t> v; { \
+	t* TORRENT_ALLOCA_tmp = static_cast<t*>(alloca(sizeof(t) * (n))); \
+	v = ::libtorrent::span<t>(TORRENT_ALLOCA_tmp, n); }
 
 #else
 
 #include <alloca.h>
-#define TORRENT_ALLOCA(t, n) static_cast<t*>(alloca(sizeof(t) * (n)))
+#define TORRENT_ALLOCA(v, t, n) ::libtorrent::span<t> v; { \
+	t* TORRENT_ALLOCA_tmp = static_cast<t*>(alloca(sizeof(t) * (n))); \
+	v = ::libtorrent::span<t>(TORRENT_ALLOCA_tmp, n); }
 
 #endif
 
