@@ -282,7 +282,7 @@ static_assert(sizeof(job_action_name)/sizeof(job_action_name[0])
 				"hash_passed: %d\nread_jobs: %d\njobs: %d\n"
 				"piece_log:\n"
 				, int(pe->piece), pe->refcount, pe->piece_refcount, int(pe->num_blocks)
-				, int(pe->hashing), static_cast<void*>(pe->hash), pe->hash ? pe->hash->offset : -1
+				, int(pe->hashing), static_cast<void*>(pe->hash.get()), pe->hash ? pe->hash->offset : -1
 				, int(pe->cache_state)
 				, pe->cache_state < cached_piece_entry::num_lrus ? cache_state[pe->cache_state] : ""
 				, int(pe->outstanding_flush), int(pe->piece), int(pe->num_dirty)
@@ -307,12 +307,7 @@ static_assert(sizeof(job_action_name)/sizeof(job_action_name[0])
 #endif
 
 cached_piece_entry::cached_piece_entry()
-	: storage()
-	, hash(nullptr)
-	, last_requester(nullptr)
-	, blocks()
-	, expire(min_time())
-	, piece(0)
+	: piece(0)
 	, num_dirty(0)
 	, num_blocks(0)
 	, blocks_in_piece(0)
@@ -324,7 +319,6 @@ cached_piece_entry::cached_piece_entry()
 	, piece_refcount(0)
 	, outstanding_flush(0)
 	, outstanding_read(0)
-	, pinned(0)
 {}
 
 cached_piece_entry::~cached_piece_entry()
@@ -346,7 +340,6 @@ cached_piece_entry::~cached_piece_entry()
 	}
 	in_use = false;
 #endif
-	delete hash;
 }
 
 block_cache::block_cache(int block_size, io_service& ios
@@ -509,7 +502,7 @@ void block_cache::update_cache_state(cached_piece_entry* p)
 {
 	int state = p->cache_state;
 	int desired_state = p->cache_state;
-	if (p->num_dirty > 0 || p->hash != nullptr)
+	if (p->num_dirty > 0 || p->hash)
 		desired_state = cached_piece_entry::write_lru;
 	else if (p->cache_state == cached_piece_entry::write_lru)
 		desired_state = cached_piece_entry::read_lru1;
@@ -647,7 +640,7 @@ cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, int cache_
 		pe.blocks.reset(new (std::nothrow) cached_block_entry[blocks_in_piece]);
 		if (!pe.blocks) return nullptr;
 		pe.last_requester = j->requester;
-		p = const_cast<cached_piece_entry*>(&*m_pieces.insert(pe).first);
+		p = const_cast<cached_piece_entry*>(&*m_pieces.insert(std::move(pe)).first);
 
 		j->storage->add_piece(p);
 		p->cache_state = cache_state;
@@ -812,8 +805,8 @@ cached_piece_entry* block_cache::add_dirty_block(disk_io_job* j)
 	TORRENT_PIECE_ASSERT(j->piece == pe->piece, pe);
 	pe->jobs.push_back(j);
 
-	if (block == 0 && pe->hash == nullptr && pe->hashing_done == false)
-		pe->hash = new partial_hash;
+	if (block == 0 && !pe->hash && pe->hashing_done == false)
+		pe->hash.reset(new partial_hash);
 
 	update_cache_state(pe);
 
@@ -939,9 +932,6 @@ bool block_cache::evict_piece(cached_piece_entry* pe, tailqueue<disk_io_job>& jo
 
 	if (pe->ok_to_evict(true))
 	{
-		delete pe->hash;
-		pe->hash = nullptr;
-
 		// append will move the items from pe->jobs onto the end of jobs
 		jobs.append(pe->jobs);
 		TORRENT_ASSERT(pe->jobs.size() == 0);
@@ -984,11 +974,10 @@ void block_cache::erase_piece(cached_piece_entry* pe)
 	TORRENT_PIECE_ASSERT(pe->cache_state < cached_piece_entry::num_lrus, pe);
 	TORRENT_PIECE_ASSERT(pe->jobs.empty(), pe);
 	linked_list<cached_piece_entry>* lru_list = &m_lru[pe->cache_state];
-	if (pe->hash != nullptr)
+	if (pe->hash)
 	{
 		TORRENT_PIECE_ASSERT(pe->hash->offset == 0, pe);
-		delete pe->hash;
-		pe->hash = nullptr;
+		pe->hash.reset();
 	}
 	if (pe->cache_state != cached_piece_entry::read_lru1_ghost
 		&& pe->cache_state != cached_piece_entry::read_lru2_ghost)

@@ -1498,7 +1498,7 @@ namespace libtorrent
 				&& pe->hash == nullptr
 				&& !m_settings.get_bool(settings_pack::disable_hash_checks))
 			{
-				pe->hash = new partial_hash;
+				pe->hash.reset(new partial_hash);
 				m_disk_cache.update_cache_state(pe);
 			}
 
@@ -1764,8 +1764,7 @@ namespace libtorrent
 			sha1_hash result = pe->hash->h.final();
 			memcpy(j->d.piece_hash, &result[0], 20);
 
-			delete pe->hash;
-			pe->hash = nullptr;
+			pe->hash.reset();
 
 			if (pe->cache_state != cached_piece_entry::volatile_read_lru)
 				pe->hashing_done = 1;
@@ -2034,8 +2033,7 @@ namespace libtorrent
 		if (pe == nullptr) return;
 		TORRENT_PIECE_ASSERT(pe->hashing == false, pe);
 		pe->hashing_done = 0;
-		delete pe->hash;
-		pe->hash = nullptr;
+		pe->hash.reset();
 
 		// evict_piece returns true if the piece was in fact
 		// evicted. A piece may fail to be evicted if there
@@ -2056,7 +2054,7 @@ namespace libtorrent
 		if (pe->hashing) return;
 
 		int piece_size = pe->storage->files()->piece_size(pe->piece);
-		partial_hash* ph = pe->hash;
+		partial_hash* ph = pe->hash.get();
 
 		// are we already done?
 		if (ph->offset >= piece_size) return;
@@ -2145,8 +2143,7 @@ namespace libtorrent
 				hj->ret = 0;
 			}
 
-			delete pe->hash;
-			pe->hash = nullptr;
+			pe->hash.reset();
 			if (pe->cache_state != cached_piece_entry::volatile_read_lru)
 				pe->hashing_done = 1;
 #if TORRENT_USE_ASSERTS
@@ -2240,8 +2237,7 @@ namespace libtorrent
 				DLOG("do_hash: (%d) (already done)\n", int(pe->piece));
 				sha1_hash piece_hash = pe->hash->h.final();
 				std::memcpy(j->d.piece_hash, piece_hash.data(), 20);
-				delete pe->hash;
-				pe->hash = nullptr;
+				pe->hash.reset();
 				if (pe->cache_state != cached_piece_entry::volatile_read_lru)
 					pe->hashing_done = 1;
 #if TORRENT_USE_ASSERTS
@@ -2288,12 +2284,12 @@ namespace libtorrent
 
 		piece_refcount_holder refcount_holder(pe);
 
-		if (pe->hash == nullptr)
+		if (!pe->hash)
 		{
 			pe->hashing_done = 0;
-			pe->hash = new partial_hash;
+			pe->hash.reset(new partial_hash);
 		}
-		partial_hash* ph = pe->hash;
+		partial_hash* ph = pe->hash.get();
 
 		int block_size = m_disk_cache.block_size();
 		int blocks_in_piece = (piece_size + block_size - 1) / block_size;
@@ -2355,8 +2351,7 @@ namespace libtorrent
 
 					refcount_holder.release();
 					pe->hashing = false;
-					delete pe->hash;
-					pe->hash = nullptr;
+					pe->hash.reset();
 
 					m_disk_cache.maybe_free_piece(pe);
 
@@ -2429,8 +2424,7 @@ namespace libtorrent
 			sha1_hash piece_hash = ph->h.final();
 			std::memcpy(j->d.piece_hash, piece_hash.data(), 20);
 
-			delete pe->hash;
-			pe->hash = nullptr;
+			pe->hash.reset();
 			if (pe->cache_state != cached_piece_entry::volatile_read_lru)
 				pe->hashing_done = 1;
 #if TORRENT_USE_ASSERTS
@@ -2832,7 +2826,7 @@ namespace libtorrent
 		{
 			if (pe->hash == nullptr && !m_settings.get_bool(settings_pack::disable_hash_checks))
 			{
-				pe->hash = new partial_hash;
+				pe->hash.reset(new partial_hash);
 				m_disk_cache.update_cache_state(pe);
 			}
 
@@ -2883,11 +2877,10 @@ namespace libtorrent
 		add_torrent_params* params = reinterpret_cast<add_torrent_params*>(j->requester);
 
 		std::string filename = resolve_file_url(params->url);
-		torrent_info* t = new torrent_info(filename, j->error.ec);
+		std::unique_ptr<torrent_info> t{new torrent_info(filename, j->error.ec)};
 		if (j->error.ec)
 		{
 			j->buffer.torrent_file = nullptr;
-			delete t;
 		}
 		else
 		{
@@ -2895,7 +2888,7 @@ namespace libtorrent
 			// than to have it be done in the network thread. It has enough to
 			// do as it is.
 			std::string cert = t->ssl_cert();
-			j->buffer.torrent_file = t;
+			j->buffer.torrent_file = t.release();
 		}
 
 		return 0;
@@ -2912,8 +2905,7 @@ namespace libtorrent
 		if (pe == nullptr) return 0;
 		TORRENT_PIECE_ASSERT(pe->hashing == false, pe);
 		pe->hashing_done = 0;
-		delete pe->hash;
-		pe->hash = nullptr;
+		pe->hash.reset();
 		pe->hashing_done = false;
 
 #if TORRENT_USE_ASSERTS
@@ -3464,7 +3456,7 @@ namespace libtorrent
 					&& pe->hash == nullptr
 					&& !m_settings.get_bool(settings_pack::disable_hash_checks))
 				{
-					pe->hash = new partial_hash;
+					pe->hash.reset(new partial_hash);
 					m_disk_cache.update_cache_state(pe);
 				}
 
