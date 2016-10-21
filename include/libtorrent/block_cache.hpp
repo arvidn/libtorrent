@@ -172,8 +172,8 @@ namespace libtorrent
 	{
 		cached_piece_entry();
 		~cached_piece_entry();
-		cached_piece_entry(cached_piece_entry const&) = default;
-		cached_piece_entry& operator=(cached_piece_entry const&) = default;
+		cached_piece_entry(cached_piece_entry&&) = default;
+		cached_piece_entry& operator=(cached_piece_entry&&) = default;
 
 		bool ok_to_evict(bool ignore_hash = false) const
 		{
@@ -205,21 +205,21 @@ namespace libtorrent
 		// if this is set, we'll be calculating the hash
 		// for this piece. This member stores the interim
 		// state while we're calculating the hash.
-		partial_hash* hash;
+		std::unique_ptr<partial_hash> hash;
 
 		// set to a unique identifier of a peer that last
 		// requested from this piece.
-		void* last_requester;
+		void* last_requester = nullptr;
 
 		// the pointers to the block data. If this is a ghost
 		// cache entry, there won't be any data here
-		boost::shared_array<cached_block_entry> blocks;
+		std::unique_ptr<cached_block_entry[]> blocks;
 
 		// the last time a block was written to this piece
 		// plus the minimum amount of time the block is guaranteed
 		// to stay in the cache
 		//TODO: make this 32 bits and to count seconds since the block cache was created
-		time_point expire;
+		time_point expire = min_time();
 
 		std::uint64_t piece:22;
 
@@ -238,21 +238,21 @@ namespace libtorrent
 		// while we have an outstanding async hash operation
 		// working on this piece, 'hashing' is set to 1
 		// When the operation returns, this is set to 0.
-		std::uint32_t hashing:1;
+		std::uint16_t hashing:1;
 
 		// if we've completed at least one hash job on this
 		// piece, and returned it. This is set to one
-		std::uint32_t hashing_done:1;
+		std::uint16_t hashing_done:1;
 
 		// if this is true, whenever refcount hits 0,
 		// this piece should be deleted
-		std::uint32_t marked_for_deletion:1;
+		std::uint16_t marked_for_deletion:1;
 
 		// this is set to true once we flush blocks past
 		// the hash cursor. Once this happens, there's
 		// no point in keeping cache blocks around for
 		// it in avoid_readback mode
-		std::uint32_t need_readback:1;
+		std::uint16_t need_readback:1;
 
 		// indicates which LRU list this piece is chained into
 		enum cache_state_t
@@ -291,17 +291,17 @@ namespace libtorrent
 			num_lrus
 		};
 
-		std::uint32_t cache_state:3;
+		std::uint16_t cache_state:3;
 
 		// this is the number of threads that are currently holding
 		// a reference to this piece. A piece may not be removed from
 		// the cache while this is > 0
-		std::uint32_t piece_refcount:7;
+		std::uint16_t piece_refcount:7;
 
 		// if this is set to one, it means there is an outstanding
 		// flush_hashed job for this piece, and there's no need to
 		// issue another one.
-		std::uint32_t outstanding_flush:1;
+		std::uint16_t outstanding_flush:1;
 
 		// as long as there is a read operation outstanding on this
 		// piece, this is set to 1. Otherwise 0.
@@ -309,10 +309,10 @@ namespace libtorrent
 		// the same blocks at the same time. If a new read job is
 		// added when this is 1, that new job should be hung on the
 		// read job queue (read_jobs).
-		std::uint32_t outstanding_read:1;
+		std::uint16_t outstanding_read:1;
 
 		// the number of blocks that have >= 1 refcount
-		std::uint32_t pinned:16;
+		std::uint16_t pinned = 0;
 
 		// ---- 32 bit boundary ---
 
