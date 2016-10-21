@@ -569,7 +569,7 @@ void block_cache::try_evict_one_volatile()
 		// some blocks are pinned in this piece, skip it
 		if (pe->pinned > 0) continue;
 
-		char** to_delete = TORRENT_ALLOCA(char*, pe->blocks_in_piece);
+		span<char*> to_delete = TORRENT_ALLOCA(char*, pe->blocks_in_piece);
 		int num_to_delete = 0;
 
 		// go through the blocks and evict the ones that are not dirty and not
@@ -607,7 +607,7 @@ void block_cache::try_evict_one_volatile()
 		DLOG(stderr, "[%p]    removed %d blocks\n", static_cast<void*>(this)
 			, num_to_delete);
 
-		free_multiple_buffers(to_delete, num_to_delete);
+		free_multiple_buffers(to_delete.first(num_to_delete));
 		return;
 	}
 }
@@ -895,7 +895,7 @@ bool block_cache::evict_piece(cached_piece_entry* pe, tailqueue<disk_io_job>& jo
 
 	TORRENT_PIECE_ASSERT(pe->in_use, pe);
 
-	char** to_delete = TORRENT_ALLOCA(char*, pe->blocks_in_piece);
+	span<char*> to_delete = TORRENT_ALLOCA(char*, pe->blocks_in_piece);
 	int num_to_delete = 0;
 	for (int i = 0; i < pe->blocks_in_piece; ++i)
 	{
@@ -928,7 +928,7 @@ bool block_cache::evict_piece(cached_piece_entry* pe, tailqueue<disk_io_job>& jo
 		m_volatile_size -= num_to_delete;
 	}
 
-	if (num_to_delete) free_multiple_buffers(to_delete, num_to_delete);
+	if (num_to_delete) free_multiple_buffers(to_delete.first(num_to_delete));
 
 	if (pe->ok_to_evict(true))
 	{
@@ -996,7 +996,7 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 
 	DLOG(stderr, "[%p] try_evict_blocks: %d\n", static_cast<void*>(this), num);
 
-	char** to_delete = TORRENT_ALLOCA(char*, num);
+	span<char*> to_delete = TORRENT_ALLOCA(char*, num);
 	int num_to_delete = 0;
 
 	// There are two ends of the ARC cache we can evict from. There's L1 and L2.
@@ -1199,7 +1199,7 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 	DLOG(stderr, "[%p]    removed %d blocks\n", static_cast<void*>(this)
 		, num_to_delete);
 
-	free_multiple_buffers(to_delete, num_to_delete);
+	free_multiple_buffers(to_delete.first(num_to_delete));
 
 	return num;
 }
@@ -1228,7 +1228,7 @@ void block_cache::clear(tailqueue<disk_io_job>& jobs)
 		drain_piece_bufs(pe, bufs);
 	}
 
-	if (!bufs.empty()) free_multiple_buffers(&bufs[0], int(bufs.size()));
+	if (!bufs.empty()) free_multiple_buffers(bufs);
 
 	// clear lru lists
 	for (int i = 0; i < cached_piece_entry::num_lrus; ++i)
@@ -1431,7 +1431,7 @@ void block_cache::abort_dirty(cached_piece_entry* pe)
 
 	TORRENT_PIECE_ASSERT(pe->in_use, pe);
 
-	char** to_delete = TORRENT_ALLOCA(char*, pe->blocks_in_piece);
+	span<char*> to_delete = TORRENT_ALLOCA(char*, pe->blocks_in_piece);
 	int num_to_delete = 0;
 	for (int i = 0; i < pe->blocks_in_piece; ++i)
 	{
@@ -1451,7 +1451,7 @@ void block_cache::abort_dirty(cached_piece_entry* pe)
 		TORRENT_PIECE_ASSERT(pe->num_dirty > 0, pe);
 		--pe->num_dirty;
 	}
-	if (num_to_delete) free_multiple_buffers(to_delete, num_to_delete);
+	if (num_to_delete) free_multiple_buffers(to_delete.first(num_to_delete));
 
 	update_cache_state(pe);
 }
@@ -1470,7 +1470,7 @@ void block_cache::free_piece(cached_piece_entry* pe)
 
 	// build a vector of all the buffers we need to free
 	// and free them all in one go
-	char** to_delete = TORRENT_ALLOCA(char*, pe->blocks_in_piece);
+	span<char*> to_delete = TORRENT_ALLOCA(char*, pe->blocks_in_piece);
 	int num_to_delete = 0;
 	int removed_clean = 0;
 	for (int i = 0; i < pe->blocks_in_piece; ++i)
@@ -1502,7 +1502,7 @@ void block_cache::free_piece(cached_piece_entry* pe)
 	{
 		m_volatile_size -= num_to_delete;
 	}
-	if (num_to_delete) free_multiple_buffers(to_delete, num_to_delete);
+	if (num_to_delete) free_multiple_buffers(to_delete.first(num_to_delete));
 	update_cache_state(pe);
 }
 

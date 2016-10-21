@@ -54,6 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/file.hpp" // for iovec_t
+#include "libtorrent/span.hpp"
 
 namespace libtorrent
 {
@@ -77,7 +78,7 @@ namespace libtorrent
 		char* allocate_buffer(bool& exceeded, std::shared_ptr<disk_observer> o
 			, char const* category);
 		void free_buffer(char* buf);
-		void free_multiple_buffers(char** bufvec, int numbufs);
+		void free_multiple_buffers(span<char*> bufvec);
 
 		int allocate_iovec(file::iovec_t* iov, int iov_len);
 		void free_iovec(file::iovec_t* iov, int iov_len);

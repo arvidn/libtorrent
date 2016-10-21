@@ -5373,18 +5373,18 @@ namespace libtorrent
 		int priority = get_priority(channel);
 
 		int max_channels = num_classes() + (t ? t->num_classes() : 0) + 2;
-		bandwidth_channel** channels = TORRENT_ALLOCA(bandwidth_channel*, max_channels);
+		span<bandwidth_channel*> channels = TORRENT_ALLOCA(bandwidth_channel*, max_channels);
 
 		// collect the pointers to all bandwidth channels
 		// that apply to this torrent
 		int c = 0;
 
 		c += m_ses.copy_pertinent_channels(*this, channel
-			, channels + c, max_channels - c);
+			, channels.subspan(c).data(), max_channels - c);
 		if (t)
 		{
 			c += m_ses.copy_pertinent_channels(*t, channel
-				, channels + c, max_channels - c);
+				, channels.subspan(c).data(), max_channels - c);
 		}
 
 #if TORRENT_USE_ASSERTS
@@ -5402,7 +5402,7 @@ namespace libtorrent
 		bandwidth_manager* manager = m_ses.get_bandwidth_manager(channel);
 
 		int ret = manager->request_bandwidth(self()
-			, bytes, priority, channels, c);
+			, bytes, priority, channels.data(), c);
 
 		if (ret == 0)
 		{

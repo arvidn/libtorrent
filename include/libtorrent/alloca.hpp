@@ -33,21 +33,32 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_ALLOCA
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/span.hpp"
+
+// this is part of a clever (perhaps too clever) hack to safely return a span
+// over alloca'd data from an expression. Due to alloca's unique properties
+// it is not safe to directly call it in the parameter list of span's ctor.
+// Instead use a thread local temporary to store the value then use the comma
+// operator to call span's ctor and return it to the caller.
+extern thread_local void* TORRENT_ALLOCA_tmp;
 
 #if defined TORRENT_WINDOWS || defined TORRENT_MINGW
 
 #include <malloc.h>
-#define TORRENT_ALLOCA(t, n) static_cast<t*>(_alloca(sizeof(t) * (n)))
+#define TORRENT_ALLOCA(t, n) (TORRENT_ALLOCA_tmp = _alloca(sizeof(t) * (n)), \
+	::libtorrent::span<t>(static_cast<t*>(TORRENT_ALLOCA_tmp), n))
 
 #elif defined TORRENT_BSD
 
 #include <stdlib.h>
-#define TORRENT_ALLOCA(t, n) static_cast<t*>(alloca(sizeof(t) * (n)))
+#define TORRENT_ALLOCA(t, n) (TORRENT_ALLOCA_tmp = alloca(sizeof(t) * (n)), \
+	::libtorrent::span<t>(static_cast<t*>(TORRENT_ALLOCA_tmp), n))
 
 #else
 
 #include <alloca.h>
-#define TORRENT_ALLOCA(t, n) static_cast<t*>(alloca(sizeof(t) * (n)))
+#define TORRENT_ALLOCA(t, n) (TORRENT_ALLOCA_tmp = alloca(sizeof(t) * (n)), \
+	::libtorrent::span<t>(static_cast<t*>(TORRENT_ALLOCA_tmp), n))
 
 #endif
 

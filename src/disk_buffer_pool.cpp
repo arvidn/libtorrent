@@ -340,16 +340,14 @@ namespace libtorrent
 		return ret;
 	}
 
-	void disk_buffer_pool::free_multiple_buffers(char** bufvec, int numbufs)
+	void disk_buffer_pool::free_multiple_buffers(span<char*> bufvec)
 	{
-		char** end = bufvec + numbufs;
 		// sort the pointers in order to maximize cache hits
-		std::sort(bufvec, end);
+		std::sort(bufvec.begin(), bufvec.end());
 
 		std::unique_lock<std::mutex> l(m_pool_mutex);
-		for (; bufvec != end; ++bufvec)
+		for (char* buf : bufvec)
 		{
-			char* buf = *bufvec;
 			TORRENT_ASSERT(is_disk_buffer(buf, l));
 			free_buffer_impl(buf, l);
 			remove_buffer_in_use(buf);

@@ -445,16 +445,16 @@ namespace libtorrent
 
 		cont_pieces = range_end - range_start;
 
-		file::iovec_t* iov = TORRENT_ALLOCA(file::iovec_t, p->blocks_in_piece * cont_pieces);
-		int* flushing = TORRENT_ALLOCA(int, p->blocks_in_piece * cont_pieces);
+		span<file::iovec_t> iov = TORRENT_ALLOCA(file::iovec_t, p->blocks_in_piece * cont_pieces);
+		span<int> flushing = TORRENT_ALLOCA(int, p->blocks_in_piece * cont_pieces);
 		// this is the offset into iov and flushing for each piece
-		int* iovec_offset = TORRENT_ALLOCA(int, cont_pieces + 1);
+		span<int> iovec_offset = TORRENT_ALLOCA(int, cont_pieces + 1);
 		int iov_len = 0;
 		// this is the block index each piece starts at
 		int block_start = 0;
 		// keep track of the pieces that have had their refcount incremented
 		// so we know to decrement them later
-		int* refcount_pieces = TORRENT_ALLOCA(int, cont_pieces);
+		span<int> refcount_pieces = TORRENT_ALLOCA(int, cont_pieces);
 		for (int i = 0; i < cont_pieces; ++i)
 		{
 			cached_piece_entry* pe;
@@ -478,7 +478,7 @@ namespace libtorrent
 			++pe->piece_refcount;
 
 			iov_len += build_iovec(pe, 0, p->blocks_in_piece
-				, iov + iov_len, flushing + iov_len, block_start);
+				, iov.subspan(iov_len).data(), flushing.subspan(iov_len).data(), block_start);
 
 			block_start += p->blocks_in_piece;
 		}
@@ -503,7 +503,7 @@ namespace libtorrent
 			// unlock while we're performing the actual disk I/O
 			// then lock again
 			auto unlock = scoped_unlock(l);
-			flush_iovec(first_piece, iov, flushing, iov_len, error);
+			flush_iovec(first_piece, iov.data(), flushing.data(), iov_len, error);
 		}
 
 		block_start = 0;
@@ -526,7 +526,7 @@ namespace libtorrent
 				m_disk_cache.maybe_free_piece(pe);
 			}
 			const int block_diff = iovec_offset[i+1] - iovec_offset[i];
-			iovec_flushed(pe, flushing + iovec_offset[i], block_diff
+			iovec_flushed(pe, flushing.subspan(iovec_offset[i]).data(), block_diff
 				, block_start, error, completed_jobs);
 			block_start += p->blocks_in_piece;
 		}
@@ -742,9 +742,9 @@ namespace libtorrent
 		TORRENT_PIECE_ASSERT(start >= 0, pe);
 		TORRENT_PIECE_ASSERT(start < end, pe);
 
-		file::iovec_t* iov = TORRENT_ALLOCA(file::iovec_t, pe->blocks_in_piece);
-		int* flushing = TORRENT_ALLOCA(int, pe->blocks_in_piece);
-		int iov_len = build_iovec(pe, start, end, iov, flushing, 0);
+		span<file::iovec_t> iov = TORRENT_ALLOCA(file::iovec_t, pe->blocks_in_piece);
+		span<int> flushing = TORRENT_ALLOCA(int, pe->blocks_in_piece);
+		int iov_len = build_iovec(pe, start, end, iov.data(), flushing.data(), 0);
 		if (iov_len == 0) return 0;
 
 		TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2, pe);
@@ -757,10 +757,10 @@ namespace libtorrent
 			piece_refcount_holder refcount_holder(pe);
 			auto unlocker = scoped_unlock(l);
 
-			flush_iovec(pe, iov, flushing, iov_len, error);
+			flush_iovec(pe, iov.data(), flushing.data(), iov_len, error);
 		}
 
-		iovec_flushed(pe, flushing, iov_len, 0, error, completed_jobs);
+		iovec_flushed(pe, flushing.data(), iov_len, 0, error, completed_jobs);
 
 		// if the cache is under high pressure, we need to evict
 		// the blocks we just flushed to make room for more write pieces
@@ -979,7 +979,7 @@ namespace libtorrent
 		time_point timeout = min_time();
 #endif
 
-		cached_piece_entry** to_flush = TORRENT_ALLOCA(cached_piece_entry*, 200);
+		span<cached_piece_entry*> to_flush = TORRENT_ALLOCA(cached_piece_entry*, 200);
 		int num_flush = 0;
 
 		for (list_iterator<cached_piece_entry> p = m_disk_cache.write_lru_pieces(); p.get(); p.next())
@@ -1235,7 +1235,7 @@ namespace libtorrent
 		int const iov_len = m_disk_cache.pad_job(j, blocks_in_piece
 			, m_settings.get_int(settings_pack::read_cache_line_size));
 
-		file::iovec_t* iov = TORRENT_ALLOCA(file::iovec_t, iov_len);
+		span<file::iovec_t> iov = TORRENT_ALLOCA(file::iovec_t, iov_len);
 
 		std::unique_lock<std::mutex> l(m_cache_mutex);
 
@@ -1253,7 +1253,7 @@ namespace libtorrent
 		l.unlock();
 
 		// then we'll actually allocate the buffers
-		int ret = m_disk_cache.allocate_iovec(iov, iov_len);
+		int ret = m_disk_cache.allocate_iovec(iov.data(), iov.size());
 
 		if (ret < 0)
 		{
@@ -1283,7 +1283,7 @@ namespace libtorrent
 			, m_settings.get_bool(settings_pack::coalesce_reads));
 		time_point start_time = clock_type::now();
 
-		ret = j->storage->get_storage_impl()->readv({iov, size_t(iov_len)}
+		ret = j->storage->get_storage_impl()->readv(iov
 			, j->piece, adjusted_offset, file_flags, j->error);
 
 		if (!j->error.ec)
@@ -1302,7 +1302,7 @@ namespace libtorrent
 		if (ret < 0)
 		{
 			// read failed. free buffers and return error
-			m_disk_cache.free_iovec(iov, iov_len);
+			m_disk_cache.free_iovec(iov.data(), iov.size());
 
 			pe = m_disk_cache.find_piece(j);
 			if (pe == nullptr)
@@ -1332,7 +1332,7 @@ namespace libtorrent
 		// as soon we insert the blocks they may be evicted
 		// (if using purgeable memory). In order to prevent that
 		// until we can read from them, increment the refcounts
-		m_disk_cache.insert_blocks(pe, block, iov, iov_len, j, block_cache::blocks_inc_refcount);
+		m_disk_cache.insert_blocks(pe, block, iov.data(), iov.size(), j, block_cache::blocks_inc_refcount);
 
 		TORRENT_ASSERT(pe->blocks[block].buf);
 
@@ -2297,8 +2297,8 @@ namespace libtorrent
 		// keep track of which blocks we have locked by incrementing
 		// their refcounts. This is used to decrement only these blocks
 		// later.
-		int* locked_blocks = TORRENT_ALLOCA(int, blocks_in_piece);
-		std::memset(locked_blocks, 0, blocks_in_piece * sizeof(int));
+		span<int> locked_blocks = TORRENT_ALLOCA(int, blocks_in_piece);
+		std::fill(locked_blocks.begin(), locked_blocks.end(), 0);
 		int num_locked_blocks = 0;
 
 		// increment the refcounts of all

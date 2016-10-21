@@ -221,9 +221,9 @@ void send_bitfield(tcp::socket& s, char const* bits)
 
 	int num_pieces = int(strlen(bits));
 	int packet_size = (num_pieces+7)/8 + 5;
-	char* msg = (char*)TORRENT_ALLOCA(char, packet_size);
-	memset(msg, 0, packet_size);
-	char* ptr = msg;
+	span<char> msg = TORRENT_ALLOCA(char, packet_size);
+	std::fill(msg.begin(), msg.end(), 0);
+	char* ptr = msg.data();
 	write_int32(packet_size-4, ptr);
 	write_int8(5, ptr);
 	log("==> bitfield [%s]", bits);
@@ -232,7 +232,7 @@ void send_bitfield(tcp::socket& s, char const* bits)
 		ptr[i/8] |= (bits[i] == '1' ? 1 : 0) << i % 8;
 	}
 	error_code ec;
-	boost::asio::write(s, boost::asio::buffer(msg, packet_size)
+	boost::asio::write(s, boost::asio::buffer(msg.data(), msg.size())
 		, boost::asio::transfer_all(), ec);
 	if (ec) TEST_ERROR(ec.message());
 }
