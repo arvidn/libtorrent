@@ -2141,7 +2141,7 @@ namespace libtorrent
 			for (auto i = hash_jobs.iterate(); i.get(); i.next())
 			{
 				disk_io_job* hj = i.get();
-				memcpy(hj->d.piece_hash, result.data(), 20);
+				std::memcpy(hj->d.piece_hash, result.data(), 20);
 				hj->ret = 0;
 			}
 
@@ -2203,7 +2203,7 @@ namespace libtorrent
 		m_disk_cache.free_buffer(static_cast<char*>(iov.iov_base));
 
 		sha1_hash piece_hash = h.final();
-		memcpy(j->d.piece_hash, &piece_hash[0], 20);
+		std::memcpy(j->d.piece_hash, piece_hash.data(), 20);
 		return ret >= 0 ? 0 : -1;
 	}
 
@@ -2235,11 +2235,11 @@ namespace libtorrent
 			TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2, pe);
 
 			// are we already done hashing?
-			if (pe->hash && !pe->hashing && pe->hash->offset == piece_size)
+			if (pe->hash != nullptr && !pe->hashing && pe->hash->offset == piece_size)
 			{
 				DLOG("do_hash: (%d) (already done)\n", int(pe->piece));
 				sha1_hash piece_hash = pe->hash->h.final();
-				memcpy(j->d.piece_hash, &piece_hash[0], 20);
+				std::memcpy(j->d.piece_hash, piece_hash.data(), 20);
 				delete pe->hash;
 				pe->hash = nullptr;
 				if (pe->cache_state != cached_piece_entry::volatile_read_lru)
@@ -2302,7 +2302,7 @@ namespace libtorrent
 		// their refcounts. This is used to decrement only these blocks
 		// later.
 		int* locked_blocks = TORRENT_ALLOCA(int, blocks_in_piece);
-		memset(locked_blocks, 0, blocks_in_piece * sizeof(int));
+		std::memset(locked_blocks, 0, blocks_in_piece * sizeof(int));
 		int num_locked_blocks = 0;
 
 		// increment the refcounts of all
@@ -2386,8 +2386,7 @@ namespace libtorrent
 				if (ret != iov.iov_len)
 				{
 					ret = -1;
-					j->error.ec.assign(boost::asio::error::eof
-						, boost::asio::error::get_misc_category());
+					j->error.ec = boost::asio::error::eof;
 					j->error.operation = storage_error::read;
 					m_disk_cache.free_buffer(static_cast<char*>(iov.iov_base));
 					break;
@@ -2428,7 +2427,7 @@ namespace libtorrent
 		if (ret >= 0)
 		{
 			sha1_hash piece_hash = ph->h.final();
-			memcpy(j->d.piece_hash, &piece_hash[0], 20);
+			std::memcpy(j->d.piece_hash, piece_hash.data(), 20);
 
 			delete pe->hash;
 			pe->hash = nullptr;
@@ -3111,7 +3110,7 @@ namespace libtorrent
 		std::unique_lock<std::mutex> l(m_cache_mutex);
 		DLOG("blocked_jobs: %d queued_jobs: %d num_threads %d\n"
 			, int(m_stats_counters[counters::blocked_disk_jobs])
-			, m_generic_io_jobs.m_queued_jobs.size(), int(num_threads()));
+			, m_generic_io_jobs.m_queued_jobs.size(), num_threads());
 		m_last_cache_expiry = now;
 		jobqueue_t completed_jobs;
 		flush_expired_write_blocks(completed_jobs, l);
@@ -3224,7 +3223,7 @@ namespace libtorrent
 		if (--m_num_running_threads > 0 || !m_abort)
 		{
 			DLOG("exiting disk thread %s. num_threads: %d aborting: %d\n"
-				, thread_id_str.str().c_str(), int(num_threads()), int(m_abort));
+				, thread_id_str.str().c_str(), num_threads(), int(m_abort));
 			TORRENT_ASSERT(m_magic == 0x1337);
 			return;
 		}
@@ -3519,7 +3518,7 @@ namespace libtorrent
 	// This is run in the network thread
 	// TODO: 2 it would be nice to get rid of m_userdata and just have a function
 	// object to pass all the job completions to. It could in turn be responsible
-	// for posting them to the correct io_servive
+	// for posting them to the correct io_service
 	void disk_io_thread::call_job_handlers(void* userdata)
 	{
 		std::unique_lock<std::mutex> l(m_completed_jobs_mutex);

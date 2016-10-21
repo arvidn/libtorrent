@@ -984,7 +984,7 @@ void block_cache::erase_piece(cached_piece_entry* pe)
 	TORRENT_PIECE_ASSERT(pe->cache_state < cached_piece_entry::num_lrus, pe);
 	TORRENT_PIECE_ASSERT(pe->jobs.empty(), pe);
 	linked_list<cached_piece_entry>* lru_list = &m_lru[pe->cache_state];
-	if (pe->hash)
+	if (pe->hash != nullptr)
 	{
 		TORRENT_PIECE_ASSERT(pe->hash->offset == 0, pe);
 		delete pe->hash;
@@ -1274,7 +1274,7 @@ void block_cache::move_to_ghost(cached_piece_entry* pe)
 	linked_list<cached_piece_entry>* ghost_list = &m_lru[pe->cache_state + 1];
 	while (ghost_list->size() >= m_ghost_size)
 	{
-		cached_piece_entry* p = static_cast<cached_piece_entry*>(ghost_list->front());
+		cached_piece_entry* p = ghost_list->front();
 		TORRENT_PIECE_ASSERT(p != pe, p);
 		TORRENT_PIECE_ASSERT(p->num_blocks == 0, p);
 		TORRENT_PIECE_ASSERT(p->refcount == 0, p);
