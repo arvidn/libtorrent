@@ -72,6 +72,9 @@ struct alloc_header
 
 #endif
 
+// see alloca.hpp
+thread_local void* TORRENT_ALLOCA_tmp;
+
 namespace libtorrent
 {
 

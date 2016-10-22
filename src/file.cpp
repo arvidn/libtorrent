@@ -173,10 +173,10 @@ namespace
 
 	int preadv(HANDLE fd, libtorrent::file::iovec_t const* bufs, int num_bufs, std::int64_t file_offset)
 	{
-		OVERLAPPED* ol = TORRENT_ALLOCA(OVERLAPPED, num_bufs);
-		std::memset(ol, 0, sizeof(OVERLAPPED) * num_bufs);
+		libtorrent::span<OVERLAPPED> ol = TORRENT_ALLOCA(OVERLAPPED, num_bufs);
+		std::memset(ol.data(), 0, sizeof(OVERLAPPED) * num_bufs);
 
-		HANDLE* h = TORRENT_ALLOCA(HANDLE, num_bufs);
+		libtorrent::span<HANDLE> h = TORRENT_ALLOCA(HANDLE, num_bufs);
 
 		for (int i = 0; i < num_bufs; ++i)
 		{
@@ -209,7 +209,7 @@ namespace
 			}
 		}
 
-		if (wait_for_multiple_objects(num_bufs, h) == WAIT_FAILED)
+		if (wait_for_multiple_objects(num_bufs, h.data()) == WAIT_FAILED)
 		{
 			ret = -1;
 			goto done;
@@ -243,10 +243,10 @@ done:
 
 	int pwritev(HANDLE fd, libtorrent::file::iovec_t const* bufs, int num_bufs, std::int64_t file_offset)
 	{
-		OVERLAPPED* ol = TORRENT_ALLOCA(OVERLAPPED, num_bufs);
-		std::memset(ol, 0, sizeof(OVERLAPPED) * num_bufs);
+		libtorrent::span<OVERLAPPED> ol = TORRENT_ALLOCA(OVERLAPPED, num_bufs);
+		std::memset(ol.data(), 0, sizeof(OVERLAPPED) * num_bufs);
 
-		HANDLE* h = TORRENT_ALLOCA(HANDLE, num_bufs);
+		libtorrent::span<HANDLE> h = TORRENT_ALLOCA(HANDLE, num_bufs);
 
 		for (int i = 0; i < num_bufs; ++i)
 		{
@@ -279,7 +279,7 @@ done:
 			}
 		}
 
-		if (wait_for_multiple_objects(num_bufs, h) == WAIT_FAILED)
+		if (wait_for_multiple_objects(num_bufs, h.data()) == WAIT_FAILED)
 		{
 			ret = -1;
 			goto done;

@@ -1866,7 +1866,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 			// correctly aligned memory. That's why we ask for 7 more bytes
 			// and adjust our pointer to be aligned later
 			p = reinterpret_cast<packet*>(TORRENT_ALLOCA(char, sizeof(packet) + packet_size
-				+ sizeof(packet*) - 1));
+				+ sizeof(packet*) - 1).data());
 			p = reinterpret_cast<packet*>(align_pointer(p));
 			UTP_LOGV("%8p: allocating %d bytes on the stack\n", static_cast<void*>(this), packet_size);
 			p->allocated = packet_size;

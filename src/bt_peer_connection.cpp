@@ -2153,20 +2153,19 @@ namespace libtorrent
 
 		const int packet_size = (num_pieces + 7) / 8 + 5;
 
-		std::uint8_t* msg = TORRENT_ALLOCA(std::uint8_t, packet_size);
-		if (msg == nullptr) return; // out of memory
-		unsigned char* ptr = msg;
+		span<std::uint8_t> msg = TORRENT_ALLOCA(std::uint8_t, packet_size);
+		if (msg.data() == nullptr) return; // out of memory
+		auto ptr = msg.begin();
 
 		detail::write_int32(packet_size - 4, ptr);
 		detail::write_uint8(msg_bitfield, ptr);
 
 		if (t->is_seed())
 		{
-			std::memset(ptr, 0xff, packet_size - 5);
+			std::fill_n(ptr, packet_size - 5, 0xff);
 
 			// Clear trailing bits
-			unsigned char *p = msg + packet_size - 1;
-			*p = (0xff << ((8 - (num_pieces & 7)) & 7)) & 0xff;
+			msg.back() = (0xff << ((8 - (num_pieces & 7)) & 7)) & 0xff;
 		}
 		else
 		{
@@ -2206,7 +2205,7 @@ namespace libtorrent
 #endif
 		m_sent_bitfield = true;
 
-		send_buffer(reinterpret_cast<char const*>(msg), packet_size);
+		send_buffer(reinterpret_cast<char const*>(msg.data()), msg.size());
 
 		stats_counters().inc_stats_counter(counters::num_outgoing_bitfield);
 	}

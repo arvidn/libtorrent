@@ -1275,7 +1275,7 @@ namespace libtorrent
 		// pieces end up changing, instead of making
 		// the piece list dirty, just update those pieces
 		// instead
-		int* incremented = TORRENT_ALLOCA(int, size);
+		span<int> incremented = TORRENT_ALLOCA(int, size);
 		int num_inc = 0;
 
 		if (!m_dirty)
@@ -1372,7 +1372,7 @@ namespace libtorrent
 		// pieces end up changing, instead of making
 		// the piece list dirty, just update those pieces
 		// instead
-		int* decremented = TORRENT_ALLOCA(int, size);
+		span<int> decremented = TORRENT_ALLOCA(int, size);
 		int num_dec = 0;
 
 		if (!m_dirty)
@@ -1964,7 +1964,7 @@ namespace libtorrent
 			// lookups when finding a downloading_piece for a specific piece index.
 			// this is important and needs to stay sorted that way, that's why
 			// we're copying it here
-			downloading_piece const** ordered_partials = TORRENT_ALLOCA(
+			auto ordered_partials = TORRENT_ALLOCA(
 				downloading_piece const*, m_downloads[piece_pos::piece_downloading].size());
 			int num_ordered_partials = 0;
 
@@ -2000,7 +2000,7 @@ namespace libtorrent
 				// chances are that we'll just need a single piece, and once we've
 				// picked from it we're done. Sorting the rest of the list in that
 				// case is a waste of time.
-				std::sort(ordered_partials, ordered_partials + num_ordered_partials
+				std::sort(ordered_partials.begin(), ordered_partials.begin() + num_ordered_partials
 					, std::bind(&piece_picker::partial_compare_rarest_first, this
 						, _1, _2));
 			}
@@ -2306,8 +2306,7 @@ get_out:
 			+ m_downloads[piece_pos::piece_full].size()));
 		if (partials_size == 0) return ret;
 
-		downloading_piece const** partials
-			= TORRENT_ALLOCA(downloading_piece const*, partials_size);
+		auto partials = TORRENT_ALLOCA(downloading_piece const*, partials_size);
 		int c = 0;
 
 #if TORRENT_USE_INVARIANT_CHECKS
