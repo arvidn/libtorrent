@@ -58,7 +58,7 @@ namespace libtorrent
 	// can set the session settings to pre set settings for other environments.
 	// These can be used for the basis, and should be tweaked to fit your needs
 	// better.
-	// 
+	//
 	// ``min_memory_usage`` returns settings that will use the minimal amount of
 	// RAM, at the potential expense of upload and download performance. It
 	// adjusts the socket buffer sizes, disables the disk cache, lowers the send
@@ -68,10 +68,10 @@ namespace libtorrent
 	// to disk at any given time. It lowers the max number of peers in the peer
 	// list for torrents. It performs multiple smaller reads when it hashes
 	// pieces, instead of reading it all into memory before hashing.
-	// 
+	//
 	// This configuration is intended to be the starting point for embedded
 	// devices. It will significantly reduce memory usage.
-	// 
+	//
 	// ``high_performance_seed`` returns settings optimized for a seed box,
 	// serving many peers and that doesn't do any downloading. It has a 128 MB
 	// disk cache and has a limit of 400 files in its file pool. It support fast
@@ -170,7 +170,7 @@ namespace libtorrent
 	// ``session_handle::apply_settings()`` member function. To change one or more
 	// configuration options, create a settings_pack. object and fill it with
 	// the settings to be set and pass it in to ``session::apply_settings()``.
-	// 
+	//
 	// see apply_settings().
 	class TORRENT_EXPORT session : public session_handle
 	{
@@ -213,7 +213,7 @@ namespace libtorrent
 		// starting the session and configuring it, you can pass in a
 		// settings_pack object. Its settings will take effect before the session
 		// starts up.
-		// 
+		//
 		// The ``flags`` parameter can be used to start default features (upnp &
 		// nat-pmp) and default plugins (ut_metadata, ut_pex and smart_ban). The
 		// default is to start those features. If you do not want them to start,
@@ -239,7 +239,7 @@ namespace libtorrent
 		// to run multiple sessions on a single io_service, or low resource
 		// systems where additional threads are expensive and sharing an
 		// io_service with other events is fine.
-		// 
+		//
 		// .. warning::
 		// 	The session object does not cleanly terminate with an external
 		// 	``io_service``. The ``io_service::run()`` call _must_ have returned
@@ -330,7 +330,7 @@ namespace libtorrent
 		// call. The ``session_proxy`` does not have any operations on it (since
 		// the session is being closed down, no operations are allowed on it).
 		// The only valid operation is calling the destructor::
-		// 
+		//
 		// 	class session_proxy
 		// 	{
 		// 	public:

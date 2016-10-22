@@ -385,7 +385,7 @@ namespace libtorrent
 	{
 		unsigned char inbuf[8];
 		unsigned char outbuf[5];
-	
+
 		std::string ret;
 		for (std::string::const_iterator i = s.begin(); i != s.end();)
 		{

@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_BENCODE_HPP_INCLUDED
 
 // OVERVIEW
-// 
+//
 // Bencoding is a common representation in bittorrent used for for dictionary,
 // list, int and string hierarchies. It's used to encode .torrent files and
 // some messages in the network protocol. libtorrent also uses it to store
@@ -367,15 +367,15 @@ namespace libtorrent
 	}
 
 	// These functions will encode data to bencoded or decode bencoded data.
-	// 
+	//
 	// If possible, ``bdecode()`` producing a bdecode_node should be preferred
 	// over this function.
-	// 
+	//
 	// The entry_ class is the internal representation of the bencoded data
 	// and it can be used to retrieve information, an entry_ can also be build by
 	// the program and given to ``bencode()`` to encode it into the ``OutIt``
 	// iterator.
-	// 
+	//
 	// The ``OutIt`` and ``InIt`` are iterators
 	// (InputIterator_ and OutputIterator_ respectively). They
 	// are templates and are usually instantiated as ostream_iterator_,
@@ -383,30 +383,30 @@ namespace libtorrent
 	// functions will assume that the iterator refers to a character
 	// (``char``). So, if you want to encode entry ``e`` into a buffer
 	// in memory, you can do it like this::
-	// 
+	//
 	//	std::vector<char> buffer;
 	//	bencode(std::back_inserter(buf), e);
-	// 
+	//
 	// .. _InputIterator: http://www.sgi.com/tech/stl/InputIterator.html
 	// .. _OutputIterator: http://www.sgi.com/tech/stl/OutputIterator.html
 	// .. _ostream_iterator: http://www.sgi.com/tech/stl/ostream_iterator.html
 	// .. _back_insert_iterator: http://www.sgi.com/tech/stl/back_insert_iterator.html
 	// .. _istream_iterator: http://www.sgi.com/tech/stl/istream_iterator.html
-	// 
+	//
 	// If you want to decode a torrent file from a buffer in memory, you can do it like this::
-	// 
+	//
 	//	std::vector<char> buffer;
 	//	// ...
 	//	entry e = bdecode(buf.begin(), buf.end());
-	// 
+	//
 	// Or, if you have a raw char buffer::
-	// 
+	//
 	//	const char* buf;
 	//	// ...
 	//	entry e = bdecode(buf, buf + data_size);
-	// 
+	//
 	// Now we just need to know how to retrieve information from the entry.
-	// 
+	//
 	// If ``bdecode()`` encounters invalid encoded data in the range given to it
 	// it will return a default constructed ``entry`` object.
 	template<class OutIt> int bencode(OutIt out, const entry& e)

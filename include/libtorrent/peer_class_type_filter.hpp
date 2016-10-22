@@ -88,7 +88,7 @@ namespace libtorrent
 
 		// ``disallow()`` and ``allow()`` adds and removes a peer class to be
 		// removed from new peers based on socket type.
-		// 
+		//
 		// The ``peer_class`` argument cannot be greater than 31. The bitmasks representing
 		// peer classes in the ``peer_class_type_filter`` are 32 bits.
 		void disallow(socket_type_t st, int peer_class)

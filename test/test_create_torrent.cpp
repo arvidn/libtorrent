@@ -53,7 +53,7 @@ TORRENT_TEST(create_verbatim_torrent)
 	info.add_tracker("http://test.com");
 	info.add_tracker("http://test.com");
 	TEST_EQUAL(info.trackers().size(), 1);
-	
+
 	lt::create_torrent t(info);
 
 	std::vector<char> buffer;

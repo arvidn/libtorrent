@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
   // the size of the torrent (and can be used to calculate the size
   // of the file header)
   uint32_t num_pieces;
-  
+
   // the number of bytes in each piece. This determines the size of
   // each slot in the part file. This is typically an even power of 2,
   // but it is not guaranteed to be.
@@ -58,7 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
   // unused, n is defined as the number to align the size of this
   // header to an even multiple of 1024 bytes.
   uint8_t padding[n];
- 
+
 */
 
 #include "libtorrent/part_file.hpp"

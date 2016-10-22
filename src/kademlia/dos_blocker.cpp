@@ -89,7 +89,7 @@ namespace libtorrent { namespace dht
 						// from this node. Ignore it until it's silent for 5 minutes
 						match->limit = now + seconds(m_block_timeout);
 					}
-		
+
 					return false;
 				}
 

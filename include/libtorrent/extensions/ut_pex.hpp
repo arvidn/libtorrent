@@ -49,7 +49,7 @@ namespace libtorrent
 	// the swarm stay well connected and peers aware of more peers in the
 	// swarm. This extension is enabled by default unless explicitly disabled in
 	// the session constructor.
-	// 
+	//
 	// This can either be passed in the add_torrent_params::extensions field, or
 	// via torrent_handle::add_extension().
 	TORRENT_EXPORT std::shared_ptr<torrent_plugin> create_ut_pex_plugin(torrent_handle const&, void*);

@@ -54,7 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // to create torrent files. It is a layered API with low level classes
 // and higher level convenience functions. A torrent is created in 4
 // steps:
-// 
+//
 // 1. first the files that will be part of the torrent are determined.
 // 2. the torrent properties are set, such as tracker url, web seeds,
 //    DHT nodes etc.
@@ -64,22 +64,22 @@ POSSIBILITY OF SUCH DAMAGE.
 //
 // If there are a lot of files and or deep directory hierarchies to
 // traverse, step one can be time consuming.
-// 
+//
 // Typically step 3 is by far the most time consuming step, since it
 // requires to read all the bytes from all the files in the torrent.
 //
 // All of these classes and functions are declared by including
 // ``libtorrent/create_torrent.hpp``.
-// 
+//
 // example:
 //
 // .. code:: c++
-// 
+//
 //	file_storage fs;
 //
 //	// recursively adds files in directories
 //	add_files(fs, "./my_torrent");
-//	
+//
 //	create_torrent t(fs);
 //	t.add_tracker("http://my.tracker.com/announce");
 //	t.set_creator("libtorrent example");
@@ -89,7 +89,7 @@ POSSIBILITY OF SUCH DAMAGE.
 //
 //	ofstream out("my_torrent.torrent", std::ios_base::binary);
 //	bencode(std::ostream_iterator<char>(out), t.generate());
-// 
+//
 namespace libtorrent
 {
 	class torrent_info;
@@ -140,7 +140,7 @@ namespace libtorrent
 			// to create a torrent that can be updated via a *mutable torrent*
 			// (see BEP38_). This also needs to be enabled for torrents that update
 			// another torrent.
-			// 
+			//
 			// .. _BEP38: http://www.bittorrent.org/beps/bep_0038.html
 			mutable_torrent_support = 16
 		};
@@ -148,23 +148,23 @@ namespace libtorrent
 		// The ``piece_size`` is the size of each piece in bytes. It must
 		// be a multiple of 16 kiB. If a piece size of 0 is specified, a
 		// piece_size will be calculated such that the torrent file is roughly 40 kB.
-		// 
+		//
 		// If a ``pad_file_limit`` is specified (other than -1), any file larger than
 		// the specified number of bytes will be preceded by a pad file to align it
 		// with the start of a piece. The pad_file_limit is ignored unless the
 		// ``optimize_alignment`` flag is passed. Typically it doesn't make sense
 		// to set this any lower than 4kiB.
-		// 
+		//
 		// The overload that takes a ``torrent_info`` object will make a verbatim
 		// copy of its info dictionary (to preserve the info-hash). The copy of
 		// the info dictionary will be used by create_torrent::generate(). This means
 		// that none of the member functions of create_torrent that affects
 		// the content of the info dictionary (such as ``set_hash()``), will
 		// have any affect.
-		// 
+		//
 		// The ``flags`` arguments specifies options for the torrent creation. It can
 		// be any combination of the flags defined by create_torrent::flags_t.
-		// 
+		//
 		// ``alignment`` is used when pad files are enabled. This is the size
 		// eligible files are aligned to. The default is -1, which means the
 		// piece size of the torrent.
@@ -178,16 +178,16 @@ namespace libtorrent
 
 		// This function will generate the .torrent file as a bencode tree. In order to
 		// generate the flat file, use the bencode() function.
-		// 
+		//
 		// It may be useful to add custom entries to the torrent file before bencoding it
 		// and saving it to disk.
-		// 
+		//
 		// If anything goes wrong during torrent generation, this function will return
 		// an empty ``entry`` structure. You can test for this condition by querying the
 		// type of the entry:
 		//
 		// .. code:: c++
-		// 
+		//
 		//	file_storage fs;
 		//	// add file ...
 		//	create_torrent t(fs);
@@ -198,7 +198,7 @@ namespace libtorrent
 		//	{
 		//		// something went wrong
 		//	}
-		// 
+		//
 		// For instance, you cannot generate a torrent with 0 files in it. If you don't add
 		// any files to the ``file_storage``, torrent generation will fail.
 		entry generate() const;
@@ -231,7 +231,7 @@ namespace libtorrent
 		// content as the file of the torrent. For a multi-file torrent, it should point to
 		// a directory containing a directory with the same name as this torrent, and all the
 		// files of the torrent in it.
-		// 
+		//
 		// The second function, ``add_http_seed()`` adds an HTTP seed instead.
 		void add_url_seed(string_view url);
 		void add_http_seed(string_view url);
@@ -254,7 +254,7 @@ namespace libtorrent
 		// torrent an *SSL torrent*. An SSL torrent requires that each peer has a valid certificate
 		// signed by this root certificate. For SSL torrents, all peers are connecting over SSL
 		// connections. For more information, see the section on ssl-torrents_.
-		// 
+		//
 		// The string is not the path to the cert, it's the actual content of the
 		// certificate.
 		void set_root_cert(string_view pem);
@@ -289,7 +289,7 @@ namespace libtorrent
 		// to share files with this torrent. A torrent may have more than one
 		// collection and more than one similar torrents. For more information,
 		// see `BEP 38`_.
-		// 
+		//
 		// .. _`BEP 38`: http://www.bittorrent.org/beps/bep_0038.html
 		void add_similar_torrent(sha1_hash ih);
 		void add_collection(string_view c);
@@ -352,7 +352,7 @@ namespace libtorrent
 		// or not. e.g. test/test  there's one file and one directory
 		// and they have the same name.
 		bool m_multifile:1;
-		
+
 		// this is true if the torrent is private. i.e., is should not
 		// be announced on the dht
 		bool m_private:1;
@@ -377,33 +377,33 @@ namespace libtorrent
 
 	// Adds the file specified by ``path`` to the file_storage object. In case ``path``
 	// refers to a directory, files will be added recursively from the directory.
-	// 
+	//
 	// If specified, the predicate ``p`` is called once for every file and directory that
 	// is encountered. Files for which ``p`` returns true are added, and directories for
 	// which ``p`` returns true are traversed. ``p`` must have the following signature::
-	// 
+	//
 	// 	bool Pred(std::string const& p);
-	// 
+	//
 	// The path that is passed in to the predicate is the full path of the file or
 	// directory. If no predicate is specified, all files are added, and all directories
 	// are traversed.
-	// 
+	//
 	// The ".." directory is never traversed.
-	// 
+	//
 	// The ``flags`` argument should be the same as the flags passed to the `create_torrent`_
 	// constructor.
 	TORRENT_EXPORT void add_files(file_storage& fs, std::string const& file
 		, std::function<bool(std::string)> p, std::uint32_t flags = 0);
 	TORRENT_EXPORT void add_files(file_storage& fs, std::string const& file
 		, std::uint32_t flags = 0);
-	
+
 	// This function will assume that the files added to the torrent file exists at path
 	// ``p``, read those files and hash the content and set the hashes in the ``create_torrent``
 	// object. The optional function ``f`` is called in between every hash that is set. ``f``
 	// must have the following signature::
-	// 
+	//
 	// 	void Fun(int);
-	// 
+	//
 	// The overloads that don't take an ``error_code&`` may throw an exception in case of a
 	// file error, the other overloads sets the error code to reflect the error, if any.
 	TORRENT_EXPORT void set_piece_hashes(create_torrent& t, std::string const& p
@@ -443,7 +443,7 @@ namespace libtorrent
 	TORRENT_DEPRECATED
 	TORRENT_EXPORT void add_files(file_storage& fs, std::wstring const& wfile
 		, std::uint32_t flags = 0);
-	
+
 	TORRENT_DEPRECATED
 	TORRENT_EXPORT void set_piece_hashes(create_torrent& t, std::wstring const& p
 		, std::function<void(int)> f, error_code& ec);
@@ -478,7 +478,7 @@ namespace libtorrent
 		, std::wstring const& p, error_code& ec)
 	{
 		set_piece_hashes_deprecated(t, p, detail::nop, ec);
-	} 
+	}
 #endif // TORRENT_NO_DEPRECATE
 #endif // TORRENT_USE_WSTRING
 

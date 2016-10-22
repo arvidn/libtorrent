@@ -271,7 +271,7 @@ namespace libtorrent
 
 		// progress parts per million (progress * 1000000) when disabling
 		// floating point operations, this is the only option to query progress
-		// 
+		//
 		// reflects the same value as ``progress``, but instead in a range [0,
 		// 1000000] (ppm = parts per million). When floating point operations are
 		// disabled, this is the only alternative to the floating point value in
@@ -339,12 +339,12 @@ namespace libtorrent
 
 		// tells the share of pieces that have more copies than the rarest
 		// piece(s). Divide this number by 1000 to get the fraction.
-		// 
+		//
 		// For example, if ``distributed_full_copies`` is 2 and
 		// ``distributed_fraction`` is 500, it means that the rarest pieces have
 		// only 2 copies among the peers this torrent is connected to, and that
 		// 50% of all the pieces have more than two copies.
-		// 
+		//
 		// If we are a seed, the piece picker is deallocated as an optimization,
 		// and piece availability is no longer tracked. In this case the
 		// distributed copies members are set to -1.

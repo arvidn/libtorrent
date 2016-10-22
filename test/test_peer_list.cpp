@@ -363,7 +363,7 @@ TORRENT_TEST(update_peer_port_collide)
 	auto c = std::make_shared<mock_peer_connection>(&t, true, ep("10.0.0.1", 8080));
 	p.new_connection(*c, 0, &st);
 	TEST_EQUAL(p.num_connect_candidates(), 1);
-	// at this point we have two peers, because we think they have different 
+	// at this point we have two peers, because we think they have different
 	// ports
 	TEST_EQUAL(p.num_peers(), 2);
 	st.erased.clear();

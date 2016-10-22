@@ -204,20 +204,20 @@ namespace libtorrent
 		// isn't of the type you request, the accessor will throw
 		// system_error. You can ask an ``entry`` for its type through the
 		// ``type()`` function.
-		// 
+		//
 		// If you want to create an ``entry`` you give it the type you want it to
 		// have in its constructor, and then use one of the non-const accessors
 		// to get a reference which you then can assign the value you want it to
 		// have.
-		// 
+		//
 		// The typical code to get info from a torrent file will then look like
 		// this:
 		//
 		// .. code:: c++
-		// 
+		//
 		// 	entry torrent_file;
 		// 	// ...
-		// 
+		//
 		// 	// throws if this is not a dictionary
 		// 	entry::dictionary_type const& dict = torrent_file.dict();
 		// 	entry::dictionary_type::const_iterator i;
@@ -227,23 +227,23 @@ namespace libtorrent
 		// 		std::string tracker_url = i->second.string();
 		// 		std::cout << tracker_url << "\n";
 		// 	}
-		// 
-		// 
+		//
+		//
 		// The following code is equivalent, but a little bit shorter:
 		//
 		// .. code:: c++
-		// 
+		//
 		// 	entry torrent_file;
 		// 	// ...
-		// 
+		//
 		// 	// throws if this is not a dictionary
 		// 	if (entry* i = torrent_file.find_key("announce"))
 		// 	{
 		// 		std::string tracker_url = i->string();
 		// 		std::cout << tracker_url << "\n";
 		// 	}
-		// 
-		// 
+		//
+		//
 		// To make it easier to extract information from a torrent file, the
 		// class torrent_info exists.
 		integer_type& integer();

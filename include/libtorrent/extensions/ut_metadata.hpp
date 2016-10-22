@@ -50,7 +50,7 @@ namespace libtorrent
 	// other. This is the main building block in making magnet links work.
 	// This extension is enabled by default unless explicitly disabled in
 	// the session constructor.
-	// 
+	//
 	// This can either be passed in the add_torrent_params::extensions field, or
 	// via torrent_handle::add_extension().
 	TORRENT_EXPORT std::shared_ptr<torrent_plugin> create_ut_metadata_plugin(torrent_handle const&, void*);

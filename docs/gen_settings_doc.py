@@ -80,8 +80,9 @@ for l in f:
 		mode = ''
 		continue
 
-	if l.startswith('// '):
-		description += l[3:]
+	if l.startswith('//'):
+		if l[2] == ' ': description += l[3:]
+		else: description += l[2:]
 		continue
 
 	l = l.strip()

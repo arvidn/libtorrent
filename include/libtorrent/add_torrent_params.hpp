@@ -112,10 +112,10 @@ namespace libtorrent
 			// if a torrent is created and seeded, or if the user already know
 			// that the files are complete, this is a way to avoid the initial
 			// file checks, and significantly reduce the startup time.
-			// 
+			//
 			// Setting ``flag_seed_mode`` on a torrent without metadata (a
 			// .torrent file) is a no-op and will be ignored.
-			// 
+			//
 			// If resume data is passed in with this torrent, the seed mode saved
 			// in there will override the seed mode you set here.
 			flag_seed_mode = 0x001,
@@ -127,7 +127,7 @@ namespace libtorrent
 			// periodically. This mode can be used to avoid race conditions when
 			// adjusting priorities of pieces before allowing the torrent to start
 			// downloading.
-			// 
+			//
 			// If the torrent is auto-managed (``flag_auto_managed``), the torrent
 			// will eventually be taken out of upload-mode, regardless of how it
 			// got there. If it's important to manually control when the torrent
@@ -143,13 +143,13 @@ namespace libtorrent
 			// download anything. This mode is intended to be safe to add any
 			// number of torrents to, without manual screening, without the risk
 			// of downloading more than is uploaded.
-			// 
+			//
 			// A torrent in share mode sets the priority to all pieces to 0,
 			// except for the pieces that are downloaded, when pieces are decided
 			// to be downloaded. This affects the progress bar, which might be set
 			// to "100% finished" most of the time. Do not change file or piece
 			// priorities for torrents in share mode, it will make it not work.
-			// 
+			//
 			// The share mode has one setting, the share ratio target, see
 			// ``settings_pack::share_mode_target`` for more info.
 			flag_share_mode = 0x008,
@@ -172,13 +172,13 @@ namespace libtorrent
 			// may be resumed at any point, regardless of how it paused. If it's
 			// important to manually control when the torrent is paused and
 			// resumed, don't make it auto managed.
-			// 
+			//
 			// If ``flag_auto_managed`` is set, the torrent will be queued,
 			// started and seeded automatically by libtorrent. When this is set,
 			// the torrent should also be started as paused. The default queue
 			// order is the order the torrents were added. They are all downloaded
 			// in that order. For more details, see queuing_.
-			// 
+			//
 			// If you pass in resume data, the auto_managed state of the torrent
 			// when the resume data was saved will override the auto_managed state
 			// you pass in here. You can override this by setting
@@ -305,7 +305,7 @@ namespace libtorrent
 		std::string name;
 
 		// the path where the torrent is or will be stored.
-		// 
+		//
 		// .. note::
 		// 	On windows this path (and other paths) are interpreted as UNC
 		// 	paths. This means they must use backslashes as directory separators
@@ -358,7 +358,7 @@ namespace libtorrent
 
 		// flags controlling aspects of this torrent and how it's added. See
 		// flags_t for details.
-		// 
+		//
 		// .. note::
 		// 	The ``flags`` field is initialized with default flags by the
 		// 	constructor. In order to preserve default behavior when clearing or
@@ -377,7 +377,7 @@ namespace libtorrent
 		// ``set_download_limit()`` functions on torrent_handle. These values let
 		// you initialize these settings when the torrent is added, instead of
 		// calling these functions immediately following adding it.
-		// 
+		//
 		// -1 means unlimited on these settings just like their counterpart
 		// functions on torrent_handle
 		int max_uploads;
@@ -418,7 +418,7 @@ namespace libtorrent
 		// every piece. ``num_downloaded`` is the number of times the torrent has
 		// been downloaded (not initiated, but the number of times a download has
 		// completed).
-		// 
+		//
 		// Leaving any of these values set to -1 indicates we don't know, or we
 		// have not received any scrape data.
 		int num_complete;
@@ -429,10 +429,10 @@ namespace libtorrent
 		// seeds to be used by the torrent. If the ``flag_override_web_seeds``
 		// is set, these will be the _only_ ones to be used. i.e. any web seeds
 		// found in the .torrent file will be overridden.
-		// 
+		//
 		// http_seeds expects URLs to web servers implementing the original HTTP
 		// seed specification `BEP 17`_.
-		// 
+		//
 		// url_seeds expects URLs to regular web servers, aka "get right" style,
 		// specified in `BEP 19`_.
 		std::vector<std::string> http_seeds;

@@ -384,7 +384,7 @@ restart_response:
 					{
 						m_partial_chunk_header += incoming;
 						header_size = incoming;
-						
+
 //						std::fprintf(stderr, "parse_chunk_header(%d, -> %d, -> %d) -> %d\n"
 //							"  incoming = %d\n  m_recv_pos = %d\n  m_cur_chunk_end = %d\n"
 //							"  content-length = %d\n"

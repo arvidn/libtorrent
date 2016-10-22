@@ -81,7 +81,7 @@ names = []
 types = []
 
 for l in f:
-	description_line = l.lstrip().startswith('// ')
+	description_line = l.lstrip().startswith('//')
 
 	l = l.strip()
 

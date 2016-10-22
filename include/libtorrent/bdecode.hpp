@@ -224,11 +224,11 @@ struct bdecode_token
 
 // a ``bdecode_node`` is used to traverse and hold the tree structure defined
 // by bencoded data after it has been parse by bdecode().
-// 
+//
 // There are primarily two kinds of bdecode_nodes. The ones that own the tree
 // structure, and defines its lifetime, and nodes that are child nodes in the
 // tree, pointing back into the root's tree.
-// 
+//
 // The ``bdecode_node`` passed in to ``bdecode()`` becomes the one owning the
 // tree structure. Make sure not to destruct that object for as long as you
 // use any of its child nodes. Also, keep in mind that the buffer originally
@@ -307,7 +307,7 @@ struct TORRENT_EXPORT bdecode_node
 	// but have to use ``std::string`` instead. ``dict_find_list`` will return a
 	// valid ``bdecode_node`` if the key is found _and_ it is a list. Otherwise
 	// it will return a default-constructed bdecode_node.
-	// 
+	//
 	// Functions with the ``_value`` suffix return the value of the node
 	// directly, rather than the nodes. In case the node is not found, or it has
 	// a different type, a default value is returned (which can be specified).
@@ -397,20 +397,20 @@ TORRENT_EXPORT std::string print_entry(bdecode_node const& e
 // non-zero value and fills in ``ec`` with the error code. The optional
 // argument ``error_pos``, if set to non-nullptr, will be set to the byte offset
 // into the buffer where the parse failure occurred.
-// 
+//
 // ``depth_limit`` specifies the max number of nested lists or dictionaries are
 // allowed in the data structure. (This affects the stack usage of the
 // function, be careful not to set it too high).
 //
 // ``token_limit`` is the max number of tokens allowed to be parsed from the
 // buffer. This is simply a sanity check to not have unbounded memory usage.
-// 
+//
 // The resulting ``bdecode_node`` is an *owning* node. That means it will
 // be holding the whole parsed tree. When iterating lists and dictionaries,
 // those ``bdecode_node`` objects will simply have references to the root or
 // owning ``bdecode_node``. If the root node is destructed, all other nodes
 // that refer to anything in that tree become invalid.
-// 
+//
 // However, the underlying buffer passed in to this function (``start``, ``end``)
 // must also remain valid while the bdecoded tree is used. The parsed tree
 // produced by this function does not copy any data out of the buffer, but

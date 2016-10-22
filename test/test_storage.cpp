@@ -1310,7 +1310,7 @@ TORRENT_TEST(storage_paths_string_pooling)
 	file_storage.add_file(combine_path("test_storage", combine_path("sub", "test2.txt")), 0x4000);
 	file_storage.add_file(combine_path("test_storage", combine_path("sub", "test3.txt")), 0x4000);
 
-	// "sub" paths should point to same string item, so paths.size() must not grow 
+	// "sub" paths should point to same string item, so paths.size() must not grow
 	TEST_CHECK(file_storage.paths().size() <= 2);
 }
 

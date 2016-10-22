@@ -45,7 +45,7 @@ namespace libtorrent
 	// fields in an add_torrent_params object. This object can then be used to add
 	// the actual torrent_info object to and pass to session::add_torrent() or
 	// session::async_add_torrent().
-	// 
+	//
 	// If the client wants to override any field that was loaded from the resume
 	// data, e.g. save_path, those fields must be changed after loading resume
 	// data but before adding the torrent.

@@ -74,7 +74,7 @@ namespace libtorrent
 		int live_allocations() const { return m_live_allocations; }
 
 	private:
-	
+
 		// this is a shared pool where torrent_peer objects
 		// are allocated. It's a pool since we're likely
 		// to have tens of thousands of peers, and a pool

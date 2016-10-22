@@ -240,7 +240,7 @@ void send_dht_request(node& node, char const* msg, udp::endpoint const& ep
 	dht::msg m(decoded, ep);
 	node.incoming(m);
 
-	// If the request is supposed to get a response, by now the node should have 
+	// If the request is supposed to get a response, by now the node should have
 	// invoked the send function and put the response in g_sent_packets
 	std::list<std::pair<udp::endpoint, entry> >::iterator i = find_packet(ep);
 	if (has_response)
