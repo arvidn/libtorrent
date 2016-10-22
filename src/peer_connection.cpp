@@ -1091,9 +1091,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (auto const& e : m_extensions)
 		{
-			TORRENT_TRY {
-				e->on_piece_pass(index);
-			} TORRENT_CATCH (std::exception const&) {}
+			e->on_piece_pass(index);
 		}
 #else
 		TORRENT_UNUSED(index);
@@ -1111,9 +1109,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (auto const& e : m_extensions)
 		{
-			TORRENT_TRY {
-				e->on_piece_failed(index);
-			} TORRENT_CATCH (std::exception const&) {}
+			e->on_piece_failed(index);
 		}
 #else
 		TORRENT_UNUSED(index);

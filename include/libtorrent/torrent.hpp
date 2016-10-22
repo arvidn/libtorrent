@@ -450,6 +450,7 @@ namespace libtorrent
 		ip_filter const* get_ip_filter() { return m_ip_filter.get(); }
 
 		std::string resolve_filename(int file) const;
+		void handle_exception();
 		void handle_disk_error(disk_io_job const* j, peer_connection* c = 0);
 		void clear_error();
 
