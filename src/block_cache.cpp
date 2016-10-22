@@ -932,6 +932,8 @@ bool block_cache::evict_piece(cached_piece_entry* pe, tailqueue<disk_io_job>& jo
 
 	if (pe->ok_to_evict(true))
 	{
+		pe->hash.reset();
+
 		// append will move the items from pe->jobs onto the end of jobs
 		jobs.append(pe->jobs);
 		TORRENT_ASSERT(pe->jobs.size() == 0);
