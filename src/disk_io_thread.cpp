@@ -3520,7 +3520,6 @@ namespace libtorrent
 		TORRENT_ASSERT(m_job_completions_in_flight);
 		m_job_completions_in_flight = false;
 
-		int const num_jobs = m_completed_jobs.size();
 		disk_io_job* j = m_completed_jobs.get_all();
 		l.unlock();
 
