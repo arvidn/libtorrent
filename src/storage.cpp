@@ -149,7 +149,6 @@ namespace libtorrent
 			}
 			bufs = bufs.subspan(1);
 		}
-		return bufs;
 	}
 
 	void clear_bufs(file::iovec_t const* bufs, int num_bufs)

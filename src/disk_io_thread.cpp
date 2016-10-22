@@ -1253,7 +1253,7 @@ namespace libtorrent
 		l.unlock();
 
 		// then we'll actually allocate the buffers
-		int ret = m_disk_cache.allocate_iovec(iov.data(), iov.size());
+		int ret = m_disk_cache.allocate_iovec(iov.data(), iov_len);
 
 		if (ret < 0)
 		{
@@ -1302,7 +1302,7 @@ namespace libtorrent
 		if (ret < 0)
 		{
 			// read failed. free buffers and return error
-			m_disk_cache.free_iovec(iov.data(), iov.size());
+			m_disk_cache.free_iovec(iov.data(), iov_len);
 
 			pe = m_disk_cache.find_piece(j);
 			if (pe == nullptr)
@@ -1332,7 +1332,7 @@ namespace libtorrent
 		// as soon we insert the blocks they may be evicted
 		// (if using purgeable memory). In order to prevent that
 		// until we can read from them, increment the refcounts
-		m_disk_cache.insert_blocks(pe, block, iov.data(), iov.size(), j, block_cache::blocks_inc_refcount);
+		m_disk_cache.insert_blocks(pe, block, iov.data(), iov_len, j, block_cache::blocks_inc_refcount);
 
 		TORRENT_ASSERT(pe->blocks[block].buf);
 
