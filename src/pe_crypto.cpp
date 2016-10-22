@@ -128,14 +128,14 @@ namespace libtorrent
 
 		int to_process = m_send_barriers.front().next;
 
-		span<char>* bufs;
-		size_t num_bufs;
+		span<span<char>> bufs;
 		bool need_destruct = false;
 		if (to_process != INT_MAX)
 		{
-			bufs = TORRENT_ALLOCA(span<char>, iovec.size());
+			TORRENT_ALLOCA(abufs, span<char>, iovec.size());
+			bufs = abufs;
 			need_destruct = true;
-			num_bufs = 0;
+			size_t num_bufs = 0;
 			for (int i = 0; to_process > 0 && i < iovec.size(); ++i)
 			{
 				++num_bufs;
@@ -152,19 +152,19 @@ namespace libtorrent
 					to_process -= size;
 				}
 			}
+			bufs = bufs.first(num_bufs);
 		}
 		else
 		{
-			bufs = iovec.data();
-			num_bufs = iovec.size();
+			bufs = iovec;
 		}
 
 		int next_barrier = 0;
 		span<span<char const>> out_iovec;
-		if (num_bufs != 0)
+		if (bufs.size() != 0)
 		{
 			std::tie(next_barrier, out_iovec)
-				= m_send_barriers.front().enc_handler->encrypt({bufs, size_t(num_bufs)});
+				= m_send_barriers.front().enc_handler->encrypt(bufs);
 		}
 
 		if (m_send_barriers.front().next != INT_MAX)
@@ -192,8 +192,8 @@ namespace libtorrent
 		if (next_barrier != INT_MAX && next_barrier != 0)
 		{
 			int payload = 0;
-			for (int i = 0; i < num_bufs; ++i)
-				payload += int(bufs[i].size());
+			for (auto buf : bufs)
+				payload += int(buf.size());
 
 			int overhead = 0;
 			for (auto buf : out_iovec)
@@ -203,8 +203,8 @@ namespace libtorrent
 #endif
 		if (need_destruct)
 		{
-			for (int i = 0; i < num_bufs; ++i)
-				bufs[i].~span<char>();
+			for (auto buf : bufs)
+				buf.~span<char>();
 		}
 		return std::make_tuple(next_barrier, out_iovec);
 	}

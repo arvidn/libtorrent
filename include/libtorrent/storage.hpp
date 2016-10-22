@@ -149,7 +149,7 @@ namespace libtorrent
 	struct add_torrent_params;
 
 	TORRENT_EXTRA_EXPORT int copy_bufs(file::iovec_t const* bufs, int bytes, file::iovec_t* target);
-	TORRENT_EXTRA_EXPORT void advance_bufs(file::iovec_t*& bufs, int bytes);
+	TORRENT_EXTRA_EXPORT span<file::iovec_t> advance_bufs(span<file::iovec_t> bufs, int bytes);
 	TORRENT_EXTRA_EXPORT void clear_bufs(file::iovec_t const* bufs, int num_bufs);
 
 	// flags for async_move_storage

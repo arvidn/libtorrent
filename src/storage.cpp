@@ -134,20 +134,20 @@ namespace libtorrent
 		}
 	}
 
-	void advance_bufs(file::iovec_t*& bufs, int bytes)
+	span<file::iovec_t> advance_bufs(span<file::iovec_t> bufs, int bytes)
 	{
 		int size = 0;
 		for (;;)
 		{
-			size += int(bufs->iov_len);
+			size += int(bufs.front().iov_len);
 			if (size >= bytes)
 			{
-				bufs->iov_base = reinterpret_cast<char*>(bufs->iov_base)
-					+ bufs->iov_len - (size - bytes);
-				bufs->iov_len = size - bytes;
-				return;
+				bufs.front().iov_base = reinterpret_cast<char*>(bufs.front().iov_base)
+					+ bufs.front().iov_len - (size - bytes);
+				bufs.front().iov_len = size - bytes;
+				return bufs;
 			}
-			++bufs;
+			bufs = bufs.subspan(1);
 		}
 	}
 
@@ -1148,11 +1148,11 @@ namespace libtorrent
 		// copy the iovec array so we can use it to keep track of our current
 		// location by updating the head base pointer and size. (see
 		// advance_bufs())
-		file::iovec_t* current_buf = TORRENT_ALLOCA(file::iovec_t, num_bufs);
-		copy_bufs(bufs, size, current_buf);
-		TORRENT_ASSERT(count_bufs(current_buf, size) == num_bufs);
+		TORRENT_ALLOCA(current_buf, file::iovec_t, num_bufs);
+		copy_bufs(bufs, size, current_buf.data());
+		TORRENT_ASSERT(count_bufs(current_buf.data(), size) == num_bufs);
 
-		file::iovec_t* tmp_buf = TORRENT_ALLOCA(file::iovec_t, num_bufs);
+		TORRENT_ALLOCA(tmp_buf, file::iovec_t, num_bufs);
 
 		// the number of bytes left to read in the current file (specified by
 		// file_index). This is the minimum of (file_size - file_offset) and
@@ -1184,18 +1184,18 @@ namespace libtorrent
 
 			// make a copy of the iovec array that _just_ covers the next
 			// file_bytes_left bytes, i.e. just this one operation
-			copy_bufs(current_buf, file_bytes_left, tmp_buf);
+			copy_bufs(current_buf.data(), file_bytes_left, tmp_buf.data());
 
 			int bytes_transferred = op.file_op(file_index, file_offset,
-				file_bytes_left, tmp_buf, ec);
+				file_bytes_left, tmp_buf.data(), ec);
 			if (ec) return -1;
 
 			// advance our position in the iovec array and the file offset.
-			advance_bufs(current_buf, bytes_transferred);
+			current_buf = advance_bufs(current_buf, bytes_transferred);
 			bytes_left -= bytes_transferred;
 			file_offset += bytes_transferred;
 
-			TORRENT_ASSERT(count_bufs(current_buf, bytes_left) <= num_bufs);
+			TORRENT_ASSERT(count_bufs(current_buf.data(), bytes_left) <= num_bufs);
 
 			// if the file operation returned 0, we've hit end-of-file. We're done
 			if (bytes_transferred == 0)
