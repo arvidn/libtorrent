@@ -814,7 +814,7 @@ TORRENT_TEST(dict_find_funs)
 
 	TEST_EQUAL(e.type(), bdecode_node::dict_t);
 
-	// dict_find_int* 
+	// dict_find_int*
 
 	TEST_EQUAL(e.dict_find_int_value("a"), 1);
 	TEST_EQUAL(e.dict_find_int("a").type(), bdecode_node::int_t);

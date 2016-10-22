@@ -109,7 +109,7 @@ namespace dht
 		// must be stored as a string in peers["n"]
 		//
 		// If the scrape parameter is true, you should fill these keys:
-		// 
+		//
 		//    peers["BFpe"] - with the standard bit representation of a
 		//                    256 bloom filter containing the downloaders
 		//    peers["BFsd"] - with the standard bit representation of a

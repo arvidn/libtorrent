@@ -251,32 +251,32 @@ namespace libtorrent
 		// of this file_storage object or any copy of it. The same thing applies
 		// to ``filehash``, which is an optional pointer to a 20 byte binary
 		// SHA-1 hash of the file.
-		// 
+		//
 		// if ``filename`` is nullptr, the filename from ``path`` is used and not
 		// borrowed. In this case ``filename_len`` is ignored.
-		// 
+		//
 		// The ``path`` argument is the full path (in the torrent file) to
 		// the file to add. Note that this is not supposed to be an absolute
 		// path, but it is expected to include the name of the torrent as the
 		// first path element.
-		// 
+		//
 		// ``file_size`` is the size of the file in bytes.
-		// 
+		//
 		// The ``file_flags`` argument sets attributes on the file. The file
 		// attributes is an extension and may not work in all bittorrent clients.
 		//
 		// For possible file attributes, see file_storage::flags_t.
-		// 
+		//
 		// The ``mtime`` argument is optional and can be set to 0. If non-zero,
 		// it is the posix time of the last modification time of this file.
-		// 
+		//
 		// ``symlink_path`` is the path the file is a symlink to. To make this a
 		// symlink you also need to set the file_storage::flag_symlink file flag.
 		//
 		// If more files than one are added, certain restrictions to their paths
 		// apply. In a multi-file file storage (torrent), all files must share
 		// the same root directory.
-		// 
+		//
 		// That is, the first path element of all files must be the same.
 		// This shared path element is also set to the name of the torrent. It
 		// can be changed by calling ``set_name``.
@@ -317,9 +317,9 @@ namespace libtorrent
 		//
 		// Preconditions of this function is that the input range is within the
 		// torrents address space. ``piece`` may not be negative and
-		// 
+		//
 		// 	``piece`` * piece_size + ``offset`` + ``size``
-		// 
+		//
 		// may not exceed the total size of the torrent.
 		std::vector<file_slice> map_block(int piece, std::int64_t offset
 			, int size) const;
@@ -437,19 +437,19 @@ namespace libtorrent
 
 		// These functions are used to query attributes of files at
 		// a given index.
-		// 
+		//
 		// The ``hash()`` is a sha-1 hash of the file, or 0 if none was
 		// provided in the torrent file. This can potentially be used to
 		// join a bittorrent network with other file sharing networks.
-		// 
+		//
 		// The ``mtime()`` is the modification time is the posix
 		// time when a file was last modified when the torrent
 		// was created, or 0 if it was not included in the torrent file.
-		// 
+		//
 		// ``file_path()`` returns the full path to a file.
-		// 
+		//
 		// ``file_size()`` returns the size of a file.
-		// 
+		//
 		// ``pad_file_at()`` returns true if the file at the given
 		// index is a pad-file.
 		//

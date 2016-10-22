@@ -140,7 +140,7 @@ namespace libtorrent
 			return ret ^ 0xffffffff;
 		}
 #endif
-	
+
 		boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
 		crc.process_bytes(buf, num_words * 8);
 		return crc.checksum();

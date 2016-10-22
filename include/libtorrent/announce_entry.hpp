@@ -72,7 +72,7 @@ namespace libtorrent
 		// returns the number of seconds to the next announce on this tracker.
 		// ``min_announce_in()`` returns the number of seconds until we are
 		// allowed to force another tracker update with this tracker.
-		// 
+		//
 		// If the last time this tracker was contacted failed, ``last_error`` is
 		// the error code describing what error occurred.
 		int next_announce_in() const;

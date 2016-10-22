@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	
+
 	struct http_connection;
 	class entry;
 	class http_parser;

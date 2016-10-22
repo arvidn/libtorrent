@@ -67,7 +67,7 @@ namespace libtorrent
 	//   the lower 64 bits are always unmasked
 	//
 	// * for IPv6 addresses, compare /32 and /48 instead of /16 and /24
-	// 
+	//
 	// * the two IP addresses that are used to calculate the rank must
 	//   always be of the same address family
 	//

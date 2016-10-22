@@ -91,7 +91,7 @@ namespace libtorrent
 
 			// means that this peer supports the
 			// `extension protocol`__.
-			// 
+			//
 			// __ extension_protocol.html
 			supports_extensions = 0x10,
 

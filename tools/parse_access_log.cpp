@@ -164,7 +164,7 @@ int main(int argc, char* argv[])
 		"set style line 2 lc rgb \"#88ff88\"\n"
 		"set style arrow 1 nohead ls 1\n"
 		"set style arrow 2 nohead ls 2\n"
-		"plot \"writes.log\" using 1:2:3:(0) title \"writes\" with vectors arrowstyle 1, " 
+		"plot \"writes.log\" using 1:2:3:(0) title \"writes\" with vectors arrowstyle 1, "
 			"\"reads.log\" using 1:2:3:(0) title \"reads\" with vectors arrowstyle 2\n";
 
 	std::fwrite(gnuplot_file, strlen(gnuplot_file), 1, gnuplot);

@@ -150,7 +150,7 @@ namespace libtorrent
 
 		// the total number of write operations performed since this
 		// session was started.
-		// 
+		//
 		// The ratio (``blocks_written`` - ``writes``) / ``blocks_written`` represents
 		// the number of saved write operations per total write operations. i.e. a kind
 		// of cache hit ratio for the write cahe.

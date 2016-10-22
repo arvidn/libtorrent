@@ -221,7 +221,7 @@ namespace libtorrent
 			for (std::vector<tcp::endpoint>::iterator k = m_endpoints.begin();
 				k != m_endpoints.end();)
 			{
-				if (tracker_req().filter->access(k->address()) == ip_filter::blocked) 
+				if (tracker_req().filter->access(k->address()) == ip_filter::blocked)
 				{
 #ifndef TORRENT_DISABLE_LOGGING
 					if (cb && cb->should_log())
@@ -243,7 +243,7 @@ namespace libtorrent
 			fail(error_code(errors::banned_by_ip_filter));
 			return;
 		}
-		
+
 		m_target = pick_target_endpoint();
 
 		start_announce();

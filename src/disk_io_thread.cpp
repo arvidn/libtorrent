@@ -1568,7 +1568,7 @@ namespace libtorrent
 	// one and it sets outstanding_read flag and possibly queues
 	// up the job in the piece read job list
 	// the cache std::mutex must be held when calling this
-	// 
+	//
 	// returns 0 if the job succeeded immediately
 	// 1 if it needs to be added to the job queue
 	// 2 if it was deferred and will be performed later (no need to

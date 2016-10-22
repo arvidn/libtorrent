@@ -419,7 +419,7 @@ namespace libtorrent
 
 		// the number of incoming DHT requests that were dropped. There are a few
 		// different reasons why incoming DHT packets may be dropped:
-		// 
+		//
 		// 1. there wasn't enough send quota to respond to them.
 		// 2. the Denial of service logic kicked in, blocking the peer
 		// 3. ignore_dark_internet is enabled, and the packet came from a

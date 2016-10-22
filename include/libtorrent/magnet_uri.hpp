@@ -45,9 +45,9 @@ namespace libtorrent
 
 	// Generates a magnet URI from the specified torrent. If the torrent
 	// handle is invalid, an empty string is returned.
-	// 
+	//
 	// For more information about magnet links, see magnet-links_.
-	// 
+	//
 	std::string TORRENT_EXPORT make_magnet_uri(torrent_handle const& handle);
 	std::string TORRENT_EXPORT make_magnet_uri(torrent_info const& info);
 

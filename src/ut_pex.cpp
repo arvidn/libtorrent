@@ -60,7 +60,7 @@ namespace libtorrent { namespace
 	{
 		// don't send out those peers that we haven't connected to
 		// (that have connected to us) and that aren't sharing their
-		// listening port 
+		// listening port
 		if (!p.is_outgoing() && !p.received_listen_port()) return false;
 		// don't send out peers that we haven't successfully connected to
 		if (p.is_connecting()) return false;
@@ -202,7 +202,7 @@ namespace libtorrent { namespace
 
 			for (std::set<tcp::endpoint>::const_iterator i = dropped.begin()
 				, end(dropped.end()); i != end; ++i)
-			{	
+			{
 				if (i->address().is_v4())
 					detail::write_endpoint(*i, pld_out);
 #if TORRENT_USE_IPV6

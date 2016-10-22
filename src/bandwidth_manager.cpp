@@ -82,7 +82,7 @@ namespace libtorrent
 	{
 		return m_queued_bytes;
 	}
-	
+
 	// non prioritized means that, if there's a line for bandwidth,
 	// others will cut in front of the non-prioritized peers.
 	// this is used by web seeds

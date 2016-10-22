@@ -142,5 +142,5 @@ namespace libtorrent
 		bool m_abort;
 	};
 }
-	
+
 #endif
