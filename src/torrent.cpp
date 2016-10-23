@@ -1015,6 +1015,7 @@ namespace libtorrent
 		}
 		catch (std::exception const& err)
 		{
+			TORRENT_UNUSED(err);
 			set_error(error_code(), torrent_status::error_file_exception);
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log())
