@@ -2371,7 +2371,7 @@ namespace libtorrent
 					// the only state we've changed so far is to progress the sha-1
 					// cursor. It's safe to retry this job later, once there's a
 					// free buffer
-					return need_disk_buffer;
+					return do_uncached_hash(j);
 				}
 
 				DLOG("do_hash: reading (piece: %d block: %d)\n", int(pe->piece), i);
