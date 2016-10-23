@@ -868,7 +868,7 @@ namespace libtorrent
 		{
 			boost::int64_t file_size = 0;
 			time_t file_time = 0;
-			boost::int64_t cache_state = m_stat_cache.get_filesize(i);
+			boost::int64_t const cache_state = m_stat_cache.get_filesize(i);
 			if (cache_state != stat_cache::not_in_cache)
 			{
 				if (cache_state >= 0)
@@ -886,6 +886,7 @@ namespace libtorrent
 				{
 					file_size = s.file_size;
 					file_time = s.mtime;
+					m_stat_cache.set_cache(i, file_size, file_time);
 				}
 				else if (error == error_code(boost::system::errc::no_such_file_or_directory
 					, generic_category()))
