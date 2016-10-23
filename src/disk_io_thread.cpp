@@ -2785,11 +2785,19 @@ namespace libtorrent
 		cached_piece_entry* pe = m_disk_cache.find_piece(j);
 		if (pe == nullptr) return 0;
 
+		piece_refcount_holder refcount_holder(pe);
+
 #if TORRENT_USE_ASSERTS
 		pe->piece_log.push_back(piece_log_t(j->action));
 #endif
 		try_flush_hashed(pe, m_settings.get_int(
 			settings_pack::write_cache_line_size), completed_jobs, l);
+
+		TORRENT_ASSERT(l.owns_lock());
+
+		refcount_holder.release();
+
+		m_disk_cache.maybe_free_piece(pe);
 
 		return 0;
 	}
