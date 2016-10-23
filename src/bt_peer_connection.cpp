@@ -3564,15 +3564,6 @@ namespace libtorrent
 
 			if (ret)
 			{
-				if (m_channel_state[download_channel] & peer_info::bw_disk)
-				{
-					// this means we're blocked by the disk. We have a piece in our
-					// receive buffer, but we weren't able to allocate a disk buffer
-					// to copy it into
-					// we cannot reset the receive buffer now, we have to wait until
-					// the disk thread tells us there's more space
-					return;
-				}
 				m_state = state_t::read_packet_size;
 				m_recv_buffer.reset(5);
 			}
