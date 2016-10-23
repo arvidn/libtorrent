@@ -279,9 +279,7 @@ void lsd::on_announce(udp::endpoint const& from, char const* buf
 			}
 #endif
 			// we got an announce, pass it on through the callback
-			TORRENT_TRY {
-				m_callback.on_lsd_peer(tcp::endpoint(from.address(), port), ih);
-			} TORRENT_CATCH (std::exception const&) {}
+			m_callback.on_lsd_peer(tcp::endpoint(from.address(), port), ih);
 		}
 	}
 }

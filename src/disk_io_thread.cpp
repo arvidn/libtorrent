@@ -3520,13 +3520,12 @@ namespace libtorrent
 		TORRENT_ASSERT(m_job_completions_in_flight);
 		m_job_completions_in_flight = false;
 
-		int const num_jobs = m_completed_jobs.size();
 		disk_io_job* j = m_completed_jobs.get_all();
 		l.unlock();
 
 		uncork_interface* uncork = static_cast<uncork_interface*>(userdata);
-		std::vector<disk_io_job*> to_delete;
-		to_delete.reserve(num_jobs);
+		std::array<disk_io_job*, 64> to_delete;
+		int cnt = 0;
 
 		while (j)
 		{
@@ -3539,12 +3538,16 @@ namespace libtorrent
 			j->callback_called = true;
 #endif
 			if (j->callback) j->callback(j);
-			to_delete.push_back(j);
+			to_delete[cnt++] = j;
 			j = next;
+			if (cnt == to_delete.size())
+			{
+				cnt = 0;
+				free_jobs(to_delete.data(), int(to_delete.size()));
+			}
 		}
 
-		if (!to_delete.empty())
-			free_jobs(&to_delete[0], int(to_delete.size()));
+		if (cnt > 0) free_jobs(to_delete.data(), cnt);
 
 		// uncork all peers who received a disk event. This is
 		// to coalesce all the socket writes caused by the events.

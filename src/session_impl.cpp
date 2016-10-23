@@ -666,9 +666,7 @@ namespace aux {
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (auto const& ext : m_ses_extensions[plugins_all_idx])
 		{
-			TORRENT_TRY {
-				ext->save_state(*eptr);
-			} TORRENT_CATCH (std::exception const&) {}
+			ext->save_state(*eptr);
 		}
 #endif
 	}
@@ -776,9 +774,7 @@ namespace aux {
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (auto& ext : m_ses_extensions[plugins_all_idx])
 		{
-			TORRENT_TRY {
-				ext->load_state(*e);
-			} TORRENT_CATCH (std::exception const&) {}
+			ext->load_state(*e);
 		}
 #endif
 	}
@@ -3062,9 +3058,7 @@ namespace aux {
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (auto& ext : m_ses_extensions[plugins_tick_idx])
 		{
-			TORRENT_TRY {
-				ext->on_tick();
-			} TORRENT_CATCH (std::exception const&) {}
+			ext->on_tick();
 		}
 #endif
 
@@ -3981,23 +3975,11 @@ namespace aux {
 			TORRENT_ASSERT(t->want_peers());
 			TORRENT_ASSERT(!t->is_torrent_paused());
 
-			TORRENT_TRY
+			if (t->try_connect_peer())
 			{
-				if (t->try_connect_peer())
-				{
-					--max_connections;
-					steps_since_last_connect = 0;
-					m_stats_counters.inc_stats_counter(counters::connection_attempts);
-				}
-			}
-			TORRENT_CATCH(std::bad_alloc&)
-			{
-				// we ran out of memory trying to connect to a peer
-				// lower the global limit to the number of peers
-				// we already have
-				m_settings.set_int(settings_pack::connections_limit, num_connections());
-				if (m_settings.get_int(settings_pack::connections_limit) < 2)
-					m_settings.set_int(settings_pack::connections_limit, 2);
+				--max_connections;
+				steps_since_last_connect = 0;
+				m_stats_counters.inc_stats_counter(counters::connection_attempts);
 			}
 
 			++steps_since_last_connect;
@@ -4174,11 +4156,8 @@ namespace aux {
 	{
 		m_stats_counters.inc_stats_counter(counters::on_disk_counter);
 		TORRENT_ASSERT(is_single_thread());
-		for (std::vector<peer_connection*>::iterator i = m_delayed_uncorks.begin()
-			, end(m_delayed_uncorks.end()); i != end; ++i)
-		{
-			(*i)->uncork_socket();
-		}
+		for (peer_connection* p : m_delayed_uncorks)
+			p->uncork_socket();
 		m_delayed_uncorks.clear();
 	}
 
