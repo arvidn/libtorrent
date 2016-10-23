@@ -1024,7 +1024,7 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 			save_file(filename, buffer);
 
 			files.insert(std::pair<std::string, libtorrent::torrent_handle>(filename, h));
-			hash_to_filename.insert(std::make_pair(hash, filename));
+			hash_to_filename[hash] = filename;
 			non_files.erase(h);
 		}
 	}
