@@ -208,18 +208,23 @@ void test_file_sizes(bool allocate)
 	if (allocate) p.storage_mode = storage_mode_allocate;
 	torrent_handle h = ses.add_torrent(p);
 
+	wait_for_downloading(ses, "ses");
+
 	std::vector<char> piece(ti->piece_length(), 0);
 	h.add_piece(0, piece.data());
 
 	h.save_resume_data();
 	alert const* a = wait_for_alert(ses, save_resume_data_alert::alert_type);
-
 	TEST_CHECK(a);
+
 	save_resume_data_alert const* ra = alert_cast<save_resume_data_alert>(a);
 	TEST_CHECK(ra);
 	if (ra)
 	{
 		fprintf(stderr, "%s\n", ra->resume_data->to_string().c_str());
+		bool const has_file_sizes = ra->resume_data->dict().count("file sizes") == 1;
+		TEST_CHECK(has_file_sizes);
+		if (!has_file_sizes) return;
 		// { 'file sizes': [ [ size, timestamp], [...], ... ] }
 		boost::int64_t const file_size = (*ra->resume_data)["file sizes"].list()
 			.front().list().front().integer();
