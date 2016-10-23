@@ -192,6 +192,58 @@ void default_tests(torrent_status const& s)
 	TEST_EQUAL(s.completed_time, 1348);
 }
 
+void test_file_sizes(bool allocate)
+{
+	error_code ec;
+	remove_all("test_resume", ec);
+
+	lt::settings_pack pack = settings();
+	// we're not testing the hash check, just accept the data we write
+	pack.set_bool(settings_pack::disable_hash_checks, true);
+	lt::session ses(pack);
+	boost::shared_ptr<torrent_info> ti = generate_torrent();
+	add_torrent_params p;
+	p.ti = ti;
+	p.save_path = ".";
+	if (allocate) p.storage_mode = storage_mode_allocate;
+	torrent_handle h = ses.add_torrent(p);
+
+	std::vector<char> piece(ti->piece_length(), 0);
+	h.add_piece(0, piece.data());
+
+	h.save_resume_data();
+	alert const* a = wait_for_alert(ses, save_resume_data_alert::alert_type);
+
+	TEST_CHECK(a);
+	save_resume_data_alert const* ra = alert_cast<save_resume_data_alert>(a);
+	TEST_CHECK(ra);
+	if (ra)
+	{
+		fprintf(stderr, "%s\n", ra->resume_data->to_string().c_str());
+		// { 'file sizes': [ [ size, timestamp], [...], ... ] }
+		boost::int64_t const file_size = (*ra->resume_data)["file sizes"].list()
+			.front().list().front().integer();
+		if (allocate)
+		{
+			TEST_EQUAL(file_size, ti->files().file_size(0));
+		}
+		else
+		{
+			TEST_EQUAL(file_size, ti->piece_length());
+		}
+	}
+}
+
+TORRENT_TEST(file_sizes_allocate)
+{
+	test_file_sizes(true);
+}
+
+TORRENT_TEST(file_sizes)
+{
+	test_file_sizes(false);
+}
+
 TORRENT_TEST(piece_priorities)
 {
 	lt::session ses(settings());
@@ -208,7 +260,9 @@ TORRENT_TEST(piece_priorities)
 	alert const* a = wait_for_alert(ses, save_resume_data_alert::alert_type);
 
 	TEST_CHECK(a);
-	if (save_resume_data_alert const* ra = alert_cast<save_resume_data_alert>(a))
+	save_resume_data_alert const* ra = alert_cast<save_resume_data_alert>(a);
+	TEST_CHECK(ra);
+	if (ra)
 	{
 		fprintf(stderr, "%s\n", ra->resume_data->to_string().c_str());
 		entry::string_type prios = (*ra->resume_data)["piece_priority"].string();
