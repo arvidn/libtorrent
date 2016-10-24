@@ -901,7 +901,7 @@ namespace libtorrent
 					m_stat_cache.set_error(i);
 				}
 			}
-#if TORRENT_USE_ASSERTS
+#if TORRENT_USE_INVARIANT_CHECKS
 			{
 				file_status s;
 				error_code error;
