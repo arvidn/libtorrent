@@ -32,12 +32,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/block_cache.hpp"
-#include "libtorrent/disk_buffer_pool.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/time.hpp"
 #include "libtorrent/disk_io_job.hpp"
 #include "libtorrent/storage.hpp"
-#include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/error.hpp"
 #include "libtorrent/disk_io_thread.hpp" // disk_operation_failed
 #include "libtorrent/invariant_check.hpp"
