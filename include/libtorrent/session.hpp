@@ -201,6 +201,14 @@ namespace libtorrent
 		}
 
 #ifndef TORRENT_NO_DEPRECATE
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated"
+#endif
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated"
+#endif
 		TORRENT_DEPRECATED
 		session(fingerprint const& print
 			, int flags = start_default_features | add_default_plugins
@@ -253,6 +261,12 @@ namespace libtorrent
 			}
 			start(flags, pack, NULL);
 		}
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 #endif // TORRENT_NO_DEPRECATE
 
 		// The destructor of session will notify all trackers that our torrents
