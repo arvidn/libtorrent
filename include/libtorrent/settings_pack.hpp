@@ -1045,7 +1045,15 @@ namespace libtorrent
 			// about you for any reason and tries to connect, it will still be
 			// accepted, unless the torrent is paused, which means it won't accept
 			// any connections.
-			//
+			active_downloads,
+			active_seeds,
+			active_checking,
+			active_dht_limit,
+			active_tracker_limit,
+			active_lsd_limit,
+			active_limit,
+
+#ifndef TORRENT_NO_DEPRECATE
 			// ``active_loaded_limit`` is the number of torrents that are allowed
 			// to be *loaded* at any given time. Note that a torrent can be active
 			// even though it's not loaded. If an unloaded torrents finds a peer
@@ -1054,14 +1062,10 @@ namespace libtorrent
 			// unloading torrents is not enabled, this setting have no effect. If
 			// this limit is set to 0, it means unlimited. For more information,
 			// see dynamic-loading-of-torrent-files_.
-			active_downloads,
-			active_seeds,
-			active_checking,
-			active_dht_limit,
-			active_tracker_limit,
-			active_lsd_limit,
-			active_limit,
 			active_loaded_limit,
+#else
+			deprecated20,
+#endif
 
 			// ``auto_manage_interval`` is the number of seconds between the
 			// torrent queue is updated, and rotated.
