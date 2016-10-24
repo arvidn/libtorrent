@@ -515,9 +515,9 @@ namespace libtorrent
 		// don't do full file allocations on network drives
 #if TORRENT_USE_WSTRING
 		std::wstring f = convert_to_wstring(m_save_path);
-		int drive_type = GetDriveTypeW(f.c_str());
+		int const drive_type = GetDriveTypeW(f.c_str());
 #else
-		int drive_type = GetDriveTypeA(m_save_path.c_str());
+		int const drive_type = GetDriveTypeA(m_save_path.c_str());
 #endif
 
 		if (drive_type == DRIVE_REMOTE)
@@ -581,7 +581,7 @@ namespace libtorrent
 					| file::random_access, ec);
 				if (ec) return;
 
-				boost::int64_t size = files().file_size(file_index);
+				boost::int64_t const size = files().file_size(file_index);
 				f->set_size(size, ec.ec);
 				if (ec)
 				{
@@ -589,7 +589,7 @@ namespace libtorrent
 					ec.operation = storage_error::fallocate;
 					break;
 				}
-				size_t mtime = m_stat_cache.get_filetime(file_index);
+				size_t const mtime = m_stat_cache.get_filetime(file_index);
 				m_stat_cache.set_cache(file_index, size, mtime);
 			}
 			ec.ec.clear();
@@ -621,12 +621,15 @@ namespace libtorrent
 				file_path = files().file_path(i, m_save_path);
 				stat_file(file_path, &s, ec.ec);
 				boost::int64_t r = s.file_size;
-				if (ec.ec || !(s.mode & file_status::regular_file)) r = -1;
+				if (ec.ec || !(s.mode & file_status::regular_file))
+				{
+					r = stat_cache::cache_error;
+				}
 
 				if (ec && ec.ec == boost::system::errc::no_such_file_or_directory)
 				{
 					ec.ec.clear();
-					r = -3;
+					r = stat_cache::no_exist;
 				}
 				m_stat_cache.set_cache(i, r, s.mtime);
 
@@ -865,7 +868,7 @@ namespace libtorrent
 		{
 			boost::int64_t file_size = 0;
 			time_t file_time = 0;
-			boost::int64_t cache_state = m_stat_cache.get_filesize(i);
+			boost::int64_t const cache_state = m_stat_cache.get_filesize(i);
 			if (cache_state != stat_cache::not_in_cache)
 			{
 				if (cache_state >= 0)
@@ -883,6 +886,7 @@ namespace libtorrent
 				{
 					file_size = s.file_size;
 					file_time = s.mtime;
+					m_stat_cache.set_cache(i, file_size, file_time);
 				}
 				else if (error == error_code(boost::system::errc::no_such_file_or_directory
 					, generic_category()))
@@ -897,6 +901,21 @@ namespace libtorrent
 					m_stat_cache.set_error(i);
 				}
 			}
+#if TORRENT_USE_INVARIANT_CHECKS
+			{
+				file_status s;
+				error_code error;
+				stat_file(fs.file_path(i, m_save_path), &s, error);
+				if (s.file_size >= 0 && !error)
+				{
+					TORRENT_ASSERT(s.file_size == file_size);
+				}
+				else
+				{
+					TORRENT_ASSERT(file_size == 0);
+				}
+			}
+#endif
 
 			fl.push_back(entry(entry::list_t));
 			entry::list_type& p = fl.back().list();
@@ -1454,7 +1473,8 @@ namespace libtorrent
 			if (m_file_created[file] == false)
 			{
 				error_code e;
-				h->set_size(files().file_size(file), e);
+				boost::int64_t const size = files().file_size(file);
+				h->set_size(size, e);
 				m_file_created.set_bit(file);
 				if (e)
 				{
@@ -1463,6 +1483,7 @@ namespace libtorrent
 					ec.operation = storage_error::fallocate;
 					return h;
 				}
+				m_stat_cache.set_dirty(file);
 			}
 		}
 		return h;
