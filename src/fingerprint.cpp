@@ -71,7 +71,6 @@ namespace libtorrent {
 		return ret;
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
 	fingerprint::fingerprint(const char* id_string, int major, int minor
 		, int revision, int tag)
 		: major_version(major)
@@ -89,12 +88,12 @@ namespace libtorrent {
 		name[1] = id_string[1];
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	std::string fingerprint::to_string() const
 	{
 		return generate_fingerprint(name, major_version, minor_version
 			, revision_version, tag_version);
 	}
-
 #endif // TORRENT_NO_DEPRECATE
 
 }

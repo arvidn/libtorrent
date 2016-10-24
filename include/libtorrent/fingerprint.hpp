@@ -77,16 +77,16 @@ namespace libtorrent
 	TORRENT_EXPORT std::string generate_fingerprint(std::string name
 		, int major, int minor = 0, int revision = 0, int tag = 0);
 
-#ifndef TORRENT_NO_DEPRECATE
-
 	// The fingerprint class represents information about a client and its version. It is used
 	// to encode this information into the client's peer id.
-	struct TORRENT_DEPRECATED_EXPORT fingerprint
+	struct TORRENT_DEPRECATED TORRENT_DEPRECATED_EXPORT fingerprint
 	{
 		fingerprint(const char* id_string, int major, int minor, int revision, int tag);
 
+#ifndef TORRENT_NO_DEPRECATE
 		// generates the actual string put in the peer-id, and return it.
 		std::string to_string() const;
+#endif
 
 		char name[2];
 		int major_version;
@@ -94,8 +94,6 @@ namespace libtorrent
 		int revision_version;
 		int tag_version;
 	};
-
-#endif
 
 }
 
