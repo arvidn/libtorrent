@@ -46,7 +46,7 @@ namespace libtorrent {
 
 	} // anonymous namespace
 
-	std::string gen_fingerprint(std::string name, int const major
+	std::string generate_fingerprint(std::string name, int const major
 		, int const minor
 		, int const revision
 		, int const tag)
@@ -91,7 +91,7 @@ namespace libtorrent {
 
 	std::string fingerprint::to_string() const
 	{
-		return gen_fingerprint(name, major_version, minor_version
+		return generate_fingerprint(name, major_version, minor_version
 			, revision_version, tag_version);
 	}
 

@@ -74,7 +74,7 @@ namespace libtorrent
 	//
 	// The ``major``, ``minor``, ``revision`` and ``tag`` parameters are used to
 	// identify the version of your client.
-	TORRENT_EXPORT std::string gen_fingerprint(std::string name
+	TORRENT_EXPORT std::string generate_fingerprint(std::string name
 		, int major, int minor = 0, int revision = 0, int tag = 0);
 
 #ifndef TORRENT_NO_DEPRECATE

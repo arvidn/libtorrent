@@ -162,10 +162,10 @@ TORRENT_TEST(primitives)
 	TEST_EQUAL(endpoint_to_bytes(udp::endpoint(address_v4::from_string("16.5.127.1"), 12345)), "\x10\x05\x7f\x01\x30\x39");
 
 	// test gen_fingerprint
-	TEST_EQUAL(gen_fingerprint("AB", 1, 2, 3, 4), "-AB1234-");
-	TEST_EQUAL(gen_fingerprint("AB", 1, 2), "-AB1200-");
-	TEST_EQUAL(gen_fingerprint("..", 1, 10), "-..1A00-");
-	TEST_EQUAL(gen_fingerprint("CZ", 1, 15), "-CZ1F00-");
-	TEST_EQUAL(gen_fingerprint("CZ", 1, 15, 16, 17), "-CZ1FGH-");
+	TEST_EQUAL(generate_fingerprint("AB", 1, 2, 3, 4), "-AB1234-");
+	TEST_EQUAL(generate_fingerprint("AB", 1, 2), "-AB1200-");
+	TEST_EQUAL(generate_fingerprint("..", 1, 10), "-..1A00-");
+	TEST_EQUAL(generate_fingerprint("CZ", 1, 15), "-CZ1F00-");
+	TEST_EQUAL(generate_fingerprint("CZ", 1, 15, 16, 17), "-CZ1FGH-");
 }
 
