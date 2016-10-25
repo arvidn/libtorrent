@@ -1049,7 +1049,7 @@ struct test_fileop : fileop
 	}
 
 	int m_stripe_size;
-	std::vector<std::vector<char> > m_file_data;
+	std::vector<std::vector<char>> m_file_data;
 };
 
 struct test_read_fileop : fileop

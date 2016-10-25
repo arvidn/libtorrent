@@ -207,9 +207,9 @@ namespace detail
 		}
 
 		template <class ExternalAddressType>
-		std::vector<ip_range<ExternalAddressType> > export_filter() const
+		std::vector<ip_range<ExternalAddressType>> export_filter() const
 		{
-			std::vector<ip_range<ExternalAddressType> > ret;
+			std::vector<ip_range<ExternalAddressType>> ret;
 			ret.reserve(m_access_list.size());
 
 			for (typename range_t::const_iterator i = m_access_list.begin()
@@ -288,10 +288,10 @@ struct TORRENT_EXPORT ip_filter
 	int access(address const& addr) const;
 
 #if TORRENT_USE_IPV6
-	using filter_tuple_t = std::tuple<std::vector<ip_range<address_v4> >
-		, std::vector<ip_range<address_v6> > >;
+	using filter_tuple_t = std::tuple<std::vector<ip_range<address_v4>>
+		, std::vector<ip_range<address_v6>>>;
 #else
-	using filter_tuple_t = std::vector<ip_range<address_v4> >;
+	using filter_tuple_t = std::vector<ip_range<address_v4>>;
 #endif
 
 	// This function will return the current state of the filter in the minimum number of
@@ -348,4 +348,3 @@ private:
 }
 
 #endif
-

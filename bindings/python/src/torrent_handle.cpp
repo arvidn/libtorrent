@@ -144,13 +144,13 @@ void prioritize_pieces(torrent_handle& info, object o)
 
    // determine which overload should be selected. the one taking a list of
    // priorities or the one taking a list of piece -> priority mappings
-   bool const is_piece_list = extract<std::pair<int, int> >(*begin).check();
+   bool const is_piece_list = extract<std::pair<int, int>>(*begin).check();
 
    if (is_piece_list)
    {
-      std::vector<std::pair<int, int> > piece_list;
+      std::vector<std::pair<int, int>> piece_list;
       std::transform(begin, end, std::back_inserter(piece_list)
-         , &extract_fn<std::pair<int, int> >);
+         , &extract_fn<std::pair<int, int>>);
       info.prioritize_pieces(piece_list);
    }
    else
@@ -503,4 +503,3 @@ void bind_torrent_handle()
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-

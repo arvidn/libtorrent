@@ -57,7 +57,7 @@ std::shared_ptr<libtorrent::torrent_info> make_test_torrent(
 
 	// torrent offset ranges where the pad files are
 	// used when generating hashes
-	std::deque<std::pair<int,int> > pad_files;
+	std::deque<std::pair<int,int>> pad_files;
 
 	int const piece_length = 32768;
 	info["piece length"] = piece_length;
@@ -152,7 +152,7 @@ std::shared_ptr<libtorrent::torrent_info> make_test_torrent(
 	info["pieces"] = piece_hashes;
 
 	std::vector<char> tmp;
-	std::back_insert_iterator<std::vector<char> > out(tmp);
+	std::back_insert_iterator<std::vector<char>> out(tmp);
 	bencode(out, e);
 
 	FILE* f = fopen("test.torrent", "w+");
@@ -198,5 +198,3 @@ void generate_files(libtorrent::torrent_info const& ti, std::string const& path
 		}
 	}
 }
-
-

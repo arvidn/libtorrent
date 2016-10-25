@@ -35,8 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/file_storage.hpp" // for file_entry
-#include "libtorrent/aux_/time.hpp"
+#include "libtorrent/file_storage.hpp"
 
 #include <limits>
 
@@ -141,7 +140,7 @@ namespace libtorrent
 		TORRENT_ASSERT(is_complete(p));
 		TORRENT_ASSERT((m & file::rw_mask) == file::read_only
 			|| (m & file::rw_mask) == file::read_write);
-		file_set::iterator i = m_files.find(std::make_pair(st, file_index));
+		auto const i = m_files.find(std::make_pair(st, file_index));
 		if (i != m_files.end())
 		{
 			lru_file_entry& e = i->second;
@@ -227,22 +226,21 @@ namespace libtorrent
 		{
 			std::unique_lock<std::mutex> l(m_mutex);
 
-			auto start = m_files.lower_bound(std::make_pair(st, 0));
-			auto end = m_files.upper_bound(std::make_pair(st
-					, std::numeric_limits<int>::max()));
+			auto const start = m_files.lower_bound(std::make_pair(st, 0));
+			auto const end = m_files.upper_bound(std::make_pair(st
+				, std::numeric_limits<int>::max()));
 
-			for (file_set::const_iterator i = start; i != end; ++i)
-			{
+			for (auto i = start; i != end; ++i)
 				ret.push_back({i->first.second, i->second.mode, i->second.last_use});
-			}
 		}
 		return ret;
 	}
 
 	void file_pool::remove_oldest(std::unique_lock<std::mutex>& l)
 	{
-		file_set::iterator i = std::min_element(m_files.begin(), m_files.end()
-			, [] (file_set::value_type const& lhs, file_set::value_type const& rhs)
+		using value_type = std::map<std::pair<void*, int>, lru_file_entry>::value_type;
+		auto const i = std::min_element(m_files.begin(), m_files.end()
+			, [] (value_type const& lhs, value_type const& rhs)
 				{ return lhs.second.last_use < rhs.second.last_use; });
 		if (i == m_files.end()) return;
 
@@ -259,7 +257,7 @@ namespace libtorrent
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 
-		file_set::iterator i = m_files.find(std::make_pair(st, file_index));
+		auto const i = m_files.find(std::make_pair(st, file_index));
 		if (i == m_files.end()) return;
 
 		file_handle file_ptr = i->second.file_ptr;
@@ -278,15 +276,14 @@ namespace libtorrent
 
 		if (st == nullptr)
 		{
-			file_set tmp;
+			std::map<std::pair<void*, int>, lru_file_entry> tmp;
 			tmp.swap(m_files);
 			l.unlock();
 			return;
 		}
 
 		std::vector<file_handle> to_close;
-		for (file_set::iterator i = m_files.begin();
-			i != m_files.end();)
+		for (auto i = m_files.begin(); i != m_files.end();)
 		{
 			if (i->second.key == st)
 			{
@@ -314,10 +311,9 @@ namespace libtorrent
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 
-		for (file_set::const_iterator i = m_files.begin();
-			i != m_files.end(); ++i)
+		for (auto const& i : m_files)
 		{
-			if (i->second.key == st && !i->second.file_ptr.unique())
+			if (i.second.key == st && !i.second.file_ptr.unique())
 				return false;
 		}
 		return true;
@@ -340,4 +336,3 @@ namespace libtorrent
 	}
 
 }
-

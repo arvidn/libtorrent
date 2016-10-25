@@ -225,7 +225,7 @@ bool verify_pick(std::shared_ptr<piece_picker> p
 	// make sure there are no duplicated
 	std::set<piece_block> blocks;
 	std::copy(picked.begin(), picked.end()
-		, std::insert_iterator<std::set<piece_block> >(blocks, blocks.end()));
+		, std::insert_iterator<std::set<piece_block>>(blocks, blocks.end()));
 	std::cout << " verify: " << picked.size() << " " << blocks.size() << std::endl;
 	return picked.size() == blocks.size();
 }
@@ -1979,4 +1979,3 @@ TORRENT_TEST(download_filtered_piece)
 }
 
 //TODO: 2 test picking with partial pieces and other peers present so that both backup_pieces and backup_pieces2 are used
-

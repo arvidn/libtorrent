@@ -436,7 +436,7 @@ namespace libtorrent
 		async_call(&torrent::prioritize_pieces, pieces);
 	}
 
-	void torrent_handle::prioritize_pieces(std::vector<std::pair<int, int> > const& pieces) const
+	void torrent_handle::prioritize_pieces(std::vector<std::pair<int, int>> const& pieces) const
 	{
 		async_call(&torrent::prioritize_piece_list, pieces);
 	}

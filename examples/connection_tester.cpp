@@ -818,7 +818,7 @@ void generate_torrent(std::vector<char>& buf, int size, int num_files
 	t3.join();
 	t4.join();
 
-	std::back_insert_iterator<std::vector<char> > out(buf);
+	std::back_insert_iterator<std::vector<char>> out(buf);
 
 	bencode(out, t.generate());
 }
@@ -990,7 +990,7 @@ int main(int argc, char* argv[])
 
 
 			buf.clear();
-			std::back_insert_iterator<std::vector<char> > out(buf);
+			std::back_insert_iterator<std::vector<char>> out(buf);
 			bencode(out, t.generate());
 			FILE* f = std::fopen(torrent_name, "w+");
 			if (f == nullptr)

@@ -238,7 +238,7 @@ namespace
             list l = extract<list>(params["dht_nodes"]);
             int const n = int(boost::python::len(l));
             for(int i = 0; i < n; i++)
-                p.dht_nodes.push_back(extract<std::pair<std::string, int> >(l[i]));
+                p.dht_nodes.push_back(extract<std::pair<std::string, int>>(l[i]));
         }
         if (params.has_key("flags"))
             p.flags = extract<std::uint64_t>(params["flags"]);
@@ -854,4 +854,3 @@ void bind_session()
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-

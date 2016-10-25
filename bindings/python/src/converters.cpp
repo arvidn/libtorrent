@@ -72,7 +72,7 @@ struct tuple_to_pair
     tuple_to_pair()
     {
         converter::registry::push_back(
-            &convertible, &construct, type_id<std::pair<T1, T2> >()
+            &convertible, &construct, type_id<std::pair<T1, T2>>()
         );
     }
 
@@ -84,7 +84,7 @@ struct tuple_to_pair
     static void construct(PyObject* x, converter::rvalue_from_python_stage1_data* data)
     {
         void* storage = ((converter::rvalue_from_python_storage<
-            std::pair<T1, T2> >*)data)->storage.bytes;
+            std::pair<T1, T2>>*)data)->storage.bytes;
 
         object o(borrowed(x));
         std::pair<T1, T2> p;
@@ -115,7 +115,7 @@ struct list_to_vector
     list_to_vector()
     {
         converter::registry::push_back(
-            &convertible, &construct, type_id<std::vector<T> >()
+            &convertible, &construct, type_id<std::vector<T>>()
         );
     }
 
@@ -127,7 +127,7 @@ struct list_to_vector
     static void construct(PyObject* x, converter::rvalue_from_python_stage1_data* data)
     {
         void* storage = ((converter::rvalue_from_python_storage<
-            std::vector<T> >*)data)->storage.bytes;
+            std::vector<T>>*)data)->storage.bytes;
 
         std::vector<T> p;
         int const size = int(PyList_Size(x));
@@ -146,16 +146,16 @@ struct list_to_vector
 void bind_converters()
 {
     // C++ -> python conversions
-    to_python_converter<std::pair<int, int>, pair_to_tuple<int, int> >();
-    to_python_converter<std::pair<std::string, int>, pair_to_tuple<std::string, int> >();
-    to_python_converter<lt::tcp::endpoint, endpoint_to_tuple<lt::tcp::endpoint> >();
-    to_python_converter<lt::udp::endpoint, endpoint_to_tuple<lt::udp::endpoint> >();
-    to_python_converter<std::vector<std::string>, vector_to_list<std::string> >();
-    to_python_converter<std::vector<int>, vector_to_list<int> >();
-    to_python_converter<std::vector<std::uint8_t>, vector_to_list<std::uint8_t> >();
-    to_python_converter<std::vector<lt::tcp::endpoint>, vector_to_list<lt::tcp::endpoint> >();
-    to_python_converter<std::vector<lt::udp::endpoint>, vector_to_list<lt::udp::endpoint> >();
-    to_python_converter<std::vector<std::pair<std::string, int> >, vector_to_list<std::pair<std::string, int> > >();
+    to_python_converter<std::pair<int, int>, pair_to_tuple<int, int>>();
+    to_python_converter<std::pair<std::string, int>, pair_to_tuple<std::string, int>>();
+    to_python_converter<lt::tcp::endpoint, endpoint_to_tuple<lt::tcp::endpoint>>();
+    to_python_converter<lt::udp::endpoint, endpoint_to_tuple<lt::udp::endpoint>>();
+    to_python_converter<std::vector<std::string>, vector_to_list<std::string>>();
+    to_python_converter<std::vector<int>, vector_to_list<int>>();
+    to_python_converter<std::vector<std::uint8_t>, vector_to_list<std::uint8_t>>();
+    to_python_converter<std::vector<lt::tcp::endpoint>, vector_to_list<lt::tcp::endpoint>>();
+    to_python_converter<std::vector<lt::udp::endpoint>, vector_to_list<lt::udp::endpoint>>();
+    to_python_converter<std::vector<std::pair<std::string, int>>, vector_to_list<std::pair<std::string, int>>>();
 
     // python -> C++ conversions
     tuple_to_pair<int, int>();
@@ -167,6 +167,5 @@ void bind_converters()
     list_to_vector<std::string>();
     list_to_vector<lt::tcp::endpoint>();
     list_to_vector<lt::udp::endpoint>();
-    list_to_vector<std::pair<std::string, int> >();
+    list_to_vector<std::pair<std::string, int>>();
 }
-

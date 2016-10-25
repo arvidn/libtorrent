@@ -54,9 +54,8 @@ namespace {
 		ret["trackers"] = tracker_list;
 
 		list nodes_list;
-		for (std::vector<std::pair<std::string, int> >::const_iterator i = p.dht_nodes.begin()
-			, end(p.dht_nodes.end()); i != end; ++i)
-			tracker_list.append(boost::python::make_tuple(i->first, i->second));
+		for (auto const& i : p.dht_nodes)
+			tracker_list.append(boost::python::make_tuple(i.first, i.second));
 		ret["dht_nodes"] =  nodes_list;
 		ret["info_hash"] = p.info_hash;
 		ret["name"] = p.name;
@@ -83,4 +82,3 @@ void bind_magnet_uri()
 	def("make_magnet_uri", make_magnet_uri1);
 	def("parse_magnet_uri", parse_magnet_uri_wrap);
 }
-

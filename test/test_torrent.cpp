@@ -269,7 +269,7 @@ TORRENT_TEST(torrent)
 			t.set_hash(i, ph);
 
 		std::vector<char> tmp;
-		std::back_insert_iterator<std::vector<char> > out(tmp);
+		std::back_insert_iterator<std::vector<char>> out(tmp);
 		bencode(out, t.generate());
 		error_code ec;
 		auto info = std::make_shared<torrent_info>(&tmp[0], int(tmp.size()), std::ref(ec), 0);
@@ -340,7 +340,7 @@ TORRENT_TEST(duplicate_is_not_error)
 		t.set_hash(i, ph);
 
 	std::vector<char> tmp;
-	std::back_insert_iterator<std::vector<char> > out(tmp);
+	std::back_insert_iterator<std::vector<char>> out(tmp);
 	bencode(out, t.generate());
 	error_code ec;
 
@@ -411,4 +411,3 @@ TORRENT_TEST(rename_file)
 
 	TEST_EQUAL(info->files().file_path(0), "tmp1");
 }
-

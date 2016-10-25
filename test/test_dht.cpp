@@ -104,7 +104,7 @@ void node_push_back(void* userdata, libtorrent::dht::node_entry const& n)
 void nop(void* userdata, libtorrent::dht::node_entry const& n) {}
 void nop_node() {}
 
-std::list<std::pair<udp::endpoint, entry> > g_sent_packets;
+std::list<std::pair<udp::endpoint, entry>> g_sent_packets;
 
 struct mock_socket final : udp_socket_interface
 {
@@ -125,7 +125,7 @@ sha1_hash generate_next()
 	return ret;
 }
 
-std::list<std::pair<udp::endpoint, entry> >::iterator
+std::list<std::pair<udp::endpoint, entry>>::iterator
 find_packet(udp::endpoint ep)
 {
 	return std::find_if(g_sent_packets.begin(), g_sent_packets.end()
@@ -242,7 +242,7 @@ void send_dht_request(node& node, char const* msg, udp::endpoint const& ep
 
 	// If the request is supposed to get a response, by now the node should have
 	// invoked the send function and put the response in g_sent_packets
-	std::list<std::pair<udp::endpoint, entry> >::iterator i = find_packet(ep);
+	auto const i = find_packet(ep);
 	if (has_response)
 	{
 		if (i == g_sent_packets.end())
@@ -1977,21 +1977,20 @@ void test_get_peers(address(&rand_addr)())
 	send_dht_response(t.dht_node, response, next_node
 		, msg_args().token("11").port(1234).peers(peers[1]));
 
-	for (std::list<std::pair<udp::endpoint, entry> >::iterator i = g_sent_packets.begin()
-		, end(g_sent_packets.end()); i != end; ++i)
+	for (auto const& p : g_sent_packets)
 	{
 //		std::printf(" %s:%d: %s\n", i->first.address().to_string(ec).c_str()
 //			, i->first.port(), i->second.to_string().c_str());
-		TEST_EQUAL(i->second["q"].string(), "announce_peer");
+		TEST_EQUAL(p.second["q"].string(), "announce_peer");
 	}
 
 	g_sent_packets.clear();
 
 	for (int i = 0; i < 2; ++i)
 	{
-		for (std::set<tcp::endpoint>::iterator peer = peers[i].begin(); peer != peers[i].end(); ++peer)
+		for (auto const& peer : peers[i])
 		{
-			TEST_CHECK(std::find(g_got_peers.begin(), g_got_peers.end(), *peer) != g_got_peers.end());
+			TEST_CHECK(std::find(g_got_peers.begin(), g_got_peers.end(), peer) != g_got_peers.end());
 		}
 	}
 	g_got_peers.clear();
@@ -2212,7 +2211,7 @@ TORRENT_TEST(immutable_put)
 
 		for (int i = 0; i < 8; ++i)
 		{
-			std::list<std::pair<udp::endpoint, entry> >::iterator packet = find_packet(nodes[i].ep());
+			auto const packet = find_packet(nodes[i].ep());
 			TEST_CHECK(packet != g_sent_packets.end());
 			if (packet == g_sent_packets.end()) continue;
 
@@ -2241,7 +2240,7 @@ TORRENT_TEST(immutable_put)
 
 		for (int i = 0; i < 8; ++i)
 		{
-			std::list<std::pair<udp::endpoint, entry> >::iterator packet = find_packet(nodes[i].ep());
+			auto const packet = find_packet(nodes[i].ep());
 			TEST_CHECK(packet != g_sent_packets.end());
 			if (packet == g_sent_packets.end()) continue;
 
@@ -2313,7 +2312,7 @@ TORRENT_TEST(mutable_put)
 
 		for (int i = 0; i < 8; ++i)
 		{
-			std::list<std::pair<udp::endpoint, entry> >::iterator packet = find_packet(nodes[i].ep());
+			auto const packet = find_packet(nodes[i].ep());
 			TEST_CHECK(packet != g_sent_packets.end());
 			if (packet == g_sent_packets.end()) continue;
 
@@ -2342,7 +2341,7 @@ TORRENT_TEST(mutable_put)
 
 		for (int i = 0; i < 8; ++i)
 		{
-			std::list<std::pair<udp::endpoint, entry> >::iterator packet = find_packet(nodes[i].ep());
+			auto const packet = find_packet(nodes[i].ep());
 			TEST_CHECK(packet != g_sent_packets.end());
 			if (packet == g_sent_packets.end()) continue;
 
@@ -2428,7 +2427,7 @@ TORRENT_TEST(traversal_done)
 		// get_item_cb
 		if (i == num_test_nodes) i = 0;
 
-		std::list<std::pair<udp::endpoint, entry> >::iterator packet = find_packet(nodes[i].ep());
+		auto const packet = find_packet(nodes[i].ep());
 		TEST_CHECK(packet != g_sent_packets.end());
 		if (packet == g_sent_packets.end()) continue;
 

@@ -104,7 +104,7 @@ add_torrent_params create_torrent(file_storage& fs, bool const pad_files = false
 	}
 
 	std::vector<char> tmp;
-	std::back_insert_iterator<std::vector<char> > out(tmp);
+	std::back_insert_iterator<std::vector<char>> out(tmp);
 
 	entry tor = t.generate();
 
