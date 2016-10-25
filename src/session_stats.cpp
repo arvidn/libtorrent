@@ -230,10 +230,12 @@ namespace libtorrent
 		METRIC(ses, num_have_pieces)
 		METRIC(ses, num_total_pieces_added)
 
+#ifndef TORRENT_NO_DEPRECATE
 		// this counts the number of times a torrent has been
 		// evicted (only applies when `dynamic loading of torrent files`_
 		// is enabled).
 		METRIC(ses, torrent_evicted_counter)
+#endif
 
 		// the number of allowed unchoked peers
 		METRIC(ses, num_unchoke_slots)

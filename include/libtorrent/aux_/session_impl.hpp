@@ -221,9 +221,6 @@ namespace libtorrent
 
 			void start_session(settings_pack pack);
 
-			void set_load_function(user_load_function_t fun)
-			{ m_user_load_torrent = fun; }
-
 			void init_peer_class_filter(bool unlimited_local);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -295,6 +292,12 @@ namespace libtorrent
 			std::weak_ptr<torrent> find_torrent(sha1_hash const& info_hash) const override;
 #ifndef TORRENT_NO_DEPRECATE
 			//deprecated in 1.2
+
+			TORRENT_DEPRECATED
+			void set_load_function(user_load_function_t fun)
+			{ m_user_load_torrent = fun; }
+
+			TORRENT_DEPRECATED
 			std::weak_ptr<torrent> find_torrent(std::string const& uuid) const;
 #endif
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
@@ -308,6 +311,7 @@ namespace libtorrent
 				, std::string uuid) override;
 #ifndef TORRENT_NO_DEPRECATE
 			//deprecated in 1.2
+			TORRENT_DEPRECATED
 			void insert_uuid_torrent(std::string uuid, std::shared_ptr<torrent> const& t) override
 			{ m_uuids.insert(std::make_pair(uuid, t)); }
 #endif
@@ -368,7 +372,9 @@ namespace libtorrent
 				, void* userdata = nullptr);
 
 #ifndef TORRENT_NO_DEPRECATE
+			TORRENT_DEPRECATED
 			entry dht_state() const;
+			TORRENT_DEPRECATED
 			void start_dht_deprecated(entry const& startup_state);
 #endif
 			void on_dht_announce(error_code const& e);
@@ -465,23 +471,23 @@ namespace libtorrent
 			alert* wait_for_alert(time_duration max_wait);
 
 #ifndef TORRENT_NO_DEPRECATE
-			void pop_alerts();
-			alert const* pop_alert();
-			size_t set_alert_queue_size_limit(size_t queue_size_limit_);
-			int upload_rate_limit_depr() const;
-			int download_rate_limit_depr() const;
-			int local_upload_rate_limit() const;
-			int local_download_rate_limit() const;
+			TORRENT_DEPRECATED void pop_alerts();
+			TORRENT_DEPRECATED alert const* pop_alert();
+			TORRENT_DEPRECATED size_t set_alert_queue_size_limit(size_t queue_size_limit_);
+			TORRENT_DEPRECATED int upload_rate_limit_depr() const;
+			TORRENT_DEPRECATED int download_rate_limit_depr() const;
+			TORRENT_DEPRECATED int local_upload_rate_limit() const;
+			TORRENT_DEPRECATED int local_download_rate_limit() const;
 
-			void set_local_download_rate_limit(int bytes_per_second);
-			void set_local_upload_rate_limit(int bytes_per_second);
-			void set_download_rate_limit_depr(int bytes_per_second);
-			void set_upload_rate_limit_depr(int bytes_per_second);
-			void set_max_connections(int limit);
-			void set_max_uploads(int limit);
+			TORRENT_DEPRECATED void set_local_download_rate_limit(int bytes_per_second);
+			TORRENT_DEPRECATED void set_local_upload_rate_limit(int bytes_per_second);
+			TORRENT_DEPRECATED void set_download_rate_limit_depr(int bytes_per_second);
+			TORRENT_DEPRECATED void set_upload_rate_limit_depr(int bytes_per_second);
+			TORRENT_DEPRECATED void set_max_connections(int limit);
+			TORRENT_DEPRECATED void set_max_uploads(int limit);
 
-			int max_connections() const;
-			int max_uploads() const;
+			TORRENT_DEPRECATED int max_connections() const;
+			TORRENT_DEPRECATED int max_uploads() const;
 #endif
 
 			bandwidth_manager* get_bandwidth_manager(int channel) override;
@@ -1173,9 +1179,11 @@ namespace libtorrent
 			std::array<std::vector<std::shared_ptr<plugin>>, 4> m_ses_extensions;
 #endif
 
+#ifndef TORRENT_NO_DEPRECATE
 			// if this function is set, it indicates that torrents are allowed
 			// to be unloaded. If it isn't, torrents will never be unloaded
 			user_load_function_t m_user_load_torrent;
+#endif
 
 			// this is true whenever we have posted a deferred-disk job
 			// it means we don't need to post another one

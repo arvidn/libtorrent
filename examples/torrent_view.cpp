@@ -254,7 +254,7 @@ void torrent_view::print_tabs()
 	char str[400];
 	int pos = 0;
 	char const* filter_names[] = { "all", "downloading", "non-paused"
-		, "seeding", "queued", "stopped", "checking", "loaded"};
+		, "seeding", "queued", "stopped", "checking"};
 	for (int i = 0; i < int(sizeof(filter_names)/sizeof(filter_names[0])); ++i)
 	{
 		pos += std::snprintf(str+ pos, sizeof(str) - pos, "%s[%s]%s"

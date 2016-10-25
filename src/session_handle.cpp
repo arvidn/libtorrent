@@ -421,12 +421,12 @@ namespace libtorrent
 		return sync_call_ret<bool>(&session_impl::is_paused);
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	void session_handle::set_load_function(user_load_function_t fun)
 	{
 		async_call(&session_impl::set_load_function, fun);
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
 	session_status session_handle::status() const
 	{
 		return sync_call_ret<session_status>(&session_impl::status);

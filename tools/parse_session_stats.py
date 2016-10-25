@@ -490,7 +490,7 @@ reports = [
 		'disk.arc_mfu_ghost_size' \
 	], {'allow-negative': True}),
 
-	('torrent churn', 'num torrents', '', '', ['ses.num_loaded_torrents', 'ses.num_pinned_torrents', 'ses.torrent_evicted_counter']),
+	('torrent churn', 'num torrents', '', '', ['ses.num_loaded_torrents', 'ses.num_pinned_torrents']),
 	('pinned torrents', 'num torrents', '', '', ['ses.num_pinned_torrents']),
 	('loaded torrents', 'num torrents', '', '', ['ses.num_loaded_torrents', 'ses.num_pinned_torrents']),
 	('request latency', 'us', '', 'latency from receiving requests to sending response', ['disk.request_latency']),

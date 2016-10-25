@@ -564,43 +564,6 @@ aligned.
 .. _`BEP 17`: http://bittorrent.org/beps/bep_0017.html
 .. _`BEP 19`: http://bittorrent.org/beps/bep_0019.html
 
-dynamic loading of torrent files
-================================
-
-libtorrent has a feature that can unload idle torrents from memory. The purpose
-of this is to support being active on many more torrents than the RAM permits.
-This is useful for both embedded devices that have limited RAM and servers
-seeding tens of thousands of torrents.
-
-The most significant parts of loaded torrents that use RAM are the piece
-hashes (20 bytes per piece) and the file list. The entire info-dictionary
-of the .torrent file is kept in RAM.
-
-In order to activate the dynamic loading of torrent files, set the load
-function on the session. See set_load_function().
-
-When a load function is set on the session, the dynamic load/unload
-feature is enabled. Torrents are kept in an LRU. Every time an operation
-is performed, on a torrent or from a peer, that requires the metadata of
-the torrent to be loaded, the torrent is bumped up in the LRU. When a torrent
-is paused or queued, it is demoted to the least recently used torrent in
-the LRU, since it's a good candidate for eviction.
-
-To configure how many torrents are allowed to be loaded at the same time,
-set settings_pack::active_loaded_limit on the session.
-
-Torrents can be exempt from being unloaded by being *pinned*. Pinned torrents
-still count against the limit, but are never considered for eviction.
-You can either pin a torrent when adding it, in ``add_torrent_params``
-(see async_add_torrent() and add_torrent()), or after ading it with the
-set_pinned() function on torrent_handle.
-
-Torrents that start out without metadata (e.g. magnet links or http downloads)
-are automatically pinned. This is important in order to give the client a
-chance to save the metadata to disk once it's received (see metadata_received_alert).
-
-Once the metadata is saved to disk, it might make sense to unpin the torrent.
-
 piece picker
 ============
 

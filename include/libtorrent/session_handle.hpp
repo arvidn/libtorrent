@@ -260,6 +260,7 @@ namespace libtorrent
 		void resume();
 		bool is_paused() const;
 
+#ifndef TORRENT_NO_DEPRECATE
 		// This function enables dynamic-loading-of-torrent-files_. When a
 		// torrent is unloaded but needs to be available in memory, this function
 		// is called **from within the libtorrent network thread**. From within
@@ -280,9 +281,9 @@ namespace libtorrent
 		// The signature of the function to pass in is::
 		//
 		// 	void fun(sha1_hash const& info_hash, std::vector<char>& buf, error_code& ec);
+		TORRENT_DEPRECATED
 		void set_load_function(user_load_function_t fun);
 
-#ifndef TORRENT_NO_DEPRECATE
 		//  deprecated in libtorrent 1.1, use performance_counters instead
 		// returns session wide-statistics and status. For more information, see
 		// the ``session_status`` struct.
