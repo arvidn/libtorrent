@@ -2337,8 +2337,8 @@ namespace aux {
 			// use the generic m_ssl_ctx context. However, since it has
 			// the servername callback set on it, we will switch away from
 			// this context into a specific torrent once we start handshaking
-			c->instantiate<ssl_stream<tcp::socket> >(m_io_service, &m_ssl_ctx);
-			str = &c->get<ssl_stream<tcp::socket> >()->next_layer();
+			c->instantiate<ssl_stream<tcp::socket>>(m_io_service, &m_ssl_ctx);
+			str = &c->get<ssl_stream<tcp::socket>>()->next_layer();
 		}
 		else
 #endif
@@ -2952,8 +2952,7 @@ namespace aux {
 		// remove undead peers that only have this list as their reference keeping them alive
 		if (!m_undead_peers.empty())
 		{
-			std::vector<std::shared_ptr<peer_connection> >::iterator remove_it
-				= std::remove_if(m_undead_peers.begin(), m_undead_peers.end()
+			auto const remove_it = std::remove_if(m_undead_peers.begin(), m_undead_peers.end()
 				, std::bind(&std::shared_ptr<peer_connection>::unique, _1));
 			m_undead_peers.erase(remove_it, m_undead_peers.end());
 			if (m_undead_peers.empty())
@@ -3296,10 +3295,9 @@ namespace aux {
 				{
 					// if we haven't reached the global max. see if any torrent
 					// has reached its local limit
-					for (torrent_map::iterator i = m_torrents.begin()
-						, end(m_torrents.end()); i != end; ++i)
+					for (auto const& pt : m_torrents)
 					{
-						std::shared_ptr<torrent> t = i->second;
+						std::shared_ptr<torrent> t = pt.second;
 
 						// ths disconnect logic is disabled for torrents with
 						// too low connection limit
@@ -3308,11 +3306,10 @@ namespace aux {
 							|| t->max_connections() < 6)
 							continue;
 
-						int peers_to_disconnect = (std::min)((std::max)(int(t->num_peers()
-							* m_settings.get_int(settings_pack::peer_turnover) / 100), 1)
+						int peers_to_disconnect = (std::min)((std::max)(t->num_peers()
+							* m_settings.get_int(settings_pack::peer_turnover) / 100, 1)
 							, t->num_connect_candidates());
-						t->disconnect_peers(peers_to_disconnect
-							, error_code(errors::optimistic_disconnect));
+						t->disconnect_peers(peers_to_disconnect, errors::optimistic_disconnect);
 					}
 				}
 			}
@@ -4312,22 +4309,20 @@ namespace aux {
 	{
 		TORRENT_ASSERT(is_single_thread());
 
-		std::map<std::string, std::shared_ptr<torrent> >::const_iterator i
-			= m_uuids.find(uuid);
+		auto const i = m_uuids.find(uuid);
 		if (i != m_uuids.end()) return i->second;
 		return std::weak_ptr<torrent>();
 	}
 #endif
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
-	std::vector<std::shared_ptr<torrent> > session_impl::find_collection(
+	std::vector<std::shared_ptr<torrent>> session_impl::find_collection(
 		std::string const& collection) const
 	{
-		std::vector<std::shared_ptr<torrent> > ret;
-		for (session_impl::torrent_map::const_iterator i = m_torrents.begin()
-			, end(m_torrents.end()); i != end; ++i)
+		std::vector<std::shared_ptr<torrent>> ret;
+		for (auto const& tp : m_torrents)
 		{
-			std::shared_ptr<torrent> t = i->second;
+			std::shared_ptr<torrent> t = tp.second;
 			if (!t) continue;
 			std::vector<std::string> const& c = t->torrent_file().collections();
 			if (std::find(c.begin(), c.end(), collection) == c.end()) continue;
@@ -4729,11 +4724,8 @@ namespace aux {
 		// add params.dht_nodes to the DHT, if enabled
 		if (!params.dht_nodes.empty())
 		{
-			for (std::vector<std::pair<std::string, int> >::const_iterator i = params.dht_nodes.begin()
-				, end(params.dht_nodes.end()); i != end; ++i)
-			{
-				add_dht_node_name(*i);
-			}
+			for (auto const& n : params.dht_nodes)
+				add_dht_node_name(n);
 		}
 #endif
 
@@ -4936,14 +4928,12 @@ namespace aux {
 		// remove from uuid list
 		if (!tptr->uuid().empty())
 		{
-			std::map<std::string, std::shared_ptr<torrent> >::iterator j
-				= m_uuids.find(tptr->uuid());
+			auto const j = m_uuids.find(tptr->uuid());
 			if (j != m_uuids.end()) m_uuids.erase(j);
 		}
 #endif
 
-		torrent_map::iterator i =
-			m_torrents.find(tptr->torrent_file().info_hash());
+		auto i = m_torrents.find(tptr->torrent_file().info_hash());
 
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 1.2
@@ -6746,10 +6736,8 @@ namespace aux {
 			}
 		}
 
-		for (std::vector<std::shared_ptr<peer_connection> >::const_iterator i
-			= m_undead_peers.begin(); i != m_undead_peers.end(); ++i)
+		for (auto const& p : m_undead_peers)
 		{
-			peer_connection* p = i->get();
 			if (p->ignore_unchoke_slots())
 			{
 				if (!p->is_choked()) ++unchokes_all;

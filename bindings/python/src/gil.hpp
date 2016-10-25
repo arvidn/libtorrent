@@ -98,7 +98,7 @@ struct allow_threading
 };
 
 template <class F>
-struct visitor : boost::python::def_visitor<visitor<F> >
+struct visitor : boost::python::def_visitor<visitor<F>>
 {
     visitor(F fn)
       : fn(fn)
@@ -145,4 +145,3 @@ visitor<F> allow_threads(F fn)
 //}} // namespace libtorrent::python
 
 #endif // GIL_070107_HPP
-

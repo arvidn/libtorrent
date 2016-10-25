@@ -143,16 +143,15 @@ struct mock_torrent
 
 	peer_list* m_p;
 	torrent_state* m_state;
-	std::vector<std::shared_ptr<mock_peer_connection> > m_connections;
+	std::vector<std::shared_ptr<mock_peer_connection>> m_connections;
 };
 
 void mock_peer_connection::disconnect(error_code const& ec
 	, operation_t op, int error)
 {
 	m_torrent.m_p->connection_closed(*this, 0, m_torrent.m_state);
-	std::vector<std::shared_ptr<mock_peer_connection> >::iterator i
-		= std::find(m_torrent.m_connections.begin(), m_torrent.m_connections.end()
-			, std::static_pointer_cast<mock_peer_connection>(shared_from_this()));
+	auto const i = std::find(m_torrent.m_connections.begin(), m_torrent.m_connections.end()
+		, std::static_pointer_cast<mock_peer_connection>(shared_from_this()));
 	if (i != m_torrent.m_connections.end()) m_torrent.m_connections.erase(i);
 
 	m_tp = nullptr;
@@ -161,8 +160,7 @@ void mock_peer_connection::disconnect(error_code const& ec
 
 bool has_peer(peer_list const& p, tcp::endpoint const& ep)
 {
-	std::pair<peer_list::const_iterator, peer_list::const_iterator> its
-		= p.find_peers(ep.address());
+	auto const its = p.find_peers(ep.address());
 	return its.first != its.second;
 }
 
@@ -939,4 +937,3 @@ TORRENT_TEST(new_peer_size_limit)
 // TODO: test connect_to_peer() failing
 // TODO: test connection_closed
 // TODO: connect candidates recalculation when incrementing failcount
-

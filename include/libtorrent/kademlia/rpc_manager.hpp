@@ -120,7 +120,9 @@ private:
 	std::unordered_multimap<int, observer_ptr> m_transactions;
 
 	udp_socket_interface* m_sock;
+#ifndef TORRENT_DISABLE_LOGGING
 	dht_logger* m_log;
+#endif
 	dht_settings const& m_settings;
 	routing_table& m_table;
 	node_id m_our_id;

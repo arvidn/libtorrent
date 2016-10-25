@@ -64,7 +64,7 @@ TORRENT_TEST(mutable_torrents)
 	t.add_similar_torrent(sha1_hash("babababababababababa"));
 
 	std::vector<char> tmp;
-	std::back_insert_iterator<std::vector<char> > out(tmp);
+	std::back_insert_iterator<std::vector<char>> out(tmp);
 
 	entry tor = t.generate();
 	bencode(out, tor);
@@ -798,7 +798,7 @@ void test_resolve_duplicates(int test_case)
 		t.set_hash(i, ph);
 
 	std::vector<char> tmp;
-	std::back_insert_iterator<std::vector<char> > out(tmp);
+	std::back_insert_iterator<std::vector<char>> out(tmp);
 
 	entry tor = t.generate();
 	bencode(out, tor);

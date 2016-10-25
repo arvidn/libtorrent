@@ -84,7 +84,9 @@ namespace libtorrent { namespace dht
 								, total_milliseconds((now - match->limit) + seconds(10)) / 1000.0
 								, match->count);
 						}
-#endif
+#else
+						TORRENT_UNUSED(logger);
+#endif // TORRENT_DISABLE_LOGGING
 						// we've received too many messages in less than 10 seconds
 						// from this node. Ignore it until it's silent for 5 minutes
 						match->limit = now + seconds(m_block_timeout);

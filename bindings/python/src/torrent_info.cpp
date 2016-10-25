@@ -43,12 +43,8 @@ namespace
     {
         list result;
 
-        typedef std::vector<std::pair<std::string, int> > list_type;
-
-        for (list_type::const_iterator i = ti.nodes().begin(); i != ti.nodes().end(); ++i)
-        {
-            result.append(boost::python::make_tuple(i->first, i->second));
-        }
+        for (auto const& i : ti.nodes())
+            result.append(boost::python::make_tuple(i.first, i.second));
 
         return result;
     }
@@ -212,7 +208,7 @@ void bind_torrent_info()
         .def_readwrite("size", &file_slice::size)
         ;
 
-    class_<torrent_info, std::shared_ptr<torrent_info> >("torrent_info", no_init)
+    class_<torrent_info, std::shared_ptr<torrent_info>>("torrent_info", no_init)
         .def(init<sha1_hash const&, int>((arg("info_hash"), arg("flags") = 0)))
         .def("__init__", make_constructor(&bencoded_constructor0))
         .def("__init__", make_constructor(&bencoded_constructor1))
@@ -319,4 +315,3 @@ void bind_torrent_info()
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
-

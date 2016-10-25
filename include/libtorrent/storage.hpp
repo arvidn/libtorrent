@@ -87,7 +87,7 @@ POSSIBILITY OF SUCH DAMAGE.
 //		virtual bool has_any_file() { return false; }
 //		virtual int read(char* buf, int piece, int offset, int size)
 //		{
-//			std::map<int, std::vector<char> >::const_iterator i = m_file_data.find(piece);
+//			std::map<int, std::vector<char>>::const_iterator i = m_file_data.find(piece);
 //			if (i == m_file_data.end()) return 0;
 //			int available = i->second.size() - offset;
 //			if (available <= 0) return 0;
@@ -129,7 +129,7 @@ POSSIBILITY OF SUCH DAMAGE.
 //		virtual bool release_files() { return false; }
 //		virtual bool delete_files() { return false; }
 //
-//		std::map<int, std::vector<char> > m_file_data;
+//		std::map<int, std::vector<char>> m_file_data;
 //		file_storage m_files;
 //	};
 //

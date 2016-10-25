@@ -61,9 +61,9 @@ bool compare(ip_range<Addr> const& lhs
 }
 
 template <class T>
-void test_rules_invariant(std::vector<ip_range<T> > const& r, ip_filter const& f)
+void test_rules_invariant(std::vector<ip_range<T>> const& r, ip_filter const& f)
 {
-	typedef typename std::vector<ip_range<T> >::const_iterator iterator;
+	typedef typename std::vector<ip_range<T>>::const_iterator iterator;
 	TEST_CHECK(!r.empty());
 	if (r.empty()) return;
 
@@ -104,7 +104,7 @@ TORRENT_TEST(ip_filter)
 {
 	using namespace libtorrent;
 
-	std::vector<ip_range<address_v4> > range;
+	std::vector<ip_range<address_v4>> range;
 	error_code ec;
 
 	// **** test joining of ranges at the end ****
@@ -268,7 +268,7 @@ TORRENT_TEST(ip_filter)
 		f.add_rule(addr("2::1"), addr("3::"), ip_filter::blocked);
 		f.add_rule(addr("1::"), addr("2::"), ip_filter::blocked);
 
-		std::vector<ip_range<address_v6> > range;
+		std::vector<ip_range<address_v6>> range;
 		range = std::get<1>(f.export_filter());
 		test_rules_invariant(range, f);
 
@@ -297,4 +297,3 @@ TORRENT_TEST(ip_filter)
 	TEST_CHECK(pf.access(6881) == 0);
 	TEST_CHECK(pf.access(65535) == 0);
 }
-

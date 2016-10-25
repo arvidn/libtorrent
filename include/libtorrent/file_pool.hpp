@@ -35,13 +35,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <map>
 #include <mutex>
+#include <vector>
+
 #include "libtorrent/file.hpp"
-#include "libtorrent/time.hpp"
-#include "libtorrent/file_storage.hpp"
 #include "libtorrent/aux_/time.hpp"
 
 namespace libtorrent
 {
+	class file_storage;
+
 	struct pool_file_status
 	{
 		// the index of the file this entry refers to into the ``file_storage``
@@ -136,11 +138,9 @@ namespace libtorrent
 
 		// maps storage pointer, file index pairs to the
 		// lru entry for the file
-		using file_set = std::map<std::pair<void*, int>, lru_file_entry>;
-
-		file_set m_files;
+		std::map<std::pair<void*, int>, lru_file_entry> m_files;
 #if TORRENT_USE_ASSERTS
-		std::vector<std::pair<std::string, void const*> > m_deleted_storages;
+		std::vector<std::pair<std::string, void const*>> m_deleted_storages;
 #endif
 		mutable std::mutex m_mutex;
 	};

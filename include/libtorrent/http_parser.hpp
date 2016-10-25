@@ -136,7 +136,7 @@ namespace libtorrent
 		span<char const> m_recv_buffer;
 		// contains offsets of the first and one-past-end of
 		// each chunked range in the response
-		std::vector<std::pair<std::int64_t, std::int64_t> > m_chunked_ranges;
+		std::vector<std::pair<std::int64_t, std::int64_t>> m_chunked_ranges;
 
 		// while reading a chunk, this is the offset where the
 		// current chunk will end (it refers to the first character
@@ -167,4 +167,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_HTTP_PARSER_HPP_INCLUDED
-

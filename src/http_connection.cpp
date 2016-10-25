@@ -565,8 +565,8 @@ void http_connection::connect()
 #ifdef TORRENT_USE_OPENSSL
 			if (m_ssl)
 			{
-				TORRENT_ASSERT(m_sock.get<ssl_stream<socks5_stream> >());
-				m_sock.get<ssl_stream<socks5_stream> >()->next_layer().set_dst_name(m_hostname);
+				TORRENT_ASSERT(m_sock.get<ssl_stream<socks5_stream>>());
+				m_sock.get<ssl_stream<socks5_stream>>()->next_layer().set_dst_name(m_hostname);
 			}
 			else
 #endif

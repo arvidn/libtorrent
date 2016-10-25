@@ -159,20 +159,12 @@ int main(int argc, char* argv[])
 	// print info about torrent
 	std::printf("\n\n----- torrent file info -----\n\n"
 		"nodes:\n");
+	for (auto const& i : t.nodes())
+		std::printf("%s: %d\n", i.first.c_str(), i.second);
 
-	typedef std::vector<std::pair<std::string, int> > node_vec;
-	node_vec const& nodes = t.nodes();
-	for (node_vec::const_iterator i = nodes.begin(), end(nodes.end());
-		i != end; ++i)
-	{
-		std::printf("%s: %d\n", i->first.c_str(), i->second);
-	}
 	puts("trackers:\n");
-	for (std::vector<announce_entry>::const_iterator i = t.trackers().begin();
-		i != t.trackers().end(); ++i)
-	{
-		std::printf("%2d: %s\n", i->tier, i->url.c_str());
-	}
+	for (auto const& i : t.trackers())
+		std::printf("%2d: %s\n", i.tier, i.url.c_str());
 
 	std::stringstream ih;
 	ih << t.info_hash();
@@ -226,4 +218,3 @@ int main(int argc, char* argv[])
 
 	return 0;
 }
-

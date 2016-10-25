@@ -55,7 +55,7 @@ namespace libtorrent
 	template <typename T>
 	struct tailqueue_iterator
 	{
-		template <typename U> friend struct tailqueue;
+		template <typename U, typename Cond> friend struct tailqueue;
 
 		T* get() const { return m_current; }
 		void next() { m_current = m_current->next; }
@@ -67,8 +67,8 @@ namespace libtorrent
 		T* m_current;
 	};
 
-	template <typename T>
-//#error boost::enable_if< is_base<T, tailqueue_node<T> > >
+	template <typename T, typename Cond = typename std::enable_if<
+		std::is_base_of<tailqueue_node<T>, T>::value>::type>
 	struct tailqueue
 	{
 		tailqueue(): m_first(nullptr), m_last(nullptr), m_size(0) {}
@@ -185,4 +185,3 @@ namespace libtorrent
 }
 
 #endif // TAILQUEUE_HPP
-

@@ -818,7 +818,7 @@ namespace libtorrent
 	torrent_info::torrent_info(entry const& torrent_file)
 	{
 		std::vector<char> tmp;
-		std::back_insert_iterator<std::vector<char> > out(tmp);
+		std::back_insert_iterator<std::vector<char>> out(tmp);
 		bencode(out, torrent_file);
 
 		bdecode_node e;
