@@ -59,6 +59,14 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
 	// Returns an optional fingerprint if any can be identified from the peer
 	// id. This can be used to automate the identification of clients. It will
 	// not be able to identify peers with non- standard encodings. Only Azureus
@@ -67,7 +75,14 @@ namespace libtorrent
 	boost::optional<fingerprint>
 		client_fingerprint(peer_id const& p);
 
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
 #endif
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
+#endif // TORRENT_NO_DEPRECATE
 
 }
 
