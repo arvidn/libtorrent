@@ -2088,6 +2088,9 @@ namespace libtorrent
 
 		// save a local copy of offset to avoid concurrent access
 		int offset = ph->offset;
+#if TORRENT_USE_ASSERTS
+		int old_offset = offset;
+#endif
 
 		l.unlock();
 
@@ -2105,6 +2108,7 @@ namespace libtorrent
 
 		l.lock();
 
+		TORRENT_ASSERT(old_offset == ph->offset);
 		ph->offset = offset;
 
 		TORRENT_PIECE_ASSERT(pe->hashing, pe);
@@ -2328,6 +2332,9 @@ namespace libtorrent
 
 		// save a local copy of offset to avoid concurrent access
 		int offset = ph->offset;
+#if TORRENT_USE_ASSERTS
+		int old_offset = offset;
+#endif
 
 		l.unlock();
 
@@ -2421,6 +2428,7 @@ namespace libtorrent
 
 		l.lock();
 
+		TORRENT_ASSERT(old_offset == ph->offset);
 		ph->offset = offset;
 
 		// decrement the refcounts of the blocks we just hashed
