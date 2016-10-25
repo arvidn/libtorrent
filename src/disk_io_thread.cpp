@@ -2086,6 +2086,9 @@ namespace libtorrent
 		DLOG("kick_hasher: %d - %d (piece: %d offset: %d)\n"
 			, cursor, end, int(pe->piece), ph->offset);
 
+		// save a local copy of offset to avoid concurrent access
+		int offset = ph->offset;
+
 		l.unlock();
 
 		time_point start_time = clock_type::now();
@@ -2093,14 +2096,16 @@ namespace libtorrent
 		for (int i = cursor; i < end; ++i)
 		{
 			cached_block_entry& bl = pe->blocks[i];
-			int const size = (std::min)(block_size, piece_size - ph->offset);
+			int const size = (std::min)(block_size, piece_size - offset);
 			ph->h.update(bl.buf, size);
-			ph->offset += size;
+			offset += size;
 		}
 
 		std::uint64_t hash_time = total_microseconds(clock_type::now() - start_time);
 
 		l.lock();
+
+		ph->offset = offset;
 
 		TORRENT_PIECE_ASSERT(pe->hashing, pe);
 		TORRENT_PIECE_ASSERT(pe->hash, pe);
@@ -2321,22 +2326,25 @@ namespace libtorrent
 		// to keep the cache footprint low, try to evict a volatile piece
 		m_disk_cache.try_evict_one_volatile();
 
+		// save a local copy of offset to avoid concurrent access
+		int offset = ph->offset;
+
 		l.unlock();
 
 		int ret = 0;
 		int next_locked_block = 0;
-		for (int i = ph->offset / block_size; i < blocks_in_piece; ++i)
+		for (int i = offset / block_size; i < blocks_in_piece; ++i)
 		{
 			file::iovec_t iov;
-			iov.iov_len = (std::min)(block_size, piece_size - ph->offset);
+			iov.iov_len = (std::min)(block_size, piece_size - offset);
 
 			if (next_locked_block < num_locked_blocks
 				&& locked_blocks[next_locked_block] == i)
 			{
 				++next_locked_block;
 				TORRENT_PIECE_ASSERT(pe->blocks[i].buf, pe);
-				TORRENT_PIECE_ASSERT(ph->offset == i * block_size, pe);
-				ph->offset += int(iov.iov_len);
+				TORRENT_PIECE_ASSERT(offset == i * block_size, pe);
+				offset += int(iov.iov_len);
 				ph->h.update({pe->blocks[i].buf, iov.iov_len});
 			}
 			else
@@ -2366,9 +2374,9 @@ namespace libtorrent
 
 				time_point start_time = clock_type::now();
 
-				TORRENT_PIECE_ASSERT(ph->offset == i * block_size, pe);
+				TORRENT_PIECE_ASSERT(offset == i * block_size, pe);
 				ret = j->storage->get_storage_impl()->readv(iov, j->piece
-					, ph->offset, file_flags, j->error);
+					, offset, file_flags, j->error);
 
 				if (ret < 0)
 				{
@@ -2401,8 +2409,8 @@ namespace libtorrent
 					m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
 				}
 
-				TORRENT_PIECE_ASSERT(ph->offset == i * block_size, pe);
-				ph->offset += int(iov.iov_len);
+				TORRENT_PIECE_ASSERT(offset == i * block_size, pe);
+				offset += int(iov.iov_len);
 				ph->h.update({static_cast<char const*>(iov.iov_base), iov.iov_len});
 
 				l.lock();
@@ -2412,6 +2420,8 @@ namespace libtorrent
 		}
 
 		l.lock();
+
+		ph->offset = offset;
 
 		// decrement the refcounts of the blocks we just hashed
 		for (int i = 0; i < num_locked_blocks; ++i)
