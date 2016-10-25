@@ -2335,7 +2335,7 @@ namespace libtorrent
 				TORRENT_PIECE_ASSERT(pe->blocks[i].buf, pe);
 				TORRENT_PIECE_ASSERT(ph->offset == i * block_size, pe);
 				ph->offset += int(iov.iov_len);
-				ph->h.update(pe->blocks[i].buf, int(iov.iov_len));
+				ph->h.update({pe->blocks[i].buf, iov.iov_len});
 			}
 			else
 			{
@@ -2366,7 +2366,7 @@ namespace libtorrent
 
 				TORRENT_PIECE_ASSERT(ph->offset == i * block_size, pe);
 				ret = j->storage->get_storage_impl()->readv(iov, j->piece
-						, ph->offset, file_flags, j->error);
+					, ph->offset, file_flags, j->error);
 
 				if (ret < 0)
 				{
@@ -2401,7 +2401,7 @@ namespace libtorrent
 
 				TORRENT_PIECE_ASSERT(ph->offset == i * block_size, pe);
 				ph->offset += int(iov.iov_len);
-				ph->h.update(static_cast<char const*>(iov.iov_base), int(iov.iov_len));
+				ph->h.update({static_cast<char const*>(iov.iov_base), iov.iov_len});
 
 				l.lock();
 				m_disk_cache.insert_blocks(pe, i, &iov, 1, j);
@@ -3322,13 +3322,6 @@ namespace libtorrent
 	{
 		char* ret = m_disk_cache.allocate_buffer(exceeded, o, category);
 		return disk_buffer_holder(*this, ret);
-	}
-
-	void disk_io_thread::add_completed_job(disk_io_job* j)
-	{
-		jobqueue_t tmp;
-		tmp.push_back(j);
-		add_completed_jobs(tmp);
 	}
 
 	void disk_io_thread::add_completed_jobs(jobqueue_t& jobs)

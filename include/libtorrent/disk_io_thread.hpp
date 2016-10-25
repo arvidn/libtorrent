@@ -463,7 +463,6 @@ namespace libtorrent
 		static bool wait_for_job(job_queue& jobq, disk_io_thread_pool& threads
 			, std::unique_lock<std::mutex>& l);
 
-		void add_completed_job(disk_io_job* j);
 		void add_completed_jobs(jobqueue_t& jobs);
 		void add_completed_jobs_impl(jobqueue_t& jobs
 			, jobqueue_t& completed_jobs);

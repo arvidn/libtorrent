@@ -932,7 +932,7 @@ namespace libtorrent
 			choking_algorithm,
 			seed_choking_algorithm,
 
-			// ``cache_size`` is the disk write and read  cache. It is specified
+			// ``cache_size`` is the disk write and read cache. It is specified
 			// in units of 16 KiB blocks. Buffers that are part of a peer's send
 			// or receive buffer also count against this limit. Send and receive
 			// buffers will never be denied to be allocated, but they will cause

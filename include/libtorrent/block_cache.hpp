@@ -33,10 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_BLOCK_CACHE
 #define TORRENT_BLOCK_CACHE
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/shared_array.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include <cstdint>
 #include <list>
 #include <vector>
@@ -47,7 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/sliding_average.hpp"
-#include "libtorrent/time.hpp"
 #include "libtorrent/tailqueue.hpp"
 #include "libtorrent/linked_list.hpp"
 #include "libtorrent/disk_buffer_pool.hpp"
