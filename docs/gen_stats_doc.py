@@ -85,6 +85,14 @@ for l in f:
 
 	l = l.strip()
 
+	if mode == 'ignore':
+		if '#endif' in l: mode = ''
+		continue
+
+	if 'TORRENT_NO_DEPRECATE' in l:
+		mode = 'ignore'
+		continue
+
 	if description_line == True:
 		if len(names) > 0:
 			render_section(names, description, types)

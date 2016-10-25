@@ -118,8 +118,6 @@ TORRENT_TEST(session_stats)
 	std::vector<stats_metric> stats = session_stats_metrics();
 	int const downloading_idx = find_metric_idx("ses.num_downloading_torrents");
 	TEST_CHECK(downloading_idx >= 0);
-	int const evicted_idx = find_metric_idx("ses.torrent_evicted_counter");
-	TEST_CHECK(evicted_idx >= 0);
 	int const incoming_extended_idx = find_metric_idx("ses.num_incoming_extended");
 	TEST_CHECK(incoming_extended_idx >= 0);
 
@@ -136,7 +134,6 @@ TORRENT_TEST(session_stats)
 
 			// there's one downloading torrent
 			TEST_EQUAL(ss->values[downloading_idx], 1);
-			TEST_EQUAL(ss->values[evicted_idx], 0);
 			TEST_EQUAL(ss->values[incoming_extended_idx], 1);
 		}
 		// terminate
