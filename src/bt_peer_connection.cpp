@@ -3405,8 +3405,7 @@ namespace libtorrent
 			}
 
 			m_client_version = identify_client(pid);
-			boost::optional<fingerprint> f = client_fingerprint(pid);
-			if (f && std::equal(f->name, f->name + 2, "BC"))
+			if (pid[0] == '-' && pid[1] == 'B' && pid[2] == 'C' && pid[7] == '-')
 			{
 				// if this is a bitcomet client, lower the request queue size limit
 				if (max_out_request_queue() > 50) max_out_request_queue(50);
