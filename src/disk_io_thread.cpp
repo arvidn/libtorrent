@@ -334,6 +334,8 @@ namespace libtorrent
 			end = int(p->blocks_in_piece);
 		}
 
+		TORRENT_ASSERT(end <= p->blocks_in_piece);
+
 		// count number of blocks that would be flushed
 		int num_blocks = 0;
 		for (int i = end-1; i >= 0; --i)
