@@ -203,11 +203,11 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 #ifdef __GNUC__
 #pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated"
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 #ifdef __clang__
 #pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated"
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #endif
 		TORRENT_DEPRECATED
 		session(fingerprint const& print
