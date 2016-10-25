@@ -133,8 +133,6 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 			torrent_evicted_counter,
-#else
-			deprecated1,
 #endif
 
 			// bittorrent message counters
