@@ -616,7 +616,7 @@ namespace libtorrent
 		v.resize(std::size_t(s));
 		if (s == 0) return 0;
 		file::iovec_t b = {&v[0], size_t(s) };
-		std::int64_t read = f.readv(0, &b, 1, ec);
+		std::int64_t read = f.readv(0, b, ec);
 		if (read != s) return -3;
 		if (ec) return -3;
 		return 0;

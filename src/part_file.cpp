@@ -95,7 +95,7 @@ namespace libtorrent
 			// parse header
 			std::unique_ptr<std::uint32_t[]> header(new std::uint32_t[m_header_size]);
 			file::iovec_t b = {header.get(), size_t(m_header_size) };
-			int n = m_file.readv(0, &b, 1, ec);
+			int n = m_file.readv(0, b, ec);
 			if (ec) return;
 
 			// we don't have a full header. consider the file empty
@@ -170,7 +170,7 @@ namespace libtorrent
 		return slot;
 	}
 
-	int part_file::writev(file::iovec_t const* bufs, int num_bufs, int piece, int offset, error_code& ec)
+	int part_file::writev(span<file::iovec_t const> bufs, int piece, int offset, error_code& ec)
 	{
 		TORRENT_ASSERT(offset >= 0);
 		std::unique_lock<std::mutex> l(m_mutex);
@@ -188,10 +188,10 @@ namespace libtorrent
 		l.unlock();
 
 		std::int64_t slot_offset = std::int64_t(m_header_size) + std::int64_t(slot) * m_piece_size;
-		return m_file.writev(slot_offset + offset, bufs, num_bufs, ec);
+		return m_file.writev(slot_offset + offset, bufs, ec);
 	}
 
-	int part_file::readv(file::iovec_t const* bufs, int num_bufs
+	int part_file::readv(span<file::iovec_t const> bufs
 		, int piece, int offset, error_code& ec)
 	{
 		TORRENT_ASSERT(offset >= 0);
@@ -213,7 +213,7 @@ namespace libtorrent
 		l.unlock();
 
 		std::int64_t slot_offset = std::int64_t(m_header_size) + std::int64_t(slot) * m_piece_size;
-		return m_file.readv(slot_offset + offset, bufs, num_bufs, ec);
+		return m_file.readv(slot_offset + offset, bufs, ec);
 	}
 
 	void part_file::open_file(int mode, error_code& ec)
@@ -326,11 +326,11 @@ namespace libtorrent
 				l.unlock();
 
 				file::iovec_t v = { buf.get(), size_t(block_to_copy) };
-				v.iov_len = m_file.readv(slot_offset + piece_offset, &v, 1, ec);
+				v.iov_len = m_file.readv(slot_offset + piece_offset, v, ec);
 				TORRENT_ASSERT(!ec);
 				if (ec || v.iov_len == 0) return;
 
-				std::int64_t ret = f.writev(file_offset, &v, 1, ec);
+				std::int64_t ret = f.writev(file_offset, v, ec);
 				TORRENT_ASSERT(ec || ret == v.iov_len);
 				if (ec || ret != v.iov_len) return;
 
@@ -412,7 +412,7 @@ namespace libtorrent
 		std::memset(ptr, 0, m_header_size - (ptr - reinterpret_cast<char*>(header.get())));
 
 		file::iovec_t b = {header.get(), size_t(m_header_size) };
-		m_file.writev(0, &b, 1, ec);
+		m_file.writev(0, b, ec);
 		if (ec) return;
 	}
 }

@@ -219,21 +219,22 @@ namespace libtorrent
 
 // this function allocates buffers and
 // fills in the iovec array with the buffers
-	int disk_buffer_pool::allocate_iovec(file::iovec_t* iov, int iov_len)
+	int disk_buffer_pool::allocate_iovec(span<file::iovec_t> iov)
 	{
 		std::unique_lock<std::mutex> l(m_pool_mutex);
-		for (int i = 0; i < iov_len; ++i)
+		for (auto& i : iov)
 		{
-			iov[i].iov_base = allocate_buffer_impl(l, "pending read");
-			iov[i].iov_len = block_size();
-			if (iov[i].iov_base == nullptr)
+			i.iov_base = allocate_buffer_impl(l, "pending read");
+			i.iov_len = block_size();
+			if (i.iov_base == nullptr)
 			{
 				// uh oh. We failed to allocate the buffer!
 				// we need to roll back and free all the buffers
 				// we've already allocated
-				for (int j = 0; j < i; ++j)
+				for (auto j : iov)
 				{
-					char* buf = static_cast<char*>(iov[j].iov_base);
+					if (j.iov_base == nullptr) break;
+					char* buf = static_cast<char*>(j.iov_base);
 					TORRENT_ASSERT(is_disk_buffer(buf, l));
 					free_buffer_impl(buf, l);
 					remove_buffer_in_use(buf);
@@ -244,13 +245,13 @@ namespace libtorrent
 		return 0;
 	}
 
-	void disk_buffer_pool::free_iovec(file::iovec_t* iov, int iov_len)
+	void disk_buffer_pool::free_iovec(span<file::iovec_t const> iov)
 	{
 		// TODO: perhaps we should sort the buffers here?
 		std::unique_lock<std::mutex> l(m_pool_mutex);
-		for (int i = 0; i < iov_len; ++i)
+		for (auto i : iov)
 		{
-			char* buf = static_cast<char*>(iov[i].iov_base);
+			char* buf = static_cast<char*>(i.iov_base);
 			TORRENT_ASSERT(is_disk_buffer(buf, l));
 			free_buffer_impl(buf, l);
 			remove_buffer_in_use(buf);

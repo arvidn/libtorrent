@@ -59,7 +59,7 @@ TORRENT_TEST(web_seed_redirect)
 		return;
 	}
 	file::iovec_t b = { random_data, size_t(16000)};
-	f.writev(0, &b, 1, ec);
+	f.writev(0, b, ec);
 	fs.add_file("test_file", 16000);
 
 	int port = start_web_server();

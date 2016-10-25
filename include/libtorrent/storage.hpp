@@ -148,9 +148,9 @@ namespace libtorrent
 	struct cached_piece_entry;
 	struct add_torrent_params;
 
-	TORRENT_EXTRA_EXPORT int copy_bufs(file::iovec_t const* bufs, int bytes, file::iovec_t* target);
+	TORRENT_EXTRA_EXPORT int copy_bufs(span<file::iovec_t const> bufs, int bytes, span<file::iovec_t> target);
 	TORRENT_EXTRA_EXPORT span<file::iovec_t> advance_bufs(span<file::iovec_t> bufs, int bytes);
-	TORRENT_EXTRA_EXPORT void clear_bufs(file::iovec_t const* bufs, int num_bufs);
+	TORRENT_EXTRA_EXPORT void clear_bufs(span<file::iovec_t const> bufs);
 
 	// flags for async_move_storage
 	enum move_flags_t
@@ -613,14 +613,14 @@ namespace libtorrent
 	struct fileop
 	{
 		virtual int file_op(int const file_index, std::int64_t const file_offset, int const size
-			, file::iovec_t const* bufs, storage_error& ec) = 0;
+			, span<file::iovec_t const> bufs, storage_error& ec) = 0;
 	};
 
 	// this function is responsible for turning read and write operations in the
 	// torrent space (pieces) into read and write operations in the filesystem
 	// space (files on disk).
 	TORRENT_EXTRA_EXPORT int readwritev(file_storage const& files
-		, file::iovec_t const* bufs, int piece, int offset, int num_bufs
+		, span<file::iovec_t const> bufs, int piece, int offset
 		, fileop& op, storage_error& ec);
 
 }

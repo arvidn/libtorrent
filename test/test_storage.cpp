@@ -912,7 +912,7 @@ TORRENT_TEST(iovec_copy_bufs)
 	alloc_iov(iov1, 10);
 	fill_pattern(iov1, 10);
 
-	TEST_CHECK(bufs_size(iov1, 10) >= 106);
+	TEST_CHECK(bufs_size({iov1, 10}) >= 106);
 
 	// copy exactly 106 bytes from iov1 to iov2
 	int num_bufs = copy_bufs(iov1, 106, iov2);
@@ -941,7 +941,7 @@ TORRENT_TEST(iovec_clear_bufs)
 	alloc_iov(iov, 10);
 	fill_pattern(iov, 10);
 
-	clear_bufs(iov, 10);
+	clear_bufs({iov, 10});
 	for (int i = 0; i < 10; ++i)
 	{
 		unsigned char* buf = (unsigned char*)iov[i].iov_base;
@@ -963,7 +963,7 @@ TORRENT_TEST(iovec_bufs_size)
 
 		int expected_size = 0;
 		for (int k = 0; k < i; ++k) expected_size += i * (k + 1);
-		TEST_EQUAL(bufs_size(iov, i), expected_size);
+		TEST_EQUAL(bufs_size({iov, i}), expected_size);
 
 		free_iov(iov, i);
 	}
@@ -1019,7 +1019,7 @@ struct test_fileop : fileop
 	explicit test_fileop(int stripe_size) : m_stripe_size(stripe_size) {}
 
 	int file_op(int const file_index, std::int64_t const file_offset, int const size
-		, file::iovec_t const* bufs, storage_error& ec) override
+		, span<file::iovec_t const> bufs, storage_error& ec) override
 	{
 		size_t offset = size_t(file_offset);
 		if (file_index >= int(m_file_data.size()))
@@ -1039,9 +1039,9 @@ struct test_fileop : fileop
 		int left = write_size;
 		while (left > 0)
 		{
-			const int copy_size = (std::min)(left, int(bufs->iov_len));
-			memcpy(&file[offset], bufs->iov_base, copy_size);
-			++bufs;
+			const int copy_size = (std::min)(left, int(bufs.front().iov_len));
+			memcpy(&file[offset], bufs.front().iov_base, copy_size);
+			bufs = bufs.subspan(1);
 			offset += copy_size;
 			left -= copy_size;
 		}
@@ -1058,14 +1058,14 @@ struct test_read_fileop : fileop
 	explicit test_read_fileop(int size) : m_size(size), m_counter(0) {}
 
 	int file_op(int const file_index, std::int64_t const file_offset, int const size
-		, file::iovec_t const* bufs, storage_error& ec) override
+		, span<file::iovec_t const> bufs, storage_error& ec) override
 	{
 		int local_size = (std::min)(m_size, size);
 		const int read = local_size;
 		while (local_size > 0)
 		{
-			unsigned char* p = (unsigned char*)bufs->iov_base;
-			const int len = (std::min)(int(bufs->iov_len), local_size);
+			unsigned char* p = (unsigned char*)bufs.front().iov_base;
+			const int len = (std::min)(int(bufs.front().iov_len), local_size);
 			for (int i = 0; i < len; ++i)
 			{
 				p[i] = m_counter & 0xff;
@@ -1073,7 +1073,7 @@ struct test_read_fileop : fileop
 			}
 			local_size -= len;
 			m_size -= len;
-			++bufs;
+			bufs = bufs.subspan(1);
 		}
 		return read;
 	}
@@ -1089,7 +1089,7 @@ struct test_error_fileop : fileop
 		: m_error_file(error_file) {}
 
 	int file_op(int const file_index, std::int64_t const file_offset, int const size
-		, file::iovec_t const* bufs, storage_error& ec) override
+		, span<file::iovec_t const> bufs, storage_error& ec) override
 	{
 		if (m_error_file == file_index)
 		{
@@ -1129,14 +1129,14 @@ TORRENT_TEST(readwritev_stripe_1)
 	test_fileop fop(1);
 	storage_error ec;
 
-	TEST_CHECK(bufs_size(iov, num_bufs) >= fs.total_size());
+	TEST_CHECK(bufs_size({iov, num_bufs}) >= fs.total_size());
 
 	file::iovec_t iov2[num_bufs];
 	copy_bufs(iov, int(fs.total_size()), iov2);
 	int num_bufs2 = count_bufs(iov2, int(fs.total_size()));
 	TEST_CHECK(num_bufs2 <= num_bufs);
 
-	int ret = readwritev(fs, iov2, 0, 0, num_bufs2, fop, ec);
+	int ret = readwritev(fs, {iov2, num_bufs2}, 0, 0, fop, ec);
 
 	TEST_EQUAL(ret, fs.total_size());
 	TEST_EQUAL(fop.m_file_data.size(), 4);
@@ -1163,7 +1163,7 @@ TORRENT_TEST(readwritev_single_buffer)
 	file::iovec_t iov = { &buf[0], buf.size() };
 	fill_pattern(&iov, 1);
 
-	int ret = readwritev(fs, &iov, 0, 0, 1, fop, ec);
+	int ret = readwritev(fs, iov, 0, 0, fop, ec);
 
 	TEST_EQUAL(ret, fs.total_size());
 	TEST_EQUAL(fop.m_file_data.size(), 4);
@@ -1188,7 +1188,7 @@ TORRENT_TEST(readwritev_read)
 	file::iovec_t iov = { &buf[0], buf.size() };
 
 	// read everything
-	int ret = readwritev(fs, &iov, 0, 0, 1, fop, ec);
+	int ret = readwritev(fs, iov, 0, 0, fop, ec);
 
 	TEST_EQUAL(ret, fs.total_size());
 	TEST_CHECK(check_pattern(buf, 0));
@@ -1205,7 +1205,7 @@ TORRENT_TEST(readwritev_read_short)
 		, static_cast<size_t>(fs.total_size()) };
 
 	// read everything
-	int ret = readwritev(fs, &iov, 0, 0, 1, fop, ec);
+	int ret = readwritev(fs, iov, 0, 0, fop, ec);
 
 	TEST_EQUAL(ec.file, 3);
 
@@ -1225,7 +1225,7 @@ TORRENT_TEST(readwritev_error)
 		, static_cast<size_t>(fs.total_size()) };
 
 	// read everything
-	int ret = readwritev(fs, &iov, 0, 0, 1, fop, ec);
+	int ret = readwritev(fs, iov, 0, 0, fop, ec);
 
 	TEST_EQUAL(ret, -1);
 	TEST_EQUAL(ec.file, 2);
@@ -1252,7 +1252,7 @@ TORRENT_TEST(readwritev_zero_size_files)
 		, static_cast<size_t>(fs.total_size()) };
 
 	// read everything
-	int ret = readwritev(fs, &iov, 0, 0, 1, fop, ec);
+	int ret = readwritev(fs, iov, 0, 0, fop, ec);
 
 	TEST_EQUAL(ret, fs.total_size());
 	TEST_CHECK(check_pattern(buf, 0));

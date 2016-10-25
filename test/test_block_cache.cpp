@@ -51,12 +51,12 @@ struct test_storage_impl : storage_interface
 	int readv(span<file::iovec_t const> bufs
 		, int piece, int offset, int flags, storage_error& ec) override
 	{
-		return bufs_size(bufs.data(), int(bufs.size()));
+		return bufs_size(bufs);
 	}
 	int writev(span<file::iovec_t const> bufs
 		, int piece, int offset, int flags, storage_error& ec) override
 	{
-		return bufs_size(bufs.data(), int(bufs.size()));
+		return bufs_size(bufs);
 	}
 
 	bool has_any_file(storage_error& ec) override { return false; }
@@ -112,8 +112,8 @@ static void nop() {}
 	wj.storage = pm; \
 	cached_piece_entry* pe = nullptr; \
 	int ret = 0; \
-	file::iovec_t iov[1]; \
-	(void)iov[0]; \
+	file::iovec_t iov; \
+	(void)iov; \
 	(void)ret; \
 	(void)pe
 
@@ -153,9 +153,9 @@ static void nop() {}
 	wj.piece = p; \
 	wj.requester = (void*)1; \
 	pe = bc.allocate_piece(&wj, cached_piece_entry::read_lru1); \
-	ret = bc.allocate_iovec(iov, 1); \
+	ret = bc.allocate_iovec(iov); \
 	TEST_EQUAL(ret, 0); \
-	bc.insert_blocks(pe, b, iov, 1, &wj)
+	bc.insert_blocks(pe, b, iov, &wj)
 
 void test_write()
 {
@@ -419,8 +419,8 @@ void test_iovec()
 {
 	TEST_SETUP;
 
-	ret = bc.allocate_iovec(iov, 1);
-	bc.free_iovec(iov, 1);
+	ret = bc.allocate_iovec(iov);
+	bc.free_iovec(iov);
 }
 
 void test_unaligned_read()

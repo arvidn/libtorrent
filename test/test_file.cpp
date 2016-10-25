@@ -55,7 +55,7 @@ int touch_file(std::string const& filename, int size)
 	if (!f.open(filename, file::write_only, ec)) return -1;
 	if (ec) return -1;
 	file::iovec_t b = {&v[0], v.size()};
-	std::int64_t written = f.writev(0, &b, 1, ec);
+	std::int64_t written = f.writev(0, b, ec);
 	if (written != int(v.size())) return -3;
 	if (ec) return -3;
 	return 0;
@@ -295,14 +295,14 @@ TORRENT_TEST(file)
 	TEST_EQUAL(ec, error_code());
 	if (ec) std::printf("%s\n", ec.message().c_str());
 	file::iovec_t b = {(void*)"test", 4};
-	TEST_EQUAL(f.writev(0, &b, 1, ec), 4);
+	TEST_EQUAL(f.writev(0, b, ec), 4);
 	if (ec)
 		std::printf("writev failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_CHECK(!ec);
 	char test_buf[5] = {0};
 	b.iov_base = test_buf;
 	b.iov_len = 4;
-	TEST_EQUAL(f.readv(0, &b, 1, ec), 4);
+	TEST_EQUAL(f.readv(0, b, ec), 4);
 	if (ec)
 		std::printf("readv failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_EQUAL(ec, error_code());
@@ -325,7 +325,7 @@ TORRENT_TEST(hard_link)
 	TEST_EQUAL(ec, error_code());
 
 	file::iovec_t b = {(void*)"abcdefghijklmnopqrstuvwxyz", 26};
-	TEST_EQUAL(f.writev(0, &b, 1, ec), 26);
+	TEST_EQUAL(f.writev(0, b, ec), 26);
 	if (ec)
 		std::printf("writev failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_EQUAL(ec, error_code());
@@ -346,7 +346,7 @@ TORRENT_TEST(hard_link)
 	char test_buf[27] = {0};
 	b.iov_base = test_buf;
 	b.iov_len = 27;
-	TEST_EQUAL(f.readv(0, &b, 1, ec), 26);
+	TEST_EQUAL(f.readv(0, b, ec), 26);
 	if (ec)
 		std::printf("readv failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_EQUAL(ec, error_code());
@@ -372,7 +372,7 @@ TORRENT_TEST(coalesce_buffer)
 	TEST_EQUAL(ec, error_code());
 	if (ec) std::printf("%s\n", ec.message().c_str());
 	file::iovec_t b[2] = {{(void*)"test", 4}, {(void*)"foobar", 6}};
-	TEST_EQUAL(f.writev(0, b, 2, ec, file::coalesce_buffers), 4 + 6);
+	TEST_EQUAL(f.writev(0, {b, 2}, ec, file::coalesce_buffers), 4 + 6);
 	if (ec)
 		std::printf("writev failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_CHECK(!ec);
@@ -382,7 +382,7 @@ TORRENT_TEST(coalesce_buffer)
 	b[0].iov_len = 4;
 	b[1].iov_base = test_buf2;
 	b[1].iov_len = 6;
-	TEST_EQUAL(f.readv(0, b, 2, ec), 4 + 6);
+	TEST_EQUAL(f.readv(0, {b, 2}, ec), 4 + 6);
 	if (ec)
 	{
 		std::printf("readv failed: [%s] %s\n"

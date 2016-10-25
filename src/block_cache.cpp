@@ -1291,8 +1291,8 @@ int block_cache::pad_job(disk_io_job const* j, int blocks_in_piece
 	return end - start;
 }
 
-void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t *iov
-	, int iov_len, disk_io_job* j, int flags)
+void block_cache::insert_blocks(cached_piece_entry* pe, int block, span<file::iovec_t const> iov
+	, disk_io_job* j, int flags)
 {
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 	INVARIANT_CHECK;
@@ -1300,7 +1300,7 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 
 	TORRENT_ASSERT(pe);
 	TORRENT_ASSERT(pe->in_use);
-	TORRENT_PIECE_ASSERT(iov_len > 0, pe);
+	TORRENT_PIECE_ASSERT(iov.size() > 0, pe);
 
 #if TORRENT_USE_ASSERTS
 	// we're not allowed to add dirty blocks
@@ -1314,7 +1314,7 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, file::iovec_t
 
 	TORRENT_ASSERT(pe->in_use);
 
-	for (int i = 0; i < iov_len; ++i, ++block)
+	for (int i = 0; i < iov.size(); ++i, ++block)
 	{
 		// each iovec buffer has to be the size of a block (or the size of the last block)
 		TORRENT_PIECE_ASSERT(iov[i].iov_len == (std::min)(block_size()
