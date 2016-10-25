@@ -61,6 +61,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if DEBUG_DISK_THREAD
 #include <cstdarg>
+#include <sstream>
 #define DLOG(...) debug_log(__VA_ARGS__)
 #else
 #define DLOG(...) do {} while(false)
@@ -1762,7 +1763,7 @@ namespace libtorrent
 		if (pe && !pe->hashing && pe->hash && pe->hash->offset == piece_size)
 		{
 			sha1_hash result = pe->hash->h.final();
-			memcpy(j->d.piece_hash, &result[0], 20);
+			std::memcpy(j->d.piece_hash, result.data(), 20);
 
 			pe->hash.reset();
 
@@ -2232,7 +2233,7 @@ namespace libtorrent
 			TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1 || pe->cache_state == cached_piece_entry::read_lru2, pe);
 
 			// are we already done hashing?
-			if (pe->hash != nullptr && !pe->hashing && pe->hash->offset == piece_size)
+			if (pe->hash && !pe->hashing && pe->hash->offset == piece_size)
 			{
 				DLOG("do_hash: (%d) (already done)\n", int(pe->piece));
 				sha1_hash piece_hash = pe->hash->h.final();

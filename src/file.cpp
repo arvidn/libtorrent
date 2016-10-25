@@ -1488,7 +1488,7 @@ namespace libtorrent
 			| ((mode & no_atime) ? O_NOATIME : 0)
 #endif
 #ifdef O_SYNC
-			| ((mode & no_cache) ? O_SYNC: 0)
+			| ((mode & no_cache) ? O_SYNC : 0)
 #endif
 			;
 
@@ -1504,7 +1504,7 @@ namespace libtorrent
 		{
 			mode &= ~no_atime;
 			open_mode &= ~O_NOATIME;
-			handle = ::open(path.c_str(), mode_array[mode & rw_mask] | open_mode
+			handle = ::open(convert_to_native(path).c_str(), mode_array[mode & rw_mask] | open_mode
 				, permissions);
 		}
 #endif
