@@ -155,6 +155,7 @@ namespace libtorrent
 
 	namespace {
 
+#if TORRENT_USE_ASSERTS
 	int count_bufs(span<file::iovec_t const> bufs, int bytes)
 	{
 		int size = 0;
@@ -166,6 +167,7 @@ namespace libtorrent
 			if (size >= bytes) return count;
 		}
 	}
+#endif
 
 #ifdef TORRENT_DISK_STATS
 	static std::atomic<int> event_id;

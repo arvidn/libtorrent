@@ -339,7 +339,7 @@ namespace libtorrent
 
 		// count number of blocks that would be flushed
 		int num_blocks = 0;
-		for (int i = end-1; i >= 0; --i)
+		for (int i = end - 1; i >= 0; --i)
 			num_blocks += (p->blocks[i].dirty && !p->blocks[i].pending);
 
 		// we did not satisfy the block_limit requirement
@@ -1267,13 +1267,13 @@ namespace libtorrent
 		}
 
 		// this is the offset that's aligned to block boundaries
-		std::int64_t const adjusted_offset = j->d.io.offset & ~(block_size-1);
+		std::int64_t const adjusted_offset = j->d.io.offset & ~(block_size - 1);
 
 		// if this is the last piece, adjust the size of the
 		// last buffer to match up
-		iov[iov_len-1].iov_len = (std::min)(int(piece_size - adjusted_offset)
-			- (iov_len-1) * block_size, block_size);
-		TORRENT_ASSERT(iov[iov_len-1].iov_len > 0);
+		iov[iov_len - 1].iov_len = (std::min)(int(piece_size - adjusted_offset)
+			- (iov_len - 1) * block_size, block_size);
+		TORRENT_ASSERT(iov[iov_len - 1].iov_len > 0);
 
 		// at this point, all the buffers are allocated and iov is initialized
 		// and the blocks have their refcounters incremented, so no other thread
@@ -1643,7 +1643,7 @@ namespace libtorrent
 	void disk_io_thread::async_write(piece_manager* storage, peer_request const& r
 		, disk_buffer_holder buffer
 		, std::function<void(disk_io_job const*)> handler
-		, int flags)
+		, int const flags)
 	{
 		INVARIANT_CHECK;
 
@@ -1760,7 +1760,7 @@ namespace libtorrent
 		// first check to see if the hashing is already done
 		std::unique_lock<std::mutex> l(m_cache_mutex);
 		cached_piece_entry* pe = m_disk_cache.find_piece(j);
-		if (pe && !pe->hashing && pe->hash && pe->hash->offset == piece_size)
+		if (pe != nullptr && !pe->hashing && pe->hash && pe->hash->offset == piece_size)
 		{
 			sha1_hash result = pe->hash->h.final();
 			std::memcpy(j->d.piece_hash, result.data(), 20);
@@ -1889,7 +1889,7 @@ namespace libtorrent
 		disk_io_job* qj = m_hash_io_jobs.m_queued_jobs.get_all();
 		jobqueue_t to_abort;
 
-		while (qj)
+		while (qj != nullptr)
 		{
 			disk_io_job* next = qj->next;
 #if TORRENT_USE_ASSERTS
@@ -2225,7 +2225,7 @@ namespace libtorrent
 		std::unique_lock<std::mutex> l(m_cache_mutex);
 
 		cached_piece_entry* pe = m_disk_cache.find_piece(j);
-		if (pe)
+		if (pe != nullptr)
 		{
 			TORRENT_ASSERT(pe->in_use);
 #if TORRENT_USE_ASSERTS

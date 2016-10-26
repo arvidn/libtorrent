@@ -441,7 +441,7 @@ namespace libtorrent
 		// pick the least recently used ones first
 		// return the number of blocks that was requested to be evicted
 		// that couldn't be
-		int try_evict_blocks(int num, cached_piece_entry* ignore = 0);
+		int try_evict_blocks(int num, cached_piece_entry* ignore = nullptr);
 
 		// try to evict a single volatile piece, if there is one.
 		void try_evict_one_volatile();

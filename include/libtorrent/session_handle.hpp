@@ -770,7 +770,7 @@ namespace libtorrent
 		//
 		// The optional second argument ``options`` can be used to delete all the
 		// files downloaded by this torrent. To do so, pass in the value
-		// ``session::delete_files``. The removal of the torrent is asynchronous,
+		// ``session_handle::delete_files``. The removal of the torrent is asynchronous,
 		// there is no guarantee that adding the same torrent immediately after
 		// it was removed will not throw a system_error exception. Once
 		// the torrent is deleted, a torrent_deleted_alert is posted.

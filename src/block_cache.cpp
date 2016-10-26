@@ -609,7 +609,7 @@ void block_cache::try_evict_one_volatile()
 	}
 }
 
-cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, int cache_state)
+cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, int const cache_state)
 {
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 	INVARIANT_CHECK;
