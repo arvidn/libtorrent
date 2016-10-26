@@ -221,17 +221,14 @@ namespace libtorrent
 
 		int file_op(int const file_index
 			, std::int64_t const file_offset
-			, int const size
 			, span<file::iovec_t const> bufs, storage_error& ec)
 			final
 		{
 			if (m_storage.files().pad_file_at(file_index))
 			{
 				// writing to a pad-file is a no-op
-				return size;
+				return bufs_size(bufs);
 			}
-
-			auto write_bufs = bufs.first(count_bufs(bufs, size));
 
 			if (file_index < int(m_storage.m_file_priority.size())
 				&& m_storage.m_file_priority[file_index] == 0)
@@ -241,7 +238,7 @@ namespace libtorrent
 				error_code e;
 				peer_request map = m_storage.files().map_file(file_index
 					, file_offset, 0);
-				int ret = m_storage.m_part_file->writev(write_bufs
+				int ret = m_storage.m_part_file->writev(bufs
 					, map.piece, map.start, e);
 
 				if (e)
@@ -275,7 +272,7 @@ namespace libtorrent
 
 			error_code e;
 			int ret = handle->writev(adjusted_offset
-				, write_bufs, e, m_flags);
+				, bufs, e, m_flags);
 
 			// set this unconditionally in case the upper layer would like to treat
 			// short reads as errors
@@ -287,7 +284,7 @@ namespace libtorrent
 #ifdef TORRENT_DISK_STATS
 			write_access_log(adjusted_offset + ret , handle->file_id(), op_end | op_write, clock_type::now());
 #endif
-			TORRENT_ASSERT(ret <= bufs_size(write_bufs));
+			TORRENT_ASSERT(ret <= bufs_size(bufs));
 
 			if (e)
 			{
@@ -312,17 +309,14 @@ namespace libtorrent
 
 		int file_op(int const file_index
 			, std::int64_t const file_offset
-			, int const size
 			, span<file::iovec_t const> bufs, storage_error& ec)
 			final
 		{
-			auto op_bufs = bufs.first(count_bufs(bufs, size));
-
 			if (m_storage.files().pad_file_at(file_index))
 			{
 				// reading from a pad file yields zeroes
-				clear_bufs(op_bufs);
-				return size;
+				clear_bufs(bufs);
+				return bufs_size(bufs);
 			}
 
 			if (file_index < int(m_storage.m_file_priority.size())
@@ -333,7 +327,7 @@ namespace libtorrent
 				error_code e;
 				peer_request map = m_storage.files().map_file(file_index
 					, file_offset, 0);
-				int ret = m_storage.m_part_file->readv(op_bufs
+				int ret = m_storage.m_part_file->readv(bufs
 					, map.piece, map.start, e);
 
 				if (e)
@@ -363,7 +357,7 @@ namespace libtorrent
 
 			error_code e;
 			int ret = handle->readv(adjusted_offset
-				, op_bufs, e, m_flags);
+				, bufs, e, m_flags);
 
 			// set this unconditionally in case the upper layer would like to treat
 			// short reads as errors
@@ -1179,10 +1173,10 @@ namespace libtorrent
 
 			// make a copy of the iovec array that _just_ covers the next
 			// file_bytes_left bytes, i.e. just this one operation
-			copy_bufs(current_buf, file_bytes_left, tmp_buf);
+			int tmp_bufs_used = copy_bufs(current_buf, file_bytes_left, tmp_buf);
 
-			int bytes_transferred = op.file_op(file_index, file_offset,
-				file_bytes_left, tmp_buf, ec);
+			int bytes_transferred = op.file_op(file_index, file_offset
+				, tmp_buf.first(tmp_bufs_used), ec);
 			if (ec) return -1;
 
 			// advance our position in the iovec array and the file offset.

@@ -612,7 +612,7 @@ namespace libtorrent
 	// what to do when it's actually touching the file
 	struct fileop
 	{
-		virtual int file_op(int const file_index, std::int64_t const file_offset, int const size
+		virtual int file_op(int const file_index, std::int64_t const file_offset
 			, span<file::iovec_t const> bufs, storage_error& ec) = 0;
 	};
 

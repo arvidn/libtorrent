@@ -1018,7 +1018,7 @@ struct test_fileop : fileop
 {
 	explicit test_fileop(int stripe_size) : m_stripe_size(stripe_size) {}
 
-	int file_op(int const file_index, std::int64_t const file_offset, int const size
+	int file_op(int const file_index, std::int64_t const file_offset
 		, span<file::iovec_t const> bufs, storage_error& ec) override
 	{
 		size_t offset = size_t(file_offset);
@@ -1027,7 +1027,7 @@ struct test_fileop : fileop
 			m_file_data.resize(file_index + 1);
 		}
 
-		const int write_size = (std::min)(m_stripe_size, size);
+		const int write_size = (std::min)(m_stripe_size, bufs_size(bufs));
 
 		std::vector<char>& file = m_file_data[file_index];
 
@@ -1057,10 +1057,10 @@ struct test_read_fileop : fileop
 	// EOF after size bytes read
 	explicit test_read_fileop(int size) : m_size(size), m_counter(0) {}
 
-	int file_op(int const file_index, std::int64_t const file_offset, int const size
+	int file_op(int const file_index, std::int64_t const file_offset
 		, span<file::iovec_t const> bufs, storage_error& ec) override
 	{
-		int local_size = (std::min)(m_size, size);
+		int local_size = (std::min)(m_size, bufs_size(bufs));
 		const int read = local_size;
 		while (local_size > 0)
 		{
@@ -1088,7 +1088,7 @@ struct test_error_fileop : fileop
 	explicit test_error_fileop(int error_file)
 		: m_error_file(error_file) {}
 
-	int file_op(int const file_index, std::int64_t const file_offset, int const size
+	int file_op(int const file_index, std::int64_t const file_offset
 		, span<file::iovec_t const> bufs, storage_error& ec) override
 	{
 		if (m_error_file == file_index)
@@ -1099,7 +1099,7 @@ struct test_error_fileop : fileop
 			ec.operation = storage_error::read;
 			return -1;
 		}
-		return size;
+		return bufs_size(bufs);
 	}
 
 	int m_error_file;
