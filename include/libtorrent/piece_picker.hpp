@@ -725,10 +725,10 @@ namespace libtorrent
 
 		// the number of seeds. These are not added to
 		// the availability counters of the pieces
-		int m_seeds;
+		int m_seeds = 0;
 
 		// the number of pieces that have passed the hash check
-		int m_num_passed;
+		int m_num_passed = 0;
 
 		// this vector contains all piece indices that are pickable
 		// sorted by priority. Pieces are in random random order
@@ -761,41 +761,41 @@ namespace libtorrent
 		// this is a free-list.
 		std::vector<std::uint16_t> m_free_block_infos;
 
-		std::uint16_t m_blocks_per_piece;
-		std::uint16_t m_blocks_in_last_piece;
+		std::uint16_t m_blocks_per_piece = 0;
+		std::uint16_t m_blocks_in_last_piece = 0;
 
 		// the number of filtered pieces that we don't already
 		// have. total_number_of_pieces - number_of_pieces_we_have
 		// - num_filtered is supposed to the number of pieces
 		// we still want to download
-		int m_num_filtered;
+		int m_num_filtered = 0;
 
 		// the number of pieces we have that also are filtered
-		int m_num_have_filtered;
+		int m_num_have_filtered = 0;
 
 		// we have all pieces in the range [0, m_cursor)
 		// m_cursor is the first piece we don't have
-		int m_cursor;
+		int m_cursor = 0;
 
 		// we have all pieces in the range [m_reverse_cursor, end)
 		// m_reverse_cursor is the first piece where we also have
 		// all the subsequent pieces
-		int m_reverse_cursor;
+		int m_reverse_cursor = 0;
 
 		// the number of pieces we have (i.e. passed + flushed).
 		// This includes pieces that we have filtered but still have
-		int m_num_have;
+		int m_num_have = 0;
 
 		// this is the number of partial download pieces
 		// that may be caused by pad files. We raise the limit
 		// of number of partial pieces by this amount, to not
 		// prioritize pieces that intersect pad files for no
 		// apparent reason
-		int m_num_pad_files;
+		int m_num_pad_files = 0;
 
 		// if this is set to true, it means update_pieces()
 		// has to be called before accessing m_pieces.
-		mutable bool m_dirty;
+		mutable bool m_dirty = false;
 	public:
 
 #ifdef TORRENT_OPTIMIZE_MEMORY_USAGE

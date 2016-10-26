@@ -57,15 +57,9 @@ namespace libtorrent
 		, void* ssl_context)
 		: m_send_fun(send_fun)
 		, m_cb(cb)
-		, m_last_socket(nullptr)
-		, m_new_connection(-1)
 		, m_sett(sett)
-		, m_last_route_update(min_time())
-		, m_last_if_update(min_time())
-		, m_sock_buf_size(0)
 		, m_counters(cnt)
 		, m_ios(ios)
-		, m_mtu_idx(0)
 		, m_ssl_context(ssl_context)
 	{
 		m_restrict_mtu.fill(65536);
