@@ -963,7 +963,7 @@ TORRENT_TEST(iovec_bufs_size)
 
 		int expected_size = 0;
 		for (int k = 0; k < i; ++k) expected_size += i * (k + 1);
-		TEST_EQUAL(bufs_size({iov, i}), expected_size);
+		TEST_EQUAL(bufs_size({iov, size_t(i)}), expected_size);
 
 		free_iov(iov, i);
 	}
@@ -1129,14 +1129,14 @@ TORRENT_TEST(readwritev_stripe_1)
 	test_fileop fop(1);
 	storage_error ec;
 
-	TEST_CHECK(bufs_size({iov, num_bufs}) >= fs.total_size());
+	TEST_CHECK(bufs_size({iov, size_t(num_bufs)}) >= fs.total_size());
 
 	file::iovec_t iov2[num_bufs];
 	copy_bufs(iov, int(fs.total_size()), iov2);
 	int num_bufs2 = count_bufs(iov2, int(fs.total_size()));
 	TEST_CHECK(num_bufs2 <= num_bufs);
 
-	int ret = readwritev(fs, {iov2, num_bufs2}, 0, 0, fop, ec);
+	int ret = readwritev(fs, {iov2, size_t(num_bufs2)}, 0, 0, fop, ec);
 
 	TEST_EQUAL(ret, fs.total_size());
 	TEST_EQUAL(fop.m_file_data.size(), 4);

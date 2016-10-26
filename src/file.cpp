@@ -209,7 +209,7 @@ namespace
 			}
 		}
 
-		if (wait_for_multiple_objects(h.size(), h.data()) == WAIT_FAILED)
+		if (wait_for_multiple_objects(int(h.size()), h.data()) == WAIT_FAILED)
 		{
 			ret = -1;
 			goto done;
@@ -279,7 +279,7 @@ done:
 			}
 		}
 
-		if (wait_for_multiple_objects(h.size(), h.data()) == WAIT_FAILED)
+		if (wait_for_multiple_objects(int(h.size()), h.data()) == WAIT_FAILED)
 		{
 			ret = -1;
 			goto done;
@@ -1745,7 +1745,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 #endif
 
 			int tmp_ret = 0;
-			tmp_ret = f(fd, nbufs.data(), nbufs.size(), file_offset);
+			tmp_ret = f(fd, nbufs.data(), int(nbufs.size()), file_offset);
 			if (tmp_ret < 0)
 			{
 #ifdef TORRENT_WINDOWS
@@ -1858,7 +1858,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 #else
 
 		// there's no point in coalescing single buffer writes
-		if (num_bufs == 1)
+		if (bufs.size() == 1)
 		{
 			flags &= ~file::coalesce_buffers;
 		}
@@ -1879,7 +1879,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 #endif
 
 		if ((flags & file::coalesce_buffers))
-			coalesce_read_buffers_end(bufs,
+			coalesce_read_buffers_end(bufs
 				, static_cast<char*>(tmp.iov_base), !ec);
 
 #endif
@@ -1914,7 +1914,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 #else
 
 		// there's no point in coalescing single buffer writes
-		if (num_bufs == 1)
+		if (bufs.size() == 1)
 		{
 			flags &= ~file::coalesce_buffers;
 		}
