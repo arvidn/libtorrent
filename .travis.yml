@@ -79,7 +79,15 @@ install:
       echo "using gcc : : ccache g++-5 : <cxxflags>-std=c++11 ;" >> ~/user-config.jam;
     fi'
   - 'if [[ $toolset == "gcc-sanitizer" ]]; then
-      echo "using gcc : sanitizer : ccache g++-5 : <cxxflags>-std=c++11 <compileflags>-fsanitize=address,undefined <compileflags>-fno-sanitize-recover=address,undefined <linkflags>-fsanitize=address,undefined <linkflags>-fno-sanitize-recover=address,undefined <linkflags>-fuse-ld=gold ;" >> ~/user-config.jam;
+      echo "using gcc : sanitizer : ccache g++-5 :
+        <cxxflags>-std=c++11
+        <compileflags>-fstack-protector-all
+        <compileflags>-fstack-check
+        <compileflags>-fsanitize=address,undefined
+        <compileflags>-fno-sanitize-recover=address,undefined
+        <linkflags>-fsanitize=address,undefined
+        <linkflags>-fno-sanitize-recover=address,undefined
+        <linkflags>-fuse-ld=gold ;" >> ~/user-config.jam;
     fi'
   - 'if [[ $toolset == "gcc-coverage" ]]; then
       echo "using gcc : coverage : ccache g++-5 --coverage : <cxxflags>-std=c++11 <linkflags>--coverage ;" >> ~/user-config.jam;
