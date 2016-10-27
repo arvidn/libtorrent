@@ -362,6 +362,7 @@ namespace libtorrent
 		// functions on torrent_handle
 		int max_uploads = -1;
 		int max_connections = -1;
+
 		int upload_limit = -1;
 		int download_limit = -1;
 
@@ -403,6 +404,7 @@ namespace libtorrent
 		// have not received any scrape data.
 		int num_complete = -1;
 		int num_incomplete = -1;
+
 		int num_downloaded = -1;
 
 		// URLs can be added to these two lists to specify additional web
