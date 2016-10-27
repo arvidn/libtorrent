@@ -11,6 +11,18 @@ void bind_fingerprint()
     using namespace libtorrent;
 
 #ifndef TORRENT_NO_DEPRECATE
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#pragma warning(disable: 4996)
+#endif
     class_<fingerprint>("fingerprint", no_init)
         .def(
             init<char const*,int,int,int,int>(
@@ -24,6 +36,14 @@ void bind_fingerprint()
         .def_readonly("revision_version", &fingerprint::revision_version)
         .def_readonly("tag_version", &fingerprint::tag_version)
         ;
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
 #endif
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+#endif // TORRENT_NO_DEPRECATE
 }
-
