@@ -265,6 +265,10 @@ namespace libtorrent
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #endif
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#pragma warning(disable: 4996)
+#endif
 		TORRENT_DEPRECATED
 		session(fingerprint const& print
 			, int flags = start_default_features | add_default_plugins
@@ -322,6 +326,9 @@ namespace libtorrent
 #endif
 #ifdef __clang__
 #pragma clang diagnostic pop
+#endif
+#ifdef _MSC_VER
+#pragma warning(pop)
 #endif
 #endif // TORRENT_NO_DEPRECATE
 
