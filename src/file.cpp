@@ -209,21 +209,21 @@ namespace
 			}
 		}
 
-		if (wait_for_multiple_objects(num_bufs, h.data()) == WAIT_FAILED)
+		if (wait_for_multiple_objects(int(h.size()), h.data()) == WAIT_FAILED)
 		{
 			ret = -1;
 			goto done;
 		}
 
-		for (int i = 0; i < num_bufs; ++i)
+		for (auto& o : ol)
 		{
-			if (WaitForSingleObject(ol[i].hEvent, INFINITE) == WAIT_FAILED)
+			if (WaitForSingleObject(o.hEvent, INFINITE) == WAIT_FAILED)
 			{
 				ret = -1;
 				break;
 			}
 			DWORD num_read;
-			if (GetOverlappedResult(fd, &ol[i], &num_read, FALSE) == FALSE)
+			if (GetOverlappedResult(fd, &o, &num_read, FALSE) == FALSE)
 			{
 #ifdef ERROR_CANT_WAIT
 				TORRENT_ASSERT(GetLastError() != ERROR_CANT_WAIT);
@@ -235,8 +235,8 @@ namespace
 		}
 done:
 
-		for (int i = 0; i < num_bufs; ++i)
-			CloseHandle(h[i]);
+		for (auto hnd : h)
+			CloseHandle(hnd);
 
 		return ret;
 	}
@@ -279,21 +279,21 @@ done:
 			}
 		}
 
-		if (wait_for_multiple_objects(num_bufs, h.data()) == WAIT_FAILED)
+		if (wait_for_multiple_objects(int(h.size()), h.data()) == WAIT_FAILED)
 		{
 			ret = -1;
 			goto done;
 		}
 
-		for (int i = 0; i < num_bufs; ++i)
+		for (auto& o : ol)
 		{
-			if (WaitForSingleObject(ol[i].hEvent, INFINITE) == WAIT_FAILED)
+			if (WaitForSingleObject(o.hEvent, INFINITE) == WAIT_FAILED)
 			{
 				ret = -1;
 				break;
 			}
 			DWORD num_written;
-			if (GetOverlappedResult(fd, &ol[i], &num_written, FALSE) == FALSE)
+			if (GetOverlappedResult(fd, &o, &num_written, FALSE) == FALSE)
 			{
 #ifdef ERROR_CANT_WAIT
 				TORRENT_ASSERT(GetLastError() != ERROR_CANT_WAIT);
@@ -305,8 +305,8 @@ done:
 		}
 done:
 
-		for (int i = 0; i < num_bufs; ++i)
-			CloseHandle(h[i]);
+		for (auto hnd : h)
+			CloseHandle(hnd);
 
 		return ret;
 	}
@@ -336,11 +336,11 @@ static_assert((libtorrent::file::sparse & libtorrent::file::attribute_mask) == 0
 
 namespace libtorrent
 {
-	int bufs_size(file::iovec_t const* bufs, int num_bufs)
+	int bufs_size(span<file::iovec_t const> bufs)
 	{
 		std::size_t size = 0;
-		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
-			size += i->iov_len;
+		for (auto buf : bufs)
+			size += buf.iov_len;
 		return int(size);
 	}
 
@@ -1676,81 +1676,76 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	namespace {
 
 #if !TORRENT_USE_PREADV
-	void gather_copy(file::iovec_t const* bufs, int num_bufs, char* dst)
+	void gather_copy(span<file::iovec_t const> bufs, char* dst)
 	{
 		std::size_t offset = 0;
-		for (int i = 0; i < num_bufs; ++i)
+		for (auto buf : bufs)
 		{
-			std::memcpy(dst + offset, bufs[i].iov_base, bufs[i].iov_len);
-			offset += bufs[i].iov_len;
+			std::memcpy(dst + offset, buf.iov_base, buf.iov_len);
+			offset += buf.iov_len;
 		}
 	}
 
-	void scatter_copy(file::iovec_t const* bufs, int num_bufs, char const* src)
+	void scatter_copy(span<file::iovec_t const> bufs, char const* src)
 	{
 		std::size_t offset = 0;
-		for (int i = 0; i < num_bufs; ++i)
+		for (auto buf : bufs)
 		{
-			std::memcpy(bufs[i].iov_base, src + offset, bufs[i].iov_len);
-			offset += bufs[i].iov_len;
+			std::memcpy(buf.iov_base, src + offset, buf.iov_len);
+			offset += buf.iov_len;
 		}
 	}
 
-	bool coalesce_read_buffers(file::iovec_t const*& bufs, int& num_bufs
-		, file::iovec_t* tmp)
+	bool coalesce_read_buffers(span<file::iovec_t const>& bufs
+		, file::iovec_t& tmp)
 	{
-		int const buf_size = bufs_size(bufs, num_bufs);
+		int const buf_size = bufs_size(bufs);
 		char* buf = static_cast<char*>(std::malloc(buf_size));
 		if (!buf) return false;
-		tmp->iov_base = buf;
-		tmp->iov_len = buf_size;
-		bufs = tmp;
-		num_bufs = 1;
+		tmp.iov_base = buf;
+		tmp.iov_len = buf_size;
+		bufs = span<file::iovec_t const>(tmp);
 		return true;
 	}
 
-	void coalesce_read_buffers_end(file::iovec_t const* bufs, int const num_bufs
+	void coalesce_read_buffers_end(span<file::iovec_t const> bufs
 		, char* const buf, bool const copy)
 	{
-		if (copy) scatter_copy(bufs, num_bufs, buf);
+		if (copy) scatter_copy(bufs, buf);
 		std::free(buf);
 	}
 
-	bool coalesce_write_buffers(file::iovec_t const*& bufs, int& num_bufs
-		, file::iovec_t* tmp)
+	bool coalesce_write_buffers(span<file::iovec_t const>& bufs
+		, file::iovec_t& tmp)
 	{
-		int const buf_size = bufs_size(bufs, num_bufs);
+		int const buf_size = bufs_size(bufs);
 		char* buf = static_cast<char*>(std::malloc(buf_size));
 		if (!buf) return false;
-		gather_copy(bufs, num_bufs, buf);
-		tmp->iov_base = buf;
-		tmp->iov_len = buf_size;
-		bufs = tmp;
-		num_bufs = 1;
+		gather_copy(bufs, buf);
+		tmp.iov_base = buf;
+		tmp.iov_len = buf_size;
+		bufs = span<file::iovec_t const>(tmp);
 		return true;
 	}
 #endif // TORRENT_USE_PREADV
 
 	template <class Fun>
-	std::int64_t iov(Fun f, handle_type fd, std::int64_t file_offset, file::iovec_t const* bufs_in
-		, int num_bufs_in, error_code& ec)
+	std::int64_t iov(Fun f, handle_type fd, std::int64_t file_offset
+		, span<file::iovec_t const> bufs, error_code& ec)
 	{
-		file::iovec_t const* bufs = bufs_in;
-		int num_bufs = num_bufs_in;
-
 #if TORRENT_USE_PREADV
 
 		int ret = 0;
-		while (num_bufs > 0)
+		while (!bufs.empty())
 		{
 #ifdef IOV_MAX
-			int const nbufs = (std::min)(num_bufs, IOV_MAX);
+			auto const nbufs = bufs.first((std::min)(int(bufs.size()), IOV_MAX));
 #else
-			int const nbufs = num_bufs;
+			auto const nbufs = bufs;
 #endif
 
 			int tmp_ret = 0;
-			tmp_ret = f(fd, bufs, nbufs, file_offset);
+			tmp_ret = f(fd, nbufs.data(), int(nbufs.size()), file_offset);
 			if (tmp_ret < 0)
 			{
 #ifdef TORRENT_WINDOWS
@@ -1767,20 +1762,19 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			// just need to issue the read/write operation again. In either case,
 			// punt that to the upper layer, as reissuing the operations is
 			// complicated here
-			const int expected_len = bufs_size(bufs, nbufs);
+			const int expected_len = bufs_size(nbufs);
 			if (tmp_ret < expected_len) break;
 
-			num_bufs -= nbufs;
-			bufs += nbufs;
+			bufs = bufs.subspan(nbufs.size());
 		}
 		return ret;
 
 #elif TORRENT_USE_PREAD
 
 		int ret = 0;
-		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
+		for (auto i : bufs)
 		{
-			int tmp_ret = f(fd, i->iov_base, i->iov_len, file_offset);
+			int tmp_ret = f(fd, i.iov_base, i.iov_len, file_offset);
 			if (tmp_ret < 0)
 			{
 #ifdef TORRENT_WINDOWS
@@ -1792,7 +1786,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			}
 			file_offset += tmp_ret;
 			ret += tmp_ret;
-			if (tmp_ret < int(i->iov_len)) break;
+			if (tmp_ret < int(i.iov_len)) break;
 		}
 
 		return ret;
@@ -1815,9 +1809,9 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		}
 #endif
 
-		for (file::iovec_t const* i = bufs, *end(bufs + num_bufs); i < end; ++i)
+		for (auto i : bufs)
 		{
-			int tmp_ret = f(fd, i->iov_base, i->iov_len);
+			int tmp_ret = f(fd, i.iov_base, i.iov_len);
 			if (tmp_ret < 0)
 			{
 #ifdef TORRENT_WINDOWS
@@ -1829,7 +1823,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			}
 			file_offset += tmp_ret;
 			ret += tmp_ret;
-			if (tmp_ret < int(i->iov_len)) break;
+			if (tmp_ret < int(i.iov_len)) break;
 		}
 
 		return ret;
@@ -1841,7 +1835,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 	// this has to be thread safe and atomic. i.e. on posix systems it has to be
 	// turned into a series of pread() calls
-	std::int64_t file::readv(std::int64_t file_offset, iovec_t const* bufs, int num_bufs
+	std::int64_t file::readv(std::int64_t file_offset, span<iovec_t const> bufs
 		, error_code& ec, int flags)
 	{
 		if (m_file_handle == INVALID_HANDLE_VALUE)
@@ -1854,40 +1848,38 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			return -1;
 		}
 		TORRENT_ASSERT((m_open_mode & rw_mask) == read_only || (m_open_mode & rw_mask) == read_write);
-		TORRENT_ASSERT(bufs);
-		TORRENT_ASSERT(num_bufs > 0);
+		TORRENT_ASSERT(!bufs.empty());
 		TORRENT_ASSERT(is_open());
 
 #if TORRENT_USE_PREADV
 		TORRENT_UNUSED(flags);
 
-		int ret = iov(&::preadv, native_handle(), file_offset, bufs, num_bufs, ec);
+		int ret = iov(&::preadv, native_handle(), file_offset, bufs, ec);
 #else
 
 		// there's no point in coalescing single buffer writes
-		if (num_bufs == 1)
+		if (bufs.size() == 1)
 		{
 			flags &= ~file::coalesce_buffers;
 		}
 
-		file::iovec_t tmp;
-		file::iovec_t const* const orig_bufs = bufs;
-		int const orig_num_bufs = num_bufs;
+		iovec_t tmp;
+		span<iovec_t const> tmp_bufs = bufs;
 		if ((flags & file::coalesce_buffers))
 		{
-			if (!coalesce_read_buffers(bufs, num_bufs, &tmp))
+			if (!coalesce_read_buffers(tmp_bufs, tmp))
 				// ok, that failed, don't coalesce this read
 				flags &= ~file::coalesce_buffers;
 		}
 
 #if TORRENT_USE_PREAD
-		int ret = iov(&::pread, native_handle(), file_offset, bufs, num_bufs, ec);
+		int ret = iov(&::pread, native_handle(), file_offset, tmp_bufs, ec);
 #else
-		int ret = iov(&::read, native_handle(), file_offset, bufs, num_bufs, ec);
+		int ret = iov(&::read, native_handle(), file_offset, tmp_bufs, ec);
 #endif
 
 		if ((flags & file::coalesce_buffers))
-			coalesce_read_buffers_end(orig_bufs, orig_num_bufs
+			coalesce_read_buffers_end(bufs
 				, static_cast<char*>(tmp.iov_base), !ec);
 
 #endif
@@ -1897,7 +1889,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	// This has to be thread safe, i.e. atomic.
 	// that means, on posix this has to be turned into a series of
 	// pwrite() calls
-	std::int64_t file::writev(std::int64_t file_offset, iovec_t const* bufs, int num_bufs
+	std::int64_t file::writev(std::int64_t file_offset, span<iovec_t const> bufs
 		, error_code& ec, int flags)
 	{
 		if (m_file_handle == INVALID_HANDLE_VALUE)
@@ -1910,8 +1902,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			return -1;
 		}
 		TORRENT_ASSERT((m_open_mode & rw_mask) == write_only || (m_open_mode & rw_mask) == read_write);
-		TORRENT_ASSERT(bufs);
-		TORRENT_ASSERT(num_bufs > 0);
+		TORRENT_ASSERT(!bufs.empty());
 		TORRENT_ASSERT(is_open());
 
 		ec.clear();
@@ -1919,27 +1910,27 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 #if TORRENT_USE_PREADV
 		TORRENT_UNUSED(flags);
 
-		int ret = iov(&::pwritev, native_handle(), file_offset, bufs, num_bufs, ec);
+		int ret = iov(&::pwritev, native_handle(), file_offset, bufs, ec);
 #else
 
 		// there's no point in coalescing single buffer writes
-		if (num_bufs == 1)
+		if (bufs.size() == 1)
 		{
 			flags &= ~file::coalesce_buffers;
 		}
 
-		file::iovec_t tmp;
+		iovec_t tmp;
 		if (flags & file::coalesce_buffers)
 		{
-			if (!coalesce_write_buffers(bufs, num_bufs, &tmp))
+			if (!coalesce_write_buffers(bufs, tmp))
 				// ok, that failed, don't coalesce writes
 				flags &= ~file::coalesce_buffers;
 		}
 
 #if TORRENT_USE_PREAD
-		int ret = iov(&::pwrite, native_handle(), file_offset, bufs, num_bufs, ec);
+		int ret = iov(&::pwrite, native_handle(), file_offset, bufs, ec);
 #else
-		int ret = iov(&::write, native_handle(), file_offset, bufs, num_bufs, ec);
+		int ret = iov(&::write, native_handle(), file_offset, bufs, ec);
 #endif
 
 		if (flags & file::coalesce_buffers)

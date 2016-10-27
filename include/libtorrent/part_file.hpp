@@ -49,8 +49,8 @@ namespace libtorrent
 		part_file(std::string const& path, std::string const& name, int num_pieces, int piece_size);
 		~part_file();
 
-		int writev(file::iovec_t const* bufs, int num_bufs, int piece, int offset, error_code& ec);
-		int readv(file::iovec_t const* bufs, int num_bufs, int piece, int offset, error_code& ec);
+		int writev(span<file::iovec_t const> bufs, int piece, int offset, error_code& ec);
+		int readv(span<file::iovec_t const> bufs, int piece, int offset, error_code& ec);
 
 		// free the slot the given piece is stored in. We no longer need to store this
 		// piece in the part file

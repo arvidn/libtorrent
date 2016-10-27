@@ -277,7 +277,7 @@ void save_file(char const* filename, char const* data, int size)
 		return;
 	}
 	file::iovec_t b = { (void*)data, size_t(size) };
-	out.writev(0, &b, 1, ec);
+	out.writev(0, b, ec);
 	TEST_CHECK(!ec);
 	if (ec)
 	{
@@ -692,7 +692,7 @@ void create_random_files(std::string const& path, const int file_sizes[], int nu
 		{
 			int s = (std::min)(to_write, 300000);
 			file::iovec_t b = { random_data, size_t(s)};
-			f.writev(offset, &b, 1, ec);
+			f.writev(offset, b, ec);
 			if (ec) std::printf("failed to write file \"%s\": (%d) %s\n"
 				, full_path.c_str(), ec.value(), ec.message().c_str());
 			offset += s;

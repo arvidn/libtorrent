@@ -430,8 +430,8 @@ namespace libtorrent
 		cached_piece_entry* add_dirty_block(disk_io_job* j);
 
 		enum { blocks_inc_refcount = 1 };
-		void insert_blocks(cached_piece_entry* pe, int block, file::iovec_t *iov
-			, int iov_len, disk_io_job* j, int flags = 0);
+		void insert_blocks(cached_piece_entry* pe, int block, span<file::iovec_t const> iov
+			, disk_io_job* j, int flags = 0);
 
 #if TORRENT_USE_INVARIANT_CHECKS
 		void check_invariant() const;

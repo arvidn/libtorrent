@@ -487,8 +487,8 @@ namespace libtorrent
 
 		// low level flush operations, used by flush_range
 		int build_iovec(cached_piece_entry* pe, int start, int end
-			, file::iovec_t* iov, int* flushing, int block_base_index = 0);
-		void flush_iovec(cached_piece_entry* pe, file::iovec_t const* iov, int const* flushing
+			, span<file::iovec_t> iov, span<int> flushing, int block_base_index = 0);
+		void flush_iovec(cached_piece_entry* pe, span<file::iovec_t const> iov, span<int const> flushing
 			, int num_blocks, storage_error& error);
 		void iovec_flushed(cached_piece_entry* pe
 			, int* flushing, int num_blocks, int block_offset

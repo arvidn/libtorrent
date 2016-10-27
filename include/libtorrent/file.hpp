@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/string_view.hpp"
+#include "libtorrent/span.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -314,9 +315,9 @@ namespace libtorrent
 
 		int open_mode() const { return m_open_mode; }
 
-		std::int64_t writev(std::int64_t file_offset, iovec_t const* bufs, int num_bufs
+		std::int64_t writev(std::int64_t file_offset, span<iovec_t const> bufs
 			, error_code& ec, int flags = 0);
-		std::int64_t readv(std::int64_t file_offset, iovec_t const* bufs, int num_bufs
+		std::int64_t readv(std::int64_t file_offset, span<iovec_t const> bufs
 			, error_code& ec, int flags = 0);
 
 		std::int64_t get_size(error_code& ec) const;
@@ -352,7 +353,7 @@ namespace libtorrent
 #endif
 	};
 
-	TORRENT_EXTRA_EXPORT int bufs_size(file::iovec_t const* bufs, int num_bufs);
+	TORRENT_EXTRA_EXPORT int bufs_size(span<file::iovec_t const> bufs);
 
 }
 
