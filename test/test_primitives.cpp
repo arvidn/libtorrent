@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp" // for print_endpoint
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/hex.hpp" // from_hex
+#include "libtorrent/fingerprint.hpp"
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -141,6 +142,13 @@ TORRENT_TEST(primitives)
 	// test endpoint_to_bytes
 	TEST_EQUAL(endpoint_to_bytes(udp::endpoint(address_v4::from_string("10.11.12.13"), 8080)), "\x0a\x0b\x0c\x0d\x1f\x90");
 	TEST_EQUAL(endpoint_to_bytes(udp::endpoint(address_v4::from_string("16.5.127.1"), 12345)), "\x10\x05\x7f\x01\x30\x39");
+
+	// test gen_fingerprint
+	TEST_EQUAL(generate_fingerprint("AB", 1, 2, 3, 4), "-AB1234-");
+	TEST_EQUAL(generate_fingerprint("AB", 1, 2), "-AB1200-");
+	TEST_EQUAL(generate_fingerprint("..", 1, 10), "-..1A00-");
+	TEST_EQUAL(generate_fingerprint("CZ", 1, 15), "-CZ1F00-");
+	TEST_EQUAL(generate_fingerprint("CZ", 1, 15, 16, 17), "-CZ1FGH-");
 }
 
 TORRENT_TEST(printf_int64)

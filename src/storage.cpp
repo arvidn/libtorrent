@@ -502,9 +502,9 @@ namespace libtorrent
 		// don't do full file allocations on network drives
 #if TORRENT_USE_WSTRING
 		std::wstring file_name = convert_to_wstring(m_save_path);
-		int drive_type = GetDriveTypeW(file_name.c_str());
+		int const drive_type = GetDriveTypeW(file_name.c_str());
 #else
-		int drive_type = GetDriveTypeA(m_save_path.c_str());
+		int const drive_type = GetDriveTypeA(m_save_path.c_str());
 #endif
 
 		if (drive_type == DRIVE_REMOTE)
@@ -1246,7 +1246,8 @@ namespace libtorrent
 			if (m_file_created[file] == false)
 			{
 				error_code e;
-				h->set_size(files().file_size(file), e);
+				boost::int64_t const size = files().file_size(file);
+				h->set_size(size, e);
 				m_file_created.set_bit(file);
 				if (e)
 				{
@@ -1255,6 +1256,7 @@ namespace libtorrent
 					ec.operation = storage_error::fallocate;
 					return h;
 				}
+				m_stat_cache.set_dirty(file);
 			}
 		}
 		return h;

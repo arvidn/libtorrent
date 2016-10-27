@@ -10,6 +10,7 @@ void bind_fingerprint()
     using namespace boost::python;
     using namespace libtorrent;
 
+#ifndef TORRENT_NO_DEPRECATE
     class_<fingerprint>("fingerprint", no_init)
         .def(
             init<char const*,int,int,int,int>(
@@ -23,5 +24,6 @@ void bind_fingerprint()
         .def_readonly("revision_version", &fingerprint::revision_version)
         .def_readonly("tag_version", &fingerprint::tag_version)
         ;
+#endif
 }
 

@@ -214,7 +214,9 @@ void test_piece_priorities(bool test_deprecated = false)
 	alert const* a = wait_for_alert(ses, save_resume_data_alert::alert_type);
 
 	TEST_CHECK(a);
-	if (save_resume_data_alert const* ra = alert_cast<save_resume_data_alert>(a))
+	save_resume_data_alert const* ra = alert_cast<save_resume_data_alert>(a);
+	TEST_CHECK(ra);
+	if (ra)
 	{
 		std::printf("%s\n", ra->resume_data->to_string().c_str());
 		entry::string_type prios = (*ra->resume_data)["piece_priority"].string();

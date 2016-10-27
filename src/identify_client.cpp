@@ -35,9 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdio>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <boost/optional.hpp>
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/identify_client.hpp"
@@ -141,7 +139,9 @@ namespace
 	// must be ordered alphabetically
 	map_entry name_map[] =
 	{
-		  {"A",  "ABC"}
+		  {"7T", "aTorrent for android"}
+		, {"A",  "ABC"}
+		, {"AB", "AnyEvent BitTorrent"}
 		, {"AG", "Ares"}
 		, {"AR", "Arctic Torrent"}
 		, {"AT", "Artemis"}
@@ -343,6 +343,8 @@ namespace
 namespace libtorrent
 {
 
+#ifndef TORRENT_NO_DEPRECATE
+
 	boost::optional<fingerprint> client_fingerprint(peer_id const& p)
 	{
 		// look for azureus style id
@@ -359,6 +361,8 @@ namespace libtorrent
 		if (f) return f;
 		return f;
 	}
+
+#endif
 
 	std::string identify_client(peer_id const& p)
 	{
