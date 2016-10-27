@@ -208,7 +208,7 @@ namespace libtorrent
 			// this is the fingerprint for the client. It will be used as the
 			// prefix to the peer_id. If this is 20 bytes (or longer) it will be
 			// truncated at 20 bytes and used as the entire peer-id
-			// 
+			//
 			// There is a utility function, generate_fingerprint() that can be used
 			// to generate a standard client peer ID fingerprint prefix.
 			peer_fingerprint,
