@@ -36,17 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	disk_io_job::disk_io_job()
-		: requester(nullptr)
-		, piece(0)
+		: piece(0)
 		, action(read)
-		, ret(0)
-		, flags(0)
-#if TORRENT_USE_ASSERTS
-		, in_use(false)
-		, job_posted(false)
-		, callback_called(false)
-		, blocked(false)
-#endif
 	{
 		buffer.disk_block = nullptr;
 		d.io.offset = 0;

@@ -78,27 +78,7 @@ namespace libtorrent
 		// which determines the storage mechanism for the downloaded or seeding
 		// data for the torrent. For more information, see the ``storage`` field.
 		explicit add_torrent_params(storage_constructor_type sc = default_storage_constructor)
-			: version(LIBTORRENT_VERSION_NUM)
-			, storage_mode(storage_mode_sparse)
-			, storage(sc)
-			, userdata(0)
-			, flags(default_flags)
-			, max_uploads(-1)
-			, max_connections(-1)
-			, upload_limit(-1)
-			, download_limit(-1)
-			, total_uploaded(0)
-			, total_downloaded(0)
-			, active_time(0)
-			, finished_time(0)
-			, seeding_time(0)
-			, added_time(0)
-			, completed_time(0)
-			, last_seen_complete(0)
-			, num_complete(-1)
-			, num_incomplete(-1)
-			, num_downloaded(-1)
-		{}
+			: storage(sc) {}
 
 		// values for the ``flags`` field
 		enum flags_t : std::uint64_t
@@ -281,7 +261,7 @@ namespace libtorrent
 
 		// filled in by the constructor and should be left untouched. It is used
 		// for forward binary compatibility.
-		int version;
+		int version = LIBTORRENT_VERSION_NUM;
 
 		// torrent_info object with the torrent to add. Unless the url or
 		// info_hash is set, this is required to be initialized.
@@ -314,7 +294,7 @@ namespace libtorrent
 
 		// One of the values from storage_mode_t. For more information, see
 		// storage-allocation_.
-		storage_mode_t storage_mode;
+		storage_mode_t storage_mode = storage_mode_sparse;
 
 		// can be used to customize how the data is stored. The default storage
 		// will simply write the data to the files it belongs to, but it could be
@@ -327,7 +307,7 @@ namespace libtorrent
 		// The ``userdata`` parameter is optional and will be passed on to the
 		// extension constructor functions, if any
 		// (see torrent_handle::add_extension()).
-		void* userdata;
+		void* userdata = nullptr;
 
 		// can be set to control the initial file priorities when adding a
 		// torrent. The semantics are the same as for
@@ -364,7 +344,7 @@ namespace libtorrent
 		// 	constructor. In order to preserve default behavior when clearing or
 		// 	setting other flags, make sure to bitwise OR or in a flag or bitwise
 		// 	AND the inverse of a flag to clear it.
-		std::uint64_t flags;
+		std::uint64_t flags = default_flags;
 
 		// set this to the info hash of the torrent to add in case the info-hash
 		// is the only known property of the torrent. i.e. you don't have a
@@ -380,34 +360,34 @@ namespace libtorrent
 		//
 		// -1 means unlimited on these settings just like their counterpart
 		// functions on torrent_handle
-		int max_uploads;
-		int max_connections;
-		int upload_limit;
-		int download_limit;
+		int max_uploads = -1;
+		int max_connections = -1;
+		int upload_limit = -1;
+		int download_limit = -1;
 
 		// the total number of bytes uploaded and downloaded by this torrent so
 		// far.
-		std::int64_t total_uploaded;
-		std::int64_t total_downloaded;
+		std::int64_t total_uploaded = 0;
+		std::int64_t total_downloaded = 0;
 
 		// the number of seconds this torrent has spent in started, finished and
 		// seeding state so far, respectively.
-		int active_time;
-		int finished_time;
-		int seeding_time;
+		int active_time = 0;
+		int finished_time = 0;
+		int seeding_time = 0;
 
 		// if set to a non-zero value, this is the posix time of when this torrent
 		// was first added, including previous runs/sessions. If set to zero, the
 		// internal added_time will be set to the time of when add_torrent() is
 		// called.
-		time_t added_time;
-		time_t completed_time;
+		time_t added_time = 0;
+		time_t completed_time = 0;
 
 		// if set to non-zero, initializes the time (expressed in posix time) when
 		// we last saw a seed or peers that together formed a complete copy of the
 		// torrent. If left set to zero, the internal counterpart to this field
 		// will be updated when we see a seed or a distributed copies >= 1.0.
-		time_t last_seen_complete;
+		time_t last_seen_complete = 0;
 
 		// these field can be used to initialize the torrent's cached scrape data.
 		// The scrape data is high level metadata about the current state of the
@@ -421,9 +401,9 @@ namespace libtorrent
 		//
 		// Leaving any of these values set to -1 indicates we don't know, or we
 		// have not received any scrape data.
-		int num_complete;
-		int num_incomplete;
-		int num_downloaded;
+		int num_complete = -1;
+		int num_incomplete = -1;
+		int num_downloaded = -1;
 
 		// URLs can be added to these two lists to specify additional web
 		// seeds to be used by the torrent. If the ``flag_override_web_seeds``

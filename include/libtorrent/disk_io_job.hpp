@@ -72,6 +72,8 @@ namespace libtorrent
 	{
 		disk_io_job();
 		~disk_io_job();
+		disk_io_job(disk_io_job const&) = delete;
+		disk_io_job& operator=(disk_io_job const&) = delete;
 
 		enum action_t
 		{
@@ -133,7 +135,7 @@ namespace libtorrent
 		bool completed(cached_piece_entry const* pe, int block_size);
 
 		// unique identifier for the peer when reading
-		void* requester;
+		void* requester = nullptr;
 
 		// for write, this points to the data to write,
 		// for read, the data read is returned here
@@ -209,24 +211,24 @@ namespace libtorrent
 		enum { operation_failed = -1 };
 
 		// return value of operation
-		std::int32_t ret;
+		std::int32_t ret = 0;
 
 		// flags controlling this job
-		std::uint8_t flags;
+		std::uint8_t flags = 0;
 
 #if TORRENT_USE_ASSERTS
-		bool in_use:1;
+		bool in_use = false;
 
 		// set to true when the job is added to the completion queue.
 		// to make sure we don't add it twice
-		mutable bool job_posted:1;
+		mutable bool job_posted = false;
 
 		// set to true when the callback has been called once
 		// used to make sure we don't call it twice
-		mutable bool callback_called:1;
+		mutable bool callback_called = false;
 
 		// this is true when the job is blocked by a storage_fence
-		mutable bool blocked:1;
+		mutable bool blocked = false;
 #endif
 	};
 

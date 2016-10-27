@@ -149,9 +149,9 @@ namespace libtorrent
 		std::vector<utp_socket_impl*> m_stalled_sockets;
 
 		// the last socket we received a packet on
-		utp_socket_impl* m_last_socket;
+		utp_socket_impl* m_last_socket = nullptr;
 
-		int m_new_connection;
+		int m_new_connection = -1;
 
 		aux::session_settings const& m_sett;
 
@@ -161,15 +161,15 @@ namespace libtorrent
 
 		// the timestamp for the last time we updated
 		// the routing table
-		mutable time_point m_last_route_update;
+		mutable time_point m_last_route_update = min_time();
 
 		// cache of interfaces
 		mutable std::vector<ip_interface> m_interfaces;
-		mutable time_point m_last_if_update;
+		mutable time_point m_last_if_update = min_time();
 
 		// the buffer size of the socket. This is used
 		// to now lower the buffer size
-		int m_sock_buf_size;
+		int m_sock_buf_size = 0;
 
 		// stats counters
 		counters& m_counters;
@@ -177,7 +177,7 @@ namespace libtorrent
 		io_service& m_ios;
 
 		std::array<int, 3> m_restrict_mtu;
-		int m_mtu_idx;
+		int m_mtu_idx = 0;
 
 		// this is  passed on to the instantiate connection
 		// if this is non-nullptr it will create SSL connections over uTP
