@@ -40,7 +40,7 @@ namespace libtorrent
 	template <typename T>
 	struct list_node
 	{
-		list_node() : prev(0), next(0) {}
+		list_node() : prev(nullptr), next(nullptr) {}
 		T* prev;
 		T* next;
 	};
@@ -48,7 +48,7 @@ namespace libtorrent
 	template <typename T>
 	struct list_iterator
 	{
-		template <typename U>
+		template <typename U, typename Cond>
 		friend struct linked_list;
 
 		T const* get() const { return m_current; }
@@ -63,9 +63,8 @@ namespace libtorrent
 		T* m_current;
 	};
 
-	// T must derive from list_node<T>. Having an enable_if here would require T
-	// to be a complete type, which is a bit too restrictive.
-	template <typename T>
+	template <typename T, typename Cond = typename std::enable_if<
+		std::is_base_of<list_node<T>, T>::value>::type>
 	struct linked_list
 	{
 		linked_list(): m_first(nullptr), m_last(nullptr), m_size(0) {}
@@ -91,28 +90,28 @@ namespace libtorrent
 #endif
 			if (e == m_first)
 			{
-				TORRENT_ASSERT(e->prev == 0);
+				TORRENT_ASSERT(e->prev == nullptr);
 				m_first = e->next;
 			}
 			if (e == m_last)
 			{
-				TORRENT_ASSERT(e->next == 0);
+				TORRENT_ASSERT(e->next == nullptr);
 				m_last = e->prev;
 			}
 			if (e->prev) e->prev->next = e->next;
 			if (e->next) e->next->prev = e->prev;
-			e->next = 0;
-			e->prev = 0;
+			e->next = nullptr;
+			e->prev = nullptr;
 			TORRENT_ASSERT(m_size > 0);
 			--m_size;
-			TORRENT_ASSERT(m_last == 0 || m_last->next == 0);
+			TORRENT_ASSERT(m_last == nullptr || m_last->next == nullptr);
 		}
 		void push_front(T* e)
 		{
-			TORRENT_ASSERT(e->next == 0);
-			TORRENT_ASSERT(e->prev== 0);
-			TORRENT_ASSERT(m_last == 0 || m_last->next == 0);
-			e->prev = 0;
+			TORRENT_ASSERT(e->next == nullptr);
+			TORRENT_ASSERT(e->prev== nullptr);
+			TORRENT_ASSERT(m_last == nullptr || m_last->next == nullptr);
+			e->prev = nullptr;
 			e->next = m_first;
 			if (m_first) m_first->prev = e;
 			else m_last = e;
@@ -121,11 +120,11 @@ namespace libtorrent
 		}
 		void push_back(T* e)
 		{
-			TORRENT_ASSERT(e->next == 0);
-			TORRENT_ASSERT(e->prev== 0);
-			TORRENT_ASSERT(m_last == 0 || m_last->next == 0);
+			TORRENT_ASSERT(e->next == nullptr);
+			TORRENT_ASSERT(e->prev== nullptr);
+			TORRENT_ASSERT(m_last == nullptr || m_last->next == nullptr);
 			e->prev = m_last;
-			e->next = 0;
+			e->next = nullptr;
 			if (m_last) m_last->next = e;
 			else m_first = e;
 			m_last = e;
@@ -133,11 +132,11 @@ namespace libtorrent
 		}
 		T* get_all()
 		{
-			TORRENT_ASSERT(m_last == 0 || m_last->next == 0);
-			TORRENT_ASSERT(m_first == 0 || m_first->prev == 0);
+			TORRENT_ASSERT(m_last == nullptr || m_last->next == nullptr);
+			TORRENT_ASSERT(m_first == nullptr || m_first->prev == nullptr);
 			T* e = m_first;
-			m_first = 0;
-			m_last = 0;
+			m_first = nullptr;
+			m_last = nullptr;
 			m_size = 0;
 			return e;
 		}
@@ -155,4 +154,3 @@ namespace libtorrent
 }
 
 #endif // LINKED_LIST_HPP
-
