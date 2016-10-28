@@ -1,3 +1,4 @@
+	* fix resumedata check issue with files with priority 0
 	* deprecated mmap_cache feature
 	* add utility function for generating peer ID fingerprint
 	* fix bug in last-seen-complete
