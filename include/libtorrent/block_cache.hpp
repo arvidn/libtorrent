@@ -339,11 +339,17 @@ namespace libtorrent
 			std::size_t operator()(cached_piece_entry const& p) const
 			{ return std::size_t(p.storage.get()) + std::size_t(p.piece); }
 		};
-		typedef std::unordered_set<cached_piece_entry, hash_value> cache_t;
+		struct equal_value
+		{
+			bool operator()(cached_piece_entry const& p1
+				, cached_piece_entry const& p2) const
+			{ return p1.storage.get() == p2.storage.get() && p1.piece == p2.piece; }
+		};
+		using cache_t = std::unordered_set<cached_piece_entry, hash_value, equal_value>;
 
 	public:
 
-		typedef cache_t::const_iterator const_iterator;
+		using const_iterator = cache_t::const_iterator;
 
 		// returns the number of blocks this job would cause to be read in
 		int pad_job(disk_io_job const* j, int blocks_in_piece
