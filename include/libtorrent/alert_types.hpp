@@ -1838,7 +1838,8 @@ namespace libtorrent
 		std::vector<torrent_status> const status;
 	};
 
-	struct TORRENT_EXPORT mmap_cache_alert final : alert
+#ifndef TORRENT_NO_DEPRECATE
+	struct TORRENT_DEPRECATED TORRENT_EXPORT mmap_cache_alert final : alert
 	{
 		mmap_cache_alert(aux::stack_allocator& alloc
 			, error_code const& ec);
@@ -1849,6 +1850,7 @@ namespace libtorrent
 
 		error_code const error;
 	};
+#endif
 
 	// The session_stats_alert is posted when the user requests session statistics by
 	// calling post_session_stats() on the session object. Its category is
@@ -1883,7 +1885,7 @@ namespace libtorrent
 	//
 	// Once this download completes, the ``torrent_update_alert`` is posted to
 	// notify the client of the info-hash changing.
-	struct TORRENT_EXPORT torrent_update_alert final : torrent_alert
+	struct TORRENT_DEPRECATED TORRENT_EXPORT torrent_update_alert final : torrent_alert
 	{
 		// internal
 		torrent_update_alert(aux::stack_allocator& alloc, torrent_handle h

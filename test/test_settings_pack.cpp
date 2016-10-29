@@ -104,9 +104,9 @@ TORRENT_TEST(test_name)
 	TEST_NAME(seeding_piece_quota);
 #ifndef TORRENT_NO_DEPRECATE
 	TEST_NAME(half_open_limit);
+	TEST_NAME(mmap_cache);
 #endif
 	TEST_NAME(peer_turnover_interval);
-	TEST_NAME(mmap_cache);
 	TEST_NAME(peer_fingerprint);
 	TEST_NAME(proxy_tracker_connections);
 	TEST_NAME(cache_size_volatile);

@@ -878,6 +878,14 @@ namespace libtorrent
 			TORRENT_ASSERT(!f.empty());
 
 			int const file_index = f[0].file_index;
+
+			// files with priority zero may not have been saved to disk at their
+			// expected location, but is likely to be in a partfile. Just exempt it
+			// from checking
+			if (file_index < int(m_file_priority.size())
+				&& m_file_priority[file_index] == 0)
+				continue;
+
 			error_code error;
 			std::int64_t const size = m_stat_cache.get_filesize(f[0].file_index
 				, fs, m_save_path, error);

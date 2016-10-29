@@ -81,7 +81,7 @@ namespace libtorrent
 		, m_exceeded_max_size(false)
 		, m_ios(ios)
 		, m_cache_buffer_chunk_size(0)
-#if TORRENT_HAVE_MMAP
+#if TORRENT_HAVE_MMAP && !defined TORRENT_NO_DEPRECATE
 		, m_cache_fd(-1)
 		, m_cache_pool(nullptr)
 #endif
@@ -104,7 +104,7 @@ namespace libtorrent
 		m_magic = 0;
 #endif
 
-#if TORRENT_HAVE_MMAP
+#if TORRENT_HAVE_MMAP && !defined TORRENT_NO_DEPRECATE
 		if (m_cache_pool)
 		{
 			munmap(m_cache_pool, std::uint64_t(m_max_use) * 0x4000);
@@ -162,7 +162,7 @@ namespace libtorrent
 		TORRENT_ASSERT(l.owns_lock());
 		TORRENT_UNUSED(l);
 
-#if TORRENT_HAVE_MMAP
+#if TORRENT_HAVE_MMAP && !defined TORRENT_NO_DEPRECATE
 		if (m_cache_pool)
 		{
 			return buffer >= m_cache_pool && buffer < m_cache_pool
@@ -268,7 +268,7 @@ namespace libtorrent
 		TORRENT_UNUSED(l);
 
 		char* ret;
-#if TORRENT_HAVE_MMAP
+#if TORRENT_HAVE_MMAP && !defined TORRENT_NO_DEPRECATE
 		if (m_cache_pool)
 		{
 			if (m_free_list.size() <= (m_max_use - m_low_watermark)
@@ -385,7 +385,7 @@ namespace libtorrent
 			m_using_pool_allocator = m_want_pool_allocator;
 #endif
 
-#if TORRENT_HAVE_MMAP
+#if TORRENT_HAVE_MMAP && !defined TORRENT_NO_DEPRECATE
 		// if we've already allocated an mmap, we can't change
 		// anything unless there are no allocations in use
 		if (m_cache_pool && m_in_use > 0) return;
@@ -394,10 +394,13 @@ namespace libtorrent
 		// only allow changing size if we're not using mmapped
 		// cache, or if we're just about to turn it off
 		if (
-#if TORRENT_HAVE_MMAP
+#if TORRENT_HAVE_MMAP && !defined TORRENT_NO_DEPRECATE
 			m_cache_pool == nullptr ||
+			sett.get_str(settings_pack::mmap_cache).empty()
+#else
+			true
 #endif
-			sett.get_str(settings_pack::mmap_cache).empty())
+		)
 		{
 			int const cache_size = sett.get_int(settings_pack::cache_size);
 			if (cache_size < 0)
@@ -467,7 +470,7 @@ namespace libtorrent
 		m_settings_set = true;
 #endif
 
-#if TORRENT_HAVE_MMAP
+#if TORRENT_HAVE_MMAP && !defined TORRENT_NO_DEPRECATE
 		// #error support resizing the map
 		if (m_cache_pool && sett.get_str(settings_pack::mmap_cache).empty())
 		{
@@ -532,7 +535,7 @@ namespace libtorrent
 				}
 			}
 		}
-#endif
+#endif // TORRENT_HAVE_MMAP
 	}
 
 	void disk_buffer_pool::remove_buffer_in_use(char* buf)
@@ -553,7 +556,7 @@ namespace libtorrent
 		TORRENT_ASSERT(l.owns_lock());
 		TORRENT_UNUSED(l);
 
-#if TORRENT_HAVE_MMAP
+#if TORRENT_HAVE_MMAP && !defined TORRENT_NO_DEPRECATE
 		if (m_cache_pool)
 		{
 			TORRENT_ASSERT(buf >= m_cache_pool);

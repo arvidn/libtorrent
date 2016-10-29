@@ -143,7 +143,7 @@ namespace libtorrent
 
 		int m_cache_buffer_chunk_size;
 
-#if TORRENT_HAVE_MMAP
+#if TORRENT_HAVE_MMAP && !defined TORRENT_NO_DEPRECATE
 		// the file descriptor of the cache mmap file
 		int m_cache_fd;
 		// the pointer to the block of virtual address space
