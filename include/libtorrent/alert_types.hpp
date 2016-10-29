@@ -1878,7 +1878,8 @@ namespace libtorrent
 		std::vector<torrent_status> status;
 	};
 
-	struct TORRENT_EXPORT mmap_cache_alert TORRENT_FINAL : alert
+#ifndef TORRENT_NO_DEPRECATE
+	struct TORRENT_DEPRECATED TORRENT_EXPORT mmap_cache_alert TORRENT_FINAL : alert
 	{
 		mmap_cache_alert(aux::stack_allocator& alloc
 			, error_code const& ec);
@@ -1889,6 +1890,7 @@ namespace libtorrent
 
 		error_code error;
 	};
+#endif
 
 	// The session_stats_alert is posted when the user requests session statistics by
 	// calling post_session_stats() on the session object. Its category is

@@ -1349,6 +1349,7 @@ namespace libtorrent {
 		return msg;
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	mmap_cache_alert::mmap_cache_alert(aux::stack_allocator&
 		, error_code const& ec): error(ec)
 	{}
@@ -1360,6 +1361,7 @@ namespace libtorrent {
 			, convert_from_native(error.message()).c_str());
 		return msg;
 	}
+#endif
 
 	peer_error_alert::peer_error_alert(aux::stack_allocator& alloc, torrent_handle const& h
 		, tcp::endpoint const& ep, peer_id const& peer_id, int op
