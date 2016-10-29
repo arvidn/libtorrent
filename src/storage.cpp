@@ -1016,6 +1016,14 @@ namespace libtorrent
 		for (int i = 0; i < file_sizes_ent.list_size(); ++i)
 		{
 			if (fs.pad_file_at(i)) continue;
+
+			// files with priority zero may not have been saved to disk at their
+			// expected location, but is likely to be in a partfile. Just exempt it
+			// from checking
+			if (i < int(m_file_priority.size())
+				&& m_file_priority[i] == 0)
+				continue;
+
 			bdecode_node e = file_sizes_ent.list_at(i);
 			if (e.type() != bdecode_node::list_t
 				|| e.list_size() < 2
