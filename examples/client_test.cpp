@@ -1301,7 +1301,6 @@ int main(int argc, char* argv[])
 			"  -C <limit>            sets the max cache size. Specified in 16kB blocks\n"
 			"  -j                    disable disk read-ahead\n"
 			"  -z                    disable piece hash checks (used for benchmarking)\n"
-			"  -Z <file>             mmap the disk cache to the specified file, should be an SSD\n"
 			"  -0                    disable disk I/O, read garbage and don't flush to disk\n"
 			"\n\n"
 			"TORRENT is a path to a .torrent file\n"
@@ -1537,10 +1536,6 @@ int main(int argc, char* argv[])
 					break;
 				}
 			case 'X': settings.set_bool(settings_pack::enable_lsd, false); --i; break;
-			case 'Z':
-				settings.set_str(settings_pack::mmap_cache, arg);
-				settings.set_bool(settings_pack::contiguous_recv_buffer, false);
-				break;
 			case 'v': settings.set_int(settings_pack::active_downloads, atoi(arg));
 				settings.set_int(settings_pack::active_limit, atoi(arg) * 2);
 				break;
