@@ -1839,6 +1839,11 @@ namespace libtorrent
 	};
 
 #ifndef TORRENT_NO_DEPRECATE
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+// warning C4996: X: was declared deprecated
+#pragma warning( disable : 4996 )
+#endif
 	struct TORRENT_DEPRECATED TORRENT_EXPORT mmap_cache_alert final : alert
 	{
 		mmap_cache_alert(aux::stack_allocator& alloc
@@ -1850,6 +1855,9 @@ namespace libtorrent
 
 		error_code const error;
 	};
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 #endif
 
 	// The session_stats_alert is posted when the user requests session statistics by
@@ -1885,6 +1893,11 @@ namespace libtorrent
 	//
 	// Once this download completes, the ``torrent_update_alert`` is posted to
 	// notify the client of the info-hash changing.
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+// warning C4996: X: was declared deprecated
+#pragma warning( disable : 4996 )
+#endif
 	struct TORRENT_DEPRECATED TORRENT_EXPORT torrent_update_alert final : torrent_alert
 	{
 		// internal
@@ -1900,6 +1913,9 @@ namespace libtorrent
 		sha1_hash old_ih;
 		sha1_hash new_ih;
 	};
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 #endif
 
 	// posted when something fails in the DHT. This is not necessarily a fatal
