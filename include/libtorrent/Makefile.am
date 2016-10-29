@@ -142,7 +142,6 @@ nobase_include_HEADERS = \
   torrent_status.hpp           \
   udp_socket.hpp               \
   udp_tracker_connection.hpp   \
-  uncork_interface.hpp         \
   union_endpoint.hpp           \
   upnp.hpp                     \
   utp_socket_manager.hpp       \

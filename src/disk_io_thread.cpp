@@ -46,7 +46,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_buffer_pool.hpp"
 #include "libtorrent/disk_io_job.hpp"
 #include "libtorrent/alert_types.hpp"
-#include "libtorrent/uncork_interface.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/alert_manager.hpp"
 #include "libtorrent/debug.hpp"
@@ -179,13 +178,11 @@ namespace libtorrent
 
 	disk_io_thread::disk_io_thread(io_service& ios
 		, counters& cnt
-		, void* userdata
 		, int const block_size)
 		: m_generic_io_jobs(*this, generic_thread)
 		, m_generic_threads(m_generic_io_jobs, ios)
 		, m_hash_io_jobs(*this, hasher_thread)
 		, m_hash_threads(m_hash_io_jobs, ios)
-		, m_userdata(userdata)
 		, m_last_file_check(clock_type::now())
 		, m_disk_cache(block_size, ios, std::bind(&disk_io_thread::trigger_cache_trim, this))
 		, m_stats_counters(cnt)
@@ -3518,16 +3515,13 @@ namespace libtorrent
 			// we take this lock just to make the logging prettier (non-interleaved)
 			DLOG("posting job handlers (%d)\n", m_completed_jobs.size());
 
-			m_ios.post(std::bind(&disk_io_thread::call_job_handlers, this, m_userdata));
+			m_ios.post(std::bind(&disk_io_thread::call_job_handlers, this));
 			m_job_completions_in_flight = true;
 		}
 	}
 
 	// This is run in the network thread
-	// TODO: 2 it would be nice to get rid of m_userdata and just have a function
-	// object to pass all the job completions to. It could in turn be responsible
-	// for posting them to the correct io_service
-	void disk_io_thread::call_job_handlers(void* userdata)
+	void disk_io_thread::call_job_handlers()
 	{
 		std::unique_lock<std::mutex> l(m_completed_jobs_mutex);
 
@@ -3539,7 +3533,6 @@ namespace libtorrent
 		disk_io_job* j = m_completed_jobs.get_all();
 		l.unlock();
 
-		uncork_interface* uncork = static_cast<uncork_interface*>(userdata);
 		std::array<disk_io_job*, 64> to_delete;
 		int cnt = 0;
 
@@ -3564,10 +3557,6 @@ namespace libtorrent
 		}
 
 		if (cnt > 0) free_jobs(to_delete.data(), cnt);
-
-		// uncork all peers who received a disk event. This is
-		// to coalesce all the socket writes caused by the events.
-		if (uncork) uncork->do_delayed_uncork();
 	}
 
 #if TORRENT_USE_INVARIANT_CHECKS

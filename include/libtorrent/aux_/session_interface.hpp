@@ -191,10 +191,6 @@ namespace libtorrent { namespace aux
 
 		virtual peer_id const& get_peer_id() const = 0;
 
-		// cork a peer and schedule a delayed uncork
-		// does nothing if the peer is already corked
-		virtual void cork_burst(peer_connection* p) = 0;
-
 		virtual void close_connection(peer_connection* p, error_code const& ec) = 0;
 		virtual int num_connections() const = 0;
 
