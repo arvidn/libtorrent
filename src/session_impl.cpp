@@ -174,14 +174,27 @@ namespace
 #include <winerror.h>
 #endif
 
-using libtorrent::aux::session_impl;
 using namespace std::placeholders;
 
 #ifdef BOOST_NO_EXCEPTIONS
-namespace boost {
-	void throw_exception(std::exception const& e) { ::abort(); }
-}
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-noreturn"
 #endif
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-noreturn"
+#endif
+namespace boost {
+	void throw_exception(std::exception const&) { ::abort(); }
+}
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+#endif // BOOST_NO_EXCEPTIONS
 
 namespace libtorrent {
 
@@ -5162,11 +5175,14 @@ namespace aux {
 		// proxy, and it's the same one as we're using for the tracker
 		// just tell the tracker the socks5 port we're listening on
 		if (m_socks_listen_socket && m_socks_listen_socket->is_open())
-			return m_socks_listen_socket->local_endpoint().port();
+		{
+			error_code ec;
+			return m_socks_listen_socket->local_endpoint(ec).port();
+		}
 
 		// if not, don't tell the tracker anything if we're in force_proxy
 		// mode. We don't want to leak our listen port since it can
-		// potentially identify us if it is leaked elsewere
+		// potentially identify us if it is leaked elsewhere
 		if (m_settings.get_bool(settings_pack::force_proxy)) return 0;
 		if (m_listen_sockets.empty()) return 0;
 		return m_listen_sockets.front().tcp_external_port;

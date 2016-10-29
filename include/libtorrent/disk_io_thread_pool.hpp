@@ -42,7 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <thread>
 #include <mutex>
 #include <atomic>
-#include <functional>
 
 namespace libtorrent
 {
@@ -77,7 +76,7 @@ namespace libtorrent
 		// it is expected that they will be called while holding the
 		// job queue mutex
 
-		// theese functions should be called by the thread_fun to signal its state
+		// these functions should be called by the thread_fun to signal its state
 		// threads are considered active when they are started so thread_idle should
 		// be called first
 		// these calls are not thread safe
@@ -97,7 +96,7 @@ namespace libtorrent
 		// get the thread id of the first thread in the internal vector
 		// since this is the first thread it will remain the same until the first
 		// thread exits
-		// it can be used to trigger maintainance jobs which should only run on one thread
+		// it can be used to trigger maintenance jobs which should only run on one thread
 		std::thread::id first_thread_id();
 		int num_threads()
 		{

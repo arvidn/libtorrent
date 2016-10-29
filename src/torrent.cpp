@@ -101,7 +101,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp" // for tracker_logger
 #endif
 
-using namespace libtorrent;
 using namespace std::placeholders;
 
 namespace libtorrent
@@ -1001,7 +1000,7 @@ namespace libtorrent
 		{
 			throw;
 		}
-		catch (system_error const& err)
+		catch (boost::system::system_error const& err)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log())
