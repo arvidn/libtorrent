@@ -102,9 +102,9 @@ TORRENT_TEST(test_name)
 	TEST_NAME(seeding_piece_quota);
 #ifndef TORRENT_NO_DEPRECATE
 	TEST_NAME(half_open_limit);
+	TEST_NAME(mmap_cache);
 #endif
 	TEST_NAME(peer_turnover_interval);
-	TEST_NAME(mmap_cache);
 }
 
 TORRENT_TEST(clear)

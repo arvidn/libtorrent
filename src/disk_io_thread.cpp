@@ -282,10 +282,14 @@ namespace libtorrent
 		apply_pack(pack, m_settings);
 		error_code ec;
 		m_disk_cache.set_settings(m_settings, ec);
+#ifndef TORRENT_NO_DEPRECATE
 		if (ec && alerts.should_post<mmap_cache_alert>())
 		{
 			alerts.emplace_alert<mmap_cache_alert>(ec);
 		}
+#else
+		TORRENT_UNUSED(alerts);
+#endif
 	}
 
 	// flush all blocks that are below p->hash.offset, since we've
