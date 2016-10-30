@@ -50,7 +50,6 @@ namespace
         if (ec) throw libtorrent_exception(ec);
 #endif
     }
-#endif
 
     void outgoing_ports(lt::session& s, int _min, int _max)
     {
@@ -61,6 +60,8 @@ namespace
         s.apply_settings(p);
         return;
     }
+#endif // TORRENT_NO_DEPRECATE
+
 #ifndef TORRENT_DISABLE_DHT
     void add_dht_node(lt::session& s, tuple n)
     {
@@ -770,10 +771,10 @@ void bind_session()
                 , arg("flags")=lt::session::start_default_features | lt::session::add_default_plugins
                 , arg("alert_mask")=int(alert::error_notification)))
         )
+        .def("outgoing_ports", &outgoing_ports)
 #endif
         .def("post_torrent_updates", allow_threads(&lt::session::post_torrent_updates), arg("flags") = 0xffffffff)
         .def("post_session_stats", allow_threads(&lt::session::post_session_stats))
-        .def("outgoing_ports", &outgoing_ports)
         .def("is_listening", allow_threads(&lt::session::is_listening))
         .def("listen_port", allow_threads(&lt::session::listen_port))
 #ifndef TORRENT_DISABLE_DHT

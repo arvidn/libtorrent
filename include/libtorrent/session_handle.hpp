@@ -613,8 +613,8 @@ namespace libtorrent
 		// listen_failed_alert with port 0 even if you didn't ask to listen on
 		// it.
 		//
-		// It is possible to prevent libtorrent from binding to port 0 by passing
-		// in the flag ``session::no_system_port`` in the ``flags`` argument.
+		// It is possible to prevent libtorrent from falling back to binding to
+		// port 0 by clearing the ``listen_system_port_fallback`` settings.
 		//
 		// The interface parameter can also be a hostname that will resolve to
 		// the device you want to listen on. If you don't specify an interface,
@@ -622,12 +622,6 @@ namespace libtorrent
 		// 0.0.0.0 and ::). This means that if your IPv6 interface doesn't work,
 		// you may still see a listen_failed_alert, even though the IPv4 port
 		// succeeded.
-		//
-		// The ``flags`` parameter can either be 0 or
-		// ``session::listen_reuse_address``, which will set the reuse address
-		// socket option on the listen socket(s). By default, the listen socket
-		// does not use reuse address. If you're running a service that needs to
-		// run on a specific port no matter if it's in use, set this flag.
 		unsigned short listen_port() const;
 		unsigned short ssl_listen_port() const;
 		bool is_listening() const;
