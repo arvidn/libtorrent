@@ -119,7 +119,7 @@ void run_metadata_test(int flags)
 		{
 			if (flags & reverse)
 			{
-				return (ticks > 1);
+				return true;
 			}
 
 			if (ticks > 70)

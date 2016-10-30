@@ -5534,10 +5534,10 @@ namespace libtorrent
 			return;
 		}
 
-		int const amount_to_send = std::min(
-			int(m_send_buffer.size()), std::min(
-			quota_left
-			, m_send_barrier));
+		int const amount_to_send = std::min({
+			int(m_send_buffer.size())
+			, quota_left
+			, m_send_barrier});
 
 		TORRENT_ASSERT(amount_to_send > 0);
 
@@ -5798,6 +5798,9 @@ namespace libtorrent
 		std::shared_ptr<peer_connection> me(self());
 
 		TORRENT_ASSERT(bytes_transferred > 0);
+
+		// flush the send buffer at the end of this function
+		cork _c(*this);
 
 		// if we received exactly as many bytes as we provided a receive buffer
 		// for. There most likely are more bytes to read, and we should grow our

@@ -63,6 +63,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/piece_block.hpp"
+#include "libtorrent/peer_info.hpp"
 
 #include <ctime>
 #include <algorithm>
@@ -76,7 +77,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	class torrent;
-	struct peer_info;
 	struct disk_io_job;
 	struct disk_interface;
 	struct torrent_peer;
@@ -255,6 +255,7 @@ namespace libtorrent
 	{
 	friend class invariant_access;
 	friend class torrent;
+	friend struct cork;
 	public:
 
 		void on_exception(std::exception const& e) override;
@@ -1200,6 +1201,33 @@ namespace libtorrent
 		bool m_socket_is_writing = false;
 		bool is_single_thread() const;
 #endif
+	};
+
+	struct cork
+	{
+		explicit cork(peer_connection& p): m_pc(p)
+		{
+			if (m_pc.m_channel_state[peer_connection::upload_channel] & peer_info::bw_network)
+				return;
+
+			// pretend that there's an outstanding send operation already, to
+			// prevent future calls to setup_send() from actually causing an
+			// asyc_send() to be issued.
+			m_pc.m_channel_state[peer_connection::upload_channel] |= peer_info::bw_network;
+			m_need_uncork = true;
+		}
+		cork(cork const&) = delete;
+		cork& operator=(cork const&) = delete;
+
+		~cork()
+		{
+			if (!m_need_uncork) return;
+			m_pc.m_channel_state[peer_connection::upload_channel] &= ~peer_info::bw_network;
+			m_pc.setup_send();
+		}
+	private:
+		peer_connection& m_pc;
+		bool m_need_uncork = false;
 	};
 
 }
