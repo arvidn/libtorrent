@@ -143,7 +143,7 @@ namespace libtorrent
 			// don't have ``mmap`` this setting is ignored.
 			mmap_cache,
 #else
-			deprecated12,
+			deprecated21,
 #endif
 
 			// this is the client name and version identifier sent to peers in the
