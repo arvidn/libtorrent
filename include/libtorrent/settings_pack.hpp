@@ -1383,7 +1383,7 @@ namespace libtorrent
 			// normal client. If this is a high performance server which expects
 			// to receive a lot of connections, or used in a simulator or test, it
 			// might make sense to raise this number. It will not take affect
-			// until listen_on() is called again (or for the first time).
+			// until the ``listen_interfaces`` settings is updated.
 			listen_queue_size,
 
 			// ``torrent_connect_boost`` is the number of peers to try to connect
