@@ -1844,6 +1844,10 @@ namespace libtorrent
 // warning C4996: X: was declared deprecated
 #pragma warning( disable : 4996 )
 #endif
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 	struct TORRENT_DEPRECATED TORRENT_EXPORT mmap_cache_alert final : alert
 	{
 		mmap_cache_alert(aux::stack_allocator& alloc
@@ -1855,6 +1859,9 @@ namespace libtorrent
 
 		error_code const error;
 	};
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
@@ -1898,6 +1905,10 @@ namespace libtorrent
 // warning C4996: X: was declared deprecated
 #pragma warning( disable : 4996 )
 #endif
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 	struct TORRENT_DEPRECATED TORRENT_EXPORT torrent_update_alert final : torrent_alert
 	{
 		// internal
@@ -1913,6 +1924,9 @@ namespace libtorrent
 		sha1_hash old_ih;
 		sha1_hash new_ih;
 	};
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
