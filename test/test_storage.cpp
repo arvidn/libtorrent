@@ -450,7 +450,7 @@ void test_check_files(std::string const& test_path
 	file_pool fp;
 	boost::asio::io_service ios;
 	counters cnt;
-	disk_io_thread io(ios, cnt, nullptr);
+	disk_io_thread io(ios, cnt);
 	io.set_num_threads(1);
 	disk_buffer_pool dp(16 * 1024, ios, std::bind(&nop));
 	storage_params p;

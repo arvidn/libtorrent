@@ -63,6 +63,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/piece_block.hpp"
+#include "libtorrent/peer_info.hpp"
 
 #include <ctime>
 #include <algorithm>
@@ -76,7 +77,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	class torrent;
-	struct peer_info;
 	struct disk_io_job;
 	struct disk_interface;
 	struct torrent_peer;
@@ -166,7 +166,6 @@ namespace libtorrent
 			, m_snubbed(false)
 			, m_interesting(false)
 			, m_choked(true)
-			, m_corked(false)
 			, m_ignore_stats(false)
 		{}
 
@@ -230,13 +229,6 @@ namespace libtorrent
 		// we have choked the upload to the peer
 		bool m_choked:1;
 
-		// when this is set, the peer_connection socket is
-		// corked, similar to the linux TCP feature TCP_CORK.
-		// we won't send anything to the actual socket, just
-		// buffer messages up in the application layer send
-		// buffer, and send it once we're uncorked.
-		bool m_corked:1;
-
 		// when this is set, the transfer stats for this connection
 		// is not included in the torrent or session stats
 		bool m_ignore_stats:1;
@@ -263,6 +255,7 @@ namespace libtorrent
 	{
 	friend class invariant_access;
 	friend class torrent;
+	friend struct cork;
 	public:
 
 		void on_exception(std::exception const& e) override;
@@ -634,10 +627,6 @@ namespace libtorrent
 		enum message_type_flags { message_type_request = 1 };
 		void send_buffer(char const* begin, int size, int flags = 0);
 		void setup_send();
-
-		void cork_socket() { TORRENT_ASSERT(!m_corked); m_corked = true; }
-		bool is_corked() const { return m_corked; }
-		void uncork_socket();
 
 		void append_send_buffer(char* buffer, int size
 			, chained_buffer::free_buffer_fun destructor = &nop
@@ -1218,16 +1207,27 @@ namespace libtorrent
 	{
 		explicit cork(peer_connection& p): m_pc(p)
 		{
-			if (m_pc.is_corked()) return;
-			m_pc.cork_socket();
+			if (m_pc.m_channel_state[peer_connection::upload_channel] & peer_info::bw_network)
+				return;
+
+			// pretend that there's an outstanding send operation already, to
+			// prevent future calls to setup_send() from actually causing an
+			// asyc_send() to be issued.
+			m_pc.m_channel_state[peer_connection::upload_channel] |= peer_info::bw_network;
 			m_need_uncork = true;
 		}
-		~cork() { if (m_need_uncork) m_pc.uncork_socket(); }
+		cork(cork const&) = delete;
+		cork& operator=(cork const&) = delete;
+
+		~cork()
+		{
+			if (!m_need_uncork) return;
+			m_pc.m_channel_state[peer_connection::upload_channel] &= ~peer_info::bw_network;
+			m_pc.setup_send();
+		}
 	private:
 		peer_connection& m_pc;
 		bool m_need_uncork = false;
-
-		cork& operator=(cork const&);
 	};
 
 }

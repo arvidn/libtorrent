@@ -279,7 +279,6 @@ namespace libtorrent
 	{
 		disk_io_thread(io_service& ios
 			, counters& cnt
-			, void* userdata
 			, int block_size = 16 * 1024);
 		~disk_io_thread();
 
@@ -419,7 +418,7 @@ namespace libtorrent
 		int do_tick(disk_io_job* j, jobqueue_t& completed_jobs);
 		int do_resolve_links(disk_io_job* j, jobqueue_t& completed_jobs);
 
-		void call_job_handlers(void* userdata);
+		void call_job_handlers();
 
 	private:
 

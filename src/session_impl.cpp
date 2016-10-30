@@ -398,8 +398,7 @@ namespace aux {
 		, m_ssl_ctx(m_io_service, boost::asio::ssl::context::sslv23)
 #endif
 		, m_alerts(m_settings.get_int(settings_pack::alert_queue_size), alert::all_categories)
-		, m_disk_thread(m_io_service, m_stats_counters
-			, static_cast<uncork_interface*>(this))
+		, m_disk_thread(m_io_service, m_stats_counters)
 		, m_download_rate(peer_connection::download_channel)
 		, m_upload_rate(peer_connection::upload_channel)
 		, m_tracker_manager(
@@ -4139,23 +4138,6 @@ namespace aux {
 					t->choke_peer(*p);
 			}
 		}
-	}
-
-	void session_impl::cork_burst(peer_connection* p)
-	{
-		TORRENT_ASSERT(is_single_thread());
-		if (p->is_corked()) return;
-		p->cork_socket();
-		m_delayed_uncorks.push_back(p);
-	}
-
-	void session_impl::do_delayed_uncork()
-	{
-		m_stats_counters.inc_stats_counter(counters::on_disk_counter);
-		TORRENT_ASSERT(is_single_thread());
-		for (peer_connection* p : m_delayed_uncorks)
-			p->uncork_socket();
-		m_delayed_uncorks.clear();
 	}
 
 	std::shared_ptr<torrent> session_impl::delay_load_torrent(sha1_hash const& info_hash

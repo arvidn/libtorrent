@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
-#include "libtorrent/uncork_interface.hpp"
 #include "libtorrent/linked_list.hpp"
 #include "libtorrent/torrent_peer.hpp"
 #include "libtorrent/torrent_peer_allocator.hpp"
@@ -192,7 +191,6 @@ namespace libtorrent
 			, aux::portmap_callback
 			, aux::lsd_callback
 			, boost::noncopyable
-			, uncork_interface
 			, single_threaded
 			, aux::error_handler_interface
 		{
@@ -637,14 +635,6 @@ namespace libtorrent
 			// calls to session_impl and torrent objects
 			mutable std::mutex mut;
 			mutable std::condition_variable cond;
-
-			// cork a peer and schedule a delayed uncork
-			// does nothing if the peer is already corked
-			void cork_burst(peer_connection* p) override;
-
-			// uncork all peers added to the delayed uncork queue
-			// implements uncork_interface
-			virtual void do_delayed_uncork() override;
 
 			// implements session_interface
 			virtual tcp::endpoint bind_outgoing_socket(socket_type& s, address
@@ -1210,14 +1200,6 @@ namespace libtorrent
 
 			// is true if the session is paused
 			bool m_paused = false;
-
-			// this is a list of peer connections who have been
-			// corked (i.e. their network socket) and needs to be
-			// uncorked at the end of the burst of events. This is
-			// here to coalesce the effects of bursts of events
-			// into fewer network writes, saving CPU and possibly
-			// ending up sending larger network packets
-			std::vector<peer_connection*> m_delayed_uncorks;
 		};
 
 #ifndef TORRENT_DISABLE_LOGGING
