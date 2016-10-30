@@ -367,6 +367,10 @@ namespace libtorrent
 		// ``add_dht_node`` takes a host name and port pair. That endpoint will be
 		// pinged, and if a valid DHT reply is received, the node will be added to
 		// the routing table.
+		void add_dht_node(std::pair<std::string, int> const& node);
+
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated, use settings_pack::dht_bootstrap_nodes instead
 		//
 		// ``add_dht_router`` adds the given endpoint to a list of DHT router
 		// nodes. If a search is ever made while the routing table is empty,
@@ -377,8 +381,9 @@ namespace libtorrent
 		//
 		// An example routing node that you could typically add is
 		// ``router.bittorrent.com``.
-		void add_dht_node(std::pair<std::string, int> const& node);
+		TORRENT_DEPRECATED
 		void add_dht_router(std::pair<std::string, int> const& node);
+#endif
 
 		// query the DHT for an immutable item at the ``target`` hash.
 		// the result is posted as a dht_immutable_item_alert.
@@ -614,7 +619,8 @@ namespace libtorrent
 		// it.
 		//
 		// It is possible to prevent libtorrent from falling back to binding to
-		// port 0 by clearing the ``listen_system_port_fallback`` settings.
+		// port 0 by clearing the ``settings_pack::listen_system_port_fallback``
+		// settings.
 		//
 		// The interface parameter can also be a hostname that will resolve to
 		// the device you want to listen on. If you don't specify an interface,
