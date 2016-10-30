@@ -220,10 +220,6 @@ namespace libtorrent
 			return;
 		}
 
-		// make sure are much as possible of the response ends up in the same
-		// packet, or at least back-to-back packets
-		cork c_(*this);
-
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 
 		std::uint8_t out_policy = m_settings.get_int(settings_pack::out_enc_policy);
@@ -2540,10 +2536,6 @@ namespace libtorrent
 			received_bytes(0, int(bytes_transferred));
 			return;
 		}
-
-		// make sure are much as possible of the response ends up in the same
-		// packet, or at least back-to-back packets
-		cork c_(*this);
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		if (!m_enc_handler.is_recv_plaintext())

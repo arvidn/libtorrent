@@ -2986,10 +2986,6 @@ namespace libtorrent
 			m_channel_state[download_channel] &= ~peer_info::bw_disk;
 		}
 
-		// flush send buffer at the end of
-		// this burst of disk events
-//		m_ses.cork_burst(this);
-
 		INVARIANT_CHECK;
 
 		if (!t)
@@ -5258,10 +5254,6 @@ namespace libtorrent
 
 		if (m_disconnecting) return;
 
-		// flush send buffer at the end of
-		// this burst of disk events
-//		m_ses.cork_burst(this);
-
 		if (!t)
 		{
 			disconnect(j->error.ec, op_file_read);
@@ -5423,14 +5415,6 @@ namespace libtorrent
 		return ret;
 	}
 
-	void peer_connection::uncork_socket()
-	{
-		TORRENT_ASSERT(is_single_thread());
-		if (!m_corked) return;
-		m_corked = false;
-		setup_send();
-	}
-
 	void peer_connection::setup_send()
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -5439,7 +5423,16 @@ namespace libtorrent
 		// we may want to request more quota at this point
 		request_bandwidth(upload_channel);
 
-		if (m_channel_state[upload_channel] & peer_info::bw_network) return;
+		// if we already have an outstanding send operation, don't issue another
+		// one, instead accrue more send buffer to coalesce for the next write
+		if (m_channel_state[upload_channel] & peer_info::bw_network)
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			peer_log(peer_log_alert::outgoing, "CORKED_WRITE", "bytes: %d"
+				, int(m_send_buffer.size()));
+#endif
+			return;
+		}
 
 		if (m_send_barrier == 0)
 		{
@@ -5470,7 +5463,6 @@ namespace libtorrent
 		}
 
 		int const quota_left = m_quota[upload_channel];
-
 		if (m_send_buffer.empty()
 			&& m_reading_bytes > 0
 			&& quota_left > 0)
@@ -5542,23 +5534,12 @@ namespace libtorrent
 			return;
 		}
 
-		// send the actual buffer
-		int amount_to_send = m_send_buffer.size();
-		if (amount_to_send > quota_left)
-			amount_to_send = quota_left;
-		if (amount_to_send > m_send_barrier)
-			amount_to_send = m_send_barrier;
+		int const amount_to_send = std::min(
+			int(m_send_buffer.size()), std::min(
+			quota_left
+			, m_send_barrier));
 
 		TORRENT_ASSERT(amount_to_send > 0);
-
-		if (m_corked)
-		{
-#ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::outgoing, "CORKED_WRITE", "bytes: %d"
-				, amount_to_send);
-#endif
-			return;
-		}
 
 		TORRENT_ASSERT((m_channel_state[upload_channel] & peer_info::bw_network) == 0);
 #ifndef TORRENT_DISABLE_LOGGING
@@ -5815,9 +5796,6 @@ namespace libtorrent
 		// this needs to be created before the invariant check,
 		// to keep the object alive through the exit check
 		std::shared_ptr<peer_connection> me(self());
-
-		// flush the send buffer at the end of this function
-		cork _c(*this);
 
 		TORRENT_ASSERT(bytes_transferred > 0);
 
@@ -6230,8 +6208,8 @@ namespace libtorrent
 		m_last_sent = now;
 
 #if TORRENT_USE_ASSERTS
-		std::int64_t cur_payload_ul = m_statistics.last_payload_uploaded();
-		std::int64_t cur_protocol_ul = m_statistics.last_protocol_uploaded();
+		std::int64_t const cur_payload_ul = m_statistics.last_payload_uploaded();
+		std::int64_t const cur_protocol_ul = m_statistics.last_protocol_uploaded();
 #endif
 		on_sent(error, bytes_transferred);
 #if TORRENT_USE_ASSERTS
