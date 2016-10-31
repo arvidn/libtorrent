@@ -5142,10 +5142,9 @@ namespace aux {
 	void session_impl::update_count_slow()
 	{
 		error_code ec;
-		for (torrent_map::const_iterator i = m_torrents.begin()
-			, end(m_torrents.end()); i != end; ++i)
+		for (auto const& tp : m_torrents)
 		{
-			i->second->on_inactivity_tick(ec);
+			tp.second->on_inactivity_tick(ec);
 		}
 	}
 
@@ -5157,7 +5156,14 @@ namespace aux {
 		if (m_socks_listen_socket && m_socks_listen_socket->is_open())
 		{
 			error_code ec;
-			return m_socks_listen_socket->local_endpoint(ec).port();
+			tcp::endpoint endp = m_socks_listen_socket->local_endpoint(ec);
+			if (ec)
+#ifndef BOOST_NO_EXCEPTIONS
+				throw boost::system::system_error(ec);
+#else
+				std::terminate();
+#endif
+			return endp.port();
 		}
 
 		// if not, don't tell the tracker anything if we're in force_proxy
@@ -5181,12 +5187,11 @@ namespace aux {
 
 		// if not, don't tell the tracker anything if we're in force_proxy
 		// mode. We don't want to leak our listen port since it can
-		// potentially identify us if it is leaked elsewere
+		// potentially identify us if it is leaked elsewhere
 		if (m_settings.get_bool(settings_pack::force_proxy)) return 0;
-		for (std::list<listen_socket_t>::const_iterator i = m_listen_sockets.begin()
-			, end(m_listen_sockets.end()); i != end; ++i)
+		for (auto const& s : m_listen_sockets)
 		{
-			if (i->ssl) return i->tcp_external_port;
+			if (s.ssl) return s.tcp_external_port;
 		}
 #endif
 		return 0;
