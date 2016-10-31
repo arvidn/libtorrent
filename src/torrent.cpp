@@ -1000,7 +1000,7 @@ namespace libtorrent
 		{
 			throw;
 		}
-		catch (boost::system::system_error const& err)
+		catch (system_error const& err)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log())

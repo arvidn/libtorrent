@@ -478,8 +478,9 @@ namespace libtorrent
 	using boost::system::generic_category;
 	using boost::system::system_category;
 
-#ifndef BOOST_NO_EXCEPTIONS
 	using boost::system::system_error;
+
+#ifndef BOOST_NO_EXCEPTIONS
 
 #ifndef TORRENT_NO_DEPRECATE
 	using system_error = boost::system::system_error;
