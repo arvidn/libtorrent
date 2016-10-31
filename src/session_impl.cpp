@@ -176,26 +176,6 @@ namespace
 
 using namespace std::placeholders;
 
-#ifdef BOOST_NO_EXCEPTIONS
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmissing-noreturn"
-#endif
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wmissing-noreturn"
-#endif
-namespace boost {
-	void throw_exception(std::exception const&) { ::abort(); }
-}
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
-#endif // BOOST_NO_EXCEPTIONS
-
 namespace libtorrent {
 
 #if defined TORRENT_ASIO_DEBUGGING
