@@ -72,7 +72,7 @@ namespace libtorrent
 
 	void disk_buffer_holder::reset(disk_io_job const& j)
 	{
-		if (m_ref.storage) m_allocator->reclaim_block(m_ref);
+		if (m_ref.storage) m_allocator->reclaim_blocks(m_ref);
 		else if (m_buf) m_allocator->free_disk_buffer(m_buf);
 		m_buf = j.buffer.disk_block;
 		m_ref = j.d.io.ref;
@@ -88,7 +88,7 @@ namespace libtorrent
 
 	void disk_buffer_holder::reset(char* const buf)
 	{
-		if (m_ref.storage) m_allocator->reclaim_block(m_ref);
+		if (m_ref.storage) m_allocator->reclaim_blocks(m_ref);
 		else if (m_buf) m_allocator->free_disk_buffer(m_buf);
 		m_buf = buf;
 		m_ref.storage = nullptr;

@@ -595,7 +595,8 @@ namespace libtorrent
 			disk_buffer_holder allocate_disk_buffer(bool& exceeded
 				, std::shared_ptr<disk_observer> o
 				, char const* category) override;
-			void reclaim_block(block_cache_reference ref) override;
+			void reclaim_blocks(span<block_cache_reference> refs) override;
+			void do_reclaim_blocks();
 
 			bool exceeded_cache_use() const
 			{ return m_disk_thread.exceeded_cache_use(); }
@@ -1086,6 +1087,12 @@ namespace libtorrent
 			// within the LSD announce interval (which defaults to
 			// 5 minutes)
 			torrent_map::iterator m_next_lsd_torrent;
+
+			// we try to return disk buffers to the disk thread in batches, to
+			// avoid hammering its mutex. We accrue blocks here and defer returning
+			// them in a function we post to the io_service
+			std::vector<block_cache_reference> m_blocks_to_reclaim;
+			bool m_pending_block_reclaim = false;
 
 #ifndef TORRENT_DISABLE_DHT
 			// torrents are announced on the DHT in a

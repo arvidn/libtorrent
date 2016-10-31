@@ -2436,7 +2436,7 @@ namespace libtorrent
 		, block_cache_reference ref)
 	{
 		buffer_allocator_interface* buf = static_cast<buffer_allocator_interface*>(userdata);
-		buf->reclaim_block(ref);
+		buf->reclaim_blocks(ref);
 	}
 
 	void buffer_free_disk_buf(char* buffer, void* userdata

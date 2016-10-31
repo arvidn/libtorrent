@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/disk_io_job.hpp" // for block_cache_reference
+#include "libtorrent/span.hpp"
 
 #include <memory>
 
@@ -48,7 +49,7 @@ namespace libtorrent
 	struct TORRENT_EXTRA_EXPORT buffer_allocator_interface
 	{
 		virtual void free_disk_buffer(char* b) = 0;
-		virtual void reclaim_block(block_cache_reference ref) = 0;
+		virtual void reclaim_blocks(span<block_cache_reference> refs) = 0;
 		virtual disk_buffer_holder allocate_disk_buffer(char const* category) = 0;
 		virtual disk_buffer_holder allocate_disk_buffer(bool& exceeded
 			, std::shared_ptr<disk_observer> o
