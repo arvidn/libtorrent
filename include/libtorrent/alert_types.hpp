@@ -1840,7 +1840,7 @@ namespace libtorrent
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 // warning C4996: X: was declared deprecated
-#pragma warning( disable : 4996 )
+#pragma warning(disable : 4996)
 #endif
 #ifdef __GNUC__
 #pragma GCC diagnostic push
@@ -1901,7 +1901,7 @@ namespace libtorrent
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 // warning C4996: X: was declared deprecated
-#pragma warning( disable : 4996 )
+#pragma warning(disable : 4996)
 #endif
 #ifdef __GNUC__
 #pragma GCC diagnostic push
