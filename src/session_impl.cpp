@@ -4497,8 +4497,18 @@ namespace aux {
 
 		if (string_begins_no_case("file://", params->url.c_str()) && !params->ti)
 		{
-			m_disk_thread.async_load_torrent(params
-				, std::bind(&session_impl::on_async_load_torrent, this, _1));
+			if (!m_torrent_load_thread)
+				m_torrent_load_thread.reset(new work_thread_t());
+
+			m_torrent_load_thread->ios.post([params, this]
+			{
+				std::unique_ptr<add_torrent_params> holder(params);
+				error_code ec;
+				params->ti.reset(new torrent_info(resolve_file_url(params->url), ec));
+				this->m_io_service.post(std::bind(&session_impl::on_async_load_torrent
+					, this, params, ec));
+				holder.release();
+			});
 			holder.release();
 			return;
 		}
@@ -4507,22 +4517,19 @@ namespace aux {
 		add_torrent(*params, ec);
 	}
 
-	void session_impl::on_async_load_torrent(disk_io_job const* j)
+	void session_impl::on_async_load_torrent(add_torrent_params* params, error_code ec)
 	{
-		add_torrent_params* params = reinterpret_cast<add_torrent_params*>(j->requester);
 		std::unique_ptr<add_torrent_params> holder(params);
-		if (j->error.ec)
+		if (!ec)
+		{
+			add_torrent(*params, ec);
+			params->url.clear();
+		}
+
+		if (ec)
 		{
 			m_alerts.emplace_alert<add_torrent_alert>(torrent_handle()
-				, *params, j->error.ec);
-		}
-		else
-		{
-			params->url.clear();
-			params->ti = std::shared_ptr<torrent_info>(j->buffer.torrent_file);
-
-			error_code ec;
-			add_torrent(*params, ec);
+				, *params, ec);
 		}
 	}
 

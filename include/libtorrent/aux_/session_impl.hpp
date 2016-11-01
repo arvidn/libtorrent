@@ -449,7 +449,7 @@ namespace libtorrent
 			std::pair<std::shared_ptr<torrent>, bool>
 			add_torrent_impl(add_torrent_params& p, error_code& ec);
 			void async_add_torrent(add_torrent_params* params);
-			void on_async_load_torrent(disk_io_job const* j);
+			void on_async_load_torrent(add_torrent_params* params, error_code ec);
 
 			void remove_torrent(torrent_handle const& h, int options) override;
 			void remove_torrent_impl(std::shared_ptr<torrent> tptr, int options) override;
@@ -1056,6 +1056,26 @@ namespace libtorrent
 			std::shared_ptr<natpmp> m_natpmp;
 			std::shared_ptr<upnp> m_upnp;
 			std::shared_ptr<lsd> m_lsd;
+
+			struct work_thread_t
+			{
+				work_thread_t()
+					: work(new boost::asio::io_service::work(ios))
+					, thread([&] { ios.run(); })
+				{}
+				~work_thread_t()
+				{
+					work.reset();
+					thread.join();
+				}
+				work_thread_t(work_thread_t const&) = delete;
+				work_thread_t& operator=(work_thread_t const&) = delete;
+
+				boost::asio::io_service ios;
+				std::unique_ptr<boost::asio::io_service::work> work;
+				std::thread thread;
+			};
+			std::unique_ptr<work_thread_t> m_torrent_load_thread;
 
 			// mask is a bitmask of which protocols to remap on:
 			// 1: NAT-PMP

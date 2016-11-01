@@ -86,8 +86,6 @@ namespace libtorrent
 		virtual void async_set_file_priority(piece_manager* storage
 			, std::vector<std::uint8_t> const& prio
 			, std::function<void(disk_io_job const*)> handler) = 0;
-		virtual void async_load_torrent(add_torrent_params* params
-			, std::function<void(disk_io_job const*)> handler) = 0;
 		virtual void async_tick_torrent(piece_manager* storage
 			, std::function<void(disk_io_job const*)> handler) = 0;
 
