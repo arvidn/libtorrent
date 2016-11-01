@@ -173,11 +173,18 @@ namespace libtorrent
 			// IPs and multiple ports. Binding to port 0 will make the
 			// operating system pick the port. The default is "0.0.0.0:6881", which
 			// binds to all interfaces on port 6881.
-			//
+			// 
+			// If binding fails because the port is busy, the port number will be
+			// incremented by one, ``settings_pack::max_retry_port_bind`` times.
+			// 
+			// if all retry attempts fail, the socket will be bound to port 0,
+			// meaning the operating system will pick a port. This behavior can be
+			// disabled by disabling ``settings_pack::listen_system_port_fallback``.
+			// 
 			// if binding fails, the listen_failed_alert is posted, potentially
 			// more than once. Once/if binding the listen socket(s) succeed,
 			// listen_succeeded_alert is posted.
-			//
+			// 
 			// Each port will attempt to open both a UDP and a TCP listen socket,
 			// to allow accepting uTP connections as well as TCP. If using the DHT,
 			// this will also make the DHT use the same UDP ports.

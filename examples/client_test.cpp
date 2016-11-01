@@ -1322,9 +1322,6 @@ int main(int argc, char* argv[])
 	settings.set_int(settings_pack::choking_algorithm, settings_pack::rate_based_choker);
 
 	int refresh_delay = 500;
-#ifndef TORRENT_DISABLE_DHT
-	bool start_dht = true;
-#endif
 	bool rate_limit_locals = false;
 
 	std::deque<std::string> events;
@@ -1420,9 +1417,6 @@ int main(int argc, char* argv[])
 			case 't': poll_interval = atoi(arg); break;
 			case 'F': refresh_delay = atoi(arg); break;
 			case 'H':
-#ifndef TORRENT_DISABLE_DHT
-				start_dht = false;
-#endif
 				settings.set_bool(settings_pack::enable_dht, false);
 				--i;
 				break;
@@ -1600,18 +1594,6 @@ int main(int argc, char* argv[])
 	dht_settings dht;
 	dht.privacy_lookups = true;
 	ses.set_dht_settings(dht);
-
-	if (start_dht)
-	{
-		settings.set_bool(settings_pack::use_dht_as_fallback, false);
-
-		ses.add_dht_router(std::make_pair(
-			std::string("router.bittorrent.com"), 6881));
-		ses.add_dht_router(std::make_pair(
-			std::string("router.utorrent.com"), 6881));
-		ses.add_dht_router(std::make_pair(
-			std::string("router.bitcomet.com"), 6881));
-	}
 
 	std::vector<char> in;
 	if (load_file(".ses_state", in, ec) == 0)
