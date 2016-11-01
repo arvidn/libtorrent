@@ -4502,12 +4502,12 @@ namespace aux {
 
 			m_torrent_load_thread->ios.post([params, this]
 			{
-				std::unique_ptr<add_torrent_params> holder(params);
+				std::unique_ptr<add_torrent_params> holder2(params);
 				error_code ec;
 				params->ti.reset(new torrent_info(resolve_file_url(params->url), ec));
 				this->m_io_service.post(std::bind(&session_impl::on_async_load_torrent
 					, this, params, ec));
-				holder.release();
+				holder2.release();
 			});
 			holder.release();
 			return;

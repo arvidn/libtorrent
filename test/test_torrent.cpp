@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/extensions.hpp"
+#include "libtorrent/file.hpp" // for combine_path, current_working_directory
 #include "settings.hpp"
 #include <tuple>
 #include <iostream>
@@ -420,7 +421,9 @@ TORRENT_TEST(async_load)
 	add_torrent_params p;
 	p.flags &= ~add_torrent_params::flag_paused;
 	p.flags &= ~add_torrent_params::flag_auto_managed;
-	p.url = "file://../test_torrents/base.torrent";
+	std::string dir = parent_path(current_working_directory());
+
+	p.url = "file://" + combine_path(combine_path(dir, "test_torrents"), "base.torrent");
 	p.save_path = ".";
 	ses.async_add_torrent(p);
 
