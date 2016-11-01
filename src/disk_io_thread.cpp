@@ -251,26 +251,16 @@ namespace libtorrent
 		m_hash_threads.set_max_threads(num_hash_threads);
 	}
 
-	void disk_io_thread::reclaim_block(block_cache_reference ref)
+	void disk_io_thread::reclaim_blocks(span<block_cache_reference> refs)
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
-		TORRENT_ASSERT(ref.storage);
-		m_blocks_to_reclaim.push_back(ref);
-		if (m_outstanding_reclaim_message) return;
 
-		m_ios.post(std::bind(&disk_io_thread::commit_reclaimed_blocks, this));
-		m_outstanding_reclaim_message = true;
-	}
-
-	void disk_io_thread::commit_reclaimed_blocks()
-	{
-		TORRENT_ASSERT(m_magic == 0x1337);
-		TORRENT_ASSERT(m_outstanding_reclaim_message);
-		m_outstanding_reclaim_message = false;
 		std::unique_lock<std::mutex> l(m_cache_mutex);
-		for (int i = 0; i < m_blocks_to_reclaim.size(); ++i)
-			m_disk_cache.reclaim_block(m_blocks_to_reclaim[i]);
-		m_blocks_to_reclaim.clear();
+		for (auto ref : refs)
+		{
+			TORRENT_ASSERT(ref.storage);
+			m_disk_cache.reclaim_block(ref);
+		}
 	}
 
 	void disk_io_thread::set_settings(settings_pack const* pack, alert_manager& alerts)

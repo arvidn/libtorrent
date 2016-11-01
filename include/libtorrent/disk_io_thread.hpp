@@ -340,7 +340,7 @@ namespace libtorrent
 		void clear_piece(piece_manager* storage, int index) override;
 
 		// implements buffer_allocator_interface
-		void reclaim_block(block_cache_reference ref) override;
+		void reclaim_blocks(span<block_cache_reference> ref) override;
 		void free_disk_buffer(char* buf) override { m_disk_cache.free_buffer(buf); }
 		disk_buffer_holder allocate_disk_buffer(char const* category) override
 		{
@@ -523,9 +523,6 @@ namespace libtorrent
 
 		void try_flush_write_blocks(int num, jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l);
 
-		// used to batch reclaiming of blocks to once per cycle
-		void commit_reclaimed_blocks();
-
 		void maybe_flush_write_blocks();
 		void execute_job(disk_io_job* j);
 		void immediate_execute();
@@ -622,15 +619,6 @@ namespace libtorrent
 		// completion callbacks in m_completed jobs
 		bool m_job_completions_in_flight = false;
 
-		// these are blocks that have been returned by the main thread
-		// but they haven't been freed yet. This is used to batch
-		// reclaiming of blocks, to only need one std::mutex lock per cycle
-		std::vector<block_cache_reference> m_blocks_to_reclaim;
-
-		// when this is true, there is an outstanding message in the
-		// message queue that will reclaim all blocks in
-		// m_blocks_to_reclaim, there's no need to send another one
-		bool m_outstanding_reclaim_message = false;
 #if TORRENT_USE_ASSERTS
 		int m_magic = 0x1337;
 		std::atomic<bool> m_jobs_aborted{false};

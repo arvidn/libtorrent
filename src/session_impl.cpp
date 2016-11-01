@@ -6565,9 +6565,21 @@ namespace aux {
 
 	// decrement the refcount of the block in the disk cache
 	// since the network thread doesn't need it anymore
-	void session_impl::reclaim_block(block_cache_reference ref)
+	void session_impl::reclaim_blocks(span<block_cache_reference> refs)
 	{
-		m_disk_thread.reclaim_block(ref);
+		m_blocks_to_reclaim.insert(m_blocks_to_reclaim.end(), refs.begin(), refs.end());
+		if (m_pending_block_reclaim) return;
+
+		m_io_service.post(std::bind(&session_impl::do_reclaim_blocks, this));
+		m_pending_block_reclaim = true;
+	}
+
+	void session_impl::do_reclaim_blocks()
+	{
+		TORRENT_ASSERT(m_pending_block_reclaim);
+		m_pending_block_reclaim = false;
+		m_disk_thread.reclaim_blocks(m_blocks_to_reclaim);
+		m_blocks_to_reclaim.clear();
 	}
 
 	disk_buffer_holder session_impl::allocate_disk_buffer(char const* category)
