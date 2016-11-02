@@ -4504,7 +4504,7 @@ namespace aux {
 			{
 				std::unique_ptr<add_torrent_params> holder2(params);
 				error_code ec;
-				params->ti.reset(new torrent_info(resolve_file_url(params->url), ec));
+				params->ti = std::make_shared<torrent_info>(resolve_file_url(params->url), ec);
 				this->m_io_service.post(std::bind(&session_impl::on_async_load_torrent
 					, this, params, ec));
 				holder2.release();
