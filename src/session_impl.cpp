@@ -174,7 +174,6 @@ namespace
 #include <winerror.h>
 #endif
 
-using libtorrent::aux::session_impl;
 using namespace std::placeholders;
 
 #ifdef BOOST_NO_EXCEPTIONS
@@ -5156,10 +5155,9 @@ namespace aux {
 	void session_impl::update_count_slow()
 	{
 		error_code ec;
-		for (torrent_map::const_iterator i = m_torrents.begin()
-			, end(m_torrents.end()); i != end; ++i)
+		for (auto const& tp : m_torrents)
 		{
-			i->second->on_inactivity_tick(ec);
+			tp.second->on_inactivity_tick(ec);
 		}
 	}
 
@@ -5173,7 +5171,7 @@ namespace aux {
 
 		// if not, don't tell the tracker anything if we're in force_proxy
 		// mode. We don't want to leak our listen port since it can
-		// potentially identify us if it is leaked elsewere
+		// potentially identify us if it is leaked elsewhere
 		if (m_settings.get_bool(settings_pack::force_proxy)) return 0;
 		if (m_listen_sockets.empty()) return 0;
 		return m_listen_sockets.front().tcp_external_port;
@@ -5192,12 +5190,11 @@ namespace aux {
 
 		// if not, don't tell the tracker anything if we're in force_proxy
 		// mode. We don't want to leak our listen port since it can
-		// potentially identify us if it is leaked elsewere
+		// potentially identify us if it is leaked elsewhere
 		if (m_settings.get_bool(settings_pack::force_proxy)) return 0;
-		for (std::list<listen_socket_t>::const_iterator i = m_listen_sockets.begin()
-			, end(m_listen_sockets.end()); i != end; ++i)
+		for (auto const& s : m_listen_sockets)
 		{
-			if (i->ssl) return i->tcp_external_port;
+			if (s.ssl) return s.tcp_external_port;
 		}
 #endif
 		return 0;

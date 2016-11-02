@@ -31,8 +31,9 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/disk_io_thread_pool.hpp"
-#include "libtorrent/disk_io_thread.hpp"
-#include <functional>
+#include "libtorrent/assert.hpp"
+
+#include <algorithm>
 
 namespace
 {
@@ -79,7 +80,7 @@ namespace libtorrent
 			if (wait)
 			{
 				// must release m_mutex to avoid a deadlock if the thread
-				// tries to aquire it
+				// tries to acquire it
 				l.unlock();
 				t.join();
 				l.lock();
@@ -138,7 +139,7 @@ namespace libtorrent
 	void disk_io_thread_pool::job_queued(int queue_size)
 	{
 		// this check is not strictly necessary
-		// but do it to avoid aquiring the mutex in the trivial case
+		// but do it to avoid acquiring the mutex in the trivial case
 		if (m_num_idle_threads >= queue_size) return;
 		std::lock_guard<std::mutex> l(m_mutex);
 		if (m_abort) return;

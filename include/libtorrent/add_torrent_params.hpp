@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 
 #include "libtorrent/storage_defs.hpp"
-#include "libtorrent/peer_id.hpp" // sha1_hash
+#include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/version.hpp"
 #include "libtorrent/socket.hpp" // for tcp::endpoint
 #include "libtorrent/bitfield.hpp"
@@ -457,7 +457,7 @@ namespace libtorrent
 		std::map<int, std::string> renamed_files;
 
 #ifndef TORRENT_NO_DEPRECATE
-	// deprecated in 1.2
+		// deprecated in 1.2
 		// if ``uuid`` is specified, it is used to find duplicates. If another
 		// torrent is already running with the same UUID as the one being added,
 		// it will be considered a duplicate. This is mainly useful for RSS feed
