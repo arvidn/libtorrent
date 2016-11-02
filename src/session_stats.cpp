@@ -384,7 +384,6 @@ namespace libtorrent
 		METRIC(disk, num_fenced_save_resume_data)
 		METRIC(disk, num_fenced_rename_file)
 		METRIC(disk, num_fenced_stop_torrent)
-		METRIC(disk, num_fenced_cache_piece)
 		METRIC(disk, num_fenced_flush_piece)
 		METRIC(disk, num_fenced_flush_hashed)
 		METRIC(disk, num_fenced_flush_storage)

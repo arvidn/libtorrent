@@ -71,9 +71,6 @@ struct test_storage_impl : storage_interface
 	void rename_file(int index, std::string const& new_filename
 		, storage_error& ec) override {}
 	void delete_files(int, storage_error& ec) override {}
-#ifndef TORRENT_NO_DEPRECATE
-	void finalize_file(int, storage_error&) override {}
-#endif
 };
 
 static void nop() {}

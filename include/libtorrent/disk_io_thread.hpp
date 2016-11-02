@@ -311,13 +311,6 @@ namespace libtorrent
 			, std::function<void(disk_io_job const*)> handler) override;
 		void async_stop_torrent(piece_manager* storage
 			, std::function<void(disk_io_job const*)> handler) override;
-#ifndef TORRENT_NO_DEPRECATE
-		void async_cache_piece(piece_manager* storage, int piece
-			, std::function<void(disk_io_job const*)> handler) override;
-		void async_finalize_file(piece_manager* storage, int file
-			, std::function<void(disk_io_job const*)> handler
-			= std::function<void(disk_io_job const*)>()) override;
-#endif
 		void async_flush_piece(piece_manager* storage, int piece
 			, std::function<void(disk_io_job const*)> handler
 			= std::function<void(disk_io_job const*)>()) override;
@@ -404,10 +397,6 @@ namespace libtorrent
 		int do_rename_file(disk_io_job* j, jobqueue_t& completed_jobs);
 		int do_stop_torrent(disk_io_job* j, jobqueue_t& completed_jobs);
 		int do_read_and_hash(disk_io_job* j, jobqueue_t& completed_jobs);
-#ifndef TORRENT_NO_DEPRECATE
-		int do_cache_piece(disk_io_job* j, jobqueue_t& completed_jobs);
-		int do_finalize_file(disk_io_job* j, jobqueue_t& completed_jobs);
-#endif
 		int do_flush_piece(disk_io_job* j, jobqueue_t& completed_jobs);
 		int do_flush_hashed(disk_io_job* j, jobqueue_t& completed_jobs);
 		int do_flush_storage(disk_io_job* j, jobqueue_t& completed_jobs);

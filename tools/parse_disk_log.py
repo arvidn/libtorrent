@@ -14,7 +14,7 @@ if len(sys.argv) < 2:
 keys = ['write', 'read', 'read-cache-hit', 'hash', 'move', 'release', 'idle', \
 	'delete', 'check_fastresume', 'check_files', 'clear-cache', \
 	'abort_thread', 'abort_torrent', 'save_resume_data', 'rename_file', \
-	'flushing', 'update_settings', 'finalize_file', 'sorting_job', \
+	'flushing', 'update_settings', 'sorting_job', \
 	'check_cache_hit']
 throughput_keys = ['write', 'read', 'read-cache-hit']
 

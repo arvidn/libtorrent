@@ -592,10 +592,6 @@ namespace libtorrent
 #endif
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
-	void default_storage::finalize_file(int, storage_error&) {}
-#endif
-
 	bool default_storage::has_any_file(storage_error& ec)
 	{
 		m_stat_cache.reserve(files().num_files());
