@@ -204,7 +204,6 @@ const char* const job_action_name[] =
 	"flush_storage",
 	"trim_cache",
 	"set_file_priority",
-	"load_torrent",
 	"clear_piece",
 	"tick_storage",
 	"resolve_links"

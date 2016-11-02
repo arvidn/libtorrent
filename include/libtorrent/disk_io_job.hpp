@@ -95,7 +95,6 @@ namespace libtorrent
 			, flush_storage
 			, trim_cache
 			, file_priority
-			, load_torrent
 			, clear_piece
 			, tick_storage
 			, resolve_links
@@ -150,7 +149,6 @@ namespace libtorrent
 			char* string;
 			add_torrent_params const* check_resume_data;
 			std::vector<std::uint8_t>* priorities;
-			torrent_info* torrent_file;
 			int delete_options;
 		} buffer;
 

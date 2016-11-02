@@ -324,8 +324,6 @@ namespace libtorrent
 		void async_set_file_priority(piece_manager* storage
 			, std::vector<std::uint8_t> const& prio
 			, std::function<void(disk_io_job const*)> handler) override;
-		void async_load_torrent(add_torrent_params* params
-			, std::function<void(disk_io_job const*)> handler) override;
 		void async_tick_torrent(piece_manager* storage
 			, std::function<void(disk_io_job const*)> handler) override;
 
@@ -413,7 +411,6 @@ namespace libtorrent
 		int do_flush_storage(disk_io_job* j, jobqueue_t& completed_jobs);
 		int do_trim_cache(disk_io_job* j, jobqueue_t& completed_jobs);
 		int do_file_priority(disk_io_job* j, jobqueue_t& completed_jobs);
-		int do_load_torrent(disk_io_job* j, jobqueue_t& completed_jobs);
 		int do_clear_piece(disk_io_job* j, jobqueue_t& completed_jobs);
 		int do_tick(disk_io_job* j, jobqueue_t& completed_jobs);
 		int do_resolve_links(disk_io_job* j, jobqueue_t& completed_jobs);

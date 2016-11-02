@@ -1032,7 +1032,6 @@ namespace libtorrent
 		&disk_io_thread::do_flush_storage,
 		&disk_io_thread::do_trim_cache,
 		&disk_io_thread::do_file_priority,
-		&disk_io_thread::do_load_torrent,
 		&disk_io_thread::do_clear_piece,
 		&disk_io_thread::do_tick,
 	};
@@ -1963,16 +1962,6 @@ namespace libtorrent
 		add_fence_job(storage, j);
 	}
 
-	void disk_io_thread::async_load_torrent(add_torrent_params* params
-		, std::function<void(disk_io_job const*)> handler)
-	{
-		disk_io_job* j = allocate_job(disk_io_job::load_torrent);
-		j->requester = reinterpret_cast<void*>(params);
-		j->callback = std::move(handler);
-
-		add_job(j);
-	}
-
 	void disk_io_thread::async_tick_torrent(piece_manager* storage
 		, std::function<void(disk_io_job const*)> handler)
 	{
@@ -2879,28 +2868,6 @@ namespace libtorrent
 	{
 		std::unique_ptr<std::vector<std::uint8_t>> p(j->buffer.priorities);
 		j->storage->get_storage_impl()->set_file_priority(*p, j->error);
-		return 0;
-	}
-
-	int disk_io_thread::do_load_torrent(disk_io_job* j, jobqueue_t& /* completed_jobs */ )
-	{
-		add_torrent_params* params = reinterpret_cast<add_torrent_params*>(j->requester);
-
-		std::string filename = resolve_file_url(params->url);
-		std::unique_ptr<torrent_info> t{new torrent_info(filename, j->error.ec)};
-		if (j->error.ec)
-		{
-			j->buffer.torrent_file = nullptr;
-		}
-		else
-		{
-			// do this to trigger parsing of the info-dict here. It's better
-			// than to have it be done in the network thread. It has enough to
-			// do as it is.
-			std::string cert = t->ssl_cert();
-			j->buffer.torrent_file = t.release();
-		}
-
 		return 0;
 	}
 
