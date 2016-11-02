@@ -548,13 +548,8 @@ lib libiconv : : <name>iconv <link>shared <search>/usr/local/lib ;
 
 # openssl on linux/bsd/macos etc.
 lib gcrypt : : <name>gcrypt <link>shared <search>/usr/local/lib : : <include>/usr/local/include ;
-lib z : : <link>shared <name>z <search>/usr/lib ;
-lib crypto : : <name>crypto <link>shared <use>z ;
+lib crypto : : <name>crypto <link>shared ;
 lib ssl : : <name>ssl <link>shared <use>crypto ;
-lib dl : : <link>shared <name>dl ;
-
-# time functions used on linux require librt
-lib librt : : <name>rt <link>shared ;
 
 lib libsocket : : <use>libnsl <name>socket <link>shared <search>/usr/sfw/lib <link>shared ;
 lib libnsl : : <name>nsl <link>shared <search>/usr/sfw/lib <link>shared ;
