@@ -338,21 +338,6 @@ namespace libtorrent
 		//
 		virtual void delete_files(int options, storage_error& ec) = 0;
 
-#ifndef TORRENT_NO_DEPRECATE
-		// This function is called each time a file is completely downloaded. The
-		// storage implementation can perform last operations on a file. The file
-		// will not be opened for writing after this.
-		//
-		// ``index`` is the index of the file that completed.
-		//
-		//	On windows the default storage implementation clears the sparse file
-		//	flag on the specified file.
-		//
-		//	If an error occurs, ``storage_error`` should be set to reflect it.
-		//
-		virtual void finalize_file(int, storage_error&) {}
-#endif
-
 		// called periodically (useful for deferred flushing). When returning
 		// false, it means no more ticks are necessary. Any disk job submitted
 		// will re-enable ticking. The default will always turn ticking back
@@ -393,9 +378,6 @@ namespace libtorrent
 		// hidden
 		~default_storage();
 
-#ifndef TORRENT_NO_DEPRECATE
-		void finalize_file(int file, storage_error& ec) override;
-#endif
 		virtual bool has_any_file(storage_error& ec) override;
 		virtual void set_file_priority(std::vector<std::uint8_t> const& prio
 			, storage_error& ec) override;

@@ -86,10 +86,6 @@ namespace libtorrent
 			, check_fastresume
 			, rename_file
 			, stop_torrent
-#ifndef TORRENT_NO_DEPRECATE
-			, cache_piece
-			, finalize_file
-#endif
 			, flush_piece
 			, flush_hashed
 			, flush_storage

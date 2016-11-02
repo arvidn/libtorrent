@@ -384,7 +384,6 @@ namespace libtorrent
 			num_fenced_save_resume_data,
 			num_fenced_rename_file,
 			num_fenced_stop_torrent,
-			num_fenced_cache_piece,
 			num_fenced_flush_piece,
 			num_fenced_flush_hashed,
 			num_fenced_flush_storage,

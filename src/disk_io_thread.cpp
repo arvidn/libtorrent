@@ -1023,10 +1023,6 @@ namespace libtorrent
 		&disk_io_thread::do_check_fastresume,
 		&disk_io_thread::do_rename_file,
 		&disk_io_thread::do_stop_torrent,
-#ifndef TORRENT_NO_DEPRECATE
-		&disk_io_thread::do_cache_piece,
-		&disk_io_thread::do_finalize_file,
-#endif
 		&disk_io_thread::do_flush_piece,
 		&disk_io_thread::do_flush_hashed,
 		&disk_io_thread::do_flush_storage,
@@ -1905,30 +1901,6 @@ namespace libtorrent
 			add_completed_jobs(completed_jobs);
 	}
 
-#ifndef TORRENT_NO_DEPRECATE
-	void disk_io_thread::async_cache_piece(piece_manager* storage, int piece
-		, std::function<void(disk_io_job const*)> handler)
-	{
-		disk_io_job* j = allocate_job(disk_io_job::cache_piece);
-		j->storage = storage->shared_from_this();
-		j->piece = piece;
-		j->callback = std::move(handler);
-
-		add_job(j);
-	}
-
-	void disk_io_thread::async_finalize_file(piece_manager* storage, int file
-		, std::function<void(disk_io_job const*)> handler)
-	{
-		disk_io_job* j = allocate_job(disk_io_job::finalize_file);
-		j->storage = storage->shared_from_this();
-		j->piece = file;
-		j->callback = std::move(handler);
-
-		add_job(j);
-	}
-#endif // TORRENT_NO_DEPRECATE
-
 	void disk_io_thread::async_flush_piece(piece_manager* storage, int piece
 		, std::function<void(disk_io_job const*)> handler)
 	{
@@ -2527,116 +2499,6 @@ namespace libtorrent
 		j->storage->get_storage_impl()->release_files(j->error);
 		return j->error ? -1 : 0;
 	}
-
-#ifndef TORRENT_NO_DEPRECATE
-	int disk_io_thread::do_cache_piece(disk_io_job* j, jobqueue_t& /* completed_jobs */ )
-	{
-		INVARIANT_CHECK;
-		TORRENT_ASSERT(j->buffer.disk_block == nullptr);
-
-		if (m_settings.get_int(settings_pack::cache_size) == 0
-			|| m_settings.get_bool(settings_pack::use_read_cache) == false)
-			return 0;
-
-		int const file_flags = file_flags_for_job(j
-			, m_settings.get_bool(settings_pack::coalesce_reads));
-
-		std::unique_lock<std::mutex> l(m_cache_mutex);
-
-		cached_piece_entry* pe = m_disk_cache.find_piece(j);
-		if (pe == nullptr)
-		{
-			int cache_state = (j->flags & disk_io_job::volatile_read)
-				? cached_piece_entry::volatile_read_lru
-				: cached_piece_entry::read_lru1;
-			pe = m_disk_cache.allocate_piece(j, cache_state);
-		}
-		if (pe == nullptr)
-		{
-			j->error.ec = error::no_memory;
-			j->error.operation = storage_error::alloc_cache_piece;
-			return -1;
-		}
-
-#if TORRENT_USE_ASSERTS
-		pe->piece_log.push_back(piece_log_t(j->action));
-#endif
-		TORRENT_PIECE_ASSERT(pe->cache_state <= cached_piece_entry::read_lru1
-			|| pe->cache_state == cached_piece_entry::read_lru2, pe);
-
-		piece_refcount_holder refcount_holder(pe);
-
-		int block_size = m_disk_cache.block_size();
-		int piece_size = j->storage->files()->piece_size(j->piece);
-		int blocks_in_piece = (piece_size + block_size - 1) / block_size;
-
-		file::iovec_t iov;
-		int ret = 0;
-		int offset = 0;
-
-		// TODO: it would be nice to not have to lock the std::mutex every
-		// turn through this loop
-		for (int i = 0; i < blocks_in_piece; ++i)
-		{
-			iov.iov_len = (std::min)(block_size, piece_size - offset);
-
-			// is the block already in the cache?
-			if (pe->blocks[i].buf) continue;
-			l.unlock();
-
-			iov.iov_base = m_disk_cache.allocate_buffer("read cache");
-
-			if (iov.iov_base == nullptr)
-			{
-				refcount_holder.release();
-				m_disk_cache.maybe_free_piece(pe);
-				j->error.ec = errors::no_memory;
-				j->error.operation = storage_error::alloc_cache_piece;
-				return -1;
-			}
-
-			DLOG("do_cache_piece: reading (piece: %d block: %d)\n"
-				, int(pe->piece), i);
-
-			time_point start_time = clock_type::now();
-
-			ret = j->storage->get_storage_impl()->readv(iov, j->piece
-				, offset, file_flags, j->error);
-
-			if (ret < 0)
-			{
-				l.lock();
-				break;
-			}
-
-			if (!j->error.ec)
-			{
-				std::uint32_t read_time = total_microseconds(clock_type::now() - start_time);
-				m_read_time.add_sample(read_time);
-
-				m_stats_counters.inc_stats_counter(counters::num_blocks_read);
-				m_stats_counters.inc_stats_counter(counters::num_read_ops);
-				m_stats_counters.inc_stats_counter(counters::disk_read_time, read_time);
-				m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
-			}
-
-			offset += block_size;
-
-			l.lock();
-			m_disk_cache.insert_blocks(pe, i, iov, j);
-		}
-
-		refcount_holder.release();
-		m_disk_cache.maybe_free_piece(pe);
-		return 0;
-	}
-
-	int disk_io_thread::do_finalize_file(disk_io_job* j, jobqueue_t& /* completed_jobs */)
-	{
-		j->storage->get_storage_impl()->finalize_file(j->piece, j->error);
-		return j->error ? -1 : 0;
-	}
-#endif // TORRENT_NO_DEPRECATE
 
 	namespace {
 
