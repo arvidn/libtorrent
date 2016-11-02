@@ -176,6 +176,12 @@ namespace
 
 using namespace std::placeholders;
 
+#ifdef BOOST_NO_EXCEPTIONS
+namespace boost {
+	void throw_exception(std::exception const& e) { ::abort(); }
+}
+#endif
+
 namespace libtorrent {
 
 #if defined TORRENT_ASIO_DEBUGGING
@@ -5154,17 +5160,7 @@ namespace aux {
 		// proxy, and it's the same one as we're using for the tracker
 		// just tell the tracker the socks5 port we're listening on
 		if (m_socks_listen_socket && m_socks_listen_socket->is_open())
-		{
-			error_code ec;
-			tcp::endpoint endp = m_socks_listen_socket->local_endpoint(ec);
-			if (ec)
-#ifndef BOOST_NO_EXCEPTIONS
-				throw boost::system::system_error(ec);
-#else
-				std::terminate();
-#endif
-			return endp.port();
-		}
+			return m_socks_listen_socket->local_endpoint().port();
 
 		// if not, don't tell the tracker anything if we're in force_proxy
 		// mode. We don't want to leak our listen port since it can
