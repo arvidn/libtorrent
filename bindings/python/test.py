@@ -81,7 +81,7 @@ class test_torrent_info(unittest.TestCase):
 		idx = 0
 		expected = ['bar.txt', 'var.txt']
 		for f in files:
-			print f.path
+			print(f.path)
 
 			self.assertEqual(os.path.split(f.path)[1], expected[idx])
 			self.assertEqual(os.path.split(os.path.split(f.path)[0]), ('temp', 'foo'))
@@ -164,6 +164,13 @@ class test_session(unittest.TestCase):
 		self.assertTrue(isinstance(a, lt.session_stats_alert))
 		self.assertTrue(isinstance(a.values, dict))
 		self.assertTrue(len(a.values) > 0)
+
+	def test_unknown_settings(self):
+		try:
+			s = lt.session({'unexpected-key-name': 42})
+			self.assertFalse('should have thrown an exception')
+		except Exception as e:
+			print(e)
 
 	def test_deprecated_settings(self):
 
