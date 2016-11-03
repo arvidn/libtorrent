@@ -524,6 +524,7 @@ namespace libtorrent
 #endif
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	void session_handle::add_dht_router(std::pair<std::string, int> const& node)
 	{
 #ifndef TORRENT_DISABLE_DHT
@@ -532,6 +533,7 @@ namespace libtorrent
 		TORRENT_UNUSED(node);
 #endif
 	}
+#endif // TORRENT_NO_DEPRECATE
 
 	void session_handle::dht_get_item(sha1_hash const& target)
 	{

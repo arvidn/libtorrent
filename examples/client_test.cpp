@@ -1386,16 +1386,6 @@ int main(int argc, char* argv[])
 	dht.privacy_lookups = true;
 	ses.set_dht_settings(dht);
 
-	if (settings.get_bool(settings_pack::enable_dht))
-	{
-		ses.add_dht_router(std::make_pair(
-			std::string("router.bittorrent.com"), 6881));
-		ses.add_dht_router(std::make_pair(
-			std::string("router.utorrent.com"), 6881));
-		ses.add_dht_router(std::make_pair(
-			std::string("router.bitcomet.com"), 6881));
-	}
-
 	std::vector<char> in;
 	if (load_file(".ses_state", in, ec) == 0)
 	{

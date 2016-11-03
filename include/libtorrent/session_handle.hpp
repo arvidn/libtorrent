@@ -352,6 +352,10 @@ namespace libtorrent
 		// ``add_dht_node`` takes a host name and port pair. That endpoint will be
 		// pinged, and if a valid DHT reply is received, the node will be added to
 		// the routing table.
+		void add_dht_node(std::pair<std::string, int> const& node);
+
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated, use settings_pack::dht_bootstrap_nodes instead
 		//
 		// ``add_dht_router`` adds the given endpoint to a list of DHT router
 		// nodes. If a search is ever made while the routing table is empty,
@@ -362,8 +366,9 @@ namespace libtorrent
 		//
 		// An example routing node that you could typically add is
 		// ``router.bittorrent.com``.
-		void add_dht_node(std::pair<std::string, int> const& node);
+		TORRENT_DEPRECATED
 		void add_dht_router(std::pair<std::string, int> const& node);
+#endif
 
 		// query the DHT for an immutable item at the ``target`` hash.
 		// the result is posted as a dht_immutable_item_alert.
@@ -577,34 +582,7 @@ namespace libtorrent
 		// settings_pack::listen_interfaces to try another interface and port to
 		// bind to.
 		//
-		// ``listen_port()`` returns the port we ended up listening on. If the
-		// port specified in settings_pack::listen_interfaces failed, libtorrent
-		// will try to bind to the next port, and so on. If it fails
-		// settings_pack::max_retry_port_bind times, it will bind to port 0
-		// (meaning the OS picks the port). The only way to know which port it
-		// ended up binding to is to ask for it by calling ``listen_port()``.
-		//
-		// If all ports in the specified range fails to be opened for listening,
-		// libtorrent will try to use port 0 (which tells the operating system to
-		// pick a port that's free). If that still fails you may see a
-		// listen_failed_alert with port 0 even if you didn't ask to listen on
-		// it.
-		//
-		// It is possible to prevent libtorrent from binding to port 0 by passing
-		// in the flag ``session::no_system_port`` in the ``flags`` argument.
-		//
-		// The interface parameter can also be a hostname that will resolve to
-		// the device you want to listen on. If you don't specify an interface,
-		// libtorrent may attempt to listen on multiple interfaces (typically
-		// 0.0.0.0 and ::). This means that if your IPv6 interface doesn't work,
-		// you may still see a listen_failed_alert, even though the IPv4 port
-		// succeeded.
-		//
-		// The ``flags`` parameter can either be 0 or
-		// ``session::listen_reuse_address``, which will set the reuse address
-		// socket option on the listen socket(s). By default, the listen socket
-		// does not use reuse address. If you're running a service that needs to
-		// run on a specific port no matter if it's in use, set this flag.
+		// ``listen_port()`` returns the port we ended up listening on.
 		unsigned short listen_port() const;
 		unsigned short ssl_listen_port() const;
 		bool is_listening() const;

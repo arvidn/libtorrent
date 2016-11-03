@@ -120,7 +120,7 @@ namespace
     bool get_start_sent(announce_entry const& ae) { return ae.start_sent; }
     bool get_complete_sent(announce_entry const& ae) { return ae.complete_sent; }
 
-#if !defined TORRENT_NO_DEPRECATE
+#ifndef TORRENT_NO_DEPRECATE
     bool get_send_stats(announce_entry const& ae) { return ae.send_stats; }
     std::int64_t get_size(file_entry const& fe) { return fe.size; }
     std::int64_t get_offset(file_entry const& fe) { return fe.offset; }
@@ -244,7 +244,7 @@ void bind_torrent_info()
         .def("remap_files", &torrent_info::remap_files)
         .def("files", &torrent_info::files, return_internal_reference<>())
         .def("orig_files", &torrent_info::orig_files, return_internal_reference<>())
-#if !defined TORRENT_NO_DEPRECATE
+#ifndef TORRENT_NO_DEPRECATE
         .def("file_at", &torrent_info::file_at)
         .def("file_at_offset", &torrent_info::file_at_offset)
 #if TORRENT_USE_WSTRING
@@ -265,7 +265,7 @@ void bind_torrent_info()
         .def("map_file", &torrent_info::map_file)
         ;
 
-#if !defined TORRENT_NO_DEPRECATE
+#ifndef TORRENT_NO_DEPRECATE
     class_<file_entry>("file_entry")
         .def_readwrite("path", &file_entry::path)
         .def_readwrite("symlink_path", &file_entry::symlink_path)

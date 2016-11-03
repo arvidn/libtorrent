@@ -191,6 +191,24 @@ class test_session(unittest.TestCase):
 		self.assertTrue(isinstance(a.values, dict))
 		self.assertTrue(len(a.values) > 0)
 
+	def test_unknown_settings(self):
+		try:
+			s = lt.session({'unexpected-key-name': 42})
+			self.assertFalse('should have thrown an exception')
+		except Exception as e:
+			print(e)
+
+	def test_deprecated_settings(self):
+
+		# this detects whether libtorrent was built with deprecated APIs
+		if hasattr(lt, 'version'):
+			s = lt.session({'enable_dht': False})
+			sett = lt.session_settings()
+			sett.num_want = 10;
+			s.set_settings(sett)
+			s.set_settings({'num_want': 33})
+			self.assertEqual(s.get_settings()['num_want'], 33)
+
 	def test_apply_settings(self):
 
 		s = lt.session({'enable_dht': False})
