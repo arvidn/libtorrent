@@ -468,10 +468,6 @@ namespace libtorrent
 		int pinned_blocks() const { return m_pinned_blocks; }
 		int read_cache_size() const { return m_read_cache_size; }
 
-#if TORRENT_USE_ASSERTS
-		void mark_deleted(file_storage const& fs);
-#endif
-
 	private:
 
 		// returns number of bytes read on success, -1 on cache miss
@@ -536,10 +532,6 @@ namespace libtorrent
 		// the number of blocks with a refcount > 0, i.e.
 		// they may not be evicted
 		int m_pinned_blocks;
-
-#if TORRENT_USE_ASSERTS
-		std::vector<std::pair<std::string, void const*> > m_deleted_storages;
-#endif
 	};
 
 }

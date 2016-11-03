@@ -2572,9 +2572,6 @@ namespace libtorrent
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
 
 		mutex::scoped_lock l(m_cache_mutex);
-#if TORRENT_USE_ASSERTS
-		m_disk_cache.mark_deleted(*j->storage->files());
-#endif
 
 		flush_cache(j->storage.get(), flush_delete_cache | flush_expect_clear
 			, completed_jobs, l);
