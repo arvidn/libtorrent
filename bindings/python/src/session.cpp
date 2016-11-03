@@ -110,7 +110,11 @@ namespace
 			std::string const key = extract<std::string>(iterkeys[i]);
 
 			int sett = setting_by_name(key);
-			if (sett < 0) continue;
+			if (sett < 0)
+			{
+				PyErr_SetString(PyExc_ValueError, ("unknown name in settings_pack: " + key).c_str());
+				throw_error_already_set();
+			}
 
 			TORRENT_TRY
 			{
