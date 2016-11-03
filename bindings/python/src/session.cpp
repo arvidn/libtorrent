@@ -71,11 +71,13 @@ namespace
         s.add_dht_node(std::make_pair(ip, port));
     }
 
+#ifndef TORRENT_NO_DEPRECATE
     void add_dht_router(lt::session& s, std::string router_, int port_)
     {
         allow_threading_guard guard;
         return s.add_dht_router(std::make_pair(router_, port_));
     }
+#endif
 
 #endif // TORRENT_DISABLE_DHT
 
@@ -779,10 +781,12 @@ void bind_session()
         .def("listen_port", allow_threads(&lt::session::listen_port))
 #ifndef TORRENT_DISABLE_DHT
         .def("add_dht_node", &add_dht_node)
+#ifndef TORRENT_NO_DEPRECATE
         .def(
             "add_dht_router", &add_dht_router
           , (arg("router"), "port")
         )
+#endif // TORRENT_NO_DEPRECATE
         .def("is_dht_running", allow_threads(&lt::session::is_dht_running))
         .def("set_dht_settings", allow_threads(&lt::session::set_dht_settings))
         .def("get_dht_settings", allow_threads(&lt::session::get_dht_settings))
