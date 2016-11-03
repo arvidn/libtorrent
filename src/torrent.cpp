@@ -8112,6 +8112,13 @@ namespace libtorrent
 			set_upload_mode(false);
 		}
 
+		int seconds_since_last_tick = 1;
+		if (m_ses.m_tick_residual >= 1000) ++seconds_since_last_tick;
+
+		m_last_scrape += seconds_since_last_tick;
+		m_last_download += seconds_since_last_tick;
+		m_last_upload += seconds_since_last_tick;
+
 		if (is_paused() && !m_graceful_pause_mode)
 		{
 			// let the stats fade out to 0
@@ -8145,16 +8152,10 @@ namespace libtorrent
 			}
 		}
 
-		int seconds_since_last_tick = 1;
-		if (m_ses.m_tick_residual >= 1000) ++seconds_since_last_tick;
-
 		if (is_seed()) m_seeding_time += seconds_since_last_tick;
 		if (is_finished()) m_finished_time += seconds_since_last_tick;
 		if (m_upload_mode) m_upload_mode_time += seconds_since_last_tick;
-		m_last_scrape += seconds_since_last_tick;
 		m_active_time += seconds_since_last_tick;
-		m_last_download += seconds_since_last_tick;
-		m_last_upload += seconds_since_last_tick;
 
 		// ---- TIME CRITICAL PIECES ----
 
