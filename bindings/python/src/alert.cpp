@@ -242,6 +242,7 @@ namespace boost
 	POLY(save_resume_data_failed_alert)
 	POLY(performance_alert)
 	POLY(stats_alert)
+        POLY(cache_flushed_alert)
 	POLY(anonymous_mode_alert)
 	POLY(incoming_connection_alert)
 	POLY(torrent_need_cert_alert)
@@ -757,6 +758,10 @@ void bind_alert()
         .value("download_dht_protocol", stats_alert::download_dht_protocol)
         .value("download_tracker_protocol", stats_alert::download_tracker_protocol)
 #endif
+    ;
+
+    class_<cache_flushed_alert, bases<torrent_alert>, noncopyable>(
+        "cache_flushed_alert", no_init)
     ;
 
     class_<anonymous_mode_alert, bases<torrent_alert>, noncopyable>(
