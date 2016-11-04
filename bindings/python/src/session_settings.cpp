@@ -248,6 +248,16 @@ void bind_session_settings()
 #endif
     ;
 
+    enum_<settings_pack::proxy_type_t>("proxy_type_t")
+        .value("none", settings_pack::none)
+        .value("socks4", settings_pack::socks4)
+        .value("socks5", settings_pack::socks5)
+        .value("socks5_pw", settings_pack::socks5_pw)
+        .value("http", settings_pack::http)
+        .value("http_pw", settings_pack::http_pw)
+        .value("i2p_proxy", settings_pack::i2p_proxy)
+   ;
+
 #ifndef TORRENT_NO_DEPRECATE
     enum_<proxy_settings::proxy_type>("proxy_type")
         .value("none", proxy_settings::none)
