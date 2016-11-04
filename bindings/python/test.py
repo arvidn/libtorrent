@@ -195,7 +195,7 @@ class test_session(unittest.TestCase):
 		try:
 			s = lt.session({'unexpected-key-name': 42})
 			self.assertFalse('should have thrown an exception')
-		except Exception as e:
+		except KeyError as e:
 			print(e)
 
 	def test_apply_settings(self):

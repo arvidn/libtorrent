@@ -357,15 +357,6 @@ int block_cache::try_read(disk_io_job* j, bool expect_no_fail)
 
 	TORRENT_ASSERT(j->buffer.disk_block == nullptr);
 
-#if TORRENT_USE_ASSERTS
-	// we're not allowed to add dirty blocks
-	// for a deleted storage!
-	TORRENT_ASSERT(std::find(m_deleted_storages.begin(), m_deleted_storages.end()
-		, std::make_pair(j->storage->files()->name()
-			, reinterpret_cast<void const*>(j->storage->files())))
-		== m_deleted_storages.end());
-#endif
-
 	cached_piece_entry* p = find_piece(j);
 
 	int ret = 0;
@@ -714,16 +705,6 @@ cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, int const 
 	return p;
 }
 
-#if TORRENT_USE_ASSERTS
-void block_cache::mark_deleted(file_storage const& fs)
-{
-	m_deleted_storages.push_back(std::make_pair(fs.name()
-		, reinterpret_cast<void const*>(&fs)));
-	if (m_deleted_storages.size() > 100)
-		m_deleted_storages.erase(m_deleted_storages.begin());
-}
-#endif
-
 cached_piece_entry* block_cache::add_dirty_block(disk_io_job* j)
 {
 #if !defined TORRENT_DISABLE_POOL_ALLOCATOR
@@ -731,15 +712,6 @@ cached_piece_entry* block_cache::add_dirty_block(disk_io_job* j)
 #endif
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 	INVARIANT_CHECK;
-#endif
-
-#if TORRENT_USE_ASSERTS
-	// we're not allowed to add dirty blocks
-	// for a deleted storage!
-	TORRENT_ASSERT(std::find(m_deleted_storages.begin(), m_deleted_storages.end()
-		, std::make_pair(j->storage->files()->name()
-		, static_cast<void const*>(j->storage->files())))
-		== m_deleted_storages.end());
 #endif
 
 	TORRENT_ASSERT(j->buffer.disk_block);
@@ -1296,14 +1268,6 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, span<file::io
 	TORRENT_ASSERT(pe);
 	TORRENT_ASSERT(pe->in_use);
 	TORRENT_PIECE_ASSERT(iov.size() > 0, pe);
-
-#if TORRENT_USE_ASSERTS
-	// we're not allowed to add dirty blocks
-	// for a deleted storage!
-	TORRENT_ASSERT(std::find(m_deleted_storages.begin(), m_deleted_storages.end()
-		, std::make_pair(j->storage->files()->name(), static_cast<void const*>(j->storage->files())))
-		== m_deleted_storages.end());
-#endif
 
 	cache_hit(pe, j->requester, (j->flags & disk_io_job::volatile_read) != 0);
 

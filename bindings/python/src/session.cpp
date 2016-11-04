@@ -121,7 +121,7 @@ namespace
 			int sett = setting_by_name(key);
 			if (sett < 0)
 			{
-				PyErr_SetString(PyExc_ValueError, ("unknown name in settings_pack: " + key).c_str());
+				PyErr_SetString(PyExc_KeyError, ("unknown name in settings_pack: " + key).c_str());
 				throw_error_already_set();
 			}
 

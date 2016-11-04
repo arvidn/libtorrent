@@ -123,6 +123,7 @@ lt::torrent_status get_status(lt::session& ses)
 {
 	auto handles = ses.get_torrents();
 	TEST_EQUAL(handles.size(), 1);
+	if (handles.empty()) return lt::torrent_status();
 	auto h = handles[0];
 	return h.status();
 }
@@ -131,6 +132,7 @@ bool has_metadata(lt::session& ses)
 {
 	auto handles = ses.get_torrents();
 	TEST_EQUAL(handles.size(), 1);
+	if (handles.empty()) return false;
 	auto h = handles[0];
 	return h.status().has_metadata;
 }
@@ -139,6 +141,7 @@ bool is_seed(lt::session& ses)
 {
 	auto handles = ses.get_torrents();
 	TEST_EQUAL(handles.size(), 1);
+	if (handles.empty()) return false;
 	auto h = handles[0];
 	return h.status().is_seeding;
 }
@@ -147,6 +150,7 @@ int completed_pieces(lt::session& ses)
 {
 	auto handles = ses.get_torrents();
 	TEST_EQUAL(handles.size(), 1);
+	if (handles.empty()) return 0;
 	auto h = handles[0];
 	return h.status().num_pieces;
 }

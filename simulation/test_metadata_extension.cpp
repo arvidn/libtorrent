@@ -63,7 +63,10 @@ enum flags_t
 	utp = 8,
 
 	// upload-only mode
-	upload_only = 16
+	upload_only = 16,
+
+	// re-add the torrent after removing
+	readd = 32
 };
 
 void run_metadata_test(int flags)
@@ -108,9 +111,20 @@ void run_metadata_test(int flags)
 			{
 				metadata_alerts += 1;
 
+				auto ti = std::make_shared<torrent_info>(
+					*ses.get_torrents()[0].torrent_file());
+
 				if (flags & disconnect)
 				{
 					ses.remove_torrent(ses.get_torrents()[0]);
+				}
+
+				if (flags & readd)
+				{
+					add_torrent_params p = default_add_torrent;
+					p.ti = ti;
+					p.save_path = ".";
+					ses.add_torrent(p);
 				}
 			}
 		}
@@ -125,6 +139,10 @@ void run_metadata_test(int flags)
 			if (ticks > 70)
 			{
 				TEST_ERROR("timeout");
+				return true;
+			}
+			if ((flags & disconnect) && metadata_alerts > 0)
+			{
 				return true;
 			}
 			if ((flags & upload_only) && has_metadata(ses))
@@ -165,5 +183,20 @@ TORRENT_TEST(ut_metadata_reverse)
 TORRENT_TEST(ut_metadata_upload_only)
 {
 	run_metadata_test(upload_only);
+}
+
+TORRENT_TEST(ut_metadata_disconnect)
+{
+	run_metadata_test(disconnect);
+}
+
+TORRENT_TEST(ut_metadata_disconnect_readd)
+{
+	run_metadata_test(disconnect | readd);
+}
+
+TORRENT_TEST(ut_metadata_upload_only_disconnect_readd)
+{
+	run_metadata_test(upload_only | disconnect | readd);
 }
 
