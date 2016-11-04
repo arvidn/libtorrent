@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <functional>
 #include <cstdarg>
+#include <cmath>
 
 using namespace libtorrent;
 namespace lt = libtorrent;
