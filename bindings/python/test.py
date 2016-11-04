@@ -198,17 +198,6 @@ class test_session(unittest.TestCase):
 		except Exception as e:
 			print(e)
 
-	def test_deprecated_settings(self):
-
-		# this detects whether libtorrent was built with deprecated APIs
-		if hasattr(lt, 'version'):
-			s = lt.session({'enable_dht': False})
-			sett = lt.session_settings()
-			sett.num_want = 10;
-			s.set_settings(sett)
-			s.set_settings({'num_want': 33})
-			self.assertEqual(s.get_settings()['num_want'], 33)
-
 	def test_apply_settings(self):
 
 		s = lt.session({'enable_dht': False})
