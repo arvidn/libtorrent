@@ -151,7 +151,7 @@ std::map<std::string, boost::int64_t> get_counters(libtorrent::session& s)
 	return ret;
 }
 
-alert const* wait_for_alert(lt::session& ses, int type, char const* name)
+alert const* wait_for_alert(lt::session& ses, int type, char const* name, int num)
 {
 	time_point end = libtorrent::clock_type::now() + seconds(10);
 	while (true)
@@ -169,12 +169,13 @@ alert const* wait_for_alert(lt::session& ses, int type, char const* name)
 		{
 			fprintf(stdout, "%s: %s: [%s] %s\n", time_now_string(), name
 				, (*i)->what(), (*i)->message().c_str());
-			if ((*i)->type() == type && !ret)
+			if ((*i)->type() == type)
 			{
 				ret = *i;
+				--num;
 			}
 		}
-		if (ret) return ret;
+		if (num == 0) return ret;
 	}
 	return NULL;
 }
