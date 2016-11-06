@@ -317,8 +317,6 @@ namespace libtorrent
 		void async_set_file_priority(piece_manager* storage
 			, std::vector<std::uint8_t> const& prio
 			, std::function<void(disk_io_job const*)> handler) override;
-		void async_tick_torrent(piece_manager* storage
-			, std::function<void(disk_io_job const*)> handler) override;
 
 		void async_clear_piece(piece_manager* storage, int index
 			, std::function<void(disk_io_job const*)> handler) override;
@@ -400,7 +398,6 @@ namespace libtorrent
 		int do_trim_cache(disk_io_job* j, jobqueue_t& completed_jobs);
 		int do_file_priority(disk_io_job* j, jobqueue_t& completed_jobs);
 		int do_clear_piece(disk_io_job* j, jobqueue_t& completed_jobs);
-		int do_tick(disk_io_job* j, jobqueue_t& completed_jobs);
 		int do_resolve_links(disk_io_job* j, jobqueue_t& completed_jobs);
 
 		void call_job_handlers();
@@ -597,6 +594,10 @@ namespace libtorrent
 		// handler functions
 		std::mutex m_completed_jobs_mutex;
 		jobqueue_t m_completed_jobs;
+
+		// storages that have had write activity recently and will get ticked
+		// soon, for deferred actions (say, flushing partfile metadata)
+		std::vector<std::pair<time_point, std::weak_ptr<piece_manager>>> m_need_tick;
 
 		// this is protected by the completed_jobs_mutex. It's true whenever
 		// there's a call_job_handlers message in-flight to the network thread. We

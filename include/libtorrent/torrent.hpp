@@ -381,8 +381,6 @@ namespace libtorrent
 			, peer_request p);
 		void on_disk_tick_done(disk_io_job const* j);
 
-		void schedule_storage_tick();
-
 		void set_progress_ppm(int p) { m_progress_ppm = p; }
 		struct read_piece_struct
 		{
@@ -1536,14 +1534,6 @@ namespace libtorrent
 
 		// the number of bytes of padding files
 		std::uint32_t m_padding:24;
-
-		// this is a second count-down to when we should tick the
-		// storage for this torrent. Ticking the storage is used
-		// to periodically flush the partfile metadata and possibly
-		// other deferred flushing. Any disk operation starts this
-		// counter (unless it's already counting down). 0 means no
-		// ticking is needed.
-		std::uint32_t m_storage_tick:8;
 
 // ----
 

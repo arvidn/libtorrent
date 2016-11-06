@@ -560,6 +560,19 @@ namespace libtorrent
 
 		storage_interface* get_storage_impl() { return m_storage.get(); }
 
+		bool set_need_tick()
+		{
+			bool const prev = m_need_tick;
+			m_need_tick = true;
+			return prev;
+		}
+
+		void tick()
+		{
+			m_need_tick = false;
+			m_storage->tick();
+		}
+
 	private:
 
 		// if error is set and return value is 'no_error' or 'need_full_check'
@@ -578,6 +591,8 @@ namespace libtorrent
 		void check_invariant() const;
 #endif
 		file_storage const& m_files;
+
+		bool m_need_tick = false;
 
 		std::unique_ptr<storage_interface> m_storage;
 

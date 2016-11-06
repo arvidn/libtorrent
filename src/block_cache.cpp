@@ -201,7 +201,6 @@ const char* const job_action_name[] =
 	"trim_cache",
 	"set_file_priority",
 	"clear_piece",
-	"tick_storage",
 	"resolve_links"
 };
 
