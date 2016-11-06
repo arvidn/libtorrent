@@ -92,7 +92,6 @@ namespace libtorrent
 			, trim_cache
 			, file_priority
 			, clear_piece
-			, tick_storage
 			, resolve_links
 
 			, num_job_ids

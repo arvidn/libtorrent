@@ -2994,8 +2994,6 @@ namespace libtorrent
 			return;
 		}
 
-		t->schedule_storage_tick();
-
 		// in case the outstanding bytes just dropped down
 		// to allow to receive more data
 		setup_receive();

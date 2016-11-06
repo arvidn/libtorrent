@@ -206,7 +206,6 @@ namespace libtorrent
 		, m_apply_ip_filter((p.flags & add_torrent_params::flag_apply_ip_filter) != 0)
 		, m_pending_active_change(false)
 		, m_padding(0)
-		, m_storage_tick(0)
 		, m_incomplete(0xffffff)
 		, m_announce_to_dht((p.flags & add_torrent_params::flag_paused) == 0)
 		, m_in_state_updates(false)
@@ -1321,20 +1320,10 @@ namespace libtorrent
 		picker().dec_refcount(piece, nullptr);
 	}
 
-	void torrent::schedule_storage_tick()
-	{
-		// schedule a disk tick in 2 minutes or so
-		if (m_storage_tick != 0) return;
-		m_storage_tick = 120 + random(60);
-		update_want_tick();
-	}
-
 	void torrent::on_disk_write_complete(disk_io_job const* j
 		, peer_request p) try
 	{
 		TORRENT_ASSERT(is_single_thread());
-
-		schedule_storage_tick();
 
 		m_stats_counters.inc_stats_counter(counters::queued_write_bytes, -p.length);
 
@@ -1366,16 +1355,6 @@ namespace libtorrent
 			alerts().emplace_alert<block_finished_alert>(get_handle(),
 				tcp::endpoint(), peer_id(), int(block_finished.block_index)
 				, int(block_finished.piece_index));
-		}
-	}
-	catch (...) { handle_exception(); }
-
-	void torrent::on_disk_tick_done(disk_io_job const* j) try
-	{
-		if (j->ret && m_storage_tick == 0)
-		{
-			m_storage_tick = 120 + random(20);
-			update_want_tick();
 		}
 	}
 	catch (...) { handle_exception(); }
@@ -7167,10 +7146,6 @@ namespace libtorrent
 
 		if (!m_connections.empty()) return true;
 
-		// there's a deferred storage tick waiting
-		// to happen
-		if (m_storage_tick) return true;
-
 		// we might want to connect web seeds
 		if (!is_finished() && !m_web_seeds.empty() && m_files_checked)
 			return true;
@@ -9127,18 +9102,6 @@ namespace libtorrent
 			>= settings().get_int(settings_pack::optimistic_disk_retry))
 		{
 			set_upload_mode(false);
-		}
-
-		if (m_storage_tick > 0)
-		{
-			--m_storage_tick;
-			if (m_storage_tick == 0 && m_storage)
-			{
-				m_ses.disk_thread().async_tick_torrent(&storage()
-					, std::bind(&torrent::on_disk_tick_done
-						, shared_from_this(), _1));
-				update_want_tick();
-			}
 		}
 
 		if (is_paused() && !m_graceful_pause_mode)

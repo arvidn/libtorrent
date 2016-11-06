@@ -638,7 +638,7 @@ namespace libtorrent
 		for (int i = 1; i <= num_blocks; ++i)
 		{
 			if (i < num_blocks && flushing[i] == flushing[i - 1] + 1) continue;
-			int ret = pe->storage->get_storage_impl()->writev(
+			int const ret = pe->storage->get_storage_impl()->writev(
 				iov_start.first(i - flushing_start)
 				, piece + flushing[flushing_start] / blocks_in_piece
 				, (flushing[flushing_start] % blocks_in_piece) * block_size
@@ -649,6 +649,9 @@ namespace libtorrent
 		}
 
 		m_stats_counters.inc_stats_counter(counters::num_writing_threads, -1);
+
+		if (!pe->storage->set_need_tick())
+			m_need_tick.push_back({aux::time_now() + minutes(2), pe->storage});
 
 		if (!failed)
 		{
@@ -1028,8 +1031,7 @@ namespace libtorrent
 		&disk_io_thread::do_flush_storage,
 		&disk_io_thread::do_trim_cache,
 		&disk_io_thread::do_file_priority,
-		&disk_io_thread::do_clear_piece,
-		&disk_io_thread::do_tick,
+		&disk_io_thread::do_clear_piece
 	};
 
 	} // anonymous namespace
@@ -1431,7 +1433,7 @@ namespace libtorrent
 		m_stats_counters.inc_stats_counter(counters::num_writing_threads, 1);
 
 		// the actual write operation
-		int ret = j->storage->get_storage_impl()->writev(b
+		int const ret = j->storage->get_storage_impl()->writev(b
 			, j->piece, j->d.io.offset, file_flags, j->error);
 
 		m_stats_counters.inc_stats_counter(counters::num_writing_threads, -1);
@@ -1446,6 +1448,9 @@ namespace libtorrent
 			m_stats_counters.inc_stats_counter(counters::disk_write_time, write_time);
 			m_stats_counters.inc_stats_counter(counters::disk_job_time, write_time);
 		}
+
+		if (!j->storage->set_need_tick())
+			m_need_tick.push_back({aux::time_now() + minutes(2), j->storage});
 
 		m_disk_cache.free_buffer(j->buffer.disk_block);
 		j->buffer.disk_block = nullptr;
@@ -1932,16 +1937,6 @@ namespace libtorrent
 		j->callback = std::move(handler);
 
 		add_fence_job(storage, j);
-	}
-
-	void disk_io_thread::async_tick_torrent(piece_manager* storage
-		, std::function<void(disk_io_job const*)> handler)
-	{
-		disk_io_job* j = allocate_job(disk_io_job::tick_storage);
-		j->storage = storage->shared_from_this();
-		j->callback = std::move(handler);
-
-		add_job(j);
 	}
 
 	void disk_io_thread::async_clear_piece(piece_manager* storage, int index
@@ -2752,13 +2747,6 @@ namespace libtorrent
 		return retry_job;
 	}
 
-	int disk_io_thread::do_tick(disk_io_job* j, jobqueue_t& /* completed_jobs */ )
-	{
-		// true means this storage wants more ticks, false
-		// disables ticking (until it's enabled again)
-		return j->storage->get_storage_impl()->tick();
-	}
-
 	void disk_io_thread::add_fence_job(piece_manager* storage, disk_io_job* j
 		, bool user_add)
 	{
@@ -3019,6 +3007,14 @@ namespace libtorrent
 			{
 				// there's no need for all threads to be doing this
 				maybe_flush_write_blocks();
+
+				time_point const now = aux::time_now();
+				while (!m_need_tick.empty() && m_need_tick.front().first < now)
+				{
+					std::shared_ptr<piece_manager> st = m_need_tick.front().second.lock();
+					m_need_tick.erase(m_need_tick.begin());
+					if (st) st->tick();
+				}
 			}
 
 			execute_job(j);
