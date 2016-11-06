@@ -179,9 +179,9 @@ namespace libtorrent
 	disk_io_thread::disk_io_thread(io_service& ios
 		, counters& cnt
 		, int const block_size)
-		: m_generic_io_jobs(*this, generic_thread)
+		: m_generic_io_jobs(*this, thread_type_t::generic)
 		, m_generic_threads(m_generic_io_jobs, ios)
-		, m_hash_io_jobs(*this, hasher_thread)
+		, m_hash_io_jobs(*this, thread_type_t::hasher)
 		, m_hash_threads(m_hash_io_jobs, ios)
 		, m_last_file_check(clock_type::now())
 		, m_disk_cache(block_size, ios, std::bind(&disk_io_thread::trigger_cache_trim, this))
@@ -240,17 +240,6 @@ namespace libtorrent
 		m_hash_threads.abort(wait);
 	}
 
-	// TODO: 1 it would be nice to have the number of threads be set dynamically
-	void disk_io_thread::set_num_threads(int const i)
-	{
-		TORRENT_ASSERT(m_magic == 0x1337);
-
-		// add one hasher thread for every three generic threads
-		int const num_hash_threads = i / 4;
-		m_generic_threads.set_max_threads(i - num_hash_threads);
-		m_hash_threads.set_max_threads(num_hash_threads);
-	}
-
 	void disk_io_thread::reclaim_blocks(span<block_cache_reference> refs)
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
@@ -278,6 +267,12 @@ namespace libtorrent
 #else
 		TORRENT_UNUSED(alerts);
 #endif
+
+		int const num_threads = m_settings.get_int(settings_pack::aio_threads);
+		// add one hasher thread for every three generic threads
+		int const num_hash_threads = num_threads / 4;
+		m_generic_threads.set_max_threads(num_threads - num_hash_threads);
+		m_hash_threads.set_max_threads(num_hash_threads);
 	}
 
 	// flush all blocks that are below p->hash.offset, since we've
@@ -2986,13 +2981,13 @@ namespace libtorrent
 		for (;;)
 		{
 			disk_io_job* j = nullptr;
-			if (type == generic_thread)
+			if (type == thread_type_t::generic)
 			{
 				bool const should_exit = wait_for_job(m_generic_io_jobs, m_generic_threads, l);
 				if (should_exit) break;
 				j = m_generic_io_jobs.m_queued_jobs.pop_front();
 			}
-			else if (type == hasher_thread)
+			else if (type == thread_type_t::hasher)
 			{
 				bool const should_exit = wait_for_job(m_hash_io_jobs, m_hash_threads, l);
 				if (should_exit) break;
@@ -3003,7 +2998,7 @@ namespace libtorrent
 
 			TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
 
-			if (thread_id == m_generic_threads.first_thread_id() && type == generic_thread)
+			if (thread_id == m_generic_threads.first_thread_id() && type == thread_type_t::generic)
 			{
 				// there's no need for all threads to be doing this
 				maybe_flush_write_blocks();
