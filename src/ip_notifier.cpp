@@ -40,18 +40,12 @@ using namespace std::placeholders;
 
 namespace libtorrent
 {
-	namespace
-	{
-#if TORRENT_USE_NETLINK && !defined TORRENT_BUILD_SIMULATOR
-		netlink::endpoint ip_change_endpoint(netlink(NETLINK_ROUTE), RTMGRP_IPV4_IFADDR | RTMGRP_IPV6_IFADDR);
-#endif
-	}
-
 	ip_change_notifier::ip_change_notifier(io_service& ios, std::function<void()> cb)
 		: m_cb(cb)
 #if defined TORRENT_BUILD_SIMULATOR
 #elif TORRENT_USE_NETLINK
-		, m_socket(ios, ip_change_endpoint)
+		, m_socket(ios
+			, netlink::endpoint(netlink(NETLINK_ROUTE), RTMGRP_IPV4_IFADDR | RTMGRP_IPV6_IFADDR))
 #elif defined TORRENT_WINDOWS
 		, m_hnd(ios, WSACreateEvent())
 #endif
@@ -60,6 +54,8 @@ namespace libtorrent
 		TORRENT_UNUSED(ios);
 #elif defined TORRENT_WINDOWS
 		m_ovl.hEvent = m_hnd.native_handle();
+#elif !TORRENT_USE_NETLINK
+		TORRENT_UNUSED(ios);
 #endif
 	}
 
