@@ -70,6 +70,7 @@ nobase_include_HEADERS = \
   io_service.hpp               \
   io_service_fwd.hpp           \
   ip_filter.hpp                \
+  ip_notifier.hpp              \
   ip_voter.hpp                 \
   lazy_entry.hpp               \
   link.hpp                     \
@@ -77,6 +78,7 @@ nobase_include_HEADERS = \
   lsd.hpp                      \
   magnet_uri.hpp               \
   natpmp.hpp                   \
+  netlink.hpp                  \
   operations.hpp               \
   packet_buffer.hpp            \
   parse_url.hpp                \

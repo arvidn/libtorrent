@@ -54,6 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 #include "libtorrent/piece_block_progress.hpp"
 #include "libtorrent/ip_filter.hpp"
+#include "libtorrent/ip_notifier.hpp"
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/stat.hpp"
@@ -857,6 +858,9 @@ namespace libtorrent
 			// client with the tracker only. It is randomized
 			// at startup
 			int m_key = 0;
+
+			// posts a notification when the set of local IPs changes
+			ip_change_notifier m_ip_notifier;
 
 			// the addresses or device names of the interfaces we are supposed to
 			// listen on. if empty, it means that we should let the os decide

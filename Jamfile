@@ -599,6 +599,7 @@ SOURCES =
 	http_parser
 	identify_client
 	ip_filter
+	ip_notifier
 	ip_voter
 	merkle
 	peer_connection

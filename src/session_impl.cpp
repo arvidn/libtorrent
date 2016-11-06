@@ -411,6 +411,7 @@ namespace aux {
 #endif
 			)
 		, m_work(new io_service::work(m_io_service))
+		, m_ip_notifier(m_io_service, std::bind(&session_impl::reopen_listen_sockets, this))
 #if TORRENT_USE_I2P
 		, m_i2p_conn(m_io_service)
 #endif
@@ -604,6 +605,8 @@ namespace aux {
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log(" done starting session");
 #endif
+
+		m_ip_notifier.start();
 
 		apply_settings_pack_impl(*pack, true);
 
@@ -859,6 +862,9 @@ namespace aux {
 		// abort the main thread
 		m_abort = true;
 		error_code ec;
+
+		m_ip_notifier.stop();
+
 #if TORRENT_USE_I2P
 		m_i2p_conn.close(ec);
 #endif

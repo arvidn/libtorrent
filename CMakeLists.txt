@@ -45,6 +45,7 @@ set(sources
 	i2p_stream
 	identify_client
 	ip_filter
+	ip_notifier
 	ip_voter
 	performance_counters
 	peer_class
