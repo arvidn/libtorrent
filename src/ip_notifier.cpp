@@ -31,7 +31,6 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/ip_notifier.hpp"
-#include "libtorrent/assert.hpp"
 
 #if defined TORRENT_WINDOWS && !defined TORRENT_BUILD_SIMULATOR
 #include <iphlpapi.h>
@@ -70,6 +69,7 @@ namespace libtorrent
 	void ip_change_notifier::async_wait(std::function<void(error_code const&)> cb)
 	{
 #if defined TORRENT_BUILD_SIMULATOR
+		TORRENT_UNUSED(cb);
 #elif TORRENT_USE_NETLINK
 		m_socket.async_receive(boost::asio::buffer(m_buf)
 			, std::bind(&ip_change_notifier::on_notify, this, _1, _2, cb));
@@ -80,6 +80,8 @@ namespace libtorrent
 		{
 			m_hnd.async_wait([this,cb](error_code const& ec) { on_notify(ec, 0, cb); });
 		}
+#else
+		TORRENT_UNUSED(cb);
 #endif
 	}
 

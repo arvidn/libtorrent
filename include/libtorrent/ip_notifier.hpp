@@ -51,12 +51,11 @@ namespace libtorrent
 {
 	struct ip_change_notifier : boost::noncopyable
 	{
-		// cb will be invoked from within a thread calling ios.run()
-		// when a change is detected in the system's IP addresses
-		ip_change_notifier(io_service& ios);
+		explicit ip_change_notifier(io_service& ios);
 		~ip_change_notifier();
 
-		// start listening for changes
+		// cb will be invoked  when a change is detected in the
+		// system's IP addresses
 		void async_wait(std::function<void(error_code const&)> cb);
 		void cancel();
 
