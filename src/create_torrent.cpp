@@ -266,7 +266,6 @@ namespace libtorrent
 		std::shared_ptr<char> dummy;
 		counters cnt;
 		disk_io_thread disk_thread(ios, cnt);
-		disk_thread.set_num_threads(1);
 
 		storage_params params;
 		params.files = &t.files();
@@ -282,7 +281,7 @@ namespace libtorrent
 
 		settings_pack sett;
 		sett.set_int(settings_pack::cache_size, 0);
-		sett.set_int(settings_pack::aio_threads, 2);
+		sett.set_int(settings_pack::aio_threads, 1);
 
 		// TODO: this should probably be optional
 		alert_manager dummy2(0, 0);

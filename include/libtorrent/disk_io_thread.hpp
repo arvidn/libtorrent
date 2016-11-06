@@ -283,7 +283,6 @@ namespace libtorrent
 		~disk_io_thread();
 
 		void set_settings(settings_pack const* sett, alert_manager& alerts);
-		void set_num_threads(int i);
 
 		void abort(bool wait);
 
@@ -357,9 +356,10 @@ namespace libtorrent
 		{ return m_disk_cache.is_disk_buffer(buffer); }
 #endif
 
-		enum thread_type_t {
-			generic_thread,
-			hasher_thread
+		enum class thread_type_t : std::uint8_t
+		{
+			generic,
+			hasher
 		};
 
 		void thread_fun(thread_type_t type, io_service::work w);

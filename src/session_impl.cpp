@@ -1321,7 +1321,8 @@ namespace aux {
 		m_disk_thread.set_settings(&pack, m_alerts);
 
 		if (init && !reopen_listen_port)
-		{	// no need to call this if reopen_listen_port is true
+		{
+			// no need to call this if reopen_listen_port is true
 			// since the apply_pack will do it
 			update_listen_interfaces();
 		}
@@ -5956,8 +5957,6 @@ namespace aux {
 		if (m_settings.get_int(settings_pack::aio_threads) > 1)
 			m_settings.set_int(settings_pack::aio_threads, 1);
 #endif
-
-		m_disk_thread.set_num_threads(m_settings.get_int(settings_pack::aio_threads));
 	}
 
 	void session_impl::update_cache_buffer_chunk_size()
