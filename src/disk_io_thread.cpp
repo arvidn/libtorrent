@@ -1944,23 +1944,6 @@ namespace libtorrent
 		add_job(j);
 	}
 
-	void disk_io_thread::clear_read_cache(piece_manager* storage)
-	{
-		std::unique_lock<std::mutex> l(m_cache_mutex);
-
-		jobqueue_t jobs;
-		auto const& cache = storage->cached_pieces();
-
-		// note that i is incremented in the body!
-		for (auto i = cache.begin(), end(cache.end()); i != end; )
-		{
-			jobqueue_t temp;
-			if (m_disk_cache.evict_piece(*(i++), temp))
-				jobs.append(temp);
-		}
-		fail_jobs(storage_error(boost::asio::error::operation_aborted), jobs);
-	}
-
 	void disk_io_thread::async_clear_piece(piece_manager* storage, int index
 		, std::function<void(disk_io_job const*)> handler)
 	{

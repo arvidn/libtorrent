@@ -82,7 +82,6 @@ namespace libtorrent
 		virtual void async_tick_torrent(piece_manager* storage
 			, std::function<void(disk_io_job const*)> handler) = 0;
 
-		virtual void clear_read_cache(piece_manager* storage) = 0;
 		virtual void async_clear_piece(piece_manager* storage, int index
 			, std::function<void(disk_io_job const*)> handler) = 0;
 		virtual void clear_piece(piece_manager* storage, int index) = 0;
