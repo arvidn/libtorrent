@@ -53,18 +53,17 @@ namespace libtorrent
 	{
 		// cb will be invoked from within a thread calling ios.run()
 		// when a change is detected in the system's IP addresses
-		ip_change_notifier(io_service& ios, std::function<void()> cb);
+		ip_change_notifier(io_service& ios);
 		~ip_change_notifier();
 
 		// start listening for changes
-		void start();
-		void stop();
+		void async_wait(std::function<void(error_code const&)> cb);
+		void cancel();
 
 	private:
 		void on_notify(error_code const& error
-			, std::size_t bytes_transferred);
-
-		std::function<void()> m_cb;
+			, std::size_t bytes_transferred
+			, std::function<void(error_code const&)> cb);
 
 #if defined TORRENT_BUILD_SIMULATOR
 		// TODO simulator support

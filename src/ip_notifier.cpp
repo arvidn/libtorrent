@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/ip_notifier.hpp"
+#include "libtorrent/assert.hpp"
 
 #if defined TORRENT_WINDOWS && !defined TORRENT_BUILD_SIMULATOR
 #include <iphlpapi.h>
@@ -40,14 +41,13 @@ using namespace std::placeholders;
 
 namespace libtorrent
 {
-	ip_change_notifier::ip_change_notifier(io_service& ios, std::function<void()> cb)
-		: m_cb(cb)
+	ip_change_notifier::ip_change_notifier(io_service& ios)
 #if defined TORRENT_BUILD_SIMULATOR
 #elif TORRENT_USE_NETLINK
-		, m_socket(ios
+		: m_socket(ios
 			, netlink::endpoint(netlink(NETLINK_ROUTE), RTMGRP_IPV4_IFADDR | RTMGRP_IPV6_IFADDR))
 #elif defined TORRENT_WINDOWS
-		, m_hnd(ios, WSACreateEvent())
+		: m_hnd(ios, WSACreateEvent())
 #endif
 	{
 #if defined TORRENT_BUILD_SIMULATOR
@@ -62,28 +62,28 @@ namespace libtorrent
 	ip_change_notifier::~ip_change_notifier()
 	{
 #if defined TORRENT_WINDOWS && !defined TORRENT_BUILD_SIMULATOR
-		stop();
+		cancel();
 		m_hnd.close();
 #endif
 	}
 
-	void ip_change_notifier::start()
+	void ip_change_notifier::async_wait(std::function<void(error_code const&)> cb)
 	{
 #if defined TORRENT_BUILD_SIMULATOR
 #elif TORRENT_USE_NETLINK
 		m_socket.async_receive(boost::asio::buffer(m_buf)
-			, std::bind(&ip_change_notifier::on_notify, this, _1, _2));
+			, std::bind(&ip_change_notifier::on_notify, this, _1, _2, cb));
 #elif defined TORRENT_WINDOWS
 		HANDLE hnd;
 		DWORD err = NotifyAddrChange(&hnd, &m_ovl);
 		if (err == ERROR_IO_PENDING)
 		{
-			m_hnd.async_wait([this](error_code const& ec) { on_notify(ec, 0); });
+			m_hnd.async_wait([this,cb](error_code const& ec) { on_notify(ec, 0, cb); });
 		}
 #endif
 	}
 
-	void ip_change_notifier::stop()
+	void ip_change_notifier::cancel()
 	{
 #if defined TORRENT_BUILD_SIMULATOR
 #elif TORRENT_USE_NETLINK
@@ -95,19 +95,21 @@ namespace libtorrent
 	}
 
 	void ip_change_notifier::on_notify(error_code const& ec
-		, std::size_t bytes_transferred)
+		, std::size_t bytes_transferred
+		, std::function<void(error_code const&)> cb)
 	{
 		TORRENT_UNUSED(bytes_transferred);
-
-		if (ec && ec.value() != boost::system::errc::no_buffer_space)
-			return;
-
-		start();
 
 		// on linux we could parse the message to get information about the
 		// change but Windows requires the application to enumerate the
 		// interfaces after a notification so do that for Linux as well to
 		// minimize the difference between platforms
-		m_cb();
+
+		// Linux can generate ENOBUFS if the socket's buffers are full
+		// don't treat it as an error
+		if (ec.value() == boost::system::errc::no_buffer_space)
+			cb(error_code());
+		else
+			cb(ec);
 	}
 }

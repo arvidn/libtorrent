@@ -252,6 +252,7 @@ namespace libtorrent
 			void on_exception(std::exception const& e) override;
 			void on_error(error_code const& ec) override;
 
+			void on_ip_change(error_code const& ec);
 			void reopen_listen_sockets();
 
 			torrent_peer_allocator_interface* get_peer_allocator() override
