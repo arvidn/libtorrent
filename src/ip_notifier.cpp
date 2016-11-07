@@ -61,15 +61,15 @@ namespace libtorrent
 			std::terminate();
 #endif // BOOST_NO_EXCEPTIONS
 		m_ovl.hEvent = m_hnd.native_handle();
-#else
+#elif !TORRENT_USE_NETLINK
 		TORRENT_UNUSED(ios);
 #endif
 	}
 
 	ip_change_notifier::~ip_change_notifier()
 	{
-		cancel();
 #if defined TORRENT_WINDOWS && !defined TORRENT_BUILD_SIMULATOR
+		cancel();
 		m_hnd.close();
 #endif
 	}
@@ -86,11 +86,11 @@ namespace libtorrent
 		DWORD err = NotifyAddrChange(&hnd, &m_ovl);
 		if (err == ERROR_IO_PENDING)
 		{
-			m_hnd.async_wait([this,cb](error_code const& ec) { on_notify(ec, 0, cb); });
+			m_hnd.async_wait([this, cb](error_code const& ec) { on_notify(ec, 0, cb); });
 		}
 		else
 		{
-			m_hnd.get_io_service().post([this,cb,err]()
+			m_hnd.get_io_service().post([this, cb, err]()
 				{ cb(error_code(err, system_category())); });
 		}
 #else
