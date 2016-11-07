@@ -70,7 +70,7 @@ namespace libtorrent
 		netlink::socket m_socket;
 		std::array<char, 4096> m_buf;
 #elif defined TORRENT_WINDOWS
-		OVERLAPPED m_ovl;
+		OVERLAPPED m_ovl = {};
 		boost::asio::windows::object_handle m_hnd;
 #endif
 	};

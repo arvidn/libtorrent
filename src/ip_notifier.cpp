@@ -52,6 +52,8 @@ namespace libtorrent
 #if defined TORRENT_BUILD_SIMULATOR
 		TORRENT_UNUSED(ios);
 #elif defined TORRENT_WINDOWS
+		if (!m_hnd.is_open())
+			throw system_error(WSAGetLastError(), system_category());
 		m_ovl.hEvent = m_hnd.native_handle();
 #elif !TORRENT_USE_NETLINK
 		TORRENT_UNUSED(ios);
@@ -79,6 +81,10 @@ namespace libtorrent
 		if (err == ERROR_IO_PENDING)
 		{
 			m_hnd.async_wait([this,cb](error_code const& ec) { on_notify(ec, 0, cb); });
+		}
+		else
+		{
+			cb(error_code(err, system_category()));
 		}
 #else
 		TORRENT_UNUSED(cb);
