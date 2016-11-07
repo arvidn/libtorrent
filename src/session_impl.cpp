@@ -1694,7 +1694,7 @@ namespace aux {
 
 	void session_impl::on_ip_change(error_code const& ec)
 	{
-		if (ec) return;
+		if (ec || m_abort) return;
 		m_ip_notifier.async_wait([this] (error_code const& e)
 			{ this->wrap(&session_impl::on_ip_change, e); });
 		reopen_listen_sockets();
