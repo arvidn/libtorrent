@@ -84,7 +84,8 @@ namespace libtorrent
 		}
 		else
 		{
-			cb(error_code(err, system_category()));
+			m_hnd.get_io_service().post([this,cb,err]()
+				{ cb(error_code(err, system_category())); });
 		}
 #else
 		TORRENT_UNUSED(cb);

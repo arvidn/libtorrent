@@ -606,8 +606,8 @@ namespace aux {
 		session_log(" done starting session");
 #endif
 
-		m_ip_notifier.async_wait([this](error_code const& ec)
-			{ this->wrap(&session_impl::on_ip_change, ec); });
+		m_ip_notifier.async_wait([this](error_code const& e)
+			{ this->wrap(&session_impl::on_ip_change, e); });
 
 		apply_settings_pack_impl(*pack, true);
 
@@ -1695,8 +1695,8 @@ namespace aux {
 	void session_impl::on_ip_change(error_code const& ec)
 	{
 		if (ec) return;
-		m_ip_notifier.async_wait([this] (error_code const& ec)
-			{ this->wrap(&session_impl::on_ip_change, ec); });
+		m_ip_notifier.async_wait([this] (error_code const& e)
+			{ this->wrap(&session_impl::on_ip_change, e); });
 		reopen_listen_sockets();
 	}
 
