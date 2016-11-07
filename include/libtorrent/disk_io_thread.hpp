@@ -339,9 +339,6 @@ namespace libtorrent
 		disk_buffer_holder allocate_disk_buffer(bool& exceeded, std::shared_ptr<disk_observer> o
 			, char const* category) override;
 
-		bool exceeded_cache_use() const
-		{ return m_disk_cache.exceeded_max_size(); }
-
 		void update_stats_counters(counters& c) const override;
 		void get_cache_info(cache_status* ret, bool no_pieces = true
 			, piece_manager const* storage = 0) const override;

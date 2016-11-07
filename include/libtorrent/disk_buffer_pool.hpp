@@ -93,7 +93,6 @@ namespace libtorrent
 			return m_in_use;
 		}
 		std::uint32_t num_to_evict(int num_needed = 0);
-		bool exceeded_max_size() const { return m_exceeded_max_size; }
 
 		void set_settings(aux::session_settings const& sett, error_code& ec);
 

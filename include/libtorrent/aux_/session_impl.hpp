@@ -600,9 +600,6 @@ namespace libtorrent
 			void reclaim_blocks(span<block_cache_reference> refs) override;
 			void do_reclaim_blocks();
 
-			bool exceeded_cache_use() const
-			{ return m_disk_thread.exceeded_cache_use(); }
-
 			// implements dht_observer
 			virtual void set_external_address(address const& ip
 				, address const& source) override;
