@@ -155,7 +155,7 @@ namespace libtorrent
 		using endpoint = basic_nl_endpoint<netlink>;
 		using socket = boost::asio::basic_raw_socket<netlink>;
 
-		netlink() : netlink(0) {}
+		netlink() : netlink(NETLINK_ROUTE) {}
 
 		explicit netlink(int nl_family)
 			: nl_family(nl_family)
