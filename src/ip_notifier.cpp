@@ -7,14 +7,14 @@ Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
 are met:
 
-* Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-* Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in
-the documentation and/or other materials provided with the distribution.
-* Neither the name of the author nor the names of its
-contributors may be used to endorse or promote products derived
-from this software without specific prior written permission.
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in
+      the documentation and/or other materials provided with the distribution.
+    * Neither the name of the author nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -33,7 +33,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ip_notifier.hpp"
 
 #if defined TORRENT_WINDOWS && !defined TORRENT_BUILD_SIMULATOR
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <iphlpapi.h>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
 
 using namespace std::placeholders;
@@ -53,7 +55,11 @@ namespace libtorrent
 		TORRENT_UNUSED(ios);
 #elif defined TORRENT_WINDOWS
 		if (!m_hnd.is_open())
+#ifndef BOOST_NO_EXCEPTIONS
 			throw system_error(WSAGetLastError(), system_category());
+#else
+			std::terminate();
+#endif // BOOST_NO_EXCEPTIONS
 		m_ovl.hEvent = m_hnd.native_handle();
 #elif !TORRENT_USE_NETLINK
 		TORRENT_UNUSED(ios);
@@ -80,11 +86,11 @@ namespace libtorrent
 		DWORD err = NotifyAddrChange(&hnd, &m_ovl);
 		if (err == ERROR_IO_PENDING)
 		{
-			m_hnd.async_wait([this,cb](error_code const& ec) { on_notify(ec, 0, cb); });
+			m_hnd.async_wait([this, cb](error_code const& ec) { on_notify(ec, 0, cb); });
 		}
 		else
 		{
-			m_hnd.get_io_service().post([this,cb,err]()
+			m_hnd.get_io_service().post([this, cb, err]()
 				{ cb(error_code(err, system_category())); });
 		}
 #else

@@ -7,14 +7,14 @@ Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
 are met:
 
-* Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-* Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in
-the documentation and/or other materials provided with the distribution.
-* Neither the name of the author nor the names of its
-contributors may be used to endorse or promote products derived
-from this software without specific prior written permission.
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in
+      the documentation and/or other materials provided with the distribution.
+    * Neither the name of the author nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -39,9 +39,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstring>
 #include <cstdint>
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 #include <boost/asio/basic_raw_socket.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {
@@ -52,13 +55,7 @@ namespace libtorrent
 		using protocol_type = Protocol;
 		using data_type = boost::asio::detail::socket_addr_type;
 
-		basic_nl_endpoint()
-		{
-			std::memset(&sockaddr, 0, sizeof(sockaddr_nl));
-			sockaddr.nl_family = AF_NETLINK;
-			sockaddr.nl_groups = 0;
-			sockaddr.nl_pid = 0;
-		}
+		basic_nl_endpoint() : basic_nl_endpoint(protocol_type(), 0, 0) {}
 
 		basic_nl_endpoint(protocol_type netlink_family, std::uint32_t group, ::pid_t pid = 0)
 			: proto(netlink_family)
@@ -98,7 +95,7 @@ namespace libtorrent
 
 		const data_type* data() const
 		{
-			return (struct sockaddr*)&sockaddr;
+			return reinterpret_cast<data_type const*>(&sockaddr);
 		}
 
 		std::size_t size() const
@@ -158,9 +155,7 @@ namespace libtorrent
 		using endpoint = basic_nl_endpoint<netlink>;
 		using socket = boost::asio::basic_raw_socket<netlink>;
 
-		netlink() : nl_family(0)
-		{
-		}
+		netlink() : netlink(NETLINK_ROUTE) {}
 
 		explicit netlink(int nl_family)
 			: nl_family(nl_family)
@@ -198,6 +193,6 @@ namespace libtorrent
 
 }
 
-#endif
+#endif // TORRENT_USE_NETLINK
 
 #endif

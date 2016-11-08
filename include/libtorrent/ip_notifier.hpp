@@ -7,14 +7,14 @@ Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
 are met:
 
-* Redistributions of source code must retain the above copyright
-notice, this list of conditions and the following disclaimer.
-* Redistributions in binary form must reproduce the above copyright
-notice, this list of conditions and the following disclaimer in
-the documentation and/or other materials provided with the distribution.
-* Neither the name of the author nor the names of its
-contributors may be used to endorse or promote products derived
-from this software without specific prior written permission.
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in
+      the documentation and/or other materials provided with the distribution.
+    * Neither the name of the author nor the names of its
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -41,18 +41,23 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_service.hpp"
 
 #if defined TORRENT_BUILD_SIMULATOR
+// TODO: simulator support
 #elif TORRENT_USE_NETLINK
 #include "libtorrent/netlink.hpp"
 #elif defined TORRENT_WINDOWS
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/asio/windows/object_handle.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
 
 namespace libtorrent
 {
-	struct ip_change_notifier : boost::noncopyable
+	struct ip_change_notifier
 	{
 		explicit ip_change_notifier(io_service& ios);
 		~ip_change_notifier();
+		ip_change_notifier(ip_change_notifier const&) = delete;
+		ip_change_notifier& operator=(ip_change_notifier const&) = delete;
 
 		// cb will be invoked  when a change is detected in the
 		// system's IP addresses
@@ -65,7 +70,7 @@ namespace libtorrent
 			, std::function<void(error_code const&)> cb);
 
 #if defined TORRENT_BUILD_SIMULATOR
-		// TODO simulator support
+		// TODO: simulator support
 #elif TORRENT_USE_NETLINK
 		netlink::socket m_socket;
 		std::array<char, 4096> m_buf;
