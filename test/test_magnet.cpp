@@ -146,6 +146,8 @@ TORRENT_TEST(magnet)
 
 	trackers = t2.trackers();
 	TEST_EQUAL(trackers.size(), 2);
+	TEST_EQUAL(trackers[0].tier, 0);
+	TEST_EQUAL(trackers[1].tier, 1);
 
 	p.url = "magnet:"
 		"?tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80"
@@ -162,16 +164,19 @@ TORRENT_TEST(magnet)
 	if (trackers.size() > 0)
 	{
 		TEST_EQUAL(trackers[0].url, "udp://tracker.openbittorrent.com:80");
+		TEST_EQUAL(trackers[0].tier, 0);
 		fprintf(stderr, "1: %s\n", trackers[0].url.c_str());
 	}
 	if (trackers.size() > 1)
 	{
 		TEST_EQUAL(trackers[1].url, "udp://tracker.publicbt.com:80");
+		TEST_EQUAL(trackers[1].tier, 1);
 		fprintf(stderr, "2: %s\n", trackers[1].url.c_str());
 	}
 	if (trackers.size() > 2)
 	{
 		TEST_EQUAL(trackers[2].url, "udp://tracker.ccc.de:80");
+		TEST_EQUAL(trackers[2].tier, 2);
 		fprintf(stderr, "3: %s\n", trackers[2].url.c_str());
 	}
 

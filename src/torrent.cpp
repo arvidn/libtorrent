@@ -786,12 +786,14 @@ namespace libtorrent
 		}
 #endif
 
+		int tier = 0;
 		for (std::vector<std::string>::const_iterator i = p.trackers.begin()
 			, end(p.trackers.end()); i != end; ++i)
 		{
 			m_trackers.push_back(announce_entry(*i));
 			m_trackers.back().fail_limit = 0;
 			m_trackers.back().source = announce_entry::source_magnet_link;
+			m_trackers.back().tier = tier++;
 			m_torrent_file->add_tracker(*i);
 		}
 
