@@ -175,7 +175,7 @@ bool should_print(lt::alert* a)
 	return true;
 }
 }
-alert const* wait_for_alert(lt::session& ses, int type, char const* name)
+alert const* wait_for_alert(lt::session& ses, int type, char const* name, int num)
 {
 	time_point end_time = libtorrent::clock_type::now() + seconds(10);
 	while (true)
@@ -195,12 +195,13 @@ alert const* wait_for_alert(lt::session& ses, int type, char const* name)
 				std::printf("%s: %s: [%s] %s\n", time_now_string(), name
 					, a->what(), a->message().c_str());
 			}
-			if (a->type() == type && !ret)
+			if (a->type() == type)
 			{
 				ret = a;
+				--num;
 			}
 		}
-		if (ret) return ret;
+		if (num == 0) return ret;
 	}
 	return nullptr;
 }

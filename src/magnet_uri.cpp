@@ -183,12 +183,19 @@ namespace libtorrent
 		// parse trackers out of the magnet link
 		std::string::size_type pos = std::string::npos;
 		std::string url = url_has_argument(uri, "tr", &pos);
+		int tier = 0;
 		while (pos != std::string::npos)
 		{
+			// since we're about to assign tiers to the trackers, make sure the two
+			// vectors are aligned
+			if (p.tracker_tiers.size() != p.trackers.size())
+				p.tracker_tiers.resize(p.trackers.size(), 0);
+
 			error_code e;
 			url = unescape_string(url, e);
 			if (e) continue;
 			p.trackers.push_back(url);
+			p.tracker_tiers.push_back(tier++);
 			pos = uri.find("&tr=", pos);
 			if (pos == std::string::npos) break;
 			pos += 4;

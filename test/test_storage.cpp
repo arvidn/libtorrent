@@ -115,11 +115,8 @@ void run_until(io_service& ios, bool const& done)
 
 void nop() {}
 
-std::shared_ptr<default_storage> setup_torrent(file_storage& fs
-	, file_pool& fp
-	, std::vector<char>& buf
-	, std::string const& test_path
-	, aux::session_settings& set)
+std::shared_ptr<torrent_info> setup_torrent_info(file_storage& fs
+	, std::vector<char>& buf)
 {
 	fs.add_file(combine_path("temp_storage", "test1.tmp"), 8);
 	fs.add_file(combine_path("temp_storage", combine_path("folder1", "test2.tmp")), 8);
@@ -143,6 +140,17 @@ std::shared_ptr<default_storage> setup_torrent(file_storage& fs
 		std::printf("torrent_info constructor failed: %s\n"
 			, ec.message().c_str());
 	}
+
+	return info;
+}
+
+std::shared_ptr<default_storage> setup_torrent(file_storage& fs
+	, file_pool& fp
+	, std::vector<char>& buf
+	, std::string const& test_path
+	, aux::session_settings& set)
+{
+	std::shared_ptr<torrent_info> info = setup_torrent_info(fs, buf);
 
 	storage_params p;
 	p.files = &fs;
@@ -737,6 +745,68 @@ bool got_file_rename_alert(alert const* a)
 {
 	return alert_cast<libtorrent::file_renamed_alert>(a)
 		|| alert_cast<libtorrent::file_rename_failed_alert>(a);
+}
+
+TORRENT_TEST(rename_file)
+{
+	std::vector<char> buf;
+	file_storage fs;
+	std::shared_ptr<torrent_info> info = setup_torrent_info(fs, buf);
+
+	const int mask = alert::all_categories
+		& ~(alert::performance_warning
+			| alert::stats_notification);
+
+	settings_pack pack;
+	pack.set_bool(settings_pack::enable_lsd, false);
+	pack.set_bool(settings_pack::enable_natpmp, false);
+	pack.set_bool(settings_pack::enable_upnp, false);
+	pack.set_bool(settings_pack::enable_dht, false);
+	pack.set_int(settings_pack::alert_mask, mask);
+	pack.set_bool(settings_pack::disable_hash_checks, true);
+	lt::session ses(pack);
+
+	add_torrent_params p;
+	p.ti = info;
+	p.save_path = ".";
+	error_code ec;
+	torrent_handle h = ses.add_torrent(p, ec);
+
+	// make it a seed
+	std::vector<char> tmp(info->piece_length());
+	for (int i = 0; i < info->num_pieces(); ++i)
+		h.add_piece(i, &tmp[0]);
+
+	// wait for the files to have been written
+	alert const* pf = wait_for_alert(ses, piece_finished_alert::alert_type, "ses", info->num_pieces());
+	TEST_CHECK(pf);
+
+	// now rename them. This is the test
+	for (int i = 0; i < info->num_files(); ++i)
+	{
+		std::string name = fs.file_path(i);
+		h.rename_file(i, "__" + name);
+	}
+
+	// wait fir the files to have been renamed
+	alert const* fra = wait_for_alert(ses, file_renamed_alert::alert_type, "ses", info->num_files());
+	TEST_CHECK(fra);
+
+	TEST_CHECK(exists("__" + info->name()));
+
+	h.save_resume_data();
+	alert const* ra = wait_for_alert(ses, save_resume_data_alert::alert_type);
+	TEST_CHECK(ra);
+	if (!ra) return;
+	entry resume = *alert_cast<save_resume_data_alert>(ra)->resume_data;
+
+	std::cerr << resume.to_string() << "\n";
+
+	entry::list_type files = resume.dict().find("mapped_files")->second.list();
+	for (entry::list_type::iterator i = files.begin(); i != files.end(); ++i)
+	{
+		TEST_CHECK(i->string().substr(0, 2) == "__");
+	}
 }
 
 void test_rename_file_fastresume(bool test_deprecated)
