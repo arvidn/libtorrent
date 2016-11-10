@@ -979,6 +979,10 @@ namespace libtorrent
 				TORRENT_ASSERT(ret <= (std::numeric_limits<std::uint16_t>::max)());
 				return static_cast<std::uint16_t>(ret);
 			}
+			time_point session_start_time() const override
+			{
+				return m_created;
+			}
 
 			time_point m_last_tick;
 			time_point m_last_second_tick;

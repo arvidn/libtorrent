@@ -70,11 +70,13 @@ namespace libtorrent
 
 	announce_entry::~announce_entry() = default;
 
+#ifndef TORRENT_NO_DEPRECATE
 	int announce_entry::next_announce_in() const
 	{ return total_seconds(next_announce - aux::time_now()); }
 
 	int announce_entry::min_announce_in() const
 	{ return total_seconds(min_announce - aux::time_now()); }
+#endif
 
 	void announce_entry::reset()
 	{

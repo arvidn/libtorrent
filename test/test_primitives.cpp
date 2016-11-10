@@ -69,7 +69,11 @@ TORRENT_TEST(primitives)
 	for (int i = 0; i < 10; ++i)
 	{
 		ae.failed(tracker_backoff, 5);
-		int delay = ae.next_announce_in();
+#ifndef TORRENT_NO_DEPRECATE
+		int const delay = ae.next_announce_in();
+#else
+		int const delay = total_seconds(ae.next_announce - clock_type::now());
+#endif
 		TEST_CHECK(delay > last);
 		last = delay;
 		std::printf("%d, ", delay);

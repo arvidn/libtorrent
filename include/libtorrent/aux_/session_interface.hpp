@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/io_service.hpp"
+#include "libtorrent/time.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 
 #include <functional>
@@ -169,6 +170,7 @@ namespace libtorrent { namespace aux
 		virtual void ban_ip(address addr) = 0;
 
 		virtual std::uint16_t session_time() const = 0;
+		virtual time_point session_start_time() const = 0;
 
 		virtual bool is_aborted() const = 0;
 		virtual int num_uploads() const = 0;

@@ -391,6 +391,12 @@ namespace libtorrent
 		int up_bandwidth_queue = 0;
 		int down_bandwidth_queue = 0;
 
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 1.2
+		// use last_upload, last_download or
+		// seeding_duration, finished_duration and active_duration
+		// instead
+
 		// the number of seconds since any peer last uploaded from this torrent
 		// and the last time a downloaded piece passed the hash check,
 		// respectively. Note, when starting up a torrent that needs its files
@@ -410,6 +416,13 @@ namespace libtorrent
 		int active_time = 0;
 		int finished_time = 0;
 		int seeding_time = 0;
+#else
+		int deprecated_time_since_upload = 0;
+		int deprecated_time_since_download = 0;
+		int deprecated_active_time = 0;
+		int deprecated_finished_time = 0;
+		int deprecated_seeding_time = 0;
+#endif
 
 		// A rank of how important it is to seed the torrent, it is used to
 		// determine which torrents to seed and which to queue. It is based on
@@ -417,9 +430,15 @@ namespace libtorrent
 		// see queuing_. Higher value means more important to seed
 		int seed_rank = 0;
 
+#ifndef TORRENT_NO_DEPRECATE
+		// deprecated in 1.2
+
 		// the number of seconds since this torrent acquired scrape data.
 		// If it has never done that, this value is -1.
 		int last_scrape = 0;
+#else
+		int deprecated_last_scrape = 0;
+#endif
 
 #ifndef TORRENT_NO_DEPRECATE
 		// the priority of this torrent
@@ -527,6 +546,13 @@ namespace libtorrent
 
 		// the info-hash for this torrent
 		sha1_hash info_hash{nullptr};
+
+		time_point last_upload;
+		time_point last_download;
+
+		seconds active_duration;
+		seconds finished_duration;
+		seconds seeding_duration;
 	};
 }
 

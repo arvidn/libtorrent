@@ -704,11 +704,6 @@ namespace libtorrent
 		void scrape_tracker(int idx, bool user_triggered);
 		void announce_with_tracker(std::uint8_t e
 			= tracker_request::none);
-		int seconds_since_last_scrape() const
-		{
-			return m_last_scrape == (std::numeric_limits<std::int16_t>::min)()
-				? -1 : int(m_ses.session_time() - m_last_scrape);
-		}
 
 #ifndef TORRENT_DISABLE_DHT
 		void dht_announce();
@@ -1609,10 +1604,12 @@ namespace libtorrent
 		// is optional and may be 0xffffff
 		unsigned int m_downloaded:24;
 
+#ifndef TORRENT_NO_DEPRECATE
 		// the timestamp of the last scrape request to one of the trackers in
 		// this torrent specified in session_time. This is signed because it must
 		// be able to represent time before the session started
 		std::int16_t m_last_scrape = (std::numeric_limits<std::int16_t>::min)();
+#endif
 
 // ----
 
