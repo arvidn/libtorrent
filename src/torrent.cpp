@@ -2875,7 +2875,9 @@ namespace libtorrent
 	void torrent::scrape_tracker(int idx, bool user_triggered)
 	{
 		TORRENT_ASSERT(is_single_thread());
+#ifndef TORRENT_NO_DEPRECATE
 		m_last_scrape = m_ses.session_time();
+#endif
 
 		if (m_trackers.empty()) return;
 
@@ -3032,8 +3034,10 @@ namespace libtorrent
 		}
 		update_tracker_timer(now);
 
+#ifndef TORRENT_NO_DEPRECATE
 		if (resp.complete >= 0 && resp.incomplete >= 0)
 			m_last_scrape = m_ses.session_time();
+#endif
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
@@ -8438,7 +8442,9 @@ namespace libtorrent
 
 		m_last_upload = clamped_subtract_s16(m_last_upload, seconds);
 		m_last_download = clamped_subtract_s16(m_last_download, seconds);
+#ifndef TORRENT_NO_DEPRECATE
 		m_last_scrape = clamped_subtract_s16(m_last_scrape, seconds);
+#endif
 
 		m_last_saved_resume = clamped_subtract(m_last_saved_resume, seconds);
 		m_upload_mode_time = clamped_subtract(m_upload_mode_time, seconds);
@@ -10713,8 +10719,10 @@ namespace libtorrent
 		st->added_time = m_added_time;
 		st->completed_time = m_completed_time;
 
+#ifndef TORRENT_NO_DEPRECATE
 		st->last_scrape = m_last_scrape == (std::numeric_limits<std::int16_t>::min)() ? -1
 			: clamped_subtract(m_ses.session_time(), m_last_scrape);
+#endif
 
 		st->share_mode = m_share_mode;
 		st->upload_mode = m_upload_mode;
@@ -10744,13 +10752,23 @@ namespace libtorrent
 		st->all_time_download = m_total_downloaded;
 
 		// activity time
+#ifndef TORRENT_NO_DEPRECATE
 		st->finished_time = finished_time();
 		st->active_time = active_time();
 		st->seeding_time = seeding_time();
+
 		st->time_since_upload = m_last_upload == (std::numeric_limits<std::int16_t>::min)() ? -1
 			: clamped_subtract(m_ses.session_time(), m_last_upload);
 		st->time_since_download = m_last_download == (std::numeric_limits<std::int16_t>::min)() ? -1
 			: clamped_subtract(m_ses.session_time(), m_last_download);
+#endif
+
+		st->finished_duration = seconds{finished_time()};
+		st->active_duration = seconds{active_time()};
+		st->seeding_duration = seconds{seeding_time()};
+
+		st->last_upload = m_ses.session_start_time() + seconds(m_last_upload);
+		st->last_download = m_ses.session_start_time() + seconds(m_last_download);
 
 		st->storage_mode = static_cast<storage_mode_t>(m_storage_mode);
 

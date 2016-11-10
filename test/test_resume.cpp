@@ -189,11 +189,17 @@ void default_tests(torrent_status const& s)
 	// allow some slack in the time stamps since they are reported as
 	// relative times. If the computer is busy while running the unit test
 	// or running under valgrind it may take several seconds
+#ifndef TORRENT_NO_DEPRECATE
 	TEST_CHECK(s.active_time >= 1339);
 	TEST_CHECK(s.active_time < 1339 + 10);
+#endif
 
-	TEST_CHECK(s.finished_time < 1352 + 2);
-	TEST_CHECK(s.seeding_time < 1340 + 2);
+	using lt::seconds;
+	TEST_CHECK(s.finished_duration< seconds(1352 + 2));
+	TEST_CHECK(s.seeding_duration < seconds(1340 + 2));
+	TEST_CHECK(s.active_duration >= seconds(1339));
+	TEST_CHECK(s.active_duration < seconds(1339 + 10));
+
 	TEST_CHECK(s.added_time < 1347 + 2);
 	TEST_CHECK(s.completed_time < 1348 + 2);
 }

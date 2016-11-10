@@ -6,6 +6,7 @@
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/time.hpp"
 #include <vector>
 
 using namespace boost::python;
