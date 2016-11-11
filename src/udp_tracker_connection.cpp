@@ -77,7 +77,7 @@ namespace libtorrent
 		: tracker_connection(man, req, ios, c)
 		, m_transaction_id(0)
 		, m_attempts(0)
-		, m_state(action_error)
+		, m_state(action_t::error)
 		, m_abort(false)
 	{
 		update_transaction_id();
@@ -352,7 +352,7 @@ namespace libtorrent
 #endif
 
 		// ignore resposes before we've sent any requests
-		if (m_state == action_error)
+		if (m_state == action_t::error)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			if (cb) cb->debug_log("<== UDP_TRACKER [ m_action == error ]");
@@ -395,11 +395,12 @@ namespace libtorrent
 		if (buf.size() < 8) return false;
 
 		span<const char> ptr = buf;
-		int const action = aux::read_int32(ptr);
+		auto const action = static_cast<action_t>(aux::read_int32(ptr));
 		std::uint32_t const transaction = aux::read_uint32(ptr);
 
 #ifndef TORRENT_DISABLE_LOGGING
-		if (cb) cb->debug_log("*** UDP_TRACKER_PACKET [ action: %d ]", action);
+		if (cb) cb->debug_log("*** UDP_TRACKER_PACKET [ action: %d ]"
+			, static_cast<int>(action));
 #endif
 
 		// ignore packets with incorrect transaction id
@@ -412,7 +413,7 @@ namespace libtorrent
 			return false;
 		}
 
-		if (action == action_error)
+		if (action == action_t::error)
 		{
 			fail(error_code(errors::tracker_failure), -1
 				, std::string(buf.data(), buf.size()).c_str());
@@ -424,7 +425,7 @@ namespace libtorrent
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			if (cb) cb->debug_log("*** UDP_TRACKER_PACKET [ unexpected action: %d "
-				" expected: %d ]", action, m_state);
+				" expected: %d ]", static_cast<int>(action), static_cast<int>(m_state));
 #endif
 			return false;
 		}
@@ -439,13 +440,14 @@ namespace libtorrent
 
 		switch (m_state)
 		{
-			case action_connect:
+			case action_t::connect:
 				return on_connect_response(buf);
-			case action_announce:
+			case action_t::announce:
 				return on_announce_response(buf);
-			case action_scrape:
+			case action_t::scrape:
 				return on_scrape_response(buf);
-			default: break;
+			case action_t::error:
+				return false;
 		}
 		return false;
 	}
@@ -509,7 +511,7 @@ namespace libtorrent
 
 		aux::write_uint32(0x417, view);
 		aux::write_uint32(0x27101980, view); // connection_id
-		aux::write_int32(action_connect, view); // action (connect)
+		aux::write_int32(static_cast<int>(action_t::connect), view); // action (connect)
 		aux::write_int32(m_transaction_id, view); // transaction_id
 		TORRENT_ASSERT(view.size() == 0);
 
@@ -553,7 +555,7 @@ namespace libtorrent
 		}
 #endif
 
-		m_state = action_connect;
+		m_state = action_t::connect;
 		sent_bytes(16 + 28); // assuming UDP/IP header
 	}
 
@@ -571,7 +573,7 @@ namespace libtorrent
 		span<char> view = buf;
 
 		aux::write_int64(i->second.connection_id, view); // connection_id
-		aux::write_int32(action_scrape, view); // action (scrape)
+		aux::write_int32(static_cast<int>(action_t::scrape), view); // action (scrape)
 		aux::write_int32(m_transaction_id, view); // transaction_id
 		// info_hash
 		std::copy(tracker_req().info_hash.begin(), tracker_req().info_hash.end()
@@ -591,7 +593,7 @@ namespace libtorrent
 			m_man.send(m_target, buf, ec
 				, udp_socket::tracker_connection);
 		}
-		m_state = action_scrape;
+		m_state = action_t::scrape;
 		sent_bytes(sizeof(buf) + 28); // assuming UDP/IP header
 		++m_attempts;
 		if (ec)
@@ -664,7 +666,7 @@ namespace libtorrent
 		using namespace libtorrent::aux;
 
 		restart_read_timeout();
-		int const action = aux::read_int32(buf);
+		auto const action = static_cast<action_t>(aux::read_int32(buf));
 		std::uint32_t const transaction = read_uint32(buf);
 
 		if (transaction != m_transaction_id)
@@ -673,14 +675,14 @@ namespace libtorrent
 			return false;
 		}
 
-		if (action == action_error)
+		if (action == action_t::error)
 		{
 			fail(error_code(errors::tracker_failure), -1
 				, std::string(buf.data(), buf.size()).c_str());
 			return true;
 		}
 
-		if (action != action_scrape)
+		if (action != action_t::scrape)
 		{
 			fail(error_code(errors::invalid_tracker_action));
 			return true;
@@ -727,7 +729,7 @@ namespace libtorrent
 		if (i == m_connection_cache.end()) return;
 
 		aux::write_int64(i->second.connection_id, out); // connection_id
-		aux::write_int32(action_announce, out); // action (announce)
+		aux::write_int32(static_cast<int>(action_t::announce), out); // action (announce)
 		aux::write_int32(m_transaction_id, out); // transaction_id
 		std::copy(req.info_hash.begin(), req.info_hash.end(), out.data()); // info_hash
 		out.subspan(20);
@@ -792,7 +794,7 @@ namespace libtorrent
 					, int(sizeof(buf) - out.size())), ec
 				, udp_socket::tracker_connection);
 		}
-		m_state = action_announce;
+		m_state = action_t::announce;
 		sent_bytes(int(sizeof(buf) - out.size()) + 28); // assuming UDP/IP header
 		++m_attempts;
 		if (ec)
