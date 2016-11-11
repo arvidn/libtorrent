@@ -69,12 +69,12 @@ namespace libtorrent
 
 	private:
 
-		enum action_t
+		enum class action_t : std::uint8_t
 		{
-			action_connect,
-			action_announce,
-			action_scrape,
-			action_error
+			connect,
+			announce,
+			scrape,
+			error
 		};
 
 		std::shared_ptr<udp_tracker_connection> shared_from_this()
@@ -125,8 +125,7 @@ namespace libtorrent
 		std::uint32_t m_transaction_id;
 		int m_attempts;
 
-		// action_t
-		std::uint8_t m_state;
+		action_t m_state;
 
 		bool m_abort;
 	};
