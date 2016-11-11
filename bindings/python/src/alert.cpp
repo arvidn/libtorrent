@@ -673,6 +673,10 @@ void bind_alert()
 #endif
     ;
 
+    class_<cache_flushed_alert, bases<torrent_alert>, noncopyable>(
+        "cache_flushed_alert", no_init)
+    ;
+
     class_<anonymous_mode_alert, bases<torrent_alert>, noncopyable>(
         "anonymous_mode_alert", no_init)
         .def_readonly("kind", &anonymous_mode_alert::kind)
