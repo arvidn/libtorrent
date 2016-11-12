@@ -43,52 +43,54 @@ using namespace libtorrent::detail;
 TORRENT_TEST(address_to_bytes)
 {
 	// test address_to_bytes
-	TEST_EQUAL(address_to_bytes(address_v4::from_string("10.11.12.13")), "\x0a\x0b\x0c\x0d");
-	TEST_EQUAL(address_to_bytes(address_v4::from_string("16.5.127.1")), "\x10\x05\x7f\x01");
+	TEST_EQUAL(address_to_bytes(addr4("10.11.12.13")), "\x0a\x0b\x0c\x0d");
+	TEST_EQUAL(address_to_bytes(addr4("16.5.127.1")), "\x10\x05\x7f\x01");
 
 	// test endpoint_to_bytes
-	TEST_EQUAL(endpoint_to_bytes(udp::endpoint(address_v4::from_string("10.11.12.13"), 8080)), "\x0a\x0b\x0c\x0d\x1f\x90");
-	TEST_EQUAL(endpoint_to_bytes(udp::endpoint(address_v4::from_string("16.5.127.1"), 12345)), "\x10\x05\x7f\x01\x30\x39");
+	TEST_EQUAL(endpoint_to_bytes(uep("10.11.12.13", 8080)), "\x0a\x0b\x0c\x0d\x1f\x90");
+	TEST_EQUAL(endpoint_to_bytes(uep("16.5.127.1", 12345)), "\x10\x05\x7f\x01\x30\x39");
 }
 
 TORRENT_TEST(read_v4_address)
 {
 	std::string buf;
-	write_address(address_v4::from_string("16.5.128.1"), std::back_inserter(buf));
+	write_address(addr4("16.5.128.1"), std::back_inserter(buf));
 	TEST_EQUAL(buf, "\x10\x05\x80\x01");
-	address addr4 = read_v4_address(buf.begin());
-	TEST_EQUAL(addr4, address_v4::from_string("16.5.128.1"));
+	address addr = read_v4_address(buf.begin());
+	TEST_EQUAL(addr, addr4("16.5.128.1"));
 
 	buf.clear();
-	write_endpoint(udp::endpoint(address_v4::from_string("16.5.128.1"), 1337)
+	write_endpoint(uep("16.5.128.1", 1337)
 		, std::back_inserter(buf));
 	TEST_EQUAL(buf, "\x10\x05\x80\x01\x05\x39");
 	udp::endpoint ep4 = read_v4_endpoint<udp::endpoint>(buf.begin());
-	TEST_EQUAL(ep4, udp::endpoint(address_v4::from_string("16.5.128.1"), 1337));
+	TEST_EQUAL(ep4, uep("16.5.128.1", 1337));
 }
 
 #if TORRENT_USE_IPV6
 TORRENT_TEST(read_v6_endpoint)
 {
 	std::string buf;
-	write_address(address_v6::from_string("1000::ffff"), std::back_inserter(buf));
+	write_address(addr6("1000::ffff"), std::back_inserter(buf));
 	TEST_CHECK(std::equal(buf.begin(), buf.end(), "\x10\0\0\0\0\0\0\0\0\0\0\0\0\0\xff\xff"));
-	address addr6 = read_v6_address(buf.begin());
-	TEST_EQUAL(addr6, address_v6::from_string("1000::ffff"));
+	address addr = read_v6_address(buf.begin());
+	TEST_EQUAL(addr, addr6("1000::ffff"));
 
 	buf.clear();
-	write_endpoint(udp::endpoint(address_v6::from_string("1000::ffff"), 1337)
+	write_endpoint(uep("1000::ffff", 1337)
 		, std::back_inserter(buf));
-	TEST_CHECK(std::equal(buf.begin(), buf.end(), "\x10\0\0\0\0\0\0\0\0\0\0\0\0\0\xff\xff\x05\x39"));
+	TEST_CHECK(std::equal(buf.begin(), buf.end()
+			, "\x10\0\0\0\0\0\0\0\0\0\0\0\0\0\xff\xff\x05\x39"));
 	TEST_EQUAL(buf.size(), 18);
 	udp::endpoint ep6 = read_v6_endpoint<udp::endpoint>(buf.begin());
-	TEST_EQUAL(ep6, udp::endpoint(address_v6::from_string("1000::ffff"), 1337));
+	TEST_EQUAL(ep6, uep("1000::ffff", 1337));
 }
 #endif
 
 TORRENT_TEST(read_endpoint_list)
 {
-	char const eplist[] = "l6:\x10\x05\x80\x01\x05\x39" "18:\x10\0\0\0\0\0\0\0\0\0\0\0\0\0\xff\xff\x05\x39" "e";
+	char const eplist[] = "l6:\x10\x05\x80\x01\x05\x39"
+		"18:\x10\0\0\0\0\0\0\0\0\0\0\0\0\0\xff\xff\x05\x39" "e";
 	bdecode_node e;
 	error_code ec;
 	bdecode(eplist, eplist + sizeof(eplist)-1, e, ec);
@@ -97,11 +99,11 @@ TORRENT_TEST(read_endpoint_list)
 
 #if TORRENT_USE_IPV6
 	TEST_EQUAL(list.size(), 2);
-	TEST_EQUAL(list[1], udp::endpoint(address_v6::from_string("1000::ffff"), 1337));
+	TEST_EQUAL(list[1], uep("1000::ffff", 1337));
 #else
 	TEST_EQUAL(list.size(), 1);
 #endif
-	TEST_EQUAL(list[0], udp::endpoint(address_v4::from_string("16.5.128.1"), 1337));
+	TEST_EQUAL(list[0], uep("16.5.128.1", 1337));
 }
 
 TORRENT_TEST(parse_invalid_ipv4_endpoint)

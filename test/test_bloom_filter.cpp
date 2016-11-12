@@ -109,7 +109,7 @@ void test_to_from_string()
 	std::string bits_out = filter.to_string();
 	TEST_EQUAL(memcmp(bits_out.c_str(), bits, 4), 0);
 
-	sha1_hash k( "\x01\x00\x02\x00                ");
+	sha1_hash k("\x01\x00\x02\x00                ");
 	TEST_CHECK(!filter.find(k));
 	filter.set(k);
 	TEST_CHECK(filter.find(k));

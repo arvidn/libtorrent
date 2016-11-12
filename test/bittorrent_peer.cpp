@@ -555,7 +555,8 @@ void peer_conn::write_have(int piece)
 	write_uint32(5, ptr);
 	write_uint8(4, ptr);
 	write_uint32(piece, ptr);
-	boost::asio::async_write(s, boost::asio::buffer(write_buf_proto, 9), std::bind(&peer_conn::on_have_all_sent, this, _1, _2));
+	boost::asio::async_write(s, boost::asio::buffer(write_buf_proto, 9)
+		, std::bind(&peer_conn::on_have_all_sent, this, _1, _2));
 }
 
 void peer_conn::abort()

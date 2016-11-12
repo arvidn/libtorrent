@@ -86,7 +86,8 @@ int main(int argc, char* argv[])
 
 	deadline_timer timer(ios);
 
-	int const tcp_map = natpmp_handler->add_mapping(portmap_protocol::tcp, atoi(argv[1]), atoi(argv[1]));
+	int const tcp_map = natpmp_handler->add_mapping(portmap_protocol::tcp
+		, atoi(argv[1]), atoi(argv[1]));
 	natpmp_handler->add_mapping(portmap_protocol::udp, atoi(argv[2]), atoi(argv[2]));
 
 	error_code ec;

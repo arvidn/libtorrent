@@ -159,8 +159,12 @@ TORRENT_TEST(long_names)
 {
 	entry info;
 	info["pieces"] = "aaaaaaaaaaaaaaaaaaaa";
-	info["name"] = "slightly shorter name, it's kind of sad that people started the trend of incorrectly encoding the regular name field and then adding another one with correct encoding";
-	info["name.utf-8"] = "this is a long ass name in order to try to make make_magnet_uri overflow and hopefully crash. Although, by the time you read this that particular bug should have been fixed";
+	info["name"] = "slightly shorter name, it's kind of sad that people started "
+		"the trend of incorrectly encoding the regular name field and then adding "
+		"another one with correct encoding";
+	info["name.utf-8"] = "this is a long ass name in order to try to make "
+		"make_magnet_uri overflow and hopefully crash. Although, by the time you "
+		"read this that particular bug should have been fixed";
 	info["piece length"] = 16 * 1024;
 	info["length"] = 3245;
 	entry torrent;

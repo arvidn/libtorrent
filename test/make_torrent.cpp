@@ -128,7 +128,9 @@ std::shared_ptr<libtorrent::torrent_info> make_test_torrent(
 	for (int i = 0; i < num_pieces; ++i)
 	{
 		hasher h;
-		int const piece_size = (i < num_pieces - 1) ? piece_length : total_size - (num_pieces - 1) * piece_length;
+		int const piece_size = (i < num_pieces - 1)
+			? piece_length
+			: total_size - (num_pieces - 1) * piece_length;
 
 		char const data = char(i & 0xff);
 		char const zero = 0;

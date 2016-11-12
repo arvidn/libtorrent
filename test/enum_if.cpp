@@ -93,8 +93,7 @@ int main()
 			, i->mtu
 			, (i->interface_address.is_multicast()?"multicast ":"")
 			, (is_local(i->interface_address)?"local ":"")
-			, (is_loopback(i->interface_address)?"loopback ":"")
-			);
+			, (is_loopback(i->interface_address)?"loopback ":""));
 	}
 }
 

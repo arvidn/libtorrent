@@ -68,9 +68,11 @@ namespace {
 
 void get_test_keypair(public_key& pk, secret_key& sk)
 {
-	aux::from_hex({"77ff84905a91936367c01360803104f92432fcd904a43511876df5cdf3e7e548", 64}, pk.bytes.data());
+	aux::from_hex({"77ff84905a91936367c01360803104f92432fcd904a43511876df5cdf3e7e548", 64}
+		, pk.bytes.data());
 	aux::from_hex({"e06d3183d14159228433ed599221b80bd0a5ce8352e4bdf0262f76786ef1c74d"
-		"b7e7a9fea2c0eb269d61e3b38e450a22e754941ac78479d6c54e1faf6037881d", 128}, sk.bytes.data());
+		"b7e7a9fea2c0eb269d61e3b38e450a22e754941ac78479d6c54e1faf6037881d", 128}
+		, sk.bytes.data());
 }
 
 sequence_number prev_seq(sequence_number s)
@@ -1078,7 +1080,7 @@ TORRENT_TEST(bloom_filter)
 	for (int i = 0; i < 256; ++i)
 	{
 		char adr[50];
-		std::snprintf(adr, 50, "192.0.2.%d", i);
+		std::snprintf(adr, sizeof(adr), "192.0.2.%d", i);
 		address a = addr(adr);
 		sha1_hash const iphash = hash_address(a);
 		test.set(iphash);
@@ -1089,7 +1091,7 @@ TORRENT_TEST(bloom_filter)
 		for (int i = 0; i < 0x3E8; ++i)
 		{
 			char adr[50];
-			std::snprintf(adr, 50, "2001:db8::%x", i);
+			std::snprintf(adr, sizeof(adr), "2001:db8::%x", i);
 			address a = addr(adr);
 			sha1_hash const iphash = hash_address(a);
 			test.set(iphash);
@@ -1104,12 +1106,44 @@ TORRENT_TEST(bloom_filter)
 	if (supports_ipv6())
 	{
 		TEST_CHECK(fabs(test.size() - 1224.93f) < 0.001);
-		TEST_CHECK(aux::to_hex(bf_str) == "f6c3f5eaa07ffd91bde89f777f26fb2bff37bdb8fb2bbaa2fd3ddde7bacfff75ee7ccbaefe5eedb1fbfaff67f6abff5e43ddbca3fd9b9ffdf4ffd3e9dff12d1bdf59db53dbe9fa5b7ff3b8fdfcde1afb8bedd7be2f3ee71ebbbfe93bcdeefe148246c2bc5dbff7e7efdcf24fd8dc7adffd8fffdfddfff7a4bbeedf5cb95ce81fc7fcff1ff4ffffdfe5f7fdcbb7fd79b3fa1fc77bfe07fff905b7b7ffc7fefeffe0b8370bb0cd3f5b7f2bd93feb4386cfdd6f7fd5bfaf2e9ebffffeecd67adbf7c67f17efd5d75eba6ffeba7fff47a91eb1bfbb53e8abfb5762abe8ff237279bfefbfeef5ffc5febfdfe5adffadfee1fb737ffffbfd9f6aeffeee76b6fd8f72ef");
+		TEST_CHECK(aux::to_hex(bf_str) ==
+			"f6c3f5eaa07ffd91bde89f777f26fb2b"
+			"ff37bdb8fb2bbaa2fd3ddde7bacfff75"
+			"ee7ccbaefe5eedb1fbfaff67f6abff5e"
+			"43ddbca3fd9b9ffdf4ffd3e9dff12d1b"
+			"df59db53dbe9fa5b7ff3b8fdfcde1afb"
+			"8bedd7be2f3ee71ebbbfe93bcdeefe14"
+			"8246c2bc5dbff7e7efdcf24fd8dc7adf"
+			"fd8fffdfddfff7a4bbeedf5cb95ce81f"
+			"c7fcff1ff4ffffdfe5f7fdcbb7fd79b3"
+			"fa1fc77bfe07fff905b7b7ffc7fefeff"
+			"e0b8370bb0cd3f5b7f2bd93feb4386cf"
+			"dd6f7fd5bfaf2e9ebffffeecd67adbf7"
+			"c67f17efd5d75eba6ffeba7fff47a91e"
+			"b1bfbb53e8abfb5762abe8ff237279bf"
+			"efbfeef5ffc5febfdfe5adffadfee1fb"
+			"737ffffbfd9f6aeffeee76b6fd8f72ef");
 	}
 	else
 	{
 		TEST_CHECK(fabs(test.size() - 257.854f) < 0.001);
-		TEST_CHECK(aux::to_hex(bf_str) == "24c0004020043000102012743e00480037110820422110008000c0e302854835a05401a4045021302a306c060001881002d8a0a3a8001901b40a800900310008d2108110c2496a0028700010d804188b01415200082004088026411104a804048002002000080680828c400080cc40020c042c0494447280928041402104080d4240040414a41f0205654800b0811830d2020042b002c5800004a71d0204804a0028120a004c10017801490b834004044106005421000c86900a0020500203510060144e900100924a1018141a028012913f0041802250042280481200002004430804210101c08111c10801001080002038008211004266848606b035001048");
+		TEST_CHECK(aux::to_hex(bf_str) ==
+			"24c0004020043000102012743e004800"
+			"37110820422110008000c0e302854835"
+			"a05401a4045021302a306c0600018810"
+			"02d8a0a3a8001901b40a800900310008"
+			"d2108110c2496a0028700010d804188b"
+			"01415200082004088026411104a80404"
+			"8002002000080680828c400080cc4002"
+			"0c042c0494447280928041402104080d"
+			"4240040414a41f0205654800b0811830"
+			"d2020042b002c5800004a71d0204804a"
+			"0028120a004c10017801490b83400404"
+			"4106005421000c86900a002050020351"
+			"0060144e900100924a1018141a028012"
+			"913f0041802250042280481200002004"
+			"430804210101c08111c1080100108000"
+			"2038008211004266848606b035001048");
 	}
 }
 
@@ -2352,9 +2386,11 @@ TORRENT_TEST(mutable_put)
 			{
 				TEST_EQUAL(put_mutable_item_keys[0].string_value(), "q");
 				TEST_EQUAL(put_mutable_item_keys[2].string_value(), "put");
-				TEST_EQUAL(put_mutable_item_keys[6].string_value(), std::string(pk.bytes.data(), public_key::len));
+				TEST_EQUAL(put_mutable_item_keys[6].string_value()
+					, std::string(pk.bytes.data(), public_key::len));
 				TEST_EQUAL(put_mutable_item_keys[7].int_value(), int(seq.value));
-				TEST_EQUAL(put_mutable_item_keys[8].string_value(), std::string(sig.bytes.data(), signature::len));
+				TEST_EQUAL(put_mutable_item_keys[8].string_value()
+					, std::string(sig.bytes.data(), signature::len));
 				span<const char> v = put_mutable_item_keys[10].data_section();
 				TEST_EQUAL(v.size(), itemv.size());
 				TEST_CHECK(memcmp(v.data(), itemv.data(), itemv.size()) == 0);
@@ -3283,10 +3319,8 @@ TORRENT_TEST(distance_exp)
 		std::printf("%s %s: %d\n"
 			, std::get<0>(t), std::get<1>(t), std::get<2>(t));
 
-		TEST_EQUAL(distance_exp(
-				to_hash(std::get<0>(t))
-				, to_hash(std::get<1>(t))
-			), std::get<2>(t));
+		TEST_EQUAL(distance_exp(to_hash(std::get<0>(t))
+				, to_hash(std::get<1>(t))), std::get<2>(t));
 	}
 }
 

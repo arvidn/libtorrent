@@ -208,7 +208,8 @@ TORRENT_TEST(escape_string)
 	// maybe_url_encode
 	TEST_EQUAL(maybe_url_encode("http://bla.com/\n"), "http://bla.com/%0a");
 	TEST_EQUAL(maybe_url_encode("http://bla.com/foo%20bar"), "http://bla.com/foo%20bar");
-	TEST_EQUAL(maybe_url_encode("http://bla.com/foo%20bar?k=v&k2=v2"), "http://bla.com/foo%20bar?k=v&k2=v2");
+	TEST_EQUAL(maybe_url_encode("http://bla.com/foo%20bar?k=v&k2=v2")
+		, "http://bla.com/foo%20bar?k=v&k2=v2");
 	TEST_EQUAL(maybe_url_encode("?&"), "?&");
 
 	// unescape_string
@@ -238,7 +239,8 @@ TORRENT_TEST(read_until)
 	TEST_CHECK(read_until(tmp1, 'd', test_string1 + strlen(test_string1)) == "abc");
 
 	tmp1 = test_string1;
-	TEST_CHECK(read_until(tmp1, '[', test_string1 + strlen(test_string1)) == "abcdesdf sdgf");
+	TEST_CHECK(read_until(tmp1, '[', test_string1 + strlen(test_string1))
+		== "abcdesdf sdgf");
 }
 
 TORRENT_TEST(url_has_argument)

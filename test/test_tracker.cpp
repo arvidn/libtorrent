@@ -65,7 +65,9 @@ namespace lt = libtorrent;
 
 TORRENT_TEST(parse_hostname_peers)
 {
-	char const response[] = "d5:peersld7:peer id20:aaaaaaaaaaaaaaaaaaaa2:ip13:test_hostname4:porti1000eed7:peer id20:bbbbabaababababababa2:ip12:another_host4:porti1001eeee";
+	char const response[] = "d5:peersld7:peer id20:aaaaaaaaaaaaaaaaaaaa"
+		"2:ip13:test_hostname4:porti1000eed"
+		"7:peer id20:bbbbabaababababababa2:ip12:another_host4:porti1001eeee";
 	error_code ec;
 	tracker_response resp = parse_tracker_response(response, sizeof(response) - 1
 		, ec, false, sha1_hash());
@@ -100,10 +102,10 @@ TORRENT_TEST(parse_peers4)
 	{
 		ipv4_peer_entry const& e0 = resp.peers4[0];
 		ipv4_peer_entry const& e1 = resp.peers4[1];
-		TEST_CHECK(e0.ip == address_v4::from_string("1.2.3.4").to_bytes());
+		TEST_CHECK(e0.ip == addr4("1.2.3.4").to_bytes());
 		TEST_EQUAL(e0.port, 0x3010);
 
-		TEST_CHECK(e1.ip == address_v4::from_string("9.8.7.6").to_bytes());
+		TEST_CHECK(e1.ip == addr4("9.8.7.6").to_bytes());
 		TEST_EQUAL(e1.port, 0x2010);
 	}
 }
@@ -163,8 +165,10 @@ TORRENT_TEST(parse_i2p_peers)
 
 	if (resp.peers.size() == 11)
 	{
-		TEST_EQUAL(resp.peers[0].hostname, "wgcobfq73pzmtmcttiy2knon5bm2a7gn6j6idaiccf53ikwrecdq.b32.i2p");
-		TEST_EQUAL(resp.peers[10].hostname, "ufunemgwuun5t2sn3oay4zv7jvwdezwcrirgwr6b2fjgczvaowvq.b32.i2p");
+		TEST_EQUAL(resp.peers[0].hostname
+			, "wgcobfq73pzmtmcttiy2knon5bm2a7gn6j6idaiccf53ikwrecdq.b32.i2p");
+		TEST_EQUAL(resp.peers[10].hostname
+			, "ufunemgwuun5t2sn3oay4zv7jvwdezwcrirgwr6b2fjgczvaowvq.b32.i2p");
 	}
 }
 
@@ -208,7 +212,8 @@ TORRENT_TEST(parse_failure_reason)
 
 TORRENT_TEST(parse_scrape_response)
 {
-	char const response[] = "d5:filesd20:aaaaaaaaaaaaaaaaaaaad8:completei1e10:incompletei2e10:downloadedi3e11:downloadersi6eeee";
+	char const response[] = "d5:filesd20:aaaaaaaaaaaaaaaaaaaad"
+		"8:completei1e10:incompletei2e10:downloadedi3e11:downloadersi6eeee";
 	error_code ec;
 	tracker_response resp = parse_tracker_response(response, sizeof(response) - 1
 		, ec, true, sha1_hash("aaaaaaaaaaaaaaaaaaaa"));
@@ -222,7 +227,8 @@ TORRENT_TEST(parse_scrape_response)
 
 TORRENT_TEST(parse_scrape_response_with_zero)
 {
-	char const response[] = "d5:filesd20:aaa\0aaaaaaaaaaaaaaaad8:completei4e10:incompletei5e10:downloadedi6eeee";
+	char const response[] = "d5:filesd20:aaa\0aaaaaaaaaaaaaaaad"
+		"8:completei4e10:incompletei5e10:downloadedi6eeee";
 	error_code ec;
 	tracker_response resp = parse_tracker_response(response, sizeof(response) - 1
 		, ec, true, sha1_hash("aaa\0aaaaaaaaaaaaaaaa"));
@@ -243,20 +249,21 @@ TORRENT_TEST(parse_external_ip)
 
 	TEST_EQUAL(ec, error_code());
 	TEST_EQUAL(resp.peers.size(), 0);
-	TEST_EQUAL(resp.external_ip, address_v4::from_string("1.2.3.4"));
+	TEST_EQUAL(resp.external_ip, addr4("1.2.3.4"));
 }
 
 #if TORRENT_USE_IPV6
 TORRENT_TEST(parse_external_ip6)
 {
-	char const response[] = "d5:peers0:11:external ip16:\xf1\x02\x03\x04\0\0\0\0\0\0\0\0\0\0\xff\xff" "e";
+	char const response[] = "d5:peers0:11:external ip"
+		"16:\xf1\x02\x03\x04\0\0\0\0\0\0\0\0\0\0\xff\xff" "e";
 	error_code ec;
 	tracker_response resp = parse_tracker_response(response, sizeof(response) - 1
 		, ec, false, sha1_hash());
 
 	TEST_EQUAL(ec, error_code());
 	TEST_EQUAL(resp.peers.size(), 0);
-	TEST_EQUAL(resp.external_ip, address_v6::from_string("f102:0304::ffff"));
+	TEST_EQUAL(resp.external_ip, addr6("f102:0304::ffff"));
 }
 #endif
 
@@ -438,12 +445,12 @@ TORRENT_TEST(http_peers)
 	h.native_handle()->get_full_peer_list(&peers);
 
 	std::set<tcp::endpoint> expected_peers;
-	expected_peers.insert(tcp::endpoint(address_v4::from_string("65.65.65.65"), 16962));
-	expected_peers.insert(tcp::endpoint(address_v4::from_string("67.67.67.67"), 17476));
+	expected_peers.insert(ep("65.65.65.65", 16962));
+	expected_peers.insert(ep("67.67.67.67", 17476));
 #if TORRENT_USE_IPV6
 	if (supports_ipv6())
 	{
-		expected_peers.insert(tcp::endpoint(address_v6::from_string("4545:4545:4545:4545:4545:4545:4545:4545"), 17990));
+		expected_peers.insert(ep("4545:4545:4545:4545:4545:4545:4545:4545", 17990));
 	}
 #endif
 
@@ -583,7 +590,8 @@ TORRENT_TEST(tracker_proxy)
 	std::printf("\n\nnot proxying tracker connections (expect to reach the tracker)\n\n");
 	test_proxy(false);
 
-	std::printf("\n\nproxying tracker connections through non-existent proxy (do not expect to reach the tracker)\n\n");
+	std::printf("\n\nproxying tracker connections through non-existent proxy "
+		"(do not expect to reach the tracker)\n\n");
 	test_proxy(true);
 }
 

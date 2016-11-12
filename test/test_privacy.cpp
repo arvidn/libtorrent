@@ -90,7 +90,8 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 	// if DHT is disabled, we won't get any requests to it
 	flags &= ~expect_dht_msg;
 #endif
-	std::printf("\n=== TEST == proxy: %s anonymous-mode: %s\n\n", proxy_name[proxy_type], (flags & force_proxy_mode) ? "yes" : "no");
+	std::printf("\n=== TEST == proxy: %s anonymous-mode: %s\n\n"
+		, proxy_name[proxy_type], (flags & force_proxy_mode) ? "yes" : "no");
 	int http_port = start_web_server();
 	int udp_port = start_udp_tracker();
 	int dht_port = start_dht();
@@ -144,11 +145,13 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 	file.close();
 
 	char http_tracker_url[200];
-	std::snprintf(http_tracker_url, sizeof(http_tracker_url), "http://127.0.0.1:%d/announce", http_port);
+	std::snprintf(http_tracker_url, sizeof(http_tracker_url)
+		, "http://127.0.0.1:%d/announce", http_port);
 	t->add_tracker(http_tracker_url, 0);
 
 	char udp_tracker_url[200];
-	std::snprintf(udp_tracker_url, sizeof(udp_tracker_url), "udp://127.0.0.1:%d/announce", udp_port);
+	std::snprintf(udp_tracker_url, sizeof(udp_tracker_url)
+		, "udp://127.0.0.1:%d/announce", udp_port);
 	t->add_tracker(udp_tracker_url, 1);
 
 	add_torrent_params addp;
@@ -191,7 +194,8 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 	}
 	else
 	{
-		TEST_EQUAL(num_udp_announces(), prev_udp_announces + ((flags & expect_udp_connection) != 0 ? 1 : 0));
+		TEST_EQUAL(num_udp_announces(), prev_udp_announces
+			+ ((flags & expect_udp_connection) != 0 ? 1 : 0));
 	}
 
 	if (flags & expect_possible_udp_connection)
@@ -222,10 +226,12 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 	}
 
 	if (flags & expect_udp_reject)
-		TEST_CHECK(std::find(rejected_trackers.begin(), rejected_trackers.end(), udp_tracker_url) != rejected_trackers.end());
+		TEST_CHECK(std::find(rejected_trackers.begin(), rejected_trackers.end()
+			, udp_tracker_url) != rejected_trackers.end());
 
 	if (flags & expect_http_reject)
-		TEST_CHECK(std::find(rejected_trackers.begin(), rejected_trackers.end(), http_tracker_url) != rejected_trackers.end());
+		TEST_CHECK(std::find(rejected_trackers.begin(), rejected_trackers.end()
+			, http_tracker_url) != rejected_trackers.end());
 
 	std::printf("%s: ~session\n", time_now_string());
 	session_proxy pr = s->abort();
@@ -244,7 +250,8 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 
 TORRENT_TEST(no_proxy)
 {
-	test_proxy(settings_pack::none, expect_udp_connection | expect_http_connection | expect_dht_msg | expect_peer_connection);
+	test_proxy(settings_pack::none, expect_udp_connection
+		| expect_http_connection | expect_dht_msg | expect_peer_connection);
 }
 
 TORRENT_TEST(socks4)
@@ -254,12 +261,14 @@ TORRENT_TEST(socks4)
 
 TORRENT_TEST(socks5)
 {
-	test_proxy(settings_pack::socks5, expect_possible_udp_connection | expect_possible_dht_msg);
+	test_proxy(settings_pack::socks5, expect_possible_udp_connection
+		| expect_possible_dht_msg);
 }
 
 TORRENT_TEST(socks5_pw)
 {
-	test_proxy(settings_pack::socks5_pw,expect_possible_udp_connection | expect_possible_dht_msg);
+	test_proxy(settings_pack::socks5_pw,expect_possible_udp_connection
+		| expect_possible_dht_msg);
 }
 
 TORRENT_TEST(http)
