@@ -694,8 +694,8 @@ std::string path_to_url(std::string f)
 		else
 		{
 			ret.push_back('%');
-			ret.push_back(hex_chars[f[i] >> 4]);
-			ret.push_back(hex_chars[f[i] & 0xf]);
+			ret.push_back(hex_chars[std::uint8_t(f[i]) >> 4]);
+			ret.push_back(hex_chars[std::uint8_t(f[i]) & 0xf]);
 		}
 	}
 	return ret;
