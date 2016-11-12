@@ -244,7 +244,8 @@ TORRENT_TEST(parse_web_seeds)
 	// parse_magnet_uri
 	error_code ec;
 	add_torrent_params p;
-	parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd&ws=http://foo.com/bar&ws=http://bar.com/foo", p, ec);
+	parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+		"&ws=http://foo.com/bar&ws=http://bar.com/foo", p, ec);
 	TEST_CHECK(!ec);
 	TEST_EQUAL(p.url_seeds.size(), 2);
 	TEST_EQUAL(p.url_seeds[0], "http://foo.com/bar");
@@ -292,7 +293,8 @@ TORRENT_TEST(parse_peer)
 {
 	error_code ec;
 	add_torrent_params p;
-	parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd&dn=foo&x.pe=127.0.0.1:43&x.pe=<invalid1>&x.pe=<invalid2>:100&x.pe=[::1]:45", p, ec);
+	parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+		"&dn=foo&x.pe=127.0.0.1:43&x.pe=<invalid1>&x.pe=<invalid2>:100&x.pe=[::1]:45", p, ec);
 	TEST_CHECK(!ec);
 #if TORRENT_USE_IPV6
 	TEST_EQUAL(p.peers.size(), 2);
@@ -310,7 +312,8 @@ TORRENT_TEST(parse_dht_node)
 {
 	error_code ec;
 	add_torrent_params p;
-	parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd&dn=foo&dht=127.0.0.1:43", p, ec);
+	parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+		"&dn=foo&dht=127.0.0.1:43", p, ec);
 	TEST_CHECK(!ec);
 	if (ec) std::printf("%s\n", ec.message().c_str());
 	ec.clear();
@@ -326,8 +329,12 @@ TORRENT_TEST(make_magnet_uri)
 	// make_magnet_uri
 	entry info;
 	info["pieces"] = "aaaaaaaaaaaaaaaaaaaa";
-	info["name"] = "slightly shorter name, it's kind of sad that people started the trend of incorrectly encoding the regular name field and then adding another one with correct encoding";
-	info["name.utf-8"] = "this is a long ass name in order to try to make make_magnet_uri overflow and hopefully crash. Although, by the time you read this that particular bug should have been fixed";
+	info["name"] = "slightly shorter name, it's kind of sad that people started "
+		"the trend of incorrectly encoding the regular name field and then adding "
+		"another one with correct encoding";
+	info["name.utf-8"] = "this is a long ass name in order to try to make "
+		"make_magnet_uri overflow and hopefully crash. Although, by the time "
+		"you read this that particular bug should have been fixed";
 	info["piece length"] = 16 * 1024;
 	info["length"] = 3245;
 	entry torrent;

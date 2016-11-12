@@ -46,7 +46,8 @@ namespace lt = libtorrent;
 // info-dictionary verbatim, so as to not alter the info-hash
 TORRENT_TEST(create_verbatim_torrent)
 {
-	char const test_torrent[] = "d4:infod4:name6:foobar6:lengthi12345e12:piece lengthi65536e6:pieces20:ababababababababababee";
+	char const test_torrent[] = "d4:infod4:name6:foobar6:lengthi12345e"
+		"12:piece lengthi65536e6:pieces20:ababababababababababee";
 
 	lt::torrent_info info(test_torrent, sizeof(test_torrent) - 1);
 

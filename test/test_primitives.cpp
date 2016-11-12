@@ -42,20 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
-address_v4 v4(char const* str)
-{
-	error_code ec;
-	return address_v4::from_string(str, ec);
-}
-
-#if TORRENT_USE_IPV6
-address_v6 v6(char const* str)
-{
-	error_code ec;
-	return address_v6::from_string(str, ec);
-}
-#endif
-
 TORRENT_TEST(primitives)
 {
 	using namespace libtorrent;
@@ -82,14 +68,18 @@ TORRENT_TEST(primitives)
 
 	// test error codes
 	TEST_CHECK(error_code(errors::http_error).message() == "HTTP error");
-	TEST_CHECK(error_code(errors::missing_file_sizes).message() == "missing or invalid 'file sizes' entry");
-	TEST_CHECK(error_code(errors::unsupported_protocol_version).message() == "unsupported protocol version");
+	TEST_CHECK(error_code(errors::missing_file_sizes).message()
+		== "missing or invalid 'file sizes' entry");
+	TEST_CHECK(error_code(errors::unsupported_protocol_version).message()
+		== "unsupported protocol version");
 	TEST_CHECK(error_code(errors::no_i2p_router).message() == "no i2p router is set up");
 	TEST_CHECK(error_code(errors::http_parse_error).message() == "Invalid HTTP header");
 	TEST_CHECK(error_code(errors::error_code_max).message() == "Unknown error");
 
-	TEST_CHECK(error_code(errors::unauthorized, http_category()).message() == "401 Unauthorized");
-	TEST_CHECK(error_code(errors::service_unavailable, http_category()).message() == "503 Service Unavailable");
+	TEST_CHECK(error_code(errors::unauthorized, http_category()).message()
+		== "401 Unauthorized");
+	TEST_CHECK(error_code(errors::service_unavailable, http_category()).message()
+		== "503 Service Unavailable");
 
 	// test std::snprintf
 
@@ -129,9 +119,9 @@ TORRENT_TEST(primitives)
 	TEST_EQUAL(parse_endpoint(" \t[ff::1]:1214 \r", ec), ep("ff::1", 1214));
 	TEST_CHECK(!ec);
 #endif
-	TEST_EQUAL(print_address(v4("241.124.23.5")), "241.124.23.5");
+	TEST_EQUAL(print_address(addr4("241.124.23.5")), "241.124.23.5");
 #if TORRENT_USE_IPV6
-	TEST_EQUAL(print_address(v6("2001:ff::1")), "2001:ff::1");
+	TEST_EQUAL(print_address(addr6("2001:ff::1")), "2001:ff::1");
 	parse_endpoint("[ff::1]", ec);
 	TEST_EQUAL(ec, error_code(errors::invalid_port));
 #endif
@@ -140,12 +130,12 @@ TORRENT_TEST(primitives)
 	TEST_EQUAL(ec, error_code(errors::expected_close_bracket_in_address));
 
 	// test address_to_bytes
-	TEST_EQUAL(address_to_bytes(address_v4::from_string("10.11.12.13")), "\x0a\x0b\x0c\x0d");
-	TEST_EQUAL(address_to_bytes(address_v4::from_string("16.5.127.1")), "\x10\x05\x7f\x01");
+	TEST_EQUAL(address_to_bytes(addr4("10.11.12.13")), "\x0a\x0b\x0c\x0d");
+	TEST_EQUAL(address_to_bytes(addr4("16.5.127.1")), "\x10\x05\x7f\x01");
 
 	// test endpoint_to_bytes
-	TEST_EQUAL(endpoint_to_bytes(udp::endpoint(address_v4::from_string("10.11.12.13"), 8080)), "\x0a\x0b\x0c\x0d\x1f\x90");
-	TEST_EQUAL(endpoint_to_bytes(udp::endpoint(address_v4::from_string("16.5.127.1"), 12345)), "\x10\x05\x7f\x01\x30\x39");
+	TEST_EQUAL(endpoint_to_bytes(uep("10.11.12.13", 8080)), "\x0a\x0b\x0c\x0d\x1f\x90");
+	TEST_EQUAL(endpoint_to_bytes(uep("16.5.127.1", 12345)), "\x10\x05\x7f\x01\x30\x39");
 
 	// test gen_fingerprint
 	TEST_EQUAL(generate_fingerprint("AB", 1, 2, 3, 4), "-AB1234-");

@@ -458,7 +458,8 @@ TORRENT_TEST(plain_deprecated)
 TORRENT_TEST(use_resume_save_path_deprecated)
 {
 	lt::session ses(settings());
-	torrent_status s = test_resume_flags(ses, add_torrent_params::flag_use_resume_save_path, "", "", true).status();
+	torrent_status s = test_resume_flags(ses
+		, add_torrent_params::flag_use_resume_save_path, "", "", true).status();
 	default_tests(s);
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(s.save_path, "c:\\resume_data save_path");
@@ -528,7 +529,8 @@ TORRENT_TEST(seed_mode_deprecated)
 TORRENT_TEST(upload_mode_deprecated)
 {
 	lt::session ses(settings());
-	torrent_status s = test_resume_flags(ses, add_torrent_params::flag_upload_mode, "", "", true).status();
+	torrent_status s = test_resume_flags(ses
+		, add_torrent_params::flag_upload_mode, "", "", true).status();
 	default_tests(s);
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(s.save_path, "c:\\add_torrent_params save_path");
@@ -575,7 +577,8 @@ TORRENT_TEST(auto_managed_deprecated)
 {
 	lt::session ses(settings());
 	// resume data overrides the auto-managed flag
-	torrent_status s = test_resume_flags(ses, add_torrent_params::flag_auto_managed, "", "", true).status();
+	torrent_status s = test_resume_flags(ses
+		, add_torrent_params::flag_auto_managed, "", "", true).status();
 	default_tests(s);
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(s.save_path, "c:\\add_torrent_params save_path");

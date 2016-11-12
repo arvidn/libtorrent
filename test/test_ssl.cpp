@@ -133,7 +133,8 @@ void test_ssl(int test_idx, bool use_utp)
 
 	test_config_t const& test = test_config[test_idx];
 
-	std::printf("\n%s TEST: %s Protocol: %s\n\n", time_now_string(), test.name, use_utp ? "uTP": "TCP");
+	std::printf("\n%s TEST: %s Protocol: %s\n\n", time_now_string()
+		, test.name, use_utp ? "uTP": "TCP");
 
 	// in case the previous run was terminated
 	error_code ec;
@@ -291,8 +292,9 @@ void test_ssl(int test_idx, bool use_utp)
 	std::printf("ssl_disconnects: %d  expected: %d\n", ssl_peer_disconnects, test.ssl_disconnects);
 	TEST_EQUAL(ssl_peer_disconnects > 0, test.ssl_disconnects > 0);
 
-	std::printf("%s: EXPECT: %s\n", time_now_string(), test.expected_to_complete ? "SUCCEESS" : "FAILURE");
-	std::printf("%s: RESULT: %s\n", time_now_string(), tor2.status().is_seeding ? "SUCCEESS" : "FAILURE");
+	char const* now = time_now_string();
+	std::printf("%s: EXPECT: %s\n", now, test.expected_to_complete ? "SUCCEESS" : "FAILURE");
+	std::printf("%s: RESULT: %s\n", now, tor2.status().is_seeding ? "SUCCEESS" : "FAILURE");
 	TEST_EQUAL(tor2.status().is_seeding, test.expected_to_complete);
 
 	// this allows shutting down the sessions in parallel

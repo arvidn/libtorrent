@@ -112,10 +112,9 @@ LONG WINAPI seh_exception_handler(LPEXCEPTION_POINTERS p)
 	print_backtrace(stack_text, sizeof(stack_text), 30
 		, p->ContextRecord);
 #elif defined __FUNCTION__
-	strcat(stack_text, __FUNCTION__);
+	strcpy(stack_text, __FUNCTION__);
 #else
-	stack_text[0] = 0;
-	strcat(stack_text, "<stack traces disabled>");
+	strcpy(stack_text, "<stack traces disabled>");
 #endif
 
 	int const code = p->ExceptionRecord->ExceptionCode;
@@ -166,10 +165,9 @@ void sig_handler(int sig)
 	|| defined TORRENT_DEBUG_BUFFERS
 	print_backtrace(stack_text, sizeof(stack_text), 30);
 #elif defined __FUNCTION__
-	strcat(stack_text, __FUNCTION__);
+	strcpy(stack_text, __FUNCTION__);
 #else
-	stack_text[0] = 0;
-	strcat(stack_text, "<stack traces disabled>");
+	strcpy(stack_text, "<stack traces disabled>");
 #endif
 	char const* name = "<unknown signal>";
 	switch (sig)
@@ -287,7 +285,7 @@ EXPORT int main(int argc, char const* argv[])
 #ifdef _WIN32
 	// try to suppress hanging the process by windows displaying
 	// modal dialogs.
-	SetErrorMode( SEM_NOALIGNMENTFAULTEXCEPT
+	SetErrorMode(SEM_NOALIGNMENTFAULTEXCEPT
 		| SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
 
 	SetUnhandledExceptionFilter(&seh_exception_handler);

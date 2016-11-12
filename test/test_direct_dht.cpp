@@ -108,8 +108,8 @@ TORRENT_TEST(direct_dht_request)
 
 	entry r;
 	r["q"] = "test_good";
-	requester.dht_direct_request(udp::endpoint(address::from_string("127.0.0.1"), responder.listen_port())
-		, r, (void*)12345);
+	requester.dht_direct_request(udp::endpoint(address::from_string("127.0.0.1")
+		, responder.listen_port()), r, (void*)12345);
 
 	dht_direct_response_alert* ra = get_direct_response(requester);
 	TEST_CHECK(ra);

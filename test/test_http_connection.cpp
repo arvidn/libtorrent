@@ -71,8 +71,8 @@ void http_connect_handler(http_connection& c)
 	++connect_handler_called;
 	TEST_CHECK(c.socket().is_open());
 	error_code ec;
-	std::cout << time_now_string() << " connected to: " << print_endpoint(c.socket().remote_endpoint(ec))
-		<< std::endl;
+	std::cout << time_now_string() << " connected to: "
+		<< print_endpoint(c.socket().remote_endpoint(ec)) << std::endl;
 // this is not necessarily true when using a proxy and proxying hostnames
 //	TEST_CHECK(c.socket().remote_endpoint(ec).address() == address::from_string("127.0.0.1", ec));
 }
@@ -128,12 +128,13 @@ void run_test(std::string const& url, int size, int status, int connected
 	ios.run(e);
 	if (e) std::cout << time_now_string() << " run failed: " << e.message() << std::endl;
 
-	std::cout << time_now_string() << " connect_handler_called: " << connect_handler_called << std::endl;
-	std::cout << time_now_string() << " handler_called: " << handler_called << std::endl;
-	std::cout << time_now_string() << " status: " << http_status << std::endl;
-	std::cout << time_now_string() << " size: " << data_size << std::endl;
-	std::cout << time_now_string() << " expected-size: " << size << std::endl;
-	std::cout << time_now_string() << " error_code: " << g_error_code.message() << std::endl;
+	std::string const n = time_now_string();
+	std::cout << n << " connect_handler_called: " << connect_handler_called << std::endl;
+	std::cout << n << " handler_called: " << handler_called << std::endl;
+	std::cout << n << " status: " << http_status << std::endl;
+	std::cout << n << " size: " << data_size << std::endl;
+	std::cout << n << " expected-size: " << size << std::endl;
+	std::cout << n << " error_code: " << g_error_code.message() << std::endl;
 	TEST_CHECK(connect_handler_called == connected);
 	TEST_CHECK(handler_called == 1);
 	TEST_CHECK(data_size == size || size == -1);

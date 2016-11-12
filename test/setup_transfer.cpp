@@ -206,7 +206,8 @@ alert const* wait_for_alert(lt::session& ses, int type, char const* name, int nu
 	return nullptr;
 }
 
-int load_file(std::string const& filename, std::vector<char>& v, libtorrent::error_code& ec, int limit)
+int load_file(std::string const& filename, std::vector<char>& v
+	, libtorrent::error_code& ec, int limit)
 {
 	ec.clear();
 	FILE* f = fopen(filename.c_str(), "rb");
@@ -304,13 +305,12 @@ bool print_alerts(lt::session& ses, char const* name
 		if (predicate && predicate(a)) ret = true;
 		if (peer_disconnected_alert const* p = alert_cast<peer_disconnected_alert>(a))
 		{
-			std::printf("%s: %s: [%s] (%s): %s\n", time_now_string(), name, (a)->what()
+			std::printf("%s: %s: [%s] (%s): %s\n", time_now_string(), name, a->what()
 				, print_endpoint(p->endpoint).c_str(), p->message().c_str());
 		}
-		else if (should_print(a)
-			&& !no_output)
+		else if (should_print(a) && !no_output)
 		{
-			std::printf("%s: %s: [%s] %s\n", time_now_string(), name, (a)->what(), (a)->message().c_str());
+			std::printf("%s: %s: [%s] %s\n", time_now_string(), name, a->what(), a->message().c_str());
 		}
 
 		TEST_CHECK(alert_cast<fastresume_rejected_alert>(a) == nullptr || allow_failed_fastresume);
@@ -466,9 +466,10 @@ pid_type async_run(char const* cmdline)
 	memset(&startup, 0, sizeof(startup));
 	startup.cb = sizeof(startup);
 	startup.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
-	startup.hStdOutput= GetStdHandle(STD_OUTPUT_HANDLE);
+	startup.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
 	startup.hStdError = GetStdHandle(STD_INPUT_HANDLE);
-	int ret = CreateProcessA(NULL, buf, NULL, NULL, TRUE, CREATE_NEW_PROCESS_GROUP, NULL, NULL, &startup, &pi);
+	int ret = CreateProcessA(NULL, buf, NULL, NULL, TRUE
+		, CREATE_NEW_PROCESS_GROUP, NULL, NULL, &startup, &pi);
 
 	if (ret == 0)
 	{
@@ -799,7 +800,8 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 	if (ses3) ses3->set_peer_class_filter(f);
 
 	settings_pack pack;
-	pack.set_int(settings_pack::alert_mask, ~(alert::progress_notification | alert::stats_notification));
+	pack.set_int(settings_pack::alert_mask
+		, ~(alert::progress_notification | alert::stats_notification));
 	if (ses3) pack.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
 	pack.set_int(settings_pack::mixed_mode_algorithm, settings_pack::prefer_tcp);
 	pack.set_int(settings_pack::max_failcount, 1);

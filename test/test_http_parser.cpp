@@ -175,7 +175,8 @@ TORRENT_TEST(http_parser)
 		"Host:239.255.255.250:1900\r\n"
 		"NT:urn:schemas-upnp-org:device:MediaServer:1\r\n"
 		"NTS:ssdp:alive\r\n"
-		"Location:http://10.0.1.15:2353/upnphost/udhisapi.dll?content=uuid:c17f2c31-d19b-4912-af94-651945c8a84e\r\n"
+		"Location:http://10.0.1.15:2353/upnphost/udhisapi.dll?"
+			"content=uuid:c17f2c31-d19b-4912-af94-651945c8a84e\r\n"
 		"USN:uuid:c17f0c32-d1db-4be8-ae94-25f94583026e::urn:schemas-upnp-org:device:MediaServer:1\r\n"
 		"Cache-Control:max-age=900\r\n"
 		"Server:Microsoft-Windows-NT/5.1 UPnP/1.0 UPnP-Device-Host/1.0\r\n";
