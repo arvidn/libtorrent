@@ -103,7 +103,7 @@ namespace libtorrent { namespace
 {
 
 #if !defined TORRENT_BUILD_SIMULATOR
-	address inaddr_to_address(in_addr const* ina, int len = 4)
+	address_v4 inaddr_to_address(in_addr const* ina, int len = 4)
 	{
 		typedef boost::asio::ip::address_v4::bytes_type bytes_t;
 		bytes_t b;
@@ -113,7 +113,7 @@ namespace libtorrent { namespace
 	}
 
 #if TORRENT_USE_IPV6
-	address inaddr6_to_address(in6_addr const* ina6, int len = 16)
+	address_v6 inaddr6_to_address(in6_addr const* ina6, int len = 16)
 	{
 		typedef boost::asio::ip::address_v6::bytes_type bytes_t;
 		bytes_t b;
@@ -139,8 +139,13 @@ namespace libtorrent { namespace
 				, sockaddr_len(sin) - offsetof(sockaddr, sa_data));
 #if TORRENT_USE_IPV6
 		else if (sin->sa_family == AF_INET6 || assume_family == AF_INET6)
-			return inaddr6_to_address(&reinterpret_cast<sockaddr_in6 const*>(sin)->sin6_addr
+		{
+			auto saddr = reinterpret_cast<sockaddr_in6 const*>(sin);
+			auto ret = inaddr6_to_address(&saddr->sin6_addr
 				, sockaddr_len(sin) - offsetof(sockaddr, sa_data));
+			ret.scope_id(saddr->sin6_scope_id);
+			return ret;
+		}
 #endif
 		return address();
 	}
