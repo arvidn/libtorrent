@@ -49,6 +49,16 @@ namespace libtorrent
 
 	struct TORRENT_EXTRA_EXPORT disk_interface
 	{
+		enum return_t
+		{
+			// return values from check_fastresume, and move_storage
+			no_error = 0,
+			fatal_disk_error = -1,
+			need_full_check = -2,
+			disk_check_aborted = -3,
+			file_exist = -4
+		};
+
 		virtual void async_read(piece_manager* storage, peer_request const& r
 			, std::function<void(disk_io_job const*)> handler, void* requester
 			, int flags = 0) = 0;

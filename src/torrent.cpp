@@ -1994,7 +1994,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(is_single_thread());
 
-		if (j->ret == piece_manager::fatal_disk_error)
+		if (j->ret == disk_interface::fatal_disk_error)
 		{
 			TORRENT_ASSERT(m_outstanding_check_files == false);
 			m_add_torrent_params.reset();
@@ -2248,7 +2248,7 @@ namespace libtorrent
 
 		if (m_abort) return;
 
-		if (j->ret == piece_manager::fatal_disk_error)
+		if (j->ret == disk_interface::fatal_disk_error)
 		{
 			handle_disk_error(j);
 			return;
@@ -2320,7 +2320,7 @@ namespace libtorrent
 
 		if (m_abort) return;
 
-		if (j->ret == piece_manager::disk_check_aborted)
+		if (j->ret == disk_interface::disk_check_aborted)
 		{
 			m_checking_piece = 0;
 			m_num_checked_pieces = 0;
@@ -7825,13 +7825,14 @@ namespace libtorrent
 		TORRENT_ASSERT(is_single_thread());
 
 		m_moving_storage = false;
-		if (j->ret == piece_manager::no_error || j->ret == piece_manager::need_full_check)
+		if (j->ret == disk_interface::no_error
+			|| j->ret == disk_interface::need_full_check)
 		{
 			if (alerts().should_post<storage_moved_alert>())
 				alerts().emplace_alert<storage_moved_alert>(get_handle(), j->buffer.string);
 			m_save_path = j->buffer.string;
 			set_need_save_resume();
-			if (j->ret == piece_manager::need_full_check)
+			if (j->ret == disk_interface::need_full_check)
 				force_recheck();
 		}
 		else

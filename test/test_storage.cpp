@@ -73,17 +73,17 @@ void on_check_resume_data(disk_io_job const* j, bool* done)
 	std::cerr << time_now_string() << " on_check_resume_data ret: " << j->ret;
 	switch (j->ret)
 	{
-		case piece_manager::no_error:
+		case disk_interface::no_error:
 			std::cerr << time_now_string() << " success" << std::endl;
 			break;
-		case piece_manager::fatal_disk_error:
+		case disk_interface::fatal_disk_error:
 			std::cerr << time_now_string() << " disk error: " << j->error.ec.message()
 				<< " file: " << j->error.file << std::endl;
 			break;
-		case piece_manager::need_full_check:
+		case disk_interface::need_full_check:
 			std::cerr << time_now_string() << " need full check" << std::endl;
 			break;
-		case piece_manager::disk_check_aborted:
+		case disk_interface::disk_check_aborted:
 			std::cerr << time_now_string() << " aborted" << std::endl;
 			break;
 	}
@@ -717,6 +717,7 @@ void test_fastresume(bool const test_deprecated)
 		p.storage_mode = storage_mode_sparse;
 		torrent_handle h = ses.add_torrent(p, ec);
 
+		std::printf("expecting fastresume to be rejected becase the files were removed");
 		alert const* a = wait_for_alert(ses, fastresume_rejected_alert::alert_type
 			, "ses");
 		// we expect the fast resume to be rejected because the files were removed
