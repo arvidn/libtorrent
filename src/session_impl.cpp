@@ -4535,17 +4535,15 @@ namespace aux {
 	void session_impl::on_async_load_torrent(add_torrent_params* params, error_code ec)
 	{
 		std::unique_ptr<add_torrent_params> holder(params);
-		if (!ec)
-		{
-			add_torrent(*params, ec);
-			params->url.clear();
-		}
 
 		if (ec)
 		{
 			m_alerts.emplace_alert<add_torrent_alert>(torrent_handle()
 				, *params, ec);
+			return;
 		}
+		add_torrent(*params, ec);
+		params->url.clear();
 	}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
