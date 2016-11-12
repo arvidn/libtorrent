@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_util.hpp" // for allocate_string_copy
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/alloca.hpp"
-#include "libtorrent/invariant_check.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/error.hpp"
 #include "libtorrent/file_pool.hpp"
@@ -542,8 +541,6 @@ namespace libtorrent
 	int disk_io_thread::build_iovec(cached_piece_entry* pe, int start, int end
 		, span<file::iovec_t> iov, span<int> flushing, int block_base_index)
 	{
-		INVARIANT_CHECK;
-
 		DLOG("build_iovec: piece=%d [%d, %d)\n"
 			, int(pe->piece), start, end);
 		TORRENT_PIECE_ASSERT(start >= 0, pe);
@@ -727,7 +724,6 @@ namespace libtorrent
 		, jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l)
 	{
 		TORRENT_ASSERT(l.owns_lock());
-		INVARIANT_CHECK;
 
 		DLOG("flush_range: piece=%d [%d, %d)\n"
 			, int(pe->piece), start, end);
@@ -1065,7 +1061,6 @@ namespace libtorrent
 
 	void disk_io_thread::perform_job(disk_io_job* j, jobqueue_t& completed_jobs)
 	{
-		INVARIANT_CHECK;
 		TORRENT_ASSERT(j->next == nullptr);
 		TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
 
@@ -1455,7 +1450,6 @@ namespace libtorrent
 
 	int disk_io_thread::do_write(disk_io_job* j, jobqueue_t& completed_jobs)
 	{
-		INVARIANT_CHECK;
 		TORRENT_ASSERT(j->d.io.buffer_size <= m_disk_cache.block_size());
 
 		std::unique_lock<std::mutex> l(m_cache_mutex);
@@ -1517,8 +1511,6 @@ namespace libtorrent
 		, std::function<void(disk_io_job const*)> handler, void* requester
 		, int flags)
 	{
-		INVARIANT_CHECK;
-
 		TORRENT_ASSERT(r.length <= m_disk_cache.block_size());
 		TORRENT_ASSERT(r.length <= 16 * 1024);
 
@@ -1631,8 +1623,6 @@ namespace libtorrent
 		, std::function<void(disk_io_job const*)> handler
 		, int const flags)
 	{
-		INVARIANT_CHECK;
-
 		TORRENT_ASSERT(r.length <= m_disk_cache.block_size());
 		TORRENT_ASSERT(r.length <= 16 * 1024);
 
@@ -2141,8 +2131,6 @@ namespace libtorrent
 
 	int disk_io_thread::do_hash(disk_io_job* j, jobqueue_t& /* completed_jobs */ )
 	{
-		INVARIANT_CHECK;
-
 		int const piece_size = j->storage->files()->piece_size(j->piece);
 		int const file_flags = file_flags_for_job(j
 			, m_settings.get_bool(settings_pack::coalesce_reads));
@@ -2396,8 +2384,6 @@ namespace libtorrent
 
 	int disk_io_thread::do_release_files(disk_io_job* j, jobqueue_t& completed_jobs)
 	{
-		INVARIANT_CHECK;
-
 		// if this assert fails, something's wrong with the fence logic
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
 
@@ -2412,7 +2398,6 @@ namespace libtorrent
 	int disk_io_thread::do_delete_files(disk_io_job* j, jobqueue_t& completed_jobs)
 	{
 		TORRENT_ASSERT(j->buffer.delete_options != 0);
-		INVARIANT_CHECK;
 
 		// if this assert fails, something's wrong with the fence logic
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
@@ -2437,8 +2422,59 @@ namespace libtorrent
 		if (rd == nullptr) rd = &tmp;
 
 		std::unique_ptr<std::vector<std::string>> links(j->d.links);
-		return j->storage->check_fastresume(*rd
-			, links ? *links : std::vector<std::string>(), j->error);
+		// check if the fastresume data is up to date
+		// if it is, use it and return true. If it
+		// isn't return false and the full check
+		// will be run. If the links pointer is non-empty, it has the same number
+		// of elements as there are files. Each element is either empty or contains
+		// the absolute path to a file identical to the corresponding file in this
+		// torrent. The storage must create hard links (or copy) those files. If
+		// any file does not exist or is inaccessible, the disk job must fail.
+
+		TORRENT_ASSERT(j->storage->m_files.piece_length() > 0);
+
+		// if we don't have any resume data, return
+		// or if error is set and return value is 'no_error' or 'need_full_check'
+		// the error message indicates that the fast resume data was rejected
+		// if 'fatal_disk_error' is returned, the error message indicates what
+		// when wrong in the disk access
+		storage_error se;
+		if ((rd->have_pieces.empty()
+			|| !j->storage->get_storage_impl()->verify_resume_data(*rd
+				, links ? *links : std::vector<std::string>(), j->error))
+			&& !m_settings.get_bool(settings_pack::no_recheck_incomplete_resume))
+		{
+			// j->error may have been set at this point, by verify_resume_data()
+			// it's important to not have it cleared out subsequent calls, as long
+			// as they succeed.
+			bool const has_files = j->storage->get_storage_impl()->has_any_file(se);
+
+			if (se)
+			{
+				j->error = se;
+				return disk_interface::fatal_disk_error;
+			}
+
+			if (has_files)
+			{
+				// always initialize the storage
+				j->storage->get_storage_impl()->initialize(se);
+				if (se)
+				{
+					j->error = se;
+					return disk_interface::fatal_disk_error;
+				}
+				return disk_interface::need_full_check;
+			}
+		}
+
+		j->storage->get_storage_impl()->initialize(se);
+		if (se)
+		{
+			j->error = se;
+			return disk_interface::fatal_disk_error;
+		}
+		return disk_interface::no_error;
 	}
 
 	int disk_io_thread::do_rename_file(disk_io_job* j, jobqueue_t& /* completed_jobs */ )
@@ -3348,10 +3384,4 @@ namespace libtorrent
 
 		if (cnt > 0) free_jobs(to_delete.data(), cnt);
 	}
-
-#if TORRENT_USE_INVARIANT_CHECKS
-	void disk_io_thread::check_invariant() const
-	{
-	}
-#endif
 }

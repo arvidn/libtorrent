@@ -548,16 +548,6 @@ namespace libtorrent
 
 		file_storage const* files() const { return &m_files; }
 
-		enum return_t
-		{
-			// return values from check_fastresume, and move_storage
-			no_error = 0,
-			fatal_disk_error = -1,
-			need_full_check = -2,
-			disk_check_aborted = -3,
-			file_exist = -4
-		};
-
 		storage_interface* get_storage_impl() { return m_storage.get(); }
 
 		bool set_need_tick()
@@ -575,21 +565,6 @@ namespace libtorrent
 
 	private:
 
-		// if error is set and return value is 'no_error' or 'need_full_check'
-		// the error message indicates that the fast resume data was rejected
-		// if 'fatal_disk_error' is returned, the error message indicates what
-		// when wrong in the disk access
-		int check_fastresume(add_torrent_params const& rd
-			, std::vector<std::string> const& links
-			, storage_error& error);
-
-		// helper functions for check_fastresume
-		int check_no_fastresume(storage_error& error);
-		int check_init_storage(storage_error& error);
-
-#if TORRENT_USE_INVARIANT_CHECKS
-		void check_invariant() const;
-#endif
 		file_storage const& m_files;
 
 		bool m_need_tick = false;
