@@ -41,13 +41,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <unordered_set>
 #include <memory>
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <sys/types.h>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/peer_request.hpp"
-#include "libtorrent/hasher.hpp"
 #include "libtorrent/file.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/storage_defs.hpp"
