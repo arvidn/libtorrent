@@ -209,6 +209,17 @@ list dht_get_peers_reply_alert_peers(dht_get_peers_reply_alert const& a)
     return result;
 }
 
+static object bitfield_to_list(bitfield const& bf)
+{
+    list ret;
+
+    for (bitfield::const_iterator i(bf.begin()), e(bf.end()); i != e; ++i)
+        ret.append(*i);
+    return ret;
+}
+
+object cache_flushed_alert_pieces(cache_flushed_alert const& a) { return bitfield_to_list(a.pieces); }
+
 void bind_alert()
 {
     using boost::noncopyable;
@@ -675,6 +686,7 @@ void bind_alert()
 
     class_<cache_flushed_alert, bases<torrent_alert>, noncopyable>(
         "cache_flushed_alert", no_init)
+        .add_property("pieces", &cache_flushed_alert_pieces)
     ;
 
     class_<anonymous_mode_alert, bases<torrent_alert>, noncopyable>(
