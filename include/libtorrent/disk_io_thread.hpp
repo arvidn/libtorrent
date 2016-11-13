@@ -62,7 +62,7 @@ namespace libtorrent
 
 	struct cached_piece_info
 	{
-		piece_manager* storage;
+		storage_interface* storage;
 
 		// holds one entry for each block in this piece. ``true`` represents
 		// the data for that block being in the disk cache and ``false`` means it's not.
@@ -286,45 +286,45 @@ namespace libtorrent
 
 		void abort(bool wait);
 
-		void async_read(piece_manager* storage, peer_request const& r
+		void async_read(storage_interface* storage, peer_request const& r
 			, std::function<void(disk_io_job const*)> handler, void* requester
 			, int flags = 0) override;
-		void async_write(piece_manager* storage, peer_request const& r
+		void async_write(storage_interface* storage, peer_request const& r
 			, disk_buffer_holder buffer
 			, std::function<void(disk_io_job const*)> handler
 			, int flags = 0) override;
-		void async_hash(piece_manager* storage, int piece, int flags
+		void async_hash(storage_interface* storage, int piece, int flags
 			, std::function<void(disk_io_job const*)> handler, void* requester) override;
-		void async_move_storage(piece_manager* storage, std::string const& p, int flags
+		void async_move_storage(storage_interface* storage, std::string const& p, int flags
 			, std::function<void(disk_io_job const*)> handler) override;
-		void async_release_files(piece_manager* storage
+		void async_release_files(storage_interface* storage
 			, std::function<void(disk_io_job const*)> handler
 			= std::function<void(disk_io_job const*)>()) override;
-		void async_delete_files(piece_manager* storage, int options
+		void async_delete_files(storage_interface* storage, int options
 			, std::function<void(disk_io_job const*)> handler) override;
-		void async_check_files(piece_manager* storage
+		void async_check_files(storage_interface* storage
 			, add_torrent_params const* resume_data
 			, std::vector<std::string>& links
 			, std::function<void(disk_io_job const*)> handler) override;
-		void async_rename_file(piece_manager* storage, int index, std::string const& name
+		void async_rename_file(storage_interface* storage, int index, std::string const& name
 			, std::function<void(disk_io_job const*)> handler) override;
-		void async_stop_torrent(piece_manager* storage
+		void async_stop_torrent(storage_interface* storage
 			, std::function<void(disk_io_job const*)> handler) override;
-		void async_flush_piece(piece_manager* storage, int piece
+		void async_flush_piece(storage_interface* storage, int piece
 			, std::function<void(disk_io_job const*)> handler
 			= std::function<void(disk_io_job const*)>()) override;
-		void async_set_file_priority(piece_manager* storage
+		void async_set_file_priority(storage_interface* storage
 			, std::vector<std::uint8_t> const& prio
 			, std::function<void(disk_io_job const*)> handler) override;
 
-		void async_clear_piece(piece_manager* storage, int index
+		void async_clear_piece(storage_interface* storage, int index
 			, std::function<void(disk_io_job const*)> handler) override;
 		// this is not asynchronous and requires that the piece does not
 		// have any pending buffers. It's meant to be used for pieces that
 		// were just read and hashed and failed the hash check.
 		// there should be no read-operations left, and all buffers should
 		// be discardable
-		void clear_piece(piece_manager* storage, int index) override;
+		void clear_piece(storage_interface* storage, int index) override;
 
 		// implements buffer_allocator_interface
 		void reclaim_blocks(span<block_cache_reference> ref) override;
@@ -341,7 +341,7 @@ namespace libtorrent
 
 		void update_stats_counters(counters& c) const override;
 		void get_cache_info(cache_status* ret, bool no_pieces = true
-			, piece_manager const* storage = 0) const override;
+			, storage_interface const* storage = 0) const override;
 
 		// this submits all queued up jobs to the thread
 		void submit_jobs();
@@ -450,7 +450,7 @@ namespace libtorrent
 
 		// this queues up another job to be submitted
 		void add_job(disk_io_job* j, bool user_add = true);
-		void add_fence_job(piece_manager* storage, disk_io_job* j
+		void add_fence_job(storage_interface* storage, disk_io_job* j
 			, bool user_add = true);
 
 		// assumes l is locked (cache std::mutex).
@@ -490,7 +490,7 @@ namespace libtorrent
 			// used for asserts and only applies for fence jobs
 			flush_expect_clear = 8
 		};
-		void flush_cache(piece_manager* storage, std::uint32_t flags, jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l);
+		void flush_cache(storage_interface* storage, std::uint32_t flags, jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l);
 		void flush_expired_write_blocks(jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l);
 		void flush_piece(cached_piece_entry* pe, int flags, jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l);
 
@@ -590,7 +590,7 @@ namespace libtorrent
 
 		// storages that have had write activity recently and will get ticked
 		// soon, for deferred actions (say, flushing partfile metadata)
-		std::vector<std::pair<time_point, std::weak_ptr<piece_manager>>> m_need_tick;
+		std::vector<std::pair<time_point, std::weak_ptr<storage_interface>>> m_need_tick;
 
 		// this is protected by the completed_jobs_mutex. It's true whenever
 		// there's a call_job_handlers message in-flight to the network thread. We

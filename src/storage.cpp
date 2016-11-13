@@ -1353,7 +1353,7 @@ namespace libtorrent
 		// of normal bittorrent operation, since it will just send garbage
 		// to peers and throw away all the data it downloads. It would end
 		// up being banned immediately
-		class disabled_storage final : public storage_interface, boost::noncopyable
+		class disabled_storage final : public storage_interface
 		{
 		public:
 			bool has_any_file(storage_error&) override { return false; }
@@ -1464,20 +1464,6 @@ namespace libtorrent
 		p->in_storage = false;
 #endif
 	}
-
-	// -- piece_manager -----------------------------------------------------
-
-	piece_manager::piece_manager(
-		storage_interface* storage_impl
-		, std::shared_ptr<void> const& torrent
-		, file_storage* files)
-		: m_files(*files)
-		, m_storage(storage_impl)
-		, m_torrent(torrent)
-	{
-	}
-
-	piece_manager::~piece_manager() = default;
 
 	// ====== disk_job_fence implementation ========
 
