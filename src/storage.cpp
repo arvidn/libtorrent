@@ -64,9 +64,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/storage.hpp"
 #include "libtorrent/torrent.hpp"
-#include "libtorrent/hasher.hpp"
 #include "libtorrent/session.hpp"
-#include "libtorrent/peer_id.hpp"
 #include "libtorrent/file.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/file_pool.hpp"
@@ -1252,7 +1250,7 @@ namespace libtorrent
 			if (m_file_created[file] == false)
 			{
 				error_code e;
-				boost::int64_t const size = files().file_size(file);
+				std::int64_t const size = files().file_size(file);
 				h->set_size(size, e);
 				m_file_created.set_bit(file);
 				if (e)
@@ -1674,4 +1672,3 @@ namespace libtorrent
 		return m_has_fence > 1 ? fence_post_none : fence_post_flush;
 	}
 } // namespace libtorrent
-
