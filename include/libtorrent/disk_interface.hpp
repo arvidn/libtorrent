@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	struct disk_io_job;
-	class piece_manager;
+	struct storage_interface;
 	struct peer_request;
 	struct disk_observer;
 	struct file_pool;
@@ -59,44 +59,44 @@ namespace libtorrent
 			file_exist = -4
 		};
 
-		virtual void async_read(piece_manager* storage, peer_request const& r
+		virtual void async_read(storage_interface* storage, peer_request const& r
 			, std::function<void(disk_io_job const*)> handler, void* requester
 			, int flags = 0) = 0;
-		virtual void async_write(piece_manager* storage, peer_request const& r
+		virtual void async_write(storage_interface* storage, peer_request const& r
 			, disk_buffer_holder buffer
 			, std::function<void(disk_io_job const*)> handler
 			, int flags = 0) = 0;
-		virtual void async_hash(piece_manager* storage, int piece, int flags
+		virtual void async_hash(storage_interface* storage, int piece, int flags
 			, std::function<void(disk_io_job const*)> handler, void* requester) = 0;
-		virtual void async_move_storage(piece_manager* storage, std::string const& p, int flags
+		virtual void async_move_storage(storage_interface* storage, std::string const& p, int flags
 			, std::function<void(disk_io_job const*)> handler) = 0;
-		virtual void async_release_files(piece_manager* storage
+		virtual void async_release_files(storage_interface* storage
 			, std::function<void(disk_io_job const*)> handler
 			= std::function<void(disk_io_job const*)>()) = 0;
-		virtual void async_check_files(piece_manager* storage
+		virtual void async_check_files(storage_interface* storage
 			, add_torrent_params const* resume_data
 			, std::vector<std::string>& links
 			, std::function<void(disk_io_job const*)> handler) = 0;
-		virtual void async_flush_piece(piece_manager* storage, int piece
+		virtual void async_flush_piece(storage_interface* storage, int piece
 			, std::function<void(disk_io_job const*)> handler
 			= std::function<void(disk_io_job const*)>()) = 0;
-		virtual void async_stop_torrent(piece_manager* storage
+		virtual void async_stop_torrent(storage_interface* storage
 			, std::function<void(disk_io_job const*)> handler)= 0;
-		virtual void async_rename_file(piece_manager* storage, int index, std::string const& name
+		virtual void async_rename_file(storage_interface* storage, int index, std::string const& name
 			, std::function<void(disk_io_job const*)> handler) = 0;
-		virtual void async_delete_files(piece_manager* storage, int options
+		virtual void async_delete_files(storage_interface* storage, int options
 			, std::function<void(disk_io_job const*)> handler) = 0;
-		virtual void async_set_file_priority(piece_manager* storage
+		virtual void async_set_file_priority(storage_interface* storage
 			, std::vector<std::uint8_t> const& prio
 			, std::function<void(disk_io_job const*)> handler) = 0;
 
-		virtual void async_clear_piece(piece_manager* storage, int index
+		virtual void async_clear_piece(storage_interface* storage, int index
 			, std::function<void(disk_io_job const*)> handler) = 0;
-		virtual void clear_piece(piece_manager* storage, int index) = 0;
+		virtual void clear_piece(storage_interface* storage, int index) = 0;
 
 		virtual void update_stats_counters(counters& c) const = 0;
 		virtual void get_cache_info(cache_status* ret, bool no_pieces = true
-			, piece_manager const* storage = 0) const = 0;
+			, storage_interface const* storage = 0) const = 0;
 
 		virtual file_pool& files() = 0;
 

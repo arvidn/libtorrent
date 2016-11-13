@@ -55,7 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	struct disk_io_job;
-	class piece_manager;
+	struct storage_interface;
 	struct cache_status;
 	struct block_cache_reference;
 	struct counters;
@@ -182,7 +182,7 @@ namespace libtorrent
 		}
 
 		// storage this piece belongs to
-		std::shared_ptr<piece_manager> storage;
+		std::shared_ptr<storage_interface> storage;
 
 		// write jobs hanging off of this piece
 		tailqueue<disk_io_job> jobs;
@@ -413,7 +413,7 @@ namespace libtorrent
 		// to it, otherwise 0.
 		cached_piece_entry* find_piece(block_cache_reference const& ref);
 		cached_piece_entry* find_piece(disk_io_job const* j);
-		cached_piece_entry* find_piece(piece_manager* st, int piece);
+		cached_piece_entry* find_piece(storage_interface* st, int piece);
 
 		// clear free all buffers marked as dirty with
 		// refcount of 0.

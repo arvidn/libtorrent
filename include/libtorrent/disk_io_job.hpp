@@ -43,7 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	class piece_manager;
+	struct storage_interface;
+	using storage_interface = storage_interface;
 	struct cached_piece_entry;
 	class torrent_info;
 	struct add_torrent_params;
@@ -148,7 +149,7 @@ namespace libtorrent
 		} buffer;
 
 		// the disk storage this job applies to (if applicable)
-		std::shared_ptr<piece_manager> storage;
+		std::shared_ptr<storage_interface> storage;
 
 		// this is called when operation completes
 		std::function<void(disk_io_job const*)> callback;

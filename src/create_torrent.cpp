@@ -160,7 +160,7 @@ namespace libtorrent
 		}
 
 		void on_hash(disk_io_job const* j, create_torrent* t
-			, std::shared_ptr<piece_manager> storage, disk_io_thread* iothread
+			, std::shared_ptr<storage_interface> storage, disk_io_thread* iothread
 			, int* piece_counter, int* completed_piece
 			, std::function<void(int)> const* f, error_code* ec)
 		{
@@ -262,8 +262,6 @@ namespace libtorrent
 			return;
 		}
 
-		// dummy torrent object pointer
-		std::shared_ptr<char> dummy;
 		counters cnt;
 		disk_io_thread disk_thread(ios, cnt);
 
@@ -274,10 +272,9 @@ namespace libtorrent
 		params.pool = &disk_thread.files();
 		params.mode = storage_mode_sparse;
 
-		storage_interface* storage_impl = default_storage_constructor(params);
 
-		std::shared_ptr<piece_manager> storage = std::make_shared<piece_manager>(
-			storage_impl, dummy, const_cast<file_storage*>(&t.files()));
+		std::shared_ptr<storage_interface> storage(default_storage_constructor(params));
+		storage->set_files(&t.files());
 
 		settings_pack sett;
 		sett.set_int(settings_pack::cache_size, 0);

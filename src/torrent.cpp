@@ -1210,7 +1210,7 @@ namespace libtorrent
 	storage_interface* torrent::get_storage()
 	{
 		if (!m_storage) return nullptr;
-		return m_storage->get_storage_impl();
+		return m_storage.get();
 	}
 
 	void torrent::need_picker()
@@ -1654,13 +1654,11 @@ namespace libtorrent
 		params.info = m_torrent_file.get();
 
 		TORRENT_ASSERT(m_storage_constructor);
-		storage_interface* storage_impl = m_storage_constructor(params);
-
+		m_storage.reset(m_storage_constructor(params));
+		m_storage->set_files(&m_torrent_file->files());
 		// the shared_from_this() will create an intentional
 		// cycle of ownership, se the hpp file for description.
-		m_storage = std::make_shared<piece_manager>(
-			storage_impl, shared_from_this()
-			, const_cast<file_storage*>(&m_torrent_file->files()));
+		m_storage->set_owner(shared_from_this());
 	}
 
 	peer_connection* torrent::find_lowest_ranking_peer() const
@@ -7844,7 +7842,7 @@ namespace libtorrent
 	}
 	catch (...) { handle_exception(); }
 
-	piece_manager& torrent::storage()
+	storage_interface& torrent::storage()
 	{
 		TORRENT_ASSERT(m_storage.get());
 		return *m_storage;

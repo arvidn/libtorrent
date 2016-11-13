@@ -31,7 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/disk_buffer_holder.hpp"
-#include "libtorrent/storage.hpp" // for piece_manager
+#include "libtorrent/storage.hpp" // for storage_interface
 
 namespace libtorrent
 {
@@ -63,9 +63,9 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ref.storage == nullptr || m_ref.piece >= 0);
 		TORRENT_ASSERT(m_ref.storage == nullptr || m_ref.block >= 0);
 		TORRENT_ASSERT(m_ref.storage == nullptr
-			|| m_ref.piece < static_cast<piece_manager*>(m_ref.storage)->files()->num_pieces());
+			|| m_ref.piece < static_cast<storage_interface*>(m_ref.storage)->files()->num_pieces());
 		TORRENT_ASSERT(m_ref.storage == nullptr
-			|| m_ref.block <= static_cast<piece_manager*>(m_ref.storage)->files()->piece_length() / 0x4000);
+			|| m_ref.block <= static_cast<storage_interface*>(m_ref.storage)->files()->piece_length() / 0x4000);
 		TORRENT_ASSERT(j.action != disk_io_job::rename_file);
 		TORRENT_ASSERT(j.action != disk_io_job::move_storage);
 	}
@@ -80,8 +80,8 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ref.piece >= 0);
 		TORRENT_ASSERT(m_ref.storage != nullptr);
 		TORRENT_ASSERT(m_ref.block >= 0);
-		TORRENT_ASSERT(m_ref.piece < static_cast<piece_manager*>(m_ref.storage)->files()->num_pieces());
-		TORRENT_ASSERT(m_ref.block <= static_cast<piece_manager*>(m_ref.storage)->files()->piece_length() / 0x4000);
+		TORRENT_ASSERT(m_ref.piece < static_cast<storage_interface*>(m_ref.storage)->files()->num_pieces());
+		TORRENT_ASSERT(m_ref.block <= static_cast<storage_interface*>(m_ref.storage)->files()->piece_length() / 0x4000);
 		TORRENT_ASSERT(j.action != disk_io_job::rename_file);
 		TORRENT_ASSERT(j.action != disk_io_job::move_storage);
 	}

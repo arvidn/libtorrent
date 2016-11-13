@@ -83,7 +83,7 @@ namespace libtorrent
 {
 	class http_parser;
 
-	class piece_manager;
+	struct storage_interface;
 	struct torrent_plugin;
 	struct bitfield;
 	struct announce_entry;
@@ -923,7 +923,7 @@ namespace libtorrent
 		int num_known_peers() const { return m_peer_list ? m_peer_list->num_peers() : 0; }
 		int num_connect_candidates() const { return m_peer_list ? m_peer_list->num_connect_candidates() : 0; }
 
-		piece_manager& storage();
+		storage_interface& storage();
 		bool has_storage() const { return m_storage.get() != nullptr; }
 
 		torrent_info const& torrent_file() const
@@ -1153,21 +1153,21 @@ namespace libtorrent
 		// if this pointer is 0, the torrent is in
 		// a state where the metadata hasn't been
 		// received yet, or during shutdown.
-		// the piece_manager keeps the torrent object
+		// the storage_interface keeps the torrent object
 		// alive by holding a shared_ptr to it and
 		// the torrent keeps the piece manager alive
 		// with this shared_ptr. This cycle is
 		// broken when torrent::abort() is called
-		// Then the torrent releases the piece_manager
-		// and when the piece_manager is complete with all
+		// Then the torrent releases the storage_interface
+		// and when the storage_interface is complete with all
 		// outstanding disk io jobs (that keeps
-		// the piece_manager alive) it will destruct
+		// the storage_interface alive) it will destruct
 		// and release the torrent file. The reason for
 		// this is that the torrent_info is used by
-		// the piece_manager, and stored in the
+		// the storage_interface, and stored in the
 		// torrent, so the torrent cannot destruct
-		// before the piece_manager.
-		std::shared_ptr<piece_manager> m_storage;
+		// before the storage_interface.
+		std::shared_ptr<storage_interface> m_storage;
 
 #ifdef TORRENT_USE_OPENSSL
 		std::shared_ptr<boost::asio::ssl::context> m_ssl_ctx;
