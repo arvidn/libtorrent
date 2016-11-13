@@ -55,7 +55,6 @@ namespace libtorrent
 	{
 	friend class tracker_manager;
 	public:
-
 		udp_tracker_connection(
 			io_service& ios
 			, tracker_manager& man

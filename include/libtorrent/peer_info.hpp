@@ -417,7 +417,6 @@ namespace libtorrent
 		// have got this amount of free download.
 		std::int64_t load_balancing;
 #endif
-
 	};
 
 	// internal

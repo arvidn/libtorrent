@@ -53,7 +53,6 @@ using namespace std::placeholders;
 
 struct udp_tracker
 {
-
 	libtorrent::io_service m_ios;
 	boost::detail::atomic_count m_udp_announces;
 	udp::socket m_socket;
@@ -62,17 +61,20 @@ struct udp_tracker
 
 	std::shared_ptr<std::thread> m_thread;
 
-	void on_udp_receive(error_code const& ec, size_t bytes_transferred, udp::endpoint* from, char* buffer, int size)
+	void on_udp_receive(error_code const& ec, size_t bytes_transferred
+		, udp::endpoint* from, char* buffer, int size)
 	{
 		if (ec)
 		{
-			std::printf("%s: UDP tracker, read failed: %s\n", time_now_string(), ec.message().c_str());
+			std::printf("%s: UDP tracker, read failed: %s\n"
+				, time_now_string(), ec.message().c_str());
 			return;
 		}
 
 		if (bytes_transferred < 16)
 		{
-			std::printf("%s: UDP message too short (from: %s)\n", time_now_string(), print_endpoint(*from).c_str());
+			std::printf("%s: UDP message too short (from: %s)\n"
+				, time_now_string(), print_endpoint(*from).c_str());
 			return;
 		}
 

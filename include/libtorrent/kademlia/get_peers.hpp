@@ -40,7 +40,7 @@ namespace libtorrent { namespace dht
 
 struct get_peers : find_data
 {
-	typedef std::function<void(std::vector<tcp::endpoint> const&)> data_callback;
+	using data_callback = std::function<void(std::vector<tcp::endpoint> const&)>;
 
 	void got_peers(std::vector<tcp::endpoint> const& peers);
 
@@ -62,7 +62,7 @@ protected:
 
 struct obfuscated_get_peers : get_peers
 {
-	typedef get_peers::nodes_callback done_callback;
+	using done_callback = get_peers::nodes_callback;
 
 	obfuscated_get_peers(node& dht_node, node_id const& target
 		, data_callback const& dcallback
@@ -72,11 +72,11 @@ struct obfuscated_get_peers : get_peers
 	virtual char const* name() const;
 
 protected:
-
 	virtual observer_ptr new_observer(udp::endpoint const& ep,
 		node_id const& id);
 	virtual bool invoke(observer_ptr o);
 	virtual void done();
+
 private:
 	// when set to false, we no longer obfuscate
 	// the target hash, and send regular get_peers

@@ -137,7 +137,7 @@ TORRENT_TEST(apply_ip_filter)
 
 		[](lt::session&, std::array<fake_peer*, 5>& test_peers)
 		{
-			check_accepted(test_peers, {{false, false, false, true, true}} );
+			check_accepted(test_peers, {{false, false, false, true, true}});
 		}
 	);
 }
@@ -170,7 +170,7 @@ TORRENT_TEST(update_ip_filter)
 
 		[](lt::session&, std::array<fake_peer*, 5>& test_peers)
 		{
-			check_accepted(test_peers, {{false, false, false, true, true}} );
+			check_accepted(test_peers, {{false, false, false, true, true}});
 		}
 	);
 }
@@ -204,7 +204,7 @@ TORRENT_TEST(apply_ip_filter_to_torrent)
 		{
 			// since the IP filter didn't apply to this torrent, it should have hit
 			// all peers
-			check_accepted(test_peers, {{true, true, true, true, true}} );
+			check_accepted(test_peers, {{true, true, true, true, true}});
 		}
 	);
 }
@@ -233,7 +233,7 @@ TORRENT_TEST(ip_filter_trackers)
 		[](lt::session&, lt::alert const*) {},
 		[](lt::session&, std::array<fake_peer*, 5>& test_peers)
 		{
-			check_accepted(test_peers, {{false, false, false, true, true}} );
+			check_accepted(test_peers, {{false, false, false, true, true}});
 		}
 	);
 }

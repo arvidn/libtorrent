@@ -274,7 +274,6 @@ public:
 	{ return m_buckets; }
 
 private:
-
 #ifndef TORRENT_DISABLE_LOGGING
 	dht_logger* m_log;
 #endif

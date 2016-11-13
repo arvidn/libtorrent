@@ -65,7 +65,6 @@ namespace libtorrent
 		void flush_metadata(error_code& ec);
 
 	private:
-
 		void open_file(int mode, error_code& ec);
 		void flush_metadata_impl(error_code& ec);
 

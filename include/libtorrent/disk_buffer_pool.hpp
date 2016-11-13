@@ -97,7 +97,6 @@ namespace libtorrent
 		void set_settings(aux::session_settings const& sett, error_code& ec);
 
 	protected:
-
 		void free_buffer_impl(char* buf, std::unique_lock<std::mutex>& l);
 		char* allocate_buffer_impl(std::unique_lock<std::mutex>& l, char const* category);
 
@@ -134,7 +133,6 @@ namespace libtorrent
 		io_service& m_ios;
 
 	private:
-
 		void check_buffer_level(std::unique_lock<std::mutex>& l);
 		void remove_buffer_in_use(char* buf);
 

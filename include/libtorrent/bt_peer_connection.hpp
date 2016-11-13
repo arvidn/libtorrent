@@ -87,7 +87,6 @@ namespace libtorrent
 	{
 	friend class invariant_access;
 	public:
-
 		// this is the constructor where the we are the active part.
 		// The peer_connection should handshake and verify that the
 		// other end has the correct id
@@ -272,7 +271,6 @@ namespace libtorrent
 #endif
 
 	private:
-
 		bool dispatch_message(int received);
 		// returns the block currently being
 		// downloaded. And the progress of that
@@ -309,7 +307,6 @@ namespace libtorrent
 #endif
 
 public:
-
 		// these functions encrypt the send buffer if m_rc4_encrypted
 		// is true, otherwise it passes the call to the
 		// peer_connection functions of the same names
@@ -319,7 +316,6 @@ public:
 			= block_cache_reference()) override;
 
 private:
-
 		enum class state_t : std::uint8_t
 		{
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
@@ -459,7 +455,6 @@ private:
 #if TORRENT_USE_ASSERTS
 		bool m_in_constructor = true;
 #endif
-
 	};
 }
 

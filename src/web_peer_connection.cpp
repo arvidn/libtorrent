@@ -858,7 +858,6 @@ void web_peer_connection::on_receive(error_code const& error
 
 		if (m_parser.chunked_encoding())
 		{
-
 			// =========================
 			// === CHUNKED ENCODING  ===
 			// =========================

@@ -450,7 +450,6 @@ namespace libtorrent { namespace
 		}
 
 	private:
-
 		// this is the message index the remote peer uses
 		// for metadata extension messages.
 		int m_message_index;

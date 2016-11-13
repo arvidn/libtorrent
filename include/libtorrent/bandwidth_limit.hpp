@@ -85,7 +85,6 @@ struct TORRENT_EXTRA_EXPORT bandwidth_channel
 	int distribute_quota;
 
 private:
-
 	// this is the amount of bandwidth we have
 	// been assigned without using yet.
 	std::int64_t m_quota_left;

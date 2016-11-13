@@ -46,7 +46,6 @@ struct torrent_view
 	void render();
 
 private:
-
 	void print_tabs();
 
 	void print_headers();

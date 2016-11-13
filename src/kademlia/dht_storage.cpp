@@ -153,7 +153,6 @@ namespace
 		}
 
 	private:
-
 		// explicitly disallow assignment, to silence msvc warning
 		immutable_item_comparator& operator=(immutable_item_comparator const&);
 
@@ -174,7 +173,6 @@ namespace
 	class dht_default_storage final : public dht_storage_interface, boost::noncopyable
 	{
 	public:
-
 		explicit dht_default_storage(dht_settings const& settings)
 			: m_settings(settings)
 		{

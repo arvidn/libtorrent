@@ -167,7 +167,7 @@ namespace libtorrent
 				}
 				else
 				{
-					url += "&ip=" + tracker_req().i2pconn->local_endpoint () + ".i2p";
+					url += "&ip=" + tracker_req().i2pconn->local_endpoint() + ".i2p";
 				}
 			}
 			else
@@ -203,7 +203,7 @@ namespace libtorrent
 #ifdef TORRENT_USE_OPENSSL
 			, tracker_req().ssl_ctx
 #endif
-			));
+			)); // NOLINT
 
 		int timeout = tracker_req().event==tracker_request::stopped
 			?settings.get_int(settings_pack::stop_tracker_timeout)
@@ -231,7 +231,7 @@ namespace libtorrent
 #if TORRENT_USE_I2P
 			, tracker_req().i2pconn
 #endif
-			);
+			); // NOLINT
 
 		// the url + 100 estimated header size
 		sent_bytes(int(url.size()) + 100);

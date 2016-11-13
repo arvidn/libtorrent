@@ -201,7 +201,6 @@ void item::assign(entry v, span<char const> salt
 	, sequence_number const seq
 	, public_key const& pk, signature const& sig)
 {
-
 	m_pk = pk;
 	m_sig = sig;
 	m_salt.assign(salt.data(), salt.size());

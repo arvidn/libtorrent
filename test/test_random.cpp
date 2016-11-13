@@ -38,7 +38,6 @@ using namespace libtorrent;
 
 TORRENT_TEST(random)
 {
-
 	const int repetitions = 200000;
 
 	for (int byte = 0; byte < 4; ++byte)

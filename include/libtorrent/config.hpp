@@ -119,8 +119,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 // ==== Darwin/BSD ===
-#elif (defined __APPLE__ && defined __MACH__) || defined __FreeBSD__ || defined __NetBSD__ \
-	|| defined __OpenBSD__ || defined __bsdi__ || defined __DragonFly__ \
+#elif (defined __APPLE__ && defined __MACH__) \
+	|| defined __FreeBSD__ || defined __NetBSD__ \
+	|| defined __OpenBSD__ || defined __bsdi__ \
+	|| defined __DragonFly__ \
 	|| defined __FreeBSD_kernel__
 #define TORRENT_BSD
 // we don't need iconv on mac, because

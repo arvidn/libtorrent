@@ -48,7 +48,6 @@ namespace libtorrent
 	class TORRENT_EXTRA_EXPORT stat_channel
 	{
 	public:
-
 		stat_channel()
 			: m_total_counter(0)
 			, m_counter(0)
@@ -96,7 +95,6 @@ namespace libtorrent
 		}
 
 	private:
-
 		// total counters
 		std::uint64_t m_total_counter;
 
@@ -278,7 +276,6 @@ namespace libtorrent
 		}
 
 	private:
-
 		stat_channel m_stat[num_channels];
 	};
 

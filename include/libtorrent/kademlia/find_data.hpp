@@ -64,7 +64,6 @@ struct find_data : traversal_algorithm
 	virtual char const* name() const;
 
 protected:
-
 	virtual void done();
 	virtual observer_ptr new_observer(udp::endpoint const& ep
 		, node_id const& id);

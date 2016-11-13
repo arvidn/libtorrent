@@ -68,7 +68,6 @@ namespace aux
 			, alert_manager* alerts, torrent_handle const& h);
 
 	private:
-
 		// this vector contains the number of bytes completely
 		// downloaded (as in passed-hash-check) in each file.
 		// this lets us trigger on individual files completing

@@ -25,7 +25,6 @@ struct session_view
 		, std::uint64_t t);
 
 private:
-
 	int m_position;
 	int m_width;
 

@@ -143,7 +143,6 @@ namespace libtorrent {
 		}
 
 	private:
-
 		// non-copyable
 		heterogeneous_queue(heterogeneous_queue const&);
 		heterogeneous_queue& operator=(heterogeneous_queue const&);

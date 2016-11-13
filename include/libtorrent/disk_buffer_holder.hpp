@@ -112,12 +112,10 @@ namespace libtorrent
 		explicit operator bool() const noexcept { return m_buf != nullptr; }
 
 	private:
-
 		buffer_allocator_interface* m_allocator;
 		char* m_buf;
 		block_cache_reference m_ref;
 	};
-
 }
 
 #endif

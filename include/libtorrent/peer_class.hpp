@@ -119,7 +119,6 @@ namespace libtorrent
 
 	private:
 		int references;
-
 	};
 
 	struct TORRENT_EXTRA_EXPORT peer_class_pool
@@ -131,7 +130,6 @@ namespace libtorrent
 		peer_class const* at(peer_class_t c) const;
 
 	private:
-
 		// state for peer classes (a peer can belong to multiple classes)
 		// this can control
 		std::vector<std::shared_ptr<peer_class>> m_peer_classes;

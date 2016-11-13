@@ -1198,7 +1198,7 @@ namespace libtorrent {
 			, transferred[8]
 			, transferred[9]
 #endif
-			);
+			); // NOLINT
 		return msg;
 	}
 

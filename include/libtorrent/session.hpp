@@ -175,7 +175,6 @@ namespace libtorrent
 	class TORRENT_EXPORT session : public session_handle
 	{
 	public:
-
 		// Constructs the session objects which acts as the container of torrents.
 		// In order to avoid a race condition between starting the session and
 		// configuring it, you can pass in a session_params object. Its settings
@@ -361,7 +360,6 @@ namespace libtorrent
 		session_proxy abort();
 
 	private:
-
 		void start(session_params params, io_service* ios);
 		void start(int flags, settings_pack sp, io_service* ios);
 
@@ -371,7 +369,6 @@ namespace libtorrent
 		std::shared_ptr<std::thread> m_thread;
 		std::shared_ptr<aux::session_impl> m_impl;
 	};
-
 }
 
 #endif // TORRENT_SESSION_HPP_INCLUDED

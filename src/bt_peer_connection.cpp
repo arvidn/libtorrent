@@ -3625,10 +3625,12 @@ namespace libtorrent
 		std::shared_ptr<torrent> t = associated_torrent().lock();
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-		TORRENT_ASSERT( (bool(m_state != state_t::read_pe_dhkey) || m_dh_key_exchange.get())
-				|| !is_outgoing());
+		TORRENT_ASSERT((bool(m_state != state_t::read_pe_dhkey)
+			|| m_dh_key_exchange.get())
+			|| !is_outgoing());
 
-		TORRENT_ASSERT(!m_rc4_encrypted || (!m_encrypted && m_rc4)
+		TORRENT_ASSERT(!m_rc4_encrypted
+			|| (!m_encrypted && m_rc4)
 			|| (m_encrypted && !m_enc_handler.is_send_plaintext()));
 #endif
 		if (!in_handshake())

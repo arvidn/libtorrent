@@ -130,7 +130,6 @@ namespace libtorrent
 		}
 
 	private:
-
 		// non-copyable
 		udp_socket(udp_socket const&);
 		udp_socket& operator=(udp_socket const&);

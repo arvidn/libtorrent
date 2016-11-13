@@ -94,7 +94,6 @@ namespace {
 			tmp9.in_use = true;
 			peer_struct.in_use = true;
 		}
-
 	} initializer_dummy;
 }
 #endif

@@ -399,7 +399,7 @@ namespace libtorrent
 				break;
 			default:
 			{
-				handle_error (ec, h);
+				handle_error(ec, h);
 				return;
 			}
 		}

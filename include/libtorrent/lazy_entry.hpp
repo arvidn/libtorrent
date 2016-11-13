@@ -359,7 +359,6 @@ namespace libtorrent
 		}
 
 	private:
-
 		int capacity() const;
 
 		union data_t

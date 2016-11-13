@@ -43,7 +43,6 @@ namespace libtorrent {
 class http_stream : public proxy_base
 {
 public:
-
 	explicit http_stream(io_service& io_service)
 		: proxy_base(io_service)
 		, m_no_connect(false)
@@ -100,7 +99,6 @@ public:
 	}
 
 private:
-
 	void name_lookup(error_code const& e, tcp::resolver::iterator i
 		, std::shared_ptr<handler_type> h);
 	void connected(error_code const& e, std::shared_ptr<handler_type> h);

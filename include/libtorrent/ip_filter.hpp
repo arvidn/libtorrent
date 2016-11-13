@@ -133,7 +133,6 @@ namespace detail
 	class filter_impl
 	{
 	public:
-
 		filter_impl()
 		{
 			// make the entire ip-range non-blocked
@@ -231,7 +230,6 @@ namespace detail
 		}
 
 	private:
-
 		struct range
 		{
 			range(Addr addr, int a = 0): start(addr), access(a) {} // NOLINT
@@ -306,7 +304,6 @@ struct TORRENT_EXPORT ip_filter
 //	void print() const;
 
 private:
-
 	detail::filter_impl<address_v4::bytes_type> m_filter4;
 #if TORRENT_USE_IPV6
 	detail::filter_impl<address_v6::bytes_type> m_filter6;
@@ -320,7 +317,6 @@ private:
 class TORRENT_EXPORT port_filter
 {
 public:
-
 	// the defined flags for a port range
 	enum access_flags
 	{
@@ -340,9 +336,7 @@ public:
 	int access(std::uint16_t port) const;
 
 private:
-
 	detail::filter_impl<std::uint16_t> m_filter;
-
 };
 
 }

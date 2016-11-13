@@ -65,7 +65,6 @@ class routing_table;
 class TORRENT_EXTRA_EXPORT rpc_manager
 {
 public:
-
 	rpc_manager(node_id const& our_id
 		, dht_settings const& settings
 		, routing_table& table
@@ -111,7 +110,6 @@ public:
 	void update_node_id(node_id const& id) { m_our_id = id; }
 
 private:
-
 	void* allocate_observer();
 	void free_observer(void* ptr);
 

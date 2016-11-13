@@ -75,7 +75,6 @@ struct EXPORT peer_conn
 	void abort();
 
 private:
-
 	tcp::socket s;
 	char write_buf_proto[100];
 	std::uint32_t write_buffer[17*1024/4];

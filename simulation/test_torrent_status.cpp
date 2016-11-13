@@ -63,7 +63,6 @@ TORRENT_TEST(status_timers)
 		// terminate
 		, [&](int ticks, lt::session&) -> bool
 		{
-
 			// simulate 20 hours of uptime. Currently, the session_time and internal
 			// peer timestamps are 16 bits counting seconds, so they can only
 			// represent about 18 hours. The clock steps forward in 4 hour increments

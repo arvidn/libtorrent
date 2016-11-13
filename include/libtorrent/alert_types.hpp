@@ -303,7 +303,6 @@ namespace libtorrent
 	{
 		enum performance_warning_t
 		{
-
 			// This warning means that the number of bytes queued to be written to disk
 			// exceeds the max disk byte queue setting (``settings_pack::max_queued_disk_bytes``).
 			// This might restrict the download rate, by not queuing up enough write jobs
@@ -1448,7 +1447,6 @@ namespace libtorrent
 		char const* log_message() const;
 
 	private:
-
 		// TODO: 2 should the alert baseclass have this object instead?
 		std::reference_wrapper<aux::stack_allocator const> m_alloc;
 
@@ -1842,7 +1840,7 @@ namespace libtorrent
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 // warning C4996: X: was declared deprecated
-#pragma warning( disable : 4996 )
+#pragma warning(disable : 4996)
 #endif
 #ifdef __GNUC__
 #pragma GCC diagnostic push
@@ -1903,7 +1901,7 @@ namespace libtorrent
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 // warning C4996: X: was declared deprecated
-#pragma warning( disable : 4996 )
+#pragma warning(disable : 4996)
 #endif
 #ifdef __GNUC__
 #pragma GCC diagnostic push
@@ -2384,8 +2382,8 @@ namespace libtorrent
 		int const m_size;
 	};
 
-	struct TORRENT_EXPORT dht_get_peers_reply_alert final : alert {
-
+	struct TORRENT_EXPORT dht_get_peers_reply_alert final : alert
+	{
 		dht_get_peers_reply_alert(aux::stack_allocator& alloc
 			, sha1_hash const& ih
 			, std::vector<tcp::endpoint> const& v);

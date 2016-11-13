@@ -103,8 +103,8 @@ namespace libtorrent
 		} addr;
 
 		std::uint16_t port;
-	public:
 
+	public:
 		// The peer is the ip address of the peer this block was downloaded from.
 		void set_peer(tcp::endpoint const& ep)
 		{
@@ -1285,7 +1285,6 @@ namespace libtorrent
 		std::shared_ptr<torrent> native_handle() const;
 
 	private:
-
 		template<typename Fun, typename... Args>
 		void async_call(Fun f, Args&&... a) const;
 
@@ -1299,9 +1298,7 @@ namespace libtorrent
 		{ if (!t.expired()) m_torrent = t; }
 
 		std::weak_ptr<torrent> m_torrent;
-
 	};
-
 }
 
 namespace std

@@ -505,7 +505,6 @@ namespace libtorrent
 			h, m_remote, m_peer_id, direction, event, fmt, v);
 
 		va_end(v);
-
 	}
 #endif
 
@@ -4733,7 +4732,7 @@ namespace libtorrent
 		}
 
 		// do not stall waiting for a handshake
-		int timeout = m_settings.get_int (settings_pack::handshake_timeout);
+		int timeout = m_settings.get_int(settings_pack::handshake_timeout);
 #if TORRENT_USE_I2P
 		timeout *= is_i2p(*m_socket) ? 4 : 1;
 #endif

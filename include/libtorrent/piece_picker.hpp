@@ -68,7 +68,6 @@ namespace libtorrent
 	class TORRENT_EXTRA_EXPORT piece_picker
 	{
 	public:
-
 		enum
 		{
 			// the number of priority levels
@@ -267,8 +266,7 @@ namespace libtorrent
 			, int prefer_contiguous_blocks, torrent_peer* peer
 			, int options, std::vector<int> const& suggested_pieces
 			, int num_peers
-			, counters& pc
-			) const;
+			, counters& pc) const;
 
 		// picks blocks from each of the pieces in the piece_list
 		// vector that is also in the piece bitmask. The blocks
@@ -437,7 +435,6 @@ namespace libtorrent
 		block_info const* blocks_for_piece(downloading_piece const& dp) const;
 
 	private:
-
 		friend struct piece_pos;
 
 		std::tuple<bool, bool, int, int> requested_from(
@@ -710,7 +707,6 @@ namespace libtorrent
 			std::vector<downloading_piece>::iterator dp);
 
 	private:
-
 		// the following vectors are mutable because they sometimes may
 		// be updated lazily, triggered by const functions
 
@@ -797,13 +793,11 @@ namespace libtorrent
 		// has to be called before accessing m_pieces.
 		mutable bool m_dirty = false;
 	public:
-
 #ifdef TORRENT_OPTIMIZE_MEMORY_USAGE
 		enum { max_pieces = piece_pos::we_have_index - 1 };
 #else
 		enum { max_pieces = (std::numeric_limits<int>::max)() - 1 };
 #endif
-
 	};
 }
 

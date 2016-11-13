@@ -323,7 +323,7 @@ void upnp::resend_request(error_code const& ec)
 				, std::ref(d), _5)));
 			d.upnp_connection->get(d.url, seconds(30), 1);
 		}
-		TORRENT_CATCH (std::exception const& exc)
+		TORRENT_CATCH(std::exception const& exc)
 		{
 			TORRENT_DECLARE_DUMMY(std::exception, exc);
 			TORRENT_UNUSED(exc);
@@ -671,7 +671,7 @@ void upnp::try_map_upnp(bool timer)
 					, std::ref(d), _5)));
 				d.upnp_connection->get(d.url, seconds(30), 1);
 			}
-			TORRENT_CATCH (std::exception const& exc)
+			TORRENT_CATCH(std::exception const& exc)
 			{
 				TORRENT_DECLARE_DUMMY(std::exception, exc);
 				TORRENT_UNUSED(exc);

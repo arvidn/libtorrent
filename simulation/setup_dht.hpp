@@ -69,7 +69,6 @@ struct dht_network
 	std::vector<lt::udp::endpoint> router_nodes() const;
 
 private:
-
 	// used for all the nodes in the network
 	lt::counters m_cnt;
 	lt::dht_settings m_sett;

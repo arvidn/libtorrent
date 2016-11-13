@@ -108,7 +108,6 @@ struct average_accumulator
 	}
 
 private:
-
 	int m_num_samples = 0;
 	std::uint64_t m_sample_sum = 0;
 };

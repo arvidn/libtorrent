@@ -130,7 +130,6 @@ namespace libtorrent { namespace aux
 		}
 
 	private:
-
 		std::vector<char> m_storage;
 	};
 

@@ -71,7 +71,6 @@ namespace libtorrent
 		void set_error(int i, error_code const& ec);
 
 	private:
-
 		// returns the index to the specified error. Either an existing one or a
 		// newly added entry
 		int add_error(error_code const& ec);

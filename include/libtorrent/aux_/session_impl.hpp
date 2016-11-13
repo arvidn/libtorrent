@@ -701,7 +701,6 @@ namespace libtorrent
 			void trigger_auto_manage() override;
 
 		private:
-
 			// return the settings value for int setting "n", if the value is
 			// negative, return INT_MAX
 			int get_int_setting(int n) const;

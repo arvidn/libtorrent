@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifdef _MSC_VER
 #pragma warning(push)
 // warning C4706: assignment within conditional expression
-#pragma warning( disable : 4706 )
+#pragma warning(disable : 4706)
 #endif
 
 void test_swarm(int flags)
@@ -59,8 +59,7 @@ void test_swarm(int flags)
 		, (flags & strict_super_seeding) ? "strict-super-seeding ": ""
 		, (flags & seed_mode) ? "seed-mode ": ""
 		, (flags & time_critical) ? "time-critical ": ""
-		, (flags & suggest) ? "suggest ": ""
-		);
+		, (flags & suggest) ? "suggest ": "");
 
 	// in case the previous run was terminated
 	error_code ec;

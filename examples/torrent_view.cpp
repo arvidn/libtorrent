@@ -373,7 +373,10 @@ void torrent_view::update_filtered_torrents()
 		if (!show_torrent(h)) continue;
 		m_filtered_handles.push_back(&h);
 	}
-	if (m_active_torrent >= int(m_filtered_handles.size())) m_active_torrent = int(m_filtered_handles.size()) - 1;
+	if (m_active_torrent >= int(m_filtered_handles.size()))
+	{
+		m_active_torrent = int(m_filtered_handles.size()) - 1;
+	}
 	if (m_active_torrent < 0) m_active_torrent = 0;
 	TORRENT_ASSERT(m_active_torrent >= 0);
 	std::sort(m_filtered_handles.begin(), m_filtered_handles.end(), &compare_torrent);

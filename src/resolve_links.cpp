@@ -127,7 +127,6 @@ void resolve_links::match(std::shared_ptr<const torrent_info> const& ti
 			break;
 		}
 	}
-
 }
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 

@@ -176,7 +176,6 @@ struct TORRENT_EXTRA_EXPORT upnp final
 	}
 
 private:
-
 	std::shared_ptr<upnp> self() { return shared_from_this(); }
 
 	void map_timer(error_code const& ec);

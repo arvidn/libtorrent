@@ -56,7 +56,6 @@ struct TORRENT_EXTRA_EXPORT timestamp_history
 	void adjust_base(int change);
 
 private:
-
 	// this is a circular buffer
 	std::uint32_t m_history[history_size];
 

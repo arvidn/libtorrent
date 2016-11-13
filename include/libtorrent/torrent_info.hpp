@@ -114,7 +114,6 @@ namespace libtorrent
 	class TORRENT_EXPORT torrent_info
 	{
 	public:
-
 		// The constructor that takes an info-hash  will initialize the info-hash
 		// to the given value, but leave all other fields empty. This is used
 		// internally when downloading torrents without the metadata. The
@@ -519,7 +518,6 @@ namespace libtorrent
 
 		// if we're logging member offsets, we need access to them
 	private:
-
 		void resolve_duplicate_filenames();
 
 		// the slow path, in case we detect/suspect a name collision

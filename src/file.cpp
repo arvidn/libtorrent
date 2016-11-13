@@ -327,7 +327,7 @@ static_assert((libtorrent::file::sparse & libtorrent::file::attribute_mask) == 0
 #if defined TORRENT_WINDOWS && defined UNICODE && !TORRENT_USE_WSTRING
 
 #ifdef _MSC_VER
-#pragma message ( "wide character support not available. Files will be saved using narrow string names" )
+#pragma message ( "wide character support not available. Files will be saved using narrow string names" ) // NOLINT
 #else
 #warning "wide character support not available. Files will be saved using narrow string names"
 #endif
@@ -734,7 +734,11 @@ namespace libtorrent
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
 				&& *p != '\\'
 #endif
-				) ++p;
+				) // NOLINT
+			{
+				++p;
+			}
+
 			if (p - start > 0)
 			{
 				ret.append(start, p - start);
@@ -915,7 +919,6 @@ namespace libtorrent
 				++len;
 			}
 			return std::string(first, len);
-
 		}
 		return std::string(sep + 1);
 	}
@@ -2102,7 +2105,8 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 				HMODULE kernel32 = LoadLibraryA("kernel32.dll");
 				if (kernel32)
 				{
-					GetFileInformationByHandleEx_ = (GetFileInformationByHandleEx_t)GetProcAddress(kernel32, "GetFileInformationByHandleEx");
+					GetFileInformationByHandleEx_ = reinterpret_cast<GetFileInformationByHandleEx_t>(
+						GetProcAddress(kernel32, "GetFileInformationByHandleEx"));
 				}
 				else
 				{

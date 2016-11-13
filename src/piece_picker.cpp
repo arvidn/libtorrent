@@ -923,7 +923,8 @@ namespace libtorrent
 			m_priority_boundaries.resize(new_priority + 1, int(m_pieces.size()));
 
 #ifdef TORRENT_PICKER_LOG
-		std::cerr << "[" << this << "] " << "update " << index << " (" << priority << "->" << new_priority << ")" << std::endl;
+		std::cerr << "[" << this << "] " << "update " << index
+			<< " (" << priority << "->" << new_priority << ")" << std::endl;
 #endif
 		if (priority > new_priority)
 		{
@@ -1891,8 +1892,7 @@ namespace libtorrent
 		, int prefer_contiguous_blocks, torrent_peer* peer
 		, int options, std::vector<int> const& suggested_pieces
 		, int num_peers
-		, counters& pc
-		) const
+		, counters& pc) const
 	{
 		TORRENT_ASSERT(peer == nullptr || peer->in_use);
 		std::uint32_t ret = 0;
@@ -2921,7 +2921,8 @@ get_out:
 		}
 
 #ifdef TORRENT_PICKER_LOG
-		std::cerr << "[" << this << "] " << " new_state: " << new_state << " current_state: " << current_state << std::endl;
+		std::cerr << "[" << this << "] " << " new_state: " << new_state
+			<< " current_state: " << current_state << std::endl;
 #endif
 		if (new_state == current_state) return dp;
 		if (new_state == piece_pos::piece_open) return dp;
@@ -2940,7 +2941,8 @@ get_out:
 			|| m_dirty);
 		p.download_state = new_state;
 #ifdef TORRENT_PICKER_LOG
-		std::cerr << "[" << this << "] " << " " << dp_info.index << " state (" << current_state << " -> " << new_state << ")" << std::endl;
+		std::cerr << "[" << this << "] " << " " << dp_info.index << " state ("
+			<< current_state << " -> " << new_state << ")" << std::endl;
 #endif
 
 		// insert the downloading_piece in the list corresponding to
@@ -3172,7 +3174,8 @@ get_out:
 #endif
 
 #ifdef TORRENT_PICKER_LOG
-		std::cerr << "[" << this << "] " << "mark_as_writing( {" << block.piece_index << ", " << block.block_index << "} )" << std::endl;
+		std::cerr << "[" << this << "] " << "mark_as_writing( {"
+			<< block.piece_index << ", " << block.block_index << "} )" << std::endl;
 #endif
 
 		TORRENT_ASSERT(peer == nullptr || static_cast<torrent_peer*>(peer)->in_use);
@@ -3298,7 +3301,8 @@ get_out:
 #endif
 
 #ifdef TORRENT_PICKER_LOG
-		std::cerr << "[" << this << "] " << "write_failed( {" << block.piece_index << ", " << block.block_index << "} )" << std::endl;
+		std::cerr << "[" << this << "] " << "write_failed( {"
+			<< block.piece_index << ", " << block.block_index << "} )" << std::endl;
 #endif
 
 		int state = m_piece_map[block.piece_index].download_queue();
@@ -3570,7 +3574,8 @@ get_out:
 #endif
 
 #ifdef TORRENT_PICKER_LOG
-		std::cerr << "[" << this << "] " << "abort_download( {" << block.piece_index << ", " << block.block_index << "} )" << std::endl;
+		std::cerr << "[" << this << "] " << "abort_download( {"
+			<< block.piece_index << ", " << block.block_index << "} )" << std::endl;
 #endif
 		TORRENT_ASSERT(peer == nullptr || peer->in_use);
 

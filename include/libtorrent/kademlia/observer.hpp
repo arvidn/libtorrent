@@ -122,11 +122,9 @@ struct TORRENT_EXTRA_EXPORT observer : boost::noncopyable
 	};
 
 protected:
-
 	void done();
 
 private:
-
 	std::shared_ptr<observer> self()
 	{ return shared_from_this(); }
 
@@ -148,6 +146,7 @@ private:
 
 	// the transaction ID for this call
 	std::uint16_t m_transaction_id;
+
 public:
 	std::uint8_t flags;
 

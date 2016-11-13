@@ -168,8 +168,7 @@ TORRENT_TEST(no_proxy_tcp)
 			using namespace libtorrent;
 			run_test(
 				[](lt::session&, lt::alert const*) {},
-				[](std::shared_ptr<lt::session> ses[2]) {}
-			);
+				[](std::shared_ptr<lt::session> ses[2]) {});
 		}
 		catch (std::bad_alloc const&)
 		{

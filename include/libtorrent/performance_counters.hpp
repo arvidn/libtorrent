@@ -442,7 +442,6 @@ namespace libtorrent
 		void blend_stats_counter(int c, std::int64_t value, int ratio);
 
 	private:
-
 		// TODO: some space could be saved here by making gauges 32 bits
 		// TODO: restore these to regular integers. Instead have one copy
 		// of the counters per thread and collect them at convenient

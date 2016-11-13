@@ -68,6 +68,5 @@ void print_alerts(libtorrent::session* ses, libtorrent::time_point start_time)
 			, a->what()
 			, a->message().c_str());
 	}
-
 }
 

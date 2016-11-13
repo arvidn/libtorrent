@@ -337,7 +337,6 @@ namespace libtorrent
 #endif
 
 	private:
-
 		handle_type m_file_handle;
 #ifdef TORRENT_DISK_STATS
 		std::uint32_t m_file_id;

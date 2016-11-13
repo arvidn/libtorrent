@@ -131,7 +131,6 @@ TORRENT_TEST(resolve_links)
 		}
 
 		TEST_EQUAL(num_matches, e.expected_matches);
-
 	}
 }
 

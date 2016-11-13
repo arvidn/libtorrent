@@ -46,7 +46,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-
 	struct http_connection;
 	class entry;
 	class http_parser;
@@ -60,7 +59,6 @@ namespace libtorrent
 	{
 	friend class tracker_manager;
 	public:
-
 		http_tracker_connection(
 			io_service& ios
 			, tracker_manager& man
@@ -71,7 +69,6 @@ namespace libtorrent
 		void close();
 
 	private:
-
 		std::shared_ptr<http_tracker_connection> shared_from_this()
 		{
 			return std::static_pointer_cast<http_tracker_connection>(

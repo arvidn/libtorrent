@@ -234,11 +234,9 @@ void test_stop_start_download(swarm_test type, bool graceful)
 		}
 		// add torrent
 		, [](lt::add_torrent_params&) {
-
 		}
 		// on alert
 		, [&](lt::alert const* a, lt::session& ses) {
-
 			if (lt::alert_cast<lt::torrent_added_alert>(a))
 				add_extra_peers(ses);
 

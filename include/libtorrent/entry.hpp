@@ -104,7 +104,6 @@ namespace libtorrent
 	class TORRENT_EXPORT entry
 	{
 	public:
-
 		// the key is always a string. If a generic entry would be allowed
 		// as a key, sorting would become a problem (e.g. to compare a string
 		// to a list). The definition doesn't mention such a limit though.
@@ -288,13 +287,11 @@ namespace libtorrent
 		std::string to_string() const;
 
 	protected:
-
 		void construct(data_type t);
 		void copy(const entry& e);
 		void destruct();
 
 	private:
-
 		void to_string_impl(std::string& out, int indent) const;
 
 		std::aligned_union<1

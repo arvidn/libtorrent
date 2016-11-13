@@ -42,7 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-
 	// This is a utility function to produce a client ID fingerprint formatted to
 	// the most common convention.
 	//
@@ -72,13 +71,13 @@ namespace libtorrent
 	//
 	// .. _here: http://wiki.theory.org/BitTorrentSpecification#peer_id
 	//
-	// The ``major``, ``minor``, ``revision`` and ``tag`` parameters are used to identify the
-	// version of your client.
+	// The ``major``, ``minor``, ``revision`` and ``tag`` parameters are used to
+	// identify the version of your client.
 	TORRENT_EXPORT std::string generate_fingerprint(std::string name
 		, int major, int minor = 0, int revision = 0, int tag = 0);
 
-	// The fingerprint class represents information about a client and its version. It is used
-	// to encode this information into the client's peer id.
+	// The fingerprint class represents information about a client and its
+	// version. It is used to encode this information into the client's peer id.
 	struct TORRENT_DEPRECATED TORRENT_DEPRECATED_EXPORT fingerprint
 	{
 		fingerprint(const char* id_string, int major, int minor, int revision, int tag);

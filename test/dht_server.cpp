@@ -55,7 +55,6 @@ using namespace std::placeholders;
 
 struct dht_server
 {
-
 	libtorrent::io_service m_ios;
 	boost::detail::atomic_count m_dht_requests;
 	udp::socket m_socket;

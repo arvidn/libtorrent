@@ -308,7 +308,6 @@ namespace libtorrent
 			// skip the comma
 			if (start < in.size() && in[start] == ',')
 				++start;
-
 		}
 
 		return out;

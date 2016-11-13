@@ -57,7 +57,6 @@ namespace libtorrent
 	{
 	friend class invariant_access;
 	public:
-
 		// this is the constructor where the we are the active part.
 		// The peer_connection should handshake and verify that the
 		// other end has the correct id
@@ -85,7 +84,6 @@ namespace libtorrent
 		virtual bool received_invalid_data(int index, bool single_peer) override;
 
 	private:
-
 		void on_receive_padfile();
 		void incoming_payload(char const* buf, int len);
 		void incoming_zeroes(int len);

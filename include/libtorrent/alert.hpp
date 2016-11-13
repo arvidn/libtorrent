@@ -73,7 +73,6 @@ namespace libtorrent {
 	class TORRENT_EXPORT alert
 	{
 	public:
-
 		alert(alert const& rhs) = delete;
 		alert& operator=(alert const&) = delete;
 		alert(alert&& rhs) = default;
@@ -256,7 +255,6 @@ namespace libtorrent {
 		severity_t severity() const { return warning; }
 
 	protected:
-
 		virtual bool discardable_impl() const { return true; }
 
 #endif // TORRENT_NO_DEPRECATE
