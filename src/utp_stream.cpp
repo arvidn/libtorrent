@@ -83,7 +83,7 @@ void utp_log(char const* fmt, ...)
 	std::fprintf(log_file_holder.utp_log_file, "[%012" PRId64 "] ", total_microseconds(clock_type::now() - start));
 	va_list l;
 	va_start(l, fmt);
-	vfprintf(log_file_holder.utp_log_file, fmt, l);
+	std::vfprintf(log_file_holder.utp_log_file, fmt, l);
 	va_end(l);
 }
 

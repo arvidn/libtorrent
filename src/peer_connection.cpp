@@ -494,18 +494,18 @@ namespace libtorrent
 
 		if (!m_ses.alerts().should_post<peer_log_alert>()) return;
 
+		char msg[512];
 		va_list v;
 		va_start(v, fmt);
+		std::vsnprintf(msg, sizeof(msg), fmt, v);
+		va_end(v);
 
 		torrent_handle h;
 		std::shared_ptr<torrent> t = m_torrent.lock();
 		if (t) h = t->get_handle();
 
 		m_ses.alerts().emplace_alert<peer_log_alert>(
-			h, m_remote, m_peer_id, direction, event, fmt, v);
-
-		va_end(v);
-
+			h, m_remote, m_peer_id, direction, event, msg);
 	}
 #endif
 

@@ -489,7 +489,7 @@ struct obs : dht::dht_observer
 		va_list v;
 		va_start(v, fmt);
 		char buf[1024];
-		vsnprintf(buf, sizeof(buf), fmt, v);
+		std::vsnprintf(buf, sizeof(buf), fmt, v);
 		va_end(v);
 		std::printf("%s\n", buf);
 		m_log.push_back(buf);

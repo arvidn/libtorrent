@@ -78,7 +78,7 @@ struct mock_peer_connection
 	{
 		va_list v;
 		va_start(v, fmt);
-		vprintf(fmt, v);
+		std::vprintf(fmt, v);
 		va_end(v);
 	}
 #endif
@@ -136,7 +136,7 @@ struct mock_torrent
 	{
 		va_list v;
 		va_start(v, fmt);
-		vprintf(fmt, v);
+		std::vprintf(fmt, v);
 		va_end(v);
 	}
 #endif

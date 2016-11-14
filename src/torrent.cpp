@@ -11045,11 +11045,13 @@ namespace libtorrent
 	{
 		if (!alerts().should_post<torrent_log_alert>()) return;
 
+		char msg[512];
 		va_list v;
 		va_start(v, fmt);
-		alerts().emplace_alert<torrent_log_alert>(
-			const_cast<torrent*>(this)->get_handle(), fmt, v);
+		std::vsnprintf(msg, sizeof(msg), fmt, v);
 		va_end(v);
+		alerts().emplace_alert<torrent_log_alert>(
+			const_cast<torrent*>(this)->get_handle(), msg);
 	}
 #endif
 

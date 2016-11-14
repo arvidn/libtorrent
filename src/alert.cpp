@@ -1666,13 +1666,9 @@ namespace libtorrent {
 		return msg;
 	}
 
-	log_alert::log_alert(aux::stack_allocator& alloc, char const* log)
+	log_alert::log_alert(aux::stack_allocator& alloc, string_view log)
 		: m_alloc(alloc)
 		, m_str_idx(alloc.copy_string(log))
-	{}
-	log_alert::log_alert(aux::stack_allocator& alloc, char const* fmt, va_list v)
-		: m_alloc(alloc)
-		, m_str_idx(alloc.format_string(fmt, v))
 	{}
 
 	char const* log_alert::log_message() const
@@ -1693,9 +1689,9 @@ namespace libtorrent {
 	}
 
 	torrent_log_alert::torrent_log_alert(aux::stack_allocator& alloc, torrent_handle const& h
-		, char const* fmt, va_list v)
+		, string_view log)
 		: torrent_alert(alloc, h)
-		, m_str_idx(alloc.format_string(fmt, v))
+		, m_str_idx(alloc.copy_string(log))
 	{}
 
 	char const* torrent_log_alert::log_message() const
@@ -1719,11 +1715,11 @@ namespace libtorrent {
 		, torrent_handle const& h
 		, tcp::endpoint const& i, peer_id const& pi
 		, peer_log_alert::direction_t dir
-		, char const* event, char const* fmt, va_list v)
+		, char const* event, string_view log)
 		: peer_alert(alloc, h, i, pi)
 		, event_type(event)
 		, direction(dir)
-		, m_str_idx(alloc.format_string(fmt, v))
+		, m_str_idx(alloc.copy_string(log))
 	{}
 
 	char const* peer_log_alert::log_message() const
@@ -1896,10 +1892,10 @@ namespace libtorrent {
 	}
 
 	dht_log_alert::dht_log_alert(aux::stack_allocator& alloc
-		, dht_log_alert::dht_module_t m, const char* fmt, va_list v)
+		, dht_log_alert::dht_module_t m, string_view log)
 		: module(m)
 		, m_alloc(alloc)
-		, m_msg_idx(alloc.format_string(fmt, v))
+		, m_msg_idx(alloc.copy_string(log))
 	{}
 
 	char const* dht_log_alert::log_message() const
