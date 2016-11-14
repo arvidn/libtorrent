@@ -8,7 +8,6 @@ import os
 import shutil
 import binascii
 
-
 class test_create_torrent(unittest.TestCase):
 
 	def test_from_torrent_info(self):
@@ -101,6 +100,13 @@ class test_alerts(unittest.TestCase):
 		alerts = ses.pop_alerts()
 		for a in alerts:
 			print(a.message())
+			for field_name in dir(a):
+				if field_name.startswith('__'): continue
+				field = getattr(a, field_name)
+				if callable(field):
+					print('  ', field_name, ' = ', field())
+				else:
+					print('  ', field_name, ' = ', field)
 
 		print(st.next_announce)
 		self.assertEqual(st.name, 'temp')
