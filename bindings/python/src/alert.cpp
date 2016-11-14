@@ -25,17 +25,6 @@ bytes get_buffer(read_piece_alert const& rpa)
        : bytes();
 }
 
-std::string dht_announce_alert_ip(dht_announce_alert const& pa)
-{
-    error_code ec;
-    return pa.ip.to_string(ec);
-}
-
-std::string external_ip_alert_ip(external_ip_alert const& eia)
-{
-    return eia.external_address.to_string();
-}
-
 list stats_alert_transferred(stats_alert const& alert)
 {
    list result;
@@ -242,7 +231,7 @@ namespace boost
 	POLY(save_resume_data_failed_alert)
 	POLY(performance_alert)
 	POLY(stats_alert)
-        POLY(cache_flushed_alert)
+	POLY(cache_flushed_alert)
 	POLY(anonymous_mode_alert)
 	POLY(incoming_connection_alert)
 	POLY(torrent_need_cert_alert)
@@ -274,6 +263,8 @@ namespace boost
 void bind_alert()
 {
     using boost::noncopyable;
+
+    typedef return_value_policy<return_by_value> by_value;
 
     {
         scope alert_scope = class_<alert, noncopyable >("alert", no_init)
@@ -349,6 +340,9 @@ void bind_alert()
     class_<read_piece_alert, bases<torrent_alert>, noncopyable>(
         "read_piece_alert", nullptr, no_init)
         .def_readonly("error", &read_piece_alert::error)
+#ifndef TORRENT_NO_DEPRECATE
+        .def_readonly("ec", &read_piece_alert::ec)
+#endif
         .add_property("buffer", get_buffer)
         .def_readonly("piece", &read_piece_alert::piece)
         .def_readonly("size", &read_piece_alert::size)
@@ -357,11 +351,9 @@ void bind_alert()
     class_<peer_alert, bases<torrent_alert>, noncopyable>(
         "peer_alert", no_init)
 #ifndef TORRENT_NO_DEPRECATE
-        .add_property("ip", make_getter(&peer_alert::ip
-            , return_value_policy<return_by_value>()))
+        .add_property("ip", make_getter(&peer_alert::ip, by_value()))
 #endif
-        .add_property("endpoint", make_getter(&peer_alert::endpoint
-            , return_value_policy<return_by_value>()))
+        .add_property("endpoint", make_getter(&peer_alert::endpoint, by_value()))
         .def_readonly("pid", &peer_alert::pid)
     ;
     class_<tracker_error_alert, bases<tracker_alert>, noncopyable>(
@@ -452,6 +444,8 @@ void bind_alert()
     class_<storage_moved_failed_alert, bases<torrent_alert>, noncopyable>(
         "storage_moved_failed_alert", no_init)
         .def_readonly("error", &storage_moved_failed_alert::error)
+        .def("file_path", &storage_moved_failed_alert::file_path)
+        .def_readonly("operation", &storage_moved_failed_alert::operation)
         ;
 
     class_<torrent_deleted_alert, bases<torrent_alert>, noncopyable>(
@@ -471,7 +465,9 @@ void bind_alert()
         .def_readonly("url", &url_seed_alert::url)
         .def_readonly("msg", &url_seed_alert::msg)
 #endif
+        .def_readonly("error", &url_seed_alert::error)
         .def("server_url", &url_seed_alert::server_url)
+        .def("error_message", &url_seed_alert::error_message)
         ;
 
     class_<file_error_alert, bases<torrent_alert>, noncopyable>(
@@ -485,7 +481,9 @@ void bind_alert()
         ;
 
     class_<metadata_failed_alert, bases<torrent_alert>, noncopyable>(
-        "metadata_failed_alert", no_init);
+        "metadata_failed_alert", no_init)
+        .def_readonly("error", &metadata_failed_alert::error)
+        ;
 
     class_<metadata_received_alert, bases<torrent_alert>, noncopyable>(
         "metadata_received_alert", no_init);
@@ -493,9 +491,9 @@ void bind_alert()
     class_<listen_failed_alert, bases<alert>, noncopyable>(
         "listen_failed_alert", no_init)
 #ifndef TORRENT_NO_DEPRECATE
-        .def_readonly("endpoint", &listen_failed_alert::endpoint)
+        .add_property("endpoint", make_getter(&listen_failed_alert::endpoint, by_value()))
 #endif
-        .def_readonly("address", &listen_failed_alert::address)
+        .add_property("address", make_getter(&listen_failed_alert::address, by_value()))
         .def_readonly("port", &listen_failed_alert::port)
         .def("listen_interface", &listen_failed_alert::listen_interface)
         .def_readonly("error", &listen_failed_alert::error)
@@ -509,15 +507,24 @@ void bind_alert()
     class_<listen_succeeded_alert, bases<alert>, noncopyable>(
         "listen_succeeded_alert", no_init)
 #ifndef TORRENT_NO_DEPRECATE
-        .def_readonly("endpoint", &listen_succeeded_alert::endpoint)
+        .add_property("endpoint", make_getter(&listen_succeeded_alert::endpoint, by_value()))
 #endif
-        .def_readonly("address", &listen_succeeded_alert::address)
+        .add_property("address", make_getter(&listen_succeeded_alert::address, by_value()))
         .def_readonly("port", &listen_succeeded_alert::port)
 #ifndef TORRENT_NO_DEPRECATE
         .def_readonly("sock_type", &listen_succeeded_alert::sock_type)
 #endif
         .def_readonly("socket_type", &listen_succeeded_alert::socket_type)
         ;
+
+    enum_<socket_type_t>("socket_type_t")
+       .value("tcp", socket_type_t::tcp)
+       .value("tcp_ssl", socket_type_t::tcp_ssl)
+       .value("udp", socket_type_t::udp)
+       .value("i2p", socket_type_t::i2p)
+       .value("socks5", socket_type_t::socks5)
+       .value("utp_ssl", socket_type_t::utp_ssl)
+       ;
 
     class_<portmap_error_alert, bases<alert>, noncopyable>(
         "portmap_error_alert", no_init)
@@ -559,10 +566,15 @@ void bind_alert()
 #ifndef TORRENT_NO_DEPRECATE
         .def_readonly("msg", &fastresume_rejected_alert::msg)
 #endif
+        .def("file_path", &fastresume_rejected_alert::file_path)
+        .def_readonly("operation", &fastresume_rejected_alert::operation)
         ;
 
     class_<peer_blocked_alert, bases<peer_alert>, noncopyable>(
         "peer_blocked_alert", no_init)
+#ifndef TORRENT_NO_DEPRECATE
+        .add_property("ip", make_getter(&peer_blocked_alert::ip, by_value()))
+#endif
         .add_property("reason", &peer_blocked_alert::reason)
         ;
 
@@ -588,19 +600,18 @@ void bind_alert()
         .def_readonly("msg", &scrape_failed_alert::msg)
 #endif
         .def("error_message", &scrape_failed_alert::error_message)
+        .def_readonly("error", &scrape_failed_alert::error)
         ;
 
     class_<udp_error_alert, bases<alert>, noncopyable>(
         "udp_error_alert", no_init)
-        .def_readonly("endpoint", &udp_error_alert::endpoint)
+        .add_property("endpoint", make_getter(&udp_error_alert::endpoint, by_value()))
         .def_readonly("error", &udp_error_alert::error)
         ;
 
     class_<external_ip_alert, bases<alert>, noncopyable>(
         "external_ip_alert", no_init)
-        .add_property("external_address"
-           , make_getter(&external_ip_alert::external_address
-              , return_value_policy<return_by_value>()))
+        .add_property("external_address", make_getter(&external_ip_alert::external_address, by_value()))
         ;
 
     class_<save_resume_data_alert, bases<torrent_alert>, noncopyable>(
@@ -655,7 +666,7 @@ void bind_alert()
 
     class_<dht_announce_alert, bases<alert>, noncopyable>(
         "dht_announce_alert", no_init)
-        .add_property("ip", &dht_announce_alert_ip)
+        .add_property("ip", make_getter(&dht_announce_alert::ip, by_value()))
         .def_readonly("port", &dht_announce_alert::port)
         .def_readonly("info_hash", &dht_announce_alert::info_hash)
     ;
@@ -710,6 +721,7 @@ void bind_alert()
         .def_readonly("msg", &torrent_delete_failed_alert::msg)
 #endif
         .def_readonly("error", &torrent_delete_failed_alert::error)
+        .def_readonly("info_hash", &torrent_delete_failed_alert::info_hash)
         ;
 
     class_<save_resume_data_failed_alert, bases<torrent_alert>, noncopyable>(
@@ -778,11 +790,9 @@ void bind_alert()
         "incoming_connection_alert", no_init)
         .def_readonly("socket_type", &incoming_connection_alert::socket_type)
 #ifndef TORRENT_NO_DEPRECATE
-        .add_property("ip", make_getter(&incoming_connection_alert::ip
-            , return_value_policy<return_by_value>()))
+        .add_property("ip", make_getter(&incoming_connection_alert::ip, by_value()))
 #endif
-        .add_property("endpoint", make_getter(&incoming_connection_alert::endpoint
-            , return_value_policy<return_by_value>()))
+        .add_property("endpoint", make_getter(&incoming_connection_alert::endpoint, by_value()))
         ;
     class_<torrent_need_cert_alert, bases<torrent_alert>, noncopyable>(
         "torrent_need_cert_alert", no_init)
@@ -808,11 +818,9 @@ void bind_alert()
         .def_readonly("info_hash", &dht_outgoing_get_peers_alert::info_hash)
         .def_readonly("obfuscated_info_hash", &dht_outgoing_get_peers_alert::obfuscated_info_hash)
 #ifndef TORRENT_NO_DEPRECATE
-        .add_property("ip", make_getter(&dht_outgoing_get_peers_alert::ip
-            , return_value_policy<return_by_value>()))
+        .add_property("ip", make_getter(&dht_outgoing_get_peers_alert::ip, by_value()))
 #endif
-        .add_property("endpoint", make_getter(&dht_outgoing_get_peers_alert::endpoint
-            , return_value_policy<return_by_value>()))
+        .add_property("endpoint", make_getter(&dht_outgoing_get_peers_alert::endpoint, by_value()))
         ;
 
     class_<log_alert, bases<alert>, noncopyable>(
@@ -858,18 +866,30 @@ void bind_alert()
 
     class_<dht_immutable_item_alert, bases<alert>, noncopyable>(
        "dht_immutable_item_alert", no_init)
+        .def_readonly("target", &dht_immutable_item_alert::target)
         .add_property("item", &dht_immutable_item)
         ;
 
     class_<dht_mutable_item_alert, bases<alert>, noncopyable>(
        "dht_mutable_item_alert", no_init)
+        .def_readonly("key", &dht_mutable_item_alert::key)
+        .def_readonly("signature", &dht_mutable_item_alert::signature)
+        .def_readonly("seq", &dht_mutable_item_alert::seq)
+        .def_readonly("salt", &dht_mutable_item_alert::salt)
         .add_property("item", &dht_mutable_item)
+        .def_readonly("authoritative", &dht_mutable_item_alert::authoritative)
         ;
 
     class_<dht_put_alert, bases<alert>, noncopyable>(
        "dht_put_alert", no_init)
-        .add_property("item", &dht_put_item)
+        .def_readonly("target", &dht_put_alert::target)
+        .def_readonly("public_key", &dht_put_alert::public_key)
+        .def_readonly("signature", &dht_put_alert::signature)
+        .def_readonly("salt", &dht_put_alert::salt)
+        .def_readonly("seq", &dht_put_alert::seq)
+        .def_readonly("num_success", &dht_put_alert::num_success)
         ;
+
     class_<session_stats_alert, bases<alert>, noncopyable>(
         "session_stats_alert", no_init)
         .add_property("values", &session_stats_values)
