@@ -58,78 +58,78 @@ namespace libtorrent
 		basic_nl_endpoint() : basic_nl_endpoint(protocol_type(), 0, 0) {}
 
 		basic_nl_endpoint(protocol_type netlink_family, std::uint32_t group, ::pid_t pid = 0)
-			: proto(netlink_family)
+			: m_proto(netlink_family)
 		{
-			std::memset(&sockaddr, 0, sizeof(sockaddr_nl));
-			sockaddr.nl_family = AF_NETLINK;
-			sockaddr.nl_groups = group;
-			sockaddr.nl_pid = pid;
+			std::memset(&m_sockaddr, 0, sizeof(sockaddr_nl));
+			m_sockaddr.nl_family = AF_NETLINK;
+			m_sockaddr.nl_groups = group;
+			m_sockaddr.nl_pid = pid;
 		}
 
 		basic_nl_endpoint(basic_nl_endpoint const& other)
 		{
-			sockaddr = other.sockaddr;
+			m_sockaddr = other.m_sockaddr;
 		}
 
 		basic_nl_endpoint& operator=(const basic_nl_endpoint& other)
 		{
-			sockaddr = other.sockaddr;
+			m_sockaddr = other.m_sockaddr;
 			return *this;
 		}
 
 		basic_nl_endpoint& operator=(const basic_nl_endpoint&& other)
 		{
-			sockaddr = other.sockaddr;
+			m_sockaddr = other.m_sockaddr;
 			return *this;
 		}
 
 		protocol_type protocol() const
 		{
-			return proto;
+			return m_proto;
 		}
 
 		data_type* data()
 		{
-			return &sockaddr;
+			return &m_sockaddr;
 		}
 
 		const data_type* data() const
 		{
-			return reinterpret_cast<data_type const*>(&sockaddr);
+			return reinterpret_cast<data_type const*>(&m_sockaddr);
 		}
 
 		std::size_t size() const
 		{
-			return sizeof(sockaddr);
+			return sizeof(m_sockaddr);
 		}
 
 		std::size_t capacity() const
 		{
-			return sizeof(sockaddr);
+			return sizeof(m_sockaddr);
 		}
 
 		friend bool operator==(const basic_nl_endpoint<Protocol>& l
 			, const basic_nl_endpoint<Protocol>& r)
 		{
-			return l.sockaddr == r.sockaddr;
+			return l.m_sockaddr == r.m_sockaddr;
 		}
 
 		friend bool operator!=(const basic_nl_endpoint<Protocol>& l
 			, const basic_nl_endpoint<Protocol>& r)
 		{
-			return !(l.sockaddr == r.sockaddr);
+			return !(l.m_sockaddr == r.m_sockaddr);
 		}
 
 		friend bool operator<(const basic_nl_endpoint<Protocol>& l
 			, const basic_nl_endpoint<Protocol>& r)
 		{
-			return l.sockaddr < r.sockaddr;
+			return l.m_sockaddr < r.m_sockaddr;
 		}
 
 		friend bool operator>(const basic_nl_endpoint<Protocol>& l
 			, const basic_nl_endpoint<Protocol>& r)
 		{
-			return r.sockaddr < l.sockaddr;
+			return r.m_sockaddr < l.m_sockaddr;
 		}
 
 		friend bool operator<=(const basic_nl_endpoint<Protocol>& l
@@ -145,8 +145,8 @@ namespace libtorrent
 		}
 
 		private:
-			protocol_type proto;
-			sockaddr_nl sockaddr;
+			protocol_type m_proto;
+			sockaddr_nl m_sockaddr;
 	};
 
 	class netlink
@@ -158,7 +158,7 @@ namespace libtorrent
 		netlink() : netlink(NETLINK_ROUTE) {}
 
 		explicit netlink(int nl_family)
-			: nl_family(nl_family)
+			: m_nl_family(nl_family)
 		{
 		}
 
@@ -169,7 +169,7 @@ namespace libtorrent
 
 		int protocol() const
 		{
-			return nl_family;
+			return m_nl_family;
 		}
 
 		int family() const
@@ -179,16 +179,16 @@ namespace libtorrent
 
 		friend bool operator==(const netlink& l, const netlink& r)
 		{
-			return l.nl_family == r.nl_family;
+			return l.m_nl_family == r.m_nl_family;
 		}
 
 		friend bool operator!=(const netlink& l, const netlink& r)
 		{
-			return l.nl_family != r.nl_family;
+			return l.m_nl_family != r.m_nl_family;
 		}
 
 	private:
-		int nl_family;
+		int m_nl_family;
 	};
 
 }
