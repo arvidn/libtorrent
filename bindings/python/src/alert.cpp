@@ -517,6 +517,26 @@ void bind_alert()
         .def_readonly("socket_type", &listen_succeeded_alert::socket_type)
         ;
 
+#ifndef TORRENT_NO_DEPRECATE
+    enum_<listen_succeeded_alert::socket_type_t>("listen_succeded_alert_socket_type_t")
+       .value("tcp", listen_succeeded_alert::socket_type_t::tcp)
+       .value("tcp_ssl", listen_succeeded_alert::socket_type_t::tcp_ssl)
+       .value("udp", listen_succeeded_alert::socket_type_t::udp)
+       .value("i2p", listen_succeeded_alert::socket_type_t::i2p)
+       .value("socks5", listen_succeeded_alert::socket_type_t::socks5)
+       .value("utp_ssl", listen_succeeded_alert::socket_type_t::utp_ssl)
+       ;
+
+    enum_<listen_failed_alert::socket_type_t>("listen_failed_alert_socket_type_t")
+       .value("tcp", listen_failed_alert::socket_type_t::tcp)
+       .value("tcp_ssl", listen_failed_alert::socket_type_t::tcp_ssl)
+       .value("udp", listen_failed_alert::socket_type_t::udp)
+       .value("i2p", listen_failed_alert::socket_type_t::i2p)
+       .value("socks5", listen_failed_alert::socket_type_t::socks5)
+       .value("utp_ssl", listen_failed_alert::socket_type_t::utp_ssl)
+       ;
+#endif
+
     enum_<socket_type_t>("socket_type_t")
        .value("tcp", socket_type_t::tcp)
        .value("tcp_ssl", socket_type_t::tcp_ssl)
