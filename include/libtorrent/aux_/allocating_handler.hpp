@@ -65,6 +65,8 @@ namespace libtorrent { namespace aux
 	{
 		virtual void on_exception(std::exception const&) = 0;
 		virtual void on_error(error_code const&) = 0;
+
+		virtual ~error_handler_interface() {}
 	};
 
 	// this class is a wrapper for an asio handler object. Its main purpose

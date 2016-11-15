@@ -565,6 +565,8 @@ namespace libtorrent
 	{
 		virtual int file_op(int const file_index, std::int64_t const file_offset
 			, span<file::iovec_t const> bufs, storage_error& ec) = 0;
+
+		virtual ~fileop() {}
 	};
 
 	// this function is responsible for turning read and write operations in the

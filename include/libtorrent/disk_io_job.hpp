@@ -44,7 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	struct storage_interface;
-	using storage_interface = storage_interface;
 	struct cached_piece_entry;
 	class torrent_info;
 	struct add_torrent_params;
@@ -69,7 +68,6 @@ namespace libtorrent
 	// a lot of heap allocation churn of using general purpose
 	// containers.
 	struct TORRENT_EXTRA_EXPORT disk_io_job : tailqueue_node<disk_io_job>
-		, boost::noncopyable
 	{
 		disk_io_job();
 		~disk_io_job();
