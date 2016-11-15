@@ -6518,7 +6518,9 @@ namespace libtorrent
 		peer_log(peer_log_alert::outgoing_message, "KEEPALIVE");
 #endif
 
-		write_keepalive();
+		if (write_keepalive()) {
+			m_last_sent = aux::time_now();
+		}
 	}
 
 	bool peer_connection::is_seed() const
