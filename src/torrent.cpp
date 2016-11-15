@@ -6325,8 +6325,10 @@ namespace libtorrent
 			{
 				error_code ec;
 				address addr = p->address();
+#if TORRENT_USE_I2P
 				if (p->is_i2p_addr)
 					continue;
+#endif
 				if (p->banned)
 				{
 #if TORRENT_USE_IPV6
