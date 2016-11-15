@@ -4724,11 +4724,8 @@ namespace aux {
 
 #ifndef TORRENT_DISABLE_DHT
 		// add params.dht_nodes to the DHT, if enabled
-		if (!params.dht_nodes.empty())
-		{
-			for (auto const& n : params.dht_nodes)
-				add_dht_node_name(n);
-		}
+		for (auto const& n : params.dht_nodes)
+			add_dht_node_name(n);
 #endif
 
 		INVARIANT_CHECK;
@@ -4755,7 +4752,7 @@ namespace aux {
 		}
 #endif
 
-		if (params.info_hash == sha1_hash(nullptr))
+		if (params.info_hash.is_all_zeros())
 		{
 			ec = errors::missing_info_hash_in_uri;
 			return std::make_pair(ptr_t(), false);

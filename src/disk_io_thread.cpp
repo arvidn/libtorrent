@@ -276,7 +276,7 @@ namespace libtorrent
 
 	// flush all blocks that are below p->hash.offset, since we've
 	// already hashed those blocks, they won't cause any read-back
-	int disk_io_thread::try_flush_hashed(cached_piece_entry* p, int cont_block
+	int disk_io_thread::try_flush_hashed(cached_piece_entry* p, int const cont_block
 		, jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l)
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
@@ -297,7 +297,7 @@ namespace libtorrent
 		// end is one past the end
 		// round offset up to include the last block, which might
 		// have an odd size
-		int block_size = m_disk_cache.block_size();
+		int const block_size = m_disk_cache.block_size();
 		int end = p->hashing_done ? p->blocks_in_piece : (p->hash->offset + block_size - 1) / block_size;
 
 		// nothing has been hashed yet, don't flush anything
@@ -602,7 +602,7 @@ namespace libtorrent
 	// first piece, if the iovec spans multiple pieces
 	void disk_io_thread::flush_iovec(cached_piece_entry* pe
 		, span<file::iovec_t const> iov, span<int const> flushing
-		, int num_blocks, storage_error& error)
+		, int const num_blocks, storage_error& error)
 	{
 		TORRENT_PIECE_ASSERT(!error, pe);
 		TORRENT_PIECE_ASSERT(num_blocks > 0, pe);
@@ -672,7 +672,7 @@ namespace libtorrent
 	// build_iovec, to reset their state to not being flushed anymore
 	// the cache needs to be locked when calling this function
 	void disk_io_thread::iovec_flushed(cached_piece_entry* pe
-		, int* flushing, int num_blocks, int block_offset
+		, int* flushing, int const num_blocks, int const block_offset
 		, storage_error const& error
 		, jobqueue_t& completed_jobs)
 	{
@@ -812,7 +812,7 @@ namespace libtorrent
 		}
 	}
 
-	void disk_io_thread::flush_cache(storage_interface* storage, std::uint32_t flags
+	void disk_io_thread::flush_cache(storage_interface* storage, std::uint32_t const flags
 		, jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l)
 	{
 		if (storage)
@@ -1509,7 +1509,7 @@ namespace libtorrent
 
 	void disk_io_thread::async_read(storage_interface* storage, peer_request const& r
 		, std::function<void(disk_io_job const*)> handler, void* requester
-		, int flags)
+		, int const flags)
 	{
 		TORRENT_ASSERT(r.length <= m_disk_cache.block_size());
 		TORRENT_ASSERT(r.length <= 16 * 1024);
