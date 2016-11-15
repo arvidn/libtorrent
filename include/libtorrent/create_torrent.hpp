@@ -44,10 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <utility>
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/config.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 // OVERVIEW
 //
 // This section describes the functions and classes that are used
@@ -303,8 +299,7 @@ namespace libtorrent
 		entry m_info_dict;
 
 		// the urls to the trackers
-		typedef std::pair<std::string, int> announce_entry;
-		std::vector<announce_entry> m_urls;
+		std::vector<std::pair<std::string, int>> m_urls;
 
 		std::vector<std::string> m_url_seeds;
 		std::vector<std::string> m_http_seeds;
@@ -322,8 +317,7 @@ namespace libtorrent
 		mutable std::vector<sha1_hash> m_merkle_tree;
 
 		// dht nodes to add to the routing table/bootstrap from
-		using nodes_t = std::vector<std::pair<std::string, int>>;
-		nodes_t m_nodes;
+		std::vector<std::pair<std::string, int>> m_nodes;
 
 		// the hash that identifies this torrent
 		// is mutable because it's calculated
@@ -485,4 +479,3 @@ namespace libtorrent
 }
 
 #endif
-
