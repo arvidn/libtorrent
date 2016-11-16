@@ -16,6 +16,7 @@
 #include <libtorrent/aux_/session_impl.hpp> // for settings_map()
 #include <libtorrent/torrent_info.hpp>
 #include <libtorrent/kademlia/item.hpp> // for sign_mutable_item
+#include <libtorrent/time.hpp>
 
 #ifndef TORRENT_NO_DEPRECATE
 #include <libtorrent/extensions/lt_trackers.hpp>
