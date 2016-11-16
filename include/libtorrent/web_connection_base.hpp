@@ -87,7 +87,7 @@ namespace libtorrent
 		void write_dont_have(int) {}
 		void write_piece(peer_request const&, disk_buffer_holder)
 		{ TORRENT_ASSERT_FAIL(); }
-		void write_keepalive() {}
+		bool write_keepalive() { return false; }
 		void on_connected();
 		void write_reject_request(peer_request const&) {}
 		void write_allow_fast(int) {}

@@ -2041,7 +2041,7 @@ namespace libtorrent
 	}
 #endif
 
-	void bt_peer_connection::write_keepalive()
+	bool bt_peer_connection::write_keepalive()
 	{
 		INVARIANT_CHECK;
 
@@ -2055,6 +2055,7 @@ namespace libtorrent
 
 		char msg[] = {0,0,0,0};
 		send_buffer(msg, sizeof(msg));
+		return true;
 	}
 
 	void bt_peer_connection::write_cancel(peer_request const& r)

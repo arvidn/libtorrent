@@ -700,7 +700,7 @@ namespace libtorrent
 		virtual void write_cancel(peer_request const& r) = 0;
 		virtual void write_have(int index) = 0;
 		virtual void write_dont_have(int index) = 0;
-		virtual void write_keepalive() = 0;
+		virtual bool write_keepalive() = 0;
 		virtual void write_piece(peer_request const& r, disk_buffer_holder buffer) = 0;
 		virtual void write_suggest(int piece) = 0;
 		virtual void write_bitfield() = 0;
