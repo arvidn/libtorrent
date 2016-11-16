@@ -47,6 +47,14 @@ class test_torrent_handle(unittest.TestCase):
 		# from python
 		h.scrape_tracker()
 
+	def test_cache_info(self):
+		ses = lt.session({'alert_mask': lt.alert.category_t.all_categories, 'enable_dht': False})
+		ti = lt.torrent_info('url_seed_multi.torrent');
+		h = ses.add_torrent({'ti': ti, 'save_path': os.getcwd()})
+
+		cs = ses.get_cache_info(h)
+		self.assertEqual(cs.pieces, [])
+
 class test_torrent_info(unittest.TestCase):
 
 	def test_bencoded_constructor(self):
