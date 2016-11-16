@@ -153,7 +153,9 @@ rpc_manager::rpc_manager(node_id const& our_id
 	, dht_logger* log)
 	: m_pool_allocator(sizeof(observer_storage), 10)
 	, m_sock(sock)
+#ifndef TORRENT_DISABLE_LOGGING
 	, m_log(log)
+#endif
 	, m_settings(settings)
 	, m_table(table)
 	, m_our_id(our_id)
