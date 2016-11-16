@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/openssl.hpp"
 
 #if TORRENT_USE_CRYPTOAPI && defined(CALG_SHA_512)
- 
 namespace
 {
 	HCRYPTPROV make_crypt_provider()
