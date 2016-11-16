@@ -5274,7 +5274,7 @@ namespace libtorrent
 		// even if we're disconnecting, we need to free this block
 		// otherwise the disk thread will hang, waiting for the network
 		// thread to be done with it
-		disk_buffer_holder buffer(m_allocator, *j);
+		disk_buffer_holder buffer(m_allocator, j->d.io.ref, j->buffer.disk_block);
 
 		if (t && m_settings.get_int(settings_pack::suggest_mode)
 			== settings_pack::suggest_read_cache)

@@ -1037,6 +1037,7 @@ namespace libtorrent
 		, peer_connection* c
 		, disk_class rw)
 	{
+		TORRENT_UNUSED(job_name);
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(error);
 
@@ -1133,7 +1134,7 @@ namespace libtorrent
 		// hold a reference until this function returns
 		TORRENT_ASSERT(is_single_thread());
 
-		disk_buffer_holder buffer(m_ses, *j);
+		disk_buffer_holder buffer(m_ses, j->d.io.ref, j->buffer.disk_block);
 
 		--rp->blocks_left;
 		if (j->ret != r.length)

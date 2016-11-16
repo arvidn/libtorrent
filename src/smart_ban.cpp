@@ -179,7 +179,7 @@ namespace
 		{
 			TORRENT_ASSERT(m_torrent.session().is_single_thread());
 
-			disk_buffer_holder buffer(m_torrent.session(), *j);
+			disk_buffer_holder buffer(m_torrent.session(), j->d.io.ref, j->buffer.disk_block);
 
 			// ignore read errors
 			if (j->ret != j->d.io.buffer_size) return;
@@ -261,7 +261,7 @@ namespace
 		{
 			TORRENT_ASSERT(m_torrent.session().is_single_thread());
 
-			disk_buffer_holder buffer(m_torrent.session(), *j);
+			disk_buffer_holder buffer(m_torrent.session(), j->d.io.ref, j->buffer.disk_block);
 
 			// ignore read errors
 			if (j->ret != j->d.io.buffer_size) return;
