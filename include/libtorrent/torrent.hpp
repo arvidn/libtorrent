@@ -449,7 +449,11 @@ namespace libtorrent
 
 		std::string resolve_filename(int file) const;
 		void handle_exception();
-		void handle_disk_error(disk_io_job const* j, peer_connection* c = 0);
+
+		enum class disk_class { none, write };
+		void handle_disk_error(string_view job_name
+			, storage_error const& error, peer_connection* c = nullptr
+			, disk_class rw = disk_class::none);
 		void clear_error();
 
 		void set_error(error_code const& ec, int file);

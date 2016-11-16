@@ -1032,89 +1032,51 @@ namespace libtorrent
 		}
 	}
 
-	void torrent::handle_disk_error(disk_io_job const* j, peer_connection* c)
+	void torrent::handle_disk_error(string_view job_name
+		, storage_error const& error
+		, peer_connection* c
+		, disk_class rw)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		if (!j->error) return;
+		TORRENT_ASSERT(error);
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
 		{
-			debug_log("disk error: (%d) %s [%s : %s] in file: %s"
-				, j->error.ec.value(), j->error.ec.message().c_str()
-				, job_name(j->action), j->error.operation_str()
-				, resolve_filename(j->error.file).c_str());
+			debug_log("disk error: (%d) %s [%*s : %s] in file: %s"
+				, error.ec.value(), error.ec.message().c_str()
+				, int(job_name.size()), job_name.data(), error.operation_str()
+				, resolve_filename(error.file).c_str());
 		}
 #endif
 
-		if (j->action == disk_io_job::write)
-		{
-			piece_block block_finished(j->piece, j->d.io.offset / block_size());
-
-			// we failed to write j->piece to disk tell the piece picker
-			// this will block any other peer from issuing requests
-			// to this piece, until we've cleared it.
-			if (j->error.ec == boost::asio::error::operation_aborted)
-			{
-				if (has_picker())
-					picker().mark_as_canceled(block_finished, nullptr);
-			}
-			else
-			{
-				// if any other peer has a busy request to this block, we need
-				// to cancel it too
-				cancel_block(block_finished);
-				if (has_picker())
-					picker().write_failed(block_finished);
-
-				if (m_storage)
-				{
-					// when this returns, all outstanding jobs to the
-					// piece are done, and we can restore it, allowing
-					// new requests to it
-					m_ses.disk_thread().async_clear_piece(m_storage.get(), j->piece
-						, std::bind(&torrent::on_piece_fail_sync, shared_from_this(), _1, block_finished));
-				}
-				else
-				{
-					// is m_abort true? if so, we should probably just
-					// exit this function early, no need to keep the picker
-					// state up-to-date, right?
-					disk_io_job sj;
-					sj.piece = j->piece;
-					on_piece_fail_sync(&sj, block_finished);
-				}
-			}
-			update_gauge();
-		}
-
-		if (j->error.ec == boost::system::errc::not_enough_memory)
+		if (error.ec == boost::system::errc::not_enough_memory)
 		{
 			if (alerts().should_post<file_error_alert>())
-				alerts().emplace_alert<file_error_alert>(j->error.ec
-					, resolve_filename(j->error.file), j->error.operation_str(), get_handle());
+				alerts().emplace_alert<file_error_alert>(error.ec
+					, resolve_filename(error.file), error.operation_str(), get_handle());
 			if (c) c->disconnect(errors::no_memory, op_file);
 			return;
 		}
 
-		if (j->error.ec == boost::asio::error::operation_aborted) return;
+		if (error.ec == boost::asio::error::operation_aborted) return;
 
 		// notify the user of the error
 		if (alerts().should_post<file_error_alert>())
-			alerts().emplace_alert<file_error_alert>(j->error.ec
-				, resolve_filename(j->error.file), j->error.operation_str(), get_handle());
+			alerts().emplace_alert<file_error_alert>(error.ec
+				, resolve_filename(error.file), error.operation_str(), get_handle());
 
 		// if a write operation failed, and future writes are likely to
 		// fail, while reads may succeed, just set the torrent to upload mode
 		// if we make an incorrect assumption here, it's not the end of the
 		// world, if we ever issue a read request and it fails as well, we
 		// won't get in here and we'll actually end up pausing the torrent
-		if (j->action == disk_io_job::write
-			&& (j->error.ec == boost::system::errc::read_only_file_system
-			|| j->error.ec == boost::system::errc::permission_denied
-			|| j->error.ec == boost::system::errc::operation_not_permitted
-			|| j->error.ec == boost::system::errc::no_space_on_device
-			|| j->error.ec == boost::system::errc::file_too_large))
+		if (rw == disk_class::write
+			&& (error.ec == boost::system::errc::read_only_file_system
+			|| error.ec == boost::system::errc::permission_denied
+			|| error.ec == boost::system::errc::operation_not_permitted
+			|| error.ec == boost::system::errc::no_space_on_device
+			|| error.ec == boost::system::errc::file_too_large))
 		{
 			// if we failed to write, stop downloading and just
 			// keep seeding.
@@ -1128,7 +1090,7 @@ namespace libtorrent
 		}
 
 		// put the torrent in an error-state
-		set_error(j->error.ec, j->error.file);
+		set_error(error.ec, error.file);
 
 		// if the error appears to be more serious than a full disk, just pause the torrent
 		pause();
@@ -1178,7 +1140,7 @@ namespace libtorrent
 		{
 			rp->fail = true;
 			rp->error = j->error.ec;
-			handle_disk_error(j);
+			handle_disk_error("read", j->error);
 		}
 		else
 		{
@@ -1334,7 +1296,7 @@ namespace libtorrent
 
 		if (j->ret == -1)
 		{
-			handle_disk_error(j);
+			handle_disk_error("write", j->error);
 			return;
 		}
 
@@ -1988,7 +1950,7 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(m_outstanding_check_files == false);
 			m_add_torrent_params.reset();
-			handle_disk_error(j);
+			handle_disk_error("check_resume_data", j->error);
 			auto_managed(false);
 			pause();
 			set_state(torrent_status::checking_files);
@@ -2240,7 +2202,7 @@ namespace libtorrent
 
 		if (j->ret == disk_interface::fatal_disk_error)
 		{
-			handle_disk_error(j);
+			handle_disk_error("force_recheck", j->error);
 			return;
 		}
 		if (j->ret == 0)
@@ -3708,7 +3670,7 @@ namespace libtorrent
 		}
 		else if (ret == -1)
 		{
-			handle_disk_error(j);
+			handle_disk_error("piece_verified", j->error);
 		}
 		else
 		{

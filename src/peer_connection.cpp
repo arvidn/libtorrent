@@ -2998,12 +2998,47 @@ namespace libtorrent
 		// to allow to receive more data
 		setup_receive();
 
-		piece_block block_finished(p.piece, p.start / t->block_size());
+		piece_block const block_finished(p.piece, p.start / t->block_size());
 
 		if (j->ret < 0)
 		{
+			// we failed to write j->piece to disk tell the piece picker
+			// this will block any other peer from issuing requests
+			// to this piece, until we've cleared it.
+			if (j->error.ec == boost::asio::error::operation_aborted)
+			{
+				if (t->has_picker())
+					t->picker().mark_as_canceled(block_finished, nullptr);
+			}
+			else
+			{
+				// if any other peer has a busy request to this block, we need
+				// to cancel it too
+				t->cancel_block(block_finished);
+				if (t->has_picker())
+					t->picker().write_failed(block_finished);
+
+				if (t->has_storage())
+				{
+					// when this returns, all outstanding jobs to the
+					// piece are done, and we can restore it, allowing
+					// new requests to it
+					m_disk_thread.async_clear_piece(&t->storage(), j->piece
+						, std::bind(&torrent::on_piece_fail_sync, t, _1, block_finished));
+				}
+				else
+				{
+					// is m_abort true? if so, we should probably just
+					// exit this function early, no need to keep the picker
+					// state up-to-date, right?
+					disk_io_job sj;
+					sj.piece = j->piece;
+					t->on_piece_fail_sync(&sj, block_finished);
+				}
+			}
+			t->update_gauge();
 			// handle_disk_error may disconnect us
-			t->handle_disk_error(j, this);
+			t->handle_disk_error("write", j->error, this, torrent::disk_class::write);
 			return;
 		}
 
@@ -5146,7 +5181,7 @@ namespace libtorrent
 
 		if (j->error)
 		{
-			t->handle_disk_error(j, this);
+			t->handle_disk_error("hash", j->error, this);
 			t->leave_seed_mode(false);
 			return;
 		}
@@ -5261,7 +5296,7 @@ namespace libtorrent
 		if (j->ret != r.length)
 		{
 			// handle_disk_error may disconnect us
-			t->handle_disk_error(j, this);
+			t->handle_disk_error("read", j->error, this);
 			return;
 		}
 
