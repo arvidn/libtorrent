@@ -5698,6 +5698,7 @@ namespace libtorrent
 		}
 
 		m_channel_state[upload_channel] |= peer_info::bw_network;
+		m_last_sent = aux::time_now();
 	}
 
 	void peer_connection::on_disk()
@@ -6847,7 +6848,6 @@ namespace libtorrent
 		peer_log(peer_log_alert::outgoing_message, "KEEPALIVE");
 #endif
 
-		m_last_sent = aux::time_now();
 		write_keepalive();
 	}
 
