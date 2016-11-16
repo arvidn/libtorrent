@@ -773,7 +773,7 @@ namespace libtorrent
 		{
 			disk_io_job* j = src.pop_front();
 			TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
-			j->ret = -1;
+			j->ret = disk_interface::fatal_disk_error;
 			j->error = e;
 			dst.push_back(j);
 		}
@@ -1101,25 +1101,26 @@ namespace libtorrent
 		}
 		catch (boost::system::system_error const& err)
 		{
-			ret = -1;
+			ret = disk_interface::fatal_disk_error;
 			j->error.ec = err.code();
 			j->error.operation = storage_error::exception;
 		}
 		catch (std::bad_alloc const&)
 		{
-			ret = -1;
+			ret = disk_interface::fatal_disk_error;
 			j->error.ec = errors::no_memory;
 			j->error.operation = storage_error::exception;
 		}
 		catch (std::exception const&)
 		{
-			ret = -1;
+			ret = disk_interface::fatal_disk_error;
 			j->error.ec = boost::asio::error::fault;
 			j->error.operation = storage_error::exception;
 		}
 
 		// note that -2 errors are OK
-		TORRENT_ASSERT(ret != -1 || (j->error.ec && j->error.operation != 0));
+		TORRENT_ASSERT(ret != disk_interface::fatal_disk_error
+			|| (j->error.ec && j->error.operation != 0));
 
 		m_stats_counters.inc_stats_counter(counters::num_running_disk_jobs, -1);
 
@@ -1178,7 +1179,7 @@ namespace libtorrent
 		{
 			j->error.ec = error::no_memory;
 			j->error.operation = storage_error::alloc_cache_piece;
-			return -1;
+			return disk_interface::fatal_disk_error;
 		}
 
 		time_point start_time = clock_type::now();
@@ -1464,7 +1465,7 @@ namespace libtorrent
 			TORRENT_ASSERT(pe->blocks[j->d.io.offset / 16 / 1024].buf != nullptr);
 			j->error.ec = error::operation_aborted;
 			j->error.operation = storage_error::write;
-			return -1;
+			return disk_interface::fatal_disk_error;
 		}
 
 		pe = m_disk_cache.add_dirty_block(j);
@@ -1598,7 +1599,7 @@ namespace libtorrent
 
 		if (pe == nullptr)
 		{
-			j->ret = -1;
+			j->ret = disk_interface::fatal_disk_error;
 			j->error.ec = error::no_memory;
 			j->error.operation = storage_error::read;
 			return 0;
@@ -2126,7 +2127,7 @@ namespace libtorrent
 
 		sha1_hash piece_hash = h.final();
 		std::memcpy(j->d.piece_hash, piece_hash.data(), 20);
-		return ret >= 0 ? 0 : -1;
+		return ret >= 0 ? 0 : disk_interface::fatal_disk_error;
 	}
 
 	int disk_io_thread::do_hash(disk_io_job* j, jobqueue_t& /* completed_jobs */ )
@@ -2187,7 +2188,7 @@ namespace libtorrent
 		{
 			j->error.ec = error::no_memory;
 			j->error.operation = storage_error::alloc_cache_piece;
-			return -1;
+			return disk_interface::fatal_disk_error;
 		}
 
 		if (pe->hashing)
@@ -2286,7 +2287,7 @@ namespace libtorrent
 
 					j->error.ec = errors::no_memory;
 					j->error.operation = storage_error::alloc_cache_piece;
-					return -1;
+					return disk_interface::fatal_disk_error;
 				}
 
 				DLOG("do_hash: reading (piece: %d block: %d)\n", int(pe->piece), i);
@@ -2309,7 +2310,7 @@ namespace libtorrent
 				// of this file
 				if (ret != iov.iov_len)
 				{
-					ret = -1;
+					ret = disk_interface::fatal_disk_error;
 					j->error.ec = boost::asio::error::eof;
 					j->error.operation = storage_error::read;
 					m_disk_cache.free_buffer(static_cast<char*>(iov.iov_base));
@@ -2392,7 +2393,7 @@ namespace libtorrent
 		l.unlock();
 
 		j->storage->release_files(j->error);
-		return j->error ? -1 : 0;
+		return j->error ? disk_interface::fatal_disk_error : 0;
 	}
 
 	int disk_io_thread::do_delete_files(disk_io_job* j, jobqueue_t& completed_jobs)
@@ -2409,7 +2410,7 @@ namespace libtorrent
 		l.unlock();
 
 		j->storage->delete_files(j->buffer.delete_options, j->error);
-		return j->error ? -1 : 0;
+		return j->error ? disk_interface::fatal_disk_error : 0;
 	}
 
 	int disk_io_thread::do_check_fastresume(disk_io_job* j, jobqueue_t& /* completed_jobs */ )
@@ -2485,7 +2486,7 @@ namespace libtorrent
 		// if files need to be closed, that's the storage's responsibility
 		j->storage->rename_file(j->piece, j->buffer.string
 			, j->error);
-		return j->error ? -1 : 0;
+		return j->error ? disk_interface::fatal_disk_error : disk_interface::no_error;
 	}
 
 	int disk_io_thread::do_stop_torrent(disk_io_job* j, jobqueue_t& completed_jobs)
@@ -2503,7 +2504,7 @@ namespace libtorrent
 		m_disk_cache.release_memory();
 
 		j->storage->release_files(j->error);
-		return j->error ? -1 : 0;
+		return j->error ? disk_interface::fatal_disk_error : disk_interface::no_error;
 	}
 
 	namespace {
