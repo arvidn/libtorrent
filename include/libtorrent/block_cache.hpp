@@ -47,10 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/linked_list.hpp"
 #include "libtorrent/disk_buffer_pool.hpp"
 #include "libtorrent/file.hpp" // for iovec_t
-
-#if TORRENT_USE_ASSERTS || !defined TORRENT_DISABLE_LOGGING
 #include "libtorrent/disk_io_job.hpp"
-#endif
 
 namespace libtorrent
 {
