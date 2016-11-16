@@ -57,8 +57,9 @@ namespace libtorrent
 		h.release();
 	}
 
-	disk_buffer_holder::disk_buffer_holder(buffer_allocator_interface& alloc, disk_io_job const& j) noexcept
-		: m_allocator(&alloc), m_buf(j.buffer.disk_block), m_ref(j.d.io.ref)
+	disk_buffer_holder::disk_buffer_holder(buffer_allocator_interface& alloc
+		, block_cache_reference const& ref, char* buf) noexcept
+		: m_allocator(&alloc), m_buf(buf), m_ref(ref)
 	{
 		TORRENT_ASSERT(m_ref.storage == nullptr || m_ref.piece >= 0);
 		TORRENT_ASSERT(m_ref.storage == nullptr || m_ref.block >= 0);
@@ -66,24 +67,20 @@ namespace libtorrent
 			|| m_ref.piece < static_cast<storage_interface*>(m_ref.storage)->files()->num_pieces());
 		TORRENT_ASSERT(m_ref.storage == nullptr
 			|| m_ref.block <= static_cast<storage_interface*>(m_ref.storage)->files()->piece_length() / 0x4000);
-		TORRENT_ASSERT(j.action != disk_io_job::rename_file);
-		TORRENT_ASSERT(j.action != disk_io_job::move_storage);
 	}
 
-	void disk_buffer_holder::reset(disk_io_job const& j)
+	void disk_buffer_holder::reset(block_cache_reference const& ref, char* buf)
 	{
 		if (m_ref.storage) m_allocator->reclaim_blocks(m_ref);
 		else if (m_buf) m_allocator->free_disk_buffer(m_buf);
-		m_buf = j.buffer.disk_block;
-		m_ref = j.d.io.ref;
+		m_buf = buf;
+		m_ref = ref;
 
 		TORRENT_ASSERT(m_ref.piece >= 0);
 		TORRENT_ASSERT(m_ref.storage != nullptr);
 		TORRENT_ASSERT(m_ref.block >= 0);
 		TORRENT_ASSERT(m_ref.piece < static_cast<storage_interface*>(m_ref.storage)->files()->num_pieces());
 		TORRENT_ASSERT(m_ref.block <= static_cast<storage_interface*>(m_ref.storage)->files()->piece_length() / 0x4000);
-		TORRENT_ASSERT(j.action != disk_io_job::rename_file);
-		TORRENT_ASSERT(j.action != disk_io_job::move_storage);
 	}
 
 	void disk_buffer_holder::reset(char* const buf)

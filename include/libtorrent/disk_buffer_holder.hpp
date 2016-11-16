@@ -78,7 +78,8 @@ namespace libtorrent
 		// construct a buffer holder that will free the held buffer
 		// using a disk buffer pool directly (there's only one
 		// disk_buffer_pool per session)
-		disk_buffer_holder(buffer_allocator_interface& alloc, disk_io_job const& j) noexcept;
+		disk_buffer_holder(buffer_allocator_interface& alloc
+			, block_cache_reference const& ref, char* buf) noexcept;
 
 		// frees any unreleased disk buffer held by this object
 		~disk_buffer_holder();
@@ -95,7 +96,7 @@ namespace libtorrent
 		// (or nullptr by default). If it's already holding a
 		// disk buffer, it will first be freed.
 		void reset(char* buf = 0);
-		void reset(disk_io_job const& j);
+		void reset(block_cache_reference const& ref, char* buf);
 
 		// swap pointers of two disk buffer holders.
 		void swap(disk_buffer_holder& h) noexcept
