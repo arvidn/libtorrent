@@ -559,15 +559,20 @@ namespace libtorrent
 		bool m_allocate_files;
 	};
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wnon-virtual-dtor"
+#endif
 	// this identifies a read or write operation so that readwritev() knows
 	// what to do when it's actually touching the file
 	struct fileop
 	{
 		virtual int file_op(int const file_index, std::int64_t const file_offset
 			, span<file::iovec_t const> bufs, storage_error& ec) = 0;
-
-		virtual ~fileop() {}
 	};
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 	// this function is responsible for turning read and write operations in the
 	// torrent space (pieces) into read and write operations in the filesystem
