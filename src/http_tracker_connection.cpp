@@ -195,7 +195,7 @@ namespace libtorrent
 		}
 #endif
 
-		m_tracker_connection.reset(new http_connection(get_io_service(), m_man.host_resolver()
+		m_tracker_connection = std::make_shared<http_connection>(get_io_service(), m_man.host_resolver()
 			, std::bind(&http_tracker_connection::on_response, shared_from_this(), _1, _2, _3, _4)
 			, true, settings.get_int(settings_pack::max_http_recv_buffer_size)
 			, std::bind(&http_tracker_connection::on_connect, shared_from_this(), _1)
@@ -203,11 +203,11 @@ namespace libtorrent
 #ifdef TORRENT_USE_OPENSSL
 			, tracker_req().ssl_ctx
 #endif
-			));
+			);
 
-		int timeout = tracker_req().event==tracker_request::stopped
-			?settings.get_int(settings_pack::stop_tracker_timeout)
-			:settings.get_int(settings_pack::tracker_completion_timeout);
+		int const timeout = tracker_req().event==tracker_request::stopped
+			? settings.get_int(settings_pack::stop_tracker_timeout)
+			: settings.get_int(settings_pack::tracker_completion_timeout);
 
 		// when sending stopped requests, prefer the cached DNS entry
 		// to avoid being blocked for slow or failing responses. Chances

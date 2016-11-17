@@ -115,7 +115,7 @@ public:
 
 		// to avoid unnecessary copying of the handler,
 		// store it in a shared_ptr
-		std::shared_ptr<handler_type> h(new handler_type(handler));
+		auto h = std::make_shared<handler_type>(handler);
 
 		using std::placeholders::_1;
 		using std::placeholders::_2;

@@ -143,7 +143,7 @@ namespace libtorrent
 			if (handle_error(ec, h)) return;
 		}
 
-		// TOOD: we could bind the socket here, since we know what the
+		// TODO: we could bind the socket here, since we know what the
 		// target endpoint is of the proxy
 		ADD_OUTSTANDING_ASYNC("socks5_stream::connected");
 		m_sock.async_connect(i->endpoint(), std::bind(

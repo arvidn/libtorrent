@@ -2061,7 +2061,7 @@ namespace aux {
 
 		if (m_i2p_listen_socket) return;
 
-		m_i2p_listen_socket = std::shared_ptr<socket_type>(new socket_type(m_io_service));
+		m_i2p_listen_socket = std::make_shared<socket_type>(m_io_service);
 		bool ret = instantiate_connection(m_io_service, m_i2p_conn.proxy()
 			, *m_i2p_listen_socket, nullptr, nullptr, true, false);
 		TORRENT_ASSERT_VAL(ret, ret);

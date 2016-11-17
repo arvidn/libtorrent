@@ -317,10 +317,10 @@ void upnp::resend_request(error_code const& ec)
 			log("connecting to: %s", d.url.c_str());
 #endif
 			if (d.upnp_connection) d.upnp_connection->close();
-			d.upnp_connection.reset(new http_connection(m_io_service
+			d.upnp_connection = std::make_shared<http_connection>(m_io_service
 				, m_resolver
 				, std::bind(&upnp::on_upnp_xml, self(), _1, _2
-				, std::ref(d), _5)));
+				, std::ref(d), _5));
 			d.upnp_connection->get(d.url, seconds(30), 1);
 		}
 		TORRENT_CATCH (std::exception const& exc)
@@ -665,10 +665,10 @@ void upnp::try_map_upnp(bool timer)
 #endif
 
 				if (d.upnp_connection) d.upnp_connection->close();
-				d.upnp_connection.reset(new http_connection(m_io_service
+				d.upnp_connection = std::make_shared<http_connection>(m_io_service
 					, m_resolver
 					, std::bind(&upnp::on_upnp_xml, self(), _1, _2
-					, std::ref(d), _5)));
+					, std::ref(d), _5));
 				d.upnp_connection->get(d.url, seconds(30), 1);
 			}
 			TORRENT_CATCH (std::exception const& exc)
@@ -811,11 +811,11 @@ void upnp::update_map(rootdevice& d, int i)
 		}
 
 		if (d.upnp_connection) d.upnp_connection->close();
-		d.upnp_connection.reset(new http_connection(m_io_service
+		d.upnp_connection = std::make_shared<http_connection>(m_io_service
 			, m_resolver
 			, std::bind(&upnp::on_upnp_map_response, self(), _1, _2
 			, std::ref(d), i, _5), true, default_max_bottled_buffer_size
-			, std::bind(&upnp::create_port_mapping, self(), _1, std::ref(d), i)));
+			, std::bind(&upnp::create_port_mapping, self(), _1, std::ref(d), i));
 
 		d.upnp_connection->start(d.hostname, d.port
 			, seconds(10), 1);
@@ -823,11 +823,11 @@ void upnp::update_map(rootdevice& d, int i)
 	else if (m.act == mapping_t::action::del)
 	{
 		if (d.upnp_connection) d.upnp_connection->close();
-		d.upnp_connection.reset(new http_connection(m_io_service
+		d.upnp_connection = std::make_shared<http_connection>(m_io_service
 			, m_resolver
 			, std::bind(&upnp::on_upnp_unmap_response, self(), _1, _2
 			, std::ref(d), i, _5), true, default_max_bottled_buffer_size
-			, std::bind(&upnp::delete_port_mapping, self(), std::ref(d), i)));
+			, std::bind(&upnp::delete_port_mapping, self(), std::ref(d), i));
 		d.upnp_connection->start(d.hostname, d.port
 			, seconds(10), 1);
 	}
@@ -1052,11 +1052,11 @@ void upnp::on_upnp_xml(error_code const& e
 		return;
 	}
 
-	d.upnp_connection.reset(new http_connection(m_io_service
+	d.upnp_connection = std::make_shared<http_connection>(m_io_service
 		, m_resolver
 		, std::bind(&upnp::on_upnp_get_ip_address_response, self(), _1, _2
 		, std::ref(d), _5), true, default_max_bottled_buffer_size
-		, std::bind(&upnp::get_ip_address, self(), std::ref(d))));
+		, std::bind(&upnp::get_ip_address, self(), std::ref(d)));
 	d.upnp_connection->start(d.hostname, d.port
 		, seconds(10), 1);
 }
@@ -1079,7 +1079,6 @@ void upnp::get_ip_address(rootdevice& d)
 	char const* soap_action = "GetExternalIPAddress";
 
 	char soap[2048];
-	error_code ec;
 	std::snprintf(soap, sizeof(soap), "<?xml version=\"1.0\"?>\n"
 		"<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" "
 		"s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"

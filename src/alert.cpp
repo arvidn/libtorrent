@@ -717,7 +717,7 @@ namespace libtorrent {
 	std::string torrent_delete_failed_alert::message() const
 	{
 		return torrent_alert::message() + " torrent deletion failed: "
-			+convert_from_native(error.message());
+			+ convert_from_native(error.message());
 	}
 
 	save_resume_data_alert::save_resume_data_alert(aux::stack_allocator& alloc
