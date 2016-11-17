@@ -1997,8 +1997,10 @@ namespace libtorrent {
 		std::vector<piece_block> ret;
 		ret.resize(m_num_blocks);
 
-		char const* start = m_alloc.ptr(m_array_idx);
-		memcpy(&ret[0], start, m_num_blocks * sizeof(piece_block));
+		if (m_num_blocks > 0) {
+			char const* start = m_alloc.ptr(m_array_idx);
+			memcpy(&ret[0], start, m_num_blocks * sizeof(piece_block));
+		}
 
 		return ret;
 	}
