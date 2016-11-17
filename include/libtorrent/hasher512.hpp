@@ -48,10 +48,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #elif TORRENT_USE_CRYPTOAPI
 #include <windows.h>
-#include <wincrypt.h>
+#include <wincrypt.h> // CALG_SHA_512 conditionally defined here
 
+#ifdef CALG_SHA_512
+#define TORRENT_USE_CRYPTOAPI_SHA_512 1
+#else
 // fallback to built-in
-#ifndef CALG_SHA_512
 #include "libtorrent/sha512.hpp"
 #endif
 
@@ -117,7 +119,7 @@ namespace libtorrent
 		gcry_md_hd_t m_context;
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA512_CTX m_context;
-#elif TORRENT_USE_CRYPTOAPI && defined(CALG_SHA_512)
+#elif TORRENT_USE_CRYPTOAPI_SHA_512
 		HCRYPTHASH m_context;
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA512_CTX m_context;
