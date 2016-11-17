@@ -61,18 +61,14 @@ namespace libtorrent { namespace aux
 		handler_storage(handler_storage const&);
 	};
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wnon-virtual-dtor"
-#endif
 	struct error_handler_interface
 	{
 		virtual void on_exception(std::exception const&) = 0;
 		virtual void on_error(error_code const&) = 0;
+
+	protected:
+		~error_handler_interface() {}
 	};
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
 
 	// this class is a wrapper for an asio handler object. Its main purpose
 	// is to pass along additional parameters to the asio handler allocator
