@@ -1896,7 +1896,7 @@ namespace libtorrent {
 
 		m_peers_idx = alloc.allocate(total_size);
 
-		char *ptr = alloc.ptr(m_peers_idx);
+		char *ptr = m_num_peers > 0 ? alloc.ptr(m_peers_idx) : nullptr;
 		for (int i = 0; i < m_num_peers; i++) {
 			tcp::endpoint endp = peers[i];
 			std::size_t size = endp.size();
@@ -1931,7 +1931,7 @@ namespace libtorrent {
 	std::vector<tcp::endpoint> dht_get_peers_reply_alert::peers() const {
 		std::vector<tcp::endpoint> peers(m_num_peers);
 
-		const char *ptr = m_alloc.ptr(m_peers_idx);
+		const char *ptr = m_num_peers > 0 ? m_alloc.ptr(m_peers_idx) : nullptr;
 		for (int i = 0; i < m_num_peers; i++) {
 			std::size_t size = detail::read_uint8(ptr);
 			memcpy(peers[i].data(), ptr, size);
