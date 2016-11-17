@@ -1855,7 +1855,7 @@ namespace libtorrent {
 
 	char const* dht_pkt_alert::pkt_buf() const
 	{
-		return m_alloc.ptr(m_msg_idx);
+		return m_size > 0 ? m_alloc.ptr(m_msg_idx) : nullptr;
 	}
 
 	int dht_pkt_alert::pkt_size() const
