@@ -66,6 +66,11 @@ extern "C" {
 #else
 #include "libtorrent/sha512.hpp"
 #endif
+
+#ifndef TORRENT_USE_CRYPTOAPI_SHA_512
+#define TORRENT_USE_CRYPTOAPI_SHA_512 0
+#endif
+
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
