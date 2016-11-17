@@ -59,6 +59,14 @@ TORRENT_TEST(copy_buffer)
 	a.allocate(100000);
 
 	TEST_CHECK(strcmp(a.ptr(idx1), "testing") == 0);
+
+	// attempt zero size allocation
+	int const idx2 = a.copy_buffer("nothing", 0);
+	TEST_CHECK(idx2 == -1);
+
+	// attempt to get a pointer after zero allocation
+	char* ptr = a.ptr(idx2);
+	TEST_CHECK(ptr == NULL);
 }
 
 TORRENT_TEST(allocate)
@@ -75,6 +83,14 @@ TORRENT_TEST(allocate)
 	ptr = a.ptr(idx1);
 	for (int i = 0; i < 100; ++i)
 		TEST_CHECK(ptr[i] == char(i % 256));
+
+	// attempt zero size allocation
+	int const idx2 = a.allocate(0);
+	TEST_CHECK(idx2 == -1);
+
+	// attempt to get a pointer after zero allocation
+	ptr = a.ptr(idx2);
+	TEST_CHECK(ptr == NULL);
 }
 
 TORRENT_TEST(swap)

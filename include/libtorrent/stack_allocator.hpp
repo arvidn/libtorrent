@@ -62,6 +62,7 @@ namespace libtorrent { namespace aux
 		int copy_buffer(char const* buf, int size)
 		{
 			int ret = int(m_storage.size());
+			if (size < 1) return -1;
 			m_storage.resize(ret + size);
 			memcpy(&m_storage[ret], buf, size);
 			return ret;
@@ -69,6 +70,7 @@ namespace libtorrent { namespace aux
 
 		int allocate(int bytes)
 		{
+			if (bytes < 1) return -1;
 			int ret = int(m_storage.size());
 			m_storage.resize(ret + bytes);
 			return ret;
@@ -76,14 +78,14 @@ namespace libtorrent { namespace aux
 
 		char* ptr(int idx)
 		{
-			TORRENT_ASSERT(idx >= 0);
+			if(idx < 0) return NULL;
 			TORRENT_ASSERT(idx < int(m_storage.size()));
 			return &m_storage[idx];
 		}
 
 		char const* ptr(int idx) const
 		{
-			TORRENT_ASSERT(idx >= 0);
+			if(idx < 0) return NULL;
 			TORRENT_ASSERT(idx < int(m_storage.size()));
 			return &m_storage[idx];
 		}
