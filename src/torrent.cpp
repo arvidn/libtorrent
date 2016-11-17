@@ -8538,7 +8538,7 @@ namespace libtorrent
 
 		state_updated();
 
-		std::shared_ptr<entry> rd(new entry);
+		auto rd = std::make_shared<entry>();
 		write_resume_data(*rd);
 		alerts().emplace_alert<save_resume_data_alert>(rd, get_handle());
 	}

@@ -429,15 +429,9 @@ void node::get_peers(sha1_hash const& info_hash
 	// search for nodes with ids close to id or with peers
 	// for info-hash id. then send announce_peer to them.
 
-	std::shared_ptr<dht::get_peers> ta;
-	if (m_settings.privacy_lookups)
-	{
-		ta.reset(new dht::obfuscated_get_peers(*this, info_hash, dcallback, ncallback, noseeds));
-	}
-	else
-	{
-		ta.reset(new dht::get_peers(*this, info_hash, dcallback, ncallback, noseeds));
-	}
+	auto ta = m_settings.privacy_lookups
+		? std::make_shared<dht::obfuscated_get_peers>(*this, info_hash, dcallback, ncallback, noseeds)
+		: std::make_shared<dht::get_peers>(*this, info_hash, dcallback, ncallback, noseeds);
 
 	ta->start();
 }

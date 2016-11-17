@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_ALLOCATING_HANDLER_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/error_code.hpp"
 
 #include <type_traits>
 

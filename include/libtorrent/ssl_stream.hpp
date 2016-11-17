@@ -90,7 +90,7 @@ public:
 
 	SSL* native_handle() { return m_sock.native_handle(); }
 
-	typedef std::function<void(error_code const&)> handler_type;
+	using handler_type = std::function<void(error_code const&)>;
 
 	template <class Handler>
 	void async_connect(endpoint_type const& endpoint, Handler const& handler)
@@ -101,7 +101,7 @@ public:
 
 		// to avoid unnecessary copying of the handler,
 		// store it in a shared_ptr
-		std::shared_ptr<handler_type> h(new handler_type(handler));
+		auto h = std::make_shared<handler_type>(handler);
 
 		using std::placeholders::_1;
 		m_sock.next_layer().async_connect(endpoint
@@ -112,7 +112,7 @@ public:
 	void async_accept_handshake(Handler const& handler)
 	{
 		// this is used for accepting SSL connections
-		std::shared_ptr<handler_type> h(new handler_type(handler));
+		auto h = std::make_shared<handler_type>(handler);
 		using std::placeholders::_1;
 		m_sock.async_handshake(ssl::stream_base::server
 			, std::bind(&ssl_stream::handshake, this, _1, h));
