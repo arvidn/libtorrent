@@ -46,16 +46,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #elif TORRENT_USE_COMMONCRYPTO
 #include <CommonCrypto/CommonDigest.h>
 
-#elif TORRENT_USE_CRYPTOAPI
+#elif TORRENT_USE_CRYPTOAPI_SHA_512
 #include <windows.h>
-#include <wincrypt.h> // CALG_SHA_512 conditionally defined here
-
-#ifdef CALG_SHA_512
-#define TORRENT_USE_CRYPTOAPI_SHA_512 1
-#else
-// fallback to built-in
-#include "libtorrent/sha512.hpp"
-#endif
+#include <wincrypt.h>
 
 #elif defined TORRENT_USE_LIBCRYPTO
 
@@ -65,10 +58,6 @@ extern "C" {
 
 #else
 #include "libtorrent/sha512.hpp"
-#endif
-
-#ifndef TORRENT_USE_CRYPTOAPI_SHA_512
-#define TORRENT_USE_CRYPTOAPI_SHA_512 0
 #endif
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
