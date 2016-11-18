@@ -187,7 +187,7 @@ struct bdecode_token
 		: offset(off)
 		, type(t)
 		, next_item(next)
-		, header(type == string ? header_size - 2 : 0)
+		, header(type == string ? std::uint32_t(header_size - 2) : 0)
 	{
 		TORRENT_ASSERT(type != string || header_size >= 2);
 		TORRENT_ASSERT(off <= max_offset);
@@ -197,7 +197,7 @@ struct bdecode_token
 		TORRENT_ASSERT(t >= 0 && t <= end);
 	}
 
-	int start_offset() const { TORRENT_ASSERT(type == string); return header + 2; }
+	int start_offset() const { TORRENT_ASSERT(type == string); return int(header) + 2; }
 
 	// offset into the bdecoded buffer where this node is
 	std::uint32_t offset:29;

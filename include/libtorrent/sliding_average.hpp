@@ -103,7 +103,7 @@ struct average_accumulator
 		// let the average roll over, but only be worth a
 		// single sample
 		m_num_samples = 1;
-		m_sample_sum = ret;
+		m_sample_sum = std::uint64_t(ret);
 		return ret;
 	}
 
@@ -116,4 +116,3 @@ private:
 }
 
 #endif
-

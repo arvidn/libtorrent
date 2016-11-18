@@ -201,7 +201,7 @@ namespace libtorrent
 
 		bool has_peer(torrent_peer const* p) const;
 
-		int num_seeds() const { return m_num_seeds; }
+		int num_seeds() const { return int(m_num_seeds); }
 		int num_connect_candidates() const { return m_num_connect_candidates; }
 
 		void erase_peer(torrent_peer* p, torrent_state* state);
@@ -280,4 +280,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_POLICY_HPP_INCLUDED
-

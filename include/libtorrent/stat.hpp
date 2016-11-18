@@ -75,10 +75,10 @@ namespace libtorrent
 
 		// should be called once every second
 		void second_tick(int tick_interval_ms);
-		int rate() const { return m_5_sec_average; }
-		int low_pass_rate() const { return m_5_sec_average; }
+		int rate() const { return int(m_5_sec_average); }
+		int low_pass_rate() const { return int(m_5_sec_average); }
 
-		std::int64_t total() const { return m_total_counter; }
+		std::int64_t total() const { return std::int64_t(m_total_counter); }
 
 		void offset(std::int64_t c)
 		{
@@ -86,7 +86,7 @@ namespace libtorrent
 			m_total_counter += c;
 		}
 
-		int counter() const { return m_counter; }
+		int counter() const { return int(m_counter); }
 
 		void clear()
 		{

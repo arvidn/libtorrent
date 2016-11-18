@@ -1088,7 +1088,7 @@ namespace libtorrent
 		m_info_section.reset(new char[m_info_section_size]);
 		std::memcpy(m_info_section.get(), section.data(), m_info_section_size);
 		TORRENT_ASSERT(section[0] == 'd');
-		TORRENT_ASSERT(section[m_info_section_size-1] == 'e');
+		TORRENT_ASSERT(section[m_info_section_size - 1] == 'e');
 
 		// when translating a pointer that points into the 'info' tree's
 		// backing buffer, into a pointer to our copy of the info section,
