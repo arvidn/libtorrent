@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alloca.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/aux_/time.hpp"
+#include "libtorrent/aux_/block_cache_reference.hpp"
 
 /*
 
@@ -1779,7 +1780,7 @@ int block_cache::copy_from_piece(cached_piece_entry* const pe
 	return j->d.io.buffer_size;
 }
 
-void block_cache::reclaim_block(block_cache_reference const& ref)
+void block_cache::reclaim_block(aux::block_cache_reference const& ref)
 {
 	cached_piece_entry* pe = find_piece(ref);
 	TORRENT_ASSERT(pe);
@@ -1817,7 +1818,7 @@ bool block_cache::maybe_free_piece(cached_piece_entry* pe)
 	return true;
 }
 
-cached_piece_entry* block_cache::find_piece(block_cache_reference const& ref)
+cached_piece_entry* block_cache::find_piece(aux::block_cache_reference const& ref)
 {
 	return find_piece(static_cast<storage_interface*>(ref.storage), ref.piece);
 }

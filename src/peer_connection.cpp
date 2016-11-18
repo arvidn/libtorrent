@@ -61,6 +61,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/close_reason.hpp"
+#include "libtorrent/disk_io_job.hpp"
 #include "libtorrent/aux_/has_block.hpp"
 #include "libtorrent/aux_/time.hpp"
 
@@ -5676,7 +5677,7 @@ namespace libtorrent
 
 	void peer_connection::append_send_buffer(char* buffer, int size
 		, chained_buffer::free_buffer_fun destructor, void* userdata
-		, block_cache_reference ref)
+		, aux::block_cache_reference ref)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		m_send_buffer.append_buffer(buffer, size, size, destructor
@@ -5685,7 +5686,7 @@ namespace libtorrent
 
 	void peer_connection::append_const_send_buffer(char const* buffer, int size
 		, chained_buffer::free_buffer_fun destructor, void* userdata
-		, block_cache_reference ref)
+		, aux::block_cache_reference ref)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		m_send_buffer.append_buffer(const_cast<char*>(buffer), size, size, destructor
@@ -5702,7 +5703,7 @@ namespace libtorrent
 	}
 
 	namespace {
-		void session_free_buffer(char* buffer, void* userdata, block_cache_reference)
+		void session_free_buffer(char* buffer, void* userdata, aux::block_cache_reference)
 		{
 			aux::session_interface* ses = static_cast<aux::session_interface*>(userdata);
 			ses->free_buffer(buffer);

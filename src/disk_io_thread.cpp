@@ -239,7 +239,7 @@ namespace libtorrent
 		m_hash_threads.abort(wait);
 	}
 
-	void disk_io_thread::reclaim_blocks(span<block_cache_reference> refs)
+	void disk_io_thread::reclaim_blocks(span<aux::block_cache_reference> refs)
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
 

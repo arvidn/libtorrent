@@ -158,6 +158,7 @@ nobase_include_HEADERS = \
   \
   aux_/allocating_handler.hpp       \
   aux_/bind_to_device.hpp           \
+  aux_/block_cache_reference.hpp    \
   aux_/cpuid.hpp                    \
   aux_/disable_warnings_push.hpp    \
   aux_/disable_warnings_pop.hpp     \

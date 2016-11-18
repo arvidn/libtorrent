@@ -164,6 +164,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/error_code.hpp"
 
 namespace libtorrent
 {
