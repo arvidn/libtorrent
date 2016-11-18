@@ -247,10 +247,6 @@ rule warnings ( properties * )
 		result += <cflags>-Wno-c++11-long-long ;
 		result += <cflags>-Wno-variadic-macros ;
 
-# in C++98 mode there's no way to silence this warning
-# in the code (without final)
-		result += <cflags>-Wno-non-virtual-dtor ;
-
 # enable these warnings again, once the other ones are dealt with
 		result += <cflags>-Wno-weak-vtables ;
 		result += <cflags>-Wno-sign-compare ;

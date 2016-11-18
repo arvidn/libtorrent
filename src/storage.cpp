@@ -212,7 +212,7 @@ namespace libtorrent
 
 	} // anonymous namespace
 
-	struct write_fileop : fileop
+	struct write_fileop final : fileop
 	{
 		write_fileop(default_storage& st, int flags)
 			: m_storage(st)
@@ -300,7 +300,7 @@ namespace libtorrent
 		int m_flags;
 	};
 
-	struct read_fileop : fileop
+	struct read_fileop final : fileop
 	{
 		read_fileop(default_storage& st, int const flags)
 			: m_storage(st)
