@@ -68,7 +68,7 @@ namespace libtorrent
 
 	void chained_buffer::append_buffer(char* buffer, int s, int used_size
 		, free_buffer_fun destructor, void* userdata
-		, block_cache_reference ref)
+		, aux::block_cache_reference ref)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(s >= used_size);
@@ -89,7 +89,7 @@ namespace libtorrent
 
 	void chained_buffer::prepend_buffer(char* buffer, int s, int used_size
 		, free_buffer_fun destructor, void* userdata
-		, block_cache_reference ref)
+		, aux::block_cache_reference ref)
 	{
 		TORRENT_ASSERT(s >= used_size);
 		buffer_t b;

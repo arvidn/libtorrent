@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_CHAINED_BUFFER_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/disk_io_job.hpp" // for block_cache_reference
+#include "libtorrent/aux_/block_cache_reference.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/buffer.hpp"
 
@@ -60,7 +60,7 @@ namespace libtorrent
 
 		// destructs/frees the buffer (1st arg) with
 		// 2nd argument as userdata
-		typedef void (*free_buffer_fun)(char*, void*, block_cache_reference ref);
+		typedef void (*free_buffer_fun)(char*, void*, aux::block_cache_reference ref);
 
 		struct buffer_t
 		{
@@ -73,7 +73,7 @@ namespace libtorrent
 			char* start; // the first byte to send/receive in the buffer
 			int size; // the total size of the buffer
 			int used_size; // this is the number of bytes to send/receive
-			block_cache_reference ref;
+			aux::block_cache_reference ref;
 		};
 
 		bool empty() const { return m_bytes == 0; }
@@ -85,11 +85,11 @@ namespace libtorrent
 		//TODO: 3 use span<> instead of (buffer,s)
 		void append_buffer(char* buffer, int s, int used_size
 			, free_buffer_fun destructor, void* userdata
-			, block_cache_reference ref = block_cache_reference());
+			, aux::block_cache_reference ref = aux::block_cache_reference());
 
 		void prepend_buffer(char* buffer, int s, int used_size
 			, free_buffer_fun destructor, void* userdata
-			, block_cache_reference ref = block_cache_reference());
+			, aux::block_cache_reference ref = aux::block_cache_reference());
 
 		// returns the number of bytes available at the
 		// end of the last chained buffer.

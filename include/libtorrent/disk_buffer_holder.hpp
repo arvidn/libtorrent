@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/disk_io_job.hpp" // for block_cache_reference
+#include "libtorrent/aux_/block_cache_reference.hpp"
 #include "libtorrent/span.hpp"
 
 #include <memory>
@@ -49,7 +49,7 @@ namespace libtorrent
 	struct TORRENT_EXTRA_EXPORT buffer_allocator_interface
 	{
 		virtual void free_disk_buffer(char* b) = 0;
-		virtual void reclaim_blocks(span<block_cache_reference> refs) = 0;
+		virtual void reclaim_blocks(span<aux::block_cache_reference> refs) = 0;
 		virtual disk_buffer_holder allocate_disk_buffer(char const* category) = 0;
 		virtual disk_buffer_holder allocate_disk_buffer(bool& exceeded
 			, std::shared_ptr<disk_observer> o
@@ -79,7 +79,7 @@ namespace libtorrent
 		// using a disk buffer pool directly (there's only one
 		// disk_buffer_pool per session)
 		disk_buffer_holder(buffer_allocator_interface& alloc
-			, block_cache_reference const& ref, char* buf) noexcept;
+			, aux::block_cache_reference const& ref, char* buf) noexcept;
 
 		// frees any unreleased disk buffer held by this object
 		~disk_buffer_holder();
@@ -96,7 +96,7 @@ namespace libtorrent
 		// (or nullptr by default). If it's already holding a
 		// disk buffer, it will first be freed.
 		void reset(char* buf = 0);
-		void reset(block_cache_reference const& ref, char* buf);
+		void reset(aux::block_cache_reference const& ref, char* buf);
 
 		// swap pointers of two disk buffer holders.
 		void swap(disk_buffer_holder& h) noexcept
@@ -106,7 +106,7 @@ namespace libtorrent
 			std::swap(h.m_ref, m_ref);
 		}
 
-		block_cache_reference ref() const noexcept { return m_ref; }
+		aux::block_cache_reference ref() const noexcept { return m_ref; }
 
 		// implicitly convertible to true if the object is currently holding a
 		// buffer
@@ -116,7 +116,7 @@ namespace libtorrent
 
 		buffer_allocator_interface* m_allocator;
 		char* m_buf;
-		block_cache_reference m_ref;
+		aux::block_cache_reference m_ref;
 	};
 
 }

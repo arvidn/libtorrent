@@ -54,9 +54,12 @@ namespace libtorrent
 	struct disk_io_job;
 	struct storage_interface;
 	struct cache_status;
-	struct block_cache_reference;
 	struct counters;
-	namespace aux { struct session_settings; }
+	namespace aux
+	{
+		struct session_settings;
+		struct block_cache_reference;
+	}
 #if TORRENT_USE_ASSERTS
 	class file_storage;
 #endif
@@ -346,7 +349,7 @@ namespace libtorrent
 		int pad_job(disk_io_job const* j, int blocks_in_piece
 			, int read_ahead) const;
 
-		void reclaim_block(block_cache_reference const& ref);
+		void reclaim_block(aux::block_cache_reference const& ref);
 
 		// returns a range of all pieces. This might be a very
 		// long list, use carefully
@@ -408,7 +411,7 @@ namespace libtorrent
 
 		// looks for this piece in the cache. If it's there, returns a pointer
 		// to it, otherwise 0.
-		cached_piece_entry* find_piece(block_cache_reference const& ref);
+		cached_piece_entry* find_piece(aux::block_cache_reference const& ref);
 		cached_piece_entry* find_piece(disk_io_job const* j);
 		cached_piece_entry* find_piece(storage_interface* st, int piece);
 

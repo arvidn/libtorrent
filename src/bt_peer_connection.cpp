@@ -725,7 +725,7 @@ namespace libtorrent
 
 	namespace {
 		void regular_c_free(char* buf, void* /* userdata */
-			, block_cache_reference /* ref */)
+			, aux::block_cache_reference /* ref */)
 		{
 			std::free(buf);
 		}
@@ -735,7 +735,7 @@ namespace libtorrent
 
 	void bt_peer_connection::append_const_send_buffer(char const* buffer, int size
 		, chained_buffer::free_buffer_fun destructor, void* userdata
-		, block_cache_reference ref)
+		, aux::block_cache_reference ref)
 	{
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		if (!m_enc_handler.is_send_plaintext())
@@ -2433,14 +2433,14 @@ namespace libtorrent
 	namespace {
 
 	void buffer_reclaim_block(char* /* buffer */, void* userdata
-		, block_cache_reference ref)
+		, aux::block_cache_reference ref)
 	{
 		buffer_allocator_interface* buf = static_cast<buffer_allocator_interface*>(userdata);
 		buf->reclaim_blocks(ref);
 	}
 
 	void buffer_free_disk_buf(char* buffer, void* userdata
-		, block_cache_reference /* ref */)
+		, aux::block_cache_reference /* ref */)
 	{
 		buffer_allocator_interface* buf = static_cast<buffer_allocator_interface*>(userdata);
 		buf->free_disk_buffer(buffer);

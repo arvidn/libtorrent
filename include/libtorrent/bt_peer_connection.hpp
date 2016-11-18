@@ -315,8 +315,8 @@ public:
 		// peer_connection functions of the same names
 		virtual void append_const_send_buffer(char const* buffer, int size
 			, chained_buffer::free_buffer_fun destructor = &nop
-			, void* userdata = nullptr, block_cache_reference ref
-			= block_cache_reference()) override;
+			, void* userdata = nullptr, aux::block_cache_reference ref
+			= aux::block_cache_reference()) override;
 
 private:
 

@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/tailqueue.hpp"
+#include "libtorrent/aux_/block_cache_reference.hpp"
 
 #include <string>
 #include <vector>
@@ -47,13 +48,6 @@ namespace libtorrent
 	struct cached_piece_entry;
 	class torrent_info;
 	struct add_torrent_params;
-
-	struct block_cache_reference
-	{
-		void* storage;
-		int piece;
-		int block;
-	};
 
 	// disk_io_jobs are allocated in a pool allocator in disk_io_thread
 	// they are always allocated from the network thread, posted
@@ -178,7 +172,7 @@ namespace libtorrent
 			// is set in a response to a read, the buffer needs to
 			// be de-referenced by sending a reclaim_block message
 			// back to the disk thread
-			block_cache_reference ref;
+			aux::block_cache_reference ref;
 
 			// for read and write, the offset into the piece
 			// the read or write should start

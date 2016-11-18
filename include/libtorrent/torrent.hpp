@@ -92,6 +92,7 @@ namespace libtorrent
 	struct storage_interface;
 	class bt_peer_connection;
 	struct listen_socket_t;
+	struct disk_io_job;
 
 	enum class waste_reason
 	{

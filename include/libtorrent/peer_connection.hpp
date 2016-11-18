@@ -148,7 +148,7 @@ namespace libtorrent
 	};
 
 	// internal
-	inline void nop(char*, void*, block_cache_reference) {}
+	inline void nop(char*, void*, aux::block_cache_reference) {}
 
 	struct TORRENT_EXTRA_EXPORT peer_connection_hot_members
 	{
@@ -630,13 +630,13 @@ namespace libtorrent
 
 		void append_send_buffer(char* buffer, int size
 			, chained_buffer::free_buffer_fun destructor = &nop
-			, void* userdata = nullptr, block_cache_reference ref
-			= block_cache_reference());
+			, void* userdata = nullptr, aux::block_cache_reference ref
+			= aux::block_cache_reference());
 
 		virtual void append_const_send_buffer(char const* buffer, int size
 			, chained_buffer::free_buffer_fun destructor = &nop
-			, void* userdata = nullptr, block_cache_reference ref
-			= block_cache_reference());
+			, void* userdata = nullptr, aux::block_cache_reference ref
+			= aux::block_cache_reference());
 
 		int outstanding_bytes() const { return m_outstanding_bytes; }
 

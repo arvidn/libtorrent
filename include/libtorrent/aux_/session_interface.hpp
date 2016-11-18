@@ -39,13 +39,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
+#include "libtorrent/error_code.hpp"
 
 #include <functional>
 #include <memory>
-
-#ifndef TORRENT_DISABLE_DHT
-#include "libtorrent/socket.hpp"
-#endif
 
 #include "libtorrent/socket.hpp" // for tcp::endpoint
 

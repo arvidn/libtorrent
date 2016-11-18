@@ -60,6 +60,11 @@ namespace libtorrent
 	struct counters;
 	class alert_manager;
 
+	namespace aux
+	{
+		struct block_cache_reference;
+	}
+
 	struct cached_piece_info
 	{
 		storage_interface* storage;
@@ -327,7 +332,7 @@ namespace libtorrent
 		void clear_piece(storage_interface* storage, int index) override;
 
 		// implements buffer_allocator_interface
-		void reclaim_blocks(span<block_cache_reference> ref) override;
+		void reclaim_blocks(span<aux::block_cache_reference> ref) override;
 		void free_disk_buffer(char* buf) override { m_disk_cache.free_buffer(buf); }
 		disk_buffer_holder allocate_disk_buffer(char const* category) override
 		{

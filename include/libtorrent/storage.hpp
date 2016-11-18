@@ -54,6 +54,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/span.hpp"
+#include "libtorrent/tailqueue.hpp"
+#include "libtorrent/disk_io_job.hpp"
 
 // OVERVIEW
 //

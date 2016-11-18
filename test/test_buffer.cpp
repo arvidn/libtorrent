@@ -140,7 +140,7 @@ TORRENT_TEST(buffer_move_assign)
 
 std::set<char*> buffer_list;
 
-void free_buffer(char* m, void* userdata, block_cache_reference ref)
+void free_buffer(char* m, void* userdata, aux::block_cache_reference ref)
 {
 	TEST_CHECK(userdata == (void*)0x1337);
 	std::set<char*>::iterator i = buffer_list.find(m);
