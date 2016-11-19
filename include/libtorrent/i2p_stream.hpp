@@ -113,34 +113,30 @@ public:
 		// 2. connect to SAM bridge
 		// 4 send command message (CONNECT/ACCEPT)
 
-		// to avoid unnecessary copying of the handler,
-		// store it in a shared_ptr
-		auto h = std::make_shared<handler_type>(handler);
-
 		using std::placeholders::_1;
 		using std::placeholders::_2;
 		tcp::resolver::query q(m_hostname, to_string(m_port).data());
 		m_resolver.async_resolve(q, std::bind(
-			&i2p_stream::do_connect, this, _1, _2, h));
+			&i2p_stream::do_connect, this, _1, _2, handler_type(handler)));
 	}
 
 	std::string name_lookup() const { return m_name_lookup; }
 	void set_name_lookup(char const* name) { m_name_lookup = name; }
 
-	void send_name_lookup(std::shared_ptr<handler_type> h);
+	void send_name_lookup(handler_type const& h);
 
 private:
 	// explicitly disallow assignment, to silence msvc warning
 	i2p_stream& operator=(i2p_stream const&);
 
 	void do_connect(error_code const& e, tcp::resolver::iterator i
-		, std::shared_ptr<handler_type> h);
-	void connected(error_code const& e, std::shared_ptr<handler_type> h);
-	void start_read_line(error_code const& e, std::shared_ptr<handler_type> h);
-	void read_line(error_code const& e, std::shared_ptr<handler_type> h);
-	void send_connect(std::shared_ptr<handler_type> h);
-	void send_accept(std::shared_ptr<handler_type> h);
-	void send_session_create(std::shared_ptr<handler_type> h);
+		, handler_type const& h);
+	void connected(error_code const& e, handler_type const& h);
+	void start_read_line(error_code const& e, handler_type const& h);
+	void read_line(error_code const& e, handler_type const& h);
+	void send_connect(handler_type const& h);
+	void send_accept(handler_type const& h);
+	void send_session_create(handler_type const& h);
 
 	// send and receive buffer
 	std::vector<char> m_buffer;
@@ -196,7 +192,7 @@ private:
 	void do_name_lookup(std::string const& name
 		, name_lookup_handler const& h);
 	void on_name_lookup(error_code const& ec
-		, name_lookup_handler handler
+		, name_lookup_handler const& handler
 		, std::shared_ptr<i2p_stream>);
 
 	void set_local_endpoint(error_code const& ec, char const* dest

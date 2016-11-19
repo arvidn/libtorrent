@@ -246,7 +246,7 @@ public:
 
 protected:
 
-	bool handle_error(error_code const& e, std::shared_ptr<handler_type> const& h);
+	bool handle_error(error_code const& e, handler_type const& h);
 
 	tcp::socket m_sock;
 	std::string m_hostname;

@@ -42,7 +42,7 @@ namespace libtorrent
 {
 
 	void http_stream::name_lookup(error_code const& e, tcp::resolver::iterator i
-		, std::shared_ptr<handler_type> h)
+		, handler_type const& h)
 	{
 		if (handle_error(e, h)) return;
 
@@ -50,7 +50,7 @@ namespace libtorrent
 			&http_stream::connected, this, _1, h));
 	}
 
-	void http_stream::connected(error_code const& e, std::shared_ptr<handler_type> h)
+	void http_stream::connected(error_code const& e, handler_type const& h)
 	{
 		if (handle_error(e, h)) return;
 
@@ -59,7 +59,7 @@ namespace libtorrent
 		if (m_no_connect)
 		{
 			std::vector<char>().swap(m_buffer);
-			(*h)(e);
+			h(e);
 			return;
 		}
 
@@ -85,7 +85,7 @@ namespace libtorrent
 			, std::bind(&http_stream::handshake1, this, _1, h));
 	}
 
-	void http_stream::handshake1(error_code const& e, std::shared_ptr<handler_type> h)
+	void http_stream::handshake1(error_code const& e, handler_type const& h)
 	{
 		if (handle_error(e, h)) return;
 
@@ -95,7 +95,7 @@ namespace libtorrent
 			, std::bind(&http_stream::handshake2, this, _1, h));
 	}
 
-	void http_stream::handshake2(error_code const& e, std::shared_ptr<handler_type> h)
+	void http_stream::handshake2(error_code const& e, handler_type const& h)
 	{
 		if (handle_error(e, h)) return;
 
@@ -124,7 +124,7 @@ namespace libtorrent
 			char* status = std::strchr(&m_buffer[0], ' ');
 			if (status == nullptr)
 			{
-				(*h)(boost::asio::error::operation_not_supported);
+				h(boost::asio::error::operation_not_supported);
 				error_code ec;
 				close(ec);
 				return;
@@ -134,13 +134,13 @@ namespace libtorrent
 			int code = std::atoi(status);
 			if (code != 200)
 			{
-				(*h)(boost::asio::error::operation_not_supported);
+				h(boost::asio::error::operation_not_supported);
 				error_code ec;
 				close(ec);
 				return;
 			}
 
-			(*h)(e);
+			h(e);
 			std::vector<char>().swap(m_buffer);
 			return;
 		}

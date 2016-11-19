@@ -142,7 +142,8 @@ namespace libtorrent
 
 		ADD_OUTSTANDING_ASYNC("i2p_stream::on_sam_connect");
 		m_sam_socket->async_connect(tcp::endpoint()
-			, std::bind(&i2p_connection::on_sam_connect, this, _1, handler, m_sam_socket));
+			, std::bind(&i2p_connection::on_sam_connect, this, _1
+				, handler, m_sam_socket));
 	}
 
 	void i2p_connection::on_sam_connect(error_code const& ec
@@ -157,7 +158,8 @@ namespace libtorrent
 			return;
 		}
 
-		do_name_lookup("ME", std::bind(&i2p_connection::set_local_endpoint, this, _1, _2, h));
+		do_name_lookup("ME", std::bind(&i2p_connection::set_local_endpoint
+			, this, _1, _2, h));
 	}
 
 	void i2p_connection::set_local_endpoint(error_code const& ec, char const* dest
@@ -177,7 +179,8 @@ namespace libtorrent
 		if (m_state == sam_idle && m_name_lookup.empty() && is_open())
 			do_name_lookup(name, handler);
 		else
-			m_name_lookup.push_back(std::make_pair(std::string(name), handler));
+			m_name_lookup.push_back(std::make_pair(std::string(name)
+				, std::move(handler)));
 	}
 
 	void i2p_connection::do_name_lookup(std::string const& name
@@ -186,13 +189,12 @@ namespace libtorrent
 		TORRENT_ASSERT(m_state == sam_idle);
 		m_state = sam_name_lookup;
 		m_sam_socket->set_name_lookup(name.c_str());
-		auto h = std::make_shared<i2p_stream::handler_type>(
-			std::bind(&i2p_connection::on_name_lookup, this, _1, handler, m_sam_socket));
-		m_sam_socket->send_name_lookup(h);
+		m_sam_socket->send_name_lookup(std::bind(&i2p_connection::on_name_lookup
+			, this, _1, handler, m_sam_socket));
 	}
 
 	void i2p_connection::on_name_lookup(error_code const& ec
-		, name_lookup_handler handler, std::shared_ptr<i2p_stream>)
+		, name_lookup_handler const& handler, std::shared_ptr<i2p_stream>)
 	{
 		m_state = sam_idle;
 
@@ -200,7 +202,7 @@ namespace libtorrent
 		if (!m_name_lookup.empty())
 		{
 			std::pair<std::string, name_lookup_handler>& nl = m_name_lookup.front();
-			do_name_lookup(nl.first, nl.second);
+			do_name_lookup(std::move(nl.first), std::move(nl.second));
 			m_name_lookup.pop_front();
 		}
 
@@ -233,12 +235,12 @@ namespace libtorrent
 	}
 
 	void i2p_stream::do_connect(error_code const& e, tcp::resolver::iterator i
-		, std::shared_ptr<handler_type> h)
+		, handler_type const& h)
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
 		if (e || i == tcp::resolver::iterator())
 		{
-			(*h)(e);
+			h(e);
 			error_code ec;
 			close(ec);
 			return;
@@ -249,7 +251,7 @@ namespace libtorrent
 			&i2p_stream::connected, this, _1, h));
 	}
 
-	void i2p_stream::connected(error_code const& e, std::shared_ptr<handler_type> h)
+	void i2p_stream::connected(error_code const& e, handler_type const& h)
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
 		COMPLETE_ASYNC("i2p_stream::connected");
@@ -264,7 +266,7 @@ namespace libtorrent
 			, std::bind(&i2p_stream::start_read_line, this, _1, h));
 	}
 
-	void i2p_stream::start_read_line(error_code const& e, std::shared_ptr<handler_type> h)
+	void i2p_stream::start_read_line(error_code const& e, handler_type const& h)
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
 		COMPLETE_ASYNC("i2p_stream::start_read_line");
@@ -276,7 +278,7 @@ namespace libtorrent
 			, std::bind(&i2p_stream::read_line, this, _1, h));
 	}
 
-	void i2p_stream::read_line(error_code const& e, std::shared_ptr<handler_type> h)
+	void i2p_stream::read_line(error_code const& e, handler_type const& h)
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
 		COMPLETE_ASYNC("i2p_stream::read_line");
@@ -301,7 +303,7 @@ namespace libtorrent
 			// this is the line containing the destination
 			// of the incoming connection in an accept call
 			m_dest = &m_buffer[0];
-			(*h)(e);
+			h(e);
 			std::vector<char>().swap(m_buffer);
 			return;
 		}
@@ -419,14 +421,14 @@ namespace libtorrent
 					send_connect(h);
 					break;
 				default:
-					(*h)(e);
+					h(e);
 					std::vector<char>().swap(m_buffer);
 			}
 			break;
 		case read_connect_response:
 		case read_session_create_response:
 		case read_name_lookup_response:
-			(*h)(ec);
+			h(ec);
 			std::vector<char>().swap(m_buffer);
 			break;
 		case read_accept_response:
@@ -445,7 +447,7 @@ namespace libtorrent
 		return;
 	}
 
-	void i2p_stream::send_connect(std::shared_ptr<handler_type> h)
+	void i2p_stream::send_connect(handler_type const& h)
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
 		m_state = read_connect_response;
@@ -457,7 +459,7 @@ namespace libtorrent
 			, std::bind(&i2p_stream::start_read_line, this, _1, h));
 	}
 
-	void i2p_stream::send_accept(std::shared_ptr<handler_type> h)
+	void i2p_stream::send_accept(handler_type const& h)
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
 		m_state = read_accept_response;
@@ -468,7 +470,7 @@ namespace libtorrent
 			, std::bind(&i2p_stream::start_read_line, this, _1, h));
 	}
 
-	void i2p_stream::send_session_create(std::shared_ptr<handler_type> h)
+	void i2p_stream::send_session_create(handler_type const& h)
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
 		m_state = read_session_create_response;
@@ -480,7 +482,7 @@ namespace libtorrent
 			, std::bind(&i2p_stream::start_read_line, this, _1, h));
 	}
 
-	void i2p_stream::send_name_lookup(std::shared_ptr<handler_type> h)
+	void i2p_stream::send_name_lookup(handler_type const& h)
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
 		m_state = read_name_lookup_response;
