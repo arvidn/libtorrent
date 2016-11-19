@@ -77,16 +77,16 @@ namespace libtorrent { namespace dht
 					if (match->count == m_message_rate_limit * 10)
 					{
 #ifndef TORRENT_DISABLE_LOGGING
-						logger->log(dht_logger::tracker, "BANNING PEER [ ip: %s time: %f count: %d ]"
+						logger->log(dht_logger::tracker, "BANNING PEER [ ip: %s time: %d ms count: %d ]"
 							, print_address(addr).c_str()
-							, total_milliseconds((now - match->limit) + seconds(10)) / 1000.f
+							, int(total_milliseconds((now - match->limit) + seconds(10)))
 							, int(match->count));
 #endif
 						// we've received too many messages in less than 10 seconds
 						// from this node. Ignore it until it's silent for 5 minutes
 						match->limit = now + seconds(m_block_timeout);
 					}
-		
+
 					return false;
 				}
 
