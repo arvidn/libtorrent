@@ -131,7 +131,7 @@ namespace libtorrent
 	}
 
 	void socks5_stream::name_lookup(error_code const& e, tcp::resolver::iterator i
-		, handler_type const& h)
+		, handler_type& h)
 	{
 		COMPLETE_ASYNC("socks5_stream::name_lookup");
 		if (handle_error(e, h)) return;
@@ -147,10 +147,10 @@ namespace libtorrent
 		// target endpoint is of the proxy
 		ADD_OUTSTANDING_ASYNC("socks5_stream::connected");
 		m_sock.async_connect(i->endpoint(), std::bind(
-			&socks5_stream::connected, this, _1, h));
+			&socks5_stream::connected, this, _1, std::move(h)));
 	}
 
-	void socks5_stream::connected(error_code const& e, handler_type const& h)
+	void socks5_stream::connected(error_code const& e, handler_type& h)
 	{
 		COMPLETE_ASYNC("socks5_stream::connected");
 		if (handle_error(e, h)) return;
@@ -351,7 +351,7 @@ namespace libtorrent
 			, std::bind(&socks5_stream::connect1, this, _1, h));
 	}
 
-	void socks5_stream::connect1(error_code const& e, handler_type const& h)
+	void socks5_stream::connect1(error_code const& e, handler_type h)
 	{
 		COMPLETE_ASYNC("socks5_stream::connect1");
 		if (handle_error(e, h)) return;
@@ -363,10 +363,10 @@ namespace libtorrent
 
 		ADD_OUTSTANDING_ASYNC("socks5_stream::connect2");
 		async_read(m_sock, boost::asio::buffer(m_buffer)
-			, std::bind(&socks5_stream::connect2, this, _1, h));
+			, std::bind(&socks5_stream::connect2, this, _1, std::move(h)));
 	}
 
-	void socks5_stream::connect2(error_code const& e, handler_type const& h)
+	void socks5_stream::connect2(error_code const& e, handler_type& h)
 	{
 		COMPLETE_ASYNC("socks5_stream::connect2");
 		if (handle_error(e, h)) return;
@@ -448,7 +448,7 @@ namespace libtorrent
 			ADD_OUTSTANDING_ASYNC("socks5_stream::connect3");
 			TORRENT_ASSERT(extra_bytes > 0);
 			async_read(m_sock, boost::asio::buffer(&m_buffer[m_buffer.size() - extra_bytes], extra_bytes)
-				, std::bind(&socks5_stream::connect3, this, _1, h));
+				, std::bind(&socks5_stream::connect3, this, _1, std::move(h)));
 		}
 		else if (m_version == 4)
 		{
@@ -494,7 +494,7 @@ namespace libtorrent
 		}
 	}
 
-	void socks5_stream::connect3(error_code const& e, handler_type const& h)
+	void socks5_stream::connect3(error_code const& e, handler_type& h)
 	{
 		COMPLETE_ASYNC("socks5_stream::connect3");
 		using namespace libtorrent::detail;
