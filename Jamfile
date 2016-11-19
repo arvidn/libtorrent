@@ -339,6 +339,12 @@ rule building ( properties * )
 		}
 	}
 
+	if <target-os>windows in $(properties)
+		&& <windows-version>xp in $(properties)
+	{
+		result += <source>src/sha512.cpp ;
+	}
+
 	if ( <toolset>darwin in $(properties)
 		|| <toolset>gcc in $(properties)
 		|| <toolset>clang in $(properties)

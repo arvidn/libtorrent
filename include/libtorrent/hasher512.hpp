@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #elif TORRENT_USE_COMMONCRYPTO
 #include <CommonCrypto/CommonDigest.h>
 
-#elif TORRENT_USE_CRYPTOAPI
+#elif TORRENT_USE_CRYPTOAPI_SHA_512
 #include <windows.h>
 #include <wincrypt.h>
 
@@ -59,6 +59,7 @@ extern "C" {
 #else
 #include "libtorrent/sha512.hpp"
 #endif
+
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
@@ -112,7 +113,7 @@ namespace libtorrent
 		gcry_md_hd_t m_context;
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA512_CTX m_context;
-#elif TORRENT_USE_CRYPTOAPI
+#elif TORRENT_USE_CRYPTOAPI_SHA_512
 		HCRYPTHASH m_context;
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA512_CTX m_context;

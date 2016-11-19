@@ -237,6 +237,17 @@ POSSIBILITY OF SUCH DAMAGE.
 // unless some other crypto library has been specified, default to the native
 // windows CryptoAPI
 #define TORRENT_USE_CRYPTOAPI 1
+
+#ifdef NTDDI_VERSION
+# if (NTDDI_VERSION > NTDDI_WINXPSP2)
+#  define TORRENT_USE_CRYPTOAPI_SHA_512 1
+# endif
+#else // NTDDI_VERSION not defined so use simple _WIN32_WINNT check
+# if _WIN32_WINNT >= 0x0600
+#  define TORRENT_USE_CRYPTOAPI_SHA_512 1
+# endif
+#endif
+
 #endif
 
 #define TORRENT_USE_GETADAPTERSADDRESSES 1
@@ -396,6 +407,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_USE_CRYPTOAPI
 #define TORRENT_USE_CRYPTOAPI 0
+#endif
+
+#ifndef TORRENT_USE_CRYPTOAPI_SHA_512
+#define TORRENT_USE_CRYPTOAPI_SHA_512 0
 #endif
 
 #ifndef TORRENT_HAVE_MMAP

@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/openssl.hpp"
 
-#if TORRENT_USE_CRYPTOAPI
+#if TORRENT_USE_CRYPTOAPI_SHA_512
 namespace
 {
 	HCRYPTPROV make_crypt_provider()
@@ -76,7 +76,7 @@ namespace libtorrent
 		gcry_md_open(&m_context, GCRY_MD_SHA512, 0);
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA512_Init(&m_context);
-#elif TORRENT_USE_CRYPTOAPI
+#elif TORRENT_USE_CRYPTOAPI_SHA_512
 		if (CryptCreateHash(get_crypt_provider(), CALG_SHA_512, 0, 0, &m_context) == false)
 		{
 #ifndef BOOST_NO_EXCEPTIONS
@@ -111,7 +111,7 @@ namespace libtorrent
 		gcry_md_copy(&m_context, h.m_context);
 		return *this;
 	}
-#elif TORRENT_USE_CRYPTOAPI
+#elif TORRENT_USE_CRYPTOAPI_SHA_512
 	hasher512::hasher512(hasher512 const& h)
 	{
 		if (CryptDuplicateHash(h.m_context, 0, 0, &m_context) == false)
@@ -150,7 +150,7 @@ namespace libtorrent
 		gcry_md_write(m_context, data.data(), data.size());
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA512_Update(&m_context, reinterpret_cast<unsigned char const*>(data.data()), data.size());
-#elif TORRENT_USE_CRYPTOAPI
+#elif TORRENT_USE_CRYPTOAPI_SHA_512
 		if (CryptHashData(m_context, reinterpret_cast<BYTE const*>(data.data()), int(data.size()), 0) == false)
 		{
 #ifndef BOOST_NO_EXCEPTIONS
@@ -175,7 +175,7 @@ namespace libtorrent
 		digest.assign((char const*)gcry_md_read(m_context, 0));
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA512_Final(reinterpret_cast<unsigned char*>(digest.data()), &m_context);
-#elif TORRENT_USE_CRYPTOAPI
+#elif TORRENT_USE_CRYPTOAPI_SHA_512
 
 		DWORD size = DWORD(digest.size());
 		if (CryptGetHashParam(m_context, HP_HASHVAL
@@ -202,7 +202,7 @@ namespace libtorrent
 		gcry_md_reset(m_context);
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA512_Init(&m_context);
-#elif TORRENT_USE_CRYPTOAPI
+#elif TORRENT_USE_CRYPTOAPI_SHA_512
 		CryptDestroyHash(m_context);
 		if (CryptCreateHash(get_crypt_provider(), CALG_SHA_512, 0, 0, &m_context) == false)
 		{
@@ -221,7 +221,7 @@ namespace libtorrent
 
 	hasher512::~hasher512()
 	{
-#if TORRENT_USE_CRYPTOAPI
+#if TORRENT_USE_CRYPTOAPI_SHA_512
 		CryptDestroyHash(m_context);
 #elif defined TORRENT_USE_LIBGCRYPT
 		gcry_md_close(m_context);
