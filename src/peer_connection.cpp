@@ -6518,7 +6518,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::outgoing_message, "KEEPALIVE");
 #endif
- 
+
 		write_keepalive();
 	}
 
