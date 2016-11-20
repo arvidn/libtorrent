@@ -138,6 +138,10 @@ namespace libtorrent
 		// this is a cached local endpoint for the listen TCP socket
 		tcp::endpoint local_endpoint;
 
+		// the name of the device the socket is bound to, may be empty
+		// if the socket is not bound to a device
+		std::string device;
+
 		// this is typically set to the same as the local
 		// listen port. In case a NAT port forward was
 		// successfully opened, this will be set to the
