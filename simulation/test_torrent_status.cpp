@@ -75,23 +75,23 @@ TORRENT_TEST(status_timers)
 			if ((ticks % 3600) == 0)
 			{
 				lt::time_point now = lt::clock_type::now();
-				int const since_start = int(total_seconds(now - start_time) - 1);
+				auto const since_start = duration_cast<seconds>(now - start_time) - lt::seconds(1);
 				torrent_status st = handle.status();
-				TEST_EQUAL(st.active_time, since_start);
-				TEST_EQUAL(st.seeding_time, since_start);
-				TEST_EQUAL(st.finished_time, since_start);
-				TEST_EQUAL(st.last_scrape, -1);
-				TEST_EQUAL(st.time_since_upload, -1);
+				TEST_CHECK(st.active_duration == since_start);
+				TEST_CHECK(st.seeding_duration == since_start);
+				TEST_CHECK(st.finished_duration == since_start);
+				TEST_CHECK(st.last_upload < start_time);
 
 				// checking the torrent counts as downloading
 				// eventually though, we've forgotten about it and go back to -1
-				if (since_start > 65000)
+				if (since_start > lt::seconds(65000))
 				{
-					TEST_EQUAL(st.time_since_download, -1);
+					TEST_CHECK(st.last_download < start_time);
 				}
 				else
 				{
-					TEST_EQUAL(st.time_since_download, since_start);
+					// TODO: this should really be a proximity-check
+					TEST_CHECK(st.last_download == start_time + lt::seconds(1));
 				}
 			}
 

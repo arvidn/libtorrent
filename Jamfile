@@ -239,11 +239,11 @@ rule warnings ( properties * )
 		result += <cflags>-Wno-padded ;
 		result += <cflags>-Wno-global-constructors ;
 		result += <cxxflags>-Wno-c++98-compat ;
+# this warns on any global static object, which are used for error_category
+# objects
 		result += <cflags>-Wno-exit-time-destructors ;
-		result += <cflags>-Wno-documentation-unknown-command ;
-		result += <cflags>-Wno-disabled-macro-expansion ;
 		result += <cflags>-Wno-unused-command-line-argument ;
-		result += <cflags>-Wno-error=implicit-fallthrough ;
+		result += <cflags>-Wno-implicit-fallthrough ;
 		result += <cflags>-Wno-c++11-long-long ;
 		result += <cflags>-Wno-variadic-macros ;
 

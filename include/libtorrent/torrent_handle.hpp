@@ -989,8 +989,10 @@ namespace libtorrent
 		// You may however change the priority of individual pieces. There are 8
 		// priority levels. 0 means not to download the piece at all. Otherwise,
 		// lower priority values means less likely to be picked. Piece priority
-		// takes precedence over piece availability. Every priority-7 piece will
-		// be attempted to be picked before a priority 6 piece and so on.
+		// takes precedence over piece availability. Every piece with priority 7
+		// will be attempted to be picked before a priority 6 piece and so on.
+		//
+		// The default priority of pieces is 4.
 		//
 		// Piece priorities can not be changed for torrents that have not
 		// downloaded the metadata yet. For instance, magnet links and torrents

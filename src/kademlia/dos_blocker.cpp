@@ -79,9 +79,9 @@ namespace libtorrent { namespace dht
 #ifndef TORRENT_DISABLE_LOGGING
 						if (logger != nullptr && logger->should_log(dht_logger::tracker))
 						{
-							logger->log(dht_logger::tracker, "BANNING PEER [ ip: %s time: %f count: %d ]"
+							logger->log(dht_logger::tracker, "BANNING PEER [ ip: %s time: %d ms count: %d ]"
 								, print_address(addr).c_str()
-								, total_milliseconds((now - match->limit) + seconds(10)) / 1000.0
+								, int(total_milliseconds((now - match->limit) + seconds(10)))
 								, match->count);
 						}
 #else

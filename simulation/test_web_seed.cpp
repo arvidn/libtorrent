@@ -449,3 +449,37 @@ TORRENT_TEST(multi_file_unaligned_redirect)
 		}
 	);
 }
+TORRENT_TEST(urlseed_timeout)
+{
+	bool timeout = false;
+	run_test(
+		[](lt::session& ses)
+		{
+			file_storage fs;
+			fs.add_file("timeout_test", 0x8000);
+			lt::add_torrent_params params = ::create_torrent(fs);
+			params.url_seeds.push_back("http://2.2.2.2:8080/");
+			params.flags &= ~lt::add_torrent_params::flag_auto_managed;
+			params.flags &= ~lt::add_torrent_params::flag_paused;
+			params.save_path = ".";
+			ses.async_add_torrent(params);
+		},
+		[&timeout](lt::session& ses, lt::alert const* alert) {
+			const lt::peer_disconnected_alert *pda = lt::alert_cast<lt::peer_disconnected_alert>(alert);
+			if (pda && pda->error == errors::timed_out_inactivity){
+				timeout = true;
+			}
+		},
+		[](sim::simulation& sim, lt::session& ses)
+		{
+			sim::asio::io_service web_server(sim, address_v4::from_string("2.2.2.2"));
+
+			// listen on port 8080
+			sim::http_server http(web_server, 8080);
+			http.register_stall_handler("/timeout_test");
+			sim.run();
+		}
+	);
+	TEST_EQUAL(timeout, true);
+}
+
