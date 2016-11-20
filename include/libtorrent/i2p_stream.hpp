@@ -117,7 +117,7 @@ public:
 		using std::placeholders::_2;
 		tcp::resolver::query q(m_hostname, to_string(m_port).data());
 		m_resolver.async_resolve(q, std::bind(
-			&i2p_stream::do_connect, this, _1, _2, handler_type(handler)));
+			&i2p_stream::do_connect, this, _1, _2, handler_type(std::move(handler))));
 	}
 
 	std::string name_lookup() const { return m_name_lookup; }

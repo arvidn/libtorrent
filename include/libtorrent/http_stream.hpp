@@ -92,7 +92,7 @@ public:
 		using std::placeholders::_2;
 		tcp::resolver::query q(m_hostname, to_string(m_port).data());
 		m_resolver.async_resolve(q, std::bind(
-			&http_stream::name_lookup, this, _1, _2, handler_type(handler)));
+			&http_stream::name_lookup, this, _1, _2, handler_type(std::move(handler))));
 	}
 
 private:
