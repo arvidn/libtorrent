@@ -113,34 +113,30 @@ public:
 		// 2. connect to SAM bridge
 		// 4 send command message (CONNECT/ACCEPT)
 
-		// to avoid unnecessary copying of the handler,
-		// store it in a shared_ptr
-		auto h = std::make_shared<handler_type>(handler);
-
 		using std::placeholders::_1;
 		using std::placeholders::_2;
 		tcp::resolver::query q(m_hostname, to_string(m_port).data());
 		m_resolver.async_resolve(q, std::bind(
-			&i2p_stream::do_connect, this, _1, _2, h));
+			&i2p_stream::do_connect, this, _1, _2, handler_type(std::move(handler))));
 	}
 
 	std::string name_lookup() const { return m_name_lookup; }
 	void set_name_lookup(char const* name) { m_name_lookup = name; }
 
-	void send_name_lookup(std::shared_ptr<handler_type> h);
+	void send_name_lookup(handler_type h);
 
 private:
 	// explicitly disallow assignment, to silence msvc warning
 	i2p_stream& operator=(i2p_stream const&);
 
 	void do_connect(error_code const& e, tcp::resolver::iterator i
-		, std::shared_ptr<handler_type> h);
-	void connected(error_code const& e, std::shared_ptr<handler_type> h);
-	void start_read_line(error_code const& e, std::shared_ptr<handler_type> h);
-	void read_line(error_code const& e, std::shared_ptr<handler_type> h);
-	void send_connect(std::shared_ptr<handler_type> h);
-	void send_accept(std::shared_ptr<handler_type> h);
-	void send_session_create(std::shared_ptr<handler_type> h);
+		, handler_type h);
+	void connected(error_code const& e, handler_type& h);
+	void start_read_line(error_code const& e, handler_type& h);
+	void read_line(error_code const& e, handler_type& h);
+	void send_connect(handler_type h);
+	void send_accept(handler_type h);
+	void send_session_create(handler_type h);
 
 	// send and receive buffer
 	std::vector<char> m_buffer;
@@ -178,7 +174,7 @@ public:
 			&& m_sam_socket->is_open()
 			&& m_state != sam_connecting;
 	}
-	void open(std::string const& hostname, int port, i2p_stream::handler_type const& h);
+	void open(std::string const& hostname, int port, i2p_stream::handler_type h);
 	void close(error_code&);
 
 	char const* session_id() const { return m_session_id.c_str(); }
@@ -191,16 +187,16 @@ private:
 	// explicitly disallow assignment, to silence msvc warning
 	i2p_connection& operator=(i2p_connection const&);
 
-	void on_sam_connect(error_code const& ec, i2p_stream::handler_type const& h
+	void on_sam_connect(error_code const& ec, i2p_stream::handler_type& h
 		, std::shared_ptr<i2p_stream>);
 	void do_name_lookup(std::string const& name
-		, name_lookup_handler const& h);
+		, name_lookup_handler h);
 	void on_name_lookup(error_code const& ec
-		, name_lookup_handler handler
+		, name_lookup_handler& handler
 		, std::shared_ptr<i2p_stream>);
 
 	void set_local_endpoint(error_code const& ec, char const* dest
-		, i2p_stream::handler_type const& h);
+		, i2p_stream::handler_type& h);
 
 	// to talk to i2p SAM bridge
 	std::shared_ptr<i2p_stream> m_sam_socket;

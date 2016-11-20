@@ -122,19 +122,16 @@ public:
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("socks5_stream::connect1");
 #endif
-		connect1(e, std::make_shared<handler_type>(handler));
+		handler_type h(std::move(handler));
+		connect1(e, h);
 	}
 
 	template <typename Handler>
-	void async_listen(tcp::endpoint const& ep, Handler const& handler)
+	void async_listen(tcp::endpoint const& ep, Handler handler)
 	{
 		m_command = socks5_bind;
 
 		m_remote_endpoint = ep;
-
-		// to avoid unnecessary copying of the handler,
-		// store it in a shared_ptr
-		auto h = std::make_shared<handler_type>(handler);
 
 #if defined TORRENT_ASIO_DEBUGGING
 		add_outstanding_async("socks5_stream::name_lookup");
@@ -143,7 +140,7 @@ public:
 		using std::placeholders::_2;
 		tcp::resolver::query q(m_hostname, to_string(m_port).data());
 		m_resolver.async_resolve(q, std::bind(
-			&socks5_stream::name_lookup, this, _1, _2, h));
+			&socks5_stream::name_lookup, this, _1, _2, handler_type(std::move(handler))));
 	}
 
 	void set_dst_name(std::string const& host)
@@ -205,31 +202,27 @@ public:
 		//   3.3 send username+password
 		// 4. send SOCKS command message
 
-		// to avoid unnecessary copying of the handler,
-		// store it in a shared_ptr
-		auto h = std::make_shared<handler_type>(handler);
-
 		using std::placeholders::_1;
 		using std::placeholders::_2;
 		ADD_OUTSTANDING_ASYNC("socks5_stream::name_lookup");
 		tcp::resolver::query q(m_hostname, to_string(m_port).data());
 		m_resolver.async_resolve(q, std::bind(
-			&socks5_stream::name_lookup, this, _1, _2, h));
+			&socks5_stream::name_lookup, this, _1, _2, handler_type(std::move(handler))));
 	}
 
 private:
 
 	void name_lookup(error_code const& e, tcp::resolver::iterator i
-		, std::shared_ptr<handler_type> h);
-	void connected(error_code const& e, std::shared_ptr<handler_type> h);
-	void handshake1(error_code const& e, std::shared_ptr<handler_type> h);
-	void handshake2(error_code const& e, std::shared_ptr<handler_type> h);
-	void handshake3(error_code const& e, std::shared_ptr<handler_type> h);
-	void handshake4(error_code const& e, std::shared_ptr<handler_type> h);
-	void socks_connect(std::shared_ptr<handler_type> h);
-	void connect1(error_code const& e, std::shared_ptr<handler_type> h);
-	void connect2(error_code const& e, std::shared_ptr<handler_type> h);
-	void connect3(error_code const& e, std::shared_ptr<handler_type> h);
+		, handler_type& h);
+	void connected(error_code const& e, handler_type& h);
+	void handshake1(error_code const& e, handler_type& h);
+	void handshake2(error_code const& e, handler_type& h);
+	void handshake3(error_code const& e, handler_type& h);
+	void handshake4(error_code const& e, handler_type& h);
+	void socks_connect(handler_type h);
+	void connect1(error_code const& e, handler_type& h);
+	void connect2(error_code const& e, handler_type& h);
+	void connect3(error_code const& e, handler_type& h);
 
 	// send and receive buffer
 	std::vector<char> m_buffer;

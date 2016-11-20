@@ -88,24 +88,20 @@ public:
 		// 3. send HTTP CONNECT method and possibly username+password
 		// 4. read CONNECT response
 
-		// to avoid unnecessary copying of the handler,
-		// store it in a shared_ptr
-		auto h = std::make_shared<handler_type>(handler);
-
 		using std::placeholders::_1;
 		using std::placeholders::_2;
 		tcp::resolver::query q(m_hostname, to_string(m_port).data());
 		m_resolver.async_resolve(q, std::bind(
-			&http_stream::name_lookup, this, _1, _2, h));
+			&http_stream::name_lookup, this, _1, _2, handler_type(std::move(handler))));
 	}
 
 private:
 
 	void name_lookup(error_code const& e, tcp::resolver::iterator i
-		, std::shared_ptr<handler_type> h);
-	void connected(error_code const& e, std::shared_ptr<handler_type> h);
-	void handshake1(error_code const& e, std::shared_ptr<handler_type> h);
-	void handshake2(error_code const& e, std::shared_ptr<handler_type> h);
+		, handler_type& h);
+	void connected(error_code const& e, handler_type& h);
+	void handshake1(error_code const& e, handler_type& h);
+	void handshake2(error_code const& e, handler_type& h);
 
 	// send and receive buffer
 	std::vector<char> m_buffer;
