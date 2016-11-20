@@ -503,7 +503,7 @@ namespace libtorrent
 					return piece_downloading;
 				if (download_state == piece_full_reverse)
 					return piece_full;
-				return download_state;
+				return int(download_state);
 			}
 
 			bool reverse() const
@@ -808,4 +808,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_PIECE_PICKER_HPP_INCLUDED
-

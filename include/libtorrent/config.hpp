@@ -544,7 +544,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define __has_builtin(x) 0  // for non-clang compilers
 #endif
 
-#if (TORRENT_HAS_SSE && __GNUC__)
+#if (TORRENT_HAS_SSE && defined __GNUC__)
 #	define TORRENT_HAS_BUILTIN_CLZ 1
 #elif (TORRENT_HAS_ARM && defined __GNUC__ && !defined __clang__)
 #	define TORRENT_HAS_BUILTIN_CLZ 1
@@ -554,7 +554,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #	define TORRENT_HAS_BUILTIN_CLZ 0
 #endif // TORRENT_HAS_BUILTIN_CLZ
 
-#if (TORRENT_HAS_SSE && __GNUC__)
+#if (TORRENT_HAS_SSE && defined __GNUC__)
 #	define TORRENT_HAS_BUILTIN_CTZ 1
 #elif (TORRENT_HAS_ARM && defined __GNUC__ && !defined __clang__)
 #	define TORRENT_HAS_BUILTIN_CTZ 1

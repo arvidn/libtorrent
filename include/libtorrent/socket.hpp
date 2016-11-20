@@ -144,7 +144,7 @@ namespace libtorrent
 #else
 		using tos_t = int;
 #endif
-		explicit type_of_service(char val): m_value(val) {}
+		explicit type_of_service(char val) : m_value(tos_t(val)) {}
 		template<class Protocol>
 		int level(Protocol const&) const { return IPPROTO_IP; }
 		template<class Protocol>

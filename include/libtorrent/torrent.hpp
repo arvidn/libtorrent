@@ -381,7 +381,7 @@ namespace libtorrent
 			, peer_request p);
 		void on_disk_tick_done(disk_io_job const* j);
 
-		void set_progress_ppm(int p) { m_progress_ppm = p; }
+		void set_progress_ppm(int p) { m_progress_ppm = std::uint32_t(p); }
 		struct read_piece_struct
 		{
 			boost::shared_array<char> piece_data;
@@ -566,9 +566,9 @@ namespace libtorrent
 		peer_class_t peer_class() const { return peer_class_t(m_peer_class); }
 
 		void set_max_uploads(int limit, bool state_update = true);
-		int max_uploads() const { return m_max_uploads; }
+		int max_uploads() const { return int(m_max_uploads); }
 		void set_max_connections(int limit, bool state_update = true);
-		int max_connections() const { return m_max_connections; }
+		int max_connections() const { return int(m_max_connections); }
 
 // --------------------------------------------
 		// PEER MANAGEMENT
@@ -1615,7 +1615,7 @@ namespace libtorrent
 
 		// progress parts per million (the number of
 		// millionths of completeness)
-		unsigned int m_progress_ppm:20;
+		std::uint32_t m_progress_ppm:20;
 
 #if TORRENT_USE_ASSERTS
 		// set to true when torrent is start()ed. It may only be started once

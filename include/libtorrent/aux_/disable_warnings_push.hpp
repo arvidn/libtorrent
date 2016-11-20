@@ -86,5 +86,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifdef _MSC_VER
 #pragma warning(push, 1)
 // warning C4005: macro redefinition
-#pragma warning( disable : 4005 )
+#pragma warning(disable : 4005)
+// expression before comma has no effect; expected expression with side-effect
+#pragma warning(disable : 4548)
 #endif

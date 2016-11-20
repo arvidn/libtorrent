@@ -605,7 +605,7 @@ namespace libtorrent
 		sha1_hash m_info_hash;
 
 		// the number of bytes in m_info_section
-		std::uint32_t m_info_section_size = 0;
+		std::int32_t m_info_section_size = 0;
 
 		// the index to the first leaf. This is where the hash for the
 		// first piece is stored

@@ -34,12 +34,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_STAT_HPP_INCLUDED
 
 #include <algorithm>
-#include <vector>
-#include <cstring>
 #include <limits>
 #include <cstdint>
 
-#include "libtorrent/invariant_check.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 
@@ -57,9 +54,9 @@ namespace libtorrent
 
 		void operator+=(stat_channel const& s)
 		{
-			TORRENT_ASSERT(m_counter < (std::numeric_limits<std::uint32_t>::max)() - s.m_counter);
+			TORRENT_ASSERT(m_counter < (std::numeric_limits<std::int32_t>::max)() - s.m_counter);
 			m_counter += s.m_counter;
-			TORRENT_ASSERT(m_total_counter < (std::numeric_limits<std::uint64_t>::max)() - s.m_counter);
+			TORRENT_ASSERT(m_total_counter < (std::numeric_limits<std::int64_t>::max)() - s.m_counter);
 			m_total_counter += s.m_counter;
 		}
 
@@ -67,26 +64,26 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(count >= 0);
 
-			TORRENT_ASSERT(m_counter < (std::numeric_limits<std::uint32_t>::max)() - count);
+			TORRENT_ASSERT(m_counter < (std::numeric_limits<std::int32_t>::max)() - count);
 			m_counter += count;
-			TORRENT_ASSERT(m_total_counter < (std::numeric_limits<std::uint64_t>::max)() - count);
+			TORRENT_ASSERT(m_total_counter < (std::numeric_limits<std::int64_t>::max)() - count);
 			m_total_counter += count;
 		}
 
 		// should be called once every second
 		void second_tick(int tick_interval_ms);
-		int rate() const { return m_5_sec_average; }
-		int low_pass_rate() const { return m_5_sec_average; }
+		std::int32_t rate() const { return m_5_sec_average; }
+		std::int32_t low_pass_rate() const { return m_5_sec_average; }
 
 		std::int64_t total() const { return m_total_counter; }
 
 		void offset(std::int64_t c)
 		{
-			TORRENT_ASSERT(m_total_counter < (std::numeric_limits<std::uint64_t>::max)() - c);
+			TORRENT_ASSERT(m_total_counter < (std::numeric_limits<std::int64_t>::max)() - c);
 			m_total_counter += c;
 		}
 
-		int counter() const { return m_counter; }
+		std::int32_t counter() const { return m_counter; }
 
 		void clear()
 		{
@@ -98,18 +95,17 @@ namespace libtorrent
 	private:
 
 		// total counters
-		std::uint64_t m_total_counter;
+		std::int64_t m_total_counter;
 
 		// the accumulator for this second.
-		std::uint32_t m_counter;
+		std::int32_t m_counter;
 
 		// sliding average
-		std::uint32_t m_5_sec_average;
+		std::int32_t m_5_sec_average;
 	};
 
 	class TORRENT_EXTRA_EXPORT stat
 	{
-	friend class invariant_access;
 	public:
 		void operator+=(const stat& s)
 		{
@@ -285,4 +281,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_STAT_HPP_INCLUDED
-

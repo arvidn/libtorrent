@@ -143,7 +143,7 @@ namespace libtorrent
 	private:
 #if TORRENT_USE_IPV6
 		// the type of the addr union
-		unsigned is_v6_addr:1;
+		bool is_v6_addr:1;
 #endif
 	};
 
