@@ -1855,7 +1855,7 @@ namespace libtorrent {
 
 	char const* dht_pkt_alert::pkt_buf() const
 	{
-		return m_alloc.ptr(m_msg_idx);
+		return m_size > 0 ? m_alloc.ptr(m_msg_idx) : nullptr;
 	}
 
 	int dht_pkt_alert::pkt_size() const
@@ -1896,7 +1896,7 @@ namespace libtorrent {
 
 		m_peers_idx = alloc.allocate(total_size);
 
-		char *ptr = alloc.ptr(m_peers_idx);
+		char *ptr = m_num_peers > 0 ? alloc.ptr(m_peers_idx) : nullptr;
 		for (int i = 0; i < m_num_peers; i++) {
 			tcp::endpoint endp = peers[i];
 			std::size_t size = endp.size();
@@ -1931,7 +1931,7 @@ namespace libtorrent {
 	std::vector<tcp::endpoint> dht_get_peers_reply_alert::peers() const {
 		std::vector<tcp::endpoint> peers(m_num_peers);
 
-		const char *ptr = m_alloc.ptr(m_peers_idx);
+		const char *ptr = m_num_peers > 0 ? m_alloc.ptr(m_peers_idx) : nullptr;
 		for (int i = 0; i < m_num_peers; i++) {
 			std::size_t size = detail::read_uint8(ptr);
 			memcpy(peers[i].data(), ptr, size);
@@ -1997,8 +1997,10 @@ namespace libtorrent {
 		std::vector<piece_block> ret;
 		ret.resize(m_num_blocks);
 
-		char const* start = m_alloc.ptr(m_array_idx);
-		memcpy(&ret[0], start, m_num_blocks * sizeof(piece_block));
+		if (m_num_blocks > 0) {
+			char const* start = m_alloc.ptr(m_array_idx);
+			memcpy(&ret[0], start, m_num_blocks * sizeof(piece_block));
+		}
 
 		return ret;
 	}
