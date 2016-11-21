@@ -469,7 +469,7 @@ namespace
     list cached_piece_info_list(std::vector<cached_piece_info> const& v)
     {
        list pieces;
-       ptime now = time_now();
+       lt::time_point now = lt::clock_type::now();
        for (std::vector<cached_piece_info>::const_iterator i = v.begin()
           , end(v.end()); i != end; ++i)
        {
