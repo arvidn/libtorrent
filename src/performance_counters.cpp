@@ -43,7 +43,7 @@ namespace libtorrent {
 		for (int i = 0; i < m_stats_counter.size(); ++i)
 			m_stats_counter[i].store(0, std::memory_order_relaxed);
 #else
-		memset(m_stats_counter, 0, sizeof(m_stats_counter));
+		std::memset(m_stats_counter, 0, sizeof(m_stats_counter));
 #endif
 	}
 
@@ -56,7 +56,7 @@ namespace libtorrent {
 					, std::memory_order_relaxed);
 #else
 		std::lock_guard<std::mutex> l(c.m_mutex);
-		memcpy(m_stats_counter, c.m_stats_counter, sizeof(m_stats_counter));
+		std::memcpy(m_stats_counter, c.m_stats_counter, sizeof(m_stats_counter));
 #endif
 	}
 
@@ -70,7 +70,7 @@ namespace libtorrent {
 #else
 		std::lock_guard<std::mutex> l(m_mutex);
 		std::lock_guard<std::mutex> l2(c.m_mutex);
-		memcpy(m_stats_counter, c.m_stats_counter, sizeof(m_stats_counter));
+		std::memcpy(m_stats_counter, c.m_stats_counter, sizeof(m_stats_counter));
 #endif
 		return *this;
 	}
@@ -154,4 +154,3 @@ namespace libtorrent {
 	}
 
 }
-

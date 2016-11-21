@@ -197,7 +197,7 @@ namespace libtorrent
 				};
 
 				TORRENT_ASSERT(ev >= 0);
-				TORRENT_ASSERT(ev < sizeof(error_messages)/sizeof(error_messages[0]));
+				TORRENT_ASSERT(ev < int(sizeof(error_messages)/sizeof(error_messages[0])));
 				return error_messages[ev];
 			}
 

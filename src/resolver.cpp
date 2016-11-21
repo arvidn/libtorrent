@@ -73,7 +73,7 @@ namespace libtorrent
 
 		// if m_cache grows too big, weed out the
 		// oldest entries
-		if (m_cache.size() > m_max_size)
+		if (int(m_cache.size()) > m_max_size)
 		{
 			cache_t::iterator oldest = m_cache.begin();
 			for (cache_t::iterator k = m_cache.begin();

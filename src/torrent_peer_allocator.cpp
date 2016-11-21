@@ -101,8 +101,8 @@ namespace libtorrent
 			TORRENT_ASSERT(m_ipv6_peer_pool.is_from(static_cast<libtorrent::ipv6_peer*>(p)));
 			static_cast<libtorrent::ipv6_peer*>(p)->~ipv6_peer();
 			m_ipv6_peer_pool.free(p);
-			TORRENT_ASSERT(m_live_bytes >= sizeof(ipv6_peer));
-			m_live_bytes -= sizeof(ipv6_peer);
+			TORRENT_ASSERT(m_live_bytes >= int(sizeof(ipv6_peer)));
+			m_live_bytes -= int(sizeof(ipv6_peer));
 			TORRENT_ASSERT(m_live_allocations > 0);
 			--m_live_allocations;
 			return;
@@ -114,8 +114,8 @@ namespace libtorrent
 			TORRENT_ASSERT(m_i2p_peer_pool.is_from(static_cast<libtorrent::i2p_peer*>(p)));
 			static_cast<libtorrent::i2p_peer*>(p)->~i2p_peer();
 			m_i2p_peer_pool.free(p);
-			TORRENT_ASSERT(m_live_bytes >= sizeof(i2p_peer));
-			m_live_bytes -= sizeof(i2p_peer);
+			TORRENT_ASSERT(m_live_bytes >= int(sizeof(i2p_peer)));
+			m_live_bytes -= int(sizeof(i2p_peer));
 			TORRENT_ASSERT(m_live_allocations > 0);
 			--m_live_allocations;
 			return;
@@ -124,11 +124,10 @@ namespace libtorrent
 		TORRENT_ASSERT(m_ipv4_peer_pool.is_from(static_cast<libtorrent::ipv4_peer*>(p)));
 		static_cast<libtorrent::ipv4_peer*>(p)->~ipv4_peer();
 		m_ipv4_peer_pool.free(p);
-		TORRENT_ASSERT(m_live_bytes >= sizeof(ipv4_peer));
-		m_live_bytes -= sizeof(ipv4_peer);
+		TORRENT_ASSERT(m_live_bytes >= int(sizeof(ipv4_peer)));
+		m_live_bytes -= int(sizeof(ipv4_peer));
 		TORRENT_ASSERT(m_live_allocations > 0);
 		--m_live_allocations;
 	}
 
 }
-

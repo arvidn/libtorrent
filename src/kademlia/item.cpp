@@ -74,7 +74,7 @@ namespace
 		left = out.size() - (ptr - out.data());
 		std::memcpy(ptr, v.data(), std::min(v.size(), left));
 		ptr += std::min(v.size(), left);
-		TORRENT_ASSERT((ptr - out.data()) <= out.size());
+		TORRENT_ASSERT((ptr - out.data()) <= int(out.size()));
 		return ptr - out.data();
 	}
 }

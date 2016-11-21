@@ -370,7 +370,7 @@ void routing_table::fill_from_replacements(table_t::iterator bucket)
 	bucket_t& rb = bucket->replacements;
 	int const bucket_size = bucket_limit(std::distance(m_buckets.begin(), bucket));
 
-	if (b.size() >= bucket_size) return;
+	if (int(b.size()) >= bucket_size) return;
 
 	// sort by RTT first, to find the node with the lowest
 	// RTT that is pinged
@@ -378,7 +378,7 @@ void routing_table::fill_from_replacements(table_t::iterator bucket)
 		, [](node_entry const& lhs, node_entry const& rhs)
 			{ return lhs.rtt < rhs.rtt; });
 
-	while (b.size() < bucket_size && !rb.empty())
+	while (int(b.size()) < bucket_size && !rb.empty())
 	{
 		bucket_t::iterator j = std::find_if(rb.begin(), rb.end(), std::bind(&node_entry::pinged, _1));
 		if (j == rb.end()) j = rb.begin();
@@ -440,7 +440,7 @@ bool routing_table::add_node(node_entry const& e)
 
 		// if the new bucket still has too many nodes in it, we need to keep
 		// splitting
-		if (m_buckets.back().live_nodes.size() > bucket_limit(int(m_buckets.size()) - 1))
+		if (int(m_buckets.back().live_nodes.size()) > bucket_limit(int(m_buckets.size()) - 1))
 			continue;
 
 		s = add_node_impl(e);
@@ -734,7 +734,7 @@ ip_ok:
 		// the last bucket is special, since it hasn't been split yet, it
 		// includes that top bit as well
 		int const prefix_offset =
-			bucket_index + 1 == m_buckets.size() ? bucket_index : bucket_index + 1;
+			bucket_index + 1 == int(m_buckets.size()) ? bucket_index : bucket_index + 1;
 
 		{
 			node_id id = e.id;
@@ -910,7 +910,7 @@ void routing_table::split_bucket()
 		j = b.erase(j);
 	}
 
-	if (b.size() > bucket_size_limit)
+	if (int(b.size()) > bucket_size_limit)
 	{
 		// TODO: 2 move the lowest priority nodes to the replacement bucket
 		for (bucket_t::iterator i = b.begin() + bucket_size_limit
@@ -1212,7 +1212,7 @@ void routing_table::check_invariant() const
 }
 #endif
 
-bool routing_table::is_full(int bucket) const
+bool routing_table::is_full(int const bucket) const
 {
 	int num_buckets = int(m_buckets.size());
 	if (num_buckets == 0) return false;
@@ -1220,8 +1220,8 @@ bool routing_table::is_full(int bucket) const
 
 	table_t::const_iterator i = m_buckets.begin();
 	std::advance(i, bucket);
-	return (i->live_nodes.size() >= bucket_limit(bucket)
-		&& i->replacements.size() >= m_bucket_size);
+	return (int(i->live_nodes.size()) >= bucket_limit(bucket)
+		&& int(i->replacements.size()) >= m_bucket_size);
 }
 
 } } // namespace libtorrent::dht

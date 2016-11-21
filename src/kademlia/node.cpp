@@ -597,9 +597,8 @@ struct ping_observer : observer
 		}
 
 		// look for nodes
-#if TORRENT_USE_IPV6
-		udp protocol = algorithm()->get_node().protocol();
-#endif
+		udp const protocol = algorithm()->get_node().protocol();
+		int const protocol_size = int(detail::address_size(protocol));
 		char const* nodes_key = algorithm()->get_node().protocol_nodes_key();
 		bdecode_node n = r.dict_find_string(nodes_key);
 		if (n)
@@ -607,7 +606,7 @@ struct ping_observer : observer
 			char const* nodes = n.string_ptr();
 			char const* end = nodes + n.string_length();
 
-			while (end - nodes >= 20 + detail::address_size(protocol) + 2)
+			while (end - nodes >= 20 + protocol_size + 2)
 			{
 				node_id id;
 				std::copy(nodes, nodes + 20, id.begin());
@@ -1063,7 +1062,7 @@ void node::incoming_request(msg const& m, entry& e)
 				// number matches the expected value before replacing it
 				// this is critical for avoiding race conditions when multiple
 				// writers are accessing the same slot
-				if (msg_keys[5] && item_seq.value != msg_keys[5].int_value())
+				if (msg_keys[5] && item_seq.value != std::uint64_t(msg_keys[5].int_value()))
 				{
 					m_counters.inc_stats_counter(counters::dht_invalid_put);
 					incoming_error(e, "CAS mismatch", 301);

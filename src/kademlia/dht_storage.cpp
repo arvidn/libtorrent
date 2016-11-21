@@ -229,6 +229,7 @@ namespace
 			{
 				tcp const protocol = requester.is_v4() ? tcp::v4() : tcp::v6();
 				int to_pick = m_settings.max_peers_reply;
+				TORRENT_ASSERT(to_pick >= 0);
 				// if these are IPv6 peers their addresses are 4x the size of IPv4
 				// so reduce the max peers 4 fold to compensate
 				// max_peers_reply should probably be specified in bytes
@@ -239,7 +240,7 @@ namespace
 				int candidates = int(std::count_if(peersv.begin(), peersv.end()
 					, [=](peer_entry const& e) { return !(noseed && e.seed); }));
 
-				to_pick = (std::min)(to_pick, candidates);
+				to_pick = std::min(to_pick, candidates);
 
 				for (auto iter = peersv.begin(); to_pick > 0; ++iter)
 				{
@@ -251,7 +252,7 @@ namespace
 
 					// pick this peer with probability
 					// <peers left to pick> / <peers left in the set>
-					if (random(uint32_t(candidates--)) > to_pick)
+					if (random(std::uint32_t(candidates--)) > std::uint32_t(to_pick))
 						continue;
 
 					pe.push_back(entry());
@@ -320,7 +321,7 @@ namespace
 			{
 				*i = peer;
 			}
-			else if (peersv.size() >= m_settings.max_peers)
+			else if (int(peersv.size()) >= m_settings.max_peers)
 			{
 				// we're at capacity, drop the announce
 				return;

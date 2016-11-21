@@ -242,10 +242,6 @@ rule warnings ( properties * )
 # this warns on any global static object, which are used for error_category
 # objects
 		result += <cflags>-Wno-exit-time-destructors ;
-		result += <cflags>-Wno-unused-command-line-argument ;
-		result += <cflags>-Wno-implicit-fallthrough ;
-		result += <cflags>-Wno-c++11-long-long ;
-		result += <cflags>-Wno-variadic-macros ;
 
 # enable these warnings again, once the other ones are dealt with
 		result += <cflags>-Wno-weak-vtables ;
