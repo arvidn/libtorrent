@@ -30,6 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#if TORRENT_USE_IPV6
+
 #include "test.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 
@@ -199,3 +201,5 @@ TORRENT_TEST(partition_listen_sockets)
 	}
 
 }
+
+#endif
