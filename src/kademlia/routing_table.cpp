@@ -734,7 +734,7 @@ ip_ok:
 		// the last bucket is special, since it hasn't been split yet, it
 		// includes that top bit as well
 		int const prefix_offset =
-			bucket_index + 1 == m_buckets.size() ? bucket_index : bucket_index + 1;
+			bucket_index + 1 == int(m_buckets.size()) ? bucket_index : bucket_index + 1;
 
 		{
 			node_id id = e.id;
@@ -761,7 +761,7 @@ ip_ok:
 			// have a unique prefix
 
 			// find node entries with duplicate prefixes in O(1)
-			std::vector<bucket_t::iterator> prefix(int(1 << (8 - mask_shift)), b.end());
+			std::vector<bucket_t::iterator> prefix(1 << (8 - mask_shift), b.end());
 			TORRENT_ASSERT(int(prefix.size()) >= bucket_size_limit);
 
 			// the begin iterator from this object is used as a placeholder
