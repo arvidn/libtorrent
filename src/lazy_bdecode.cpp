@@ -411,7 +411,7 @@ namespace libtorrent
 		for (int i = 0; i < int(m_size); ++i)
 		{
 			lazy_dict_entry& e = m_data.dict[i+1];
-			if (name.size() != e.val.m_begin - e.name) continue;
+			if (int(name.size()) != e.val.m_begin - e.name) continue;
 			if (std::equal(name.begin(), name.end(), e.name))
 				return &e.val;
 		}
@@ -661,4 +661,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_NO_DEPRECATE
-

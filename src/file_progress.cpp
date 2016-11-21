@@ -68,8 +68,8 @@ namespace libtorrent { namespace aux
 		// initialize the progress of each file
 
 		int const piece_size = fs.piece_length();
-		std::uint64_t off = 0;
-		std::uint64_t const total_size = fs.total_size();
+		std::int64_t off = 0;
+		std::int64_t const total_size = fs.total_size();
 		int file_index = 0;
 		for (int piece = 0; piece < num_pieces; ++piece, off += piece_size)
 		{
@@ -92,7 +92,7 @@ namespace libtorrent { namespace aux
 #endif
 
 			TORRENT_ASSERT(total_size >= off);
-			std::int64_t size = (std::min)(std::uint64_t(piece_size), total_size - off);
+			std::int64_t size = (std::min)(std::int64_t(piece_size), total_size - off);
 			TORRENT_ASSERT(size >= 0);
 
 			while (size)
@@ -126,7 +126,8 @@ namespace libtorrent { namespace aux
 	void file_progress::clear()
 	{
 		INVARIANT_CHECK;
-		std::vector<std::uint64_t>().swap(m_file_progress);
+		m_file_progress.clear();
+		m_file_progress.shrink_to_fit();
 #if TORRENT_USE_INVARIANT_CHECKS
 		m_have_pieces.clear();
 #endif
@@ -187,12 +188,10 @@ namespace libtorrent { namespace aux
 		if (m_file_progress.empty()) return;
 
 		int index = 0;
-		for (std::uint64_t progress : m_file_progress)
+		for (std::int64_t progress : m_file_progress)
 		{
 			TORRENT_ASSERT(progress <= m_file_sizes[index++]);
 		}
 	}
 #endif
 } }
-
-

@@ -3551,7 +3551,7 @@ namespace libtorrent
 #if TORRENT_USE_ASSERTS
 			for (auto j = std::next(i); j != dl_queue.end(); ++j)
 			{
-				TORRENT_ASSERT(j->index != index);
+				TORRENT_ASSERT(int(j->index) != index);
 			}
 #endif
 
@@ -5046,7 +5046,7 @@ namespace libtorrent
 			// pad files always have priority 0
 			if (fs.pad_file_at(i))
 				file_prio = 0;
-			else if (m_file_priority.size() <= i)
+			else if (int(m_file_priority.size()) <= i)
 				file_prio = 4;
 			else
 				file_prio = m_file_priority[i];
@@ -6242,8 +6242,8 @@ namespace libtorrent
 
 			if (m_seed_mode)
 			{
-				TORRENT_ASSERT(m_verified.size() == pieces.size());
-				TORRENT_ASSERT(m_verifying.size() == pieces.size());
+				TORRENT_ASSERT(m_verified.size() == int(pieces.size()));
+				TORRENT_ASSERT(m_verifying.size() == int(pieces.size()));
 				for (int i = 0, end(int(pieces.size())); i < end; ++i)
 					pieces[i] |= m_verified[i] ? 2 : 0;
 			}
@@ -6509,7 +6509,7 @@ namespace libtorrent
 						if (bi.state == block_info::requested)
 						{
 							auto pbp = peer->downloading_piece_progress();
-							if (pbp.piece_index == i->index && pbp.block_index == j)
+							if (pbp.piece_index == int(i->index) && pbp.block_index == j)
 							{
 								bi.bytes_progress = pbp.bytes_downloaded;
 								TORRENT_ASSERT(bi.bytes_progress <= bi.block_size);
@@ -10426,7 +10426,7 @@ namespace libtorrent
 					{
 						peer_connection* peer = static_cast<peer_connection*>(p->connection);
 						auto pbp = peer->downloading_piece_progress();
-						if (pbp.piece_index == i->index && pbp.block_index == k)
+						if (pbp.piece_index == int(i->index) && pbp.block_index == k)
 							block = pbp.bytes_downloaded;
 						TORRENT_ASSERT(block <= block_size());
 					}

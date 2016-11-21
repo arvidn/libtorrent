@@ -251,7 +251,7 @@ namespace
 
 					// pick this peer with probability
 					// <peers left to pick> / <peers left in the set>
-					if (random(uint32_t(candidates--)) > to_pick)
+					if (int(random(std::uint32_t(candidates--))) > to_pick)
 						continue;
 
 					pe.push_back(entry());
@@ -320,7 +320,7 @@ namespace
 			{
 				*i = peer;
 			}
-			else if (peersv.size() >= m_settings.max_peers)
+			else if (int(peersv.size()) >= m_settings.max_peers)
 			{
 				// we're at capacity, drop the announce
 				return;

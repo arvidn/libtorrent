@@ -2694,7 +2694,7 @@ namespace aux {
 		}
 		if (connection_limit_factor == 0) connection_limit_factor = 100;
 
-		std::uint64_t limit = m_settings.get_int(settings_pack::connections_limit);
+		std::int64_t limit = m_settings.get_int(settings_pack::connections_limit);
 		limit = limit * 100 / connection_limit_factor;
 
 		// don't allow more connections than the max setting
@@ -6278,7 +6278,7 @@ namespace aux {
 		// if we don't have any alerts in our local cache, we have to ask
 		// the alert_manager for more. It will swap our vector with its and
 		// destruct eny left-over alerts in there.
-		if (m_alert_pointer_pos >= m_alert_pointers.size())
+		if (m_alert_pointer_pos >= int(m_alert_pointers.size()))
 		{
 			pop_alerts(&m_alert_pointers);
 			m_alert_pointer_pos = 0;
@@ -6287,7 +6287,7 @@ namespace aux {
 
 	alert const* session_impl::pop_alert()
 	{
-		if (m_alert_pointer_pos >= m_alert_pointers.size())
+		if (m_alert_pointer_pos >= int(m_alert_pointers.size()))
 		{
 			pop_alerts();
 			if (m_alert_pointers.empty())
@@ -6701,8 +6701,8 @@ namespace aux {
 #if defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		TORRENT_ASSERT(int(unique.size()) == total_downloaders);
 #endif
-		TORRENT_ASSERT(num_active_downloading == m_torrent_lists[torrent_want_peers_download].size());
-		TORRENT_ASSERT(num_active_finished == m_torrent_lists[torrent_want_peers_finished].size());
+		TORRENT_ASSERT(num_active_downloading == int(m_torrent_lists[torrent_want_peers_download].size()));
+		TORRENT_ASSERT(num_active_finished == int(m_torrent_lists[torrent_want_peers_finished].size()));
 
 		std::unordered_set<peer_connection*> unique_peers;
 		TORRENT_ASSERT(m_settings.get_int(settings_pack::connections_limit) > 0);

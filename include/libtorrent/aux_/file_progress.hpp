@@ -74,7 +74,7 @@ namespace aux
 		// this lets us trigger on individual files completing
 		// the vector is allocated lazily, when file progress
 		// is first queried by the client
-		std::vector<std::uint64_t> m_file_progress;
+		std::vector<std::int64_t> m_file_progress;
 
 #if TORRENT_USE_INVARIANT_CHECKS
 		friend class libtorrent::invariant_access;
@@ -85,10 +85,9 @@ namespace aux
 
 		// to make sure we never say we've downloaded more bytes of a file than
 		// its file size
-		std::vector<std::uint64_t> m_file_sizes;
+		std::vector<std::int64_t> m_file_sizes;
 #endif
 	};
 } }
 
 #endif
-

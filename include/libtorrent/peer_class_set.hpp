@@ -56,7 +56,7 @@ namespace libtorrent {
 	private:
 
 		// the number of elements used in the m_class array
-		std::uint8_t m_size;
+		std::int8_t m_size;
 
 		// if this object belongs to any peer-class, this vector contains all
 		// class IDs. Each ID refers to a an entry in m_ses.m_peer_classes which
