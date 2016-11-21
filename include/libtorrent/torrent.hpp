@@ -353,7 +353,8 @@ namespace libtorrent
 
 		void on_resume_data_checked(disk_io_job const* j);
 		void on_force_recheck(disk_io_job const* j);
-		void on_piece_hashed(disk_io_job const* j);
+		void on_piece_hashed(int status, int piece, sha1_hash const& piece_hash
+			, storage_error const& error);
 		void files_checked();
 		void start_checking();
 
@@ -378,7 +379,7 @@ namespace libtorrent
 
 		enum flags_t { overwrite_existing = 1 };
 		void add_piece(int piece, char const* data, int flags = 0);
-		void on_disk_write_complete(disk_io_job const* j
+		void on_disk_write_complete(storage_error const& error
 			, peer_request p);
 		void on_disk_tick_done(disk_io_job const* j);
 
@@ -391,8 +392,9 @@ namespace libtorrent
 			error_code error;
 		};
 		void read_piece(int piece);
-		void on_disk_read_complete(disk_io_job const* j, peer_request r
-			, std::shared_ptr<read_piece_struct> rp);
+		void on_disk_read_complete(aux::block_cache_reference ref
+			, char* block, int flags, storage_error const& se
+			, peer_request r, std::shared_ptr<read_piece_struct> rp);
 
 		storage_mode_t storage_mode() const;
 		storage_interface* get_storage();
@@ -867,7 +869,8 @@ namespace libtorrent
 		void resume_download();
 
 		void verify_piece(int piece);
-		void on_piece_verified(disk_io_job const* j);
+		void on_piece_verified(int const status, int const piece
+			, sha1_hash const& piece_hash, storage_error const& error);
 
 		// this is called whenever a peer in this swarm becomes interesting
 		// it is responsible for issuing a block request, if appropriate
