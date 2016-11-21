@@ -109,7 +109,7 @@ namespace libtorrent
 				|| settings.get_int(settings_pack::proxy_type) == settings_pack::socks5_pw))
 		{
 			m_hostname = hostname;
-			m_target.port(port);
+			m_target.port(std::uint16_t(port));
 			start_announce();
 		}
 		else
@@ -213,7 +213,7 @@ namespace libtorrent
 
 		for (std::vector<address>::const_iterator i = addresses.begin()
 			, end(addresses.end()); i != end; ++i)
-			m_endpoints.push_back(tcp::endpoint(*i, port));
+			m_endpoints.push_back(tcp::endpoint(*i, std::uint16_t(port)));
 
 		if (tracker_req().filter)
 		{
@@ -767,7 +767,7 @@ namespace libtorrent
 			request_string.resize(str_len);
 
 			aux::write_uint8(2, out);
-			aux::write_uint8(str_len, out);
+			aux::write_uint8(std::uint8_t(str_len), out);
 			aux::write_string(request_string, out);
 		}
 
@@ -805,4 +805,3 @@ namespace libtorrent
 	}
 
 }
-

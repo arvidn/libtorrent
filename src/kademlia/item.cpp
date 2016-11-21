@@ -75,7 +75,7 @@ namespace
 		std::memcpy(ptr, v.data(), std::min(v.size(), left));
 		ptr += std::min(v.size(), left);
 		TORRENT_ASSERT((ptr - out.data()) <= int(out.size()));
-		return ptr - out.data();
+		return int(ptr - out.data());
 	}
 }
 

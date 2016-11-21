@@ -326,13 +326,13 @@ namespace libtorrent
 		std::uint16_t recv_id = 0;
 		if (m_new_connection != -1)
 		{
-			send_id = m_new_connection;
-			recv_id = m_new_connection + 1;
+			send_id = std::uint16_t(m_new_connection);
+			recv_id = std::uint16_t(m_new_connection + 1);
 			m_new_connection = -1;
 		}
 		else
 		{
-			send_id = random(0xffff);
+			send_id = std::uint16_t(random(0xffff));
 			recv_id = send_id - 1;
 		}
 		utp_socket_impl* impl = construct_utp_impl(recv_id, send_id, str, this);

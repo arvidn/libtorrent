@@ -633,7 +633,7 @@ namespace libtorrent
 
 #define TORRENT_FAIL_BDECODE(code) do { \
 	ec = code; \
-	if (error_pos) *error_pos = start - orig_start; \
+	if (error_pos) *error_pos = int(start - orig_start); \
 	goto done; \
 	} TORRENT_WHILE_0
 
@@ -720,7 +720,7 @@ namespace libtorrent
 					{
 						// in order to gracefully terminate the tree,
 						// make sure the end of the previous token is set correctly
-						if (error_pos) *error_pos = start - orig_start;
+						if (error_pos) *error_pos = int(start - orig_start);
 						error_pos = nullptr;
 						start = int_start;
 						TORRENT_FAIL_BDECODE(e);
@@ -799,7 +799,7 @@ namespace libtorrent
 						TORRENT_FAIL_BDECODE(bdecode_errors::limit_exceeded);
 
 					ret.m_tokens.push_back(bdecode_token(str_start - orig_start
-						, 1, bdecode_token::string, start - str_start));
+						, 1, bdecode_token::string, std::uint8_t(start - str_start)));
 					start += len;
 					break;
 				}

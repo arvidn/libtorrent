@@ -555,7 +555,7 @@ namespace libtorrent
 				c = *s1++;
 				if (c == 0)
 					break;
-				ret = (ret * 33) ^ to_lower(c);
+				ret = (ret * 33) ^ to_lower(char(c));
 			}
 
 			return ret;
@@ -1406,7 +1406,7 @@ namespace libtorrent
 					announce_entry e(tier.list_string_value_at(k).to_string());
 					e.trim();
 					if (e.url.empty()) continue;
-					e.tier = j;
+					e.tier = std::uint8_t(j);
 					e.fail_limit = 0;
 					e.source = announce_entry::source_torrent;
 #if TORRENT_USE_I2P
@@ -1540,7 +1540,7 @@ namespace libtorrent
 		if (i != m_urls.end()) return;
 
 		announce_entry e(url);
-		e.tier = tier;
+		e.tier = std::uint8_t(tier);
 		e.source = announce_entry::source_client;
 		m_urls.push_back(e);
 

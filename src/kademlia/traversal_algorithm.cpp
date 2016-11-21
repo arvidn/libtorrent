@@ -525,7 +525,7 @@ void traversal_algorithm::add_router_entries()
 
 void traversal_algorithm::init()
 {
-	m_branch_factor = m_node.branch_factor();
+	m_branch_factor = std::int16_t(m_node.branch_factor());
 	m_node.add_traversal_algorithm(this);
 }
 

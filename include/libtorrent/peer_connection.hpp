@@ -335,7 +335,7 @@ namespace libtorrent
 		int picker_options() const;
 
 		void prefer_contiguous_blocks(int num)
-		{ m_prefer_contiguous_blocks = (std::min)(num, 255); }
+		{ m_prefer_contiguous_blocks = std::uint8_t((std::min)(num, 255)); }
 
 		bool request_large_blocks() const
 		{ return m_request_large_blocks; }

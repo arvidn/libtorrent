@@ -764,7 +764,7 @@ entry write_nodes_entry(std::vector<node_entry> const& nodes)
 	for (auto const& n : nodes)
 	{
 		std::copy(n.id.begin(), n.id.end(), out);
-		detail::write_endpoint(udp::endpoint(n.addr(), n.port()), out);
+		detail::write_endpoint(udp::endpoint(n.addr(), std::uint16_t(n.port())), out);
 	}
 	return r;
 }
@@ -940,7 +940,7 @@ void node::incoming_request(msg const& m, entry& e)
 		// the table get a chance to add it.
 		m_table.node_seen(id, m.addr, 0xffff);
 
-		tcp::endpoint addr = tcp::endpoint(m.addr.address(), port);
+		tcp::endpoint addr = tcp::endpoint(m.addr.address(), std::uint16_t(port));
 		string_view name = msg_keys[3] ? msg_keys[3].string_value() : string_view();
 		bool seed = msg_keys[4] && msg_keys[4].int_value();
 

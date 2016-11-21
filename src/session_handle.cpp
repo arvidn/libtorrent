@@ -811,7 +811,7 @@ namespace libtorrent
 		if (net_interface == nullptr || strlen(net_interface) == 0)
 			net_interface = "0.0.0.0";
 
-		interfaces_str = print_endpoint(tcp::endpoint(address::from_string(net_interface, ec), port_range.first));
+		interfaces_str = print_endpoint(tcp::endpoint(address::from_string(net_interface, ec), std::uint16_t(port_range.first)));
 		if (ec) return;
 
 		p.set_str(settings_pack::listen_interfaces, interfaces_str);
@@ -850,9 +850,9 @@ namespace libtorrent
 
 		pe_settings r;
 		r.prefer_rc4 = sett.get_bool(settings_pack::prefer_rc4);
-		r.out_enc_policy = sett.get_int(settings_pack::out_enc_policy);
-		r.in_enc_policy = sett.get_int(settings_pack::in_enc_policy);
-		r.allowed_enc_level = sett.get_int(settings_pack::allowed_enc_level);
+		r.out_enc_policy = std::uint8_t(sett.get_int(settings_pack::out_enc_policy));
+		r.in_enc_policy = std::uint8_t(sett.get_int(settings_pack::in_enc_policy));
+		r.allowed_enc_level = std::uint8_t(sett.get_int(settings_pack::allowed_enc_level));
 		return r;
 	}
 #endif
@@ -893,7 +893,7 @@ namespace libtorrent
 		proxy_settings ret;
 		settings_pack sett = get_settings();
 		ret.hostname = sett.get_str(settings_pack::i2p_hostname);
-		ret.port = sett.get_int(settings_pack::i2p_port);
+		ret.port = std::uint16_t(sett.get_int(settings_pack::i2p_port));
 		return ret;
 	}
 

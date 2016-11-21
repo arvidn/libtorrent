@@ -332,7 +332,7 @@ bool compare_ip_cidr(address const& lhs, address const& rhs)
 		// if IPv4 addresses is in the same /24, they're too close and we won't
 		// trust the second one
 		std::uint32_t const mask
-			= lhs.to_v4().to_ulong() ^ rhs.to_v4().to_ulong();
+			= std::uint32_t(lhs.to_v4().to_ulong() ^ rhs.to_v4().to_ulong());
 		return mask <= 0x000000ff;
 	}
 }
@@ -368,7 +368,7 @@ void routing_table::fill_from_replacements(table_t::iterator bucket)
 {
 	bucket_t& b = bucket->live_nodes;
 	bucket_t& rb = bucket->replacements;
-	int const bucket_size = bucket_limit(std::distance(m_buckets.begin(), bucket));
+	int const bucket_size = bucket_limit(int(std::distance(m_buckets.begin(), bucket)));
 
 	if (int(b.size()) >= bucket_size) return;
 
@@ -396,7 +396,7 @@ void routing_table::remove_node(node_entry* n
 		&& n >= &bucket->replacements[0]
 		&& n < &bucket->replacements[0] + bucket->replacements.size())
 	{
-		int idx = n - &bucket->replacements[0];
+		std::ptrdiff_t idx = n - &bucket->replacements[0];
 		TORRENT_ASSERT(m_ips.count(n->addr()) > 0);
 		m_ips.erase(n->addr());
 		bucket->replacements.erase(bucket->replacements.begin() + idx);
@@ -406,7 +406,7 @@ void routing_table::remove_node(node_entry* n
 		&& n >= &bucket->live_nodes[0]
 		&& n < &bucket->live_nodes[0] + bucket->live_nodes.size())
 	{
-		int idx = n - &bucket->live_nodes[0];
+		std::ptrdiff_t idx = n - &bucket->live_nodes[0];
 		TORRENT_ASSERT(m_ips.count(n->addr()) > 0);
 		m_ips.erase(n->addr());
 		bucket->live_nodes.erase(bucket->live_nodes.begin() + idx);
@@ -563,7 +563,7 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 	table_t::iterator i = find_bucket(e.id);
 	bucket_t& b = i->live_nodes;
 	bucket_t& rb = i->replacements;
-	int const bucket_index = std::distance(m_buckets.begin(), i);
+	int const bucket_index = int(std::distance(m_buckets.begin(), i));
 	// compare against the max size of the next bucket. Otherwise we may wait too
 	// long to split, and lose nodes (in the case where lower-numbered buckets
 	// are larger)
@@ -1111,7 +1111,7 @@ void routing_table::find_node(node_id const& target
 	if (count == 0) count = m_bucket_size;
 
 	table_t::iterator i = find_bucket(target);
-	int const bucket_index = std::distance(m_buckets.begin(), i);
+	int const bucket_index = int(std::distance(m_buckets.begin(), i));
 	int const bucket_size_limit = bucket_limit(bucket_index);
 
 	l.reserve(bucket_size_limit);

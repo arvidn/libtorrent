@@ -781,7 +781,7 @@ namespace libtorrent
 		i->connection = &c;
 		TORRENT_ASSERT(i->connection);
 		if (!c.fast_reconnect())
-			i->last_connected = session_time;
+			i->last_connected = std::uint16_t(session_time);
 
 		// this cannot be a connect candidate anymore, since i->connection is set
 		TORRENT_ASSERT(!is_connect_candidate(*i));
@@ -789,7 +789,7 @@ namespace libtorrent
 		return true;
 	}
 
-	bool peer_list::update_peer_port(int port, torrent_peer* p, int src, torrent_state* state)
+	bool peer_list::update_peer_port(int const port, torrent_peer* p, int src, torrent_state* state)
 	{
 		TORRENT_ASSERT(p != nullptr);
 		TORRENT_ASSERT(p->connection);
@@ -802,7 +802,7 @@ namespace libtorrent
 
 		if (state->allow_multiple_connections_per_ip)
 		{
-			tcp::endpoint remote(p->address(), port);
+			tcp::endpoint remote(p->address(), std::uint16_t(port));
 			std::pair<iterator, iterator> range = find_peers(remote.address());
 			iterator i = std::find_if(range.first, range.second
 				, match_peer_endpoint(remote));
@@ -849,7 +849,7 @@ namespace libtorrent
 #endif
 
 		bool const was_conn_cand = is_connect_candidate(*p);
-		p->port = port;
+		p->port = std::uint16_t(port);
 		p->source |= src;
 		p->connectable = true;
 
@@ -1215,7 +1215,7 @@ namespace libtorrent
 		// update the timestamp, and it will remain
 		// the time when we initiated the connection.
 		if (!c.fast_reconnect())
-			p->last_connected = session_time;
+			p->last_connected = std::uint16_t(session_time);
 
 		if (c.failed())
 		{

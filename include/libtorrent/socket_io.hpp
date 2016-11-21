@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/bencode.hpp"
-#include "libtorrent/peer_id.hpp" // for sha1_hash
+#include "libtorrent/sha1_hash.hpp"
 #include <string>
 
 namespace libtorrent
@@ -75,7 +75,7 @@ namespace libtorrent
 			if (a.is_v4())
 			{
 #endif
-				write_uint32(a.to_v4().to_ulong(), out);
+				write_uint32(std::uint32_t(a.to_v4().to_ulong()), out);
 #if TORRENT_USE_IPV6
 			}
 			else if (a.is_v6())
@@ -115,7 +115,7 @@ namespace libtorrent
 		Endpoint read_v4_endpoint(InIt&& in)
 		{
 			address addr = read_v4_address(in);
-			int port = read_uint16(in);
+			std::uint16_t port = read_uint16(in);
 			return Endpoint(addr, port);
 		}
 
@@ -124,7 +124,7 @@ namespace libtorrent
 		Endpoint read_v6_endpoint(InIt&& in)
 		{
 			address addr = read_v6_address(in);
-			int port = read_uint16(in);
+			std::uint16_t port = read_uint16(in);
 			return Endpoint(addr, port);
 		}
 #endif
@@ -153,4 +153,3 @@ namespace libtorrent
 }
 
 #endif
-

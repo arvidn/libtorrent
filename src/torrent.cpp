@@ -294,7 +294,7 @@ namespace libtorrent
 
 			e.fail_limit = 0;
 			e.source = announce_entry::source_magnet_link;
-			e.tier = tier;
+			e.tier = std::uint8_t(tier);
 			if (!find_tracker(e.url))
 			{
 				m_trackers.push_back(e);
