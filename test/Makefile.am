@@ -155,6 +155,7 @@ test_primitives_SOURCES = \
   test_resolve_links.cpp \
   test_crc32.cpp \
   test_heterogeneous_queue.cpp \
+  test_listen_socket.cpp \
   test_ip_voter.cpp \
   test_sliding_average.cpp \
   test_socket_io.cpp \

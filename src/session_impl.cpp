@@ -270,6 +270,37 @@ namespace aux {
 	}
 #endif // TORRENT_DISABLE_DHT
 
+	std::list<listen_socket_t>::iterator partition_listen_sockets(
+		std::vector<listen_endpoint_t>& eps
+		, std::list<listen_socket_t>& sockets)
+	{
+		return std::partition(sockets.begin(), sockets.end()
+			, [&eps](listen_socket_t const& sock)
+		{
+			auto match = std::find_if(eps.begin(), eps.end()
+				, [&sock](listen_endpoint_t const& ep)
+			{
+				return ep.ssl == sock.ssl
+					&& ep.port == sock.original_port
+					&& ep.device == sock.device
+					&& ep.addr == sock.local_endpoint.address();
+			});
+
+			if (match != eps.end())
+			{
+				// remove the matched endpoint so that another socket can't match it
+				// this also signals to the caller that it doesn't need to create a
+				// socket for the endpoint
+				eps.erase(match);
+				return true;
+			}
+			else
+			{
+				return false;
+			}
+		});
+	}
+
 	void session_impl::init_peer_class_filter(bool unlimited_local)
 	{
 		// set the default peer_class_filter to use the local peer class
@@ -1384,6 +1415,7 @@ namespace aux {
 
 		listen_socket_t ret;
 		ret.ssl = (flags & open_ssl_socket) != 0;
+		ret.original_port = bind_ep.port();
 		int last_op = 0;
 		socket_type_t const sock_type
 			= (flags & open_ssl_socket)
@@ -1702,20 +1734,6 @@ namespace aux {
 		reopen_listen_sockets();
 	}
 
-	namespace
-	{
-		struct listen_endpoint_t
-		{
-			listen_endpoint_t(address adr, int p, std::string dev, bool s)
-				: addr(adr), port(p), device(dev), ssl(s) {}
-
-			address addr;
-			int port;
-			std::string device;
-			bool ssl;
-		};
-	}
-
 	void session_impl::reopen_listen_sockets()
 	{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1810,50 +1828,20 @@ namespace aux {
 			}
 		}
 
-		int const port_retries = m_settings.get_int(settings_pack::max_retry_port_bind);
+		auto remove_iter = partition_listen_sockets(eps, m_listen_sockets);
 
-		// sockets we are keeping get moved to this list to prevent a socket from matching
-		// multiple endpoints
-		std::list<listen_socket_t> keep;
-
-		// remove any sockets which are no longer in the set of endpoints
-		// to listen on
-		// warning: O(n^2) operation!
-		// hopefully the system doesn't have too many interfaces
-		for (auto sock = m_listen_sockets.begin()
-			; sock != m_listen_sockets.end();)
+		while (remove_iter != m_listen_sockets.end())
 		{
-			auto match = std::find_if(eps.begin(), eps.end()
-				, [sock, port_retries](listen_endpoint_t const& ep)
-					{ return ep.ssl == sock->ssl
-						&& (ep.port == 0 || (sock->local_endpoint.port() >= ep.port
-							&& sock->local_endpoint.port() - ep.port < port_retries))
-						&& ep.device == sock->device
-						&& ep.addr == sock->local_endpoint.address(); });
-
-			if (match != eps.end())
-			{
-				// we don't need to create a new listen socket for this endpoint
-				// so remove it from the list
-				eps.erase(match);
-				keep.splice(keep.end(), m_listen_sockets, sock++);
-				continue;
-			}
-
-			// this socket's local_endpoint is not on the list of endpoints to listen on
-			// it has got to go
 			// TODO notify interested parties of this socket's demise
 #ifndef TORRENT_DISABLE_LOGGING
 			session_log("Closing listen socket for %s on device \"%s\""
-				, print_endpoint(sock->local_endpoint).c_str(), sock->device.c_str());
+				, print_endpoint(remove_iter->local_endpoint).c_str()
+				, remove_iter->device.c_str());
 #endif
-			if (sock->sock) sock->sock->close(ec);
-			if (sock->udp_sock) sock->udp_sock->close();
-			sock = m_listen_sockets.erase(sock);
+			if (remove_iter->sock) remove_iter->sock->close(ec);
+			if (remove_iter->udp_sock) remove_iter->udp_sock->close();
+			remove_iter = m_listen_sockets.erase(remove_iter);
 		}
-
-		TORRENT_ASSERT(m_listen_sockets.empty());
-		m_listen_sockets.swap(keep);
 
 		// open new sockets on any endpoints that didn't match with
 		// an existing socket
