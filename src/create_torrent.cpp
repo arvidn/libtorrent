@@ -158,34 +158,42 @@ namespace libtorrent
 			}
 		}
 
-		void on_hash(disk_io_job const* j, create_torrent* t
-			, std::shared_ptr<storage_interface> storage, disk_io_thread* iothread
-			, int* piece_counter, int* completed_piece
-			, std::function<void(int)> const* f, error_code* ec)
+		struct hash_state
 		{
-			if (j->ret != 0)
+			create_torrent& ct;
+			std::shared_ptr<storage_interface> storage;
+			disk_io_thread& iothread;
+			int piece_counter;
+			int completed_piece;
+			std::function<void(int)> const& f;
+			error_code& ec;
+		};
+
+		void on_hash(int const status, int const piece, sha1_hash const& piece_hash
+			, storage_error const& error, hash_state* st)
+		{
+			if (status != 0)
 			{
 				// on error
-				*ec = j->error.ec;
-				iothread->abort(true);
+				st->ec = error.ec;
+				st->iothread.abort(true);
 				return;
 			}
-			t->set_hash(j->piece, sha1_hash(j->d.piece_hash));
-			(*f)(*completed_piece);
-			++(*completed_piece);
-			if (*piece_counter < t->num_pieces())
+			st->ct.set_hash(piece, sha1_hash(piece_hash));
+			st->f(st->completed_piece);
+			++st->completed_piece;
+			if (st->piece_counter < st->ct.num_pieces())
 			{
-				iothread->async_hash(storage.get(), *piece_counter
+				st->iothread.async_hash(st->storage.get(), st->piece_counter
 					, disk_io_job::sequential_access
-					, std::bind(&on_hash, _1, t, storage, iothread
-					, piece_counter, completed_piece, f, ec), nullptr);
-				++(*piece_counter);
+					, std::bind(&on_hash, _1, _2, _3, _4, st), nullptr);
+				++st->piece_counter;
 			}
 			else
 			{
-				iothread->abort(true);
+				st->iothread.abort(true);
 			}
-			iothread->submit_jobs();
+			st->iothread.submit_jobs();
 		}
 
 	} // anonymous namespace
@@ -283,18 +291,16 @@ namespace libtorrent
 		alert_manager dummy2(0, 0);
 		disk_thread.set_settings(&sett, dummy2);
 
-		int piece_counter = 0;
-		int completed_piece = 0;
 		int piece_read_ahead = 15 * 1024 * 1024 / t.piece_length();
 		if (piece_read_ahead < 1) piece_read_ahead = 1;
 
+		hash_state st = { t, storage, disk_thread, 0, 0, f, ec };
 		for (int i = 0; i < piece_read_ahead; ++i)
 		{
 			disk_thread.async_hash(storage.get(), i, disk_io_job::sequential_access
-				, std::bind(&on_hash, _1, &t, storage, &disk_thread
-				, &piece_counter, &completed_piece, &f, &ec), nullptr);
-			++piece_counter;
-			if (piece_counter >= t.num_pieces()) break;
+				, std::bind(&on_hash, _1, _2, _3, _4, &st), nullptr);
+			++st.piece_counter;
+			if (st.piece_counter >= t.num_pieces()) break;
 		}
 		disk_thread.submit_jobs();
 		ios.run(ec);

@@ -60,14 +60,14 @@ namespace libtorrent
 		};
 
 		virtual void async_read(storage_interface* storage, peer_request const& r
-			, std::function<void(disk_io_job const*)> handler, void* requester
-			, int flags = 0) = 0;
+			, std::function<void(aux::block_cache_reference ref, char* block
+				, int flags, storage_error const& se)> handler, void* requester, int flags = 0) = 0;
 		virtual void async_write(storage_interface* storage, peer_request const& r
 			, disk_buffer_holder buffer
-			, std::function<void(disk_io_job const*)> handler
+			, std::function<void(storage_error const&)> handler
 			, int flags = 0) = 0;
 		virtual void async_hash(storage_interface* storage, int piece, int flags
-			, std::function<void(disk_io_job const*)> handler, void* requester) = 0;
+			, std::function<void(int, int, sha1_hash const&, storage_error const&)> handler, void* requester) = 0;
 		virtual void async_move_storage(storage_interface* storage, std::string const& p, int flags
 			, std::function<void(disk_io_job const*)> handler) = 0;
 		virtual void async_release_files(storage_interface* storage

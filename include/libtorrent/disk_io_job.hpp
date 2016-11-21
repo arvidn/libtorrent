@@ -35,7 +35,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/tailqueue.hpp"
+#include "libtorrent/peer_request.hpp"
 #include "libtorrent/aux_/block_cache_reference.hpp"
+#include "libtorrent/sha1_hash.hpp"
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/variant/variant.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <string>
 #include <vector>
@@ -67,6 +73,8 @@ namespace libtorrent
 		~disk_io_job();
 		disk_io_job(disk_io_job const&) = delete;
 		disk_io_job& operator=(disk_io_job const&) = delete;
+
+		void call_callback();
 
 		enum action_t
 		{
@@ -144,7 +152,14 @@ namespace libtorrent
 		std::shared_ptr<storage_interface> storage;
 
 		// this is called when operation completes
-		std::function<void(disk_io_job const*)> callback;
+
+		using read_handler = std::function<void(aux::block_cache_reference ref
+			, char* block, int flags, storage_error const& se)>;
+		using write_handler = std::function<void(storage_error const&)>;
+		using hash_handler = std::function<void(int, int, sha1_hash const&, storage_error const&)>;
+		using generic_handler = std::function<void(disk_io_job const*)>;
+
+		boost::variant<read_handler, write_handler, hash_handler, generic_handler> callback;
 
 		// the error code from the file operation
 		// on error, this also contains the path of the

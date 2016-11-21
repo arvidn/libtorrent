@@ -2961,15 +2961,15 @@ namespace libtorrent
 		disconnect(errors::torrent_paused, op_bittorrent);
 	}
 
-	void peer_connection::on_disk_write_complete(disk_io_job const* j
+	void peer_connection::on_disk_write_complete(storage_error const& error
 		, peer_request p, std::shared_ptr<torrent> t)
 	{
 		TORRENT_ASSERT(is_single_thread());
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::info))
 		{
-			peer_log(peer_log_alert::info, "FILE_ASYNC_WRITE_COMPLETE", "ret: %d piece: %d s: %x l: %x e: %s"
-				, j->ret, p.piece, p.start, p.length, j->error.ec.message().c_str());
+			peer_log(peer_log_alert::info, "FILE_ASYNC_WRITE_COMPLETE", "piece: %d s: %x l: %x e: %s"
+				, p.piece, p.start, p.length, error.ec.message().c_str());
 		}
 #endif
 
@@ -2991,7 +2991,7 @@ namespace libtorrent
 
 		if (!t)
 		{
-			disconnect(j->error.ec, op_file_write);
+			disconnect(error.ec, op_file_write);
 			return;
 		}
 
@@ -3001,12 +3001,12 @@ namespace libtorrent
 
 		piece_block const block_finished(p.piece, p.start / t->block_size());
 
-		if (j->ret < 0)
+		if (error)
 		{
-			// we failed to write j->piece to disk tell the piece picker
+			// we failed to write the piece to disk tell the piece picker
 			// this will block any other peer from issuing requests
 			// to this piece, until we've cleared it.
-			if (j->error.ec == boost::asio::error::operation_aborted)
+			if (error.ec == boost::asio::error::operation_aborted)
 			{
 				if (t->has_picker())
 					t->picker().mark_as_canceled(block_finished, nullptr);
@@ -3024,7 +3024,7 @@ namespace libtorrent
 					// when this returns, all outstanding jobs to the
 					// piece are done, and we can restore it, allowing
 					// new requests to it
-					m_disk_thread.async_clear_piece(&t->storage(), j->piece
+					m_disk_thread.async_clear_piece(&t->storage(), p.piece
 						, std::bind(&torrent::on_piece_fail_sync, t, _1, block_finished));
 				}
 				else
@@ -3033,24 +3033,22 @@ namespace libtorrent
 					// exit this function early, no need to keep the picker
 					// state up-to-date, right?
 					disk_io_job sj;
-					sj.piece = j->piece;
+					sj.piece = p.piece;
 					t->on_piece_fail_sync(&sj, block_finished);
 				}
 			}
 			t->update_gauge();
 			// handle_disk_error may disconnect us
-			t->handle_disk_error("write", j->error, this, torrent::disk_class::write);
+			t->handle_disk_error("write", error, this, torrent::disk_class::write);
 			return;
 		}
-
-		TORRENT_ASSERT(j->ret == p.length);
 
 		if (!t->has_picker()) return;
 
 		piece_picker& picker = t->picker();
 
-		TORRENT_ASSERT(p.piece == j->piece);
-		TORRENT_ASSERT(p.start == j->d.io.offset);
+		TORRENT_ASSERT(p.piece == p.piece);
+		TORRENT_ASSERT(p.start == p.start);
 		TORRENT_ASSERT(picker.num_peers(block_finished) == 0);
 
 //		std::fprintf(stderr, "peer_connection mark_as_finished peer: %p piece: %d block: %d\n"
@@ -5114,8 +5112,8 @@ namespace libtorrent
 				// this means we're in seed mode and we haven't yet
 				// verified this piece (r.piece)
 				m_disk_thread.async_hash(&t->storage(), r.piece, 0
-					, std::bind(&peer_connection::on_seed_mode_hashed, self(), _1)
-					, this);
+					, std::bind(&peer_connection::on_seed_mode_hashed, self()
+						, _1, _2, _3, _4), this);
 				t->verifying(r.piece);
 				continue;
 			}
@@ -5151,7 +5149,7 @@ namespace libtorrent
 
 				m_disk_thread.async_read(&t->storage(), r
 					, std::bind(&peer_connection::on_disk_read_complete
-					, self(), _1, r, clock_type::now()), this);
+					, self(), _1, _2, _3, _4, r, clock_type::now()), this);
 			}
 			m_last_sent_payload = clock_type::now();
 			m_requests.erase(m_requests.begin() + i);
@@ -5168,7 +5166,8 @@ namespace libtorrent
 
 	// this is called when a previously unchecked piece has been
 	// checked, while in seed-mode
-	void peer_connection::on_seed_mode_hashed(disk_io_job const* j)
+	void peer_connection::on_seed_mode_hashed(int const
+		, int const piece, sha1_hash const& piece_hash, storage_error const& error)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -5180,32 +5179,32 @@ namespace libtorrent
 
 		if (!t || t->is_aborted()) return;
 
-		if (j->error)
+		if (error)
 		{
-			t->handle_disk_error("hash", j->error, this);
+			t->handle_disk_error("hash", error, this);
 			t->leave_seed_mode(false);
 			return;
 		}
 
 		// we're using the piece hashes here, we need the torrent to be loaded
 		if (!m_settings.get_bool(settings_pack::disable_hash_checks)
-			&& sha1_hash(j->d.piece_hash) != t->torrent_file().hash_for_piece(j->piece))
+			&& piece_hash != t->torrent_file().hash_for_piece(piece))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "SEED_MODE_FILE_HASH"
-				, "piece: %d failed", j->piece);
+				, "piece: %d failed", piece);
 #endif
 
 			t->leave_seed_mode(false);
 		}
 		else
 		{
-			TORRENT_ASSERT(t->verifying_piece(j->piece));
-			if (t->seed_mode()) t->verified(j->piece);
+			TORRENT_ASSERT(t->verifying_piece(piece));
+			if (t->seed_mode()) t->verified(piece);
 
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "SEED_MODE_FILE_HASH"
-				, "piece: %d passed", j->piece);
+				, "piece: %d passed", piece);
 #endif
 			if (t)
 			{
@@ -5219,7 +5218,8 @@ namespace libtorrent
 		fill_send_buffer();
 	}
 
-	void peer_connection::on_disk_read_complete(disk_io_job const* j
+	void peer_connection::on_disk_read_complete(aux::block_cache_reference ref
+		, char* disk_block, int const flags, storage_error const& error
 		, peer_request r, time_point issue_time)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -5233,35 +5233,35 @@ namespace libtorrent
 		if (should_log(peer_log_alert::info))
 		{
 			peer_log(peer_log_alert::info, "FILE_ASYNC_READ_COMPLETE"
-				, "ret: %d piece: %d s: %x l: %x b: %p c: %s e: %s rtt: %d us"
-				, j->ret, r.piece, r.start, r.length
-				, static_cast<void*>(j->buffer.disk_block)
-				, (j->flags & disk_io_job::cache_hit ? "cache hit" : "cache miss")
-				, j->error.ec.message().c_str(), disk_rtt);
+				, "piece: %d s: %x l: %x b: %p c: %s e: %s rtt: %d us"
+				, r.piece, r.start, r.length
+				, static_cast<void*>(disk_block)
+				, (flags & disk_io_job::cache_hit ? "cache hit" : "cache miss")
+				, error.ec.message().c_str(), disk_rtt);
 		}
 #endif
 
 		m_reading_bytes -= r.length;
 
 		std::shared_ptr<torrent> t = m_torrent.lock();
-		if (j->ret < 0)
+		if (error)
 		{
 			if (!t)
 			{
-				disconnect(j->error.ec, op_file_read);
+				disconnect(error.ec, op_file_read);
 				return;
 			}
 
-			TORRENT_ASSERT(j->buffer.disk_block == nullptr);
+			TORRENT_ASSERT(disk_block == nullptr);
 			write_dont_have(r.piece);
 			write_reject_request(r);
 			if (t->alerts().should_post<file_error_alert>())
-				t->alerts().emplace_alert<file_error_alert>(j->error.ec
-					, t->resolve_filename(j->error.file)
-					, j->error.operation_str(), t->get_handle());
+				t->alerts().emplace_alert<file_error_alert>(error.ec
+					, t->resolve_filename(error.file)
+					, error.operation_str(), t->get_handle());
 
 			++m_disk_read_failures;
-			if (m_disk_read_failures > 100) disconnect(j->error.ec, op_file_read);
+			if (m_disk_read_failures > 100) disconnect(error.ec, op_file_read);
 			return;
 		}
 
@@ -5270,12 +5270,10 @@ namespace libtorrent
 		// block, the peer is still useful
 		m_disk_read_failures = 0;
 
-		TORRENT_ASSERT(j->ret == r.length);
-
 		// even if we're disconnecting, we need to free this block
 		// otherwise the disk thread will hang, waiting for the network
 		// thread to be done with it
-		disk_buffer_holder buffer(m_allocator, j->d.io.ref, j->buffer.disk_block);
+		disk_buffer_holder buffer(m_allocator, ref, disk_block);
 
 		if (t && m_settings.get_int(settings_pack::suggest_mode)
 			== settings_pack::suggest_read_cache)
@@ -5290,14 +5288,7 @@ namespace libtorrent
 
 		if (!t)
 		{
-			disconnect(j->error.ec, op_file_read);
-			return;
-		}
-
-		if (j->ret != r.length)
-		{
-			// handle_disk_error may disconnect us
-			t->handle_disk_error("read", j->error, this);
+			disconnect(error.ec, op_file_read);
 			return;
 		}
 
@@ -5312,7 +5303,7 @@ namespace libtorrent
 		// if it's rare enough to make it into the suggested piece
 		// push another piece out
 		if (m_settings.get_int(settings_pack::suggest_mode) == settings_pack::suggest_read_cache
-			&& (j->flags & disk_io_job::cache_hit) == 0)
+			&& (flags & disk_io_job::cache_hit) == 0)
 		{
 			t->add_suggest_piece(r.piece);
 		}

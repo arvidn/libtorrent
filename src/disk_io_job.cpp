@@ -35,6 +35,40 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	namespace {
+		struct caller_visitor : boost::static_visitor<>
+		{
+			explicit caller_visitor(disk_io_job& j) : m_job(j) {}
+
+			void operator()(disk_io_job::read_handler& h) const
+			{
+				if (!h) return;
+				h(m_job.d.io.ref, m_job.buffer.disk_block, m_job.flags, m_job.error);
+			}
+
+			void operator()(disk_io_job::write_handler& h) const
+			{
+				if (!h) return;
+				h(m_job.error);
+			}
+
+			void operator()(disk_io_job::hash_handler& h) const
+			{
+				if (!h) return;
+				h(m_job.ret, m_job.piece, sha1_hash(m_job.d.piece_hash), m_job.error);
+			}
+
+			void operator()(disk_io_job::generic_handler& h) const
+			{
+				if (!h) return;
+				h(&m_job);
+			}
+
+		private:
+			disk_io_job& m_job;
+		};
+	}
+
 	disk_io_job::disk_io_job()
 		: piece(0)
 		, action(read)
@@ -51,6 +85,11 @@ namespace libtorrent
 	{
 		if (action == rename_file || action == move_storage)
 			free(buffer.string);
+	}
+
+	void disk_io_job::call_callback()
+	{
+		boost::apply_visitor(caller_visitor(*this), callback);
 	}
 
 	bool disk_io_job::completed(cached_piece_entry const* pe, int block_size)

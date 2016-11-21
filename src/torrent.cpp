@@ -860,7 +860,7 @@ namespace libtorrent
 			r.length = (std::min)(piece_size - r.start, block_size());
 			m_ses.disk_thread().async_read(&storage(), r
 				, std::bind(&torrent::on_disk_read_complete
-				, shared_from_this(), _1, r, rp), reinterpret_cast<void*>(1));
+				, shared_from_this(), _1, _2, _3, _4, r, rp), reinterpret_cast<void*>(1));
 		}
 	}
 
@@ -1128,24 +1128,25 @@ namespace libtorrent
 	}
 	catch (...) { handle_exception(); }
 
-	void torrent::on_disk_read_complete(disk_io_job const* j, peer_request r
-		, std::shared_ptr<read_piece_struct> rp) try
+	void torrent::on_disk_read_complete(aux::block_cache_reference ref
+		, char* block, int, storage_error const& se
+		, peer_request r, std::shared_ptr<read_piece_struct> rp) try
 	{
 		// hold a reference until this function returns
 		TORRENT_ASSERT(is_single_thread());
 
-		disk_buffer_holder buffer(m_ses, j->d.io.ref, j->buffer.disk_block);
+		disk_buffer_holder buffer(m_ses, ref, block);
 
 		--rp->blocks_left;
-		if (j->ret != r.length)
+		if (se)
 		{
 			rp->fail = true;
-			rp->error = j->error.ec;
-			handle_disk_error("read", j->error);
+			rp->error = se.ec;
+			handle_disk_error("read", se);
 		}
 		else
 		{
-			std::memcpy(rp->piece_data.get() + r.start, j->buffer.disk_block, r.length);
+			std::memcpy(rp->piece_data.get() + r.start, block, r.length);
 		}
 
 		if (rp->blocks_left == 0)
@@ -1218,7 +1219,7 @@ namespace libtorrent
 
 	// TODO: 3 there's some duplication between this function and
 	// peer_connection::incoming_piece(). is there a way to merge something?
-	void torrent::add_piece(int piece, char const* data, int flags)
+	void torrent::add_piece(int piece, char const* data, int const flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(piece >= 0 && piece < m_torrent_file->num_pieces());
@@ -1281,7 +1282,7 @@ namespace libtorrent
 		picker().dec_refcount(piece, nullptr);
 	}
 
-	void torrent::on_disk_write_complete(disk_io_job const* j
+	void torrent::on_disk_write_complete(storage_error const& error
 		, peer_request p) try
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -1295,9 +1296,9 @@ namespace libtorrent
 		if (m_abort) return;
 		piece_block block_finished(p.piece, p.start / block_size());
 
-		if (j->ret == -1)
+		if (error)
 		{
-			handle_disk_error("write", j->error);
+			handle_disk_error("write", error);
 			return;
 		}
 
@@ -2256,7 +2257,7 @@ namespace libtorrent
 			m_ses.disk_thread().async_hash(m_storage.get(), m_checking_piece++
 				, disk_io_job::sequential_access | disk_io_job::volatile_read
 				, std::bind(&torrent::on_piece_hashed
-					, shared_from_this(), _1), reinterpret_cast<void*>(1));
+					, shared_from_this(), _1, _2, _3, _4), reinterpret_cast<void*>(1));
 			if (m_checking_piece >= m_torrent_file->num_pieces()) break;
 		}
 #ifndef TORRENT_DISABLE_LOGGING
@@ -2266,14 +2267,15 @@ namespace libtorrent
 
 	// This is only used for checking of torrents. i.e. force-recheck or initial checking
 	// of existing files
-	void torrent::on_piece_hashed(disk_io_job const* j) try
+	void torrent::on_piece_hashed(int const status, int const piece
+		, sha1_hash const& piece_hash, storage_error const& error) try
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
 		if (m_abort) return;
 
-		if (j->ret == disk_interface::disk_check_aborted)
+		if (status == disk_interface::disk_check_aborted)
 		{
 			m_checking_piece = 0;
 			m_num_checked_pieces = 0;
@@ -2288,21 +2290,21 @@ namespace libtorrent
 
 		++m_num_checked_pieces;
 
-		if (j->ret < 0)
+		if (status < 0)
 		{
-			if (j->error.ec == boost::system::errc::no_such_file_or_directory
-				|| j->error.ec == boost::asio::error::eof
+			if (error.ec == boost::system::errc::no_such_file_or_directory
+				|| error.ec == boost::asio::error::eof
 #ifdef TORRENT_WINDOWS
-				|| j->error.ec == error_code(ERROR_HANDLE_EOF, system_category())
+				|| error.ec == error_code(ERROR_HANDLE_EOF, system_category())
 #endif
 				)
 			{
-				TORRENT_ASSERT(j->error.file >= 0);
+				TORRENT_ASSERT(error.file >= 0);
 
 				// skip this file by updating m_checking_piece to the first piece following it
 				file_storage const& st = m_torrent_file->files();
-				std::uint64_t file_size = st.file_size(j->error.file);
-				int last = st.map_file(j->error.file, file_size, 0).piece;
+				std::uint64_t file_size = st.file_size(error.file);
+				int last = st.map_file(error.file, file_size, 0).piece;
 				if (m_checking_piece < last)
 				{
 					int diff = last - m_checking_piece;
@@ -2315,16 +2317,19 @@ namespace libtorrent
 				m_checking_piece = 0;
 				m_num_checked_pieces = 0;
 				if (m_ses.alerts().should_post<file_error_alert>())
-					m_ses.alerts().emplace_alert<file_error_alert>(j->error.ec,
-						resolve_filename(j->error.file), j->error.operation_str(), get_handle());
+					m_ses.alerts().emplace_alert<file_error_alert>(error.ec,
+						resolve_filename(error.file), error.operation_str(), get_handle());
 
 #ifndef TORRENT_DISABLE_LOGGING
 				if (should_log())
-					debug_log("on_piece_hashed, fatal disk error: (%d) %s", j->error.ec.value(), j->error.ec.message().c_str());
+				{
+					debug_log("on_piece_hashed, fatal disk error: (%d) %s", error.ec.value()
+						, error.ec.message().c_str());
+				}
 #endif
 				auto_managed(false);
 				pause();
-				set_error(j->error.ec, j->error.file);
+				set_error(error.ec, error.file);
 
 				// recalculate auto-managed torrents sooner
 				// in order to start checking the next torrent
@@ -2336,21 +2341,21 @@ namespace libtorrent
 		m_progress_ppm = std::int64_t(m_num_checked_pieces) * 1000000 / torrent_file().num_pieces();
 
 		if (settings().get_bool(settings_pack::disable_hash_checks)
-			|| sha1_hash(j->d.piece_hash) == m_torrent_file->hash_for_piece(j->piece))
+			|| piece_hash == m_torrent_file->hash_for_piece(piece))
 		{
 			if (has_picker() || !m_have_all)
 			{
 				need_picker();
-				m_picker->we_have(j->piece);
+				m_picker->we_have(piece);
 				update_gauge();
 			}
-			we_have(j->piece);
+			we_have(piece);
 		}
 		else
 		{
 			// if the hash failed, remove it from the cache
 			if (m_storage)
-				m_ses.disk_thread().clear_piece(m_storage.get(), j->piece);
+				m_ses.disk_thread().clear_piece(m_storage.get(), piece);
 		}
 
 		if (m_num_checked_pieces < m_torrent_file->num_pieces())
@@ -2383,7 +2388,7 @@ namespace libtorrent
 			m_ses.disk_thread().async_hash(m_storage.get(), m_checking_piece++
 				, disk_io_job::sequential_access | disk_io_job::volatile_read
 				, std::bind(&torrent::on_piece_hashed
-					, shared_from_this(), _1), reinterpret_cast<void*>(1));
+					, shared_from_this(), _1, _2, _3, _4), reinterpret_cast<void*>(1));
 #ifndef TORRENT_DISABLE_LOGGING
 			debug_log("on_piece_hashed, m_checking_piece: %d", m_checking_piece);
 #endif
@@ -3658,24 +3663,25 @@ namespace libtorrent
 		TORRENT_ASSERT(st.total_done >= st.total_wanted_done);
 	}
 
-	void torrent::on_piece_verified(disk_io_job const* j) try
+	void torrent::on_piece_verified(int const status, int const piece
+		, sha1_hash const& piece_hash, storage_error const& error) try
 	{
 		TORRENT_ASSERT(is_single_thread());
 
 		if (m_abort) return;
 
-		int ret = j->ret;
+		int ret = status;
 		if (settings().get_bool(settings_pack::disable_hash_checks))
 		{
 			ret = 0;
 		}
 		else if (ret == -1)
 		{
-			handle_disk_error("piece_verified", j->error);
+			handle_disk_error("piece_verified", error);
 		}
 		else
 		{
-			if (sha1_hash(j->d.piece_hash) != m_torrent_file->hash_for_piece(j->piece))
+			if (sha1_hash(piece_hash) != m_torrent_file->hash_for_piece(piece))
 				ret = -2;
 		}
 
@@ -3687,10 +3693,10 @@ namespace libtorrent
 		if (should_log())
 		{
 			debug_log("*** PIECE_FINISHED [ p: %d | chk: %s | size: %d ]"
-				, j->piece, ((ret == 0)
+				, piece, ((ret == 0)
 					?"passed":ret == -1
 					?"disk failed":"failed")
-				, m_torrent_file->piece_size(j->piece));
+				, m_torrent_file->piece_size(piece));
 		}
 #endif
 		TORRENT_ASSERT(valid_metadata());
@@ -3702,7 +3708,7 @@ namespace libtorrent
 
 		need_picker();
 
-		TORRENT_ASSERT(!m_picker->have_piece(j->piece));
+		TORRENT_ASSERT(!m_picker->have_piece(piece));
 
 		state_updated();
 
@@ -3712,21 +3718,21 @@ namespace libtorrent
 		// called, and the piece is no longer finished.
 		// in this case, we have to ignore the fact that
 		// it passed the check
-		if (!m_picker->is_piece_finished(j->piece)) return;
+		if (!m_picker->is_piece_finished(piece)) return;
 
 		if (ret == 0)
 		{
 			// the following call may cause picker to become invalid
 			// in case we just became a seed
-			piece_passed(j->piece);
+			piece_passed(piece);
 			// if we're in seed mode, we just acquired this piece
 			// mark it as verified
-			if (m_seed_mode) verified(j->piece);
+			if (m_seed_mode) verified(piece);
 		}
 		else if (ret == -2)
 		{
 			// piece_failed() will restore the piece
-			piece_failed(j->piece);
+			piece_failed(piece);
 		}
 		else
 		{
@@ -10257,9 +10263,10 @@ namespace libtorrent
 		TORRENT_ASSERT(m_storage.get());
 
 		m_ses.disk_thread().async_hash(m_storage.get(), piece, 0
-			, std::bind(&torrent::on_piece_verified, shared_from_this(), _1)
+			, std::bind(&torrent::on_piece_verified, shared_from_this(), _1, _2, _3, _4)
 			, reinterpret_cast<void*>(1));
 	}
+
 	announce_entry* torrent::find_tracker(std::string const& url)
 	{
 		auto i = std::find_if(m_trackers.begin(), m_trackers.end()
