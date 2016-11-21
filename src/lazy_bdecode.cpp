@@ -66,7 +66,7 @@ namespace libtorrent
 				}
 				stack.pop_back();
 			}
-			if (error_pos) *error_pos = start - orig_start;
+			if (error_pos) *error_pos = int(start - orig_start);
 			return -1;
 		}
 
@@ -188,7 +188,7 @@ namespace libtorrent
 				{
 					char const* int_start = start;
 					start = find_char(start, end, 'e');
-					top->construct_int(int_start, start - int_start);
+					top->construct_int(int_start, int(start - int_start));
 					if (start == end) TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
 					TORRENT_ASSERT(*start == 'e');
 					++start;
@@ -307,7 +307,7 @@ namespace libtorrent
 		m_data.start = start;
 		m_size = length;
 		m_begin = start - 1 - num_digits(length);
-		m_len = start - m_begin + length;
+		m_len = std::uint32_t(start - m_begin + length);
 	}
 
 	namespace
@@ -398,8 +398,8 @@ namespace libtorrent
 		TORRENT_ASSERT(m_type == dict_t);
 		for (int i = 0; i < int(m_size); ++i)
 		{
-			lazy_dict_entry& e = m_data.dict[i+1];
-			if (string_equal(name, e.name, e.val.m_begin - e.name))
+			lazy_dict_entry& e = m_data.dict[i + 1];
+			if (string_equal(name, e.name, int(e.val.m_begin - e.name)))
 				return &e.val;
 		}
 		return nullptr;

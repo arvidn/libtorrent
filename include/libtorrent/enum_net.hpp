@@ -105,7 +105,7 @@ namespace libtorrent
 		, boost::asio::ip::tcp const& protocol
 		, char const* device_name, int port, error_code& ec)
 	{
-		tcp::endpoint bind_ep(address_v4::any(), port);
+		tcp::endpoint bind_ep(address_v4::any(), std::uint16_t(port));
 
 		address ip = address::from_string(device_name, ec);
 		if (!ec)

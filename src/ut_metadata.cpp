@@ -272,9 +272,9 @@ namespace libtorrent { namespace
 			int len = bencode(p, e);
 			int total_size = 2 + len + metadata_piece_size;
 			namespace io = detail;
-			io::write_uint32(total_size, header);
+			io::write_uint32(std::uint32_t(total_size), header);
 			io::write_uint8(bt_peer_connection::msg_extended, header);
-			io::write_uint8(m_message_index, header);
+			io::write_uint8(std::uint8_t(m_message_index), header);
 
 			m_pc.send_buffer(msg, len + 6);
 			// TODO: we really need to increment the refcounter on the torrent

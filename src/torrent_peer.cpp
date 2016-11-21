@@ -188,7 +188,7 @@ namespace libtorrent
 //TODO: how do we deal with our external address changing?
 		if (peer_rank == 0)
 			peer_rank = peer_priority(
-				tcp::endpoint(external.external_address(this->address()), external_port)
+				tcp::endpoint(external.external_address(this->address()), std::uint16_t(external_port))
 				, tcp::endpoint(this->address(), this->port));
 		return peer_rank;
 	}

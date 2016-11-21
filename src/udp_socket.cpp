@@ -254,7 +254,7 @@ void udp_socket::send_hostname(char const* hostname, int const port
 	// the overload that takes a hostname is really only supported when we're
 	// using a proxy
 	address target = address::from_string(hostname, ec);
-	if (!ec) send(udp::endpoint(target, port), p, ec, flags);
+	if (!ec) send(udp::endpoint(target, std::uint16_t(port)), p, ec, flags);
 }
 
 void udp_socket::send(udp::endpoint const& ep, span<char const> p
@@ -329,10 +329,10 @@ void udp_socket::wrap(char const* hostname, int const port, span<char const> p
 	write_uint8(0, h); // fragment
 	write_uint8(3, h); // atyp
 	int const hostlen = (std::min)(int(strlen(hostname)), 255);
-	write_uint8(hostlen, h); // hostname len
-	memcpy(h, hostname, hostlen);
+	write_uint8(std::uint8_t(hostlen), h); // hostname len
+	std::memcpy(h, hostname, hostlen);
 	h += hostlen;
-	write_uint16(port, h);
+	write_uint16(std::uint16_t(port), h);
 
 	std::array<boost::asio::const_buffer, 2> iovec;
 	iovec[0] = boost::asio::const_buffer(header, h - header);

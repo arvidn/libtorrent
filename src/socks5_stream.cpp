@@ -301,7 +301,7 @@ namespace libtorrent
 				:(m_remote_endpoint.address().is_v4()?4:16)));
 			char* p = &m_buffer[0];
 			write_uint8(5, p); // SOCKS VERSION 5
-			write_uint8(m_command, p); // CONNECT/BIND command
+			write_uint8(std::uint8_t(m_command), p); // CONNECT/BIND command
 			write_uint8(0, p); // reserved
 			if (!m_dst_name.empty())
 			{
@@ -333,7 +333,7 @@ namespace libtorrent
 			m_buffer.resize(m_user.size() + 9);
 			char* p = &m_buffer[0];
 			write_uint8(4, p); // SOCKS VERSION 4
-			write_uint8(m_command, p); // CONNECT/BIND command
+			write_uint8(std::uint8_t(m_command), p); // CONNECT/BIND command
 			write_uint16(m_remote_endpoint.port(), p);
 			write_uint32(m_remote_endpoint.address().to_v4().to_ulong(), p);
 			std::copy(m_user.begin(), m_user.end(), p);

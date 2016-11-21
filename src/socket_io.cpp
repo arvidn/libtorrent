@@ -141,7 +141,7 @@ namespace libtorrent
 			return ret;
 		}
 
-		ret.port(std::atoi(&*port_pos));
+		ret.port(std::uint16_t(std::atoi(&*port_pos)));
 		return ret;
 	}
 

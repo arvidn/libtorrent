@@ -197,7 +197,7 @@ namespace libtorrent
 		detail::write_uint64(offset, ptr);
 		detail::write_uint64(static_cast<std::uint64_t>(event_id++), ptr);
 		detail::write_uint32(fileid, ptr);
-		detail::write_uint8(flags, ptr);
+		detail::write_uint8(std::uint8_t(flags), ptr);
 
 		std::unique_lock<std::mutex> l(disk_access_mutex);
 		int const ret = int(fwrite(event, 1, sizeof(event), g_access_log));
@@ -484,7 +484,7 @@ namespace libtorrent
 */
 			}
 			ec.ec.clear();
-			m_file_priority[i] = new_prio;
+			m_file_priority[i] = std::uint8_t(new_prio);
 		}
 		if (m_part_file) m_part_file->flush_metadata(ec.ec);
 		if (ec)
