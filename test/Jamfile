@@ -146,6 +146,7 @@ test-suite libtorrent :
 		test_enum_net.cpp
 		test_linked_list.cpp
 		test_stack_allocator.cpp
+		test_listen_socket.cpp
 		test_file_progress.cpp ]
 
 	[ run test_piece_picker.cpp ]

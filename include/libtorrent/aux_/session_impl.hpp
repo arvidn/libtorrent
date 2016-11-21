@@ -142,6 +142,11 @@ namespace libtorrent
 		// if the socket is not bound to a device
 		std::string device;
 
+		// this is the port that was originally specified to listen on
+		// it may be different from local_endpoint.port() if we could
+		// had to retry binding with a higher port
+		int original_port;
+
 		// this is typically set to the same as the local
 		// listen port. In case a NAT port forward was
 		// successfully opened, this will be set to the
@@ -187,6 +192,26 @@ namespace libtorrent
 		TORRENT_EXTRA_EXPORT dht_settings read_dht_settings(bdecode_node const& e);
 		TORRENT_EXTRA_EXPORT entry save_dht_settings(dht_settings const& settings);
 #endif
+
+		struct TORRENT_EXTRA_EXPORT listen_endpoint_t
+		{
+			listen_endpoint_t(address adr, int p, std::string dev, bool s)
+				: addr(adr), port(p), device(dev), ssl(s) {}
+
+			address addr;
+			int port;
+			std::string device;
+			bool ssl;
+		};
+
+		// partitions sockets based on whether they match one of the given endpoints
+		// all matched sockets are ordered before unmatched sockets
+		// matched endpoints are removed from the vector
+		// returns an iterator to the first unmatched socket
+		TORRENT_EXTRA_EXPORT std::list<listen_socket_t>::iterator
+		partition_listen_sockets(
+			std::vector<listen_endpoint_t>& eps
+			, std::list<listen_socket_t>& sockets);
 
 		// this is the link between the main thread and the
 		// thread started to run the main downloader loop
