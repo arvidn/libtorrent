@@ -286,7 +286,7 @@ namespace libtorrent
 			}
 			if (m_remote.address().is_v4() && m_settings.get_int(settings_pack::peer_tos) != 0)
 			{
-				m_socket->set_option(type_of_service(m_settings.get_int(settings_pack::peer_tos)), ec);
+				m_socket->set_option(type_of_service(char(m_settings.get_int(settings_pack::peer_tos))), ec);
 #ifndef TORRENT_DISABLE_LOGGING
 				if (should_log(peer_log_alert::outgoing))
 				{
@@ -298,7 +298,7 @@ namespace libtorrent
 #if TORRENT_USE_IPV6 && defined IPV6_TCLASS
 			else if (m_remote.address().is_v6() && m_settings.get_int(settings_pack::peer_tos) != 0)
 			{
-				m_socket->set_option(traffic_class(m_settings.get_int(settings_pack::peer_tos)), ec);
+				m_socket->set_option(traffic_class(char(m_settings.get_int(settings_pack::peer_tos))), ec);
 			}
 #endif
 		}
@@ -3140,7 +3140,7 @@ namespace libtorrent
 	// --------- DHT PORT ----------
 	// -----------------------------
 
-	void peer_connection::incoming_dht_port(int listen_port)
+	void peer_connection::incoming_dht_port(int const listen_port)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -3150,7 +3150,7 @@ namespace libtorrent
 #endif
 #ifndef TORRENT_DISABLE_DHT
 		m_ses.add_dht_node(udp::endpoint(
-			m_remote.address(), listen_port));
+			m_remote.address(), std::uint16_t(listen_port)));
 #else
 		TORRENT_UNUSED(listen_port);
 #endif
@@ -4605,11 +4605,11 @@ namespace libtorrent
 
 			TORRENT_ASSERT(block_size > 0);
 
-			m_desired_queue_size = queue_time * download_rate / block_size;
+			m_desired_queue_size = std::uint16_t(queue_time * download_rate / block_size);
 		}
 
 		if (m_desired_queue_size > m_max_out_request_queue)
-			m_desired_queue_size = m_max_out_request_queue;
+			m_desired_queue_size = std::uint16_t(m_max_out_request_queue);
 		if (m_desired_queue_size < min_request_queue)
 			m_desired_queue_size = min_request_queue;
 
@@ -4624,7 +4624,7 @@ namespace libtorrent
 #endif
 	}
 
-	void peer_connection::second_tick(int tick_interval_ms)
+	void peer_connection::second_tick(int const tick_interval_ms)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		time_point now = aux::time_now();
@@ -6106,7 +6106,7 @@ namespace libtorrent
 		if (m_remote.address().is_v4() && m_settings.get_int(settings_pack::peer_tos) != 0)
 		{
 			error_code err;
-			m_socket->set_option(type_of_service(m_settings.get_int(settings_pack::peer_tos)), err);
+			m_socket->set_option(type_of_service(char(m_settings.get_int(settings_pack::peer_tos))), err);
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log(peer_log_alert::outgoing))
 			{
@@ -6119,7 +6119,7 @@ namespace libtorrent
 		else if (m_remote.address().is_v6() && m_settings.get_int(settings_pack::peer_tos) != 0)
 		{
 			error_code err;
-			m_socket->set_option(traffic_class(m_settings.get_int(settings_pack::peer_tos)), err);
+			m_socket->set_option(traffic_class(char(m_settings.get_int(settings_pack::peer_tos))), err);
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log(peer_log_alert::outgoing))
 			{

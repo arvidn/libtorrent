@@ -109,7 +109,7 @@ namespace libtorrent
 	{
 		aux::proxy_settings ret;
 		ret.hostname = m_hostname;
-		ret.port = m_port;
+		ret.port = std::uint16_t(m_port);
 		ret.type = settings_pack::i2p_proxy;
 		return ret;
 	}

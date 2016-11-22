@@ -396,7 +396,7 @@ void http_connection::start(std::string const& hostname, int port
 		{
 			m_hostname = hostname;
 			m_port = std::uint16_t(port);
-			m_endpoints.push_back(tcp::endpoint(address(), port));
+			m_endpoints.push_back(tcp::endpoint(address(), std::uint16_t(port)));
 			connect();
 		}
 		else

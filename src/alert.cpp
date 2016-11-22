@@ -828,7 +828,7 @@ namespace libtorrent {
 		, address(listen_addr)
 		, port(listen_port)
 #ifndef TORRENT_NO_DEPRECATE
-		, endpoint(listen_addr, listen_port)
+		, endpoint(listen_addr, std::uint16_t(listen_port))
 		, sock_type(static_cast<socket_type_t>(sock_type_idx(t)))
 #endif
 		, m_alloc(alloc)
@@ -964,7 +964,7 @@ namespace libtorrent {
 		, port(listen_port)
 		, socket_type(t)
 #ifndef TORRENT_NO_DEPRECATE
-		, endpoint(listen_addr, listen_port)
+		, endpoint(listen_addr, std::uint16_t(listen_port))
 		, sock_type(static_cast<socket_type_t>(sock_type_idx(t)))
 #endif
 	{}

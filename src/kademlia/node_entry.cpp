@@ -78,8 +78,8 @@ namespace libtorrent { namespace dht
 		TORRENT_ASSERT(new_rtt <= 0xffff);
 		TORRENT_ASSERT(new_rtt >= 0);
 		if (new_rtt == 0xffff) return;
-		if (rtt == 0xffff) rtt = new_rtt;
-		else rtt = int(rtt) * 2 / 3 + new_rtt / 3;
+		if (rtt == 0xffff) rtt = std::uint16_t(new_rtt);
+		else rtt = std::uint16_t(int(rtt) * 2 / 3 + new_rtt / 3);
 	}
 
 }}

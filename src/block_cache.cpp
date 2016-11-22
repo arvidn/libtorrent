@@ -460,7 +460,7 @@ void block_cache::cache_hit(cached_piece_entry* p, void* requester, bool volatil
 	// move into L2 (frequently used)
 	m_lru[p->cache_state].erase(p);
 	m_lru[target_queue].push_back(p);
-	p->cache_state = target_queue;
+	p->cache_state = std::uint16_t(target_queue);
 	p->expire = aux::time_now();
 #if TORRENT_USE_ASSERTS
 	switch (p->cache_state)
@@ -500,7 +500,7 @@ void block_cache::update_cache_state(cached_piece_entry* p)
 	src->erase(p);
 	dst->push_back(p);
 	p->expire = aux::time_now();
-	p->cache_state = desired_state;
+	p->cache_state = std::uint16_t(desired_state);
 #if TORRENT_USE_ASSERTS
 	switch (p->cache_state)
 	{
@@ -626,7 +626,7 @@ cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, int const 
 		p = const_cast<cached_piece_entry*>(&*m_pieces.insert(std::move(pe)).first);
 
 		j->storage->add_piece(p);
-		p->cache_state = cache_state;
+		p->cache_state = std::uint16_t(cache_state);
 
 		TORRENT_PIECE_ASSERT(p->cache_state < cached_piece_entry::num_lrus, p);
 		linked_list<cached_piece_entry>* lru_list = &m_lru[p->cache_state];
@@ -682,7 +682,7 @@ cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, int const 
 				p->storage->add_piece(p);
 			}
 			m_lru[p->cache_state].erase(p);
-			p->cache_state = cache_state;
+			p->cache_state = std::uint16_t(cache_state);
 			m_lru[p->cache_state].push_back(p);
 			p->expire = aux::time_now();
 #if TORRENT_USE_ASSERTS

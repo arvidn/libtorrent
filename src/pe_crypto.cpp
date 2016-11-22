@@ -88,7 +88,7 @@ namespace libtorrent
 	dh_key_exchange::dh_key_exchange()
 	{
 		std::array<std::uint8_t, 96> random_key;
-		for (auto& i : random_key) i = random(0xff);
+		aux::random_bytes({reinterpret_cast<char*>(random_key.data()), random_key.size()});
 
 		// create local key (random)
 		mp::import_bits(m_dh_local_secret, random_key.begin(), random_key.end());
@@ -351,7 +351,7 @@ namespace libtorrent
 void rc4_init(const unsigned char* in, unsigned long len, rc4 *state)
 {
 	size_t const key_size = sizeof(state->buf);
-	unsigned char key[key_size], tmp, *s;
+	std::uint8_t key[key_size], tmp, *s;
 	int keylen, x, y, j;
 
 	TORRENT_ASSERT(state != nullptr);
@@ -370,7 +370,7 @@ void rc4_init(const unsigned char* in, unsigned long len, rc4 *state)
 
 	/* make RC4 perm and shuffle */
 	for (x = 0; x < key_size; ++x) {
-		s[x] = x;
+		s[x] = std::uint8_t(x);
 	}
 
 	for (j = x = y = 0; x < key_size; x++) {
@@ -386,15 +386,15 @@ void rc4_init(const unsigned char* in, unsigned long len, rc4 *state)
 
 unsigned long rc4_encrypt(unsigned char *out, unsigned long outlen, rc4 *state)
 {
-	unsigned char x, y, *s, tmp;
+	std::uint8_t x, y, *s, tmp;
 	unsigned long n;
 
 	TORRENT_ASSERT(out != nullptr);
 	TORRENT_ASSERT(state != nullptr);
 
 	n = outlen;
-	x = state->x;
-	y = state->y;
+	x = std::uint8_t(state->x);
+	y = std::uint8_t(state->y);
 	s = state->buf.data();
 	while (outlen--) {
 		x = (x + 1) & 255;

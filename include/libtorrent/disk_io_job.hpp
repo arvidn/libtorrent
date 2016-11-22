@@ -94,7 +94,6 @@ namespace libtorrent
 			, file_priority
 			, clear_piece
 			, resolve_links
-
 			, num_job_ids
 		};
 

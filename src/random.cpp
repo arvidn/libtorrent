@@ -113,9 +113,7 @@ namespace libtorrent
 #pragma clang diagnostic pop
 #endif
 #else
-			std::uint32_t s = random(0xffffffff);
-			std::independent_bits_engine<std::mt19937, 8, std::uint8_t> generator(s);
-			std::generate(buffer.begin(), buffer.end(), std::ref(generator));
+			for (auto& b : buffer) b = char(random(0xff));
 #endif
 		}
 	}

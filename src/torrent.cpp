@@ -2975,7 +2975,7 @@ namespace libtorrent
 			ae->next_announce = now + seconds(interval);
 			ae->min_announce = now + seconds(resp.min_interval);
 			int tracker_index = ae - &m_trackers[0];
-			m_last_working_tracker = prioritize_tracker(tracker_index);
+			m_last_working_tracker = std::int8_t(prioritize_tracker(tracker_index));
 
 			if ((!resp.trackerid.empty()) && (ae->trackerid != resp.trackerid))
 			{
@@ -3317,7 +3317,7 @@ namespace libtorrent
 #endif
 
 	void torrent::on_peer_name_lookup(error_code const& e
-		, std::vector<address> const& host_list, int port) try
+		, std::vector<address> const& host_list, int const port) try
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -3333,7 +3333,7 @@ namespace libtorrent
 		if (e || m_abort || host_list.empty() || m_ses.is_aborted()) return;
 
 		// TODO: add one peer per IP the hostname resolves to
-		tcp::endpoint host(host_list.front(), port);
+		tcp::endpoint host(host_list.front(), std::uint16_t(port));
 
 		if (m_ip_filter && m_ip_filter->access(host.address()) & ip_filter::blocked)
 		{
@@ -4069,7 +4069,7 @@ namespace libtorrent
 			if (trust_points < -7) trust_points = -7;
 			p->trust_points = trust_points;
 			if (hashfails > 255) hashfails = 255;
-			p->hashfails = hashfails;
+			p->hashfails = std::uint8_t(hashfails);
 
 			// either, we have received too many failed hashes
 			// or this was the only peer that sent us this piece.
@@ -4968,11 +4968,11 @@ namespace libtorrent
 		{
 			// any unallocated slot is assumed to be 1
 			if (prio == 1) return;
-			m_file_priority.resize(index+1, 4);
+			m_file_priority.resize(index + 1, 4);
 		}
 
 		if (m_file_priority[index] == prio) return;
-		m_file_priority[index] = prio;
+		m_file_priority[index] = std::uint8_t(prio);
 
 		if (!valid_metadata()) return;
 
@@ -5677,7 +5677,7 @@ namespace libtorrent
 			return;
 		}
 
-		if (m_ses.get_port_filter().access(port) & port_filter::blocked)
+		if (m_ses.get_port_filter().access(std::uint16_t(port)) & port_filter::blocked)
 		{
 			if (m_ses.alerts().should_post<url_seed_alert>())
 			{
@@ -5720,7 +5720,7 @@ namespace libtorrent
 				|| ps.type == settings_pack::socks5_pw)
 			&& ps.proxy_peer_connections)
 		{
-			connect_web_seed(web, tcp::endpoint(address(), port));
+			connect_web_seed(web, tcp::endpoint(address(), std::uint16_t(port)));
 		}
 		else
 		{
@@ -5786,7 +5786,7 @@ namespace libtorrent
 			|| m_ses.num_connections() >= settings().get_int(settings_pack::connections_limit))
 			return;
 
-		tcp::endpoint a(addrs[0], port);
+		tcp::endpoint a(addrs[0], std::uint16_t(port));
 
 		std::string hostname;
 		error_code ec;
@@ -5818,7 +5818,7 @@ namespace libtorrent
 		auto self = shared_from_this();
 		web->resolving = true;
 		m_ses.async_resolve(hostname, resolver_interface::abort_on_shutdown
-			, [self,web,port](error_code const& err, std::vector<address> const& addr)
+			, [self, web, port](error_code const& err, std::vector<address> const& addr)
 			{
 				self->wrap(&torrent::on_name_lookup, err, addr, port, web);
 			});
@@ -5871,11 +5871,11 @@ namespace libtorrent
 			, end(addrs.end()); i != end; ++i)
 		{
 			// fill in the peer struct's address field
-			web->endpoints.push_back(tcp::endpoint(*i, port));
+			web->endpoints.push_back(tcp::endpoint(*i, std::uint16_t(port)));
 
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log())
-				debug_log("  -> %s", print_endpoint(tcp::endpoint(*i, port)).c_str());
+				debug_log("  -> %s", print_endpoint(tcp::endpoint(*i, std::uint16_t(port))).c_str());
 #endif
 		}
 
@@ -6411,7 +6411,7 @@ namespace libtorrent
 				piece_priority.resize(m_torrent_file->num_pieces());
 
 				for (int i = 0, end(int(piece_priority.size())); i < end; ++i)
-					piece_priority[i] = m_picker->piece_priority(i);
+					piece_priority[i] = entry::string_type::value_type(m_picker->piece_priority(i));
 			}
 		}
 	}
@@ -6940,7 +6940,7 @@ namespace libtorrent
 		int connection_limit_factor = 0;
 		for (int i = 0; i < p->num_classes(); ++i)
 		{
-			int pc = p->class_at(i);
+			peer_class_t pc = p->class_at(i);
 			if (m_ses.peer_classes().at(pc) == nullptr) continue;
 			int f = m_ses.peer_classes().at(pc)->connection_limit_factor;
 			if (connection_limit_factor < f) connection_limit_factor = f;
@@ -8358,19 +8358,19 @@ namespace libtorrent
 	// shifted backwards to remain the same. Anything that's shifted back
 	// beyond the new epoch is clamped to 0 (to represent the oldest timestamp
 	// currently representable by the session_time)
-	void torrent::step_session_time(int seconds)
+	void torrent::step_session_time(int const seconds)
 	{
 		if (m_peer_list)
 		{
 			for (auto pe : *m_peer_list)
 			{
 				pe->last_optimistically_unchoked
-					= clamped_subtract(pe->last_optimistically_unchoked, seconds);
-				pe->last_connected = clamped_subtract(pe->last_connected, seconds);
+					= std::uint16_t(clamped_subtract(pe->last_optimistically_unchoked, seconds));
+				pe->last_connected = std::uint16_t(clamped_subtract(pe->last_connected, seconds));
 			}
 		}
 
-		// m_active_time, m_seeding_time and m_finished_time are absolute cunters
+		// m_active_time, m_seeding_time and m_finished_time are absolute counters
 		// of the historical time we've spent in each state. The current time
 		// we've spent in those states (this session) is calculated by
 		// session_time() - m_started
@@ -8384,30 +8384,30 @@ namespace libtorrent
 			int const lost_seconds = seconds - m_started;
 			m_active_time += lost_seconds;
 		}
-		m_started = clamped_subtract(m_started, seconds);
+		m_started = std::uint16_t(clamped_subtract(m_started, seconds));
 
 		if (m_became_seed < seconds && is_seed())
 		{
 			int const lost_seconds = seconds - m_became_seed;
 			m_seeding_time += lost_seconds;
 		}
-		m_became_seed = clamped_subtract(m_became_seed, seconds);
+		m_became_seed = std::uint16_t(clamped_subtract(m_became_seed, seconds));
 
 		if (m_finished_time < seconds && is_finished())
 		{
 			int const lost_seconds = seconds - m_became_finished;
 			m_finished_time += lost_seconds;
 		}
-		m_became_finished = clamped_subtract(m_became_finished, seconds);
+		m_became_finished = std::uint16_t(clamped_subtract(m_became_finished, seconds));
 
-		m_last_upload = clamped_subtract_s16(m_last_upload, seconds);
-		m_last_download = clamped_subtract_s16(m_last_download, seconds);
+		m_last_upload = std::int16_t(clamped_subtract_s16(m_last_upload, seconds));
+		m_last_download = std::int16_t(clamped_subtract_s16(m_last_download, seconds));
 #ifndef TORRENT_NO_DEPRECATE
-		m_last_scrape = clamped_subtract_s16(m_last_scrape, seconds);
+		m_last_scrape = std::int16_t(clamped_subtract_s16(m_last_scrape, seconds));
 #endif
 
-		m_last_saved_resume = clamped_subtract(m_last_saved_resume, seconds);
-		m_upload_mode_time = clamped_subtract(m_upload_mode_time, seconds);
+		m_last_saved_resume = std::uint16_t(clamped_subtract(m_last_saved_resume, seconds));
+		m_upload_mode_time = std::uint16_t(clamped_subtract(m_upload_mode_time, seconds));
 	}
 
 	// the higher seed rank, the more important to seed
@@ -10166,7 +10166,7 @@ namespace libtorrent
 
 		need_peer_list();
 		torrent_state st = get_peer_list_state();
-		torrent_peer* p = m_peer_list->add_peer(adr, source, flags, &st);
+		torrent_peer* p = m_peer_list->add_peer(adr, source, char(flags), &st);
 		peers_erased(st.erased);
 
 #ifndef TORRENT_DISABLE_LOGGING

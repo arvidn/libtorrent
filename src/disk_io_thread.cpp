@@ -1521,9 +1521,9 @@ namespace libtorrent
 		j->storage = storage->shared_from_this();
 		j->piece = r.piece;
 		j->d.io.offset = r.start;
-		j->d.io.buffer_size = r.length;
+		j->d.io.buffer_size = std::uint16_t(r.length);
 		j->buffer.disk_block = nullptr;
-		j->flags = flags;
+		j->flags = std::uint8_t(flags);
 		j->requester = requester;
 		j->callback = std::move(handler);
 
@@ -1631,10 +1631,10 @@ namespace libtorrent
 		j->storage = storage->shared_from_this();
 		j->piece = r.piece;
 		j->d.io.offset = r.start;
-		j->d.io.buffer_size = r.length;
+		j->d.io.buffer_size = std::uint16_t(r.length);
 		j->buffer.disk_block = buffer.get();
 		j->callback = std::move(handler);
-		j->flags = flags;
+		j->flags = std::uint8_t(flags);
 
 #if TORRENT_USE_ASSERTS
 		std::unique_lock<std::mutex> l3_(m_cache_mutex);
@@ -1708,7 +1708,7 @@ namespace libtorrent
 				j = allocate_job(disk_io_job::flush_hashed);
 				j->storage = storage->shared_from_this();
 				j->piece = r.piece;
-				j->flags = flags;
+				j->flags = std::uint8_t(flags);
 				add_job(j);
 			}
 
@@ -1729,7 +1729,7 @@ namespace libtorrent
 		j->storage = storage->shared_from_this();
 		j->piece = piece;
 		j->callback = std::move(handler);
-		j->flags = flags;
+		j->flags = std::uint8_t(flags);
 		j->requester = requester;
 
 		int piece_size = storage->files()->piece_size(piece);
@@ -1767,7 +1767,7 @@ namespace libtorrent
 		j->storage = storage->shared_from_this();
 		j->buffer.string = allocate_string_copy(p.c_str());
 		j->callback = std::move(handler);
-		j->flags = flags;
+		j->flags = std::uint8_t(flags);
 
 		add_fence_job(storage, j);
 	}

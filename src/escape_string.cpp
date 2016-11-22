@@ -279,8 +279,8 @@ namespace libtorrent
 			'4', '5', '6', '7', '8', '9', '+', '/'
 		};
 
-		unsigned char inbuf[3];
-		unsigned char outbuf[4];
+		std::uint8_t inbuf[3];
+		std::uint8_t outbuf[4];
 
 		std::string ret;
 		for (std::string::const_iterator i = s.begin(); i != s.end();)
@@ -297,10 +297,10 @@ namespace libtorrent
 			i += available_input;
 
 			// encode inbuf to outbuf
-			outbuf[0] = (inbuf[0] & 0xfc) >> 2;
-			outbuf[1] = ((inbuf[0] & 0x03) << 4) | ((inbuf [1] & 0xf0) >> 4);
-			outbuf[2] = ((inbuf[1] & 0x0f) << 2) | ((inbuf [2] & 0xc0) >> 6);
-			outbuf[3] = inbuf[2] & 0x3f;
+			outbuf[0] = std::uint8_t((inbuf[0] & 0xfc) >> 2);
+			outbuf[1] = std::uint8_t(((inbuf[0] & 0x03) << 4) | ((inbuf [1] & 0xf0) >> 4));
+			outbuf[2] = std::uint8_t(((inbuf[1] & 0x0f) << 2) | ((inbuf [2] & 0xc0) >> 6));
+			outbuf[3] = std::uint8_t(inbuf[2] & 0x3f);
 
 			// write output
 			for (int j = 0; j < available_input+1; ++j)
@@ -353,14 +353,14 @@ namespace libtorrent
 			i += available_input;
 
 			// encode inbuf to outbuf
-			outbuf[0] = (inbuf[0] & 0xf8) >> 3;
-			outbuf[1] = ((inbuf[0] & 0x07) << 2) | ((inbuf[1] & 0xc0) >> 6);
-			outbuf[2] = ((inbuf[1] & 0x3e) >> 1);
-			outbuf[3] = ((inbuf[1] & 0x01) << 4) | ((inbuf[2] & 0xf0) >> 4);
-			outbuf[4] = ((inbuf[2] & 0x0f) << 1) | ((inbuf[3] & 0x80) >> 7);
-			outbuf[5] = ((inbuf[3] & 0x7c) >> 2);
-			outbuf[6] = ((inbuf[3] & 0x03) << 3) | ((inbuf[4] & 0xe0) >> 5);
-			outbuf[7] = inbuf[4] & 0x1f;
+			outbuf[0] = std::uint8_t((inbuf[0] & 0xf8) >> 3);
+			outbuf[1] = std::uint8_t(((inbuf[0] & 0x07) << 2) | ((inbuf[1] & 0xc0) >> 6));
+			outbuf[2] = std::uint8_t(((inbuf[1] & 0x3e) >> 1));
+			outbuf[3] = std::uint8_t(((inbuf[1] & 0x01) << 4) | ((inbuf[2] & 0xf0) >> 4));
+			outbuf[4] = std::uint8_t(((inbuf[2] & 0x0f) << 1) | ((inbuf[3] & 0x80) >> 7));
+			outbuf[5] = std::uint8_t(((inbuf[3] & 0x7c) >> 2));
+			outbuf[6] = std::uint8_t(((inbuf[3] & 0x03) << 3) | ((inbuf[4] & 0xe0) >> 5));
+			outbuf[7] = std::uint8_t(inbuf[4] & 0x1f);
 
 			// write output
 			int num_out = input_output_mapping[available_input];
@@ -383,13 +383,13 @@ namespace libtorrent
 
 	std::string base32decode(std::string const& s)
 	{
-		unsigned char inbuf[8];
-		unsigned char outbuf[5];
+		std::uint8_t inbuf[8];
+		std::uint8_t outbuf[5];
 
 		std::string ret;
 		for (std::string::const_iterator i = s.begin(); i != s.end();)
 		{
-			int available_input = (std::min)(8, int(s.end()-i));
+			int available_input = std::min(8, int(s.end() - i));
 
 			int pad_start = 0;
 			if (available_input < 8) pad_start = available_input;
@@ -398,7 +398,7 @@ namespace libtorrent
 			std::fill(inbuf, inbuf+8, 0);
 			for (int j = 0; j < available_input; ++j)
 			{
-				char in = std::toupper(*i++);
+				char in = char(std::toupper(*i++));
 				if (in >= 'A' && in <= 'Z')
 					inbuf[j] = in - 'A';
 				else if (in >= '2' && in <= '7')
@@ -416,17 +416,17 @@ namespace libtorrent
 			}
 
 			// decode inbuf to outbuf
-			outbuf[0] = inbuf[0] << 3;
+			outbuf[0] = std::uint8_t(inbuf[0] << 3);
 			outbuf[0] |= inbuf[1] >> 2;
-			outbuf[1] = (inbuf[1] & 0x3) << 6;
+			outbuf[1] = std::uint8_t((inbuf[1] & 0x3) << 6);
 			outbuf[1] |= inbuf[2] << 1;
 			outbuf[1] |= (inbuf[3] & 0x10) >> 4;
-			outbuf[2] = (inbuf[3] & 0x0f) << 4;
+			outbuf[2] = std::uint8_t((inbuf[3] & 0x0f) << 4);
 			outbuf[2] |= (inbuf[4] & 0x1e) >> 1;
-			outbuf[3] = (inbuf[4] & 0x01) << 7;
+			outbuf[3] = std::uint8_t((inbuf[4] & 0x01) << 7);
 			outbuf[3] |= (inbuf[5] & 0x1f) << 2;
 			outbuf[3] |= (inbuf[6] & 0x18) >> 3;
-			outbuf[4] = (inbuf[6] & 0x07) << 5;
+			outbuf[4] = std::uint8_t((inbuf[6] & 0x07) << 5);
 			outbuf[4] |= inbuf[7];
 
 			int input_output_mapping[] = {5, 1, 1, 2, 2, 3, 4, 4, 5};
