@@ -2154,8 +2154,7 @@ namespace libtorrent
 		// now.
 		leave_seed_mode(true);
 
-		m_ses.disk_thread().async_release_files(m_storage.get()
-			, std::function<void(disk_io_job const*)>());
+		m_ses.disk_thread().async_release_files(m_storage.get());
 
 		// forget that we have any pieces
 		m_have_all = false;
@@ -4321,7 +4320,7 @@ namespace libtorrent
 		if (m_storage.get())
 		{
 			m_ses.disk_thread().async_stop_torrent(m_storage.get()
-				, std::bind(&torrent::on_cache_flushed, shared_from_this(), _1));
+				, std::bind(&torrent::on_cache_flushed, shared_from_this()));
 		}
 		else
 		{
@@ -7426,7 +7425,7 @@ namespace libtorrent
 		{
 			// we need to keep the object alive during this operation
 			m_ses.disk_thread().async_release_files(m_storage.get()
-				, std::bind(&torrent::on_cache_flushed, shared_from_this(), _1));
+				, std::bind(&torrent::on_cache_flushed, shared_from_this()));
 		}
 
 		// this torrent just completed downloads, which means it will fall
@@ -7761,7 +7760,7 @@ namespace libtorrent
 			std::string const& path = save_path;
 #endif
 			m_ses.disk_thread().async_move_storage(m_storage.get(), path, flags
-				, std::bind(&torrent::on_storage_moved, shared_from_this(), _1));
+				, std::bind(&torrent::on_storage_moved, shared_from_this(), _1, _2, _3));
 			m_moving_storage = true;
 		}
 		else
@@ -7781,26 +7780,27 @@ namespace libtorrent
 		}
 	}
 
-	void torrent::on_storage_moved(disk_io_job const* j) try
+	void torrent::on_storage_moved(int const status, std::string const& path
+		, storage_error const& error) try
 	{
 		TORRENT_ASSERT(is_single_thread());
 
 		m_moving_storage = false;
-		if (j->ret == disk_interface::no_error
-			|| j->ret == disk_interface::need_full_check)
+		if (status == disk_interface::no_error
+			|| status == disk_interface::need_full_check)
 		{
 			if (alerts().should_post<storage_moved_alert>())
-				alerts().emplace_alert<storage_moved_alert>(get_handle(), j->buffer.string);
-			m_save_path = j->buffer.string;
+				alerts().emplace_alert<storage_moved_alert>(get_handle(), path);
+			m_save_path = path;
 			set_need_save_resume();
-			if (j->ret == disk_interface::need_full_check)
+			if (status == disk_interface::need_full_check)
 				force_recheck();
 		}
 		else
 		{
 			if (alerts().should_post<storage_moved_failed_alert>())
-				alerts().emplace_alert<storage_moved_failed_alert>(get_handle(), j->error.ec
-					, resolve_filename(j->error.file), j->error.operation_str());
+				alerts().emplace_alert<storage_moved_failed_alert>(get_handle(), error.ec
+					, resolve_filename(error.file), error.operation_str());
 		}
 	}
 	catch (...) { handle_exception(); }
@@ -8533,10 +8533,10 @@ namespace libtorrent
 			return;
 		}
 		m_ses.disk_thread().async_release_files(m_storage.get()
-			, std::bind(&torrent::on_cache_flushed, shared_from_this(), _1));
+			, std::bind(&torrent::on_cache_flushed, shared_from_this()));
 	}
 
-	void torrent::on_cache_flushed(disk_io_job const*) try
+	void torrent::on_cache_flushed() try
 	{
 		TORRENT_ASSERT(is_single_thread());
 

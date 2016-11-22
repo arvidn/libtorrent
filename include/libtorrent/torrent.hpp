@@ -1118,9 +1118,10 @@ namespace libtorrent
 
 		void on_files_deleted(disk_io_job const* j);
 		void on_torrent_paused(disk_io_job const* j);
-		void on_storage_moved(disk_io_job const* j);
+		void on_storage_moved(int status, std::string const& path
+			, storage_error const& error);
 		void on_file_renamed(disk_io_job const* j);
-		void on_cache_flushed(disk_io_job const* j);
+		void on_cache_flushed();
 
 		// upload and download rate limits for the torrent
 		void set_limit_impl(int limit, int channel, bool state_update = true);
