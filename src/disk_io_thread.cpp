@@ -1761,7 +1761,7 @@ namespace libtorrent
 	}
 
 	void disk_io_thread::async_move_storage(storage_interface* storage, std::string const& p, int flags
-		, std::function<void(disk_io_job const*)> handler)
+		, std::function<void(int, std::string const&, storage_error const&)> handler)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::move_storage);
 		j->storage = storage->shared_from_this();
@@ -1773,7 +1773,7 @@ namespace libtorrent
 	}
 
 	void disk_io_thread::async_release_files(storage_interface* storage
-		, std::function<void(disk_io_job const*)> handler)
+		, std::function<void()> handler)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::release_files);
 		j->storage = storage->shared_from_this();

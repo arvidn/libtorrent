@@ -157,9 +157,16 @@ namespace libtorrent
 			, char* block, int flags, storage_error const& se)>;
 		using write_handler = std::function<void(storage_error const&)>;
 		using hash_handler = std::function<void(int, int, sha1_hash const&, storage_error const&)>;
+		using move_handler = std::function<void(int, std::string const&, storage_error const&)>;
+		using release_handler = std::function<void()>;
 		using generic_handler = std::function<void(disk_io_job const*)>;
 
-		boost::variant<read_handler, write_handler, hash_handler, generic_handler> callback;
+		boost::variant<read_handler
+			, write_handler
+			, hash_handler
+			, move_handler
+			, release_handler
+			, generic_handler> callback;
 
 		// the error code from the file operation
 		// on error, this also contains the path of the

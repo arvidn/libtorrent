@@ -301,10 +301,9 @@ namespace libtorrent
 		void async_hash(storage_interface* storage, int piece, int flags
 			, std::function<void(int, int, sha1_hash const&, storage_error const&)> handler, void* requester) override;
 		void async_move_storage(storage_interface* storage, std::string const& p, int flags
-			, std::function<void(disk_io_job const*)> handler) override;
+			, std::function<void(int, std::string const&, storage_error const&)> handler) override;
 		void async_release_files(storage_interface* storage
-			, std::function<void(disk_io_job const*)> handler
-			= std::function<void(disk_io_job const*)>()) override;
+			, std::function<void()> handler = std::function<void()>()) override;
 		void async_delete_files(storage_interface* storage, int options
 			, std::function<void(disk_io_job const*)> handler) override;
 		void async_check_files(storage_interface* storage
