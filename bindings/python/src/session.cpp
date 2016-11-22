@@ -16,6 +16,7 @@
 #include <libtorrent/aux_/session_impl.hpp> // for settings_map()
 #include <libtorrent/torrent_info.hpp>
 #include <libtorrent/kademlia/item.hpp> // for sign_mutable_item
+#include <libtorrent/time.hpp>
 
 #ifndef TORRENT_NO_DEPRECATE
 #include <libtorrent/extensions/lt_trackers.hpp>
@@ -465,6 +466,28 @@ namespace
        return ret;
     }
 
+    list cached_piece_info_list(std::vector<cached_piece_info> const& v)
+    {
+       list pieces;
+       lt::time_point now = lt::clock_type::now();
+       for (std::vector<cached_piece_info>::const_iterator i = v.begin()
+          , end(v.end()); i != end; ++i)
+       {
+          dict d;
+          d["piece"] = i->piece;
+          d["last_use"] = total_milliseconds(now - i->last_use) / 1000.f;
+          d["next_to_hash"] = i->next_to_hash;
+          d["kind"] = i->kind;
+          pieces.append(d);
+       }
+       return pieces;
+    }
+
+    list cache_status_pieces(cache_status const& cs)
+    {
+        return cached_piece_info_list(cs.pieces);
+    }
+
 #ifndef TORRENT_NO_DEPRECATE
     cache_status get_cache_status(lt::session& s)
     {
@@ -493,19 +516,7 @@ namespace
           ses.get_cache_info(ih, ret);
        }
 
-       list pieces;
-       ptime now = time_now();
-       for (std::vector<cached_piece_info>::iterator i = ret.begin()
-          , end(ret.end()); i != end; ++i)
-       {
-          dict d;
-          d["piece"] = i->piece;
-          d["last_use"] = total_milliseconds(now - i->last_use) / 1000.f;
-          d["next_to_hash"] = i->next_to_hash;
-          d["kind"] = i->kind;
-          pieces.append(d);
-       }
-       return pieces;
+       return cached_piece_info_list(ret);
     }
 #endif
 
@@ -727,6 +738,7 @@ void bind_session()
         .value("flag_stop_when_ready", add_torrent_params::flag_stop_when_ready)
     ;
     class_<cache_status>("cache_status")
+        .add_property("pieces", cache_status_pieces)
 #ifndef TORRENT_NO_DEPRECATE
         .def_readonly("blocks_written", &cache_status::blocks_written)
         .def_readonly("writes", &cache_status::writes)
