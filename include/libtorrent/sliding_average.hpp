@@ -36,6 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 #include <cstdlib> // for std::abs
 
+#include "assert.hpp"
+
 namespace libtorrent
 {
 
@@ -90,8 +92,9 @@ struct average_accumulator
 
 	void add_sample(int s)
 	{
+		TORRENT_ASSERT(s >= 0);
 		++m_num_samples;
-		m_sample_sum += s;
+		m_sample_sum += std::uint64_t(s);
 	}
 
 	int mean()

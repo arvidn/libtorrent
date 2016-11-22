@@ -354,7 +354,7 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(index >= 0);
 			TORRENT_ASSERT(index < int(m_files.size()));
-			return m_files[index];
+			return m_files[std::size_t(index)];
 		}
 		TORRENT_DEPRECATED
 		file_entry at(iterator i) const;

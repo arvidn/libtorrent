@@ -321,7 +321,7 @@ restart_response:
 					m_chunked_encoding = string_begins_no_case("chunked", value.c_str());
 				}
 
-				TORRENT_ASSERT(m_recv_pos <= recv_buffer.size());
+				TORRENT_ASSERT(m_recv_pos <= int(recv_buffer.size()));
 				TORRENT_ASSERT(pos <= recv_buffer.end());
 				newline = std::find(pos, recv_buffer.end(), '\n');
 			}

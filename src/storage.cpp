@@ -1126,7 +1126,7 @@ namespace libtorrent
 		TORRENT_ASSERT(files.is_loaded());
 
 		// find the file iterator and file offset
-		std::uint64_t torrent_offset = piece * std::uint64_t(files.piece_length()) + offset;
+		std::int64_t const torrent_offset = piece * std::int64_t(files.piece_length()) + offset;
 		int file_index = files.file_index_at_offset(torrent_offset);
 		TORRENT_ASSERT(torrent_offset >= files.file_offset(file_index));
 		TORRENT_ASSERT(torrent_offset < files.file_offset(file_index) + files.file_size(file_index));
@@ -1143,7 +1143,7 @@ namespace libtorrent
 		// advance_bufs())
 		TORRENT_ALLOCA(current_buf, file::iovec_t, bufs.size());
 		copy_bufs(bufs, size, current_buf);
-		TORRENT_ASSERT(count_bufs(current_buf, size) == bufs.size());
+		TORRENT_ASSERT(count_bufs(current_buf, size) == int(bufs.size()));
 
 		TORRENT_ALLOCA(tmp_buf, file::iovec_t, bufs.size());
 
@@ -1188,7 +1188,7 @@ namespace libtorrent
 			bytes_left -= bytes_transferred;
 			file_offset += bytes_transferred;
 
-			TORRENT_ASSERT(count_bufs(current_buf, bytes_left) <= bufs.size());
+			TORRENT_ASSERT(count_bufs(current_buf, bytes_left) <= int(bufs.size()));
 
 			// if the file operation returned 0, we've hit end-of-file. We're done
 			if (bytes_transferred == 0)

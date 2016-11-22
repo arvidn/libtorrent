@@ -2900,7 +2900,7 @@ namespace libtorrent
 
 			// TODO: 3 this is weird buffer handling
 			span<char> const buf = m_recv_buffer.mutable_buffer();
-			TORRENT_ASSERT(buf.size() >= m_recv_buffer.packet_size());
+			TORRENT_ASSERT(int(buf.size()) >= m_recv_buffer.packet_size());
 			rc4_decrypt({buf.data(), size_t(m_recv_buffer.packet_size())});
 
 			recv_buffer = m_recv_buffer.get();
@@ -3007,7 +3007,7 @@ namespace libtorrent
 
 			// TODO: 3 this is weird buffer handling
 			span<char> const buf = m_recv_buffer.mutable_buffer();
-			TORRENT_ASSERT(buf.size() >= m_recv_buffer.packet_size());
+			TORRENT_ASSERT(int(buf.size()) >= m_recv_buffer.packet_size());
 			rc4_decrypt({buf.data(), size_t(m_recv_buffer.packet_size())});
 
 			recv_buffer = m_recv_buffer.get();
@@ -3068,7 +3068,7 @@ namespace libtorrent
 			// ia is always rc4, so decrypt it
 			// TODO: 3 this is weird buffer handling
 			span<char> const buf = m_recv_buffer.mutable_buffer();
-			TORRENT_ASSERT(buf.size() >= m_recv_buffer.packet_size());
+			TORRENT_ASSERT(int(buf.size()) >= m_recv_buffer.packet_size());
 			rc4_decrypt({buf.data(), size_t(m_recv_buffer.packet_size())});
 
 #ifndef TORRENT_DISABLE_LOGGING

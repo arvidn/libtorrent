@@ -119,17 +119,17 @@ namespace libtorrent
 #endif
 	}
 
-	std::uint32_t disk_buffer_pool::num_to_evict(int num_needed)
+	int disk_buffer_pool::num_to_evict(int const num_needed)
 	{
 		int ret = 0;
 
 		std::unique_lock<std::mutex> l(m_pool_mutex);
 
 		if (m_exceeded_max_size)
-			ret = m_in_use - (std::min)(m_low_watermark, int(m_max_use - m_observers.size()*2));
+			ret = m_in_use - std::min(m_low_watermark, int(m_max_use - m_observers.size() * 2));
 
 		if (m_in_use + num_needed > m_max_use)
-			ret = (std::max)(ret, int(m_in_use + num_needed - m_max_use));
+			ret = std::max(ret, m_in_use + num_needed - m_max_use);
 
 		if (ret < 0) ret = 0;
 		else if (ret > m_in_use) ret = m_in_use;
@@ -271,7 +271,7 @@ namespace libtorrent
 #if TORRENT_HAVE_MMAP && !defined TORRENT_NO_DEPRECATE
 		if (m_cache_pool)
 		{
-			if (m_free_list.size() <= (m_max_use - m_low_watermark)
+			if (int(m_free_list.size()) <= (m_max_use - m_low_watermark)
 				/ 2 && !m_exceeded_max_size)
 			{
 				m_exceeded_max_size = true;

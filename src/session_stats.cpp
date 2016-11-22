@@ -533,7 +533,7 @@ namespace libtorrent
 	std::vector<stats_metric> session_stats_metrics()
 	{
 		std::vector<stats_metric> stats;
-		const int num = sizeof(metrics)/sizeof(metrics[0]);
+		int const num = sizeof(metrics) / sizeof(metrics[0]);
 		stats.resize(num);
 		for (int i = 0; i < num; ++i)
 		{

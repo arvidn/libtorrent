@@ -200,7 +200,7 @@ void get_item_observer::reply(msg const& m)
 	bdecode_node q = r.dict_find_int("seq");
 	if (q)
 	{
-		seq = sequence_number(q.int_value());
+		seq = sequence_number(std::uint64_t(q.int_value()));
 	}
 	else if (k && s)
 	{

@@ -133,7 +133,8 @@ node_id generate_id_impl(address const& ip_, std::uint32_t r)
 	id[1] = (c >> 16) & 0xff;
 	id[2] = (((c >> 8) & 0xf8) | random(0x7)) & 0xff;
 
-	for (int i = 3; i < 19; ++i) id[i] = std::uint8_t(random(0xff));
+	std::for_each(id.begin() + 3, id.begin() + 19
+		, [](std::uint8_t& b) { b = std::uint8_t(random(0xff)); });
 	id[19] = r & 0xff;
 
 	return id;
@@ -210,8 +211,8 @@ node_id generate_prefix_mask(int bits)
 	TORRENT_ASSERT(bits <= 160);
 	node_id mask(nullptr);
 	int b = 0;
-	for (; b < bits - 7; b += 8) mask[b / 8] |= 0xff;
-	if (bits < 160) mask[b / 8] |= (0xff << (8 - (bits & 7))) & 0xff;
+	for (; b < bits - 7; b += 8) mask[std::size_t(b / 8)] |= 0xff;
+	if (bits < 160) mask[std::size_t(b / 8)] |= (0xff << (8 - (bits & 7))) & 0xff;
 	return mask;
 }
 

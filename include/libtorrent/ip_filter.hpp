@@ -140,7 +140,7 @@ namespace detail
 			m_access_list.insert(range(zero<Addr>(), 0));
 		}
 
-		void add_rule(Addr first, Addr last, int flags)
+		void add_rule(Addr first, Addr last, std::uint32_t const flags)
 		{
 			TORRENT_ASSERT(!m_access_list.empty());
 			TORRENT_ASSERT(first < last || first == last);
@@ -234,7 +234,7 @@ namespace detail
 
 		struct range
 		{
-			range(Addr addr, int a = 0): start(addr), access(a) {} // NOLINT
+			range(Addr addr, std::uint32_t a = 0) : start(addr), access(a) {} // NOLINT
 			bool operator<(range const& r) const { return start < r.start; }
 			bool operator<(Addr const& a) const { return start < a; }
 			Addr start;

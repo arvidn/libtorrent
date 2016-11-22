@@ -113,7 +113,7 @@ namespace
 			item.value.reset(new char[size]);
 			item.size = size;
 		}
-		std::memcpy(item.value.get(), buf.data(), size);
+		std::memcpy(item.value.get(), buf.data(), buf.size());
 	}
 
 	void touch_item(dht_immutable_item& f, address const& addr)

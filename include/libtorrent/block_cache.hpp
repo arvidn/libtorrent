@@ -339,11 +339,11 @@ namespace libtorrent
 			std::size_t operator()(cached_piece_entry const& p) const
 			{ return std::size_t(p.storage.get()) + std::size_t(p.piece); }
 		};
-		typedef std::unordered_set<cached_piece_entry, hash_value> cache_t;
+		using cache_t = std::unordered_set<cached_piece_entry, hash_value>;
 
 	public:
 
-		typedef cache_t::const_iterator const_iterator;
+		using const_iterator = cache_t::const_iterator;
 
 		// returns the number of blocks this job would cause to be read in
 		int pad_job(disk_io_job const* j, int blocks_in_piece
@@ -359,7 +359,7 @@ namespace libtorrent
 		list_iterator<cached_piece_entry> write_lru_pieces() const
 		{ return m_lru[cached_piece_entry::write_lru].iterate(); }
 
-		int num_write_lru_pieces() const { return int(m_lru[cached_piece_entry::write_lru].size()); }
+		int num_write_lru_pieces() const { return m_lru[cached_piece_entry::write_lru].size(); }
 
 		// mark this piece for deletion. If there are no outstanding
 		// requests to this piece, it's removed immediately, and the
@@ -507,21 +507,21 @@ namespace libtorrent
 		int m_max_volatile_blocks;
 
 		// the number of blocks (buffers) allocated by volatile pieces.
-		std::uint32_t m_volatile_size;
+		std::int32_t m_volatile_size;
 
 		// the number of blocks in the cache
 		// that are in the read cache
-		std::uint32_t m_read_cache_size;
+		std::int32_t m_read_cache_size;
 
 		// the number of blocks in the cache
 		// that are in the write cache
-		std::uint32_t m_write_cache_size;
+		std::int32_t m_write_cache_size;
 
 		// the number of blocks that are currently sitting
 		// in peer's send buffers. If two peers are sending
 		// the same block, it counts as 2, even though there're
 		// no buffer duplication
-		std::uint32_t m_send_buffer_blocks;
+		std::int32_t m_send_buffer_blocks;
 
 		// the number of blocks with a refcount > 0, i.e.
 		// they may not be evicted

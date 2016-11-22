@@ -281,10 +281,12 @@ static_assert(sizeof(job_action_name)/sizeof(job_action_name[0])
 				, int(pe->num_blocks), int(pe->blocks_in_piece), int(pe->hashing_done)
 				, int(pe->marked_for_deletion), int(pe->need_readback), pe->hash_passes
 				, int(pe->read_jobs.size()), int(pe->jobs.size()));
-			for (int i = 0; i < pe->piece_log.size(); ++i)
+			bool first = true;
+			for (auto const& log : pe->piece_log)
 			{
-				assert_print("%s %s (%d)", (i==0?"":",")
-					, job_name(pe->piece_log[i].job), pe->piece_log[i].block);
+				assert_print("%s %s (%d)", (first ? "" : ",")
+					, job_name(log.job), log.block);
+				first = false;
 			}
 		}
 		assert_print("\n");
@@ -1259,7 +1261,7 @@ int block_cache::pad_job(disk_io_job const* j, int blocks_in_piece
 }
 
 void block_cache::insert_blocks(cached_piece_entry* pe, int block, span<file::iovec_t const> iov
-	, disk_io_job* j, int flags)
+	, disk_io_job* j, int const flags)
 {
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 	INVARIANT_CHECK;
@@ -1273,17 +1275,17 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, span<file::io
 
 	TORRENT_ASSERT(pe->in_use);
 
-	for (int i = 0; i < iov.size(); ++i, ++block)
+	for (auto const& buf : iov)
 	{
 		// each iovec buffer has to be the size of a block (or the size of the last block)
-		TORRENT_PIECE_ASSERT(iov[i].iov_len == (std::min)(block_size()
+		TORRENT_PIECE_ASSERT(int(buf.iov_len) == std::min(block_size()
 			, pe->storage->files()->piece_size(pe->piece) - block * block_size()), pe);
 
 		// no nullptrs allowed
-		TORRENT_ASSERT(iov[i].iov_base);
+		TORRENT_ASSERT(buf.iov_base != nullptr);
 
 #ifdef TORRENT_DEBUG_BUFFERS
-		TORRENT_PIECE_ASSERT(is_disk_buffer(static_cast<char*>(iov[i].iov_base)), pe);
+		TORRENT_PIECE_ASSERT(is_disk_buffer(static_cast<char*>(buf.iov_base)), pe);
 #endif
 
 		if (pe->blocks[block].buf && (flags & blocks_inc_refcount))
@@ -1294,13 +1296,13 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, span<file::io
 		// either free the block or insert it. Never replace a block
 		if (pe->blocks[block].buf)
 		{
-			free_buffer(static_cast<char*>(iov[i].iov_base));
+			free_buffer(static_cast<char*>(buf.iov_base));
 		}
 		else
 		{
-			pe->blocks[block].buf = static_cast<char*>(iov[i].iov_base);
+			pe->blocks[block].buf = static_cast<char*>(buf.iov_base);
 
-			TORRENT_PIECE_ASSERT(iov[i].iov_base != nullptr, pe);
+			TORRENT_PIECE_ASSERT(buf.iov_base != nullptr, pe);
 			TORRENT_PIECE_ASSERT(pe->blocks[block].dirty == false, pe);
 			++pe->num_blocks;
 			++m_read_cache_size;
@@ -1315,6 +1317,8 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, span<file::io
 		}
 
 		TORRENT_ASSERT(pe->blocks[block].buf != nullptr);
+
+		block++;
 	}
 
 	TORRENT_PIECE_ASSERT(pe->cache_state != cached_piece_entry::read_lru1_ghost, pe);
@@ -1675,8 +1679,8 @@ void block_cache::check_invariant() const
 			num_refcount += p.blocks[k].refcount;
 		}
 		TORRENT_PIECE_ASSERT(num_blocks == p.num_blocks, &p);
-		TORRENT_PIECE_ASSERT(num_pending <= p.refcount, &p);
-		TORRENT_PIECE_ASSERT(num_refcount == p.refcount, &p);
+		TORRENT_PIECE_ASSERT(num_pending <= int(p.refcount), &p);
+		TORRENT_PIECE_ASSERT(num_refcount == int(p.refcount), &p);
 		TORRENT_PIECE_ASSERT(num_dirty == p.num_dirty, &p);
 	}
 	TORRENT_ASSERT(m_read_cache_size == cached_read_blocks);

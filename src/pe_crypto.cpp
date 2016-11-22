@@ -136,7 +136,7 @@ namespace libtorrent
 			bufs = abufs;
 			need_destruct = true;
 			size_t num_bufs = 0;
-			for (int i = 0; to_process > 0 && i < iovec.size(); ++i)
+			for (std::size_t i = 0; to_process > 0 && i < iovec.size(); ++i)
 			{
 				++num_bufs;
 				int const size = int(iovec[i].size());
@@ -370,11 +370,11 @@ void rc4_init(const unsigned char* in, unsigned long len, rc4 *state)
 	keylen = state->x;
 
 	/* make RC4 perm and shuffle */
-	for (x = 0; x < key_size; ++x) {
+	for (x = 0; x < int(key_size); ++x) {
 		s[x] = std::uint8_t(x);
 	}
 
-	for (j = x = y = 0; x < key_size; x++) {
+	for (j = x = y = 0; x < int(key_size); x++) {
 		y = (y + state->buf[x] + key[j++]) & 255;
 		if (j == keylen) {
 			j = 0;

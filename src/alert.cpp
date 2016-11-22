@@ -1778,13 +1778,12 @@ namespace libtorrent {
 		// this specific output is parsed by tools/parse_session_stats.py
 		// if this is changed, that parser should also be changed
 		char msg[50];
-		std::snprintf(msg, sizeof(msg), "session stats (%d values): "
-			, int(values.size()));
+		std::snprintf(msg, sizeof(msg), "session stats (%d values): " , int(values.size()));
 		std::string ret = msg;
 		bool first = true;
-		for (int i = 0; i < values.size(); ++i)
+		for (auto v : values)
 		{
-			std::snprintf(msg, sizeof(msg), first ? "%" PRIu64 : ", %" PRIu64, values[i]);
+			std::snprintf(msg, sizeof(msg), first ? "%" PRIi64 : ", %" PRIi64, v);
 			first = false;
 			ret += msg;
 		}

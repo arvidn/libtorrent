@@ -384,7 +384,7 @@ namespace libtorrent
 
 					received_bytes(0, header_size - m_partial_chunk_header);
 					m_partial_chunk_header = 0;
-					TORRENT_ASSERT(chunk_size != 0 || chunk_start.size() <= header_size || chunk_start[header_size] == 'H');
+					TORRENT_ASSERT(chunk_size != 0 || int(chunk_start.size()) <= header_size || chunk_start[header_size] == 'H');
 					// cut out the chunk header from the receive buffer
 					TORRENT_ASSERT(m_chunk_pos + m_body_start < INT_MAX);
 					m_recv_buffer.cut(header_size, t->block_size() + 1024, int(m_chunk_pos + m_body_start));

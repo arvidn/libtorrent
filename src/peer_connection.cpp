@@ -596,7 +596,7 @@ namespace libtorrent
 		for (;;)
 		{
 			char const* p = hash.data();
-			for (int i = 0; i < hash.size() / sizeof(std::uint32_t); ++i)
+			for (int i = 0; i < int(hash.size() / sizeof(std::uint32_t)); ++i)
 			{
 				++loops;
 				int const piece = detail::read_uint32(p) % num_pieces;
@@ -3044,8 +3044,6 @@ namespace libtorrent
 
 		piece_picker& picker = t->picker();
 
-		TORRENT_ASSERT(p.piece == p.piece);
-		TORRENT_ASSERT(p.start == p.start);
 		TORRENT_ASSERT(picker.num_peers(block_finished) == 0);
 
 //		std::fprintf(stderr, "peer_connection mark_as_finished peer: %p piece: %d block: %d\n"
@@ -3074,7 +3072,7 @@ namespace libtorrent
 			for (std::vector<piece_picker::downloading_piece>::const_iterator
 				i = q.begin(), end(q.end()); i != end; ++i)
 			{
-				if (i->index != block_finished.piece_index) continue;
+				if (int(i->index) != block_finished.piece_index) continue;
 				piece_picker::block_info* info = picker.blocks_for_piece(*i);
 				TORRENT_ASSERT(info[block_finished.block_index].state
 					== piece_picker::block_info::state_finished);
@@ -3805,7 +3803,7 @@ namespace libtorrent
 			send_suggest(*i);
 		}
 		int const max = m_settings.get_int(settings_pack::max_suggest_pieces);
-		if (m_suggest_pieces.size() > max)
+		if (int(m_suggest_pieces.size()) > max)
 		{
 			int const to_erase = m_suggest_pieces.size() - max;
 			m_suggest_pieces.erase(m_suggest_pieces.begin()
@@ -5064,7 +5062,7 @@ namespace libtorrent
 		// be blocked because we have to verify the hash first, so keep going with the
 		// next request. However, only let each peer have one hash verification outstanding
 		// at any given time
-		for (int i = 0; i < m_requests.size()
+		for (int i = 0; i < int(m_requests.size())
 			&& (send_buffer_size() + m_reading_bytes < buffer_size_watermark); ++i)
 		{
 			TORRENT_ASSERT(t->ready_for_connections());
@@ -5828,12 +5826,12 @@ namespace libtorrent
 		// if we received exactly as many bytes as we provided a receive buffer
 		// for. There most likely are more bytes to read, and we should grow our
 		// receive buffer.
-		TORRENT_ASSERT(bytes_transferred <= m_recv_buffer.max_receive());
-		bool const grow_buffer = (bytes_transferred == m_recv_buffer.max_receive());
+		TORRENT_ASSERT(int(bytes_transferred) <= m_recv_buffer.max_receive());
+		bool const grow_buffer = (int(bytes_transferred) == m_recv_buffer.max_receive());
 		account_received_bytes(bytes_transferred);
 
 		if (m_extension_outstanding_bytes > 0)
-			m_extension_outstanding_bytes -= (std::min)(m_extension_outstanding_bytes, int(bytes_transferred));
+			m_extension_outstanding_bytes -= std::min(m_extension_outstanding_bytes, int(bytes_transferred));
 
 		check_graceful_pause();
 		if (m_disconnecting) return;
@@ -5843,7 +5841,7 @@ namespace libtorrent
 		if (grow_buffer)
 		{
 			error_code ec;
-			std::size_t buffer_size = m_socket->available(ec);
+			int buffer_size = int(m_socket->available(ec));
 			if (ec)
 			{
 				disconnect(ec, op_available);
@@ -5872,7 +5870,7 @@ namespace libtorrent
 				if (should_log(peer_log_alert::incoming))
 				{
 					peer_log(peer_log_alert::incoming, "SYNC_READ", "max: %d ret: %d e: %s"
-						, int(buffer_size), int(bytes), ec ? ec.message().c_str() : "");
+						, buffer_size, int(bytes), ec ? ec.message().c_str() : "");
 				}
 #endif
 

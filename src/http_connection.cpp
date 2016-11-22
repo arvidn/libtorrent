@@ -430,7 +430,7 @@ void http_connection::on_timeout(std::weak_ptr<http_connection> p
 		// the connection timed out. If we have more endpoints to try, just
 		// close this connection. The on_connect handler will try the next
 		// endpoint in the list.
-		if (c->m_next_ep < c->m_endpoints.size())
+		if (c->m_next_ep < int(c->m_endpoints.size()))
 		{
 			error_code ec;
 			c->m_sock.close(ec);
@@ -544,7 +544,7 @@ void http_connection::on_resolve(error_code const& e
 
 void http_connection::connect()
 {
-	TORRENT_ASSERT(m_next_ep < m_endpoints.size());
+	TORRENT_ASSERT(m_next_ep < int(m_endpoints.size()));
 
 	std::shared_ptr<http_connection> me(shared_from_this());
 
@@ -581,8 +581,8 @@ void http_connection::connect()
 		}
 	}
 
-	TORRENT_ASSERT(m_next_ep < m_endpoints.size());
-	if (m_next_ep >= m_endpoints.size()) return;
+	TORRENT_ASSERT(m_next_ep < int(m_endpoints.size()));
+	if (m_next_ep >= int(m_endpoints.size())) return;
 
 	tcp::endpoint target_address = m_endpoints[m_next_ep];
 	++m_next_ep;
@@ -609,7 +609,7 @@ void http_connection::on_connect(error_code const& e)
 		async_write(m_sock, boost::asio::buffer(m_sendbuffer)
 			, std::bind(&http_connection::on_write, shared_from_this(), _1));
 	}
-	else if (m_next_ep < m_endpoints.size() && !m_abort)
+	else if (m_next_ep < int(m_endpoints.size()) && !m_abort)
 	{
 		// The connection failed. Try the next endpoint in the list.
 		error_code ec;

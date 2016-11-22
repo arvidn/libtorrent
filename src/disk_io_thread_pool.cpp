@@ -63,7 +63,7 @@ namespace libtorrent
 		std::lock_guard<std::mutex> l(m_mutex);
 		if (i == m_max_threads) return;
 		m_max_threads = i;
-		if (m_threads.size() < i) return;
+		if (int(m_threads.size()) < i) return;
 		stop_threads(int(m_threads.size()) - i);
 	}
 

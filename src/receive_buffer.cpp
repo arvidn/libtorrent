@@ -40,7 +40,7 @@ int receive_buffer::max_receive() const
 	return int(m_recv_buffer.size() - m_recv_end);
 }
 
-span<char> receive_buffer::reserve(int size)
+span<char> receive_buffer::reserve(int const size)
 {
 	INVARIANT_CHECK;
 	TORRENT_ASSERT(size > 0);
@@ -49,7 +49,7 @@ span<char> receive_buffer::reserve(int size)
 	// normalize() must be called before receiving more data
 	TORRENT_ASSERT(m_recv_start == 0);
 
-	if (m_recv_buffer.size() < m_recv_end + size)
+	if (int(m_recv_buffer.size()) < m_recv_end + size)
 	{
 		int const new_size = std::max(m_recv_end + size, m_packet_size);
 		buffer new_buffer(new_size
@@ -144,7 +144,7 @@ span<char const> receive_buffer::get() const
 		return span<char const>();
 	}
 
-	TORRENT_ASSERT(m_recv_start + m_recv_pos <= m_recv_buffer.size());
+	TORRENT_ASSERT(m_recv_start + m_recv_pos <= int(m_recv_buffer.size()));
 	return span<char const>(m_recv_buffer).subspan(m_recv_start, m_recv_pos);
 }
 
@@ -169,7 +169,7 @@ span<char> receive_buffer::mutable_buffer(int const bytes)
 // in the receive buffer that have been parsed and processed.
 // it may also shrink the size of the buffer allocation if we haven't been using
 // enough of it lately.
-void receive_buffer::normalize(int force_shrink)
+void receive_buffer::normalize(int const force_shrink)
 {
 	INVARIANT_CHECK;
 	TORRENT_ASSERT(m_recv_end >= m_recv_start);
@@ -178,7 +178,7 @@ void receive_buffer::normalize(int force_shrink)
 
 	// if the running average drops below half of the current buffer size,
 	// reallocate a smaller one.
-	bool const shrink_buffer = m_recv_buffer.size() / 2 > m_watermark.mean()
+	bool const shrink_buffer = int(m_recv_buffer.size()) / 2 > m_watermark.mean()
 		&& m_watermark.mean() > (m_recv_end - m_recv_start);
 
 	span<char const> bytes_to_shift(
@@ -212,10 +212,10 @@ void receive_buffer::normalize(int force_shrink)
 #endif
 }
 
-void receive_buffer::reset(int packet_size)
+void receive_buffer::reset(int const packet_size)
 {
 	INVARIANT_CHECK;
-	TORRENT_ASSERT(m_recv_buffer.size() >= m_recv_end);
+	TORRENT_ASSERT(int(m_recv_buffer.size()) >= m_recv_end);
 	TORRENT_ASSERT(packet_size > 0);
 	if (m_recv_end > m_packet_size)
 	{
