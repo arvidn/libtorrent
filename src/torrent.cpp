@@ -1097,11 +1097,8 @@ namespace libtorrent
 		pause();
 	}
 
-	void torrent::on_piece_fail_sync(disk_io_job const* j, piece_block b) try
+	void torrent::on_piece_fail_sync(int, piece_block) try
 	{
-		TORRENT_UNUSED(j);
-		TORRENT_UNUSED(b);
-
 		if (m_abort) return;
 
 		update_gauge();
@@ -4139,9 +4136,7 @@ namespace libtorrent
 			// it doesn't really matter what we do
 			// here, since we're about to destruct the
 			// torrent anyway.
-			disk_io_job j;
-			j.piece = index;
-			on_piece_sync(&j);
+			on_piece_sync(index);
 		}
 
 #if TORRENT_USE_ASSERTS
@@ -4176,7 +4171,7 @@ namespace libtorrent
 		c.send_block_requests();
 	}
 
-	void torrent::on_piece_sync(disk_io_job const* j) try
+	void torrent::on_piece_sync(int const piece) try
 	{
 		// the user may have called force_recheck, which clears
 		// the piece picker
@@ -4184,12 +4179,12 @@ namespace libtorrent
 
 		// unlock the piece and restore it, as if no block was
 		// ever downloaded for it.
-		m_picker->restore_piece(j->piece);
+		m_picker->restore_piece(piece);
 
 		// we have to let the piece_picker know that
 		// this piece failed the check as it can restore it
 		// and mark it as being interesting for download
-		TORRENT_ASSERT(m_picker->have_piece(j->piece) == false);
+		TORRENT_ASSERT(m_picker->have_piece(piece) == false);
 
 		// loop over all peers and re-request potential duplicate
 		// blocks to this piece
@@ -4203,14 +4198,14 @@ namespace libtorrent
 				, end2(dq.end()); k != end2; ++k)
 			{
 				if (k->timed_out || k->not_wanted) continue;
-				if (int(k->block.piece_index) != j->piece) continue;
+				if (int(k->block.piece_index) != piece) continue;
 				m_picker->mark_as_downloading(k->block, p->peer_info_struct()
 					, p->picker_options());
 			}
 			for (std::vector<pending_block>::const_iterator k = rq.begin()
 				, end2(rq.end()); k != end2; ++k)
 			{
-				if (int(k->block.piece_index) != j->piece) continue;
+				if (int(k->block.piece_index) != piece) continue;
 				m_picker->mark_as_downloading(k->block, p->peer_info_struct()
 					, p->picker_options());
 			}
@@ -4412,15 +4407,15 @@ namespace libtorrent
 		return avail_vec[random(avail_vec.size() - 1)];
 	}
 
-	void torrent::on_files_deleted(disk_io_job const* j) try
+	void torrent::on_files_deleted(storage_error const& error) try
 	{
 		TORRENT_ASSERT(is_single_thread());
 
-		if (j->ret != 0)
+		if (error)
 		{
 			if (alerts().should_post<torrent_delete_failed_alert>())
 				alerts().emplace_alert<torrent_delete_failed_alert>(get_handle()
-					, j->error.ec, m_torrent_file->info_hash());
+					, error.ec, m_torrent_file->info_hash());
 		}
 		else
 		{
@@ -4429,27 +4424,29 @@ namespace libtorrent
 	}
 	catch (...) { handle_exception(); }
 
-	void torrent::on_file_renamed(disk_io_job const* j) try
+	void torrent::on_file_renamed(std::string const& filename
+		, int const file_idx
+		, storage_error const& error) try
 	{
 		TORRENT_ASSERT(is_single_thread());
 
-		if (j->ret == 0)
-		{
-			if (alerts().should_post<file_renamed_alert>())
-				alerts().emplace_alert<file_renamed_alert>(get_handle()
-					, j->buffer.string, j->piece);
-			m_torrent_file->rename_file(j->piece, j->buffer.string);
-		}
-		else
+		if (error)
 		{
 			if (alerts().should_post<file_rename_failed_alert>())
 				alerts().emplace_alert<file_rename_failed_alert>(get_handle()
-					, j->piece, j->error.ec);
+					, file_idx, error.ec);
+		}
+		else
+		{
+			if (alerts().should_post<file_renamed_alert>())
+				alerts().emplace_alert<file_renamed_alert>(get_handle()
+					, filename, file_idx);
+			m_torrent_file->rename_file(file_idx, filename);
 		}
 	}
 	catch (...) { handle_exception(); }
 
-	void torrent::on_torrent_paused(disk_io_job const*) try
+	void torrent::on_torrent_paused() try
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -4912,7 +4909,7 @@ namespace libtorrent
 		}
 	}
 
-	void torrent::on_file_priority() {}
+	void torrent::on_file_priority(storage_error const&) {}
 
 	void torrent::prioritize_files(std::vector<int> const& files)
 	{
@@ -4945,7 +4942,7 @@ namespace libtorrent
 		if (m_torrent_file->num_pieces() > 0 && m_storage)
 		{
 			m_ses.disk_thread().async_set_file_priority(m_storage.get()
-				, m_file_priority, std::bind(&torrent::on_file_priority, this));
+				, m_file_priority, std::bind(&torrent::on_file_priority, this, _1));
 		}
 
 		update_piece_priorities();
@@ -4983,7 +4980,7 @@ namespace libtorrent
 		if (m_storage)
 		{
 			m_ses.disk_thread().async_set_file_priority(m_storage.get()
-				, m_file_priority, std::bind(&torrent::on_file_priority, this));
+				, m_file_priority, std::bind(&torrent::on_file_priority, this, _1));
 		}
 		update_piece_priorities();
 	}
@@ -7725,7 +7722,7 @@ namespace libtorrent
 		}
 
 		m_ses.disk_thread().async_rename_file(m_storage.get(), index, name
-			, std::bind(&torrent::on_file_renamed, shared_from_this(), _1));
+			, std::bind(&torrent::on_file_renamed, shared_from_this(), _1, _2, _3));
 		return;
 	}
 
@@ -8639,7 +8636,7 @@ namespace libtorrent
 			{
 				// the torrent_paused alert will be posted from on_torrent_paused
 				m_ses.disk_thread().async_stop_torrent(m_storage.get()
-					, std::bind(&torrent::on_torrent_paused, shared_from_this(), _1));
+					, std::bind(&torrent::on_torrent_paused, shared_from_this()));
 			}
 			else
 			{

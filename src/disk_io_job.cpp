@@ -76,10 +76,16 @@ namespace libtorrent
 				h(m_job.ret, m_job.error);
 			}
 
-			void operator()(disk_io_job::generic_handler& h) const
+			void operator()(disk_io_job::rename_handler& h) const
 			{
 				if (!h) return;
-				h(&m_job);
+				h(m_job.buffer.string, m_job.piece, m_job.error);
+			}
+
+			void operator()(disk_io_job::clear_piece_handler& h) const
+			{
+				if (!h) return;
+				h(m_job.piece);
 			}
 
 		private:

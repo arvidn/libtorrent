@@ -39,7 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	struct disk_io_job;
 	struct storage_interface;
 	struct peer_request;
 	struct disk_observer;
@@ -57,6 +56,13 @@ namespace libtorrent
 			need_full_check = -2,
 			disk_check_aborted = -3,
 			file_exist = -4
+		};
+
+		enum flags_t
+		{
+			// this flag is set on a job when a read operation did
+			// not hit the disk, but found the data in the read cache.
+			cache_hit = 0x2,
 		};
 
 		virtual void async_read(storage_interface* storage, peer_request const& r
@@ -79,17 +85,17 @@ namespace libtorrent
 		virtual void async_flush_piece(storage_interface* storage, int piece
 			, std::function<void()> handler = std::function<void()>()) = 0;
 		virtual void async_stop_torrent(storage_interface* storage
-			, std::function<void(disk_io_job const*)> handler)= 0;
+			, std::function<void()> handler = std::function<void()>()) = 0;
 		virtual void async_rename_file(storage_interface* storage, int index, std::string const& name
-			, std::function<void(disk_io_job const*)> handler) = 0;
+			, std::function<void(std::string const&, int, storage_error const&)> handler) = 0;
 		virtual void async_delete_files(storage_interface* storage, int options
-			, std::function<void(disk_io_job const*)> handler) = 0;
+			, std::function<void(storage_error const&)> handler) = 0;
 		virtual void async_set_file_priority(storage_interface* storage
 			, std::vector<std::uint8_t> const& prio
-			, std::function<void(disk_io_job const*)> handler) = 0;
+			, std::function<void(storage_error const&)> handler) = 0;
 
 		virtual void async_clear_piece(storage_interface* storage, int index
-			, std::function<void(disk_io_job const*)> handler) = 0;
+			, std::function<void(int)> handler) = 0;
 		virtual void clear_piece(storage_interface* storage, int index) = 0;
 
 		virtual void update_stats_counters(counters& c) const = 0;

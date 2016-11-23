@@ -61,7 +61,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/close_reason.hpp"
-#include "libtorrent/disk_io_job.hpp"
 #include "libtorrent/aux_/has_block.hpp"
 #include "libtorrent/aux_/time.hpp"
 
@@ -3032,9 +3031,7 @@ namespace libtorrent
 					// is m_abort true? if so, we should probably just
 					// exit this function early, no need to keep the picker
 					// state up-to-date, right?
-					disk_io_job sj;
-					sj.piece = p.piece;
-					t->on_piece_fail_sync(&sj, block_finished);
+					t->on_piece_fail_sync(p.piece, block_finished);
 				}
 			}
 			t->update_gauge();
@@ -5236,7 +5233,7 @@ namespace libtorrent
 				, "piece: %d s: %x l: %x b: %p c: %s e: %s rtt: %d us"
 				, r.piece, r.start, r.length
 				, static_cast<void*>(disk_block)
-				, (flags & disk_io_job::cache_hit ? "cache hit" : "cache miss")
+				, (flags & disk_interface::cache_hit ? "cache hit" : "cache miss")
 				, error.ec.message().c_str(), disk_rtt);
 		}
 #endif
@@ -5303,7 +5300,7 @@ namespace libtorrent
 		// if it's rare enough to make it into the suggested piece
 		// push another piece out
 		if (m_settings.get_int(settings_pack::suggest_mode) == settings_pack::suggest_read_cache
-			&& (flags & disk_io_job::cache_hit) == 0)
+			&& (flags & disk_interface::cache_hit) == 0)
 		{
 			t->add_suggest_piece(r.piece);
 		}

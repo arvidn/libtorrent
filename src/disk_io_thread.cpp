@@ -1372,7 +1372,7 @@ namespace libtorrent
 				// cache-hit
 				m_stats_counters.inc_stats_counter(counters::num_blocks_cache_hits);
 				DLOG("do_read: cache hit\n");
-				j->flags |= disk_io_job::cache_hit;
+				j->flags |= disk_interface::cache_hit;
 				j->ret = ret;
 				completed_jobs.push_back(j);
 			}
@@ -1562,7 +1562,7 @@ namespace libtorrent
 		{
 			m_stats_counters.inc_stats_counter(counters::num_blocks_cache_hits);
 			DLOG("do_read: cache hit\n");
-			j->flags |= disk_io_job::cache_hit;
+			j->flags |= disk_interface::cache_hit;
 			j->ret = ret;
 			return 0;
 		}
@@ -1784,7 +1784,7 @@ namespace libtorrent
 
 	void disk_io_thread::async_delete_files(storage_interface* storage
 		, int const options
-		, std::function<void(disk_io_job const*)> handler)
+		, std::function<void(storage_error const&)> handler)
 	{
 		// remove cache blocks belonging to this torrent
 		jobqueue_t completed_jobs;
@@ -1847,7 +1847,7 @@ namespace libtorrent
 	}
 
 	void disk_io_thread::async_rename_file(storage_interface* storage, int index, std::string const& name
-		, std::function<void(disk_io_job const*)> handler)
+		, std::function<void(std::string const&, int, storage_error const&)> handler)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::rename_file);
 		j->storage = storage->shared_from_this();
@@ -1858,7 +1858,7 @@ namespace libtorrent
 	}
 
 	void disk_io_thread::async_stop_torrent(storage_interface* storage
-		, std::function<void(disk_io_job const*)> handler)
+		, std::function<void()> handler)
 	{
 		// remove outstanding hash jobs belonging to this torrent
 		std::unique_lock<std::mutex> l2(m_job_mutex);
@@ -1913,7 +1913,7 @@ namespace libtorrent
 
 	void disk_io_thread::async_set_file_priority(storage_interface* storage
 		, std::vector<std::uint8_t> const& prios
-		, std::function<void(disk_io_job const*)> handler)
+		, std::function<void(storage_error const&)> handler)
 	{
 		std::vector<std::uint8_t>* p = new std::vector<std::uint8_t>(prios);
 
@@ -1926,7 +1926,7 @@ namespace libtorrent
 	}
 
 	void disk_io_thread::async_clear_piece(storage_interface* storage, int index
-		, std::function<void(disk_io_job const*)> handler)
+		, std::function<void(int)> handler)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::clear_piece);
 		j->storage = storage->shared_from_this();
