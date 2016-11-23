@@ -1883,7 +1883,7 @@ namespace libtorrent
 		m_ses.disk_thread().async_check_files(
 			m_storage.get(), m_add_torrent_params ? m_add_torrent_params.get() : nullptr
 			, links, std::bind(&torrent::on_resume_data_checked
-			, shared_from_this(), _1));
+			, shared_from_this(), _1, _2));
 		// async_check_files will gut links
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("init, async_check_files");
@@ -1929,7 +1929,8 @@ namespace libtorrent
 		return nullptr;
 	}
 
-	void torrent::on_resume_data_checked(disk_io_job const* j) try
+	void torrent::on_resume_data_checked(int const status
+		, storage_error const& error) try
 	{
 		// hold a reference until this function returns
 
@@ -1948,11 +1949,11 @@ namespace libtorrent
 
 		TORRENT_ASSERT(is_single_thread());
 
-		if (j->ret == disk_interface::fatal_disk_error)
+		if (status == disk_interface::fatal_disk_error)
 		{
 			TORRENT_ASSERT(m_outstanding_check_files == false);
 			m_add_torrent_params.reset();
-			handle_disk_error("check_resume_data", j->error);
+			handle_disk_error("check_resume_data", error);
 			auto_managed(false);
 			pause();
 			set_state(torrent_status::checking_files);
@@ -1993,24 +1994,24 @@ namespace libtorrent
 
 		// only report this error if the user actually provided resume data
 		// (i.e. m_add_torrent_params->have_pieces)
-		if ((j->error || j->ret != 0)
+		if ((error || status != 0)
 			&& m_add_torrent_params
 			&& !m_add_torrent_params->have_pieces.empty()
 			&& m_ses.alerts().should_post<fastresume_rejected_alert>())
 		{
 			m_ses.alerts().emplace_alert<fastresume_rejected_alert>(get_handle()
-				, j->error.ec
-				, resolve_filename(j->error.file)
-				, j->error.operation_str());
+				, error.ec
+				, resolve_filename(error.file)
+				, error.operation_str());
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
 		{
-			if (j->ret != 0)
+			if (status != 0)
 			{
 				debug_log("fastresume data rejected: ret: %d (%d) %s"
-					, j->ret, j->error.ec.value(), j->error.ec.message().c_str());
+					, status, error.ec.value(), error.ec.message().c_str());
 			}
 			else
 			{
@@ -2019,7 +2020,7 @@ namespace libtorrent
 		}
 #endif
 
-		bool should_start_full_check = j->ret != 0;
+		bool should_start_full_check = status != 0;
 
 		// if we got a partial pieces bitfield, it means we were in the middle of
 		// checking this torrent. pick it up where we left off
@@ -2037,12 +2038,12 @@ namespace libtorrent
 		// that when the resume data check fails. For instance, if the resume data
 		// is incorrect, but we don't have any files, we skip the check and initialize
 		// the storage to not have anything.
-		if (j->ret == 0)
+		if (status == 0)
 		{
 			// there are either no files for this torrent
 			// or the resume_data was accepted
 
-			if (!j->error && m_add_torrent_params)
+			if (!error && m_add_torrent_params)
 			{
 				// --- PIECES ---
 
@@ -2189,10 +2190,10 @@ namespace libtorrent
 		std::vector<std::string> links;
 		m_ses.disk_thread().async_check_files(m_storage.get(), nullptr
 			, links, std::bind(&torrent::on_force_recheck
-			, shared_from_this(), _1));
+			, shared_from_this(), _1, _2));
 	}
 
-	void torrent::on_force_recheck(disk_io_job const* j) try
+	void torrent::on_force_recheck(int const status, storage_error const& error) try
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -2201,12 +2202,12 @@ namespace libtorrent
 
 		if (m_abort) return;
 
-		if (j->ret == disk_interface::fatal_disk_error)
+		if (error)
 		{
-			handle_disk_error("force_recheck", j->error);
+			handle_disk_error("force_recheck", error);
 			return;
 		}
-		if (j->ret == 0)
+		if (status == 0)
 		{
 			// if there are no files, just start
 			files_checked();

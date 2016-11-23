@@ -68,17 +68,17 @@ void on_read_piece(int ret, disk_io_job const& j, char const* data, int size)
 	if (ret > 0) TEST_CHECK(std::equal(j.buffer.disk_block, j.buffer.disk_block + ret, data));
 }
 
-void on_check_resume_data(disk_io_job const* j, bool* done)
+void on_check_resume_data(int const status, storage_error const& error, bool* done)
 {
-	std::cerr << time_now_string() << " on_check_resume_data ret: " << j->ret;
-	switch (j->ret)
+	std::cerr << time_now_string() << " on_check_resume_data ret: " << status;
+	switch (status)
 	{
 		case disk_interface::no_error:
 			std::cerr << time_now_string() << " success" << std::endl;
 			break;
 		case disk_interface::fatal_disk_error:
-			std::cerr << time_now_string() << " disk error: " << j->error.ec.message()
-				<< " file: " << j->error.file << std::endl;
+			std::cerr << time_now_string() << " disk error: " << error.ec.message()
+				<< " file: " << error.file << std::endl;
 			break;
 		case disk_interface::need_full_check:
 			std::cerr << time_now_string() << " need full check" << std::endl;
@@ -480,7 +480,7 @@ void test_check_files(std::string const& test_path
 	add_torrent_params frd;
 	std::vector<std::string> links;
 	io.async_check_files(pm.get(), &frd, links
-		, std::bind(&on_check_resume_data, _1, &done));
+		, std::bind(&on_check_resume_data, _1, _2, &done));
 	io.submit_jobs();
 	ios.reset();
 	run_until(ios, done);

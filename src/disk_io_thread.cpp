@@ -1831,7 +1831,7 @@ namespace libtorrent
 	void disk_io_thread::async_check_files(storage_interface* storage
 		, add_torrent_params const* resume_data
 		, std::vector<std::string>& links
-		, std::function<void(disk_io_job const*)> handler)
+		, std::function<void(int, storage_error const&)> handler)
 	{
 		std::vector<std::string>* links_vector
 			= new std::vector<std::string>();
@@ -1893,7 +1893,7 @@ namespace libtorrent
 	}
 
 	void disk_io_thread::async_flush_piece(storage_interface* storage, int piece
-		, std::function<void(disk_io_job const*)> handler)
+		, std::function<void()> handler)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::flush_piece);
 		j->storage = storage->shared_from_this();
