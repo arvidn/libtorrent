@@ -305,23 +305,23 @@ namespace libtorrent
 		void async_release_files(storage_interface* storage
 			, std::function<void()> handler = std::function<void()>()) override;
 		void async_delete_files(storage_interface* storage, int options
-			, std::function<void(disk_io_job const*)> handler) override;
+			, std::function<void(storage_error const&)> handler) override;
 		void async_check_files(storage_interface* storage
 			, add_torrent_params const* resume_data
 			, std::vector<std::string>& links
 			, std::function<void(int, storage_error const&)> handler) override;
 		void async_rename_file(storage_interface* storage, int index, std::string const& name
-			, std::function<void(disk_io_job const*)> handler) override;
+			, std::function<void(std::string const&, int, storage_error const&)> handler) override;
 		void async_stop_torrent(storage_interface* storage
-			, std::function<void(disk_io_job const*)> handler) override;
+			, std::function<void()> handler) override;
 		void async_flush_piece(storage_interface* storage, int piece
 			, std::function<void()> handler = std::function<void()>()) override;
 		void async_set_file_priority(storage_interface* storage
 			, std::vector<std::uint8_t> const& prio
-			, std::function<void(disk_io_job const*)> handler) override;
+			, std::function<void(storage_error const&)> handler) override;
 
 		void async_clear_piece(storage_interface* storage, int index
-			, std::function<void(disk_io_job const*)> handler) override;
+			, std::function<void(int)> handler) override;
 		// this is not asynchronous and requires that the piece does not
 		// have any pending buffers. It's meant to be used for pieces that
 		// were just read and hashed and failed the hash check.

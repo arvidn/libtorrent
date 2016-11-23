@@ -102,10 +102,6 @@ namespace libtorrent
 		{
 			sequential_access = 0x1,
 
-			// this flag is set on a job when a read operation did
-			// not hit the disk, but found the data in the read cache.
-			cache_hit = 0x2,
-
 			// force making a copy of the cached block, rather
 			// than getting a reference to the block already in
 			// the cache.
@@ -160,7 +156,8 @@ namespace libtorrent
 		using move_handler = std::function<void(int, std::string const&, storage_error const&)>;
 		using release_handler = std::function<void()>;
 		using check_handler = std::function<void(int, storage_error const&)>;
-		using generic_handler = std::function<void(disk_io_job const*)>;
+		using rename_handler = std::function<void(std::string const&, int, storage_error const&)>;
+		using clear_piece_handler = std::function<void(int)>;
 
 		boost::variant<read_handler
 			, write_handler
@@ -168,7 +165,8 @@ namespace libtorrent
 			, move_handler
 			, release_handler
 			, check_handler
-			, generic_handler> callback;
+			, rename_handler
+			, clear_piece_handler> callback;
 
 		// the error code from the file operation
 		// on error, this also contains the path of the

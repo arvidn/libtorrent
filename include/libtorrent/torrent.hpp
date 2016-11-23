@@ -92,7 +92,6 @@ namespace libtorrent
 	struct storage_interface;
 	class bt_peer_connection;
 	struct listen_socket_t;
-	struct disk_io_job;
 
 	enum class waste_reason
 	{
@@ -381,7 +380,6 @@ namespace libtorrent
 		void add_piece(int piece, char const* data, int flags = 0);
 		void on_disk_write_complete(storage_error const& error
 			, peer_request p);
-		void on_disk_tick_done(disk_io_job const* j);
 
 		void set_progress_ppm(int p) { m_progress_ppm = std::uint32_t(p); }
 		struct read_piece_struct
@@ -537,7 +535,7 @@ namespace libtorrent
 		void set_file_priority(int index, int priority);
 		int file_priority(int index) const;
 
-		void on_file_priority();
+		void on_file_priority(storage_error const&);
 		void prioritize_files(std::vector<int> const& files);
 		void file_priorities(std::vector<int>*) const;
 
@@ -887,10 +885,10 @@ namespace libtorrent
 
 		// this is the handler for hash failure piece synchronization
 		// i.e. resetting the piece
-		void on_piece_sync(disk_io_job const* j);
+		void on_piece_sync(int piece);
 
 		// this is the handler for write failure piece synchronization
-		void on_piece_fail_sync(disk_io_job const* j, piece_block b);
+		void on_piece_fail_sync(int piece, piece_block b);
 
 		void add_redundant_bytes(int b, waste_reason reason);
 		void add_failed_bytes(int b);
@@ -1116,11 +1114,13 @@ namespace libtorrent
 		void construct_storage();
 		void update_list(int list, bool in);
 
-		void on_files_deleted(disk_io_job const* j);
-		void on_torrent_paused(disk_io_job const* j);
+		void on_files_deleted(storage_error const& error);
+		void on_torrent_paused();
 		void on_storage_moved(int status, std::string const& path
 			, storage_error const& error);
-		void on_file_renamed(disk_io_job const* j);
+		void on_file_renamed(std::string const& filename
+			, int const file_idx
+			, storage_error const& error);
 		void on_cache_flushed();
 
 		// upload and download rate limits for the torrent
