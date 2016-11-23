@@ -158,7 +158,7 @@ namespace libtorrent
 	// any outstanding jobs on the torrent, then the fence is lowered
 	// and it can be performed, along with the backlog of jobs that
 	// accrued while the fence was up
-	struct TORRENT_EXTRA_EXPORT disk_job_fence
+	struct TORRENT_EXPORT disk_job_fence
 	{
 		disk_job_fence();
 		~disk_job_fence()
@@ -219,7 +219,7 @@ namespace libtorrent
 	// a specific storage, are in the cache right now. It's
 	// used for quickly being able to evict all pieces for a
 	// specific torrent
-	struct TORRENT_EXTRA_EXPORT storage_piece_set
+	struct TORRENT_EXPORT storage_piece_set
 	{
 		void add_piece(cached_piece_entry* p);
 		void remove_piece(cached_piece_entry* p);
