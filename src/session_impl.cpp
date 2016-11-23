@@ -1752,7 +1752,7 @@ namespace aux {
 		if (m_abort) return;
 
 		// first build a list of endpoints we should be listening on
-		// we need to remove any unneeded sockets first to avoid the posibility
+		// we need to remove any unneeded sockets first to avoid the possibility
 		// of a new socket failing to bind due to a conflict with a stale socket
 		std::vector<listen_endpoint_t> eps;
 

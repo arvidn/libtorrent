@@ -344,7 +344,7 @@ namespace libtorrent
 #endif
 		char msg[] = {0,0,0,3, msg_dht_port, 0, 0};
 		char* ptr = msg + 5;
-		detail::write_uint16(std::uint16_t(listen_port), ptr);
+		detail::write_uint16(listen_port, ptr);
 		send_buffer(msg, sizeof(msg));
 
 		stats_counters().inc_stats_counter(counters::num_outgoing_dht_port);
@@ -614,7 +614,7 @@ namespace libtorrent
 		// this is an invalid setting, but let's just make the best of the situation
 		int const enc_level = m_settings.get_int(settings_pack::allowed_enc_level);
 		std::uint8_t const crypto_provide = ((enc_level & settings_pack::pe_both) == 0)
-			? settings_pack::pe_both
+			? std::uint8_t(settings_pack::pe_both)
 			: std::uint8_t(enc_level);
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -684,8 +684,8 @@ namespace libtorrent
 		std::memset(write_buf, 0, 8);
 		write_buf += 8;
 
-		detail::write_uint32(std::uint32_t(crypto_field), write_buf);
-		detail::write_uint16(std::uint16_t(pad_size), write_buf); // len (pad)
+		detail::write_uint32(crypto_field, write_buf);
+		detail::write_uint16(pad_size, write_buf); // len (pad)
 
 		std::generate(write_buf, write_buf + pad_size, random_byte);
 		write_buf += pad_size;

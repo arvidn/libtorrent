@@ -75,7 +75,7 @@ namespace libtorrent
 			if (a.is_v4())
 			{
 #endif
-				write_uint32(std::uint32_t(a.to_v4().to_ulong()), out);
+				write_uint32(a.to_v4().to_ulong(), out);
 #if TORRENT_USE_IPV6
 			}
 			else if (a.is_v6())

@@ -99,7 +99,7 @@ namespace libtorrent
 		big_endian_int& operator=(T v)
 		{
 			char* p = m_storage;
-			detail::write_impl(v, p);
+			detail::write_impl<T>(v, p);
 			return *this;
 		}
 		operator T() const
