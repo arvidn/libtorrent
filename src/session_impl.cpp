@@ -1828,13 +1828,7 @@ namespace aux {
 			}
 		}
 
-<<<<<<< HEAD
 		auto remove_iter = partition_listen_sockets(eps, m_listen_sockets);
-=======
-					listen_socket_t const s = setup_listener(device
-						, tcp::endpoint(ifs[k].interface_address, std::uint16_t(port))
-						, flags | (ssl ? open_ssl_socket : 0), ec);
->>>>>>> more integral type conversion warning fixes, now only needs shorten-64-to-32
 
 		while (remove_iter != m_listen_sockets.end())
 		{
@@ -1854,7 +1848,7 @@ namespace aux {
 		for (auto const& ep : eps)
 		{
 			listen_socket_t const s = setup_listener(ep.device
-				, tcp::endpoint(ep.addr, ep.port)
+				, tcp::endpoint(ep.addr, std::uint16_t(ep.port))
 				, flags | (ep.ssl ? open_ssl_socket : 0), ec);
 
 			if (!ec && s.sock)

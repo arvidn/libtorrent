@@ -614,7 +614,7 @@ namespace libtorrent
 		// this is an invalid setting, but let's just make the best of the situation
 		int const enc_level = m_settings.get_int(settings_pack::allowed_enc_level);
 		std::uint8_t const crypto_provide = ((enc_level & settings_pack::pe_both) == 0)
-			? std::uint8_t(settings_pack::pe_both)
+			? settings_pack::pe_both
 			: std::uint8_t(enc_level);
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1613,11 +1613,11 @@ namespace libtorrent
 		}
 	}
 
-	void bt_peer_connection::write_holepunch_msg(int type, tcp::endpoint const& ep, int error)
+	void bt_peer_connection::write_holepunch_msg(int const type, tcp::endpoint const& ep, int const error)
 	{
 		char buf[35];
 		char* ptr = buf + 6;
-		detail::write_uint8(std::uint8_t(type), ptr);
+		detail::write_uint8(type, ptr);
 		if (ep.address().is_v4()) detail::write_uint8(0, ptr);
 		else detail::write_uint8(1, ptr);
 		detail::write_endpoint(ep, ptr);
@@ -1636,7 +1636,7 @@ namespace libtorrent
 #endif
 		if (type == hp_failed)
 		{
-			detail::write_uint32(std::uint32_t(error), ptr);
+			detail::write_uint32(error, ptr);
 		}
 
 		// write the packet length and type

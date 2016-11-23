@@ -351,7 +351,8 @@ namespace libtorrent
 void rc4_init(const unsigned char* in, unsigned long len, rc4 *state)
 {
 	size_t const key_size = sizeof(state->buf);
-	std::uint8_t key[key_size], tmp, *s;
+	std::array<std::uint8_t, key_size> key;
+	std::uint8_t tmp, *s;
 	int keylen, x, y, j;
 
 	TORRENT_ASSERT(state != nullptr);
@@ -365,7 +366,7 @@ void rc4_init(const unsigned char* in, unsigned long len, rc4 *state)
 
 	/* extract the key */
 	s = state->buf.data();
-	std::memcpy(key, s, key_size);
+	std::memcpy(key.data(), s, key_size);
 	keylen = state->x;
 
 	/* make RC4 perm and shuffle */
@@ -393,8 +394,8 @@ unsigned long rc4_encrypt(unsigned char *out, unsigned long outlen, rc4 *state)
 	TORRENT_ASSERT(state != nullptr);
 
 	n = outlen;
-	x = std::uint8_t(state->x);
-	y = std::uint8_t(state->y);
+	x = state->x & 0xff;
+	y = state->y & 0xff;
 	s = state->buf.data();
 	while (outlen--) {
 		x = (x + 1) & 255;

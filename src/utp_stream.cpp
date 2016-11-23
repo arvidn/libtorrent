@@ -1508,7 +1508,7 @@ void utp_socket_impl::parse_sack(std::uint16_t packet_ack, std::uint8_t const* p
 	// for each byte
 	for (std::uint8_t const* end = ptr + size; ptr != end; ++ptr)
 	{
-		std::uint8_t bitfield = std::uint8_t(*ptr);
+		std::uint8_t bitfield = *ptr;
 		unsigned char mask = 1;
 		// for each bit
 		for (int i = 0; i < 8; ++i)

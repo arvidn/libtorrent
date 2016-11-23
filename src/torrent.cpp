@@ -7726,7 +7726,7 @@ namespace libtorrent
 		return;
 	}
 
-	void torrent::move_storage(std::string const& save_path, int flags)
+	void torrent::move_storage(std::string const& save_path, int const flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -7757,7 +7757,7 @@ namespace libtorrent
 #else
 			std::string const& path = save_path;
 #endif
-			m_ses.disk_thread().async_move_storage(m_storage.get(), path, flags
+			m_ses.disk_thread().async_move_storage(m_storage.get(), path, std::uint8_t(flags)
 				, std::bind(&torrent::on_storage_moved, shared_from_this(), _1, _2, _3));
 			m_moving_storage = true;
 		}
@@ -8336,17 +8336,17 @@ namespace libtorrent
 
 	namespace {
 
-	int clamped_subtract(int a, int b)
+	std::uint16_t clamped_subtract_u16(int a, int b)
 	{
 		if (a < b) return 0;
-		return a - b;
+		return std::uint16_t(a - b);
 	}
 
-	int clamped_subtract_s16(int a, int b)
+	std::int16_t clamped_subtract_s16(int a, int b)
 	{
 		if (a + (std::numeric_limits<std::int16_t>::min)() < b)
 			return (std::numeric_limits<std::int16_t>::min)();
-		return a - b;
+		return std::int16_t(a - b);
 	}
 
 	} // anonymous namespace
@@ -8365,8 +8365,8 @@ namespace libtorrent
 			for (auto pe : *m_peer_list)
 			{
 				pe->last_optimistically_unchoked
-					= std::uint16_t(clamped_subtract(pe->last_optimistically_unchoked, seconds));
-				pe->last_connected = std::uint16_t(clamped_subtract(pe->last_connected, seconds));
+					= clamped_subtract_u16(pe->last_optimistically_unchoked, seconds);
+				pe->last_connected = clamped_subtract_u16(pe->last_connected, seconds);
 			}
 		}
 
@@ -8384,30 +8384,30 @@ namespace libtorrent
 			int const lost_seconds = seconds - m_started;
 			m_active_time += lost_seconds;
 		}
-		m_started = std::uint16_t(clamped_subtract(m_started, seconds));
+		m_started = clamped_subtract_u16(m_started, seconds);
 
 		if (m_became_seed < seconds && is_seed())
 		{
 			int const lost_seconds = seconds - m_became_seed;
 			m_seeding_time += lost_seconds;
 		}
-		m_became_seed = std::uint16_t(clamped_subtract(m_became_seed, seconds));
+		m_became_seed = clamped_subtract_u16(m_became_seed, seconds);
 
 		if (m_finished_time < seconds && is_finished())
 		{
 			int const lost_seconds = seconds - m_became_finished;
 			m_finished_time += lost_seconds;
 		}
-		m_became_finished = std::uint16_t(clamped_subtract(m_became_finished, seconds));
+		m_became_finished = clamped_subtract_u16(m_became_finished, seconds);
 
-		m_last_upload = std::int16_t(clamped_subtract_s16(m_last_upload, seconds));
-		m_last_download = std::int16_t(clamped_subtract_s16(m_last_download, seconds));
+		m_last_upload = clamped_subtract_s16(m_last_upload, seconds);
+		m_last_download = clamped_subtract_s16(m_last_download, seconds);
 #ifndef TORRENT_NO_DEPRECATE
-		m_last_scrape = std::int16_t(clamped_subtract_s16(m_last_scrape, seconds));
+		m_last_scrape = clamped_subtract_s16(m_last_scrape, seconds);
 #endif
 
-		m_last_saved_resume = std::uint16_t(clamped_subtract(m_last_saved_resume, seconds));
-		m_upload_mode_time = std::uint16_t(clamped_subtract(m_upload_mode_time, seconds));
+		m_last_saved_resume = clamped_subtract_u16(m_last_saved_resume, seconds);
+		m_upload_mode_time = clamped_subtract_u16(m_upload_mode_time, seconds);
 	}
 
 	// the higher seed rank, the more important to seed
@@ -10682,7 +10682,7 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 		st->last_scrape = m_last_scrape == (std::numeric_limits<std::int16_t>::min)() ? -1
-			: clamped_subtract(m_ses.session_time(), m_last_scrape);
+			: clamped_subtract_u16(m_ses.session_time(), m_last_scrape);
 #endif
 
 		st->share_mode = m_share_mode;
@@ -10719,9 +10719,9 @@ namespace libtorrent
 		st->seeding_time = seeding_time();
 
 		st->time_since_upload = m_last_upload == (std::numeric_limits<std::int16_t>::min)() ? -1
-			: clamped_subtract(m_ses.session_time(), m_last_upload);
+			: clamped_subtract_u16(m_ses.session_time(), m_last_upload);
 		st->time_since_download = m_last_download == (std::numeric_limits<std::int16_t>::min)() ? -1
-			: clamped_subtract(m_ses.session_time(), m_last_download);
+			: clamped_subtract_u16(m_ses.session_time(), m_last_download);
 #endif
 
 		st->finished_duration = seconds{finished_time()};

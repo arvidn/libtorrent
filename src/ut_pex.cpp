@@ -180,13 +180,13 @@ namespace libtorrent { namespace
 					if (remote.address().is_v4())
 					{
 						detail::write_endpoint(remote, pla_out);
-						detail::write_uint8(std::uint8_t(flags), plf_out);
+						detail::write_uint8(flags, plf_out);
 					}
 #if TORRENT_USE_IPV6
 					else
 					{
 						detail::write_endpoint(remote, pla6_out);
-						detail::write_uint8(std::uint8_t(flags), plf6_out);
+						detail::write_uint8(flags, plf6_out);
 					}
 #endif
 					++num_added;
@@ -483,7 +483,7 @@ namespace libtorrent { namespace
 
 			detail::write_uint32(1 + 1 + int(pex_msg.size()), ptr);
 			detail::write_uint8(bt_peer_connection::msg_extended, ptr);
-			detail::write_uint8(std::uint8_t(m_message_index), ptr);
+			detail::write_uint8(m_message_index, ptr);
 			m_pc.send_buffer(msg, sizeof(msg));
 			m_pc.send_buffer(&pex_msg[0], int(pex_msg.size()));
 
@@ -579,13 +579,13 @@ namespace libtorrent { namespace
 				if (remote.address().is_v4())
 				{
 					detail::write_endpoint(remote, pla_out);
-					detail::write_uint8(std::uint8_t(flags), plf_out);
+					detail::write_uint8(flags, plf_out);
 				}
 #if TORRENT_USE_IPV6
 				else
 				{
 					detail::write_endpoint(remote, pla6_out);
-					detail::write_uint8(std::uint8_t(flags), plf6_out);
+					detail::write_uint8(flags, plf6_out);
 				}
 #endif
 				++num_added;
@@ -598,7 +598,7 @@ namespace libtorrent { namespace
 
 			detail::write_uint32(1 + 1 + int(pex_msg.size()), ptr);
 			detail::write_uint8(bt_peer_connection::msg_extended, ptr);
-			detail::write_uint8(std::uint8_t(m_message_index), ptr);
+			detail::write_uint8(m_message_index, ptr);
 			m_pc.send_buffer(msg, sizeof(msg));
 			m_pc.send_buffer(&pex_msg[0], int(pex_msg.size()));
 

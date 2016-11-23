@@ -407,7 +407,7 @@ namespace libtorrent
 		// either returns the piece in the cache, or allocates
 		// a new empty piece and returns it.
 		// cache_state is one of cache_state_t enum
-		cached_piece_entry* allocate_piece(disk_io_job const* j, int cache_state);
+		cached_piece_entry* allocate_piece(disk_io_job const* j, std::uint16_t cache_state);
 
 		// looks for this piece in the cache. If it's there, returns a pointer
 		// to it, otherwise 0.

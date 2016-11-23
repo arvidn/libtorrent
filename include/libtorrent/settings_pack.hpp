@@ -1660,7 +1660,7 @@ namespace libtorrent
 
 		// the encryption levels, to be used with
 		// settings_pack::allowed_enc_level.
-		enum enc_level
+		enum enc_level : std::uint8_t
 		{
 			// use only plaintext encryption
 			pe_plaintext = 1,

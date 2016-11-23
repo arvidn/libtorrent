@@ -131,7 +131,7 @@ node_id generate_id_impl(address const& ip_, std::uint32_t r)
 
 	id[0] = (c >> 24) & 0xff;
 	id[1] = (c >> 16) & 0xff;
-	id[2] = ((c >> 8) & 0xf8) | std::uint8_t(random(0x7));
+	id[2] = (((c >> 8) & 0xf8) | random(0x7)) & 0xff;
 
 	for (int i = 3; i < 19; ++i) id[i] = std::uint8_t(random(0xff));
 	id[19] = r & 0xff;

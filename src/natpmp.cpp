@@ -354,8 +354,8 @@ void natpmp::send_map_request(int const i)
 	write_uint8(0, out); // NAT-PMP version
 	write_uint8(m.protocol == portmap_protocol::udp ? 1 : 2, out); // map "protocol"
 	write_uint16(0, out); // reserved
-	write_uint16(std::uint16_t(m.local_port), out); // private port
-	write_uint16(std::uint16_t(m.external_port), out); // requested public port
+	write_uint16(m.local_port, out); // private port
+	write_uint16(m.external_port, out); // requested public port
 	int ttl = m.act == mapping_t::action::add ? 3600 : 0;
 	write_uint32(ttl, out); // port mapping lifetime
 
