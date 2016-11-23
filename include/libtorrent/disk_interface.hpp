@@ -75,10 +75,9 @@ namespace libtorrent
 		virtual void async_check_files(storage_interface* storage
 			, add_torrent_params const* resume_data
 			, std::vector<std::string>& links
-			, std::function<void(disk_io_job const*)> handler) = 0;
+			, std::function<void(int, storage_error const&)> handler) = 0;
 		virtual void async_flush_piece(storage_interface* storage, int piece
-			, std::function<void(disk_io_job const*)> handler
-			= std::function<void(disk_io_job const*)>()) = 0;
+			, std::function<void()> handler = std::function<void()>()) = 0;
 		virtual void async_stop_torrent(storage_interface* storage
 			, std::function<void(disk_io_job const*)> handler)= 0;
 		virtual void async_rename_file(storage_interface* storage, int index, std::string const& name

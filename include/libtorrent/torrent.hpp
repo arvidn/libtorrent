@@ -351,8 +351,8 @@ namespace libtorrent
 		bt_peer_connection* find_peer(tcp::endpoint const& ep) const;
 		peer_connection* find_peer(sha1_hash const& pid);
 
-		void on_resume_data_checked(disk_io_job const* j);
-		void on_force_recheck(disk_io_job const* j);
+		void on_resume_data_checked(int status, storage_error const& error);
+		void on_force_recheck(int status, storage_error const& error);
 		void on_piece_hashed(int status, int piece, sha1_hash const& piece_hash
 			, storage_error const& error);
 		void files_checked();

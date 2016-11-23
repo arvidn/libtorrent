@@ -70,6 +70,12 @@ namespace libtorrent
 				h();
 			}
 
+			void operator()(disk_io_job::check_handler& h) const
+			{
+				if (!h) return;
+				h(m_job.ret, m_job.error);
+			}
+
 			void operator()(disk_io_job::generic_handler& h) const
 			{
 				if (!h) return;
