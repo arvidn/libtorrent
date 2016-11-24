@@ -90,8 +90,9 @@ namespace libtorrent { namespace aux
 
 		int copy_buffer(span<char const> buf)
 		{
-			int const ret = int(m_storage.size());
 			int const size = int(buf.size());
+			if (size == 0) return -1;
+			int const ret = int(m_storage.size());
 			m_storage.resize(ret + size);
 			std::memcpy(&m_storage[ret], buf.data(), size);
 			return ret;
@@ -99,7 +100,7 @@ namespace libtorrent { namespace aux
 
 		int allocate(int const bytes)
 		{
-			TORRENT_ASSERT(bytes >= 0);
+			if (bytes < 1) return -1;
 			int const ret = int(m_storage.size());
 			m_storage.resize(ret + bytes);
 			return ret;
@@ -107,15 +108,15 @@ namespace libtorrent { namespace aux
 
 		char* ptr(int const idx)
 		{
-			TORRENT_ASSERT(idx >= 0);
-			TORRENT_ASSERT(idx < int(m_storage.size()));
+			if(idx < 0) return nullptr;
+			if(idx >= int(m_storage.size())) return nullptr;
 			return &m_storage[idx];
 		}
 
 		char const* ptr(int const idx) const
 		{
-			TORRENT_ASSERT(idx >= 0);
-			TORRENT_ASSERT(idx < int(m_storage.size()));
+			if(idx < 0) return nullptr;
+			if(idx >= int(m_storage.size())) return nullptr;
 			return &m_storage[idx];
 		}
 
