@@ -2101,8 +2101,7 @@ namespace libtorrent
 	struct TORRENT_EXPORT log_alert final : alert
 	{
 		// internal
-		log_alert(aux::stack_allocator& alloc, char const* log);
-		log_alert(aux::stack_allocator& alloc, char const* fmt, va_list v);
+		log_alert(aux::stack_allocator& alloc, string_view log);
 
 		TORRENT_DEFINE_ALERT(log_alert, 79)
 
@@ -2131,7 +2130,7 @@ namespace libtorrent
 	{
 		// internal
 		torrent_log_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, char const* fmt, va_list v);
+			, string_view log);
 
 		TORRENT_DEFINE_ALERT(torrent_log_alert, 80)
 
@@ -2172,7 +2171,7 @@ namespace libtorrent
 		peer_log_alert(aux::stack_allocator& alloc, torrent_handle const& h
 			, tcp::endpoint const& i, peer_id const& pi
 			, peer_log_alert::direction_t dir
-			, char const* event, char const* fmt, va_list v);
+			, char const* event, string_view log);
 
 		TORRENT_DEFINE_ALERT(peer_log_alert, 81)
 
@@ -2327,7 +2326,7 @@ namespace libtorrent
 		};
 
 		dht_log_alert(aux::stack_allocator& alloc
-			, dht_module_t m, char const* fmt, va_list v);
+			, dht_module_t m, string_view log);
 
 		static const int static_category = alert::dht_log_notification;
 		TORRENT_DEFINE_ALERT(dht_log_alert, 85)

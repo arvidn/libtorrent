@@ -231,7 +231,6 @@ void peer_connection_handle::peer_log(peer_log_alert::direction_t direction
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wformat-nonliteral"
-#pragma clang diagnostic ignored "-Wclass-varargs"
 #endif
 	pc->peer_log(direction, event, fmt, v);
 #ifdef __clang__

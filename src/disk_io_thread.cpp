@@ -94,17 +94,17 @@ namespace libtorrent
 		va_start(v, fmt);
 
 		char usr[2048];
-		int len = vsnprintf(usr, sizeof(usr), fmt, v);
+		int len = std::vsnprintf(usr, sizeof(usr), fmt, v);
+		va_end(v);
 
 		static bool prepend_time = true;
 		if (!prepend_time)
 		{
-			prepend_time = (usr[len-1] == '\n');
+			prepend_time = (usr[len - 1] == '\n');
 			std::unique_lock<std::mutex> l(log_mutex);
 			fputs(usr, stderr);
 			return;
 		}
-		va_end(v);
 		char buf[2300];
 		int t = total_milliseconds(clock_type::now() - start);
 		std::snprintf(buf, sizeof(buf), "%05d: [%p] %s", t, pthread_self(), usr);

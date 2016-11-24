@@ -52,7 +52,7 @@ struct log_t : libtorrent::dht::dht_logger
 	{
 		va_list v;
 		va_start(v, fmt);
-		vfprintf(stderr, fmt, v);
+		std::vfprintf(stderr, fmt, v);
 		va_end(v);
 	}
 

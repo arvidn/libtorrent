@@ -4411,10 +4411,12 @@ namespace aux {
 	{
 		if (!m_alerts.should_post<log_alert>()) return;
 
+		char msg[512];
 		va_list v;
 		va_start(v, fmt);
-		m_alerts.emplace_alert<log_alert>(fmt, v);
+		std::vsnprintf(msg, sizeof(msg), fmt, v);
 		va_end(v);
+		m_alerts.emplace_alert<log_alert>(msg);
 	}
 #endif
 
@@ -6519,11 +6521,13 @@ namespace aux {
 	{
 		if (!m_alerts.should_post<dht_log_alert>()) return;
 
+		char msg[512];
 		va_list v;
 		va_start(v, fmt);
-		m_alerts.emplace_alert<dht_log_alert>(
-			static_cast<dht_log_alert::dht_module_t>(m), fmt, v);
+		std::vsnprintf(msg, sizeof(msg), fmt, v);
 		va_end(v);
+		m_alerts.emplace_alert<dht_log_alert>(
+			static_cast<dht_log_alert::dht_module_t>(m), msg);
 	}
 
 	void session_impl::log_packet(message_direction_t dir, span<char const> pkt
@@ -6885,14 +6889,17 @@ namespace aux {
 			return m_ses.alerts().should_post<log_alert>();
 		}
 
+		TORRENT_FORMAT(2, 3)
 		void tracker_logger::debug_log(const char* fmt, ...) const
 		{
 			if (!m_ses.alerts().should_post<log_alert>()) return;
 
+			char msg[512];
 			va_list v;
 			va_start(v, fmt);
-			m_ses.alerts().emplace_alert<log_alert>(fmt, v);
+			std::vsnprintf(msg, sizeof(msg), fmt, v);
 			va_end(v);
+			m_ses.alerts().emplace_alert<log_alert>(msg);
 		}
 #endif // TORRENT_DISABLE_LOGGING
 }}
