@@ -18,6 +18,8 @@
 #include <libtorrent/torrent_info.hpp>
 #include <libtorrent/kademlia/item.hpp> // for sign_mutable_item
 #include <libtorrent/alert.hpp>
+#include <libtorrent/time.hpp>
+
 #include <libtorrent/extensions/smart_ban.hpp>
 #include <libtorrent/extensions/ut_metadata.hpp>
 #include <libtorrent/extensions/ut_pex.hpp>
@@ -344,6 +346,28 @@ namespace
        return ret;
     }
 
+    list cached_piece_info_list(std::vector<cached_piece_info> const& v)
+    {
+       list pieces;
+       time_point now = clock_type::now();
+       for (std::vector<cached_piece_info>::const_iterator i = v.begin()
+          , end(v.end()); i != end; ++i)
+       {
+          dict d;
+          d["piece"] = i->piece;
+          d["last_use"] = total_milliseconds(now - i->last_use) / 1000.f;
+          d["next_to_hash"] = i->next_to_hash;
+          d["kind"] = i->kind;
+          pieces.append(d);
+       }
+       return pieces;
+    }
+
+    list cache_status_pieces(cache_status const& cs)
+    {
+        return cached_piece_info_list(cs.pieces);
+    }
+
 #ifndef TORRENT_NO_DEPRECATE
     cache_status get_cache_status(lt::session& s)
     {
@@ -372,19 +396,7 @@ namespace
           ses.get_cache_info(ih, ret);
        }
 
-       list pieces;
-       time_point now = clock_type::now();
-       for (std::vector<cached_piece_info>::iterator i = ret.begin()
-          , end(ret.end()); i != end; ++i)
-       {
-          dict d;
-          d["piece"] = i->piece;
-          d["last_use"] = total_milliseconds(now - i->last_use) / 1000.f;
-          d["next_to_hash"] = i->next_to_hash;
-          d["kind"] = i->kind;
-          pieces.append(d);
-       }
-       return pieces;
+       return cached_piece_info_list(ret);
     }
 #endif
 
@@ -646,6 +658,7 @@ void bind_session()
 #endif
     ;
     class_<cache_status>("cache_status")
+        .add_property("pieces", cache_status_pieces)
 #ifndef TORRENT_NO_DEPRECATE
         .def_readonly("blocks_written", &cache_status::blocks_written)
         .def_readonly("writes", &cache_status::writes)

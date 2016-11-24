@@ -81,7 +81,11 @@ namespace libtorrent { namespace aux
 #pragma clang diagnostic pop
 #endif
 
-			if (len < 0) return copy_string("(format error)");
+			if (len < 0)
+			{
+				m_storage.resize(ret);
+				return copy_string("(format error)");
+			}
 
 			// +1 is to include the 0-terminator
 			m_storage.resize(ret + (len > 512 ? 512 : len) + 1);
@@ -92,6 +96,7 @@ namespace libtorrent { namespace aux
 		{
 			int const ret = int(m_storage.size());
 			int const size = int(buf.size());
+			if (size < 1) return -1;
 			m_storage.resize(ret + size);
 			std::memcpy(&m_storage[ret], buf.data(), size);
 			return ret;
@@ -99,7 +104,7 @@ namespace libtorrent { namespace aux
 
 		int allocate(int const bytes)
 		{
-			TORRENT_ASSERT(bytes >= 0);
+			if (bytes < 1) return -1;
 			int const ret = int(m_storage.size());
 			m_storage.resize(ret + bytes);
 			return ret;
@@ -107,14 +112,14 @@ namespace libtorrent { namespace aux
 
 		char* ptr(int const idx)
 		{
-			TORRENT_ASSERT(idx >= 0);
+			if(idx < 0) return NULL;
 			TORRENT_ASSERT(idx < int(m_storage.size()));
 			return &m_storage[idx];
 		}
 
 		char const* ptr(int const idx) const
 		{
-			TORRENT_ASSERT(idx >= 0);
+			if(idx < 0) return NULL;
 			TORRENT_ASSERT(idx < int(m_storage.size()));
 			return &m_storage[idx];
 		}
