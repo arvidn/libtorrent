@@ -366,7 +366,7 @@ namespace libtorrent {
 		, msg(convert_from_native(e.message()))
 #endif
 		, error(e)
-		, m_msg_idx(-1)
+		, m_msg_idx()
 	{
 		TORRENT_ASSERT(!u.empty());
 	}
@@ -388,7 +388,7 @@ namespace libtorrent {
 #ifndef TORRENT_NO_DEPRECATE
 		return msg.c_str();
 #else
-		if (m_msg_idx == -1) return "";
+		if (m_msg_idx == aux::allocation_slot()) return "";
 		else return m_alloc.get().ptr(m_msg_idx);
 #endif
 	}
@@ -1817,7 +1817,7 @@ namespace libtorrent {
 #endif
 		, error(e)
 		, m_url_idx(alloc.copy_string(u))
-		, m_msg_idx(-1)
+		, m_msg_idx()
 	{}
 
 	url_seed_alert::url_seed_alert(aux::stack_allocator& alloc, torrent_handle const& h
@@ -1847,7 +1847,7 @@ namespace libtorrent {
 #ifndef TORRENT_NO_DEPRECATE
 		return msg.c_str();
 #else
-		if (m_msg_idx == -1) return "";
+		if (m_msg_idx == aux::allocation_slot()) return "";
 		return m_alloc.get().ptr(m_msg_idx);
 #endif
 	}
@@ -2042,7 +2042,8 @@ namespace libtorrent {
 		, addr(addr_)
 #endif
 		, m_alloc(alloc)
-		, m_response_idx(-1), m_response_size(0)
+		, m_response_idx()
+		, m_response_size(0)
 	{}
 
 	std::string dht_direct_response_alert::message() const
