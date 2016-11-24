@@ -61,7 +61,7 @@ TORRENT_TEST(copy_buffer)
 	TEST_CHECK(strcmp(a.ptr(idx1), "testing") == 0);
 
 	// attempt zero size allocation
-	int const idx2 = a.copy_buffer("nothing", 0);
+	int const idx2 = a.copy_buffer({});
 	TEST_CHECK(idx2 == -1);
 
 	// attempt to get a pointer after zero allocation
