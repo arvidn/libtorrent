@@ -5163,7 +5163,7 @@ namespace libtorrent
 
 	// this is called when a previously unchecked piece has been
 	// checked, while in seed-mode
-	void peer_connection::on_seed_mode_hashed(int const
+	void peer_connection::on_seed_mode_hashed(status_t const
 		, int const piece, sha1_hash const& piece_hash, storage_error const& error)
 	{
 		TORRENT_ASSERT(is_single_thread());

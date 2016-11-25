@@ -369,7 +369,7 @@ int block_cache::try_read(disk_io_job* j, bool expect_no_fail)
 #if TORRENT_USE_ASSERTS
 	p->piece_log.push_back(piece_log_t(j->action, j->d.io.offset / 0x4000));
 #endif
-	cache_hit(p, j->requester, (j->flags & disk_io_job::volatile_read) != 0);
+	cache_hit(p, j->requester, (j->flags & disk_interface::volatile_read) != 0);
 
 	ret = copy_from_piece(p, j, expect_no_fail);
 	if (ret < 0) return ret;
@@ -1269,7 +1269,7 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, span<file::io
 	TORRENT_ASSERT(pe->in_use);
 	TORRENT_PIECE_ASSERT(iov.size() > 0, pe);
 
-	cache_hit(pe, j->requester, (j->flags & disk_io_job::volatile_read) != 0);
+	cache_hit(pe, j->requester, (j->flags & disk_interface::volatile_read) != 0);
 
 	TORRENT_ASSERT(pe->in_use);
 
@@ -1304,7 +1304,7 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, span<file::io
 			TORRENT_PIECE_ASSERT(pe->blocks[block].dirty == false, pe);
 			++pe->num_blocks;
 			++m_read_cache_size;
-			if (j->flags & disk_io_job::volatile_read) ++m_volatile_size;
+			if (j->flags & disk_interface::volatile_read) ++m_volatile_size;
 
 			if (flags & blocks_inc_refcount)
 			{

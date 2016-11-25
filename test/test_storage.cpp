@@ -68,23 +68,27 @@ void on_read_piece(int ret, disk_io_job const& j, char const* data, int size)
 	if (ret > 0) TEST_CHECK(std::equal(j.buffer.disk_block, j.buffer.disk_block + ret, data));
 }
 
-void on_check_resume_data(int const status, storage_error const& error, bool* done)
+void on_check_resume_data(status_t const status, storage_error const& error, bool* done)
 {
-	std::cerr << time_now_string() << " on_check_resume_data ret: " << status;
+	std::cerr << time_now_string() << " on_check_resume_data ret: "
+		<< static_cast<int>(status);
 	switch (status)
 	{
-		case disk_interface::no_error:
+		case status_t::no_error:
 			std::cerr << time_now_string() << " success" << std::endl;
 			break;
-		case disk_interface::fatal_disk_error:
+		case status_t::fatal_disk_error:
 			std::cerr << time_now_string() << " disk error: " << error.ec.message()
 				<< " file: " << error.file << std::endl;
 			break;
-		case disk_interface::need_full_check:
+		case status_t::need_full_check:
 			std::cerr << time_now_string() << " need full check" << std::endl;
 			break;
-		case disk_interface::disk_check_aborted:
+		case status_t::disk_check_aborted:
 			std::cerr << time_now_string() << " aborted" << std::endl;
+			break;
+		case status_t::file_exist:
+			std::cerr << time_now_string() << " file exist" << std::endl;
 			break;
 	}
 	std::cerr << std::endl;

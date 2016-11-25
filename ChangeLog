@@ -1,3 +1,4 @@
+	* tweaked storage_interface to have stronger type safety
 	* deprecate relative times in torrent_status, replaced by std::chrono::time_point
 	* refactor in alert types to use more const fields and more clear API
 	* changed session_stats_alert counters type to signed (std::int64_t)
