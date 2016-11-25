@@ -50,8 +50,8 @@ proxy_settings::proxy_settings(settings_pack const& sett)
 	hostname = sett.get_str(settings_pack::proxy_hostname);
 	username = sett.get_str(settings_pack::proxy_username);
 	password = sett.get_str(settings_pack::proxy_password);
-	type = sett.get_int(settings_pack::proxy_type);
-	port = sett.get_int(settings_pack::proxy_port);
+	type = std::uint8_t(sett.get_int(settings_pack::proxy_type));
+	port = std::uint16_t(sett.get_int(settings_pack::proxy_port));
 	proxy_hostnames = sett.get_bool(settings_pack::proxy_hostnames);
 	proxy_peer_connections = sett.get_bool(
 		settings_pack::proxy_peer_connections);
@@ -64,8 +64,8 @@ proxy_settings::proxy_settings(aux::session_settings const& sett)
 	hostname = sett.get_str(settings_pack::proxy_hostname);
 	username = sett.get_str(settings_pack::proxy_username);
 	password = sett.get_str(settings_pack::proxy_password);
-	type = sett.get_int(settings_pack::proxy_type);
-	port = sett.get_int(settings_pack::proxy_port);
+	type = std::uint8_t(sett.get_int(settings_pack::proxy_type));
+	port = std::uint16_t(sett.get_int(settings_pack::proxy_port));
 	proxy_hostnames = sett.get_bool(settings_pack::proxy_hostnames);
 	proxy_peer_connections = sett.get_bool(
 		settings_pack::proxy_peer_connections);

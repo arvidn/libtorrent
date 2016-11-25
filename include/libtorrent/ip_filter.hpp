@@ -336,7 +336,7 @@ public:
 
 	// test the specified port (``port``) for whether it is blocked
 	// or not. The returned value is the flags set for this port.
-	// see acces_flags.
+	// see access_flags.
 	int access(std::uint16_t port) const;
 
 private:

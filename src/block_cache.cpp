@@ -406,7 +406,7 @@ void block_cache::cache_hit(cached_piece_entry* p, void* requester, bool volatil
 	// requester is different than the last one. This is to
 	// avoid a single requester making it look like a piece is
 	// frequently requested, when in fact it's only a single peer
-	int target_queue = cached_piece_entry::read_lru2;
+	std::uint16_t target_queue = cached_piece_entry::read_lru2;
 
 	if (p->last_requester == requester || requester == nullptr)
 	{
@@ -484,7 +484,7 @@ void block_cache::cache_hit(cached_piece_entry* p, void* requester, bool volatil
 void block_cache::update_cache_state(cached_piece_entry* p)
 {
 	int state = p->cache_state;
-	int desired_state = p->cache_state;
+	std::uint16_t desired_state = p->cache_state;
 	if (p->num_dirty > 0 || p->hash)
 		desired_state = cached_piece_entry::write_lru;
 	else if (p->cache_state == cached_piece_entry::write_lru)
@@ -595,7 +595,7 @@ void block_cache::try_evict_one_volatile()
 	}
 }
 
-cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, int const cache_state)
+cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, std::uint16_t const cache_state)
 {
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 	INVARIANT_CHECK;

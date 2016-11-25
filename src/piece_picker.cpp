@@ -75,7 +75,7 @@ namespace libtorrent
 #endif
 	}
 
-	void piece_picker::init(int blocks_per_piece, int blocks_in_last_piece, int total_num_pieces)
+	void piece_picker::init(int const blocks_per_piece, int const blocks_in_last_piece, int const total_num_pieces)
 	{
 		TORRENT_ASSERT(blocks_per_piece > 0);
 		TORRENT_ASSERT(total_num_pieces > 0);
@@ -121,14 +121,14 @@ namespace libtorrent
 		// number of pieces somewhat
 		TORRENT_ASSERT(m_piece_map.size() < piece_pos::we_have_index);
 
-		m_blocks_per_piece = blocks_per_piece;
-		m_blocks_in_last_piece = blocks_in_last_piece;
-		if (m_blocks_in_last_piece == 0) m_blocks_in_last_piece = blocks_per_piece;
+		m_blocks_per_piece = std::uint16_t(blocks_per_piece);
+		m_blocks_in_last_piece = std::uint16_t(blocks_in_last_piece);
+		if (m_blocks_in_last_piece == 0) m_blocks_in_last_piece = std::uint16_t(blocks_per_piece);
 
 		TORRENT_ASSERT(m_blocks_in_last_piece <= m_blocks_per_piece);
 	}
 
-	void piece_picker::piece_info(int index, piece_picker::downloading_piece& st) const
+	void piece_picker::piece_info(int const index, piece_picker::downloading_piece& st) const
 	{
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		INVARIANT_CHECK;
@@ -151,13 +151,13 @@ namespace libtorrent
 		st.requested = 0;
 		if (m_piece_map[index].have())
 		{
-			st.finished = blocks_in_piece(index);
+			st.finished = std::uint16_t(blocks_in_piece(index));
 			return;
 		}
 		st.finished = 0;
 	}
 
-	piece_picker::piece_stats_t piece_picker::piece_stats(int index) const
+	piece_picker::piece_stats_t piece_picker::piece_stats(int const index) const
 	{
 		TORRENT_ASSERT(index >= 0 && index < int(m_piece_map.size()));
 		piece_pos const& pp = m_piece_map[index];
@@ -205,7 +205,7 @@ namespace libtorrent
 			|| downloading_iter->index != piece);
 		TORRENT_ASSERT(block_index >= 0);
 		TORRENT_ASSERT(block_index < (std::numeric_limits<std::uint16_t>::max)());
-		ret.info_idx = block_index;
+		ret.info_idx = std::uint16_t(block_index);
 		TORRENT_ASSERT(int(ret.info_idx) * m_blocks_per_piece
 			+ m_blocks_per_piece <= int(m_block_info.size()));
 

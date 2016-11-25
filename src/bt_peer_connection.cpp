@@ -226,7 +226,7 @@ namespace libtorrent
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 
-		std::uint8_t out_policy = m_settings.get_int(settings_pack::out_enc_policy);
+		std::uint8_t out_policy = std::uint8_t(m_settings.get_int(settings_pack::out_enc_policy));
 
 #ifdef TORRENT_USE_OPENSSL
 		// never try an encrypted connection when already using SSL
@@ -614,8 +614,8 @@ namespace libtorrent
 		// this is an invalid setting, but let's just make the best of the situation
 		int const enc_level = m_settings.get_int(settings_pack::allowed_enc_level);
 		std::uint8_t const crypto_provide = ((enc_level & settings_pack::pe_both) == 0)
-			? settings_pack::pe_both
-			: enc_level;
+			? std::uint8_t(settings_pack::pe_both)
+			: std::uint8_t(enc_level);
 
 #ifndef TORRENT_DISABLE_LOGGING
 		char const* level[] = {"plaintext", "rc4", "plaintext rc4"};
@@ -681,7 +681,7 @@ namespace libtorrent
 		// len(pad) is zero for now, len(IA) only for outgoing connections
 
 		// vc
-		memset(write_buf, 0, 8);
+		std::memset(write_buf, 0, 8);
 		write_buf += 8;
 
 		detail::write_uint32(crypto_field, write_buf);
@@ -826,8 +826,7 @@ namespace libtorrent
 		{
 			// in anonymous mode, every peer connection
 			// has a unique peer-id
-			for (int i = 0; i < 20; ++i)
-				m_our_peer_id[i] = random(0xff);
+			aux::random_bytes(m_our_peer_id);
 		}
 
 		std::memcpy(ptr, m_our_peer_id.data(), 20);
@@ -1614,7 +1613,7 @@ namespace libtorrent
 		}
 	}
 
-	void bt_peer_connection::write_holepunch_msg(int type, tcp::endpoint const& ep, int error)
+	void bt_peer_connection::write_holepunch_msg(int const type, tcp::endpoint const& ep, int const error)
 	{
 		char buf[35];
 		char* ptr = buf + 6;

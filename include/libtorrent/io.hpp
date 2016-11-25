@@ -37,6 +37,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <algorithm> // for copy
 #include <cstring> // for memcpy
+#include <type_traits>
+
+#include "assert.hpp"
 
 namespace libtorrent
 {
@@ -72,10 +75,14 @@ namespace libtorrent
 			return static_cast<std::int8_t>(*start++);
 		}
 
-		template <class T, class OutIt>
-		inline void write_impl(T val, OutIt& start)
+		template <class T, class In, class OutIt, typename Cond
+			= typename std::enable_if<std::is_integral<In>::value
+				|| std::is_enum<In>::value>::type>
+		inline void write_impl(In data, OutIt& start)
 		{
-			for (int i = int(sizeof(T))-1; i >= 0; --i)
+			T val = T(data);
+			TORRENT_ASSERT(data == In(val));
+			for (int i = int(sizeof(T)) - 1; i >= 0; --i)
 			{
 				*start = static_cast<unsigned char>((val >> (i * 8)) & 0xff);
 				++start;
@@ -117,37 +124,37 @@ namespace libtorrent
 		{ return read_impl(start, type<std::uint8_t>()); }
 
 
-		template <class OutIt>
-		void write_uint64(std::uint64_t val, OutIt& start)
-		{ write_impl(val, start); }
+		template <class T, class OutIt>
+		void write_uint64(T val, OutIt& start)
+		{ write_impl<std::uint64_t>(val, start); }
 
-		template <class OutIt>
-		void write_int64(std::int64_t val, OutIt& start)
-		{ write_impl(val, start); }
+		template <class T, class OutIt>
+		void write_int64(T val, OutIt& start)
+		{ write_impl<std::int64_t>(val, start); }
 
-		template <class OutIt>
-		void write_uint32(std::uint32_t val, OutIt& start)
-		{ write_impl(val, start); }
+		template <class T, class OutIt>
+		void write_uint32(T val, OutIt& start)
+		{ write_impl<std::uint32_t>(val, start); }
 
-		template <class OutIt>
-		void write_int32(std::int32_t val, OutIt& start)
-		{ write_impl(val, start); }
+		template <class T, class OutIt>
+		void write_int32(T val, OutIt& start)
+		{ write_impl<std::int32_t>(val, start); }
 
-		template <class OutIt>
-		void write_uint16(std::uint16_t val, OutIt& start)
-		{ write_impl(val, start); }
+		template <class T, class OutIt>
+		void write_uint16(T val, OutIt& start)
+		{ write_impl<std::uint16_t>(val, start); }
 
-		template <class OutIt>
-		void write_int16(std::int16_t val, OutIt& start)
-		{ write_impl(val, start); }
+		template <class T, class OutIt>
+		void write_int16(T val, OutIt& start)
+		{ write_impl<std::int16_t>(val, start); }
 
-		template <class OutIt>
-		void write_uint8(std::uint8_t val, OutIt& start)
-		{ write_impl(val, start); }
+		template <class T, class OutIt>
+		void write_uint8(T val, OutIt& start)
+		{ write_impl<std::uint8_t>(val, start); }
 
-		template <class OutIt>
-		void write_int8(std::int8_t val, OutIt& start)
-		{ write_impl(val, start); }
+		template <class T, class OutIt>
+		void write_int8(T val, OutIt& start)
+		{ write_impl<std::int8_t>(val, start); }
 
 		inline int write_string(std::string const& str, char*& start)
 		{

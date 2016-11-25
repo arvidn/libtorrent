@@ -247,7 +247,7 @@ rule warnings ( properties * )
 		result += <cflags>-Wno-weak-vtables ;
 		result += <cflags>-Wno-sign-compare ;
 		result += <cflags>-Wno-sign-conversion ;
-		result += <cflags>-Wno-conversion ;
+		result += <cflags>-Wno-shorten-64-to-32 ;
 	}
 
 	if <toolset>gcc in $(properties)

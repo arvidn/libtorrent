@@ -1164,14 +1164,14 @@ utp_socket_impl::~utp_socket_impl()
 	UTP_LOGV("%8p: destroying utp socket state\n", static_cast<void*>(this));
 
 	// free any buffers we're holding
-	for (std::uint16_t i = m_inbuf.cursor(), end((m_inbuf.cursor()
+	for (std::uint16_t i = std::uint16_t(m_inbuf.cursor()), end((m_inbuf.cursor()
 		+ m_inbuf.capacity()) & ACK_MASK);
 		i != end; i = (i + 1) & ACK_MASK)
 	{
 		packet* p = m_inbuf.remove(i);
 		free(p);
 	}
-	for (std::uint16_t i = m_outbuf.cursor(), end((m_outbuf.cursor()
+	for (std::uint16_t i = std::uint16_t(m_outbuf.cursor()), end((m_outbuf.cursor()
 		+ m_outbuf.capacity()) & ACK_MASK);
 		i != end; i = (i + 1) & ACK_MASK)
 	{
@@ -1309,7 +1309,7 @@ void utp_socket_impl::send_syn()
 {
 	INVARIANT_CHECK;
 
-	m_seq_nr = random(0xffff);
+	m_seq_nr = std::uint16_t(random(0xffff));
 	m_acked_seq_nr = (m_seq_nr - 1) & ACK_MASK;
 	m_loss_seq_nr = m_acked_seq_nr;
 	m_ack_nr = 0;
@@ -1429,7 +1429,7 @@ void utp_socket_impl::send_reset(utp_header const* ph)
 	h.connection_id = m_send_id;
 	h.timestamp_difference_microseconds = m_reply_micro;
 	h.wnd_size = 0;
-	h.seq_nr = random(0xffff);
+	h.seq_nr = std::uint16_t(random(0xffff));
 	h.ack_nr = ph->seq_nr;
 	time_point now = clock_type::now();
 	h.timestamp_microseconds = std::uint32_t(
@@ -1508,7 +1508,7 @@ void utp_socket_impl::parse_sack(std::uint16_t packet_ack, std::uint8_t const* p
 	// for each byte
 	for (std::uint8_t const* end = ptr + size; ptr != end; ++ptr)
 	{
-		unsigned char bitfield = unsigned(*ptr);
+		std::uint8_t bitfield = *ptr;
 		unsigned char mask = 1;
 		// for each bit
 		for (int i = 0; i < 8; ++i)
@@ -1528,7 +1528,7 @@ void utp_socket_impl::parse_sack(std::uint16_t packet_ack, std::uint8_t const* p
 					// each ACKed packet counts as a duplicate ack
 					UTP_LOGV("%8p: duplicate_acks:%u fast_resend_seq_nr:%u\n"
 						, static_cast<void*>(this), m_duplicate_acks, m_fast_resend_seq_nr);
-					ack_packet(p, now, min_rtt, ack_nr);
+					ack_packet(p, now, min_rtt, std::uint16_t(ack_nr));
 				}
 				else
 				{
@@ -1850,8 +1850,8 @@ bool utp_socket_impl::send_pkt(int const flags)
 		// need to keep the packet around (in the outbuf)
 		if (payload_size)
 		{
-			p = static_cast<packet*>(malloc(sizeof(packet) + effective_mtu));
-			p->allocated = effective_mtu;
+			p = static_cast<packet*>(std::malloc(sizeof(packet) + effective_mtu));
+			p->allocated = std::uint16_t(effective_mtu);
 			buf_holder.reset(reinterpret_cast<char*>(p));
 
 			m_sm->inc_stats_counter(counters::utp_payload_pkts_out);
@@ -1869,11 +1869,11 @@ bool utp_socket_impl::send_pkt(int const flags)
 			p = reinterpret_cast<packet*>(ps.data());
 			p = reinterpret_cast<packet*>(align_pointer(p));
 			UTP_LOGV("%8p: allocating %d bytes on the stack\n", static_cast<void*>(this), packet_size);
-			p->allocated = packet_size;
+			p->allocated = std::uint16_t(packet_size);
 		}
 
-		p->size = packet_size;
-		p->header_size = packet_size - payload_size;
+		p->size = std::uint16_t(packet_size);
+		p->header_size = std::uint16_t(packet_size - payload_size);
 		p->num_transmissions = 0;
 #if TORRENT_USE_ASSERTS
 		p->num_fast_resend = 0;
@@ -1891,7 +1891,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 		// matter that we say this is a sequence number we haven't
 		// actually sent yet
 		h->seq_nr = m_seq_nr;
-		h->type_ver = ((payload_size ? ST_DATA : ST_STATE) << 4) | 1;
+		h->type_ver = std::uint8_t(((payload_size ? ST_DATA : ST_STATE) << 4) | 1);
 
 		write_payload(p->buf + p->header_size, payload_size);
 	}
@@ -1952,7 +1952,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 	if (sack)
 	{
 		*ptr++ = close_reason ? utp_close_reason : utp_no_extension;
-		*ptr++ = sack; // bytes for SACK bitfield
+		*ptr++ = std::uint8_t(sack); // bytes for SACK bitfield
 		write_sack(ptr, sack);
 		ptr += sack;
 		TORRENT_ASSERT(ptr <= p->buf + p->header_size);
@@ -2312,7 +2312,7 @@ void utp_socket_impl::set_state(int s)
 	if (s == m_state) return;
 
 	m_sm->inc_stats_counter(counters::num_utp_idle + m_state, -1);
-	m_state = s;
+	m_state = std::uint8_t(s);
 	m_sm->inc_stats_counter(counters::num_utp_idle + m_state, 1);
 }
 
@@ -2416,7 +2416,7 @@ void utp_socket_impl::incoming(std::uint8_t const* buf, int size, packet* p
 		iovec_t* target = &m_read_buffer.front();
 
 		int to_copy = (std::min)(size, int(target->len));
-		memcpy(target->buf, buf, to_copy);
+		std::memcpy(target->buf, buf, to_copy);
 		m_read += to_copy;
 		target->buf = reinterpret_cast<std::uint8_t*>(target->buf) + to_copy;
 		target->len -= to_copy;
@@ -2445,10 +2445,10 @@ void utp_socket_impl::incoming(std::uint8_t const* buf, int size, packet* p
 	if (!p)
 	{
 		TORRENT_ASSERT(buf);
-		p = static_cast<packet*>(malloc(sizeof(packet) + size));
-		p->size = size;
+		p = static_cast<packet*>(std::malloc(sizeof(packet) + size));
+		p->size = std::uint16_t(size);
 		p->header_size = 0;
-		memcpy(p->buf, buf, size);
+		std::memcpy(p->buf, buf, size);
 	}
 	// save this packet until the client issues another read
 	m_receive_buffer.push_back(p);
@@ -2545,7 +2545,7 @@ bool utp_socket_impl::consume_incoming_data(
 			m_buffered_incoming_bytes -= p->size - p->header_size;
 			incoming(nullptr, p->size - p->header_size, p, now);
 
-			m_ack_nr = next_ack_nr;
+			m_ack_nr = std::uint16_t(next_ack_nr);
 
 			UTP_LOGV("%8p: reordered remove inbuf: %d (%d)\n"
 				, static_cast<void*>(this), m_ack_nr, int(m_inbuf.size()));
@@ -2582,14 +2582,14 @@ bool utp_socket_impl::consume_incoming_data(
 
 		// we don't need to save the packet header, just the payload
 		packet* p = static_cast<packet*>(malloc(sizeof(packet) + payload_size));
-		p->size = payload_size;
+		p->size = std::uint16_t(payload_size);
 		p->header_size = 0;
 		p->num_transmissions = 0;
 #if TORRENT_USE_ASSERTS
 		p->num_fast_resend = 0;
 #endif
 		p->need_resend = false;
-		memcpy(p->buf, ptr, payload_size);
+		std::memcpy(p->buf, ptr, payload_size);
 		m_inbuf.insert(ph->seq_nr, p);
 		m_buffered_incoming_bytes += p->size;
 
@@ -2644,12 +2644,12 @@ void utp_socket_impl::init_mtu(int link_mtu, int utp_mtu)
 	}
 
 	// set the ceiling to what we found out from the interface
-	m_mtu_ceiling = utp_mtu;
+	m_mtu_ceiling = std::uint16_t(utp_mtu);
 
 	// start in the middle of the PMTU search space
 	m_mtu = (m_mtu_ceiling + m_mtu_floor) / 2;
 	if (m_mtu > m_mtu_ceiling) m_mtu = m_mtu_ceiling;
-	if (m_mtu_floor > utp_mtu) m_mtu_floor = utp_mtu;
+	if (m_mtu_floor > utp_mtu) m_mtu_floor = std::uint16_t(utp_mtu);
 
 	// if the window size is smaller than one packet size
 	// set it to one
@@ -2901,7 +2901,7 @@ bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 			if (!p) continue;
 
 			acked_bytes += p->size - p->header_size;
-			ack_packet(p, receive_time, min_rtt, ack_nr);
+			ack_packet(p, receive_time, min_rtt, std::uint16_t(ack_nr));
 		}
 
 		maybe_inc_acked_seq_nr();
@@ -3048,7 +3048,7 @@ bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 				m_port = ep.port();
 
 				m_ack_nr = ph->seq_nr;
-				m_seq_nr = random(0xffff);
+				m_seq_nr = std::uint16_t(random(0xffff));
 				m_acked_seq_nr = (m_seq_nr - 1) & ACK_MASK;
 				m_loss_seq_nr = m_acked_seq_nr;
 				m_fast_resend_seq_nr = m_seq_nr;

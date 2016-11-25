@@ -1510,7 +1510,7 @@ namespace libtorrent
 
 	void disk_io_thread::async_read(storage_interface* storage, peer_request const& r
 		, std::function<void(aux::block_cache_reference ref, char* block
-		, int flags, storage_error const& se)> handler, void* requester, int const flags)
+		, int flags, storage_error const& se)> handler, void* requester, std::uint8_t const flags)
 	{
 		TORRENT_ASSERT(r.length <= m_disk_cache.block_size());
 		TORRENT_ASSERT(r.length <= 16 * 1024);
@@ -1521,7 +1521,7 @@ namespace libtorrent
 		j->storage = storage->shared_from_this();
 		j->piece = r.piece;
 		j->d.io.offset = r.start;
-		j->d.io.buffer_size = r.length;
+		j->d.io.buffer_size = std::uint16_t(r.length);
 		j->buffer.disk_block = nullptr;
 		j->flags = flags;
 		j->requester = requester;
@@ -1622,7 +1622,7 @@ namespace libtorrent
 	void disk_io_thread::async_write(storage_interface* storage, peer_request const& r
 		, disk_buffer_holder buffer
 		, std::function<void(storage_error const&)> handler
-		, int const flags)
+		, std::uint8_t const flags)
 	{
 		TORRENT_ASSERT(r.length <= m_disk_cache.block_size());
 		TORRENT_ASSERT(r.length <= 16 * 1024);
@@ -1631,7 +1631,7 @@ namespace libtorrent
 		j->storage = storage->shared_from_this();
 		j->piece = r.piece;
 		j->d.io.offset = r.start;
-		j->d.io.buffer_size = r.length;
+		j->d.io.buffer_size = std::uint16_t(r.length);
 		j->buffer.disk_block = buffer.get();
 		j->callback = std::move(handler);
 		j->flags = flags;
@@ -1722,7 +1722,7 @@ namespace libtorrent
 		buffer.release();
 	}
 
-	void disk_io_thread::async_hash(storage_interface* storage, int piece, int flags
+	void disk_io_thread::async_hash(storage_interface* storage, int piece, std::uint8_t flags
 		, std::function<void(int, int, sha1_hash const&, storage_error const&)> handler, void* requester)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::hash);
@@ -1760,7 +1760,7 @@ namespace libtorrent
 		add_job(j);
 	}
 
-	void disk_io_thread::async_move_storage(storage_interface* storage, std::string const& p, int flags
+	void disk_io_thread::async_move_storage(storage_interface* storage, std::string const& p, std::uint8_t const flags
 		, std::function<void(int, std::string const&, storage_error const&)> handler)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::move_storage);
@@ -2179,7 +2179,7 @@ namespace libtorrent
 
 		if (pe == nullptr)
 		{
-			int cache_state = (j->flags & disk_io_job::volatile_read)
+			std::uint16_t const cache_state = (j->flags & disk_io_job::volatile_read)
 				? cached_piece_entry::volatile_read_lru
 				: cached_piece_entry::read_lru1;
 			pe = m_disk_cache.allocate_piece(j, cache_state);

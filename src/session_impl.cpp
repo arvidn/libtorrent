@@ -1115,15 +1115,15 @@ namespace aux {
 	{
 		TORRENT_ASSERT(is_single_thread());
 		// if you hit this assert, you're deleting a non-existent peer class
-		TORRENT_ASSERT(m_classes.at(cid));
-		if (m_classes.at(cid) == nullptr) return;
-		m_classes.decref(cid);
+		TORRENT_ASSERT(m_classes.at(peer_class_t(cid)));
+		if (m_classes.at(peer_class_t(cid)) == nullptr) return;
+		m_classes.decref(peer_class_t(cid));
 	}
 
 	peer_class_info session_impl::get_peer_class(int cid)
 	{
 		peer_class_info ret;
-		peer_class* pc = m_classes.at(cid);
+		peer_class* pc = m_classes.at(peer_class_t(cid));
 		// if you hit this assert, you're passing in an invalid cid
 		TORRENT_ASSERT(pc);
 		if (pc == nullptr)
@@ -1174,7 +1174,7 @@ namespace aux {
 
 	void session_impl::set_peer_class(int cid, peer_class_info const& pci)
 	{
-		peer_class* pc = m_classes.at(cid);
+		peer_class* pc = m_classes.at(peer_class_t(cid));
 		// if you hit this assert, you're passing in an invalid cid
 		TORRENT_ASSERT(pc);
 		if (pc == nullptr) return;
@@ -1381,7 +1381,7 @@ namespace aux {
 			, end(m_listen_sockets.end()); i != end; ++i)
 		{
 			if (!i->local_endpoint.address().is_v6()) continue;
-			return tcp::endpoint(i->local_endpoint.address(), i->tcp_external_port);
+			return tcp::endpoint(i->local_endpoint.address(), std::uint16_t(i->tcp_external_port));
 		}
 #endif
 		return tcp::endpoint();
@@ -1393,7 +1393,7 @@ namespace aux {
 			, end(m_listen_sockets.end()); i != end; ++i)
 		{
 			if (!i->local_endpoint.address().is_v4()) continue;
-			return tcp::endpoint(i->local_endpoint.address(), i->tcp_external_port);
+			return tcp::endpoint(i->local_endpoint.address(), std::uint16_t(i->tcp_external_port));
 		}
 		return tcp::endpoint();
 	}
@@ -1752,7 +1752,7 @@ namespace aux {
 		if (m_abort) return;
 
 		// first build a list of endpoints we should be listening on
-		// we need to remove any unneeded sockets first to avoid the posibility
+		// we need to remove any unneeded sockets first to avoid the possibility
 		// of a new socket failing to bind due to a conflict with a stale socket
 		std::vector<listen_endpoint_t> eps;
 
@@ -1848,7 +1848,7 @@ namespace aux {
 		for (auto const& ep : eps)
 		{
 			listen_socket_t const s = setup_listener(ep.device
-				, tcp::endpoint(ep.addr, ep.port)
+				, tcp::endpoint(ep.addr, std::uint16_t(ep.port))
 				, flags | (ep.ssl ? open_ssl_socket : 0), ec);
 
 			if (!ec && s.sock)
@@ -1979,7 +1979,7 @@ namespace aux {
 		socks5_stream& s = *m_socks_listen_socket->get<socks5_stream>();
 
 		m_socks_listen_port = listen_port();
-		if (m_socks_listen_port == 0) m_socks_listen_port = 2000 + random(60000);
+		if (m_socks_listen_port == 0) m_socks_listen_port = std::uint16_t(2000 + random(60000));
 		s.async_listen(tcp::endpoint(address_v4::any(), m_socks_listen_port)
 			, std::bind(&session_impl::on_socks_listen, this
 				, m_socks_listen_socket, _1));
@@ -2071,7 +2071,7 @@ namespace aux {
 
 		ret.hostname = m_settings.get_str(settings_pack::i2p_hostname);
 		ret.type = settings_pack::i2p_proxy;
-		ret.port = m_settings.get_int(settings_pack::i2p_port);
+		ret.port = std::uint16_t(m_settings.get_int(settings_pack::i2p_port));
 		return ret;
 	}
 
@@ -2726,7 +2726,7 @@ namespace aux {
 		int connection_limit_factor = 0;
 		for (int i = 0; i < pcs.num_classes(); ++i)
 		{
-			int pc = pcs.class_at(i);
+			peer_class_t pc = pcs.class_at(i);
 			if (m_classes.at(pc) == nullptr) continue;
 			int f = m_classes.at(pc)->connection_limit_factor;
 			if (connection_limit_factor < f) connection_limit_factor = f;
@@ -4867,7 +4867,7 @@ namespace aux {
 			// open the socket yet. The socks abstraction layer defers
 			// opening it.
 			ec.clear();
-			bind_ep.port(next_port());
+			bind_ep.port(std::uint16_t(next_port()));
 		}
 
 		if (!m_outgoing_interfaces.empty())
@@ -5224,7 +5224,7 @@ namespace aux {
 		// potentially identify us if it is leaked elsewhere
 		if (m_settings.get_bool(settings_pack::force_proxy)) return 0;
 		if (m_listen_sockets.empty()) return 0;
-		return m_listen_sockets.front().tcp_external_port;
+		return std::uint16_t(m_listen_sockets.front().tcp_external_port);
 	}
 
 	// TODO: 2 this function should be removed and users need to deal with the
@@ -5244,7 +5244,7 @@ namespace aux {
 		if (m_settings.get_bool(settings_pack::force_proxy)) return 0;
 		for (auto const& s : m_listen_sockets)
 		{
-			if (s.ssl) return s.tcp_external_port;
+			if (s.ssl) return std::uint16_t(s.tcp_external_port);
 		}
 #endif
 		return 0;
@@ -5589,7 +5589,7 @@ namespace aux {
 
 		for (auto const& addr : addresses)
 		{
-			udp::endpoint ep(addr, port);
+			udp::endpoint ep(addr, std::uint16_t(port));
 			add_dht_node(ep);
 		}
 	}
@@ -5623,7 +5623,7 @@ namespace aux {
 		for (auto const& addr : addresses)
 		{
 			// router nodes should be added before the DHT is started (and bootstrapped)
-			udp::endpoint ep(addr, port);
+			udp::endpoint ep(addr, std::uint16_t(port));
 			if (m_dht) m_dht->add_router_node(ep);
 			m_dht_router_nodes.push_back(ep);
 		}
@@ -5885,10 +5885,10 @@ namespace aux {
 		{
 #if TORRENT_USE_IPV6
 			if (s.local_endpoint(ec).address().is_v6())
-				s.set_option(traffic_class(v), ec);
+				s.set_option(traffic_class(char(v)), ec);
 			else if (!ec)
 #endif
-				s.set_option(type_of_service(v), ec);
+				s.set_option(type_of_service(char(v)), ec);
 		}
 	}
 

@@ -164,11 +164,11 @@ namespace libtorrent
 		bdecode_node file_priority = rd.dict_find_list("file_priority");
 		if (file_priority)
 		{
-			const int num_files = file_priority.list_size();
+			int const num_files = file_priority.list_size();
 			ret.file_priorities.resize(num_files, 4);
 			for (int i = 0; i < num_files; ++i)
 			{
-				ret.file_priorities[i] = file_priority.list_int_value_at(i, 1);
+				ret.file_priorities[i] = std::uint8_t(file_priority.list_int_value_at(i, 1));
 				// this is suspicious, leave seed mode
 				if (ret.file_priorities[i] == 0)
 				{

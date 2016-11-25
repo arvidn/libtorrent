@@ -55,9 +55,7 @@ namespace libtorrent
 		// For Windows and all platforms when compiled with libcrypto, it
 		// generates cryptographically random bytes.
 		// If the above conditions are not true, then a standard
-		// std::independent_bits_engine<std::mt19937, 8, std::uint8_t>
-		// generator is used.
-		//
+		// fill of bytes is used.
 		TORRENT_EXTRA_EXPORT void random_bytes(span<char> buffer);
 	}
 
