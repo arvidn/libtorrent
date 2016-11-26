@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <array>
+#include <bitset>
 
 namespace libtorrent
 {
