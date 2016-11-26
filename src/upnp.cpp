@@ -131,8 +131,7 @@ void upnp::log(char const* fmt, ...) const
 	va_list v;
 	va_start(v, fmt);
 	char msg[500];
-	using std::vsnprintf;
-	vsnprintf(msg, sizeof(msg), fmt, v);
+	std::vsnprintf(msg, sizeof(msg), fmt, v);
 	va_end(v);
 	m_callback.log_portmap(aux::portmap_transport::upnp, msg);
 }

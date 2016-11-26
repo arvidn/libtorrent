@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 #include <iostream>
 #include <cstdarg>
+#include <cstdio> // for vsnprintf
 
 using namespace libtorrent;
 using namespace std::placeholders;
@@ -59,7 +60,7 @@ void log(char const* fmt, ...)
 	va_start(v, fmt);
 
 	char buf[1024];
-	vsnprintf(buf, sizeof(buf), fmt, v);
+	std::vsnprintf(buf, sizeof(buf), fmt, v);
 	va_end(v);
 
 	std::printf("\x1b[1m\x1b[36m%s: %s\x1b[0m\n"

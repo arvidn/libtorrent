@@ -60,6 +60,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #if DEBUG_DISK_THREAD
 #include <cstdarg>
 #include <sstream>
+#include <cstdio> // for vsnprintf
 #define DLOG(...) debug_log(__VA_ARGS__)
 #else
 #define DLOG(...) do {} while(false)
@@ -94,7 +95,7 @@ namespace libtorrent
 		va_start(v, fmt);
 
 		char usr[2048];
-		int len = vsnprintf(usr, sizeof(usr), fmt, v);
+		int len = std::vsnprintf(usr, sizeof(usr), fmt, v);
 
 		static bool prepend_time = true;
 		if (!prepend_time)
