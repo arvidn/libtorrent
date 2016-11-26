@@ -477,7 +477,7 @@ namespace
           d["piece"] = i->piece;
           d["last_use"] = total_milliseconds(now - i->last_use) / 1000.f;
           d["next_to_hash"] = i->next_to_hash;
-          d["kind"] = i->kind;
+          d["kind"] = static_cast<int>(i->kind);
           pieces.append(d);
        }
        return pieces;
