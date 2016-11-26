@@ -101,7 +101,7 @@ POSSIBILITY OF SUCH DAMAGE.
 //		}
 //		virtual bool rename_file(int file, std::string const& new_name)
 //		{ assert(false); return false; }
-//		virtual bool move_storage(std::string const& save_path) { return false; }
+//		virtual status_t move_storage(std::string const& save_path) { return false; }
 //		virtual bool verify_resume_data(add_torrent_params const& rd
 //			, std::vector<std::string> const* links
 //			, storage_error& error) { return false; }
@@ -352,13 +352,7 @@ namespace libtorrent
 		// like ``release_files()``.
 		//
 		//If an error occurs, ``storage_error`` should be set to reflect it.
-		//
-		// returns one of:
-		// | no_error = 0
-		// | fatal_disk_error = -1
-		// | need_full_check = -2
-		// | file_exist = -4
-		virtual int move_storage(std::string const& save_path, int flags
+		virtual status_t move_storage(std::string const& save_path, int flags
 			, storage_error& ec) = 0;
 
 		// This function should verify the resume data ``rd`` with the files
@@ -500,7 +494,7 @@ namespace libtorrent
 		virtual void release_files(storage_error& ec) override;
 		virtual void delete_files(int options, storage_error& ec) override;
 		virtual void initialize(storage_error& ec) override;
-		virtual int move_storage(std::string const& save_path, int flags
+		virtual status_t move_storage(std::string const& save_path, int flags
 			, storage_error& ec) override;
 		virtual bool verify_resume_data(add_torrent_params const& rd
 			, std::vector<std::string> const& links

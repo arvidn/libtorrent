@@ -169,10 +169,10 @@ namespace libtorrent
 			error_code& ec;
 		};
 
-		void on_hash(int const status, int const piece, sha1_hash const& piece_hash
+		void on_hash(int const piece, sha1_hash const& piece_hash
 			, storage_error const& error, hash_state* st)
 		{
-			if (status != 0)
+			if (error)
 			{
 				// on error
 				st->ec = error.ec;
@@ -185,8 +185,8 @@ namespace libtorrent
 			if (st->piece_counter < st->ct.num_pieces())
 			{
 				st->iothread.async_hash(st->storage.get(), st->piece_counter
-					, disk_io_job::sequential_access
-					, std::bind(&on_hash, _1, _2, _3, _4, st), nullptr);
+					, disk_interface::sequential_access
+					, std::bind(&on_hash, _1, _2, _3, st), nullptr);
 				++st->piece_counter;
 			}
 			else
@@ -297,8 +297,8 @@ namespace libtorrent
 		hash_state st = { t, storage, disk_thread, 0, 0, f, ec };
 		for (int i = 0; i < piece_read_ahead; ++i)
 		{
-			disk_thread.async_hash(storage.get(), i, disk_io_job::sequential_access
-				, std::bind(&on_hash, _1, _2, _3, _4, &st), nullptr);
+			disk_thread.async_hash(storage.get(), i, disk_interface::sequential_access
+				, std::bind(&on_hash, _1, _2, _3, &st), nullptr);
 			++st.piece_counter;
 			if (st.piece_counter >= t.num_pieces()) break;
 		}

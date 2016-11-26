@@ -67,6 +67,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/linked_list.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/piece_block.hpp"
+#include "libtorrent/disk_interface.hpp" // for status_t
 #include "libtorrent/aux_/file_progress.hpp"
 #include "libtorrent/aux_/suggest_piece.hpp"
 
@@ -350,9 +351,9 @@ namespace libtorrent
 		bt_peer_connection* find_peer(tcp::endpoint const& ep) const;
 		peer_connection* find_peer(sha1_hash const& pid);
 
-		void on_resume_data_checked(int status, storage_error const& error);
-		void on_force_recheck(int status, storage_error const& error);
-		void on_piece_hashed(int status, int piece, sha1_hash const& piece_hash
+		void on_resume_data_checked(status_t status, storage_error const& error);
+		void on_force_recheck(status_t status, storage_error const& error);
+		void on_piece_hashed(int piece, sha1_hash const& piece_hash
 			, storage_error const& error);
 		void files_checked();
 		void start_checking();
@@ -867,7 +868,7 @@ namespace libtorrent
 		void resume_download();
 
 		void verify_piece(int piece);
-		void on_piece_verified(int const status, int const piece
+		void on_piece_verified(int const piece
 			, sha1_hash const& piece_hash, storage_error const& error);
 
 		// this is called whenever a peer in this swarm becomes interesting
@@ -1116,7 +1117,7 @@ namespace libtorrent
 
 		void on_files_deleted(storage_error const& error);
 		void on_torrent_paused();
-		void on_storage_moved(int status, std::string const& path
+		void on_storage_moved(status_t status, std::string const& path
 			, storage_error const& error);
 		void on_file_renamed(std::string const& filename
 			, int const file_idx

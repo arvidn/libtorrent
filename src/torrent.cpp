@@ -1926,7 +1926,7 @@ namespace libtorrent
 		return nullptr;
 	}
 
-	void torrent::on_resume_data_checked(int const status
+	void torrent::on_resume_data_checked(status_t const status
 		, storage_error const& error) try
 	{
 		// hold a reference until this function returns
@@ -1946,7 +1946,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(is_single_thread());
 
-		if (status == disk_interface::fatal_disk_error)
+		if (status == status_t::fatal_disk_error)
 		{
 			TORRENT_ASSERT(m_outstanding_check_files == false);
 			m_add_torrent_params.reset();
@@ -1991,7 +1991,7 @@ namespace libtorrent
 
 		// only report this error if the user actually provided resume data
 		// (i.e. m_add_torrent_params->have_pieces)
-		if ((error || status != 0)
+		if ((error || status != status_t::no_error)
 			&& m_add_torrent_params
 			&& !m_add_torrent_params->have_pieces.empty()
 			&& m_ses.alerts().should_post<fastresume_rejected_alert>())
@@ -2005,10 +2005,10 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
 		{
-			if (status != 0)
+			if (status != status_t::no_error)
 			{
 				debug_log("fastresume data rejected: ret: %d (%d) %s"
-					, status, error.ec.value(), error.ec.message().c_str());
+					, static_cast<int>(status), error.ec.value(), error.ec.message().c_str());
 			}
 			else
 			{
@@ -2017,7 +2017,7 @@ namespace libtorrent
 		}
 #endif
 
-		bool should_start_full_check = status != 0;
+		bool should_start_full_check = status != status_t::no_error;
 
 		// if we got a partial pieces bitfield, it means we were in the middle of
 		// checking this torrent. pick it up where we left off
@@ -2035,7 +2035,7 @@ namespace libtorrent
 		// that when the resume data check fails. For instance, if the resume data
 		// is incorrect, but we don't have any files, we skip the check and initialize
 		// the storage to not have anything.
-		if (status == 0)
+		if (status == status_t::no_error)
 		{
 			// there are either no files for this torrent
 			// or the resume_data was accepted
@@ -2190,7 +2190,7 @@ namespace libtorrent
 			, shared_from_this(), _1, _2));
 	}
 
-	void torrent::on_force_recheck(int const status, storage_error const& error) try
+	void torrent::on_force_recheck(status_t const status, storage_error const& error) try
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -2204,7 +2204,7 @@ namespace libtorrent
 			handle_disk_error("force_recheck", error);
 			return;
 		}
-		if (status == 0)
+		if (status == status_t::no_error)
 		{
 			// if there are no files, just start
 			files_checked();
@@ -2252,9 +2252,9 @@ namespace libtorrent
 		for (int i = 0; i < num_outstanding; ++i)
 		{
 			m_ses.disk_thread().async_hash(m_storage.get(), m_checking_piece++
-				, disk_io_job::sequential_access | disk_io_job::volatile_read
+				, disk_interface::sequential_access | disk_interface::volatile_read
 				, std::bind(&torrent::on_piece_hashed
-					, shared_from_this(), _1, _2, _3, _4), reinterpret_cast<void*>(1));
+					, shared_from_this(), _1, _2, _3), reinterpret_cast<void*>(1));
 			if (m_checking_piece >= m_torrent_file->num_pieces()) break;
 		}
 #ifndef TORRENT_DISABLE_LOGGING
@@ -2264,7 +2264,7 @@ namespace libtorrent
 
 	// This is only used for checking of torrents. i.e. force-recheck or initial checking
 	// of existing files
-	void torrent::on_piece_hashed(int const status, int const piece
+	void torrent::on_piece_hashed(int const piece
 		, sha1_hash const& piece_hash, storage_error const& error) try
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -2272,22 +2272,11 @@ namespace libtorrent
 
 		if (m_abort) return;
 
-		if (status == disk_interface::disk_check_aborted)
-		{
-			m_checking_piece = 0;
-			m_num_checked_pieces = 0;
-#ifndef TORRENT_DISABLE_LOGGING
-			debug_log("on_piece_hashed, disk_check_aborted");
-#endif
-			pause();
-			return;
-		}
-
 		state_updated();
 
 		++m_num_checked_pieces;
 
-		if (status < 0)
+		if (error)
 		{
 			if (error.ec == boost::system::errc::no_such_file_or_directory
 				|| error.ec == boost::asio::error::eof
@@ -2383,9 +2372,9 @@ namespace libtorrent
 			}
 
 			m_ses.disk_thread().async_hash(m_storage.get(), m_checking_piece++
-				, disk_io_job::sequential_access | disk_io_job::volatile_read
+				, disk_interface::sequential_access | disk_interface::volatile_read
 				, std::bind(&torrent::on_piece_hashed
-					, shared_from_this(), _1, _2, _3, _4), reinterpret_cast<void*>(1));
+					, shared_from_this(), _1, _2, _3), reinterpret_cast<void*>(1));
 #ifndef TORRENT_DISABLE_LOGGING
 			debug_log("on_piece_hashed, m_checking_piece: %d", m_checking_piece);
 #endif
@@ -3660,39 +3649,25 @@ namespace libtorrent
 		TORRENT_ASSERT(st.total_done >= st.total_wanted_done);
 	}
 
-	void torrent::on_piece_verified(int const status, int const piece
+	void torrent::on_piece_verified(int const piece
 		, sha1_hash const& piece_hash, storage_error const& error) try
 	{
 		TORRENT_ASSERT(is_single_thread());
 
 		if (m_abort) return;
 
-		int ret = status;
-		if (settings().get_bool(settings_pack::disable_hash_checks))
-		{
-			ret = 0;
-		}
-		else if (ret == -1)
-		{
-			handle_disk_error("piece_verified", error);
-		}
-		else
-		{
-			if (sha1_hash(piece_hash) != m_torrent_file->hash_for_piece(piece))
-				ret = -2;
-		}
+		bool const passed = settings().get_bool(settings_pack::disable_hash_checks)
+			|| (!error && sha1_hash(piece_hash) == m_torrent_file->hash_for_piece(piece));
 
-		// 0: success, piece passed check
-		// -1: disk failure
-		// -2: piece failed check
+		bool const disk_error = !passed && error;
+
+		if (disk_error) handle_disk_error("piece_verified", error);
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
 		{
 			debug_log("*** PIECE_FINISHED [ p: %d | chk: %s | size: %d ]"
-				, piece, ((ret == 0)
-					?"passed":ret == -1
-					?"disk failed":"failed")
+				, piece, passed ? "passed" : disk_error ? "disk failed" : "failed"
 				, m_torrent_file->piece_size(piece));
 		}
 #endif
@@ -3717,7 +3692,11 @@ namespace libtorrent
 		// it passed the check
 		if (!m_picker->is_piece_finished(piece)) return;
 
-		if (ret == 0)
+		if (disk_error)
+		{
+			update_gauge();
+		}
+		else if (passed)
 		{
 			// the following call may cause picker to become invalid
 			// in case we just became a seed
@@ -3726,15 +3705,10 @@ namespace libtorrent
 			// mark it as verified
 			if (m_seed_mode) verified(piece);
 		}
-		else if (ret == -2)
+		else
 		{
 			// piece_failed() will restore the piece
 			piece_failed(piece);
-		}
-		else
-		{
-			TORRENT_ASSERT(ret == -1);
-			update_gauge();
 		}
 	}
 	catch (...) { handle_exception(); }
@@ -7778,20 +7752,20 @@ namespace libtorrent
 		}
 	}
 
-	void torrent::on_storage_moved(int const status, std::string const& path
+	void torrent::on_storage_moved(status_t const status, std::string const& path
 		, storage_error const& error) try
 	{
 		TORRENT_ASSERT(is_single_thread());
 
 		m_moving_storage = false;
-		if (status == disk_interface::no_error
-			|| status == disk_interface::need_full_check)
+		if (status == status_t::no_error
+			|| status == status_t::need_full_check)
 		{
 			if (alerts().should_post<storage_moved_alert>())
 				alerts().emplace_alert<storage_moved_alert>(get_handle(), path);
 			m_save_path = path;
 			set_need_save_resume();
-			if (status == disk_interface::need_full_check)
+			if (status == status_t::need_full_check)
 				force_recheck();
 		}
 		else
@@ -10261,7 +10235,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_storage.get());
 
 		m_ses.disk_thread().async_hash(m_storage.get(), piece, 0
-			, std::bind(&torrent::on_piece_verified, shared_from_this(), _1, _2, _3, _4)
+			, std::bind(&torrent::on_piece_verified, shared_from_this(), _1, _2, _3)
 			, reinterpret_cast<void*>(1));
 	}
 

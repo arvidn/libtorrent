@@ -299,9 +299,9 @@ namespace libtorrent
 			, std::function<void(storage_error const&)> handler
 			, std::uint8_t flags = 0) override;
 		void async_hash(storage_interface* storage, int piece, std::uint8_t flags
-			, std::function<void(int, int, sha1_hash const&, storage_error const&)> handler, void* requester) override;
+			, std::function<void(int, sha1_hash const&, storage_error const&)> handler, void* requester) override;
 		void async_move_storage(storage_interface* storage, std::string const& p, std::uint8_t flags
-			, std::function<void(int, std::string const&, storage_error const&)> handler) override;
+			, std::function<void(status_t, std::string const&, storage_error const&)> handler) override;
 		void async_release_files(storage_interface* storage
 			, std::function<void()> handler = std::function<void()>()) override;
 		void async_delete_files(storage_interface* storage, int options
@@ -309,7 +309,7 @@ namespace libtorrent
 		void async_check_files(storage_interface* storage
 			, add_torrent_params const* resume_data
 			, std::vector<std::string>& links
-			, std::function<void(int, storage_error const&)> handler) override;
+			, std::function<void(status_t, storage_error const&)> handler) override;
 		void async_rename_file(storage_interface* storage, int index, std::string const& name
 			, std::function<void(std::string const&, int, storage_error const&)> handler) override;
 		void async_stop_torrent(storage_interface* storage
@@ -372,29 +372,29 @@ namespace libtorrent
 
 		void maybe_issue_queued_read_jobs(cached_piece_entry* pe,
 			jobqueue_t& completed_jobs);
-		int do_read(disk_io_job* j, jobqueue_t& completed_jobs);
-		int do_uncached_read(disk_io_job* j);
+		status_t do_read(disk_io_job* j, jobqueue_t& completed_jobs);
+		status_t do_uncached_read(disk_io_job* j);
 
-		int do_write(disk_io_job* j, jobqueue_t& completed_jobs);
-		int do_uncached_write(disk_io_job* j);
+		status_t do_write(disk_io_job* j, jobqueue_t& completed_jobs);
+		status_t do_uncached_write(disk_io_job* j);
 
-		int do_hash(disk_io_job* j, jobqueue_t& completed_jobs);
-		int do_uncached_hash(disk_io_job* j);
+		status_t do_hash(disk_io_job* j, jobqueue_t& completed_jobs);
+		status_t do_uncached_hash(disk_io_job* j);
 
-		int do_move_storage(disk_io_job* j, jobqueue_t& completed_jobs);
-		int do_release_files(disk_io_job* j, jobqueue_t& completed_jobs);
-		int do_delete_files(disk_io_job* j, jobqueue_t& completed_jobs);
-		int do_check_fastresume(disk_io_job* j, jobqueue_t& completed_jobs);
-		int do_rename_file(disk_io_job* j, jobqueue_t& completed_jobs);
-		int do_stop_torrent(disk_io_job* j, jobqueue_t& completed_jobs);
-		int do_read_and_hash(disk_io_job* j, jobqueue_t& completed_jobs);
-		int do_flush_piece(disk_io_job* j, jobqueue_t& completed_jobs);
-		int do_flush_hashed(disk_io_job* j, jobqueue_t& completed_jobs);
-		int do_flush_storage(disk_io_job* j, jobqueue_t& completed_jobs);
-		int do_trim_cache(disk_io_job* j, jobqueue_t& completed_jobs);
-		int do_file_priority(disk_io_job* j, jobqueue_t& completed_jobs);
-		int do_clear_piece(disk_io_job* j, jobqueue_t& completed_jobs);
-		int do_resolve_links(disk_io_job* j, jobqueue_t& completed_jobs);
+		status_t do_move_storage(disk_io_job* j, jobqueue_t& completed_jobs);
+		status_t do_release_files(disk_io_job* j, jobqueue_t& completed_jobs);
+		status_t do_delete_files(disk_io_job* j, jobqueue_t& completed_jobs);
+		status_t do_check_fastresume(disk_io_job* j, jobqueue_t& completed_jobs);
+		status_t do_rename_file(disk_io_job* j, jobqueue_t& completed_jobs);
+		status_t do_stop_torrent(disk_io_job* j, jobqueue_t& completed_jobs);
+		status_t do_read_and_hash(disk_io_job* j, jobqueue_t& completed_jobs);
+		status_t do_flush_piece(disk_io_job* j, jobqueue_t& completed_jobs);
+		status_t do_flush_hashed(disk_io_job* j, jobqueue_t& completed_jobs);
+		status_t do_flush_storage(disk_io_job* j, jobqueue_t& completed_jobs);
+		status_t do_trim_cache(disk_io_job* j, jobqueue_t& completed_jobs);
+		status_t do_file_priority(disk_io_job* j, jobqueue_t& completed_jobs);
+		status_t do_clear_piece(disk_io_job* j, jobqueue_t& completed_jobs);
+		status_t do_resolve_links(disk_io_job* j, jobqueue_t& completed_jobs);
 
 		void call_job_handlers();
 
@@ -423,17 +423,6 @@ namespace libtorrent
 
 			// jobs queued for servicing
 			jobqueue_t m_queued_jobs;
-		};
-
-		enum return_value_t
-		{
-			// the do_* functions can return this to indicate the disk
-			// job did not complete immediately, and shouldn't be posted yet
-			defer_handler = -200,
-
-			// the job cannot be completed right now, put it back in the
-			// queue and try again later
-			retry_job = -201
 		};
 
 		// returns true if the thread should exit

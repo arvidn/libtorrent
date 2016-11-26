@@ -922,10 +922,10 @@ namespace libtorrent
 		return true;
 	}
 
-	int default_storage::move_storage(std::string const& sp, int const flags
+	status_t default_storage::move_storage(std::string const& sp, int const flags
 		, storage_error& ec)
 	{
-		int ret = disk_interface::no_error;
+		status_t ret = status_t::no_error;
 		std::string const save_path = complete(sp);
 
 		// check to see if any of the files exist
@@ -950,7 +950,7 @@ namespace libtorrent
 						ec.ec = err;
 						ec.file = i;
 						ec.operation = storage_error::stat;
-						return disk_interface::file_exist;
+						return status_t::file_exist;
 					}
 				}
 			}
@@ -969,7 +969,7 @@ namespace libtorrent
 					ec.ec = err;
 					ec.file = -1;
 					ec.operation = storage_error::mkdir;
-					return disk_interface::fatal_disk_error;
+					return status_t::fatal_disk_error;
 				}
 			}
 			else if (err)
@@ -977,7 +977,7 @@ namespace libtorrent
 				ec.ec = err;
 				ec.file = -1;
 				ec.operation = storage_error::stat;
-				return disk_interface::fatal_disk_error;
+				return status_t::fatal_disk_error;
 			}
 		}
 
@@ -999,7 +999,7 @@ namespace libtorrent
 
 			if (flags == dont_replace && exists(new_path))
 			{
-				if (ret == disk_interface::no_error) ret = disk_interface::need_full_check;
+				if (ret == status_t::no_error) ret = status_t::need_full_check;
 				continue;
 			}
 
@@ -1051,7 +1051,7 @@ namespace libtorrent
 				}
 			}
 
-			return disk_interface::fatal_disk_error;
+			return status_t::fatal_disk_error;
 		}
 
 		std::string const old_save_path = m_save_path;
@@ -1363,7 +1363,7 @@ namespace libtorrent
 			void release_files(storage_error&) override {}
 			void delete_files(int, storage_error&) override {}
 			void initialize(storage_error&) override {}
-			int move_storage(std::string const&, int, storage_error&) override { return 0; }
+			status_t move_storage(std::string const&, int, storage_error&) override { return status_t::no_error; }
 
 			int readv(span<file::iovec_t const> bufs
 				, int, int, int, storage_error&) override
@@ -1421,8 +1421,8 @@ namespace libtorrent
 			bool has_any_file(storage_error&) override { return false; }
 			void set_file_priority(std::vector<std::uint8_t> const& /* prio */
 				, storage_error&) override {}
-			int move_storage(std::string const& /* save_path */
-				, int /* flags */, storage_error&) override { return 0; }
+			status_t move_storage(std::string const& /* save_path */
+				, int /* flags */, storage_error&) override { return status_t::no_error; }
 			bool verify_resume_data(add_torrent_params const& /* rd */
 				, std::vector<std::string> const& /* links */
 				, storage_error&) override

@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/aux_/block_cache_reference.hpp"
 #include "libtorrent/sha1_hash.hpp"
+#include "libtorrent/disk_interface.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/variant/variant.hpp>
@@ -99,8 +100,6 @@ namespace libtorrent
 
 		enum flags_t
 		{
-			sequential_access = 0x1,
-
 			// force making a copy of the cached block, rather
 			// than getting a reference to the block already in
 			// the cache.
@@ -111,9 +110,6 @@ namespace libtorrent
 			// storage will execute in parallel with this one. It's used
 			// to lower the fence when the job has completed
 			fence = 0x8,
-
-			// don't keep the read block in cache
-			volatile_read = 0x10,
 
 			// this job is currently being performed, or it's hanging
 			// on a cache piece that may be flushed soon
@@ -151,10 +147,10 @@ namespace libtorrent
 		using read_handler = std::function<void(aux::block_cache_reference ref
 			, char* block, int flags, storage_error const& se)>;
 		using write_handler = std::function<void(storage_error const&)>;
-		using hash_handler = std::function<void(int, int, sha1_hash const&, storage_error const&)>;
-		using move_handler = std::function<void(int, std::string const&, storage_error const&)>;
+		using hash_handler = std::function<void(int, sha1_hash const&, storage_error const&)>;
+		using move_handler = std::function<void(status_t, std::string const&, storage_error const&)>;
 		using release_handler = std::function<void()>;
-		using check_handler = std::function<void(int, storage_error const&)>;
+		using check_handler = std::function<void(status_t, storage_error const&)>;
 		using rename_handler = std::function<void(std::string const&, int, storage_error const&)>;
 		using clear_piece_handler = std::function<void(int)>;
 
@@ -215,10 +211,8 @@ namespace libtorrent
 		// the type of job this is
 		std::uint32_t action:8;
 
-		enum { operation_failed = -1 };
-
 		// return value of operation
-		std::int32_t ret = 0;
+		status_t ret = status_t::no_error;
 
 		// flags controlling this job
 		std::uint8_t flags = 0;

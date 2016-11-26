@@ -5110,7 +5110,7 @@ namespace libtorrent
 				// verified this piece (r.piece)
 				m_disk_thread.async_hash(&t->storage(), r.piece, 0
 					, std::bind(&peer_connection::on_seed_mode_hashed, self()
-						, _1, _2, _3, _4), this);
+						, _1, _2, _3), this);
 				t->verifying(r.piece);
 				continue;
 			}
@@ -5163,8 +5163,8 @@ namespace libtorrent
 
 	// this is called when a previously unchecked piece has been
 	// checked, while in seed-mode
-	void peer_connection::on_seed_mode_hashed(int const
-		, int const piece, sha1_hash const& piece_hash, storage_error const& error)
+	void peer_connection::on_seed_mode_hashed(int const piece
+		, sha1_hash const& piece_hash, storage_error const& error)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
