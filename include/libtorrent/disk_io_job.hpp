@@ -147,7 +147,7 @@ namespace libtorrent
 		using read_handler = std::function<void(aux::block_cache_reference ref
 			, char* block, int flags, storage_error const& se)>;
 		using write_handler = std::function<void(storage_error const&)>;
-		using hash_handler = std::function<void(status_t, int, sha1_hash const&, storage_error const&)>;
+		using hash_handler = std::function<void(int, sha1_hash const&, storage_error const&)>;
 		using move_handler = std::function<void(status_t, std::string const&, storage_error const&)>;
 		using release_handler = std::function<void()>;
 		using check_handler = std::function<void(status_t, storage_error const&)>;

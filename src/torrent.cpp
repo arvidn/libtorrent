@@ -2254,7 +2254,7 @@ namespace libtorrent
 			m_ses.disk_thread().async_hash(m_storage.get(), m_checking_piece++
 				, disk_interface::sequential_access | disk_interface::volatile_read
 				, std::bind(&torrent::on_piece_hashed
-					, shared_from_this(), _1, _2, _3, _4), reinterpret_cast<void*>(1));
+					, shared_from_this(), _1, _2, _3), reinterpret_cast<void*>(1));
 			if (m_checking_piece >= m_torrent_file->num_pieces()) break;
 		}
 #ifndef TORRENT_DISABLE_LOGGING
@@ -2264,7 +2264,7 @@ namespace libtorrent
 
 	// This is only used for checking of torrents. i.e. force-recheck or initial checking
 	// of existing files
-	void torrent::on_piece_hashed(status_t const status, int const piece
+	void torrent::on_piece_hashed(int const piece
 		, sha1_hash const& piece_hash, storage_error const& error) try
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -2272,22 +2272,11 @@ namespace libtorrent
 
 		if (m_abort) return;
 
-		if (status == status_t::disk_check_aborted)
-		{
-			m_checking_piece = 0;
-			m_num_checked_pieces = 0;
-#ifndef TORRENT_DISABLE_LOGGING
-			debug_log("on_piece_hashed, disk_check_aborted");
-#endif
-			pause();
-			return;
-		}
-
 		state_updated();
 
 		++m_num_checked_pieces;
 
-		if (status != status_t::no_error)
+		if (error)
 		{
 			if (error.ec == boost::system::errc::no_such_file_or_directory
 				|| error.ec == boost::asio::error::eof
@@ -2385,7 +2374,7 @@ namespace libtorrent
 			m_ses.disk_thread().async_hash(m_storage.get(), m_checking_piece++
 				, disk_interface::sequential_access | disk_interface::volatile_read
 				, std::bind(&torrent::on_piece_hashed
-					, shared_from_this(), _1, _2, _3, _4), reinterpret_cast<void*>(1));
+					, shared_from_this(), _1, _2, _3), reinterpret_cast<void*>(1));
 #ifndef TORRENT_DISABLE_LOGGING
 			debug_log("on_piece_hashed, m_checking_piece: %d", m_checking_piece);
 #endif
@@ -3660,7 +3649,7 @@ namespace libtorrent
 		TORRENT_ASSERT(st.total_done >= st.total_wanted_done);
 	}
 
-	void torrent::on_piece_verified(status_t const status, int const piece
+	void torrent::on_piece_verified(int const piece
 		, sha1_hash const& piece_hash, storage_error const& error) try
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -3668,10 +3657,9 @@ namespace libtorrent
 		if (m_abort) return;
 
 		bool const passed = settings().get_bool(settings_pack::disable_hash_checks)
-			|| (status == status_t::no_error
-				&& sha1_hash(piece_hash) == m_torrent_file->hash_for_piece(piece));
+			|| (!error && sha1_hash(piece_hash) == m_torrent_file->hash_for_piece(piece));
 
-		bool const disk_error = !passed && status != status_t::no_error;
+		bool const disk_error = !passed && error;
 
 		if (disk_error) handle_disk_error("piece_verified", error);
 
@@ -10247,7 +10235,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_storage.get());
 
 		m_ses.disk_thread().async_hash(m_storage.get(), piece, 0
-			, std::bind(&torrent::on_piece_verified, shared_from_this(), _1, _2, _3, _4)
+			, std::bind(&torrent::on_piece_verified, shared_from_this(), _1, _2, _3)
 			, reinterpret_cast<void*>(1));
 	}
 

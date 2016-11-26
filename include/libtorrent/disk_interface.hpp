@@ -51,11 +51,10 @@ namespace libtorrent
 	enum class status_t : std::uint8_t
 	{
 		// return values from check_fastresume, and move_storage
-		no_error = 0,
-		fatal_disk_error = 1,
-		need_full_check = 2,
-		disk_check_aborted = 3,
-		file_exist = 4
+		no_error,
+		fatal_disk_error,
+		need_full_check,
+		file_exist
 	};
 
 	struct TORRENT_EXTRA_EXPORT disk_interface
@@ -80,7 +79,7 @@ namespace libtorrent
 			, std::function<void(storage_error const&)> handler
 			, std::uint8_t flags = 0) = 0;
 		virtual void async_hash(storage_interface* storage, int piece, std::uint8_t flags
-			, std::function<void(status_t, int, sha1_hash const&, storage_error const&)> handler, void* requester) = 0;
+			, std::function<void(int, sha1_hash const&, storage_error const&)> handler, void* requester) = 0;
 		virtual void async_move_storage(storage_interface* storage, std::string const& p, std::uint8_t flags
 			, std::function<void(status_t, std::string const&, storage_error const&)> handler) = 0;
 		virtual void async_release_files(storage_interface* storage

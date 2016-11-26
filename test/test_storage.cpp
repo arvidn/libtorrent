@@ -84,9 +84,6 @@ void on_check_resume_data(status_t const status, storage_error const& error, boo
 		case status_t::need_full_check:
 			std::cerr << time_now_string() << " need full check" << std::endl;
 			break;
-		case status_t::disk_check_aborted:
-			std::cerr << time_now_string() << " aborted" << std::endl;
-			break;
 		case status_t::file_exist:
 			std::cerr << time_now_string() << " file exist" << std::endl;
 			break;

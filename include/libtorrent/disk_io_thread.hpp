@@ -299,7 +299,7 @@ namespace libtorrent
 			, std::function<void(storage_error const&)> handler
 			, std::uint8_t flags = 0) override;
 		void async_hash(storage_interface* storage, int piece, std::uint8_t flags
-			, std::function<void(status_t, int, sha1_hash const&, storage_error const&)> handler, void* requester) override;
+			, std::function<void(int, sha1_hash const&, storage_error const&)> handler, void* requester) override;
 		void async_move_storage(storage_interface* storage, std::string const& p, std::uint8_t flags
 			, std::function<void(status_t, std::string const&, storage_error const&)> handler) override;
 		void async_release_files(storage_interface* storage

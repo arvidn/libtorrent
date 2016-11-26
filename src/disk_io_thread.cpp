@@ -1733,7 +1733,7 @@ namespace libtorrent
 	}
 
 	void disk_io_thread::async_hash(storage_interface* storage, int piece, std::uint8_t flags
-		, std::function<void(status_t, int, sha1_hash const&, storage_error const&)> handler, void* requester)
+		, std::function<void(int, sha1_hash const&, storage_error const&)> handler, void* requester)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::hash);
 		j->storage = storage->shared_from_this();

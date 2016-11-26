@@ -353,7 +353,7 @@ namespace libtorrent
 
 		void on_resume_data_checked(status_t status, storage_error const& error);
 		void on_force_recheck(status_t status, storage_error const& error);
-		void on_piece_hashed(status_t status, int piece, sha1_hash const& piece_hash
+		void on_piece_hashed(int piece, sha1_hash const& piece_hash
 			, storage_error const& error);
 		void files_checked();
 		void start_checking();
@@ -868,7 +868,7 @@ namespace libtorrent
 		void resume_download();
 
 		void verify_piece(int piece);
-		void on_piece_verified(status_t const status, int const piece
+		void on_piece_verified(int const piece
 			, sha1_hash const& piece_hash, storage_error const& error);
 
 		// this is called whenever a peer in this swarm becomes interesting
