@@ -287,7 +287,7 @@ namespace libtorrent
 		{
 			// available input is 1,2 or 3 bytes
 			// since we read 3 bytes at a time at most
-			auto available_input = std::min(inbuf.size(), std::size_t(s.end() - i));
+			int available_input = std::min(int(inbuf.size()), int(s.end() - i));
 
 			// clear input buffer
 			inbuf.fill(0);
@@ -343,7 +343,7 @@ namespace libtorrent
 		std::string ret;
 		for (std::string::const_iterator i = s.begin(); i != s.end();)
 		{
-			auto available_input = std::min(inbuf.size(), std::size_t(s.end()-i));
+			int available_input = std::min(int(inbuf.size()), int(s.end()-i));
 
 			// clear input buffer
 			inbuf.fill(0);
@@ -389,7 +389,7 @@ namespace libtorrent
 		std::string ret;
 		for (std::string::const_iterator i = s.begin(); i != s.end();)
 		{
-			auto available_input = std::min(inbuf.size(), std::size_t(s.end() - i));
+			int available_input = std::min(int(inbuf.size()), int(s.end() - i));
 
 			int pad_start = 0;
 			if (available_input < 8) pad_start = available_input;
