@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 #include <array>
+#include <bitset>
 
 namespace libtorrent
 {
@@ -54,48 +55,48 @@ namespace libtorrent { namespace aux
 			aux::session_settings const& s, entry::dictionary_type& sett);
 
 		void set_str(int name, std::string value)
-		{ set(m_strings, name, std::move(value), settings_pack::string_type_base); }
+		{ set<std::string>(m_strings, name, std::move(value), settings_pack::string_type_base); }
 		void set_int(int name, int value)
-		{ set(m_ints, name, value, settings_pack::int_type_base); }
+		{ set<int>(m_ints, name, value, settings_pack::int_type_base); }
 		void set_bool(int name, bool value)
-		{ set(m_bools, name, value, settings_pack::bool_type_base); }
+		{ set<bool>(m_bools, name, value, settings_pack::bool_type_base); }
 
 		std::string const& get_str(int name) const
-		{ return get(m_strings, name, settings_pack::string_type_base); }
+		{ return get<std::string const&>(m_strings, name, settings_pack::string_type_base); }
 		int get_int(int name) const
-		{ return get(m_ints, name, settings_pack::int_type_base); }
+		{ return get<int>(m_ints, name, settings_pack::int_type_base); }
 		bool get_bool(int name) const
-		{ return get(m_bools, name, settings_pack::bool_type_base); }
+		{ return get<bool>(m_bools, name, settings_pack::bool_type_base); }
 
 		session_settings();
 
 	private:
 
-		template <typename T, size_t N>
-		void set(std::array<T, N>& arr, int const name, T val, int const type) const
+		template <typename T, typename Container>
+		void set(Container& c, int const name, T val
+			, int const type) const
 		{
 			TORRENT_ASSERT((name & settings_pack::type_mask) == type);
 			if ((name & settings_pack::type_mask) != type) return;
 			size_t const index = name & settings_pack::index_mask;
-			TORRENT_ASSERT(index < N);
-			arr[index] = std::move(val);
+			TORRENT_ASSERT(index < c.size());
+			c[index] = std::move(val);
 		}
 
-		template <typename T, size_t N>
-		T const& get(std::array<T, N> const& arr, int const name, int const type) const
+		template <typename T, typename Container>
+		T get(Container const& c, int const name, int const type) const
 		{
-			static T empty;
+			static typename std::remove_reference<T>::type empty;
 			TORRENT_ASSERT((name & settings_pack::type_mask) == type);
 			if ((name & settings_pack::type_mask) != type) return empty;
 			size_t const index = name & settings_pack::index_mask;
-			TORRENT_ASSERT(index < N);
-			return arr[index];
+			TORRENT_ASSERT(index < c.size());
+			return c[index];
 		}
 
 		std::array<std::string, settings_pack::num_string_settings> m_strings;
 		std::array<int, settings_pack::num_int_settings> m_ints;
-		// TODO: make this a bitfield
-		std::array<bool, settings_pack::num_bool_settings> m_bools;
+		std::bitset<settings_pack::num_bool_settings> m_bools;
 	};
 
 } }
