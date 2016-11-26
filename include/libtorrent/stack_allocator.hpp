@@ -93,7 +93,8 @@ namespace libtorrent { namespace aux
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wformat-nonliteral"
 #endif
-			int const len = std::vsnprintf(m_storage.data() + ret, 512, fmt, v);
+			using std::vsnprintf;
+			int const len = vsnprintf(m_storage.data() + ret, 512, fmt, v);
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
