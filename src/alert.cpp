@@ -1783,7 +1783,7 @@ namespace libtorrent {
 		bool first = true;
 		for (auto v : values)
 		{
-			std::snprintf(msg, sizeof(msg), first ? "%" PRIi64 : ", %" PRIi64, v);
+			std::snprintf(msg, sizeof(msg), first ? "%" PRId64 : ", %" PRId64, v);
 			first = false;
 			ret += msg;
 		}

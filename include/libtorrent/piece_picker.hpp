@@ -137,7 +137,7 @@ namespace libtorrent
 			bool operator<(downloading_piece const& rhs) const { return index < rhs.index; }
 
 			// the index of the piece
-			std::uint32_t index;
+			std::int32_t index;
 
 			// info about each block in this piece. this is an index into the
 			// m_block_info array, when multiplied by m_blocks_per_piece.

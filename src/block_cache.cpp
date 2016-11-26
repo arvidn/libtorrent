@@ -1679,8 +1679,8 @@ void block_cache::check_invariant() const
 			num_refcount += p.blocks[k].refcount;
 		}
 		TORRENT_PIECE_ASSERT(num_blocks == p.num_blocks, &p);
-		TORRENT_PIECE_ASSERT(num_pending <= int(p.refcount), &p);
-		TORRENT_PIECE_ASSERT(num_refcount == int(p.refcount), &p);
+		TORRENT_PIECE_ASSERT(num_pending <= p.refcount, &p);
+		TORRENT_PIECE_ASSERT(num_refcount == p.refcount, &p);
 		TORRENT_PIECE_ASSERT(num_dirty == p.num_dirty, &p);
 	}
 	TORRENT_ASSERT(m_read_cache_size == cached_read_blocks);

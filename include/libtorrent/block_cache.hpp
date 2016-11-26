@@ -312,7 +312,7 @@ namespace libtorrent
 		// ---- 32 bit boundary ---
 
 		// the sum of all refcounts in all blocks
-		std::uint32_t refcount = 0;
+		std::int32_t refcount = 0;
 
 #if TORRENT_USE_ASSERTS
 		// the number of times this piece has finished hashing

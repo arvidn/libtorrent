@@ -202,7 +202,7 @@ namespace libtorrent
 			= std::lower_bound(m_downloads[download_state].begin()
 			, m_downloads[download_state].end(), ret);
 		TORRENT_ASSERT(downloading_iter == m_downloads[download_state].end()
-			|| int(downloading_iter->index) != piece);
+			|| downloading_iter->index != piece);
 		TORRENT_ASSERT(block_index >= 0);
 		TORRENT_ASSERT(block_index < (std::numeric_limits<std::uint16_t>::max)());
 		ret.info_idx = std::uint16_t(block_index);
@@ -496,7 +496,7 @@ namespace libtorrent
 				block_info const* info = blocks_for_piece(dp);
 				for (int k = 0; k < num_blocks; ++k)
 				{
-					TORRENT_ASSERT(info[k].piece_index == int(dp.index));
+					TORRENT_ASSERT(info[k].piece_index == dp.index);
 					TORRENT_ASSERT(info[k].peer == nullptr
 						|| info[k].peer->in_use);
 
@@ -2330,7 +2330,7 @@ get_out:
 				= interesting_blocks.begin(), end2(interesting_blocks.end());
 				j != end2; ++j)
 			{
-				if (j->piece_index != int(dp.index)) continue;
+				if (j->piece_index != dp.index) continue;
 				found = true;
 				break;
 			}
@@ -2379,7 +2379,7 @@ get_out:
 				block_info const& info = binfo[j];
 				TORRENT_ASSERT(info.peer == nullptr
 					|| static_cast<torrent_peer*>(info.peer)->in_use);
-				TORRENT_ASSERT(info.piece_index == int(dp->index));
+				TORRENT_ASSERT(info.piece_index == dp->index);
 				if (info.state != block_info::state_requested
 					|| info.peer == peer)
 					continue;
@@ -2421,7 +2421,7 @@ get_out:
 			for (int j = 0; j < num_blocks_in_piece; ++j)
 			{
 				block_info const& info = binfo[j];
-				TORRENT_ASSERT(info.piece_index == int(i->index));
+				TORRENT_ASSERT(info.piece_index == i->index);
 				if (info.state != block_info::state_none) continue;
 				std::vector<piece_block>::iterator k = std::find(
 					interesting_blocks.begin(), interesting_blocks.end()
@@ -2549,8 +2549,8 @@ get_out:
 		for (int j = 0; j < num_blocks_in_piece; ++j)
 		{
 			piece_picker::block_info const& info = binfo[j];
-			TORRENT_ASSERT(info.peer == nullptr || static_cast<torrent_peer*>(info.peer)->in_use);
-			TORRENT_ASSERT(info.piece_index == int(p.index));
+			TORRENT_ASSERT(info.peer == nullptr || info.peer->in_use);
+			TORRENT_ASSERT(info.piece_index == p.index);
 			if (info.state == piece_picker::block_info::state_none)
 			{
 				++contiguous_blocks;
@@ -2717,7 +2717,7 @@ get_out:
 				// ignore completed blocks and already requested blocks
 				int block_idx = (j + first_block) % num_blocks_in_piece;
 				block_info const& info = binfo[block_idx];
-				TORRENT_ASSERT(info.piece_index == int(dp.index));
+				TORRENT_ASSERT(info.piece_index == dp.index);
 				if (info.state != block_info::state_none) continue;
 				backup_blocks2.push_back(piece_block(dp.index, block_idx));
 			}
@@ -2729,7 +2729,7 @@ get_out:
 			// ignore completed blocks and already requested blocks
 			int block_idx = (j + first_block) % num_blocks_in_piece;
 			block_info const& info = binfo[block_idx];
-			TORRENT_ASSERT(info.piece_index == int(dp.index));
+			TORRENT_ASSERT(info.piece_index == dp.index);
 			if (info.state != block_info::state_none) continue;
 
 			// this block is interesting (we don't have it yet).
@@ -2866,7 +2866,7 @@ get_out:
 		std::vector<piece_picker::downloading_piece>::iterator i = std::lower_bound(
 			m_downloads[queue].begin(), m_downloads[queue].end(), cmp);
 		if (i == m_downloads[queue].end()) return i;
-		if (int(i->index) == index) return i;
+		if (i->index == index) return i;
 		return m_downloads[queue].end();
 	}
 

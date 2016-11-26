@@ -603,9 +603,14 @@ namespace aux {
 			std::sort(stats.begin(), stats.end()
 				, [] (stats_metric const& lhs, stats_metric const& rhs)
 				{ return lhs.value_index < rhs.value_index; });
-			std::string stats_header = std::accumulate(std::next(stats.begin()), stats.end()
-				, std::string("session stats header: ") + stats.front().name
-				, [](std::string str, stats_metric stat) { return str + ", " + stat.name; });
+			std::string stats_header = "session stats header: ";
+			bool first = true;
+			for (auto const& s : stats)
+			{
+				if (!first) stats_header += ", ";
+				stats_header += s.name;
+				first = false;
+			}
 			m_alerts.emplace_alert<log_alert>(stats_header.c_str());
 		}
 #endif

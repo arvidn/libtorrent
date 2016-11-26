@@ -1364,13 +1364,13 @@ namespace libtorrent
 	{
 		std::uint32_t silly_hash(std::string const& str)
 		{
-			std::int32_t ret = 1;
+			std::uint32_t ret = 1;
 			for (auto ch : str)
 			{
 				if (ch == 0) continue;
-				ret *= int(ch);
+				ret *= std::uint32_t(ch);
 			}
-			return std::uint32_t(ret);
+			return ret;
 		}
 	}
 #endif

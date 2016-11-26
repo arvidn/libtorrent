@@ -3072,7 +3072,7 @@ namespace libtorrent
 			for (std::vector<piece_picker::downloading_piece>::const_iterator
 				i = q.begin(), end(q.end()); i != end; ++i)
 			{
-				if (int(i->index) != block_finished.piece_index) continue;
+				if (i->index != block_finished.piece_index) continue;
 				piece_picker::block_info* info = picker.blocks_for_piece(*i);
 				TORRENT_ASSERT(info[block_finished.block_index].state
 					== piece_picker::block_info::state_finished);

@@ -209,10 +209,10 @@ node_id generate_prefix_mask(int bits)
 {
 	TORRENT_ASSERT(bits >= 0);
 	TORRENT_ASSERT(bits <= 160);
-	node_id mask(nullptr);
-	int b = 0;
-	for (; b < bits - 7; b += 8) mask[std::size_t(b / 8)] |= 0xff;
-	if (bits < 160) mask[std::size_t(b / 8)] |= (0xff << (8 - (bits & 7))) & 0xff;
+	node_id mask;
+	std::size_t b = 0;
+	for (; b < bits - 7; b += 8) mask[b / 8] |= 0xff;
+	if (bits < 160) mask[b / 8] |= (0xff << (8 - (bits & 7))) & 0xff;
 	return mask;
 }
 

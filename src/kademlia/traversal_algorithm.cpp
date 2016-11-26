@@ -208,7 +208,7 @@ void traversal_algorithm::add_entry(node_id const& id
 	if (m_results.size() > 100)
 	{
 		std::for_each(m_results.begin() + 100, m_results.end()
-			, [this](std::shared_ptr<observer>& ptr)
+			, [this](std::shared_ptr<observer> const& ptr)
 		{
 			if ((ptr->flags & (observer::flag_queried | observer::flag_failed | observer::flag_alive))
 				== observer::flag_queried)

@@ -92,9 +92,8 @@ struct average_accumulator
 
 	void add_sample(int s)
 	{
-		TORRENT_ASSERT(s >= 0);
 		++m_num_samples;
-		m_sample_sum += std::uint64_t(s);
+		m_sample_sum += s;
 	}
 
 	int mean()
@@ -106,14 +105,14 @@ struct average_accumulator
 		// let the average roll over, but only be worth a
 		// single sample
 		m_num_samples = 1;
-		m_sample_sum = std::uint64_t(ret);
+		m_sample_sum = ret;
 		return ret;
 	}
 
 private:
 
 	int m_num_samples = 0;
-	std::uint64_t m_sample_sum = 0;
+	std::int64_t m_sample_sum = 0;
 };
 
 }

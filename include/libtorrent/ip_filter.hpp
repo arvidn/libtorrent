@@ -212,7 +212,7 @@ namespace detail
 			std::vector<ip_range<ExternalAddressType>> ret;
 			ret.reserve(m_access_list.size());
 
-			for (typename range_t::const_iterator i = m_access_list.begin()
+			for (auto i = m_access_list.begin()
 				, end(m_access_list.end()); i != end;)
 			{
 				ip_range<ExternalAddressType> r;
@@ -243,8 +243,7 @@ namespace detail
 			std::uint32_t access;
 		};
 
-		using range_t = std::set<range>;
-		range_t m_access_list;
+		std::set<range> m_access_list;
 	};
 
 }
