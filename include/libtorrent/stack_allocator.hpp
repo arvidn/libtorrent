@@ -31,15 +31,32 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #ifndef TORRENT_STACK_ALLOCATOR
+#define TORRENT_STACK_ALLOCATOR
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/string_view.hpp"
 
+#include <cstdio> // for vsnprintf
 #include <cstring>
 
 namespace libtorrent { namespace aux
 {
+	struct allocation_slot
+	{
+		allocation_slot() : m_idx(-1) {}
+		allocation_slot(allocation_slot const&) = default;
+		allocation_slot(allocation_slot&&) = default;
+		allocation_slot& operator=(allocation_slot const&) = default;
+		allocation_slot& operator=(allocation_slot&&) = default;
+		bool operator==(allocation_slot const& s) const { return m_idx == s.m_idx; }
+		bool operator!=(allocation_slot const& s) const { return m_idx != s.m_idx; }
+		friend struct stack_allocator;
+	private:
+		explicit allocation_slot(int idx) : m_idx(idx) {}
+		int val() const { return m_idx; }
+		int m_idx;
+	};
 
 	struct stack_allocator
 	{
@@ -49,25 +66,25 @@ namespace libtorrent { namespace aux
 		stack_allocator(stack_allocator const&) = delete;
 		stack_allocator& operator=(stack_allocator const&) = delete;
 
-		int copy_string(string_view str)
+		allocation_slot copy_string(string_view str)
 		{
 			int const ret = int(m_storage.size());
 			m_storage.resize(ret + str.size() + 1);
 			std::memcpy(&m_storage[ret], str.data(), str.size());
 			m_storage[ret + str.length()] = '\0';
-			return ret;
+			return allocation_slot(ret);
 		}
 
-		int copy_string(char const* str)
+		allocation_slot copy_string(char const* str)
 		{
 			int const ret = int(m_storage.size());
 			int const len = int(std::strlen(str));
 			m_storage.resize(ret + len + 1);
 			std::strcpy(&m_storage[ret], str);
-			return ret;
+			return allocation_slot(ret);
 		}
 
-		int format_string(char const* fmt, va_list v)
+		allocation_slot format_string(char const* fmt, va_list v)
 		{
 			int const ret = int(m_storage.size());
 			m_storage.resize(ret + 512);
@@ -89,39 +106,39 @@ namespace libtorrent { namespace aux
 
 			// +1 is to include the 0-terminator
 			m_storage.resize(ret + (len > 512 ? 512 : len) + 1);
-			return ret;
+			return allocation_slot(ret);
 		}
 
-		int copy_buffer(span<char const> buf)
+		allocation_slot copy_buffer(span<char const> buf)
 		{
 			int const ret = int(m_storage.size());
 			int const size = int(buf.size());
-			if (size < 1) return -1;
+			if (size < 1) return allocation_slot();
 			m_storage.resize(ret + size);
 			std::memcpy(&m_storage[ret], buf.data(), size);
-			return ret;
+			return allocation_slot(ret);
 		}
 
-		int allocate(int const bytes)
+		allocation_slot allocate(int const bytes)
 		{
-			if (bytes < 1) return -1;
+			if (bytes < 1) return allocation_slot();
 			int const ret = int(m_storage.size());
 			m_storage.resize(ret + bytes);
-			return ret;
+			return allocation_slot(ret);
 		}
 
-		char* ptr(int const idx)
+		char* ptr(allocation_slot const idx)
 		{
-			if(idx < 0) return NULL;
-			TORRENT_ASSERT(idx < int(m_storage.size()));
-			return &m_storage[idx];
+			if(idx.val() < 0) return nullptr;
+			TORRENT_ASSERT(idx.val() < int(m_storage.size()));
+			return &m_storage[idx.val()];
 		}
 
-		char const* ptr(int const idx) const
+		char const* ptr(allocation_slot const idx) const
 		{
-			if(idx < 0) return NULL;
-			TORRENT_ASSERT(idx < int(m_storage.size()));
-			return &m_storage[idx];
+			if(idx.val() < 0) return nullptr;
+			TORRENT_ASSERT(idx.val() < int(m_storage.size()));
+			return &m_storage[idx.val()];
 		}
 
 		void swap(stack_allocator& rhs)

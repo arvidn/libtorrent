@@ -51,20 +51,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/piece_block.hpp"
 #include "libtorrent/aux_/escape_string.hpp" // for convert_from_native
 #include "libtorrent/string_view.hpp"
+#include "libtorrent/stack_allocator.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <boost/shared_array.hpp>
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent
 {
-
-	namespace aux {
-		struct stack_allocator;
-	}
-
 	// maps an operation id (from peer_error_alert and peer_disconnected_alert)
 	// to its name. See peer_connection for the constants
 	TORRENT_EXPORT char const* operation_name(int op);
@@ -99,7 +93,7 @@ namespace libtorrent
 	protected:
 		std::reference_wrapper<aux::stack_allocator const> m_alloc;
 	private:
-		int m_name_idx;
+		aux::allocation_slot m_name_idx;
 	};
 
 	// The peer alert is a base class for alerts that refer to a specific peer. It includes all
@@ -150,7 +144,7 @@ namespace libtorrent
 		std::string url;
 #endif
 	private:
-		int const m_url_idx;
+		aux::allocation_slot const m_url_idx;
 	};
 
 #define TORRENT_DEFINE_ALERT_IMPL(name, seq, prio) \
@@ -273,7 +267,7 @@ namespace libtorrent
 		// refers to the index of the file that was renamed,
 		int const index;
 	private:
-		int const m_name_idx;
+		aux::allocation_slot const m_name_idx;
 	};
 
 	// This is posted as a response to a torrent_handle::rename_file() call, if the rename
@@ -447,7 +441,7 @@ namespace libtorrent
 		char const* error_message() const;
 
 	private:
-		int const m_msg_idx;
+		aux::allocation_slot const m_msg_idx;
 	};
 
 	// This alert is triggered if the tracker reply contains a warning field.
@@ -473,7 +467,7 @@ namespace libtorrent
 		char const* warning_message() const;
 
 	private:
-		int const m_msg_idx;
+		aux::allocation_slot const m_msg_idx;
 	};
 
 	// This alert is generated when a scrape request succeeds.
@@ -524,7 +518,7 @@ namespace libtorrent
 		char const* error_message() const;
 
 	private:
-		int const m_msg_idx;
+		aux::allocation_slot const m_msg_idx;
 	};
 
 	// This alert is only for informational purpose. It is generated when a tracker announce
@@ -892,7 +886,7 @@ namespace libtorrent
 		char const* storage_path() const;
 
 	private:
-		int const m_path_idx;
+		aux::allocation_slot const m_path_idx;
 	};
 
 	// The ``storage_moved_failed_alert`` is generated when an attempt to move the storage,
@@ -923,7 +917,7 @@ namespace libtorrent
 		// terminated string naming which one, otherwise it's nullptr.
 		char const* operation;
 	private:
-		int const m_file_idx;
+		aux::allocation_slot const m_file_idx;
 	};
 
 	// This alert is generated when a request to delete the files of a torrent complete.
@@ -1088,8 +1082,8 @@ namespace libtorrent
 		char const* error_message() const;
 
 	private:
-		int const m_url_idx;
-		int const m_msg_idx;
+		aux::allocation_slot const m_url_idx;
+		aux::allocation_slot const m_msg_idx;
 	};
 
 	// If the storage fails to read or write files that it needs access to, this alert is
@@ -1123,7 +1117,7 @@ namespace libtorrent
 		std::string msg;
 #endif
 	private:
-		int const m_file_idx;
+		aux::allocation_slot const m_file_idx;
 	};
 
 	// This alert is generated when the metadata has been completely received and the info-hash
@@ -1305,7 +1299,7 @@ namespace libtorrent
 
 	private:
 		std::reference_wrapper<aux::stack_allocator const> m_alloc;
-		int const m_interface_idx;
+		aux::allocation_slot const m_interface_idx;
 	};
 
 	// This alert is posted when the listen port succeeds to be opened on a
@@ -1452,7 +1446,7 @@ namespace libtorrent
 		// TODO: 2 should the alert baseclass have this object instead?
 		std::reference_wrapper<aux::stack_allocator const> m_alloc;
 
-		int const m_log_idx;
+		aux::allocation_slot const m_log_idx;
 	};
 
 	// This alert is generated when a fastresume file has been passed to
@@ -1489,7 +1483,7 @@ namespace libtorrent
 		std::string msg;
 #endif
 	private:
-		int const m_path_idx;
+		aux::allocation_slot const m_path_idx;
 	};
 
 	// This alert is posted when an incoming peer connection, or a peer that's about to be added
@@ -1690,7 +1684,7 @@ namespace libtorrent
 		char const* tracker_id() const;
 
 	private:
-		int const m_tracker_idx;
+		aux::allocation_slot const m_tracker_idx;
 	};
 
 	// This alert is posted when the initial DHT bootstrap is done.
@@ -1729,7 +1723,7 @@ namespace libtorrent
 		char const* filename() const;
 
 	private:
-		int const m_file_idx;
+		aux::allocation_slot const m_file_idx;
 	};
 
 	// This is always posted for SSL torrents. This is a reminder to the client that
@@ -2120,7 +2114,7 @@ namespace libtorrent
 
 	private:
 		std::reference_wrapper<aux::stack_allocator const> m_alloc;
-		int const m_str_idx;
+		aux::allocation_slot const m_str_idx;
 	};
 
 	// This alert is posted by torrent wide events. It's meant to be used for
@@ -2148,7 +2142,7 @@ namespace libtorrent
 #endif
 
 	private:
-		int const m_str_idx;
+		aux::allocation_slot const m_str_idx;
 	};
 
 	// This alert is posted by events specific to a peer. It's meant to be used
@@ -2195,7 +2189,7 @@ namespace libtorrent
 #endif
 
 	private:
-		int const m_str_idx;
+		aux::allocation_slot const m_str_idx;
 	};
 
 	// posted if the local service discovery socket fails to start properly.
@@ -2342,7 +2336,7 @@ namespace libtorrent
 
 	private:
 		std::reference_wrapper<aux::stack_allocator const> m_alloc;
-		int const m_msg_idx;
+		aux::allocation_slot const m_msg_idx;
 	};
 
 	// This alert is posted every time a DHT message is sent or received. It is
@@ -2380,7 +2374,7 @@ namespace libtorrent
 
 	private:
 		std::reference_wrapper<aux::stack_allocator> m_alloc;
-		int const m_msg_idx;
+		aux::allocation_slot const m_msg_idx;
 		int const m_size;
 	};
 
@@ -2408,7 +2402,7 @@ namespace libtorrent
 	private:
 		std::reference_wrapper<aux::stack_allocator> m_alloc;
 		int const m_num_peers;
-		int m_peers_idx;
+		aux::allocation_slot m_peers_idx;
 	};
 
 	// This is posted exactly once for every call to session_handle::dht_direct_request.
@@ -2438,7 +2432,7 @@ namespace libtorrent
 
 	private:
 		std::reference_wrapper<aux::stack_allocator> m_alloc;
-		int const m_response_idx;
+		aux::allocation_slot const m_response_idx;
 		int const m_response_size;
 	};
 
@@ -2486,7 +2480,7 @@ namespace libtorrent
 		std::vector<piece_block> blocks() const;
 
 	private:
-		int const m_array_idx;
+		aux::allocation_slot const m_array_idx;
 		int const m_num_blocks;
 	};
 
@@ -2508,7 +2502,7 @@ namespace libtorrent
 
 	private:
 		std::reference_wrapper<aux::stack_allocator> m_alloc;
-		int const m_msg_idx;
+		aux::allocation_slot const m_msg_idx;
 	};
 
 #undef TORRENT_DEFINE_ALERT_IMPL

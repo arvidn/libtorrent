@@ -34,17 +34,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/stack_allocator.hpp"
 
 using libtorrent::aux::stack_allocator;
+using libtorrent::aux::allocation_slot;
 
 TORRENT_TEST(copy_string)
 {
 	stack_allocator a;
-	int const idx1 = a.copy_string("testing");
+	allocation_slot const idx1 = a.copy_string("testing");
 
 	// attempt to trigger a reallocation
 	a.allocate(100000);
 
-	int const idx2 = a.copy_string(std::string("foobar"));
-
+	allocation_slot const idx2 = a.copy_string(std::string("foobar"));
 
 	TEST_CHECK(strcmp(a.ptr(idx1), "testing") == 0);
 	TEST_CHECK(strcmp(a.ptr(idx2), "foobar") == 0);
@@ -53,7 +53,7 @@ TORRENT_TEST(copy_string)
 TORRENT_TEST(copy_buffer)
 {
 	stack_allocator a;
-	int const idx1 = a.copy_buffer(libtorrent::span<char const>("testing"));
+	allocation_slot const idx1 = a.copy_buffer(libtorrent::span<char const>("testing"));
 
 	// attempt to trigger a reallocation
 	a.allocate(100000);
@@ -61,18 +61,17 @@ TORRENT_TEST(copy_buffer)
 	TEST_CHECK(strcmp(a.ptr(idx1), "testing") == 0);
 
 	// attempt zero size allocation
-	int const idx2 = a.copy_buffer({});
-	TEST_CHECK(idx2 == -1);
+	allocation_slot const idx2 = a.copy_buffer({});
 
 	// attempt to get a pointer after zero allocation
 	char* ptr = a.ptr(idx2);
-	TEST_CHECK(ptr == NULL);
+	TEST_CHECK(ptr == nullptr);
 }
 
 TORRENT_TEST(allocate)
 {
 	stack_allocator a;
-	int const idx1 = a.allocate(100);
+	allocation_slot const idx1 = a.allocate(100);
 	char* ptr = a.ptr(idx1);
 	for (int i = 0; i < 100; ++i)
 		ptr[i] = char(i % 256);
@@ -85,12 +84,11 @@ TORRENT_TEST(allocate)
 		TEST_CHECK(ptr[i] == char(i % 256));
 
 	// attempt zero size allocation
-	int const idx2 = a.allocate(0);
-	TEST_CHECK(idx2 == -1);
+	allocation_slot const idx2 = a.allocate(0);
 
 	// attempt to get a pointer after zero allocation
 	ptr = a.ptr(idx2);
-	TEST_CHECK(ptr == NULL);
+	TEST_CHECK(ptr == nullptr);
 }
 
 TORRENT_TEST(swap)
@@ -98,8 +96,8 @@ TORRENT_TEST(swap)
 	stack_allocator a1;
 	stack_allocator a2;
 
-	int const idx1 = a1.copy_string("testing");
-	int const idx2 = a2.copy_string("foobar");
+	allocation_slot const idx1 = a1.copy_string("testing");
+	allocation_slot const idx2 = a2.copy_string("foobar");
 
 	a1.swap(a2);
 

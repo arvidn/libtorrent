@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdlib>
 #include <cstdarg>
 #include <functional>
+#include <cstdio> // for vsnprintf
 
 #include "libtorrent/lsd.hpp"
 #include "libtorrent/io.hpp"
@@ -94,7 +95,7 @@ void lsd::debug_log(char const* fmt, ...) const
 	va_start(v, fmt);
 
 	char buf[1024];
-	vsnprintf(buf, sizeof(buf), fmt, v);
+	std::vsnprintf(buf, sizeof(buf), fmt, v);
 	va_end(v);
 	m_callback.log_lsd(buf);
 }
