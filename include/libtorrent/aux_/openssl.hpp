@@ -63,11 +63,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <openssl/safestack.h> // for sk_GENERAL_NAME_value
 #include <openssl/x509v3.h> // for GENERAL_NAME
 
-// openssl has a tendency to introduce this define and break stuff
-#ifdef vsnprintf
-#undef vsnprintf
-#endif
-
 namespace libtorrent {
 namespace aux {
 

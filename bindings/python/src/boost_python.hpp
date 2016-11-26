@@ -16,5 +16,9 @@
 #undef snprintf
 #endif
 
+#ifdef vsnprintf
+#undef vsnprintf
+#endif
+
 #endif
 
