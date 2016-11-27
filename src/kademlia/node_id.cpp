@@ -98,7 +98,7 @@ node_id generate_id_impl(address const& ip_, std::uint32_t r)
 	if (ip_.is_v6())
 	{
 		b6 = ip_.to_v6().to_bytes();
-		ip = &b6[0];
+		ip = b6.data();
 		num_octets = 8;
 		mask = v6mask;
 	}
@@ -106,7 +106,7 @@ node_id generate_id_impl(address const& ip_, std::uint32_t r)
 #endif
 	{
 		b4 = ip_.to_v4().to_bytes();
-		ip = &b4[0];
+		ip = b4.data();
 		num_octets = 4;
 		mask = v4mask;
 	}
@@ -133,7 +133,7 @@ node_id generate_id_impl(address const& ip_, std::uint32_t r)
 	id[1] = (c >> 16) & 0xff;
 	id[2] = (((c >> 8) & 0xf8) | random(0x7)) & 0xff;
 
-	for (int i = 3; i < 19; ++i) id[i] = std::uint8_t(random(0xff));
+	for (std::size_t i = 3; i < 19; ++i) id[i] = random(0xff) & 0xff;
 	id[19] = r & 0xff;
 
 	return id;
@@ -204,13 +204,13 @@ bool matching_prefix(node_id const& nid, int mask, int prefix, int offset)
 	return (id[0] & mask) == prefix;
 }
 
-node_id generate_prefix_mask(int bits)
+node_id generate_prefix_mask(int const bits)
 {
 	TORRENT_ASSERT(bits >= 0);
 	TORRENT_ASSERT(bits <= 160);
-	node_id mask(nullptr);
-	int b = 0;
-	for (; b < bits - 7; b += 8) mask[b / 8] |= 0xff;
+	node_id mask;
+	std::size_t b = 0;
+	for (; int(b) < bits - 7; b += 8) mask[b / 8] |= 0xff;
 	if (bits < 160) mask[b / 8] |= (0xff << (8 - (bits & 7))) & 0xff;
 	return mask;
 }

@@ -598,15 +598,17 @@ namespace aux {
 
 			// this specific output is parsed by tools/parse_session_stats.py
 			// if this is changed, that parser should also be changed
-			std::string stats_header = "session stats header: ";
 			std::vector<stats_metric> stats = session_stats_metrics();
 			std::sort(stats.begin(), stats.end()
 				, [] (stats_metric const& lhs, stats_metric const& rhs)
 				{ return lhs.value_index < rhs.value_index; });
-			for (int i = 0; i < stats.size(); ++i)
+			std::string stats_header = "session stats header: ";
+			bool first = true;
+			for (auto const& s : stats)
 			{
-				if (i > 0) stats_header += ", ";
-				stats_header += stats[i].name;
+				if (!first) stats_header += ", ";
+				stats_header += s.name;
+				first = false;
 			}
 			m_alerts.emplace_alert<log_alert>(stats_header.c_str());
 		}
@@ -1756,11 +1758,11 @@ namespace aux {
 		// of a new socket failing to bind due to a conflict with a stale socket
 		std::vector<listen_endpoint_t> eps;
 
-		for (int i = 0; i < m_listen_interfaces.size(); ++i)
+		for (auto const& iface : m_listen_interfaces)
 		{
-			std::string const& device = m_listen_interfaces[i].device;
-			int const port = m_listen_interfaces[i].port;
-			bool const ssl = m_listen_interfaces[i].ssl;
+			std::string const& device = iface.device;
+			int const port = iface.port;
+			bool const ssl = iface.ssl;
 
 #ifndef TORRENT_USE_OPENSSL
 			if (ssl)
@@ -1817,13 +1819,13 @@ namespace aux {
 					continue;
 				}
 
-				for (int k = 0; k < int(ifs.size()); ++k)
+				for (auto const& ipface : ifs)
 				{
 					// we're looking for a specific interface, and its address
 					// (which must be of the same family as the address we're
 					// connecting to)
-					if (device != ifs[k].name) continue;
-					eps.emplace_back(ifs[k].interface_address, port, device, ssl);
+					if (device != ipface.name) continue;
+					eps.emplace_back(ipface.interface_address, port, device, ssl);
 				}
 			}
 		}
@@ -1834,9 +1836,12 @@ namespace aux {
 		{
 			// TODO notify interested parties of this socket's demise
 #ifndef TORRENT_DISABLE_LOGGING
-			session_log("Closing listen socket for %s on device \"%s\""
-				, print_endpoint(remove_iter->local_endpoint).c_str()
-				, remove_iter->device.c_str());
+			if (should_log())
+			{
+				session_log("Closing listen socket for %s on device \"%s\""
+					, print_endpoint(remove_iter->local_endpoint).c_str()
+					, remove_iter->device.c_str());
+			}
 #endif
 			if (remove_iter->sock) remove_iter->sock->close(ec);
 			if (remove_iter->udp_sock) remove_iter->udp_sock->close();
@@ -5195,10 +5200,8 @@ namespace aux {
 		std::vector<std::pair<std::string, int>> nodes;
 		parse_comma_separated_string_port(node_list, nodes);
 
-		for (int i = 0; i < nodes.size(); ++i)
-		{
-			add_dht_router(nodes[i]);
-		}
+		for (auto const& n : nodes)
+			add_dht_router(n);
 #endif
 	}
 
@@ -5691,7 +5694,7 @@ namespace aux {
 
 		void put_mutable_callback(dht::item& i
 			, std::function<void(entry&, std::array<char, 64>&
-				, std::uint64_t&, std::string const&)> cb)
+				, std::int64_t&, std::string const&)> cb)
 		{
 			entry value = i.value();
 			dht::signature sig = i.sig();
@@ -5727,7 +5730,7 @@ namespace aux {
 
 	void session_impl::dht_put_mutable_item(std::array<char, 32> key
 		, std::function<void(entry&, std::array<char,64>&
-		, std::uint64_t&, std::string const&)> cb
+		, std::int64_t&, std::string const&)> cb
 		, std::string salt)
 	{
 		if (!m_dht) return;
@@ -5960,7 +5963,7 @@ namespace aux {
 
 	void session_impl::update_queued_disk_bytes()
 	{
-		std::uint64_t cache_size = m_settings.get_int(settings_pack::cache_size);
+		int const cache_size = m_settings.get_int(settings_pack::cache_size);
 		if (m_settings.get_int(settings_pack::max_queued_disk_bytes) / 16 / 1024
 			> cache_size / 2
 			&& cache_size > 5

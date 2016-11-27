@@ -387,7 +387,7 @@ void web_peer_connection::write_request(peer_request const& r)
 			file_request_t file_req;
 			file_req.file_index = f.file_index;
 			file_req.start = f.offset;
-			file_req.length = f.size;
+			file_req.length = int(f.size);
 
 			if (info.orig_files().pad_file_at(f.file_index))
 			{
@@ -542,7 +542,7 @@ bool web_peer_connection::received_invalid_data(int index, bool single_peer)
 		// assume the web seed has a different copy of this specific file
 		// than what we expect, and pretend not to have it.
 		int fi = files[0].file_index;
-		int first_piece = fs.file_offset(fi) / fs.piece_length();
+		int first_piece = int(fs.file_offset(fi) / fs.piece_length());
 		// one past last piece
 		int end_piece = int((fs.file_offset(fi) + fs.file_size(fi) + 1) / fs.piece_length());
 		for (int i = first_piece; i < end_piece; ++i)
@@ -744,7 +744,7 @@ void web_peer_connection::on_receive(error_code const& error
 			}
 
 			TORRENT_ASSERT(recv_buffer.empty() || recv_buffer[0] == 'H');
-			TORRENT_ASSERT(recv_buffer.size() <= m_recv_buffer.packet_size());
+			TORRENT_ASSERT(int(recv_buffer.size()) <= m_recv_buffer.packet_size());
 
 			// this means the entire status line hasn't been received yet
 			if (m_parser.status_code() == -1)
@@ -915,7 +915,7 @@ void web_peer_connection::on_receive(error_code const& error
 				received_bytes(0, header_size - m_partial_chunk_header);
 				m_partial_chunk_header = 0;
 				TORRENT_ASSERT(chunk_size != 0
-					|| chunk_start.size() <= header_size || chunk_start[header_size] == 'H');
+					|| int(chunk_start.size()) <= header_size || chunk_start[header_size] == 'H');
 				TORRENT_ASSERT(m_body_start + m_chunk_pos < INT_MAX);
 				m_chunk_pos += chunk_size;
 				recv_buffer = recv_buffer.subspan(header_size);
@@ -1141,9 +1141,9 @@ void web_peer_connection::handle_padfile()
 		while (file_size > 0)
 		{
 			peer_request const front_request = m_requests.front();
-			TORRENT_ASSERT(m_piece.size() < front_request.length);
+			TORRENT_ASSERT(int(m_piece.size()) < front_request.length);
 
-			int pad_size = int((std::min)(file_size
+			int pad_size = int(std::min(file_size
 					, std::int64_t(front_request.length - m_piece.size())));
 			TORRENT_ASSERT(pad_size > 0);
 			file_size -= pad_size;

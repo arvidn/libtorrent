@@ -207,22 +207,23 @@ void traversal_algorithm::add_entry(node_id const& id
 
 	if (m_results.size() > 100)
 	{
-		for (int i = 100; i < int(m_results.size()); ++i)
+		std::for_each(m_results.begin() + 100, m_results.end()
+			, [this](std::shared_ptr<observer> const& ptr)
 		{
-			if ((m_results[i]->flags & (observer::flag_queried | observer::flag_failed | observer::flag_alive))
+			if ((ptr->flags & (observer::flag_queried | observer::flag_failed | observer::flag_alive))
 				== observer::flag_queried)
 			{
 				// set the done flag on any outstanding queries to prevent them from
 				// calling finished() or failed()
-				m_results[i]->flags |= observer::flag_done;
+				ptr->flags |= observer::flag_done;
 				TORRENT_ASSERT(m_invoke_count > 0);
 				--m_invoke_count;
 			}
 
 #if TORRENT_USE_ASSERTS
-			m_results[i]->m_was_abandoned = true;
+			ptr->m_was_abandoned = true;
 #endif
-		}
+		});
 		m_results.resize(100);
 	}
 }

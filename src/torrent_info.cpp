@@ -206,7 +206,7 @@ namespace libtorrent
 		// the number of dots we've added
 		char num_dots = 0;
 		bool found_extension = false;
-		for (int i = 0; i < element.size(); ++i)
+		for (std::size_t i = 0; i < element.size(); ++i)
 		{
 			if (element[i] == '/'
 				|| element[i] == '\\'
@@ -251,7 +251,7 @@ namespace libtorrent
 				else
 				{
 					path += element[i];
-					path += element[i+1];
+					path += element[i + 1];
 					last_len = 2;
 				}
 				i += 1;
@@ -276,8 +276,8 @@ namespace libtorrent
 				else
 				{
 					path += element[i];
-					path += element[i+1];
-					path += element[i+2];
+					path += element[i + 1];
+					path += element[i + 2];
 					last_len = 3;
 				}
 				i += 2;
@@ -286,16 +286,16 @@ namespace libtorrent
 			{
 				// 4 bytes
 				if (element.size() - i < 4
-					|| (element[i+1] & 0xc0) != 0x80
-					|| (element[i+2] & 0xc0) != 0x80
-					|| (element[i+3] & 0xc0) != 0x80
+					|| (element[i + 1] & 0xc0) != 0x80
+					|| (element[i + 2] & 0xc0) != 0x80
+					|| (element[i + 3] & 0xc0) != 0x80
 					)
 				{
 					path += '_';
 					last_len = 1;
 				}
 				else if ((element[i] & 0x07) == 0
-					&& (element[i+1] & 0x3f) == 0)
+					&& (element[i + 1] & 0x3f) == 0)
 				{
 					// overlong sequences are invalid
 					path += '_';
@@ -304,9 +304,9 @@ namespace libtorrent
 				else
 				{
 					path += element[i];
-					path += element[i+1];
-					path += element[i+2];
-					path += element[i+3];
+					path += element[i + 1];
+					path += element[i + 2];
+					path += element[i + 3];
 					last_len = 4;
 				}
 				i += 3;
@@ -331,8 +331,8 @@ namespace libtorrent
 #endif
 			{
 				int dot = -1;
-				for (int j = int(element.size())-1;
-					j > (std::max)(int(element.size() - 10), i); --j)
+				for (int j = int(element.size()) - 1;
+					j > std::max(int(element.size()) - 10, int(i)); --j)
 				{
 					if (element[j] != '.') continue;
 					dot = j;
@@ -341,14 +341,15 @@ namespace libtorrent
 				// there is no extension
 				if (dot == -1) break;
 				found_extension = true;
-				i = dot - 1;
+				TORRENT_ASSERT(dot > 0);
+				i = std::size_t(dot - 1);
 			}
 		}
 
 		if (added == num_dots && added <= 2)
 		{
 			// revert everything
-			path.erase(path.end()-added-added_separator, path.end());
+			path.erase(path.end() - added - added_separator, path.end());
 			return;
 		}
 
@@ -365,7 +366,7 @@ namespace libtorrent
 		if (added == 0 && added_separator)
 		{
 			// remove the separator added at the beginning
-			path.erase(path.end()-1);
+			path.erase(path.end() - 1);
 			return;
 		}
 #endif
@@ -528,7 +529,7 @@ namespace libtorrent
 			file_flags &= ~file_storage::flag_symlink;
 		}
 
-		if (filename_len > path.length()
+		if (filename_len > int(path.length())
 			|| path.compare(path.size() - filename_len, filename_len, filename
 				, filename_len) != 0)
 		{
@@ -666,11 +667,11 @@ namespace libtorrent
 			const_cast<file_storage&>(*m_orig_files).apply_pointer_offset(offset);
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
-		for (int i = 0; i < m_collections.size(); ++i)
-			m_collections[i].first += offset;
+		for (auto& c : m_collections)
+			c.first += offset;
 
-		for (int i = 0; i < m_similar_torrents.size(); ++i)
-			m_similar_torrents[i] += offset;
+		for (auto& st : m_similar_torrents)
+			st += offset;
 #endif
 
 		if (m_info_dict)
@@ -1615,11 +1616,11 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 		ret.reserve(m_similar_torrents.size() + m_owned_similar_torrents.size());
 
-		for (int i = 0; i < m_similar_torrents.size(); ++i)
-			ret.push_back(sha1_hash(m_similar_torrents[i]));
+		for (auto const& st : m_similar_torrents)
+			ret.push_back(sha1_hash(st));
 
-		for (int i = 0; i < m_owned_similar_torrents.size(); ++i)
-			ret.push_back(m_owned_similar_torrents[i]);
+		for (auto const& st : m_owned_similar_torrents)
+			ret.push_back(st);
 #endif
 
 		return ret;
@@ -1631,11 +1632,11 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 		ret.reserve(m_collections.size() + m_owned_collections.size());
 
-		for (int i = 0; i < m_collections.size(); ++i)
-			ret.push_back(std::string(m_collections[i].first, m_collections[i].second));
+		for (auto const& c : m_collections)
+			ret.push_back(std::string(c.first, c.second));
 
-		for (int i = 0; i < m_owned_collections.size(); ++i)
-			ret.push_back(m_owned_collections[i]);
+		for (auto const& c : m_owned_collections)
+			ret.push_back(c);
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 
 		return ret;

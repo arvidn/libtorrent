@@ -407,7 +407,7 @@ namespace libtorrent
 		// 	To generate the signature, you may want to use the
 		// 	``sign_mutable_item`` function.
 		//
-		// std::uint64_t& seq
+		// std::int64_t& seq
 		// 	current sequence number. May be zero if there is no current value.
 		// 	The function is expected to set this to the new sequence number of
 		// 	the value that is to be stored. Sequence numbers must be monotonically
@@ -429,7 +429,7 @@ namespace libtorrent
 		// calling the callback in between is convenient.
 		void dht_put_item(std::array<char, 32> key
 			, std::function<void(entry&, std::array<char, 64>&
-				, std::uint64_t&, std::string const&)> cb
+				, std::int64_t&, std::string const&)> cb
 			, std::string salt = std::string());
 
 		void dht_get_peers(sha1_hash const& info_hash);

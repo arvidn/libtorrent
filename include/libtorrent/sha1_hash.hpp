@@ -231,12 +231,12 @@ namespace libtorrent
 		}
 
 		// accessors for specific bytes
-		std::uint8_t& operator[](size_t i)
+		std::uint8_t& operator[](std::size_t i)
 		{
 			TORRENT_ASSERT(i < size());
 			return reinterpret_cast<std::uint8_t*>(m_number)[i];
 		}
-		std::uint8_t const& operator[](size_t i) const
+		std::uint8_t const& operator[](std::size_t i) const
 		{
 			TORRENT_ASSERT(i < size());
 			return reinterpret_cast<std::uint8_t const*>(m_number)[i];

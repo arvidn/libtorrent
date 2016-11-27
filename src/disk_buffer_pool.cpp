@@ -119,17 +119,17 @@ namespace libtorrent
 #endif
 	}
 
-	std::uint32_t disk_buffer_pool::num_to_evict(int num_needed)
+	int disk_buffer_pool::num_to_evict(int const num_needed)
 	{
 		int ret = 0;
 
 		std::unique_lock<std::mutex> l(m_pool_mutex);
 
 		if (m_exceeded_max_size)
-			ret = m_in_use - (std::min)(m_low_watermark, int(m_max_use - m_observers.size()*2));
+			ret = m_in_use - std::min(m_low_watermark, int(m_max_use - m_observers.size() * 2));
 
 		if (m_in_use + num_needed > m_max_use)
-			ret = (std::max)(ret, int(m_in_use + num_needed - m_max_use));
+			ret = std::max(ret, m_in_use + num_needed - m_max_use);
 
 		if (ret < 0) ret = 0;
 		else if (ret > m_in_use) ret = m_in_use;
@@ -271,14 +271,14 @@ namespace libtorrent
 #if TORRENT_HAVE_MMAP && !defined TORRENT_NO_DEPRECATE
 		if (m_cache_pool)
 		{
-			if (m_free_list.size() <= (m_max_use - m_low_watermark)
+			if (int(m_free_list.size()) <= (m_max_use - m_low_watermark)
 				/ 2 && !m_exceeded_max_size)
 			{
 				m_exceeded_max_size = true;
 				m_trigger_cache_trim();
 			}
 			if (m_free_list.empty()) return nullptr;
-			std::uint64_t slot_index = m_free_list.back();
+			std::int64_t const slot_index = m_free_list.back();
 			m_free_list.pop_back();
 			ret = m_cache_pool + (slot_index * 0x4000);
 			TORRENT_ASSERT(is_disk_buffer(ret, l));
@@ -298,7 +298,7 @@ namespace libtorrent
 					? 20 // use small increments once we've exceeded the cache size
 					: m_cache_buffer_chunk_size
 					? m_cache_buffer_chunk_size
-					: (std::max)(m_max_use / 10, 1);
+					: std::max(m_max_use / 10, 1);
 				m_pool.set_next_size(effective_block_size);
 				ret = static_cast<char*>(m_pool.malloc());
 			}
@@ -418,7 +418,7 @@ namespace libtorrent
 					// a 20th of everything exceeding 1 GiB
 					// and a 10th of everything below a GiB
 
-					std::int64_t const gb = 1024 * 1024 * 1024;
+					constexpr std::int64_t gb = 1024 * 1024 * 1024;
 
 					std::int64_t result = 0;
 					if (phys_ram > 4 * gb)
@@ -447,7 +447,7 @@ namespace libtorrent
 					// 32 bit builds should  capped below 2 GB of memory, even
 					// when more actual ram is available, because we're still
 					// constrained by the 32 bit virtual address space.
-					m_max_use = (std::min)(2 * 1024 * 1024 * 3 / 4 * 1024
+					m_max_use = std::min(2 * 1024 * 1024 * 3 / 4 * 1024
 						/ m_block_size, m_max_use);
 				}
 			}
@@ -455,7 +455,7 @@ namespace libtorrent
 			{
 				m_max_use = cache_size;
 			}
-			m_low_watermark = m_max_use - (std::max)(16, sett.get_int(settings_pack::max_queued_disk_bytes) / 0x4000);
+			m_low_watermark = m_max_use - std::max(16, sett.get_int(settings_pack::max_queued_disk_bytes) / 0x4000);
 			if (m_low_watermark < 0) m_low_watermark = 0;
 			if (m_in_use >= m_max_use && !m_exceeded_max_size)
 			{
@@ -483,7 +483,8 @@ namespace libtorrent
 			TORRENT_UNUSED(best_effort);
 			close(m_cache_fd);
 			m_cache_fd = -1;
-			std::vector<int>().swap(m_free_list);
+			m_free_list.clear();
+			m_free_list.shrink_to_fit();
 		}
 		else if (m_cache_pool == nullptr && !sett.get_str(settings_pack::mmap_cache).empty())
 		{
@@ -528,7 +529,7 @@ namespace libtorrent
 				}
 				else
 				{
-					TORRENT_ASSERT((size_t(m_cache_pool) & 0xfff) == 0);
+					TORRENT_ASSERT((std::size_t(m_cache_pool) & 0xfff) == 0);
 					m_free_list.reserve(m_max_use);
 					for (int i = 0; i < m_max_use; ++i)
 						m_free_list.push_back(i);
@@ -614,4 +615,3 @@ namespace libtorrent
 	}
 
 }
-

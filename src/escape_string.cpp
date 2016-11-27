@@ -309,7 +309,7 @@ namespace libtorrent
 			}
 
 			// write pad
-			for (int j = 0; j < inbuf.size() - available_input; ++j)
+			for (int j = 0; j < int(inbuf.size()) - available_input; ++j)
 			{
 				ret += '=';
 			}
@@ -372,7 +372,7 @@ namespace libtorrent
 			if (0 == (flags & string::no_padding))
 			{
 				// write pad
-				for (int j = 0; j < outbuf.size() - num_out; ++j)
+				for (int j = 0; j < int(outbuf.size()) - num_out; ++j)
 				{
 					ret += '=';
 				}

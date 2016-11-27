@@ -130,7 +130,7 @@ namespace libtorrent
 			branch_len = leaf - path.c_str();
 
 			// trim trailing slashes
-			if (branch_len > 0 && branch_path[branch_len-1] == TORRENT_SEPARATOR)
+			if (branch_len > 0 && branch_path[branch_len - 1] == TORRENT_SEPARATOR)
 				--branch_len;
 		}
 		if (branch_len <= 0)
@@ -140,12 +140,12 @@ namespace libtorrent
 			return;
 		}
 
-		if (branch_len >= m_name.size()
+		if (branch_len >= int(m_name.size())
 			&& std::memcmp(branch_path, m_name.c_str(), m_name.size()) == 0)
 		{
 			// the +1 is to skip the trailing '/' (or '\')
 			int const offset = int(m_name.size())
-				+ (m_name.size() == branch_len ? 0 : 1);
+				+ (int(m_name.size()) == branch_len ? 0 : 1);
 			branch_path += offset;
 			branch_len -= offset;
 			e.no_root_dir = false;
@@ -159,7 +159,7 @@ namespace libtorrent
 		auto p = std::find_if(m_paths.rbegin(), m_paths.rend()
 			, [&] (std::string const& str)
 			{
-				if (str.size() != branch_len) return false;
+				if (int(str.size()) != branch_len) return false;
 				return std::memcmp(str.c_str(), branch_path, branch_len) == 0;
 			});
 
@@ -323,16 +323,16 @@ namespace libtorrent
 
 	void file_storage::apply_pointer_offset(ptrdiff_t const off)
 	{
-		for (int i = 0; i < m_files.size(); ++i)
+		for (auto& f : m_files)
 		{
-			if (m_files[i].name_len == internal_file_entry::name_is_owned) continue;
-			m_files[i].name += off;
+			if (f.name_len == internal_file_entry::name_is_owned) continue;
+			f.name += off;
 		}
 
-		for (int i = 0; i < m_file_hashes.size(); ++i)
+		for (auto& h : m_file_hashes)
 		{
-			if (m_file_hashes[i] == nullptr) continue;
-			m_file_hashes[i] += off;
+			if (h == nullptr) continue;
+			h += off;
 		}
 	}
 
@@ -1139,12 +1139,12 @@ namespace libtorrent
 		return std::make_tuple(begin_piece, end_piece);
 	}
 
-	std::tuple<int, int> file_piece_range_inclusive(file_storage const& fs, int file)
+	std::tuple<int, int> file_piece_range_inclusive(file_storage const& fs, int const file)
 	{
 		peer_request const range = fs.map_file(file, 0, 1);
 		std::int64_t const file_size = fs.file_size(file);
 		std::int64_t const piece_size = fs.piece_length();
-		int const end_piece = (range.piece * piece_size + range.start + file_size - 1) / piece_size + 1;
+		int const end_piece = int((range.piece * piece_size + range.start + file_size - 1) / piece_size + 1);
 		return std::make_tuple(range.piece, end_piece);
 	}
 

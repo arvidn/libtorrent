@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cinttypes> // for PRId64 et.al.
 #include <functional>
 #include <tuple>
+#include <array>
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/hex.hpp" // to_hex
@@ -1062,7 +1063,7 @@ void node::incoming_request(msg const& m, entry& e)
 				// number matches the expected value before replacing it
 				// this is critical for avoiding race conditions when multiple
 				// writers are accessing the same slot
-				if (msg_keys[5] && item_seq.value != std::uint64_t(msg_keys[5].int_value()))
+				if (msg_keys[5] && item_seq.value != msg_keys[5].int_value())
 				{
 					m_counters.inc_stats_counter(counters::dht_invalid_put);
 					incoming_error(e, "CAS mismatch", 301);
@@ -1188,14 +1189,16 @@ void node::write_nodes_entries(sha1_hash const& info_hash
 
 node::protocol_descriptor const& node::map_protocol_to_descriptor(udp protocol)
 {
-	static protocol_descriptor descriptors[] =
-		{ {udp::v4(), "n4", "nodes"}
-		, {udp::v6(), "n6", "nodes6"} };
+	static std::array<protocol_descriptor, 2> descriptors =
+	{{
+		{udp::v4(), "n4", "nodes"},
+		{udp::v6(), "n6", "nodes6"}
+	}};
 
-	for (int i = 0; i < sizeof(descriptors) / sizeof(protocol_descriptor); ++i)
+	for (auto const& d : descriptors)
 	{
-		if (descriptors[i].protocol == protocol)
-			return descriptors[i];
+		if (d.protocol == protocol)
+			return d;
 	}
 
 	TORRENT_ASSERT_FAIL();

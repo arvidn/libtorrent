@@ -1365,10 +1365,10 @@ namespace libtorrent
 		std::uint32_t silly_hash(std::string const& str)
 		{
 			std::uint32_t ret = 1;
-			for (int i = 0; i < str.size(); ++i)
+			for (auto const ch : str)
 			{
-				if (str[i] == 0) continue;
-					ret *= int(str[i]);
+				if (ch == 0) continue;
+				ret *= std::uint32_t(ch);
 			}
 			return ret;
 		}

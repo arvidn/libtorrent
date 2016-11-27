@@ -960,24 +960,14 @@ void routing_table::update_node_id(node_id const& id)
 
 	// then add them all back. First add the main nodes, then the replacement
 	// nodes
-	for (int i = 0; i < old_buckets.size(); ++i)
-	{
-		bucket_t const& bucket = old_buckets[i].live_nodes;
-		for (int j = 0; j < bucket.size(); ++j)
-		{
-			add_node(bucket[j]);
-		}
-	}
+	for (auto const& b : old_buckets)
+		for (auto const& n : b.live_nodes)
+			add_node(n);
 
 	// now add back the replacement nodes
-	for (int i = 0; i < old_buckets.size(); ++i)
-	{
-		bucket_t const& bucket = old_buckets[i].replacements;
-		for (int j = 0; j < bucket.size(); ++j)
-		{
-			add_node(bucket[j]);
-		}
-	}
+	for (auto const& b : old_buckets)
+		for (auto const& n : b.replacements)
+			add_node(n);
 }
 
 void routing_table::for_each_node(

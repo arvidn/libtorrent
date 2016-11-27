@@ -103,7 +103,7 @@ void resolve_links::match(std::shared_ptr<const torrent_info> const& ti
 			int our_piece = m_torrent_file->files().map_file(
 				iter->second, 0, 0).piece;
 
-			int num_pieces = (file_size + piece_size - 1) / piece_size;
+			int num_pieces = int((file_size + piece_size - 1) / piece_size);
 
 			bool match = true;
 			for (int p = 0; p < num_pieces; ++p, ++their_piece, ++our_piece)

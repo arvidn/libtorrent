@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 
 #include <algorithm>
+#include <array>
 
 namespace {
 
@@ -98,8 +99,8 @@ namespace libtorrent
 
 	using aux::session_impl;
 
-	str_setting_entry_t str_settings[settings_pack::num_string_settings] =
-	{
+	std::array<str_setting_entry_t, settings_pack::num_string_settings> str_settings =
+	{{
 		SET(user_agent, "libtorrent/" LIBTORRENT_VERSION, &session_impl::update_user_agent),
 		SET(announce_ip, nullptr, nullptr),
 		SET(mmap_cache, nullptr, nullptr),
@@ -116,10 +117,10 @@ namespace libtorrent
 		SET(i2p_hostname, "", &session_impl::update_i2p_bridge),
 		SET(peer_fingerprint, "-LT1200-", &session_impl::update_peer_fingerprint),
 		SET(dht_bootstrap_nodes, "dht.libtorrent.org:25401", &session_impl::update_dht_bootstrap_nodes)
-	};
+	}};
 
-	bool_setting_entry_t bool_settings[settings_pack::num_bool_settings] =
-	{
+	std::array<bool_setting_entry_t, settings_pack::num_bool_settings> bool_settings =
+	{{
 		SET(allow_multiple_connections_per_ip, false, nullptr),
 		DEPRECATED_SET(ignore_limits_on_local_network, true, &session_impl::update_ignore_rate_limits_on_local_network),
 		SET(send_redundant_have, true, nullptr),
@@ -188,10 +189,10 @@ namespace libtorrent
 		SET(proxy_peer_connections, true, nullptr),
 		SET(auto_sequential, true, &session_impl::update_auto_sequential),
 		SET(proxy_tracker_connections, true, nullptr),
-	};
+	}};
 
-	int_setting_entry_t int_settings[settings_pack::num_int_settings] =
-	{
+	std::array<int_setting_entry_t, settings_pack::num_int_settings> int_settings =
+	{{
 		SET(tracker_completion_timeout, 30, nullptr),
 		SET(tracker_receive_timeout, 10, nullptr),
 		SET(stop_tracker_timeout, 5, nullptr),
@@ -319,7 +320,7 @@ namespace libtorrent
 		SET(proxy_port, 0, &session_impl::update_proxy),
 		SET(i2p_port, 0, &session_impl::update_i2p_bridge),
 		SET(cache_size_volatile, 256, nullptr)
-	};
+	}};
 
 #undef SET
 #undef SET_DEPRECATED
@@ -328,20 +329,20 @@ namespace libtorrent
 
 	int setting_by_name(std::string const& key)
 	{
-		for (int k = 0; k < sizeof(str_settings)/sizeof(str_settings[0]); ++k)
+		for (std::size_t k = 0; k < str_settings.size(); ++k)
 		{
 			if (key != str_settings[k].name) continue;
-			return settings_pack::string_type_base + k;
+			return settings_pack::string_type_base + int(k);
 		}
-		for (int k = 0; k < sizeof(int_settings)/sizeof(int_settings[0]); ++k)
+		for (std::size_t k = 0; k < int_settings.size(); ++k)
 		{
 			if (key != int_settings[k].name) continue;
-			return settings_pack::int_type_base + k;
+			return settings_pack::int_type_base + int(k);
 		}
-		for (int k = 0; k < sizeof(bool_settings)/sizeof(bool_settings[0]); ++k)
+		for (std::size_t k = 0; k < bool_settings.size(); ++k)
 		{
 			if (key != bool_settings[k].name) continue;
-			return settings_pack::bool_type_base + k;
+			return settings_pack::bool_type_base + int(k);
 		}
 		return -1;
 	}
@@ -377,27 +378,27 @@ namespace libtorrent
 				case bdecode_node::int_t:
 				{
 					bool found = false;
-					for (int k = 0; k < sizeof(int_settings) / sizeof(int_settings[0]); ++k)
+					for (std::size_t k = 0; k < int_settings.size(); ++k)
 					{
 						if (key != int_settings[k].name) continue;
-						pack.set_int(settings_pack::int_type_base + k, val.int_value());
+						pack.set_int(settings_pack::int_type_base + int(k), int(val.int_value()));
 						found = true;
 						break;
 					}
 					if (found) continue;
-					for (int k = 0; k < sizeof(bool_settings) / sizeof(bool_settings[0]); ++k)
+					for (std::size_t k = 0; k < bool_settings.size(); ++k)
 					{
 						if (key != bool_settings[k].name) continue;
-						pack.set_bool(settings_pack::bool_type_base + k, val.int_value() != 0);
+						pack.set_bool(settings_pack::bool_type_base + int(k), val.int_value() != 0);
 						break;
 					}
 				}
 				break;
 			case bdecode_node::string_t:
-				for (int k = 0; k < sizeof(str_settings) / sizeof(str_settings[0]); ++k)
+				for (std::size_t k = 0; k < str_settings.size(); ++k)
 				{
 					if (key != str_settings[k].name) continue;
-					pack.set_str(settings_pack::string_type_base + k, val.string_value().to_string());
+					pack.set_str(settings_pack::string_type_base + int(k), val.string_value().to_string());
 					break;
 				}
 				break;

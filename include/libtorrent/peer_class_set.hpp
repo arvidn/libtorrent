@@ -50,7 +50,7 @@ namespace libtorrent {
 		peer_class_t class_at(int i) const
 		{
 			TORRENT_ASSERT(i >= 0 && i < int(m_size));
-			return m_class[i];
+			return m_class[std::size_t(i)];
 		}
 
 	private:

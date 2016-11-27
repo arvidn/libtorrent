@@ -63,4 +63,3 @@ namespace libtorrent
 	};
 }
 #endif
-

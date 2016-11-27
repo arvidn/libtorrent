@@ -118,8 +118,9 @@ namespace libtorrent
 
 			for (int i = 0; i < num_pieces; ++i)
 			{
-				int slot = read_uint32(ptr);
-				if (slot == 0xffffffff) continue;
+				std::uint32_t const uslot = read_uint32(ptr);
+				if (uslot == 0xffffffff) continue;
+				int const slot = int(uslot);
 
 				// invalid part-file
 				TORRENT_ASSERT(slot < num_pieces);
@@ -331,8 +332,8 @@ namespace libtorrent
 				if (ec || v.iov_len == 0) return;
 
 				std::int64_t ret = f.writev(file_offset, v, ec);
-				TORRENT_ASSERT(ec || ret == v.iov_len);
-				if (ec || ret != v.iov_len) return;
+				TORRENT_ASSERT(ec || ret == std::int64_t(v.iov_len));
+				if (ec || ret != std::int64_t(v.iov_len)) return;
 
 				// we're done with the disk I/O, grab the lock again to update
 				// the slot map

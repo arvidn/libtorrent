@@ -40,8 +40,8 @@ namespace libtorrent {
 	counters::counters()
 	{
 #ifdef ATOMIC_LLONG_LOCK_FREE
-		for (int i = 0; i < m_stats_counter.size(); ++i)
-			m_stats_counter[i].store(0, std::memory_order_relaxed);
+		for (auto& counter : m_stats_counter)
+			counter.store(0, std::memory_order_relaxed);
 #else
 		std::memset(m_stats_counter, 0, sizeof(m_stats_counter));
 #endif
@@ -50,7 +50,7 @@ namespace libtorrent {
 	counters::counters(counters const& c)
 	{
 #ifdef ATOMIC_LLONG_LOCK_FREE
-		for (int i = 0; i < m_stats_counter.size(); ++i)
+		for (std::size_t i = 0; i < m_stats_counter.size(); ++i)
 			m_stats_counter[i].store(
 				c.m_stats_counter[i].load(std::memory_order_relaxed)
 					, std::memory_order_relaxed);
@@ -63,7 +63,7 @@ namespace libtorrent {
 	counters& counters::operator=(counters const& c)
 	{
 #ifdef ATOMIC_LLONG_LOCK_FREE
-		for (int i = 0; i < m_stats_counter.size(); ++i)
+		for (std::size_t i = 0; i < m_stats_counter.size(); ++i)
 			m_stats_counter[i].store(
 				c.m_stats_counter[i].load(std::memory_order_relaxed)
 					, std::memory_order_relaxed);

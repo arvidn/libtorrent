@@ -140,7 +140,7 @@ namespace detail
 			m_access_list.insert(range(zero<Addr>(), 0));
 		}
 
-		void add_rule(Addr first, Addr last, int flags)
+		void add_rule(Addr first, Addr last, std::uint32_t const flags)
 		{
 			TORRENT_ASSERT(!m_access_list.empty());
 			TORRENT_ASSERT(first < last || first == last);
@@ -212,7 +212,7 @@ namespace detail
 			std::vector<ip_range<ExternalAddressType>> ret;
 			ret.reserve(m_access_list.size());
 
-			for (typename range_t::const_iterator i = m_access_list.begin()
+			for (auto i = m_access_list.begin()
 				, end(m_access_list.end()); i != end;)
 			{
 				ip_range<ExternalAddressType> r;
@@ -234,7 +234,7 @@ namespace detail
 
 		struct range
 		{
-			range(Addr addr, int a = 0): start(addr), access(a) {} // NOLINT
+			range(Addr addr, std::uint32_t a = 0) : start(addr), access(a) {} // NOLINT
 			bool operator<(range const& r) const { return start < r.start; }
 			bool operator<(Addr const& a) const { return start < a; }
 			Addr start;
@@ -243,8 +243,7 @@ namespace detail
 			std::uint32_t access;
 		};
 
-		using range_t = std::set<range>;
-		range_t m_access_list;
+		std::set<range> m_access_list;
 	};
 
 }

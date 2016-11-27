@@ -2320,7 +2320,7 @@ namespace libtorrent
 				// treat a short read as an error. The hash will be invalid, the
 				// block cannot be cached and the main thread should skip the rest
 				// of this file
-				if (read_ret != iov.iov_len)
+				if (read_ret != int(iov.iov_len))
 				{
 					ret = status_t::fatal_disk_error;
 					j->error.ec = boost::asio::error::eof;

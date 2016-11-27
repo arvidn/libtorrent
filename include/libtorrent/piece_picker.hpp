@@ -125,7 +125,7 @@ namespace libtorrent
 
 		struct downloading_piece
 		{
-			downloading_piece() : index((std::numeric_limits<std::uint32_t>::max)())
+			downloading_piece() : index(std::numeric_limits<std::int32_t>::max())
 				, info_idx((std::numeric_limits<std::uint16_t>::max)())
 				, finished(0)
 				, passed_hash_check(0)
@@ -137,7 +137,7 @@ namespace libtorrent
 			bool operator<(downloading_piece const& rhs) const { return index < rhs.index; }
 
 			// the index of the piece
-			std::uint32_t index;
+			std::int32_t index;
 
 			// info about each block in this piece. this is an index into the
 			// m_block_info array, when multiplied by m_blocks_per_piece.
@@ -223,7 +223,7 @@ namespace libtorrent
 			TORRENT_ASSERT(index >= 0);
 			TORRENT_ASSERT(index < int(m_piece_map.size()));
 
-			piece_pos const& p = m_piece_map[index];
+			piece_pos const& p = m_piece_map[std::size_t(index)];
 			return p.downloading();
 		}
 
@@ -418,10 +418,10 @@ namespace libtorrent
 		// functor that compares indices on downloading_pieces
 		struct has_index
 		{
-			explicit has_index(int i): index(std::uint32_t(i)) { TORRENT_ASSERT(i >= 0); }
-			bool operator()(const downloading_piece& p) const
+			explicit has_index(int i) : index(i) { TORRENT_ASSERT(i >= 0); }
+			bool operator()(downloading_piece const& p) const
 			{ return p.index == index; }
-			std::uint32_t index;
+			std::int32_t index;
 		};
 
 		int blocks_in_last_piece() const
@@ -676,7 +676,7 @@ namespace libtorrent
 #endif
 
 		bool partial_compare_rarest_first(downloading_piece const* lhs
-		, downloading_piece const* rhs) const;
+			, downloading_piece const* rhs) const;
 
 		void break_one_seed();
 
@@ -697,9 +697,8 @@ namespace libtorrent
 		// shuffles the given piece inside it's priority range
 		void shuffle(int priority, int elem_index);
 
-		typedef std::vector<downloading_piece>::iterator dlpiece_iter;
-		dlpiece_iter add_download_piece(int index);
-		void erase_download_piece(dlpiece_iter i);
+		std::vector<downloading_piece>::iterator add_download_piece(int index);
+		void erase_download_piece(std::vector<downloading_piece>::iterator i);
 
 		std::vector<downloading_piece>::const_iterator find_dl_piece(int queue, int index) const;
 		std::vector<downloading_piece>::iterator find_dl_piece(int queue, int index);

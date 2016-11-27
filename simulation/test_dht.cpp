@@ -317,7 +317,7 @@ TORRENT_TEST(dht_dual_stack_mutable_item)
 				std::tie(pk, sk) = lt::dht::ed25519_create_keypair(seed);
 
 				ses.dht_put_item(pk.bytes, [&](lt::entry& item, std::array<char, 64>& sig
-					, std::uint64_t& seq, std::string const& salt)
+					, std::int64_t& seq, std::string const& salt)
 				{
 					item = "mutable item";
 					seq = 1;
