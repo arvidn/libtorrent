@@ -407,7 +407,7 @@ namespace libtorrent
 		// 	To generate the signature, you may want to use the
 		// 	``sign_mutable_item`` function.
 		//
-		// std::uint64_t& seq
+		// std::int64_t& seq
 		// 	current sequence number. May be zero if there is no current value.
 		// 	The function is expected to set this to the new sequence number of
 		// 	the value that is to be stored. Sequence numbers must be monotonically

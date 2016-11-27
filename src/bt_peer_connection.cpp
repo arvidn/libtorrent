@@ -1647,7 +1647,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(ptr <= buf + sizeof(buf));
 
-		send_buffer(buf, ptr - buf);
+		send_buffer(buf, int(ptr - buf));
 
 		stats_counters().inc_stats_counter(counters::num_outgoing_extended);
 	}
@@ -1840,7 +1840,7 @@ namespace libtorrent
 		// there should be a version too
 		// but where do we put that info?
 
-		int const last_seen_complete = root.dict_find_int_value("complete_ago", -1);
+		int const last_seen_complete = int(root.dict_find_int_value("complete_ago", -1));
 		if (last_seen_complete >= 0) set_last_seen_complete(last_seen_complete);
 
 		auto client_info = root.dict_find_string_value("v");
@@ -2204,7 +2204,7 @@ namespace libtorrent
 #endif
 		m_sent_bitfield = true;
 
-		send_buffer(reinterpret_cast<char const*>(msg.data()), msg.size());
+		send_buffer(reinterpret_cast<char const*>(msg.data()), int(msg.size()));
 
 		stats_counters().inc_stats_counter(counters::num_outgoing_bitfield);
 	}

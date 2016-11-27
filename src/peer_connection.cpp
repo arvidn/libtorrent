@@ -2900,7 +2900,7 @@ namespace libtorrent
 							&& (bytes_left * 1000) / rate < m_settings.get_int(settings_pack::predictive_piece_announce))
 						{
 							// we predict we will complete this piece very soon.
-							t->predicted_have_piece(piece, (bytes_left * 1000) / rate);
+							t->predicted_have_piece(piece, int((bytes_left * 1000) / rate));
 						}
 					}
 				}

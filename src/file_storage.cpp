@@ -1139,12 +1139,12 @@ namespace libtorrent
 		return std::make_tuple(begin_piece, end_piece);
 	}
 
-	std::tuple<int, int> file_piece_range_inclusive(file_storage const& fs, int file)
+	std::tuple<int, int> file_piece_range_inclusive(file_storage const& fs, int const file)
 	{
 		peer_request const range = fs.map_file(file, 0, 1);
 		std::int64_t const file_size = fs.file_size(file);
 		std::int64_t const piece_size = fs.piece_length();
-		int const end_piece = (range.piece * piece_size + range.start + file_size - 1) / piece_size + 1;
+		int const end_piece = int((range.piece * piece_size + range.start + file_size - 1) / piece_size + 1);
 		return std::make_tuple(range.piece, end_piece);
 	}
 

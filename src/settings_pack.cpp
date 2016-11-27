@@ -381,7 +381,7 @@ namespace libtorrent
 					for (std::size_t k = 0; k < int_settings.size(); ++k)
 					{
 						if (key != int_settings[k].name) continue;
-						pack.set_int(settings_pack::int_type_base + int(k), val.int_value());
+						pack.set_int(settings_pack::int_type_base + int(k), int(val.int_value()));
 						found = true;
 						break;
 					}

@@ -387,7 +387,7 @@ void web_peer_connection::write_request(peer_request const& r)
 			file_request_t file_req;
 			file_req.file_index = f.file_index;
 			file_req.start = f.offset;
-			file_req.length = f.size;
+			file_req.length = int(f.size);
 
 			if (info.orig_files().pad_file_at(f.file_index))
 			{
@@ -542,7 +542,7 @@ bool web_peer_connection::received_invalid_data(int index, bool single_peer)
 		// assume the web seed has a different copy of this specific file
 		// than what we expect, and pretend not to have it.
 		int fi = files[0].file_index;
-		int first_piece = fs.file_offset(fi) / fs.piece_length();
+		int first_piece = int(fs.file_offset(fi) / fs.piece_length());
 		// one past last piece
 		int end_piece = int((fs.file_offset(fi) + fs.file_size(fi) + 1) / fs.piece_length());
 		for (int i = first_piece; i < end_piece; ++i)
