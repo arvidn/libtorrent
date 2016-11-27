@@ -332,7 +332,7 @@ namespace libtorrent
 			{
 				int dot = -1;
 				for (int j = int(element.size()) - 1;
-					j > int(std::max(element.size() - 10, i)); --j)
+					j > std::max(int(element.size()) - 10, int(i)); --j)
 				{
 					if (element[j] != '.') continue;
 					dot = j;
@@ -341,7 +341,8 @@ namespace libtorrent
 				// there is no extension
 				if (dot == -1) break;
 				found_extension = true;
-				i = dot - 1;
+				TORRENT_ASSERT(dot > 0);
+				i = std::size_t(dot - 1);
 			}
 		}
 

@@ -1063,7 +1063,7 @@ void node::incoming_request(msg const& m, entry& e)
 				// number matches the expected value before replacing it
 				// this is critical for avoiding race conditions when multiple
 				// writers are accessing the same slot
-				if (msg_keys[5] && item_seq.value != std::uint64_t(msg_keys[5].int_value()))
+				if (msg_keys[5] && item_seq.value != msg_keys[5].int_value())
 				{
 					m_counters.inc_stats_counter(counters::dht_invalid_put);
 					incoming_error(e, "CAS mismatch", 301);

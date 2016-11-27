@@ -73,7 +73,7 @@ namespace libtorrent { namespace dht
 	struct sequence_number
 	{
 		sequence_number() : value(0) {}
-		explicit sequence_number(std::uint64_t v) : value(v) {}
+		explicit sequence_number(std::int64_t v) : value(v) {}
 		sequence_number(sequence_number const& sqn) = default;
 		bool operator<(sequence_number rhs) const
 		{ return value < rhs.value; }
@@ -87,7 +87,7 @@ namespace libtorrent { namespace dht
 		{ return value == rhs.value; }
 		sequence_number& operator++()
 		{ ++value; return *this; }
-		std::uint64_t value;
+		std::int64_t value;
 	};
 
 }}

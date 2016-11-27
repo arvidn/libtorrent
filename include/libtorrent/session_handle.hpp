@@ -429,7 +429,7 @@ namespace libtorrent
 		// calling the callback in between is convenient.
 		void dht_put_item(std::array<char, 32> key
 			, std::function<void(entry&, std::array<char, 64>&
-				, std::uint64_t&, std::string const&)> cb
+				, std::int64_t&, std::string const&)> cb
 			, std::string salt = std::string());
 
 		void dht_get_peers(sha1_hash const& info_hash);

@@ -5695,7 +5695,7 @@ namespace aux {
 
 		void put_mutable_callback(dht::item& i
 			, std::function<void(entry&, std::array<char, 64>&
-				, std::uint64_t&, std::string const&)> cb)
+				, std::int64_t&, std::string const&)> cb)
 		{
 			entry value = i.value();
 			dht::signature sig = i.sig();
@@ -5731,7 +5731,7 @@ namespace aux {
 
 	void session_impl::dht_put_mutable_item(std::array<char, 32> key
 		, std::function<void(entry&, std::array<char,64>&
-		, std::uint64_t&, std::string const&)> cb
+		, std::int64_t&, std::string const&)> cb
 		, std::string salt)
 	{
 		if (!m_dht) return;

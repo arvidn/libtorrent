@@ -412,8 +412,8 @@ namespace libtorrent
 		int num_pieces = have.size();
 		for (int i = 0; i < num_pieces; ++i)
 		{
-			int h = have[i];
-			TORRENT_ASSERT(int(m_piece_map[i].have_peers.count(p)) == h);
+			bool h = have[i];
+			TORRENT_ASSERT(m_piece_map[std::size_t(i)].have_peers.count(p) == (h ? 1 : 0));
 		}
 #else
 		TORRENT_UNUSED(have);

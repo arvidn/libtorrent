@@ -571,7 +571,7 @@ namespace libtorrent
 
 	void session_handle::dht_put_item(std::array<char, 32> key
 		, std::function<void(entry&, std::array<char,64>&
-		, std::uint64_t&, std::string const&)> cb
+			, std::int64_t&, std::string const&)> cb
 		, std::string salt)
 	{
 #ifndef TORRENT_DISABLE_DHT
