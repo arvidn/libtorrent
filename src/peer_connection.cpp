@@ -5850,7 +5850,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::incoming, "AVAILABLE"
-				, "%d bytes", int(buffer_size));
+				, "%d bytes", buffer_size);
 #endif
 
 			request_bandwidth(download_channel, buffer_size);
@@ -5860,7 +5860,7 @@ namespace libtorrent
 			if (buffer_size > 0)
 			{
 				span<char> const vec = m_recv_buffer.reserve(buffer_size);
-				size_t bytes = m_socket->read_some(
+				std::size_t bytes = m_socket->read_some(
 					boost::asio::mutable_buffers_1(vec.data(), vec.size()), ec);
 
 				// this is weird. You would imagine read_some() would do this

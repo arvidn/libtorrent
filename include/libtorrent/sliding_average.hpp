@@ -36,8 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 #include <cstdlib> // for std::abs
 
-#include "assert.hpp"
-
 namespace libtorrent
 {
 

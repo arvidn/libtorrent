@@ -115,7 +115,7 @@ alert* wait_for_alert(lt::session& s, int alert_type)
 }
 
 void put_string(entry& e, std::array<char, 64>& sig
-	, std::uint64_t& seq
+	, std::int64_t& seq
 	, std::string const& salt
 	, std::array<char, 32> const& pk
 	, std::array<char, 64> const& sk
@@ -411,4 +411,3 @@ int main(int argc, char* argv[])
 }
 
 #endif
-

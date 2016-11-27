@@ -2290,7 +2290,7 @@ get_out:
 		// this peer has, and can pick from. Cap the stack allocation
 		// at 200 pieces.
 
-		int partials_size = (std::min)(200, int(
+		int partials_size = std::min(200, int(
 				m_downloads[piece_pos::piece_downloading].size()
 			+ m_downloads[piece_pos::piece_full].size()));
 		if (partials_size == 0) return ret;
@@ -2340,14 +2340,10 @@ get_out:
 		}
 #endif
 
-		for (std::vector<downloading_piece>::const_iterator i
-			= m_downloads[piece_pos::piece_full].begin()
-			, end(m_downloads[piece_pos::piece_full].end());
-			i != end; ++i)
+		for (auto const& dp : m_downloads[piece_pos::piece_full])
 		{
 			if (c == partials_size) break;
 
-			downloading_piece const& dp = *i;
 			TORRENT_ASSERT(dp.requested > 0);
 			// this peer doesn't have this piece, try again
 			if (!pieces[dp.index]) continue;
@@ -2365,23 +2361,21 @@ get_out:
 		while (partials_size > 0)
 		{
 			pc.inc_stats_counter(counters::piece_picker_busy_loops);
-			int piece = random(partials_size - 1);
+			int piece = int(random(partials_size - 1));
 			downloading_piece const* dp = partials[piece];
 			TORRENT_ASSERT(pieces[dp->index]);
 			TORRENT_ASSERT(piece_priority(dp->index) > 0);
 			// fill in with blocks requested from other peers
 			// as backups
-			const int num_blocks_in_piece = blocks_in_piece(dp->index);
+			int const num_blocks_in_piece = blocks_in_piece(dp->index);
 			TORRENT_ASSERT(dp->requested > 0);
 			block_info const* binfo = blocks_for_piece(*dp);
 			for (int j = 0; j < num_blocks_in_piece; ++j)
 			{
 				block_info const& info = binfo[j];
-				TORRENT_ASSERT(info.peer == nullptr
-					|| static_cast<torrent_peer*>(info.peer)->in_use);
+				TORRENT_ASSERT(info.peer == nullptr || info.peer->in_use);
 				TORRENT_ASSERT(info.piece_index == dp->index);
-				if (info.state != block_info::state_requested
-					|| info.peer == peer)
+				if (info.state != block_info::state_requested || info.peer == peer)
 					continue;
 				temp.push_back(piece_block(dp->index, j));
 			}
@@ -2396,7 +2390,7 @@ get_out:
 
 			// the piece we picked only had blocks outstanding requested
 			// by ourself. Remove it and pick another one.
-			partials[piece] = partials[partials_size-1];
+			partials[piece] = partials[partials_size - 1];
 			--partials_size;
 		}
 
@@ -2477,7 +2471,7 @@ get_out:
 	{
 		TORRENT_ASSERT(index >= 0);
 		TORRENT_ASSERT(index < int(m_piece_map.size()));
-		piece_pos const& p = m_piece_map[index];
+		piece_pos const& p = m_piece_map[std::size_t(index)];
 		return p.index == piece_pos::we_have_index;
 	}
 
@@ -2495,19 +2489,19 @@ get_out:
 	{
 		TORRENT_ASSERT(piece >= 0 && piece < int(m_piece_map.size()));
 		return bitmask[piece]
-			&& !m_piece_map[piece].have()
-			&& !m_piece_map[piece].filtered();
+			&& !m_piece_map[std::size_t(piece)].have()
+			&& !m_piece_map[std::size_t(piece)].filtered();
 	}
 
 	bool piece_picker::can_pick(int piece, bitfield const& bitmask) const
 	{
 		TORRENT_ASSERT(piece >= 0 && piece < int(m_piece_map.size()));
 		return bitmask[piece]
-			&& !m_piece_map[piece].have()
+			&& !m_piece_map[std::size_t(piece)].have()
 			// TODO: when expanding pieces for cache stripe reasons,
 			// the !downloading condition doesn't make much sense
-			&& !m_piece_map[piece].downloading()
-			&& !m_piece_map[piece].filtered();
+			&& !m_piece_map[std::size_t(piece)].downloading()
+			&& !m_piece_map[std::size_t(piece)].filtered();
 	}
 
 #if TORRENT_USE_INVARIANT_CHECKS
