@@ -176,9 +176,13 @@ Acknowledgements
 
 Written by Arvid Norberg. Copyright |copy| 2003-2016
 
-Contributions by Steven Siloti, Magnus Jonsson, Daniel Wallin and Cory Nelson
+Contributions by Steven Siloti, Alden Torres, Magnus Jonsson, Daniel Wallin and Cory Nelson
 
 Thanks to Reimond Retz for bugfixes, suggestions and testing
+
+See github__ for full list of contributors.
+
+__ https://github.com/arvidn/libtorrent/graphs/contributors
 
 Thanks to `Umeå University`__ for providing development and test hardware.
 
