@@ -3028,11 +3028,11 @@ get_out:
 			<< block.piece_index << ", " << block.block_index << "} )" << std::endl;
 #endif
 
-		TORRENT_ASSERT(peer == nullptr || static_cast<torrent_peer*>(peer)->in_use);
+		TORRENT_ASSERT(peer == nullptr || peer->in_use);
 		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
 		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
 		TORRENT_ASSERT(block.piece_index < int(m_piece_map.size()));
-		TORRENT_ASSERT(int(block.block_index) < blocks_in_piece(block.piece_index));
+		TORRENT_ASSERT(block.block_index < blocks_in_piece(block.piece_index));
 		TORRENT_ASSERT(!m_piece_map[block.piece_index].have());
 
 		piece_pos& p = m_piece_map[block.piece_index];
@@ -3180,7 +3180,7 @@ get_out:
 		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
 		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
 		TORRENT_ASSERT(block.piece_index < int(m_piece_map.size()));
-		TORRENT_ASSERT(int(block.block_index) < blocks_in_piece(block.piece_index));
+		TORRENT_ASSERT(block.block_index < blocks_in_piece(block.piece_index));
 		// this is not valid for web peers
 		// TORRENT_ASSERT(peer != 0);
 
@@ -3368,7 +3368,7 @@ get_out:
 		TORRENT_ASSERT(block.piece_index >= 0);
 		TORRENT_ASSERT(block.block_index >= 0);
 		TORRENT_ASSERT(block.piece_index < int(m_piece_map.size()));
-		TORRENT_ASSERT(int(block.block_index) < blocks_in_piece(block.piece_index));
+		TORRENT_ASSERT(block.block_index < blocks_in_piece(block.piece_index));
 
 		piece_pos& p = m_piece_map[block.piece_index];
 
@@ -3431,7 +3431,7 @@ get_out:
 		TORRENT_ASSERT(block.piece_index >= 0);
 		TORRENT_ASSERT(block.block_index >= 0);
 		TORRENT_ASSERT(block.piece_index < int(m_piece_map.size()));
-		TORRENT_ASSERT(int(block.block_index) < blocks_in_piece(block.piece_index));
+		TORRENT_ASSERT(block.block_index < blocks_in_piece(block.piece_index));
 
 		piece_pos& p = m_piece_map[block.piece_index];
 
@@ -3577,7 +3577,7 @@ get_out:
 		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
 		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
 		TORRENT_ASSERT(block.piece_index < int(m_piece_map.size()));
-		TORRENT_ASSERT(int(block.block_index) < blocks_in_piece(block.piece_index));
+		TORRENT_ASSERT(block.block_index < blocks_in_piece(block.piece_index));
 
 		int state = m_piece_map[block.piece_index].download_queue();
 		if (state == piece_pos::piece_open) return;
@@ -3607,7 +3607,7 @@ get_out:
 		if (info.peer == peer) info.peer = nullptr;
 		TORRENT_ASSERT(info.peers.size() == info.num_peers);
 
-		TORRENT_ASSERT(int(block.block_index) < blocks_in_piece(block.piece_index));
+		TORRENT_ASSERT(block.block_index < blocks_in_piece(block.piece_index));
 
 		// if there are other peers, leave the block requested
 		if (info.num_peers > 0) return;
