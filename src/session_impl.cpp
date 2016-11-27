@@ -1631,6 +1631,11 @@ namespace aux {
 			}
 		} // force-proxy mode
 
+		socket_type_t const udp_sock_type
+			= (flags & open_ssl_socket)
+			? socket_type_t::utp_ssl
+			: socket_type_t::udp;
+
 		ret.udp_sock = std::make_shared<udp_socket>(m_io_service);
 #if TORRENT_HAS_BINDTODEVICE
 		if (!device.empty())
@@ -1650,7 +1655,7 @@ namespace aux {
 				if (m_alerts.should_post<listen_failed_alert>())
 				{
 					m_alerts.emplace_alert<listen_failed_alert>(device, bind_ep
-						, last_op, ec, sock_type);
+						, last_op, ec, udp_sock_type);
 				}
 				return ret;
 			}
@@ -1669,11 +1674,6 @@ namespace aux {
 					, device.c_str(), ec.message().c_str());
 			}
 #endif
-
-			socket_type_t const udp_sock_type
-				= (flags & open_ssl_socket)
-				? socket_type_t::utp_ssl
-				: socket_type_t::udp;
 
 			if (m_alerts.should_post<listen_failed_alert>())
 				m_alerts.emplace_alert<listen_failed_alert>(device
