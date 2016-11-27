@@ -39,7 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cinttypes> // for PRId64 et.al.
 #include <functional>
 #include <type_traits>
-#include <numeric>
 
 #if TORRENT_USE_INVARIANT_CHECKS
 #include <unordered_set>
