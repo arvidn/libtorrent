@@ -328,7 +328,10 @@ namespace libtorrent
 		TORRENT_ASSERT(m_sent_bitfield);
 #ifndef TORRENT_DISABLE_DHT
 		if (m_supports_dht_port && m_ses.has_dht())
-			write_dht_port(m_ses.external_udp_port());
+		{
+			int const port = m_ses.external_udp_port();
+			if (port >= 0) write_dht_port(port);
+		}
 #endif
 	}
 
@@ -1340,7 +1343,10 @@ namespace libtorrent
 			m_supports_dht_port = true;
 #ifndef TORRENT_DISABLE_DHT
 			if (m_supports_dht_port && m_ses.has_dht())
-				write_dht_port(m_ses.external_udp_port());
+			{
+				int const port = m_ses.external_udp_port();
+				if (port >= 0) write_dht_port(port);
+			}
 #endif
 		}
 	}
@@ -3433,7 +3439,10 @@ namespace libtorrent
 				write_bitfield();
 #ifndef TORRENT_DISABLE_DHT
 				if (m_supports_dht_port && m_ses.has_dht())
-					write_dht_port(m_ses.external_udp_port());
+				{
+					int const port = m_ses.external_udp_port();
+					if (port >= 0) write_dht_port(port);
+				}
 #endif
 
 				// if we don't have any pieces, don't do any preemptive
