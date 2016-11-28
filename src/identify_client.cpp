@@ -245,8 +245,7 @@ namespace
 	// non-standard names
 	static generic_map_entry generic_mappings[] =
 	{
-		{0, "-MG", "Media Get" }
-		, {0, "Deadman Walking-", "Deadman"}
+		{0, "Deadman Walking-", "Deadman"}
 		, {5, "Azureus", "Azureus 2.0.3.2"}
 		, {0, "DansClient", "XanTorrent"}
 		, {4, "btfans", "SimpleBT"}
@@ -274,6 +273,7 @@ namespace
 		, {0, "-G3", "G3 Torrent"}
 		, {0, "-FG", "FlashGet"}
 		, {0, "-ML", "MLdonkey"}
+		, {0, "-MG", "Media Get"}
 		, {0, "XBT", "XBT"}
 		, {0, "OP", "Opera"}
 		, {2, "RS", "Rufus"}
