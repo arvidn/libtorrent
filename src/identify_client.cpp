@@ -390,16 +390,16 @@ namespace libtorrent
 			std::string user(PID + 2, PID + 14);
 			return std::string("eXeem ('") + user.c_str() + "')";
 		}
-        bool const is_equ_zero = std::equal(PID, PID + 12, "\0\0\0\0\0\0\0\0\0\0\0\0");
+		bool const is_equ_zero = std::equal(PID, PID + 12, "\0\0\0\0\0\0\0\0\0\0\0\0");
 
-        if (is_equ_zero && PID[12] == 0x97)
-            return "Experimental 3.2.1b2";
+		if (is_equ_zero && PID[12] == 0x97)
+			return "Experimental 3.2.1b2";
 
-        if (is_equ_zero && PID[12] == 0x00)
-            return "Experimental 3.1";
+		if (is_equ_zero && PID[12] == 0x00)
+			return "Experimental 3.1";
 
 		// look for azureus style id
-        boost::optional<fingerprint> f = parse_az_style(p);
+		boost::optional<fingerprint> f = parse_az_style(p);
 		if (f) return lookup(*f);
 
 		// look for shadow style id
@@ -413,7 +413,7 @@ namespace libtorrent
 
 		if (is_equ_zero)
 			return "Generic";
-
+		
 		std::string unknown("Unknown [");
 		for (peer_id::const_iterator i = p.begin(); i != p.end(); ++i)
 		{
