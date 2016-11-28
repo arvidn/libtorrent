@@ -328,15 +328,15 @@ namespace libtorrent
 		TORRENT_ASSERT(m_sent_bitfield);
 		write_dht_port();
 	}
-
+	
 	void bt_peer_connection::write_dht_port()
 	{
 #ifndef TORRENT_DISABLE_DHT
-        if (m_supports_dht_port && m_ses.has_dht())
-        {
-            int const port = m_ses.external_udp_port();
-            if (port >= 0) write_dht_port(port);
-        }
+		if (m_supports_dht_port && m_ses.has_dht())
+		{
+			int const port = m_ses.external_udp_port();
+			if (port >= 0) write_dht_port(port);
+		}
 #endif
 	}
 
