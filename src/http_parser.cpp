@@ -562,7 +562,7 @@ restart_response:
 		int const offset = body_start();
 		for (auto const& i : chunks())
 		{
-			TORRENT_ASSERT(i.second - i.first < (std::numeric_limits<int>::max)());
+			TORRENT_ASSERT(i.second - i.first < std::numeric_limits<int>::max());
 			TORRENT_ASSERT(i.second - offset <= size);
 			int len = int(i.second - i.first);
 			if (i.first - offset + len > size) len = size - int(i.first) + offset;

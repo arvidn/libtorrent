@@ -33,7 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 
 #include <functional>
-#include <vector>
 #include <cstdlib>
 #include <cstdio> // for snprintf
 #include <cinttypes> // for PRId64 et.al.
@@ -53,6 +52,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_manager.hpp" // for alert_manageralert_manager
 #include "libtorrent/aux_/escape_string.hpp" // for escape_path
 #include "libtorrent/hex.hpp" // for is_hex
+#include "libtorrent/torrent.hpp"
+#include "libtorrent/http_parser.hpp"
+#include "libtorrent/operations.hpp" // for operation_t enum
 
 namespace libtorrent
 {
@@ -96,8 +98,8 @@ web_peer_connection::web_peer_connection(peer_connection_args const& pack
 	{
 		// handle incorrect .torrent files which are multi-file
 		// but have web seeds not ending with a slash
-		if (m_path.empty() || m_path[m_path.size()-1] != '/') m_path += '/';
-		if (m_url.empty() || m_url[m_url.size()-1] != '/') m_url += '/';
+		if (m_path.empty() || m_path[m_path.size() - 1] != '/') m_path += '/';
+		if (m_url.empty() || m_url[m_url.size() - 1] != '/') m_url += '/';
 	}
 	else
 	{
@@ -541,10 +543,10 @@ bool web_peer_connection::received_invalid_data(int index, bool single_peer)
 	{
 		// assume the web seed has a different copy of this specific file
 		// than what we expect, and pretend not to have it.
-		int fi = files[0].file_index;
-		int first_piece = int(fs.file_offset(fi) / fs.piece_length());
+		int const fi = files[0].file_index;
+		int const first_piece = int(fs.file_offset(fi) / fs.piece_length());
 		// one past last piece
-		int end_piece = int((fs.file_offset(fi) + fs.file_size(fi) + 1) / fs.piece_length());
+		int const end_piece = int((fs.file_offset(fi) + fs.file_size(fi) + 1) / fs.piece_length());
 		for (int i = first_piece; i < end_piece; ++i)
 			incoming_dont_have(i);
 	}
@@ -650,7 +652,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		if (web->have_files.get_bit(file_index) == false)
 		{
 			web->have_files.set_bit(file_index);
-			if (web->peer_info.connection)
+			if (web->peer_info.connection != nullptr)
 			{
 				peer_connection* pc = static_cast<peer_connection*>(web->peer_info.connection);
 
@@ -1029,7 +1031,7 @@ void web_peer_connection::incoming_payload(char const* buf, int len)
 		// to not exceed the size of the next bittorrent request to be delivered.
 		// m_piece can only hold the response for a single BT request at a time
 		m_piece.resize(piece_size + copy_size);
-		std::memcpy(&m_piece[0] + piece_size, buf, copy_size);
+		std::memcpy(m_piece.data() + piece_size, buf, copy_size);
 		len -= copy_size;
 		buf += copy_size;
 
@@ -1074,7 +1076,7 @@ void web_peer_connection::incoming_zeroes(int len)
 		TORRENT_ASSERT(!m_requests.empty());
 		peer_request const& front_request = m_requests.front();
 		int const piece_size = int(m_piece.size());
-		int const copy_size = (std::min)(front_request.length - piece_size, len);
+		int const copy_size = std::min(front_request.length - piece_size, len);
 
 		// m_piece may not hold more than the response to the next BT request
 		TORRENT_ASSERT(front_request.length > piece_size);
@@ -1108,7 +1110,7 @@ void web_peer_connection::maybe_harvest_piece()
 #endif
 	m_requests.pop_front();
 
-	incoming_piece(front_request, &m_piece[0]);
+	incoming_piece(front_request, m_piece.data());
 	m_piece.clear();
 }
 

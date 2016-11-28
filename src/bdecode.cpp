@@ -679,9 +679,9 @@ namespace libtorrent
 			// if we're currently parsing a dictionary, assert that
 			// every other node is a string.
 			if (current_frame > 0
-				&& ret.m_tokens[stack[current_frame-1].token].type == bdecode_token::dict)
+				&& ret.m_tokens[stack[current_frame - 1].token].type == bdecode_token::dict)
 			{
-				if (stack[current_frame-1].state == 0)
+				if (stack[current_frame - 1].state == 0)
 				{
 					// the current parent is a dict and we are parsing a key.
 					// only allow a digit (for a string) or 'e' to terminate
@@ -697,8 +697,7 @@ namespace libtorrent
 					// we push it into the stack so that we know where to fill
 					// in the next_node field once we pop this node off the stack.
 					// i.e. get to the node following the dictionary in the buffer
-					ret.m_tokens.push_back(bdecode_token(start - orig_start
-						, bdecode_token::dict));
+					ret.m_tokens.push_back({start - orig_start, bdecode_token::dict});
 					++start;
 					break;
 				case 'l':
@@ -706,8 +705,7 @@ namespace libtorrent
 					// we push it into the stack so that we know where to fill
 					// in the next_node field once we pop this node off the stack.
 					// i.e. get to the node following the list in the buffer
-					ret.m_tokens.push_back(bdecode_token(start - orig_start
-						, bdecode_token::list));
+					ret.m_tokens.push_back({start - orig_start, bdecode_token::list});
 					++start;
 					break;
 				case 'i':
@@ -725,8 +723,8 @@ namespace libtorrent
 						start = int_start;
 						TORRENT_FAIL_BDECODE(e);
 					}
-					ret.m_tokens.push_back(bdecode_token(int_start - orig_start
-						, 1, bdecode_token::integer, 1));
+					ret.m_tokens.push_back({int_start - orig_start
+						, 1, bdecode_token::integer, 1});
 					TORRENT_ASSERT(*start == 'e');
 
 					// skip 'e'
@@ -740,8 +738,8 @@ namespace libtorrent
 						TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
 
 					if (sp > 0
-						&& ret.m_tokens[stack[sp-1].token].type == bdecode_token::dict
-						&& stack[sp-1].state == 1)
+						&& ret.m_tokens[stack[sp - 1].token].type == bdecode_token::dict
+						&& stack[sp - 1].state == 1)
 					{
 						// this means we're parsing a dictionary and about to parse a
 						// value associated with a key. Instead, we got a termination
@@ -749,12 +747,11 @@ namespace libtorrent
 					}
 
 					// insert the end-of-sequence token
-					ret.m_tokens.push_back(bdecode_token(start - orig_start, 1
-						, bdecode_token::end));
+					ret.m_tokens.push_back({start - orig_start, 1, bdecode_token::end});
 
 					// and back-patch the start of this sequence with the offset
 					// to the next token we'll insert
-					int const top = stack[sp-1].token;
+					int const top = stack[sp - 1].token;
 					// subtract the token's own index, since this is a relative
 					// offset
 					if (ret.m_tokens.size() - top > bdecode_token::max_next_item)
@@ -798,18 +795,18 @@ namespace libtorrent
 					if (start - str_start - 2 > detail::bdecode_token::max_header)
 						TORRENT_FAIL_BDECODE(bdecode_errors::limit_exceeded);
 
-					ret.m_tokens.push_back(bdecode_token(str_start - orig_start
-						, 1, bdecode_token::string, std::uint8_t(start - str_start)));
+					ret.m_tokens.push_back({str_start - orig_start
+						, 1, bdecode_token::string, std::uint8_t(start - str_start)});
 					start += len;
 					break;
 				}
 			}
 
 			if (current_frame > 0
-				&& ret.m_tokens[stack[current_frame-1].token].type == bdecode_token::dict)
+				&& ret.m_tokens[stack[current_frame - 1].token].type == bdecode_token::dict)
 			{
 				// the next item we parse is the opposite
-				stack[current_frame-1].state = ~stack[current_frame-1].state;
+				stack[current_frame - 1].state = ~stack[current_frame - 1].state;
 			}
 
 			// this terminates the top level node, we're done!
@@ -831,10 +828,8 @@ done:
 				&& stack[sp].state == 1)
 			{
 				// insert an empty dictionary as the value
-				ret.m_tokens.push_back(bdecode_token(start - orig_start
-					, 2, bdecode_token::dict));
-				ret.m_tokens.push_back(bdecode_token(start - orig_start
-					, bdecode_token::end));
+				ret.m_tokens.push_back({start - orig_start, 2, bdecode_token::dict});
+				ret.m_tokens.push_back({start - orig_start, bdecode_token::end});
 			}
 
 			int const top = stack[sp].token;
@@ -843,13 +838,12 @@ done:
 			ret.m_tokens.push_back(bdecode_token(start - orig_start, 1, bdecode_token::end));
 		}
 
-		ret.m_tokens.push_back(bdecode_token(start - orig_start, 0
-			, bdecode_token::end));
+		ret.m_tokens.push_back({start - orig_start, 0, bdecode_token::end});
 
 		ret.m_token_idx = 0;
 		ret.m_buffer = orig_start;
 		ret.m_buffer_size = int(start - orig_start);
-		ret.m_root_tokens = &ret.m_tokens[0];
+		ret.m_root_tokens = ret.m_tokens.data();
 
 		return ec ? -1 : 0;
 	}
@@ -1027,4 +1021,3 @@ done:
 		return ret;
 	}
 }
-

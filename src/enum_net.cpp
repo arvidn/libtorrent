@@ -33,12 +33,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/broadcast_socket.hpp"
-#include "libtorrent/error_code.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/socket_type.hpp"
 
 #include <functional>
-#include <vector>
 #include <cstdlib> // for wcstombscstombs
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
@@ -152,7 +150,7 @@ namespace libtorrent { namespace
 
 #if TORRENT_USE_NETLINK
 
-	int read_nl_sock(int sock, char *buf, int bufsize, int seq, int pid)
+	int read_nl_sock(int sock, char *buf, int bufsize, int const seq, int const pid)
 	{
 		nlmsghdr* nl_hdr;
 
@@ -232,8 +230,7 @@ namespace libtorrent { namespace
 #endif
 
 		if_indextoname(if_index, rt_info->name);
-		ifreq req;
-		memset(&req, 0, sizeof(req));
+		ifreq req = {};
 		if_indextoname(if_index, req.ifr_name);
 		ioctl(s, siocgifmtu, &req);
 		rt_info->mtu = req.ifr_mtu;
@@ -478,8 +475,7 @@ namespace libtorrent
 				ip_interface iface;
 				if (iface_from_ifaddrs(ifa, iface))
 				{
-					ifreq req;
-					std::memset(&req, 0, sizeof(req));
+					ifreq req = {};
 					// -1 to leave a 0-terminator
 					std::strncpy(req.ifr_name, iface.name, IF_NAMESIZE - 1);
 
@@ -1093,8 +1089,7 @@ namespace libtorrent
 
 		int seq = 0;
 
-		char msg[BUFSIZE];
-		memset(msg, 0, BUFSIZE);
+		char msg[BUFSIZE] = {};
 		nlmsghdr* nl_msg = reinterpret_cast<nlmsghdr*>(msg);
 
 		nl_msg->nlmsg_len = NLMSG_LENGTH(sizeof(rtmsg));
@@ -1149,8 +1144,8 @@ namespace libtorrent
 		std::vector<ip_interface> ifs = enum_net_interfaces(ios, ec);
 		if (ec) return false;
 
-		for (int i = 0; i < int(ifs.size()); ++i)
-			if (ifs[i].name == name) return true;
+		for (auto const& iface : ifs)
+			if (iface.name == name) return true;
 		return false;
 	}
 
@@ -1161,8 +1156,8 @@ namespace libtorrent
 		std::vector<ip_interface> ifs = enum_net_interfaces(ios, ec);
 		if (ec) return std::string();
 
-		for (int i = 0; i < int(ifs.size()); ++i)
-			if (ifs[i].interface_address == addr) return ifs[i].name;
+		for (auto const& iface : ifs)
+			if (iface.interface_address == addr) return iface.name;
 		return std::string();
 	}
 }

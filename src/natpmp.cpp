@@ -609,7 +609,7 @@ void natpmp::update_expiration_timer()
 	{
 		if (i->protocol == portmap_protocol::none
 			|| i->act != mapping_t::action::none) continue;
-		int index = int(i - m_mappings.begin());
+		int const index = int(i - m_mappings.begin());
 		if (i->expires < now)
 		{
 #ifndef TORRENT_DISABLE_LOGGING

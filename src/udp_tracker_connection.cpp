@@ -34,12 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cctype>
 #include <mutex>
 #include <functional>
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <tuple>
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/parse_url.hpp"
@@ -54,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/aux_/io.hpp"
 #include "libtorrent/span.hpp"
+#include "libtorrent/peer.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/socket_io.hpp"
@@ -351,7 +347,7 @@ namespace libtorrent
 		std::shared_ptr<request_callback> cb = requester();
 #endif
 
-		// ignore resposes before we've sent any requests
+		// ignore responses before we've sent any requests
 		if (m_state == action_t::error)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -454,10 +450,8 @@ namespace libtorrent
 
 	void udp_tracker_connection::update_transaction_id()
 	{
-		std::uint32_t new_tid;
-
-		// don't use 0, because that has special meaning (unintialized)
-		new_tid = random(0xfffffffe) + 1;
+		// don't use 0, because that has special meaning (uninitialized)
+		std::uint32_t new_tid = random(0xfffffffe) + 1;
 
 		if (m_transaction_id != 0)
 			m_man.update_transaction_id(shared_from_this(), new_tid);

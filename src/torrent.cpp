@@ -1664,7 +1664,7 @@ namespace libtorrent
 #endif
 		}
 
-		m_block_size_shift = root2((std::min)(block_size(), m_torrent_file->piece_length()));
+		m_block_size_shift = root2(std::min(block_size(), m_torrent_file->piece_length()));
 
 		if (m_torrent_file->num_pieces() > piece_picker::max_pieces)
 		{
@@ -1786,7 +1786,7 @@ namespace libtorrent
 			// ugly edge case where padfiles are not used they way they're
 			// supposed to be. i.e. added back-to back or at the end
 			if (pb.block_index == blocks_per_piece) { pb.block_index = 0; ++pb.piece_index; }
-			if (pr.length > 0 && ((i+1 != fs.num_files() && fs.pad_file_at(i + 1))
+			if (pr.length > 0 && ((i + 1 != fs.num_files() && fs.pad_file_at(i + 1))
 				|| i + 1 == fs.num_files()))
 			{
 				m_picker->mark_as_finished(pb, nullptr);
@@ -3503,7 +3503,7 @@ namespace libtorrent
 				peer_request p = files.map_file(i, 0, int(files.file_size(i)));
 				for (int j = p.piece; p.length > 0; ++j)
 				{
-					int deduction = (std::min)(p.length, piece_size - p.start);
+					int deduction = std::min(p.length, piece_size - p.start);
 					bool done = m_picker->has_piece_passed(j);
 					bool wanted = m_picker->piece_priority(j) > 0;
 					if (done) st.total_done -= deduction;
@@ -7799,7 +7799,7 @@ namespace libtorrent
 #if TORRENT_USE_INVARIANT_CHECKS
 	void torrent::check_invariant() const
 	{
-		TORRENT_ASSERT(current_stats_state() == m_current_gauge_state + counters::num_checking_torrents
+		TORRENT_ASSERT(current_stats_state() == int(m_current_gauge_state + counters::num_checking_torrents)
 			|| m_current_gauge_state == no_gauge_state);
 
 		for (std::vector<time_critical_piece>::const_iterator i = m_time_critical_pieces.begin()

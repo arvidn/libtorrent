@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <map>
 #include <functional>
+#include <ctime>
 
 #include "libtorrent/storage_defs.hpp"
 #include "libtorrent/sha1_hash.hpp"
@@ -381,14 +382,14 @@ namespace libtorrent
 		// was first added, including previous runs/sessions. If set to zero, the
 		// internal added_time will be set to the time of when add_torrent() is
 		// called.
-		time_t added_time = 0;
-		time_t completed_time = 0;
+		std::time_t added_time = 0;
+		std::time_t completed_time = 0;
 
 		// if set to non-zero, initializes the time (expressed in posix time) when
 		// we last saw a seed or peers that together formed a complete copy of the
 		// torrent. If left set to zero, the internal counterpart to this field
 		// will be updated when we see a seed or a distributed copies >= 1.0.
-		time_t last_seen_complete = 0;
+		std::time_t last_seen_complete = 0;
 
 		// these field can be used to initialize the torrent's cached scrape data.
 		// The scrape data is high level metadata about the current state of the

@@ -39,7 +39,7 @@ namespace libtorrent
 {
 
 	TORRENT_EXTRA_EXPORT void xml_parse(span<char const> input
-		, std::function<void(int,char const*,int,char const*,int)> callback)
+		, std::function<void(int, char const*, int, char const*, int)> callback)
 	{
 		char const* p = input.data();
 		char const* end = input.data() + input.size();
@@ -61,7 +61,7 @@ namespace libtorrent
 
 			// skip '<'
 			++p;
-			if (p != end && p+8 < end && string_begins_no_case("![CDATA[", p))
+			if (p != end && p + 8 < end && string_begins_no_case("![CDATA[", p))
 			{
 				// CDATA. match '![CDATA['
 				p += 8;
@@ -73,7 +73,7 @@ namespace libtorrent
 				{
 					token = xml_parse_error;
 					start = "unexpected end of file";
-					callback(token, start, int(strlen(start)), nullptr, 0);
+					callback(token, start, int(std::strlen(start)), nullptr, 0);
 					break;
 				}
 
@@ -125,7 +125,7 @@ namespace libtorrent
 				callback(token, start, name_len, nullptr, 0);
 				tag_end = p - 1;
 			}
-			else if (start + 5 < p && std::memcmp(start, "!--", 3) == 0 && std::memcmp(p-2, "--", 2) == 0)
+			else if (start + 5 < p && std::memcmp(start, "!--", 3) == 0 && std::memcmp(p - 2, "--", 2) == 0)
 			{
 				start += 3;
 				token = xml_comment;
@@ -196,4 +196,3 @@ namespace libtorrent
 	}
 
 }
-

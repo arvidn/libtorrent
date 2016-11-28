@@ -4148,16 +4148,14 @@ namespace aux {
 		int const unchoked_counter_optimistic
 			= int(m_stats_counters[counters::num_peers_up_unchoked_optimistic]);
 		int const num_opt_unchoke = (unchoked_counter_optimistic == 0)
-			? (std::max)(1, allowed_upload_slots / 5) : unchoked_counter_optimistic;
+			? std::max(1, allowed_upload_slots / 5) : unchoked_counter_optimistic;
 
 		int unchoke_set_size = allowed_upload_slots - num_opt_unchoke;
 
 		// go through all the peers and unchoke the first ones and choke
 		// all the other ones.
-		for (std::vector<peer_connection*>::iterator i = peers.begin()
-			, end(peers.end()); i != end; ++i)
+		for (auto p : peers)
 		{
-			peer_connection* p = *i;
 			TORRENT_ASSERT(p);
 			TORRENT_ASSERT(!p->ignore_unchoke_slots());
 

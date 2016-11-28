@@ -2372,7 +2372,7 @@ void utp_socket_impl::ack_packet(packet* p, time_point const& receive_time
 	{
 		TORRENT_ASSERT(p->mtu_probe);
 		// our mtu probe was acked!
-		m_mtu_floor = (std::max)(m_mtu_floor, p->size);
+		m_mtu_floor = std::max(m_mtu_floor, p->size);
 		if (m_mtu_ceiling < m_mtu_floor) m_mtu_ceiling = m_mtu_floor;
 		update_mtu_limits();
 	}
@@ -2393,7 +2393,7 @@ void utp_socket_impl::ack_packet(packet* p, time_point const& receive_time
 	UTP_LOGV("%8p: acked packet %d (%d bytes) (rtt:%u)\n"
 		, static_cast<void*>(this), seq_nr, p->size - p->header_size, rtt / 1000);
 
-	m_rtt.add_sample(rtt / 1000);
+	m_rtt.add_sample(int(rtt / 1000));
 	if (rtt < min_rtt) min_rtt = rtt;
 	free(p);
 }

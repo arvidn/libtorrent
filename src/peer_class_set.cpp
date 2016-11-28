@@ -56,11 +56,10 @@ namespace libtorrent
 			!= m_class.begin() + m_size;
 	}
 
-	void peer_class_set::remove_class(peer_class_pool& pool, peer_class_t c)
+	void peer_class_set::remove_class(peer_class_pool& pool, peer_class_t const c)
 	{
-		std::array<peer_class_t, 15>::iterator i = std::find(m_class.begin()
-			, m_class.begin() + m_size, c);
-		int idx = int(i - m_class.begin());
+		auto const i = std::find(m_class.begin(), m_class.begin() + m_size, c);
+		int const idx = int(i - m_class.begin());
 		if (idx == m_size) return; // not found
 		if (idx < m_size - 1)
 		{
