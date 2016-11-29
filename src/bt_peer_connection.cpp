@@ -328,7 +328,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_sent_bitfield);
 		write_dht_port();
 	}
-	
+
 	void bt_peer_connection::write_dht_port()
 	{
 #ifndef TORRENT_DISABLE_DHT
