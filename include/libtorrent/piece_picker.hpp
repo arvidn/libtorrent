@@ -541,7 +541,7 @@ namespace libtorrent
 
 			// the number of peers that has this piece
 			// (availability)
-			std::uint16_t peer_count = 0;
+			std::uint32_t peer_count : 26;
 
 			// one of the enums from state_t. This indicates whether this piece
 			// is currently being downloaded or not, and what state it's in if
