@@ -401,9 +401,6 @@ feature iconv : auto on off : composite propagated ;
 feature.compose <iconv>on : <define>TORRENT_USE_ICONV=1 ;
 feature.compose <iconv>off : <define>TORRENT_USE_ICONV=0 ;
 
-feature memory-optimization : off on : composite propagated link-incompatible ;
-feature.compose <memory-optimization>on : <define>TORRENT_OPTIMIZE_MEMORY_USAGE ;
-
 feature asserts : off on production system : composite propagated ;
 feature.compose <asserts>on : <define>TORRENT_USE_ASSERTS=1 ;
 feature.compose <asserts>production : <define>TORRENT_USE_ASSERTS=1 <define>TORRENT_PRODUCTION_ASSERTS=1 ;
