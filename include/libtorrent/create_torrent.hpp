@@ -347,7 +347,7 @@ namespace libtorrent
 		// and they have the same name.
 		bool m_multifile:1;
 
-		// this is true if the torrent is private. i.e., is should not
+		// this is true if the torrent is private. i.e., its interested peers should not
 		// be announced on the dht
 		bool m_private:1;
 
