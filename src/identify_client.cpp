@@ -137,7 +137,7 @@ namespace
 
 	// only support BitTorrentSpecification
 	// must be ordered alphabetically
-	map_entry name_map[] =
+	static map_entry name_map[] =
 	{
 		  {"7T", "aTorrent for android"}
 		, {"A",  "ABC"}
@@ -238,12 +238,12 @@ namespace
 
 	struct generic_map_entry
 	{
-		int offset;
+		int const offset;
 		char const* id;
 		char const* name;
 	};
 	// non-standard names
-	generic_map_entry generic_mappings[] =
+	static generic_map_entry generic_mappings[] =
 	{
 		{0, "Deadman Walking-", "Deadman"}
 		, {5, "Azureus", "Azureus 2.0.3.2"}
@@ -367,7 +367,6 @@ namespace libtorrent
 	std::string identify_client(peer_id const& p)
 	{
 		char const* PID = p.data();
-		boost::optional<fingerprint> f;
 
 		if (p.is_all_zeros()) return "Unknown";
 
@@ -375,7 +374,7 @@ namespace libtorrent
 		// non standard encodings
 		// ----------------------
 
-		int num_generic_mappings = sizeof(generic_mappings) / sizeof(generic_mappings[0]);
+		const int num_generic_mappings = sizeof(generic_mappings) / sizeof(generic_mappings[0]);
 
 		for (int i = 0; i < num_generic_mappings; ++i)
 		{
@@ -391,15 +390,16 @@ namespace libtorrent
 			std::string user(PID + 2, PID + 14);
 			return std::string("eXeem ('") + user.c_str() + "')";
 		}
+		bool const is_equ_zero = std::equal(PID, PID + 12, "\0\0\0\0\0\0\0\0\0\0\0\0");
 
-		if (std::equal(PID, PID + 13, "\0\0\0\0\0\0\0\0\0\0\0\0\x97"))
+		if (is_equ_zero && PID[12] == '\x97')
 			return "Experimental 3.2.1b2";
 
-		if (std::equal(PID, PID + 13, "\0\0\0\0\0\0\0\0\0\0\0\0\0"))
+		if (is_equ_zero && PID[12] == '\0')
 			return "Experimental 3.1";
 
 		// look for azureus style id
-		f = parse_az_style(p);
+		boost::optional<fingerprint> f = parse_az_style(p);
 		if (f) return lookup(*f);
 
 		// look for shadow style id
@@ -411,7 +411,7 @@ namespace libtorrent
 		if (f) return lookup(*f);
 
 
-		if (std::equal(PID, PID + 12, "\0\0\0\0\0\0\0\0\0\0\0\0"))
+		if (is_equ_zero)
 			return "Generic";
 
 		std::string unknown("Unknown [");
