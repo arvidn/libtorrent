@@ -272,7 +272,7 @@ namespace libtorrent
 #endif
 
 	private:
-        void write_dht_port();
+		void write_dht_port();
 
 		bool dispatch_message(int received);
 		// returns the block currently being
