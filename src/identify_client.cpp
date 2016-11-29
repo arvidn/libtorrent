@@ -375,33 +375,33 @@ namespace libtorrent
 		// ----------------------
 
 		const int num_generic_mappings = sizeof(generic_mappings) / sizeof(generic_mappings[0]);
-		
+
 		for (int i = 0; i < num_generic_mappings; ++i)
 		{
 			generic_map_entry const& e = generic_mappings[i];
 			if (find_string(PID + e.offset, e.id)) return e.name;
 		}
-		
+
 		if (find_string(PID, "-BOW") && PID[7] == '-')
 			return "Bits on Wheels " + std::string(PID + 4, PID + 7);
-		
+
 		if (find_string(PID, "eX"))
 		{
 			std::string user(PID + 2, PID + 14);
 			return std::string("eXeem ('") + user.c_str() + "')";
 		}
 		bool const is_equ_zero = std::equal(PID, PID + 12, "\0\0\0\0\0\0\0\0\0\0\0\0");
-		
+
 		if (is_equ_zero && PID[12] == '\x97')
 			return "Experimental 3.2.1b2";
-		
+
 		if (is_equ_zero && PID[12] == '\0')
 			return "Experimental 3.1";
-		
+
 		// look for azureus style id
 		boost::optional<fingerprint> f = parse_az_style(p);
 		if (f) return lookup(*f);
-		
+
 		// look for shadow style id
 		f = parse_shadow_style(p);
 		if (f) return lookup(*f);
@@ -413,7 +413,7 @@ namespace libtorrent
 
 		if (is_equ_zero)
 			return "Generic";
-		
+
 		std::string unknown("Unknown [");
 		for (peer_id::const_iterator i = p.begin(); i != p.end(); ++i)
 		{
