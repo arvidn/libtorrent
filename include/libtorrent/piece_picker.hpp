@@ -457,12 +457,13 @@ namespace libtorrent
 		{
 			piece_pos() {}
 			piece_pos(int peer_count_, int index_)
-				: peer_count(unsigned(peer_count_))
+				: peer_count(static_cast<std::uint16_t>(peer_count_))
 				, download_state(piece_pos::piece_open)
 				, piece_priority(4)
-				, index(unsigned(index_))
+				, index(index_)
 			{
 				TORRENT_ASSERT(peer_count_ >= 0);
+				TORRENT_ASSERT(peer_count_ < std::numeric_limits<std::uint16_t>::max());
 				TORRENT_ASSERT(index_ >= 0);
 			}
 
@@ -540,11 +541,7 @@ namespace libtorrent
 
 			// the number of peers that has this piece
 			// (availability)
-#ifdef TORRENT_OPTIMIZE_MEMORY_USAGE
-			std::uint32_t peer_count : 9;
-#else
-			std::uint32_t peer_count : 16;
-#endif
+			std::uint16_t peer_count = 0;
 
 			// one of the enums from state_t. This indicates whether this piece
 			// is currently being downloaded or not, and what state it's in if
@@ -572,11 +569,7 @@ namespace libtorrent
 			std::uint32_t piece_priority : 3;
 
 			// index in to the piece_info vector
-#ifdef TORRENT_OPTIMIZE_MEMORY_USAGE
-			std::uint32_t index : 17;
-#else
 			std::uint32_t index;
-#endif
 
 #ifdef TORRENT_DEBUG_REFCOUNTS
 			// all the peers that have this piece
@@ -588,19 +581,11 @@ namespace libtorrent
 				// index is set to this to indicate that we have the
 				// piece. There is no entry for the piece in the
 				// buckets if this is the case.
-#ifdef TORRENT_OPTIMIZE_MEMORY_USAGE
-				we_have_index = 0x3ffff,
-#else
 				we_have_index = 0xffffffff,
-#endif
 				// the priority value that means the piece is filtered
 				filter_priority = 0,
 				// the max number the peer count can hold
-#ifdef TORRENT_OPTIMIZE_MEMORY_USAGE
-				max_peer_count = 0x1ff
-#else
 				max_peer_count = 0xffff
-#endif
 			};
 
 			bool have() const { return index == we_have_index; }
@@ -668,11 +653,7 @@ namespace libtorrent
 		};
 
 #ifndef TORRENT_DEBUG_REFCOUNTS
-#ifdef TORRENT_OPTIMIZE_MEMORY_USAGE
-		static_assert(sizeof(piece_pos) == sizeof(char) * 4, "unexpected struct size");
-#else
 		static_assert(sizeof(piece_pos) == sizeof(char) * 8, "unexpected struct size");
-#endif
 #endif
 
 		bool partial_compare_rarest_first(downloading_piece const* lhs
@@ -797,11 +778,7 @@ namespace libtorrent
 		mutable bool m_dirty = false;
 	public:
 
-#ifdef TORRENT_OPTIMIZE_MEMORY_USAGE
-		enum { max_pieces = piece_pos::we_have_index - 1 };
-#else
 		enum { max_pieces = (std::numeric_limits<int>::max)() - 1 };
-#endif
 
 	};
 }

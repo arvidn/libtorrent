@@ -424,20 +424,6 @@ namespace libtorrent
 
 	void piece_picker::check_invariant(torrent const* t) const
 	{
-#ifndef TORRENT_DEBUG_REFCOUNTS
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4127 ) /* warning C4127: conditional expression is constant */
-#endif // _MSC_VER
-#ifdef TORRENT_OPTIMIZE_MEMORY_USAGE
-		TORRENT_ASSERT(sizeof(piece_pos) == 4);
-#else
-		TORRENT_ASSERT(sizeof(piece_pos) == 8);
-#endif
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif // _MSC_VER
-#endif
 		TORRENT_ASSERT(m_num_have >= 0);
 		TORRENT_ASSERT(m_num_have_filtered >= 0);
 		TORRENT_ASSERT(m_num_filtered >= 0);
