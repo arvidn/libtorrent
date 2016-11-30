@@ -348,7 +348,7 @@ namespace libtorrent
 		bool m_multifile:1;
 
 		// this is true if the torrent is private. i.e., the client should not
-		// announce itself on the DHT for this torrent
+		// advertise itself on the DHT for this torrent
 		bool m_private:1;
 
 		// if set to one, a merkle torrent will be generated
