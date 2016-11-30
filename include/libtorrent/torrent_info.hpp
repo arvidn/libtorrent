@@ -397,8 +397,8 @@ namespace libtorrent
 		// metadata resolved yet or not.
 		bool is_valid() const { return m_files.is_valid(); }
 
-		// returns true if this torrent is private. i.e., it should not be
-		// distributed on the trackerless network (the kademlia DHT).
+		// returns true if this torrent is private. i.e., the client should not
+		// advertise itself on the trackerless network (the Kademlia DHT) for this torrent.
 		bool priv() const { return (m_flags & private_torrent) != 0; }
 
 		// returns true if this is an i2p torrent. This is determined by whether

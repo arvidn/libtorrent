@@ -256,9 +256,9 @@ namespace libtorrent
 		void set_root_cert(string_view pem);
 
 		// Sets and queries the private flag of the torrent.
-		// Torrents with the private flag set ask clients to not use any other
-		// sources than the tracker for peers, and to not advertise itself publicly,
-		// apart from the tracker.
+		// Torrents with the private flag set ask the client to not use any other
+		// sources than the tracker for peers, and to not use DHT to advertise itself publicly,
+		// only the tracker.
 		void set_priv(bool p) { m_private = p; }
 		bool priv() const { return m_private; }
 
@@ -347,8 +347,8 @@ namespace libtorrent
 		// and they have the same name.
 		bool m_multifile:1;
 
-		// this is true if the torrent is private. i.e., is should not
-		// be announced on the dht
+		// this is true if the torrent is private. i.e., the client should not
+		// advertise itself on the DHT for this torrent
 		bool m_private:1;
 
 		// if set to one, a merkle torrent will be generated
