@@ -95,7 +95,7 @@ namespace
 				{
 					m_torrent.session().disk_thread().async_read(&m_torrent.storage()
 						, r, std::bind(&smart_ban_plugin::on_read_ok_block
-						, shared_from_this(), *i, i->second.peer->address(), _1, _2, _3, _4)
+						, shared_from_this(), *i, i->second.peer->address(), _1, _2, r.length, _3, _4)
 						, reinterpret_cast<void*>(1));
 					m_block_hashes.erase(i++);
 				}
@@ -152,7 +152,7 @@ namespace
 					// block read will have been deleted by the time it gets back to the network thread
 					m_torrent.session().disk_thread().async_read(&m_torrent.storage(), r
 						, std::bind(&smart_ban_plugin::on_read_failed_block
-						, shared_from_this(), pb, (*i)->address(), _1, _2, _3, _4)
+						, shared_from_this(), pb, (*i)->address(), _1, _2, r.length, _3, _4)
 						, reinterpret_cast<torrent_peer*>(1)
 						, disk_io_job::force_copy);
 				}
@@ -176,7 +176,7 @@ namespace
 		};
 
 		void on_read_failed_block(piece_block b, address a
-			, aux::block_cache_reference ref, char* disk_block, int
+			, aux::block_cache_reference ref, char* disk_block, int const block_size, int
 			, storage_error const& error)
 		{
 			TORRENT_ASSERT(m_torrent.session().is_single_thread());
@@ -186,10 +186,8 @@ namespace
 			// ignore read errors
 			if (error) return;
 
-			int const size = m_torrent.torrent_file().piece_size(b.piece_index);
-
 			hasher h;
-			h.update(disk_block, size);
+			h.update({disk_block, std::size_t(block_size)});
 			h.update(reinterpret_cast<char const*>(&m_salt), sizeof(m_salt));
 
 			std::pair<peer_list::iterator, peer_list::iterator> const range
@@ -262,7 +260,7 @@ namespace
 		}
 
 		void on_read_ok_block(std::pair<piece_block, block_entry> b, address a
-			, aux::block_cache_reference ref, char* disk_block, int
+			, aux::block_cache_reference ref, char* disk_block, int const block_size, int
 			, storage_error const& error)
 		{
 			TORRENT_ASSERT(m_torrent.session().is_single_thread());
@@ -272,10 +270,8 @@ namespace
 			// ignore read errors
 			if (error) return;
 
-			int const size = m_torrent.torrent_file().piece_size(b.first.piece_index);
-
 			hasher h;
-			h.update(disk_block, size);
+			h.update({disk_block, std::size_t(block_size)});
 			h.update(reinterpret_cast<char const*>(&m_salt), sizeof(m_salt));
 			sha1_hash const ok_digest = h.final();
 
