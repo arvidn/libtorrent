@@ -5626,8 +5626,8 @@ namespace libtorrent
 		else if (prio > 7) prio = 7;
 		if (int(m_file_priority.size()) <= index)
 		{
-			// any unallocated slot is assumed to be 1
-			if (prio == 1) return;
+			// any unallocated slot is assumed to be 4
+			if (prio == 4) return;
 			m_file_priority.resize(index+1, 4);
 		}
 
@@ -5717,6 +5717,8 @@ namespace libtorrent
 
 			if (file_prio == 0)
 			{
+				// the pieces already start out as priority 0, no need to update
+				// the pieces vector in this case
 				need_update = true;
 				continue;
 			}
@@ -5733,8 +5735,7 @@ namespace libtorrent
 				, pieces.begin() + last_piece + 1
 				, boost::bind(&set_if_greater, _1, file_prio));
 
-			if (has_picker() || file_prio != 1)
-				need_update = true;
+			need_update = true;
 		}
 		if (need_update) prioritize_pieces(pieces);
 	}
