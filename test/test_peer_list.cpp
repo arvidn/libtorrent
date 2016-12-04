@@ -173,7 +173,6 @@ torrent_state init_state(torrent_peer_allocator& allocator
 	st.max_peerlist_size = 1000;
 	st.allow_multiple_connections_per_ip = false;
 	st.peer_allocator = &allocator;
-	st.ip = &ext_ip;
 	st.port = 9999;
 	return st;
 }

@@ -139,7 +139,7 @@ namespace libtorrent { namespace aux
 
 		virtual void set_external_address(address const& ip
 			, int source_type, address const& source) = 0;
-		virtual external_ip const& external_address() const = 0;
+		virtual external_ip external_address() const = 0;
 
 		virtual disk_interface& disk_thread() = 0;
 

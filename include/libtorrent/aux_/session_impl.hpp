@@ -131,9 +131,9 @@ namespace libtorrent
 			udp_port_mapping[1] = -1;
 		}
 
-		// this is typically empty but can be set
-		// to the WAN IP address of NAT-PMP or UPnP router
-		address external_address;
+		// this may be empty but can be set
+		// to the WAN IP address of a NAT router
+		ip_voter external_address;
 
 		// this is a cached local endpoint for the listen TCP socket
 		tcp::endpoint local_endpoint;
@@ -658,7 +658,7 @@ namespace libtorrent
 
 			void set_external_address(address const& ip
 				, int source_type, address const& source) override;
-			virtual external_ip const& external_address() const override;
+			virtual external_ip external_address() const override;
 
 			// used when posting synchronous function
 			// calls to session_impl and torrent objects
@@ -1222,9 +1222,6 @@ namespace libtorrent
 			// whe shutting down process
 			std::list<std::shared_ptr<tracker_logger>> m_tracker_loggers;
 #endif
-
-			// state for keeping track of external IPs
-			external_ip m_external_ip;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 			// this is a list to allow extensions to potentially remove themselves.

@@ -148,12 +148,12 @@ TORRENT_TEST(one_ip)
 	TEST_CHECK(ipv.external_address() == addr1);
 }
 
-TORRENT_TEST(externa_ip_1)
+TORRENT_TEST(ip_voter_1)
 {
 	init_rand_address();
 
 	// test external ip voting
-	external_ip ipv1;
+	ip_voter ipv1;
 
 	// test a single malicious node
 	// adds 50 legitimate responses from different peers
@@ -168,14 +168,14 @@ TORRENT_TEST(externa_ip_1)
 		ipv1.cast_vote(real_external, aux::session_impl::source_dht, rand_v4());
 		ipv1.cast_vote(rand_v4(), aux::session_impl::source_dht, malicious);
 	}
-	TEST_CHECK(ipv1.external_address(rand_v4()) == real_external);
+	TEST_CHECK(ipv1.external_address() == real_external);
 }
 
-TORRENT_TEST(externa_ip_2)
+TORRENT_TEST(ip_voter_2)
 {
 	init_rand_address();
 
-	external_ip ipv2;
+	ip_voter ipv2,ipv6;
 
 	// test a single malicious node
 	// adds 50 legitimate responses from different peers
@@ -185,31 +185,40 @@ TORRENT_TEST(externa_ip_2)
 	TEST_CHECK(!ec);
 	address real_external1 = address_v4::from_string("5.5.5.5", ec);
 	TEST_CHECK(!ec);
+	address malicious_external = address_v4::from_string("3.3.3.3", ec);
+	TEST_CHECK(!ec);
+
+	address malicious2;
 	address real_external2;
+	address malicious_external2;
 #if TORRENT_USE_IPV6
 	if (supports_ipv6())
 	{
+		malicious2 = address_v6::from_string("2f90::", ec);
+		TEST_CHECK(!ec);
 		real_external2 = address_v6::from_string("2f80::", ec);
+		TEST_CHECK(!ec);
+		malicious_external2 = address_v6::from_string("2f70::", ec);
 		TEST_CHECK(!ec);
 	}
 #endif
-	malicious = address_v4::from_string("4.4.4.4", ec);
-	TEST_CHECK(!ec);
-	address malicious_external = address_v4::from_string("3.3.3.3", ec);
-	TEST_CHECK(!ec);
+
 	for (int i = 0; i < 50; ++i)
 	{
 		ipv2.cast_vote(real_external1, aux::session_impl::source_dht, rand_v4());
+		ipv2.cast_vote(malicious_external, aux::session_impl::source_dht, malicious);
 #if TORRENT_USE_IPV6
 		if (supports_ipv6())
-			ipv2.cast_vote(real_external2, aux::session_impl::source_dht, rand_v6());
+		{
+			ipv6.cast_vote(real_external2, aux::session_impl::source_dht, rand_v6());
+			ipv6.cast_vote(malicious_external2, aux::session_impl::source_dht, malicious2);
+		}
 #endif
-		ipv2.cast_vote(malicious_external, aux::session_impl::source_dht, malicious);
 	}
-	TEST_CHECK(ipv2.external_address(rand_v4()) == real_external1);
+	TEST_CHECK(ipv2.external_address() == real_external1);
 #if TORRENT_USE_IPV6
 	if (supports_ipv6())
-		TEST_CHECK(ipv2.external_address(rand_v6()) == real_external2);
+		TEST_CHECK(ipv6.external_address() == real_external2);
 #endif
 
 }
