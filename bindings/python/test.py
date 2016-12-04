@@ -29,6 +29,9 @@ class test_torrent_handle(unittest.TestCase):
 		ti = lt.torrent_info('url_seed_multi.torrent');
 		h = ses.add_torrent({'ti': ti, 'save_path': os.getcwd()})
 
+		self.assertEqual(h.file_priorities(), [4,4])
+		self.assertEqual(h.piece_priorities(), [4])
+
 		h.prioritize_files([0,1])
 		self.assertEqual(h.file_priorities(), [0,1])
 
