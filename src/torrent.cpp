@@ -5545,7 +5545,7 @@ namespace libtorrent
 		if (!has_picker())
 		{
 			pieces->clear();
-			pieces->resize(m_torrent_file->num_pieces(), 1);
+			pieces->resize(m_torrent_file->num_pieces(), 4);
 			return;
 		}
 
