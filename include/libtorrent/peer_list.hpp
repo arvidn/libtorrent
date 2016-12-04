@@ -43,14 +43,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/invariant_check.hpp"
+#include "libtorrent/ip_voter.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/peer_connection_interface.hpp"
 
 namespace libtorrent
 {
-
-	struct external_ip;
 	struct ip_filter;
 	class port_filter;
 	struct torrent_peer_allocator_interface;
@@ -68,7 +67,7 @@ namespace libtorrent
 			, max_peerlist_size(1000)
 			, min_reconnect_time(60)
 			, loop_counter(0)
-			, ip(nullptr), port(0)
+			, port(0)
 			, max_failcount(3)
 			, peer_allocator(nullptr)
 		{}
@@ -90,7 +89,7 @@ namespace libtorrent
 		// these are used only by find_connect_candidates in order
 		// to implement peer ranking. See:
 		// http://blog.libtorrent.org/2012/12/swarm-connectivity/
-		external_ip const* ip;
+		external_ip ip;
 		int port;
 
 		// the number of times a peer must fail before it's no longer considered

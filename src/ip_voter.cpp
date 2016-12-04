@@ -173,14 +173,21 @@ namespace libtorrent
 		return true;
 	}
 
-	bool external_ip::cast_vote(address const& ip, int source_type, address const& source)
+	external_ip::external_ip(address const& local4, address const& global4
+		, address const& local6, address const& global6)
+		: m_addresses{{global4, ensure_v6(global6)}, {local4, ensure_v6(local6)}}
 	{
-		return m_vote_group[ip.is_v6()].cast_vote(ip, source_type, source);
+#if TORRENT_USE_IPV6
+		TORRENT_ASSERT(m_addresses[0][1].is_v6());
+		TORRENT_ASSERT(m_addresses[1][1].is_v6());
+#endif
+		TORRENT_ASSERT(m_addresses[0][0].is_v4());
+		TORRENT_ASSERT(m_addresses[1][0].is_v4());
 	}
 
 	address external_ip::external_address(address const& ip) const
 	{
-		address ext = m_vote_group[ip.is_v6()].external_address();
+		address ext = m_addresses[is_local(ip)][ip.is_v6()];
 #if TORRENT_USE_IPV6
 		if (ip.is_v6() && ext == address_v4()) return address_v6();
 #endif

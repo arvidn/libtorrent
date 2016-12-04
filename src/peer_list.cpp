@@ -479,7 +479,7 @@ namespace libtorrent
 		if (m_finished != state->is_finished)
 			recalculate_connect_candidates(state);
 
-		external_ip const& external = *state->ip;
+		external_ip const& external = state->ip;
 		int external_port = state->port;
 
 		if (m_round_robin >= int(m_peers.size())) m_round_robin = 0;

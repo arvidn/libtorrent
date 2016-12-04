@@ -106,23 +106,30 @@ namespace libtorrent
 		time_point m_last_rotate;
 	};
 
-	// this keeps track of multiple external IPs (for now, just IPv6 and IPv4, but
-	// it could be extended to deal with loopback and local network addresses as well)
+	// stores one address for each combination of local/global and ipv4/ipv6
+	// use of this class should be avoided, get the IP from the appropriate
+	// listen interface wherever possible
 	struct TORRENT_EXTRA_EXPORT external_ip
 	{
-		// returns true if a different IP is the top vote now
-		// i.e. we changed our idea of what our external IP is
-		bool cast_vote(address const& ip, int source_type, address const& source);
+		external_ip()
+#if TORRENT_USE_IPV6
+			: m_addresses{{address_v4(), address_v6()}, {address_v4(), address_v6()}}
+#endif
+		{}
+
+		external_ip(address const& local4, address const& global4
+			, address const& local6, address const& global6);
 
 		// the external IP as it would be observed from `ip`
 		address external_address(address const& ip) const;
 
 	private:
 
-		// for now, assume one external IPv4 and one external IPv6 address
-		// 0 = IPv4 1 = IPv6
-		// TODO: 1 instead, have one instance per possible subnet, global IPv4, global IPv6, loopback, 192.168.x.x, 10.x.x.x, etc.
-		ip_voter m_vote_group[2];
+		// support one local and one global address per address family
+		// [0][n] = global [1][n] = local
+		// [n][0] = IPv4 [n][1] = IPv6
+		// TODO: 1 have one instance per possible subnet, 192.168.x.x, 10.x.x.x, etc.
+		address m_addresses[2][2];
 	};
 
 }

@@ -5334,10 +5334,9 @@ namespace aux {
 			{
 				// TODO: 1 report the proper address of the router as the source IP of
 				// this vote of our external address, instead of the empty address
-				set_external_address(ip, source_router, address());
+				ls->external_address.cast_vote(ip, source_router, address());
 			}
 
-			ls->external_address = ip;
 			if (tcp) ls->tcp_external_port = port;
 			else ls->udp_external_port = port;
 		}
@@ -6463,9 +6462,22 @@ namespace aux {
 		m_upnp.reset();
 	}
 
-	external_ip const& session_impl::external_address() const
+	external_ip session_impl::external_address() const
 	{
-		return m_external_ip;
+		address ips[2][2];
+
+		// take the first IP we find which matches each category
+		for (auto const& i : m_listen_sockets)
+		{
+			address external_addr = i.external_address.external_address();
+			if (ips[0][external_addr.is_v6()] == address())
+				ips[0][external_addr.is_v6()] = external_addr;
+			address local_addr = i.local_endpoint.address();
+			if (ips[is_local(local_addr)][local_addr.is_v6()] == address())
+				ips[is_local(local_addr)][local_addr.is_v6()] = local_addr;
+		}
+
+		return external_ip(ips[1][0], ips[0][0], ips[1][1], ips[0][1]);
 	}
 
 	// this is the DHT observer version. DHT is the implied source
@@ -6475,6 +6487,7 @@ namespace aux {
 		set_external_address(ip, source_dht, source);
 	}
 
+	// TODO 3 pass in a specific listen socket rather than an address family
 	address session_impl::external_address(udp proto)
 	{
 #if !TORRENT_USE_IPV6
@@ -6488,7 +6501,8 @@ namespace aux {
 		else
 #endif
 			addr = address_v4();
-		return m_external_ip.external_address(addr);
+		addr = external_address().external_address(addr);
+		return addr;
 	}
 
 	void session_impl::get_peers(sha1_hash const& ih)
@@ -6596,7 +6610,16 @@ namespace aux {
 		}
 #endif
 
-		if (!m_external_ip.cast_vote(ip, source_type, source)) return;
+		// for now, just pick the first socket with a matching address family
+		// TODO: 3 allow the caller to select which listen socket to update
+		for (auto& i : m_listen_sockets)
+		{
+			if (i.local_endpoint.address().is_v4() != ip.is_v4())
+				continue;
+
+			if (!i.external_address.cast_vote(ip, source_type, source)) return;
+			break;
+		}
 
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log("  external IP updated");

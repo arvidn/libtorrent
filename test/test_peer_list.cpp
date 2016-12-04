@@ -164,8 +164,7 @@ bool has_peer(peer_list const& p, tcp::endpoint const& ep)
 	return its.first != its.second;
 }
 
-torrent_state init_state(torrent_peer_allocator& allocator
-	, external_ip& ext_ip)
+torrent_state init_state(torrent_peer_allocator& allocator)
 {
 	torrent_state st;
 	st.is_finished = false;
@@ -173,7 +172,6 @@ torrent_state init_state(torrent_peer_allocator& allocator
 	st.max_peerlist_size = 1000;
 	st.allow_multiple_connections_per_ip = false;
 	st.peer_allocator = &allocator;
-	st.ip = &ext_ip;
 	st.port = 9999;
 	return st;
 }
@@ -202,13 +200,12 @@ void connect_peer(peer_list& p, mock_torrent& t, torrent_state& st)
 }
 
 static torrent_peer_allocator allocator;
-static external_ip ext_ip;
 
 // test multiple peers with the same IP
 // when disallowing it
 TORRENT_TEST(multiple_ips_disallowed)
 {
-	torrent_state st = init_state(allocator, ext_ip);
+	torrent_state st = init_state(allocator);
 	mock_torrent t(&st);
 	peer_list p;
 	t.m_p = &p;
@@ -230,7 +227,7 @@ TORRENT_TEST(multiple_ips_disallowed)
 // when allowing it
 TORRENT_TEST(multiple_ips_allowed)
 {
-	torrent_state st = init_state(allocator, ext_ip);
+	torrent_state st = init_state(allocator);
 	mock_torrent t(&st);
 	st.allow_multiple_connections_per_ip = true;
 	peer_list p;
@@ -252,7 +249,7 @@ TORRENT_TEST(multiple_ips_allowed)
 // with allow_multiple_connections_per_ip enabled
 TORRENT_TEST(multiple_ips_allowed2)
 {
-	torrent_state st = init_state(allocator, ext_ip);
+	torrent_state st = init_state(allocator);
 	mock_torrent t(&st);
 	st.allow_multiple_connections_per_ip = true;
 	peer_list p;
@@ -291,7 +288,7 @@ TORRENT_TEST(multiple_ips_allowed2)
 // with allow_multiple_connections_per_ip disabled
 TORRENT_TEST(multiple_ips_disallowed2)
 {
-	torrent_state st = init_state(allocator, ext_ip);
+	torrent_state st = init_state(allocator);
 	mock_torrent t(&st);
 	st.allow_multiple_connections_per_ip = false;
 	peer_list p;
@@ -325,7 +322,7 @@ TORRENT_TEST(multiple_ips_disallowed2)
 // and update_peer_port
 TORRENT_TEST(update_peer_port)
 {
-	torrent_state st = init_state(allocator, ext_ip);
+	torrent_state st = init_state(allocator);
 	mock_torrent t(&st);
 	st.allow_multiple_connections_per_ip = false;
 	peer_list p;
@@ -348,7 +345,7 @@ TORRENT_TEST(update_peer_port)
 // and update_peer_port, causing collission
 TORRENT_TEST(update_peer_port_collide)
 {
-	torrent_state st = init_state(allocator, ext_ip);
+	torrent_state st = init_state(allocator);
 	mock_torrent t(&st);
 	st.allow_multiple_connections_per_ip = true;
 	peer_list p;
@@ -384,7 +381,7 @@ std::shared_ptr<mock_peer_connection> shared_from_this(libtorrent::peer_connecti
 // test ip filter
 TORRENT_TEST(ip_filter)
 {
-	torrent_state st = init_state(allocator, ext_ip);
+	torrent_state st = init_state(allocator);
 	mock_torrent t(&st);
 	st.allow_multiple_connections_per_ip = false;
 	peer_list p;
@@ -422,7 +419,7 @@ TORRENT_TEST(ip_filter)
 // test port filter
 TORRENT_TEST(port_filter)
 {
-	torrent_state st = init_state(allocator, ext_ip);
+	torrent_state st = init_state(allocator);
 	mock_torrent t(&st);
 	st.allow_multiple_connections_per_ip = false;
 	peer_list p;
@@ -460,7 +457,7 @@ TORRENT_TEST(port_filter)
 // test banning peers
 TORRENT_TEST(ban_peers)
 {
-	torrent_state st = init_state(allocator, ext_ip);
+	torrent_state st = init_state(allocator);
 	mock_torrent t(&st);
 	st.allow_multiple_connections_per_ip = false;
 	peer_list p;
@@ -500,7 +497,7 @@ TORRENT_TEST(ban_peers)
 // test erase_peers when we fill up the peer list
 TORRENT_TEST(erase_peers)
 {
-	torrent_state st = init_state(allocator, ext_ip);
+	torrent_state st = init_state(allocator);
 	mock_torrent t(&st);
 	st.max_peerlist_size = 100;
 	st.allow_multiple_connections_per_ip = true;
@@ -533,7 +530,7 @@ TORRENT_TEST(erase_peers)
 // test set_ip_filter
 TORRENT_TEST(set_ip_filter)
 {
-	torrent_state st = init_state(allocator, ext_ip);
+	torrent_state st = init_state(allocator);
 	std::vector<address> banned;
 
 	mock_torrent t(&st);
@@ -563,7 +560,7 @@ TORRENT_TEST(set_ip_filter)
 // test set_port_filter
 TORRENT_TEST(set_port_filter)
 {
-	torrent_state st = init_state(allocator, ext_ip);
+	torrent_state st = init_state(allocator);
 	std::vector<address> banned;
 
 	mock_torrent t(&st);
@@ -594,7 +591,7 @@ TORRENT_TEST(set_port_filter)
 // test set_max_failcount
 TORRENT_TEST(set_max_failcount)
 {
-	torrent_state st = init_state(allocator, ext_ip);
+	torrent_state st = init_state(allocator);
 
 	mock_torrent t(&st);
 	peer_list p;
@@ -624,7 +621,7 @@ TORRENT_TEST(set_max_failcount)
 // test set_seed
 TORRENT_TEST(set_seed)
 {
-	torrent_state st = init_state(allocator, ext_ip);
+	torrent_state st = init_state(allocator);
 
 	mock_torrent t(&st);
 	peer_list p;
@@ -658,7 +655,7 @@ TORRENT_TEST(set_seed)
 // test has_peer
 TORRENT_TEST(has_peer)
 {
-	torrent_state st = init_state(allocator, ext_ip);
+	torrent_state st = init_state(allocator);
 	std::vector<address> banned;
 
 	mock_torrent t(&st);
@@ -690,7 +687,7 @@ TORRENT_TEST(has_peer)
 // test connect_candidates torrent_finish
 TORRENT_TEST(connect_candidates_finish)
 {
-	torrent_state st = init_state(allocator, ext_ip);
+	torrent_state st = init_state(allocator);
 	std::vector<address> banned;
 
 	mock_torrent t(&st);
@@ -729,7 +726,7 @@ TORRENT_TEST(connect_candidates_finish)
 // test self-connection
 TORRENT_TEST(self_connection)
 {
-	torrent_state st = init_state(allocator, ext_ip);
+	torrent_state st = init_state(allocator);
 	mock_torrent t(&st);
 	st.allow_multiple_connections_per_ip = false;
 	peer_list p;
@@ -759,7 +756,7 @@ TORRENT_TEST(self_connection)
 // test double connection (both incoming)
 TORRENT_TEST(double_connection)
 {
-	torrent_state st = init_state(allocator, ext_ip);
+	torrent_state st = init_state(allocator);
 	mock_torrent t(&st);
 	st.allow_multiple_connections_per_ip = false;
 	peer_list p;
@@ -787,7 +784,7 @@ TORRENT_TEST(double_connection)
 // test double connection (we loose)
 TORRENT_TEST(double_connection_loose)
 {
-	torrent_state st = init_state(allocator, ext_ip);
+	torrent_state st = init_state(allocator);
 	mock_torrent t(&st);
 	st.allow_multiple_connections_per_ip = false;
 	peer_list p;
@@ -816,7 +813,7 @@ TORRENT_TEST(double_connection_loose)
 // test double connection (we win)
 TORRENT_TEST(double_connection_win)
 {
-	torrent_state st = init_state(allocator, ext_ip);
+	torrent_state st = init_state(allocator);
 	mock_torrent t(&st);
 	st.allow_multiple_connections_per_ip = false;
 	peer_list p;
@@ -845,7 +842,7 @@ TORRENT_TEST(double_connection_win)
 // test incoming connection when we are at the list size limit
 TORRENT_TEST(incoming_size_limit)
 {
-	torrent_state st = init_state(allocator, ext_ip);
+	torrent_state st = init_state(allocator);
 	st.max_peerlist_size = 5;
 	mock_torrent t(&st);
 	st.allow_multiple_connections_per_ip = false;
@@ -890,7 +887,7 @@ TORRENT_TEST(incoming_size_limit)
 // test new peer when we are at the list size limit
 TORRENT_TEST(new_peer_size_limit)
 {
-	torrent_state st = init_state(allocator, ext_ip);
+	torrent_state st = init_state(allocator);
 	st.max_peerlist_size = 5;
 	mock_torrent t(&st);
 	st.allow_multiple_connections_per_ip = false;
