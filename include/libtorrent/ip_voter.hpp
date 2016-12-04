@@ -112,15 +112,13 @@ namespace libtorrent
 	struct TORRENT_EXTRA_EXPORT external_ip
 	{
 		external_ip()
-		{
 #if TORRENT_USE_IPV6
-			m_addresses[0][1] = address_v6();
-			m_addresses[1][1] = address_v6();
+			: m_addresses{{address_v4(), address_v6()}, {address_v4(), address_v6()}}
 #endif
-		}
+		{}
 
-		external_ip(address local4, address global4
-			, address local6, address global6);
+		external_ip(address const& local4, address const& global4
+			, address const& local6, address const& global6);
 
 		// the external IP as it would be observed from `ip`
 		address external_address(address const& ip) const;

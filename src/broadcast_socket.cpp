@@ -150,6 +150,15 @@ namespace libtorrent
 #endif
 	}
 
+	address ensure_v6(address const& a)
+	{
+#if TORRENT_USE_IPV6
+		return a == address_v4() ? address_v6() : a;
+#else
+		return a;
+#endif
+	}
+
 	broadcast_socket::broadcast_socket(
 		udp::endpoint const& multicast_endpoint)
 		: m_multicast_endpoint(multicast_endpoint)

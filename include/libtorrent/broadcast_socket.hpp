@@ -53,6 +53,7 @@ namespace libtorrent
 
 	// determines if the operating system supports IPv6
 	TORRENT_EXTRA_EXPORT bool supports_ipv6();
+	address ensure_v6(address const& a);
 
 	typedef std::function<void(udp::endpoint const& from
 		, char* buffer, int size)> receive_handler_t;
