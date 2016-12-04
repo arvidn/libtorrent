@@ -113,8 +113,10 @@ namespace libtorrent
 	{
 		external_ip()
 		{
+#if TORRENT_USE_IPV6
 			m_addresses[0][1] = address_v6();
 			m_addresses[1][1] = address_v6();
+#endif
 		}
 
 		external_ip(address local4, address global4

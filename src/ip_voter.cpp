@@ -181,15 +181,18 @@ namespace libtorrent
 		m_addresses[1][0] = local4;
 		m_addresses[1][1] = local6;
 
+#if TORRENT_USE_IPV6
 		if (m_addresses[0][1] == address_v4())
 			m_addresses[0][1] = address_v6();
 		if (m_addresses[1][1] == address_v4())
 			m_addresses[1][1] = address_v6();
 
-		TORRENT_ASSERT(m_addresses[0][0].is_v4());
 		TORRENT_ASSERT(m_addresses[0][1].is_v6());
-		TORRENT_ASSERT(m_addresses[1][0].is_v4());
 		TORRENT_ASSERT(m_addresses[1][1].is_v6());
+#endif
+
+		TORRENT_ASSERT(m_addresses[0][0].is_v4());
+		TORRENT_ASSERT(m_addresses[1][0].is_v4());
 	}
 
 	address external_ip::external_address(address const& ip) const
