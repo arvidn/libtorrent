@@ -377,7 +377,7 @@ namespace libtorrent
 
 		void update_transaction_id(
 			std::shared_ptr<udp_tracker_connection> c
-			, std::uint64_t tid);
+			, std::uint32_t tid);
 
 		aux::session_settings const& settings() const { return m_settings; }
 		resolver_interface& host_resolver() { return m_host_resolver; }

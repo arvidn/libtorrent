@@ -72,10 +72,10 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 	int announce_entry::next_announce_in() const
-	{ return total_seconds(next_announce - aux::time_now()); }
+	{ return int(total_seconds(next_announce - aux::time_now())); }
 
 	int announce_entry::min_announce_in() const
-	{ return total_seconds(min_announce - aux::time_now()); }
+	{ return int(total_seconds(min_announce - aux::time_now())); }
 #endif
 
 	void announce_entry::reset()
@@ -91,7 +91,7 @@ namespace libtorrent
 		// the exponential back-off ends up being:
 		// 7, 15, 27, 45, 95, 127, 165, ... seconds
 		// with the default tracker_backoff of 250
-		int const tracker_backoff_seconds = total_seconds(tracker_backoff);
+		int const tracker_backoff_seconds = int(total_seconds(tracker_backoff));
 		int const delay = std::max(std::min(tracker_retry_delay_min + int(fails) * int(fails)
 			* tracker_retry_delay_min * tracker_backoff_seconds / 100
 			, int(tracker_retry_delay_max)), retry_interval);

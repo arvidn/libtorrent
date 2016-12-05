@@ -260,7 +260,7 @@ namespace libtorrent
 
 	void tracker_manager::update_transaction_id(
 		std::shared_ptr<udp_tracker_connection> c
-		, std::uint64_t tid)
+		, std::uint32_t tid)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		m_udp_conns.erase(c->transaction_id());

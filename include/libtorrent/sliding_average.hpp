@@ -88,7 +88,7 @@ struct average_accumulator
 {
 	average_accumulator() {}
 
-	void add_sample(int s)
+	void add_sample(std::int64_t s)
 	{
 		++m_num_samples;
 		m_sample_sum += s;
