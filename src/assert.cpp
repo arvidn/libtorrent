@@ -198,7 +198,7 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth
 		nullptr,
 		&SymFunctionTableAccess64,
 		&SymGetModuleBase64,
-		nullptr) && size < stack.size())
+		nullptr) && size < int(stack.size()))
 	{
 		stack[size++] = reinterpret_cast<void*>(stack_frame.AddrPC.Offset);
 	}

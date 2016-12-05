@@ -422,7 +422,8 @@ namespace libtorrent
 		if (err) return entry();
 		return e;
 	}
-	template<class InIt> entry bdecode(InIt start, InIt end, int& len)
+	template<class InIt> entry bdecode(InIt start, InIt end
+		, typename std::iterator_traits<InIt>::difference_type& len)
 	{
 		entry e;
 		bool err = false;

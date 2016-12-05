@@ -304,7 +304,7 @@ namespace libtorrent { namespace
 
 			if (!m_pc.packet_finished()) return true;
 
-			int len;
+			std::ptrdiff_t len;
 			entry msg = bdecode(body.begin(), body.end(), len);
 			if (msg.type() != entry::dictionary_t)
 			{

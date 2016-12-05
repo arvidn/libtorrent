@@ -172,24 +172,26 @@ struct bdecode_token
 		max_header = (1 << 3) - 1
 	};
 
-	bdecode_token(std::uint32_t off, bdecode_token::type_t t)
-		: offset(off)
+	bdecode_token(std::ptrdiff_t off, bdecode_token::type_t t)
+		: offset(std::uint32_t(off))
 		, type(t)
 		, next_item(0)
 		, header(0)
 	{
+		TORRENT_ASSERT(off >= 0);
 		TORRENT_ASSERT(off <= max_offset);
 		TORRENT_ASSERT(t >= 0 && t <= end);
 	}
 
-	bdecode_token(std::uint32_t off, std::uint32_t next
+	bdecode_token(std::ptrdiff_t off, std::uint32_t next
 		, bdecode_token::type_t t, std::uint8_t header_size = 0)
-		: offset(off)
+		: offset(std::uint32_t(off))
 		, type(t)
 		, next_item(next)
 		, header(type == string ? std::uint32_t(header_size - 2) : 0)
 	{
 		TORRENT_ASSERT(type != string || header_size >= 2);
+		TORRENT_ASSERT(off >= 0);
 		TORRENT_ASSERT(off <= max_offset);
 		TORRENT_ASSERT(next <= max_next_item);
 		// the string has 2 implied header bytes, to allow for longer prefixes

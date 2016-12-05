@@ -658,7 +658,7 @@ namespace libtorrent
 		if (!failed)
 		{
 			TORRENT_PIECE_ASSERT(!error, pe);
-			std::uint32_t write_time = total_microseconds(clock_type::now() - start_time);
+			std::int64_t write_time = total_microseconds(clock_type::now() - start_time);
 			m_write_time.add_sample(write_time / num_blocks);
 
 			m_stats_counters.inc_stats_counter(counters::num_blocks_written, num_blocks);
@@ -1202,10 +1202,11 @@ namespace libtorrent
 			, j->piece, j->d.io.offset, file_flags, j->error);
 
 		TORRENT_ASSERT(ret >= 0 || j->error.ec);
+		TORRENT_UNUSED(ret);
 
 		if (!j->error.ec)
 		{
-			std::uint32_t read_time = total_microseconds(clock_type::now() - start_time);
+			std::int64_t read_time = total_microseconds(clock_type::now() - start_time);
 			m_read_time.add_sample(read_time);
 
 			m_stats_counters.inc_stats_counter(counters::num_read_back);
@@ -1274,11 +1275,11 @@ namespace libtorrent
 		time_point start_time = clock_type::now();
 
 		ret = j->storage->readv(iov
-			, j->piece, adjusted_offset, file_flags, j->error);
+			, j->piece, int(adjusted_offset), file_flags, j->error);
 
 		if (!j->error.ec)
 		{
-			std::uint32_t const read_time = total_microseconds(clock_type::now() - start_time);
+			std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
 			m_read_time.add_sample(read_time / iov_len);
 
 			m_stats_counters.inc_stats_counter(counters::num_blocks_read, iov_len);
@@ -1441,7 +1442,7 @@ namespace libtorrent
 
 		if (!j->error.ec)
 		{
-			std::uint32_t write_time = total_microseconds(clock_type::now() - start_time);
+			std::int64_t write_time = total_microseconds(clock_type::now() - start_time);
 			m_write_time.add_sample(write_time);
 
 			m_stats_counters.inc_stats_counter(counters::num_blocks_written);
@@ -2030,7 +2031,7 @@ namespace libtorrent
 			offset += size;
 		}
 
-		std::uint64_t hash_time = total_microseconds(clock_type::now() - start_time);
+		std::int64_t hash_time = total_microseconds(clock_type::now() - start_time);
 
 		l.lock();
 
@@ -2121,7 +2122,7 @@ namespace libtorrent
 
 			if (!j->error.ec)
 			{
-				std::uint32_t const read_time = total_microseconds(clock_type::now() - start_time);
+				std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
 				m_read_time.add_sample(read_time);
 
 				m_stats_counters.inc_stats_counter(counters::num_blocks_read);
@@ -2331,7 +2332,7 @@ namespace libtorrent
 
 				if (!j->error.ec)
 				{
-					std::uint32_t read_time = total_microseconds(clock_type::now() - start_time);
+					std::int64_t read_time = total_microseconds(clock_type::now() - start_time);
 					m_read_time.add_sample(read_time);
 
 					m_stats_counters.inc_stats_counter(counters::num_read_back);
@@ -2572,41 +2573,41 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 		ret->total_used_buffers = m_disk_cache.in_use();
 
-		ret->blocks_read_hit = m_stats_counters[counters::num_blocks_cache_hits];
-		ret->blocks_read = m_stats_counters[counters::num_blocks_read];
-		ret->blocks_written = m_stats_counters[counters::num_blocks_written];
-		ret->writes = m_stats_counters[counters::num_write_ops];
-		ret->reads = m_stats_counters[counters::num_read_ops];
+		ret->blocks_read_hit = int(m_stats_counters[counters::num_blocks_cache_hits]);
+		ret->blocks_read = int(m_stats_counters[counters::num_blocks_read]);
+		ret->blocks_written = int(m_stats_counters[counters::num_blocks_written]);
+		ret->writes = int(m_stats_counters[counters::num_write_ops]);
+		ret->reads = int(m_stats_counters[counters::num_read_ops]);
 
-		int num_read_jobs = (std::max)(std::int64_t(1)
-			, m_stats_counters[counters::num_read_ops]);
-		int num_write_jobs = (std::max)(std::int64_t(1)
-			, m_stats_counters[counters::num_write_ops]);
-		int num_hash_jobs = (std::max)(std::int64_t(1)
-			, m_stats_counters[counters::num_blocks_hashed]);
+		int num_read_jobs = int((std::max)(std::int64_t(1)
+			, m_stats_counters[counters::num_read_ops]));
+		int num_write_jobs = int((std::max)(std::int64_t(1)
+			, m_stats_counters[counters::num_write_ops]));
+		int num_hash_jobs = int((std::max)(std::int64_t(1)
+			, m_stats_counters[counters::num_blocks_hashed]));
 
-		ret->average_read_time = m_stats_counters[counters::disk_read_time] / num_read_jobs;
-		ret->average_write_time = m_stats_counters[counters::disk_write_time] / num_write_jobs;
-		ret->average_hash_time = m_stats_counters[counters::disk_hash_time] / num_hash_jobs;
-		ret->average_job_time = m_stats_counters[counters::disk_job_time]
-			/ (num_read_jobs + num_write_jobs + num_hash_jobs);
-		ret->cumulative_job_time = m_stats_counters[counters::disk_job_time];
-		ret->cumulative_read_time = m_stats_counters[counters::disk_read_time];
-		ret->cumulative_write_time = m_stats_counters[counters::disk_write_time];
-		ret->cumulative_hash_time = m_stats_counters[counters::disk_hash_time];
-		ret->total_read_back = m_stats_counters[counters::num_read_back];
+		ret->average_read_time = int(m_stats_counters[counters::disk_read_time] / num_read_jobs);
+		ret->average_write_time = int(m_stats_counters[counters::disk_write_time] / num_write_jobs);
+		ret->average_hash_time = int(m_stats_counters[counters::disk_hash_time] / num_hash_jobs);
+		ret->average_job_time = int(m_stats_counters[counters::disk_job_time]
+			/ (num_read_jobs + num_write_jobs + num_hash_jobs));
+		ret->cumulative_job_time = int(m_stats_counters[counters::disk_job_time]);
+		ret->cumulative_read_time = int(m_stats_counters[counters::disk_read_time]);
+		ret->cumulative_write_time = int(m_stats_counters[counters::disk_write_time]);
+		ret->cumulative_hash_time = int(m_stats_counters[counters::disk_hash_time]);
+		ret->total_read_back = int(m_stats_counters[counters::num_read_back]);
 
-		ret->blocked_jobs = m_stats_counters[counters::blocked_disk_jobs];
+		ret->blocked_jobs = int(m_stats_counters[counters::blocked_disk_jobs]);
 
 		ret->num_jobs = jobs_in_use();
 		ret->num_read_jobs = read_jobs_in_use();
 		ret->read_queue_size = read_jobs_in_use();
 		ret->num_write_jobs = write_jobs_in_use();
-		ret->pending_jobs = m_stats_counters[counters::num_running_disk_jobs];
-		ret->num_writing_threads = m_stats_counters[counters::num_writing_threads];
+		ret->pending_jobs = int(m_stats_counters[counters::num_running_disk_jobs]);
+		ret->num_writing_threads = int(m_stats_counters[counters::num_writing_threads]);
 
 		for (int i = 0; i < disk_io_job::num_job_ids; ++i)
-			ret->num_fence_jobs[i] = m_stats_counters[counters::num_fenced_read + i];
+			ret->num_fence_jobs[i] = int(m_stats_counters[counters::num_fenced_read + i]);
 
 		m_disk_cache.get_stats(ret);
 

@@ -760,7 +760,7 @@ namespace libtorrent
 					if (ret.m_tokens.size() - top > bdecode_token::max_next_item)
 						TORRENT_FAIL_BDECODE(bdecode_errors::limit_exceeded);
 
-					ret.m_tokens[top].next_item = ret.m_tokens.size() - top;
+					ret.m_tokens[top].next_item = std::uint32_t(ret.m_tokens.size() - top);
 
 					// and pop it from the stack.
 					--sp;
@@ -839,7 +839,7 @@ done:
 
 			int const top = stack[sp].token;
 			TORRENT_ASSERT(ret.m_tokens.size() - top <= bdecode_token::max_next_item);
-			ret.m_tokens[top].next_item = ret.m_tokens.size() - top;
+			ret.m_tokens[top].next_item = std::uint32_t(ret.m_tokens.size() - top);
 			ret.m_tokens.push_back(bdecode_token(start - orig_start, 1, bdecode_token::end));
 		}
 
@@ -848,7 +848,7 @@ done:
 
 		ret.m_token_idx = 0;
 		ret.m_buffer = orig_start;
-		ret.m_buffer_size = start - orig_start;
+		ret.m_buffer_size = int(start - orig_start);
 		ret.m_root_tokens = &ret.m_tokens[0];
 
 		return ec ? -1 : 0;
