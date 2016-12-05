@@ -211,11 +211,11 @@ namespace libtorrent { namespace
 			bdecode_node messages = h.dict_find_dict("m");
 			if (!messages) return false;
 
-			int index = messages.dict_find_int_value("ut_metadata", -1);
+			int index = int(messages.dict_find_int_value("ut_metadata", -1));
 			if (index == -1) return false;
 			m_message_index = index;
 
-			int metadata_size = h.dict_find_int_value("metadata_size");
+			int metadata_size = int(h.dict_find_int_value("metadata_size"));
 			if (metadata_size > 0)
 				m_tp.metadata_size(metadata_size);
 			else
@@ -328,8 +328,8 @@ namespace libtorrent { namespace
 				m_pc.disconnect(errors::invalid_metadata_message, op_bittorrent, 2);
 				return true;
 			}
-			int type = type_ent->integer();
-			int piece = piece_ent->integer();
+			int type = int(type_ent->integer());
+			int piece = int(piece_ent->integer());
 
 #ifndef TORRENT_DISABLE_LOGGING
 			m_pc.peer_log(peer_log_alert::incoming_message, "UT_METADATA"
@@ -381,8 +381,8 @@ namespace libtorrent { namespace
 
 					m_sent_requests.erase(i);
 					entry const* total_size = msg.find_key("total_size");
-					m_tp.received_metadata(*this, body.begin() + len, int(body.size()) - len, piece
-						, (total_size && total_size->type() == entry::int_t) ? total_size->integer() : 0);
+					m_tp.received_metadata(*this, body.begin() + len, int(body.size() - len), piece
+						, (total_size && total_size->type() == entry::int_t) ? int(total_size->integer()) : 0);
 					maybe_send_request();
 				}
 				break;
@@ -499,7 +499,7 @@ namespace libtorrent { namespace
 			i = m_requested_metadata.begin();
 		}
 
-		int piece = i - m_requested_metadata.begin();
+		int piece = int(i - m_requested_metadata.begin());
 
 		// don't request the same block more than once every 3 seconds
 		time_point now = aux::time_now();

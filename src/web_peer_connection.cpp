@@ -997,7 +997,7 @@ void web_peer_connection::on_receive(error_code const& error
 done:
 
 	// now, remove all the bytes we've processed from the receive buffer
-	m_recv_buffer.cut(recv_buffer.data() - m_recv_buffer.get().begin()
+	m_recv_buffer.cut(int(recv_buffer.data() - m_recv_buffer.get().begin())
 		, t->block_size() + request_size_overhead);
 }
 

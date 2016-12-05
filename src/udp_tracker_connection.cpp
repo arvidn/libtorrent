@@ -749,7 +749,7 @@ namespace libtorrent
 			address ip = address::from_string(settings.get_str(settings_pack::announce_ip).c_str(), ec);
 			if (!ec && ip.is_v4()) announce_ip = ip.to_v4();
 		}
-		aux::write_uint32(announce_ip.to_ulong(), out);
+		aux::write_uint32(std::uint32_t(announce_ip.to_ulong()), out);
 		aux::write_int32(req.key, out); // key
 		aux::write_int32(req.num_want, out); // num_want
 		aux::write_uint16(req.listen_port, out); // port
