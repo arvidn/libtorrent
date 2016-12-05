@@ -209,7 +209,7 @@ int upnp::add_mapping(portmap_protocol const p, int const external_port
 	mapping_it->external_port = external_port;
 	mapping_it->local_port = local_port;
 
-	int const mapping_index = mapping_it - m_mappings.begin();
+	int const mapping_index = int(mapping_it - m_mappings.begin());
 
 	for (auto const& dev : m_devices)
 	{
@@ -766,7 +766,7 @@ void upnp::next(rootdevice& d, int i)
 			, [] (mapping_t const& m) { return m.act != mapping_t::action::none; });
 		if (j == d.mapping.end()) return;
 
-		update_map(d, j - d.mapping.begin());
+		update_map(d, int(j - d.mapping.begin()));
 	}
 }
 
@@ -1102,7 +1102,7 @@ void upnp::disable(error_code const& ec)
 		if (i->protocol == portmap_protocol::none) continue;
 		portmap_protocol const proto = i->protocol;
 		i->protocol = portmap_protocol::none;
-		m_callback.on_port_mapping(i - m_mappings.begin(), address(), 0, proto, ec
+		m_callback.on_port_mapping(int(i - m_mappings.begin()), address(), 0, proto, ec
 			, aux::portmap_transport::upnp);
 	}
 

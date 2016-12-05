@@ -2301,7 +2301,7 @@ void utp_socket_impl::experienced_loss(int const seq_nr)
 	// start should end before we over shoot.
 	if (m_slow_start)
 	{
-		m_ssthres = m_cwnd >> 16;
+		m_ssthres = std::int32_t(m_cwnd >> 16);
 		m_slow_start = false;
 		UTP_LOGV("%8p: experienced loss, slow_start -> 0\n", static_cast<void*>(this));
 	}
@@ -2982,7 +2982,7 @@ bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 	// ptr points to the payload of the packet
 	// size is the packet size, payload is the
 	// number of payload bytes are in this packet
-	const int header_size = ptr - buf.data();
+	const int header_size = int(ptr - buf.data());
 	const int payload_size = size - header_size;
 
 #if TORRENT_UTP_LOG
@@ -3388,7 +3388,7 @@ void utp_socket_impl::do_ledbat(const int acked_bytes, const int delay
 		{
 			UTP_LOGV("%8p: off_target: %d slow_start -> 0\n"
 				, static_cast<void*>(this), target_delay - delay);
-			m_ssthres = (m_cwnd >> 16) / 2;
+			m_ssthres = std::int32_t((m_cwnd >> 16) / 2);
 			m_slow_start = false;
 		}
 
