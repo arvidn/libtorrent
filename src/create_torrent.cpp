@@ -58,15 +58,15 @@ namespace libtorrent
 		inline bool ignore_subdir(std::string const& leaf)
 		{ return leaf == ".." || leaf == "."; }
 
-		int get_file_attributes(string_view p)
+		int get_file_attributes(std::string const& p)
 		{
 #ifdef TORRENT_WINDOWS
 			WIN32_FILE_ATTRIBUTE_DATA attr;
 #if TORRENT_USE_WSTRING
-			std::wstring path = convert_to_wstring(p.to_string());
+			std::wstring path = convert_to_wstring(p);
 			GetFileAttributesExW(path.c_str(), GetFileExInfoStandard, &attr);
 #else
-			std::string path = convert_to_native(p.to_string());
+			std::string path = convert_to_native(p);
 			GetFileAttributesExA(path.c_str(), GetFileExInfoStandard, &attr);
 #endif // TORRENT_USE_WSTRING
 			if (attr.dwFileAttributes == INVALID_FILE_ATTRIBUTES) return 0;
@@ -74,7 +74,7 @@ namespace libtorrent
 			return 0;
 #else
 			struct stat s;
-			if (lstat(convert_to_native(p.to_string()).c_str(), &s) < 0) return 0;
+			if (lstat(convert_to_native(p).c_str(), &s) < 0) return 0;
 			int file_attr = 0;
 			if (s.st_mode & S_IXUSR)
 				file_attr += file_storage::attribute_executable;
@@ -660,13 +660,13 @@ namespace libtorrent
 	{
 		using announce_entry = std::pair<std::string, int>;
 		auto i = std::find_if(m_urls.begin(), m_urls.end()
-			, [&url](announce_entry const& ae) { return ae.first == url.to_string(); });
+			, [&url](announce_entry const& ae) { return ae.first == url; });
 		if (i != m_urls.end()) return;
-		m_urls.push_back(announce_entry(url.to_string(), tier));
+		m_urls.emplace_back(url.to_string(), tier);
 
 		std::sort(m_urls.begin(), m_urls.end()
-			, [] (announce_entry const& lhs, announce_entry const& rhs)
-			{ return lhs.second < rhs.second; } );
+			, [](announce_entry const& lhs, announce_entry const& rhs)
+			{ return lhs.second < rhs.second; });
 	}
 
 	void create_torrent::set_root_cert(string_view cert)
