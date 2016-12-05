@@ -36,12 +36,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/session_settings.hpp"
-#include "libtorrent/buffer.hpp"
-#include "libtorrent/deadline_timer.hpp"
+#include "libtorrent/aux_/proxy_settings.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/span.hpp"
-#include "libtorrent/aux_/allocating_handler.hpp"
+
+#include <array>
+#include <memory>
 
 namespace libtorrent
 {

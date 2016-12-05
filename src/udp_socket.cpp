@@ -31,31 +31,23 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/socket.hpp"
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/socket_io.hpp"
-#include "libtorrent/error.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/error.hpp"
-#include "libtorrent/aux_/time.hpp" // for aux::time_now()
+#include "libtorrent/time.hpp"
 #include "libtorrent/debug.hpp"
+#include "libtorrent/deadline_timer.hpp"
 
 #include <cstdlib>
 #include <functional>
-#include <array>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-
-#include <boost/system/system_error.hpp>
-#include <boost/system/error_code.hpp>
-#include <boost/asio/read.hpp>
 #include <boost/asio/ip/v6_only.hpp>
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
 
-using namespace libtorrent::aux;
 using namespace std::placeholders;
 
 // this class hold the state of the SOCKS5 connection to maintain the UDP
@@ -461,7 +453,6 @@ void udp_socket::set_proxy_settings(aux::proxy_settings const& ps)
 {
 	TORRENT_ASSERT(is_single_thread());
 
-	error_code ec;
 	if (m_socks5_connection)
 	{
 		m_socks5_connection->close();
@@ -477,7 +468,7 @@ void udp_socket::set_proxy_settings(aux::proxy_settings const& ps)
 	{
 		// connect to socks5 server and open up the UDP tunnel
 
-		m_socks5_connection = std::make_shared<socks5>(std::ref(m_socket.get_io_service()));
+		m_socks5_connection = std::make_shared<socks5>(m_socket.get_io_service());
 		m_socks5_connection->start(ps);
 	}
 }
@@ -675,7 +666,6 @@ void socks5::socks_forward_udp()
 	write_uint8(5, p); // SOCKS VERSION 5
 	write_uint8(3, p); // UDP ASSOCIATE command
 	write_uint8(0, p); // reserved
-	error_code ec;
 	write_uint8(1, p); // ATYP = IPv4
 	write_uint32(0, p); // 0.0.0.0
 	write_uint16(0, p); // :0
