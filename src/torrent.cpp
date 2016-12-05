@@ -2770,7 +2770,7 @@ namespace libtorrent
 #endif
 			req.key = tracker_key();
 
-#ifdef TORRENT_USE_OPENSSL
+#if TORRENT_USE_I2P
 			if (is_i2p())
 			{
 				req.kind |= tracker_request::i2p;
