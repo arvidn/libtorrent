@@ -91,7 +91,7 @@ namespace libtorrent {
 #ifndef TORRENT_NO_DEPRECATE
 	std::string fingerprint::to_string() const
 	{
-		return generate_fingerprint(name, major_version, minor_version
+		return generate_fingerprint(std::string(name, 2), major_version, minor_version
 			, revision_version, tag_version);
 	}
 #endif // TORRENT_NO_DEPRECATE
