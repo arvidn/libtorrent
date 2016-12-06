@@ -653,25 +653,25 @@ namespace libtorrent
 				}
 			}
 
-			int const count_downloading = std::count_if(
+			int const count_downloading = int(std::count_if(
 				m_downloads[piece_pos::piece_downloading].begin()
 				, m_downloads[piece_pos::piece_downloading].end()
-				, has_index(index));
+				, has_index(index)));
 
-			int const count_full = std::count_if(
+			int const count_full = int(std::count_if(
 				m_downloads[piece_pos::piece_full].begin()
 				, m_downloads[piece_pos::piece_full].end()
-				, has_index(index));
+				, has_index(index)));
 
-			int const count_finished = std::count_if(
+			int const count_finished = int(std::count_if(
 				m_downloads[piece_pos::piece_finished].begin()
 				, m_downloads[piece_pos::piece_finished].end()
-				, has_index(index));
+				, has_index(index)));
 
-			int const count_zero = std::count_if(
+			int const count_zero = int(std::count_if(
 				m_downloads[piece_pos::piece_zero_prio].begin()
 				, m_downloads[piece_pos::piece_zero_prio].end()
-				, has_index(index));
+				, has_index(index)));
 
 			TORRENT_ASSERT(i->download_queue() == piece_pos::piece_open
 				|| count_zero + count_downloading + count_full

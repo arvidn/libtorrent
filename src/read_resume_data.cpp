@@ -113,22 +113,22 @@ namespace libtorrent
 		ret.total_uploaded = rd.dict_find_int_value("total_uploaded");
 		ret.total_downloaded = rd.dict_find_int_value("total_downloaded");
 
-		ret.active_time = rd.dict_find_int_value("active_time");
-		ret.finished_time = rd.dict_find_int_value("finished_time");
-		ret.seeding_time = rd.dict_find_int_value("seeding_time");
+		ret.active_time = int(rd.dict_find_int_value("active_time"));
+		ret.finished_time = int(rd.dict_find_int_value("finished_time"));
+		ret.seeding_time = int(rd.dict_find_int_value("seeding_time"));
 
 		ret.last_seen_complete = rd.dict_find_int_value("last_seen_complete");
 
 		// scrape data cache
-		ret.num_complete = rd.dict_find_int_value("num_complete", -1);
-		ret.num_incomplete = rd.dict_find_int_value("num_incomplete", -1);
-		ret.num_downloaded = rd.dict_find_int_value("num_downloaded", -1);
+		ret.num_complete = int(rd.dict_find_int_value("num_complete", -1));
+		ret.num_incomplete = int(rd.dict_find_int_value("num_incomplete", -1));
+		ret.num_downloaded = int(rd.dict_find_int_value("num_downloaded", -1));
 
 		// torrent settings
-		ret.max_uploads = rd.dict_find_int_value("max_uploads", -1);
-		ret.max_connections = rd.dict_find_int_value("max_connections", -1);
-		ret.upload_limit = rd.dict_find_int_value("upload_rate_limit", -1);
-		ret.download_limit = rd.dict_find_int_value("download_rate_limit", -1);
+		ret.max_uploads = int(rd.dict_find_int_value("max_uploads", -1));
+		ret.max_connections = int(rd.dict_find_int_value("max_connections", -1));
+		ret.upload_limit = int(rd.dict_find_int_value("upload_rate_limit", -1));
+		ret.download_limit = int(rd.dict_find_int_value("download_rate_limit", -1));
 
 		// torrent state
 		apply_flag(ret.flags, rd, "seed_mode", add_torrent_params::flag_seed_mode);
@@ -312,7 +312,7 @@ namespace libtorrent
 			{
 				bdecode_node e = unfinished_entry.list_at(i);
 				if (e.type() != bdecode_node::dict_t) continue;
-				int piece = e.dict_find_int_value("piece", -1);
+				int piece = int(e.dict_find_int_value("piece", -1));
 				if (piece < 0) continue;
 
 				bdecode_node bitmask = e.dict_find_string("bitmask");

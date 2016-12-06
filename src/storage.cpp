@@ -271,8 +271,8 @@ namespace libtorrent
 #endif
 
 			error_code e;
-			int ret = handle->writev(adjusted_offset
-				, bufs, e, m_flags);
+			int ret = int(handle->writev(adjusted_offset
+				, bufs, e, m_flags));
 
 			// set this unconditionally in case the upper layer would like to treat
 			// short reads as errors
@@ -356,8 +356,8 @@ namespace libtorrent
 #endif
 
 			error_code e;
-			int ret = handle->readv(adjusted_offset
-				, bufs, e, m_flags);
+			int ret = int(handle->readv(adjusted_offset
+				, bufs, e, m_flags));
 
 			// set this unconditionally in case the upper layer would like to treat
 			// short reads as errors
@@ -916,7 +916,7 @@ namespace libtorrent
 			// this file. We're just sanity-checking whether the files exist
 			// or not.
 			peer_request const pr = fs.map_file(file_index, 0
-				, fs.file_size(file_index) + 1);
+				, int(fs.file_size(file_index) + 1));
 			i = (std::max)(i + 1, pr.piece);
 		}
 		return true;
