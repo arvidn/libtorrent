@@ -104,7 +104,7 @@ namespace libtorrent
 			if (r != 1)
 			{
 #ifndef BOOST_NO_EXCEPTIONS
-				throw system_error(error_code(ERR_get_error(), system_category()));
+				throw system_error(error_code(int(::ERR_get_error()), system_category()));
 #else
 				std::terminate();
 #endif

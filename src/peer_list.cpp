@@ -155,7 +155,7 @@ namespace libtorrent
 				continue;
 			}
 
-			int current = i - m_peers.begin();
+			int current = int(i - m_peers.begin());
 			TORRENT_ASSERT(current >= 0);
 			TORRENT_ASSERT(m_peers.size() > 0);
 			TORRENT_ASSERT(i != m_peers.end());
@@ -216,7 +216,7 @@ namespace libtorrent
 				continue;
 			}
 
-			int current = i - m_peers.begin();
+			int current = int(i - m_peers.begin());
 			TORRENT_ASSERT(current >= 0);
 			TORRENT_ASSERT(m_peers.size() > 0);
 			TORRENT_ASSERT(i != m_peers.end());
