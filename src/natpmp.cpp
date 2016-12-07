@@ -133,7 +133,7 @@ void natpmp::start()
 			|| i->act != mapping_t::action::none)
 			continue;
 		i->act = mapping_t::action::add;
-		update_mapping(i - m_mappings.begin());
+		update_mapping(int(i - m_mappings.begin()));
 	}
 }
 
@@ -200,7 +200,7 @@ void natpmp::disable(error_code const& ec)
 		if (i->protocol == portmap_protocol::none) continue;
 		portmap_protocol const proto = i->protocol;
 		i->protocol = portmap_protocol::none;
-		int const index = i - m_mappings.begin();
+		int const index = int(i - m_mappings.begin());
 		m_callback.on_port_mapping(index, address(), 0, proto, ec
 			, aux::portmap_transport::natpmp);
 	}
@@ -246,7 +246,7 @@ int natpmp::add_mapping(portmap_protocol const p, int const external_port
 	i->local_port = local_port;
 	i->act = mapping_t::action::add;
 
-	int const mapping_index = i - m_mappings.begin();
+	int const mapping_index = int(i - m_mappings.begin());
 #ifndef TORRENT_DISABLE_LOGGING
 	if (should_log())
 	{
@@ -290,7 +290,7 @@ void natpmp::try_next_mapping(int const i)
 		return;
 	}
 
-	update_mapping(m - m_mappings.begin());
+	update_mapping(int(m - m_mappings.begin()));
 }
 
 void natpmp::update_mapping(int const i)
@@ -531,7 +531,7 @@ void natpmp::on_reply(error_code const& e
 		if (!i->map_sent) continue;
 		if (!i->outstanding_request) continue;
 		m = &*i;
-		index = i - m_mappings.begin();
+		index = int(i - m_mappings.begin());
 		break;
 	}
 
@@ -609,7 +609,7 @@ void natpmp::update_expiration_timer()
 	{
 		if (i->protocol == portmap_protocol::none
 			|| i->act != mapping_t::action::none) continue;
-		int index = i - m_mappings.begin();
+		int index = int(i - m_mappings.begin());
 		if (i->expires < now)
 		{
 #ifndef TORRENT_DISABLE_LOGGING

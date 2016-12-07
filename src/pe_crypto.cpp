@@ -74,7 +74,7 @@ namespace libtorrent
 		// we wouldn't have to shift it later
 		if (end < begin + 96)
 		{
-			int const len = end - begin;
+			int const len = int(end - begin);
 			std::memmove(begin + 96 - len, begin, len);
 			std::memset(begin, 0, 96 - len);
 		}

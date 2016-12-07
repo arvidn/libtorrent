@@ -988,7 +988,7 @@ namespace libtorrent
 			// we don't know what rate we can get from this peer. Instead of assuming
 			// the lowest possible rate, assume the average.
 
-			int peers_with_requests = stats_counters()[counters::num_peers_down_requests];
+			int peers_with_requests = int(stats_counters()[counters::num_peers_down_requests]);
 			// avoid division by 0
 			if (peers_with_requests == 0) peers_with_requests = 1;
 
@@ -2279,7 +2279,7 @@ namespace libtorrent
 		int fast_idx = -1;
 		std::vector<int>::iterator fast_iter = std::find(m_accept_fast.begin()
 			, m_accept_fast.end(), r.piece);
-		if (fast_iter != m_accept_fast.end()) fast_idx = fast_iter - m_accept_fast.begin();
+		if (fast_iter != m_accept_fast.end()) fast_idx = int(fast_iter - m_accept_fast.begin());
 
 		if (!m_peer_interested)
 		{
@@ -2484,7 +2484,7 @@ namespace libtorrent
 #endif
 #if TORRENT_USE_ASSERTS
 		span<char const> recv_buffer = m_recv_buffer.get();
-		int recv_pos = recv_buffer.end() - recv_buffer.begin();
+		int recv_pos = int(recv_buffer.end() - recv_buffer.begin());
 		TORRENT_ASSERT(recv_pos >= 9);
 #endif
 
@@ -2776,7 +2776,7 @@ namespace libtorrent
 
 			if (m_disconnecting) return;
 
-			m_request_time.add_sample(total_milliseconds(now - m_requested));
+			m_request_time.add_sample(int(total_milliseconds(now - m_requested)));
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log(peer_log_alert::info))
 			{
@@ -2846,7 +2846,7 @@ namespace libtorrent
 				, performance_alert::too_high_disk_queue_limit);
 		}
 
-		m_request_time.add_sample(total_milliseconds(now - m_requested));
+		m_request_time.add_sample(int(total_milliseconds(now - m_requested)));
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::info))
 		{
@@ -3806,7 +3806,7 @@ namespace libtorrent
 		int const max = m_settings.get_int(settings_pack::max_suggest_pieces);
 		if (int(m_suggest_pieces.size()) > max)
 		{
-			int const to_erase = m_suggest_pieces.size() - max;
+			int const to_erase = int(m_suggest_pieces.size() - max);
 			m_suggest_pieces.erase(m_suggest_pieces.begin()
 				, m_suggest_pieces.begin() + to_erase);
 		}
@@ -4501,7 +4501,7 @@ namespace libtorrent
 #else
 			p.progress = float(p.pieces.count()) / float(p.pieces.size());
 #endif
-			p.progress_ppm = std::uint64_t(p.pieces.count()) * 1000000 / p.pieces.size();
+			p.progress_ppm = int(std::uint64_t(p.pieces.count()) * 1000000 / p.pieces.size());
 		}
 
 		p.estimated_reciprocation_rate = m_est_reciprocation_rate;
@@ -5829,7 +5829,7 @@ namespace libtorrent
 		// receive buffer.
 		TORRENT_ASSERT(int(bytes_transferred) <= m_recv_buffer.max_receive());
 		bool const grow_buffer = (int(bytes_transferred) == m_recv_buffer.max_receive());
-		account_received_bytes(bytes_transferred);
+		account_received_bytes(int(bytes_transferred));
 
 		if (m_extension_outstanding_bytes > 0)
 			m_extension_outstanding_bytes -= std::min(m_extension_outstanding_bytes, int(bytes_transferred));
@@ -5887,7 +5887,7 @@ namespace libtorrent
 				}
 				else
 				{
-					account_received_bytes(bytes);
+					account_received_bytes(int(bytes));
 					bytes_transferred += bytes;
 				}
 			}

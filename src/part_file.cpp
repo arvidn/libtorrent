@@ -95,7 +95,7 @@ namespace libtorrent
 			// parse header
 			std::unique_ptr<std::uint32_t[]> header(new std::uint32_t[m_header_size]);
 			file::iovec_t b = {header.get(), size_t(m_header_size) };
-			int n = m_file.readv(0, b, ec);
+			int n = int(m_file.readv(0, b, ec));
 			if (ec) return;
 
 			// we don't have a full header. consider the file empty
@@ -189,7 +189,7 @@ namespace libtorrent
 		l.unlock();
 
 		std::int64_t slot_offset = std::int64_t(m_header_size) + std::int64_t(slot) * m_piece_size;
-		return m_file.writev(slot_offset + offset, bufs, ec);
+		return int(m_file.writev(slot_offset + offset, bufs, ec));
 	}
 
 	int part_file::readv(span<file::iovec_t const> bufs
@@ -214,7 +214,7 @@ namespace libtorrent
 		l.unlock();
 
 		std::int64_t slot_offset = std::int64_t(m_header_size) + std::int64_t(slot) * m_piece_size;
-		return m_file.readv(slot_offset + offset, bufs, ec);
+		return int(m_file.readv(slot_offset + offset, bufs, ec));
 	}
 
 	void part_file::open_file(int mode, error_code& ec)
@@ -301,8 +301,8 @@ namespace libtorrent
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 
-		int piece = offset / m_piece_size;
-		int const end = ((offset + size) + m_piece_size - 1) / m_piece_size;
+		int piece = int(offset / m_piece_size);
+		int const end = int(((offset + size) + m_piece_size - 1) / m_piece_size);
 
 		std::unique_ptr<char[]> buf;
 
@@ -311,7 +311,7 @@ namespace libtorrent
 		for (; piece < end; ++piece)
 		{
 			std::unordered_map<int, int>::iterator i = m_piece_map.find(piece);
-			int const block_to_copy = (std::min)(m_piece_size - piece_offset, size);
+			int const block_to_copy = int((std::min)(m_piece_size - piece_offset, size));
 			if (i != m_piece_map.end())
 			{
 				int const slot = i->second;

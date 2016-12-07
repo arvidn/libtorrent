@@ -242,12 +242,12 @@ void lsd::on_announce(udp::endpoint const& from, char const* buf
 	{
 		// we expect it to be hexadecimal
 		// if it isn't, it's not our cookie anyway
-		std::int32_t const cookie = strtol(cookie_iter->second.c_str(), nullptr, 16);
+		long const cookie = strtol(cookie_iter->second.c_str(), nullptr, 16);
 		if (cookie == m_cookie)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			debug_log("<== LSD: ignoring packet (cookie matched our own): %x"
-				, cookie);
+				, m_cookie);
 #endif
 			return;
 		}
