@@ -330,7 +330,7 @@ restart_response:
 
 		if (m_state == read_body)
 		{
-			int incoming = recv_buffer.end() - pos;
+			int incoming = int(recv_buffer.end() - pos);
 
 			if (m_chunked_encoding && (m_flags & dont_parse_chunks) == 0)
 			{
@@ -459,7 +459,7 @@ restart_response:
 
 		if (*chunk_size != 0)
 		{
-			*header_size = newline - buf.data();
+			*header_size = int(newline - buf.data());
 			// the newline alone is two bytes
 			TORRENT_ASSERT(newline - buf.data() > 2);
 			return true;
@@ -487,7 +487,7 @@ restart_response:
 				// this means we got a blank line,
 				// the header is finished and the body
 				// starts.
-				*header_size = newline - buf.data();
+				*header_size = int(newline - buf.data());
 
 				// the newline alone is two bytes
 				TORRENT_ASSERT(newline - buf.data() > 2);
@@ -569,7 +569,7 @@ restart_response:
 			std::memmove(write_ptr, buffer + i.first - offset, len);
 			write_ptr += len;
 		}
-		size = write_ptr - buffer;
+		size = int(write_ptr - buffer);
 		return size;
 	}
 }

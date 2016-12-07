@@ -149,7 +149,7 @@ namespace libtorrent
 #ifdef TORRENT_USE_LIBGCRYPT
 		gcry_md_write(m_context, data.data(), data.size());
 #elif TORRENT_USE_COMMONCRYPTO
-		CC_SHA512_Update(&m_context, reinterpret_cast<unsigned char const*>(data.data()), data.size());
+		CC_SHA512_Update(&m_context, reinterpret_cast<unsigned char const*>(data.data()), CC_LONG(data.size()));
 #elif TORRENT_USE_CRYPTOAPI_SHA_512
 		if (CryptHashData(m_context, reinterpret_cast<BYTE const*>(data.data()), int(data.size()), 0) == false)
 		{
