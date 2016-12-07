@@ -36,14 +36,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #include <cctype>
 
-#include "libtorrent/peer_id.hpp"
-#include "libtorrent/bt_peer_connection.hpp"
+#include "libtorrent/torrent_handle.hpp"
+#include "libtorrent/torrent.hpp"
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/bencode.hpp"
-#include "libtorrent/hasher.hpp"
 #include "libtorrent/entry.hpp"
-#include "libtorrent/session.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/aux_/session_call.hpp"
 #include "libtorrent/invariant_check.hpp"
@@ -771,12 +768,5 @@ namespace libtorrent
 	std::shared_ptr<torrent> torrent_handle::native_handle() const
 	{
 		return m_torrent.lock();
-	}
-
-	std::size_t hash_value(torrent_handle const& th)
-	{
-		// using the locked shared_ptr value as hash doesn't work
-		// for expired weak_ptrs. So, we're left with a hack
-		return std::size_t(*reinterpret_cast<void* const*>(&th.m_torrent));
 	}
 }

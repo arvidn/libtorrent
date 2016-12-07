@@ -137,7 +137,6 @@ libtorrent_rasterbar_la_SOURCES = \
   torrent_info.cpp                \
   torrent_peer.cpp                \
   torrent_peer_allocator.cpp      \
-  torrent_status.cpp              \
   time.cpp                        \
   timestamp_history.cpp           \
   tracker_manager.cpp             \
