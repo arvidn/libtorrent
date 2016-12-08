@@ -94,6 +94,11 @@ namespace libtorrent { namespace aux {
 	struct proxy_settings;
 	struct session_settings;
 
+	struct session_listen_socket
+	{
+		virtual address get_local_address() = 0;
+	};
+
 #if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 	// This is the basic logging and debug interface offered by the session.
 	// a release build with logging disabled (which is the default) will
@@ -136,7 +141,8 @@ namespace libtorrent { namespace aux {
 			source_router = 8
 		};
 
-		virtual void set_external_address(address const& ip
+		virtual void set_external_address(address const& local_address
+			, address const& ip
 			, int source_type, address const& source) = 0;
 		virtual external_ip external_address() const = 0;
 
@@ -193,6 +199,8 @@ namespace libtorrent { namespace aux {
 
 		virtual std::uint16_t listen_port() const = 0;
 		virtual std::uint16_t ssl_listen_port() const = 0;
+
+		virtual void for_each_listen_socket(std::function<void(aux::session_listen_socket*)> f) = 0;
 
 		// ask for which interface and port to bind outgoing peer connections on
 		virtual tcp::endpoint bind_outgoing_socket(socket_type& s, address const&

@@ -117,8 +117,40 @@ namespace dht {
 		class item;
 	}
 
-	struct listen_socket_t
+	struct session_udp_socket : utp_socket_interface
 	{
+		session_udp_socket(io_service& ios)
+			: sock(ios) {}
+
+		virtual udp::endpoint local_endpoint() override { return sock.local_endpoint(); }
+
+		udp_socket sock;
+
+		// this is true when the udp socket send() has failed with EAGAIN or
+		// EWOULDBLOCK. i.e. we're currently waiting for the socket to become
+		// writeable again. Once it is, we'll set it to false and notify the utp
+		// socket manager
+		bool write_blocked = false;
+	};
+
+	struct outgoing_udp_socket : session_udp_socket
+	{
+		outgoing_udp_socket(io_service& ios)
+			: session_udp_socket(ios) {}
+
+		// the name of the device the socket is bound to, may be empty
+		// if the socket is not bound to a device
+		std::string device;
+	};
+
+	struct listen_socket_t : dht::dht_socket, aux::session_listen_socket
+	{
+		virtual address get_external_address() override
+		{ return external_address.external_address(); }
+
+		virtual address get_local_address() override
+		{ return local_endpoint.address(); }
+
 		listen_socket_t()
 		{
 			tcp_port_mapping[0] = -1;
@@ -160,19 +192,13 @@ namespace dht {
 		// set to true if this is an SSL listen socket
 		bool ssl = false;
 
-		// this is true when the udp socket send() has failed with EAGAIN or
-		// EWOULDBLOCK. i.e. we're currently waiting for the socket to become
-		// writeable again. Once it is, we'll set it to false and notify the utp
-		// socket manager
-		bool udp_write_blocked = false;
-
 		// the actual sockets (TCP listen socket and UDP socket)
 		// An entry does not necessarily have a UDP or TCP socket. One of these
 		// pointers may be nullptr!
 		// These must be shared_ptr to avoid a dangling reference if an
 		// incoming packet is in the event queue when the socket is erased
 		std::shared_ptr<tcp::acceptor> sock;
-		std::shared_ptr<udp_socket> udp_sock;
+		std::shared_ptr<session_udp_socket> udp_sock;
 	};
 
 namespace aux {
@@ -280,6 +306,7 @@ namespace aux {
 
 			void on_ip_change(error_code const& ec);
 			void reopen_listen_sockets();
+			void reopen_outgoing_sockets();
 
 			torrent_peer_allocator_interface* get_peer_allocator() override
 			{ return &m_peer_allocator; }
@@ -557,7 +584,17 @@ namespace aux {
 			void set_peer_id(peer_id const& id);
 			void set_key(std::uint32_t key);
 			std::uint16_t listen_port() const override;
+			std::uint16_t listen_port(listen_socket_t* sock) const;
 			std::uint16_t ssl_listen_port() const override;
+			std::uint16_t ssl_listen_port(listen_socket_t* sock) const;
+
+			void for_each_listen_socket(std::function<void(aux::session_listen_socket*)> f) override
+			{
+				for (auto& s : m_listen_sockets)
+				{
+					f(&s);
+				}
+			}
 
 			alert_manager& alerts() override { return m_alerts; }
 			disk_interface& disk_thread() override { return m_disk_thread; }
@@ -623,9 +660,8 @@ namespace aux {
 			int send_buffer_size() const override { return send_buffer_size_impl; }
 
 			// implements dht_observer
-			virtual void set_external_address(address const& ip
-				, address const& source) override;
-			virtual address external_address(udp proto) override;
+			virtual void set_external_address(dht::dht_socket* iface
+				, address const& ip, address const& source) override;
 			virtual void get_peers(sha1_hash const& ih) override;
 			virtual void announce(sha1_hash const& ih, address const& addr, int port) override;
 			virtual void outgoing_get_peers(sha1_hash const& target
@@ -649,7 +685,8 @@ namespace aux {
 			virtual bool on_dht_request(string_view query
 				, dht::msg const& request, entry& response) override;
 
-			void set_external_address(address const& ip
+			void set_external_address(address const& local_address
+				, address const& ip
 				, int source_type, address const& source) override;
 			virtual external_ip external_address() const override;
 
@@ -742,6 +779,12 @@ namespace aux {
 
 			void on_lsd_peer(tcp::endpoint const& peer, sha1_hash const& ih) override;
 			void setup_socket_buffers(socket_type& s) override;
+
+			void set_external_address(listen_socket_t& sock, address const& ip
+				, int const source_type, address const& source);
+
+			void interface_to_endpoints(std::string const& device, int const port
+				, bool const ssl, std::vector<listen_endpoint_t>& eps);
 
 			// the settings for the client
 			aux::session_settings m_settings;
@@ -898,6 +941,12 @@ namespace aux {
 			// socket fails.
 			std::vector<std::string> m_outgoing_interfaces;
 
+			// sockets used for outoing utp connections
+			// sockets are created for each device name or IP address in
+			// m_outgoing_interfaces
+			// they are used in a round-robin fashion
+			std::vector<std::shared_ptr<outgoing_udp_socket>> m_outgoing_sockets;
+
 			// since we might be listening on multiple interfaces
 			// we might need more than one listen socket
 			std::list<listen_socket_t> m_listen_sockets;
@@ -915,6 +964,9 @@ namespace aux {
 
 			// round-robin index into m_outgoing_interfaces
 			mutable std::uint8_t m_interface_index = 0;
+			// round-robin index into m_outgoing_sockets
+			mutable std::uint8_t m_socket_index4 = 0;
+			mutable std::uint8_t m_socket_index6 = 0;
 
 			enum listen_on_flags_t
 			{
@@ -1048,21 +1100,43 @@ namespace aux {
 			int m_outstanding_router_lookups = 0;
 #endif
 
-			void send_udp_packet_hostname(char const* hostname
+			void send_udp_packet_hostname(std::weak_ptr<utp_socket_interface> sock
+				, char const* hostname
 				, int port
 				, span<char const> p
 				, error_code& ec
 				, int flags);
 
-			void send_udp_packet(bool ssl
+			void send_udp_packet_hostname_listen(aux::session_listen_socket* sock
+				, char const* hostname
+				, int port
+				, span<char const> p
+				, error_code& ec
+				, int flags)
+			{
+				listen_socket_t* s = static_cast<listen_socket_t*>(sock);
+				send_udp_packet_hostname(s->udp_sock, hostname, port, p, ec, flags);
+			}
+
+			void send_udp_packet(std::weak_ptr<utp_socket_interface> sock
 				, udp::endpoint const& ep
 				, span<char const> p
 				, error_code& ec
 				, int flags);
 
-			void on_udp_writeable(std::weak_ptr<udp_socket> s, error_code const& ec);
+			void send_udp_packet_listen(aux::session_listen_socket* sock
+				, udp::endpoint const& ep
+				, span<char const> p
+				, error_code& ec
+				, int flags)
+			{
+				listen_socket_t* s = static_cast<listen_socket_t*>(sock);
+				send_udp_packet(s->udp_sock, ep, p, ec, flags);
+			}
 
-			void on_udp_packet(std::weak_ptr<udp_socket> const& s
+			void on_udp_writeable(std::weak_ptr<session_udp_socket> s, error_code const& ec);
+
+			void on_udp_packet(std::weak_ptr<session_udp_socket> s
 				, bool ssl, error_code const& ec);
 
 			libtorrent::utp_socket_manager m_utp_socket_manager;

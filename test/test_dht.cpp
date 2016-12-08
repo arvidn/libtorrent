@@ -108,10 +108,10 @@ void nop_node() {}
 
 std::list<std::pair<udp::endpoint, entry>> g_sent_packets;
 
-struct mock_socket final : udp_socket_interface
+struct mock_socket final : socket_manager
 {
 	bool has_quota() override { return true; }
-	bool send_packet(entry& msg, udp::endpoint const& ep) override
+	bool send_packet(dht_socket* s, entry& msg, udp::endpoint const& ep) override
 	{
 		// TODO: 3 ideally the mock_socket would contain this queue of packets, to
 		// make tests independent
@@ -119,6 +119,32 @@ struct mock_socket final : udp_socket_interface
 		return true;
 	}
 };
+
+struct mock_dht_socket final : dht_socket
+{
+	mock_dht_socket() : m_external_address(addr4("236.0.0.1")), m_local_address(addr4("192.168.4.1")) {}
+	mock_dht_socket(address ep) : m_external_address(ep), m_local_address(ep) {}
+
+	address get_external_address() override { return m_external_address; }
+	address get_local_address() override { return m_local_address; }
+
+	address m_external_address;
+	address m_local_address;
+};
+
+struct mock_dht_socket6 final : dht_socket
+{
+	address get_external_address() override { return m_external_address; }
+	address get_local_address() override { return m_local_address; }
+
+	address m_external_address = addr6("2002::1");
+	address m_local_address = addr6("2002::1");
+};
+
+node* get_foreign_node_stub(node_id const&, std::string const&)
+{
+	return nullptr;
+}
 
 sha1_hash generate_next()
 {
@@ -468,16 +494,12 @@ void put_immutable_item_cb(int num, int expect)
 
 struct obs : dht::dht_observer
 {
-	void set_external_address(address const& addr
+	void set_external_address(dht_socket* s, address const& addr
 		, address const& source) override
 	{
-		m_external_address = addr;
+		static_cast<mock_dht_socket*>(s)->m_external_address = addr;
 	}
 
-	address external_address(udp proto) override
-	{
-		return m_external_address;
-	}
 	void get_peers(sha1_hash const& ih) override {}
 	void outgoing_get_peers(sha1_hash const& target
 		, sha1_hash const& sent_target, udp::endpoint const& ep) override {}
@@ -500,8 +522,6 @@ struct obs : dht::dht_observer
 	bool on_dht_request(string_view query
 		, dht::msg const& request, entry& response) override { return false; }
 
-	address m_external_address = addr4("236.0.0.1");
-
 #ifndef TORRENT_DISABLE_LOGGING
 	std::vector<std::string> m_log;
 #endif
@@ -520,20 +540,22 @@ struct dht_test_setup
 {
 	explicit dht_test_setup(udp::endpoint src)
 		: sett(test_settings())
+		, ds(src.address())
 		, dht_storage(dht_default_storage_constructor(sett))
 		, source(src)
-		, dht_node(src.protocol(), &s, sett
-			, node_id(nullptr), &observer, cnt, nodes, *dht_storage)
+		, dht_node(&ds, &s, sett
+			, node_id(nullptr), &observer, cnt, get_foreign_node_stub, *dht_storage)
 	{
 		dht_storage->update_node_ids({node_id::min()});
 	}
+
 	dht_settings sett;
 	mock_socket s;
+	mock_dht_socket ds;
 	obs observer;
 	counters cnt;
 	std::unique_ptr<dht_storage_interface> dht_storage;
 	udp::endpoint source;
-	std::map<std::string, node*> nodes;
 	dht::node dht_node;
 	char error_string[200];
 };
@@ -2577,15 +2599,24 @@ TORRENT_TEST(dht_dual_stack)
 	// TODO: 3 use dht_test_setup class to simplify the node setup
 	dht_settings sett = test_settings();
 	mock_socket s;
+	mock_dht_socket sock4;
+	mock_dht_socket6 sock6;
 	obs observer;
 	counters cnt;
-	std::map<std::string, node*> nodes;
+	node* node4p = nullptr, *node6p = nullptr;
+	auto get_foreign_node = [&](node_id const&, std::string const& family)
+	{
+		if (family == "n4") return node4p;
+		if (family == "n6") return node6p;
+		TEST_CHECK(false);
+		return (node*)nullptr;
+	};
 	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
 	dht_storage->update_node_ids({node_id(nullptr)});
-	dht::node node4(udp::v4(), &s, sett, node_id(nullptr), &observer, cnt, nodes, *dht_storage);
-	dht::node node6(udp::v6(), &s, sett, node_id(nullptr), &observer, cnt, nodes, *dht_storage);
-	nodes.insert(std::make_pair("n4", &node4));
-	nodes.insert(std::make_pair("n6", &node6));
+	dht::node node4(&sock4, &s, sett, node_id(nullptr), &observer, cnt, get_foreign_node, *dht_storage);
+	dht::node node6(&sock6, &s, sett, node_id(nullptr), &observer, cnt, get_foreign_node, *dht_storage);
+	node4p = &node4;
+	node6p = &node6;
 
 	// DHT should be running on port 48199 now
 	bdecode_node response;
@@ -3051,7 +3082,7 @@ TORRENT_TEST(node_set_id)
 {
 	dht_test_setup t(udp::endpoint(rand_v4(), 20));
 	node_id old_nid = t.dht_node.nid();
-	t.observer.set_external_address(addr4("237.0.0.1"), rand_v4());
+	t.observer.set_external_address(&t.ds, addr4("237.0.0.1"), rand_v4());
 	t.dht_node.update_node_id();
 	TEST_CHECK(old_nid != t.dht_node.nid());
 	// now that we've changed the node's id,  make sure the id sent in outgoing messages
@@ -3080,13 +3111,13 @@ TORRENT_TEST(read_only_node)
 	dht_settings sett = test_settings();
 	sett.read_only = true;
 	mock_socket s;
+	mock_dht_socket ds;
 	obs observer;
 	counters cnt;
-	std::map<std::string, node*> nodes;
 
 	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
 	dht_storage->update_node_ids({node_id(nullptr)});
-	dht::node node(udp::v4(), &s, sett, node_id(nullptr), &observer, cnt, nodes, *dht_storage);
+	dht::node node(&ds, &s, sett, node_id(nullptr), &observer, cnt, get_foreign_node_stub, *dht_storage);
 	udp::endpoint source(addr("10.0.0.1"), 20);
 	bdecode_node response;
 	msg_args args;
@@ -3169,13 +3200,13 @@ TORRENT_TEST(invalid_error_msg)
 	// TODO: 3 use dht_test_setup class to simplify the node setup
 	dht_settings sett = test_settings();
 	mock_socket s;
+	mock_dht_socket ds;
 	obs observer;
 	counters cnt;
-	std::map<std::string, node*> nodes;
 
 	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
 	dht_storage->update_node_ids({node_id(nullptr)});
-	dht::node node(udp::v4(), &s, sett, node_id(nullptr), &observer, cnt, nodes, *dht_storage);
+	dht::node node(&ds, &s, sett, node_id(nullptr), &observer, cnt, get_foreign_node_stub, *dht_storage);
 	udp::endpoint source(addr("10.0.0.1"), 20);
 
 	entry e;
@@ -3210,15 +3241,15 @@ TORRENT_TEST(rpc_invalid_error_msg)
 	// TODO: 3 use dht_test_setup class to simplify the node setup
 	dht_settings sett = test_settings();
 	mock_socket s;
+	mock_dht_socket ds;
 	obs observer;
 	counters cnt;
-	std::map<std::string, node*> nodes;
 
 	dht::routing_table table(node_id(), udp::v4(), 8, sett, &observer);
-	dht::rpc_manager rpc(node_id(), sett, table, &s, &observer);
+	dht::rpc_manager rpc(node_id(), sett, table, &ds, &s, &observer);
 	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
 	dht_storage->update_node_ids({node_id(nullptr)});
-	dht::node node(udp::v4(), &s, sett, node_id(nullptr), &observer, cnt, nodes, *dht_storage);
+	dht::node node(&ds, &s, sett, node_id(nullptr), &observer, cnt, get_foreign_node_stub, *dht_storage);
 
 	udp::endpoint source(addr("10.0.0.1"), 20);
 
@@ -3480,13 +3511,13 @@ TORRENT_TEST(dht_state)
 {
 	dht_state s;
 
-	s.nid = to_hash("0000000000000000000000000000000000000001");
+	s.nids.emplace_back(address::from_string("1.1.1.1"), to_hash("0000000000000000000000000000000000000001"));
 	s.nodes.push_back(uep("1.1.1.1", 1));
 	s.nodes.push_back(uep("2.2.2.2", 2));
 	// not important that IPv6 is disabled here
-	s.nid6 = to_hash("0000000000000000000000000000000000000002");
-	s.nodes6.push_back(uep("3.3.3.3", 3));
-	s.nodes6.push_back(uep("4.4.4.4", 4));
+	s.nids.emplace_back(address::from_string("1::1"), to_hash("0000000000000000000000000000000000000002"));
+	s.nodes.push_back(uep("1::1", 3));
+	s.nodes.push_back(uep("2::2", 4));
 
 	entry const e = save_dht_state(s);
 
@@ -3499,18 +3530,14 @@ TORRENT_TEST(dht_state)
 	TEST_CHECK(!r);
 
 	dht_state const s1 = read_dht_state(n);
-	TEST_EQUAL(s1.nid, s.nid);
+	TEST_CHECK(s1.nids == s.nids);
 	TEST_CHECK(s1.nodes == s.nodes);
-	TEST_EQUAL(s1.nid6, s.nid6);
-	TEST_CHECK(s1.nodes6 == s.nodes6);
 
 	// empty
 	bdecode_node n1;
 	dht_state const s2 = read_dht_state(n1);
-	TEST_EQUAL(s2.nid, node_id());
+	TEST_CHECK(s2.nids.empty());
 	TEST_CHECK(s2.nodes.empty());
-	TEST_EQUAL(s2.nid6, node_id());
-	TEST_CHECK(s2.nodes6.empty());
 }
 
 // TODO: test obfuscated_get_peers

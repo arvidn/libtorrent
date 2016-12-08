@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <boost/noncopyable.hpp>
+#include <boost/optional.hpp>
 
 #ifdef TORRENT_USE_OPENSSL
 #include <boost/asio/ssl/context.hpp>
@@ -101,7 +102,7 @@ struct TORRENT_EXTRA_EXPORT http_connection
 	void get(std::string const& url, time_duration timeout = seconds(30)
 		, int prio = 0, aux::proxy_settings const* ps = 0, int handle_redirects = 5
 		, std::string const& user_agent = std::string()
-		, address const& bind_addr = address_v4::any()
+		, boost::optional<address> const& bind_addr = boost::optional<address>()
 		, int resolve_flags = 0, std::string const& auth_ = std::string()
 #if TORRENT_USE_I2P
 		, i2p_connection* i2p_conn = 0
@@ -111,7 +112,7 @@ struct TORRENT_EXTRA_EXPORT http_connection
 	void start(std::string const& hostname, int port
 		, time_duration timeout, int prio = 0, aux::proxy_settings const* ps = 0
 		, bool ssl = false, int handle_redirect = 5
-		, address const& bind_addr = address_v4::any()
+		, boost::optional<address> const& bind_addr = boost::optional<address>()
 		, int resolve_flags = 0
 #if TORRENT_USE_I2P
 		, i2p_connection* i2p_conn = 0
@@ -187,9 +188,8 @@ private:
 	// configured to use a proxy
 	aux::proxy_settings m_proxy;
 
-	// the address to bind to. address_v4::any()
-	// means do not bind
-	address m_bind_addr;
+	// the address to bind to
+	boost::optional<address> m_bind_addr;
 
 	// if username password was passed in, remember it in case we need to
 	// re-issue the request for a redirect

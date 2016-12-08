@@ -37,11 +37,40 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/string_view.hpp"
+#include "libtorrent/address.hpp"
 
 #include <string>
 #include <cstdint>
+#include <vector>
 
 namespace libtorrent {
+
+	namespace aux { struct session_listen_socket; }
+
+	struct TORRENT_EXPORT announce_endpoint
+	{
+		explicit announce_endpoint(aux::session_listen_socket* s)
+			: socket(s), fails(0), updating(false) {}
+		//announce_endpoint(announce_endpoint const&) = default;
+		//announce_endpoint& operator=(announce_endpoint const&) = default;
+
+		// if this tracker has returned an error or warning message
+		// that message is stored here
+		std::string message;
+
+		// if this tracker failed the last time it was contacted
+		// this error code specifies what error occurred
+		error_code last_error;
+
+		aux::session_listen_socket* socket;
+
+		// the number of times in a row we have failed to announce to this
+		// tracker.
+		std::uint8_t fails : 7;
+
+		// true while we're waiting for a response from the tracker.
+		bool updating : 1;
+	};
 
 	// this class holds information about one bittorrent tracker, as it
 	// relates to a specific torrent.
@@ -62,13 +91,7 @@ namespace libtorrent {
 		// trackerid is sent).
 		std::string trackerid;
 
-		// if this tracker has returned an error or warning message
-		// that message is stored here
-		std::string message;
-
-		// if this tracker failed the last time it was contacted
-		// this error code specifies what error occurred
-		error_code last_error;
+		std::vector<announce_endpoint> endpoints;
 
 #ifndef TORRENT_NO_DEPRECATE
 		// returns the number of seconds to the next announce on this tracker.
@@ -113,13 +136,6 @@ namespace libtorrent {
 		// the max number of failures to announce to this tracker in
 		// a row, before this tracker is not used anymore. 0 means unlimited
 		std::uint8_t fail_limit = 0;
-
-		// the number of times in a row we have failed to announce to this
-		// tracker.
-		std::uint8_t fails:7;
-
-		// true while we're waiting for a response from the tracker.
-		bool updating:1;
 
 		// flags for the source bitmask, each indicating where
 		// we heard about this tracker
@@ -169,18 +185,7 @@ namespace libtorrent {
 
 		// updates the failure counter and time-outs for re-trying.
 		// This is called when the tracker announce fails.
-		void failed(int backoff_ratio, seconds32 retry_interval = seconds32(0));
-
-#ifndef TORRENT_NO_DEPRECATE
-		// deprecated in 1.0
-		TORRENT_DEPRECATED
-		bool will_announce(time_point now) const
-		{
-			return now <= next_announce
-				&& (fails < fail_limit || fail_limit == 0)
-				&& !updating;
-		}
-#endif
+		void failed(announce_endpoint& aep, int backoff_ratio, seconds32 retry_interval = seconds32(0));
 
 		// returns true if we can announce to this tracker now.
 		// The current time is passed in as ``now``. The ``is_seed``
@@ -191,8 +196,7 @@ namespace libtorrent {
 
 		// returns true if the last time we tried to announce to this
 		// tracker succeeded, or if we haven't tried yet.
-		bool is_working() const
-		{ return fails == 0; }
+		bool is_working() const;
 
 		// trims whitespace characters from the beginning of the URL.
 		void trim();

@@ -61,6 +61,7 @@ namespace libtorrent { namespace dht {
 struct traversal_algorithm;
 struct dht_observer;
 struct msg;
+struct dht_socket;
 
 TORRENT_EXTRA_EXPORT entry write_nodes_entry(std::vector<node_entry> const& nodes);
 
@@ -75,22 +76,25 @@ public:
 	void reply(msg const&) { flags |= flag_done; }
 };
 
-struct udp_socket_interface
+struct socket_manager
 {
 	virtual bool has_quota() = 0;
-	virtual bool send_packet(entry& e, udp::endpoint const& addr) = 0;
+	virtual bool send_packet(dht_socket* s, entry& e, udp::endpoint const& addr) = 0;
 protected:
-	~udp_socket_interface() {}
+	~socket_manager() {}
 };
+
+// get the closest node to the id with the given family_name
+using get_foreign_node_t = std::function<node*(node_id const&, std::string const&)>;
 
 class TORRENT_EXTRA_EXPORT node : boost::noncopyable
 {
 public:
-	node(udp proto, udp_socket_interface* sock
+	node(dht_socket* sock, socket_manager* sock_man
 		, libtorrent::dht_settings const& settings
 		, node_id const& nid
 		, dht_observer* observer, counters& cnt
-		, std::map<std::string, node*> const& nodes
+		, get_foreign_node_t get_foreign_node
 		, dht_storage_interface& storage);
 
 	~node();
@@ -241,7 +245,7 @@ private:
 
 	static protocol_descriptor const& map_protocol_to_descriptor(udp protocol);
 
-	std::map<std::string, node*> const& m_nodes;
+	get_foreign_node_t m_get_foreign_node;
 
 	dht_observer* m_observer;
 
@@ -256,7 +260,8 @@ private:
 	// secret random numbers used to create write tokens
 	std::uint32_t m_secret[2];
 
-	udp_socket_interface* m_sock;
+	socket_manager* m_sock_man;
+	dht_socket* m_sock;
 	counters& m_counters;
 
 	dht_storage_interface& m_storage;

@@ -198,9 +198,25 @@ namespace libtorrent {
 		// look for an address that has the same kind as the one
 		// we're listening on. To make sure the tracker get our
 		// correct listening address.
-
+		bool is_v4 = bind_interface().is_v4();
+#if TORRENT_USE_IPV6
+		auto scope = is_v4 ? 0 : bind_interface().to_v6().scope_id();
+#endif
 		for (auto const& addr : addresses)
+		{
+			if (addr.is_v4() != is_v4) continue;
+#if TORRENT_USE_IPV6
+			if (addr.is_v6() && addr.to_v6().scope_id() != scope)
+				continue;
+#endif
 			m_endpoints.push_back(tcp::endpoint(addr, std::uint16_t(port)));
+		}
+
+		if (m_endpoints.empty())
+		{
+			fail(error_code(boost::asio::error::address_family_not_supported));
+			return;
+		}
 
 		if (tracker_req().filter)
 		{
@@ -501,13 +517,13 @@ namespace libtorrent {
 		error_code ec;
 		if (!m_hostname.empty())
 		{
-			m_man.send_hostname(m_hostname.c_str()
+			m_man.send_hostname(bind_socket(), m_hostname.c_str()
 				, m_target.port(), buf, ec
 				, udp_socket::tracker_connection);
 		}
 		else
 		{
-			m_man.send(m_target, buf, ec
+			m_man.send(bind_socket(), m_target, buf, ec
 				, udp_socket::tracker_connection);
 		}
 
@@ -565,12 +581,12 @@ namespace libtorrent {
 		error_code ec;
 		if (!m_hostname.empty())
 		{
-			m_man.send_hostname(m_hostname.c_str(), m_target.port()
+			m_man.send_hostname(bind_socket(), m_hostname.c_str(), m_target.port()
 				, buf, ec, udp_socket::tracker_connection);
 		}
 		else
 		{
-			m_man.send(m_target, buf, ec
+			m_man.send(bind_socket(), m_target, buf, ec
 				, udp_socket::tracker_connection);
 		}
 		m_state = action_t::scrape;
@@ -781,13 +797,13 @@ namespace libtorrent {
 
 		if (!m_hostname.empty())
 		{
-			m_man.send_hostname(m_hostname.c_str()
+			m_man.send_hostname(bind_socket(), m_hostname.c_str()
 				, m_target.port(), {buf, std::size_t(sizeof(buf) - out.size())}, ec
 				, udp_socket::tracker_connection);
 		}
 		else
 		{
-			m_man.send(m_target, {buf, std::size_t(sizeof(buf) - out.size())}, ec
+			m_man.send(bind_socket(), m_target, {buf, std::size_t(sizeof(buf) - out.size())}, ec
 				, udp_socket::tracker_connection);
 		}
 		m_state = action_t::announce;

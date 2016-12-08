@@ -148,15 +148,19 @@ struct utp_header
 };
 
 struct utp_socket_impl;
+struct utp_socket_interface;
 
 utp_socket_impl* construct_utp_impl(std::uint16_t recv_id
 	, std::uint16_t send_id, void* userdata
 	, utp_socket_manager& sm);
 void detach_utp_impl(utp_socket_impl* s);
 void delete_utp_impl(utp_socket_impl* s);
+void utp_abort(utp_socket_impl* s);
 bool should_delete(utp_socket_impl* s);
+bool bound_to_udp_socket(utp_socket_impl* s, std::weak_ptr<utp_socket_interface> sock);
 void tick_utp_impl(utp_socket_impl* s, time_point now);
 void utp_init_mtu(utp_socket_impl* s, int link_mtu, int utp_mtu);
+void utp_init_socket(utp_socket_impl* s, std::weak_ptr<utp_socket_interface> sock);
 bool utp_incoming_packet(utp_socket_impl* s, span<char const> p
 	, udp::endpoint const& ep, time_point receive_time);
 bool utp_match(utp_socket_impl* s, udp::endpoint const& ep, std::uint16_t id);

@@ -48,8 +48,6 @@ namespace libtorrent {
 
 	announce_entry::announce_entry(string_view u)
 		: url(u.to_string())
-		, fails(0)
-		, updating(false)
 		, source(0)
 		, verified(false)
 		, start_sent(false)
@@ -58,9 +56,7 @@ namespace libtorrent {
 	{}
 
 	announce_entry::announce_entry()
-		: fails(0)
-		, updating(false)
-		, source(0)
+		: source(0)
 		, verified(false)
 		, start_sent(false)
 		, complete_sent(false)
@@ -86,20 +82,20 @@ namespace libtorrent {
 		min_announce = time_point32::min();
 	}
 
-	void announce_entry::failed(int const backoff_ratio, seconds32 const retry_interval)
+	void announce_entry::failed(announce_endpoint& aep, int const backoff_ratio, seconds32 const retry_interval)
 	{
-		++fails;
+		++aep.fails;
 		// the exponential back-off ends up being:
 		// 7, 15, 27, 45, 95, 127, 165, ... seconds
 		// with the default tracker_backoff of 250
-		int const fail_square = int(fails) * int(fails);
+		int const fail_square = int(aep.fails) * int(aep.fails);
 		seconds32 const delay = std::max(retry_interval
 			, std::min(duration_cast<seconds32>(tracker_retry_delay_max)
 				, tracker_retry_delay_min
 					+ fail_square * tracker_retry_delay_min * backoff_ratio / 100
 			));
-		next_announce = aux::time_now32() + delay;
-		updating = false;
+		if (!is_working()) next_announce = aux::time_now32() + delay;
+		aep.updating = false;
 	}
 
 	bool announce_entry::can_announce(time_point now, bool is_seed) const
@@ -108,10 +104,24 @@ namespace libtorrent {
 		// event, we need to let this announce through
 		bool const need_send_complete = is_seed && !complete_sent;
 
+		int min_fails = std::numeric_limits<int>::max();
+
+		for (auto& aep : endpoints)
+		{
+			if (aep.updating) return false;
+			if (aep.fails < min_fails) min_fails = aep.fails;
+		}
+
 		return now >= next_announce
 			&& (now >= min_announce || need_send_complete)
-			&& (fails < fail_limit || fail_limit == 0)
-			&& !updating;
+			&& (min_fails < fail_limit || fail_limit == 0);
+	}
+
+	bool announce_entry::is_working() const
+	{
+		for (auto const& aep : endpoints)
+			if (aep.fails == 0) return true;
+		return false;
 	}
 
 	void announce_entry::trim()

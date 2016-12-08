@@ -72,14 +72,14 @@ namespace {
 
 void nop() {}
 
-node_id calculate_node_id(node_id const& nid, dht_observer* observer, udp protocol)
+node_id calculate_node_id(node_id const& nid, dht_socket* sock)
 {
 	address external_address;
-	if (observer != nullptr) external_address = observer->external_address(protocol);
+	external_address = sock->get_external_address();
 
 	// if we don't have an observer, don't pretend that external_address is valid
 	// generating an ID based on 0.0.0.0 would be terrible. random is better
-	if (observer == nullptr || external_address.is_unspecified())
+	if (external_address.is_unspecified())
 	{
 		return generate_random_id();
 	}
@@ -101,22 +101,23 @@ void incoming_error(entry& e, char const* msg, int error_code = 203)
 
 } // anonymous namespace
 
-node::node(udp proto, udp_socket_interface* sock
+node::node(dht_socket* sock, socket_manager* sock_man
 	, dht_settings const& settings
 	, node_id const& nid
 	, dht_observer* observer
 	, counters& cnt
-	, std::map<std::string, node*> const& nodes
+	, get_foreign_node_t get_foreign_node
 	, dht_storage_interface& storage)
 	: m_settings(settings)
-	, m_id(calculate_node_id(nid, observer, proto))
-	, m_table(m_id, proto, 8, settings, observer)
-	, m_rpc(m_id, m_settings, m_table, sock, observer)
-	, m_nodes(nodes)
+	, m_id(calculate_node_id(nid, sock))
+	, m_table(m_id, sock->get_local_address().is_v4() ? udp::v4() : udp::v6(), 8, settings, observer)
+	, m_rpc(m_id, m_settings, m_table, sock, sock_man, observer)
+	, m_get_foreign_node(get_foreign_node)
 	, m_observer(observer)
-	, m_protocol(map_protocol_to_descriptor(proto))
+	, m_protocol(map_protocol_to_descriptor(sock->get_local_address().is_v4() ? udp::v4() : udp::v6()))
 	, m_last_tracker_tick(aux::time_now())
 	, m_last_self_refresh(min_time())
+	, m_sock_man(sock_man)
 	, m_sock(sock)
 	, m_counters(cnt)
 	, m_storage(storage)
@@ -136,7 +137,7 @@ void node::update_node_id()
 
 	// it's possible that our external address hasn't actually changed. If our
 	// current ID is still valid, don't do anything.
-	if (verify_id(m_id, m_observer->external_address(protocol())))
+	if (verify_id(m_id, m_sock->get_external_address()))
 		return;
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -144,7 +145,7 @@ void node::update_node_id()
 		, "updating node ID (because external IP address changed)");
 #endif
 
-	m_id = generate_id(m_observer->external_address(protocol()));
+	m_id = generate_id(m_sock->get_external_address());
 
 	m_table.update_node_id(m_id);
 	m_rpc.update_node_id(m_id);
@@ -285,7 +286,7 @@ void node::incoming(msg const& m)
 		address_v6::bytes_type b;
 		std::memcpy(&b[0], ext_ip.string_ptr(), 16);
 		if (m_observer != nullptr)
-			m_observer->set_external_address(address_v6(b)
+			m_observer->set_external_address(m_sock, address_v6(b)
 				, m.addr.address());
 	} else
 #endif
@@ -294,7 +295,7 @@ void node::incoming(msg const& m)
 		address_v4::bytes_type b;
 		std::memcpy(&b[0], ext_ip.string_ptr(), 4);
 		if (m_observer != nullptr)
-			m_observer->set_external_address(address_v4(b)
+			m_observer->set_external_address(m_sock, address_v4(b)
 				, m.addr.address());
 	}
 
@@ -315,7 +316,7 @@ void node::incoming(msg const& m)
 
 			if (!native_address(m.addr)) break;
 
-			if (!m_sock->has_quota())
+			if (!m_sock_man->has_quota())
 			{
 				m_counters.inc_stats_counter(counters::dht_messages_in_dropped);
 				return;
@@ -323,7 +324,7 @@ void node::incoming(msg const& m)
 
 			entry e;
 			incoming_request(m, e);
-			m_sock->send_packet(e, m.addr);
+			m_sock_man->send_packet(m_sock, e, m.addr);
 			break;
 		}
 		case 'e':
@@ -1164,11 +1165,11 @@ void node::write_nodes_entries(sha1_hash const& info_hash
 		bdecode_node wanted = want.list_at(i);
 		if (wanted.type() != bdecode_node::string_t)
 			continue;
-		auto wanted_node = m_nodes.find(wanted.string_value().to_string());
-		if (wanted_node == m_nodes.end()) continue;
+		node* wanted_node = m_get_foreign_node(info_hash, wanted.string_value().to_string());
+		if (!wanted_node) continue;
 		std::vector<node_entry> n;
-		wanted_node->second->m_table.find_node(info_hash, n, 0);
-		r[wanted_node->second->protocol_nodes_key()] = write_nodes_entry(n);
+		wanted_node->m_table.find_node(info_hash, n, 0);
+		r[wanted_node->protocol_nodes_key()] = write_nodes_entry(n);
 	}
 }
 

@@ -65,13 +65,7 @@ void bootstrap_session(std::vector<dht_network*> networks, lt::session& ses)
 		// bootstrap off of 8 of the nodes
 		auto router_nodes = dht->router_nodes();
 
-		char const* nodes_key;
-		if (router_nodes.front().address().is_v6())
-			nodes_key = "nodes6";
-		else
-			nodes_key = "nodes";
-
-		lt::entry::list_type& nodes = state["dht state"][nodes_key].list();
+		lt::entry::list_type& nodes = state["dht state"]["nodes"].list();
 		for (auto const& n : router_nodes)
 		{
 			std::string node;

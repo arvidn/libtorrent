@@ -50,11 +50,12 @@ TORRENT_TEST(primitives)
 	// make sure the retry interval keeps growing
 	// on failing announces
 	announce_entry ae("dummy");
+	ae.endpoints.emplace_back(nullptr);
 	int last = 0;
 	auto const tracker_backoff = 250;
 	for (int i = 0; i < 10; ++i)
 	{
-		ae.failed(tracker_backoff, seconds32(5));
+		ae.failed(ae.endpoints.front(), tracker_backoff, seconds32(5));
 #ifndef TORRENT_NO_DEPRECATE
 		int const delay = ae.next_announce_in();
 #else

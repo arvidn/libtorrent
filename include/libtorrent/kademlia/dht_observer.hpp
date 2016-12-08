@@ -67,11 +67,19 @@ namespace libtorrent { namespace dht {
 		~dht_logger() {}
 	};
 
+	struct TORRENT_EXTRA_EXPORT dht_socket
+	{
+		virtual address get_external_address() = 0;
+		virtual address get_local_address() = 0;
+
+	protected:
+		~dht_socket() {}
+	};
+
 	struct TORRENT_EXTRA_EXPORT dht_observer : dht_logger
 	{
-		virtual void set_external_address(address const& addr
-			, address const& source) = 0;
-		virtual address external_address(udp proto) = 0;
+		virtual void set_external_address(dht_socket* iface
+			, address const& addr, address const& source) = 0;
 		virtual void get_peers(sha1_hash const& ih) = 0;
 		virtual void outgoing_get_peers(sha1_hash const& target
 			, sha1_hash const& sent_target, udp::endpoint const& ep) = 0;

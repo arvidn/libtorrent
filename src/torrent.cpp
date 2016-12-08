@@ -2670,12 +2670,12 @@ namespace libtorrent {
 				debug_log("*** tracker: \"%s\" "
 					"[ tiers: %d trackers: %d"
 					" i->tier: %d tier: %d"
-					" working: %d fails: %d limit: %d upd: %d"
+					" working: %d limit: %d"
 					" can: %d sent: %d ]"
 					, ae.url.c_str(), settings().get_bool(settings_pack::announce_to_all_tiers)
 					, settings().get_bool(settings_pack::announce_to_all_trackers)
-					, ae.tier, tier, ae.is_working(), ae.fails, ae.fail_limit
-					, ae.updating, ae.can_announce(now, is_seed()), sent_announce);
+					, ae.tier, tier, ae.is_working(), ae.fail_limit
+					, ae.can_announce(now, is_seed()), sent_announce);
 			}
 #endif
 			if (settings().get_bool(settings_pack::announce_to_all_tiers)
@@ -2708,6 +2708,27 @@ namespace libtorrent {
 
 			req.triggered_manually = ae.triggered_manually;
 			ae.triggered_manually = false;
+
+			// update the endpoint list by adding entries for new listen sockets
+			// and removing entries for non-existent ones
+			int valid_endpoints = 0;
+			m_ses.for_each_listen_socket([&](aux::session_listen_socket* s) {
+				for (int i = 0; i < int(ae.endpoints.size()); i++)
+				{
+					auto& aep = ae.endpoints[i];
+					if (aep.socket != s) continue;
+					std::swap(ae.endpoints[valid_endpoints], aep);
+					valid_endpoints++;
+					return;
+				}
+
+				ae.endpoints.emplace_back(s);
+				std::swap(ae.endpoints[valid_endpoints], ae.endpoints.back());
+				valid_endpoints++;
+			});
+
+			TORRENT_ASSERT(valid_endpoints <= int(ae.endpoints.size()));
+			ae.endpoints.erase(ae.endpoints.begin() + valid_endpoints, ae.endpoints.end());
 
 			if (settings().get_bool(settings_pack::force_proxy))
 			{
@@ -2763,29 +2784,40 @@ namespace libtorrent {
 			}
 #endif
 
-#ifndef TORRENT_DISABLE_LOGGING
-			debug_log("==> TRACKER REQUEST \"%s\" event: %s abort: %d"
-				, req.url.c_str()
-				, (req.event == tracker_request::stopped ? "stopped"
-					: req.event == tracker_request::started ? "started" : "")
-				, m_abort);
-
-			// if we're not logging session logs, don't bother creating an
-			// observer object just for logging
-			if (m_abort && m_ses.should_log())
-			{
-				auto tl = std::make_shared<aux::tracker_logger>(m_ses);
-				m_ses.queue_tracker_request(req, tl);
-			}
-			else
-#endif
-			{
-				m_ses.queue_tracker_request(req, shared_from_this());
-			}
-
-			ae.updating = true;
 			ae.next_announce = now + seconds32(20);
 			ae.min_announce = now + seconds32(10);
+
+			for (auto& aep : ae.endpoints)
+			{
+				if (aep.updating) continue;
+
+				req.outgoing_socket = aep.socket;
+
+#ifndef TORRENT_DISABLE_LOGGING
+				debug_log("==> TRACKER REQUEST \"%s\" event: %s abort: %d fails: %d upd: %d"
+					, req.url.c_str()
+					, (req.event == tracker_request::stopped ? "stopped"
+						: req.event == tracker_request::started ? "started" : "")
+					, m_abort
+					, aep.fails
+					, aep.updating);
+
+				// if we're not logging session logs, don't bother creating an
+				// observer object just for logging
+				if (m_abort && m_ses.should_log())
+				{
+					auto tl = std::make_shared<aux::tracker_logger>(m_ses);
+					m_ses.queue_tracker_request(req, tl);
+				}
+				else
+#endif
+				{
+					m_ses.queue_tracker_request(req, shared_from_this());
+				}
+
+				aep.updating = true;
+				sent_announce = true;
+			}
 
 			if (m_ses.alerts().should_post<tracker_announce_alert>())
 			{
@@ -2793,7 +2825,6 @@ namespace libtorrent {
 					get_handle(), req.url, req.event);
 			}
 
-			sent_announce = true;
 			if (ae.is_working()
 				&& !settings().get_bool(settings_pack::announce_to_all_trackers)
 				&& !settings().get_bool(settings_pack::announce_to_all_tiers))
@@ -2840,7 +2871,12 @@ namespace libtorrent {
 		announce_entry* ae = find_tracker(req.url);
 		if (ae)
 		{
-			ae->message = msg;
+			for (auto& aep : ae->endpoints)
+			{
+				if (aep.socket != req.outgoing_socket) continue;
+				aep.message = msg;
+				break;
+			}
 		}
 
 		if (m_ses.alerts().should_post<tracker_warning_alert>())
@@ -2925,7 +2961,8 @@ namespace libtorrent {
 		// out external IP counter (and pass along the IP of the tracker to know
 		// who to attribute this vote to)
 		if (resp.external_ip != address() && !is_any(tracker_ip))
-			m_ses.set_external_address(resp.external_ip
+			m_ses.set_external_address(r.outgoing_socket->get_local_address()
+				, resp.external_ip
 				, aux::session_interface::source_tracker, tracker_ip);
 
 		time_point32 now = aux::time_now32();
@@ -2944,10 +2981,15 @@ namespace libtorrent {
 			if (!ae->complete_sent && r.event == tracker_request::completed)
 				ae->complete_sent = true;
 			ae->verified = true;
-			ae->updating = false;
-			ae->fails = 0;
 			ae->next_announce = now + interval;
 			ae->min_announce = now + resp.min_interval;
+			for (auto& aep : ae->endpoints)
+			{
+				if (aep.socket != r.outgoing_socket) continue;
+				aep.updating = false;
+				aep.fails = 0;
+				break;
+			}
 			int tracker_index = int(ae - &m_trackers[0]);
 			m_last_working_tracker = std::int8_t(prioritize_tracker(tracker_index));
 
@@ -3081,54 +3123,6 @@ namespace libtorrent {
 				+ int(resp.peers6.size())
 #endif
 				, r.url);
-		}
-
-		// we're listening on an interface type that was not used
-		// when talking to the tracker. If there is a matching interface
-		// type in the tracker IP list, make another tracker request
-		// using that interface
-		// in order to avoid triggering this case over and over, don't
-		// do it if the bind IP for the tracker request that just completed
-		// matches one of the listen interfaces, since that means this
-		// announce was the second one
-
-		// TODO: 3 instead of announcing once per IP version, announce once per
-		// listen interface (i.e. m_listen_sockets)
-		if (((!is_any(m_ses.get_ipv6_interface().address()) && tracker_ip.is_v4())
-			|| (!is_any(m_ses.get_ipv4_interface().address()) && tracker_ip.is_v6()))
-			&& r.bind_ip != m_ses.get_ipv4_interface().address()
-			&& r.bind_ip != m_ses.get_ipv6_interface().address())
-		{
-			auto i = std::find_if(tracker_ips.begin(), tracker_ips.end()
-				, [&] (address const& a) { return a.is_v4() != tracker_ip.is_v4(); });
-			if (i != tracker_ips.end())
-			{
-				// the tracker did resolve to a different type of address, so announce
-				// to that as well
-
-				// TODO 3: there's a bug when removing a torrent or shutting down the session,
-				// where the second announce is skipped (in this case, the one to the IPv6
-				// name). This should be fixed by generalizing the tracker list structure to
-				// separate the IPv6 and IPv4 addresses as conceptually separate trackers,
-				// and they should be announced to in parallel
-
-				tracker_request req = r;
-
-				req.private_torrent = m_torrent_file->priv();
-
-				// tell the tracker to bind to the opposite protocol type
-				req.bind_ip = tracker_ip.is_v4()
-					? m_ses.get_ipv6_interface().address()
-					: m_ses.get_ipv4_interface().address();
-#ifndef TORRENT_DISABLE_LOGGING
-				if (should_log())
-				{
-					debug_log("announce again using %s as the bind interface"
-						, print_address(req.bind_ip).c_str());
-				}
-#endif
-				m_ses.queue_tracker_request(req, shared_from_this());
-			}
 		}
 
 		do_connect_boost();
@@ -8563,11 +8557,10 @@ namespace libtorrent {
 				debug_log("*** tracker: \"%s\" "
 					"[ tiers: %d trackers: %d"
 					" found: %d i->tier: %d tier: %d"
-					" working: %d fails: %d limit: %d upd: %d ]"
+					" working: %d limit: %d ]"
 					, t.url.c_str(), settings().get_bool(settings_pack::announce_to_all_tiers)
 					, settings().get_bool(settings_pack::announce_to_all_trackers), found_working
-					, t.tier, tier, t.is_working(), t.fails, t.fail_limit
-					, t.updating);
+					, t.tier, tier, t.is_working(), t.fail_limit);
 			}
 #endif
 			if (settings().get_bool(settings_pack::announce_to_all_tiers)
@@ -8578,16 +8571,21 @@ namespace libtorrent {
 
 			if (t.tier > tier && !settings().get_bool(settings_pack::announce_to_all_tiers)) break;
 			if (t.is_working()) { tier = t.tier; found_working = false; }
-			if (t.fails >= t.fail_limit && t.fail_limit != 0) continue;
-			if (t.updating)
+			bool is_updating = false;
+			for (auto& aep : t.endpoints)
 			{
-				found_working = true;
+				if (aep.fails >= t.fail_limit && t.fail_limit != 0) continue;
+				if (aep.updating)
+				{
+					found_working = true;
+					is_updating = true;
+					break;
+				}
 			}
-			else
+			if (!is_updating && (!found_working || t.is_working()))
 			{
 				time_point32 next_tracker_announce = std::max(t.next_announce, t.min_announce);
-				if (next_tracker_announce < next_announce
-					&& (!found_working || t.is_working()))
+				if (next_tracker_announce < next_announce)
 					next_announce = next_tracker_announce;
 			}
 			if (t.is_working()) found_working = true;
@@ -10480,7 +10478,8 @@ namespace {
 		{
 			for (auto const& t : m_trackers)
 			{
-				if (t.updating) continue;
+				if (std::any_of(t.endpoints.begin(), t.endpoints.end()
+					, [](announce_endpoint const& aep) { return aep.updating; })) continue;
 				if (!t.verified) continue;
 				st->current_tracker = t.url;
 				break;
@@ -10651,16 +10650,24 @@ namespace {
 		{
 			// announce request
 			announce_entry* ae = find_tracker(r.url);
+			int fails = 0;
 			if (ae)
 			{
-				ae->failed(settings().get_int(settings_pack::tracker_backoff)
-					, retry_interval);
-				ae->last_error = ec;
-				ae->message = msg;
-				int const tracker_index = int(ae - m_trackers.data());
+				for (auto& aep : ae->endpoints)
+				{
+					if (aep.socket != r.outgoing_socket) continue;
+					ae->failed(aep, settings().get_int(settings_pack::tracker_backoff)
+						, retry_interval);
+					aep.last_error = ec;
+					aep.message = msg;
 #ifndef TORRENT_DISABLE_LOGGING
-				debug_log("*** increment tracker fail count [%d]", ae->fails);
+					debug_log("*** increment tracker fail count [%d]", aep.fails);
 #endif
+					break;
+				}
+
+				int const tracker_index = int(ae - m_trackers.data());
+
 				// never talk to this tracker again
 				if (response_code == 410) ae->fail_limit = 1;
 
@@ -10670,7 +10677,7 @@ namespace {
 				|| r.triggered_manually)
 			{
 				m_ses.alerts().emplace_alert<tracker_error_alert>(get_handle()
-					, ae ? ae->fails : 0, response_code, r.url, ec, msg);
+					, fails, response_code, r.url, ec, msg);
 			}
 		}
 		else

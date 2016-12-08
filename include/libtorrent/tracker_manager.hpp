@@ -76,7 +76,7 @@ namespace libtorrent {
 #if TORRENT_USE_I2P
 	class i2p_connection;
 #endif
-	namespace aux { struct session_logger; struct session_settings; }
+	namespace aux { struct session_listen_socket; struct session_logger; struct session_settings; }
 
 	// returns -1 if gzip header is invalid or the header size in bytes
 	TORRENT_EXTRA_EXPORT int gzip_header(const char* buf, int size);
@@ -94,6 +94,7 @@ namespace libtorrent {
 			, kind(announce_request)
 			, key(0)
 			, num_want(0)
+			, outgoing_socket(nullptr)
 			, private_torrent(false)
 			, triggered_manually(false)
 #ifdef TORRENT_USE_OPENSSL
@@ -151,7 +152,7 @@ namespace libtorrent {
 #endif
 		sha1_hash info_hash;
 		peer_id pid;
-		address bind_ip;
+		aux::session_listen_socket* outgoing_socket;
 
 		// set to true if the .torrent file this tracker announce is for is marked
 		// as private (i.e. has the "priv": 1 key)
@@ -306,7 +307,8 @@ namespace libtorrent {
 			, seconds32 interval = seconds32(0), seconds32 min_interval = seconds32(0));
 		virtual void start() = 0;
 		virtual void close() = 0;
-		address const& bind_interface() const { return m_req.bind_ip; }
+		address bind_interface() const;
+		aux::session_listen_socket* bind_socket() const { return m_req.outgoing_socket; }
 		void sent_bytes(int bytes);
 		void received_bytes(int bytes);
 
@@ -336,10 +338,12 @@ namespace libtorrent {
 	{
 	public:
 
-		typedef std::function<void(udp::endpoint const&
+		typedef std::function<void(aux::session_listen_socket*
+			, udp::endpoint const&
 			, span<char const>
 			, error_code&, int)> send_fun_t;
-		typedef std::function<void(char const*, int
+		typedef std::function<void(aux::session_listen_socket*
+			, char const*, int
 			, span<char const>
 			, error_code&, int)> send_fun_hostname_t;
 
@@ -385,10 +389,12 @@ namespace libtorrent {
 		aux::session_settings const& settings() const { return m_settings; }
 		resolver_interface& host_resolver() { return m_host_resolver; }
 
-		void send_hostname(char const* hostname, int port, span<char const> p
+		void send_hostname(aux::session_listen_socket* sock
+			, char const* hostname, int port, span<char const> p
 			, error_code& ec, int flags = 0);
 
-		void send(udp::endpoint const& ep, span<char const> p
+		void send(aux::session_listen_socket* sock
+			, udp::endpoint const& ep, span<char const> p
 			, error_code& ec, int flags = 0);
 
 	private:

@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/node_id.hpp>
 
 #include <vector>
+#include <utility>
 
 namespace libtorrent {
 
@@ -47,6 +48,8 @@ namespace libtorrent {
 }
 
 namespace libtorrent { namespace dht {
+
+	using node_ids_t = std::vector<std::pair<address, node_id>>;
 	// This structure helps to store and load the state
 	// of the ``dht_tracker``.
 	// At this moment the library is only a dual stack
@@ -55,12 +58,9 @@ namespace libtorrent { namespace dht {
 	// .. _BEP32: http://bittorrent.org/beps/bep_0032.html
 	struct TORRENT_EXPORT dht_state
 	{
-		// the id of the IPv4 node
-		node_id nid;
-		// the id of the IPv6 node
-		node_id nid6;
+		node_ids_t nids;
 
-		// the bootstrap nodes saved from the IPv4 buckets node
+		// the bootstrap nodes saved from the buckets node
 		std::vector<udp::endpoint> nodes;
 		// the bootstrap nodes saved from the IPv6 buckets node
 		std::vector<udp::endpoint> nodes6;
