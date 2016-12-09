@@ -246,7 +246,6 @@ rule warnings ( properties * )
 # enable these warnings again, once the other ones are dealt with
 		result += <cflags>-Wno-weak-vtables ;
 		result += <cflags>-Wno-sign-conversion ;
-		result += <cflags>-Wno-shorten-64-to-32 ;
 	}
 
 	if <toolset>gcc in $(properties)

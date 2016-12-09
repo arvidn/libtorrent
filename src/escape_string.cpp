@@ -492,7 +492,7 @@ namespace libtorrent
 		for (const wchar_t* i = &s[0]; i < end;)
 		{
 			char c[10];
-			TORRENT_ASSERT(sizeof(c) >= MB_CUR_MAX);
+			TORRENT_ASSERT(sizeof(c) >= std::size_t(MB_CUR_MAX));
 			int const result = std::wctomb(c, *i);
 			if (result > 0)
 			{

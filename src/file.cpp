@@ -158,7 +158,7 @@ namespace
 
 	// windows only lets us wait for 64 handles at a time, so this function makes
 	// sure we wait for all of them, partially in sequence
-	int wait_for_multiple_objects(int num_handles, HANDLE* h)
+	DWORD wait_for_multiple_objects(int num_handles, HANDLE* h)
 	{
 		int batch_size = (std::min)(num_handles, MAXIMUM_WAIT_OBJECTS);
 		while (WaitForMultipleObjects(batch_size, h, TRUE, INFINITE) != WAIT_FAILED)
@@ -1771,10 +1771,10 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 #elif TORRENT_USE_PREAD
 
-		int ret = 0;
+		std::int64_t ret = 0;
 		for (auto i : bufs)
 		{
-			int tmp_ret = f(fd, i.iov_base, i.iov_len, file_offset);
+			std::int64_t tmp_ret = f(fd, i.iov_base, i.iov_len, file_offset);
 			if (tmp_ret < 0)
 			{
 #ifdef TORRENT_WINDOWS
@@ -1873,9 +1873,9 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		}
 
 #if TORRENT_USE_PREAD
-		int ret = iov(&::pread, native_handle(), file_offset, tmp_bufs, ec);
+		std::int64_t ret = iov(&::pread, native_handle(), file_offset, tmp_bufs, ec);
 #else
-		int ret = iov(&::read, native_handle(), file_offset, tmp_bufs, ec);
+		std::int64_t ret = iov(&::read, native_handle(), file_offset, tmp_bufs, ec);
 #endif
 
 		if ((flags & file::coalesce_buffers))
@@ -1928,9 +1928,9 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		}
 
 #if TORRENT_USE_PREAD
-		int ret = iov(&::pwrite, native_handle(), file_offset, bufs, ec);
+		std::int64_t ret = iov(&::pwrite, native_handle(), file_offset, bufs, ec);
 #else
-		int ret = iov(&::write, native_handle(), file_offset, bufs, ec);
+		std::int64_t ret = iov(&::write, native_handle(), file_offset, bufs, ec);
 #endif
 
 		if (flags & file::coalesce_buffers)
