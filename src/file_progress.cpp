@@ -151,13 +151,13 @@ namespace libtorrent { namespace aux
 		int const piece_size = fs.piece_length();
 		std::int64_t off = std::int64_t(index) * piece_size;
 		int file_index = fs.file_index_at_offset(off);
-		int size = fs.piece_size(index);
+		std::int64_t size = fs.piece_size(index);
 		for (; size > 0; ++file_index)
 		{
 			std::int64_t file_offset = off - fs.file_offset(file_index);
 			TORRENT_ASSERT(file_index != fs.num_files());
 			TORRENT_ASSERT(file_offset <= fs.file_size(file_index));
-			int add = (std::min)(fs.file_size(file_index)
+			std::int64_t add = (std::min)(fs.file_size(file_index)
 				- file_offset, std::int64_t(size));
 			m_file_progress[file_index] += add;
 

@@ -175,7 +175,7 @@ namespace libtorrent { namespace
 
 			if ((nl_hdr->nlmsg_flags & NLM_F_MULTI) == 0) break;
 
-		} while((nl_hdr->nlmsg_seq != seq) || (nl_hdr->nlmsg_pid != pid));
+		} while((int(nl_hdr->nlmsg_seq) != seq) || (int(nl_hdr->nlmsg_pid) != pid));
 		return msg_len;
 	}
 
@@ -650,7 +650,7 @@ namespace libtorrent
 #endif
 
 		SOCKET s = socket(AF_INET, SOCK_DGRAM, 0);
-		if (s == SOCKET_ERROR)
+		if (int(s) == SOCKET_ERROR)
 		{
 			ec = error_code(WSAGetLastError(), system_category());
 			return ret;
@@ -1005,7 +1005,7 @@ namespace libtorrent
 			int res = GetIpForwardTable2(AF_UNSPEC, &routes);
 			if (res == NO_ERROR)
 			{
-				for (int i = 0; i < routes->NumEntries; ++i)
+				for (int i = 0; i < int(routes->NumEntries); ++i)
 				{
 					ip_route r;
 					r.gateway = sockaddr_to_address((const sockaddr*)&routes->Table[i].NextHop);
@@ -1060,7 +1060,7 @@ namespace libtorrent
 
 		if (GetIpForwardTable(routes, &out_buf_size, FALSE) == NO_ERROR)
 		{
-			for (int i = 0; i < routes->dwNumEntries; ++i)
+			for (int i = 0; i < int(routes->dwNumEntries); ++i)
 			{
 				ip_route r;
 				r.destination = inaddr_to_address((in_addr const*)&routes->table[i].dwForwardDest);

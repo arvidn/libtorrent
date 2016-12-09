@@ -432,7 +432,7 @@ namespace libtorrent
 						phys_ram = 1 * gb;
 					}
 					result += phys_ram / 10;
-					m_max_use = result / m_block_size;
+					m_max_use = int(result / m_block_size);
 				}
 
 #ifdef _MSC_VER
@@ -562,7 +562,7 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(buf >= m_cache_pool);
 			TORRENT_ASSERT(buf <  m_cache_pool + std::uint64_t(m_max_use) * 0x4000);
-			int slot_index = (buf - m_cache_pool) / 0x4000;
+			int slot_index = int((buf - m_cache_pool) / 0x4000);
 			m_free_list.push_back(slot_index);
 #if defined MADV_FREE
 			// tell the virtual memory system that we don't actually care

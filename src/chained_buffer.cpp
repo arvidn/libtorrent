@@ -114,7 +114,7 @@ namespace libtorrent
 		TORRENT_ASSERT(is_single_thread());
 		if (m_vec.empty()) return 0;
 		buffer_t& b = m_vec.back();
-		return b.size - b.used_size - (b.start - b.buf);
+		return b.size - b.used_size - int(b.start - b.buf);
 	}
 
 	// tries to copy the given buffer to the end of the

@@ -60,7 +60,7 @@ namespace libtorrent
 	{
 		std::array<peer_class_t, 15>::iterator i = std::find(m_class.begin()
 			, m_class.begin() + m_size, c);
-		int idx = i - m_class.begin();
+		int idx = int(i - m_class.begin());
 		if (idx == m_size) return; // not found
 		if (idx < m_size - 1)
 		{
