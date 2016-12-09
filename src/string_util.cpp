@@ -161,11 +161,10 @@ namespace libtorrent
 	{
 		if (str == nullptr) return nullptr;
 		int const len = int(std::strlen(str));
-		TORRENT_ASSERT(len > 0);
 		char* tmp = static_cast<char*>(std::malloc(len + 1));
 		if (tmp == nullptr) return nullptr;
 		std::memcpy(tmp, str, len);
-		tmp[len] = 0;
+		tmp[len] = '\0';
 		return tmp;
 	}
 
