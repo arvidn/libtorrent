@@ -81,6 +81,7 @@ namespace libtorrent { namespace aux
 			int const len = int(std::strlen(str));
 			m_storage.resize(ret + len + 1);
 			std::memcpy(&m_storage[ret], str, len);
+			m_storage[ret + len] = '\0';
 			return allocation_slot(ret);
 		}
 
