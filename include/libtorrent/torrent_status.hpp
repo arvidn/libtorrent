@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/time.hpp" // for time_duration
 #include "libtorrent/storage_defs.hpp" // for storage_mode_t
-#include "libtorrent/error_code.hpp" // for storage_mode_t
+#include "libtorrent/error_code.hpp"
 
 #include <cstdint>
 #include <string>
@@ -51,8 +51,8 @@ namespace libtorrent
 	struct TORRENT_EXPORT torrent_status
 	{
 		// hidden
-		torrent_status();
-		~torrent_status();
+		torrent_status() = default;
+		~torrent_status() = default;
 		torrent_status(torrent_status const&) = default;
 		torrent_status& operator=(torrent_status const&) = default;
 
@@ -545,7 +545,7 @@ namespace libtorrent
 		bool stop_when_ready = false;
 
 		// the info-hash for this torrent
-		sha1_hash info_hash{nullptr};
+		sha1_hash info_hash;
 
 		time_point last_upload;
 		time_point last_download;
@@ -563,7 +563,8 @@ namespace std
 	{
 		std::size_t operator()(libtorrent::torrent_status const& ts) const
 		{
-			return libtorrent::hash_value(ts.handle);
+			std::hash<libtorrent::torrent_handle> h;
+			return h(ts.handle);
 		}
 	};
 }

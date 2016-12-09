@@ -196,9 +196,6 @@ namespace libtorrent
 		state_t piece_state;
 	};
 
-	// for std::hash (and to support using this type in unordered_map etc.)
-	TORRENT_EXPORT std::size_t hash_value(torrent_handle const& h);
-
 	// You will usually have to store your torrent handles somewhere, since it's
 	// the object through which you retrieve information about the torrent and
 	// aborts the torrent.
@@ -238,7 +235,7 @@ namespace libtorrent
 		friend struct aux::session_impl;
 		friend struct session_handle;
 		friend class torrent;
-		friend TORRENT_EXPORT std::size_t hash_value(torrent_handle const& th);
+		friend struct std::hash<torrent_handle>;
 
 		// constructs a torrent handle that does not refer to a torrent.
 		// i.e. is_valid() will return false.
@@ -1313,7 +1310,9 @@ namespace std
 	{
 		std::size_t operator()(libtorrent::torrent_handle const& th) const
 		{
-			return libtorrent::hash_value(th);
+			// using the locked shared_ptr value as hash doesn't work
+			// for expired weak_ptrs. So, we're left with a hack
+			return std::size_t(*reinterpret_cast<void* const*>(&th.m_torrent));
 		}
 	};
 }
