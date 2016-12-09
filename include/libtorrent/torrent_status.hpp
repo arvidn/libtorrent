@@ -39,10 +39,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/time.hpp" // for time_duration
 #include "libtorrent/storage_defs.hpp" // for storage_mode_t
-#include "libtorrent/error_code.hpp" // for storage_mode_t
+#include "libtorrent/error_code.hpp"
 
 #include <cstdint>
 #include <string>
+#include <ctime>
 
 namespace libtorrent
 {
@@ -53,8 +54,8 @@ namespace libtorrent
 		// hidden
 		torrent_status();
 		~torrent_status();
-		torrent_status(torrent_status const&) = default;
-		torrent_status& operator=(torrent_status const&) = default;
+		torrent_status(torrent_status const&);
+		torrent_status& operator=(torrent_status const&);
 
 		// compares if the torrent status objects come from the same torrent. i.e.
 		// only the torrent_handle field is compared.
@@ -251,15 +252,15 @@ namespace libtorrent
 
 		// the posix-time when this torrent was added. i.e. what ``time(nullptr)``
 		// returned at the time.
-		time_t added_time = 0;
+		std::time_t added_time = 0;
 
 		// the posix-time when this torrent was finished. If the torrent is not
 		// yet finished, this is 0.
-		time_t completed_time = 0;
+		std::time_t completed_time = 0;
 
 		// the time when we, or one of our peers, last saw a complete copy of
 		// this torrent.
-		time_t last_seen_complete = 0;
+		std::time_t last_seen_complete = 0;
 
 		// The allocation mode for the torrent. See storage_mode_t for the
 		// options. For more information, see storage-allocation_.
@@ -545,7 +546,7 @@ namespace libtorrent
 		bool stop_when_ready = false;
 
 		// the info-hash for this torrent
-		sha1_hash info_hash{nullptr};
+		sha1_hash info_hash;
 
 		time_point last_upload;
 		time_point last_download;

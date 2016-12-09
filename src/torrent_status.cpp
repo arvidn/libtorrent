@@ -36,5 +36,6 @@ namespace libtorrent
 {
 	torrent_status::torrent_status() = default;
 	torrent_status::~torrent_status() = default;
+	torrent_status::torrent_status(torrent_status const&) = default;
+	torrent_status& torrent_status::operator=(torrent_status const&) = default;
 }
-
