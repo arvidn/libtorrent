@@ -36,14 +36,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #include <cctype>
 
-#include "libtorrent/peer_id.hpp"
-#include "libtorrent/bt_peer_connection.hpp"
+#include "libtorrent/torrent_handle.hpp"
+#include "libtorrent/torrent.hpp"
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/bencode.hpp"
-#include "libtorrent/hasher.hpp"
 #include "libtorrent/entry.hpp"
-#include "libtorrent/session.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/aux_/session_call.hpp"
 #include "libtorrent/invariant_check.hpp"
