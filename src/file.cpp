@@ -1774,7 +1774,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		std::int64_t ret = 0;
 		for (auto i : bufs)
 		{
-			std::int64_t tmp_ret = f(fd, i.iov_base, i.iov_len, file_offset);
+			std::int64_t const tmp_ret = f(fd, i.iov_base, i.iov_len, file_offset);
 			if (tmp_ret < 0)
 			{
 #ifdef TORRENT_WINDOWS

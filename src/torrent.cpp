@@ -2665,7 +2665,7 @@ namespace libtorrent
 		req.num_want = (req.event == tracker_request::stopped)
 			? 0 : settings().get_int(settings_pack::num_want);
 
-		time_point now = clock_type::now();
+		time_point const now = clock_type::now();
 
 		// the tier is kept as INT_MAX until we find the first
 		// tracker that works, then it's set to that tracker's
@@ -9443,7 +9443,7 @@ namespace libtorrent
 	{
 		using namespace libtorrent;
 
-		time_point now = clock_type::now();
+		time_point const now = clock_type::now();
 
 		float deadline = 0.f;
 		float last_request = 0.f;
@@ -9810,7 +9810,7 @@ namespace libtorrent
 		// piece is done
 		std::vector<peer_connection*> ignore_peers;
 
-		time_point now = clock_type::now();
+		time_point const now = clock_type::now();
 
 		// now, iterate over all time critical pieces, in order of importance, and
 		// request them from the peers, in order of responsiveness. i.e. request

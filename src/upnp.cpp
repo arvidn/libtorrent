@@ -770,7 +770,7 @@ void upnp::next(rootdevice& d, int i)
 	}
 }
 
-void upnp::update_map(rootdevice& d, int i)
+void upnp::update_map(rootdevice& d, int const i)
 {
 	TORRENT_ASSERT(is_single_thread());
 	TORRENT_ASSERT(d.magic == 1337);

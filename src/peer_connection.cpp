@@ -6180,7 +6180,7 @@ namespace libtorrent
 
 		m_send_buffer.pop_front(int(bytes_transferred));
 
-		time_point now = clock_type::now();
+		time_point const now = clock_type::now();
 
 		for (auto& block : m_download_queue)
 		{

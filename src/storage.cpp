@@ -271,7 +271,7 @@ namespace libtorrent
 #endif
 
 			error_code e;
-			int ret = int(handle->writev(adjusted_offset
+			int const ret = int(handle->writev(adjusted_offset
 				, bufs, e, m_flags));
 
 			// set this unconditionally in case the upper layer would like to treat
@@ -356,7 +356,7 @@ namespace libtorrent
 #endif
 
 			error_code e;
-			int ret = int(handle->readv(adjusted_offset
+			int const ret = int(handle->readv(adjusted_offset
 				, bufs, e, m_flags));
 
 			// set this unconditionally in case the upper layer would like to treat

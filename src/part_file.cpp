@@ -297,7 +297,7 @@ namespace libtorrent
 			, boost::system::generic_category());
 	}
 
-	void part_file::export_file(file& f, std::int64_t offset, std::int64_t size, error_code& ec)
+	void part_file::export_file(file& f, std::int64_t const offset, std::int64_t size, error_code& ec)
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 

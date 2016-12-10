@@ -601,7 +601,7 @@ void natpmp::update_expiration_timer()
 	TORRENT_ASSERT(is_single_thread());
 	if (m_abort) return;
 
-	time_point now = aux::time_now() + milliseconds(100);
+	time_point const now = aux::time_now() + milliseconds(100);
 	time_point min_expire = now + seconds(3600);
 	int min_index = -1;
 	for (std::vector<mapping_t>::iterator i = m_mappings.begin()
@@ -609,7 +609,7 @@ void natpmp::update_expiration_timer()
 	{
 		if (i->protocol == portmap_protocol::none
 			|| i->act != mapping_t::action::none) continue;
-		int index = int(i - m_mappings.begin());
+		int const index = int(i - m_mappings.begin());
 		if (i->expires < now)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
