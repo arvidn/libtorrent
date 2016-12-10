@@ -113,10 +113,9 @@ namespace libtorrent
 
 	int stat_cache::add_error(error_code const& ec)
 	{
-		std::vector<error_code>::iterator i = std::find(m_errors.begin(), m_errors.end(), ec);
+		auto const i = std::find(m_errors.begin(), m_errors.end(), ec);
 		if (i != m_errors.end()) return int(i - m_errors.begin());
 		m_errors.push_back(ec);
 		return int(m_errors.size()) - 1;
 	}
 }
-

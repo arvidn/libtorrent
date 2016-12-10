@@ -160,12 +160,12 @@ namespace
 	// sure we wait for all of them, partially in sequence
 	DWORD wait_for_multiple_objects(int num_handles, HANDLE* h)
 	{
-		int batch_size = (std::min)(num_handles, MAXIMUM_WAIT_OBJECTS);
+		int batch_size = std::min(num_handles, MAXIMUM_WAIT_OBJECTS);
 		while (WaitForMultipleObjects(batch_size, h, TRUE, INFINITE) != WAIT_FAILED)
 		{
 			h += batch_size;
 			num_handles -= batch_size;
-			batch_size = (std::min)(num_handles, MAXIMUM_WAIT_OBJECTS);
+			batch_size = std::min(num_handles, MAXIMUM_WAIT_OBJECTS);
 			if (batch_size <= 0) return WAIT_OBJECT_0;
 		}
 		return WAIT_FAILED;
@@ -1774,7 +1774,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		std::int64_t ret = 0;
 		for (auto i : bufs)
 		{
-			std::int64_t tmp_ret = f(fd, i.iov_base, i.iov_len, file_offset);
+			std::int64_t const tmp_ret = f(fd, i.iov_base, i.iov_len, file_offset);
 			if (tmp_ret < 0)
 			{
 #ifdef TORRENT_WINDOWS
@@ -2156,7 +2156,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		// update the modification time of the file for no good
 		// reason.
 		if ((m_open_mode & sparse) == 0
-			&& st.st_blocks < (s + st.st_blksize - 1) / st.st_blksize)
+			&& int(st.st_blocks) < (s + st.st_blksize - 1) / st.st_blksize)
 		{
 			// How do we know that the file is already allocated?
 			// if we always try to allocate the space, we'll update

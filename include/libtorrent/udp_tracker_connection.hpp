@@ -36,16 +36,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <string>
 #include <utility>
-#include <ctime>
 #include <mutex>
 #include <cstdint>
 #include <memory>
 
 #include "libtorrent/udp_socket.hpp"
-#include "libtorrent/entry.hpp"
-#include "libtorrent/session_settings.hpp"
-#include "libtorrent/peer_id.hpp"
-#include "libtorrent/peer.hpp"
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/config.hpp"
 
@@ -133,4 +128,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_UDP_TRACKER_CONNECTION_HPP_INCLUDED
-

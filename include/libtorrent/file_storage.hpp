@@ -150,7 +150,7 @@ namespace libtorrent
 		// the number of characters in the name. If this is
 		// name_is_owned, name is 0-terminated and owned by this object
 		// (i.e. it should be freed in the destructor). If
-		// the len is not name_is_owned, the name pointer doesn not belong
+		// the len is not name_is_owned, the name pointer does not belong
 		// to this object, and it's not 0-terminated
 		std::uint64_t name_len:12;
 		std::uint64_t pad_file:1;
@@ -462,7 +462,7 @@ namespace libtorrent
 		// index (given the piece size).
 		sha1_hash hash(int index) const;
 		std::string const& symlink(int index) const;
-		time_t mtime(int index) const;
+		std::time_t mtime(int index) const;
 		std::string file_path(int index, std::string const& save_path = "") const;
 		string_view file_name(int index) const;
 		std::int64_t file_size(int index) const;
@@ -538,7 +538,7 @@ namespace libtorrent
 		TORRENT_DEPRECATED
 		std::string const& symlink(internal_file_entry const& fe) const;
 		TORRENT_DEPRECATED
-		time_t mtime(internal_file_entry const& fe) const;
+		std::time_t mtime(internal_file_entry const& fe) const;
 		TORRENT_DEPRECATED
 		int file_index(internal_file_entry const& fe) const;
 		TORRENT_DEPRECATED
@@ -602,7 +602,7 @@ namespace libtorrent
 		// is empty if no file have a modification time.
 		// each element corresponds to the file with the same
 		// index in m_files
-		std::vector<time_t> m_mtime;
+		std::vector<std::time_t> m_mtime;
 
 #ifndef TORRENT_NO_DEPRECATE
 		// if any file has a non-zero file base (i.e. multiple
@@ -633,7 +633,7 @@ namespace libtorrent
 	namespace aux {
 
 	// returns the piece range that entirely falls within the specified file. the
-	// end piece is one-past the last piece that entierly falls within the file.
+	// end piece is one-past the last piece that entirely falls within the file.
 	// i.e. They can conveniently be used as loop boundaries. No edge partial
 	// pieces will be included.
 	TORRENT_EXTRA_EXPORT std::tuple<int, int> file_piece_range_exclusive(file_storage const& fs, int file);

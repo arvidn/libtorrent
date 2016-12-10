@@ -618,8 +618,8 @@ namespace libtorrent
 		TORRENT_PIECE_ASSERT(num_blocks > 0, pe);
 		m_stats_counters.inc_stats_counter(counters::num_writing_threads, 1);
 
-		time_point start_time = clock_type::now();
-		int block_size = m_disk_cache.block_size();
+		time_point const start_time = clock_type::now();
+		int const block_size = m_disk_cache.block_size();
 
 #if DEBUG_DISK_THREAD
 		DLOG("flush_iovec: piece: %d [ ", int(pe->piece));
@@ -634,8 +634,8 @@ namespace libtorrent
 		// issue the actual write operation
 		auto iov_start = iov;
 		int flushing_start = 0;
-		int piece = pe->piece;
-		int blocks_in_piece = pe->blocks_in_piece;
+		int const piece = pe->piece;
+		int const blocks_in_piece = pe->blocks_in_piece;
 		bool failed = false;
 		for (int i = 1; i <= num_blocks; ++i)
 		{
@@ -658,7 +658,7 @@ namespace libtorrent
 		if (!failed)
 		{
 			TORRENT_PIECE_ASSERT(!error, pe);
-			std::int64_t write_time = total_microseconds(clock_type::now() - start_time);
+			std::int64_t const write_time = total_microseconds(clock_type::now() - start_time);
 			m_write_time.add_sample(write_time / num_blocks);
 
 			m_stats_counters.inc_stats_counter(counters::num_blocks_written, num_blocks);
@@ -1098,7 +1098,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(j->action < sizeof(job_functions) / sizeof(job_functions[0]));
 
-		time_point start_time = clock_type::now();
+		time_point const start_time = clock_type::now();
 
 		m_stats_counters.inc_stats_counter(counters::num_running_disk_jobs, 1);
 
@@ -1177,7 +1177,7 @@ namespace libtorrent
 
 		j->ret = ret;
 
-		time_point now = clock_type::now();
+		time_point const now = clock_type::now();
 		m_job_time.add_sample(total_microseconds(now - start_time));
 		completed_jobs.push_back(j);
 	}
@@ -1192,11 +1192,11 @@ namespace libtorrent
 			return status_t::fatal_disk_error;
 		}
 
-		time_point start_time = clock_type::now();
+		time_point const start_time = clock_type::now();
 
 		int const file_flags = file_flags_for_job(j
 			, m_settings.get_bool(settings_pack::coalesce_reads));
-		file::iovec_t b = { j->buffer.disk_block, size_t(j->d.io.buffer_size) };
+		file::iovec_t b = {j->buffer.disk_block, std::size_t(j->d.io.buffer_size)};
 
 		int ret = j->storage->readv(b
 			, j->piece, j->d.io.offset, file_flags, j->error);
@@ -1206,7 +1206,7 @@ namespace libtorrent
 
 		if (!j->error.ec)
 		{
-			std::int64_t read_time = total_microseconds(clock_type::now() - start_time);
+			std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
 			m_read_time.add_sample(read_time);
 
 			m_stats_counters.inc_stats_counter(counters::num_read_back);
@@ -1252,7 +1252,7 @@ namespace libtorrent
 
 			std::unique_lock<std::mutex> l2(m_cache_mutex);
 			pe = m_disk_cache.find_piece(j);
-			if (pe) maybe_issue_queued_read_jobs(pe, completed_jobs);
+			if (pe != nullptr) maybe_issue_queued_read_jobs(pe, completed_jobs);
 			return s;
 		}
 
@@ -1272,7 +1272,7 @@ namespace libtorrent
 
 		int const file_flags = file_flags_for_job(j
 			, m_settings.get_bool(settings_pack::coalesce_reads));
-		time_point start_time = clock_type::now();
+		time_point const start_time = clock_type::now();
 
 		ret = j->storage->readv(iov
 			, j->piece, int(adjusted_offset), file_flags, j->error);
@@ -1426,9 +1426,9 @@ namespace libtorrent
 
 	status_t disk_io_thread::do_uncached_write(disk_io_job* j)
 	{
-		time_point start_time = clock_type::now();
+		time_point const start_time = clock_type::now();
 
-		file::iovec_t const b = { j->buffer.disk_block, size_t(j->d.io.buffer_size) };
+		file::iovec_t const b = {j->buffer.disk_block, std::size_t(j->d.io.buffer_size)};
 		int const file_flags = file_flags_for_job(j
 			, m_settings.get_bool(settings_pack::coalesce_writes));
 
@@ -1442,7 +1442,7 @@ namespace libtorrent
 
 		if (!j->error.ec)
 		{
-			std::int64_t write_time = total_microseconds(clock_type::now() - start_time);
+			std::int64_t const write_time = total_microseconds(clock_type::now() - start_time);
 			m_write_time.add_sample(write_time);
 
 			m_stats_counters.inc_stats_counter(counters::num_blocks_written);
@@ -1954,7 +1954,7 @@ namespace libtorrent
 		add_fence_job(storage, j);
 	}
 
-	void disk_io_thread::clear_piece(storage_interface* storage, int index)
+	void disk_io_thread::clear_piece(storage_interface* storage, int const index)
 	{
 		std::unique_lock<std::mutex> l(m_cache_mutex);
 
@@ -1982,20 +1982,20 @@ namespace libtorrent
 		if (!pe->hash) return;
 		if (pe->hashing) return;
 
-		int piece_size = pe->storage->files()->piece_size(pe->piece);
+		int const piece_size = pe->storage->files()->piece_size(pe->piece);
 		partial_hash* ph = pe->hash.get();
 
 		// are we already done?
 		if (ph->offset >= piece_size) return;
 
-		int block_size = m_disk_cache.block_size();
-		int cursor = ph->offset / block_size;
+		int const block_size = m_disk_cache.block_size();
+		int const cursor = ph->offset / block_size;
 		int end = cursor;
 		TORRENT_PIECE_ASSERT(ph->offset % block_size == 0, pe);
 
 		for (int i = cursor; i < pe->blocks_in_piece; ++i)
 		{
-			cached_block_entry& bl = pe->blocks[i];
+			cached_block_entry const& bl = pe->blocks[i];
 			if (bl.buf == nullptr) break;
 
 			// if we fail to lock the block, it' no longer in the cache
@@ -2021,17 +2021,17 @@ namespace libtorrent
 
 		l.unlock();
 
-		time_point start_time = clock_type::now();
+		time_point const start_time = clock_type::now();
 
 		for (int i = cursor; i < end; ++i)
 		{
 			cached_block_entry& bl = pe->blocks[i];
-			int const size = (std::min)(block_size, piece_size - offset);
+			int const size = std::min(block_size, piece_size - offset);
 			ph->h.update(bl.buf, size);
 			offset += size;
 		}
 
-		std::int64_t hash_time = total_microseconds(clock_type::now() - start_time);
+		std::int64_t const hash_time = total_microseconds(clock_type::now() - start_time);
 
 		l.lock();
 
@@ -2113,7 +2113,7 @@ namespace libtorrent
 			DLOG("do_hash: (uncached) reading (piece: %d block: %d)\n"
 				, int(j->piece), i);
 
-			time_point start_time = clock_type::now();
+			time_point const start_time = clock_type::now();
 
 			iov.iov_len = (std::min)(block_size, piece_size - offset);
 			ret = j->storage->readv(iov, j->piece
@@ -2304,7 +2304,7 @@ namespace libtorrent
 
 				DLOG("do_hash: reading (piece: %d block: %d)\n", int(pe->piece), i);
 
-				time_point start_time = clock_type::now();
+				time_point const start_time = clock_type::now();
 
 				TORRENT_PIECE_ASSERT(offset == i * block_size, pe);
 				int read_ret = j->storage->readv(iov, j->piece
@@ -2332,7 +2332,7 @@ namespace libtorrent
 
 				if (!j->error.ec)
 				{
-					std::int64_t read_time = total_microseconds(clock_type::now() - start_time);
+					std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
 					m_read_time.add_sample(read_time);
 
 					m_stats_counters.inc_stats_counter(counters::num_read_back);

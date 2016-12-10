@@ -241,7 +241,7 @@ namespace libtorrent
 	void tracker_manager::remove_request(tracker_connection const* c)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		http_conns_t::iterator i = std::find_if(m_http_conns.begin(), m_http_conns.end()
+		auto const i = std::find_if(m_http_conns.begin(), m_http_conns.end()
 			, [c] (std::shared_ptr<http_tracker_connection> const& ptr) { return ptr.get() == c; });
 		if (i != m_http_conns.end())
 		{
@@ -249,8 +249,9 @@ namespace libtorrent
 			return;
 		}
 
-		udp_conns_t::iterator j = std::find_if(m_udp_conns.begin(), m_udp_conns.end()
-			, [c] (udp_conns_t::value_type const& uc) { return uc.second.get() == c; });
+		auto const j = std::find_if(m_udp_conns.begin(), m_udp_conns.end()
+			, [c] (std::pair<std::uint32_t, std::shared_ptr<udp_tracker_connection>> const& uc)
+				{ return uc.second.get() == c; });
 		if (j != m_udp_conns.end())
 		{
 			m_udp_conns.erase(j);
@@ -339,7 +340,7 @@ namespace libtorrent
 		if (action > 3) return false;
 
 		std::uint32_t const transaction = aux::read_uint32(ptr);
-		udp_conns_t::iterator const i = m_udp_conns.find(transaction);
+		auto const i = m_udp_conns.find(transaction);
 
 		if (i == m_udp_conns.end())
 		{
@@ -380,7 +381,7 @@ namespace libtorrent
 		if (action > 3) return false;
 
 		std::uint32_t const transaction = aux::read_uint32(ptr);
-		udp_conns_t::iterator const i = m_udp_conns.find(transaction);
+		auto const i = m_udp_conns.find(transaction);
 
 		if (i == m_udp_conns.end())
 		{
@@ -421,28 +422,25 @@ namespace libtorrent
 		// removes all connections except 'event=stopped'-requests
 
 		m_abort = true;
-		http_conns_t close_http_connections;
+		std::vector<std::shared_ptr<http_tracker_connection>> close_http_connections;
 		std::vector<std::shared_ptr<udp_tracker_connection>> close_udp_connections;
 
-		for (http_conns_t::iterator i = m_http_conns.begin()
-			, end(m_http_conns.end()); i != end; ++i)
+		for (auto const& c : m_http_conns)
 		{
-			http_tracker_connection* c = i->get();
 			tracker_request const& req = c->tracker_req();
 			if (req.event == tracker_request::stopped && !all)
 				continue;
 
-			close_http_connections.push_back(*i);
+			close_http_connections.push_back(c);
 
 #ifndef TORRENT_DISABLE_LOGGING
 			std::shared_ptr<request_callback> rc = c->requester();
-			if (rc) rc->debug_log("aborting: %s", req.url.c_str());
+			if (rc && rc->should_log()) rc->debug_log("aborting: %s", req.url.c_str());
 #endif
 		}
-		for (udp_conns_t::iterator i = m_udp_conns.begin()
-			, end(m_udp_conns.end()); i != end; ++i)
+		for (auto const& p : m_udp_conns)
 		{
-			std::shared_ptr<udp_tracker_connection> c = i->second;
+			std::shared_ptr<udp_tracker_connection> c = p.second;
 			tracker_request const& req = c->tracker_req();
 			if (req.event == tracker_request::stopped && !all)
 				continue;
@@ -451,20 +449,15 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_LOGGING
 			std::shared_ptr<request_callback> rc = c->requester();
-			if (rc) rc->debug_log("aborting: %s", req.url.c_str());
+			if (rc && rc->should_log()) rc->debug_log("aborting: %s", req.url.c_str());
 #endif
 		}
 
-		for (http_conns_t::iterator i = close_http_connections.begin()
-			, end(close_http_connections.end()); i != end; ++i)
-		{
-			(*i)->close();
-		}
+		for (auto const& c : close_http_connections)
+			c->close();
 
 		for (auto const& c : close_udp_connections)
-		{
 			c->close();
-		}
 	}
 
 	bool tracker_manager::empty() const

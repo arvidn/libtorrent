@@ -141,7 +141,7 @@ namespace libtorrent { namespace
 				metadata();
 		}
 
-		void metadata_size(int size)
+		void metadata_size(int const size)
 		{
 			if (m_metadata_size > 0 || size <= 0 || size > 4 * 1024 * 1024) return;
 			m_metadata_size = size;
@@ -225,7 +225,7 @@ namespace libtorrent { namespace
 			return true;
 		}
 
-		void write_metadata_packet(int type, int piece)
+		void write_metadata_packet(int const type, int const piece)
 		{
 			TORRENT_ASSERT(type >= 0 && type <= 2);
 			TORRENT_ASSERT(!m_pc.associated_torrent().expired());
@@ -272,9 +272,9 @@ namespace libtorrent { namespace
 			int len = bencode(p, e);
 			int total_size = 2 + len + metadata_piece_size;
 			namespace io = detail;
-			io::write_uint32(std::uint32_t(total_size), header);
+			io::write_uint32(total_size, header);
 			io::write_uint8(bt_peer_connection::msg_extended, header);
-			io::write_uint8(std::uint8_t(m_message_index), header);
+			io::write_uint8(m_message_index, header);
 
 			m_pc.send_buffer(msg, len + 6);
 			// TODO: we really need to increment the refcounter on the torrent
@@ -388,8 +388,8 @@ namespace libtorrent { namespace
 				break;
 				case metadata_dont_have:
 				{
-					m_request_limit = (std::max)(aux::time_now() + minutes(1), m_request_limit);
-					std::vector<int>::iterator i = std::find(m_sent_requests.begin()
+					m_request_limit = std::max(aux::time_now() + minutes(1), m_request_limit);
+					auto const i = std::find(m_sent_requests.begin()
 						, m_sent_requests.end(), piece);
 					// unwanted piece?
 					if (i == m_sent_requests.end()) return true;
@@ -486,7 +486,7 @@ namespace libtorrent { namespace
 	// has_metadata is false if the peer making the request has not announced
 	// that it has metadata. In this case, it shouldn't prevent other peers
 	// from requesting this block by setting a timeout on it.
-	int ut_metadata_plugin::metadata_request(bool has_metadata)
+	int ut_metadata_plugin::metadata_request(bool const has_metadata)
 	{
 		std::vector<metadata_piece>::iterator i = std::min_element(
 			m_requested_metadata.begin(), m_requested_metadata.end());

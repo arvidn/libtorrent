@@ -174,8 +174,7 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth
 	int size = 0;
 	std::array<void*, 50> stack;
 
-	STACKFRAME64 stack_frame;
-	memset(&stack_frame, 0, sizeof(stack_frame));
+	STACKFRAME64 stack_frame = {};
 #if defined(_WIN64)
 	int const machine_type = IMAGE_FILE_MACHINE_AMD64;
 	stack_frame.AddrPC.Offset = context_record.Rip;
@@ -375,4 +374,3 @@ TORRENT_EXPORT void assert_fail(char const*, int, char const*
 	, char const*, char const*, int) {}
 
 #endif
-

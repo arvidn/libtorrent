@@ -94,7 +94,7 @@ namespace libtorrent
 		{
 			// parse header
 			std::unique_ptr<std::uint32_t[]> header(new std::uint32_t[m_header_size]);
-			file::iovec_t b = {header.get(), size_t(m_header_size) };
+			file::iovec_t b = {header.get(), std::size_t(m_header_size)};
 			int n = int(m_file.readv(0, b, ec));
 			if (ec) return;
 
@@ -297,7 +297,7 @@ namespace libtorrent
 			, boost::system::generic_category());
 	}
 
-	void part_file::export_file(file& f, std::int64_t offset, std::int64_t size, error_code& ec)
+	void part_file::export_file(file& f, std::int64_t const offset, std::int64_t size, error_code& ec)
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 
@@ -310,7 +310,7 @@ namespace libtorrent
 		std::int64_t file_offset = 0;
 		for (; piece < end; ++piece)
 		{
-			std::unordered_map<int, int>::iterator i = m_piece_map.find(piece);
+			auto const i = m_piece_map.find(piece);
 			int const block_to_copy = int((std::min)(m_piece_size - piece_offset, size));
 			if (i != m_piece_map.end())
 			{
@@ -326,7 +326,7 @@ namespace libtorrent
 				// don't hold the lock during disk I/O
 				l.unlock();
 
-				file::iovec_t v = { buf.get(), size_t(block_to_copy) };
+				file::iovec_t v = {buf.get(), std::size_t(block_to_copy)};
 				v.iov_len = m_file.readv(slot_offset + piece_offset, v, ec);
 				TORRENT_ASSERT(!ec);
 				if (ec || v.iov_len == 0) return;
@@ -345,7 +345,7 @@ namespace libtorrent
 					// another thread removed this slot map entry, and invalidated
 					// our iterator. Now that we hold the lock again, perform
 					// another lookup to be sure.
-					std::unordered_map<int, int>::iterator j = m_piece_map.find(piece);
+					auto const j = m_piece_map.find(piece);
 					if (j != m_piece_map.end())
 					{
 						// if the slot moved, that's really suspicious
@@ -404,7 +404,7 @@ namespace libtorrent
 
 		for (int piece = 0; piece < m_max_pieces; ++piece)
 		{
-			std::unordered_map<int, int>::iterator i = m_piece_map.find(piece);
+			auto const i = m_piece_map.find(piece);
 			int slot = 0xffffffff;
 			if (i != m_piece_map.end())
 				slot = i->second;
@@ -412,8 +412,7 @@ namespace libtorrent
 		}
 		std::memset(ptr, 0, m_header_size - (ptr - reinterpret_cast<char*>(header.get())));
 
-		file::iovec_t b = {header.get(), size_t(m_header_size) };
+		file::iovec_t b = {header.get(), std::size_t(m_header_size)};
 		m_file.writev(0, b, ec);
-		if (ec) return;
 	}
 }

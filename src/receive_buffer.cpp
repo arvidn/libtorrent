@@ -74,7 +74,7 @@ void receive_buffer::grow(int const limit)
 	int const new_size = (current_size < m_packet_size)
 		? m_packet_size : std::min(current_size * 3 / 2, limit);
 
-	// re-allcoate the buffer and copy over the part of it that's used
+	// re-allocate the buffer and copy over the part of it that's used
 	buffer new_buffer(new_size
 		, span<char const>(m_recv_buffer.data(), m_recv_end));
 	m_recv_buffer = std::move(new_buffer);
