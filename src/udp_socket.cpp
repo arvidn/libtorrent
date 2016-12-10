@@ -404,7 +404,7 @@ void udp_socket::close()
 	m_abort = true;
 }
 
-void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
+void udp_socket::open(udp const& protocol, error_code& ec)
 {
 	TORRENT_ASSERT(is_single_thread());
 
@@ -413,16 +413,11 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 	if (m_socket.is_open()) m_socket.close(ec);
 	ec.clear();
 
-	if (ep.address().is_v4())
-	{
-		m_socket.open(udp::v4(), ec);
-		if (ec) return;
-	}
+	m_socket.open(protocol, ec);
+	if (ec) return;
 #if TORRENT_USE_IPV6
-	else if (ep.address().is_v6())
+	if (protocol == udp::v6())
 	{
-		m_socket.open(udp::v6(), ec);
-		if (ec) return;
 		error_code err;
 		m_socket.set_option(boost::asio::ip::v6_only(true), err);
 
@@ -439,7 +434,12 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 	m_socket.set_option(exclusive_address_use(true), err);
 #endif
 	m_socket.set_option(boost::asio::socket_base::reuse_address(true), err);
+}
 
+void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
+{
+	if (!m_socket.is_open()) open(ep.protocol(), ec);
+	if (ec) return;
 	m_socket.bind(ep, ec);
 	if (ec) return;
 	udp::socket::non_blocking_io ioc(true);

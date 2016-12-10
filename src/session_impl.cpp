@@ -1635,8 +1635,28 @@ namespace aux {
 			= (flags & open_ssl_socket)
 			? socket_type_t::utp_ssl
 			: socket_type_t::udp;
+		udp::endpoint const udp_bind_ep(bind_ep.address(), bind_ep.port());
 
 		ret.udp_sock = std::make_shared<udp_socket>(m_io_service);
+		ret.udp_sock->open(udp_bind_ep.protocol(), ec);
+		if (ec)
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			if (should_log())
+			{
+				session_log("failed to open UDP socket: %s: %s"
+					, device.c_str(), ec.message().c_str());
+			}
+#endif
+
+			last_op = listen_failed_alert::open;
+			if (m_alerts.should_post<listen_failed_alert>())
+				m_alerts.emplace_alert<listen_failed_alert>(device
+					, bind_ep, last_op, ec, udp_sock_type);
+
+			return ret;
+		}
+
 #if TORRENT_HAS_BINDTODEVICE
 		if (!device.empty())
 		{
@@ -1661,8 +1681,7 @@ namespace aux {
 			}
 		}
 #endif
-		ret.udp_sock->bind(udp::endpoint(bind_ep.address(), bind_ep.port())
-			, ec);
+		ret.udp_sock->bind(udp_bind_ep, ec);
 
 		last_op = listen_failed_alert::bind;
 		if (ec)
@@ -1670,7 +1689,7 @@ namespace aux {
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log())
 			{
-				session_log("failed to open UDP socket: %s: %s"
+				session_log("failed to bind UDP socket: %s: %s"
 					, device.c_str(), ec.message().c_str());
 			}
 #endif

@@ -579,10 +579,9 @@ namespace libtorrent
 			bool is_dht_running() const { return (m_dht.get() != nullptr); }
 			int external_udp_port() const override
 			{
-				for (std::list<listen_socket_t>::const_iterator i = m_listen_sockets.begin()
-					, end(m_listen_sockets.end()); i != end; ++i)
+				for (auto const& s : m_listen_sockets)
 				{
-					if (i->udp_sock) return i->udp_external_port;
+					if (s.udp_sock) return s.udp_external_port;
 				}
 				return -1;
 			}
