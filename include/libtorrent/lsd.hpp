@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_LSD_HPP
 
 #include "libtorrent/socket.hpp"
-#include "libtorrent/peer_id.hpp"
+#include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/aux_/lsd.hpp"
@@ -74,7 +74,7 @@ private:
 #endif
 #ifndef TORRENT_DISABLE_LOGGING
 	bool should_log() const;
-	void debug_log(char const* fmt, ...) const TORRENT_FORMAT(2,3);
+	void debug_log(char const* fmt, ...) const TORRENT_FORMAT(2, 3);
 #endif
 
 	// used to resend udp packets in case
