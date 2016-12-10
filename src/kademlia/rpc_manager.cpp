@@ -281,7 +281,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 		return false;
 	}
 
-	time_point now = clock_type::now();
+	time_point const now = clock_type::now();
 
 #ifndef TORRENT_DISABLE_LOGGING
 	if (m_log->should_log(dht_logger::rpc_manager))

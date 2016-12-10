@@ -1337,7 +1337,7 @@ void utp_socket_impl::send_syn()
 	h->seq_nr = m_seq_nr;
 	h->ack_nr = 0;
 
-	time_point now = clock_type::now();
+	time_point const now = clock_type::now();
 	p->send_time = now;
 	h->timestamp_microseconds = std::uint32_t(
 		total_microseconds(now.time_since_epoch()) & 0xffffffff);
@@ -1431,7 +1431,7 @@ void utp_socket_impl::send_reset(utp_header const* ph)
 	h.wnd_size = 0;
 	h.seq_nr = std::uint16_t(random(0xffff));
 	h.ack_nr = ph->seq_nr;
-	time_point now = clock_type::now();
+	time_point const now = clock_type::now();
 	h.timestamp_microseconds = std::uint32_t(
 		total_microseconds(now.time_since_epoch()) & 0xffffffff);
 
@@ -2008,7 +2008,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 		h->type_ver = (ST_FIN << 4) | 1;
 
 	// fill in the timestamp as late as possible
-	time_point now = clock_type::now();
+	time_point const now = clock_type::now();
 	p->send_time = now;
 	h->timestamp_microseconds = std::uint32_t(
 		total_microseconds(now.time_since_epoch()) & 0xffffffff);

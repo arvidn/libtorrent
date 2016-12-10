@@ -422,7 +422,7 @@ void http_connection::on_timeout(std::weak_ptr<http_connection> p
 
 	if (c->m_abort) return;
 
-	time_point now = clock_type::now();
+	time_point const now = clock_type::now();
 
 	if (c->m_start_time + c->m_completion_timeout <= now
 		|| c->m_last_receive + c->m_read_timeout <= now)

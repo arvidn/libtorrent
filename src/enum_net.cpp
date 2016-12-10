@@ -152,7 +152,7 @@ namespace libtorrent { namespace
 
 #if TORRENT_USE_NETLINK
 
-	int read_nl_sock(int sock, char *buf, int bufsize, int seq, int pid)
+	int read_nl_sock(int sock, char *buf, int bufsize, int const seq, int const pid)
 	{
 		nlmsghdr* nl_hdr;
 
