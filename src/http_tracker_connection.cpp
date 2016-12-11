@@ -253,7 +253,8 @@ namespace libtorrent
 			m_tracker_connection->close();
 			m_tracker_connection.reset();
 		}
-		tracker_connection::close();
+		cancel();
+		m_man.remove_request(this);
 	}
 
 	// endpoints is an in-out parameter

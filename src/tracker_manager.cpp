@@ -196,12 +196,6 @@ namespace libtorrent
 		m_man.received_bytes(bytes);
 	}
 
-	void tracker_connection::close()
-	{
-		cancel();
-		m_man.remove_request(this);
-	}
-
 	tracker_manager::tracker_manager(send_fun_t const& send_fun
 		, send_fun_hostname_t const& send_fun_hostname
 		, counters& stats_counters
@@ -238,7 +232,7 @@ namespace libtorrent
 		m_stats_counters.inc_stats_counter(counters::recv_tracker_bytes, bytes);
 	}
 
-	void tracker_manager::remove_request(tracker_connection const* c)
+	void tracker_manager::remove_request(http_tracker_connection const* c)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		http_conns_t::iterator i = std::find_if(m_http_conns.begin(), m_http_conns.end()
@@ -248,14 +242,12 @@ namespace libtorrent
 			m_http_conns.erase(i);
 			return;
 		}
+	}
 
-		udp_conns_t::iterator j = std::find_if(m_udp_conns.begin(), m_udp_conns.end()
-			, [c] (udp_conns_t::value_type const& uc) { return uc.second.get() == c; });
-		if (j != m_udp_conns.end())
-		{
-			m_udp_conns.erase(j);
-			return;
-		}
+	void tracker_manager::remove_request(udp_tracker_connection const* c)
+	{
+		TORRENT_ASSERT(is_single_thread());
+		m_udp_conns.erase(c->transaction_id());
 	}
 
 	void tracker_manager::update_transaction_id(
