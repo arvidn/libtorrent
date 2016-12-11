@@ -287,10 +287,8 @@ namespace libtorrent
 		if (sett.get_int(settings_pack::choking_algorithm)
 			== settings_pack::bittyrant_choker)
 		{
-			for (std::vector<peer_connection*>::const_iterator i = peers.begin()
-				, end(peers.end()); i != end; ++i)
+			for (auto const p : peers)
 			{
-				peer_connection* p = *i;
 				if (p->is_choked() || !p->is_interesting()) continue;
 
 				if (!p->has_peer_choked())
@@ -360,11 +358,9 @@ namespace libtorrent
 			// TODO: make configurable
 			int rate_threshold = 1024;
 
-			for (std::vector<peer_connection*>::const_iterator i = peers.begin()
-				, end(peers.end()); i != end; ++i)
+			for (auto const p : peers)
 			{
-				peer_connection const& p = **i;
-				int const rate = int(p.uploaded_in_last_round()
+				int const rate = int(p->uploaded_in_last_round()
 					* 1000 / total_milliseconds(unchoke_interval));
 
 				if (rate < rate_threshold) break;
