@@ -329,8 +329,8 @@ namespace libtorrent
 
 	void udp_tracker_connection::close()
 	{
-		error_code ec;
-		tracker_connection::close();
+		cancel();
+		m_man.remove_request(this);
 	}
 
 	bool udp_tracker_connection::on_receive_hostname(char const* hostname
