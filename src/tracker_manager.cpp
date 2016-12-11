@@ -283,18 +283,14 @@ namespace libtorrent
 		if (protocol == "http")
 #endif
 		{
-			std::shared_ptr<http_tracker_connection> con
-				= std::make_shared<http_tracker_connection>(
-					std::ref(ios), std::ref(*this), std::cref(req), c);
+			auto con = std::make_shared<http_tracker_connection>(ios, *this, req, c);
 			m_http_conns.push_back(con);
 			con->start();
 			return;
 		}
 		else if (protocol == "udp")
 		{
-			std::shared_ptr<udp_tracker_connection> con
-				= std::make_shared<udp_tracker_connection>(
-					std::ref(ios), std::ref(*this), std::cref(req) , c);
+			auto con = std::make_shared<udp_tracker_connection>(ios, *this, req, c);
 			m_udp_conns[con->transaction_id()] = con;
 			con->start();
 			return;
@@ -431,7 +427,7 @@ namespace libtorrent
 		}
 		for (auto const& p : m_udp_conns)
 		{
-			std::shared_ptr<udp_tracker_connection> c = p.second;
+			auto const& c = p.second;
 			tracker_request const& req = c->tracker_req();
 			if (req.event == tracker_request::stopped && !all)
 				continue;
