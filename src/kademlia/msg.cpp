@@ -73,7 +73,7 @@ bool verify_message_impl(bdecode_node const& message, span<key_desc_t const> des
 		// none_t means any type
 		if (ret[i] && ret[i].type() != k.type && k.type != bdecode_node::none_t)
 			ret[i].clear();
-		if (ret[i] == 0 && (k.flags & key_desc_t::optional) == 0)
+		if (!ret[i] && (k.flags & key_desc_t::optional) == 0)
 		{
 			// the key was not found, and it's not an optional key
 			std::snprintf(error.data(), error.size(), "missing '%s' key", k.name);

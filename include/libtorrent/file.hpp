@@ -219,7 +219,7 @@ namespace libtorrent
 		file const& operator*() const;
 		file* get();
 		file const* get() const;
-		operator bool() const;
+		explicit operator bool() const;
 		file_handle& reset(file* f = nullptr);
 
 		char stack[2048];

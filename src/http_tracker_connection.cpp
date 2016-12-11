@@ -394,7 +394,7 @@ namespace libtorrent
 
 		// extract ip
 		i = info.dict_find_string("ip");
-		if (i == 0)
+		if (!i)
 		{
 			ec = errors::invalid_tracker_response;
 			return false;
@@ -403,7 +403,7 @@ namespace libtorrent
 
 		// extract port
 		i = info.dict_find_int("port");
-		if (i == 0)
+		if (!i)
 		{
 			ec = errors::invalid_tracker_response;
 			return false;
