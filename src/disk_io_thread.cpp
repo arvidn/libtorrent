@@ -1196,7 +1196,7 @@ namespace libtorrent
 
 		int const file_flags = file_flags_for_job(j
 			, m_settings.get_bool(settings_pack::coalesce_reads));
-		file::iovec_t b = { j->buffer.disk_block, size_t(j->d.io.buffer_size) };
+		file::iovec_t b = {j->buffer.disk_block, std::size_t(j->d.io.buffer_size)};
 
 		int ret = j->storage->readv(b
 			, j->piece, j->d.io.offset, file_flags, j->error);
@@ -1428,7 +1428,7 @@ namespace libtorrent
 	{
 		time_point const start_time = clock_type::now();
 
-		file::iovec_t const b = { j->buffer.disk_block, size_t(j->d.io.buffer_size) };
+		file::iovec_t const b = {j->buffer.disk_block, std::size_t(j->d.io.buffer_size)};
 		int const file_flags = file_flags_for_job(j
 			, m_settings.get_bool(settings_pack::coalesce_writes));
 

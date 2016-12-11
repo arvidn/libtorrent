@@ -64,7 +64,7 @@ namespace libtorrent
 	// name_len and val_len respectively
 	// TODO: 3 use span<> for the callback
 	TORRENT_EXTRA_EXPORT void xml_parse(span<char const> input
-		, std::function<void(int,char const*,int,char const*,int)> callback);
+		, std::function<void(int, char const*, int, char const*, int)> callback);
 }
 
 

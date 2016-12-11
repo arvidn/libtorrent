@@ -462,7 +462,7 @@ namespace libtorrent
 		// index (given the piece size).
 		sha1_hash hash(int index) const;
 		std::string const& symlink(int index) const;
-		time_t mtime(int index) const;
+		std::time_t mtime(int index) const;
 		std::string file_path(int index, std::string const& save_path = "") const;
 		string_view file_name(int index) const;
 		std::int64_t file_size(int index) const;
@@ -538,7 +538,7 @@ namespace libtorrent
 		TORRENT_DEPRECATED
 		std::string const& symlink(internal_file_entry const& fe) const;
 		TORRENT_DEPRECATED
-		time_t mtime(internal_file_entry const& fe) const;
+		std::time_t mtime(internal_file_entry const& fe) const;
 		TORRENT_DEPRECATED
 		int file_index(internal_file_entry const& fe) const;
 		TORRENT_DEPRECATED
@@ -602,7 +602,7 @@ namespace libtorrent
 		// is empty if no file have a modification time.
 		// each element corresponds to the file with the same
 		// index in m_files
-		std::vector<time_t> m_mtime;
+		std::vector<std::time_t> m_mtime;
 
 #ifndef TORRENT_NO_DEPRECATE
 		// if any file has a non-zero file base (i.e. multiple

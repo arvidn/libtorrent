@@ -294,7 +294,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_token_idx != -1);
 		bdecode_token const& t = m_root_tokens[m_token_idx];
 		bdecode_token const& next = m_root_tokens[m_token_idx + t.next_item];
-		return { m_buffer + t.offset, size_t(next.offset - t.offset) };
+		return {m_buffer + t.offset, std::size_t(next.offset - t.offset)};
 	}
 
 	bdecode_node bdecode_node::list_at(int i) const
@@ -574,7 +574,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(type() == string_t);
 		bdecode_token const& t = m_root_tokens[m_token_idx];
-		size_t const size = m_root_tokens[m_token_idx + 1].offset - t.offset - t.start_offset();
+		std::size_t const size = m_root_tokens[m_token_idx + 1].offset - t.offset - t.start_offset();
 		TORRENT_ASSERT(t.type == bdecode_token::string);
 
 		return string_view(m_buffer + t.offset + t.start_offset(), size);
@@ -679,9 +679,9 @@ namespace libtorrent
 			// if we're currently parsing a dictionary, assert that
 			// every other node is a string.
 			if (current_frame > 0
-				&& ret.m_tokens[stack[current_frame-1].token].type == bdecode_token::dict)
+				&& ret.m_tokens[stack[current_frame - 1].token].type == bdecode_token::dict)
 			{
-				if (stack[current_frame-1].state == 0)
+				if (stack[current_frame - 1].state == 0)
 				{
 					// the current parent is a dict and we are parsing a key.
 					// only allow a digit (for a string) or 'e' to terminate
@@ -740,8 +740,8 @@ namespace libtorrent
 						TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
 
 					if (sp > 0
-						&& ret.m_tokens[stack[sp-1].token].type == bdecode_token::dict
-						&& stack[sp-1].state == 1)
+						&& ret.m_tokens[stack[sp - 1].token].type == bdecode_token::dict
+						&& stack[sp - 1].state == 1)
 					{
 						// this means we're parsing a dictionary and about to parse a
 						// value associated with a key. Instead, we got a termination
@@ -754,7 +754,7 @@ namespace libtorrent
 
 					// and back-patch the start of this sequence with the offset
 					// to the next token we'll insert
-					int const top = stack[sp-1].token;
+					int const top = stack[sp - 1].token;
 					// subtract the token's own index, since this is a relative
 					// offset
 					if (ret.m_tokens.size() - top > bdecode_token::max_next_item)
@@ -806,10 +806,10 @@ namespace libtorrent
 			}
 
 			if (current_frame > 0
-				&& ret.m_tokens[stack[current_frame-1].token].type == bdecode_token::dict)
+				&& ret.m_tokens[stack[current_frame - 1].token].type == bdecode_token::dict)
 			{
 				// the next item we parse is the opposite
-				stack[current_frame-1].state = ~stack[current_frame-1].state;
+				stack[current_frame - 1].state = ~stack[current_frame - 1].state;
 			}
 
 			// this terminates the top level node, we're done!
@@ -941,7 +941,7 @@ done:
 			{
 				ret.append(str.data(), 14);
 				ret += "...";
-				ret.append(str.data() + len-14, 14);
+				ret.append(str.data() + len - 14, 14);
 			}
 			else
 				ret.append(str.data(), len);
@@ -972,7 +972,7 @@ done:
 		indent_str[0] = ',';
 		indent_str[1] = '\n';
 		indent_str[199] = 0;
-		if (indent < 197 && indent >= 0) indent_str[indent+2] = 0;
+		if (indent < 197 && indent >= 0) indent_str[indent + 2] = 0;
 		std::string ret;
 		switch (e.type())
 		{
@@ -998,8 +998,8 @@ done:
 				{
 					if (i == 0 && one_liner) ret += " ";
 					ret += print_entry(e.list_at(i), single_line, indent + 2);
-					if (i < e.list_size() - 1) ret += (one_liner?", ":indent_str);
-					else ret += (one_liner?" ":indent_str+1);
+					if (i < e.list_size() - 1) ret += (one_liner ? ", " : indent_str);
+					else ret += (one_liner ? " " : indent_str + 1);
 				}
 				ret += "]";
 				return ret;
@@ -1009,7 +1009,7 @@ done:
 				ret += "{";
 				bool one_liner = line_longer_than(e, 200) != -1 || single_line;
 
-				if (!one_liner) ret += indent_str+1;
+				if (!one_liner) ret += indent_str + 1;
 				for (int i = 0; i < e.dict_size(); ++i)
 				{
 					if (i == 0 && one_liner) ret += " ";
@@ -1017,8 +1017,8 @@ done:
 					print_string(ret, ent.first, true);
 					ret += ": ";
 					ret += print_entry(ent.second, single_line, indent + 2);
-					if (i < e.dict_size() - 1) ret += (one_liner?", ":indent_str);
-					else ret += (one_liner?" ":indent_str+1);
+					if (i < e.dict_size() - 1) ret += (one_liner ? ", " : indent_str);
+					else ret += (one_liner ? " " : indent_str + 1);
 				}
 				ret += "}";
 				return ret;

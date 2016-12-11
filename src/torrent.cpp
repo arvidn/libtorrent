@@ -1459,8 +1459,8 @@ namespace libtorrent
 			names.append(torrent_name, name_length);
 #endif
 
-			if (strncmp(torrent_name, "*", name_length) == 0
-				|| strncmp(torrent_name, m_torrent_file->name().c_str(), name_length) == 0)
+			if (std::strncmp(torrent_name, "*", name_length) == 0
+				|| std::strncmp(torrent_name, m_torrent_file->name().c_str(), name_length) == 0)
 			{
 #ifdef TORRENT_DISABLE_LOGGING
 				return true;
@@ -1771,9 +1771,9 @@ namespace libtorrent
 			need_picker();
 
 			peer_request pr = m_torrent_file->map_file(i, 0, int(fs.file_size(i)));
-			int off = pr.start & (block_size()-1);
+			int off = pr.start & (block_size() - 1);
 			if (off != 0) { pr.length -= block_size() - off; pr.start += block_size() - off; }
-			TORRENT_ASSERT((pr.start & (block_size()-1)) == 0);
+			TORRENT_ASSERT((pr.start & (block_size() - 1)) == 0);
 
 			int block = block_size();
 			int blocks_per_piece = m_torrent_file->piece_length() / block;
@@ -1786,7 +1786,7 @@ namespace libtorrent
 			// ugly edge case where padfiles are not used they way they're
 			// supposed to be. i.e. added back-to back or at the end
 			if (pb.block_index == blocks_per_piece) { pb.block_index = 0; ++pb.piece_index; }
-			if (pr.length > 0 && ((i+1 != fs.num_files() && fs.pad_file_at(i + 1))
+			if (pr.length > 0 && ((i + 1 != fs.num_files() && fs.pad_file_at(i + 1))
 				|| i + 1 == fs.num_files()))
 			{
 				m_picker->mark_as_finished(pb, nullptr);
