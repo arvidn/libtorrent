@@ -1336,7 +1336,7 @@ namespace libtorrent
 		}
 
 		bdecode_node info = torrent_file.dict_find_dict("info");
-		if (info == 0)
+		if (!info)
 		{
 			bdecode_node link = torrent_file.dict_find_string("magnet-uri");
 			if (link)

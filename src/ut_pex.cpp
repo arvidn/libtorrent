@@ -360,7 +360,7 @@ namespace libtorrent { namespace
 #ifndef TORRENT_DISABLE_LOGGING
 			if (p6) num_dropped += p6.string_length() / 18;
 #endif
-			if (p6 != 0 && p6.type() == bdecode_node::string_t)
+			if (p6.type() == bdecode_node::string_t)
 			{
 				int const num_peers = p6.string_length() / 18;
 				char const* in = p6.string_ptr();
@@ -379,9 +379,7 @@ namespace libtorrent { namespace
 			if (p6) num_added += p6.string_length() / 18;
 #endif
 			bdecode_node p6f = pex_msg.dict_find("added6.f");
-			if (p6 != 0
-				&& p6f != 0
-				&& p6.type() == bdecode_node::string_t
+			if (p6.type() == bdecode_node::string_t
 				&& p6f.type() == bdecode_node::string_t
 				&& p6f.string_length() == p6.string_length() / 18)
 			{

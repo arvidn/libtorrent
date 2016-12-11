@@ -140,10 +140,12 @@ item::item(entry v)
 {}
 
 item::item(bdecode_node const& v)
-	: m_value(std::move(v))
-	, m_seq(0)
+	: m_seq(0)
 	, m_mutable(false)
-{}
+{
+	// TODO: implement ctor for entry from bdecode_node?
+	m_value = v;
+}
 
 item::item(entry v, span<char const> salt
 	, sequence_number const seq, public_key const& pk, secret_key const& sk)

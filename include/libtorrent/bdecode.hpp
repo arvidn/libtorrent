@@ -280,7 +280,7 @@ struct TORRENT_EXPORT bdecode_node
 	type_t type() const;
 
 	// returns true if type() != none_t.
-	operator bool() const;
+	explicit operator bool() const;
 
 	// return a non-owning reference to this node. This is useful to refer to
 	// the root node without copying it in assignments.

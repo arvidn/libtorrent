@@ -199,8 +199,8 @@ TORRENT_TEST(magnet)
 	std::printf("session_state\n%s\n", print_entry(session_state2).c_str());
 
 	// make sure settings that haven't been changed from their defaults are not saved
-	TEST_CHECK(session_state2.dict_find("settings")
-		.dict_find("optimistic_disk_retry") == 0);
+	TEST_CHECK(!session_state2.dict_find("settings")
+		.dict_find("optimistic_disk_retry"));
 
 	s->load_state(session_state2);
 
