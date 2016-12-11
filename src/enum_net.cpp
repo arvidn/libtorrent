@@ -1149,8 +1149,8 @@ namespace libtorrent
 		std::vector<ip_interface> ifs = enum_net_interfaces(ios, ec);
 		if (ec) return false;
 
-		for (int i = 0; i < int(ifs.size()); ++i)
-			if (ifs[i].name == name) return true;
+		for (auto const& iface : ifs)
+			if (iface.name == name) return true;
 		return false;
 	}
 
@@ -1161,8 +1161,8 @@ namespace libtorrent
 		std::vector<ip_interface> ifs = enum_net_interfaces(ios, ec);
 		if (ec) return std::string();
 
-		for (int i = 0; i < int(ifs.size()); ++i)
-			if (ifs[i].interface_address == addr) return ifs[i].name;
+		for (auto const& iface : ifs)
+			if (iface.interface_address == addr) return iface.name;
 		return std::string();
 	}
 }

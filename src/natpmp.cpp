@@ -234,7 +234,7 @@ int natpmp::add_mapping(portmap_protocol const p, int const external_port
 
 	if (m_disabled) return -1;
 
-	std::vector<mapping_t>::iterator i = std::find_if(m_mappings.begin()
+	auto i = std::find_if(m_mappings.begin()
 		, m_mappings.end(), [] (mapping_t const& m) { return m.protocol == portmap_protocol::none; });
 	if (i == m_mappings.end())
 	{
@@ -275,7 +275,7 @@ void natpmp::try_next_mapping(int const i)
 		return;
 	}
 
-	std::vector<mapping_t>::iterator const m = std::find_if(
+	auto const m = std::find_if(
 		m_mappings.begin(), m_mappings.end()
 		, [] (mapping_t const& ma) { return ma.act != mapping_t::action::none; });
 

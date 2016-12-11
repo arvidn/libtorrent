@@ -2277,7 +2277,7 @@ namespace libtorrent
 		}
 
 		int fast_idx = -1;
-		std::vector<int>::iterator fast_iter = std::find(m_accept_fast.begin()
+		auto const fast_iter = std::find(m_accept_fast.begin()
 			, m_accept_fast.end(), r.piece);
 		if (fast_iter != m_accept_fast.end()) fast_idx = int(fast_iter - m_accept_fast.begin());
 

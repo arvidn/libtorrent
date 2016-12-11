@@ -4173,10 +4173,8 @@ namespace aux {
 
 		// go through all the peers and unchoke the first ones and choke
 		// all the other ones.
-		for (std::vector<peer_connection*>::iterator i = peers.begin()
-			, end(peers.end()); i != end; ++i)
+		for (auto p : peers)
 		{
-			peer_connection* p = *i;
 			TORRENT_ASSERT(p);
 			TORRENT_ASSERT(!p->ignore_unchoke_slots());
 
