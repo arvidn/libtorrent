@@ -32,7 +32,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/alloca.hpp"
-#include <boost/system/error_code.hpp>
 #include <limits>
 #include <cstring> // for memset
 #include <cstdio> // for snprintf
@@ -1021,4 +1020,3 @@ done:
 		return ret;
 	}
 }
-

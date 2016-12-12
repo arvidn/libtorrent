@@ -119,4 +119,3 @@ namespace libtorrent
 		return int(m_errors.size()) - 1;
 	}
 }
-

@@ -36,9 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/utf8.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <boost/crc.hpp>
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <cstdio>

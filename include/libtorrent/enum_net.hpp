@@ -37,8 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <vector>
-
 #if TORRENT_USE_IFCONF || TORRENT_USE_NETLINK || TORRENT_USE_SYSCTL
 #include <sys/socket.h> // for SO_BINDTODEVICE
 #endif
@@ -50,6 +48,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/aux_/bind_to_device.hpp"
+
+#include <vector>
 
 namespace libtorrent
 {

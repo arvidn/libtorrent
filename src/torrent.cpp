@@ -7799,7 +7799,7 @@ namespace libtorrent
 #if TORRENT_USE_INVARIANT_CHECKS
 	void torrent::check_invariant() const
 	{
-		TORRENT_ASSERT(current_stats_state() == m_current_gauge_state + counters::num_checking_torrents
+		TORRENT_ASSERT(current_stats_state() == int(m_current_gauge_state + counters::num_checking_torrents)
 			|| m_current_gauge_state == no_gauge_state);
 
 		for (std::vector<time_critical_piece>::const_iterator i = m_time_critical_pieces.begin()
@@ -9429,7 +9429,6 @@ namespace libtorrent
 	int peer_index(libtorrent::tcp::endpoint addr
 		, std::vector<libtorrent::peer_info> const& peers)
 	{
-		using namespace libtorrent;
 		std::vector<peer_info>::const_iterator i = std::find_if(peers.begin()
 			, peers.end(), std::bind(&peer_info::ip, _1) == addr);
 		if (i == peers.end()) return -1;
@@ -9441,8 +9440,6 @@ namespace libtorrent
 		, std::vector<libtorrent::peer_info> const& peers
 		, std::vector<time_critical_piece> const& time_critical)
 	{
-		using namespace libtorrent;
-
 		time_point const now = clock_type::now();
 
 		float deadline = 0.f;

@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <string>
 #include <cstdint>
+#include <cstddef>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/system/error_code.hpp>

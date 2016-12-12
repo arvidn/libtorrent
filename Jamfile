@@ -238,7 +238,6 @@ rule warnings ( properties * )
 		result += <cxxflags>-Wno-c++98-compat-pedantic ;
 		result += <cflags>-Wno-padded ;
 		result += <cflags>-Wno-global-constructors ;
-		result += <cxxflags>-Wno-c++98-compat ;
 # this warns on any global static object, which are used for error_category
 # objects
 		result += <cflags>-Wno-exit-time-destructors ;
@@ -261,7 +260,6 @@ rule warnings ( properties * )
 		result += <cflags>-Wno-long-long ;
 
 # enable these warnings again, once the other ones are dealt with
-		result += <cflags>-Wno-sign-compare ;
 		result += <cflags>-Wno-unused-variable ;
 	}
 
@@ -778,4 +776,3 @@ package.install install
 	: torrent
 	: $(headers)
 	;
-

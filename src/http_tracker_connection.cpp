@@ -56,7 +56,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/resolver_interface.hpp"
 #include "libtorrent/ip_filter.hpp"
 
-using namespace libtorrent;
 using namespace std::placeholders;
 
 namespace libtorrent

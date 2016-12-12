@@ -42,16 +42,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/web_connection_base.hpp"
-#include "libtorrent/disk_buffer_holder.hpp"
-#include "libtorrent/torrent.hpp"
 #include "libtorrent/piece_block_progress.hpp"
-#include "libtorrent/http_parser.hpp"
 #include "libtorrent/operations.hpp" // for operation_t enum
 
 namespace libtorrent
 {
-	class torrent;
-
 	class TORRENT_EXTRA_EXPORT web_peer_connection
 		: public web_connection_base
 	{

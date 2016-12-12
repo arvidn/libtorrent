@@ -30,18 +30,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <vector>
 #include <cctype>
-#include <mutex>
 #include <functional>
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <tuple>
 
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-#include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/udp_tracker_connection.hpp"
 #include "libtorrent/io.hpp"
@@ -54,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/aux_/io.hpp"
 #include "libtorrent/span.hpp"
+#include "libtorrent/peer.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/socket_io.hpp"
@@ -661,11 +654,9 @@ namespace libtorrent
 
 	bool udp_tracker_connection::on_scrape_response(span<char const> buf)
 	{
-		using namespace libtorrent::aux;
-
 		restart_read_timeout();
 		auto const action = static_cast<action_t>(aux::read_int32(buf));
-		std::uint32_t const transaction = read_uint32(buf);
+		std::uint32_t const transaction = aux::read_uint32(buf);
 
 		if (transaction != m_transaction_id)
 		{

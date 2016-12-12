@@ -33,32 +33,29 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 
 #include <functional>
-#include <vector>
 #include <cstdlib>
 #include <cstdio> // for snprintf
 #include <cinttypes> // for PRId64 et.al.
 
 #include "libtorrent/web_peer_connection.hpp"
 #include "libtorrent/session.hpp"
-#include "libtorrent/identify_client.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/io.hpp"
-#include "libtorrent/version.hpp"
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
-#include "libtorrent/alert_manager.hpp" // for alert_manageralert_manager
+#include "libtorrent/alert_manager.hpp" // for alert_manager
 #include "libtorrent/aux_/escape_string.hpp" // for escape_path
 #include "libtorrent/hex.hpp" // for is_hex
+#include "libtorrent/torrent.hpp"
+#include "libtorrent/http_parser.hpp"
 
 namespace libtorrent
 {
 constexpr int request_size_overhead = 5000;
-
-struct disk_interface;
 
 web_peer_connection::web_peer_connection(peer_connection_args const& pack
 	, web_seed_t& web)

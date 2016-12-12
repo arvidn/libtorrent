@@ -64,7 +64,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/span.hpp"
 #include "libtorrent/piece_block.hpp"
 #include "libtorrent/peer_info.hpp"
-#include "libtorrent/disk_interface.hpp"
 
 #include <ctime>
 #include <algorithm>
@@ -79,6 +78,7 @@ namespace libtorrent
 {
 	class torrent;
 	struct torrent_peer;
+	struct disk_interface;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	struct peer_plugin;

@@ -2156,7 +2156,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		// update the modification time of the file for no good
 		// reason.
 		if ((m_open_mode & sparse) == 0
-			&& st.st_blocks < (s + st.st_blksize - 1) / st.st_blksize)
+			&& std::int64_t(st.st_blocks) < (s + st.st_blksize - 1) / st.st_blksize)
 		{
 			// How do we know that the file is already allocated?
 			// if we always try to allocate the space, we'll update

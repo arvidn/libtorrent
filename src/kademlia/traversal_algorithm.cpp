@@ -30,10 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/time.hpp" // for total_seconds
-
 #include <libtorrent/kademlia/traversal_algorithm.hpp>
-#include <libtorrent/kademlia/routing_table.hpp>
 #include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/kademlia/node.hpp>
 #include <libtorrent/kademlia/dht_observer.hpp> // for dht_logger
