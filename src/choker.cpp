@@ -319,7 +319,7 @@ namespace libtorrent
 
 			for (auto const p : peers)
 			{
-				TORRENT_ASSERT(p);
+				TORRENT_ASSERT(p != nullptr);
 
 				if (p->est_reciprocation_rate() > upload_capacity_left) break;
 

@@ -819,6 +819,7 @@ namespace libtorrent
 
 	int file_storage::file_flags(int index) const
 	{
+		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
 		internal_file_entry const& fe = m_files[index];
 		return (fe.pad_file ? flag_pad_file : 0)
 			| (fe.hidden_attribute ? flag_hidden : 0)
@@ -828,6 +829,7 @@ namespace libtorrent
 
 	bool file_storage::file_absolute_path(int index) const
 	{
+		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
 		internal_file_entry const& fe = m_files[index];
 		return fe.path_index == -2;
 	}

@@ -232,8 +232,7 @@ namespace libtorrent { namespace
 #endif
 
 		if_indextoname(if_index, rt_info->name);
-		ifreq req;
-		memset(&req, 0, sizeof(req));
+		ifreq req = {};
 		if_indextoname(if_index, req.ifr_name);
 		ioctl(s, siocgifmtu, &req);
 		rt_info->mtu = req.ifr_mtu;
@@ -290,8 +289,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		if_indextoname(rtm->rtm_index, rt_info->name);
 
 		// TODO: get the MTU (and other interesting metrics) from the rt_msghdr instead
-		ifreq req;
-		memset(&req, 0, sizeof(req));
+		ifreq req = {};
 		if_indextoname(rtm->rtm_index, req.ifr_name);
 
 		// ignore errors here. This is best-effort
@@ -478,8 +476,7 @@ namespace libtorrent
 				ip_interface iface;
 				if (iface_from_ifaddrs(ifa, iface))
 				{
-					ifreq req;
-					std::memset(&req, 0, sizeof(req));
+					ifreq req = {};
 					// -1 to leave a 0-terminator
 					std::strncpy(req.ifr_name, iface.name, IF_NAMESIZE - 1);
 
@@ -539,8 +536,7 @@ namespace libtorrent
 				iface.interface_address = sockaddr_to_address(&item.ifr_addr);
 				strcpy(iface.name, item.ifr_name);
 
-				ifreq req;
-				memset(&req, 0, sizeof(req));
+				ifreq req = {};
 				// -1 to leave a 0-terminator
 				strncpy(req.ifr_name, item.ifr_name, IF_NAMESIZE - 1);
 				if (ioctl(s, siocgifmtu, &req) < 0)
@@ -555,7 +551,7 @@ namespace libtorrent
 				iface.mtu = req.ifr_metric; // according to tcp/ip reference
 #endif
 
-				memset(&req, 0, sizeof(req));
+				std::memset(&req, 0, sizeof(req));
 				strncpy(req.ifr_name, item.ifr_name, IF_NAMESIZE - 1);
 				if (ioctl(s, SIOCGIFNETMASK, &req) < 0)
 				{
@@ -1093,8 +1089,7 @@ namespace libtorrent
 
 		int seq = 0;
 
-		char msg[BUFSIZE];
-		memset(msg, 0, BUFSIZE);
+		char msg[BUFSIZE] = {};
 		nlmsghdr* nl_msg = reinterpret_cast<nlmsghdr*>(msg);
 
 		nl_msg->nlmsg_len = NLMSG_LENGTH(sizeof(rtmsg));

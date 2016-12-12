@@ -454,10 +454,8 @@ namespace libtorrent
 
 	void udp_tracker_connection::update_transaction_id()
 	{
-		std::uint32_t new_tid;
-
 		// don't use 0, because that has special meaning (unintialized)
-		new_tid = random(0xfffffffe) + 1;
+		std::uint32_t const new_tid = random(0xfffffffe) + 1;
 
 		if (m_transaction_id != 0)
 			m_man.update_transaction_id(shared_from_this(), new_tid);
