@@ -762,7 +762,7 @@ void upnp::next(rootdevice& d, int i)
 	}
 	else
 	{
-		std::vector<mapping_t>::iterator j = std::find_if(d.mapping.begin(), d.mapping.end()
+		auto const j = std::find_if(d.mapping.begin(), d.mapping.end()
 			, [] (mapping_t const& m) { return m.act != mapping_t::action::none; });
 		if (j == d.mapping.end()) return;
 

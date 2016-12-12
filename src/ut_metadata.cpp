@@ -366,7 +366,7 @@ namespace libtorrent { namespace
 				break;
 				case metadata_piece:
 				{
-					std::vector<int>::iterator i = std::find(m_sent_requests.begin()
+					auto const i = std::find(m_sent_requests.begin()
 						, m_sent_requests.end(), piece);
 
 					// unwanted piece?
@@ -389,7 +389,7 @@ namespace libtorrent { namespace
 				case metadata_dont_have:
 				{
 					m_request_limit = (std::max)(aux::time_now() + minutes(1), m_request_limit);
-					std::vector<int>::iterator i = std::find(m_sent_requests.begin()
+					auto const i = std::find(m_sent_requests.begin()
 						, m_sent_requests.end(), piece);
 					// unwanted piece?
 					if (i == m_sent_requests.end()) return true;
