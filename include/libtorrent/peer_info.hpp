@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/time.hpp"
+#include "libtorrent/units.hpp"
 
 namespace libtorrent
 {
@@ -56,7 +57,7 @@ namespace libtorrent
 		// a bitfield, with one bit per piece in the torrent. Each bit tells you
 		// if the peer has that piece (if it's set to 1) or if the peer miss that
 		// piece (set to 0).
-		bitfield pieces;
+		typed_bitfield<piece_index_t> pieces;
 
 		// the total number of bytes downloaded from and uploaded to this peer.
 		// These numbers do not include the protocol chatter, but only the
@@ -291,7 +292,7 @@ namespace libtorrent
 		// ``downloading_progress`` is the number of bytes of this block we have
 		// received from the peer, and ``downloading_total`` is the total number
 		// of bytes in this block.
-		int downloading_piece_index;
+		piece_index_t downloading_piece_index;
 		int downloading_block_index;
 		int downloading_progress;
 		int downloading_total;

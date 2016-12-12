@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_EXTENSIONS_HPP_INCLUDED
 #define TORRENT_EXTENSIONS_HPP_INCLUDED
 
+#include "libtorrent/units.hpp"
+
 // OVERVIEW
 //
 // libtorrent has a plugin interface for implementing extensions to the protocol.
@@ -302,8 +304,8 @@ namespace libtorrent
 		// check, respectively. The ``index`` is the piece index that was downloaded.
 		// It is possible to access the list of peers that participated in sending the
 		// piece through the ``torrent`` and the ``piece_picker``.
-		virtual void on_piece_pass(int /*index*/) {}
-		virtual void on_piece_failed(int /*index*/) {}
+		virtual void on_piece_pass(piece_index_t /*index*/) {}
+		virtual void on_piece_failed(piece_index_t /*index*/) {}
 
 		// This hook is called approximately once per second. It is a way of making it
 		// easy for plugins to do timed events, for sending messages or whatever.
@@ -406,12 +408,12 @@ namespace libtorrent
 		virtual bool on_unchoke() { return false; }
 		virtual bool on_interested() { return false; }
 		virtual bool on_not_interested() { return false; }
-		virtual bool on_have(int /*index*/) { return false; }
-		virtual bool on_dont_have(int /*index*/) { return false; }
+		virtual bool on_have(piece_index_t) { return false; }
+		virtual bool on_dont_have(piece_index_t) { return false; }
 		virtual bool on_bitfield(bitfield const& /*bitfield*/) { return false; }
 		virtual bool on_have_all() { return false; }
 		virtual bool on_have_none() { return false; }
-		virtual bool on_allowed_fast(int /*index*/) { return false; }
+		virtual bool on_allowed_fast(piece_index_t) { return false; }
 		virtual bool on_request(peer_request const&) { return false; }
 
 		// This function is called when the peer connection is receiving
@@ -425,7 +427,7 @@ namespace libtorrent
 
 		virtual bool on_cancel(peer_request const&) { return false; }
 		virtual bool on_reject(peer_request const&) { return false; }
-		virtual bool on_suggest(int /*index*/) { return false; }
+		virtual bool on_suggest(piece_index_t) { return false; }
 
 		// called after a choke message has been sent to the peer
 		virtual void sent_unchoke() {}
@@ -459,8 +461,8 @@ namespace libtorrent
 
 		// called when a piece that this peer participated in either
 		// fails or passes the hash_check
-		virtual void on_piece_pass(int /*index*/) {}
-		virtual void on_piece_failed(int /*index*/) {}
+		virtual void on_piece_pass(piece_index_t) {}
+		virtual void on_piece_failed(piece_index_t) {}
 
 		// called approximately once every second
 		virtual void tick() {}

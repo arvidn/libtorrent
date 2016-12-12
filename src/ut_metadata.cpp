@@ -133,7 +133,7 @@ namespace libtorrent { namespace
 		// returns -1 if we should hold off the request
 		int metadata_request(bool has_metadata);
 
-		void on_piece_pass(int) override
+		void on_piece_pass(piece_index_t) override
 		{
 			// if we became a seed, copy the metadata from
 			// the torrent before it is deallocated

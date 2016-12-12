@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/file_storage.hpp"
+#include "libtorrent/units.hpp"
 
 #include <limits>
 
@@ -117,7 +118,7 @@ namespace libtorrent
 #endif // TORRENT_WINDOWS
 
 	file_handle file_pool::open_file(void* st, std::string const& p
-		, int file_index, file_storage const& fs, int m, error_code& ec)
+		, file_index_t const file_index, file_storage const& fs, int m, error_code& ec)
 	{
 		// potentially used to hold a reference to a file object that's
 		// about to be destructed. If we have such object we assign it to
@@ -226,9 +227,9 @@ namespace libtorrent
 		{
 			std::unique_lock<std::mutex> l(m_mutex);
 
-			auto const start = m_files.lower_bound(std::make_pair(st, 0));
+			auto const start = m_files.lower_bound(std::make_pair(st, file_index_t(0)));
 			auto const end = m_files.upper_bound(std::make_pair(st
-				, std::numeric_limits<int>::max()));
+				, std::numeric_limits<file_index_t>::max()));
 
 			for (auto i = start; i != end; ++i)
 				ret.push_back({i->first.second, i->second.mode, i->second.last_use});
@@ -238,7 +239,7 @@ namespace libtorrent
 
 	void file_pool::remove_oldest(std::unique_lock<std::mutex>& l)
 	{
-		using value_type = std::map<std::pair<void*, int>, lru_file_entry>::value_type;
+		using value_type = decltype(m_files)::value_type;
 		auto const i = std::min_element(m_files.begin(), m_files.end()
 			, [] (value_type const& lhs, value_type const& rhs)
 				{ return lhs.second.last_use < rhs.second.last_use; });
@@ -253,7 +254,7 @@ namespace libtorrent
 		l.lock();
 	}
 
-	void file_pool::release(void* st, int file_index)
+	void file_pool::release(void* st, file_index_t file_index)
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 
@@ -276,7 +277,7 @@ namespace libtorrent
 
 		if (st == nullptr)
 		{
-			std::map<std::pair<void*, int>, lru_file_entry> tmp;
+			std::map<std::pair<void*, file_index_t>, lru_file_entry> tmp;
 			tmp.swap(m_files);
 			l.unlock();
 			return;

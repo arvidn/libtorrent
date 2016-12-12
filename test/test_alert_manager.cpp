@@ -90,7 +90,7 @@ TORRENT_TEST(priority_limit)
 		mgr.emplace_alert<torrent_added_alert>(torrent_handle());
 
 	// the limit is twice as high for priority alerts
-	for (int i = 0; i < 200; ++i)
+	for (file_index_t i(0); i < file_index_t(200); ++i)
 		mgr.emplace_alert<file_rename_failed_alert>(torrent_handle(), i, error_code());
 
 	std::vector<alert*> alerts;

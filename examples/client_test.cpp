@@ -508,7 +508,8 @@ int print_peer_info(std::string& out
 			if (i->downloading_piece_index >= 0)
 			{
 				char buf[50];
-				std::snprintf(buf, sizeof(buf), "%d:%d", i->downloading_piece_index, i->downloading_block_index);
+				std::snprintf(buf, sizeof(buf), "%d:%d"
+					, static_cast<int>(i->downloading_piece_index), i->downloading_block_index);
 				out += progress_bar(
 					i->downloading_progress * 1000 / i->downloading_total, 14, col_green, '-', '#', buf);
 			}

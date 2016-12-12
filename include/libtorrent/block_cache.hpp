@@ -118,11 +118,6 @@ namespace libtorrent
 			, dirty(false)
 			, pending(false)
 		{
-#if TORRENT_USE_ASSERTS
-			hashing_count = 0;
-			reading_count = 0;
-			flushing_count = 0;
-#endif
 		}
 
 		char* buf;
@@ -153,11 +148,11 @@ namespace libtorrent
 
 #if TORRENT_USE_ASSERTS
 		// this many of the references are held by hashing operations
-		int hashing_count;
+		int hashing_count = 0;
 		// this block is being used in this many peer's send buffers currently
-		int reading_count;
+		int reading_count = 0;
 		// the number of references held by flushing operations
-		int flushing_count;
+		int flushing_count = 0;
 #endif
 	};
 
@@ -191,7 +186,7 @@ namespace libtorrent
 		// on this piece to complete. These are executed at that point.
 		tailqueue<disk_io_job> read_jobs;
 
-		int get_piece() const { return piece; }
+		piece_index_t get_piece() const { return piece; }
 		void* get_storage() const { return storage.get(); }
 
 		bool operator==(cached_piece_entry const& rhs) const
@@ -216,7 +211,7 @@ namespace libtorrent
 		//TODO: make this 32 bits and to count seconds since the block cache was created
 		time_point expire = min_time();
 
-		std::uint64_t piece:22;
+		piece_index_t piece;
 
 		// the number of dirty blocks in this piece
 		std::uint64_t num_dirty:14;
@@ -337,7 +332,7 @@ namespace libtorrent
 		struct hash_value
 		{
 			std::size_t operator()(cached_piece_entry const& p) const
-			{ return std::size_t(p.storage.get()) + std::size_t(p.piece); }
+			{ return reinterpret_cast<std::size_t>(p.storage.get()) + static_cast<int>(p.piece); }
 		};
 		using cache_t = std::unordered_set<cached_piece_entry, hash_value>;
 
@@ -413,7 +408,7 @@ namespace libtorrent
 		// to it, otherwise 0.
 		cached_piece_entry* find_piece(aux::block_cache_reference const& ref);
 		cached_piece_entry* find_piece(disk_io_job const* j);
-		cached_piece_entry* find_piece(storage_interface* st, int piece);
+		cached_piece_entry* find_piece(storage_interface* st, piece_index_t piece);
 
 		// clear free all buffers marked as dirty with
 		// refcount of 0.

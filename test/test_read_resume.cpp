@@ -179,7 +179,7 @@ std::shared_ptr<torrent_info> generate_torrent()
 
 	int num = t.num_pieces();
 	TEST_CHECK(num > 0);
-	for (int i = 0; i < num; ++i)
+	for (piece_index_t i(0); i < fs.end_piece(); ++i)
 	{
 		sha1_hash ph;
 		for (int k = 0; k < 20; ++k) ph[k] = lt::random(0xff);

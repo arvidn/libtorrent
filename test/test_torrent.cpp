@@ -58,7 +58,7 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 	pack.set_int(settings_pack::max_retry_port_bind, 10);
 	lt::session ses(pack);
 
-	std::vector<std::uint8_t> zeroes;
+	vector<std::uint8_t, file_index_t> zeroes;
 	zeroes.resize(1000, 0);
 	add_torrent_params p;
 	p.flags &= ~add_torrent_params::flag_paused;
@@ -78,7 +78,7 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 		return;
 	}
 
-	std::vector<int> ones(info->num_files(), 1);
+	vector<int, file_index_t> ones(info->num_files(), 1);
 	h.prioritize_files(ones);
 
 //	std::this_thread::sleep_for(lt::milliseconds(500));
@@ -87,8 +87,8 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 	TEST_EQUAL(st.total_wanted, file_size); // we want the single file
 	TEST_EQUAL(st.total_wanted_done, 0);
 
-	std::vector<int> prio(info->num_files(), 1);
-	prio[0] = 0;
+	vector<int, file_index_t> prio(info->num_files(), 1);
+	prio[file_index_t(0)] = 0;
 	h.prioritize_files(prio);
 	st = h.status();
 
@@ -106,7 +106,7 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 
 	if (info->num_files() > 1)
 	{
-		prio[1] = 0;
+		prio[file_index_t(1)] = 0;
 		h.prioritize_files(prio);
 		st = h.status();
 
@@ -125,13 +125,13 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 
 	if (info->num_pieces() > 0)
 	{
-		h.piece_priority(0, 1);
+		h.piece_priority(piece_index_t(0), 1);
 		st = h.status();
-		TEST_CHECK(st.pieces.size() > 0 && st.pieces[0] == false);
+		TEST_CHECK(st.pieces.size() > 0 && st.pieces[piece_index_t(0)] == false);
 		std::vector<char> piece(info->piece_length());
 		for (int i = 0; i < int(piece.size()); ++i)
 			piece[i] = (i % 26) + 'A';
-		h.add_piece(0, &piece[0], torrent_handle::overwrite_existing);
+		h.add_piece(piece_index_t(0), &piece[0], torrent_handle::overwrite_existing);
 
 		// wait until the piece is done writing and hashing
 		wait_for_alert(ses, piece_finished_alert::alert_type, "piece_finished_alert");
@@ -139,7 +139,7 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 		TEST_CHECK(st.pieces.size() > 0);
 
 		std::cout << "reading piece 0" << std::endl;
-		h.read_piece(0);
+		h.read_piece(piece_index_t(0));
 		alert const* a = wait_for_alert(ses, read_piece_alert::alert_type, "read_piece");
 		TEST_CHECK(a);
 		read_piece_alert const* rpa = alert_cast<read_piece_alert>(a);
@@ -147,10 +147,10 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 		if (rpa)
 		{
 			std::cout << "SUCCEEDED!" << std::endl;
-			TEST_CHECK(memcmp(&piece[0], rpa->buffer.get(), info->piece_size(0)) == 0);
-			TEST_CHECK(rpa->size == info->piece_size(0));
-			TEST_CHECK(rpa->piece == 0);
-			TEST_CHECK(hasher(piece).final() == info->hash_for_piece(0));
+			TEST_CHECK(memcmp(&piece[0], rpa->buffer.get(), info->piece_size(piece_index_t(0))) == 0);
+			TEST_CHECK(rpa->size == info->piece_size(piece_index_t(0)));
+			TEST_CHECK(rpa->piece == piece_index_t(0));
+			TEST_CHECK(hasher(piece).final() == info->hash_for_piece(piece_index_t(0)));
 		}
 	}
 }
@@ -295,9 +295,8 @@ TORRENT_TEST(torrent)
 
 		// calculate the hash for all pieces
 		sha1_hash ph = hasher(piece).final();
-		int num = t.num_pieces();
 		TEST_CHECK(t.num_pieces() > 0);
-		for (int i = 0; i < num; ++i)
+		for (piece_index_t i(0); i < fs.end_piece(); ++i)
 			t.set_hash(i, ph);
 
 		std::vector<char> tmp;
@@ -339,9 +338,8 @@ TORRENT_TEST(duplicate_is_not_error)
 
 	// calculate the hash for all pieces
 	sha1_hash ph = hasher(piece).final();
-	int num = t.num_pieces();
 	TEST_CHECK(t.num_pieces() > 0);
-	for (int i = 0; i < num; ++i)
+	for (piece_index_t i(0); i < fs.end_piece(); ++i)
 		t.set_hash(i, ph);
 
 	std::vector<char> tmp;
@@ -409,12 +407,12 @@ TORRENT_TEST(rename_file)
 	error_code ec;
 	auto info = std::make_shared<torrent_info>(&tmp[0], int(tmp.size()), std::ref(ec), 0);
 
-	TEST_EQUAL(info->files().file_path(0), combine_path("test3","tmp1"));
+	TEST_EQUAL(info->files().file_path(file_index_t(0)), combine_path("test3","tmp1"));
 
 	// move "test3/tmp1" -> "tmp1"
-	info->rename_file(0, "tmp1");
+	info->rename_file(file_index_t(0), "tmp1");
 
-	TEST_EQUAL(info->files().file_path(0), "tmp1");
+	TEST_EQUAL(info->files().file_path(file_index_t(0)), "tmp1");
 }
 
 TORRENT_TEST(async_load)

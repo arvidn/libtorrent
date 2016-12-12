@@ -99,6 +99,8 @@ namespace libtorrent
 
 	}
 
+	constexpr piece_index_t const piece_block_progress::invalid_index;
+
 #if TORRENT_USE_ASSERTS
 	bool peer_connection::is_single_thread() const
 	{
@@ -446,8 +448,8 @@ namespace libtorrent
 		{
 			t->need_picker();
 			piece_picker const& p = t->picker();
-			int num_pieces = p.num_pieces();
-			for (int j = 0; j != num_pieces; ++j)
+			piece_index_t const end_piece(p.num_pieces());
+			for (piece_index_t j(0); j != end_piece; ++j)
 			{
 				if (m_have_piece[j]
 					&& t->piece_priority(j) > 0
@@ -455,7 +457,8 @@ namespace libtorrent
 				{
 					interested = true;
 #ifndef TORRENT_DISABLE_LOGGING
-					peer_log(peer_log_alert::info, "UPDATE_INTEREST", "interesting, piece: %d", j);
+					peer_log(peer_log_alert::info, "UPDATE_INTEREST", "interesting, piece: %d"
+						, static_cast<int>(j));
 #endif
 					break;
 				}
@@ -548,13 +551,14 @@ namespace libtorrent
 		if (!t->valid_metadata()) return;
 
 		int const num_pieces = t->torrent_file().num_pieces();
+		piece_index_t const end_piece = t->torrent_file().end_piece();
 
 		if (num_allowed_pieces >= num_pieces)
 		{
 			// this is a special case where we have more allowed
 			// fast pieces than pieces in the torrent. Just send
 			// an allowed fast message for every single piece
-			for (int i = 0; i < num_pieces; ++i)
+			for (piece_index_t i(0); i < end_piece; ++i)
 			{
 				// there's no point in offering fast pieces
 				// that the peer already has
@@ -600,7 +604,7 @@ namespace libtorrent
 			for (int i = 0; i < int(hash.size() / sizeof(std::uint32_t)); ++i)
 			{
 				++loops;
-				int const piece = detail::read_uint32(p) % num_pieces;
+				piece_index_t const piece(detail::read_uint32(p) % num_pieces);
 				if (std::find(m_accept_fast.begin(), m_accept_fast.end(), piece)
 					!= m_accept_fast.end())
 				{
@@ -634,25 +638,20 @@ namespace libtorrent
 		m_have_piece.resize(t->torrent_file().num_pieces(), m_have_all);
 		m_num_pieces = m_have_piece.count();
 
+		piece_index_t const limit(m_num_pieces);
+
 		// now that we know how many pieces there are
 		// remove any invalid allowed_fast and suggest pieces
 		// now that we know what the number of pieces are
-		for (std::vector<int>::iterator i = m_allowed_fast.begin();
-			i != m_allowed_fast.end();)
-		{
-			if (*i < m_num_pieces)
-			{
-				++i;
-				continue;
-			}
-			i = m_allowed_fast.erase(i);
-		}
+		m_allowed_fast.erase(std::remove_if(m_allowed_fast.begin(), m_allowed_fast.end()
+				, [=](piece_index_t const p) { return p >= limit; })
+			, m_allowed_fast.end());
 
 		// remove any piece suggested to us whose index is invalid
 		// now that we know how many pieces there are
 		m_suggested_pieces.erase(
 			std::remove_if(m_suggested_pieces.begin(), m_suggested_pieces.end()
-				, [=](int const p) { return p >= m_num_pieces; })
+				, [=](piece_index_t const p) { return p >= limit; })
 			, m_suggested_pieces.end());
 
 		on_metadata();
@@ -713,7 +712,7 @@ namespace libtorrent
 			TORRENT_ASSERT(m_have_piece.size() == t->torrent_file().num_pieces());
 			t->peer_has(m_have_piece, this);
 			bool interesting = false;
-			for (int i = 0; i < m_have_piece.size(); ++i)
+			for (piece_index_t i(0); i != m_have_piece.end_index(); ++i)
 			{
 				if (m_have_piece[i])
 				{
@@ -872,19 +871,19 @@ namespace libtorrent
 			++peer_info_struct()->fast_reconnects;
 	}
 
-	void peer_connection::received_piece(int const index)
+	void peer_connection::received_piece(piece_index_t const index)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		// dont announce during handshake
 		if (in_handshake()) return;
 
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::incoming, "RECEIVED", "piece: %d", index);
+		peer_log(peer_log_alert::incoming, "RECEIVED", "piece: %d"
+			, static_cast<int>(index));
 #endif
 
 		// remove suggested pieces once we have them
-		std::vector<int>::iterator i = std::find(
-			m_suggested_pieces.begin(), m_suggested_pieces.end(), index);
+		auto i = std::find(m_suggested_pieces.begin(), m_suggested_pieces.end(), index);
 		if (i != m_suggested_pieces.end()) m_suggested_pieces.erase(i);
 
 		// remove allowed fast pieces
@@ -909,7 +908,7 @@ namespace libtorrent
 #endif
 	}
 
-	void peer_connection::announce_piece(int const index)
+	void peer_connection::announce_piece(piece_index_t const index)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		// dont announce during handshake
@@ -921,7 +920,8 @@ namespace libtorrent
 			&& has_piece(index))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::outgoing_message, "HAVE", "piece: %d SUPRESSED", index);
+			peer_log(peer_log_alert::outgoing_message, "HAVE", "piece: %d SUPRESSED"
+				, static_cast<int>(index));
 #endif
 			return;
 		}
@@ -929,7 +929,8 @@ namespace libtorrent
 		if (disconnect_if_redundant()) return;
 
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::outgoing_message, "HAVE", "piece: %d", index);
+		peer_log(peer_log_alert::outgoing_message, "HAVE", "piece: %d"
+			, static_cast<int>(index));
 #endif
 		write_have(index);
 #if TORRENT_USE_ASSERTS
@@ -938,14 +939,14 @@ namespace libtorrent
 #endif
 	}
 
-	bool peer_connection::has_piece(int i) const
+	bool peer_connection::has_piece(piece_index_t const i) const
 	{
 		TORRENT_ASSERT(is_single_thread());
 		std::shared_ptr<torrent> t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 		TORRENT_ASSERT(t->valid_metadata());
-		TORRENT_ASSERT(i >= 0);
-		TORRENT_ASSERT(i < t->torrent_file().num_pieces());
+		TORRENT_ASSERT(i >= piece_index_t(0));
+		TORRENT_ASSERT(i < t->torrent_file().end_piece());
 		return m_have_piece[i];
 	}
 
@@ -1076,13 +1077,13 @@ namespace libtorrent
 		t->received_synack(ipv6);
 	}
 
-	bitfield const& peer_connection::get_bitfield() const
+	typed_bitfield<piece_index_t> const& peer_connection::get_bitfield() const
 	{
 		TORRENT_ASSERT(is_single_thread());
 		return m_have_piece;
 	}
 
-	void peer_connection::received_valid_data(int index)
+	void peer_connection::received_valid_data(piece_index_t const index)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		// this fails because we haven't had time to disconnect
@@ -1101,7 +1102,7 @@ namespace libtorrent
 
 	// single_peer is true if the entire piece was received by a single
 	// peer
-	bool peer_connection::received_invalid_data(int index, bool single_peer)
+	bool peer_connection::received_invalid_data(piece_index_t const index, bool single_peer)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -1129,8 +1130,8 @@ namespace libtorrent
 		TORRENT_ASSERT(t->valid_metadata());
 		torrent_info const& ti = t->torrent_file();
 
-		return p.piece >= 0
-			&& p.piece < ti.num_pieces()
+		return p.piece >= piece_index_t(0)
+			&& p.piece < ti.end_piece()
 			&& p.start >= 0
 			&& p.start < ti.piece_length()
 			&& t->to_req(piece_block(p.piece, p.start / t->block_size())) == p;
@@ -1419,7 +1420,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::incoming_message, "REJECT_PIECE", "piece: %d s: %x l: %x"
-			, r.piece, r.start, r.length);
+			, static_cast<int>(r.piece), r.start, r.length);
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -1476,16 +1477,13 @@ namespace libtorrent
 			// if we're choked and we got a rejection of
 			// a piece in the allowed fast set, remove it
 			// from the allow fast set.
-			std::vector<int>::iterator i = std::find(
-				m_allowed_fast.begin(), m_allowed_fast.end(), r.piece);
+			auto i = std::find(m_allowed_fast.begin(), m_allowed_fast.end(), r.piece);
 			if (i != m_allowed_fast.end()) m_allowed_fast.erase(i);
 		}
 		else
 		{
-			std::vector<int>::iterator i = std::find(m_suggested_pieces.begin()
-				, m_suggested_pieces.end(), r.piece);
-			if (i != m_suggested_pieces.end())
-				m_suggested_pieces.erase(i);
+			auto i = std::find(m_suggested_pieces.begin(), m_suggested_pieces.end(), r.piece);
+			if (i != m_suggested_pieces.end()) m_suggested_pieces.erase(i);
 		}
 
 		check_graceful_pause();
@@ -1503,14 +1501,14 @@ namespace libtorrent
 	// ------- SUGGEST PIECE -------
 	// -----------------------------
 
-	void peer_connection::incoming_suggest(int const index)
+	void peer_connection::incoming_suggest(piece_index_t const index)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::incoming_message, "SUGGEST_PIECE"
-			, "piece: %d", index);
+			, "piece: %d", static_cast<int>(index));
 #endif
 		std::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t) return;
@@ -1523,22 +1521,22 @@ namespace libtorrent
 #endif
 
 		if (is_disconnecting()) return;
-		if (index < 0)
+		if (index < piece_index_t(0))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::incoming_message, "INVALID_SUGGEST_PIECE"
-				, "%d", index);
+				, "%d", static_cast<int>(index));
 #endif
 			return;
 		}
 
 		if (t->valid_metadata())
 		{
-			if (index >= m_have_piece.size())
+			if (index >= m_have_piece.end_index())
 			{
 #ifndef TORRENT_DISABLE_LOGGING
 				peer_log(peer_log_alert::incoming_message, "INVALID_SUGGEST"
-					, "%d s: %d", index, m_have_piece.size());
+					, "%d s: %d", static_cast<int>(index), m_have_piece.size());
 #endif
 				return;
 			}
@@ -1560,7 +1558,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, "SUGGEST_PIECE", "piece: %d added to set: %d"
-			, index, int(m_suggested_pieces.size()));
+			, static_cast<int>(index), int(m_suggested_pieces.size()));
 #endif
 	}
 
@@ -1765,7 +1763,7 @@ namespace libtorrent
 	// ----------- HAVE ------------
 	// -----------------------------
 
-	void peer_connection::incoming_have(int const index)
+	void peer_connection::incoming_have(piece_index_t const index)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -1792,26 +1790,28 @@ namespace libtorrent
 		if (m_settings.get_int(settings_pack::suggest_mode) == settings_pack::suggest_read_cache
 			&& !is_choked()
 			&& std::any_of(m_suggest_pieces.begin(), m_suggest_pieces.end()
-				, [=](int const idx) { return idx == index; }))
+				, [=](piece_index_t const idx) { return idx == index; }))
 		{
 			send_piece_suggestions(2);
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::incoming_message, "HAVE", "piece: %d", index);
+		peer_log(peer_log_alert::incoming_message, "HAVE", "piece: %d"
+			, static_cast<int>(index));
 #endif
 
 		if (is_disconnecting()) return;
 
-		if (!t->valid_metadata() && index >= m_have_piece.size())
+		if (!t->valid_metadata() && index >= m_have_piece.end_index())
 		{
-			if (index < 131072)
+			// TODO: 3 replace this magic number with something that makes sense
+			if (index < piece_index_t(131072))
 			{
 				// if we don't have metadata
 				// and we might not have received a bitfield
 				// extend the bitmask to fit the new
 				// have message
-				m_have_piece.resize(index + 1, false);
+				m_have_piece.resize(static_cast<int>(index) + 1, false);
 			}
 			else
 			{
@@ -1822,11 +1822,11 @@ namespace libtorrent
 		}
 
 		// if we got an invalid message, abort
-		if (index >= m_have_piece.size() || index < 0)
+		if (index >= piece_index_t(m_have_piece.size()) || index < piece_index_t(0))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "ERROR", "have-metadata have_piece: %d size: %d"
-				, index, m_have_piece.size());
+				, static_cast<int>(index), m_have_piece.size());
 #endif
 			disconnect(errors::invalid_have, op_bittorrent, 2);
 			return;
@@ -1850,7 +1850,8 @@ namespace libtorrent
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::incoming, "HAVE"
-				, "got redundant HAVE message for index: %d", index);
+				, "got redundant HAVE message for index: %d"
+				, static_cast<int>(index));
 #endif
 			return;
 		}
@@ -1927,7 +1928,7 @@ namespace libtorrent
 	// -------- DONT HAVE ----------
 	// -----------------------------
 
-	void peer_connection::incoming_dont_have(int index)
+	void peer_connection::incoming_dont_have(piece_index_t const index)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -1945,11 +1946,12 @@ namespace libtorrent
 		if (is_disconnecting()) return;
 
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::incoming_message, "DONT_HAVE", "piece: %d", index);
+		peer_log(peer_log_alert::incoming_message, "DONT_HAVE", "piece: %d"
+			, static_cast<int>(index));
 #endif
 
 		// if we got an invalid message, abort
-		if (index >= m_have_piece.size() || index < 0)
+		if (index >= piece_index_t(m_have_piece.size()) || index < piece_index_t(0))
 		{
 			disconnect(errors::invalid_dont_have, op_bittorrent, 2);
 			return;
@@ -1959,7 +1961,8 @@ namespace libtorrent
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::incoming, "DONT_HAVE"
-				, "got redundant DONT_HAVE message for index: %d", index);
+				, "got redundant DONT_HAVE message for index: %d"
+				, static_cast<int>(index));
 #endif
 			return;
 		}
@@ -1985,7 +1988,7 @@ namespace libtorrent
 	// --------- BITFIELD ----------
 	// -----------------------------
 
-	void peer_connection::incoming_bitfield(bitfield const& bits)
+	void peer_connection::incoming_bitfield(typed_bitfield<piece_index_t> const& bits)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -2007,8 +2010,8 @@ namespace libtorrent
 		{
 			std::string bitfield_str;
 			bitfield_str.resize(bits.size());
-			for (int i = 0; i < bits.size(); ++i)
-				bitfield_str[i] = bits[i] ? '1' : '0';
+			for (piece_index_t i(0); i != bits.end_index(); ++i)
+				bitfield_str[static_cast<int>(i)] = bits[i] ? '1' : '0';
 			peer_log(peer_log_alert::incoming_message, "BITFIELD"
 				, "%s", bitfield_str.c_str());
 		}
@@ -2192,10 +2195,11 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_LOGGING
 		const bool valid_piece_index
-			= r.piece >= 0 && r.piece < t->torrent_file().num_pieces();
+			= r.piece >= piece_index_t(0)
+			&& r.piece < piece_index_t(t->torrent_file().num_pieces());
 
 		peer_log(peer_log_alert::incoming_message, "REQUEST"
-			, "piece: %d s: %x l: %x", r.piece, r.start, r.length);
+			, "piece: %d s: %x l: %x", static_cast<int>(r.piece), r.start, r.length);
 #endif
 
 		if (t->super_seeding()
@@ -2213,8 +2217,8 @@ namespace libtorrent
 						? t->torrent_file().piece_size(r.piece) : -1
 					, t->torrent_file().num_pieces()
 					, valid_piece_index ? t->has_piece_passed(r.piece) : 0
-					, m_superseed_piece[0]
-					, m_superseed_piece[1]);
+					, static_cast<int>(m_superseed_piece[0])
+					, static_cast<int>(m_superseed_piece[1]));
 			}
 #endif
 
@@ -2253,7 +2257,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "INVALID_REQUEST", "we don't have metadata yet");
 			peer_log(peer_log_alert::outgoing_message, "REJECT_PIECE", "piece: %d s: %x l: %x no metadata"
-				, r.piece, r.start, r.length);
+				, static_cast<int>(r.piece), r.start, r.length);
 #endif
 			write_reject_request(r);
 			return;
@@ -2270,7 +2274,7 @@ namespace libtorrent
 			peer_log(peer_log_alert::info, "INVALID_REQUEST", "incoming request queue full %d"
 				, int(m_requests.size()));
 			peer_log(peer_log_alert::outgoing_message, "REJECT_PIECE", "piece: %d s: %x l: %x too many requests"
-				, r.piece, r.start, r.length);
+				, static_cast<int>(r.piece), r.start, r.length);
 #endif
 			write_reject_request(r);
 			return;
@@ -2313,8 +2317,8 @@ namespace libtorrent
 		// make sure this request
 		// is legal and that the peer
 		// is not choked
-		if (r.piece < 0
-			|| r.piece >= t->torrent_file().num_pieces()
+		if (r.piece < piece_index_t(0)
+			|| r.piece >= t->torrent_file().end_piece()
 			|| (!t->has_piece_passed(r.piece)
 				&& !t->is_predictive_piece(r.piece)
 				&& !t->seed_mode())
@@ -2341,7 +2345,7 @@ namespace libtorrent
 
 			peer_log(peer_log_alert::outgoing_message, "REJECT_PIECE"
 				, "piece: %d s: %d l: %d invalid request"
-				, r.piece , r.start , r.length);
+				, static_cast<int>(r.piece), r.start , r.length);
 #endif
 
 			write_reject_request(r);
@@ -2398,7 +2402,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "REJECTING REQUEST", "peer choked and piece not in allowed fast set");
 			peer_log(peer_log_alert::outgoing_message, "REJECT_PIECE", "piece: %d s: %d l: %d peer choked"
-				, r.piece, r.start, r.length);
+				, static_cast<int>(r.piece), r.start, r.length);
 #endif
 			m_counters.inc_stats_counter(counters::choked_piece_requests);
 			write_reject_request(r);
@@ -2422,8 +2426,8 @@ namespace libtorrent
 				m_counters.inc_stats_counter(counters::num_peers_up_requests);
 
 			TORRENT_ASSERT(t->valid_metadata());
-			TORRENT_ASSERT(r.piece >= 0);
-			TORRENT_ASSERT(r.piece < t->torrent_file().num_pieces());
+			TORRENT_ASSERT(r.piece >= piece_index_t(0));
+			TORRENT_ASSERT(r.piece < t->torrent_file().end_piece());
 
 			m_requests.push_back(r);
 
@@ -2439,7 +2443,7 @@ namespace libtorrent
 	}
 
 	// reject all requests to this piece
-	void peer_connection::reject_piece(int index)
+	void peer_connection::reject_piece(piece_index_t const index)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		for (std::vector<peer_request>::iterator i = m_requests.begin()
@@ -2495,7 +2499,7 @@ namespace libtorrent
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "INVALID_PIECE", "piece: %d s: %d l: %d"
-				, r.piece, r.start, r.length);
+				, static_cast<int>(r.piece), r.start, r.length);
 #endif
 			disconnect(errors::invalid_piece, op_bittorrent, 2);
 			return;
@@ -2676,7 +2680,7 @@ namespace libtorrent
 		if (should_log(peer_log_alert::incoming_message))
 		{
 			peer_log(peer_log_alert::incoming_message, "PIECE", "piece: %d s: %x l: %x ds: %d qs: %d q: %d"
-				, p.piece, p.start, p.length, statistics().download_rate()
+				, static_cast<int>(p.piece), p.start, p.length, statistics().download_rate()
 				, int(m_desired_queue_size), int(m_download_queue.size()));
 		}
 #endif
@@ -2819,7 +2823,7 @@ namespace libtorrent
 		}
 
 		peer_log(peer_log_alert::info, "FILE_ASYNC_WRITE", "piece: %d s: %x l: %x"
-			, p.piece, p.start, p.length);
+			, static_cast<int>(p.piece), p.start, p.length);
 #endif
 		m_download_queue.erase(b);
 		if (m_download_queue.empty())
@@ -2874,7 +2878,7 @@ namespace libtorrent
 
 		if (m_settings.get_int(settings_pack::predictive_piece_announce))
 		{
-			int piece = block_finished.piece_index;
+			piece_index_t const piece = block_finished.piece_index;
 			piece_picker::downloading_piece st;
 			t->picker().piece_info(piece, st);
 
@@ -2969,7 +2973,7 @@ namespace libtorrent
 		if (should_log(peer_log_alert::info))
 		{
 			peer_log(peer_log_alert::info, "FILE_ASYNC_WRITE_COMPLETE", "piece: %d s: %x l: %x e: %s"
-				, p.piece, p.start, p.length, error.ec.message().c_str());
+				, static_cast<int>(p.piece), p.start, p.length, error.ec.message().c_str());
 		}
 #endif
 
@@ -3102,7 +3106,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::incoming_message, "CANCEL"
-			, "piece: %d s: %x l: %x", r.piece, r.start, r.length);
+			, "piece: %d s: %x l: %x", static_cast<int>(r.piece), r.start, r.length);
 #endif
 
 		std::vector<peer_request>::iterator i
@@ -3118,7 +3122,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::outgoing_message, "REJECT_PIECE", "piece: %d s: %x l: %x cancelled"
-				, r.piece , r.start , r.length);
+				, static_cast<int>(r.piece), r.start , r.length);
 #endif
 			write_reject_request(r);
 		}
@@ -3293,7 +3297,7 @@ namespace libtorrent
 	// ------- ALLOWED FAST --------
 	// -----------------------------
 
-	void peer_connection::incoming_allowed_fast(int index)
+	void peer_connection::incoming_allowed_fast(piece_index_t const index)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
@@ -3310,7 +3314,8 @@ namespace libtorrent
 				, int(total_milliseconds(now - m_connect_time)));
 			if (m_peer_choked) m_unchoke_time = now;
 		}
-		peer_log(peer_log_alert::incoming_message, "ALLOWED_FAST", "%d", index);
+		peer_log(peer_log_alert::incoming_message, "ALLOWED_FAST", "%d"
+			, static_cast<int>(index));
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -3321,22 +3326,22 @@ namespace libtorrent
 #endif
 		if (is_disconnecting()) return;
 
-		if (index < 0)
+		if (index < piece_index_t(0))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::incoming_message, "INVALID_ALLOWED_FAST"
-				, "%d", index);
+				, "%d", static_cast<int>(index));
 #endif
 			return;
 		}
 
 		if (t->valid_metadata())
 		{
-			if (index >= m_have_piece.size())
+			if (index >= piece_index_t(m_have_piece.size()))
 			{
 #ifndef TORRENT_DISABLE_LOGGING
 				peer_log(peer_log_alert::incoming_message, "INVALID_ALLOWED_FAST"
-					, "%d s: %d", index, m_have_piece.size());
+					, "%d s: %d", static_cast<int>(index), m_have_piece.size());
 #endif
 				return;
 			}
@@ -3353,7 +3358,7 @@ namespace libtorrent
 
 		// if the peer has the piece and we want
 		// to download it, request it
-		if (int(m_have_piece.size()) > index
+		if (index < m_have_piece.end_index()
 			&& m_have_piece[index]
 			&& !t->has_piece_passed(index)
 			&& t->valid_metadata()
@@ -3364,7 +3369,7 @@ namespace libtorrent
 		}
 	}
 
-	std::vector<int> const& peer_connection::allowed_fast()
+	std::vector<piece_index_t> const& peer_connection::allowed_fast()
 	{
 		TORRENT_ASSERT(is_single_thread());
 		std::shared_ptr<torrent> t = m_torrent.lock();
@@ -3426,7 +3431,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
 		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
-		TORRENT_ASSERT(block.piece_index < t->torrent_file().num_pieces());
+		TORRENT_ASSERT(block.piece_index < t->torrent_file().end_piece());
 		TORRENT_ASSERT(block.block_index < t->torrent_file().piece_size(block.piece_index));
 		TORRENT_ASSERT(!t->picker().is_requested(block) || (t->picker().num_peers(block) > 0));
 		TORRENT_ASSERT(!t->have_piece(block.piece_index));
@@ -3440,7 +3445,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "PIECE_PICKER"
 				, "not_picking: %d,%d upload_mode"
-				, block.piece_index, block.block_index);
+				, static_cast<int>(block.piece_index), block.block_index);
 #endif
 			return false;
 		}
@@ -3449,7 +3454,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "PIECE_PICKER"
 				, "not_picking: %d,%d disconnecting"
-				, block.piece_index, block.block_index);
+				, static_cast<int>(block.piece_index), block.block_index);
 #endif
 			return false;
 		}
@@ -3462,32 +3467,26 @@ namespace libtorrent
 			// this rule does not apply to time critical pieces,
 			// in which case we are allowed to pick more than one
 			// busy blocks
-			for (std::vector<pending_block>::const_iterator i = m_download_queue.begin()
-				, end(m_download_queue.end()); i != end; ++i)
+			if (std::any_of(m_download_queue.begin(), m_download_queue.end()
+				, [](pending_block const& i) { return i.busy; }))
 			{
-				if (i->busy)
-				{
 #ifndef TORRENT_DISABLE_LOGGING
-					peer_log(peer_log_alert::info, "PIECE_PICKER"
-						, "not_picking: %d,%d already in download queue & busy"
-						, block.piece_index, block.block_index);
+				peer_log(peer_log_alert::info, "PIECE_PICKER"
+					, "not_picking: %d,%d already in download queue & busy"
+					, static_cast<int>(block.piece_index), block.block_index);
 #endif
-					return false;
-				}
+				return false;
 			}
 
-			for (std::vector<pending_block>::const_iterator i = m_request_queue.begin()
-				, end(m_request_queue.end()); i != end; ++i)
+			if (std::any_of(m_request_queue.begin(), m_request_queue.end()
+				, [](pending_block const& i) { return i.busy; }))
 			{
-				if (i->busy)
-				{
 #ifndef TORRENT_DISABLE_LOGGING
-					peer_log(peer_log_alert::info, "PIECE_PICKER"
-						, "not_picking: %d,%d already in request queue & busy"
-						, block.piece_index, block.block_index);
+				peer_log(peer_log_alert::info, "PIECE_PICKER"
+					, "not_picking: %d,%d already in request queue & busy"
+					, static_cast<int>(block.piece_index), block.block_index);
 #endif
-					return false;
-				}
+				return false;
 			}
 		}
 
@@ -3497,7 +3496,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "PIECE_PICKER"
 				, "not_picking: %d,%d failed to mark_as_downloading"
-				, block.piece_index, block.block_index);
+				, static_cast<int>(block.piece_index), block.block_index);
 #endif
 			return false;
 		}
@@ -3553,10 +3552,10 @@ namespace libtorrent
 		for (std::vector<pending_block>::iterator i = temp_copy.begin()
 			, end(temp_copy.end()); i != end; ++i)
 		{
-			piece_block b = i->block;
+			piece_block const b = i->block;
 
-			int block_offset = b.block_index * t->block_size();
-			int block_size
+			int const block_offset = b.block_index * t->block_size();
+			int const block_size
 				= (std::min)(t->torrent_file().piece_size(b.piece_index)-block_offset,
 					t->block_size());
 			TORRENT_ASSERT(block_size > 0);
@@ -3573,7 +3572,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::outgoing_message, "CANCEL"
 				, "piece: %d s: %d l: %d b: %d"
-				, b.piece_index, block_offset, block_size, b.block_index);
+				, static_cast<int>(b.piece_index), block_offset, block_size, b.block_index);
 #endif
 			write_cancel(r);
 		}
@@ -3592,7 +3591,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
 		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
-		TORRENT_ASSERT(block.piece_index < t->torrent_file().num_pieces());
+		TORRENT_ASSERT(block.piece_index < t->torrent_file().end_piece());
 		TORRENT_ASSERT(block.block_index < t->torrent_file().piece_size(block.piece_index));
 
 		// if all the peers that requested this block has been
@@ -3643,7 +3642,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::outgoing_message, "CANCEL"
 				, "piece: %d s: %d l: %d b: %d"
-				, block.piece_index, block_offset, block_size, block.block_index);
+				, static_cast<int>(block.piece_index), block_offset, block_size, block.block_index);
 #endif
 		write_cancel(r);
 	}
@@ -3668,7 +3667,8 @@ namespace libtorrent
 			m_counters.inc_stats_counter(counters::num_peers_up_unchoked_optimistic, -1);
 		}
 
-		std::vector<int>().swap(m_suggest_pieces);
+		m_suggest_pieces.clear();
+		m_suggest_pieces.shrink_to_fit();
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::outgoing_message, "CHOKE");
@@ -3698,7 +3698,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::outgoing_message, "REJECT_PIECE"
 				, "piece: %d s: %d l: %d choking"
-				, r.piece , r.start , r.length);
+				, static_cast<int>(r.piece), r.start , r.length);
 #endif
 			write_reject_request(r);
 			i = m_requests.erase(i);
@@ -3812,7 +3812,7 @@ namespace libtorrent
 		}
 	}
 
-	void peer_connection::send_suggest(int const piece)
+	void peer_connection::send_suggest(piece_index_t const piece)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		if (m_connecting || in_handshake()) return;
@@ -3826,7 +3826,7 @@ namespace libtorrent
 			std::shared_ptr<torrent> t = m_torrent.lock();
 			TORRENT_ASSERT(t);
 			TORRENT_ASSERT(t->has_piece_passed(piece));
-			TORRENT_ASSERT(piece >= 0 && piece < t->torrent_file().num_pieces());
+			TORRENT_ASSERT(piece < t->torrent_file().end_piece());
 		}
 #endif
 
@@ -3915,8 +3915,8 @@ namespace libtorrent
 					// check to see if this block is connected to the previous one
 					// if it is, merge them, otherwise, break this merge loop
 					pending_block const& front = m_request_queue.front();
-					if (front.block.piece_index * blocks_per_piece + front.block.block_index
-						!= block.block.piece_index * blocks_per_piece + block.block.block_index + 1)
+					if (static_cast<int>(front.block.piece_index) * blocks_per_piece + front.block.block_index
+						!= static_cast<int>(block.block.piece_index) * blocks_per_piece + block.block.block_index + 1)
 						break;
 					block = m_request_queue.front();
 					m_request_queue.erase(m_request_queue.begin());
@@ -3932,7 +3932,8 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 					peer_log(peer_log_alert::info, "MERGING_REQUEST"
 						, "piece: %d block: %d"
-						, block.block.piece_index, block.block.block_index);
+						, static_cast<int>(block.block.piece_index)
+						, block.block.block_index);
 #endif
 
 					block_offset = block.block.block_index * t->block_size();
@@ -3972,7 +3973,7 @@ namespace libtorrent
 			{
 				peer_log(peer_log_alert::outgoing_message, "REQUEST"
 					, "piece: %d s: %x l: %x ds: %dB/s dqs: %d rqs: %d blk: %s"
-					, r.piece, r.start, r.length, statistics().download_rate()
+					, static_cast<int>(r.piece), r.start, r.length, statistics().download_rate()
 					, int(m_desired_queue_size), int(m_download_queue.size())
 					, m_request_large_blocks?"large":"single");
 			}
@@ -4441,7 +4442,7 @@ namespace libtorrent
 		}
 		else
 		{
-			p.downloading_piece_index = -1;
+			p.downloading_piece_index = piece_index_t(-1);
 			p.downloading_block_index = -1;
 			p.downloading_progress = 0;
 			p.downloading_total = 0;
@@ -4510,18 +4511,21 @@ namespace libtorrent
 		p.local_endpoint = get_socket()->local_endpoint(ec);
 	}
 
-	void peer_connection::superseed_piece(int replace_piece, int new_piece)
+	// TODO: 3 new_piece should be an optional<piece_index_t>. piece index -1
+	// should not be allowed
+	void peer_connection::superseed_piece(piece_index_t const replace_piece
+		, piece_index_t const new_piece)
 	{
 		TORRENT_ASSERT(is_single_thread());
 
 		if (is_connecting()) return;
 		if (in_handshake()) return;
 
-		if (new_piece == -1)
+		if (new_piece == piece_index_t(-1))
 		{
-			if (m_superseed_piece[0] == -1) return;
-			m_superseed_piece[0] = -1;
-			m_superseed_piece[1] = -1;
+			if (m_superseed_piece[0] == piece_index_t(-1)) return;
+			m_superseed_piece[0] = piece_index_t(-1);
+			m_superseed_piece[1] = piece_index_t(-1);
 
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "SUPER_SEEDING", "ending");
@@ -4541,11 +4545,11 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::outgoing_message, "HAVE", "piece: %d (super seed)"
-			, new_piece);
+			, static_cast<int>(new_piece));
 #endif
 		write_have(new_piece);
 
-		if (replace_piece >= 0)
+		if (replace_piece >= piece_index_t(0))
 		{
 			// move the piece we're replacing to the tail
 			if (m_superseed_piece[0] == replace_piece)
@@ -4697,7 +4701,7 @@ namespace libtorrent
 		{
 			// maybe we need to try another piece, to see if the peer
 			// become interested in us then
-			superseed_piece(-1, t->get_piece_to_super_seed(m_have_piece));
+			superseed_piece(piece_index_t(-1), t->get_piece_to_super_seed(m_have_piece));
 		}
 
 		on_tick();
@@ -4995,7 +4999,7 @@ namespace libtorrent
 			{
 				t->alerts().emplace_alert<block_timeout_alert>(t->get_handle()
 					, remote(), pid(), int(qe.block.block_index)
-					, int(qe.block.piece_index));
+					, qe.block.piece_index);
 			}
 
 			// request a new block before removing the previous
@@ -5069,9 +5073,8 @@ namespace libtorrent
 			TORRENT_ASSERT(t->ready_for_connections());
 			peer_request& r = m_requests[i];
 
-			TORRENT_ASSERT(r.piece >= 0);
-			TORRENT_ASSERT(r.piece < int(m_have_piece.size()));
-//			TORRENT_ASSERT(t->have_piece(r.piece));
+			TORRENT_ASSERT(r.piece >= piece_index_t(0));
+			TORRENT_ASSERT(r.piece < piece_index_t(m_have_piece.size()));
 			TORRENT_ASSERT(r.start + r.length <= t->torrent_file().piece_size(r.piece));
 			TORRENT_ASSERT(r.length > 0 && r.start >= 0);
 
@@ -5080,7 +5083,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 				peer_log(peer_log_alert::outgoing_message, "REJECT_PIECE"
 					, "piece: %d s: %x l: %x torrent deleted"
-					, r.piece, r.start , r.length);
+					, static_cast<int>(r.piece), r.start , r.length);
 #endif
 				write_reject_request(r);
 				continue;
@@ -5103,7 +5106,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_LOGGING
 				peer_log(peer_log_alert::info, "SEED_MODE_FILE_ASYNC_HASH"
-					, "piece: %d", r.piece);
+					, "piece: %d", static_cast<int>(r.piece));
 #endif
 				// this means we're in seed mode and we haven't yet
 				// verified this piece (r.piece)
@@ -5124,7 +5127,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 				peer_log(peer_log_alert::outgoing_message, "REJECT_PIECE"
 					, "piece: %d s: %x l: %x piece not passed hash check"
-					, r.piece , r.start , r.length);
+					, static_cast<int>(r.piece), r.start , r.length);
 #endif
 				write_reject_request(r);
 			}
@@ -5132,7 +5135,7 @@ namespace libtorrent
 			{
 #ifndef TORRENT_DISABLE_LOGGING
 				peer_log(peer_log_alert::info, "FILE_ASYNC_READ"
-					, "piece: %d s: %x l: %x", r.piece, r.start, r.length);
+					, "piece: %d s: %x l: %x", static_cast<int>(r.piece), r.start, r.length);
 #endif
 				m_reading_bytes += r.length;
 				sent_a_piece = true;
@@ -5140,8 +5143,8 @@ namespace libtorrent
 				// the callback function may be called immediately, instead of being posted
 
 				TORRENT_ASSERT(t->valid_metadata());
-				TORRENT_ASSERT(r.piece >= 0);
-				TORRENT_ASSERT(r.piece < t->torrent_file().num_pieces());
+				TORRENT_ASSERT(r.piece >= piece_index_t(0));
+				TORRENT_ASSERT(r.piece < t->torrent_file().end_piece());
 
 				m_disk_thread.async_read(&t->storage(), r
 					, std::bind(&peer_connection::on_disk_read_complete
@@ -5162,7 +5165,7 @@ namespace libtorrent
 
 	// this is called when a previously unchecked piece has been
 	// checked, while in seed-mode
-	void peer_connection::on_seed_mode_hashed(int const piece
+	void peer_connection::on_seed_mode_hashed(piece_index_t const piece
 		, sha1_hash const& piece_hash, storage_error const& error)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -5188,7 +5191,7 @@ namespace libtorrent
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "SEED_MODE_FILE_HASH"
-				, "piece: %d failed", piece);
+				, "piece: %d failed", static_cast<int>(piece));
 #endif
 
 			t->leave_seed_mode(false);
@@ -5200,7 +5203,7 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "SEED_MODE_FILE_HASH"
-				, "piece: %d passed", piece);
+				, "piece: %d passed", static_cast<int>(piece));
 #endif
 			if (t)
 			{
@@ -5230,7 +5233,7 @@ namespace libtorrent
 		{
 			peer_log(peer_log_alert::info, "FILE_ASYNC_READ_COMPLETE"
 				, "piece: %d s: %x l: %x b: %p c: %s e: %s rtt: %d us"
-				, r.piece, r.start, r.length
+				, static_cast<int>(r.piece), r.start, r.length
 				, static_cast<void*>(disk_block)
 				, (flags & disk_interface::cache_hit ? "cache hit" : "cache miss")
 				, error.ec.message().c_str(), disk_rtt);
@@ -5253,7 +5256,7 @@ namespace libtorrent
 			write_reject_request(r);
 			if (t->alerts().should_post<file_error_alert>())
 				t->alerts().emplace_alert<file_error_alert>(error.ec
-					, t->resolve_filename(error.file)
+					, t->resolve_filename(error.file())
 					, error.operation_str(), t->get_handle());
 
 			++m_disk_read_failures;
@@ -5290,7 +5293,8 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::outgoing_message
-			, "PIECE", "piece: %d s: %x l: %x", r.piece, r.start, r.length);
+			, "PIECE", "piece: %d s: %x l: %x"
+			, static_cast<int>(r.piece), r.start, r.length);
 #endif
 
 		m_counters.blend_stats_counter(counters::request_latency, disk_rtt, 5);
@@ -6316,9 +6320,9 @@ namespace libtorrent
 			// download queue already
 			int outstanding_bytes = 0;
 //			bool in_download_queue = false;
-			int block_size = t->block_size();
-			piece_block last_block(ti.num_pieces()-1
-				, (ti.piece_size(ti.num_pieces()-1) + block_size - 1) / block_size);
+			int const block_size = t->block_size();
+			piece_block last_block(ti.last_piece()
+				, (ti.piece_size(ti.last_piece()) + block_size - 1) / block_size);
 			for (std::vector<pending_block>::const_iterator i = m_download_queue.begin()
 				, end(m_download_queue.end()); i != end; ++i)
 			{

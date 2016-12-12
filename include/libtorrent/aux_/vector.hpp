@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2015-2016, Arvid Norberg
+Copyright (c) 2016, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,17 +30,44 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/torrent_status.hpp"
+#ifndef TORRENT_VECTOR_HPP
+#define TORRENT_VECTOR_HPP
+
+#include <vector>
+
+#include "libtorrent/assert.hpp"
 
 namespace libtorrent
 {
-	file_index_t const torrent_status::error_file_none;
-	file_index_t const torrent_status::error_file_url;
-	file_index_t const torrent_status::error_file_ssl_ctx;
-	file_index_t const torrent_status::error_file_metadata;
-	file_index_t const torrent_status::error_file_exception;
-	torrent_status::torrent_status() = default;
-	torrent_status::~torrent_status() = default;
-	torrent_status::torrent_status(torrent_status const&) = default;
-	torrent_status& torrent_status::operator=(torrent_status const&) = default;
+
+	template <typename T, typename IndexType>
+	struct vector : std::vector<T>
+	{
+		using base = std::vector<T>;
+		using underlying_index = typename IndexType::underlying_type;
+
+		// pull in constructors from base class
+		using base::base;
+
+		auto operator[](IndexType idx) const -> decltype(this->base::operator[](underlying_index()))
+		{
+			TORRENT_ASSERT(idx >= IndexType(0));
+			TORRENT_ASSERT(idx < end_index());
+			return this->base::operator[](static_cast<underlying_index>(idx));
+		}
+
+		auto operator[](IndexType idx) -> decltype(this->base::operator[](underlying_index()))
+		{
+			TORRENT_ASSERT(idx >= IndexType(0));
+			TORRENT_ASSERT(idx < end_index());
+			return this->base::operator[](static_cast<underlying_index>(idx));
+		}
+
+		IndexType end_index() const
+		{ return IndexType(static_cast<underlying_index>(this->size())); }
+	};
+
 }
+
+#endif
+

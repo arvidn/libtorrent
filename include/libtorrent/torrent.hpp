@@ -57,7 +57,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/storage_defs.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/bitfield.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/deadline_timer.hpp"
@@ -70,6 +69,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_interface.hpp" // for status_t
 #include "libtorrent/aux_/file_progress.hpp"
 #include "libtorrent/aux_/suggest_piece.hpp"
+#include "libtorrent/units.hpp"
+#include "libtorrent/aux_/vector.hpp"
 
 #if TORRENT_COMPLETE_TYPES_REQUIRED
 #include "libtorrent/peer_connection.hpp"
@@ -86,7 +87,7 @@ namespace libtorrent
 
 	struct storage_interface;
 	struct torrent_plugin;
-	struct bitfield;
+	template <typename Index> struct typed_bitfield;
 	struct announce_entry;
 	struct tracker_request;
 	struct add_torrent_params;
@@ -114,7 +115,7 @@ namespace libtorrent
 		// how many peers it's been requested from
 		int peers;
 		// the piece index
-		int piece;
+		piece_index_t piece;
 #if TORRENT_DEBUG_STREAMING > 0
 		// the number of multiple requests are allowed
 		// to blocks still not downloaded (debugging only)
@@ -167,18 +168,18 @@ namespace libtorrent
 		// if the web server doesn't support keepalive or a block request was
 		// interrupted, the block received so far is kept here for the next
 		// connection to pick up
-		peer_request restart_request = { -1, -1, -1};
+		peer_request restart_request = { piece_index_t(-1), -1, -1};
 		std::vector<char> restart_piece;
 
 		// this maps file index to a URL it has been redirected to. If an entry is
 		// missing, it means it has not been redirected and the full path should
 		// be constructed normally based on the filename. All redirections are
 		// relative to the web seed hostname root.
-		std::map<int, std::string> redirects;
+		std::map<file_index_t, std::string> redirects;
 
 		// if this bitfield is non-empty, it represents the files this web server
 		// has.
-		bitfield have_files;
+		typed_bitfield<file_index_t> have_files;
 	};
 
 	struct TORRENT_EXTRA_EXPORT torrent_hot_members
@@ -353,7 +354,7 @@ namespace libtorrent
 
 		void on_resume_data_checked(status_t status, storage_error const& error);
 		void on_force_recheck(status_t status, storage_error const& error);
-		void on_piece_hashed(int piece, sha1_hash const& piece_hash
+		void on_piece_hashed(piece_index_t piece, sha1_hash const& piece_hash
 			, storage_error const& error);
 		void files_checked();
 		void start_checking();
@@ -378,7 +379,7 @@ namespace libtorrent
 		int seed_rank(aux::session_settings const& s) const;
 
 		enum flags_t { overwrite_existing = 1 };
-		void add_piece(int piece, char const* data, int flags = 0);
+		void add_piece(piece_index_t piece, char const* data, int flags = 0);
 		void on_disk_write_complete(storage_error const& error
 			, peer_request p);
 
@@ -390,7 +391,7 @@ namespace libtorrent
 			bool fail;
 			error_code error;
 		};
-		void read_piece(int piece);
+		void read_piece(piece_index_t piece);
 		void on_disk_read_complete(aux::block_cache_reference ref
 			, char* block, int flags, storage_error const& se
 			, peer_request r, std::shared_ptr<read_piece_struct> rp);
@@ -449,7 +450,7 @@ namespace libtorrent
 		void port_filter_updated();
 		ip_filter const* get_ip_filter() { return m_ip_filter.get(); }
 
-		std::string resolve_filename(int file) const;
+		std::string resolve_filename(file_index_t file) const;
 		void handle_exception();
 
 		enum class disk_class { none, write };
@@ -458,7 +459,7 @@ namespace libtorrent
 			, disk_class rw = disk_class::none);
 		void clear_error();
 
-		void set_error(error_code const& ec, int file);
+		void set_error(error_code const& ec, file_index_t file);
 		bool has_error() const { return !!m_error; }
 		error_code error() const { return m_error; }
 
@@ -514,35 +515,35 @@ namespace libtorrent
 		void peers_erased(std::vector<torrent_peer*> const& peers);
 
 		// ============ start deprecation =============
-		void filter_piece(int index, bool filter);
+		void filter_piece(piece_index_t index, bool filter);
 		void filter_pieces(std::vector<bool> const& bitmask);
-		bool is_piece_filtered(int index) const;
+		bool is_piece_filtered(piece_index_t index) const;
 		void filtered_pieces(std::vector<bool>& bitmask) const;
 		void filter_files(std::vector<bool> const& files);
 #if !TORRENT_NO_FPU
-		void file_progress_float(std::vector<float>& fp);
+		void file_progress_float(vector<float, file_index_t>& fp);
 #endif
 		// ============ end deprecation =============
 
-		void piece_availability(std::vector<int>& avail) const;
+		void piece_availability(vector<int, piece_index_t>& avail) const;
 
-		void set_piece_priority(int index, int priority);
-		int piece_priority(int index) const;
+		void set_piece_priority(piece_index_t index, int priority);
+		int piece_priority(piece_index_t index) const;
 
-		void prioritize_pieces(std::vector<int> const& pieces);
-		void prioritize_piece_list(std::vector<std::pair<int, int>> const& pieces);
-		void piece_priorities(std::vector<int>*) const;
+		void prioritize_pieces(vector<int, piece_index_t> const& pieces);
+		void prioritize_piece_list(std::vector<std::pair<piece_index_t, int>> const& pieces);
+		void piece_priorities(vector<int, piece_index_t>*) const;
 
-		void set_file_priority(int index, int priority);
-		int file_priority(int index) const;
+		void set_file_priority(file_index_t index, int priority);
+		int file_priority(file_index_t index) const;
 
 		void on_file_priority(storage_error const&);
-		void prioritize_files(std::vector<int> const& files);
-		void file_priorities(std::vector<int>*) const;
+		void prioritize_files(vector<int, file_index_t> const& files);
+		void file_priorities(vector<int, file_index_t>*) const;
 
 		void cancel_non_critical();
-		void set_piece_deadline(int piece, int t, int flags);
-		void reset_piece_deadline(int piece);
+		void set_piece_deadline(piece_index_t piece, int t, int flags);
+		void reset_piece_deadline(piece_index_t piece);
 		void clear_time_critical();
 		void update_piece_priorities();
 
@@ -552,7 +553,7 @@ namespace libtorrent
 		// it, add it to the m_state_updates list in session_impl
 		void state_updated();
 
-		void file_progress(std::vector<std::int64_t>& fp, int flags = 0);
+		void file_progress(vector<std::int64_t, file_index_t>& fp, int flags = 0);
 
 #ifndef TORRENT_NO_DEPRECATE
 		void use_interface(std::string net_interface);
@@ -659,7 +660,6 @@ namespace libtorrent
 		void get_peer_info(std::vector<peer_info>* v);
 		void get_download_queue(std::vector<partial_piece_info>* queue) const;
 
-		void update_suggest_piece(int index, int change);
 		void update_auto_sequential();
 
 // --------------------------------------------
@@ -734,10 +734,10 @@ namespace libtorrent
 		}
 
 		void set_super_seeding(bool on);
-		int get_piece_to_super_seed(bitfield const&);
+		piece_index_t get_piece_to_super_seed(typed_bitfield<piece_index_t> const&);
 
 		// returns true if we have downloaded the given piece
-		bool have_piece(int index) const
+		bool have_piece(piece_index_t index) const
 		{
 			if (!valid_metadata()) return false;
 			if (!has_picker()) return m_have_all;
@@ -745,10 +745,10 @@ namespace libtorrent
 		}
 
 		// returns true if we have downloaded the given piece
-		bool has_piece_passed(int index) const
+		bool has_piece_passed(piece_index_t index) const
 		{
 			if (!valid_metadata()) return false;
-			if (index < 0 || index >= torrent_file().num_pieces()) return false;
+			if (index < piece_index_t(0) || index >= torrent_file().end_piece()) return false;
 			if (!has_picker()) return m_have_all;
 			return m_picker->has_piece_passed(index);
 		}
@@ -756,7 +756,7 @@ namespace libtorrent
 		// a predictive piece is a piece that we might
 		// not have yet, but still announced to peers, anticipating that
 		// we'll have it very soon
-		bool is_predictive_piece(int index) const
+		bool is_predictive_piece(piece_index_t index) const
 		{
 			return std::binary_search(m_predictive_pieces.begin(), m_predictive_pieces.end(), index);
 		}
@@ -765,7 +765,7 @@ namespace libtorrent
 
 		// called when we learn that we have a piece
 		// only once per piece
-		void we_have(int index);
+		void we_have(piece_index_t index);
 
 	public:
 
@@ -792,15 +792,16 @@ namespace libtorrent
 		}
 
 		// when we get a have message, this is called for that piece
-		void peer_has(int index, peer_connection const* peer);
+		void peer_has(piece_index_t index, peer_connection const* peer);
 
 		// when we get a bitfield message, this is called for that piece
-		void peer_has(bitfield const& bits, peer_connection const* peer);
+		void peer_has(typed_bitfield<piece_index_t> const& bits, peer_connection const* peer);
 
 		void peer_has_all(peer_connection const* peer);
 
-		void peer_lost(int index, peer_connection const* peer);
-		void peer_lost(bitfield const& bits, peer_connection const* peer);
+		void peer_lost(piece_index_t index, peer_connection const* peer);
+		void peer_lost(typed_bitfield<piece_index_t> const& bits
+			, peer_connection const* peer);
 
 		int block_size() const { TORRENT_ASSERT(m_block_size_shift > 0); return 1 << m_block_size_shift; }
 		peer_request to_req(piece_block const& p) const;
@@ -867,8 +868,8 @@ namespace libtorrent
 		// we wasn't finished anymore.
 		void resume_download();
 
-		void verify_piece(int piece);
-		void on_piece_verified(int const piece
+		void verify_piece(piece_index_t piece);
+		void on_piece_verified(piece_index_t piece
 			, sha1_hash const& piece_hash, storage_error const& error);
 
 		// this is called whenever a peer in this swarm becomes interesting
@@ -879,17 +880,17 @@ namespace libtorrent
 		// this will tell all peers that we just got his piece
 		// and also let the piece picker know that we have this piece
 		// so it wont pick it for download
-		void piece_passed(int index);
+		void piece_passed(piece_index_t index);
 
 		// piece_failed is called when a piece fails the hash check
-		void piece_failed(int index);
+		void piece_failed(piece_index_t index);
 
 		// this is the handler for hash failure piece synchronization
 		// i.e. resetting the piece
-		void on_piece_sync(int piece);
+		void on_piece_sync(piece_index_t piece);
 
 		// this is the handler for write failure piece synchronization
-		void on_piece_fail_sync(int piece, piece_block b);
+		void on_piece_fail_sync(piece_index_t piece, piece_block b);
 
 		void add_redundant_bytes(int b, waste_reason reason);
 		void add_failed_bytes(int b);
@@ -992,7 +993,7 @@ namespace libtorrent
 		// renames the file with the given index to the new name
 		// the name may include a directory path
 		// returns false on failure
-		void rename_file(int index, std::string const& name);
+		void rename_file(file_index_t index, std::string const& name);
 
 		// unless this returns true, new connections must wait
 		// with their initialization.
@@ -1024,28 +1025,18 @@ namespace libtorrent
 
 		bool all_verified() const
 		{ return int(m_num_verified) == m_torrent_file->num_pieces(); }
-		bool verifying_piece(int piece) const
+		bool verifying_piece(piece_index_t const piece) const
+		{ return m_verifying.get_bit(piece); }
+		void verifying(piece_index_t const piece)
 		{
-			TORRENT_ASSERT(piece < int(m_verifying.size()));
-			TORRENT_ASSERT(piece >= 0);
-			return m_verifying.get_bit(piece);
-		}
-		void verifying(int piece)
-		{
-			TORRENT_ASSERT(piece < int(m_verifying.size()));
-			TORRENT_ASSERT(piece >= 0);
 			TORRENT_ASSERT(m_verifying.get_bit(piece) == false);
 			m_verifying.set_bit(piece);
 		}
-		bool verified_piece(int piece) const
-		{
-			TORRENT_ASSERT(piece < int(m_verified.size()));
-			TORRENT_ASSERT(piece >= 0);
-			return m_verified.get_bit(piece);
-		}
-		void verified(int piece);
+		bool verified_piece(piece_index_t piece) const
+		{ return m_verified.get_bit(piece); }
+		void verified(piece_index_t piece);
 
-		bool add_merkle_nodes(std::map<int, sha1_hash> const& n, int piece);
+		bool add_merkle_nodes(std::map<int, sha1_hash> const& n, piece_index_t piece);
 
 		// this is called once periodically for torrents
 		// that are not private
@@ -1056,12 +1047,12 @@ namespace libtorrent
 		void set_apply_ip_filter(bool b);
 		bool apply_ip_filter() const { return m_apply_ip_filter; }
 
-		std::vector<int> const& predictive_pieces() const
+		std::vector<piece_index_t> const& predictive_pieces() const
 		{ return m_predictive_pieces; }
 
 		// this is called whenever we predict to have this piece
 		// within one second
-		void predicted_have_piece(int index, int milliseconds);
+		void predicted_have_piece(piece_index_t index, int milliseconds);
 
 		void clear_in_state_update()
 		{
@@ -1092,12 +1083,13 @@ namespace libtorrent
 		int num_time_critical_pieces() const
 		{ return int(m_time_critical_pieces.size()); }
 
-		int get_suggest_pieces(std::vector<int>& p, bitfield const& bits
+		int get_suggest_pieces(std::vector<piece_index_t>& p
+			, typed_bitfield<piece_index_t> const& bits
 			, int const n)
 		{
 			return m_suggest_pieces.get_pieces(p, bits, n);
 		}
-		void add_suggest_piece(int index);
+		void add_suggest_piece(piece_index_t index);
 
 		enum { no_gauge_state = 0xf };
 
@@ -1120,7 +1112,7 @@ namespace libtorrent
 		void on_storage_moved(status_t status, std::string const& path
 			, storage_error const& error);
 		void on_file_renamed(std::string const& filename
-			, int const file_idx
+			, file_index_t const file_idx
 			, storage_error const& error);
 		void on_cache_flushed();
 
@@ -1147,8 +1139,8 @@ namespace libtorrent
 		bool should_announce_dht() const;
 #endif
 
-		void remove_time_critical_piece(int piece, bool finished = false);
-		void remove_time_critical_pieces(std::vector<int> const& priority);
+		void remove_time_critical_piece(piece_index_t piece, bool finished = false);
+		void remove_time_critical_pieces(vector<int, piece_index_t> const& priority);
 		void request_time_critical_pieces();
 
 		void need_peer_list();
@@ -1214,9 +1206,9 @@ namespace libtorrent
 
 		// this vector is allocated lazily. If no file priorities are
 		// ever changed, this remains empty. Any unallocated slot
-		// implicitly means the file has priority 1.
+		// implicitly means the file has priority 4.
 		// TODO: this wastes 5 bits per file
-		std::vector<std::uint8_t> m_file_priority;
+		vector<std::uint8_t, file_index_t> m_file_priority;
 
 		// this object is used to track download progress of individual files
 		aux::file_progress m_file_progress;
@@ -1263,7 +1255,7 @@ namespace libtorrent
 		// verified its hash. If the hash fails, send reject to
 		// peers with outstanding requests, and dont_have to other
 		// peers. This vector is ordered, to make lookups fast.
-		std::vector<int> m_predictive_pieces;
+		std::vector<piece_index_t> m_predictive_pieces;
 
 		// the performance counters of this session
 		counters& m_stats_counters;
@@ -1274,10 +1266,10 @@ namespace libtorrent
 		// is true)
 
 		// TODO: These two bitfields should probably be coalesced into one
-		bitfield m_verified;
+		typed_bitfield<piece_index_t> m_verified;
 		// this means there is an outstanding, async, operation
 		// to verify each piece that has a 1
-		bitfield m_verifying;
+		typed_bitfield<piece_index_t> m_verifying;
 
 		// set if there's an error on this torrent
 		error_code m_error;
@@ -1353,15 +1345,15 @@ namespace libtorrent
 
 		// when checking, this is the first piece we have not
 		// issued a hash job for
-		int m_checking_piece = 0;
+		piece_index_t m_checking_piece{0};
 
 		// the number of pieces we completed the check of
-		int m_num_checked_pieces = 0;
+		piece_index_t m_num_checked_pieces{0};
 
 		// if the error occurred on a file, this is the index of that file
 		// there are a few special cases, when this is negative. See
 		// set_error()
-		int m_error_file;
+		file_index_t m_error_file;
 
 		// the average time it takes to download one time critical piece
 		std::uint32_t m_average_piece_time = 0;

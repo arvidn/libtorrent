@@ -141,7 +141,7 @@ namespace libtorrent {
 
 	read_piece_alert::read_piece_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h
-		, int p, boost::shared_array<char> d, int s)
+		, piece_index_t p, boost::shared_array<char> d, int s)
 		: torrent_alert(alloc, h)
 		, buffer(std::move(d))
 		, piece(p)
@@ -149,7 +149,7 @@ namespace libtorrent {
 	{}
 
 	read_piece_alert::read_piece_alert(aux::stack_allocator& alloc
-		, torrent_handle h, int p, error_code e)
+		, torrent_handle h, piece_index_t p, error_code e)
 		: torrent_alert(alloc, h)
 		, error(e)
 		, piece(p)
@@ -165,20 +165,20 @@ namespace libtorrent {
 		if (error)
 		{
 			std::snprintf(msg, sizeof(msg), "%s: read_piece %u failed: %s"
-				, torrent_alert::message().c_str() , piece
+				, torrent_alert::message().c_str() , static_cast<int>(piece)
 				, convert_from_native(error.message()).c_str());
 		}
 		else
 		{
 			std::snprintf(msg, sizeof(msg), "%s: read_piece %u successful"
-				, torrent_alert::message().c_str() , piece);
+				, torrent_alert::message().c_str() , static_cast<int>(piece));
 		}
 		return msg;
 	}
 
 	file_completed_alert::file_completed_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h
-		, int idx)
+		, file_index_t idx)
 		: torrent_alert(alloc, h)
 		, index(idx)
 	{}
@@ -187,12 +187,12 @@ namespace libtorrent {
 	{
 		char msg[200 + TORRENT_MAX_PATH];
 		std::snprintf(msg, sizeof(msg), "%s: file %d finished downloading"
-			, torrent_alert::message().c_str(), index);
+			, torrent_alert::message().c_str(), static_cast<int>(index));
 		return msg;
 	}
 
 	file_renamed_alert::file_renamed_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, string_view n, int const idx)
+		, torrent_handle const& h, string_view n, file_index_t const idx)
 		: torrent_alert(alloc, h)
 #ifndef TORRENT_NO_DEPRECATE
 		, name(n)
@@ -214,13 +214,13 @@ namespace libtorrent {
 	{
 		char msg[200 + TORRENT_MAX_PATH * 2];
 		std::snprintf(msg, sizeof(msg), "%s: file %d renamed to %s"
-			, torrent_alert::message().c_str(), index, new_name());
+			, torrent_alert::message().c_str(), static_cast<int>(index), new_name());
 		return msg;
 	}
 
 	file_rename_failed_alert::file_rename_failed_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h
-		, int idx
+		, file_index_t const idx
 		, error_code ec)
 		: torrent_alert(alloc, h)
 		, index(idx)
@@ -231,7 +231,8 @@ namespace libtorrent {
 	{
 		char ret[200 + TORRENT_MAX_PATH * 2];
 		std::snprintf(ret, sizeof(ret), "%s: failed to rename file %d: %s"
-			, torrent_alert::message().c_str(), index, convert_from_native(error.message()).c_str());
+			, torrent_alert::message().c_str(), static_cast<int>(index)
+			, convert_from_native(error.message()).c_str());
 		return ret;
 	}
 
@@ -447,19 +448,18 @@ namespace libtorrent {
 	hash_failed_alert::hash_failed_alert(
 		aux::stack_allocator& alloc
 		, torrent_handle const& h
-		, int index)
+		, piece_index_t index)
 		: torrent_alert(alloc, h)
 		, piece_index(index)
-
 	{
-		TORRENT_ASSERT(index >= 0);
+		TORRENT_ASSERT(index >= piece_index_t(0));
 	}
 
 	std::string hash_failed_alert::message() const
 	{
 		char ret[400];
 		std::snprintf(ret, sizeof(ret), "%s hash for piece %u failed"
-			, torrent_alert::message().c_str(), piece_index);
+			, torrent_alert::message().c_str(), static_cast<int>(piece_index));
 		return ret;
 	}
 
@@ -512,7 +512,9 @@ namespace libtorrent {
 		char ret[200];
 		std::snprintf(ret, sizeof(ret), "%s peer sent an invalid piece request "
 			"(piece: %u start: %u len: %u)%s"
-			, peer_alert::message().c_str(), request.piece, request.start
+			, peer_alert::message().c_str()
+			, static_cast<int>(request.piece)
+			, request.start
 			, request.length
 			, withheld ? ": super seeding withheld piece"
 			: !we_have ? ": we don't have piece"
@@ -532,78 +534,76 @@ namespace libtorrent {
 	}
 
 	piece_finished_alert::piece_finished_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h, int piece_num)
+		, torrent_handle const& h, piece_index_t piece_num)
 		: torrent_alert(alloc, h)
 		, piece_index(piece_num)
-	{
-		TORRENT_ASSERT(piece_index >= 0);
-	}
+	{}
 
 	std::string piece_finished_alert::message() const
 	{
 		char ret[200];
 		std::snprintf(ret, sizeof(ret), "%s piece: %u finished downloading"
-			, torrent_alert::message().c_str(), piece_index);
+			, torrent_alert::message().c_str(), static_cast<int>(piece_index));
 		return ret;
 	}
 
 	request_dropped_alert::request_dropped_alert(aux::stack_allocator& alloc, torrent_handle h
 		, tcp::endpoint const& ep, peer_id const& peer_id, int block_num
-		, int piece_num)
+		, piece_index_t piece_num)
 		: peer_alert(alloc, h, ep, peer_id)
 		, block_index(block_num)
 		, piece_index(piece_num)
 	{
-		TORRENT_ASSERT(block_index >= 0 && piece_index >= 0);
+		TORRENT_ASSERT(block_index >= 0 && piece_index >= piece_index_t(0));
 	}
 
 	std::string request_dropped_alert::message() const
 	{
 		char ret[200];
 		std::snprintf(ret, sizeof(ret), "%s peer dropped block ( piece: %u block: %u)"
-			, torrent_alert::message().c_str(), piece_index, block_index);
+			, torrent_alert::message().c_str(), static_cast<int>(piece_index), block_index);
 		return ret;
 	}
 
 	block_timeout_alert::block_timeout_alert(aux::stack_allocator& alloc, torrent_handle h
 		, tcp::endpoint const& ep, peer_id const& peer_id, int block_num
-		, int piece_num)
+		, piece_index_t piece_num)
 		: peer_alert(alloc, h, ep, peer_id)
 		, block_index(block_num)
 		, piece_index(piece_num)
 	{
-		TORRENT_ASSERT(block_index >= 0 && piece_index >= 0);
+		TORRENT_ASSERT(block_index >= 0 && piece_index >= piece_index_t(0));
 	}
 
 	std::string block_timeout_alert::message() const
 	{
 		char ret[200];
 		std::snprintf(ret, sizeof(ret), "%s peer timed out request ( piece: %u block: %u)"
-			, torrent_alert::message().c_str(), piece_index, block_index);
+			, torrent_alert::message().c_str(), static_cast<int>(piece_index), block_index);
 		return ret;
 	}
 
 	block_finished_alert::block_finished_alert(aux::stack_allocator& alloc, torrent_handle h
 		, tcp::endpoint const& ep, peer_id const& peer_id, int block_num
-		, int piece_num)
+		, piece_index_t piece_num)
 		: peer_alert(alloc, h, ep, peer_id)
 		, block_index(block_num)
 		, piece_index(piece_num)
 	{
-		TORRENT_ASSERT(block_index >= 0 && piece_index >= 0);
+		TORRENT_ASSERT(block_index >= 0 && piece_index >= piece_index_t(0));
 	}
 
 	std::string block_finished_alert::message() const
 	{
 		char ret[200];
 		std::snprintf(ret, sizeof(ret), "%s block finished downloading (piece: %u block: %u)"
-			, torrent_alert::message().c_str(), piece_index, block_index);
+			, torrent_alert::message().c_str(), static_cast<int>(piece_index), block_index);
 		return ret;
 	}
 
 	block_downloading_alert::block_downloading_alert(aux::stack_allocator& alloc, torrent_handle h
 		, tcp::endpoint const& ep
-		, peer_id const& peer_id, int block_num, int piece_num)
+		, peer_id const& peer_id, int block_num, piece_index_t piece_num)
 		: peer_alert(alloc, h, ep, peer_id)
 #ifndef TORRENT_NO_DEPRECATE
 		, peer_speedmsg("")
@@ -611,32 +611,32 @@ namespace libtorrent {
 		, block_index(block_num)
 		, piece_index(piece_num)
 	{
-		TORRENT_ASSERT(block_index >= 0 && piece_index >= 0);
+		TORRENT_ASSERT(block_index >= 0 && piece_index >= piece_index_t(0));
 	}
 
 	std::string block_downloading_alert::message() const
 	{
 		char ret[200];
 		std::snprintf(ret, sizeof(ret), "%s requested block (piece: %u block: %u)"
-			, torrent_alert::message().c_str(), piece_index, block_index);
+			, torrent_alert::message().c_str(), static_cast<int>(piece_index), block_index);
 		return ret;
 	}
 
 	unwanted_block_alert::unwanted_block_alert(aux::stack_allocator& alloc, torrent_handle h
 		, tcp::endpoint const& ep
-		, peer_id const& peer_id, int block_num, int piece_num)
+		, peer_id const& peer_id, int block_num, piece_index_t piece_num)
 		: peer_alert(alloc, h, ep, peer_id)
 		, block_index(block_num)
 		, piece_index(piece_num)
 	{
-		TORRENT_ASSERT(block_index >= 0 && piece_index >= 0);
+		TORRENT_ASSERT(block_index >= 0 && piece_index >= piece_index_t(0));
 	}
 
 	std::string unwanted_block_alert::message() const
 	{
 		char ret[200];
 		std::snprintf(ret, sizeof(ret), "%s received block not in download queue (piece: %u block: %u)"
-			, torrent_alert::message().c_str(), piece_index, block_index);
+			, torrent_alert::message().c_str(), static_cast<int>(piece_index), block_index);
 		return ret;
 	}
 
@@ -1890,7 +1890,8 @@ namespace libtorrent {
 	{
 		char msg[1024];
 		std::snprintf(msg, sizeof(msg), "%s: incoming request [ piece: %d start: %d length: %d ]"
-			, peer_alert::message().c_str(), req.piece, req.start, req.length);
+			, peer_alert::message().c_str(), static_cast<int>(req.piece)
+			, req.start, req.length);
 		return msg;
 	}
 
@@ -2127,7 +2128,7 @@ namespace libtorrent {
 		{
 			char buf[50];
 			std::snprintf(buf, sizeof(buf), "(%d,%d) "
-				, p.piece_index, p.block_index);
+				, static_cast<int>(p.piece_index), p.block_index);
 			ret += buf;
 		}
 		return ret;

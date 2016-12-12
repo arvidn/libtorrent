@@ -41,7 +41,7 @@ namespace libtorrent
 		: m_allocator(&alloc), m_buf(buf)
 	{
 		m_ref.storage = nullptr;
-		m_ref.piece = -1;
+		m_ref.piece = piece_index_t(-1);
 		m_ref.block = -1;
 	}
 
@@ -62,10 +62,10 @@ namespace libtorrent
 		, aux::block_cache_reference const& ref, char* buf) noexcept
 		: m_allocator(&alloc), m_buf(buf), m_ref(ref)
 	{
-		TORRENT_ASSERT(m_ref.storage == nullptr || m_ref.piece >= 0);
+		TORRENT_ASSERT(m_ref.storage == nullptr || m_ref.piece >= piece_index_t(0));
 		TORRENT_ASSERT(m_ref.storage == nullptr || m_ref.block >= 0);
 		TORRENT_ASSERT(m_ref.storage == nullptr
-			|| m_ref.piece < static_cast<storage_interface*>(m_ref.storage)->files()->num_pieces());
+			|| m_ref.piece < static_cast<storage_interface*>(m_ref.storage)->files()->end_piece());
 		TORRENT_ASSERT(m_ref.storage == nullptr
 			|| m_ref.block <= static_cast<storage_interface*>(m_ref.storage)->files()->piece_length() / 0x4000);
 	}
@@ -77,10 +77,10 @@ namespace libtorrent
 		m_buf = buf;
 		m_ref = ref;
 
-		TORRENT_ASSERT(m_ref.piece >= 0);
+		TORRENT_ASSERT(m_ref.piece >= piece_index_t(0));
 		TORRENT_ASSERT(m_ref.storage != nullptr);
 		TORRENT_ASSERT(m_ref.block >= 0);
-		TORRENT_ASSERT(m_ref.piece < static_cast<storage_interface*>(m_ref.storage)->files()->num_pieces());
+		TORRENT_ASSERT(m_ref.piece < static_cast<storage_interface*>(m_ref.storage)->files()->end_piece());
 		TORRENT_ASSERT(m_ref.block <= static_cast<storage_interface*>(m_ref.storage)->files()->piece_length() / 0x4000);
 	}
 

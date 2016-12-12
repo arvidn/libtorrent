@@ -145,6 +145,7 @@ nobase_include_HEADERS = \
   udp_socket.hpp               \
   udp_tracker_connection.hpp   \
   union_endpoint.hpp           \
+  units.hpp                    \
   upnp.hpp                     \
   utp_socket_manager.hpp       \
   utp_stream.hpp               \
@@ -182,6 +183,7 @@ nobase_include_HEADERS = \
   aux_/lsd.hpp                      \
   aux_/has_block.hpp                \
   aux_/scope_end.hpp                \
+  aux_/vector.hpp                   \
   \
   extensions/smart_ban.hpp          \
   extensions/ut_metadata.hpp        \

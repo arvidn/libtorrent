@@ -33,13 +33,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_BLOCK_CACHE_REFERENCE_HPP
 #define TORRENT_BLOCK_CACHE_REFERENCE_HPP
 
+#include "libtorrent/units.hpp"
+
 namespace libtorrent {
 namespace aux {
 
 	struct block_cache_reference
 	{
 		void* storage;
-		int piece;
+		piece_index_t piece;
 		int block;
 	};
 

@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/system/error_code.hpp>
 #include <boost/system/system_error.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include "libtorrent/units.hpp"
 
 namespace libtorrent
 {
@@ -499,16 +500,19 @@ namespace libtorrent
 	// error happened on
 	struct TORRENT_EXPORT storage_error
 	{
-		storage_error(): file(-1), operation(0) {}
-		explicit storage_error(error_code e): ec(e), file(-1), operation(0) {}
+		storage_error(): file_idx(-1), operation(0) {}
+		explicit storage_error(error_code e): ec(e), file_idx(-1), operation(0) {}
 
 		explicit operator bool() const { return ec.value() != 0; }
 
 		// the error that occurred
 		error_code ec;
 
+		file_index_t file() const { return file_index_t(file_idx); }
+		void file(file_index_t f) { file_idx = static_cast<int>(f); }
+
 		// the file the error occurred on
-		std::int32_t file:24;
+		std::int32_t file_idx:24;
 
 		// A code from file_operation_t enum, indicating what
 		// kind of operation failed.

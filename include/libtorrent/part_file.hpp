@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/file.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/units.hpp"
 
 namespace libtorrent
 {
@@ -49,12 +50,12 @@ namespace libtorrent
 		part_file(std::string const& path, std::string const& name, int num_pieces, int piece_size);
 		~part_file();
 
-		int writev(span<file::iovec_t const> bufs, int piece, int offset, error_code& ec);
-		int readv(span<file::iovec_t const> bufs, int piece, int offset, error_code& ec);
+		int writev(span<file::iovec_t const> bufs, piece_index_t piece, int offset, error_code& ec);
+		int readv(span<file::iovec_t const> bufs, piece_index_t piece, int offset, error_code& ec);
 
 		// free the slot the given piece is stored in. We no longer need to store this
 		// piece in the part file
-		void free_piece(int piece);
+		void free_piece(piece_index_t piece);
 
 		void move_partfile(std::string const& path, error_code& ec);
 
@@ -73,7 +74,7 @@ namespace libtorrent
 		std::string m_name;
 
 		// allocate a slot and return the slot index
-		int allocate_slot(int piece);
+		int allocate_slot(piece_index_t piece);
 
 		// this mutex must be held while accessing the data
 		// structure. Not while reading or writing from the file though!
@@ -105,7 +106,7 @@ namespace libtorrent
 		bool m_dirty_metadata;
 
 		// maps a piece index to the part-file slot it is stored in
-		std::unordered_map<int, int> m_piece_map;
+		std::unordered_map<piece_index_t, int> m_piece_map;
 
 		// this is the file handle to the part file
 		file m_file;

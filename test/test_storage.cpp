@@ -79,7 +79,7 @@ void on_check_resume_data(status_t const status, storage_error const& error, boo
 			break;
 		case status_t::fatal_disk_error:
 			std::cerr << time_now_string() << " disk error: " << error.ec.message()
-				<< " file: " << error.file << std::endl;
+				<< " file: " << error.file() << std::endl;
 			break;
 		case status_t::need_full_check:
 			std::cerr << time_now_string() << " need full check" << std::endl;
@@ -95,7 +95,8 @@ void on_check_resume_data(status_t const status, storage_error const& error, boo
 void print_error(char const* call, int ret, storage_error const& ec)
 {
 	std::printf("%s: %s() returned: %d error: \"%s\" in file: %d operation: %d\n"
-		, time_now_string(), call, ret, ec.ec.message().c_str(), ec.file, ec.operation);
+		, time_now_string(), call, ret, ec.ec.message().c_str()
+		, static_cast<int>(ec.file()), ec.operation);
 }
 
 void run_until(io_service& ios, bool const& done)
@@ -128,7 +129,7 @@ std::shared_ptr<torrent_info> setup_torrent_info(file_storage& fs
 
 	char buf_[4] = {0, 0, 0, 0};
 	sha1_hash h = hasher(buf_).final();
-	for (int i = 0; i < 6; ++i) t.set_hash(i, h);
+	for (piece_index_t i(0); i < piece_index_t(6); ++i) t.set_hash(i, h);
 
 	bencode(std::back_inserter(buf), t.generate());
 	error_code ec;
@@ -167,7 +168,8 @@ std::shared_ptr<default_storage> setup_torrent(file_storage& fs
 	if (se)
 	{
 		TEST_ERROR(se.ec.message().c_str());
-		std::printf("default_storage::initialize %s: %d\n", se.ec.message().c_str(), int(se.file));
+		std::printf("default_storage::initialize %s: %d\n"
+			, se.ec.message().c_str(), static_cast<int>(se.file()));
 	}
 
 	return s;
@@ -238,25 +240,25 @@ void run_storage_tests(std::shared_ptr<torrent_info> info
 
 	// write piece 1 (in slot 0)
 	file::iovec_t iov = { piece1.data(), half};
-	ret = s->writev(iov, 0, 0, 0, ec);
+	ret = s->writev(iov, piece_index_t(0), 0, 0, ec);
 	if (ret != half) print_error("writev", ret, ec);
 
 	iov.iov_base = piece1.data() + half;
 	iov.iov_len = half;
-	ret = s->writev(iov, 0, half, 0, ec);
+	ret = s->writev(iov, piece_index_t(0), half, 0, ec);
 	if (ret != half) print_error("writev", ret, ec);
 
 	// test unaligned read (where the bytes are aligned)
 	iov.iov_base = piece + 3;
 	iov.iov_len = piece_size - 9;
-	ret = s->readv(iov, 0, 3, 0, ec);
+	ret = s->readv(iov, piece_index_t(0), 3, 0, ec);
 	if (ret != piece_size - 9) print_error("readv",ret, ec);
 	TEST_CHECK(std::equal(piece+3, piece + piece_size-9, piece1.data()+3));
 
 	// test unaligned read (where the bytes are not aligned)
 	iov.iov_base = piece;
 	iov.iov_len = piece_size - 9;
-	ret = s->readv(iov, 0, 3, 0, ec);
+	ret = s->readv(iov, piece_index_t(0), 3, 0, ec);
 	TEST_CHECK(ret == piece_size - 9);
 	if (ret != piece_size - 9) print_error("readv", ret, ec);
 	TEST_CHECK(std::equal(piece, piece + piece_size-9, piece1.data()+3));
@@ -264,7 +266,7 @@ void run_storage_tests(std::shared_ptr<torrent_info> info
 	// verify piece 1
 	iov.iov_base = piece;
 	iov.iov_len = piece_size;
-	ret = s->readv(iov, 0, 0, 0, ec);
+	ret = s->readv(iov, piece_index_t(0), 0, 0, ec);
 	TEST_CHECK(ret == piece_size);
 	if (ret != piece_size) print_error("readv", ret, ec);
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece1.data()));
@@ -272,24 +274,24 @@ void run_storage_tests(std::shared_ptr<torrent_info> info
 	// do the same with piece 0 and 2 (in slot 1 and 2)
 	iov.iov_base = piece0.data();
 	iov.iov_len = piece_size;
-	ret = s->writev(iov, 1, 0, 0, ec);
+	ret = s->writev(iov, piece_index_t(1), 0, 0, ec);
 	if (ret != piece_size) print_error("writev", ret, ec);
 
 	iov.iov_base = piece2.data();
 	iov.iov_len = piece_size;
-	ret = s->writev(iov, 2, 0, 0, ec);
+	ret = s->writev(iov, piece_index_t(2), 0, 0, ec);
 	if (ret != piece_size) print_error("writev", ret, ec);
 
 	// verify piece 0 and 2
 	iov.iov_base = piece;
 	iov.iov_len = piece_size;
-	ret = s->readv(iov, 1, 0, 0, ec);
+	ret = s->readv(iov, piece_index_t(1), 0, 0, ec);
 	if (ret != piece_size) print_error("readv", ret, ec);
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece0.data()));
 
 	iov.iov_base = piece;
 	iov.iov_len = piece_size;
-	ret = s->readv(iov, 2, 0, 0, ec);
+	ret = s->readv(iov, piece_index_t(2), 0, 0, ec);
 	if (ret != piece_size) print_error("readv", ret, ec);
 	TEST_CHECK(std::equal(piece, piece + piece_size, piece2.data()));
 
@@ -341,7 +343,7 @@ void test_remove(std::string const& test_path, bool unbuffered)
 
 	file::iovec_t b = {&buf[0], 4};
 	storage_error se;
-	s->writev(b, 2, 0, 0, se);
+	s->writev(b, piece_index_t(2), 0, 0, se);
 
 	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage"
 		, combine_path("folder1", "test2.tmp")))));
@@ -352,7 +354,7 @@ void test_remove(std::string const& test_path, bool unbuffered)
 		, combine_path("folder1", "test2.tmp"))), &st, ec);
 	TEST_EQUAL(st.file_size, 8);
 
-	s->writev(b, 4, 0, 0, se);
+	s->writev(b, piece_index_t(4), 0, 0, se);
 
 	TEST_CHECK(exists(combine_path(test_path, combine_path("temp_storage"
 		, combine_path("_folder3", combine_path("subfolder", "test5.tmp"))))));
@@ -366,7 +368,8 @@ void test_remove(std::string const& test_path, bool unbuffered)
 	if (se)
 	{
 		TEST_ERROR(se.ec.message().c_str());
-		std::printf("default_storage::delete_files %s: %d\n", se.ec.message().c_str(), int(se.file));
+		std::printf("default_storage::delete_files %s: %d\n"
+			, se.ec.message().c_str(), static_cast<int>(se.file()));
 	}
 
 	TEST_CHECK(!exists(combine_path(test_path, "temp_storage")));
@@ -393,15 +396,15 @@ void test_rename(std::string const& test_path)
 
 	// directories are not created up-front, unless they contain
 	// an empty file
-	std::string first_file = fs.file_path(0);
-	for (int i = 0; i < fs.num_files(); ++i)
+	std::string first_file = fs.file_path(file_index_t(0));
+	for (file_index_t i(0); i < fs.end_file(); ++i)
 	{
 		TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage"
 			, fs.file_path(i)))));
 	}
 
 	storage_error se;
-	s->rename_file(0, "new_filename", se);
+	s->rename_file(file_index_t(0), "new_filename", se);
 	if (se.ec)
 	{
 		std::printf("default_storage::rename_file failed: %s\n"
@@ -409,7 +412,7 @@ void test_rename(std::string const& test_path)
 	}
 	TEST_CHECK(!se.ec);
 
-	TEST_EQUAL(s->files().file_path(0), "new_filename");
+	TEST_EQUAL(s->files().file_path(file_index_t(0)), "new_filename");
 }
 
 void test_check_files(std::string const& test_path
@@ -433,10 +436,10 @@ void test_check_files(std::string const& test_path
 	std::vector<char> piece2 = new_piece(piece_size);
 
 	libtorrent::create_torrent t(fs, piece_size, -1, 0);
-	t.set_hash(0, hasher(piece0).final());
-	t.set_hash(1, sha1_hash(nullptr));
-	t.set_hash(2, sha1_hash(nullptr));
-	t.set_hash(3, hasher(piece2).final());
+	t.set_hash(piece_index_t(0), hasher(piece0).final());
+	t.set_hash(piece_index_t(1), sha1_hash(nullptr));
+	t.set_hash(piece_index_t(2), sha1_hash(nullptr));
+	t.set_hash(piece_index_t(3), hasher(piece2).final());
 
 	create_directory(combine_path(test_path, "temp_storage"), ec);
 	if (ec) std::cerr << "create_directory: " << ec.message() << std::endl;
@@ -479,7 +482,7 @@ void test_check_files(std::string const& test_path
 
 	bool done = false;
 	add_torrent_params frd;
-	std::vector<std::string> links;
+	vector<std::string, file_index_t> links;
 	io.async_check_files(pm.get(), &frd, links
 		, std::bind(&on_check_resume_data, _1, _2, &done));
 	io.submit_jobs();
@@ -527,10 +530,10 @@ void run_test(bool unbuffered)
 
 	libtorrent::create_torrent t(fs, piece_size, -1, 0);
 	TEST_CHECK(t.num_pieces() == 4);
-	t.set_hash(0, hasher(piece0).final());
-	t.set_hash(1, hasher(piece1).final());
-	t.set_hash(2, hasher(piece2).final());
-	t.set_hash(3, hasher(piece3).final());
+	t.set_hash(piece_index_t(0), hasher(piece0).final());
+	t.set_hash(piece_index_t(1), hasher(piece1).final());
+	t.set_hash(piece_index_t(2), hasher(piece2).final());
+	t.set_hash(piece_index_t(3), hasher(piece3).final());
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
@@ -571,10 +574,10 @@ void run_test(bool unbuffered)
 	file_storage fs;
 	fs.add_file(combine_path("temp_storage", "test1.tmp"), 3 * piece_size);
 	libtorrent::create_torrent t(fs, piece_size, -1, 0);
-	TEST_CHECK(fs.file_path(0) == combine_path("temp_storage", "test1.tmp"));
-	t.set_hash(0, hasher(piece0).final());
-	t.set_hash(1, hasher(piece1).final());
-	t.set_hash(2, hasher(piece2).final());
+	TEST_CHECK(fs.file_path(file_index_t(0)) == combine_path("temp_storage", "test1.tmp"));
+	t.set_hash(piece_index_t(0), hasher(piece0).final());
+	t.set_hash(piece_index_t(1), hasher(piece1).final());
+	t.set_hash(piece_index_t(2), hasher(piece2).final());
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
@@ -776,7 +779,7 @@ TORRENT_TEST(rename_file)
 
 	// make it a seed
 	std::vector<char> tmp(info->piece_length());
-	for (int i = 0; i < info->num_pieces(); ++i)
+	for (piece_index_t i(0); i < fs.end_piece(); ++i)
 		h.add_piece(i, &tmp[0]);
 
 	// wait for the files to have been written
@@ -784,7 +787,7 @@ TORRENT_TEST(rename_file)
 	TEST_CHECK(pf);
 
 	// now rename them. This is the test
-	for (int i = 0; i < info->num_files(); ++i)
+	for (file_index_t i(0); i < fs.end_file(); ++i)
 	{
 		std::string name = fs.file_path(i);
 		h.rename_file(i, "__" + name);
@@ -838,7 +841,7 @@ void test_rename_file_fastresume(bool test_deprecated)
 		p.storage_mode = storage_mode_sparse;
 		torrent_handle h = ses.add_torrent(p, ec);
 
-		h.rename_file(0, "testing_renamed_files");
+		h.rename_file(file_index_t(0), "testing_renamed_files");
 		std::cout << "renaming file" << std::endl;
 		bool renamed = false;
 		for (int i = 0; i < 30; ++i)
@@ -1091,22 +1094,22 @@ file_storage make_fs()
 	return fs;
 }
 
-struct test_fileop : fileop
+struct test_fileop : libtorrent::fileop
 {
 	explicit test_fileop(int stripe_size) : m_stripe_size(stripe_size) {}
 
-	int file_op(int const file_index, std::int64_t const file_offset
+	int file_op(file_index_t const file_index, std::int64_t const file_offset
 		, span<file::iovec_t const> bufs, storage_error& ec) override
 	{
 		size_t offset = size_t(file_offset);
-		if (file_index >= int(m_file_data.size()))
+		if (static_cast<int>(file_index) >= m_file_data.size())
 		{
-			m_file_data.resize(file_index + 1);
+			m_file_data.resize(static_cast<int>(file_index) + 1);
 		}
 
-		const int write_size = (std::min)(m_stripe_size, bufs_size(bufs));
+		const int write_size = std::min(m_stripe_size, bufs_size(bufs));
 
-		std::vector<char>& file = m_file_data[file_index];
+		std::vector<char>& file = m_file_data[static_cast<int>(file_index)];
 
 		if (offset + write_size > file.size())
 		{
@@ -1134,10 +1137,10 @@ struct test_read_fileop : fileop
 	// EOF after size bytes read
 	explicit test_read_fileop(int size) : m_size(size), m_counter(0) {}
 
-	int file_op(int const file_index, std::int64_t const file_offset
+	int file_op(file_index_t const file_index, std::int64_t const file_offset
 		, span<file::iovec_t const> bufs, storage_error& ec) override
 	{
-		int local_size = (std::min)(m_size, bufs_size(bufs));
+		int local_size = std::min(m_size, bufs_size(bufs));
 		const int read = local_size;
 		while (local_size > 0)
 		{
@@ -1162,15 +1165,15 @@ struct test_read_fileop : fileop
 struct test_error_fileop : fileop
 {
 	// EOF after size bytes read
-	explicit test_error_fileop(int error_file)
+	explicit test_error_fileop(file_index_t error_file)
 		: m_error_file(error_file) {}
 
-	int file_op(int const file_index, std::int64_t const file_offset
+	int file_op(file_index_t const file_index, std::int64_t const file_offset
 		, span<file::iovec_t const> bufs, storage_error& ec) override
 	{
 		if (m_error_file == file_index)
 		{
-			ec.file = file_index;
+			ec.file(file_index);
 			ec.ec.assign(boost::system::errc::permission_denied
 				, boost::system::generic_category());
 			ec.operation = storage_error::read;
@@ -1179,7 +1182,7 @@ struct test_error_fileop : fileop
 		return bufs_size(bufs);
 	}
 
-	int m_error_file;
+	file_index_t m_error_file;
 };
 
 int count_bufs(file::iovec_t const* bufs, int bytes)
@@ -1213,7 +1216,7 @@ TORRENT_TEST(readwritev_stripe_1)
 	int num_bufs2 = count_bufs(iov2, int(fs.total_size()));
 	TEST_CHECK(num_bufs2 <= num_bufs);
 
-	int ret = readwritev(fs, {iov2, size_t(num_bufs2)}, 0, 0, fop, ec);
+	int ret = readwritev(fs, {iov2, size_t(num_bufs2)}, piece_index_t(0), 0, fop, ec);
 
 	TEST_EQUAL(ret, fs.total_size());
 	TEST_EQUAL(fop.m_file_data.size(), 4);
@@ -1240,7 +1243,7 @@ TORRENT_TEST(readwritev_single_buffer)
 	file::iovec_t iov = { &buf[0], buf.size() };
 	fill_pattern(&iov, 1);
 
-	int ret = readwritev(fs, iov, 0, 0, fop, ec);
+	int ret = readwritev(fs, iov, piece_index_t(0), 0, fop, ec);
 
 	TEST_EQUAL(ret, fs.total_size());
 	TEST_EQUAL(fop.m_file_data.size(), 4);
@@ -1265,7 +1268,7 @@ TORRENT_TEST(readwritev_read)
 	file::iovec_t iov = { &buf[0], buf.size() };
 
 	// read everything
-	int ret = readwritev(fs, iov, 0, 0, fop, ec);
+	int ret = readwritev(fs, iov, piece_index_t(0), 0, fop, ec);
 
 	TEST_EQUAL(ret, fs.total_size());
 	TEST_CHECK(check_pattern(buf, 0));
@@ -1282,9 +1285,9 @@ TORRENT_TEST(readwritev_read_short)
 		, static_cast<size_t>(fs.total_size()) };
 
 	// read everything
-	int ret = readwritev(fs, iov, 0, 0, fop, ec);
+	int ret = readwritev(fs, iov, piece_index_t(0), 0, fop, ec);
 
-	TEST_EQUAL(ec.file, 3);
+	TEST_EQUAL(static_cast<int>(ec.file()), 3);
 
 	TEST_EQUAL(ret, 100);
 	buf.resize(100);
@@ -1294,7 +1297,7 @@ TORRENT_TEST(readwritev_read_short)
 TORRENT_TEST(readwritev_error)
 {
 	file_storage fs = make_fs();
-	test_error_fileop fop(2);
+	test_error_fileop fop(file_index_t(2));
 	storage_error ec;
 
 	std::vector<char> buf(size_t(fs.total_size()));
@@ -1302,10 +1305,10 @@ TORRENT_TEST(readwritev_error)
 		, static_cast<size_t>(fs.total_size()) };
 
 	// read everything
-	int ret = readwritev(fs, iov, 0, 0, fop, ec);
+	int ret = readwritev(fs, iov, piece_index_t(0), 0, fop, ec);
 
 	TEST_EQUAL(ret, -1);
-	TEST_EQUAL(ec.file, 2);
+	TEST_EQUAL(static_cast<int>(ec.file()), 2);
 	TEST_EQUAL(ec.operation, storage_error::read);
 	TEST_EQUAL(ec.ec, boost::system::errc::permission_denied);
 	std::printf("error: %s\n", ec.ec.message().c_str());
@@ -1329,7 +1332,7 @@ TORRENT_TEST(readwritev_zero_size_files)
 		, static_cast<size_t>(fs.total_size()) };
 
 	// read everything
-	int ret = readwritev(fs, iov, 0, 0, fop, ec);
+	int ret = readwritev(fs, iov, piece_index_t(0), 0, fop, ec);
 
 	TEST_EQUAL(ret, fs.total_size());
 	TEST_CHECK(check_pattern(buf, 0));
@@ -1362,7 +1365,7 @@ TORRENT_TEST(move_storage_into_self)
 
 	file::iovec_t const b = {&buf[0], 4};
 	storage_error se;
-	s->writev(b, 2, 0, 0, se);
+	s->writev(b, piece_index_t(2), 0, 0, se);
 
 	std::string const test_path = combine_path(save_path, combine_path("temp_storage", "folder1"));
 	s->move_storage(test_path, 0, se);
@@ -1408,7 +1411,7 @@ TORRENT_TEST(dont_move_intermingled_files)
 
 	file::iovec_t b = {&buf[0], 4};
 	storage_error se;
-	s->writev(b, 2, 0, 0, se);
+	s->writev(b, piece_index_t(2), 0, 0, se);
 
 	error_code ec;
 	create_directory(combine_path(save_path, combine_path("temp_storage"

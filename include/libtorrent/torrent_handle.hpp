@@ -51,6 +51,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp" // tcp::endpoint
 #include "libtorrent/span.hpp"
 #include "libtorrent/sha1_hash.hpp"
+#include "libtorrent/units.hpp"
+#include "libtorrent/aux_/vector.hpp"
 
 namespace libtorrent
 {
@@ -155,7 +157,7 @@ namespace libtorrent
 		// of blocks in this particular piece. This number will be the same for
 		// most pieces, but
 		// the last piece may have fewer blocks than the standard pieces.
-		int piece_index;
+		piece_index_t piece_index;
 
 		// the number of blocks in this piece
 		int blocks_in_piece;
@@ -267,7 +269,7 @@ namespace libtorrent
 		// Since the data is written asynchronously, you may know that is passed
 		// or failed the hash check by waiting for piece_finished_alert or
 		// hash_failed_alert.
-		void add_piece(int piece, char const* data, int flags = 0) const;
+		void add_piece(piece_index_t piece, char const* data, int flags = 0) const;
 
 		// This function starts an asynchronous read operation of the specified
 		// piece from this torrent. You must have completed the download of the
@@ -279,11 +281,11 @@ namespace libtorrent
 		//
 		// Note that if you read multiple pieces, the read operations are not
 		// guaranteed to finish in the same order as you initiated them.
-		void read_piece(int piece) const;
+		void read_piece(piece_index_t piece) const;
 
 		// Returns true if this piece has been completely downloaded, and false
 		// otherwise.
-		bool have_piece(int piece) const;
+		bool have_piece(piece_index_t piece) const;
 
 #ifndef TORRENT_NO_DEPRECATE
 		// internal
@@ -375,8 +377,8 @@ namespace libtorrent
 		//
 		// ``clear_piece_deadlines()`` removes deadlines on all pieces in
 		// the torrent. As if reset_piece_deadline() was called on all pieces.
-		void set_piece_deadline(int index, int deadline, int flags = 0) const;
-		void reset_piece_deadline(int index) const;
+		void set_piece_deadline(piece_index_t index, int deadline, int flags = 0) const;
+		void reset_piece_deadline(piece_index_t index) const;
 		void clear_piece_deadlines() const;
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -944,11 +946,11 @@ namespace libtorrent
 		// marks the piece with the given index as filtered
 		// it will not be downloaded
 		TORRENT_DEPRECATED
-		void filter_piece(int index, bool filter) const;
+		void filter_piece(piece_index_t index, bool filter) const;
 		TORRENT_DEPRECATED
 		void filter_pieces(std::vector<bool> const& pieces) const;
 		TORRENT_DEPRECATED
-		bool is_piece_filtered(int index) const;
+		bool is_piece_filtered(piece_index_t index) const;
 		TORRENT_DEPRECATED
 		std::vector<bool> filtered_pieces() const;
 		// marks the file with the given index as filtered
@@ -1015,10 +1017,10 @@ namespace libtorrent
 		//
 		// ``piece_priorities`` returns a vector with one element for each piece
 		// in the torrent. Each element is the current priority of that piece.
-		void piece_priority(int index, int priority) const;
-		int piece_priority(int index) const;
+		void piece_priority(piece_index_t index, int priority) const;
+		int piece_priority(piece_index_t index) const;
 		void prioritize_pieces(std::vector<int> const& pieces) const;
-		void prioritize_pieces(std::vector<std::pair<int, int>> const& pieces) const;
+		void prioritize_pieces(std::vector<std::pair<piece_index_t, int>> const& pieces) const;
 		std::vector<int> piece_priorities() const;
 
 		// ``index`` must be in the range [0, number_of_files).
@@ -1043,8 +1045,8 @@ namespace libtorrent
 		// You cannot set the file priorities on a torrent that does not yet have
 		// metadata or a torrent that is a seed. ``file_priority(int, int)`` and
 		// prioritize_files() are both no-ops for such torrents.
-		void file_priority(int index, int priority) const;
-		int file_priority(int index) const;
+		void file_priority(file_index_t index, int priority) const;
+		int file_priority(file_index_t index) const;
 		void prioritize_files(std::vector<int> const& files) const;
 		std::vector<int> file_priorities() const;
 
@@ -1242,7 +1244,7 @@ namespace libtorrent
 		// Renames the file with the given index asynchronously. The rename
 		// operation is complete when either a file_renamed_alert or
 		// file_rename_failed_alert is posted.
-		void rename_file(int index, std::string const& new_name) const;
+		void rename_file(file_index_t index, std::string const& new_name) const;
 
 #ifndef TORRENT_NO_DEPRECATE
 #if TORRENT_USE_WSTRING
@@ -1252,7 +1254,7 @@ namespace libtorrent
 		TORRENT_DEPRECATED
 		void move_storage(std::wstring const& save_path, int flags = 0) const;
 		TORRENT_DEPRECATED
-		void rename_file(int index, std::wstring const& new_name) const;
+		void rename_file(file_index_t index, std::wstring const& new_name) const;
 #endif // TORRENT_USE_WSTRING
 #endif // TORRENT_NO_DEPRECATE
 

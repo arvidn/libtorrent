@@ -77,7 +77,7 @@ namespace libtorrent
 
 		virtual void write_request(peer_request const& r) override;
 
-		virtual bool received_invalid_data(int index, bool single_peer) override;
+		virtual bool received_invalid_data(piece_index_t index, bool single_peer) override;
 
 	private:
 
@@ -101,7 +101,7 @@ namespace libtorrent
 		// (might be more than the bt requests)
 		struct file_request_t
 		{
-			int file_index;
+			file_index_t file_index;
 			int length;
 			std::int64_t start;
 		};

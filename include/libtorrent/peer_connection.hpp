@@ -171,7 +171,7 @@ namespace libtorrent
 	protected:
 
 		// the pieces the other end have
-		bitfield m_have_piece;
+		typed_bitfield<piece_index_t> m_have_piece;
 
 		// this is the torrent this connection is
 		// associated with. If the connection is an
@@ -358,16 +358,16 @@ namespace libtorrent
 
 		// this is called when we receive a new piece
 		// (and it has passed the hash check)
-		void received_piece(int index);
+		void received_piece(piece_index_t index);
 
 		// this adds an announcement in the announcement queue
 		// it will let the peer know that we have the given piece
-		void announce_piece(int index);
+		void announce_piece(piece_index_t index);
 
 		// this will tell the peer to announce the given piece
 		// and only allow it to request that piece
-		void superseed_piece(int replace_piece, int new_piece);
-		bool super_seeded_piece(int index) const
+		void superseed_piece(piece_index_t replace_piece, piece_index_t new_piece);
+		bool super_seeded_piece(piece_index_t index) const
 		{
 			return m_superseed_piece[0] == index
 				|| m_superseed_piece[1] == index;
@@ -394,7 +394,7 @@ namespace libtorrent
 
 		peer_id const& pid() const override { return m_peer_id; }
 		void set_pid(peer_id const& peer_id) { m_peer_id = peer_id; }
-		bool has_piece(int i) const;
+		bool has_piece(piece_index_t i) const;
 
 		std::vector<pending_block> const& download_queue() const;
 		std::vector<pending_block> const& request_queue() const;
@@ -446,9 +446,9 @@ namespace libtorrent
 		tcp::endpoint const& remote() const override { return m_remote; }
 		tcp::endpoint local_endpoint() const override { return m_local; }
 
-		bitfield const& get_bitfield() const;
-		std::vector<int> const& allowed_fast();
-		std::vector<int> const& suggested_pieces() const { return m_suggested_pieces; }
+		typed_bitfield<piece_index_t> const& get_bitfield() const;
+		std::vector<piece_index_t> const& allowed_fast();
+		std::vector<piece_index_t> const& suggested_pieces() const { return m_suggested_pieces; }
 
 		time_point connected_time() const { return m_connect; }
 		time_point last_received() const { return m_last_receive; }
@@ -477,10 +477,10 @@ namespace libtorrent
 		void reset_upload_quota();
 
 		// trust management.
-		virtual void received_valid_data(int index);
+		virtual void received_valid_data(piece_index_t index);
 		// returns false if the peer should not be
 		// disconnected
-		virtual bool received_invalid_data(int index, bool single_peer);
+		virtual bool received_invalid_data(piece_index_t index, bool single_peer);
 
 		// a connection is local if it was initiated by us.
 		// if it was an incoming connection, it is remote
@@ -546,9 +546,9 @@ namespace libtorrent
 		void incoming_unchoke();
 		void incoming_interested();
 		void incoming_not_interested();
-		void incoming_have(int piece_index);
-		void incoming_dont_have(int piece_index);
-		void incoming_bitfield(bitfield const& bits);
+		void incoming_have(piece_index_t piece_index);
+		void incoming_dont_have(piece_index_t piece_index);
+		void incoming_bitfield(typed_bitfield<piece_index_t> const& bits);
 		void incoming_request(peer_request const& r);
 		void incoming_piece(peer_request const& p, disk_buffer_holder data);
 		void incoming_piece(peer_request const& p, char const* data);
@@ -562,8 +562,8 @@ namespace libtorrent
 		void incoming_reject_request(peer_request const& r);
 		void incoming_have_all();
 		void incoming_have_none();
-		void incoming_allowed_fast(int index);
-		void incoming_suggest(int index);
+		void incoming_allowed_fast(piece_index_t index);
+		void incoming_suggest(piece_index_t index);
 
 		void set_has_metadata(bool m) { m_has_metadata = m; }
 		bool has_metadata() const { return m_has_metadata; }
@@ -574,12 +574,12 @@ namespace libtorrent
 		bool send_unchoke();
 		void send_interested();
 		void send_not_interested();
-		void send_suggest(int piece);
+		void send_suggest(piece_index_t piece);
 
 		void snub_peer();
 		// reject any request in the request
 		// queue from this piece
-		void reject_piece(int index);
+		void reject_piece(piece_index_t index);
 
 		bool can_request_time_critical() const;
 
@@ -697,15 +697,15 @@ namespace libtorrent
 		virtual void write_not_interested() = 0;
 		virtual void write_request(peer_request const& r) = 0;
 		virtual void write_cancel(peer_request const& r) = 0;
-		virtual void write_have(int index) = 0;
-		virtual void write_dont_have(int index) = 0;
+		virtual void write_have(piece_index_t index) = 0;
+		virtual void write_dont_have(piece_index_t index) = 0;
 		virtual void write_keepalive() = 0;
 		virtual void write_piece(peer_request const& r, disk_buffer_holder buffer) = 0;
-		virtual void write_suggest(int piece) = 0;
+		virtual void write_suggest(piece_index_t piece) = 0;
 		virtual void write_bitfield() = 0;
 
 		virtual void write_reject_request(peer_request const& r) = 0;
-		virtual void write_allow_fast(int piece) = 0;
+		virtual void write_allow_fast(piece_index_t piece) = 0;
 
 		virtual void on_connected() = 0;
 		virtual void on_tick() {}
@@ -764,7 +764,7 @@ namespace libtorrent
 			, time_point issue_time);
 		void on_disk_write_complete(storage_error const& error
 			, peer_request r, std::shared_ptr<torrent> t);
-		void on_seed_mode_hashed(int piece
+		void on_seed_mode_hashed(piece_index_t piece
 			, sha1_hash const& piece_hash, storage_error const& error);
 		int request_timeout() const;
 		void check_graceful_pause();
@@ -946,11 +946,11 @@ namespace libtorrent
 		// it just serves as a queue to remember what we've sent, to avoid
 		// re-sending suggests for the same piece
 		// i.e. outgoing suggest pieces
-		std::vector<int> m_suggest_pieces;
+		std::vector<piece_index_t> m_suggest_pieces;
 
 		// the pieces we will send to the peer
 		// if requested (regardless of choke state)
-		std::vector<int> m_accept_fast;
+		std::vector<piece_index_t> m_accept_fast;
 
 		// a sent-piece counter for the allowed fast set
 		// to avoid exploitation. Each slot is a counter
@@ -959,12 +959,12 @@ namespace libtorrent
 
 		// the pieces the peer will send us if
 		// requested (regardless of choke state)
-		std::vector<int> m_allowed_fast;
+		std::vector<piece_index_t> m_allowed_fast;
 
 		// pieces that has been suggested to be downloaded from this peer
 		// i.e. incoming suggestions
 		// TODO: 2 this should really be a circular buffer
-		std::vector<int> m_suggested_pieces;
+		std::vector<piece_index_t> m_suggested_pieces;
 
 		// the time when this peer last saw a complete copy
 		// of this torrent
@@ -1036,7 +1036,7 @@ namespace libtorrent
 		// these two pieces can be downloaded from us by this peer.
 		// This will remain the current piece for this peer until
 		// another peer sends us a have message for this piece
-		int m_superseed_piece[2] = {-1, -1};
+		std::array<piece_index_t, 2> m_superseed_piece = {{piece_index_t(-1), piece_index_t(-1)}};
 
 		// the number of bytes send to the disk-io
 		// thread that hasn't yet been completely written.

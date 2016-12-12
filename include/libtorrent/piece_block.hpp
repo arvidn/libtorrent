@@ -33,19 +33,21 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_PIECE_BLOCK_HPP_INCLUDED
 #define TORRENT_PIECE_BLOCK_HPP_INCLUDED
 
+#include "libtorrent/units.hpp"
+
 namespace libtorrent
 {
 	struct TORRENT_EXTRA_EXPORT piece_block
 	{
 		static const piece_block invalid;
 
-		piece_block() {}
-		piece_block(int p_index, int b_index)
+		piece_block() : piece_index(0) {}
+		piece_block(piece_index_t p_index, int b_index)
 			: piece_index(p_index)
 			, block_index(b_index)
 		{
 		}
-		int piece_index;
+		piece_index_t piece_index;
 		int block_index;
 
 		bool operator<(piece_block const& b) const

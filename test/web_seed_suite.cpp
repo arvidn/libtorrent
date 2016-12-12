@@ -149,7 +149,7 @@ void test_transfer(lt::session& ses, std::shared_ptr<torrent_info> torrent_file
 
 	file_storage const& fs = torrent_file->files();
 	int pad_file_size = 0;
-	for (int i = 0; i < fs.num_files(); ++i)
+	for (file_index_t i(0); i < fs.end_file(); ++i)
 	{
 		if (fs.file_flags(i) & file_storage::flag_pad_file)
 			pad_file_size += int(fs.file_size(i));
@@ -258,7 +258,7 @@ void test_transfer(lt::session& ses, std::shared_ptr<torrent_info> torrent_file
 
 	if (!test_ban)
 	{
-		for (int i = 0; i < fs.num_files(); ++i)
+		for (file_index_t i(0); i < fs.end_file(); ++i)
 		{
 			bool const expect = !fs.pad_file_at(i);
 			std::string file_path = combine_path(save_path, fs.file_path(i));
@@ -412,7 +412,7 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed
 
 			if (test_url_seed && test_rename)
 			{
-				torrent_file->rename_file(0, combine_path(save_path, combine_path("torrent_dir", "renamed_test1")));
+				torrent_file->rename_file(file_index_t(0), combine_path(save_path, combine_path("torrent_dir", "renamed_test1")));
 				test_transfer(ses, torrent_file, 0, protocol, test_url_seed
 					, chunked_encoding, test_ban, keepalive, proxy_peers);
 			}
