@@ -684,4 +684,3 @@ void natpmp::close_impl()
 }
 
 } // namespace libtorrent
-

@@ -68,10 +68,8 @@ namespace libtorrent
 	struct request_callback;
 	class tracker_manager;
 	struct timeout_handler;
-	struct tracker_connection;
 	class udp_tracker_connection;
 	class http_tracker_connection;
-	class  udp_socket;
 	struct resolver_interface;
 	struct counters;
 	struct ip_filter;

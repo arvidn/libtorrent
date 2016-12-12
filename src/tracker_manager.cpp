@@ -30,35 +30,20 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <utility>
-#include <vector>
 #include <cctype>
-#include <functional>
 
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/http_tracker_connection.hpp"
 #include "libtorrent/udp_tracker_connection.hpp"
-#include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/aux_/io.hpp"
-#include "libtorrent/span.hpp"
-
+#include "libtorrent/aux_/session_interface.hpp"
+#include "libtorrent/performance_counters.hpp"
+#include "libtorrent/socket_io.hpp"
 
 using namespace std::placeholders;
 
-namespace
-{
-	enum
-	{
-		minimum_tracker_response_length = 3,
-		http_buffer_size = 2048
-	};
-
-}
-
 namespace libtorrent
 {
-	using namespace libtorrent::aux;
-
 	timeout_handler::timeout_handler(io_service& ios)
 		: m_start_time(clock_type::now())
 		, m_read_time(m_start_time)
@@ -173,8 +158,8 @@ namespace libtorrent
 		, char const* msg, int interval, int min_interval)
 	{
 		// we need to post the error to avoid deadlock
-			get_io_service().post(std::bind(&tracker_connection::fail_impl
-					, shared_from_this(), ec, code, std::string(msg), interval, min_interval));
+		get_io_service().post(std::bind(&tracker_connection::fail_impl
+			, shared_from_this(), ec, code, std::string(msg), interval, min_interval));
 	}
 
 	void tracker_connection::fail_impl(error_code const& ec, int code
@@ -240,7 +225,6 @@ namespace libtorrent
 		if (i != m_http_conns.end())
 		{
 			m_http_conns.erase(i);
-			return;
 		}
 	}
 
@@ -441,14 +425,10 @@ namespace libtorrent
 		}
 
 		for (auto const& c : close_http_connections)
-		{
 			c->close();
-		}
 
 		for (auto const& c : close_udp_connections)
-		{
 			c->close();
-		}
 	}
 
 	bool tracker_manager::empty() const

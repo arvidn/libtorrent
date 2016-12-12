@@ -33,12 +33,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/broadcast_socket.hpp"
-#include "libtorrent/error_code.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/socket_type.hpp"
 
 #include <functional>
-#include <vector>
 #include <cstdlib> // for wcstombscstombs
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"

@@ -414,6 +414,5 @@ namespace libtorrent
 
 		file::iovec_t b = {header.get(), std::size_t(m_header_size)};
 		m_file.writev(0, b, ec);
-		if (ec) return;
 	}
 }

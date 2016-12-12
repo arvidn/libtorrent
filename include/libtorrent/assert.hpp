@@ -123,4 +123,3 @@ extern char const* libtorrent_assert_log;
 #endif // TORRENT_USE_ASSERTS
 
 #endif
-

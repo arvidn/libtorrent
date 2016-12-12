@@ -374,4 +374,3 @@ TORRENT_EXPORT void assert_fail(char const*, int, char const*
 	, char const*, char const*, int) {}
 
 #endif
-

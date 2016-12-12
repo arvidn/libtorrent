@@ -341,8 +341,6 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 	TORRENT_ASSERT(is_single_thread());
 	std::shared_ptr<upnp> me(self());
 
-	using namespace libtorrent::detail;
-
 	// parse out the url for the device
 
 /*
