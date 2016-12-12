@@ -4175,7 +4175,7 @@ namespace aux {
 		// all the other ones.
 		for (auto p : peers)
 		{
-			TORRENT_ASSERT(p);
+			TORRENT_ASSERT(p != nullptr);
 			TORRENT_ASSERT(!p->ignore_unchoke_slots());
 
 			// this will update the m_uploaded_at_last_unchoke

@@ -650,7 +650,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		if (web->have_files.get_bit(file_index) == false)
 		{
 			web->have_files.set_bit(file_index);
-			if (web->peer_info.connection)
+			if (web->peer_info.connection != nullptr)
 			{
 				peer_connection* pc = static_cast<peer_connection*>(web->peer_info.connection);
 
@@ -1029,7 +1029,7 @@ void web_peer_connection::incoming_payload(char const* buf, int len)
 		// to not exceed the size of the next bittorrent request to be delivered.
 		// m_piece can only hold the response for a single BT request at a time
 		m_piece.resize(piece_size + copy_size);
-		std::memcpy(&m_piece[0] + piece_size, buf, copy_size);
+		std::memcpy(m_piece.data() + piece_size, buf, copy_size);
 		len -= copy_size;
 		buf += copy_size;
 
@@ -1055,7 +1055,7 @@ void web_peer_connection::incoming_payload(char const* buf, int len)
 			peer_request const front_request_copy = front_request;
 			m_requests.pop_front();
 
-			incoming_piece(front_request_copy, &m_piece[0]);
+			incoming_piece(front_request_copy, m_piece.data());
 
 			m_piece.clear();
 		}
@@ -1108,7 +1108,7 @@ void web_peer_connection::maybe_harvest_piece()
 #endif
 	m_requests.pop_front();
 
-	incoming_piece(front_request, &m_piece[0]);
+	incoming_piece(front_request, m_piece.data());
 	m_piece.clear();
 }
 

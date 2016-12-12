@@ -1252,7 +1252,7 @@ namespace libtorrent
 
 			std::unique_lock<std::mutex> l2(m_cache_mutex);
 			pe = m_disk_cache.find_piece(j);
-			if (pe) maybe_issue_queued_read_jobs(pe, completed_jobs);
+			if (pe != nullptr) maybe_issue_queued_read_jobs(pe, completed_jobs);
 			return s;
 		}
 

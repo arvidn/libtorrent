@@ -697,8 +697,7 @@ namespace libtorrent
 					// we push it into the stack so that we know where to fill
 					// in the next_node field once we pop this node off the stack.
 					// i.e. get to the node following the dictionary in the buffer
-					ret.m_tokens.push_back(bdecode_token(start - orig_start
-						, bdecode_token::dict));
+					ret.m_tokens.push_back({start - orig_start, bdecode_token::dict});
 					++start;
 					break;
 				case 'l':
@@ -706,8 +705,7 @@ namespace libtorrent
 					// we push it into the stack so that we know where to fill
 					// in the next_node field once we pop this node off the stack.
 					// i.e. get to the node following the list in the buffer
-					ret.m_tokens.push_back(bdecode_token(start - orig_start
-						, bdecode_token::list));
+					ret.m_tokens.push_back({start - orig_start, bdecode_token::list});
 					++start;
 					break;
 				case 'i':
@@ -725,8 +723,8 @@ namespace libtorrent
 						start = int_start;
 						TORRENT_FAIL_BDECODE(e);
 					}
-					ret.m_tokens.push_back(bdecode_token(int_start - orig_start
-						, 1, bdecode_token::integer, 1));
+					ret.m_tokens.push_back({int_start - orig_start
+						, 1, bdecode_token::integer, 1});
 					TORRENT_ASSERT(*start == 'e');
 
 					// skip 'e'
@@ -749,8 +747,7 @@ namespace libtorrent
 					}
 
 					// insert the end-of-sequence token
-					ret.m_tokens.push_back(bdecode_token(start - orig_start, 1
-						, bdecode_token::end));
+					ret.m_tokens.push_back({start - orig_start, 1, bdecode_token::end});
 
 					// and back-patch the start of this sequence with the offset
 					// to the next token we'll insert
@@ -798,8 +795,8 @@ namespace libtorrent
 					if (start - str_start - 2 > detail::bdecode_token::max_header)
 						TORRENT_FAIL_BDECODE(bdecode_errors::limit_exceeded);
 
-					ret.m_tokens.push_back(bdecode_token(str_start - orig_start
-						, 1, bdecode_token::string, std::uint8_t(start - str_start)));
+					ret.m_tokens.push_back({str_start - orig_start
+						, 1, bdecode_token::string, std::uint8_t(start - str_start)});
 					start += len;
 					break;
 				}
@@ -831,25 +828,22 @@ done:
 				&& stack[sp].state == 1)
 			{
 				// insert an empty dictionary as the value
-				ret.m_tokens.push_back(bdecode_token(start - orig_start
-					, 2, bdecode_token::dict));
-				ret.m_tokens.push_back(bdecode_token(start - orig_start
-					, bdecode_token::end));
+				ret.m_tokens.push_back({start - orig_start, 2, bdecode_token::dict});
+				ret.m_tokens.push_back({start - orig_start, bdecode_token::end});
 			}
 
 			int const top = stack[sp].token;
 			TORRENT_ASSERT(ret.m_tokens.size() - top <= bdecode_token::max_next_item);
 			ret.m_tokens[top].next_item = std::uint32_t(ret.m_tokens.size() - top);
-			ret.m_tokens.push_back(bdecode_token(start - orig_start, 1, bdecode_token::end));
+			ret.m_tokens.push_back({start - orig_start, 1, bdecode_token::end});
 		}
 
-		ret.m_tokens.push_back(bdecode_token(start - orig_start, 0
-			, bdecode_token::end));
+		ret.m_tokens.push_back({start - orig_start, 0, bdecode_token::end});
 
 		ret.m_token_idx = 0;
 		ret.m_buffer = orig_start;
 		ret.m_buffer_size = int(start - orig_start);
-		ret.m_root_tokens = &ret.m_tokens[0];
+		ret.m_root_tokens = ret.m_tokens.data();
 
 		return ec ? -1 : 0;
 	}
