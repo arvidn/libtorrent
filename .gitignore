@@ -39,6 +39,7 @@
 *.rej
 
 bin
+cmake-build-*
 config*
 Makefile
 build-aux

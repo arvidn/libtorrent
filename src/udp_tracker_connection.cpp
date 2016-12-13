@@ -344,7 +344,7 @@ namespace libtorrent
 		std::shared_ptr<request_callback> cb = requester();
 #endif
 
-		// ignore resposes before we've sent any requests
+		// ignore responses before we've sent any requests
 		if (m_state == action_t::error)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -447,7 +447,7 @@ namespace libtorrent
 
 	void udp_tracker_connection::update_transaction_id()
 	{
-		// don't use 0, because that has special meaning (unintialized)
+		// don't use 0, because that has special meaning (uninitialized)
 		std::uint32_t const new_tid = random(0xfffffffe) + 1;
 
 		if (m_transaction_id != 0)
