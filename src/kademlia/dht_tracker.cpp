@@ -594,8 +594,8 @@ namespace libtorrent { namespace dht
 		m_last_tick = now;
 
 		// add any new quota we've accrued since last time
-		m_send_quota += std::uint64_t(m_settings.upload_rate_limit)
-			* total_microseconds(delta) / 1000000;
+		m_send_quota += int(std::uint64_t(m_settings.upload_rate_limit)
+			* total_microseconds(delta) / 1000000);
 
 		// allow 3 seconds worth of burst
 		if (m_send_quota > 3 * m_settings.upload_rate_limit)

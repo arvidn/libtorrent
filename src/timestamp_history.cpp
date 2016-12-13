@@ -35,10 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-enum
-{
-	TIME_MASK = 0xffffffff
-};
+constexpr std::uint32_t TIME_MASK = 0xffffffff;
+
 // defined in utp_stream.cpp
 bool compare_less_wrap(std::uint32_t lhs, std::uint32_t rhs
 	, std::uint32_t mask);

@@ -265,19 +265,11 @@ rule warnings ( properties * )
 
 	if <toolset>msvc in $(properties)
 	{
-# disable warning C4503: decorated name length exceeded, name was truncated
-		result += <cflags>/wd4503 ;
+		# on msvc this resolves to /W4
+		result += <warnings>all ;
 
 # enable these warnings again, once the other ones are dealt with
 
-# disable warning C4389: signed/unsigned mismatch
-		result += <cflags>/wd4389 ;
-		result += <cflags>/wd4245 ;
-		result += <cflags>/wd4018 ;
-# disable warning C4244: 'argument' : conversion from 'int' to 'unsigned short', possible loss of data
-		result += <cflags>/wd4244 ;
-# disable warning C4512: assignment operator could not be generated
-		result += <cflags>/wd4512 ;
 # disable warning C4251: 'identifier' : class 'type' needs to have dll-interface to be used by clients of class 'type2'
 		result += <cflags>/wd4251 ;
 # disable warning C4275: non DLL-interface classkey 'identifier' used as base for DLL-interface classkey 'identifier'

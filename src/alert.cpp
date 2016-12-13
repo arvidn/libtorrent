@@ -1564,7 +1564,7 @@ namespace libtorrent {
 	dht_mutable_item_alert::dht_mutable_item_alert(aux::stack_allocator&
 		, std::array<char, 32> k
 		, std::array<char, 64> sig
-		, std::uint64_t sequence
+		, std::int64_t sequence
 		, string_view s
 		, entry const& i
 		, bool a)
@@ -1596,7 +1596,7 @@ namespace libtorrent {
 		, std::array<char, 32> key
 		, std::array<char, 64> sig
 		, std::string s
-		, std::uint64_t sequence_number
+		, std::int64_t sequence_number
 		, int n)
 		: target(nullptr)
 		, public_key(key)
@@ -1969,15 +1969,14 @@ namespace libtorrent {
 		, m_num_peers(int(peers.size()))
 	{
 		std::size_t total_size = peers.size(); // num bytes for sizes
-		for (int i = 0; i < m_num_peers; i++) {
-			total_size += peers[i].size();
+		for (auto const& endp : peers) {
+			total_size += endp.size();
 		}
 
 		m_peers_idx = alloc.allocate(int(total_size));
 
 		char *ptr = alloc.ptr(m_peers_idx);
-		for (int i = 0; i < m_num_peers; i++) {
-			tcp::endpoint const& endp = peers[i];
+		for (auto const& endp : peers) {
 			std::size_t const size = endp.size();
 			TORRENT_ASSERT(size < 0x100);
 			detail::write_uint8(size, ptr);
@@ -2083,7 +2082,7 @@ namespace libtorrent {
 		std::vector<piece_block> ret(m_num_blocks);
 
 		char const* start = m_alloc.get().ptr(m_array_idx);
-		std::memcpy(&ret[0], start, m_num_blocks * sizeof(piece_block));
+		std::memcpy(ret.data(), start, m_num_blocks * sizeof(piece_block));
 
 		return ret;
 	}
@@ -2124,11 +2123,11 @@ namespace libtorrent {
 
 		std::vector<piece_block> b = blocks();
 
-		for (int i = 0; i < int(b.size()); ++i)
+		for (auto const& p : b)
 		{
 			char buf[50];
 			std::snprintf(buf, sizeof(buf), "(%d,%d) "
-				, b[i].piece_index, b[i].block_index);
+				, p.piece_index, p.block_index);
 			ret += buf;
 		}
 		return ret;

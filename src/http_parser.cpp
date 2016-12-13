@@ -348,7 +348,7 @@ restart_response:
 						incoming -= int(payload);
 					}
 					auto const buf = span<char const>(recv_buffer)
-						.subspan(m_cur_chunk_end);
+						.subspan(std::size_t(m_cur_chunk_end));
 					std::int64_t chunk_size;
 					int header_size;
 					if (parse_chunk_header(buf, &chunk_size, &header_size))
@@ -525,7 +525,7 @@ restart_response:
 			? (std::min)(m_chunked_ranges.back().second - m_body_start_pos, received)
 			: m_content_length < 0 ? received : (std::min)(m_content_length, received);
 
-		return m_recv_buffer.subspan(m_body_start_pos, body_length);
+		return m_recv_buffer.subspan(m_body_start_pos, std::size_t(body_length));
 	}
 
 	void http_parser::reset()

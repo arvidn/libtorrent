@@ -914,7 +914,7 @@ void web_peer_connection::on_receive(error_code const& error
 				TORRENT_ASSERT(chunk_size != 0
 					|| int(chunk_start.size()) <= header_size || chunk_start[header_size] == 'H');
 				TORRENT_ASSERT(m_body_start + m_chunk_pos < INT_MAX);
-				m_chunk_pos += chunk_size;
+				m_chunk_pos += int(chunk_size);
 				recv_buffer = recv_buffer.subspan(header_size);
 
 				// a chunk size of zero means the request is complete. Make sure the

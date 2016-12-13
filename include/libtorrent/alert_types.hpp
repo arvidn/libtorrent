@@ -1978,7 +1978,7 @@ namespace libtorrent
 	{
 		dht_mutable_item_alert(aux::stack_allocator& alloc
 			, std::array<char, 32> k, std::array<char, 64> sig
-			, std::uint64_t sequence, string_view s, entry const& i, bool a);
+			, std::int64_t sequence, string_view s, entry const& i, bool a);
 
 		TORRENT_DEFINE_ALERT_PRIO(dht_mutable_item_alert, 75)
 
@@ -1996,7 +1996,7 @@ namespace libtorrent
 		std::array<char, 64> const signature;
 
 		// the sequence number of this item
-		std::uint64_t const seq;
+		std::int64_t const seq;
 
 		// the salt, if any, used to lookup and store this item. If no
 		// salt was used, this is an empty string
@@ -2018,7 +2018,7 @@ namespace libtorrent
 		dht_put_alert(aux::stack_allocator& alloc, std::array<char, 32> key
 			, std::array<char, 64> sig
 			, std::string s
-			, std::uint64_t sequence_number
+			, std::int64_t sequence_number
 			, int n);
 
 		TORRENT_DEFINE_ALERT(dht_put_alert, 76)
@@ -2035,7 +2035,7 @@ namespace libtorrent
 		std::array<char, 32> const public_key;
 		std::array<char, 64> const signature;
 		std::string const salt;
-		std::uint64_t const seq;
+		std::int64_t const seq;
 
 		// DHT put operation usually writes item to k nodes, maybe the node
 		// is stale so no response, or the node doesn't support 'put', or the

@@ -337,7 +337,7 @@ namespace libtorrent
 		int erase_candidate = -1;
 		int force_erase_candidate = -1;
 
-		if (m_finished != state->is_finished)
+		if (bool(m_finished) != state->is_finished)
 			recalculate_connect_candidates(state);
 
 		int round_robin = random(std::uint32_t(m_peers.size()-1));
@@ -476,7 +476,7 @@ namespace libtorrent
 
 		int erase_candidate = -1;
 
-		if (m_finished != state->is_finished)
+		if (bool(m_finished) != state->is_finished)
 			recalculate_connect_candidates(state);
 
 		external_ip const& external = state->ip;
@@ -1144,7 +1144,7 @@ namespace libtorrent
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
-		if (m_finished != state->is_finished)
+		if (bool(m_finished) != state->is_finished)
 			recalculate_connect_candidates(state);
 
 		// clear out any peers from the cache that no longer
@@ -1174,7 +1174,7 @@ namespace libtorrent
 		TORRENT_ASSERT(p->connectable);
 
 		// this should hold because find_connect_candidates should have done this
-		TORRENT_ASSERT(m_finished == state->is_finished);
+		TORRENT_ASSERT(bool(m_finished) == state->is_finished);
 
 		TORRENT_ASSERT(is_connect_candidate(*p));
 		return p;
@@ -1390,4 +1390,3 @@ namespace libtorrent
 		return false;
 	}
 }
-

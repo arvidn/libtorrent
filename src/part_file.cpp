@@ -327,7 +327,7 @@ namespace libtorrent
 				l.unlock();
 
 				file::iovec_t v = {buf.get(), std::size_t(block_to_copy)};
-				v.iov_len = m_file.readv(slot_offset + piece_offset, v, ec);
+				v.iov_len = std::size_t(m_file.readv(slot_offset + piece_offset, v, ec));
 				TORRENT_ASSERT(!ec);
 				if (ec || v.iov_len == 0) return;
 
