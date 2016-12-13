@@ -150,7 +150,7 @@ namespace libtorrent
 		// the number of characters in the name. If this is
 		// name_is_owned, name is 0-terminated and owned by this object
 		// (i.e. it should be freed in the destructor). If
-		// the len is not name_is_owned, the name pointer doesn not belong
+		// the len is not name_is_owned, the name pointer does not belong
 		// to this object, and it's not 0-terminated
 		std::uint64_t name_len:12;
 		std::uint64_t pad_file:1;
@@ -633,7 +633,7 @@ namespace libtorrent
 	namespace aux {
 
 	// returns the piece range that entirely falls within the specified file. the
-	// end piece is one-past the last piece that entierly falls within the file.
+	// end piece is one-past the last piece that entirely falls within the file.
 	// i.e. They can conveniently be used as loop boundaries. No edge partial
 	// pieces will be included.
 	TORRENT_EXTRA_EXPORT std::tuple<int, int> file_piece_range_exclusive(file_storage const& fs, int file);
