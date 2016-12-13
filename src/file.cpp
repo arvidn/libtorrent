@@ -1009,7 +1009,7 @@ namespace libtorrent
 				*write_cur++ = *read_cur++;
 				continue;
 			}
-			int element_len = read_cur - last_read_sep;
+			int element_len = int(read_cur - last_read_sep);
 			if (element_len == 1 && std::memcmp(last_read_sep, ".", 1) == 0)
 			{
 				--write_cur;
@@ -1305,7 +1305,7 @@ namespace libtorrent
 				return -1;
 			}
 
-			DWORD ret = -1;
+			DWORD ret;
 			if (GetOverlappedResult(file, &ol, &ret, false) == 0)
 			{
 				DWORD last_error = GetLastError();
@@ -1854,7 +1854,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 #if TORRENT_USE_PREADV
 		TORRENT_UNUSED(flags);
 
-		int ret = iov(&::preadv, native_handle(), file_offset, bufs, ec);
+		std::int64_t ret = iov(&::preadv, native_handle(), file_offset, bufs, ec);
 #else
 
 		// there's no point in coalescing single buffer writes
@@ -1910,7 +1910,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 #if TORRENT_USE_PREADV
 		TORRENT_UNUSED(flags);
 
-		int ret = iov(&::pwritev, native_handle(), file_offset, bufs, ec);
+		std::int64_t ret = iov(&::pwritev, native_handle(), file_offset, bufs, ec);
 #else
 
 		// there's no point in coalescing single buffer writes

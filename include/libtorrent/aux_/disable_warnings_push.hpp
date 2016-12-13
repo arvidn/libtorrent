@@ -93,4 +93,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(disable : 4005)
 // expression before comma has no effect; expected expression with side-effect
 #pragma warning(disable : 4548)
+// 'conversion' conversion from 'type1' to 'type2', possible loss of data
+#pragma warning(disable : 4244)
 #endif

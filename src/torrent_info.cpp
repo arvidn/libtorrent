@@ -631,7 +631,7 @@ namespace libtorrent
 		: url(url_)
 		, auth(auth_)
 		, extra_headers(extra_headers_)
-		, type(type_)
+		, type(std::uint8_t(type_))
 	{
 	}
 

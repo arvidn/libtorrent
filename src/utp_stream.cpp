@@ -1066,7 +1066,7 @@ size_t utp_stream::read_some(bool clear_buffers)
 		m_impl->m_receive_buffer_size -= to_copy;
 		TORRENT_ASSERT(m_impl->m_read_buffer_size >= to_copy);
 		m_impl->m_read_buffer_size -= to_copy;
-		p->header_size += to_copy;
+		p->header_size += std::uint16_t(to_copy);
 		if (target->len == 0) target = m_impl->m_read_buffer.erase(target);
 
 		m_impl->check_receive_buffers();
@@ -1670,8 +1670,8 @@ void utp_socket_impl::remove_sack_header(packet* p)
 	TORRENT_ASSERT(p->size >= p->header_size);
 	TORRENT_ASSERT(p->header_size >= sizeof(utp_header) + sack_size + 2);
 	memmove(ptr, ptr + sack_size + 2, p->size - p->header_size);
-	p->header_size -= sack_size + 2;
-	p->size -= sack_size + 2;
+	p->header_size -= std::uint16_t(sack_size + 2);
+	p->size -= std::uint16_t(sack_size + 2);
 }
 
 struct holder
@@ -1884,8 +1884,8 @@ bool utp_socket_impl::send_pkt(int const flags)
 		h = reinterpret_cast<utp_header*>(ptr);
 		ptr += sizeof(utp_header);
 
-		h->extension = sack ? utp_sack
-			: close_reason ? utp_close_reason : utp_no_extension;
+		h->extension = std::uint8_t(sack ? utp_sack
+			: close_reason ? utp_close_reason : utp_no_extension);
 		h->connection_id = m_send_id;
 		// seq_nr is ignored for ST_STATE packets, so it doesn't
 		// matter that we say this is a sequence number we haven't
@@ -1925,7 +1925,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 			, m_write_buffer_size);
 
 		write_payload(p->buf + p->size, size_left);
-		p->size += size_left;
+		p->size += std::uint16_t(size_left);
 
 		UTP_LOGV("%8p: NAGLE appending %d bytes to nagle packet. new size: %d allocated: %d\n"
 			, static_cast<void*>(this), size_left, p->size, p->allocated);
@@ -1951,7 +1951,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 
 	if (sack)
 	{
-		*ptr++ = close_reason ? utp_close_reason : utp_no_extension;
+		*ptr++ = std::uint8_t(close_reason ? utp_close_reason : utp_no_extension);
 		*ptr++ = std::uint8_t(sack); // bytes for SACK bitfield
 		write_sack(ptr, sack);
 		ptr += sack;
@@ -2428,7 +2428,7 @@ void utp_socket_impl::incoming(std::uint8_t const* buf, int size, packet* p
 		if (target->len == 0) m_read_buffer.erase(m_read_buffer.begin());
 		if (p)
 		{
-			p->header_size += to_copy;
+			p->header_size += std::uint16_t(to_copy);
 			TORRENT_ASSERT(p->header_size <= p->size);
 		}
 

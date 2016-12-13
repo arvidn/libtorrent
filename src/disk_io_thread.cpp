@@ -308,7 +308,7 @@ namespace libtorrent
 		// round offset up to include the last block, which might
 		// have an odd size
 		int const block_size = m_disk_cache.block_size();
-		int end = p->hashing_done ? p->blocks_in_piece : (p->hash->offset + block_size - 1) / block_size;
+		int end = p->hashing_done ? int(p->blocks_in_piece) : (p->hash->offset + block_size - 1) / block_size;
 
 		// nothing has been hashed yet, don't flush anything
 		if (end == 0 && !p->need_readback) return 0;
@@ -344,7 +344,7 @@ namespace libtorrent
 		// if the cache line size is larger than a whole piece, hold
 		// off flushing this piece until enough adjacent pieces are
 		// full as well.
-		int cont_pieces = cont_block / p->blocks_in_piece;
+		int cont_pieces = int(cont_block / p->blocks_in_piece);
 
 		// at this point, we may enforce flushing full cache stripes even when
 		// they span multiple pieces. This won't necessarily work in the general
@@ -361,7 +361,7 @@ namespace libtorrent
 		}
 
 		// piece range
-		int range_start = (p->piece / cont_pieces) * cont_pieces;
+		int range_start = int((p->piece / cont_pieces) * cont_pieces);
 		int range_end = (std::min)(range_start + cont_pieces, p->storage->files()->num_pieces());
 
 		// look through all the pieces in this range to see if
@@ -442,7 +442,7 @@ namespace libtorrent
 		// we keep the indices in the iovec_offset array
 
 		cont_pieces = range_end - range_start;
-		int blocks_to_flush = p->blocks_in_piece * cont_pieces;
+		int blocks_to_flush = int(p->blocks_in_piece * cont_pieces);
 		TORRENT_ALLOCA(iov, file::iovec_t, blocks_to_flush);
 		TORRENT_ALLOCA(flushing, int, blocks_to_flush);
 		// this is the offset into iov and flushing for each piece
@@ -463,7 +463,7 @@ namespace libtorrent
 			{
 				refcount_pieces[i] = 0;
 				iovec_offset[i] = iov_len;
-				block_start += p->blocks_in_piece;
+				block_start += int(p->blocks_in_piece);
 				continue;
 			}
 
@@ -478,7 +478,7 @@ namespace libtorrent
 			iov_len += build_iovec(pe, 0, p->blocks_in_piece
 				, iov.subspan(iov_len), flushing.subspan(iov_len), block_start);
 
-			block_start += p->blocks_in_piece;
+			block_start += int(p->blocks_in_piece);
 		}
 		iovec_offset[cont_pieces] = iov_len;
 
@@ -514,7 +514,7 @@ namespace libtorrent
 			{
 				DLOG("iovec_flushed: piece %d gone!\n", range_start + i);
 				TORRENT_PIECE_ASSERT(refcount_pieces[i] == 0, pe);
-				block_start += p->blocks_in_piece;
+				block_start += int(p->blocks_in_piece);
 				continue;
 			}
 			if (refcount_pieces[i])
@@ -526,7 +526,7 @@ namespace libtorrent
 			const int block_diff = iovec_offset[i+1] - iovec_offset[i];
 			iovec_flushed(pe, flushing.subspan(iovec_offset[i]).data(), block_diff
 				, block_start, error, completed_jobs);
-			block_start += p->blocks_in_piece;
+			block_start += int(p->blocks_in_piece);
 		}
 
 		// if the cache is under high pressure, we need to evict
@@ -740,8 +740,8 @@ namespace libtorrent
 		TORRENT_PIECE_ASSERT(start >= 0, pe);
 		TORRENT_PIECE_ASSERT(start < end, pe);
 
-		TORRENT_ALLOCA(iov, file::iovec_t, pe->blocks_in_piece);
-		TORRENT_ALLOCA(flushing, int, pe->blocks_in_piece);
+		TORRENT_ALLOCA(iov, file::iovec_t, std::size_t(pe->blocks_in_piece));
+		TORRENT_ALLOCA(flushing, int, std::size_t(pe->blocks_in_piece));
 		int iov_len = build_iovec(pe, start, end, iov, flushing, 0);
 		if (iov_len == 0) return 0;
 
@@ -2191,9 +2191,9 @@ namespace libtorrent
 
 		if (pe == nullptr)
 		{
-			std::uint16_t const cache_state = (j->flags & disk_interface::volatile_read)
+			std::uint16_t const cache_state = std::uint16_t((j->flags & disk_interface::volatile_read)
 				? cached_piece_entry::volatile_read_lru
-				: cached_piece_entry::read_lru1;
+				: cached_piece_entry::read_lru1);
 			pe = m_disk_cache.allocate_piece(j, cache_state);
 		}
 		if (pe == nullptr)
@@ -3389,7 +3389,7 @@ namespace libtorrent
 			j->call_callback();
 			to_delete[cnt++] = j;
 			j = next;
-			if (cnt == to_delete.size())
+			if (cnt == int(to_delete.size()))
 			{
 				cnt = 0;
 				free_jobs(to_delete.data(), int(to_delete.size()));

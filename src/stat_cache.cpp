@@ -77,7 +77,7 @@ namespace libtorrent
 		std::int64_t sz = m_stat_cache[i].file_size;
 		if (sz < not_in_cache)
 		{
-			ec = m_errors[-sz + file_error];
+			ec = m_errors[std::size_t(-sz + file_error)];
 			return file_error;
 		}
 		else if (sz == not_in_cache)

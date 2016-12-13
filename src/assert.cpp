@@ -244,7 +244,7 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth
 		if (has_line)
 		{
 			ret = std::snprintf(out, len, " %s:%d"
-				, line.FileName, line.LineNumber);
+				, line.FileName, int(line.LineNumber));
 			out += ret; len -= ret; if (len <= 0) break;
 		}
 

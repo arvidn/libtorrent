@@ -41,4 +41,3 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif
-

@@ -147,8 +147,8 @@ enum utp_extensions_t
 
 struct utp_header
 {
-	unsigned char type_ver;
-	unsigned char extension;
+	std::uint8_t type_ver;
+	std::uint8_t extension;
 	be_uint16 connection_id;
 	be_uint32 timestamp_microseconds;
 	be_uint32 timestamp_difference_microseconds;

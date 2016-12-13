@@ -554,7 +554,7 @@ void block_cache::try_evict_one_volatile()
 		// some blocks are pinned in this piece, skip it
 		if (pe->pinned > 0) continue;
 
-		TORRENT_ALLOCA(to_delete, char*, pe->blocks_in_piece);
+		TORRENT_ALLOCA(to_delete, char*, std::size_t(pe->blocks_in_piece));
 		int num_to_delete = 0;
 
 		// go through the blocks and evict the ones that are not dirty and not
@@ -861,7 +861,7 @@ bool block_cache::evict_piece(cached_piece_entry* pe, tailqueue<disk_io_job>& jo
 
 	TORRENT_PIECE_ASSERT(pe->in_use, pe);
 
-	TORRENT_ALLOCA(to_delete, char*, pe->blocks_in_piece);
+	TORRENT_ALLOCA(to_delete, char*, std::size_t(pe->blocks_in_piece));
 	int num_to_delete = 0;
 	for (int i = 0; i < pe->blocks_in_piece; ++i)
 	{
@@ -1347,7 +1347,7 @@ bool block_cache::inc_block_refcount(cached_piece_entry* pe, int block, int reas
 		case ref_reading: ++pe->blocks[block].reading_count; break;
 		case ref_flushing: ++pe->blocks[block].flushing_count; break;
 	};
-	TORRENT_ASSERT(pe->blocks[block].refcount >= pe->blocks[block].hashing_count
+	TORRENT_ASSERT(int(pe->blocks[block].refcount) >= pe->blocks[block].hashing_count
 		+ pe->blocks[block].reading_count + pe->blocks[block].flushing_count);
 #else
 	TORRENT_UNUSED(reason);
@@ -1380,7 +1380,7 @@ void block_cache::dec_block_refcount(cached_piece_entry* pe, int block, int reas
 		case ref_reading: --pe->blocks[block].reading_count; break;
 		case ref_flushing: --pe->blocks[block].flushing_count; break;
 	};
-	TORRENT_PIECE_ASSERT(pe->blocks[block].refcount >= pe->blocks[block].hashing_count
+	TORRENT_PIECE_ASSERT(int(pe->blocks[block].refcount) >= pe->blocks[block].hashing_count
 		+ pe->blocks[block].reading_count + pe->blocks[block].flushing_count, pe);
 #else
 	TORRENT_UNUSED(reason);
@@ -1393,7 +1393,7 @@ void block_cache::abort_dirty(cached_piece_entry* pe)
 
 	TORRENT_PIECE_ASSERT(pe->in_use, pe);
 
-	TORRENT_ALLOCA(to_delete, char*, pe->blocks_in_piece);
+	TORRENT_ALLOCA(to_delete, char*, std::size_t(pe->blocks_in_piece));
 	int num_to_delete = 0;
 	for (int i = 0; i < pe->blocks_in_piece; ++i)
 	{
@@ -1432,7 +1432,7 @@ void block_cache::free_piece(cached_piece_entry* pe)
 
 	// build a vector of all the buffers we need to free
 	// and free them all in one go
-	TORRENT_ALLOCA(to_delete, char*, pe->blocks_in_piece);
+	TORRENT_ALLOCA(to_delete, char*, std::size_t(pe->blocks_in_piece));
 	int num_to_delete = 0;
 	int removed_clean = 0;
 	for (int i = 0; i < pe->blocks_in_piece; ++i)
@@ -1664,7 +1664,7 @@ void block_cache::check_invariant() const
 				if (p.blocks[k].pending) ++num_pending;
 				if (p.blocks[k].refcount > 0) ++num_pinned;
 
-				TORRENT_PIECE_ASSERT(p.blocks[k].refcount >=
+				TORRENT_PIECE_ASSERT(int(p.blocks[k].refcount) >=
 					p.blocks[k].hashing_count
 					+ p.blocks[k].reading_count
 					+ p.blocks[k].flushing_count, &p);
@@ -1846,7 +1846,7 @@ cached_piece_entry* block_cache::find_piece(storage_interface* st, int piece)
 	for (tailqueue_iterator<const disk_io_job> j = i->jobs.iterate(); j.get(); j.next())
 	{
 		disk_io_job const* job = static_cast<disk_io_job const*>(j.get());
-		TORRENT_PIECE_ASSERT(job->piece == piece, &*i);
+		TORRENT_PIECE_ASSERT(int(job->piece) == piece, &*i);
 	}
 #endif
 
