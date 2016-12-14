@@ -748,7 +748,7 @@ TORRENT_TEST(parse_torrents)
 				, (flags & file_storage::flag_symlink)?'l':'-'
 				, first, last
 				, std::uint32_t(fs.mtime(i))
-				, ih != sha1_hash(nullptr) ? aux::to_hex(ih).c_str() : ""
+				, ih != sha1_hash(nullptr) ? ih.to_hex().c_str() : ""
 				, fs.file_path(i).c_str()
 				, flags & file_storage::flag_symlink ? "-> ": ""
 				, flags & file_storage::flag_symlink ? fs.symlink(i).c_str() : "");
