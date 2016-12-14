@@ -86,10 +86,8 @@ traversal_algorithm::traversal_algorithm(
 	dht_observer* logger = get_node().observer();
 	if (logger != nullptr && logger->should_log(dht_logger::traversal))
 	{
-		char hex_target[41];
-		aux::to_hex(target, hex_target);
 		logger->log(dht_logger::traversal, "[%p] NEW target: %s k: %d"
-			, static_cast<void*>(this), hex_target, m_node.m_table.bucket_size());
+			, static_cast<void*>(this), target.to_hex().c_str(), m_node.m_table.bucket_size());
 	}
 #endif
 }
@@ -167,11 +165,9 @@ void traversal_algorithm::add_entry(node_id const& id
 			dht_observer* logger = get_node().observer();
 			if (logger != nullptr && logger->should_log(dht_logger::traversal))
 			{
-				char hex_id[41];
-				aux::to_hex(o->id(), hex_id);
 				logger->log(dht_logger::traversal
 					, "[%p] traversal DUPLICATE node. id: %s addr: %s type: %s"
-					, static_cast<void*>(this), hex_id, print_address(o->target_addr()).c_str(), name());
+					, static_cast<void*>(this), o->id().to_hex().c_str(), print_address(o->target_addr()).c_str(), name());
 			}
 #endif
 			return;
@@ -187,11 +183,9 @@ void traversal_algorithm::add_entry(node_id const& id
 		dht_observer* logger = get_node().observer();
 		if (logger != nullptr && logger->should_log(dht_logger::traversal))
 		{
-			char hex_id[41];
-			aux::to_hex(id, hex_id);
 			logger->log(dht_logger::traversal
 				, "[%p] ADD id: %s addr: %s distance: %d invoke-count: %d type: %s"
-				, static_cast<void*>(this), hex_id, print_endpoint(addr).c_str()
+				, static_cast<void*>(this), id.to_hex().c_str(), print_endpoint(addr).c_str()
 				, distance_exp(m_target, id), m_invoke_count, name());
 		}
 #endif
@@ -316,12 +310,10 @@ void traversal_algorithm::failed(observer_ptr o, int const flags)
 		dht_observer* logger = get_node().observer();
 		if (logger != nullptr && logger->should_log(dht_logger::traversal))
 		{
-			char hex_id[41];
-			aux::to_hex(o->id(), hex_id);
 			logger->log(dht_logger::traversal
 				, "[%p] 1ST_TIMEOUT id: %s distance: %d addr: %s branch-factor: %d "
 				"invoke-count: %d type: %s"
-				, static_cast<void*>(this), hex_id, distance_exp(m_target, o->id())
+				, static_cast<void*>(this), o->id().to_hex().c_str(), distance_exp(m_target, o->id())
 				, print_address(o->target_addr()).c_str(), m_branch_factor
 				, m_invoke_count, name());
 		}
@@ -338,12 +330,10 @@ void traversal_algorithm::failed(observer_ptr o, int const flags)
 		dht_observer* logger = get_node().observer();
 		if (logger != nullptr && logger->should_log(dht_logger::traversal))
 		{
-			char hex_id[41];
-			aux::to_hex(o->id(), hex_id);
 			logger->log(dht_logger::traversal
 				, "[%p] TIMEOUT id: %s distance: %d addr: %s branch-factor: %d "
 				"invoke-count: %d type: %s"
-				, static_cast<void*>(this), hex_id, distance_exp(m_target, o->id())
+				, static_cast<void*>(this), o->id().to_hex().c_str(), distance_exp(m_target, o->id())
 				, print_address(o->target_addr()).c_str(), m_branch_factor
 				, m_invoke_count, name());
 		}
@@ -392,11 +382,9 @@ void traversal_algorithm::done()
 			&& logger != nullptr && logger->should_log(dht_logger::traversal))
 		{
 			TORRENT_ASSERT(o->flags & observer::flag_queried);
-			char hex_id[41];
-			aux::to_hex(o->id(), hex_id);
 			logger->log(dht_logger::traversal
 				, "[%p] id: %s distance: %d addr: %s"
-				, static_cast<void*>(this), hex_id, closest_target
+				, static_cast<void*>(this), o->id().to_hex().c_str(), closest_target
 				, print_endpoint(o->target_ep()).c_str());
 
 			--results_target;
@@ -473,14 +461,12 @@ bool traversal_algorithm::add_requests()
 		dht_observer* logger = get_node().observer();
 		if (logger != nullptr && logger->should_log(dht_logger::traversal))
 		{
-			char hex_id[41];
-			aux::to_hex(o->id(), hex_id);
 			logger->log(dht_logger::traversal
 				, "[%p] INVOKE nodes-left: %d top-invoke-count: %d "
 				"invoke-count: %d branch-factor: %d "
 				"distance: %d id: %s addr: %s type: %s"
 				, static_cast<void*>(this), int(m_results.end() - i), outstanding, int(m_invoke_count)
-				, int(m_branch_factor), distance_exp(m_target, o->id()), hex_id
+				, int(m_branch_factor), distance_exp(m_target, o->id()), o->id().to_hex().c_str()
 				, print_address(o->target_addr()).c_str(), name());
 		}
 #endif

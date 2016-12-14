@@ -68,9 +68,7 @@ namespace libtorrent {
 			}
 			else
 			{
-				char msg[41];
-				aux::to_hex(t->info_hash(), msg);
-				m_name_idx = alloc.copy_string(msg);
+				m_name_idx = alloc.copy_string(t->info_hash().to_hex());
 			}
 		}
 		else
@@ -1120,11 +1118,9 @@ namespace libtorrent {
 	std::string dht_announce_alert::message() const
 	{
 		error_code ec;
-		char ih_hex[41];
-		aux::to_hex(info_hash, ih_hex);
 		char msg[200];
 		std::snprintf(msg, sizeof(msg), "incoming dht announce: %s:%u (%s)"
-			, ip.to_string(ec).c_str(), port, ih_hex);
+			, ip.to_string(ec).c_str(), port, info_hash.to_hex().c_str());
 		return msg;
 	}
 
@@ -1135,10 +1131,8 @@ namespace libtorrent {
 
 	std::string dht_get_peers_alert::message() const
 	{
-		char ih_hex[41];
-		aux::to_hex(info_hash, ih_hex);
 		char msg[200];
-		std::snprintf(msg, sizeof(msg), "incoming dht get_peers: %s", ih_hex);
+		std::snprintf(msg, sizeof(msg), "incoming dht get_peers: %s", info_hash.to_hex().c_str());
 		return msg;
 	}
 
@@ -1987,10 +1981,8 @@ namespace libtorrent {
 
 	std::string dht_get_peers_reply_alert::message() const
 	{
-		char ih_hex[41];
-		aux::to_hex(info_hash, ih_hex);
 		char msg[200];
-		std::snprintf(msg, sizeof(msg), "incoming dht get_peers reply: %s, peers %d", ih_hex, m_num_peers);
+		std::snprintf(msg, sizeof(msg), "incoming dht get_peers reply: %s, peers %d", info_hash.to_hex().c_str(), m_num_peers);
 		return msg;
 	}
 
