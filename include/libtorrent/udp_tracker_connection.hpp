@@ -39,10 +39,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <mutex>
 #include <cstdint>
 #include <memory>
+#include <map>
 
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/span.hpp"
 
 namespace libtorrent
 {
