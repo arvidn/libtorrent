@@ -3008,7 +3008,7 @@ namespace libtorrent
 				i != resp.peers.end(); ++i)
 			{
 				debug_log("  %16s %5d %s %s", i->hostname.c_str(), i->port
-					, i->pid.is_all_zeros()?"":aux::to_hex(i->pid).c_str()
+					, i->pid.is_all_zeros()?"": i->pid.to_hex().c_str()
 					, identify_client(i->pid).c_str());
 			}
 			for (std::vector<ipv4_peer_entry>::const_iterator i = resp.peers4.begin();
@@ -6626,7 +6626,7 @@ namespace libtorrent
 			if (is_ssl_torrent())
 			{
 				// for ssl sockets, set the hostname
-				std::string host_name = aux::to_hex(m_torrent_file->info_hash());
+				std::string host_name = m_torrent_file->info_hash().to_hex();
 
 #define CASE(t) case socket_type_int_impl<ssl_stream<t>>::value: \
 	s->get<ssl_stream<t>>()->set_host_name(host_name); break;

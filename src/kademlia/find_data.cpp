@@ -37,9 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/socket.hpp>
 #include <libtorrent/socket_io.hpp>
 
-#ifndef TORRENT_DISABLE_LOGGING
-#include <libtorrent/hex.hpp> // to_hex
-#endif
 
 namespace libtorrent { namespace dht
 {
@@ -115,7 +112,7 @@ void find_data::got_write_token(node_id const& n, std::string write_token)
 		logger->log(dht_logger::traversal
 			, "[%p] adding write token '%s' under id '%s'"
 			, static_cast<void*>(this), aux::to_hex(write_token).c_str()
-			, aux::to_hex(n).c_str());
+			, n.to_hex().c_str());
 	}
 #endif
 	m_write_tokens[n] = std::move(write_token);

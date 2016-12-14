@@ -224,8 +224,8 @@ namespace
 						m_torrent.debug_log(" BANNING PEER [ p: %d | b: %d | c: %s"
 							" | hash1: %s | hash2: %s | ip: %s ]"
 							, b.piece_index, b.block_index, client
-							, aux::to_hex(i->second.digest).c_str()
-							, aux::to_hex(e.digest).c_str()
+							, i->second.digest.to_hex().c_str()
+							, e.digest.to_hex().c_str()
 							, print_endpoint(p->ip()).c_str());
 					}
 #endif
@@ -253,7 +253,7 @@ namespace
 				m_torrent.debug_log(" STORE BLOCK CRC [ p: %d | b: %d | c: %s"
 					" | digest: %s | ip: %s ]"
 					, b.piece_index, b.block_index, client
-					, aux::to_hex(e.digest).c_str()
+					, e.digest.to_hex().c_str()
 					, print_address(p->ip().address()).c_str());
 			}
 #endif
@@ -302,8 +302,8 @@ namespace
 				m_torrent.debug_log(" BANNING PEER [ p: %d | b: %d | c: %s"
 					" | ok_digest: %s | bad_digest: %s | ip: %s ]"
 					, b.first.piece_index, b.first.block_index, client
-					, aux::to_hex(ok_digest).c_str()
-					, aux::to_hex(b.second.digest).c_str()
+					, ok_digest.to_hex().c_str()
+					, b.second.digest.to_hex().c_str()
 					, print_address(p->ip().address()).c_str());
 			}
 #endif

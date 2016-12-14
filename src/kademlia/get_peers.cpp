@@ -36,10 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/socket_io.hpp>
 #include <libtorrent/performance_counters.hpp>
 
-#ifndef TORRENT_DISABLE_LOGGING
-#include <libtorrent/hex.hpp> // to_hex
-#endif
-
 namespace libtorrent { namespace dht
 {
 

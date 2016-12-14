@@ -48,7 +48,7 @@ namespace libtorrent
 		std::string ret;
 		sha1_hash const& ih = handle.info_hash();
 		ret += "magnet:?xt=urn:btih:";
-		ret += aux::to_hex(ih);
+		ret += ih.to_hex();
 
 		torrent_status st = handle.status(torrent_handle::query_name);
 		if (!st.name.empty())
@@ -77,7 +77,7 @@ namespace libtorrent
 		std::string ret;
 		sha1_hash const& ih = info.info_hash();
 		ret += "magnet:?xt=urn:btih:";
-		ret += aux::to_hex(ih);
+		ret += ih.to_hex();
 
 		std::string const& name = info.name();
 

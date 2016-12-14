@@ -45,9 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/session_status.hpp>
 #include <libtorrent/session_settings.hpp>
 
-#ifndef TORRENT_DISABLE_LOGGING
-#include <libtorrent/hex.hpp> // to_hex
-#endif
 
 using namespace std::placeholders;
 
@@ -117,10 +114,10 @@ namespace libtorrent { namespace dht
 		if (m_log->should_log(dht_logger::tracker))
 		{
 			m_log->log(dht_logger::tracker, "starting IPv4 DHT tracker with node id: %s"
-				, aux::to_hex(m_dht.nid()).c_str());
+				, m_dht.nid().to_hex().c_str());
 #if TORRENT_USE_IPV6
 			m_log->log(dht_logger::tracker, "starting IPv6 DHT tracker with node id: %s"
-				, aux::to_hex(m_dht6.nid()).c_str());
+				, m_dht6.nid().to_hex().c_str());
 #endif
 		}
 #endif

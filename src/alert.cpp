@@ -1481,8 +1481,8 @@ namespace libtorrent {
 	{
 		char msg[200];
 		std::snprintf(msg, sizeof(msg), " torrent changed info-hash from: %s to %s"
-			, aux::to_hex(old_ih).c_str()
-			, aux::to_hex(new_ih).c_str());
+			, old_ih.to_hex().c_str()
+			, new_ih.to_hex().c_str());
 		return torrent_alert::message() + msg;
 	}
 #endif
@@ -1548,7 +1548,7 @@ namespace libtorrent {
 	{
 		char msg[1050];
 		std::snprintf(msg, sizeof(msg), "DHT immutable item %s [ %s ]"
-			, aux::to_hex(target).c_str()
+			, target.to_hex().c_str()
 			, item.to_string().c_str());
 		return msg;
 	}
@@ -1616,7 +1616,7 @@ namespace libtorrent {
 
 		std::snprintf(msg, sizeof(msg), "DHT put commplete (success=%d hash=%s)"
 			, num_success
-			, aux::to_hex(target).c_str());
+			, target.to_hex().c_str());
 		return msg;
 	}
 
@@ -1654,7 +1654,7 @@ namespace libtorrent {
 			, aux::to_hex(obfuscated_info_hash).c_str());
 		}
 		std::snprintf(msg, sizeof(msg), "outgoing dht get_peers : %s%s -> %s"
-			, aux::to_hex(info_hash).c_str()
+			, info_hash.to_hex().c_str()
 			, obf
 			, print_endpoint(endpoint).c_str());
 		return msg;

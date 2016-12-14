@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/byteswap.hpp"
 #include "libtorrent/aux_/ffs.hpp"
+#include "libtorrent/hex.hpp"
 
 #if TORRENT_USE_IOSTREAM
 #include <iosfwd>
