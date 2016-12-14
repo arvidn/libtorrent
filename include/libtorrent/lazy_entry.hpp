@@ -116,7 +116,7 @@ namespace libtorrent
 		// to know how many characters follow.
 		char const* ptr;
 
-		// lexicographical comparison of strings. Order is consisten
+		// lexicographical comparison of strings. Order is consistent
 		// with memcmp.
 		bool operator<(pascal_string const& rhs) const
 		{
@@ -131,7 +131,7 @@ namespace libtorrent
 	// type whose concrete type is one of:
 	//
 	// 1. dictionary (maps strings -> lazy_entry)
-	// 2. list (sequence of lazy_entry, i.e. heterogenous)
+	// 2. list (sequence of lazy_entry, i.e. heterogeneous)
 	// 3. integer
 	// 4. string
 	//
