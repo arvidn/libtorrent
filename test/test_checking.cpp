@@ -117,7 +117,7 @@ void test_checking(int flags = read_only_files)
 	auto ti = std::make_shared<torrent_info>(&buf[0], int(buf.size()), ec);
 
 	std::printf("generated torrent: %s tmp1_checking/test_torrent_dir\n"
-		, ti->info_hash().to_hex().c_str());
+		, aux::to_hex(ti->info_hash()).c_str());
 
 	// truncate every file in half
 	if (flags & incomplete_files)

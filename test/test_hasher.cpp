@@ -82,7 +82,6 @@ TORRENT_TEST(hasher)
 		sha1_hash result;
 		aux::from_hex({result_array[test], 40}, (char*)&result[0]);
 		TEST_CHECK(result == h.final());
-		TEST_CHECK(aux::to_hex(result) == result.to_hex());
 	}
 }
 

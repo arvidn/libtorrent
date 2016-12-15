@@ -87,7 +87,7 @@ void test_read_piece(int flags)
 	auto ti = std::make_shared<torrent_info>(&buf[0], int(buf.size()), ec);
 
 	std::printf("generated torrent: %s tmp1_read_piece/test_torrent\n"
-		, ti->info_hash().to_hex().c_str());
+		, aux::to_hex(ti->info_hash()).c_str());
 
 	const int mask = alert::all_categories
 		& ~(alert::progress_notification

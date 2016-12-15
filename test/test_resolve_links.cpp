@@ -125,7 +125,7 @@ TORRENT_TEST(resolve_links)
 				std::printf("%*s --> %s : %d\n"
 					, int(fs.file_name(i).size())
 					, fs.file_name(i).data()
-					, links[i].ti ? links[i].ti->info_hash().to_hex().c_str()
+					, links[i].ti ? aux::to_hex(links[i].ti->info_hash()).c_str()
 					: "", links[i].file_idx);
 			}
 		}
