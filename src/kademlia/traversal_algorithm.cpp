@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/rpc_manager.hpp>
 #include <libtorrent/kademlia/node.hpp>
 #include <libtorrent/kademlia/dht_observer.hpp> // for dht_logger
+#include <libtorrent/kademlia/io.hpp>
 #include <libtorrent/session_status.hpp>
 #include <libtorrent/socket_io.hpp> // for read_*_endpoint
 #include <libtorrent/alert_types.hpp> // for dht_lookup
@@ -601,17 +602,8 @@ void traversal_observer::reply(msg const& m)
 
 		while (end - nodes >= 20 + protocol_size + 2)
 		{
-			node_id id;
-			std::copy(nodes, nodes + 20, id.begin());
-			nodes += 20;
-			udp::endpoint ep;
-#if TORRENT_USE_IPV6
-			if (protocol == udp::v6())
-				ep = detail::read_v6_endpoint<udp::endpoint>(nodes);
-			else
-#endif
-				ep = detail::read_v4_endpoint<udp::endpoint>(nodes);
-			algorithm()->traverse(id, ep);
+			node_endpoint nep = read_node_endpoint(protocol, nodes);
+			algorithm()->traverse(nep.id, nep.ep);
 		}
 	}
 
