@@ -265,7 +265,7 @@ namespace libtorrent
 		}
 		std::string to_hex() const
 		{
-			return aux::to_hex({reinterpret_cast<char const*>(&m_number[0]),size()});
+			return aux::to_hex({reinterpret_cast<char const*>(&m_number[0]), size()});
 		}
 	private:
 

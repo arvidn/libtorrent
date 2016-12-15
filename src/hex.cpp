@@ -73,10 +73,10 @@ namespace libtorrent
 	extern char const hex_chars[];
 
 	char const hex_chars[] = "0123456789abcdef";
-	static void to_hex(char const* in, int const len, char* out)
+	static void to_hex(char const* in, size_t const len, char* out)
 	{
 		int idx = 0;
-		for (int i=0; i < len; ++i)
+		for (size_t i=0; i < len; ++i)
 		{
 			out[idx++] = hex_chars[std::uint8_t(in[i]) >> 4];
 			out[idx++] = hex_chars[std::uint8_t(in[i]) & 0xf];
