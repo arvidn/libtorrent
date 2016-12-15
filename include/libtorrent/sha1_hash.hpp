@@ -42,7 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/byteswap.hpp"
 #include "libtorrent/aux_/ffs.hpp"
-#include "libtorrent/hex.hpp"
 
 #if TORRENT_USE_IOSTREAM
 #include <iosfwd>
@@ -263,6 +262,7 @@ namespace libtorrent
 		{
 			return std::string(reinterpret_cast<char const*>(&m_number[0]), size());
 		}
+
 	private:
 
 		std::uint32_t m_number[number_size];

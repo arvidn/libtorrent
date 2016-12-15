@@ -45,6 +45,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/session_status.hpp>
 #include <libtorrent/session_settings.hpp>
 
+#ifndef TORRENT_DISABLE_LOGGING
+#include <libtorrent/hex.hpp> // to_hex
+#endif
 
 using namespace std::placeholders;
 

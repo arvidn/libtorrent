@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
+#include <libtorrent/hex.hpp> // to_hex
 #include "libtorrent/kademlia/routing_table.hpp"
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/kademlia/node_id.hpp"

@@ -588,7 +588,7 @@ namespace libtorrent
 		{
 			peer_log(peer_log_alert::info, "ENCRYPTION"
 				, "writing synchash %s secret: %s"
-				, aux::to_hex(sync_hash)).c_str()
+				, aux::to_hex(sync_hash).c_str()
 				, aux::to_hex(secret).c_str());
 		}
 #endif
@@ -2701,7 +2701,7 @@ namespace libtorrent
 				{
 					peer_log(peer_log_alert::info, "ENCRYPTION"
 						, "looking for synchash %s secret: %s"
-						, m_sync_hash->to_hex().c_str()
+						, aux::to_hex(*m_sync_hash).c_str()
 						, aux::to_hex(buffer).c_str());
 				}
 #endif
