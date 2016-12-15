@@ -1358,7 +1358,7 @@ namespace libtorrent
 		// the number of pieces we completed the check of
 		int m_num_checked_pieces = 0;
 
-		// if the error ocurred on a file, this is the index of that file
+		// if the error occurred on a file, this is the index of that file
 		// there are a few special cases, when this is negative. See
 		// set_error()
 		int m_error_file;
