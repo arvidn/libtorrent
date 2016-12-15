@@ -131,13 +131,13 @@ void lsd::announce_impl(sha1_hash const& ih, int const listen_port
 	char msg[200];
 
 #ifndef TORRENT_DISABLE_LOGGING
-	debug_log("==> LSD: ih: %s port: %u\n", ih.to_hex().c_str(), listen_port);
+	debug_log("==> LSD: ih: %s port: %u\n", aux::to_hex(ih).c_str(), listen_port);
 #endif
 
 	error_code ec;
 	if (!m_disabled)
 	{
-		int const msg_len = render_lsd_packet(msg, sizeof(msg), listen_port, ih.to_hex().c_str()
+		int const msg_len = render_lsd_packet(msg, sizeof(msg), listen_port, aux::to_hex(ih).c_str()
 			, m_cookie, "239.192.152.143");
 		m_socket.send(msg, msg_len, ec, broadcast ? broadcast_socket::flag_broadcast : 0);
 		if (ec)
@@ -156,7 +156,7 @@ void lsd::announce_impl(sha1_hash const& ih, int const listen_port
 #if TORRENT_USE_IPV6
 	if (!m_disabled6)
 	{
-		int const msg_len = render_lsd_packet(msg, sizeof(msg), listen_port, ih.to_hex().c_str()
+		int const msg_len = render_lsd_packet(msg, sizeof(msg), listen_port, aux::to_hex(ih).c_str()
 			, m_cookie, "[ff15::efc0:988f]");
 		m_socket6.send(msg, msg_len, ec, broadcast ? broadcast_socket::flag_broadcast : 0);
 		if (ec)

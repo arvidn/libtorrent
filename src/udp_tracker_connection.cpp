@@ -540,7 +540,7 @@ namespace libtorrent
 				, m_hostname.empty()
 					? print_endpoint(m_target).c_str()
 					: (m_hostname + ":" + to_string(m_target.port()).data()).c_str()
-				, tracker_req().info_hash.to_hex().c_str());
+				, aux::to_hex(tracker_req().info_hash).c_str());
 		}
 #endif
 
@@ -762,7 +762,7 @@ namespace libtorrent
 		std::shared_ptr<request_callback> cb = requester();
 		if (cb && cb->should_log())
 		{
-			cb->debug_log("==> UDP_TRACKER_ANNOUNCE [%s]", req.info_hash.to_hex().c_str());
+			cb->debug_log("==> UDP_TRACKER_ANNOUNCE [%s]", aux::to_hex(req.info_hash).c_str());
 		}
 #endif
 

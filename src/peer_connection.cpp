@@ -1166,7 +1166,7 @@ namespace libtorrent
 			if (t && should_log(peer_log_alert::info))
 			{
 				peer_log(peer_log_alert::info, "ATTACH"
-					, "Delay loaded torrent: %s:", ih.to_hex().c_str());
+					, "Delay loaded torrent: %s:", aux::to_hex(ih).c_str());
 			}
 #endif
 		}
@@ -1179,7 +1179,7 @@ namespace libtorrent
 			{
 				peer_log(peer_log_alert::info, "ATTACH"
 					, "couldn't find a torrent with the given info_hash: %s torrents:"
-					, ih.to_hex().c_str());
+					, aux::to_hex(ih).c_str());
 			}
 #endif
 

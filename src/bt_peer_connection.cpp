@@ -588,7 +588,7 @@ namespace libtorrent
 		{
 			peer_log(peer_log_alert::info, "ENCRYPTION"
 				, "writing synchash %s secret: %s"
-				, sync_hash.to_hex().c_str()
+				, aux::to_hex(sync_hash)).c_str()
 				, aux::to_hex(secret).c_str());
 		}
 #endif
@@ -845,12 +845,12 @@ namespace libtorrent
 		{
 			peer_log(peer_log_alert::outgoing, "HANDSHAKE"
 				, "sent peer_id: %s client: %s"
-				, m_our_peer_id.to_hex().c_str(), identify_client(m_our_peer_id).c_str());
+				, aux::to_hex(m_our_peer_id).c_str(), identify_client(m_our_peer_id).c_str());
 		}
 		if (should_log(peer_log_alert::outgoing_message))
 		{
 			peer_log(peer_log_alert::outgoing_message, "HANDSHAKE"
-				, "ih: %s", ih.to_hex().c_str());
+				, "ih: %s", aux::to_hex(ih).c_str());
 		}
 #endif
 		send_buffer(handshake, sizeof(handshake));

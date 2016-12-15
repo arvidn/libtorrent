@@ -488,7 +488,7 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 				if (m_log != nullptr && m_log->should_log(dht_logger::routing_table))
 				{
 					m_log->log(dht_logger::routing_table, "ignoring node (duplicate IP): %s %s"
-						, e.id.to_hex().c_str(), print_address(e.addr()).c_str());
+						, aux::to_hex(e.id).c_str(), print_address(e.addr()).c_str());
 				}
 #endif
 				return failed_to_add;
@@ -529,7 +529,7 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 			if (m_log != nullptr && m_log->should_log(dht_logger::routing_table))
 			{
 				m_log->log(dht_logger::routing_table, "evicting node (changed ID): old: %s new: %s %s"
-					, existing->id.to_hex().c_str(), e.id.to_hex().c_str(), print_address(e.addr()).c_str());
+					, aux::to_hex(existing->id).c_str(), aux::to_hex(e.id).c_str(), print_address(e.addr()).c_str());
 			}
 #endif
 
@@ -622,8 +622,8 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 		if (m_log != nullptr && m_log->should_log(dht_logger::routing_table))
 		{
 			m_log->log(dht_logger::routing_table, "ignoring node: %s %s existing node: %s %s"
-				, e.id.to_hex().c_str(), print_address(e.addr()).c_str()
-				, j->id.to_hex().c_str(), print_address(j->addr()).c_str());
+				, aux::to_hex(e.id).c_str(), print_address(e.addr()).c_str()
+				, aux::to_hex(j->id).c_str(), print_address(j->addr()).c_str());
 		}
 #endif
 		return failed_to_add;
@@ -812,7 +812,7 @@ ip_ok:
 			if (m_log != nullptr && m_log->should_log(dht_logger::routing_table))
 			{
 				m_log->log(dht_logger::routing_table, "replacing node with higher RTT: %s %s"
-					, e.id.to_hex().c_str(), print_address(e.addr()).c_str());
+					, aux::to_hex(e.id).c_str(), print_address(e.addr()).c_str());
 			}
 #endif
 			return node_added;
@@ -1007,7 +1007,7 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 		if (m_log != nullptr && m_log->should_log(dht_logger::routing_table))
 		{
 			m_log->log(dht_logger::routing_table, "NODE FAILED id: %s ip: %s fails: %d pinged: %d up-time: %d"
-				, nid.to_hex().c_str(), print_endpoint(j->ep()).c_str()
+				, aux::to_hex(nid).c_str(), print_endpoint(j->ep()).c_str()
 				, j->fail_count()
 				, int(j->pinged())
 				, int(total_seconds(aux::time_now() - j->first_seen)));
@@ -1029,7 +1029,7 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 		if (m_log != nullptr && m_log->should_log(dht_logger::routing_table))
 		{
 			m_log->log(dht_logger::routing_table, "NODE FAILED id: %s ip: %s fails: %d pinged: %d up-time: %d"
-				, nid.to_hex().c_str(), print_endpoint(j->ep()).c_str()
+				, aux::to_hex(nid).c_str(), print_endpoint(j->ep()).c_str()
 				, j->fail_count()
 				, int(j->pinged())
 				, int(total_seconds(aux::time_now() - j->first_seen)));

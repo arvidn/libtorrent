@@ -263,10 +263,6 @@ namespace libtorrent
 		{
 			return std::string(reinterpret_cast<char const*>(&m_number[0]), size());
 		}
-		std::string to_hex() const
-		{
-			return aux::to_hex({reinterpret_cast<char const*>(&m_number[0]), size()});
-		}
 	private:
 
 		std::uint32_t m_number[number_size];

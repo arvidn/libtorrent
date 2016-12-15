@@ -68,7 +68,7 @@ namespace libtorrent {
 			}
 			else
 			{
-				m_name_idx = alloc.copy_string(t->info_hash().to_hex());
+				m_name_idx = alloc.copy_string(aux::to_hex(t->info_hash()));
 			}
 		}
 		else
@@ -1120,7 +1120,7 @@ namespace libtorrent {
 		error_code ec;
 		char msg[200];
 		std::snprintf(msg, sizeof(msg), "incoming dht announce: %s:%u (%s)"
-			, ip.to_string(ec).c_str(), port, info_hash.to_hex().c_str());
+			, ip.to_string(ec).c_str(), port, aux::to_hex(info_hash).c_str());
 		return msg;
 	}
 
@@ -1132,7 +1132,7 @@ namespace libtorrent {
 	std::string dht_get_peers_alert::message() const
 	{
 		char msg[200];
-		std::snprintf(msg, sizeof(msg), "incoming dht get_peers: %s", info_hash.to_hex().c_str());
+		std::snprintf(msg, sizeof(msg), "incoming dht get_peers: %s", aux::to_hex(info_hash).c_str());
 		return msg;
 	}
 
@@ -1481,8 +1481,8 @@ namespace libtorrent {
 	{
 		char msg[200];
 		std::snprintf(msg, sizeof(msg), " torrent changed info-hash from: %s to %s"
-			, old_ih.to_hex().c_str()
-			, new_ih.to_hex().c_str());
+			, aux::to_hex(old_ih).c_str()
+			, aux::to_hex(new_ih).c_str());
 		return torrent_alert::message() + msg;
 	}
 #endif
@@ -1548,7 +1548,7 @@ namespace libtorrent {
 	{
 		char msg[1050];
 		std::snprintf(msg, sizeof(msg), "DHT immutable item %s [ %s ]"
-			, target.to_hex().c_str()
+			, aux::to_hex(target).c_str()
 			, item.to_string().c_str());
 		return msg;
 	}
@@ -1616,7 +1616,7 @@ namespace libtorrent {
 
 		std::snprintf(msg, sizeof(msg), "DHT put commplete (success=%d hash=%s)"
 			, num_success
-			, target.to_hex().c_str());
+			, aux::to_hex(target).c_str());
 		return msg;
 	}
 
@@ -1654,7 +1654,7 @@ namespace libtorrent {
 			, aux::to_hex(obfuscated_info_hash).c_str());
 		}
 		std::snprintf(msg, sizeof(msg), "outgoing dht get_peers : %s%s -> %s"
-			, info_hash.to_hex().c_str()
+			, aux::to_hex(info_hash).c_str()
 			, obf
 			, print_endpoint(endpoint).c_str());
 		return msg;
@@ -1982,7 +1982,7 @@ namespace libtorrent {
 	std::string dht_get_peers_reply_alert::message() const
 	{
 		char msg[200];
-		std::snprintf(msg, sizeof(msg), "incoming dht get_peers reply: %s, peers %d", info_hash.to_hex().c_str(), m_num_peers);
+		std::snprintf(msg, sizeof(msg), "incoming dht get_peers reply: %s, peers %d", aux::to_hex(info_hash).c_str(), m_num_peers);
 		return msg;
 	}
 

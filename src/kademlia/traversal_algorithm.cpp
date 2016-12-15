@@ -87,7 +87,7 @@ traversal_algorithm::traversal_algorithm(
 	if (logger != nullptr && logger->should_log(dht_logger::traversal))
 	{
 		logger->log(dht_logger::traversal, "[%p] NEW target: %s k: %d"
-			, static_cast<void*>(this), target.to_hex().c_str(), m_node.m_table.bucket_size());
+			, static_cast<void*>(this), aux::to_hex(target).c_str(), m_node.m_table.bucket_size());
 	}
 #endif
 }
@@ -167,7 +167,7 @@ void traversal_algorithm::add_entry(node_id const& id
 			{
 				logger->log(dht_logger::traversal
 					, "[%p] traversal DUPLICATE node. id: %s addr: %s type: %s"
-					, static_cast<void*>(this), o->id().to_hex().c_str(), print_address(o->target_addr()).c_str(), name());
+					, static_cast<void*>(this), aux::to_hex(o->id()).c_str(), print_address(o->target_addr()).c_str(), name());
 			}
 #endif
 			return;
@@ -185,7 +185,7 @@ void traversal_algorithm::add_entry(node_id const& id
 		{
 			logger->log(dht_logger::traversal
 				, "[%p] ADD id: %s addr: %s distance: %d invoke-count: %d type: %s"
-				, static_cast<void*>(this), id.to_hex().c_str(), print_endpoint(addr).c_str()
+				, static_cast<void*>(this), aux::to_hex(id).c_str(), print_endpoint(addr).c_str()
 				, distance_exp(m_target, id), m_invoke_count, name());
 		}
 #endif
@@ -313,7 +313,7 @@ void traversal_algorithm::failed(observer_ptr o, int const flags)
 			logger->log(dht_logger::traversal
 				, "[%p] 1ST_TIMEOUT id: %s distance: %d addr: %s branch-factor: %d "
 				"invoke-count: %d type: %s"
-				, static_cast<void*>(this), o->id().to_hex().c_str(), distance_exp(m_target, o->id())
+				, static_cast<void*>(this), aux::to_hex(o->id()).c_str(), distance_exp(m_target, o->id())
 				, print_address(o->target_addr()).c_str(), m_branch_factor
 				, m_invoke_count, name());
 		}
@@ -333,7 +333,7 @@ void traversal_algorithm::failed(observer_ptr o, int const flags)
 			logger->log(dht_logger::traversal
 				, "[%p] TIMEOUT id: %s distance: %d addr: %s branch-factor: %d "
 				"invoke-count: %d type: %s"
-				, static_cast<void*>(this), o->id().to_hex().c_str(), distance_exp(m_target, o->id())
+				, static_cast<void*>(this), aux::to_hex(o->id()).c_str(), distance_exp(m_target, o->id())
 				, print_address(o->target_addr()).c_str(), m_branch_factor
 				, m_invoke_count, name());
 		}
@@ -384,7 +384,7 @@ void traversal_algorithm::done()
 			TORRENT_ASSERT(o->flags & observer::flag_queried);
 			logger->log(dht_logger::traversal
 				, "[%p] id: %s distance: %d addr: %s"
-				, static_cast<void*>(this), o->id().to_hex().c_str(), closest_target
+				, static_cast<void*>(this), aux::to_hex(o->id()).c_str(), closest_target
 				, print_endpoint(o->target_ep()).c_str());
 
 			--results_target;
@@ -466,7 +466,7 @@ bool traversal_algorithm::add_requests()
 				"invoke-count: %d branch-factor: %d "
 				"distance: %d id: %s addr: %s type: %s"
 				, static_cast<void*>(this), int(m_results.end() - i), outstanding, int(m_invoke_count)
-				, int(m_branch_factor), distance_exp(m_target, o->id()), o->id().to_hex().c_str()
+				, int(m_branch_factor), distance_exp(m_target, o->id()), aux::to_hex(o->id()).c_str()
 				, print_address(o->target_addr()).c_str(), name());
 		}
 #endif
