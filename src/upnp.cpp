@@ -1125,16 +1125,17 @@ namespace
 		int error_code;
 	};
 
-	void find_error_code(int type, char const* string, error_code_parse_state& state)
+	void find_error_code(int type, char const* string, int str_len, error_code_parse_state& state)
 	{
 		if (state.exit) return;
-		if (type == xml_start_tag && !std::strcmp("errorCode", string))
+		if (type == xml_start_tag && !std::strncmp("errorCode", string, size_t(str_len)))
 		{
 			state.in_error_code = true;
 		}
 		else if (type == xml_string && state.in_error_code)
 		{
-			state.error_code = std::atoi(string);
+			std::string error_code_str(string, str_len);
+			state.error_code = std::atoi(error_code_str.c_str());
 			state.exit = true;
 		}
 	}
@@ -1146,18 +1147,19 @@ namespace
 		std::string ip_address;
 	};
 
-	void find_ip_address(int type, char const* string, ip_address_parse_state& state)
+	void find_ip_address(int type, char const* string, int str_len, ip_address_parse_state& state)
 	{
-		find_error_code(type, string, state);
+		find_error_code(type, string, str_len, state);
 		if (state.exit) return;
 
-		if (type == xml_start_tag && !std::strcmp("NewExternalIPAddress", string))
+		if (type == xml_start_tag && !std::strncmp("NewExternalIPAddress", string, size_t(str_len)))
 		{
 			state.in_ip_address = true;
 		}
 		else if (type == xml_string && state.in_ip_address)
 		{
-			state.ip_address = string;
+			std::string ip_address_str(string, str_len);
+			state.ip_address = ip_address_str;
 			state.exit = true;
 		}
 	}
@@ -1295,7 +1297,7 @@ void upnp::on_upnp_get_ip_address_response(error_code const& e
 #endif
 
 	ip_address_parse_state s;
-	xml_parse(body, std::bind(&find_ip_address, _1, _2, std::ref(s)));
+	xml_parse(body, std::bind(&find_ip_address, _1, _2, _3, std::ref(s)));
 #ifndef TORRENT_DISABLE_LOGGING
 	if (s.error_code != -1)
 	{
@@ -1396,7 +1398,7 @@ void upnp::on_upnp_map_response(error_code const& e
 
 	error_code_parse_state s;
 	span<char const> body = p.get_body();
-	xml_parse(body, std::bind(&find_error_code, _1, _2, std::ref(s)));
+	xml_parse(body, std::bind(&find_error_code, _1, _2, _3, std::ref(s)));
 
 	if (s.error_code != -1)
 	{
@@ -1550,7 +1552,7 @@ void upnp::on_upnp_unmap_response(error_code const& e
 	error_code_parse_state s;
 	if (p.header_finished())
 	{
-		xml_parse(p.get_body(), std::bind(&find_error_code, _1, _2, std::ref(s)));
+		xml_parse(p.get_body(), std::bind(&find_error_code, _1, _2, _3, std::ref(s)));
 	}
 
 	portmap_protocol const proto = m_mappings[mapping].protocol;
