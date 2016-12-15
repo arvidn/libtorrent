@@ -55,6 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/node.hpp"
 #include "libtorrent/kademlia/dht_observer.hpp"
 #include "libtorrent/kademlia/direct_request.hpp"
+#include "libtorrent/kademlia/io.hpp"
 
 #include "libtorrent/kademlia/refresh.hpp"
 #include "libtorrent/kademlia/get_peers.hpp"
@@ -609,17 +610,8 @@ struct ping_observer : observer
 
 			while (end - nodes >= 20 + protocol_size + 2)
 			{
-				node_id id;
-				std::copy(nodes, nodes + 20, id.begin());
-				nodes += 20;
-				udp::endpoint ep;
-#if TORRENT_USE_IPV6
-				if (protocol == udp::v6())
-					ep = detail::read_v6_endpoint<udp::endpoint>(nodes);
-				else
-#endif
-					ep = detail::read_v4_endpoint<udp::endpoint>(nodes);
-				algorithm()->get_node().m_table.heard_about(id, ep);
+				node_endpoint nep = read_node_endpoint(protocol, nodes);
+				algorithm()->get_node().m_table.heard_about(nep.id, nep.ep);
 			}
 		}
 	}
