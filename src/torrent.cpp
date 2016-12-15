@@ -1028,6 +1028,8 @@ namespace libtorrent
 				get_handle(), r.piece, rp->piece_data, 0);
 			return;
 		}
+
+		m_ses.deferred_submit_jobs();
 		for (int i = 0; i < blocks_in_piece; ++i, r.start += block_size())
 		{
 			r.length = (std::min)(piece_size - r.start, block_size());
