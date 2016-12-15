@@ -152,6 +152,12 @@ namespace libtorrent
 		// 5.
 		int urlseed_pipeline_size;
 
+		// the maximum request range of an url seed in bytes. This value defines
+		// the largest possible sequentiel web seed request. Default is 16777216
+		// (16 * 1024 * 1024). Lower values are possible but will be ignored if
+		// if they are lower then piece size.
+		int urlseed_max_request_bytes;
+
 		// time to wait until a new retry takes place
 		int urlseed_wait_retry;
 

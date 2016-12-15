@@ -1,3 +1,4 @@
+	* add setting urlseed_max_request_bytes to handle large web seed requests
 	* fix python build with CC/CXX environment
 	* add trackers from add_torrent_params/magnet links to separate tiers
 	* fix resumedata check issue with files with priority 0

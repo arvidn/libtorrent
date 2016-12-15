@@ -1558,6 +1558,8 @@ int main(int argc, char* argv[])
 		, listen_port);
 	settings.set_str(settings_pack::listen_interfaces, iface_str);
 
+	settings.set_int(settings_pack::urlseed_max_request_bytes, 32 * 1024 * 1024);
+
 	settings.set_str(settings_pack::user_agent, "client_test/" LIBTORRENT_VERSION);
 	settings.set_int(settings_pack::alert_mask, alert::all_categories
 		& ~(alert::dht_notification
