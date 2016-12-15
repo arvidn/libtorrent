@@ -6626,7 +6626,7 @@ namespace libtorrent
 			if (is_ssl_torrent())
 			{
 				// for ssl sockets, set the hostname
-				std::string host_name = m_torrent_file->info_hash().to_hex();
+				std::string host_name = aux::to_hex(m_torrent_file->info_hash());
 
 #define CASE(t) case socket_type_int_impl<ssl_stream<t>>::value: \
 	s->get<ssl_stream<t>>()->set_host_name(host_name); break;
