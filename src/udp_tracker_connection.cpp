@@ -752,7 +752,7 @@ namespace libtorrent
 
 		if (!request_string.empty())
 		{
-			std::size_t str_len = std::min(request_string.size(), 255ul);
+			std::size_t str_len = std::min(request_string.size(), std::size_t(255));
 			request_string.resize(str_len);
 
 			aux::write_uint8(2, out);
