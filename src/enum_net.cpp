@@ -158,13 +158,20 @@ namespace libtorrent { namespace
 
 		do
 		{
-			int read_len = recv(sock, buf, bufsize - msg_len, 0);
+			int read_len = int(recv(sock, buf, bufsize - msg_len, 0));
 			if (read_len < 0) return -1;
 
 			nl_hdr = reinterpret_cast<nlmsghdr*>(buf);
 
+#if (TORRENT_ANDROID && defined __clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wsign-compare"
+#endif
 			if ((NLMSG_OK(nl_hdr, read_len) == 0) || (nl_hdr->nlmsg_type == NLMSG_ERROR))
 				return -1;
+#if (TORRENT_ANDROID && defined __clang__)
+#pragma clang diagnostic pop
+#endif
 
 			if (nl_hdr->nlmsg_type == NLMSG_DONE) break;
 
@@ -1120,6 +1127,9 @@ namespace libtorrent
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wcast-align"
+#if TORRENT_ANDROID
+#pragma clang diagnostic ignored "-Wsign-compare"
+#endif
 #endif
 		for (; NLMSG_OK(nl_msg, len); nl_msg = NLMSG_NEXT(nl_msg, len))
 		{

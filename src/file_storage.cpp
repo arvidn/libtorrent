@@ -549,7 +549,7 @@ namespace libtorrent
 	void file_storage::add_file_borrow(char const* filename, int const filename_len
 		, std::string const& path, std::int64_t const file_size
 		, std::uint32_t const file_flags, char const* filehash
-		, std::int64_t const mtime, string_view symlink_path)
+		, std::time_t const mtime, string_view symlink_path)
 	{
 		TORRENT_ASSERT_PRECOND(file_size >= 0);
 		if (!has_parent_path(path))
