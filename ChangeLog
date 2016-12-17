@@ -1,3 +1,4 @@
+	* add setting urlseed_max_request_bytes to handle large web seed requests
 	* make sequence number for mutable DHT items backed by std::int64_t
 	* tweaked storage_interface to have stronger type safety
 	* deprecate relative times in torrent_status, replaced by std::chrono::time_point
