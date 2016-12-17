@@ -101,8 +101,7 @@ namespace libtorrent
 
 struct parse_state
 {
-	parse_state(): in_service(false) {}
-	bool in_service;
+	bool in_service = false;
 	std::list<std::string> tag_stack;
 	std::string control_url;
 	std::string service_type;
@@ -122,16 +121,14 @@ struct parse_state
 
 struct error_code_parse_state
 {
-	error_code_parse_state(): in_error_code(false), exit(false), error_code(-1) {}
-	bool in_error_code;
-	bool exit;
-	int error_code;
+	bool in_error_code = false;
+	bool exit = false;
+	int error_code = -1;
 };
 
-struct ip_address_parse_state: public error_code_parse_state
+struct ip_address_parse_state: error_code_parse_state
 {
-	ip_address_parse_state(): in_ip_address(false) {}
-	bool in_ip_address;
+	bool in_ip_address = false;
 	std::string ip_address;
 };
 

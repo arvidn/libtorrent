@@ -881,7 +881,7 @@ namespace
 	}
 }
 
-TORRENT_EXTRA_EXPORT void find_control_url(int type, char const* string
+void find_control_url(int type, char const* string
 	, int str_len, parse_state& state)
 {
 	if (type == xml_start_tag)
@@ -1115,7 +1115,7 @@ void upnp::disable(error_code const& ec)
 	m_socket.close();
 }
 
-TORRENT_EXTRA_EXPORT void find_error_code(int type, char const* string, int str_len, error_code_parse_state& state)
+void find_error_code(int type, char const* string, int str_len, error_code_parse_state& state)
 {
 	if (state.exit) return;
 	if (type == xml_start_tag && !std::strncmp("errorCode", string, size_t(str_len)))
@@ -1130,7 +1130,7 @@ TORRENT_EXTRA_EXPORT void find_error_code(int type, char const* string, int str_
 	}
 }
 
-TORRENT_EXTRA_EXPORT void find_ip_address(int type, char const* string, int str_len, ip_address_parse_state& state)
+void find_ip_address(int type, char const* string, int str_len, ip_address_parse_state& state)
 {
 	find_error_code(type, string, str_len, state);
 	if (state.exit) return;
@@ -1141,8 +1141,7 @@ TORRENT_EXTRA_EXPORT void find_ip_address(int type, char const* string, int str_
 	}
 	else if (type == xml_string && state.in_ip_address)
 	{
-		std::string ip_address_str(string, str_len);
-		state.ip_address = ip_address_str;
+		state.ip_address.assign(string, str_len);
 		state.exit = true;
 	}
 }
