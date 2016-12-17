@@ -1115,55 +1115,40 @@ void upnp::disable(error_code const& ec)
 	m_socket.close();
 }
 
+TORRENT_EXTRA_EXPORT void find_error_code(int type, char const* string, int str_len, error_code_parse_state& state)
+{
+	if (state.exit) return;
+	if (type == xml_start_tag && !std::strncmp("errorCode", string, size_t(str_len)))
+	{
+		state.in_error_code = true;
+	}
+	else if (type == xml_string && state.in_error_code)
+	{
+		std::string error_code_str(string, str_len);
+		state.error_code = std::atoi(error_code_str.c_str());
+		state.exit = true;
+	}
+}
+
+TORRENT_EXTRA_EXPORT void find_ip_address(int type, char const* string, int str_len, ip_address_parse_state& state)
+{
+	find_error_code(type, string, str_len, state);
+	if (state.exit) return;
+
+	if (type == xml_start_tag && !std::strncmp("NewExternalIPAddress", string, size_t(str_len)))
+	{
+		state.in_ip_address = true;
+	}
+	else if (type == xml_string && state.in_ip_address)
+	{
+		std::string ip_address_str(string, str_len);
+		state.ip_address = ip_address_str;
+		state.exit = true;
+	}
+}
+
 namespace
 {
-	struct error_code_parse_state
-	{
-		error_code_parse_state(): in_error_code(false), exit(false), error_code(-1) {}
-		bool in_error_code;
-		bool exit;
-		int error_code;
-	};
-
-	void find_error_code(int type, char const* string, int str_len, error_code_parse_state& state)
-	{
-		if (state.exit) return;
-		if (type == xml_start_tag && !std::strncmp("errorCode", string, size_t(str_len)))
-		{
-			state.in_error_code = true;
-		}
-		else if (type == xml_string && state.in_error_code)
-		{
-			std::string error_code_str(string, str_len);
-			state.error_code = std::atoi(error_code_str.c_str());
-			state.exit = true;
-		}
-	}
-
-	struct ip_address_parse_state: public error_code_parse_state
-	{
-		ip_address_parse_state(): in_ip_address(false) {}
-		bool in_ip_address;
-		std::string ip_address;
-	};
-
-	void find_ip_address(int type, char const* string, int str_len, ip_address_parse_state& state)
-	{
-		find_error_code(type, string, str_len, state);
-		if (state.exit) return;
-
-		if (type == xml_start_tag && !std::strncmp("NewExternalIPAddress", string, size_t(str_len)))
-		{
-			state.in_ip_address = true;
-		}
-		else if (type == xml_string && state.in_ip_address)
-		{
-			std::string ip_address_str(string, str_len);
-			state.ip_address = ip_address_str;
-			state.exit = true;
-		}
-	}
-
 	struct error_code_t
 	{
 		int code;
