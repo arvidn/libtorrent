@@ -6898,9 +6898,8 @@ namespace aux {
 
 			for (auto const& p : resp.peers)
 			{
-				debug_log("  %16s %5d %s %s", p.hostname.c_str(), p.port
-					, p.pid.is_all_zeros() ? "" : to_hex(p.pid).c_str()
-					, identify_client(p.pid).c_str());
+				debug_log("  %16s %5d %s", p.hostname.c_str(), p.port
+					, p.pid.is_all_zeros() ? "" : to_hex(p.pid).c_str());
 			}
 			for (auto const& p : resp.peers4)
 			{
