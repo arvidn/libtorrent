@@ -149,11 +149,11 @@ namespace libtorrent
 					&& (flags & create_torrent::symlinks))
 				{
 					std::string sym_path = get_symlink_path(f);
-					fs.add_file(l, 0, file_flags, std::time_t(s.mtime), sym_path);
+					fs.add_file(l, 0, file_flags, s.mtime, sym_path);
 				}
 				else
 				{
-					fs.add_file(l, s.file_size, file_flags, std::time_t(s.mtime));
+					fs.add_file(l, s.file_size, file_flags, s.mtime);
 				}
 			}
 		}

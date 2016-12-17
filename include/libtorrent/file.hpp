@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 #include <string>
 #include <functional>
+#include <ctime>
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/string_view.hpp"
@@ -94,9 +95,9 @@ namespace libtorrent
 	struct file_status
 	{
 		std::int64_t file_size;
-		std::uint64_t atime;
-		std::uint64_t mtime;
-		std::uint64_t ctime;
+		std::time_t atime;
+		std::time_t mtime;
+		std::time_t ctime;
 		enum {
 #if defined TORRENT_WINDOWS
 			fifo = 0x1000, // named pipe (fifo)
