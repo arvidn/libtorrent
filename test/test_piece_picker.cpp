@@ -195,7 +195,7 @@ std::shared_ptr<piece_picker> setup_picker(
 			TEST_CHECK(p->is_finished(piece_block(i, j)));
 	}
 
-	vector<int, piece_index_t> availability_vec;
+	aux::vector<int, piece_index_t> availability_vec;
 	p->get_availability(availability_vec);
 	for (piece_index_t i(0); i < piece_index_t(num_pieces); ++i)
 	{
@@ -235,7 +235,7 @@ bool verify_pick(std::shared_ptr<piece_picker> p
 
 void print_availability(std::shared_ptr<piece_picker> const& p)
 {
-	vector<int, piece_index_t> avail;
+	aux::vector<int, piece_index_t> avail;
 	p->get_availability(avail);
 	std::printf("[ ");
 	for (auto p : avail)
@@ -245,7 +245,7 @@ void print_availability(std::shared_ptr<piece_picker> const& p)
 
 bool verify_availability(std::shared_ptr<piece_picker> const& p, char const* a)
 {
-	vector<int, piece_index_t> avail;
+	aux::vector<int, piece_index_t> avail;
 	p->get_availability(avail);
 	for (auto i = avail.begin(), end(avail.end()); i != end; ++i, ++a)
 	{
@@ -582,7 +582,7 @@ TORRENT_TEST(dec_refcount_split_seed)
 	auto p = setup_picker("0000000", "       ", "0000000", "");
 	p->inc_refcount_all(nullptr);
 
-	vector<int, piece_index_t> avail;
+	aux::vector<int, piece_index_t> avail;
 	p->get_availability(avail);
 	TEST_EQUAL(avail.size(), 7);
 	TEST_CHECK(avail[piece_index_t(0)] != 0);

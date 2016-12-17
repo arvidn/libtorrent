@@ -3077,7 +3077,7 @@ get_out:
 		return info.num_peers;
 	}
 
-	void piece_picker::get_availability(vector<int, piece_index_t>& avail) const
+	void piece_picker::get_availability(aux::vector<int, piece_index_t>& avail) const
 	{
 		TORRENT_ASSERT(m_seeds >= 0);
 		INVARIANT_CHECK;

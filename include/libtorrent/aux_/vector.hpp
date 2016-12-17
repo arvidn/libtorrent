@@ -37,8 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/assert.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent { namespace aux {
 
 	template <typename T, typename IndexType>
 	struct vector : std::vector<T>
@@ -67,7 +66,7 @@ namespace libtorrent
 		{ return IndexType(static_cast<underlying_index>(this->size())); }
 	};
 
-}
+}}
 
 #endif
 

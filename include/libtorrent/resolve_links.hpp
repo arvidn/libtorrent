@@ -65,7 +65,7 @@ namespace libtorrent
 		void match(std::shared_ptr<const torrent_info> const& ti
 			, std::string const& save_path);
 
-		vector<link_t, file_index_t> const& get_links() const
+		aux::vector<link_t, file_index_t> const& get_links() const
 		{ return m_links; }
 
 	private:
@@ -75,7 +75,7 @@ namespace libtorrent
 		// each file in m_torrent_file has an entry in this vector. Any file
 		// that also exists somewhere else, is filled in with the corresponding
 		// torrent_info object and file index
-		vector<link_t, file_index_t> m_links;
+		aux::vector<link_t, file_index_t> m_links;
 
 		// maps file size to file index, in m_torrent_file
 		std::unordered_multimap<std::int64_t, file_index_t> m_file_sizes;

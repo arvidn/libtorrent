@@ -60,12 +60,12 @@ struct test_storage_impl : storage_interface
 	}
 
 	bool has_any_file(storage_error& ec) override { return false; }
-	void set_file_priority(vector<std::uint8_t, file_index_t> const& prio
+	void set_file_priority(aux::vector<std::uint8_t, file_index_t> const& prio
 		, storage_error& ec) override {}
 	status_t move_storage(std::string const& save_path, int flags
 		, storage_error& ec) override { return status_t::no_error; }
 	bool verify_resume_data(add_torrent_params const& rd
-		, vector<std::string, file_index_t> const& links
+		, aux::vector<std::string, file_index_t> const& links
 		, storage_error& ec) override { return true; }
 	void release_files(storage_error& ec) override {}
 	void rename_file(file_index_t index, std::string const& new_filename

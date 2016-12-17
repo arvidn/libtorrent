@@ -305,9 +305,9 @@ namespace libtorrent
 		std::vector<std::string> m_url_seeds;
 		std::vector<std::string> m_http_seeds;
 
-		vector<sha1_hash, piece_index_t> m_piece_hash;
+		aux::vector<sha1_hash, piece_index_t> m_piece_hash;
 
-		vector<sha1_hash, file_index_t> m_filehashes;
+		aux::vector<sha1_hash, file_index_t> m_filehashes;
 
 		std::vector<sha1_hash> m_similar;
 		std::vector<std::string> m_collections;

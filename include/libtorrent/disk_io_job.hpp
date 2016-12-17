@@ -137,7 +137,7 @@ namespace libtorrent
 			char* disk_block;
 			char* string;
 			add_torrent_params const* check_resume_data;
-			vector<std::uint8_t, file_index_t>* priorities;
+			aux::vector<std::uint8_t, file_index_t>* priorities;
 			int delete_options;
 		} buffer;
 
@@ -179,7 +179,7 @@ namespace libtorrent
 			// to create. Each element corresponds to a file in the file_storage.
 			// The string is the absolute path of the identical file to create
 			// the hard link to.
-			vector<std::string, file_index_t>* links;
+			aux::vector<std::string, file_index_t>* links;
 
 			struct io_args
 			{

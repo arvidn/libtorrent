@@ -342,7 +342,7 @@ namespace libtorrent
 		// change the priorities of files. This is a fenced job and is
 		// guaranteed to be the only running function on this storage
 		// when called
-		virtual void set_file_priority(vector<std::uint8_t, file_index_t> const& prio
+		virtual void set_file_priority(aux::vector<std::uint8_t, file_index_t> const& prio
 			, storage_error& ec) = 0;
 
 		// This function should move all the files belonging to the storage to
@@ -374,7 +374,7 @@ namespace libtorrent
 		// torrent. The storage must create hard links (or copy) those files. If
 		// any file does not exist or is inaccessible, the disk job must fail.
 		virtual bool verify_resume_data(add_torrent_params const& rd
-			, vector<std::string, file_index_t> const& links
+			, aux::vector<std::string, file_index_t> const& links
 			, storage_error& ec) = 0;
 
 		// This function should release all the file handles that it keeps open
@@ -488,7 +488,7 @@ namespace libtorrent
 		~default_storage();
 
 		virtual bool has_any_file(storage_error& ec) override;
-		virtual void set_file_priority(vector<std::uint8_t, file_index_t> const& prio
+		virtual void set_file_priority(aux::vector<std::uint8_t, file_index_t> const& prio
 			, storage_error& ec) override;
 		virtual void rename_file(file_index_t index, std::string const& new_filename
 			, storage_error& ec) override;
@@ -498,7 +498,7 @@ namespace libtorrent
 		virtual status_t move_storage(std::string const& save_path, int flags
 			, storage_error& ec) override;
 		virtual bool verify_resume_data(add_torrent_params const& rd
-			, vector<std::string, file_index_t> const& links
+			, aux::vector<std::string, file_index_t> const& links
 			, storage_error& error) override;
 		virtual bool tick() override;
 
@@ -535,7 +535,7 @@ namespace libtorrent
 		file_handle open_file(file_index_t file, int mode, storage_error& ec) const;
 		file_handle open_file_impl(file_index_t file, int mode, error_code& ec) const;
 
-		vector<std::uint8_t, file_index_t> m_file_priority;
+		aux::vector<std::uint8_t, file_index_t> m_file_priority;
 		std::string m_save_path;
 		std::string m_part_file_name;
 		// the file pool is typically stored in

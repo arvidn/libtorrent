@@ -595,7 +595,7 @@ namespace libtorrent
 		void reorder_file(int index, int dst);
 
 		// the list of files that this torrent consists of
-		vector<internal_file_entry, file_index_t> m_files;
+		aux::vector<internal_file_entry, file_index_t> m_files;
 
 		// if there are sha1 hashes for each individual file there are as many
 		// entries in this array as the m_files array. Each entry in m_files has
@@ -606,24 +606,24 @@ namespace libtorrent
 		// memory which is _not_ owned by this file_storage object. It's simply
 		// a non-owning pointer. It is the user's responsibility that the hash
 		// stays valid throughout the lifetime of this file_storage object.
-		vector<char const*, file_index_t> m_file_hashes;
+		aux::vector<char const*, file_index_t> m_file_hashes;
 
 		// for files that are symlinks, the symlink
 		// path_index in the internal_file_entry indexes
 		// this vector of strings
-		vector<std::string, file_index_t> m_symlinks;
+		aux::vector<std::string, file_index_t> m_symlinks;
 
 		// the modification times of each file. This vector
 		// is empty if no file have a modification time.
 		// each element corresponds to the file with the same
 		// index in m_files
-		vector<std::time_t, file_index_t> m_mtime;
+		aux::vector<std::time_t, file_index_t> m_mtime;
 
 #ifndef TORRENT_NO_DEPRECATE
 		// if any file has a non-zero file base (i.e. multiple
 		// files residing in the same physical file at different
 		// offsets)
-		vector<std::int64_t, file_index_t> m_file_base;
+		aux::vector<std::int64_t, file_index_t> m_file_base;
 #endif
 
 		// all unique paths files have. The internal_file_entry::path_index

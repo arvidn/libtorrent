@@ -174,7 +174,7 @@ namespace libtorrent
 
 		piece_picker();
 
-		void get_availability(vector<int, piece_index_t>& avail) const;
+		void get_availability(aux::vector<int, piece_index_t>& avail) const;
 		int get_availability(piece_index_t piece) const;
 
 		// increases the peer count for the given piece
@@ -701,7 +701,7 @@ namespace libtorrent
 		// pieces with the filtered flag set doesn't have entries in
 		// the m_piece_info buckets either
 		// TODO: should this be allocated lazily?
-		mutable vector<piece_pos, piece_index_t> m_piece_map;
+		mutable aux::vector<piece_pos, piece_index_t> m_piece_map;
 
 		// the number of seeds. These are not added to
 		// the availability counters of the pieces

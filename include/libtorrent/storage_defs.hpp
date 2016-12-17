@@ -70,7 +70,7 @@ namespace libtorrent
 		std::string path;
 		file_pool* pool;
 		storage_mode_t mode;
-		vector<std::uint8_t, file_index_t> const* priorities; // optional
+		aux::vector<std::uint8_t, file_index_t> const* priorities; // optional
 		torrent_info const* info; // optional
 	};
 

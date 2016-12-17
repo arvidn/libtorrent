@@ -1821,7 +1821,7 @@ namespace libtorrent
 		if (num_pad_files > 0)
 			m_picker->set_num_pad_files(num_pad_files);
 
-		vector<std::string, file_index_t> links;
+		aux::vector<std::string, file_index_t> links;
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 		if (!m_torrent_file->similar_torrents().empty()
 			|| !m_torrent_file->collections().empty())
@@ -2188,7 +2188,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_outstanding_check_files == false);
 		m_add_torrent_params.reset();
 
-		vector<std::string, file_index_t> links;
+		aux::vector<std::string, file_index_t> links;
 		m_ses.disk_thread().async_check_files(m_storage.get(), nullptr
 			, links, std::bind(&torrent::on_force_recheck
 			, shared_from_this(), _1, _2));
@@ -4703,7 +4703,7 @@ namespace libtorrent
 	}
 
 	// remove time critical pieces where priority is 0
-	void torrent::remove_time_critical_pieces(vector<int, piece_index_t> const& priority)
+	void torrent::remove_time_critical_pieces(aux::vector<int, piece_index_t> const& priority)
 	{
 		for (auto i = m_time_critical_pieces.begin(); i != m_time_critical_pieces.end();)
 		{
@@ -4722,7 +4722,7 @@ namespace libtorrent
 		}
 	}
 
-	void torrent::piece_availability(vector<int, piece_index_t>& avail) const
+	void torrent::piece_availability(aux::vector<int, piece_index_t>& avail) const
 	{
 		INVARIANT_CHECK;
 
@@ -4829,7 +4829,7 @@ namespace libtorrent
 		state_updated();
 	}
 
-	void torrent::prioritize_pieces(vector<int, piece_index_t> const& pieces)
+	void torrent::prioritize_pieces(aux::vector<int, piece_index_t> const& pieces)
 	{
 		INVARIANT_CHECK;
 
@@ -4873,7 +4873,7 @@ namespace libtorrent
 		update_state_list();
 	}
 
-	void torrent::piece_priorities(vector<int, piece_index_t>* pieces) const
+	void torrent::piece_priorities(aux::vector<int, piece_index_t>* pieces) const
 	{
 		INVARIANT_CHECK;
 
@@ -4900,7 +4900,7 @@ namespace libtorrent
 
 	void torrent::on_file_priority(storage_error const&) {}
 
-	void torrent::prioritize_files(vector<int, file_index_t> const& files)
+	void torrent::prioritize_files(aux::vector<int, file_index_t> const& files)
 	{
 		INVARIANT_CHECK;
 
@@ -4993,7 +4993,7 @@ namespace libtorrent
 		return m_file_priority[index];
 	}
 
-	void torrent::file_priorities(vector<int, file_index_t>* files) const
+	void torrent::file_priorities(aux::vector<int, file_index_t>* files) const
 	{
 		INVARIANT_CHECK;
 
@@ -5020,7 +5020,7 @@ namespace libtorrent
 		std::int64_t position = 0;
 		// initialize the piece priorities to 0, then only allow
 		// setting higher priorities
-		vector<int, piece_index_t> pieces(m_torrent_file->num_pieces(), 0);
+		aux::vector<int, piece_index_t> pieces(m_torrent_file->num_pieces(), 0);
 		file_storage const& fs = m_torrent_file->files();
 		for (file_index_t i(0); i < fs.end_file(); ++i)
 		{
@@ -10291,7 +10291,7 @@ namespace libtorrent
 	}
 
 #if !TORRENT_NO_FPU
-	void torrent::file_progress_float(vector<float, file_index_t>& fp)
+	void torrent::file_progress_float(aux::vector<float, file_index_t>& fp)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		if (!valid_metadata())
@@ -10303,7 +10303,7 @@ namespace libtorrent
 		fp.resize(m_torrent_file->num_files(), 1.f);
 		if (is_seed()) return;
 
-		vector<std::int64_t, file_index_t> progress;
+		aux::vector<std::int64_t, file_index_t> progress;
 		file_progress(progress);
 		file_storage const& fs = m_torrent_file->files();
 		for (file_index_t i(0); i < fs.end_file(); ++i)
@@ -10315,7 +10315,7 @@ namespace libtorrent
 	}
 #endif
 
-	void torrent::file_progress(vector<std::int64_t, file_index_t>& fp, int const flags)
+	void torrent::file_progress(aux::vector<std::int64_t, file_index_t>& fp, int const flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		if (!valid_metadata())

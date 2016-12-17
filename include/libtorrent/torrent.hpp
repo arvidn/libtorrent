@@ -521,25 +521,25 @@ namespace libtorrent
 		void filtered_pieces(std::vector<bool>& bitmask) const;
 		void filter_files(std::vector<bool> const& files);
 #if !TORRENT_NO_FPU
-		void file_progress_float(vector<float, file_index_t>& fp);
+		void file_progress_float(aux::vector<float, file_index_t>& fp);
 #endif
 		// ============ end deprecation =============
 
-		void piece_availability(vector<int, piece_index_t>& avail) const;
+		void piece_availability(aux::vector<int, piece_index_t>& avail) const;
 
 		void set_piece_priority(piece_index_t index, int priority);
 		int piece_priority(piece_index_t index) const;
 
-		void prioritize_pieces(vector<int, piece_index_t> const& pieces);
+		void prioritize_pieces(aux::vector<int, piece_index_t> const& pieces);
 		void prioritize_piece_list(std::vector<std::pair<piece_index_t, int>> const& pieces);
-		void piece_priorities(vector<int, piece_index_t>*) const;
+		void piece_priorities(aux::vector<int, piece_index_t>*) const;
 
 		void set_file_priority(file_index_t index, int priority);
 		int file_priority(file_index_t index) const;
 
 		void on_file_priority(storage_error const&);
-		void prioritize_files(vector<int, file_index_t> const& files);
-		void file_priorities(vector<int, file_index_t>*) const;
+		void prioritize_files(aux::vector<int, file_index_t> const& files);
+		void file_priorities(aux::vector<int, file_index_t>*) const;
 
 		void cancel_non_critical();
 		void set_piece_deadline(piece_index_t piece, int t, int flags);
@@ -553,7 +553,7 @@ namespace libtorrent
 		// it, add it to the m_state_updates list in session_impl
 		void state_updated();
 
-		void file_progress(vector<std::int64_t, file_index_t>& fp, int flags = 0);
+		void file_progress(aux::vector<std::int64_t, file_index_t>& fp, int flags = 0);
 
 #ifndef TORRENT_NO_DEPRECATE
 		void use_interface(std::string net_interface);
@@ -1140,7 +1140,7 @@ namespace libtorrent
 #endif
 
 		void remove_time_critical_piece(piece_index_t piece, bool finished = false);
-		void remove_time_critical_pieces(vector<int, piece_index_t> const& priority);
+		void remove_time_critical_pieces(aux::vector<int, piece_index_t> const& priority);
 		void request_time_critical_pieces();
 
 		void need_peer_list();
@@ -1208,7 +1208,7 @@ namespace libtorrent
 		// ever changed, this remains empty. Any unallocated slot
 		// implicitly means the file has priority 4.
 		// TODO: this wastes 5 bits per file
-		vector<std::uint8_t, file_index_t> m_file_priority;
+		aux::vector<std::uint8_t, file_index_t> m_file_priority;
 
 		// this object is used to track download progress of individual files
 		aux::file_progress m_file_progress;

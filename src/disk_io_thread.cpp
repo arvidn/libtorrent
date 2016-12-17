@@ -1849,11 +1849,11 @@ namespace libtorrent
 
 	void disk_io_thread::async_check_files(storage_interface* storage
 		, add_torrent_params const* resume_data
-		, vector<std::string, file_index_t>& links
+		, aux::vector<std::string, file_index_t>& links
 		, std::function<void(status_t, storage_error const&)> handler)
 	{
-		vector<std::string, file_index_t>* links_vector
-			= new vector<std::string, file_index_t>();
+		aux::vector<std::string, file_index_t>* links_vector
+			= new aux::vector<std::string, file_index_t>();
 		links_vector->swap(links);
 
 		disk_io_job* j = allocate_job(disk_io_job::check_fastresume);
@@ -1933,10 +1933,10 @@ namespace libtorrent
 	}
 
 	void disk_io_thread::async_set_file_priority(storage_interface* storage
-		, vector<std::uint8_t, file_index_t> const& prios
+		, aux::vector<std::uint8_t, file_index_t> const& prios
 		, std::function<void(storage_error const&)> handler)
 	{
-		vector<std::uint8_t, file_index_t>* p = new vector<std::uint8_t, file_index_t>(prios);
+		aux::vector<std::uint8_t, file_index_t>* p = new aux::vector<std::uint8_t, file_index_t>(prios);
 
 		disk_io_job* j = allocate_job(disk_io_job::file_priority);
 		j->storage = storage->shared_from_this();
@@ -2445,7 +2445,7 @@ namespace libtorrent
 		add_torrent_params tmp;
 		if (rd == nullptr) rd = &tmp;
 
-		std::unique_ptr<vector<std::string, file_index_t>> links(j->d.links);
+		std::unique_ptr<aux::vector<std::string, file_index_t>> links(j->d.links);
 		// check if the fastresume data is up to date
 		// if it is, use it and return true. If it
 		// isn't return false and the full check
@@ -2465,7 +2465,7 @@ namespace libtorrent
 		storage_error se;
 		if ((rd->have_pieces.empty()
 			|| !j->storage->verify_resume_data(*rd
-				, links ? *links : vector<std::string, file_index_t>(), j->error))
+				, links ? *links : aux::vector<std::string, file_index_t>(), j->error))
 			&& !m_settings.get_bool(settings_pack::no_recheck_incomplete_resume))
 		{
 			// j->error may have been set at this point, by verify_resume_data()
@@ -2758,7 +2758,7 @@ namespace libtorrent
 
 	status_t disk_io_thread::do_file_priority(disk_io_job* j, jobqueue_t& /* completed_jobs */ )
 	{
-		std::unique_ptr<vector<std::uint8_t, file_index_t>> p(j->buffer.priorities);
+		std::unique_ptr<aux::vector<std::uint8_t, file_index_t>> p(j->buffer.priorities);
 		j->storage->set_file_priority(*p, j->error);
 		return status_t::no_error;
 	}

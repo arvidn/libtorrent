@@ -63,7 +63,7 @@ TORRENT_TEST(init)
 		aux::file_progress fp;
 		fp.init(picker, fs);
 
-		vector<std::int64_t, file_index_t> vec;
+		aux::vector<std::int64_t, file_index_t> vec;
 		fp.export_progress(vec);
 
 		std::uint64_t sum = 0;
@@ -92,7 +92,7 @@ TORRENT_TEST(init2)
 		picker.init(4, fs.total_size() % 4, fs.num_pieces());
 		picker.we_have(idx);
 
-		vector<std::int64_t, file_index_t> vec;
+		aux::vector<std::int64_t, file_index_t> vec;
 		aux::file_progress fp;
 
 		fp.init(picker, fs);

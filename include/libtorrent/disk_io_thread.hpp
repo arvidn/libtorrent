@@ -308,7 +308,7 @@ namespace libtorrent
 			, std::function<void(storage_error const&)> handler) override;
 		void async_check_files(storage_interface* storage
 			, add_torrent_params const* resume_data
-			, vector<std::string, file_index_t>& links
+			, aux::vector<std::string, file_index_t>& links
 			, std::function<void(status_t, storage_error const&)> handler) override;
 		void async_rename_file(storage_interface* storage, file_index_t index, std::string const& name
 			, std::function<void(std::string const&, file_index_t, storage_error const&)> handler) override;
@@ -317,7 +317,7 @@ namespace libtorrent
 		void async_flush_piece(storage_interface* storage, piece_index_t piece
 			, std::function<void()> handler = std::function<void()>()) override;
 		void async_set_file_priority(storage_interface* storage
-			, vector<std::uint8_t, file_index_t> const& prio
+			, aux::vector<std::uint8_t, file_index_t> const& prio
 			, std::function<void(storage_error const&)> handler) override;
 
 		void async_clear_piece(storage_interface* storage, piece_index_t index

@@ -91,7 +91,7 @@ namespace libtorrent
 		};
 
 		// one entry per file
-		vector<stat_cache_t, file_index_t> m_stat_cache;
+		aux::vector<stat_cache_t, file_index_t> m_stat_cache;
 
 		// These are the errors that have happened when stating files. Each entry
 		// that had an error, refers to an index into this vector.

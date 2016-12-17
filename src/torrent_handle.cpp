@@ -397,7 +397,7 @@ namespace libtorrent
 
 	void torrent_handle::file_progress(std::vector<std::int64_t>& progress, int flags) const
 	{
-		auto& arg = static_cast<vector<std::int64_t, file_index_t>&>(progress);
+		auto& arg = static_cast<aux::vector<std::int64_t, file_index_t>&>(progress);
 		sync_call(&torrent::file_progress, std::ref(arg), flags);
 	}
 
@@ -415,7 +415,7 @@ namespace libtorrent
 
 	void torrent_handle::piece_availability(std::vector<int>& avail) const
 	{
-		auto availr = std::ref(static_cast<vector<int, piece_index_t>&>(avail));
+		auto availr = std::ref(static_cast<aux::vector<int, piece_index_t>&>(avail));
 		sync_call(&torrent::piece_availability, availr);
 	}
 
@@ -431,7 +431,7 @@ namespace libtorrent
 
 	void torrent_handle::prioritize_pieces(std::vector<int> const& pieces) const
 	{
-		async_call(&torrent::prioritize_pieces, static_cast<vector<int, piece_index_t> const&>(pieces));
+		async_call(&torrent::prioritize_pieces, static_cast<aux::vector<int, piece_index_t> const&>(pieces));
 	}
 
 	void torrent_handle::prioritize_pieces(std::vector<std::pair<piece_index_t, int>> const& pieces) const
@@ -441,7 +441,7 @@ namespace libtorrent
 
 	std::vector<int> torrent_handle::piece_priorities() const
 	{
-		vector<int, piece_index_t> ret;
+		aux::vector<int, piece_index_t> ret;
 		auto retp = &ret;
 		sync_call(&torrent::piece_priorities, retp);
 		return ret;
@@ -460,12 +460,12 @@ namespace libtorrent
 	void torrent_handle::prioritize_files(std::vector<int> const& files) const
 	{
 		async_call(&torrent::prioritize_files
-			, static_cast<vector<int, file_index_t> const&>(files));
+			, static_cast<aux::vector<int, file_index_t> const&>(files));
 	}
 
 	std::vector<int> torrent_handle::file_priorities() const
 	{
-		vector<int, file_index_t> ret;
+		aux::vector<int, file_index_t> ret;
 		auto retp = &ret;
 		sync_call(&torrent::file_priorities, retp);
 		return ret;
@@ -487,7 +487,7 @@ namespace libtorrent
 #if !TORRENT_NO_FPU
 	void torrent_handle::file_progress(std::vector<float>& progress) const
 	{
-		sync_call(&torrent::file_progress_float, std::ref(static_cast<vector<float, file_index_t>&>(progress)));
+		sync_call(&torrent::file_progress_float, std::ref(static_cast<aux::vector<float, file_index_t>&>(progress)));
 	}
 #endif
 

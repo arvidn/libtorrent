@@ -482,7 +482,7 @@ void test_check_files(std::string const& test_path
 
 	bool done = false;
 	add_torrent_params frd;
-	vector<std::string, file_index_t> links;
+	aux::vector<std::string, file_index_t> links;
 	io.async_check_files(pm.get(), &frd, links
 		, std::bind(&on_check_resume_data, _1, _2, &done));
 	io.submit_jobs();

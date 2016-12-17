@@ -421,7 +421,7 @@ namespace libtorrent
 	}
 
 	void default_storage::set_file_priority(
-		vector<std::uint8_t, file_index_t> const& prio
+		aux::vector<std::uint8_t, file_index_t> const& prio
 		, storage_error& ec)
 	{
 		// extend our file priorities in case it's truncated
@@ -830,7 +830,7 @@ namespace libtorrent
 	}
 
 	bool default_storage::verify_resume_data(add_torrent_params const& rd
-		, vector<std::string, file_index_t> const& links
+		, aux::vector<std::string, file_index_t> const& links
 		, storage_error& ec)
 	{
 		file_storage const& fs = files();
@@ -1367,7 +1367,7 @@ namespace libtorrent
 		{
 		public:
 			bool has_any_file(storage_error&) override { return false; }
-			void set_file_priority(vector<std::uint8_t, file_index_t> const&
+			void set_file_priority(aux::vector<std::uint8_t, file_index_t> const&
 				, storage_error&) override {}
 			void rename_file(file_index_t, std::string const&, storage_error&) override {}
 			void release_files(storage_error&) override {}
@@ -1387,7 +1387,7 @@ namespace libtorrent
 			}
 
 			bool verify_resume_data(add_torrent_params const&
-				, vector<std::string, file_index_t> const&
+				, aux::vector<std::string, file_index_t> const&
 				, storage_error&) override { return false; }
 		};
 	}
@@ -1429,12 +1429,12 @@ namespace libtorrent
 			}
 
 			bool has_any_file(storage_error&) override { return false; }
-			void set_file_priority(vector<std::uint8_t, file_index_t> const& /* prio */
+			void set_file_priority(aux::vector<std::uint8_t, file_index_t> const& /* prio */
 				, storage_error&) override {}
 			status_t move_storage(std::string const& /* save_path */
 				, int /* flags */, storage_error&) override { return status_t::no_error; }
 			bool verify_resume_data(add_torrent_params const& /* rd */
-				, vector<std::string, file_index_t> const& /* links */
+				, aux::vector<std::string, file_index_t> const& /* links */
 				, storage_error&) override
 			{ return false; }
 			void release_files(storage_error&) override {}

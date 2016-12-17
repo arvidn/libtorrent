@@ -813,7 +813,7 @@ void test_resolve_duplicates(int test_case)
 
 	torrent_info ti(&tmp[0], int(tmp.size()));
 
-	std::vector<vector<char const*, file_index_t>> const filenames
+	std::vector<aux::vector<char const*, file_index_t>> const filenames
 	{
 		{ // case 0
 			"test/temporary.txt",
@@ -888,14 +888,14 @@ TORRENT_TEST(copy)
 		combine_path(parent_path(current_working_directory())
 		, combine_path("test_torrents", "sample.torrent")));
 
-	vector<char const*, file_index_t> expected_files =
+	aux::vector<char const*, file_index_t> expected_files =
 	{
 		"sample/text_file2.txt",
 		"sample/.____padding_file/0",
 		"sample/text_file.txt",
 	};
 
-	vector<sha1_hash, file_index_t> file_hashes =
+	aux::vector<sha1_hash, file_index_t> file_hashes =
 	{
 		sha1_hash(nullptr),
 		sha1_hash(nullptr),
