@@ -768,9 +768,9 @@ namespace libtorrent
 			urlseed_pipeline_size,
 
 			// the maximum request range of an url seed in bytes. This value
-			// defines the largest possible sequentiel web seed request. Default
-			// is 1048576 (1 * 1024 * 1024). Lower values are possible but will
-			// be ignored if they are lower then piece size.
+			// defines the largest possible sequential web seed request. Default
+			// is 16 * 1024 * 1024. Lower values are possible but will be ignored
+			// if they are lower then piece size.
 			urlseed_max_request_bytes,
 
 			// time to wait until a new retry of a web seed takes place
