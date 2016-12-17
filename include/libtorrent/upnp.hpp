@@ -101,8 +101,7 @@ namespace libtorrent
 
 struct parse_state
 {
-	parse_state(): in_service(false) {}
-	bool in_service;
+	bool in_service = false;
 	std::list<std::string> tag_stack;
 	std::string control_url;
 	std::string service_type;
@@ -120,8 +119,27 @@ struct parse_state
 	}
 };
 
+struct error_code_parse_state
+{
+	bool in_error_code = false;
+	bool exit = false;
+	int error_code = -1;
+};
+
+struct ip_address_parse_state: error_code_parse_state
+{
+	bool in_ip_address = false;
+	std::string ip_address;
+};
+
 TORRENT_EXTRA_EXPORT void find_control_url(int type, char const* string
 	, int str_len, parse_state& state);
+
+TORRENT_EXTRA_EXPORT void find_error_code(int type, char const* string
+	, int str_len, error_code_parse_state& state);
+
+TORRENT_EXTRA_EXPORT void find_ip_address(int type, char const* string
+	, int str_len, ip_address_parse_state& state);
 
 // TODO: support using the windows API for UPnP operations as well
 struct TORRENT_EXTRA_EXPORT upnp final

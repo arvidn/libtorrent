@@ -233,6 +233,36 @@ char upnp_xml2[] =
 "</device>"
 "</root>";
 
+char upnp_xml3[] =
+"<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\""
+" s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
+"<s:Body>"
+"<s:Fault>"
+"<faultcode>s:Client</faultcode>"
+"<faultstring>UPnPError</faultstring>"
+"<detail>"
+"<UPnPErrorxmlns=\"urn:schemas-upnp-org:control-1-0\">"
+"<errorCode>402</errorCode>"
+"<errorDescription>Invalid Args</errorDescription>"
+"</UPnPError>"
+"</detail>"
+"</s:Fault>"
+"</s:Body>"
+"</s:Envelope>";
+
+char upnp_xml4[] =
+"<?xml version=\"1.0\"?>"
+"<s:Envelope"
+" xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\""
+" s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
+"<s:Body>"
+"<u:GetExternalIPAddressResponse"
+" xmlns:u=\"urn:schemas-upnp-org:service:WANIPConnection:1\">"
+"<NewExternalIPAddress>123.10.20.30</NewExternalIPAddress>"
+"</u:GetExternalIPAddressResponse>"
+"</s:Body>"
+"</s:Envelope>";
+
 using namespace libtorrent;
 using namespace std::placeholders;
 
@@ -305,6 +335,26 @@ TORRENT_TEST(upnp_parser2)
 	TEST_EQUAL(xml_s.url_base, "http://192.168.1.1:49152");
 	TEST_EQUAL(xml_s.control_url, "/upnp/control/WANPPPConn1");
 	TEST_EQUAL(xml_s.model, "Wireless-G ADSL Home Gateway");
+}
+
+TORRENT_TEST(upnp_parser3)
+{
+	error_code_parse_state xml_s;
+	xml_parse(upnp_xml3, std::bind(&find_error_code, _1, _2, _3, std::ref(xml_s)));
+
+	std::cout << "error_code " << xml_s.error_code << std::endl;
+	TEST_EQUAL(xml_s.error_code, 402);
+}
+
+TORRENT_TEST(upnp_parser4)
+{
+	ip_address_parse_state xml_s;
+	xml_parse(upnp_xml4, std::bind(&find_ip_address, _1, _2, _3, std::ref(xml_s)));
+
+	std::cout << "error_code " << xml_s.error_code << std::endl;
+	std::cout << "ip_address " << xml_s.ip_address << std::endl;
+	TEST_EQUAL(xml_s.error_code, -1);
+	TEST_EQUAL(xml_s.ip_address, "123.10.20.30");
 }
 
 TORRENT_TEST(tags)

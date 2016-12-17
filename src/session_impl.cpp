@@ -1959,7 +1959,7 @@ namespace aux {
 			map_handle = -1;
 
 			// only update this mapping if we actually have a socket listening
-			if (ep.address() != address())
+			if (ep != EndpointType())
 				map_handle = m.add_mapping(protocol, ep.port(), ep.port());
 		}
 	}
