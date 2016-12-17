@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstdint>
 #include <string>
-#include <algorithm> // for copy
+#include <type_traits>
 #include "libtorrent/span.hpp"
 
 namespace libtorrent { namespace aux
@@ -50,7 +50,7 @@ namespace libtorrent { namespace aux
 	read_impl(span<Byte>& view, type<T>)
 	{
 		T ret = 0;
-		for (int i = 0; i < int(sizeof(T)); ++i)
+		for (std::size_t i = 0; i < sizeof(T); ++i)
 		{
 			ret <<= 8;
 			ret |= static_cast<std::uint8_t>(view[i]);
@@ -59,12 +59,16 @@ namespace libtorrent { namespace aux
 		return ret;
 	}
 
-	template <class T, class Byte>
+	template <class T, class In, class Byte, typename Cond
+		= typename std::enable_if<std::is_integral<T>::value &&
+		(std::is_integral<In>::value || std::is_enum<In>::value)>::type>
 	inline typename std::enable_if<sizeof(Byte)==1, void>::type
-	write_impl(T val, span<Byte>& view)
+	write_impl(In data, span<Byte>& view)
 	{
+		T val = static_cast<T>(data);
+		TORRENT_ASSERT(data == static_cast<In>(val));
 		int shift = int(sizeof(T)) * 8;
-		for (int i = 0; i < int(sizeof(T)); ++i)
+		for (std::size_t i = 0; i < sizeof(T); ++i)
 		{
 			shift -= 8;
 			view[i] = static_cast<Byte>((val >> shift) & 0xff);
@@ -128,47 +132,47 @@ namespace libtorrent { namespace aux
 	{ return read_impl(view, type<std::uint8_t>()); }
 
 
-	template <typename Byte>
-	void write_uint64(std::uint64_t val, span<Byte>& view)
-	{ write_impl(val, view); }
+	template <typename T, typename Byte>
+	void write_uint64(T val, span<Byte>& view)
+	{ write_impl<std::uint64_t>(val, view); }
 
-	template <typename Byte>
-	void write_int64(std::int64_t val, span<Byte>& view)
-	{ write_impl(val, view); }
+	template <typename T, typename Byte>
+	void write_int64(T val, span<Byte>& view)
+	{ write_impl<std::int64_t>(val, view); }
 
-	template <typename Byte>
-	void write_uint32(std::uint32_t val, span<Byte>& view)
-	{ write_impl(val, view); }
+	template <typename T, typename Byte>
+	void write_uint32(T val, span<Byte>& view)
+	{ write_impl<std::uint32_t>(val, view); }
 
-	template <typename Byte>
-	void write_int32(std::int32_t val, span<Byte>& view)
-	{ write_impl(val, view); }
+	template <typename T, typename Byte>
+	void write_int32(T val, span<Byte>& view)
+	{ write_impl<std::int32_t>(val, view); }
 
-	template <typename Byte>
-	void write_uint16(std::uint16_t val, span<Byte>& view)
-	{ write_impl(val, view); }
+	template <typename T, typename Byte>
+	void write_uint16(T val, span<Byte>& view)
+	{ write_impl<std::uint16_t>(val, view); }
 
-	template <typename Byte>
-	void write_int16(std::int16_t val, span<Byte>& view)
-	{ write_impl(val, view); }
+	template <typename T, typename Byte>
+	void write_int16(T val, span<Byte>& view)
+	{ write_impl<std::int16_t>(val, view); }
 
-	template <typename Byte>
-	void write_uint8(std::uint8_t val, span<Byte>& view)
-	{ write_impl(val, view); }
+	template <typename T, typename Byte>
+	void write_uint8(T val, span<Byte>& view)
+	{ write_impl<std::uint8_t>(val, view); }
 
-	template <typename Byte>
-	void write_int8(std::int8_t val, span<Byte>& view)
-	{ write_impl(val, view); }
+	template <typename T, typename Byte>
+	void write_int8(T val, span<Byte>& view)
+	{ write_impl<std::int8_t>(val, view); }
 
 	template<typename Byte>
 	inline int write_string(std::string const& str, span<Byte>& view)
 	{
-		int const len = int(str.size());
-		for (int i = 0; i < len; ++i)
+		std::size_t const len = str.size();
+		for (std::size_t i = 0; i < len; ++i)
 			view[i] = str[i];
 
-		view = span<Byte>(view.data() + len, int(view.size()) - len);
-		return len;
+		view = view.subspan(len);
+		return int(len);
 	}
 
 }}

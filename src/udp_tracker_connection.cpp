@@ -495,7 +495,7 @@ namespace libtorrent
 
 		aux::write_uint32(0x417, view);
 		aux::write_uint32(0x27101980, view); // connection_id
-		aux::write_int32(static_cast<int>(action_t::connect), view); // action (connect)
+		aux::write_int32(action_t::connect, view); // action (connect)
 		aux::write_int32(m_transaction_id, view); // transaction_id
 		TORRENT_ASSERT(view.size() == 0);
 
@@ -556,7 +556,7 @@ namespace libtorrent
 		span<char> view = buf;
 
 		aux::write_int64(i->second.connection_id, view); // connection_id
-		aux::write_int32(static_cast<int>(action_t::scrape), view); // action (scrape)
+		aux::write_int32(action_t::scrape, view); // action (scrape)
 		aux::write_int32(m_transaction_id, view); // transaction_id
 		// info_hash
 		std::copy(tracker_req().info_hash.begin(), tracker_req().info_hash.end()
@@ -708,7 +708,7 @@ namespace libtorrent
 		if (i == m_connection_cache.end()) return;
 
 		aux::write_int64(i->second.connection_id, out); // connection_id
-		aux::write_int32(static_cast<int>(action_t::announce), out); // action (announce)
+		aux::write_int32(action_t::announce, out); // action (announce)
 		aux::write_int32(m_transaction_id, out); // transaction_id
 		std::copy(req.info_hash.begin(), req.info_hash.end(), out.data()); // info_hash
 		out.subspan(20);
@@ -728,7 +728,7 @@ namespace libtorrent
 			address ip = address::from_string(settings.get_str(settings_pack::announce_ip).c_str(), ec);
 			if (!ec && ip.is_v4()) announce_ip = ip.to_v4();
 		}
-		aux::write_uint32(std::uint32_t(announce_ip.to_ulong()), out);
+		aux::write_uint32(announce_ip.to_ulong(), out);
 		aux::write_int32(req.key, out); // key
 		aux::write_int32(req.num_want, out); // num_want
 		aux::write_uint16(req.listen_port, out); // port
@@ -742,11 +742,11 @@ namespace libtorrent
 
 		if (!request_string.empty())
 		{
-			int str_len = (std::min)(int(request_string.size()), 255);
+			std::size_t str_len = std::min(request_string.size(), std::size_t(255));
 			request_string.resize(str_len);
 
 			aux::write_uint8(2, out);
-			aux::write_uint8(std::uint8_t(str_len), out);
+			aux::write_uint8(str_len, out);
 			aux::write_string(request_string, out);
 		}
 
