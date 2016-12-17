@@ -152,7 +152,7 @@ namespace libtorrent
 			{
 				auto new_filename = mapped_files.list_string_value_at(i);
 				if (new_filename.empty()) continue;
-				ret.renamed_files[i] = new_filename.to_string();
+				ret.renamed_files[file_index_t(i)] = new_filename.to_string();
 			}
 		}
 
@@ -169,7 +169,7 @@ namespace libtorrent
 			for (int i = 0; i < num_files; ++i)
 			{
 				ret.file_priorities[i] = std::uint8_t(
-					file_priority.list_int_value_at(static_cast<int>(i), 1));
+					file_priority.list_int_value_at(i, 1));
 				// this is suspicious, leave seed mode
 				if (ret.file_priorities[i] == 0)
 				{

@@ -1678,11 +1678,12 @@ namespace libtorrent
 		}
 
 		// --- MAPPED FILES ---
+		file_storage const& fs = m_torrent_file->files();
 		if (m_add_torrent_params)
 		{
 			for (auto const& f : m_add_torrent_params->renamed_files)
 			{
-				if (f.first < 0 || f.first >= m_torrent_file->num_files()) continue;
+				if (f.first < file_index_t(0) || f.first >= fs.end_file()) continue;
 				m_torrent_file->rename_file(file_index_t(f.first), f.second);
 			}
 		}
@@ -1758,7 +1759,6 @@ namespace libtorrent
 
 		int num_pad_files = 0;
 		TORRENT_ASSERT(block_size() > 0);
-		file_storage const& fs = m_torrent_file->files();
 		for (file_index_t i(0); i < fs.end_file(); ++i)
 		{
 			if (fs.pad_file_at(i)) ++num_pad_files;

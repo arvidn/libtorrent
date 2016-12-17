@@ -456,7 +456,7 @@ namespace libtorrent
 
 		// this is a map of file indices in the torrent and new filenames to be
 		// applied before the torrent is added.
-		std::map<int, std::string> renamed_files;
+		std::map<file_index_t, std::string> renamed_files;
 
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 1.2
