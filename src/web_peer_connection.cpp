@@ -86,18 +86,14 @@ web_peer_connection::web_peer_connection(peer_connection_args const& pack
 	shared_ptr<torrent> tor = pack.tor.lock();
 	TORRENT_ASSERT(tor);
 
+	// if the web server is known not to support keep-alive. request 4MiB
+	// but we want to have at least piece size to prevent block based requests
+	int const min_size = std::max((web.supports_keepalive ? 1 : 4) * 1024 * 1024,
+		tor->torrent_file().piece_length());
+
 	// we prefer downloading large chunks from web seeds,
 	// but still want to be able to split requests
-	int preferred_size = m_settings.get_int(settings_pack::urlseed_max_request_bytes);
-
-	int min_size = 1024 * 1024;
-	// if the web server is known not to support keep-alive.
-	// request at least 4MiB
-	if (!web.supports_keepalive)
-		min_size *= 4;
-	// we want to have at least piece size to prevent block based requests
-	min_size = (std::max)(tor->torrent_file().piece_length(), min_size);
-	preferred_size = (std::max)(preferred_size, min_size);
+	int const preferred_size = std::max(min_size, m_settings.get_int(settings_pack::urlseed_max_request_bytes));
 
 	prefer_contiguous_blocks(preferred_size / tor->block_size());
 
