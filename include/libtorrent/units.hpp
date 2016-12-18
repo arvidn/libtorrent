@@ -86,9 +86,11 @@ namespace aux {
 	strong_typedef<T, Tag> prev(strong_typedef<T, Tag> v)
 	{ --v; return v;}
 
+#if TORRENT_USE_IOSTREAM
 	template <typename T, typename Tag>
 	std::ostream& operator<<(std::ostream& os, strong_typedef<T, Tag> val)
 	{ return os << static_cast<T>(val); }
+#endif
 
 } // namespace libtorrent::aux
 

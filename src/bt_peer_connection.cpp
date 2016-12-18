@@ -2178,7 +2178,7 @@ namespace libtorrent
 			std::memset(ptr, 0, packet_size - 5);
 			piece_picker const& p = t->picker();
 			int mask = 0x80;
-			for (piece_index_t i(0); i != piece_index_t(num_pieces); ++i)
+			for (piece_index_t i(0); i < piece_index_t(num_pieces); ++i)
 			{
 				if (p.have_piece(i)) *ptr |= mask;
 				mask >>= 1;

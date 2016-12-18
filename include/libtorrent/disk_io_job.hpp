@@ -79,7 +79,7 @@ namespace libtorrent
 
 		void call_callback();
 
-		enum action_t
+		enum action_t : std::uint8_t
 		{
 			read
 			, write
@@ -214,7 +214,7 @@ namespace libtorrent
 		};
 
 		// the type of job this is
-		std::uint32_t action:8;
+		action_t action;
 
 		// return value of operation
 		status_t ret = status_t::no_error;

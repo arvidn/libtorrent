@@ -304,11 +304,11 @@ namespace libtorrent
 		void add_file(std::wstring const& p, std::int64_t size, int flags = 0
 			, std::time_t mtime = 0, string_view s_p = "");
 		TORRENT_DEPRECATED
-		void rename_file(int index, std::wstring const& new_filename);
+		void rename_file(file_index_t index, std::wstring const& new_filename);
 		TORRENT_DEPRECATED
 		void set_name(std::wstring const& n);
 
-		void rename_file_deprecated(int index, std::wstring const& new_filename);
+		void rename_file_deprecated(file_index_t index, std::wstring const& new_filename);
 #endif // TORRENT_USE_WSTRING
 #endif // TORRENT_NO_DEPRECATE
 

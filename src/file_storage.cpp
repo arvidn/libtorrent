@@ -354,9 +354,9 @@ namespace libtorrent
 		m_name = wchar_utf8(n);
 	}
 
-	void file_storage::rename_file_deprecated(int index, std::wstring const& new_filename)
+	void file_storage::rename_file_deprecated(file_index_t index, std::wstring const& new_filename)
 	{
-		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
+		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
 		update_path_index(m_files[index], wchar_utf8(new_filename));
 	}
 
@@ -366,7 +366,7 @@ namespace libtorrent
 		add_file(wchar_utf8(file), file_size, file_flags, mtime, symlink_path);
 	}
 
-	void file_storage::rename_file(int index, std::wstring const& new_filename)
+	void file_storage::rename_file(file_index_t index, std::wstring const& new_filename)
 	{
 		rename_file_deprecated(index, new_filename);
 	}
@@ -376,7 +376,7 @@ namespace libtorrent
 	void file_storage::rename_file(file_index_t const index
 		, std::string const& new_filename)
 	{
-		TORRENT_ASSERT_PRECOND(index < end_file());
+		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
 		update_path_index(m_files[index], new_filename);
 	}
 
@@ -622,7 +622,7 @@ namespace libtorrent
 
 	std::string const& file_storage::symlink(file_index_t const index) const
 	{
-		TORRENT_ASSERT_PRECOND(index < end_file());
+		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
 		internal_file_entry const& fe = m_files[index];
 		TORRENT_ASSERT(fe.symlink_index < int(m_symlinks.size()));
 		return m_symlinks[file_index_t(fe.symlink_index)];
@@ -682,7 +682,7 @@ namespace libtorrent
 	std::uint32_t file_storage::file_path_hash(file_index_t const index
 		, std::string const& save_path) const
 	{
-		TORRENT_ASSERT_PRECOND(index < end_file());
+		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
 		internal_file_entry const& fe = m_files[index];
 
 		boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
@@ -749,7 +749,7 @@ namespace libtorrent
 
 	std::string file_storage::file_path(file_index_t const index, std::string const& save_path) const
 	{
-		TORRENT_ASSERT_PRECOND(index < end_file());
+		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
 		internal_file_entry const& fe = m_files[index];
 
 		std::string ret;
@@ -792,20 +792,20 @@ namespace libtorrent
 
 	string_view file_storage::file_name(file_index_t const index) const
 	{
-		TORRENT_ASSERT_PRECOND(index < end_file());
+		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
 		internal_file_entry const& fe = m_files[index];
 		return fe.filename();
 	}
 
 	std::int64_t file_storage::file_size(file_index_t const index) const
 	{
-		TORRENT_ASSERT_PRECOND(index < end_file());
+		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
 		return m_files[index].size;
 	}
 
 	bool file_storage::pad_file_at(file_index_t const index) const
 	{
-		TORRENT_ASSERT_PRECOND(index < end_file());
+		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
 		return m_files[index].pad_file;
 	}
 

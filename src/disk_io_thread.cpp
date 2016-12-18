@@ -108,7 +108,7 @@ namespace libtorrent
 		}
 		va_end(v);
 		char buf[2300];
-		int t = total_milliseconds(clock_type::now() - start);
+		int const t = int(total_milliseconds(clock_type::now() - start));
 		std::snprintf(buf, sizeof(buf), "%05d: [%p] %s", t, pthread_self(), usr);
 		prepend_time = (usr[len-1] == '\n');
 		std::unique_lock<std::mutex> l(log_mutex);
@@ -696,7 +696,7 @@ namespace libtorrent
 
 #if DEBUG_DISK_THREAD
 		DLOG("iovec_flushed: piece: %d block_offset: %d [ "
-			, pe->piece.value(), block_offset);
+			, static_cast<int>(pe->piece), block_offset);
 		for (int i = 0; i < num_blocks; ++i)
 			DLOG("%d ", flushing[i]);
 		DLOG("]\n");
@@ -741,7 +741,7 @@ namespace libtorrent
 		TORRENT_ASSERT(l.owns_lock());
 
 		DLOG("flush_range: piece=%d [%d, %d)\n"
-			, pe->piece.value(), start, end);
+			, static_cast<int>(pe->piece), start, end);
 		TORRENT_PIECE_ASSERT(start >= 0, pe);
 		TORRENT_PIECE_ASSERT(start < end, pe);
 
@@ -1086,7 +1086,7 @@ namespace libtorrent
 				, job_action_name[j->action]
 				, (j->flags & disk_io_job::fence) ? "fence ": ""
 				, (j->flags & disk_io_job::force_copy) ? "force_copy ": ""
-				, j->piece, j->d.io.offset
+				, static_cast<int>(j->piece), j->d.io.offset
 				, j->storage ? j->storage->num_outstanding_jobs() : -1);
 		}
 #endif
@@ -1531,7 +1531,7 @@ namespace libtorrent
 		TORRENT_ASSERT(r.length <= m_disk_cache.block_size());
 		TORRENT_ASSERT(r.length <= 16 * 1024);
 
-		DLOG("do_read piece: %d block: %d\n", r.piece.value()
+		DLOG("do_read piece: %d block: %d\n", static_cast<int>(r.piece)
 			, r.start / m_disk_cache.block_size());
 
 		disk_io_job* j = allocate_job(disk_io_job::read);
@@ -2312,7 +2312,8 @@ namespace libtorrent
 					return status_t::fatal_disk_error;
 				}
 
-				DLOG("do_hash: reading (piece: %d block: %d)\n", pe->piece.value(), i);
+				DLOG("do_hash: reading (piece: %d block: %d)\n"
+					, static_cast<int>(pe->piece), i);
 
 				time_point const start_time = clock_type::now();
 
