@@ -1220,15 +1220,15 @@ TORRENT_TEST(readwritev_stripe_1)
 
 	TEST_EQUAL(ret, fs.total_size());
 	TEST_EQUAL(fop.m_file_data.size(), 4);
-	TEST_EQUAL(fop.m_file_data[0].size(), 3);
-	TEST_EQUAL(fop.m_file_data[1].size(), 9);
-	TEST_EQUAL(fop.m_file_data[2].size(), 81);
-	TEST_EQUAL(fop.m_file_data[3].size(), 6561);
+	TEST_EQUAL(fop.m_file_data[file_index_t(0)].size(), 3);
+	TEST_EQUAL(fop.m_file_data[file_index_t(1)].size(), 9);
+	TEST_EQUAL(fop.m_file_data[file_index_t(2)].size(), 81);
+	TEST_EQUAL(fop.m_file_data[file_index_t(3)].size(), 6561);
 
-	TEST_CHECK(check_pattern(fop.m_file_data[0], 0));
-	TEST_CHECK(check_pattern(fop.m_file_data[1], 3));
-	TEST_CHECK(check_pattern(fop.m_file_data[2], 3 + 9));
-	TEST_CHECK(check_pattern(fop.m_file_data[3], 3 + 9 + 81));
+	TEST_CHECK(check_pattern(fop.m_file_data[file_index_t(0)], 0));
+	TEST_CHECK(check_pattern(fop.m_file_data[file_index_t(1)], 3));
+	TEST_CHECK(check_pattern(fop.m_file_data[file_index_t(2)], 3 + 9));
+	TEST_CHECK(check_pattern(fop.m_file_data[file_index_t(3)], 3 + 9 + 81));
 
 	free_iov(iov, num_bufs);
 }
@@ -1247,15 +1247,15 @@ TORRENT_TEST(readwritev_single_buffer)
 
 	TEST_EQUAL(ret, fs.total_size());
 	TEST_EQUAL(fop.m_file_data.size(), 4);
-	TEST_EQUAL(fop.m_file_data[0].size(), 3);
-	TEST_EQUAL(fop.m_file_data[1].size(), 9);
-	TEST_EQUAL(fop.m_file_data[2].size(), 81);
-	TEST_EQUAL(fop.m_file_data[3].size(), 6561);
+	TEST_EQUAL(fop.m_file_data[file_index_t(0)].size(), 3);
+	TEST_EQUAL(fop.m_file_data[file_index_t(1)].size(), 9);
+	TEST_EQUAL(fop.m_file_data[file_index_t(2)].size(), 81);
+	TEST_EQUAL(fop.m_file_data[file_index_t(3)].size(), 6561);
 
-	TEST_CHECK(check_pattern(fop.m_file_data[0], 0));
-	TEST_CHECK(check_pattern(fop.m_file_data[1], 3));
-	TEST_CHECK(check_pattern(fop.m_file_data[2], 3 + 9));
-	TEST_CHECK(check_pattern(fop.m_file_data[3], 3 + 9 + 81));
+	TEST_CHECK(check_pattern(fop.m_file_data[file_index_t(0)], 0));
+	TEST_CHECK(check_pattern(fop.m_file_data[file_index_t(1)], 3));
+	TEST_CHECK(check_pattern(fop.m_file_data[file_index_t(2)], 3 + 9));
+	TEST_CHECK(check_pattern(fop.m_file_data[file_index_t(3)], 3 + 9 + 81));
 }
 
 TORRENT_TEST(readwritev_read)

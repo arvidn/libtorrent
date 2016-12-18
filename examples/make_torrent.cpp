@@ -115,9 +115,9 @@ bool file_filter(std::string const& f)
 	return true;
 }
 
-void print_progress(int i, int num)
+void print_progress(piece_index_t i, int num)
 {
-	std::fprintf(stderr, "\r%d/%d", i+1, num);
+	std::fprintf(stderr, "\r%d/%d", static_cast<int>(i)+1, num);
 }
 
 void print_usage()
