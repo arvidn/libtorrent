@@ -365,7 +365,7 @@ namespace libtorrent
 		int picker_options() const;
 
 		void prefer_contiguous_blocks(int num)
-		{ m_prefer_contiguous_blocks = (std::min)(num, 255); }
+		{ m_prefer_contiguous_blocks = num; }
 
 		bool request_large_blocks() const
 		{ return m_request_large_blocks; }
@@ -1134,7 +1134,7 @@ namespace libtorrent
 		// if it is 0, the download rate limit setting
 		// will be used to determine if whole pieces
 		// are preferred.
-		boost::uint8_t m_prefer_contiguous_blocks;
+		int m_prefer_contiguous_blocks;
 
 		// this is the number of times this peer has had
 		// a request rejected because of a disk I/O failure.
