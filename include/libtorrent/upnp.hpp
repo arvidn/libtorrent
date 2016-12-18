@@ -130,8 +130,29 @@ struct parse_state
 	}
 };
 
+struct error_code_parse_state
+{
+	error_code_parse_state(): in_error_code(false), exit(false), error_code(-1) {}
+	bool in_error_code;
+	bool exit;
+	int error_code;
+};
+
+struct ip_address_parse_state: error_code_parse_state
+{
+	ip_address_parse_state(): in_ip_address(false) {}
+	bool in_ip_address;
+	std::string ip_address;
+};
+
 TORRENT_EXTRA_EXPORT void find_control_url(int type, char const* string
 	, int str_len, parse_state& state);
+
+TORRENT_EXTRA_EXPORT void find_error_code(int type, char const* string
+	, int str_len, error_code_parse_state& state);
+
+TORRENT_EXTRA_EXPORT void find_ip_address(int type, char const* string
+	, int str_len, ip_address_parse_state& state);
 
 // TODO: support using the windows API for UPnP operations as well
 class TORRENT_EXTRA_EXPORT upnp : public boost::enable_shared_from_this<upnp>
