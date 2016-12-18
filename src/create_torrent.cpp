@@ -164,8 +164,8 @@ namespace libtorrent
 			std::shared_ptr<storage_interface> storage;
 			disk_io_thread& iothread;
 			piece_index_t piece_counter;
-			int completed_piece;
-			std::function<void(int)> const& f;
+			piece_index_t completed_piece;
+			std::function<void(piece_index_t)> const& f;
 			error_code& ec;
 		};
 
@@ -230,6 +230,14 @@ namespace libtorrent
 		std::string utf8 = wchar_utf8(p);
 		set_piece_hashes(t, utf8, f, ec);
 	}
+
+	// for backwards compatibility
+	void set_piece_hashes(create_torrent& t, std::string const& p
+		, std::function<void(int)> const& f, error_code& ec)
+	{
+		set_piece_hashes(t, p, std::function<void(piece_index_t)>(
+			[&](piece_index_t i) { f(static_cast<int>(i)); }), ec);
+	}
 #endif
 #endif
 
@@ -246,7 +254,7 @@ namespace libtorrent
 	}
 
 	void set_piece_hashes(create_torrent& t, std::string const& p
-		, std::function<void(int)> const& f, error_code& ec)
+		, std::function<void(piece_index_t)> const& f, error_code& ec)
 	{
 		// optimized path
 		io_service ios;
@@ -291,10 +299,9 @@ namespace libtorrent
 		alert_manager dummy2(0, 0);
 		disk_thread.set_settings(&sett, dummy2);
 
-		int piece_read_ahead = 15 * 1024 * 1024 / t.piece_length();
-		if (piece_read_ahead < 1) piece_read_ahead = 1;
+		int const piece_read_ahead = std::max(1, 15 * 1024 * 1024 / t.piece_length());
 
-		hash_state st = { t, storage, disk_thread, piece_index_t(0), 0, f, ec };
+		hash_state st = { t, storage, disk_thread, piece_index_t(0), piece_index_t(0), f, ec };
 		for (piece_index_t i(0); i < piece_index_t(piece_read_ahead); ++i)
 		{
 			disk_thread.async_hash(storage.get(), i, disk_interface::sequential_access

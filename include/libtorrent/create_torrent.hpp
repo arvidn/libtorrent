@@ -367,7 +367,7 @@ namespace libtorrent
 
 	namespace detail
 	{
-		inline void nop(int) {}
+		inline void nop(piece_index_t) {}
 	}
 
 	// Adds the file specified by ``path`` to the file_storage object. In case ``path``
@@ -402,7 +402,7 @@ namespace libtorrent
 	// The overloads that don't take an ``error_code&`` may throw an exception in case of a
 	// file error, the other overloads sets the error code to reflect the error, if any.
 	TORRENT_EXPORT void set_piece_hashes(create_torrent& t, std::string const& p
-		, std::function<void(int)> const& f, error_code& ec);
+		, std::function<void(piece_index_t)> const& f, error_code& ec);
 	inline void set_piece_hashes(create_torrent& t, std::string const& p, error_code& ec)
 	{
 		set_piece_hashes(t, p, detail::nop, ec);
@@ -421,6 +421,12 @@ namespace libtorrent
 		set_piece_hashes(t, p, f, ec);
 		if (ec) throw system_error(ec);
 	}
+#endif
+
+#ifndef TORRENT_NO_DEPRECATE
+	TORRENT_DEPRECATED
+	TORRENT_EXPORT void set_piece_hashes(create_torrent& t, std::string const& p
+		, std::function<void(int)> const& f, error_code& ec);
 #endif
 
 #if TORRENT_USE_WSTRING
@@ -450,8 +456,7 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 	template <class Fun>
 	TORRENT_DEPRECATED
-	void set_piece_hashes(create_torrent& t
-		, std::wstring const& p, Fun f)
+	void set_piece_hashes(create_torrent& t, std::wstring const& p, Fun f)
 	{
 		error_code ec;
 		set_piece_hashes_deprecated(t, p, f, ec);
@@ -459,8 +464,7 @@ namespace libtorrent
 	}
 
 	TORRENT_DEPRECATED
-	inline void set_piece_hashes(create_torrent& t
-		, std::wstring const& p)
+	inline void set_piece_hashes(create_torrent& t, std::wstring const& p)
 	{
 		error_code ec;
 		set_piece_hashes_deprecated(t, p, detail::nop, ec);

@@ -211,7 +211,7 @@ namespace libtorrent
 		// == true``), then the file is detached from the ``save_path`` of the
 		// torrent. In this case the file is not moved when move_storage() is
 		// invoked.
-		void rename_file(file_index_t const index, std::string const& new_filename)
+		void rename_file(file_index_t index, std::string const& new_filename)
 		{
 			TORRENT_ASSERT(is_loaded());
 			if (m_files.file_path(index) == new_filename) return;
@@ -224,7 +224,7 @@ namespace libtorrent
 		// instead, use the wchar -> utf8 conversion functions
 		// and pass in utf8 strings
 		TORRENT_DEPRECATED
-		void rename_file(int index, std::wstring const& new_filename);
+		void rename_file(file_index_t index, std::wstring const& new_filename);
 #endif // TORRENT_USE_WSTRING
 #endif // TORRENT_NO_DEPRECATE
 

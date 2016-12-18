@@ -88,7 +88,7 @@ namespace
         ti.set_merkle_tree(h);
     }
 
-    bytes hash_for_piece(torrent_info const& ti, int i)
+    bytes hash_for_piece(torrent_info const& ti, piece_index_t i)
     {
         return bytes(ti.hash_for_piece(i).to_string());
     }
@@ -98,7 +98,7 @@ namespace
         return bytes(ti.metadata().get(), ti.metadata_size());
     }
 
-    list map_block(torrent_info& ti, int piece, std::int64_t offset, int size)
+    list map_block(torrent_info& ti, piece_index_t piece, std::int64_t offset, int size)
     {
        std::vector<file_slice> p = ti.map_block(piece, offset, size);
        list result;
@@ -197,9 +197,9 @@ void bind_torrent_info()
 {
     return_value_policy<copy_const_reference> copy;
 
-    void (torrent_info::*rename_file0)(int, std::string const&) = &torrent_info::rename_file;
+    void (torrent_info::*rename_file0)(file_index_t, std::string const&) = &torrent_info::rename_file;
 #if TORRENT_USE_WSTRING && !defined TORRENT_NO_DEPRECATE
-    void (torrent_info::*rename_file1)(int, std::wstring const&) = &torrent_info::rename_file;
+    void (torrent_info::*rename_file1)(file_index_t, std::wstring const&) = &torrent_info::rename_file;
 #endif
 
     class_<file_slice>("file_slice")

@@ -7,6 +7,7 @@
 #include "libtorrent/address.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/time.hpp"
+#include "libtorrent/units.hpp"
 #include <vector>
 
 using namespace boost::python;
@@ -153,10 +154,48 @@ struct list_to_vector
     }
 };
 
+template<class T>
+struct from_strong_typedef
+{
+    using underlying_type = typename T::underlying_type;
+
+    static PyObject* convert(const T& v)
+    {
+        object o(static_cast<underlying_type>(v));
+        return incref(o.ptr());
+    }
+};
+
+template<typename T>
+struct to_strong_typedef
+{
+   using underlying_type = typename T::underlying_type;
+
+   to_strong_typedef()
+   {
+        converter::registry::push_back(
+            &convertible, &construct, type_id<T>()
+        );
+    }
+
+    static void* convertible(PyObject* x)
+    {
+        return PyNumber_Check(x) ? x : nullptr;
+    }
+
+    static void construct(PyObject* x, converter::rvalue_from_python_stage1_data* data)
+    {
+        void* storage = ((converter::rvalue_from_python_storage<T>*)data)->storage.bytes;
+        new (storage) T(extract<underlying_type>(object(borrowed(x))));
+        data->convertible = storage;
+    }
+};
+
 void bind_converters()
 {
     // C++ -> python conversions
     to_python_converter<std::pair<int, int>, pair_to_tuple<int, int>>();
+    to_python_converter<std::pair<lt::piece_index_t, int>, pair_to_tuple<lt::piece_index_t, int>>();
     to_python_converter<std::pair<std::string, int>, pair_to_tuple<std::string, int>>();
     to_python_converter<lt::tcp::endpoint, endpoint_to_tuple<lt::tcp::endpoint>>();
     to_python_converter<lt::udp::endpoint, endpoint_to_tuple<lt::udp::endpoint>>();
@@ -169,15 +208,22 @@ void bind_converters()
     to_python_converter<std::vector<lt::udp::endpoint>, vector_to_list<lt::udp::endpoint>>();
     to_python_converter<std::vector<std::pair<std::string, int>>, vector_to_list<std::pair<std::string, int>>>();
 
+    to_python_converter<lt::piece_index_t, from_strong_typedef<lt::piece_index_t>>();
+    to_python_converter<lt::file_index_t, from_strong_typedef<lt::file_index_t>>();
+
     // python -> C++ conversions
     tuple_to_pair<int, int>();
     tuple_to_pair<std::string, int>();
     tuple_to_endpoint<lt::tcp::endpoint>();
     tuple_to_endpoint<lt::udp::endpoint>();
+    tuple_to_pair<lt::piece_index_t, int>();
     list_to_vector<int>();
     list_to_vector<std::uint8_t>();
     list_to_vector<std::string>();
     list_to_vector<lt::tcp::endpoint>();
     list_to_vector<lt::udp::endpoint>();
     list_to_vector<std::pair<std::string, int>>();
+
+    to_strong_typedef<lt::piece_index_t>();
+    to_strong_typedef<lt::file_index_t>();
 }

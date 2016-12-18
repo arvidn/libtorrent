@@ -906,7 +906,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 	}
 
-	void torrent_info::rename_file(int index, std::wstring const& new_filename)
+	void torrent_info::rename_file(file_index_t index, std::wstring const& new_filename)
 	{
 		TORRENT_ASSERT(is_loaded());
 		copy_on_write();

@@ -19,12 +19,12 @@ using namespace libtorrent;
 
 namespace
 {
-    void set_hash(create_torrent& c, int p, bytes const& b)
+    void set_hash(create_torrent& c, piece_index_t p, bytes const& b)
     {
         c.set_hash(p, sha1_hash(b.arr));
     }
 
-    void set_file_hash(create_torrent& c, int f, bytes const& b)
+    void set_file_hash(create_torrent& c, file_index_t f, bytes const& b)
     {
         c.set_file_hash(f, sha1_hash(b.arr));
     }
@@ -33,14 +33,15 @@ namespace
     void set_piece_hashes_callback(create_torrent& c, std::string const& p
         , boost::python::object cb)
     {
-        set_piece_hashes(c, p, [&](int const i) { cb(i); });
+        set_piece_hashes(c, p, std::function<void(piece_index_t)>(
+           [&](piece_index_t const i) { cb(i); }));
     }
 #else
     void set_piece_hashes_callback(create_torrent& c, std::string const& p
         , boost::python::object cb)
     {
         error_code ec;
-        set_piece_hashes(c, p, [&](int const i) { cb(i); }, ec);
+        set_piece_hashes(c, p, [&](piece_index_t const i) { cb(i); }, ec);
     }
 
     void set_piece_hashes0(create_torrent& c, std::string const & s)
@@ -69,7 +70,7 @@ namespace
         typedef int difference_type;
         typedef std::forward_iterator_tag iterator_category;
 
-        FileIter(file_storage const& fs, int i) : m_fs(&fs), m_i(i) {}
+        FileIter(file_storage const& fs, file_index_t i) : m_fs(&fs), m_i(i) {}
         FileIter(FileIter const&) = default;
         FileIter() : m_fs(nullptr), m_i(0) {}
         libtorrent::file_entry operator*() const
@@ -90,14 +91,14 @@ namespace
         FileIter& operator=(FileIter const&) = default;
 
         file_storage const* m_fs;
-        int m_i;
+        file_index_t m_i;
     };
 
     FileIter begin_files(file_storage const& self)
-    { return FileIter(self, 0); }
+    { return FileIter(self, file_index_t(0)); }
 
     FileIter end_files(file_storage const& self)
-    { return FileIter(self, self.num_files()); }
+    { return FileIter(self, self.end_file()); }
 #endif
 
     void add_files_callback(file_storage& fs, std::string const& file
@@ -120,10 +121,10 @@ void bind_create_torrent()
 #endif // TORRENT_NO_DEPRECATE
 
     void (file_storage::*set_name0)(std::string const&) = &file_storage::set_name;
-    void (file_storage::*rename_file0)(int, std::string const&) = &file_storage::rename_file;
+    void (file_storage::*rename_file0)(file_index_t, std::string const&) = &file_storage::rename_file;
 #if TORRENT_USE_WSTRING && !defined TORRENT_NO_DEPRECATE
     void (file_storage::*set_name1)(std::wstring const&) = &file_storage::set_name;
-    void (file_storage::*rename_file1)(int, std::wstring const&) = &file_storage::rename_file;
+    void (file_storage::*rename_file1)(file_index_t, std::wstring const&) = &file_storage::rename_file;
 #endif
 
 #ifndef BOOST_NO_EXCEPTIONS
@@ -131,12 +132,12 @@ void bind_create_torrent()
 #endif
     void (*add_files0)(file_storage&, std::string const&, std::uint32_t) = add_files;
 
-    std::string const& (file_storage::*file_storage_symlink)(int) const = &file_storage::symlink;
-    sha1_hash (file_storage::*file_storage_hash)(int) const = &file_storage::hash;
-    std::string (file_storage::*file_storage_file_path)(int, std::string const&) const = &file_storage::file_path;
-    std::int64_t (file_storage::*file_storage_file_size)(int) const = &file_storage::file_size;
-    std::int64_t (file_storage::*file_storage_file_offset)(int) const = &file_storage::file_offset;
-    int (file_storage::*file_storage_file_flags)(int) const = &file_storage::file_flags;
+    std::string const& (file_storage::*file_storage_symlink)(file_index_t) const = &file_storage::symlink;
+    sha1_hash (file_storage::*file_storage_hash)(file_index_t) const = &file_storage::hash;
+    std::string (file_storage::*file_storage_file_path)(file_index_t, std::string const&) const = &file_storage::file_path;
+    std::int64_t (file_storage::*file_storage_file_size)(file_index_t) const = &file_storage::file_size;
+    std::int64_t (file_storage::*file_storage_file_offset)(file_index_t) const = &file_storage::file_offset;
+    int (file_storage::*file_storage_file_flags)(file_index_t) const = &file_storage::file_flags;
 
 #ifndef TORRENT_NO_DEPRECATE
     file_entry (file_storage::*at)(int) const = &file_storage::at;
