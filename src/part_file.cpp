@@ -302,8 +302,8 @@ namespace libtorrent
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 
-		piece_index_t piece(offset / m_piece_size);
-		piece_index_t const end = piece_index_t(((offset + size) + m_piece_size - 1) / m_piece_size);
+		piece_index_t piece(int(offset / m_piece_size));
+		piece_index_t const end = piece_index_t(int(((offset + size) + m_piece_size - 1) / m_piece_size));
 
 		std::unique_ptr<char[]> buf;
 

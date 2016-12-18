@@ -62,9 +62,9 @@ using namespace libtorrent::detail; // for write_* and read_*
 
 using namespace std::placeholders;
 
-void generate_block(std::uint32_t* buffer, int piece, int start, int length)
+void generate_block(std::uint32_t* buffer, piece_index_t const piece, int start, int length)
 {
-	std::uint32_t fill = (piece << 8) | ((start / 0x4000) & 0xff);
+	std::uint32_t fill = (static_cast<int>(piece) << 8) | ((start / 0x4000) & 0xff);
 	for (int i = 0; i < length / 4; ++i)
 	{
 		buffer[i] = fill;
@@ -225,11 +225,11 @@ struct peer_conn
 		receiving_message
 	};
 	int state;
-	std::vector<int> pieces;
-	std::vector<int> suggested_pieces;
-	std::vector<int> allowed_fast;
+	std::vector<piece_index_t> pieces;
+	std::vector<piece_index_t> suggested_pieces;
+	std::vector<piece_index_t> allowed_fast;
 	bool choked;
-	int current_piece; // the piece we're currently requesting blocks from
+	piece_index_t current_piece; // the piece we're currently requesting blocks from
 	bool current_piece_is_allowed;
 	int block;
 	int blocks_per_piece;
@@ -358,9 +358,13 @@ struct peer_conn
 		if (choked && allowed_fast.empty() && !current_piece_is_allowed) return false;
 
 		// if there are no pieces left to request
-		if (pieces.empty() && suggested_pieces.empty() && current_piece == -1) return false;
+		if (pieces.empty() && suggested_pieces.empty()
+			&& current_piece == piece_index_t(-1))
+		{
+			return false;
+		}
 
-		if (current_piece == -1)
+		if (current_piece == piece_index_t(-1))
 		{
 			// pick a new piece
 			if (choked && allowed_fast.size() > 0)
@@ -394,7 +398,7 @@ struct peer_conn
 		char* m = (char*)malloc(sizeof(msg));
 		memcpy(m, msg, sizeof(msg));
 		char* ptr = m + 5;
-		write_uint32(current_piece, ptr);
+		write_uint32(static_cast<int>(current_piece), ptr);
 		write_uint32(block * 16 * 1024, ptr);
 		write_uint32(16 * 1024, ptr);
 		error_code ec;
@@ -406,7 +410,7 @@ struct peer_conn
 		if (block == blocks_per_piece)
 		{
 			block = 0;
-			current_piece = -1;
+			current_piece = piece_index_t(-1);
 			current_piece_is_allowed = false;
 		}
 		return true;
@@ -454,7 +458,7 @@ struct peer_conn
 	{
 		if (pieces.empty()
 			&& suggested_pieces.empty()
-			&& current_piece == -1
+			&& current_piece == piece_index_t(-1)
 			&& outstanding_requests == 0
 			&& blocks_received >= num_pieces * blocks_per_piece)
 		{
@@ -534,9 +538,9 @@ struct peer_conn
 					close("REQUEST packet has invalid size", error_code());
 					return;
 				}
-				int piece = detail::read_int32(ptr);
-				int start = detail::read_int32(ptr);
-				int length = detail::read_int32(ptr);
+				piece_index_t const piece = piece_index_t(detail::read_int32(ptr));
+				int const start = detail::read_int32(ptr);
+				int const length = detail::read_int32(ptr);
 				write_piece(piece, start, length);
 			}
 			else if (msg == 3) // not-interested
@@ -557,26 +561,26 @@ struct peer_conn
 			{
 				// build a list of all pieces and request them all!
 				pieces.resize(num_pieces);
-				for (int i = 0; i < int(pieces.size()); ++i)
-					pieces[i] = i;
+				for (piece_index_t i(0); i < piece_index_t(int(pieces.size())); ++i)
+					pieces[static_cast<int>(i)] = i;
 				std::shuffle(pieces.begin(), pieces.end(), rng);
 			}
 			else if (msg == 4) // have
 			{
-				int piece = detail::read_int32(ptr);
+				piece_index_t const piece(detail::read_int32(ptr));
 				if (pieces.empty()) pieces.push_back(piece);
 				else pieces.insert(pieces.begin() + (rand() % pieces.size()), piece);
 			}
 			else if (msg == 5) // bitfield
 			{
 				pieces.reserve(num_pieces);
-				int piece = 0;
+				piece_index_t piece(0);
 				for (int i = 0; i < int(bytes_transferred); ++i)
 				{
 					int mask = 0x80;
 					for (int k = 0; k < 8; ++k)
 					{
-						if (piece > num_pieces) break;
+						if (piece > piece_index_t(num_pieces)) break;
 						if (*ptr & mask) pieces.push_back(piece);
 						mask >>= 1;
 						++piece;
@@ -589,14 +593,14 @@ struct peer_conn
 			{
 				if (verify_downloads)
 				{
-					int piece = read_uint32(ptr);
+					piece_index_t const piece(read_uint32(ptr));
 					int start = read_uint32(ptr);
 					int size = int(bytes_transferred) - 9;
 					verify_piece(piece, start, ptr, size);
 				}
 				++blocks_received;
 				--outstanding_requests;
-				int piece = detail::read_int32(ptr);
+				piece_index_t const piece = piece_index_t(detail::read_int32(ptr));
 				int start = detail::read_int32(ptr);
 
 				if (churn && (blocks_received % churn) == 0) {
@@ -613,8 +617,8 @@ struct peer_conn
 			}
 			else if (msg == 13) // suggest
 			{
-				int piece = detail::read_int32(ptr);
-				std::vector<int>::iterator i = std::find(pieces.begin(), pieces.end(), piece);
+				piece_index_t const piece(detail::read_int32(ptr));
+				auto i = std::find(pieces.begin(), pieces.end(), piece);
 				if (i != pieces.end())
 				{
 					pieces.erase(i);
@@ -624,7 +628,7 @@ struct peer_conn
 			}
 			else if (msg == 16) // reject request
 			{
-				int piece = detail::read_int32(ptr);
+				piece_index_t const piece(detail::read_int32(ptr));
 				int start = detail::read_int32(ptr);
 				int length = detail::read_int32(ptr);
 
@@ -640,12 +644,13 @@ struct peer_conn
 					if (block == 0)
 					{
 						pieces.push_back(current_piece);
-						current_piece = -1;
+						current_piece = piece_index_t(-1);
 						current_piece_is_allowed = false;
 					}
 				}
 				--outstanding_requests;
-				std::fprintf(stderr, "REJECT: [ piece: %d start: %d length: %d ]\n", piece, start, length);
+				std::fprintf(stderr, "REJECT: [ piece: %d start: %d length: %d ]\n"
+					, static_cast<int>(piece), start, length);
 			}
 			else if (msg == 0) // choke
 			{
@@ -657,8 +662,8 @@ struct peer_conn
 			}
 			else if (msg == 17) // allowed_fast
 			{
-				int piece = detail::read_int32(ptr);
-				std::vector<int>::iterator i = std::find(pieces.begin(), pieces.end(), piece);
+				piece_index_t const piece = piece_index_t(detail::read_int32(ptr));
+				auto i = std::find(pieces.begin(), pieces.end(), piece);
 				if (i != pieces.end())
 				{
 					pieces.erase(i);
@@ -669,22 +674,23 @@ struct peer_conn
 		}
 	}
 
-	bool verify_piece(int piece, int start, char const* ptr, int size)
+	bool verify_piece(piece_index_t const piece, int start, char const* ptr, int size)
 	{
 		std::uint32_t* buf = (std::uint32_t*)ptr;
-		std::uint32_t fill = (piece << 8) | ((start / 0x4000) & 0xff);
+		std::uint32_t const fill = (static_cast<int>(piece) << 8) | ((start / 0x4000) & 0xff);
 		for (int i = 0; i < size / 4; ++i)
 		{
 			if (buf[i] != fill)
 			{
-				std::fprintf(stderr, "received invalid block. piece %d block %d\n", piece, start / 0x4000);
+				std::fprintf(stderr, "received invalid block. piece %d block %d\n"
+					, static_cast<int>(piece), start / 0x4000);
 				exit(1);
 			}
 		}
 		return true;
 	}
 
-	void write_piece(int piece, int start, int length)
+	void write_piece(piece_index_t const piece, int start, int length)
 	{
 		generate_block(write_buffer, piece, start, length);
 
@@ -701,7 +707,7 @@ struct peer_conn
 		write_uint32(9 + length, ptr);
 		assert(length == 0x4000);
 		write_uint8(7, ptr);
-		write_uint32(piece, ptr);
+		write_uint32(static_cast<int>(piece), ptr);
 		write_uint32(start, ptr);
 		std::array<boost::asio::const_buffer, 2> vec;
 		vec[0] = boost::asio::buffer(write_buf_proto, ptr - write_buf_proto);
@@ -715,12 +721,12 @@ struct peer_conn
 		}
 	}
 
-	void write_have(int piece)
+	void write_have(piece_index_t const piece)
 	{
 		char* ptr = write_buf_proto;
 		write_uint32(5, ptr);
 		write_uint8(4, ptr);
-		write_uint32(piece, ptr);
+		write_uint32(static_cast<int>(piece), ptr);
 		boost::asio::async_write(s, boost::asio::buffer(write_buf_proto, 9), std::bind(&peer_conn::on_have_all_sent, this, _1, _2));
 	}
 };
@@ -763,11 +769,12 @@ void print_usage()
 	exit(1);
 }
 
-void hasher_thread(libtorrent::create_torrent* t, int start_piece, int end_piece, int piece_size, bool print)
+void hasher_thread(libtorrent::create_torrent* t, piece_index_t const start_piece
+	, piece_index_t const end_piece, int piece_size, bool print)
 {
 	if (print) std::fprintf(stderr, "\n");
 	std::uint32_t piece[0x4000 / 4];
-	for (int i = start_piece; i < end_piece; ++i)
+	for (piece_index_t i = start_piece; i < end_piece; ++i)
 	{
 		hasher ph;
 		for (int j = 0; j < piece_size; j += 0x4000)
@@ -776,7 +783,12 @@ void hasher_thread(libtorrent::create_torrent* t, int start_piece, int end_piece
 			ph.update((char*)piece, 0x4000);
 		}
 		t->set_hash(i, ph.final());
-		if (print && (i & 1)) std::fprintf(stderr, "\r%.1f %% ", float((i-start_piece) * 100) / float(end_piece-start_piece));
+		int const range = static_cast<int>(end_piece) - static_cast<int>(start_piece);
+		if (print && (static_cast<int>(i) & 1))
+		{
+			int const delta_piece = static_cast<int>(i) - static_cast<int>(start_piece);
+			std::fprintf(stderr, "\r%.1f %% ", float(delta_piece * 100) / float(range));
+		}
 	}
 	if (print) std::fprintf(stderr, "\n");
 }
@@ -808,10 +820,10 @@ void generate_torrent(std::vector<char>& buf, int size, int num_files
 	libtorrent::create_torrent t(fs, piece_size);
 
 	// generate the hashes in 4 threads
-	std::thread t1(&hasher_thread, &t, 0, 1 * num_pieces / 4, piece_size, false);
-	std::thread t2(&hasher_thread, &t, 1 * num_pieces / 4, 2 * num_pieces / 4, piece_size, false);
-	std::thread t3(&hasher_thread, &t, 2 * num_pieces / 4, 3 * num_pieces / 4, piece_size, false);
-	std::thread t4(&hasher_thread, &t, 3 * num_pieces / 4, 4 * num_pieces / 4, piece_size, true);
+	std::thread t1(&hasher_thread, &t, piece_index_t(0), piece_index_t(1 * num_pieces / 4), piece_size, false);
+	std::thread t2(&hasher_thread, &t, piece_index_t(1 * num_pieces / 4), piece_index_t(2 * num_pieces / 4), piece_size, false);
+	std::thread t3(&hasher_thread, &t, piece_index_t(2 * num_pieces / 4), piece_index_t(3 * num_pieces / 4), piece_size, false);
+	std::thread t4(&hasher_thread, &t, piece_index_t(3 * num_pieces / 4), piece_index_t(4 * num_pieces / 4), piece_size, true);
 
 	t1.join();
 	t2.join();
@@ -844,7 +856,7 @@ void generate_data(char const* path, torrent_info const& ti)
 	}
 
 	std::uint32_t piece[0x4000 / 4];
-	for (int i = 0; i < ti.num_pieces(); ++i)
+	for (piece_index_t i(0); i < piece_index_t(ti.num_pieces()); ++i)
 	{
 		for (int j = 0; j < ti.piece_size(i); j += 0x4000)
 		{
@@ -856,7 +868,10 @@ void generate_data(char const* path, torrent_info const& ti)
 			if (error)
 				std::fprintf(stderr, "storage error: %s\n", error.ec.message().c_str());
 		}
-		if (i & 1) std::fprintf(stderr, "\r%.1f %% ", float(i * 100) / float(ti.num_pieces()));
+		if (static_cast<int>(i) & 1)
+		{
+			std::fprintf(stderr, "\r%.1f %% ", float(static_cast<int>(i) * 100) / float(ti.num_pieces()));
+		}
 	}
 }
 
@@ -985,9 +1000,8 @@ int main(int argc, char* argv[])
 			const int piece_size = 1024 * 1024;
 			libtorrent::create_torrent t(fs, piece_size);
 			sha1_hash zero(nullptr);
-			for (int k = 0; k < fs.num_pieces(); ++k)
+			for (piece_index_t k(0); k < fs.end_piece(); ++k)
 				t.set_hash(k, zero);
-
 
 			buf.clear();
 			std::back_insert_iterator<std::vector<char>> out(buf);

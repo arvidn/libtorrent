@@ -1102,14 +1102,14 @@ struct test_fileop : libtorrent::fileop
 		, span<file::iovec_t const> bufs, storage_error& ec) override
 	{
 		size_t offset = size_t(file_offset);
-		if (static_cast<int>(file_index) >= m_file_data.size())
+		if (file_index >= m_file_data.end_index())
 		{
 			m_file_data.resize(static_cast<int>(file_index) + 1);
 		}
 
 		const int write_size = std::min(m_stripe_size, bufs_size(bufs));
 
-		std::vector<char>& file = m_file_data[static_cast<int>(file_index)];
+		std::vector<char>& file = m_file_data[file_index];
 
 		if (offset + write_size > file.size())
 		{
@@ -1129,7 +1129,7 @@ struct test_fileop : libtorrent::fileop
 	}
 
 	int m_stripe_size;
-	std::vector<std::vector<char>> m_file_data;
+	aux::vector<std::vector<char>, file_index_t> m_file_data;
 };
 
 struct test_read_fileop : fileop

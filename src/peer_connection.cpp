@@ -99,7 +99,7 @@ namespace libtorrent
 
 	}
 
-	constexpr piece_index_t const piece_block_progress::invalid_index;
+	constexpr piece_index_t piece_block_progress::invalid_index;
 
 #if TORRENT_USE_ASSERTS
 	bool peer_connection::is_single_thread() const
@@ -644,7 +644,7 @@ namespace libtorrent
 		// remove any invalid allowed_fast and suggest pieces
 		// now that we know what the number of pieces are
 		m_allowed_fast.erase(std::remove_if(m_allowed_fast.begin(), m_allowed_fast.end()
-				, [=](piece_index_t const p) { return p >= limit; })
+			, [=](piece_index_t const p) { return p >= limit; })
 			, m_allowed_fast.end());
 
 		// remove any piece suggested to us whose index is invalid
@@ -712,15 +712,13 @@ namespace libtorrent
 			TORRENT_ASSERT(m_have_piece.size() == t->torrent_file().num_pieces());
 			t->peer_has(m_have_piece, this);
 			bool interesting = false;
-			for (piece_index_t i(0); i != m_have_piece.end_index(); ++i)
+			for (piece_index_t i(0); i < m_have_piece.end_index(); ++i)
 			{
-				if (m_have_piece[i])
-				{
-					// if the peer has a piece and we don't, the peer is interesting
-					if (!t->have_piece(i)
-						&& t->picker().piece_priority(i) != 0)
-						interesting = true;
-				}
+				if (!m_have_piece[i]) continue;
+				// if the peer has a piece and we don't, the peer is interesting
+				if (!t->have_piece(i)
+					&& t->picker().piece_priority(i) != 0)
+					interesting = true;
 			}
 			if (interesting) t->peer_is_interesting(*this);
 			else send_not_interested();

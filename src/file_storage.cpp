@@ -414,7 +414,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(file_iter != m_files.begin());
 		--file_iter;
-		return file_index_t(file_iter - m_files.begin());
+		return file_index_t(int(file_iter - m_files.begin()));
 	}
 
 	char const* file_storage::file_name_ptr(file_index_t const index) const
@@ -460,7 +460,7 @@ namespace libtorrent
 			if (file_offset < std::int64_t(file_iter->size))
 			{
 				file_slice f;
-				f.file_index = file_index_t(file_iter - m_files.begin());
+				f.file_index = file_index_t(int(file_iter - m_files.begin()));
 				f.offset = file_offset
 #ifndef TORRENT_NO_DEPRECATE
 					+ file_base_deprecated(f.file_index)
@@ -530,7 +530,7 @@ namespace libtorrent
 		}
 		else
 		{
-			ret.piece = piece_index_t(offset / piece_length());
+			ret.piece = piece_index_t(int(offset / piece_length()));
 			ret.start = int(offset % piece_length());
 			ret.length = size;
 			if (offset + size > total_size())
@@ -630,7 +630,7 @@ namespace libtorrent
 
 	std::time_t file_storage::mtime(file_index_t const index) const
 	{
-		if (index >= file_index_t(m_mtime.size())) return 0;
+		if (index >= m_mtime.end_index()) return 0;
 		return m_mtime[index];
 	}
 
@@ -1136,7 +1136,7 @@ namespace libtorrent
 		// contained within the last file.
 		piece_index_t const end_piece = (file == file_index_t(fs.num_files() - 1))
 			? piece_index_t(fs.num_pieces())
-			: piece_index_t((static_cast<int>(range.piece) * piece_size + range.start + file_size + 1) / piece_size);
+			: piece_index_t(int((static_cast<int>(range.piece) * piece_size + range.start + file_size + 1) / piece_size));
 		return std::make_tuple(begin_piece, end_piece);
 	}
 
@@ -1146,8 +1146,8 @@ namespace libtorrent
 		peer_request const range = fs.map_file(file, 0, 1);
 		std::int64_t const file_size = fs.file_size(file);
 		std::int64_t const piece_size = fs.piece_length();
-		piece_index_t const end_piece = piece_index_t((static_cast<int>(range.piece)
-			* piece_size + range.start + file_size - 1) / piece_size + 1);
+		piece_index_t const end_piece = piece_index_t(int((static_cast<int>(range.piece)
+			* piece_size + range.start + file_size - 1) / piece_size + 1));
 		return std::make_tuple(range.piece, end_piece);
 	}
 

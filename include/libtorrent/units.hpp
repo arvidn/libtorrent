@@ -37,10 +37,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <limits>
 #include <iosfwd>
+#include <type_traits>
+
+#include "libtorrent/config.hpp"
 
 namespace libtorrent {
 namespace aux {
-	template<typename UnderlyingType, typename Tag>
+
+	template<typename UnderlyingType, typename Tag
+		, typename = typename std::enable_if<std::is_integral<UnderlyingType>::value>::type>
 	struct strong_typedef
 	{
 		using underlying_type = UnderlyingType;
