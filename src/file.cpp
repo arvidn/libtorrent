@@ -662,14 +662,14 @@ namespace libtorrent
 		char buffer[4096];
 		for (;;)
 		{
-			int const num_read = read(infd, buffer, sizeof(buffer));
+			int const num_read = int(read(infd, buffer, sizeof(buffer)));
 			if (num_read == 0) break;
 			if (num_read < 0)
 			{
 				ec.assign(errno, system_category());
 				break;
 			}
-			int const num_written = write(outfd, buffer, num_read);
+			int const num_written = int(write(outfd, buffer, num_read));
 			if (num_written < num_read)
 			{
 				ec.assign(errno, system_category());

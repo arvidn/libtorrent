@@ -129,8 +129,8 @@ namespace libtorrent
 		string_view filename() const;
 
 		enum {
-			name_is_owned = (1<<12)-1,
-			not_a_symlink = (1<<15)-1
+			name_is_owned = (1 << 12) - 1,
+			not_a_symlink = (1 << 15) - 1
 		};
 
 		// the offset of this file inside the torrent
@@ -283,7 +283,7 @@ namespace libtorrent
 		void add_file_borrow(char const* filename, int filename_len
 			, std::string const& path, std::int64_t file_size
 			, std::uint32_t file_flags = 0, char const* filehash = 0
-			, std::int64_t mtime = 0, string_view symlink_path = string_view());
+			, std::time_t mtime = 0, string_view symlink_path = string_view());
 		void add_file(std::string const& path, std::int64_t file_size, int file_flags = 0
 			, std::time_t mtime = 0, string_view symlink_path = string_view());
 
