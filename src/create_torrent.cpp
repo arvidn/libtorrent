@@ -230,16 +230,8 @@ namespace libtorrent
 		std::string utf8 = wchar_utf8(p);
 		set_piece_hashes(t, utf8, f, ec);
 	}
-
-	// for backwards compatibility
-	void set_piece_hashes(create_torrent& t, std::string const& p
-		, std::function<void(int)> const& f, error_code& ec)
-	{
-		set_piece_hashes(t, p, std::function<void(piece_index_t)>(
-			[&](piece_index_t i) { f(static_cast<int>(i)); }), ec);
-	}
-#endif
-#endif
+#endif // TORRENT_NO_DEPRECATE
+#endif // TORRENT_USE_WSTRING
 
 	void add_files(file_storage& fs, std::string const& file
 		, std::function<bool(std::string)> p, std::uint32_t flags)

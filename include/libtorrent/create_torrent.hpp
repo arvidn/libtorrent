@@ -423,12 +423,6 @@ namespace libtorrent
 	}
 #endif
 
-#ifndef TORRENT_NO_DEPRECATE
-	TORRENT_DEPRECATED
-	TORRENT_EXPORT void set_piece_hashes(create_torrent& t, std::string const& p
-		, std::function<void(int)> const& f, error_code& ec);
-#endif
-
 #if TORRENT_USE_WSTRING
 	// wstring versions
 
