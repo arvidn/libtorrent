@@ -129,8 +129,8 @@ namespace libtorrent
 		string_view filename() const;
 
 		enum {
-			name_is_owned = (1<<12)-1,
-			not_a_symlink = (1<<15)-1
+			name_is_owned = (1 << 12) - 1,
+			not_a_symlink = (1 << 15) - 1
 		};
 
 		// the offset of this file inside the torrent
