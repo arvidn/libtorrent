@@ -65,8 +65,15 @@ void test_vector(std::string s, std::string output, int const n = 1)
 	hasher h;
 	for (int i = 0; i < n; i++)
 		h.update(s);
-	std::string digest = h.final().to_string();
-	TEST_EQUAL(aux::to_hex(digest), output);
+	std::string const digest = h.final().to_string();
+	std::string const digest_hex = aux::to_hex(digest);
+	
+	TEST_EQUAL(digest_hex, output);
+
+	std::string output_hex = digest_hex;
+	aux::to_hex(digest,digest.size(),&output_hex[0]);
+ 
+	TEST_EQUAL(output_hex, digest_hex);
 }
 
 }

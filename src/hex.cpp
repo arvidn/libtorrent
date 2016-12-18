@@ -86,8 +86,11 @@ namespace libtorrent
 	std::string to_hex(span<char const> in)
 	{
 		std::string ret;
-		ret.resize(in.size() * 2);
-		to_hex(in.data(), in.size(), &ret[0]);
+		if (!in.empty())
+		{
+			ret.resize(in.size() * 2);
+			to_hex(in.data(), in.size(), &ret[0]);
+		}
 		return ret;
 	}
 
