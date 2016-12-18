@@ -161,7 +161,7 @@ namespace libtorrent
 	{
 //		UTP_LOGV("incoming packet size:%d\n", size);
 
-		if (p.size() < int(sizeof(utp_header))) return false;
+		if (p.size() < sizeof(utp_header)) return false;
 
 		utp_header const* ph = reinterpret_cast<utp_header const*>(p.data());
 

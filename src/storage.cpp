@@ -834,8 +834,9 @@ namespace libtorrent
 		, storage_error& ec)
 	{
 		file_storage const& fs = files();
-
-#ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
+#ifdef TORRENT_DISABLE_MUTABLE_TORRENTS
+		TORRENT_UNUSED(links);
+#else
 		if (!links.empty())
 		{
 			TORRENT_ASSERT(int(links.size()) == fs.num_files());

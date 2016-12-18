@@ -988,6 +988,7 @@ namespace libtorrent
 		GetIfEntry_t GetIfEntry = (GetIfEntry_t)GetProcAddress(iphlp, "GetIfEntry");
 		if (!GetIfEntry)
 		{
+			FreeLibrary(iphlp);
 			ec = boost::asio::error::operation_not_supported;
 			return std::vector<ip_route>();
 		}
