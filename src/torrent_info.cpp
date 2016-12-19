@@ -422,7 +422,7 @@ namespace libtorrent
 	// root_dir is the name of the torrent, unless this is a single file
 	// torrent, in which case it's empty.
 	bool extract_single_file(bdecode_node const& dict, file_storage& files
-		, std::string const& root_dir, ptrdiff_t info_ptr_diff, bool top_level
+		, std::string const& root_dir, std::ptrdiff_t const info_ptr_diff, bool top_level
 		, int& pad_file_cnt, error_code& ec)
 	{
 		if (dict.type() != bdecode_node::dict_t) return false;
@@ -440,7 +440,7 @@ namespace libtorrent
 			return false;
 		}
 
-		std::int64_t const mtime = dict.dict_find_int_value("mtime", 0);
+		std::time_t const mtime = std::time_t(dict.dict_find_int_value("mtime", 0));
 
 		std::string path = root_dir;
 		char const* filename = nullptr;
@@ -469,7 +469,7 @@ namespace libtorrent
 
 			if (p && p.list_size() > 0)
 			{
-				size_t const preallocate = path.size() + path_length(p, ec);
+				std::size_t const preallocate = path.size() + path_length(p, ec);
 				if (ec) return false;
 				path.reserve(preallocate);
 
@@ -489,7 +489,7 @@ namespace libtorrent
 				// pad files don't need a path element, we'll just store them
 				// under the .pad directory
 				char cnt[10];
-				snprintf(cnt, sizeof(cnt), "%d", pad_file_cnt);
+				std::snprintf(cnt, sizeof(cnt), "%d", pad_file_cnt);
 				path = combine_path(".pad", cnt);
 				++pad_file_cnt;
 			}
@@ -545,7 +545,7 @@ namespace libtorrent
 
 	struct string_hash_no_case
 	{
-		size_t operator()(std::string const& s) const
+		std::size_t operator()(std::string const& s) const
 		{
 			char const* s1 = s.c_str();
 			size_t ret = 5381;
