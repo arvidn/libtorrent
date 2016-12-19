@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include <tuple>
 #include "test.hpp"
-#include "units.hpp"
+#include "libtorrent/units.hpp"
 
 namespace libtorrent
 {

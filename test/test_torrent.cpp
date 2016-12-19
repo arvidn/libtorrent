@@ -81,7 +81,6 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 	aux::vector<int, file_index_t> ones(info->num_files(), 1);
 	h.prioritize_files(ones);
 
-//	std::this_thread::sleep_for(lt::milliseconds(500));
 	torrent_status st = h.status();
 
 	TEST_EQUAL(st.total_wanted, file_size); // we want the single file
@@ -437,5 +436,14 @@ TORRENT_TEST(async_load)
 	if (ta == nullptr) return;
 	TEST_CHECK(!ta->error);
 	TEST_CHECK(ta->params.ti->name() == "temp");
+}
+
+TORRENT_TEST(torrent_status)
+{
+	TEST_EQUAL(static_cast<int>(torrent_status::error_file_none), -1);
+	TEST_EQUAL(static_cast<int>(torrent_status::error_file_url), -2);
+	TEST_EQUAL(static_cast<int>(torrent_status::error_file_ssl_ctx), -3);
+	TEST_EQUAL(static_cast<int>(torrent_status::error_file_metadata), -4);
+	TEST_EQUAL(static_cast<int>(torrent_status::error_file_exception), -5);
 }
 
