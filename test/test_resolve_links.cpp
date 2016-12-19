@@ -119,7 +119,7 @@ TORRENT_TEST(resolve_links)
 		if (num_matches > e.expected_matches)
 		{
 			file_storage const& fs = ti1->files();
-			for (file_index_t i{0}; i != file_index_t(links.size()); ++i)
+			for (file_index_t i{0}; i != links.end_index(); ++i)
 			{
 				TORRENT_ASSERT(i < file_index_t{fs.num_files()});
 				std::printf("%*s --> %s : %d\n"
