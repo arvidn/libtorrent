@@ -128,6 +128,11 @@ namespace libtorrent
 
 		file_index_t error_file = torrent_status::error_file_none;
 
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#pragma warning(disable : 4268)
+#endif
+
 		// special values for error_file to describe which file or component
 		// encountered the error (``errc``).
 		// the error did not occur on a file
@@ -146,6 +151,10 @@ namespace libtorrent
 		// there was a serious error reported in this torrent. The error code
 		// or a torrent log alert may provide more information.
 		static constexpr file_index_t error_file_exception{-5};
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 		// the path to the directory where this torrent's files are stored.
 		// It's typically the path as was given to async_add_torrent() or
