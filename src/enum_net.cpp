@@ -408,19 +408,13 @@ namespace libtorrent
 		if ((proc == nullptr) && !failed_proc)
 		{
 			HMODULE iphlp = GetIPHelperHandle();
-			if (iphlp)
-			{
-				proc = (T)GetProcAddress(iphlp, name);
-			}
-			else
-			{
-				failed_proc = true;
-			}
+			if (iphlp) proc = (T)GetProcAddress(iphlp, name);
+			failed_proc = (proc == nullptr);
 		}
 		proc_out = proc;
 
 		return proc_out != nullptr;
-	}	
+	}
 #endif
 
 #if TORRENT_USE_GETIPFORWARDTABLE
