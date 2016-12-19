@@ -2109,6 +2109,7 @@ retry:
 					maybe_update_udp_mapping(0, true, ssl_port, ssl_port);
 					maybe_update_udp_mapping(1, true, ssl_port, ssl_port);
 				}
+				m_ssl_udp_socket.set_proxy_settings(proxy());
 			}
 		}
 		else
@@ -2170,6 +2171,8 @@ retry:
 				maybe_update_udp_mapping(0, false, m_listen_interface.port(), m_listen_interface.port());
 				maybe_update_udp_mapping(1, false, m_listen_interface.port(), m_listen_interface.port());
 			}
+
+			m_udp_socket.set_proxy_settings(proxy());
 		}
 
 		// we made it! now post all the listen_succeeded_alerts

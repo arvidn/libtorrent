@@ -303,3 +303,90 @@ TORRENT_TEST(socks5_tcp_announce)
 	TEST_CHECK(tracker_port != -1);
 }
 
+TORRENT_TEST(udp_tracker)
+{
+	using namespace libtorrent;
+	bool tracker_alert = false;
+	bool connected = false;
+	bool announced = false;
+	run_test(
+		[](lt::session& ses)
+		{
+			set_proxy(ses, settings_pack::socks5);
+
+			// The socks server in libsimulator does not support forwarding UDP
+			// packets to hostnames (just IPv4 destinations)
+			settings_pack p;
+			p.set_bool(settings_pack::proxy_hostnames, false);
+			ses.apply_settings(p);
+
+			lt::add_torrent_params params;
+			params.info_hash = sha1_hash("abababababababababab");
+			params.trackers.push_back("udp://2.2.2.2:8080/announce");
+			params.save_path = ".";
+			ses.async_add_torrent(params);
+		},
+		[&tracker_alert](lt::session& ses, lt::alert const* alert) {
+			if (lt::alert_cast<lt::tracker_announce_alert>(alert))
+				tracker_alert = true;
+		},
+		[&](sim::simulation& sim, lt::session& ses
+			, boost::shared_ptr<lt::torrent_info> ti)
+		{
+			// listen on port 8080
+			udp_server tracker(sim, "2.2.2.2", 8080,
+			[&](char const* msg, int size)
+			{
+				using namespace libtorrent::detail;
+				std::vector<char> ret;
+				TEST_CHECK(size >= 16);
+
+				if (size < 16) return ret;
+
+				std::uint64_t connection_id = read_uint64(msg);
+				std::uint32_t action = read_uint32(msg);
+				std::uint32_t transaction_id = read_uint32(msg);
+
+				std::uint64_t const conn_id = 0xfeedface1337ull;
+
+				if (action == 0)
+				{
+					std::printf("udp connect\n");
+					// udp tracker connect
+					TEST_CHECK(connection_id == 0x41727101980ull);
+					auto inserter = std::back_inserter(ret);
+					write_uint32(0, inserter); // connect
+					write_uint32(transaction_id, inserter);
+					write_uint64(conn_id, inserter);
+					connected = true;
+				}
+				else if (action == 1)
+				{
+					std::printf("udp announce\n");
+					// udp tracker announce
+					TEST_EQUAL(connection_id, conn_id);
+
+					auto inserter = std::back_inserter(ret);
+					write_uint32(1, inserter); // announce
+					write_uint32(transaction_id, inserter);
+					write_uint32(1800, inserter);
+					write_uint32(0, inserter); // leechers
+					write_uint32(0, inserter); // seeders
+					announced = true;
+				}
+				else
+				{
+					std::printf("unsupported udp tracker action: %d\n", action);
+				}
+				return ret;
+			});
+
+			sim.run();
+		}
+	);
+
+	TEST_CHECK(tracker_alert);
+	TEST_CHECK(connected);
+	TEST_CHECK(announced);
+}
+

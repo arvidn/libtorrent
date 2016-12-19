@@ -112,6 +112,7 @@ void set_proxy(lt::session& ses, int proxy_type, int flags, bool proxy_peer_conn
 	p.set_bool(settings_pack::proxy_hostnames, true);
 	p.set_bool(settings_pack::proxy_peer_connections, proxy_peer_connections);
 	p.set_bool(settings_pack::proxy_tracker_connections, true);
+	p.set_bool(settings_pack::force_proxy, true);
 
 	ses.apply_settings(p);
 }

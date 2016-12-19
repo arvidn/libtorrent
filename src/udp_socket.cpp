@@ -845,10 +845,14 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 		}
 	}
 #endif
+
+	error_code err;
+	m_bind_port = m_ipv4_sock.local_endpoint(err).port();
+	if (err) m_bind_port = ep.port();
+
 #if TORRENT_USE_ASSERTS
 	m_started = true;
 #endif
-	m_bind_port = ep.port();
 }
 
 void udp_socket::set_proxy_settings(aux::proxy_settings const& ps)
