@@ -720,7 +720,7 @@ namespace libtorrent
 		}
 	}
 
-	std::string split_path(std::string const& f)
+	std::string split_path(std::string const& f, bool only_first_part)
 	{
 		if (f.empty()) return f;
 
@@ -738,11 +738,13 @@ namespace libtorrent
 			if (p - start > 0)
 			{
 				ret.append(start, p - start);
+				if (only_first_part) return ret;
 				ret.append(1, '\0');
 			}
 			if (*p != 0) ++p;
 			start = p;
 		}
+		if (only_first_part) return ret;
 		ret.append(1, '\0');
 		return ret;
 	}
