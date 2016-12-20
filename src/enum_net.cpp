@@ -390,7 +390,7 @@ namespace libtorrent
 	{
 		static bool handle_checked = false;
 		static HMODULE handle = 0;
-		if (!handle_checked) 
+		if (!handle_checked)
 		{
 			handle = LoadLibraryA("Iphlpapi.dll");
 			handle_checked = true;
