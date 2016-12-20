@@ -55,12 +55,6 @@ struct fake_peer
 {
 	fake_peer(simulation& sim, char const* ip)
 		: m_ios(sim, asio::ip::address::from_string(ip))
-		, m_acceptor(m_ios)
-		, m_socket(m_ios)
-		, m_info_hash(0)
-		, m_accepted(false)
-		, m_connected(false)
-		, m_disconnected(false)
 	{
 		boost::system::error_code ec;
 		m_acceptor.open(asio::ip::tcp::v4(), ec);
@@ -249,19 +243,19 @@ private:
 	char m_out_buffer[300];
 
 	asio::io_service m_ios;
-	asio::ip::tcp::acceptor m_acceptor;
-	asio::ip::tcp::socket m_socket;
+	asio::ip::tcp::acceptor m_acceptor{m_ios};
+	asio::ip::tcp::socket m_socket{m_ios};
 	lt::sha1_hash m_info_hash;
 
 	// set to true if this peer received an incoming connection
 	// if this is an outgoing connection, this will always be false
-	bool m_accepted;
+	bool m_accepted = false;
 
 	// set to true if this peer completed a bittorrent handshake
-	bool m_connected;
+	bool m_connected = false;
 
 	// set to true if this peer has been disconnected by the other end
-	bool m_disconnected;
+	bool m_disconnected = false;
 
 	std::vector<char> m_send_buffer;
 };
@@ -283,12 +277,12 @@ inline void add_fake_peers(lt::torrent_handle& h, int const n = 5)
 	}
 }
 
-struct fake_node
+struct udp_server
 {
-	fake_node(simulation& sim, char const* ip, int port = 6881)
+	udp_server(simulation& sim, char const* ip, int port
+		, std::function<std::vector<char>(char const*, int)> handler)
 		: m_ios(sim, asio::ip::address::from_string(ip))
-		, m_socket(m_ios)
-		, m_tripped(false)
+		, m_handler(handler)
 	{
 		boost::system::error_code ec;
 		m_socket.open(asio::ip::udp::v4(), ec);
@@ -296,31 +290,73 @@ struct fake_node
 		m_socket.bind(asio::ip::udp::endpoint(asio::ip::address_v4::any(), port), ec);
 		TEST_CHECK(!ec);
 
-		std::printf("fake_node::async_read_some\n");
-		m_socket.async_receive(boost::asio::buffer(m_in_buffer)
-			, [&] (boost::system::error_code const& ec, size_t bytes_transferred)
-		{
-			std::printf("fake_node::async_read_some callback. ec: %s transferred: %d\n"
-				, ec.message().c_str(), int(bytes_transferred));
-			if (ec) return;
+		m_socket.io_control(lt::udp::socket::non_blocking_io(true));
 
+		std::printf("udp_server::async_read_some\n");
+		using namespace std::placeholders;
+		m_socket.async_receive_from(boost::asio::buffer(m_in_buffer)
+			, m_from, 0, std::bind(&udp_server::on_read, this, _1, _2));
+	}
+
+	void close() { m_socket.close(); }
+
+private:
+
+	void on_read(boost::system::error_code const& ec, size_t bytes_transferred)
+	{
+		std::printf("udp_server::async_read_some callback. ec: %s transferred: %d\n"
+			, ec.message().c_str(), int(bytes_transferred));
+		if (ec) return;
+
+		std::vector<char> send_buffer = m_handler(m_in_buffer.data(), int(bytes_transferred));
+
+		if (!send_buffer.empty())
+		{
+			lt::error_code err;
+			m_socket.send_to(boost::asio::buffer(send_buffer), m_from, 0, err);
+			if (err)
+			{
+				std::printf("send_to FAILED: %s\n", err.message().c_str());
+			}
+			else
+			{
+				std::printf("udp_server responding with %d bytes\n"
+					, int(send_buffer.size()));
+			}
+		}
+
+		std::printf("udp_server::async_read_some\n");
+		using namespace std::placeholders;
+		m_socket.async_receive_from(boost::asio::buffer(m_in_buffer)
+			, m_from, 0, std::bind(&udp_server::on_read, this, _1, _2));
+	}
+
+	std::array<char, 1500> m_in_buffer;
+
+	asio::io_service m_ios;
+	asio::ip::udp::socket m_socket{m_ios};
+	asio::ip::udp::endpoint m_from;
+
+	std::function<std::vector<char>(char const*, int)> m_handler;
+};
+
+struct fake_node : udp_server
+{
+	fake_node(simulation& sim, char const* ip, int port = 6881)
+		: udp_server(sim, ip, port, [&](char const* incoming, int size)
+		{
 			lt::bdecode_node n;
 			boost::system::error_code err;
-			int const ret = bdecode(m_in_buffer.data(), m_in_buffer.data() + bytes_transferred
-				, n, err, nullptr, 10, 200);
+			int const ret = bdecode(incoming, incoming + size, n, err, nullptr, 10, 200);
 			TEST_EQUAL(ret, 0);
 
-			m_incoming_packets.emplace_back(m_in_buffer.data(), m_in_buffer.data() + bytes_transferred);
+			m_incoming_packets.emplace_back(incoming, incoming + size);
 
 			// TODO: ideally we would validate the DHT message
 			m_tripped = true;
-		});
-	}
-
-	void close()
-	{
-		m_socket.close();
-	}
+			return std::vector<char>();
+		})
+	{}
 
 	bool tripped() const { return m_tripped; }
 
@@ -329,15 +365,8 @@ struct fake_node
 
 private:
 
-	std::array<char, 300> m_in_buffer;
-
 	std::vector<std::vector<char>> m_incoming_packets;
-
-	asio::io_service m_ios;
-	asio::ip::udp::socket m_socket;
-	bool m_tripped;
-
-	std::vector<char> m_send_buffer;
+	bool m_tripped = false;
 };
 
 template<unsigned long N>

@@ -114,7 +114,10 @@ else:
 
 		# for some reason distutils uses the CC environment variable to determine
 		# the compiler to use for C++
-		os.environ["CC"] = os.environ['CXX']
+		if 'CXX' in os.environ:
+			os.environ['CC'] = os.environ['CXX']
+		if 'CXXFLAGS' in os.environ:
+			os.environ['CFLAGS'] = os.environ['CXXFLAGS']
 
 		ext = [Extension('libtorrent',
 			sources = source_list,

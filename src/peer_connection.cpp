@@ -1897,7 +1897,7 @@ namespace libtorrent
 		// calling disconnect_if_redundant, otherwise we may disconnect even if
 		// we are interested
 		if (!t->has_piece_passed(index)
-			&& !t->is_seed()
+			&& !t->is_upload_only()
 			&& !is_interesting()
 			&& (!t->has_picker() || t->picker().piece_priority(index) != 0))
 			t->peer_is_interesting(*this);

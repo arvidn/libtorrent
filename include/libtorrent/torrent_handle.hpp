@@ -961,8 +961,6 @@ namespace libtorrent
 		// will return the resume data in an alert
 		TORRENT_DEPRECATED
 		entry write_resume_data() const;
-		// ================ end deprecation ============
-#endif
 
 		// ``use_interface()`` sets the network interface this torrent will use
 		// when it opens outgoing connections. By default, it uses the same
@@ -971,7 +969,10 @@ namespace libtorrent
 		// IPv4 or IPv6 address). When specifying multiple interfaces, the
 		// torrent will round-robin which interface to use for each outgoing
 		// connection. This is useful for clients that are multi-homed.
+		TORRENT_DEPRECATED
 		void use_interface(const char* net_interface) const;
+		// ================ end deprecation ============
+#endif
 
 		// Fills the specified ``std::vector<int>`` with the availability for
 		// each piece in this torrent. libtorrent does not keep track of

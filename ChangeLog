@@ -46,6 +46,9 @@
 	* resume data no longer has timestamps of files
 	* require C++11 to build libtorrent
 
+	* fix socks5 support for UDP
+	* add setting urlseed_max_request_bytes to handle large web seed requests
+	* fix python build with CC/CXX environment
 	* add trackers from add_torrent_params/magnet links to separate tiers
 	* fix resumedata check issue with files with priority 0
 	* deprecated mmap_cache feature

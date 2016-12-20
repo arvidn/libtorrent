@@ -446,7 +446,9 @@ void udp_socket::bind(udp::endpoint const& ep, error_code& ec)
 	m_socket.io_control(ioc, ec);
 	if (ec) return;
 
-	m_bind_port = ep.port();
+	error_code err;
+	m_bind_port = m_socket.local_endpoint(err).port();
+	if (err) m_bind_port = ep.port();
 }
 
 void udp_socket::set_proxy_settings(aux::proxy_settings const& ps)
