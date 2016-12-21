@@ -65,15 +65,21 @@ TORRENT_TEST(create_directory)
 {
 	error_code ec;
 	create_directory("__foobar__", ec);
+	if (ec) std::printf("ERROR: create_directory: (%d) %s\n"
+		, ec.value(), ec.message().c_str());
 	TEST_CHECK(!ec);
 
 	file_status st;
 	stat_file("__foobar__", &st, ec);
+	if (ec) std::printf("ERROR: stat_file: (%d) %s\n"
+		, ec.value(), ec.message().c_str());
 	TEST_CHECK(!ec);
 
 	TEST_CHECK(st.mode & file_status::directory);
 
 	remove("__foobar__", ec);
+	if (ec) std::printf("ERROR: remove: (%d) %s\n"
+		, ec.value(), ec.message().c_str());
 	TEST_CHECK(!ec);
 }
 

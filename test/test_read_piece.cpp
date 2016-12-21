@@ -112,6 +112,8 @@ void test_read_piece(int flags)
 	if (flags & seed_mode)
 		p.flags |= add_torrent_params::flag_seed_mode;
 	torrent_handle tor1 = ses.add_torrent(p, ec);
+	if (ec) std::printf("ERROR: add_torrent: (%d) %s\n"
+		, ec.value(), ec.message().c_str());
 	TEST_CHECK(!ec);
 	TEST_CHECK(tor1.is_valid());
 
