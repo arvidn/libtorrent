@@ -2002,8 +2002,12 @@ namespace aux {
 		ADD_OUTSTANDING_ASYNC("session_impl::on_socks_listen");
 		socks5_stream& s = *m_socks_listen_socket->get<socks5_stream>();
 
-		m_socks_listen_port = listen_port();
-		if (m_socks_listen_port == 0) m_socks_listen_port = std::uint16_t(2000 + random(60000));
+		// figure out which port to ask the socks5 proxy to open or us.
+		m_socks_listen_port = (m_listen_sockets.empty()
+			|| m_settings.get_bool(settings_pack::anonymous_mode))
+			? std::uint16_t(2000 + random(60000))
+			: std::uint16_t(m_listen_sockets.front().tcp_external_port);
+
 		s.async_listen(tcp::endpoint(address_v4::any(), m_socks_listen_port)
 			, std::bind(&session_impl::on_socks_listen, this
 				, m_socks_listen_socket, _1));

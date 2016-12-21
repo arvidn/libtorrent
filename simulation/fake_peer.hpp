@@ -88,7 +88,7 @@ struct fake_peer
 
 		m_info_hash = ih;
 
-		boost::system::error_code ec;
+		std::printf("fake_peer::connect_to(%s)\n", lt::print_endpoint(ep).c_str());
 		m_socket.async_connect(ep, std::bind(&fake_peer::write_handshake
 			, this, _1, ih));
 	}
@@ -139,10 +139,10 @@ private:
 	{
 		using namespace std::placeholders;
 
-		asio::ip::tcp::endpoint const ep = m_socket.remote_endpoint();
-		std::printf("fake_peer::connect (%s) -> (%d) %s\n"
-			, lt::print_endpoint(ep).c_str(), ec.value()
-			, ec.message().c_str());
+		std::printf("fake_peer::connect() -> (%d) %s\n"
+			, ec.value(), ec.message().c_str());
+		if (ec) return;
+
 		static char const handshake[]
 		= "\x13" "BitTorrent protocol\0\0\0\0\0\0\0\x04"
 			"                    " // space for info-hash
@@ -151,6 +151,7 @@ private:
 		memcpy(m_out_buffer, handshake, len);
 		memcpy(&m_out_buffer[28], ih.data(), 20);
 
+		asio::ip::tcp::endpoint const ep = m_socket.remote_endpoint();
 		asio::async_write(m_socket, asio::const_buffers_1(&m_out_buffer[0]
 			, len), [this, ep](boost::system::error_code const& ec
 			, size_t /* bytes_transferred */)

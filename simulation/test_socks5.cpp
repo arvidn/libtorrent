@@ -324,7 +324,7 @@ TORRENT_TEST(udp_tracker)
 				tracker_alert = true;
 		},
 		[&](sim::simulation& sim, lt::session& ses
-			, boost::shared_ptr<lt::torrent_info> ti)
+			, std::shared_ptr<lt::torrent_info> ti)
 		{
 			// listen on port 8080
 			udp_server tracker(sim, "2.2.2.2", 8080,
