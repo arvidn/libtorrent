@@ -787,7 +787,7 @@ namespace libtorrent
 		std::memcpy(ptr, version_string, string_len);
 		ptr += string_len;
 		// 8 zeroes
-		memset(ptr, 0, 8);
+		std::memset(ptr, 0, 8);
 
 #ifndef TORRENT_DISABLE_DHT
 		// indicate that we support the DHT messages
@@ -2717,16 +2717,16 @@ namespace libtorrent
 			{
 				received_bytes(0, int(bytes_transferred));
 
-				std::size_t bytes_processed = int(recv_buffer.size()) - 20;
-				m_sync_bytes_read += int(bytes_processed);
+				int const bytes_processed = int(recv_buffer.size()) - 20;
+				m_sync_bytes_read += bytes_processed;
 				if (m_sync_bytes_read >= 512)
 				{
 					disconnect(errors::sync_hash_not_found, op_encryption, 1);
 					return;
 				}
 
-				m_recv_buffer.cut(int(bytes_processed), (std::min)(m_recv_buffer.packet_size()
-					, (512+20) - m_sync_bytes_read));
+				m_recv_buffer.cut(bytes_processed, std::min(m_recv_buffer.packet_size()
+					, (512 + 20) - m_sync_bytes_read));
 
 				TORRENT_ASSERT(!m_recv_buffer.packet_finished());
 				return;
@@ -2734,11 +2734,11 @@ namespace libtorrent
 			// found complete sync
 			else
 			{
-				std::size_t bytes_processed = syncoffset + 20;
+				int const bytes_processed = syncoffset + 20;
 #ifndef TORRENT_DISABLE_LOGGING
 				peer_log(peer_log_alert::info, "ENCRYPTION"
 					, "sync point (hash) found at offset %d"
-					, int(m_sync_bytes_read + bytes_processed - 20));
+					, m_sync_bytes_read + bytes_processed - 20);
 #endif
 				m_state = state_t::read_pe_skey_vc;
 				// skey,vc - 28 bytes
@@ -2747,7 +2747,7 @@ namespace libtorrent
 				TORRENT_ASSERT(transferred_used <= int(bytes_transferred));
 				received_bytes(0, transferred_used);
 				bytes_transferred -= transferred_used;
-				m_recv_buffer.cut(int(bytes_processed), 28);
+				m_recv_buffer.cut(bytes_processed, 28);
 			}
 		}
 
@@ -2854,8 +2854,8 @@ namespace libtorrent
 			// No sync
 			if (syncoffset == -1)
 			{
-				std::size_t bytes_processed = int(recv_buffer.size()) - 8;
-				m_sync_bytes_read += int(bytes_processed);
+				int const bytes_processed = int(recv_buffer.size()) - 8;
+				m_sync_bytes_read += bytes_processed;
 				received_bytes(0, int(bytes_transferred));
 
 				if (m_sync_bytes_read >= 512)
@@ -2864,26 +2864,26 @@ namespace libtorrent
 					return;
 				}
 
-				m_recv_buffer.cut(int(bytes_processed), (std::min)(m_recv_buffer.packet_size()
-					, (512+8) - m_sync_bytes_read));
+				m_recv_buffer.cut(bytes_processed, std::min(m_recv_buffer.packet_size()
+					, (512 + 8) - m_sync_bytes_read));
 
 				TORRENT_ASSERT(!m_recv_buffer.packet_finished());
 			}
 			// found complete sync
 			else
 			{
-				std::size_t bytes_processed = syncoffset + 8;
+				int const bytes_processed = syncoffset + 8;
 #ifndef TORRENT_DISABLE_LOGGING
 				peer_log(peer_log_alert::info, "ENCRYPTION"
 					, "sync point (verification constant) found at offset %d"
-					, int(m_sync_bytes_read + bytes_processed - 8));
+					, m_sync_bytes_read + bytes_processed - 8);
 #endif
 				int transferred_used = int(bytes_processed - int(recv_buffer.size()) + bytes_transferred);
 				TORRENT_ASSERT(transferred_used <= int(bytes_transferred));
 				received_bytes(0, transferred_used);
 				bytes_transferred -= transferred_used;
 
-				m_recv_buffer.cut(int(bytes_processed), 4 + 2);
+				m_recv_buffer.cut(bytes_processed, 4 + 2);
 
 				// delete verification constant
 				m_sync_vc.reset();
