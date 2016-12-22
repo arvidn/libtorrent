@@ -136,8 +136,8 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, nullptr
 		, true, false, true, "_priority", 8 * 1024, &t, false, nullptr);
 
-	int num_pieces = tor2.torrent_file()->num_pieces();
-	std::vector<int> priorities(num_pieces, 1);
+	int const num_pieces = tor2.torrent_file()->num_pieces();
+	aux::vector<int, piece_index_t> priorities(num_pieces, 1);
 	// set half of the pieces to priority 0
 	std::fill(priorities.begin(), priorities.begin() + (num_pieces / 2), 0);
 	tor2.prioritize_pieces(priorities);
@@ -416,10 +416,10 @@ TORRENT_TEST(no_metadata_file_prio)
 	addp.save_path = ".";
 	torrent_handle h = ses.add_torrent(addp);
 
-	h.file_priority(0, 0);
-	TEST_EQUAL(h.file_priority(0), 0);
-	h.file_priority(0, 1);
-	TEST_EQUAL(h.file_priority(0), 1);
+	h.file_priority(file_index_t(0), 0);
+	TEST_EQUAL(h.file_priority(file_index_t(0)), 0);
+	h.file_priority(file_index_t(0), 1);
+	TEST_EQUAL(h.file_priority(file_index_t(0)), 1);
 
 	ses.remove_torrent(h);
 }
@@ -437,10 +437,10 @@ TORRENT_TEST(no_metadata_piece_prio)
 	torrent_handle h = ses.add_torrent(addp);
 
 	// you can't set piece priorities before the metadata has been downloaded
-	h.piece_priority(2, 0);
-	TEST_EQUAL(h.piece_priority(2), 4);
-	h.piece_priority(2, 1);
-	TEST_EQUAL(h.piece_priority(2), 4);
+	h.piece_priority(piece_index_t(2), 0);
+	TEST_EQUAL(h.piece_priority(piece_index_t(2)), 4);
+	h.piece_priority(piece_index_t(2), 1);
+	TEST_EQUAL(h.piece_priority(piece_index_t(2)), 4);
 
 	ses.remove_torrent(h);
 }

@@ -3745,7 +3745,9 @@ namespace aux {
 	}
 
 	namespace {
+#ifndef TORRENT_DISABLE_EXTENSIONS
 		uint64_t const priority_undetermined = std::numeric_limits<uint64_t>::max() - 1;
+#endif
 
 		struct opt_unchoke_candidate
 		{

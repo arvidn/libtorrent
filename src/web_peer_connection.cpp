@@ -107,7 +107,7 @@ web_peer_connection::web_peer_connection(peer_connection_args const& pack
 
 		if (!m_url.empty() && m_url[m_url.size() - 1] == '/')
 		{
-			std::string tmp = t->torrent_file().files().file_path(0);
+			std::string tmp = t->torrent_file().files().file_path(file_index_t(0));
 #ifdef TORRENT_WINDOWS
 			convert_path_to_posix(tmp);
 #endif
@@ -143,22 +143,24 @@ void web_peer_connection::on_connected()
 		// and setting the pieces corresponding to files we have, we do it the
 		// other way around. Start with assuming we have all files, and clear
 		// pieces overlapping with files we *don't* have.
-		bitfield have;
+		typed_bitfield<piece_index_t> have;
 		file_storage const& fs = t->torrent_file().files();
 		have.resize(fs.num_pieces(), true);
-		int const num_files = m_web->have_files.size();
-		for (int i = 0; i < num_files; ++i)
+		for (file_index_t i(0); i != fs.end_file(); ++i)
 		{
 			// if we have the file, no need to do anything
 			if (m_web->have_files.get_bit(i) || fs.pad_file_at(i)) continue;
 
-			std::tuple<int, int> const range = aux::file_piece_range_inclusive(fs, i);
-			for (int k = std::get<0>(range); k < std::get<1>(range); ++k)
+			auto const range = aux::file_piece_range_inclusive(fs, i);
+			for (piece_index_t k = std::get<0>(range); k < std::get<1>(range); ++k)
 				have.clear_bit(k);
 		}
 		incoming_bitfield(have);
 	}
-	if (m_web->restart_request.piece != -1)
+
+	// TODO: 3 this should be an optional<piece_index_t>, piece index -1 should
+	// not be allowed
+	if (m_web->restart_request.piece != piece_index_t(-1))
 	{
 		// increase the chances of requesting the block
 		// we have partial data for already, to finish it
@@ -261,13 +263,15 @@ piece_block_progress web_peer_connection::downloading_piece_progress() const
 	int correction = m_piece.size() ? -1 : 0;
 	ret.block_index = int((m_requests.front().start + m_piece.size() + correction) / t->block_size());
 	TORRENT_ASSERT(ret.block_index < int(piece_block::invalid.block_index));
-	TORRENT_ASSERT(ret.piece_index < int(piece_block::invalid.piece_index));
+	TORRENT_ASSERT(ret.piece_index < piece_block::invalid.piece_index);
 
 	ret.full_block_bytes = t->block_size();
-	const int last_piece = t->torrent_file().num_pieces() - 1;
+	piece_index_t const last_piece = t->torrent_file().last_piece();
 	if (ret.piece_index == last_piece && ret.block_index
 		== t->torrent_file().piece_size(last_piece) / t->block_size())
+	{
 		ret.full_block_bytes = t->torrent_file().piece_size(last_piece) % t->block_size();
+	}
 	return ret;
 }
 
@@ -295,12 +299,12 @@ void web_peer_connection::write_request(peer_request const& r)
 		int request_offset = r.start + r.length - size;
 		pr.start = request_offset % piece_size;
 		pr.length = (std::min)(block_size, size);
-		pr.piece = r.piece + request_offset / piece_size;
+		pr.piece = piece_index_t(static_cast<int>(r.piece) + request_offset / piece_size);
 		m_requests.push_back(pr);
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::outgoing_message, "REQUESTING", "piece: %d start: %d len: %d"
-			, pr.piece, pr.start, pr.length);
+			, static_cast<int>(pr.piece), pr.start, pr.length);
 #endif
 
 		if (m_web->restart_request == m_requests.front())
@@ -313,7 +317,7 @@ void web_peer_connection::write_request(peer_request const& r)
 			if (should_log(peer_log_alert::info))
 			{
 				peer_log(peer_log_alert::info, "RESTART_DATA", "data: %d req: (%d, %d) size: %d"
-					, int(m_piece.size()), front.piece, front.start
+					, int(m_piece.size()), static_cast<int>(front.piece), front.start
 					, front.start + front.length - 1);
 			}
 #else
@@ -326,7 +330,7 @@ void web_peer_connection::write_request(peer_request const& r)
 			// just to keep the accounting straight for the upper layer.
 			// it doesn't know we just re-wrote the request
 			incoming_piece_fragment(int(m_piece.size()));
-			m_web->restart_request.piece = -1;
+			m_web->restart_request.piece = piece_index_t(-1);
 		}
 
 #if 0
@@ -351,8 +355,8 @@ void web_peer_connection::write_request(peer_request const& r)
 	if (single_file_request)
 	{
 		file_request_t file_req;
-		file_req.file_index = 0;
-		file_req.start = std::int64_t(req.piece) * info.piece_length()
+		file_req.file_index = file_index_t(0);
+		file_req.start = std::int64_t(static_cast<int>(req.piece)) * info.piece_length()
 			+ req.start;
 		file_req.length = req.length;
 
@@ -438,7 +442,8 @@ void web_peer_connection::write_request(peer_request const& r)
 				<< " s: " << f.offset
 				<< " e: " << (f.offset + f.size - 1) << std::endl;
 #endif
-			TORRENT_ASSERT(f.file_index >= 0);
+			// TODO: 3 file_index_t should not allow negative values
+			TORRENT_ASSERT(f.file_index >= file_index_t(0));
 
 			m_file_requests.push_back(file_req);
 		}
@@ -514,7 +519,7 @@ namespace {
 // RECEIVE DATA
 // --------------------------
 
-bool web_peer_connection::received_invalid_data(int index, bool single_peer)
+bool web_peer_connection::received_invalid_data(piece_index_t const index, bool single_peer)
 {
 	if (!single_peer) return peer_connection::received_invalid_data(index, single_peer);
 
@@ -538,11 +543,8 @@ bool web_peer_connection::received_invalid_data(int index, bool single_peer)
 	{
 		// assume the web seed has a different copy of this specific file
 		// than what we expect, and pretend not to have it.
-		int const fi = files[0].file_index;
-		int const first_piece = int(fs.file_offset(fi) / fs.piece_length());
-		// one past last piece
-		int const end_piece = int((fs.file_offset(fi) + fs.file_size(fi) + 1) / fs.piece_length());
-		for (int i = first_piece; i < end_piece; ++i)
+		auto const range = file_piece_range_inclusive(fs, files[0].file_index);
+		for (piece_index_t i = std::get<0>(range); i != std::get<1>(range); ++i)
 			incoming_dont_have(i);
 	}
 	else
@@ -615,7 +617,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 	if (!single_file_request)
 	{
 		TORRENT_ASSERT(!m_file_requests.empty());
-		int const file_index = m_file_requests.front().file_index;
+		file_index_t const file_index = m_file_requests.front().file_index;
 
 		location = resolve_redirect_location(m_url, location);
 #ifndef TORRENT_DISABLE_LOGGING
@@ -655,8 +657,8 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 				// connected to it. Make it advertise that it has this file to the
 				// bittorrent engine
 				file_storage const& fs = t->torrent_file().files();
-				std::tuple<int, int> const range = aux::file_piece_range_exclusive(fs, file_index);
-				for (int i = std::get<0>(range); i < std::get<1>(range); ++i)
+				auto const range = aux::file_piece_range_exclusive(fs, file_index);
+				for (piece_index_t i = std::get<0>(range); i < std::get<1>(range); ++i)
 					pc->incoming_have(i);
 			}
 		}
@@ -845,8 +847,8 @@ void web_peer_connection::on_receive(error_code const& error
 			{
 				peer_log(peer_log_alert::incoming, "INVALID HTTP RESPONSE"
 					, "in=(%d, %" PRId64 "-%" PRId64 ") expected=(%d, %" PRId64 "-%" PRId64 ") ]"
-					, file_req.file_index, range_start, range_end
-					, file_req.file_index, file_req.start, file_req.start + file_req.length - 1);
+					, static_cast<int>(file_req.file_index), range_start, range_end
+					, static_cast<int>(file_req.file_index), file_req.start, file_req.start + file_req.length - 1);
 			}
 #endif
 			disconnect(errors::invalid_range, op_bittorrent, 2);
@@ -1042,7 +1044,7 @@ void web_peer_connection::incoming_payload(char const* buf, int len)
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::incoming_message, "POP_REQUEST"
 				, "piece: %d start: %d len: %d"
-				, front_request.piece, front_request.start, front_request.length);
+				, static_cast<int>(front_request.piece), front_request.start, front_request.length);
 #endif
 
 			// Make a copy of the request and pop it off the queue before calling
@@ -1101,7 +1103,8 @@ void web_peer_connection::maybe_harvest_piece()
 #ifndef TORRENT_DISABLE_LOGGING
 	peer_log(peer_log_alert::incoming_message, "POP_REQUEST"
 		, "piece: %d start: %d len: %d"
-		, front_request.piece, front_request.start, front_request.length);
+		, static_cast<int>(front_request.piece)
+		, front_request.start, front_request.length);
 #endif
 	m_requests.pop_front();
 
@@ -1152,7 +1155,7 @@ void web_peer_connection::handle_padfile()
 			{
 				peer_log(peer_log_alert::info, "HANDLE_PADFILE"
 					, "file: %d start: %" PRId64 " len: %d"
-					, m_file_requests.front().file_index
+					, static_cast<int>(m_file_requests.front().file_index)
 					, m_file_requests.front().start
 					, m_file_requests.front().length);
 			}

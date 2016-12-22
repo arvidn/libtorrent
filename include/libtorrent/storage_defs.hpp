@@ -34,6 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_STORAGE_DEFS_HPP_INCLUDE
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/units.hpp"
+#include "libtorrent/aux_/vector.hpp"
 #include <functional>
 #include <string>
 #include <vector>
@@ -68,7 +70,7 @@ namespace libtorrent
 		std::string path;
 		file_pool* pool;
 		storage_mode_t mode;
-		std::vector<std::uint8_t> const* priorities; // optional
+		aux::vector<std::uint8_t, file_index_t> const* priorities; // optional
 		torrent_info const* info; // optional
 	};
 

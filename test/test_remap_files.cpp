@@ -93,23 +93,23 @@ void test_remap_files(storage_mode_t storage_mode = storage_mode_sparse)
 	torrent_handle tor1 = ses.add_torrent(params);
 
 	// write pieces
-	for (int i = 0; i < fs.num_pieces(); ++i)
+	for (piece_index_t i(0); i < fs.end_piece(); ++i)
 	{
-		std::vector<char> piece = generate_piece(i, fs.piece_size(i));
+		std::vector<char> const piece = generate_piece(i, fs.piece_size(i));
 		tor1.add_piece(i, piece.data());
 	}
 
 	// read pieces
-	for (int i = 0; i < fs.num_pieces(); ++i)
+	for (piece_index_t i(0); i < fs.end_piece(); ++i)
 	{
 		tor1.read_piece(i);
 	}
 
 	// wait for all alerts to come back and verify the data against the expected
 	// piece adata
-	std::vector<bool> pieces(fs.num_pieces(), false);
-	std::vector<bool> passed(fs.num_pieces(), false);
-	std::vector<bool> files(fs.num_files(), false);
+	aux::vector<bool, piece_index_t> pieces(fs.num_pieces(), false);
+	aux::vector<bool, piece_index_t> passed(fs.num_pieces(), false);
+	aux::vector<bool, file_index_t> files(fs.num_files(), false);
 
 	while (!all_of(pieces) || !all_of(passed) || !all_of(files))
 	{
@@ -126,7 +126,7 @@ void test_remap_files(storage_mode_t storage_mode = storage_mode_sparse)
 			read_piece_alert* rp = alert_cast<read_piece_alert>(i);
 			if (rp)
 			{
-				int const idx = rp->piece;
+				auto const idx = rp->piece;
 				TEST_EQUAL(t->piece_size(idx), rp->size);
 
 				std::vector<char> const piece = generate_piece(idx, t->piece_size(idx));
@@ -138,7 +138,7 @@ void test_remap_files(storage_mode_t storage_mode = storage_mode_sparse)
 			file_completed_alert* fc = alert_cast<file_completed_alert>(i);
 			if (fc)
 			{
-				int const idx = fc->index;
+				auto const idx = fc->index;
 				TEST_CHECK(files[idx] == false);
 				files[idx] = true;
 			}
@@ -146,7 +146,7 @@ void test_remap_files(storage_mode_t storage_mode = storage_mode_sparse)
 			piece_finished_alert* pf = alert_cast<piece_finished_alert>(i);
 			if (pf)
 			{
-				int const idx = pf->piece_index;
+				auto const idx = pf->piece_index;
 				TEST_CHECK(passed[idx] == false);
 				passed[idx] = true;
 			}
@@ -160,7 +160,7 @@ void test_remap_files(storage_mode_t storage_mode = storage_mode_sparse)
 	// just because we can read them back throught libtorrent, doesn't mean the
 	// files have hit disk yet (because of the cache). Retry a few times to try
 	// to pick up the files
-	for (int i = 0; i < num_new_files; ++i)
+	for (file_index_t i(0); i < file_index_t(num_new_files); ++i)
 	{
 		std::string name = fs.file_path(i);
 		for (int j = 0; j < 10 && !exists(name); ++j)

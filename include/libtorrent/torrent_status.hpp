@@ -126,28 +126,35 @@ namespace libtorrent
 #endif
 		error_code errc;
 
-		int error_file = torrent_status::error_file_none;
+		file_index_t error_file = torrent_status::error_file_none;
+
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#pragma warning(disable : 4268)
+#endif
 
 		// special values for error_file to describe which file or component
 		// encountered the error (``errc``).
-		enum error_file_t {
-			// the error did not occur on a file
-			error_file_none = -1,
+		// the error did not occur on a file
+		static constexpr file_index_t error_file_none{-1};
 
-			// the error occurred on m_url
-			error_file_url = -2,
+		// the error occurred on m_url
+		static constexpr file_index_t error_file_url{-2};
 
-			// the error occurred setting up the SSL context
-			error_file_ssl_ctx = -3,
+		// the error occurred setting up the SSL context
+		static constexpr file_index_t error_file_ssl_ctx{-3};
 
-			// the error occurred while loading the .torrent file via the user
-			// supplied load function
-			error_file_metadata = -4,
+		// the error occurred while loading the .torrent file via the user
+		// supplied load function
+		static constexpr file_index_t error_file_metadata{-4};
 
-			// there was a serious error reported in this torrent. The error code
-			// or a torrent log alert may provide more information.
-			error_file_exception = -5,
-		};
+		// there was a serious error reported in this torrent. The error code
+		// or a torrent log alert may provide more information.
+		static constexpr file_index_t error_file_exception{-5};
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 		// the path to the directory where this torrent's files are stored.
 		// It's typically the path as was given to async_add_torrent() or
@@ -223,12 +230,12 @@ namespace libtorrent
 		// a bitmask that represents which pieces we have (set to true) and the
 		// pieces we don't have. It's a pointer and may be set to 0 if the
 		// torrent isn't downloading or seeding.
-		bitfield pieces;
+		typed_bitfield<piece_index_t> pieces;
 
 		// a bitmask representing which pieces has had their hash checked. This
 		// only applies to torrents in *seed mode*. If the torrent is not in seed
 		// mode, this bitmask may be empty.
-		bitfield verified_pieces;
+		typed_bitfield<piece_index_t> verified_pieces;
 
 		// the total number of bytes of the file(s) that we have. All this does
 		// not necessarily has to be downloaded during this session (that's

@@ -239,8 +239,8 @@ namespace libtorrent
 		void write_request(peer_request const& r) override;
 		void write_cancel(peer_request const& r) override;
 		void write_bitfield() override;
-		void write_have(int index) override;
-		void write_dont_have(int index) override;
+		void write_have(piece_index_t index) override;
+		void write_dont_have(piece_index_t index) override;
 		void write_piece(peer_request const& r, disk_buffer_holder buffer) override;
 		void write_keepalive() override;
 		void write_handshake();
@@ -260,8 +260,8 @@ namespace libtorrent
 		void write_have_all();
 		void write_have_none();
 		void write_reject_request(peer_request const&) override;
-		void write_allow_fast(int piece) override;
-		void write_suggest(int piece) override;
+		void write_allow_fast(piece_index_t piece) override;
+		void write_suggest(piece_index_t piece) override;
 
 		void on_connected() override;
 		void on_metadata() override;

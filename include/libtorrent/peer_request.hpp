@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_PEER_REQUEST_HPP_INCLUDED
 #define TORRENT_PEER_REQUEST_HPP_INCLUDED
 
+#include "libtorrent/units.hpp"
+
 namespace libtorrent
 {
 
@@ -41,7 +43,7 @@ namespace libtorrent
 	struct TORRENT_EXPORT peer_request
 	{
 		// the index of the piece in which the range starts.
-		int piece;
+		piece_index_t piece;
 		// the offset within that piece where the range starts.
 		int start;
 		// the size of the range, in bytes.

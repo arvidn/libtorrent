@@ -79,7 +79,7 @@ namespace libtorrent
 			void operator()(disk_io_job::rename_handler& h) const
 			{
 				if (!h) return;
-				h(m_job.buffer.string, m_job.piece, m_job.error);
+				h(m_job.buffer.string, m_job.file_index, m_job.error);
 			}
 
 			void operator()(disk_io_job::clear_piece_handler& h) const
@@ -101,7 +101,7 @@ namespace libtorrent
 		d.io.offset = 0;
 		d.io.buffer_size = 0;
 		d.io.ref.storage = nullptr;
-		d.io.ref.piece = 0;
+		d.io.ref.piece = piece_index_t{0};
 		d.io.ref.block = 0;
 	}
 

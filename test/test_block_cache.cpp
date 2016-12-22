@@ -49,26 +49,26 @@ struct test_storage_impl : storage_interface
 	void initialize(storage_error& ec) override {}
 
 	int readv(span<file::iovec_t const> bufs
-		, int piece, int offset, int flags, storage_error& ec) override
+		, piece_index_t piece, int offset, int flags, storage_error& ec) override
 	{
 		return bufs_size(bufs);
 	}
 	int writev(span<file::iovec_t const> bufs
-		, int piece, int offset, int flags, storage_error& ec) override
+		, piece_index_t piece, int offset, int flags, storage_error& ec) override
 	{
 		return bufs_size(bufs);
 	}
 
 	bool has_any_file(storage_error& ec) override { return false; }
-	void set_file_priority(std::vector<std::uint8_t> const& prio
+	void set_file_priority(aux::vector<std::uint8_t, file_index_t> const& prio
 		, storage_error& ec) override {}
 	status_t move_storage(std::string const& save_path, int flags
 		, storage_error& ec) override { return status_t::no_error; }
 	bool verify_resume_data(add_torrent_params const& rd
-		, std::vector<std::string> const& links
+		, aux::vector<std::string, file_index_t> const& links
 		, storage_error& ec) override { return true; }
 	void release_files(storage_error& ec) override {}
-	void rename_file(int index, std::string const& new_filename
+	void rename_file(file_index_t index, std::string const& new_filename
 		, storage_error& ec) override {}
 	void delete_files(int, storage_error& ec) override {}
 };
@@ -120,7 +120,7 @@ static void nop() {}
 	wj.action = disk_io_job::write; \
 	wj.d.io.offset = (b) * 0x4000; \
 	wj.d.io.buffer_size = 0x4000; \
-	wj.piece = p; \
+	wj.piece = piece_index_t(p); \
 	wj.buffer.disk_block = bc.allocate_buffer("write-test"); \
 	pe = bc.add_dirty_block(&wj)
 
@@ -128,7 +128,7 @@ static void nop() {}
 	rj.action = disk_io_job::read; \
 	rj.d.io.offset = (b) * 0x4000; \
 	rj.d.io.buffer_size = 0x4000; \
-	rj.piece = p; \
+	rj.piece = piece_index_t(p); \
 	rj.storage = pm; \
 	rj.requester = (void*)(r); \
 	rj.buffer.disk_block = 0; \
@@ -148,7 +148,7 @@ static void nop() {}
 	bc.blocks_flushed(pe, flushing, sizeof(flushing)/sizeof((flushing)[0]))
 
 #define INSERT(p, b) \
-	wj.piece = p; \
+	wj.piece = piece_index_t(p); \
 	wj.requester = (void*)1; \
 	pe = bc.allocate_piece(&wj, cached_piece_entry::read_lru1); \
 	ret = bc.allocate_iovec(iov); \
@@ -431,7 +431,7 @@ void test_unaligned_read()
 	rj.action = disk_io_job::read;
 	rj.d.io.offset = 0x2000;
 	rj.d.io.buffer_size = 0x4000;
-	rj.piece = 0;
+	rj.piece = piece_index_t(0);
 	rj.storage = pm;
 	rj.requester = (void*)1;
 	rj.buffer.disk_block = nullptr;

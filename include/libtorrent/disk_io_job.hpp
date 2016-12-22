@@ -39,6 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/block_cache_reference.hpp"
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/disk_interface.hpp"
+#include "libtorrent/aux_/vector.hpp"
+#include "libtorrent/units.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/variant/variant.hpp>
@@ -77,7 +79,7 @@ namespace libtorrent
 
 		void call_callback();
 
-		enum action_t
+		enum action_t : std::uint8_t
 		{
 			read
 			, write
@@ -135,7 +137,7 @@ namespace libtorrent
 			char* disk_block;
 			char* string;
 			add_torrent_params const* check_resume_data;
-			std::vector<std::uint8_t>* priorities;
+			aux::vector<std::uint8_t, file_index_t>* priorities;
 			int delete_options;
 		} buffer;
 
@@ -147,12 +149,12 @@ namespace libtorrent
 		using read_handler = std::function<void(aux::block_cache_reference ref
 			, char* block, int flags, storage_error const& se)>;
 		using write_handler = std::function<void(storage_error const&)>;
-		using hash_handler = std::function<void(int, sha1_hash const&, storage_error const&)>;
+		using hash_handler = std::function<void(piece_index_t, sha1_hash const&, storage_error const&)>;
 		using move_handler = std::function<void(status_t, std::string const&, storage_error const&)>;
 		using release_handler = std::function<void()>;
 		using check_handler = std::function<void(status_t, storage_error const&)>;
-		using rename_handler = std::function<void(std::string const&, int, storage_error const&)>;
-		using clear_piece_handler = std::function<void(int)>;
+		using rename_handler = std::function<void(std::string const&, file_index_t, storage_error const&)>;
+		using clear_piece_handler = std::function<void(piece_index_t)>;
 
 		boost::variant<read_handler
 			, write_handler
@@ -177,7 +179,7 @@ namespace libtorrent
 			// to create. Each element corresponds to a file in the file_storage.
 			// The string is the absolute path of the identical file to create
 			// the hard link to.
-			std::vector<std::string>* links;
+			aux::vector<std::string, file_index_t>* links;
 
 			struct io_args
 			{
@@ -206,10 +208,13 @@ namespace libtorrent
 
 		// arguments used for read and write
 		// the piece this job applies to
-		std::uint32_t piece:24;
+		union {
+			piece_index_t piece;
+			file_index_t file_index;
+		};
 
 		// the type of job this is
-		std::uint32_t action:8;
+		action_t action;
 
 		// return value of operation
 		status_t ret = status_t::no_error;

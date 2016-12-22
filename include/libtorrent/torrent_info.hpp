@@ -211,7 +211,7 @@ namespace libtorrent
 		// == true``), then the file is detached from the ``save_path`` of the
 		// torrent. In this case the file is not moved when move_storage() is
 		// invoked.
-		void rename_file(int index, std::string const& new_filename)
+		void rename_file(file_index_t index, std::string const& new_filename)
 		{
 			TORRENT_ASSERT(is_loaded());
 			if (m_files.file_path(index) == new_filename) return;
@@ -224,7 +224,7 @@ namespace libtorrent
 		// instead, use the wchar -> utf8 conversion functions
 		// and pass in utf8 strings
 		TORRENT_DEPRECATED
-		void rename_file(int index, std::wstring const& new_filename);
+		void rename_file(file_index_t index, std::wstring const& new_filename);
 #endif // TORRENT_USE_WSTRING
 #endif // TORRENT_NO_DEPRECATE
 
@@ -314,6 +314,16 @@ namespace libtorrent
 		int piece_length() const { return m_files.piece_length(); }
 		int num_pieces() const { return m_files.num_pieces(); }
 
+		// ``last_piece()`` returns the index to the last piece in the torrent and
+		// ``end_piece()`` returns the index to the one-past-end piece in the
+		// torrent
+		piece_index_t last_piece() const { return piece_index_t(m_files.num_pieces() - 1); }
+		piece_index_t end_piece() const
+		{
+			TORRENT_ASSERT(m_files.num_pieces() > 0);
+			return piece_index_t(m_files.num_pieces());
+		}
+
 		// returns the info-hash of the torrent
 		const sha1_hash& info_hash() const { return m_info_hash; }
 
@@ -355,7 +365,8 @@ namespace libtorrent
 		// This function will map a piece index, a byte offset within that piece
 		// and a size (in bytes) into the corresponding files with offsets where
 		// that data for that piece is supposed to be stored. See file_slice.
-		std::vector<file_slice> map_block(int piece, std::int64_t offset, int size) const
+		std::vector<file_slice> map_block(piece_index_t const piece
+			, std::int64_t offset, int size) const
 		{
 			TORRENT_ASSERT(is_loaded());
 			return m_files.map_block(piece, offset, size);
@@ -369,7 +380,7 @@ namespace libtorrent
 		// ``file_offset`` + ``size`` is not allowed to be greater than the file
 		// size. ``file_index`` must refer to a valid file, i.e. it cannot be >=
 		// ``num_files()``.
-		peer_request map_file(int file, std::int64_t offset, int size) const
+		peer_request map_file(file_index_t const file, std::int64_t offset, int size) const
 		{
 			TORRENT_ASSERT(is_loaded());
 			return m_files.map_file(file, offset, size);
@@ -412,25 +423,26 @@ namespace libtorrent
 		// sha1-hash for the info-section of the torrent file.
 		// ``hash_for_piece_ptr()`` returns a pointer to the 20 byte sha1 digest
 		// for the piece. Note that the string is not 0-terminated.
-		int piece_size(int index) const { return m_files.piece_size(index); }
-		sha1_hash hash_for_piece(int index) const;
-		char const* hash_for_piece_ptr(int const index) const
+		int piece_size(piece_index_t index) const { return m_files.piece_size(index); }
+		sha1_hash hash_for_piece(piece_index_t index) const;
+		char const* hash_for_piece_ptr(piece_index_t const index) const
 		{
-			TORRENT_ASSERT(index >= 0);
-			TORRENT_ASSERT(index < m_files.num_pieces());
+			TORRENT_ASSERT(index >= piece_index_t(0));
+			TORRENT_ASSERT(index < m_files.end_piece());
 			TORRENT_ASSERT(is_loaded());
+			int const idx = static_cast<int>(index);
 			if (is_merkle_torrent())
 			{
-				TORRENT_ASSERT(index < int(m_merkle_tree.size() - m_merkle_first_leaf));
-				return m_merkle_tree[m_merkle_first_leaf + index].data();
+				TORRENT_ASSERT(idx < int(m_merkle_tree.size() - m_merkle_first_leaf));
+				return m_merkle_tree[m_merkle_first_leaf + idx].data();
 			}
 			else
 			{
 				TORRENT_ASSERT(m_piece_hashes);
 				TORRENT_ASSERT(m_piece_hashes >= m_info_section.get());
 				TORRENT_ASSERT(m_piece_hashes < m_info_section.get() + m_info_section_size);
-				TORRENT_ASSERT(index < int(m_info_section_size / 20));
-				return &m_piece_hashes[index * 20];
+				TORRENT_ASSERT(idx < int(m_info_section_size / 20));
+				return &m_piece_hashes[idx * 20];
 			}
 		}
 
@@ -506,8 +518,8 @@ namespace libtorrent
 
 		// internal
 		bool add_merkle_nodes(std::map<int, sha1_hash> const& subtree
-			, int piece);
-		std::map<int, sha1_hash> build_merkle_list(int piece) const;
+			, piece_index_t piece);
+		std::map<int, sha1_hash> build_merkle_list(piece_index_t piece) const;
 
 		// returns whether or not this is a merkle torrent.
 		// see BEP30__.

@@ -144,13 +144,13 @@ void prioritize_pieces(torrent_handle& info, object o)
 
    // determine which overload should be selected. the one taking a list of
    // priorities or the one taking a list of piece -> priority mappings
-   bool const is_piece_list = extract<std::pair<int, int>>(*begin).check();
+   bool const is_piece_list = extract<std::pair<piece_index_t, int>>(*begin).check();
 
    if (is_piece_list)
    {
-      std::vector<std::pair<int, int>> piece_list;
+      std::vector<std::pair<piece_index_t, int>> piece_list;
       std::transform(begin, end, std::back_inserter(piece_list)
-         , &extract_fn<std::pair<int, int>>);
+         , &extract_fn<std::pair<piece_index_t, int>>);
       info.prioritize_pieces(piece_list);
    }
    else
@@ -179,12 +179,12 @@ list file_priorities(torrent_handle& handle)
     return ret;
 }
 
-int file_prioritity0(torrent_handle& h, int index)
+int file_prioritity0(torrent_handle& h, file_index_t index)
 {
    return h.file_priority(index);
 }
 
-void file_prioritity1(torrent_handle& h, int index, int prio)
+void file_prioritity1(torrent_handle& h, file_index_t index, int prio)
 {
    return h.file_priority(index, prio);
 }
@@ -335,7 +335,7 @@ std::shared_ptr<torrent_info> get_torrent_info(torrent_handle const& h)
 
 #endif // TORRENT_NO_DEPRECAE
 
-void add_piece(torrent_handle& th, int piece, char const *data, int flags)
+void add_piece(torrent_handle& th, piece_index_t piece, char const *data, int flags)
 {
    th.add_piece(piece, data, flags);
 }
@@ -350,15 +350,15 @@ void bind_torrent_handle()
 #endif
     void (torrent_handle::*super_seeding1)(bool) const = &torrent_handle::super_seeding;
 
-    int (torrent_handle::*piece_priority0)(int) const = &torrent_handle::piece_priority;
-    void (torrent_handle::*piece_priority1)(int, int) const = &torrent_handle::piece_priority;
+    int (torrent_handle::*piece_priority0)(piece_index_t) const = &torrent_handle::piece_priority;
+    void (torrent_handle::*piece_priority1)(piece_index_t, int) const = &torrent_handle::piece_priority;
 
     void (torrent_handle::*move_storage0)(std::string const&, int flags) const = &torrent_handle::move_storage;
-    void (torrent_handle::*rename_file0)(int, std::string const&) const = &torrent_handle::rename_file;
+    void (torrent_handle::*rename_file0)(file_index_t, std::string const&) const = &torrent_handle::rename_file;
 
 #if TORRENT_USE_WSTRING && !defined TORRENT_NO_DEPRECATE
     void (torrent_handle::*move_storage1)(std::wstring const&, int flags) const = &torrent_handle::move_storage;
-    void (torrent_handle::*rename_file1)(int, std::wstring const&) const = &torrent_handle::rename_file;
+    void (torrent_handle::*rename_file1)(file_index_t, std::wstring const&) const = &torrent_handle::rename_file;
 #endif
 
 #define _ allow_threads

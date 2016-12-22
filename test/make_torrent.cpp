@@ -176,15 +176,15 @@ void generate_files(libtorrent::torrent_info const& ti, std::string const& path
 
 	default_storage st(params);
 
-	int const num_pieces = ti.num_pieces();
-
+	file_storage const& fs = ti.files();
 	std::vector<char> buffer;
-	for (int i = 0; i < num_pieces; ++i)
+	for (piece_index_t i(0); i < fs.end_piece(); ++i)
 	{
 		int const piece_size = ti.piece_size(i);
 		buffer.resize(ti.piece_length());
 
-		std::uint8_t const data = std::uint8_t((alternate_data ? 255 - i : i) & 0xff);
+		std::uint8_t const data = std::uint8_t((alternate_data
+			? 255 - static_cast<int>(i) : static_cast<int>(i)) & 0xff);
 		for (int o = 0; o < piece_size; ++o)
 		{
 			memcpy(&buffer[o], &data, 1);

@@ -70,7 +70,7 @@ TORRENT_TEST(part_file)
 		for (int i = 0; i < 1024; ++i) buf[i] = i;
 
 		file::iovec_t v = {&buf, 1024};
-		pf.writev(v, 10, 0, ec);
+		pf.writev(v, piece_index_t(10), 0, ec);
 		if (ec) std::printf("part_file::writev: %s\n", ec.message().c_str());
 
 		pf.flush_metadata(ec);
@@ -88,7 +88,7 @@ TORRENT_TEST(part_file)
 
 		memset(buf, 0, sizeof(buf));
 
-		pf.readv(v, 10, 0, ec);
+		pf.readv(v, piece_index_t(10), 0, ec);
 		if (ec) std::printf("part_file::readv: %s\n", ec.message().c_str());
 
 		for (int i = 0; i < 1024; ++i)
@@ -102,7 +102,7 @@ TORRENT_TEST(part_file)
 		memset(buf, 0, sizeof(buf));
 
 		file::iovec_t v = {&buf, 1024};
-		pf.readv(v, 10, 0, ec);
+		pf.readv(v, piece_index_t(10), 0, ec);
 		if (ec) std::printf("part_file::readv: %s\n", ec.message().c_str());
 
 		for (int i = 0; i < 1024; ++i)
@@ -118,7 +118,7 @@ TORRENT_TEST(part_file)
 		pf.export_file(output, 10 * piece_size, 1024, ec);
 		if (ec) std::printf("export_file: %s\n", ec.message().c_str());
 
-		pf.free_piece(10);
+		pf.free_piece(piece_index_t(10));
 
 		pf.flush_metadata(ec);
 		if (ec) std::printf("flush_metadata: %s\n", ec.message().c_str());

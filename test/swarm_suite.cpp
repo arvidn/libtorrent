@@ -135,9 +135,9 @@ void test_swarm(int flags)
 
 	if (flags & time_critical)
 	{
-		tor2.set_piece_deadline(2, 0);
-		tor2.set_piece_deadline(5, 1000);
-		tor2.set_piece_deadline(8, 2000);
+		tor2.set_piece_deadline(piece_index_t(2), 0);
+		tor2.set_piece_deadline(piece_index_t(5), 1000);
+		tor2.set_piece_deadline(piece_index_t(8), 2000);
 	}
 
 	float sum_dl_rate2 = 0.f;

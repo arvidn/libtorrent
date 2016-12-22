@@ -124,11 +124,11 @@ void test_read_piece(int flags)
 
 	if (flags & time_critical)
 	{
-		tor1.set_piece_deadline(1, 0, torrent_handle::alert_when_available);
+		tor1.set_piece_deadline(piece_index_t(1), 0, torrent_handle::alert_when_available);
 	}
 	else
 	{
-		tor1.read_piece(1);
+		tor1.read_piece(piece_index_t(1));
 	}
 
 	a = wait_for_alert(ses, read_piece_alert::alert_type, "ses");
@@ -140,7 +140,7 @@ void test_read_piece(int flags)
 		TEST_CHECK(rp);
 		if (rp)
 		{
-			TEST_EQUAL(rp->piece, 1);
+			TEST_EQUAL(rp->piece, piece_index_t(1));
 		}
 	}
 

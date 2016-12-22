@@ -40,6 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/file_storage.hpp"
+#include "libtorrent/units.hpp"
+#include "libtorrent/aux_/vector.hpp"
 
 namespace libtorrent
 {
@@ -52,10 +54,10 @@ namespace libtorrent
 
 		// returns the size of the file unless an error occurs, in which case ec
 		// is set to indicate the error
-		std::int64_t get_filesize(int i, file_storage const& fs
+		std::int64_t get_filesize(file_index_t i, file_storage const& fs
 			, std::string const& save_path, error_code& ec);
 
-		void set_dirty(int i);
+		void set_dirty(file_index_t i);
 
 		void clear();
 
@@ -67,8 +69,8 @@ namespace libtorrent
 		};
 
 		// internal
-		void set_cache(int i, std::int64_t size);
-		void set_error(int i, error_code const& ec);
+		void set_cache(file_index_t i, std::int64_t size);
+		void set_error(file_index_t i, error_code const& ec);
 
 	private:
 
@@ -89,7 +91,7 @@ namespace libtorrent
 		};
 
 		// one entry per file
-		std::vector<stat_cache_t> m_stat_cache;
+		aux::vector<stat_cache_t, file_index_t> m_stat_cache;
 
 		// These are the errors that have happened when stating files. Each entry
 		// that had an error, refers to an index into this vector.

@@ -110,7 +110,7 @@ TORRENT_TEST(resolve_links)
 		resolve_links l(ti1);
 		l.match(ti2, ".");
 
-		std::vector<resolve_links::link_t> const& links = l.get_links();
+		aux::vector<resolve_links::link_t, file_index_t> const& links = l.get_links();
 
 		std::string::size_type num_matches = std::count_if(links.begin(), links.end()
 			, std::bind(&resolve_links::link_t::ti, _1));
@@ -119,14 +119,15 @@ TORRENT_TEST(resolve_links)
 		if (num_matches > e.expected_matches)
 		{
 			file_storage const& fs = ti1->files();
-			for (int i = 0; i < int(links.size()); ++i)
+			for (file_index_t i{0}; i != links.end_index(); ++i)
 			{
-				TORRENT_ASSERT(i < fs.num_files());
+				TORRENT_ASSERT(i < file_index_t{fs.num_files()});
 				std::printf("%*s --> %s : %d\n"
 					, int(fs.file_name(i).size())
 					, fs.file_name(i).data()
-					, links[i].ti ? aux::to_hex(links[i].ti->info_hash()).c_str()
-					: "", links[i].file_idx);
+					, links[i].ti
+					? aux::to_hex(links[i].ti->info_hash()).c_str()
+					: "", static_cast<int>(links[i].file_idx));
 			}
 		}
 
@@ -150,7 +151,7 @@ TORRENT_TEST(range_lookup_duplicated_files)
 	libtorrent::create_torrent t1(fs1, 1024);
 	libtorrent::create_torrent t2(fs2, 1024);
 
-	t1.set_hash(0, sha1_hash::max());
+	t1.set_hash(piece_index_t{0}, sha1_hash::max());
 
 	std::vector<char> tmp1;
 	std::vector<char> tmp2;
@@ -164,7 +165,7 @@ TORRENT_TEST(range_lookup_duplicated_files)
 	resolve_links l(ti1);
 	l.match(ti2, ".");
 
-	std::vector<resolve_links::link_t> const& links = l.get_links();
+	aux::vector<resolve_links::link_t, file_index_t> const& links = l.get_links();
 
 	std::string::size_type num_matches = std::count_if(links.begin(), links.end()
 		, std::bind(&resolve_links::link_t::ti, _1));

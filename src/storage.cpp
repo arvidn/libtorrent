@@ -219,7 +219,7 @@ namespace libtorrent
 			, m_flags(flags)
 		{}
 
-		int file_op(int const file_index
+		int file_op(file_index_t const file_index
 			, std::int64_t const file_offset
 			, span<file::iovec_t const> bufs, storage_error& ec)
 			final
@@ -230,7 +230,7 @@ namespace libtorrent
 				return bufs_size(bufs);
 			}
 
-			if (file_index < int(m_storage.m_file_priority.size())
+			if (file_index < m_storage.m_file_priority.end_index()
 				&& m_storage.m_file_priority[file_index] == 0)
 			{
 				m_storage.need_partfile();
@@ -244,7 +244,7 @@ namespace libtorrent
 				if (e)
 				{
 					ec.ec = e;
-					ec.file = file_index;
+					ec.file(file_index);
 					ec.operation = storage_error::partfile_write;
 					return -1;
 				}
@@ -289,7 +289,7 @@ namespace libtorrent
 			if (e)
 			{
 				ec.ec = e;
-				ec.file = file_index;
+				ec.file(file_index);
 				return -1;
 			}
 
@@ -307,7 +307,7 @@ namespace libtorrent
 			, m_flags(flags)
 		{}
 
-		int file_op(int const file_index
+		int file_op(file_index_t const file_index
 			, std::int64_t const file_offset
 			, span<file::iovec_t const> bufs, storage_error& ec)
 			final
@@ -319,7 +319,7 @@ namespace libtorrent
 				return bufs_size(bufs);
 			}
 
-			if (file_index < int(m_storage.m_file_priority.size())
+			if (file_index < m_storage.m_file_priority.end_index()
 				&& m_storage.m_file_priority[file_index] == 0)
 			{
 				m_storage.need_partfile();
@@ -333,7 +333,7 @@ namespace libtorrent
 				if (e)
 				{
 					ec.ec = e;
-					ec.file = file_index;
+					ec.file(file_index);
 					ec.operation = storage_error::partfile_read;
 					return -1;
 				}
@@ -374,7 +374,7 @@ namespace libtorrent
 			if (e)
 			{
 				ec.ec = e;
-				ec.file = file_index;
+				ec.file(file_index);
 				return -1;
 			}
 
@@ -420,7 +420,9 @@ namespace libtorrent
 			, m_files.num_pieces(), m_files.piece_length()));
 	}
 
-	void default_storage::set_file_priority(std::vector<std::uint8_t> const& prio, storage_error& ec)
+	void default_storage::set_file_priority(
+		aux::vector<std::uint8_t, file_index_t> const& prio
+		, storage_error& ec)
 	{
 		// extend our file priorities in case it's truncated
 		// the default assumed priority is 1
@@ -428,7 +430,7 @@ namespace libtorrent
 			m_file_priority.resize(prio.size(), 1);
 
 		file_storage const& fs = files();
-		for (int i = 0; i < int(prio.size()); ++i)
+		for (file_index_t i(0); i < prio.end_index(); ++i)
 		{
 			int const old_prio = m_file_priority[i];
 			int new_prio = prio[i];
@@ -443,7 +445,7 @@ namespace libtorrent
 				m_part_file->export_file(*f, fs.file_offset(i), fs.file_size(i), ec.ec);
 				if (ec)
 				{
-					ec.file = i;
+					ec.file(i);
 					ec.operation = storage_error::partfile_write;
 					return;
 				}
@@ -468,7 +470,7 @@ namespace libtorrent
 					m_part_file->import_file(*f, fs.file_offset(i), fs.file_size(i), ec.ec);
 					if (ec)
 					{
-						ec.file = i;
+						ec.file(i);
 						ec.operation = storage_error::partfile_read;
 						return;
 					}
@@ -477,7 +479,7 @@ namespace libtorrent
 					delete_one_file(p, ec.ec);
 					if (ec)
 					{
-						ec.file = i;
+						ec.file(i);
 						ec.operation = storage_error::remove;
 					}
 				}
@@ -489,7 +491,7 @@ namespace libtorrent
 		if (m_part_file) m_part_file->flush_metadata(ec.ec);
 		if (ec)
 		{
-			ec.file = -1;
+			ec.file(file_index_t(-1));
 			ec.operation = storage_error::partfile_write;
 		}
 	}
@@ -515,10 +517,11 @@ namespace libtorrent
 
 		// first, create all missing directories
 		std::string last_path;
-		for (int file_index = 0; file_index < files().num_files(); ++file_index)
+		file_storage const& fs = files();
+		for (file_index_t file_index(0); file_index < fs.end_file(); ++file_index)
 		{
 			// ignore files that have priority 0
-			if (int(m_file_priority.size()) > file_index
+			if (m_file_priority.end_index() > file_index
 				&& m_file_priority[file_index] == 0)
 			{
 				continue;
@@ -533,7 +536,7 @@ namespace libtorrent
 
 			if (err && err != boost::system::errc::no_such_file_or_directory)
 			{
-				ec.file = file_index;
+				ec.file(file_index);
 				ec.operation = storage_error::stat;
 				ec.ec = err;
 				break;
@@ -555,7 +558,7 @@ namespace libtorrent
 					create_directories(last_path, ec.ec);
 					if (ec.ec)
 					{
-						ec.file = file_index;
+						ec.file(file_index);
 						ec.operation = storage_error::mkdir;
 						break;
 					}
@@ -565,7 +568,7 @@ namespace libtorrent
 					| file::random_access, ec);
 				if (ec)
 				{
-					ec.file = file_index;
+					ec.file(file_index);
 					ec.operation = storage_error::fallocate;
 					return;
 				}
@@ -574,7 +577,7 @@ namespace libtorrent
 				f->set_size(size, ec.ec);
 				if (ec)
 				{
-					ec.file = file_index;
+					ec.file(file_index);
 					ec.operation = storage_error::fallocate;
 					break;
 				}
@@ -594,7 +597,8 @@ namespace libtorrent
 	{
 		m_stat_cache.reserve(files().num_files());
 
-		for (int i = 0; i < files().num_files(); ++i)
+		file_storage const& fs = files();
+		for (file_index_t i(0); i < fs.end_file(); ++i)
 		{
 			std::int64_t const sz = m_stat_cache.get_filesize(
 				i, files(), m_save_path, ec.ec);
@@ -603,7 +607,7 @@ namespace libtorrent
 			{
 				if (ec && ec.ec != boost::system::errc::no_such_file_or_directory)
 				{
-					ec.file = i;
+					ec.file(i);
 					ec.operation = storage_error::stat;
 					m_stat_cache.clear();
 					return false;
@@ -624,17 +628,17 @@ namespace libtorrent
 
 		if (ec)
 		{
-			ec.file = -1;
+			ec.file(file_index_t(-1));
 			ec.operation = storage_error::stat;
 			return false;
 		}
 		return false;
 	}
 
-	void default_storage::rename_file(int const index, std::string const& new_filename
+	void default_storage::rename_file(file_index_t const index, std::string const& new_filename
 		, storage_error& ec)
 	{
-		if (index < 0 || index >= files().num_files()) return;
+		if (index < file_index_t(0) || index >= files().end_file()) return;
 		std::string old_name = files().file_path(index, m_save_path);
 		m_pool.release(this, index);
 
@@ -661,7 +665,7 @@ namespace libtorrent
 			create_directories(new_dir, ec.ec);
 			if (ec.ec)
 			{
-				ec.file = index;
+				ec.file(index);
 				ec.operation = storage_error::rename;
 				return;
 			}
@@ -676,7 +680,7 @@ namespace libtorrent
 
 			if (ec)
 			{
-				ec.file = index;
+				ec.file(index);
 				ec.operation = storage_error::rename;
 				return;
 			}
@@ -684,7 +688,7 @@ namespace libtorrent
 		else if (ec.ec)
 		{
 			// if exists fails, report that error
-			ec.file = index;
+			ec.file(index);
 			ec.operation = storage_error::rename;
 			return;
 		}
@@ -764,11 +768,12 @@ namespace libtorrent
 			// delete the files from disk
 			std::set<std::string> directories;
 			using iter_t = std::set<std::string>::iterator;
-			for (int i = 0; i < files().num_files(); ++i)
+			file_storage const& fs = files();
+			for (file_index_t i(0); i < fs.end_file(); ++i)
 			{
 				std::string const fp = files().file_path(i);
 				bool const complete = files().file_absolute_path(i);
-				std::string p = complete ? fp : combine_path(m_save_path, fp);
+				std::string const p = complete ? fp : combine_path(m_save_path, fp);
 				if (!complete)
 				{
 					std::string bp = parent_path(fp);
@@ -781,18 +786,23 @@ namespace libtorrent
 					}
 				}
 				delete_one_file(p, ec.ec);
-				if (ec) { ec.file = i; ec.operation = storage_error::remove; }
+				if (ec) { ec.file(i); ec.operation = storage_error::remove; }
 			}
 
 			// remove the directories. Reverse order to delete
 			// subdirectories first
 
-			for (std::set<std::string>::reverse_iterator i = directories.rbegin()
+			for (auto i = directories.rbegin()
 				, end(directories.rend()); i != end; ++i)
 			{
 				error_code error;
 				delete_one_file(*i, error);
-				if (error && !ec) { ec.file = -1; ec.ec = error; ec.operation = storage_error::remove; }
+				if (error && !ec)
+				{
+					ec.file(file_index_t(-1));
+					ec.ec = error;
+					ec.operation = storage_error::remove;
+				}
 			}
 		}
 
@@ -805,7 +815,7 @@ namespace libtorrent
 				, m_save_path.c_str(), m_part_file_name.c_str(), error.message().c_str());
 			if (error && error != boost::system::errc::no_such_file_or_directory)
 			{
-				ec.file = -1;
+				ec.file(file_index_t(-1));
 				ec.ec = error;
 				ec.operation = storage_error::remove;
 			}
@@ -820,7 +830,7 @@ namespace libtorrent
 	}
 
 	bool default_storage::verify_resume_data(add_torrent_params const& rd
-		, std::vector<std::string> const& links
+		, aux::vector<std::string, file_index_t> const& links
 		, storage_error& ec)
 	{
 		file_storage const& fs = files();
@@ -836,7 +846,7 @@ namespace libtorrent
 			// moved. If so, we just fail. The user is responsible to not touch
 			// other torrents until a new mutable torrent has been completely
 			// added.
-			for (int idx = 0; idx < fs.num_files(); idx++)
+			for (file_index_t idx(0); idx < fs.end_file(); ++idx)
 			{
 				std::string const& s = links[idx];
 				if (s.empty()) continue;
@@ -853,7 +863,7 @@ namespace libtorrent
 					continue;
 
 				ec.ec = err;
-				ec.file = idx;
+				ec.file(idx);
 				ec.operation = storage_error::hard_link;
 				return false;
 			}
@@ -864,19 +874,19 @@ namespace libtorrent
 
 		// parse have bitmask. Verify that the files we expect to have
 		// actually do exist
-		for (int i = 0; i < rd.have_pieces.size(); ++i)
+		for (piece_index_t i(0); i < piece_index_t(rd.have_pieces.size()); ++i)
 		{
 			if (rd.have_pieces.get_bit(i) == false) continue;
 
 			std::vector<file_slice> f = fs.map_block(i, 0, 1);
 			TORRENT_ASSERT(!f.empty());
 
-			int const file_index = f[0].file_index;
+			file_index_t const file_index = f[0].file_index;
 
 			// files with priority zero may not have been saved to disk at their
 			// expected location, but is likely to be in a partfile. Just exempt it
 			// from checking
-			if (file_index < int(m_file_priority.size())
+			if (file_index < m_file_priority.end_index()
 				&& m_file_priority[file_index] == 0)
 				continue;
 
@@ -889,14 +899,14 @@ namespace libtorrent
 				if (error != boost::system::errc::no_such_file_or_directory)
 				{
 					ec.ec = error;
-					ec.file = file_index;
+					ec.file(file_index);
 					ec.operation = storage_error::stat;
 					return false;
 				}
 				else
 				{
 					ec.ec = errors::mismatching_file_size;
-					ec.file = file_index;
+					ec.file(file_index);
 					ec.operation = storage_error::stat;
 					return false;
 				}
@@ -907,7 +917,7 @@ namespace libtorrent
 				// the resume data indicates we're a seed, but this file has
 				// the wrong size. Reject the resume data
 				ec.ec = errors::mismatching_file_size;
-				ec.file = file_index;
+				ec.file(file_index);
 				ec.operation = storage_error::check_resume;
 				return false;
 			}
@@ -915,8 +925,9 @@ namespace libtorrent
 			// OK, this file existed, good. Now, skip all remaining pieces in
 			// this file. We're just sanity-checking whether the files exist
 			// or not.
-			peer_request const pr = fs.map_file(file_index, fs.file_size(file_index), 0);
-			i = std::max(i + 1, pr.piece);
+			peer_request const pr = fs.map_file(file_index
+				, fs.file_size(file_index) + 1, 0);
+			i = std::max(next(i), pr.piece);
 		}
 		return true;
 	}
@@ -938,7 +949,7 @@ namespace libtorrent
 			if (err != boost::system::errc::no_such_file_or_directory)
 			{
 				// the directory exists, check all the files
-				for (int i = 0; i < f.num_files(); ++i)
+				for (file_index_t i(0); i < f.end_file(); ++i)
 				{
 					// files moved out to absolute paths are ignored
 					if (f.file_absolute_path(i)) continue;
@@ -947,7 +958,7 @@ namespace libtorrent
 					if (err != boost::system::errc::no_such_file_or_directory)
 					{
 						ec.ec = err;
-						ec.file = i;
+						ec.file(i);
 						ec.operation = storage_error::stat;
 						return status_t::file_exist;
 					}
@@ -966,7 +977,7 @@ namespace libtorrent
 				if (err)
 				{
 					ec.ec = err;
-					ec.file = -1;
+					ec.file(file_index_t(-1));
 					ec.operation = storage_error::mkdir;
 					return status_t::fatal_disk_error;
 				}
@@ -974,7 +985,7 @@ namespace libtorrent
 			else if (err)
 			{
 				ec.ec = err;
-				ec.file = -1;
+				ec.file(file_index_t(-1));
 				ec.operation = storage_error::stat;
 				return status_t::fatal_disk_error;
 			}
@@ -986,9 +997,9 @@ namespace libtorrent
 		print_open_files("release files", m_files.name().c_str());
 #endif
 
-		int i;
+		file_index_t i;
 		error_code e;
-		for (i = 0; i < f.num_files(); ++i)
+		for (i = file_index_t(0); i < f.end_file(); ++i)
 		{
 			// files moved out to absolute paths are not moved
 			if (f.file_absolute_path(i)) continue;
@@ -1014,7 +1025,7 @@ namespace libtorrent
 			if (e)
 			{
 				ec.ec = e;
-				ec.file = i;
+				ec.file(i);
 				ec.operation = storage_error::rename;
 				break;
 			}
@@ -1026,7 +1037,7 @@ namespace libtorrent
 			if (e)
 			{
 				ec.ec = e;
-				ec.file = -1;
+				ec.file(file_index_t(-1));
 				ec.operation = storage_error::partfile_move;
 			}
 		}
@@ -1034,7 +1045,7 @@ namespace libtorrent
 		if (e)
 		{
 			// rollback
-			while (--i >= 0)
+			while (--i >= file_index_t(0))
 			{
 				// files moved out to absolute paths are not moved
 				if (f.file_absolute_path(i)) continue;
@@ -1057,7 +1068,7 @@ namespace libtorrent
 		m_save_path = save_path;
 
 		std::set<std::string> subdirs;
-		for (i = 0; i < f.num_files(); ++i)
+		for (i = file_index_t(0); i < f.end_file(); ++i)
 		{
 			// files moved out to absolute paths are not moved
 			if (f.file_absolute_path(i)) continue;
@@ -1090,7 +1101,7 @@ namespace libtorrent
 	}
 
 	int default_storage::readv(span<file::iovec_t const> bufs
-		, int piece, int offset, int flags, storage_error& ec)
+		, piece_index_t const piece, int offset, int flags, storage_error& ec)
 	{
 		read_fileop op(*this, flags);
 
@@ -1101,7 +1112,7 @@ namespace libtorrent
 	}
 
 	int default_storage::writev(span<file::iovec_t const> bufs
-		, int piece, int offset, int flags, storage_error& ec)
+		, piece_index_t const piece, int offset, int flags, storage_error& ec)
 	{
 		write_fileop op(*this, flags);
 		return readwritev(files(), bufs, piece, offset, op, ec);
@@ -1112,11 +1123,11 @@ namespace libtorrent
 	// and writing. This function is a template, and the fileop decides what to
 	// do with the file and the buffers.
 	int readwritev(file_storage const& files, span<file::iovec_t const> const bufs
-		, const int piece, const int offset, fileop& op
+		, piece_index_t const piece, const int offset, fileop& op
 		, storage_error& ec)
 	{
-		TORRENT_ASSERT(piece >= 0);
-		TORRENT_ASSERT(piece < files.num_pieces());
+		TORRENT_ASSERT(piece >= piece_index_t(0));
+		TORRENT_ASSERT(piece < files.end_piece());
 		TORRENT_ASSERT(offset >= 0);
 		TORRENT_ASSERT(bufs.size() > 0);
 
@@ -1125,8 +1136,8 @@ namespace libtorrent
 		TORRENT_ASSERT(files.is_loaded());
 
 		// find the file iterator and file offset
-		std::int64_t const torrent_offset = piece * std::int64_t(files.piece_length()) + offset;
-		int file_index = files.file_index_at_offset(torrent_offset);
+		std::int64_t const torrent_offset = static_cast<int>(piece) * std::int64_t(files.piece_length()) + offset;
+		file_index_t file_index = files.file_index_at_offset(torrent_offset);
 		TORRENT_ASSERT(torrent_offset >= files.file_offset(file_index));
 		TORRENT_ASSERT(torrent_offset < files.file_offset(file_index) + files.file_size(file_index));
 		std::int64_t file_offset = torrent_offset - files.file_offset(file_index);
@@ -1163,11 +1174,11 @@ namespace libtorrent
 			{
 				++file_index;
 				file_offset = 0;
-				TORRENT_ASSERT(file_index < files.num_files());
+				TORRENT_ASSERT(file_index < files.end_file());
 
 				// this should not happen. bytes_left should be clamped by the total
 				// size of the torrent, so we should never run off the end of it
-				if (file_index >= files.num_files()) return size;
+				if (file_index >= files.end_file()) return size;
 
 				file_bytes_left = bytes_left;
 				if (file_offset + file_bytes_left > files.file_size(file_index))
@@ -1196,7 +1207,7 @@ namespace libtorrent
 				{
 					// fill in this information in case the caller wants to treat
 					// a short-read as an error
-					ec.file = file_index;
+					ec.file(file_index);
 				}
 				return size - bytes_left;
 			}
@@ -1204,7 +1215,7 @@ namespace libtorrent
 		return size;
 	}
 
-	file_handle default_storage::open_file(int file, int mode
+	file_handle default_storage::open_file(file_index_t const file, int mode
 		, storage_error& ec) const
 	{
 		file_handle h = open_file_impl(file, mode, ec.ec);
@@ -1219,7 +1230,7 @@ namespace libtorrent
 
 			if (ec.ec)
 			{
-				ec.file = file;
+				ec.file(file);
 				ec.operation = storage_error::mkdir;
 				return file_handle();
 			}
@@ -1230,7 +1241,7 @@ namespace libtorrent
 		}
 		if (ec.ec)
 		{
-			ec.file = file;
+			ec.file(file);
 			ec.operation = storage_error::open;
 			return file_handle();
 		}
@@ -1242,7 +1253,7 @@ namespace libtorrent
 				m_file_created.resize(files().num_files(), false);
 
 			TORRENT_ASSERT(int(m_file_created.size()) == files().num_files());
-			TORRENT_ASSERT(file < m_file_created.size());
+			TORRENT_ASSERT(file < m_file_created.end_index());
 			// if this is the first time we open this file for writing,
 			// and we have m_allocate_files enabled, set the final size of
 			// the file right away, to allocate it on the filesystem.
@@ -1255,7 +1266,7 @@ namespace libtorrent
 				if (e)
 				{
 					ec.ec = e;
-					ec.file = file;
+					ec.file(file);
 					ec.operation = storage_error::fallocate;
 					return h;
 				}
@@ -1265,7 +1276,7 @@ namespace libtorrent
 		return h;
 	}
 
-	file_handle default_storage::open_file_impl(int file, int mode
+	file_handle default_storage::open_file_impl(file_index_t file, int mode
 		, error_code& ec) const
 	{
 		bool lock_files = m_settings ? settings().get_bool(settings_pack::lock_files) : false;
@@ -1274,7 +1285,7 @@ namespace libtorrent
 		if (!m_allocate_files) mode |= file::sparse;
 
 		// files with priority 0 should always be sparse
-		if (int(m_file_priority.size()) > file && m_file_priority[file] == 0)
+		if (m_file_priority.end_index() > file && m_file_priority[file] == 0)
 			mode |= file::sparse;
 
 		if (m_settings && settings().get_bool(settings_pack::no_atime_storage)) mode |= file::no_atime;
@@ -1356,27 +1367,27 @@ namespace libtorrent
 		{
 		public:
 			bool has_any_file(storage_error&) override { return false; }
-			void set_file_priority(std::vector<std::uint8_t> const&
+			void set_file_priority(aux::vector<std::uint8_t, file_index_t> const&
 				, storage_error&) override {}
-			void rename_file(int, std::string const&, storage_error&) override {}
+			void rename_file(file_index_t, std::string const&, storage_error&) override {}
 			void release_files(storage_error&) override {}
 			void delete_files(int, storage_error&) override {}
 			void initialize(storage_error&) override {}
 			status_t move_storage(std::string const&, int, storage_error&) override { return status_t::no_error; }
 
 			int readv(span<file::iovec_t const> bufs
-				, int, int, int, storage_error&) override
+				, piece_index_t, int, int, storage_error&) override
 			{
 				return bufs_size(bufs);
 			}
 			int writev(span<file::iovec_t const> bufs
-				, int, int, int, storage_error&) override
+				, piece_index_t, int, int, storage_error&) override
 			{
 				return bufs_size(bufs);
 			}
 
 			bool verify_resume_data(add_torrent_params const&
-				, std::vector<std::string> const&
+				, aux::vector<std::string, file_index_t> const&
 				, storage_error&) override { return false; }
 		};
 	}
@@ -1398,7 +1409,7 @@ namespace libtorrent
 			void initialize(storage_error&) override {}
 
 			int readv(span<file::iovec_t const> bufs
-				, int, int, int, storage_error&) override
+				, piece_index_t, int, int, storage_error&) override
 			{
 				int ret = 0;
 				for (int i = 0; i < int(bufs.size()); ++i)
@@ -1409,7 +1420,7 @@ namespace libtorrent
 				return 0;
 			}
 			int writev(span<file::iovec_t const> bufs
-				, int, int, int, storage_error&) override
+				, piece_index_t, int, int, storage_error&) override
 			{
 				int ret = 0;
 				for (int i = 0; i < int(bufs.size()); ++i)
@@ -1418,16 +1429,16 @@ namespace libtorrent
 			}
 
 			bool has_any_file(storage_error&) override { return false; }
-			void set_file_priority(std::vector<std::uint8_t> const& /* prio */
+			void set_file_priority(aux::vector<std::uint8_t, file_index_t> const& /* prio */
 				, storage_error&) override {}
 			status_t move_storage(std::string const& /* save_path */
 				, int /* flags */, storage_error&) override { return status_t::no_error; }
 			bool verify_resume_data(add_torrent_params const& /* rd */
-				, std::vector<std::string> const& /* links */
+				, aux::vector<std::string, file_index_t> const& /* links */
 				, storage_error&) override
 			{ return false; }
 			void release_files(storage_error&) override {}
-			void rename_file(int /* index */
+			void rename_file(file_index_t
 				, std::string const& /* new_filename */, storage_error&) override {}
 			void delete_files(int, storage_error&) override {}
 		};

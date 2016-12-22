@@ -211,8 +211,9 @@ namespace libtorrent
 	{
 		// internal
 		read_piece_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, int p, boost::shared_array<char> d, int s);
-		read_piece_alert(aux::stack_allocator& alloc, torrent_handle h, int p, error_code e);
+			, piece_index_t p, boost::shared_array<char> d, int s);
+		read_piece_alert(aux::stack_allocator& alloc, torrent_handle h
+			, piece_index_t p, error_code e);
 
 		TORRENT_DEFINE_ALERT_PRIO(read_piece_alert, 5)
 
@@ -221,7 +222,7 @@ namespace libtorrent
 
 		error_code const error;
 		boost::shared_array<char> const buffer;
-		int const piece;
+		piece_index_t const piece;
 		int const size;
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -235,7 +236,7 @@ namespace libtorrent
 	{
 		// internal
 		file_completed_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, int idx);
+			, file_index_t idx);
 
 		TORRENT_DEFINE_ALERT(file_completed_alert, 6)
 
@@ -243,7 +244,7 @@ namespace libtorrent
 		virtual std::string message() const override;
 
 		// refers to the index of the file that completed.
-		int const index;
+		file_index_t const index;
 	};
 
 	// This is posted as a response to a torrent_handle::rename_file() call, if the rename
@@ -252,7 +253,7 @@ namespace libtorrent
 	{
 		// internal
 		file_renamed_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, string_view n, int idx);
+			, string_view n, file_index_t idx);
 
 		TORRENT_DEFINE_ALERT_PRIO(file_renamed_alert, 7)
 
@@ -265,7 +266,7 @@ namespace libtorrent
 		char const* new_name() const;
 
 		// refers to the index of the file that was renamed,
-		int const index;
+		file_index_t const index;
 	private:
 		aux::allocation_slot const m_name_idx;
 	};
@@ -276,7 +277,7 @@ namespace libtorrent
 	{
 		// internal
 		file_rename_failed_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, int idx
+			, torrent_handle const& h, file_index_t idx
 			, error_code ec);
 
 		TORRENT_DEFINE_ALERT_PRIO(file_rename_failed_alert, 8)
@@ -287,7 +288,7 @@ namespace libtorrent
 
 		// refers to the index of the file that was supposed to be renamed,
 		// ``error`` is the error code returned from the filesystem.
-		int const index;
+		file_index_t const index;
 		error_code const error;
 	};
 
@@ -587,14 +588,14 @@ namespace libtorrent
 	{
 		// internal
 		hash_failed_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, int index);
+			, piece_index_t index);
 
 		TORRENT_DEFINE_ALERT(hash_failed_alert, 18)
 
 		static const int static_category = alert::status_notification;
 		virtual std::string message() const override;
 
-		int const piece_index;
+		piece_index_t const piece_index;
 	};
 
 	// This alert is generated when a peer is banned because it has sent too many corrupt pieces
@@ -762,7 +763,7 @@ namespace libtorrent
 	{
 		// internal
 		piece_finished_alert(aux::stack_allocator& alloc,
-			torrent_handle const& h, int piece_num);
+			torrent_handle const& h, piece_index_t piece_num);
 
 		TORRENT_DEFINE_ALERT(piece_finished_alert, 27)
 
@@ -770,7 +771,7 @@ namespace libtorrent
 		virtual std::string message() const override;
 
 		// the index of the piece that finished
-		int const piece_index;
+		piece_index_t const piece_index;
 	};
 
 	// This alert is generated when a peer rejects or ignores a piece request.
@@ -779,7 +780,7 @@ namespace libtorrent
 		// internal
 		request_dropped_alert(aux::stack_allocator& alloc, torrent_handle h
 			, tcp::endpoint const& ep, peer_id const& peer_id, int block_num
-			, int piece_num);
+			, piece_index_t piece_num);
 
 		TORRENT_DEFINE_ALERT(request_dropped_alert, 28)
 
@@ -788,7 +789,7 @@ namespace libtorrent
 		virtual std::string message() const override;
 
 		int const block_index;
-		int const piece_index;
+		piece_index_t const piece_index;
 	};
 
 	// This alert is generated when a block request times out.
@@ -797,7 +798,7 @@ namespace libtorrent
 		// internal
 		block_timeout_alert(aux::stack_allocator& alloc, torrent_handle h
 			, tcp::endpoint const& ep, peer_id const& peer_id, int block_num
-			, int piece_num);
+			, piece_index_t piece_num);
 
 		TORRENT_DEFINE_ALERT(block_timeout_alert, 29)
 
@@ -806,7 +807,7 @@ namespace libtorrent
 		virtual std::string message() const override;
 
 		int const block_index;
-		int const piece_index;
+		piece_index_t const piece_index;
 	};
 
 	// This alert is generated when a block request receives a response.
@@ -815,7 +816,7 @@ namespace libtorrent
 		// internal
 		block_finished_alert(aux::stack_allocator& alloc, torrent_handle h
 			, tcp::endpoint const& ep, peer_id const& peer_id, int block_num
-			, int piece_num);
+			, piece_index_t piece_num);
 
 		TORRENT_DEFINE_ALERT(block_finished_alert, 30)
 
@@ -823,7 +824,7 @@ namespace libtorrent
 		virtual std::string message() const override;
 
 		int const block_index;
-		int const piece_index;
+		piece_index_t const piece_index;
 	};
 
 	// This alert is generated when a block request is sent to a peer.
@@ -832,7 +833,7 @@ namespace libtorrent
 		// internal
 		block_downloading_alert(aux::stack_allocator& alloc, torrent_handle h
 			, tcp::endpoint const& ep
-			, peer_id const& peer_id, int block_num, int piece_num);
+			, peer_id const& peer_id, int block_num, piece_index_t piece_num);
 
 		TORRENT_DEFINE_ALERT(block_downloading_alert, 31)
 
@@ -843,7 +844,7 @@ namespace libtorrent
 		char const* peer_speedmsg;
 #endif
 		int const block_index;
-		int const piece_index;
+		piece_index_t const piece_index;
 	};
 
 	// This alert is generated when a block is received that was not requested or
@@ -853,14 +854,14 @@ namespace libtorrent
 		// internal
 		unwanted_block_alert(aux::stack_allocator& alloc, torrent_handle h
 			, tcp::endpoint const& ep
-			, peer_id const& peer_id, int block_num, int piece_num);
+			, peer_id const& peer_id, int block_num, piece_index_t piece_num);
 
 		TORRENT_DEFINE_ALERT(unwanted_block_alert, 32)
 
 		virtual std::string message() const override;
 
 		int const block_index;
-		int const piece_index;
+		piece_index_t const piece_index;
 	};
 
 	// The ``storage_moved_alert`` is generated when all the disk IO has completed and the

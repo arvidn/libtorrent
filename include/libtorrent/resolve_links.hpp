@@ -40,6 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 #include "libtorrent/export.hpp"
+#include "libtorrent/units.hpp"
+#include "libtorrent/aux_/vector.hpp"
 
 namespace libtorrent
 {
@@ -54,7 +56,7 @@ namespace libtorrent
 		{
 			std::shared_ptr<const torrent_info> ti;
 			std::string save_path;
-			int file_idx;
+			file_index_t file_idx;
 		};
 
 		explicit resolve_links(std::shared_ptr<torrent_info> ti);
@@ -63,7 +65,7 @@ namespace libtorrent
 		void match(std::shared_ptr<const torrent_info> const& ti
 			, std::string const& save_path);
 
-		std::vector<link_t> const& get_links() const
+		aux::vector<link_t, file_index_t> const& get_links() const
 		{ return m_links; }
 
 	private:
@@ -73,10 +75,10 @@ namespace libtorrent
 		// each file in m_torrent_file has an entry in this vector. Any file
 		// that also exists somewhere else, is filled in with the corresponding
 		// torrent_info object and file index
-		std::vector<link_t> m_links;
+		aux::vector<link_t, file_index_t> m_links;
 
 		// maps file size to file index, in m_torrent_file
-		std::unordered_multimap<std::int64_t, int> m_file_sizes;
+		std::unordered_multimap<std::int64_t, file_index_t> m_file_sizes;
 	};
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 

@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/file.hpp"
 #include "libtorrent/aux_/time.hpp"
+#include "libtorrent/units.hpp"
 
 namespace libtorrent
 {
@@ -48,7 +49,7 @@ namespace libtorrent
 	{
 		// the index of the file this entry refers to into the ``file_storage``
 		// file list of this torrent. This starts indexing at 0.
-		int file_index;
+		file_index_t file_index;
 
 		// ``open_mode`` is a bitmask of the file flags this file is currently opened with. These
 		// are the flags used in the ``file::open()`` function. This enum is defined as a member
@@ -93,12 +94,12 @@ namespace libtorrent
 		// file_storage ``fs`` opened at save path ``p``. ``m`` is the
 		// file open mode (see file::open_mode_t).
 		file_handle open_file(void* st, std::string const& p
-			, int file_index, file_storage const& fs, int m, error_code& ec);
+			, file_index_t file_index, file_storage const& fs, int m, error_code& ec);
 		// release all files belonging to the specified storage_interface (``st``)
 		// the overload that takes ``file_index`` releases only the file with
 		// that index in storage ``st``.
 		void release(void* st = nullptr);
-		void release(void* st, int file_index);
+		void release(void* st, file_index_t file_index);
 
 		// update the allowed number of open file handles to ``size``.
 		void resize(int size);
@@ -138,7 +139,7 @@ namespace libtorrent
 
 		// maps storage pointer, file index pairs to the
 		// lru entry for the file
-		std::map<std::pair<void*, int>, lru_file_entry> m_files;
+		std::map<std::pair<void*, file_index_t>, lru_file_entry> m_files;
 #if TORRENT_USE_ASSERTS
 		std::vector<std::pair<std::string, void const*>> m_deleted_storages;
 #endif

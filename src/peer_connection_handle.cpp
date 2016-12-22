@@ -79,7 +79,7 @@ peer_id const& peer_connection_handle::pid() const
 	return pc->pid();
 }
 
-bool peer_connection_handle::has_piece(int i) const
+bool peer_connection_handle::has_piece(piece_index_t i) const
 {
 	std::shared_ptr<peer_connection> pc = native_handle();
 	TORRENT_ASSERT(pc);

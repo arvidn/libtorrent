@@ -37,6 +37,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 
+#include "libtorrent/units.hpp"
+#include "libtorrent/aux_/vector.hpp"
+
 namespace libtorrent
 {
 	struct storage_interface;
@@ -78,31 +81,32 @@ namespace libtorrent
 			, disk_buffer_holder buffer
 			, std::function<void(storage_error const&)> handler
 			, std::uint8_t flags = 0) = 0;
-		virtual void async_hash(storage_interface* storage, int piece, std::uint8_t flags
-			, std::function<void(int, sha1_hash const&, storage_error const&)> handler, void* requester) = 0;
+		virtual void async_hash(storage_interface* storage, piece_index_t piece, std::uint8_t flags
+			, std::function<void(piece_index_t, sha1_hash const&, storage_error const&)> handler, void* requester) = 0;
 		virtual void async_move_storage(storage_interface* storage, std::string const& p, std::uint8_t flags
 			, std::function<void(status_t, std::string const&, storage_error const&)> handler) = 0;
 		virtual void async_release_files(storage_interface* storage
 			, std::function<void()> handler = std::function<void()>()) = 0;
 		virtual void async_check_files(storage_interface* storage
 			, add_torrent_params const* resume_data
-			, std::vector<std::string>& links
+			, aux::vector<std::string, file_index_t>& links
 			, std::function<void(status_t, storage_error const&)> handler) = 0;
-		virtual void async_flush_piece(storage_interface* storage, int piece
+		virtual void async_flush_piece(storage_interface* storage, piece_index_t piece
 			, std::function<void()> handler = std::function<void()>()) = 0;
 		virtual void async_stop_torrent(storage_interface* storage
 			, std::function<void()> handler = std::function<void()>()) = 0;
-		virtual void async_rename_file(storage_interface* storage, int index, std::string const& name
-			, std::function<void(std::string const&, int, storage_error const&)> handler) = 0;
+		virtual void async_rename_file(storage_interface* storage
+			, file_index_t index, std::string const& name
+			, std::function<void(std::string const&, file_index_t, storage_error const&)> handler) = 0;
 		virtual void async_delete_files(storage_interface* storage, int options
 			, std::function<void(storage_error const&)> handler) = 0;
 		virtual void async_set_file_priority(storage_interface* storage
-			, std::vector<std::uint8_t> const& prio
+			, aux::vector<std::uint8_t, file_index_t> const& prio
 			, std::function<void(storage_error const&)> handler) = 0;
 
-		virtual void async_clear_piece(storage_interface* storage, int index
-			, std::function<void(int)> handler) = 0;
-		virtual void clear_piece(storage_interface* storage, int index) = 0;
+		virtual void async_clear_piece(storage_interface* storage, piece_index_t index
+			, std::function<void(piece_index_t)> handler) = 0;
+		virtual void clear_piece(storage_interface* storage, piece_index_t index) = 0;
 
 		virtual void update_stats_counters(counters& c) const = 0;
 		virtual void get_cache_info(cache_status* ret, bool no_pieces = true

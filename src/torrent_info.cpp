@@ -697,7 +697,7 @@ namespace libtorrent
 		// insert all directories first, to make sure no files
 		// are allowed to collied with them
 		m_files.all_path_hashes(files);
-		for (int i = 0; i < m_files.num_files(); ++i)
+		for (file_index_t i(0); i < m_files.end_file(); ++i)
 		{
 			// as long as this file already exists
 			// increase the counter
@@ -740,7 +740,7 @@ namespace libtorrent
 			}
 		}
 
-		for (int i = 0; i < m_files.num_files(); ++i)
+		for (file_index_t i(0); i < m_files.end_file(); ++i)
 		{
 			// as long as this file already exists
 			// increase the counter
@@ -906,7 +906,7 @@ namespace libtorrent
 		INVARIANT_CHECK;
 	}
 
-	void torrent_info::rename_file(int index, std::wstring const& new_filename)
+	void torrent_info::rename_file(file_index_t index, std::wstring const& new_filename)
 	{
 		TORRENT_ASSERT(is_loaded());
 		copy_on_write();
@@ -1016,7 +1016,7 @@ namespace libtorrent
 		TORRENT_ASSERT(!is_loaded());
 	}
 
-	sha1_hash torrent_info::hash_for_piece(int index) const
+	sha1_hash torrent_info::hash_for_piece(piece_index_t const index) const
 	{ return sha1_hash(hash_for_piece_ptr(index)); }
 
 	void torrent_info::copy_on_write()
@@ -1255,11 +1255,11 @@ namespace libtorrent
 
 
 	bool torrent_info::add_merkle_nodes(std::map<int, sha1_hash> const& subtree
-		, int const piece)
+		, piece_index_t const piece)
 	{
 		INVARIANT_CHECK;
 
-		int n = m_merkle_first_leaf + piece;
+		int n = m_merkle_first_leaf + static_cast<int>(piece);
 		auto const it = subtree.find(n);
 		if (it == subtree.end()) return false;
 		sha1_hash h = it->second;
@@ -1305,12 +1305,13 @@ namespace libtorrent
 
 	// builds a list of nodes that are required to verify
 	// the given piece
-	std::map<int, sha1_hash> torrent_info::build_merkle_list(int const piece) const
+	std::map<int, sha1_hash>
+	torrent_info::build_merkle_list(piece_index_t const piece) const
 	{
 		INVARIANT_CHECK;
 
 		std::map<int, sha1_hash> ret;
-		int n = m_merkle_first_leaf + piece;
+		int n = m_merkle_first_leaf + static_cast<int>(piece);
 		ret[n] = m_merkle_tree[n];
 		ret[0] = m_merkle_tree[0];
 		while (n > 0)
@@ -1645,7 +1646,7 @@ namespace libtorrent
 #if TORRENT_USE_INVARIANT_CHECKS
 	void torrent_info::check_invariant() const
 	{
-		for (int i = 0; i < m_files.num_files(); ++i)
+		for (file_index_t i(0); i < m_files.end_file(); ++i)
 		{
 			TORRENT_ASSERT(m_files.file_name_ptr(i) != nullptr);
 			if (m_files.file_name_len(i) != -1)

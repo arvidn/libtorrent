@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/storage.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/string_view.hpp"
+#include "libtorrent/aux_/vector.hpp"
 
 #include <vector>
 #include <string>
@@ -215,12 +216,12 @@ namespace libtorrent
 		// to set the hash for every piece in the torrent before generating it. If you have
 		// the files on disk, you can use the high level convenience function to do this.
 		// See set_piece_hashes().
-		void set_hash(int index, sha1_hash const& h);
+		void set_hash(piece_index_t index, sha1_hash const& h);
 
 		// This sets the sha1 hash for this file. This hash will end up under the key ``sha1``
 		// associated with this file (for multi-file torrents) or in the root info dictionary
 		// for single-file torrents.
-		void set_file_hash(int index, sha1_hash const& h);
+		void set_file_hash(file_index_t index, sha1_hash const& h);
 
 		// This adds a url seed to the torrent. You can have any number of url seeds. For a
 		// single file torrent, this should be an HTTP url, pointing to a file with identical
@@ -269,7 +270,7 @@ namespace libtorrent
 		// last one. ``piece_size()`` returns the size of the specified piece.
 		// these functions are just forwarding to the associated file_storage.
 		int piece_length() const { return m_files.piece_length(); }
-		int piece_size(int i) const { return m_files.piece_size(i); }
+		int piece_size(piece_index_t i) const { return m_files.piece_size(i); }
 
 		// This function returns the merkle hash tree, if the torrent was created as a merkle
 		// torrent. The tree is created by ``generate()`` and won't be valid until that function
@@ -304,9 +305,9 @@ namespace libtorrent
 		std::vector<std::string> m_url_seeds;
 		std::vector<std::string> m_http_seeds;
 
-		std::vector<sha1_hash> m_piece_hash;
+		aux::vector<sha1_hash, piece_index_t> m_piece_hash;
 
-		std::vector<sha1_hash> m_filehashes;
+		aux::vector<sha1_hash, file_index_t> m_filehashes;
 
 		std::vector<sha1_hash> m_similar;
 		std::vector<std::string> m_collections;
@@ -366,7 +367,7 @@ namespace libtorrent
 
 	namespace detail
 	{
-		inline void nop(int) {}
+		inline void nop(piece_index_t) {}
 	}
 
 	// Adds the file specified by ``path`` to the file_storage object. In case ``path``
@@ -401,7 +402,7 @@ namespace libtorrent
 	// The overloads that don't take an ``error_code&`` may throw an exception in case of a
 	// file error, the other overloads sets the error code to reflect the error, if any.
 	TORRENT_EXPORT void set_piece_hashes(create_torrent& t, std::string const& p
-		, std::function<void(int)> const& f, error_code& ec);
+		, std::function<void(piece_index_t)> const& f, error_code& ec);
 	inline void set_piece_hashes(create_torrent& t, std::string const& p, error_code& ec)
 	{
 		set_piece_hashes(t, p, detail::nop, ec);
@@ -449,8 +450,7 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 	template <class Fun>
 	TORRENT_DEPRECATED
-	void set_piece_hashes(create_torrent& t
-		, std::wstring const& p, Fun f)
+	void set_piece_hashes(create_torrent& t, std::wstring const& p, Fun f)
 	{
 		error_code ec;
 		set_piece_hashes_deprecated(t, p, f, ec);
@@ -458,8 +458,7 @@ namespace libtorrent
 	}
 
 	TORRENT_DEPRECATED
-	inline void set_piece_hashes(create_torrent& t
-		, std::wstring const& p)
+	inline void set_piece_hashes(create_torrent& t, std::wstring const& p)
 	{
 		error_code ec;
 		set_piece_hashes_deprecated(t, p, detail::nop, ec);

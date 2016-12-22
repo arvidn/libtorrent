@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2010-2016, Arvid Norberg
+Copyright (c) 2016, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,23 +30,43 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_BLOCK_CACHE_REFERENCE_HPP
-#define TORRENT_BLOCK_CACHE_REFERENCE_HPP
+#ifndef TORRENT_VECTOR_HPP
+#define TORRENT_VECTOR_HPP
 
-#include "libtorrent/units.hpp"
+#include <vector>
 
-namespace libtorrent {
-namespace aux {
+#include "libtorrent/assert.hpp"
 
-	struct block_cache_reference
+namespace libtorrent { namespace aux {
+
+	template <typename T, typename IndexType>
+	struct vector : std::vector<T>
 	{
-		void* storage;
-		piece_index_t piece;
-		int block;
+		using base = std::vector<T>;
+		using underlying_index = typename IndexType::underlying_type;
+
+		// pull in constructors from base class
+		using base::base;
+
+		auto operator[](IndexType idx) const -> decltype(this->base::operator[](underlying_index()))
+		{
+			TORRENT_ASSERT(idx >= IndexType(0));
+			TORRENT_ASSERT(idx < end_index());
+			return this->base::operator[](static_cast<underlying_index>(idx));
+		}
+
+		auto operator[](IndexType idx) -> decltype(this->base::operator[](underlying_index()))
+		{
+			TORRENT_ASSERT(idx >= IndexType(0));
+			TORRENT_ASSERT(idx < end_index());
+			return this->base::operator[](static_cast<underlying_index>(idx));
+		}
+
+		IndexType end_index() const
+		{ return IndexType(static_cast<underlying_index>(this->size())); }
 	};
 
-}
-}
+}}
 
 #endif
 

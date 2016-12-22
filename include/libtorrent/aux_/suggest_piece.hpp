@@ -47,7 +47,9 @@ struct suggest_piece
 	// pick at most n piece indices that are _not_ in p (which represents
 	// pieces the peer has already sent a suggest for) nor in bits (which are
 	// pieces the peer already has, and should not be suggested)
-	int get_pieces(std::vector<int>& p, bitfield const& bits, int n)
+	int get_pieces(std::vector<piece_index_t>& p
+		, typed_bitfield<piece_index_t> const& bits
+		, int n)
 	{
 		if (m_priority_pieces.empty()) return 0;
 
@@ -59,10 +61,10 @@ struct suggest_piece
 		// back and then reverse the items we put there.
 		for (int i = int(m_priority_pieces.size()) - 1; i >= 0; --i)
 		{
-			int const piece = m_priority_pieces[i];
+			piece_index_t const piece = m_priority_pieces[i];
 			if (bits.get_bit(piece)) continue;
 			if (std::any_of(p.begin(), p.end() - ret
-				, [piece](int pi) { return pi == piece; }))
+				, [piece](piece_index_t pi) { return pi == piece; }))
 				continue;
 
 			p.push_back(piece);
@@ -78,7 +80,7 @@ struct suggest_piece
 		return ret;
 	}
 
-	void add_piece(int const index, int const availability
+	void add_piece(piece_index_t const index, int const availability
 		, int const max_queue_size)
 	{
 		// keep a running average of the availability of pieces, and filter
@@ -89,8 +91,7 @@ struct suggest_piece
 		if (availability > mean) return;
 
 		auto const it = std::find(m_priority_pieces.begin()
-			, m_priority_pieces.end()
-			, index);
+			, m_priority_pieces.end(), index);
 
 		if (it != m_priority_pieces.end())
 		{
@@ -116,9 +117,7 @@ private:
 	// read from disk (and are likely in our read cache).
 	// pieces closer to the end were inserted into the cache more recently and
 	// have higher priority
-	std::vector<int> m_priority_pieces;
-
-//	int m_get_peers = 0;
+	std::vector<piece_index_t> m_priority_pieces;
 
 	sliding_average<30> m_availability;
 };

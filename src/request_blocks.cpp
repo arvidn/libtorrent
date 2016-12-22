@@ -135,22 +135,22 @@ namespace libtorrent
 		std::vector<pending_block> const& dq = c.download_queue();
 		std::vector<pending_block> const& rq = c.request_queue();
 
-		std::vector<int> const& suggested = c.suggested_pieces();
-		bitfield const* bits = &c.get_bitfield();
-		bitfield fast_mask;
+		std::vector<piece_index_t> const& suggested = c.suggested_pieces();
+		auto const* bits = &c.get_bitfield();
+		typed_bitfield<piece_index_t> fast_mask;
 
 		if (c.has_peer_choked())
 		{
 			// if we are choked we can only pick pieces from the
 			// allowed fast set. The allowed fast set is sorted
 			// in ascending priority order
-			std::vector<int> const& allowed_fast = c.allowed_fast();
 
 			// build a bitmask with only the allowed pieces in it
 			fast_mask.resize(c.get_bitfield().size(), false);
-			for (std::vector<int>::const_iterator i = allowed_fast.begin()
-				, end(allowed_fast.end()); i != end; ++i)
-				if ((*bits)[*i]) fast_mask.set_bit(*i);
+			for (auto const& i : c.allowed_fast())
+			{
+				if ((*bits)[i]) fast_mask.set_bit(i);
+			}
 			bits = &fast_mask;
 		}
 
@@ -244,7 +244,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 				c.peer_log(peer_log_alert::info, "PIECE_PICKER"
 					, "not_picking: %d,%d already in queue"
-					, i->piece_index, i->block_index);
+					, static_cast<int>(i->piece_index), i->block_index);
 #endif
 				continue;
 			}

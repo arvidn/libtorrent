@@ -46,7 +46,7 @@ resolve_links::resolve_links(std::shared_ptr<torrent_info> ti)
 
 	file_storage const& fs = ti->files();
 	m_file_sizes.reserve(fs.num_files());
-	for (int i = 0; i < fs.num_files(); ++i)
+	for (file_index_t i(0); i < fs.end_file(); ++i)
 	{
 		// don't match pad-files, and don't match files that aren't aligned to
 		// pieces. Files are matched by comparing piece hashes, so pieces must
@@ -72,7 +72,7 @@ void resolve_links::match(std::shared_ptr<const torrent_info> const& ti
 
 	file_storage const& fs = ti->files();
 	m_file_sizes.reserve(fs.num_files());
-	for (int i = 0; i < fs.num_files(); ++i)
+	for (file_index_t i(0); i < fs.end_file(); ++i)
 	{
 		// for every file in the other torrent, see if we have one that match
 		// it in m_torrent_file
@@ -87,8 +87,8 @@ void resolve_links::match(std::shared_ptr<const torrent_info> const& ti
 		auto range = m_file_sizes.equal_range(file_size);
 		for (auto iter = range.first; iter != range.second; ++iter)
 		{
-			TORRENT_ASSERT(iter->second < m_torrent_file->files().num_files());
-			TORRENT_ASSERT(iter->second >= 0);
+			TORRENT_ASSERT(iter->second >= file_index_t(0));
+			TORRENT_ASSERT(iter->second < m_torrent_file->files().end_file());
 
 			// if we already have found a duplicate for this file, no need
 			// to keep looking
@@ -98,9 +98,9 @@ void resolve_links::match(std::shared_ptr<const torrent_info> const& ti
 			// piece hashes, to see if the files are identical
 
 			// the pieces of the incoming file
-			int their_piece = fs.map_file(i, 0, 0).piece;
+			piece_index_t their_piece = fs.map_file(i, 0, 0).piece;
 			// the pieces of "this" file (from m_torrent_file)
-			int our_piece = m_torrent_file->files().map_file(
+			piece_index_t our_piece = m_torrent_file->files().map_file(
 				iter->second, 0, 0).piece;
 
 			int num_pieces = int((file_size + piece_size - 1) / piece_size);

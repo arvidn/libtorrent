@@ -116,7 +116,7 @@ namespace libtorrent
 			std::vector<bool> free_slots;
 			free_slots.resize(num_pieces, true);
 
-			for (int i = 0; i < num_pieces; ++i)
+			for (piece_index_t i = piece_index_t(0); i < piece_index_t(num_pieces); ++i)
 			{
 				std::uint32_t const uslot = read_uint32(ptr);
 				if (uslot == 0xffffffff) continue;
@@ -149,7 +149,7 @@ namespace libtorrent
 		flush_metadata_impl(ec);
 	}
 
-	int part_file::allocate_slot(int piece)
+	int part_file::allocate_slot(piece_index_t const piece)
 	{
 		// the mutex is assumed to be held here, since this is a private function
 
@@ -171,7 +171,8 @@ namespace libtorrent
 		return slot;
 	}
 
-	int part_file::writev(span<file::iovec_t const> bufs, int piece, int offset, error_code& ec)
+	int part_file::writev(span<file::iovec_t const> bufs, piece_index_t const piece
+		, int offset, error_code& ec)
 	{
 		TORRENT_ASSERT(offset >= 0);
 		std::unique_lock<std::mutex> l(m_mutex);
@@ -193,7 +194,7 @@ namespace libtorrent
 	}
 
 	int part_file::readv(span<file::iovec_t const> bufs
-		, int piece, int offset, error_code& ec)
+		, piece_index_t const piece, int offset, error_code& ec)
 	{
 		TORRENT_ASSERT(offset >= 0);
 		std::unique_lock<std::mutex> l(m_mutex);
@@ -238,7 +239,7 @@ namespace libtorrent
 		}
 	}
 
-	void part_file::free_piece(int piece)
+	void part_file::free_piece(piece_index_t piece)
 	{
 		std::lock_guard<std::mutex> l(m_mutex);
 
@@ -301,17 +302,18 @@ namespace libtorrent
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 
-		int piece = int(offset / m_piece_size);
-		int const end = int(((offset + size) + m_piece_size - 1) / m_piece_size);
+		piece_index_t piece(int(offset / m_piece_size));
+		piece_index_t const end = piece_index_t(int(((offset + size) + m_piece_size - 1) / m_piece_size));
 
 		std::unique_ptr<char[]> buf;
 
-		std::int64_t piece_offset = offset - std::int64_t(piece) * m_piece_size;
+		std::int64_t piece_offset = offset - std::int64_t(static_cast<int>(piece))
+			* m_piece_size;
 		std::int64_t file_offset = 0;
 		for (; piece < end; ++piece)
 		{
 			auto const i = m_piece_map.find(piece);
-			int const block_to_copy = int((std::min)(m_piece_size - piece_offset, size));
+			int const block_to_copy = int(std::min(m_piece_size - piece_offset, size));
 			if (i != m_piece_map.end())
 			{
 				int const slot = i->second;
@@ -331,7 +333,7 @@ namespace libtorrent
 				TORRENT_ASSERT(!ec);
 				if (ec || v.iov_len == 0) return;
 
-				std::int64_t ret = f.writev(file_offset, v, ec);
+				std::int64_t const ret = f.writev(file_offset, v, ec);
 				TORRENT_ASSERT(ec || ret == std::int64_t(v.iov_len));
 				if (ec || ret != std::int64_t(v.iov_len)) return;
 
@@ -402,12 +404,12 @@ namespace libtorrent
 		write_uint32(m_max_pieces, ptr);
 		write_uint32(m_piece_size, ptr);
 
-		for (int piece = 0; piece < m_max_pieces; ++piece)
+		for (piece_index_t piece(0); piece < piece_index_t(m_max_pieces); ++piece)
 		{
 			auto const i = m_piece_map.find(piece);
-			int slot = 0xffffffff;
-			if (i != m_piece_map.end())
-				slot = i->second;
+			int const slot = i == m_piece_map.end()
+				? 0xffffffff
+				: i->second;
 			write_uint32(slot, ptr);
 		}
 		std::memset(ptr, 0, m_header_size - (ptr - reinterpret_cast<char*>(header.get())));

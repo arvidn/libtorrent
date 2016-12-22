@@ -239,14 +239,14 @@ namespace libtorrent
 		async_call(&torrent::move_storage, wchar_utf8(save_path), flags);
 	}
 
-	void torrent_handle::rename_file(int index, std::wstring const& new_name) const
+	void torrent_handle::rename_file(file_index_t index, std::wstring const& new_name) const
 	{
 		async_call(&torrent::rename_file, index, wchar_utf8(new_name));
 	}
 #endif // TORRENT_NO_DEPRECATE
 #endif // TORRENT_USE_WSTRING
 
-	void torrent_handle::rename_file(int index, std::string const& new_name) const
+	void torrent_handle::rename_file(file_index_t index, std::string const& new_name) const
 	{
 		async_call(&torrent::rename_file, index, new_name);
 	}
@@ -397,7 +397,8 @@ namespace libtorrent
 
 	void torrent_handle::file_progress(std::vector<std::int64_t>& progress, int flags) const
 	{
-		sync_call(&torrent::file_progress, std::ref(progress), flags);
+		auto& arg = static_cast<aux::vector<std::int64_t, file_index_t>&>(progress);
+		sync_call(&torrent::file_progress, std::ref(arg), flags);
 	}
 
 	torrent_status torrent_handle::status(std::uint32_t flags) const
@@ -414,56 +415,57 @@ namespace libtorrent
 
 	void torrent_handle::piece_availability(std::vector<int>& avail) const
 	{
-		auto availr = std::ref(avail);
+		auto availr = std::ref(static_cast<aux::vector<int, piece_index_t>&>(avail));
 		sync_call(&torrent::piece_availability, availr);
 	}
 
-	void torrent_handle::piece_priority(int index, int priority) const
+	void torrent_handle::piece_priority(piece_index_t index, int priority) const
 	{
 		async_call(&torrent::set_piece_priority, index, priority);
 	}
 
-	int torrent_handle::piece_priority(int index) const
+	int torrent_handle::piece_priority(piece_index_t index) const
 	{
 		return sync_call_ret<int>(0, &torrent::piece_priority, index);
 	}
 
 	void torrent_handle::prioritize_pieces(std::vector<int> const& pieces) const
 	{
-		async_call(&torrent::prioritize_pieces, pieces);
+		async_call(&torrent::prioritize_pieces, static_cast<aux::vector<int, piece_index_t> const&>(pieces));
 	}
 
-	void torrent_handle::prioritize_pieces(std::vector<std::pair<int, int>> const& pieces) const
+	void torrent_handle::prioritize_pieces(std::vector<std::pair<piece_index_t, int>> const& pieces) const
 	{
 		async_call(&torrent::prioritize_piece_list, pieces);
 	}
 
 	std::vector<int> torrent_handle::piece_priorities() const
 	{
-		std::vector<int> ret;
+		aux::vector<int, piece_index_t> ret;
 		auto retp = &ret;
 		sync_call(&torrent::piece_priorities, retp);
 		return ret;
 	}
 
-	void torrent_handle::file_priority(int index, int priority) const
+	void torrent_handle::file_priority(file_index_t index, int priority) const
 	{
 		async_call(&torrent::set_file_priority, index, priority);
 	}
 
-	int torrent_handle::file_priority(int index) const
+	int torrent_handle::file_priority(file_index_t index) const
 	{
 		return sync_call_ret<int>(0, &torrent::file_priority, index);
 	}
 
 	void torrent_handle::prioritize_files(std::vector<int> const& files) const
 	{
-		async_call(&torrent::prioritize_files, files);
+		async_call(&torrent::prioritize_files
+			, static_cast<aux::vector<int, file_index_t> const&>(files));
 	}
 
 	std::vector<int> torrent_handle::file_priorities() const
 	{
-		std::vector<int> ret;
+		aux::vector<int, file_index_t> ret;
 		auto retp = &ret;
 		sync_call(&torrent::file_priorities, retp);
 		return ret;
@@ -485,7 +487,7 @@ namespace libtorrent
 #if !TORRENT_NO_FPU
 	void torrent_handle::file_progress(std::vector<float>& progress) const
 	{
-		sync_call(&torrent::file_progress_float, std::ref(progress));
+		sync_call(&torrent::file_progress_float, std::ref(static_cast<aux::vector<float, file_index_t>&>(progress)));
 	}
 #endif
 
@@ -519,7 +521,7 @@ namespace libtorrent
 		return sync_call_ret<bool>(false, &torrent::valid_metadata);
 	}
 
-	void torrent_handle::filter_piece(int index, bool filter) const
+	void torrent_handle::filter_piece(piece_index_t index, bool filter) const
 	{
 		async_call(&torrent::filter_piece, index, filter);
 	}
@@ -529,7 +531,7 @@ namespace libtorrent
 		async_call(&torrent::filter_pieces, pieces);
 	}
 
-	bool torrent_handle::is_piece_filtered(int index) const
+	bool torrent_handle::is_piece_filtered(piece_index_t index) const
 	{
 		return sync_call_ret<bool>(false, &torrent::is_piece_filtered, index);
 	}
@@ -607,17 +609,17 @@ namespace libtorrent
 		async_call(&torrent::add_tracker, url);
 	}
 
-	void torrent_handle::add_piece(int piece, char const* data, int flags) const
+	void torrent_handle::add_piece(piece_index_t piece, char const* data, int flags) const
 	{
 		sync_call(&torrent::add_piece, piece, data, flags);
 	}
 
-	void torrent_handle::read_piece(int piece) const
+	void torrent_handle::read_piece(piece_index_t piece) const
 	{
 		async_call(&torrent::read_piece, piece);
 	}
 
-	bool torrent_handle::have_piece(int piece) const
+	bool torrent_handle::have_piece(piece_index_t piece) const
 	{
 		return sync_call_ret<bool>(false, &torrent::have_piece, piece);
 	}
@@ -750,12 +752,12 @@ namespace libtorrent
 		sync_call(&torrent::get_download_queue, queuep);
 	}
 
-	void torrent_handle::set_piece_deadline(int index, int deadline, int flags) const
+	void torrent_handle::set_piece_deadline(piece_index_t index, int deadline, int flags) const
 	{
 		async_call(&torrent::set_piece_deadline, index, deadline, flags);
 	}
 
-	void torrent_handle::reset_piece_deadline(int index) const
+	void torrent_handle::reset_piece_deadline(piece_index_t index) const
 	{
 		async_call(&torrent::reset_piece_deadline, index);
 	}

@@ -74,11 +74,11 @@ namespace
 			, m_salt(random(0xffffffff))
 		{}
 
-		void on_piece_pass(int const p) override
+		void on_piece_pass(piece_index_t const p) override
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			m_torrent.debug_log(" PIECE PASS [ p: %d | block_hash_size: %d ]"
-				, p, int(m_block_hashes.size()));
+				, static_cast<int>(p), int(m_block_hashes.size()));
 #endif
 			// has this piece failed earlier? If it has, go through the
 			// CRCs from the time it failed and ban the peers that
@@ -104,7 +104,7 @@ namespace
 					TORRENT_ASSERT(i->first.block_index > pb.block_index);
 				}
 
-				if (i == m_block_hashes.end() || int(i->first.piece_index) != p)
+				if (i == m_block_hashes.end() || i->first.piece_index != p)
 					break;
 
 				r.start += 16 * 1024;
@@ -116,7 +116,7 @@ namespace
 #ifndef NDEBUG
 			// make sure we actually removed all the entries for piece 'p'
 			i = m_block_hashes.lower_bound(piece_block(p, 0));
-			TORRENT_ASSERT(i == m_block_hashes.end() || int(i->first.piece_index) != p);
+			TORRENT_ASSERT(i == m_block_hashes.end() || i->first.piece_index != p);
 #endif
 
 			if (m_torrent.is_seed())
@@ -126,7 +126,7 @@ namespace
 			}
 		}
 
-		void on_piece_failed(int p) override
+		void on_piece_failed(piece_index_t p) override
 		{
 			// The piece failed the hash check. Record
 			// the CRC and origin peer of every block
@@ -223,7 +223,7 @@ namespace
 						}
 						m_torrent.debug_log(" BANNING PEER [ p: %d | b: %d | c: %s"
 							" | hash1: %s | hash2: %s | ip: %s ]"
-							, b.piece_index, b.block_index, client
+							, static_cast<int>(b.piece_index), b.block_index, client
 							, aux::to_hex(i->second.digest).c_str()
 							, aux::to_hex(e.digest).c_str()
 							, print_endpoint(p->ip()).c_str());
@@ -252,7 +252,7 @@ namespace
 				}
 				m_torrent.debug_log(" STORE BLOCK CRC [ p: %d | b: %d | c: %s"
 					" | digest: %s | ip: %s ]"
-					, b.piece_index, b.block_index, client
+					, static_cast<int>(b.piece_index), b.block_index, client
 					, aux::to_hex(e.digest).c_str()
 					, print_address(p->ip().address()).c_str());
 			}
@@ -301,7 +301,7 @@ namespace
 				}
 				m_torrent.debug_log(" BANNING PEER [ p: %d | b: %d | c: %s"
 					" | ok_digest: %s | bad_digest: %s | ip: %s ]"
-					, b.first.piece_index, b.first.block_index, client
+					, static_cast<int>(b.first.piece_index), b.first.block_index, client
 					, aux::to_hex(ok_digest).c_str()
 					, aux::to_hex(b.second.digest).c_str()
 					, print_address(p->ip().address()).c_str());

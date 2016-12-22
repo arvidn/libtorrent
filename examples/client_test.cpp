@@ -505,10 +505,11 @@ int print_peer_info(std::string& out
 
 		if (print_block)
 		{
-			if (i->downloading_piece_index >= 0)
+			if (i->downloading_piece_index >= piece_index_t(0))
 			{
 				char buf[50];
-				std::snprintf(buf, sizeof(buf), "%d:%d", i->downloading_piece_index, i->downloading_block_index);
+				std::snprintf(buf, sizeof(buf), "%d:%d"
+					, static_cast<int>(i->downloading_piece_index), i->downloading_block_index);
 				out += progress_bar(
 					i->downloading_progress * 1000 / i->downloading_total, 14, col_green, '-', '#', buf);
 			}
@@ -1093,7 +1094,7 @@ void print_piece(libtorrent::partial_piece_info* pp
 
 	char str[1024];
 	assert(pp == nullptr || cs == nullptr || cs->piece == pp->piece_index);
-	int piece = pp ? pp->piece_index : cs->piece;
+	int piece = static_cast<int>(pp ? pp->piece_index : cs->piece);
 	int num_blocks = pp ? pp->blocks_in_piece : int(cs->blocks.size());
 
 	std::snprintf(str, sizeof(str), "%5d:[", piece);
@@ -1665,9 +1666,10 @@ int main(int argc, char* argv[])
 					torrent_status const& ts = view.get_active_torrent();
 					int num_pieces = ts.num_pieces;
 					if (num_pieces > 300) num_pieces = 300;
-					for (int i = 0; i < num_pieces; ++i)
+					for (piece_index_t i(0); i < piece_index_t(num_pieces); ++i)
 					{
-						h.set_piece_deadline(i, (i+5) * 1000, torrent_handle::alert_when_available);
+						h.set_piece_deadline(i, (static_cast<int>(i)+5) * 1000
+							, torrent_handle::alert_when_available);
 					}
 				}
 
@@ -2000,8 +2002,9 @@ int main(int argc, char* argv[])
 				std::shared_ptr<const torrent_info> ti = h.torrent_file();
 
 				int p = 0; // this is horizontal position
-				for (int i = 0; i < ti->num_files(); ++i)
+				for (file_index_t i(0); i < file_index_t(ti->num_files()); ++i)
 				{
+					int const idx = static_cast<int>(i);
 					if (pos + 1 >= terminal_height) break;
 
 					bool pad_file = ti->files().pad_file_at(i);
@@ -2019,9 +2022,9 @@ int main(int argc, char* argv[])
 					}
 
 					int progress = ti->files().file_size(i) > 0
-						? int(file_progress[i] * 1000 / ti->files().file_size(i)) : 1000;
+						? int(file_progress[idx] * 1000 / ti->files().file_size(i)) : 1000;
 
-					bool complete = file_progress[i] == ti->files().file_size(i);
+					bool complete = file_progress[idx] == ti->files().file_size(i);
 
 					std::string title = ti->files().file_name(i).to_string();
 					if (!complete)
@@ -2056,8 +2059,8 @@ int main(int argc, char* argv[])
 					std::snprintf(str, sizeof(str), "%s %7s p: %d ",
 						progress_bar(progress, file_progress_width, complete ? col_green : col_yellow, '-', '#'
 							, title.c_str()).c_str()
-						, add_suffix(file_progress[i]).c_str()
-						, file_prio[i]);
+						, add_suffix(file_progress[idx]).c_str()
+						, file_prio[idx]);
 
 					p += file_progress_width + 13;
 					out += str;

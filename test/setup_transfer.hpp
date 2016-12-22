@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include <tuple>
 #include "test.hpp"
+#include "libtorrent/units.hpp"
 
 namespace libtorrent
 {
@@ -83,7 +84,7 @@ EXPORT bool print_alerts(libtorrent::session& ses, char const* name
 EXPORT void wait_for_listen(libtorrent::session& ses, char const* name);
 EXPORT void wait_for_downloading(libtorrent::session& ses, char const* name);
 
-EXPORT std::vector<char> generate_piece(int idx, int const piece_size = 0x4000);
+EXPORT std::vector<char> generate_piece(libtorrent::piece_index_t idx, int piece_size = 0x4000);
 EXPORT libtorrent::file_storage make_file_storage(const int file_sizes[], int num_files
 	, int const piece_size, std::string base_name = "test_dir-");
 EXPORT std::shared_ptr<libtorrent::torrent_info> make_torrent(const int file_sizes[]

@@ -44,36 +44,33 @@ namespace libtorrent
 	stat_cache::stat_cache() {}
 	stat_cache::~stat_cache() = default;
 
-	void stat_cache::set_cache(int i, std::int64_t size)
+	void stat_cache::set_cache(file_index_t const i, std::int64_t size)
 	{
-		TORRENT_ASSERT(i >= 0);
-		if (i >= int(m_stat_cache.size()))
-			m_stat_cache.resize(i + 1, not_in_cache);
+		if (i >= m_stat_cache.end_index())
+			m_stat_cache.resize(static_cast<int>(i) + 1, not_in_cache);
 		m_stat_cache[i].file_size = size;
 	}
 
-	void stat_cache::set_error(int const i, error_code const& ec)
+	void stat_cache::set_error(file_index_t const i, error_code const& ec)
 	{
-		TORRENT_ASSERT(i >= 0);
-		if (i >= int(m_stat_cache.size()))
-			m_stat_cache.resize(i + 1, not_in_cache);
+		if (i >= m_stat_cache.end_index())
+			m_stat_cache.resize(static_cast<int>(i) + 1, not_in_cache);
 
 		int error_index = add_error(ec);
 		m_stat_cache[i].file_size = file_error - error_index;
 	}
 
-	void stat_cache::set_dirty(int const i)
+	void stat_cache::set_dirty(file_index_t const i)
 	{
-		TORRENT_ASSERT(i >= 0);
-		if (i >= int(m_stat_cache.size())) return;
+		if (i >= m_stat_cache.end_index()) return;
 		m_stat_cache[i].file_size = not_in_cache;
 	}
 
-	std::int64_t stat_cache::get_filesize(int const i, file_storage const& fs
+	std::int64_t stat_cache::get_filesize(file_index_t const i, file_storage const& fs
 		, std::string const& save_path, error_code& ec)
 	{
-		TORRENT_ASSERT(i < int(fs.num_files()));
-		if (i >= int(m_stat_cache.size())) m_stat_cache.resize(i + 1, not_in_cache);
+		TORRENT_ASSERT(i < fs.end_file());
+		if (i >= m_stat_cache.end_index()) m_stat_cache.resize(static_cast<int>(i) + 1, not_in_cache);
 		std::int64_t sz = m_stat_cache[i].file_size;
 		if (sz < not_in_cache)
 		{
@@ -107,8 +104,10 @@ namespace libtorrent
 
 	void stat_cache::clear()
 	{
-		std::vector<stat_cache_t>().swap(m_stat_cache);
-		std::vector<error_code>().swap(m_errors);
+		m_stat_cache.clear();
+		m_stat_cache.shrink_to_fit();
+		m_errors.clear();
+		m_errors.shrink_to_fit();
 	}
 
 	int stat_cache::add_error(error_code const& ec)

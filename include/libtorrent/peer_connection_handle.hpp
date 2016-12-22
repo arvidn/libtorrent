@@ -64,7 +64,7 @@ struct TORRENT_EXPORT peer_connection_handle
 	bool upload_only() const;
 
 	peer_id const& pid() const;
-	bool has_piece(int i) const;
+	bool has_piece(piece_index_t i) const;
 
 	bool is_interesting() const;
 	bool is_choked() const;

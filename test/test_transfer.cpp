@@ -77,7 +77,7 @@ struct test_storage : default_storage
 		, m_limit(16 * 1024 * 2)
 	{}
 
-	void set_file_priority(std::vector<std::uint8_t> const& p
+	void set_file_priority(aux::vector<std::uint8_t, file_index_t> const& p
 		, storage_error& ec) override {}
 
 	void set_limit(int lim)
@@ -88,7 +88,7 @@ struct test_storage : default_storage
 
 	int writev(
 		span<file::iovec_t const> bufs
-		, int piece_index
+		, piece_index_t piece_index
 		, int offset
 		, int flags
 		, storage_error& se) override

@@ -186,10 +186,10 @@ int main(int argc, char* argv[])
 		, t.name().c_str()
 		, t.num_files());
 	file_storage const& st = t.files();
-	for (int i = 0; i < st.num_files(); ++i)
+	for (file_index_t i(0); i < file_index_t(st.num_files()); ++i)
 	{
-		int const first = st.map_file(i, 0, 0).piece;
-		int const last = st.map_file(i, (std::max)(std::int64_t(st.file_size(i))-1, std::int64_t(0)), 0).piece;
+		piece_index_t const first = st.map_file(i, 0, 0).piece;
+		piece_index_t const last = st.map_file(i, (std::max)(std::int64_t(st.file_size(i))-1, std::int64_t(0)), 0).piece;
 		int const flags = st.file_flags(i);
 		std::stringstream file_hash;
 		if (!st.hash(i).is_all_zeros())
@@ -201,7 +201,8 @@ int main(int argc, char* argv[])
 			, ((flags & file_storage::flag_executable)?'x':'-')
 			, ((flags & file_storage::flag_hidden)?'h':'-')
 			, ((flags & file_storage::flag_symlink)?'l':'-')
-			, first, last
+			, static_cast<int>(first)
+			, static_cast<int>(last)
 			, std::uint32_t(st.mtime(i))
 			, file_hash.str().c_str()
 			, st.file_path(i).c_str()

@@ -83,15 +83,15 @@ namespace libtorrent
 		void write_not_interested() {}
 		virtual void write_request(peer_request const&) = 0;
 		void write_cancel(peer_request const&) {}
-		void write_have(int) {}
-		void write_dont_have(int) {}
+		void write_have(piece_index_t) {}
+		void write_dont_have(piece_index_t) {}
 		void write_piece(peer_request const&, disk_buffer_holder)
 		{ TORRENT_ASSERT_FAIL(); }
 		void write_keepalive() {}
 		void on_connected();
 		void write_reject_request(peer_request const&) {}
-		void write_allow_fast(int) {}
-		void write_suggest(int) {}
+		void write_allow_fast(piece_index_t) {}
+		void write_suggest(piece_index_t) {}
 		void write_bitfield() {}
 
 #if TORRENT_USE_INVARIANT_CHECKS

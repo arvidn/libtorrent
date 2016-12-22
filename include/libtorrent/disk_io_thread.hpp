@@ -84,7 +84,7 @@ namespace libtorrent
 		int next_to_hash;
 
 		// the piece index for this cache entry.
-		int piece;
+		piece_index_t piece;
 
 		enum kind_t { read_cache = 0, write_cache = 1, volatile_read_cache = 2 };
 
@@ -298,8 +298,8 @@ namespace libtorrent
 			, disk_buffer_holder buffer
 			, std::function<void(storage_error const&)> handler
 			, std::uint8_t flags = 0) override;
-		void async_hash(storage_interface* storage, int piece, std::uint8_t flags
-			, std::function<void(int, sha1_hash const&, storage_error const&)> handler, void* requester) override;
+		void async_hash(storage_interface* storage, piece_index_t piece, std::uint8_t flags
+			, std::function<void(piece_index_t, sha1_hash const&, storage_error const&)> handler, void* requester) override;
 		void async_move_storage(storage_interface* storage, std::string const& p, std::uint8_t flags
 			, std::function<void(status_t, std::string const&, storage_error const&)> handler) override;
 		void async_release_files(storage_interface* storage
@@ -308,26 +308,26 @@ namespace libtorrent
 			, std::function<void(storage_error const&)> handler) override;
 		void async_check_files(storage_interface* storage
 			, add_torrent_params const* resume_data
-			, std::vector<std::string>& links
+			, aux::vector<std::string, file_index_t>& links
 			, std::function<void(status_t, storage_error const&)> handler) override;
-		void async_rename_file(storage_interface* storage, int index, std::string const& name
-			, std::function<void(std::string const&, int, storage_error const&)> handler) override;
+		void async_rename_file(storage_interface* storage, file_index_t index, std::string const& name
+			, std::function<void(std::string const&, file_index_t, storage_error const&)> handler) override;
 		void async_stop_torrent(storage_interface* storage
 			, std::function<void()> handler) override;
-		void async_flush_piece(storage_interface* storage, int piece
+		void async_flush_piece(storage_interface* storage, piece_index_t piece
 			, std::function<void()> handler = std::function<void()>()) override;
 		void async_set_file_priority(storage_interface* storage
-			, std::vector<std::uint8_t> const& prio
+			, aux::vector<std::uint8_t, file_index_t> const& prio
 			, std::function<void(storage_error const&)> handler) override;
 
-		void async_clear_piece(storage_interface* storage, int index
-			, std::function<void(int)> handler) override;
+		void async_clear_piece(storage_interface* storage, piece_index_t index
+			, std::function<void(piece_index_t)> handler) override;
 		// this is not asynchronous and requires that the piece does not
 		// have any pending buffers. It's meant to be used for pieces that
 		// were just read and hashed and failed the hash check.
 		// there should be no read-operations left, and all buffers should
 		// be discardable
-		void clear_piece(storage_interface* storage, int index) override;
+		void clear_piece(storage_interface* storage, piece_index_t index) override;
 
 		// implements buffer_allocator_interface
 		void reclaim_blocks(span<aux::block_cache_reference> ref) override;

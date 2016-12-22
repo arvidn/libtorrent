@@ -59,9 +59,8 @@ std::shared_ptr<torrent_info> generate_torrent()
 	t.add_tracker("http://torrent_file_tracker.com/announce");
 	t.add_url_seed("http://torrent_file_url_seed.com/");
 
-	int num = t.num_pieces();
-	TEST_CHECK(num > 0);
-	for (int i = 0; i < num; ++i)
+	TEST_CHECK(t.num_pieces() > 0);
+	for (piece_index_t i(0); i < fs.end_piece(); ++i)
 	{
 		sha1_hash ph;
 		for (int k = 0; k < 20; ++k) ph[k] = lt::random(0xff);
@@ -171,7 +170,7 @@ torrent_handle test_resume_flags(lt::session& ses, int flags
 
 	if (file_priorities[0])
 	{
-		std::vector<std::uint8_t> priorities_vector;
+		aux::vector<std::uint8_t, file_index_t> priorities_vector;
 		for (int i = 0; file_priorities[i]; ++i)
 			priorities_vector.push_back(file_priorities[i] - '0');
 
@@ -213,8 +212,8 @@ void test_piece_priorities(bool test_deprecated = false)
 	p.save_path = ".";
 	torrent_handle h = ses.add_torrent(p);
 
-	h.piece_priority(0, 0);
-	h.piece_priority(ti->num_pieces()-1, 0);
+	h.piece_priority(piece_index_t(0), 0);
+	h.piece_priority(piece_index_t(ti->num_pieces()-1), 0);
 
 	h.save_resume_data();
 	alert const* a = wait_for_alert(ses, save_resume_data_alert::alert_type);
@@ -255,9 +254,9 @@ void test_piece_priorities(bool test_deprecated = false)
 	// now, make sure the piece priorities are loaded correctly
 	h = ses.add_torrent(p);
 
-	TEST_EQUAL(h.piece_priority(0), 0);
-	TEST_EQUAL(h.piece_priority(1), 4);
-	TEST_EQUAL(h.piece_priority(ti->num_pieces()-1), 0);
+	TEST_EQUAL(h.piece_priority(piece_index_t(0)), 0);
+	TEST_EQUAL(h.piece_priority(piece_index_t(1)), 4);
+	TEST_EQUAL(h.piece_priority(piece_index_t(ti->num_pieces()-1)), 0);
 }
 
 #ifndef TORRENT_NO_DEPRECATE
