@@ -488,10 +488,8 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 #ifndef TORRENT_DISABLE_LOGGING
 				if (m_log != nullptr && m_log->should_log(dht_logger::routing_table))
 				{
-					char hex_id[41];
-					aux::to_hex(e.id, hex_id);
 					m_log->log(dht_logger::routing_table, "ignoring node (duplicate IP): %s %s"
-						, hex_id, print_address(e.addr()).c_str());
+						, aux::to_hex(e.id).c_str(), print_address(e.addr()).c_str());
 				}
 #endif
 				return failed_to_add;
@@ -531,12 +529,8 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 #ifndef TORRENT_DISABLE_LOGGING
 			if (m_log != nullptr && m_log->should_log(dht_logger::routing_table))
 			{
-				char hex_id_new[41];
-				char hex_id_old[41];
-				aux::to_hex(e.id, hex_id_new);
-				aux::to_hex(existing->id, hex_id_old);
 				m_log->log(dht_logger::routing_table, "evicting node (changed ID): old: %s new: %s %s"
-					, hex_id_old, hex_id_new, print_address(e.addr()).c_str());
+					, aux::to_hex(existing->id).c_str(), aux::to_hex(e.id).c_str(), print_address(e.addr()).c_str());
 			}
 #endif
 
@@ -628,13 +622,9 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 #ifndef TORRENT_DISABLE_LOGGING
 		if (m_log != nullptr && m_log->should_log(dht_logger::routing_table))
 		{
-			char hex_id1[41];
-			aux::to_hex(e.id, hex_id1);
-			char hex_id2[41];
-			aux::to_hex(j->id, hex_id2);
 			m_log->log(dht_logger::routing_table, "ignoring node: %s %s existing node: %s %s"
-				, hex_id1, print_address(e.addr()).c_str()
-				, hex_id2, print_address(j->addr()).c_str());
+				, aux::to_hex(e.id).c_str(), print_address(e.addr()).c_str()
+				, aux::to_hex(j->id).c_str(), print_address(j->addr()).c_str());
 		}
 #endif
 		return failed_to_add;
@@ -822,10 +812,8 @@ ip_ok:
 #ifndef TORRENT_DISABLE_LOGGING
 			if (m_log != nullptr && m_log->should_log(dht_logger::routing_table))
 			{
-				char hex_id[41];
-				aux::to_hex(e.id, hex_id);
 				m_log->log(dht_logger::routing_table, "replacing node with higher RTT: %s %s"
-					, hex_id, print_address(e.addr()).c_str());
+					, aux::to_hex(e.id).c_str(), print_address(e.addr()).c_str());
 			}
 #endif
 			return node_added;
@@ -1019,10 +1007,8 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 #ifndef TORRENT_DISABLE_LOGGING
 		if (m_log != nullptr && m_log->should_log(dht_logger::routing_table))
 		{
-			char hex_id[41];
-			aux::to_hex(nid, hex_id);
 			m_log->log(dht_logger::routing_table, "NODE FAILED id: %s ip: %s fails: %d pinged: %d up-time: %d"
-				, hex_id, print_endpoint(j->ep()).c_str()
+				, aux::to_hex(nid).c_str(), print_endpoint(j->ep()).c_str()
 				, j->fail_count()
 				, int(j->pinged())
 				, int(total_seconds(aux::time_now() - j->first_seen)));
@@ -1043,10 +1029,8 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 #ifndef TORRENT_DISABLE_LOGGING
 		if (m_log != nullptr && m_log->should_log(dht_logger::routing_table))
 		{
-			char hex_id[41];
-			aux::to_hex(nid, hex_id);
 			m_log->log(dht_logger::routing_table, "NODE FAILED id: %s ip: %s fails: %d pinged: %d up-time: %d"
-				, hex_id, print_endpoint(j->ep()).c_str()
+				, aux::to_hex(nid).c_str(), print_endpoint(j->ep()).c_str()
 				, j->fail_count()
 				, int(j->pinged())
 				, int(total_seconds(aux::time_now() - j->first_seen)));

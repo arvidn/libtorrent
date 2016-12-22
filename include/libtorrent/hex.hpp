@@ -54,6 +54,7 @@ namespace libtorrent
 	// by ``out`` is large enough, i.e. has at least len * 2 bytes of space.
 	TORRENT_DEPRECATED_EXPORT std::string to_hex(span<char const> s);
 	TORRENT_DEPRECATED_EXPORT void to_hex(span<char const> in, char* out);
+	TORRENT_DEPRECATED_EXPORT void to_hex(char const* in, size_t const len, char* out);
 
 	// converts the buffer [``in``, ``in`` + len) from hexadecimal to
 	// binary. The binary output is written to the buffer pointed to

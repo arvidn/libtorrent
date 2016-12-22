@@ -73,28 +73,31 @@ namespace libtorrent
 	extern char const hex_chars[];
 
 	char const hex_chars[] = "0123456789abcdef";
+	void to_hex(char const* in, size_t const len, char* out)
+	{
+		int idx = 0;
+		for (size_t i=0; i < len; ++i)
+		{
+			out[idx++] = hex_chars[std::uint8_t(in[i]) >> 4];
+			out[idx++] = hex_chars[std::uint8_t(in[i]) & 0xf];
+		}
+	}
 
-	std::string to_hex(span<char const> s)
+	std::string to_hex(span<char const> in)
 	{
 		std::string ret;
-		ret.resize(s.size() * 2);
-		int idx = 0;
-		for (char const i : s)
+		if (!in.empty())
 		{
-			ret[idx++] = hex_chars[std::uint8_t(i) >> 4];
-			ret[idx++] = hex_chars[std::uint8_t(i) & 0xf];
+			ret.resize(in.size() * 2);
+			to_hex(in.data(), in.size(), &ret[0]);
 		}
 		return ret;
 	}
 
 	void to_hex(span<char const> in, char* out)
 	{
-		for (char const i : in)
-		{
-			*out++ = hex_chars[std::uint8_t(i) >> 4];
-			*out++ = hex_chars[std::uint8_t(i) & 0xf];
-		}
-		*out = '\0';
+		to_hex(in.data(), in.size(), out);
+		out[in.size() * 2] = '\0';
 	}
 
 	} // aux namespace
