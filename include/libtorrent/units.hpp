@@ -45,7 +45,7 @@ namespace libtorrent {
 namespace aux {
 
 	template<typename UnderlyingType, typename Tag
-		, typename = typename std::enable_if<std::is_integral<UnderlyingType>::value>::type>
+		, typename Cond = typename std::enable_if<std::is_integral<UnderlyingType>::value>::type>
 	struct strong_typedef
 	{
 		using underlying_type = UnderlyingType;
