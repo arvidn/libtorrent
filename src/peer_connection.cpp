@@ -2507,10 +2507,9 @@ namespace libtorrent
 		m_receiving_block = b;
 
 		bool in_req_queue = false;
-		for (std::vector<pending_block>::iterator i = m_download_queue.begin()
-			, end(m_download_queue.end()); i != end; ++i)
+		for (auto const& pb : m_download_queue)
 		{
-			if (i->block != b) continue;
+			if (pb.block != b) continue;
 			in_req_queue = true;
 			break;
 		}
@@ -2833,11 +2832,11 @@ namespace libtorrent
 			, std::bind(&peer_connection::on_disk_write_complete
 			, self(), _1, p, t));
 
-		std::uint64_t const write_queue_size = m_counters.inc_stats_counter(
+		std::int64_t const write_queue_size = m_counters.inc_stats_counter(
 			counters::queued_write_bytes, p.length);
 		m_outstanding_writing_bytes += p.length;
 
-		std::uint64_t const max_queue_size = m_settings.get_int(
+		std::int64_t const max_queue_size = m_settings.get_int(
 			settings_pack::max_queued_disk_bytes);
 		if (write_queue_size > max_queue_size
 			&& write_queue_size - p.length < max_queue_size
@@ -4324,7 +4323,6 @@ namespace libtorrent
 #endif
 
 		m_disconnecting = true;
-		error_code e;
 
 		async_shutdown(*m_socket, m_socket);
 
@@ -4996,7 +4994,7 @@ namespace libtorrent
 			if (t->alerts().should_post<block_timeout_alert>())
 			{
 				t->alerts().emplace_alert<block_timeout_alert>(t->get_handle()
-					, remote(), pid(), int(qe.block.block_index)
+					, remote(), pid(), qe.block.block_index
 					, qe.block.piece_index);
 			}
 
@@ -5452,7 +5450,7 @@ namespace libtorrent
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::outgoing, "CORKED_WRITE", "bytes: %d"
-				, int(m_send_buffer.size()));
+				, m_send_buffer.size());
 #endif
 			return;
 		}
@@ -5558,7 +5556,7 @@ namespace libtorrent
 		}
 
 		int const amount_to_send = std::min({
-			int(m_send_buffer.size())
+			m_send_buffer.size()
 			, quota_left
 			, m_send_barrier});
 
@@ -6002,7 +6000,7 @@ namespace libtorrent
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #endif
 		// add this RTT to the PRNG seed, to add more unpredictability
-		std::uint64_t now = total_microseconds(completed - m_connect);
+		std::int64_t now = total_microseconds(completed - m_connect);
 		// assume 12 bits of entropy (i.e. about 8 milliseconds)
 		RAND_add(&now, 8, 1.5);
 #ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
@@ -6553,7 +6551,7 @@ namespace libtorrent
 		// if m_num_pieces == 0, we probably don't have the
 		// metadata yet.
 		std::shared_ptr<torrent> t = m_torrent.lock();
-		return m_num_pieces == int(m_have_piece.size())
+		return m_num_pieces == m_have_piece.size()
 			&& m_num_pieces > 0 && t && t->valid_metadata();
 	}
 
