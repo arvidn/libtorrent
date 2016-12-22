@@ -68,8 +68,8 @@ namespace aux {
 		strong_typedef& operator++() { ++m_val; return *this; }
 		strong_typedef& operator--() { --m_val; return *this; }
 
-		strong_typedef operator++(int) { strong_typedef ret = *this; ++m_val; return ret; }
-		strong_typedef operator--(int) { strong_typedef ret = *this; --m_val; return ret; }
+		strong_typedef operator++(int) { return strong_typedef{m_val++}; }
+		strong_typedef operator--(int) { return strong_typedef{m_val--}; }
 
 		strong_typedef& operator=(strong_typedef rhs) { m_val = rhs.m_val; return *this; }
 	private:
@@ -85,11 +85,11 @@ namespace aux {
 
 	template <typename T, typename Tag>
 	strong_typedef<T, Tag> next(strong_typedef<T, Tag> v)
-	{ ++v; return v;}
+	{ return ++v;}
 
 	template <typename T, typename Tag>
 	strong_typedef<T, Tag> prev(strong_typedef<T, Tag> v)
-	{ --v; return v;}
+	{ return --v;}
 
 #if TORRENT_USE_IOSTREAM
 	template <typename T, typename Tag>
