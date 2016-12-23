@@ -17,6 +17,7 @@
 #include <libtorrent/torrent_info.hpp>
 #include <libtorrent/kademlia/item.hpp> // for sign_mutable_item
 #include <libtorrent/time.hpp>
+#include <libtorrent/session_stats.hpp>
 
 #ifndef TORRENT_NO_DEPRECATE
 #include <libtorrent/extensions/lt_trackers.hpp>
@@ -952,12 +953,6 @@ void bind_session()
         .def("set_settings", &set_feed_settings)
         .def("settings", &get_feed_settings)
     ;
-#endif
-
-    typedef void (*mem_preset2)(settings_pack& s);
-    typedef void (*perf_preset2)(settings_pack& s);
-
-#ifndef TORRENT_NO_DEPRECATE
 
     typedef session_settings (*mem_preset1)();
     typedef session_settings (*perf_preset1)();
@@ -967,8 +962,20 @@ void bind_session()
     scope().attr("create_metadata_plugin") = "metadata_transfer";
 #endif
 
+    typedef void (*mem_preset2)(settings_pack& s);
+    typedef void (*perf_preset2)(settings_pack& s);
+
     def("high_performance_seed", (perf_preset2)high_performance_seed);
     def("min_memory_usage", (mem_preset2)min_memory_usage);
+
+	class_<stats_metric>("stats_metric")
+		.def_readonly("name", &stats_metric::name)
+		.def_readonly("value_index", &stats_metric::value_index)
+		.def_readonly("type", &stats_metric::type)
+	;
+
+    def("session_stats_metrics", session_stats_metrics);
+    def("find_metric_idx", find_metric_idx);
 
     scope().attr("create_ut_metadata_plugin") = "ut_metadata";
     scope().attr("create_ut_pex_plugin") = "ut_pex";

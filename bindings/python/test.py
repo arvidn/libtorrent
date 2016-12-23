@@ -22,6 +22,19 @@ class test_create_torrent(unittest.TestCase):
 			print(entry)
 			self.assertEqual(content, file_content)
 
+class test_session_stats(unittest.TestCase):
+
+	def test_unique(self):
+		l = lt.session_stats_metrics()
+		self.assertTrue(len(l) > 40);
+		idx = set()
+		for m in l:
+			self.assertTrue(m.value_index not in idx)
+			idx.add(m.value_index)
+
+	def test_find_idx(self):
+		self.assertEqual(lt.find_metric_idx("peer.error_peers"), 0)
+
 class test_torrent_handle(unittest.TestCase):
 
 	def test_torrent_handle(self):
