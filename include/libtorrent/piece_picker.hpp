@@ -576,12 +576,12 @@ namespace libtorrent
 			std::set<const torrent_peer*> have_peers;
 #endif
 
-			enum : std::uint32_t
+			enum : std::int32_t
 			{
 				// index is set to this to indicate that we have the
 				// piece. There is no entry for the piece in the
 				// buckets if this is the case.
-				we_have_index = 0xffffffff,
+				we_have_index = 0x7fffffff,
 				// the priority value that means the piece is filtered
 				filter_priority = 0,
 				// the max number the peer count can hold
