@@ -38,30 +38,20 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	template <class T>
-	typename std::vector<T>::iterator sorted_find(std::vector<T>& container
-		, T v)
+	template <typename Container, typename T>
+	auto sorted_find(Container& container, T const& v)
+		-> decltype(container.begin())
 	{
-		typename std::vector<T>::iterator i = std::lower_bound(container.begin()
-			, container.end(), v);
+		auto i = std::lower_bound(container.begin(), container.end(), v);
 		if (i == container.end()) return container.end();
 		if (*i != v) return container.end();
 		return i;
 	}
 
-	template <class T>
-	typename std::vector<T*>::const_iterator sorted_find(std::vector<T*> const& container
-		, T const* v)
-	{
-		return sorted_find(const_cast<std::vector<T*>&>(container)
-			, const_cast<T*>(v));
-	}
-
 	template<class T>
 	void sorted_insert(std::vector<T>& container, T v)
 	{
-		typename std::vector<T>::iterator i = std::lower_bound(container.begin()
-			, container.end(), v);
+		auto i = std::lower_bound(container.begin(), container.end(), v);
 		container.insert(i, v);
 	}
 }
