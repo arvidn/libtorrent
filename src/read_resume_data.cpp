@@ -117,7 +117,7 @@ namespace libtorrent
 		ret.finished_time = int(rd.dict_find_int_value("finished_time"));
 		ret.seeding_time = int(rd.dict_find_int_value("seeding_time"));
 
-		ret.last_seen_complete = rd.dict_find_int_value("last_seen_complete");
+		ret.last_seen_complete = std::time_t(rd.dict_find_int_value("last_seen_complete"));
 
 		// scrape data cache
 		ret.num_complete = int(rd.dict_find_int_value("num_complete", -1));
@@ -156,8 +156,8 @@ namespace libtorrent
 			}
 		}
 
-		ret.added_time = rd.dict_find_int_value("added_time", 0);
-		ret.completed_time = rd.dict_find_int_value("completed_time", 0);
+		ret.added_time = std::time_t(rd.dict_find_int_value("added_time", 0));
+		ret.completed_time = std::time_t(rd.dict_find_int_value("completed_time", 0));
 
 		// load file priorities except if the add_torrent_param file was set to
 		// override resume data

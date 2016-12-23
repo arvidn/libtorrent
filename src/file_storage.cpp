@@ -607,7 +607,7 @@ namespace libtorrent
 		if (mtime)
 		{
 			if (m_mtime.size() < m_files.size()) m_mtime.resize(m_files.size());
-			m_mtime[last_file()] = mtime;
+			m_mtime[last_file()] = std::time_t(mtime);
 		}
 
 		++m_num_files;
