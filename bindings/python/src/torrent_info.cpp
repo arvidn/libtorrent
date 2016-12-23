@@ -62,11 +62,26 @@ namespace
             d["url"] = i->url;
             d["type"] = i->type;
             d["auth"] = i->auth;
-            d["extra_headers"] = i->extra_headers;
             ret.append(d);
         }
 
         return ret;
+    }
+
+    void set_web_seeds(torrent_info& ti, list ws)
+    {
+        std::vector<web_seed_entry> web_seeds;
+        int const len = boost::python::len(ws);
+        for (int i = 0; i < len; i++)
+        {
+           dict e = extract<dict>(ws[i]);
+           int const type = extract<int>(e["type"]);
+           web_seeds.push_back(web_seed_entry(
+              extract<std::string>(e["url"])
+              , static_cast<web_seed_entry::type_t>(type)
+              , extract<std::string>(e["auth"])));
+        }
+        ti.set_web_seeds(web_seeds);
     }
 
     list get_merkle_tree(torrent_info const& ti)
@@ -228,6 +243,7 @@ void bind_torrent_info()
         .def("add_url_seed", &torrent_info::add_url_seed)
         .def("add_http_seed", &torrent_info::add_http_seed)
         .def("web_seeds", get_web_seeds)
+        .def("set_web_seeds", set_web_seeds)
 
         .def("name", &torrent_info::name, copy)
         .def("comment", &torrent_info::comment, copy)
@@ -241,6 +257,9 @@ void bind_torrent_info()
         .def("set_merkle_tree", set_merkle_tree)
         .def("piece_size", &torrent_info::piece_size)
 
+        .def("similar_torrents", &torrent_info::similar_torrents)
+        .def("collections", &torrent_info::collections)
+        .def("ssl_cert", &torrent_info::ssl_cert)
         .def("num_files", &torrent_info::num_files)
         .def("rename_file", rename_file0)
         .def("remap_files", &torrent_info::remap_files)
@@ -254,7 +273,10 @@ void bind_torrent_info()
 #endif // TORRENT_USE_WSTRING
 #endif // TORRENT_NO_DEPRECATE
 
+        .def("is_valid", &torrent_info::is_valid)
         .def("priv", &torrent_info::priv)
+        .def("is_i2p", &torrent_info::is_i2p)
+        .def("is_merkle_torrent", &torrent_info::is_merkle_torrent)
         .def("trackers", range(begin_trackers, end_trackers))
 
         .def("creation_date", &torrent_info::creation_date)
