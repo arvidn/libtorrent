@@ -386,13 +386,12 @@ namespace libtorrent
 			return m_files.map_file(file, offset, size);
 		}
 
-		// load and unload this torrent info
-		void load(char const* buffer, int size, error_code& ec);
-		void unload();
-
 #ifndef TORRENT_NO_DEPRECATE
 // ------- start deprecation -------
-// these functions will be removed in a future version
+		// deprecated in 1.2
+		void load(char const*, int, error_code&) {}
+		void unload() {}
+
 		TORRENT_DEPRECATED
 		explicit torrent_info(entry const& torrent_file);
 // ------- end deprecation -------
@@ -552,6 +551,8 @@ namespace libtorrent
 		// if m_files is modified, it is first copied into
 		// m_orig_files so that the original name and
 		// filenames are preserved.
+		// the original filenames are required to build URLs for web seeds for
+		// instance
 		copy_ptr<const file_storage> m_orig_files;
 
 		// the urls to the trackers

@@ -174,7 +174,6 @@ test_failing_torrent_t test_error_torrents[] =
 // TODO: torrent with an SSL cert
 // TODO: torrent with attributes (executable and hidden)
 // TODO: torrent_info::add_tracker
-// TODO: torrent_info::unload
 // TODO: torrent_info constructor that takes an invalid bencoded buffer
 // TODO: verify_encoding with a string that triggers character replacement
 

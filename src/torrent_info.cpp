@@ -985,37 +985,6 @@ namespace libtorrent
 
 	torrent_info::~torrent_info() = default;
 
-	void torrent_info::load(char const* buffer, int size, error_code& ec)
-	{
-		bdecode_node e;
-		if (bdecode(buffer, buffer + size, e, ec) != 0)
-			return;
-
-		if (!parse_torrent_file(e, ec, 0))
-			return;
-	}
-
-	void torrent_info::unload()
-	{
-		TORRENT_ASSERT(m_info_section.unique());
-
-		m_info_section.reset();
-		m_info_section_size = 0;
-
-		// if we have orig_files, we have to keep
-		// m_files around, since it means we have
-		// remapped files, and we won't be able to
-		// restore that from just reloading the
-		// torrent file
-		if (m_orig_files) m_orig_files.reset();
-		else m_files.unload();
-
-		m_piece_hashes = nullptr;
-		std::vector<web_seed_entry>().swap(m_web_seeds);
-
-		TORRENT_ASSERT(!is_loaded());
-	}
-
 	sha1_hash torrent_info::hash_for_piece(piece_index_t const index) const
 	{ return sha1_hash(hash_for_piece_ptr(index)); }
 
@@ -1225,19 +1194,7 @@ namespace libtorrent
 
 		// now, commit the files structure we just parsed out
 		// into the torrent_info object.
-		// if we already have an m_files that's populated, it
-		// indicates that we unloaded this torrent_info ones
-		// and we had modifications to the files, so we unloaded
-		// the orig_files. In that case, the orig files is what
-		// needs to be restored
-		if (m_files.is_loaded()) {
-			m_orig_files.reset(new file_storage);
-			const_cast<file_storage&>(*m_orig_files).swap(files);
-		}
-		else
-		{
-			m_files.swap(files);
-		}
+		m_files.swap(files);
 		return true;
 	}
 

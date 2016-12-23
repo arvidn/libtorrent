@@ -1229,8 +1229,6 @@ namespace libtorrent
 #endif
 
 #ifndef TORRENT_NO_DEPRECATE
-			// if this function is set, it indicates that torrents are allowed
-			// to be unloaded. If it isn't, torrents will never be unloaded
 			user_load_function_t m_user_load_torrent;
 #endif
 
