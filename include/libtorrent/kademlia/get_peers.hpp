@@ -92,6 +92,10 @@ struct get_peers_observer : find_data_observer
 	{}
 
 	virtual void reply(msg const&);
+#ifndef TORRENT_DISABLE_LOGGING
+private:
+	void log_peers(msg const& m, bdecode_node const& r, int const size) const;
+#endif
 };
 
 struct obfuscated_get_peers_observer : traversal_observer

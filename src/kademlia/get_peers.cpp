@@ -69,23 +69,7 @@ void get_peers_observer::reply(msg const& m)
 			char const* end = peers + n.list_at(0).string_length();
 
 #ifndef TORRENT_DISABLE_LOGGING
-			auto logger = get_observer();
-			if (logger != nullptr && logger->should_log(dht_logger::traversal))
-			{
-				bdecode_node const id = r.dict_find_string("id");
-				if (id && id.string_length() == 20)
-				{
-					logger->log(dht_logger::traversal, "[%p] PEERS "
-						"invoke-count: %d branch-factor: %d addr: %s id: %s distance: %d p: %d"
-						, static_cast<void*>(algorithm())
-						, algorithm()->invoke_count()
-						, algorithm()->branch_factor()
-						, print_endpoint(m.addr).c_str()
-						, aux::to_hex({id.string_ptr(), size_t(id.string_length())}).c_str()
-						, distance_exp(algorithm()->target(), node_id(id.string_ptr()))
-						, int((end - peers) / 6));
-				}
-			}
+			log_peers(m, r, int((end - peers) / 6));
 #endif
 			while (end - peers >= 6)
 				peer_list.push_back(detail::read_v4_endpoint<tcp::endpoint>(peers));
@@ -95,6 +79,17 @@ void get_peers_observer::reply(msg const& m)
 			// assume it's uTorrent/libtorrent format
 			peer_list = detail::read_endpoint_list<tcp::endpoint>(n);
 #ifndef TORRENT_DISABLE_LOGGING
+			log_peers(m, r, n.list_size());
+#endif
+		}
+		static_cast<get_peers*>(algorithm())->got_peers(peer_list);
+	}
+
+	find_data_observer::reply(m);
+}
+#ifndef TORRENT_DISABLE_LOGGING
+void get_peers_observer::log_peers(msg const& m, bdecode_node const& r, int const size) const
+{
 			auto logger = get_observer();
 			if (logger != nullptr && logger->should_log(dht_logger::traversal))
 			{
@@ -109,17 +104,11 @@ void get_peers_observer::reply(msg const& m)
 						, print_endpoint(m.addr).c_str()
 						, aux::to_hex({id.string_ptr(), size_t(id.string_length())}).c_str()
 						, distance_exp(algorithm()->target(), node_id(id.string_ptr()))
-						, n.list_size());
+						, size);
 				}
 			}
-#endif
-		}
-		static_cast<get_peers*>(algorithm())->got_peers(peer_list);
-	}
-
-	find_data_observer::reply(m);
 }
-
+#endif
 void get_peers::got_peers(std::vector<tcp::endpoint> const& peers)
 {
 	if (m_data_callback) m_data_callback(peers);

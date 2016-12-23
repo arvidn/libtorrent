@@ -1005,14 +1005,7 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 		j->timed_out();
 
 #ifndef TORRENT_DISABLE_LOGGING
-		if (m_log != nullptr && m_log->should_log(dht_logger::routing_table))
-		{
-			m_log->log(dht_logger::routing_table, "NODE FAILED id: %s ip: %s fails: %d pinged: %d up-time: %d"
-				, aux::to_hex(nid).c_str(), print_endpoint(j->ep()).c_str()
-				, j->fail_count()
-				, int(j->pinged())
-				, int(total_seconds(aux::time_now() - j->first_seen)));
-		}
+		log_node_failed(nid, j);
 #endif
 		return;
 	}
@@ -1027,14 +1020,7 @@ void routing_table::node_failed(node_id const& nid, udp::endpoint const& ep)
 		j->timed_out();
 
 #ifndef TORRENT_DISABLE_LOGGING
-		if (m_log != nullptr && m_log->should_log(dht_logger::routing_table))
-		{
-			m_log->log(dht_logger::routing_table, "NODE FAILED id: %s ip: %s fails: %d pinged: %d up-time: %d"
-				, aux::to_hex(nid).c_str(), print_endpoint(j->ep()).c_str()
-				, j->fail_count()
-				, int(j->pinged())
-				, int(total_seconds(aux::time_now() - j->first_seen)));
-		}
+		log_node_failed(nid, j);
 #endif
 
 		// if this node has failed too many times, or if this node
@@ -1197,5 +1183,19 @@ bool routing_table::is_full(int const bucket) const
 	return (int(i->live_nodes.size()) >= bucket_limit(bucket)
 		&& int(i->replacements.size()) >= m_bucket_size);
 }
+
+#ifndef TORRENT_DISABLE_LOGGING
+void routing_table::log_node_failed(node_id const& nid, bucket_t::iterator const j) const
+{
+	if (m_log != nullptr && m_log->should_log(dht_logger::routing_table))
+	{
+		m_log->log(dht_logger::routing_table, "NODE FAILED id: %s ip: %s fails: %d pinged: %d up-time: %d"
+			, aux::to_hex(nid).c_str(), print_endpoint(j->ep()).c_str()
+			, j->fail_count()
+			, int(j->pinged())
+			, int(total_seconds(aux::time_now() - j->first_seen)));
+	}
+}
+#endif
 
 } } // namespace libtorrent::dht

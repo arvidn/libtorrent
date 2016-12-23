@@ -277,6 +277,7 @@ private:
 
 #ifndef TORRENT_DISABLE_LOGGING
 	dht_logger* m_log;
+	void log_node_failed(node_id const& nid, bucket_t::iterator const j) const;
 #endif
 
 	table_t::iterator find_bucket(node_id const& id);

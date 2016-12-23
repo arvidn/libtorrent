@@ -308,16 +308,7 @@ void traversal_algorithm::failed(observer_ptr o, int const flags)
 		}
 		o->flags |= observer::flag_short_timeout;
 #ifndef TORRENT_DISABLE_LOGGING
-		dht_observer* logger = get_node().observer();
-		if (logger != nullptr && logger->should_log(dht_logger::traversal))
-		{
-			logger->log(dht_logger::traversal
-				, "[%p] 1ST_TIMEOUT id: %s distance: %d addr: %s branch-factor: %d "
-				"invoke-count: %d type: %s"
-				, static_cast<void*>(this), aux::to_hex(o->id()).c_str(), distance_exp(m_target, o->id())
-				, print_address(o->target_addr()).c_str(), m_branch_factor
-				, m_invoke_count, name());
-		}
+		log_timeout(o, "1ST_");
 #endif
 	}
 	else
@@ -328,16 +319,7 @@ void traversal_algorithm::failed(observer_ptr o, int const flags)
 		decrement_branch_factor = (o->flags & observer::flag_short_timeout) != 0;
 
 #ifndef TORRENT_DISABLE_LOGGING
-		dht_observer* logger = get_node().observer();
-		if (logger != nullptr && logger->should_log(dht_logger::traversal))
-		{
-			logger->log(dht_logger::traversal
-				, "[%p] TIMEOUT id: %s distance: %d addr: %s branch-factor: %d "
-				"invoke-count: %d type: %s"
-				, static_cast<void*>(this), aux::to_hex(o->id()).c_str(), distance_exp(m_target, o->id())
-				, print_address(o->target_addr()).c_str(), m_branch_factor
-				, m_invoke_count, name());
-		}
+		log_timeout(o,"");
 #endif
 
 		++m_timeouts;
@@ -359,6 +341,24 @@ void traversal_algorithm::failed(observer_ptr o, int const flags)
 	bool const is_done = add_requests();
 	if (is_done) done();
 }
+
+#ifndef TORRENT_DISABLE_LOGGING
+void traversal_algorithm::log_timeout(observer_ptr const& o,char const* prefix) const
+{
+	dht_observer * logger = get_node().observer();
+	if (logger != nullptr && logger->should_log(dht_logger::traversal))
+	{
+		logger->log(dht_logger::traversal
+			, "[%p] %sTIMEOUT id: %s distance: %d addr: %s branch-factor: %d "
+			"invoke-count: %d type: %s"
+			, prefix
+			, static_cast<void const*>(this), aux::to_hex(o->id()).c_str(), distance_exp(m_target, o->id())
+			, print_address(o->target_addr()).c_str(), m_branch_factor
+			, m_invoke_count, name());
+	}
+
+}
+#endif
 
 void traversal_algorithm::done()
 {

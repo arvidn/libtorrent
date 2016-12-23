@@ -116,6 +116,9 @@ private:
 #if TORRENT_USE_IPV6
 	std::set<std::uint64_t> m_peer6_prefixes;
 #endif
+#ifndef TORRENT_DISABLE_LOGGING
+	void log_timeout(observer_ptr const& o, char const* prefix) const;
+#endif
 };
 
 struct traversal_observer : observer
