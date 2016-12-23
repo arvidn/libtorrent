@@ -452,6 +452,7 @@ void bind_torrent_handle()
         .def("set_piece_deadline", _(&torrent_handle::set_piece_deadline)
             , (arg("index"), arg("deadline"), arg("flags") = 0))
         .def("reset_piece_deadline", _(&torrent_handle::reset_piece_deadline), (arg("index")))
+        .def("clear_piece_deadlines", _(&torrent_handle::clear_piece_deadlines), (arg("index")))
         .def("piece_availability", &piece_availability)
         .def("piece_priority", _(piece_priority0))
         .def("piece_priority", _(piece_priority1))
@@ -523,6 +524,8 @@ void bind_torrent_handle()
 
     enum_<torrent_handle::save_resume_flags_t>("save_resume_flags_t")
         .value("flush_disk_cache", torrent_handle::flush_disk_cache)
+        .value("save_info_dict", torrent_handle::save_info_dict)
+        .value("only_if_modified", torrent_handle::only_if_modified)
     ;
 
     enum_<torrent_handle::deadline_flags>("deadline_flags")

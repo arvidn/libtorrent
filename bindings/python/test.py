@@ -37,45 +37,53 @@ class test_session_stats(unittest.TestCase):
 
 class test_torrent_handle(unittest.TestCase):
 
+	def setup(self):
+		self.ses = lt.session({'alert_mask': lt.alert.category_t.all_categories, 'enable_dht': False})
+		self.ti = lt.torrent_info('url_seed_multi.torrent');
+		self.h = self.ses.add_torrent({'ti': self.ti, 'save_path': os.getcwd()})
+
 	def test_torrent_handle(self):
-		ses = lt.session({'alert_mask': lt.alert.category_t.all_categories, 'enable_dht': False})
-		ti = lt.torrent_info('url_seed_multi.torrent');
-		h = ses.add_torrent({'ti': ti, 'save_path': os.getcwd()})
+		self.setup()
+		self.assertEqual(self.h.file_priorities(), [4,4])
+		self.assertEqual(self.h.piece_priorities(), [4])
 
-		self.assertEqual(h.file_priorities(), [4,4])
-		self.assertEqual(h.piece_priorities(), [4])
+		self.h.prioritize_files([0,1])
+		self.assertEqual(self.h.file_priorities(), [0,1])
 
-		h.prioritize_files([0,1])
-		self.assertEqual(h.file_priorities(), [0,1])
-
-		h.prioritize_pieces([0])
-		self.assertEqual(h.piece_priorities(), [0])
+		self.h.prioritize_pieces([0])
+		self.assertEqual(self.h.piece_priorities(), [0])
 
 		# also test the overload that takes a list of piece->priority mappings
-		h.prioritize_pieces([(0, 1)])
-		self.assertEqual(h.piece_priorities(), [1])
+		self.h.prioritize_pieces([(0, 1)])
+		self.assertEqual(self.h.piece_priorities(), [1])
 
-	def test_file_status(seld):
-		ses = lt.session({'alert_mask': lt.alert.category_t.all_categories, 'enable_dht': False})
-		ti = lt.torrent_info('url_seed_multi.torrent');
-		h = ses.add_torrent({'ti': ti, 'save_path': os.getcwd()})
-		l = h.file_status()
+	def test_file_status(self):
+		self.setup()
+		l = self.h.file_status()
 		print(l)
 
+	def test_piece_deadlines(self):
+		self.setup()
+		self.h.clear_piece_deadlines()
+
+	def test_torrent_status(self):
+		self.setup()
+		st = self.h.status()
+		ti = st.handle;
+		self.assertEqual(ti.info_hash(), self.ti.info_hash())
+		# make sure we can compare torrent_status objects
+		st2 = self.h.status()
+		self.assertEqual(st2, st)
+
 	def test_scrape(self):
-		ses = lt.session({'alert_mask': lt.alert.category_t.all_categories, 'enable_dht': False})
-		ti = lt.torrent_info('url_seed_multi.torrent');
-		h = ses.add_torrent({'ti': ti, 'save_path': os.getcwd()})
+		self.setup()
 		# this is just to make sure this function can be called like this
 		# from python
-		h.scrape_tracker()
+		self.h.scrape_tracker()
 
 	def test_cache_info(self):
-		ses = lt.session({'alert_mask': lt.alert.category_t.all_categories, 'enable_dht': False})
-		ti = lt.torrent_info('url_seed_multi.torrent');
-		h = ses.add_torrent({'ti': ti, 'save_path': os.getcwd()})
-
-		cs = ses.get_cache_info(h)
+		self.setup()
+		cs = self.ses.get_cache_info(self.h)
 		self.assertEqual(cs.pieces, [])
 
 class test_torrent_info(unittest.TestCase):
@@ -97,6 +105,19 @@ class test_torrent_info(unittest.TestCase):
 
 		self.assertTrue(len(ti.metadata()) != 0)
 		self.assertTrue(len(ti.hash_for_piece(0)) != 0)
+
+	def test_web_seeds(self):
+		ti = lt.torrent_info('base.torrent');
+
+		ws = [{'url': 'http://foo/test', 'auth': '', 'type': 0},
+			{'url': 'http://bar/test', 'auth': '', 'type': 1} ]
+		ti.set_web_seeds(ws)
+		web_seeds = ti.web_seeds()
+		self.assertEqual(len(ws), len(web_seeds))
+		for i in range(len(web_seeds)):
+			self.assertEqual(web_seeds[i]["url"], ws[i]["url"])
+			self.assertEqual(web_seeds[i]["auth"], ws[i]["auth"])
+			self.assertEqual(web_seeds[i]["type"], ws[i]["type"])
 
 	def test_iterable_files(self):
 
