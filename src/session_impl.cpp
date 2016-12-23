@@ -1690,9 +1690,9 @@ namespace aux {
 #if TORRENT_USE_INVARIANT_CHECKS
 		// call invariant check only once because the settings update methods rely
 		// on each other
-		skip_invariant_check = true;
+		m_skip_invariant_check = true;
 		apply_pack(&pack, m_settings, this);
-		skip_invariant_check = false;
+		m_skip_invariant_check = false;
 		INVARIANT_CHECK;
 #else
 		apply_pack(&pack, m_settings, this);
