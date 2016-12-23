@@ -6,6 +6,7 @@
 #include "libtorrent/address.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/session_stats.hpp"
 
 using namespace boost::python;
 namespace bp = boost::python;
@@ -66,6 +67,20 @@ struct tuple_to_pair
     }
 };
 
+template<class T>
+struct vector_to_list
+{
+    static PyObject* convert(const std::vector<T>& v)
+    {
+        list l;
+        for (int i = 0; i < int(v.size()); ++i)
+        {
+           l.append(v[i]);
+        }
+        return incref(l.ptr());
+    }
+};
+
 void bind_converters()
 {
     namespace lt = libtorrent;
@@ -74,4 +89,6 @@ void bind_converters()
     to_python_converter<lt::udp::endpoint, endpoint_to_tuple<lt::udp::endpoint> >();
     to_python_converter<lt::address, address_to_tuple>();
     tuple_to_pair<int, int>();
+
+    to_python_converter<std::vector<lt::stats_metric>, vector_to_list<lt::stats_metric>>();
 }
