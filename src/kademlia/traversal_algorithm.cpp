@@ -343,7 +343,7 @@ void traversal_algorithm::failed(observer_ptr o, int const flags)
 }
 
 #ifndef TORRENT_DISABLE_LOGGING
-void traversal_algorithm::log_timeout(observer_ptr const& o,char const* prefix) const
+void traversal_algorithm::log_timeout(observer_ptr const& o, char const* prefix) const
 {
 	dht_observer * logger = get_node().observer();
 	if (logger != nullptr && logger->should_log(dht_logger::traversal))
@@ -351,8 +351,7 @@ void traversal_algorithm::log_timeout(observer_ptr const& o,char const* prefix) 
 		logger->log(dht_logger::traversal
 			, "[%p] %sTIMEOUT id: %s distance: %d addr: %s branch-factor: %d "
 			"invoke-count: %d type: %s"
-			, prefix
-			, static_cast<void const*>(this), aux::to_hex(o->id()).c_str(), distance_exp(m_target, o->id())
+			, static_cast<void const*>(this), prefix, aux::to_hex(o->id()).c_str(), distance_exp(m_target, o->id())
 			, print_address(o->target_addr()).c_str(), m_branch_factor
 			, m_invoke_count, name());
 	}
