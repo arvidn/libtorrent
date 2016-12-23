@@ -1810,7 +1810,7 @@ namespace libtorrent
 				have_pieces.push_back(p.index);
 			}
 
-			for (auto const& i : have_pieces)
+			for (auto i : have_pieces)
 			{
 				picker().piece_passed(i);
 				TORRENT_ASSERT(picker().have_piece(i));
