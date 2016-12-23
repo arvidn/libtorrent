@@ -12,6 +12,7 @@
 #include <libtorrent/peer_info.hpp>
 #include "libtorrent/announce_entry.hpp"
 #include <libtorrent/storage.hpp>
+#include <libtorrent/file_pool.hpp>
 #include <boost/lexical_cast.hpp>
 #include "gil.hpp"
 
@@ -314,6 +315,13 @@ void connect_peer(torrent_handle& th, tuple ip, int source)
     th.connect_peer(tuple_to_endpoint(ip), source);
 }
 
+std::vector<pool_file_status> file_status(torrent_handle const& h)
+{
+	std::vector<pool_file_status> ret;
+	h.file_status(ret);
+	return ret;
+}
+
 #ifndef TORRENT_NO_DEPRECATE
 #if BOOST_VERSION > 104200
 
@@ -453,6 +461,7 @@ void bind_torrent_handle()
         .def("file_priorities", &file_priorities)
         .def("file_priority", &file_prioritity0)
         .def("file_priority", &file_prioritity1)
+        .def("file_status", &::file_status)
         .def("save_resume_data", _(&torrent_handle::save_resume_data), arg("flags") = 0)
         .def("need_save_resume_data", _(&torrent_handle::need_save_resume_data))
         .def("force_reannounce", _(force_reannounce0)
@@ -495,10 +504,19 @@ void bind_torrent_handle()
 #endif
         ;
 
+    class_<pool_file_status>("pool_file_status")
+       .def_readonly("file_index", &pool_file_status::file_index)
+       .def_readonly("last_use", &pool_file_status::last_use)
+       .def_readonly("open_mode", &pool_file_status::open_mode)
+    ;
+
     enum_<torrent_handle::file_progress_flags_t>("file_progress_flags")
         .value("piece_granularity", torrent_handle::piece_granularity)
     ;
 
+    enum_<torrent_handle::flags_t>("add_piece_flags_t")
+        .value("overwrite_existing", torrent_handle::overwrite_existing)
+    ;
     enum_<torrent_handle::pause_flags_t>("pause_flags_t")
         .value("graceful_pause", torrent_handle::graceful_pause)
     ;

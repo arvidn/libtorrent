@@ -51,9 +51,16 @@ class test_torrent_handle(unittest.TestCase):
 		h.prioritize_pieces([0])
 		self.assertEqual(h.piece_priorities(), [0])
 
-      # also test the overload that takes a list of piece->priority mappings
+		# also test the overload that takes a list of piece->priority mappings
 		h.prioritize_pieces([(0, 1)])
 		self.assertEqual(h.piece_priorities(), [1])
+
+	def test_file_status(seld):
+		ses = lt.session({'alert_mask': lt.alert.category_t.all_categories, 'enable_dht': False})
+		ti = lt.torrent_info('url_seed_multi.torrent');
+		h = ses.add_torrent({'ti': ti, 'save_path': os.getcwd()})
+		l = h.file_status()
+		print(l)
 
 	def test_scrape(self):
 		ses = lt.session({'alert_mask': lt.alert.category_t.all_categories, 'enable_dht': False})
