@@ -59,7 +59,6 @@ namespace libtorrent
 		: m_piece_length(0)
 		, m_num_pieces(0)
 		, m_total_size(0)
-		, m_num_files(0)
 	{}
 
 	file_storage::~file_storage() = default;
@@ -610,7 +609,6 @@ namespace libtorrent
 			m_mtime[last_file()] = std::time_t(mtime);
 		}
 
-		++m_num_files;
 		m_total_size += e.size;
 	}
 
@@ -1084,7 +1082,6 @@ namespace libtorrent
 		int const cur_index = int(i - m_files.begin());
 		int const index = int(m_files.size());
 		m_files.push_back(internal_file_entry());
-		++m_num_files;
 		internal_file_entry& e = m_files.back();
 		// i may have been invalidated, refresh it
 		i = m_files.begin() + cur_index;
@@ -1106,18 +1103,6 @@ namespace libtorrent
 #endif
 
 		if (index != cur_index) reorder_file(index, cur_index);
-	}
-
-	void file_storage::unload()
-	{
-		std::vector<internal_file_entry>().swap(m_files);
-		std::vector<char const*>().swap(m_file_hashes);
-		std::vector<std::string>().swap(m_symlinks);
-		std::vector<std::time_t>().swap(m_mtime);
-#ifndef TORRENT_NO_DEPRECATE
-		std::vector<std::int64_t>().swap(m_file_base);
-#endif
-		std::vector<std::string>().swap(m_paths);
 	}
 
 	namespace aux

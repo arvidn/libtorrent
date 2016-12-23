@@ -183,10 +183,12 @@ namespace libtorrent
 			// the torrent handle immediately after adding it.
 			flag_sequential_download = 0x800,
 
+#ifndef TORRENT_NO_DEPRECATE
 			// indicates that this torrent should never be unloaded from RAM, even
 			// if unloading torrents are allowed in general. Setting this makes
 			// the torrent exempt from loading/unloading management.
 			flag_pinned = 0x1000,
+#endif
 
 			// the stop when ready flag. Setting this flag is equivalent to calling
 			// torrent_handle::stop_when_ready() immediately after the torrent is
@@ -252,10 +254,11 @@ namespace libtorrent
 #endif
 
 			// internal
-			default_flags = flag_pinned | flag_update_subscribe
+			default_flags = flag_update_subscribe
 				| flag_auto_managed | flag_paused | flag_apply_ip_filter
 				| flag_need_save_resume
 #ifndef TORRENT_NO_DEPRECATE
+				| flag_pinned
 				| flag_merge_resume_http_seeds
 				| flag_merge_resume_trackers
 #endif

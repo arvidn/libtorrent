@@ -417,7 +417,6 @@ namespace libtorrent
 		{
 			using std::swap;
 			swap(ti.m_files, m_files);
-			swap(ti.m_num_files, m_num_files);
 			swap(ti.m_file_hashes, m_file_hashes);
 			swap(ti.m_symlinks, m_symlinks);
 			swap(ti.m_mtime, m_mtime);
@@ -430,13 +429,6 @@ namespace libtorrent
 			swap(ti.m_num_pieces, m_num_pieces);
 			swap(ti.m_piece_length, m_piece_length);
 		}
-
-		// deallocates most of the memory used by this
-		// instance, leaving it only partially usable
-		void unload();
-
-		// returns true when populated with at least one file
-		bool is_loaded() const { return !m_files.empty(); }
 
 		// if pad_file_limit >= 0, files larger than that limit will be padded,
 		// default is to not add any padding (-1). The alignment specifies the
@@ -639,10 +631,6 @@ namespace libtorrent
 
 		// the sum of all file sizes
 		std::int64_t m_total_size;
-
-		// the number of files. This is used when
-		// the torrent is unloaded
-		int m_num_files;
 	};
 
 	namespace aux {

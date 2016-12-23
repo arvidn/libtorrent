@@ -1133,7 +1133,6 @@ namespace libtorrent
 
 		const int size = bufs_size(bufs);
 		TORRENT_ASSERT(size > 0);
-		TORRENT_ASSERT(files.is_loaded());
 
 		// find the file iterator and file offset
 		std::int64_t const torrent_offset = static_cast<int>(piece) * std::int64_t(files.piece_length()) + offset;
