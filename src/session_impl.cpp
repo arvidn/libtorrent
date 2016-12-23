@@ -440,6 +440,9 @@ namespace aux {
 		, m_need_auto_manage(false)
 		, m_abort(false)
 		, m_paused(false)
+#if TORRENT_USE_INVARIANT_CHECKS
+		, m_skip_invariant_check(false)
+#endif
 	{
 #if TORRENT_USE_ASSERTS
 		m_posting_torrent_updates = false;
@@ -1684,7 +1687,17 @@ namespace aux {
 				&& pack.get_str(settings_pack::listen_interfaces)
 					!= m_settings.get_str(settings_pack::listen_interfaces));
 
+#if TORRENT_USE_INVARIANT_CHECKS
+		// call invariant check only once because the settings update methods rely
+		// on each other
+		skip_invariant_check = true;
 		apply_pack(&pack, m_settings, this);
+		skip_invariant_check = false;
+		INVARIANT_CHECK;
+#else
+		apply_pack(&pack, m_settings, this);
+#endif
+
 		m_disk_thread.set_settings(&pack, m_alerts);
 
 		if (reopen_listen_port)
@@ -7088,6 +7101,8 @@ retry:
 #if TORRENT_USE_INVARIANT_CHECKS
 	void session_impl::check_invariant() const
 	{
+		if (m_skip_invariant_check) return;
+
 		TORRENT_ASSERT(is_single_thread());
 
 		int loaded_limit = m_settings.get_int(settings_pack::active_loaded_limit);
