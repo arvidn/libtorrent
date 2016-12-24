@@ -122,6 +122,8 @@ namespace libtorrent
 		return ret;
 	}
 
+	constexpr int default_piece_priority = 4;
+
 	} // anonymous namespace
 
 	web_seed_t::web_seed_t(web_seed_entry const& wse)
@@ -1725,7 +1727,7 @@ namespace libtorrent
 			piece_index_t idx(0);
 			for (auto prio : m_add_torrent_params->piece_priorities)
 			{
-				if (has_picker() || prio != 4)
+				if (has_picker() || prio != default_piece_priority)
 				{
 					need_picker();
 					m_picker->set_piece_priority(idx, prio);
@@ -4775,7 +4777,7 @@ namespace libtorrent
 	{
 //		INVARIANT_CHECK;
 
-		if (!has_picker()) return 4;
+		if (!has_picker()) return default_piece_priority;
 
 		// this call is only valid on torrents with metadata
 		TORRENT_ASSERT(valid_metadata());
@@ -4882,20 +4884,12 @@ namespace libtorrent
 		if (!has_picker())
 		{
 			pieces->clear();
-			pieces->resize(m_torrent_file->num_pieces(), 4);
+			pieces->resize(m_torrent_file->num_pieces(), default_piece_priority);
 			return;
 		}
 
 		TORRENT_ASSERT(m_picker.get());
 		m_picker->piece_priorities(*pieces);
-	}
-
-	namespace
-	{
-		void set_if_greater(int& piece_prio, int file_prio)
-		{
-			if (file_prio > piece_prio) piece_prio = file_prio;
-		}
 	}
 
 	void torrent::on_file_priority(storage_error const&) {}
@@ -4911,7 +4905,7 @@ namespace libtorrent
 		file_index_t const limit = std::min(files.end_index(), fs.end_file());
 
 		if (m_file_priority.end_index() < limit)
-			m_file_priority.resize(static_cast<int>(limit), 4);
+			m_file_priority.resize(static_cast<int>(limit), default_piece_priority);
 
 		std::copy(files.begin(), files.begin() + static_cast<int>(limit)
 			, m_file_priority.begin());
@@ -4952,9 +4946,9 @@ namespace libtorrent
 		else if (prio > 7) prio = 7;
 		if (m_file_priority.end_index() <= index)
 		{
-			// any unallocated slot is assumed to be 4
-			if (prio == 4) return;
-			m_file_priority.resize(static_cast<int>(index) + 1, 4);
+			// any unallocated slot is assumed to have the default priority
+			if (prio == default_piece_priority) return;
+			m_file_priority.resize(static_cast<int>(index) + 1, default_piece_priority);
 		}
 
 		if (m_file_priority[index] == prio) return;
@@ -4987,8 +4981,8 @@ namespace libtorrent
 			if (fs.pad_file_at(index)) return 0;
 		}
 
-		// any unallocated slot is assumed to be 4 (normal priority)
-		if (m_file_priority.end_index() <= index) return 4;
+		// any unallocated slot is assumed to have the default priority
+		if (m_file_priority.end_index() <= index) return default_piece_priority;
 
 		return m_file_priority[index];
 	}
@@ -5005,7 +4999,7 @@ namespace libtorrent
 		}
 
 		files->clear();
-		files->resize(m_torrent_file->num_files(), 4);
+		files->resize(m_torrent_file->num_files(), default_piece_priority);
 		TORRENT_ASSERT(int(m_file_priority.size()) <= m_torrent_file->num_files());
 		std::copy(m_file_priority.begin(), m_file_priority.end(), files->begin());
 	}
@@ -5031,7 +5025,7 @@ namespace libtorrent
 			// pad files always have priority 0
 			int const file_prio
 				= fs.pad_file_at(i) ? 0
-				: i >= m_file_priority.end_index() ? 4
+				: i >= m_file_priority.end_index() ? default_piece_priority
 				: m_file_priority[i];
 
 			if (file_prio == 0)
@@ -5051,9 +5045,8 @@ namespace libtorrent
 
 			// if one piece spans several files, we might
 			// come here several times with the same start_piece, end_piece
-			std::for_each(pieces.begin() + static_cast<int>(start)
-				, pieces.begin() + static_cast<int>(end)
-				, std::bind(&set_if_greater, _1, file_prio));
+			for (piece_index_t p = start; p < end; ++p)
+				pieces[p] = std::max(pieces[p], file_prio);
 
 			need_update = true;
 		}
@@ -6375,7 +6368,7 @@ namespace libtorrent
 			file_storage const& fs = m_torrent_file->files();
 			for (piece_index_t i(0); i < fs.end_piece(); ++i)
 			{
-				if (m_picker->piece_priority(i) == 4) continue;
+				if (m_picker->piece_priority(i) == default_piece_priority) continue;
 				default_prio = false;
 				break;
 			}
