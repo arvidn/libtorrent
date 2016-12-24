@@ -65,8 +65,10 @@ namespace libtorrent
 		std::numeric_limits<piece_index_t>::max()
 		, std::numeric_limits<int>::max());
 
+	constexpr prio_index_t piece_picker::piece_pos::we_have_index;
+
 	piece_picker::piece_picker()
-		: m_priority_boundaries(1, int(m_pieces.size()))
+		: m_priority_boundaries(1, m_pieces.end_index())
 	{
 #ifdef TORRENT_PICKER_LOG
 		std::cerr << "[" << this << "] " << "new piece_picker" << std::endl;
@@ -105,7 +107,7 @@ namespace libtorrent
 		{
 			i->peer_count = 0;
 			i->download_state = piece_pos::piece_open;
-			i->index = 0;
+			i->index = prio_index_t(0);
 #ifdef TORRENT_DEBUG_REFCOUNTS
 			i->have_peers.clear();
 #endif
@@ -118,10 +120,6 @@ namespace libtorrent
 		for (auto i = m_piece_map.rend() - static_cast<int>(m_reverse_cursor);
 			m_reverse_cursor > piece_index_t(0) && (i->have() || i->filtered());
 			++i, --m_reverse_cursor);
-
-		// the piece index is stored in 20 bits, which limits the allowed
-		// number of pieces somewhat
-		TORRENT_ASSERT(m_piece_map.size() < piece_pos::we_have_index);
 
 		m_blocks_per_piece = std::uint16_t(blocks_per_piece);
 		m_blocks_in_last_piece = std::uint16_t(blocks_in_last_piece);
@@ -342,16 +340,14 @@ namespace libtorrent
 		}
 	}
 
-	void piece_picker::verify_priority(int const range_start
-		, int const range_end
+	void piece_picker::verify_priority(prio_index_t const range_start
+		, prio_index_t const range_end
 		, int const prio) const
 	{
 		TORRENT_ASSERT(range_start <= range_end);
-		TORRENT_ASSERT(range_end <= int(m_pieces.size()));
-		for (auto i = m_pieces.begin() + range_start
-			, end(m_pieces.begin() + range_end); i != end; ++i)
+		TORRENT_ASSERT(range_end <= m_pieces.end_index());
+		for (auto index : range(m_pieces, range_start, range_end))
 		{
-			piece_index_t const index = *i;
 			int p = m_piece_map[index].priority(this);
 			TORRENT_ASSERT(p == prio);
 		}
@@ -368,16 +364,14 @@ namespace libtorrent
 			return;
 		}
 
-		for (int b : m_priority_boundaries)
-		{
+		for (prio_index_t b : m_priority_boundaries)
 			std::cerr << b << " ";
-		}
+
 		std::cerr << std::endl;
-		int index = 0;
+		prio_index_t index(0);
 		std::cerr << "[" << this << "] ";
-		std::vector<int>::const_iterator j = m_priority_boundaries.begin();
-		for (auto i = m_pieces.begin()
-			, end(m_pieces.end()); i != end; ++i, ++index)
+		auto j = m_priority_boundaries.begin();
+		for (auto i = m_pieces.begin(), end(m_pieces.end()); i != end; ++i, ++index)
 		{
 			if (limit == 0)
 			{
@@ -424,8 +418,8 @@ namespace libtorrent
 		// make sure the priority boundaries are monotonically increasing. The
 		// difference between two cursors cannot be negative, but ranges are
 		// allowed to be empty.
-		int last = 0;
-		for (int b : m_priority_boundaries)
+		prio_index_t last(0);
+		for (prio_index_t b : m_priority_boundaries)
 		{
 			TORRENT_ASSERT(b >= last);
 			last = b;
@@ -545,14 +539,14 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(!m_priority_boundaries.empty());
 			int prio = 0;
-			int start = 0;
-			for (int b : m_priority_boundaries)
+			prio_index_t start(0);
+			for (prio_index_t b : m_priority_boundaries)
 			{
 				verify_priority(start, b, prio);
 				++prio;
 				start = b;
 			}
-			TORRENT_ASSERT(m_priority_boundaries.back() == int(m_pieces.size()));
+			TORRENT_ASSERT(m_priority_boundaries.back() == m_pieces.end_index());
 		}
 
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
@@ -582,10 +576,9 @@ namespace libtorrent
 		int num_filtered = 0;
 		int num_have_filtered = 0;
 		int num_have = 0;
-		for (std::vector<piece_pos>::const_iterator i = m_piece_map.begin();
-			i != m_piece_map.end(); ++i)
+		piece_index_t piece(0);
+		for (auto i = m_piece_map.begin(); i != m_piece_map.end(); ++i, ++piece)
 		{
-			piece_index_t const index = piece_index_t(int(i - m_piece_map.begin()));
 			piece_pos const& p = *i;
 
 			if (p.filtered())
@@ -604,12 +597,12 @@ namespace libtorrent
 
 			if (p.index == piece_pos::we_have_index)
 			{
-				TORRENT_ASSERT(t == nullptr || t->have_piece(index));
+				TORRENT_ASSERT(t == nullptr || t->have_piece(piece));
 				TORRENT_ASSERT(p.downloading() == false);
 			}
 
 			if (t != nullptr)
-				TORRENT_ASSERT(!t->have_piece(index));
+				TORRENT_ASSERT(!t->have_piece(piece));
 
 			int const prio = p.priority(this);
 
@@ -632,8 +625,8 @@ namespace libtorrent
 				TORRENT_ASSERT(prio < int(m_priority_boundaries.size()));
 				if (prio >= 0)
 				{
-					TORRENT_ASSERT(p.index < m_pieces.size());
-					TORRENT_ASSERT(m_pieces[p.index] == index);
+					TORRENT_ASSERT(p.index < m_pieces.end_index());
+					TORRENT_ASSERT(m_pieces[p.index] == piece);
 				}
 				else
 				{
@@ -641,29 +634,29 @@ namespace libtorrent
 					// make sure there's no entry
 					// with this index. (there shouldn't
 					// be since the priority is -1)
-					TORRENT_ASSERT(std::count(m_pieces.begin(), m_pieces.end(), index) == 0);
+					TORRENT_ASSERT(std::count(m_pieces.begin(), m_pieces.end(), piece) == 0);
 				}
 			}
 
 			int const count_downloading = int(std::count_if(
 				m_downloads[piece_pos::piece_downloading].begin()
 				, m_downloads[piece_pos::piece_downloading].end()
-				, has_index(index)));
+				, has_index(piece)));
 
 			int const count_full = int(std::count_if(
 				m_downloads[piece_pos::piece_full].begin()
 				, m_downloads[piece_pos::piece_full].end()
-				, has_index(index)));
+				, has_index(piece)));
 
 			int const count_finished = int(std::count_if(
 				m_downloads[piece_pos::piece_finished].begin()
 				, m_downloads[piece_pos::piece_finished].end()
-				, has_index(index)));
+				, has_index(piece)));
 
 			int const count_zero = int(std::count_if(
 				m_downloads[piece_pos::piece_zero_prio].begin()
 				, m_downloads[piece_pos::piece_zero_prio].end()
-				, has_index(index)));
+				, has_index(piece)));
 
 			TORRENT_ASSERT(i->download_queue() == piece_pos::piece_open
 				|| count_zero + count_downloading + count_full
@@ -742,12 +735,12 @@ namespace libtorrent
 		return std::make_pair(min_availability + m_seeds, fraction_part * 1000 / num_pieces);
 	}
 
-	std::pair<int, int> piece_picker::priority_range(int const prio)
+	std::pair<prio_index_t, prio_index_t> piece_picker::priority_range(int const prio)
 	{
 		TORRENT_ASSERT(prio >= 0);
 		TORRENT_ASSERT(prio < int(m_priority_boundaries.size()) || m_dirty);
-		std::pair<int, int> const ret{
-			prio == 0 ? 0 : m_priority_boundaries[prio-1]
+		std::pair<prio_index_t, prio_index_t> const ret{
+			prio == 0 ? prio_index_t(0) : m_priority_boundaries[prio-1]
 			, m_priority_boundaries[prio]};
 		TORRENT_ASSERT(ret.first <= ret.second);
 		return ret;
@@ -765,14 +758,14 @@ namespace libtorrent
 		if (priority < 0) return;
 
 		if (int(m_priority_boundaries.size()) <= priority)
-			m_priority_boundaries.resize(priority + 1, int(m_pieces.size()));
+			m_priority_boundaries.resize(priority + 1, m_pieces.end_index());
 
 		TORRENT_ASSERT(int(m_priority_boundaries.size()) >= priority);
 
 		auto const range = priority_range(priority);
-		int new_index = (range.second == range.first)
+		prio_index_t new_index = (range.second == range.first)
 			? range.first
-			: random(range.second - range.first) + range.first;
+			: prio_index_t(random(static_cast<int>(range.second - range.first)) + static_cast<int>(range.first));
 
 #ifdef TORRENT_PICKER_LOG
 		std::cerr << "[" << this << "] " << "add " << index << " (" << priority << ")" << std::endl;
@@ -786,14 +779,14 @@ namespace libtorrent
 
 		for (;;)
 		{
-			TORRENT_ASSERT(new_index < int(m_pieces.size()));
+			TORRENT_ASSERT(new_index < m_pieces.end_index());
 			{
 				piece_index_t temp = m_pieces[new_index];
 				m_pieces[new_index] = index;
 				m_piece_map[index].index = new_index;
 				index = temp;
 			}
-			int temp = -1;
+			prio_index_t temp(-1);
 			do
 			{
 				temp = m_priority_boundaries[priority]++;
@@ -808,11 +801,11 @@ namespace libtorrent
 				<< std::endl;
 #endif
 			if (priority >= int(m_priority_boundaries.size())) break;
-			TORRENT_ASSERT(temp >= 0);
+			TORRENT_ASSERT(temp >= prio_index_t(0));
 		}
 		if (index != piece_index_t(-1))
 		{
-			TORRENT_ASSERT(new_index == int(m_pieces.size() - 1));
+			TORRENT_ASSERT(new_index == prev(m_pieces.end_index()));
 			m_pieces[new_index] = index;
 			m_piece_map[index].index = new_index;
 
@@ -822,25 +815,23 @@ namespace libtorrent
 		}
 	}
 
-	void piece_picker::remove(int priority, int elem_index)
+	void piece_picker::remove(int priority, prio_index_t elem_index)
 	{
 		TORRENT_ASSERT(!m_dirty);
 		TORRENT_ASSERT(priority >= 0);
-		TORRENT_ASSERT(elem_index < int(m_pieces.size()));
-		TORRENT_ASSERT(elem_index >= 0);
 
 #ifdef TORRENT_PICKER_LOG
 		std::cerr << "[" << this << "] " << "remove " << m_pieces[elem_index] << " (" << priority << ")" << std::endl;
 #endif
-		int next_index = elem_index;
+		prio_index_t next_index = elem_index;
 		TORRENT_ASSERT(m_piece_map[m_pieces[elem_index]].priority(this) == -1);
 		for (;;)
 		{
 #ifdef TORRENT_PICKER_LOG
 			print_pieces();
 #endif
-			TORRENT_ASSERT(elem_index < int(m_pieces.size()));
-			int temp;
+			TORRENT_ASSERT(elem_index < m_pieces.end_index());
+			prio_index_t temp;
 			do
 			{
 				temp = --m_priority_boundaries[priority];
@@ -853,14 +844,14 @@ namespace libtorrent
 			m_pieces[elem_index] = piece;
 			m_piece_map[piece].index = elem_index;
 			TORRENT_ASSERT(m_piece_map[piece].priority(this) == priority - 1);
-			TORRENT_ASSERT(elem_index < int(m_pieces.size() - 1));
+			TORRENT_ASSERT(elem_index < prev(m_pieces.end_index()));
 			elem_index = next_index;
 
 			if (priority == int(m_priority_boundaries.size()))
 				break;
 		}
 		m_pieces.pop_back();
-		TORRENT_ASSERT(next_index == int(m_pieces.size()));
+		TORRENT_ASSERT(next_index == m_pieces.end_index());
 #ifdef TORRENT_PICKER_LOG
 		print_pieces();
 #endif
@@ -868,11 +859,9 @@ namespace libtorrent
 
 	// will update the piece with the given properties (priority, elem_index)
 	// to place it at the correct position
-	void piece_picker::update(int priority, int elem_index)
+	void piece_picker::update(int priority, prio_index_t elem_index)
 	{
 		TORRENT_ASSERT(!m_dirty);
-		TORRENT_ASSERT(elem_index >= 0);
-		TORRENT_ASSERT(elem_index < int(m_piece_map.size()));
 		TORRENT_ASSERT(priority >= 0);
 		TORRENT_ASSERT(int(m_priority_boundaries.size()) > priority);
 
@@ -886,7 +875,7 @@ namespace libtorrent
 		piece_index_t const index = m_pieces[elem_index];
 		// update the piece_map
 		piece_pos& p = m_piece_map[index];
-		TORRENT_ASSERT(int(p.index) == elem_index || p.have());
+		TORRENT_ASSERT(p.index == elem_index || p.have());
 
 		int const new_priority = p.priority(this);
 
@@ -899,14 +888,14 @@ namespace libtorrent
 		}
 
 		if (int(m_priority_boundaries.size()) <= new_priority)
-			m_priority_boundaries.resize(new_priority + 1, int(m_pieces.size()));
+			m_priority_boundaries.resize(new_priority + 1, m_pieces.end_index());
 
 #ifdef TORRENT_PICKER_LOG
 		std::cerr << "[" << this << "] " << "update " << index << " (" << priority << "->" << new_priority << ")" << std::endl;
 #endif
 		if (priority > new_priority)
 		{
-			int new_index;
+			prio_index_t new_index;
 			piece_index_t temp = index;
 			for (;;)
 			{
@@ -916,14 +905,12 @@ namespace libtorrent
 				TORRENT_ASSERT(priority > 0);
 				--priority;
 				new_index = m_priority_boundaries[priority]++;
-				TORRENT_ASSERT(new_index >= 0);
-				TORRENT_ASSERT(new_index < int(m_pieces.size()));
 				if (temp != m_pieces[new_index])
 				{
 					temp = m_pieces[new_index];
 					m_pieces[elem_index] = temp;
 					m_piece_map[temp].index = elem_index;
-					TORRENT_ASSERT(elem_index < int(m_pieces.size()));
+					TORRENT_ASSERT(elem_index < m_pieces.end_index());
 				}
 				elem_index = new_index;
 				if (priority == new_priority) break;
@@ -933,7 +920,7 @@ namespace libtorrent
 #endif
 			m_pieces[elem_index] = index;
 			m_piece_map[index].index = elem_index;
-			TORRENT_ASSERT(elem_index < int(m_pieces.size()));
+			TORRENT_ASSERT(elem_index < m_pieces.end_index());
 #ifdef TORRENT_PICKER_LOG
 			print_pieces();
 #endif
@@ -945,7 +932,7 @@ namespace libtorrent
 		}
 		else
 		{
-			int new_index;
+			prio_index_t new_index;
 			piece_index_t temp = index;
 			for (;;)
 			{
@@ -955,14 +942,12 @@ namespace libtorrent
 				TORRENT_ASSERT(priority >= 0);
 				TORRENT_ASSERT(priority < int(m_priority_boundaries.size()));
 				new_index = --m_priority_boundaries[priority];
-				TORRENT_ASSERT(new_index >= 0);
-				TORRENT_ASSERT(new_index < int(m_pieces.size()));
 				if (temp != m_pieces[new_index])
 				{
 					temp = m_pieces[new_index];
 					m_pieces[elem_index] = temp;
 					m_piece_map[temp].index = elem_index;
-					TORRENT_ASSERT(elem_index < int(m_pieces.size()));
+					TORRENT_ASSERT(elem_index < m_pieces.end_index());
 				}
 				elem_index = new_index;
 				++priority;
@@ -973,7 +958,7 @@ namespace libtorrent
 #endif
 			m_pieces[elem_index] = index;
 			m_piece_map[index].index = elem_index;
-			TORRENT_ASSERT(elem_index < int(m_pieces.size()));
+			TORRENT_ASSERT(elem_index < m_pieces.end_index());
 #ifdef TORRENT_PICKER_LOG
 			print_pieces();
 #endif
@@ -985,7 +970,7 @@ namespace libtorrent
 		}
 	}
 
-	void piece_picker::shuffle(int priority, int elem_index)
+	void piece_picker::shuffle(int priority, prio_index_t elem_index)
 	{
 #ifdef TORRENT_PICKER_LOG
 		std::cerr << "[" << this << "] " << "shuffle()" << std::endl;
@@ -993,12 +978,12 @@ namespace libtorrent
 
 		TORRENT_ASSERT(!m_dirty);
 		TORRENT_ASSERT(priority >= 0);
-		TORRENT_ASSERT(elem_index >= 0);
-		TORRENT_ASSERT(elem_index < int(m_pieces.size()));
+		TORRENT_ASSERT(elem_index >= prio_index_t(0));
+		TORRENT_ASSERT(elem_index < m_pieces.end_index());
 		TORRENT_ASSERT(m_piece_map[m_pieces[elem_index]].priority(this) == priority);
 
 		auto const range = priority_range(priority);
-		int const other_index = random(range.second - range.first - 1) + range.first;
+		prio_index_t const other_index(random(static_cast<int>(range.second - range.first) - 1) + static_cast<int>(range.first));
 
 		if (other_index == elem_index) return;
 
@@ -1429,19 +1414,23 @@ namespace libtorrent
 	void piece_picker::update_pieces() const
 	{
 		TORRENT_ASSERT(m_dirty);
-		if (m_priority_boundaries.empty()) m_priority_boundaries.resize(1, 0);
+		if (m_priority_boundaries.empty()) m_priority_boundaries.resize(1, prio_index_t(0));
 #ifdef TORRENT_PICKER_LOG
 		std::cerr << "[" << this << "] " << "update_pieces" << std::endl;
 #endif
-		std::fill(m_priority_boundaries.begin(), m_priority_boundaries.end(), 0);
-		for (std::vector<piece_pos>::iterator i = m_piece_map.begin()
-			, end(m_piece_map.end()); i != end; ++i)
+
+		// This code is unfortunately not very straight-forward. What we do here
+		// is to count the number of pieces at every priority level. After this
+		// first step, m_priority_boundaries will contain *deltas* rather than
+		// absolute indices. This is fixed up in a second pass below
+		std::fill(m_priority_boundaries.begin(), m_priority_boundaries.end(), prio_index_t(0));
+		for (auto& pos : m_piece_map)
 		{
-			int prio = i->priority(this);
+			int prio = pos.priority(this);
 			if (prio == -1) continue;
 			if (prio >= int(m_priority_boundaries.size()))
-				m_priority_boundaries.resize(prio + 1, 0);
-			i->index = m_priority_boundaries[prio];
+				m_priority_boundaries.resize(prio + 1, prio_index_t(0));
+			pos.index = m_priority_boundaries[prio];
 			++m_priority_boundaries[prio];
 		}
 
@@ -1449,11 +1438,15 @@ namespace libtorrent
 		print_pieces();
 #endif
 
+		// m_priority_boundaries just contain counters of
+		// each priority level at this point. Now, make the m_priority_boundaries
+		// be cumulative indices into m_pieces (but m_pieces hasn't been set up
+		// yet)
 		int new_size = 0;
-		for (int& b : m_priority_boundaries)
+		for (prio_index_t& b : m_priority_boundaries)
 		{
-			new_size += b;
-			b = new_size;
+			new_size += static_cast<int>(b);
+			b = prio_index_t(new_size);
 		}
 		m_pieces.resize(new_size, piece_index_t(0));
 
@@ -1461,26 +1454,33 @@ namespace libtorrent
 		print_pieces();
 #endif
 
+		// set up m_pieces to contain valid piece indices, based on piece
+		// priority. m_piece_map[].index is still just an index relative to the
+		// respective priority range.
 		piece_index_t piece = piece_index_t(0);
-		for (auto i = m_piece_map.begin()
-			, end(m_piece_map.end()); i != end; ++i, ++piece)
+		for (auto i = m_piece_map.begin(), end(m_piece_map.end()); i != end; ++i, ++piece)
 		{
 			piece_pos& p = *i;
 			int const prio = p.priority(this);
 			if (prio == -1) continue;
-			int const new_index = (prio == 0 ? 0 : m_priority_boundaries[prio - 1]) + p.index;
+			prio_index_t const new_index((prio == 0 ? prio_index_t(0)
+				: m_priority_boundaries[prio - 1])
+				+ prio_index_t::diff_type(static_cast<int>(p.index)));
 			m_pieces[new_index] = piece;
 		}
 
-		int start = 0;
-		for (int b : m_priority_boundaries)
+		prio_index_t start(0);
+		for (auto b : m_priority_boundaries)
 		{
 			if (start == b) continue;
-			aux::random_shuffle(&m_pieces[0] + start, &m_pieces[0] + b);
+			auto r = range(m_pieces, start, b);
+			aux::random_shuffle(r.begin(), r.end());
 			start = b;
 		}
 
-		int index = 0;
+		// this is where we set fix up the m_piece_map[].index to actually map
+		// back to the piece list ordered by priority (m_pieces)
+		prio_index_t index(0);
 		for (auto p : m_pieces)
 		{
 			m_piece_map[p].index = index;
@@ -1585,7 +1585,7 @@ namespace libtorrent
 			<< index << ")" << std::endl;
 #endif
 		piece_pos& p = m_piece_map[index];
-		int const info_index = p.index;
+		prio_index_t const info_index = p.index;
 		int const priority = p.priority(this);
 		TORRENT_ASSERT(priority < int(m_priority_boundaries.size()) || m_dirty);
 
@@ -2068,9 +2068,9 @@ namespace libtorrent
 			{
 				for (int i = int(m_priority_boundaries.size()) - 1; i >= 0; --i)
 				{
-					int const start = (i == 0) ? 0 : m_priority_boundaries[i - 1];
-					int const end = m_priority_boundaries[i];
-					for (int p = end - 1; p >= start; --p)
+					prio_index_t const start = (i == 0) ? prio_index_t(0) : m_priority_boundaries[i - 1];
+					prio_index_t const end = m_priority_boundaries[i];
+					for (prio_index_t p = prev(end); p >= start; --p)
 					{
 						pc.inc_stats_counter(counters::piece_picker_reverse_rare_loops);
 

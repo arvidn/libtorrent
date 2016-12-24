@@ -44,11 +44,15 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 namespace aux {
 
+	template <typename Tag>
+	struct difference_tag {};
+
 	template<typename UnderlyingType, typename Tag
 		, typename Cond = typename std::enable_if<std::is_integral<UnderlyingType>::value>::type>
 	struct strong_typedef
 	{
 		using underlying_type = UnderlyingType;
+		using diff_type = strong_typedef<UnderlyingType, difference_tag<Tag>>;
 
 		constexpr strong_typedef(strong_typedef const& rhs) : m_val(rhs.m_val) {}
 		strong_typedef() = default;
@@ -70,6 +74,20 @@ namespace aux {
 
 		strong_typedef operator++(int) { return strong_typedef{m_val++}; }
 		strong_typedef operator--(int) { return strong_typedef{m_val--}; }
+
+		friend diff_type operator-(strong_typedef lhs, strong_typedef rhs)
+		{ return diff_type{lhs.m_val - rhs.m_val}; }
+		friend strong_typedef operator+(strong_typedef lhs, diff_type rhs)
+		{ return strong_typedef{lhs.m_val + static_cast<UnderlyingType>(rhs)}; }
+		friend strong_typedef operator+(diff_type lhs, strong_typedef rhs)
+		{ return strong_typedef{static_cast<UnderlyingType>(lhs) + rhs.m_val}; }
+		friend strong_typedef operator-(strong_typedef lhs, diff_type rhs)
+		{ return strong_typedef{lhs.m_val - static_cast<UnderlyingType>(rhs)}; }
+
+		strong_typedef& operator+=(diff_type rhs)
+		{ m_val += static_cast<UnderlyingType>(rhs); return *this; }
+		strong_typedef& operator-=(diff_type rhs)
+		{ m_val -= static_cast<UnderlyingType>(rhs); return *this; }
 
 		strong_typedef& operator=(strong_typedef rhs) { m_val = rhs.m_val; return *this; }
 	private:
