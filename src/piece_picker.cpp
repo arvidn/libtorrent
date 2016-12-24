@@ -735,15 +735,25 @@ namespace libtorrent
 		return std::make_pair(min_availability + m_seeds, fraction_part * 1000 / num_pieces);
 	}
 
-	std::pair<prio_index_t, prio_index_t> piece_picker::priority_range(int const prio)
+	prio_index_t piece_picker::priority_begin(int const prio) const
 	{
 		TORRENT_ASSERT(prio >= 0);
-		TORRENT_ASSERT(prio < int(m_priority_boundaries.size()) || m_dirty);
-		std::pair<prio_index_t, prio_index_t> const ret{
-			prio == 0 ? prio_index_t(0) : m_priority_boundaries[prio-1]
-			, m_priority_boundaries[prio]};
-		TORRENT_ASSERT(ret.first <= ret.second);
-		return ret;
+		TORRENT_ASSERT(prio < int(m_priority_boundaries.size()));
+		return prio == 0 ? prio_index_t(0) : m_priority_boundaries[prio-1];
+	}
+
+	prio_index_t piece_picker::priority_end(int const prio) const
+	{
+		TORRENT_ASSERT(prio >= 0);
+		TORRENT_ASSERT(prio < int(m_priority_boundaries.size()));
+		return m_priority_boundaries[prio];
+	}
+
+	std::pair<prio_index_t, prio_index_t> piece_picker::priority_range(int const prio) const
+	{
+		TORRENT_ASSERT(prio >= 0);
+		TORRENT_ASSERT(prio < int(m_priority_boundaries.size()));
+		return { priority_begin(prio), priority_end(prio) };
 	}
 
 	void piece_picker::add(piece_index_t index)
@@ -869,8 +879,8 @@ namespace libtorrent
 		// priority bucket. If it doesn't, it means this piece changed
 		// state without updating the corresponding entry in the pieces list
 		TORRENT_ASSERT(m_priority_boundaries[priority] >= elem_index);
-		TORRENT_ASSERT(priority == 0 || m_priority_boundaries[priority - 1] <= elem_index);
-		TORRENT_ASSERT(priority + 1 == int(m_priority_boundaries.size()) || m_priority_boundaries[priority + 1] > elem_index);
+		TORRENT_ASSERT(elem_index >= priority_begin(priority));
+		TORRENT_ASSERT(elem_index < priority_end(priority));
 
 		piece_index_t const index = m_pieces[elem_index];
 		// update the piece_map
@@ -1463,8 +1473,7 @@ namespace libtorrent
 			piece_pos& p = *i;
 			int const prio = p.priority(this);
 			if (prio == -1) continue;
-			prio_index_t const new_index((prio == 0 ? prio_index_t(0)
-				: m_priority_boundaries[prio - 1])
+			prio_index_t const new_index(priority_begin(prio)
 				+ prio_index_t::diff_type(static_cast<int>(p.index)));
 			m_pieces[new_index] = piece;
 		}
@@ -2068,8 +2077,8 @@ namespace libtorrent
 			{
 				for (int i = int(m_priority_boundaries.size()) - 1; i >= 0; --i)
 				{
-					prio_index_t const start = (i == 0) ? prio_index_t(0) : m_priority_boundaries[i - 1];
-					prio_index_t const end = m_priority_boundaries[i];
+					prio_index_t const start = priority_begin(i);
+					prio_index_t const end = priority_end(i);
 					for (prio_index_t p = prev(end); p >= start; --p)
 					{
 						pc.inc_stats_counter(counters::piece_picker_reverse_rare_loops);

@@ -667,9 +667,12 @@ namespace libtorrent
 
 		void update_pieces() const;
 
+		prio_index_t priority_begin(int prio) const;
+		prio_index_t priority_end(int prio) const;
+
 		// fills in the range [start, end) of pieces in
 		// m_pieces that have priority 'prio'
-		std::pair<prio_index_t, prio_index_t> priority_range(int prio);
+		std::pair<prio_index_t, prio_index_t> priority_range(int prio) const;
 
 		// adds the piece 'index' to m_pieces
 		void add(piece_index_t index);
@@ -722,7 +725,6 @@ namespace libtorrent
 		// these are indices to the priority boundaries inside
 		// the m_pieces vector. priority 0 always start at
 		// 0, priority 1 starts at m_priority_boundaries[0] etc.
-		// TODO: 3 simplify this code by allowing the first element to always be 0
 		mutable std::vector<prio_index_t> m_priority_boundaries;
 
 		// each piece that's currently being downloaded has an entry in this list
