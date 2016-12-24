@@ -91,8 +91,8 @@ void bind_converters()
     to_python_converter<lt::address, address_to_tuple>();
     tuple_to_pair<int, int>();
 
-    to_python_converter<std::vector<lt::stats_metric>, vector_to_list<lt::stats_metric>>();
-    to_python_converter<std::vector<lt::pool_file_status>, vector_to_list<lt::pool_file_status>>();
+    to_python_converter<std::vector<lt::stats_metric>, vector_to_list<lt::stats_metric> >();
+    to_python_converter<std::vector<lt::pool_file_status>, vector_to_list<lt::pool_file_status> >();
     to_python_converter<std::vector<std::string>, vector_to_list<std::string>>();
-    to_python_converter<std::vector<lt::sha1_hash>, vector_to_list<lt::sha1_hash>>();
+    to_python_converter<std::vector<lt::sha1_hash>, vector_to_list<lt::sha1_hash> >();
 }
