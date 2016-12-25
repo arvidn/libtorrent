@@ -640,10 +640,12 @@ namespace aux {
 			update_listen_interfaces();
 			open_listen_port();
 		}
-		
+
+#if TORRENT_USE_INVARIANT_CHECKS
 		//call invariant check again after we did repeat the update calls
-		INVARIANT_CHECK;
-		
+		check_invariant();
+#endif
+
 	}
 
 	void session_impl::async_resolve(std::string const& host, int flags
@@ -1689,9 +1691,12 @@ namespace aux {
 					!= m_settings.get_str(settings_pack::listen_interfaces));
 
 		apply_pack(&pack, m_settings, this);
-		INVARIANT_CHECK;
 
 		m_disk_thread.set_settings(&pack, m_alerts);
+
+#if TORRENT_USE_INVARIANT_CHECKS
+		check_invariant();
+#endif
 
 		if (reopen_listen_port)
 		{
@@ -3277,7 +3282,6 @@ retry:
 		if (m_auto_manage_time_scaler < 0)
 		{
 			m_auto_manage_time_scaler = settings().get_int(settings_pack::auto_manage_interval);
-			//invariant check is already part of recalculate_auto_managed_torrents
 			recalculate_auto_managed_torrents();
 		}
 
