@@ -386,34 +386,37 @@ namespace libtorrent
 	}
 
 #ifdef TORRENT_WINDOWS
-	HMODULE GetIPHelperHandle()
+	struct iphlpapi {
+		static constexpr char const* library_name = "iphlpapi.dll";
+	};
+
+	template <typename Library>
+	HMODULE get_library_handle()
 	{
 		static bool handle_checked = false;
 		static HMODULE handle = 0;
+
 		if (!handle_checked)
 		{
-			handle = LoadLibraryA("Iphlpapi.dll");
+			handle = LoadLibraryA(Library::library_name);
 			handle_checked = true;
 		}
 		return handle;
 	}
 
-	template <typename T>
-	bool GetIPHelperProc(LPCSTR name, T& proc_out)
+	template <typename Library, typename Signature>
+	Signature get_library_procedure(LPCSTR name)
 	{
-		static T proc = nullptr;
-
+		static Signature proc = nullptr;
 		static bool failed_proc = false;
 
 		if ((proc == nullptr) && !failed_proc)
 		{
-			HMODULE iphlp = GetIPHelperHandle();
-			if (iphlp) proc = (T)GetProcAddress(iphlp, name);
+			HMODULE const handle = get_library_handle<Library>();
+			if (handle) proc = (Signature)GetProcAddress(handle, name);
 			failed_proc = (proc == nullptr);
 		}
-		proc_out = proc;
-
-		return proc_out != nullptr;
+		return proc;
 	}
 #endif
 
@@ -623,10 +626,11 @@ namespace libtorrent
 
 #if _WIN32_WINNT >= 0x0501
 		typedef ULONG (WINAPI *GetAdaptersAddresses_t)(ULONG,ULONG,PVOID,PIP_ADAPTER_ADDRESSES,PULONG);
-		GetAdaptersAddresses_t GetAdaptersAddresses;
-
 		// Get GetAdaptersAddresses() pointer
-		if (GetIPHelperProc("GetAdaptersAddresses", GetAdaptersAddresses))
+		auto GetAdaptersAddresses =
+			get_library_procedure<iphlpapi, GetAdaptersAddresses_t>("GetAdaptersAddresses");
+
+		if (GetAdaptersAddresses != nullptr)
 		{
 			ULONG buf_size = 10000;
 			std::vector<char> buffer(buf_size);
@@ -936,8 +940,8 @@ namespace libtorrent
 	move this to enum_net_interfaces
 		// Get GetAdaptersInfo() pointer
 		typedef DWORD (WINAPI *GetAdaptersInfo_t)(PIP_ADAPTER_INFO, PULONG);
-		GetAdaptersInfo_t GetAdaptersInfo;
-		if (!GetIPHelperProc("GetAdaptersInfo", GetAdaptersInfo))
+		GetAdaptersInfo_t GetAdaptersInfo = get_library_procedure<iphlpapi, GetAdaptersInfo_t>("GetAdaptersInfo");
+		if (GetAdaptersInfo == nullptr)
 		{
 			ec = boost::asio::error::operation_not_supported;
 			return std::vector<ip_route>();
@@ -984,9 +988,9 @@ namespace libtorrent
 */
 
 		typedef DWORD (WINAPI *GetIfEntry_t)(PMIB_IFROW pIfRow);
-		GetIfEntry_t GetIfEntry;
+		auto GetIfEntry = get_library_procedure<iphlpapi, GetIfEntry_t>("GetIfEntry");
 
-		if (!GetIPHelperProc("GetIfEntry", GetIfEntry))
+		if (GetIfEntry == nullptr)
 		{
 			ec = boost::asio::error::operation_not_supported;
 			return std::vector<ip_route>();
@@ -997,9 +1001,9 @@ namespace libtorrent
 			ADDRESS_FAMILY, PMIB_IPFORWARD_TABLE2*);
 		typedef void (WINAPI *FreeMibTable_t)(PVOID Memory);
 
-		GetIpForwardTable2_t GetIpForwardTable2;
-		FreeMibTable_t FreeMibTable;
-		if (GetIPHelperProc("GetIpForwardTable2", GetIpForwardTable2) && GetIPHelperProc("FreeMibTable", FreeMibTable))
+		auto GetIpForwardTable2 = get_library_procedure<iphlpapi, GetIpForwardTable2_t>("GetIpForwardTable2");
+		auto FreeMibTable = get_library_procedure<iphlpapi, FreeMibTable_t>("FreeMibTable");
+		if (GetIpForwardTable2 != nullptr && FreeMibTable != nullptr)
 		{
 			MIB_IPFORWARD_TABLE2* routes = nullptr;
 			int res = GetIpForwardTable2(AF_UNSPEC, &routes);
@@ -1031,8 +1035,8 @@ namespace libtorrent
 		// Get GetIpForwardTable() pointer
 		typedef DWORD (WINAPI *GetIpForwardTable_t)(PMIB_IPFORWARDTABLE pIpForwardTable,PULONG pdwSize,BOOL bOrder);
 
-		GetIpForwardTable_t GetIpForwardTable;
-		if (!GetIPHelperProc("GetIpForwardTable", GetIpForwardTable))
+		auto GetIpForwardTable = get_library_procedure<iphlpapi, GetIpForwardTable_t>("GetIpForwardTable");
+		if (GetIpForwardTable == nullptr)
 		{
 			ec = boost::asio::error::operation_not_supported;
 			return std::vector<ip_route>();
