@@ -43,6 +43,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	struct slot_index_tag_t {};
+	using slot_index_t = aux::strong_typedef<int, slot_index_tag_t>;
+
 	struct TORRENT_EXTRA_EXPORT part_file
 	{
 		// create a part file at 'path', that can hold 'num_pieces' pieces.
@@ -74,7 +77,7 @@ namespace libtorrent
 		std::string m_name;
 
 		// allocate a slot and return the slot index
-		int allocate_slot(piece_index_t piece);
+		slot_index_t allocate_slot(piece_index_t piece);
 
 		// this mutex must be held while accessing the data
 		// structure. Not while reading or writing from the file though!
@@ -83,10 +86,10 @@ namespace libtorrent
 
 		// this is a list of unallocated slots in the part file
 		// within the m_num_allocated range
-		std::vector<int> m_free_slots;
+		std::vector<slot_index_t> m_free_slots;
 
 		// this is the number of slots allocated
-		int m_num_allocated;
+		slot_index_t m_num_allocated;
 
 		// the max number of pieces in the torrent this part file is
 		// backing
@@ -106,7 +109,7 @@ namespace libtorrent
 		bool m_dirty_metadata;
 
 		// maps a piece index to the part-file slot it is stored in
-		std::unordered_map<piece_index_t, int> m_piece_map;
+		std::unordered_map<piece_index_t, slot_index_t> m_piece_map;
 
 		// this is the file handle to the part file
 		file m_file;

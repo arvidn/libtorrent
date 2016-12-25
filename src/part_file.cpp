@@ -64,6 +64,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/part_file.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/aux_/vector.hpp"
 
 namespace
 {
@@ -113,28 +114,27 @@ namespace libtorrent
 
 			// this is used to determine which slots are free, and how many
 			// slots are allocated
-			std::vector<bool> free_slots;
+			aux::vector<bool, slot_index_t> free_slots;
 			free_slots.resize(num_pieces, true);
 
 			for (piece_index_t i = piece_index_t(0); i < piece_index_t(num_pieces); ++i)
 			{
-				std::uint32_t const uslot = read_uint32(ptr);
-				if (uslot == 0xffffffff) continue;
-				int const slot = int(uslot);
+				slot_index_t const slot(read_int32(ptr));
+				if (static_cast<int>(slot) < 0) continue;
 
 				// invalid part-file
-				TORRENT_ASSERT(slot < num_pieces);
-				if (slot >= num_pieces) continue;
+				TORRENT_ASSERT(slot < slot_index_t(num_pieces));
+				if (slot >= slot_index_t(num_pieces)) continue;
 
 				if (slot >= m_num_allocated)
-					m_num_allocated = slot + 1;
+					m_num_allocated = next(slot);
 
 				free_slots[slot] = false;
 				m_piece_map[i] = slot;
 			}
 
 			// now, populate the free_list with the "holes"
-			for (int i = 0; i < m_num_allocated; ++i)
+			for (slot_index_t i(0); i < m_num_allocated; ++i)
 			{
 				if (free_slots[i]) m_free_slots.push_back(i);
 			}
@@ -149,12 +149,12 @@ namespace libtorrent
 		flush_metadata_impl(ec);
 	}
 
-	int part_file::allocate_slot(piece_index_t const piece)
+	slot_index_t part_file::allocate_slot(piece_index_t const piece)
 	{
 		// the mutex is assumed to be held here, since this is a private function
 
 		TORRENT_ASSERT(m_piece_map.find(piece) == m_piece_map.end());
-		int slot = -1;
+		slot_index_t slot(-1);
 		if (!m_free_slots.empty())
 		{
 			slot = m_free_slots.front();
@@ -180,16 +180,13 @@ namespace libtorrent
 		open_file(file::read_write, ec);
 		if (ec) return -1;
 
-		int slot = -1;
 		auto const i = m_piece_map.find(piece);
-		if (i == m_piece_map.end())
-			slot = allocate_slot(piece);
-		else
-			slot = i->second;
+		slot_index_t const slot = (i == m_piece_map.end())
+			? allocate_slot(piece) : i->second;
 
 		l.unlock();
 
-		std::int64_t slot_offset = std::int64_t(m_header_size) + std::int64_t(slot) * m_piece_size;
+		std::int64_t slot_offset = std::int64_t(m_header_size) + std::int64_t(static_cast<int>(slot)) * m_piece_size;
 		return int(m_file.writev(slot_offset + offset, bufs, ec));
 	}
 
@@ -207,14 +204,13 @@ namespace libtorrent
 			return -1;
 		}
 
-		int slot = i->second;
-
+		slot_index_t const slot = i->second;
 		open_file(file::read_write, ec);
 		if (ec) return -1;
 
 		l.unlock();
 
-		std::int64_t slot_offset = std::int64_t(m_header_size) + std::int64_t(slot) * m_piece_size;
+		std::int64_t slot_offset = std::int64_t(m_header_size) + std::int64_t(static_cast<int>(slot)) * m_piece_size;
 		return int(m_file.readv(slot_offset + offset, bufs, ec));
 	}
 
@@ -316,14 +312,14 @@ namespace libtorrent
 			int const block_to_copy = int(std::min(m_piece_size - piece_offset, size));
 			if (i != m_piece_map.end())
 			{
-				int const slot = i->second;
+				slot_index_t const slot = i->second;
 				open_file(file::read_only, ec);
 				if (ec) return;
 
 				if (!buf) buf.reset(new char[m_piece_size]);
 
 				std::int64_t const slot_offset = std::int64_t(m_header_size)
-					+ std::int64_t(slot) * m_piece_size;
+					+ std::int64_t(static_cast<int>(slot)) * m_piece_size;
 
 				// don't hold the lock during disk I/O
 				l.unlock();
@@ -407,10 +403,9 @@ namespace libtorrent
 		for (piece_index_t piece(0); piece < piece_index_t(m_max_pieces); ++piece)
 		{
 			auto const i = m_piece_map.find(piece);
-			int const slot = i == m_piece_map.end()
-				? 0xffffffff
-				: i->second;
-			write_uint32(slot, ptr);
+			slot_index_t const slot(i == m_piece_map.end()
+				? slot_index_t(-1) : i->second);
+			write_int32(static_cast<int>(slot), ptr);
 		}
 		std::memset(ptr, 0, m_header_size - (ptr - reinterpret_cast<char*>(header.get())));
 
