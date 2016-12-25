@@ -1238,10 +1238,6 @@ namespace libtorrent
 			std::vector<boost::shared_ptr<feed> > m_feeds;
 #endif
 
-#if TORRENT_USE_INVARIANT_CHECKS
-			bool m_skip_invariant_check;
-#endif
-
 			// this is a list of peer connections who have been
 			// corked (i.e. their network socket) and needs to be
 			// uncorked at the end of the burst of events. This is

@@ -440,9 +440,6 @@ namespace aux {
 		, m_need_auto_manage(false)
 		, m_abort(false)
 		, m_paused(false)
-#if TORRENT_USE_INVARIANT_CHECKS
-		, m_skip_invariant_check(false)
-#endif
 	{
 #if TORRENT_USE_ASSERTS
 		m_posting_torrent_updates = false;
@@ -1687,16 +1684,8 @@ namespace aux {
 				&& pack.get_str(settings_pack::listen_interfaces)
 					!= m_settings.get_str(settings_pack::listen_interfaces));
 
-#if TORRENT_USE_INVARIANT_CHECKS
-		// call invariant check only once because the settings update methods rely
-		// on each other
-		m_skip_invariant_check = true;
 		apply_pack(&pack, m_settings, this);
-		m_skip_invariant_check = false;
 		INVARIANT_CHECK;
-#else
-		apply_pack(&pack, m_settings, this);
-#endif
 
 		m_disk_thread.set_settings(&pack, m_alerts);
 
@@ -1710,7 +1699,6 @@ namespace aux {
 #ifndef TORRENT_NO_DEPRECATE
 	void session_impl::set_settings(libtorrent::session_settings const& s)
 	{
-		INVARIANT_CHECK;
 		TORRENT_ASSERT(is_single_thread());
 		boost::shared_ptr<settings_pack> p = load_pack_from_struct(m_settings, s);
 		apply_settings_pack(p);
@@ -3284,8 +3272,8 @@ retry:
 		if (!m_paused) m_auto_manage_time_scaler--;
 		if (m_auto_manage_time_scaler < 0)
 		{
-			INVARIANT_CHECK;
 			m_auto_manage_time_scaler = settings().get_int(settings_pack::auto_manage_interval);
+			//invariant check is already part of recalculate_auto_managed_torrents
 			recalculate_auto_managed_torrents();
 		}
 
@@ -5132,7 +5120,6 @@ retry:
 
 	void session_impl::update_outgoing_interfaces()
 	{
-		INVARIANT_CHECK;
 		std::string net_interfaces = m_settings.get_str(settings_pack::outgoing_interfaces);
 
 		// declared in string_util.hpp
@@ -5327,7 +5314,6 @@ retry:
 
 	void session_impl::update_listen_interfaces()
 	{
-		INVARIANT_CHECK;
 
 		std::string net_interfaces = m_settings.get_str(settings_pack::listen_interfaces);
 		std::vector<std::pair<std::string, int> > new_listen_interfaces;
