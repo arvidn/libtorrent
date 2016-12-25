@@ -1655,6 +1655,9 @@ namespace aux {
 	// session_impl is responsible for deleting 'pack'
 	void session_impl::apply_settings_pack(boost::shared_ptr<settings_pack> pack)
 	{
+#if TORRENT_USE_INVARIANT_CHECKS
+		check_invariant();
+#endif
 		apply_settings_pack_impl(*pack);
 	}
 
@@ -1694,10 +1697,6 @@ namespace aux {
 
 		m_disk_thread.set_settings(&pack, m_alerts);
 
-#if TORRENT_USE_INVARIANT_CHECKS
-		check_invariant();
-#endif
-
 		if (reopen_listen_port)
 		{
 			error_code ec;
@@ -1708,9 +1707,12 @@ namespace aux {
 #ifndef TORRENT_NO_DEPRECATE
 	void session_impl::set_settings(libtorrent::session_settings const& s)
 	{
+#if TORRENT_USE_INVARIANT_CHECKS
+		check_invariant();
+#endif
 		TORRENT_ASSERT(is_single_thread());
 		boost::shared_ptr<settings_pack> p = load_pack_from_struct(m_settings, s);
-		apply_settings_pack(p);
+		apply_settings_pack_impl(p);
 	}
 
 	libtorrent::session_settings session_impl::deprecated_settings() const
@@ -6198,6 +6200,9 @@ retry:
 
 	void session_impl::set_local_download_rate_limit(int bytes_per_second)
 	{
+#if TORRENT_USE_INVARIANT_CHECKS
+		check_invariant();
+#endif
 		settings_pack p;
 		p.set_int(settings_pack::local_download_rate_limit, bytes_per_second);
 		apply_settings_pack_impl(p);
@@ -6205,6 +6210,9 @@ retry:
 
 	void session_impl::set_local_upload_rate_limit(int bytes_per_second)
 	{
+#if TORRENT_USE_INVARIANT_CHECKS
+		check_invariant();
+#endif
 		settings_pack p;
 		p.set_int(settings_pack::local_upload_rate_limit, bytes_per_second);
 		apply_settings_pack_impl(p);
@@ -6212,6 +6220,9 @@ retry:
 
 	void session_impl::set_download_rate_limit(int bytes_per_second)
 	{
+#if TORRENT_USE_INVARIANT_CHECKS
+		check_invariant();
+#endif
 		settings_pack p;
 		p.set_int(settings_pack::download_rate_limit, bytes_per_second);
 		apply_settings_pack_impl(p);
@@ -6219,6 +6230,9 @@ retry:
 
 	void session_impl::set_upload_rate_limit(int bytes_per_second)
 	{
+#if TORRENT_USE_INVARIANT_CHECKS
+		check_invariant();
+#endif
 		settings_pack p;
 		p.set_int(settings_pack::upload_rate_limit, bytes_per_second);
 		apply_settings_pack_impl(p);
@@ -6226,6 +6240,9 @@ retry:
 
 	void session_impl::set_max_connections(int limit)
 	{
+#if TORRENT_USE_INVARIANT_CHECKS
+		check_invariant();
+#endif
 		settings_pack p;
 		p.set_int(settings_pack::connections_limit, limit);
 		apply_settings_pack_impl(p);
@@ -6233,6 +6250,9 @@ retry:
 
 	void session_impl::set_max_uploads(int limit)
 	{
+#if TORRENT_USE_INVARIANT_CHECKS
+		check_invariant();
+#endif
 		settings_pack p;
 		p.set_int(settings_pack::unchoke_slots_limit, limit);
 		apply_settings_pack_impl(p);
