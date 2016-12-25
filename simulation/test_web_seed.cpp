@@ -57,10 +57,10 @@ add_torrent_params create_torrent(file_storage& fs, bool const pad_files = false
 		, pad_files ? create_torrent::optimize_alignment : 0);
 
 	std::vector<char> piece(piece_size);
-	int const num = t.num_pieces();
+	piece_index_t const num = fs.end_piece();
 	if (pad_files)
 	{
-		for (int i = 0; i < num; ++i)
+		for (piece_index_t i(0); i < num; ++i)
 		{
 			std::vector<file_slice> files = fs.map_block(i, 0, fs.piece_size(i));
 			int k = 0;
@@ -92,7 +92,7 @@ add_torrent_params create_torrent(file_storage& fs, bool const pad_files = false
 
 		// calculate the hash for all pieces
 		sha1_hash ph = hasher(&piece[0], int(piece.size())).final();
-		for (int i = 0; i < num; ++i)
+		for (piece_index_t i(0); i < num; ++i)
 			t.set_hash(i, ph);
 	}
 
@@ -100,7 +100,7 @@ add_torrent_params create_torrent(file_storage& fs, bool const pad_files = false
 	if ((fs.total_size() % piece_size) > 0)
 	{
 		piece.resize(fs.total_size() % piece_size);
-		t.set_hash(num-1, hasher(&piece[0], int(piece.size())).final());
+		t.set_hash(prev(num), hasher(&piece[0], int(piece.size())).final());
 	}
 
 	std::vector<char> tmp;
@@ -239,7 +239,7 @@ TORRENT_TEST(multi_file)
 	TEST_CHECK(expected[1]);
 }
 
-std::string generate_content(lt::file_storage const& fs, int file
+std::string generate_content(lt::file_storage const& fs, file_index_t file
 	, std::int64_t offset, std::int64_t len)
 {
 	std::string ret;
@@ -252,9 +252,9 @@ std::string generate_content(lt::file_storage const& fs, int file
 }
 
 void serve_content_for(sim::http_server& http, std::string const& path
-	, lt::file_storage const& fs, int const file)
+	, lt::file_storage const& fs, file_index_t const file)
 {
-	http.register_content(path, fs.file_size(file)
+	http.register_content(path, fs.file_size(file_index_t(file))
 		, [&fs,file](std::int64_t offset, std::int64_t len)
 		{ return generate_content(fs, file, offset, len); });
 }
@@ -294,8 +294,8 @@ TORRENT_TEST(unaligned_file_redirect)
 			// server for serving the content
 			sim::asio::io_service web_server2(sim, address_v4::from_string("3.3.3.3"));
 			sim::http_server http2(web_server2, 4444);
-			serve_content_for(http2, "/bla/file1", fs, 0);
-			serve_content_for(http2, "/bar/file2", fs, 1);
+			serve_content_for(http2, "/bla/file1", fs, file_index_t(0));
+			serve_content_for(http2, "/bar/file2", fs, file_index_t(1));
 
 			sim.run();
 		}
@@ -343,12 +343,12 @@ TORRENT_TEST(multi_file_redirect_pad_files)
 			// server for file 1
 			sim::asio::io_service web_server2(sim, address_v4::from_string("3.3.3.3"));
 			sim::http_server http2(web_server2, 4444);
-			serve_content_for(http2, "/bla/file1", fs, 0);
+			serve_content_for(http2, "/bla/file1", fs, file_index_t(0));
 
 			// server for file 2
 			sim::asio::io_service web_server3(sim, address_v4::from_string("4.4.4.4"));
 			sim::http_server http3(web_server3, 9999);
-			serve_content_for(http3, "/bar/file2", fs, 2);
+			serve_content_for(http3, "/bar/file2", fs, file_index_t(2));
 
 			sim.run();
 		}
@@ -391,12 +391,12 @@ TORRENT_TEST(multi_file_redirect)
 			// server for file 1
 			sim::asio::io_service web_server2(sim, address_v4::from_string("3.3.3.3"));
 			sim::http_server http2(web_server2, 4444);
-			serve_content_for(http2, "/bla/file1", fs, 0);
+			serve_content_for(http2, "/bla/file1", fs, file_index_t(0));
 
 			// server for file 2
 			sim::asio::io_service web_server3(sim, address_v4::from_string("4.4.4.4"));
 			sim::http_server http3(web_server3, 9999);
-			serve_content_for(http3, "/bar/file2", fs, 1);
+			serve_content_for(http3, "/bar/file2", fs, file_index_t(1));
 
 			sim.run();
 		}
@@ -438,12 +438,12 @@ TORRENT_TEST(multi_file_unaligned_redirect)
 			// server for file 1
 			sim::asio::io_service web_server2(sim, address_v4::from_string("3.3.3.3"));
 			sim::http_server http2(web_server2, 4444);
-			serve_content_for(http2, "/bla/file1", fs, 0);
+			serve_content_for(http2, "/bla/file1", fs, file_index_t(0));
 
 			// server for file 2
 			sim::asio::io_service web_server3(sim, address_v4::from_string("4.4.4.4"));
 			sim::http_server http3(web_server3, 9999);
-			serve_content_for(http3, "/bar/file2", fs, 1);
+			serve_content_for(http3, "/bar/file2", fs, file_index_t(1));
 
 			sim.run();
 		}
