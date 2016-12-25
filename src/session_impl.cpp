@@ -640,6 +640,10 @@ namespace aux {
 			update_listen_interfaces();
 			open_listen_port();
 		}
+		
+		//call invariant check again after we did repeat the update calls
+		INVARIANT_CHECK;
+		
 	}
 
 	void session_impl::async_resolve(std::string const& host, int flags
@@ -7087,8 +7091,6 @@ retry:
 #if TORRENT_USE_INVARIANT_CHECKS
 	void session_impl::check_invariant() const
 	{
-		if (m_skip_invariant_check) return;
-
 		TORRENT_ASSERT(is_single_thread());
 
 		int loaded_limit = m_settings.get_int(settings_pack::active_loaded_limit);
