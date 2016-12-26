@@ -1019,12 +1019,6 @@ TORRENT_TEST(piece_priorities)
 	TEST_CHECK(prios.size() == 7);
 	int prio_comp[] = {0, 6, 5, 4, 3, 2, 1};
 	TEST_CHECK(std::equal(prios.begin(), prios.end(), prio_comp));
-
-	std::vector<bool> filter;
-	p->filtered_pieces(filter);
-	TEST_CHECK(prios.size() == 7);
-	bool filter_comp[] = {true, false, false, false, false, false, false};
-	TEST_CHECK(std::equal(filter.begin(), filter.end(), filter_comp));
 }
 
 TORRENT_TEST(restore_piece)

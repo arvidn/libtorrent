@@ -1771,21 +1771,6 @@ namespace libtorrent
 		}
 	}
 
-	// ============ start deprecation ==============
-
-	void piece_picker::filtered_pieces(std::vector<bool>& mask) const
-	{
-		mask.resize(m_piece_map.size());
-		std::vector<bool>::iterator j = mask.begin();
-		for (std::vector<piece_pos>::const_iterator i = m_piece_map.begin(),
-			end(m_piece_map.end()); i != end; ++i, ++j)
-		{
-			*j = i->filtered();
-		}
-	}
-
-	// ============ end deprecation ==============
-
 	namespace
 	{
 		int append_blocks(std::vector<piece_block>& dst, std::vector<piece_block>& src

@@ -940,24 +940,6 @@ namespace libtorrent
 		TORRENT_DEPRECATED
 		bool super_seeding() const;
 
-		// deprecated in 0.13
-		// all these are deprecated, use piece
-		// priority functions instead
-		// marks the piece with the given index as filtered
-		// it will not be downloaded
-		TORRENT_DEPRECATED
-		void filter_piece(piece_index_t index, bool filter) const;
-		TORRENT_DEPRECATED
-		void filter_pieces(std::vector<bool> const& pieces) const;
-		TORRENT_DEPRECATED
-		bool is_piece_filtered(piece_index_t index) const;
-		TORRENT_DEPRECATED
-		std::vector<bool> filtered_pieces() const;
-		// marks the file with the given index as filtered
-		// it will not be downloaded
-		TORRENT_DEPRECATED
-		void filter_files(std::vector<bool> const& files) const;
-
 		// deprecated in 0.14
 		// use save_resume_data() instead. It is async. and
 		// will return the resume data in an alert
