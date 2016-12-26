@@ -463,10 +463,10 @@ namespace libtorrent
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-	boost::shared_ptr<settings_pack> load_pack_from_struct(
+	settings_pack load_pack_from_struct(
 		aux::session_settings const& current, session_settings const& s)
 	{
-		boost::shared_ptr<settings_pack> p = boost::make_shared<settings_pack>();
+		settings_pack p;
 
 		for (int i = 0; i < settings_pack::num_string_settings; ++i)
 		{
@@ -474,7 +474,7 @@ namespace libtorrent
 			std::string& val = *(std::string*)(((char*)&s) + str_settings[i].offset);
 			int setting_name = settings_pack::string_type_base + i;
 			if (val == current.get_str(setting_name)) continue;
-			p->set_str(setting_name, val);
+			p.set_str(setting_name, val);
 		}
 
 		for (int i = 0; i < settings_pack::num_int_settings; ++i)
@@ -483,7 +483,7 @@ namespace libtorrent
 			int& val = *(int*)(((char*)&s) + int_settings[i].offset);
 			int setting_name = settings_pack::int_type_base + i;
 			if (val == current.get_int(setting_name)) continue;
-			p->set_int(setting_name, val);
+			p.set_int(setting_name, val);
 		}
 
 		for (int i = 0; i < settings_pack::num_bool_settings; ++i)
@@ -492,25 +492,25 @@ namespace libtorrent
 			bool& val = *(bool*)(((char*)&s) + bool_settings[i].offset);
 			int setting_name = settings_pack::bool_type_base + i;
 			if (val == current.get_bool(setting_name)) continue;
-			p->set_bool(setting_name, val);
+			p.set_bool(setting_name, val);
 		}
 
 		// special case for deprecated float values
 		int val = current.get_int(settings_pack::share_ratio_limit);
 		if (fabs(s.share_ratio_limit - float(val) / 100.f) > 0.001f)
-			p->set_int(settings_pack::share_ratio_limit, s.share_ratio_limit * 100);
+			p.set_int(settings_pack::share_ratio_limit, s.share_ratio_limit * 100);
 
 		val = current.get_int(settings_pack::seed_time_ratio_limit);
 		if (fabs(s.seed_time_ratio_limit - float(val) / 100.f) > 0.001f)
-			p->set_int(settings_pack::seed_time_ratio_limit, s.seed_time_ratio_limit * 100);
+			p.set_int(settings_pack::seed_time_ratio_limit, s.seed_time_ratio_limit * 100);
 
 		val = current.get_int(settings_pack::peer_turnover);
 		if (fabs(s.peer_turnover - float(val) / 100.f) > 0.001)
-			p->set_int(settings_pack::peer_turnover, s.peer_turnover * 100);
+			p.set_int(settings_pack::peer_turnover, s.peer_turnover * 100);
 
 		val = current.get_int(settings_pack::peer_turnover_cutoff);
 		if (fabs(s.peer_turnover_cutoff - float(val) / 100.f) > 0.001)
-			p->set_int(settings_pack::peer_turnover_cutoff, s.peer_turnover_cutoff * 100);
+			p.set_int(settings_pack::peer_turnover_cutoff, s.peer_turnover_cutoff * 100);
 
 		return p;
 	}

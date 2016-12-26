@@ -68,7 +68,7 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 	struct session_settings;
-	boost::shared_ptr<settings_pack> load_pack_from_struct(aux::session_settings const& current, session_settings const& s);
+	settings_pack load_pack_from_struct(aux::session_settings const& current, session_settings const& s);
 	void load_struct_from_settings(aux::session_settings const& current, session_settings& ret);
 #endif
 

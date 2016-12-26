@@ -1702,8 +1702,8 @@ namespace aux {
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(is_single_thread());
-		boost::shared_ptr<settings_pack> p = load_pack_from_struct(m_settings, s);
-		apply_settings_pack_impl(*p);
+		settings_pack p = load_pack_from_struct(m_settings, s);
+		apply_settings_pack_impl(p);
 	}
 
 	libtorrent::session_settings session_impl::deprecated_settings() const
