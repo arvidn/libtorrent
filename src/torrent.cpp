@@ -1213,6 +1213,28 @@ namespace libtorrent
 		}
 	}
 
+	struct piece_refcount
+	{
+		piece_refcount(piece_picker& p, piece_index_t piece)
+			: m_picker(p)
+			, m_piece(piece)
+		{
+			m_picker.inc_refcount(m_piece, nullptr);
+		}
+
+		piece_refcount(piece_refcount const&) = delete;
+		piece_refcount& operator=(piece_refcount const&) = delete;
+
+		~piece_refcount()
+		{
+			m_picker.dec_refcount(m_piece, nullptr);
+		}
+
+	private:
+		piece_picker& m_picker;
+		piece_index_t m_piece;
+	};
+
 	// TODO: 3 there's some duplication between this function and
 	// peer_connection::incoming_piece(). is there a way to merge something?
 	void torrent::add_piece(piece_index_t const piece, char const* data, int const flags)
@@ -1235,25 +1257,17 @@ namespace libtorrent
 		peer_request p;
 		p.piece = piece;
 		p.start = 0;
-		picker().inc_refcount(piece, nullptr);
+		piece_refcount refcount{picker(), piece};
 		for (int i = 0; i < blocks_in_piece; ++i, p.start += block_size())
 		{
 			if (picker().is_finished(piece_block(piece, i))
 				&& (flags & torrent::overwrite_existing) == 0)
 				continue;
 
-			p.length = (std::min)(piece_size - p.start, int(block_size()));
-			disk_buffer_holder buffer = m_ses.allocate_disk_buffer("add piece");
-			// out of memory
-			if (!buffer)
-			{
-				picker().dec_refcount(piece, nullptr);
-				return;
-			}
-			std::memcpy(buffer.get(), data + p.start, p.length);
+			p.length = std::min(piece_size - p.start, int(block_size()));
 
 			m_stats_counters.inc_stats_counter(counters::queued_write_bytes, p.length);
-			m_ses.disk_thread().async_write(&storage(), p, std::move(buffer)
+			m_ses.disk_thread().async_write(&storage(), p, data + p.start, nullptr
 				, std::bind(&torrent::on_disk_write_complete
 				, shared_from_this(), _1, p));
 
@@ -1274,7 +1288,6 @@ namespace libtorrent
 				verify_piece(p.piece);
 			}
 		}
-		picker().dec_refcount(piece, nullptr);
 	}
 
 	void torrent::on_disk_write_complete(storage_error const& error

@@ -6683,21 +6683,9 @@ namespace aux {
 		m_blocks_to_reclaim.clear();
 	}
 
-	disk_buffer_holder session_impl::allocate_disk_buffer(char const* category)
-	{
-		return m_disk_thread.allocate_disk_buffer(category);
-	}
-
 	void session_impl::free_disk_buffer(char* buf)
 	{
 		m_disk_thread.free_disk_buffer(buf);
-	}
-
-	disk_buffer_holder session_impl::allocate_disk_buffer(bool& exceeded
-		, std::shared_ptr<disk_observer> o
-		, char const* category)
-	{
-		return m_disk_thread.allocate_disk_buffer(exceeded, o, category);
 	}
 
 	char* session_impl::allocate_buffer()

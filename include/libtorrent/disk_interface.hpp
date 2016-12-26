@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bdecode.hpp"
 
 #include <string>
+#include <memory>
 
 #include "libtorrent/units.hpp"
 #include "libtorrent/aux_/vector.hpp"
@@ -77,8 +78,8 @@ namespace libtorrent
 		virtual void async_read(storage_interface* storage, peer_request const& r
 			, std::function<void(aux::block_cache_reference ref, char* block
 				, int flags, storage_error const& se)> handler, void* requester, std::uint8_t flags = 0) = 0;
-		virtual void async_write(storage_interface* storage, peer_request const& r
-			, disk_buffer_holder buffer
+		virtual bool async_write(storage_interface* storage, peer_request const& r
+			, char const* buf, std::shared_ptr<disk_observer> o
 			, std::function<void(storage_error const&)> handler
 			, std::uint8_t flags = 0) = 0;
 		virtual void async_hash(storage_interface* storage, piece_index_t piece, std::uint8_t flags
