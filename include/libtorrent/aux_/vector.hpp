@@ -52,21 +52,38 @@ namespace libtorrent { namespace aux {
 		{
 			TORRENT_ASSERT(idx >= IndexType(0));
 			TORRENT_ASSERT(idx < end_index());
-			return this->base::operator[](static_cast<underlying_index>(idx));
+			return this->base::operator[](std::size_t(static_cast<underlying_index>(idx)));
 		}
 
 		auto operator[](IndexType idx) -> decltype(this->base::operator[](underlying_index()))
 		{
 			TORRENT_ASSERT(idx >= IndexType(0));
 			TORRENT_ASSERT(idx < end_index());
-			return this->base::operator[](static_cast<underlying_index>(idx));
+			return this->base::operator[](std::size_t(static_cast<underlying_index>(idx)));
 		}
 
 		IndexType end_index() const
-		{ return IndexType(static_cast<underlying_index>(this->size())); }
+		{ return IndexType(static_cast<underlying_index>(this->base::size())); }
+
+		underlying_index size() const
+		{ return static_cast<underlying_index>(this->base::size()); }
+
+		void resize(underlying_index s)
+		{
+			TORRENT_ASSERT(s >= 0);
+			TORRENT_ASSERT(s <= std::numeric_limits<underlying_index>::max());
+			TORRENT_ASSERT(std::size_t(s) <= std::numeric_limits<std::size_t>::max());
+			this->base::resize(std::size_t(s));
+		}
+		void resize(underlying_index s, T const& v)
+		{
+			TORRENT_ASSERT(s >= 0);
+			TORRENT_ASSERT(s <= std::numeric_limits<underlying_index>::max());
+			TORRENT_ASSERT(std::size_t(s) <= std::numeric_limits<std::size_t>::max());
+			this->base::resize(std::size_t(s), v);
+		}
 	};
 
 }}
 
 #endif
-
