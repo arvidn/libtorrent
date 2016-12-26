@@ -66,7 +66,7 @@ public:
 		int left() const
 		{
 			TORRENT_ASSERT(end >= begin);
-			TORRENT_ASSERT(end - begin < INT_MAX);
+			TORRENT_ASSERT(end - begin < (std::numeric_limits<int>::max)());
 			return int(end - begin);
 		}
 
@@ -101,7 +101,7 @@ public:
 		int left() const
 		{
 			TORRENT_ASSERT(end >= begin);
-			TORRENT_ASSERT(end - begin < INT_MAX);
+			TORRENT_ASSERT(end - begin < (std::numeric_limits<int>::max)());
 			return int(end - begin);
 		}
 
@@ -203,7 +203,7 @@ public:
 		}
 		std::memmove(b, e, m_begin + m_size - e);
 		TORRENT_ASSERT(e >= b);
-		TORRENT_ASSERT(e - b <= std::numeric_limits<boost::uint32_t>::max());
+		TORRENT_ASSERT(e - b <= (std::numeric_limits<boost::uint32_t>::max)());
 		TORRENT_ASSERT(boost::uint32_t(e - b) <= m_size);
 		m_size -= e - b;
 	}
