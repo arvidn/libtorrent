@@ -558,6 +558,7 @@ namespace aux {
 
 	void session_impl::init(boost::shared_ptr<settings_pack> pack)
 	{
+		INVARIANT_CHECK;
 		// this is a debug facility
 		// see single_threaded in debug.hpp
 		thread_started();
@@ -1649,6 +1650,7 @@ namespace aux {
 	// session_impl is responsible for deleting 'pack'
 	void session_impl::apply_settings_pack(boost::shared_ptr<settings_pack> pack)
 	{
+		INVARIANT_CHECK;
 		apply_settings_pack_impl(*pack);
 	}
 
@@ -1685,6 +1687,7 @@ namespace aux {
 					!= m_settings.get_str(settings_pack::listen_interfaces));
 
 		apply_pack(&pack, m_settings, this);
+
 		m_disk_thread.set_settings(&pack, m_alerts);
 
 		if (reopen_listen_port)
@@ -1700,7 +1703,7 @@ namespace aux {
 		INVARIANT_CHECK;
 		TORRENT_ASSERT(is_single_thread());
 		boost::shared_ptr<settings_pack> p = load_pack_from_struct(m_settings, s);
-		apply_settings_pack(p);
+		apply_settings_pack_impl(*p);
 	}
 
 	libtorrent::session_settings session_impl::deprecated_settings() const
@@ -3271,7 +3274,6 @@ retry:
 		if (!m_paused) m_auto_manage_time_scaler--;
 		if (m_auto_manage_time_scaler < 0)
 		{
-			INVARIANT_CHECK;
 			m_auto_manage_time_scaler = settings().get_int(settings_pack::auto_manage_interval);
 			recalculate_auto_managed_torrents();
 		}
@@ -5119,7 +5121,6 @@ retry:
 
 	void session_impl::update_outgoing_interfaces()
 	{
-		INVARIANT_CHECK;
 		std::string net_interfaces = m_settings.get_str(settings_pack::outgoing_interfaces);
 
 		// declared in string_util.hpp
@@ -5314,7 +5315,6 @@ retry:
 
 	void session_impl::update_listen_interfaces()
 	{
-		INVARIANT_CHECK;
 
 		std::string net_interfaces = m_settings.get_str(settings_pack::listen_interfaces);
 		std::vector<std::pair<std::string, int> > new_listen_interfaces;
@@ -6191,6 +6191,7 @@ retry:
 
 	void session_impl::set_local_download_rate_limit(int bytes_per_second)
 	{
+		INVARIANT_CHECK;
 		settings_pack p;
 		p.set_int(settings_pack::local_download_rate_limit, bytes_per_second);
 		apply_settings_pack_impl(p);
@@ -6198,6 +6199,7 @@ retry:
 
 	void session_impl::set_local_upload_rate_limit(int bytes_per_second)
 	{
+		INVARIANT_CHECK;
 		settings_pack p;
 		p.set_int(settings_pack::local_upload_rate_limit, bytes_per_second);
 		apply_settings_pack_impl(p);
@@ -6205,6 +6207,7 @@ retry:
 
 	void session_impl::set_download_rate_limit(int bytes_per_second)
 	{
+		INVARIANT_CHECK;
 		settings_pack p;
 		p.set_int(settings_pack::download_rate_limit, bytes_per_second);
 		apply_settings_pack_impl(p);
@@ -6212,6 +6215,7 @@ retry:
 
 	void session_impl::set_upload_rate_limit(int bytes_per_second)
 	{
+		INVARIANT_CHECK;
 		settings_pack p;
 		p.set_int(settings_pack::upload_rate_limit, bytes_per_second);
 		apply_settings_pack_impl(p);
@@ -6219,6 +6223,7 @@ retry:
 
 	void session_impl::set_max_connections(int limit)
 	{
+		INVARIANT_CHECK;
 		settings_pack p;
 		p.set_int(settings_pack::connections_limit, limit);
 		apply_settings_pack_impl(p);
@@ -6226,6 +6231,7 @@ retry:
 
 	void session_impl::set_max_uploads(int limit)
 	{
+		INVARIANT_CHECK;
 		settings_pack p;
 		p.set_int(settings_pack::unchoke_slots_limit, limit);
 		apply_settings_pack_impl(p);
