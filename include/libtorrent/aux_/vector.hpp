@@ -66,6 +66,30 @@ namespace libtorrent { namespace aux {
 		{ return IndexType(static_cast<underlying_index>(this->size())); }
 	};
 
+	template <typename Iter>
+	struct iterator_range
+	{
+		Iter _begin, _end;
+		Iter begin() { return _begin; }
+		Iter end() { return _end; }
+	};
+
+	template <typename T, typename IndexType>
+	iterator_range<T*> range(vector<T, IndexType>& vec
+		, IndexType begin, IndexType end)
+	{
+		using type = typename IndexType::underlying_type;
+		return { vec.data() + static_cast<type>(begin), vec.data() + static_cast<type>(end) };
+	}
+
+	template <typename T, typename IndexType>
+	iterator_range<T const*> range(vector<T, IndexType> const& vec
+		, IndexType begin, IndexType end)
+	{
+		using type = typename IndexType::underlying_type;
+		return { vec.data() + static_cast<type>(begin), vec.data() + static_cast<type>(end) };
+	}
+
 }}
 
 #endif

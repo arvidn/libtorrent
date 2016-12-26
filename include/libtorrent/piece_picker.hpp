@@ -67,6 +67,9 @@ namespace libtorrent
 	struct counters;
 	struct torrent_peer;
 
+	struct prio_index_tag_t {};
+	using prio_index_t = aux::strong_typedef<int, prio_index_tag_t>;
+
 	class TORRENT_EXTRA_EXPORT piece_picker
 	{
 	public:
@@ -405,7 +408,7 @@ namespace libtorrent
 #if TORRENT_USE_INVARIANT_CHECKS
 		void check_piece_state() const;
 		// used in debug mode
-		void verify_priority(int start, int end, int prio) const;
+		void verify_priority(prio_index_t start, prio_index_t end, int prio) const;
 		void verify_pick(std::vector<piece_block> const& picked
 			, typed_bitfield<piece_index_t> const& bits) const;
 
@@ -569,19 +572,29 @@ namespace libtorrent
 			std::uint32_t piece_priority : 3;
 
 			// index in to the piece_info vector
-			std::uint32_t index;
+			prio_index_t index;
 
 #ifdef TORRENT_DEBUG_REFCOUNTS
 			// all the peers that have this piece
 			std::set<const torrent_peer*> have_peers;
 #endif
 
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#pragma warning(disable : 4268)
+#endif
+
+			// index is set to this to indicate that we have the
+			// piece. There is no entry for the piece in the
+			// buckets if this is the case.
+			constexpr static prio_index_t we_have_index{-1};
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
 			enum : std::uint32_t
 			{
-				// index is set to this to indicate that we have the
-				// piece. There is no entry for the piece in the
-				// buckets if this is the case.
-				we_have_index = 0xffffffff,
 				// the priority value that means the piece is filtered
 				filter_priority = 0,
 				// the max number the peer count can hold
@@ -590,7 +603,7 @@ namespace libtorrent
 
 			bool have() const { return index == we_have_index; }
 			void set_have() { index = we_have_index; TORRENT_ASSERT(have()); }
-			void set_not_have() { index = 0; TORRENT_ASSERT(!have()); }
+			void set_not_have() { index = prio_index_t(0); TORRENT_ASSERT(!have()); }
 			bool downloading() const { return download_state != piece_open; }
 
 			bool filtered() const { return piece_priority == filter_priority; }
@@ -663,20 +676,23 @@ namespace libtorrent
 
 		void update_pieces() const;
 
+		prio_index_t priority_begin(int prio) const;
+		prio_index_t priority_end(int prio) const;
+
 		// fills in the range [start, end) of pieces in
 		// m_pieces that have priority 'prio'
-		std::pair<int, int> priority_range(int prio);
+		std::pair<prio_index_t, prio_index_t> priority_range(int prio) const;
 
 		// adds the piece 'index' to m_pieces
 		void add(piece_index_t index);
 		// removes the piece with the given priority and the
 		// elem_index in the m_pieces vector
-		void remove(int priority, int elem_index);
+		void remove(int priority, prio_index_t elem_index);
 		// updates the position of the piece with the given
 		// priority and the elem_index in the m_pieces vector
-		void update(int priority, int elem_index);
+		void update(int priority, prio_index_t elem_index);
 		// shuffles the given piece inside it's priority range
-		void shuffle(int priority, int elem_index);
+		void shuffle(int priority, prio_index_t elem_index);
 
 		std::vector<downloading_piece>::iterator add_download_piece(piece_index_t index);
 		void erase_download_piece(std::vector<downloading_piece>::iterator i);
@@ -713,12 +729,12 @@ namespace libtorrent
 		// this vector contains all piece indices that are pickable
 		// sorted by priority. Pieces are in random random order
 		// among pieces with the same priority
-		mutable std::vector<piece_index_t> m_pieces;
+		mutable aux::vector<piece_index_t, prio_index_t> m_pieces;
 
 		// these are indices to the priority boundaries inside
 		// the m_pieces vector. priority 0 always start at
 		// 0, priority 1 starts at m_priority_boundaries[0] etc.
-		mutable std::vector<int> m_priority_boundaries;
+		mutable std::vector<prio_index_t> m_priority_boundaries;
 
 		// each piece that's currently being downloaded has an entry in this list
 		// with block allocations. i.e. it says which parts of the piece that is
