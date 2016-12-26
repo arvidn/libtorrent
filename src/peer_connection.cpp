@@ -2590,39 +2590,6 @@ namespace libtorrent
 	void peer_connection::incoming_piece(peer_request const& p, char const* data)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		bool exceeded = false;
-		disk_buffer_holder buffer
-			= m_allocator.allocate_disk_buffer(exceeded, self(), "receive buffer");
-
-		if (!buffer)
-		{
-			disconnect(errors::no_memory, op_alloc_recvbuf);
-			return;
-		}
-
-		// every peer is entitled to have two disk blocks allocated at any given
-		// time, regardless of whether the cache size is exceeded or not. If this
-		// was not the case, when the cache size setting is very small, most peers
-		// would be blocked most of the time, because the disk cache would
-		// continuously be in exceeded state. Only rarely would it actually drop
-		// down to 0 and unblock all peers.
-		if (exceeded && m_outstanding_writing_bytes > 0)
-		{
-			if ((m_channel_state[download_channel] & peer_info::bw_disk) == 0)
-				m_counters.inc_stats_counter(counters::num_peers_down_disk);
-			m_channel_state[download_channel] |= peer_info::bw_disk;
-#ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, "DISK", "exceeded disk buffer watermark");
-#endif
-		}
-
-		std::memcpy(buffer.get(), data, p.length);
-		incoming_piece(p, std::move(buffer));
-	}
-
-	void peer_connection::incoming_piece(peer_request const& p, disk_buffer_holder data)
-	{
-		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
 		std::shared_ptr<torrent> t = m_torrent.lock();
@@ -2636,7 +2603,7 @@ namespace libtorrent
 		if (m_remote.address().is_v4()
 			&& (m_remote.address().to_v4().to_ulong() & 0xf) == 0)
 		{
-			data.get()[0] = ~data.get()[0];
+			data[0] = ~data[0];
 		}
 #endif
 
@@ -2654,7 +2621,7 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (auto const& e : m_extensions)
 		{
-			if (e->on_piece(p, {data.get(), size_t(p.length)}))
+			if (e->on_piece(p, {data, size_t(p.length)}))
 			{
 #if TORRENT_USE_ASSERTS
 				TORRENT_ASSERT(m_received_in_piece == p.length);
@@ -2828,9 +2795,25 @@ namespace libtorrent
 
 		if (t->is_deleted()) return;
 
-		m_disk_thread.async_write(&t->storage(), p, std::move(data)
+		bool const exceeded = m_disk_thread.async_write(&t->storage(), p, data, self()
 			, std::bind(&peer_connection::on_disk_write_complete
 			, self(), _1, p, t));
+
+		// every peer is entitled to have two disk blocks allocated at any given
+		// time, regardless of whether the cache size is exceeded or not. If this
+		// was not the case, when the cache size setting is very small, most peers
+		// would be blocked most of the time, because the disk cache would
+		// continuously be in exceeded state. Only rarely would it actually drop
+		// down to 0 and unblock all peers.
+		if (exceeded && m_outstanding_writing_bytes > 0)
+		{
+			if ((m_channel_state[download_channel] & peer_info::bw_disk) == 0)
+				m_counters.inc_stats_counter(counters::num_peers_down_disk);
+			m_channel_state[download_channel] |= peer_info::bw_disk;
+#ifndef TORRENT_DISABLE_LOGGING
+			peer_log(peer_log_alert::info, "DISK", "exceeded disk buffer watermark");
+#endif
+		}
 
 		std::int64_t const write_queue_size = m_counters.inc_stats_counter(
 			counters::queued_write_bytes, p.length);

@@ -294,8 +294,8 @@ namespace libtorrent
 		void async_read(storage_interface* storage, peer_request const& r
 			, std::function<void(aux::block_cache_reference ref, char* block
 				, int flags, storage_error const& se)> handler, void* requester, std::uint8_t flags = 0) override;
-		void async_write(storage_interface* storage, peer_request const& r
-			, disk_buffer_holder buffer
+		bool async_write(storage_interface* storage, peer_request const& r
+			, char const* buf, std::shared_ptr<disk_observer> o
 			, std::function<void(storage_error const&)> handler
 			, std::uint8_t flags = 0) override;
 		void async_hash(storage_interface* storage, piece_index_t piece, std::uint8_t flags
@@ -332,16 +332,7 @@ namespace libtorrent
 		// implements buffer_allocator_interface
 		void reclaim_blocks(span<aux::block_cache_reference> ref) override;
 		void free_disk_buffer(char* buf) override { m_disk_cache.free_buffer(buf); }
-		disk_buffer_holder allocate_disk_buffer(char const* category) override
-		{
-			bool exceed = false;
-			return allocate_disk_buffer(exceed, std::shared_ptr<disk_observer>(), category);
-		}
-
 		void trigger_cache_trim();
-		disk_buffer_holder allocate_disk_buffer(bool& exceeded, std::shared_ptr<disk_observer> o
-			, char const* category) override;
-
 		void update_stats_counters(counters& c) const override;
 		void get_cache_info(cache_status* ret, bool no_pieces = true
 			, storage_interface const* storage = 0) const override;

@@ -1625,13 +1625,18 @@ namespace libtorrent
 		return 1;
 	}
 
-	void disk_io_thread::async_write(storage_interface* storage, peer_request const& r
-		, disk_buffer_holder buffer
+	bool disk_io_thread::async_write(storage_interface* storage, peer_request const& r
+		, char const* buf, std::shared_ptr<disk_observer> o
 		, std::function<void(storage_error const&)> handler
 		, std::uint8_t const flags)
 	{
 		TORRENT_ASSERT(r.length <= m_disk_cache.block_size());
 		TORRENT_ASSERT(r.length <= 16 * 1024);
+
+		bool exceeded = false;
+		disk_buffer_holder buffer(*this, m_disk_cache.allocate_buffer(exceeded, o, "receive buffer"));
+		if (!buffer) throw std::bad_alloc();
+		std::memcpy(buffer.get(), buf, r.length);
 
 		disk_io_job* j = allocate_job(disk_io_job::write);
 		j->storage = storage->shared_from_this();
@@ -1690,7 +1695,7 @@ namespace libtorrent
 			// make the holder give up ownership of the buffer
 			// since the job was successfully queued up
 			buffer.release();
-			return;
+			return exceeded;
 		}
 
 		std::unique_lock<std::mutex> l(m_cache_mutex);
@@ -1720,12 +1725,13 @@ namespace libtorrent
 
 			// if we added the block (regardless of whether we also
 			// issued a flush job or not), we're done.
-			return;
+			return exceeded;
 		}
 		l.unlock();
 
 		add_job(j);
 		buffer.release();
+		return exceeded;
 	}
 
 	void disk_io_thread::async_hash(storage_interface* storage
@@ -3174,14 +3180,6 @@ namespace libtorrent
 		disk_io_job* j = allocate_job(disk_io_job::trim_cache);
 		add_job(j, false);
 		submit_jobs();
-	}
-
-	disk_buffer_holder disk_io_thread::allocate_disk_buffer(bool& exceeded
-		, std::shared_ptr<disk_observer> o
-		, char const* category)
-	{
-		char* ret = m_disk_cache.allocate_buffer(exceeded, o, category);
-		return disk_buffer_holder(*this, ret);
 	}
 
 	void disk_io_thread::add_completed_jobs(jobqueue_t& jobs)
