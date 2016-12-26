@@ -287,7 +287,7 @@ namespace libtorrent
 			, int block_size = 16 * 1024);
 		~disk_io_thread();
 
-		void set_settings(settings_pack const* sett, alert_manager& alerts);
+		void set_settings(settings_pack const* sett);
 
 		void abort(bool wait);
 

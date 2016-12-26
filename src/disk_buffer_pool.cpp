@@ -41,10 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#if TORRENT_HAVE_MMAP
-#include <sys/mman.h>
-#endif
-
 #ifdef TORRENT_BSD
 #include <sys/sysctl.h>
 #endif
@@ -81,10 +77,6 @@ namespace libtorrent
 		, m_exceeded_max_size(false)
 		, m_ios(ios)
 		, m_cache_buffer_chunk_size(0)
-#if TORRENT_HAVE_MMAP && !defined TORRENT_NO_DEPRECATE
-		, m_cache_fd(-1)
-		, m_cache_pool(nullptr)
-#endif
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 		, m_using_pool_allocator(false)
 		, m_want_pool_allocator(false)
@@ -104,19 +96,6 @@ namespace libtorrent
 		m_magic = 0;
 #endif
 
-#if TORRENT_HAVE_MMAP && !defined TORRENT_NO_DEPRECATE
-		if (m_cache_pool)
-		{
-			munmap(m_cache_pool, std::uint64_t(m_max_use) * 0x4000);
-			m_cache_pool = nullptr;
-			// attempt to make MacOS not flush this to disk, making close()
-			// block for a long time
-			int const best_effort = ftruncate(m_cache_fd, 0);
-			TORRENT_UNUSED(best_effort);
-			close(m_cache_fd);
-			m_cache_fd = -1;
-		}
-#endif
 	}
 
 	int disk_buffer_pool::num_to_evict(int const num_needed)
@@ -161,14 +140,6 @@ namespace libtorrent
 		TORRENT_ASSERT(m_magic == 0x1337);
 		TORRENT_ASSERT(l.owns_lock());
 		TORRENT_UNUSED(l);
-
-#if TORRENT_HAVE_MMAP && !defined TORRENT_NO_DEPRECATE
-		if (m_cache_pool)
-		{
-			return buffer >= m_cache_pool && buffer < m_cache_pool
-				+ std::uint64_t(m_max_use) * 0x4000;
-		}
-#endif
 
 #if TORRENT_USE_INVARIANT_CHECKS
 		return m_buffers_in_use.count(buffer) == 1;
@@ -268,51 +239,32 @@ namespace libtorrent
 		TORRENT_UNUSED(l);
 
 		char* ret;
-#if TORRENT_HAVE_MMAP && !defined TORRENT_NO_DEPRECATE
-		if (m_cache_pool)
-		{
-			if (int(m_free_list.size()) <= (m_max_use - m_low_watermark)
-				/ 2 && !m_exceeded_max_size)
-			{
-				m_exceeded_max_size = true;
-				m_trigger_cache_trim();
-			}
-			if (m_free_list.empty()) return nullptr;
-			std::int64_t const slot_index = m_free_list.back();
-			m_free_list.pop_back();
-			ret = m_cache_pool + (slot_index * 0x4000);
-			TORRENT_ASSERT(is_disk_buffer(ret, l));
-		}
-		else
-#endif
-		{
 #if defined TORRENT_DISABLE_POOL_ALLOCATOR
 
-			ret = page_aligned_allocator::malloc(m_block_size);
+		ret = page_aligned_allocator::malloc(m_block_size);
 
 #else
-			if (m_using_pool_allocator)
-			{
-				int const effective_block_size
-					= m_in_use >= m_max_use
-					? 20 // use small increments once we've exceeded the cache size
-					: m_cache_buffer_chunk_size
-					? m_cache_buffer_chunk_size
-					: std::max(m_max_use / 10, 1);
-				m_pool.set_next_size(effective_block_size);
-				ret = static_cast<char*>(m_pool.malloc());
-			}
-			else
-			{
-				ret = page_aligned_allocator::malloc(m_block_size);
-			}
+		if (m_using_pool_allocator)
+		{
+			int const effective_block_size
+				= m_in_use >= m_max_use
+				? 20 // use small increments once we've exceeded the cache size
+				: m_cache_buffer_chunk_size
+				? m_cache_buffer_chunk_size
+				: std::max(m_max_use / 10, 1);
+			m_pool.set_next_size(effective_block_size);
+			ret = static_cast<char*>(m_pool.malloc());
+		}
+		else
+		{
+			ret = page_aligned_allocator::malloc(m_block_size);
+		}
 #endif
-			if (ret == nullptr)
-			{
-				m_exceeded_max_size = true;
-				m_trigger_cache_trim();
-				return nullptr;
-			}
+		if (ret == nullptr)
+		{
+			m_exceeded_max_size = true;
+			m_trigger_cache_trim();
+			return nullptr;
 		}
 
 		++m_in_use;
@@ -366,11 +318,8 @@ namespace libtorrent
 		check_buffer_level(l);
 	}
 
-	void disk_buffer_pool::set_settings(aux::session_settings const& sett
-		, error_code& ec)
+	void disk_buffer_pool::set_settings(aux::session_settings const& sett)
 	{
-		TORRENT_UNUSED(ec);
-
 		std::unique_lock<std::mutex> l(m_pool_mutex);
 
 		// 0 cache_buffer_chunk_size means 'automatic' (i.e.
@@ -385,158 +334,72 @@ namespace libtorrent
 			m_using_pool_allocator = m_want_pool_allocator;
 #endif
 
-#if TORRENT_HAVE_MMAP && !defined TORRENT_NO_DEPRECATE
-		// if we've already allocated an mmap, we can't change
-		// anything unless there are no allocations in use
-		if (m_cache_pool && m_in_use > 0) return;
-#endif
-
-		// only allow changing size if we're not using mmapped
-		// cache, or if we're just about to turn it off
-		if (
-#if TORRENT_HAVE_MMAP && !defined TORRENT_NO_DEPRECATE
-			m_cache_pool == nullptr ||
-			sett.get_str(settings_pack::mmap_cache).empty()
-#else
-			true
-#endif
-		)
+		int const cache_size = sett.get_int(settings_pack::cache_size);
+		if (cache_size < 0)
 		{
-			int const cache_size = sett.get_int(settings_pack::cache_size);
-			if (cache_size < 0)
+			std::uint64_t phys_ram = total_physical_ram();
+			if (phys_ram == 0) m_max_use = 1024;
+			else
 			{
-				std::uint64_t phys_ram = total_physical_ram();
-				if (phys_ram == 0) m_max_use = 1024;
-				else
+				// this is the logic to calculate the automatic disk cache size
+				// based on the amount of physical RAM.
+				// The more physical RAM, the smaller portion of it is allocated
+				// for the cache.
+
+				// we take a 30th of everything exceeding 4 GiB
+				// a 20th of everything exceeding 1 GiB
+				// and a 10th of everything below a GiB
+
+				constexpr std::int64_t gb = 1024 * 1024 * 1024;
+
+				std::int64_t result = 0;
+				if (phys_ram > 4 * gb)
 				{
-					// this is the logic to calculate the automatic disk cache size
-					// based on the amount of physical RAM.
-					// The more physical RAM, the smaller portion of it is allocated
-					// for the cache.
-
-					// we take a 30th of everything exceeding 4 GiB
-					// a 20th of everything exceeding 1 GiB
-					// and a 10th of everything below a GiB
-
-					constexpr std::int64_t gb = 1024 * 1024 * 1024;
-
-					std::int64_t result = 0;
-					if (phys_ram > 4 * gb)
-					{
-						result += (phys_ram - 4 * gb) / 30;
-						phys_ram = 4 * gb;
-					}
-					if (phys_ram > 1 * gb)
-					{
-						result += (phys_ram - 1 * gb) / 20;
-						phys_ram = 1 * gb;
-					}
-					result += phys_ram / 10;
-					m_max_use = int(result / m_block_size);
+					result += (phys_ram - 4 * gb) / 30;
+					phys_ram = 4 * gb;
 				}
+				if (phys_ram > 1 * gb)
+				{
+					result += (phys_ram - 1 * gb) / 20;
+					phys_ram = 1 * gb;
+				}
+				result += phys_ram / 10;
+				m_max_use = int(result / m_block_size);
+			}
 
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4127 ) /* warning C4127: conditional expression is constant */
 #endif // _MSC_VER
-				if (sizeof(void*) == 4)
+			if (sizeof(void*) == 4)
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif // _MSC_VER
-				{
-					// 32 bit builds should  capped below 2 GB of memory, even
-					// when more actual ram is available, because we're still
-					// constrained by the 32 bit virtual address space.
-					m_max_use = std::min(2 * 1024 * 1024 * 3 / 4 * 1024
-						/ m_block_size, m_max_use);
-				}
-			}
-			else
 			{
-				m_max_use = cache_size;
+				// 32 bit builds should  capped below 2 GB of memory, even
+				// when more actual ram is available, because we're still
+				// constrained by the 32 bit virtual address space.
+				m_max_use = std::min(2 * 1024 * 1024 * 3 / 4 * 1024
+					/ m_block_size, m_max_use);
 			}
-			m_low_watermark = m_max_use - std::max(16, sett.get_int(settings_pack::max_queued_disk_bytes) / 0x4000);
-			if (m_low_watermark < 0) m_low_watermark = 0;
-			if (m_in_use >= m_max_use && !m_exceeded_max_size)
-			{
-				m_exceeded_max_size = true;
-				m_trigger_cache_trim();
-			}
-			if (m_cache_buffer_chunk_size > m_max_use)
-				m_cache_buffer_chunk_size = m_max_use;
 		}
+		else
+		{
+			m_max_use = cache_size;
+		}
+		m_low_watermark = m_max_use - std::max(16, sett.get_int(settings_pack::max_queued_disk_bytes) / 0x4000);
+		if (m_low_watermark < 0) m_low_watermark = 0;
+		if (m_in_use >= m_max_use && !m_exceeded_max_size)
+		{
+			m_exceeded_max_size = true;
+			m_trigger_cache_trim();
+		}
+		if (m_cache_buffer_chunk_size > m_max_use)
+			m_cache_buffer_chunk_size = m_max_use;
 
 #if TORRENT_USE_ASSERTS
 		m_settings_set = true;
 #endif
-
-#if TORRENT_HAVE_MMAP && !defined TORRENT_NO_DEPRECATE
-		// #error support resizing the map
-		if (m_cache_pool && sett.get_str(settings_pack::mmap_cache).empty())
-		{
-			TORRENT_ASSERT(m_in_use == 0);
-			munmap(m_cache_pool, std::uint64_t(m_max_use) * 0x4000);
-			m_cache_pool = nullptr;
-			// attempt to make MacOS not flush this to disk, making close()
-			// block for a long time
-			int const best_effort = ftruncate(m_cache_fd, 0);
-			TORRENT_UNUSED(best_effort);
-			close(m_cache_fd);
-			m_cache_fd = -1;
-			m_free_list.clear();
-			m_free_list.shrink_to_fit();
-		}
-		else if (m_cache_pool == nullptr && !sett.get_str(settings_pack::mmap_cache).empty())
-		{
-			// O_TRUNC here is because we don't actually care about what's
-			// in the file now, there's no need to ever read that into RAM
-#ifndef O_EXLOCK
-#define O_EXLOCK 0
-#endif
-			m_cache_fd = open(sett.get_str(settings_pack::mmap_cache).c_str(), O_RDWR | O_CREAT | O_EXLOCK | O_TRUNC, 0700);
-			if (m_cache_fd < 0)
-			{
-				ec.assign(errno, boost::system::system_category());
-			}
-			else
-			{
-#ifndef MAP_NOCACHE
-#define MAP_NOCACHE 0
-#endif
-				if (ftruncate(m_cache_fd, std::uint64_t(m_max_use) * 0x4000) < 0)
-				{
-					ec.assign(errno, boost::system::system_category());
-					m_cache_pool = nullptr;
-					close(m_cache_fd);
-					m_cache_fd = -1;
-					return;
-				}
-
-				m_cache_pool = static_cast<char*>(mmap(nullptr, std::uint64_t(m_max_use) * 0x4000, PROT_READ | PROT_WRITE
-					, MAP_SHARED | MAP_NOCACHE, m_cache_fd, 0));
-				if (intptr_t(m_cache_pool) == -1)
-				{
-					ec.assign(errno, boost::system::system_category());
-
-					m_cache_pool = nullptr;
-					// attempt to make MacOS not flush this to disk, making close()
-					// block for a long time
-					int const best_effort2 = ftruncate(m_cache_fd, 0);
-					TORRENT_UNUSED(best_effort2);
-					close(m_cache_fd);
-					m_cache_fd = -1;
-					return;
-				}
-				else
-				{
-					TORRENT_ASSERT((std::size_t(m_cache_pool) & 0xfff) == 0);
-					m_free_list.reserve(m_max_use);
-					for (int i = 0; i < m_max_use; ++i)
-						m_free_list.push_back(i);
-				}
-			}
-		}
-#endif // TORRENT_HAVE_MMAP
 	}
 
 	void disk_buffer_pool::remove_buffer_in_use(char* buf)
@@ -557,29 +420,6 @@ namespace libtorrent
 		TORRENT_ASSERT(l.owns_lock());
 		TORRENT_UNUSED(l);
 
-#if TORRENT_HAVE_MMAP && !defined TORRENT_NO_DEPRECATE
-		if (m_cache_pool)
-		{
-			TORRENT_ASSERT(buf >= m_cache_pool);
-			TORRENT_ASSERT(buf <  m_cache_pool + std::uint64_t(m_max_use) * 0x4000);
-			int slot_index = int((buf - m_cache_pool) / 0x4000);
-			m_free_list.push_back(slot_index);
-#if defined MADV_FREE
-			// tell the virtual memory system that we don't actually care
-			// about the data in these pages anymore. If this block was
-			// swapped out to the SSD, it (hopefully) means it won't have
-			// to be read back in once we start writing our new data to it
-			madvise(buf, 0x4000, MADV_FREE);
-#elif defined MADV_DONTNEED && defined TORRENT_LINUX
-			// rumor has it that MADV_DONTNEED is in fact destructive
-			// on linux (i.e. it won't flush it to disk or re-read from disk)
-			// http://kerneltrap.org/mailarchive/linux-kernel/2007/5/1/84410
-			madvise(buf, 0x4000, MADV_DONTNEED);
-#endif
-		}
-		else
-#endif
-		{
 #if defined TORRENT_DISABLE_POOL_ALLOCATOR
 
 		page_aligned_allocator::free(buf);
@@ -590,7 +430,6 @@ namespace libtorrent
 		else
 			page_aligned_allocator::free(buf);
 #endif // TORRENT_DISABLE_POOL_ALLOCATOR
-		}
 
 		--m_in_use;
 

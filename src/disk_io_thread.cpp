@@ -199,9 +199,7 @@ namespace libtorrent
 		, m_ios(ios)
 	{
 		ADD_OUTSTANDING_ASYNC("disk_io_thread::work");
-		error_code ec;
-		m_disk_cache.set_settings(m_settings, ec);
-		TORRENT_ASSERT(!ec);
+		m_disk_cache.set_settings(m_settings);
 
 		// deduct some margin for epoll/kqueue, log files,
 		// futexes, shared objects etc.
@@ -262,21 +260,12 @@ namespace libtorrent
 		}
 	}
 
-	void disk_io_thread::set_settings(settings_pack const* pack, alert_manager& alerts)
+	void disk_io_thread::set_settings(settings_pack const* pack)
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
 		std::unique_lock<std::mutex> l(m_cache_mutex);
 		apply_pack(pack, m_settings);
-		error_code ec;
-		m_disk_cache.set_settings(m_settings, ec);
-#ifndef TORRENT_NO_DEPRECATE
-		if (ec && alerts.should_post<mmap_cache_alert>())
-		{
-			alerts.emplace_alert<mmap_cache_alert>(ec);
-		}
-#else
-		TORRENT_UNUSED(alerts);
-#endif
+		m_disk_cache.set_settings(m_settings);
 
 		int const num_threads = m_settings.get_int(settings_pack::aio_threads);
 		// add one hasher thread for every three generic threads

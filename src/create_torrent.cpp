@@ -287,9 +287,7 @@ namespace libtorrent
 		sett.set_int(settings_pack::cache_size, 0);
 		sett.set_int(settings_pack::aio_threads, 1);
 
-		// TODO: this should probably be optional
-		alert_manager dummy2(0, 0);
-		disk_thread.set_settings(&sett, dummy2);
+		disk_thread.set_settings(&sett);
 
 		int const piece_read_ahead = std::max(1, 15 * 1024 * 1024 / t.piece_length());
 
