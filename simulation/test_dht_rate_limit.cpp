@@ -71,6 +71,11 @@ struct obs : dht::dht_observer
 		, sha1_hash const& /* sent_target */, udp::endpoint const& /* ep */) override {}
 	void announce(sha1_hash const& /* ih */
 		, address const& /* addr */, int /* port */) override {}
+	bool on_dht_request(string_view /* query */
+		, dht::msg const& /* request */, entry& /* response */) override
+	{ return false; }
+
+#ifndef TORRENT_DISABLE_LOGGING
 	bool should_log(module_t) const override { return true; }
 	void log(dht_logger::module_t l, char const* fmt, ...) override
 	{
@@ -83,9 +88,7 @@ struct obs : dht::dht_observer
 	void log_packet(message_direction_t /* dir */
 		, span<char const> /* pkt */
 		, udp::endpoint const& /* node */) override {}
-	bool on_dht_request(string_view /* query */
-		, dht::msg const& /* request */, entry& /* response */) override
-	{ return false; }
+#endif
 };
 
 #endif // #if !defined TORRENT_DISABLE_DHT

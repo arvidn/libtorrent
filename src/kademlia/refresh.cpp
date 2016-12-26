@@ -101,8 +101,8 @@ void bootstrap::trim_seed_nodes()
 void bootstrap::done()
 {
 #ifndef TORRENT_DISABLE_LOGGING
-	get_node().observer()->log(dht_logger::traversal, "[%p] bootstrap done, pinging remaining nodes"
-		, static_cast<void*>(this));
+	get_node().observer()->log(dht_logger::traversal, "[%u] bootstrap done, pinging remaining nodes"
+		, id());
 #endif
 
 	for (auto const& o : m_results)

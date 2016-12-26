@@ -49,8 +49,8 @@ void get_peers_observer::reply(msg const& m)
 	if (!r)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		get_observer()->log(dht_logger::traversal, "[%p] missing response dict"
-			, static_cast<void*>(algorithm()));
+		get_observer()->log(dht_logger::traversal, "[%u] missing response dict"
+			, algorithm()->id());
 #endif
 		timeout();
 		return;
@@ -96,9 +96,9 @@ void get_peers_observer::log_peers(msg const& m, bdecode_node const& r, int cons
 				bdecode_node const id = r.dict_find_string("id");
 				if (id && id.string_length() == 20)
 				{
-					logger->log(dht_logger::traversal, "[%p] PEERS "
+					logger->log(dht_logger::traversal, "[%u] PEERS "
 						"invoke-count: %d branch-factor: %d addr: %s id: %s distance: %d p: %d"
-						, static_cast<void*>(algorithm())
+						, algorithm()->id()
 						, algorithm()->invoke_count()
 						, algorithm()->branch_factor()
 						, print_endpoint(m.addr).c_str()
@@ -270,10 +270,9 @@ void obfuscated_get_peers::done()
 	m_nodes_callback = nullptr;
 
 #ifndef TORRENT_DISABLE_LOGGING
-		get_node().observer()->log(dht_logger::traversal, "[%p] obfuscated get_peers "
-			"phase 1 done, spawning get_peers [ %p ]"
-			, static_cast<void*>(this)
-			, static_cast<void*>(ta.get()));
+		get_node().observer()->log(dht_logger::traversal, "[%u] obfuscated get_peers "
+			"phase 1 done, spawning get_peers [ %u ]"
+			, id(), ta->id());
 #endif
 
 	int num_added = 0;
@@ -302,8 +301,8 @@ void obfuscated_get_peers_observer::reply(msg const& m)
 	if (!r)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		get_observer()->log(dht_logger::traversal, "[%p] missing response dict"
-			, static_cast<void*>(algorithm()));
+		get_observer()->log(dht_logger::traversal, "[%u] missing response dict"
+			, algorithm()->id());
 #endif
 		timeout();
 		return;
@@ -313,8 +312,8 @@ void obfuscated_get_peers_observer::reply(msg const& m)
 	if (!id || id.string_length() != 20)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		get_observer()->log(dht_logger::traversal, "[%p] invalid id in response"
-			, static_cast<void*>(algorithm()));
+		get_observer()->log(dht_logger::traversal, "[%u] invalid id in response"
+			, algorithm()->id());
 #endif
 		timeout();
 		return;

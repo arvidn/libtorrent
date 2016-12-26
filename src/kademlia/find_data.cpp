@@ -50,8 +50,8 @@ void find_data_observer::reply(msg const& m)
 	if (!r)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		get_observer()->log(dht_logger::traversal, "[%p] missing response dict"
-			, static_cast<void*>(algorithm()));
+		get_observer()->log(dht_logger::traversal, "[%u] missing response dict"
+			, algorithm()->id());
 #endif
 		timeout();
 		return;
@@ -61,8 +61,8 @@ void find_data_observer::reply(msg const& m)
 	if (!id || id.string_length() != 20)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		get_observer()->log(dht_logger::traversal, "[%p] invalid id in response"
-			, static_cast<void*>(algorithm()));
+		get_observer()->log(dht_logger::traversal, "[%u] invalid id in response"
+			, algorithm()->id());
 #endif
 		timeout();
 		return;
@@ -113,8 +113,8 @@ void find_data::got_write_token(node_id const& n, std::string write_token)
 	if (logger != nullptr && logger->should_log(dht_logger::traversal))
 	{
 		logger->log(dht_logger::traversal
-			, "[%p] adding write token '%s' under id '%s'"
-			, static_cast<void*>(this), aux::to_hex(write_token).c_str()
+			, "[%u] adding write token '%s' under id '%s'"
+			, id(), aux::to_hex(write_token).c_str()
 			, aux::to_hex(n).c_str());
 	}
 #endif
@@ -141,8 +141,8 @@ void find_data::done()
 	auto logger = get_node().observer();
 	if (logger != nullptr)
 	{
-		logger->log(dht_logger::traversal, "[%p] %s DONE"
-			, static_cast<void*>(this), name());
+		logger->log(dht_logger::traversal, "[%u] %s DONE"
+			, id(), name());
 	}
 #endif
 
@@ -157,8 +157,8 @@ void find_data::done()
 #ifndef TORRENT_DISABLE_LOGGING
 			if (logger != nullptr && logger->should_log(dht_logger::traversal))
 			{
-				logger->log(dht_logger::traversal, "[%p] not alive: %s"
-					, static_cast<void*>(this), print_endpoint(o->target_ep()).c_str());
+				logger->log(dht_logger::traversal, "[%u] not alive: %s"
+					, id(), print_endpoint(o->target_ep()).c_str());
 			}
 #endif
 			continue;
@@ -169,8 +169,8 @@ void find_data::done()
 #ifndef TORRENT_DISABLE_LOGGING
 			if (logger != nullptr && logger->should_log(dht_logger::traversal))
 			{
-				logger->log(dht_logger::traversal, "[%p] no write token: %s"
-					, static_cast<void*>(this), print_endpoint(o->target_ep()).c_str());
+				logger->log(dht_logger::traversal, "[%u] no write token: %s"
+					, id(), print_endpoint(o->target_ep()).c_str());
 			}
 #endif
 			continue;
@@ -179,8 +179,8 @@ void find_data::done()
 #ifndef TORRENT_DISABLE_LOGGING
 		if (logger != nullptr && logger->should_log(dht_logger::traversal))
 		{
-			logger->log(dht_logger::traversal, "[%p] %s"
-				, static_cast<void*>(this), print_endpoint(o->target_ep()).c_str());
+			logger->log(dht_logger::traversal, "[%u] %s"
+				, id(), print_endpoint(o->target_ep()).c_str());
 		}
 #endif
 		--num_results;
