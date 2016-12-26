@@ -94,7 +94,7 @@ namespace libtorrent
 		}
 		int num_to_evict(int num_needed = 0);
 
-		void set_settings(aux::session_settings const& sett, error_code& ec);
+		void set_settings(aux::session_settings const& sett);
 
 	protected:
 
@@ -141,18 +141,6 @@ namespace libtorrent
 		mutable std::mutex m_pool_mutex;
 
 		int m_cache_buffer_chunk_size;
-
-#if TORRENT_HAVE_MMAP && !defined TORRENT_NO_DEPRECATE
-		// the file descriptor of the cache mmap file
-		int m_cache_fd;
-		// the pointer to the block of virtual address space
-		// making up the mmapped cache space
-		char* m_cache_pool;
-		// list of block indices that are not in use. block_index
-		// times 0x4000 + m_cache_pool is the address where the
-		// corresponding memory lives
-		std::vector<int> m_free_list;
-#endif
 
 #ifndef TORRENT_DISABLE_POOL_ALLOCATOR
 		// if this is true, all buffers are allocated

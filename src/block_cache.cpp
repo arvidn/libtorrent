@@ -1542,7 +1542,7 @@ void block_cache::get_stats(cache_status* ret) const
 }
 #endif
 
-void block_cache::set_settings(aux::session_settings const& sett, error_code& ec)
+void block_cache::set_settings(aux::session_settings const& sett)
 {
 	// the ghost size is the number of pieces to keep track of
 	// after they are evicted. Since cache_size is blocks, the
@@ -1553,7 +1553,7 @@ void block_cache::set_settings(aux::session_settings const& sett, error_code& ec
 		/ (std::max)(sett.get_int(settings_pack::read_cache_line_size), 4) / 2);
 
 	m_max_volatile_blocks = sett.get_int(settings_pack::cache_size_volatile);
-	disk_buffer_pool::set_settings(sett, ec);
+	disk_buffer_pool::set_settings(sett);
 }
 
 #if TORRENT_USE_INVARIANT_CHECKS

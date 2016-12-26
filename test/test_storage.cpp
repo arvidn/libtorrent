@@ -465,9 +465,7 @@ void test_check_files(std::string const& test_path
 	disk_io_thread io(ios, cnt);
 	settings_pack sett;
 	sett.set_int(settings_pack::aio_threads, 1);
-	// TODO: this should probably be optional
-	alert_manager dummy2(0, 0);
-	io.set_settings(&sett, dummy2);
+	io.set_settings(&sett);
 
 	disk_buffer_pool dp(16 * 1024, ios, std::bind(&nop));
 	storage_params p;

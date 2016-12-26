@@ -448,7 +448,7 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 		void get_stats(cache_status* ret) const;
 #endif
-		void set_settings(aux::session_settings const& sett, error_code& ec);
+		void set_settings(aux::session_settings const& sett);
 
 		enum reason_t { ref_hashing = 0, ref_reading = 1, ref_flushing = 2 };
 		bool inc_block_refcount(cached_piece_entry* pe, int block, int reason);

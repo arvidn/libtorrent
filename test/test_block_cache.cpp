@@ -99,8 +99,7 @@ static void nop() {}
 	std::shared_ptr<storage_interface> pm \
 		= std::make_shared<test_storage_impl>(); \
 	pm->set_files(&fs); \
-	error_code ec; \
-	bc.set_settings(sett, ec); \
+	bc.set_settings(sett); \
 	pm->m_settings = &sett; \
 	disk_io_job rj; \
 	disk_io_job wj; \

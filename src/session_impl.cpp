@@ -1358,7 +1358,7 @@ namespace aux {
 #endif
 
 		apply_pack(&pack, m_settings, this);
-		m_disk_thread.set_settings(&pack, m_alerts);
+		m_disk_thread.set_settings(&pack);
 
 		if (init && !reopen_listen_port)
 		{
