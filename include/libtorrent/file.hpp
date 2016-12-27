@@ -146,7 +146,8 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT void hard_link(std::string const& file
 		, std::string const& link, error_code& ec);
 
-	TORRENT_EXTRA_EXPORT std::string split_path(std::string const& f);
+	TORRENT_EXTRA_EXPORT std::string split_path(std::string const& f
+		, bool only_first_part = false);
 	TORRENT_EXTRA_EXPORT char const* next_path_element(char const* p);
 	TORRENT_EXTRA_EXPORT std::string extension(std::string const& f);
 	TORRENT_EXTRA_EXPORT std::string remove_extension(std::string const& f);

@@ -173,6 +173,7 @@ namespace libtorrent
 			if (m_lock) m_lock->lock();
 			m_lock = rhs.m_lock;
 			rhs.m_lock = nullptr;
+			return *this;
 		}
 	private:
 		Lock* m_lock;

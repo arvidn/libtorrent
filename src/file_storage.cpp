@@ -563,7 +563,7 @@ namespace libtorrent
 		else
 		{
 			if (m_files.empty())
-				m_name = split_path(path).c_str();
+				m_name = split_path(path, true);
 		}
 
 		// this is poor-man's emplace_back()

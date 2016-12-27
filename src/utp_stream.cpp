@@ -712,8 +712,7 @@ bool utp_incoming_packet(utp_socket_impl* s
 	, span<char const> p
 	, udp::endpoint const& ep, time_point receive_time)
 {
-	return s->incoming_packet(
-		span<std::uint8_t const>(reinterpret_cast<std::uint8_t const*>(p.data()), int(p.size()))
+	return s->incoming_packet({reinterpret_cast<std::uint8_t const*>(p.data()), p.size()}
 		, ep, receive_time);
 }
 
