@@ -114,6 +114,10 @@ public:
 
 	node_id const& nid() const { return m_id; }
 
+#ifndef TORRENT_DISABLE_LOGGING
+	std::uint32_t search_id() { return m_search_id++; }
+#endif
+
 	std::tuple<int, int, int> size() const { return m_table.size(); }
 	std::int64_t num_global_nodes() const
 	{ return m_table.num_global_nodes(); }
@@ -259,6 +263,10 @@ private:
 	counters& m_counters;
 
 	dht_storage_interface& m_storage;
+
+#ifndef TORRENT_DISABLE_LOGGING
+	std::uint32_t m_search_id = 0;
+#endif
 };
 
 } } // namespace libtorrent::dht

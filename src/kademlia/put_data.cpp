@@ -73,8 +73,8 @@ void put_data::done()
 	m_done = true;
 
 #ifndef TORRENT_DISABLE_LOGGING
-	get_node().observer()->log(dht_logger::traversal, "[%p] %s DONE, response %d, timeout %d"
-		, static_cast<void*>(this), name(), num_responses(), num_timeouts());
+	get_node().observer()->log(dht_logger::traversal, "[%u] %s DONE, response %d, timeout %d"
+		, id(), name(), num_responses(), num_timeouts());
 #endif
 
 	m_put_callback(m_data, num_responses());

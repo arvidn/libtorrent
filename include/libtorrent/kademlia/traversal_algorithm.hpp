@@ -78,6 +78,10 @@ struct TORRENT_EXTRA_EXPORT traversal_algorithm : boost::noncopyable
 
 	node& get_node() const { return m_node; }
 
+#ifndef TORRENT_DISABLE_LOGGING
+	std::uint32_t id() const { return m_id; }
+#endif
+
 protected:
 
 	std::shared_ptr<traversal_algorithm> self()
@@ -110,6 +114,11 @@ private:
 	std::int16_t m_branch_factor = 3;
 	std::int16_t m_responses = 0;
 	std::int16_t m_timeouts = 0;
+#ifndef TORRENT_DISABLE_LOGGING
+	// this is a unique ID for this specific traversal_algorithm instance,
+	// just used for logging
+	std::uint32_t m_id;
+#endif
 
 	// the IP addresses of the nodes in m_results
 	std::set<std::uint32_t> m_peer4_prefixes;
