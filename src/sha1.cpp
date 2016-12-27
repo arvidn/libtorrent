@@ -135,10 +135,10 @@ namespace
 #endif
 
 	template <class BlkFun>
-	void internal_update(sha1_ctx* context, u8 const* data, u32 len)
+	void internal_update(sha1_ctx* context, u8 const* data, size_t len)
 	{
 		using namespace std;
-		u32 i, j;	// JHB
+		size_t i, j;	// JHB
 
 #ifdef VERBOSE
 		SHAPrintContext(context, "before");
@@ -191,7 +191,7 @@ void SHA1_init(sha1_ctx* context)
 
 // Run your data through this.
 
-void SHA1_update(sha1_ctx* context, u8 const* data, u32 len)
+void SHA1_update(sha1_ctx* context, u8 const* data, size_t len)
 {
 	// GCC standard defines for endianness
 	// test with: cpp -dM /dev/null
