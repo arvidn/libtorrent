@@ -515,11 +515,6 @@ namespace libtorrent
 		void peers_erased(std::vector<torrent_peer*> const& peers);
 
 		// ============ start deprecation =============
-		void filter_piece(piece_index_t index, bool filter);
-		void filter_pieces(std::vector<bool> const& bitmask);
-		bool is_piece_filtered(piece_index_t index) const;
-		void filtered_pieces(std::vector<bool>& bitmask) const;
-		void filter_files(std::vector<bool> const& files);
 #if !TORRENT_NO_FPU
 		void file_progress_float(aux::vector<float, file_index_t>& fp);
 #endif

@@ -239,13 +239,6 @@ namespace libtorrent
 		// returns the current piece priorities for all pieces
 		void piece_priorities(std::vector<int>& pieces) const;
 
-		// ========== start deprecation ==============
-
-		// fills the bitmask with 1's for pieces that are filtered
-		void filtered_pieces(std::vector<bool>& mask) const;
-
-		// ========== end deprecation ==============
-
 		// pieces should be the vector that represents the pieces a
 		// client has. It returns a list of all pieces that this client
 		// has and that are interesting to download. It returns them in

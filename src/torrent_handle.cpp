@@ -521,35 +521,6 @@ namespace libtorrent
 		return sync_call_ret<bool>(false, &torrent::valid_metadata);
 	}
 
-	void torrent_handle::filter_piece(piece_index_t index, bool filter) const
-	{
-		async_call(&torrent::filter_piece, index, filter);
-	}
-
-	void torrent_handle::filter_pieces(std::vector<bool> const& pieces) const
-	{
-		async_call(&torrent::filter_pieces, pieces);
-	}
-
-	bool torrent_handle::is_piece_filtered(piece_index_t index) const
-	{
-		return sync_call_ret<bool>(false, &torrent::is_piece_filtered, index);
-	}
-
-	std::vector<bool> torrent_handle::filtered_pieces() const
-	{
-		std::vector<bool> ret;
-		auto retr = std::ref(ret);
-		sync_call(&torrent::filtered_pieces, retr);
-		return ret;
-	}
-
-	void torrent_handle::filter_files(std::vector<bool> const& files) const
-	{
-		auto filesr= std::ref(files);
-		async_call(&torrent::filter_files, filesr);
-	}
-
 	bool torrent_handle::super_seeding() const
 	{
 		return sync_call_ret<bool>(false, &torrent::super_seeding);
