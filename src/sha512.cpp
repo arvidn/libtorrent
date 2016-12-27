@@ -184,7 +184,7 @@ int SHA512_init(sha512_ctx* md) {
    @param inlen  The length of the data (octets)
    @return 0 if successful
 */
-int SHA512_update(sha512_ctx* md, std::uint8_t const* in, std::uint32_t inlen)
+int SHA512_update(sha512_ctx* md, std::uint8_t const* in, size_t inlen)
 {
     size_t n;
     size_t i;

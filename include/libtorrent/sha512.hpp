@@ -16,7 +16,7 @@ namespace libtorrent
 
 	TORRENT_EXTRA_EXPORT int SHA512_init(sha512_ctx* context);
 	TORRENT_EXTRA_EXPORT int SHA512_update(sha512_ctx* context
-		, std::uint8_t const* data, std::uint32_t len);
+		, std::uint8_t const* data, size_t len);
 	TORRENT_EXTRA_EXPORT int SHA512_final(std::uint8_t* digest, sha512_ctx* context);
 }
 
