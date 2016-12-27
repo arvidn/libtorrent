@@ -859,7 +859,7 @@ namespace libtorrent
 			r.length = (std::min)(piece_size - r.start, block_size());
 			m_ses.disk_thread().async_read(&storage(), r
 				, std::bind(&torrent::on_disk_read_complete
-				, shared_from_this(), _1, _2, _3, _4, r, rp), reinterpret_cast<void*>(1));
+				, shared_from_this(), _1, _2, _3, r, rp), reinterpret_cast<void*>(1));
 		}
 	}
 
@@ -1124,14 +1124,12 @@ namespace libtorrent
 	}
 	catch (...) { handle_exception(); }
 
-	void torrent::on_disk_read_complete(aux::block_cache_reference ref
-		, char* block, int, storage_error const& se
+	void torrent::on_disk_read_complete(disk_buffer_holder buffer
+		, int, storage_error const& se
 		, peer_request r, std::shared_ptr<read_piece_struct> rp) try
 	{
 		// hold a reference until this function returns
 		TORRENT_ASSERT(is_single_thread());
-
-		disk_buffer_holder buffer(m_ses, ref, block);
 
 		--rp->blocks_left;
 		if (se)
@@ -1142,7 +1140,7 @@ namespace libtorrent
 		}
 		else
 		{
-			std::memcpy(rp->piece_data.get() + r.start, block, r.length);
+			std::memcpy(rp->piece_data.get() + r.start, buffer.get(), r.length);
 		}
 
 		if (rp->blocks_left == 0)
@@ -5974,7 +5972,6 @@ namespace libtorrent
 		pack.ses = &m_ses;
 		pack.sett = &settings();
 		pack.stats_counters = &m_ses.stats_counters();
-		pack.allocator = &m_ses;
 		pack.disk_thread = &m_ses.disk_thread();
 		pack.ios = &m_ses.get_io_service();
 		pack.tor = shared_from_this();
@@ -6657,7 +6654,6 @@ namespace libtorrent
 		pack.ses = &m_ses;
 		pack.sett = &settings();
 		pack.stats_counters = &m_ses.stats_counters();
-		pack.allocator = &m_ses;
 		pack.disk_thread = &m_ses.disk_thread();
 		pack.ios = &m_ses.get_io_service();
 		pack.tor = shared_from_this();

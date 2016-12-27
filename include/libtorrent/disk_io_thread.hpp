@@ -292,7 +292,7 @@ namespace libtorrent
 		void abort(bool wait);
 
 		void async_read(storage_interface* storage, peer_request const& r
-			, std::function<void(aux::block_cache_reference ref, char* block
+			, std::function<void(disk_buffer_holder block
 				, int flags, storage_error const& se)> handler, void* requester, std::uint8_t flags = 0) override;
 		bool async_write(storage_interface* storage, peer_request const& r
 			, char const* buf, std::shared_ptr<disk_observer> o

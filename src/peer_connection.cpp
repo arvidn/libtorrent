@@ -119,7 +119,6 @@ namespace libtorrent
 		, m_max_out_request_queue(m_settings.get_int(settings_pack::max_out_request_queue))
 		, m_remote(pack.endp)
 		, m_disk_thread(*pack.disk_thread)
-		, m_allocator(*pack.allocator)
 		, m_ios(*pack.ios)
 		, m_work(m_ios)
 		, m_outstanding_piece_verification(0)
@@ -5127,7 +5126,7 @@ namespace libtorrent
 
 				m_disk_thread.async_read(&t->storage(), r
 					, std::bind(&peer_connection::on_disk_read_complete
-					, self(), _1, _2, _3, _4, r, clock_type::now()), this);
+					, self(), _1, _2, _3, r, clock_type::now()), this);
 			}
 			m_last_sent_payload = clock_type::now();
 			m_requests.erase(m_requests.begin() + i);
@@ -5196,8 +5195,8 @@ namespace libtorrent
 		fill_send_buffer();
 	}
 
-	void peer_connection::on_disk_read_complete(aux::block_cache_reference ref
-		, char* disk_block, int const flags, storage_error const& error
+	void peer_connection::on_disk_read_complete(disk_buffer_holder buffer
+		, int const flags, storage_error const& error
 		, peer_request r, time_point issue_time)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -5213,7 +5212,7 @@ namespace libtorrent
 			peer_log(peer_log_alert::info, "FILE_ASYNC_READ_COMPLETE"
 				, "piece: %d s: %x l: %x b: %p c: %s e: %s rtt: %d us"
 				, static_cast<int>(r.piece), r.start, r.length
-				, static_cast<void*>(disk_block)
+				, static_cast<void*>(buffer.get())
 				, (flags & disk_interface::cache_hit ? "cache hit" : "cache miss")
 				, error.ec.message().c_str(), disk_rtt);
 		}
@@ -5230,7 +5229,7 @@ namespace libtorrent
 				return;
 			}
 
-			TORRENT_ASSERT(disk_block == nullptr);
+			TORRENT_ASSERT(buffer.get() == nullptr);
 			write_dont_have(r.piece);
 			write_reject_request(r);
 			if (t->alerts().should_post<file_error_alert>())
@@ -5247,11 +5246,6 @@ namespace libtorrent
 		// if we every now and then successfully send a
 		// block, the peer is still useful
 		m_disk_read_failures = 0;
-
-		// even if we're disconnecting, we need to free this block
-		// otherwise the disk thread will hang, waiting for the network
-		// thread to be done with it
-		disk_buffer_holder buffer(m_allocator, ref, disk_block);
 
 		if (t && m_settings.get_int(settings_pack::suggest_mode)
 			== settings_pack::suggest_read_cache)
@@ -5453,8 +5447,7 @@ namespace libtorrent
 				// this const_cast is a here because chained_buffer need to be
 				// fixed.
 				char* ptr = const_cast<char*>(i->data());
-				m_send_buffer.prepend_buffer(ptr
-					, size, size, &nop, nullptr);
+				m_send_buffer.prepend_buffer(ptr, size, size, nop());
 			}
 			set_send_barrier(next_barrier);
 		}
@@ -5646,24 +5639,6 @@ namespace libtorrent
 				std::bind(&peer_connection::on_receive_data, self(), _1, _2)));
 	}
 
-	void peer_connection::append_send_buffer(char* buffer, int size
-		, chained_buffer::free_buffer_fun destructor, void* userdata
-		, aux::block_cache_reference ref)
-	{
-		TORRENT_ASSERT(is_single_thread());
-		m_send_buffer.append_buffer(buffer, size, size, destructor
-			, userdata, ref);
-	}
-
-	void peer_connection::append_const_send_buffer(char const* buffer, int size
-		, chained_buffer::free_buffer_fun destructor, void* userdata
-		, aux::block_cache_reference ref)
-	{
-		TORRENT_ASSERT(is_single_thread());
-		m_send_buffer.append_buffer(const_cast<char*>(buffer), size, size, destructor
-			, userdata, ref);
-	}
-
 	piece_block_progress peer_connection::downloading_piece_progress() const
 	{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -5704,20 +5679,15 @@ namespace libtorrent
 		int i = 0;
 		while (size > 0)
 		{
-			char* chain_buf = m_ses.allocate_buffer();
-			if (chain_buf == nullptr)
-			{
-				disconnect(errors::no_memory, op_alloc_sndbuf);
-				return;
-			}
+			auto session_buf = m_ses.allocate_buffer();
 
 			const int alloc_buf_size = m_ses.send_buffer_size();
-			int buf_size = (std::min)(alloc_buf_size, size);
-			std::memcpy(chain_buf, buf, buf_size);
+			int buf_size = std::min(alloc_buf_size, size);
+			std::memcpy(session_buf.get(), buf, buf_size);
 			buf += buf_size;
 			size -= buf_size;
-			m_send_buffer.append_buffer(chain_buf, alloc_buf_size, buf_size
-				, &session_free_buffer, &m_ses);
+			m_send_buffer.append_buffer(session_buf.get(), alloc_buf_size, buf_size
+				, std::move(session_buf));
 			++i;
 		}
 		setup_send();

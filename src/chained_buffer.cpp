@@ -55,7 +55,7 @@ namespace libtorrent
 				break;
 			}
 
-			b.free_fun(b.buf, b.userdata, b.ref);
+			b.destruct_holder(static_cast<void*>(&b.holder));
 			m_bytes -= b.used_size;
 			m_capacity -= b.size;
 			bytes_to_pop -= b.used_size;
@@ -64,47 +64,6 @@ namespace libtorrent
 			TORRENT_ASSERT(m_bytes <= m_capacity);
 			m_vec.pop_front();
 		}
-	}
-
-	void chained_buffer::append_buffer(char* buffer, int s, int used_size
-		, free_buffer_fun destructor, void* userdata
-		, aux::block_cache_reference ref)
-	{
-		TORRENT_ASSERT(is_single_thread());
-		TORRENT_ASSERT(s >= used_size);
-		buffer_t b;
-		b.buf = buffer;
-		b.size = s;
-		b.start = buffer;
-		b.used_size = used_size;
-		b.free_fun = destructor;
-		b.userdata = userdata;
-		b.ref = ref;
-		m_vec.push_back(b);
-
-		m_bytes += used_size;
-		m_capacity += s;
-		TORRENT_ASSERT(m_bytes <= m_capacity);
-	}
-
-	void chained_buffer::prepend_buffer(char* buffer, int s, int used_size
-		, free_buffer_fun destructor, void* userdata
-		, aux::block_cache_reference ref)
-	{
-		TORRENT_ASSERT(s >= used_size);
-		buffer_t b;
-		b.buf = buffer;
-		b.size = s;
-		b.start = buffer;
-		b.used_size = used_size;
-		b.free_fun = destructor;
-		b.userdata = userdata;
-		b.ref = ref;
-		m_vec.push_front(b);
-
-		m_bytes += used_size;
-		m_capacity += s;
-		TORRENT_ASSERT(m_bytes <= m_capacity);
 	}
 
 	// returns the number of bytes available at the
@@ -159,10 +118,9 @@ namespace libtorrent
 	}
 
 	template <typename Buffer>
-	void chained_buffer::build_vec(int bytes, std::vector<Buffer> &vec)
+	void chained_buffer::build_vec(int bytes, std::vector<Buffer>& vec)
 	{
-		for (std::deque<buffer_t>::iterator i = m_vec.begin()
-			, end(m_vec.end()); bytes > 0 && i != end; ++i)
+		for (auto i = m_vec.begin(), end(m_vec.end()); bytes > 0 && i != end; ++i)
 		{
 			if (i->used_size > bytes)
 			{
@@ -178,11 +136,8 @@ namespace libtorrent
 
 	void chained_buffer::clear()
 	{
-		for (std::deque<buffer_t>::iterator i = m_vec.begin()
-			, end(m_vec.end()); i != end; ++i)
-		{
-			i->free_fun(i->buf, i->userdata, i->ref);
-		}
+		for (auto& b : m_vec)
+			b.destruct_holder(static_cast<void*>(&b.holder));
 		m_bytes = 0;
 		m_capacity = 0;
 		m_vec.clear();

@@ -2825,7 +2825,6 @@ namespace aux {
 		pack.ses = this;
 		pack.sett = &m_settings;
 		pack.stats_counters = &m_stats_counters;
-		pack.allocator = this;
 		pack.disk_thread = &m_disk_thread;
 		pack.ios = &m_io_service;
 		pack.tor = std::weak_ptr<torrent>();
@@ -6664,39 +6663,15 @@ namespace aux {
 #endif
 	}
 
-	// decrement the refcount of the block in the disk cache
-	// since the network thread doesn't need it anymore
-	void session_impl::reclaim_blocks(span<block_cache_reference> refs)
-	{
-		m_blocks_to_reclaim.insert(m_blocks_to_reclaim.end(), refs.begin(), refs.end());
-		if (m_pending_block_reclaim) return;
-
-		m_io_service.post(std::bind(&session_impl::do_reclaim_blocks, this));
-		m_pending_block_reclaim = true;
-	}
-
-	void session_impl::do_reclaim_blocks()
-	{
-		TORRENT_ASSERT(m_pending_block_reclaim);
-		m_pending_block_reclaim = false;
-		m_disk_thread.reclaim_blocks(m_blocks_to_reclaim);
-		m_blocks_to_reclaim.clear();
-	}
-
-	void session_impl::free_disk_buffer(char* buf)
-	{
-		m_disk_thread.free_disk_buffer(buf);
-	}
-
-	char* session_impl::allocate_buffer()
+	ses_buffer_holder session_impl::allocate_buffer()
 	{
 		TORRENT_ASSERT(is_single_thread());
 
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
 		int num_bytes = send_buffer_size();
-		return static_cast<char*>(malloc(num_bytes));
+		return ses_buffer_holder(*this, static_cast<char*>(malloc(num_bytes)));
 #else
-		return static_cast<char*>(m_send_buffers.malloc());
+		return ses_buffer_holder(*this, static_cast<char*>(m_send_buffers.malloc()));
 #endif
 	}
 

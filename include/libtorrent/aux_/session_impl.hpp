@@ -613,17 +613,12 @@ namespace libtorrent
 
 			void deferred_submit_jobs() override;
 
-			char* allocate_buffer() override;
+			ses_buffer_holder allocate_buffer() override;
 			torrent_peer* allocate_peer_entry(int type);
 			void free_peer_entry(torrent_peer* p);
 
 			void free_buffer(char* buf) override;
 			int send_buffer_size() const override { return send_buffer_size_impl; }
-
-			// implements buffer_allocator_interface
-			void free_disk_buffer(char* buf) override;
-			void reclaim_blocks(span<block_cache_reference> refs) override;
-			void do_reclaim_blocks();
 
 			// implements dht_observer
 			virtual void set_external_address(address const& ip
@@ -1138,12 +1133,6 @@ namespace libtorrent
 			// within the LSD announce interval (which defaults to
 			// 5 minutes)
 			torrent_map::iterator m_next_lsd_torrent;
-
-			// we try to return disk buffers to the disk thread in batches, to
-			// avoid hammering its mutex. We accrue blocks here and defer returning
-			// them in a function we post to the io_service
-			std::vector<block_cache_reference> m_blocks_to_reclaim;
-			bool m_pending_block_reclaim = false;
 
 #ifndef TORRENT_DISABLE_DHT
 			// torrents are announced on the DHT in a

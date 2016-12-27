@@ -39,7 +39,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 
 #include "libtorrent/units.hpp"
+#include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/aux_/vector.hpp"
+#include "libtorrent/export.hpp"
 
 namespace libtorrent
 {
@@ -51,6 +53,9 @@ namespace libtorrent
 	struct cache_status;
 	struct disk_buffer_holder;
 	struct counters;
+	struct settings_pack;
+	struct storage_params;
+	class file_storage;
 
 	enum class status_t : std::uint8_t
 	{
@@ -76,8 +81,8 @@ namespace libtorrent
 		};
 
 		virtual void async_read(storage_interface* storage, peer_request const& r
-			, std::function<void(aux::block_cache_reference ref, char* block
-				, int flags, storage_error const& se)> handler, void* requester, std::uint8_t flags = 0) = 0;
+			, std::function<void(disk_buffer_holder block, int flags, storage_error const& se)> handler
+			, void* requester, std::uint8_t flags = 0) = 0;
 		virtual bool async_write(storage_interface* storage, peer_request const& r
 			, char const* buf, std::shared_ptr<disk_observer> o
 			, std::function<void(storage_error const&)> handler

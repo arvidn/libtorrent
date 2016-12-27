@@ -743,28 +743,6 @@ namespace libtorrent
 
 #endif // #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 
-	void bt_peer_connection::append_const_send_buffer(char const* buffer, int size
-		, chained_buffer::free_buffer_fun destructor, void* userdata
-		, aux::block_cache_reference ref)
-	{
-#if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
-		if (!m_enc_handler.is_send_plaintext())
-		{
-			// if we're encrypting this buffer, we need to make a copy
-			// since we'll mutate it
-			char* buf = static_cast<char*>(std::malloc(size));
-			std::memcpy(buf, buffer, size);
-			append_send_buffer(buf, size, &regular_c_free, nullptr);
-			destructor(const_cast<char*>(buffer), userdata, ref);
-		}
-		else
-#endif
-		{
-			peer_connection::append_const_send_buffer(buffer, size, destructor
-				, userdata, ref);
-		}
-	}
-
 	void bt_peer_connection::write_handshake()
 	{
 		INVARIANT_CHECK;
@@ -2433,24 +2411,6 @@ namespace libtorrent
 #endif
 	}
 
-	namespace {
-
-	void buffer_reclaim_block(char* /* buffer */, void* userdata
-		, aux::block_cache_reference ref)
-	{
-		buffer_allocator_interface* buf = static_cast<buffer_allocator_interface*>(userdata);
-		buf->reclaim_blocks(ref);
-	}
-
-	void buffer_free_disk_buf(char* buffer, void* userdata
-		, aux::block_cache_reference /* ref */)
-	{
-		buffer_allocator_interface* buf = static_cast<buffer_allocator_interface*>(userdata);
-		buf->free_disk_buffer(buffer);
-	}
-
-	} // anonymous namespace
-
 	void bt_peer_connection::write_piece(peer_request const& r, disk_buffer_holder buffer)
 	{
 		INVARIANT_CHECK;
@@ -2513,13 +2473,11 @@ namespace libtorrent
 
 		if (buffer.ref().storage == nullptr)
 		{
-			append_send_buffer(buffer.get(), r.length
-				, &buffer_free_disk_buf, &m_allocator);
+			append_send_buffer(buffer.get(), r.length, std::move(buffer));
 		}
 		else
 		{
-			append_const_send_buffer(buffer.get(), r.length
-				, &buffer_reclaim_block, &m_allocator, buffer.ref());
+			append_const_send_buffer(buffer.get(), r.length, std::move(buffer));
 		}
 		buffer.release();
 

@@ -58,14 +58,13 @@ namespace libtorrent
 #endif
 		}
 
-		// destructs/frees the buffer (1st arg) with
-		// 2nd argument as userdata
-		typedef void (*free_buffer_fun)(char*, void*, aux::block_cache_reference ref);
+		// destructs/frees the holder object
+		typedef void (*free_buffer_fun)(void*);
 
 		struct buffer_t
 		{
-			free_buffer_fun free_fun;
-			void* userdata;
+			free_buffer_fun destruct_holder;
+			std::aligned_storage<32>::type holder;
 			// TODO: 2 the pointers here should probably be const, since
 			// they're not supposed to be mutated once inserted into the send
 			// buffer
@@ -73,7 +72,6 @@ namespace libtorrent
 			char* start; // the first byte to send/receive in the buffer
 			int size; // the total size of the buffer
 			int used_size; // this is the number of bytes to send/receive
-			aux::block_cache_reference ref;
 		};
 
 		bool empty() const { return m_bytes == 0; }
@@ -83,13 +81,49 @@ namespace libtorrent
 		void pop_front(int bytes_to_pop);
 
 		//TODO: 3 use span<> instead of (buffer,s)
-		void append_buffer(char* buffer, int s, int used_size
-			, free_buffer_fun destructor, void* userdata
-			, aux::block_cache_reference ref = aux::block_cache_reference());
+		template <typename Holder>
+		void append_buffer(char* buffer, int s, int used_size, Holder h)
+		{
+			TORRENT_ASSERT(is_single_thread());
+			TORRENT_ASSERT(s >= used_size);
+			m_vec.push_back(buffer_t());
+			buffer_t& b = m_vec.back();
 
-		void prepend_buffer(char* buffer, int s, int used_size
-			, free_buffer_fun destructor, void* userdata
-			, aux::block_cache_reference ref = aux::block_cache_reference());
+			static_assert(sizeof(Holder) <= sizeof(b.holder), "buffer holder too large");
+			b.destruct_holder = [](void* holder)
+			{ reinterpret_cast<Holder*>(holder)->~Holder(); };
+			new (&b.holder) Holder(std::move(h));
+			b.buf = buffer;
+			b.size = s;
+			b.start = buffer;
+			b.used_size = used_size;
+
+			m_bytes += used_size;
+			m_capacity += s;
+			TORRENT_ASSERT(m_bytes <= m_capacity);
+		}
+
+		template <typename Holder>
+		void prepend_buffer(char* buffer, int s, int used_size, Holder h)
+		{
+			TORRENT_ASSERT(is_single_thread());
+			TORRENT_ASSERT(s >= used_size);
+			m_vec.push_front(buffer_t());
+			buffer_t& b = m_vec.front();
+
+			static_assert(sizeof(Holder) <= sizeof(b.holder), "buffer holder too large");
+			b.destruct_holder = [](void* holder)
+			{ reinterpret_cast<Holder*>(holder)->~Holder(); };
+			new (&b.holder) Holder(std::move(h));
+			b.buf = buffer;
+			b.size = s;
+			b.start = buffer;
+			b.used_size = used_size;
+
+			m_bytes += used_size;
+			m_capacity += s;
+			TORRENT_ASSERT(m_bytes <= m_capacity);
+		}
 
 		// returns the number of bytes available at the
 		// end of the last chained buffer.
