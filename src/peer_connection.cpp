@@ -5673,7 +5673,7 @@ namespace libtorrent
 		{
 			auto session_buf = m_ses.allocate_buffer();
 
-			const int alloc_buf_size = m_ses.send_buffer_size();
+			int const alloc_buf_size = m_ses.send_buffer_size();
 			int buf_size = std::min(alloc_buf_size, size);
 			std::memcpy(session_buf.get(), buf, buf_size);
 			buf += buf_size;

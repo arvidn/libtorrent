@@ -63,6 +63,12 @@ namespace libtorrent
 
 		struct buffer_t
 		{
+			buffer_t() {}
+			buffer_t(buffer_t&&) = delete;
+			buffer_t(buffer_t const&) = delete;
+			buffer_t& operator=(buffer_t&&) = delete;
+			buffer_t& operator=(buffer_t const&) = delete;
+
 			free_buffer_fun destruct_holder;
 			std::aligned_storage<32>::type holder;
 			// TODO: 2 the pointers here should probably be const, since
@@ -86,7 +92,7 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(is_single_thread());
 			TORRENT_ASSERT(s >= used_size);
-			m_vec.push_back(buffer_t());
+			m_vec.emplace_back();
 			buffer_t& b = m_vec.back();
 
 			static_assert(sizeof(Holder) <= sizeof(b.holder), "buffer holder too large");
@@ -119,7 +125,7 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(is_single_thread());
 			TORRENT_ASSERT(s >= used_size);
-			m_vec.push_front(buffer_t());
+			m_vec.emplace_front();
 			buffer_t& b = m_vec.front();
 
 			static_assert(sizeof(Holder) <= sizeof(b.holder), "buffer holder too large");

@@ -330,9 +330,9 @@ namespace libtorrent { namespace aux
 		~ses_buffer_holder() { if (m_buf) m_ses->free_buffer(m_buf); }
 		ses_buffer_holder(ses_buffer_holder const&) = delete;
 		ses_buffer_holder& operator=(ses_buffer_holder const&) = delete;
-		ses_buffer_holder(ses_buffer_holder&& rhs)
+		ses_buffer_holder(ses_buffer_holder&& rhs) noexcept
 			: m_ses(rhs.m_ses), m_buf(rhs.m_buf) { rhs.m_buf = nullptr; }
-		ses_buffer_holder& operator=(ses_buffer_holder&& rhs)
+		ses_buffer_holder& operator=(ses_buffer_holder&& rhs) noexcept
 		{
 			if (m_buf) m_ses->free_buffer(m_buf);
 			m_buf = rhs.m_buf;
@@ -340,8 +340,8 @@ namespace libtorrent { namespace aux
 			rhs.m_buf = nullptr;
 			return *this;
 		}
-		char* get() const { return m_buf; }
-		private:
+		char* get() const noexcept { return m_buf; }
+	private:
 		session_interface* m_ses;
 		char* m_buf;
 	};

@@ -2471,7 +2471,6 @@ namespace libtorrent
 		{
 			append_const_send_buffer(buffer.get(), r.length, std::move(buffer));
 		}
-		buffer.release();
 
 		m_payloads.push_back(range(send_buffer_size() - r.length, r.length));
 		setup_send();
