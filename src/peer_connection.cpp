@@ -5648,14 +5648,6 @@ namespace libtorrent
 		return piece_block_progress();
 	}
 
-	namespace {
-		void session_free_buffer(char* buffer, void* userdata, aux::block_cache_reference)
-		{
-			aux::session_interface* ses = static_cast<aux::session_interface*>(userdata);
-			ses->free_buffer(buffer);
-		}
-	}
-
 	void peer_connection::send_buffer(char const* buf, int size, int flags)
 	{
 		TORRENT_ASSERT(is_single_thread());

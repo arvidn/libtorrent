@@ -733,14 +733,6 @@ namespace libtorrent
 		m_rc4->decrypt(buf);
 	}
 
-	namespace {
-		void regular_c_free(char* buf, void* /* userdata */
-			, aux::block_cache_reference /* ref */)
-		{
-			std::free(buf);
-		}
-	}
-
 #endif // #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 
 	void bt_peer_connection::write_handshake()

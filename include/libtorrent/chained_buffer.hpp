@@ -90,8 +90,19 @@ namespace libtorrent
 			buffer_t& b = m_vec.back();
 
 			static_assert(sizeof(Holder) <= sizeof(b.holder), "buffer holder too large");
+
+#ifdef _MSC_VER
+// this appears to be a false positive msvc warning
+#pragma warning(push, 1)
+#pragma warning(disable : 4100)
+#endif
 			b.destruct_holder = [](void* holder)
 			{ reinterpret_cast<Holder*>(holder)->~Holder(); };
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
 			new (&b.holder) Holder(std::move(h));
 			b.buf = buffer;
 			b.size = s;
@@ -112,8 +123,19 @@ namespace libtorrent
 			buffer_t& b = m_vec.front();
 
 			static_assert(sizeof(Holder) <= sizeof(b.holder), "buffer holder too large");
+
+#ifdef _MSC_VER
+// this appears to be a false positive msvc warning
+#pragma warning(push, 1)
+#pragma warning(disable : 4100)
+#endif
 			b.destruct_holder = [](void* holder)
 			{ reinterpret_cast<Holder*>(holder)->~Holder(); };
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
 			new (&b.holder) Holder(std::move(h));
 			b.buf = buffer;
 			b.size = s;
