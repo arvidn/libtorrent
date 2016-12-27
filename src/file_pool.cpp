@@ -37,6 +37,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/units.hpp"
+#ifdef TORRENT_WINDOWS
+#include "libtorrent/win_util.hpp"
+#endif
 
 #include <limits>
 
@@ -85,30 +88,10 @@ namespace libtorrent
 		} FILE_IO_PRIORITY_HINT_INFO_LOCAL;
 
 		typedef BOOL (WINAPI *SetFileInformationByHandle_t)(HANDLE hFile, FILE_INFO_BY_HANDLE_CLASS_LOCAL FileInformationClass, LPVOID lpFileInformation, DWORD dwBufferSize);
-		static SetFileInformationByHandle_t SetFileInformationByHandle = nullptr;
+		auto SetFileInformationByHandle =
+			get_library_procedure<kernel32, SetFileInformationByHandle_t>("SetFileInformationByHandle");
 
-		static bool failed_kernel_load = false;
-
-		if (failed_kernel_load) return;
-
-		if (SetFileInformationByHandle == nullptr)
-		{
-			HMODULE kernel32 = LoadLibraryA("kernel32.dll");
-			if (kernel32 == nullptr)
-			{
-				failed_kernel_load = true;
-				return;
-			}
-
-			SetFileInformationByHandle = (SetFileInformationByHandle_t)GetProcAddress(kernel32, "SetFileInformationByHandle");
-			if (SetFileInformationByHandle == nullptr)
-			{
-				failed_kernel_load = true;
-				return;
-			}
-		}
-
-		TORRENT_ASSERT(SetFileInformationByHandle);
+		if (SetFileInformationByHandle == nullptr) return;
 
 		FILE_IO_PRIORITY_HINT_INFO_LOCAL io_hint;
 		io_hint.PriorityHint = IoPriorityHintLow;

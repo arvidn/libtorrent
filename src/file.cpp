@@ -99,6 +99,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "libtorrent/utf8.hpp"
+#include "libtorrent/win_util.hpp"
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -1976,38 +1977,23 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			PTOKEN_PRIVILEGES PreviousState,
 			PDWORD ReturnLength);
 
-		static OpenProcessToken_t pOpenProcessToken = nullptr;
-		static LookupPrivilegeValue_t pLookupPrivilegeValue = nullptr;
-		static AdjustTokenPrivileges_t pAdjustTokenPrivileges = nullptr;
-		static bool failed_advapi = false;
+		auto OpenProcessToken =
+			get_library_procedure<advapi32, OpenProcessToken_t>("OpenProcessToken");
+		auto LookupPrivilegeValue =
+			get_library_procedure<advapi32, LookupPrivilegeValue_t>("LookupPrivilegeValueA");
+		auto AdjustTokenPrivileges =
+			get_library_procedure<advapi32, AdjustTokenPrivileges_t>("AdjustTokenPrivileges");
 
-		if (pOpenProcessToken == nullptr && !failed_advapi)
-		{
-			HMODULE advapi = LoadLibraryA("advapi32");
-			if (advapi == nullptr)
-			{
-				failed_advapi = true;
-				return false;
-			}
-			pOpenProcessToken = (OpenProcessToken_t)GetProcAddress(advapi, "OpenProcessToken");
-			pLookupPrivilegeValue = (LookupPrivilegeValue_t)GetProcAddress(advapi, "LookupPrivilegeValueA");
-			pAdjustTokenPrivileges = (AdjustTokenPrivileges_t)GetProcAddress(advapi, "AdjustTokenPrivileges");
-			if (pOpenProcessToken == nullptr
-				|| pLookupPrivilegeValue == nullptr
-				|| pAdjustTokenPrivileges == nullptr)
-			{
-				failed_advapi = true;
-				return false;
-			}
-		}
+		if (OpenProcessToken == nullptr || LookupPrivilegeValue == nullptr || AdjustTokenPrivileges == nullptr) return false;
+
 
 		HANDLE token;
-		if (!pOpenProcessToken(GetCurrentProcess()
+		if (!OpenProcessToken(GetCurrentProcess()
 			, TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &token))
 			return false;
 
 		TOKEN_PRIVILEGES privs;
-		if (!pLookupPrivilegeValue(nullptr, "SeManageVolumePrivilege"
+		if (!LookupPrivilegeValue(nullptr, "SeManageVolumePrivilege"
 			, &privs.Privileges[0].Luid))
 		{
 			CloseHandle(token);
@@ -2017,7 +2003,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		privs.PrivilegeCount = 1;
 		privs.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
 
-		bool ret = pAdjustTokenPrivileges(token, FALSE, &privs, 0, nullptr, nullptr)
+		bool ret = AdjustTokenPrivileges(token, FALSE, &privs, 0, nullptr, nullptr)
 			&& GetLastError() == ERROR_SUCCESS;
 
 		CloseHandle(token);
@@ -2028,30 +2014,14 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	void set_file_valid_data(HANDLE f, std::int64_t size)
 	{
 		typedef BOOL (WINAPI *SetFileValidData_t)(HANDLE, LONGLONG);
-		static SetFileValidData_t pSetFileValidData = nullptr;
-		static bool failed_kernel32 = false;
+		auto SetFileValidData =
+			get_library_procedure<kernel32, SetFileValidData_t>("SetFileValidData");
 
-		if (pSetFileValidData == nullptr && !failed_kernel32)
-		{
-			HMODULE k32 = LoadLibraryA("kernel32");
-			if (k32 == nullptr)
-			{
-				failed_kernel32 = true;
-				return;
-			}
-			pSetFileValidData = (SetFileValidData_t)GetProcAddress(k32, "SetFileValidData");
-			if (pSetFileValidData == nullptr)
-			{
-				failed_kernel32 = true;
-				return;
-			}
-		}
-
-		TORRENT_ASSERT(pSetFileValidData);
+		if (SetFileValidData == nullptr) return;
 
 		// we don't necessarily expect to have enough
 		// privilege to do this, so ignore errors.
-		pSetFileValidData(f, size);
+		SetFileValidData(f, size);
 	}
 #endif
 
@@ -2095,30 +2065,16 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 				, LPVOID lpFileInformation
 				, DWORD dwBufferSize);
 
-			static GetFileInformationByHandleEx_t GetFileInformationByHandleEx_ = nullptr;
-
-			static bool failed_kernel32 = false;
-
-			if ((GetFileInformationByHandleEx_ == nullptr) && !failed_kernel32)
-			{
-				HMODULE kernel32 = LoadLibraryA("kernel32.dll");
-				if (kernel32)
-				{
-					GetFileInformationByHandleEx_ = (GetFileInformationByHandleEx_t)GetProcAddress(kernel32, "GetFileInformationByHandleEx");
-				}
-				else
-				{
-					failed_kernel32 = true;
-				}
-			}
+			auto GetFileInformationByHandleEx =
+				get_library_procedure<kernel32, GetFileInformationByHandleEx_t>("GetFileInformationByHandleEx");
 
 			offs.QuadPart = 0;
-			if (GetFileInformationByHandleEx_)
+			if (GetFileInformationByHandleEx != nullptr)
 			{
 				// only allocate the space if the file
 				// is not fully allocated
 				FILE_STANDARD_INFO inf;
-				if (GetFileInformationByHandleEx_(native_handle()
+				if (GetFileInformationByHandleEx(native_handle()
 					, FileStandardInfo, &inf, sizeof(inf)) == FALSE)
 				{
 					ec.assign(GetLastError(), system_category());

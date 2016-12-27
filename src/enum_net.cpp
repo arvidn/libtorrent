@@ -35,6 +35,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/socket_type.hpp"
+#ifdef TORRENT_WINDOWS
+#include "libtorrent/win_util.hpp"
+#endif
 
 #include <functional>
 #include <cstdlib> // for wcstombscstombs
@@ -384,41 +387,6 @@ namespace libtorrent
 		}
 		return false;
 	}
-
-#ifdef TORRENT_WINDOWS
-	struct iphlpapi {
-		static constexpr char const* library_name = "iphlpapi.dll";
-	};
-
-	template <typename Library>
-	HMODULE get_library_handle()
-	{
-		static bool handle_checked = false;
-		static HMODULE handle = 0;
-
-		if (!handle_checked)
-		{
-			handle = LoadLibraryA(Library::library_name);
-			handle_checked = true;
-		}
-		return handle;
-	}
-
-	template <typename Library, typename Signature>
-	Signature get_library_procedure(LPCSTR name)
-	{
-		static Signature proc = nullptr;
-		static bool failed_proc = false;
-
-		if ((proc == nullptr) && !failed_proc)
-		{
-			HMODULE const handle = get_library_handle<Library>();
-			if (handle) proc = (Signature)GetProcAddress(handle, name);
-			failed_proc = (proc == nullptr);
-		}
-		return proc;
-	}
-#endif
 
 #if TORRENT_USE_GETIPFORWARDTABLE
 	address build_netmask(int bits, int family)
