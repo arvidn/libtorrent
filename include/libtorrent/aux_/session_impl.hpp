@@ -121,11 +121,6 @@ namespace libtorrent
 	struct listen_socket_t
 	{
 		listen_socket_t()
-			: tcp_external_port(0)
-			, udp_external_port(0)
-			, original_port(0)
-			, ssl(false)
-			, udp_write_blocked(false)
 		{
 			tcp_port_mapping[0] = -1;
 			tcp_port_mapping[1] = -1;
@@ -147,7 +142,7 @@ namespace libtorrent
 		// this is the port that was originally specified to listen on
 		// it may be different from local_endpoint.port() if we could
 		// had to retry binding with a higher port
-		int original_port;
+		int original_port = 0;
 
 		// this is typically set to the same as the local
 		// listen port. In case a NAT port forward was
@@ -156,21 +151,21 @@ namespace libtorrent
 		// on the NAT box itself. This is the port that has
 		// to be published to peers, since this is the port
 		// the client is reachable through.
-		int tcp_external_port;
-		int udp_external_port;
+		int tcp_external_port = 0;
+		int udp_external_port = 0;
 
 		// 0 is natpmp 1 is upnp
 		int tcp_port_mapping[2];
 		int udp_port_mapping[2];
 
 		// set to true if this is an SSL listen socket
-		bool ssl;
+		bool ssl = false;
 
 		// this is true when the udp socket send() has failed with EAGAIN or
 		// EWOULDBLOCK. i.e. we're currently waiting for the socket to become
 		// writeable again. Once it is, we'll set it to false and notify the utp
 		// socket manager
-		bool udp_write_blocked;
+		bool udp_write_blocked = false;
 
 		// the actual sockets (TCP listen socket and UDP socket)
 		// An entry does not necessarily have a UDP or TCP socket. One of these
