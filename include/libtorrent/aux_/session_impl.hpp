@@ -123,6 +123,7 @@ namespace libtorrent
 		listen_socket_t()
 			: tcp_external_port(0)
 			, udp_external_port(0)
+			, original_port(0)
 			, ssl(false)
 			, udp_write_blocked(false)
 		{

@@ -286,7 +286,7 @@ namespace libtorrent
 		, boost::noncopyable
 	{
 		// hidden
-		storage_interface(): m_settings(0) {}
+		storage_interface() {}
 
 
 		// This function is called when the storage is to be initialized. The
@@ -448,11 +448,11 @@ namespace libtorrent
 		virtual ~storage_interface() {}
 
 		// initialized in disk_io_thread::perform_async_job
-		aux::session_settings* m_settings;
+		aux::session_settings* m_settings = nullptr;
 	private:
 
 		bool m_need_tick = false;
-		file_storage const* m_files;
+		file_storage const* m_files = nullptr;
 
 		// the reason for this to be a void pointer
 		// is to avoid creating a dependency on the

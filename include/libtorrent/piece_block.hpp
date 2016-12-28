@@ -48,7 +48,7 @@ namespace libtorrent
 		{
 		}
 		piece_index_t piece_index;
-		int block_index;
+		int block_index = 0;
 
 		bool operator<(piece_block const& b) const
 		{
