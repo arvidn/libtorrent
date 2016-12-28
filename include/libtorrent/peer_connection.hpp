@@ -148,7 +148,7 @@ namespace libtorrent
 	// internal
 	struct nop
 	{
-		nop(char* b) : m_buf(b) {}
+		explicit nop(char* b) : m_buf(b) {}
 		char* get() const { return m_buf; }
 	private:
 		char* m_buf;

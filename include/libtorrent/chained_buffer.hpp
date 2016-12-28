@@ -45,6 +45,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/buffer.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
+//#ifdef _MSC_VER
+// visual studio requires the value in a deque to be copyable or movable. C++11
+// only requires that when calling functions with those requirements
+#define TORRENT_CPP98_DEQUE 1
+//#endif
+
 namespace libtorrent
 {
 	// TODO: 2 this type should probably be renamed to send_buffer
@@ -61,17 +67,46 @@ namespace libtorrent
 	private:
 
 		// destructs/frees the holder object
-		typedef void (*free_buffer_fun)(void*);
+		using destruct_holder_fun = void (*)(void*);
+		using move_construct_holder_fun = void (*)(void*, void*);
 
 		struct buffer_t
 		{
 			buffer_t() {}
+#if TORRENT_CPP98_DEQUE
+			buffer_t(buffer_t&& rhs)
+			{
+				destruct_holder = rhs.destruct_holder;
+				move_holder = rhs.move_holder;
+				buf = rhs.buf;
+				start = rhs.start;
+				size = rhs.size;
+				used_size = rhs.used_size;
+				move_holder(&holder, &rhs.holder);
+			}
+			buffer_t& operator=(buffer_t&& rhs)
+			{
+				destruct_holder(&holder);
+				destruct_holder = rhs.destruct_holder;
+				move_holder = rhs.move_holder;
+				buf = rhs.buf;
+				start = rhs.start;
+				size = rhs.size;
+				used_size = rhs.used_size;
+				move_holder(&holder, &rhs.holder);
+				return *this;
+			}
+#else
 			buffer_t(buffer_t&&) = delete;
-			buffer_t(buffer_t const&) = delete;
 			buffer_t& operator=(buffer_t&&) = delete;
+#endif
+			buffer_t(buffer_t const&) = delete;
 			buffer_t& operator=(buffer_t const&) = delete;
 
-			free_buffer_fun destruct_holder;
+			destruct_holder_fun destruct_holder;
+#if TORRENT_CPP98_DEQUE
+			move_construct_holder_fun move_holder;
+#endif
 			std::aligned_storage<32>::type holder;
 			// TODO: 2 the pointers here should probably be const, since
 			// they're not supposed to be mutated once inserted into the send
@@ -98,31 +133,7 @@ namespace libtorrent
 			TORRENT_ASSERT(s >= used_size);
 			m_vec.emplace_back();
 			buffer_t& b = m_vec.back();
-
-			static_assert(sizeof(Holder) <= sizeof(b.holder), "buffer holder too large");
-
-			b.buf = buffer.get();
-			b.size = s;
-			b.start = buffer.get();
-			b.used_size = used_size;
-
-#ifdef _MSC_VER
-// this appears to be a false positive msvc warning
-#pragma warning(push, 1)
-#pragma warning(disable : 4100)
-#endif
-			b.destruct_holder = [](void* holder)
-			{ reinterpret_cast<Holder*>(holder)->~Holder(); };
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
-			new (&b.holder) Holder(std::move(buffer));
-
-			m_bytes += used_size;
-			m_capacity += s;
-			TORRENT_ASSERT(m_bytes <= m_capacity);
+			init_buffer_entry<Holder>(b, buffer, s, used_size);
 		}
 
 		template <typename Holder>
@@ -132,31 +143,7 @@ namespace libtorrent
 			TORRENT_ASSERT(s >= used_size);
 			m_vec.emplace_front();
 			buffer_t& b = m_vec.front();
-
-			static_assert(sizeof(Holder) <= sizeof(b.holder), "buffer holder too large");
-
-			b.buf = buffer.get();
-			b.size = s;
-			b.start = buffer.get();
-			b.used_size = used_size;
-
-#ifdef _MSC_VER
-// this appears to be a false positive msvc warning
-#pragma warning(push, 1)
-#pragma warning(disable : 4100)
-#endif
-			b.destruct_holder = [](void* holder)
-			{ reinterpret_cast<Holder*>(holder)->~Holder(); };
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
-			new (&b.holder) Holder(std::move(buffer));
-
-			m_bytes += used_size;
-			m_capacity += s;
-			TORRENT_ASSERT(m_bytes <= m_capacity);
+			init_buffer_entry<Holder>(b, buffer, s, used_size);
 		}
 
 		// returns the number of bytes available at the
@@ -182,6 +169,41 @@ namespace libtorrent
 		~chained_buffer();
 
 	private:
+
+		template <typename Holder>
+		void init_buffer_entry(buffer_t& b, Holder& buffer, int s, int used_size)
+		{
+			static_assert(sizeof(Holder) <= sizeof(b.holder), "buffer holder too large");
+
+			b.buf = buffer.get();
+			b.size = s;
+			b.start = buffer.get();
+			b.used_size = used_size;
+
+#ifdef _MSC_VER
+// this appears to be a false positive msvc warning
+#pragma warning(push, 1)
+#pragma warning(disable : 4100)
+#endif
+			b.destruct_holder = [](void* holder)
+			{ reinterpret_cast<Holder*>(holder)->~Holder(); };
+
+#if TORRENT_CPP98_DEQUE
+			b.move_holder = [](void* dst, void* src)
+			{ new (dst) Holder(std::move(*reinterpret_cast<Holder*>(src))); };
+#endif
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+			new (&b.holder) Holder(std::move(buffer));
+
+			m_bytes += used_size;
+			m_capacity += s;
+			TORRENT_ASSERT(m_bytes <= m_capacity);
+		}
+
 		template <typename Buffer>
 		void build_vec(int bytes, std::vector<Buffer>& vec);
 
