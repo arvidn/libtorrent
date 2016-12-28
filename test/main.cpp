@@ -71,7 +71,7 @@ using namespace libtorrent;
 int old_stdout = -1;
 int old_stderr = -1;
 bool redirect_stdout = true;
-bool redirect_stderr = true;
+bool redirect_stderr = false; // TEMPORARY!
 bool keep_files = false;
 
 extern int _g_test_idx;
