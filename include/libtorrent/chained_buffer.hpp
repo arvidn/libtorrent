@@ -45,11 +45,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/buffer.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-//#ifdef _MSC_VER
+#ifdef _MSC_VER
 // visual studio requires the value in a deque to be copyable or movable. C++11
 // only requires that when calling functions with those requirements
 #define TORRENT_CPP98_DEQUE 1
-//#endif
+#else
+#define TORRENT_CPP98_DEQUE 0
+#endif
 
 namespace libtorrent
 {
@@ -96,12 +98,16 @@ namespace libtorrent
 				move_holder(&holder, &rhs.holder);
 				return *this;
 			}
+			buffer_t(buffer_t const& rhs) noexcept
+				: buffer_t(std::move(const_cast<buffer_t&>(rhs))) {}
+			buffer_t& operator=(buffer_t const& rhs) noexcept
+			{ return this->operator=(std::move(const_cast<buffer_t&>(rhs))); }
 #else
 			buffer_t(buffer_t&&) = delete;
 			buffer_t& operator=(buffer_t&&) = delete;
-#endif
 			buffer_t(buffer_t const&) = delete;
 			buffer_t& operator=(buffer_t const&) = delete;
+#endif
 
 			destruct_holder_fun destruct_holder;
 #if TORRENT_CPP98_DEQUE
