@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/units.hpp"
 #ifdef TORRENT_WINDOWS
-#include "libtorrent/win_util.hpp"
+#include "libtorrent/aux_/win_util.hpp"
 #endif
 
 #include <limits>
@@ -89,7 +89,7 @@ namespace libtorrent
 
 		typedef BOOL (WINAPI *SetFileInformationByHandle_t)(HANDLE hFile, FILE_INFO_BY_HANDLE_CLASS_LOCAL FileInformationClass, LPVOID lpFileInformation, DWORD dwBufferSize);
 		auto SetFileInformationByHandle =
-			get_library_procedure<kernel32, SetFileInformationByHandle_t>("SetFileInformationByHandle");
+			aux::get_library_procedure<aux::kernel32, SetFileInformationByHandle_t>("SetFileInformationByHandle");
 
 		if (SetFileInformationByHandle == nullptr) return;
 

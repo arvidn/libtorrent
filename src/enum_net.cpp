@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/socket_type.hpp"
 #ifdef TORRENT_WINDOWS
-#include "libtorrent/win_util.hpp"
+#include "libtorrent/aux_/win_util.hpp"
 #endif
 
 #include <functional>
@@ -596,7 +596,7 @@ namespace libtorrent
 		typedef ULONG (WINAPI *GetAdaptersAddresses_t)(ULONG,ULONG,PVOID,PIP_ADAPTER_ADDRESSES,PULONG);
 		// Get GetAdaptersAddresses() pointer
 		auto GetAdaptersAddresses =
-			get_library_procedure<iphlpapi, GetAdaptersAddresses_t>("GetAdaptersAddresses");
+			aux::get_library_procedure<aux::iphlpapi, GetAdaptersAddresses_t>("GetAdaptersAddresses");
 
 		if (GetAdaptersAddresses != nullptr)
 		{
@@ -956,7 +956,7 @@ namespace libtorrent
 */
 
 		typedef DWORD (WINAPI *GetIfEntry_t)(PMIB_IFROW pIfRow);
-		auto GetIfEntry = get_library_procedure<iphlpapi, GetIfEntry_t>("GetIfEntry");
+		auto GetIfEntry = aux::get_library_procedure<aux::iphlpapi, GetIfEntry_t>("GetIfEntry");
 
 		if (GetIfEntry == nullptr)
 		{
@@ -969,8 +969,8 @@ namespace libtorrent
 			ADDRESS_FAMILY, PMIB_IPFORWARD_TABLE2*);
 		typedef void (WINAPI *FreeMibTable_t)(PVOID Memory);
 
-		auto GetIpForwardTable2 = get_library_procedure<iphlpapi, GetIpForwardTable2_t>("GetIpForwardTable2");
-		auto FreeMibTable = get_library_procedure<iphlpapi, FreeMibTable_t>("FreeMibTable");
+		auto GetIpForwardTable2 = aux::get_library_procedure<aux::iphlpapi, GetIpForwardTable2_t>("GetIpForwardTable2");
+		auto FreeMibTable = aux::get_library_procedure<aux::iphlpapi, FreeMibTable_t>("FreeMibTable");
 		if (GetIpForwardTable2 != nullptr && FreeMibTable != nullptr)
 		{
 			MIB_IPFORWARD_TABLE2* routes = nullptr;
@@ -1003,7 +1003,7 @@ namespace libtorrent
 		// Get GetIpForwardTable() pointer
 		typedef DWORD (WINAPI *GetIpForwardTable_t)(PMIB_IPFORWARDTABLE pIpForwardTable,PULONG pdwSize,BOOL bOrder);
 
-		auto GetIpForwardTable = get_library_procedure<iphlpapi, GetIpForwardTable_t>("GetIpForwardTable");
+		auto GetIpForwardTable = aux::get_library_procedure<aux::iphlpapi, GetIpForwardTable_t>("GetIpForwardTable");
 		if (GetIpForwardTable == nullptr)
 		{
 			ec = boost::asio::error::operation_not_supported;

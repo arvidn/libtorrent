@@ -99,7 +99,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "libtorrent/utf8.hpp"
-#include "libtorrent/win_util.hpp"
+#include "libtorrent/aux_/win_util.hpp"
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -1978,11 +1978,11 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			PDWORD ReturnLength);
 
 		auto OpenProcessToken =
-			get_library_procedure<advapi32, OpenProcessToken_t>("OpenProcessToken");
+			aux::get_library_procedure<aux::advapi32, OpenProcessToken_t>("OpenProcessToken");
 		auto LookupPrivilegeValue =
-			get_library_procedure<advapi32, LookupPrivilegeValue_t>("LookupPrivilegeValueA");
+			aux::get_library_procedure<aux::advapi32, LookupPrivilegeValue_t>("LookupPrivilegeValueA");
 		auto AdjustTokenPrivileges =
-			get_library_procedure<advapi32, AdjustTokenPrivileges_t>("AdjustTokenPrivileges");
+			aux::get_library_procedure<aux::advapi32, AdjustTokenPrivileges_t>("AdjustTokenPrivileges");
 
 		if (OpenProcessToken == nullptr || LookupPrivilegeValue == nullptr || AdjustTokenPrivileges == nullptr) return false;
 
@@ -2015,7 +2015,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	{
 		typedef BOOL (WINAPI *SetFileValidData_t)(HANDLE, LONGLONG);
 		auto SetFileValidData =
-			get_library_procedure<kernel32, SetFileValidData_t>("SetFileValidData");
+			aux::get_library_procedure<aux::kernel32, SetFileValidData_t>("SetFileValidData");
 
 		if (SetFileValidData == nullptr) return;
 
@@ -2066,7 +2066,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 				, DWORD dwBufferSize);
 
 			auto GetFileInformationByHandleEx =
-				get_library_procedure<kernel32, GetFileInformationByHandleEx_t>("GetFileInformationByHandleEx");
+				aux::get_library_procedure<aux::kernel32, GetFileInformationByHandleEx_t>("GetFileInformationByHandleEx");
 
 			offs.QuadPart = 0;
 			if (GetFileInformationByHandleEx != nullptr)

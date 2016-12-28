@@ -35,8 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-namespace libtorrent {
-
+namespace libtorrent { namespace aux
+{
 	template <typename Library>
 	HMODULE get_library_handle()
 	{
@@ -78,6 +78,7 @@ namespace libtorrent {
 		static constexpr char const* library_name = "advapi32.dll";
 	};
 
+} // namespace aux
 } // namespace libtorrent
 
 #endif
