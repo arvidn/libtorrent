@@ -74,7 +74,7 @@ namespace libtorrent
 		{
 			buffer_t() {}
 #if TORRENT_CPP98_DEQUE
-			buffer_t(buffer_t&& rhs)
+			buffer_t(buffer_t&& rhs) noexcept
 			{
 				destruct_holder = rhs.destruct_holder;
 				move_holder = rhs.move_holder;
@@ -84,7 +84,7 @@ namespace libtorrent
 				used_size = rhs.used_size;
 				move_holder(&holder, &rhs.holder);
 			}
-			buffer_t& operator=(buffer_t&& rhs)
+			buffer_t& operator=(buffer_t&& rhs) noexcept
 			{
 				destruct_holder(&holder);
 				destruct_holder = rhs.destruct_holder;
