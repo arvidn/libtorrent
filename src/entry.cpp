@@ -46,29 +46,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	namespace detail
-	{
-		char const* integer_to_str(char* buf, int size
-			, entry::integer_type val)
-		{
-			int sign = 0;
-			if (val < 0)
-			{
-				sign = 1;
-				val = -val;
-			}
-			buf[--size] = '\0';
-			if (val == 0) buf[--size] = '0';
-			for (; size > sign && val != 0;)
-			{
-				buf[--size] = '0' + char(val % 10);
-				val /= 10;
-			}
-			if (sign) buf[--size] = '-';
-			return buf + size;
-		}
-	}
-
 	namespace
 	{
 		TORRENT_NO_RETURN inline void throw_error()

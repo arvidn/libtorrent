@@ -86,6 +86,28 @@ namespace libtorrent
 
 	namespace detail
 	{
+		template <typename T, typename Cond = typename std::enable_if<
+			std::is_same<T, char*>::value>::type>
+		char const* integer_to_str(T buf, int size
+			, entry::integer_type val)
+		{
+			int sign = 0;
+			if (val < 0)
+			{
+				sign = 1;
+				val = -val;
+			}
+			buf[--size] = '\0';
+			if (val == 0) buf[--size] = '0';
+			for (; size > sign && val != 0;)
+			{
+				buf[--size] = '0' + char(val % 10);
+				val /= 10;
+			}
+			if (sign) buf[--size] = '-';
+			return buf + size;
+		}
+
 		template <class OutIt>
 		int write_integer(OutIt& out, entry::integer_type val)
 		{

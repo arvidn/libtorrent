@@ -326,12 +326,6 @@ namespace libtorrent
 		mutable std::uint8_t m_type_queried:1;
 	};
 
-	namespace detail
-	{
-		TORRENT_EXPORT char const* integer_to_str(char* buf, int size
-			, entry::integer_type val);
-	}
-
 #if TORRENT_USE_IOSTREAM
 	// prints the bencoded structure to the ostream as a JSON-style structure.
 	inline std::ostream& operator<<(std::ostream& os, const entry& e)
