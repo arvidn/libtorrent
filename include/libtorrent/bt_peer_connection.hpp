@@ -309,13 +309,13 @@ namespace libtorrent
 		void rc4_decrypt(span<char> buf);
 #endif
 
-public:
+	public:
 
 		// these functions encrypt the send buffer if m_rc4_encrypted
 		// is true, otherwise it passes the call to the
 		// peer_connection functions of the same names
 		template <typename Holder>
-		void append_const_send_buffer(char const* buffer, int size, Holder h)
+		void append_const_send_buffer(Holder buffer, int size)
 		{
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 			if (!m_enc_handler.is_send_plaintext())
@@ -323,17 +323,17 @@ public:
 				// if we're encrypting this buffer, we need to make a copy
 				// since we'll mutate it
 				std::unique_ptr<char[]> buf(new char[size]);
-				std::memcpy(buf.get(), buffer, size);
-				append_send_buffer(buf.get(), size, std::move(buf));
+				std::memcpy(buf.get(), buffer.get(), size);
+				append_send_buffer(std::move(buf), size);
 			}
 			else
 #endif
 			{
-				append_send_buffer(const_cast<char*>(buffer), size, std::move(h));
+				append_send_buffer(std::move(buffer), size);
 			}
 		}
 
-private:
+	private:
 
 		enum class state_t : std::uint8_t
 		{

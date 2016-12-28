@@ -146,7 +146,13 @@ namespace libtorrent
 	};
 
 	// internal
-	struct nop {};
+	struct nop
+	{
+		nop(char* b) : m_buf(b) {}
+		char* get() const { return m_buf; }
+	private:
+		char* m_buf;
+	};
 
 	struct TORRENT_EXTRA_EXPORT peer_connection_hot_members
 	{
@@ -626,10 +632,10 @@ namespace libtorrent
 		void setup_send();
 
 		template <typename Holder>
-		void append_send_buffer(char* buffer, int size, Holder h)
+		void append_send_buffer(Holder buffer, int size)
 		{
 			TORRENT_ASSERT(is_single_thread());
-			m_send_buffer.append_buffer(buffer, size, size, std::move(h));
+			m_send_buffer.append_buffer(std::move(buffer), size, size);
 		}
 
 		int outstanding_bytes() const { return m_outstanding_bytes; }

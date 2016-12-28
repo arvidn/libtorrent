@@ -58,6 +58,8 @@ namespace libtorrent
 #endif
 		}
 
+	private:
+
 		// destructs/frees the holder object
 		typedef void (*free_buffer_fun)(void*);
 
@@ -80,6 +82,8 @@ namespace libtorrent
 			int used_size; // this is the number of bytes to send/receive
 		};
 
+	public:
+
 		bool empty() const { return m_bytes == 0; }
 		int size() const { return m_bytes; }
 		int capacity() const { return m_capacity; }
@@ -88,7 +92,7 @@ namespace libtorrent
 
 		//TODO: 3 use span<> instead of (buffer,s)
 		template <typename Holder>
-		void append_buffer(char* buffer, int s, int used_size, Holder h)
+		void append_buffer(Holder buffer, int s, int used_size)
 		{
 			TORRENT_ASSERT(is_single_thread());
 			TORRENT_ASSERT(s >= used_size);
@@ -97,6 +101,11 @@ namespace libtorrent
 
 			static_assert(sizeof(Holder) <= sizeof(b.holder), "buffer holder too large");
 
+			b.buf = buffer.get();
+			b.size = s;
+			b.start = buffer.get();
+			b.used_size = used_size;
+
 #ifdef _MSC_VER
 // this appears to be a false positive msvc warning
 #pragma warning(push, 1)
@@ -109,11 +118,7 @@ namespace libtorrent
 #pragma warning(pop)
 #endif
 
-			new (&b.holder) Holder(std::move(h));
-			b.buf = buffer;
-			b.size = s;
-			b.start = buffer;
-			b.used_size = used_size;
+			new (&b.holder) Holder(std::move(buffer));
 
 			m_bytes += used_size;
 			m_capacity += s;
@@ -121,7 +126,7 @@ namespace libtorrent
 		}
 
 		template <typename Holder>
-		void prepend_buffer(char* buffer, int s, int used_size, Holder h)
+		void prepend_buffer(Holder buffer, int s, int used_size)
 		{
 			TORRENT_ASSERT(is_single_thread());
 			TORRENT_ASSERT(s >= used_size);
@@ -130,6 +135,11 @@ namespace libtorrent
 
 			static_assert(sizeof(Holder) <= sizeof(b.holder), "buffer holder too large");
 
+			b.buf = buffer.get();
+			b.size = s;
+			b.start = buffer.get();
+			b.used_size = used_size;
+
 #ifdef _MSC_VER
 // this appears to be a false positive msvc warning
 #pragma warning(push, 1)
@@ -142,11 +152,7 @@ namespace libtorrent
 #pragma warning(pop)
 #endif
 
-			new (&b.holder) Holder(std::move(h));
-			b.buf = buffer;
-			b.size = s;
-			b.start = buffer;
-			b.used_size = used_size;
+			new (&b.holder) Holder(std::move(buffer));
 
 			m_bytes += used_size;
 			m_capacity += s;
@@ -159,7 +165,7 @@ namespace libtorrent
 
 		// tries to copy the given buffer to the end of the
 		// last chained buffer. If there's not enough room
-		// it returns false
+		// it returns nullptr
 		char* append(char const* buf, int s);
 
 		// tries to allocate memory from the end

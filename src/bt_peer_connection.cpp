@@ -2465,11 +2465,11 @@ namespace libtorrent
 
 		if (buffer.ref().storage == nullptr)
 		{
-			append_send_buffer(buffer.get(), r.length, std::move(buffer));
+			append_send_buffer(std::move(buffer), r.length);
 		}
 		else
 		{
-			append_const_send_buffer(buffer.get(), r.length, std::move(buffer));
+			append_const_send_buffer(std::move(buffer), r.length);
 		}
 
 		m_payloads.push_back(range(send_buffer_size() - r.length, r.length));

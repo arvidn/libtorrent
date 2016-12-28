@@ -5447,7 +5447,7 @@ namespace libtorrent
 				// this const_cast is a here because chained_buffer need to be
 				// fixed.
 				char* ptr = const_cast<char*>(i->data());
-				m_send_buffer.prepend_buffer(ptr, size, size, nop());
+				m_send_buffer.prepend_buffer(nop(ptr), size, size);
 			}
 			set_send_barrier(next_barrier);
 		}
@@ -5671,15 +5671,14 @@ namespace libtorrent
 		int i = 0;
 		while (size > 0)
 		{
-			auto session_buf = m_ses.allocate_buffer();
+			aux::ses_buffer_holder session_buf = m_ses.allocate_buffer();
 
 			int const alloc_buf_size = m_ses.send_buffer_size();
-			int buf_size = std::min(alloc_buf_size, size);
+			int const buf_size = std::min(alloc_buf_size, size);
 			std::memcpy(session_buf.get(), buf, buf_size);
 			buf += buf_size;
 			size -= buf_size;
-			m_send_buffer.append_buffer(session_buf.get(), alloc_buf_size, buf_size
-				, std::move(session_buf));
+			m_send_buffer.append_buffer(std::move(session_buf), alloc_buf_size, buf_size);
 			++i;
 		}
 		setup_send();
