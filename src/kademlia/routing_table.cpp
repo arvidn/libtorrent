@@ -84,16 +84,6 @@ void ip_set::insert(address const& addr)
 		m_ip4s.insert(addr.to_v4().to_bytes());
 }
 
-size_t ip_set::count(address const& addr) const
-{
-#if TORRENT_USE_IPV6
-	if (addr.is_v6())
-		return m_ip6s.count(addr.to_v6().to_bytes());
-	else
-#endif
-		return m_ip4s.count(addr.to_v4().to_bytes());
-}
-
 bool ip_set::exists(address const& addr) const
 {
 #if TORRENT_USE_IPV6

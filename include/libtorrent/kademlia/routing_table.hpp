@@ -91,7 +91,6 @@ struct ipv6_hash
 struct ip_set
 {
 	void insert(address const& addr);
-	size_t count(address const& addr) const;
 	bool exists(address const& addr) const;
 	void erase(address const& addr);
 
