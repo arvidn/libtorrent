@@ -184,6 +184,7 @@ nobase_include_HEADERS = \
   aux_/has_block.hpp                \
   aux_/scope_end.hpp                \
   aux_/vector.hpp                   \
+  aux_/win_util.hpp                 \
   \
   extensions/smart_ban.hpp          \
   extensions/ut_metadata.hpp        \
