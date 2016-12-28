@@ -285,7 +285,6 @@ namespace libtorrent
 		, public storage_piece_set
 		, boost::noncopyable
 	{
-		// hidden
 		storage_interface() {}
 
 

@@ -41,7 +41,7 @@ namespace libtorrent
 	{
 		static const piece_block invalid;
 
-		piece_block() {}
+		piece_block() = default;
 		piece_block(piece_index_t p_index, int b_index)
 			: piece_index(p_index)
 			, block_index(b_index)
