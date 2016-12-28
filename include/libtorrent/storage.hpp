@@ -285,8 +285,6 @@ namespace libtorrent
 		, public storage_piece_set
 		, boost::noncopyable
 	{
-		storage_interface() {}
-
 
 		// This function is called when the storage is to be initialized. The
 		// default storage will create directories and empty files at this point.
