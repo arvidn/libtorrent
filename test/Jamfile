@@ -134,7 +134,6 @@ test-suite libtorrent :
 		test_xml.cpp
 		test_ip_filter.cpp
 		test_hasher.cpp
-		test_block_cache.cpp
 		test_peer_classes.cpp
 		test_settings_pack.cpp
 		test_fence.cpp
@@ -171,6 +170,7 @@ test-suite libtorrent :
 	[ run test_alert_types.cpp ]
 	[ run test_magnet.cpp ]
 	[ run test_storage.cpp ]
+	[ run test_mmap.cpp ]
 	[ run test_session.cpp ]
 	[ run test_session_params.cpp ]
 	[ run test_read_piece.cpp ]
@@ -245,6 +245,7 @@ alias win-tests :
 	test_ffs
 	test_ed25519
 	test_session_params
+	test_mmap
 	;
 
 explicit win-tests ;

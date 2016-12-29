@@ -178,10 +178,7 @@ namespace libtorrent { namespace aux {
 	}
 
 	// j is the fence job. It must have exclusive access to the storage
-	// fj is the flush job. If the job j is queued, we need to issue
-	// this job
-	int disk_job_fence::raise_fence(disk_io_job* j, disk_io_job* fj
-		, counters& cnt)
+	int disk_job_fence::raise_fence(disk_io_job* j, counters& cnt)
 	{
 		TORRENT_ASSERT(!(j->flags & disk_io_job::fence));
 		j->flags |= disk_io_job::fence;
@@ -201,28 +198,12 @@ namespace libtorrent { namespace aux {
 			// after this, without being passed through is_blocked()
 			// that's why we're accounting for it here
 
-			// fj is expected to be discarded by the caller
 			j->flags |= disk_io_job::in_progress;
 			++m_outstanding_jobs;
 			return fence_post_fence;
 		}
 
 		++m_has_fence;
-		if (m_has_fence > 1)
-		{
-#if TORRENT_USE_ASSERTS
-			TORRENT_ASSERT(fj->blocked == false);
-			fj->blocked = true;
-#endif
-			m_blocked_jobs.push_back(fj);
-			cnt.inc_stats_counter(counters::blocked_disk_jobs);
-		}
-		else
-		{
-			// in this case, fj is expected to be put on the job queue
-			fj->flags |= disk_io_job::in_progress;
-			++m_outstanding_jobs;
-		}
 #if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT(j->blocked == false);
 		j->blocked = true;
@@ -230,7 +211,7 @@ namespace libtorrent { namespace aux {
 		m_blocked_jobs.push_back(j);
 		cnt.inc_stats_counter(counters::blocked_disk_jobs);
 
-		return m_has_fence > 1 ? fence_post_none : fence_post_flush;
+		return fence_post_none;
 	}
 
 }}

@@ -49,7 +49,9 @@ test_programs = \
   test_ffs                   \
   test_session_params        \
   test_span                  \
-  test_alloca
+  test_alloca                \
+  test_mmap
+
 
 if ENABLE_TESTS
 check_PROGRAMS = $(test_programs)
@@ -190,7 +192,6 @@ test_primitives_SOURCES = \
   test_ed25519.cpp \
   test_dht_storage.cpp \
   test_dht.cpp \
-  test_block_cache.cpp \
   test_peer_classes.cpp \
   test_settings_pack.cpp \
   test_fence.cpp \
@@ -246,6 +247,7 @@ test_ffs_SOURCES = test_ffs.cpp
 test_session_params_SOURCES = test_session_params.cpp
 test_span_SOURCES = test_span.cpp
 test_alloca_SOURCES = test_alloca.cpp
+test_mmap_SOURCES = test_mmap.cpp
 
 LDADD = libtest.la $(top_builddir)/src/libtorrent-rasterbar.la
 

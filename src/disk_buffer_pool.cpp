@@ -67,13 +67,11 @@ namespace libtorrent {
 
 	} // anonymous namespace
 
-	disk_buffer_pool::disk_buffer_pool(int block_size, io_service& ios
-		, std::function<void()> const& trigger_trim)
+	disk_buffer_pool::disk_buffer_pool(int block_size, io_service& ios)
 		: m_block_size(block_size)
 		, m_in_use(0)
 		, m_max_use(64)
 		, m_low_watermark((std::max)(m_max_use - 32, 0))
-		, m_trigger_cache_trim(trigger_trim)
 		, m_exceeded_max_size(false)
 		, m_ios(ios)
 	{
@@ -92,24 +90,6 @@ namespace libtorrent {
 
 	}
 
-	int disk_buffer_pool::num_to_evict(int const num_needed)
-	{
-		int ret = 0;
-
-		std::unique_lock<std::mutex> l(m_pool_mutex);
-
-		if (m_exceeded_max_size)
-			ret = m_in_use - std::min(m_low_watermark, m_max_use - int(m_observers.size()) * 2);
-
-		if (m_in_use + num_needed > m_max_use)
-			ret = std::max(ret, m_in_use + num_needed - m_max_use);
-
-		if (ret < 0) ret = 0;
-		else if (ret > m_in_use) ret = m_in_use;
-
-		return ret;
-	}
-
 	// checks to see if we're no longer exceeding the high watermark,
 	// and if we're in fact below the low watermark. If so, we need to
 	// post the notification messages to the peers that are waiting for
@@ -126,31 +106,6 @@ namespace libtorrent {
 		l.unlock();
 		m_ios.post(std::bind(&watermark_callback, std::move(cbs)));
 	}
-
-#if TORRENT_USE_ASSERTS
-	bool disk_buffer_pool::is_disk_buffer(char* buffer
-		, std::unique_lock<std::mutex>& l) const
-	{
-		TORRENT_ASSERT(m_magic == 0x1337);
-		TORRENT_ASSERT(l.owns_lock());
-		TORRENT_UNUSED(l);
-
-#if TORRENT_USE_INVARIANT_CHECKS
-		return m_buffers_in_use.count(buffer) == 1;
-#elif defined TORRENT_DEBUG_BUFFERS
-		return page_aligned_allocator::in_use(buffer);
-#else
-		TORRENT_UNUSED(buffer);
-		return true;
-#endif
-	}
-
-	bool disk_buffer_pool::is_disk_buffer(char* buffer) const
-	{
-		std::unique_lock<std::mutex> l(m_pool_mutex);
-		return is_disk_buffer(buffer, l);
-	}
-#endif
 
 	char* disk_buffer_pool::allocate_buffer(char const* category)
 	{
@@ -178,47 +133,6 @@ namespace libtorrent {
 		return ret;
 	}
 
-// this function allocates buffers and
-// fills in the iovec array with the buffers
-	int disk_buffer_pool::allocate_iovec(span<iovec_t> iov)
-	{
-		std::unique_lock<std::mutex> l(m_pool_mutex);
-		for (auto& i : iov)
-		{
-			i = { allocate_buffer_impl(l, "pending read"), std::size_t(block_size())};
-			if (i.data() == nullptr)
-			{
-				// uh oh. We failed to allocate the buffer!
-				// we need to roll back and free all the buffers
-				// we've already allocated
-				for (auto j : iov)
-				{
-					if (j.data() == nullptr) break;
-					char* buf = j.data();
-					TORRENT_ASSERT(is_disk_buffer(buf, l));
-					free_buffer_impl(buf, l);
-					remove_buffer_in_use(buf);
-				}
-				return -1;
-			}
-		}
-		return 0;
-	}
-
-	void disk_buffer_pool::free_iovec(span<iovec_t const> iov)
-	{
-		// TODO: perhaps we should sort the buffers here?
-		std::unique_lock<std::mutex> l(m_pool_mutex);
-		for (auto i : iov)
-		{
-			char* buf = i.data();
-			TORRENT_ASSERT(is_disk_buffer(buf, l));
-			free_buffer_impl(buf, l);
-			remove_buffer_in_use(buf);
-		}
-		check_buffer_level(l);
-	}
-
 	char* disk_buffer_pool::allocate_buffer_impl(std::unique_lock<std::mutex>& l
 		, char const*)
 	{
@@ -232,7 +146,6 @@ namespace libtorrent {
 		if (ret == nullptr)
 		{
 			m_exceeded_max_size = true;
-			m_trigger_cache_trim();
 			return nullptr;
 		}
 
@@ -255,10 +168,8 @@ namespace libtorrent {
 			/ 2 && !m_exceeded_max_size)
 		{
 			m_exceeded_max_size = true;
-			m_trigger_cache_trim();
 		}
 
-		TORRENT_ASSERT(is_disk_buffer(ret, l));
 		return ret;
 	}
 
@@ -270,7 +181,6 @@ namespace libtorrent {
 		std::unique_lock<std::mutex> l(m_pool_mutex);
 		for (char* buf : bufvec)
 		{
-			TORRENT_ASSERT(is_disk_buffer(buf, l));
 			free_buffer_impl(buf, l);
 			remove_buffer_in_use(buf);
 		}
@@ -281,7 +191,6 @@ namespace libtorrent {
 	void disk_buffer_pool::free_buffer(char* buf)
 	{
 		std::unique_lock<std::mutex> l(m_pool_mutex);
-		TORRENT_ASSERT(is_disk_buffer(buf, l));
 		free_buffer_impl(buf, l);
 		remove_buffer_in_use(buf);
 		check_buffer_level(l);
@@ -291,65 +200,12 @@ namespace libtorrent {
 	{
 		std::unique_lock<std::mutex> l(m_pool_mutex);
 
-		int const cache_size = sett.get_int(settings_pack::cache_size);
-		if (cache_size < 0)
-		{
-			std::int64_t phys_ram = total_physical_ram();
-			if (phys_ram == 0) m_max_use = 1024;
-			else
-			{
-				// this is the logic to calculate the automatic disk cache size
-				// based on the amount of physical RAM.
-				// The more physical RAM, the smaller portion of it is allocated
-				// for the cache.
-
-				// we take a 30th of everything exceeding 4 GiB
-				// a 20th of everything exceeding 1 GiB
-				// and a 10th of everything below a GiB
-
-				constexpr std::int64_t gb = 1024 * 1024 * 1024;
-
-				std::int64_t result = 0;
-				if (phys_ram > 4 * gb)
-				{
-					result += (phys_ram - 4 * gb) / 30;
-					phys_ram = 4 * gb;
-				}
-				if (phys_ram > 1 * gb)
-				{
-					result += (phys_ram - 1 * gb) / 20;
-					phys_ram = 1 * gb;
-				}
-				result += phys_ram / 10;
-				m_max_use = int(result / m_block_size);
-			}
-
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4127 ) /* warning C4127: conditional expression is constant */
-#endif // _MSC_VER
-			if (sizeof(void*) == 4)
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif // _MSC_VER
-			{
-				// 32 bit builds should  capped below 2 GB of memory, even
-				// when more actual ram is available, because we're still
-				// constrained by the 32 bit virtual address space.
-				m_max_use = std::min(2 * 1024 * 1024 * 3 / 4 * 1024
-					/ m_block_size, m_max_use);
-			}
-		}
-		else
-		{
-			m_max_use = cache_size;
-		}
-		m_low_watermark = m_max_use - std::max(16, sett.get_int(settings_pack::max_queued_disk_bytes) / 0x4000);
-		if (m_low_watermark < 0) m_low_watermark = 0;
+		int const pool_size = std::max(1, sett.get_int(settings_pack::max_queued_disk_bytes) / 0x4000);
+		m_max_use = pool_size;
+		m_low_watermark = m_max_use / 2;
 		if (m_in_use >= m_max_use && !m_exceeded_max_size)
 		{
 			m_exceeded_max_size = true;
-			m_trigger_cache_trim();
 		}
 
 #if TORRENT_USE_ASSERTS

@@ -86,7 +86,6 @@ TORRENT_TEST(magnet)
 	pack.set_int(settings_pack::urlseed_wait_retry, 74);
 	pack.set_int(settings_pack::initial_picker_threshold, 351);
 	pack.set_bool(settings_pack::upnp_ignore_nonrouters, true);
-	pack.set_bool(settings_pack::coalesce_writes, true);
 	pack.set_bool(settings_pack::close_redundant_connections, false);
 	pack.set_int(settings_pack::auto_scrape_interval, 235);
 	pack.set_int(settings_pack::auto_scrape_min_interval, 62);

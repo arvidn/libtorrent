@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/tailqueue.hpp"
 #include "libtorrent/peer_request.hpp"
-#include "libtorrent/aux_/block_cache_reference.hpp"
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/disk_interface.hpp"
 #include "libtorrent/aux_/vector.hpp"
@@ -55,7 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	struct storage_interface;
+	struct default_storage;
 	struct cached_piece_entry;
 	class torrent_info;
 	struct add_torrent_params;
@@ -71,10 +70,6 @@ namespace libtorrent {
 		, check_fastresume
 		, rename_file
 		, stop_torrent
-		, flush_piece
-		, flush_hashed
-		, flush_storage
-		, trim_cache
 		, file_priority
 		, clear_piece
 		, num_job_ids
@@ -110,10 +105,6 @@ namespace libtorrent {
 		// on a cache piece that may be flushed soon
 		static constexpr disk_job_flags_t in_progress = 2_bit;
 
-		// for write jobs, returns true if its block
-		// is not dirty anymore
-		bool completed(cached_piece_entry const* pe, int block_size);
-
 		// for read and write, this is the disk_buffer_holder
 		// for other jobs, it may point to other job-specific types
 		// for move_storage and rename_file this is a string
@@ -125,11 +116,11 @@ namespace libtorrent {
 			> argument;
 
 		// the disk storage this job applies to (if applicable)
-		std::shared_ptr<storage_interface> storage;
+		std::shared_ptr<default_storage> storage;
 
 		// this is called when operation completes
 
-		using read_handler = std::function<void(disk_buffer_holder block, disk_job_flags_t flags, storage_error const& se)>;
+		using read_handler = std::function<void(disk_buffer_holder block, storage_error const& se)>;
 		using write_handler = std::function<void(storage_error const&)>;
 		using hash_handler = std::function<void(piece_index_t, sha1_hash const&, storage_error const&)>;
 		using move_handler = std::function<void(status_t, std::string const&, storage_error const&)>;

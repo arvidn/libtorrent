@@ -111,6 +111,16 @@ ED25519_SOURCE = \
   ed25519/src/precomp_data.h \
   ed25519/src/sc.h
 
+TRY_SIGNAL_SOURCE = \
+  deps/try_signal/Jamfile \
+  deps/try_signal/project-root.jam \
+  deps/try_signal/LICENSE \
+  deps/try_signal/README.rst \
+  deps/try_signal/try_signal.cpp \
+  deps/try_signal/try_signal.hpp \
+  deps/try_signal/signal_error_code.cpp \
+  deps/try_signal/signal_error_code.hpp
+
 EXTRA_DIST = \
   Jamfile \
   Jamroot.jam \
@@ -120,7 +130,8 @@ EXTRA_DIST = \
   README.rst \
   $(DOCS_PAGES) \
   $(DOCS_IMAGES) \
-  $(ED25519_SOURCE)
+  $(ED25519_SOURCE) \
+  $(TRY_SIGNAL_SOURCE)
 
 pkgconfigdir   = $(libdir)/pkgconfig
 pkgconfig_DATA = libtorrent-rasterbar.pc

@@ -179,6 +179,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #define TORRENT_USE_DEV_RANDOM 1
 #define TORRENT_HAVE_MMAP 1
+#define TORRENT_USE_MADVISE 1
 
 #define TORRENT_HAS_FALLOCATE 0
 
@@ -191,15 +192,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #elif defined __linux__
 #define TORRENT_LINUX
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30) && !defined __ANDROID__
-# define TORRENT_USE_PREADV 1
-# define TORRENT_USE_PREAD 0
-#else
-# define TORRENT_USE_PREADV 0
-# define TORRENT_USE_PREAD 1
-#endif
-
 #define TORRENT_HAVE_MMAP 1
+#define TORRENT_USE_MADVISE 1
 #define TORRENT_USE_NETLINK 1
 #define TORRENT_USE_IFADDRS 0
 #define TORRENT_USE_IFCONF 1
@@ -233,6 +227,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #elif defined __MINGW32__ || defined __MINGW64__
 #define TORRENT_MINGW
 #define TORRENT_WINDOWS
+#define TORRENT_HAVE_MAP_VIEW_OF_FILE 1
 #ifndef TORRENT_USE_ICONV
 # define TORRENT_USE_ICONV 0
 # define TORRENT_USE_LOCALE 1
@@ -245,15 +240,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_USE_UNC_PATHS
 # define TORRENT_USE_UNC_PATHS 1
 #endif
-// these are emulated on windows
-#define TORRENT_USE_PREADV 1
-#define TORRENT_USE_PWRITEV 1
 
 // ==== WINDOWS ===
 #elif defined _WIN32
 #define TORRENT_WINDOWS
 #ifndef TORRENT_USE_GETIPFORWARDTABLE
 # define TORRENT_USE_GETIPFORWARDTABLE 1
+#endif
+
+#ifndef TORRENT_HAVE_MAP_VIEW_OF_FILE
+#define TORRENT_HAVE_MAP_VIEW_OF_FILE 1
 #endif
 
 # if !defined TORRENT_USE_LIBCRYPTO && !defined TORRENT_USE_LIBGCRYPT
@@ -285,9 +281,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_USE_UNC_PATHS
 # define TORRENT_USE_UNC_PATHS 1
 #endif
-// these are emulated on windows
-#define TORRENT_USE_PREADV 1
-#define TORRENT_USE_PWRITEV 1
 
 // ==== WINRT ===
 #if defined(WINAPI_FAMILY_PARTITION)
@@ -305,6 +298,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_HAS_SALEN 0
 #define TORRENT_HAS_SEM_RELTIMEDWAIT 1
 #define TORRENT_HAVE_MMAP 1
+#define TORRENT_USE_MADVISE 1
 
 // ==== BEOS ===
 #elif defined __BEOS__ || defined __HAIKU__
@@ -329,8 +323,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_USE_SYSCTL 1
 #define TORRENT_USE_IPV6 0
 #define TORRENT_ICONV_ARG(x) (x)
-#define TORRENT_USE_WRITEV 0
-#define TORRENT_USE_READV 0
 
 #else
 
@@ -458,6 +450,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_HAVE_MMAP 0
 #endif
 
+#ifndef TORRENT_HAVE_MAP_VIEW_OF_FILE
+#define TORRENT_HAVE_MAP_VIEW_OF_FILE 0
+#endif
+
+#ifndef TORRENT_USE_MADVISE
+#define TORRENT_USE_MADVISE 0
+#endif
+
 #ifndef TORRENT_COMPLETE_TYPES_REQUIRED
 #define TORRENT_COMPLETE_TYPES_REQUIRED 0
 #endif
@@ -480,16 +480,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_USE_IPV6
 #define TORRENT_USE_IPV6 1
-#endif
-
-// if preadv() exists, we assume pwritev() does as well
-#ifndef TORRENT_USE_PREADV
-#define TORRENT_USE_PREADV 0
-#endif
-
-// if pread() exists, we assume pwrite() does as well
-#ifndef TORRENT_USE_PREAD
-#define TORRENT_USE_PREAD 1
 #endif
 
 #ifndef TORRENT_NO_FPU

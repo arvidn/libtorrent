@@ -2828,7 +2828,6 @@ namespace libtorrent {
 			settings_pack::max_queued_disk_bytes);
 		if (write_queue_size > max_queue_size
 			&& write_queue_size - p.length < max_queue_size
-			&& m_settings.get_int(settings_pack::cache_size) > 5
 			&& t->alerts().should_post<performance_alert>())
 		{
 			t->alerts().emplace_alert<performance_alert>(t->get_handle()
@@ -5163,7 +5162,7 @@ namespace libtorrent {
 
 				m_disk_thread.async_read(t->storage(), r
 					, std::bind(&peer_connection::on_disk_read_complete
-					, self(), _1, _2, _3, r, clock_type::now()));
+					, self(), _1, _2, r, clock_type::now()));
 			}
 			m_last_sent_payload = clock_type::now();
 			m_requests.erase(m_requests.begin() + i);
@@ -5236,7 +5235,7 @@ namespace libtorrent {
 	}
 
 	void peer_connection::on_disk_read_complete(disk_buffer_holder buffer
-		, disk_job_flags_t const flags, storage_error const& error
+		, storage_error const& error
 		, peer_request const& r, time_point issue_time)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -5250,10 +5249,9 @@ namespace libtorrent {
 		if (should_log(peer_log_alert::info))
 		{
 			peer_log(peer_log_alert::info, "FILE_ASYNC_READ_COMPLETE"
-				, "piece: %d s: %x l: %x b: %p c: %s e: %s rtt: %d us"
+				, "piece: %d s: %x l: %x b: %p e: %s rtt: %d us"
 				, static_cast<int>(r.piece), r.start, r.length
 				, static_cast<void*>(buffer.get())
-				, (flags & disk_interface::cache_hit ? "cache hit" : "cache miss")
 				, error.ec.message().c_str(), disk_rtt);
 		}
 #endif
@@ -5315,8 +5313,7 @@ namespace libtorrent {
 		// we probably just pulled this piece into the cache.
 		// if it's rare enough to make it into the suggested piece
 		// push another piece out
-		if (m_settings.get_int(settings_pack::suggest_mode) == settings_pack::suggest_read_cache
-			&& !(flags & disk_interface::cache_hit))
+		if (m_settings.get_int(settings_pack::suggest_mode) == settings_pack::suggest_read_cache)
 		{
 			t->add_suggest_piece(r.piece);
 		}

@@ -40,8 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/socket_io.hpp"
-#include "libtorrent/file_pool.hpp"
 #include "libtorrent/string_view.hpp"
+#include "libtorrent/disk_io_thread.hpp"
 #include <random>
 #include <cstring>
 #include <thread>
@@ -840,11 +840,50 @@ void generate_torrent(std::vector<char>& buf, int size, int num_files
 	bencode(out, t.generate());
 }
 
+void write_handler(file_storage const& fs
+	, disk_io_thread& disk, storage_holder& st
+	, piece_index_t& piece, int& offset
+	, lt::storage_error const& error)
+{
+	if (error)
+	{
+		std::fprintf(stderr, "storage error: %s\n", error.ec.message().c_str());
+		return;
+	}
+
+	if (piece >= fs.end_piece()) return;
+	offset += 0x4000;
+	if (offset >= fs.piece_size(piece))
+	{
+		offset = 0;
+		++piece;
+	}
+	if (piece >= fs.end_piece()) return;
+
+	if (static_cast<int>(piece) & 1)
+	{
+		std::fprintf(stderr, "\r%.1f %% "
+			, float(static_cast<int>(piece) * 100) / float(fs.num_pieces()));
+	}
+	std::uint32_t buffer[0x4000 / 4];
+	generate_block(buffer, piece, offset);
+
+	int const left_in_piece = fs.piece_size(piece) - offset;
+
+	disk.async_write(st, { piece, offset, std::min(left_in_piece, 0x4000)}
+		, reinterpret_cast<char const*>(buffer)
+		, std::shared_ptr<disk_observer>()
+		, [&](lt::storage_error const& error)
+		{ write_handler(fs, disk, st, piece, offset, error); });
+};
+
 void generate_data(char const* path, torrent_info const& ti)
 {
-	file_storage const& fs = ti.files();
+	io_service ios;
+	counters stats_counters;
+	std::unique_ptr<lt::disk_io_thread> disk(new disk_io_thread(ios, stats_counters));
 
-	file_pool fp;
+	file_storage const& fs = ti.files();
 
 	aux::vector<std::uint8_t, file_index_t> priorities;
 	sha1_hash info_hash;
@@ -857,32 +896,27 @@ void generate_data(char const* path, torrent_info const& ti)
 		info_hash
 	};
 
-	std::unique_ptr<storage_interface> st(default_storage_constructor(params, fp));
+	storage_holder st = disk->new_torrent(params, std::shared_ptr<void>());
 
+	piece_index_t piece(0);
+	int offset = 0;
+
+	std::uint32_t buffer[0x4000 / 4];
+	generate_block(buffer, piece, offset);
+
+	disk->async_write(st, { piece, offset, std::min(fs.piece_size(piece), 0x4000)}
+		, reinterpret_cast<char const*>(buffer)
+		, std::shared_ptr<disk_observer>()
+		, [&](lt::storage_error const& error)
+		{ write_handler(fs, *disk, st, piece, offset, error); });
+
+	// keep 10 writes in flight at all times
+	for (int i = 0; i < 10; ++i)
 	{
-		storage_error error;
-		st->initialize(error);
+		write_handler(fs, *disk, st, piece, offset, lt::storage_error());
 	}
 
-	std::uint32_t piece[0x4000 / 4];
-	for (piece_index_t i(0); i < piece_index_t(ti.num_pieces()); ++i)
-	{
-		for (int j = 0; j < ti.piece_size(i); j += 0x4000)
-		{
-			generate_block(piece, i, j);
-			int const left_in_piece = ti.piece_size(i) - j;
-			iovec_t const b = { reinterpret_cast<char*>(piece)
-				, size_t(std::min(left_in_piece, 0x4000))};
-			storage_error error;
-			st->writev(b, i, j, open_mode::write_only, error);
-			if (error)
-				std::fprintf(stderr, "storage error: %s\n", error.ec.message().c_str());
-		}
-		if (static_cast<int>(i) & 1)
-		{
-			std::fprintf(stderr, "\r%.1f %% ", float(static_cast<int>(i) * 100) / float(ti.num_pieces()));
-		}
-	}
+	ios.run();
 }
 
 void io_thread(io_service* ios)

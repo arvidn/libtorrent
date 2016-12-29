@@ -34,8 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	add_torrent_params::add_torrent_params(storage_constructor_type sc)
-		: storage(storage_constructor_type(sc)) {}
+	add_torrent_params::add_torrent_params() = default;
 	add_torrent_params::add_torrent_params(add_torrent_params&&) noexcept = default;
 	add_torrent_params& add_torrent_params::operator=(add_torrent_params&&) = default;
 	add_torrent_params::add_torrent_params(add_torrent_params const&) = default;

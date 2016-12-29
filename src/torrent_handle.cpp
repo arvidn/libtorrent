@@ -638,11 +638,6 @@ namespace libtorrent {
 		return sync_call_ret<bool>(false, &torrent::have_piece, piece);
 	}
 
-	storage_interface* torrent_handle::get_storage_impl() const
-	{
-		return sync_call_ret<storage_interface*>(nullptr, &torrent::get_storage_impl);
-	}
-
 	bool torrent_handle::is_valid() const
 	{
 		return !m_torrent.expired();

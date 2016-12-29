@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2016, Arvid Norberg
+Copyright (c) 2017, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,35 +30,25 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_STORAGE_PIECE_SET_HPP_INCLUDE
-#define TORRENT_STORAGE_PIECE_SET_HPP_INCLUDE
+#ifndef TORRENT_POSIX_DISK_IO
+#define TORRENT_POSIX_DISK_IO
 
-#include <unordered_set>
+#include "libtorrent/config.hpp"
+#include "libtorrent/io_service.hpp"
 
-#include "libtorrent/export.hpp"
+#include <memory>
 
 namespace libtorrent {
 
-struct cached_piece_entry;
+	struct counters;
+	struct disk_interface;
 
-namespace aux {
-
-	// this class keeps track of which pieces, belonging to
-	// a specific storage, are in the cache right now. It's
-	// used for quickly being able to evict all pieces for a
-	// specific torrent
-	struct TORRENT_EXPORT storage_piece_set
-	{
-		void add_piece(cached_piece_entry* p);
-		void remove_piece(cached_piece_entry* p);
-		bool has_piece(cached_piece_entry const* p) const;
-		int num_pieces() const { return int(m_cached_pieces.size()); }
-		std::unordered_set<cached_piece_entry*> const& cached_pieces() const
-		{ return m_cached_pieces; }
-	private:
-		// these are cached pieces belonging to this storage
-		std::unordered_set<cached_piece_entry*> m_cached_pieces;
-	};
-}}
+	// this is a simple posix disk I/O back-end, used for systems that don't
+	// havea 64 bit virtual address space or don't support memory mapped files.
+	// It's implemented using portable C file functions and is single-threaded.
+	TORRENT_EXPORT std::unique_ptr<disk_interface> posix_disk_io_constructor(
+		io_service& ios, counters& cnt);
+}
 
 #endif
+

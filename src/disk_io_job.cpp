@@ -31,7 +31,6 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/disk_io_job.hpp"
-#include "libtorrent/block_cache.hpp" // for cached_piece_entry
 #include "libtorrent/disk_buffer_holder.hpp"
 
 #include <boost/variant/get.hpp>
@@ -48,7 +47,7 @@ namespace libtorrent {
 			{
 				if (!h) return;
 				h(std::move(boost::get<disk_buffer_holder>(m_job.argument))
-					, m_job.flags, m_job.error);
+					, m_job.error);
 			}
 
 			void operator()(disk_io_job::write_handler& h) const
@@ -114,25 +113,5 @@ namespace libtorrent {
 	void disk_io_job::call_callback()
 	{
 		boost::apply_visitor(caller_visitor(*this), callback);
-	}
-
-	bool disk_io_job::completed(cached_piece_entry const* pe, int block_size)
-	{
-		if (action != job_action_t::write) return false;
-
-		int block_offset = d.io.offset & (block_size - 1);
-		int size = d.io.buffer_size;
-		int start = d.io.offset / block_size;
-		int end = block_offset > 0 && (size > block_size - block_offset) ? start + 2 : start + 1;
-
-		for (int i = start; i < end; ++i)
-		{
-			cached_block_entry const& b = pe->blocks[i];
-			if (b.dirty || b.pending) return false;
-		}
-
-		// if all our blocks are not pending and not dirty, it means they
-		// were successfully written to disk. This job is complete
-		return true;
 	}
 }

@@ -91,8 +91,16 @@ TORRENT_TEST(part_file)
 		pf.readv(v, piece_index_t(10), 0, ec);
 		if (ec) std::printf("part_file::readv: %s\n", ec.message().c_str());
 
-		for (int i = 0; i < 1024; ++i)
+		for (int i = 0; i < int(sizeof(buf)); ++i)
 			TEST_CHECK(buf[i] == char(i));
+
+		sha1_hash const cmp_hash = hasher(buf).final();
+
+		hasher ph;
+		pf.hashv(ph, sizeof(buf), piece_index_t(10), 0, ec);
+		if (ec) std::printf("part_file::hashv: %s\n", ec.message().c_str());
+
+		TEST_CHECK(ph.final() == cmp_hash);
 	}
 
 	{

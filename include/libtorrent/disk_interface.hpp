@@ -128,7 +128,7 @@ namespace libtorrent {
 	struct disk_job_flags_tag;
 	using disk_job_flags_t = flags::bitfield_flag<std::uint8_t, disk_job_flags_tag>;
 
-	struct TORRENT_EXTRA_EXPORT disk_interface
+	struct TORRENT_EXPORT disk_interface
 	{
 		// force making a copy of the cached block, rather
 		// than getting a reference to the block already in
@@ -142,17 +142,13 @@ namespace libtorrent {
 		// don't keep the read block in cache
 		static constexpr disk_job_flags_t volatile_read = 4_bit;
 
-		// this flag is set on a job when a read operation did
-		// not hit the disk, but found the data in the read cache.
-		static constexpr disk_job_flags_t cache_hit = 5_bit;
+		virtual storage_holder new_torrent(storage_params p
+			, std::shared_ptr<void> const& torrent) = 0;
 
-		virtual storage_holder new_torrent(storage_constructor_type sc
-			, storage_params p, std::shared_ptr<void> const&) = 0;
 		virtual void remove_torrent(storage_index_t) = 0;
-		virtual storage_interface* get_torrent(storage_index_t) = 0;
 
 		virtual void async_read(storage_index_t storage, peer_request const& r
-			, std::function<void(disk_buffer_holder block, disk_job_flags_t flags, storage_error const& se)> handler
+			, std::function<void(disk_buffer_holder, storage_error const&)> handler
 			, disk_job_flags_t flags = {}) = 0;
 		virtual bool async_write(storage_index_t storage, peer_request const& r
 			, char const* buf, std::shared_ptr<disk_observer> o
@@ -168,8 +164,6 @@ namespace libtorrent {
 			, add_torrent_params const* resume_data
 			, aux::vector<std::string, file_index_t>& links
 			, std::function<void(status_t, storage_error const&)> handler) = 0;
-		virtual void async_flush_piece(storage_index_t storage, piece_index_t piece
-			, std::function<void()> handler = std::function<void()>()) = 0;
 		virtual void async_stop_torrent(storage_index_t storage
 			, std::function<void()> handler = std::function<void()>()) = 0;
 		virtual void async_rename_file(storage_index_t storage
@@ -183,21 +177,16 @@ namespace libtorrent {
 
 		virtual void async_clear_piece(storage_index_t storage, piece_index_t index
 			, std::function<void(piece_index_t)> handler) = 0;
-		virtual void clear_piece(storage_index_t storage, piece_index_t index) = 0;
 
 		virtual void update_stats_counters(counters& c) const = 0;
-		virtual void get_cache_info(cache_status* ret, storage_index_t storage
-			, bool no_pieces = true, bool session = true) const = 0;
 
 		virtual std::vector<open_file_state> get_status(storage_index_t) const = 0;
 
+		virtual void abort(bool wait) = 0;
 		virtual void submit_jobs() = 0;
+		virtual void set_settings(settings_pack const* sett) = 0;
 
-#if TORRENT_USE_ASSERTS
-		virtual bool is_disk_buffer(char* buffer) const = 0;
-#endif
-	protected:
-		~disk_interface() {}
+		virtual ~disk_interface() {}
 	};
 
 	struct storage_holder

@@ -761,7 +761,7 @@ namespace aux {
 
 		void do_update_interest();
 		void fill_send_buffer();
-		void on_disk_read_complete(disk_buffer_holder disk_block, disk_job_flags_t flags
+		void on_disk_read_complete(disk_buffer_holder disk_block
 			, storage_error const& error, peer_request const& r, time_point issue_time);
 		void on_disk_write_complete(storage_error const& error
 			, peer_request const &r, std::shared_ptr<torrent> t);

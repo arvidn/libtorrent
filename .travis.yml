@@ -10,13 +10,13 @@ matrix:
     - env: variant=test_release coverage=1 tests=1 toolset=gcc-coverage python=1
     - env: autotools=1 toolset=gcc
     - os: osx
-      osx_image: xcode7.3
+      osx_image: xcode8.3
       env: variant=test_release docs=1 tests=1 toolset=darwin
     - os: osx
-      osx_image: xcode7.3
+      osx_image: xcode8.3
       env: variant=test_debug crypto=openssl tests=1 toolset=darwin
     - os: osx
-      osx_image: xcode7.3
+      osx_image: xcode8.3
       env: variant=test_barebones tools=1 examples=1 toolset=darwin python=1
     - env: arch=arm toolset=gcc-arm
 
@@ -32,6 +32,7 @@ branches:
     - master
     - RC_1_1
     - RC_1_0
+    - new-disk-io
 
 cache:
   directories:
@@ -42,11 +43,8 @@ cache:
 addons:
   apt:
     sources:
-    - boost-latest
     - ubuntu-toolchain-r-test
     packages:
-    - libboost1.55-all-dev
-    - libboost1.55-tools-dev
     - python2.7-dev
     - g++-5
 
@@ -54,6 +52,16 @@ before_install:
 
   - 'if [[ "$TRAVIS_PULL_REQUEST" != "false" || "$TRAVIS_BRANCH" != "master" ]]; then
       export sonar_scan=0;
+    fi'
+
+  # on linux, pull down a recent version of boost and build boost-build
+  - 'if [[ $TRAVIS_OS_NAME == "linux" ]]; then
+    wget https://dl.bintray.com/boostorg/release/1.64.0/source/boost_1_64_0.zip;
+    unzip -qq boost_1_64_0.zip;
+    export BOOST_ROOT=$PWD/boost_1_64_0;
+    (cd boost_1_64_0/tools/build/src/engine; ./build.sh);
+    export BOOST_BUILD_PATH=$BOOST_ROOT/tools/build;
+    export PATH=$BOOST_BUILD_PATH/src/engine/bin.linuxx86_64:$PATH;
     fi'
 
   - git submodule update --init --recursive
@@ -128,9 +136,6 @@ install:
       tar xf gcc-linaro.tar.xz;
       export PATH=${PWD}/gcc-linaro-5.3.1-2016.05-x86_64_armv8l-linux-gnueabihf/bin:${PATH};
       armv8l-linux-gnueabihf-g++ --version;
-      wget -O boost.zip http://pilotfiber.dl.sourceforge.net/project/boost/boost/1.55.0/boost_1_55_0.zip;
-      unzip -qq boost.zip;
-      export BOOST_ROOT=$PWD/boost_1_55_0;
       travis_retry sudo apt-get install -y qemu-user-static debootstrap;
       travis_retry sudo debootstrap --variant=minbase --arch armhf --foreign --include=build-essential testing rootfs;
       sudo cp /usr/bin/qemu-arm-static rootfs/usr/bin/;
@@ -195,12 +200,13 @@ script:
 
 # run through autotools and ./configure to make sure it works
   - 'if [[ "$autotools" == "1" ]]; then
+      (cd $BOOST_ROOT; bjam -j2 stage);
       ./autotool.sh &&
       export CXX=g++-5 &&
       export CC=gcc-5 &&
       export CXXFLAGS="-Werror -Wno-deprecated-declarations" &&
       ./configure --enable-debug --enable-encryption --enable-examples --enable-tests --enable-python-binding &&
-      make -j2 check;
+      LD_LIBRARY_PATH=$BOOST_ROOT/stage/lib make -j2 check;
     fi'
 
   - ccache --show-stats
