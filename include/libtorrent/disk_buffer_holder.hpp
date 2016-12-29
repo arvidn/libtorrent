@@ -102,7 +102,8 @@ namespace libtorrent
 			std::swap(h.m_ref, m_ref);
 		}
 
-		aux::block_cache_reference ref() const noexcept { return m_ref; }
+		// if this returns true, the buffer may not be modified in place
+		bool is_mutable() const noexcept { return m_ref.storage == nullptr; }
 
 		// implicitly convertible to true if the object is currently holding a
 		// buffer

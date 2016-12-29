@@ -521,8 +521,6 @@ namespace libtorrent
 		// the last time we expired write blocks from the cache
 		time_point m_last_cache_expiry = min_time();
 
-		time_point m_last_file_check;
-
 		// LRU cache of open files
 		file_pool m_file_pool{40};
 

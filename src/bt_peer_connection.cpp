@@ -2463,7 +2463,7 @@ namespace libtorrent
 			send_buffer(msg, 13);
 		}
 
-		if (buffer.ref().storage == nullptr)
+		if (buffer.is_mutable())
 		{
 			append_send_buffer(std::move(buffer), r.length);
 		}
