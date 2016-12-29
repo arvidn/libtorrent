@@ -100,10 +100,6 @@ namespace libtorrent {
 		// the send buffer
 		set.set_int(settings_pack::send_buffer_watermark, 9);
 
-		// don't use any disk cache
-		set.set_int(settings_pack::cache_size, 0);
-		set.set_bool(settings_pack::use_read_cache, false);
-
 		set.set_bool(settings_pack::close_redundant_connections, true);
 
 		set.set_int(settings_pack::max_peerlist_size, 500);
@@ -162,14 +158,8 @@ namespace libtorrent {
 		// unchoke many peers
 		set.set_int(settings_pack::unchoke_slots_limit, 2000);
 
-		// use 1 GB of cache
-		set.set_int(settings_pack::cache_size, 32768 * 2);
-		set.set_bool(settings_pack::use_read_cache, true);
 		set.set_int(settings_pack::read_cache_line_size, 32);
 		set.set_int(settings_pack::write_cache_line_size, 256);
-		// 30 seconds expiration to save cache
-		// space for active pieces
-		set.set_int(settings_pack::cache_expiry, 30);
 
 		// in case the OS we're running on doesn't support
 		// readv/writev, allocate contiguous buffers for
@@ -317,7 +307,7 @@ namespace libtorrent {
 		m_impl->set_dht_storage(params.dht_storage_constructor);
 #endif
 
-		m_impl->start_session(std::move(params.settings));
+		m_impl->start_session(std::move(params.settings), std::move(params.disk_io_constructor));
 
 		if (internal_executor)
 		{

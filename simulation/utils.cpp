@@ -66,6 +66,7 @@ void filter_ips(lt::session& ses)
 	ses.set_ip_filter(filter);
 }
 
+#ifndef TORRENT_NO_DEPRECATE
 void set_cache_size(lt::session& ses, int val)
 {
 	settings_pack pack;
@@ -97,6 +98,7 @@ int get_cache_size(lt::session& ses)
 	TEST_CHECK(cache_size < std::numeric_limits<int>::max());
 	return int(cache_size);
 }
+#endif
 
 void set_proxy(lt::session& ses, int proxy_type, int flags, bool proxy_peer_connections)
 {

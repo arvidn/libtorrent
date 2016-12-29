@@ -62,9 +62,6 @@ void test_remove_torrent(remove_flags_t const remove_options
 	std::vector<session_proxy> sp;
 	settings_pack pack = settings();
 
-	// we do this to force pieces to be evicted into the ghost lists
-	pack.set_int(settings_pack::cache_size, 10);
-
 	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48075");
 	lt::session ses1(pack);
 

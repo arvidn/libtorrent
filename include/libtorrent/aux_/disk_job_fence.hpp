@@ -64,14 +64,10 @@ namespace aux {
 
 		// returns one of the fence_* enums.
 		// if there are no outstanding jobs on the
-		// storage, fence_post_fence is returned, the flush job is expected
-		// to be discarded by the caller.
-		// fence_post_flush is returned if the fence job was blocked and queued,
-		// but the flush job should be posted (i.e. put on the job queue)
-		// fence_post_none if both the fence and the flush jobs were queued.
-		enum { fence_post_fence = 0, fence_post_flush = 1, fence_post_none = 2 };
-		int raise_fence(disk_io_job* fence_job, disk_io_job* flush_job
-			, counters& cnt);
+		// storage, fence_post_fence is returned.
+		// fence_post_none if the fence job was queued.
+		enum { fence_post_fence = 0, fence_post_none = 1 };
+		int raise_fence(disk_io_job* fence_job, counters& cnt);
 		bool has_fence() const;
 
 		// called whenever a job completes and is posted back to the

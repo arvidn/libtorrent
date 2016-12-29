@@ -244,52 +244,6 @@ TORRENT_TEST(paused_session)
 	TEST_CHECK(!(h.flags() & torrent_flags::paused));
 }
 
-TORRENT_TEST(get_cache_info)
-{
-	lt::session s(settings());
-	lt::cache_status ret;
-	s.get_cache_info(&ret);
-
-	TEST_CHECK(ret.pieces.empty());
-#ifndef TORRENT_NO_DEPRECATE
-	TEST_EQUAL(ret.blocks_written, 0);
-	TEST_EQUAL(ret.writes, 0);
-	TEST_EQUAL(ret.blocks_read, 0);
-	TEST_EQUAL(ret.blocks_read_hit, 0);
-	TEST_EQUAL(ret.reads, 0);
-	TEST_EQUAL(ret.queued_bytes, 0);
-	TEST_EQUAL(ret.cache_size, 0);
-	TEST_EQUAL(ret.write_cache_size, 0);
-	TEST_EQUAL(ret.read_cache_size, 0);
-	TEST_EQUAL(ret.pinned_blocks, 0);
-	TEST_EQUAL(ret.total_used_buffers, 0);
-	TEST_EQUAL(ret.average_read_time, 0);
-	TEST_EQUAL(ret.average_write_time, 0);
-	TEST_EQUAL(ret.average_hash_time, 0);
-	TEST_EQUAL(ret.average_job_time, 0);
-	TEST_EQUAL(ret.cumulative_job_time, 0);
-	TEST_EQUAL(ret.cumulative_read_time, 0);
-	TEST_EQUAL(ret.cumulative_write_time, 0);
-	TEST_EQUAL(ret.cumulative_hash_time, 0);
-	TEST_EQUAL(ret.total_read_back, 0);
-	TEST_EQUAL(ret.read_queue_size, 0);
-	TEST_EQUAL(ret.blocked_jobs, 0);
-	TEST_EQUAL(ret.queued_jobs, 0);
-	TEST_EQUAL(ret.peak_queued, 0);
-	TEST_EQUAL(ret.pending_jobs, 0);
-	TEST_EQUAL(ret.num_jobs, 0);
-	TEST_EQUAL(ret.num_read_jobs, 0);
-	TEST_EQUAL(ret.num_write_jobs, 0);
-	TEST_EQUAL(ret.arc_mru_size, 0);
-	TEST_EQUAL(ret.arc_mru_ghost_size, 0);
-	TEST_EQUAL(ret.arc_mfu_size, 0);
-	TEST_EQUAL(ret.arc_mfu_ghost_size, 0);
-	TEST_EQUAL(ret.arc_write_size, 0);
-	TEST_EQUAL(ret.arc_volatile_size, 0);
-	TEST_EQUAL(ret.num_writing_threads, 0);
-#endif
-}
-
 template <typename Set, typename Save, typename Default, typename Load>
 void test_save_restore(Set setup, Save s, Default d, Load l)
 {

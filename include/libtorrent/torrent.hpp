@@ -964,7 +964,6 @@ namespace libtorrent {
 
 		bool has_storage() const { return bool(m_storage); }
 		storage_index_t storage() const { return m_storage; }
-		storage_interface* get_storage_impl() const;
 
 		torrent_info const& torrent_file() const
 		{ return *m_torrent_file; }
@@ -1324,8 +1323,6 @@ namespace libtorrent {
 		// once the metadata is received this field will no
 		// longer be used and will be reset
 		std::unique_ptr<std::string> m_name;
-
-		storage_constructor_type m_storage_constructor;
 
 		// the posix time this torrent was added and when
 		// it was completed. If the torrent isn't yet

@@ -43,6 +43,8 @@ else
 		: : $(boost-include-path) ;
 }
 
+use-project /try_signal : ./deps/try_signal ;
+
 VERSION = 1.2.0 ;
 
 # rule for linking the correct libraries depending
@@ -219,6 +221,15 @@ rule linking ( properties * )
 		<define>BOOST_MULTI_INDEX_DISABLE_SERIALIZATION
 		<define>BOOST_SYSTEM_NO_DEPRECATED
 		;
+
+	if <link>shared in $(properties)
+	{
+		result += <library>/try_signal//try_signal/<link>static/<fpic>on ;
+	}
+	else
+	{
+		result += <library>/try_signal//try_signal/<link>static ;
+	}
 
 	return $(result) ;
 }
@@ -557,7 +568,6 @@ SOURCES =
 	bandwidth_queue_entry
 	bdecode
 	bitfield
-	block_cache
 	bloom_filter
 	chained_buffer
 	choker
@@ -570,6 +580,7 @@ SOURCES =
 	disk_io_job
 	disk_io_thread
 	disk_io_thread_pool
+	disabled_disk_io
 	disk_job_fence
 	disk_job_pool
 	entry
@@ -624,7 +635,6 @@ SOURCES =
 	socks5_stream
 	stat
 	storage
-	storage_piece_set
 	storage_utils
 	torrent
 	torrent_handle
@@ -642,7 +652,7 @@ SOURCES =
 	utf8
 	utp_socket_manager
 	utp_stream
-	file_pool
+	file_view_pool
 	lsd
 	enum_net
 	broadcast_socket
@@ -666,6 +676,9 @@ SOURCES =
 	add_torrent_params
 	peer_info
 	stack_allocator
+	mmap
+	posix_disk_io
+	posix_storage
 
 # -- extensions --
 	ut_pex
@@ -728,6 +741,7 @@ local usage-requirements =
 # msvc optimizations
 	<toolset>msvc,<variant>release:<linkflags>/OPT:ICF=5
 	<toolset>msvc,<variant>release:<linkflags>/OPT:REF
+	<target-os>windows:<asynch-exceptions>on
 
 	# disable bogus deprecation warnings on msvc8
 	<toolset>msvc:<define>_SCL_SECURE_NO_DEPRECATE

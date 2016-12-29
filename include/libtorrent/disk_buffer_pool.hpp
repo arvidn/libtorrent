@@ -55,26 +55,14 @@ namespace libtorrent {
 
 	struct TORRENT_EXTRA_EXPORT disk_buffer_pool
 	{
-		disk_buffer_pool(int block_size, io_service& ios
-			, std::function<void()> const& trigger_trim);
-		disk_buffer_pool(disk_buffer_pool const&) = delete;
-		disk_buffer_pool& operator=(disk_buffer_pool const&) = delete;
+		disk_buffer_pool(int block_size, io_service& ios);
 		~disk_buffer_pool();
-
-#if TORRENT_USE_ASSERTS
-		bool is_disk_buffer(char* buffer
-			, std::unique_lock<std::mutex>& l) const;
-		bool is_disk_buffer(char* buffer) const;
-#endif
 
 		char* allocate_buffer(char const* category);
 		char* allocate_buffer(bool& exceeded, std::shared_ptr<disk_observer> o
 			, char const* category);
 		void free_buffer(char* buf);
 		void free_multiple_buffers(span<char*> bufvec);
-
-		int allocate_iovec(span<iovec_t> iov);
-		void free_iovec(span<iovec_t const> iov);
 
 		int block_size() const { return m_block_size; }
 
@@ -83,7 +71,6 @@ namespace libtorrent {
 			std::unique_lock<std::mutex> l(m_pool_mutex);
 			return m_in_use;
 		}
-		int num_to_evict(int num_needed = 0);
 
 		void set_settings(aux::session_settings const& sett);
 
@@ -112,9 +99,6 @@ namespace libtorrent {
 		// of buffers in use drops below the low watermark,
 		// we start calling these functions back
 		std::vector<std::weak_ptr<disk_observer>> m_observers;
-
-		// callback used to tell the cache it needs to free up some blocks
-		std::function<void()> m_trigger_cache_trim;
 
 		// set to true to throttle more allocations
 		bool m_exceeded_max_size;

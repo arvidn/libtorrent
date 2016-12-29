@@ -46,8 +46,10 @@ namespace libtorrent
 void utp_only(lt::session& ses);
 void enable_enc(lt::session& ses);
 void filter_ips(lt::session& ses);
+#ifndef TORRENT_NO_DEPRECATE
 void set_cache_size(lt::session& ses, int val);
 int get_cache_size(lt::session& ses);
+#endif
 
 std::unique_ptr<sim::asio::io_service> make_io_service(
 	sim::simulation& sim, int i);

@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/units.hpp"
+#include "libtorrent/hasher.hpp"
 
 namespace libtorrent {
 
@@ -58,6 +59,7 @@ namespace libtorrent {
 
 		int writev(span<iovec_t const> bufs, piece_index_t piece, int offset, error_code& ec);
 		int readv(span<iovec_t const> bufs, piece_index_t piece, int offset, error_code& ec);
+		int hashv(hasher& ph, std::size_t len, piece_index_t piece, int offset, error_code& ec);
 
 		// free the slot the given piece is stored in. We no longer need to store this
 		// piece in the part file

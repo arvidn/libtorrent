@@ -333,36 +333,3 @@ TORRENT_TEST(no_proxy_utp_banned)
 	);
 }
 
-TORRENT_TEST(auto_disk_cache_size)
-{
-	using namespace lt;
-	run_test(
-		[](lt::session& ses0, lt::session&) { set_cache_size(ses0, -1); },
-		[](lt::session&, lt::alert const*) {},
-		[](std::shared_ptr<lt::session> ses[2]) {
-			TEST_EQUAL(is_seed(*ses[0]), true);
-
-			int const cache_size = get_cache_size(*ses[0]);
-			std::printf("cache size: %d\n", cache_size);
-			// this assumes the test torrent is at least 4 blocks
-			TEST_CHECK(cache_size > 4);
-		}
-	);
-}
-
-TORRENT_TEST(disable_disk_cache)
-{
-	using namespace lt;
-	run_test(
-		[](lt::session& ses0, lt::session&) { set_cache_size(ses0, 0); },
-		[](lt::session&, lt::alert const*) {},
-		[](std::shared_ptr<lt::session> ses[2]) {
-			TEST_EQUAL(is_seed(*ses[0]), true);
-
-			int const cache_size = get_cache_size(*ses[0]);
-			std::printf("cache size: %d\n", cache_size);
-			TEST_EQUAL(cache_size, 0);
-		}
-	);
-}
-

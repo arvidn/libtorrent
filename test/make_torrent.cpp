@@ -37,7 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
-#include "libtorrent/file_pool.hpp"
+#include "libtorrent/aux_/file_view_pool.hpp"
+#include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/storage_defs.hpp"
 
 using namespace lt;
@@ -167,7 +168,7 @@ std::shared_ptr<lt::torrent_info> make_test_torrent(torrent_args const& args)
 void generate_files(lt::torrent_info const& ti, std::string const& path
 	, bool alternate_data)
 {
-	file_pool fp;
+	aux::file_view_pool fp;
 
 	aux::vector<std::uint8_t, file_index_t> priorities;
 	sha1_hash info_hash;
@@ -180,6 +181,8 @@ void generate_files(lt::torrent_info const& ti, std::string const& path
 		info_hash
 	};
 
+	// default settings
+	aux::session_settings sett;
 	default_storage st(params, fp);
 
 	file_storage const& fs = ti.files();
@@ -198,7 +201,7 @@ void generate_files(lt::torrent_info const& ti, std::string const& path
 
 		iovec_t b = { &buffer[0], size_t(piece_size) };
 		storage_error ec;
-		int ret = st.writev(b, i, 0, open_mode::read_only, ec);
+		int ret = st.writev(sett, b, i, 0, aux::open_mode::read_only, ec);
 		if (ret != piece_size || ec)
 		{
 			std::printf("ERROR writing files: (%d expected %d) %s\n"

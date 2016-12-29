@@ -76,7 +76,6 @@ category_mapping = {
 	'storage.hpp': 'Custom Storage',
 	'storage_defs.hpp': 'Storage',
 	'file_storage.hpp': 'Storage',
-	'file_pool.hpp': 'Custom Storage',
 	'extensions.hpp': 'Plugins',
 	'ut_metadata.hpp': 'Plugins',
 	'ut_pex.hpp': 'Plugins',
