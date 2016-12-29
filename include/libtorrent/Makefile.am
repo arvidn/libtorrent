@@ -16,7 +16,6 @@ nobase_include_HEADERS = \
   bencode.hpp                  \
   bdecode.hpp                  \
   bitfield.hpp                 \
-  block_cache.hpp              \
   bloom_filter.hpp             \
   broadcast_socket.hpp         \
   bt_peer_connection.hpp       \
@@ -39,6 +38,7 @@ nobase_include_HEADERS = \
   disk_io_thread_pool.hpp      \
   disk_observer.hpp            \
   disk_job_pool.hpp            \
+  disabled_disk_io.hpp         \
   ed25519.hpp                  \
   entry.hpp                    \
   enum_net.hpp                 \
@@ -46,7 +46,6 @@ nobase_include_HEADERS = \
   error_code.hpp               \
   extensions.hpp               \
   file.hpp                     \
-  file_pool.hpp                \
   file_storage.hpp             \
   fingerprint.hpp              \
   flags.hpp                    \
@@ -160,6 +159,7 @@ nobase_include_HEADERS = \
   span.hpp                     \
   download_priority.hpp        \
   index_range.hpp              \
+  posix_disk_io.hpp            \
   \
   aux_/allocating_handler.hpp       \
   aux_/aligned_storage.hpp          \
@@ -189,7 +189,6 @@ nobase_include_HEADERS = \
   aux_/session_interface.hpp        \
   aux_/suggest_piece.hpp            \
   aux_/socket_type.hpp              \
-  aux_/storage_piece_set.hpp        \
   aux_/string_ptr.hpp               \
   aux_/time.hpp                     \
   aux_/file_progress.hpp            \
@@ -217,6 +216,11 @@ nobase_include_HEADERS = \
   aux_/torrent_impl.hpp             \
   aux_/instantiate_connection.hpp   \
   aux_/range.hpp                    \
+  aux_/mmap.hpp                     \
+  aux_/store_buffer.hpp             \
+  aux_/file_view_pool.hpp           \
+  aux_/posix_storage.hpp            \
+  aux_/open_mode.hpp                \
   \
   extensions/smart_ban.hpp          \
   extensions/ut_metadata.hpp        \

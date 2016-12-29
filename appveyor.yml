@@ -4,6 +4,7 @@ branches:
   - master
   - RC_1_1
   - RC_1_0
+  - new-disk-io
 os: Visual Studio 2015
 clone_depth: 1
 environment:

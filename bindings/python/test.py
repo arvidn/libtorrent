@@ -226,11 +226,6 @@ class test_torrent_handle(unittest.TestCase):
         # from python
         self.h.scrape_tracker()
 
-    def test_cache_info(self):
-        self.setup()
-        cs = self.ses.get_cache_info(self.h)
-        self.assertEqual(cs.pieces, [])
-
     def test_unknown_torrent_parameter(self):
         self.ses = lt.session(settings)
         try:

@@ -429,7 +429,7 @@ namespace libtorrent {
 			error_code error;
 		};
 		void read_piece(piece_index_t piece);
-		void on_disk_read_complete(disk_buffer_holder block, disk_job_flags_t, storage_error const& se
+		void on_disk_read_complete(disk_buffer_holder block, storage_error const& se
 			, peer_request const& r, std::shared_ptr<read_piece_struct> rp);
 
 		storage_mode_t storage_mode() const;
@@ -976,7 +976,6 @@ namespace libtorrent {
 
 		bool has_storage() const { return bool(m_storage); }
 		storage_index_t storage() const { return m_storage; }
-		storage_interface* get_storage_impl() const;
 
 		torrent_info const& torrent_file() const
 		{ return *m_torrent_file; }
@@ -1332,8 +1331,6 @@ namespace libtorrent {
 		// once the metadata is received this field will no
 		// longer be used and will be reset
 		std::unique_ptr<std::string> m_name;
-
-		storage_constructor_type m_storage_constructor;
 
 		// the posix time this torrent was added and when
 		// it was completed. If the torrent isn't yet

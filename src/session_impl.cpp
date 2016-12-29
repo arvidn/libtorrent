@@ -88,6 +88,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hex.hpp" // to_hex, from_hex
 #include "libtorrent/aux_/scope_end.hpp"
 #include "libtorrent/aux_/set_socket_buffer.hpp"
+#include "libtorrent/posix_disk_io.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
 
@@ -395,7 +396,8 @@ namespace aux {
 #endif
 #endif
 
-	session_impl::session_impl(io_service& ios, settings_pack const& pack)
+	session_impl::session_impl(io_service& ios, settings_pack const& pack
+		, disk_io_constructor_type disk_io_constructor)
 		: m_settings(pack)
 		, m_io_service(ios)
 #ifdef TORRENT_USE_OPENSSL
@@ -403,7 +405,16 @@ namespace aux {
 #endif
 		, m_alerts(m_settings.get_int(settings_pack::alert_queue_size)
 			, alert_category_t{static_cast<unsigned int>(m_settings.get_int(settings_pack::alert_mask))})
-		, m_disk_thread(m_io_service, m_stats_counters)
+		// TODO: 3 have a function to create the default disk io instead, to
+		// contain the platform-specific logic
+		, m_disk_thread(disk_io_constructor
+			? disk_io_constructor(m_io_service, m_stats_counters)
+#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
+			: std::unique_ptr<disk_interface>(new disk_io_thread(m_io_service, m_stats_counters))
+#else
+			: posix_disk_io_constructor(m_io_service, m_stats_counters)
+#endif
+		)
 		, m_download_rate(peer_connection::download_channel)
 		, m_upload_rate(peer_connection::upload_channel)
 		, m_host_resolver(m_io_service)
@@ -446,7 +457,7 @@ namespace aux {
 		, m_lsd_announce_timer(m_io_service)
 		, m_close_file_timer(m_io_service)
 	{
-		m_disk_thread.set_settings(&pack);
+		m_disk_thread->set_settings(&pack);
 	}
 
 	template <typename Fun, typename... Args>
@@ -929,7 +940,7 @@ namespace aux {
 		// it's OK to detach the threads here. The disk_io_thread
 		// has an internal counter and won't release the network
 		// thread until they're all dead (via m_work).
-		m_disk_thread.abort(false);
+		m_disk_thread->abort(false);
 
 		// now it's OK for the network thread to exit
 		m_work.reset();
@@ -1181,7 +1192,7 @@ namespace aux {
 	{
 		TORRENT_ASSERT(m_deferred_submit_disk_jobs);
 		m_deferred_submit_disk_jobs = false;
-		m_disk_thread.submit_jobs();
+		m_disk_thread->submit_jobs();
 	}
 
 	// copies pointers to bandwidth channels from the peer classes
@@ -1290,7 +1301,7 @@ namespace aux {
 #endif
 
 		apply_pack(&pack, m_settings, this);
-		m_disk_thread.set_settings(&pack);
+		m_disk_thread->set_settings(&pack);
 
 		if (!reopen_listen_port)
 		{
@@ -2926,7 +2937,7 @@ namespace aux {
 		pack.ses = this;
 		pack.sett = &m_settings;
 		pack.stats_counters = &m_stats_counters;
-		pack.disk_thread = &m_disk_thread;
+		pack.disk_thread = m_disk_thread.get();
 		pack.ios = &m_io_service;
 		pack.tor = std::weak_ptr<torrent>();
 		pack.s = s;
@@ -4601,7 +4612,7 @@ namespace aux {
 
 	void session_impl::post_session_stats()
 	{
-		m_disk_thread.update_stats_counters(m_stats_counters);
+		m_disk_thread->update_stats_counters(m_stats_counters);
 
 #ifndef TORRENT_DISABLE_DHT
 		if (m_dht)
@@ -5662,25 +5673,6 @@ namespace aux {
 	}
 #endif // TORRENT_ABI_VERSION
 
-	void session_impl::get_cache_info(torrent_handle h, cache_status* ret, int flags) const
-	{
-		storage_index_t st{0};
-		bool whole_session = true;
-		std::shared_ptr<torrent> t = h.m_torrent.lock();
-		if (t)
-		{
-			if (t->has_storage())
-			{
-				st = t->storage();
-				whole_session = false;
-			}
-			else
-				flags = session::disk_cache_no_pieces;
-		}
-		m_disk_thread.get_cache_info(ret, st
-			, flags & session::disk_cache_no_pieces, whole_session);
-	}
-
 #ifndef TORRENT_DISABLE_DHT
 
 	void session_impl::start_dht()
@@ -6244,19 +6236,6 @@ namespace aux {
 			m_settings.set_int(settings_pack::connection_speed, 200);
 	}
 
-	void session_impl::update_queued_disk_bytes()
-	{
-		int const cache_size = m_settings.get_int(settings_pack::cache_size);
-		if (m_settings.get_int(settings_pack::max_queued_disk_bytes) / 16 / 1024
-			> cache_size / 2
-			&& cache_size > 5
-			&& m_alerts.should_post<performance_alert>())
-		{
-			m_alerts.emplace_alert<performance_alert>(torrent_handle()
-				, performance_alert::too_high_disk_queue_limit);
-		}
-	}
-
 	void session_impl::update_alert_queue_size()
 	{
 		m_alerts.set_alert_queue_size_limit(m_settings.get_int(settings_pack::alert_queue_size));
@@ -6283,15 +6262,6 @@ namespace aux {
 	{
 		if (m_settings.get_int(settings_pack::aio_threads) < 0)
 			m_settings.set_int(settings_pack::aio_threads, 0);
-
-#if !TORRENT_USE_PREAD && !TORRENT_USE_PREADV
-		// if we don't have pread() nor preadv() there's no way
-		// to perform concurrent file operations on the same file
-		// handle, so we must limit the disk thread to a single one
-
-		if (m_settings.get_int(settings_pack::aio_threads) > 1)
-			m_settings.set_int(settings_pack::aio_threads, 1);
-#endif
 	}
 
 	void session_impl::update_report_web_seed_downloads()
