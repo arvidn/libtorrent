@@ -60,7 +60,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/stat.hpp"
-#include "libtorrent/file_pool.hpp"
 #include "libtorrent/bandwidth_manager.hpp"
 #include "libtorrent/disk_io_thread.hpp"
 #include "libtorrent/udp_socket.hpp"
@@ -269,7 +268,8 @@ namespace aux {
 			using connection_map = std::set<std::shared_ptr<peer_connection>>;
 			using torrent_map = std::unordered_map<sha1_hash, std::shared_ptr<torrent>>;
 
-			session_impl(io_service& ios, settings_pack const& pack);
+			session_impl(io_service& ios, settings_pack const& pack
+				, disk_io_constructor_type disk_io);
 			~session_impl() override;
 
 			void start_session();
@@ -604,7 +604,7 @@ namespace aux {
 			}
 
 			alert_manager& alerts() override { return m_alerts; }
-			disk_interface& disk_thread() override { return m_disk_thread; }
+			disk_interface& disk_thread() override { return *m_disk_thread; }
 
 			void abort() noexcept;
 			void abort_stage2() noexcept;
@@ -729,7 +729,6 @@ namespace aux {
 			void update_user_agent();
 			void update_unchoke_limit();
 			void update_connection_speed();
-			void update_queued_disk_bytes();
 			void update_alert_queue_size();
 			void update_disk_threads();
 			void update_report_web_seed_downloads();
@@ -826,7 +825,7 @@ namespace aux {
 			// m_files. The disk io thread posts completion
 			// events to the io service, and needs to be
 			// constructed after it.
-			disk_io_thread m_disk_thread;
+			std::unique_ptr<disk_interface> m_disk_thread;
 
 			// the bandwidth manager is responsible for
 			// handing out bandwidth to connections that

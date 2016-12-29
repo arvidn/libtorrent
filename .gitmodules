@@ -1,3 +1,6 @@
 [submodule "simulation/libsimulator"]
 	path = simulation/libsimulator
 	url = https://github.com/arvidn/libsimulator.git
+[submodule "deps/try_signal"]
+	path = deps/try_signal
+	url = https://github.com/arvidn/try_signal.git

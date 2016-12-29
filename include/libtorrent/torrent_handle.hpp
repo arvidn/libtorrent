@@ -853,10 +853,6 @@ namespace aux {
 			, std::string const& private_key
 			, std::string const& dh_params);
 
-		// Returns the storage implementation for this torrent. This depends on the
-		// storage constructor function that was passed to add_torrent.
-		storage_interface* get_storage_impl() const;
-
 		// Returns a pointer to the torrent_info object associated with this
 		// torrent. The torrent_info object may be a copy of the internal object.
 		// If the torrent doesn't have metadata, the pointer will not be

@@ -217,7 +217,7 @@ namespace
         , storage_mode_t storage_mode, bool paused)
     {
         allow_threading_guard guard;
-        return s.add_torrent(ti, save, resume, storage_mode, paused, default_storage_constructor);
+        return s.add_torrent(ti, save, resume, storage_mode, paused);
     }
 #endif
 #endif
@@ -415,43 +415,7 @@ namespace
         return ret;
     }
 
-    cache_status get_cache_info1(lt::session& s, torrent_handle h, int flags)
-    {
-       cache_status ret;
-       s.get_cache_info(&ret, h, flags);
-       return ret;
-    }
-
-    list cached_piece_info_list(std::vector<cached_piece_info> const& v)
-    {
-       list pieces;
-       time_point now = clock_type::now();
-       for (std::vector<cached_piece_info>::const_iterator i = v.begin()
-          , end(v.end()); i != end; ++i)
-       {
-          dict d;
-          d["piece"] = i->piece;
-          d["last_use"] = total_milliseconds(now - i->last_use) / 1000.f;
-          d["next_to_hash"] = i->next_to_hash;
-          d["kind"] = static_cast<int>(i->kind);
-          pieces.append(d);
-       }
-       return pieces;
-    }
-
-    list cache_status_pieces(cache_status const& cs)
-    {
-        return cached_piece_info_list(cs.pieces);
-    }
-
 #ifndef TORRENT_NO_DEPRECATE
-    cache_status get_cache_status(lt::session& s)
-    {
-       cache_status ret;
-       s.get_cache_info(&ret);
-       return ret;
-    }
-
     dict get_utp_stats(session_status const& st)
     {
         dict ret;
@@ -461,18 +425,6 @@ namespace
         ret["num_fin_sent"] = st.utp_stats.num_fin_sent;
         ret["num_close_wait"] = st.utp_stats.num_close_wait;
         return ret;
-    }
-
-    list get_cache_info2(lt::session& ses, sha1_hash ih)
-    {
-       std::vector<cached_piece_info> ret;
-
-       {
-          allow_threading_guard guard;
-          ses.get_cache_info(ih, ret);
-       }
-
-       return cached_piece_info_list(ret);
     }
 #endif
 
@@ -830,43 +782,6 @@ void bind_session()
     s.attr("flag_merge_resume_http_seeds") = add_torrent_params::flag_merge_resume_http_seeds;
     }
 #endif
-
-    class_<cache_status>("cache_status")
-        .add_property("pieces", cache_status_pieces)
-#ifndef TORRENT_NO_DEPRECATE
-        .def_readonly("blocks_written", &cache_status::blocks_written)
-        .def_readonly("writes", &cache_status::writes)
-        .def_readonly("blocks_read", &cache_status::blocks_read)
-        .def_readonly("blocks_read_hit", &cache_status::blocks_read_hit)
-        .def_readonly("reads", &cache_status::reads)
-        .def_readonly("queued_bytes", &cache_status::queued_bytes)
-        .def_readonly("cache_size", &cache_status::cache_size)
-        .def_readonly("write_cache_size", &cache_status::write_cache_size)
-        .def_readonly("read_cache_size", &cache_status::read_cache_size)
-        .def_readonly("pinned_blocks", &cache_status::pinned_blocks)
-        .def_readonly("total_used_buffers", &cache_status::total_used_buffers)
-        .def_readonly("average_read_time", &cache_status::average_read_time)
-        .def_readonly("average_write_time", &cache_status::average_write_time)
-        .def_readonly("average_hash_time", &cache_status::average_hash_time)
-        .def_readonly("average_job_time", &cache_status::average_job_time)
-        .def_readonly("cumulative_job_time", &cache_status::cumulative_job_time)
-        .def_readonly("cumulative_read_time", &cache_status::cumulative_read_time)
-        .def_readonly("cumulative_write_time", &cache_status::cumulative_write_time)
-        .def_readonly("cumulative_hash_time", &cache_status::cumulative_hash_time)
-        .def_readonly("total_read_back", &cache_status::total_read_back)
-        .def_readonly("read_queue_size", &cache_status::read_queue_size)
-        .def_readonly("blocked_jobs", &cache_status::blocked_jobs)
-        .def_readonly("queued_jobs", &cache_status::queued_jobs)
-        .def_readonly("peak_queued", &cache_status::peak_queued)
-        .def_readonly("pending_jobs", &cache_status::pending_jobs)
-        .def_readonly("num_jobs", &cache_status::num_jobs)
-        .def_readonly("num_read_jobs", &cache_status::num_read_jobs)
-        .def_readonly("num_write_jobs", &cache_status::num_write_jobs)
-        .def_readonly("arc_mru_size", &cache_status::arc_mru_size)
-        .def_readonly("arc_mru_ghost_size", &cache_status::arc_mru_ghost_size)
-        .def_readonly("arc_mfu_size", &cache_status::arc_mfu_size)
-        .def_readonly("arc_mfu_ghost_size", &cache_status::arc_mfu_ghost_size)
-#endif
     ;
 
     enum_<lt::portmap_protocol>("portmap_protocol")
@@ -989,7 +904,6 @@ void bind_session()
         .def("pause", allow_threads(&lt::session::pause))
         .def("resume", allow_threads(&lt::session::resume))
         .def("is_paused", allow_threads(&lt::session::is_paused))
-        .def("get_cache_info", &get_cache_info1, (arg("handle") = torrent_handle(), arg("flags") = 0))
         .def("add_port_mapping", allow_threads(&lt::session::add_port_mapping))
         .def("delete_port_mapping", allow_threads(&lt::session::delete_port_mapping))
         .def("reopen_network_sockets", allow_threads(&lt::session::reopen_network_sockets))
@@ -1044,8 +958,6 @@ void bind_session()
         .def("stop_lsd", allow_threads(&lt::session::stop_lsd))
         .def("start_natpmp", &start_natpmp)
         .def("stop_natpmp", allow_threads(&lt::session::stop_natpmp))
-        .def("get_cache_status", &get_cache_status)
-        .def("get_cache_info", &get_cache_info2)
         .def("set_peer_id", allow_threads(&lt::session::set_peer_id))
 #endif // TORRENT_NO_DEPRECATE
         ;

@@ -41,6 +41,12 @@ namespace libtorrent {
 		: m_allocator(&alloc), m_buf(buf), m_size(sz), m_ref()
 	{}
 
+	disk_buffer_holder::disk_buffer_holder(buffer_allocator_interface& alloc
+		, aux::block_cache_reference const& ref, char* const buf
+		, std::size_t const sz) noexcept
+		: m_allocator(&alloc), m_buf(buf), m_size(sz), m_ref(ref)
+	{}
+
 	disk_buffer_holder& disk_buffer_holder::operator=(disk_buffer_holder&& h) noexcept
 	{
 		if (&h == this) return *this;
@@ -56,27 +62,19 @@ namespace libtorrent {
 		h.m_ref = aux::block_cache_reference();
 	}
 
-	disk_buffer_holder::disk_buffer_holder(buffer_allocator_interface& alloc
-		, aux::block_cache_reference const& ref, char* buf
-		, std::size_t sz) noexcept
-		: m_allocator(&alloc), m_buf(buf), m_size(sz), m_ref(ref)
-	{}
-
-	void disk_buffer_holder::reset(aux::block_cache_reference const& ref, char* buf, std::size_t const sz)
+	void disk_buffer_holder::reset(char* const buf, std::size_t const sz, aux::block_cache_reference const& ref)
 	{
-		if (m_ref.cookie != aux::block_cache_reference::none) m_allocator->reclaim_blocks(m_ref);
-		else if (m_buf) m_allocator->free_disk_buffer(m_buf);
+		if (m_buf) m_allocator->free_disk_buffer(m_buf, m_ref);
 		m_buf = buf;
 		m_size = sz;
 		m_ref = ref;
 	}
 
-	void disk_buffer_holder::reset(char* const buf, std::size_t const sz)
+	void disk_buffer_holder::reset()
 	{
-		if (m_ref.cookie != aux::block_cache_reference::none) m_allocator->reclaim_blocks(m_ref);
-		else if (m_buf) m_allocator->free_disk_buffer(m_buf);
-		m_buf = buf;
-		m_size = sz;
+		if (m_buf) m_allocator->free_disk_buffer(m_buf, m_ref);
+		m_buf = nullptr;
+		m_size = 0;
 		m_ref = aux::block_cache_reference();
 	}
 

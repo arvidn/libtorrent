@@ -48,8 +48,7 @@ namespace libtorrent {
 
 	struct TORRENT_EXTRA_EXPORT buffer_allocator_interface
 	{
-		virtual void free_disk_buffer(char* b) = 0;
-		virtual void reclaim_blocks(span<aux::block_cache_reference> refs) = 0;
+		virtual void free_disk_buffer(char* b, aux::block_cache_reference const& ref) = 0;
 	protected:
 		~buffer_allocator_interface() {}
 	};
@@ -95,8 +94,8 @@ namespace libtorrent {
 		// set the holder object to hold the specified buffer
 		// (or nullptr by default). If it's already holding a
 		// disk buffer, it will first be freed.
-		void reset(char* buf = nullptr, std::size_t sz = 0);
-		void reset(aux::block_cache_reference const& ref, char* buf, std::size_t sz);
+		void reset(char* buf, std::size_t sz, aux::block_cache_reference const& ref);
+		void reset();
 
 		// swap pointers of two disk buffer holders.
 		void swap(disk_buffer_holder& h) noexcept

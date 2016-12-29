@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2016, Arvid Norberg, Daniel Wallin
+Copyright (c) 2017, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,32 +30,25 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/aux_/storage_piece_set.hpp"
-#include "libtorrent/assert.hpp"
-#include "libtorrent/block_cache.hpp"
-#include "libtorrent/storage.hpp" // for storage_interface
+#ifndef TORRENT_POSIX_DISK_IO
+#define TORRENT_POSIX_DISK_IO
 
-namespace libtorrent { namespace aux {
+#include "libtorrent/config.hpp"
+#include "libtorrent/io_service.hpp"
 
-	void storage_piece_set::add_piece(cached_piece_entry* p)
-	{
-		TORRENT_ASSERT(p->in_storage == false);
-		TORRENT_ASSERT(p->storage.get() == this);
-		m_cached_pieces.push_back(*p);
-		++m_num_pieces;
-#if TORRENT_USE_ASSERTS
-		p->in_storage = true;
+#include <memory>
+
+namespace libtorrent {
+
+	struct counters;
+	struct disk_interface;
+
+	// this is a simple posix disk I/O back-end, used for systems that don't
+	// havea 64 bit virtual address space or don't support memory mapped files.
+	// It's implemented using portable C file functions and is single-threaded.
+	TORRENT_EXPORT std::unique_ptr<disk_interface> posix_disk_io_constructor(
+		io_service& ios, counters& cnt);
+}
+
 #endif
-	}
 
-	void storage_piece_set::remove_piece(cached_piece_entry* p)
-	{
-		TORRENT_ASSERT(p->in_storage == true);
-		p->unlink();
-		--m_num_pieces;
-#if TORRENT_USE_ASSERTS
-		p->in_storage = false;
-#endif
-	}
-
-}}

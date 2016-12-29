@@ -385,11 +385,8 @@ namespace libtorrent {
 			// mode, blocks are allowed to be requested from more than one peer at
 			// at time.
 			num_peers_end_game,
-
-			write_cache_blocks,
-			read_cache_blocks,
 			request_latency,
-			pinned_blocks,
+
 			disk_blocks_in_use,
 			queued_disk_jobs,
 			num_running_disk_jobs,
@@ -415,18 +412,10 @@ namespace libtorrent {
 			num_fenced_flush_piece,
 			num_fenced_flush_hashed,
 			num_fenced_flush_storage,
-			num_fenced_trim_cache,
 			num_fenced_file_priority,
 			num_fenced_load_torrent,
 			num_fenced_clear_piece,
 			num_fenced_tick_storage,
-
-			arc_mru_size,
-			arc_mru_ghost_size,
-			arc_mfu_size,
-			arc_mfu_ghost_size,
-			arc_write_size,
-			arc_volatile_size,
 
 			dht_nodes,
 			dht_node_cache,

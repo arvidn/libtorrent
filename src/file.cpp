@@ -90,11 +90,11 @@ struct iovec
 #include "libtorrent/aux_/escape_string.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/throw.hpp"
+#include "libtorrent/aux_/open_mode.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <sys/stat.h>
-#include <climits> // for IOV_MAX
 
 #ifdef TORRENT_WINDOWS
 // windows part
@@ -132,8 +132,6 @@ struct iovec
 #ifdef TORRENT_ANDROID
 #include <sys/syscall.h>
 #define lseek lseek64
-#define pread pread64
-#define pwrite pwrite64
 #define ftruncate ftruncate64
 #endif
 
@@ -155,182 +153,37 @@ static_assert(sizeof(lseek(0, 0, 0)) >= 8, "64 bit file operations are required"
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#if TORRENT_USE_PREADV
-# if defined TORRENT_WINDOWS
-namespace {
-
-	// wrap the windows function in something that looks
-	// like preadv() and pwritev()
-
-	// windows only lets us wait for 64 handles at a time, so this function makes
-	// sure we wait for all of them, partially in sequence
-	DWORD wait_for_multiple_objects(int num_handles, HANDLE* h)
-	{
-		int batch_size = (std::min)(num_handles, MAXIMUM_WAIT_OBJECTS);
-		while (WaitForMultipleObjects(batch_size, h, TRUE, INFINITE) != WAIT_FAILED)
-		{
-			h += batch_size;
-			num_handles -= batch_size;
-			batch_size = (std::min)(num_handles, MAXIMUM_WAIT_OBJECTS);
-			if (batch_size <= 0) return WAIT_OBJECT_0;
-		}
-		return WAIT_FAILED;
-	}
-
-	int preadv(HANDLE fd, ::iovec const* bufs, int num_bufs, std::int64_t file_offset)
-	{
-		TORRENT_ALLOCA(ol, OVERLAPPED, num_bufs);
-		std::memset(ol.data(), 0, sizeof(OVERLAPPED) * num_bufs);
-
-		TORRENT_ALLOCA(h, HANDLE, num_bufs);
-
-		for (int i = 0; i < num_bufs; ++i)
-		{
-			ol[i].OffsetHigh = file_offset >> 32;
-			ol[i].Offset = file_offset & 0xffffffff;
-			ol[i].hEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
-			h[i] = ol[i].hEvent;
-			if (h[i] == nullptr)
-			{
-				// we failed to create the event, roll-back and return an error
-				for (int j = 0; j < i; ++j) CloseHandle(h[i]);
-				return -1;
-			}
-			file_offset += bufs[i].iov_len;
-		}
-
-		int ret = 0;
-		for (int i = 0; i < num_bufs; ++i)
-		{
-			DWORD num_read;
-			if (ReadFile(fd, bufs[i].iov_base, DWORD(bufs[i].iov_len), &num_read, &ol[i]) == FALSE
-				&& GetLastError() != ERROR_IO_PENDING
-#ifdef ERROR_CANT_WAIT
-				&& GetLastError() != ERROR_CANT_WAIT
-#endif
-				)
-			{
-				ret = -1;
-				goto done;
-			}
-		}
-
-		if (wait_for_multiple_objects(int(h.size()), h.data()) == WAIT_FAILED)
-		{
-			ret = -1;
-			goto done;
-		}
-
-		for (auto& o : ol)
-		{
-			if (WaitForSingleObject(o.hEvent, INFINITE) == WAIT_FAILED)
-			{
-				ret = -1;
-				break;
-			}
-			DWORD num_read;
-			if (GetOverlappedResult(fd, &o, &num_read, FALSE) == FALSE)
-			{
-#ifdef ERROR_CANT_WAIT
-				TORRENT_ASSERT(GetLastError() != ERROR_CANT_WAIT);
-#endif
-				ret = -1;
-				break;
-			}
-			ret += num_read;
-		}
-done:
-
-		for (auto hnd : h)
-			CloseHandle(hnd);
-
-		return ret;
-	}
-
-	int pwritev(HANDLE fd, ::iovec const* bufs, int num_bufs, std::int64_t file_offset)
-	{
-		TORRENT_ALLOCA(ol, OVERLAPPED, num_bufs);
-		std::memset(ol.data(), 0, sizeof(OVERLAPPED) * num_bufs);
-
-		TORRENT_ALLOCA(h, HANDLE, num_bufs);
-
-		for (int i = 0; i < num_bufs; ++i)
-		{
-			ol[i].OffsetHigh = file_offset >> 32;
-			ol[i].Offset = file_offset & 0xffffffff;
-			ol[i].hEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
-			h[i] = ol[i].hEvent;
-			if (h[i] == nullptr)
-			{
-				// we failed to create the event, roll-back and return an error
-				for (int j = 0; j < i; ++j) CloseHandle(h[i]);
-				return -1;
-			}
-			file_offset += bufs[i].iov_len;
-		}
-
-		int ret = 0;
-		for (int i = 0; i < num_bufs; ++i)
-		{
-			DWORD num_written;
-			if (WriteFile(fd, bufs[i].iov_base, DWORD(bufs[i].iov_len), &num_written, &ol[i]) == FALSE
-				&& GetLastError() != ERROR_IO_PENDING
-#ifdef ERROR_CANT_WAIT
-				&& GetLastError() != ERROR_CANT_WAIT
-#endif
-				)
-			{
-				ret = -1;
-				goto done;
-			}
-		}
-
-		if (wait_for_multiple_objects(int(h.size()), h.data()) == WAIT_FAILED)
-		{
-			ret = -1;
-			goto done;
-		}
-
-		for (auto& o : ol)
-		{
-			if (WaitForSingleObject(o.hEvent, INFINITE) == WAIT_FAILED)
-			{
-				ret = -1;
-				break;
-			}
-			DWORD num_written;
-			if (GetOverlappedResult(fd, &o, &num_written, FALSE) == FALSE)
-			{
-#ifdef ERROR_CANT_WAIT
-				TORRENT_ASSERT(GetLastError() != ERROR_CANT_WAIT);
-#endif
-				ret = -1;
-				break;
-			}
-			ret += num_written;
-		}
-done:
-
-		for (auto hnd : h)
-			CloseHandle(hnd);
-
-		return ret;
-	}
-}
-# else
-#  undef _BSD_SOURCE
-#  define _BSD_SOURCE // deprecated since glibc 2.20
-#  undef _DEFAULT_SOURCE
-#  define _DEFAULT_SOURCE
-#  include <sys/uio.h>
-# endif
+#ifndef INVALID_HANDLE_VALUE
+#define INVALID_HANDLE_VALUE (-1)
 #endif
 
 namespace libtorrent {
 
-static_assert(!(open_mode::rw_mask & open_mode::sparse), "internal flags error");
-static_assert(!(open_mode::rw_mask & open_mode::attribute_mask), "internal flags error");
-static_assert(!(open_mode::sparse & open_mode::attribute_mask), "internal flags error");
+#ifdef TORRENT_WINDOWS
+	namespace {
+		std::int64_t read(HANDLE fd, void* data, std::size_t len)
+		{
+			DWORD bytes_read = 0;
+			if (ReadFile(fd, data, DWORD(len), &bytes_read, nullptr) == FALSE)
+			{
+				return -1;
+			}
+
+			return bytes_read;
+		}
+
+		std::int64_t write(HANDLE fd, void const* data, std::size_t len)
+		{
+			DWORD bytes_written = 0;
+			if (WriteFile(fd, data, DWORD(len), &bytes_written, nullptr) == FALSE)
+			{
+				return -1;
+			}
+
+			return bytes_written;
+		}
+	}
+#endif
 
 	directory::directory(std::string const& path, error_code& ec)
 		: m_done(false)
@@ -427,53 +280,6 @@ static_assert(!(open_mode::sparse & open_mode::attribute_mask), "internal flags 
 #endif
 	}
 
-#ifndef INVALID_HANDLE_VALUE
-#define INVALID_HANDLE_VALUE (-1)
-#endif
-
-#ifdef TORRENT_WINDOWS
-	struct overlapped_t
-	{
-		overlapped_t()
-		{
-			std::memset(&ol, 0, sizeof(ol));
-			ol.hEvent = CreateEvent(0, true, false, 0);
-		}
-		~overlapped_t()
-		{
-			if (ol.hEvent != INVALID_HANDLE_VALUE)
-				CloseHandle(ol.hEvent);
-		}
-		int wait(HANDLE file, error_code& ec)
-		{
-			if (ol.hEvent != INVALID_HANDLE_VALUE
-				&& WaitForSingleObject(ol.hEvent, INFINITE) == WAIT_FAILED)
-			{
-				ec.assign(GetLastError(), system_category());
-				return -1;
-			}
-
-			DWORD ret;
-			if (GetOverlappedResult(file, &ol, &ret, false) == 0)
-			{
-				DWORD last_error = GetLastError();
-				if (last_error != ERROR_HANDLE_EOF)
-				{
-#ifdef ERROR_CANT_WAIT
-					TORRENT_ASSERT(last_error != ERROR_CANT_WAIT);
-#endif
-					ec.assign(last_error, system_category());
-					return -1;
-				}
-			}
-			return ret;
-		}
-
-		OVERLAPPED ol;
-	};
-#endif // TORRENT_WINDOWS
-
-
 #ifdef TORRENT_WINDOWS
 	bool get_manage_volume_privs();
 
@@ -484,7 +290,7 @@ static_assert(!(open_mode::sparse & open_mode::attribute_mask), "internal flags 
 	file::file() : m_file_handle(INVALID_HANDLE_VALUE)
 	{}
 
-	file::file(std::string const& path, open_mode_t const mode, error_code& ec)
+	file::file(std::string const& path, aux::open_mode_t const mode, error_code& ec)
 		: m_file_handle(INVALID_HANDLE_VALUE)
 	{
 		// the return value is not important, since the
@@ -497,7 +303,7 @@ static_assert(!(open_mode::sparse & open_mode::attribute_mask), "internal flags 
 		close();
 	}
 
-	bool file::open(std::string const& path, open_mode_t mode, error_code& ec)
+	bool file::open(std::string const& path, aux::open_mode_t mode, error_code& ec)
 	{
 		close();
 		native_path_string file_path = convert_to_native_path_string(path);
@@ -510,39 +316,27 @@ static_assert(!(open_mode::sparse & open_mode::attribute_mask), "internal flags 
 			DWORD create_mode;
 		};
 
-		static std::array<win_open_mode_t, 3> const mode_array{
+		static std::array<win_open_mode_t, 2> const mode_array{
 		{
 			// read_only
 			{GENERIC_READ, OPEN_EXISTING},
-			// write_only
-			{GENERIC_WRITE, OPEN_ALWAYS},
 			// read_write
 			{GENERIC_WRITE | GENERIC_READ, OPEN_ALWAYS},
 		}};
 
-		static std::array<DWORD, 4> const attrib_array{
-		{
-			FILE_ATTRIBUTE_NORMAL, // no attrib
-			FILE_ATTRIBUTE_HIDDEN, // hidden
-			FILE_ATTRIBUTE_NORMAL, // executable
-			FILE_ATTRIBUTE_HIDDEN, // hidden + executable
-		}};
-
-		TORRENT_ASSERT(static_cast<std::uint32_t>(mode & open_mode::rw_mask) < mode_array.size());
-		win_open_mode_t const& m = mode_array[static_cast<std::uint32_t>(mode & open_mode::rw_mask)];
-		DWORD a = attrib_array[static_cast<std::uint32_t>(mode & open_mode::attribute_mask) >> 12];
+		win_open_mode_t const& m = mode_array[(mode & aux::open_mode::write) ? 1 : 0];
+		DWORD const a = (mode & aux::open_mode::hidden) ? FILE_ATTRIBUTE_HIDDEN : 0;
 
 		// one might think it's a good idea to pass in FILE_FLAG_RANDOM_ACCESS. It
 		// turns out that it isn't. That flag will break your operating system:
 		// http://support.microsoft.com/kb/2549369
 
-		DWORD const flags = ((mode & open_mode::random_access) ? 0 : FILE_FLAG_SEQUENTIAL_SCAN)
+		DWORD const flags = ((mode & aux::open_mode::random_access) ? 0 : FILE_FLAG_SEQUENTIAL_SCAN)
 			| (a ? a : FILE_ATTRIBUTE_NORMAL)
-			| FILE_FLAG_OVERLAPPED
-			| ((mode & open_mode::no_cache) ? FILE_FLAG_WRITE_THROUGH : 0);
+			| ((mode & aux::open_mode::no_cache) ? FILE_FLAG_WRITE_THROUGH : 0);
 
 		handle_type handle = CreateFileW(file_path.c_str(), m.rw_mode
-			, FILE_SHARE_READ | FILE_SHARE_WRITE
+			, (mode & aux::open_mode::lock_files) ? FILE_SHARE_READ : FILE_SHARE_READ | FILE_SHARE_WRITE
 			, 0, m.create_mode, flags, 0);
 
 		if (handle == INVALID_HANDLE_VALUE)
@@ -556,16 +350,12 @@ static_assert(!(open_mode::sparse & open_mode::attribute_mask), "internal flags 
 
 		// try to make the file sparse if supported
 		// only set this flag if the file is opened for writing
-		if ((mode & open_mode::sparse)
-			&& (mode & open_mode::rw_mask) != open_mode::read_only)
+		if ((mode & aux::open_mode::sparse)
+			&& (mode & aux::open_mode::write))
 		{
 			DWORD temp;
-			overlapped_t ol;
-			BOOL ret = ::DeviceIoControl(native_handle(), FSCTL_SET_SPARSE, 0, 0
-				, 0, 0, &temp, &ol.ol);
-			error_code error;
-			if (ret == FALSE && GetLastError() == ERROR_IO_PENDING)
-				ol.wait(native_handle(), error);
+			::DeviceIoControl(native_handle(), FSCTL_SET_SPARSE, 0, 0
+				, 0, 0, &temp, nullptr);
 		}
 #else // TORRENT_WINDOWS
 
@@ -575,37 +365,37 @@ static_assert(!(open_mode::sparse & open_mode::attribute_mask), "internal flags 
 			| S_IRGRP | S_IWGRP
 			| S_IROTH | S_IWOTH;
 
-		if ((mode & open_mode::attribute_executable))
+		if (mode & aux::open_mode::executable)
 			permissions |= S_IXGRP | S_IXOTH | S_IXUSR;
 #ifdef O_BINARY
-		static const int mode_array[] = {O_RDONLY | O_BINARY, O_WRONLY | O_CREAT | O_BINARY, O_RDWR | O_CREAT | O_BINARY};
+		static const int mode_array[] = {O_RDONLY | O_BINARY, O_RDWR | O_CREAT | O_BINARY};
 #else
-		static const int mode_array[] = {O_RDONLY, O_WRONLY | O_CREAT, O_RDWR | O_CREAT};
+		static const int mode_array[] = {O_RDONLY, O_RDWR | O_CREAT};
 #endif
 
 		int open_mode = 0
 #ifdef O_NOATIME
-			| ((mode & open_mode::no_atime) ? O_NOATIME : 0)
+			| ((mode & aux::open_mode::no_atime) ? O_NOATIME : 0)
 #endif
 #ifdef O_SYNC
-			| ((mode & open_mode::no_cache) ? O_SYNC : 0)
+			| ((mode & aux::open_mode::no_cache) ? O_SYNC : 0)
 #endif
 			;
 
 		handle_type handle = ::open(file_path.c_str()
-			, mode_array[static_cast<std::uint32_t>(mode & open_mode::rw_mask)] | open_mode
+			, mode_array[(mode & aux::open_mode::write) ? 1 : 0] | open_mode
 			, permissions);
 
 #ifdef O_NOATIME
 		// O_NOATIME is not allowed for files we don't own
 		// so, if we get EPERM when we try to open with it
 		// try again without O_NOATIME
-		if (handle == -1 && (mode & open_mode::no_atime) && errno == EPERM)
+		if (handle == -1 && (mode & aux::open_mode::no_atime) && errno == EPERM)
 		{
-			mode &= ~open_mode::no_atime;
+			mode &= ~aux::open_mode::no_atime;
 			open_mode &= ~O_NOATIME;
 			handle = ::open(file_path.c_str()
-				, mode_array[static_cast<std::uint32_t>(mode & open_mode::rw_mask)] | open_mode
+				, mode_array[(mode & aux::open_mode::write) ? 1 : 0] | open_mode
 				, permissions);
 		}
 #endif
@@ -620,7 +410,7 @@ static_assert(!(open_mode::sparse & open_mode::attribute_mask), "internal flags 
 
 #ifdef DIRECTIO_ON
 		// for solaris
-		if ((mode & open_mode::no_cache))
+		if (mode & aux::open_mode::no_cache)
 		{
 			int yes = 1;
 			directio(native_handle(), DIRECTIO_ON);
@@ -629,7 +419,7 @@ static_assert(!(open_mode::sparse & open_mode::attribute_mask), "internal flags 
 
 #ifdef F_NOCACHE
 		// for BSD/Mac
-		if ((mode & open_mode::no_cache))
+		if (mode & aux::open_mode::no_cache)
 		{
 			int yes = 1;
 			::fcntl(native_handle(), F_NOCACHE, &yes);
@@ -642,7 +432,7 @@ static_assert(!(open_mode::sparse & open_mode::attribute_mask), "internal flags 
 #endif
 
 #ifdef POSIX_FADV_RANDOM
-		if ((mode & open_mode::random_access))
+		if (mode & aux::open_mode::random_access)
 		{
 			// disable read-ahead
 			// NOTE: in android this function was introduced in API 21,
@@ -673,9 +463,6 @@ static_assert(!(open_mode::sparse & open_mode::attribute_mask), "internal flags 
 		if (!GetFileSizeEx(file, &file_size))
 			return false;
 
-		overlapped_t ol;
-		if (ol.ol.hEvent == nullptr) return false;
-
 #ifndef FSCTL_QUERY_ALLOCATED_RANGES
 typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	LARGE_INTEGER FileOffset;
@@ -691,15 +478,9 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 		DWORD returned_bytes = 0;
 		BOOL ret = DeviceIoControl(file, FSCTL_QUERY_ALLOCATED_RANGES, (void*)&in, sizeof(in)
-			, out, sizeof(out), &returned_bytes, &ol.ol);
+			, out, sizeof(out), &returned_bytes, nullptr);
 
-		if (ret == FALSE && GetLastError() == ERROR_IO_PENDING)
-		{
-			error_code ec;
-			returned_bytes = ol.wait(file, ec);
-			if (ec) return true;
-		}
-		else if (ret == FALSE)
+		if (ret == FALSE)
 		{
 			return true;
 		}
@@ -722,12 +503,10 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		// if this file is open for writing, has the sparse
 		// flag set, but there are no sparse regions, unset
 		// the flag
-		open_mode_t const rw_mode = m_open_mode & open_mode::rw_mask;
-		if ((rw_mode != open_mode::read_only)
-			&& (m_open_mode & open_mode::sparse)
+		if ((m_open_mode & aux::open_mode::write)
+			&& (m_open_mode & aux::open_mode::sparse)
 			&& !is_sparse(native_handle()))
 		{
-			overlapped_t ol;
 			// according to MSDN, clearing the sparse flag of a file only
 			// works on windows vista and later
 #ifdef TORRENT_MINGW
@@ -738,13 +517,8 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 			DWORD temp;
 			FILE_SET_SPARSE_BUFFER b;
 			b.SetSparse = FALSE;
-			BOOL ret = ::DeviceIoControl(native_handle(), FSCTL_SET_SPARSE, &b, sizeof(b)
-				, 0, 0, &temp, &ol.ol);
-			error_code ec;
-			if (ret == FALSE && GetLastError() == ERROR_IO_PENDING)
-			{
-				ol.wait(native_handle(), ec);
-			}
+			::DeviceIoControl(native_handle(), FSCTL_SET_SPARSE, &b, sizeof(b)
+				, 0, 0, &temp, nullptr);
 		}
 
 		CloseHandle(native_handle());
@@ -755,146 +529,20 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 		m_file_handle = INVALID_HANDLE_VALUE;
 
-		m_open_mode = open_mode_t{};
+		m_open_mode = {};
 	}
 
 	namespace {
-
-	void gather_copy(span<iovec_t const> bufs, char* dst)
-	{
-		std::size_t offset = 0;
-		for (auto buf : bufs)
-		{
-			std::memcpy(dst + offset, buf.data(), buf.size());
-			offset += buf.size();
-		}
-	}
-
-	void scatter_copy(span<iovec_t const> bufs, char const* src)
-	{
-		std::size_t offset = 0;
-		for (auto buf : bufs)
-		{
-			std::memcpy(buf.data(), src + offset, buf.size());
-			offset += buf.size();
-		}
-	}
-
-	bool coalesce_read_buffers(span<iovec_t const>& bufs
-		, iovec_t& tmp)
-	{
-		auto const buf_size = aux::numeric_cast<std::size_t>(bufs_size(bufs));
-		auto buf = new char[buf_size];
-		tmp = { buf, buf_size };
-		bufs = span<iovec_t const>(tmp);
-		return true;
-	}
-
-	void coalesce_read_buffers_end(span<iovec_t const> bufs
-		, char* const buf, bool const copy)
-	{
-		if (copy) scatter_copy(bufs, buf);
-		delete[] buf;
-	}
-
-	bool coalesce_write_buffers(span<iovec_t const>& bufs
-		, iovec_t& tmp)
-	{
-		auto const buf_size = aux::numeric_cast<std::size_t>(bufs_size(bufs));
-		auto buf = new char[buf_size];
-		gather_copy(bufs, buf);
-		tmp = { buf, buf_size };
-		bufs = span<iovec_t const>(tmp);
-		return true;
-	}
-
-#if TORRENT_USE_PREADV
-namespace {
-	int bufs_size(span<::iovec> bufs)
-	{
-		std::size_t size = 0;
-		for (auto buf : bufs) size += buf.iov_len;
-		return int(size);
-	}
-}
-#endif // TORRENT_USE_PREADV
 
 	template <class Fun>
 	std::int64_t iov(Fun f, handle_type fd, std::int64_t file_offset
 		, span<iovec_t const> bufs, error_code& ec)
 	{
-#if TORRENT_USE_PREADV
-
-		TORRENT_ALLOCA(vec, ::iovec, bufs.size());
-		auto it = vec.begin();
-		for (auto const& b : bufs)
-		{
-			it->iov_base = b.data();
-			it->iov_len = b.size();
-			++it;
-		}
-
-		int ret = 0;
-		while (!vec.empty())
-		{
-#ifdef IOV_MAX
-			auto const nbufs = vec.first(std::min(int(vec.size()), IOV_MAX));
-#else
-			auto const nbufs = vec;
-#endif
-
-			int tmp_ret = 0;
-			tmp_ret = f(fd, nbufs.data(), int(nbufs.size()), file_offset);
-			if (tmp_ret < 0)
-			{
-#ifdef TORRENT_WINDOWS
-				ec.assign(GetLastError(), system_category());
-#else
-				ec.assign(errno, system_category());
-#endif
-				return -1;
-			}
-			file_offset += tmp_ret;
-			ret += tmp_ret;
-
-			// we got a short read/write. It's either 0, and we're at EOF, or we
-			// just need to issue the read/write operation again. In either case,
-			// punt that to the upper layer, as reissuing the operations is
-			// complicated here
-			int const expected_len = bufs_size(nbufs);
-			if (tmp_ret < expected_len) break;
-
-			vec = vec.subspan(nbufs.size());
-		}
-		return ret;
-
-#elif TORRENT_USE_PREAD
-
 		std::int64_t ret = 0;
-		for (auto i : bufs)
-		{
-			std::int64_t const tmp_ret = f(fd, i.data(), i.size(), file_offset);
-			if (tmp_ret < 0)
-			{
-#ifdef TORRENT_WINDOWS
-				ec.assign(GetLastError(), system_category());
-#else
-				ec.assign(errno, system_category());
-#endif
-				return -1;
-			}
-			file_offset += tmp_ret;
-			ret += tmp_ret;
-			if (tmp_ret < int(i.size())) break;
-		}
-
-		return ret;
-
-#else // not PREADV nor PREAD
-
-		int ret = 0;
 
 #ifdef TORRENT_WINDOWS
+		LARGE_INTEGER offs;
+		offs.QuadPart = file_offset;
 		if (SetFilePointerEx(fd, offs, &offs, FILE_BEGIN) == FALSE)
 		{
 			ec.assign(GetLastError(), system_category());
@@ -910,7 +558,7 @@ namespace {
 
 		for (auto i : bufs)
 		{
-			int tmp_ret = f(fd, i.data(), i.size());
+			std::int64_t tmp_ret = f(fd, i.data(), i.size());
 			if (tmp_ret < 0)
 			{
 #ifdef TORRENT_WINDOWS
@@ -926,8 +574,6 @@ namespace {
 		}
 
 		return ret;
-
-#endif // USE_PREADV
 	}
 
 	} // anonymous namespace
@@ -935,7 +581,7 @@ namespace {
 	// this has to be thread safe and atomic. i.e. on posix systems it has to be
 	// turned into a series of pread() calls
 	std::int64_t file::readv(std::int64_t file_offset, span<iovec_t const> bufs
-		, error_code& ec, open_mode_t flags)
+		, error_code& ec, aux::open_mode_t)
 	{
 		if (m_file_handle == INVALID_HANDLE_VALUE)
 		{
@@ -946,46 +592,17 @@ namespace {
 #endif
 			return -1;
 		}
-		TORRENT_ASSERT((m_open_mode & open_mode::rw_mask) == open_mode::read_only
-			|| (m_open_mode & open_mode::rw_mask) == open_mode::read_write);
 		TORRENT_ASSERT(!bufs.empty());
 		TORRENT_ASSERT(is_open());
 
-		// there's no point in coalescing single buffer writes
-		if (bufs.size() == 1)
-		{
-			flags &= ~open_mode::coalesce_buffers;
-		}
-
-		iovec_t tmp;
-		span<iovec_t const> tmp_bufs = bufs;
-		if (flags & open_mode::coalesce_buffers)
-		{
-			if (!coalesce_read_buffers(tmp_bufs, tmp))
-				// ok, that failed, don't coalesce this read
-				flags &= ~open_mode::coalesce_buffers;
-		}
-
-#if TORRENT_USE_PREADV
-		std::int64_t ret = iov(&::preadv, native_handle(), file_offset, bufs, ec);
-#elif TORRENT_USE_PREAD
-		std::int64_t ret = iov(&::pread, native_handle(), file_offset, tmp_bufs, ec);
-#else
-		std::int64_t ret = iov(&::read, native_handle(), file_offset, tmp_bufs, ec);
-#endif
-
-		if (flags & open_mode::coalesce_buffers)
-			coalesce_read_buffers_end(bufs
-				, tmp.data(), !ec);
-
-		return ret;
+		return iov(&read, native_handle(), file_offset, bufs, ec);
 	}
 
 	// This has to be thread safe, i.e. atomic.
 	// that means, on posix this has to be turned into a series of
 	// pwrite() calls
 	std::int64_t file::writev(std::int64_t file_offset, span<iovec_t const> bufs
-		, error_code& ec, open_mode_t flags)
+		, error_code& ec, aux::open_mode_t)
 	{
 		if (m_file_handle == INVALID_HANDLE_VALUE)
 		{
@@ -996,42 +613,18 @@ namespace {
 #endif
 			return -1;
 		}
-		TORRENT_ASSERT((m_open_mode & open_mode::rw_mask) == open_mode::write_only
-			|| (m_open_mode & open_mode::rw_mask) == open_mode::read_write);
+		TORRENT_ASSERT(m_open_mode & aux::open_mode::write);
 		TORRENT_ASSERT(!bufs.empty());
 		TORRENT_ASSERT(is_open());
 
 		ec.clear();
 
-		// there's no point in coalescing single buffer writes
-		if (bufs.size() == 1)
-		{
-			flags &= ~open_mode::coalesce_buffers;
-		}
-
-		iovec_t tmp;
-		if (flags & open_mode::coalesce_buffers)
-		{
-			if (!coalesce_write_buffers(bufs, tmp))
-				// ok, that failed, don't coalesce writes
-				flags &= ~open_mode::coalesce_buffers;
-		}
-
-#if TORRENT_USE_PREADV
-		std::int64_t ret = iov(&::pwritev, native_handle(), file_offset, bufs, ec);
-#elif TORRENT_USE_PREAD
-		std::int64_t ret = iov(&::pwrite, native_handle(), file_offset, bufs, ec);
-#else
-		std::int64_t ret = iov(&::write, native_handle(), file_offset, bufs, ec);
-#endif
-
-		if (flags & open_mode::coalesce_buffers)
-			delete[] tmp.data();
+		std::int64_t ret = iov(&write, native_handle(), file_offset, bufs, ec);
 
 #if TORRENT_USE_FDATASYNC \
 	&& !defined F_NOCACHE && \
 	!defined DIRECTIO_ON
-		if (m_open_mode & open_mode::no_cache)
+		if (m_open_mode & aux::open_mode::no_cache)
 		{
 			if (::fdatasync(native_handle()) != 0
 				&& errno != EINVAL
@@ -1172,7 +765,7 @@ namespace {
 		// is less than the file size. Otherwise we would just
 		// update the modification time of the file for no good
 		// reason.
-		if (!(m_open_mode & open_mode::sparse)
+		if (!(m_open_mode & aux::open_mode::sparse)
 			&& std::int64_t(st.st_blocks) < (s + st.st_blksize - 1) / st.st_blksize)
 		{
 			// How do we know that the file is already allocated?

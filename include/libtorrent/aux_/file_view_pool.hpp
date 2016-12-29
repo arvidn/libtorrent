@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2006-2016, Arvid Norberg
+Copyright (c) 2017, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,45 +30,61 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_FILE_POOL_HPP
-#define TORRENT_FILE_POOL_HPP
+#ifndef TORRENT_FILE_VIEW_POOL_HPP
+#define TORRENT_FILE_VIEW_POOL_HPP
+
+#include "libtorrent/config.hpp"
+
+#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 
 #include <map>
 #include <mutex>
 #include <vector>
+#include <memory>
 
 #include "libtorrent/file.hpp"
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/storage_defs.hpp"
-#include "libtorrent/disk_interface.hpp" // for open_file_state
+#include "libtorrent/aux_/mmap.hpp"
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
+#define BOOST_BIND_NO_PLACEHOLDERS
+
+#include <boost/multi_index_container.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index/sequenced_index.hpp>
+#include <boost/multi_index/member.hpp>
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
 
-	class file_storage;
-	struct open_file_state;
+class file_storage;
+struct open_file_state;
 
-	// this is an internal cache of open file handles. It's primarily used by
-	// storage_interface implementations. It provides semi weak guarantees of
-	// not opening more file handles than specified. Given multiple threads,
-	// each with the ability to lock a file handle (via smart pointer), there
-	// may be windows where more file handles are open.
-	struct TORRENT_EXPORT file_pool : boost::noncopyable
+namespace aux {
+
+	namespace mi = boost::multi_index;
+
+	// this is an internal cache of open file mappings.
+	struct TORRENT_EXTRA_EXPORT file_view_pool : boost::noncopyable
 	{
 		// ``size`` specifies the number of allowed files handles
 		// to hold open at any given time.
-		explicit file_pool(int size = 40);
-		~file_pool();
+		explicit file_view_pool(int size = 40);
+		~file_view_pool();
 
 		// return an open file handle to file at ``file_index`` in the
 		// file_storage ``fs`` opened at save path ``p``. ``m`` is the
 		// file open mode (see file::open_mode_t).
-		file_handle open_file(storage_index_t st, std::string const& p
-			, file_index_t file_index, file_storage const& fs, open_mode_t m
-			, error_code& ec);
-		// release all files belonging to the specified storage_interface (``st``)
-		// the overload that takes ``file_index`` releases only the file with
-		// that index in storage ``st``.
+		file_view open_file(storage_index_t st, std::string const& p
+			, file_index_t file_index, file_storage const& fs, open_mode_t m);
+
+		// release all file views belonging to the specified storage_interface
+		// (``st``) the overload that takes ``file_index`` releases only the file
+		// with that index in storage ``st``.
 		void release();
 		void release(storage_index_t st);
 		void release(storage_index_t st, file_index_t file_index);
@@ -76,52 +92,54 @@ namespace libtorrent {
 		// update the allowed number of open file handles to ``size``.
 		void resize(int size);
 
-		// returns the current limit of number of allowed open file handles held
-		// by the file_pool.
+		// returns the current limit of number of allowed open file views held
+		// by the file_view_pool.
 		int size_limit() const { return m_size; }
 
-		// internal
-		void set_low_prio_io(bool b) { m_low_prio_io = b; }
 		std::vector<open_file_state> get_status(storage_index_t st) const;
-
-		// close the file that was opened least recently (i.e. not *accessed*
-		// least recently). The purpose is to make the OS (really just windows)
-		// clear and flush its disk cache associated with this file. We don't want
-		// any file to stay open for too long, allowing the disk cache to accrue.
-		void close_oldest();
-
-#if TORRENT_USE_ASSERTS
-		bool assert_idle_files(storage_index_t st) const;
-
-		// remember that this storage has had
-		// its files deleted. We may not open any
-		// files from it again
-		void mark_deleted(file_storage const& fs);
-#endif
 
 	private:
 
-		file_handle remove_oldest(std::unique_lock<std::mutex>&);
+		std::shared_ptr<file_mapping> remove_oldest(std::unique_lock<std::mutex>&);
 
 		int m_size;
-		bool m_low_prio_io = false;
 
-		struct lru_file_entry
+		using file_id = std::pair<storage_index_t, file_index_t>;
+
+		struct file_entry
 		{
-			file_handle file_ptr;
-			time_point const opened{aux::time_now()};
-			time_point last_use{opened};
+			file_entry(file_id k
+				, string_view name
+				, open_mode_t const m
+				, std::int64_t const size)
+				: key(k)
+				, mapping(std::make_shared<file_mapping>(file_handle(name, size, m), m, size))
+				, mode(m)
+			{}
+
+			file_id key;
+			std::shared_ptr<file_mapping> mapping;
+			time_point last_use{aux::time_now()};
 			open_mode_t mode{};
 		};
 
-		// maps storage pointer, file index pairs to the
-		// LRU entry for the file
-		std::map<std::pair<storage_index_t, file_index_t>, lru_file_entry> m_files;
-#if TORRENT_USE_ASSERTS
-		std::vector<std::pair<std::string, void const*>> m_deleted_storages;
-#endif
+		using files_container = mi::multi_index_container<
+			file_entry,
+			mi::indexed_by<
+			// look up files by (torrent, file) key
+			mi::ordered_unique<mi::member<file_entry, file_id, &file_entry::key>>,
+			// look up files by least recently used
+			mi::sequenced<>
+			>
+		>;
+
+		// maps storage pointer, file index pairs to the lru entry for the file
+		files_container m_files;
 		mutable std::mutex m_mutex;
 	};
 }
+}
+
+#endif // HAVE_MMAP || HAVE_MAP_VIEW_OF_FILE
 
 #endif
