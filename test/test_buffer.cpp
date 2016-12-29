@@ -220,25 +220,25 @@ TORRENT_TEST(chained_buffer)
 		b.append_buffer(holder(b1), 512, 6);
 		TEST_EQUAL(buffer_list.size(), 1);
 
-		TEST_CHECK(b.capacity() == 512);
-		TEST_CHECK(b.size() == 6);
+		TEST_EQUAL(b.capacity(), 512);
+		TEST_EQUAL(b.size(), 6);
 		TEST_CHECK(!b.empty());
-		TEST_CHECK(b.space_in_last_buffer() == 512 - 6);
+		TEST_EQUAL(b.space_in_last_buffer(), 512 - 6);
 
 		b.pop_front(3);
 
-		TEST_CHECK(b.capacity() == 512);
-		TEST_CHECK(b.size() == 3);
+		TEST_EQUAL(b.capacity(), 512 - 3);
+		TEST_EQUAL(b.size(), 3);
 		TEST_CHECK(!b.empty());
-		TEST_CHECK(b.space_in_last_buffer() == 512 - 6);
+		TEST_EQUAL(b.space_in_last_buffer(), 512 - 6);
 
 		bool ret = b.append(data, 6) != nullptr;
 
 		TEST_CHECK(ret == true);
-		TEST_CHECK(b.capacity() == 512);
-		TEST_CHECK(b.size() == 9);
+		TEST_EQUAL(b.capacity(), 512 - 3);
+		TEST_EQUAL(b.size(), 9);
 		TEST_CHECK(!b.empty());
-		TEST_CHECK(b.space_in_last_buffer() == 512 - 12);
+		TEST_EQUAL(b.space_in_last_buffer(), 512 - 12);
 
 		char data2[1024];
 		ret = b.append(data2, 1024) != nullptr;
@@ -248,17 +248,17 @@ TORRENT_TEST(chained_buffer)
 		char* b2 = allocate_buffer(512);
 		std::memcpy(b2, data, 6);
 		b.append_buffer(holder(b2), 512, 6);
-		TEST_CHECK(buffer_list.size() == 2);
+		TEST_EQUAL(buffer_list.size(), 2);
 
 		char* b3 = allocate_buffer(512);
 		std::memcpy(b3, data, 6);
 		b.append_buffer(holder(b3), 512, 6);
-		TEST_CHECK(buffer_list.size() == 3);
+		TEST_EQUAL(buffer_list.size(), 3);
 
-		TEST_CHECK(b.capacity() == 512 * 3);
-		TEST_CHECK(b.size() == 21);
+		TEST_EQUAL(b.capacity(), 512 * 3 - 3);
+		TEST_EQUAL(b.size(), 21);
 		TEST_CHECK(!b.empty());
-		TEST_CHECK(b.space_in_last_buffer() == 512 - 6);
+		TEST_EQUAL(b.space_in_last_buffer(), 512 - 6);
 
 		TEST_CHECK(compare_chained_buffer(b, "barfoobar", 9));
 
@@ -268,10 +268,10 @@ TORRENT_TEST(chained_buffer)
 		b.pop_front(5 + 6);
 
 		TEST_CHECK(buffer_list.size() == 2);
-		TEST_CHECK(b.capacity() == 512 * 2);
-		TEST_CHECK(b.size() == 10);
+		TEST_EQUAL(b.capacity(), 512 * 2 - 2);
+		TEST_EQUAL(b.size(), 10);
 		TEST_CHECK(!b.empty());
-		TEST_CHECK(b.space_in_last_buffer() == 512 - 6);
+		TEST_EQUAL(b.space_in_last_buffer(), 512 - 6);
 
 		char const* str = "obarfooba";
 		TEST_CHECK(compare_chained_buffer(b, str, 9));

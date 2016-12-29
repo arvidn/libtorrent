@@ -47,8 +47,10 @@ namespace libtorrent
 			buffer_t& b = m_vec.front();
 			if (b.used_size > bytes_to_pop)
 			{
-				b.start += bytes_to_pop;
+				b.buf += bytes_to_pop;
 				b.used_size -= bytes_to_pop;
+				b.size -= bytes_to_pop;
+				m_capacity -= bytes_to_pop;
 				m_bytes -= bytes_to_pop;
 				TORRENT_ASSERT(m_bytes <= m_capacity);
 				TORRENT_ASSERT(m_bytes >= 0);
@@ -75,9 +77,8 @@ namespace libtorrent
 		TORRENT_ASSERT(!m_destructed);
 		if (m_vec.empty()) return 0;
 		buffer_t& b = m_vec.back();
-		TORRENT_ASSERT(b.start != nullptr);
 		TORRENT_ASSERT(b.buf != nullptr);
-		return b.size - b.used_size - int(b.start - b.buf);
+		return b.size - b.used_size;
 	}
 
 	// tries to copy the given buffer to the end of the
@@ -102,9 +103,8 @@ namespace libtorrent
 		TORRENT_ASSERT(!m_destructed);
 		if (m_vec.empty()) return nullptr;
 		buffer_t& b = m_vec.back();
-		TORRENT_ASSERT(b.start != nullptr);
 		TORRENT_ASSERT(b.buf != nullptr);
-		char* const insert = b.start + b.used_size;
+		char* const insert = b.buf + b.used_size;
 		if (insert + s > b.buf + b.size) return nullptr;
 		b.used_size += s;
 		m_bytes += s;
@@ -133,16 +133,15 @@ namespace libtorrent
 		TORRENT_ASSERT(!m_destructed);
 		for (auto i = m_vec.begin(), end(m_vec.end()); bytes > 0 && i != end; ++i)
 		{
-			TORRENT_ASSERT(i->start != nullptr);
 			TORRENT_ASSERT(i->buf != nullptr);
 			if (i->used_size > bytes)
 			{
 				TORRENT_ASSERT(bytes > 0);
-				vec.push_back(Buffer(i->start, bytes));
+				vec.push_back(Buffer(i->buf, bytes));
 				break;
 			}
 			TORRENT_ASSERT(i->used_size > 0);
-			vec.push_back(Buffer(i->start, i->used_size));
+			vec.push_back(Buffer(i->buf, i->used_size));
 			bytes -= i->used_size;
 		}
 	}

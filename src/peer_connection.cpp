@@ -64,6 +64,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/close_reason.hpp"
 #include "libtorrent/aux_/has_block.hpp"
 #include "libtorrent/aux_/time.hpp"
+#include "libtorrent/aux_/non_owning_handle.hpp"
 
 #if TORRENT_USE_ASSERTS
 #include <set>
@@ -5447,7 +5448,7 @@ namespace libtorrent
 				// this const_cast is a here because chained_buffer need to be
 				// fixed.
 				char* ptr = const_cast<char*>(i->data());
-				m_send_buffer.prepend_buffer(nop(ptr), size, size);
+				m_send_buffer.prepend_buffer(aux::non_owning_handle(ptr), size, size);
 			}
 			set_send_barrier(next_barrier);
 		}

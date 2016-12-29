@@ -52,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/aux_/time.hpp"
+#include "libtorrent/aux_/non_owning_handle.hpp"
 
 namespace libtorrent { namespace
 {
@@ -280,7 +281,7 @@ namespace libtorrent { namespace
 			// TODO: we really need to increment the refcounter on the torrent
 			// while this buffer is still in the peer's send buffer
 			if (metadata_piece_size) m_pc.append_const_send_buffer(
-				nop(const_cast<char*>(metadata)), metadata_piece_size);
+				aux::non_owning_handle(const_cast<char*>(metadata)), metadata_piece_size);
 
 			m_pc.stats_counters().inc_stats_counter(counters::num_outgoing_extended);
 			m_pc.stats_counters().inc_stats_counter(counters::num_outgoing_metadata);
