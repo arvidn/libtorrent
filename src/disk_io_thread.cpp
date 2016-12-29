@@ -194,7 +194,6 @@ namespace libtorrent
 		, m_generic_threads(m_generic_io_jobs, ios)
 		, m_hash_io_jobs(*this, thread_type_t::hasher)
 		, m_hash_threads(m_hash_io_jobs, ios)
-		, m_last_file_check(clock_type::now())
 		, m_disk_cache(block_size, ios, std::bind(&disk_io_thread::trigger_cache_trim, this))
 		, m_stats_counters(cnt)
 		, m_ios(ios)
