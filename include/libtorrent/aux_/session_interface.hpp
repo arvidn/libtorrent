@@ -118,13 +118,14 @@ namespace libtorrent { namespace aux
 	};
 #endif // TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 
+	struct ses_buffer_holder;
+
 	// TODO: 2 make this interface a lot smaller. It could be split up into
 	// several smaller interfaces. Each subsystem could then limit the size
 	// of the mock object to test it.
 	struct TORRENT_EXTRA_EXPORT session_interface
-		: buffer_allocator_interface
 #if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
-		, session_logger
+		: session_logger
 #endif
 	{
 		// TODO: 2 the IP voting mechanism should be factored out
@@ -193,7 +194,7 @@ namespace libtorrent { namespace aux
 		virtual void close_connection(peer_connection* p, error_code const& ec) = 0;
 		virtual int num_connections() const = 0;
 
-		virtual char* allocate_buffer() = 0;
+		virtual ses_buffer_holder allocate_buffer() = 0;
 		virtual void free_buffer(char* buf) = 0;
 		virtual int send_buffer_size() const = 0;
 
@@ -320,6 +321,29 @@ namespace libtorrent { namespace aux
 		virtual void sent_buffer(int size) = 0;
 	protected:
 		~session_interface() {}
+	};
+
+	struct ses_buffer_holder
+	{
+		ses_buffer_holder(session_interface& ses, char* buf)
+			: m_ses(&ses), m_buf(buf) {}
+		~ses_buffer_holder() { if (m_buf) m_ses->free_buffer(m_buf); }
+		ses_buffer_holder(ses_buffer_holder const&) = delete;
+		ses_buffer_holder& operator=(ses_buffer_holder const&) = delete;
+		ses_buffer_holder(ses_buffer_holder&& rhs) noexcept
+			: m_ses(rhs.m_ses), m_buf(rhs.m_buf) { rhs.m_buf = nullptr; }
+		ses_buffer_holder& operator=(ses_buffer_holder&& rhs) noexcept
+		{
+			if (m_buf) m_ses->free_buffer(m_buf);
+			m_buf = rhs.m_buf;
+			m_ses = rhs.m_ses;
+			rhs.m_buf = nullptr;
+			return *this;
+		}
+		char* get() const noexcept { return m_buf; }
+	private:
+		session_interface* m_ses;
+		char* m_buf;
 	};
 }}
 

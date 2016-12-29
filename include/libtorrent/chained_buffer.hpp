@@ -45,6 +45,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/buffer.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
+#ifdef _MSC_VER
+// visual studio requires the value in a deque to be copyable or movable. C++11
+// only requires that when calling functions with those requirements
+#define TORRENT_CPP98_DEQUE 1
+#else
+#define TORRENT_CPP98_DEQUE 0
+#endif
+
 namespace libtorrent
 {
 	// TODO: 2 this type should probably be renamed to send_buffer
@@ -58,14 +66,54 @@ namespace libtorrent
 #endif
 		}
 
-		// destructs/frees the buffer (1st arg) with
-		// 2nd argument as userdata
-		typedef void (*free_buffer_fun)(char*, void*, aux::block_cache_reference ref);
+	private:
+
+		// destructs/frees the holder object
+		using destruct_holder_fun = void (*)(void*);
+		using move_construct_holder_fun = void (*)(void*, void*);
 
 		struct buffer_t
 		{
-			free_buffer_fun free_fun;
-			void* userdata;
+			buffer_t() {}
+#if TORRENT_CPP98_DEQUE
+			buffer_t(buffer_t&& rhs) noexcept
+			{
+				destruct_holder = rhs.destruct_holder;
+				move_holder = rhs.move_holder;
+				buf = rhs.buf;
+				start = rhs.start;
+				size = rhs.size;
+				used_size = rhs.used_size;
+				move_holder(&holder, &rhs.holder);
+			}
+			buffer_t& operator=(buffer_t&& rhs) noexcept
+			{
+				destruct_holder(&holder);
+				destruct_holder = rhs.destruct_holder;
+				move_holder = rhs.move_holder;
+				buf = rhs.buf;
+				start = rhs.start;
+				size = rhs.size;
+				used_size = rhs.used_size;
+				move_holder(&holder, &rhs.holder);
+				return *this;
+			}
+			buffer_t(buffer_t const& rhs) noexcept
+				: buffer_t(std::move(const_cast<buffer_t&>(rhs))) {}
+			buffer_t& operator=(buffer_t const& rhs) noexcept
+			{ return this->operator=(std::move(const_cast<buffer_t&>(rhs))); }
+#else
+			buffer_t(buffer_t&&) = delete;
+			buffer_t& operator=(buffer_t&&) = delete;
+			buffer_t(buffer_t const&) = delete;
+			buffer_t& operator=(buffer_t const&) = delete;
+#endif
+
+			destruct_holder_fun destruct_holder;
+#if TORRENT_CPP98_DEQUE
+			move_construct_holder_fun move_holder;
+#endif
+			std::aligned_storage<32>::type holder;
 			// TODO: 2 the pointers here should probably be const, since
 			// they're not supposed to be mutated once inserted into the send
 			// buffer
@@ -73,8 +121,9 @@ namespace libtorrent
 			char* start; // the first byte to send/receive in the buffer
 			int size; // the total size of the buffer
 			int used_size; // this is the number of bytes to send/receive
-			aux::block_cache_reference ref;
 		};
+
+	public:
 
 		bool empty() const { return m_bytes == 0; }
 		int size() const { return m_bytes; }
@@ -83,13 +132,25 @@ namespace libtorrent
 		void pop_front(int bytes_to_pop);
 
 		//TODO: 3 use span<> instead of (buffer,s)
-		void append_buffer(char* buffer, int s, int used_size
-			, free_buffer_fun destructor, void* userdata
-			, aux::block_cache_reference ref = aux::block_cache_reference());
+		template <typename Holder>
+		void append_buffer(Holder buffer, int s, int used_size)
+		{
+			TORRENT_ASSERT(is_single_thread());
+			TORRENT_ASSERT(s >= used_size);
+			m_vec.emplace_back();
+			buffer_t& b = m_vec.back();
+			init_buffer_entry<Holder>(b, buffer, s, used_size);
+		}
 
-		void prepend_buffer(char* buffer, int s, int used_size
-			, free_buffer_fun destructor, void* userdata
-			, aux::block_cache_reference ref = aux::block_cache_reference());
+		template <typename Holder>
+		void prepend_buffer(Holder buffer, int s, int used_size)
+		{
+			TORRENT_ASSERT(is_single_thread());
+			TORRENT_ASSERT(s >= used_size);
+			m_vec.emplace_front();
+			buffer_t& b = m_vec.front();
+			init_buffer_entry<Holder>(b, buffer, s, used_size);
+		}
 
 		// returns the number of bytes available at the
 		// end of the last chained buffer.
@@ -97,7 +158,7 @@ namespace libtorrent
 
 		// tries to copy the given buffer to the end of the
 		// last chained buffer. If there's not enough room
-		// it returns false
+		// it returns nullptr
 		char* append(char const* buf, int s);
 
 		// tries to allocate memory from the end
@@ -114,6 +175,41 @@ namespace libtorrent
 		~chained_buffer();
 
 	private:
+
+		template <typename Holder>
+		void init_buffer_entry(buffer_t& b, Holder& buffer, int s, int used_size)
+		{
+			static_assert(sizeof(Holder) <= sizeof(b.holder), "buffer holder too large");
+
+			b.buf = buffer.get();
+			b.size = s;
+			b.start = buffer.get();
+			b.used_size = used_size;
+
+#ifdef _MSC_VER
+// this appears to be a false positive msvc warning
+#pragma warning(push, 1)
+#pragma warning(disable : 4100)
+#endif
+			b.destruct_holder = [](void* holder)
+			{ reinterpret_cast<Holder*>(holder)->~Holder(); };
+
+#if TORRENT_CPP98_DEQUE
+			b.move_holder = [](void* dst, void* src)
+			{ new (dst) Holder(std::move(*reinterpret_cast<Holder*>(src))); };
+#endif
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+			new (&b.holder) Holder(std::move(buffer));
+
+			m_bytes += used_size;
+			m_capacity += s;
+			TORRENT_ASSERT(m_bytes <= m_capacity);
+		}
+
 		template <typename Buffer>
 		void build_vec(int bytes, std::vector<Buffer>& vec);
 

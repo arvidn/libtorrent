@@ -1515,8 +1515,8 @@ namespace libtorrent
 	}
 
 	void disk_io_thread::async_read(storage_interface* storage, peer_request const& r
-		, std::function<void(aux::block_cache_reference ref, char* block
-		, int flags, storage_error const& se)> handler, void* requester, std::uint8_t const flags)
+		, std::function<void(disk_buffer_holder block, int flags, storage_error const& se)> handler
+		, void* requester, std::uint8_t const flags)
 	{
 		TORRENT_ASSERT(r.length <= m_disk_cache.block_size());
 		TORRENT_ASSERT(r.length <= 16 * 1024);
@@ -1541,7 +1541,7 @@ namespace libtorrent
 		switch (ret)
 		{
 			case 0:
-				j->call_callback();
+				j->call_callback(*this);
 				free_job(j);
 				break;
 			case 1:
@@ -1766,7 +1766,7 @@ namespace libtorrent
 #endif
 
 			l.unlock();
-			j->call_callback();
+			j->call_callback(*this);
 			free_job(j);
 			return;
 		}
@@ -1920,7 +1920,7 @@ namespace libtorrent
 		if (m_abort)
 		{
 			j->error.ec = boost::asio::error::operation_aborted;
-			j->call_callback();
+			j->call_callback(*this);
 			free_job(j);
 			return;
 		}
@@ -3385,7 +3385,7 @@ namespace libtorrent
 #if TORRENT_USE_ASSERTS
 			j->callback_called = true;
 #endif
-			j->call_callback();
+			j->call_callback(*this);
 			to_delete[cnt++] = j;
 			j = next;
 			if (cnt == int(to_delete.size()))

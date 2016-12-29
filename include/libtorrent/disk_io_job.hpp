@@ -57,6 +57,7 @@ namespace libtorrent
 	struct cached_piece_entry;
 	class torrent_info;
 	struct add_torrent_params;
+	struct buffer_allocator_interface;
 
 	// disk_io_jobs are allocated in a pool allocator in disk_io_thread
 	// they are always allocated from the network thread, posted
@@ -77,7 +78,7 @@ namespace libtorrent
 		disk_io_job(disk_io_job const&) = delete;
 		disk_io_job& operator=(disk_io_job const&) = delete;
 
-		void call_callback();
+		void call_callback(buffer_allocator_interface&);
 
 		enum action_t : std::uint8_t
 		{
@@ -146,8 +147,7 @@ namespace libtorrent
 
 		// this is called when operation completes
 
-		using read_handler = std::function<void(aux::block_cache_reference ref
-			, char* block, int flags, storage_error const& se)>;
+		using read_handler = std::function<void(disk_buffer_holder block, int flags, storage_error const& se)>;
 		using write_handler = std::function<void(storage_error const&)>;
 		using hash_handler = std::function<void(piece_index_t, sha1_hash const&, storage_error const&)>;
 		using move_handler = std::function<void(status_t, std::string const&, storage_error const&)>;

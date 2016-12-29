@@ -392,8 +392,7 @@ namespace libtorrent
 			error_code error;
 		};
 		void read_piece(piece_index_t piece);
-		void on_disk_read_complete(aux::block_cache_reference ref
-			, char* block, int flags, storage_error const& se
+		void on_disk_read_complete(disk_buffer_holder block, int flags, storage_error const& se
 			, peer_request r, std::shared_ptr<read_piece_struct> rp);
 
 		storage_mode_t storage_mode() const;
