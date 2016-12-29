@@ -660,7 +660,7 @@ void create_random_files(std::string const& path, const int file_sizes[], int nu
 
 		int to_write = file_sizes[i];
 		if (fs) fs->add_file(full_path, to_write);
-		file f(full_path, open_mode::write_only, ec);
+		file f(full_path, aux::open_mode::write, ec);
 		if (ec) std::printf("failed to create file \"%s\": (%d) %s\n"
 			, full_path.c_str(), ec.value(), ec.message().c_str());
 		std::int64_t offset = 0;

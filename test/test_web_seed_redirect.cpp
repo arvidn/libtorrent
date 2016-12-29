@@ -50,7 +50,7 @@ TORRENT_TEST(web_seed_redirect)
 
 	char random_data[16000];
 	std::generate(random_data, random_data + sizeof(random_data), random_byte);
-	file f("test_file", open_mode::write_only, ec);
+	file f("test_file", aux::open_mode::write, ec);
 	if (ec)
 	{
 		std::printf("failed to create file \"test_file\": (%d) %s\n"

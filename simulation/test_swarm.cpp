@@ -87,7 +87,7 @@ TORRENT_TEST(seed_mode_disable_hash_checks)
 			params.flags |= torrent_flags::seed_mode;
 			// just to make sure the disable_hash_checks really work, we
 			// shouldn't be verifying anything from the storage
-			params.storage = disabled_storage_constructor;
+//			params.storage = disabled_storage_constructor;
 		}
 		// on alert
 		, [](lt::alert const*, lt::session&) {}
@@ -279,7 +279,7 @@ void test_stop_start_download(swarm_test type, bool graceful)
 
 			std::printf("tick: %d\n", ticks);
 
-			const int timeout = type == swarm_test::download ? 20 : 100;
+			const int timeout = type == swarm_test::download ? 22 : 90;
 			if (ticks > timeout)
 			{
 				TEST_ERROR("timeout");

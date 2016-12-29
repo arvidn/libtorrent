@@ -63,6 +63,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/write_resume_data.hpp"
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/disk_interface.hpp" // for open_file_state
+#include "libtorrent/disabled_disk_io.hpp" // for disabled_disk_io_constructor
 
 #include "torrent_view.hpp"
 #include "session_view.hpp"
@@ -294,16 +295,6 @@ using lt::torrent_status;
 
 FILE* g_log_file = nullptr;
 
-int peer_index(lt::tcp::endpoint addr, std::vector<lt::peer_info> const& peers)
-{
-	using namespace lt;
-	std::vector<peer_info>::const_iterator i = std::find_if(peers.begin(), peers.end()
-		, [&addr](peer_info const& pi) { return pi.ip == addr; });
-	if (i == peers.end()) return -1;
-
-	return int(i - peers.begin());
-}
-
 // returns the number of lines printed
 int print_peer_info(std::string& out
 	, std::vector<lt::peer_info> const& peers, int max_lines)
@@ -482,10 +473,8 @@ std::string monitor_dir;
 int poll_interval = 5;
 int max_connections_per_torrent = 50;
 bool seed_mode = false;
-int cache_size = 1024;
 
 bool share_mode = false;
-bool disable_storage = false;
 
 bool quit = false;
 
@@ -541,7 +530,6 @@ void add_magnet(lt::session& ses, lt::string_view uri)
 	p.download_limit = torrent_download_limit;
 
 	if (seed_mode) p.flags |= lt::torrent_flags::seed_mode;
-	if (disable_storage) p.storage = lt::disabled_storage_constructor;
 	if (share_mode) p.flags |= lt::torrent_flags::share_mode;
 	p.save_path = save_path;
 	p.storage_mode = static_cast<lt::storage_mode_t>(allocation_mode);
@@ -580,7 +568,6 @@ bool add_torrent(lt::session& ses, std::string torrent)
 	ec.clear();
 
 	if (seed_mode) p.flags |= lt::torrent_flags::seed_mode;
-	if (disable_storage) p.storage = lt::disabled_storage_constructor;
 	if (share_mode) p.flags |= lt::torrent_flags::share_mode;
 
 	p.max_connections = max_connections_per_torrent;
@@ -910,64 +897,51 @@ void pop_alerts(torrent_view& view, session_view& ses_view
 	}
 }
 
-void print_piece(lt::partial_piece_info const* pp
-	, lt::cached_piece_info const* cs
+void print_piece(lt::partial_piece_info const& pp
 	, std::vector<lt::peer_info> const& peers
 	, std::string& out)
 {
 	using namespace lt;
 
 	char str[1024];
-	assert(pp == nullptr || cs == nullptr || cs->piece == pp->piece_index);
-	int piece = static_cast<int>(pp ? pp->piece_index : cs->piece);
-	int num_blocks = pp ? pp->blocks_in_piece : int(cs->blocks.size());
+	int const piece = static_cast<int>(pp.piece_index);
+	int const num_blocks = pp.blocks_in_piece;
 
 	std::snprintf(str, sizeof(str), "%5d:[", piece);
 	out += str;
 	string_view last_color;
 	for (int j = 0; j < num_blocks; ++j)
 	{
-		int const index = pp ? peer_index(pp->blocks[j].peer(), peers) % 36 : -1;
+		bool const snubbed = piece >= 0 ? bool(peers[piece].flags & lt::peer_info::snubbed) : false;
 		char const* chr = " ";
-		bool const snubbed = index >= 0 ? bool(peers[index].flags & lt::peer_info::snubbed) : false;
-
 		char const* color = "";
 
-		if (pp == nullptr)
+		if (pp.blocks[j].bytes_progress > 0
+				&& pp.blocks[j].state == block_info::requested)
 		{
-			color = cs->blocks[j] ? esc("34;7") : esc("0");
-			chr = " ";
-		}
-		else
-		{
-			if (cs && cs->blocks[j] && pp->blocks[j].state != block_info::finished)
-				color = esc("36;7");
-			else if (pp->blocks[j].bytes_progress > 0
-					&& pp->blocks[j].state == block_info::requested)
-			{
-				if (pp->blocks[j].num_peers > 1) color = esc("0;1");
-				else color = snubbed ? esc("0;35") : esc("0;33");
+			if (pp.blocks[j].num_peers > 1) color = esc("0;1");
+			else color = snubbed ? esc("0;35") : esc("0;33");
 
 #ifndef TORRENT_WINDOWS
-				static char const* const progress[] = {
-					"\u2581", "\u2582", "\u2583", "\u2584",
-					"\u2585", "\u2586", "\u2587", "\u2588"
-				};
-				chr = progress[pp->blocks[j].bytes_progress * 8 / pp->blocks[j].block_size];
+			static char const* const progress[] = {
+				"\u2581", "\u2582", "\u2583", "\u2584",
+				"\u2585", "\u2586", "\u2587", "\u2588"
+			};
+			chr = progress[pp.blocks[j].bytes_progress * 8 / pp.blocks[j].block_size];
 #else
-				static char const* const progress[] = { "\xb0", "\xb1", "\xb2" };
-				chr = progress[pp->blocks[j].bytes_progress * 3 / pp->blocks[j].block_size];
+			static char const* const progress[] = { "\xb0", "\xb1", "\xb2" };
+			chr = progress[pp.blocks[j].bytes_progress * 3 / pp.blocks[j].block_size];
 #endif
-			}
-			else if (pp->blocks[j].state == block_info::finished) color = esc("32;7");
-			else if (pp->blocks[j].state == block_info::writing) color = esc("36;7");
-			else if (pp->blocks[j].state == block_info::requested)
-			{
-				color = snubbed ? esc("0;35") : esc("0");
-				chr = "=";
-			}
-			else { color = esc("0"); chr = " "; }
 		}
+		else if (pp.blocks[j].state == block_info::finished) color = esc("32;7");
+		else if (pp.blocks[j].state == block_info::writing) color = esc("36;7");
+		else if (pp.blocks[j].state == block_info::requested)
+		{
+			color = snubbed ? esc("0;35") : esc("0");
+			chr = "=";
+		}
+		else { color = esc("0"); chr = " "; }
+
 		if (last_color != color)
 		{
 			out += color;
@@ -1082,7 +1056,6 @@ example alert_masks:
 #endif
 
 	auto& settings = params.settings;
-	settings.set_int(settings_pack::cache_size, cache_size);
 	settings.set_int(settings_pack::choking_algorithm, settings_pack::rate_based_choker);
 
 	settings.set_str(settings_pack::user_agent, "client_test/" LIBTORRENT_VERSION);
@@ -1227,7 +1200,11 @@ example alert_masks:
 					rate_limit_locals = true;
 					break;
 				}
-			case '0': disable_storage = true; --i;
+			case '0':
+				{
+					params.disk_io_constructor = lt::disabled_disk_io_constructor;
+					--i;
+				}
 		}
 		++i; // skip the argument
 	}
@@ -1575,13 +1552,6 @@ example alert_masks:
 				if (c == '5') print_peer_rate = !print_peer_rate;
 				if (c == '6') print_fails = !print_fails;
 				if (c == '7') print_send_bufs = !print_send_bufs;
-				if (c == 'C')
-				{
-					cache_size = (cache_size == 0) ? -1 : 0;
-					settings_pack p;
-					p.set_int(settings_pack::cache_size, cache_size);
-					ses.apply_settings(std::move(p));
-				}
 				if (c == 'h')
 				{
 					clear_screen();
@@ -1594,13 +1564,13 @@ CLIENT OPTIONS
 [q] quit client                                 [m] add magnet link
 
 TORRENT ACTIONS
-[p] pause/resume selected torrent               [C] toggle disk cache
+[p] pause/resume selected torrent               [W] remove all web seeds
 [s] toggle sequential download                  [j] force recheck
 [space] toggle session pause                    [c] clear error
 [v] scrape                                      [D] delete torrent and data
 [r] force reannounce                            [R] save resume data for all torrents
 [o] set piece deadlines (sequential dl)         [P] toggle auto-managed
-[k] toggle force-started                        [W] remove all web seeds
+[k] toggle force-started
 
 DISPLAY OPTIONS
 left/right arrow keys: select torrent filter
@@ -1634,11 +1604,7 @@ COLUMN OPTIONS
 		int pos = view.height() + ses_view.height();
 		set_cursor_pos(0, pos);
 
-		int cache_flags = print_downloads ? 0 : lt::session::disk_cache_no_pieces;
 		torrent_handle h = view.get_active_handle();
-
-		cache_status cs;
-		ses.get_cache_info(&cs, h, cache_flags);
 
 #ifndef TORRENT_DISABLE_DHT
 		if (show_dht_status)
@@ -1749,59 +1715,14 @@ COLUMN OPTIONS
 			{
 				h.get_download_queue(queue);
 
-				std::sort(queue.begin(), queue.end()
-					, [] (lt::partial_piece_info const& lhs, lt::partial_piece_info const& rhs)
-					{ return lhs.piece_index < rhs.piece_index; });
-
-				std::sort(cs.pieces.begin(), cs.pieces.end()
-					, [](lt::cached_piece_info const& lhs, lt::cached_piece_info const& rhs)
-					{ return lhs.piece < rhs.piece; });
-
 				int p = 0; // this is horizontal position
-				for (lt::cached_piece_info const& i : cs.pieces)
-				{
-					if (pos + 3 >= terminal_height) break;
-
-					lt::partial_piece_info* pp = nullptr;
-					lt::partial_piece_info tmp;
-					tmp.piece_index = i.piece;
-					std::vector<lt::partial_piece_info>::iterator ppi
-						= std::lower_bound(queue.begin(), queue.end(), tmp
-						, [](lt::partial_piece_info const& lhs, lt::partial_piece_info const& rhs)
-						{ return lhs.piece_index < rhs.piece_index; });
-
-					if (ppi != queue.end() && ppi->piece_index == i.piece) pp = &*ppi;
-
-					print_piece(pp, &i, peers, out);
-
-					int num_blocks = pp ? pp->blocks_in_piece : int(i.blocks.size());
-					p += num_blocks + 8;
-					bool continuous_mode = 8 + num_blocks > terminal_width;
-					if (continuous_mode)
-					{
-						while (p > terminal_width)
-						{
-							p -= terminal_width;
-							++pos;
-						}
-					}
-					else if (p + num_blocks + 8 > terminal_width)
-					{
-						out += "\x1b[K\n";
-						pos += 1;
-						p = 0;
-					}
-
-					if (pp) queue.erase(ppi);
-				}
-
 				for (lt::partial_piece_info const& i : queue)
 				{
 					if (pos + 3 >= terminal_height) break;
 
-					print_piece(&i, nullptr, peers, out);
+					print_piece(i, peers, out);
 
-					int num_blocks = i.blocks_in_piece;
+					int const num_blocks = i.blocks_in_piece;
 					p += num_blocks + 8;
 					bool continuous_mode = 8 + num_blocks > terminal_width;
 					if (continuous_mode)
@@ -1825,10 +1746,9 @@ COLUMN OPTIONS
 					pos += 1;
 				}
 
-				std::snprintf(str, sizeof(str), "%s %s read cache | %s %s downloading | %s %s cached | %s %s flushed | %s %s snubbed | = requested\x1b[K\n"
-					, esc("34;7"), esc("0") // read cache
+				std::snprintf(str, sizeof(str), "%s %s downloading | %s %s writing | %s %s flushed | %s %s snubbed | = requested\x1b[K\n"
 					, esc("33;7"), esc("0") // downloading
-					, esc("36;7"), esc("0") // cached
+					, esc("36;7"), esc("0") // writing
 					, esc("32;7"), esc("0") // flushed
 					, esc("35;7"), esc("0") // snubbed
 					);

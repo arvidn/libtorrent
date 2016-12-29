@@ -130,6 +130,9 @@ namespace aux {
 		std::shared_ptr<aux::session_impl> m_impl;
 	};
 
+	using disk_io_constructor_type = std::function<std::unique_ptr<disk_interface>(
+		io_service&, counters&)>;
+
 	// The session_params is a parameters pack for configuring the session
 	// before it's started.
 	struct TORRENT_EXPORT session_params
@@ -158,6 +161,8 @@ namespace aux {
 		dht::dht_state dht_state;
 
 		dht::dht_storage_constructor_type dht_storage_constructor;
+
+		disk_io_constructor_type disk_io_constructor;
 	};
 
 	// This function helps to construct a ``session_params`` from a

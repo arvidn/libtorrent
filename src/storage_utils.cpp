@@ -142,14 +142,12 @@ namespace libtorrent { namespace aux {
 
 		TORRENT_ALLOCA(tmp_buf, iovec_t, bufs.size());
 
-		// the number of bytes left to read in the current file (specified by
-		// file_index). This is the minimum of (file_size - file_offset) and
-		// bytes_left.
-		int file_bytes_left;
-
 		while (bytes_left > 0)
 		{
-			file_bytes_left = bytes_left;
+			// the number of bytes left to read in the current file (specified by
+			// file_index). This is the minimum of (file_size - file_offset) and
+			// bytes_left.
+			int file_bytes_left = bytes_left;
 			if (file_offset + file_bytes_left > files.file_size(file_index))
 				file_bytes_left = std::max(static_cast<int>(files.file_size(file_index) - file_offset), 0);
 
@@ -176,6 +174,7 @@ namespace libtorrent { namespace aux {
 
 			int const bytes_transferred = op(file_index, file_offset
 				, tmp_buf.first(tmp_bufs_used), ec);
+			TORRENT_ASSERT(bytes_transferred <= file_bytes_left);
 			if (ec) return -1;
 
 			// advance our position in the iovec array and the file offset.

@@ -530,7 +530,7 @@ namespace {
 	{
 		ec.clear();
 		file f;
-		if (!f.open(filename, open_mode::read_only, ec)) return -1;
+		if (!f.open(filename, aux::open_mode::read_only, ec)) return -1;
 		std::int64_t s = f.get_size(ec);
 		if (ec) return -1;
 		v.resize(std::size_t(s));

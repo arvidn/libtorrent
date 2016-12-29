@@ -147,10 +147,6 @@ namespace {
 		// the send buffer
 		set.set_int(settings_pack::send_buffer_watermark, 9);
 
-		// don't use any disk cache
-		set.set_int(settings_pack::cache_size, 0);
-		set.set_bool(settings_pack::use_read_cache, false);
-
 		set.set_bool(settings_pack::close_redundant_connections, true);
 
 		set.set_int(settings_pack::max_peerlist_size, 500);
@@ -163,11 +159,6 @@ namespace {
 
 		set.set_int(settings_pack::recv_socket_buffer_size, 16 * 1024);
 		set.set_int(settings_pack::send_socket_buffer_size, 16 * 1024);
-
-		// use less memory when reading and writing
-		// whole pieces
-		set.set_bool(settings_pack::coalesce_reads, false);
-		set.set_bool(settings_pack::coalesce_writes, false);
 		return set;
 	}
 
@@ -209,22 +200,8 @@ namespace {
 		// unchoke many peers
 		set.set_int(settings_pack::unchoke_slots_limit, 2000);
 
-		// use 1 GB of cache
-		set.set_int(settings_pack::cache_size, 32768 * 2);
-		set.set_bool(settings_pack::use_read_cache, true);
 		set.set_int(settings_pack::read_cache_line_size, 32);
 		set.set_int(settings_pack::write_cache_line_size, 256);
-		// 30 seconds expiration to save cache
-		// space for active pieces
-		set.set_int(settings_pack::cache_expiry, 30);
-
-		// in case the OS we're running on doesn't support
-		// readv/writev, allocate contiguous buffers for
-		// reads and writes
-		// disable, since it uses a lot more RAM and a significant
-		// amount of CPU to copy it around
-		set.set_bool(settings_pack::coalesce_reads, false);
-		set.set_bool(settings_pack::coalesce_writes, false);
 
 		// the max number of bytes pending write before we throttle
 		// download rate
@@ -348,7 +325,9 @@ namespace {
 			ios = m_io_service.get();
 		}
 
-		m_impl = std::make_shared<aux::session_impl>(std::ref(*ios), std::ref(params.settings));
+		m_impl = std::make_shared<aux::session_impl>(std::ref(*ios)
+			, std::move(params.settings)
+			, std::move(params.disk_io_constructor));
 		*static_cast<session_handle*>(this) = session_handle(m_impl);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
