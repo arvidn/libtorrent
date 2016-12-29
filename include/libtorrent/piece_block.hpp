@@ -41,14 +41,14 @@ namespace libtorrent
 	{
 		static const piece_block invalid;
 
-		piece_block() : piece_index(0) {}
+		piece_block() = default;
 		piece_block(piece_index_t p_index, int b_index)
 			: piece_index(p_index)
 			, block_index(b_index)
 		{
 		}
-		piece_index_t piece_index;
-		int block_index;
+		piece_index_t piece_index {0};
+		int block_index = 0;
 
 		bool operator<(piece_block const& b) const
 		{
