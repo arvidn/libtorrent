@@ -52,7 +52,7 @@ TORRENT_TEST(empty_fence)
 	int ret_int = 0;
 	bool ret = false;
 	// add a fence job
-	ret_int = fence.raise_fence(&test_job[5], &test_job[6], cnt);
+	ret_int = fence.raise_fence(&test_job[5], cnt);
 	// since we don't have any outstanding jobs
 	// we need to post this job
 	TEST_CHECK(ret_int == disk_job_fence::fence_post_fence);
@@ -105,10 +105,10 @@ TORRENT_TEST(job_fence)
 	TEST_CHECK(fence.num_blocked() == 0);
 
 	// add a fence job
-	ret_int = fence.raise_fence(&test_job[5], &test_job[6], cnt);
+	ret_int = fence.raise_fence(&test_job[5], cnt);
 	// since we have outstanding jobs, no need
 	// to post anything
-	TEST_CHECK(ret_int == disk_job_fence::fence_post_flush);
+	TEST_CHECK(ret_int == disk_job_fence::fence_post_none);
 
 	ret = fence.is_blocked(&test_job[7]);
 	TEST_CHECK(ret == true);
@@ -126,10 +126,6 @@ TORRENT_TEST(job_fence)
 	fence.job_complete(&test_job[1], jobs);
 	TEST_CHECK(jobs.size() == 0);
 	fence.job_complete(&test_job[0], jobs);
-	TEST_EQUAL(jobs.size(), 0);
-
-	// the flush job completes
-	fence.job_complete(&test_job[6], jobs);
 
 	// this was the last job. Now we should be
 	// able to run the fence job
@@ -179,12 +175,12 @@ TORRENT_TEST(double_fence)
 	TEST_CHECK(fence.num_blocked() == 0);
 
 	// add two fence jobs
-	ret_int = fence.raise_fence(&test_job[5], &test_job[6], cnt);
+	ret_int = fence.raise_fence(&test_job[5], cnt);
 	// since we have outstanding jobs, no need
 	// to post anything
-	TEST_CHECK(ret_int == disk_job_fence::fence_post_flush);
+	TEST_CHECK(ret_int == disk_job_fence::fence_post_none);
 
-	ret_int = fence.raise_fence(&test_job[7], &test_job[8], cnt);
+	ret_int = fence.raise_fence(&test_job[7], cnt);
 	// since we have outstanding jobs, no need
 	// to post anything
 	TEST_CHECK(ret_int == disk_job_fence::fence_post_none);
@@ -204,8 +200,7 @@ TORRENT_TEST(double_fence)
 	fence.job_complete(&test_job[1], jobs);
 	TEST_CHECK(jobs.size() == 0);
 	fence.job_complete(&test_job[0], jobs);
-	TEST_CHECK(jobs.size() == 0);
-	fence.job_complete(&test_job[6], jobs);
+
 	// this was the last job. Now we should be
 	// able to run the fence job
 	TEST_CHECK(jobs.size() == 1);
@@ -217,14 +212,6 @@ TORRENT_TEST(double_fence)
 	fence.job_complete(&test_job[5], jobs);
 
 	// now it's fine to run the next fence job
-	// first we get the flush job
-	TEST_CHECK(jobs.size() == 1);
-	TEST_CHECK(jobs.first() == &test_job[8]);
-	jobs.pop_front();
-
-	fence.job_complete(&test_job[8], jobs);
-
-	// then the fence itself
 	TEST_CHECK(jobs.size() == 1);
 	TEST_CHECK(jobs.first() == &test_job[7]);
 	jobs.pop_front();

@@ -29,7 +29,6 @@ set(libtorrent_include_files
 	bdecode
 	bencode
 	bitfield
-	block_cache
 	bloom_filter
 	broadcast_socket
 	bt_peer_connection
@@ -60,7 +59,6 @@ set(libtorrent_include_files
 	error_code
 	extensions
 	file
-	file_pool
 	file_storage
 	fingerprint
 	flags
@@ -86,7 +84,6 @@ set(libtorrent_include_files
 	ip_voter
 	lazy_entry
 	link
-	linked_list
 	lsd
 	magnet_uri
 	natpmp
@@ -228,6 +225,7 @@ set(libtorrent_aux_include_files
 	export
 	ffs
 	file_progress
+	file_view_pool
 	has_block
 	instantiate_connection
 	io
@@ -251,7 +249,6 @@ set(libtorrent_aux_include_files
 	session_udp_sockets
 	set_socket_buffer
 	socket_type
-	storage_piece_set
 	storage_utils
 	string_ptr
 	suggest_piece
@@ -262,6 +259,14 @@ set(libtorrent_aux_include_files
 	vector
 	win_crypto_provider
 	win_util)
+
+set(try_signal_include_files
+	try_signal
+	signal_error_code
+	try_signal_mingw
+	try_signal_msvc
+	try_signal_posix
+)
 
 set(sources
 	web_connection_base
@@ -274,7 +279,6 @@ set(sources
 	bandwidth_queue_entry
 	bdecode
 	bitfield
-	block_cache
 	bloom_filter
 	chained_buffer
 	choker
@@ -285,6 +289,7 @@ set(sources
 	disk_buffer_holder
 	entry
 	error_code
+	file_view_pool
 	file_storage
 	file_progress
 	generate_peer_id
@@ -347,7 +352,6 @@ set(sources
 	stat
 	stat_cache
 	storage
-	storage_piece_set
 	storage_utils
 	time
 	timestamp_history
@@ -365,7 +369,6 @@ set(sources
 	upnp
 	utp_socket_manager
 	utp_stream
-	file_pool
 	lsd
 	disk_io_job
 	disk_job_fence
@@ -373,6 +376,7 @@ set(sources
 	disk_buffer_pool
 	disk_io_thread
 	disk_io_thread_pool
+	disabled_disk_io
 	enum_net
 	broadcast_socket
 	magnet_uri
@@ -384,6 +388,9 @@ set(sources
 	add_torrent_params
 	peer_info
 	stack_allocator
+	mmap
+	posix_disk_io
+	posix_storage
 
 # -- extensions --
 	ut_pex
@@ -427,6 +434,11 @@ set(ed25519_sources
 	verify
 )
 
+set(try_signal_sources
+	try_signal
+	signal_error_code
+)
+
 list(TRANSFORM sources PREPEND "src/")
 list(TRANSFORM kademlia_sources PREPEND "src/kademlia/")
 list(TRANSFORM ed25519_sources PREPEND "ed25519/src/")
@@ -434,6 +446,7 @@ list(TRANSFORM libtorrent_include_files PREPEND "include/libtorrent/")
 list(TRANSFORM libtorrent_extensions_include_files PREPEND "include/libtorrent/extensions/")
 list(TRANSFORM libtorrent_aux_include_files PREPEND "include/libtorrent/aux_/")
 list(TRANSFORM libtorrent_kademlia_include_files PREPEND "include/libtorrent/kademlia/")
+list(TRANSFORM try_signal_sources PREPEND "deps/try_signal/")
 
 # these options control target creation and thus have to be declared before the add_library() call
 feature_option(BUILD_SHARED_LIBS "build libtorrent as a shared library" ON)
@@ -494,6 +507,7 @@ endif()
 
 add_library(torrent-rasterbar
 	${sources}
+	${try_signal_sources}
 	${libtorrent_include_files}
 	${libtorrent_extensions_include_files}
 	${libtorrent_aux_include_files}
@@ -519,6 +533,7 @@ set_target_properties(torrent-rasterbar
 target_include_directories(torrent-rasterbar PUBLIC
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+	PRIVATE deps/try_signal
 )
 
 target_compile_definitions(torrent-rasterbar

@@ -296,28 +296,31 @@ namespace libtorrent {
 			// passes the hash check, it is taken out of parole mode.
 			use_parole_mode,
 
+#if TORRENT_ABI_VERSION == 1
 			// enable and disable caching of blocks read from disk. the purpose of
 			// the read cache is partly read-ahead of requests but also to avoid
 			// reading blocks back from the disk multiple times for popular
 			// pieces.
-			use_read_cache,
-#if TORRENT_ABI_VERSION == 1
+			use_read_cache TORRENT_DEPRECATED_ENUM,
 			use_write_cache TORRENT_DEPRECATED_ENUM,
 
 			// this will make the disk cache never flush a write piece if it would
 			// cause is to have to re-read it once we want to calculate the piece
 			// hash
 			dont_flush_write_cache TORRENT_DEPRECATED_ENUM,
-#else
-			deprecated_use_write_cache,
-			deprecated_dont_flush_write_cache,
-#endif
 
 			// allocate separate, contiguous, buffers for read and write calls.
 			// Only used where writev/readv cannot be used will use more RAM but
 			// may improve performance
-			coalesce_reads,
-			coalesce_writes,
+			coalesce_reads TORRENT_DEPRECATED_ENUM,
+			coalesce_writes TORRENT_DEPRECATED_ENUM,
+#else
+			deprecated_use_read_cache,
+			deprecated_use_write_cache,
+			deprecated_flush_write_cache,
+			deprecated_coalesce_reads,
+			deprecated_coalesce_writes,
+#endif
 
 			// prefer seeding torrents when determining which torrents to give
 			// active slots to, the default is false which gives preference to
@@ -972,6 +975,7 @@ namespace libtorrent {
 			choking_algorithm,
 			seed_choking_algorithm,
 
+#if TORRENT_ABI_VERSION == 1
 			// ``cache_size`` is the disk write and read cache. It is specified
 			// in units of 16 KiB blocks. Buffers that are part of a peer's send
 			// or receive buffer also count against this limit. Send and receive
@@ -981,19 +985,28 @@ namespace libtorrent {
 			// physical RAM on the machine. If the amount of physical RAM cannot
 			// be determined, it's set to 1024 (= 16 MiB).
 			//
-			// ``cache_expiry`` is the number of seconds from the last cached write
-			// to a piece in the write cache, to when it's forcefully flushed to
-			// disk. Default is 60 second.
-			//
 			// On 32 bit builds, the effective cache size will be limited to 3/4 of
 			// 2 GiB to avoid exceeding the virtual address space limit.
-			cache_size,
-#if TORRENT_ABI_VERSION == 1
+			cache_size TORRENT_DEPRECATED_ENUM,
+
+			// Disk buffers are allocated using a pool allocator, the number of
+			// blocks that are allocated at a time when the pool needs to grow can
+			// be specified in ``cache_buffer_chunk_size``. Lower numbers saves
+			// memory at the expense of more heap allocations. If it is set to 0,
+			// the effective chunk size is proportional to the total cache size,
+			// attempting to strike a good balance between performance and memory
+			// usage. It defaults to 0.
 			cache_buffer_chunk_size TORRENT_DEPRECATED_ENUM,
+
+			// ``cache_expiry`` is the number of seconds
+			// from the last cached write to a piece in the write cache, to when
+			// it's forcefully flushed to disk. Default is 60 second.
+			cache_expiry TORRENT_DEPRECATED_ENUM,
 #else
+			deprecated_cache_size,
 			deprecated_cache_buffer_chunk_size,
+			deprecated_cache_expiry,
 #endif
-			cache_expiry,
 
 			// determines how files are opened when they're in read only mode
 			// versus read and write mode. The options are:
@@ -1622,6 +1635,7 @@ namespace libtorrent {
 			// .. _i2p: http://www.i2p2.de
 			i2p_port,
 
+#if TORRENT_ABI_VERSION == 1
 			// this determines the max number of volatile disk cache blocks. If the
 			// number of volatile blocks exceed this limit, other volatile blocks
 			// will start to be evicted. A disk cache block is volatile if it has
@@ -1631,6 +1645,9 @@ namespace libtorrent {
 			// represent potential interest among peers, so the value of keeping
 			// them in the cache is limited.
 			cache_size_volatile,
+#else
+			deprecated_cache_size_volatile,
+#endif
 
 			// The maximum request range of an url seed in bytes. This value
 			// defines the largest possible sequential web seed request. Default

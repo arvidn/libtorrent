@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_stats.hpp"
 #include "libtorrent/torrent_info.hpp"
+#include "libtorrent/disk_interface.hpp"
 
 using namespace lt;
 
