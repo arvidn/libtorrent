@@ -177,6 +177,7 @@ namespace libtorrent { namespace aux {
 
 			int const bytes_transferred = op(file_index, file_offset
 				, tmp_buf.first(tmp_bufs_used), ec);
+			TORRENT_ASSERT(bytes_transferred <= file_bytes_left);
 			if (ec) return -1;
 
 			// advance our position in the iovec array and the file offset.

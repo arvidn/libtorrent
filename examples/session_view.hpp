@@ -56,8 +56,8 @@ struct session_view
 
 private:
 
-	int m_position;
-	int m_width;
+	int m_position = 0;
+	int m_width = 80;
 
 	// there are two sets of counters. the current one and the last one. This
 	// is used to calculate rates
@@ -80,19 +80,10 @@ private:
 	int const m_queued_writes_idx = lt::find_metric_idx("disk.num_write_jobs");
 	int const m_queued_reads_idx = lt::find_metric_idx("disk.num_read_jobs");
 
-	int const m_writes_cache_idx = lt::find_metric_idx("disk.write_cache_blocks");
-	int const m_reads_cache_idx = lt::find_metric_idx("disk.read_cache_blocks");
-	int const m_pinned_idx = lt::find_metric_idx("disk.pinned_blocks");
 	int const m_num_blocks_read_idx = lt::find_metric_idx("disk.num_blocks_read");
-	int const m_cache_hit_idx = lt::find_metric_idx("disk.num_blocks_cache_hits");
 	int const m_blocks_in_use_idx = lt::find_metric_idx("disk.disk_blocks_in_use");
 	int const m_blocks_written_idx = lt::find_metric_idx("disk.num_blocks_written");
 	int const m_write_ops_idx = lt::find_metric_idx("disk.num_write_ops");
-
-	int const m_mfu_size_idx = lt::find_metric_idx("disk.arc_mfu_size");
-	int const m_mfu_ghost_idx = lt::find_metric_idx("disk.arc_mfu_ghost_size");
-	int const m_mru_size_idx = lt::find_metric_idx("disk.arc_mru_size");
-	int const m_mru_ghost_idx = lt::find_metric_idx("disk.arc_mru_ghost_size");
 
 	int const m_utp_idle = lt::find_metric_idx("utp.num_utp_idle");
 	int const m_utp_syn_sent = lt::find_metric_idx("utp.num_utp_syn_sent");

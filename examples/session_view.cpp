@@ -32,7 +32,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "session_view.hpp"
 #include "print.hpp"
-#include "libtorrent/session_stats.hpp"
 #include "libtorrent/torrent_handle.hpp"
 
 #include <algorithm> // for std::max
@@ -40,12 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using libtorrent::span;
 
 session_view::session_view()
-	: m_position(0)
 {
-	using lt::find_metric_idx;
-
-	m_width = 128;
-
 	std::vector<lt::stats_metric> metrics = lt::session_stats_metrics();
 	m_cnt[0].resize(metrics.size(), 0);
 	m_cnt[1].resize(metrics.size(), 0);
@@ -101,8 +95,7 @@ void session_view::render()
 	print(str);
 
 	std::snprintf(str, sizeof(str), "%s%swaste: %s   up: %s (%s) "
-		"disk queue: %s | %s cache w: %3d%% r: %3d%% "
-		"size: w: %s r: %s total: %s %*s\x1b[K"
+		"disk queue: %s | %s cache w: %3d%% total: %s %*s\x1b[K"
 #ifdef _WIN32
 		, esc("40")
 #else
@@ -116,12 +109,8 @@ void session_view::render()
 		, color(to_string(int(m_cnt[0][m_queued_writes_idx]), 3), col_green).c_str()
 		, int((m_cnt[0][m_blocks_written_idx] - m_cnt[0][m_write_ops_idx]) * 100
 			/ std::max(std::int64_t(1), m_cnt[0][m_blocks_written_idx]))
-		, int(m_cnt[0][m_cache_hit_idx] * 100
-			/ std::max(std::int64_t(1), m_cnt[0][m_num_blocks_read_idx]))
-		, add_suffix(m_cnt[0][m_writes_cache_idx] * 16 * 1024).c_str()
-		, add_suffix(m_cnt[0][m_reads_cache_idx] * 16 * 1024).c_str()
 		, add_suffix(m_cnt[0][m_blocks_in_use_idx] * 16 * 1024).c_str()
-		, std::max(0, m_width - 119)
+		, std::max(0, m_width - 85)
 		, esc("0"));
 	set_cursor_pos(0, y++);
 	print(str);

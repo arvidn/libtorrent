@@ -22,7 +22,6 @@ REFERENCE_TARGETS = \
 	reference-Create_Torrents \
 	reference-Error_Codes \
 	reference-Storage \
-	reference-Custom_Storage \
 	reference-Utility \
 	reference-Bencoding \
 	reference-Alerts \

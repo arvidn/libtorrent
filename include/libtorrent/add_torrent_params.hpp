@@ -89,7 +89,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// The constructor can be used to initialize the storage constructor,
 		// which determines the storage mechanism for the downloaded or seeding
 		// data for the torrent. For more information, see the ``storage`` field.
-		explicit add_torrent_params(storage_constructor_type sc = default_storage_constructor);
+		add_torrent_params();
 		add_torrent_params(add_torrent_params&&) noexcept;
 		add_torrent_params& operator=(add_torrent_params&&) = default;
 		add_torrent_params(add_torrent_params const&);
@@ -168,14 +168,6 @@ TORRENT_VERSION_NAMESPACE_2
 		// One of the values from storage_mode_t. For more information, see
 		// storage-allocation_.
 		storage_mode_t storage_mode = storage_mode_sparse;
-
-		// can be used to customize how the data is stored. The default storage
-		// will simply write the data to the files it belongs to, but it could be
-		// overridden to save everything to a single file at a specific location
-		// or encrypt the content on disk for instance. For more information
-		// about the storage_interface that needs to be implemented for a custom
-		// storage, see storage_interface.
-		aux::noexcept_movable<storage_constructor_type> storage;
 
 		// The ``userdata`` parameter is optional and will be passed on to the
 		// extension constructor functions, if any

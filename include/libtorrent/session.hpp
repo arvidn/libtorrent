@@ -94,6 +94,9 @@ namespace aux {
 	struct disk_interface;
 	struct counters;
 
+	TORRENT_EXPORT std::unique_ptr<disk_interface> default_disk_io_constructor(
+		io_service& ios, counters& cnt);
+
 	// this is a holder for the internal session implementation object. Once the
 	// session destruction is explicitly initiated, this holder is used to
 	// synchronize the completion of the shutdown. The lifetime of this object
@@ -122,6 +125,9 @@ namespace aux {
 		std::shared_ptr<std::thread> m_thread;
 		std::shared_ptr<aux::session_impl> m_impl;
 	};
+
+	using disk_io_constructor_type = std::function<std::unique_ptr<disk_interface>(
+		io_service&, counters&)>;
 
 	// The session_params is a parameters pack for configuring the session
 	// before it's started.
@@ -156,6 +162,8 @@ namespace aux {
 		dht::dht_state dht_state;
 
 		dht::dht_storage_constructor_type dht_storage_constructor;
+
+		disk_io_constructor_type disk_io_constructor;
 	};
 
 	// This function helps to construct a ``session_params`` from a

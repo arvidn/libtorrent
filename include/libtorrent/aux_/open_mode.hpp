@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2003-2016, Arvid Norberg, Daniel Wallin
+Copyright (c) 2017-2018, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,32 +30,31 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/aux_/storage_piece_set.hpp"
-#include "libtorrent/assert.hpp"
-#include "libtorrent/block_cache.hpp"
-#include "libtorrent/storage.hpp" // for storage_interface
+#ifndef TORRENT_OPEN_MODE_HPP
+#define TORRENT_OPEN_MODE_HPP
 
-namespace libtorrent { namespace aux {
+#include "libtorrent/flags.hpp"
 
-	void storage_piece_set::add_piece(cached_piece_entry* p)
-	{
-		TORRENT_ASSERT(p->in_storage == false);
-		TORRENT_ASSERT(p->storage.get() == this);
-		m_cached_pieces.push_back(*p);
-		++m_num_pieces;
-#if TORRENT_USE_ASSERTS
-		p->in_storage = true;
-#endif
+namespace libtorrent {
+namespace aux {
+
+	// hidden
+	using open_mode_t = flags::bitfield_flag<std::uint32_t, struct open_mode_tag>;
+
+	namespace open_mode {
+		constexpr open_mode_t read_only{0};
+		constexpr open_mode_t write = 0_bit;
+		constexpr open_mode_t no_cache = 1_bit;
+		constexpr open_mode_t truncate = 2_bit;
+		constexpr open_mode_t no_atime = 3_bit;
+		constexpr open_mode_t random_access = 4_bit;
+		constexpr open_mode_t hidden = 5_bit;
+		constexpr open_mode_t sparse = 6_bit;
+		constexpr open_mode_t executable = 7_bit;
 	}
+} // aux
 
-	void storage_piece_set::remove_piece(cached_piece_entry* p)
-	{
-		TORRENT_ASSERT(p->in_storage == true);
-		p->unlink();
-		--m_num_pieces;
-#if TORRENT_USE_ASSERTS
-		p->in_storage = false;
+} // libtorrent
+
 #endif
-	}
 
-}}
