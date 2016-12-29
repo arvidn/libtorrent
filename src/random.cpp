@@ -51,6 +51,34 @@ extern "C" {
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
+#if TORRENT_USE_CRYPTOAPI
+namespace
+{
+	HCRYPTPROV make_crypt_provider()
+	{
+		using namespace libtorrent;
+
+		HCRYPTPROV ret;
+		if (CryptAcquireContext(&ret, nullptr, nullptr, PROV_RSA_FULL
+			, CRYPT_VERIFYCONTEXT) == false)
+		{
+#ifndef BOOST_NO_EXCEPTIONS
+			throw system_error(error_code(GetLastError(), system_category()));
+#else
+			std::terminate();
+#endif
+		}
+		return ret;
+	}
+
+	HCRYPTPROV get_crypt_provider()
+	{
+		static HCRYPTPROV prov = make_crypt_provider();
+		return prov;
+	}
+}
+#endif
+
 namespace libtorrent
 {
 	namespace aux
@@ -70,22 +98,9 @@ namespace libtorrent
 		void random_bytes(span<char> buffer)
 		{
 #if TORRENT_USE_CRYPTOAPI
-			HCRYPTPROV prov;
-
-			if (!CryptAcquireContext(&prov, NULL, NULL
-				, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT))
-			{
-#ifndef BOOST_NO_EXCEPTIONS
-				throw system_error(error_code(GetLastError(), system_category()));
-#else
-				std::terminate();
-#endif
-			}
-
-			if (!CryptGenRandom(prov, int(buffer.size())
+			if (!CryptGenRandom(get_crypt_provider(), int(buffer.size())
 				, reinterpret_cast<BYTE*>(buffer.data())))
 			{
-				CryptReleaseContext(prov, 0);
 #ifndef BOOST_NO_EXCEPTIONS
 				throw system_error(error_code(GetLastError(), system_category()));
 #else
@@ -93,7 +108,6 @@ namespace libtorrent
 #endif
 			}
 
-			CryptReleaseContext(prov, 0);
 #elif defined TORRENT_USE_LIBCRYPTO
 #ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
 #pragma clang diagnostic push
