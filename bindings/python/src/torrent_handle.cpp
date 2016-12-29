@@ -362,6 +362,8 @@ void bind_torrent_handle()
     void (torrent_handle::*rename_file1)(file_index_t, std::wstring const&) const = &torrent_handle::rename_file;
 #endif
 
+	std::vector<pool_file_status> (torrent_handle::*file_status0)() const = &torrent_handle::file_status;
+
 #define _ allow_threads
 
     class_<torrent_handle>("torrent_handle")
@@ -427,7 +429,7 @@ void bind_torrent_handle()
         .def("file_priorities", &file_priorities)
         .def("file_priority", &file_prioritity0)
         .def("file_priority", &file_prioritity1)
-        .def("file_status", &torrent_handle::file_status)
+        .def("file_status", _(file_status0))
         .def("save_resume_data", _(&torrent_handle::save_resume_data), arg("flags") = 0)
         .def("need_save_resume_data", _(&torrent_handle::need_save_resume_data))
         .def("force_reannounce", _(force_reannounce0)
