@@ -46,8 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #ifdef _MSC_VER
-// visual studio requires the value in a deque to be copyable or movable. C++11
-// only requires that when calling functions with those requirements
+// visual studio requires the value in a deque to be copyable. C++11
+// has looser requirements depending on which functions are actually used.
 #define TORRENT_CPP98_DEQUE 1
 #else
 #define TORRENT_CPP98_DEQUE 0
@@ -81,7 +81,6 @@ namespace libtorrent
 				destruct_holder = rhs.destruct_holder;
 				move_holder = rhs.move_holder;
 				buf = rhs.buf;
-				start = rhs.start;
 				size = rhs.size;
 				used_size = rhs.used_size;
 				move_holder(&holder, &rhs.holder);
@@ -92,7 +91,6 @@ namespace libtorrent
 				destruct_holder = rhs.destruct_holder;
 				move_holder = rhs.move_holder;
 				buf = rhs.buf;
-				start = rhs.start;
 				size = rhs.size;
 				used_size = rhs.used_size;
 				move_holder(&holder, &rhs.holder);
@@ -114,11 +112,7 @@ namespace libtorrent
 			move_construct_holder_fun move_holder;
 #endif
 			std::aligned_storage<32>::type holder;
-			// TODO: 2 the pointers here should probably be const, since
-			// they're not supposed to be mutated once inserted into the send
-			// buffer
 			char* buf; // the first byte of the buffer
-			char* start; // the first byte to send/receive in the buffer
 			int size; // the total size of the buffer
 			int used_size; // this is the number of bytes to send/receive
 		};
@@ -131,7 +125,6 @@ namespace libtorrent
 
 		void pop_front(int bytes_to_pop);
 
-		//TODO: 3 use span<> instead of (buffer,s)
 		template <typename Holder>
 		void append_buffer(Holder buffer, int s, int used_size)
 		{
@@ -183,7 +176,6 @@ namespace libtorrent
 
 			b.buf = buffer.get();
 			b.size = s;
-			b.start = buffer.get();
 			b.used_size = used_size;
 
 #ifdef _MSC_VER

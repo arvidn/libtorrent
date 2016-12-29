@@ -145,15 +145,6 @@ namespace libtorrent
 		torrent_peer* peerinfo;
 	};
 
-	// internal
-	struct nop
-	{
-		explicit nop(char* b) : m_buf(b) {}
-		char* get() const { return m_buf; }
-	private:
-		char* m_buf;
-	};
-
 	struct TORRENT_EXTRA_EXPORT peer_connection_hot_members
 	{
 		// if tor is set, this is an outgoing connection
