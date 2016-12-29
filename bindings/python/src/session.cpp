@@ -19,6 +19,7 @@
 #include <libtorrent/kademlia/item.hpp> // for sign_mutable_item
 #include <libtorrent/alert.hpp>
 #include <libtorrent/time.hpp>
+#include <libtorrent/session_stats.hpp>
 
 #include <libtorrent/extensions/smart_ban.hpp>
 #include <libtorrent/extensions/ut_metadata.hpp>
@@ -867,6 +868,15 @@ void bind_session()
     def("high_performance_seed", (perf_preset2)high_performance_seed);
     def("min_memory_usage", (mem_preset2)min_memory_usage);
     def("read_resume_data", read_resume_data_wrapper);
+
+	class_<stats_metric>("stats_metric")
+		.def_readonly("name", &stats_metric::name)
+		.def_readonly("value_index", &stats_metric::value_index)
+		.def_readonly("type", &stats_metric::type)
+	;
+
+    def("session_stats_metrics", session_stats_metrics);
+    def("find_metric_idx", find_metric_idx);
 
     scope().attr("create_ut_metadata_plugin") = "ut_metadata";
     scope().attr("create_ut_pex_plugin") = "ut_pex";

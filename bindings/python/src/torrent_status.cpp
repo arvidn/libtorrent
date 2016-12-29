@@ -23,11 +23,18 @@ object pieces(torrent_status const& s) { return bitfield_to_list(s.pieces); }
 object verified_pieces(torrent_status const& s) { return bitfield_to_list(s.verified_pieces); }
 
 using by_value = return_value_policy<return_by_value>;
+std::shared_ptr<const torrent_info> get_torrent_file(torrent_status const& st)
+{
+	return st.torrent_file.lock();
+}
 
 void bind_torrent_status()
 {
     scope status = class_<torrent_status>("torrent_status")
+        .def(self == self)
+        .def_readonly("handle", &torrent_status::handle)
         .def_readonly("info_hash", &torrent_status::info_hash)
+        .add_property("torrent_file", &get_torrent_file)
         .def_readonly("state", &torrent_status::state)
         .def_readonly("paused", &torrent_status::paused)
         .def_readonly("stop_when_ready", &torrent_status::stop_when_ready)

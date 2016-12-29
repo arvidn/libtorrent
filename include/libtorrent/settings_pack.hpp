@@ -64,12 +64,6 @@ namespace libtorrent
 	TORRENT_EXPORT int setting_by_name(std::string const& name);
 	TORRENT_EXPORT char const* name_for_setting(int s);
 
-#ifndef TORRENT_NO_DEPRECATE
-	struct session_settings;
-	std::shared_ptr<settings_pack> load_pack_from_struct(aux::session_settings const& current, session_settings const& s);
-	void load_struct_from_settings(aux::session_settings const& current, session_settings& ret);
-#endif
-
 	// The ``settings_pack`` struct, contains the names of all settings as
 	// enum values. These values are passed in to the ``set_str()``,
 	// ``set_int()``, ``set_bool()`` functions, to specify the setting to
