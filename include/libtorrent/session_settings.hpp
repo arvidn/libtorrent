@@ -176,6 +176,15 @@ namespace libtorrent
 		// 1 megabyte.
 		int tracker_maximum_response_length;
 
+		// Set the allowed incoming bt packed message length. This is used as a
+		// sanity check to make sure it’s not possible to trick libtorrent into
+		// allocating unreasonable amounts of memory by sending corrupt data. 
+		// Expected messages are quite small even piece messages are only 16KiB
+		// and some clients use 128KiB as Upper limit. But there is one exception
+		// which we want to cover: `BEP 10`_ Extension Protocol. To cover the most
+		// use-cases of custom extension messages we select 1MiB as default.
+		uint32_t max_allowed_message_length;
+
 		// controls the number of seconds from a request is sent until it times
 		// out if no piece response is returned.
 		int piece_timeout;

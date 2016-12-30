@@ -3271,10 +3271,10 @@ namespace libtorrent
 			bytes_transferred -= transferred_used;
 
 			const char* ptr = recv_buffer.begin;
-			int packet_size = detail::read_int32(ptr);
+			const uint32_t packet_size = detail::read_uint32(ptr);
 
 			// don't accept packets larger than 1 MB
-			if (packet_size > 1024*1024 || packet_size < 0)
+			if (packet_size > m_ses.m_settings.max_allowed_message_length)
 			{
 				m_statistics.received_bytes(0, bytes_transferred);
 				// packet too large
