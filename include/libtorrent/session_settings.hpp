@@ -183,7 +183,7 @@ namespace libtorrent
 		// and some clients use 128KiB as Upper limit. But there is one exception
 		// which we want to cover: `BEP 10`_ Extension Protocol. To cover the most
 		// use-cases of custom extension messages we select 1MiB as default.
-		std::uint32_t max_allowed_message_length;
+		boost::uint32_t max_allowed_message_length;
 
 		// controls the number of seconds from a request is sent until it times
 		// out if no piece response is returned.
