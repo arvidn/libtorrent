@@ -3271,9 +3271,9 @@ namespace libtorrent
 			bytes_transferred -= transferred_used;
 
 			const char* ptr = recv_buffer.begin;
-			const uint32_t packet_size = detail::read_uint32(ptr);
+			const boost::uint32_t packet_size = detail::read_uint32(ptr);
 
-			// don't accept packets larger than 1 MB
+			// don't accept packets larger than max_allowed_message_length
 			if (packet_size > m_ses.m_settings.max_allowed_message_length)
 			{
 				m_statistics.received_bytes(0, bytes_transferred);
