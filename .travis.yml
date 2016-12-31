@@ -1,6 +1,7 @@
 language: cpp
 
 matrix:
+  fast_finish: true
   include:
     - env: variant=test_barebones toolset=gcc lint=1
     - env: variant=test_debug sim=1 ssl=openssl crypto=libcrypto toolset=gcc-sanitizer
