@@ -69,7 +69,7 @@ namespace
     void set_web_seeds(torrent_info& ti, list ws)
     {
         std::vector<web_seed_entry> web_seeds;
-        int const len = boost::python::len(ws);
+        int const len = static_cast<int>(boost::python::len(ws));
         for (int i = 0; i < len; i++)
         {
            dict e = extract<dict>(ws[i]);
