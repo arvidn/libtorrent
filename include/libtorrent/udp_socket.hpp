@@ -97,7 +97,7 @@ namespace libtorrent
 
 		void set_proxy_settings(aux::proxy_settings const& ps);
 		aux::proxy_settings const& get_proxy_settings() { return m_proxy_settings; }
-		void set_force_proxy(bool f) { m_force_proxy = f; }
+		void set_force_proxy(bool f);
 
 		bool is_closed() const { return m_abort; }
 		tcp::endpoint local_endpoint(error_code& ec) const
