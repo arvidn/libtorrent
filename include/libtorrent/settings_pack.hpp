@@ -289,16 +289,12 @@ namespace libtorrent
 			use_read_cache,
 #ifndef TORRENT_NO_DEPRECATE
 			use_write_cache,
-#else
-			deprecated7,
-#endif
 
 			// this will make the disk cache never flush a write piece if it would
 			// cause is to have to re-read it once we want to calculate the piece
 			// hash
 			dont_flush_write_cache,
 
-#ifndef TORRENT_NO_DEPRECATE
 			// ``explicit_read_cache`` defaults to 0. If set to something greater
 			// than 0, the disk read cache will not be evicted by cache misses and
 			// will explicitly be controlled based on the rarity of pieces. Rare
@@ -309,7 +305,9 @@ namespace libtorrent
 			// clamped.
 			explicit_read_cache,
 #else
+			deprecated7,
 			deprecated10,
+			deprecated13,
 #endif
 
 			// allocate separate, contiguous, buffers for read and write calls.
