@@ -11,6 +11,7 @@ import binascii
 class test_create_torrent(unittest.TestCase):
 
 	def test_from_torrent_info(self):
+		print('test_from_torrent_info');
 		ti = lt.torrent_info('unordered.torrent')
 		ct = lt.create_torrent(ti)
 		entry = ct.generate()
@@ -25,6 +26,7 @@ class test_create_torrent(unittest.TestCase):
 class test_session_stats(unittest.TestCase):
 
 	def test_unique(self):
+		print('test_unique');
 		l = lt.session_stats_metrics()
 		self.assertTrue(len(l) > 40);
 		idx = set()
@@ -33,6 +35,7 @@ class test_session_stats(unittest.TestCase):
 			idx.add(m.value_index)
 
 	def test_find_idx(self):
+		print('test_find_idx');
 		self.assertEqual(lt.find_metric_idx("peer.error_peers"), 0)
 
 class test_torrent_handle(unittest.TestCase):
@@ -43,6 +46,7 @@ class test_torrent_handle(unittest.TestCase):
 		self.h = self.ses.add_torrent({'ti': self.ti, 'save_path': os.getcwd()})
 
 	def test_torrent_handle(self):
+		print('test_torrent_handle');
 		self.setup()
 		self.assertEqual(self.h.file_priorities(), [4,4])
 		self.assertEqual(self.h.piece_priorities(), [4])
@@ -58,15 +62,18 @@ class test_torrent_handle(unittest.TestCase):
 		self.assertEqual(self.h.piece_priorities(), [1])
 
 	def test_file_status(self):
+		print('test_file_status');
 		self.setup()
 		l = self.h.file_status()
 		print(l)
 
 	def test_piece_deadlines(self):
+		print('test_piece_deadlines');
 		self.setup()
 		self.h.clear_piece_deadlines()
 
 	def test_torrent_status(self):
+		print('test_torrent_status');
 		self.setup()
 		st = self.h.status()
 		ti = st.handle;
@@ -76,7 +83,7 @@ class test_torrent_handle(unittest.TestCase):
 		self.assertEqual(st2, st)
 
 	def test_read_resume_data(self):
-
+		print('test_read_resume_data');
 		resume_data = lt.bencode({'file-format': 'libtorrent resume file',
 			'info-hash': 'abababababababababab',
 			'name': 'test',
@@ -102,12 +109,14 @@ class test_torrent_handle(unittest.TestCase):
 			time.sleep(0.1)
 
 	def test_scrape(self):
+		print('test_scrape');
 		self.setup()
 		# this is just to make sure this function can be called like this
 		# from python
 		self.h.scrape_tracker()
 
 	def test_cache_info(self):
+		print('test_cache_info');
 		self.setup()
 		cs = self.ses.get_cache_info(self.h)
 		self.assertEqual(cs.pieces, [])
@@ -115,6 +124,7 @@ class test_torrent_handle(unittest.TestCase):
 class test_torrent_info(unittest.TestCase):
 
 	def test_bencoded_constructor(self):
+		print('test_bencoded_constructor');
 		info = lt.torrent_info({ 'info': {'name': 'test_torrent', 'length': 1234,
 			'piece length': 16 * 1024,
 			'pieces': 'aaaaaaaaaaaaaaaaaaaa'}})
@@ -127,12 +137,14 @@ class test_torrent_info(unittest.TestCase):
 		self.assertEqual(info.total_size(), 1234)
 
 	def test_metadata(self):
+		print('test_metadata');
 		ti = lt.torrent_info('base.torrent');
 
 		self.assertTrue(len(ti.metadata()) != 0)
 		self.assertTrue(len(ti.hash_for_piece(0)) != 0)
 
 	def test_web_seeds(self):
+		print('test_web_seeds');
 		ti = lt.torrent_info('base.torrent');
 
 		ws = [{'url': 'http://foo/test', 'auth': '', 'type': 0},
@@ -146,7 +158,7 @@ class test_torrent_info(unittest.TestCase):
 			self.assertEqual(web_seeds[i]["type"], ws[i]["type"])
 
 	def test_iterable_files(self):
-
+		print('test_iterable_files');
 		# this detects whether libtorrent was built with deprecated APIs
 		# the file_strage object is only iterable for backwards compatibility
 		if not hasattr(lt, 'version'): return
@@ -167,7 +179,7 @@ class test_torrent_info(unittest.TestCase):
 class test_alerts(unittest.TestCase):
 
 	def test_alert(self):
-
+		print('test_alert');
 		ses = lt.session({'alert_mask': lt.alert.category_t.all_categories, 'enable_dht': False})
 		ti = lt.torrent_info('base.torrent');
 		h = ses.add_torrent({'ti': ti, 'save_path': os.getcwd()})
@@ -185,7 +197,6 @@ class test_alerts(unittest.TestCase):
 					print('  ', field_name, ' = ', field())
 				else:
 					print('  ', field_name, ' = ', field)
-
 		print(st.next_announce)
 		self.assertEqual(st.name, 'temp')
 		print(st.errc.message())
@@ -203,6 +214,7 @@ class test_alerts(unittest.TestCase):
 		self.assertEqual(st.save_path, os.getcwd())
 
 	def test_pop_alerts(self):
+		print('test_pop_alerts');
 		ses = lt.session({'alert_mask': lt.alert.category_t.all_categories, 'enable_dht': False})
 
 		ses.async_add_torrent({"ti": lt.torrent_info("base.torrent"), "save_path": "."})
@@ -224,12 +236,13 @@ class test_alerts(unittest.TestCase):
 class test_bencoder(unittest.TestCase):
 
 	def test_bencode(self):
+		print('test_bencode');
 
 		encoded = lt.bencode({'a': 1, 'b': [1,2,3], 'c': 'foo'})
 		self.assertEqual(encoded, b'd1:ai1e1:bli1ei2ei3ee1:c3:fooe')
 
 	def test_bdecode(self):
-
+		print('test_bdecode');
 		encoded = b'd1:ai1e1:bli1ei2ei3ee1:c3:fooe'
 		decoded = lt.bdecode(encoded)
 		self.assertEqual(decoded, {b'a': 1, b'b': [1,2,3], b'c': b'foo'})
@@ -237,6 +250,7 @@ class test_bencoder(unittest.TestCase):
 class test_sha1hash(unittest.TestCase):
 
 	def test_sha1hash(self):
+		print('test_sha1hash');
 		h = 'a0'*20
 		s = lt.sha1_hash(binascii.unhexlify(h))
 		self.assertEqual(h, str(s))
@@ -245,6 +259,7 @@ class test_sha1hash(unittest.TestCase):
 class test_session(unittest.TestCase):
 
 	def test_post_session_stats(self):
+		print('test_post_session_stats');
 		s = lt.session({'alert_mask': lt.alert.category_t.stats_notification, 'enable_dht': False})
 		s.post_session_stats()
 		a = s.wait_for_alert(1000)
@@ -253,6 +268,7 @@ class test_session(unittest.TestCase):
 		self.assertTrue(len(a.values) > 0)
 
 	def test_unknown_settings(self):
+		print('test_unknown_settings');
 		try:
 			s = lt.session({'unexpected-key-name': 42})
 			self.assertFalse('should have thrown an exception')
@@ -260,7 +276,7 @@ class test_session(unittest.TestCase):
 			print(e)
 
 	def test_apply_settings(self):
-
+		print('test_apply_settings');
 		s = lt.session({'enable_dht': False})
 		s.apply_settings({'num_want': 66, 'user_agent': 'test123'})
 		self.assertEqual(s.get_settings()['num_want'], 66)
