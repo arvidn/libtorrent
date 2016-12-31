@@ -70,7 +70,8 @@ struct time_point_to_python
         std::tm* date = std::gmtime(&tm);
         object result = datetime_datetime(
             (int)1900 + date->tm_year
-          , (int)date->tm_mon
+          //tm use 0-11 and we need 1-12
+          , (int)date->tm_mon + 1
           , (int)date->tm_mday
           , date->tm_hour
           , date->tm_min

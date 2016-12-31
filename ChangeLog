@@ -1,3 +1,4 @@
+	* fix time_point_to_python month conversion
 	* removed mmap_cache feature
 	* strengthened type safety in handling of piece and file indices
 	* deprecate identify_client() and fingerprint type

@@ -197,13 +197,9 @@ class test_alerts(unittest.TestCase):
 					print('  ', field_name, ' = ', field())
 				else:
 					print('  ', field_name, ' = ', field)
-		print("1")
 		print(st.next_announce)
-		print("2")
 		self.assertEqual(st.name, 'temp')
-		print("3")
-		#print(st.errc.message())
-		print("4")
+		print(st.errc.message())
 		print(st.pieces)
 		print(st.last_seen_complete)
 		print(st.completed_time)
@@ -215,9 +211,7 @@ class test_alerts(unittest.TestCase):
 		print(st.seeding_duration)
 		print(st.last_upload)
 		print(st.last_download)
-		print(os.getcwd())
-		print(st.save_path)
-		#self.assertEqual(st.save_path, os.getcwd())
+		self.assertEqual(st.save_path, os.getcwd())
 
 	def test_pop_alerts(self):
 		print('test_pop_alerts');
