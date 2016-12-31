@@ -451,16 +451,7 @@ namespace libtorrent
 	void session_handle::get_cache_info(cache_status* ret
 		, torrent_handle h, int flags) const
 	{
-		storage_interface* st = nullptr;
-		std::shared_ptr<torrent> t = h.m_torrent.lock();
-		if (t)
-		{
-			if (t->has_storage())
-				st = &t->storage();
-			else
-				flags = session::disk_cache_no_pieces;
-		}
-		m_impl->disk_thread().get_cache_info(ret, flags & session::disk_cache_no_pieces, st);
+		sync_call(&session_impl::get_cache_info, h, ret, flags);
 	}
 
 #ifndef TORRENT_NO_DEPRECATE

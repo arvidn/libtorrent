@@ -211,6 +211,30 @@ namespace libtorrent
 		m_file_pool.resize(max_files);
 	}
 
+	storage_interface* disk_io_thread::get_torrent(storage_index_t const storage)
+	{
+		return m_torrents[storage].get();
+	}
+
+	storage_holder disk_io_thread::new_torrent(std::unique_ptr<storage_interface> storage)
+	{
+		TORRENT_ASSERT(storage);
+		auto it = std::find(m_torrents.begin(), m_torrents.end()
+			, std::shared_ptr<storage_interface>());
+		storage_index_t const idx((it == m_torrents.end())
+			? m_torrents.end_index()
+			: storage_index_t(std::uint32_t(it - m_torrents.begin())));
+		storage->set_storage_index(idx);
+		if (it == m_torrents.end()) m_torrents.emplace_back(std::move(storage));
+		else m_torrents[idx] = std::move(storage);
+		return storage_holder(idx, *this);
+	}
+
+	void disk_io_thread::remove_torrent(storage_index_t const idx)
+	{
+		m_torrents[idx].reset();
+	}
+
 	disk_io_thread::~disk_io_thread()
 	{
 		DLOG("destructing disk_io_thread\n");
@@ -1513,7 +1537,7 @@ namespace libtorrent
 		return do_uncached_write(j);
 	}
 
-	void disk_io_thread::async_read(storage_interface* storage, peer_request const& r
+	void disk_io_thread::async_read(storage_index_t storage, peer_request const& r
 		, std::function<void(disk_buffer_holder block, int flags, storage_error const& se)> handler
 		, void* requester, std::uint8_t const flags)
 	{
@@ -1524,7 +1548,7 @@ namespace libtorrent
 			, r.start / m_disk_cache.block_size());
 
 		disk_io_job* j = allocate_job(disk_io_job::read);
-		j->storage = storage->shared_from_this();
+		j->storage = m_torrents[storage]->shared_from_this();
 		j->piece = r.piece;
 		j->d.io.offset = r.start;
 		j->d.io.buffer_size = std::uint16_t(r.length);
@@ -1625,7 +1649,7 @@ namespace libtorrent
 		return 1;
 	}
 
-	bool disk_io_thread::async_write(storage_interface* storage, peer_request const& r
+	bool disk_io_thread::async_write(storage_index_t const storage, peer_request const& r
 		, char const* buf, std::shared_ptr<disk_observer> o
 		, std::function<void(storage_error const&)> handler
 		, std::uint8_t const flags)
@@ -1639,7 +1663,7 @@ namespace libtorrent
 		std::memcpy(buffer.get(), buf, r.length);
 
 		disk_io_job* j = allocate_job(disk_io_job::write);
-		j->storage = storage->shared_from_this();
+		j->storage = m_torrents[storage]->shared_from_this();
 		j->piece = r.piece;
 		j->d.io.offset = r.start;
 		j->d.io.buffer_size = std::uint16_t(r.length);
@@ -1685,7 +1709,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT((r.start % m_disk_cache.block_size()) == 0);
 
-		if (storage->is_blocked(j))
+		if (j->storage->is_blocked(j))
 		{
 			// this means the job was queued up inside storage
 			m_stats_counters.inc_stats_counter(counters::blocked_disk_jobs);
@@ -1717,7 +1741,7 @@ namespace libtorrent
 				// the block and write job were successfully inserted
 				// into the cache. Now, see if we should trigger a flush
 				j = allocate_job(disk_io_job::flush_hashed);
-				j->storage = storage->shared_from_this();
+				j->storage = m_torrents[storage]->shared_from_this();
 				j->piece = r.piece;
 				j->flags = flags;
 				add_job(j);
@@ -1734,18 +1758,18 @@ namespace libtorrent
 		return exceeded;
 	}
 
-	void disk_io_thread::async_hash(storage_interface* storage
+	void disk_io_thread::async_hash(storage_index_t const storage
 		, piece_index_t piece, std::uint8_t flags
 		, std::function<void(piece_index_t, sha1_hash const&, storage_error const&)> handler, void* requester)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::hash);
-		j->storage = storage->shared_from_this();
+		j->storage = m_torrents[storage]->shared_from_this();
 		j->piece = piece;
 		j->callback = std::move(handler);
 		j->flags = flags;
 		j->requester = requester;
 
-		int piece_size = storage->files()->piece_size(piece);
+		int piece_size = j->storage->files()->piece_size(piece);
 
 		// first check to see if the hashing is already done
 		std::unique_lock<std::mutex> l(m_cache_mutex);
@@ -1773,30 +1797,30 @@ namespace libtorrent
 		add_job(j);
 	}
 
-	void disk_io_thread::async_move_storage(storage_interface* storage
+	void disk_io_thread::async_move_storage(storage_index_t const storage
 		, std::string const& p, std::uint8_t const flags
 		, std::function<void(status_t, std::string const&, storage_error const&)> handler)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::move_storage);
-		j->storage = storage->shared_from_this();
+		j->storage = m_torrents[storage]->shared_from_this();
 		j->buffer.string = allocate_string_copy(p.c_str());
 		j->callback = std::move(handler);
 		j->flags = flags;
 
-		add_fence_job(storage, j);
+		add_fence_job(j);
 	}
 
-	void disk_io_thread::async_release_files(storage_interface* storage
+	void disk_io_thread::async_release_files(storage_index_t const storage
 		, std::function<void()> handler)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::release_files);
-		j->storage = storage->shared_from_this();
+		j->storage = m_torrents[storage]->shared_from_this();
 		j->callback = std::move(handler);
 
-		add_fence_job(storage, j);
+		add_fence_job(j);
 	}
 
-	void disk_io_thread::async_delete_files(storage_interface* storage
+	void disk_io_thread::async_delete_files(storage_index_t const storage
 		, int const options
 		, std::function<void(storage_error const&)> handler)
 	{
@@ -1811,13 +1835,14 @@ namespace libtorrent
 		disk_io_job* qj = m_generic_io_jobs.m_queued_jobs.get_all();
 		jobqueue_t to_abort;
 
+		storage_interface* to_delete = m_torrents[storage].get();
 		while (qj)
 		{
 			disk_io_job* next = qj->next;
 #if TORRENT_USE_ASSERTS
 			qj->next = nullptr;
 #endif
-			if (qj->storage.get() == storage)
+			if (qj->storage.get() == to_delete)
 				to_abort.push_back(qj);
 			else
 				m_generic_io_jobs.m_queued_jobs.push_back(qj);
@@ -1826,14 +1851,14 @@ namespace libtorrent
 		l2.unlock();
 
 		std::unique_lock<std::mutex> l(m_cache_mutex);
-		flush_cache(storage, flush_delete_cache, completed_jobs, l);
+		flush_cache(to_delete, flush_delete_cache, completed_jobs, l);
 		l.unlock();
 
 		disk_io_job* j = allocate_job(disk_io_job::delete_files);
-		j->storage = storage->shared_from_this();
+		j->storage = m_torrents[storage]->shared_from_this();
 		j->callback = std::move(handler);
 		j->buffer.delete_options = options;
-		add_fence_job(storage, j);
+		add_fence_job(j);
 
 		fail_jobs_impl(storage_error(boost::asio::error::operation_aborted)
 			, to_abort, completed_jobs);
@@ -1842,7 +1867,7 @@ namespace libtorrent
 			add_completed_jobs(completed_jobs);
 	}
 
-	void disk_io_thread::async_check_files(storage_interface* storage
+	void disk_io_thread::async_check_files(storage_index_t const storage
 		, add_torrent_params const* resume_data
 		, aux::vector<std::string, file_index_t>& links
 		, std::function<void(status_t, storage_error const&)> handler)
@@ -1852,32 +1877,34 @@ namespace libtorrent
 		links_vector->swap(links);
 
 		disk_io_job* j = allocate_job(disk_io_job::check_fastresume);
-		j->storage = storage->shared_from_this();
+		j->storage = m_torrents[storage]->shared_from_this();
 		j->buffer.check_resume_data = resume_data;
 		j->d.links = links_vector;
 		j->callback = std::move(handler);
 
-		add_fence_job(storage, j);
+		add_fence_job(j);
 	}
 
-	void disk_io_thread::async_rename_file(storage_interface* storage
+	void disk_io_thread::async_rename_file(storage_index_t const storage
 		, file_index_t index, std::string const& name
 		, std::function<void(std::string const&, file_index_t, storage_error const&)> handler)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::rename_file);
-		j->storage = storage->shared_from_this();
+		j->storage = m_torrents[storage]->shared_from_this();
 		j->file_index = index;
 		j->buffer.string = allocate_string_copy(name.c_str());
 		j->callback = std::move(handler);
-		add_fence_job(storage, j);
+		add_fence_job(j);
 	}
 
-	void disk_io_thread::async_stop_torrent(storage_interface* storage
+	void disk_io_thread::async_stop_torrent(storage_index_t const storage
 		, std::function<void()> handler)
 	{
 		// remove outstanding hash jobs belonging to this torrent
 		std::unique_lock<std::mutex> l2(m_job_mutex);
 
+		std::shared_ptr<storage_interface> st
+			= m_torrents[storage]->shared_from_this();
 		disk_io_job* qj = m_hash_io_jobs.m_queued_jobs.get_all();
 		jobqueue_t to_abort;
 
@@ -1887,7 +1914,7 @@ namespace libtorrent
 #if TORRENT_USE_ASSERTS
 			qj->next = nullptr;
 #endif
-			if (qj->storage.get() == storage)
+			if (qj->storage.get() == st.get())
 				to_abort.push_back(qj);
 			else
 				m_hash_io_jobs.m_queued_jobs.push_back(qj);
@@ -1896,9 +1923,9 @@ namespace libtorrent
 		l2.unlock();
 
 		disk_io_job* j = allocate_job(disk_io_job::stop_torrent);
-		j->storage = storage->shared_from_this();
+		j->storage = st;
 		j->callback = std::move(handler);
-		add_fence_job(storage, j);
+		add_fence_job(j);
 
 		jobqueue_t completed_jobs;
 		fail_jobs_impl(storage_error(boost::asio::error::operation_aborted)
@@ -1907,12 +1934,12 @@ namespace libtorrent
 			add_completed_jobs(completed_jobs);
 	}
 
-	void disk_io_thread::async_flush_piece(storage_interface* storage
+	void disk_io_thread::async_flush_piece(storage_index_t const storage
 		, piece_index_t const piece
 		, std::function<void()> handler)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::flush_piece);
-		j->storage = storage->shared_from_this();
+		j->storage = m_torrents[storage]->shared_from_this();
 		j->piece = piece;
 		j->callback = std::move(handler);
 
@@ -1927,25 +1954,25 @@ namespace libtorrent
 		add_job(j);
 	}
 
-	void disk_io_thread::async_set_file_priority(storage_interface* storage
+	void disk_io_thread::async_set_file_priority(storage_index_t const storage
 		, aux::vector<std::uint8_t, file_index_t> const& prios
 		, std::function<void(storage_error const&)> handler)
 	{
 		aux::vector<std::uint8_t, file_index_t>* p = new aux::vector<std::uint8_t, file_index_t>(prios);
 
 		disk_io_job* j = allocate_job(disk_io_job::file_priority);
-		j->storage = storage->shared_from_this();
+		j->storage = m_torrents[storage]->shared_from_this();
 		j->buffer.priorities = p;
 		j->callback = std::move(handler);
 
-		add_fence_job(storage, j);
+		add_fence_job(j);
 	}
 
-	void disk_io_thread::async_clear_piece(storage_interface* storage
+	void disk_io_thread::async_clear_piece(storage_index_t const storage
 		, piece_index_t const index, std::function<void(piece_index_t)> handler)
 	{
 		disk_io_job* j = allocate_job(disk_io_job::clear_piece);
-		j->storage = storage->shared_from_this();
+		j->storage = m_torrents[storage]->shared_from_this();
 		j->piece = index;
 		j->callback = std::move(handler);
 
@@ -1955,15 +1982,17 @@ namespace libtorrent
 
 		// TODO: this is potentially very expensive. One way to solve
 		// it would be to have a fence for just this one piece.
-		add_fence_job(storage, j);
+		add_fence_job(j);
 	}
 
-	void disk_io_thread::clear_piece(storage_interface* storage
+	void disk_io_thread::clear_piece(storage_index_t const storage
 		, piece_index_t const index)
 	{
+
+		storage_interface* st = m_torrents[storage].get();
 		std::unique_lock<std::mutex> l(m_cache_mutex);
 
-		cached_piece_entry* pe = m_disk_cache.find_piece(storage, index);
+		cached_piece_entry* pe = m_disk_cache.find_piece(st, index);
 		if (pe == nullptr) return;
 		TORRENT_PIECE_ASSERT(pe->hashing == false, pe);
 		pe->hashing_done = 0;
@@ -2571,9 +2600,11 @@ namespace libtorrent
 		m_disk_cache.update_stats_counters(c);
 	}
 
-	void disk_io_thread::get_cache_info(cache_status* ret, bool const no_pieces
-		, storage_interface const* storage) const
+	void disk_io_thread::get_cache_info(cache_status* ret, storage_index_t st
+		, bool const no_pieces, bool const session) const
 	{
+		std::shared_ptr<storage_interface> storage = m_torrents[st];
+
 		std::unique_lock<std::mutex> l(m_cache_mutex);
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -2625,13 +2656,14 @@ namespace libtorrent
 		{
 			int const block_size = m_disk_cache.block_size();
 
-			if (storage)
+			if (!session)
 			{
+				TORRENT_ASSERT(storage);
 				ret->pieces.reserve(storage->num_pieces());
 
 				for (auto pe : storage->cached_pieces())
 				{
-					TORRENT_ASSERT(pe->storage.get() == storage);
+					TORRENT_ASSERT(pe->storage.get() == storage.get());
 
 					if (pe->cache_state == cached_piece_entry::read_lru2_ghost
 						|| pe->cache_state == cached_piece_entry::read_lru1_ghost)
@@ -2798,8 +2830,7 @@ namespace libtorrent
 		return retry_job;
 	}
 
-	void disk_io_thread::add_fence_job(storage_interface* storage, disk_io_job* j
-		, bool user_add)
+	void disk_io_thread::add_fence_job(disk_io_job* j, bool const user_add)
 	{
 		// if this happens, it means we started to shut down
 		// the disk threads too early. We have to post all jobs
@@ -2815,7 +2846,7 @@ namespace libtorrent
 		disk_io_job* fj = allocate_job(disk_io_job::flush_storage);
 		fj->storage = j->storage;
 
-		int ret = storage->raise_fence(j, fj, m_stats_counters);
+		int ret = j->storage->raise_fence(j, fj, m_stats_counters);
 		if (ret == disk_job_fence::fence_post_fence)
 		{
 			std::unique_lock<std::mutex> l(m_job_mutex);
@@ -2859,7 +2890,7 @@ namespace libtorrent
 			immediate_execute();
 	}
 
-	void disk_io_thread::add_job(disk_io_job* j, bool user_add)
+	void disk_io_thread::add_job(disk_io_job* j, bool const user_add)
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
 

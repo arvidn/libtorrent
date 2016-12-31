@@ -396,7 +396,6 @@ namespace libtorrent
 			, peer_request r, std::shared_ptr<read_piece_struct> rp);
 
 		storage_mode_t storage_mode() const;
-		storage_interface* get_storage();
 
 		// this will flag the torrent as aborted. The main
 		// loop in session_impl will check for this state
@@ -925,8 +924,9 @@ namespace libtorrent
 		int num_known_peers() const { return m_peer_list ? m_peer_list->num_peers() : 0; }
 		int num_connect_candidates() const { return m_peer_list ? m_peer_list->num_connect_candidates() : 0; }
 
-		storage_interface& storage();
-		bool has_storage() const { return m_storage.get() != nullptr; }
+		bool has_storage() const { return bool(m_storage); }
+		storage_index_t storage() const { return m_storage; }
+		storage_interface* get_storage_impl() const;
 
 		torrent_info const& torrent_file() const
 		{ return *m_torrent_file; }
@@ -997,8 +997,6 @@ namespace libtorrent
 		{ return m_torrent_file->is_valid(); }
 		bool are_files_checked() const
 		{ return m_files_checked; }
-		bool valid_storage() const
-		{ return m_storage.get() != nullptr; }
 
 		// parses the info section from the given
 		// bencoded tree and moves the torrent
@@ -1146,24 +1144,11 @@ namespace libtorrent
 		std::int64_t m_total_uploaded = 0;
 		std::int64_t m_total_downloaded = 0;
 
-		// if this pointer is 0, the torrent is in
-		// a state where the metadata hasn't been
-		// received yet, or during shutdown.
-		// the storage_interface keeps the torrent object
-		// alive by holding a shared_ptr to it and
-		// the torrent keeps the piece manager alive
-		// with this shared_ptr. This cycle is
-		// broken when torrent::abort() is called
-		// Then the torrent releases the storage_interface
-		// and when the storage_interface is complete with all
-		// outstanding disk io jobs (that keeps
-		// the storage_interface alive) it will destruct
-		// and release the torrent file. The reason for
-		// this is that the torrent_info is used by
-		// the storage_interface, and stored in the
-		// torrent, so the torrent cannot destruct
-		// before the storage_interface.
-		std::shared_ptr<storage_interface> m_storage;
+		// this is a handle that keeps the storage object in the disk io subsystem
+		// alive, as well as the index referencing the storage/torrent in the disk
+		// I/O. When this destructs, the torrent will be removed from the disk
+		// subsystem.
+		storage_holder m_storage;
 
 #ifdef TORRENT_USE_OPENSSL
 		std::shared_ptr<boost::asio::ssl::context> m_ssl_ctx;

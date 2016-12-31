@@ -408,7 +408,7 @@ namespace libtorrent
 
 		// this may be called from a different
 		// thread than the disk thread
-		m_pool.release(this);
+		m_pool.release(storage_index());
 	}
 
 	void default_storage::need_partfile()
@@ -586,7 +586,7 @@ namespace libtorrent
 		}
 
 		// close files that were opened in write mode
-		m_pool.release(this);
+		m_pool.release(storage_index());
 
 #if defined TORRENT_DEBUG_FILE_LEAKS
 		print_open_files("release files", m_files.name().c_str());
@@ -640,7 +640,7 @@ namespace libtorrent
 	{
 		if (index < file_index_t(0) || index >= files().end_file()) return;
 		std::string old_name = files().file_path(index, m_save_path);
-		m_pool.release(this, index);
+		m_pool.release(storage_index(), index);
 
 		// if the old file doesn't exist, just succeed and change the filename
 		// that will be created. This shortcut is important because the
@@ -711,7 +711,7 @@ namespace libtorrent
 		}
 
 		// make sure we don't have the files open
-		m_pool.release(this);
+		m_pool.release(storage_index());
 
 #if defined TORRENT_DEBUG_FILE_LEAKS
 		print_open_files("release files", m_files.name().c_str());
@@ -739,7 +739,7 @@ namespace libtorrent
 		// threads to hold any references to any files
 		// in this file storage. Assert that that's the
 		// case
-		if (!m_pool.assert_idle_files(this))
+		if (!m_pool.assert_idle_files(storage_index()))
 		{
 #if defined TORRENT_DEBUG_FILE_LEAKS
 			print_open_files("delete-files idle assert failed", m_files.name().c_str());
@@ -749,7 +749,7 @@ namespace libtorrent
 #endif
 
 		// make sure we don't have the files open
-		m_pool.release(this);
+		m_pool.release(storage_index());
 
 		// if there's a part file open, make sure to destruct it to have it
 		// release the underlying part file. Otherwise we may not be able to
@@ -992,7 +992,7 @@ namespace libtorrent
 			}
 		}
 
-		m_pool.release(this);
+		m_pool.release(storage_index());
 
 #if defined TORRENT_DEBUG_FILE_LEAKS
 		print_open_files("release files", m_files.name().c_str());
@@ -1298,8 +1298,8 @@ namespace libtorrent
 			mode |= file::no_cache;
 		}
 
-		file_handle ret = m_pool.open_file(const_cast<default_storage*>(this)
-			, m_save_path, file, files(), mode, ec);
+		file_handle ret = m_pool.open_file(storage_index(), m_save_path, file
+			, files(), mode, ec);
 		if (ec && (mode & file::lock_file))
 		{
 			// we failed to open the file and we're trying to lock it. It's
@@ -1307,8 +1307,8 @@ namespace libtorrent
 			// file in use (but waiting to be closed). Just retry to open it
 			// without locking.
 			mode &= ~file::lock_file;
-			ret = m_pool.open_file(const_cast<default_storage*>(this)
-				, m_save_path, file, files(), mode, ec);
+			ret = m_pool.open_file(storage_index(), m_save_path, file, files()
+				, mode, ec);
 		}
 		return ret;
 	}

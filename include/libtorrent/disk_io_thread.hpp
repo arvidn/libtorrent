@@ -291,51 +291,55 @@ namespace libtorrent
 
 		void abort(bool wait);
 
-		void async_read(storage_interface* storage, peer_request const& r
+		storage_holder new_torrent(std::unique_ptr<storage_interface> storage) override;
+		void remove_torrent(storage_index_t) override;
+
+		void async_read(storage_index_t storage, peer_request const& r
 			, std::function<void(disk_buffer_holder block
 				, int flags, storage_error const& se)> handler, void* requester, std::uint8_t flags = 0) override;
-		bool async_write(storage_interface* storage, peer_request const& r
+		bool async_write(storage_index_t storage, peer_request const& r
 			, char const* buf, std::shared_ptr<disk_observer> o
 			, std::function<void(storage_error const&)> handler
 			, std::uint8_t flags = 0) override;
-		void async_hash(storage_interface* storage, piece_index_t piece, std::uint8_t flags
+		void async_hash(storage_index_t storage, piece_index_t piece, std::uint8_t flags
 			, std::function<void(piece_index_t, sha1_hash const&, storage_error const&)> handler, void* requester) override;
-		void async_move_storage(storage_interface* storage, std::string const& p, std::uint8_t flags
+		void async_move_storage(storage_index_t storage, std::string const& p, std::uint8_t flags
 			, std::function<void(status_t, std::string const&, storage_error const&)> handler) override;
-		void async_release_files(storage_interface* storage
+		void async_release_files(storage_index_t storage
 			, std::function<void()> handler = std::function<void()>()) override;
-		void async_delete_files(storage_interface* storage, int options
+		void async_delete_files(storage_index_t storage, int options
 			, std::function<void(storage_error const&)> handler) override;
-		void async_check_files(storage_interface* storage
+		void async_check_files(storage_index_t storage
 			, add_torrent_params const* resume_data
 			, aux::vector<std::string, file_index_t>& links
 			, std::function<void(status_t, storage_error const&)> handler) override;
-		void async_rename_file(storage_interface* storage, file_index_t index, std::string const& name
+		void async_rename_file(storage_index_t storage, file_index_t index, std::string const& name
 			, std::function<void(std::string const&, file_index_t, storage_error const&)> handler) override;
-		void async_stop_torrent(storage_interface* storage
+		void async_stop_torrent(storage_index_t storage
 			, std::function<void()> handler) override;
-		void async_flush_piece(storage_interface* storage, piece_index_t piece
+		void async_flush_piece(storage_index_t storage, piece_index_t piece
 			, std::function<void()> handler = std::function<void()>()) override;
-		void async_set_file_priority(storage_interface* storage
+		void async_set_file_priority(storage_index_t storage
 			, aux::vector<std::uint8_t, file_index_t> const& prio
 			, std::function<void(storage_error const&)> handler) override;
 
-		void async_clear_piece(storage_interface* storage, piece_index_t index
+		void async_clear_piece(storage_index_t storage, piece_index_t index
 			, std::function<void(piece_index_t)> handler) override;
 		// this is not asynchronous and requires that the piece does not
 		// have any pending buffers. It's meant to be used for pieces that
 		// were just read and hashed and failed the hash check.
 		// there should be no read-operations left, and all buffers should
 		// be discardable
-		void clear_piece(storage_interface* storage, piece_index_t index) override;
+		void clear_piece(storage_index_t storage, piece_index_t index) override;
 
 		// implements buffer_allocator_interface
 		void reclaim_blocks(span<aux::block_cache_reference> ref) override;
 		void free_disk_buffer(char* buf) override { m_disk_cache.free_buffer(buf); }
 		void trigger_cache_trim();
 		void update_stats_counters(counters& c) const override;
-		void get_cache_info(cache_status* ret, bool no_pieces = true
-			, storage_interface const* storage = 0) const override;
+		void get_cache_info(cache_status* ret, storage_index_t storage
+			, bool no_pieces, bool session) const override;
+		storage_interface* get_torrent(storage_index_t) override;
 
 		// this submits all queued up jobs to the thread
 		void submit_jobs();
@@ -433,8 +437,7 @@ namespace libtorrent
 
 		// this queues up another job to be submitted
 		void add_job(disk_io_job* j, bool user_add = true);
-		void add_fence_job(storage_interface* storage, disk_io_job* j
-			, bool user_add = true);
+		void add_fence_job(disk_io_job* j, bool user_add = true);
 
 		// assumes l is locked (cache std::mutex).
 		// writes out the blocks [start, end) (releases the lock
@@ -578,6 +581,8 @@ namespace libtorrent
 		// only ever keep one such message in flight at a time, and coalesce
 		// completion callbacks in m_completed jobs
 		bool m_job_completions_in_flight = false;
+
+		aux::vector<std::shared_ptr<storage_interface>, storage_index_t> m_torrents;
 
 #if TORRENT_USE_ASSERTS
 		int m_magic = 0x1337;

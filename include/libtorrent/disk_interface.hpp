@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/export.hpp"
+#include "libtorrent/storage_defs.hpp"
 
 namespace libtorrent
 {
@@ -66,6 +67,8 @@ namespace libtorrent
 		file_exist
 	};
 
+	struct storage_holder;
+
 	struct TORRENT_EXTRA_EXPORT disk_interface
 	{
 		enum flags_t
@@ -80,43 +83,47 @@ namespace libtorrent
 			volatile_read = 0x10,
 		};
 
-		virtual void async_read(storage_interface* storage, peer_request const& r
+		virtual storage_holder new_torrent(std::unique_ptr<storage_interface> storage) = 0;
+		virtual void remove_torrent(storage_index_t) = 0;
+		virtual storage_interface* get_torrent(storage_index_t) = 0;
+
+		virtual void async_read(storage_index_t storage, peer_request const& r
 			, std::function<void(disk_buffer_holder block, int flags, storage_error const& se)> handler
 			, void* requester, std::uint8_t flags = 0) = 0;
-		virtual bool async_write(storage_interface* storage, peer_request const& r
+		virtual bool async_write(storage_index_t storage, peer_request const& r
 			, char const* buf, std::shared_ptr<disk_observer> o
 			, std::function<void(storage_error const&)> handler
 			, std::uint8_t flags = 0) = 0;
-		virtual void async_hash(storage_interface* storage, piece_index_t piece, std::uint8_t flags
+		virtual void async_hash(storage_index_t storage, piece_index_t piece, std::uint8_t flags
 			, std::function<void(piece_index_t, sha1_hash const&, storage_error const&)> handler, void* requester) = 0;
-		virtual void async_move_storage(storage_interface* storage, std::string const& p, std::uint8_t flags
+		virtual void async_move_storage(storage_index_t storage, std::string const& p, std::uint8_t flags
 			, std::function<void(status_t, std::string const&, storage_error const&)> handler) = 0;
-		virtual void async_release_files(storage_interface* storage
+		virtual void async_release_files(storage_index_t storage
 			, std::function<void()> handler = std::function<void()>()) = 0;
-		virtual void async_check_files(storage_interface* storage
+		virtual void async_check_files(storage_index_t storage
 			, add_torrent_params const* resume_data
 			, aux::vector<std::string, file_index_t>& links
 			, std::function<void(status_t, storage_error const&)> handler) = 0;
-		virtual void async_flush_piece(storage_interface* storage, piece_index_t piece
+		virtual void async_flush_piece(storage_index_t storage, piece_index_t piece
 			, std::function<void()> handler = std::function<void()>()) = 0;
-		virtual void async_stop_torrent(storage_interface* storage
+		virtual void async_stop_torrent(storage_index_t storage
 			, std::function<void()> handler = std::function<void()>()) = 0;
-		virtual void async_rename_file(storage_interface* storage
+		virtual void async_rename_file(storage_index_t storage
 			, file_index_t index, std::string const& name
 			, std::function<void(std::string const&, file_index_t, storage_error const&)> handler) = 0;
-		virtual void async_delete_files(storage_interface* storage, int options
+		virtual void async_delete_files(storage_index_t storage, int options
 			, std::function<void(storage_error const&)> handler) = 0;
-		virtual void async_set_file_priority(storage_interface* storage
+		virtual void async_set_file_priority(storage_index_t storage
 			, aux::vector<std::uint8_t, file_index_t> const& prio
 			, std::function<void(storage_error const&)> handler) = 0;
 
-		virtual void async_clear_piece(storage_interface* storage, piece_index_t index
+		virtual void async_clear_piece(storage_index_t storage, piece_index_t index
 			, std::function<void(piece_index_t)> handler) = 0;
-		virtual void clear_piece(storage_interface* storage, piece_index_t index) = 0;
+		virtual void clear_piece(storage_index_t storage, piece_index_t index) = 0;
 
 		virtual void update_stats_counters(counters& c) const = 0;
-		virtual void get_cache_info(cache_status* ret, bool no_pieces = true
-			, storage_interface const* storage = 0) const = 0;
+		virtual void get_cache_info(cache_status* ret, storage_index_t storage
+			, bool no_pieces = true, bool session = true) const = 0;
 
 		virtual file_pool& files() = 0;
 
@@ -126,6 +133,56 @@ namespace libtorrent
 	protected:
 		~disk_interface() {}
 	};
+
+	struct storage_holder
+	{
+		storage_holder() = default;
+		storage_holder(storage_index_t idx, disk_interface& disk_io)
+			: m_disk_io(&disk_io)
+			, m_idx(idx)
+		{}
+		~storage_holder()
+		{
+			if (m_disk_io) m_disk_io->remove_torrent(m_idx);
+		}
+
+		explicit operator bool() const { return m_disk_io != nullptr; }
+
+		operator storage_index_t() const
+		{
+			TORRENT_ASSERT(m_disk_io);
+			return m_idx;
+		}
+
+		void reset()
+		{
+			if (m_disk_io) m_disk_io->remove_torrent(m_idx);
+			m_disk_io = nullptr;
+		}
+
+		storage_holder(storage_holder const&) = delete;
+		storage_holder& operator=(storage_holder const&) = delete;
+
+		storage_holder(storage_holder&& rhs)
+			: m_disk_io(rhs.m_disk_io)
+			, m_idx(rhs.m_idx)
+		{
+				rhs.m_disk_io = nullptr;
+		}
+
+		storage_holder& operator=(storage_holder&& rhs)
+		{
+			if (m_disk_io) m_disk_io->remove_torrent(m_idx);
+			m_disk_io = rhs.m_disk_io;
+			m_idx = rhs.m_idx;
+			rhs.m_disk_io = nullptr;
+			return *this;
+		}
+	private:
+		disk_interface* m_disk_io = nullptr;
+		storage_index_t m_idx{0};
+	};
+
 }
 
 #endif

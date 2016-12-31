@@ -446,6 +446,9 @@ namespace libtorrent
 
 		// initialized in disk_io_thread::perform_async_job
 		aux::session_settings* m_settings = nullptr;
+
+		storage_index_t storage_index() const { return m_storage_index; }
+		void set_storage_index(storage_index_t st) { m_storage_index = st; }
 	private:
 
 		bool m_need_tick = false;
@@ -458,6 +461,8 @@ namespace libtorrent
 		// the storage_interface destructs. This is because
 		// the torrent_info object is owned by the torrent.
 		std::shared_ptr<void> m_torrent;
+
+		storage_index_t m_storage_index;
 	};
 
 	// The default implementation of storage_interface. Behaves as a normal
