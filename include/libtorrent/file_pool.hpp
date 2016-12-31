@@ -127,9 +127,8 @@ namespace libtorrent
 
 		struct lru_file_entry
 		{
-			lru_file_entry(): key(0), last_use(aux::time_now()), mode(0) {}
-			mutable file_handle file_ptr;
-			void* key;
+			lru_file_entry(): last_use(aux::time_now()), mode(0) {}
+			file_handle file_ptr;
 			time_point last_use;
 			int mode;
 		};
@@ -137,7 +136,7 @@ namespace libtorrent
 		// maps storage pointer, file index pairs to the
 		// lru entry for the file
 		typedef std::map<std::pair<void*, int>, lru_file_entry> file_set;
-		
+
 		file_set m_files;
 #if TORRENT_USE_ASSERTS
 		std::vector<std::pair<std::string, void const*> > m_deleted_storages;
