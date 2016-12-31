@@ -154,16 +154,6 @@ namespace libtorrent
 			lru_file_entry& e = i->second;
 			e.last_use = aux::time_now();
 
-			if (e.key != st && ((e.mode & file::rw_mask) != file::read_only
-				|| (m & file::rw_mask) != file::read_only))
-			{
-				// this means that another instance of the storage
-				// is using the exact same file.
-				ec = errors::file_collision;
-				return file_handle();
-			}
-
-			e.key = st;
 			// if we asked for a file in write mode,
 			// and the cached file is is not opened in
 			// write mode, re-open it
@@ -212,13 +202,10 @@ namespace libtorrent
 			set_low_priority(e.file_ptr);
 #endif
 		e.mode = m;
-		e.key = st;
-		m_files.insert(std::make_pair(std::make_pair(st, file_index), e));
-		TORRENT_ASSERT(e.file_ptr->is_open());
-
 		file_handle file_ptr = e.file_ptr;
+		m_files.insert(std::make_pair(std::make_pair(st, file_index), e));
+		TORRENT_ASSERT(file_ptr->is_open());
 
-		// the file is not in our cache
 		if (int(m_files.size()) >= m_size)
 		{
 			// the file cache is at its maximum size, close
@@ -267,11 +254,12 @@ namespace libtorrent
 
 		file_set::iterator i = m_files.find(std::make_pair(st, file_index));
 		if (i == m_files.end()) return;
-		
+
 		file_handle file_ptr = i->second.file_ptr;
 		m_files.erase(i);
 
-		// closing a file may be long running operation (mac os x)
+		// closing a file may take a long time (mac os x), so make sure
+		// we're not holding the mutex
 		l.unlock();
 		file_ptr.reset();
 	}
@@ -284,26 +272,22 @@ namespace libtorrent
 
 		if (st == 0)
 		{
-			file_set tmp;
-			tmp.swap(m_files);
+			m_files.clear();
 			l.unlock();
 			return;
 		}
 
+		file_set::iterator begin = m_files.lower_bound(std::make_pair(st, 0));
+		file_set::iterator end = m_files.upper_bound(std::make_pair(st, std::numeric_limits<int>::max()));
+
 		std::vector<file_handle> to_close;
-		for (file_set::iterator i = m_files.begin();
-			i != m_files.end();)
+		while (begin != end)
 		{
-			if (i->second.key == st)
-			{
-				to_close.push_back(i->second.file_ptr);
-				m_files.erase(i++);
-			}
-			else
-				++i;
+			to_close.push_back(begin->second.file_ptr);
+			m_files.erase(begin++);
 		}
 		l.unlock();
-		// the files are closed here
+		// the files are closed here while the lock is not held
 	}
 
 #if TORRENT_USE_ASSERTS
@@ -323,7 +307,7 @@ namespace libtorrent
 		for (file_set::const_iterator i = m_files.begin();
 			i != m_files.end(); ++i)
 		{
-			if (i->second.key == st && !i->second.file_ptr.unique())
+			if (i->first.first == st && !i->second.file_ptr.unique())
 				return false;
 		}
 		return true;
