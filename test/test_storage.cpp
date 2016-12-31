@@ -474,14 +474,15 @@ void test_check_files(std::string const& test_path
 	p.pool = &fp;
 	p.mode = storage_mode;
 
-	std::shared_ptr<storage_interface> pm = std::make_shared<default_storage>(p);
+	std::unique_ptr<storage_interface> pm(new default_storage(p));
 	pm->set_files(&fs);
+	auto st = io.new_torrent(std::move(pm));
 	std::mutex lock;
 
 	bool done = false;
 	add_torrent_params frd;
 	aux::vector<std::string, file_index_t> links;
-	io.async_check_files(pm.get(), &frd, links
+	io.async_check_files(st, &frd, links
 		, std::bind(&on_check_resume_data, _1, _2, &done));
 	io.submit_jobs();
 	ios.reset();

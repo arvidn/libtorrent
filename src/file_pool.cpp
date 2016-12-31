@@ -95,7 +95,7 @@ namespace libtorrent
 	}
 #endif // TORRENT_WINDOWS
 
-	file_handle file_pool::open_file(void* st, std::string const& p
+	file_handle file_pool::open_file(storage_index_t st, std::string const& p
 		, file_index_t const file_index, file_storage const& fs, int m, error_code& ec)
 	{
 		// potentially used to hold a reference to a file object that's
@@ -115,7 +115,6 @@ namespace libtorrent
 			== m_deleted_storages.end());
 #endif
 
-		TORRENT_ASSERT(st != nullptr);
 		TORRENT_ASSERT(is_complete(p));
 		TORRENT_ASSERT((m & file::rw_mask) == file::read_only
 			|| (m & file::rw_mask) == file::read_write);
@@ -178,7 +177,7 @@ namespace libtorrent
 		return file_ptr;
 	}
 
-	std::vector<pool_file_status> file_pool::get_status(void* st) const
+	std::vector<pool_file_status> file_pool::get_status(storage_index_t const st) const
 	{
 		std::vector<pool_file_status> ret;
 		{
@@ -211,7 +210,7 @@ namespace libtorrent
 		l.lock();
 	}
 
-	void file_pool::release(void* st, file_index_t file_index)
+	void file_pool::release(storage_index_t const st, file_index_t file_index)
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 
@@ -228,17 +227,17 @@ namespace libtorrent
 	}
 
 	// closes files belonging to the specified
-	// storage. If 0 is passed, all files are closed
-	void file_pool::release(void* st)
+	// storage, or all if none is specified.
+	void file_pool::release()
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
+		m_files.clear();
+		l.unlock();
+	}
 
-		if (st == nullptr)
-		{
-			m_files.clear();
-			l.unlock();
-			return;
-		}
+	void file_pool::release(storage_index_t const st)
+	{
+		std::unique_lock<std::mutex> l(m_mutex);
 
 		auto begin = m_files.lower_bound(std::make_pair(st, file_index_t(0)));
 		auto const end = m_files.upper_bound(std::make_pair(st
@@ -264,7 +263,7 @@ namespace libtorrent
 			m_deleted_storages.erase(m_deleted_storages.begin());
 	}
 
-	bool file_pool::assert_idle_files(void* st) const
+	bool file_pool::assert_idle_files(storage_index_t const st) const
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 

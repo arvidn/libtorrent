@@ -93,7 +93,7 @@ namespace
 			{
 				if (i->first.block_index == pb.block_index)
 				{
-					m_torrent.session().disk_thread().async_read(&m_torrent.storage()
+					m_torrent.session().disk_thread().async_read(m_torrent.storage()
 						, r, std::bind(&smart_ban_plugin::on_read_ok_block
 						, shared_from_this(), *i, i->second.peer->address(), _1, r.length, _2, _3)
 						, reinterpret_cast<void*>(1));
@@ -150,7 +150,7 @@ namespace
 					// since the piece has failed, this block is very likely to be replaced with a newly
 					// downloaded one very soon, and to get a block by reference would fail, since the
 					// block read will have been deleted by the time it gets back to the network thread
-					m_torrent.session().disk_thread().async_read(&m_torrent.storage(), r
+					m_torrent.session().disk_thread().async_read(m_torrent.storage(), r
 						, std::bind(&smart_ban_plugin::on_read_failed_block
 						, shared_from_this(), pb, (*i)->address(), _1, r.length, _2, _3)
 						, reinterpret_cast<torrent_peer*>(1)

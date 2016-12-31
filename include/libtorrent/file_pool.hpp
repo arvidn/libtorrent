@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/units.hpp"
+#include "libtorrent/storage_defs.hpp"
 
 namespace libtorrent
 {
@@ -93,13 +94,14 @@ namespace libtorrent
 		// return an open file handle to file at ``file_index`` in the
 		// file_storage ``fs`` opened at save path ``p``. ``m`` is the
 		// file open mode (see file::open_mode_t).
-		file_handle open_file(void* st, std::string const& p
+		file_handle open_file(storage_index_t st, std::string const& p
 			, file_index_t file_index, file_storage const& fs, int m, error_code& ec);
 		// release all files belonging to the specified storage_interface (``st``)
 		// the overload that takes ``file_index`` releases only the file with
 		// that index in storage ``st``.
-		void release(void* st = nullptr);
-		void release(void* st, file_index_t file_index);
+		void release();
+		void release(storage_index_t st);
+		void release(storage_index_t st, file_index_t file_index);
 
 		// update the allowed number of open file handles to ``size``.
 		void resize(int size);
@@ -110,10 +112,10 @@ namespace libtorrent
 
 		// internal
 		void set_low_prio_io(bool b) { m_low_prio_io = b; }
-		std::vector<pool_file_status> get_status(void* st) const;
+		std::vector<pool_file_status> get_status(storage_index_t st) const;
 
 #if TORRENT_USE_ASSERTS
-		bool assert_idle_files(void* st) const;
+		bool assert_idle_files(storage_index_t st) const;
 
 		// remember that this storage has had
 		// its files deleted. We may not open any
@@ -137,7 +139,7 @@ namespace libtorrent
 
 		// maps storage pointer, file index pairs to the
 		// lru entry for the file
-		std::map<std::pair<void*, file_index_t>, lru_file_entry> m_files;
+		std::map<std::pair<storage_index_t, file_index_t>, lru_file_entry> m_files;
 #if TORRENT_USE_ASSERTS
 		std::vector<std::pair<std::string, void const*>> m_deleted_storages;
 #endif

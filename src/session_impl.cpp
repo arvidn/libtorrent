@@ -5500,6 +5500,25 @@ namespace aux {
 	}
 #endif // TORRENT_NO_DEPRECATE
 
+	void session_impl::get_cache_info(torrent_handle h, cache_status* ret, int flags) const
+	{
+		storage_index_t st{0};
+		bool whole_session = true;
+		std::shared_ptr<torrent> t = h.m_torrent.lock();
+		if (t)
+		{
+			if (t->has_storage())
+			{
+				st = t->storage();
+				whole_session = false;
+			}
+			else
+				flags = session::disk_cache_no_pieces;
+		}
+		m_disk_thread.get_cache_info(ret, st
+			, flags & session::disk_cache_no_pieces, whole_session);
+	}
+
 #ifndef TORRENT_DISABLE_DHT
 
 	void session_impl::start_dht()

@@ -2795,7 +2795,7 @@ namespace libtorrent
 
 		if (t->is_deleted()) return;
 
-		bool const exceeded = m_disk_thread.async_write(&t->storage(), p, data, self()
+		bool const exceeded = m_disk_thread.async_write(t->storage(), p, data, self()
 			, std::bind(&peer_connection::on_disk_write_complete
 			, self(), _1, p, t));
 
@@ -3008,7 +3008,7 @@ namespace libtorrent
 					// when this returns, all outstanding jobs to the
 					// piece are done, and we can restore it, allowing
 					// new requests to it
-					m_disk_thread.async_clear_piece(&t->storage(), p.piece
+					m_disk_thread.async_clear_piece(t->storage(), p.piece
 						, std::bind(&torrent::on_piece_fail_sync, t, _1, block_finished));
 				}
 				else
@@ -5089,7 +5089,7 @@ namespace libtorrent
 #endif
 				// this means we're in seed mode and we haven't yet
 				// verified this piece (r.piece)
-				m_disk_thread.async_hash(&t->storage(), r.piece, 0
+				m_disk_thread.async_hash(t->storage(), r.piece, 0
 					, std::bind(&peer_connection::on_seed_mode_hashed, self()
 						, _1, _2, _3), this);
 				t->verifying(r.piece);
@@ -5125,7 +5125,7 @@ namespace libtorrent
 				TORRENT_ASSERT(r.piece >= piece_index_t(0));
 				TORRENT_ASSERT(r.piece < t->torrent_file().end_piece());
 
-				m_disk_thread.async_read(&t->storage(), r
+				m_disk_thread.async_read(t->storage(), r
 					, std::bind(&peer_connection::on_disk_read_complete
 					, self(), _1, _2, _3, r, clock_type::now()), this);
 			}

@@ -548,6 +548,8 @@ namespace libtorrent
 			session_status status() const;
 #endif
 
+			void get_cache_info(torrent_handle h, cache_status* ret, int flags) const;
+
 			void set_peer_id(peer_id const& id);
 			void set_key(int key);
 			std::uint16_t listen_port() const override;
