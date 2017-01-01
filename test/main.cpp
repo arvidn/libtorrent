@@ -89,8 +89,8 @@ void output_test_log_to_terminal()
 
 	fflush(stdout);
 	fflush(stderr);
-	dup2(old_stdout, fileno(stdout));
-	dup2(old_stderr, fileno(stderr));
+	if (old_stdout != -1) dup2(old_stdout, fileno(stdout));
+	if (old_stderr != -1) dup2(old_stderr, fileno(stderr));
 
 	fseek(current_test->output, 0, SEEK_SET);
 	std::printf("\x1b[1m[%s]\x1b[0m\n\n", current_test->name);
