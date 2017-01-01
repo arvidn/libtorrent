@@ -45,12 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	file_pool::file_pool(int size)
-		: m_size(size)
-		, m_low_prio_io(true)
-	{
-	}
-
+	file_pool::file_pool(int size) : m_size(size) {}
 	file_pool::~file_pool() = default;
 
 #ifdef TORRENT_WINDOWS
@@ -130,16 +125,6 @@ namespace libtorrent
 			lru_file_entry& e = i->second;
 			e.last_use = aux::time_now();
 
-			if (e.key != st && ((e.mode & file::rw_mask) != file::read_only
-				|| (m & file::rw_mask) != file::read_only))
-			{
-				// this means that another instance of the storage
-				// is using the exact same file.
-				ec = errors::file_collision;
-				return file_handle();
-			}
-
-			e.key = st;
 			// if we asked for a file in write mode,
 			// and the cached file is is not opened in
 			// write mode, re-open it
@@ -147,27 +132,19 @@ namespace libtorrent
 				&& ((m & file::rw_mask) == file::read_write))
 				|| (e.mode & file::random_access) != (m & file::random_access))
 			{
-				// close the file before we open it with
-				// the new read/write privileges, since windows may
-				// file opening a file twice. However, since there may
-				// be outstanding operations on it, we can't close the
-				// file, we can only delete our reference to it.
-				// if this is the only reference to the file, it will be closed
-				defer_destruction = e.file_ptr;
-				e.file_ptr = std::make_shared<file>();
+				file_handle new_file = std::make_shared<file>();
 
 				std::string full_path = fs.file_path(file_index, p);
-				if (!e.file_ptr->open(full_path, m, ec))
-				{
-					m_files.erase(i);
+				if (!new_file->open(full_path, m, ec))
 					return file_handle();
-				}
 #ifdef TORRENT_WINDOWS
 				if (m_low_prio_io)
-					set_low_priority(e.file_ptr);
+					set_low_priority(new_file);
 #endif
 
-				TORRENT_ASSERT(e.file_ptr->is_open());
+				TORRENT_ASSERT(new_file->is_open());
+				defer_destruction = std::move(e.file_ptr);
+				e.file_ptr = std::move(new_file);
 				e.mode = m;
 			}
 			return e.file_ptr;
@@ -178,7 +155,7 @@ namespace libtorrent
 		if (!e.file_ptr)
 		{
 			ec = error_code(boost::system::errc::not_enough_memory, generic_category());
-			return e.file_ptr;
+			return file_handle();
 		}
 		std::string full_path = fs.file_path(file_index, p);
 		if (!e.file_ptr->open(full_path, m, ec))
@@ -188,13 +165,10 @@ namespace libtorrent
 			set_low_priority(e.file_ptr);
 #endif
 		e.mode = m;
-		e.key = st;
-		m_files.insert(std::make_pair(std::make_pair(st, file_index), e));
-		TORRENT_ASSERT(e.file_ptr->is_open());
-
 		file_handle file_ptr = e.file_ptr;
+		m_files.insert(std::make_pair(std::make_pair(st, file_index), e));
+		TORRENT_ASSERT(file_ptr->is_open());
 
-		// the file is not in our cache
 		if (int(m_files.size()) >= m_size)
 		{
 			// the file cache is at its maximum size, close
@@ -247,7 +221,8 @@ namespace libtorrent
 		file_handle file_ptr = i->second.file_ptr;
 		m_files.erase(i);
 
-		// closing a file may be long running operation (mac os x)
+		// closing a file may take a long time (mac os x), so make sure
+		// we're not holding the mutex
 		l.unlock();
 		file_ptr.reset();
 	}
@@ -260,25 +235,23 @@ namespace libtorrent
 
 		if (st == nullptr)
 		{
-			std::map<std::pair<void*, file_index_t>, lru_file_entry> tmp;
-			tmp.swap(m_files);
+			m_files.clear();
 			l.unlock();
 			return;
 		}
 
+		auto begin = m_files.lower_bound(std::make_pair(st, file_index_t(0)));
+		auto const end = m_files.upper_bound(std::make_pair(st
+				, std::numeric_limits<file_index_t>::max()));
+
 		std::vector<file_handle> to_close;
-		for (auto i = m_files.begin(); i != m_files.end();)
+		while (begin != end)
 		{
-			if (i->second.key == st)
-			{
-				to_close.push_back(i->second.file_ptr);
-				m_files.erase(i++);
-			}
-			else
-				++i;
+			to_close.push_back(std::move(begin->second.file_ptr));
+			m_files.erase(begin++);
 		}
 		l.unlock();
-		// the files are closed here
+		// the files are closed here while the lock is not held
 	}
 
 #if TORRENT_USE_ASSERTS
@@ -297,7 +270,7 @@ namespace libtorrent
 
 		for (auto const& i : m_files)
 		{
-			if (i.second.key == st && !i.second.file_ptr.unique())
+			if (i.first.first == st && !i.second.file_ptr.unique())
 				return false;
 		}
 		return true;

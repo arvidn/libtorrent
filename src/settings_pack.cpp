@@ -130,7 +130,7 @@ namespace libtorrent
 		SET(use_parole_mode, true, nullptr),
 		SET(use_read_cache, true, nullptr),
 		DEPRECATED_SET(use_write_cache, true, nullptr),
-		SET(dont_flush_write_cache, false, nullptr),
+		DEPRECATED_SET(dont_flush_write_cache, false, nullptr),
 		SET(coalesce_reads, false, nullptr),
 		SET(coalesce_writes, false, nullptr),
 		SET(auto_manage_prefer_seeds, false, nullptr),

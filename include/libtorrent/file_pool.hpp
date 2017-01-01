@@ -126,15 +126,13 @@ namespace libtorrent
 		void remove_oldest(std::unique_lock<std::mutex>& l);
 
 		int m_size;
-		bool m_low_prio_io;
+		bool m_low_prio_io = false;
 
 		struct lru_file_entry
 		{
-			lru_file_entry(): key(0), last_use(aux::time_now()), mode(0) {}
-			mutable file_handle file_ptr;
-			void* key;
-			time_point last_use;
-			int mode;
+			file_handle file_ptr;
+			time_point last_use{aux::time_now()};
+			int mode = 0;
 		};
 
 		// maps storage pointer, file index pairs to the

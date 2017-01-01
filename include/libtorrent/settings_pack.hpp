@@ -285,14 +285,15 @@ namespace libtorrent
 			use_read_cache,
 #ifndef TORRENT_NO_DEPRECATE
 			use_write_cache,
-#else
-			deprecated11,
-#endif
 
 			// this will make the disk cache never flush a write piece if it would
 			// cause is to have to re-read it once we want to calculate the piece
 			// hash
 			dont_flush_write_cache,
+#else
+			deprecated11,
+			deprecated22,
+#endif
 
 			// allocate separate, contiguous, buffers for read and write calls.
 			// Only used where writev/readv cannot be used will use more RAM but
