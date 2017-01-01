@@ -702,27 +702,6 @@ namespace libtorrent
 		}
 
 		rename(inf, newf, ec);
-
-		// on OSX, the error when trying to rename a file across different
-		// volumes is EXDEV, which will make it fall back to copying.
-
-		if (ec)
-		{
-			if (ec != boost::system::errc::no_such_file_or_directory
-				&& ec != boost::system::errc::invalid_argument
-				&& ec != boost::system::errc::permission_denied)
-			{
-				ec.clear();
-				copy_file(inf, newf, ec);
-
-				if (!ec)
-				{
-					// ignore errors when removing
-					error_code ignore;
-					remove(inf, ignore);
-				}
-			}
-		}
 	}
 
 	std::string split_path(std::string const& f)
