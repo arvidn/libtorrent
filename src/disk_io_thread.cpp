@@ -2603,8 +2603,6 @@ namespace libtorrent
 	void disk_io_thread::get_cache_info(cache_status* ret, storage_index_t st
 		, bool const no_pieces, bool const session) const
 	{
-		std::shared_ptr<storage_interface> storage = m_torrents[st];
-
 		std::unique_lock<std::mutex> l(m_cache_mutex);
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -2658,6 +2656,7 @@ namespace libtorrent
 
 			if (!session)
 			{
+				std::shared_ptr<storage_interface> storage = m_torrents[st];
 				TORRENT_ASSERT(storage);
 				ret->pieces.reserve(storage->num_pieces());
 
