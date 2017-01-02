@@ -34,15 +34,19 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_BLOCK_CACHE_REFERENCE_HPP
 
 #include "libtorrent/units.hpp"
+#include "libtorrent/storage_defs.hpp"
 
 namespace libtorrent {
 namespace aux {
 
 	struct block_cache_reference
 	{
-		void* storage;
-		piece_index_t piece;
-		int block;
+		storage_index_t storage;
+		std::uint32_t cookie;
+
+		// if the cookie is set to this value, it doesn't refer to anything in the
+		// cache (and the buffer is mutable)
+		static std::uint32_t const none = 0xffffffffu;
 	};
 
 }
