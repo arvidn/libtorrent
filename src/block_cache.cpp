@@ -1744,10 +1744,12 @@ int block_cache::copy_from_piece(cached_piece_entry* const pe
 
 		// make sure it didn't wrap
 		TORRENT_PIECE_ASSERT(pe->refcount > 0, pe);
-		j->d.io.ref.storage = j->storage.get();
-		j->d.io.ref.piece = pe->piece;
-		j->d.io.ref.block = start_block;
+		int const blocks_per_piece = (j->storage->files()->piece_length() + block_size() - 1) / block_size();
+		j->d.io.ref.storage = j->storage->storage_index();
+		j->d.io.ref.cookie = static_cast<int>(pe->piece) * blocks_per_piece + start_block;
 		j->buffer.disk_block = bl.buf + (j->d.io.offset & (block_size()-1));
+		j->storage->inc_refcount();
+
 		++m_send_buffer_blocks;
 		return j->d.io.buffer_size;
 	}
@@ -1784,16 +1786,20 @@ int block_cache::copy_from_piece(cached_piece_entry* const pe
 	return j->d.io.buffer_size;
 }
 
-void block_cache::reclaim_block(aux::block_cache_reference const& ref)
+void block_cache::reclaim_block(storage_interface* st, aux::block_cache_reference const& ref)
 {
-	cached_piece_entry* pe = find_piece(ref);
+	int const blocks_per_piece = (st->files()->piece_length() + block_size() - 1) / block_size();
+	piece_index_t const piece(ref.cookie / blocks_per_piece);
+	int const block(ref.cookie % blocks_per_piece);
+
+	cached_piece_entry* pe = find_piece(st, piece);
 	TORRENT_ASSERT(pe);
 	if (pe == nullptr) return;
 
 	TORRENT_PIECE_ASSERT(pe->in_use, pe);
 
-	TORRENT_PIECE_ASSERT(pe->blocks[ref.block].buf, pe);
-	dec_block_refcount(pe, ref.block, block_cache::ref_reading);
+	TORRENT_PIECE_ASSERT(pe->blocks[block].buf, pe);
+	dec_block_refcount(pe, block, block_cache::ref_reading);
 
 	TORRENT_PIECE_ASSERT(m_send_buffer_blocks > 0, pe);
 	--m_send_buffer_blocks;
@@ -1820,11 +1826,6 @@ bool block_cache::maybe_free_piece(cached_piece_entry* pe)
 	TORRENT_PIECE_ASSERT(jobs.empty(), pe);
 
 	return true;
-}
-
-cached_piece_entry* block_cache::find_piece(aux::block_cache_reference const& ref)
-{
-	return find_piece(static_cast<storage_interface*>(ref.storage), ref.piece);
 }
 
 cached_piece_entry* block_cache::find_piece(disk_io_job const* j)

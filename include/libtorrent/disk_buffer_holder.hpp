@@ -103,7 +103,7 @@ namespace libtorrent
 		}
 
 		// if this returns true, the buffer may not be modified in place
-		bool is_mutable() const noexcept { return m_ref.storage == nullptr; }
+		bool is_mutable() const noexcept { return m_ref.cookie == aux::block_cache_reference::none; }
 
 		// implicitly convertible to true if the object is currently holding a
 		// buffer

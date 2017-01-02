@@ -4322,7 +4322,13 @@ namespace libtorrent
 				alerts().emplace_alert<cache_flushed_alert>(get_handle());
 		}
 
-		m_storage.reset();
+		// if this torrent still has connections, they may have buffers to return
+		// to the disk storage, in which case we cannot destroy the disk storage
+		// yet. wait until the last peer connection is removed
+		if (m_connections.empty())
+		{
+			m_storage.reset();
+		}
 
 		// TODO: 2 abort lookups this torrent has made via the
 		// session host resolver interface
@@ -7127,9 +7133,6 @@ namespace libtorrent
 
 	void torrent::disconnect_all(error_code const& ec, operation_t op)
 	{
-// doesn't work with the m_paused -> m_num_peers == 0 condition
-//		INVARIANT_CHECK;
-
 		while (!m_connections.empty())
 		{
 			peer_connection* p = *m_connections.begin();

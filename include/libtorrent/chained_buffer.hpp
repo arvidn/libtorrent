@@ -111,7 +111,7 @@ namespace libtorrent
 #if TORRENT_CPP98_DEQUE
 			move_construct_holder_fun move_holder;
 #endif
-			std::aligned_storage<32>::type holder;
+			std::aligned_storage<24>::type holder;
 			char* buf; // the first byte of the buffer
 			int size; // the total size of the buffer
 			int used_size; // this is the number of bytes to send/receive

@@ -232,7 +232,8 @@ namespace libtorrent
 
 	void disk_io_thread::remove_torrent(storage_index_t const idx)
 	{
-		m_torrents[idx].reset();
+		auto& pos = m_torrents[idx];
+		if (pos->dec_refcount() == 0) pos.reset();
 	}
 
 	disk_io_thread::~disk_io_thread()
@@ -279,8 +280,10 @@ namespace libtorrent
 		std::unique_lock<std::mutex> l(m_cache_mutex);
 		for (auto ref : refs)
 		{
-			TORRENT_ASSERT(ref.storage);
-			m_disk_cache.reclaim_block(ref);
+			auto& pos = m_torrents[ref.storage];
+			storage_interface* st = pos.get();
+			m_disk_cache.reclaim_block(st, ref);
+			if (st->dec_refcount() == 0) pos.reset();
 		}
 	}
 
