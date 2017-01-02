@@ -146,7 +146,7 @@ struct dht_server
 				entry msg = bdecode(buffer, buffer + bytes_transferred);
 
 #if TORRENT_USE_IOSTREAM
-				std::cerr << msg << std::endl;
+				std::cout << msg << std::endl;
 #endif
 				++m_dht_requests;
 			}

@@ -87,7 +87,7 @@ void test_lsd()
 
 	TEST_CHECK(tor2.status().is_seeding);
 
-	if (tor2.status().is_seeding) std::cerr << "done\n";
+	if (tor2.status().is_seeding) std::cout << "done\n";
 
 	// this allows shutting down the sessions in parallel
 	p1 = ses1.abort();

@@ -58,37 +58,37 @@ const int half = piece_size / 2;
 void signal_bool(bool* b, char const* string)
 {
 	*b = true;
-	std::cerr << time_now_string() << " " << string << std::endl;
+	std::cout << time_now_string() << " " << string << std::endl;
 }
 
 void on_read_piece(int ret, disk_io_job const& j, char const* data, int size)
 {
-	std::cerr << time_now_string() << " on_read_piece piece: " << j.piece << std::endl;
+	std::cout << time_now_string() << " on_read_piece piece: " << j.piece << std::endl;
 	TEST_EQUAL(ret, size);
 	if (ret > 0) TEST_CHECK(std::equal(j.buffer.disk_block, j.buffer.disk_block + ret, data));
 }
 
 void on_check_resume_data(status_t const status, storage_error const& error, bool* done)
 {
-	std::cerr << time_now_string() << " on_check_resume_data ret: "
+	std::cout << time_now_string() << " on_check_resume_data ret: "
 		<< static_cast<int>(status);
 	switch (status)
 	{
 		case status_t::no_error:
-			std::cerr << time_now_string() << " success" << std::endl;
+			std::cout << time_now_string() << " success" << std::endl;
 			break;
 		case status_t::fatal_disk_error:
-			std::cerr << time_now_string() << " disk error: " << error.ec.message()
+			std::cout << time_now_string() << " disk error: " << error.ec.message()
 				<< " file: " << error.file() << std::endl;
 			break;
 		case status_t::need_full_check:
-			std::cerr << time_now_string() << " need full check" << std::endl;
+			std::cout << time_now_string() << " need full check" << std::endl;
 			break;
 		case status_t::file_exist:
-			std::cerr << time_now_string() << " file exist" << std::endl;
+			std::cout << time_now_string() << " file exist" << std::endl;
 			break;
 	}
-	std::cerr << std::endl;
+	std::cout << std::endl;
 	*done = true;
 }
 
@@ -108,10 +108,10 @@ void run_until(io_service& ios, bool const& done)
 		ios.run_one(ec);
 		if (ec)
 		{
-			std::cerr << "run_one: " << ec.message().c_str() << std::endl;
+			std::cout << "run_one: " << ec.message().c_str() << std::endl;
 			return;
 		}
-		std::cerr << time_now_string() << " done: " << done << std::endl;
+		std::cout << time_now_string() << " done: " << done << std::endl;
 	}
 }
 
@@ -191,15 +191,15 @@ void run_storage_tests(std::shared_ptr<torrent_info> info
 	TORRENT_ASSERT(fs.num_files() > 0);
 	error_code ec;
 	create_directory(combine_path(test_path, "temp_storage"), ec);
-	if (ec) std::cerr << "create_directory '" << combine_path(test_path, "temp_storage")
+	if (ec) std::cout << "create_directory '" << combine_path(test_path, "temp_storage")
 		<< "': " << ec.message() << std::endl;
 	remove_all(combine_path(test_path, "temp_storage2"), ec);
 	if (ec && ec != boost::system::errc::no_such_file_or_directory)
-		std::cerr << "remove_all '" << combine_path(test_path, "temp_storage2")
+		std::cout << "remove_all '" << combine_path(test_path, "temp_storage2")
 		<< "': " << ec.message() << std::endl;
 	remove_all(combine_path(test_path, "part0"), ec);
 	if (ec && ec != boost::system::errc::no_such_file_or_directory)
-		std::cerr << "remove_all '" << combine_path(test_path, "part0")
+		std::cout << "remove_all '" << combine_path(test_path, "part0")
 		<< "': " << ec.message() << std::endl;
 
 	int num_pieces = fs.num_pieces();
@@ -306,7 +306,7 @@ void test_remove(std::string const& test_path, bool unbuffered)
 	error_code ec;
 	remove_all(combine_path(test_path, "temp_storage"), ec);
 	if (ec && ec != boost::system::errc::no_such_file_or_directory)
-		std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
+		std::cout << "remove_all '" << combine_path(test_path, "temp_storage")
 		<< "': " << ec.message() << std::endl;
 	TEST_CHECK(!exists(combine_path(test_path, "temp_storage")));
 
@@ -380,7 +380,7 @@ void test_rename(std::string const& test_path)
 	error_code ec;
 	remove_all(combine_path(test_path, "temp_storage"), ec);
 	if (ec && ec != boost::system::errc::no_such_file_or_directory)
-		std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
+		std::cout << "remove_all '" << combine_path(test_path, "temp_storage")
 		<< "': " << ec.message() << std::endl;
 	TEST_CHECK(!exists(combine_path(test_path, "temp_storage")));
 
@@ -425,7 +425,7 @@ void test_check_files(std::string const& test_path
 	const int piece_size = 16 * 1024;
 	remove_all(combine_path(test_path, "temp_storage"), ec);
 	if (ec && ec != boost::system::errc::no_such_file_or_directory)
-		std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
+		std::cout << "remove_all '" << combine_path(test_path, "temp_storage")
 		<< "': " << ec.message() << std::endl;
 	file_storage fs;
 	fs.add_file("temp_storage/test1.tmp", piece_size);
@@ -442,7 +442,7 @@ void test_check_files(std::string const& test_path
 	t.set_hash(piece_index_t(3), hasher(piece2).final());
 
 	create_directory(combine_path(test_path, "temp_storage"), ec);
-	if (ec) std::cerr << "create_directory: " << ec.message() << std::endl;
+	if (ec) std::cout << "create_directory: " << ec.message() << std::endl;
 
 	std::ofstream f;
 	f.open(combine_path(test_path, combine_path("temp_storage", "test1.tmp")).c_str()
@@ -495,7 +495,7 @@ void test_check_files(std::string const& test_path
 void run_test(bool unbuffered)
 {
 	std::string test_path = current_working_directory();
-	std::cerr << "\n=== " << test_path << " ===\n" << std::endl;
+	std::cout << "\n=== " << test_path << " ===\n" << std::endl;
 
 	std::shared_ptr<torrent_info> info;
 
@@ -508,7 +508,7 @@ void run_test(bool unbuffered)
 	error_code ec;
 	remove_all(combine_path(test_path, "temp_storage"), ec);
 	if (ec && ec != boost::system::errc::no_such_file_or_directory)
-		std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
+		std::cout << "remove_all '" << combine_path(test_path, "temp_storage")
 		<< "': " << ec.message() << std::endl;
 	file_storage fs;
 	fs.add_file("temp_storage/test1.tmp", 17);
@@ -537,7 +537,7 @@ void run_test(bool unbuffered)
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
 	info = std::make_shared<torrent_info>(&buf[0], int(buf.size()), std::ref(ec), 0);
-	std::cerr << "=== test 1 === " << (unbuffered?"unbuffered":"buffered") << std::endl;
+	std::cout << "=== test 1 === " << (unbuffered?"unbuffered":"buffered") << std::endl;
 
 	// run_storage_tests writes piece 0, 1 and 2. not 3
 	run_storage_tests(info, fs, test_path, storage_mode_sparse, unbuffered);
@@ -562,7 +562,7 @@ void run_test(bool unbuffered)
 	TEST_EQUAL(file_size(combine_path(base, "test7.tmp")), last_file_size - piece_size);
 	remove_all(combine_path(test_path, "temp_storage"), ec);
 	if (ec && ec != boost::system::errc::no_such_file_or_directory)
-		std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
+		std::cout << "remove_all '" << combine_path(test_path, "temp_storage")
 		<< "': " << ec.message() << std::endl;
 	}
 
@@ -582,44 +582,44 @@ void run_test(bool unbuffered)
 	bencode(std::back_inserter(buf), t.generate());
 	info = std::make_shared<torrent_info>(&buf[0], int(buf.size()), std::ref(ec), 0);
 
-	std::cerr << "=== test 3 ===" << std::endl;
+	std::cout << "=== test 3 ===" << std::endl;
 
 	run_storage_tests(info, fs, test_path, storage_mode_sparse, unbuffered);
 
 	TEST_EQUAL(file_size(combine_path(test_path, combine_path("temp_storage", "test1.tmp"))), piece_size * 3);
 	remove_all(combine_path(test_path, "temp_storage"), ec);
 	if (ec && ec != boost::system::errc::no_such_file_or_directory)
-		std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
+		std::cout << "remove_all '" << combine_path(test_path, "temp_storage")
 		<< "': " << ec.message() << std::endl;
 
 // ==============================================
 
-	std::cerr << "=== test 4 ===" << std::endl;
+	std::cout << "=== test 4 ===" << std::endl;
 
 	run_storage_tests(info, fs, test_path, storage_mode_allocate, unbuffered);
 
-	std::cerr << file_size(combine_path(test_path, combine_path("temp_storage", "test1.tmp"))) << std::endl;
+	std::cout << file_size(combine_path(test_path, combine_path("temp_storage", "test1.tmp"))) << std::endl;
 	TEST_EQUAL(file_size(combine_path(test_path, combine_path("temp_storage", "test1.tmp"))), 3 * piece_size);
 
 	remove_all(combine_path(test_path, "temp_storage"), ec);
 	if (ec && ec != boost::system::errc::no_such_file_or_directory)
-		std::cerr << "remove_all '" << combine_path(test_path, "temp_storage")
+		std::cout << "remove_all '" << combine_path(test_path, "temp_storage")
 		<< "': " << ec.message() << std::endl;
 
 	}
 
 // ==============================================
 
-	std::cerr << "=== test 5 ===" << std::endl;
+	std::cout << "=== test 5 ===" << std::endl;
 	test_remove(test_path, unbuffered);
 
 // ==============================================
 
-	std::cerr << "=== test 6 ===" << std::endl;
+	std::cout << "=== test 6 ===" << std::endl;
 	test_check_files(test_path, storage_mode_sparse, unbuffered);
 	test_check_files(test_path, storage_mode_sparse, unbuffered);
 
-	std::cerr << "=== test 7 ===" << std::endl;
+	std::cout << "=== test 7 ===" << std::endl;
 	test_rename(test_path);
 }
 
@@ -630,10 +630,10 @@ void test_fastresume(bool const test_deprecated)
 	std::cout << "\n\n=== test fastresume ===" << std::endl;
 	remove_all(combine_path(test_path, "tmp1"), ec);
 	if (ec && ec != boost::system::errc::no_such_file_or_directory)
-		std::cerr << "remove_all '" << combine_path(test_path, "tmp1")
+		std::cout << "remove_all '" << combine_path(test_path, "tmp1")
 		<< "': " << ec.message() << std::endl;
 	create_directory(combine_path(test_path, "tmp1"), ec);
-	if (ec) std::cerr << "create_directory '" << combine_path(test_path, "tmp1")
+	if (ec) std::cout << "create_directory '" << combine_path(test_path, "tmp1")
 		<< "': " << ec.message() << std::endl;
 	std::ofstream file(combine_path(test_path, "tmp1/temporary").c_str());
 	std::shared_ptr<torrent_info> t = ::create_torrent(&file);
@@ -690,7 +690,7 @@ void test_fastresume(bool const test_deprecated)
 	if (exists(combine_path(test_path, combine_path("tmp1", "temporary"))))
 		return;
 
-	std::cerr << resume.to_string() << "\n";
+	std::cout << resume.to_string() << "\n";
 
 	// make sure the fast resume check fails! since we removed the file
 	{
@@ -728,7 +728,7 @@ void test_fastresume(bool const test_deprecated)
 	}
 	remove_all(combine_path(test_path, "tmp1"), ec);
 	if (ec && ec != boost::system::errc::no_such_file_or_directory)
-		std::cerr << "remove_all '" << combine_path(test_path, "tmp1")
+		std::cout << "remove_all '" << combine_path(test_path, "tmp1")
 		<< "': " << ec.message() << std::endl;
 }
 
@@ -804,7 +804,7 @@ TORRENT_TEST(rename_file)
 	if (!ra) return;
 	entry resume = *alert_cast<save_resume_data_alert>(ra)->resume_data;
 
-	std::cerr << resume.to_string() << "\n";
+	std::cout << resume.to_string() << "\n";
 
 	entry::list_type files = resume.dict().find("mapped_files")->second.list();
 	for (entry::list_type::iterator i = files.begin(); i != files.end(); ++i)
@@ -820,10 +820,10 @@ void test_rename_file_fastresume(bool test_deprecated)
 	std::cout << "\n\n=== test rename file in fastresume ===" << std::endl;
 	remove_all(combine_path(test_path, "tmp2"), ec);
 	if (ec && ec != boost::system::errc::no_such_file_or_directory)
-		std::cerr << "remove_all '" << combine_path(test_path, "tmp2")
+		std::cout << "remove_all '" << combine_path(test_path, "tmp2")
 		<< "': " << ec.message() << std::endl;
 	create_directory(combine_path(test_path, "tmp2"), ec);
-	if (ec) std::cerr << "create_directory: " << ec.message() << std::endl;
+	if (ec) std::cout << "create_directory: " << ec.message() << std::endl;
 	std::ofstream file(combine_path(test_path, "tmp2/temporary").c_str());
 	std::shared_ptr<torrent_info> t = ::create_torrent(&file);
 	file.close();
@@ -864,7 +864,7 @@ void test_rename_file_fastresume(bool test_deprecated)
 	TEST_CHECK(exists(combine_path(test_path, "tmp2/testing_renamed_files")));
 	TEST_CHECK(resume.dict().find("mapped_files") != resume.dict().end());
 
-	std::cerr << resume.to_string() << "\n";
+	std::cout << resume.to_string() << "\n";
 
 	// make sure the fast resume check succeeds, even though we renamed the file
 	{
@@ -910,11 +910,11 @@ void test_rename_file_fastresume(bool test_deprecated)
 	}
 	TEST_CHECK(resume.dict().find("mapped_files") != resume.dict().end());
 
-	std::cerr << resume.to_string() << "\n";
+	std::cout << resume.to_string() << "\n";
 
 	remove_all(combine_path(test_path, "tmp2"), ec);
 	if (ec && ec != boost::system::errc::no_such_file_or_directory)
-		std::cerr << "remove_all '" << combine_path(test_path, "tmp2")
+		std::cout << "remove_all '" << combine_path(test_path, "tmp2")
 		<< "': " << ec.message() << std::endl;
 }
 

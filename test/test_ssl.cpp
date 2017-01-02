@@ -247,7 +247,7 @@ void test_ssl(int test_idx, bool use_utp)
 
 		if (i % 10 == 0)
 		{
-			std::cerr << time_now_string() << " "
+			std::cout << time_now_string() << " "
 				<< "\033[32m" << int(st1.download_payload_rate / 1000.f) << "kB/s "
 				<< "\033[33m" << int(st1.upload_payload_rate / 1000.f) << "kB/s "
 				<< "\033[0m" << int(st1.progress * 100) << "% "
@@ -274,7 +274,7 @@ void test_ssl(int test_idx, bool use_utp)
 			static char const* state_str[] =
 				{"checking (q)", "checking", "dl metadata"
 				, "downloading", "finished", "seeding", "allocating", "checking (r)"};
-			std::cerr << "st2 state: " << state_str[st2.state] << std::endl;
+			std::cout << "st2 state: " << state_str[st2.state] << std::endl;
 		}
 
 		TEST_CHECK(st1.state == torrent_status::seeding

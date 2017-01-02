@@ -472,7 +472,7 @@ std::shared_ptr<torrent_info> setup_peer(tcp::socket& s, sha1_hash& ih
 // rejected aren't requested again
 TORRENT_TEST(reject_fast)
 {
-	std::cerr << "\n === test reject ===\n" << std::endl;
+	std::cout << "\n === test reject ===\n" << std::endl;
 
 	sha1_hash ih;
 	std::shared_ptr<lt::session> ses;
@@ -541,7 +541,7 @@ TORRENT_TEST(reject_fast)
 
 TORRENT_TEST(invalid_suggest)
 {
-	std::cerr << "\n === test suggest ===\n" << std::endl;
+	std::cout << "\n === test suggest ===\n" << std::endl;
 
 	sha1_hash ih;
 	std::shared_ptr<lt::session> ses;
@@ -581,7 +581,7 @@ TORRENT_TEST(invalid_suggest)
 
 TORRENT_TEST(reject_suggest)
 {
-	std::cerr << "\n === test suggest ===\n" << std::endl;
+	std::cout << "\n === test suggest ===\n" << std::endl;
 
 	sha1_hash ih;
 	std::shared_ptr<lt::session> ses;
@@ -660,7 +660,7 @@ TORRENT_TEST(reject_suggest)
 
 TORRENT_TEST(suggest_order)
 {
-	std::cerr << "\n === test suggest ===\n" << std::endl;
+	std::cout << "\n === test suggest ===\n" << std::endl;
 
 	sha1_hash ih;
 	std::shared_ptr<lt::session> ses;
@@ -720,7 +720,7 @@ TORRENT_TEST(suggest_order)
 
 TORRENT_TEST(multiple_bitfields)
 {
-	std::cerr << "\n === test multiple bitfields ===\n" << std::endl;
+	std::cout << "\n === test multiple bitfields ===\n" << std::endl;
 
 	sha1_hash ih;
 	std::shared_ptr<lt::session> ses;
@@ -754,7 +754,7 @@ TORRENT_TEST(multiple_bitfields)
 
 TORRENT_TEST(multiple_have_all)
 {
-	std::cerr << "\n === test multiple have_all ===\n" << std::endl;
+	std::cout << "\n === test multiple have_all ===\n" << std::endl;
 
 	sha1_hash ih;
 	std::shared_ptr<lt::session> ses;
@@ -788,7 +788,7 @@ TORRENT_TEST(dont_have)
 {
 	using namespace libtorrent::detail;
 
-	std::cerr << "\n === test dont_have ===\n" << std::endl;
+	std::cout << "\n === test dont_have ===\n" << std::endl;
 
 	sha1_hash ih;
 	torrent_handle th;
@@ -891,7 +891,7 @@ TORRENT_TEST(invalid_metadata_request)
 {
 	using namespace libtorrent::detail;
 
-	std::cerr << "\n === test invalid metadata ===\n" << std::endl;
+	std::cout << "\n === test invalid metadata ===\n" << std::endl;
 
 	sha1_hash ih;
 	std::shared_ptr<lt::session> ses;
@@ -944,7 +944,7 @@ TORRENT_TEST(invalid_metadata_request)
 
 TORRENT_TEST(invalid_request)
 {
-	std::cerr << "\n === test request ===\n" << std::endl;
+	std::cout << "\n === test request ===\n" << std::endl;
 
 	sha1_hash ih;
 	std::shared_ptr<lt::session> ses;
@@ -1003,13 +1003,13 @@ void have_all_test(bool const incoming)
 
 TORRENT_TEST(outgoing_have_all)
 {
-	std::cerr << "\n === test outgoing have-all ===\n" << std::endl;
+	std::cout << "\n === test outgoing have-all ===\n" << std::endl;
 	have_all_test(true);
 }
 
 TORRENT_TEST(incoming_have_all)
 {
-	std::cerr << "\n === test outgoing have-all ===\n" << std::endl;
+	std::cout << "\n === test outgoing have-all ===\n" << std::endl;
 	have_all_test(false);
 }
 
