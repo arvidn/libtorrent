@@ -96,7 +96,7 @@ struct test_storage : default_storage
 		std::unique_lock<std::mutex> l(m_mutex);
 		if (m_written >= m_limit)
 		{
-			std::cerr << "storage written: " << m_written << " limit: " << m_limit << std::endl;
+			std::cout << "storage written: " << m_written << " limit: " << m_limit << std::endl;
 			error_code ec;
 			ec = error_code(boost::system::errc::no_space_on_device, generic_category());
 			se.ec = ec;
@@ -277,7 +277,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 			test_move_storage = true;
 			tor1.move_storage("tmp1_transfer_moved");
 			tor2.move_storage("tmp2_transfer_moved");
-			std::cerr << "moving storage" << std::endl;
+			std::cout << "moving storage" << std::endl;
 		}
 
 		// wait 10 loops before we restart the torrent. This lets

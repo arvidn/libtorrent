@@ -54,7 +54,7 @@ TORRENT_TEST(default_settings)
 
 #if TORRENT_USE_IOSTREAM
 	if (e.dict().size() > 0)
-		std::cerr << e << std::endl;
+		std::cout << e << std::endl;
 #endif
 }
 

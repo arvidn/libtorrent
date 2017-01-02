@@ -1627,7 +1627,7 @@ void test_routing_table(address(&rand_addr)())
 	//TODO: 2 test num_global_nodes
 	//TODO: 2 test need_refresh
 
-	print_state(std::cerr, table);
+	print_state(std::cout, table);
 
 	table.for_each_node(node_push_back, nop, &nodes);
 
@@ -2832,7 +2832,7 @@ TORRENT_TEST(routing_table_uniform)
 	// i.e. no more than 5 levels
 	TEST_EQUAL(tbl.num_active_buckets(), 5);
 
-	print_state(std::cerr, tbl);
+	print_state(std::cout, tbl);
 }
 
 TORRENT_TEST(routing_table_balance)
@@ -2855,7 +2855,7 @@ TORRENT_TEST(routing_table_balance)
 	std::printf("num_active_buckets: %d\n", tbl.num_active_buckets());
 	TEST_EQUAL(tbl.num_active_buckets(), 2);
 
-	print_state(std::cerr, tbl);
+	print_state(std::cout, tbl);
 }
 
 TORRENT_TEST(routing_table_extended)
@@ -2882,7 +2882,7 @@ TORRENT_TEST(routing_table_extended)
 	}
 	TEST_EQUAL(tbl.num_active_buckets(), 6);
 
-	print_state(std::cerr, tbl);
+	print_state(std::cout, tbl);
 }
 
 void inserter(std::set<node_id>* nodes, node_entry const& ne)
@@ -2915,7 +2915,7 @@ TORRENT_TEST(routing_table_set_id)
 	std::set<node_id> original_nodes;
 	tbl.for_each_node(std::bind(&inserter, &original_nodes, _1));
 
-	print_state(std::cerr, tbl);
+	print_state(std::cout, tbl);
 
 	id = to_hash("ffffffffffffffffffffffffffffffffffffffff");
 
@@ -2933,7 +2933,7 @@ TORRENT_TEST(routing_table_set_id)
 	// all remaining nodes also exist in the original nodes
 	TEST_EQUAL(intersection.size(), remaining_nodes.size());
 
-	print_state(std::cerr, tbl);
+	print_state(std::cout, tbl);
 }
 
 TORRENT_TEST(node_set_id)

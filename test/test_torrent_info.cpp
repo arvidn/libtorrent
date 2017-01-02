@@ -588,7 +588,7 @@ TORRENT_TEST(parse_torrents)
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), torrent);
 	torrent_info ti(&buf[0], int(buf.size()), ec);
-	std::cerr << ti.name() << std::endl;
+	std::cout << ti.name() << std::endl;
 	TEST_CHECK(ti.name() == "test1");
 
 #ifdef TORRENT_WINDOWS
@@ -600,7 +600,7 @@ TORRENT_TEST(parse_torrents)
 	buf.clear();
 	bencode(std::back_inserter(buf), torrent);
 	torrent_info ti2(&buf[0], int(buf.size()), ec);
-	std::cerr << ti2.name() << std::endl;
+	std::cout << ti2.name() << std::endl;
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(ti2.name(), "ctest1test2test3");
 #else
@@ -612,7 +612,7 @@ TORRENT_TEST(parse_torrents)
 	buf.clear();
 	bencode(std::back_inserter(buf), torrent);
 	torrent_info ti3(&buf[0], int(buf.size()), ec);
-	std::cerr << ti3.name() << std::endl;
+	std::cout << ti3.name() << std::endl;
 	TEST_EQUAL(ti3.name(), "test2..test3.......test4");
 
 	std::string root_dir = parent_path(current_working_directory());

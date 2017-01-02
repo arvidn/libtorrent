@@ -235,7 +235,7 @@ void test_transfer(lt::session& ses, std::shared_ptr<torrent_info> torrent_file
 		}
 	}
 
-	std::cerr << "total_size: " << total_size
+	std::cout << "total_size: " << total_size
 		<< " read cache size: " << cnt["disk.disk_blocks_in_use"]
 		<< " total used buffer: " << cnt["disk.disk_blocks_in_use"]
 		<< " session total download: " << cnt["net.recv_payload_bytes"]

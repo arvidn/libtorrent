@@ -215,7 +215,7 @@ TORRENT_TEST(escape_string)
 	// unescape_string
 	TEST_CHECK(unescape_string(escape_string(test_string), ec)
 		== test_string);
-	std::cerr << unescape_string(escape_string(test_string), ec) << std::endl;
+	std::cout << unescape_string(escape_string(test_string), ec) << std::endl;
 	// prematurely terminated string
 	unescape_string("%", ec);
 	TEST_CHECK(ec == error_code(errors::invalid_escaped_string));

@@ -59,7 +59,6 @@ std::tuple<int, int, bool> feed_bytes(http_parser& parser, char const* str)
 			std::get<0>(ret) += payload;
 			std::get<1>(ret) += protocol;
 			std::get<2>(ret) |= error;
-//			std::cerr << payload << ", " << protocol << ", " << chunk_size << std::endl;
 			TORRENT_ASSERT(payload + protocol == chunk_size || std::get<2>(ret));
 		}
 		TEST_CHECK(prev == std::make_tuple(0, 0, false) || ret == prev || std::get<2>(ret));

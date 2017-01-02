@@ -141,9 +141,9 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 	// set half of the pieces to priority 0
 	std::fill(priorities.begin(), priorities.begin() + (num_pieces / 2), 0);
 	tor2.prioritize_pieces(priorities);
-	std::cerr << "setting priorities: ";
-	std::copy(priorities.begin(), priorities.end(), std::ostream_iterator<int>(std::cerr, ", "));
-	std::cerr << std::endl;
+	std::cout << "setting priorities: ";
+	std::copy(priorities.begin(), priorities.end(), std::ostream_iterator<int>(std::cout, ", "));
+	std::cout << std::endl;
 
 	for (int i = 0; i < 200; ++i)
 	{
@@ -166,7 +166,7 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 			static char const* state_str[] =
 				{"checking (q)", "checking", "dl metadata"
 				, "downloading", "finished", "seeding", "allocating", "checking (r)"};
-			std::cerr << "st2 state: " << state_str[st2.state] << std::endl;
+			std::cout << "st2 state: " << state_str[st2.state] << std::endl;
 		}
 
 		TEST_CHECK(st1.state == torrent_status::seeding
@@ -186,20 +186,20 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 	TEST_CHECK(tor2.status().is_finished);
 
 	if (tor2.status().is_finished)
-		std::cerr << "torrent is finished (50% complete)" << std::endl;
+		std::cout << "torrent is finished (50% complete)" << std::endl;
 	else return;
 
 	std::vector<int> priorities2 = tor2.piece_priorities();
-	std::copy(priorities2.begin(), priorities2.end(), std::ostream_iterator<int>(std::cerr, ", "));
-	std::cerr << std::endl;
+	std::copy(priorities2.begin(), priorities2.end(), std::ostream_iterator<int>(std::cout, ", "));
+	std::cout << std::endl;
 	TEST_CHECK(std::equal(priorities.begin(), priorities.end(), priorities2.begin()));
 
-	std::cerr << "force recheck" << std::endl;
+	std::cout << "force recheck" << std::endl;
 	tor2.force_recheck();
 
 	priorities2 = tor2.piece_priorities();
-	std::copy(priorities2.begin(), priorities2.end(), std::ostream_iterator<int>(std::cerr, ", "));
-	std::cerr << std::endl;
+	std::copy(priorities2.begin(), priorities2.end(), std::ostream_iterator<int>(std::cout, ", "));
+	std::cout << std::endl;
 	TEST_CHECK(std::equal(priorities.begin(), priorities.end(), priorities2.begin()));
 
 	peer_disconnects = 0;
@@ -216,7 +216,7 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 		st2 = tor2.status();
 		if (i % 10 == 0)
 		{
-			std::cerr << int(st2.progress * 100) << "% " << std::endl;
+			std::cout << int(st2.progress * 100) << "% " << std::endl;
 		}
 		if (st2.state == torrent_status::finished) break;
 		std::this_thread::sleep_for(lt::milliseconds(100));
@@ -227,11 +227,11 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 	if (st2.state != torrent_status::finished)
 		return;
 
-	std::cerr << "recheck complete" << std::endl;
+	std::cout << "recheck complete" << std::endl;
 
 	priorities2 = tor2.piece_priorities();
-	std::copy(priorities2.begin(), priorities2.end(), std::ostream_iterator<int>(std::cerr, ", "));
-	std::cerr << std::endl;
+	std::copy(priorities2.begin(), priorities2.end(), std::ostream_iterator<int>(std::cout, ", "));
+	std::cout << std::endl;
 	TEST_CHECK(std::equal(priorities.begin(), priorities.end(), priorities2.begin()));
 
 	tor2.pause();
@@ -253,7 +253,7 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 			, end(alerts.end()); i != end; ++i)
 		{
 			alert* a = *i;
-			std::cerr << "ses2: " << a->message() << std::endl;
+			std::cout << "ses2: " << a->message() << std::endl;
 			if (alert_cast<save_resume_data_alert>(a))
 			{
 				bencode(std::back_inserter(resume_data)
@@ -280,7 +280,7 @@ done:
 
 	ses2.remove_torrent(tor2);
 
-	std::cerr << "removed" << std::endl;
+	std::cout << "removed" << std::endl;
 
 	std::this_thread::sleep_for(lt::milliseconds(100));
 
@@ -336,8 +336,8 @@ done:
 	std::cout << "setting priorities to 1" << std::endl;
 	TEST_EQUAL(tor2.status().is_finished, false);
 
-	std::copy(priorities.begin(), priorities.end(), std::ostream_iterator<int>(std::cerr, ", "));
-	std::cerr << std::endl;
+	std::copy(priorities.begin(), priorities.end(), std::ostream_iterator<int>(std::cout, ", "));
+	std::cout << std::endl;
 
 	// drain alerts
 	print_alerts(ses1, "ses1", true, true, true, &on_alert);

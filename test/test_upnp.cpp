@@ -76,14 +76,14 @@ void incoming_msearch(udp::endpoint const& from, char* buffer
 	p.incoming(span<char const>(buffer, size), error);
 	if (error || !p.header_finished())
 	{
-		std::cerr << "*** malformed HTTP from "
+		std::cout << "*** malformed HTTP from "
 			<< print_endpoint(from) << std::endl;
 		return;
 	}
 
 	if (p.method() != "m-search") return;
 
-	std::cerr << "< incoming m-search from " << from << std::endl;
+	std::cout << "< incoming m-search from " << from << std::endl;
 
 	char msg[] = "HTTP/1.1 200 OK\r\n"
 		"ST:upnp:rootdevice\r\n"
@@ -101,7 +101,7 @@ void incoming_msearch(udp::endpoint const& from, char* buffer
 	error_code ec;
 	sock->send(buf, len, ec);
 
-	if (ec) std::cerr << "*** error sending " << ec.message() << std::endl;
+	if (ec) std::cout << "*** error sending " << ec.message() << std::endl;
 }
 
 struct callback_info
@@ -125,7 +125,7 @@ namespace
 		{
 			callback_info info = {mapping, port, err};
 			callbacks.push_back(info);
-			std::cerr << "mapping: " << mapping << ", port: " << port << ", IP: " << ip
+			std::cout << "mapping: " << mapping << ", port: " << port << ", IP: " << ip
 				<< ", proto: " << static_cast<int>(protocol)
 				<< ", error: \"" << err.message() << "\"\n";
 		}
@@ -137,7 +137,7 @@ namespace
 
 		virtual void log_portmap(aux::portmap_transport transport, char const* msg) const override
 		{
-			std::cerr << "UPnP: " << msg << std::endl;
+			std::cout << "UPnP: " << msg << std::endl;
 			//TODO: store the log and verify that some key messages are there
 		}
 	#endif
@@ -195,7 +195,7 @@ void run_upnp_test(char const* root_filename, char const* router_model, char con
 		std::this_thread::sleep_for(lt::milliseconds(100));
 	}
 
-	std::cerr << "router: " << upnp_handler->router_model() << std::endl;
+	std::cout << "router: " << upnp_handler->router_model() << std::endl;
 	TEST_EQUAL(upnp_handler->router_model(), router_model);
 
 	int mapping1 = upnp_handler->add_mapping(portmap_protocol::tcp, 500, 500);

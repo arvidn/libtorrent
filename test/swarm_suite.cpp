@@ -184,11 +184,11 @@ void test_swarm(int flags)
 	float average2 = sum_dl_rate2 / float(count_dl_rates2);
 	float average3 = sum_dl_rate3 / float(count_dl_rates3);
 
-	std::cerr << average2 << std::endl;
-	std::cerr << "average rate: " << (average2 / 1000.f) << "kB/s - "
+	std::cout << average2 << std::endl;
+	std::cout << "average rate: " << (average2 / 1000.f) << "kB/s - "
 		<< (average3 / 1000.f) << "kB/s" << std::endl;
 
-	if (tor2.status().is_seeding && tor3.status().is_seeding) std::cerr << "done\n";
+	if (tor2.status().is_seeding && tor3.status().is_seeding) std::cout << "done\n";
 
 	// make sure the files are deleted
 	ses1.remove_torrent(tor1, lt::session::delete_files);
