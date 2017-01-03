@@ -1034,7 +1034,7 @@ namespace libtorrent
 		// that are not private
 		void lsd_announce();
 
-		void update_last_upload() { m_last_upload = int16_t(m_ses.session_time()); }
+		void update_last_upload() { m_last_upload = m_ses.session_time(); }
 
 		void set_apply_ip_filter(bool b);
 		bool apply_ip_filter() const { return m_apply_ip_filter; }
@@ -1548,7 +1548,7 @@ namespace libtorrent
 		// the timestamp of the last piece passed for this torrent specified in
 		// session_time. This is signed because it must be able to represent time
 		// before the session started
-		std::int16_t m_last_download = (std::numeric_limits<std::int16_t>::min)();
+		std::uint16_t m_last_download = 0;
 
 		// the number of peer connections to seeds. This should be the same as
 		// counting the peer connections that say true for is_seed()
@@ -1557,7 +1557,7 @@ namespace libtorrent
 		// the timestamp of the last byte uploaded from this torrent specified in
 		// session_time. This is signed because it must be able to represent time
 		// before the session started.
-		std::int16_t m_last_upload = (std::numeric_limits<std::int16_t>::min)();
+		std::uint16_t m_last_upload = 0;
 
 // ----
 

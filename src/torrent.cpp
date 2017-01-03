@@ -8255,8 +8255,8 @@ namespace libtorrent
 		}
 		m_became_finished = clamped_subtract_u16(m_became_finished, seconds);
 
-		m_last_upload = clamped_subtract_s16(m_last_upload, seconds);
-		m_last_download = clamped_subtract_s16(m_last_download, seconds);
+		m_last_upload = clamped_subtract_u16(m_last_upload, seconds);
+		m_last_download = clamped_subtract_u16(m_last_download, seconds);
 #ifndef TORRENT_NO_DEPRECATE
 		m_last_scrape = clamped_subtract_s16(m_last_scrape, seconds);
 #endif
@@ -10558,9 +10558,9 @@ namespace libtorrent
 		st->active_time = active_time();
 		st->seeding_time = seeding_time();
 
-		st->time_since_upload = m_last_upload == (std::numeric_limits<std::int16_t>::min)() ? -1
+		st->time_since_upload = m_last_upload == (std::numeric_limits<std::uint16_t>::min)() ? -1
 			: clamped_subtract_u16(m_ses.session_time(), m_last_upload);
-		st->time_since_download = m_last_download == (std::numeric_limits<std::int16_t>::min)() ? -1
+		st->time_since_download = m_last_download == (std::numeric_limits<std::uint16_t>::min)() ? -1
 			: clamped_subtract_u16(m_ses.session_time(), m_last_download);
 #endif
 
