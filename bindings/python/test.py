@@ -4,6 +4,7 @@ import libtorrent as lt
 
 import unittest
 import time
+import datetime
 import os
 import shutil
 import binascii
@@ -74,6 +75,18 @@ class test_torrent_handle(unittest.TestCase):
 		# make sure we can compare torrent_status objects
 		st2 = self.h.status()
 		self.assertEqual(st2, st)
+
+	def test_status_last_uploaded_dowloaded(self):
+		# we want to check at seconds precision but can't control session
+		# time, wait for next full second to prevent second increment
+		time.sleep(1 - datetime.datetime.now().microsecond / 1000000.0)
+
+		sessionStart = datetime.datetime.now().replace(microsecond=0)
+		self.setup()
+		st = self.h.status()
+		# last upload and download times are at session start time
+		self.assertEqual(st.last_upload, sessionStart)
+		self.assertEqual(st.last_download, sessionStart)
 
 	def test_read_resume_data(self):
 
@@ -172,6 +185,7 @@ class test_alerts(unittest.TestCase):
 		ti = lt.torrent_info('base.torrent');
 		h = ses.add_torrent({'ti': ti, 'save_path': os.getcwd()})
 		st = h.status()
+
 		time.sleep(1)
 		ses.remove_torrent(h)
 		ses.wait_for_alert(1000) # milliseconds

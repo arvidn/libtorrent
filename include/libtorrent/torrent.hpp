@@ -1548,7 +1548,7 @@ namespace libtorrent
 		// the timestamp of the last piece passed for this torrent specified in
 		// session_time. This is signed because it must be able to represent time
 		// before the session started
-		std::uint16_t m_last_download = 0;
+		std::int32_t m_last_download = 0;
 
 		// the number of peer connections to seeds. This should be the same as
 		// counting the peer connections that say true for is_seed()
@@ -1557,7 +1557,7 @@ namespace libtorrent
 		// the timestamp of the last byte uploaded from this torrent specified in
 		// session_time. This is signed because it must be able to represent time
 		// before the session started.
-		std::uint16_t m_last_upload = 0;
+		std::int32_t m_last_upload = 0;
 
 // ----
 

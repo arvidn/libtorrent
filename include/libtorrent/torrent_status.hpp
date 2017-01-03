@@ -555,14 +555,8 @@ namespace libtorrent
 		// the info-hash for this torrent
 		sha1_hash info_hash;
 
-		// Has only a limited range of up to 18 hours in past.
-		// To prevent overflow beyond 18 hours, this value get updated
-		// during session tick.
 		// This value is not persistent and get set to session start time.
 		time_point last_upload;
-		// Has only a limited range of up to 18 hours in past.
-		// To prevent overflow beyond 18 hours, this value get updated
-		// during session tick.
 		// This value is not persistent and get set to session start time.
 		time_point last_download;
 
