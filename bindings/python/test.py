@@ -5,6 +5,7 @@ import libtorrent as lt
 
 import unittest
 import time
+import datetime
 import os
 import shutil
 import binascii
@@ -79,6 +80,18 @@ class test_torrent_handle(unittest.TestCase):
     def test_piece_deadlines(self):
         self.setup()
         self.h.clear_piece_deadlines()
+
+    def test_status_last_uploaded_dowloaded(self):
+        # we want to check at seconds precision but can't control session
+        # time, wait for next full second to prevent second increment
+        time.sleep(1 - datetime.datetime.now().microsecond / 1000000.0)
+
+        sessionStart = datetime.datetime.now().replace(microsecond=0)
+        self.setup()
+        st = self.h.status()
+        # last upload and download times are at session start time
+        self.assertEqual(st.last_upload, sessionStart)
+        self.assertEqual(st.last_download, sessionStart)
 
     def test_torrent_status(self):
         self.setup()
@@ -268,6 +281,7 @@ class test_alerts(unittest.TestCase):
                           'enable_dht': False})
         ses.async_add_torrent(
             {"ti": lt.torrent_info("base.torrent"), "save_path": "."})
+
 # this will cause an error (because of duplicate torrents) and the
 # torrent_info object created here will be deleted once the alert goes out
 # of scope. When that happens, it will decrement the python object, to allow
