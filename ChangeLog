@@ -1,4 +1,3 @@
-	* fix last_upload and last_download overflow after 9 hours in past
 	* removed mmap_cache feature
 	* strengthened type safety in handling of piece and file indices
 	* deprecate identify_client() and fingerprint type
@@ -49,6 +48,8 @@
 	* resume data no longer has timestamps of files
 	* require C++11 to build libtorrent
 
+	* fix invalid torrent state finish_duration calculation of paused torrents
+	* fix last_upload and last_download overflow after 9 hours in past
 	* fix division by zero when setting tick_interval > 1000
 	* fix move_storage() to its own directory (would delete the files)
 	* fix socks5 support for UDP

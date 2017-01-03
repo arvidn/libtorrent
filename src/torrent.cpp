@@ -8248,7 +8248,7 @@ namespace libtorrent
 		}
 		m_became_seed = clamped_subtract_u16(m_became_seed, seconds);
 
-		if (m_finished_time < seconds && is_finished())
+		if (m_finished_time < seconds && is_finished() && !is_paused())
 		{
 			int const lost_seconds = seconds - m_became_finished;
 			m_finished_time += lost_seconds;
