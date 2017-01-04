@@ -35,34 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/openssl.hpp"
 
-#if TORRENT_USE_CRYPTOAPI_SHA_512
-namespace
-{
-	HCRYPTPROV make_crypt_provider()
-	{
-		using namespace libtorrent;
-
-		HCRYPTPROV ret;
-		if (CryptAcquireContext(&ret, nullptr, nullptr, PROV_RSA_AES
-			, CRYPT_VERIFYCONTEXT) == false)
-		{
-#ifndef BOOST_NO_EXCEPTIONS
-			throw system_error(error_code(GetLastError(), system_category()));
-#else
-			std::terminate();
-#endif
-		}
-		return ret;
-	}
-
-	HCRYPTPROV get_crypt_provider()
-	{
-		static HCRYPTPROV prov = make_crypt_provider();
-		return prov;
-	}
-}
-#endif
-
 namespace libtorrent
 {
 #ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
@@ -77,14 +49,7 @@ namespace libtorrent
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA512_Init(&m_context);
 #elif TORRENT_USE_CRYPTOAPI_SHA_512
-		if (CryptCreateHash(get_crypt_provider(), CALG_SHA_512, 0, 0, &m_context) == false)
-		{
-#ifndef BOOST_NO_EXCEPTIONS
-			throw system_error(error_code(GetLastError(), system_category()));
-#else
-			std::terminate();
-#endif
-		}
+		m_context.create();
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA512_Init(&m_context);
 #else
@@ -114,28 +79,14 @@ namespace libtorrent
 #elif TORRENT_USE_CRYPTOAPI_SHA_512
 	hasher512::hasher512(hasher512 const& h)
 	{
-		if (CryptDuplicateHash(h.m_context, 0, 0, &m_context) == false)
-		{
-#ifndef BOOST_NO_EXCEPTIONS
-			throw system_error(error_code(GetLastError(), system_category()));
-#else
-			std::terminate();
-#endif
-		}
+		m_context.duplicate(h.m_context);
 	}
 
 	hasher512& hasher512::operator=(hasher512 const& h)
 	{
 		if (this == &h) return *this;
-		CryptDestroyHash(m_context);
-		if (CryptDuplicateHash(h.m_context, 0, 0, &m_context) == false)
-		{
-#ifndef BOOST_NO_EXCEPTIONS
-			throw system_error(error_code(GetLastError(), system_category()));
-#else
-			std::terminate();
-#endif
-		}
+		m_context.destroy();
+		m_context.duplicate(h.m_context);
 		return *this;
 	}
 #else
@@ -151,14 +102,7 @@ namespace libtorrent
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA512_Update(&m_context, reinterpret_cast<unsigned char const*>(data.data()), CC_LONG(data.size()));
 #elif TORRENT_USE_CRYPTOAPI_SHA_512
-		if (CryptHashData(m_context, reinterpret_cast<BYTE const*>(data.data()), int(data.size()), 0) == false)
-		{
-#ifndef BOOST_NO_EXCEPTIONS
-			throw system_error(error_code(GetLastError(), system_category()));
-#else
-			std::terminate();
-#endif
-		}
+		m_context.update(data);
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA512_Update(&m_context, reinterpret_cast<unsigned char const*>(data.data()), data.size());
 #else
@@ -176,18 +120,7 @@ namespace libtorrent
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA512_Final(reinterpret_cast<unsigned char*>(digest.data()), &m_context);
 #elif TORRENT_USE_CRYPTOAPI_SHA_512
-
-		DWORD size = DWORD(digest.size());
-		if (CryptGetHashParam(m_context, HP_HASHVAL
-			, reinterpret_cast<BYTE*>(digest.data()), &size, 0) == false)
-		{
-#ifndef BOOST_NO_EXCEPTIONS
-			throw system_error(error_code(GetLastError(), system_category()));
-#else
-			std::terminate();
-#endif
-		}
-		TORRENT_ASSERT(size == digest.size());
+		m_context.get_hash(digest.data(), digest.size());
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA512_Final(reinterpret_cast<unsigned char*>(digest.data()), &m_context);
 #else
@@ -203,15 +136,8 @@ namespace libtorrent
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA512_Init(&m_context);
 #elif TORRENT_USE_CRYPTOAPI_SHA_512
-		CryptDestroyHash(m_context);
-		if (CryptCreateHash(get_crypt_provider(), CALG_SHA_512, 0, 0, &m_context) == false)
-		{
-#ifndef BOOST_NO_EXCEPTIONS
-			throw system_error(error_code(GetLastError(), system_category()));
-#else
-			std::terminate();
-#endif
-		}
+		m_context.destroy();
+		m_context.create();
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA512_Init(&m_context);
 #else
@@ -222,7 +148,7 @@ namespace libtorrent
 	hasher512::~hasher512()
 	{
 #if TORRENT_USE_CRYPTOAPI_SHA_512
-		CryptDestroyHash(m_context);
+		m_context.destroy();
 #elif defined TORRENT_USE_LIBGCRYPT
 		gcry_md_close(m_context);
 #endif
