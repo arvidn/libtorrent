@@ -8237,6 +8237,10 @@ namespace libtorrent
 		if (m_started < seconds && !is_paused())
 		{
 			int const lost_seconds = seconds - m_started;
+			// this fix m_started timestamp but it breaks m_active_time
+			// because the torrent active duration isn't "+ lost_seconds"
+			// we would need to store this in m_started but there is no
+			// space left in this 16bit integer
 			m_active_time += lost_seconds;
 		}
 		m_started = clamped_subtract_u16(m_started, seconds);
@@ -8244,6 +8248,10 @@ namespace libtorrent
 		if (m_became_seed < seconds && is_seed())
 		{
 			int const lost_seconds = seconds - m_became_seed;
+			// this fix m_became_seed timestamp but it breaks m_seeding_time
+			// because the torrent seed duration isn't "+ lost_seconds"
+			// we would need to store this in m_became_seed but there is no
+			// space left in this 16bit integer
 			m_seeding_time += lost_seconds;
 		}
 		m_became_seed = clamped_subtract_u16(m_became_seed, seconds);
@@ -8251,7 +8259,12 @@ namespace libtorrent
 		if (m_finished_time < seconds && is_finished() && !is_paused())
 		{
 			int const lost_seconds = seconds - m_became_finished;
+			// this fix m_became_finished timestamp but it breaks m_finished_time
+			// because the torrent finish duration isn't "+ lost_seconds"
+			// we would need to store this in m_became_finished but there is no
+			// space left in this 16bit integer
 			m_finished_time += lost_seconds;
+			printf("finishtime after: %d \n", m_finished_time);
 		}
 		m_became_finished = clamped_subtract_u16(m_became_finished, seconds);
 
