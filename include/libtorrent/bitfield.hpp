@@ -105,6 +105,8 @@ namespace libtorrent
 
 		bool none_set() const
 		{
+			if(m_buf == nullptr) return true;
+
 			const int words = num_words();
 			std::uint32_t const* b = buf();
 			for (int i = 0; i < words; ++i)
