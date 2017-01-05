@@ -478,14 +478,14 @@ namespace libtorrent
 
 		void stop_when_ready(bool b);
 
-		int started() const { return m_started; }
+		time_point started() const { return m_started; }
 		void step_session_time(int seconds);
 		void do_pause(bool clear_disk_cache = true);
 		void do_resume();
 
 		seconds finished_time() const;
-		int active_time() const;
-		int seeding_time() const;
+		seconds active_time() const;
+		seconds seeding_time() const;
 
 		bool is_paused() const;
 		bool is_torrent_paused() const { return m_paused; }
@@ -1312,11 +1312,11 @@ namespace libtorrent
 		// in session-time. see session_impl for details.
 		// the reference point is stepped forward every 4
 		// hours to keep the timestamps fit in 16 bits
-		std::uint16_t m_started;
+		time_point m_started = aux::time_now();
 
 		// if we're a seed, this is the session time
 		// timestamp of when we became one
-		std::uint16_t m_became_seed = 0;
+		time_point m_became_seed = aux::time_now();
 
 		// if we're finished, this is the session time
 		// timestamp of when we finished
@@ -1411,7 +1411,8 @@ namespace libtorrent
 		// paused. specified in seconds. This only track time _before_ we started
 		// the torrent this last time. When the torrent is paused, this counter is
 		// incremented to include this current session.
-		unsigned int m_active_time:24;
+		// TODO was 24bit before
+		std::chrono::seconds m_active_time;
 
 		// the index to the last tracker that worked
 		std::int8_t m_last_working_tracker = -1;
@@ -1461,7 +1462,8 @@ namespace libtorrent
 		// accounts for the time prior to the current start of the torrent. When
 		// the torrent is paused, this counter is incremented to account for the
 		// additional seeding time.
-		unsigned int m_seeding_time:24;
+		// TODO was 24bit before
+		std::chrono::seconds m_seeding_time;
 
 // ----
 
