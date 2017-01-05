@@ -483,7 +483,7 @@ namespace libtorrent
 		void do_pause(bool clear_disk_cache = true);
 		void do_resume();
 
-		int finished_time() const;
+		seconds finished_time() const;
 		int active_time() const;
 		int seeding_time() const;
 
@@ -1320,7 +1320,7 @@ namespace libtorrent
 
 		// if we're finished, this is the session time
 		// timestamp of when we finished
-		std::uint16_t m_became_finished = 0;
+		time_point m_became_finished = aux::time_now();
 
 		// when checking, this is the first piece we have not
 		// issued a hash job for
@@ -1420,7 +1420,8 @@ namespace libtorrent
 
 		// total time we've been finished with this torrent.
 		// does not count when the torrent is stopped or paused.
-		unsigned int m_finished_time:24;
+		// TODO was 24bit before
+		std::chrono::seconds m_finished_time;
 
 		// in case the piece picker hasn't been constructed
 		// when this settings is set, this variable will keep

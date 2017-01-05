@@ -102,6 +102,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 using namespace std::placeholders;
+using namespace std::chrono;
 
 namespace libtorrent
 {
@@ -374,7 +375,7 @@ namespace libtorrent
 		// the number of seconds this torrent has spent in started, finished and
 		// seeding state so far, respectively.
 		m_active_time = p.active_time;
-		m_finished_time = p.finished_time;
+		m_finished_time = seconds(p.finished_time);
 		m_seeding_time = p.seeding_time;
 
 		m_added_time = p.added_time ? p.added_time : time(nullptr);
@@ -5953,7 +5954,7 @@ namespace libtorrent
 		ret["total_downloaded"] = m_total_downloaded;
 
 		ret["active_time"] = active_time();
-		ret["finished_time"] = finished_time();
+		ret["finished_time"] = duration_cast<seconds>(finished_time()).count();
 		ret["seeding_time"] = seeding_time();
 		ret["last_seen_complete"] = m_last_seen_complete;
 
@@ -7243,7 +7244,7 @@ namespace libtorrent
 		set_state(torrent_status::finished);
 		set_queue_position(-1);
 
-		m_became_finished = m_ses.session_time();
+		m_became_finished = aux::time_now();
 
 		// we have to call completed() before we start
 		// disconnecting peers, since there's an assert
@@ -8253,13 +8254,6 @@ namespace libtorrent
 		}
 		m_became_seed = clamped_subtract_u16(m_became_seed, seconds);
 
-		if (m_became_finished < seconds && is_finished() && !is_paused())
-		{
-			int const lost_seconds = seconds - m_became_finished;
-			m_finished_time += lost_seconds;
-		}
-		m_became_finished = clamped_subtract_u16(m_became_finished, seconds);
-
 #ifndef TORRENT_NO_DEPRECATE
 		m_last_scrape = clamped_subtract_s16(m_last_scrape, seconds);
 #endif
@@ -8287,7 +8281,7 @@ namespace libtorrent
 
 		int ret = 0;
 
-		std::int64_t const fin_time = finished_time();
+		std::int64_t const fin_time = duration_cast<seconds>(finished_time()).count();
 		std::int64_t const download_time = int(active_time()) - fin_time;
 
 		// if we haven't yet met the seed limits, set the seed_ratio_not_met
@@ -8457,7 +8451,8 @@ namespace libtorrent
 			m_seeding_time += m_ses.session_time() - m_became_seed;
 
 		if (is_finished())
-			m_finished_time += m_ses.session_time() - m_became_finished;
+			m_finished_time += duration_cast<seconds>(aux::time_now()
+				- m_became_finished);
 
 		m_announce_to_dht = false;
 		m_announce_to_trackers = false;
@@ -8683,9 +8678,10 @@ namespace libtorrent
 		if (alerts().should_post<torrent_resumed_alert>())
 			alerts().emplace_alert<torrent_resumed_alert>(get_handle());
 
+		// TODO change to time_point
 		m_started = m_ses.session_time();
 		if (is_seed()) m_became_seed = m_started;
-		if (is_finished()) m_became_finished = m_started;
+		if (is_finished()) m_became_finished = aux::time_now();
 
 		clear_error();
 
@@ -8872,10 +8868,14 @@ namespace libtorrent
 		announce_with_tracker(tracker_request::stopped);
 	}
 
-	int torrent::finished_time() const
+	seconds torrent::finished_time() const
 	{
-		return m_finished_time + ((!is_finished() || is_paused()) ? 0
-			: (m_ses.session_time() - m_became_finished));
+		if(!is_finished() || is_paused())
+		{
+			return m_finished_time;
+		}
+		return m_finished_time + duration_cast<seconds>(
+			aux::time_now() - m_became_finished);
 	}
 
 	int torrent::active_time() const
@@ -10556,15 +10556,17 @@ namespace libtorrent
 
 		// activity time
 #ifndef TORRENT_NO_DEPRECATE
-		st->finished_time = finished_time();
+		st->finished_time = duration_cast<seconds>(finished_time()).count();
 		st->active_time = active_time();
 		st->seeding_time = seeding_time();
 
-		st->time_since_upload = total_seconds(m_last_upload - m_ses.session_start_time());
-		st->time_since_download =  total_seconds(m_last_download - m_ses.session_start_time());
+		st->time_since_upload = int(total_seconds(m_last_upload 
+			- m_ses.session_start_time()));
+		st->time_since_download = int(total_seconds(m_last_download 
+			- m_ses.session_start_time()));
 #endif
 
-		st->finished_duration = seconds{finished_time()};
+		st->finished_duration = finished_time();
 		st->active_duration = seconds{active_time()};
 		st->seeding_duration = seconds{seeding_time()};
 
