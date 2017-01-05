@@ -492,12 +492,7 @@ namespace libtorrent
 		void force_recheck();
 		void save_resume_data(int flags);
 
-		bool need_save_resume_data() const
-		{
-			// save resume data every 15 minutes regardless, just to
-			// keep stats up to date
-			return m_need_save_resume_data || m_ses.session_time() - m_last_saved_resume > 15 * 60;
-		}
+		bool need_save_resume_data() const;
 
 		void set_need_save_resume()
 		{
@@ -1300,9 +1295,9 @@ namespace libtorrent
 		// m_num_verified = m_verified.count()
 		std::uint32_t m_num_verified = 0;
 
-		// this timestamp is kept in session-time, to
-		// make it fit in 16 bits
-		std::uint16_t m_last_saved_resume;
+		// TODO: waste of memomry because has a max session time offset of
+		// optimistic_disk_retry
+		time_point m_last_saved_resume = aux::time_now();
 
 		// if this torrent is running, this was the time
 		// when it was started. This is used to have a
@@ -1369,7 +1364,7 @@ namespace libtorrent
 
 		// the session time timestamp of when we entered upload mode
 		// if we're currently in upload-mode
-		std::uint16_t m_upload_mode_time = 0;
+		time_point m_upload_mode_time = aux::time_now();
 
 		// true when this torrent should announce to
 		// trackers

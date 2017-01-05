@@ -186,7 +186,7 @@ namespace libtorrent
 		, m_storage_constructor(p.storage)
 		, m_added_time(time(nullptr))
 		, m_info_hash(info_hash)
-		, m_last_saved_resume(ses.session_time())
+		, m_last_saved_resume(aux::time_now())
 		, m_started(aux::time_now())
 		, m_error_file(torrent_status::error_file_none)
 		, m_sequence_number(seq)
@@ -968,7 +968,7 @@ namespace libtorrent
 				p->cancel_all_requests();
 			}
 			// this is used to try leaving upload only mode periodically
-			m_upload_mode_time = m_ses.session_time();
+			m_upload_mode_time = aux::time_now();
 		}
 		else if (m_peer_list)
 		{
@@ -8234,9 +8234,6 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 		m_last_scrape = clamped_subtract_s16(m_last_scrape, seconds);
 #endif
-
-		m_last_saved_resume = clamped_subtract_u16(m_last_saved_resume, seconds);
-		m_upload_mode_time = clamped_subtract_u16(m_upload_mode_time, seconds);
 	}
 
 	// the higher seed rank, the more important to seed
@@ -8329,7 +8326,7 @@ namespace libtorrent
 		}
 
 		m_need_save_resume_data = false;
-		m_last_saved_resume = m_ses.session_time();
+		m_last_saved_resume = aux::time_now();
 		m_save_resume_flags = std::uint8_t(flags);
 		state_updated();
 
@@ -8521,6 +8518,15 @@ namespace libtorrent
 		}
 
 		stop_announcing();
+	}
+
+	bool torrent::need_save_resume_data() const
+	{
+		// save resume data every 15 minutes regardless, just to
+		// keep stats up to date
+		return m_need_save_resume_data ||
+			duration_cast<seconds>(aux::time_now() - m_last_saved_resume)
+			> seconds(15 * 60);
 	}
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -8902,11 +8908,13 @@ namespace libtorrent
 		// if we're in upload only mode and we're auto-managed
 		// leave upload mode every 10 minutes hoping that the error
 		// condition has been fixed
-		if (m_upload_mode && m_auto_managed
-			&& int(m_ses.session_time() - m_upload_mode_time)
-			>= settings().get_int(settings_pack::optimistic_disk_retry))
+		if (m_upload_mode && m_auto_managed)
 		{
-			set_upload_mode(false);
+			// TODO change seconds to 32bit
+			int64_t upload_mode_duration = duration_cast<seconds>(
+				aux::time_now() - m_upload_mode_time).count();
+			if( settings().get_int(settings_pack::optimistic_disk_retry)
+				<= (int)upload_mode_duration ) set_upload_mode(false);
 		}
 
 		if (is_paused() && !m_graceful_pause_mode)
