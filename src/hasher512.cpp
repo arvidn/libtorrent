@@ -122,7 +122,7 @@ namespace libtorrent
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA512_Init(&m_context);
 #elif TORRENT_USE_CRYPTOAPI_SHA_512
-		m_context = decltype(m_context)();
+		m_context.reset();
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA512_Init(&m_context);
 #else

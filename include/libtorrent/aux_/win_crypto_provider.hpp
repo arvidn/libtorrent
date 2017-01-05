@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { namespace aux
 {
 
-	static HCRYPTPROV crypt_acquire_provider(DWORD provider_type)
+	inline HCRYPTPROV crypt_acquire_provider(DWORD provider_type)
 	{
 		HCRYPTPROV ret;
 		if (CryptAcquireContext(&ret, nullptr, nullptr, provider_type
@@ -57,7 +57,7 @@ namespace libtorrent { namespace aux
 		return ret;
 	}
 
-	static void crypt_gen_random(span<char> buffer)
+	inline void crypt_gen_random(span<char> buffer)
 	{
 		static HCRYPTPROV provider = crypt_acquire_provider(PROV_RSA_FULL);
 		if (!CryptGenRandom(provider, int(buffer.size())
@@ -84,6 +84,12 @@ namespace libtorrent { namespace aux
 			destroy();
 			duplicate(h);
 			return *this;
+		}
+
+		void reset()
+		{
+			destroy();
+			create();
 		}
 
 		void update(span<char const> data)
