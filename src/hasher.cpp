@@ -49,7 +49,6 @@ namespace libtorrent
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA1_Init(&m_context);
 #elif TORRENT_USE_CRYPTOAPI
-		m_context.create();
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA1_Init(&m_context);
 #else
@@ -81,19 +80,6 @@ namespace libtorrent
 		if (this == &h) return;
 		gcry_md_close(m_context);
 		gcry_md_copy(&m_context, h.m_context);
-		return *this;
-	}
-#elif TORRENT_USE_CRYPTOAPI
-	hasher::hasher(hasher const& h)
-	{
-		m_context.duplicate(h.m_context);
-	}
-
-	hasher& hasher::operator=(hasher const& h)
-	{
-		if (this == &h) return *this;
-		m_context.destroy();
-		m_context.duplicate(h.m_context);
 		return *this;
 	}
 #else
@@ -148,8 +134,7 @@ namespace libtorrent
 #elif TORRENT_USE_COMMONCRYPTO
 		CC_SHA1_Init(&m_context);
 #elif TORRENT_USE_CRYPTOAPI
-		m_context.destroy();
-		m_context.create();
+		m_context = decltype(m_context)();
 #elif defined TORRENT_USE_LIBCRYPTO
 		SHA1_Init(&m_context);
 #else
@@ -159,9 +144,7 @@ namespace libtorrent
 
 	hasher::~hasher()
 	{
-#if TORRENT_USE_CRYPTOAPI
-		m_context.destroy();
-#elif defined TORRENT_USE_LIBGCRYPT
+#if defined TORRENT_USE_LIBGCRYPT
 		gcry_md_close(m_context);
 #endif
 	}

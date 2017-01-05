@@ -41,83 +41,49 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace aux
 {
-	template <DWORD ProviderType>
-	struct crypt_provider
-	{
-	protected:
-		static HCRYPTPROV acquire_provider(DWORD provider_type)
-		{
-			HCRYPTPROV ret;
-			if (CryptAcquireContext(&ret, nullptr, nullptr, provider_type
-				, CRYPT_VERIFYCONTEXT) == false)
-			{
-#ifndef BOOST_NO_EXCEPTIONS
-				throw system_error(error_code(GetLastError(), system_category()));
-#else
-				std::terminate();
-#endif
-			}
-			return ret;
-		}
-		static HCRYPTPROV get_provider()
-		{
-			static HCRYPTPROV provider = acquire_provider(ProviderType);
-			return provider;
-		}
-	};
 
-	struct crypt_random: crypt_provider<PROV_RSA_FULL>
+	static HCRYPTPROV crypt_acquire_provider(DWORD provider_type)
 	{
-		static void generate(span<char> buffer)
+		HCRYPTPROV ret;
+		if (CryptAcquireContext(&ret, nullptr, nullptr, provider_type
+			, CRYPT_VERIFYCONTEXT) == false)
 		{
-			if (!CryptGenRandom(get_provider(), int(buffer.size())
-				, reinterpret_cast<BYTE*>(buffer.data())))
-			{
 #ifndef BOOST_NO_EXCEPTIONS
-				throw system_error(error_code(GetLastError(), system_category()));
+			throw system_error(error_code(GetLastError(), system_category()));
 #else
-				std::terminate();
+			std::terminate();
 #endif
-			}
 		}
-	};
+		return ret;
+	}
+
+	static void crypt_gen_random(span<char> buffer)
+	{
+		static HCRYPTPROV provider = crypt_acquire_provider(PROV_RSA_FULL);
+		if (!CryptGenRandom(provider, int(buffer.size())
+			, reinterpret_cast<BYTE*>(buffer.data())))
+		{
+#ifndef BOOST_NO_EXCEPTIONS
+			throw system_error(error_code(GetLastError(), system_category()));
+#else
+			std::terminate();
+#endif
+		}
+	}
 
 	template <ALG_ID AlgId, DWORD ProviderType>
-	struct crypt_hash: crypt_provider<ProviderType>
+	struct crypt_hash
 	{
-		void create()
-		{
-			TORRENT_ASSERT(!m_initialized);
-			if (CryptCreateHash(get_provider(), AlgId, 0, 0, &m_hash) == false)
-			{
-#ifndef BOOST_NO_EXCEPTIONS
-				throw system_error(error_code(GetLastError(), system_category()));
-#else
-				std::terminate();
-#endif
-			}
-			m_initialized = true;
-		}
+		crypt_hash() { create(); }
+		crypt_hash(crypt_hash const& h) { duplicate(h); }
+		~crypt_hash() { destroy(); }
 
-		void destroy()
+		crypt_hash& crypt_hash::operator=(crypt_hash const& h)
 		{
-			if (m_initialized) CryptDestroyHash(m_hash);
-			m_initialized = false;
-		}
-
-		void duplicate(crypt_hash source)
-		{
-			TORRENT_ASSERT(!m_initialized);
-
-			if (CryptDuplicateHash(source.m_hash, 0, 0, &m_hash) == false)
-			{
-#ifndef BOOST_NO_EXCEPTIONS
-				throw system_error(error_code(GetLastError(), system_category()));
-#else
-				std::terminate();
-#endif
-			}
-			m_initialized = true;
+			if (this == &h) return *this;
+			destroy();
+			duplicate(h);
+			return *this;
 		}
 
 		void update(span<char const> data)
@@ -151,6 +117,48 @@ namespace libtorrent { namespace aux
 			TORRENT_ASSERT(size == DWORD(digest_size));
 		}
 	private:
+		void create()
+		{
+			TORRENT_ASSERT(!m_initialized);
+
+			if (CryptCreateHash(get_provider(), AlgId, 0, 0, &m_hash) == false)
+			{
+#ifndef BOOST_NO_EXCEPTIONS
+				throw system_error(error_code(GetLastError(), system_category()));
+#else
+				std::terminate();
+#endif
+			}
+			m_initialized = true;
+		}
+
+		void destroy()
+		{
+			if (m_initialized) CryptDestroyHash(m_hash);
+			m_initialized = false;
+		}
+
+		void duplicate(crypt_hash const& h)
+		{
+			TORRENT_ASSERT(!m_initialized);
+
+			if (CryptDuplicateHash(h.m_hash, 0, 0, &m_hash) == false)
+			{
+#ifndef BOOST_NO_EXCEPTIONS
+				throw system_error(error_code(GetLastError(), system_category()));
+#else
+				std::terminate();
+#endif
+			}
+			m_initialized = true;
+		}
+
+		HCRYPTPROV get_provider()
+		{
+			static HCRYPTPROV provider = crypt_acquire_provider(ProviderType);
+			return provider;
+		}
+
 		HCRYPTHASH m_hash;
 		bool m_initialized = false;
 	};

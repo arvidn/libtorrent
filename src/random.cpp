@@ -69,7 +69,7 @@ namespace libtorrent
 		void random_bytes(span<char> buffer)
 		{
 #if TORRENT_USE_CRYPTOAPI
-			aux::crypt_random::generate(buffer);
+			aux::crypt_gen_random(buffer);
 
 #elif defined TORRENT_USE_LIBCRYPTO
 #ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
