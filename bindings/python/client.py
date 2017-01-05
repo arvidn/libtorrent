@@ -110,11 +110,12 @@ def print_peer_info(console, peers):
         else: out += 'r'
         out += ' '
 
-        if p.downloading_piece_index >= 0:
-            assert(p.downloading_progress <= p.downloading_total)
-            out += progress_bar(float(p.downloading_progress) / p.downloading_total, 15)
-        else:
-            out += progress_bar(0, 15)
+        # TODO TypeError: No Python class registered for C++ class libtorrent::aux::strong_typedef<int, libtorrent::aux::piece_index_tag, void>
+        #if p.downloading_piece_index >= 0:
+        #    assert(p.downloading_progress <= p.downloading_total)
+        #    out += progress_bar(float(p.downloading_progress) / p.downloading_total, 15)
+        #else:
+        #    out += progress_bar(0, 15)
         out += ' '
 
         if p.flags & lt.peer_info.handshake:
@@ -192,14 +193,10 @@ def main():
     if options.max_download_rate <= 0:
         options.max_download_rate = -1
 
-    settings = lt.session_settings()
-    settings.user_agent = 'python_client/' + lt.version
-
-    ses = lt.session()
+    ses = lt.session({'user_agent':  'python_client/' + lt.version})
     ses.set_download_rate_limit(int(options.max_download_rate))
     ses.set_upload_rate_limit(int(options.max_upload_rate))
     ses.listen_on(options.port, options.port + 10)
-    ses.set_settings(settings)
     ses.set_alert_mask(0xfffffff)
 
     if options.proxy_host != '':
@@ -306,13 +303,7 @@ def main():
         write_line(console, '(q)uit), (p)ause), (u)npause), (r)eannounce\n')
         write_line(console, 76 * '-' + '\n')
 
-        while 1:
-            a = ses.pop_alert()
-            if not a: break
-            alerts.append(a)
-
-        if len(alerts) > 8:
-            del alerts[:len(alerts) - 8]
+        alerts = ses.pop_alerts()
 
         for a in alerts:
             if type(a) == str:
