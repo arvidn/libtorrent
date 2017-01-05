@@ -5,9 +5,10 @@ import libtorrent as lt
 import unittest
 import time
 import os
+import pty
 import shutil
 import binascii
-import subprocess
+import subprocess as sub
 import sys
 
 class test_create_torrent(unittest.TestCase):
@@ -281,17 +282,19 @@ class test_session(unittest.TestCase):
 class test_example_client(unittest.TestCase):
 
 	def test_execute_client(self):
+		master_fd, slave_fd = pty.openpty()
 		with open(os.devnull, "w") as DEVNULL:
-			process = subprocess.Popen(
+			# slave_fd fix multiple stdin assignment at termios.tcgetattr
+			process = sub.Popen(
 				[sys.executable,"client.py","url_seed_multi.torrent"],
-				stdout=DEVNULL, stderr=subprocess.PIPE)
+				stdin=slave_fd, stdout=DEVNULL, stderr=sub.PIPE)
 		# python2 has no Popen.wait() timeout
 		time.sleep(5)
 		returncode = process.poll()
 		if returncode == None:
 			# this is an expected use-case
 			process.kill()
-		err = process.stderr.read()
+		err = process.stderr.read().decode("utf-8")
 		self.assertEqual('', err, 'process throw errors: \n' + err)
 		# check error code if process did unexpected end
 		if returncode != None:
@@ -299,28 +302,27 @@ class test_example_client(unittest.TestCase):
 
 	def test_execute_simple_client(self):
 		with open(os.devnull, "w") as DEVNULL:
-			process = subprocess.Popen(
+			process = sub.Popen(
 				[sys.executable,"simple_client.py","url_seed_multi.torrent"],
-				stdout=DEVNULL, stderr=subprocess.PIPE)
+				stdout=DEVNULL, stderr=sub.PIPE)
 		# python2 has no Popen.wait() timeout
 		time.sleep(5)
 		returncode = process.poll()
 		if returncode == None:
 			# this is an expected use-case
 			process.kill()
-		err = process.stderr.read()
+		err = process.stderr.read().decode("utf-8")
 		self.assertEqual('', err, 'process throw errors: \n' + err)
 		# check error code if process did unexpected end
 		if returncode != None:
 			self.assertEqual(returncode, 0)
 
 	def test_execute_make_torrent(self):
-		process = subprocess.Popen(
-			[sys.executable,"make_torrent.py","url_seed_multi.torrent","http://test.com/test"],
-			stderr=subprocess.PIPE)
+		process = sub.Popen([sys.executable,"make_torrent.py",
+			"url_seed_multi.torrent","http://test.com/test"], stderr=sub.PIPE)
 		returncode = process.wait()
 		# python2 has no Popen.wait() timeout
-		err = process.stderr.read()
+		err = process.stderr.read().decode("utf-8")
 		self.assertEqual('', err, 'process throw errors: \n' + err)
 		self.assertEqual(returncode, 0)
 
