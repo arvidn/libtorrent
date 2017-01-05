@@ -82,7 +82,7 @@ version_check() {
 	  echo $ECHO_N "  testing $vc_checkprog... " $ECHO_C
     	if $vc_checkprog --version < /dev/null > /dev/null 2>&1; then
 	      vc_actual_version=`$vc_checkprog --version | head -n 1 | \
-                            sed 's/^.*[ 	]\([0-9.]*[a-z]*\).*$/\1/'`
+                            sed 's/^[^0-9]*\([0-9.]*\).*$/\1/'`
 	      if compare_versions $vc_min_version $vc_actual_version; then
 		      echo "found $vc_actual_version"
 		      # set variables
