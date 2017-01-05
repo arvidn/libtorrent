@@ -20,9 +20,8 @@ fs = libtorrent.file_storage()
 parent_input = os.path.split(input)[0]
 
 if os.path.isfile(input):
-	size = os.path.getsize(input)
-	name = os.path.basename(input)
-	fs.add_file(name, size)
+	# TODO bind the updated create torrent interface
+	fs.add_files(input)
 
 for root, dirs, files in os.walk(input):
 	# skip directories starting with .
