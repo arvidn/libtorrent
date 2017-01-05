@@ -56,13 +56,12 @@ TORRENT_TEST(session)
 	lt::session ses(p);
 
 	settings_pack sett = settings();
-	sett.set_int(settings_pack::cache_size, 100);
-	sett.set_int(settings_pack::max_queued_disk_bytes, 1000 * 16 * 1024);
+	sett.set_int(settings_pack::num_optimistic_unchoke_slots, 10);
+	sett.set_int(settings_pack::unchoke_slots_limit, 10);
 
 	ses.apply_settings(sett);
 
-	// verify that we get the appropriate performance warning because
-	// we're allowing a larger queue than we have cache.
+	// verify that we get the appropriate performance warning
 
 	alert const* a;
 	for (;;)
@@ -73,7 +72,7 @@ TORRENT_TEST(session)
 		TEST_EQUAL(a->type(), performance_alert::alert_type);
 
 		if (alert_cast<performance_alert>(a)->warning_code
-			== performance_alert::too_high_disk_queue_limit)
+			== performance_alert::too_many_optimistic_unchoke_slots)
 			break;
 	}
 
@@ -239,19 +238,19 @@ TORRENT_TEST(save_restore_state)
 	test_save_restore(
 		[](settings_pack& p) {
 			// set the cache size
-			p.set_int(settings_pack::cache_size, 1337);
+			p.set_int(settings_pack::request_queue_time, 1337);
 		},
 		[](lt::session& ses, entry& st) {
 			ses.save_state(st);
 		},
 		[](settings_pack& p) {
-			p.set_int(settings_pack::cache_size, 90);
+			p.set_int(settings_pack::request_queue_time, 90);
 		},
 		[](lt::session& ses, bdecode_node& st) {
 			ses.load_state(st);
 			// make sure we loaded the cache size correctly
 			settings_pack sett = ses.get_settings();
-			TEST_EQUAL(sett.get_int(settings_pack::cache_size), 1337);
+			TEST_EQUAL(sett.get_int(settings_pack::request_queue_time), 1337);
 		});
 }
 
@@ -260,20 +259,20 @@ TORRENT_TEST(save_restore_state_save_filter)
 	test_save_restore(
 		[](settings_pack& p) {
 			// set the cache size
-			p.set_int(settings_pack::cache_size, 1337);
+			p.set_int(settings_pack::request_queue_time, 1337);
 		},
 		[](lt::session& ses, entry& st) {
 			// save everything _but_ the settings
 			ses.save_state(st, ~session::save_settings);
 		},
 		[](settings_pack& p) {
-			p.set_int(settings_pack::cache_size, 90);
+			p.set_int(settings_pack::request_queue_time, 90);
 		},
 		[](lt::session& ses, bdecode_node& st) {
 			ses.load_state(st);
 			// make sure whatever we loaded did not include the cache size
 			settings_pack sett = ses.get_settings();
-			TEST_EQUAL(sett.get_int(settings_pack::cache_size), 90);
+			TEST_EQUAL(sett.get_int(settings_pack::request_queue_time), 90);
 		});
 }
 
@@ -282,20 +281,20 @@ TORRENT_TEST(save_restore_state_load_filter)
 	test_save_restore(
 		[](settings_pack& p) {
 			// set the cache size
-			p.set_int(settings_pack::cache_size, 1337);
+			p.set_int(settings_pack::request_queue_time, 1337);
 		},
 		[](lt::session& ses, entry& st) {
 			// save everything
 			ses.save_state(st);
 		},
 		[](settings_pack& p) {
-			p.set_int(settings_pack::cache_size, 90);
+			p.set_int(settings_pack::request_queue_time, 90);
 		},
 		[](lt::session& ses, bdecode_node& st) {
 			// load everything _but_ the settings
 			ses.load_state(st, ~session::save_settings);
 			settings_pack sett = ses.get_settings();
-			TEST_EQUAL(sett.get_int(settings_pack::cache_size), 90);
+			TEST_EQUAL(sett.get_int(settings_pack::request_queue_time), 90);
 		});
 }
 

@@ -41,6 +41,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert.hpp" // alert::error_notification
 #include "libtorrent/peer_class.hpp"
 #include "libtorrent/peer_class_type_filter.hpp"
+#include "libtorrent/peer_id.hpp"
+#include "libtorrent/io_service.hpp"
 
 #include "libtorrent/kademlia/dht_storage.hpp"
 
@@ -57,6 +59,7 @@ namespace libtorrent
 	struct ip_filter;
 	class port_filter;
 	class alert;
+	struct settings_pack;
 
 #ifndef TORRENT_NO_DEPRECATE
 	struct session_status;

@@ -47,6 +47,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/ed25519.hpp"
 #include "libtorrent/hex.hpp" // to_hex, from_hex
 #include "libtorrent/bloom_filter.hpp"
+#include "libtorrent/hasher.hpp"
+#include "libtorrent/aux_/time.hpp"
 
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/routing_table.hpp"

@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_manager.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/units.hpp"
+#include "libtorrent/hasher.hpp"
 
 #include <functional>
 
@@ -331,7 +332,7 @@ namespace libtorrent
 		if (end == 0 && !p->need_readback) return 0;
 
 		// the number of contiguous blocks we need to be allowed to flush
-		int block_limit = (std::min)(cont_block, int(p->blocks_in_piece));
+		int block_limit = std::min(cont_block, int(p->blocks_in_piece));
 
 		// if everything has been hashed, we might as well flush everything
 		// regardless of the contiguous block restriction

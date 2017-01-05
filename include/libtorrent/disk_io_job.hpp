@@ -170,8 +170,9 @@ namespace libtorrent
 		// file the disk operation failed on
 		storage_error error;
 
-		union
+		union un
 		{
+			un() {}
 			// result for hash jobs
 			char piece_hash[20];
 
