@@ -19,10 +19,15 @@ fs = libtorrent.file_storage()
 
 parent_input = os.path.split(input)[0]
 
+if os.path.isfile(input):
+	size = os.path.getsize(input)
+	name = os.path.basename(input)
+	fs.add_file(name, size)
+
 for root, dirs, files in os.walk(input):
 	# skip directories starting with .
 	if os.path.split(root)[1][0] == '.': continue
-
+	print dirs
 	for f in files:
 		# skip files starting with .
 		if f[0] == '.': continue

@@ -7,6 +7,8 @@ import time
 import os
 import shutil
 import binascii
+import subprocess
+import sys
 
 class test_create_torrent(unittest.TestCase):
 
@@ -276,6 +278,34 @@ class test_session(unittest.TestCase):
 		self.assertEqual(s.get_settings()['num_want'], 66)
 		self.assertEqual(s.get_settings()['user_agent'], 'test123')
 
+class test_example_client(unittest.TestCase):
+
+	def test_execute_client(self):
+		with open(os.devnull, "w") as DEVNULL:
+			process = subprocess.Popen([sys.executable,"client.py","url_seed_multi.torrent"], stdout=DEVNULL, stderr=None)
+		# python2 has no Popen.wait() timeout
+		time.sleep(10)
+		returncode = process.poll()
+		if returncode == None:
+			process.kill()
+		else:
+			self.assertEqual(returncode, 0)
+
+	def test_execute_simple_client(self):
+		with open(os.devnull, "w") as DEVNULL:
+			process = subprocess.Popen([sys.executable,"simple_client.py","url_seed_multi.torrent"], stdout=DEVNULL, stderr=None)
+		# python2 has no Popen.wait() timeout
+		time.sleep(10)
+		returncode = process.poll()
+		if returncode == None:
+			process.kill()
+		else:
+			self.assertEqual(returncode, 0)
+
+	def test_execute_make_torrent(self):
+		returncode = subprocess.Popen([sys.executable,"make_torrent.py","url_seed_multi.torrent","http://test.com/test"]).wait()
+		# python2 has no Popen.wait() timeout
+		self.assertEqual(returncode, 0)
 
 if __name__ == '__main__':
 	print(lt.__version__)
