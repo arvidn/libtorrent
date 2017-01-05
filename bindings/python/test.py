@@ -185,7 +185,6 @@ class test_alerts(unittest.TestCase):
 		ti = lt.torrent_info('base.torrent');
 		h = ses.add_torrent({'ti': ti, 'save_path': os.getcwd()})
 		st = h.status()
-
 		time.sleep(1)
 		ses.remove_torrent(h)
 		ses.wait_for_alert(1000) # milliseconds

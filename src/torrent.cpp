@@ -3847,7 +3847,7 @@ namespace libtorrent
 			// is deallocated by the torrent once it starts seeding
 		}
 
-		m_last_download = m_ses.session_time();
+		m_last_download = aux::time_now();
 
 		if (m_share_mode)
 			recalc_share_mode();
@@ -8256,9 +8256,6 @@ namespace libtorrent
 		}
 		m_became_finished = clamped_subtract_u16(m_became_finished, seconds);
 
-		// don't care about overflow because it would take 68 years
-		m_last_upload = m_last_upload - seconds;
-		m_last_download = m_last_download - seconds;
 #ifndef TORRENT_NO_DEPRECATE
 		m_last_scrape = clamped_subtract_s16(m_last_scrape, seconds);
 #endif
@@ -10557,18 +10554,16 @@ namespace libtorrent
 		st->active_time = active_time();
 		st->seeding_time = seeding_time();
 
-		st->time_since_upload = m_last_upload == 0 ? -1
-			: clamped_subtract_u16(m_ses.session_time(), m_last_upload);
-		st->time_since_download = m_last_download == 0 ? -1
-			: clamped_subtract_u16(m_ses.session_time(), m_last_download);
+		st->time_since_upload = total_seconds(m_last_upload - m_ses.session_start_time());
+		st->time_since_download =  total_seconds(m_last_download - m_ses.session_start_time());
 #endif
 
 		st->finished_duration = seconds{finished_time()};
 		st->active_duration = seconds{active_time()};
 		st->seeding_duration = seconds{seeding_time()};
 
-		st->last_upload = m_ses.session_start_time() + seconds(m_last_upload);
-		st->last_download = m_ses.session_start_time() + seconds(m_last_download);
+		st->last_upload = m_last_upload;
+		st->last_download = m_last_download;
 
 		st->storage_mode = static_cast<storage_mode_t>(m_storage_mode);
 

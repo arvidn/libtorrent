@@ -68,6 +68,7 @@ struct time_point_to_python
         // calculate the time manually by using lt::clock_type
         time_t const tm = system_clock::to_time_t(system_clock::now()
             + duration_cast<system_clock::duration>(pt - lt::clock_type::now()));
+
         std::tm* date = std::gmtime(&tm);
         object result = datetime_datetime(
             (int)1900 + date->tm_year
