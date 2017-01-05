@@ -51,7 +51,7 @@ namespace lt = libtorrent;
 // - many slow peers with small torrent and connection limit
 TORRENT_TEST(status_timers_time_shift_with_paused_torrent)
 {
-	lt::time_point startseed_time;
+	lt::time_point start_time;
 	lt::time_point last_active_time;
 	lt::torrent_handle handle;
 	bool ran_to_completion = false;
@@ -79,7 +79,7 @@ TORRENT_TEST(status_timers_time_shift_with_paused_torrent)
 			if (auto ta = alert_cast<torrent_added_alert>(a))
 			{
 				TEST_CHECK(!handle.is_valid());
-				lt::time_point start_time = lt::clock_type::now();
+				start_time = lt::clock_type::now();
 				handle = ta->handle;
 				torrent_status st = handle.status();
 				// test last upload and download state before wo go throgh
@@ -102,7 +102,6 @@ TORRENT_TEST(status_timers_time_shift_with_paused_torrent)
 			{
 				case 0:
 					// torrent get ready for seeding on first tick, means time +1s
-					startseed_time = lt::clock_type::now();
 					tick_is_in_active_range = true;
 					break;
 				case 21:
@@ -148,7 +147,7 @@ TORRENT_TEST(status_timers_time_shift_with_paused_torrent)
 				TEST_CHECK(st.seeding_duration == expected_active_duration);
 				TEST_CHECK(st.finished_duration == expected_active_duration);
 				// does not download in seeding mode
-				TEST_CHECK(st.last_download == startseed_time);
+				TEST_CHECK(st.last_download == start_time);
 				// TODO: write a converter for TEST_EQUAL from duration to rep
 				// convert like this: return duration_cast<seconds>(arg1).count();
 				// test.hpp: error: no match for ‘operator<<’ operand types are
@@ -192,11 +191,11 @@ TORRENT_TEST(status_timers_time_shift_with_active_torrent)
 {
 	bool ran_to_completion = false;
 
+	lt::time_point start_time;
 	lt::torrent_handle handle;
 	seconds expected_active_duration = seconds(0);
 	bool tick_is_in_active_range = false;
 	int tick_check_intervall = 1;
-	lt::time_point startseed_time;
 
 	setup_swarm(1, swarm_test::upload
 		// add session
@@ -208,7 +207,7 @@ TORRENT_TEST(status_timers_time_shift_with_active_torrent)
 			if (auto ta = alert_cast<torrent_added_alert>(a))
 			{
 				TEST_CHECK(!handle.is_valid());
-				lt::time_point start_time = lt::clock_type::now();
+				start_time = lt::clock_type::now();
 				handle = ta->handle;
 				torrent_status st = handle.status();
 				// test last upload and download state before wo go throgh
@@ -229,7 +228,6 @@ TORRENT_TEST(status_timers_time_shift_with_active_torrent)
 			{
 				case 0:
 					// torrent get ready for seeding on first tick, means time +1s
-					startseed_time = lt::clock_type::now();
 					tick_is_in_active_range = true;
 					break;
 				case 1:
@@ -262,9 +260,9 @@ TORRENT_TEST(status_timers_time_shift_with_active_torrent)
 				TEST_CHECK(st.seeding_duration == expected_active_duration);
 				TEST_CHECK(st.finished_duration == expected_active_duration);
 				// does not download in seeding mode
-				TEST_CHECK(st.last_download == startseed_time);
+				TEST_CHECK(st.last_upload == start_time);
 				// does not upload without peers
-				TEST_CHECK(st.last_download == startseed_time);
+				TEST_CHECK(st.last_download == start_time);
 
 				// TODO: write a converter for TEST_EQUAL from duration to rep
 				printf("expected_active_duration: %" PRId64 " \n",
@@ -285,10 +283,10 @@ TORRENT_TEST(finish_time_shift_active)
 {
 	bool ran_to_completion = false;
 
+	lt::time_point start_time;
 	lt::torrent_handle handle;
 	seconds expected_active_duration = seconds(0);
 	bool tick_is_in_active_range = false;
-	lt::time_point startseed_time;
 
 	setup_swarm(1, swarm_test::upload
 		// add session
@@ -300,7 +298,7 @@ TORRENT_TEST(finish_time_shift_active)
 			if (auto ta = alert_cast<torrent_added_alert>(a))
 			{
 				TEST_CHECK(!handle.is_valid());
-				lt::time_point start_time = lt::clock_type::now();
+				start_time = lt::clock_type::now();
 				handle = ta->handle;
 				torrent_status st = handle.status();
 				// test last upload and download state before wo go throgh
@@ -321,7 +319,6 @@ TORRENT_TEST(finish_time_shift_active)
 			{
 				case 0:
 					// torrent get ready for seeding on first tick, means time +1s
-					startseed_time = lt::clock_type::now();
 					tick_is_in_active_range = true;
 					break;
 				case 7000:
@@ -347,9 +344,9 @@ TORRENT_TEST(finish_time_shift_active)
 				TEST_CHECK(st.seeding_duration == expected_active_duration);
 				TEST_CHECK(st.finished_duration == expected_active_duration);
 				// does not download in seeding mode
-				TEST_CHECK(st.last_download == startseed_time);
+				TEST_CHECK(st.last_upload == start_time);
 				// does not upload without peers
-				TEST_CHECK(st.last_download == startseed_time);
+				TEST_CHECK(st.last_download == start_time);
 
 				// TODO: write a converter for TEST_EQUAL from duration to rep
 				printf("expected_active_duration: %" PRId64 " \n",
@@ -370,10 +367,10 @@ TORRENT_TEST(finish_time_shift_paused)
 {
 	bool ran_to_completion = false;
 
+	lt::time_point start_time;
 	lt::torrent_handle handle;
 	seconds expected_active_duration = seconds(0);
 	bool tick_is_in_active_range = false;
-	lt::time_point startseed_time;
 
 	setup_swarm(1, swarm_test::upload
 		// add session
@@ -385,7 +382,7 @@ TORRENT_TEST(finish_time_shift_paused)
 			if (auto ta = alert_cast<torrent_added_alert>(a))
 			{
 				TEST_CHECK(!handle.is_valid());
-				lt::time_point start_time = lt::clock_type::now();
+				start_time = lt::clock_type::now();
 				handle = ta->handle;
 				torrent_status st = handle.status();
 				// test last upload and download state before wo go throgh
@@ -406,7 +403,6 @@ TORRENT_TEST(finish_time_shift_paused)
 			{
 				case 0:
 					// torrent get ready for seeding on first tick, means time +1s
-					startseed_time = lt::clock_type::now();
 					tick_is_in_active_range = true;
 					break;
 				case 7000:
@@ -434,9 +430,9 @@ TORRENT_TEST(finish_time_shift_paused)
 				TEST_CHECK(st.seeding_duration == expected_active_duration);
 				TEST_CHECK(st.finished_duration == expected_active_duration);
 				// does not download in seeding mode
-				TEST_CHECK(st.last_download == startseed_time);
+				TEST_CHECK(st.last_upload == start_time);
 				// does not upload without peers
-				TEST_CHECK(st.last_download == startseed_time);
+				TEST_CHECK(st.last_download == start_time);
 
 				// TODO: write a converter for TEST_EQUAL from duration to rep
 				printf("expected_active_duration: %" PRId64 " \n",
