@@ -110,12 +110,11 @@ def print_peer_info(console, peers):
         else: out += 'r'
         out += ' '
 
-        # TODO TypeError: No Python class registered for C++ class libtorrent::aux::strong_typedef<int, libtorrent::aux::piece_index_tag, void>
-        #if p.downloading_piece_index >= 0:
-        #    assert(p.downloading_progress <= p.downloading_total)
-        #    out += progress_bar(float(p.downloading_progress) / p.downloading_total, 15)
-        #else:
-        #    out += progress_bar(0, 15)
+        if p.downloading_piece_index >= 0:
+            assert(p.downloading_progress <= p.downloading_total)
+            out += progress_bar(float(p.downloading_progress) / p.downloading_total, 15)
+        else:
+            out += progress_bar(0, 15)
         out += ' '
 
         if p.flags & lt.peer_info.handshake:

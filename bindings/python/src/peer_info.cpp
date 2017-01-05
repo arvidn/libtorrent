@@ -47,6 +47,7 @@ list get_pieces(peer_info const& pi)
     return ret;
 }
 
+using by_value = return_value_policy<return_by_value>;
 void bind_peer_info()
 {
     scope pi = class_<peer_info>("peer_info")
@@ -82,7 +83,7 @@ void bind_peer_info()
         .def_readonly("download_queue_length", &peer_info::download_queue_length)
         .def_readonly("upload_queue_length", &peer_info::upload_queue_length)
         .def_readonly("failcount", &peer_info::failcount)
-        .def_readonly("downloading_piece_index", &peer_info::downloading_piece_index)
+        .add_property("downloading_piece_index", make_getter(&peer_info::downloading_piece_index, by_value()))
         .def_readonly("downloading_block_index", &peer_info::downloading_block_index)
         .def_readonly("downloading_progress", &peer_info::downloading_progress)
         .def_readonly("downloading_total", &peer_info::downloading_total)
