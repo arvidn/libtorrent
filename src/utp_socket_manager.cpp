@@ -255,6 +255,8 @@ namespace libtorrent
 
 	void utp_socket_manager::writable()
 	{
+		if (m_stalled_sockets.empty()) return;
+
 		static socket_vector_t stalled_sockets;
 		stalled_sockets.clear();
 		m_stalled_sockets.swap(stalled_sockets);
@@ -268,20 +270,26 @@ namespace libtorrent
 	{
 		// flush all deferred acks
 
-		static socket_vector_t deferred_acks;
-		deferred_acks.clear();
-		m_deferred_acks.swap(deferred_acks);
-		for (auto const &s : deferred_acks)
+		static socket_vector_t temp_sockets;
+
+		if (!m_deferred_acks.empty())
 		{
-			utp_send_ack(s);
+			temp_sockets.clear();
+			m_deferred_acks.swap(temp_sockets);
+			for (auto const &s : temp_sockets)
+			{
+				utp_send_ack(s);
+			}
 		}
 
-		static socket_vector_t drained_event;
-		drained_event.clear();
-		m_drained_event.swap(drained_event);
-		for (auto const &s : drained_event)
+		if (!m_drained_event.empty())
 		{
-			utp_socket_drained(s);
+			temp_sockets.clear();
+			m_drained_event.swap(temp_sockets);
+			for (auto const &s : temp_sockets)
+			{
+				utp_socket_drained(s);
+			}
 		}
 	}
 
