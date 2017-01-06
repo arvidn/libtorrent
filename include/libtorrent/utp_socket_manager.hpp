@@ -130,14 +130,13 @@ namespace libtorrent
 		typedef std::multimap<std::uint16_t, utp_socket_impl*> socket_map_t;
 		socket_map_t m_utp_sockets;
 
-		typedef std::vector<utp_socket_impl*> socket_vector_t;
+		using socket_vector_t = std::vector<utp_socket_impl*>;
 
 		// this is a list of sockets that needs to send an ack.
 		// once the UDP socket is drained, all of these will
 		// have a chance to do that. This is to avoid sending
 		// an ack for every single packet
 		socket_vector_t m_deferred_acks;
-		socket_vector_t m_deferred_acks_tock;
 
 		// sockets that have received or sent packets this
 		// round, may subscribe to the event of draining the
@@ -145,13 +144,11 @@ namespace libtorrent
 		// user callback function to indicate bytes have been
 		// sent or received.
 		socket_vector_t m_drained_event;
-		socket_vector_t m_drained_event_tock;
 
 		// list of sockets that received EWOULDBLOCK from the
 		// underlying socket. They are notified when the socket
 		// becomes writable again
 		socket_vector_t m_stalled_sockets;
-		socket_vector_t m_stalled_sockets_tock;
 
 		// the last socket we received a packet on
 		utp_socket_impl* m_last_socket = nullptr;

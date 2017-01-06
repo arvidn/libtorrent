@@ -255,12 +255,11 @@ namespace libtorrent
 
 	void utp_socket_manager::writable()
 	{
-		m_stalled_sockets_tock.clear();
-		m_stalled_sockets.swap(m_stalled_sockets_tock);
-		for (socket_vector_t::iterator i = m_stalled_sockets_tock.begin()
-			, end(m_stalled_sockets_tock.end()); i != end; ++i)
+		static socket_vector_t stalled_sockets;
+		stalled_sockets.clear();
+		m_stalled_sockets.swap(stalled_sockets);
+		for (auto const &s : stalled_sockets)
 		{
-			utp_socket_impl* s = *i;
 			utp_writable(s);
 		}
 	}
@@ -269,21 +268,19 @@ namespace libtorrent
 	{
 		// flush all deferred acks
 
-		m_deferred_acks_tock.clear();
-		m_deferred_acks.swap(m_deferred_acks_tock);
-		for (socket_vector_t::iterator i = m_deferred_acks_tock.begin()
-			, end(m_deferred_acks_tock.end()); i != end; ++i)
+		static socket_vector_t deferred_acks;
+		deferred_acks.clear();
+		m_deferred_acks.swap(deferred_acks);
+		for (auto const &s : deferred_acks)
 		{
-			utp_socket_impl* s = *i;
 			utp_send_ack(s);
 		}
 
-		m_drained_event_tock.clear();
-		m_drained_event.swap(m_drained_event_tock);
-		for (socket_vector_t::iterator i = m_drained_event_tock.begin()
-			, end(m_drained_event_tock.end()); i != end; ++i)
+		static socket_vector_t drained_event;
+		drained_event.clear();
+		m_drained_event.swap(drained_event);
+		for (auto const &s : drained_event)
 		{
-			utp_socket_impl* s = *i;
 			utp_socket_drained(s);
 		}
 	}
