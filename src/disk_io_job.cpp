@@ -105,6 +105,7 @@ namespace libtorrent
 		buffer.disk_block = nullptr;
 		d.io.offset = 0;
 		d.io.buffer_size = 0;
+		d.io.ref.cookie = aux::block_cache_reference::none;
 	}
 
 	disk_io_job::~disk_io_job()
