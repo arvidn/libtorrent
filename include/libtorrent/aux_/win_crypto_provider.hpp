@@ -74,28 +74,28 @@ namespace libtorrent { namespace aux
 	template <ALG_ID AlgId, DWORD ProviderType>
 	struct crypt_hash
 	{
-		crypt_hash() { create(); }
-		crypt_hash(crypt_hash const& h) { duplicate(h); }
+		crypt_hash() { m_hash = create(); }
+		crypt_hash(crypt_hash const& h) { m_hash = duplicate(h); }
 		~crypt_hash() { destroy(); }
 
 		crypt_hash& crypt_hash::operator=(crypt_hash const& h)
 		{
 			if (this == &h) return *this;
+			HCRYPTHASH temp = duplicate(h);
 			destroy();
-			duplicate(h);
+			m_hash = temp;
 			return *this;
 		}
 
 		void reset()
 		{
+			HCRYPTHASH temp = create();
 			destroy();
-			create();
+			m_hash = temp;
 		}
 
 		void update(span<char const> data)
 		{
-			TORRENT_ASSERT(m_initialized);
-
 			if (CryptHashData(m_hash, reinterpret_cast<BYTE const*>(data.data()), int(data.size()), 0) == false)
 			{
 #ifndef BOOST_NO_EXCEPTIONS
@@ -108,8 +108,6 @@ namespace libtorrent { namespace aux
 
 		void get_hash(char *digest, size_t digest_size)
 		{
-			TORRENT_ASSERT(m_initialized);
-
 			DWORD size = DWORD(digest_size);
 			if (CryptGetHashParam(m_hash, HP_HASHVAL
 				, reinterpret_cast<BYTE*>(digest), &size, 0) == false)
@@ -123,11 +121,10 @@ namespace libtorrent { namespace aux
 			TORRENT_ASSERT(size == DWORD(digest_size));
 		}
 	private:
-		void create()
+		HCRYPTHASH create()
 		{
-			TORRENT_ASSERT(!m_initialized);
-
-			if (CryptCreateHash(get_provider(), AlgId, 0, 0, &m_hash) == false)
+			HCRYPTHASH ret;
+			if (CryptCreateHash(get_provider(), AlgId, 0, 0, &ret) == false)
 			{
 #ifndef BOOST_NO_EXCEPTIONS
 				throw system_error(error_code(GetLastError(), system_category()));
@@ -135,20 +132,18 @@ namespace libtorrent { namespace aux
 				std::terminate();
 #endif
 			}
-			m_initialized = true;
+			return ret;
 		}
 
 		void destroy()
 		{
-			if (m_initialized) CryptDestroyHash(m_hash);
-			m_initialized = false;
+			CryptDestroyHash(m_hash);
 		}
 
-		void duplicate(crypt_hash const& h)
+		HCRYPTHASH duplicate(crypt_hash const& h)
 		{
-			TORRENT_ASSERT(!m_initialized);
-
-			if (CryptDuplicateHash(h.m_hash, 0, 0, &m_hash) == false)
+			HCRYPTHASH ret;
+			if (CryptDuplicateHash(h.m_hash, 0, 0, &ret) == false)
 			{
 #ifndef BOOST_NO_EXCEPTIONS
 				throw system_error(error_code(GetLastError(), system_category()));
@@ -156,7 +151,7 @@ namespace libtorrent { namespace aux
 				std::terminate();
 #endif
 			}
-			m_initialized = true;
+			return ret;
 		}
 
 		HCRYPTPROV get_provider()
@@ -166,7 +161,6 @@ namespace libtorrent { namespace aux
 		}
 
 		HCRYPTHASH m_hash;
-		bool m_initialized = false;
 	};
 
 } // namespace aux
