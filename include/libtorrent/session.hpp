@@ -98,6 +98,9 @@ namespace libtorrent
 		struct session_impl;
 	}
 
+	struct disk_interface;
+	struct counters;
+
 	// this is a holder for the internal session implementation object. Once the
 	// session destruction is explicitly initiated, this holder is used to
 	// synchronize the completion of the shutdown. The lifetime of this object

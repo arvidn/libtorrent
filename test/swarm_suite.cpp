@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/random.hpp"
+#include "libtorrent/file.hpp"
 #include <iostream>
 #include <tuple>
 

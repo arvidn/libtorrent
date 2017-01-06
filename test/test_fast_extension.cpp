@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/torrent_info.hpp"
+#include "libtorrent/file.hpp"
 
 #include <cstring>
 #include <functional>

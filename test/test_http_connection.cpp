@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp" // print_endpoint
 #include "libtorrent/http_connection.hpp"
 #include "libtorrent/resolver.hpp"
+#include "libtorrent/file.hpp"
 
 #include <fstream>
 #include <iostream>

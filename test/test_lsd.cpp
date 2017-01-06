@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/torrent_status.hpp"
 #include "libtorrent/hasher.hpp"
+#include "libtorrent/file.hpp"
 #include <tuple>
 
 #include "test.hpp"

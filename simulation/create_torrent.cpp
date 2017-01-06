@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "setup_transfer.hpp" // for ::create_torrent
 #include "libtorrent/add_torrent_params.hpp"
+#include "libtorrent/file.hpp"
 #include <fstream>
 
 namespace lt = libtorrent;
