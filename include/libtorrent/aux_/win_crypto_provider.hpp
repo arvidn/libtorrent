@@ -76,13 +76,13 @@ namespace libtorrent { namespace aux
 	{
 		crypt_hash() { m_hash = create(); }
 		crypt_hash(crypt_hash const& h) { m_hash = duplicate(h); }
-		~crypt_hash() { destroy(); }
+		~crypt_hash() { CryptDestroyHash(m_hash); }
 
 		crypt_hash& crypt_hash::operator=(crypt_hash const& h)
 		{
 			if (this == &h) return *this;
 			HCRYPTHASH temp = duplicate(h);
-			destroy();
+			CryptDestroyHash(m_hash);
 			m_hash = temp;
 			return *this;
 		}
@@ -90,7 +90,7 @@ namespace libtorrent { namespace aux
 		void reset()
 		{
 			HCRYPTHASH temp = create();
-			destroy();
+			CryptDestroyHash(m_hash);
 			m_hash = temp;
 		}
 
@@ -133,11 +133,6 @@ namespace libtorrent { namespace aux
 #endif
 			}
 			return ret;
-		}
-
-		void destroy()
-		{
-			CryptDestroyHash(m_hash);
 		}
 
 		HCRYPTHASH duplicate(crypt_hash const& h)
