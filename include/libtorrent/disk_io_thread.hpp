@@ -361,8 +361,6 @@ namespace libtorrent
 
 		virtual file_pool& files() override { return m_file_pool; }
 
-		io_service& get_io_service() { return m_ios; }
-
 		int prep_read_job_impl(disk_io_job* j, bool check_fence = true);
 
 		void maybe_issue_queued_read_jobs(cached_piece_entry* pe,
@@ -560,9 +558,6 @@ namespace libtorrent
 		// posted on this in order to have them execute in
 		// the main thread.
 		io_service& m_ios;
-
-		// used to rate limit disk performance warnings
-		time_point m_last_disk_aio_performance_warning = min_time();
 
 		// jobs that are completed are put on this queue
 		// whenever the queue size grows from 0 to 1
