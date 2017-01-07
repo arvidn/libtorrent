@@ -2867,12 +2867,6 @@ namespace libtorrent
 			return;
 		}
 
-		// in this case, we can't run the fence job right now, because there
-		// are other jobs outstanding on this storage. We need to trigger a
-		// flush of all those jobs now. Only write jobs linger, those are the
-		// jobs that needs to be kicked
-		TORRENT_ASSERT(j->blocked);
-
 		if (ret == disk_job_fence::fence_post_flush)
 		{
 			// now, we have to make sure that all outstanding jobs on this
