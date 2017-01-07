@@ -38,8 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #if TORRENT_USE_CRYPTOAPI
-#include <windows.h>
-#include <wincrypt.h>
+#include "libtorrent/aux_/win_crypto_provider.hpp"
 
 #elif defined TORRENT_USE_LIBCRYPTO
 extern "C" {
@@ -50,34 +49,6 @@ extern "C" {
 #endif
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-#if TORRENT_USE_CRYPTOAPI
-namespace
-{
-	HCRYPTPROV make_crypt_provider()
-	{
-		using namespace libtorrent;
-
-		HCRYPTPROV ret;
-		if (CryptAcquireContext(&ret, nullptr, nullptr, PROV_RSA_FULL
-			, CRYPT_VERIFYCONTEXT) == false)
-		{
-#ifndef BOOST_NO_EXCEPTIONS
-			throw system_error(error_code(GetLastError(), system_category()));
-#else
-			std::terminate();
-#endif
-		}
-		return ret;
-	}
-
-	HCRYPTPROV get_crypt_provider()
-	{
-		static HCRYPTPROV prov = make_crypt_provider();
-		return prov;
-	}
-}
-#endif
 
 namespace libtorrent
 {
@@ -98,15 +69,7 @@ namespace libtorrent
 		void random_bytes(span<char> buffer)
 		{
 #if TORRENT_USE_CRYPTOAPI
-			if (!CryptGenRandom(get_crypt_provider(), int(buffer.size())
-				, reinterpret_cast<BYTE*>(buffer.data())))
-			{
-#ifndef BOOST_NO_EXCEPTIONS
-				throw system_error(error_code(GetLastError(), system_category()));
-#else
-				std::terminate();
-#endif
-			}
+			aux::crypt_gen_random(buffer);
 
 #elif defined TORRENT_USE_LIBCRYPTO
 #ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
