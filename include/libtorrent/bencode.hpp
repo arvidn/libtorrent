@@ -163,7 +163,7 @@ namespace libtorrent
 				ret += 2;
 				break;
 			case entry::string_t:
-				ret += write_integer(out, e.string().length());
+				ret += write_integer(out, entry::integer_type(e.string().length()));
 				write_char(out, ':');
 				ret += write_string(e.string(), out);
 				ret += 1;
@@ -181,7 +181,7 @@ namespace libtorrent
 					i != e.dict().end(); ++i)
 				{
 					// write key
-					ret += write_integer(out, i->first.length());
+					ret += write_integer(out, entry::integer_type(i->first.length()));
 					write_char(out, ':');
 					ret += write_string(i->first, out);
 					// write value
@@ -328,7 +328,7 @@ namespace libtorrent
 			// ----------------------------------------------
 			// string
 			default:
-				if (is_digit(std::uint8_t(*in)))
+				if (is_digit(char(*in)))
 				{
 					std::string len_s = read_until(in, end, ':', err);
 					if (err)

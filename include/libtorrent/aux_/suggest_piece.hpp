@@ -61,7 +61,7 @@ struct suggest_piece
 		// back and then reverse the items we put there.
 		for (int i = int(m_priority_pieces.size()) - 1; i >= 0; --i)
 		{
-			piece_index_t const piece = m_priority_pieces[i];
+			piece_index_t const piece = m_priority_pieces[std::size_t(i)];
 			if (bits.get_bit(piece)) continue;
 			if (std::any_of(p.begin(), p.end() - ret
 				, [piece](piece_index_t pi) { return pi == piece; }))

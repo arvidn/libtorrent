@@ -134,7 +134,7 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth, void*)
 
 	for (int i = 1; i < size && len > 0; ++i)
 	{
-		int ret = std::snprintf(out, len, "%d: %s\n", i, demangle(symbols[i]).c_str());
+		int ret = std::snprintf(out, std::size_t(len), "%d: %s\n", i, demangle(symbols[i]).c_str());
 		out += ret;
 		len -= ret;
 		if (i - 1 == max_depth && max_depth > 0) break;

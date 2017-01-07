@@ -90,7 +90,7 @@ namespace libtorrent
 		TORRENT_ASSERT(!m_destructed);
 		char* const insert = allocate_appendix(s);
 		if (insert == nullptr) return nullptr;
-		std::memcpy(insert, buf, s);
+		std::memcpy(insert, buf, std::size_t(s));
 		return insert;
 	}
 
@@ -137,11 +137,11 @@ namespace libtorrent
 			if (i->used_size > bytes)
 			{
 				TORRENT_ASSERT(bytes > 0);
-				vec.push_back(Buffer(i->buf, bytes));
+				vec.push_back(Buffer(i->buf, std::size_t(bytes)));
 				break;
 			}
 			TORRENT_ASSERT(i->used_size > 0);
-			vec.push_back(Buffer(i->buf, i->used_size));
+			vec.push_back(Buffer(i->buf, std::size_t(i->used_size)));
 			bytes -= i->used_size;
 		}
 	}

@@ -52,14 +52,14 @@ namespace libtorrent { namespace aux {
 		{
 			TORRENT_ASSERT(idx >= IndexType(0));
 			TORRENT_ASSERT(idx < end_index());
-			return this->base::operator[](static_cast<underlying_index>(idx));
+			return this->base::operator[](static_cast<std::size_t>(idx));
 		}
 
 		auto operator[](IndexType idx) -> decltype(this->base::operator[](underlying_index()))
 		{
 			TORRENT_ASSERT(idx >= IndexType(0));
 			TORRENT_ASSERT(idx < end_index());
-			return this->base::operator[](static_cast<underlying_index>(idx));
+			return this->base::operator[](static_cast<std::size_t>(idx));
 		}
 
 		IndexType end_index() const

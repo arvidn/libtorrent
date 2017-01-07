@@ -323,7 +323,7 @@ namespace libtorrent
 				// if we're encrypting this buffer, we need to make a copy
 				// since we'll mutate it
 				std::unique_ptr<char[]> buf(new char[size]);
-				std::memcpy(buf.get(), buffer.get(), size);
+				std::memcpy(buf.get(), buffer.get(), std::size_t(size));
 				append_send_buffer(std::move(buf), size);
 			}
 			else
