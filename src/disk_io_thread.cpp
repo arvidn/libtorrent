@@ -191,9 +191,9 @@ namespace libtorrent
 	disk_io_thread::disk_io_thread(io_service& ios
 		, counters& cnt
 		, int const block_size)
-		: m_generic_io_jobs(*this, thread_type_t::generic)
+		: m_generic_io_jobs(*this)
 		, m_generic_threads(m_generic_io_jobs, ios)
-		, m_hash_io_jobs(*this, thread_type_t::hasher)
+		, m_hash_io_jobs(*this)
 		, m_hash_threads(m_hash_io_jobs, ios)
 		, m_disk_cache(block_size, ios, std::bind(&disk_io_thread::trigger_cache_trim, this))
 		, m_stats_counters(cnt)
@@ -3045,11 +3045,11 @@ namespace libtorrent
 		return false;
 	}
 
-	void disk_io_thread::thread_fun(thread_type_t type
-		, io_service::work w)
+	void disk_io_thread::thread_fun(bool const first_thread, job_queue& queue
+		, disk_io_thread_pool& pool)
 	{
-		std::thread::id thread_id = std::this_thread::get_id();
 #if DEBUG_DISK_THREAD
+		std::thread::id thread_id = std::this_thread::get_id();
 		std::stringstream thread_id_str;
 		thread_id_str << thread_id;
 #endif
@@ -3065,24 +3065,14 @@ namespace libtorrent
 		for (;;)
 		{
 			disk_io_job* j = nullptr;
-			if (type == thread_type_t::generic)
-			{
-				bool const should_exit = wait_for_job(m_generic_io_jobs, m_generic_threads, l);
-				if (should_exit) break;
-				j = m_generic_io_jobs.m_queued_jobs.pop_front();
-			}
-			else if (type == thread_type_t::hasher)
-			{
-				bool const should_exit = wait_for_job(m_hash_io_jobs, m_hash_threads, l);
-				if (should_exit) break;
-				j = m_hash_io_jobs.m_queued_jobs.pop_front();
-			}
-
+			bool const should_exit = wait_for_job(queue, pool, l);
+			if (should_exit) break;
+			j = queue.m_queued_jobs.pop_front();
 			l.unlock();
 
 			TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
 
-			if (thread_id == m_generic_threads.first_thread_id() && type == thread_type_t::generic)
+			if (first_thread && &pool == &m_generic_threads)
 			{
 				// there's no need for all threads to be doing this
 				maybe_flush_write_blocks();
@@ -3147,11 +3137,6 @@ namespace libtorrent
 		TORRENT_ASSERT(m_magic == 0x1337);
 
 		COMPLETE_ASYNC("disk_io_thread::work");
-
-		// w's dtor releases the io_service to allow the run() call to return
-		// we do this once we stop posting new callbacks to it.
-		// after the dtor has been called, the disk_io_thread object may be destructed
-		TORRENT_UNUSED(w);
 	}
 
 	void disk_io_thread::abort_jobs()
