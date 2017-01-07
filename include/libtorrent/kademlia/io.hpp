@@ -47,6 +47,9 @@ namespace libtorrent { namespace dht {
 	template<class InIt>
 	node_endpoint read_node_endpoint(udp protocol, InIt&& in)
 	{
+#if !TORRENT_USE_IPV6
+		TORRENT_UNUSED(protocol);
+#endif
 		node_endpoint ep;
 		std::copy(in, in + 20, ep.id.begin());
 		in += 20;

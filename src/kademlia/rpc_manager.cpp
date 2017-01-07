@@ -160,7 +160,11 @@ rpc_manager::rpc_manager(node_id const& our_id
 	, m_our_id(our_id)
 	, m_allocated_observers(0)
 	, m_destructing(false)
-{}
+{
+#ifdef TORRENT_DISABLE_LOGGING
+	TORRENT_UNUSED(log);
+#endif
+}
 
 rpc_manager::~rpc_manager()
 {
