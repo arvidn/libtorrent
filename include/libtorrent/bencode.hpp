@@ -86,9 +86,12 @@ namespace libtorrent
 
 	namespace detail
 	{
-		template <class OutIt>
-		int write_integer(OutIt& out, entry::integer_type val)
+		template <class OutIt, class In, typename Cond
+			= typename std::enable_if<std::is_integral<In>::value>::type>
+		int write_integer(OutIt& out, In data)
 		{
+			entry::integer_type val = entry::integer_type(data);
+			TORRENT_ASSERT(data == In(val));
 			// the stack allocated buffer for keeping the
 			// decimal representation of the number can
 			// not hold number bigger than this:
@@ -163,7 +166,7 @@ namespace libtorrent
 				ret += 2;
 				break;
 			case entry::string_t:
-				ret += write_integer(out, entry::integer_type(e.string().length()));
+				ret += write_integer(out, e.string().length());
 				write_char(out, ':');
 				ret += write_string(e.string(), out);
 				ret += 1;
@@ -181,7 +184,7 @@ namespace libtorrent
 					i != e.dict().end(); ++i)
 				{
 					// write key
-					ret += write_integer(out, entry::integer_type(i->first.length()));
+					ret += write_integer(out, i->first.length());
 					write_char(out, ':');
 					ret += write_string(i->first, out);
 					// write value
@@ -328,6 +331,7 @@ namespace libtorrent
 			// ----------------------------------------------
 			// string
 			default:
+				static_assert(sizeof(*in) == 1, "Input iterator to 8 bit data required");
 				if (is_digit(char(*in)))
 				{
 					std::string len_s = read_until(in, end, ':', err);
