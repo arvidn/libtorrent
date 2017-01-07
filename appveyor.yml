@@ -130,9 +130,9 @@ build_script:
 test_script:
 - cd %ROOT_DIRECTORY%\test
 - if defined x64 (
-  b2.exe --hash -j2 address-model=64 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags% include=%include%
+  appveyor-retry b2.exe --hash -j2 address-model=64 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags% include=%include%
   ) else (
-  b2.exe --hash -j2 address-model=32 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags% include=%include%
+  appveyor-retry b2.exe --hash -j2 address-model=32 win-tests %compiler% variant=%variant% link=shared linkflags=%linkflags% include=%include%
   )
 - if defined sim (
   cd %ROOT_DIRECTORY%\simulation
