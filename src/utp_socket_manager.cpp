@@ -270,10 +270,9 @@ namespace libtorrent
 	{
 		// flush all deferred acks
 
-		static socket_vector_t temp_sockets;
-
 		if (!m_deferred_acks.empty())
 		{
+			static socket_vector_t temp_sockets;
 			temp_sockets.clear();
 			m_deferred_acks.swap(temp_sockets);
 			for (auto const &s : temp_sockets)
@@ -284,6 +283,7 @@ namespace libtorrent
 
 		if (!m_drained_event.empty())
 		{
+			static socket_vector_t temp_sockets;
 			temp_sockets.clear();
 			m_drained_event.swap(temp_sockets);
 			for (auto const &s : temp_sockets)
