@@ -1,3 +1,4 @@
+	* fix division by zero when setting tick_interval > 1000
 	* fix move_storage() to its own directory (would delete the files)
 	* fix socks5 support for UDP
 	* add setting urlseed_max_request_bytes to handle large web seed requests

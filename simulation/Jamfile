@@ -34,6 +34,7 @@ alias libtorrent-sims :
 	[ run test_auto_manage.cpp ]
 	[ run test_torrent_status.cpp ]
 	[ run test_swarm.cpp ]
+	[ run test_session.cpp ]
 	[ run test_super_seeding.cpp ]
 	[ run test_utp.cpp ]
 	[ run test_dht.cpp ]
