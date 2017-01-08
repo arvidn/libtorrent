@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/sliding_average.hpp"
+#include "libtorrent/aux_/vector.hpp"
 
 namespace libtorrent { namespace aux {
 
@@ -61,7 +62,7 @@ struct suggest_piece
 		// back and then reverse the items we put there.
 		for (int i = int(m_priority_pieces.size()) - 1; i >= 0; --i)
 		{
-			piece_index_t const piece = m_priority_pieces[std::size_t(i)];
+			piece_index_t const piece = m_priority_pieces[i];
 			if (bits.get_bit(piece)) continue;
 			if (std::any_of(p.begin(), p.end() - ret
 				, [piece](piece_index_t pi) { return pi == piece; }))
@@ -117,7 +118,7 @@ private:
 	// read from disk (and are likely in our read cache).
 	// pieces closer to the end were inserted into the cache more recently and
 	// have higher priority
-	std::vector<piece_index_t> m_priority_pieces;
+	vector<piece_index_t, int> m_priority_pieces;
 
 	sliding_average<30> m_availability;
 };

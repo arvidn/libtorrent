@@ -39,11 +39,22 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace aux {
 
+	template <typename IndexType>
+	struct vector_index_t
+	{
+		using type = typename IndexType::underlying_type;
+	};
+
+	template <> struct vector_index_t<std::int8_t> { using type = std::int8_t; };
+	template <> struct vector_index_t<std::int16_t> { using type = std::int16_t; };
+	template <> struct vector_index_t<std::int32_t> { using type = std::int32_t; };
+	template <> struct vector_index_t<std::int64_t> { using type = std::int64_t; };
+
 	template <typename T, typename IndexType>
 	struct vector : std::vector<T>
 	{
 		using base = std::vector<T>;
-		using underlying_index = typename IndexType::underlying_type;
+		using underlying_index = typename vector_index_t<IndexType>::type;
 
 		// pull in constructors from base class
 		using base::base;
@@ -78,19 +89,18 @@ namespace libtorrent { namespace aux {
 	iterator_range<T*> range(vector<T, IndexType>& vec
 		, IndexType begin, IndexType end)
 	{
-		using type = typename IndexType::underlying_type;
-		return { vec.data() + static_cast<type>(begin), vec.data() + static_cast<type>(end) };
+		using type = typename vector_index_t<IndexType>::type;
+		return {vec.data() + static_cast<type>(begin), vec.data() + static_cast<type>(end)};
 	}
 
 	template <typename T, typename IndexType>
 	iterator_range<T const*> range(vector<T, IndexType> const& vec
 		, IndexType begin, IndexType end)
 	{
-		using type = typename IndexType::underlying_type;
-		return { vec.data() + static_cast<type>(begin), vec.data() + static_cast<type>(end) };
+		using type = typename vector_index_t<IndexType>::type;
+		return {vec.data() + static_cast<type>(begin), vec.data() + static_cast<type>(end)};
 	}
 
 }}
 
 #endif
-
