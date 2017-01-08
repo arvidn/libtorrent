@@ -260,13 +260,9 @@ namespace libtorrent
 
 		while (!m_stalled_sockets.empty())
 		{
-			// static storage used for saving cpu time on "push_back"
-			// by using already pre-allocated vectors
-			static socket_vector_t stalled_sockets;
-
-			stalled_sockets.clear();
-			m_stalled_sockets.swap(stalled_sockets);
-			for (auto const &s : stalled_sockets)
+			m_writable_temp.clear();
+			m_stalled_sockets.swap(m_writable_temp);
+			for (auto const &s : m_writable_temp)
 			{
 				utp_writable(s);
 			}
@@ -281,15 +277,11 @@ namespace libtorrent
 
 		// flush all deferred acks
 
-		// static storage used for saving cpu time on "push_back"
-		// by using already pre-allocated vectors
-		static socket_vector_t temp_sockets;
-
 		while (!m_deferred_acks.empty())
 		{
-			temp_sockets.clear();
-			m_deferred_acks.swap(temp_sockets);
-			for (auto const &s : temp_sockets)
+			m_socket_drained_temp.clear();
+			m_deferred_acks.swap(m_socket_drained_temp);
+			for (auto const &s : m_socket_drained_temp)
 			{
 				utp_send_ack(s);
 			}
@@ -297,9 +289,9 @@ namespace libtorrent
 
 		while (!m_drained_event.empty())
 		{
-			temp_sockets.clear();
-			m_drained_event.swap(temp_sockets);
-			for (auto const &s : temp_sockets)
+			m_socket_drained_temp.clear();
+			m_drained_event.swap(m_socket_drained_temp);
+			for (auto const &s : m_socket_drained_temp)
 			{
 				utp_socket_drained(s);
 			}

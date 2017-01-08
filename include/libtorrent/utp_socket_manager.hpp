@@ -138,6 +138,11 @@ namespace libtorrent
 		// an ack for every single packet
 		socket_vector_t m_deferred_acks;
 
+		// storage used for saving cpu time on "push_back"
+		// by using already pre-allocated vectors
+		socket_vector_t m_socket_drained_temp;
+
+		// prevents reentrant loop
 		bool m_in_socket_drained = false;
 
 		// sockets that have received or sent packets this
@@ -152,6 +157,7 @@ namespace libtorrent
 		// becomes writable again
 		socket_vector_t m_stalled_sockets;
 
+		socket_vector_t m_writable_temp;
 		bool m_in_writable = false;
 
 		// the last socket we received a packet on
