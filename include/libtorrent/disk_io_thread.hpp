@@ -387,7 +387,7 @@ namespace libtorrent
 
 		struct job_queue : pool_thread_interface
 		{
-			job_queue(disk_io_thread& owner) : m_owner(owner) {}
+			explicit job_queue(disk_io_thread& owner) : m_owner(owner) {}
 
 			virtual void notify_all() override
 			{
