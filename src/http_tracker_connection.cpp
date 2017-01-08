@@ -519,8 +519,8 @@ namespace libtorrent
 		}
 		else if (peers_ent && peers_ent.type() == bdecode_node::list_t)
 		{
-			int len = peers_ent.list_size();
-			resp.peers.reserve(len);
+			int const len = peers_ent.list_size();
+			resp.peers.reserve(std::size_t(len));
 			error_code parse_error;
 			for (int i = 0; i < len; ++i)
 			{
