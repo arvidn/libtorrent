@@ -123,11 +123,11 @@ void test_interval(int interval)
 	{
 		// make sure the interval is within 500 ms of what it's supposed to be
 		// (this accounts for network latencies)
-		int const actual_interval_ms = duration_cast<lt::milliseconds>(announces[i] - last_announce).count();
+		std::int64_t const actual_interval_ms = duration_cast<lt::milliseconds>(announces[i] - last_announce).count();
 		TEST_CHECK(abs(actual_interval_ms - interval * 1000) < 500);
 		last_announce = announces[i];
 
-		int const alert_interval_ms = duration_cast<lt::milliseconds>(announce_alerts[i] - last_alert).count();
+		std::int64_t const alert_interval_ms = duration_cast<lt::milliseconds>(announce_alerts[i] - last_alert).count();
 		TEST_CHECK(abs(alert_interval_ms - interval * 1000) < 500);
 		last_alert = announce_alerts[i];
 	}
