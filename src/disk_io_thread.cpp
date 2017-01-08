@@ -3045,11 +3045,11 @@ namespace libtorrent
 		return false;
 	}
 
-	void disk_io_thread::thread_fun(bool const first_thread, job_queue& queue
+	void disk_io_thread::thread_fun(job_queue& queue
 		, disk_io_thread_pool& pool)
 	{
+		std::thread::id const thread_id = std::this_thread::get_id();
 #if DEBUG_DISK_THREAD
-		std::thread::id thread_id = std::this_thread::get_id();
 		std::stringstream thread_id_str;
 		thread_id_str << thread_id;
 #endif
@@ -3072,7 +3072,7 @@ namespace libtorrent
 
 			TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
 
-			if (first_thread && &pool == &m_generic_threads)
+			if (&pool == &m_generic_threads && thread_id == pool.first_thread_id())
 			{
 				// there's no need for all threads to be doing this
 				maybe_flush_write_blocks();

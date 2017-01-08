@@ -394,10 +394,9 @@ namespace libtorrent
 				m_job_cond.notify_all();
 			}
 
-			void thread_fun(bool const first_thread, disk_io_thread_pool& pool
-				, io_service::work work) override
+			void thread_fun(disk_io_thread_pool& pool, io_service::work work) override
 			{
-				m_owner.thread_fun(first_thread, *this, pool);
+				m_owner.thread_fun(*this, pool);
 
 				// w's dtor releases the io_service to allow the run() call to return
 				// we do this once we stop posting new callbacks to it.
@@ -415,7 +414,7 @@ namespace libtorrent
 			jobqueue_t m_queued_jobs;
 		};
 
-		void thread_fun(bool, job_queue& queue, disk_io_thread_pool& pool);
+		void thread_fun(job_queue& queue, disk_io_thread_pool& pool);
 
 		// returns true if the thread should exit
 		static bool wait_for_job(job_queue& jobq, disk_io_thread_pool& threads
