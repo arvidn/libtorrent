@@ -1349,6 +1349,37 @@ void delete_dirs(std::string path)
 	TEST_CHECK(!exists(path));
 }
 
+TORRENT_TEST(move_storage_to_self)
+{
+	// call move_storage with the path to the exising storage. should be a no-op
+	std::string const save_path = current_working_directory();
+	std::string const test_path = combine_path(save_path, "temp_storage");
+	delete_dirs(test_path);
+
+	aux::session_settings set;
+	file_storage fs;
+	std::vector<char> buf;
+	file_pool fp;
+	io_service ios;
+	disk_buffer_pool dp(16 * 1024, ios, std::bind(&nop));
+	std::shared_ptr<default_storage> s = setup_torrent(fs, fp, buf, save_path, set);
+
+	file::iovec_t const b = {&buf[0], 4};
+	storage_error se;
+	s->writev(b, piece_index_t(1), 0, 0, se);
+
+	TEST_CHECK(exists(combine_path(test_path, combine_path("folder2", "test3.tmp"))));
+	TEST_CHECK(exists(combine_path(test_path, combine_path("_folder3", "test4.tmp"))));
+
+	s->move_storage(save_path, 0, se);
+	TEST_EQUAL(se.ec, boost::system::errc::success);
+
+	TEST_CHECK(exists(test_path));
+
+	TEST_CHECK(exists(combine_path(test_path, combine_path("folder2", "test3.tmp"))));
+	TEST_CHECK(exists(combine_path(test_path, combine_path("_folder3", "test4.tmp"))));
+}
+
 TORRENT_TEST(move_storage_into_self)
 {
 	std::string const save_path = current_working_directory();

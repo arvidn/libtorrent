@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "utils.hpp"
 #include "create_torrent.hpp"
 #include "simulator/simulator.hpp"
-#include "simulator/utils.hpp"
+#include "simulator/utils.hpp" // for timer
 #include <iostream>
 
 using namespace sim;

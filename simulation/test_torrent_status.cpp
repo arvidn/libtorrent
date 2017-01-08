@@ -45,6 +45,7 @@ TORRENT_TEST(status_timers)
 {
 	lt::time_point start_time;
 	lt::torrent_handle handle;
+	bool ran_to_completion = false;
 
 	setup_swarm(1, swarm_test::upload
 		// add session
@@ -69,12 +70,15 @@ TORRENT_TEST(status_timers)
 			// represent about 18 hours. The clock steps forward in 4 hour increments
 			// to stay within that range
 			if (ticks > 20 * 60 * 60)
+			{
+				ran_to_completion = true;
 				return true;
+			}
 
 			// once an hour, verify that the timers seem correct
 			if ((ticks % 3600) == 0)
 			{
-				lt::time_point now = lt::clock_type::now();
+				lt::time_point const now = lt::clock_type::now();
 				auto const since_start = duration_cast<seconds>(now - start_time) - lt::seconds(1);
 				torrent_status st = handle.status();
 				TEST_CHECK(st.active_duration == since_start);
@@ -94,9 +98,9 @@ TORRENT_TEST(status_timers)
 					TEST_CHECK(st.last_download == start_time + lt::seconds(1));
 				}
 			}
-
 			return false;
 		});
+	TEST_CHECK(ran_to_completion);
 }
 
 // This test makes sure that adding a torrent causes no torrent related alert to

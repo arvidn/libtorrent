@@ -5325,14 +5325,14 @@ namespace libtorrent
 
 		if (channel == download_channel)
 		{
-			return (std::max)((std::max)(m_outstanding_bytes
+			return std::max((std::max)(m_outstanding_bytes
 				, m_recv_buffer.packet_bytes_remaining()) + 30
 				, int(std::int64_t(m_statistics.download_rate()) * 2
-					/ (1000 / tick_interval)));
+					* tick_interval / 1000));
 		}
 		else
 		{
-			return (std::max)((std::max)(m_reading_bytes
+			return std::max((std::max)(m_reading_bytes
 				, m_send_buffer.size())
 				, int((std::int64_t(m_statistics.upload_rate()) * 2
 					* tick_interval) / 1000));

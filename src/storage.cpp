@@ -998,6 +998,10 @@ namespace libtorrent
 		print_open_files("release files", m_files.name().c_str());
 #endif
 
+		// indices of all files we ended up copying. These need to be deleted
+		// later
+		aux::vector<bool, file_index_t> copied_files(f.num_files(), false);
+
 		file_index_t i;
 		error_code e;
 		for (i = file_index_t(0); i < f.end_file(); ++i)
@@ -1018,10 +1022,22 @@ namespace libtorrent
 			// volumes, the source should not be deleted until they've all been
 			// copied. That would let us rollback with higher confidence.
 			move_file(old_path, new_path, e);
+
 			// if the source file doesn't exist. That's not a problem
 			// we just ignore that file
 			if (e == boost::system::errc::no_such_file_or_directory)
 				e.clear();
+			else if (e
+				&& e != boost::system::errc::invalid_argument
+				&& e != boost::system::errc::permission_denied)
+			{
+				// moving the file failed
+				// on OSX, the error when trying to rename a file across different
+				// volumes is EXDEV, which will make it fall back to copying.
+				e.clear();
+				copy_file(old_path, new_path, e);
+				if (!e) copied_files[i] = true;
+			}
 
 			if (e)
 			{
@@ -1051,15 +1067,16 @@ namespace libtorrent
 				// files moved out to absolute paths are not moved
 				if (f.file_absolute_path(i)) continue;
 
+				// if we ended up copying the file, don't do anything during
+				// roll-back
+				if (copied_files[i]) continue;
+
 				std::string const old_path = combine_path(m_save_path, f.file_path(i));
 				std::string const new_path = combine_path(save_path, f.file_path(i));
 
-				if (!exists(old_path))
-				{
-					// ignore errors when rolling back
-					error_code ignore;
-					move_file(new_path, old_path, ignore);
-				}
+				// ignore errors when rolling back
+				error_code ignore;
+				move_file(new_path, old_path, ignore);
 			}
 
 			return status_t::fatal_disk_error;
@@ -1076,6 +1093,10 @@ namespace libtorrent
 
 			if (has_parent_path(f.file_path(i)))
 				subdirs.insert(parent_path(f.file_path(i)));
+
+			// if we ended up renaming the file instead of moving it, there's no
+			// need to delete the source.
+			if (copied_files[i] == false) continue;
 
 			std::string const old_path = combine_path(old_save_path, f.file_path(i));
 

@@ -59,29 +59,31 @@ void test_interval(int interval)
 	sim::simulation sim{network_cfg};
 
 	lt::time_point start = lt::clock_type::now();
+	bool ran_to_completion = false;
 
 	sim::asio::io_service web_server(sim, address_v4::from_string("2.2.2.2"));
 	// listen on port 8080
 	sim::http_server http(web_server, 8080);
 
-	// the timestamps (in seconds) of all announces
-	std::vector<int> announces;
+	// the timestamps of all announces
+	std::vector<lt::time_point> announces;
 
 	http.register_handler("/announce"
-		, [&announces,interval,start](std::string /* method */
+		, [&announces,interval,start,&ran_to_completion](std::string /* method */
 			, std::string /* req */
-			, std::map<std::string, std::string>&)
+		, std::map<std::string, std::string>&)
 	{
-		std::uint32_t const seconds = std::uint32_t(chrono::duration_cast<lt::seconds>(
-			lt::clock_type::now() - start).count());
-		announces.push_back(seconds);
+		// don't collect events once we're done. We're not interested in the
+		// tracker stopped announce for instance
+		if (!ran_to_completion)
+			announces.push_back(lt::clock_type::now());
 
 		char response[500];
 		int const size = std::snprintf(response, sizeof(response), "d8:intervali%de5:peers0:e", interval);
 		return sim::send_response(200, "OK", size) + response;
 	});
 
-	std::vector<int> announce_alerts;
+	std::vector<lt::time_point> announce_alerts;
 
 	lt::settings_pack default_settings = settings();
 	lt::add_torrent_params default_add_torrent;
@@ -96,26 +98,38 @@ void test_interval(int interval)
 		// on alert
 		, [&](lt::alert const* a, lt::session&) {
 
+			if (ran_to_completion) return;
 			if (lt::alert_cast<lt::tracker_announce_alert>(a))
 			{
-				std::uint32_t const seconds = std::uint32_t(chrono::duration_cast<lt::seconds>(
-					a->timestamp() - start).count());
-
-				announce_alerts.push_back(seconds);
+				announce_alerts.push_back(a->timestamp());
 			}
 		}
 		// terminate
-		, [](int const ticks, lt::session&) -> bool { return ticks > duration; });
+		, [&](int const ticks, lt::session& ses) -> bool {
+			if (ticks > duration + 1)
+			{
+				ran_to_completion = true;
+				return true;
+			}
+			return false;
+		});
 
+	TEST_CHECK(ran_to_completion);
 	TEST_EQUAL(announce_alerts.size(), announces.size());
 
-	int counter = 0;
-	for (int i = 0; i < int(announces.size()); ++i)
+	lt::time_point last_announce = announces[0];
+	lt::time_point last_alert = announce_alerts[0];
+	for (int i = 1; i < int(announces.size()); ++i)
 	{
-		TEST_EQUAL(announces[i], counter);
-		TEST_EQUAL(announce_alerts[i], counter);
-		counter += interval;
-		if (counter > duration + 1) counter = duration + 1;
+		// make sure the interval is within 500 ms of what it's supposed to be
+		// (this accounts for network latencies)
+		int const actual_interval_ms = duration_cast<lt::milliseconds>(announces[i] - last_announce).count();
+		TEST_CHECK(abs(actual_interval_ms - interval * 1000) < 500);
+		last_announce = announces[i];
+
+		int const alert_interval_ms = duration_cast<lt::milliseconds>(announce_alerts[i] - last_alert).count();
+		TEST_CHECK(abs(alert_interval_ms - interval * 1000) < 500);
+		last_alert = announce_alerts[i];
 	}
 }
 
