@@ -255,24 +255,38 @@ namespace libtorrent
 
 	void utp_socket_manager::writable()
 	{
-		if (m_stalled_sockets.empty()) return;
+		if (m_in_writable) return;
+		m_in_writable = true;
 
-		static socket_vector_t stalled_sockets;
-		stalled_sockets.clear();
-		m_stalled_sockets.swap(stalled_sockets);
-		for (auto const &s : stalled_sockets)
+		while (!m_stalled_sockets.empty())
 		{
-			utp_writable(s);
+			// static storage used for saving cpu time on "push_back"
+			// by using already pre-allocated vectors
+			static socket_vector_t stalled_sockets;
+
+			stalled_sockets.clear();
+			m_stalled_sockets.swap(stalled_sockets);
+			for (auto const &s : stalled_sockets)
+			{
+				utp_writable(s);
+			}
 		}
+		m_in_writable = false;
 	}
 
 	void utp_socket_manager::socket_drained()
 	{
+		if (m_in_socket_drained) return;
+		m_in_socket_drained = true;
+
 		// flush all deferred acks
 
-		if (!m_deferred_acks.empty())
+		// static storage used for saving cpu time on "push_back"
+		// by using already pre-allocated vectors
+		static socket_vector_t temp_sockets;
+
+		while (!m_deferred_acks.empty())
 		{
-			static socket_vector_t temp_sockets;
 			temp_sockets.clear();
 			m_deferred_acks.swap(temp_sockets);
 			for (auto const &s : temp_sockets)
@@ -281,9 +295,8 @@ namespace libtorrent
 			}
 		}
 
-		if (!m_drained_event.empty())
+		while (!m_drained_event.empty())
 		{
-			static socket_vector_t temp_sockets;
 			temp_sockets.clear();
 			m_drained_event.swap(temp_sockets);
 			for (auto const &s : temp_sockets)
@@ -291,6 +304,7 @@ namespace libtorrent
 				utp_socket_drained(s);
 			}
 		}
+		m_in_socket_drained = false;
 	}
 
 	void utp_socket_manager::defer_ack(utp_socket_impl* s)

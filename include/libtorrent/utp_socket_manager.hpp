@@ -138,6 +138,8 @@ namespace libtorrent
 		// an ack for every single packet
 		socket_vector_t m_deferred_acks;
 
+		bool m_in_socket_drained = false;
+
 		// sockets that have received or sent packets this
 		// round, may subscribe to the event of draining the
 		// UDP socket. At that point they may call the
@@ -149,6 +151,8 @@ namespace libtorrent
 		// underlying socket. They are notified when the socket
 		// becomes writable again
 		socket_vector_t m_stalled_sockets;
+
+		bool m_in_writable = false;
 
 		// the last socket we received a packet on
 		utp_socket_impl* m_last_socket = nullptr;
