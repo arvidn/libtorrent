@@ -255,48 +255,40 @@ namespace libtorrent
 
 	void utp_socket_manager::writable()
 	{
-		if (m_in_writable) return;
-		m_in_writable = true;
-
-		while (!m_stalled_sockets.empty())
+		if (!m_stalled_sockets.empty())
 		{
-			m_writable_temp.clear();
-			m_stalled_sockets.swap(m_writable_temp);
-			for (auto const &s : m_writable_temp)
+			m_temp_sockets.clear();
+			m_stalled_sockets.swap(m_temp_sockets);
+			for (auto const &s : m_temp_sockets)
 			{
 				utp_writable(s);
 			}
 		}
-		m_in_writable = false;
 	}
 
 	void utp_socket_manager::socket_drained()
 	{
-		if (m_in_socket_drained) return;
-		m_in_socket_drained = true;
-
 		// flush all deferred acks
 
-		while (!m_deferred_acks.empty())
+		if (!m_deferred_acks.empty())
 		{
-			m_socket_drained_temp.clear();
-			m_deferred_acks.swap(m_socket_drained_temp);
-			for (auto const &s : m_socket_drained_temp)
+			m_temp_sockets.clear();
+			m_deferred_acks.swap(m_temp_sockets);
+			for (auto const &s : m_temp_sockets)
 			{
 				utp_send_ack(s);
 			}
 		}
 
-		while (!m_drained_event.empty())
+		if (!m_drained_event.empty())
 		{
-			m_socket_drained_temp.clear();
-			m_drained_event.swap(m_socket_drained_temp);
-			for (auto const &s : m_socket_drained_temp)
+			m_temp_sockets.clear();
+			m_drained_event.swap(m_temp_sockets);
+			for (auto const &s : m_temp_sockets)
 			{
 				utp_socket_drained(s);
 			}
 		}
-		m_in_socket_drained = false;
 	}
 
 	void utp_socket_manager::defer_ack(utp_socket_impl* s)
