@@ -96,6 +96,7 @@ namespace libtorrent
 			// decimal representation of the number can
 			// not hold number bigger than this:
 			static_assert(sizeof(entry::integer_type) <= 8, "64 bit integers required");
+			static_assert(sizeof(data) <= sizeof(entry::integer_type), "input data too big, see entry::integer_type");
 			char buf[21];
 			int ret = 0;
 			for (char const* str = integer_to_str(buf, 21, val);
