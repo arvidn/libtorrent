@@ -305,16 +305,9 @@ namespace libtorrent
 
 		handle_type native_handle() const { return m_file_handle; }
 
-#ifdef TORRENT_DISK_STATS
-		std::uint32_t file_id() const { return m_file_id; }
-#endif
-
 	private:
 
 		handle_type m_file_handle;
-#ifdef TORRENT_DISK_STATS
-		std::uint32_t m_file_id;
-#endif
 
 		int m_open_mode;
 #if defined TORRENT_WINDOWS

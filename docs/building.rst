@@ -534,10 +534,6 @@ defines you can use to control the build.
 |                                        | checks in the storage, including logging of     |
 |                                        | piece sorting.                                  |
 +----------------------------------------+-------------------------------------------------+
-| ``TORRENT_DISK_STATS``                 | This will create a log of all disk activity     |
-|                                        | which later can parsed and graphed using        |
-|                                        | ``parse_disk_log.py``.                          |
-+----------------------------------------+-------------------------------------------------+
 | ``UNICODE``                            | If building on windows this will make sure the  |
 |                                        | UTF-8 strings in pathnames are converted into   |
 |                                        | UTF-16 before they are passed to the file       |

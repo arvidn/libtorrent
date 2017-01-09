@@ -380,33 +380,6 @@ preprocessor symbols when building.
 There are also a number of scripts that parses the log files and generates graphs (requires
 gnuplot and python).
 
-disk metrics
-------------
-
-To enable disk I/O instrumentation, define ``TORRENT_DISK_STATS`` when building. When built
-with this configuration libtorrent will create three log files, measuring various aspects of
-the disk I/O. The following table is an overview of these files and what they measure.
-
-+--------------------------+--------------------------------------------------------------+
-| filename                 | description                                                  |
-+==========================+==============================================================+
-| ``file_access.log``      | This is a low level log of read and write operations, with   |
-|                          | timestamps and file offsets. The file offsets are byte       |
-|                          | offsets in the torrent (not in any particular file, in the   |
-|                          | case of a multi-file torrent). This can be used as an        |
-|                          | estimate of the physical drive location. The purpose of      |
-|                          | this log is to identify the amount of seeking the drive has  |
-|                          | to do.                                                       |
-|                          |                                                              |
-+--------------------------+--------------------------------------------------------------+
-
-file_access.log
-'''''''''''''''
-
-The disk access log is a binary file that can be parsed and converted to human
-readable by the script ``tools/parse_access_log.py``. This tool produces a
-graphical representation of the disk access and requires ``gnuplot``.
-
 understanding the disk threads
 ==============================
 

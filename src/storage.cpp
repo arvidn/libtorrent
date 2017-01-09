@@ -167,49 +167,6 @@ namespace libtorrent
 	}
 #endif
 
-#ifdef TORRENT_DISK_STATS
-	static std::atomic<int> event_id;
-	static std::mutex disk_access_mutex;
-
-	// this is opened and closed by the disk_io_thread class
-	FILE* g_access_log = nullptr;
-
-	enum access_log_flags_t
-	{
-		op_read = 0,
-		op_write = 1,
-		op_start = 0,
-		op_end = 2
-	};
-
-	void write_access_log(std::uint64_t offset, std::uint32_t fileid, int flags, time_point timestamp)
-	{
-		if (g_access_log == nullptr) return;
-
-		// the event format in the log is:
-		// uint64_t timestamp (microseconds)
-		// uint64_t file offset
-		// uint32_t file-id
-		// uint8_t  event (0: start read, 1: start write, 2: complete read, 4: complete write)
-		char event[29];
-		char* ptr = event;
-		detail::write_uint64(timestamp.time_since_epoch().count(), ptr);
-		detail::write_uint64(offset, ptr);
-		detail::write_uint64(static_cast<std::uint64_t>(event_id++), ptr);
-		detail::write_uint32(fileid, ptr);
-		detail::write_uint8(std::uint8_t(flags), ptr);
-
-		std::unique_lock<std::mutex> l(disk_access_mutex);
-		int const ret = int(fwrite(event, 1, sizeof(event), g_access_log));
-		l.unlock();
-		if (ret != sizeof(event))
-		{
-			std::fprintf(stderr, "ERROR writing to disk access log: (%d) %s\n"
-				, errno, strerror(errno));
-		}
-	}
-#endif
-
 	} // anonymous namespace
 
 	struct write_fileop final : fileop
@@ -266,10 +223,6 @@ namespace libtorrent
 #endif
 				file_offset;
 
-#ifdef TORRENT_DISK_STATS
-			write_access_log(adjusted_offset, handle->file_id(), op_start | op_write, clock_type::now());
-#endif
-
 			error_code e;
 			int const ret = int(handle->writev(adjusted_offset
 				, bufs, e, m_flags));
@@ -280,10 +233,6 @@ namespace libtorrent
 
 				// we either get an error or 0 or more bytes read
 			TORRENT_ASSERT(e || ret >= 0);
-
-#ifdef TORRENT_DISK_STATS
-			write_access_log(adjusted_offset + ret , handle->file_id(), op_end | op_write, clock_type::now());
-#endif
 			TORRENT_ASSERT(ret <= bufs_size(bufs));
 
 			if (e)
@@ -351,10 +300,6 @@ namespace libtorrent
 #endif
 				file_offset;
 
-#ifdef TORRENT_DISK_STATS
-			write_access_log(adjusted_offset, handle->file_id(), op_start | op_read, clock_type::now());
-#endif
-
 			error_code e;
 			int const ret = int(handle->readv(adjusted_offset
 				, bufs, e, m_flags));
@@ -365,10 +310,6 @@ namespace libtorrent
 
 				// we either get an error or 0 or more bytes read
 			TORRENT_ASSERT(e || ret >= 0);
-
-#ifdef TORRENT_DISK_STATS
-			write_access_log(adjusted_offset + ret , handle->file_id(), op_end | op_read, clock_type::now());
-#endif
 			TORRENT_ASSERT(ret <= bufs_size(bufs));
 
 			if (e)
@@ -1314,31 +1255,6 @@ namespace libtorrent
 
 		return false;
 	}
-
-#ifdef TORRENT_DISK_STATS
-	bool default_storage::disk_write_access_log() {
-		return g_access_log != nullptr;
-	}
-
-	void default_storage::disk_write_access_log(bool enable) {
-		if (enable)
-		{
-			if (g_access_log == nullptr)
-			{
-				g_access_log = fopen("file_access.log", "a+");
-			}
-		}
-		else
-		{
-			if (g_access_log != nullptr)
-			{
-				FILE* f = g_access_log;
-				g_access_log = nullptr;
-				fclose(f);
-			}
-		}
-	}
-#endif
 
 	storage_interface* default_storage_constructor(storage_params const& params)
 	{
