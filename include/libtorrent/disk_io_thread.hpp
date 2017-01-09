@@ -351,14 +351,6 @@ namespace libtorrent
 		{ return m_disk_cache.is_disk_buffer(buffer); }
 #endif
 
-		enum class thread_type_t : std::uint8_t
-		{
-			generic,
-			hasher
-		};
-
-		void thread_fun(thread_type_t type, io_service::work w);
-
 		virtual file_pool& files() override { return m_file_pool; }
 
 		int prep_read_job_impl(disk_io_job* j, bool check_fence = true);
@@ -395,20 +387,24 @@ namespace libtorrent
 
 		struct job_queue : pool_thread_interface
 		{
-			job_queue(disk_io_thread& owner, thread_type_t type)
-				: m_owner(owner), m_type(type)
-			{}
+			explicit job_queue(disk_io_thread& owner) : m_owner(owner) {}
 
 			virtual void notify_all() override
 			{
 				m_job_cond.notify_all();
 			}
 
-			virtual void thread_fun(io_service::work work) override
-			{ m_owner.thread_fun(m_type, work); }
+			void thread_fun(disk_io_thread_pool& pool, io_service::work work) override
+			{
+				m_owner.thread_fun(*this, pool);
+
+				// w's dtor releases the io_service to allow the run() call to return
+				// we do this once we stop posting new callbacks to it.
+				// after the dtor has been called, the disk_io_thread object may be destructed
+				TORRENT_UNUSED(work);
+			}
 
 			disk_io_thread& m_owner;
-			thread_type_t const m_type;
 
 			// used to wake up the disk IO thread when there are new
 			// jobs on the job queue (m_queued_jobs)
@@ -417,6 +413,8 @@ namespace libtorrent
 			// jobs queued for servicing
 			jobqueue_t m_queued_jobs;
 		};
+
+		void thread_fun(job_queue& queue, disk_io_thread_pool& pool);
 
 		// returns true if the thread should exit
 		static bool wait_for_job(job_queue& jobq, disk_io_thread_pool& threads
