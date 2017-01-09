@@ -315,7 +315,7 @@ namespace libtorrent
 		// if we're generating a merkle torrent, this is the
 		// merkle tree we got. This should be saved in fast-resume
 		// in order to start seeding the torrent
-		mutable std::vector<sha1_hash> m_merkle_tree;
+		mutable aux::vector<sha1_hash, int> m_merkle_tree;
 
 		// dht nodes to add to the routing table/bootstrap from
 		std::vector<std::pair<std::string, int>> m_nodes;

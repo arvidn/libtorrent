@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/resolver.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/aux_/portmap.hpp"
+#include "libtorrent/aux_/vector.hpp"
 
 #include <memory>
 #include <functional>
@@ -348,7 +349,7 @@ private:
 		std::set<rootdevice> devices;
 	};
 
-	std::vector<global_mapping_t> m_mappings;
+	aux::vector<global_mapping_t, int> m_mappings;
 
 	std::string m_user_agent;
 

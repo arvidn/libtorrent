@@ -1617,7 +1617,7 @@ void upnp::close()
 				continue;
 			}
 			j->act = mapping_t::action::del;
-			m_mappings[j - d.mapping.begin()].protocol = portmap_protocol::none;
+			m_mappings[int(j - d.mapping.begin())].protocol = portmap_protocol::none;
 		}
 		if (num_mappings() > 0) update_map(d, 0);
 	}
