@@ -10554,9 +10554,9 @@ namespace libtorrent
 		st->active_time = active_time();
 		st->seeding_time = seeding_time();
 
-		st->time_since_upload = int(total_seconds(m_last_upload 
+		st->time_since_upload = int(total_seconds(m_last_upload
 			- m_ses.session_start_time()));
-		st->time_since_download = int(total_seconds(m_last_download 
+		st->time_since_download = int(total_seconds(m_last_download
 			- m_ses.session_start_time()));
 #endif
 
