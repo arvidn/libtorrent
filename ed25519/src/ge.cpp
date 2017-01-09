@@ -349,7 +349,7 @@ static unsigned char negative(signed char b) {
     return (unsigned char) x;
 }
 
-static void cmov(ge_precomp *t, ge_precomp *u, unsigned char b) {
+static void cmov(ge_precomp *t, const ge_precomp *u, unsigned char b) {
     fe_cmov(t->yplusx, u->yplusx, b);
     fe_cmov(t->yminusx, u->yminusx, b);
     fe_cmov(t->xy2d, u->xy2d, b);

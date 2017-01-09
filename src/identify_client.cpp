@@ -137,7 +137,7 @@ namespace
 
 	// only support BitTorrentSpecification
 	// must be ordered alphabetically
-	static map_entry name_map[] =
+	static const map_entry name_map[] =
 	{
 		  {"7T", "aTorrent for android"}
 		, {"A",  "ABC"}
@@ -238,12 +238,12 @@ namespace
 
 	struct generic_map_entry
 	{
-		int const offset;
+		int offset;
 		char const* id;
 		char const* name;
 	};
 	// non-standard names
-	static generic_map_entry generic_mappings[] =
+	static const generic_map_entry generic_mappings[] =
 	{
 		{0, "Deadman Walking-", "Deadman"}
 		, {5, "Azureus", "Azureus 2.0.3.2"}
@@ -294,8 +294,8 @@ namespace
 		char identity[200];
 
 		const int size = sizeof(name_map)/sizeof(name_map[0]);
-		map_entry tmp = {f.name, ""};
-		map_entry* i =
+		const map_entry tmp = {f.name, ""};
+		const map_entry* i =
 			std::lower_bound(name_map, name_map + size
 				, tmp, &compare_id);
 
