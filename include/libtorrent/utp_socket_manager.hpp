@@ -106,8 +106,8 @@ namespace libtorrent
 
 		void restrict_mtu(int mtu)
 		{
-			m_restrict_mtu[m_mtu_idx] = mtu;
-			m_mtu_idx = (m_mtu_idx + 1) % m_restrict_mtu.size();
+			m_restrict_mtu[std::size_t(m_mtu_idx)] = mtu;
+			m_mtu_idx = (m_mtu_idx + 1) % int(m_restrict_mtu.size());
 		}
 
 		int restrict_mtu() const

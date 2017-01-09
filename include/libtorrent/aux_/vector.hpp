@@ -35,15 +35,22 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 
+#include "libtorrent/units.hpp"
 #include "libtorrent/assert.hpp"
 
 namespace libtorrent { namespace aux {
+
+	template <typename T>
+	struct underlying_index_t { using type = T; };
+
+	template <typename U, typename Tag>
+	struct underlying_index_t<aux::strong_typedef<U, Tag>> { using type = U; };
 
 	template <typename T, typename IndexType>
 	struct vector : std::vector<T>
 	{
 		using base = std::vector<T>;
-		using underlying_index = typename IndexType::underlying_type;
+		using underlying_index = typename underlying_index_t<IndexType>::type;
 
 		// pull in constructors from base class
 		using base::base;
@@ -52,14 +59,14 @@ namespace libtorrent { namespace aux {
 		{
 			TORRENT_ASSERT(idx >= IndexType(0));
 			TORRENT_ASSERT(idx < end_index());
-			return this->base::operator[](static_cast<underlying_index>(idx));
+			return this->base::operator[](std::size_t(static_cast<underlying_index>(idx)));
 		}
 
 		auto operator[](IndexType idx) -> decltype(this->base::operator[](underlying_index()))
 		{
 			TORRENT_ASSERT(idx >= IndexType(0));
 			TORRENT_ASSERT(idx < end_index());
-			return this->base::operator[](static_cast<underlying_index>(idx));
+			return this->base::operator[](std::size_t(static_cast<underlying_index>(idx)));
 		}
 
 		IndexType end_index() const
@@ -78,19 +85,18 @@ namespace libtorrent { namespace aux {
 	iterator_range<T*> range(vector<T, IndexType>& vec
 		, IndexType begin, IndexType end)
 	{
-		using type = typename IndexType::underlying_type;
-		return { vec.data() + static_cast<type>(begin), vec.data() + static_cast<type>(end) };
+		using type = typename underlying_index_t<IndexType>::type;
+		return {vec.data() + static_cast<type>(begin), vec.data() + static_cast<type>(end)};
 	}
 
 	template <typename T, typename IndexType>
 	iterator_range<T const*> range(vector<T, IndexType> const& vec
 		, IndexType begin, IndexType end)
 	{
-		using type = typename IndexType::underlying_type;
-		return { vec.data() + static_cast<type>(begin), vec.data() + static_cast<type>(end) };
+		using type = typename underlying_index_t<IndexType>::type;
+		return {vec.data() + static_cast<type>(begin), vec.data() + static_cast<type>(end)};
 	}
 
 }}
 
 #endif
-

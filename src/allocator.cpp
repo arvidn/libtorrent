@@ -140,8 +140,8 @@ namespace libtorrent
 #define mprotect(buf, size, prot) VirtualProtect(buf, size, prot, nullptr)
 #define PROT_READ PAGE_READONLY
 #endif
-		mprotect(ret, page, PROT_READ);
-		mprotect(static_cast<char*>(ret) + (num_pages-1) * page, page, PROT_READ);
+		mprotect(ret, std::size_t(page), PROT_READ);
+		mprotect(static_cast<char*>(ret) + (num_pages-1) * page, std::size_t(page), PROT_READ);
 
 #ifdef TORRENT_WINDOWS
 #undef mprotect
@@ -168,11 +168,11 @@ namespace libtorrent
 #endif
 		int const page = page_size();
 		// make the two surrounding pages non-readable and -writable
-		mprotect(block - page, page, PROT_READ | PROT_WRITE);
+		mprotect(block - page, std::size_t(page), PROT_READ | PROT_WRITE);
 		alloc_header* h = reinterpret_cast<alloc_header*>(block - page);
 		int const num_pages = int((h->size + (page - 1)) / page + 2);
 		TORRENT_ASSERT(h->magic == 0x1337);
-		mprotect(block + (num_pages - 2) * page, page, PROT_READ | PROT_WRITE);
+		mprotect(block + (num_pages - 2) * page, std::size_t(page), PROT_READ | PROT_WRITE);
 //		std::fprintf(stderr, "free: %p head: %p tail: %p size: %d\n", block, block - page, block + h->size, int(h->size));
 		h->magic = 0;
 		block -= page;

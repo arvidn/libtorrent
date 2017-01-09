@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/sliding_average.hpp"
+#include "libtorrent/aux_/vector.hpp"
 
 namespace libtorrent { namespace aux {
 
@@ -117,7 +118,7 @@ private:
 	// read from disk (and are likely in our read cache).
 	// pieces closer to the end were inserted into the cache more recently and
 	// have higher priority
-	std::vector<piece_index_t> m_priority_pieces;
+	vector<piece_index_t, int> m_priority_pieces;
 
 	sliding_average<30> m_availability;
 };

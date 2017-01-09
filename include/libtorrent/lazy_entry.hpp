@@ -120,7 +120,7 @@ namespace libtorrent
 		// with memcmp.
 		bool operator<(pascal_string const& rhs) const
 		{
-			return std::memcmp(ptr, rhs.ptr, (std::min)(len, rhs.len)) < 0
+			return std::memcmp(ptr, rhs.ptr, std::size_t((std::min)(len, rhs.len))) < 0
 				|| len < rhs.len;
 		}
 	};
@@ -161,9 +161,9 @@ namespace libtorrent
 			TORRENT_ASSERT(m_type == none_t);
 			m_type = int_t;
 			m_data.start = start;
-			m_size = length;
+			m_size = std::uint32_t(length);
 			m_begin = start - 1; // include 'i'
-			m_len = length + 2; // include 'e'
+			m_len = std::uint32_t(length + 2); // include 'e'
 		}
 
 		// requires the type to be an integer. return the integer value
@@ -321,7 +321,7 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(end > m_begin);
 			TORRENT_ASSERT(end - m_begin < (std::numeric_limits<int>::max)());
-			m_len = int(end - m_begin);
+			m_len = std::uint32_t(end - m_begin);
 		}
 
 		// internal
