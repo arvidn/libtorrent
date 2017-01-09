@@ -207,31 +207,7 @@ namespace libtorrent
 
 	struct file;
 
-#ifdef TORRENT_DEBUG_FILE_LEAKS
-	struct file_handle
-	{
-		file_handle();
-		explicit file_handle(file* f);
-		file_handle(file_handle const& fh);
-		~file_handle();
-		file* operator->();
-		file const* operator->() const;
-		file& operator*();
-		file const& operator*() const;
-		file* get();
-		file const* get() const;
-		explicit operator bool() const;
-		file_handle& reset(file* f = nullptr);
-
-		char stack[2048];
-	private:
-		std::shared_ptr<file> m_file;
-	};
-
-	void TORRENT_EXTRA_EXPORT print_open_files(char const* event, char const* name);
-#else
 	using file_handle = std::shared_ptr<file>;
-#endif
 
 	struct TORRENT_EXTRA_EXPORT file: boost::noncopyable
 	{
@@ -333,10 +309,6 @@ namespace libtorrent
 		std::uint32_t file_id() const { return m_file_id; }
 #endif
 
-#ifdef TORRENT_DEBUG_FILE_LEAKS
-		void print_info(FILE* out) const;
-#endif
-
 	private:
 
 		handle_type m_file_handle;
@@ -347,10 +319,6 @@ namespace libtorrent
 		int m_open_mode;
 #if defined TORRENT_WINDOWS
 		static bool has_manage_volume_privs;
-#endif
-
-#ifdef TORRENT_DEBUG_FILE_LEAKS
-		std::string m_file_path;
 #endif
 	};
 

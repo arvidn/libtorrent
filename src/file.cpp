@@ -73,11 +73,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/max_path.hpp" // for TORRENT_MAX_PATH
 #include <cstring>
 
-#ifdef TORRENT_DEBUG_FILE_LEAKS
-#include <set>
-#include <cstdio>
-#endif
-
 // for convert_to_wstring and convert_to_native
 #include "libtorrent/aux_/escape_string.hpp"
 #include "libtorrent/assert.hpp"
@@ -1361,10 +1356,6 @@ namespace libtorrent
 	{
 		close();
 
-#ifdef TORRENT_DEBUG_FILE_LEAKS
-		m_file_path = path;
-#endif
-
 #ifdef TORRENT_DISK_STATS
 		m_file_id = silly_hash(path);
 #endif
@@ -1542,14 +1533,6 @@ namespace libtorrent
 		TORRENT_ASSERT(is_open());
 		return true;
 	}
-
-#ifdef TORRENT_DEBUG_FILE_LEAKS
-	void file::print_info(FILE* out) const
-	{
-		if (!is_open()) return;
-		std::fprintf(out, "\n===> FILE: %s\n", m_file_path.c_str());
-	}
-#endif
 
 	bool file::is_open() const
 	{
@@ -2221,73 +2204,4 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		return start;
 #endif
 	}
-
-#ifdef TORRENT_DEBUG_FILE_LEAKS
-	std::set<file_handle*> global_file_handles;
-	std::mutex file_handle_mutex;
-
-	file_handle::file_handle()
-	{
-		std::lock_guard<std::mutex> l(file_handle_mutex);
-		global_file_handles.insert(this);
-		stack[0] = 0;
-	}
-	file_handle::file_handle(file* f): m_file(f)
-	{
-		std::lock_guard<std::mutex> l(file_handle_mutex);
-		global_file_handles.insert(this);
-		if (f) print_backtrace(stack, sizeof(stack), 10);
-		else stack[0] = 0;
-	}
-	file_handle::file_handle(file_handle const& fh)
-	{
-		std::lock_guard<std::mutex> l(file_handle_mutex);
-		global_file_handles.insert(this);
-		m_file = fh.m_file;
-		if (m_file) print_backtrace(stack, sizeof(stack), 10);
-		else stack[0] = 0;
-	}
-	file_handle::~file_handle()
-	{
-		std::lock_guard<std::mutex> l(file_handle_mutex);
-		global_file_handles.erase(this);
-		stack[0] = 0;
-	}
-	file* file_handle::operator->() { return m_file.get(); }
-	file const* file_handle::operator->() const { return m_file.get(); }
-	file& file_handle::operator*() { return *m_file.get(); }
-	file const& file_handle::operator*() const { return *m_file.get(); }
-	file* file_handle::get() { return m_file.get(); }
-	file const* file_handle::get() const { return m_file.get(); }
-	file_handle::operator bool() const { return m_file.get(); }
-	file_handle& file_handle::reset(file* f)
-	{
-		std::lock_guard<std::mutex> l(file_handle_mutex);
-		if (f) print_backtrace(stack, sizeof(stack), 10);
-		else stack[0] = 0;
-		l.unlock();
-		m_file.reset(f);
-		return *this;
-	}
-
-	void print_open_files(char const* event, char const* name)
-	{
-		FILE* out = std::fopen("open_files.log", "a+");
-		std::lock_guard<std::mutex> l(file_handle_mutex);
-		std::fprintf(out, "\n\nEVENT: %s TORRENT: %s\n\n", event, name);
-		for (std::set<file_handle*>::iterator i = global_file_handles.begin()
-			, end(global_file_handles.end()); i != end; ++i)
-		{
-			TORRENT_ASSERT(*i != nullptr);
-			if (!*i) continue;
-			file_handle const& h = **i;
-			if (!h) continue;
-
-			if (!h->is_open()) continue;
-			h->print_info(out);
-			std::fprintf(out, "\n%s\n\n", h.stack);
-		}
-		std::fclose(out);
-	}
-#endif
 }
