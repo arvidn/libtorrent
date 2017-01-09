@@ -587,10 +587,6 @@ namespace libtorrent
 
 		// close files that were opened in write mode
 		m_pool.release(storage_index());
-
-#if defined TORRENT_DEBUG_FILE_LEAKS
-		print_open_files("release files", m_files.name().c_str());
-#endif
 	}
 
 	bool default_storage::has_any_file(storage_error& ec)
@@ -651,10 +647,6 @@ namespace libtorrent
 		// valid.
 		if (exists(old_name, ec.ec))
 		{
-#if defined TORRENT_DEBUG_FILE_LEAKS
-			print_open_files("release files", m_files.name().c_str());
-#endif
-
 			std::string new_path;
 			if (is_complete(new_filename)) new_path = new_filename;
 			else new_path = combine_path(m_save_path, new_filename);
@@ -712,10 +704,6 @@ namespace libtorrent
 
 		// make sure we don't have the files open
 		m_pool.release(storage_index());
-
-#if defined TORRENT_DEBUG_FILE_LEAKS
-		print_open_files("release files", m_files.name().c_str());
-#endif
 	}
 
 	void default_storage::delete_one_file(std::string const& p, error_code& ec)
@@ -741,9 +729,6 @@ namespace libtorrent
 		// case
 		if (!m_pool.assert_idle_files(storage_index()))
 		{
-#if defined TORRENT_DEBUG_FILE_LEAKS
-			print_open_files("delete-files idle assert failed", m_files.name().c_str());
-#endif
 			TORRENT_ASSERT_FAIL();
 		}
 #endif
@@ -755,10 +740,6 @@ namespace libtorrent
 		// release the underlying part file. Otherwise we may not be able to
 		// delete it
 		if (m_part_file) m_part_file.reset();
-
-#if defined TORRENT_DEBUG_FILE_LEAKS
-		print_open_files("release files", m_files.name().c_str());
-#endif
 
 		if (options == session::delete_files)
 		{
@@ -823,10 +804,6 @@ namespace libtorrent
 
 		DFLOG(stderr, "[%p] delete_files result: %s\n", static_cast<void*>(this)
 			, ec.ec.message().c_str());
-
-#if defined TORRENT_DEBUG_FILE_LEAKS
-		print_open_files("delete-files done", m_files.name().c_str());
-#endif
 	}
 
 	bool default_storage::verify_resume_data(add_torrent_params const& rd
@@ -993,10 +970,6 @@ namespace libtorrent
 		}
 
 		m_pool.release(storage_index());
-
-#if defined TORRENT_DEBUG_FILE_LEAKS
-		print_open_files("release files", m_files.name().c_str());
-#endif
 
 		// indices of all files we ended up copying. These need to be deleted
 		// later
