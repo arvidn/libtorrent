@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/aux_/portmap.hpp"
+#include "libtorrent/aux_/vector.hpp"
 
 namespace libtorrent
 {
@@ -115,7 +116,7 @@ private:
 
 	aux::portmap_callback& m_callback;
 
-	std::vector<mapping_t> m_mappings;
+	aux::vector<mapping_t, int> m_mappings;
 
 	// the endpoint to the nat router
 	udp::endpoint m_nat_endpoint;

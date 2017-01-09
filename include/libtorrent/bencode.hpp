@@ -90,7 +90,7 @@ namespace libtorrent
 			= typename std::enable_if<std::is_integral<In>::value>::type>
 		int write_integer(OutIt& out, In data)
 		{
-			entry::integer_type const val(data);
+			entry::integer_type const val = entry::integer_type(data);
 			TORRENT_ASSERT(data == In(val));
 			// the stack allocated buffer for keeping the
 			// decimal representation of the number can

@@ -276,12 +276,12 @@ namespace libtorrent
 		for (auto& s : m_unicast_sockets)
 		{
 			if (!s.socket) continue;
-			s.socket->send_to(boost::asio::buffer(buffer, size), m_multicast_endpoint, 0, e);
+			s.socket->send_to(boost::asio::buffer(buffer, std::size_t(size)), m_multicast_endpoint, 0, e);
 
 			// if the user specified the broadcast flag, send one to the broadcast
 			// address as well
 			if ((flags & broadcast_socket::flag_broadcast) && s.can_broadcast())
-				s.socket->send_to(boost::asio::buffer(buffer, size)
+				s.socket->send_to(boost::asio::buffer(buffer, std::size_t(size))
 					, udp::endpoint(s.broadcast_address(), m_multicast_endpoint.port()), 0, e);
 
 			if (e)
@@ -298,7 +298,7 @@ namespace libtorrent
 		for (auto& s : m_sockets)
 		{
 			if (!s.socket) continue;
-			s.socket->send_to(boost::asio::buffer(buffer, size), m_multicast_endpoint, 0, e);
+			s.socket->send_to(boost::asio::buffer(buffer, std::size_t(size)), m_multicast_endpoint, 0, e);
 			if (e)
 			{
 				s.socket->close(e);
