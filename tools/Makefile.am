@@ -13,7 +13,6 @@ EXTRA_DIST = Jamfile     \
   parse_dht_rtt.py       \
   parse_dht_stats.py     \
   parse_disk_buffer_log.py\
-  parse_disk_log.py      \
   parse_memory_log.py    \
   parse_peer_log.py      \
   parse_sample.py        \

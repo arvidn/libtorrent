@@ -426,9 +426,6 @@ feature invariant-checks : off on full : composite propagated link-incompatible 
 feature.compose <invariant-checks>on : <define>TORRENT_USE_INVARIANT_CHECKS=1 ;
 feature.compose <invariant-checks>full : <define>TORRENT_USE_INVARIANT_CHECKS=1 <define>TORRENT_EXPENSIVE_INVARIANT_CHECKS ;
 
-feature disk-stats : off on : composite propagated link-incompatible ;
-feature.compose <disk-stats>on : <define>TORRENT_DISK_STATS ;
-
 feature utp-log : off on : composite propagated link-incompatible ;
 feature.compose <utp-log>on : <define>TORRENT_UTP_LOG_ENABLE ;
 
@@ -494,7 +491,7 @@ variant test_release : release
 	<inlining>on
 	;
 variant test_debug : debug
-	: <logging>on <disk-stats>on
+	: <logging>on
 	<allocator>debug
 	<invariant-checks>full <boost-link>shared
 	<export-extra>on <debug-iterators>on <threading>multi <asserts>on

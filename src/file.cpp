@@ -77,10 +77,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/escape_string.hpp"
 #include "libtorrent/assert.hpp"
 
-#ifdef TORRENT_DISK_STATS
-#include "libtorrent/io.hpp"
-#endif
-
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <sys/stat.h>
@@ -1313,19 +1309,12 @@ namespace libtorrent
 	file::file()
 		: m_file_handle(INVALID_HANDLE_VALUE)
 		, m_open_mode(0)
-	{
-#ifdef TORRENT_DISK_STATS
-		m_file_id = 0;
-#endif
-	}
+	{}
 
 	file::file(std::string const& path, int mode, error_code& ec)
 		: m_file_handle(INVALID_HANDLE_VALUE)
 		, m_open_mode(0)
 	{
-#ifdef TORRENT_DISK_STATS
-		m_file_id = 0;
-#endif
 		// the return value is not important, since the
 		// error code contains the same information
 		open(path, mode, ec);
@@ -1336,29 +1325,9 @@ namespace libtorrent
 		close();
 	}
 
-#ifdef TORRENT_DISK_STATS
-	namespace
-	{
-		std::uint32_t silly_hash(std::string const& str)
-		{
-			std::uint32_t ret = 1;
-			for (auto const ch : str)
-			{
-				if (ch == 0) continue;
-				ret *= std::uint32_t(ch);
-			}
-			return ret;
-		}
-	}
-#endif
-
 	bool file::open(std::string const& path, int mode, error_code& ec)
 	{
 		close();
-
-#ifdef TORRENT_DISK_STATS
-		m_file_id = silly_hash(path);
-#endif
 
 #ifdef TORRENT_WINDOWS
 
@@ -1576,7 +1545,6 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		}
 		else if (ret == FALSE)
 		{
-//			int error = GetLastError();
 			return true;
 		}
 
@@ -1591,10 +1559,6 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 	void file::close()
 	{
-#ifdef TORRENT_DISK_STATS
-		m_file_id = 0;
-#endif
-
 		if (!is_open()) return;
 
 #ifdef TORRENT_WINDOWS
