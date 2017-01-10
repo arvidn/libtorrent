@@ -239,7 +239,7 @@ void run_storage_tests(std::shared_ptr<torrent_info> info
 	int ret = 0;
 
 	// write piece 1 (in slot 0)
-	file::iovec_t iov = { piece1.data(), half};
+	iovec_t iov = { piece1.data(), half};
 	ret = s->writev(iov, piece_index_t(0), 0, 0, ec);
 	if (ret != half) print_error("writev", ret, ec);
 
@@ -341,7 +341,7 @@ void test_remove(std::string const& test_path, bool unbuffered)
 	TEST_CHECK(!exists(combine_path(test_path, combine_path("temp_storage"
 		, combine_path("folder1", "test2.tmp")))));
 
-	file::iovec_t b = {&buf[0], 4};
+	iovec_t b = {&buf[0], 4};
 	storage_error se;
 	s->writev(b, piece_index_t(2), 0, 0, se);
 
@@ -930,7 +930,7 @@ TORRENT_TEST(rename_file_fastresume_deprecated)
 }
 #endif
 
-void alloc_iov(file::iovec_t* iov, int num_bufs)
+void alloc_iov(iovec_t* iov, int num_bufs)
 {
 	for (int i = 0; i < num_bufs; ++i)
 	{
@@ -939,7 +939,7 @@ void alloc_iov(file::iovec_t* iov, int num_bufs)
 	}
 }
 
-void fill_pattern(file::iovec_t* iov, int num_bufs)
+void fill_pattern(iovec_t* iov, int num_bufs)
 {
 	int counter = 0;
 	for (int i = 0; i < num_bufs; ++i)
@@ -964,7 +964,7 @@ bool check_pattern(std::vector<char> const& buf, int counter)
 	return true;
 }
 
-void fill_pattern2(file::iovec_t* iov, int num_bufs)
+void fill_pattern2(iovec_t* iov, int num_bufs)
 {
 	for (int i = 0; i < num_bufs; ++i)
 	{
@@ -973,7 +973,7 @@ void fill_pattern2(file::iovec_t* iov, int num_bufs)
 	}
 }
 
-void free_iov(file::iovec_t* iov, int num_bufs)
+void free_iov(iovec_t* iov, int num_bufs)
 {
 	for (int i = 0; i < num_bufs; ++i)
 	{
@@ -985,8 +985,8 @@ void free_iov(file::iovec_t* iov, int num_bufs)
 
 TORRENT_TEST(iovec_copy_bufs)
 {
-	file::iovec_t iov1[10];
-	file::iovec_t iov2[10];
+	iovec_t iov1[10];
+	iovec_t iov2[10];
 
 	alloc_iov(iov1, 10);
 	fill_pattern(iov1, 10);
@@ -1016,7 +1016,7 @@ TORRENT_TEST(iovec_copy_bufs)
 
 TORRENT_TEST(iovec_clear_bufs)
 {
-	file::iovec_t iov[10];
+	iovec_t iov[10];
 	alloc_iov(iov, 10);
 	fill_pattern(iov, 10);
 
@@ -1034,7 +1034,7 @@ TORRENT_TEST(iovec_clear_bufs)
 
 TORRENT_TEST(iovec_bufs_size)
 {
-	file::iovec_t iov[10];
+	iovec_t iov[10];
 
 	for (int i = 1; i < 10; ++i)
 	{
@@ -1050,14 +1050,14 @@ TORRENT_TEST(iovec_bufs_size)
 
 TORRENT_TEST(iovec_advance_bufs)
 {
-	file::iovec_t iov1[10];
-	file::iovec_t iov2[10];
+	iovec_t iov1[10];
+	iovec_t iov2[10];
 	alloc_iov(iov1, 10);
 	fill_pattern(iov1, 10);
 
 	memcpy(iov2, iov1, sizeof(iov1));
 
-	span<file::iovec_t> iov = iov2;
+	span<iovec_t> iov = iov2;
 
 	// advance iov 13 bytes. Make sure what's left fits pattern 1 shifted
 	// 13 bytes
@@ -1098,7 +1098,7 @@ struct test_fileop : libtorrent::fileop
 	explicit test_fileop(int stripe_size) : m_stripe_size(stripe_size) {}
 
 	int file_op(file_index_t const file_index, std::int64_t const file_offset
-		, span<file::iovec_t const> bufs, storage_error& ec) override
+		, span<iovec_t const> bufs, storage_error& ec) override
 	{
 		size_t offset = size_t(file_offset);
 		if (file_index >= m_file_data.end_index())
@@ -1137,7 +1137,7 @@ struct test_read_fileop : fileop
 	explicit test_read_fileop(int size) : m_size(size), m_counter(0) {}
 
 	int file_op(file_index_t const file_index, std::int64_t const file_offset
-		, span<file::iovec_t const> bufs, storage_error& ec) override
+		, span<iovec_t const> bufs, storage_error& ec) override
 	{
 		int local_size = std::min(m_size, bufs_size(bufs));
 		const int read = local_size;
@@ -1168,7 +1168,7 @@ struct test_error_fileop : fileop
 		: m_error_file(error_file) {}
 
 	int file_op(file_index_t const file_index, std::int64_t const file_offset
-		, span<file::iovec_t const> bufs, storage_error& ec) override
+		, span<iovec_t const> bufs, storage_error& ec) override
 	{
 		if (m_error_file == file_index)
 		{
@@ -1184,12 +1184,12 @@ struct test_error_fileop : fileop
 	file_index_t m_error_file;
 };
 
-int count_bufs(file::iovec_t const* bufs, int bytes)
+int count_bufs(iovec_t const* bufs, int bytes)
 {
 	int size = 0;
 	int count = 1;
 	if (bytes == 0) return 0;
-	for (file::iovec_t const* i = bufs;; ++i, ++count)
+	for (iovec_t const* i = bufs;; ++i, ++count)
 	{
 		size += int(i->iov_len);
 		if (size >= bytes) return count;
@@ -1199,7 +1199,7 @@ int count_bufs(file::iovec_t const* bufs, int bytes)
 TORRENT_TEST(readwritev_stripe_1)
 {
 	const int num_bufs = 30;
-	file::iovec_t iov[num_bufs];
+	iovec_t iov[num_bufs];
 
 	alloc_iov(iov, num_bufs);
 	fill_pattern(iov, num_bufs);
@@ -1210,7 +1210,7 @@ TORRENT_TEST(readwritev_stripe_1)
 
 	TEST_CHECK(bufs_size({iov, size_t(num_bufs)}) >= fs.total_size());
 
-	file::iovec_t iov2[num_bufs];
+	iovec_t iov2[num_bufs];
 	copy_bufs(iov, int(fs.total_size()), iov2);
 	int num_bufs2 = count_bufs(iov2, int(fs.total_size()));
 	TEST_CHECK(num_bufs2 <= num_bufs);
@@ -1239,7 +1239,7 @@ TORRENT_TEST(readwritev_single_buffer)
 	storage_error ec;
 
 	std::vector<char> buf(size_t(fs.total_size()));
-	file::iovec_t iov = { &buf[0], buf.size() };
+	iovec_t iov = { &buf[0], buf.size() };
 	fill_pattern(&iov, 1);
 
 	int ret = readwritev(fs, iov, piece_index_t(0), 0, fop, ec);
@@ -1264,7 +1264,7 @@ TORRENT_TEST(readwritev_read)
 	storage_error ec;
 
 	std::vector<char> buf(size_t(fs.total_size()));
-	file::iovec_t iov = { &buf[0], buf.size() };
+	iovec_t iov = { &buf[0], buf.size() };
 
 	// read everything
 	int ret = readwritev(fs, iov, piece_index_t(0), 0, fop, ec);
@@ -1280,7 +1280,7 @@ TORRENT_TEST(readwritev_read_short)
 	storage_error ec;
 
 	std::vector<char> buf(size_t(fs.total_size()));
-	file::iovec_t iov = { &buf[0]
+	iovec_t iov = { &buf[0]
 		, static_cast<size_t>(fs.total_size()) };
 
 	// read everything
@@ -1300,7 +1300,7 @@ TORRENT_TEST(readwritev_error)
 	storage_error ec;
 
 	std::vector<char> buf(size_t(fs.total_size()));
-	file::iovec_t iov = { &buf[0]
+	iovec_t iov = { &buf[0]
 		, static_cast<size_t>(fs.total_size()) };
 
 	// read everything
@@ -1327,7 +1327,7 @@ TORRENT_TEST(readwritev_zero_size_files)
 	storage_error ec;
 
 	std::vector<char> buf(size_t(fs.total_size()));
-	file::iovec_t iov = { &buf[0]
+	iovec_t iov = { &buf[0]
 		, static_cast<size_t>(fs.total_size()) };
 
 	// read everything
@@ -1364,7 +1364,7 @@ TORRENT_TEST(move_storage_to_self)
 	disk_buffer_pool dp(16 * 1024, ios, std::bind(&nop));
 	std::shared_ptr<default_storage> s = setup_torrent(fs, fp, buf, save_path, set);
 
-	file::iovec_t const b = {&buf[0], 4};
+	iovec_t const b = {&buf[0], 4};
 	storage_error se;
 	s->writev(b, piece_index_t(1), 0, 0, se);
 
@@ -1393,7 +1393,7 @@ TORRENT_TEST(move_storage_into_self)
 	disk_buffer_pool dp(16 * 1024, ios, std::bind(&nop));
 	std::shared_ptr<default_storage> s = setup_torrent(fs, fp, buf, save_path, set);
 
-	file::iovec_t const b = {&buf[0], 4};
+	iovec_t const b = {&buf[0], 4};
 	storage_error se;
 	s->writev(b, piece_index_t(2), 0, 0, se);
 
@@ -1439,7 +1439,7 @@ TORRENT_TEST(dont_move_intermingled_files)
 	disk_buffer_pool dp(16 * 1024, ios, std::bind(&nop));
 	std::shared_ptr<default_storage> s = setup_torrent(fs, fp, buf, save_path, set);
 
-	file::iovec_t b = {&buf[0], 4};
+	iovec_t b = {&buf[0], 4};
 	storage_error se;
 	s->writev(b, piece_index_t(2), 0, 0, se);
 

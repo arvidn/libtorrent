@@ -609,6 +609,7 @@ SOURCES =
 	socks5_stream
 	stat
 	storage
+	storage_utils
 	torrent
 	torrent_handle
 	torrent_info

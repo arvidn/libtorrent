@@ -87,7 +87,7 @@ struct test_storage : default_storage
 	}
 
 	int writev(
-		span<file::iovec_t const> bufs
+		span<iovec_t const> bufs
 		, piece_index_t piece_index
 		, int offset
 		, int flags

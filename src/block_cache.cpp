@@ -1260,7 +1260,7 @@ int block_cache::pad_job(disk_io_job const* j, int blocks_in_piece
 	return end - start;
 }
 
-void block_cache::insert_blocks(cached_piece_entry* pe, int block, span<file::iovec_t const> iov
+void block_cache::insert_blocks(cached_piece_entry* pe, int block, span<iovec_t const> iov
 	, disk_io_job* j, int const flags)
 {
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS

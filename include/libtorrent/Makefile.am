@@ -187,6 +187,7 @@ nobase_include_HEADERS = \
   aux_/win_crypto_provider.hpp      \
   aux_/win_util.hpp                 \
   aux_/non_owning_handle.hpp        \
+  aux_/storage_utils.hpp            \
   \
   extensions/smart_ban.hpp          \
   extensions/ut_metadata.hpp        \

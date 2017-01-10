@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/span.hpp"
+#include "libtorrent/aux_/storage_utils.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -265,22 +266,6 @@ namespace libtorrent
 			attribute_mask = attribute_hidden | attribute_executable
 		};
 
-#ifdef TORRENT_WINDOWS
-		struct iovec_t
-		{
-			void* iov_base;
-			size_t iov_len;
-		};
-#else
-		using iovec_t = iovec;
-#endif
-
-#ifdef TORRENT_SOLARIS
-		using iovec_base_t = char*;
-#else
-		using iovec_base_t = void*;
-#endif
-
 		file();
 		file(std::string const& p, int m, error_code& ec);
 		~file();
@@ -315,7 +300,7 @@ namespace libtorrent
 #endif
 	};
 
-	TORRENT_EXTRA_EXPORT int bufs_size(span<file::iovec_t const> bufs);
+	TORRENT_EXTRA_EXPORT int bufs_size(span<iovec_t const> bufs);
 
 }
 

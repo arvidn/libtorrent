@@ -151,7 +151,7 @@ void write_test_file()
 	file test_file("test_file", file::write_only, ec);
 	TEST_CHECK(!ec);
 	if (ec) std::printf("file error: %s\n", ec.message().c_str());
-	file::iovec_t b = { data_buffer, 3216};
+	iovec_t b = { data_buffer, 3216};
 	test_file.writev(0, b, ec);
 	TEST_CHECK(!ec);
 	if (ec) std::printf("file error: %s\n", ec.message().c_str());

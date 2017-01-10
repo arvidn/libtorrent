@@ -58,7 +58,7 @@ TORRENT_TEST(web_seed_redirect)
 		TEST_ERROR("failed to create file");
 		return;
 	}
-	file::iovec_t b = { random_data, size_t(16000)};
+	iovec_t b = { random_data, size_t(16000)};
 	f.writev(0, b, ec);
 	fs.add_file("test_file", 16000);
 

@@ -190,7 +190,7 @@ void generate_files(libtorrent::torrent_info const& ti, std::string const& path
 			memcpy(&buffer[o], &data, 1);
 		}
 
-		file::iovec_t b = { &buffer[0], size_t(piece_size) };
+		iovec_t b = { &buffer[0], size_t(piece_size) };
 		storage_error ec;
 		int ret = st.writev(b, i, 0, 0, ec);
 		if (ret != piece_size || ec)
