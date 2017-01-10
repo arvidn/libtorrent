@@ -130,7 +130,7 @@ libtorrent_rasterbar_la_SOURCES = \
   stat.cpp                        \
   stat_cache.cpp                  \
   storage.cpp                     \
-  storage._utilscpp               \
+  storage_utils.cpp               \
   session_stats.cpp               \
   string_util.cpp                 \
   torrent.cpp                     \
