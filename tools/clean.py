@@ -32,6 +32,8 @@ def clean():
 		'lib*.a',
 		'Jamfile.rej',
 		'Jamfile.orig',
+		'*.o',
+		'*.lo',
 	]
 
 	directories = [
