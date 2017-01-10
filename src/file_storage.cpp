@@ -567,7 +567,7 @@ namespace libtorrent
 		}
 
 		// this is poor-man's emplace_back()
-		m_files.resize(m_files.size() + 1);
+		m_files.resize(static_cast<int>(m_files.end_index()) + 1);
 		internal_file_entry& e = m_files.back();
 
 		// the last argument specified whether the function should also set
@@ -590,7 +590,7 @@ namespace libtorrent
 
 		if (filehash)
 		{
-			if (m_file_hashes.size() < m_files.size()) m_file_hashes.resize(m_files.size());
+			if (m_file_hashes.size() < m_files.size()) m_file_hashes.resize(static_cast<int>(m_files.end_index()));
 			m_file_hashes[last_file()] = filehash;
 		}
 		if (!symlink_path.empty()
@@ -605,7 +605,7 @@ namespace libtorrent
 		}
 		if (mtime)
 		{
-			if (m_mtime.size() < m_files.size()) m_mtime.resize(m_files.size());
+			if (m_mtime.size() < m_files.size()) m_mtime.resize(static_cast<int>(m_files.end_index()));
 			m_mtime[last_file()] = std::time_t(mtime);
 		}
 

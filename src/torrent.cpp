@@ -5013,7 +5013,7 @@ namespace libtorrent
 
 		if (!valid_metadata())
 		{
-			files->resize(m_file_priority.size());
+			files->resize(static_cast<int>(m_file_priority.end_index()));
 			std::copy(m_file_priority.begin(), m_file_priority.end(), files->begin());
 			return;
 		}

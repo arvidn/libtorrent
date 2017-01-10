@@ -70,7 +70,22 @@ namespace libtorrent { namespace aux {
 		}
 
 		IndexType end_index() const
-		{ return IndexType(static_cast<underlying_index>(this->size())); }
+		{
+			TORRENT_ASSERT(this->size() <= std::size_t(std::numeric_limits<underlying_index>::max()));
+			return IndexType(static_cast<underlying_index>(this->size()));
+		}
+
+		void resize(underlying_index s)
+		{
+			TORRENT_ASSERT(s >= 0);
+			this->base::resize(std::size_t(s));
+		}
+
+		void resize(underlying_index s, T const& v)
+		{
+			TORRENT_ASSERT(s >= 0);
+			this->base::resize(std::size_t(s), v);
+		}
 	};
 
 	template <typename Iter>
