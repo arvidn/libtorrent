@@ -475,6 +475,13 @@ void udp_socket::set_proxy_settings(aux::proxy_settings const& ps)
 	}
 }
 
+void udp_socket::set_force_proxy(bool const f)
+{
+	if (m_force_proxy == f) return;
+	m_force_proxy = f;
+	set_proxy_settings(m_proxy_settings);
+}
+
 // ===================== SOCKS 5 =========================
 
 void socks5::start(aux::proxy_settings const& ps)
