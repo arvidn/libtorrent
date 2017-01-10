@@ -10550,7 +10550,7 @@ namespace libtorrent
 
 		// activity time
 #ifndef TORRENT_NO_DEPRECATE
-		st->finished_time = duration_cast<seconds>(finished_time()).count();
+		st->finished_time = int(duration_cast<seconds>(finished_time()).count());
 		st->active_time = active_time();
 		st->seeding_time = seeding_time();
 
