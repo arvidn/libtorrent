@@ -282,29 +282,40 @@ class test_example_client(unittest.TestCase):
 
 	def test_execute_client(self):
 		with open(os.devnull, "w") as DEVNULL:
-			process = subprocess.Popen([sys.executable,"client.py","url_seed_multi.torrent"], stdout=DEVNULL, stderr=subprocess.STDOUT)
+			process = subprocess.Popen([sys.executable,"client.py","url_seed_multi.torrent"], stdout=DEVNULL, stderr=subprocess.PIPE)
 		# python2 has no Popen.wait() timeout
-		time.sleep(10)
+		time.sleep(5)
 		returncode = process.poll()
 		if returncode == None:
+			# this is an expected use-case
 			process.kill()
-		else:
+		err = process.stderr.read()
+		self.assertEqual('', err, 'process throw errors: \n' + err)
+		# check error code if process did unexpected end
+		if returncode != None:
 			self.assertEqual(returncode, 0)
 
 	def test_execute_simple_client(self):
 		with open(os.devnull, "w") as DEVNULL:
-			process = subprocess.Popen([sys.executable,"simple_client.py","url_seed_multi.torrent"], stdout=DEVNULL, stderr=subprocess.STDOUT)
+			process = subprocess.Popen([sys.executable,"simple_client.py","url_seed_multi.torrent"], stdout=DEVNULL, stderr=subprocess.PIPE)
 		# python2 has no Popen.wait() timeout
-		time.sleep(10)
+		time.sleep(5)
 		returncode = process.poll()
 		if returncode == None:
+			# this is an expected use-case
 			process.kill()
-		else:
+		err = process.stderr.read()
+		self.assertEqual('', err, 'process throw errors: \n' + err)
+		# check error code if process did unexpected end
+		if returncode != None:
 			self.assertEqual(returncode, 0)
 
 	def test_execute_make_torrent(self):
-		returncode = subprocess.Popen([sys.executable,"make_torrent.py","url_seed_multi.torrent","http://test.com/test"], stderr=subprocess.STDOUT).wait()
+		process = subprocess.Popen([sys.executable,"make_torrent.py","url_seed_multi.torrent","http://test.com/test"], stderr=subprocess.PIPE)
+		returncode = process.wait()
 		# python2 has no Popen.wait() timeout
+		err = process.stderr.read()
+		self.assertEqual('', err, 'process throw errors: \n' + err)
 		self.assertEqual(returncode, 0)
 
 if __name__ == '__main__':
