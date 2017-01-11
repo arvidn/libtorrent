@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_VECTOR_HPP
 
 #include <vector>
+#include <type_traits>
 
 #include "libtorrent/units.hpp"
 #include "libtorrent/assert.hpp"
@@ -75,12 +76,16 @@ namespace libtorrent { namespace aux {
 			return IndexType(static_cast<underlying_index>(this->size()));
 		}
 
+		template <typename U = underlying_index, typename Cond
+			= typename std::enable_if<std::is_signed<U>::value>::type>
 		void resize(underlying_index s)
 		{
 			TORRENT_ASSERT(s >= 0);
 			this->base::resize(std::size_t(s));
 		}
 
+		template <typename U = underlying_index, typename Cond
+			= typename std::enable_if<std::is_signed<U>::value>::type>
 		void resize(underlying_index s, T const& v)
 		{
 			TORRENT_ASSERT(s >= 0);

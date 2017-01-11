@@ -363,7 +363,7 @@ namespace libtorrent
 
 		m_files.set_num_pieces(static_cast<int>(
 			(m_files.total_size() + m_files.piece_length() - 1) / m_files.piece_length()));
-		m_piece_hash.resize(std::size_t(m_files.num_pieces()));
+		m_piece_hash.resize(m_files.num_pieces());
 	}
 
 	create_torrent::create_torrent(torrent_info const& ti)
@@ -399,7 +399,7 @@ namespace libtorrent
 				add_http_seed(s.url);
 		}
 
-		m_piece_hash.resize(std::size_t(m_files.num_pieces()));
+		m_piece_hash.resize(m_files.num_pieces());
 		for (piece_index_t i(0); i != m_files.end_piece(); ++i)
 			set_hash(i, ti.hash_for_piece(i));
 
@@ -614,7 +614,7 @@ namespace libtorrent
 			int const num_leafs = merkle_num_leafs(m_files.num_pieces());
 			int const num_nodes = merkle_num_nodes(num_leafs);
 			int const first_leaf = num_nodes - num_leafs;
-			m_merkle_tree.resize(std::size_t(num_nodes));
+			m_merkle_tree.resize(num_nodes);
 			int const num_pieces = int(m_piece_hash.size());
 			for (int i = 0; i < num_pieces; ++i)
 				m_merkle_tree[first_leaf + i] = m_piece_hash[piece_index_t(i)];
@@ -695,7 +695,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(index >= file_index_t(0));
 		TORRENT_ASSERT(index < m_files.end_file());
-		if (m_filehashes.empty()) m_filehashes.resize(std::size_t(m_files.num_files()));
+		if (m_filehashes.empty()) m_filehashes.resize(m_files.num_files());
 		m_filehashes[index] = h;
 	}
 
