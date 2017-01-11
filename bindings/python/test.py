@@ -283,11 +283,12 @@ class test_example_client(unittest.TestCase):
 
 	def test_execute_client(self):
 		master_fd, slave_fd = pty.openpty()
+		my_env = os.environ.copy()
 		with open(os.devnull, "w") as DEVNULL:
 			# slave_fd fix multiple stdin assignment at termios.tcgetattr
 			process = sub.Popen(
 				[sys.executable,"client.py","url_seed_multi.torrent"],
-				stdin=slave_fd, stdout=DEVNULL, stderr=sub.PIPE)
+				stdin=slave_fd, stdout=DEVNULL, stderr=sub.PIPE, env=my_env)
 		# python2 has no Popen.wait() timeout
 		time.sleep(5)
 		returncode = process.poll()
@@ -301,10 +302,11 @@ class test_example_client(unittest.TestCase):
 			self.assertEqual(returncode, 0)
 
 	def test_execute_simple_client(self):
+		my_env = os.environ.copy()
 		with open(os.devnull, "w") as DEVNULL:
 			process = sub.Popen(
 				[sys.executable,"simple_client.py","url_seed_multi.torrent"],
-				stdout=DEVNULL, stderr=sub.PIPE)
+				stdout=DEVNULL, stderr=sub.PIPE, env=my_env)
 		# python2 has no Popen.wait() timeout
 		time.sleep(5)
 		returncode = process.poll()
