@@ -462,7 +462,7 @@ namespace libtorrent
 
 		cont_pieces = static_cast<int>(range_end) - static_cast<int>(range_start);
 		int const blocks_to_flush = int(p->blocks_in_piece * cont_pieces);
-		TORRENT_ALLOCA(iov, file::iovec_t, blocks_to_flush);
+		TORRENT_ALLOCA(iov, iovec_t, blocks_to_flush);
 		TORRENT_ALLOCA(flushing, int, blocks_to_flush);
 		// this is the offset into iov and flushing for each piece
 		TORRENT_ALLOCA(iovec_offset, int, cont_pieces + 1);
@@ -571,7 +571,7 @@ namespace libtorrent
 	// multiple pieces, the subsequent pieces after the first one, must have
 	// their block indices start where the previous one left off
 	int disk_io_thread::build_iovec(cached_piece_entry* pe, int start, int end
-		, span<file::iovec_t> iov, span<int> flushing, int const block_base_index)
+		, span<iovec_t> iov, span<int> flushing, int const block_base_index)
 	{
 		DLOG("build_iovec: piece=%d [%d, %d)\n"
 			, int(pe->piece), start, end);
@@ -633,7 +633,7 @@ namespace libtorrent
 	// the cached_piece_entry is supposed to point to the
 	// first piece, if the iovec spans multiple pieces
 	void disk_io_thread::flush_iovec(cached_piece_entry* pe
-		, span<file::iovec_t const> iov, span<int const> flushing
+		, span<iovec_t const> iov, span<int const> flushing
 		, int const num_blocks, storage_error& error)
 	{
 		TORRENT_PIECE_ASSERT(!error, pe);
@@ -762,7 +762,7 @@ namespace libtorrent
 		TORRENT_PIECE_ASSERT(start >= 0, pe);
 		TORRENT_PIECE_ASSERT(start < end, pe);
 
-		TORRENT_ALLOCA(iov, file::iovec_t, std::size_t(pe->blocks_in_piece));
+		TORRENT_ALLOCA(iov, iovec_t, std::size_t(pe->blocks_in_piece));
 		TORRENT_ALLOCA(flushing, int, std::size_t(pe->blocks_in_piece));
 		int iov_len = build_iovec(pe, start, end, iov, flushing, 0);
 		if (iov_len == 0) return 0;
@@ -1217,7 +1217,7 @@ namespace libtorrent
 
 		int const file_flags = file_flags_for_job(j
 			, m_settings.get_bool(settings_pack::coalesce_reads));
-		file::iovec_t b = {j->buffer.disk_block, std::size_t(j->d.io.buffer_size)};
+		iovec_t b = {j->buffer.disk_block, std::size_t(j->d.io.buffer_size)};
 
 		int ret = j->storage->readv(b
 			, j->piece, j->d.io.offset, file_flags, j->error);
@@ -1247,7 +1247,7 @@ namespace libtorrent
 		int const iov_len = m_disk_cache.pad_job(j, blocks_in_piece
 			, m_settings.get_int(settings_pack::read_cache_line_size));
 
-		TORRENT_ALLOCA(iov, file::iovec_t, iov_len);
+		TORRENT_ALLOCA(iov, iovec_t, iov_len);
 
 		std::unique_lock<std::mutex> l(m_cache_mutex);
 
@@ -1449,7 +1449,7 @@ namespace libtorrent
 	{
 		time_point const start_time = clock_type::now();
 
-		file::iovec_t const b = {j->buffer.disk_block, std::size_t(j->d.io.buffer_size)};
+		iovec_t const b = {j->buffer.disk_block, std::size_t(j->d.io.buffer_size)};
 		int const file_flags = file_flags_for_job(j
 			, m_settings.get_bool(settings_pack::coalesce_writes));
 
@@ -2141,7 +2141,7 @@ namespace libtorrent
 		int const file_flags = file_flags_for_job(j
 			, m_settings.get_bool(settings_pack::coalesce_reads));
 
-		file::iovec_t iov;
+		iovec_t iov;
 		iov.iov_base = m_disk_cache.allocate_buffer("hashing");
 		hasher h;
 		int ret = 0;
@@ -2305,7 +2305,7 @@ namespace libtorrent
 		int next_locked_block = 0;
 		for (int i = offset / block_size; i < blocks_in_piece; ++i)
 		{
-			file::iovec_t iov;
+			iovec_t iov;
 			iov.iov_len = (std::min)(block_size, piece_size - offset);
 
 			if (next_locked_block < num_locked_blocks

@@ -163,7 +163,7 @@ namespace
 		return WAIT_FAILED;
 	}
 
-	int preadv(HANDLE fd, libtorrent::file::iovec_t const* bufs, int num_bufs, std::int64_t file_offset)
+	int preadv(HANDLE fd, libtorrent::iovec_t const* bufs, int num_bufs, std::int64_t file_offset)
 	{
 		TORRENT_ALLOCA(ol, OVERLAPPED, num_bufs);
 		std::memset(ol.data(), 0, sizeof(OVERLAPPED) * num_bufs);
@@ -233,7 +233,7 @@ done:
 		return ret;
 	}
 
-	int pwritev(HANDLE fd, libtorrent::file::iovec_t const* bufs, int num_bufs, std::int64_t file_offset)
+	int pwritev(HANDLE fd, libtorrent::iovec_t const* bufs, int num_bufs, std::int64_t file_offset)
 	{
 		TORRENT_ALLOCA(ol, OVERLAPPED, num_bufs);
 		std::memset(ol.data(), 0, sizeof(OVERLAPPED) * num_bufs);
@@ -328,7 +328,7 @@ static_assert((libtorrent::file::sparse & libtorrent::file::attribute_mask) == 0
 
 namespace libtorrent
 {
-	int bufs_size(span<file::iovec_t const> bufs)
+	int bufs_size(span<iovec_t const> bufs)
 	{
 		std::size_t size = 0;
 		for (auto buf : bufs)
@@ -1605,7 +1605,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	namespace {
 
 #if !TORRENT_USE_PREADV
-	void gather_copy(span<file::iovec_t const> bufs, char* dst)
+	void gather_copy(span<iovec_t const> bufs, char* dst)
 	{
 		std::size_t offset = 0;
 		for (auto buf : bufs)
@@ -1615,7 +1615,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		}
 	}
 
-	void scatter_copy(span<file::iovec_t const> bufs, char const* src)
+	void scatter_copy(span<iovec_t const> bufs, char const* src)
 	{
 		std::size_t offset = 0;
 		for (auto buf : bufs)
@@ -1625,27 +1625,27 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		}
 	}
 
-	bool coalesce_read_buffers(span<file::iovec_t const>& bufs
-		, file::iovec_t& tmp)
+	bool coalesce_read_buffers(span<iovec_t const>& bufs
+		, iovec_t& tmp)
 	{
 		int const buf_size = bufs_size(bufs);
 		char* buf = static_cast<char*>(std::malloc(buf_size));
 		if (!buf) return false;
 		tmp.iov_base = buf;
 		tmp.iov_len = buf_size;
-		bufs = span<file::iovec_t const>(tmp);
+		bufs = span<iovec_t const>(tmp);
 		return true;
 	}
 
-	void coalesce_read_buffers_end(span<file::iovec_t const> bufs
+	void coalesce_read_buffers_end(span<iovec_t const> bufs
 		, char* const buf, bool const copy)
 	{
 		if (copy) scatter_copy(bufs, buf);
 		std::free(buf);
 	}
 
-	bool coalesce_write_buffers(span<file::iovec_t const>& bufs
-		, file::iovec_t& tmp)
+	bool coalesce_write_buffers(span<iovec_t const>& bufs
+		, iovec_t& tmp)
 	{
 		int const buf_size = bufs_size(bufs);
 		char* buf = static_cast<char*>(std::malloc(buf_size));
@@ -1653,14 +1653,14 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		gather_copy(bufs, buf);
 		tmp.iov_base = buf;
 		tmp.iov_len = buf_size;
-		bufs = span<file::iovec_t const>(tmp);
+		bufs = span<iovec_t const>(tmp);
 		return true;
 	}
 #endif // TORRENT_USE_PREADV
 
 	template <class Fun>
 	std::int64_t iov(Fun f, handle_type fd, std::int64_t file_offset
-		, span<file::iovec_t const> bufs, error_code& ec)
+		, span<iovec_t const> bufs, error_code& ec)
 	{
 #if TORRENT_USE_PREADV
 

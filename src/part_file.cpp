@@ -95,7 +95,7 @@ namespace libtorrent
 		{
 			// parse header
 			std::unique_ptr<std::uint32_t[]> header(new std::uint32_t[m_header_size]);
-			file::iovec_t b = {header.get(), std::size_t(m_header_size)};
+			iovec_t b = {header.get(), std::size_t(m_header_size)};
 			int n = int(m_file.readv(0, b, ec));
 			if (ec) return;
 
@@ -171,7 +171,7 @@ namespace libtorrent
 		return slot;
 	}
 
-	int part_file::writev(span<file::iovec_t const> bufs, piece_index_t const piece
+	int part_file::writev(span<iovec_t const> bufs, piece_index_t const piece
 		, int offset, error_code& ec)
 	{
 		TORRENT_ASSERT(offset >= 0);
@@ -190,7 +190,7 @@ namespace libtorrent
 		return int(m_file.writev(slot_offset + offset, bufs, ec));
 	}
 
-	int part_file::readv(span<file::iovec_t const> bufs
+	int part_file::readv(span<iovec_t const> bufs
 		, piece_index_t const piece, int offset, error_code& ec)
 	{
 		TORRENT_ASSERT(offset >= 0);
@@ -324,7 +324,7 @@ namespace libtorrent
 				// don't hold the lock during disk I/O
 				l.unlock();
 
-				file::iovec_t v = {buf.get(), std::size_t(block_to_copy)};
+				iovec_t v = {buf.get(), std::size_t(block_to_copy)};
 				v.iov_len = std::size_t(m_file.readv(slot_offset + piece_offset, v, ec));
 				TORRENT_ASSERT(!ec);
 				if (ec || v.iov_len == 0) return;
@@ -409,7 +409,7 @@ namespace libtorrent
 		}
 		std::memset(ptr, 0, m_header_size - (ptr - reinterpret_cast<char*>(header.get())));
 
-		file::iovec_t b = {header.get(), std::size_t(m_header_size)};
+		iovec_t b = {header.get(), std::size_t(m_header_size)};
 		m_file.writev(0, b, ec);
 	}
 }

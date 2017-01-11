@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/aux_/storage_utils.hpp"
 
 #include <ctime>
 #include <algorithm>
@@ -70,7 +71,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
-#include "libtorrent/alloca.hpp"
 #include "libtorrent/stat_cache.hpp"
 #include "libtorrent/hex.hpp" // to_hex
 // for convert_to_wstring and convert_to_native
@@ -113,61 +113,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	int copy_bufs(span<file::iovec_t const> bufs, int bytes, span<file::iovec_t> target)
-	{
-		int size = 0;
-		for (int i = 0;; i++)
-		{
-			target[i] = bufs[i];
-			size += int(bufs[i].iov_len);
-			if (size >= bytes)
-			{
-				target[i].iov_len -= size - bytes;
-				return i + 1;
-			}
-		}
-	}
-
-	span<file::iovec_t> advance_bufs(span<file::iovec_t> bufs, int bytes)
-	{
-		int size = 0;
-		for (;;)
-		{
-			size += int(bufs.front().iov_len);
-			if (size >= bytes)
-			{
-				bufs.front().iov_base = reinterpret_cast<char*>(bufs.front().iov_base)
-					+ bufs.front().iov_len - (size - bytes);
-				bufs.front().iov_len = size - bytes;
-				return bufs;
-			}
-			bufs = bufs.subspan(1);
-		}
-	}
-
-	void clear_bufs(span<file::iovec_t const> bufs)
+	void clear_bufs(span<iovec_t const> bufs)
 	{
 		for (auto buf : bufs)
 			std::memset(buf.iov_base, 0, buf.iov_len);
 	}
-
-	namespace {
-
-#if TORRENT_USE_ASSERTS
-	int count_bufs(span<file::iovec_t const> bufs, int bytes)
-	{
-		int size = 0;
-		int count = 1;
-		if (bytes == 0) return 0;
-		for (auto i = bufs.begin();; ++i, ++count)
-		{
-			size += int(i->iov_len);
-			if (size >= bytes) return count;
-		}
-	}
-#endif
-
-	} // anonymous namespace
 
 	struct write_fileop final : fileop
 	{
@@ -178,7 +128,7 @@ namespace libtorrent
 
 		int file_op(file_index_t const file_index
 			, std::int64_t const file_offset
-			, span<file::iovec_t const> bufs, storage_error& ec)
+			, span<iovec_t const> bufs, storage_error& ec)
 			final
 		{
 			if (m_storage.files().pad_file_at(file_index))
@@ -258,7 +208,7 @@ namespace libtorrent
 
 		int file_op(file_index_t const file_index
 			, std::int64_t const file_offset
-			, span<file::iovec_t const> bufs, storage_error& ec)
+			, span<iovec_t const> bufs, storage_error& ec)
 			final
 		{
 			if (m_storage.files().pad_file_at(file_index))
@@ -1036,7 +986,7 @@ namespace libtorrent
 		return ret;
 	}
 
-	int default_storage::readv(span<file::iovec_t const> bufs
+	int default_storage::readv(span<iovec_t const> bufs
 		, piece_index_t const piece, int offset, int flags, storage_error& ec)
 	{
 		read_fileop op(*this, flags);
@@ -1047,107 +997,11 @@ namespace libtorrent
 		return readwritev(files(), bufs, piece, offset, op, ec);
 	}
 
-	int default_storage::writev(span<file::iovec_t const> bufs
+	int default_storage::writev(span<iovec_t const> bufs
 		, piece_index_t const piece, int offset, int flags, storage_error& ec)
 	{
 		write_fileop op(*this, flags);
 		return readwritev(files(), bufs, piece, offset, op, ec);
-	}
-
-	// much of what needs to be done when reading and writing is buffer
-	// management and piece to file mapping. Most of that is the same for reading
-	// and writing. This function is a template, and the fileop decides what to
-	// do with the file and the buffers.
-	int readwritev(file_storage const& files, span<file::iovec_t const> const bufs
-		, piece_index_t const piece, const int offset, fileop& op
-		, storage_error& ec)
-	{
-		TORRENT_ASSERT(piece >= piece_index_t(0));
-		TORRENT_ASSERT(piece < files.end_piece());
-		TORRENT_ASSERT(offset >= 0);
-		TORRENT_ASSERT(bufs.size() > 0);
-
-		const int size = bufs_size(bufs);
-		TORRENT_ASSERT(size > 0);
-
-		// find the file iterator and file offset
-		std::int64_t const torrent_offset = static_cast<int>(piece) * std::int64_t(files.piece_length()) + offset;
-		file_index_t file_index = files.file_index_at_offset(torrent_offset);
-		TORRENT_ASSERT(torrent_offset >= files.file_offset(file_index));
-		TORRENT_ASSERT(torrent_offset < files.file_offset(file_index) + files.file_size(file_index));
-		std::int64_t file_offset = torrent_offset - files.file_offset(file_index);
-
-		// the number of bytes left before this read or write operation is
-		// completely satisfied.
-		int bytes_left = size;
-
-		TORRENT_ASSERT(bytes_left >= 0);
-
-		// copy the iovec array so we can use it to keep track of our current
-		// location by updating the head base pointer and size. (see
-		// advance_bufs())
-		TORRENT_ALLOCA(current_buf, file::iovec_t, bufs.size());
-		copy_bufs(bufs, size, current_buf);
-		TORRENT_ASSERT(count_bufs(current_buf, size) == int(bufs.size()));
-
-		TORRENT_ALLOCA(tmp_buf, file::iovec_t, bufs.size());
-
-		// the number of bytes left to read in the current file (specified by
-		// file_index). This is the minimum of (file_size - file_offset) and
-		// bytes_left.
-		int file_bytes_left;
-
-		while (bytes_left > 0)
-		{
-			file_bytes_left = bytes_left;
-			if (file_offset + file_bytes_left > files.file_size(file_index))
-				file_bytes_left = (std::max)(static_cast<int>(files.file_size(file_index) - file_offset), 0);
-
-			// there are no bytes left in this file, move to the next one
-			// this loop skips over empty files
-			while (file_bytes_left == 0)
-			{
-				++file_index;
-				file_offset = 0;
-				TORRENT_ASSERT(file_index < files.end_file());
-
-				// this should not happen. bytes_left should be clamped by the total
-				// size of the torrent, so we should never run off the end of it
-				if (file_index >= files.end_file()) return size;
-
-				file_bytes_left = bytes_left;
-				if (file_offset + file_bytes_left > files.file_size(file_index))
-					file_bytes_left = (std::max)(static_cast<int>(files.file_size(file_index) - file_offset), 0);
-			}
-
-			// make a copy of the iovec array that _just_ covers the next
-			// file_bytes_left bytes, i.e. just this one operation
-			int tmp_bufs_used = copy_bufs(current_buf, file_bytes_left, tmp_buf);
-
-			int bytes_transferred = op.file_op(file_index, file_offset
-				, tmp_buf.first(tmp_bufs_used), ec);
-			if (ec) return -1;
-
-			// advance our position in the iovec array and the file offset.
-			current_buf = advance_bufs(current_buf, bytes_transferred);
-			bytes_left -= bytes_transferred;
-			file_offset += bytes_transferred;
-
-			TORRENT_ASSERT(count_bufs(current_buf, bytes_left) <= int(bufs.size()));
-
-			// if the file operation returned 0, we've hit end-of-file. We're done
-			if (bytes_transferred == 0)
-			{
-				if (file_bytes_left > 0 )
-				{
-					// fill in this information in case the caller wants to treat
-					// a short-read as an error
-					ec.file(file_index);
-				}
-				return size - bytes_left;
-			}
-		}
-		return size;
 	}
 
 	file_handle default_storage::open_file(file_index_t const file, int mode
@@ -1285,12 +1139,12 @@ namespace libtorrent
 			void initialize(storage_error&) override {}
 			status_t move_storage(std::string const&, int, storage_error&) override { return status_t::no_error; }
 
-			int readv(span<file::iovec_t const> bufs
+			int readv(span<iovec_t const> bufs
 				, piece_index_t, int, int, storage_error&) override
 			{
 				return bufs_size(bufs);
 			}
-			int writev(span<file::iovec_t const> bufs
+			int writev(span<iovec_t const> bufs
 				, piece_index_t, int, int, storage_error&) override
 			{
 				return bufs_size(bufs);
@@ -1318,7 +1172,7 @@ namespace libtorrent
 		{
 			void initialize(storage_error&) override {}
 
-			int readv(span<file::iovec_t const> bufs
+			int readv(span<iovec_t const> bufs
 				, piece_index_t, int, int, storage_error&) override
 			{
 				int ret = 0;
@@ -1329,7 +1183,7 @@ namespace libtorrent
 				}
 				return 0;
 			}
-			int writev(span<file::iovec_t const> bufs
+			int writev(span<iovec_t const> bufs
 				, piece_index_t, int, int, storage_error&) override
 			{
 				int ret = 0;

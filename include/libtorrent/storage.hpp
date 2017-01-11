@@ -146,9 +146,7 @@ namespace libtorrent
 	struct cached_piece_entry;
 	struct add_torrent_params;
 
-	TORRENT_EXTRA_EXPORT int copy_bufs(span<file::iovec_t const> bufs, int bytes, span<file::iovec_t> target);
-	TORRENT_EXTRA_EXPORT span<file::iovec_t> advance_bufs(span<file::iovec_t> bufs, int bytes);
-	TORRENT_EXTRA_EXPORT void clear_bufs(span<file::iovec_t const> bufs);
+	TORRENT_EXTRA_EXPORT void clear_bufs(span<iovec_t const> bufs);
 
 	struct disk_io_thread;
 
@@ -297,7 +295,7 @@ namespace libtorrent
 		// These functions should read and write the data in or to the given
 		// ``piece`` at the given ``offset``. It should read or write
 		// ``num_bufs`` buffers sequentially, where the size of each buffer is
-		// specified in the buffer array ``bufs``. The file::iovec_t type has the
+		// specified in the buffer array ``bufs``. The iovec_t type has the
 		// following members::
 		//
 		//	struct iovec_t { void* iov_base; size_t iov_len; };
@@ -323,9 +321,9 @@ namespace libtorrent
 		// The number of bytes read or written should be returned, or -1 on
 		// error. If there's an error, the ``storage_error`` must be filled out
 		// to represent the error that occurred.
-		virtual int readv(span<file::iovec_t const> bufs
+		virtual int readv(span<iovec_t const> bufs
 			, piece_index_t piece, int offset, int flags, storage_error& ec) = 0;
-		virtual int writev(span<file::iovec_t const> bufs
+		virtual int writev(span<iovec_t const> bufs
 			, piece_index_t piece, int offset, int flags, storage_error& ec) = 0;
 
 		// This function is called when first checking (or re-checking) the
@@ -514,9 +512,9 @@ namespace libtorrent
 			, storage_error& error) override;
 		virtual bool tick() override;
 
-		int readv(span<file::iovec_t const> bufs
+		int readv(span<iovec_t const> bufs
 			, piece_index_t piece, int offset, int flags, storage_error& ec) override;
-		int writev(span<file::iovec_t const> bufs
+		int writev(span<iovec_t const> bufs
 			, piece_index_t piece, int offset, int flags, storage_error& ec) override;
 
 		// if the files in this storage are mapped, returns the mapped
@@ -562,24 +560,6 @@ namespace libtorrent
 
 		bool m_allocate_files;
 	};
-
-	// this identifies a read or write operation so that readwritev() knows
-	// what to do when it's actually touching the file
-	struct fileop
-	{
-		virtual int file_op(file_index_t const file_index, std::int64_t const file_offset
-			, span<file::iovec_t const> bufs, storage_error& ec) = 0;
-
-	protected:
-		~fileop() {}
-	};
-
-	// this function is responsible for turning read and write operations in the
-	// torrent space (pieces) into read and write operations in the filesystem
-	// space (files on disk).
-	TORRENT_EXTRA_EXPORT int readwritev(file_storage const& files
-		, span<file::iovec_t const> bufs, piece_index_t piece, int offset
-		, fileop& op, storage_error& ec);
 
 }
 

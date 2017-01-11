@@ -69,7 +69,7 @@ TORRENT_TEST(part_file)
 		// write something to the metadata file
 		for (int i = 0; i < 1024; ++i) buf[i] = i;
 
-		file::iovec_t v = {&buf, 1024};
+		iovec_t v = {&buf, 1024};
 		pf.writev(v, piece_index_t(10), 0, ec);
 		if (ec) std::printf("part_file::writev: %s\n", ec.message().c_str());
 
@@ -101,7 +101,7 @@ TORRENT_TEST(part_file)
 
 		memset(buf, 0, sizeof(buf));
 
-		file::iovec_t v = {&buf, 1024};
+		iovec_t v = {&buf, 1024};
 		pf.readv(v, piece_index_t(10), 0, ec);
 		if (ec) std::printf("part_file::readv: %s\n", ec.message().c_str());
 

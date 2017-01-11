@@ -80,8 +80,8 @@ namespace libtorrent
 		void free_buffer(char* buf);
 		void free_multiple_buffers(span<char*> bufvec);
 
-		int allocate_iovec(span<file::iovec_t> iov);
-		void free_iovec(span<file::iovec_t const> iov);
+		int allocate_iovec(span<iovec_t> iov);
+		void free_iovec(span<iovec_t const> iov);
 
 		int block_size() const { return m_block_size; }
 

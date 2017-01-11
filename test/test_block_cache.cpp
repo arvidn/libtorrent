@@ -48,12 +48,12 @@ struct test_storage_impl : storage_interface
 {
 	void initialize(storage_error& ec) override {}
 
-	int readv(span<file::iovec_t const> bufs
+	int readv(span<iovec_t const> bufs
 		, piece_index_t piece, int offset, int flags, storage_error& ec) override
 	{
 		return bufs_size(bufs);
 	}
-	int writev(span<file::iovec_t const> bufs
+	int writev(span<iovec_t const> bufs
 		, piece_index_t piece, int offset, int flags, storage_error& ec) override
 	{
 		return bufs_size(bufs);
@@ -109,7 +109,7 @@ static void nop() {}
 	wj.storage = pm; \
 	cached_piece_entry* pe = nullptr; \
 	int ret = 0; \
-	file::iovec_t iov; \
+	iovec_t iov; \
 	(void)iov; \
 	(void)ret; \
 	(void)pe

@@ -190,7 +190,7 @@ namespace libtorrent
 
 // this function allocates buffers and
 // fills in the iovec array with the buffers
-	int disk_buffer_pool::allocate_iovec(span<file::iovec_t> iov)
+	int disk_buffer_pool::allocate_iovec(span<iovec_t> iov)
 	{
 		std::unique_lock<std::mutex> l(m_pool_mutex);
 		for (auto& i : iov)
@@ -216,7 +216,7 @@ namespace libtorrent
 		return 0;
 	}
 
-	void disk_buffer_pool::free_iovec(span<file::iovec_t const> iov)
+	void disk_buffer_pool::free_iovec(span<iovec_t const> iov)
 	{
 		// TODO: perhaps we should sort the buffers here?
 		std::unique_lock<std::mutex> l(m_pool_mutex);
