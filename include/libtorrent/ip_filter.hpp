@@ -83,12 +83,13 @@ namespace detail
 		Addr tmp(a);
 		for (int i = int(tmp.size()) - 1; i >= 0; --i)
 		{
-			if (tmp[i] < (std::numeric_limits<typename Addr::value_type>::max)())
+			auto& t = tmp[std::size_t(i)];
+			if (t < (std::numeric_limits<typename Addr::value_type>::max)())
 			{
-				tmp[i] += 1;
+				t += 1;
 				break;
 			}
-			tmp[i] = 0;
+			t = 0;
 		}
 		return tmp;
 	}
@@ -101,12 +102,13 @@ namespace detail
 		Addr tmp(a);
 		for (int i = int(tmp.size()) - 1; i >= 0; --i)
 		{
-			if (tmp[i] > 0)
+			auto& t = tmp[std::size_t(i)];
+			if (t > 0)
 			{
-				tmp[i] -= 1;
+				t -= 1;
 				break;
 			}
-			tmp[i] = (std::numeric_limits<typename Addr::value_type>::max)();
+			t = (std::numeric_limits<typename Addr::value_type>::max)();
 		}
 		return tmp;
 	}

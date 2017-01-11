@@ -94,13 +94,13 @@ namespace libtorrent { namespace aux {
 
 		void resize(std::size_t s)
 		{
-			TORRENT_ASSERT(s <= std::size_t(std::numeric_limits<underlying_index>::max()));
+			TORRENT_ASSERT(s <= std::size_t((std::numeric_limits<underlying_index>::max)()));
 			this->base::resize(s);
 		}
 
 		void resize(std::size_t s, T const& v)
 		{
-			TORRENT_ASSERT(s <= std::size_t(std::numeric_limits<underlying_index>::max()));
+			TORRENT_ASSERT(s <= std::size_t((std::numeric_limits<underlying_index>::max)()));
 			this->base::resize(s, v);
 		}
 	};
