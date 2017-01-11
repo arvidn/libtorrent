@@ -49,7 +49,7 @@
 	* resume data no longer has timestamps of files
 	* require C++11 to build libtorrent
 
-	* fix bitfield m_buf null pointer
+	* fix crash caused by empty bitfield 
 	* fix division by zero when setting tick_interval > 1000
 	* fix move_storage() to its own directory (would delete the files)
 	* fix socks5 support for UDP

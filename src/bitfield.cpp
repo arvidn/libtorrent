@@ -41,7 +41,7 @@ namespace libtorrent
 {
 	bool bitfield::all_set() const
 	{
-		if(m_buf == nullptr) return false;
+		if(size() == 0) return false;
 
 		int const words = size() / 32;
 		for (int i = 1; i < words + 1; ++i)
