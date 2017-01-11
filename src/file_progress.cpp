@@ -119,7 +119,7 @@ namespace libtorrent { namespace aux
 	void file_progress::export_progress(vector<std::int64_t, file_index_t>& fp)
 	{
 		INVARIANT_CHECK;
-		fp.resize(static_cast<int>(m_file_progress.end_index()), 0);
+		fp.resize(m_file_progress.size(), 0);
 		std::copy(m_file_progress.begin(), m_file_progress.end(), fp.begin());
 	}
 

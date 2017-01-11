@@ -3076,7 +3076,7 @@ get_out:
 		TORRENT_ASSERT(m_seeds >= 0);
 		INVARIANT_CHECK;
 
-		avail.resize(static_cast<int>(m_piece_map.end_index()));
+		avail.resize(m_piece_map.size());
 		auto j = avail.begin();
 		for (auto i = m_piece_map.begin(), end(m_piece_map.end()); i != end; ++i, ++j)
 			*j = i->peer_count + m_seeds;

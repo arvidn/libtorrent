@@ -86,6 +86,18 @@ namespace libtorrent { namespace aux {
 			TORRENT_ASSERT(s >= 0);
 			this->base::resize(std::size_t(s), v);
 		}
+
+		void resize(std::size_t s)
+		{
+			TORRENT_ASSERT(s <= std::size_t(std::numeric_limits<underlying_index>::max()));
+			this->base::resize(s);
+		}
+
+		void resize(std::size_t s, T const& v)
+		{
+			TORRENT_ASSERT(s <= std::size_t(std::numeric_limits<underlying_index>::max()));
+			this->base::resize(s, v);
+		}
 	};
 
 	template <typename Iter>

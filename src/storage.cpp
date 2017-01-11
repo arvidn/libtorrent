@@ -368,7 +368,7 @@ namespace libtorrent
 		// extend our file priorities in case it's truncated
 		// the default assumed priority is 1
 		if (prio.size() > m_file_priority.size())
-			m_file_priority.resize(static_cast<int>(prio.end_index()), 1);
+			m_file_priority.resize(prio.size(), 1);
 
 		file_storage const& fs = files();
 		for (file_index_t i(0); i < prio.end_index(); ++i)
