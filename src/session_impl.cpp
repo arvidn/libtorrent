@@ -3070,16 +3070,39 @@ retry:
 
 	void session_impl::trancieve_ip_packet(int bytes, bool ipv6)
 	{
+		// one TCP/IP packet header for the packet
+		// sent or received, and one for the ACK
+		// The IPv4 header is 20 bytes
+		// and IPv6 header is 40 bytes
+		int const header = (ipv6 ? 40 : 20) + 20;
+		int const mtu = 1500;
+		int const packet_size = mtu - header;
+		int const overhead = std::max(1, (bytes + packet_size - 1) / packet_size) * header;
+		m_stats_counters.inc_stats_counter(counters::sent_ip_overhead_bytes
+			, overhead);
+		m_stats_counters.inc_stats_counter(counters::recv_ip_overhead_bytes
+			, overhead);
+
 		m_stat.trancieve_ip_packet(bytes, ipv6);
 	}
 
 	void session_impl::sent_syn(bool ipv6)
 	{
+		int const overhead = ipv6 ? 60 : 40;
+		m_stats_counters.inc_stats_counter(counters::sent_ip_overhead_bytes
+			, overhead);
+
 		m_stat.sent_syn(ipv6);
 	}
 
 	void session_impl::received_synack(bool ipv6)
 	{
+		int const overhead = ipv6 ? 60 : 40;
+		m_stats_counters.inc_stats_counter(counters::sent_ip_overhead_bytes
+			, overhead);
+		m_stats_counters.inc_stats_counter(counters::recv_ip_overhead_bytes
+			, overhead);
+
 		m_stat.received_synack(ipv6);
 	}
 
@@ -4692,12 +4715,6 @@ retry:
 			m_dht->update_stats_counters(m_stats_counters);
 #endif
 
-		m_stats_counters.set_value(counters::sent_ip_overhead_bytes
-			, m_stat.total_transfer(stat::upload_ip_protocol));
-
-		m_stats_counters.set_value(counters::recv_ip_overhead_bytes
-			, m_stat.total_transfer(stat::download_ip_protocol));
-
 		m_stats_counters.set_value(counters::limiter_up_queue
 			, m_upload_rate.queue_size());
 		m_stats_counters.set_value(counters::limiter_down_queue
@@ -5718,9 +5735,9 @@ retry:
 
 		// IP-overhead
 		s.ip_overhead_download_rate = m_stat.transfer_rate(stat::download_ip_protocol);
-		s.total_ip_overhead_download = m_stat.total_transfer(stat::download_ip_protocol);
+		s.total_ip_overhead_download = m_stats_counters[counters::recv_ip_overhead_bytes];
 		s.ip_overhead_upload_rate = m_stat.transfer_rate(stat::upload_ip_protocol);
-		s.total_ip_overhead_upload = m_stat.total_transfer(stat::upload_ip_protocol);
+		s.total_ip_overhead_upload = m_stats_counters[counters::sent_ip_overhead_bytes];
 
 		// tracker
 		s.total_tracker_download = m_stats_counters[counters::recv_tracker_bytes];
