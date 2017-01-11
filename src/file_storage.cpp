@@ -178,7 +178,7 @@ namespace libtorrent
 			return;
 		}
 
-		if (branch_len >= m_name.size()
+		if (branch_len == m_name.size()
 			&& std::memcmp(branch_path, m_name.c_str(), m_name.size()) == 0)
 		{
 			// the +1 is to skip the trailing '/' (or '\')
