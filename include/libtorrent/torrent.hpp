@@ -95,6 +95,8 @@ namespace libtorrent
 	class bt_peer_connection;
 	struct listen_socket_t;
 
+	typedef std::chrono::duration<std::int32_t, std::ratio<1>> seconds_t;
+
 	enum class waste_reason
 	{
 		piece_timed_out, piece_cancelled, piece_unknown, piece_seed
@@ -483,9 +485,9 @@ namespace libtorrent
 		void do_pause(bool clear_disk_cache = true);
 		void do_resume();
 
-		seconds finished_time() const;
-		seconds active_time() const;
-		seconds seeding_time() const;
+		seconds_t finished_time() const;
+		seconds_t active_time() const;
+		seconds_t seeding_time() const;
 
 		bool is_paused() const;
 		bool is_torrent_paused() const { return m_paused; }
@@ -1406,8 +1408,7 @@ namespace libtorrent
 		// paused. specified in seconds. This only track time _before_ we started
 		// the torrent this last time. When the torrent is paused, this counter is
 		// incremented to include this current session.
-		// TODO was 24bit before
-		std::chrono::seconds m_active_time;
+		seconds_t m_active_time;
 
 		// the index to the last tracker that worked
 		std::int8_t m_last_working_tracker = -1;
@@ -1416,8 +1417,7 @@ namespace libtorrent
 
 		// total time we've been finished with this torrent.
 		// does not count when the torrent is stopped or paused.
-		// TODO was 24bit before
-		std::chrono::seconds m_finished_time;
+		seconds_t m_finished_time;
 
 		// in case the piece picker hasn't been constructed
 		// when this settings is set, this variable will keep
@@ -1457,8 +1457,7 @@ namespace libtorrent
 		// accounts for the time prior to the current start of the torrent. When
 		// the torrent is paused, this counter is incremented to account for the
 		// additional seeding time.
-		// TODO was 24bit before
-		std::chrono::seconds m_seeding_time;
+		seconds_t m_seeding_time;
 
 // ----
 
