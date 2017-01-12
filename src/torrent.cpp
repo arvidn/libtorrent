@@ -3273,6 +3273,10 @@ namespace libtorrent
 	// issued by libtorrent)
 	void torrent::force_tracker_request(time_point const t, int const tracker_idx)
 	{
+		TORRENT_ASSERT_PRECOND((tracker_idx >= 0
+			&& tracker_idx < int(m_trackers.size()))
+			|| tracker_idx == -1);
+
 		if (is_paused()) return;
 		if (tracker_idx == -1)
 		{
@@ -3284,7 +3288,6 @@ namespace libtorrent
 		}
 		else
 		{
-			TORRENT_ASSERT(tracker_idx >= 0 && tracker_idx < int(m_trackers.size()));
 			if (tracker_idx < 0 || tracker_idx >= int(m_trackers.size()))
 				return;
 			announce_entry& e = m_trackers[tracker_idx];
