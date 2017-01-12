@@ -294,7 +294,7 @@ class test_example_client(unittest.TestCase):
 		with open(os.devnull, "w") as DEVNULL:
 			process = sub.Popen(
 				[sys.executable,"client.py","url_seed_multi.torrent"],
-				stdin=my_stdin, stdout=DEVNULL, stderr=sub.PIPE, env=my_env)
+				stdin=my_stdin, stdout=sub.PIPE, stderr=sub.PIPE, env=my_env)
 		# python2 has no Popen.wait() timeout
 		time.sleep(5)
 		returncode = process.poll()
@@ -303,17 +303,17 @@ class test_example_client(unittest.TestCase):
 			process.kill()
 		err = process.stderr.read().decode("utf-8")
 		self.assertEqual('', err, 'process throw errors: \n' + err)
-		# check error code if process did unexpected end, skip -6 because it's
-		# a unresolved problem with the execution on build host
-		if returncode != None and returncode != -6:
-			self.assertEqual(returncode, 0)
+		# check error code if process did unexpected end
+		if returncode != None:
+			# in case of error return: output stdout if nothing was on stderr
+			self.assertEqual(returncode, 0, process.stdout.read().decode("utf-8"))
 
 	def test_execute_simple_client(self):
 		my_env = os.environ.copy()
 		with open(os.devnull, "w") as DEVNULL:
 			process = sub.Popen(
 				[sys.executable,"simple_client.py","url_seed_multi.torrent"],
-				stdout=DEVNULL, stderr=sub.PIPE, env=my_env)
+				stdout=sub.PIPE, stderr=sub.PIPE, env=my_env)
 		# python2 has no Popen.wait() timeout
 		time.sleep(5)
 		returncode = process.poll()
@@ -322,10 +322,10 @@ class test_example_client(unittest.TestCase):
 			process.kill()
 		err = process.stderr.read().decode("utf-8")
 		self.assertEqual('', err, 'process throw errors: \n' + err)
-		# check error code if process did unexpected end, skip -6 because it's
-		# a unresolved problem with the execution on build host
-		if returncode != None and returncode != -6:
-			self.assertEqual(returncode, 0)
+		# check error code if process did unexpected end
+		if returncode != None:
+			# in case of error return: output stdout if nothing was on stderr
+			self.assertEqual(returncode, 0, process.stdout.read().decode("utf-8"))
 
 	def test_execute_make_torrent(self):
 		process = sub.Popen([sys.executable,"-m","trace","--trace",
@@ -345,11 +345,11 @@ class test_example_client(unittest.TestCase):
 		# python2 has no Popen.wait() timeout
 		err = process.stderr.read().decode("utf-8")
 		
-		print "test self lib"
-		print lt.__version__
-		print os.path.abspath(lt.__file__)
-		print os.path.getctime(lt.__file__)
-		print os.path.getmtime(lt.__file__)
+		print("test self lib")
+		print(lt.__version__)
+		print(os.path.abspath(lt.__file__))
+		print(os.path.getctime(lt.__file__))
+		print(os.path.getmtime(lt.__file__))
 		# check with ls in case of cached lib.__file__ and test_lib_path.py did crash
 		process = sub.Popen(["ls","-l",os.path.abspath(lt.__file__)]).wait()
 		
@@ -358,9 +358,9 @@ class test_example_client(unittest.TestCase):
 
 if __name__ == '__main__':
 	print(lt.__version__)
-	print os.path.abspath(lt.__file__)
-	print os.path.getctime(lt.__file__)
-	print os.path.getmtime(lt.__file__)
+	print(os.path.abspath(lt.__file__))
+	print(os.path.getctime(lt.__file__))
+	print(os.path.getmtime(lt.__file__))
 	shutil.copy(os.path.join('..', '..', 'test', 'test_torrents', 'url_seed_multi.torrent'), '.')
 	shutil.copy(os.path.join('..', '..', 'test', 'test_torrents', 'base.torrent'), '.')
 	shutil.copy(os.path.join('..', '..', 'test', 'test_torrents', 'unordered.torrent'), '.')

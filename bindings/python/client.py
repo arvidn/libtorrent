@@ -152,12 +152,12 @@ def print_download_queue(console, download_queue):
     write_line(console, out)
 
 def main():
-    print "test_client_module"
-    print dir(lt)
-    print os.path.abspath(lt.__file__)
-    print os.path.getctime(lt.__file__)
-    print os.path.getmtime(lt.__file__)
-    print lt.__version__
+    print("test_simple_client_module")
+    print(dir(lt))
+    print(os.path.abspath(lt.__file__))
+    print(os.path.getctime(lt.__file__))
+    print(os.path.getmtime(lt.__file__))
+    print(lt.__version__)
 
 
     from optparse import OptionParser
