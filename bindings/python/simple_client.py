@@ -8,6 +8,13 @@ import libtorrent as lt
 import time
 import sys
 
+print "test_simple_client_module"
+print dir(lt)
+print os.path.abspath(lt.__file__)
+print os.path.getctime(lt.__file__)
+print os.path.getmtime(lt.__file__)
+print lt.__version__
+
 ses = lt.session()
 ses.listen_on(6881, 6891)
 
