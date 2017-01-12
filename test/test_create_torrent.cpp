@@ -41,6 +41,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace lt = libtorrent;
 
+int test_invalid_piece_length();
+
 // make sure creating a torrent from an existing handle preserves the
 // info-dictionary verbatim, so as to not alter the info-hash
 int test_main()
@@ -63,6 +65,21 @@ int test_main()
 	// +1 and -2 here is to strip the outermost dictionary from the source
 	// torrent, since create_torrent may have added items next to the info dict
 	TEST_CHECK(memcmp(dest_info, test_torrent + 1, sizeof(test_torrent)-3) == 0);
+	
+	test_invalid_piece_length();
 	return 0;
 }
 
+// test a invalid piece length
+int test_invalid_piece_length()
+{
+	char const test_torrent[] = "d4:infod4:name6:foobar6:lengthi12345e12:piece lengthi65536e6:pieces40:ababababababababababababababababababababee";
+
+	try {
+		lt::torrent_info info(test_torrent, sizeof(test_torrent) - 1);
+		lt::create_torrent t(info);
+		TEST_ERROR("Exception was missing");
+	} catch (std::exception const& e) {}
+
+	return 0;
+}
