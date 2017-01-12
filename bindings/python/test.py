@@ -290,11 +290,9 @@ class test_example_client(unittest.TestCase):
 			# slave_fd fix multiple stdin assignment at termios.tcgetattr
 			my_stdin = slave_fd
 
-		my_env = os.environ.copy()
-		with open(os.devnull, "w") as DEVNULL:
-			process = sub.Popen(
-				[sys.executable,"client.py","url_seed_multi.torrent"],
-				stdin=my_stdin, stdout=sub.PIPE, stderr=sub.PIPE, env=my_env)
+		process = sub.Popen(
+			[sys.executable,"client.py","url_seed_multi.torrent"],
+			stdin=my_stdin, stdout=sub.PIPE, stderr=sub.PIPE)
 		# python2 has no Popen.wait() timeout
 		time.sleep(5)
 		returncode = process.poll()
@@ -306,14 +304,14 @@ class test_example_client(unittest.TestCase):
 		# check error code if process did unexpected end
 		if returncode != None:
 			# in case of error return: output stdout if nothing was on stderr
-			self.assertEqual(returncode, 0, process.stdout.read().decode("utf-8"))
+			self.assertEqual(returncode, 0, "returncode: " + returncode + "\n"
+				+ "stderr: empty\n"
+				+ "stdout:\n" +process.stdout.read().decode("utf-8"))
 
 	def test_execute_simple_client(self):
-		my_env = os.environ.copy()
-		with open(os.devnull, "w") as DEVNULL:
-			process = sub.Popen(
-				[sys.executable,"simple_client.py","url_seed_multi.torrent"],
-				stdout=sub.PIPE, stderr=sub.PIPE, env=my_env)
+		process = sub.Popen(
+			[sys.executable,"simple_client.py","url_seed_multi.torrent"],
+			stdout=sub.PIPE, stderr=sub.PIPE)
 		# python2 has no Popen.wait() timeout
 		time.sleep(5)
 		returncode = process.poll()
@@ -325,7 +323,9 @@ class test_example_client(unittest.TestCase):
 		# check error code if process did unexpected end
 		if returncode != None:
 			# in case of error return: output stdout if nothing was on stderr
-			self.assertEqual(returncode, 0, process.stdout.read().decode("utf-8"))
+			self.assertEqual(returncode, 0, "returncode: " + returncode + "\n"
+				+ "stderr: empty\n"
+				+ "stdout:\n" +process.stdout.read().decode("utf-8"))
 
 	def test_execute_make_torrent(self):
 		process = sub.Popen([sys.executable,"-m","trace","--trace",
@@ -337,7 +337,9 @@ class test_example_client(unittest.TestCase):
 		err = process.stderr.read().decode("utf-8")
 		self.assertEqual('', err, 'process throw errors: \n' + err)
 		# in case of error return: output stdout if nothing was on stderr
-		self.assertEqual(returncode, 0, process.stdout.read().decode("utf-8"))
+		self.assertEqual(returncode, 0, "returncode: " + returncode + "\n"
+			+ "stderr: empty\n"
+			+ "stdout:\n" +process.stdout.read().decode("utf-8"))
 
 	def test_lib_changes(self):
 		process = sub.Popen([sys.executable,"test_lib_path.py"], stderr=sub.PIPE)
