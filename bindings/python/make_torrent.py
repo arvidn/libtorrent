@@ -26,7 +26,6 @@ if os.path.isfile(input):
 for root, dirs, files in os.walk(input):
 	# skip directories starting with .
 	if os.path.split(root)[1][0] == '.': continue
-	print dirs
 	for f in files:
 		# skip files starting with .
 		if f[0] == '.': continue

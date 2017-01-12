@@ -7,23 +7,15 @@ from __future__ import print_function
 import libtorrent as lt
 import time
 import sys
-import os
 
-print("test_simple_client_module")
-print(dir(lt))
-print(os.path.abspath(lt.__file__))
-print(os.path.getctime(lt.__file__))
-print(os.path.getmtime(lt.__file__))
-print(lt.__version__)
-
-ses = lt.session()
-ses.listen_on(6881, 6891)
+ses = lt.session({'listen_interfaces':'0.0.0.0:6881'})
 
 info = lt.torrent_info(sys.argv[1])
 h = ses.add_torrent({'ti': info, 'save_path': '.'})
-print('starting', h.name())
+s = h.status()
+print('starting', s.name)
 
-while (not h.is_seed()):
+while (not s.is_seeding):
 	s = h.status()
 
 	state_str = ['queued', 'checking', 'downloading metadata', \

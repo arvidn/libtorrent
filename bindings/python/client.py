@@ -152,14 +152,6 @@ def print_download_queue(console, download_queue):
     write_line(console, out)
 
 def main():
-    print("test_simple_client_module")
-    print(dir(lt))
-    print(os.path.abspath(lt.__file__))
-    print(os.path.getctime(lt.__file__))
-    print(os.path.getmtime(lt.__file__))
-    print(lt.__version__)
-
-
     from optparse import OptionParser
 
     parser = OptionParser()
@@ -200,11 +192,12 @@ def main():
     if options.max_download_rate <= 0:
         options.max_download_rate = -1
 
-    ses = lt.session({'user_agent':  'python_client/' + lt.version})
-    ses.set_download_rate_limit(int(options.max_download_rate))
-    ses.set_upload_rate_limit(int(options.max_upload_rate))
-    ses.listen_on(options.port, options.port + 10)
-    ses.set_alert_mask(0xfffffff)
+    ses = lt.session({'user_agent':  'python_client/' + lt.__version__,
+        'listen_interfaces':'0.0.0.0:' + str(options.port),
+        'download_rate_limit': int(options.max_download_rate),
+        'upload_rate_limit': int(options.max_upload_rate),
+        'alert_mask' : 0xfffffff
+    })
 
     if options.proxy_host != '':
         ps = lt.proxy_settings()
@@ -256,13 +249,12 @@ def main():
         out = ''
 
         for h in handles:
-            if h.has_metadata():
-                name = h.get_torrent_info().name()[:40]
+            s = h.status()
+            if s.has_metadata:
+                name = h.torrent_file().name()[:40]
             else:
                 name = '-'
             out += 'name: %-40s\n' % name
-
-            s = h.status()
 
             if s.state != lt.torrent_status.seeding:
                 state_str = ['queued', 'checking', 'downloading metadata', \
@@ -298,7 +290,7 @@ def main():
                 try:
                     out = '\n'
                     fp = h.file_progress()
-                    ti = h.get_torrent_info()
+                    ti = h.torrent_file()
                     for f,p in zip(ti.files(), fp):
                         out += progress_bar(p / float(f.size), 20)
                         out += ' ' + f.path + '\n'
@@ -334,7 +326,7 @@ def main():
 
     ses.pause()
     for h in handles:
-        if not h.is_valid() or not h.has_metadata():
+        if not h.is_valid() or not s.has_metadata:
             continue
         data = lt.bencode(h.write_resume_data())
         open(os.path.join(options.save_path, h.get_torrent_info().name() + '.fastresume'), 'wb').write(data)
