@@ -20,7 +20,7 @@ for l in f:
 		counter_type = 'counter'
 		continue
 
-	if 'enum stats_gauges_t' in l:
+	if 'enum stats_gauge_t' in l:
 		counter_type = 'gauge'
 		continue
 
