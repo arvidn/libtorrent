@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_VECTOR_HPP
 
 #include <vector>
+#include <type_traits>
 
 #include "libtorrent/units.hpp"
 #include "libtorrent/assert.hpp"
@@ -70,7 +71,38 @@ namespace libtorrent { namespace aux {
 		}
 
 		IndexType end_index() const
-		{ return IndexType(static_cast<underlying_index>(this->size())); }
+		{
+			TORRENT_ASSERT(this->size() <= std::size_t(std::numeric_limits<underlying_index>::max()));
+			return IndexType(static_cast<underlying_index>(this->size()));
+		}
+
+		template <typename U = underlying_index, typename Cond
+			= typename std::enable_if<std::is_signed<U>::value>::type>
+		void resize(underlying_index s)
+		{
+			TORRENT_ASSERT(s >= 0);
+			this->base::resize(std::size_t(s));
+		}
+
+		template <typename U = underlying_index, typename Cond
+			= typename std::enable_if<std::is_signed<U>::value>::type>
+		void resize(underlying_index s, T const& v)
+		{
+			TORRENT_ASSERT(s >= 0);
+			this->base::resize(std::size_t(s), v);
+		}
+
+		void resize(std::size_t s)
+		{
+			TORRENT_ASSERT(s <= std::size_t(std::numeric_limits<underlying_index>::max()));
+			this->base::resize(s);
+		}
+
+		void resize(std::size_t s, T const& v)
+		{
+			TORRENT_ASSERT(s <= std::size_t(std::numeric_limits<underlying_index>::max()));
+			this->base::resize(s, v);
+		}
 	};
 
 	template <typename Iter>
