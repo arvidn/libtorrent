@@ -688,8 +688,8 @@ AC_SUBST(COMPILETIME_OPTIONS)
 
 # Try to guess real git revision if any, fallback to hardcoded otherwise
 GIT_REVISION=`git log -1 --format=format:%h 2>/dev/null`
-AS_IF([test -z "GIT_REVISION"],
-      [GIT_REVISION=`sed -n -e 's/^#define LIBTORRENT_REVISION \"\([0-9a-z]*\)\"$/\1/p' include/libtorrent/version.hpp`])
+AS_IF([test -z "$GIT_REVISION"],
+      [GIT_REVISION=`sed -n -e "s/^#define LIBTORRENT_REVISION \"\([0-9a-z]*\)\"$/\1/p" $(dirname $0)/include/libtorrent/version.hpp`])
 
 
 ###############################################################################
