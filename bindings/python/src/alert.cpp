@@ -356,7 +356,7 @@ void bind_alert()
 
     class_<hash_failed_alert, bases<torrent_alert>, noncopyable>(
         "hash_failed_alert", no_init)
-        .def_readonly("piece_index", &hash_failed_alert::piece_index)
+        .add_property("piece_index", make_getter(&hash_failed_alert::piece_index, by_value()))
         ;
 
     class_<peer_ban_alert, bases<peer_alert>, noncopyable>(
@@ -389,13 +389,13 @@ void bind_alert()
 
     class_<piece_finished_alert, bases<torrent_alert>, noncopyable>(
         "piece_finished_alert", no_init)
-        .def_readonly("piece_index", &piece_finished_alert::piece_index)
+        .add_property("piece_index", make_getter(&piece_finished_alert::piece_index, by_value()))
         ;
 
     class_<block_finished_alert, bases<peer_alert>, noncopyable>(
         "block_finished_alert", no_init)
-        .def_readonly("block_index", &block_finished_alert::block_index)
-        .def_readonly("piece_index", &block_finished_alert::piece_index)
+        .add_property("block_index", make_getter(&block_finished_alert::block_index, by_value()))
+        .add_property("piece_index", make_getter(&block_finished_alert::piece_index, by_value()))
         ;
 
     class_<block_downloading_alert, bases<peer_alert>, noncopyable>(
@@ -403,8 +403,8 @@ void bind_alert()
 #ifndef TORRENT_NO_DEPRECATE
         .def_readonly("peer_speedmsg", &block_downloading_alert::peer_speedmsg)
 #endif
-        .def_readonly("block_index", &block_downloading_alert::block_index)
-        .def_readonly("piece_index", &block_downloading_alert::piece_index)
+        .add_property("block_index", make_getter(&block_downloading_alert::block_index, by_value()))
+        .add_property("piece_index", make_getter(&block_downloading_alert::piece_index, by_value()))
         ;
 
     class_<storage_moved_alert, bases<torrent_alert>, noncopyable>(
@@ -693,20 +693,20 @@ void bind_alert()
 
     class_<request_dropped_alert, bases<peer_alert>, noncopyable>(
         "request_dropped_alert", no_init)
-        .def_readonly("block_index", &request_dropped_alert::block_index)
-        .def_readonly("piece_index", &request_dropped_alert::piece_index)
+        .add_property("block_index", make_getter(&request_dropped_alert::block_index, by_value()))
+        .add_property("piece_index", make_getter(&request_dropped_alert::piece_index, by_value()))
     ;
 
     class_<block_timeout_alert, bases<peer_alert>, noncopyable>(
         "block_timeout_alert", no_init)
-        .def_readonly("block_index", &block_timeout_alert::block_index)
-        .def_readonly("piece_index", &block_timeout_alert::piece_index)
+        .add_property("block_index", make_getter(&block_timeout_alert::block_index, by_value()))
+        .add_property("piece_index", make_getter(&block_timeout_alert::piece_index, by_value()))
     ;
 
     class_<unwanted_block_alert, bases<peer_alert>, noncopyable>(
         "unwanted_block_alert", no_init)
-        .def_readonly("block_index", &unwanted_block_alert::block_index)
-        .def_readonly("piece_index", &unwanted_block_alert::piece_index)
+        .add_property("block_index", make_getter(&unwanted_block_alert::block_index, by_value()))
+        .add_property("piece_index", make_getter(&unwanted_block_alert::piece_index, by_value()))
     ;
 
     class_<torrent_delete_failed_alert, bases<torrent_alert>, noncopyable>(

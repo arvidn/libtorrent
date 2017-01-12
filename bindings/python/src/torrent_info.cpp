@@ -208,6 +208,7 @@ std::shared_ptr<torrent_info> bencoded_constructor1(entry const& ent)
 	return bencoded_constructor0(ent, 0);
 }
 
+using by_value = return_value_policy<return_by_value>;
 void bind_torrent_info()
 {
     return_value_policy<copy_const_reference> copy;
@@ -218,7 +219,7 @@ void bind_torrent_info()
 #endif
 
     class_<file_slice>("file_slice")
-        .def_readwrite("file_index", &file_slice::file_index)
+        .add_property("file_index", make_getter((&file_slice::file_index), by_value()))
         .def_readwrite("offset", &file_slice::offset)
         .def_readwrite("size", &file_slice::size)
         ;

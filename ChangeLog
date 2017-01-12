@@ -1,4 +1,5 @@
 	* fix crash caused by empty bitfield 
+	* add piece index and block index python bindings
 	* removed disk-access-log build configuration
 	* removed mmap_cache feature
 	* strengthened type safety in handling of piece and file indices
