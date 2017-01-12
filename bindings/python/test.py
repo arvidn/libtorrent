@@ -5,11 +5,13 @@ import libtorrent as lt
 import unittest
 import time
 import os
-import pty
 import shutil
 import binascii
 import subprocess as sub
 import sys
+
+if os.name != 'nt':
+	import pty
 
 class test_create_torrent(unittest.TestCase):
 
@@ -334,8 +336,28 @@ class test_example_client(unittest.TestCase):
 		self.assertEqual('', err, 'process throw errors: \n' + err)
 		self.assertEqual(returncode, 0)
 
+	def test_lib_changes(self):
+		process = sub.Popen([sys.executable,"test_lib_path.py"], stderr=sub.PIPE)
+		returncode = process.wait()
+		# python2 has no Popen.wait() timeout
+		err = process.stderr.read().decode("utf-8")
+		
+		print "test self lib"
+		print lt.__version__
+		print os.path.abspath(lt.__file__)
+		print os.path.getctime(lt.__file__)
+		print os.path.getmtime(lt.__file__)
+		# check with ls in case of cached lib.__file__ and test_lib_path.py did crash
+		process = sub.Popen(["ls","-l",os.path.abspath(lt.__file__)]).wait()
+		
+		self.assertEqual('', err, 'process throw errors: \n' + err)
+		self.assertEqual(returncode, 0)
+
 if __name__ == '__main__':
 	print(lt.__version__)
+	print os.path.abspath(lt.__file__)
+	print os.path.getctime(lt.__file__)
+	print os.path.getmtime(lt.__file__)
 	shutil.copy(os.path.join('..', '..', 'test', 'test_torrents', 'url_seed_multi.torrent'), '.')
 	shutil.copy(os.path.join('..', '..', 'test', 'test_torrents', 'base.torrent'), '.')
 	shutil.copy(os.path.join('..', '..', 'test', 'test_torrents', 'unordered.torrent'), '.')
