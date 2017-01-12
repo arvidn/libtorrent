@@ -366,7 +366,6 @@ TORRENT_TEST(not_initialized)
 	TEST_EQUAL(test1.num_words(), 0);
 	TEST_EQUAL(test1.empty(), true);
 	TEST_CHECK(test1.data() == nullptr);
-	TEST_CHECK(test1.bytes() == nullptr);
 	TEST_EQUAL(test1.count(), 0);
 	TEST_EQUAL(test1.find_first_set(), -1);
 	TEST_EQUAL(test1.find_last_clear(), -1);
