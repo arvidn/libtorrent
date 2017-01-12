@@ -304,7 +304,7 @@ class test_example_client(unittest.TestCase):
 		# check error code if process did unexpected end
 		if returncode != None:
 			# in case of error return: output stdout if nothing was on stderr
-			self.assertEqual(returncode, 0, "returncode: " + returncode + "\n"
+			self.assertEqual(returncode, 0, "returncode: " + str(returncode) + "\n"
 				+ "stderr: empty\n"
 				+ "stdout:\n" +process.stdout.read().decode("utf-8"))
 
@@ -323,7 +323,7 @@ class test_example_client(unittest.TestCase):
 		# check error code if process did unexpected end
 		if returncode != None:
 			# in case of error return: output stdout if nothing was on stderr
-			self.assertEqual(returncode, 0, "returncode: " + returncode + "\n"
+			self.assertEqual(returncode, 0, "returncode: " + str(returncode) + "\n"
 				+ "stderr: empty\n"
 				+ "stdout:\n" +process.stdout.read().decode("utf-8"))
 
@@ -337,7 +337,7 @@ class test_example_client(unittest.TestCase):
 		err = process.stderr.read().decode("utf-8")
 		self.assertEqual('', err, 'process throw errors: \n' + err)
 		# in case of error return: output stdout if nothing was on stderr
-		self.assertEqual(returncode, 0, "returncode: " + returncode + "\n"
+		self.assertEqual(returncode, 0, "returncode: " + str(returncode) + "\n"
 			+ "stderr: empty\n"
 			+ "stdout:\n" +process.stdout.read().decode("utf-8"))
 
