@@ -328,13 +328,14 @@ class test_example_client(unittest.TestCase):
 			self.assertEqual(returncode, 0)
 
 	def test_execute_make_torrent(self):
-		process = sub.Popen([sys.executable,"make_torrent.py",
-			"url_seed_multi.torrent","http://test.com/test"], stderr=sub.PIPE)
+		process = sub.Popen([sys.executable,"-m","trace","--trace","--ignore-module=posixpath,genericpath","make_torrent.py",
+			"url_seed_multi.torrent","http://test.com/test"], stdout=sub.PIPE, stderr=sub.PIPE)
 		returncode = process.wait()
 		# python2 has no Popen.wait() timeout
 		err = process.stderr.read().decode("utf-8")
-		self.assertEqual('', err, 'process throw errors: \n' + err)
-		self.assertEqual(returncode, 0)
+		#self.assertEqual('', err, 'process throw errors: \n' + err)
+		# in case of error output stdout if nothing was on stderr
+		self.assertEqual(returncode, 0, process.stdout.read().decode("utf-8"))
 
 	def test_lib_changes(self):
 		process = sub.Popen([sys.executable,"test_lib_path.py"], stderr=sub.PIPE)
