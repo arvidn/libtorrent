@@ -423,8 +423,8 @@ feature.compose <piece-allocator>memalign : <define>TORRENT_USE_MEMALIGN=1 ;
 feature.compose <piece-allocator>posix_memalign : <define>TORRENT_USE_POSIX_MEMALIGN=1 ;
 
 feature invariant-checks : off on full : composite propagated link-incompatible ;
-feature.compose <invariant-checks>on : <define>TORRENT_USE_INVARIANT_CHECKS=1 ;
-feature.compose <invariant-checks>full : <define>TORRENT_USE_INVARIANT_CHECKS=1 <define>TORRENT_EXPENSIVE_INVARIANT_CHECKS ;
+feature.compose <invariant-checks>on : <define>TORRENT_USE_INVARIANT_CHECKS=1 <asserts>on ;
+feature.compose <invariant-checks>full : <define>TORRENT_USE_INVARIANT_CHECKS=1 <define>TORRENT_EXPENSIVE_INVARIANT_CHECKS <asserts>on ;
 
 feature utp-log : off on : composite propagated link-incompatible ;
 feature.compose <utp-log>on : <define>TORRENT_UTP_LOG_ENABLE ;
