@@ -1,3 +1,4 @@
+	* fix cxxflags for python binding build
 	* removed mmap_cache feature
 	* strengthened type safety in handling of piece and file indices
 	* deprecate identify_client() and fingerprint type
