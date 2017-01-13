@@ -1138,4 +1138,3 @@ namespace libtorrent
 
 	} // namespace aux
 }
-

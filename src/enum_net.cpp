@@ -363,7 +363,7 @@ namespace libtorrent
 				b1[i] &= m[i];
 				b2[i] &= m[i];
 			}
-			return memcmp(&b1[0], &b2[0], b1.size()) == 0;
+			return std::memcmp(b1.data(), b2.data(), b1.size()) == 0;
 		}
 #endif
 		return (a1.to_v4().to_ulong() & mask.to_v4().to_ulong())
@@ -379,10 +379,9 @@ namespace libtorrent
 
 	bool in_local_network(std::vector<ip_interface> const& net, address const& addr)
 	{
-		for (std::vector<ip_interface>::const_iterator i = net.begin()
-			, end(net.end()); i != end; ++i)
+		for (auto const& i : net)
 		{
-			if (match_addr_mask(addr, i->interface_address, i->netmask))
+			if (match_addr_mask(addr, i.interface_address, i.netmask))
 				return true;
 		}
 		return false;
@@ -703,7 +702,7 @@ namespace libtorrent
 	address get_default_gateway(io_service& ios, error_code& ec)
 	{
 		std::vector<ip_route> ret = enum_routes(ios, ec);
-		std::vector<ip_route>::iterator i = std::find_if(ret.begin(), ret.end()
+		auto const i = std::find_if(ret.begin(), ret.end()
 			, [](ip_route const& r) { return r.destination == address(); });
 		if (i == ret.end()) return address();
 		return i->gateway;
@@ -845,9 +844,9 @@ namespace libtorrent
 		}
 		close(s);
 */
-	int mib[6] = { CTL_NET, PF_ROUTE, 0, AF_UNSPEC, NET_RT_DUMP, 0};
+	int mib[6] = {CTL_NET, PF_ROUTE, 0, AF_UNSPEC, NET_RT_DUMP, 0};
 
-	size_t needed = 0;
+	std::size_t needed = 0;
 #ifdef TORRENT_OS2
 	if (__libsocket_sysctl(mib, 6, 0, &needed, 0, 0) < 0)
 #else
