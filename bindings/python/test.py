@@ -285,11 +285,11 @@ class test_example_client(unittest.TestCase):
 
 	# we have unknown errors that only appear on travis, we guess that there could
 	# be an issue with the parallel builds and does only happen on subprocesses
-	def skip_error(returncode):
+	def skip_error(self, returncode):
 		if returncode == -6:
 			print('skip returncode -6 error')
-			return true
-		return false
+			return True
+		return False
 
 	def test_execute_client(self):
 		my_stdin = sys.stdin
@@ -310,7 +310,7 @@ class test_example_client(unittest.TestCase):
 		err = process.stderr.read().decode("utf-8")
 		self.assertEqual('', err, 'process throw errors: \n' + err)
 		# check error code if process did unexpected end
-		if returncode != None and skip_error(returncode) == false:
+		if returncode != None and self.skip_error(returncode) == False:
 			# in case of error return: output stdout if nothing was on stderr
 			self.assertEqual(returncode, 0, "returncode: " + str(returncode) + "\n"
 				+ "stderr: empty\n"
@@ -329,7 +329,7 @@ class test_example_client(unittest.TestCase):
 		err = process.stderr.read().decode("utf-8")
 		self.assertEqual('', err, 'process throw errors: \n' + err)
 		# check error code if process did unexpected end
-		if returncode != None and skip_error(returncode) == false:
+		if returncode != None and self.skip_error(returncode) == False:
 			# in case of error return: output stdout if nothing was on stderr
 			self.assertEqual(returncode, 0, "returncode: " + str(returncode) + "\n"
 				+ "stderr: empty\n"
@@ -343,7 +343,7 @@ class test_example_client(unittest.TestCase):
 		# python2 has no Popen.wait() timeout
 		err = process.stderr.read().decode("utf-8")
 		self.assertEqual('', err, 'process throw errors: \n' + err)
-		if skip_error(returncode) == false:
+		if self.skip_error(returncode) == False:
 			# in case of error return: output stdout if nothing was on stderr
 			self.assertEqual(returncode, 0, "returncode: " + str(returncode) + "\n"
 				+ "stderr: empty\n"
