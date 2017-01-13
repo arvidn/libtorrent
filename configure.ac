@@ -79,7 +79,7 @@ AC_CANONICAL_TARGET
 AS_ECHO
 AS_ECHO "Initializing Automake:"
 AM_INIT_AUTOMAKE([1.11 foreign])
-
+AM_MAINTAINER_MODE([enable])
 
 AS_ECHO
 AS_ECHO "Initializing Libtool:"
@@ -832,7 +832,7 @@ OpenSSL library:
   OpenSSL Libs:         ${OPENSSL_LIBS}
   OpenSSL LDFlags:      ${OPENSSL_LDFLAGS}
   OpenSSL Includes:     ${OPENSSL_INCLUDES}
-END 
+END
 ])
 
 cat config.report
