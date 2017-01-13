@@ -107,7 +107,7 @@ namespace libtorrent
 		TORRENT_ASSERT(int(bytes) >= page_size());
 #ifdef TORRENT_DEBUG_BUFFERS
 		const int page = page_size();
-		const int num_pages = (bytes + (page-1)) / page + 2;
+		const int num_pages = (bytes + (page - 1)) / page + 2;
 		const int orig_bytes = bytes;
 		bytes = num_pages * page;
 #endif
@@ -122,10 +122,10 @@ namespace libtorrent
 		ret = _aligned_malloc(bytes, page_size());
 #elif defined TORRENT_BEOS
 		area_id id = create_area("", &ret, B_ANY_ADDRESS
-			, (bytes + page_size() - 1) & (page_size()-1), B_NO_LOCK, B_READ_AREA | B_WRITE_AREA);
+			, (bytes + page_size() - 1) & (page_size() - 1), B_NO_LOCK, B_READ_AREA | B_WRITE_AREA);
 		if (id < B_OK) return nullptr;
 #else
-		ret = valloc(size_t(bytes));
+		ret = valloc(std::size_t(bytes));
 #endif
 		if (ret == nullptr) return nullptr;
 
@@ -141,7 +141,7 @@ namespace libtorrent
 #define PROT_READ PAGE_READONLY
 #endif
 		mprotect(ret, std::size_t(page), PROT_READ);
-		mprotect(static_cast<char*>(ret) + (num_pages-1) * page, std::size_t(page), PROT_READ);
+		mprotect(static_cast<char*>(ret) + (num_pages - 1) * page, std::size_t(page), PROT_READ);
 
 #ifdef TORRENT_WINDOWS
 #undef mprotect
@@ -208,4 +208,3 @@ namespace libtorrent
 #endif
 
 }
-

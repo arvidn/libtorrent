@@ -253,9 +253,9 @@ public:
 	bool is_open() const { return m_open; }
 
 	int read_buffer_size() const;
-	static void on_read(void* self, size_t bytes_transferred
+	static void on_read(void* self, std::size_t bytes_transferred
 		, error_code const& ec, bool kill);
-	static void on_write(void* self, size_t bytes_transferred
+	static void on_write(void* self, std::size_t bytes_transferred
 		, error_code const& ec, bool kill);
 	static void on_connect(void* self, error_code const& ec, bool kill);
 	static void on_close_reason(void* self, std::uint16_t reason);

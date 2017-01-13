@@ -82,4 +82,3 @@ namespace libtorrent { namespace aux
 } // namespace libtorrent
 
 #endif
-

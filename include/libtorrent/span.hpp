@@ -52,11 +52,11 @@ namespace libtorrent
 		span(T& p) : m_ptr(&p), m_len(1) {} // NOLINT
 		span(T* p, size_t const l) : m_ptr(p), m_len(l) {} // NOLINT
 
-		template <typename U, size_t N>
+		template <typename U, std::size_t N>
 		span(std::array<U, N>& arr) // NOLINT
 			: m_ptr(arr.data()), m_len(arr.size()) {}
 
-		template <typename U, size_t N>
+		template <typename U, std::size_t N>
 		span(U (&arr)[N]) // NOLINT
 			: m_ptr(&arr[0]), m_len(N) {}
 
@@ -65,7 +65,7 @@ namespace libtorrent
 		span(Cont& c) // NOLINT
 			: m_ptr(c.data()), m_len(c.size()) {}
 
-		size_t size() const { return m_len; }
+		std::size_t size() const { return m_len; }
 		bool empty() const { return m_len == 0; }
 		T* data() const { return m_ptr; }
 
@@ -80,32 +80,32 @@ namespace libtorrent
 		T& front() const { TORRENT_ASSERT(m_len > 0); return m_ptr[0]; }
 		T& back() const { TORRENT_ASSERT(m_len > 0); return m_ptr[m_len - 1]; }
 
-		span<T> first(size_t const n) const
+		span<T> first(std::size_t const n) const
 		{
 			TORRENT_ASSERT(size() >= n);
 			return { data(), n };
 		}
 
-		span<T> last(size_t const n) const
+		span<T> last(std::size_t const n) const
 		{
 			TORRENT_ASSERT(size() >= n);
 			return { data() + size() - n, n };
 		}
 
-		span<T> subspan(size_t const offset) const
+		span<T> subspan(std::size_t const offset) const
 		{
 			TORRENT_ASSERT(size() >= offset);
 			return { data() + offset, size() - offset };
 		}
 
-		span<T> subspan(size_t const offset, size_t const count) const
+		span<T> subspan(std::size_t const offset, std::size_t const count) const
 		{
 			TORRENT_ASSERT(size() >= offset);
 			TORRENT_ASSERT(size() >= offset + count);
 			return { data() + offset, count };
 		}
 
-		T& operator[](size_t const idx)
+		T& operator[](std::size_t const idx)
 		{
 			TORRENT_ASSERT(idx < m_len);
 			return m_ptr[idx];
@@ -113,7 +113,7 @@ namespace libtorrent
 
 	private:
 		T* m_ptr;
-		size_t m_len;
+		std::size_t m_len;
 	};
 }
 

@@ -103,4 +103,3 @@ namespace libtorrent
 	} // aux namespace
 
 }
-

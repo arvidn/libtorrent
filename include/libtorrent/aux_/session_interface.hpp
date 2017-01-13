@@ -40,20 +40,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/socket.hpp" // for tcp::endpoint
 #include "libtorrent/aux_/vector.hpp"
 
 #include <functional>
 #include <memory>
 
-#include "libtorrent/socket.hpp" // for tcp::endpoint
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #ifdef TORRENT_USE_OPENSSL
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/asio/ssl/context.hpp>
-#endif
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
+#endif
 
 namespace libtorrent
 {

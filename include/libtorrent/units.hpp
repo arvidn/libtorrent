@@ -152,4 +152,3 @@ namespace std {
 }
 
 #endif
-
