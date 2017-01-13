@@ -355,3 +355,51 @@ TORRENT_TEST(find_last_clear_misc)
 	test4.clear_bit(89);
 	TEST_EQUAL(test4.find_last_clear(), 91);
 }
+
+TORRENT_TEST(not_initialized)
+{
+	// check a not initialized empty bitfield
+	bitfield test1(0);
+	TEST_EQUAL(test1.none_set(), true);
+	TEST_EQUAL(test1.all_set(), false);
+	TEST_EQUAL(test1.size(), 0);
+	TEST_EQUAL(test1.num_words(), 0);
+	TEST_EQUAL(test1.empty(), true);
+	TEST_CHECK(test1.data() == nullptr);
+	TEST_EQUAL(test1.count(), 0);
+	TEST_EQUAL(test1.find_first_set(), -1);
+	TEST_EQUAL(test1.find_last_clear(), -1);
+
+	test1.clear_all();
+	TEST_EQUAL(test1.size(), 0);
+
+	test1.clear();
+	TEST_EQUAL(test1.size(), 0);
+
+	test1.set_all();
+	TEST_EQUAL(test1.size(), 0);
+
+	// don't test methods which aren't defined for empty sets:
+	// get_bit, clear_bit, set_bit
+}
+
+TORRENT_TEST(not_initialized_assign)
+{
+	// check a not initialized empty bitfield
+	bitfield test1(0);
+	std::uint8_t b1[] = { 0xff };
+	test1.assign((char*)b1, 8);
+	TEST_EQUAL(test1.count(), 8);
+}
+
+TORRENT_TEST(not_initialized_resize)
+{
+	// check a not initialized empty bitfield
+	bitfield test1(0);
+	test1.resize(8, true);
+	TEST_EQUAL(test1.count(), 8);
+
+	bitfield test2(0);
+	test2.resize(8);
+	TEST_EQUAL(test2.size(), 8);
+}
