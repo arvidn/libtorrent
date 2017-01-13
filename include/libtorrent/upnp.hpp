@@ -349,7 +349,7 @@ private:
 		std::set<rootdevice> devices;
 	};
 
-	aux::vector<global_mapping_t, int> m_mappings;
+	aux::vector<global_mapping_t> m_mappings;
 
 	std::string m_user_agent;
 

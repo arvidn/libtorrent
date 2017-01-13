@@ -289,7 +289,7 @@ namespace libtorrent
 			void async_resolve(std::string const& host, int flags
 				, callback_t const& h) override;
 
-			std::vector<torrent*>& torrent_list(int i) override
+			aux::vector<torrent*>& torrent_list(int i) override
 			{
 				TORRENT_ASSERT(i >= 0);
 				TORRENT_ASSERT(i < session_interface::num_torrent_lists);
@@ -724,7 +724,7 @@ namespace libtorrent
 			// negative, return INT_MAX
 			int get_int_setting(int n) const;
 
-			std::vector<torrent*> m_torrent_lists[num_torrent_lists];
+			aux::vector<torrent*> m_torrent_lists[num_torrent_lists];
 
 			peer_class_pool m_classes;
 

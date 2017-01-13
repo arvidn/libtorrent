@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/aux_/vector.hpp"
 
 #include <functional>
 #include <memory>
@@ -286,7 +287,7 @@ namespace libtorrent { namespace aux
 			num_torrent_lists
 		};
 
-		virtual std::vector<torrent*>& torrent_list(int i) = 0;
+		virtual aux::vector<torrent*>& torrent_list(int i) = 0;
 
 		virtual bool has_lsd() const = 0;
 		virtual void announce_lsd(sha1_hash const& ih, int port, bool broadcast = false) = 0;

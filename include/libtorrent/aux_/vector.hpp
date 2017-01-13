@@ -47,7 +47,7 @@ namespace libtorrent { namespace aux {
 	template <typename U, typename Tag>
 	struct underlying_index_t<aux::strong_typedef<U, Tag>> { using type = U; };
 
-	template <typename T, typename IndexType>
+	template <typename T, typename IndexType = int>
 	struct vector : std::vector<T>
 	{
 		using base = std::vector<T>;
@@ -94,13 +94,13 @@ namespace libtorrent { namespace aux {
 
 		void resize(std::size_t s)
 		{
-			TORRENT_ASSERT(s <= std::size_t(std::numeric_limits<underlying_index>::max()));
+			TORRENT_ASSERT(s <= std::size_t((std::numeric_limits<underlying_index>::max)()));
 			this->base::resize(s);
 		}
 
 		void resize(std::size_t s, T const& v)
 		{
-			TORRENT_ASSERT(s <= std::size_t(std::numeric_limits<underlying_index>::max()));
+			TORRENT_ASSERT(s <= std::size_t((std::numeric_limits<underlying_index>::max)()));
 			this->base::resize(s, v);
 		}
 	};

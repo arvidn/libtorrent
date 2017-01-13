@@ -623,7 +623,7 @@ namespace libtorrent
 		// name for multi-file torrents. The m_name field need to be
 		// prepended to these paths, and the filename of a specific file
 		// entry appended, to form full file paths
-		aux::vector<std::string, int> m_paths;
+		aux::vector<std::string> m_paths;
 
 		// name of torrent. For multi-file torrents
 		// this is always the root directory

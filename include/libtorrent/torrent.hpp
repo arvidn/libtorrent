@@ -1197,7 +1197,7 @@ namespace libtorrent
 		// us.
 		aux::suggest_piece m_suggest_pieces;
 
-		std::vector<announce_entry> m_trackers;
+		aux::vector<announce_entry> m_trackers;
 
 		// this list is sorted by time_critical_piece::deadline
 		std::vector<time_critical_piece> m_time_critical_pieces;

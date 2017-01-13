@@ -283,7 +283,8 @@ namespace libtorrent
 		// if override trackers flag is set, don't load trackers from torrent file
 		if ((p.flags & add_torrent_params::flag_override_trackers) == 0)
 		{
-			m_trackers = m_torrent_file->trackers();
+			auto const& trackers = m_torrent_file->trackers();
+			m_trackers = {trackers.begin(), trackers.end()};
 		}
 
 		int tier = 0;
@@ -7115,7 +7116,7 @@ namespace libtorrent
 	void torrent::update_list(int list, bool in)
 	{
 		link& l = m_links[list];
-		std::vector<torrent*>& v = m_ses.torrent_list(list);
+		aux::vector<torrent*>& v = m_ses.torrent_list(list);
 
 		if (in)
 		{
@@ -10464,7 +10465,7 @@ namespace libtorrent
 		// we're not subscribing to this torrent, don't add it
 		if (!m_state_subscription) return;
 
-		std::vector<torrent*>& list = m_ses.torrent_list(aux::session_interface::torrent_state_updates);
+		aux::vector<torrent*>& list = m_ses.torrent_list(aux::session_interface::torrent_state_updates);
 
 		// if it has already been updated this round, no need to
 		// add it to the list twice
