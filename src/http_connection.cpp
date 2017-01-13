@@ -260,7 +260,7 @@ void http_connection::start(std::string const& hostname, int port
 	if (ec)
 	{
 		m_timer.get_io_service().post(std::bind(&http_connection::callback
-			, me, ec, static_cast<char*>(nullptr), 0));
+			, me, ec, nullptr, 0));
 		return;
 	}
 
@@ -339,7 +339,7 @@ void http_connection::start(std::string const& hostname, int port
 					if (ec)
 					{
 						m_timer.get_io_service().post(std::bind(&http_connection::callback
-								, me, ec, static_cast<char*>(nullptr), 0));
+								, me, ec, nullptr, 0));
 						return;
 					}
 				}
@@ -355,12 +355,12 @@ void http_connection::start(std::string const& hostname, int port
 
 		if (m_bind_addr != address_v4::any())
 		{
-			m_sock.open(m_bind_addr.is_v4()?tcp::v4():tcp::v6(), ec);
+			m_sock.open(m_bind_addr.is_v4() ? tcp::v4() : tcp::v6(), ec);
 			m_sock.bind(tcp::endpoint(m_bind_addr, 0), ec);
 			if (ec)
 			{
 				m_timer.get_io_service().post(std::bind(&http_connection::callback
-					, me, ec, static_cast<char*>(nullptr), 0));
+					, me, ec, nullptr, 0));
 				return;
 			}
 		}
@@ -369,7 +369,7 @@ void http_connection::start(std::string const& hostname, int port
 		if (ec)
 		{
 			m_timer.get_io_service().post(std::bind(&http_connection::callback
-				, me, ec, static_cast<char*>(nullptr), 0));
+				, me, ec, nullptr, 0));
 			return;
 		}
 
@@ -518,9 +518,8 @@ void http_connection::on_resolve(error_code const& e
 	}
 	TORRENT_ASSERT(!addresses.empty());
 
-	for (std::vector<address>::const_iterator i = addresses.begin()
-		, end(addresses.end()); i != end; ++i)
-		m_endpoints.push_back(tcp::endpoint(*i, m_port));
+	for (auto const& addr : addresses)
+		m_endpoints.push_back({addr, m_port});
 
 	if (m_filter_handler) m_filter_handler(*this, m_endpoints);
 	if (m_endpoints.empty())
@@ -793,7 +792,7 @@ void http_connection::on_read(error_code const& e
 		if (!m_bottled && m_parser.header_finished())
 		{
 			if (m_read_pos > m_parser.body_start())
-				callback(e, &m_recvbuffer[0] + m_parser.body_start()
+				callback(e, m_recvbuffer.data() + m_parser.body_start()
 					, m_read_pos - m_parser.body_start());
 			m_read_pos = 0;
 			m_last_receive = clock_type::now();
@@ -810,14 +809,14 @@ void http_connection::on_read(error_code const& e
 	else
 	{
 		TORRENT_ASSERT(!m_bottled);
-		callback(e, &m_recvbuffer[0], m_read_pos);
+		callback(e, m_recvbuffer.data(), m_read_pos);
 		m_read_pos = 0;
 		m_last_receive = clock_type::now();
 	}
 
 	// if we've hit the limit, double the buffer size
 	if (int(m_recvbuffer.size()) == m_read_pos)
-		m_recvbuffer.resize((std::min)(m_read_pos * 2, m_max_bottled_buffer_size));
+		m_recvbuffer.resize(std::min(m_read_pos * 2, m_max_bottled_buffer_size));
 
 	if (m_read_pos == m_max_bottled_buffer_size)
 	{
@@ -841,7 +840,7 @@ void http_connection::on_read(error_code const& e
 		}
 	}
 	ADD_OUTSTANDING_ASYNC("http_connection::on_read");
-	m_sock.async_read_some(boost::asio::buffer(&m_recvbuffer[0] + m_read_pos
+	m_sock.async_read_some(boost::asio::buffer(m_recvbuffer.data() + m_read_pos
 		, amount_to_read)
 		, std::bind(&http_connection::on_read
 			, me, _1, _2));
@@ -871,7 +870,7 @@ void http_connection::on_assign_bandwidth(error_code const& e)
 	if (!m_sock.is_open()) return;
 
 	ADD_OUTSTANDING_ASYNC("http_connection::on_read");
-	m_sock.async_read_some(boost::asio::buffer(&m_recvbuffer[0] + m_read_pos
+	m_sock.async_read_some(boost::asio::buffer(m_recvbuffer.data() + m_read_pos
 		, amount_to_read)
 		, std::bind(&http_connection::on_read
 			, shared_from_this(), _1, _2));
