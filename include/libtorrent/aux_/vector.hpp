@@ -47,7 +47,7 @@ namespace libtorrent { namespace aux {
 	template <typename U, typename Tag>
 	struct underlying_index_t<aux::strong_typedef<U, Tag>> { using type = U; };
 
-	template <typename T, typename IndexType>
+	template <typename T, typename IndexType = int>
 	struct vector : std::vector<T>
 	{
 		using base = std::vector<T>;

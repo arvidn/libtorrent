@@ -7113,7 +7113,7 @@ namespace libtorrent
 	void torrent::update_list(int list, bool in)
 	{
 		link& l = m_links[list];
-		aux::vector<torrent*, int>& v = m_ses.torrent_list(list);
+		aux::vector<torrent*>& v = m_ses.torrent_list(list);
 
 		if (in)
 		{
@@ -10462,7 +10462,7 @@ namespace libtorrent
 		// we're not subscribing to this torrent, don't add it
 		if (!m_state_subscription) return;
 
-		aux::vector<torrent*, int>& list = m_ses.torrent_list(aux::session_interface::torrent_state_updates);
+		aux::vector<torrent*>& list = m_ses.torrent_list(aux::session_interface::torrent_state_updates);
 
 		// if it has already been updated this round, no need to
 		// add it to the list twice

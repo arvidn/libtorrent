@@ -50,7 +50,7 @@ namespace libtorrent
 		void clear() { index = -1; }
 
 		template <class T>
-		void unlink(aux::vector<T*, int>& list, int link_index)
+		void unlink(aux::vector<T*>& list, int link_index)
 		{
 			if (index == -1) return;
 			TORRENT_ASSERT(index >= 0 && index < int(list.size()));
@@ -65,7 +65,7 @@ namespace libtorrent
 		}
 
 		template <class T>
-		void insert(aux::vector<T*, int>& list, T* self)
+		void insert(aux::vector<T*>& list, T* self)
 		{
 			if (index >= 0) return;
 			TORRENT_ASSERT(index == -1);

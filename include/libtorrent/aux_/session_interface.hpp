@@ -287,7 +287,7 @@ namespace libtorrent { namespace aux
 			num_torrent_lists
 		};
 
-		virtual aux::vector<torrent*, int>& torrent_list(int i) = 0;
+		virtual aux::vector<torrent*>& torrent_list(int i) = 0;
 
 		virtual bool has_lsd() const = 0;
 		virtual void announce_lsd(sha1_hash const& ih, int port, bool broadcast = false) = 0;

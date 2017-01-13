@@ -116,7 +116,7 @@ private:
 
 	aux::portmap_callback& m_callback;
 
-	aux::vector<mapping_t, int> m_mappings;
+	aux::vector<mapping_t> m_mappings;
 
 	// the endpoint to the nat router
 	udp::endpoint m_nat_endpoint;
