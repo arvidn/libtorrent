@@ -105,6 +105,8 @@ namespace libtorrent
 
 		bool none_set() const
 		{
+			if(size() == 0) return true;
+
 			const int words = num_words();
 			std::uint32_t const* b = buf();
 			for (int i = 0; i < words; ++i)
@@ -126,7 +128,7 @@ namespace libtorrent
 		}
 
 		// returns true if the bitfield has zero size.
-		bool empty() const { return m_buf == nullptr ? true : m_buf[0] == 0; }
+		bool empty() const { return size() == 0; }
 
 		// returns a pointer to the internal buffer of the bitfield.
 		char const* data() const { return m_buf ? reinterpret_cast<char const*>(&m_buf[1]) : nullptr; }
@@ -226,13 +228,13 @@ namespace libtorrent
 		// set all bits in the bitfield to 1 (set_all) or 0 (clear_all).
 		void set_all()
 		{
-			if (m_buf == nullptr) return;
+			if (size() == 0) return;
 			std::memset(buf(), 0xff, size_t(num_words() * 4));
 			clear_trailing_bits();
 		}
 		void clear_all()
 		{
-			if (m_buf == nullptr) return;
+			if (size() == 0) return;
 			std::memset(buf(), 0x00, size_t(num_words() * 4));
 		}
 
