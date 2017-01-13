@@ -104,7 +104,7 @@ namespace libtorrent
 		void defer_ack(utp_socket_impl* s);
 		void subscribe_drained(utp_socket_impl* s);
 
-		void restrict_mtu(int mtu)
+		void restrict_mtu(int const mtu)
 		{
 			m_restrict_mtu[std::size_t(m_mtu_idx)] = mtu;
 			m_mtu_idx = (m_mtu_idx + 1) % int(m_restrict_mtu.size());

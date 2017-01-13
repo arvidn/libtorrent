@@ -499,7 +499,7 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 			TORRENT_DEPRECATED void pop_alerts();
 			TORRENT_DEPRECATED alert const* pop_alert();
-			TORRENT_DEPRECATED size_t set_alert_queue_size_limit(size_t queue_size_limit_);
+			TORRENT_DEPRECATED std::size_t set_alert_queue_size_limit(std::size_t queue_size_limit_);
 			TORRENT_DEPRECATED int upload_rate_limit_depr() const;
 			TORRENT_DEPRECATED int download_rate_limit_depr() const;
 			TORRENT_DEPRECATED int local_upload_rate_limit() const;

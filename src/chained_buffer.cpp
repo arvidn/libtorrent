@@ -84,7 +84,7 @@ namespace libtorrent
 	// tries to copy the given buffer to the end of the
 	// last chained buffer. If there's not enough room
 	// it returns false
-	char* chained_buffer::append(char const* buf, int s)
+	char* chained_buffer::append(char const* buf, int const s)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(!m_destructed);
@@ -97,7 +97,7 @@ namespace libtorrent
 	// tries to allocate memory from the end
 	// of the last buffer. If there isn't
 	// enough room, returns 0
-	char* chained_buffer::allocate_appendix(int s)
+	char* chained_buffer::allocate_appendix(int const s)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(!m_destructed);
@@ -112,7 +112,7 @@ namespace libtorrent
 		return insert;
 	}
 
-	std::vector<boost::asio::const_buffer> const& chained_buffer::build_iovec(int to_send)
+	std::vector<boost::asio::const_buffer> const& chained_buffer::build_iovec(int const to_send)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(!m_destructed);

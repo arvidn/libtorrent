@@ -156,7 +156,7 @@ namespace libtorrent
 
 		// start points to the first decimal digit
 		// length is the number of digits
-		void construct_int(char const* start, int length)
+		void construct_int(char const* start, int const length)
 		{
 			TORRENT_ASSERT(m_type == none_t);
 			m_type = int_t;
@@ -412,4 +412,3 @@ namespace libtorrent
 #endif // TORRENT_NO_DEPRECATE
 
 #endif
-

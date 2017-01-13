@@ -139,4 +139,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_PACKET_BUFFER_HPP_INCLUDED
-

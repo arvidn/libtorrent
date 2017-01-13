@@ -100,4 +100,3 @@ namespace libtorrent
 }
 
 #endif // TORRENT_STAT_CACHE_HPP
-
