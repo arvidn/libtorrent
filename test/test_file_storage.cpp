@@ -96,6 +96,10 @@ TORRENT_TEST(rename_file)
 	st.rename_file(0, "/tmp/a");
 	TEST_EQUAL(st.file_path(0, "."), "/tmp/a");
 #endif
+
+	st.rename_file(0, combine_path("test__", "a"));
+	TEST_EQUAL(st.file_path(0, "."), combine_path(".", combine_path("test__"
+		, "a")));
 }
 
 TORRENT_TEST(set_name)
@@ -105,7 +109,7 @@ TORRENT_TEST(set_name)
 	// torrent, the path of the files should change too
 	file_storage st;
 	setup_test_storage(st);
-	
+
 	st.set_name("test_2");
 	TEST_EQUAL(st.file_path(0, "."), combine_path(".", combine_path("test_2"
 		, "a")));

@@ -179,9 +179,9 @@ namespace libtorrent
 		}
 
 		if (branch_len >= m_name.size()
-			&& std::memcmp(branch_path, m_name.c_str(), m_name.size()) == 0)
+			&& std::memcmp(branch_path, m_name.c_str(), m_name.size()) == 0
+			&& branch_path[m_name.size()] == TORRENT_SEPARATOR)
 		{
-			// the +1 is to skip the trailing '/' (or '\')
 			int const offset = m_name.size()
 				+ (m_name.size() == branch_len?0:1);
 			branch_path += offset;
