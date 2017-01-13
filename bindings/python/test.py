@@ -120,7 +120,6 @@ class test_torrent_handle(unittest.TestCase):
         cs = self.ses.get_cache_info(self.h)
         self.assertEqual(cs.pieces, [])
 
-
 class test_torrent_info(unittest.TestCase):
 
     def test_bencoded_constructor(self):
