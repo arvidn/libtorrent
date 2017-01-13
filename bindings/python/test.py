@@ -120,6 +120,53 @@ class test_torrent_handle(unittest.TestCase):
         cs = self.ses.get_cache_info(self.h)
         self.assertEqual(cs.pieces, [])
 
+	def test_unknown_torrent_parameter(self):
+		self.ses = lt.session({'alert_mask': lt.alert.category_t.all_categories,
+			'enable_dht': False})
+		try:
+			self.h = self.ses.add_torrent({'storage': ''})
+			self.assertFalse('should have thrown an exception')
+		except KeyError as e:
+			print(e)
+
+	def test_torrent_parameter(self):
+		self.ses = lt.session({'alert_mask': lt.alert.category_t.all_categories,
+			'enable_dht': False})
+		self.ti = lt.torrent_info('url_seed_multi.torrent');
+		self.h = self.ses.add_torrent({
+			'ti': self.ti,
+			'save_path': os.getcwd(),
+			# TODO: Expecting an object of type list; got an object of type str instead
+			# I don't know what is wrong at the binding
+			#'trackers': ['http://test.com/announce'],
+			#'tracker_tiers': [0,1],
+			#'dht_nodes': {'127.0.0.1', 10000},
+			#'file_priorities': [1,1],
+			#'http_seeds': ['http://test.com/file3'],
+			#'url_seeds': ['http://test.com/announce-url'],
+			#'banned_peers': {'127.0.0.1', 20000},
+			#'piece_priorities': [2,2],
+			#'renamed_file': {[0,1], 'test.txt'}
+			})
+		self.st = self.h.status()
+		self.assertEqual(self.st.save_path, os.getcwd())
+		self.assertEqual(self.h.trackers(), [])
+		self.assertEqual(self.h.file_priorities(), [4,4])
+		self.assertEqual(self.h.http_seeds(),[])
+		self.assertEqual(self.h.url_seeds(),['http://test.com/file/'])
+		self.assertEqual(self.h.piece_priorities(),[4])
+		self.assertEqual(self.ti.merkle_tree(),[])
+		self.assertEqual(self.st.verified_pieces,[])
+		# TODO: Do we need to expose one of them?
+		# print(self.h.tracker_tiers)
+		# print(self.st.dht_nodes)
+		# print(self.st.banned_peers)
+		# print(self.st.peers)
+		# print(self.st.unfinished_pieces)
+		# print(self.st.have_pieces)
+		# TODO make_getter did not find a converter
+		# print(self.ti.renamed_file)
+
 class test_torrent_info(unittest.TestCase):
 
     def test_bencoded_constructor(self):

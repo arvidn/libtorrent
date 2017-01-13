@@ -206,68 +206,104 @@ namespace
 
 	void dict_to_add_torrent_params(dict params, add_torrent_params& p)
 	{
-		// torrent_info objects are always held by a shared_ptr in the python binding
-		if (params.has_key("ti") && params.get("ti") != boost::python::object())
+		list iterkeys = (list)params.keys();
+		int const len = int(boost::python::len(iterkeys));
+		for (int i = 0; i < len; i++)
 		{
-			// make a copy here. We don't want to end up holding a python-owned
-			// object inside libtorrent. If the last reference goes out of scope
-			// on the C++ side, it will end up freeing the python object
-			// without holding the GIL and likely crash.
-			// https://mail.python.org/pipermail/cplusplus-sig/2007-June/012130.html
-			p.ti = std::make_shared<torrent_info>(
-			  extract<torrent_info const&>(params["ti"]));
-		}
-
-
-		if (params.has_key("info_hash"))
-			p.info_hash = sha1_hash(bytes(extract<bytes>(params["info_hash"])).arr.data());
-		if (params.has_key("name"))
-			p.name = extract<std::string>(params["name"]);
-		p.save_path = extract<std::string>(params["save_path"]);
-
+			std::string const key = extract<std::string>(iterkeys[i]);
+			// torrent_info objects are always held by a shared_ptr in the
+			// python binding, skip it if it is a object
+			if(key == "ti" && params[key] != boost::python::object())
+			{
+				// make a copy here. We don't want to end up holding a python-owned
+				// object inside libtorrent. If the last reference goes out of scope
+				// on the C++ side, it will end up freeing the python object
+				// without holding the GIL and likely crash.
+				// https://mail.python.org/pipermail/cplusplus-sig/2007-June/012130.html
+				p.ti = std::make_shared<torrent_info>(
+					extract<torrent_info const&>(params[key]));
+				continue;
+			}
+			else if(key == "info_hash")
+			{
+				p.info_hash = sha1_hash(
+				bytes(extract<bytes>(params[key])).arr.data());
+				continue;
+			}
+			else if(key == "name")
+			{
+				p.name = extract<std::string>(params[key]);
+				continue;
+			}
+			else if(key == "save_path")
+			{
+				p.save_path = extract<std::string>(params[key]);
+				continue;
+			}
 #ifndef TORRENT_NO_DEPRECATE
-		if (params.has_key("resume_data"))
-		{
-			std::string resume = extract<std::string>(params["resume_data"]);
-			p.resume_data.assign(resume.begin(), resume.end());
-		}
+			else if(key == "resume_data")
+			{
+				std::string resume = extract<std::string>(params[key]);
+				p.resume_data.assign(resume.begin(), resume.end());
+				continue;
+			}
+			else if(key == "uuid")
+			{
+				p.uuid = extract<std::string>(params["uuid"]);
+				continue;
+			}
 #endif
-		if (params.has_key("storage_mode"))
-			p.storage_mode = extract<storage_mode_t>(params["storage_mode"]);
-
-		if (params.has_key("trackers"))
-		{
-			list l = extract<list>(params["trackers"]);
-			int const n = int(boost::python::len(l));
-			for(int i = 0; i < n; i++)
-				p.trackers.push_back(extract<std::string>(l[i]));
-		}
-
-		if (params.has_key("dht_nodes"))
-		{
-			list l = extract<list>(params["dht_nodes"]);
-			int const n = int(boost::python::len(l));
-			for(int i = 0; i < n; i++)
-				p.dht_nodes.push_back(extract<std::pair<std::string, int>>(l[i]));
-		}
-		if (params.has_key("flags"))
-			p.flags = extract<std::uint64_t>(params["flags"]);
-		if (params.has_key("trackerid"))
-			p.trackerid = extract<std::string>(params["trackerid"]);
-		if (params.has_key("url"))
-			p.url = extract<std::string>(params["url"]);
-#ifndef TORRENT_NO_DEPRECATE
-		if (params.has_key("uuid"))
-			p.uuid = extract<std::string>(params["uuid"]);
-#endif
-
-		if (params.has_key("file_priorities"))
-		{
-			list l = extract<list>(params["file_priorities"]);
-			int const n = int(boost::python::len(l));
-			for(int i = 0; i < n; i++)
-				p.file_priorities.push_back(extract<std::uint8_t>(l[i]));
-			p.file_priorities.clear();
+			else if(key == "storage_mode")
+			{
+				p.storage_mode = extract<storage_mode_t>(params[key]);
+				continue;
+			}
+			else if(key == "trackers")
+			{
+				list l = extract<list>(params[key]);
+				int const n = int(boost::python::len(l));
+				for(int i = 0; i < n; i++)
+					p.trackers.push_back(extract<std::string>(l[i]));
+				continue;
+			}
+			else if(key == "dht_nodes")
+			{
+				list l = extract<list>(params[key]);
+				int const n = int(boost::python::len(l));
+				for(int i = 0; i < n; i++)
+					p.dht_nodes.push_back(
+						extract<std::pair<std::string, int>>(l[i]));
+				continue;
+			}
+			else if(key == "flags")
+			{
+				p.flags = extract<std::uint64_t>(params[key]);
+				continue;
+			}
+			else if(key == "trackerid")
+			{
+				p.trackerid = extract<std::string>(params[key]);
+				continue;
+			}
+			else if(key == "url")
+			{
+				p.url = extract<std::string>(params[key]);
+				continue;
+			}
+			else if(key == "file_priorities")
+			{
+				list l = extract<list>(params[key]);
+				int const n = int(boost::python::len(l));
+				for(int i = 0; i < n; i++)
+					p.file_priorities.push_back(extract<std::uint8_t>(l[i]));
+				p.file_priorities.clear();
+			}
+			else
+			{
+				PyErr_SetString(PyExc_KeyError,
+					("unknown name in torrent params: " + key).c_str());
+				throw_error_already_set();
+			}
 		}
 	}
 
