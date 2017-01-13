@@ -89,7 +89,12 @@ namespace libtorrent
 		void set_int(int name, int val);
 		void set_bool(int name, bool val);
 		bool has_val(int name) const;
+
+		// clear the settings pack from all settings
 		void clear();
+
+		// clear a specific setting from the pack
+		void clear(int name);
 
 		std::string get_str(int name) const;
 		int get_int(int name) const;
