@@ -1879,7 +1879,7 @@ namespace aux {
 				, tcp::endpoint(ep.addr, std::uint16_t(ep.port))
 				, flags | (ep.ssl ? open_ssl_socket : 0), ec);
 
-			if (!ec && s.sock)
+			if (!ec && (s.sock || s.udp_sock))
 			{
 				// TODO notify interested parties of this socket's creation
 				m_listen_sockets.push_back(s);
@@ -5950,29 +5950,35 @@ namespace aux {
 		int const tos = m_settings.get_int(settings_pack::peer_tos);
 		for (auto const& l : m_listen_sockets)
 		{
-			error_code ec;
-			set_tos(*l.sock, tos, ec);
+			if (l.sock)
+			{
+				error_code ec;
+				set_tos(*l.sock, tos, ec);
 
 #ifndef TORRENT_DISABLE_LOGGING
-			if (should_log())
-			{
-				session_log(">>> SET_TOS [ tcp (%s %d) tos: %x e: %s ]"
-					, l.sock->local_endpoint().address().to_string().c_str()
-					, l.sock->local_endpoint().port(), tos, ec.message().c_str());
-			}
+				if (should_log())
+				{
+					session_log(">>> SET_TOS [ tcp (%s %d) tos: %x e: %s ]"
+						, l.sock->local_endpoint().address().to_string().c_str()
+						, l.sock->local_endpoint().port(), tos, ec.message().c_str());
+				}
 #endif
-			ec.clear();
-			set_tos(*l.udp_sock, tos, ec);
+			}
+			if (l.udp_sock)
+			{
+				error_code ec;
+				set_tos(*l.udp_sock, tos, ec);
 
 #ifndef TORRENT_DISABLE_LOGGING
-			if (should_log())
-			{
-				session_log(">>> SET_TOS [ udp (%s %d) tos: %x e: %s ]"
-					, l.udp_sock->local_endpoint().address().to_string().c_str()
-					, l.udp_sock->local_port()
-					, tos, ec.message().c_str());
-			}
+				if (should_log())
+				{
+					session_log(">>> SET_TOS [ udp (%s %d) tos: %x e: %s ]"
+						, l.udp_sock->local_endpoint().address().to_string().c_str()
+						, l.udp_sock->local_port()
+						, tos, ec.message().c_str());
+				}
 #endif
+			}
 		}
 	}
 
