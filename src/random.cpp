@@ -68,14 +68,24 @@ namespace libtorrent
 
 		void random_bytes(span<char> buffer)
 		{
-#if TORRENT_USE_CRYPTOAPI
+#ifdef TORRENT_BUILD_SIMULATOR
+			// simulator
+
+			for (auto& b : buffer) b = char(random(0xff));
+
+#elif TORRENT_USE_CRYPTOAPI
+			// windows
+
 			aux::crypt_gen_random(buffer);
 
 #elif defined TORRENT_USE_LIBCRYPTO
+			// openssl
+
 #ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #endif
+
 			int r = RAND_bytes(reinterpret_cast<unsigned char*>(buffer.data())
 				, int(buffer.size()));
 			if (r != 1)
@@ -90,6 +100,8 @@ namespace libtorrent
 #pragma clang diagnostic pop
 #endif
 #else
+			// fallback
+
 			for (auto& b : buffer) b = char(random(0xff));
 #endif
 		}
