@@ -5,7 +5,7 @@ import os
 import libtorrent
 
 if len(sys.argv) < 3:
-	print 'usage make_torrent.py file tracker-url'
+	print('usage make_torrent.py file tracker-url')
 	sys.exit(1)
 
 input = os.path.abspath(sys.argv[1])
@@ -32,22 +32,22 @@ for root, dirs, files in os.walk(input):
 
 		fname = os.path.join(root[len(parent_input)+1:], f)
 		size = os.path.getsize(os.path.join(parent_input, fname))
-		print '%10d kiB  %s' % (size / 1024, fname)
+		print('%10d kiB  %s' % (size / 1024, fname))
 		fs.add_file(fname, size);
 
 if fs.num_files() == 0:
-	print 'no files added'
+	print('no files added')
 	sys.exit(1)
 
 t = libtorrent.create_torrent(fs, 0, 4 * 1024 * 1024)
 
 t.add_tracker(sys.argv[2])
-t.set_creator('libtorrent %s' % libtorrent.version)
+t.set_creator('libtorrent %s' % libtorrent.__version__)
 
 libtorrent.set_piece_hashes(t, parent_input, lambda x: sys.stderr.write('.'))
 sys.stderr.write('\n')
 
 f = open('out.torrent', 'wb+')
-print >>f, libtorrent.bencode(t.generate())
+f.write(libtorrent.bencode(t.generate()))
 f.close()
 
