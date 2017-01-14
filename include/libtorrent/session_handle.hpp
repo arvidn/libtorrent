@@ -120,10 +120,10 @@ namespace libtorrent
 		// state to save or load. By default, all state is saved/restored (except
 		// for the individual torrents). see save_state_flags_t
 		//
-		// When savin settings, there are two fields that are *not* loaded.
-		// ``peer_id`` and ``user_agent``. Those are left as configured by the
-		// ``session_settings`` passed to the session constructor or ubsequently
-		// set via apply_settings().
+		// When saving settings, there are two fields that are *not* loaded.
+		// ``peer_fingerprint`` and ``user_agent``. Those are left as configured
+		// by the ``session_settings`` passed to the session constructor or
+		// subsequently set via apply_settings().
 		void save_state(entry& e, boost::uint32_t flags = 0xffffffff) const;
 		void load_state(bdecode_node const& e, boost::uint32_t flags = 0xffffffff);
 

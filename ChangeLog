@@ -1,4 +1,4 @@
-	* don't load user_agent and peer_id from session_state
+	* don't load user_agent and peer_fingerprint from session_state
 	* fix file rename issue with name prefix matching torrent name
 	* fix division by zero when setting tick_interval > 1000
 	* fix move_storage() to its own directory (would delete the files)
