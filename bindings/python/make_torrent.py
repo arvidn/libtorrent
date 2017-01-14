@@ -19,8 +19,9 @@ fs = libtorrent.file_storage()
 
 parent_input = os.path.split(input)[0]
 
+# if we have a single file, use it because os.walk does not work on a single files
 if os.path.isfile(input):
-	# TODO bind the updated create torrent interface
+	# TODO: bind the updated create torrent interface
 	fs.add_files(input)
 
 for root, dirs, files in os.walk(input):
@@ -36,6 +37,7 @@ for root, dirs, files in os.walk(input):
 		fname = os.path.join(root[len(parent_input)+1:], f)
 		size = os.path.getsize(os.path.join(parent_input, fname))
 		print('%10d kiB  %s' % (size / 1024, fname))
+		# TODO: is deprecated, bind the updated create torrent interface
 		fs.add_file(fname, size);
 
 if fs.num_files() == 0:
