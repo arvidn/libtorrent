@@ -87,10 +87,10 @@ namespace libtorrent
 		}
 		else
 		{
+			TORRENT_ASSERT(m_peer_classes.size() < 0x10000);
 			ret = m_peer_classes.size();
 			m_peer_classes.push_back(boost::shared_ptr<peer_class>());
 		}
-
 		TORRENT_ASSERT(m_peer_classes[ret].get() == 0);
 		m_peer_classes[ret] = boost::make_shared<peer_class>(label);
 		return ret;
