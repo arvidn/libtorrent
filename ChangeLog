@@ -1,4 +1,3 @@
-	* fix cxxflags for python binding build
 	* fix crash caused by empty bitfield 
 	* removed disk-access-log build configuration
 	* removed mmap_cache feature

@@ -99,7 +99,7 @@ AX_PTHREAD()
 LIBS="$PTHREAD_LIBS $LIBS"
 CFLAGS="$PTHREAD_CFLAGS $CFLAGS"
 CC="$PTHREAD_CC"
-CXXFLAGS="$CXXFLAGS -ftemplate-depth=128 -Wno-format-zero-length -std=c++11"
+CXXFLAGS="$CXXFLAGS -ftemplate-depth=128 -Wno-format-zero-length"
 
 AS_ECHO "Checking for visibility support:"
 AC_CACHE_CHECK([for __attribute__((visibility("hidden")))],
