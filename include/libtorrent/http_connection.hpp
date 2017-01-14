@@ -55,6 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/i2p_stream.hpp"
+#include "libtorrent/aux_/vector.hpp"
 
 namespace libtorrent
 {
@@ -149,7 +150,7 @@ private:
 	std::string m_url;
 	std::string m_user_agent;
 
-	std::vector<tcp::endpoint> m_endpoints;
+	aux::vector<tcp::endpoint> m_endpoints;
 
 	// if the current connection attempt fails, we'll connect to the
 	// endpoint with this index (in m_endpoints) next

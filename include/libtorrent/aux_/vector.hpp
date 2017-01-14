@@ -103,6 +103,20 @@ namespace libtorrent { namespace aux {
 			TORRENT_ASSERT(s <= std::size_t((std::numeric_limits<underlying_index>::max)()));
 			this->base::resize(s, v);
 		}
+
+		template <typename U = underlying_index, typename Cond
+			= typename std::enable_if<std::is_signed<U>::value>::type>
+		void reserve(underlying_index s)
+		{
+			TORRENT_ASSERT(s >= 0);
+			this->base::reserve(std::size_t(s));
+		}
+
+		void reserve(std::size_t s)
+		{
+			TORRENT_ASSERT(s <= std::size_t((std::numeric_limits<underlying_index>::max)()));
+			this->base::reserve(s);
+		}
 	};
 
 	template <typename Iter>

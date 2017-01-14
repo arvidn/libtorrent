@@ -214,7 +214,7 @@ namespace libtorrent
 		// if needed
 		unsigned long destlen = 4096;
 		int ret = 0;
-		unsigned long srclen = size - header_len;
+		unsigned long srclen = std::uint32_t(size - header_len);
 		in += header_len;
 
 		do
@@ -242,7 +242,7 @@ namespace libtorrent
 
 				destlen *= 2;
 				if (destlen > std::uint32_t(maximum_size))
-					destlen = maximum_size;
+					destlen = std::uint32_t(maximum_size);
 			}
 		} while (ret == 1);
 

@@ -48,6 +48,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_buffer_pool.hpp"
 #include "libtorrent/file.hpp" // for iovec_t
 #include "libtorrent/disk_io_job.hpp"
+#if TORRENT_USE_ASSERTS
+#include "libtorrent/aux_/vector.hpp"
+#endif
 
 namespace libtorrent
 {
@@ -95,7 +98,7 @@ namespace libtorrent
 #endif // TORRENT_DISABLE_LOGGING
 
 #if TORRENT_USE_ASSERTS
-	void print_piece_log(std::vector<piece_log_t> const& piece_log);
+	void print_piece_log(aux::vector<piece_log_t> const& piece_log);
 	void assert_print_piece(cached_piece_entry const* pe);
 #endif
 
@@ -315,7 +318,7 @@ namespace libtorrent
 
 		// this is a debug facility to keep a log
 		// of which operations have been run on this piece
-		std::vector<piece_log_t> piece_log;
+		aux::vector<piece_log_t> piece_log;
 
 		bool in_storage = false;
 		bool in_use = true;
@@ -332,7 +335,7 @@ namespace libtorrent
 		struct hash_value
 		{
 			std::size_t operator()(cached_piece_entry const& p) const
-			{ return reinterpret_cast<std::size_t>(p.storage.get()) + static_cast<int>(p.piece); }
+			{ return reinterpret_cast<std::size_t>(p.storage.get()) + std::size_t(static_cast<int>(p.piece)); }
 		};
 		using cache_t = std::unordered_set<cached_piece_entry, hash_value>;
 

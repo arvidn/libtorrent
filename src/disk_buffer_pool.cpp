@@ -105,7 +105,7 @@ namespace libtorrent
 		std::unique_lock<std::mutex> l(m_pool_mutex);
 
 		if (m_exceeded_max_size)
-			ret = m_in_use - std::min(m_low_watermark, int(m_max_use - m_observers.size() * 2));
+			ret = m_in_use - std::min(m_low_watermark, m_max_use - int(m_observers.size()) * 2);
 
 		if (m_in_use + num_needed > m_max_use)
 			ret = std::max(ret, m_in_use + num_needed - m_max_use);
@@ -196,7 +196,7 @@ namespace libtorrent
 		for (auto& i : iov)
 		{
 			i.iov_base = allocate_buffer_impl(l, "pending read");
-			i.iov_len = block_size();
+			i.iov_len = std::size_t(block_size());
 			if (i.iov_base == nullptr)
 			{
 				// uh oh. We failed to allocate the buffer!

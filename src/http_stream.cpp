@@ -99,7 +99,7 @@ namespace libtorrent
 	{
 		if (handle_error(e, h)) return;
 
-		int const read_pos = int(m_buffer.size());
+		std::size_t const read_pos = m_buffer.size();
 		// look for \n\n and \r\n\r\n
 		// both of which means end of http response header
 		bool found_end = false;
@@ -121,7 +121,7 @@ namespace libtorrent
 		if (found_end)
 		{
 			m_buffer.push_back(0);
-			char* status = std::strchr(&m_buffer[0], ' ');
+			char* status = std::strchr(m_buffer.data(), ' ');
 			if (status == nullptr)
 			{
 				h(boost::asio::error::operation_not_supported);
@@ -147,7 +147,7 @@ namespace libtorrent
 
 		// read another byte from the socket
 		m_buffer.resize(read_pos + 1);
-		async_read(m_sock, boost::asio::buffer(&m_buffer[0] + read_pos, 1)
+		async_read(m_sock, boost::asio::buffer(m_buffer.data() + read_pos, 1)
 			, std::bind(&http_stream::handshake2, this, _1, std::move(h)));
 	}
 
