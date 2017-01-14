@@ -101,7 +101,7 @@ version_check() {
   if [ "$vc_status" != 0 ]; then
 	  printerr "***Error***: $vc_package $vc_comparator $vc_min_version not found."
   fi
- 
+
   return $vc_status
 }
 
@@ -147,7 +147,7 @@ build_dir=`cat $configure_ac | grep '^AC_CONFIG_AUX_DIR' |
 sed -n -e 's/AC_CONFIG_AUX_DIR(\([^()]*\))/\1/p' | sed -e 's/^\[\(.*\)\]$/\1/' | sed -e 1q`
 
 if [ -n "$build_dir" ]; then
-  mkdir $build_dir
+  mkdir -p $build_dir
 fi
 config_rpath=m4/config.rpath
 echo "Copying $config_rpath to $build_dir"
