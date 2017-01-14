@@ -107,7 +107,7 @@ namespace libtorrent { namespace
 	address_v4 inaddr_to_address(in_addr const* ina, int const len = 4)
 	{
 		boost::asio::ip::address_v4::bytes_type b;
-		std::memset(b.data(), 0, b.size());
+		b.fill(0);
 		if (len > 0) std::memcpy(b.data(), ina, std::min(std::size_t(len), b.size()));
 		return address_v4(b);
 	}
@@ -116,7 +116,7 @@ namespace libtorrent { namespace
 	address_v6 inaddr6_to_address(in6_addr const* ina6, int const len = 16)
 	{
 		boost::asio::ip::address_v6::bytes_type b;
-		std::memset(b.data(), 0, b.size());
+		b.fill(0);
 		if (len > 0) std::memcpy(b.data(), ina6, std::min(std::size_t(len), b.size()));
 		return address_v6(b);
 	}
