@@ -111,7 +111,6 @@ rule linking ( properties * )
 	if <target-os>windows in $(properties)
 		&& ( <asserts>on in $(properties)
 			|| <asserts>production in $(properties)
-			|| ! <invariant-checks>off in $(properties)
 			|| <pool-allocators>debug in $(properties)
 			|| <allocator>debug in $(properties)
 			|| <asio-debugging>on in $(properties) )
@@ -172,7 +171,6 @@ rule linking ( properties * )
 		&& <target-os>linux in $(properties)
 		&& ( <asserts>on in $(properties)
 			|| <asserts>production in $(properties)
-			|| ! <invariant-checks>off in $(properties)
 			|| <pool-allocators>debug in $(properties)
 			|| <allocator>debug in $(properties)
 			|| <asio-debugging>on in $(properties) )
@@ -289,6 +287,12 @@ rule building ( properties * )
 {
 	local result ;
 
+	if ( <asserts>off in $(properties) &&
+		! <invariant-checks>off in $(properties) )
+	{
+		EXIT 'invariant-check' requires enabled 'asserts' mode. (e.g. specify build params: invariant-check=on asserts=on) ;
+	}
+
 	if <toolset>msvc in $(properties)
 	{
 		# allow larger .obj files (with more sections)
@@ -304,7 +308,6 @@ rule building ( properties * )
 	}
 
 	if ( <asserts>production in $(properties)
-		|| ! <invariant-checks>off in $(properties)
 		|| <asserts>on in $(properties) )
 	{
 		result += <source>src/assert.cpp ;
@@ -426,8 +429,8 @@ feature.compose <piece-allocator>memalign : <define>TORRENT_USE_MEMALIGN=1 ;
 feature.compose <piece-allocator>posix_memalign : <define>TORRENT_USE_POSIX_MEMALIGN=1 ;
 
 feature invariant-checks : off on full : composite propagated link-incompatible ;
-feature.compose <invariant-checks>on : <define>TORRENT_USE_INVARIANT_CHECKS=1 <define>TORRENT_USE_ASSERTS=1 ;
-feature.compose <invariant-checks>full : <define>TORRENT_USE_INVARIANT_CHECKS=1 <define>TORRENT_EXPENSIVE_INVARIANT_CHECKS <define>TORRENT_USE_ASSERTS=1 ;
+feature.compose <invariant-checks>on : <define>TORRENT_USE_INVARIANT_CHECKS=1 ;
+feature.compose <invariant-checks>full : <define>TORRENT_USE_INVARIANT_CHECKS=1 <define>TORRENT_EXPENSIVE_INVARIANT_CHECKS ;
 
 feature utp-log : off on : composite propagated link-incompatible ;
 feature.compose <utp-log>on : <define>TORRENT_UTP_LOG_ENABLE ;
