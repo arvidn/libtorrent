@@ -46,9 +46,15 @@ extern "C" {
 #include <openssl/err.h>
 }
 
+#include <boost/asio/ssl/error.hpp>
+
 #endif
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
+
+#if TORRENT_USE_DEV_RANDOM
+#include "libtorrent/aux_/dev_random.hpp"
+#endif
 
 namespace libtorrent
 {
@@ -78,27 +84,26 @@ namespace libtorrent
 
 			aux::crypt_gen_random(buffer);
 
+#elif TORRENT_USE_DEV_RANDOM
+			// /dev/random
+
+			static dev_random dev;
+			dev.read(buffer);
+
 #elif defined TORRENT_USE_LIBCRYPTO
 			// openssl
-
-#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#endif
 
 			int r = RAND_bytes(reinterpret_cast<unsigned char*>(buffer.data())
 				, int(buffer.size()));
 			if (r != 1)
 			{
 #ifndef BOOST_NO_EXCEPTIONS
-				throw system_error(error_code(int(::ERR_get_error()), system_category()));
+				throw system_error(error_code(int(::ERR_get_error())
+					, boost::asio::error::get_ssl_category()));
 #else
 				std::terminate();
 #endif
 			}
-#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
-#pragma clang diagnostic pop
-#endif
 #else
 			// fallback
 
