@@ -14,6 +14,9 @@ AC_CONFIG_MACRO_DIR([m4])
 # Silencing build output (automake-1.11)
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
 
+# Change ar argument to 'rc' to silence the warning:
+#     ar: `u' modifier ignored since `D' is the default (see `U')
+m4_divert_text([DEFAULTS], [: "${AR_FLAGS=rc}"])
 
 ###############################################################################
 dnl ---------------------------------------------------------------------------
