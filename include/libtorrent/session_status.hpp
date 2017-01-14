@@ -87,15 +87,15 @@ namespace libtorrent
 		// the total download and upload rates accumulated
 		// from all torrents. This includes bittorrent protocol, DHT and an estimated TCP/IP
 		// protocol overhead.
-		// deprecated, use session_stats_metrics "net.recv_bytes" and "net.send_bytes"
-		// they does include payload + protocol bytes but does not include ip protocol bytes
+		// deprecated, use session_stats_metrics "net.recv_bytes" + "net.recv_ip_overhead_bytes"
+		// they does include payload + protocol + ip overhead bytes
 		int upload_rate;
 		int download_rate;
 
 		// the total number of bytes downloaded and
 		// uploaded to and from all torrents. This also includes all the protocol overhead.
-		// deprecated, use session_stats_metrics "net.recv_bytes" and "net.send_bytes"
-		// they does include payload + protocol bytes but does not include ip protocol bytes
+		// deprecated, use session_stats_metrics "net.recv_bytes" + "net.recv_ip_overhead_bytes"
+		// they does include payload + protocol + ip overhead bytes
 		boost::int64_t total_download;
 		boost::int64_t total_upload;
 
