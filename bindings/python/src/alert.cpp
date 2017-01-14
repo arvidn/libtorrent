@@ -170,9 +170,11 @@ void bind_alert()
     using boost::noncopyable;
 #ifndef TORRENT_NO_DEPRECATE
     typedef boost::shared_ptr<alert> alert_holder;
-#if BOOST_VERSION >= 106000
-    register_ptr_to_python<boost::shared_ptr<alert> >();
-#endif
+
+    if (boost::python::converter::registry::query(
+        boost::python::type_id <boost::shared_ptr<alert> >()) == NULL) {
+            register_ptr_to_python<boost::shared_ptr<alert> >();
+    }
 #else
     typedef alert alert_holder;
 #endif
@@ -663,7 +665,7 @@ void bind_alert()
         ;
     class_<torrent_need_cert_alert, bases<torrent_alert>, noncopyable>(
         "torrent_need_cert_alert", no_init)
-        .def_readonly("error", &torrent_need_cert_alert::error) 
+        .def_readonly("error", &torrent_need_cert_alert::error)
         ;
 
     class_<add_torrent_alert, bases<torrent_alert>, noncopyable>(
