@@ -222,15 +222,14 @@ void rpc_manager::unreachable(udp::endpoint const& ep)
 	for (auto i = m_transactions.begin(); i != m_transactions.end();)
 	{
 		TORRENT_ASSERT(i->second);
-		observer_ptr const& o = i->second;
-		if (o->target_ep() != ep) { ++i; continue; }
-		observer_ptr ptr = i->second;
+		if (i->second->target_ep() != ep) { ++i; continue; }
+		observer_ptr o = i->second;
 		i = m_transactions.erase(i);
 #ifndef TORRENT_DISABLE_LOGGING
 		m_log->log(dht_logger::rpc_manager, "[%u] found transaction [ tid: %d ]"
-			, o->algorithm()->id(), int(ptr->transaction_id()));
+			, o->algorithm()->id(), int(o->transaction_id()));
 #endif
-		ptr->timeout();
+		o->timeout();
 		break;
 	}
 }
