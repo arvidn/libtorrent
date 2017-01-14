@@ -167,9 +167,9 @@ void http_connection::get(std::string const& url, time_duration timeout, int pri
 	char* end = request + sizeof(request);
 	char* ptr = request;
 
-#define APPEND_FMT(fmt) ptr += std::snprintf(ptr, end - ptr, fmt)
-#define APPEND_FMT1(fmt, arg) ptr += std::snprintf(ptr, end - ptr, fmt, arg)
-#define APPEND_FMT2(fmt, arg1, arg2) ptr += std::snprintf(ptr, end - ptr, fmt, arg1, arg2)
+#define APPEND_FMT(fmt) ptr += std::snprintf(ptr, std::size_t(end - ptr), fmt)
+#define APPEND_FMT1(fmt, arg) ptr += std::snprintf(ptr, std::size_t(end - ptr), fmt, arg)
+#define APPEND_FMT2(fmt, arg1, arg2) ptr += std::snprintf(ptr, std::size_t(end - ptr), fmt, arg1, arg2)
 
 	// exclude ssl here, because SSL assumes CONNECT support in the
 	// proxy and is handled at the lower layer
@@ -396,7 +396,7 @@ void http_connection::start(std::string const& hostname, int port
 		{
 			m_hostname = hostname;
 			m_port = std::uint16_t(port);
-			m_endpoints.push_back(tcp::endpoint(address(), std::uint16_t(port)));
+			m_endpoints.push_back({address(), m_port});
 			connect();
 		}
 		else
@@ -689,8 +689,8 @@ void http_connection::on_write(error_code const& e)
 		}
 	}
 	ADD_OUTSTANDING_ASYNC("http_connection::on_read");
-	m_sock.async_read_some(boost::asio::buffer(&m_recvbuffer[0] + m_read_pos
-		, amount_to_read)
+	m_sock.async_read_some(boost::asio::buffer(m_recvbuffer.data() + m_read_pos
+		, std::size_t(amount_to_read))
 		, std::bind(&http_connection::on_read
 			, shared_from_this(), _1, _2));
 }
@@ -744,7 +744,7 @@ void http_connection::on_read(error_code const& e
 	{
 		span<char const> rcv_buf(m_recvbuffer);
 		bool error = false;
-		m_parser.incoming(rcv_buf.first(m_read_pos), error);
+		m_parser.incoming(rcv_buf.first(std::size_t(m_read_pos)), error);
 		if (error)
 		{
 			// HTTP parse error

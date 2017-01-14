@@ -238,7 +238,7 @@ static_assert(sizeof(job_action_name)/sizeof(job_action_name[0])
 
 #if TORRENT_USE_ASSERTS
 
-	void print_piece_log(std::vector<piece_log_t> const& piece_log)
+	void print_piece_log(aux::vector<piece_log_t> const& piece_log)
 	{
 		for (int i = 0; i < int(piece_log.size()); ++i)
 		{

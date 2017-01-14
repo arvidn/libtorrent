@@ -39,22 +39,22 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <malloc.h>
 #define TORRENT_ALLOCA(v, t, n) ::libtorrent::span<t> v; { \
-	t* TORRENT_ALLOCA_tmp = static_cast<t*>(_alloca(sizeof(t) * (n))); \
-	v = ::libtorrent::span<t>(TORRENT_ALLOCA_tmp, n); }
+	t* TORRENT_ALLOCA_tmp = static_cast<t*>(_alloca(sizeof(t) * (std::size_t(n)))); \
+	v = ::libtorrent::span<t>(TORRENT_ALLOCA_tmp, std::size_t(n)); }
 
 #elif defined TORRENT_BSD
 
 #include <stdlib.h>
 #define TORRENT_ALLOCA(v, t, n) ::libtorrent::span<t> v; { \
-	t* TORRENT_ALLOCA_tmp = static_cast<t*>(alloca(sizeof(t) * (n))); \
-	v = ::libtorrent::span<t>(TORRENT_ALLOCA_tmp, n); }
+	t* TORRENT_ALLOCA_tmp = static_cast<t*>(alloca(sizeof(t) * (std::size_t(n)))); \
+	v = ::libtorrent::span<t>(TORRENT_ALLOCA_tmp, std::size_t(n)); }
 
 #else
 
 #include <alloca.h>
 #define TORRENT_ALLOCA(v, t, n) ::libtorrent::span<t> v; { \
-	t* TORRENT_ALLOCA_tmp = static_cast<t*>(alloca(sizeof(t) * (n))); \
-	v = ::libtorrent::span<t>(TORRENT_ALLOCA_tmp, n); }
+	t* TORRENT_ALLOCA_tmp = static_cast<t*>(alloca(sizeof(t) * (std::size_t(n)))); \
+	v = ::libtorrent::span<t>(TORRENT_ALLOCA_tmp, std::size_t(n)); }
 
 #endif
 

@@ -676,7 +676,7 @@ namespace libtorrent
 				bool binary_string = false;
 				for (std::string::const_iterator i = string().begin(); i != string().end(); ++i)
 				{
-					if (!is_print(static_cast<unsigned char>(*i)))
+					if (!is_print(*i))
 					{
 						binary_string = true;
 						break;
@@ -698,7 +698,7 @@ namespace libtorrent
 				out += "list\n";
 				for (list_type::const_iterator i = list().begin(); i != list().end(); ++i)
 				{
-					i->to_string_impl(out, indent+1);
+					i->to_string_impl(out, indent + 1);
 				}
 			} break;
 		case dictionary_t:
@@ -709,13 +709,13 @@ namespace libtorrent
 					bool binary_string = false;
 					for (std::string::const_iterator k = i->first.begin(); k != i->first.end(); ++k)
 					{
-						if (!is_print(static_cast<unsigned char>(*k)))
+						if (!is_print(*k))
 						{
 							binary_string = true;
 							break;
 						}
 					}
-					for (int j = 0; j < indent+1; ++j) out += " ";
+					for (int j = 0; j < indent + 1; ++j) out += " ";
 					out += "[";
 					if (binary_string) out += aux::to_hex(i->first);
 					else out += i->first;
@@ -725,7 +725,7 @@ namespace libtorrent
 						&& i->second.type() != entry::int_t)
 						out += "\n";
 					else out += " ";
-					i->second.to_string_impl(out, indent+2);
+					i->second.to_string_impl(out, indent + 2);
 				}
 			} break;
 		case preformatted_t:
