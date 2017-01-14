@@ -46,8 +46,8 @@ namespace libtorrent
 	{
 		char const* name;
 		int value_index;
-		enum { type_counter, type_gauge };
-		int type;
+		enum metric_type_t { type_counter, type_gauge };
+		metric_type_t type;
 	};
 
 	// This free function returns the list of available metrics exposed by

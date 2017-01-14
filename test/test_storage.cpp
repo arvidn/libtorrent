@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "setup_transfer.hpp"
 #include "test_utils.hpp"
+#include "settings.hpp"
 
 #include "libtorrent/storage.hpp"
 #include "libtorrent/file_pool.hpp"
@@ -749,11 +750,7 @@ TORRENT_TEST(rename_file)
 		& ~(alert::performance_warning
 			| alert::stats_notification);
 
-	settings_pack pack;
-	pack.set_bool(settings_pack::enable_lsd, false);
-	pack.set_bool(settings_pack::enable_natpmp, false);
-	pack.set_bool(settings_pack::enable_upnp, false);
-	pack.set_bool(settings_pack::enable_dht, false);
+	settings_pack pack = settings();
 	pack.set_int(settings_pack::alert_mask, mask);
 	pack.set_bool(settings_pack::disable_hash_checks, true);
 	lt::session ses(pack);
@@ -777,14 +774,14 @@ TORRENT_TEST(rename_file)
 	for (int i = 0; i < info->num_files(); ++i)
 	{
 		std::string name = fs.file_path(i);
-		h.rename_file(i, "__" + name);
+		h.rename_file(i, "temp_storage__" + name.substr(12));
 	}
 
 	// wait fir the files to have been renamed
 	alert const* fra = wait_for_alert(ses, file_renamed_alert::alert_type, "ses", info->num_files());
 	TEST_CHECK(fra);
 
-	TEST_CHECK(exists("__" + info->name()));
+	TEST_CHECK(exists(info->name() + "__"));
 
 	h.save_resume_data();
 	alert const* ra = wait_for_alert(ses, save_resume_data_alert::alert_type);
@@ -797,7 +794,7 @@ TORRENT_TEST(rename_file)
 	entry::list_type files = resume.dict().find("mapped_files")->second.list();
 	for (entry::list_type::iterator i = files.begin(); i != files.end(); ++i)
 	{
-		TEST_CHECK(i->string().substr(0, 2) == "__");
+		TEST_EQUAL(i->string().substr(0, 14), "temp_storage__");
 	}
 }
 
