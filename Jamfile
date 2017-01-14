@@ -287,6 +287,12 @@ rule building ( properties * )
 {
 	local result ;
 
+	if ( <asserts>off in $(properties) &&
+		! <invariant-checks>off in $(properties) )
+	{
+		EXIT 'invariant-check' requires enabled 'asserts' mode. (e.g. specify build params: invariant-check=on asserts=on) ;
+	}
+
 	if <toolset>msvc in $(properties)
 	{
 		# allow larger .obj files (with more sections)
