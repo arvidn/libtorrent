@@ -556,6 +556,9 @@ AC_SUBST(DEBUGFLAGS)
 AC_SUBST(PYTHON_INSTALL_PARAMS)
 AC_SUBST(COMPILETIME_OPTIONS)
 
+# Disable deprecated warnings for the Python binding builds.
+PYTHON_CXXFLAGS="${PYTHON_CXXFLAGS} -Wno-deprecated-declarations"
+AC_SUBST(PYTHON_CXXFLAGS)
 
 # Try to guess real git revision if any, fallback to hardcoded otherwise
 GIT_REVISION=`git log -1 --format=format:%h 2>/dev/null`
