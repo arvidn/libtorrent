@@ -160,10 +160,10 @@ namespace libtorrent
 	char* allocate_string_copy(char const* str)
 	{
 		if (str == nullptr) return nullptr;
-		int const len = int(std::strlen(str));
-		char* tmp = static_cast<char*>(std::malloc(std::size_t(len + 1)));
+		std::size_t const len = std::strlen(str);
+		char* tmp = static_cast<char*>(std::malloc(len + 1));
 		if (tmp == nullptr) return nullptr;
-		std::memcpy(tmp, str, std::size_t(len));
+		std::memcpy(tmp, str, len);
 		tmp[len] = '\0';
 		return tmp;
 	}
