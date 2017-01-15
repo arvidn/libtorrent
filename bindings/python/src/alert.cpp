@@ -100,7 +100,11 @@ void bind_alert()
     using boost::noncopyable;
 
 #if BOOST_VERSION >= 106000
-    register_ptr_to_python<boost::shared_ptr<alert> >();
+    if (boost::python::converter::registry::query(
+        boost::python::type_id <boost::shared_ptr<alert> >()) == NULL)
+    {
+        register_ptr_to_python<boost::shared_ptr<alert> >();
+    }
 #endif
 
     {
@@ -531,7 +535,7 @@ void bind_alert()
         ;
     class_<torrent_need_cert_alert, bases<torrent_alert>, noncopyable>(
         "torrent_need_cert_alert", no_init)
-        .def_readonly("error", &torrent_need_cert_alert::error) 
+        .def_readonly("error", &torrent_need_cert_alert::error)
         ;
 
     class_<add_torrent_alert, bases<torrent_alert>, noncopyable>(
