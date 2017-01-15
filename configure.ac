@@ -312,13 +312,13 @@ AS_CASE(["$ARG_ENABLE_DEBUG"],
       AC_MSG_RESULT([yes])
       AC_DEFINE([TORRENT_USE_ASSERTS],[1],[Define to enable debug code.])
       COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DTORRENT_USE_ASSERTS"
-      DEBUGFLAGS="-g"
+      DEBUGFLAGS="-Og"
    ],
   ["no"], [
       AC_MSG_RESULT([no])
       AC_DEFINE([NDEBUG],[1],[Define to disable debug code.])
       #COMPILETIME_OPTIONS="$COMPILETIME_OPTIONS -DNDEBUG "
-      DEBUGFLAGS="-Os"
+      DEBUGFLAGS="-g0 -Os"
    ],
   [AC_MSG_RESULT([$ARG_ENABLE_DEBUG])
    AC_MSG_ERROR([Unknown option "$ARG_ENABLE_DEBUG". Use either "yes" or "no".])]
