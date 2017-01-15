@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/web_connection_base.hpp"
 #include "libtorrent/piece_block_progress.hpp"
 #include "libtorrent/operations.hpp" // for operation_t enum
+#include "libtorrent/aux_/vector.hpp"
 
 namespace libtorrent
 {
@@ -116,7 +117,7 @@ namespace libtorrent
 		// TODO: 3 if we make this be a disk_buffer_holder instead
 		// we would save a copy
 		// use allocate_disk_receive_buffer and release_disk_receive_buffer
-		std::vector<char> m_piece;
+		aux::vector<char> m_piece;
 
 		// the number of bytes we've forwarded to the incoming_payload() function
 		// in the current HTTP response. used to know where in the buffer the

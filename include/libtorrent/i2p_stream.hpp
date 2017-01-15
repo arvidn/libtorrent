@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/proxy_base.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/string_util.hpp"
+#include "libtorrent/aux_/vector.hpp"
 
 namespace libtorrent {
 
@@ -139,7 +140,7 @@ private:
 	void send_session_create(handler_type h);
 
 	// send and receive buffer
-	std::vector<char> m_buffer;
+	aux::vector<char> m_buffer;
 	char const* m_id;
 	int m_command; // 0 = connect, 1 = accept
 	std::string m_dest;

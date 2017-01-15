@@ -841,7 +841,7 @@ void http_connection::on_read(error_code const& e
 	}
 	ADD_OUTSTANDING_ASYNC("http_connection::on_read");
 	m_sock.async_read_some(boost::asio::buffer(m_recvbuffer.data() + m_read_pos
-		, amount_to_read)
+		, std::size_t(amount_to_read))
 		, std::bind(&http_connection::on_read
 			, me, _1, _2));
 }
@@ -871,7 +871,7 @@ void http_connection::on_assign_bandwidth(error_code const& e)
 
 	ADD_OUTSTANDING_ASYNC("http_connection::on_read");
 	m_sock.async_read_some(boost::asio::buffer(m_recvbuffer.data() + m_read_pos
-		, amount_to_read)
+		, std::size_t(amount_to_read))
 		, std::bind(&http_connection::on_read
 			, shared_from_this(), _1, _2));
 

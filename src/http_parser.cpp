@@ -138,7 +138,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(recv_buffer.size() >= m_recv_buffer.size());
 		std::tuple<int, int> ret(0, 0);
-		size_t start_pos = m_recv_buffer.size();
+		std::size_t start_pos = m_recv_buffer.size();
 
 		// early exit if there's nothing new in the receive buffer
 		if (start_pos == recv_buffer.size()) return ret;
@@ -206,7 +206,7 @@ restart_response:
 				m_status_code = 0;
 			}
 			m_state = read_header;
-			start_pos = pos - recv_buffer.data();
+			start_pos = std::size_t(pos - recv_buffer.data());
 		}
 
 		if (m_state == read_header)
@@ -525,7 +525,7 @@ restart_response:
 			? (std::min)(m_chunked_ranges.back().second - m_body_start_pos, received)
 			: m_content_length < 0 ? received : (std::min)(m_content_length, received);
 
-		return m_recv_buffer.subspan(m_body_start_pos, std::size_t(body_length));
+		return m_recv_buffer.subspan(std::size_t(m_body_start_pos), std::size_t(body_length));
 	}
 
 	void http_parser::reset()
@@ -566,7 +566,7 @@ restart_response:
 			TORRENT_ASSERT(i.second - offset <= size);
 			int len = int(i.second - i.first);
 			if (i.first - offset + len > size) len = size - int(i.first) + offset;
-			std::memmove(write_ptr, buffer + i.first - offset, len);
+			std::memmove(write_ptr, buffer + i.first - offset, std::size_t(len));
 			write_ptr += len;
 		}
 		size = int(write_ptr - buffer);

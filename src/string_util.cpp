@@ -47,12 +47,12 @@ namespace libtorrent
 	// lexical_cast's result depends on the locale. We need
 	// a well defined result
 	std::array<char, 4 + std::numeric_limits<std::int64_t>::digits10>
-		to_string(std::int64_t n)
+		to_string(std::int64_t const n)
 	{
 		std::array<char, 4 + std::numeric_limits<std::int64_t>::digits10> ret;
 		char *p = &ret.back();
 		*p = '\0';
-		std::uint64_t un = n;
+		std::uint64_t un = std::uint64_t(n);
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4146 ) /* warning C4146: unary minus operator applied to unsigned type */
@@ -66,7 +66,7 @@ namespace libtorrent
 			un /= 10;
 		} while (un);
 		if (n < 0) *--p = '-';
-		std::memmove(&ret[0], p, &ret.back() - p + 1);
+		std::memmove(ret.data(), p, std::size_t(&ret.back() - p + 1));
 		return ret;
 	}
 
@@ -161,9 +161,9 @@ namespace libtorrent
 	{
 		if (str == nullptr) return nullptr;
 		int const len = int(std::strlen(str));
-		char* tmp = static_cast<char*>(std::malloc(len + 1));
+		char* tmp = static_cast<char*>(std::malloc(std::size_t(len + 1)));
 		if (tmp == nullptr) return nullptr;
-		std::memcpy(tmp, str, len);
+		std::memcpy(tmp, str, std::size_t(len));
 		tmp[len] = '\0';
 		return tmp;
 	}
