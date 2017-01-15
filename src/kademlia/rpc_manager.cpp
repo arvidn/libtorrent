@@ -222,15 +222,14 @@ void rpc_manager::unreachable(udp::endpoint const& ep)
 	for (auto i = m_transactions.begin(); i != m_transactions.end();)
 	{
 		TORRENT_ASSERT(i->second);
-		observer_ptr const& o = i->second;
-		if (o->target_ep() != ep) { ++i; continue; }
-		observer_ptr ptr = i->second;
+		if (i->second->target_ep() != ep) { ++i; continue; }
+		observer_ptr o = i->second;
 		i = m_transactions.erase(i);
 #ifndef TORRENT_DISABLE_LOGGING
-		m_log->log(dht_logger::rpc_manager, "found transaction [ tid: %d ]"
-			, int(ptr->transaction_id()));
+		m_log->log(dht_logger::rpc_manager, "[%u] found transaction [ tid: %d ]"
+			, o->algorithm()->id(), int(o->transaction_id()));
 #endif
-		ptr->timeout();
+		o->timeout();
 		break;
 	}
 }
@@ -289,8 +288,9 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 #ifndef TORRENT_DISABLE_LOGGING
 	if (m_log->should_log(dht_logger::rpc_manager))
 	{
-		m_log->log(dht_logger::rpc_manager, "round trip time(ms): %" PRId64 " from %s"
-			, total_milliseconds(now - o->sent()), print_endpoint(m.addr).c_str());
+		m_log->log(dht_logger::rpc_manager, "[%u] round trip time(ms): %" PRId64 " from %s"
+			, o->algorithm()->id(), total_milliseconds(now - o->sent())
+			, print_endpoint(m.addr).c_str());
 	}
 #endif
 
@@ -305,15 +305,16 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 				&& err.list_at(0).type() == bdecode_node::int_t
 				&& err.list_at(1).type() == bdecode_node::string_t)
 			{
-				m_log->log(dht_logger::rpc_manager, "reply with error from %s: (%" PRId64 ") %s"
+				m_log->log(dht_logger::rpc_manager, "[%u] reply with error from %s: (%" PRId64 ") %s"
+					, o->algorithm()->id()
 					, print_endpoint(m.addr).c_str()
 					, err.list_int_value_at(0)
 					, err.list_string_value_at(1).to_string().c_str());
 			}
 			else
 			{
-				m_log->log(dht_logger::rpc_manager, "reply with (malformed) error from %s"
-					, print_endpoint(m.addr).c_str());
+				m_log->log(dht_logger::rpc_manager, "[%u] reply with (malformed) error from %s"
+					, o->algorithm()->id(), print_endpoint(m.addr).c_str());
 			}
 		}
 #endif
@@ -354,8 +355,8 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 #ifndef TORRENT_DISABLE_LOGGING
 	if (m_log->should_log(dht_logger::rpc_manager))
 	{
-		m_log->log(dht_logger::rpc_manager, "[%p] reply with transaction id: %d from %s"
-			, static_cast<void*>(o->algorithm()), int(transaction_id.size())
+		m_log->log(dht_logger::rpc_manager, "[%u] reply with transaction id: %d from %s"
+			, o->algorithm()->id(), int(transaction_id.size())
 			, print_endpoint(m.addr).c_str());
 	}
 #endif
@@ -396,8 +397,8 @@ time_duration rpc_manager::tick()
 #ifndef TORRENT_DISABLE_LOGGING
 			if (m_log->should_log(dht_logger::rpc_manager))
 			{
-				m_log->log(dht_logger::rpc_manager, "[%p] timing out transaction id: %d from: %s"
-					, static_cast<void*>(o->algorithm()), o->transaction_id()
+				m_log->log(dht_logger::rpc_manager, "[%u] timing out transaction id: %d from: %s"
+					, o->algorithm()->id(), o->transaction_id()
 					, print_endpoint(o->target_ep()).c_str());
 			}
 #endif
@@ -413,8 +414,8 @@ time_duration rpc_manager::tick()
 #ifndef TORRENT_DISABLE_LOGGING
 			if (m_log->should_log(dht_logger::rpc_manager))
 			{
-				m_log->log(dht_logger::rpc_manager, "[%p] short-timing out transaction id: %d from: %s"
-					, static_cast<void*>(o->algorithm()), o->transaction_id()
+				m_log->log(dht_logger::rpc_manager, "[%u] short-timing out transaction id: %d from: %s"
+					, o->algorithm()->id(), o->transaction_id()
 					, print_endpoint(o->target_ep()).c_str());
 			}
 #endif
@@ -473,8 +474,8 @@ bool rpc_manager::invoke(entry& e, udp::endpoint const& target_addr
 #ifndef TORRENT_DISABLE_LOGGING
 	if (m_log != nullptr && m_log->should_log(dht_logger::rpc_manager))
 	{
-		m_log->log(dht_logger::rpc_manager, "[%p] invoking %s -> %s"
-			, static_cast<void*>(o->algorithm()), e["q"].string().c_str()
+		m_log->log(dht_logger::rpc_manager, "[%u] invoking %s -> %s"
+			, o->algorithm()->id(), e["q"].string().c_str()
 			, print_endpoint(target_addr).c_str());
 	}
 #endif
