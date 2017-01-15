@@ -290,7 +290,8 @@ rule building ( properties * )
 	if ( <asserts>off in $(properties) &&
 		! <invariant-checks>off in $(properties) )
 	{
-		EXIT 'invariant-check' requires enabled 'asserts' mode. (e.g. specify build params: invariant-check=on asserts=on) ;
+		ECHO 'invariant-check' requires enabled 'asserts' mode. (e.g. specify build params: invariant-check=on asserts=on) ;
+		result += <build>no ;
 	}
 
 	if <toolset>msvc in $(properties)
