@@ -184,7 +184,7 @@ void bind_create_torrent()
         .value("flag_hidden", file_storage::flag_hidden)
         .value("flag_executable", file_storage::flag_executable)
         .value("flag_symlink", file_storage::flag_symlink)
-		  ;
+        ;
 
     class_<create_torrent>("create_torrent", no_init)
         .def(init<file_storage&>())

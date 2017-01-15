@@ -96,6 +96,10 @@ TORRENT_TEST(rename_file)
 	st.rename_file(file_index_t{0}, "/tmp/a");
 	TEST_EQUAL(st.file_path(file_index_t{0}, "."), "/tmp/a");
 #endif
+
+	st.rename_file(0, combine_path("test__", "a"));
+	TEST_EQUAL(st.file_path(0, "."), combine_path(".", combine_path("test__"
+		, "a")));
 }
 
 TORRENT_TEST(set_name)

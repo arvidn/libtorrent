@@ -252,6 +252,8 @@ namespace libtorrent
 		// these are the channels we keep stats for
 		enum
 		{
+			// TODO: 3 everything but payload counters and rates could probably be
+			// removed from here
 			upload_payload,
 			upload_protocol,
 			download_payload,

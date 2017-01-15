@@ -87,22 +87,31 @@ namespace libtorrent
 		// the total download and upload rates accumulated
 		// from all torrents. This includes bittorrent protocol, DHT and an estimated TCP/IP
 		// protocol overhead.
+		// deprecated, use session_stats_metrics "net.recv_bytes" + "net.recv_ip_overhead_bytes"
+		// they does include payload + protocol + ip overhead bytes
 		int upload_rate;
 		int download_rate;
 
 		// the total number of bytes downloaded and
 		// uploaded to and from all torrents. This also includes all the protocol overhead.
+		// deprecated, use session_stats_metrics "net.recv_bytes" + "net.recv_ip_overhead_bytes"
+		// they does include payload + protocol + ip overhead bytes
 		std::int64_t total_download;
 		std::int64_t total_upload;
 
 		// the rate of the payload
 		// down- and upload only.
+		// deprecated, use session_stats_metrics "net.recv_payload_bytes"
 		int payload_upload_rate;
+		// deprecated, use session_stats_metrics "net.sent_payload_bytes"
 		int payload_download_rate;
 
 		// the total transfers of payload
 		// only. The payload does not include the bittorrent protocol overhead, but only parts of the
 		// actual files to be downloaded.
+		// ``total_payload_download`` is deprecated, use session_stats_metrics
+		// "net.recv_payload_bytes" ``total_payload_upload`` is deprecated, use
+		// session_stats_metrics "net.sent_payload_bytes"
 		std::int64_t total_payload_download;
 		std::int64_t total_payload_upload;
 
@@ -181,6 +190,7 @@ namespace libtorrent
 		// ``dht_node_cache`` is set to the number of nodes in the node cache. These nodes
 		// are used to replace the regular nodes in the routing table in case any of them
 		// becomes unresponsive.
+		// deprecated, use session_stats_metrics "dht.dht_nodes" and "dht.dht_nodes_cache"
 		int dht_nodes;
 		int dht_node_cache;
 
