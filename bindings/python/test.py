@@ -230,6 +230,10 @@ class test_session(unittest.TestCase):
 		except KeyError as e:
 			print(e)
 
+	def test_fingerprint(self):
+		self.assertEqual(lt.generate_fingerprint('LT', 0, 1, 2, 3), '-LT0123-')
+		self.assertEqual(lt.generate_fingerprint('..', 10, 1, 2, 3), '-..A123-')
+
 	def test_deprecated_settings(self):
 
 		# this detects whether libtorrent was built with deprecated APIs
