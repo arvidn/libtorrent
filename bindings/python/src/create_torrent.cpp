@@ -107,12 +107,20 @@ namespace
         add_files(fs, file, [&](std::string const& i) { return cb(i); }, flags);
     }
 
+    void add_file(file_storage& fs, std::string const& file, std::int64_t size
+       , int flags, std::time_t md, std::string link)
+    {
+       fs.add_file(file, size, flags, md, link);
+    }
+
+    void add_tracker(create_torrent& ct, std::string url, int tier)
+    {
+      ct.add_tracker(url, tier);
+    }
 }
 
 void bind_create_torrent()
 {
-    void (file_storage::*add_file0)(std::string const&, std::int64_t
-       , int, std::time_t, string_view) = &file_storage::add_file;
 #ifndef TORRENT_NO_DEPRECATE
 #if TORRENT_USE_WSTRING
     void (file_storage::*add_file1)(std::wstring const&, std::int64_t
@@ -146,7 +154,7 @@ void bind_create_torrent()
     // TODO: 3 move this to its own file
     class_<file_storage>("file_storage")
         .def("is_valid", &file_storage::is_valid)
-        .def("add_file", add_file0, (arg("path"), arg("size"), arg("flags") = 0, arg("mtime") = 0, arg("linkpath") = ""))
+        .def("add_file", add_file, (arg("path"), arg("size"), arg("flags") = 0, arg("mtime") = 0, arg("linkpath") = ""))
 #if TORRENT_USE_WSTRING && !defined TORRENT_NO_DEPRECATE
         .def("add_file", add_file1, (arg("path"), arg("size"), arg("flags") = 0, arg("mtime") = 0, arg("linkpath") = ""))
 #endif
@@ -202,7 +210,7 @@ void bind_create_torrent()
         .def("add_url_seed", &create_torrent::add_url_seed)
         .def("add_http_seed", &create_torrent::add_http_seed)
         .def("add_node", &add_node)
-        .def("add_tracker", &create_torrent::add_tracker, (arg("announce_url"), arg("tier") = 0))
+        .def("add_tracker", add_tracker, (arg("announce_url"), arg("tier") = 0))
         .def("set_priv", &create_torrent::set_priv)
         .def("num_pieces", &create_torrent::num_pieces)
         .def("piece_length", &create_torrent::piece_length)
