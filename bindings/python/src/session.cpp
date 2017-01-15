@@ -27,12 +27,12 @@
 
 namespace boost
 {
-    // this fixes mysterious link error on msvc
-    libtorrent::alert const volatile*
-    get_pointer(libtorrent::alert const volatile* p)
-    {
-        return p;
-    }
+	// this fixes mysterious link error on msvc
+	libtorrent::alert const volatile*
+	get_pointer(libtorrent::alert const volatile* p)
+	{
+		return p;
+	}
 }
 
 #include "gil.hpp"
@@ -100,96 +100,96 @@ namespace
     void add_extension(lt::session& s, object const& e)
     {
 #ifndef TORRENT_DISABLE_EXTENSIONS
-        if (!extract<std::string>(e).check()) return;
+       if (!extract<std::string>(e).check()) return;
 
-        std::string name = extract<std::string>(e);
-        if (name == "ut_metadata")
+       std::string name = extract<std::string>(e);
+       if (name == "ut_metadata")
             s.add_extension(create_ut_metadata_plugin);
-        else if (name == "ut_pex")
+       else if (name == "ut_pex")
             s.add_extension(create_ut_pex_plugin);
-        else if (name == "smart_ban")
+       else if (name == "smart_ban")
             s.add_extension(create_smart_ban_plugin);
 
 #endif // TORRENT_DISABLE_EXTENSIONS
     }
 
-    void make_settings_pack(lt::settings_pack& p, dict const& sett_dict)
-    {
-        list iterkeys = (list)sett_dict.keys();
-        int const len = int(boost::python::len(iterkeys));
-        for (int i = 0; i < len; i++)
-        {
-            std::string const key = extract<std::string>(iterkeys[i]);
+	void make_settings_pack(lt::settings_pack& p, dict const& sett_dict)
+	{
+		list iterkeys = (list)sett_dict.keys();
+		int const len = int(boost::python::len(iterkeys));
+		for (int i = 0; i < len; i++)
+		{
+			std::string const key = extract<std::string>(iterkeys[i]);
 
-            int sett = setting_by_name(key);
-            if (sett < 0)
-            {
-                PyErr_SetString(PyExc_KeyError, ("unknown name in settings_pack: " + key).c_str());
-                throw_error_already_set();
-            }
+			int sett = setting_by_name(key);
+			if (sett < 0)
+			{
+				PyErr_SetString(PyExc_KeyError, ("unknown name in settings_pack: " + key).c_str());
+				throw_error_already_set();
+			}
 
-            TORRENT_TRY
-            {
-                object const value = sett_dict[key];
-                switch (sett & settings_pack::type_mask)
-                {
-                    case settings_pack::string_type_base:
-                        p.set_str(sett, extract<std::string>(value));
-                        break;
-                    case settings_pack::int_type_base:
-                        p.set_int(sett, extract<int>(value));
-                        break;
-                    case settings_pack::bool_type_base:
-                        p.set_bool(sett, extract<bool>(value));
-                        break;
-                }
-            }
-            TORRENT_CATCH(...) {}
-        }
-    }
+			TORRENT_TRY
+			{
+				object const value = sett_dict[key];
+				switch (sett & settings_pack::type_mask)
+				{
+					case settings_pack::string_type_base:
+						p.set_str(sett, extract<std::string>(value));
+						break;
+					case settings_pack::int_type_base:
+						p.set_int(sett, extract<int>(value));
+						break;
+					case settings_pack::bool_type_base:
+						p.set_bool(sett, extract<bool>(value));
+						break;
+				}
+			}
+			TORRENT_CATCH(...) {}
+		}
+	}
 
-    std::shared_ptr<lt::session> make_session(boost::python::dict sett, int flags)
-    {
-        settings_pack p;
-        make_settings_pack(p, sett);
-        return std::make_shared<lt::session>(p, flags);
-    }
+	std::shared_ptr<lt::session> make_session(boost::python::dict sett, int flags)
+	{
+		settings_pack p;
+		make_settings_pack(p, sett);
+		return std::make_shared<lt::session>(p, flags);
+	}
 
-    void session_apply_settings(lt::session& ses, dict const& sett_dict)
-    {
-        settings_pack p;
-        make_settings_pack(p, sett_dict);
-        allow_threading_guard guard;
-        ses.apply_settings(p);
-    }
+	void session_apply_settings(lt::session& ses, dict const& sett_dict)
+	{
+		settings_pack p;
+		make_settings_pack(p, sett_dict);
+		allow_threading_guard guard;
+		ses.apply_settings(p);
+	}
 
-    dict session_get_settings(lt::session const& ses)
-    {
-        settings_pack sett;
-        {
-            allow_threading_guard guard;
-            sett = ses.get_settings();
-        }
-        dict ret;
-        for (int i = settings_pack::string_type_base;
-            i < settings_pack::max_string_setting_internal; ++i)
-        {
-            ret[name_for_setting(i)] = sett.get_str(i);
-        }
+	dict session_get_settings(lt::session const& ses)
+	{
+		settings_pack sett;
+		{
+			allow_threading_guard guard;
+			sett = ses.get_settings();
+		}
+		dict ret;
+		for (int i = settings_pack::string_type_base;
+			i < settings_pack::max_string_setting_internal; ++i)
+		{
+			ret[name_for_setting(i)] = sett.get_str(i);
+		}
 
-        for (int i = settings_pack::int_type_base;
-            i < settings_pack::max_int_setting_internal; ++i)
-        {
-            ret[name_for_setting(i)] = sett.get_int(i);
-        }
+		for (int i = settings_pack::int_type_base;
+			i < settings_pack::max_int_setting_internal; ++i)
+		{
+			ret[name_for_setting(i)] = sett.get_int(i);
+		}
 
-        for (int i = settings_pack::bool_type_base;
-            i < settings_pack::max_bool_setting_internal; ++i)
-        {
-            ret[name_for_setting(i)] = sett.get_bool(i);
-        }
-        return ret;
-    }
+		for (int i = settings_pack::bool_type_base;
+			i < settings_pack::max_bool_setting_internal; ++i)
+		{
+			ret[name_for_setting(i)] = sett.get_bool(i);
+		}
+		return ret;
+	}
 
 #ifndef BOOST_NO_EXCEPTIONS
 #ifndef TORRENT_NO_DEPRECATE
@@ -384,8 +384,8 @@ namespace
         list ret;
         std::vector<torrent_handle> torrents;
         {
-            allow_threading_guard guard;
-            torrents = s.get_torrents();
+           allow_threading_guard guard;
+           torrents = s.get_torrents();
         }
 
         for (std::vector<torrent_handle>::iterator i = torrents.begin(); i != torrents.end(); ++i)
@@ -397,26 +397,26 @@ namespace
 
     cache_status get_cache_info1(lt::session& s, torrent_handle h, int flags)
     {
-        cache_status ret;
-        s.get_cache_info(&ret, h, flags);
-        return ret;
+       cache_status ret;
+       s.get_cache_info(&ret, h, flags);
+       return ret;
     }
 
     list cached_piece_info_list(std::vector<cached_piece_info> const& v)
     {
-        list pieces;
-        time_point now = clock_type::now();
-        for (std::vector<cached_piece_info>::const_iterator i = v.begin()
+       list pieces;
+       time_point now = clock_type::now();
+       for (std::vector<cached_piece_info>::const_iterator i = v.begin()
           , end(v.end()); i != end; ++i)
-        {
+       {
           dict d;
           d["piece"] = i->piece;
           d["last_use"] = total_milliseconds(now - i->last_use) / 1000.f;
           d["next_to_hash"] = i->next_to_hash;
           d["kind"] = static_cast<int>(i->kind);
           pieces.append(d);
-        }
-        return pieces;
+       }
+       return pieces;
     }
 
     list cache_status_pieces(cache_status const& cs)
@@ -427,9 +427,9 @@ namespace
 #ifndef TORRENT_NO_DEPRECATE
     cache_status get_cache_status(lt::session& s)
     {
-        cache_status ret;
-        s.get_cache_info(&ret);
-        return ret;
+       cache_status ret;
+       s.get_cache_info(&ret);
+       return ret;
     }
 
     dict get_utp_stats(session_status const& st)
@@ -445,14 +445,14 @@ namespace
 
     list get_cache_info2(lt::session& ses, sha1_hash ih)
     {
-        std::vector<cached_piece_info> ret;
+       std::vector<cached_piece_info> ret;
 
-        {
+       {
           allow_threading_guard guard;
           ses.get_cache_info(ih, ret);
-        }
+       }
 
-        return cached_piece_info_list(ret);
+       return cached_piece_info_list(ret);
     }
 #endif
 
@@ -480,18 +480,18 @@ namespace
         return ret;
     }
 
-    void load_state(lt::session& ses, entry const& st, std::uint32_t flags)
-    {
-        allow_threading_guard guard;
+	void load_state(lt::session& ses, entry const& st, std::uint32_t flags)
+	{
+		allow_threading_guard guard;
 
-        std::vector<char> buf;
-        bencode(std::back_inserter(buf), st);
-        bdecode_node e;
-        error_code ec;
-        bdecode(&buf[0], &buf[0] + buf.size(), e, ec);
-        TORRENT_ASSERT(!ec);
-        ses.load_state(e, flags);
-    }
+		std::vector<char> buf;
+		bencode(std::back_inserter(buf), st);
+		bdecode_node e;
+		error_code ec;
+		bdecode(&buf[0], &buf[0] + buf.size(), e, ec);
+		TORRENT_ASSERT(!ec);
+		ses.load_state(e, flags);
+	}
 
 #ifndef TORRENT_DISABLE_DHT
     void dht_get_mutable_item(lt::session& ses, std::string key, std::string salt)
@@ -924,11 +924,11 @@ void bind_session()
     def("min_memory_usage", (mem_preset2)min_memory_usage);
     def("read_resume_data", read_resume_data_wrapper);
 
-    class_<stats_metric>("stats_metric")
-        .def_readonly("name", &stats_metric::name)
-        .def_readonly("value_index", &stats_metric::value_index)
-        .def_readonly("type", &stats_metric::type)
-    ;
+	class_<stats_metric>("stats_metric")
+		.def_readonly("name", &stats_metric::name)
+		.def_readonly("value_index", &stats_metric::value_index)
+		.def_readonly("type", &stats_metric::type)
+	;
 
     def("session_stats_metrics", session_stats_metrics);
     def("find_metric_idx", find_metric_idx);
