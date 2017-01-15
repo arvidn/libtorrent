@@ -126,6 +126,42 @@ TORRENT_TEST(clear)
 	TEST_EQUAL(pack.has_val(settings_pack::lazy_bitfields), false);
 }
 
+TORRENT_TEST(clear_single_int)
+{
+	settings_pack sp;
+	sp.set_int(settings_pack::max_out_request_queue, 1337);
+
+	TEST_EQUAL(sp.get_int(settings_pack::max_out_request_queue), 1337);
+
+	sp.clear(settings_pack::max_out_request_queue);
+
+	TEST_EQUAL(sp.get_int(settings_pack::max_out_request_queue), 0);
+}
+
+TORRENT_TEST(clear_single_bool)
+{
+	settings_pack sp;
+	sp.set_bool(settings_pack::send_redundant_have, true);
+
+	TEST_EQUAL(sp.get_bool(settings_pack::send_redundant_have), true);
+
+	sp.clear(settings_pack::send_redundant_have);
+
+	TEST_EQUAL(sp.get_bool(settings_pack::send_redundant_have), false);
+}
+
+TORRENT_TEST(clear_single_string)
+{
+	settings_pack sp;
+	sp.set_str(settings_pack::user_agent, "foobar");
+
+	TEST_EQUAL(sp.get_str(settings_pack::user_agent), "foobar");
+
+	sp.clear(settings_pack::user_agent);
+
+	TEST_EQUAL(sp.get_str(settings_pack::user_agent), std::string());
+}
+
 TORRENT_TEST(duplicates)
 {
 	settings_pack p;
