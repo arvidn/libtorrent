@@ -260,19 +260,42 @@ namespace
 			}
 			else if(key == "trackers")
 			{
-				list l = extract<list>(params[key]);
-				int const n = int(boost::python::len(l));
-				for(int i = 0; i < n; i++)
-					p.trackers.push_back(extract<std::string>(l[i]));
+				p.trackers = extract<std::vector<std::string>>(params[key]);
+				continue;
+			}
+			else if(key == "url_seeds")
+			{
+				p.url_seeds = extract<std::vector<std::string>>(params[key]);
+				continue;
+			}
+			else if(key == "http_seeds")
+			{
+				// TODO: is it possible to create map["http_seeds"]=add_torrent_params::http_seeds?
+				// I don't how how to do it in c++ because we don't have reflections
+				// but I would like a map instead of if else and decltype does help us
+				p.http_seeds =
+					extract<decltype(add_torrent_params::http_seeds)>(params[key]);
 				continue;
 			}
 			else if(key == "dht_nodes")
 			{
+				// TODO: did not find converter
+				//p.dht_nodes =
+				//	extract<std::vector<std::pair<std::string, int>>>(params[key]);
 				list l = extract<list>(params[key]);
 				int const n = int(boost::python::len(l));
 				for(int i = 0; i < n; i++)
 					p.dht_nodes.push_back(
+						// TODO: did not find converter either
 						extract<std::pair<std::string, int>>(l[i]));
+				continue;
+			}
+			else if(key == "banned_peers")
+			{
+				// TODO: maybe the conversion of main or sub type of
+				// boost::asio::ip::basic_endpoint<boost::asio::ip::tcp>
+				// is missing because the other vector<type> definitions do work
+				p.banned_peers = extract<std::vector<lt::tcp::endpoint>>(params[key]);
 				continue;
 			}
 			else if(key == "flags")
@@ -292,11 +315,7 @@ namespace
 			}
 			else if(key == "file_priorities")
 			{
-				list l = extract<list>(params[key]);
-				int const n = int(boost::python::len(l));
-				for(int i = 0; i < n; i++)
-					p.file_priorities.push_back(extract<std::uint8_t>(l[i]));
-				p.file_priorities.clear();
+				p.file_priorities = extract<std::vector<std::uint8_t>>(params[key]);
 			}
 			else
 			{
