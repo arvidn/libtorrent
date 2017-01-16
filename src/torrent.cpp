@@ -8433,8 +8433,7 @@ namespace libtorrent
 		update_want_tick();
 
 		const time_point now = aux::time_now();
-		// cast to seconds32 ratio because time_point diff returns a
-		// duration with ratio<1l, 1000000000l>
+
 		m_active_time +=
 			duration_cast<seconds32>(now - m_started);
 
