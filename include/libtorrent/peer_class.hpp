@@ -47,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	typedef boost::uint8_t peer_class_t;
+	typedef boost::uint32_t peer_class_t;
 
 	struct peer_class_info
 	{
