@@ -96,10 +96,7 @@ namespace libtorrent
 			{ return rhs < lhs; }
 		};
 
-		template<class T>
-		class map_string : public std::map<std::string, T, aux::strview_less>
-		{
-		};
+		template<class T> using map_string = std::map<std::string, T, aux::strview_less>;
 #else
 		template<class T>
 		class map_string : public std::map<std::string, T>
@@ -107,6 +104,8 @@ namespace libtorrent
 		private:
 			using base = std::map<std::string, T>;
 		public:
+			using base::find;
+
 			typename base::iterator find(const string_view& key)
 			{
 				return this->base::find(key.to_string());
