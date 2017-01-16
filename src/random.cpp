@@ -41,12 +41,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/win_crypto_provider.hpp"
 
 #elif defined TORRENT_USE_LIBCRYPTO
+
 extern "C" {
 #include <openssl/rand.h>
 #include <openssl/err.h>
 }
-
-#include <boost/asio/ssl/error.hpp>
 
 #endif
 
@@ -98,8 +97,7 @@ namespace libtorrent
 			if (r != 1)
 			{
 #ifndef BOOST_NO_EXCEPTIONS
-				throw system_error(error_code(int(::ERR_get_error())
-					, boost::asio::error::get_ssl_category()));
+				throw system_error(errors::no_entropy);
 #else
 				std::terminate();
 #endif

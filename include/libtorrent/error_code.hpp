@@ -433,6 +433,9 @@ namespace libtorrent
 			overflow,
 #endif
 
+			// random number generation failed
+			no_entropy = 200,
+
 			// the number of error codes
 			error_code_max
 		};
