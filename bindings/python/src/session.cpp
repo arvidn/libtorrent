@@ -236,20 +236,15 @@ namespace
             p.storage_mode = extract<storage_mode_t>(params["storage_mode"]);
 
         if (params.has_key("trackers"))
-        {
-            list l = extract<list>(params["trackers"]);
-            int const n = int(boost::python::len(l));
-            for(int i = 0; i < n; i++)
-                p.trackers.push_back(extract<std::string>(l[i]));
-        }
-
+            p.trackers = extract<std::vector<std::string>>(params["trackers"]);
         if (params.has_key("dht_nodes"))
-        {
-            list l = extract<list>(params["dht_nodes"]);
-            int const n = int(boost::python::len(l));
-            for(int i = 0; i < n; i++)
-                p.dht_nodes.push_back(extract<std::pair<std::string, int>>(l[i]));
-        }
+           p.dht_nodes = extract<std::vector<std::pair<std::string, int>>>(params["dht_nodes"]);
+        if (params.has_key("http_seeds"))
+           p.http_seeds = extract<std::vector<std::string>>(params["http_seeds"]);
+        if (params.has_key("peers"))
+           p.peers = extract<std::vector<tcp::endpoint>>(params["peers"]);
+        if (params.has_key("banned_peers"))
+           p.banned_peers = extract<std::vector<tcp::endpoint>>(params["banned_peers"]);
         if (params.has_key("flags"))
             p.flags = extract<std::uint64_t>(params["flags"]);
         if (params.has_key("trackerid"))
@@ -262,13 +257,7 @@ namespace
 #endif
 
         if (params.has_key("file_priorities"))
-        {
-            list l = extract<list>(params["file_priorities"]);
-            int const n = int(boost::python::len(l));
-            for(int i = 0; i < n; i++)
-                p.file_priorities.push_back(extract<std::uint8_t>(l[i]));
-            p.file_priorities.clear();
-        }
+            p.file_priorities = extract<std::vector<std::uint8_t>>(params["file_priorities"]);
     }
 
 namespace
