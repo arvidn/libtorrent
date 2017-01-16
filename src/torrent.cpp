@@ -104,7 +104,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace std::placeholders;
 using std::chrono::duration_cast;
 using std::chrono::seconds;
-using libtorrent::seconds_t;
+using libtorrent::seconds32;
 
 namespace libtorrent
 {
@@ -126,9 +126,9 @@ namespace libtorrent
 	}
 	constexpr int default_piece_priority = 4;
 
-	// holds seed rank priority duration in the ratio type which is used at
-	// seed rank calculation to prevent multible conversion and constructions
-	static constexpr seconds m_seed_rank_priority_duration = seconds(30 * 60);
+	// seed rank priority duration which need to match ratio type which is used at
+	// seed rank calculation to prevent runtime conversion and constructions
+	constexpr seconds32 seed_rank_priority_duration = seconds32(30 * 60);
 
 	} // anonymous namespace
 
@@ -8260,7 +8260,11 @@ namespace libtorrent
 
 		int ret = 0;
 
-		seconds_t act_time = active_time();
+		const seconds32 act_time = active_time();
+		static_assert(std::is_same<
+			decltype(seed_rank_priority_duration), decltype(act_time)>::value,
+			"Need to be same ratio type to prevent runtime conversion");
+
 		// use raw duration values because active time and finish time use same
 		// ratio type and don't need to be converted to a equal ratio
 		// and we don't compare them agains seconds we just use fraction value
@@ -8280,7 +8284,7 @@ namespace libtorrent
 
 		// if this torrent is running, and it was started less
 		// than 30 minutes ago, give it priority, to avoid oscillation
-		if (!is_paused() && act_time < libtorrent::m_seed_rank_priority_duration)
+		if (!is_paused() && act_time < libtorrent::seed_rank_priority_duration)
 			ret |= recently_started;
 
 		// if we have any scrape data, use it to calculate
@@ -8429,16 +8433,16 @@ namespace libtorrent
 		update_want_tick();
 
 		const time_point now = aux::time_now();
-		// cast to seconds_t ratio because time_point diff returns a
+		// cast to seconds32 ratio because time_point diff returns a
 		// duration with ratio<1l, 1000000000l>
 		m_active_time +=
-			duration_cast<seconds_t>(now - m_started);
+			duration_cast<seconds32>(now - m_started);
 
 		if (is_seed()) m_seeding_time +=
-			duration_cast<seconds_t>(now - m_became_seed);
+			duration_cast<seconds32>(now - m_became_seed);
 
 		if (is_finished()) m_finished_time +=
-			duration_cast<seconds_t>(now - m_became_finished);
+			duration_cast<seconds32>(now - m_became_finished);
 
 		m_announce_to_dht = false;
 		m_announce_to_trackers = false;
@@ -8532,9 +8536,8 @@ namespace libtorrent
 		// save resume data every 15 minutes regardless, just to
 		// keep stats up to date
 		return m_need_save_resume_data ||
-			// cast ratio<1l, 1000000000l> to seconds_t ratio
-			duration_cast<seconds_t>(aux::time_now() - m_last_saved_resume)
-			> seconds_t(15 * 60);
+			duration_cast<seconds32>(aux::time_now() - m_last_saved_resume)
+			> seconds32(15 * 60);
 	}
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -8863,16 +8866,16 @@ namespace libtorrent
 		announce_with_tracker(tracker_request::stopped);
 	}
 
-	seconds_t torrent::finished_time() const
+	seconds32 torrent::finished_time() const
 	{
 		if(!is_finished() || is_paused())
 			return m_finished_time;
-		// cast ratio<1l, 1000000000l> to seconds_t ratio
-		return m_finished_time + duration_cast<seconds_t>(
+
+		return m_finished_time + duration_cast<seconds32>(
 			aux::time_now() - m_became_finished);
 	}
 
-	seconds_t torrent::active_time() const
+	seconds32 torrent::active_time() const
 	{
 		if(is_paused())
 			return m_active_time;
@@ -8880,22 +8883,29 @@ namespace libtorrent
 		// m_active_time does not account for the current "session", just the
 		// time before we last started this torrent. To get the current time, we
 		// need to add the time since we started it
-		// cast ratio<1l, 1000000000l> to seconds_t ratio
-		return m_active_time + duration_cast<seconds_t>(
+		return m_active_time + duration_cast<seconds32>(
 			aux::time_now() - m_started);
 	}
 
-	seconds_t torrent::seeding_time() const
+	seconds32 torrent::seeding_time() const
 	{
-		if(!is_seed() || is_paused())
+		if(!m_upload_mode)
 			return m_seeding_time;
 
 		// m_seeding_time does not account for the current "session", just the
 		// time before we last started this torrent. To get the current time, we
 		// need to add the time since we started it
-		// cast ratio<1l, 1000000000l> to seconds_t ratio
-		return m_seeding_time + duration_cast<seconds_t>(
+		return m_seeding_time + duration_cast<seconds32>(
 			aux::time_now() - m_became_seed);
+	}
+
+	seconds32 torrent::upload_mode_time() const
+	{
+		if(!m_upload_mode)
+			return seconds32(0);
+
+		return duration_cast<seconds32>(
+			aux::time_now() - m_upload_mode_time);
 	}
 
 	void torrent::second_tick(int tick_interval_ms)
@@ -8918,13 +8928,10 @@ namespace libtorrent
 		// if we're in upload only mode and we're auto-managed
 		// leave upload mode every 10 minutes hoping that the error
 		// condition has been fixed
-		if (m_upload_mode && m_auto_managed)
+		if (m_upload_mode && m_auto_managed && upload_mode_time() >=
+			seconds(settings().get_int(settings_pack::optimistic_disk_retry)))
 		{
-			// cast ratio<1l, 1000000000l> to seconds_t ratio
-			std::int32_t upload_mode_duration = duration_cast<seconds_t>(
-				aux::time_now() - m_upload_mode_time).count();
-			if( settings().get_int(settings_pack::optimistic_disk_retry)
-				<= upload_mode_duration ) set_upload_mode(false);
+			set_upload_mode(false);
 		}
 
 		if (is_paused() && !m_graceful_pause_mode)

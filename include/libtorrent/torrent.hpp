@@ -95,7 +95,7 @@ namespace libtorrent
 	class bt_peer_connection;
 	struct listen_socket_t;
 
-	typedef std::chrono::duration<std::int32_t, std::ratio<1>> seconds_t;
+	typedef std::chrono::duration<std::int32_t> seconds32;
 
 	enum class waste_reason
 	{
@@ -485,9 +485,10 @@ namespace libtorrent
 		void do_pause(bool clear_disk_cache = true);
 		void do_resume();
 
-		seconds_t finished_time() const;
-		seconds_t active_time() const;
-		seconds_t seeding_time() const;
+		seconds32 finished_time() const;
+		seconds32 active_time() const;
+		seconds32 seeding_time() const;
+		seconds32 upload_mode_time() const;
 
 		bool is_paused() const;
 		bool is_torrent_paused() const { return m_paused; }
@@ -1297,8 +1298,6 @@ namespace libtorrent
 		// m_num_verified = m_verified.count()
 		std::uint32_t m_num_verified = 0;
 
-		// TODO: waste of memomry because has a max session time offset of
-		// optimistic_disk_retry
 		time_point m_last_saved_resume = aux::time_now();
 
 		// if this torrent is running, this was the time
@@ -1408,7 +1407,7 @@ namespace libtorrent
 		// paused. specified in seconds. This only track time _before_ we started
 		// the torrent this last time. When the torrent is paused, this counter is
 		// incremented to include this current session.
-		seconds_t m_active_time;
+		seconds32 m_active_time;
 
 		// the index to the last tracker that worked
 		std::int8_t m_last_working_tracker = -1;
@@ -1417,7 +1416,7 @@ namespace libtorrent
 
 		// total time we've been finished with this torrent.
 		// does not count when the torrent is stopped or paused.
-		seconds_t m_finished_time;
+		seconds32 m_finished_time;
 
 		// in case the piece picker hasn't been constructed
 		// when this settings is set, this variable will keep
@@ -1457,7 +1456,7 @@ namespace libtorrent
 		// accounts for the time prior to the current start of the torrent. When
 		// the torrent is paused, this counter is incremented to account for the
 		// additional seeding time.
-		seconds_t m_seeding_time;
+		seconds32 m_seeding_time;
 
 // ----
 

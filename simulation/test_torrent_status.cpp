@@ -60,7 +60,7 @@ TORRENT_TEST(status_timers_time_shift_with_paused_torrent)
 
 	// TODO: this setup takes 1 minute execution time and could be improved by
 	// simulate more time per tick, currently we execute 71000 ticks
-	setup_swarm(10, swarm_test::upload_slow
+	setup_swarm(10, swarm_test::upload_without_timeout
 		// add session
 		, [](lt::settings_pack& pack) {
 			pack.set_int(lt::settings_pack::alert_mask, alert::status_notification
