@@ -58,15 +58,6 @@ namespace libtorrent
 	struct storage_params;
 	class file_storage;
 
-	enum class status_t : std::uint8_t
-	{
-		// return values from check_fastresume, and move_storage
-		no_error,
-		fatal_disk_error,
-		need_full_check,
-		file_exist
-	};
-
 	struct storage_holder;
 
 	struct TORRENT_EXTRA_EXPORT disk_interface
