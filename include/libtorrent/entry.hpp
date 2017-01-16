@@ -107,12 +107,12 @@ namespace libtorrent
 		private:
 			using base = std::map<std::string, T>;
 		public:
-			iterator find(const string_view& key)
+			typename base::iterator find(const string_view& key)
 			{
 				return this->base::find(key.to_string());
 			}
 
-			const_iterator find(const string_view& key) const
+			typename base::const_iterator find(const string_view& key) const
 			{
 				return this->base::find(key.to_string());
 			}
