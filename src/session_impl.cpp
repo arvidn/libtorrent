@@ -1715,6 +1715,11 @@ namespace aux {
 		}
 
 		ret.udp_sock->set_force_proxy(m_settings.get_bool(settings_pack::force_proxy));
+		// this call is necessary here because, unless the settings actually
+		// change after the session is up and listening, at no other point
+		// set_proxy_settings is called with the correct proxy configuration,
+		// internally, this method handle the SOCKS5's connection logic
+		ret.udp_sock->set_proxy_settings(proxy());
 
 		// TODO: 2 use a handler allocator here
 		ADD_OUTSTANDING_ASYNC("session_impl::on_udp_packet");
