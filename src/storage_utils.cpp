@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alloca.hpp"
 #include "libtorrent/file.hpp" // for count_bufs
 #include "libtorrent/part_file.hpp"
+#include "libtorrent/session.hpp" // for session::delete_files
 
 #include <set>
 #include <string>
@@ -374,5 +375,75 @@ namespace libtorrent
 		return { ret, new_save_path };
 	}
 
+	namespace {
+
+	void delete_one_file(std::string const& p, error_code& ec)
+	{
+		remove(p, ec);
+
+		if (ec == boost::system::errc::no_such_file_or_directory)
+			ec.clear();
+	}
+
+	}
+
+	void delete_files(file_storage const& fs, std::string const& save_path
+		, std::string const& part_file_name, int const options, storage_error& ec)
+	{
+		if (options == session::delete_files)
+		{
+			// delete the files from disk
+			std::set<std::string> directories;
+			using iter_t = std::set<std::string>::iterator;
+			for (file_index_t i(0); i < fs.end_file(); ++i)
+			{
+				std::string const fp = fs.file_path(i);
+				bool const complete = fs.file_absolute_path(i);
+				std::string const p = complete ? fp : combine_path(save_path, fp);
+				if (!complete)
+				{
+					std::string bp = parent_path(fp);
+					std::pair<iter_t, bool> ret;
+					ret.second = true;
+					while (ret.second && !bp.empty())
+					{
+						ret = directories.insert(combine_path(save_path, bp));
+						bp = parent_path(bp);
+					}
+				}
+				delete_one_file(p, ec.ec);
+				if (ec) { ec.file(i); ec.operation = storage_error::remove; }
+			}
+
+			// remove the directories. Reverse order to delete
+			// subdirectories first
+
+			for (auto i = directories.rbegin()
+				, end(directories.rend()); i != end; ++i)
+			{
+				error_code error;
+				delete_one_file(*i, error);
+				if (error && !ec)
+				{
+					ec.file(file_index_t(-1));
+					ec.ec = error;
+					ec.operation = storage_error::remove;
+				}
+			}
+		}
+
+		if (options == session::delete_files
+			|| options == session::delete_partfile)
+		{
+			error_code error;
+			remove(combine_path(save_path, part_file_name), error);
+			if (error && error != boost::system::errc::no_such_file_or_directory)
+			{
+				ec.file(file_index_t(-1));
+				ec.ec = error;
+				ec.operation = storage_error::remove;
+			}
+		}
+	}
 }
 

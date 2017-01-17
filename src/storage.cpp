@@ -65,7 +65,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/storage.hpp"
 #include "libtorrent/torrent.hpp"
-#include "libtorrent/session.hpp"
 #include "libtorrent/file.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/file_pool.hpp"
@@ -597,17 +596,6 @@ namespace libtorrent
 		m_pool.release(storage_index());
 	}
 
-	void default_storage::delete_one_file(std::string const& p, error_code& ec)
-	{
-		remove(p, ec);
-
-		DFLOG(stderr, "[%p] delete_one_file: %s [%s]\n", static_cast<void*>(this)
-			, p.c_str(), ec.message().c_str());
-
-		if (ec == boost::system::errc::no_such_file_or_directory)
-			ec.clear();
-	}
-
 	void default_storage::delete_files(int const options, storage_error& ec)
 	{
 		DFLOG(stderr, "[%p] delete_files [%x]\n", static_cast<void*>(this)
@@ -632,66 +620,7 @@ namespace libtorrent
 		// delete it
 		if (m_part_file) m_part_file.reset();
 
-		if (options == session::delete_files)
-		{
-#if TORRENT_USE_ASSERTS
-			m_pool.mark_deleted(m_files);
-#endif
-			// delete the files from disk
-			std::set<std::string> directories;
-			using iter_t = std::set<std::string>::iterator;
-			file_storage const& fs = files();
-			for (file_index_t i(0); i < fs.end_file(); ++i)
-			{
-				std::string const fp = files().file_path(i);
-				bool const complete = files().file_absolute_path(i);
-				std::string const p = complete ? fp : combine_path(m_save_path, fp);
-				if (!complete)
-				{
-					std::string bp = parent_path(fp);
-					std::pair<iter_t, bool> ret;
-					ret.second = true;
-					while (ret.second && !bp.empty())
-					{
-						ret = directories.insert(combine_path(m_save_path, bp));
-						bp = parent_path(bp);
-					}
-				}
-				delete_one_file(p, ec.ec);
-				if (ec) { ec.file(i); ec.operation = storage_error::remove; }
-			}
-
-			// remove the directories. Reverse order to delete
-			// subdirectories first
-
-			for (auto i = directories.rbegin()
-				, end(directories.rend()); i != end; ++i)
-			{
-				error_code error;
-				delete_one_file(*i, error);
-				if (error && !ec)
-				{
-					ec.file(file_index_t(-1));
-					ec.ec = error;
-					ec.operation = storage_error::remove;
-				}
-			}
-		}
-
-		if (options == session::delete_files
-			|| options == session::delete_partfile)
-		{
-			error_code error;
-			remove(combine_path(m_save_path, m_part_file_name), error);
-			DFLOG(stderr, "[%p] delete partfile %s/%s [%s]\n", static_cast<void*>(this)
-				, m_save_path.c_str(), m_part_file_name.c_str(), error.message().c_str());
-			if (error && error != boost::system::errc::no_such_file_or_directory)
-			{
-				ec.file(file_index_t(-1));
-				ec.ec = error;
-				ec.operation = storage_error::remove;
-			}
-		}
+		libtorrent::delete_files(files(), m_save_path, m_part_file_name, options, ec);
 
 		DFLOG(stderr, "[%p] delete_files result: %s\n", static_cast<void*>(this)
 			, ec.ec.message().c_str());

@@ -30,6 +30,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#ifndef TORRENT_PART_FILE_HPP_INCLUDE
+#define TORRENT_PART_FILE_HPP_INCLUDE
+
 #include <string>
 #include <vector>
 #include <mutex>
@@ -115,3 +118,5 @@ namespace libtorrent
 		file m_file;
 	};
 }
+
+#endif
