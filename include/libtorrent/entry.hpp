@@ -104,7 +104,6 @@ namespace libtorrent
 		private:
 			using base = std::map<std::string, T>;
 		public:
-			using base::find;
 
 			typename base::iterator find(const string_view& key)
 			{
