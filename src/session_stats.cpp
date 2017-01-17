@@ -454,6 +454,7 @@ namespace libtorrent
 		// the number of failed incoming DHT requests by kind of request
 		METRIC(dht, dht_invalid_announce)
 		METRIC(dht, dht_invalid_get_peers)
+		METRIC(dht, dht_invalid_find_node)
 		METRIC(dht, dht_invalid_put)
 		METRIC(dht, dht_invalid_get)
 

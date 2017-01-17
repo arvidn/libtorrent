@@ -863,6 +863,7 @@ void node::incoming_request(msg const& m, entry& e)
 		bdecode_node msg_keys[2];
 		if (!verify_message(arg_ent, msg_desc, msg_keys, error_string))
 		{
+			m_counters.inc_stats_counter(counters::dht_invalid_find_node);
 			incoming_error(e, error_string);
 			return;
 		}

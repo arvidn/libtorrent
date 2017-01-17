@@ -238,6 +238,7 @@ namespace libtorrent
 
 			dht_invalid_announce,
 			dht_invalid_get_peers,
+			dht_invalid_find_node,
 			dht_invalid_put,
 			dht_invalid_get,
 
