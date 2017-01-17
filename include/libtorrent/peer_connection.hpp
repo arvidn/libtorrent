@@ -64,6 +64,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/span.hpp"
 #include "libtorrent/piece_block.hpp"
 #include "libtorrent/peer_info.hpp"
+#include "libtorrent/aux_/vector.hpp"
 
 #include <ctime>
 #include <algorithm>
@@ -767,12 +768,12 @@ namespace libtorrent
 
 		// the queue of blocks we have requested
 		// from this peer
-		std::vector<pending_block> m_download_queue;
+		aux::vector<pending_block> m_download_queue;
 
 		// the queue of requests we have got
 		// from this peer that haven't been issued
 		// to the disk thread yet
-		std::vector<peer_request> m_requests;
+		aux::vector<peer_request> m_requests;
 
 		// this peer's peer info struct. This may
 		// be 0, in case the connection is incoming

@@ -455,7 +455,7 @@ namespace libtorrent
 		int size = std::snprintf(cmd, sizeof(cmd), "STREAM CONNECT ID=%s DESTINATION=%s\n"
 			, m_id, m_dest.c_str());
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
-		async_write(m_sock, boost::asio::buffer(cmd, size)
+		async_write(m_sock, boost::asio::buffer(cmd, std::size_t(size))
 			, std::bind(&i2p_stream::start_read_line, this, _1, std::move(h)));
 	}
 
@@ -466,7 +466,7 @@ namespace libtorrent
 		char cmd[400];
 		int size = std::snprintf(cmd, sizeof(cmd), "STREAM ACCEPT ID=%s\n", m_id);
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
-		async_write(m_sock, boost::asio::buffer(cmd, size)
+		async_write(m_sock, boost::asio::buffer(cmd, std::size_t(size))
 			, std::bind(&i2p_stream::start_read_line, this, _1, std::move(h)));
 	}
 
@@ -478,7 +478,7 @@ namespace libtorrent
 		int size = std::snprintf(cmd, sizeof(cmd), "SESSION CREATE STYLE=STREAM ID=%s DESTINATION=TRANSIENT\n"
 			, m_id);
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
-		async_write(m_sock, boost::asio::buffer(cmd, size)
+		async_write(m_sock, boost::asio::buffer(cmd, std::size_t(size))
 			, std::bind(&i2p_stream::start_read_line, this, _1, std::move(h)));
 	}
 
@@ -489,7 +489,7 @@ namespace libtorrent
 		char cmd[1024];
 		int size = std::snprintf(cmd, sizeof(cmd), "NAMING LOOKUP NAME=%s\n", m_name_lookup.c_str());
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
-		async_write(m_sock, boost::asio::buffer(cmd, size)
+		async_write(m_sock, boost::asio::buffer(cmd, std::size_t(size))
 			, std::bind(&i2p_stream::start_read_line, this, _1, std::move(h)));
 	}
 }

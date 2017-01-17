@@ -487,7 +487,7 @@ namespace libtorrent
 		if (peers_ent && peers_ent.type() == bdecode_node::string_t)
 		{
 			char const* peers = peers_ent.string_ptr();
-			int len = peers_ent.string_length();
+			int const len = peers_ent.string_length();
 #if TORRENT_USE_I2P
 			if (0 != (flags & tracker_request::i2p))
 			{
@@ -504,7 +504,7 @@ namespace libtorrent
 			else
 #endif
 			{
-				resp.peers4.reserve(len / 6);
+				resp.peers4.reserve(std::size_t(len / 6));
 				for (int i = 0; i < len; i += 6)
 				{
 					if (len - i < 6) break;
@@ -546,8 +546,8 @@ namespace libtorrent
 		if (ipv6_peers)
 		{
 			char const* peers = ipv6_peers.string_ptr();
-			int len = ipv6_peers.string_length();
-			resp.peers6.reserve(len / 18);
+			int const len = ipv6_peers.string_length();
+			resp.peers6.reserve(std::size_t(len / 18));
 			for (int i = 0; i < len; i += 18)
 			{
 				if (len - i < 18) break;

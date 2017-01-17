@@ -589,12 +589,12 @@ namespace libtorrent { namespace dht
 
 	bool dht_tracker::has_quota()
 	{
-		time_point now = clock_type::now();
-		time_duration delta = now - m_last_tick;
+		time_point const now = clock_type::now();
+		time_duration const delta = now - m_last_tick;
 		m_last_tick = now;
 
 		// add any new quota we've accrued since last time
-		m_send_quota += int(std::uint64_t(m_settings.upload_rate_limit)
+		m_send_quota += int(std::int64_t(m_settings.upload_rate_limit)
 			* total_microseconds(delta) / 1000000);
 
 		// allow 3 seconds worth of burst
@@ -629,7 +629,7 @@ namespace libtorrent { namespace dht
 			return false;
 		}
 
-		m_counters.inc_stats_counter(counters::dht_bytes_out, m_send_buf.size());
+		m_counters.inc_stats_counter(counters::dht_bytes_out, int(m_send_buf.size()));
 		// account for IP and UDP overhead
 		m_counters.inc_stats_counter(counters::sent_ip_overhead_bytes
 			, addr.address().is_v6() ? 48 : 28);

@@ -618,7 +618,7 @@ namespace libtorrent
 			return true;
 		}
 
-		resp.peers4.reserve(num_peers);
+		resp.peers4.reserve(std::size_t(num_peers));
 		for (int i = 0; i < num_peers; ++i)
 		{
 			ipv4_peer_entry e;

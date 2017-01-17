@@ -136,11 +136,11 @@ namespace libtorrent
 			else mtu -= TORRENT_IPV6_HEADER;
 		}
 
-		utp_mtu = (std::min)(mtu, restrict_mtu());
+		utp_mtu = std::min(mtu, restrict_mtu());
 	}
 
 	void utp_socket_manager::send_packet(udp::endpoint const& ep, char const* p
-		, int len, error_code& ec, int flags)
+		, int const len, error_code& ec, int const flags)
 	{
 #if !defined TORRENT_HAS_DONT_FRAGMENT && !defined TORRENT_DEBUG_MTU
 		TORRENT_UNUSED(flags);
@@ -151,7 +151,7 @@ namespace libtorrent
 		if ((flags & dont_fragment) && len > TORRENT_DEBUG_MTU) return;
 #endif
 
-		m_send_fun(ep, span<char const>(p, len), ec
+		m_send_fun(ep, {p, std::size_t(len)}, ec
 			, ((flags & dont_fragment) ? udp_socket::dont_fragment : 0)
 				| udp_socket::peer_connection);
 	}

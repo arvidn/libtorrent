@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/session_settings.hpp>
 #include <libtorrent/assert.hpp>
 #include <libtorrent/time.hpp>
+#include <libtorrent/aux_/vector.hpp>
 
 namespace libtorrent
 {
@@ -58,7 +59,7 @@ namespace libtorrent { namespace dht
 {
 struct dht_logger;
 
-typedef std::vector<node_entry> bucket_t;
+typedef aux::vector<node_entry> bucket_t;
 
 struct routing_table_node
 {
@@ -147,7 +148,7 @@ public:
 	// TODO: 3 to improve memory locality and scanning performance, turn the
 	// routing table into a single vector with boundaries for the nodes instead.
 	// Perhaps replacement nodes should be in a separate vector.
-	using table_t = std::vector<routing_table_node>;
+	using table_t = aux::vector<routing_table_node>;
 
 	routing_table(node_id const& id, udp proto
 		, int bucket_size

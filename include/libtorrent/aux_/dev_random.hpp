@@ -62,7 +62,7 @@ namespace libtorrent { namespace aux {
 			if (ret != buffer.size())
 			{
 #ifndef BOOST_NO_EXCEPTIONS
-				throw system_error(error_code(EIO, system_category()));
+				throw system_error(errors::no_entropy);
 #else
 				std::terminate();
 #endif

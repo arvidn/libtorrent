@@ -535,7 +535,7 @@ namespace libtorrent
 		std::vector<stats_metric> stats;
 		int const num = sizeof(metrics) / sizeof(metrics[0]);
 		stats.resize(num);
-		for (int i = 0; i < num; ++i)
+		for (std::size_t i = 0; i < num; ++i)
 		{
 			stats[i].name = metrics[i].name;
 			stats[i].value_index = metrics[i].value_index;

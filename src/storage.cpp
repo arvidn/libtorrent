@@ -1002,10 +1002,10 @@ namespace libtorrent
 				, piece_index_t, int, int, storage_error&) override
 			{
 				int ret = 0;
-				for (int i = 0; i < int(bufs.size()); ++i)
+				for (auto const& b : bufs)
 				{
-					memset(bufs[i].iov_base, 0, bufs[i].iov_len);
-					ret += int(bufs[i].iov_len);
+					std::memset(b.iov_base, 0, b.iov_len);
+					ret += int(b.iov_len);
 				}
 				return 0;
 			}
@@ -1013,8 +1013,8 @@ namespace libtorrent
 				, piece_index_t, int, int, storage_error&) override
 			{
 				int ret = 0;
-				for (int i = 0; i < int(bufs.size()); ++i)
-					ret += int(bufs[i].iov_len);
+				for (auto const& b : bufs)
+					ret += int(b.iov_len);
 				return 0;
 			}
 

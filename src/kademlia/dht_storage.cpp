@@ -261,7 +261,7 @@ namespace
 					str.resize(18);
 					std::string::iterator out = str.begin();
 					detail::write_endpoint(iter->addr, out);
-					str.resize(out - str.begin());
+					str.resize(std::size_t(out - str.begin()));
 
 					--to_pick;
 				}

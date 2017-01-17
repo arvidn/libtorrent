@@ -263,7 +263,11 @@ namespace libtorrent
 			"bencoded nesting depth exceeded",
 			"bencoded item count limit exceeded",
 			"integer overflow",
+			"",
+			"",
+			"",
 #endif
+			"random number generator failed",
 		};
 		if (ev < 0 || ev >= int(sizeof(msgs)/sizeof(msgs[0])))
 			return "Unknown error";
