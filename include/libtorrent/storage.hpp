@@ -231,27 +231,6 @@ namespace libtorrent
 		std::unordered_set<cached_piece_entry*> m_cached_pieces;
 	};
 
-	// flags for async_move_storage
-	enum move_flags_t
-	{
-		// replace any files in the destination when copying
-		// or moving the storage
-		always_replace_files,
-
-		// if any files that we want to copy exist in the destination
-		// exist, fail the whole operation and don't perform
-		// any copy or move. There is an inherent race condition
-		// in this mode. The files are checked for existence before
-		// the operation starts. In between the check and performing
-		// the copy, the destination files may be created, in which
-		// case they are replaced.
-		fail_if_exist,
-
-		// if any file exist in the target, take those files instead
-		// of the ones we may have in the source.
-		dont_replace
-	};
-
 	// The storage interface is a pure virtual class that can be implemented to
 	// customize how and where data for a torrent is stored. The default storage
 	// implementation uses regular files in the filesystem, mapping the files in

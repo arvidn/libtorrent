@@ -34,6 +34,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/alloca.hpp"
 #include "libtorrent/file.hpp" // for count_bufs
+#include "libtorrent/part_file.hpp"
+
+#include <set>
+#include <string>
 
 namespace libtorrent
 {
@@ -181,6 +185,193 @@ namespace libtorrent
 			}
 		}
 		return size;
+	}
+
+	std::pair<status_t, std::string> move_storage(file_storage const& f
+		, std::string const& save_path
+		, std::string const& destination_save_path
+		, part_file* pf
+		, int const flags, storage_error& ec)
+	{
+		status_t ret = status_t::no_error;
+		std::string const new_save_path = complete(destination_save_path);
+
+		// check to see if any of the files exist
+		if (flags == fail_if_exist)
+		{
+			file_status s;
+			error_code err;
+			stat_file(new_save_path, &s, err);
+			if (err != boost::system::errc::no_such_file_or_directory)
+			{
+				// the directory exists, check all the files
+				for (file_index_t i(0); i < f.end_file(); ++i)
+				{
+					// files moved out to absolute paths are ignored
+					if (f.file_absolute_path(i)) continue;
+
+					stat_file(f.file_path(i, new_save_path), &s, err);
+					if (err != boost::system::errc::no_such_file_or_directory)
+					{
+						ec.ec = err;
+						ec.file(i);
+						ec.operation = storage_error::stat;
+						return { status_t::file_exist, save_path };
+					}
+				}
+			}
+		}
+
+		{
+			file_status s;
+			error_code err;
+			stat_file(new_save_path, &s, err);
+			if (err == boost::system::errc::no_such_file_or_directory)
+			{
+				err.clear();
+				create_directories(new_save_path, err);
+				if (err)
+				{
+					ec.ec = err;
+					ec.file(file_index_t(-1));
+					ec.operation = storage_error::mkdir;
+					return { status_t::fatal_disk_error, save_path };
+				}
+			}
+			else if (err)
+			{
+				ec.ec = err;
+				ec.file(file_index_t(-1));
+				ec.operation = storage_error::stat;
+				return { status_t::fatal_disk_error, save_path };
+			}
+		}
+
+		// indices of all files we ended up copying. These need to be deleted
+		// later
+		aux::vector<bool, file_index_t> copied_files(std::size_t(f.num_files()), false);
+
+		file_index_t i;
+		error_code e;
+		for (i = file_index_t(0); i < f.end_file(); ++i)
+		{
+			// files moved out to absolute paths are not moved
+			if (f.file_absolute_path(i)) continue;
+
+			std::string const old_path = combine_path(save_path, f.file_path(i));
+			std::string const new_path = combine_path(new_save_path, f.file_path(i));
+
+			if (flags == dont_replace && exists(new_path))
+			{
+				if (ret == status_t::no_error) ret = status_t::need_full_check;
+				continue;
+			}
+
+			// TODO: ideally, if we end up copying files because of a move across
+			// volumes, the source should not be deleted until they've all been
+			// copied. That would let us rollback with higher confidence.
+			move_file(old_path, new_path, e);
+
+			// if the source file doesn't exist. That's not a problem
+			// we just ignore that file
+			if (e == boost::system::errc::no_such_file_or_directory)
+				e.clear();
+			else if (e
+				&& e != boost::system::errc::invalid_argument
+				&& e != boost::system::errc::permission_denied)
+			{
+				// moving the file failed
+				// on OSX, the error when trying to rename a file across different
+				// volumes is EXDEV, which will make it fall back to copying.
+				e.clear();
+				copy_file(old_path, new_path, e);
+				if (!e) copied_files[i] = true;
+			}
+
+			if (e)
+			{
+				ec.ec = e;
+				ec.file(i);
+				ec.operation = storage_error::rename;
+				break;
+			}
+		}
+
+		if (!e && pf)
+		{
+			pf->move_partfile(new_save_path, e);
+			if (e)
+			{
+				ec.ec = e;
+				ec.file(file_index_t(-1));
+				ec.operation = storage_error::partfile_move;
+			}
+		}
+
+		if (e)
+		{
+			// rollback
+			while (--i >= file_index_t(0))
+			{
+				// files moved out to absolute paths are not moved
+				if (f.file_absolute_path(i)) continue;
+
+				// if we ended up copying the file, don't do anything during
+				// roll-back
+				if (copied_files[i]) continue;
+
+				std::string const old_path = combine_path(save_path, f.file_path(i));
+				std::string const new_path = combine_path(new_save_path, f.file_path(i));
+
+				// ignore errors when rolling back
+				error_code ignore;
+				move_file(new_path, old_path, ignore);
+			}
+
+			return { status_t::fatal_disk_error, save_path };
+		}
+
+		// TODO: 2 technically, this is where the transaction of moving the files
+		// is completed. This is where the new save_path should be committed. If
+		// there is an error in the code below, that should not prevent the new
+		// save path to be set. Maybe it would make sense to make the save_path
+		// an in-out parameter
+
+		std::set<std::string> subdirs;
+		for (i = file_index_t(0); i < f.end_file(); ++i)
+		{
+			// files moved out to absolute paths are not moved
+			if (f.file_absolute_path(i)) continue;
+
+			if (has_parent_path(f.file_path(i)))
+				subdirs.insert(parent_path(f.file_path(i)));
+
+			// if we ended up renaming the file instead of moving it, there's no
+			// need to delete the source.
+			if (copied_files[i] == false) continue;
+
+			std::string const old_path = combine_path(save_path, f.file_path(i));
+
+			// we may still have some files in old save_path
+			// eg. if (flags == dont_replace && exists(new_path))
+			// ignore errors when removing
+			error_code ignore;
+			remove(old_path, ignore);
+		}
+
+		for (std::string const& s : subdirs)
+		{
+			error_code err;
+			std::string subdir = combine_path(save_path, s);
+
+			while (subdir != save_path && !err)
+			{
+				remove(subdir, err);
+				subdir = parent_path(subdir);
+			}
+		}
+
+		return { ret, new_save_path };
 	}
 
 }

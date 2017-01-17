@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/vector.hpp"
 #include <functional>
 #include <string>
-#include <vector>
 
 namespace libtorrent
 {
@@ -61,6 +60,36 @@ namespace libtorrent
 		// All pieces will be written to the place where they belong and sparse files
 		// will be used. This is the recommended, and default mode.
 		storage_mode_sparse
+	};
+
+	enum class status_t : std::uint8_t
+	{
+		// return values from check_fastresume, and move_storage
+		no_error,
+		fatal_disk_error,
+		need_full_check,
+		file_exist
+	};
+
+	// flags for async_move_storage
+	enum move_flags_t
+	{
+		// replace any files in the destination when copying
+		// or moving the storage
+		always_replace_files,
+
+		// if any files that we want to copy exist in the destination
+		// exist, fail the whole operation and don't perform
+		// any copy or move. There is an inherent race condition
+		// in this mode. The files are checked for existence before
+		// the operation starts. In between the check and performing
+		// the copy, the destination files may be created, in which
+		// case they are replaced.
+		fail_if_exist,
+
+		// if any file exist in the target, take those files instead
+		// of the ones we may have in the source.
+		dont_replace
 	};
 
 	// see default_storage::default_storage()
