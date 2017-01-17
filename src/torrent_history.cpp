@@ -62,7 +62,7 @@ namespace libtorrent
 		torrent_update_alert const* tu = alert_cast<torrent_update_alert>(a);
 		if (tu)
 		{
-			mutex::scoped_lock l(m_mutex);
+			std::unique_lock<std::mutex> l(m_mutex);
 
 			// first remove the old hash
 			m_removed.push_front(std::make_pair(m_frame + 1, tu->old_ih));
@@ -90,13 +90,13 @@ namespace libtorrent
 			TORRENT_ASSERT(st.info_hash == st.handle.info_hash());
 			TORRENT_ASSERT(st.handle == ta->handle);
 
-			mutex::scoped_lock l(m_mutex);
+			std::unique_lock<std::mutex> l(m_mutex);
 			m_queue.left.push_front(std::make_pair(m_frame + 1, torrent_history_entry(st, m_frame + 1)));
 			m_deferred_frame_count = true;
 		}
 		else if (td)
 		{
-			mutex::scoped_lock l(m_mutex);
+			std::unique_lock<std::mutex> l(m_mutex);
 
 			m_removed.push_front(std::make_pair(m_frame + 1, td->info_hash));
 			torrent_history_entry st;
@@ -110,7 +110,7 @@ namespace libtorrent
 		}
 		else if (su)
 		{
-			mutex::scoped_lock l(m_mutex);
+			std::unique_lock<std::mutex> l(m_mutex);
 
 			++m_frame;
 			m_deferred_frame_count = false;
@@ -144,7 +144,7 @@ namespace libtorrent
 	void torrent_history::removed_since(int frame, std::vector<sha1_hash>& torrents) const
 	{
 		torrents.clear();
-		mutex::scoped_lock l(m_mutex);
+		std::unique_lock<std::mutex> l(m_mutex);
 		for (std::deque<std::pair<int, sha1_hash> >::const_iterator i = m_removed.begin()
 			, end(m_removed.end()); i != end; ++i)
 		{
@@ -155,7 +155,7 @@ namespace libtorrent
 
 	void torrent_history::updated_since(int frame, std::vector<torrent_status>& torrents) const
 	{
-		mutex::scoped_lock l(m_mutex);
+		std::unique_lock<std::mutex> l(m_mutex);
 		for (queue_t::left_const_iterator i = m_queue.left.begin()
 			, end(m_queue.left.end()); i != end; ++i)
 		{
@@ -166,7 +166,7 @@ namespace libtorrent
 
 	void torrent_history::updated_fields_since(int frame, std::vector<torrent_history_entry>& torrents) const
 	{
-		mutex::scoped_lock l(m_mutex);
+		std::unique_lock<std::mutex> l(m_mutex);
 		for (queue_t::left_const_iterator i = m_queue.left.begin()
 			, end(m_queue.left.end()); i != end; ++i)
 		{
@@ -180,7 +180,7 @@ namespace libtorrent
 		torrent_history_entry st;
 		st.status.info_hash = ih;
 
-		mutex::scoped_lock l(m_mutex);
+		std::unique_lock<std::mutex> l(m_mutex);
 
 		queue_t::right_const_iterator it = m_queue.right.find(st);
 		if (it != m_queue.right.end()) return it->first.status;
@@ -189,7 +189,7 @@ namespace libtorrent
 
 	int torrent_history::frame() const
 	{
-		mutex::scoped_lock l(m_mutex);
+		std::unique_lock<std::mutex> l(m_mutex);
 		if (m_deferred_frame_count)
 		{
 			m_deferred_frame_count = false;

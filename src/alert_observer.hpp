@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2014, Arvid Norberg
+Copyright (c) 2015, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,79 +30,30 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_TEXT_UI_HPP
-#define TORRENT_TEXT_UI_HPP
 
-#include <string>
-#include "alert_observer.hpp"
+#ifndef TORRENT_ALERT_OBSERVER_HPP_INCLUDED
+#define TORRENT_ALERT_OBSERVER_HPP_INCLUDED
 
-extern "C" {
-#include <ncurses.h>
-#include <cdk/cdk.h>
-}
+#include <cstdint>
 
 namespace libtorrent
 {
-	struct alert_handler;
 
-	struct screen
-	{
-		screen();
-		~screen();
+class alert;
 
-		CDKSCREEN* native_handle() { return m_screen; }
+struct alert_observer
+{
+	friend struct alert_handler;
 
-		int width() const;
-		int height() const;
+	alert_observer(): num_types(0), flags(0) {}
+	virtual void handle_alert(alert const* a) = 0;
+private:
+	std::uint8_t types[64];
+	int num_types;
+	int flags;
+};
 
-		void refresh();
-	private:
-		CDKSCREEN* m_screen;
-	};
+};
 
-	struct window
-	{
-		virtual int width() const = 0;
-		virtual int height() const = 0;
-		virtual void set_pos(int x, int y, int width, int height) = 0;
-		virtual ~window() {}
-	};
-
-	struct log_window : window
-	{
-		log_window(screen& scr, int x, int y, int width, int height);
-		~log_window();
-
-		void log_line(std::string l);
-
-		CDKSWINDOW* native_handle() { return m_win; }
-
-		virtual int width() const;
-		virtual int height() const;
-		virtual void set_pos(int x, int y, int width, int height);
-	private:
-		CDKSWINDOW* m_win;
-	};
-
-	struct error_log : log_window, alert_observer
-	{
-		error_log(screen& scr, int x, int y, int width, int height
-			, alert_handler* alerts);
-		~error_log();
-
-	private:
-		virtual void handle_alert(alert const* a);
-		alert_handler* m_alerts;
-	};
-
-	struct torrent_list : window, alert_observer
-	{
-	
-	private:
-		virtual void handle_alert(alert const* a);
-		alert_handler* m_alerts;
-	};
-}
-
-#endif
+#endif // TORRENT_ALERT_OBSERVER_HPP_INCLUDED
 

@@ -99,12 +99,12 @@ namespace libtorrent
 	private:
 
 		std::vector<torrent_status> parse_torrents(char const* args) const;
-		
+
 		time_t m_start_time;
 		session& m_ses;
 		add_torrent_params m_params_model;
 		std::string m_webui_cookie;
-		
+
 		// optional auto loader, controllable
 		// via webui settings
 		auto_load* m_al;

@@ -121,7 +121,7 @@ namespace libtorrent
 		alert_handler* m_alert;
 		boost::atomic<int> m_transaction_id;
 
-		mutex m_stats_mutex;
+		std::mutex m_stats_mutex;
 		// TODO: factor this out into its own class
 		// the frame numbers where the stats counters changed
 		std::vector<std::pair<boost::uint64_t, boost::uint32_t> > m_stats;

@@ -64,7 +64,7 @@ void file_requests::on_alert(alert const* a)
 		typedef requests_t::iterator iter;
         
 		DLOG("read_piece_alert: %d (%s)\n", p->piece, p->ec.message().c_str());
-		mutex::scoped_lock l(m_mutex);
+		std::unique_lock<std::mutex> l(m_mutex);
 		std::pair<iter, iter> range = m_requests.equal_range(rq);
 		if (range.first == m_requests.end()) return;
         
@@ -101,7 +101,7 @@ void file_requests::on_alert(alert const* a)
 		typedef requests_t::iterator iter;
 		m_have_pieces[rq.info_hash].insert(pf->piece_index);
         
-		mutex::scoped_lock l(m_mutex);
+		std::unique_lock<std::mutex> l(m_mutex);
 		std::pair<iter, iter> range = m_requests.equal_range(rq);
 		if (range.first == m_requests.end()) return;
 		l.unlock();
@@ -129,7 +129,7 @@ void file_requests::on_alert(alert const* a)
 	rq.piece = 0;
 	typedef requests_t::iterator iter;
 
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 	iter first = m_requests.lower_bound(rq);
 	rq.piece = INT_MAX;
 	iter last = m_requests.upper_bound(rq);
@@ -148,7 +148,7 @@ void file_requests::on_alert(alert const* a)
 
 void file_requests::on_tick()
 {
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 
 	if (m_next_timeout == m_requests.end())
 		m_next_timeout = m_requests.begin();
@@ -181,7 +181,7 @@ boost::shared_future<piece_entry> file_requests::read_piece(torrent_handle const
 	rq.promise.reset(new boost::promise<piece_entry>());
 	rq.timeout = time_now() + milliseconds(timeout_ms);
 
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 	m_requests.insert(rq);
 	l.unlock();
 

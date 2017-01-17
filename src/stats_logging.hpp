@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_STATS_LOGGING_HPP
 #define TORRENT_STATS_LOGGING_HPP
 
-#include "libtorrent/alert_observer.hpp"
+#include "alert_observer.hpp"
 #include "libtorrent/time.hpp"
 #include <stdio.h>
 

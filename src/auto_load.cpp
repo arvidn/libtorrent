@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "auto_load.hpp"
 
-#include <boost/bind.hpp>
+#include <functional>
 #include <boost/make_shared.hpp>
 
 #include "libtorrent/add_torrent_params.hpp"
@@ -40,6 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/error_code.hpp"
 #include "save_settings.hpp"
+
+using namespace std::placeholders;
 
 namespace libtorrent
 {
@@ -52,7 +54,7 @@ auto_load::auto_load(session& s, save_settings_interface* sett)
 	, m_dir("./autoload")
 	, m_scan_interval(20)
 	, m_abort(false)
-	, m_thread(boost::bind(&auto_load::thread_fun, this))
+	, m_thread(std::bind(&auto_load::thread_fun, this))
 {
 	m_params_model.save_path = ".";
 
@@ -70,7 +72,7 @@ auto_load::auto_load(session& s, save_settings_interface* sett)
 
 auto_load::~auto_load()
 {
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 	m_abort = true;
 	l.unlock();
 	m_timer.cancel();
@@ -79,45 +81,45 @@ auto_load::~auto_load()
 
 void auto_load::set_remove_files(bool r)
 {
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 	m_remove_files = r;
 	if (m_settings) m_settings->set_int("autoload_remove", r);
 }
 
 bool auto_load::remove_files() const
 {
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 	return m_remove_files;
 }
 
 void auto_load::set_params_model(add_torrent_params const& p)
 {
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 	m_params_model = p;
 }
 
 add_torrent_params auto_load::params_model() const
 {
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 	return m_params_model;
 }
 
 void auto_load::set_auto_load_dir(std::string const& dir)
 {
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 	m_dir = dir;
 	if (m_settings) m_settings->set_str("autoload_dir", dir);
 	l.unlock();
-	
+
 	// reset the timeout to use the new interval
 	error_code ec;
 	m_timer.expires_from_now(seconds(0), ec);
-	m_timer.async_wait(boost::bind(&auto_load::on_scan, this, _1));
+	m_timer.async_wait(std::bind(&auto_load::on_scan, this, _1));
 }
 
 void auto_load::set_scan_interval(int s)
 {
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 	if (m_scan_interval == s) return;
 	m_scan_interval = s;
 	if (m_settings) m_settings->set_int("autoload_interval", s);
@@ -134,17 +136,17 @@ void auto_load::set_scan_interval(int s)
 	// reset the timeout to use the new interval
 	error_code ec;
 	m_timer.expires_from_now(seconds(m_scan_interval), ec);
-	m_timer.async_wait(boost::bind(&auto_load::on_scan, this, _1));
+	m_timer.async_wait(std::bind(&auto_load::on_scan, this, _1));
 }
 
 void auto_load::thread_fun()
 {
-	// the mutex must be held while inspecting m_abort
-	mutex::scoped_lock l(m_mutex);
+	// the std::mutex must be held while inspecting m_abort
+	std::unique_lock<std::mutex> l(m_mutex);
 
 	error_code ec;
 	m_timer.expires_from_now(seconds(1), ec);
-	m_timer.async_wait(boost::bind(&auto_load::on_scan, this, _1));
+	m_timer.async_wait(std::bind(&auto_load::on_scan, this, _1));
 
 	while (!m_abort)
 	{
@@ -159,7 +161,7 @@ void auto_load::thread_fun()
 void auto_load::on_scan(error_code const& e)
 {
 	if (e) return;
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 	if (m_abort) return;
 
 	// interval of 0 means disabled
@@ -214,7 +216,7 @@ void auto_load::on_scan(error_code const& e)
 	if (interval == 0) return;
 
 	m_timer.expires_from_now(seconds(interval), ec);
-	m_timer.async_wait(boost::bind(&auto_load::on_scan, this, _1));
+	m_timer.async_wait(std::bind(&auto_load::on_scan, this, _1));
 }
 
 }

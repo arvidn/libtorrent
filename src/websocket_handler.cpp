@@ -40,19 +40,19 @@ namespace libtorrent
 	// TODO: this should be a writev-like function
 	bool websocket_handler::send_packet(mg_connection* conn, int type, char const* buffer, int len)
 	{
-		mutex::scoped_lock l(m_mutex);
+		std::unique_lock<std::mutex> l(m_mutex);
 
 		namespace io = libtorrent::detail;
 
-		std::map<mg_connection*, boost::shared_ptr<mutex> >::iterator i
+		std::map<mg_connection*, boost::shared_ptr<std::mutex> >::iterator i
 			= m_open_sockets.find(conn);
 		if (i == m_open_sockets.end())
 		{
 			fprintf(stderr, "ERROR: send_packet, socket not open\n");
 			return false;
 		}
-		boost::shared_ptr<mutex> m = i->second;
-		mutex::scoped_lock l2(*m);
+		boost::shared_ptr<std::mutex> m = i->second;
+		std::unique_lock<std::mutex> l2(*m);
 		l.unlock();
 
 		// header
@@ -99,8 +99,8 @@ namespace libtorrent
 	bool websocket_handler::handle_websocket_connect(mg_connection* conn
 		, mg_request_info const* request_info)
 	{
-		mutex::scoped_lock l(m_mutex);
-		m_open_sockets.insert(std::make_pair(conn, boost::make_shared<mutex>()));
+		std::unique_lock<std::mutex> l(m_mutex);
+		m_open_sockets.insert(std::make_pair(conn, boost::make_shared<std::mutex>()));
 		return true;
 	}
 
@@ -115,8 +115,8 @@ namespace libtorrent
 
 	void websocket_handler::handle_end_request(mg_connection* conn)
 	{
-		mutex::scoped_lock l(m_mutex);
-		std::map<mg_connection*, boost::shared_ptr<mutex> >::iterator i
+		std::unique_lock<std::mutex> l(m_mutex);
+		std::map<mg_connection*, boost::shared_ptr<std::mutex> >::iterator i
 			= m_open_sockets.find(conn);
 		if (i == m_open_sockets.end()) return;
 

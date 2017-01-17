@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/peer_id.hpp" // sha1_hash
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/thread.hpp" // for mutex
+#include <mutex> // for mutex
 #include <string>
 #include <map>
 #include <vector>
@@ -81,7 +81,7 @@ namespace libtorrent
 			int group;
 		};
 
-		mutable mutex m_mutex;
+		mutable std::mutex m_mutex;
 		std::map<std::string, account_t> m_accounts;
 
 		// the permissions for each group

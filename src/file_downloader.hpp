@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_ptr.hpp>
 #include <set>
 #include "webui.hpp"
-#include "libtorrent/thread.hpp" // for mutex
+#include <mutex> // for mutex
 
 namespace libtorrent
 {
@@ -68,7 +68,7 @@ namespace libtorrent
 		// which asks the browser to save the file rather than to render it.
 		bool m_attachment;
 
-		mutable mutex m_mutex;
+		mutable std::mutex m_mutex;
 		std::set<request_t*> m_requests;
 	};
 }

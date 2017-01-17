@@ -34,14 +34,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_DELUGE_HPP
 
 #include <vector>
-#include "libtorrent/thread.hpp"
+#include <mutex>
+#include <thread>
+#include <memory>
 #include "libtorrent/socket.hpp"
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/settings_pack.hpp"
 
 #include <boost/asio/ssl.hpp>
 
-typedef boost::asio::ssl::stream<boost::asio::ip::tcp::socket> ssl_socket;
+using ssl_socket = boost::asio::ssl::stream<boost::asio::ip::tcp::socket>;
 
 namespace libtorrent
 {
@@ -91,7 +93,7 @@ namespace libtorrent
 		void output_config_value(std::string set_name, libtorrent::settings_pack const& sett
 			, rencoder& out, permissions_interface const* p);
 
-		void write_response(rencoder const& output, ssl_socket* sock, error_code& ec);
+		void write_response(rencoder const& output, ssl_socket& sock, error_code& ec);
 
 		void accept_thread(int port);
 		void connection_thread();
@@ -105,13 +107,13 @@ namespace libtorrent
 		add_torrent_params m_params_model;
 		io_service m_ios;
 		tcp::acceptor* m_listen_socket;
-		thread* m_accept_thread;
-		std::vector<thread*> m_threads;
-		mutex m_mutex;
-		condition_variable m_cond;
+		std::unique_ptr<std::thread> m_accept_thread;
+		std::vector<std::thread> m_threads;
+		std::mutex m_mutex;
+		std::condition_variable m_cond;
 		boost::asio::ssl::context m_context;
 
-		std::vector<ssl_socket*> m_jobs;
+		std::vector<std::unique_ptr<ssl_socket>> m_jobs;
 		bool m_shutdown;
 	};
 

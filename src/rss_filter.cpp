@@ -97,7 +97,7 @@ namespace libtorrent
 	void handle_str(char const* str, item_properties& p)
 	{
 		str_map_t* end = str_map + sizeof(str_map)/sizeof(str_map[0]);
-		str_map_t* i = std::find_if(str_map, end, boost::bind(&strcmp, boost::bind(&str_map_t::str, _1), str) == 0);
+		str_map_t* i = std::find_if(str_map, end, [str](str_map_t const& e) { return strcmp(e.str, str) == 0; });
 		if (i != end)
 		{
 			if (i->quality != item_properties::unknown)
@@ -272,7 +272,7 @@ namespace libtorrent
 
 	rss_rule rss_filter_handler::get_rule(int id) const
 	{
-		mutex::scoped_lock l(m_mutex);
+		std::unique_lock<std::mutex> l(m_mutex);
 		for (std::vector<rss_rule_t>::const_iterator i = m_rules.begin()
 			, end(m_rules.end()); i != end; ++i)
 		{
@@ -284,7 +284,7 @@ namespace libtorrent
 
 	int rss_filter_handler::add_rule(rss_rule const& r)
 	{
-		mutex::scoped_lock l(m_mutex);
+		std::unique_lock<std::mutex> l(m_mutex);
 
 		int id = m_next_id++;
 		m_rules.push_back(r);
@@ -294,7 +294,7 @@ namespace libtorrent
 
 	void rss_filter_handler::edit_rule(rss_rule const& r)
 	{
-		mutex::scoped_lock l(m_mutex);
+		std::unique_lock<std::mutex> l(m_mutex);
 		for (std::vector<rss_rule_t>::iterator i = m_rules.begin()
 			, end(m_rules.end()); i != end; ++i)
 		{
@@ -306,7 +306,7 @@ namespace libtorrent
 
 	void rss_filter_handler::remove_rule(int id)
 	{
-		mutex::scoped_lock l(m_mutex);
+		std::unique_lock<std::mutex> l(m_mutex);
 
 		for (std::vector<rss_rule_t>::iterator i = m_rules.begin()
 			, end(m_rules.end()); i != end; ++i)
@@ -319,7 +319,7 @@ namespace libtorrent
 
 	std::vector<rss_rule> rss_filter_handler::get_rules() const
 	{
-		mutex::scoped_lock l(m_mutex);
+		std::unique_lock<std::mutex> l(m_mutex);
 		std::vector<rss_rule> ret;
 
 		for (std::vector<rss_rule_t>::const_iterator i = m_rules.begin()
@@ -332,7 +332,7 @@ namespace libtorrent
 
 	int rss_filter_handler::num_rules() const
 	{
-		mutex::scoped_lock l(m_mutex);
+		std::unique_lock<std::mutex> l(m_mutex);
 		return m_rules.size();
 	}
 }

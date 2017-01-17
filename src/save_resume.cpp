@@ -33,8 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "save_resume.hpp"
 #include "save_settings.hpp" // for load_file and save_file
 
-#include <boost/bind.hpp>
-#include <boost/tuple/tuple.hpp> // for boost::tie
+#include <functional>
 
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/session.hpp"
@@ -46,6 +45,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 
 #include "alert_handler.hpp"
+
+namespace s = std::placeholders;
 
 namespace libtorrent
 {
@@ -75,8 +76,8 @@ save_resume::save_resume(session& s, std::string const& resume_file, alert_handl
 	// this reason all torrents must be pinned until we receive the
 	// torrent_added_alert. Once we've saved the resume data into our resume
 	// file, we can unpin it
-	m_ses.set_load_function(boost::bind(
-		&save_resume::load_torrent, this, _1, _2, _3));
+	m_ses.set_load_function(std::bind(
+		&save_resume::load_torrent, this, s::_1, s::_2, s::_3));
 
 	int ret = sqlite3_open(resume_file.c_str(), &m_db);
 	if (ret != SQLITE_OK)

@@ -30,16 +30,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/alert_observer.hpp"
+#include "alert_observer.hpp"
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/thread.hpp"
+#include <mutex>
 
 #include <string>
 #include <stdlib.h>
 #include <set>
 
-#include <boost/bind.hpp>
+#include <functional>
 #include <algorithm>
 
 namespace libtorrent
@@ -174,8 +174,8 @@ namespace libtorrent
 		virtual void handle_alert(alert const* a);
 
 	private:
-		// the mutex protects m_rules and associated state
-		mutable mutex m_mutex;
+		// the std::mutex protects m_rules and associated state
+		mutable std::mutex m_mutex;
 		struct rss_rule_t : rss_rule
 		{
 			rss_rule_t(rss_rule const& r) : rss_rule(r) {}

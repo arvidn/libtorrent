@@ -30,6 +30,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include <functional>
+
 #include "stats_logging.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/file.hpp"
@@ -37,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_stats.hpp"
 
 using namespace libtorrent;
+using namespace std::placeholders;
 
 /*
 
@@ -119,8 +122,8 @@ void stats_logging::rotate_stats_log()
 
 	std::vector<stats_metric> cnts = session_stats_metrics();
 	std::sort(cnts.begin(), cnts.end()
-		, boost::bind(&stats_metric::value_index, _1)
-		< boost::bind(&stats_metric::value_index, _2));
+		, [](stats_metric const& lhs, stats_metric const& rhs)
+		{ return lhs.value_index < rhs.value_index; });
 
 	int idx = 0;
 	fputs("second", m_stats_logger);

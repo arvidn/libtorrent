@@ -31,8 +31,8 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/alert_observer.hpp"
-#include "libtorrent/thread.hpp"
+#include "alert_observer.hpp"
+#include <mutex>
 #include "libtorrent/session.hpp"
 
 #include <algorithm>
@@ -87,7 +87,7 @@ namespace libtorrent
 
 			std::deque<promise_t> promises;
 
-			mutex::scoped_lock l(m_mutex);
+			std::unique_lock<std::mutex> l(m_mutex);
 			promises.swap(m_promises[type]);
 			l.unlock();
 
@@ -149,7 +149,7 @@ namespace libtorrent
 
 	boost::unique_future<alert*> alert_handler::subscribe_impl(int cat)
 	{
-		mutex::scoped_lock l(m_mutex);
+		std::unique_lock<std::mutex> l(m_mutex);
 		if (m_abort)
 		{
 			boost::promise<alert*> promise;
@@ -164,7 +164,7 @@ namespace libtorrent
 
 	void alert_handler::abort()
 	{
-		mutex::scoped_lock l(m_mutex);
+		std::unique_lock<std::mutex> l(m_mutex);
 
 		m_abort = true;
 
@@ -200,14 +200,14 @@ namespace libtorrent
 
 				m_handler.unsubscribe(this);
 
-				mutex::scoped_lock l(m_mutex);
+				std::unique_lock<std::mutex> l(m_mutex);
 				m_alert = a->clone();
-				m_cond.notify();
+				m_cond.notify_one();
 			}
 
 			std::auto_ptr<alert> wait()
 			{
-				mutex::scoped_lock l(m_mutex);
+				std::unique_lock<std::mutex> l(m_mutex);
 				m_cond.wait(l);
 				return m_alert;
 			}
@@ -225,8 +225,8 @@ namespace libtorrent
 			// the alert type we're waiting for
 			int m_type;
 
-			mutex m_mutex;
-			condition_variable m_cond;
+			std::mutex m_mutex;
+			std::condition_variable m_cond;
 		};
 	};
 

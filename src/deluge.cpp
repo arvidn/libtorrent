@@ -31,16 +31,14 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <deque>
-#include <getopt.h> // for getopt_long
-#include <stdlib.h> // for daemon()
-#include <syslog.h>
-#include <boost/bind.hpp>
+#include <functional>
+#include <memory>
+#include <mutex>
 #include <boost/make_shared.hpp>
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/thread.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/puff.hpp"
@@ -52,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <zlib.h>
 
 using namespace libtorrent;
+using namespace std::placeholders;
 
 namespace io = libtorrent::detail;
 
@@ -65,12 +64,11 @@ enum rpc_type_t
 deluge::deluge(session& s, std::string pem_path, auth_interface const* auth)
 	: m_ses(s)
 	, m_auth(auth)
-	, m_listen_socket(NULL)
-	, m_accept_thread(NULL)
+	, m_listen_socket(nullptr)
 	, m_context(m_ios, boost::asio::ssl::context::sslv23)
 	, m_shutdown(false)
 {
-	if (m_auth == NULL)
+	if (m_auth == nullptr)
 	{
 		const static no_auth n;
 		m_auth = &n;
@@ -83,7 +81,7 @@ deluge::deluge(session& s, std::string pem_path, auth_interface const* auth)
 		| boost::asio::ssl::context::no_sslv2
 		| boost::asio::ssl::context::single_dh_use);
 	error_code ec;
-//	m_context.set_password_callback(boost::bind(&server::get_password, this));
+//	m_context.set_password_callback(std::bind(&server::get_password, this));
 	m_context.use_certificate_chain_file(pem_path.c_str(), ec);
 	if (ec)
 	{
@@ -136,26 +134,15 @@ void deluge::accept_thread(int port)
 
 	TORRENT_ASSERT(m_threads.empty());
 	for (int i = 0; i < 5; ++i)
-		m_threads.push_back(new thread(boost::bind(&deluge::connection_thread, this)));
+		m_threads.emplace_back(std::bind(&deluge::connection_thread, this));
 
 	do_accept();
 	m_ios.run();
 
-	for (std::vector<thread*>::iterator i = m_threads.begin()
-		, end(m_threads.end()); i != end; ++i)
-	{
-		(*i)->join();
-		delete *i;
-	}
+	for (auto& t : m_threads) t.join();
 
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 	m_threads.clear();
-
-	for (std::vector<ssl_socket*>::iterator i = m_jobs.begin()
-		, end(m_jobs.end()); i != end; ++i)
-	{
-		delete *i;
-	}
 	m_jobs.clear();
 }
 
@@ -163,22 +150,23 @@ void deluge::do_accept()
 {
 	TORRENT_ASSERT(!m_shutdown);
 	ssl_socket* sock = new ssl_socket(m_ios, m_context);
-	m_listen_socket->async_accept(sock->lowest_layer(), boost::bind(&deluge::on_accept, this, _1, sock));
+	auto& s = sock->lowest_layer();
+	m_listen_socket->async_accept(s, std::bind(&deluge::on_accept, this, _1, sock));
 }
 
-void deluge::on_accept(error_code const& ec, ssl_socket* sock)
+void deluge::on_accept(error_code const& ec, ssl_socket* s)
 {
+	std::unique_ptr<ssl_socket> sock(s);
 	if (ec)
 	{
-		delete sock;
 		do_stop();
 		return;
 	}
 
 	fprintf(stderr, "accepted connection\n");
-	mutex::scoped_lock l(m_mutex);
-	m_jobs.push_back(sock);
-	m_cond.notify();
+	std::unique_lock<std::mutex> l(m_mutex);
+	m_jobs.push_back(std::move(sock));
+	m_cond.notify_one();
 	l.unlock();
 
 	do_accept();
@@ -376,11 +364,7 @@ void deluge::output_config_value(std::string set_name, settings_pack const& sett
 		else if (set_name == "prioritize_first_last_pieces")
 			out.append_bool(false);
 		else if (set_name == "compact_allocation")
-#ifndef TORRENT_NO_DEPRECATE
-			out.append_bool(m_params_model.storage_mode == storage_mode_compact);
-#else
 			out.append_bool(false);
-#endif
 		else if (set_name == "download_location")
 			out.append_string(m_params_model.save_path);
 		else
@@ -956,7 +940,7 @@ void deluge::connection_thread()
 	// increase the permission level is to log in
 	st.perms = &no_perms;
 
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 	while (!m_shutdown)
 	{
 		l.lock();
@@ -966,8 +950,8 @@ void deluge::connection_thread()
 		if (m_shutdown) return;
 
 		fprintf(stderr, "connection thread woke up: %d\n", int(m_jobs.size()));
-		
-		ssl_socket* sock = m_jobs.front();
+
+		std::unique_ptr<ssl_socket> sock = std::move(m_jobs.front());
 		m_jobs.erase(m_jobs.begin());
 		l.unlock();
 
@@ -977,7 +961,6 @@ void deluge::connection_thread()
 		{
 			fprintf(stderr, "ssl handshake: %s\n", ec.message().c_str());
 			sock->lowest_layer().close(ec);
-			delete sock;
 			continue;
 		}
 		fprintf(stderr, "SSL handshake done\n");
@@ -1007,7 +990,7 @@ read_some_more:
 //			fprintf(stderr, "read %d bytes (%d/%d)\n", int(ret), buffer_use, int(buffer.size()));
 
 			buffer_use += ret;
-	
+
 parse_message:
 			// assume no more than a 1:10 compression ratio
 			inflated.resize(buffer_use * 10);
@@ -1082,7 +1065,7 @@ parse_message:
 				for (rtok_t* rpc = &tokens[1]; num_items; --num_items, rpc = skip_item(rpc))
 				{
 					incoming_rpc(&st);
-					write_response(out, sock, ec);
+					write_response(out, *sock, ec);
 					out.clear();
 					if (ec) break;
 				}
@@ -1091,7 +1074,7 @@ parse_message:
 			else
 			{
 				incoming_rpc(&st);
-				write_response(out, sock, ec);
+				write_response(out, *sock, ec);
 				if (ec) break;
 			}
 
@@ -1115,12 +1098,11 @@ parse_message:
 		fprintf(stderr, "closing connection\n");
 		sock->shutdown(ec);
 		sock->lowest_layer().close(ec);
-		delete sock;
 	}
 
 }
 
-void deluge::write_response(rencoder const& out, ssl_socket* sock, error_code& ec)
+void deluge::write_response(rencoder const& out, ssl_socket& sock, error_code& ec)
 {
 	// ----
 	rtok_t tmp[2000];
@@ -1148,7 +1130,7 @@ void deluge::write_response(rencoder const& out, ssl_socket* sock, error_code& e
 	deflateEnd(&strm);
 	if (ret != Z_STREAM_END) return;
 
-	ret = boost::asio::write(*sock, boost::asio::buffer(&deflated[0], deflated.size()), ec);
+	ret = boost::asio::write(sock, boost::asio::buffer(&deflated[0], deflated.size()), ec);
 	if (ec)
 	{
 		fprintf(stderr, "write: %s\n", ec.message().c_str());
@@ -1162,27 +1144,26 @@ void deluge::start(int port)
 	if (m_accept_thread)
 		stop();
 
-	m_accept_thread = new thread(boost::bind(&deluge::accept_thread, this, port));
+	m_accept_thread.reset(new std::thread(&deluge::accept_thread, this, port));
 }
 
 void deluge::do_stop()
 {
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 	m_shutdown = true;
 	m_cond.notify_all();
 	if (m_listen_socket)
 	{
 		m_listen_socket->close();
-		m_listen_socket = NULL;
+		m_listen_socket = nullptr;
 	}
 }
 
 void deluge::stop()
 {
-	m_ios.post(boost::bind(&deluge::do_stop, this));
+	m_ios.post(std::bind(&deluge::do_stop, this));
 
 	m_accept_thread->join();
-	delete m_accept_thread;
-	m_accept_thread = NULL;
+	m_accept_thread.reset();
 }
 

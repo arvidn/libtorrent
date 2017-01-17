@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "save_settings.hpp"
 
-#include <boost/bind.hpp>
+#include <functional>
 #include <boost/tuple/tuple.hpp> // for boost::tie
 
 #include "libtorrent/add_torrent_params.hpp"

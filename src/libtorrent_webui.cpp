@@ -744,7 +744,7 @@ namespace libtorrent
 		if (ss.get() == NULL) return error(st, no_such_function);
 		TORRENT_ASSERT(ss.get());
 
-		mutex::scoped_lock l(m_stats_mutex);
+		std::unique_lock<std::mutex> l(m_stats_mutex);
 		++m_stats_frame;
 		io::write_uint32(m_stats_frame, ptr);
 

@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_WEBSOCKET_HPP
 
 #include "webui.hpp"
-#include "libtorrent/thread.hpp"
+#include <mutex>
 #include <map>
 #include <boost/shared_ptr.hpp>
 #include <boost/cstdint.hpp>
@@ -49,12 +49,12 @@ namespace libtorrent
 		virtual void handle_end_request(mg_connection* conn);
 
 	private:
-	
+
 		// all currently alive web sockets
-		std::map<mg_connection*, boost::shared_ptr<mutex> > m_open_sockets;
+		std::map<mg_connection*, boost::shared_ptr<std::mutex> > m_open_sockets;
 
 		// for now, serialize all access
-		mutex m_mutex;
+		std::mutex m_mutex;
 
 	};
 }

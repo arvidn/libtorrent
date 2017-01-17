@@ -38,14 +38,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #include <boost/functional/hash.hpp>
 
-#include "libtorrent/thread.hpp" // for mutex
+#include <mutex> // for mutex
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/peer_id.hpp" // for sha1_hash
 #include "libtorrent/extensions.hpp" // for plugin
 #include "libtorrent/time.hpp" // for ptime
 
 using libtorrent::sha1_hash;
-using libtorrent::mutex;
+using std::mutex;
 
 struct piece_entry
 {
@@ -80,7 +80,7 @@ private:
 
 	std::size_t hash_value(piece_request const& r) const;
 
-	mutex m_mutex;
+	std::mutex m_mutex;
 	typedef std::multiset<piece_request> requests_t;
 	requests_t m_requests;
 	requests_t::iterator m_next_timeout;

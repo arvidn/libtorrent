@@ -80,7 +80,7 @@ private:
 
 	std::vector<alert_observer*> m_observers[num_alert_types];
 
-	mutable mutex m_mutex;
+	mutable std::mutex m_mutex;
 	typedef boost::shared_ptr<boost::promise<alert*> > promise_t;
 	mutable std::deque<promise_t> m_promises[num_alert_types];
 

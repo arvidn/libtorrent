@@ -59,7 +59,7 @@ extern "C" {
 #include "libtorrent/socket_io.hpp" // for print_address
 #include "libtorrent/io.hpp" // for read_int32
 #include "libtorrent/magnet_uri.hpp" // for make_magnet_uri
-#include "libtorrent/escape_string.hpp" // for unescape_string
+#include "libtorrent/aux_/escape_string.hpp" // for unescape_string
 #include "libtorrent/string_util.hpp" // for string_begins_no_case
 #include "response_buffer.hpp" // for appendf
 #include "torrent_post.hpp"
@@ -127,7 +127,7 @@ struct method_handler
 	void (utorrent_webui::*fun)(std::vector<char>&, char const* args, permissions_interface const* p);
 };
 
-static method_handler handlers[] =
+static const method_handler handlers[] =
 {
 	{ "start", &utorrent_webui::start },
 	{ "forcestart", &utorrent_webui::force_start },
@@ -152,10 +152,10 @@ static method_handler handlers[] =
 //	{ "setprops", &utorrent_webui:: },
 	{ "removedata", &utorrent_webui::remove_torrent_and_data },
 	{ "list-dirs", &utorrent_webui::list_dirs },
-	{ "rss-update", &utorrent_webui::rss_update },
-	{ "rss-remove", &utorrent_webui::rss_remove },
-	{ "filter-update", &utorrent_webui::rss_filter_update },
-	{ "filter-remove", &utorrent_webui::rss_filter_remove },
+//	{ "rss-update", &utorrent_webui::rss_update },
+//	{ "rss-remove", &utorrent_webui::rss_remove },
+//	{ "filter-update", &utorrent_webui::rss_filter_update },
+//	{ "filter-remove", &utorrent_webui::rss_filter_remove },
 	{ "removetorrent", &utorrent_webui::remove_torrent },
 	{ "removedatatorrent", &utorrent_webui::remove_torrent_and_data },
 	{ "getversion", &utorrent_webui::get_version },
@@ -290,7 +290,7 @@ bool utorrent_webui::handle_http(mg_connection* conn, mg_request_info const* req
 		&& atoi(buf) > 0)
 	{
 		send_torrent_list(response, request_info->query_string, perms);
-		send_rss_list(response, request_info->query_string, perms);
+//		send_rss_list(response, request_info->query_string, perms);
 	}
 
 	// we need a null terminator
@@ -1134,17 +1134,17 @@ void utorrent_webui::rss_update(std::vector<char>& response, char const* args, p
 
 	ret = mg_get_var(args, strlen(args), "update", buf, sizeof(buf));
 	int update = atoi(buf);
-	
+
 	char url[2048];
 	ret = mg_get_var(args, strlen(args), "url", url, sizeof(url));
 
 	if (feed_id == -1)
 	{
-		feed_settings f;
-		f.url = url;
-		f.auto_download = subscribe;
-		f.add_args = m_params_model;
-		m_ses.add_feed(f);
+//		feed_settings f;
+//		f.url = url;
+//		f.auto_download = subscribe;
+//		f.add_args = m_params_model;
+//		m_ses.add_feed(f);
 	}
 	else
 	{
@@ -1168,14 +1168,14 @@ void utorrent_webui::rss_remove(std::vector<char>& response, char const* args, p
 	int feed_id = atoi(buf);
 
 	std::vector<feed_handle> f;
-	m_ses.get_feeds(f);
+//	m_ses.get_feeds(f);
 
 	for (std::vector<feed_handle>::iterator i = f.begin()
 		, end(f.end()); i != end; ++i)
 	{
 		feed_status st = i->get_feed_status();
 		if (get_feed_id(st) != feed_id) continue;
-		m_ses.remove_feed(*i);
+//		m_ses.remove_feed(*i);
 		return;
 	}
 }
@@ -1432,7 +1432,7 @@ void utorrent_webui::send_rss_list(std::vector<char>& response, char const* args
 	appendf(response, cid > 0 ? ",\"rssfeedp\":[" : ",\"rssfeeds\":[");
 
 	std::vector<feed_handle> feeds;
-	m_ses.get_feeds(feeds);
+//	m_ses.get_feeds(feeds);
 
 	int first = 1;
 	for (std::vector<feed_handle>::iterator i = feeds.begin()

@@ -71,7 +71,7 @@ auth::auth()
 */
 std::vector<std::string> auth::users() const
 {
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 
 	std::vector<std::string> users;
 	for (std::map<std::string, account_t>::const_iterator i = m_accounts.begin()
@@ -94,7 +94,7 @@ std::vector<std::string> auth::users() const
 */
 void auth::add_account(std::string const& user, std::string const& pwd, int group)
 {
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 
 	std::map<std::string, account_t>::iterator i = m_accounts.find(user);
 	if (i == m_accounts.end())
@@ -120,7 +120,7 @@ void auth::add_account(std::string const& user, std::string const& pwd, int grou
 */
 void auth::remove_account(std::string const& user)
 {
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 
 	std::map<std::string, account_t>::iterator i = m_accounts.find(user);
 	if (i == m_accounts.end()) return;
@@ -139,7 +139,7 @@ void auth::set_group(int g, permissions_interface const* perms)
 {
 	if (g < 0) return;
 
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 
 	if (g >= m_groups.size())
 		m_groups.resize(g+1, NULL);
@@ -156,7 +156,7 @@ void auth::set_group(int g, permissions_interface const* perms)
 */
 permissions_interface const* auth::find_user(std::string username, std::string password) const
 {
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 
 	std::map<std::string, account_t>::const_iterator i = m_accounts.find(username);
 	if (i == m_accounts.end()) return NULL;
@@ -194,7 +194,7 @@ void auth::save_accounts(std::string const& filename, error_code& ec) const
 		return;
 	}
 
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 
 	for (std::map<std::string, account_t>::const_iterator i = m_accounts.begin()
 		, end(m_accounts.end()); i != end; ++i)
@@ -222,7 +222,7 @@ void auth::load_accounts(std::string const& filename, error_code& ec)
 		return;
 	}
 
-	mutex::scoped_lock l(m_mutex);
+	std::unique_lock<std::mutex> l(m_mutex);
 
 	m_accounts.clear();
 

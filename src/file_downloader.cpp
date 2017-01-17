@@ -37,11 +37,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/extensions.hpp"
-#include "libtorrent/thread.hpp"
+#include <mutex>
 #include "libtorrent/peer_id.hpp" // for sha1_hash
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/torrent.hpp"
-#include "libtorrent/escape_string.hpp" // for escape_string
+#include "libtorrent/aux_/escape_string.hpp" // for escape_string
 
 #include <boost/shared_array.hpp>
 #include <map>
@@ -71,13 +71,13 @@ namespace libtorrent
 		// or end of request
 		int finish;
 		std::priority_queue<piece_entry> queue;
-		condition_variable cond;
-		mutex queue_mutex;
+		std::condition_variable cond;
+		std::mutex queue_mutex;
 	};
 
 	struct request_t
 	{
-		request_t(std::string filename, std::set<request_t*>& list, mutex& m)
+		request_t(std::string filename, std::set<request_t*>& list, std::mutex& m)
 			: start_time(time_now())
 			, file(filename)
 			, request_size(0)
@@ -89,13 +89,13 @@ namespace libtorrent
 			, m_requests(list)
 			, m_mutex(m)
 		{
-			mutex::scoped_lock l(m_mutex);
+			std::unique_lock<std::mutex> l(m_mutex);
 			m_requests.insert(this);
 		}
 
 		~request_t()
 		{
-			mutex::scoped_lock l(m_mutex);
+			std::unique_lock<std::mutex> l(m_mutex);
 			debug_print(time_now());
 			m_requests.erase(this);
 		}
@@ -144,7 +144,7 @@ namespace libtorrent
 
 	private:
 		std::set<request_t*>& m_requests;
-		mutex& m_mutex;
+		std::mutex& m_mutex;
 	};
 
 	// TODO: replace this with file_requests class
@@ -157,7 +157,7 @@ namespace libtorrent
 
 //			fprintf(stderr, "piece: %d\n", p->piece);
 
-			mutex::scoped_lock l(m_mutex);
+			std::unique_lock<std::mutex> l(m_mutex);
 			typedef std::multimap<sha1_hash, torrent_piece_queue*>::iterator iter;
 			boost::shared_ptr<torrent> t = p->handle.native_handle();
 
@@ -166,7 +166,7 @@ namespace libtorrent
 
 			for (iter i = range.first; i != range.second; ++i)
 			{
-				mutex::scoped_lock l2(i->second->queue_mutex);
+				std::unique_lock<std::mutex> l2(i->second->queue_mutex);
 				if (p->piece < i->second->begin || p->piece >= i->second->end)
 					continue;
 				piece_entry pe;
@@ -182,7 +182,7 @@ namespace libtorrent
 
 		void subscribe(sha1_hash const& ih, torrent_piece_queue* pq)
 		{
-			mutex::scoped_lock l(m_mutex);
+			std::unique_lock<std::mutex> l(m_mutex);
 			m_torrents.insert(std::make_pair(ih, pq));
 		}
 
@@ -192,7 +192,7 @@ namespace libtorrent
 		void unsubscribe(sha1_hash const& ih, torrent_piece_queue* pq
 			, std::set<int>* pieces = NULL)
 		{
-			mutex::scoped_lock l(m_mutex);
+			std::unique_lock<std::mutex> l(m_mutex);
 			typedef std::multimap<sha1_hash, torrent_piece_queue*>::iterator iter;
 
 			std::pair<iter, iter> range = m_torrents.equal_range(ih);
@@ -228,7 +228,7 @@ namespace libtorrent
 
 	private:
 
-		mutex m_mutex;
+		std::mutex m_mutex;
 		std::multimap<sha1_hash, torrent_piece_queue*> m_torrents;
 	
 	};
@@ -417,7 +417,7 @@ namespace libtorrent
 
 		for (int i = pq.begin; i < pq.finish; ++i)
 		{
-			mutex::scoped_lock l(pq.queue_mutex);
+			std::unique_lock<std::mutex> l(pq.queue_mutex);
 
 			// TODO: come up with some way to abort
 			while (pq.queue.empty() || pq.queue.top().piece > i)
@@ -518,7 +518,7 @@ namespace libtorrent
 	void file_downloader::debug_print_requests() const
 	{
 		ptime now = time_now();
-		mutex::scoped_lock l(m_mutex);
+		std::unique_lock<std::mutex> l(m_mutex);
 		for (std::set<request_t*>::const_iterator i = m_requests.begin()
 			, end(m_requests.end()); i != end; ++i)
 		{

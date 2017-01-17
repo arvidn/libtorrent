@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/io_service.hpp"
-#include "libtorrent/thread.hpp"
+#include <mutex>
 
 namespace libtorrent
 {
@@ -86,7 +86,7 @@ namespace libtorrent
 
 		// used to protect m_abort, m_scan_interval, m_dir,
 		// m_remove_files and m_params_model
-		mutable mutex m_mutex;
+		mutable std::mutex m_mutex;
 
 		// this needs to be last in order to be initialized
 		// last in the constructor. This way the object is
