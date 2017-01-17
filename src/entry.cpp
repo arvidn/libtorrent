@@ -92,8 +92,10 @@ namespace libtorrent
 	{
 		dictionary_type::iterator i = dict().find(key);
 		if (i != dict().end()) return i->second;
-		dictionary_type::iterator ret = dict().insert(
-			std::make_pair(key.to_string(), entry())).first;
+		dictionary_type::iterator ret = dict().emplace(
+			std::piecewise_construct,
+			std::forward_as_tuple(key),
+			std::forward_as_tuple()).first;
 		return ret->second;
 	}
 
