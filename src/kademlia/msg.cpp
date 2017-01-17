@@ -41,14 +41,14 @@ bool verify_message_impl(bdecode_node const& message, span<key_desc_t const> des
 {
 	TORRENT_ASSERT(desc.size() == ret.size());
 
-	int const size = int(ret.size());
+	std::size_t const size = ret.size();
 
 	// get a non-root bdecode_node that still
 	// points to the root. message should not be copied
 	bdecode_node msg = message.non_owning();
 
 	// clear the return buffer
-	for (int i = 0; i < size; ++i)
+	for (std::size_t i = 0; i < size; ++i)
 		ret[i].clear();
 
 	// when parsing child nodes, this is the stack
@@ -63,7 +63,7 @@ bool verify_message_impl(bdecode_node const& message, span<key_desc_t const> des
 	}
 	++stack_ptr;
 	stack[stack_ptr] = msg;
-	for (int i = 0; i < size; ++i)
+	for (std::size_t i = 0; i < size; ++i)
 	{
 		key_desc_t const& k = desc[i];
 

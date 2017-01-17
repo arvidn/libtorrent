@@ -42,13 +42,12 @@ namespace libtorrent { namespace aux {
 	{
 		// if the cookie is set to this value, it doesn't refer to anything in the
 		// cache (and the buffer is mutable)
-		static std::uint32_t const none = 0xffffffffu;
+		constexpr static std::int32_t none = 0x7fffffff;
 
 		storage_index_t storage{0};
-		std::uint32_t cookie = none;
+		std::int32_t cookie = none;
 	};
 
 }}
 
 #endif
-

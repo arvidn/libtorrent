@@ -319,7 +319,7 @@ namespace
 		// Since the CRC function that is used is not a one way function
 		// the salt is required to avoid attacks where bad data is sent
 		// that is forged to match the CRC of the good data.
-		int m_salt;
+		std::uint32_t const m_salt;
 
 		// explicitly disallow assignment, to silence msvc warning
 		smart_ban_plugin& operator=(smart_ban_plugin const&);

@@ -474,7 +474,7 @@ namespace libtorrent
 			// used for asserts and only applies for fence jobs
 			flush_expect_clear = 8
 		};
-		void flush_cache(storage_interface* storage, std::uint32_t flags, jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l);
+		void flush_cache(storage_interface* storage, int flags, jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l);
 		void flush_expired_write_blocks(jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l);
 		void flush_piece(cached_piece_entry* pe, int flags, jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l);
 
