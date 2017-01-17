@@ -844,7 +844,7 @@ namespace libtorrent
 		}
 	}
 
-	void disk_io_thread::flush_cache(storage_interface* storage, std::uint32_t const flags
+	void disk_io_thread::flush_cache(storage_interface* storage, int const flags
 		, jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l)
 	{
 		if (storage)

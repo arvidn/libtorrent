@@ -280,7 +280,7 @@ namespace libtorrent
 		{
 			TORRENT_CFG();
 			settings_pack pack;
-			pack.set_int(settings_pack::alert_mask, alert_mask);
+			pack.set_int(settings_pack::alert_mask, int(alert_mask));
 			pack.set_str(settings_pack::peer_fingerprint, print.to_string());
 			if ((flags & start_default_features) == 0)
 			{
@@ -306,7 +306,7 @@ namespace libtorrent
 			TORRENT_ASSERT(listen_port_range.first <= listen_port_range.second);
 
 			settings_pack pack;
-			pack.set_int(settings_pack::alert_mask, alert_mask);
+			pack.set_int(settings_pack::alert_mask, int(alert_mask));
 			pack.set_int(settings_pack::max_retry_port_bind, listen_port_range.second - listen_port_range.first);
 			pack.set_str(settings_pack::peer_fingerprint, print.to_string());
 			char if_string[100];

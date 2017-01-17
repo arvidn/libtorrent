@@ -257,7 +257,7 @@ private:
 	time_point m_last_self_refresh;
 
 	// secret random numbers used to create write tokens
-	int m_secret[2];
+	std::uint32_t m_secret[2];
 
 	udp_socket_interface* m_sock;
 	counters& m_counters;

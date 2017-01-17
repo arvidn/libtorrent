@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/string_view.hpp"
+#include "libtorrent/aux_/vector.hpp"
 
 #include <cstdio> // for vsnprintf
 #include <cstring>
@@ -71,7 +72,7 @@ namespace libtorrent { namespace aux
 			int const ret = int(m_storage.size());
 			m_storage.resize(ret + str.size() + 1);
 			std::memcpy(&m_storage[ret], str.data(), str.size());
-			m_storage[ret + str.length()] = '\0';
+			m_storage[ret + int(str.length())] = '\0';
 			return allocation_slot(ret);
 		}
 
@@ -154,7 +155,7 @@ namespace libtorrent { namespace aux
 
 	private:
 
-		std::vector<char> m_storage;
+		vector<char> m_storage;
 	};
 
 } }
