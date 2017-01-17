@@ -727,7 +727,7 @@ namespace libtorrent
 		// these are indices to the priority boundaries inside
 		// the m_pieces vector. priority 0 always start at
 		// 0, priority 1 starts at m_priority_boundaries[0] etc.
-		mutable std::vector<prio_index_t> m_priority_boundaries;
+		mutable aux::vector<prio_index_t> m_priority_boundaries;
 
 		// each piece that's currently being downloaded has an entry in this list
 		// with block allocations. i.e. it says which parts of the piece that is
@@ -737,12 +737,12 @@ namespace libtorrent
 		// corresponding downloading_piece vector is piece_open and
 		// piece_downloading_reverse (the latter uses the same as
 		// piece_downloading).
-		std::vector<downloading_piece> m_downloads[piece_pos::num_download_categories];
+		aux::vector<downloading_piece> m_downloads[piece_pos::num_download_categories];
 
 		// this holds the information of the blocks in partially downloaded
 		// pieces. the downloading_piece::info index point into this vector for
 		// its storage
-		std::vector<block_info> m_block_info;
+		aux::vector<block_info> m_block_info;
 
 		// these are block ranges in m_block_info that are free. The numbers
 		// in here, when multiplied by m_blocks_per_piece is the index to the

@@ -144,7 +144,7 @@ private:
 
 	void callback(error_code e, char* data = nullptr, int size = 0);
 
-	std::vector<char> m_recvbuffer;
+	aux::vector<char> m_recvbuffer;
 
 	std::string m_hostname;
 	std::string m_url;

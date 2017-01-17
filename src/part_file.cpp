@@ -105,8 +105,8 @@ namespace libtorrent
 
 			char* ptr = reinterpret_cast<char*>(header.get());
 			// we have a header. Parse it
-			int num_pieces_ = read_uint32(ptr);
-			int piece_size_ = read_uint32(ptr);
+			int const num_pieces_ = int(read_uint32(ptr));
+			int const piece_size_ = int(read_uint32(ptr));
 
 			// if there is a mismatch in number of pieces or piece size
 			// consider the file empty and overwrite anything in there
@@ -407,7 +407,7 @@ namespace libtorrent
 				? slot_index_t(-1) : i->second);
 			write_int32(static_cast<int>(slot), ptr);
 		}
-		std::memset(ptr, 0, m_header_size - (ptr - reinterpret_cast<char*>(header.get())));
+		std::memset(ptr, 0, std::size_t(m_header_size - (ptr - reinterpret_cast<char*>(header.get()))));
 
 		iovec_t b = {header.get(), std::size_t(m_header_size)};
 		m_file.writev(0, b, ec);

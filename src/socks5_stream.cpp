@@ -427,7 +427,7 @@ namespace libtorrent
 				}
 				return;
 			}
-			int extra_bytes = 0;
+			std::size_t extra_bytes = 0;
 			if (atyp == 4)
 			{
 				// IPv6
