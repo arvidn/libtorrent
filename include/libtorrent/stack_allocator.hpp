@@ -70,7 +70,7 @@ namespace libtorrent { namespace aux
 		allocation_slot copy_string(string_view str)
 		{
 			int const ret = int(m_storage.size());
-			m_storage.resize(ret + str.size() + 1);
+			m_storage.resize(ret + numeric_cast<int>(str.size()) + 1);
 			std::memcpy(&m_storage[ret], str.data(), str.size());
 			m_storage[ret + int(str.length())] = '\0';
 			return allocation_slot(ret);
@@ -81,7 +81,7 @@ namespace libtorrent { namespace aux
 			int const ret = int(m_storage.size());
 			int const len = int(std::strlen(str));
 			m_storage.resize(ret + len + 1);
-			std::memcpy(&m_storage[ret], str, len);
+			std::memcpy(&m_storage[ret], str, numeric_cast<std::size_t>(len));
 			m_storage[ret + len] = '\0';
 			return allocation_slot(ret);
 		}
@@ -117,7 +117,7 @@ namespace libtorrent { namespace aux
 			int const size = int(buf.size());
 			if (size < 1) return allocation_slot();
 			m_storage.resize(ret + size);
-			std::memcpy(&m_storage[ret], buf.data(), size);
+			std::memcpy(&m_storage[ret], buf.data(), numeric_cast<std::size_t>(size));
 			return allocation_slot(ret);
 		}
 
