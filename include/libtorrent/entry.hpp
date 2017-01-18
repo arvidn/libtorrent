@@ -99,11 +99,9 @@ namespace libtorrent
 		template<class T> using map_string = std::map<std::string, T, aux::strview_less>;
 #else
 		template<class T>
-		class map_string : public std::map<std::string, T>
+		struct map_string : std::map<std::string, T>
 		{
-		private:
 			using base = std::map<std::string, T>;
-		public:
 
 			typename base::iterator find(const string_view& key)
 			{
