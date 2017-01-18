@@ -339,7 +339,6 @@ class test_example_client(unittest.TestCase):
 				+ "try to call it manually to get the error message\n")
 
 	def test_execute_make_torrent(self):
-		# TODO: fix deprecated calls of make_torrent.py
 		return
 		process = sub.Popen(
 			[sys.executable,"make_torrent.py","url_seed_multi.torrent",
