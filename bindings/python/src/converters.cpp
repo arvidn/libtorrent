@@ -109,6 +109,54 @@ struct tuple_to_pair
     }
 };
 
+template<class T1, class T2>
+struct map_to_dict
+{
+    static PyObject* convert(const std::map<T1, T2>& m)
+    {
+        bp::dict dictionary;
+        for (auto& iter : m) {
+            dictionary[iter.first] = iter.second;
+        }
+        return incref(dictionary.ptr());
+    }
+};
+
+template<class T1, class T2>
+struct dict_to_map
+{
+    dict_to_map()
+    {
+        converter::registry::push_back(
+            &convertible, &construct, type_id<std::map<T1, T2>>()
+        );
+    }
+
+    static void* convertible(PyObject* x)
+    {
+        return PyDict_Check(x) ? x: nullptr;
+    }
+
+    static void construct(PyObject* x, converter::rvalue_from_python_stage1_data* data)
+    {
+        void* storage = ((converter::rvalue_from_python_storage<
+            std::map<T1, T2>>*)data)->storage.bytes;
+
+        dict o(borrowed(x));
+        std::map<T1, T2> m;
+
+        list iterkeys = (list)o.keys();
+        int const len = int(boost::python::len(iterkeys));
+        for (int i = 0; i < len; i++)
+        {
+            object key = iterkeys[i];
+            m[extract<T1>(key)] = extract<T2>(o[key]);
+        }
+        new (storage) std::map<T1, T2>(m);
+        data->convertible = storage;
+    }
+};
+
 template<class T>
 struct vector_to_list
 {
@@ -203,6 +251,8 @@ void bind_converters()
     to_python_converter<lt::tcp::endpoint, endpoint_to_tuple<lt::tcp::endpoint>>();
     to_python_converter<lt::udp::endpoint, endpoint_to_tuple<lt::udp::endpoint>>();
     to_python_converter<lt::address, address_to_tuple>();
+    to_python_converter<std::pair<std::string, int>, pair_to_tuple<std::string, int>>();
+    to_python_converter<std::map<lt::file_index_t, std::string>, map_to_dict<lt::file_index_t, std::string>>();
 
     to_python_converter<std::vector<lt::stats_metric>, vector_to_list<lt::stats_metric>>();
     to_python_converter<std::vector<lt::pool_file_status>, vector_to_list<lt::pool_file_status>>();
@@ -223,6 +273,7 @@ void bind_converters()
     tuple_to_endpoint<lt::tcp::endpoint>();
     tuple_to_endpoint<lt::udp::endpoint>();
     tuple_to_pair<lt::piece_index_t, int>();
+    dict_to_map<lt::file_index_t, std::string>();
     list_to_vector<int>();
     list_to_vector<std::uint8_t>();
     list_to_vector<std::string>();

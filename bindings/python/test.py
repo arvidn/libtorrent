@@ -137,15 +137,13 @@ class test_torrent_handle(unittest.TestCase):
 			'ti': self.ti,
 			'save_path': os.getcwd(),
 			'trackers': ['http://test.com/announce'],
-			# TODO: missing converter
-			#'dht_nodes': [{'127.0.0.1', 10000}],
+			'dht_nodes': [('1.2.3.4', 6881), ('4.3.2.1', 6881)],
 			'file_priorities': [1,1],
 			'http_seeds': ['http://test.com/file3'],
 			'url_seeds': ['http://test.com/announce-url'],
-			# TODO: missing converter
-			#'banned_peers': {'127.0.0.1', 20000},
-			# should this be removed?
-			#'renamed_file': {[0,1], 'test.txt'}
+			'peers': [('5.6.7.8', 6881)],
+			'banned_peers': [('8.7.6.5', 6881)],
+			'renamed_files': { 0: 'test.txt', 2: 'test.txt' }
 			})
 		self.st = self.h.status()
 		self.assertEqual(self.st.save_path, os.getcwd())
@@ -161,14 +159,13 @@ class test_torrent_handle(unittest.TestCase):
 		self.assertEqual(self.h.piece_priorities(),[4])
 		self.assertEqual(self.ti.merkle_tree(),[])
 		self.assertEqual(self.st.verified_pieces,[])
-		# TODO: Do we need to expose one of them?
-		# print(self.st.dht_nodes)
-		# print(self.st.banned_peers)
-		# print(self.st.peers)
-		# print(self.st.unfinished_pieces)
-		# print(self.st.have_pieces)
-		# TODO make_getter did not find a converter
-		# print(self.ti.renamed_file)
+		# TODO
+		#self.assertEqual(self.st.dht_nodes,[('1.2.3.4', 6881), ('4.3.2.1', 6881)])
+		#self.assertEqual(self.st.banned_peers(),[('8.7.6.5', 6881)])
+		#self.assertEqual(self.st.peers,[('5.6.7.8', 6881)])
+
+		# TODO dict not working
+		#print(self.ti.rename_file.get(0))
 
 class test_torrent_info(unittest.TestCase):
 
