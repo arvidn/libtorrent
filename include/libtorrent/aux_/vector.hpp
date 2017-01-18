@@ -143,6 +143,20 @@ namespace libtorrent { namespace aux {
 		return {vec.data() + static_cast<type>(begin), vec.data() + static_cast<type>(end)};
 	}
 
+	// TODO: find a better place for this function
+	template <class T, class In, typename Cond = typename std::enable_if<
+		std::is_integral<T>::value && std::is_integral<In>::value>::type>
+	T numeric_cast(In v)
+	{
+		T r = static_cast<T>(v);
+		TORRENT_ASSERT(v == static_cast<In>(r));
+		TORRENT_ASSERT(std::is_unsigned<In>::value || std::is_signed<T>::value
+			|| std::int64_t(v) >= 0);
+		TORRENT_ASSERT(std::is_signed<In>::value || std::is_unsigned<T>::value
+			|| std::size_t(v) <= std::size_t((std::numeric_limits<T>::max)()));
+		return r;
+	}
+
 }}
 
 #endif
