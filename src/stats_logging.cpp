@@ -53,13 +53,13 @@ using namespace std::placeholders;
 #if !defined __MACH__
 	struct vm_statistics_data_t
 	{
-		boost::uint64_t active_count;
-		boost::uint64_t inactive_count;
-		boost::uint64_t wire_count;
-		boost::uint64_t free_count;
-		boost::uint64_t pageins;
-		boost::uint64_t pageouts;
-		boost::uint64_t faults;
+		std::uint64_t active_count;
+		std::uint64_t inactive_count;
+		std::uint64_t wire_count;
+		std::uint64_t free_count;
+		std::uint64_t pageins;
+		std::uint64_t pageouts;
+		std::uint64_t faults;
 	};
 #endif
 

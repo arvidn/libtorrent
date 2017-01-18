@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 
-boost::int64_t free_disk_space(std::string const& path)
+std::int64_t free_disk_space(std::string const& path)
 {
 	// TODO: support windows
 
@@ -50,7 +50,7 @@ boost::int64_t free_disk_space(std::string const& path)
 	int ret = statfs(path.c_str(), &fs);
 	if (ret < 0) return -1;
 
-	return boost::int64_t(fs.f_bavail) * fs.f_bsize;
+	return std::int64_t(fs.f_bavail) * fs.f_bsize;
 }
 
 }

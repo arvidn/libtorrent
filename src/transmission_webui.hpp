@@ -62,25 +62,25 @@ namespace libtorrent
 		virtual bool handle_http(mg_connection* conn,
 			mg_request_info const* request_info);
 
-		void add_torrent(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer, permissions_interface const* p);
-		void get_torrent(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer, permissions_interface const* p);
-		void set_torrent(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer, permissions_interface const* p);
-		void start_torrent(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer, permissions_interface const* p);
-		void start_torrent_now(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer, permissions_interface const* p);
-		void stop_torrent(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer, permissions_interface const* p);
-		void verify_torrent(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer, permissions_interface const* p);
-		void reannounce_torrent(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer, permissions_interface const* p);
-		void remove_torrent(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer, permissions_interface const* p);
-		void session_stats(std::vector<char>&, jsmntok_t* args, boost::int64_t tag, char* buffer, permissions_interface const* p);
-		void get_session(std::vector<char>& buf, jsmntok_t* args, boost::int64_t tag, char* buffer, permissions_interface const* p);
-		void set_session(std::vector<char>& buf, jsmntok_t* args, boost::int64_t tag, char* buffer, permissions_interface const* p);
+		void add_torrent(std::vector<char>&, jsmntok_t* args, std::int64_t tag, char* buffer, permissions_interface const* p);
+		void get_torrent(std::vector<char>&, jsmntok_t* args, std::int64_t tag, char* buffer, permissions_interface const* p);
+		void set_torrent(std::vector<char>&, jsmntok_t* args, std::int64_t tag, char* buffer, permissions_interface const* p);
+		void start_torrent(std::vector<char>&, jsmntok_t* args, std::int64_t tag, char* buffer, permissions_interface const* p);
+		void start_torrent_now(std::vector<char>&, jsmntok_t* args, std::int64_t tag, char* buffer, permissions_interface const* p);
+		void stop_torrent(std::vector<char>&, jsmntok_t* args, std::int64_t tag, char* buffer, permissions_interface const* p);
+		void verify_torrent(std::vector<char>&, jsmntok_t* args, std::int64_t tag, char* buffer, permissions_interface const* p);
+		void reannounce_torrent(std::vector<char>&, jsmntok_t* args, std::int64_t tag, char* buffer, permissions_interface const* p);
+		void remove_torrent(std::vector<char>&, jsmntok_t* args, std::int64_t tag, char* buffer, permissions_interface const* p);
+		void session_stats(std::vector<char>&, jsmntok_t* args, std::int64_t tag, char* buffer, permissions_interface const* p);
+		void get_session(std::vector<char>& buf, jsmntok_t* args, std::int64_t tag, char* buffer, permissions_interface const* p);
+		void set_session(std::vector<char>& buf, jsmntok_t* args, std::int64_t tag, char* buffer, permissions_interface const* p);
 
 	private:
 
 		void get_torrents(std::vector<torrent_handle>& handles, jsmntok_t* args
 			, char* buffer);
 		void handle_json_rpc(std::vector<char>& buf, jsmntok_t* tokens, char* buffer, permissions_interface const* p);
-		void parse_ids(std::set<boost::uint32_t>& torrent_ids, jsmntok_t* args, char* buffer);
+		void parse_ids(std::set<std::uint32_t>& torrent_ids, jsmntok_t* args, char* buffer);
 
 		time_t m_start_time;
 		session& m_ses;

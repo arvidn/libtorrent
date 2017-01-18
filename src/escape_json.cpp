@@ -48,13 +48,13 @@ std::string escape_json(std::string const& input)
 {
 	if (input.empty()) return "";
 
-	std::vector<boost::uint32_t> wide;
+	std::vector<std::uint32_t> wide;
 	wide.resize(input.size());
 	static iconv_t iconv_handle = iconv_open("UTF-32", "UTF-8");
 	if (iconv_handle == iconv_t(-1)) return "(iconv error)";
 
 	size_t insize = input.size();
-	size_t outsize = insize * sizeof(boost::uint32_t);
+	size_t outsize = insize * sizeof(std::uint32_t);
 	char const* in = input.c_str();
 	char* out = (char*)&wide[0];
 	size_t retval = iconv(iconv_handle, (char**)&in, &insize
@@ -63,10 +63,10 @@ std::string escape_json(std::string const& input)
 	if (insize != 0) return "(iconv error)";
 	if (outsize > input.size() * 4) return "(iconv error)";
 	TORRENT_ASSERT(wide.size() >= outsize);
-	wide.resize(wide.size() - outsize / sizeof(boost::uint32_t));
+	wide.resize(wide.size() - outsize / sizeof(std::uint32_t));
 
 	std::string ret;
-	for (std::vector<boost::uint32_t>::const_iterator s = wide.begin(); s != wide.end(); ++s)
+	for (std::vector<std::uint32_t>::const_iterator s = wide.begin(); s != wide.end(); ++s)
 	{
 		if (*s > 0x1f && *s < 0x80 && *s != '"' && *s != '\\')
 		{
@@ -87,7 +87,7 @@ std::string escape_json(std::string const& input)
 				default:
 				{
 					char buf[20];
-					snprintf(buf, sizeof(buf), "u%04x", boost::uint16_t(*s));
+					snprintf(buf, sizeof(buf), "u%04x", std::uint16_t(*s));
 					ret += buf;
 				}
 			}

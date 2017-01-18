@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	boost::int64_t free_disk_space(std::string const& path);
+	std::int64_t free_disk_space(std::string const& path);
 }
 
 #endif // TORRENT_DISK_SPACE_HPP

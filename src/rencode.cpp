@@ -88,7 +88,7 @@ renc_type_t rtok_t::type() const
 	return type_integer;
 }
 
-boost::int64_t rtok_t::integer(char const* buffer) const
+std::int64_t rtok_t::integer(char const* buffer) const
 {
 	if (type() == type_float)
 		return int(floating_point(buffer));
@@ -158,13 +158,13 @@ double rtok_t::floating_point(char const* buffer) const
 	char const* cursor = &buffer[m_offset];
 	if (m_typecode == CHR_FLOAT32)
 	{
-		boost::uint32_t ret = io::read_uint32(cursor);
+		std::uint32_t ret = io::read_uint32(cursor);
 		return *reinterpret_cast<float*>(&ret);
 	}
 
 	if (m_typecode == CHR_FLOAT64)
 	{
-		boost::uint64_t ret = io::read_uint64(cursor);
+		std::uint64_t ret = io::read_uint64(cursor);
 		return *reinterpret_cast<double*>(&ret);
 	}
 	return 0.0;
@@ -193,7 +193,7 @@ int decode_token(char const* buffer, char const*& cursor, rtok_t* tokens, int nu
 	tokens->m_num_items = 0;
 
 	// cursor is progressed one byte by this call
-	boost::uint8_t code = io::read_uint8(cursor);
+	std::uint8_t code = io::read_uint8(cursor);
 	tokens->m_typecode = code;
 
 	// a token should never start with a terminator
@@ -440,7 +440,7 @@ std::string find_string(rtok_t* tokens, char* buf, char const* key, bool* found)
 	return k->string(buf);
 }
 
-boost::int64_t find_int(rtok_t* tokens, char* buf, char const* key, bool* found)
+std::int64_t find_int(rtok_t* tokens, char* buf, char const* key, bool* found)
 {
 	rtok_t* k = find_key(tokens, buf, key, type_integer);
 	if (k == NULL)
@@ -570,7 +570,7 @@ bool rencoder::append_dict(int size)
 	}
 }
 
-void rencoder::append_int(boost::int64_t i)
+void rencoder::append_int(std::int64_t i)
 {
 	if (i >= 0 && i < INT_POS_FIXED_COUNT)
 	{
@@ -619,7 +619,7 @@ void rencoder::append_float(float f)
 	union
 	{
 		float in;
-		boost::uint32_t out;
+		std::uint32_t out;
 	};
 
 	in = f;

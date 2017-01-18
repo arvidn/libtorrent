@@ -51,7 +51,7 @@ int load_file(std::string const& filename, std::vector<char>& v, error_code& ec,
 	ec.clear();
 	file f;
 	if (!f.open(filename, file::read_only, ec)) return -1;
-	boost::int64_t s = f.get_size(ec);
+	std::int64_t s = f.get_size(ec);
 	if (ec) return -1;
 	if (s > limit)
 	{
@@ -61,7 +61,7 @@ int load_file(std::string const& filename, std::vector<char>& v, error_code& ec,
 	v.resize(s);
 	if (s == 0) return 0;
 	file::iovec_t b = {&v[0], size_t(s) };
-	boost::int64_t read = f.readv(0, &b, 1, ec);
+	std::int64_t read = f.readv(0, &b, 1, ec);
 	if (read != s) return -3;
 	if (ec) return -3;
 	return 0;
@@ -73,7 +73,7 @@ int save_file(std::string const& filename, std::vector<char>& v, error_code& ec)
 	if (!f.open(filename, file::write_only, ec)) return -1;
 	if (ec) return -1;
 	file::iovec_t b = {&v[0], v.size()};
-	boost::int64_t written = f.writev(0, &b, 1, ec);
+	std::int64_t written = f.writev(0, &b, 1, ec);
 	if (written != int(v.size())) return -3;
 	if (ec) return -3;
 	return 0;

@@ -78,7 +78,7 @@ void return_error(mg_connection* conn, char const* msg)
 		"{ \"result\": \"%s\" }", int(16 + strlen(msg)), msg);
 }
 
-void return_failure(std::vector<char>& buf, char const* msg, boost::int64_t tag)
+void return_failure(std::vector<char>& buf, char const* msg, std::int64_t tag)
 {
 	buf.clear();
 	appendf(buf, "{ \"result\": \"%s\", \"tag\": %" PRId64 "}", msg, tag);
@@ -87,7 +87,7 @@ void return_failure(std::vector<char>& buf, char const* msg, boost::int64_t tag)
 struct method_handler
 {
 	char const* method_name;
-	void (transmission_webui::*fun)(std::vector<char>&, jsmntok_t* args, boost::int64_t tag
+	void (transmission_webui::*fun)(std::vector<char>&, jsmntok_t* args, std::int64_t tag
 		, char* buffer, permissions_interface const* p);
 };
 
@@ -127,7 +127,7 @@ void transmission_webui::handle_json_rpc(std::vector<char>& buf, jsmntok_t* toke
 		if (strcmp(m, handlers[i].method_name)) continue;
 
 		args = find_key(tokens, buffer, "arguments", JSMN_OBJECT);
-		boost::int64_t tag = find_int(tokens, buffer, "tag");
+		std::int64_t tag = find_int(tokens, buffer, "tag");
 		handled = true;
 
 		if (args) buffer[args->end] = 0;
@@ -141,7 +141,7 @@ void transmission_webui::handle_json_rpc(std::vector<char>& buf, jsmntok_t* toke
 }
 
 void transmission_webui::add_torrent(std::vector<char>& buf, jsmntok_t* args
-	, boost::int64_t tag, char* buffer, permissions_interface const* p)
+	, std::int64_t tag, char* buffer, permissions_interface const* p)
 {
 	if (!p->allow_add())
 	{
@@ -223,13 +223,13 @@ bool all_torrents(torrent_status const& s)
 	return true;
 }
 
-boost::uint32_t tracker_id(announce_entry const& ae)
+std::uint32_t tracker_id(announce_entry const& ae)
 {
 	sha1_hash urlhash = hasher(ae.url.c_str(), ae.url.size()).final();
 	return ae.tier
-		+ (boost::uint32_t(urlhash[0]) << 8)
-		+ (boost::uint32_t(urlhash[1]) << 16)
-		+ (boost::uint32_t(urlhash[2]) << 24);
+		+ (std::uint32_t(urlhash[0]) << 8)
+		+ (std::uint32_t(urlhash[1]) << 16)
+		+ (std::uint32_t(urlhash[2]) << 24);
 }
 
 int tracker_status(announce_entry const& ae, torrent_status const& ts)
@@ -303,7 +303,7 @@ int tr_file_priority(int prio)
 	return TR_PRI_NORMAL;
 }
 
-void transmission_webui::parse_ids(std::set<boost::uint32_t>& torrent_ids, jsmntok_t* args, char* buffer)
+void transmission_webui::parse_ids(std::set<std::uint32_t>& torrent_ids, jsmntok_t* args, char* buffer)
 {
 	jsmntok_t* ids_ent = find_key(args, buffer, "ids", JSMN_ARRAY);
 	if (ids_ent)
@@ -317,14 +317,14 @@ void transmission_webui::parse_ids(std::set<boost::uint32_t>& torrent_ids, jsmnt
 	}
 	else
 	{
-		boost::int64_t id = find_int(args, buffer, "ids");
+		std::int64_t id = find_int(args, buffer, "ids");
 		if (id == 0) return;
 		torrent_ids.insert(torrent_ids.begin(), id);
 	}
 }
 
 void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
-	, boost::int64_t tag, char* buffer, permissions_interface const* p)
+	, std::int64_t tag, char* buffer, permissions_interface const* p)
 {
 	if (!p->allow_list())
 	{
@@ -346,7 +346,7 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 		fields.insert(std::string(buffer + item->start, buffer + item->end));
 	}
 
-	std::set<boost::uint32_t> torrent_ids;
+	std::set<std::uint32_t> torrent_ids;
 	parse_ids(torrent_ids, args, buffer);
 
 	std::vector<torrent_status> t;
@@ -430,7 +430,7 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 		if (fields.count("files"))
 		{
 			file_storage const& files = ti->files();
-			std::vector<boost::int64_t> progress;
+			std::vector<std::int64_t> progress;
 			ts.handle.file_progress(progress);
 			appendf(buf, ", \"files\": [" + (count?0:2));
 			for (int i = 0; i < files.num_files(); ++i)
@@ -447,7 +447,7 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 		if (fields.count("fileStats"))
 		{
 			file_storage const& files = ti->files();
-			std::vector<boost::int64_t> progress;
+			std::vector<std::int64_t> progress;
 			ts.handle.file_progress(progress);
 			appendf(buf, ", \"fileStats\": [" + (count?0:2));
 			for (int i = 0; i < files.num_files(); ++i)
@@ -651,7 +651,7 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 }
 
 void transmission_webui::set_torrent(std::vector<char>& buf, jsmntok_t* args
-	, boost::int64_t tag, char* buffer, permissions_interface const* p)
+	, std::int64_t tag, char* buffer, permissions_interface const* p)
 {
 	if (!p->allow_set_settings(-1))
 	{
@@ -791,7 +791,7 @@ void transmission_webui::set_torrent(std::vector<char>& buf, jsmntok_t* args
 }
 
 void transmission_webui::start_torrent(std::vector<char>& buf, jsmntok_t* args
-	, boost::int64_t tag, char* buffer, permissions_interface const* p)
+	, std::int64_t tag, char* buffer, permissions_interface const* p)
 {
 	if (!p->allow_start())
 	{
@@ -812,7 +812,7 @@ void transmission_webui::start_torrent(std::vector<char>& buf, jsmntok_t* args
 }
 
 void transmission_webui::start_torrent_now(std::vector<char>& buf, jsmntok_t* args
-	, boost::int64_t tag, char* buffer, permissions_interface const* p)
+	, std::int64_t tag, char* buffer, permissions_interface const* p)
 {
 	if (!p->allow_start())
 	{
@@ -833,7 +833,7 @@ void transmission_webui::start_torrent_now(std::vector<char>& buf, jsmntok_t* ar
 }
 
 void transmission_webui::stop_torrent(std::vector<char>& buf, jsmntok_t* args
-	, boost::int64_t tag, char* buffer, permissions_interface const* p)
+	, std::int64_t tag, char* buffer, permissions_interface const* p)
 {
 	if (!p->allow_stop())
 	{
@@ -854,7 +854,7 @@ void transmission_webui::stop_torrent(std::vector<char>& buf, jsmntok_t* args
 }
 
 void transmission_webui::verify_torrent(std::vector<char>& buf, jsmntok_t* args
-	, boost::int64_t tag, char* buffer, permissions_interface const* p)
+	, std::int64_t tag, char* buffer, permissions_interface const* p)
 {
 	if (!p->allow_recheck())
 	{
@@ -874,7 +874,7 @@ void transmission_webui::verify_torrent(std::vector<char>& buf, jsmntok_t* args
 }
 
 void transmission_webui::reannounce_torrent(std::vector<char>& buf, jsmntok_t* args
-	, boost::int64_t tag, char* buffer, permissions_interface const* p)
+	, std::int64_t tag, char* buffer, permissions_interface const* p)
 {
 	if (!p->allow_start())
 	{
@@ -894,7 +894,7 @@ void transmission_webui::reannounce_torrent(std::vector<char>& buf, jsmntok_t* a
 }
 
 void transmission_webui::remove_torrent(std::vector<char>& buf, jsmntok_t* args
-	, boost::int64_t tag, char* buffer, permissions_interface const* p)
+	, std::int64_t tag, char* buffer, permissions_interface const* p)
 {
 	if (!p->allow_remove())
 	{
@@ -916,7 +916,7 @@ void transmission_webui::remove_torrent(std::vector<char>& buf, jsmntok_t* args
 }
 
 void transmission_webui::session_stats(std::vector<char>& buf, jsmntok_t* args
-	, boost::int64_t tag, char* buffer, permissions_interface const* p)
+	, std::int64_t tag, char* buffer, permissions_interface const* p)
 {
 	if (!p->allow_session_status())
 	{
@@ -968,7 +968,7 @@ void transmission_webui::session_stats(std::vector<char>& buf, jsmntok_t* args
 }
 
 void transmission_webui::get_session(std::vector<char>& buf, jsmntok_t* args
-	, boost::int64_t tag, char* buffer, permissions_interface const* p)
+	, std::int64_t tag, char* buffer, permissions_interface const* p)
 {
 	if (!p->allow_get_settings(-1))
 	{
@@ -1040,7 +1040,7 @@ void transmission_webui::get_session(std::vector<char>& buf, jsmntok_t* args
 	);
 }
 
-void transmission_webui::set_session(std::vector<char>& buf, jsmntok_t* args, boost::int64_t tag
+void transmission_webui::set_session(std::vector<char>& buf, jsmntok_t* args, std::int64_t tag
 	, char* buffer, permissions_interface const* p)
 {
 	settings_pack pack;
@@ -1252,7 +1252,7 @@ void transmission_webui::get_torrents(std::vector<torrent_handle>& handles, jsmn
 {
 	std::vector<torrent_handle> h = m_ses.get_torrents();
 
-	std::set<boost::uint32_t> torrent_ids;
+	std::set<std::uint32_t> torrent_ids;
 	parse_ids(torrent_ids, args, buffer);
 
 	if (torrent_ids.empty())

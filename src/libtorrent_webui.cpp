@@ -193,8 +193,8 @@ namespace libtorrent
 	{
 		if (st->len < 12) return error(st, truncated_message);
 
-		boost::uint32_t frame = io::read_uint32(st->data);
-		boost::uint64_t user_mask = io::read_uint64(st->data);
+		std::uint32_t frame = io::read_uint32(st->data);
+		std::uint64_t user_mask = io::read_uint64(st->data);
 		st->len -= 12;
 
 		std::vector<torrent_history_entry> torrents;
@@ -224,7 +224,7 @@ namespace libtorrent
 		for (std::vector<torrent_history_entry>::iterator i = torrents.begin()
 			, end(torrents.end()); i != end; ++i)
 		{
-			boost::uint64_t bitmask = 0;
+			std::uint64_t bitmask = 0;
 
 			// look at which fields actually have a newer frame number
 			// than the caller. Don't return fields that haven't changed.
@@ -261,7 +261,7 @@ namespace libtorrent
 				{
 					case 0: // flags
 					{
-						boost::uint64_t flags = 
+						std::uint64_t flags = 
 							(s.paused ? 0x001 : 0)
 							| (s.auto_managed ? 0x002 : 0)
 							| (s.sequential_download ? 0x004 : 0)
@@ -722,7 +722,7 @@ namespace libtorrent
 	{
 		char* iptr = st->data;
 		if (st->len < 6) return error(st, invalid_number_of_args);
-		boost::uint32_t frame = io::read_uint32(iptr);
+		std::uint32_t frame = io::read_uint32(iptr);
 		int num_stats = io::read_uint16(iptr);
 		st->len -= 6;
 
@@ -748,11 +748,11 @@ namespace libtorrent
 		++m_stats_frame;
 		io::write_uint32(m_stats_frame, ptr);
 
-		boost::uint64_t* stats = ss->values;
+		std::uint64_t* stats = ss->values;
 
 		if (m_stats.size() < counters::num_counters)
 			m_stats.resize(counters::num_counters
-				, std::pair<boost::uint64_t, boost::uint32_t>(0, 0));
+				, std::pair<std::uint64_t, std::uint32_t>(0, 0));
 
 		// we'll fill in the counter later
 		int counter_pos = response.size();
@@ -795,7 +795,7 @@ namespace libtorrent
 		sha1_hash ih;
 		std::copy(iptr, iptr+20, &ih[0]);
 		iptr += 20;
-		boost::uint32_t frame = io::read_uint32(iptr);
+		std::uint32_t frame = io::read_uint32(iptr);
 
 		torrent_handle h = m_ses.find_torrent(ih);
 		if (!h.is_valid()) return error(st, invalid_argument);
@@ -807,7 +807,7 @@ namespace libtorrent
 		io::write_uint16(st->transaction_id, ptr);
 		io::write_uint8(no_error, ptr);
 
-		std::vector<boost::int64_t> fp;
+		std::vector<std::int64_t> fp;
 		h.file_progress(fp, torrent_handle::piece_granularity);
 
 		shared_ptr<const torrent_info> t = h.torrent_file();
@@ -830,7 +830,7 @@ namespace libtorrent
 		{
 			if ((i % 8) == 0)
 			{
-				boost::uint8_t mask = 0xff;
+				std::uint8_t mask = 0xff;
 				if (fs.num_files() - i < 8)
 					mask <<= 8 - fs.num_files() + i;
 				io::write_uint8(mask, ptr);
@@ -969,7 +969,7 @@ namespace libtorrent
 		io::write_uint8(function, ptr);
 
 		// transaction id
-		boost::uint16_t tid = m_transaction_id++;
+		std::uint16_t tid = m_transaction_id++;
 		io::write_uint16(tid, ptr);
 
 		if (len > 0) memcpy(ptr, data, len);

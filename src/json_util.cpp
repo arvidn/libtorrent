@@ -82,7 +82,7 @@ char const* find_string(jsmntok_t* tokens, char* buf, char const* key, bool* fou
 	return buf + k->start;
 }
 
-boost::int64_t find_int(jsmntok_t* tokens, char* buf, char const* key, bool* found)
+std::int64_t find_int(jsmntok_t* tokens, char* buf, char const* key, bool* found)
 {
 	jsmntok_t* k = find_key(tokens, buf, key, JSMN_PRIMITIVE);
 	if (k == NULL)

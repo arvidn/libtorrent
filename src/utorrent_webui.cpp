@@ -93,7 +93,7 @@ utorrent_webui::utorrent_webui(session& s, save_settings_interface* sett
 	m_start_time = time(NULL);
 	m_version = 1;
 
-	boost::uint64_t seed = time_now_hires().time_since_epoch().count();
+	std::uint64_t seed = time_now_hires().time_since_epoch().count();
 	m_token = to_hex(hasher((char const*)&seed, sizeof(seed)).final().to_string());
 
 	m_params_model.save_path = ".";
@@ -546,21 +546,21 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args
 		if (!p->allow_get_settings(s)) continue;
 
 		char const* sname;
-		boost::int64_t value;
+		std::int64_t value;
 		if (s == settings_pack::cache_size)
 		{
 			sname = "cache.override_size";
-			value = boost::int64_t(sett.get_int(s)) * 16 / 1024;
+			value = std::int64_t(sett.get_int(s)) * 16 / 1024;
 		}
 		else if (s == settings_pack::upload_rate_limit)
 		{
 			sname = "max_ul_rate";
-			value = boost::int64_t(sett.get_int(s)) / 1024;
+			value = std::int64_t(sett.get_int(s)) / 1024;
 		}
 		else if (s == settings_pack::download_rate_limit)
 		{
 			sname = "max_dl_rate";
-			value = boost::int64_t(sett.get_int(s)) / 1024;
+			value = std::int64_t(sett.get_int(s)) / 1024;
 		}
 		else if (s == settings_pack::connections_limit)
 		{
@@ -870,7 +870,7 @@ void utorrent_webui::send_file_list(std::vector<char>& response, char const* arg
 	std::vector<torrent_status> t = parse_torrents(args);
 	appendf(response, ",\"files\":[");
 	int first = 1;
-	std::vector<boost::int64_t> progress;
+	std::vector<std::int64_t> progress;
 	std::vector<int> file_prio;
 	for (std::vector<torrent_status>::iterator i = t.begin()
 		, end(t.end()); i != end; ++i)

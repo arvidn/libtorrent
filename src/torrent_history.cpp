@@ -276,9 +276,9 @@ namespace libtorrent
 
 	char const* fmt(std::string const& s) { return s.c_str(); }
 	float fmt(float v) { return v; }
-	boost::int64_t fmt(bool v) { return v; }
+	std::int64_t fmt(bool v) { return v; }
 	template <class T>
-	boost::int64_t fmt(T v) { return boost::uint64_t(v); }
+	std::int64_t fmt(T v) { return std::uint64_t(v); }
 
 	void torrent_history_entry::debug_print(int current_frame) const
 	{

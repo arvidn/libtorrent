@@ -430,7 +430,7 @@ void deluge::handle_get_free_space(conn_state* st)
 	
 	// [ RPC_RESPONSE, req-id, [free-bytes] ]
 
-	boost::int64_t ret = free_disk_space(path);
+	std::int64_t ret = free_disk_space(path);
 	if (ret < 0)
 	{
 		output_error(id, "InvalidPathError", out);
@@ -572,7 +572,7 @@ void deluge::handle_get_torrents_status(conn_state* st)
 	rtok_t const* keys = skip_item(filter_dict);
 	rtok_t const* diff = skip_item(keys);
 
-	boost::uint64_t key_mask = 0;
+	std::uint64_t key_mask = 0;
 	int num_keys = keys->num_items();
 	int num_invalid_keys = 0;
 

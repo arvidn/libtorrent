@@ -34,6 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_JSON_UTIL_HPP_
 #define TORRENT_JSON_UTIL_HPP_
 
+#include <cstdint>
+
 extern "C" {
 #include "jsmn.h"
 }
@@ -45,7 +47,7 @@ namespace libtorrent {
 jsmntok_t* skip_item(jsmntok_t* i);
 jsmntok_t* find_key(jsmntok_t* tokens, char* buf, char const* key, int type);
 char const* find_string(jsmntok_t* tokens, char* buf, char const* key, bool* found = NULL);
-boost::int64_t find_int(jsmntok_t* tokens, char* buf, char const* key, bool* found = NULL);
+std::int64_t find_int(jsmntok_t* tokens, char* buf, char const* key, bool* found = NULL);
 bool find_bool(jsmntok_t* tokens, char* buf, char const* key);
 
 }

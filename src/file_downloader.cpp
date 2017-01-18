@@ -113,8 +113,8 @@ namespace libtorrent
 			memset(progress, '#', sizeof(progress));
 			memset(invprogress, '.', sizeof(invprogress));
 
-			int start = (std::min)(start_offset * progress_width / file_size, boost::uint64_t(progress_width) - 1);
-			int progress_range = (std::max)(boost::uint64_t(1), request_size * progress_width / file_size);
+			int start = (std::min)(start_offset * progress_width / file_size, std::uint64_t(progress_width) - 1);
+			int progress_range = (std::max)(std::uint64_t(1), request_size * progress_width / file_size);
 			int e = (start_offset + request_size) * progress_width / file_size;
 			int pos = request_size == 0 ? 0 : bytes_sent * progress_range / request_size;
 			int pos_end = progress_range - pos;
@@ -135,10 +135,10 @@ namespace libtorrent
 
 		const ptime start_time;
 		const std::string file;
-		boost::uint64_t request_size;
-		boost::uint64_t file_size;
-		boost::uint64_t start_offset;
-		boost::uint64_t bytes_sent;
+		std::uint64_t request_size;
+		std::uint64_t file_size;
+		std::uint64_t start_offset;
+		std::uint64_t bytes_sent;
 		int piece;
 		int state;
 
@@ -306,9 +306,9 @@ namespace libtorrent
 			return true;
 		}
 
-		boost::int64_t file_size = ti.files().file_size(file);
-		boost::int64_t range_first_byte = 0;
-		boost::int64_t range_last_byte = file_size - 1;
+		std::int64_t file_size = ti.files().file_size(file);
+		std::int64_t range_first_byte = 0;
+		std::int64_t range_last_byte = file_size - 1;
 		bool range_request = false;
 
 		char const* range = mg_get_header(conn, "range");
@@ -339,7 +339,7 @@ namespace libtorrent
 		int piece_size = ti.piece_length();
 		int first_piece = req.piece;
 		int end_piece = ti.map_file(file, range_last_byte, 0).piece + 1;
-		boost::uint64_t offset = req.start;
+		std::uint64_t offset = req.start;
 
 		if (range_request && (range_first_byte > range_last_byte
 			|| range_last_byte >= file_size
@@ -392,7 +392,7 @@ namespace libtorrent
 		}
 		r.state = request_t::waiting_for_libtorrent;
 
-		boost::int64_t left_to_send = range_last_byte - range_first_byte + 1;
+		std::int64_t left_to_send = range_last_byte - range_first_byte + 1;
 //		printf("left_to_send: %" PRId64 " bytes\n", left_to_send);
 
 		// increase the priority of this range to 5
@@ -461,7 +461,7 @@ namespace libtorrent
 			}
 
 			int ret = -1;
-			int amount_to_send = (std::min)(boost::int64_t(pe.size - offset), left_to_send);
+			int amount_to_send = (std::min)(std::int64_t(pe.size - offset), left_to_send);
 //			fprintf(stderr, "[%p] amount_to_send: 0x%x bytes [p: %d] [l: %" PRId64 "]\n"
 //				, &r, amount_to_send, pq.finish - i, left_to_send);
 

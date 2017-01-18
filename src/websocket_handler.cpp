@@ -55,21 +55,21 @@ namespace libtorrent
 
 		// header
 		int header_len = 2;
-		boost::uint8_t h[20];
+		std::uint8_t h[20];
 		h[0] = 0x80 | (type & 0xf);
 		if (len < 126)
 			h[1] = len;
 		else if (len < 65536)
 		{
 			h[1] = 126;
-			boost::uint8_t* ptr = &h[2];
+			std::uint8_t* ptr = &h[2];
 			io::write_uint16(len, ptr);
 			header_len = 4;
 		}
 		else
 		{
 			h[1] = 127;
-			boost::uint8_t* ptr = &h[2];
+			std::uint8_t* ptr = &h[2];
 			io::write_uint64(len, ptr);
 			header_len = 10;
 		}

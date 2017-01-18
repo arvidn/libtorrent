@@ -57,7 +57,7 @@ struct rtok_t
 
 	renc_type_t type() const;
 	// parse out the value of an integer
-	boost::int64_t integer(char const* buffer) const;
+	std::int64_t integer(char const* buffer) const;
 	// parse out the value of a string
 	std::string string(char const* buffer) const;
 	bool boolean(char const* buffer) const;
@@ -65,10 +65,10 @@ struct rtok_t
 	int num_items() const { return m_num_items; }
 private:
 	int m_offset;
-	boost::uint8_t m_typecode;
+	std::uint8_t m_typecode;
 	// for dicts, this is the number of key-value pairs
 	// for lists, this is the number of elements
-	boost::uint16_t m_num_items;
+	std::uint16_t m_num_items;
 };
 
 int rdecode(rtok_t* tokens, int num_tokens, char const* buffer, int len);
@@ -80,7 +80,7 @@ inline rtok_t const* skip_item(rtok_t const* i) { return skip_item((rtok_t*)i); 
 
 rtok_t* find_key(rtok_t* tokens, char* buf, char const* key, int type);
 std::string find_string(rtok_t* tokens, char* buf, char const* key, bool* found);
-boost::int64_t find_int(rtok_t* tokens, char* buf, char const* key, bool* found);
+std::int64_t find_int(rtok_t* tokens, char* buf, char const* key, bool* found);
 bool find_bool(rtok_t* tokens, char* buf, char const* key);
 
 bool validate_structure(rtok_t const* tokens, char const* fmt);
@@ -89,7 +89,7 @@ struct rencoder
 {
 	bool append_list(int size = -1);
 	bool append_dict(int size = -1);
-	void append_int(boost::int64_t i);
+	void append_int(std::int64_t i);
 	void append_float(float f);
 	void append_none();
 	void append_bool(bool b);
