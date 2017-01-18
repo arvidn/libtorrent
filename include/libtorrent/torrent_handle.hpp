@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 
 #include <boost/shared_ptr.hpp>
+#include <boost/make_shared.hpp>
 #include <boost/function.hpp>
 #include <boost/weak_ptr.hpp>
 #include <boost/cstdint.hpp>
@@ -81,6 +82,9 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 	void throw_invalid_handle() TORRENT_NO_RETURN;
 #endif
+
+	using boost::shared_ptr;
+	using boost::make_shared;
 
 	// holds the state of a block in a piece. Who we requested
 	// it from and how far along we are at downloading it.
@@ -896,7 +900,7 @@ namespace libtorrent
 		// without metadata only if it was started without a .torrent file, e.g.
 		// by using the libtorrent extension of just supplying a tracker and
 		// info-hash.
-		boost::shared_ptr<const torrent_info> torrent_file() const;
+		shared_ptr<const torrent_info> torrent_file() const;
 
 #ifndef TORRENT_NO_DEPRECATE
 
