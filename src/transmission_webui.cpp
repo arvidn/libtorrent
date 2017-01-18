@@ -38,12 +38,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "auth.hpp"
 #include "no_auth.hpp"
 
-#include <string.h> // for strcmp() 
+#include <string.h> // for strcmp()
 #include <stdio.h>
 #include <vector>
 #include <map>
-#include <boost/shared_ptr.hpp>
-#include <boost/make_shared.hpp>
 #include <boost/cstdint.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/asio/error.hpp>
@@ -180,7 +178,7 @@ void transmission_webui::add_torrent(std::vector<char>& buf, jsmntok_t* args
 	else if (!url.empty())
 	{
 		error_code ec;
-		boost::shared_ptr<torrent_info> ti = boost::make_shared<torrent_info>(url, boost::ref(ec), 0);
+		shared_ptr<torrent_info> ti = libtorrent::make_shared<torrent_info>(url, std::ref(ec), 0);
 		if (ec)
 		{
 			return_failure(buf, ec.message().c_str(), tag);
@@ -192,7 +190,7 @@ void transmission_webui::add_torrent(std::vector<char>& buf, jsmntok_t* args
 	{
 		std::string metainfo = base64decode(find_string(args, buffer, "metainfo"));
 		error_code ec;
-		boost::shared_ptr<torrent_info> ti = boost::make_shared<torrent_info>(&metainfo[0], metainfo.size(), boost::ref(ec), 0);
+		shared_ptr<torrent_info> ti = libtorrent::make_shared<torrent_info>(&metainfo[0], metainfo.size(), std::ref(ec), 0);
 		if (ec)
 		{
 			return_failure(buf, ec.message().c_str(), tag);
@@ -200,7 +198,7 @@ void transmission_webui::add_torrent(std::vector<char>& buf, jsmntok_t* args
 		}
 		params.ti = ti;
 	}
-	
+
 	error_code ec;
 	torrent_handle h = m_ses.add_torrent(params);
 	if (ec)

@@ -37,7 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/extensions.hpp"
-#include <mutex>
 #include "libtorrent/peer_id.hpp" // for sha1_hash
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/torrent.hpp"
@@ -46,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_array.hpp>
 #include <map>
 #include <queue>
+#include <mutex>
 
 extern "C" {
 #include "local_mongoose.h"
@@ -159,7 +159,7 @@ namespace libtorrent
 
 			std::unique_lock<std::mutex> l(m_mutex);
 			typedef std::multimap<sha1_hash, torrent_piece_queue*>::iterator iter;
-			boost::shared_ptr<torrent> t = p->handle.native_handle();
+			shared_ptr<torrent> t = p->handle.native_handle();
 
 			std::pair<iter, iter> range = m_torrents.equal_range(t->info_hash());
 			if (range.first == m_torrents.end()) return;
@@ -230,7 +230,7 @@ namespace libtorrent
 
 		std::mutex m_mutex;
 		std::multimap<sha1_hash, torrent_piece_queue*> m_torrents;
-	
+
 	};
 
 	file_downloader::file_downloader(session& s, auth_interface const* auth)
@@ -248,7 +248,7 @@ namespace libtorrent
 			m_auth = &n;
 		}
 
-		m_ses.add_extension(boost::static_pointer_cast<plugin>(m_dispatch));
+		m_ses.add_extension(boost::static_pointer_cast<libtorrent::plugin>(m_dispatch));
 	}
 
 	bool file_downloader::handle_http(mg_connection* conn,

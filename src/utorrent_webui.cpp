@@ -37,12 +37,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "no_auth.hpp"
 #include "disk_space.hpp"
 
-#include <string.h> // for strcmp() 
+#include <string.h> // for strcmp()
 #include <stdio.h>
 #include <vector>
 #include <map>
-#include <boost/shared_ptr.hpp>
-#include <boost/make_shared.hpp>
 #include <boost/cstdint.hpp>
 
 extern "C" {
@@ -879,7 +877,7 @@ void utorrent_webui::send_file_list(std::vector<char>& response, char const* arg
 	{
 		i->handle.file_progress(progress);
 		file_prio = i->handle.file_priorities();
-		boost::shared_ptr<const torrent_info> ti = i->torrent_file.lock();
+		shared_ptr<const torrent_info> ti = i->torrent_file.lock();
 		if (!ti || !ti->is_valid()) continue;
 		file_storage const& files = ti->files();
 
@@ -965,7 +963,7 @@ void utorrent_webui::get_properties(std::vector<char>& response, char const* arg
 		, end(t.end()); i != end; ++i)
 	{
 		torrent_status const& st = *i;
-		boost::shared_ptr<const torrent_info> ti = st.torrent_file.lock();
+		shared_ptr<const torrent_info> ti = st.torrent_file.lock();
 		appendf(response, ",{\"hash\":\"%s\","
 			"\"trackers\":\"%s\","
 			"\"ulrate\":%d,"
@@ -1063,7 +1061,7 @@ void utorrent_webui::send_peer_list(std::vector<char>& response, char const* arg
 	for (std::vector<torrent_status>::iterator i = torrents.begin()
 		, end(torrents.end()); i != end; ++i)
 	{
-		boost::shared_ptr<const torrent_info> ti = i->torrent_file.lock();
+		shared_ptr<const torrent_info> ti = i->torrent_file.lock();
 		if (!ti || !ti->is_valid()) continue;
 
 		appendf(response, ",\"%s\",[" + first
@@ -1358,7 +1356,7 @@ void utorrent_webui::send_torrent_list(std::vector<char>& response, char const* 
 	for (std::vector<torrent_status>::iterator i = torrents.begin()
 		, end(torrents.end()); i != end; ++i)
 	{
-		boost::shared_ptr<const torrent_info> ti = i->torrent_file.lock();
+		shared_ptr<const torrent_info> ti = i->torrent_file.lock();
 		appendf(response, ",[\"%s\",%d,\"%s\",%" PRId64 ",%d,%" PRId64 ",%" PRId64 ",%f,%d,%d,%d,\"%s\",%d,%d,%d,%d,%d,%d,%" PRId64 "" + first
 			, to_hex(i->info_hash.to_string()).c_str()
 			, utorrent_status(*i)

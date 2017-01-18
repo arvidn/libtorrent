@@ -51,7 +51,7 @@ namespace libtorrent
 	private:
 
 		// all currently alive web sockets
-		std::map<mg_connection*, boost::shared_ptr<std::mutex> > m_open_sockets;
+		std::map<mg_connection*, std::shared_ptr<std::mutex> > m_open_sockets;
 
 		// for now, serialize all access
 		std::mutex m_mutex;

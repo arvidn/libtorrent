@@ -56,18 +56,18 @@ void file_requests::on_alert(alert const* a)
 	read_piece_alert const* p = alert_cast<read_piece_alert>(a);
 	if (p)
 	{
-		boost::shared_ptr<torrent> t = p->handle.native_handle();
-        
+		shared_ptr<torrent> t = p->handle.native_handle();
+
 		piece_request rq;
 		rq.info_hash = t->info_hash();
 		rq.piece = p->piece;
 		typedef requests_t::iterator iter;
-        
+
 		DLOG("read_piece_alert: %d (%s)\n", p->piece, p->ec.message().c_str());
 		std::unique_lock<std::mutex> l(m_mutex);
 		std::pair<iter, iter> range = m_requests.equal_range(rq);
 		if (range.first == m_requests.end()) return;
-        
+
 		piece_entry pe;
 		pe.buffer = p->buffer;
 		pe.piece = p->piece;
@@ -79,7 +79,7 @@ void file_requests::on_alert(alert const* a)
 				++m_next_timeout;
 		}
 		m_requests.erase(range.first, range.second);
-		
+
 		DLOG("outstanding requests: ");
 		for (iter i = m_requests.begin(); i != m_requests.end(); ++i)
 		{
@@ -94,18 +94,18 @@ void file_requests::on_alert(alert const* a)
 	if (pf)
 	{
 		DLOG("piece_finished: %d\n", pf->piece_index);
-		boost::shared_ptr<torrent> t = pf->handle.native_handle();
+		libtorrent::shared_ptr<torrent> t = pf->handle.native_handle();
 		piece_request rq;
 		rq.info_hash = t->info_hash();
 		rq.piece = pf->piece_index;
 		typedef requests_t::iterator iter;
 		m_have_pieces[rq.info_hash].insert(pf->piece_index);
-        
+
 		std::unique_lock<std::mutex> l(m_mutex);
 		std::pair<iter, iter> range = m_requests.equal_range(rq);
 		if (range.first == m_requests.end()) return;
 		l.unlock();
-		
+
 		DLOG("read_piece: %d\n", pf->piece_index);
 		pf->handle.read_piece(pf->piece_index);
 		return;

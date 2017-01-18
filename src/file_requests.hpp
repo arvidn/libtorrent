@@ -70,7 +70,7 @@ private:
 	{
 		sha1_hash info_hash;
 		int piece;
-		boost::shared_ptr<boost::promise<piece_entry> > promise;
+		std::shared_ptr<boost::promise<piece_entry> > promise;
 		libtorrent::ptime timeout;
 		bool operator==(piece_request const& rq) const
 		{ return rq.info_hash == info_hash && rq.piece == piece; }

@@ -81,7 +81,7 @@ private:
 	std::vector<alert_observer*> m_observers[num_alert_types];
 
 	mutable std::mutex m_mutex;
-	typedef boost::shared_ptr<boost::promise<alert*> > promise_t;
+	typedef std::shared_ptr<boost::promise<alert*> > promise_t;
 	mutable std::deque<promise_t> m_promises[num_alert_types];
 
 	// when set to true, all outstanding (boost::future-based) subscriptions

@@ -33,7 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "auto_load.hpp"
 
 #include <functional>
-#include <boost/make_shared.hpp>
 
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/torrent_info.hpp"
@@ -188,7 +187,7 @@ void auto_load::on_scan(error_code const& e)
 
 		error_code tec;
 		std::string file_path = combine_path(path, dir.file());
-		boost::shared_ptr<torrent_info> ti = boost::make_shared<torrent_info>(file_path, boost::ref(tec));
+		shared_ptr<torrent_info> ti = libtorrent::make_shared<torrent_info>(file_path, boost::ref(tec));
 
 		// assume the file isn't fully written yet.
 		if (tec) continue;

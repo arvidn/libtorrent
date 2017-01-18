@@ -157,7 +157,7 @@ namespace libtorrent
 			return promise.get_future();
 		}
 
-		m_promises[cat].push_back(boost::make_shared<boost::promise<alert*> >());
+		m_promises[cat].push_back(std::make_shared<boost::promise<alert*> >());
 		// TODO: enable this alert in the alert mask in m_ses
 		return m_promises[cat].back()->get_future();
 	}

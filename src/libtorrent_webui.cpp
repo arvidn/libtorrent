@@ -84,7 +84,7 @@ namespace libtorrent
 		bool (libtorrent_webui::*handler)(libtorrent_webui::conn_state*);
 	};
 
-	rpc_entry functions[] =
+	rpc_entry const functions[] =
 	{
 		{ "get-torrent-updates", &libtorrent_webui::get_torrent_updates },
 		{ "start", &libtorrent_webui::start },
@@ -110,7 +110,7 @@ namespace libtorrent
 
 	// maps torrent field to RPC field. These fields are the ones defined in
 	// torrent_history_entry
-	int torrent_field_map[] =
+	int const torrent_field_map[] =
 	{
 		20, // state
 		0, // paused
@@ -810,7 +810,7 @@ namespace libtorrent
 		std::vector<boost::int64_t> fp;
 		h.file_progress(fp, torrent_handle::piece_granularity);
 
-		boost::shared_ptr<const torrent_info> t = h.torrent_file();
+		shared_ptr<const torrent_info> t = h.torrent_file();
 		if (!t) return error(st, resource_not_found);
 
 		file_storage const& fs = t->files();
@@ -820,7 +820,7 @@ namespace libtorrent
 
 		// frame number
 		io::write_uint32(0, ptr);
-		
+
 		// number of files
 		io::write_uint32(fs.num_files(), ptr);
 
