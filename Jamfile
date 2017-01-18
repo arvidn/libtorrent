@@ -11,7 +11,6 @@ use-project /torrent : ../libtorrent ;
 lib sqlite : : <name>sqlite3 <search>/opt/local/lib : <include>/opt/local/include ;
 lib cdk : : <name>cdk <search>/opt/local/lib : <include>/opt/local/include ;
 lib curses : : <name>curses <search>/opt/local/lib : <include>/opt/local/include ;
-lib boost_thread : : <name>boost_thread ;
 lib libiconv : : <name>iconv <link>shared <search>/usr/local/lib ;
 
 if $(BOOST_ROOT)
@@ -57,7 +56,6 @@ lib torrent-webui
 	<library>/torrent//torrent/<crypto>openssl
 	<library>zlib
 	<library>sqlite
-	<library>/boost/thread//boost_thread
 	<library>libiconv
 	<pam>on:<library>pam
 	<pam>on:<source>src/pam_auth.cpp

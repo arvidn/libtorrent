@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define FILE_REQUESTS_HPP_
 
 #include <boost/shared_array.hpp>
-#include <boost/thread/future.hpp>
+#include <future>
 #include <set>
 #include <boost/functional/hash.hpp>
 
@@ -61,7 +61,7 @@ struct file_requests : libtorrent::plugin
 	file_requests();
 	void on_alert(libtorrent::alert const* a);
 	void on_tick();
-	boost::shared_future<piece_entry> read_piece(libtorrent::torrent_handle const& h
+	std::shared_future<piece_entry> read_piece(libtorrent::torrent_handle const& h
 		, int piece, int timeout_ms);
 
 private:
@@ -70,7 +70,7 @@ private:
 	{
 		sha1_hash info_hash;
 		int piece;
-		std::shared_ptr<boost::promise<piece_entry> > promise;
+		std::shared_ptr<std::promise<piece_entry> > promise;
 		libtorrent::ptime timeout;
 		bool operator==(piece_request const& rq) const
 		{ return rq.info_hash == info_hash && rq.piece == piece; }

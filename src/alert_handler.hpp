@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 #include <mutex>
 #include <deque>
-#include <boost/thread/future.hpp>
+#include <future>
 
 namespace libtorrent
 {
@@ -68,7 +68,7 @@ struct TORRENT_EXPORT alert_handler
 
 	// the future may return NULL if the alert_handler is aborted.
 	template <class T>
-	boost::unique_future<alert*> subscribe()
+	std::future<alert*> subscribe()
 	{
 		return subscribe_impl(T::alert_type);
 	}
@@ -78,15 +78,15 @@ struct TORRENT_EXPORT alert_handler
 private:
 
 	void subscribe_impl(int const* type_list, int num_types, alert_observer* o, int flags);
-	boost::unique_future<alert*> subscribe_impl(int cat);
+	std::future<alert*> subscribe_impl(int cat);
 
 	std::vector<alert_observer*> m_observers[num_alert_types];
 
 	mutable std::mutex m_mutex;
-	typedef std::shared_ptr<boost::promise<alert*> > promise_t;
+	using promise_t = std::shared_ptr<std::promise<alert*> >;
 	mutable std::deque<promise_t> m_promises[num_alert_types];
 
-	// when set to true, all outstanding (boost::future-based) subscriptions
+	// when set to true, all outstanding (std::future-based) subscriptions
 	// are cancelled, and new such subscriptions are disabled, by failing
 	// immediately
 	bool m_abort;

@@ -170,7 +170,7 @@ void file_requests::on_tick()
 	}
 }
 
-boost::shared_future<piece_entry> file_requests::read_piece(torrent_handle const& h, int piece, int timeout_ms)
+std::shared_future<piece_entry> file_requests::read_piece(torrent_handle const& h, int piece, int timeout_ms)
 {
 	TORRENT_ASSERT(piece >= 0);
 	TORRENT_ASSERT(piece < h.torrent_file()->num_pieces());
@@ -178,7 +178,7 @@ boost::shared_future<piece_entry> file_requests::read_piece(torrent_handle const
 	piece_request rq;
 	rq.info_hash = h.info_hash();
 	rq.piece = piece;
-	rq.promise.reset(new boost::promise<piece_entry>());
+	rq.promise.reset(new std::promise<piece_entry>());
 	rq.timeout = time_now() + milliseconds(timeout_ms);
 
 	std::unique_lock<std::mutex> l(m_mutex);
@@ -193,6 +193,6 @@ boost::shared_future<piece_entry> file_requests::read_piece(torrent_handle const
 		DLOG("read_piece: %d\n", piece);
 		h.read_piece(piece);
 	}
-	return boost::shared_future<piece_entry>(rq.promise->get_future());
+	return std::shared_future<piece_entry>(rq.promise->get_future());
 }
 

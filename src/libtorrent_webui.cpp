@@ -735,7 +735,7 @@ namespace libtorrent
 		io::write_uint16(st->transaction_id, ptr);
 		io::write_uint8(no_error, ptr);
 
-		boost::unique_future<alert*> f
+		std::future<alert*> f
 			= m_alert->subscribe<session_stats_alert>();
 		m_ses.post_session_stats();
 		// wait for the alert to arrive

@@ -148,17 +148,17 @@ namespace libtorrent
 		}
 	}
 
-	boost::unique_future<alert*> alert_handler::subscribe_impl(int cat)
+	std::future<alert*> alert_handler::subscribe_impl(int cat)
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 		if (m_abort)
 		{
-			boost::promise<alert*> promise;
+			std::promise<alert*> promise;
 			promise.set_value(NULL);
 			return promise.get_future();
 		}
 
-		m_promises[cat].push_back(std::make_shared<boost::promise<alert*> >());
+		m_promises[cat].push_back(std::make_shared<std::promise<alert*> >());
 		// TODO: enable this alert in the alert mask in m_ses
 		return m_promises[cat].back()->get_future();
 	}
