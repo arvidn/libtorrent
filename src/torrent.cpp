@@ -10220,7 +10220,7 @@ namespace libtorrent
 			return;
 		}
 
-		if (num_have() == 0)
+		if (num_have() == 0 || m_file_progress.empty())
 		{
 			// if we don't have any pieces, just return zeroes
 			fp.clear();
