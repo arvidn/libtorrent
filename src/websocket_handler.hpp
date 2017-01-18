@@ -36,8 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "webui.hpp"
 #include <mutex>
 #include <map>
-#include <boost/shared_ptr.hpp>
-#include <boost/cstdint.hpp>
+#include <memory>
+#include <cstdint>
 
 namespace libtorrent
 {
@@ -51,9 +51,9 @@ namespace libtorrent
 	private:
 
 		// all currently alive web sockets
-		std::map<mg_connection*, std::shared_ptr<std::mutex> > m_open_sockets;
+		std::map<mg_connection*, std::unique_ptr<std::mutex>> m_open_sockets;
 
-		// for now, serialize all access
+		// serialize access to the map itself
 		std::mutex m_mutex;
 
 	};

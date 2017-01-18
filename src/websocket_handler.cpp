@@ -32,7 +32,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "websocket_handler.hpp"
 #include "libtorrent/io.hpp"
-#include <boost/make_shared.hpp>
 #include "local_mongoose.h"
 
 namespace libtorrent
@@ -44,21 +43,20 @@ namespace libtorrent
 
 		namespace io = libtorrent::detail;
 
-		std::map<mg_connection*, std::shared_ptr<std::mutex> >::iterator i
-			= m_open_sockets.find(conn);
+		auto i = m_open_sockets.find(conn);
 		if (i == m_open_sockets.end())
 		{
 			fprintf(stderr, "ERROR: send_packet, socket not open\n");
 			return false;
 		}
-		std::shared_ptr<std::mutex> m = i->second;
-		std::unique_lock<std::mutex> l2(*m);
+		std::mutex& m = *i->second;
+		std::unique_lock<std::mutex> l2(m);
 		l.unlock();
 
 		// header
 		int header_len = 2;
 		boost::uint8_t h[20];
-		h[0] = 0x80 | (type & 0xf); 
+		h[0] = 0x80 | (type & 0xf);
 		if (len < 126)
 			h[1] = len;
 		else if (len < 65536)
@@ -100,7 +98,7 @@ namespace libtorrent
 		, mg_request_info const* request_info)
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
-		m_open_sockets.insert(std::make_pair(conn, std::make_shared<std::mutex>()));
+		m_open_sockets.insert(std::make_pair(conn, std::unique_ptr<std::mutex>(new std::mutex())));
 		return true;
 	}
 
@@ -116,8 +114,7 @@ namespace libtorrent
 	void websocket_handler::handle_end_request(mg_connection* conn)
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
-		std::map<mg_connection*, std::shared_ptr<std::mutex> >::iterator i
-			= m_open_sockets.find(conn);
+		auto i = m_open_sockets.find(conn);
 		if (i == m_open_sockets.end()) return;
 
 		m_open_sockets.erase(i);
