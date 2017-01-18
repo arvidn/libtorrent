@@ -339,7 +339,6 @@ class test_example_client(unittest.TestCase):
 				+ "try to call it manually to get the error message\n")
 
 	def test_execute_make_torrent(self):
-		return
 		process = sub.Popen(
 			[sys.executable,"make_torrent.py","url_seed_multi.torrent",
 			"http://test.com/test"], stdout=sub.PIPE, stderr=sub.PIPE)
