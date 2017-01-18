@@ -31,15 +31,16 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/config.hpp"
-#include "alert_observer.hpp"
-#include <mutex>
 #include "libtorrent/session.hpp"
 
 #include <algorithm>
-#include <stdarg.h>
-#include <boost/make_shared.hpp>
+#include <mutex>
+#include <cstdarg>
+#include <memory>
+#include <condition_variable>
 
 #include "alert_handler.hpp"
+#include "alert_observer.hpp"
 
 namespace libtorrent
 {

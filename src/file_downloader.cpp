@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 #include <queue>
 #include <mutex>
+#include <condition_variable>
 
 extern "C" {
 #include "local_mongoose.h"
@@ -78,7 +79,7 @@ namespace libtorrent
 	struct request_t
 	{
 		request_t(std::string filename, std::set<request_t*>& list, std::mutex& m)
-			: start_time(time_now())
+			: start_time(clock_type::now())
 			, file(filename)
 			, request_size(0)
 			, file_size(0)
@@ -96,11 +97,11 @@ namespace libtorrent
 		~request_t()
 		{
 			std::unique_lock<std::mutex> l(m_mutex);
-			debug_print(time_now());
+			debug_print(clock_type::now());
 			m_requests.erase(this);
 		}
 
-		void debug_print(ptime now) const
+		void debug_print(time_point now) const
 		{
 			const int progress_width = 150;
 			char prefix[progress_width+1];
@@ -133,7 +134,7 @@ namespace libtorrent
 			received, writing_to_socket, waiting_for_libtorrent
 		};
 
-		const ptime start_time;
+		const time_point start_time;
 		const std::string file;
 		std::uint64_t request_size;
 		std::uint64_t file_size;
@@ -285,7 +286,7 @@ namespace libtorrent
 			return true;
 		}
 
-		int file = atoi(file_str.c_str());
+		int const file = atoi(file_str.c_str());
 
 		sha1_hash info_hash;
 		from_hex(info_hash_str.c_str(), 40, (char*)&info_hash[0]);
@@ -293,20 +294,26 @@ namespace libtorrent
 		torrent_handle h = m_ses.find_torrent(info_hash);
 
 		// TODO: it would be nice to wait for the metadata to complete
-		if (!h.is_valid() || !h.has_metadata())
+		if (!h.is_valid())
 		{
 			mg_printf(conn, "HTTP/1.1 404 Not Found\r\n\r\n");
 			return true;
 		}
 
-		torrent_info const& ti = h.get_torrent_info();
-		if (file < 0 || file >= ti.num_files())
+		shared_ptr<torrent_info const> ti = h.torrent_file();
+		if (!ti->is_valid())
+		{
+			mg_printf(conn, "HTTP/1.1 404 Not Found\r\n\r\n");
+			return true;
+		}
+
+		if (file < 0 || file >= ti->num_files())
 		{
 			mg_printf(conn, "HTTP/1.1 400 Bad Request\r\n\r\n");
 			return true;
 		}
 
-		std::int64_t file_size = ti.files().file_size(file);
+		std::int64_t const file_size = ti->files().file_size(file);
 		std::int64_t range_first_byte = 0;
 		std::int64_t range_last_byte = file_size - 1;
 		bool range_request = false;
@@ -335,10 +342,10 @@ namespace libtorrent
 			}
 		}
 
-		peer_request req = ti.map_file(file, range_first_byte, 0);
-		int piece_size = ti.piece_length();
+		peer_request req = ti->map_file(file, range_first_byte, 0);
+		int piece_size = ti->piece_length();
 		int first_piece = req.piece;
-		int end_piece = ti.map_file(file, range_last_byte, 0).piece + 1;
+		int end_piece = ti->map_file(file, range_last_byte, 0).piece + 1;
 		std::uint64_t offset = req.start;
 
 		if (range_request && (range_first_byte > range_last_byte
@@ -356,18 +363,18 @@ namespace libtorrent
 		torrent_piece_queue pq;
 		pq.begin = first_piece;
 		pq.finish = end_piece;
-		pq.end = (std::min)(first_piece + (std::max)(m_queue_size / ti.piece_length(), 1), pq.finish);
+		pq.end = (std::min)(first_piece + (std::max)(m_queue_size / ti->piece_length(), 1), pq.finish);
 
 		m_dispatch->subscribe(info_hash, &pq);
 
 		int priority_cursor = pq.begin;
 
-		request_t r(ti.files().file_path(file), m_requests, m_mutex);
+		request_t r(ti->files().file_path(file), m_requests, m_mutex);
 		r.request_size = range_last_byte - range_first_byte + 1;
-		r.file_size = ti.files().file_size(file);
+		r.file_size = ti->files().file_size(file);
 		r.start_offset = range_first_byte;
 
-		std::string fname = ti.files().file_name(file);
+		std::string fname = ti->files().file_name(file);
 		r.state = request_t::writing_to_socket;
 		mg_printf(conn, "HTTP/1.1 %s\r\n"
 			"Content-Length: %" PRId64 "\r\n"
@@ -376,7 +383,7 @@ namespace libtorrent
 			"Accept-Ranges: bytes\r\n"
 			, range_request ? "206 Partial Content" : "200 OK"
 			, range_last_byte - range_first_byte + 1
-			, mg_get_builtin_mime_type(ti.files().file_name(file).c_str())
+			, mg_get_builtin_mime_type(ti->files().file_name(file).c_str())
 			, m_attachment ? "Content-Disposition: attachment; filename=" : ""
 			, m_attachment ? escape_string(fname.c_str(), fname.size()).c_str() : ""
 			, m_attachment ? "\r\n" : "");
@@ -517,7 +524,7 @@ namespace libtorrent
 
 	void file_downloader::debug_print_requests() const
 	{
-		ptime now = time_now();
+		time_point now = clock_type::now();
 		std::unique_lock<std::mutex> l(m_mutex);
 		for (std::set<request_t*>::const_iterator i = m_requests.begin()
 			, end(m_requests.end()); i != end; ++i)

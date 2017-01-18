@@ -57,7 +57,7 @@ private:
 	alert_handler* m_alerts;
 
 	// the last time we rotated the log file
-	ptime m_last_log_rotation;
+	time_point m_last_log_rotation;
 
 	session& m_ses;
 

@@ -93,7 +93,7 @@ utorrent_webui::utorrent_webui(session& s, save_settings_interface* sett
 	m_start_time = time(NULL);
 	m_version = 1;
 
-	std::uint64_t seed = time_now_hires().time_since_epoch().count();
+	std::uint64_t seed = clock_type::now().time_since_epoch().count();
 	m_token = to_hex(hasher((char const*)&seed, sizeof(seed)).final().to_string());
 
 	m_params_model.save_path = ".";
@@ -489,12 +489,7 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args
 
 		char const* sname;
 		bool value;
-		if (s == settings_pack::use_read_cache)
-		{
-			sname = "cache.read";
-			value = sett.get_bool(s);
-		}
-		else if (s == settings_pack::enable_dht)
+		if (s == settings_pack::enable_dht)
 		{
 			sname = "dht";
 			value = sett.get_bool(s);
@@ -522,11 +517,6 @@ void utorrent_webui::get_settings(std::vector<char>& response, char const* args
 		else if (s == settings_pack::use_write_cache)
 		{
 			sname = "cache.write";
-			value = sett.get_bool(s);
-		}
-		else if (s == settings_pack::use_read_cache)
-		{
-			sname = "cache.read";
 			value = sett.get_bool(s);
 		}
 		else
@@ -792,11 +782,6 @@ void utorrent_webui::set_settings(std::vector<char>& response, char const* args,
 		{
 			if (!p->allow_set_settings(settings_pack::use_write_cache)) continue;
 			pack.set_bool(settings_pack::use_write_cache, to_bool(value));
-		}
-		else if (key == "cache.read")
-		{
-			if (!p->allow_set_settings(settings_pack::use_read_cache)) continue;
-			pack.set_bool(settings_pack::use_read_cache, to_bool(value));
 		}
 		else if (key == "max_ul_rate")
 		{
@@ -1073,10 +1058,8 @@ void utorrent_webui::send_peer_list(std::vector<char>& response, char const* arg
 		for (std::vector<peer_info>::iterator p = peers.begin()
 			, pend(peers.end()); p != pend; ++p)
 		{
-			appendf(response, ",[\"%c%c\",\"%s\",\"%s\",%d,%d,\"%s\",\"%s\",%d,%d,%d,%d,%d"
+			appendf(response, ",[\"  \",\"%s\",\"%s\",%d,%d,\"%s\",\"%s\",%d,%d,%d,%d,%d"
 				",%d,%" PRId64 ",%" PRId64 ",%d,%d,%d,%d,%d,%d,%d]" + first_peer
-				, isprint(p->country[0]) ? p->country[0] : ' '
-				, isprint(p->country[1]) ? p->country[1] : ' '
 				, print_endpoint(p->ip).c_str()
 				, ""
 				, (p->flags & peer_info::utp_socket) != 0
@@ -1160,22 +1143,24 @@ int get_feed_id(feed_status const& st)
 
 void utorrent_webui::rss_remove(std::vector<char>& response, char const* args, permissions_interface const* p)
 {
+/*
 	char buf[20];
 	int ret = mg_get_var(args, strlen(args), "feed-id", buf, sizeof(buf));
 	if (ret < 0) return;
 	int feed_id = atoi(buf);
 
 	std::vector<feed_handle> f;
-//	m_ses.get_feeds(f);
+	m_ses.get_feeds(f);
 
 	for (std::vector<feed_handle>::iterator i = f.begin()
 		, end(f.end()); i != end; ++i)
 	{
 		feed_status st = i->get_feed_status();
 		if (get_feed_id(st) != feed_id) continue;
-//		m_ses.remove_feed(*i);
+		m_ses.remove_feed(*i);
 		return;
 	}
+*/
 }
 
 void utorrent_webui::rss_filter_update(std::vector<char>& response, char const* args, permissions_interface const* p)
@@ -1429,8 +1414,9 @@ void utorrent_webui::send_rss_list(std::vector<char>& response, char const* args
 
 	appendf(response, cid > 0 ? ",\"rssfeedp\":[" : ",\"rssfeeds\":[");
 
+#if 0
 	std::vector<feed_handle> feeds;
-//	m_ses.get_feeds(feeds);
+	m_ses.get_feeds(feeds);
 
 	int first = 1;
 	for (std::vector<feed_handle>::iterator i = feeds.begin()
@@ -1483,7 +1469,7 @@ void utorrent_webui::send_rss_list(std::vector<char>& response, char const* args
 		response.push_back(']');
 		first = 0;
 	}
-
+#endif
 	// TODO: support removing feeds
 	appendf(response, "], \"rssfeedm\": []");
 
@@ -1508,7 +1494,7 @@ void utorrent_webui::send_rss_list(std::vector<char>& response, char const* args
 	RESOLVING CANDIDATE (boolean) ],
 */
 	appendf(response, cid > 0 ? ",\"rssfilterp\":[" : ",\"rssfilters\":[");
-
+#if 0
 	if (m_rss_filter)
 	{
 		std::vector<rss_rule> rules = m_rss_filter->get_rules();
@@ -1540,6 +1526,7 @@ void utorrent_webui::send_rss_list(std::vector<char>& response, char const* args
 			first = 0;
 		}
 	}
+#endif
 	appendf(response, "]");
 }
 

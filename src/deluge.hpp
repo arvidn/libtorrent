@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <mutex>
 #include <thread>
 #include <memory>
+#include <condition_variable>
 #include "libtorrent/socket.hpp"
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/settings_pack.hpp"

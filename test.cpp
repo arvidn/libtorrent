@@ -83,12 +83,10 @@ struct external_ip_observer : alert_observer
 
 int main(int argc, char *const argv[])
 {
-	lt::session ses(fingerprint("LT", 0, 1, 0, 0)
-		, std::make_pair(6881, 6882));
-
 	settings_pack s;
+	s.set_str(settings_pack::listen_interfaces, "0.0.0.0:6881");
 	s.set_int(settings_pack::alert_mask, 0xffffffff);
-	ses.apply_settings(s);
+	lt::session ses(s);
 
 	alert_handler alerts(ses);
 

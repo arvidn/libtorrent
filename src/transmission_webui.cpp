@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <stdio.h>
 #include <vector>
 #include <map>
-#include <boost/cstdint.hpp>
+#include <cstdint>
 #include <boost/tuple/tuple.hpp>
 #include <boost/asio/error.hpp>
 
@@ -52,6 +52,7 @@ extern "C" {
 }
 
 #include "libtorrent/add_torrent_params.hpp"
+#include "libtorrent/torrent_status.hpp"
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/announce_entry.hpp"
@@ -366,7 +367,12 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 	for (int i = 0; i < t.size(); ++i)
 	{
 		torrent_info const* ti = &empty;
-		if (t[i].has_metadata) ti = &t[i].handle.get_torrent_info();
+		shared_ptr<torrent_info const> holder;
+		if (t[i].has_metadata)
+		{
+			holder = t[i].torrent_file.lock();
+			ti = holder.get();
+		}
 		torrent_status const& ts = t[i];
 
 		if (!torrent_ids.empty() && torrent_ids.count(ts.handle.id()) == 0)
@@ -382,9 +388,9 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 		TORRENT_PROPERTY("creator", "\"%s\"", escape_json(ti->creator()).c_str());
 		TORRENT_PROPERTY("dateCreated", "%" PRId64, ti->creation_date() ? ti->creation_date().get() : 0);
 		TORRENT_PROPERTY("doneDate", "%" PRId64, ts.completed_time);
-		TORRENT_PROPERTY("downloadDir", "\"%s\"", escape_json(ts.handle.save_path()).c_str());
-		TORRENT_PROPERTY("error", "%d", ts.error.empty() ? 0 : 1);
-		TORRENT_PROPERTY("errorString", "\"%s\"", escape_json(ts.error).c_str());
+		TORRENT_PROPERTY("downloadDir", "\"%s\"", escape_json(ts.save_path).c_str());
+		TORRENT_PROPERTY("error", "%d", ts.errc ? 0 : 1);
+		TORRENT_PROPERTY("errorString", "\"%s\"", escape_json(ts.errc.message()).c_str());
 		TORRENT_PROPERTY("eta", "%d", ts.download_payload_rate <= 0 ? -1
 			: (ts.total_wanted - ts.total_wanted_done) / ts.download_payload_rate);
 		TORRENT_PROPERTY("hashString", "\"%s\"", to_hex(ts.handle.info_hash().to_string()).c_str());
@@ -399,7 +405,7 @@ void transmission_webui::get_torrent(std::vector<char>& buf, jsmntok_t* args
 		TORRENT_PROPERTY("leftUntilDone", "%" PRId64, ts.total_wanted - ts.total_wanted_done);
 		TORRENT_PROPERTY("magnetLink", "\"%s\"", ti == &empty ? "" : make_magnet_uri(*ti).c_str());
 		TORRENT_PROPERTY("metadataPercentComplete", "%f", ts.has_metadata ? 1.f : ts.progress_ppm / 1000000.f);
-		TORRENT_PROPERTY("name", "\"%s\"", escape_json(ts.handle.name()).c_str());
+		TORRENT_PROPERTY("name", "\"%s\"", escape_json(ts.name).c_str());
 		TORRENT_PROPERTY("peer-limit", "%d", ts.handle.max_connections());
 		TORRENT_PROPERTY("peersConnected", "%d", ts.num_peers);
 		// even though this is called "percentDone", it's really expecting the
@@ -924,6 +930,7 @@ void transmission_webui::session_stats(std::vector<char>& buf, jsmntok_t* args
 		return;
 	}
 
+	// TODO: post session stats instead, and capture the performance counters
 	session_status st = m_ses.status();
 
 	appendf(buf, "{ \"result\": \"success\", \"tag\": %" PRId64 ", "
@@ -958,13 +965,13 @@ void transmission_webui::session_stats(std::vector<char>& buf, jsmntok_t* args
 		, st.total_payload_download
 		, st.num_torrents
 		, 1
-		, time(NULL) - m_start_time
+		, time(nullptr) - m_start_time
 		// current-stats
 		, st.total_payload_upload
 		, st.total_payload_download
 		, st.num_torrents
 		, 1
-		, time(NULL) - m_start_time);
+		, time(nullptr) - m_start_time);
 }
 
 void transmission_webui::get_session(std::vector<char>& buf, jsmntok_t* args

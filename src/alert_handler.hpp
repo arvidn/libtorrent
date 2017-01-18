@@ -35,7 +35,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/alert_types.hpp" // for num_alert_types
 #include <vector>
-#include <boost/shared_ptr.hpp>
+#include <memory>
+#include <mutex>
+#include <deque>
 #include <boost/thread/future.hpp>
 
 namespace libtorrent

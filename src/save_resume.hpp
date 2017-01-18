@@ -79,7 +79,7 @@ namespace libtorrent
 
 		// the last time we visited a torrent to potentially
 		// save its fast-resume
-		ptime m_last_save;
+		time_point m_last_save;
 
 		// save resum data for all torrents every X seconds
 		// must be at least 1
