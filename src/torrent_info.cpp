@@ -967,6 +967,8 @@ namespace libtorrent
 		if (name_ent == 0)
 		{
 			ec = errors::torrent_missing_name;
+			// mark the torrent as invalid
+			m_files.set_piece_length(0);
 			return false;
 		}
 
@@ -977,6 +979,8 @@ namespace libtorrent
 		if (!valid_path_element(name))
 		{
 			ec = errors::torrent_invalid_name;
+			// mark the torrent as invalid
+			m_files.set_piece_length(0);
 			return false;
 		}
 
@@ -996,6 +1000,8 @@ namespace libtorrent
 			if (e.size < 0)
 			{
 				ec = errors::torrent_invalid_length;
+				// mark the torrent as invalid
+				m_files.set_piece_length(0);
 				return false;
 			}
 			e.mtime = info.dict_find_int_value("mtime", 0);
@@ -1043,6 +1049,8 @@ namespace libtorrent
 			if (!extract_files(*i, m_files, name, info_ptr_diff))
 			{
 				ec = errors::torrent_file_parse_failed;
+				// mark the torrent as invalid
+				m_files.set_piece_length(0);
 				return false;
 			}
 			m_multifile = true;
@@ -1061,6 +1069,8 @@ namespace libtorrent
 		if (pieces == 0 && root_hash == 0)
 		{
 			ec = errors::torrent_missing_pieces;
+			// mark the torrent as invalid
+			m_files.set_piece_length(0);
 			return false;
 		}
 		
@@ -1069,6 +1079,8 @@ namespace libtorrent
 			if (pieces->string_length() != m_files.num_pieces() * 20)
 			{
 				ec = errors::torrent_invalid_hashes;
+				// mark the torrent as invalid
+				m_files.set_piece_length(0);
 				return false;
 			}
 
@@ -1082,6 +1094,8 @@ namespace libtorrent
 			if (root_hash->string_length() != 20)
 			{
 				ec = errors::torrent_invalid_hashes;
+				// mark the torrent as invalid
+				m_files.set_piece_length(0);
 				return false;
 			}
 			int num_leafs = merkle_num_leafs(m_files.num_pieces());

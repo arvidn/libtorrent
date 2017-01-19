@@ -1,3 +1,4 @@
+	* make torrent_info::is_valid() return false if torrent failed to load
 	* fix torrent_status time_since_upload/download counters for paused torrents
 	* fix bug in last-seen-complete
 	* fix DHT announce stall when adding torrent immediately after startup
