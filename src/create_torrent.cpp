@@ -331,6 +331,8 @@ namespace libtorrent
 		, m_calculate_file_hashes(false)
 	{
 		TORRENT_ASSERT(ti.is_valid());
+		if (!ti.is_valid()) return;
+
 		if (ti.creation_date()) m_creation_date = *ti.creation_date();
 
 		if (!ti.creator().empty()) set_creator(ti.creator().c_str());

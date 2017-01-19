@@ -35,6 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/bencode.hpp"
+#include "libtorrent/entry.hpp"
+#include "libtorrent/file.hpp"
 #include "libtorrent/escape_string.hpp" // for convert_path_to_posix
 #include <boost/make_shared.hpp>
 #include <cstring>
@@ -63,6 +65,7 @@ int test_main()
 	// +1 and -2 here is to strip the outermost dictionary from the source
 	// torrent, since create_torrent may have added items next to the info dict
 	TEST_CHECK(memcmp(dest_info, test_torrent + 1, sizeof(test_torrent)-3) == 0);
+
 	return 0;
 }
 
