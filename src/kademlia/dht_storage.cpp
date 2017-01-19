@@ -171,6 +171,17 @@ namespace
 			, immutable_item_comparator(node_ids));
 	}
 
+	struct infohashes_sample
+	{
+		std::string samples;
+		time_point created = min_time();
+	};
+
+	int clamp(int v, int lo, int hi)
+	{
+		return (v < lo) ? lo : (hi < v) ? hi : v;
+	}
+
 	class dht_default_storage final : public dht_storage_interface, boost::noncopyable
 	{
 	public:
@@ -453,6 +464,15 @@ namespace
 			touch_item(i->second, addr);
 		}
 
+		int get_infohashes_sample(entry& item) const override
+		{
+			item["interval"] = clamp(m_settings.sample_infohashes_interval, 0, 21600);
+			item["num"] = int(m_map.size());
+			item["samples"] = m_infohashes_sample.samples;
+
+			return int(m_infohashes_sample.samples.size()) / 20;
+		}
+
 		void tick() override
 		{
 			// look through all peers and see if any have timed out
@@ -472,6 +492,8 @@ namespace
 				m_map.erase(i++);
 				m_counters.torrents -= 1;// peers is decreased by purge_peers
 			}
+
+			refresh_infohashes_sample();
 
 			if (0 == m_settings.item_lifetime) return;
 
@@ -517,6 +539,8 @@ namespace
 		std::map<node_id, dht_immutable_item> m_immutable_table;
 		std::map<node_id, dht_mutable_item> m_mutable_table;
 
+		infohashes_sample m_infohashes_sample;
+
 		void purge_peers(std::vector<peer_entry>& peers)
 		{
 			auto now = aux::time_now();
@@ -531,6 +555,36 @@ namespace
 			// if we're using less than 1/4 of the capacity free up the excess
 			if (!peers.empty() && peers.capacity() / peers.size() >= 4u)
 				peers.shrink_to_fit();
+		}
+
+		void refresh_infohashes_sample()
+		{
+			time_point const now = aux::time_now();
+			int const interval = clamp(m_settings.sample_infohashes_interval, 0, 21600);
+
+			std::size_t const max_count
+				= std::size_t(clamp(m_settings.max_infohashes_sample_count, 0, 20));
+			std::size_t const count = std::min(max_count, m_map.size());
+
+			if (interval > 0
+				&& m_infohashes_sample.created + seconds(interval) > now
+				&& m_infohashes_sample.samples.size() >= max_count)
+				return;
+
+			std::vector<node_id> keys;
+			for (auto const& t : m_map)
+				keys.push_back(t.first);
+
+			aux::random_shuffle(keys.begin(), keys.end());
+
+			m_infohashes_sample.samples.resize(count * 20);
+			for (std::size_t i = 0; i < count; ++i)
+			{
+				node_id const& ih = keys[i];
+				std::memcpy(&m_infohashes_sample.samples[i * 20], ih.data(), 20);
+			}
+
+			m_infohashes_sample.created = now;
 		}
 	};
 }

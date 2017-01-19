@@ -437,4 +437,83 @@ TORRENT_TEST(update_node_ids)
 	TEST_CHECK(r);
 }
 
+TORRENT_TEST(infohashes_sample)
+{
+	dht_settings sett = test_settings();
+	sett.max_torrents = 5;
+	sett.sample_infohashes_interval = 10;
+	sett.max_infohashes_sample_count = 2;
+	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
+
+	tcp::endpoint const p1 = ep("124.31.75.21", 1);
+	tcp::endpoint const p2 = ep("124.31.75.22", 1);
+	tcp::endpoint const p3 = ep("124.31.75.23", 1);
+	tcp::endpoint const p4 = ep("124.31.75.24", 1);
+
+	s->announce_peer(n1, p1, "torrent_name1", false);
+	s->announce_peer(n2, p2, "torrent_name2", false);
+	s->announce_peer(n3, p3, "torrent_name3", false);
+	s->announce_peer(n4, p4, "torrent_name4", false);
+
+	s->tick();
+
+	entry item;
+	int r = s->get_infohashes_sample(item);
+	TEST_EQUAL(r, 2);
+	TEST_EQUAL(item["interval"].integer(), 10)
+	TEST_EQUAL(item["num"].integer(), 4);
+	TEST_EQUAL(item["samples"].string().size(), 2 * 20);
+
+	// get all of them
+	sett.sample_infohashes_interval = 0;
+	sett.max_infohashes_sample_count = 5;
+
+	s->tick();
+
+	item = entry();
+	r = s->get_infohashes_sample(item);
+	TEST_EQUAL(r, 4);
+	TEST_EQUAL(item["interval"].integer(), 0)
+	TEST_EQUAL(item["num"].integer(), 4);
+	TEST_EQUAL(item["samples"].string().size(), 4 * 20);
+
+	std::string const samples = item["samples"].to_string();
+	TEST_CHECK(samples.find(aux::to_hex(n1)) != std::string::npos);
+	TEST_CHECK(samples.find(aux::to_hex(n2)) != std::string::npos);
+	TEST_CHECK(samples.find(aux::to_hex(n3)) != std::string::npos);
+	TEST_CHECK(samples.find(aux::to_hex(n4)) != std::string::npos);
+}
+
+TORRENT_TEST(infohashes_sample_dist)
+{
+	dht_settings sett = test_settings();
+	sett.max_torrents = 1000;
+	sett.sample_infohashes_interval = 0;
+	sett.max_infohashes_sample_count = 1;
+	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
+
+	for (int i = 0; i < 1000; ++i)
+	{
+		s->announce_peer(rand_hash(), tcp::endpoint(rand_v4(), std::uint16_t(i))
+			, "torrent_name", false);
+	}
+
+	std::set<sha1_hash> infohash_set;
+	for (int i = 0; i < 1000; ++i)
+	{
+		s->tick();
+
+		entry item;
+		int r = s->get_infohashes_sample(item);
+		TEST_EQUAL(r, 1);
+		TEST_EQUAL(item["interval"].integer(), 0)
+		TEST_EQUAL(item["num"].integer(), 1000);
+		TEST_EQUAL(item["samples"].string().size(), 20);
+
+		infohash_set.insert(sha1_hash(item["samples"].string()));
+	}
+	std::printf("infohashes set size: %d\n", int(infohash_set.size()));
+	TEST_CHECK(infohash_set.size() > 500);
+}
+
 #endif
