@@ -43,43 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace lt = libtorrent;
 
-char const* test_error_torrents[] =
-{
-	"missing_piece_len.torrent",
-	"invalid_piece_len.torrent",
-	"negative_piece_len.torrent",
-	"no_name.torrent",
-	"invalid_name.torrent",
-	"invalid_name2.torrent",
-	"invalid_info.torrent",
-	"string.torrent",
-	"negative_size.torrent",
-	"negative_file_size.torrent",
-	"invalid_path_list.torrent",
-	"missing_path_list.torrent",
-	"invalid_pieces.torrent",
-	"unaligned_pieces.torrent",
-	"invalid_root_hash.torrent",
-	"invalid_root_hash2.torrent",
-	"invalid_file_size.torrent",
-};
-
-void test_invalid_create()
-{
-	using namespace libtorrent;
-
-	std::string const root_dir = parent_path(current_working_directory());
-	for (int i = 0; i < sizeof(test_error_torrents)/sizeof(test_error_torrents[0]); ++i)
-	{
-		error_code ec;
-		fprintf(stderr, "loading %s\n", test_error_torrents[i]);
-		lt::torrent_info ti(combine_path(combine_path(root_dir, "test_torrents"), test_error_torrents[i]), ec);
-		create_torrent c(ti);
-		entry e = c.generate();
-		TEST_CHECK(e.type() == entry::undefined_t);
-	}
-}
-
 // make sure creating a torrent from an existing handle preserves the
 // info-dictionary verbatim, so as to not alter the info-hash
 int test_main()
@@ -102,8 +65,6 @@ int test_main()
 	// +1 and -2 here is to strip the outermost dictionary from the source
 	// torrent, since create_torrent may have added items next to the info dict
 	TEST_CHECK(memcmp(dest_info, test_torrent + 1, sizeof(test_torrent)-3) == 0);
-
-	test_invalid_create();
 
 	return 0;
 }
