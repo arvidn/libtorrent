@@ -489,9 +489,13 @@ private:
 
 	void cancel_handlers(error_code const&);
 
-	std::function<void(error_code const&)> m_connect_handler;
-	std::function<void(error_code const&, std::size_t)> m_read_handler;
-	std::function<void(error_code const&, std::size_t)> m_write_handler;
+	using connect_handler_t = std::function<void(error_code const&)>;
+	using read_handler_t = std::function<void(error_code const&, std::size_t)>;
+	using write_handler_t = std::function<void(error_code const&, std::size_t)>;
+
+	connect_handler_t m_connect_handler;
+	read_handler_t m_read_handler;
+	write_handler_t m_write_handler;
 
 	io_service& m_io_service;
 	utp_socket_impl* m_impl;
