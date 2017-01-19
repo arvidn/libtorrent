@@ -90,46 +90,32 @@ namespace libtorrent
 
 	entry& entry::operator[](string_view key)
 	{
-#if __cplusplus <= 201103
-		dictionary_type::iterator i = dict().find(key.to_string());
-#else
 		dictionary_type::iterator i = dict().find(key);
-#endif
 		if (i != dict().end()) return i->second;
-		dictionary_type::iterator ret = dict().insert(
-			std::make_pair(key.to_string(), entry())).first;
+		dictionary_type::iterator ret = dict().emplace(
+			std::piecewise_construct,
+			std::forward_as_tuple(key),
+			std::forward_as_tuple()).first;
 		return ret->second;
 	}
 
 	const entry& entry::operator[](string_view key) const
 	{
-#if __cplusplus <= 201103
-		dictionary_type::const_iterator i = dict().find(key.to_string());
-#else
 		dictionary_type::const_iterator i = dict().find(key);
-#endif
 		if (i == dict().end()) throw_error();
 		return i->second;
 	}
 
 	entry* entry::find_key(string_view key)
 	{
-#if __cplusplus <= 201103
-		dictionary_type::iterator i = dict().find(key.to_string());
-#else
 		dictionary_type::iterator i = dict().find(key);
-#endif
 		if (i == dict().end()) return nullptr;
 		return &i->second;
 	}
 
 	entry const* entry::find_key(string_view key) const
 	{
-#if __cplusplus <= 201103
-		dictionary_type::const_iterator i = dict().find(key.to_string());
-#else
 		dictionary_type::const_iterator i = dict().find(key);
-#endif
 		if (i == dict().end()) return nullptr;
 		return &i->second;
 	}
