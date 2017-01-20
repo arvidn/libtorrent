@@ -118,7 +118,7 @@ namespace libtorrent
 			std::memset(buf.iov_base, 0, buf.iov_len);
 	}
 
-	struct write_fileop final : fileop
+	struct write_fileop final : aux::fileop
 	{
 		write_fileop(default_storage& st, int flags)
 			: m_storage(st)
@@ -198,7 +198,7 @@ namespace libtorrent
 		int m_flags;
 	};
 
-	struct read_fileop final : fileop
+	struct read_fileop final : aux::fileop
 	{
 		read_fileop(default_storage& st, int const flags)
 			: m_storage(st)
@@ -620,7 +620,7 @@ namespace libtorrent
 		// delete it
 		if (m_part_file) m_part_file.reset();
 
-		libtorrent::delete_files(files(), m_save_path, m_part_file_name, options, ec);
+		aux::delete_files(files(), m_save_path, m_part_file_name, options, ec);
 
 		DFLOG(stderr, "[%p] delete_files result: %s\n", static_cast<void*>(this)
 			, ec.ec.message().c_str());
@@ -630,104 +630,8 @@ namespace libtorrent
 		, aux::vector<std::string, file_index_t> const& links
 		, storage_error& ec)
 	{
-		file_storage const& fs = files();
-#ifdef TORRENT_DISABLE_MUTABLE_TORRENTS
-		TORRENT_UNUSED(links);
-#else
-		if (!links.empty())
-		{
-			TORRENT_ASSERT(int(links.size()) == fs.num_files());
-			// if this is a mutable torrent, and we need to pick up some files
-			// from other torrents, do that now. Note that there is an inherent
-			// race condition here. We checked if the files existed on a different
-			// thread a while ago. These files may no longer exist or may have been
-			// moved. If so, we just fail. The user is responsible to not touch
-			// other torrents until a new mutable torrent has been completely
-			// added.
-			for (file_index_t idx(0); idx < fs.end_file(); ++idx)
-			{
-				std::string const& s = links[idx];
-				if (s.empty()) continue;
-
-				error_code err;
-				std::string file_path = fs.file_path(idx, m_save_path);
-				hard_link(s, file_path, err);
-
-				// if the file already exists, that's not an error
-				// TODO: 2 is this risky? The upper layer will assume we have the
-				// whole file. Perhaps we should verify that at least the size
-				// of the file is correct
-				if (!err || err == boost::system::errc::file_exists)
-					continue;
-
-				ec.ec = err;
-				ec.file(idx);
-				ec.operation = storage_error::hard_link;
-				return false;
-			}
-		}
-#endif // TORRENT_DISABLE_MUTABLE_TORRENTS
-
-		bool const seed = rd.have_pieces.all_set();
-
-		// parse have bitmask. Verify that the files we expect to have
-		// actually do exist
-		for (piece_index_t i(0); i < piece_index_t(rd.have_pieces.size()); ++i)
-		{
-			if (rd.have_pieces.get_bit(i) == false) continue;
-
-			std::vector<file_slice> f = fs.map_block(i, 0, 1);
-			TORRENT_ASSERT(!f.empty());
-
-			file_index_t const file_index = f[0].file_index;
-
-			// files with priority zero may not have been saved to disk at their
-			// expected location, but is likely to be in a partfile. Just exempt it
-			// from checking
-			if (file_index < m_file_priority.end_index()
-				&& m_file_priority[file_index] == 0)
-				continue;
-
-			error_code error;
-			std::int64_t const size = m_stat_cache.get_filesize(f[0].file_index
-				, fs, m_save_path, error);
-
-			if (size < 0)
-			{
-				if (error != boost::system::errc::no_such_file_or_directory)
-				{
-					ec.ec = error;
-					ec.file(file_index);
-					ec.operation = storage_error::stat;
-					return false;
-				}
-				else
-				{
-					ec.ec = errors::mismatching_file_size;
-					ec.file(file_index);
-					ec.operation = storage_error::stat;
-					return false;
-				}
-			}
-
-			if (seed && size != fs.file_size(file_index))
-			{
-				// the resume data indicates we're a seed, but this file has
-				// the wrong size. Reject the resume data
-				ec.ec = errors::mismatching_file_size;
-				ec.file(file_index);
-				ec.operation = storage_error::check_resume;
-				return false;
-			}
-
-			// OK, this file existed, good. Now, skip all remaining pieces in
-			// this file. We're just sanity-checking whether the files exist
-			// or not.
-			peer_request const pr = fs.map_file(file_index
-				, fs.file_size(file_index) + 1, 0);
-			i = std::max(next(i), pr.piece);
-		}
-		return true;
+		return aux::verify_resume_data(rd, links, files()
+			, m_file_priority, m_stat_cache, m_save_path, ec);
 	}
 
 	status_t default_storage::move_storage(std::string const& sp, int const flags
@@ -736,7 +640,7 @@ namespace libtorrent
 		m_pool.release(storage_index());
 
 		status_t ret;
-		std::tie(ret, m_save_path) = libtorrent::move_storage(files(), m_save_path, sp
+		std::tie(ret, m_save_path) = aux::move_storage(files(), m_save_path, sp
 			, m_part_file.get(), flags, ec);
 		return ret;
 	}

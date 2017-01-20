@@ -990,7 +990,7 @@ TORRENT_TEST(iovec_copy_bufs)
 	TEST_CHECK(bufs_size({iov1, 10}) >= 106);
 
 	// copy exactly 106 bytes from iov1 to iov2
-	int num_bufs = copy_bufs(iov1, 106, iov2);
+	int num_bufs = aux::copy_bufs(iov1, 106, iov2);
 
 	// verify that the first 100 bytes is pattern 1
 	// and that the remaining bytes are pattern 2
@@ -1057,7 +1057,7 @@ TORRENT_TEST(iovec_advance_bufs)
 
 	// advance iov 13 bytes. Make sure what's left fits pattern 1 shifted
 	// 13 bytes
-	iov = advance_bufs(iov, 13);
+	iov = aux::advance_bufs(iov, 13);
 
 	// make sure what's in
 	int counter = 13;
@@ -1089,7 +1089,7 @@ file_storage make_fs()
 	return fs;
 }
 
-struct test_fileop : libtorrent::fileop
+struct test_fileop : aux::fileop
 {
 	explicit test_fileop(int stripe_size) : m_stripe_size(stripe_size) {}
 
@@ -1127,7 +1127,7 @@ struct test_fileop : libtorrent::fileop
 	aux::vector<std::vector<char>, file_index_t> m_file_data;
 };
 
-struct test_read_fileop : fileop
+struct test_read_fileop : aux::fileop
 {
 	// EOF after size bytes read
 	explicit test_read_fileop(int size) : m_size(size), m_counter(0) {}
@@ -1157,7 +1157,7 @@ struct test_read_fileop : fileop
 	int m_counter;
 };
 
-struct test_error_fileop : fileop
+struct test_error_fileop : aux::fileop
 {
 	// EOF after size bytes read
 	explicit test_error_fileop(file_index_t error_file)
@@ -1207,7 +1207,7 @@ TORRENT_TEST(readwritev_stripe_1)
 	TEST_CHECK(bufs_size({iov, size_t(num_bufs)}) >= fs.total_size());
 
 	iovec_t iov2[num_bufs];
-	copy_bufs(iov, int(fs.total_size()), iov2);
+	aux::copy_bufs(iov, int(fs.total_size()), iov2);
 	int num_bufs2 = count_bufs(iov2, int(fs.total_size()));
 	TEST_CHECK(num_bufs2 <= num_bufs);
 
