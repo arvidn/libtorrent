@@ -73,6 +73,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/string_view.hpp"
+#include "libtorrent/aux_/aligned_union.hpp"
 
 namespace libtorrent
 {
@@ -311,7 +312,7 @@ namespace libtorrent
 
 		void to_string_impl(std::string& out, int indent) const;
 
-		std::aligned_union<1
+		aux::aligned_union<1
 #if TORRENT_COMPLETE_TYPES_REQUIRED
 			// for implementations that require complete types, use char and hope
 			// for the best
