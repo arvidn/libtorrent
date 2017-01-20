@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/bloom_filter.hpp>
 #include <libtorrent/session_settings.hpp>
 #include <libtorrent/random.hpp>
+#include <libtorrent/aux_/vector.hpp>
 
 namespace libtorrent {
 namespace dht {
@@ -171,10 +172,25 @@ namespace
 			, immutable_item_comparator(node_ids));
 	}
 
+	constexpr int sample_infohashes_interval_max = 21600;
+	constexpr int infohashes_sample_count_max = 20;
+
 	struct infohashes_sample
 	{
 		std::string samples;
 		time_point created = min_time();
+
+		int count() const { return int(samples.size()) / 20; }
+
+		void assign(aux::vector<sha1_hash> const& v)
+		{
+			TORRENT_ASSERT(v.end_index() <= infohashes_sample_count_max);
+			samples.resize(v.size() * 20);
+			for (int i = 0; i < v.end_index(); ++i)
+			{
+				std::memcpy(&samples[i * 20], v[i].data(), 20);
+			}
+		}
 	};
 
 	int clamp(int v, int lo, int hi)
@@ -466,11 +482,12 @@ namespace
 
 		int get_infohashes_sample(entry& item) const override
 		{
-			item["interval"] = clamp(m_settings.sample_infohashes_interval, 0, 21600);
+			item["interval"] = clamp(m_settings.sample_infohashes_interval
+				, 0, sample_infohashes_interval_max);
 			item["num"] = int(m_map.size());
 			item["samples"] = m_infohashes_sample.samples;
 
-			return int(m_infohashes_sample.samples.size()) / 20;
+			return m_infohashes_sample.count();
 		}
 
 		void tick() override
@@ -560,30 +577,42 @@ namespace
 		void refresh_infohashes_sample()
 		{
 			time_point const now = aux::time_now();
-			int const interval = clamp(m_settings.sample_infohashes_interval, 0, 21600);
+			int const interval = clamp(m_settings.sample_infohashes_interval
+				, 0, sample_infohashes_interval_max);
 
-			std::size_t const max_count
-				= std::size_t(clamp(m_settings.max_infohashes_sample_count, 0, 20));
-			std::size_t const count = std::min(max_count, m_map.size());
+			int const max_count = clamp(m_settings.max_infohashes_sample_count
+				, 0, infohashes_sample_count_max);
+			int const count = std::min(max_count, int(m_map.size()));
 
 			if (interval > 0
 				&& m_infohashes_sample.created + seconds(interval) > now
-				&& m_infohashes_sample.samples.size() >= max_count)
+				&& m_infohashes_sample.count() >= max_count)
 				return;
 
-			std::vector<node_id> keys;
+			aux::vector<node_id> keys;
+			keys.reserve(count);
+
+			int to_pick = count;
+			int candidates = int(m_map.size());
+
 			for (auto const& t : m_map)
-				keys.push_back(t.first);
-
-			aux::random_shuffle(keys.begin(), keys.end());
-
-			m_infohashes_sample.samples.resize(count * 20);
-			for (std::size_t i = 0; i < count; ++i)
 			{
-				node_id const& ih = keys[i];
-				std::memcpy(&m_infohashes_sample.samples[i * 20], ih.data(), 20);
+				if (to_pick == 0)
+					break;
+
+				TORRENT_ASSERT(candidates >= to_pick);
+
+				// pick this key with probability
+				// <keys left to pick> / <keys left in the set>
+				if (random(std::uint32_t(candidates--)) > std::uint32_t(to_pick))
+					continue;
+
+				keys.push_back(t.first);
+				--to_pick;
 			}
 
+			TORRENT_ASSERT(keys.end_index() == count);
+			m_infohashes_sample.assign(keys);
 			m_infohashes_sample.created = now;
 		}
 	};
