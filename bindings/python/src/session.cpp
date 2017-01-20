@@ -206,14 +206,16 @@ namespace
 
     void dict_to_add_torrent_params(dict params, add_torrent_params& p)
     {
-        list iterkeys = (list)params.keys();
-        int const len = int(boost::python::len(iterkeys));
+        list items = params.items();
+        int const len = int(boost::python::len(items));
         for (int i = 0; i < len; i++)
         {
-            std::string const key = extract<std::string>(iterkeys[i]);
+            boost::python::api::object_item item = items[i];
+            std::string const key = extract<std::string>(item[0]);
+            object const value = item[1];
             // torrent_info objects are always held by a shared_ptr in the
             // python binding, skip it if it is a object
-            if(key == "ti" && params[key] != boost::python::object())
+            if(key == "ti" && value != boost::python::object())
             {
                 // make a copy here. We don't want to end up holding a python-owned
                 // object inside libtorrent. If the last reference goes out of scope
@@ -221,98 +223,98 @@ namespace
                 // without holding the GIL and likely crash.
                 // https://mail.python.org/pipermail/cplusplus-sig/2007-June/012130.html
                 p.ti = std::make_shared<torrent_info>(
-                    extract<torrent_info const&>(params[key]));
+                    extract<torrent_info const&>(value));
                 continue;
             }
             else if(key == "info_hash")
             {
                 p.info_hash = sha1_hash(
-                bytes(extract<bytes>(params[key])).arr.data());
+                bytes(extract<bytes>(value)).arr.data());
                 continue;
             }
             else if(key == "name")
             {
-                p.name = extract<std::string>(params[key]);
+                p.name = extract<std::string>(value);
                 continue;
             }
             else if(key == "save_path")
             {
-                p.save_path = extract<std::string>(params[key]);
+                p.save_path = extract<std::string>(value);
                 continue;
             }
 #ifndef TORRENT_NO_DEPRECATE
             else if(key == "resume_data")
             {
-                std::string resume = extract<std::string>(params[key]);
+                std::string resume = extract<std::string>(value);
                 p.resume_data.assign(resume.begin(), resume.end());
                 continue;
             }
             else if(key == "uuid")
             {
-                p.uuid = extract<std::string>(params["uuid"]);
+                p.uuid = extract<std::string>(value);
                 continue;
             }
 #endif
             else if(key == "storage_mode")
             {
-                p.storage_mode = extract<storage_mode_t>(params[key]);
+                p.storage_mode = extract<storage_mode_t>(value);
                 continue;
             }
             else if(key == "trackers")
             {
-                p.trackers = extract<std::vector<std::string>>(params[key]);
+                p.trackers = extract<std::vector<std::string>>(value);
                 continue;
             }
             else if(key == "url_seeds")
             {
-                p.url_seeds = extract<std::vector<std::string>>(params[key]);
+                p.url_seeds = extract<std::vector<std::string>>(value);
                 continue;
             }
             else if(key == "http_seeds")
             {
                 p.http_seeds =
-                    extract<decltype(add_torrent_params::http_seeds)>(params[key]);
+                    extract<decltype(add_torrent_params::http_seeds)>(value);
                 continue;
             }
             else if(key == "dht_nodes")
             {
                 p.dht_nodes =
-                    extract<std::vector<std::pair<std::string, int>>>(params[key]);
+                    extract<std::vector<std::pair<std::string, int>>>(value);
                 continue;
             }
             else if(key == "banned_peers")
             {
-                p.banned_peers = extract<std::vector<lt::tcp::endpoint>>(params[key]);
+                p.banned_peers = extract<std::vector<lt::tcp::endpoint>>(value);
                 continue;
             }
             else if(key == "peers")
             {
-                p.peers = extract<std::vector<lt::tcp::endpoint>>(params[key]);
+                p.peers = extract<std::vector<lt::tcp::endpoint>>(value);
                 continue;
             }
             else if(key == "flags")
             {
-                p.flags = extract<std::uint64_t>(params[key]);
+                p.flags = extract<std::uint64_t>(value);
                 continue;
             }
             else if(key == "trackerid")
             {
-                p.trackerid = extract<std::string>(params[key]);
+                p.trackerid = extract<std::string>(value);
                 continue;
             }
             else if(key == "url")
             {
-                p.url = extract<std::string>(params[key]);
+                p.url = extract<std::string>(value);
                 continue;
             }
             else if(key == "renamed_files")
             {
                 p.renamed_files =
-                    extract<std::map<lt::file_index_t, std::string>>(params[key]);
+                    extract<std::map<lt::file_index_t, std::string>>(value);
             }
             else if(key == "file_priorities")
             {
-                p.file_priorities = extract<std::vector<std::uint8_t>>(params[key]);
+                p.file_priorities = extract<std::vector<std::uint8_t>>(value);
             }
             else
             {
