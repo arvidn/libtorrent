@@ -153,19 +153,12 @@ class test_torrent_handle(unittest.TestCase):
 		self.assertEqual(trackers[0].get('tier'), 0)
 		self.assertEqual(self.h.file_priorities(), [1,1])
 		self.assertEqual(self.h.http_seeds(),['http://test.com/file3'])
-		# url_seeds was already set, test it got not overwritten
+		# url_seeds was already set, test that it did not got overwritten
 		self.assertEqual(self.h.url_seeds(),
 			['http://test.com/announce-url/', 'http://test.com/file/'])
 		self.assertEqual(self.h.piece_priorities(),[4])
 		self.assertEqual(self.ti.merkle_tree(),[])
 		self.assertEqual(self.st.verified_pieces,[])
-		# TODO
-		#self.assertEqual(self.st.dht_nodes,[('1.2.3.4', 6881), ('4.3.2.1', 6881)])
-		#self.assertEqual(self.st.banned_peers(),[('8.7.6.5', 6881)])
-		#self.assertEqual(self.st.peers,[('5.6.7.8', 6881)])
-
-		# TODO dict not working
-		#print(self.ti.rename_file.get(0))
 
 class test_torrent_info(unittest.TestCase):
 

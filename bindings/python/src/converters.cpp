@@ -252,7 +252,6 @@ void bind_converters()
     to_python_converter<lt::udp::endpoint, endpoint_to_tuple<lt::udp::endpoint>>();
     to_python_converter<lt::address, address_to_tuple>();
     to_python_converter<std::pair<std::string, int>, pair_to_tuple<std::string, int>>();
-    to_python_converter<std::map<lt::file_index_t, std::string>, map_to_dict<lt::file_index_t, std::string>>();
 
     to_python_converter<std::vector<lt::stats_metric>, vector_to_list<lt::stats_metric>>();
     to_python_converter<std::vector<lt::pool_file_status>, vector_to_list<lt::pool_file_status>>();
@@ -263,6 +262,8 @@ void bind_converters()
     to_python_converter<std::vector<lt::tcp::endpoint>, vector_to_list<lt::tcp::endpoint>>();
     to_python_converter<std::vector<lt::udp::endpoint>, vector_to_list<lt::udp::endpoint>>();
     to_python_converter<std::vector<std::pair<std::string, int>>, vector_to_list<std::pair<std::string, int>>>();
+
+    to_python_converter<std::map<lt::file_index_t, std::string>, map_to_dict<lt::file_index_t, std::string>>();
 
     to_python_converter<lt::piece_index_t, from_strong_typedef<lt::piece_index_t>>();
     to_python_converter<lt::file_index_t, from_strong_typedef<lt::file_index_t>>();
