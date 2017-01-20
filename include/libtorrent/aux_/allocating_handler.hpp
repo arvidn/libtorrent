@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/aux_/aligned_storage.hpp"
 
 #include <type_traits>
 
@@ -54,10 +55,8 @@ namespace libtorrent { namespace aux
 		{}
 
 		bool used;
-#else
-		handler_storage() {}
 #endif
-		typename std::aligned_storage<Size>::type bytes;
+		typename aux::aligned_storage<Size>::type bytes;
 	private:
 		handler_storage(handler_storage const&);
 	};

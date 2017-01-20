@@ -158,6 +158,8 @@ nobase_include_HEADERS = \
   span.hpp                     \
   \
   aux_/allocating_handler.hpp       \
+  aux_/aligned_storage.hpp          \
+  aux_/aligned_union.hpp            \
   aux_/bind_to_device.hpp           \
   aux_/block_cache_reference.hpp    \
   aux_/cpuid.hpp                    \

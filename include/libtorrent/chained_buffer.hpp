@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/block_cache_reference.hpp"
+#include "libtorrent/aux_/aligned_storage.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/buffer.hpp"
 
@@ -111,7 +112,7 @@ namespace libtorrent
 #if TORRENT_CPP98_DEQUE
 			move_construct_holder_fun move_holder;
 #endif
-			std::aligned_storage<24>::type holder;
+			aux::aligned_storage<24>::type holder;
 			char* buf; // the first byte of the buffer
 			int size; // the total size of the buffer
 			int used_size; // this is the number of bytes to send/receive

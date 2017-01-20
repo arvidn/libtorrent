@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstring> // for std::memset
 #endif
 
-#if TORRENT_HAS_ARM
+#if TORRENT_HAS_ARM && TORRENT_HAS_ARM_NEON
 #include <sys/auxv.h>
 #endif
 

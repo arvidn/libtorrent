@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/hasher.hpp>
 #include <libtorrent/session_settings.hpp> // for dht_settings
 #include <libtorrent/aux_/time.hpp> // for aux::time_now
+#include <libtorrent/aux_/aligned_union.hpp>
 
 #include <type_traits>
 #include <functional>
@@ -135,7 +136,7 @@ void observer::set_id(node_id const& id)
 	if (m_algorithm) m_algorithm->resort_results();
 }
 
-using observer_storage = std::aligned_union<1
+using observer_storage = aux::aligned_union<1
 	, find_data_observer
 	, announce_observer
 	, put_data_observer
