@@ -898,9 +898,8 @@ void utp_stream::on_read(void* self, size_t bytes_transferred
 
 	TORRENT_ASSERT(s->m_read_handler);
 	TORRENT_ASSERT(bytes_transferred > 0 || ec || s->m_impl->m_null_buffers);
-	read_handler_t read_handler{nullptr};
-	read_handler.swap(s->m_read_handler);
-	s->m_io_service.post(std::bind<void>(std::move(read_handler), ec, bytes_transferred));
+	s->m_io_service.post(std::bind<void>(std::move(s->m_read_handler), ec, bytes_transferred));
+	s->m_read_handler = nullptr;
 	if (kill && s->m_impl)
 	{
 		TORRENT_ASSERT(ec);
@@ -920,9 +919,8 @@ void utp_stream::on_write(void* self, size_t bytes_transferred
 
 	TORRENT_ASSERT(s->m_write_handler);
 	TORRENT_ASSERT(bytes_transferred > 0 || ec);
-	write_handler_t write_handler{nullptr};
-	write_handler.swap(s->m_write_handler);
-	s->m_io_service.post(std::bind<void>(std::move(write_handler), ec, bytes_transferred));
+	s->m_io_service.post(std::bind<void>(std::move(s->m_write_handler), ec, bytes_transferred));
+	s->m_write_handler = nullptr;
 	if (kill && s->m_impl)
 	{
 		TORRENT_ASSERT(ec);
@@ -940,9 +938,8 @@ void utp_stream::on_connect(void* self, error_code const& ec, bool kill)
 		, static_cast<void*>(s->m_impl), ec.message().c_str(), kill);
 
 	TORRENT_ASSERT(s->m_connect_handler);
-	connect_handler_t connect_handler{nullptr};
-	connect_handler.swap(s->m_connect_handler);
-	s->m_io_service.post(std::bind<void>(std::move(connect_handler), ec));
+	s->m_io_service.post(std::bind<void>(std::move(s->m_connect_handler), ec));
+	s->m_connect_handler = nullptr;
 	if (kill && s->m_impl)
 	{
 		TORRENT_ASSERT(ec);
