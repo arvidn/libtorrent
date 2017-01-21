@@ -563,7 +563,7 @@ namespace libtorrent
 		void set_download_limit(int limit);
 		int download_limit() const;
 
-		peer_class_t peer_class() const { return peer_class_t(m_peer_class); }
+		peer_class_t peer_class() const { return m_peer_class; }
 
 		void set_max_uploads(int limit, bool state_update = true);
 		int max_uploads() const { return int(m_max_uploads); }
@@ -1351,7 +1351,7 @@ namespace libtorrent
 
 		// for torrents who have a bandwidth limit, this is != 0
 		// and refers to a peer_class in the session.
-		std::uint16_t m_peer_class = 0;
+		peer_class_t m_peer_class{0};
 
 		// of all peers in m_connections, this is the number
 		// of peers that are outgoing and still waiting to

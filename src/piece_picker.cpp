@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/alloca.hpp"
+#include "libtorrent/aux_/range.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/alert_types.hpp" // for picker_log_alert
 

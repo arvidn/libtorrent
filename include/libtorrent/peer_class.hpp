@@ -33,18 +33,24 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_PEER_CLASS_HPP_INCLUDED
 #define TORRENT_PEER_CLASS_HPP_INCLUDED
 
-#include "libtorrent/bandwidth_limit.hpp"
+#include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/bandwidth_limit.hpp"
+#include "libtorrent/units.hpp"
+#include "libtorrent/aux_/deque.hpp"
 
 #include <vector>
-#include <deque>
 #include <string>
 #include <cstdint>
 #include <memory>
 
-namespace libtorrent
-{
-	typedef std::uint32_t peer_class_t;
+namespace libtorrent {
+
+	namespace aux {
+		struct peer_class_tag;
+	}
+
+	using peer_class_t = aux::strong_typedef<std::uint32_t, aux::peer_class_tag>;
 
 	struct peer_class_info
 	{
@@ -87,11 +93,11 @@ namespace libtorrent
 	{
 		friend struct peer_class_pool;
 
-		explicit peer_class(std::string const& l)
-			: in_use(true)
-			, ignore_unchoke_slots(false)
+		explicit peer_class(std::string l)
+			: ignore_unchoke_slots(false)
 			, connection_limit_factor(100)
-			, label(l)
+			, label(std::move(l))
+			, in_use(true)
 			, references(1)
 		{
 			priority[0] = 1;
@@ -114,9 +120,6 @@ namespace libtorrent
 		// keeps track of the current quotas
 		bandwidth_channel channel[2];
 
-		// this is set to false when this slot is not in use for a peer_class
-		bool in_use;
-
 		bool ignore_unchoke_slots;
 		int connection_limit_factor;
 
@@ -129,12 +132,15 @@ namespace libtorrent
 		std::string label;
 
 	private:
+		// this is set to false when this slot is not in use for a peer_class
+		bool in_use;
+
 		int references;
 	};
 
 	struct TORRENT_EXTRA_EXPORT peer_class_pool
 	{
-		peer_class_t new_peer_class(std::string const& label);
+		peer_class_t new_peer_class(std::string label);
 		void decref(peer_class_t c);
 		void incref(peer_class_t c);
 		peer_class* at(peer_class_t c);
@@ -144,7 +150,7 @@ namespace libtorrent
 
 		// state for peer classes (a peer can belong to multiple classes)
 		// this can control
-		std::deque<peer_class> m_peer_classes;
+		aux::deque<peer_class, peer_class_t> m_peer_classes;
 
 		// indices in m_peer_classes that are no longer used
 		std::vector<peer_class_t> m_free_list;

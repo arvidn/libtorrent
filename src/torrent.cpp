@@ -815,7 +815,7 @@ namespace libtorrent
 		// this means that the invariant check that this is called from the
 		// network thread cannot be maintained
 
-		TORRENT_ASSERT(m_peer_class == 0);
+		TORRENT_ASSERT(m_peer_class == peer_class_t{0});
 		TORRENT_ASSERT(m_connections.empty());
 		if (!m_connections.empty())
 			disconnect_all(errors::torrent_aborted, op_bittorrent);
@@ -4295,10 +4295,10 @@ namespace libtorrent
 		update_gauge();
 		stop_announcing();
 
-		if (m_peer_class > 0)
+		if (m_peer_class > peer_class_t{0})
 		{
 			m_ses.peer_classes().decref(m_peer_class);
-			m_peer_class = 0;
+			m_peer_class = peer_class_t{0};
 		}
 
 		error_code ec;
@@ -8029,9 +8029,9 @@ namespace libtorrent
 		TORRENT_ASSERT(limit >= -1);
 		if (limit <= 0) limit = 0;
 
-		if (m_peer_class == 0 && limit == 0) return;
+		if (m_peer_class == peer_class_t{0} && limit == 0) return;
 
-		if (m_peer_class == 0)
+		if (m_peer_class == peer_class_t{0})
 			setup_peer_class();
 
 		struct peer_class* tpc = m_ses.peer_classes().at(m_peer_class);
@@ -8043,7 +8043,7 @@ namespace libtorrent
 
 	void torrent::setup_peer_class()
 	{
-		TORRENT_ASSERT(m_peer_class == 0);
+		TORRENT_ASSERT(m_peer_class == peer_class_t{0});
 		m_peer_class = m_ses.peer_classes().new_peer_class(name());
 		add_class(m_ses.peer_classes(), m_peer_class);
 	}
@@ -8052,7 +8052,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(is_single_thread());
 
-		if (m_peer_class == 0) return -1;
+		if (m_peer_class == peer_class_t{0}) return -1;
 		int limit = m_ses.peer_classes().at(m_peer_class)->channel[channel].throttle();
 		if (limit == (std::numeric_limits<int>::max)()) limit = -1;
 		return limit;

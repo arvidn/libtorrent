@@ -305,8 +305,8 @@ namespace aux {
 	{
 		// set the default peer_class_filter to use the local peer class
 		// for peers on local networks
-		std::uint32_t lfilter = 1 << m_local_peer_class;
-		std::uint32_t gfilter = 1 << m_global_class;
+		std::uint32_t lfilter = 1 << static_cast<std::uint32_t>(m_local_peer_class);
+		std::uint32_t gfilter = 1 << static_cast<std::uint32_t>(m_global_class);
 
 		struct class_mapping
 		{
@@ -1116,7 +1116,7 @@ namespace aux {
 
 	} // anonymous namespace
 
-	int session_impl::create_peer_class(char const* name)
+	peer_class_t session_impl::create_peer_class(char const* name)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		return m_classes.new_peer_class(name);
@@ -1224,7 +1224,7 @@ namespace aux {
 		// filter peer classes based on type
 		peer_class_mask = m_peer_class_type_filter.apply(socket_type, peer_class_mask);
 
-		for (peer_class_t i = 0; peer_class_mask; peer_class_mask >>= 1, ++i)
+		for (peer_class_t i{0}; peer_class_mask; peer_class_mask >>= 1, ++i)
 		{
 			if ((peer_class_mask & 1) == 0) continue;
 
