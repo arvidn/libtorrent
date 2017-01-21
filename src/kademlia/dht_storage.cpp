@@ -45,7 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/bloom_filter.hpp>
 #include <libtorrent/session_settings.hpp>
 #include <libtorrent/random.hpp>
-#include <libtorrent/aux_/vector.hpp>
 
 namespace libtorrent {
 namespace dht {
@@ -177,20 +176,10 @@ namespace
 
 	struct infohashes_sample
 	{
-		std::string samples;
+		std::vector<sha1_hash> samples;
 		time_point created = min_time();
 
-		int count() const { return int(samples.size()) / 20; }
-
-		void assign(aux::vector<sha1_hash> const& v)
-		{
-			TORRENT_ASSERT(v.end_index() <= infohashes_sample_count_max);
-			samples.resize(v.size() * 20);
-			for (int i = 0; i < v.end_index(); ++i)
-			{
-				std::memcpy(&samples[i * 20], v[i].data(), 20);
-			}
-		}
+		int count() const { return int(samples.size()); }
 	};
 
 	int clamp(int v, int lo, int hi)
@@ -485,7 +474,10 @@ namespace
 			item["interval"] = clamp(m_settings.sample_infohashes_interval
 				, 0, sample_infohashes_interval_max);
 			item["num"] = int(m_map.size());
-			item["samples"] = m_infohashes_sample.samples;
+
+			std::vector<sha1_hash> const& samples = m_infohashes_sample.samples;
+			item["samples"] = span<char const>(
+				reinterpret_cast<char const*>(samples.data()), samples.size() * 20);
 
 			return m_infohashes_sample.count();
 		}
@@ -589,8 +581,9 @@ namespace
 				&& m_infohashes_sample.count() >= max_count)
 				return;
 
-			aux::vector<node_id> keys;
-			keys.reserve(count);
+			std::vector<sha1_hash>& samples = m_infohashes_sample.samples;
+			samples.clear();
+			samples.reserve(count);
 
 			int to_pick = count;
 			int candidates = int(m_map.size());
@@ -607,12 +600,11 @@ namespace
 				if (random(std::uint32_t(candidates--)) > std::uint32_t(to_pick))
 					continue;
 
-				keys.push_back(t.first);
+				samples.push_back(t.first);
 				--to_pick;
 			}
 
-			TORRENT_ASSERT(keys.end_index() == count);
-			m_infohashes_sample.assign(keys);
+			TORRENT_ASSERT(int(samples.size()) == count);
 			m_infohashes_sample.created = now;
 		}
 	};
