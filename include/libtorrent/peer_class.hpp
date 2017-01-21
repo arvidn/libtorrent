@@ -39,8 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #include <vector>
+#include <deque>
 #include <string>
-#include <boost/smart_ptr.hpp>
 #include <boost/cstdint.hpp>
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -86,18 +86,25 @@ namespace libtorrent
 		int download_priority;
 	};
 
-	struct TORRENT_EXTRA_EXPORT peer_class : boost::enable_shared_from_this<peer_class>
+	struct TORRENT_EXTRA_EXPORT peer_class
 	{
 		friend struct peer_class_pool;
 
 		peer_class(std::string const& l)
-			: ignore_unchoke_slots(false)
+			: in_use(true)
+			, ignore_unchoke_slots(false)
 			, connection_limit_factor(100)
 			, label(l)
 			, references(1)
 		{
 			priority[0] = 1;
 			priority[1] = 1;
+		}
+
+		void clear()
+		{
+			in_use = false;
+			label.clear();
 		}
 
 		void set_info(peer_class_info const* pci);
@@ -109,6 +116,9 @@ namespace libtorrent
 		// the bandwidth channels, upload and download
 		// keeps track of the current quotas
 		bandwidth_channel channel[2];
+
+		// this is set to false when this slot is not in use for a peer_class
+		bool in_use;
 
 		bool ignore_unchoke_slots;
 		int connection_limit_factor;
@@ -123,7 +133,6 @@ namespace libtorrent
 
 	private:
 		int references;
-
 	};
 
 	struct TORRENT_EXTRA_EXPORT peer_class_pool
@@ -138,7 +147,7 @@ namespace libtorrent
 
 		// state for peer classes (a peer can belong to multiple classes)
 		// this can control
-		std::vector<boost::shared_ptr<peer_class> > m_peer_classes;
+		std::deque<peer_class> m_peer_classes;
 
 		// indices in m_peer_classes that are no longer used
 		std::vector<peer_class_t> m_free_list;
