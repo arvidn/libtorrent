@@ -67,6 +67,7 @@ libtorrent_rasterbar_la_SOURCES = \
   disk_io_job.cpp                 \
   disk_io_thread.cpp              \
   disk_io_thread_pool.cpp         \
+  disk_job_fence.cpp              \
   disk_job_pool.cpp               \
   entry.cpp                       \
   enum_net.cpp                    \

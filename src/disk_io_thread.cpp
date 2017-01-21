@@ -2850,7 +2850,7 @@ namespace libtorrent
 		fj->storage = j->storage;
 
 		int ret = j->storage->raise_fence(j, fj, m_stats_counters);
-		if (ret == disk_job_fence::fence_post_fence)
+		if (ret == aux::disk_job_fence::fence_post_fence)
 		{
 			std::unique_lock<std::mutex> l(m_job_mutex);
 			TORRENT_ASSERT((j->flags & disk_io_job::in_progress) || !j->storage);
@@ -2867,7 +2867,7 @@ namespace libtorrent
 			return;
 		}
 
-		if (ret == disk_job_fence::fence_post_flush)
+		if (ret == aux::disk_job_fence::fence_post_flush)
 		{
 			// now, we have to make sure that all outstanding jobs on this
 			// storage actually get flushed, in order for the fence job to
