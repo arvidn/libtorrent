@@ -6,9 +6,11 @@
 
 using namespace libtorrent;
 
+using libtorrent::aux::disk_job_fence;
+
 TORRENT_TEST(empty_fence)
 {
-	libtorrent::disk_job_fence fence;
+	disk_job_fence fence;
 	counters cnt;
 
 	disk_io_job test_job[10];
@@ -46,7 +48,7 @@ TORRENT_TEST(empty_fence)
 TORRENT_TEST(job_fence)
 {
 	counters cnt;
-	libtorrent::disk_job_fence fence;
+	disk_job_fence fence;
 
 	disk_io_job test_job[10];
 
@@ -120,7 +122,7 @@ TORRENT_TEST(job_fence)
 TORRENT_TEST(double_fence)
 {
 	counters cnt;
-	libtorrent::disk_job_fence fence;
+	disk_job_fence fence;
 
 	disk_io_job test_job[10];
 
