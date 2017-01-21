@@ -1,3 +1,4 @@
+	* storage optimization to peer classes
 	* fix torrent name in alerts of builds with deprecated functions
 	* make torrent_info::is_valid() return false if torrent failed to load
 	* fix per-torrent rate limits for >256 peer classes
