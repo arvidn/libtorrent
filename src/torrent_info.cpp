@@ -1081,6 +1081,8 @@ namespace libtorrent
 		if (!name_ent)
 		{
 			ec = errors::torrent_missing_name;
+			// mark the torrent as invalid
+			m_files.set_piece_length(0);
 			return false;
 		}
 
@@ -1097,14 +1099,22 @@ namespace libtorrent
 			// this is the counter used to name pad files
 			int pad_file_cnt = 0;
 			if (!extract_single_file(info, files, "", info_ptr_diff, true, pad_file_cnt, ec))
+			{
+				// mark the torrent as invalid
+				m_files.set_piece_length(0);
 				return false;
+			}
 
 			m_flags &= ~multifile;
 		}
 		else
 		{
 			if (!extract_files(files_node, files, name, info_ptr_diff, ec))
+			{
+				// mark the torrent as invalid
+				m_files.set_piece_length(0);
 				return false;
+			}
 			m_flags |= multifile;
 		}
 		TORRENT_ASSERT(!files.name().empty());
@@ -1121,6 +1131,8 @@ namespace libtorrent
 		if (!pieces && !root_hash)
 		{
 			ec = errors::torrent_missing_pieces;
+			// mark the torrent as invalid
+			m_files.set_piece_length(0);
 			return false;
 		}
 
@@ -1129,6 +1141,8 @@ namespace libtorrent
 			if (pieces.string_length() != files.num_pieces() * 20)
 			{
 				ec = errors::torrent_invalid_hashes;
+				// mark the torrent as invalid
+				m_files.set_piece_length(0);
 				return false;
 			}
 
@@ -1142,11 +1156,15 @@ namespace libtorrent
 			if (root_hash.string_length() != 20)
 			{
 				ec = errors::torrent_invalid_hashes;
+				// mark the torrent as invalid
+				m_files.set_piece_length(0);
 				return false;
 			}
 			if (files.num_pieces() >= std::numeric_limits<int>::max()/2)
 			{
 				ec = errors::too_many_pieces_in_torrent;
+				// mark the torrent as invalid
+				m_files.set_piece_length(0);
 				return false;
 			}
 			int const num_leafs = merkle_num_leafs(files.num_pieces());

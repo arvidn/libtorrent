@@ -80,47 +80,47 @@ namespace libtorrent
 		{
 			ret = m_free_list.back();
 			m_free_list.pop_back();
+			m_peer_classes[ret] = peer_class(label);
 		}
 		else
 		{
-			TORRENT_ASSERT(m_peer_classes.size() < 0x10000);
+			TORRENT_ASSERT(m_peer_classes.size() < 0x100000000);
 			ret = peer_class_t(m_peer_classes.size());
-			m_peer_classes.push_back(std::shared_ptr<peer_class>());
+			m_peer_classes.push_back(peer_class(label));
 		}
 
-		TORRENT_ASSERT(m_peer_classes[ret].get() == nullptr);
-		m_peer_classes[ret] = std::make_shared<peer_class>(label);
 		return ret;
 	}
 
 	void peer_class_pool::decref(peer_class_t c)
 	{
 		TORRENT_ASSERT(c < m_peer_classes.size());
-		TORRENT_ASSERT(m_peer_classes[c].get());
+		TORRENT_ASSERT(m_peer_classes[c].in_use);
+		TORRENT_ASSERT(m_peer_classes[c].references > 0);
 
-		--m_peer_classes[c]->references;
-		if (m_peer_classes[c]->references) return;
-		m_peer_classes[c].reset();
+		--m_peer_classes[c].references;
+		if (m_peer_classes[c].references) return;
+		m_peer_classes[c].clear();
 		m_free_list.push_back(c);
 	}
 
 	void peer_class_pool::incref(peer_class_t c)
 	{
 		TORRENT_ASSERT(c < m_peer_classes.size());
-		TORRENT_ASSERT(m_peer_classes[c].get());
+		TORRENT_ASSERT(m_peer_classes[c].in_use);
 
-		++m_peer_classes[c]->references;
+		++m_peer_classes[c].references;
 	}
 
 	peer_class* peer_class_pool::at(peer_class_t c)
 	{
-		if (c >= m_peer_classes.size()) return nullptr;
-		return m_peer_classes[c].get();
+		if (c >= m_peer_classes.size() || !m_peer_classes[c].in_use) return nullptr;
+		return &m_peer_classes[c];
 	}
 
 	peer_class const* peer_class_pool::at(peer_class_t c) const
 	{
-		if (c >= m_peer_classes.size()) return nullptr;
-		return m_peer_classes[c].get();
+		if (c >= m_peer_classes.size() || !m_peer_classes[c].in_use) return nullptr;
+		return &m_peer_classes[c];
 	}
 }

@@ -297,6 +297,9 @@ class test_session(unittest.TestCase):
         self.assertEqual(s.get_settings()['num_want'], 66)
         self.assertEqual(s.get_settings()['user_agent'], 'test123')
 
+    def test_fingerprint(self):
+        self.assertEqual(lt.generate_fingerprint('LT', 0, 1, 2, 3), '-LT0123-')
+        self.assertEqual(lt.generate_fingerprint('..', 10, 1, 2, 3), '-..A123-')
 
 if __name__ == '__main__':
     print(lt.__version__)

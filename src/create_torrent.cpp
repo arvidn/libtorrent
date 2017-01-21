@@ -380,6 +380,7 @@ namespace libtorrent
 		TORRENT_ASSERT(ti.num_files() > 0);
 		TORRENT_ASSERT(ti.total_size() > 0);
 
+		if (!ti.is_valid()) return;
 		if (ti.creation_date() > 0) m_creation_date = ti.creation_date();
 
 		if (!ti.creator().empty()) set_creator(ti.creator().c_str());

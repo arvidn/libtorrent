@@ -790,6 +790,12 @@ namespace aux {
 			{
 				// apply_settings_pack will update dht and proxy
 				settings_pack pack = load_pack_from_dict(settings);
+
+				// these settings are not loaded from state
+				// they are set by the client software, not configured by users
+				pack.clear(settings_pack::user_agent);
+				pack.clear(settings_pack::peer_fingerprint);
+
 				apply_settings_pack_impl(pack);
 #ifndef TORRENT_DISABLE_DHT
 				need_update_dht = false;

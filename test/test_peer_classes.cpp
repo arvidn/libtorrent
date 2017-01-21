@@ -66,11 +66,11 @@ TORRENT_TEST(peer_class)
 	TEST_CHECK(id3 == id2 + 1);
 
 	// make sure refcounting works
-	TEST_CHECK(class_name(id3, pool) == "test3");
+	TEST_EQUAL(class_name(id3, pool), "test3");
 	pool.incref(id3);
-	TEST_CHECK(class_name(id3, pool) == "test3");
+	TEST_EQUAL(class_name(id3, pool), "test3");
 	pool.decref(id3);
-	TEST_CHECK(class_name(id3, pool) == "test3");
+	TEST_EQUAL(class_name(id3, pool), "test3");
 	pool.decref(id3);
 	// it should have been deleted now
 	TEST_CHECK(pool.at(id3) == nullptr);
@@ -81,8 +81,8 @@ TORRENT_TEST(peer_class)
 
 	peer_class_info i;
 	pool.at(id2)->get_info(&i);
-	TEST_CHECK(i.upload_limit == 1000);
-	TEST_CHECK(i.download_limit == 2000);
+	TEST_EQUAL(i.upload_limit, 1000);
+	TEST_EQUAL(i.download_limit, 2000);
 
 	// test peer_class_type_filter
 	peer_class_type_filter filter;
