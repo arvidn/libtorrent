@@ -545,14 +545,17 @@ namespace libtorrent
 				file_status s;
 				std::string file_path = files().file_path(file_index, m_save_path);
 				stat_file(file_path, &s, ec.ec);
-				if (ec && ec.ec != boost::system::errc::no_such_file_or_directory)
+				if (!ec)
+				{
+					m_stat_cache.set_cache(file_index, s.file_size, s.mtime);
+				}
+				else if (ec.ec != boost::system::errc::no_such_file_or_directory)
 				{
 					m_stat_cache.set_error(file_index);
 					ec.file = file_index;
 					ec.operation = storage_error::stat;
 					break;
 				}
-				m_stat_cache.set_cache(file_index, s.file_size, s.mtime);
 			}
 
 			// if the file already exists, but is larger than what
