@@ -210,6 +210,152 @@ struct packet
 	std::uint8_t buf[1];
 };
 
+// single thread packet allocation packet pool
+// can handle 3 common cases of packet allocation size
+struct packet_pool
+{
+	packet *acquire(std::uint16_t allocate)
+	{
+#if TORRENT_USE_ASSERTS
+		check_thread();
+#endif
+		packet *p{ nullptr };
+		std::uint16_t should_allocate{ allocate };
+
+		if (allocate <= utp_header_size)
+		{
+			p = m_syn_stash.pop();
+			should_allocate = utp_header_size;
+		}
+		else if (allocate <= mtu_floor_size)
+		{
+			p = m_mtu_floor_stash.pop();
+			should_allocate = mtu_floor_size;
+		}
+		else if (allocate <= mtu_ceiling_size)
+		{
+			p = m_mtu_ceiling_stash.pop();
+			should_allocate = mtu_ceiling_size;
+		}
+
+		if (p == nullptr)
+			p = static_cast<packet*>(malloc(sizeof(packet) + should_allocate));
+
+		p->allocated = allocate;
+		return p;
+	}
+
+	void release(packet *p)
+	{
+#if TORRENT_USE_ASSERTS
+		check_thread();
+#endif
+		if (p == nullptr) return;
+		if (p->allocated <= utp_header_size)
+		{
+			if (m_syn_stash.push(p, utp_header_limit)) return;
+		}
+		else if (p->allocated <= mtu_floor_size)
+		{
+			if (m_mtu_floor_stash.push(p, mtu_floor_limit)) return;
+		}
+		else if (p->allocated <= mtu_ceiling_size)
+		{
+			if (m_mtu_ceiling_stash.push(p, mtu_ceiling_limit)) return;
+		}
+
+		free(p);
+	}
+
+	void flush()
+	{
+		m_syn_stash.flush();
+		m_mtu_floor_stash.flush();
+		m_mtu_ceiling_stash.flush();
+	}
+private:
+	struct packet_stash_item
+	{
+		packet *next;
+		std::size_t index;
+	};
+
+	struct packet_stash
+	{
+		packet *top{ nullptr };
+
+		~packet_stash()
+		{
+			flush();
+		}
+
+		void flush()
+		{
+			packet *p = top;
+			while (p != nullptr)
+			{
+				packet_stash_item *pi = reinterpret_cast<packet_stash_item *>(p);
+				packet* next = pi->next;
+				free(p);
+				p = next;
+			}
+		}
+
+		bool push(packet *p, std::size_t limit)
+		{
+			packet_stash_item *tpi = reinterpret_cast<packet_stash_item *>(top);
+			std::size_t top_index = (tpi == nullptr) ? 0 : tpi->index;
+			if (limit < top_index) return false;
+
+			packet_stash_item *pi = reinterpret_cast<packet_stash_item *>(p);
+			pi->next = top;
+			pi->index = top_index + 1;
+			top = p;
+			return true;
+		}
+
+		packet *pop()
+		{
+			packet *p = top;
+			if (p != nullptr)
+			{
+				packet_stash_item *pi = reinterpret_cast<packet_stash_item *>(p);
+				top = pi->next;
+			}
+			return p;
+		}
+	};
+
+#if TORRENT_USE_ASSERTS
+	void check_thread()
+	{
+		std::thread::id current_thread_id = std::this_thread::get_id();
+		if (check_thread_id == std::thread::id())
+		{
+			check_thread_id = current_thread_id;
+		}
+		else
+		{
+			TORRENT_ASSERT(current_thread_id == check_thread_id);
+		}
+	}
+
+	std::thread::id check_thread_id;
+#endif
+
+	const std::uint16_t utp_header_size = sizeof(utp_header);
+	const std::size_t utp_header_limit = 0x4000;
+	packet_stash m_syn_stash;
+
+	const std::uint16_t mtu_floor_size = TORRENT_INET_MIN_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER;
+	const std::size_t mtu_floor_limit = 0x4000;
+	packet_stash m_mtu_floor_stash;
+
+	const std::uint16_t mtu_ceiling_size = TORRENT_ETHERNET_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER;
+	const std::size_t mtu_ceiling_limit = 0x2000;
+	packet_stash m_mtu_ceiling_stash;
+};
+
 // since the uTP socket state may be needed after the
 // utp_stream is closed, it's kept in a separate struct
 // whose lifetime is not tied to the lifetime of utp_stream
@@ -261,8 +407,9 @@ struct packet
 struct utp_socket_impl
 {
 	utp_socket_impl(std::uint16_t recv_id, std::uint16_t send_id
-		, void* userdata, utp_socket_manager* sm)
+		, void* userdata, utp_socket_manager* sm, packet_pool* pp)
 		: m_sm(sm)
+		, m_packet_pool(pp)
 		, m_userdata(userdata)
 		, m_timeout(clock_type::now() + milliseconds(m_sm->connect_timeout()))
 		, m_send_id(send_id)
@@ -341,6 +488,9 @@ struct utp_socket_impl
 
 	void set_state(int s);
 
+	packet *acquire_packet(std::uint16_t allocate) { return m_packet_pool->acquire(allocate); }
+	void release_packet(packet *p) { m_packet_pool->release(p); }
+
 private:
 
 	// non-copyable
@@ -357,6 +507,8 @@ public:
 #endif
 
 	utp_socket_manager* m_sm;
+
+	packet_pool* m_packet_pool;
 
 	// userdata pointer passed along
 	// with any callback. This is initialized to 0
@@ -678,9 +830,9 @@ public:
 
 utp_socket_impl* construct_utp_impl(std::uint16_t recv_id
 	, std::uint16_t send_id, void* userdata
-	, utp_socket_manager* sm)
+	, utp_socket_manager* sm, packet_pool* pp)
 {
-	return new utp_socket_impl(recv_id, send_id, userdata, sm);
+	return new utp_socket_impl(recv_id, send_id, userdata, sm, pp);
 }
 
 void detach_utp_impl(utp_socket_impl* s)
@@ -721,6 +873,16 @@ bool utp_match(utp_socket_impl* s, udp::endpoint const& ep, std::uint16_t id)
 	return s->m_recv_id == id
 		&& s->m_port == ep.port()
 		&& s->m_remote_address == ep.address();
+}
+
+packet_pool* construct_packet_pool()
+{
+	return new packet_pool();
+}
+
+void delete_packet_pool(packet_pool* pp)
+{
+	delete pp;
 }
 
 udp::endpoint utp_remote_endpoint(utp_socket_impl* s)
@@ -1074,7 +1236,7 @@ size_t utp_stream::read_some(bool clear_buffers)
 		// Consumed entire packet
 		if (p->header_size == p->size)
 		{
-			free(p);
+			m_impl->release_packet(p);
 			++pop_packets;
 			*i = nullptr;
 			++i;
@@ -1167,23 +1329,23 @@ utp_socket_impl::~utp_socket_impl()
 		i != end; i = (i + 1) & ACK_MASK)
 	{
 		packet* p = m_inbuf.remove(i);
-		free(p);
+		release_packet(p);
 	}
 	for (std::uint16_t i = std::uint16_t(m_outbuf.cursor()), end((m_outbuf.cursor()
 		+ m_outbuf.capacity()) & ACK_MASK);
 		i != end; i = (i + 1) & ACK_MASK)
 	{
 		packet* p = m_outbuf.remove(i);
-		free(p);
+		release_packet(p);
 	}
 
 	for (std::vector<packet*>::iterator i = m_receive_buffer.begin()
 		, end = m_receive_buffer.end(); i != end; ++i)
 	{
-		free(*i);
+		release_packet(*i);
 	}
 
-	free(m_nagle_packet);
+	release_packet(m_nagle_packet);
 	m_nagle_packet = nullptr;
 }
 
@@ -1313,7 +1475,7 @@ void utp_socket_impl::send_syn()
 	m_ack_nr = 0;
 	m_fast_resend_seq_nr = m_seq_nr;
 
-	packet* p = static_cast<packet*>(malloc(sizeof(packet) + sizeof(utp_header)));
+	packet* p = acquire_packet(sizeof(utp_header));
 	p->size = sizeof(utp_header);
 	p->header_size = sizeof(utp_header);
 	p->num_transmissions = 0;
@@ -1363,7 +1525,7 @@ void utp_socket_impl::send_syn()
 	}
 	else if (ec)
 	{
-		free(p);
+		release_packet(p);
 		m_error = ec;
 		set_state(UTP_STATE_ERROR_WAIT);
 		test_socket_state();
@@ -1672,31 +1834,32 @@ void utp_socket_impl::remove_sack_header(packet* p)
 	p->size -= std::uint16_t(sack_size + 2);
 }
 
-struct holder
+struct packet_holder
 {
-	explicit holder(char* buf = nullptr): m_buf(buf) {}
-	~holder() { free(m_buf); }
+	explicit packet_holder(packet_pool *pp, packet* p = nullptr) : m_packet_pool(pp), m_packet(p) {}
+	~packet_holder() { m_packet_pool->release(m_packet); }
 
-	void reset(char* buf)
+	void reset(packet* p)
 	{
-		free(m_buf);
-		m_buf = buf;
+		m_packet_pool->release(m_packet);
+		m_packet = p;
 	}
 
-	char* release()
+	packet* release()
 	{
-		char* ret = m_buf;
-		m_buf = nullptr;
+		packet* ret = m_packet;
+		m_packet = nullptr;
 		return ret;
 	}
 
 private:
 
 	// not copyable
-	holder(holder const&);
-	holder& operator=(holder const&);
+	packet_holder(packet_holder const&);
+	packet_holder& operator=(packet_holder const&);
 
-	char* m_buf;
+	packet_pool *m_packet_pool;
+	packet* m_packet;
 };
 
 // sends a packet, pulls data from the write buffer (if there's any)
@@ -1838,7 +2001,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 
 	// used to free the packet buffer in case we exit the
 	// function early
-	holder buf_holder;
+	packet_holder holder(m_packet_pool);
 
 	// payload size being zero means we're just sending
 	// an force. We should not pick up the nagle packet
@@ -1848,9 +2011,8 @@ bool utp_socket_impl::send_pkt(int const flags)
 		// need to keep the packet around (in the outbuf)
 		if (payload_size)
 		{
-			p = static_cast<packet*>(std::malloc(sizeof(packet) + effective_mtu));
-			p->allocated = std::uint16_t(effective_mtu);
-			buf_holder.reset(reinterpret_cast<char*>(p));
+			p = acquire_packet(std::uint16_t(effective_mtu));
+			holder.reset(p);
 
 			m_sm->inc_stats_counter(counters::utp_payload_pkts_out);
 		}
@@ -1980,7 +2142,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 		TORRENT_ASSERT(m_nagle_packet == nullptr);
 		TORRENT_ASSERT(h->seq_nr == m_seq_nr);
 		m_nagle_packet = p;
-		buf_holder.release();
+		holder.release();
 		return false;
 	}
 
@@ -2104,13 +2266,13 @@ bool utp_socket_impl::send_pkt(int const flags)
 
 		// release the buffer, we're saving it in the circular
 		// buffer of outgoing packets
-		buf_holder.release();
+		holder.release();
 		packet* old = m_outbuf.insert(m_seq_nr, p);
 		if (old)
 		{
 //			TORRENT_ASSERT(reinterpret_cast<utp_header*>(old->buf)->seq_nr == m_seq_nr);
 			if (!old->need_resend) m_bytes_in_flight -= old->size - old->header_size;
-			free(old);
+			release_packet(old);
 		}
 		TORRENT_ASSERT(h->seq_nr == m_seq_nr);
 		m_seq_nr = (m_seq_nr + 1) & ACK_MASK;
@@ -2393,7 +2555,7 @@ void utp_socket_impl::ack_packet(packet* p, time_point const& receive_time
 
 	m_rtt.add_sample(rtt / 1000);
 	if (rtt < min_rtt) min_rtt = rtt;
-	free(p);
+	release_packet(p);
 }
 
 void utp_socket_impl::incoming(std::uint8_t const* buf, int size, packet* p
@@ -2433,7 +2595,7 @@ void utp_socket_impl::incoming(std::uint8_t const* buf, int size, packet* p
 		if (size == 0)
 		{
 			TORRENT_ASSERT(p == nullptr || p->header_size == p->size);
-			free(p);
+			release_packet(p);
 			return;
 		}
 	}
@@ -2443,7 +2605,7 @@ void utp_socket_impl::incoming(std::uint8_t const* buf, int size, packet* p
 	if (!p)
 	{
 		TORRENT_ASSERT(buf);
-		p = static_cast<packet*>(std::malloc(sizeof(packet) + size));
+		p = acquire_packet(std::uint16_t(size));
 		p->size = std::uint16_t(size);
 		p->header_size = 0;
 		std::memcpy(p->buf, buf, size);
@@ -2579,7 +2741,7 @@ bool utp_socket_impl::consume_incoming_data(
 		}
 
 		// we don't need to save the packet header, just the payload
-		packet* p = static_cast<packet*>(malloc(sizeof(packet) + payload_size));
+		packet* p = acquire_packet(std::uint16_t(payload_size));
 		p->size = std::uint16_t(payload_size);
 		p->header_size = 0;
 		p->num_transmissions = 0;

@@ -188,6 +188,8 @@ namespace libtorrent
 		// this is  passed on to the instantiate connection
 		// if this is non-nullptr it will create SSL connections over uTP
 		void* m_ssl_context;
+
+		packet_pool *m_packet_pool;
 	};
 }
 

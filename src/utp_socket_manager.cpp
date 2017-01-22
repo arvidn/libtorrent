@@ -63,6 +63,7 @@ namespace libtorrent
 		, m_ssl_context(ssl_context)
 	{
 		m_restrict_mtu.fill(65536);
+		m_packet_pool = construct_packet_pool();
 	}
 
 	utp_socket_manager::~utp_socket_manager()
@@ -72,6 +73,7 @@ namespace libtorrent
 		{
 			delete_utp_impl(i->second);
 		}
+		delete_packet_pool(m_packet_pool);
 	}
 
 	void utp_socket_manager::tick(time_point now)
@@ -338,7 +340,7 @@ namespace libtorrent
 			send_id = std::uint16_t(random(0xffff));
 			recv_id = send_id - 1;
 		}
-		utp_socket_impl* impl = construct_utp_impl(recv_id, send_id, str, this);
+		utp_socket_impl* impl = construct_utp_impl(recv_id, send_id, str, this, m_packet_pool);
 		m_utp_sockets.insert(std::make_pair(recv_id, impl));
 		return impl;
 	}
