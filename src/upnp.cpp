@@ -140,7 +140,7 @@ void upnp::log(char const* fmt, ...) const
 void upnp::discover_device_impl()
 {
 	TORRENT_ASSERT(is_single_thread());
-	const char msearch[] =
+	static const char msearch[] =
 		"M-SEARCH * HTTP/1.1\r\n"
 		"HOST: 239.255.255.250:1900\r\n"
 		"ST:upnp:rootdevice\r\n"

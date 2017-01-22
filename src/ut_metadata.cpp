@@ -232,7 +232,7 @@ namespace libtorrent { namespace
 			TORRENT_ASSERT(!m_pc.associated_torrent().expired());
 
 #ifndef TORRENT_DISABLE_LOGGING
-			char const* names[] = {"request", "data", "dont-have"};
+			static char const* names[] = {"request", "data", "dont-have"};
 			char const* n = "";
 			if (type >= 0 && type < 3) n = names[type];
 			m_pc.peer_log(peer_log_alert::outgoing_message, "UT_METADATA"
