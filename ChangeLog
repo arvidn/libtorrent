@@ -1,4 +1,6 @@
-	* fix crash caused by empty bitfield 
+	* introduce introduce distinct types for peer_class_t, piece_index_t and
+	  file_index_t.
+	* fix crash caused by empty bitfield
 	* removed disk-access-log build configuration
 	* removed mmap_cache feature
 	* strengthened type safety in handling of piece and file indices

@@ -577,12 +577,19 @@ namespace libtorrent
 		// peer potentially across you changing your IP.
 		void set_key(int key);
 
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#pragma warning(disable : 4268)
+#endif
+
 		// built-in peer classes
-		enum {
-			global_peer_class_id,
-			tcp_peer_class_id,
-			local_peer_class_id
-		};
+		static constexpr peer_class_t global_peer_class_id{0};
+		static constexpr peer_class_t tcp_peer_class_id{1};
+		static constexpr peer_class_t local_peer_class_id{2};
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 		// ``is_listening()`` will tell you whether or not the session has
 		// successfully opened a listening port. If it hasn't, this function will
@@ -609,10 +616,10 @@ namespace libtorrent
 		// belong to their own peer class, apply the following filter::
 		//
 		// 	ip_filter f;
-		// 	int my_class = ses.create_peer_class("200.1.x.x IP range");
+		// 	peer_class_t my_class = ses.create_peer_class("200.1.x.x IP range");
 		// 	f.add_rule(address_v4::from_string("200.1.1.0")
 		// 		, address_v4::from_string("200.1.255.255")
-		// 		, 1 << my_class);
+		// 		, 1 << static_cast<std::uint32_t>(my_class));
 		// 	ses.set_peer_class_filter(f);
 		//
 		// This setting only applies to new connections, it won't affect existing
@@ -655,7 +662,7 @@ namespace libtorrent
 		// make sure to create those early on, to get low identifiers.
 		//
 		// For more information on peer classes, see peer-classes_.
-		int create_peer_class(char const* name);
+		peer_class_t create_peer_class(char const* name);
 
 		// This call dereferences the reference count of the specified peer
 		// class. When creating a peer class it's automatically referenced by 1.
