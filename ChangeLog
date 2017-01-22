@@ -1,3 +1,4 @@
+	* fix stat cache issue that sometimes would produce incorrect resume data
 	* storage optimization to peer classes
 	* fix torrent name in alerts of builds with deprecated functions
 	* make torrent_info::is_valid() return false if torrent failed to load
