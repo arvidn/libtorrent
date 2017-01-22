@@ -189,7 +189,7 @@ namespace libtorrent
 
 			std::string message(int ev) const BOOST_SYSTEM_NOEXCEPT override
 			{
-				char const* error_messages[] = {
+				static char const* error_messages[] = {
 					"ok",
 					"source exhausted",
 					"target exhausted",
