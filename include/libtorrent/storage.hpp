@@ -38,24 +38,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <mutex>
 #include <atomic>
-#include <unordered_set>
 #include <memory>
 
 #include "libtorrent/aux_/disk_job_fence.hpp"
-#include "libtorrent/piece_picker.hpp"
-#include "libtorrent/peer_request.hpp"
-#include "libtorrent/file.hpp"
-#include "libtorrent/disk_buffer_holder.hpp"
+#include "libtorrent/aux_/storage_piece_set.hpp"
 #include "libtorrent/storage_defs.hpp"
 #include "libtorrent/allocator.hpp"
-#include "libtorrent/file_pool.hpp" // pool_file_status
 #include "libtorrent/part_file.hpp"
 #include "libtorrent/stat_cache.hpp"
-#include "libtorrent/bdecode.hpp"
 #include "libtorrent/bitfield.hpp"
-#include "libtorrent/performance_counters.hpp"
 #include "libtorrent/span.hpp"
-#include "libtorrent/tailqueue.hpp"
 #include "libtorrent/aux_/vector.hpp"
 
 // OVERVIEW
@@ -139,33 +131,12 @@ namespace libtorrent
 {
 	class session;
 	struct file_pool;
-	struct disk_io_job;
-	struct disk_buffer_pool;
-	struct cache_status;
 	namespace aux { struct session_settings; }
-	struct cached_piece_entry;
 	struct add_torrent_params;
 
 	TORRENT_EXTRA_EXPORT void clear_bufs(span<iovec_t const> bufs);
 
 	struct disk_io_thread;
-
-	// this class keeps track of which pieces, belonging to
-	// a specific storage, are in the cache right now. It's
-	// used for quickly being able to evict all pieces for a
-	// specific torrent
-	struct TORRENT_EXPORT storage_piece_set
-	{
-		void add_piece(cached_piece_entry* p);
-		void remove_piece(cached_piece_entry* p);
-		bool has_piece(cached_piece_entry const* p) const;
-		int num_pieces() const { return int(m_cached_pieces.size()); }
-		std::unordered_set<cached_piece_entry*> const& cached_pieces() const
-		{ return m_cached_pieces; }
-	private:
-		// these are cached pieces belonging to this storage
-		std::unordered_set<cached_piece_entry*> m_cached_pieces;
-	};
 
 	// The storage interface is a pure virtual class that can be implemented to
 	// customize how and where data for a torrent is stored. The default storage
@@ -195,7 +166,7 @@ namespace libtorrent
 	struct TORRENT_EXPORT storage_interface
 		: public std::enable_shared_from_this<storage_interface>
 		, public aux::disk_job_fence
-		, public storage_piece_set
+		, public aux::storage_piece_set
 		, boost::noncopyable
 	{
 

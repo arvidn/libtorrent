@@ -86,6 +86,7 @@ set(sources
 	stat
 	stat_cache
 	storage
+	storage_piece_set
 	storage_utils
 	time
 	timestamp_history
