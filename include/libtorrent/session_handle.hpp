@@ -681,7 +681,7 @@ namespace libtorrent
 		// destructs.
 		//
 		// For more information on peer classes, see peer-classes_.
-		void delete_peer_class(int cid);
+		void delete_peer_class(peer_class_t cid);
 
 		// These functions queries information from a peer class and updates the
 		// configuration of a peer class, respectively.
@@ -698,8 +698,8 @@ namespace libtorrent
 		// account.
 		//
 		// For more information, see peer-classes_.
-		peer_class_info get_peer_class(int cid);
-		void set_peer_class(int cid, peer_class_info const& pci);
+		peer_class_info get_peer_class(peer_class_t cid);
+		void set_peer_class(peer_class_t cid, peer_class_info const& pci);
 
 #ifndef TORRENT_NO_DEPRECATE
 		// if the listen port failed in some way you can retry to listen on

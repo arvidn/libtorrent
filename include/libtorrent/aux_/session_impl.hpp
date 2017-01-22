@@ -454,15 +454,15 @@ namespace libtorrent
 			bool use_quota_overhead(bandwidth_channel* ch, int amount);
 
 			peer_class_t create_peer_class(char const* name);
-			void delete_peer_class(int cid);
+			void delete_peer_class(peer_class_t cid);
 			void set_peer_class_filter(ip_filter const& f);
 			ip_filter const& get_peer_class_filter() const;
 
 			void set_peer_class_type_filter(peer_class_type_filter f);
 			peer_class_type_filter get_peer_class_type_filter();
 
-			peer_class_info get_peer_class(int cid);
-			void set_peer_class(int cid, peer_class_info const& pci);
+			peer_class_info get_peer_class(peer_class_t cid);
+			void set_peer_class(peer_class_t cid, peer_class_info const& pci);
 
 			bool is_listening() const;
 

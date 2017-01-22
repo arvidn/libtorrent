@@ -774,17 +774,17 @@ namespace libtorrent
 		return sync_call_ret<peer_class_t>(&session_impl::create_peer_class, name);
 	}
 
-	void session_handle::delete_peer_class(int cid)
+	void session_handle::delete_peer_class(peer_class_t cid)
 	{
 		async_call(&session_impl::delete_peer_class, cid);
 	}
 
-	peer_class_info session_handle::get_peer_class(int cid)
+	peer_class_info session_handle::get_peer_class(peer_class_t cid)
 	{
 		return sync_call_ret<peer_class_info>(&session_impl::get_peer_class, cid);
 	}
 
-	void session_handle::set_peer_class(int cid, peer_class_info const& pci)
+	void session_handle::set_peer_class(peer_class_t cid, peer_class_info const& pci)
 	{
 		async_call(&session_impl::set_peer_class, cid, pci);
 	}

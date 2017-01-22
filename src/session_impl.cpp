@@ -1122,19 +1122,19 @@ namespace aux {
 		return m_classes.new_peer_class(name);
 	}
 
-	void session_impl::delete_peer_class(int cid)
+	void session_impl::delete_peer_class(peer_class_t cid)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		// if you hit this assert, you're deleting a non-existent peer class
-		TORRENT_ASSERT(m_classes.at(peer_class_t(cid)));
-		if (m_classes.at(peer_class_t(cid)) == nullptr) return;
-		m_classes.decref(peer_class_t(cid));
+		TORRENT_ASSERT(m_classes.at(cid));
+		if (m_classes.at(cid) == nullptr) return;
+		m_classes.decref(cid);
 	}
 
-	peer_class_info session_impl::get_peer_class(int cid)
+	peer_class_info session_impl::get_peer_class(peer_class_t cid)
 	{
 		peer_class_info ret;
-		peer_class* pc = m_classes.at(peer_class_t(cid));
+		peer_class* pc = m_classes.at(cid);
 		// if you hit this assert, you're passing in an invalid cid
 		TORRENT_ASSERT(pc);
 		if (pc == nullptr)
@@ -1183,9 +1183,9 @@ namespace aux {
 		m_tracker_manager.queue_request(get_io_service(), req, c);
 	}
 
-	void session_impl::set_peer_class(int cid, peer_class_info const& pci)
+	void session_impl::set_peer_class(peer_class_t cid, peer_class_info const& pci)
 	{
-		peer_class* pc = m_classes.at(peer_class_t(cid));
+		peer_class* pc = m_classes.at(cid);
 		// if you hit this assert, you're passing in an invalid cid
 		TORRENT_ASSERT(pc);
 		if (pc == nullptr) return;
