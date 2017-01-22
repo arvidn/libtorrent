@@ -75,16 +75,6 @@ POSSIBILITY OF SUCH DAMAGE.
 // for convert_to_wstring and convert_to_native
 #include "libtorrent/aux_/escape_string.hpp"
 
-//#define TORRENT_PARTIAL_HASH_LOG
-
-#define DEBUG_DELETE_FILES 0
-
-#if DEBUG_DELETE_FILES
-#define DFLOG(...) std::fprintf(__VA_ARGS__)
-#else
-#define DFLOG(...) do {} while (false)
-#endif
-
 namespace libtorrent
 {
 	void clear_bufs(span<iovec_t const> bufs)
@@ -573,9 +563,6 @@ namespace libtorrent
 
 	void default_storage::delete_files(int const options, storage_error& ec)
 	{
-		DFLOG(stderr, "[%p] delete_files [%x]\n", static_cast<void*>(this)
-			, options);
-
 #if TORRENT_USE_ASSERTS
 		// this is a fence job, we expect no other
 		// threads to hold any references to any files
@@ -596,9 +583,6 @@ namespace libtorrent
 		if (m_part_file) m_part_file.reset();
 
 		aux::delete_files(files(), m_save_path, m_part_file_name, options, ec);
-
-		DFLOG(stderr, "[%p] delete_files result: %s\n", static_cast<void*>(this)
-			, ec.ec.message().c_str());
 	}
 
 	bool default_storage::verify_resume_data(add_torrent_params const& rd
