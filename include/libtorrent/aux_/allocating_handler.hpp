@@ -55,6 +55,8 @@ namespace libtorrent { namespace aux
 		{}
 
 		bool used;
+#else
+		handler_storage() = default;
 #endif
 		typename aux::aligned_storage<Size>::type bytes;
 	private:
