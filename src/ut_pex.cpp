@@ -61,7 +61,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace
 {
-	const char extension_name[] = "ut_pex";
+	static const char extension_name[] = "ut_pex";
 
 	enum
 	{

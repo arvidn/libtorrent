@@ -129,7 +129,7 @@ void upnp::log(char const* msg, mutex::scoped_lock& l)
 
 void upnp::discover_device_impl(mutex::scoped_lock& l)
 {
-	const char msearch[] =
+	static const char msearch[] =
 		"M-SEARCH * HTTP/1.1\r\n"
 		"HOST: 239.255.255.250:1900\r\n"
 		"ST:upnp:rootdevice\r\n"

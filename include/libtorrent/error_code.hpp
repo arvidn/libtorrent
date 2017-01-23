@@ -560,7 +560,7 @@ namespace libtorrent
 		// an empty string.
 		char const* operation_str() const
 		{
-			char const* ops[] =
+			static char const* ops[] =
 			{
 				"", "stat", "mkdir", "open", "rename", "remove", "copy"
 				, "read", "write", "fallocate", "allocate cache piece"
