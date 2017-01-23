@@ -67,6 +67,7 @@ libtorrent_rasterbar_la_SOURCES = \
   disk_io_job.cpp                 \
   disk_io_thread.cpp              \
   disk_io_thread_pool.cpp         \
+  disk_job_fence.cpp              \
   disk_job_pool.cpp               \
   entry.cpp                       \
   enum_net.cpp                    \
@@ -130,6 +131,7 @@ libtorrent_rasterbar_la_SOURCES = \
   stat.cpp                        \
   stat_cache.cpp                  \
   storage.cpp                     \
+  storage_piece_set.cpp           \
   storage_utils.cpp               \
   session_stats.cpp               \
   string_util.cpp                 \

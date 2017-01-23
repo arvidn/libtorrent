@@ -86,6 +86,7 @@ set(sources
 	stat
 	stat_cache
 	storage
+	storage_piece_set
 	storage_utils
 	time
 	timestamp_history
@@ -106,6 +107,7 @@ set(sources
 	file_pool
 	lsd
 	disk_io_job
+	disk_job_fence
 	disk_job_pool
 	disk_buffer_pool
 	disk_io_thread

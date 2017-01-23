@@ -158,12 +158,16 @@ nobase_include_HEADERS = \
   span.hpp                     \
   \
   aux_/allocating_handler.hpp       \
+  aux_/aligned_storage.hpp          \
+  aux_/aligned_union.hpp            \
   aux_/bind_to_device.hpp           \
   aux_/block_cache_reference.hpp    \
   aux_/cpuid.hpp                    \
   aux_/disable_warnings_push.hpp    \
   aux_/disable_warnings_pop.hpp     \
+  aux_/disk_job_fence.hpp           \
   aux_/dev_random.hpp               \
+  aux_/deque.hpp                    \
   aux_/escape_string.hpp            \
   aux_/io.hpp                       \
   aux_/max_path.hpp                 \
@@ -174,6 +178,7 @@ nobase_include_HEADERS = \
   aux_/proxy_settings.hpp           \
   aux_/session_interface.hpp        \
   aux_/suggest_piece.hpp            \
+  aux_/storage_piece_set.hpp        \
   aux_/time.hpp                     \
   aux_/file_progress.hpp            \
   aux_/openssl.hpp                  \

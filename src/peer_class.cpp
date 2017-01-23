@@ -73,54 +73,53 @@ namespace libtorrent
 		priority[peer_connection::download_channel] = (std::max)(1, (std::min)(255, pci->download_priority));
 	}
 
-	peer_class_t peer_class_pool::new_peer_class(std::string const& label)
+	peer_class_t peer_class_pool::new_peer_class(std::string label)
 	{
-		peer_class_t ret = 0;
+		peer_class_t ret{0};
 		if (!m_free_list.empty())
 		{
 			ret = m_free_list.back();
 			m_free_list.pop_back();
+			m_peer_classes[ret] = peer_class(std::move(label));
 		}
 		else
 		{
-			TORRENT_ASSERT(m_peer_classes.size() < 0x10000);
-			ret = peer_class_t(m_peer_classes.size());
-			m_peer_classes.push_back(std::shared_ptr<peer_class>());
+			ret = m_peer_classes.end_index();
+			m_peer_classes.emplace_back(std::move(label));
 		}
 
-		TORRENT_ASSERT(m_peer_classes[ret].get() == nullptr);
-		m_peer_classes[ret] = std::make_shared<peer_class>(label);
 		return ret;
 	}
 
 	void peer_class_pool::decref(peer_class_t c)
 	{
-		TORRENT_ASSERT(c < m_peer_classes.size());
-		TORRENT_ASSERT(m_peer_classes[c].get());
+		TORRENT_ASSERT(c < m_peer_classes.end_index());
+		TORRENT_ASSERT(m_peer_classes[c].in_use);
+		TORRENT_ASSERT(m_peer_classes[c].references > 0);
 
-		--m_peer_classes[c]->references;
-		if (m_peer_classes[c]->references) return;
-		m_peer_classes[c].reset();
+		--m_peer_classes[c].references;
+		if (m_peer_classes[c].references) return;
+		m_peer_classes[c].clear();
 		m_free_list.push_back(c);
 	}
 
 	void peer_class_pool::incref(peer_class_t c)
 	{
-		TORRENT_ASSERT(c < m_peer_classes.size());
-		TORRENT_ASSERT(m_peer_classes[c].get());
+		TORRENT_ASSERT(c < m_peer_classes.end_index());
+		TORRENT_ASSERT(m_peer_classes[c].in_use);
 
-		++m_peer_classes[c]->references;
+		++m_peer_classes[c].references;
 	}
 
 	peer_class* peer_class_pool::at(peer_class_t c)
 	{
-		if (c >= m_peer_classes.size()) return nullptr;
-		return m_peer_classes[c].get();
+		if (c >= m_peer_classes.end_index() || !m_peer_classes[c].in_use) return nullptr;
+		return &m_peer_classes[c];
 	}
 
 	peer_class const* peer_class_pool::at(peer_class_t c) const
 	{
-		if (c >= m_peer_classes.size()) return nullptr;
-		return m_peer_classes[c].get();
+		if (c >= m_peer_classes.end_index() || !m_peer_classes[c].in_use) return nullptr;
+		return &m_peer_classes[c];
 	}
 }

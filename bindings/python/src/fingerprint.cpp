@@ -10,6 +10,8 @@ void bind_fingerprint()
     using namespace boost::python;
     using namespace libtorrent;
 
+    def("generate_fingerprint", &generate_fingerprint);
+
 #ifndef TORRENT_NO_DEPRECATE
 #ifdef __GNUC__
 #pragma GCC diagnostic push

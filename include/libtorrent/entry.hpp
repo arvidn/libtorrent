@@ -73,6 +73,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/string_view.hpp"
+#include "libtorrent/aux_/aligned_union.hpp"
 
 namespace libtorrent
 {
@@ -83,9 +84,9 @@ namespace libtorrent
 #endif
 	struct bdecode_node;
 
-#if __cplusplus > 201103
 	namespace aux
 	{
+#if (__cplusplus > 201103) || (defined _MSC_VER && _MSC_VER >= 1900)
 		// this enables us to compare a string_view against the std::string that's
 		// held by the std::map
 		struct strview_less
@@ -95,8 +96,26 @@ namespace libtorrent
 			bool operator()(T1 const& rhs, T2 const& lhs) const
 			{ return rhs < lhs; }
 		};
-	};
+
+		template<class T> using map_string = std::map<std::string, T, aux::strview_less>;
+#else
+		template<class T>
+		struct map_string : std::map<std::string, T>
+		{
+			using base = std::map<std::string, T>;
+
+			typename base::iterator find(const string_view& key)
+			{
+				return this->base::find(key.to_string());
+			}
+
+			typename base::const_iterator find(const string_view& key) const
+			{
+				return this->base::find(key.to_string());
+			}
+		};
 #endif
+	}
 
 	// The ``entry`` class represents one node in a bencoded hierarchy. It works as a
 	// variant type, it can be either a list, a dictionary (``std::map``), an integer
@@ -108,11 +127,7 @@ namespace libtorrent
 		// the key is always a string. If a generic entry would be allowed
 		// as a key, sorting would become a problem (e.g. to compare a string
 		// to a list). The definition doesn't mention such a limit though.
-#if __cplusplus <= 201103
-		using dictionary_type = std::map<std::string, entry>;
-#else
-		using dictionary_type = std::map<std::string, entry, aux::strview_less>;
-#endif
+		using dictionary_type = aux::map_string<entry>;
 		using string_type = std::string;
 		using list_type = std::vector<entry>;
 		using integer_type = std::int64_t;
@@ -297,7 +312,7 @@ namespace libtorrent
 
 		void to_string_impl(std::string& out, int indent) const;
 
-		std::aligned_union<1
+		aux::aligned_union<1
 #if TORRENT_COMPLETE_TYPES_REQUIRED
 			// for implementations that require complete types, use char and hope
 			// for the best

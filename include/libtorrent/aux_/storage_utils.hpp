@@ -49,6 +49,8 @@ namespace libtorrent
 	class file_storage;
 	struct part_file;
 	struct storage_error;
+	struct stat_cache;
+	struct add_torrent_params;
 
 #ifdef TORRENT_WINDOWS
 	struct iovec_t
@@ -59,6 +61,8 @@ namespace libtorrent
 #else
 	using iovec_t = ::iovec;
 #endif
+
+	namespace aux {
 
 	TORRENT_EXTRA_EXPORT int copy_bufs(span<iovec_t const> bufs, int bytes, span<iovec_t> target);
 	TORRENT_EXTRA_EXPORT span<iovec_t> advance_bufs(span<iovec_t> bufs, int bytes);
@@ -97,7 +101,15 @@ namespace libtorrent
 	delete_files(file_storage const& fs, std::string const& save_path
 		, std::string const& part_file_name, int const options, storage_error& ec);
 
-}
+	TORRENT_EXTRA_EXPORT bool
+	verify_resume_data(add_torrent_params const& rd
+		, aux::vector<std::string, file_index_t> const& links
+		, file_storage const& fs
+		, aux::vector<std::uint8_t, file_index_t> const& file_priority
+		, stat_cache& stat
+		, std::string const& save_path
+		, storage_error& ec);
+}}
 
 #endif
 

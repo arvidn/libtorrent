@@ -33,9 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SOCKET_TYPE
 #define TORRENT_SOCKET_TYPE
 
-#include <type_traits> // for aligned_union
-
 #include "libtorrent/config.hpp"
+#include "libtorrent/aux_/aligned_union.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/socks5_stream.hpp"
 #include "libtorrent/http_stream.hpp"
@@ -300,7 +299,7 @@ namespace libtorrent
 		io_service& m_io_service;
 		int m_type;
 
-		std::aligned_union<1
+		aux::aligned_union<1
 			, tcp::socket
 			, socks5_stream
 			, http_stream

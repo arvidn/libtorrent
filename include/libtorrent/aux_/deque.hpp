@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016, Arvid Norberg
+Copyright (c) 2017, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,10 +30,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_VECTOR_HPP
-#define TORRENT_VECTOR_HPP
+#ifndef TORRENT_DEQUE_HPP
+#define TORRENT_DEQUE_HPP
 
-#include <vector>
+#include <deque>
 #include <type_traits>
 
 #include "libtorrent/units.hpp"
@@ -42,9 +42,9 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { namespace aux {
 
 	template <typename T, typename IndexType = int>
-	struct vector : std::vector<T>
+	struct deque : std::deque<T>
 	{
-		using base = std::vector<T>;
+		using base = std::deque<T>;
 		using underlying_index = typename underlying_index_t<IndexType>::type;
 
 		// pull in constructors from base class
@@ -113,20 +113,7 @@ namespace libtorrent { namespace aux {
 		}
 	};
 
-	// TODO: find a better place for this function
-	template <class T, class In, typename Cond = typename std::enable_if<
-		std::is_integral<T>::value && std::is_integral<In>::value>::type>
-	T numeric_cast(In v)
-	{
-		T r = static_cast<T>(v);
-		TORRENT_ASSERT(v == static_cast<In>(r));
-		TORRENT_ASSERT(std::is_unsigned<In>::value || std::is_signed<T>::value
-			|| std::int64_t(v) >= 0);
-		TORRENT_ASSERT(std::is_signed<In>::value || std::is_unsigned<T>::value
-			|| std::size_t(v) <= std::size_t((std::numeric_limits<T>::max)()));
-		return r;
-	}
-
 }}
 
 #endif
+

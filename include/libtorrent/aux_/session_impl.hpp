@@ -453,16 +453,16 @@ namespace libtorrent
 			int use_quota_overhead(peer_class_set& set, int amount_down, int amount_up) override;
 			bool use_quota_overhead(bandwidth_channel* ch, int amount);
 
-			int create_peer_class(char const* name);
-			void delete_peer_class(int cid);
+			peer_class_t create_peer_class(char const* name);
+			void delete_peer_class(peer_class_t cid);
 			void set_peer_class_filter(ip_filter const& f);
 			ip_filter const& get_peer_class_filter() const;
 
 			void set_peer_class_type_filter(peer_class_type_filter f);
 			peer_class_type_filter get_peer_class_type_filter();
 
-			peer_class_info get_peer_class(int cid);
-			void set_peer_class(int cid, peer_class_info const& pci);
+			peer_class_info get_peer_class(peer_class_t cid);
+			void set_peer_class(peer_class_t cid, peer_class_info const& pci);
 
 			bool is_listening() const;
 
@@ -796,7 +796,7 @@ namespace libtorrent
 			bandwidth_manager m_upload_rate;
 
 			// the peer class that all peers belong to by default
-			peer_class_t m_global_class = 0;
+			peer_class_t m_global_class{0};
 
 			// the peer class all TCP peers belong to by default
 			// all tcp peer connections are subject to these
@@ -805,10 +805,10 @@ namespace libtorrent
 			// throttle TCP that passes over the internet
 			// bottleneck (i.e. modem) to avoid starving out
 			// uTP connections.
-			peer_class_t m_tcp_peer_class = 0;
+			peer_class_t m_tcp_peer_class{0};
 
 			// peer class for local peers
-			peer_class_t m_local_peer_class = 0;
+			peer_class_t m_local_peer_class{0};
 
 			tracker_manager m_tracker_manager;
 			torrent_map m_torrents;

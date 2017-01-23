@@ -38,24 +38,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <mutex>
 #include <atomic>
-#include <unordered_set>
 #include <memory>
 
-#include "libtorrent/piece_picker.hpp"
-#include "libtorrent/peer_request.hpp"
-#include "libtorrent/file.hpp"
-#include "libtorrent/disk_buffer_holder.hpp"
+#include "libtorrent/aux_/disk_job_fence.hpp"
+#include "libtorrent/aux_/storage_piece_set.hpp"
 #include "libtorrent/storage_defs.hpp"
 #include "libtorrent/allocator.hpp"
-#include "libtorrent/file_pool.hpp" // pool_file_status
 #include "libtorrent/part_file.hpp"
 #include "libtorrent/stat_cache.hpp"
-#include "libtorrent/bdecode.hpp"
 #include "libtorrent/bitfield.hpp"
-#include "libtorrent/performance_counters.hpp"
 #include "libtorrent/span.hpp"
-#include "libtorrent/tailqueue.hpp"
-#include "libtorrent/disk_io_job.hpp"
 #include "libtorrent/aux_/vector.hpp"
 
 // OVERVIEW
@@ -139,97 +131,12 @@ namespace libtorrent
 {
 	class session;
 	struct file_pool;
-	struct disk_io_job;
-	struct disk_buffer_pool;
-	struct cache_status;
 	namespace aux { struct session_settings; }
-	struct cached_piece_entry;
 	struct add_torrent_params;
 
 	TORRENT_EXTRA_EXPORT void clear_bufs(span<iovec_t const> bufs);
 
 	struct disk_io_thread;
-
-	// implements the disk I/O job fence used by the storage_interface
-	// to provide to the disk thread. Whenever a disk job needs
-	// exclusive access to the storage for that torrent, it raises
-	// the fence, blocking all new jobs, until there are no longer
-	// any outstanding jobs on the torrent, then the fence is lowered
-	// and it can be performed, along with the backlog of jobs that
-	// accrued while the fence was up
-	struct TORRENT_EXPORT disk_job_fence
-	{
-		disk_job_fence();
-		~disk_job_fence()
-		{
-			TORRENT_ASSERT(int(m_outstanding_jobs) == 0);
-			TORRENT_ASSERT(m_blocked_jobs.size() == 0);
-		}
-
-		// returns one of the fence_* enums.
-		// if there are no outstanding jobs on the
-		// storage, fence_post_fence is returned, the flush job is expected
-		// to be discarded by the caller.
-		// fence_post_flush is returned if the fence job was blocked and queued,
-		// but the flush job should be posted (i.e. put on the job queue)
-		// fence_post_none if both the fence and the flush jobs were queued.
-		enum { fence_post_fence = 0, fence_post_flush = 1, fence_post_none = 2 };
-		int raise_fence(disk_io_job* fence_job, disk_io_job* flush_job
-			, counters& cnt);
-		bool has_fence() const;
-
-		// called whenever a job completes and is posted back to the
-		// main network thread. the tailqueue of jobs will have the
-		// backed-up jobs prepended to it in case this resulted in the
-		// fence being lowered.
-		int job_complete(disk_io_job* j, tailqueue<disk_io_job>& job_queue);
-		int num_outstanding_jobs() const { return m_outstanding_jobs; }
-
-		// if there is a fence up, returns true and adds the job
-		// to the queue of blocked jobs
-		bool is_blocked(disk_io_job* j);
-
-		// the number of blocked jobs
-		int num_blocked() const;
-
-	private:
-		// when > 0, this storage is blocked for new async
-		// operations until all outstanding jobs have completed.
-		// at that point, the m_blocked_jobs are issued
-		// the count is the number of fence job currently in the queue
-		int m_has_fence = 0;
-
-		// when there's a fence up, jobs are queued up in here
-		// until the fence is lowered
-		tailqueue<disk_io_job> m_blocked_jobs;
-
-		// the number of disk_io_job objects there are, belonging
-		// to this torrent, currently pending, hanging off of
-		// cached_piece_entry objects. This is used to determine
-		// when the fence can be lowered
-		std::atomic<int> m_outstanding_jobs{0};
-
-		// must be held when accessing m_has_fence and
-		// m_blocked_jobs
-		mutable std::mutex m_mutex;
-	};
-
-	// this class keeps track of which pieces, belonging to
-	// a specific storage, are in the cache right now. It's
-	// used for quickly being able to evict all pieces for a
-	// specific torrent
-	struct TORRENT_EXPORT storage_piece_set
-	{
-		void add_piece(cached_piece_entry* p);
-		void remove_piece(cached_piece_entry* p);
-		bool has_piece(cached_piece_entry const* p) const;
-		int num_pieces() const { return int(m_cached_pieces.size()); }
-		std::unordered_set<cached_piece_entry*> const& cached_pieces() const
-		{ return m_cached_pieces; }
-	private:
-		// these are cached pieces belonging to this storage
-		std::unordered_set<cached_piece_entry*> m_cached_pieces;
-	};
 
 	// The storage interface is a pure virtual class that can be implemented to
 	// customize how and where data for a torrent is stored. The default storage
@@ -258,8 +165,8 @@ namespace libtorrent
 	//
 	struct TORRENT_EXPORT storage_interface
 		: public std::enable_shared_from_this<storage_interface>
-		, public disk_job_fence
-		, public storage_piece_set
+		, public aux::disk_job_fence
+		, public aux::storage_piece_set
 		, boost::noncopyable
 	{
 

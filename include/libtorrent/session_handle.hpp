@@ -128,6 +128,11 @@ namespace libtorrent
 		// The ``flags`` argument is used to filter which parts of the session
 		// state to save or load. By default, all state is saved/restored (except
 		// for the individual torrents). see save_state_flags_t
+		//
+		// When saving settings, there are two fields that are *not* loaded.
+		// ``peer_fingerprint`` and ``user_agent``. Those are left as configured
+		// by the ``session_settings`` passed to the session constructor or
+		// subsequently set via apply_settings().
 		void save_state(entry& e, std::uint32_t flags = 0xffffffff) const;
 		void load_state(bdecode_node const& e, std::uint32_t flags = 0xffffffff);
 
@@ -572,12 +577,19 @@ namespace libtorrent
 		// peer potentially across you changing your IP.
 		void set_key(int key);
 
+#ifdef _MSC_VER
+#pragma warning(push, 1)
+#pragma warning(disable : 4268)
+#endif
+
 		// built-in peer classes
-		enum {
-			global_peer_class_id,
-			tcp_peer_class_id,
-			local_peer_class_id
-		};
+		static constexpr peer_class_t global_peer_class_id{0};
+		static constexpr peer_class_t tcp_peer_class_id{1};
+		static constexpr peer_class_t local_peer_class_id{2};
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 		// ``is_listening()`` will tell you whether or not the session has
 		// successfully opened a listening port. If it hasn't, this function will
@@ -604,10 +616,10 @@ namespace libtorrent
 		// belong to their own peer class, apply the following filter::
 		//
 		// 	ip_filter f;
-		// 	int my_class = ses.create_peer_class("200.1.x.x IP range");
+		// 	peer_class_t my_class = ses.create_peer_class("200.1.x.x IP range");
 		// 	f.add_rule(address_v4::from_string("200.1.1.0")
 		// 		, address_v4::from_string("200.1.255.255")
-		// 		, 1 << my_class);
+		// 		, 1 << static_cast<std::uint32_t>(my_class));
 		// 	ses.set_peer_class_filter(f);
 		//
 		// This setting only applies to new connections, it won't affect existing
@@ -650,7 +662,7 @@ namespace libtorrent
 		// make sure to create those early on, to get low identifiers.
 		//
 		// For more information on peer classes, see peer-classes_.
-		int create_peer_class(char const* name);
+		peer_class_t create_peer_class(char const* name);
 
 		// This call dereferences the reference count of the specified peer
 		// class. When creating a peer class it's automatically referenced by 1.
@@ -669,7 +681,7 @@ namespace libtorrent
 		// destructs.
 		//
 		// For more information on peer classes, see peer-classes_.
-		void delete_peer_class(int cid);
+		void delete_peer_class(peer_class_t cid);
 
 		// These functions queries information from a peer class and updates the
 		// configuration of a peer class, respectively.
@@ -686,8 +698,8 @@ namespace libtorrent
 		// account.
 		//
 		// For more information, see peer-classes_.
-		peer_class_info get_peer_class(int cid);
-		void set_peer_class(int cid, peer_class_info const& pci);
+		peer_class_info get_peer_class(peer_class_t cid);
+		void set_peer_class(peer_class_t cid, peer_class_info const& pci);
 
 #ifndef TORRENT_NO_DEPRECATE
 		// if the listen port failed in some way you can retry to listen on

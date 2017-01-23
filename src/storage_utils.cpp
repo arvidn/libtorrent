@@ -36,11 +36,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp" // for count_bufs
 #include "libtorrent/part_file.hpp"
 #include "libtorrent/session.hpp" // for session::delete_files
+#include "libtorrent/stat_cache.hpp"
+#include "libtorrent/add_torrent_params.hpp"
 
 #include <set>
 #include <string>
 
-namespace libtorrent
+namespace libtorrent { namespace aux
 {
 	int copy_bufs(span<iovec_t const> bufs, int bytes, span<iovec_t> target)
 	{
@@ -445,5 +447,113 @@ namespace libtorrent
 			}
 		}
 	}
-}
+
+	bool verify_resume_data(add_torrent_params const& rd
+		, aux::vector<std::string, file_index_t> const& links
+		, file_storage const& fs
+		, aux::vector<std::uint8_t, file_index_t> const& file_priority
+		, stat_cache& stat
+		, std::string const& save_path
+		, storage_error& ec)
+	{
+#ifdef TORRENT_DISABLE_MUTABLE_TORRENTS
+		TORRENT_UNUSED(links);
+#else
+		if (!links.empty())
+		{
+			TORRENT_ASSERT(int(links.size()) == fs.num_files());
+			// if this is a mutable torrent, and we need to pick up some files
+			// from other torrents, do that now. Note that there is an inherent
+			// race condition here. We checked if the files existed on a different
+			// thread a while ago. These files may no longer exist or may have been
+			// moved. If so, we just fail. The user is responsible to not touch
+			// other torrents until a new mutable torrent has been completely
+			// added.
+			for (file_index_t idx(0); idx < fs.end_file(); ++idx)
+			{
+				std::string const& s = links[idx];
+				if (s.empty()) continue;
+
+				error_code err;
+				std::string file_path = fs.file_path(idx, save_path);
+				hard_link(s, file_path, err);
+
+				// if the file already exists, that's not an error
+				// TODO: 2 is this risky? The upper layer will assume we have the
+				// whole file. Perhaps we should verify that at least the size
+				// of the file is correct
+				if (!err || err == boost::system::errc::file_exists)
+					continue;
+
+				ec.ec = err;
+				ec.file(idx);
+				ec.operation = storage_error::hard_link;
+				return false;
+			}
+		}
+#endif // TORRENT_DISABLE_MUTABLE_TORRENTS
+
+		bool const seed = rd.have_pieces.all_set();
+
+		// parse have bitmask. Verify that the files we expect to have
+		// actually do exist
+		for (piece_index_t i(0); i < piece_index_t(rd.have_pieces.size()); ++i)
+		{
+			if (rd.have_pieces.get_bit(i) == false) continue;
+
+			std::vector<file_slice> f = fs.map_block(i, 0, 1);
+			TORRENT_ASSERT(!f.empty());
+
+			file_index_t const file_index = f[0].file_index;
+
+			// files with priority zero may not have been saved to disk at their
+			// expected location, but is likely to be in a partfile. Just exempt it
+			// from checking
+			if (file_index < file_priority.end_index()
+				&& file_priority[file_index] == 0)
+				continue;
+
+			error_code error;
+			std::int64_t const size = stat.get_filesize(f[0].file_index
+				, fs, save_path, error);
+
+			if (size < 0)
+			{
+				if (error != boost::system::errc::no_such_file_or_directory)
+				{
+					ec.ec = error;
+					ec.file(file_index);
+					ec.operation = storage_error::stat;
+					return false;
+				}
+				else
+				{
+					ec.ec = errors::mismatching_file_size;
+					ec.file(file_index);
+					ec.operation = storage_error::stat;
+					return false;
+				}
+			}
+
+			if (seed && size != fs.file_size(file_index))
+			{
+				// the resume data indicates we're a seed, but this file has
+				// the wrong size. Reject the resume data
+				ec.ec = errors::mismatching_file_size;
+				ec.file(file_index);
+				ec.operation = storage_error::check_resume;
+				return false;
+			}
+
+			// OK, this file existed, good. Now, skip all remaining pieces in
+			// this file. We're just sanity-checking whether the files exist
+			// or not.
+			peer_request const pr = fs.map_file(file_index
+				, fs.file_size(file_index) + 1, 0);
+			i = std::max(next(i), pr.piece);
+		}
+		return true;
+	}
+
+}}
 

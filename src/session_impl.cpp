@@ -305,8 +305,8 @@ namespace aux {
 	{
 		// set the default peer_class_filter to use the local peer class
 		// for peers on local networks
-		std::uint32_t lfilter = 1 << m_local_peer_class;
-		std::uint32_t gfilter = 1 << m_global_class;
+		std::uint32_t lfilter = 1 << static_cast<std::uint32_t>(m_local_peer_class);
+		std::uint32_t gfilter = 1 << static_cast<std::uint32_t>(m_global_class);
 
 		struct class_mapping
 		{
@@ -790,6 +790,12 @@ namespace aux {
 			{
 				// apply_settings_pack will update dht and proxy
 				settings_pack pack = load_pack_from_dict(settings);
+
+				// these settings are not loaded from state
+				// they are set by the client software, not configured by users
+				pack.clear(settings_pack::user_agent);
+				pack.clear(settings_pack::peer_fingerprint);
+
 				apply_settings_pack_impl(pack);
 #ifndef TORRENT_DISABLE_DHT
 				need_update_dht = false;
@@ -1110,25 +1116,25 @@ namespace aux {
 
 	} // anonymous namespace
 
-	int session_impl::create_peer_class(char const* name)
+	peer_class_t session_impl::create_peer_class(char const* name)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		return m_classes.new_peer_class(name);
 	}
 
-	void session_impl::delete_peer_class(int cid)
+	void session_impl::delete_peer_class(peer_class_t cid)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		// if you hit this assert, you're deleting a non-existent peer class
-		TORRENT_ASSERT(m_classes.at(peer_class_t(cid)));
-		if (m_classes.at(peer_class_t(cid)) == nullptr) return;
-		m_classes.decref(peer_class_t(cid));
+		TORRENT_ASSERT(m_classes.at(cid));
+		if (m_classes.at(cid) == nullptr) return;
+		m_classes.decref(cid);
 	}
 
-	peer_class_info session_impl::get_peer_class(int cid)
+	peer_class_info session_impl::get_peer_class(peer_class_t cid)
 	{
 		peer_class_info ret;
-		peer_class* pc = m_classes.at(peer_class_t(cid));
+		peer_class* pc = m_classes.at(cid);
 		// if you hit this assert, you're passing in an invalid cid
 		TORRENT_ASSERT(pc);
 		if (pc == nullptr)
@@ -1177,9 +1183,9 @@ namespace aux {
 		m_tracker_manager.queue_request(get_io_service(), req, c);
 	}
 
-	void session_impl::set_peer_class(int cid, peer_class_info const& pci)
+	void session_impl::set_peer_class(peer_class_t cid, peer_class_info const& pci)
 	{
-		peer_class* pc = m_classes.at(peer_class_t(cid));
+		peer_class* pc = m_classes.at(cid);
 		// if you hit this assert, you're passing in an invalid cid
 		TORRENT_ASSERT(pc);
 		if (pc == nullptr) return;
@@ -1218,7 +1224,7 @@ namespace aux {
 		// filter peer classes based on type
 		peer_class_mask = m_peer_class_type_filter.apply(socket_type, peer_class_mask);
 
-		for (peer_class_t i = 0; peer_class_mask; peer_class_mask >>= 1, ++i)
+		for (peer_class_t i{0}; peer_class_mask; peer_class_mask >>= 1, ++i)
 		{
 			if ((peer_class_mask & 1) == 0) continue;
 

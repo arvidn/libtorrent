@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_call.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/lazy_entry.hpp"
+#include "libtorrent/peer_class.hpp"
 
 #ifndef TORRENT_NO_DEPRECATE
 #include "libtorrent/read_resume_data.hpp"
@@ -44,6 +45,10 @@ using libtorrent::aux::session_impl;
 
 namespace libtorrent
 {
+
+	peer_class_t constexpr session_handle::global_peer_class_id;
+	peer_class_t constexpr session_handle::tcp_peer_class_id;
+	peer_class_t constexpr session_handle::local_peer_class_id;
 
 	template <typename Fun, typename... Args>
 	void session_handle::async_call(Fun f, Args&&... a) const
@@ -764,22 +769,22 @@ namespace libtorrent
 		async_call(&session_impl::set_peer_class_type_filter, f);
 	}
 
-	int session_handle::create_peer_class(char const* name)
+	peer_class_t session_handle::create_peer_class(char const* name)
 	{
-		return sync_call_ret<int>(&session_impl::create_peer_class, name);
+		return sync_call_ret<peer_class_t>(&session_impl::create_peer_class, name);
 	}
 
-	void session_handle::delete_peer_class(int cid)
+	void session_handle::delete_peer_class(peer_class_t cid)
 	{
 		async_call(&session_impl::delete_peer_class, cid);
 	}
 
-	peer_class_info session_handle::get_peer_class(int cid)
+	peer_class_info session_handle::get_peer_class(peer_class_t cid)
 	{
 		return sync_call_ret<peer_class_info>(&session_impl::get_peer_class, cid);
 	}
 
-	void session_handle::set_peer_class(int cid, peer_class_info const& pci)
+	void session_handle::set_peer_class(peer_class_t cid, peer_class_info const& pci)
 	{
 		async_call(&session_impl::set_peer_class, cid, pci);
 	}

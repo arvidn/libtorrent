@@ -1107,17 +1107,6 @@ namespace libtorrent
 		return ret;
 	}
 
-	// returns true if the given device exists
-	bool has_interface(char const* name, io_service& ios, error_code& ec)
-	{
-		std::vector<ip_interface> ifs = enum_net_interfaces(ios, ec);
-		if (ec) return false;
-
-		for (auto const& iface : ifs)
-			if (iface.name == name) return true;
-		return false;
-	}
-
 	// returns the device name whose local address is ``addr``. If
 	// no such device is found, an empty string is returned.
 	std::string device_for_address(address addr, io_service& ios, error_code& ec)

@@ -46,7 +46,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstring> // for std::memset
 #endif
 
-#if TORRENT_HAS_ARM
+#if defined __GLIBC__ && (__GLIBC__ > 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 16))
+#define TORRENT_HAS_AUXV 1
+#elif defined TORRENT_ANDROID
+#define TORRENT_HAS_AUXV 1
+#else
+#define TORRENT_HAS_AUXV 0
+#endif
+
+
+#if TORRENT_HAS_ARM && TORRENT_HAS_AUXV
 #include <sys/auxv.h>
 #endif
 
@@ -95,7 +104,7 @@ namespace libtorrent { namespace aux
 
 	bool supports_arm_neon()
 	{
-#if TORRENT_HAS_ARM_NEON
+#if TORRENT_HAS_ARM_NEON && TORRENT_HAS_AUXV
 #if defined __arm__
 		//return (getauxval(AT_HWCAP) & HWCAP_NEON);
 		return (getauxval(16) & (1 << 12));
@@ -112,7 +121,7 @@ namespace libtorrent { namespace aux
 
 	bool supports_arm_crc32c()
 	{
-#if TORRENT_HAS_ARM_CRC32
+#if TORRENT_HAS_ARM_CRC32 && TORRENT_HAS_AUXV
 #if defined TORRENT_FORCE_ARM_CRC32
 		return true;
 #elif defined __arm__

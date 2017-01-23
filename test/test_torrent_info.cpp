@@ -762,6 +762,7 @@ TORRENT_TEST(parse_torrents)
 		std::printf("E:        \"%s\"\nexpected: \"%s\"\n", ec.message().c_str()
 			, test_error_torrents[i].error.message().c_str());
 		TEST_CHECK(ec.message() == test_error_torrents[i].error.message());
+		TEST_EQUAL(ti->is_valid(), false);
 	}
 }
 
