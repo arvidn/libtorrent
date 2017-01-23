@@ -95,7 +95,7 @@ namespace libtorrent
 	class bt_peer_connection;
 	struct listen_socket_t;
 
-	typedef std::chrono::duration<std::int32_t> seconds32;
+	using seconds32 = std::chrono::duration<std::int32_t>;
 
 	enum class waste_reason
 	{
@@ -495,7 +495,13 @@ namespace libtorrent
 		void force_recheck();
 		void save_resume_data(int flags);
 
-		bool need_save_resume_data() const;
+		bool need_save_resume_data() const
+		{
+			// save resume data every 15 minutes regardless, just to
+			// keep stats up to date
+			return m_need_save_resume_data ||
+				aux::time_now() - m_last_saved_resume > minutes(15);
+		}
 
 		void set_need_save_resume()
 		{

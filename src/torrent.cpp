@@ -126,10 +126,6 @@ namespace libtorrent
 	}
 	constexpr int default_piece_priority = 4;
 
-	// seed rank priority duration which need to match ratio type which is used at
-	// seed rank calculation to prevent runtime conversion and constructions
-	constexpr seconds32 seed_rank_priority_duration = seconds32(30 * 60);
-
 	} // anonymous namespace
 
 	web_seed_t::web_seed_t(web_seed_entry const& wse)
@@ -8260,23 +8256,16 @@ namespace libtorrent
 
 		int ret = 0;
 
-		const seconds32 act_time = active_time();
-		static_assert(std::is_same<
-			decltype(seed_rank_priority_duration), decltype(act_time)>::value,
-			"Need to be same ratio type to prevent runtime conversion");
-
-		// use raw duration values because active time and finish time use same
-		// ratio type and don't need to be converted to a equal ratio
-		// and we don't compare them agains seconds we just use fraction value
-		std::int32_t const fin_time = finished_time().count();
-		std::int32_t const download_time = act_time.count() - fin_time;
+		seconds32 const act_time = active_time();
+		seconds32 const fin_time = finished_time();
+		seconds32 const download_time = act_time - fin_time;
 
 		// if we haven't yet met the seed limits, set the seed_ratio_not_met
 		// flag. That will make this seed prioritized
 		// downloaded may be 0 if the torrent is 0-sized
 		std::int64_t const downloaded = (std::max)(m_total_downloaded, m_torrent_file->total_size());
-		if (fin_time < s.get_int(settings_pack::seed_time_limit)
-			&& (download_time > 1
+		if (fin_time < seconds(s.get_int(settings_pack::seed_time_limit))
+			&& (download_time.count() > 1
 				&& fin_time * 100 / download_time < s.get_int(settings_pack::seed_time_ratio_limit))
 			&& downloaded > 0
 			&& m_total_uploaded * 100 / downloaded < s.get_int(settings_pack::share_ratio_limit))
@@ -8284,7 +8273,7 @@ namespace libtorrent
 
 		// if this torrent is running, and it was started less
 		// than 30 minutes ago, give it priority, to avoid oscillation
-		if (!is_paused() && act_time < libtorrent::seed_rank_priority_duration)
+		if (!is_paused() && act_time < minutes(30))
 			ret |= recently_started;
 
 		// if we have any scrape data, use it to calculate
@@ -8528,15 +8517,6 @@ namespace libtorrent
 		}
 
 		stop_announcing();
-	}
-
-	bool torrent::need_save_resume_data() const
-	{
-		// save resume data every 15 minutes regardless, just to
-		// keep stats up to date
-		return m_need_save_resume_data ||
-			duration_cast<seconds32>(aux::time_now() - m_last_saved_resume)
-			> seconds32(15 * 60);
 	}
 
 #ifndef TORRENT_DISABLE_LOGGING
