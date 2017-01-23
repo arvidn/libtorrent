@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/alloca.hpp"
-#include "libtorrent/aux_/vector.hpp" // for numeric_cast
+#include "libtorrent/aux_/numeric_cast.hpp"
 #include <limits>
 #include <cstring> // for memset
 #include <cstdio> // for snprintf

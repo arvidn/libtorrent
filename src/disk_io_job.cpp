@@ -123,14 +123,14 @@ namespace libtorrent
 	{
 		if (action != write) return false;
 
-		int block_offset = int(d.io.offset) & (block_size - 1);
+		int block_offset = d.io.offset & (block_size - 1);
 		int size = d.io.buffer_size;
-		int start = int(d.io.offset) / block_size;
+		int start = d.io.offset / block_size;
 		int end = block_offset > 0 && (size > block_size - block_offset) ? start + 2 : start + 1;
 
 		for (int i = start; i < end; ++i)
 		{
-			cached_block_entry const& b = pe->blocks[std::size_t(i)];
+			cached_block_entry const& b = pe->blocks[i];
 			if (b.dirty || b.pending) return false;
 		}
 

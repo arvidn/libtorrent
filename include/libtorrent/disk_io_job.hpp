@@ -200,7 +200,7 @@ namespace libtorrent
 			// job is still holding a reference to. The end of
 			// the range of blocks a hash jobs holds references
 			// to is always the last block in the piece.
-			std::uint32_t offset;
+			std::int32_t offset;
 
 			// number of bytes 'buffer' points to. Used for read & write
 			std::uint16_t buffer_size;
