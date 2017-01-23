@@ -1110,7 +1110,7 @@ namespace libtorrent {
 	std::string anonymous_mode_alert::message() const
 	{
 		char msg[200];
-		char const* msgs[] = {
+		static char const* msgs[] = {
 			"tracker is not anonymous, set a proxy"
 		};
 		snprintf(msg, sizeof(msg), "%s: %s: %s"

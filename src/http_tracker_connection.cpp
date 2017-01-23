@@ -115,7 +115,7 @@ namespace libtorrent
 
 		if (0 == (tracker_req().kind & tracker_request::scrape_request))
 		{
-			const char* event_string[] = {"completed", "started", "stopped", "paused"};
+			static const char* event_string[] = {"completed", "started", "stopped", "paused"};
 
 			char str[1024];
 			const bool stats = tracker_req().send_stats;
