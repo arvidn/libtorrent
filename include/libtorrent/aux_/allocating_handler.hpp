@@ -49,16 +49,14 @@ namespace libtorrent { namespace aux
 	template <std::size_t Size>
 	struct handler_storage
 	{
+		handler_storage() {}
 #if TORRENT_USE_ASSERTS
-		handler_storage()
-			: used(false)
-		{}
-
-		bool used;
+		bool used = false;
 #endif
 		typename aux::aligned_storage<Size>::type bytes;
 	private:
 		handler_storage(handler_storage const&);
+		handler_storage& operator=(handler_storage const&);
 	};
 
 	struct TORRENT_EXTRA_EXPORT error_handler_interface
