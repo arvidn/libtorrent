@@ -120,45 +120,45 @@ class test_torrent_handle(unittest.TestCase):
         cs = self.ses.get_cache_info(self.h)
         self.assertEqual(cs.pieces, [])
 
-	def test_unknown_torrent_parameter(self):
-		self.ses = lt.session({'alert_mask': lt.alert.category_t.all_categories,
-			'enable_dht': False})
-		try:
-			self.h = self.ses.add_torrent({'unexpected-key-name': ''})
-			self.assertFalse('should have thrown an exception')
-		except KeyError as e:
-			print(e)
+    def test_unknown_torrent_parameter(self):
+        self.ses = lt.session({'alert_mask': lt.alert.category_t.all_categories,
+            'enable_dht': False})
+        try:
+            self.h = self.ses.add_torrent({'unexpected-key-name': ''})
+            self.assertFalse('should have thrown an exception')
+        except KeyError as e:
+            print(e)
 
-	def test_torrent_parameter(self):
-		self.ses = lt.session({'alert_mask': lt.alert.category_t.all_categories,
-			'enable_dht': False})
-		self.ti = lt.torrent_info('url_seed_multi.torrent');
-		self.h = self.ses.add_torrent({
-			'ti': self.ti,
-			'save_path': os.getcwd(),
-			'trackers': ['http://test.com/announce'],
-			'dht_nodes': [('1.2.3.4', 6881), ('4.3.2.1', 6881)],
-			'file_priorities': [1,1],
-			'http_seeds': ['http://test.com/file3'],
-			'url_seeds': ['http://test.com/announce-url'],
-			'peers': [('5.6.7.8', 6881)],
-			'banned_peers': [('8.7.6.5', 6881)],
-			'renamed_files': { 0: 'test.txt', 2: 'test.txt' }
-			})
-		self.st = self.h.status()
-		self.assertEqual(self.st.save_path, os.getcwd())
-		trackers = self.h.trackers();
-		self.assertEqual(len(trackers), 1)
-		self.assertEqual(trackers[0].get('url'), 'http://test.com/announce')
-		self.assertEqual(trackers[0].get('tier'), 0)
-		self.assertEqual(self.h.file_priorities(), [1,1])
-		self.assertEqual(self.h.http_seeds(),['http://test.com/file3'])
-		# url_seeds was already set, test that it did not got overwritten
-		self.assertEqual(self.h.url_seeds(),
-			['http://test.com/announce-url/', 'http://test.com/file/'])
-		self.assertEqual(self.h.piece_priorities(),[4])
-		self.assertEqual(self.ti.merkle_tree(),[])
-		self.assertEqual(self.st.verified_pieces,[])
+    def test_torrent_parameter(self):
+        self.ses = lt.session({'alert_mask': lt.alert.category_t.all_categories,
+            'enable_dht': False})
+        self.ti = lt.torrent_info('url_seed_multi.torrent');
+        self.h = self.ses.add_torrent({
+            'ti': self.ti,
+            'save_path': os.getcwd(),
+            'trackers': ['http://test.com/announce'],
+            'dht_nodes': [('1.2.3.4', 6881), ('4.3.2.1', 6881)],
+            'file_priorities': [1,1],
+            'http_seeds': ['http://test.com/file3'],
+            'url_seeds': ['http://test.com/announce-url'],
+            'peers': [('5.6.7.8', 6881)],
+            'banned_peers': [('8.7.6.5', 6881)],
+            'renamed_files': { 0: 'test.txt', 2: 'test.txt' }
+            })
+        self.st = self.h.status()
+        self.assertEqual(self.st.save_path, os.getcwd())
+        trackers = self.h.trackers();
+        self.assertEqual(len(trackers), 1)
+        self.assertEqual(trackers[0].get('url'), 'http://test.com/announce')
+        self.assertEqual(trackers[0].get('tier'), 0)
+        self.assertEqual(self.h.file_priorities(), [1,1])
+        self.assertEqual(self.h.http_seeds(),['http://test.com/file3'])
+        # url_seeds was already set, test that it did not got overwritten
+        self.assertEqual(self.h.url_seeds(),
+            ['http://test.com/announce-url/', 'http://test.com/file/'])
+        self.assertEqual(self.h.piece_priorities(),[4])
+        self.assertEqual(self.ti.merkle_tree(),[])
+        self.assertEqual(self.st.verified_pieces,[])
 
 class test_torrent_info(unittest.TestCase):
 
