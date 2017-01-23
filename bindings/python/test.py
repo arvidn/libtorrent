@@ -14,7 +14,7 @@ import sys
 # include terminal interface for travis parallel executions of scripts which use
 # terminal features: fix multiple stdin assignment at termios.tcgetattr
 if os.name != 'nt':
-	import pty
+    import pty
 
 
 class test_create_torrent(unittest.TestCase):
@@ -270,108 +270,108 @@ class test_sha1hash(unittest.TestCase):
 
 class test_session(unittest.TestCase):
 
-	def test_post_session_stats(self):
-		s = lt.session({'alert_mask': lt.alert.category_t.stats_notification, 'enable_dht': False})
-		s.post_session_stats()
-		a = s.wait_for_alert(1000)
-		self.assertTrue(isinstance(a, lt.session_stats_alert))
-		self.assertTrue(isinstance(a.values, dict))
-		self.assertTrue(len(a.values) > 0)
+    def test_post_session_stats(self):
+        s = lt.session({'alert_mask': lt.alert.category_t.stats_notification, 'enable_dht': False})
+        s.post_session_stats()
+        a = s.wait_for_alert(1000)
+        self.assertTrue(isinstance(a, lt.session_stats_alert))
+        self.assertTrue(isinstance(a.values, dict))
+        self.assertTrue(len(a.values) > 0)
 
-	def test_add_torrent(self):
-		s = lt.session({'alert_mask': lt.alert.category_t.stats_notification, 'enable_dht': False})
-		h = s.add_torrent({'ti': lt.torrent_info('base.torrent'),
-			'save_path': '.',
-			'dht_nodes': [('1.2.3.4', 6881), ('4.3.2.1', 6881)],
-			'http_seeds': ['http://test.com/seed'],
-			'peers': [('5.6.7.8', 6881)],
-			'banned_peers': [('8.7.6.5', 6881)],
-			'file_priorities': [1,1,1,2,0]})
+    def test_add_torrent(self):
+        s = lt.session({'alert_mask': lt.alert.category_t.stats_notification, 'enable_dht': False})
+        h = s.add_torrent({'ti': lt.torrent_info('base.torrent'),
+            'save_path': '.',
+            'dht_nodes': [('1.2.3.4', 6881), ('4.3.2.1', 6881)],
+            'http_seeds': ['http://test.com/seed'],
+            'peers': [('5.6.7.8', 6881)],
+            'banned_peers': [('8.7.6.5', 6881)],
+            'file_priorities': [1,1,1,2,0]})
 
-	def test_unknown_settings(self):
-		try:
-			s = lt.session({'unexpected-key-name': 42})
-			self.assertFalse('should have thrown an exception')
-		except KeyError as e:
-			print(e)
+    def test_unknown_settings(self):
+        try:
+            s = lt.session({'unexpected-key-name': 42})
+            self.assertFalse('should have thrown an exception')
+        except KeyError as e:
+            print(e)
 
-	def test_apply_settings(self):
+    def test_apply_settings(self):
 
-		s = lt.session({'enable_dht': False})
-		s.apply_settings({'num_want': 66, 'user_agent': 'test123'})
-		self.assertEqual(s.get_settings()['num_want'], 66)
-		self.assertEqual(s.get_settings()['user_agent'], 'test123')
+        s = lt.session({'enable_dht': False})
+        s.apply_settings({'num_want': 66, 'user_agent': 'test123'})
+        self.assertEqual(s.get_settings()['num_want'], 66)
+        self.assertEqual(s.get_settings()['user_agent'], 'test123')
 
 class test_example_client(unittest.TestCase):
 
-	def test_execute_client(self):
-		if os.name == 'nt':
-			# TODO: fix windows includes of client.py
-			return
-		my_stdin = sys.stdin
-		if os.name != 'nt':
-			master_fd, slave_fd = pty.openpty()
-			# slave_fd fix multiple stdin assignment at termios.tcgetattr
-			my_stdin = slave_fd
+    def test_execute_client(self):
+        if os.name == 'nt':
+            # TODO: fix windows includes of client.py
+            return
+        my_stdin = sys.stdin
+        if os.name != 'nt':
+            master_fd, slave_fd = pty.openpty()
+            # slave_fd fix multiple stdin assignment at termios.tcgetattr
+            my_stdin = slave_fd
 
-		process = sub.Popen(
-			[sys.executable,"client.py","url_seed_multi.torrent"],
-			stdin=my_stdin, stdout=sub.PIPE, stderr=sub.PIPE)
-		# python2 has no Popen.wait() timeout
-		time.sleep(5)
-		returncode = process.poll()
-		if returncode == None:
-			# this is an expected use-case
-			process.kill()
-		err = process.stderr.read().decode("utf-8")
-		self.assertEqual('', err, 'process throw errors: \n' + err)
-		# check error code if process did unexpected end
-		if returncode != None:
-			# in case of error return: output stdout if nothing was on stderr
-			if returncode != 0:
-				print("stdout:\n" + process.stdout.read().decode("utf-8"))
-			self.assertEqual(returncode, 0, "returncode: " + str(returncode) + "\n"
-				+ "stderr: empty\n"
-				+ "some configuration does not output errors like missing module members,"
-				+ "try to call it manually to get the error message\n")
+        process = sub.Popen(
+            [sys.executable,"client.py","url_seed_multi.torrent"],
+            stdin=my_stdin, stdout=sub.PIPE, stderr=sub.PIPE)
+        # python2 has no Popen.wait() timeout
+        time.sleep(5)
+        returncode = process.poll()
+        if returncode == None:
+            # this is an expected use-case
+            process.kill()
+        err = process.stderr.read().decode("utf-8")
+        self.assertEqual('', err, 'process throw errors: \n' + err)
+        # check error code if process did unexpected end
+        if returncode != None:
+            # in case of error return: output stdout if nothing was on stderr
+            if returncode != 0:
+                print("stdout:\n" + process.stdout.read().decode("utf-8"))
+            self.assertEqual(returncode, 0, "returncode: " + str(returncode) + "\n"
+                + "stderr: empty\n"
+                + "some configuration does not output errors like missing module members,"
+                + "try to call it manually to get the error message\n")
 
-	def test_execute_simple_client(self):
-		process = sub.Popen(
-			[sys.executable,"simple_client.py","url_seed_multi.torrent"],
-			stdout=sub.PIPE, stderr=sub.PIPE)
-		# python2 has no Popen.wait() timeout
-		time.sleep(5)
-		returncode = process.poll()
-		if returncode == None:
-			# this is an expected use-case
-			process.kill()
-		err = process.stderr.read().decode("utf-8")
-		self.assertEqual('', err, 'process throw errors: \n' + err)
-		# check error code if process did unexpected end
-		if returncode != None:
-			# in case of error return: output stdout if nothing was on stderr
-			if returncode != 0:
-				print("stdout:\n" + process.stdout.read().decode("utf-8"))
-			self.assertEqual(returncode, 0, "returncode: " + str(returncode) + "\n"
-				+ "stderr: empty\n"
-				+ "some configuration does not output errors like missing module members,"
-				+ "try to call it manually to get the error message\n")
+    def test_execute_simple_client(self):
+        process = sub.Popen(
+            [sys.executable,"simple_client.py","url_seed_multi.torrent"],
+            stdout=sub.PIPE, stderr=sub.PIPE)
+        # python2 has no Popen.wait() timeout
+        time.sleep(5)
+        returncode = process.poll()
+        if returncode == None:
+            # this is an expected use-case
+            process.kill()
+        err = process.stderr.read().decode("utf-8")
+        self.assertEqual('', err, 'process throw errors: \n' + err)
+        # check error code if process did unexpected end
+        if returncode != None:
+            # in case of error return: output stdout if nothing was on stderr
+            if returncode != 0:
+                print("stdout:\n" + process.stdout.read().decode("utf-8"))
+            self.assertEqual(returncode, 0, "returncode: " + str(returncode) + "\n"
+                + "stderr: empty\n"
+                + "some configuration does not output errors like missing module members,"
+                + "try to call it manually to get the error message\n")
 
-	def test_execute_make_torrent(self):
-		process = sub.Popen(
-			[sys.executable,"make_torrent.py","url_seed_multi.torrent",
-			"http://test.com/test"], stdout=sub.PIPE, stderr=sub.PIPE)
-		returncode = process.wait()
-		# python2 has no Popen.wait() timeout
-		err = process.stderr.read().decode("utf-8")
-		self.assertEqual('', err, 'process throw errors: \n' + err)
-		# in case of error return: output stdout if nothing was on stderr
-		if returncode != 0:
-			print("stdout:\n" + process.stdout.read().decode("utf-8"))
-		self.assertEqual(returncode, 0, "returncode: " + str(returncode) + "\n"
-			+ "stderr: empty\n"
-			+ "some configuration does not output errors like missing module members,"
-			+ "try to call it manually to get the error message\n")
+    def test_execute_make_torrent(self):
+        process = sub.Popen(
+            [sys.executable,"make_torrent.py","url_seed_multi.torrent",
+            "http://test.com/test"], stdout=sub.PIPE, stderr=sub.PIPE)
+        returncode = process.wait()
+        # python2 has no Popen.wait() timeout
+        err = process.stderr.read().decode("utf-8")
+        self.assertEqual('', err, 'process throw errors: \n' + err)
+        # in case of error return: output stdout if nothing was on stderr
+        if returncode != 0:
+            print("stdout:\n" + process.stdout.read().decode("utf-8"))
+        self.assertEqual(returncode, 0, "returncode: " + str(returncode) + "\n"
+            + "stderr: empty\n"
+            + "some configuration does not output errors like missing module members,"
+            + "try to call it manually to get the error message\n")
 
     def test_post_session_stats(self):
         s = lt.session({'alert_mask': lt.alert.category_t.stats_notification,
