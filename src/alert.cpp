@@ -1952,12 +1952,12 @@ namespace libtorrent {
 	}
 #endif
 	std::vector<tcp::endpoint> dht_get_peers_reply_alert::peers() const {
-		std::size_t num_peers = aux::numeric_cast<std::size_t>(m_num_peers);
+		std::size_t const num_peers = aux::numeric_cast<std::size_t>(m_num_peers);
 		std::vector<tcp::endpoint> peers(num_peers);
 
 		const char *ptr = m_alloc.get().ptr(m_peers_idx);
 		for (std::size_t i = 0; i < num_peers; i++) {
-			std::size_t size = detail::read_uint8(ptr);
+			std::size_t const size = detail::read_uint8(ptr);
 			std::memcpy(peers[i].data(), ptr, size);
 			ptr += size;
 		}
@@ -2026,7 +2026,7 @@ namespace libtorrent {
 	{
 		// we need to copy this array to make sure the structures are properly
 		// aligned, not just to have a nice API
-		std::size_t num_blocks = aux::numeric_cast<std::size_t>(m_num_blocks);
+		std::size_t const num_blocks = aux::numeric_cast<std::size_t>(m_num_blocks);
 		std::vector<piece_block> ret(num_blocks);
 
 		char const* start = m_alloc.get().ptr(m_array_idx);
