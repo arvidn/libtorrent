@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/span.hpp"
+#include "libtorrent/packet_pool.hpp"
 
 namespace libtorrent
 {
@@ -119,6 +120,9 @@ namespace libtorrent
 		// the counter is the enum from ``counters``.
 		void inc_stats_counter(int counter, int delta = 1);
 
+		packet *acquire_packet(std::uint16_t allocate) { return m_packet_pool.acquire(allocate); }
+		void release_packet(packet *p) { m_packet_pool.release(p); }
+
 	private:
 		// explicitly disallow assignment, to silence msvc warning
 		utp_socket_manager& operator=(utp_socket_manager const&);
@@ -189,7 +193,7 @@ namespace libtorrent
 		// if this is non-nullptr it will create SSL connections over uTP
 		void* m_ssl_context;
 
-		packet_pool *m_packet_pool;
+		packet_pool m_packet_pool;
 	};
 }
 

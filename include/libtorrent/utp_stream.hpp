@@ -162,11 +162,10 @@ struct utp_header
 };
 
 struct utp_socket_impl;
-struct packet_pool;
 
 utp_socket_impl* construct_utp_impl(std::uint16_t recv_id
 	, std::uint16_t send_id, void* userdata
-	, utp_socket_manager* sm, packet_pool* pp);
+	, utp_socket_manager* sm);
 void detach_utp_impl(utp_socket_impl* s);
 void delete_utp_impl(utp_socket_impl* s);
 bool should_delete(utp_socket_impl* s);
@@ -181,8 +180,6 @@ int utp_socket_state(utp_socket_impl const* s);
 void utp_send_ack(utp_socket_impl* s);
 void utp_socket_drained(utp_socket_impl* s);
 void utp_writable(utp_socket_impl* s);
-packet_pool* construct_packet_pool();
-void delete_packet_pool(packet_pool* pp);
 
 // this is the user-level stream interface to utp sockets.
 // the reason why it's split up in a utp_stream class and

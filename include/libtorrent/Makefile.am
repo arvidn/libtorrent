@@ -80,6 +80,7 @@ nobase_include_HEADERS = \
   netlink.hpp                  \
   operations.hpp               \
   packet_buffer.hpp            \
+  packet_pool.hpp              \
   parse_url.hpp                \
   part_file.hpp                \
   pe_crypto.hpp                \
