@@ -110,19 +110,6 @@ struct tuple_to_pair
 };
 
 template<class T1, class T2>
-struct map_to_dict
-{
-    static PyObject* convert(const std::map<T1, T2>& m)
-    {
-        bp::dict dictionary;
-        for (auto& iter : m) {
-            dictionary[iter.first] = iter.second;
-        }
-        return incref(dictionary.ptr());
-    }
-};
-
-template<class T1, class T2>
 struct dict_to_map
 {
     dict_to_map()
@@ -262,8 +249,6 @@ void bind_converters()
     to_python_converter<std::vector<lt::tcp::endpoint>, vector_to_list<lt::tcp::endpoint>>();
     to_python_converter<std::vector<lt::udp::endpoint>, vector_to_list<lt::udp::endpoint>>();
     to_python_converter<std::vector<std::pair<std::string, int>>, vector_to_list<std::pair<std::string, int>>>();
-
-    to_python_converter<std::map<lt::file_index_t, std::string>, map_to_dict<lt::file_index_t, std::string>>();
 
     to_python_converter<lt::piece_index_t, from_strong_typedef<lt::piece_index_t>>();
     to_python_converter<lt::file_index_t, from_strong_typedef<lt::file_index_t>>();
