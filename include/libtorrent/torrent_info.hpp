@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/copy_ptr.hpp"
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/file_storage.hpp"
+#include "libtorrent/aux_/vector.hpp"
 
 #if TORRENT_COMPLETE_TYPES_REQUIRED
 #include "libtorrent/announce_entry.hpp"
@@ -432,7 +433,7 @@ namespace libtorrent
 			int const idx = static_cast<int>(index);
 			if (is_merkle_torrent())
 			{
-				TORRENT_ASSERT(idx < int(m_merkle_tree.size() - m_merkle_first_leaf));
+				TORRENT_ASSERT(idx < m_merkle_tree.end_index() - m_merkle_first_leaf);
 				return m_merkle_tree[m_merkle_first_leaf + idx].data();
 			}
 			else
@@ -556,7 +557,7 @@ namespace libtorrent
 		copy_ptr<const file_storage> m_orig_files;
 
 		// the urls to the trackers
-		std::vector<announce_entry> m_urls;
+		aux::vector<announce_entry> m_urls;
 		std::vector<web_seed_entry> m_web_seeds;
 		// dht nodes to add to the routing table/bootstrap from
 		std::vector<std::pair<std::string, int>> m_nodes;
@@ -585,7 +586,7 @@ namespace libtorrent
 		// if this is a merkle torrent, this is the merkle
 		// tree. It has space for merkle_num_nodes(merkle_num_leafs(num_pieces))
 		// hashes
-		std::vector<sha1_hash> m_merkle_tree;
+		aux::vector<sha1_hash> m_merkle_tree;
 
 		// this is a copy of the info section from the torrent.
 		// it use maintained in this flat format in order to
@@ -612,7 +613,7 @@ namespace libtorrent
 		// if a creation date is found in the torrent file
 		// this will be set to that, otherwise it'll be
 		// 1970, Jan 1
-		time_t m_creation_date = 0;
+		std::time_t m_creation_date = 0;
 
 		// the hash that identifies this torrent
 		sha1_hash m_info_hash;
@@ -622,7 +623,7 @@ namespace libtorrent
 
 		// the index to the first leaf. This is where the hash for the
 		// first piece is stored
-		std::uint32_t m_merkle_first_leaf = 0;
+		std::int32_t m_merkle_first_leaf = 0;
 
 		enum flags_t : std::uint8_t
 		{

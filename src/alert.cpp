@@ -1713,7 +1713,7 @@ namespace libtorrent {
 			std::array<std::int64_t, counters::num_counters> arr;
 
 			for (int i = 0; i < counters::num_counters; ++i)
-				arr[i] = cnt[i];
+				arr[std::size_t(i)] = cnt[i];
 
 			return arr;
 		}
@@ -1952,10 +1952,11 @@ namespace libtorrent {
 	}
 #endif
 	std::vector<tcp::endpoint> dht_get_peers_reply_alert::peers() const {
-		std::vector<tcp::endpoint> peers(m_num_peers);
+		std::size_t num_peers = aux::numeric_cast<std::size_t>(m_num_peers);
+		std::vector<tcp::endpoint> peers(num_peers);
 
 		const char *ptr = m_alloc.get().ptr(m_peers_idx);
-		for (int i = 0; i < m_num_peers; i++) {
+		for (std::size_t i = 0; i < num_peers; i++) {
 			std::size_t size = detail::read_uint8(ptr);
 			std::memcpy(peers[i].data(), ptr, size);
 			ptr += size;
@@ -1994,7 +1995,8 @@ namespace libtorrent {
 		char msg[1050];
 		std::snprintf(msg, sizeof(msg), "DHT direct response (address=%s) [ %s ]"
 			, endpoint.address().to_string().c_str()
-			, m_response_size ? std::string(m_alloc.get().ptr(m_response_idx), m_response_size).c_str() : "");
+			, m_response_size ? std::string(m_alloc.get().ptr(m_response_idx)
+				, aux::numeric_cast<std::size_t>(m_response_size)).c_str() : "");
 		return msg;
 	}
 
@@ -2016,7 +2018,7 @@ namespace libtorrent {
 		: peer_alert(alloc, h, ep, peer_id)
 		, picker_flags(flags)
 		, m_array_idx(alloc.copy_buffer({reinterpret_cast<char const*>(blocks)
-			, num_blocks * sizeof(piece_block)}))
+			, aux::numeric_cast<std::size_t>(num_blocks) * sizeof(piece_block)}))
 		, m_num_blocks(num_blocks)
 	{}
 
@@ -2024,10 +2026,11 @@ namespace libtorrent {
 	{
 		// we need to copy this array to make sure the structures are properly
 		// aligned, not just to have a nice API
-		std::vector<piece_block> ret(m_num_blocks);
+		std::size_t num_blocks = aux::numeric_cast<std::size_t>(m_num_blocks);
+		std::vector<piece_block> ret(num_blocks);
 
 		char const* start = m_alloc.get().ptr(m_array_idx);
-		std::memcpy(ret.data(), start, m_num_blocks * sizeof(piece_block));
+		std::memcpy(ret.data(), start, num_blocks * sizeof(piece_block));
 
 		return ret;
 	}
