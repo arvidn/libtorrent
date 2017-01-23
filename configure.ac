@@ -124,7 +124,7 @@ AX_BOOST_BASE([1.54])
 
 AX_CXX_COMPILE_STDCXX_11([noext], [mandatory])
 # Also put any flags added to CXX into CXXFLAGS
-CXXFLAGS="$CXXFLAGS $(echo "$CXX" | cut -d ' ' -f 2-)"
+CXXFLAGS="$CXXFLAGS $(echo "$CXX " | cut -d ' ' -f 2-)"
 
 AX_BOOST_SYSTEM()
 AS_IF([test -z "$BOOST_SYSTEM_LIB"],
