@@ -3186,8 +3186,8 @@ namespace libtorrent
 			{
 				for (int j=0; j < 8; ++j)
 				{
-					if (recv_buffer[i] & (0x80 >> j)) extensions[i*8+j] = '1';
-					else extensions[i*8+j] = '0';
+					if (recv_buffer[i] & (0x80 >> j)) extensions[i * 8 + j] = '1';
+					else extensions[i * 8 + j] = '0';
 				}
 			}
 			if (should_log(peer_log_alert::incoming_message))

@@ -34,27 +34,27 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	bool has_bits(std::uint8_t const* k, std::uint8_t const* bits, int len)
+	bool has_bits(std::uint8_t const* k, std::uint8_t const* bits, int const len)
 	{
 		std::uint32_t idx1 = std::uint32_t(k[0]) | (std::uint32_t(k[1]) << 8);
 		std::uint32_t idx2 = std::uint32_t(k[2]) | (std::uint32_t(k[3]) << 8);
 		idx1 %= len * 8;
 		idx2 %= len * 8;
-		return (bits[idx1/8] & (1 << (idx1 & 7))) != 0
-			&& (bits[idx2/8] & (1 << (idx2 & 7))) != 0;
+		return (bits[idx1 / 8] & (1 << (idx1 & 7))) != 0
+			&& (bits[idx2 / 8] & (1 << (idx2 & 7))) != 0;
 	}
 
-	void set_bits(std::uint8_t const* k, std::uint8_t* bits, int len)
+	void set_bits(std::uint8_t const* k, std::uint8_t* bits, int const len)
 	{
 		std::uint32_t idx1 = std::uint32_t(k[0]) | (std::uint32_t(k[1]) << 8);
 		std::uint32_t idx2 = std::uint32_t(k[2]) | (std::uint32_t(k[3]) << 8);
 		idx1 %= len * 8;
 		idx2 %= len * 8;
-		bits[idx1/8] |= (1 << (idx1 & 7));
-		bits[idx2/8] |= (1 << (idx2 & 7));
+		bits[idx1 / 8] |= (1 << (idx1 & 7));
+		bits[idx2 / 8] |= (1 << (idx2 & 7));
 	}
 
-	int count_zero_bits(std::uint8_t const* bits, int len)
+	int count_zero_bits(std::uint8_t const* bits, int const len)
 	{
 		// number of bits _not_ set in a nibble
 		std::uint8_t bitcount[16] =

@@ -232,7 +232,7 @@ namespace libtorrent
 
 		char msg[TORRENT_MAX_PATH*4];
 		std::snprintf(msg, sizeof(msg), "%s://%s%s%s%s%s%s", protocol.c_str(), auth.c_str()
-			, auth.empty()?"":"@", host.c_str()
+			, auth.empty() ? "" : "@", host.c_str()
 			, port == -1 ? "" : ":"
 			, port == -1 ? "" : to_string(port).data()
 			, escape_path(path).c_str());

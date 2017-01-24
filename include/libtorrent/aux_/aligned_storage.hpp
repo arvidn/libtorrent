@@ -40,7 +40,7 @@ namespace libtorrent { namespace aux {
 #if defined __GNUC__ && __GNUC__ < 5
 
 // this is for backwards compatibility with not-quite C++11 compilers
-template <size_t Len, size_t Align = alignof(void*)>
+template <std::size_t Len, std::size_t Align = alignof(void*)>
 struct aligned_storage
 {
 	struct type
@@ -58,4 +58,3 @@ using std::aligned_storage;
 }}
 
 #endif
-

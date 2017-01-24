@@ -217,7 +217,7 @@ int routing_table::depth() const
 	if (m_depth < 0) return m_depth;
 
 	// maybe the table is deeper now?
-	while (m_depth < int(m_buckets.size())-1
+	while (m_depth < int(m_buckets.size()) - 1
 		&& int(m_buckets[m_depth + 1].live_nodes.size()) >= m_bucket_size / 2)
 	{
 		++m_depth;
@@ -897,7 +897,7 @@ void routing_table::split_bucket()
 	if (int(b.size()) > bucket_size_limit)
 	{
 		// TODO: 2 move the lowest priority nodes to the replacement bucket
-		for (bucket_t::iterator i = b.begin() + bucket_size_limit
+		for (auto i = b.begin() + bucket_size_limit
 			, end(b.end()); i != end; ++i)
 		{
 			rb.push_back(*i);
@@ -909,7 +909,7 @@ void routing_table::split_bucket()
 	// split the replacement bucket as well. If the live bucket
 	// is not full anymore, also move the replacement entries
 	// into the main bucket
-	for (bucket_t::iterator j = rb.begin(); j != rb.end();)
+	for (auto j = rb.begin(); j != rb.end();)
 	{
 		if (distance_exp(m_id, j->id) >= 159 - bucket_index)
 		{
@@ -1066,7 +1066,7 @@ void routing_table::find_node(node_id const& target
 	l.clear();
 	if (count == 0) count = m_bucket_size;
 
-	table_t::iterator i = find_bucket(target);
+	auto const i = find_bucket(target);
 	int const bucket_index = int(std::distance(m_buckets.begin(), i));
 	int const bucket_size_limit = bucket_limit(bucket_index);
 
@@ -1077,7 +1077,7 @@ void routing_table::find_node(node_id const& target
 	int unsorted_start_idx = 0;
 	for (; j != m_buckets.end() && int(l.size()) < count; ++j)
 	{
-		bucket_t& b = j->live_nodes;
+		bucket_t const& b = j->live_nodes;
 		if (options & include_failed)
 		{
 			std::copy(b.begin(), b.end(), std::back_inserter(l));
@@ -1115,7 +1115,7 @@ void routing_table::find_node(node_id const& target
 	do
 	{
 		--j;
-		bucket_t& b = j->live_nodes;
+		bucket_t const& b = j->live_nodes;
 
 		if (options & include_failed)
 		{
@@ -1170,7 +1170,7 @@ void routing_table::check_invariant() const
 
 bool routing_table::is_full(int const bucket) const
 {
-	int num_buckets = int(m_buckets.size());
+	int const num_buckets = int(m_buckets.size());
 	if (num_buckets == 0) return false;
 	if (bucket >= num_buckets) return false;
 

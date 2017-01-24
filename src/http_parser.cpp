@@ -522,8 +522,8 @@ restart_response:
 		std::int64_t const received = m_recv_pos - m_body_start_pos;
 
 		std::int64_t const body_length = m_chunked_encoding && !m_chunked_ranges.empty()
-			? (std::min)(m_chunked_ranges.back().second - m_body_start_pos, received)
-			: m_content_length < 0 ? received : (std::min)(m_content_length, received);
+			? std::min(m_chunked_ranges.back().second - m_body_start_pos, received)
+			: m_content_length < 0 ? received : std::min(m_content_length, received);
 
 		return m_recv_buffer.subspan(std::size_t(m_body_start_pos), std::size_t(body_length));
 	}

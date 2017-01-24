@@ -113,7 +113,7 @@ namespace libtorrent
 
 		// the number of failed connection attempts
 		// this torrent_peer has
-		unsigned failcount:5; // [0, 31]
+		std::uint32_t failcount:5; // [0, 31]
 
 		// incoming peers (that don't advertise their listen port)
 		// will not be considered connectable. Peers that
@@ -132,7 +132,7 @@ namespace libtorrent
 
 		// the number of times we have allowed a fast
 		// reconnect for this torrent_peer.
-		unsigned fast_reconnects:4;
+		std::uint32_t fast_reconnects:4;
 
 		// for every valid piece we receive where this
 		// torrent_peer was one of the participants, we increase
@@ -144,7 +144,7 @@ namespace libtorrent
 
 		// a bitmap combining the peer_source flags
 		// from peer_info.
-		unsigned source:6;
+		std::uint32_t source:6;
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		// Hints encryption support of torrent_peer. Only effective

@@ -50,7 +50,7 @@ namespace libtorrent
 			: m_ptr(v.data()), m_len(v.size()) {}
 
 		span(T& p) : m_ptr(&p), m_len(1) {} // NOLINT
-		span(T* p, size_t const l) : m_ptr(p), m_len(l) {} // NOLINT
+		span(T* p, std::size_t const l) : m_ptr(p), m_len(l) {} // NOLINT
 
 		template <typename U, std::size_t N>
 		span(std::array<U, N>& arr) // NOLINT

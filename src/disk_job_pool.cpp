@@ -107,4 +107,3 @@ namespace libtorrent
 			m_job_pool.free(j[i]);
 	}
 }
-

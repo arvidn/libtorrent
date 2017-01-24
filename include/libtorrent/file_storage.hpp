@@ -566,7 +566,7 @@ namespace libtorrent
 
 		// if the backing buffer changed for this storage, this is the pointer
 		// offset to add to any pointers to make them point into the new buffer
-		void apply_pointer_offset(ptrdiff_t off);
+		void apply_pointer_offset(std::ptrdiff_t off);
 
 	private:
 

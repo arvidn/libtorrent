@@ -51,8 +51,8 @@ namespace libtorrent
 		int const rest = size() & 31;
 		if (rest > 0)
 		{
-			std::uint32_t const mask = aux::host_to_network(0xffffffff << (32-rest));
-			if ((m_buf[words+1] & mask) != mask) return false;
+			std::uint32_t const mask = aux::host_to_network(0xffffffff << (32 - rest));
+			if ((m_buf[words + 1] & mask) != mask) return false;
 		}
 		return true;
 	}
@@ -143,19 +143,19 @@ namespace libtorrent
 			if (old_size_words && b) buf()[old_size_words - 1] |= aux::host_to_network((0xffffffff >> b));
 			if (old_size_words < new_size_words)
 				std::memset(buf() + old_size_words, 0xff
-					, size_t((new_size_words - old_size_words) * 4));
+					, std::size_t((new_size_words - old_size_words) * 4));
 			clear_trailing_bits();
 		}
 		else
 		{
 			if (old_size_words < new_size_words)
 				std::memset(buf() + old_size_words, 0x00
-					, size_t((new_size_words - old_size_words) * 4));
+					, std::size_t((new_size_words - old_size_words) * 4));
 		}
 		TORRENT_ASSERT(size() == bits);
 	}
 
-	void bitfield::resize(int bits)
+	void bitfield::resize(int const bits)
 	{
 		if (bits == size()) return;
 
@@ -174,7 +174,7 @@ namespace libtorrent
 			if (b == nullptr) std::terminate();
 #endif
 			b[0] = bits;
-			if (m_buf) std::memcpy(&b[1], buf(), (std::min)(new_size_words, cur_size_words) * 4);
+			if (m_buf) std::memcpy(&b[1], buf(), std::min(new_size_words, cur_size_words) * 4);
 			if (new_size_words > cur_size_words)
 			{
 				std::memset(&b[1 + cur_size_words], 0
@@ -193,7 +193,7 @@ namespace libtorrent
 
 	int bitfield::find_first_set() const
 	{
-		size_t const num = num_words();
+		std::size_t const num = num_words();
 		if (num == 0) return -1;
 		int const count = aux::count_leading_zeros({&m_buf[1], num});
 		return count != int(num) * 32 ? count : -1;
@@ -201,7 +201,7 @@ namespace libtorrent
 
 	int bitfield::find_last_clear() const
 	{
-		size_t const num = num_words();
+		std::size_t const num = num_words();
 		if (num == 0) return - 1;
 		int const size = this->size();
 		std::uint32_t const mask = 0xffffffff << (32 - (size & 31));

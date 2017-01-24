@@ -545,7 +545,7 @@ namespace libtorrent
 				--pe->piece_refcount;
 				m_disk_cache.maybe_free_piece(pe);
 			}
-			const int block_diff = iovec_offset[i+1] - iovec_offset[i];
+			const int block_diff = iovec_offset[i + 1] - iovec_offset[i];
 			iovec_flushed(pe, flushing.subspan(iovec_offset[i]).data(), block_diff
 				, block_start, error, completed_jobs);
 			block_start += int(p->blocks_in_piece);
@@ -617,7 +617,7 @@ namespace libtorrent
 
 			flushing[num_flushing++] = i + block_base_index;
 			iov[iov_len].iov_base = pe->blocks[i].buf;
-			iov[iov_len].iov_len = (std::min)(block_size, size_left);
+			iov[iov_len].iov_len = std::min(block_size, size_left);
 			++iov_len;
 			pe->blocks[i].pending = true;
 
@@ -1282,7 +1282,7 @@ namespace libtorrent
 
 		// if this is the last piece, adjust the size of the
 		// last buffer to match up
-		iov[iov_len - 1].iov_len = (std::min)(int(piece_size - adjusted_offset)
+		iov[iov_len - 1].iov_len = std::min(int(piece_size - adjusted_offset)
 			- (iov_len - 1) * block_size, block_size);
 		TORRENT_ASSERT(iov[iov_len - 1].iov_len > 0);
 
@@ -2153,7 +2153,7 @@ namespace libtorrent
 
 			time_point const start_time = clock_type::now();
 
-			iov.iov_len = (std::min)(block_size, piece_size - offset);
+			iov.iov_len = std::min(block_size, piece_size - offset);
 			ret = j->storage->readv(iov, j->piece
 				, offset, file_flags, j->error);
 			if (ret < 0) break;
@@ -2306,7 +2306,7 @@ namespace libtorrent
 		for (int i = offset / block_size; i < blocks_in_piece; ++i)
 		{
 			iovec_t iov;
-			iov.iov_len = (std::min)(block_size, piece_size - offset);
+			iov.iov_len = std::min(block_size, piece_size - offset);
 
 			if (next_locked_block < num_locked_blocks
 				&& locked_blocks[next_locked_block] == i)
