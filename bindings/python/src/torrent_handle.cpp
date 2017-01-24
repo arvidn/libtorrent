@@ -341,6 +341,7 @@ void add_piece(torrent_handle& th, piece_index_t piece, char const *data, int fl
    th.add_piece(piece, data, flags);
 }
 
+using by_value = return_value_policy<return_by_value>;
 void bind_torrent_handle()
 {
     // arguments are: number of seconds and tracker index
@@ -473,7 +474,7 @@ void bind_torrent_handle()
         ;
 
     class_<pool_file_status>("pool_file_status")
-       .def_readonly("file_index", &pool_file_status::file_index)
+       .add_property("file_index", make_getter((&pool_file_status::file_index), by_value()))
        .def_readonly("last_use", &pool_file_status::last_use)
        .def_readonly("open_mode", &pool_file_status::open_mode)
     ;

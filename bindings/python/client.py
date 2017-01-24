@@ -218,15 +218,12 @@ def main():
     if options.max_download_rate <= 0:
         options.max_download_rate = -1
 
-    settings = lt.session_settings()
-    settings.user_agent = 'python_client/' + lt.version
-
-    ses = lt.session()
-    ses.set_download_rate_limit(int(options.max_download_rate))
-    ses.set_upload_rate_limit(int(options.max_upload_rate))
-    ses.listen_on(options.port, options.port + 10)
-    ses.set_settings(settings)
-    ses.set_alert_mask(0xfffffff)
+    ses = lt.session({'user_agent':  'python_client/' + lt.__version__,
+        'listen_interfaces':'0.0.0.0:' + str(options.port),
+        'download_rate_limit': int(options.max_download_rate),
+        'upload_rate_limit': int(options.max_upload_rate),
+        'alert_mask' : 0xfffffff
+    })
 
     if options.proxy_host != '':
         ps = lt.proxy_settings()
@@ -281,13 +278,12 @@ def main():
         out = ''
 
         for h in handles:
-            if h.has_metadata():
-                name = h.get_torrent_info().name()[:40]
+            s = h.status()
+            if s.has_metadata:
+                name = h.torrent_file().name()[:40]
             else:
                 name = '-'
             out += 'name: %-40s\n' % name
-
-            s = h.status()
 
             if s.state != lt.torrent_status.seeding:
                 state_str = ['queued', 'checking', 'downloading metadata',
@@ -335,14 +331,7 @@ def main():
         write_line(console, '(q)uit), (p)ause), (u)npause), (r)eannounce\n')
         write_line(console, 76 * '-' + '\n')
 
-        while 1:
-            a = ses.pop_alert()
-            if not a:
-                break
-            alerts.append(a)
-
-        if len(alerts) > 8:
-            del alerts[:len(alerts) - 8]
+        alerts = ses.pop_alerts()
 
         for a in alerts:
             if type(a) == str:
@@ -369,7 +358,7 @@ def main():
 
     ses.pause()
     for h in handles:
-        if not h.is_valid() or not h.has_metadata():
+        if not h.is_valid() or not s.has_metadata:
             continue
         data = lt.bencode(h.write_resume_data())
         open(os.path.join(options.save_path, h.get_torrent_info().name() +

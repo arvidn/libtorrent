@@ -8,14 +8,14 @@ import libtorrent as lt
 import time
 import sys
 
-ses = lt.session()
-ses.listen_on(6881, 6891)
+ses = lt.session({'listen_interfaces':'0.0.0.0:6881'})
 
 info = lt.torrent_info(sys.argv[1])
 h = ses.add_torrent({'ti': info, 'save_path': '.'})
-print('starting', h.name())
+s = h.status()
+print('starting', s.name)
 
-while (not h.is_seed()):
+while (not s.is_seeding):
     s = h.status()
 
     state_str = [
