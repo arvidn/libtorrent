@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp" // for print_address
 #include "libtorrent/debug.hpp"
 #include "libtorrent/hex.hpp" // to_hex, from_hex
+#include "libtorrent/aux_/vector.hpp" // for numeric_cast
 
 using namespace std::placeholders;
 
@@ -53,7 +54,7 @@ int render_lsd_packet(char* dst, int const len, int const listen_port
 	, char const* info_hash_hex, int const cookie, char const* host)
 {
 	TORRENT_ASSERT(len > 0);
-	return std::snprintf(dst, len,
+	return std::snprintf(dst, aux::numeric_cast<std::size_t>(len),
 		"BT-SEARCH * HTTP/1.1\r\n"
 		"Host: %s:6771\r\n"
 		"Port: %d\r\n"
