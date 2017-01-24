@@ -252,6 +252,20 @@ class test_session(unittest.TestCase):
 		self.assertEqual(s.get_settings()['num_want'], 66)
 		self.assertEqual(s.get_settings()['user_agent'], 'test123')
 
+	def test_min_memory_preset(self):
+		min_mem = lt.min_memory_usage()
+		print(min_mem)
+
+		self.assertTrue('connection_speed' in min_mem)
+		self.assertTrue('file_pool_size' in min_mem)
+
+	def test_seed_mode_preset(self):
+		seed_mode = lt.high_performance_seed()
+		print(seed_mode)
+
+		self.assertTrue('alert_queue_size' in seed_mode)
+		self.assertTrue('connection_speed' in seed_mode)
+		self.assertTrue('file_pool_size' in seed_mode)
 
 if __name__ == '__main__':
 	print(lt.__version__)
