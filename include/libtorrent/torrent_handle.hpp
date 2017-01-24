@@ -833,6 +833,7 @@ namespace libtorrent
 		int queue_position() const;
 		void queue_position_up() const;
 		void queue_position_down() const;
+		void queue_position_set(uint p) const;
 		void queue_position_top() const;
 		void queue_position_bottom() const;
 
