@@ -792,8 +792,8 @@ namespace libtorrent
 			// time to wait until a new retry of a web seed takes place
 			urlseed_wait_retry,
 
-            // if unavailable, retry in these minutes
-            web_seed_name_lookup_retry_minutes,
+      // if unavailable, retry in these minutes
+      web_seed_name_lookup_retry_minutes,
 
 			// sets the upper limit on the total number of files this session will
 			// keep open. The reason why files are left open at all is that some
