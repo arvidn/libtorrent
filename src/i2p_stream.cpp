@@ -284,7 +284,7 @@ namespace libtorrent
 		COMPLETE_ASYNC("i2p_stream::read_line");
 		if (handle_error(e, h)) return;
 
-		int read_pos = int(m_buffer.size());
+		int const read_pos = int(m_buffer.size());
 
 		// look for \n which means end of the response
 		if (m_buffer[read_pos - 1] != '\n')
@@ -313,7 +313,7 @@ namespace libtorrent
 
 		// 0-terminate the string and parse it
 		m_buffer.push_back(0);
-		char* ptr = &m_buffer[0];
+		char* ptr = m_buffer.data();
 		char* next = ptr;
 
 		char const* expect1 = nullptr;
