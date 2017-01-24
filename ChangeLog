@@ -1,3 +1,4 @@
+	* python binding add more add_torrent_params fields and an invalid key check
 	* introduce introduce distinct types for peer_class_t, piece_index_t and
 	  file_index_t.
 	* fix crash caused by empty bitfield
