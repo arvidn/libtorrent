@@ -10174,6 +10174,7 @@ namespace libtorrent
 #endif
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 #if !TORRENT_NO_FPU
 	void torrent::file_progress_float(aux::vector<float, file_index_t>& fp)
 	{
@@ -10198,6 +10199,7 @@ namespace libtorrent
 		}
 	}
 #endif
+#endif // TORRENT_NO_DEPRECATE
 
 	void torrent::file_progress(aux::vector<std::int64_t, file_index_t>& fp, int const flags)
 	{

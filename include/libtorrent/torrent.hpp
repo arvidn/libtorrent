@@ -512,11 +512,11 @@ namespace libtorrent
 		bool delete_files(int options);
 		void peers_erased(std::vector<torrent_peer*> const& peers);
 
-		// ============ start deprecation =============
+#ifndef TORRENT_NO_DEPRECATE
 #if !TORRENT_NO_FPU
 		void file_progress_float(aux::vector<float, file_index_t>& fp);
 #endif
-		// ============ end deprecation =============
+#endif // TORRENT_NO_DEPRECATE
 
 		void piece_availability(aux::vector<int, piece_index_t>& avail) const;
 
