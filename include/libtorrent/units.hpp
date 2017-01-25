@@ -58,7 +58,7 @@ namespace aux {
 		strong_typedef() = default;
 #ifndef TORRENT_NO_DEPRECATE
 		constexpr strong_typedef(UnderlyingType val) : m_val(val) {}
-		operator UnderlyingType() const { return m_val; }
+		constexpr operator UnderlyingType() const { return m_val; }
 #else
 		constexpr explicit strong_typedef(UnderlyingType val) : m_val(val) {}
 		constexpr explicit operator UnderlyingType() const { return m_val; }

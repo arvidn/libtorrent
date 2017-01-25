@@ -577,19 +577,10 @@ namespace libtorrent
 		// peer potentially across you changing your IP.
 		void set_key(int key);
 
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#pragma warning(disable : 4268)
-#endif
-
 		// built-in peer classes
 		static constexpr peer_class_t global_peer_class_id{0};
 		static constexpr peer_class_t tcp_peer_class_id{1};
 		static constexpr peer_class_t local_peer_class_id{2};
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
 
 		// ``is_listening()`` will tell you whether or not the session has
 		// successfully opened a listening port. If it hasn't, this function will

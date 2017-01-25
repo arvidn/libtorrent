@@ -67,10 +67,8 @@ namespace libtorrent
 		// to new peers based on socket type.
 		void add(socket_type_t st, peer_class_t const peer_class)
 		{
-			TORRENT_ASSERT(peer_class >= peer_class_t{0});
 			TORRENT_ASSERT(peer_class < peer_class_t{32});
-			if (peer_class < peer_class_t{0}
-				|| peer_class > peer_class_t{31}) return;
+			if (peer_class > peer_class_t{31}) return;
 
 			TORRENT_ASSERT(st < num_socket_types && st >= 0);
 			if (st < 0 || st >= num_socket_types) return;
@@ -78,10 +76,8 @@ namespace libtorrent
 		}
 		void remove(socket_type_t st, peer_class_t const peer_class)
 		{
-			TORRENT_ASSERT(peer_class >= peer_class_t{0});
 			TORRENT_ASSERT(peer_class < peer_class_t{32});
-			if (peer_class < peer_class_t{0}
-				|| peer_class > peer_class_t{31}) return;
+			if (peer_class > peer_class_t{31}) return;
 
 			TORRENT_ASSERT(st < num_socket_types && st >= 0);
 			if (st < 0 || st >= num_socket_types) return;
@@ -95,10 +91,8 @@ namespace libtorrent
 		// peer classes in the ``peer_class_type_filter`` are 32 bits.
 		void disallow(socket_type_t st, peer_class_t const peer_class)
 		{
-			TORRENT_ASSERT(peer_class >= peer_class_t{0});
 			TORRENT_ASSERT(peer_class < peer_class_t{32});
-			if (peer_class < peer_class_t{0}
-				|| peer_class > peer_class_t{31}) return;
+			if (peer_class > peer_class_t{31}) return;
 
 			TORRENT_ASSERT(st < num_socket_types && st >= 0);
 			if (st < 0 || st >= num_socket_types) return;
@@ -106,10 +100,8 @@ namespace libtorrent
 		}
 		void allow(socket_type_t st, peer_class_t const peer_class)
 		{
-			TORRENT_ASSERT(peer_class >= peer_class_t{0});
 			TORRENT_ASSERT(peer_class < peer_class_t{32});
-			if (peer_class < peer_class_t{0}
-				|| peer_class > peer_class_t{31}) return;
+			if (peer_class > peer_class_t{31}) return;
 
 			TORRENT_ASSERT(st < num_socket_types && st >= 0);
 			if (st < 0 || st >= num_socket_types) return;
@@ -142,4 +134,3 @@ namespace libtorrent
 }
 
 #endif
-
