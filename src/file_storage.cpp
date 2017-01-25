@@ -1087,7 +1087,6 @@ namespace libtorrent
 
 	void file_storage::unload()
 	{
-		m_piece_length = 0;
 		std::vector<internal_file_entry>().swap(m_files);
 		std::vector<char const*>().swap(m_file_hashes);
 		std::vector<std::string>().swap(m_symlinks);
