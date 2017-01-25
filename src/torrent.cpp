@@ -9535,7 +9535,7 @@ namespace libtorrent
 		}
 		m_became_seed = clamped_subtract(m_became_seed, seconds);
 
-		if (m_finished_time < seconds && is_finished())
+		if (m_became_finished < seconds && is_finished())
 		{
 			int lost_seconds = seconds - m_became_finished;
 			m_finished_time += lost_seconds;
