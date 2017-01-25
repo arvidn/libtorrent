@@ -34,19 +34,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_PIECE_BLOCK_PROGRESS_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/units.hpp"
 
 namespace libtorrent
 {
 	struct piece_block_progress
 	{
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#pragma warning(disable : 4268)
-#endif
 		constexpr static piece_index_t invalid_index{-1};
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
 
 		// the piece and block index
 		// determines exactly which

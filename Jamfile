@@ -276,6 +276,9 @@ rule warnings ( properties * )
 		result += <cflags>/wd4275 ;
 # disable warning C4373: virtual function overrides, previous versions of the compiler did not override when parameters only differed by const/volatile qualifiers
 		result += <cflags>/wd4373 ;
+		# C4268: 'identifier' : 'const' static/global data initialized
+		#        with compiler generated default constructor fills the object with zeros
+		result += <cflags>/wd4268 ;
 	}
 
 	return $(result) ;

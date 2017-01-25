@@ -572,19 +572,10 @@ namespace libtorrent
 			std::set<const torrent_peer*> have_peers;
 #endif
 
-#ifdef _MSC_VER
-#pragma warning(push, 1)
-#pragma warning(disable : 4268)
-#endif
-
 			// index is set to this to indicate that we have the
 			// piece. There is no entry for the piece in the
 			// buckets if this is the case.
 			constexpr static prio_index_t we_have_index{-1};
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
 
 			enum : std::uint32_t
 			{
