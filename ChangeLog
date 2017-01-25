@@ -1,3 +1,4 @@
+	* add web_seed_name_lookup_retry_minutes to session_settings
 	* add missing min_memory_usage() and high_performance_seed() settings presets to python
 	* fix stat cache issue that sometimes would produce incorrect resume data
 	* storage optimization to peer classes
