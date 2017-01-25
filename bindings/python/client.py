@@ -241,8 +241,7 @@ def main():
         atp["save_path"] = options.save_path
         atp["storage_mode"] = lt.storage_mode_t.storage_mode_sparse
         atp["paused"] = False
-        atp["auto_managed"] = True
-        atp["duplicate_is_error"] = True
+        atp["flags"] = lt.add_torrent_params.flag_duplicate_is_error | lt.add_torrent_params.flag_auto_managed
         if f.startswith('magnet:') or f.startswith(
                 'http://') or f.startswith('https://'):
             atp["url"] = f
