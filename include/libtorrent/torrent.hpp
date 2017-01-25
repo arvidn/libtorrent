@@ -536,7 +536,7 @@ namespace libtorrent
 		bool super_seeding() const
 		{
 			// we're not super seeding if we're not a seed
-			return m_super_seeding && is_seed();
+			return m_super_seeding && is_finished();
 		}
 		
 		void super_seeding(bool on);

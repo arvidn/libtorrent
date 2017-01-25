@@ -1,3 +1,4 @@
+	* finished non-seed torrents can also be in super-seeding mode
 	* make torrent_info::is_valid() return false if torrent failed to load
 	* fix torrent_status time_since_upload/download counters for paused torrents
 	* fix bug in last-seen-complete
