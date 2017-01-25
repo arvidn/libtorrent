@@ -7163,6 +7163,7 @@ namespace libtorrent
 			}
 
 			m_verified.resize(m_torrent_file->num_pieces(), false);
+			m_verifying.resize(m_torrent_file->num_pieces(), false);
 		}
 	}
 
@@ -8301,6 +8302,8 @@ namespace libtorrent
 	// returns true if this torrent is interested in connecting to more peers
 	bool torrent::want_peers() const
 	{
+		if (m_should_be_loaded == false) return false;
+
 		// if all our connection slots are taken, we can't connect to more
 		if (m_connections.size() >= m_max_connections) return false;
 
@@ -10236,6 +10239,8 @@ namespace libtorrent
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
+		if (m_should_be_loaded == false) return;
+
 		boost::weak_ptr<torrent> self(shared_from_this());
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -11382,6 +11387,12 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(want_peers());
+
+		if (m_should_be_loaded == false)
+		{
+			update_want_peers();
+			return false;
+		}
 
 		torrent_state st = get_peer_list_state();
 		need_peer_list();

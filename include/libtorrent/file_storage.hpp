@@ -236,7 +236,11 @@ namespace libtorrent
 		// on the file_storage. This is typically taken as a proxy
 		// of whether the file_storage as a whole is initialized or
 		// not.
-		bool is_valid() const { return m_piece_length > 0; }
+		bool is_valid() const
+		{
+			TORRENT_ASSERT((m_piece_length > 0) == !m_files.empty());
+			return m_piece_length > 0;
+		}
 
 		// file attribute flags
 		enum flags_t
