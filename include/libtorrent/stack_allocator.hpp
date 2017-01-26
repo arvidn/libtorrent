@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/span.hpp"
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/aux_/vector.hpp"
+#include "libtorrent/aux_/numeric_cast.hpp"
 
 #include <cstdio> // for vsnprintf
 #include <cstring>

@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_buffer_pool.hpp"
 #include "libtorrent/file.hpp" // for iovec_t
 #include "libtorrent/disk_io_job.hpp"
+#include "libtorrent/aux_/unique_ptr.hpp"
 #if TORRENT_USE_ASSERTS
 #include "libtorrent/aux_/vector.hpp"
 #endif
@@ -206,7 +207,7 @@ namespace libtorrent
 
 		// the pointers to the block data. If this is a ghost
 		// cache entry, there won't be any data here
-		std::unique_ptr<cached_block_entry[]> blocks;
+		aux::unique_ptr<cached_block_entry[]> blocks;
 
 		// the last time a block was written to this piece
 		// plus the minimum amount of time the block is guaranteed

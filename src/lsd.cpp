@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp" // for print_address
 #include "libtorrent/debug.hpp"
 #include "libtorrent/hex.hpp" // to_hex, from_hex
-#include "libtorrent/aux_/vector.hpp" // for numeric_cast
+#include "libtorrent/aux_/numeric_cast.hpp"
 
 using namespace std::placeholders;
 
