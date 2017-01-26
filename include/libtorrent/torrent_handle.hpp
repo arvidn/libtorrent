@@ -835,6 +835,7 @@ namespace libtorrent
 		void queue_position_down() const;
 		void queue_position_top() const;
 		void queue_position_bottom() const;
+
 		// set the new position in queue starting by 0. If given position does
 		// already exist your torrent will be set on top of it and remaining once
 		// get posion + 1. If the given position is greater then queue it will be
