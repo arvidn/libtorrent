@@ -234,7 +234,6 @@ void bind_converters()
     // C++ -> python conversions
     to_python_converter<std::pair<int, int>, pair_to_tuple<int, int>>();
     to_python_converter<std::pair<lt::piece_index_t, int>, pair_to_tuple<lt::piece_index_t, int>>();
-    to_python_converter<std::pair<std::string, int>, pair_to_tuple<std::string, int>>();
     to_python_converter<lt::tcp::endpoint, endpoint_to_tuple<lt::tcp::endpoint>>();
     to_python_converter<lt::udp::endpoint, endpoint_to_tuple<lt::udp::endpoint>>();
     to_python_converter<lt::address, address_to_tuple>();

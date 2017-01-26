@@ -221,8 +221,7 @@ def main():
     ses = lt.session({'user_agent':  'python_client/' + lt.__version__,
         'listen_interfaces':'0.0.0.0:' + str(options.port),
         'download_rate_limit': int(options.max_download_rate),
-        'upload_rate_limit': int(options.max_upload_rate),
-        'alert_mask' : 0xfffffff
+        'upload_rate_limit': int(options.max_upload_rate)
     })
 
     if options.proxy_host != '':
@@ -240,9 +239,8 @@ def main():
         atp = {}
         atp["save_path"] = options.save_path
         atp["storage_mode"] = lt.storage_mode_t.storage_mode_sparse
-        atp["paused"] = False
-        atp["auto_managed"] = True
-        atp["duplicate_is_error"] = True
+        atp["flags"] = lt.add_torrent_params_flags_t.flag_duplicate_is_error \
+            | lt.add_torrent_params_flags_t.flag_auto_managed
         if f.startswith('magnet:') or f.startswith(
                 'http://') or f.startswith('https://'):
             atp["url"] = f
@@ -331,7 +329,8 @@ def main():
         write_line(console, '(q)uit), (p)ause), (u)npause), (r)eannounce\n')
         write_line(console, 76 * '-' + '\n')
 
-        alerts = ses.pop_alerts()
+        # only print the last 20 alerts
+        alerts = ses.pop_alerts()[-20:]
 
         for a in alerts:
             if type(a) == str:
