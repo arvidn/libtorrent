@@ -141,11 +141,11 @@ namespace std {
 		using type = libtorrent::aux::strong_typedef<UnderlyingType, Tag>;
 	public:
 
-		static constexpr type min()
-		{ return type(std::numeric_limits<UnderlyingType>::min()); }
+		static constexpr type (min)()
+		{ return type((std::numeric_limits<UnderlyingType>::min)()); }
 
-		static constexpr type max()
-		{ return type(std::numeric_limits<UnderlyingType>::max()); }
+		static constexpr type (max)()
+		{ return type((std::numeric_limits<UnderlyingType>::max)()); }
 	};
 
 	template<typename UnderlyingType, typename Tag>

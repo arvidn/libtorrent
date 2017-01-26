@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/bitfield.hpp"
+#include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/aux_/cpuid.hpp"
 
 #ifdef _MSC_VER
@@ -112,7 +113,7 @@ namespace libtorrent
 			// from:
 			// http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
 			static const int S[] = {1, 2, 4, 8, 16}; // Magic Binary Numbers
-			static const int B[] = {0x55555555, 0x33333333, 0x0F0F0F0F, 0x00FF00FF, 0x0000FFFF};
+			static const std::uint32_t B[] = {0x55555555, 0x33333333, 0x0F0F0F0F, 0x00FF00FF, 0x0000FFFF};
 
 			std::uint32_t c = v - ((v >> 1) & B[0]);
 			c = ((c >> S[1]) & B[1]) + (c & B[1]);
@@ -169,22 +170,23 @@ namespace libtorrent
 		int const cur_size_words = num_words();
 		if (cur_size_words != new_size_words)
 		{
-			std::unique_ptr<std::uint32_t[]> b(new std::uint32_t[new_size_words + 1]);
+			aux::unique_ptr<std::uint32_t[]> b(new std::uint32_t[new_size_words + 1]);
 #ifdef BOOST_NO_EXCEPTIONS
 			if (b == nullptr) std::terminate();
 #endif
-			b[0] = bits;
-			if (m_buf) std::memcpy(&b[1], buf(), std::min(new_size_words, cur_size_words) * 4);
+			b[0] = aux::numeric_cast<std::uint32_t>(bits);
+			if (m_buf) std::memcpy(&b[1], buf()
+				, aux::numeric_cast<std::size_t>(std::min(new_size_words, cur_size_words) * 4));
 			if (new_size_words > cur_size_words)
 			{
 				std::memset(&b[1 + cur_size_words], 0
-					, (new_size_words - cur_size_words) * 4);
+					, aux::numeric_cast<std::size_t>((new_size_words - cur_size_words) * 4));
 			}
 			m_buf = std::move(b);
 		}
 		else
 		{
-			m_buf[0] = bits;
+			m_buf[0] = aux::numeric_cast<std::uint32_t>(bits);
 		}
 
 		clear_trailing_bits();
@@ -193,22 +195,22 @@ namespace libtorrent
 
 	int bitfield::find_first_set() const
 	{
-		std::size_t const num = num_words();
+		int const num = num_words();
 		if (num == 0) return -1;
-		int const count = aux::count_leading_zeros({&m_buf[1], num});
-		return count != int(num) * 32 ? count : -1;
+		int const count = aux::count_leading_zeros({&m_buf[1], std::size_t(num)});
+		return count != num * 32 ? count : -1;
 	}
 
 	int bitfield::find_last_clear() const
 	{
-		std::size_t const num = num_words();
+		int const num = num_words();
 		if (num == 0) return - 1;
 		int const size = this->size();
 		std::uint32_t const mask = 0xffffffff << (32 - (size & 31));
 		std::uint32_t const last = m_buf[num] ^ aux::host_to_network(mask);
 		int const ext = aux::count_trailing_ones(~last) - (31 - (size % 32));
 		return last != 0
-			? (int(num) - 1) * 32 + ext
-			: size - (aux::count_trailing_ones({&m_buf[1], num - 1}) + ext);
+			? (num - 1) * 32 + ext
+			: size - (aux::count_trailing_ones({&m_buf[1], std::size_t(num - 1)}) + ext);
 	}
 }

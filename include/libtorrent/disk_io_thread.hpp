@@ -142,7 +142,7 @@ namespace libtorrent
 #endif
 		{
 #ifndef TORRENT_NO_DEPRECATE
-			memset(num_fence_jobs, 0, sizeof(num_fence_jobs));
+			std::memset(num_fence_jobs, 0, sizeof(num_fence_jobs));
 #endif
 		}
 

@@ -35,12 +35,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/config.hpp"
+#include "libtorrent/aux_/unique_ptr.hpp"
 #include "libtorrent/aux_/byteswap.hpp"
 #include "libtorrent/aux_/ffs.hpp"
 
 #include <cstring> // for memset and memcpy
 #include <cstdint> // uint32_t
-#include <memory> // for unique_ptr
 
 namespace libtorrent
 {
@@ -253,7 +253,7 @@ namespace libtorrent
 
 		// the first element is not part of the bitfield, it's the
 		// number of bits.
-		std::unique_ptr<std::uint32_t[]> m_buf;
+		aux::unique_ptr<std::uint32_t[]> m_buf;
 	};
 
 	template <typename IndexType>

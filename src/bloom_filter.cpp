@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/bloom_filter.hpp"
+#include "libtorrent/aux_/numeric_cast.hpp"
 
 namespace libtorrent
 {
@@ -38,8 +39,8 @@ namespace libtorrent
 	{
 		std::uint32_t idx1 = std::uint32_t(k[0]) | (std::uint32_t(k[1]) << 8);
 		std::uint32_t idx2 = std::uint32_t(k[2]) | (std::uint32_t(k[3]) << 8);
-		idx1 %= len * 8;
-		idx2 %= len * 8;
+		idx1 %= aux::numeric_cast<std::uint32_t>(len * 8);
+		idx2 %= aux::numeric_cast<std::uint32_t>(len * 8);
 		return (bits[idx1 / 8] & (1 << (idx1 & 7))) != 0
 			&& (bits[idx2 / 8] & (1 << (idx2 & 7))) != 0;
 	}
@@ -48,8 +49,8 @@ namespace libtorrent
 	{
 		std::uint32_t idx1 = std::uint32_t(k[0]) | (std::uint32_t(k[1]) << 8);
 		std::uint32_t idx2 = std::uint32_t(k[2]) | (std::uint32_t(k[3]) << 8);
-		idx1 %= len * 8;
-		idx2 %= len * 8;
+		idx1 %= aux::numeric_cast<std::uint32_t>(len * 8);
+		idx2 %= aux::numeric_cast<std::uint32_t>(len * 8);
 		bits[idx1 / 8] |= (1 << (idx1 & 7));
 		bits[idx2 / 8] |= (1 << (idx2 & 7));
 	}
