@@ -709,9 +709,9 @@ namespace libtorrent
 		aux::write_int32(action_t::announce, out); // action (announce)
 		aux::write_int32(m_transaction_id, out); // transaction_id
 		std::copy(req.info_hash.begin(), req.info_hash.end(), out.data()); // info_hash
-		out.subspan(20);
+		out = out.subspan(20);
 		std::copy(req.pid.begin(), req.pid.end(), out.data()); // peer_id
-		out.subspan(20);
+		out = out.subspan(20);
 		aux::write_int64(req.downloaded, out); // downloaded
 		aux::write_int64(req.left, out); // left
 		aux::write_int64(req.uploaded, out); // uploaded
