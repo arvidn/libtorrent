@@ -4794,6 +4794,8 @@ retry:
 		{
 			params->url.clear();
 			params->ti = boost::shared_ptr<torrent_info>(j->buffer.torrent_file);
+			TORRENT_ASSERT(params->ti->is_valid());
+			TORRENT_ASSERT(params->ti->num_files() > 0);
 			handle = add_torrent(*params, ec);
 		}
 

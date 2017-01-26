@@ -172,6 +172,7 @@ namespace libtorrent
 	void session_handle::async_add_torrent(add_torrent_params const& params)
 	{
 		add_torrent_params* p = new add_torrent_params(params);
+		p->save_path = complete(p->save_path);
 #ifndef TORRENT_NO_DEPRECATE
 		if (params.tracker_url)
 		{
