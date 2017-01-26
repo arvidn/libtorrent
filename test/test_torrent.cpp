@@ -392,4 +392,64 @@ TORRENT_TEST(torrent_total_size_zero)
 	TEST_CHECK(ec);
 }
 
+TORRENT_TEST(queue)
+{
+	lt::settings_pack pack = settings();
+	// we're not testing the hash check, just accept the data we write
+	pack.set_bool(settings_pack::disable_hash_checks, true);
+	lt::session ses(pack);
+
+	torrent_handle torrents[5];
+	for(int i = 0; i < 5; i++)
+	{
+		file_storage fs;
+		fs.add_file("test_torrent_dir4/queue" + std::to_string(i), 1024);
+		libtorrent::create_torrent t(fs, 128 * 1024, 6);
+
+		std::vector<char> buf;
+		bencode(std::back_inserter(buf), t.generate());
+		boost::shared_ptr<torrent_info> ti = boost::make_shared<torrent_info>(&buf[0], buf.size());
+		add_torrent_params p;
+		p.ti = ti;
+		p.save_path = ".";
+		torrents[i] = ses.add_torrent(p);
+	}
+
+	// add_torrent should be ordered
+	TEST_EQUAL(torrents[0].queue_position(), 0);
+	TEST_EQUAL(torrents[1].queue_position(), 1);
+	TEST_EQUAL(torrents[2].queue_position(), 2);
+	TEST_EQUAL(torrents[3].queue_position(), 3);
+	TEST_EQUAL(torrents[4].queue_position(), 4);
+
+	// test top and bottom
+	torrents[2].queue_position_top();
+	torrents[1].queue_position_bottom();
+
+	TEST_EQUAL(torrents[2].queue_position(), 0);
+	TEST_EQUAL(torrents[0].queue_position(), 1);
+	TEST_EQUAL(torrents[3].queue_position(), 2);
+	TEST_EQUAL(torrents[4].queue_position(), 3);
+	TEST_EQUAL(torrents[1].queue_position(), 4);
+
+	// test set pos
+	torrents[0].queue_position_set(0);
+	torrents[1].queue_position_set(1);
+	// torrent 2 should be get moved down by 0 and 1 to pos 2
+
+	TEST_EQUAL(torrents[0].queue_position(), 0);
+	TEST_EQUAL(torrents[1].queue_position(), 1);
+	TEST_EQUAL(torrents[2].queue_position(), 2);
+	TEST_EQUAL(torrents[3].queue_position(), 3);
+	TEST_EQUAL(torrents[4].queue_position(), 4);
+
+	// test set pos on not existing pos
+	torrents[3].queue_position_set(10);
+
+	TEST_EQUAL(torrents[0].queue_position(), 0);
+	TEST_EQUAL(torrents[1].queue_position(), 1);
+	TEST_EQUAL(torrents[2].queue_position(), 2);
+	TEST_EQUAL(torrents[4].queue_position(), 3);
+	TEST_EQUAL(torrents[3].queue_position(), 4);
+}
 
