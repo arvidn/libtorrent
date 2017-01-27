@@ -554,7 +554,7 @@ void block_cache::try_evict_one_volatile()
 		// some blocks are pinned in this piece, skip it
 		if (pe->pinned > 0) continue;
 
-		TORRENT_ALLOCA(to_delete, char*, std::size_t(pe->blocks_in_piece));
+		TORRENT_ALLOCA(to_delete, char*, pe->blocks_in_piece);
 		int num_to_delete = 0;
 
 		// go through the blocks and evict the ones that are not dirty and not
@@ -861,7 +861,7 @@ bool block_cache::evict_piece(cached_piece_entry* pe, tailqueue<disk_io_job>& jo
 
 	TORRENT_PIECE_ASSERT(pe->in_use, pe);
 
-	TORRENT_ALLOCA(to_delete, char*, std::size_t(pe->blocks_in_piece));
+	TORRENT_ALLOCA(to_delete, char*, pe->blocks_in_piece);
 	int num_to_delete = 0;
 	for (int i = 0; i < pe->blocks_in_piece; ++i)
 	{
@@ -1393,7 +1393,7 @@ void block_cache::abort_dirty(cached_piece_entry* pe)
 
 	TORRENT_PIECE_ASSERT(pe->in_use, pe);
 
-	TORRENT_ALLOCA(to_delete, char*, std::size_t(pe->blocks_in_piece));
+	TORRENT_ALLOCA(to_delete, char*, pe->blocks_in_piece);
 	int num_to_delete = 0;
 	for (int i = 0; i < pe->blocks_in_piece; ++i)
 	{
@@ -1432,7 +1432,7 @@ void block_cache::free_piece(cached_piece_entry* pe)
 
 	// build a vector of all the buffers we need to free
 	// and free them all in one go
-	TORRENT_ALLOCA(to_delete, char*, std::size_t(pe->blocks_in_piece));
+	TORRENT_ALLOCA(to_delete, char*, pe->blocks_in_piece);
 	int num_to_delete = 0;
 	int removed_clean = 0;
 	for (int i = 0; i < pe->blocks_in_piece; ++i)
