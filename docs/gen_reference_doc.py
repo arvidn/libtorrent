@@ -987,6 +987,8 @@ reference documentation
 
 ''')
 
+out.write('`single-page version`__\n\n__ single-page-ref.html\n\n')
+
 for i in range(4):
 
 	out.write('.. container:: main-toc\n\n')
