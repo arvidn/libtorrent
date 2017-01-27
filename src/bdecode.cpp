@@ -31,7 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/bdecode.hpp"
-#include "libtorrent/alloca.hpp"
+#include "libtorrent/aux_/alloca.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include <limits>
 #include <cstring> // for memset

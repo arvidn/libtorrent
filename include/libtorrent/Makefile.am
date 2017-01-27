@@ -6,7 +6,6 @@ nobase_include_HEADERS = \
   alert.hpp                    \
   alert_manager.hpp            \
   alert_types.hpp              \
-  alloca.hpp                   \
   allocator.hpp                \
   announce_entry.hpp           \
   assert.hpp                   \
@@ -196,6 +195,7 @@ nobase_include_HEADERS = \
   aux_/storage_utils.hpp            \
   aux_/numeric_cast.hpp             \
   aux_/unique_ptr.hpp               \
+  aux_/alloca.hpp                   \
   \
   extensions/smart_ban.hpp          \
   extensions/ut_metadata.hpp        \

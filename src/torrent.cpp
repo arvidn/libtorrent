@@ -86,7 +86,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/request_blocks.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/resolver_interface.hpp"
-#include "libtorrent/alloca.hpp"
+#include "libtorrent/aux_/alloca.hpp"
 #include "libtorrent/resolve_links.hpp"
 #include "libtorrent/aux_/file_progress.hpp"
 #include "libtorrent/aux_/has_block.hpp"

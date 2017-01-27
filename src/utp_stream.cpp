@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/utp_stream.hpp"
 #include "libtorrent/sliding_average.hpp"
 #include "libtorrent/utp_socket_manager.hpp"
-#include "libtorrent/alloca.hpp"
+#include "libtorrent/aux_/alloca.hpp"
 #include "libtorrent/timestamp_history.hpp"
 #include "libtorrent/error.hpp"
 #include "libtorrent/random.hpp"
