@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/cstdint.hpp>
 #include <iconv.h>
 #include <vector>
+#include <mutex>
 
 #include "escape_json.hpp"
 #include "libtorrent/utf8.hpp"
@@ -50,6 +51,11 @@ std::string escape_json(std::string const& input)
 
 	std::vector<std::uint32_t> wide;
 	wide.resize(input.size());
+
+	static std::mutex iconv_mutex;
+	// only one thread can use this handle at a time
+	std::unique_lock<std::mutex> l(iconv_mutex);
+
 	static iconv_t iconv_handle = iconv_open("UTF-32", "UTF-8");
 	if (iconv_handle == iconv_t(-1)) return "(iconv error)";
 
@@ -59,6 +65,8 @@ std::string escape_json(std::string const& input)
 	char* out = (char*)&wide[0];
 	size_t retval = iconv(iconv_handle, (char**)&in, &insize
 		, &out, &outsize);
+	l.unlock();
+
 	if (retval == (size_t)-1) return "(iconv error)";
 	if (insize != 0) return "(iconv error)";
 	if (outsize > input.size() * 4) return "(iconv error)";

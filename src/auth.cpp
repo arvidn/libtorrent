@@ -231,7 +231,7 @@ void auth::load_accounts(std::string const& filename, error_code& ec)
 	char salt[21];
 	int group;
 
-	while (fscanf(f, "%512s\t%41s\t%21s\t%d\n", username, pwdhash, salt, &group) == 4)
+	while (fscanf(f, "%511s\t%40s\t%20s\t%d\n", username, pwdhash, salt, &group) == 4)
 	{
 		account_t a;
 		if (!from_hex(pwdhash, 40, (char*)&a.hash[0])) continue;
