@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <malloc.h>
 #define TORRENT_ALLOCA(v, t, n) ::libtorrent::span<t> v; { \
-	std::size_t TORRENT_ALLOCA_size = aux::numeric_cast<std::size_t>(n); \
+	std::size_t TORRENT_ALLOCA_size = ::libtorrent::aux::numeric_cast<std::size_t>(n); \
 	t* TORRENT_ALLOCA_tmp = static_cast<t*>(_alloca(sizeof(t) * TORRENT_ALLOCA_size)); \
 	v = ::libtorrent::span<t>(TORRENT_ALLOCA_tmp, TORRENT_ALLOCA_size); }
 
@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdlib.h>
 #define TORRENT_ALLOCA(v, t, n) ::libtorrent::span<t> v; { \
-	std::size_t TORRENT_ALLOCA_size = aux::numeric_cast<std::size_t>(n); \
+	std::size_t TORRENT_ALLOCA_size = ::libtorrent::aux::numeric_cast<std::size_t>(n); \
 	t* TORRENT_ALLOCA_tmp = static_cast<t*>(alloca(sizeof(t) * TORRENT_ALLOCA_size)); \
 	v = ::libtorrent::span<t>(TORRENT_ALLOCA_tmp, TORRENT_ALLOCA_size); }
 
@@ -56,7 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <alloca.h>
 #define TORRENT_ALLOCA(v, t, n) ::libtorrent::span<t> v; { \
-	std::size_t TORRENT_ALLOCA_size = aux::numeric_cast<std::size_t>(n); \
+	std::size_t TORRENT_ALLOCA_size = ::libtorrent::aux::numeric_cast<std::size_t>(n); \
 	t* TORRENT_ALLOCA_tmp = static_cast<t*>(alloca(sizeof(t) * TORRENT_ALLOCA_size)); \
 	v = ::libtorrent::span<t>(TORRENT_ALLOCA_tmp, TORRENT_ALLOCA_size); }
 
