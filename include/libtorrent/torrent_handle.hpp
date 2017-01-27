@@ -840,7 +840,7 @@ namespace libtorrent
 		// already exist your torrent will be set on top of it and remaining once
 		// get posion + 1. If the given position is greater then queue it will be
 		// added on bottom
-		void queue_position_set(uint p) const;
+		void queue_position_set(int p) const;
 
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 1.1

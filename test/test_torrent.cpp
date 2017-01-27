@@ -443,12 +443,41 @@ TORRENT_TEST(queue)
 	TEST_EQUAL(torrents[3].queue_position(), 3);
 	TEST_EQUAL(torrents[4].queue_position(), 4);
 
-	// test set pos on not existing pos
-	torrents[3].queue_position_set(10);
+	//test strange up and down commands
+	torrents[0].queue_position_up();
+	torrents[4].queue_position_down();
 
 	TEST_EQUAL(torrents[0].queue_position(), 0);
 	TEST_EQUAL(torrents[1].queue_position(), 1);
 	TEST_EQUAL(torrents[2].queue_position(), 2);
+	TEST_EQUAL(torrents[3].queue_position(), 3);
+	TEST_EQUAL(torrents[4].queue_position(), 4);
+
+	torrents[1].queue_position_up();
+	torrents[3].queue_position_down();
+
+	TEST_EQUAL(torrents[1].queue_position(), 0);
+	TEST_EQUAL(torrents[0].queue_position(), 1);
+	TEST_EQUAL(torrents[2].queue_position(), 2);
+	TEST_EQUAL(torrents[4].queue_position(), 3);
+	TEST_EQUAL(torrents[3].queue_position(), 4);
+
+	torrents[1].queue_position_down();
+	torrents[3].queue_position_up();
+
+	TEST_EQUAL(torrents[0].queue_position(), 0);
+	TEST_EQUAL(torrents[1].queue_position(), 1);
+	TEST_EQUAL(torrents[2].queue_position(), 2);
+	TEST_EQUAL(torrents[3].queue_position(), 3);
+	TEST_EQUAL(torrents[4].queue_position(), 4);
+
+	// test set pos on not existing pos
+	torrents[3].queue_position_set(10);
+	torrents[2].queue_position_set(-10);
+
+	TEST_EQUAL(torrents[2].queue_position(), 0);
+	TEST_EQUAL(torrents[0].queue_position(), 1);
+	TEST_EQUAL(torrents[1].queue_position(), 2);
 	TEST_EQUAL(torrents[4].queue_position(), 3);
 	TEST_EQUAL(torrents[3].queue_position(), 4);
 }
