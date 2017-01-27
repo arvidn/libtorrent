@@ -5134,7 +5134,7 @@ namespace libtorrent
 		// only add new piece-chunks if the send buffer is small enough
 		// otherwise there will be no end to how large it will be!
 
-		int buffer_size_watermark = int(m_uploaded_last_second
+		int buffer_size_watermark = int(boost::int64_t(m_uploaded_last_second)
 			* m_settings.get_int(settings_pack::send_buffer_watermark_factor) / 100);
 
 		if (buffer_size_watermark < m_settings.get_int(settings_pack::send_buffer_low_watermark))
