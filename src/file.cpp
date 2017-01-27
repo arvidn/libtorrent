@@ -67,7 +67,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/alloca.hpp"
+#include "libtorrent/aux_/alloca.hpp"
 #include "libtorrent/file.hpp"
 #include "libtorrent/string_util.hpp"
 #include "libtorrent/aux_/max_path.hpp" // for TORRENT_MAX_PATH
