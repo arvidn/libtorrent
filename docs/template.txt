@@ -21,10 +21,10 @@
 </style>
 %(body_prefix)s
     <div id="container">
-    <table id="header">
+    <a href="index.html"><table id="header">
     <tr><td id="orange"></td>
     <td id="logo">libtorrent</td></tr>
-    </table>
+    </table></a>
     <div id="main">
 %(body_pre_docinfo)s
 %(docinfo)s
