@@ -214,9 +214,12 @@ namespace dht
 		// item["interval"] - the subset refresh interval in seconds.
 		// item["num"] - number of infohashes in storage.
 		//
+		// Internally, this function is allowed to lazily evaluate, cache
+		// and modify the actual sample to put in ``item``
+		//
 		// returns the number of infohashes in the sample.
 		//
-		virtual int get_infohashes_sample(entry& item) const = 0;
+		virtual int get_infohashes_sample(entry& item) = 0;
 
 		// This function is called periodically (non-constant frequency).
 		//

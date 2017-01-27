@@ -187,8 +187,6 @@ TORRENT_TEST(dht_storage_infohashes_sample)
 	s->announce_peer(n3, p3, "torrent_name3", false);
 	s->announce_peer(n4, p4, "torrent_name4", false);
 
-	s->tick();
-
 	entry item;
 	int r = s->get_infohashes_sample(item);
 	TEST_EQUAL(r, 2);
@@ -202,6 +200,7 @@ TORRENT_TEST(dht_storage_infohashes_sample)
 	timer.async_wait([&s](boost::system::error_code const& ec)
 	{
 		libtorrent::aux::update_time_now();
+		// tick here to trigger the torrents expiration
 		s->tick();
 
 		entry item;

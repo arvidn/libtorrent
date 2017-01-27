@@ -455,8 +455,6 @@ TORRENT_TEST(infohashes_sample)
 	s->announce_peer(n3, p3, "torrent_name3", false);
 	s->announce_peer(n4, p4, "torrent_name4", false);
 
-	s->tick();
-
 	entry item;
 	int r = s->get_infohashes_sample(item);
 	TEST_EQUAL(r, 2);
@@ -465,15 +463,12 @@ TORRENT_TEST(infohashes_sample)
 	TEST_EQUAL(item["samples"].string().size(), 2 * 20);
 
 	// get all of them
-	sett.sample_infohashes_interval = 0;
 	sett.max_infohashes_sample_count = 5;
-
-	s->tick();
 
 	item = entry();
 	r = s->get_infohashes_sample(item);
 	TEST_EQUAL(r, 4);
-	TEST_EQUAL(item["interval"].integer(), 0)
+	TEST_EQUAL(item["interval"].integer(), 10)
 	TEST_EQUAL(item["num"].integer(), 4);
 	TEST_EQUAL(item["samples"].string().size(), 4 * 20);
 
@@ -488,7 +483,7 @@ TORRENT_TEST(infohashes_sample_dist)
 {
 	dht_settings sett = test_settings();
 	sett.max_torrents = 1000;
-	sett.sample_infohashes_interval = 0;
+	sett.sample_infohashes_interval = 0; // need this to force refresh every call
 	sett.max_infohashes_sample_count = 1;
 	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
@@ -501,8 +496,6 @@ TORRENT_TEST(infohashes_sample_dist)
 	std::set<sha1_hash> infohash_set;
 	for (int i = 0; i < 1000; ++i)
 	{
-		s->tick();
-
 		entry item;
 		int r = s->get_infohashes_sample(item);
 		TEST_EQUAL(r, 1);

@@ -184,6 +184,7 @@ namespace
 
 	int clamp(int v, int lo, int hi)
 	{
+		TORRENT_ASSERT(lo <= hi);
 		return (v < lo) ? lo : (hi < v) ? hi : v;
 	}
 
@@ -469,11 +470,13 @@ namespace
 			touch_item(i->second, addr);
 		}
 
-		int get_infohashes_sample(entry& item) const override
+		int get_infohashes_sample(entry& item) override
 		{
 			item["interval"] = clamp(m_settings.sample_infohashes_interval
 				, 0, sample_infohashes_interval_max);
 			item["num"] = int(m_map.size());
+
+			refresh_infohashes_sample();
 
 			std::vector<sha1_hash> const& samples = m_infohashes_sample.samples;
 			item["samples"] = span<char const>(
@@ -501,8 +504,6 @@ namespace
 				m_map.erase(i++);
 				m_counters.torrents -= 1;// peers is decreased by purge_peers
 			}
-
-			refresh_infohashes_sample();
 
 			if (0 == m_settings.item_lifetime) return;
 
