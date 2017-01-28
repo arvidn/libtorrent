@@ -1007,6 +1007,10 @@ for cat in categories:
 :Author: Arvid Norberg, arvid@libtorrent.org
 :Version: 1.1.1
 
+`home`__
+
+__ reference.html
+
 %s
 
 .. contents:: Table of contents
