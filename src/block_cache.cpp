@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error.hpp"
 #include "libtorrent/disk_io_thread.hpp" // disk_operation_failed
 #include "libtorrent/invariant_check.hpp"
-#include "libtorrent/alloca.hpp"
+#include "libtorrent/aux_/alloca.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/aux_/block_cache_reference.hpp"

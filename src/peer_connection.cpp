@@ -52,7 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/bt_peer_connection.hpp"
 #include "libtorrent/error.hpp"
-#include "libtorrent/alloca.hpp"
+#include "libtorrent/aux_/alloca.hpp"
 #include "libtorrent/disk_interface.hpp"
 #include "libtorrent/bandwidth_manager.hpp"
 #include "libtorrent/request_blocks.hpp" // for request_a_block

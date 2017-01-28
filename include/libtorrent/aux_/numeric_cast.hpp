@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_NUMERIC_CAST_HPP
 
 #include <type_traits>
+#include <limits>
 
 #include "libtorrent/assert.hpp"
 

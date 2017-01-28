@@ -50,7 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/random.hpp"
-#include "libtorrent/alloca.hpp"
+#include "libtorrent/aux_/alloca.hpp"
 #include "libtorrent/pe_crypto.hpp"
 #include "libtorrent/hasher.hpp"
 
