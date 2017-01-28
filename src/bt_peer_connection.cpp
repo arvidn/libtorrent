@@ -531,7 +531,7 @@ namespace libtorrent
 			return;
 		}
 
-		int const pad_size = random(512);
+		int const pad_size = int(random(512));
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, "ENCRYPTION", "pad size: %d", pad_size);
@@ -570,7 +570,7 @@ namespace libtorrent
 		key_t const secret_key = m_dh_key_exchange->get_secret();
 		std::array<char, dh_key_len> const secret = export_key(secret_key);
 
-		int const pad_size = random(512);
+		int const pad_size = int(random(512));
 
 		// synchash,skeyhash,vc,crypto_provide,len(pad),pad,len(ia)
 		char msg[20 + 20 + 8 + 4 + 2 + 512 + 2];
@@ -619,7 +619,7 @@ namespace libtorrent
 		m_dh_key_exchange.reset(); // secret should be invalid at this point
 
 		// write the verification constant and crypto field
-		int const encrypt_size = sizeof(msg) - 512 + pad_size - 40;
+		int const encrypt_size = int(sizeof(msg)) - 512 + pad_size - 40;
 
 		// this is an invalid setting, but let's just make the best of the situation
 		int const enc_level = m_settings.get_int(settings_pack::allowed_enc_level);
@@ -634,9 +634,9 @@ namespace libtorrent
 #endif
 
 		write_pe_vc_cryptofield(ptr, encrypt_size, crypto_provide, pad_size);
-		span<char> vec(ptr, encrypt_size);
+		span<char> vec(ptr, aux::numeric_cast<std::size_t>(encrypt_size));
 		m_rc4->encrypt(vec);
-		send_buffer(msg, sizeof(msg) - 512 + pad_size);
+		send_buffer(msg, int(sizeof(msg)) - 512 + pad_size);
 	}
 
 	void bt_peer_connection::write_pe4_sync(int crypto_select)
@@ -649,13 +649,13 @@ namespace libtorrent
 		TORRENT_ASSERT(crypto_select == 0x02 || crypto_select == 0x01);
 		TORRENT_ASSERT(!m_sent_handshake);
 
-		int const pad_size = random(512);
+		int const pad_size = int(random(512));
 
 		int const buf_size = 8 + 4 + 2 + pad_size;
 		char msg[512 + 8 + 4 + 2];
 		write_pe_vc_cryptofield(msg, sizeof(msg), crypto_select, pad_size);
 
-		span<char> vec(msg, buf_size);
+		span<char> vec(msg, aux::numeric_cast<std::size_t>(buf_size));
 		m_rc4->encrypt(vec);
 		send_buffer(msg, buf_size);
 
@@ -1726,7 +1726,7 @@ namespace libtorrent
 #endif
 				return;
 			}
-			piece_index_t const piece(aux::read_uint32(recv_buffer));
+			piece_index_t const piece(aux::numeric_cast<int>(aux::read_uint32(recv_buffer)));
 			incoming_dont_have(piece);
 			return;
 		}
@@ -2142,7 +2142,7 @@ namespace libtorrent
 		}
 		else
 		{
-			std::memset(ptr, 0, packet_size - 5);
+			std::memset(ptr, 0, aux::numeric_cast<std::size_t>(packet_size - 5));
 			piece_picker const& p = t->picker();
 			int mask = 0x80;
 			for (piece_index_t i(0); i < piece_index_t(num_pieces); ++i)
@@ -2452,7 +2452,7 @@ namespace libtorrent
 
 			// back-patch the length field
 			char* ptr2 = msg;
-			detail::write_int32(int(r.length + 1 + 4 + 4 + 4 + piece_list_buf.size())
+			detail::write_int32(r.length + 1 + 4 + 4 + 4 + int(piece_list_buf.size())
 				, ptr2);
 
 			send_buffer(msg, 17);
@@ -2502,9 +2502,9 @@ namespace libtorrent
 		{
 			int const consumed = m_enc_handler.decrypt(m_recv_buffer, bytes_transferred);
 	#ifndef TORRENT_DISABLE_LOGGING
-			if (consumed + bytes_transferred > 0)
+			if (consumed + int(bytes_transferred) > 0)
 				peer_log(peer_log_alert::incoming_message, "ENCRYPTION"
-					, "decrypted block s = %d", int(consumed + bytes_transferred));
+					, "decrypted block s = %d", consumed + int(bytes_transferred));
 	#endif
 			if (bytes_transferred == SIZE_MAX)
 			{
@@ -2529,9 +2529,9 @@ namespace libtorrent
 				std::int64_t cur_payload_dl = m_statistics.last_payload_downloaded();
 				std::int64_t cur_protocol_dl = m_statistics.last_protocol_downloaded();
 	#endif
-				on_receive_impl(sub_transferred);
-				bytes_transferred -= sub_transferred;
 				TORRENT_ASSERT(sub_transferred > 0);
+				on_receive_impl(std::size_t(sub_transferred));
+				bytes_transferred -= std::size_t(sub_transferred);
 
 	#if TORRENT_USE_ASSERTS
 				TORRENT_ASSERT(m_statistics.last_payload_downloaded() - cur_payload_dl >= 0);
@@ -2692,10 +2692,13 @@ namespace libtorrent
 				m_state = state_t::read_pe_skey_vc;
 				// skey,vc - 28 bytes
 				m_sync_hash.reset();
-				int transferred_used = int(bytes_processed - int(recv_buffer.size()) + bytes_transferred);
+				int const transferred_used = bytes_processed
+					- aux::numeric_cast<int>(recv_buffer.size())
+					+ aux::numeric_cast<int>(bytes_transferred);
+				TORRENT_ASSERT(transferred_used >= 0);
 				TORRENT_ASSERT(transferred_used <= int(bytes_transferred));
 				received_bytes(0, transferred_used);
-				bytes_transferred -= transferred_used;
+				bytes_transferred -= std::size_t(transferred_used);
 				m_recv_buffer.cut(bytes_processed, 28);
 			}
 		}
@@ -2827,10 +2830,13 @@ namespace libtorrent
 					, "sync point (verification constant) found at offset %d"
 					, m_sync_bytes_read + bytes_processed - 8);
 #endif
-				int transferred_used = int(bytes_processed - int(recv_buffer.size()) + bytes_transferred);
+				int const transferred_used = bytes_processed
+					- aux::numeric_cast<int>(recv_buffer.size())
+					+ aux::numeric_cast<int>(bytes_transferred);
+				TORRENT_ASSERT(transferred_used >= 0);
 				TORRENT_ASSERT(transferred_used <= int(bytes_transferred));
 				received_bytes(0, transferred_used);
-				bytes_transferred -= transferred_used;
+				bytes_transferred -= std::size_t(transferred_used);
 
 				m_recv_buffer.cut(bytes_processed, 4 + 2);
 
@@ -2967,7 +2973,7 @@ namespace libtorrent
 
 			if (!is_outgoing())
 			{
-				recv_buffer = recv_buffer.subspan(pad_size);
+				recv_buffer = recv_buffer.subspan(aux::numeric_cast<std::size_t>(pad_size));
 				int len_ia = aux::read_int16(recv_buffer);
 
 				if (len_ia < 0)
@@ -3052,7 +3058,7 @@ namespace libtorrent
 			if (m_rc4_encrypted)
 			{
 				span<char> const remaining = m_recv_buffer.mutable_buffer()
-					.subspan(m_recv_buffer.packet_size());
+					.subspan(aux::numeric_cast<std::size_t>(m_recv_buffer.packet_size()));
 				rc4_decrypt(remaining);
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -3182,9 +3188,9 @@ namespace libtorrent
 #ifndef TORRENT_DISABLE_LOGGING
 			std::string extensions;
 			extensions.resize(8 * 8);
-			for (int i=0; i < 8; ++i)
+			for (std::size_t i = 0; i < 8; ++i)
 			{
-				for (int j=0; j < 8; ++j)
+				for (std::size_t j = 0; j < 8; ++j)
 				{
 					if (recv_buffer[i] & (0x80 >> j)) extensions[i * 8 + j] = '1';
 					else extensions[i * 8 + j] = '0';
@@ -3283,7 +3289,7 @@ namespace libtorrent
 				hex_pid[40] = 0;
 				char ascii_pid[21];
 				ascii_pid[20] = 0;
-				for (int i = 0; i != 20; ++i)
+				for (std::size_t i = 0; i != 20; ++i)
 				{
 					if (is_print(recv_buffer[i])) ascii_pid[i] = recv_buffer[i];
 					else ascii_pid[i] = '.';
@@ -3420,7 +3426,7 @@ namespace libtorrent
 			TORRENT_ASSERT(bytes_transferred <= 5);
 			int used_bytes = int(recv_buffer.size()) > 4 ? int(bytes_transferred) - 1: int(bytes_transferred);
 			received_bytes(0, used_bytes);
-			bytes_transferred -= used_bytes;
+			bytes_transferred -= aux::numeric_cast<std::size_t>(used_bytes);
 			if (int(recv_buffer.size()) < 4) return;
 
 			TORRENT_ASSERT(bytes_transferred <= 1);

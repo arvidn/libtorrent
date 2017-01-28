@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/aux_/block_cache_reference.hpp"
+#include "libtorrent/aux_/numeric_cast.hpp"
 
 /*
 
@@ -620,7 +621,7 @@ cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, std::uint1
 		pe.piece = j->piece;
 		pe.storage = j->storage;
 		pe.expire = aux::time_now();
-		pe.blocks_in_piece = blocks_in_piece;
+		pe.blocks_in_piece = aux::numeric_cast<std::uint64_t>(blocks_in_piece);
 
 		pe.blocks.reset(new (std::nothrow) cached_block_entry[blocks_in_piece]);
 		if (!pe.blocks) return nullptr;
@@ -1772,7 +1773,7 @@ int block_cache::copy_from_piece(cached_piece_entry* const pe
 			- block_offset, size);
 		std::memcpy(j->buffer.disk_block + buffer_offset
 			, pe->blocks[block].buf + block_offset
-			, to_copy);
+			, aux::numeric_cast<std::size_t>(to_copy));
 		size -= to_copy;
 		block_offset = 0;
 		buffer_offset += to_copy;

@@ -583,9 +583,9 @@ namespace libtorrent
 		int piece_size = pe->storage->files()->piece_size(pe->piece);
 		TORRENT_PIECE_ASSERT(piece_size > 0, pe);
 
-		int iov_len = 0;
+		std::size_t iov_len = 0;
 		// the blocks we're flushing
-		int num_flushing = 0;
+		std::size_t num_flushing = 0;
 
 #if DEBUG_DISK_THREAD
 		DLOG("build_iov: piece: %d [", int(pe->piece));
@@ -618,7 +618,7 @@ namespace libtorrent
 
 			flushing[num_flushing++] = i + block_base_index;
 			iov[iov_len].iov_base = pe->blocks[i].buf;
-			iov[iov_len].iov_len = std::min(block_size, size_left);
+			iov[iov_len].iov_len = aux::numeric_cast<std::size_t>(std::min(block_size, size_left));
 			++iov_len;
 			pe->blocks[i].pending = true;
 
@@ -627,7 +627,7 @@ namespace libtorrent
 		DLOG("]\n");
 
 		TORRENT_PIECE_ASSERT(iov_len == num_flushing, pe);
-		return iov_len;
+		return aux::numeric_cast<int>(iov_len);
 	}
 
 	// does the actual writing to disk
@@ -656,13 +656,14 @@ namespace libtorrent
 
 		// issue the actual write operation
 		auto iov_start = iov;
-		int flushing_start = 0;
+		std::size_t flushing_start = 0;
 		piece_index_t const piece = pe->piece;
 		int const blocks_in_piece = pe->blocks_in_piece;
 		bool failed = false;
-		for (int i = 1; i <= num_blocks; ++i)
+		std::size_t const n_blocks = aux::numeric_cast<std::size_t>(num_blocks);
+		for (std::size_t i = 1; i <= n_blocks; ++i)
 		{
-			if (i < num_blocks && flushing[i] == flushing[i - 1] + 1) continue;
+			if (i < n_blocks && flushing[i] == flushing[i - 1] + 1) continue;
 			int const ret = pe->storage->writev(
 				iov_start.first(i - flushing_start)
 				, piece_index_t(static_cast<int>(piece) + flushing[flushing_start] / blocks_in_piece)
@@ -919,7 +920,7 @@ namespace libtorrent
 		DLOG("try_flush_write_blocks: %d\n", num);
 
 		list_iterator<cached_piece_entry> range = m_disk_cache.write_lru_pieces();
-		std::vector<std::pair<storage_interface*, piece_index_t>> pieces;
+		aux::vector<std::pair<storage_interface*, piece_index_t>> pieces;
 		pieces.reserve(m_disk_cache.num_write_lru_pieces());
 
 		for (list_iterator<cached_piece_entry> p = range; p.get() && num > 0; p.next())
@@ -1283,8 +1284,8 @@ namespace libtorrent
 
 		// if this is the last piece, adjust the size of the
 		// last buffer to match up
-		iov[iov_len - 1].iov_len = std::min(int(piece_size - adjusted_offset)
-			- (iov_len - 1) * block_size, block_size);
+		iov[iov_len - 1].iov_len = aux::numeric_cast<std::size_t>(std::min(int(piece_size - adjusted_offset)
+			- (iov_len - 1) * block_size, block_size));
 		TORRENT_ASSERT(iov[iov_len - 1].iov_len > 0);
 
 		// at this point, all the buffers are allocated and iov is initialized
@@ -1665,7 +1666,7 @@ namespace libtorrent
 		bool exceeded = false;
 		disk_buffer_holder buffer(*this, m_disk_cache.allocate_buffer(exceeded, o, "receive buffer"));
 		if (!buffer) aux::throw_ex<std::bad_alloc>();
-		std::memcpy(buffer.get(), buf, r.length);
+		std::memcpy(buffer.get(), buf, aux::numeric_cast<std::size_t>(r.length));
 
 		disk_io_job* j = allocate_job(disk_io_job::write);
 		j->storage = m_torrents[storage]->shared_from_this();
@@ -2154,7 +2155,7 @@ namespace libtorrent
 
 			time_point const start_time = clock_type::now();
 
-			iov.iov_len = std::min(block_size, piece_size - offset);
+			iov.iov_len = aux::numeric_cast<std::size_t>(std::min(block_size, piece_size - offset));
 			ret = j->storage->readv(iov, j->piece
 				, offset, file_flags, j->error);
 			if (ret < 0) break;
@@ -2307,7 +2308,7 @@ namespace libtorrent
 		for (int i = offset / block_size; i < blocks_in_piece; ++i)
 		{
 			iovec_t iov;
-			iov.iov_len = std::min(block_size, piece_size - offset);
+			iov.iov_len = aux::numeric_cast<std::size_t>(std::min(block_size, piece_size - offset));
 
 			if (next_locked_block < num_locked_blocks
 				&& locked_blocks[next_locked_block] == i)
@@ -2576,9 +2577,9 @@ namespace libtorrent
 			? cached_piece_info::volatile_read_cache
 			: cached_piece_info::read_cache;
 		int blocks_in_piece = i->blocks_in_piece;
-		info.blocks.resize(blocks_in_piece);
+		info.blocks.resize(aux::numeric_cast<std::size_t>(blocks_in_piece));
 		for (int b = 0; b < blocks_in_piece; ++b)
-			info.blocks[b] = i->blocks[b].buf != nullptr;
+			info.blocks[std::size_t(b)] = i->blocks[b].buf != nullptr;
 	}
 
 	} // anonymous namespace
@@ -2663,7 +2664,7 @@ namespace libtorrent
 			{
 				std::shared_ptr<storage_interface> storage = m_torrents[st];
 				TORRENT_ASSERT(storage);
-				ret->pieces.reserve(storage->num_pieces());
+				ret->pieces.reserve(aux::numeric_cast<std::size_t>(storage->num_pieces()));
 
 				for (auto pe : storage->cached_pieces())
 				{
@@ -2678,7 +2679,7 @@ namespace libtorrent
 			}
 			else
 			{
-				ret->pieces.reserve(m_disk_cache.num_pieces());
+				ret->pieces.reserve(aux::numeric_cast<std::size_t>(m_disk_cache.num_pieces()));
 
 				auto range = m_disk_cache.all_pieces();
 				for (auto i = range.first; i != range.second; ++i)
