@@ -559,6 +559,10 @@ namespace libtorrent
 
 		// make sure we don't have the files open
 		m_pool.release(storage_index());
+
+		// make sure we can pick up new files added to the download directory when
+		// we start the torrent again
+		m_stat_cache.clear();
 	}
 
 	void default_storage::delete_files(int const options, storage_error& ec)
@@ -601,6 +605,10 @@ namespace libtorrent
 		status_t ret;
 		std::tie(ret, m_save_path) = aux::move_storage(files(), m_save_path, sp
 			, m_part_file.get(), flags, ec);
+
+		// clear the stat cache in case the new location has new files
+		m_stat_cache.clear();
+
 		return ret;
 	}
 

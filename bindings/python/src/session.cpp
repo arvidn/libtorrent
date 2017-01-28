@@ -148,6 +148,29 @@ namespace
 		}
 	}
 
+	dict make_dict(lt::settings_pack const& sett)
+	{
+		dict ret;
+		for (int i = settings_pack::string_type_base;
+			i < settings_pack::max_string_setting_internal; ++i)
+		{
+			ret[name_for_setting(i)] = sett.get_str(i);
+		}
+
+		for (int i = settings_pack::int_type_base;
+			i < settings_pack::max_int_setting_internal; ++i)
+		{
+			ret[name_for_setting(i)] = sett.get_int(i);
+		}
+
+		for (int i = settings_pack::bool_type_base;
+			i < settings_pack::max_bool_setting_internal; ++i)
+		{
+			ret[name_for_setting(i)] = sett.get_bool(i);
+		}
+		return ret;
+	}
+
 	std::shared_ptr<lt::session> make_session(boost::python::dict sett, int flags)
 	{
 		settings_pack p;
@@ -170,25 +193,21 @@ namespace
 			allow_threading_guard guard;
 			sett = ses.get_settings();
 		}
-		dict ret;
-		for (int i = settings_pack::string_type_base;
-			i < settings_pack::max_string_setting_internal; ++i)
-		{
-			ret[name_for_setting(i)] = sett.get_str(i);
-		}
+		return make_dict(sett);
+	}
 
-		for (int i = settings_pack::int_type_base;
-			i < settings_pack::max_int_setting_internal; ++i)
-		{
-			ret[name_for_setting(i)] = sett.get_int(i);
-		}
+	dict min_memory_usage_wrapper()
+	{
+		settings_pack ret;
+		min_memory_usage(ret);
+		return make_dict(ret);
+	}
 
-		for (int i = settings_pack::bool_type_base;
-			i < settings_pack::max_bool_setting_internal; ++i)
-		{
-			ret[name_for_setting(i)] = sett.get_bool(i);
-		}
-		return ret;
+	dict high_performance_seed_wrapper()
+	{
+		settings_pack ret;
+		high_performance_seed(ret);
+		return make_dict(ret);
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
@@ -916,11 +935,8 @@ void bind_session()
     ;
 #endif
 
-    typedef void (*mem_preset2)(settings_pack& s);
-    typedef void (*perf_preset2)(settings_pack& s);
-
-    def("high_performance_seed", (perf_preset2)high_performance_seed);
-    def("min_memory_usage", (mem_preset2)min_memory_usage);
+    def("high_performance_seed", high_performance_seed_wrapper);
+    def("min_memory_usage", min_memory_usage_wrapper);
     def("read_resume_data", read_resume_data_wrapper);
 
 	class_<stats_metric>("stats_metric")

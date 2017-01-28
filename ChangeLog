@@ -53,6 +53,10 @@
 	* resume data no longer has timestamps of files
 	* require C++11 to build libtorrent
 
+	* fix issue related to unloading torrents
+	* fixed finished-time calculation
+	* add missing min_memory_usage() and high_performance_seed() settings presets to python
+	* fix stat cache issue that sometimes would produce incorrect resume data
 	* storage optimization to peer classes
 	* fix torrent name in alerts of builds with deprecated functions
 	* make torrent_info::is_valid() return false if torrent failed to load

@@ -295,6 +295,9 @@ namespace libtorrent
 		// 	On windows this path (and other paths) are interpreted as UNC
 		// 	paths. This means they must use backslashes as directory separators
 		// 	and may not contain the special directories "." or "..".
+		// 
+		// Setting this to an absolute path is slightly more performant than a
+		// relative path.
 		std::string save_path;
 
 		// One of the values from storage_mode_t. For more information, see

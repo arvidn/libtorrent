@@ -4639,6 +4639,8 @@ namespace aux {
 				, *params, ec);
 			return;
 		}
+		TORRENT_ASSERT(params->ti->is_valid());
+		TORRENT_ASSERT(params->ti->num_files() > 0);
 		add_torrent(*params, ec);
 		params->url.clear();
 	}

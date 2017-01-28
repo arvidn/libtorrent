@@ -346,6 +346,7 @@ namespace libtorrent
 		TORRENT_ASSERT_PRECOND(!params.save_path.empty());
 
 		add_torrent_params* p = new add_torrent_params(params);
+		p->save_path = complete(p->save_path);
 
 #ifndef TORRENT_NO_DEPRECATE
 		handle_backwards_compatible_resume_data(*p);

@@ -309,14 +309,6 @@ class test_sha1hash(unittest.TestCase):
 
 class test_session(unittest.TestCase):
 
-    def test_post_session_stats(self):
-        s = lt.session({'alert_mask': lt.alert.category_t.stats_notification, 'enable_dht': False})
-        s.post_session_stats()
-        a = s.wait_for_alert(1000)
-        self.assertTrue(isinstance(a, lt.session_stats_alert))
-        self.assertTrue(isinstance(a.values, dict))
-        self.assertTrue(len(a.values) > 0)
-
     def test_add_torrent(self):
         s = lt.session({'alert_mask': lt.alert.category_t.stats_notification, 'enable_dht': False})
         h = s.add_torrent({'ti': lt.torrent_info('base.torrent'),
@@ -327,20 +319,12 @@ class test_session(unittest.TestCase):
             'banned_peers': [('8.7.6.5', 6881)],
             'file_priorities': [1,1,1,2,0]})
 
-    def test_unknown_settings(self):
-        try:
-            s = lt.session({'unexpected-key-name': 42})
-            self.assertFalse('should have thrown an exception')
-        except KeyError as e:
-            print(e)
-
     def test_apply_settings(self):
 
         s = lt.session({'enable_dht': False})
         s.apply_settings({'num_want': 66, 'user_agent': 'test123'})
         self.assertEqual(s.get_settings()['num_want'], 66)
         self.assertEqual(s.get_settings()['user_agent'], 'test123')
-
 
     def test_post_session_stats(self):
         s = lt.session({'alert_mask': lt.alert.category_t.stats_notification,
@@ -351,34 +335,32 @@ class test_session(unittest.TestCase):
         self.assertTrue(isinstance(a.values, dict))
         self.assertTrue(len(a.values) > 0)
 
-    def test_add_torrent(self):
-        s = lt.session({'alert_mask': lt.alert.category_t.stats_notification,
-                        'enable_dht': False})
-        s.add_torrent({
-            'ti': lt.torrent_info('base.torrent'),
-            'save_path': '.',
-            'dht_nodes': [('1.2.3.4', 6881), ('4.3.2.1', 6881)],
-            'http_seeds': ['http://test.com/seed'],
-            'peers': [('5.6.7.8', 6881)],
-            'banned_peers': [('8.7.6.5', 6881)],
-            'file_priorities': [1, 1, 1, 2, 0]})
-
     def test_unknown_settings(self):
         try:
-            lt.session({'unexpected-key-name': 42})
+            s = lt.session({'unexpected-key-name': 42})
             self.assertFalse('should have thrown an exception')
         except KeyError as e:
             print(e)
 
-    def test_apply_settings(self):
-        s = lt.session({'enable_dht': False})
-        s.apply_settings({'num_want': 66, 'user_agent': 'test123'})
-        self.assertEqual(s.get_settings()['num_want'], 66)
-        self.assertEqual(s.get_settings()['user_agent'], 'test123')
-
     def test_fingerprint(self):
         self.assertEqual(lt.generate_fingerprint('LT', 0, 1, 2, 3), '-LT0123-')
         self.assertEqual(lt.generate_fingerprint('..', 10, 1, 2, 3), '-..A123-')
+
+    def test_min_memory_preset(self):
+        min_mem = lt.min_memory_usage()
+        print(min_mem)
+
+        self.assertTrue('connection_speed' in min_mem)
+        self.assertTrue('file_pool_size' in min_mem)
+
+    def test_seed_mode_preset(self):
+        seed_mode = lt.high_performance_seed()
+        print(seed_mode)
+
+        self.assertTrue('alert_queue_size' in seed_mode)
+        self.assertTrue('connection_speed' in seed_mode)
+        self.assertTrue('file_pool_size' in seed_mode)
+
 
 class test_example_client(unittest.TestCase):
 
