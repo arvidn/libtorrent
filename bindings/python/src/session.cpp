@@ -198,15 +198,13 @@ namespace
 
 	dict min_memory_usage_wrapper()
 	{
-		settings_pack ret;
-		min_memory_usage(ret);
+		settings_pack ret = min_memory_usage();
 		return make_dict(ret);
 	}
 
 	dict high_performance_seed_wrapper()
 	{
-		settings_pack ret;
-		high_performance_seed(ret);
+		settings_pack ret = high_performance_seed();
 		return make_dict(ret);
 	}
 
