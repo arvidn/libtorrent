@@ -162,4 +162,54 @@ TORRENT_TEST(dht_storage_counters)
 	test_expiration(hours(1), s, c); // test expiration of everything after 3 hours
 }
 
+TORRENT_TEST(dht_storage_infohashes_sample)
+{
+	dht_settings sett = test_settings();
+	sett.max_torrents = 5;
+	sett.sample_infohashes_interval = 30;
+	sett.max_infohashes_sample_count = 2;
+	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
+
+	TEST_CHECK(s.get() != nullptr);
+
+	sha1_hash const n1 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee401");
+	sha1_hash const n2 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee402");
+	sha1_hash const n3 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee403");
+	sha1_hash const n4 = to_hash("5fbfbff10c5d6a4ec8a88e4c6ab4c28b95eee404");
+
+	tcp::endpoint const p1 = ep("124.31.75.21", 1);
+	tcp::endpoint const p2 = ep("124.31.75.22", 1);
+	tcp::endpoint const p3 = ep("124.31.75.23", 1);
+	tcp::endpoint const p4 = ep("124.31.75.24", 1);
+
+	s->announce_peer(n1, p1, "torrent_name1", false);
+	s->announce_peer(n2, p2, "torrent_name2", false);
+	s->announce_peer(n3, p3, "torrent_name3", false);
+	s->announce_peer(n4, p4, "torrent_name4", false);
+
+	entry item;
+	int r = s->get_infohashes_sample(item);
+	TEST_EQUAL(r, 2);
+
+	default_config cfg;
+	simulation sim(cfg);
+	sim::asio::io_service ios(sim, addr("10.0.0.1"));
+
+	sim::asio::high_resolution_timer timer(ios);
+	timer.expires_from_now(hours(1)); // expiration of torrents
+	timer.async_wait([&s](boost::system::error_code const& ec)
+	{
+		libtorrent::aux::update_time_now();
+		// tick here to trigger the torrents expiration
+		s->tick();
+
+		entry item;
+		int r = s->get_infohashes_sample(item);
+		TEST_EQUAL(r, 0);
+	});
+
+	boost::system::error_code ec;
+	sim.run(ec);
+}
+
 #endif // TORRENT_DISABLE_DHT
