@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_PACKET_BUFFER_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/aux_/unique_ptr.hpp"
 #include <cstdint>
 #include <cstddef>
 
@@ -71,45 +72,40 @@ namespace libtorrent
 	public:
 		typedef std::uint32_t index_type;
 
-		packet_buffer_impl();
-		~packet_buffer_impl();
-
 		void* insert(index_type idx, void* value);
 
-		std::size_t size() const
+		int size() const
 		{ return m_size; }
 
-		std::size_t capacity() const
+		int capacity() const
 		{ return m_capacity; }
 
 		void* at(index_type idx) const;
 
 		void* remove(index_type idx);
 
-		void reserve(std::size_t size);
+		void reserve(int size);
 
-		index_type cursor() const
-		{ return m_first; }
+		index_type cursor() const { return m_first; }
 
-		index_type span() const
-		{ return (m_last - m_first) & 0xffff; }
+		index_type span() const { return (m_last - m_first) & 0xffff; }
 
 #if TORRENT_USE_INVARIANT_CHECKS
 		void check_invariant() const;
 #endif
 
 	private:
-		void** m_storage;
-		std::size_t m_capacity;
+		aux::unique_ptr<void*[], index_type> m_storage;
+		int m_capacity = 0;
 
 		// this is the total number of elements that are occupied
 		// in the array
-		std::size_t m_size;
+		int m_size = 0;
 
 		// This defines the first index that is part of the m_storage.
 		// last is one passed the last used slot
-		index_type m_first;
-		index_type m_last;
+		index_type m_first{0};
+		index_type m_last{0};
 	};
 
 	template <typename T>
