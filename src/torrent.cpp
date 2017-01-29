@@ -9209,8 +9209,6 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(block_size() > 0);
 		}
-
-		m_file_progress.check_invariant(m_torrent_file->files());
 	}
 #endif
 
