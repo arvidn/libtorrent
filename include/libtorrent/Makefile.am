@@ -196,6 +196,7 @@ nobase_include_HEADERS = \
   aux_/numeric_cast.hpp             \
   aux_/unique_ptr.hpp               \
   aux_/alloca.hpp                   \
+  aux_/throw.hpp                    \
   aux_/typed_span.hpp               \
   \
   extensions/smart_ban.hpp          \

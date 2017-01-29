@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/hex.hpp"
 #include "libtorrent/string_util.hpp"
+#include "libtorrent/aux_/throw.hpp"
 
 namespace libtorrent
 {
@@ -71,14 +72,8 @@ namespace libtorrent
 
 	namespace
 	{
-		TORRENT_NO_RETURN inline void throw_error()
-		{
-#ifndef BOOST_NO_EXCEPTIONS
-			throw system_error(errors::invalid_entry_type);
-#else
-			std::terminate();
-#endif
-		}
+		inline void TORRENT_NO_RETURN throw_error()
+		{ aux::throw_ex<system_error>(errors::invalid_entry_type); }
 
 		template <class T>
 		void call_destructor(T* o)

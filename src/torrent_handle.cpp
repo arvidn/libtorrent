@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/aux_/session_call.hpp"
+#include "libtorrent/aux_/throw.hpp"
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/utf8.hpp"
 #include "libtorrent/announce_entry.hpp"
@@ -57,7 +58,7 @@ namespace libtorrent
 {
 
 #ifndef BOOST_NO_EXCEPTIONS
-	void throw_invalid_handle()
+	void TORRENT_NO_RETURN throw_invalid_handle()
 	{
 		throw system_error(errors::invalid_torrent_handle);
 	}
@@ -67,14 +68,7 @@ namespace libtorrent
 	void torrent_handle::async_call(Fun f, Args&&... a) const
 	{
 		std::shared_ptr<torrent> t = m_torrent.lock();
-		if (!t)
-		{
-#ifndef BOOST_NO_EXCEPTIONS
-			throw_invalid_handle();
-#else
-			std::terminate();
-#endif
-		}
+		if (!t) aux::throw_ex<system_error>(errors::invalid_torrent_handle);
 		session_impl& ses = static_cast<session_impl&>(t->session());
 		ses.get_io_service().dispatch([=,&ses] ()
 		{
@@ -101,14 +95,7 @@ namespace libtorrent
 	void torrent_handle::sync_call(Fun f, Args&&... a) const
 	{
 		std::shared_ptr<torrent> t = m_torrent.lock();
-		if (!t)
-		{
-#ifndef BOOST_NO_EXCEPTIONS
-			throw_invalid_handle();
-#else
-			std::terminate();
-#endif
-		}
+		if (!t) aux::throw_ex<system_error>(errors::invalid_torrent_handle);
 		session_impl& ses = static_cast<session_impl&>(t->session());
 
 		// this is the flag to indicate the call has completed

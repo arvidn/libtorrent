@@ -38,6 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
 
+#include "libtorrent/aux_/throw.hpp"
+
 using namespace std::placeholders;
 
 namespace libtorrent
@@ -54,12 +56,7 @@ namespace libtorrent
 #if defined TORRENT_BUILD_SIMULATOR
 		TORRENT_UNUSED(ios);
 #elif defined TORRENT_WINDOWS
-		if (!m_hnd.is_open())
-#ifndef BOOST_NO_EXCEPTIONS
-			throw system_error(WSAGetLastError(), system_category());
-#else
-			std::terminate();
-#endif // BOOST_NO_EXCEPTIONS
+		if (!m_hnd.is_open()) aux::throw_ex<system_error>(WSAGetLastError(), system_category());
 		m_ovl.hEvent = m_hnd.native_handle();
 #elif !TORRENT_USE_NETLINK
 		TORRENT_UNUSED(ios);

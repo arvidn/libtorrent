@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/aux_/escape_string.hpp"
+#include "libtorrent/aux_/throw.hpp"
 #include "libtorrent/torrent_status.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/announce_entry.hpp"
@@ -160,7 +161,7 @@ namespace libtorrent
 	{
 		error_code ec;
 		torrent_handle ret = add_magnet_uri_deprecated(ses, uri, p, ec);
-		if (ec) throw system_error(ec);
+		if (ec) aux::throw_ex<system_error>(ec);
 		return ret;
 	}
 #endif // BOOST_NO_EXCEPTIONS

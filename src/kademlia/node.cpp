@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include <libtorrent/assert.hpp>
 #include <libtorrent/aux_/time.hpp>
+#include "libtorrent/aux_/throw.hpp"
 #include "libtorrent/alert_types.hpp" // for dht_lookup
 #include "libtorrent/performance_counters.hpp" // for counters
 
@@ -1187,11 +1188,7 @@ node::protocol_descriptor const& node::map_protocol_to_descriptor(udp protocol)
 	}
 
 	TORRENT_ASSERT_FAIL();
-#ifndef BOOST_NO_EXCEPTIONS
-	throw std::out_of_range("unknown protocol");
-#else
-	std::terminate();
-#endif
+	aux::throw_ex<std::out_of_range>("unknown protocol");
 }
 
 } } // namespace libtorrent::dht
