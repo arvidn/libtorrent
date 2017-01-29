@@ -6616,9 +6616,6 @@ retry:
 		if (limit <= 0)
 			limit = (std::numeric_limits<int>::max)();
 
-		limit = (std::max)(5, (std::min)(limit
-				, max_open_files() - 20 - m_settings.get_int(settings_pack::file_pool_size)));
-
 		m_settings.set_int(settings_pack::connections_limit, limit);
 
 		if (num_connections() > m_settings.get_int(settings_pack::connections_limit)
