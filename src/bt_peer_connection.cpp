@@ -1335,7 +1335,7 @@ namespace libtorrent
 		span<char const> recv_buffer = m_recv_buffer.get();
 
 		const char* ptr = recv_buffer.begin() + 1;
-		piece_index_t const piece(detail::read_uint32(ptr));
+		piece_index_t const piece(aux::numeric_cast<int>(detail::read_uint32(ptr)));
 		incoming_suggest(piece);
 	}
 
