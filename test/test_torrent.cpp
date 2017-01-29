@@ -403,7 +403,9 @@ TORRENT_TEST(queue)
 	for(int i = 0; i < 6; i++)
 	{
 		file_storage fs;
-		fs.add_file("test_torrent_dir4/queue" + std::to_string(i), 1024);
+		std::stringstream file_path;
+		file_path << "test_torrent_dir4/queue" << i;
+		fs.add_file(file_path.str(), 1024);
 		libtorrent::create_torrent t(fs, 128 * 1024, 6);
 
 		std::vector<char> buf;
