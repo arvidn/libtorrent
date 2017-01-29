@@ -171,6 +171,23 @@ namespace
 			, immutable_item_comparator(node_ids));
 	}
 
+	constexpr int sample_infohashes_interval_max = 21600;
+	constexpr int infohashes_sample_count_max = 20;
+
+	struct infohashes_sample
+	{
+		std::vector<sha1_hash> samples;
+		time_point created = min_time();
+
+		int count() const { return int(samples.size()); }
+	};
+
+	int clamp(int v, int lo, int hi)
+	{
+		TORRENT_ASSERT(lo <= hi);
+		return (v < lo) ? lo : (hi < v) ? hi : v;
+	}
+
 	class dht_default_storage final : public dht_storage_interface, boost::noncopyable
 	{
 	public:
@@ -453,6 +470,21 @@ namespace
 			touch_item(i->second, addr);
 		}
 
+		int get_infohashes_sample(entry& item) override
+		{
+			item["interval"] = clamp(m_settings.sample_infohashes_interval
+				, 0, sample_infohashes_interval_max);
+			item["num"] = int(m_map.size());
+
+			refresh_infohashes_sample();
+
+			std::vector<sha1_hash> const& samples = m_infohashes_sample.samples;
+			item["samples"] = span<char const>(
+				reinterpret_cast<char const*>(samples.data()), samples.size() * 20);
+
+			return m_infohashes_sample.count();
+		}
+
 		void tick() override
 		{
 			// look through all peers and see if any have timed out
@@ -517,6 +549,8 @@ namespace
 		std::map<node_id, dht_immutable_item> m_immutable_table;
 		std::map<node_id, dht_mutable_item> m_mutable_table;
 
+		infohashes_sample m_infohashes_sample;
+
 		void purge_peers(std::vector<peer_entry>& peers)
 		{
 			auto now = aux::time_now();
@@ -531,6 +565,48 @@ namespace
 			// if we're using less than 1/4 of the capacity free up the excess
 			if (!peers.empty() && peers.capacity() / peers.size() >= 4u)
 				peers.shrink_to_fit();
+		}
+
+		void refresh_infohashes_sample()
+		{
+			time_point const now = aux::time_now();
+			int const interval = clamp(m_settings.sample_infohashes_interval
+				, 0, sample_infohashes_interval_max);
+
+			int const max_count = clamp(m_settings.max_infohashes_sample_count
+				, 0, infohashes_sample_count_max);
+			int const count = std::min(max_count, int(m_map.size()));
+
+			if (interval > 0
+				&& m_infohashes_sample.created + seconds(interval) > now
+				&& m_infohashes_sample.count() >= max_count)
+				return;
+
+			std::vector<sha1_hash>& samples = m_infohashes_sample.samples;
+			samples.clear();
+			samples.reserve(count);
+
+			int to_pick = count;
+			int candidates = int(m_map.size());
+
+			for (auto const& t : m_map)
+			{
+				if (to_pick == 0)
+					break;
+
+				TORRENT_ASSERT(candidates >= to_pick);
+
+				// pick this key with probability
+				// <keys left to pick> / <keys left in the set>
+				if (random(std::uint32_t(candidates--)) > std::uint32_t(to_pick))
+					continue;
+
+				samples.push_back(t.first);
+				--to_pick;
+			}
+
+			TORRENT_ASSERT(int(samples.size()) == count);
+			m_infohashes_sample.created = now;
 		}
 	};
 }

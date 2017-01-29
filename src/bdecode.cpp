@@ -653,7 +653,7 @@ namespace libtorrent
 
 		// this is the stack of bdecode_token indices, into m_tokens.
 		// sp is the stack pointer, as index into the array, stack
-		std::size_t sp = 0;
+		int sp = 0;
 		TORRENT_ALLOCA(stack, stack_frame, depth_limit);
 
 		char const* const orig_start = start;
@@ -665,7 +665,7 @@ namespace libtorrent
 		{
 			if (start >= end) TORRENT_FAIL_BDECODE(bdecode_errors::unexpected_eof);
 
-			if (sp >= aux::numeric_cast<std::size_t>(depth_limit))
+			if (sp >= depth_limit)
 				TORRENT_FAIL_BDECODE(bdecode_errors::depth_exceeded);
 
 			--token_limit;
@@ -675,7 +675,7 @@ namespace libtorrent
 			// look for a new token
 			char const t = *start;
 
-			std::size_t const current_frame = sp;
+			int const current_frame = sp;
 
 			// if we're currently parsing a dictionary, assert that
 			// every other node is a string.

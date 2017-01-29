@@ -763,8 +763,8 @@ namespace libtorrent
 		TORRENT_PIECE_ASSERT(start >= 0, pe);
 		TORRENT_PIECE_ASSERT(start < end, pe);
 
-		TORRENT_ALLOCA(iov, iovec_t, std::size_t(pe->blocks_in_piece));
-		TORRENT_ALLOCA(flushing, int, std::size_t(pe->blocks_in_piece));
+		TORRENT_ALLOCA(iov, iovec_t, pe->blocks_in_piece);
+		TORRENT_ALLOCA(flushing, int, pe->blocks_in_piece);
 		int iov_len = build_iovec(pe, start, end, iov, flushing, 0);
 		if (iov_len == 0) return 0;
 

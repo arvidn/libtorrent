@@ -51,7 +51,7 @@ namespace libtorrent { namespace aux {
 		using underlying_index = typename underlying_index_t<IndexType>::type;
 
 		unique_ptr() {}
-		explicit unique_ptr(T arr[]) : base(arr) {}
+		explicit unique_ptr(T* arr) : base(arr) {}
 
 		auto operator[](IndexType idx) const -> decltype(this->base::operator[](underlying_index()))
 		{

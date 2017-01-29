@@ -33,32 +33,32 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_ALLOCA
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/span.hpp"
+#include "libtorrent/aux_/typed_span.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 
 #if defined TORRENT_WINDOWS || defined TORRENT_MINGW
 
 #include <malloc.h>
-#define TORRENT_ALLOCA(v, t, n) ::libtorrent::span<t> v; { \
+#define TORRENT_ALLOCA(v, t, n) ::libtorrent::aux::typed_span<t> v; { \
 	std::size_t TORRENT_ALLOCA_size = ::libtorrent::aux::numeric_cast<std::size_t>(n); \
 	t* TORRENT_ALLOCA_tmp = static_cast<t*>(_alloca(sizeof(t) * TORRENT_ALLOCA_size)); \
-	v = ::libtorrent::span<t>(TORRENT_ALLOCA_tmp, TORRENT_ALLOCA_size); }
+	v = ::libtorrent::aux::typed_span<t>(TORRENT_ALLOCA_tmp, TORRENT_ALLOCA_size); }
 
 #elif defined TORRENT_BSD
 
 #include <stdlib.h>
-#define TORRENT_ALLOCA(v, t, n) ::libtorrent::span<t> v; { \
+#define TORRENT_ALLOCA(v, t, n) ::libtorrent::aux::typed_span<t> v; { \
 	std::size_t TORRENT_ALLOCA_size = ::libtorrent::aux::numeric_cast<std::size_t>(n); \
 	t* TORRENT_ALLOCA_tmp = static_cast<t*>(alloca(sizeof(t) * TORRENT_ALLOCA_size)); \
-	v = ::libtorrent::span<t>(TORRENT_ALLOCA_tmp, TORRENT_ALLOCA_size); }
+	v = ::libtorrent::aux::typed_span<t>(TORRENT_ALLOCA_tmp, TORRENT_ALLOCA_size); }
 
 #else
 
 #include <alloca.h>
-#define TORRENT_ALLOCA(v, t, n) ::libtorrent::span<t> v; { \
+#define TORRENT_ALLOCA(v, t, n) ::libtorrent::aux::typed_span<t> v; { \
 	std::size_t TORRENT_ALLOCA_size = ::libtorrent::aux::numeric_cast<std::size_t>(n); \
 	t* TORRENT_ALLOCA_tmp = static_cast<t*>(alloca(sizeof(t) * TORRENT_ALLOCA_size)); \
-	v = ::libtorrent::span<t>(TORRENT_ALLOCA_tmp, TORRENT_ALLOCA_size); }
+	v = ::libtorrent::aux::typed_span<t>(TORRENT_ALLOCA_tmp, TORRENT_ALLOCA_size); }
 
 #endif
 
