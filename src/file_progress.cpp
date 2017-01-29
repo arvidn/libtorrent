@@ -146,6 +146,7 @@ namespace libtorrent { namespace aux
 		// a piece twice. That violates its precondition and will cause incorect
 		// accounting
 		TORRENT_ASSERT(m_have_pieces.get_bit(index) == false);
+		m_have_pieces.set_bit(index);
 #endif
 
 		int const piece_size = fs.piece_length();
