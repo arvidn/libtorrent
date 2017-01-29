@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_handle.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/aux_/session_call.hpp"
+#include "libtorrent/aux_/throw.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/lazy_entry.hpp"
 #include "libtorrent/peer_class.hpp"
@@ -321,7 +322,7 @@ namespace libtorrent
 		error_code ec;
 		auto ecr = std::ref(ec);
 		torrent_handle r = sync_call_ret<torrent_handle>(&session_impl::add_torrent, p, ecr);
-		if (ec) throw system_error(ec);
+		if (ec) aux::throw_ex<system_error>(ec);
 		return r;
 	}
 #endif
@@ -677,7 +678,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(ret == 0);
 #ifndef BOOST_NO_EXCEPTIONS
-		if (ret != 0) throw system_error(ec);
+		if (ret != 0) aux::throw_ex<system_error>(ec);
 #endif
 		sync_call(&session_impl::load_state, &e, flags);
 	}
@@ -704,7 +705,7 @@ namespace libtorrent
 
 		TORRENT_ASSERT(ret == 0);
 #ifndef BOOST_NO_EXCEPTIONS
-		if (ret != 0) throw system_error(ec);
+		if (ret != 0) aux::throw_ex<system_error>(ec);
 #endif
 		sync_call(&session_impl::load_state, &e, flags);
 	}

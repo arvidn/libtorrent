@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/escape_string.hpp" // maybe_url_encode
 #include "libtorrent/aux_/merkle.hpp" // for merkle_*
 #include "libtorrent/aux_/time.hpp"
+#include "libtorrent/aux_/throw.hpp"
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/announce_entry.hpp"
@@ -801,15 +802,11 @@ namespace libtorrent
 		error_code ec;
 		if (bdecode(buf.first, buf.first + buf.second, e, ec) != 0)
 		{
-#ifndef BOOST_NO_EXCEPTIONS
-			throw system_error(ec);
-#else
-			return;
-#endif
+			aux::throw_ex<system_error>(ec);
 		}
 #ifndef BOOST_NO_EXCEPTIONS
 		if (!parse_torrent_file(e, ec, 0))
-			throw system_error(ec);
+			aux::throw_ex<system_error>(ec);
 #else
 		parse_torrent_file(e, ec, 0);
 #endif
@@ -827,14 +824,14 @@ namespace libtorrent
 		if (tmp.empty() || bdecode(&tmp[0], &tmp[0] + tmp.size(), e, ec) != 0)
 		{
 #ifndef BOOST_NO_EXCEPTIONS
-			throw system_error(ec);
+			aux::throw_ex<system_error>(ec);
 #else
 			return;
 #endif
 		}
 #ifndef BOOST_NO_EXCEPTIONS
 		if (!parse_torrent_file(e, ec, 0))
-			throw system_error(ec);
+			aux::throw_ex<system_error>(ec);
 #else
 		parse_torrent_file(e, ec, 0);
 #endif
@@ -848,7 +845,7 @@ namespace libtorrent
 	{
 		error_code ec;
 		if (!parse_torrent_file(torrent_file, ec, flags))
-			throw system_error(ec);
+			aux::throw_ex<system_error>(ec);
 
 		INVARIANT_CHECK;
 	}
@@ -860,10 +857,10 @@ namespace libtorrent
 		error_code ec;
 		bdecode_node e;
 		if (bdecode(buffer, buffer + size, e, ec) != 0)
-			throw system_error(ec);
+			aux::throw_ex<system_error>(ec);
 
 		if (!parse_torrent_file(e, ec, flags))
-			throw system_error(ec);
+			aux::throw_ex<system_error>(ec);
 
 		INVARIANT_CHECK;
 	}
@@ -874,14 +871,14 @@ namespace libtorrent
 		std::vector<char> buf;
 		error_code ec;
 		int ret = load_file(filename, buf, ec);
-		if (ret < 0) throw system_error(ec);
+		if (ret < 0) aux::throw_ex<system_error>(ec);
 
 		bdecode_node e;
 		if (buf.empty() || bdecode(&buf[0], &buf[0] + buf.size(), e, ec) != 0)
-			throw system_error(ec);
+			aux::throw_ex<system_error>(ec);
 
 		if (!parse_torrent_file(e, ec, flags))
-			throw system_error(ec);
+			aux::throw_ex<system_error>(ec);
 
 		INVARIANT_CHECK;
 	}
@@ -894,14 +891,14 @@ namespace libtorrent
 		std::vector<char> buf;
 		error_code ec;
 		int ret = load_file(wchar_utf8(filename), buf, ec);
-		if (ret < 0) throw system_error(ec);
+		if (ret < 0) aux::throw_ex<system_error>(ec);
 
 		bdecode_node e;
 		if (buf.empty() || bdecode(&buf[0], &buf[0] + buf.size(), e, ec) != 0)
-			throw system_error(ec);
+			aux::throw_ex<system_error>(ec);
 
 		if (!parse_torrent_file(e, ec, flags))
-			throw system_error(ec);
+			aux::throw_ex<system_error>(ec);
 
 		INVARIANT_CHECK;
 	}

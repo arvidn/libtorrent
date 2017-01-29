@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/span.hpp"
+#include "libtorrent/aux_/throw.hpp"
 
 #if defined __GLIBC__
 #include <malloc.h>
@@ -73,15 +74,10 @@ public:
 		// for a variation of "malloc_size()"
 		size = (size + 7) & (~std::size_t(0x7));
 
+		// we have to use malloc here, to be compatible with the fancy query
+		// functions below
 		m_begin = static_cast<char*>(std::malloc(size));
-		if (m_begin == nullptr)
-		{
-#ifndef BOOST_NO_EXCEPTIONS
-			throw std::bad_alloc();
-#else
-			std::terminate();
-#endif
-		}
+		if (m_begin == nullptr) aux::throw_ex<std::bad_alloc>();
 
 		// the actual allocation may be larger than we requested. If so, let the
 		// user take advantage of every single byte

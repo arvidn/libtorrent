@@ -35,9 +35,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/aux_/throw.hpp"
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <windows.h>
 #include <wincrypt.h>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent { namespace aux
 {
@@ -48,11 +51,7 @@ namespace libtorrent { namespace aux
 		if (CryptAcquireContext(&ret, nullptr, nullptr, provider_type
 			, CRYPT_VERIFYCONTEXT) == false)
 		{
-#ifndef BOOST_NO_EXCEPTIONS
-			throw system_error(error_code(GetLastError(), system_category()));
-#else
-			std::terminate();
-#endif
+			throw_ex<system_error>(error_code(GetLastError(), system_category()));
 		}
 		return ret;
 	}
@@ -63,11 +62,7 @@ namespace libtorrent { namespace aux
 		if (!CryptGenRandom(provider, int(buffer.size())
 			, reinterpret_cast<BYTE*>(buffer.data())))
 		{
-#ifndef BOOST_NO_EXCEPTIONS
-			throw system_error(error_code(GetLastError(), system_category()));
-#else
-			std::terminate();
-#endif
+			throw_ex<system_error>(error_code(GetLastError(), system_category()));
 		}
 	}
 
@@ -98,11 +93,7 @@ namespace libtorrent { namespace aux
 		{
 			if (CryptHashData(m_hash, reinterpret_cast<BYTE const*>(data.data()), int(data.size()), 0) == false)
 			{
-#ifndef BOOST_NO_EXCEPTIONS
-				throw system_error(error_code(GetLastError(), system_category()));
-#else
-				std::terminate();
-#endif
+				throw_ex<system_error>(error_code(GetLastError(), system_category()));
 			}
 		}
 
@@ -112,11 +103,7 @@ namespace libtorrent { namespace aux
 			if (CryptGetHashParam(m_hash, HP_HASHVAL
 				, reinterpret_cast<BYTE*>(digest), &size, 0) == false)
 			{
-#ifndef BOOST_NO_EXCEPTIONS
-				throw system_error(error_code(GetLastError(), system_category()));
-#else
-				std::terminate();
-#endif
+				throw_ex<system_error>(error_code(GetLastError(), system_category()));
 			}
 			TORRENT_ASSERT(size == DWORD(digest_size));
 		}
@@ -126,11 +113,7 @@ namespace libtorrent { namespace aux
 			HCRYPTHASH ret;
 			if (CryptCreateHash(get_provider(), AlgId, 0, 0, &ret) == false)
 			{
-#ifndef BOOST_NO_EXCEPTIONS
-				throw system_error(error_code(GetLastError(), system_category()));
-#else
-				std::terminate();
-#endif
+				throw_ex<system_error>(error_code(GetLastError(), system_category()));
 			}
 			return ret;
 		}
@@ -140,11 +123,7 @@ namespace libtorrent { namespace aux
 			HCRYPTHASH ret;
 			if (CryptDuplicateHash(h.m_hash, 0, 0, &ret) == false)
 			{
-#ifndef BOOST_NO_EXCEPTIONS
-				throw system_error(error_code(GetLastError(), system_category()));
-#else
-				std::terminate();
-#endif
+				throw_ex<system_error>(error_code(GetLastError(), system_category()));
 			}
 			return ret;
 		}

@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_util.hpp" // for allocate_string_copy
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/aux_/alloca.hpp"
+#include "libtorrent/aux_/throw.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/error.hpp"
 #include "libtorrent/file_pool.hpp"
@@ -1663,7 +1664,7 @@ namespace libtorrent
 
 		bool exceeded = false;
 		disk_buffer_holder buffer(*this, m_disk_cache.allocate_buffer(exceeded, o, "receive buffer"));
-		if (!buffer) throw std::bad_alloc();
+		if (!buffer) aux::throw_ex<std::bad_alloc>();
 		std::memcpy(buffer.get(), buf, r.length);
 
 		disk_io_job* j = allocate_job(disk_io_job::write);

@@ -30,44 +30,24 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_DEV_RANDOM_HPP_INCLUDED
-#define TORRENT_DEV_RANDOM_HPP_INCLUDED
+#ifndef TORRENT_THROW_HPP_INCLUDED
+#define TORRENT_THROW_HPP_INCLUDED
+
+#include <utility> // for forward()
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/span.hpp"
-#include "libtorrent/aux_/throw.hpp"
 
-#include <fcntl.h>
-
-namespace libtorrent { namespace aux {
-
-	struct dev_random
+namespace libtorrent { namespace aux
+{
+	template <typename T, typename... Args>
+	TORRENT_NO_RETURN void throw_ex(Args&&... args)
 	{
-		dev_random()
-			: m_fd(open("/dev/random", O_RDONLY))
-		{
-			if (m_fd < 0)
-			{
-				throw_ex<system_error>(error_code(errno, system_category()));
-			}
-		}
-		dev_random(dev_random const&) = delete;
-		dev_random& operator=(dev_random const&) = delete;
-
-		void read(span<char> buffer)
-		{
-			std::int64_t const ret = ::read(m_fd, buffer.data(), buffer.size());
-			if (ret != int(buffer.size()))
-			{
-				throw_ex<system_error>(errors::no_entropy);
-			}
-		}
-
-		~dev_random() { close(m_fd); }
-
-	private:
-		int m_fd;
-	};
+#ifdef BOOST_NO_EXCEPTIONS
+		std::terminate();
+#else
+		throw T(std::forward<Args>(args)...);
+#endif
+	}
 }}
 
 #endif

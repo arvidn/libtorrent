@@ -34,22 +34,21 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/openssl.hpp"
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include "libtorrent/aux_/throw.hpp"
 
 #if TORRENT_USE_CRYPTOAPI
 #include "libtorrent/aux_/win_crypto_provider.hpp"
 
 #elif defined TORRENT_USE_LIBCRYPTO
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 extern "C" {
 #include <openssl/rand.h>
 #include <openssl/err.h>
 }
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #endif
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #if TORRENT_USE_DEV_RANDOM
 #include "libtorrent/aux_/dev_random.hpp"
@@ -94,14 +93,7 @@ namespace libtorrent
 
 			int r = RAND_bytes(reinterpret_cast<unsigned char*>(buffer.data())
 				, int(buffer.size()));
-			if (r != 1)
-			{
-#ifndef BOOST_NO_EXCEPTIONS
-				throw system_error(errors::no_entropy);
-#else
-				std::terminate();
-#endif
-			}
+			if (r != 1) aux::throw_ex<system_error>(errors::no_entropy);
 #else
 			// fallback
 

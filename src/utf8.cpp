@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/ConvertUTF.h"
+#include "libtorrent/aux_/throw.hpp"
 
 
 #ifdef __clang__
@@ -240,11 +241,7 @@ namespace libtorrent
 	{
 		error_code ec;
 		std::wstring ret = utf8_wchar(wide, ec);
-#ifndef BOOST_NO_EXCEPTIONS
-		if (ec) throw system_error(ec);
-#else
-		if (ec) std::terminate();
-#endif
+		if (ec) aux::throw_ex<system_error>(ec);
 		return ret;
 	}
 
@@ -267,11 +264,7 @@ namespace libtorrent
 	{
 		error_code ec;
 		std::string ret = wchar_utf8(wide, ec);
-#ifndef BOOST_NO_EXCEPTIONS
-		if (ec) throw system_error(ec);
-#else
-		if (ec) std::terminate();
-#endif
+		if (ec) aux::throw_ex<system_error>(ec);
 		return ret;
 	}
 }
