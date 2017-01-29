@@ -74,7 +74,7 @@ namespace libtorrent
 	class torrent;
 
 #ifndef BOOST_NO_EXCEPTIONS
-	void throw_invalid_handle() TORRENT_NO_RETURN;
+	void TORRENT_NO_RETURN throw_invalid_handle();
 #endif
 
 	using std::shared_ptr;

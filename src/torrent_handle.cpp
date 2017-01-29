@@ -58,7 +58,7 @@ namespace libtorrent
 {
 
 #ifndef BOOST_NO_EXCEPTIONS
-	void throw_invalid_handle()
+	void TORRENT_NO_RETURN throw_invalid_handle()
 	{
 		throw system_error(errors::invalid_torrent_handle);
 	}
