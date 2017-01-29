@@ -9239,13 +9239,13 @@ namespace libtorrent
 	void torrent::set_queue_position(int p)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		TORRENT_ASSERT((p == -1) == is_finished()
-			|| (!m_auto_managed && p == -1)
-			|| (m_abort && p == -1));
-		if (is_finished() && p != -1) return;
+		if(is_finished() || is_seed() || !m_auto_managed || m_abort)
+		{
+			p = -1;
+		} else {
+			p = p < 0 ? 0 : p;
+		}
 		if (p == m_sequence_number) return;
-
-		TORRENT_ASSERT(p >= -1);
 
 		state_updated();
 

@@ -399,8 +399,8 @@ TORRENT_TEST(queue)
 	pack.set_bool(settings_pack::disable_hash_checks, true);
 	lt::session ses(pack);
 
-	torrent_handle torrents[5];
-	for(int i = 0; i < 5; i++)
+	torrent_handle torrents[6];
+	for(int i = 0; i < 6; i++)
 	{
 		file_storage fs;
 		fs.add_file("test_torrent_dir4/queue" + std::to_string(i), 1024);
@@ -415,7 +415,16 @@ TORRENT_TEST(queue)
 		torrents[i] = ses.add_torrent(p);
 	}
 
+	std::vector<int> pieces = torrents[5].piece_priorities();
+	std::vector<std::pair<int, int> > piece_prios;
+	for (int i = 0; i < int(pieces.size()); ++i) {
+		piece_prios.push_back(std::make_pair(i,0));
+	}
+	torrents[5].prioritize_pieces(piece_prios);
+	torrent_handle finished = torrents[5];
+
 	// add_torrent should be ordered
+	TEST_EQUAL(finished.queue_position(), -1);
 	TEST_EQUAL(torrents[0].queue_position(), 0);
 	TEST_EQUAL(torrents[1].queue_position(), 1);
 	TEST_EQUAL(torrents[2].queue_position(), 2);
@@ -426,6 +435,7 @@ TORRENT_TEST(queue)
 	torrents[2].queue_position_top();
 	torrents[1].queue_position_bottom();
 
+	TEST_EQUAL(finished.queue_position(), -1);
 	TEST_EQUAL(torrents[2].queue_position(), 0);
 	TEST_EQUAL(torrents[0].queue_position(), 1);
 	TEST_EQUAL(torrents[3].queue_position(), 2);
@@ -437,6 +447,7 @@ TORRENT_TEST(queue)
 	torrents[1].queue_position_set(1);
 	// torrent 2 should be get moved down by 0 and 1 to pos 2
 
+	TEST_EQUAL(finished.queue_position(), -1);
 	TEST_EQUAL(torrents[0].queue_position(), 0);
 	TEST_EQUAL(torrents[1].queue_position(), 1);
 	TEST_EQUAL(torrents[2].queue_position(), 2);
@@ -447,6 +458,7 @@ TORRENT_TEST(queue)
 	torrents[0].queue_position_up();
 	torrents[4].queue_position_down();
 
+	TEST_EQUAL(finished.queue_position(), -1);
 	TEST_EQUAL(torrents[0].queue_position(), 0);
 	TEST_EQUAL(torrents[1].queue_position(), 1);
 	TEST_EQUAL(torrents[2].queue_position(), 2);
@@ -455,7 +467,9 @@ TORRENT_TEST(queue)
 
 	torrents[1].queue_position_up();
 	torrents[3].queue_position_down();
+	finished.queue_position_up();
 
+	TEST_EQUAL(finished.queue_position(), -1);
 	TEST_EQUAL(torrents[1].queue_position(), 0);
 	TEST_EQUAL(torrents[0].queue_position(), 1);
 	TEST_EQUAL(torrents[2].queue_position(), 2);
@@ -464,7 +478,10 @@ TORRENT_TEST(queue)
 
 	torrents[1].queue_position_down();
 	torrents[3].queue_position_up();
+	finished.queue_position_down();
 
+
+	TEST_EQUAL(finished.queue_position(), -1);
 	TEST_EQUAL(torrents[0].queue_position(), 0);
 	TEST_EQUAL(torrents[1].queue_position(), 1);
 	TEST_EQUAL(torrents[2].queue_position(), 2);
@@ -474,7 +491,9 @@ TORRENT_TEST(queue)
 	// test set pos on not existing pos
 	torrents[3].queue_position_set(10);
 	torrents[2].queue_position_set(-10);
+	finished.queue_position_set(-10);
 
+	TEST_EQUAL(finished.queue_position(), -1);
 	TEST_EQUAL(torrents[2].queue_position(), 0);
 	TEST_EQUAL(torrents[0].queue_position(), 1);
 	TEST_EQUAL(torrents[1].queue_position(), 2);
