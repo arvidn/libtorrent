@@ -9227,25 +9227,34 @@ namespace libtorrent
 
 	void torrent::queue_up()
 	{
+		// fix async position change calls for race conditions on changed torrents
+		if(!m_auto_managed || m_abort || is_finished()) return;
+
 		set_queue_position(queue_position() == 0
 			? queue_position() : queue_position() - 1);
 	}
 
 	void torrent::queue_down()
 	{
+		// fix async position change calls for race conditions on changed torrents
+		if(!m_auto_managed || m_abort || is_finished()) return;
+
 		set_queue_position(queue_position() + 1);
 	}
 
 	void torrent::set_queue_position(int p)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		if(is_finished() || is_seed() || !m_auto_managed || m_abort)
-		{
-			p = -1;
-		} else {
-			p = p < 0 ? 0 : p;
-		}
+
+		// fix async position change calls for race conditions on changed torrents
+		if ((!m_auto_managed || m_abort || is_finished()) && p != -1) return;
+
+		TORRENT_ASSERT((p == -1) == is_finished()
+			|| (!m_auto_managed && p == -1)
+			|| (m_abort && p == -1));
 		if (p == m_sequence_number) return;
+
+		TORRENT_ASSERT(p >= -1);
 
 		state_updated();
 

@@ -399,7 +399,7 @@ TORRENT_TEST(queue)
 	pack.set_bool(settings_pack::disable_hash_checks, true);
 	lt::session ses(pack);
 
-	torrent_handle torrents[6];
+	std::vector<torrent_handle> torrents;
 	for(int i = 0; i < 6; i++)
 	{
 		file_storage fs;
@@ -412,7 +412,7 @@ TORRENT_TEST(queue)
 		add_torrent_params p;
 		p.ti = ti;
 		p.save_path = ".";
-		torrents[i] = ses.add_torrent(p);
+		torrents.push_back(ses.add_torrent(p));
 	}
 
 	std::vector<int> pieces = torrents[5].piece_priorities();
@@ -490,13 +490,12 @@ TORRENT_TEST(queue)
 
 	// test set pos on not existing pos
 	torrents[3].queue_position_set(10);
-	torrents[2].queue_position_set(-10);
-	finished.queue_position_set(-10);
+	finished.queue_position_set(10);
 
 	TEST_EQUAL(finished.queue_position(), -1);
-	TEST_EQUAL(torrents[2].queue_position(), 0);
-	TEST_EQUAL(torrents[0].queue_position(), 1);
-	TEST_EQUAL(torrents[1].queue_position(), 2);
+	TEST_EQUAL(torrents[0].queue_position(), 0);
+	TEST_EQUAL(torrents[1].queue_position(), 1);
+	TEST_EQUAL(torrents[2].queue_position(), 2);
 	TEST_EQUAL(torrents[4].queue_position(), 3);
 	TEST_EQUAL(torrents[3].queue_position(), 4);
 }
