@@ -326,6 +326,8 @@ POSSIBILITY OF SUCH DAMAGE.
 // that could be marked noreturn.
 #if defined __clang__ || defined __GNUC__
 #define TORRENT_NO_RETURN __attribute((noreturn))
+#elif _MSC_VER
+#define TORRENT_NO_RETURN __declspec(noreturn)
 #else
 #define TORRENT_NO_RETURN
 #endif
