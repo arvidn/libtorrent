@@ -72,7 +72,7 @@ namespace libtorrent
 
 	namespace
 	{
-		TORRENT_NO_RETURN inline void throw_error()
+		inline void TORRENT_NO_RETURN throw_error()
 		{ aux::throw_ex<system_error>(errors::invalid_entry_type); }
 
 		template <class T>

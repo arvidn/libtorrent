@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent { namespace aux
 {
 	template <typename T, typename... Args>
-	TORRENT_NO_RETURN void throw_ex(Args&&... args)
+	void TORRENT_NO_RETURN throw_ex(Args&&... args)
 	{
 #ifdef BOOST_NO_EXCEPTIONS
 		std::terminate();
