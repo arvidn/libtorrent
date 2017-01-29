@@ -41,14 +41,6 @@ namespace libtorrent {
 	bool compare_less_wrap(std::uint32_t lhs, std::uint32_t rhs
 		, std::uint32_t mask);
 
-	packet_buffer_impl::packet_buffer_impl()
-		: m_storage(nullptr)
-		, m_capacity(0)
-		, m_size(0)
-		, m_first(0)
-		, m_last(0)
-	{}
-
 #if TORRENT_USE_INVARIANT_CHECKS
 	void packet_buffer_impl::check_invariant() const
 	{
@@ -60,11 +52,6 @@ namespace libtorrent {
 		TORRENT_ASSERT(count == int(m_size));
 	}
 #endif
-
-	packet_buffer_impl::~packet_buffer_impl()
-	{
-		free(m_storage);
-	}
 
 	void* packet_buffer_impl::insert(index_type idx, void* value)
 	{
@@ -83,7 +70,7 @@ namespace libtorrent {
 				// Index comes before m_first. If we have room, we can simply
 				// adjust m_first backward.
 
-				std::size_t free_space = 0;
+				int free_space = 0;
 
 				for (index_type i = (m_first - 1) & (m_capacity - 1);
 						i != (m_first & (m_capacity - 1)); i = (i - 1) & (m_capacity - 1))
@@ -93,7 +80,7 @@ namespace libtorrent {
 					++free_space;
 				}
 
-				if (((m_first - idx) & 0xffff) > free_space)
+				if (((m_first - idx) & 0xffff) > std::uint32_t(free_space))
 					reserve(((m_first - idx) & 0xffff) + m_capacity - free_space);
 
 				m_first = idx;
@@ -148,29 +135,24 @@ namespace libtorrent {
 		return m_storage[idx & mask];
 	}
 
-	void packet_buffer_impl::reserve(std::size_t size)
+	void packet_buffer_impl::reserve(int size)
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT_VAL(size <= 0xffff, size);
-		std::size_t new_size = m_capacity == 0 ? 16 : m_capacity;
+		int new_size = m_capacity == 0 ? 16 : m_capacity;
 
 		while (new_size < size)
 			new_size <<= 1;
 
-		void** new_storage = static_cast<void**>(malloc(sizeof(void*) * new_size));
-#ifndef BOOST_NO_EXCEPTIONS
-		if (new_storage == nullptr) throw std::bad_alloc();
-#endif
+		aux::unique_ptr<void*[], index_type> new_storage(new void*[new_size]);
 
-		for (index_type i = 0; i < new_size; ++i)
+		for (index_type i = 0; i < std::uint32_t(new_size); ++i)
 			new_storage[i] = nullptr;
 
 		for (index_type i = m_first; i < (m_first + m_capacity); ++i)
 			new_storage[i & (new_size - 1)] = m_storage[i & (m_capacity - 1)];
 
-		free(m_storage);
-
-		m_storage = new_storage;
+		m_storage = std::move(new_storage);
 		m_capacity = new_size;
 	}
 
@@ -197,7 +179,7 @@ namespace libtorrent {
 		if (idx == m_first && m_size != 0)
 		{
 			++m_first;
-			for (std::uint32_t i = 0; i < m_capacity; ++i, ++m_first)
+			for (int i = 0; i < m_capacity; ++i, ++m_first)
 				if (m_storage[m_first & mask]) break;
 			m_first &= 0xffff;
 		}
@@ -205,7 +187,7 @@ namespace libtorrent {
 		if (((idx + 1) & 0xffff) == m_last && m_size != 0)
 		{
 			--m_last;
-			for (std::uint32_t i = 0; i < m_capacity; ++i, --m_last)
+			for (int i = 0; i < m_capacity; ++i, --m_last)
 				if (m_storage[m_last & mask]) break;
 			++m_last;
 			m_last &= 0xffff;
