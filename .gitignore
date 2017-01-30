@@ -26,6 +26,7 @@
 *.exe
 *.out
 *.app
+libtool
 
 *.m4
 *.in
@@ -50,3 +51,8 @@ bindings/python/*flags
 # Logs
 libtorrent_logs*
 *.log
+
+# Python related files and dirs
+*.pyc
+dist
+*.egg-info
