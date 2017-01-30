@@ -128,6 +128,8 @@ namespace
 
     int get_tier(announce_entry const& ae) { return ae.tier; }
     void set_tier(announce_entry& ae, int v) { ae.tier = v; }
+    lt::time_point get_next_announce(announce_entry const& ae) { return ae.next_announce; }
+    lt::time_point get_min_announce(announce_entry const& ae) { return ae.min_announce; }
     int get_fail_limit(announce_entry const& ae) { return ae.fail_limit; }
     void set_fail_limit(announce_entry& ae, int l) { ae.fail_limit = l; }
     int get_fails(announce_entry const& ae) { return ae.fails; }
@@ -307,6 +309,14 @@ void bind_torrent_info()
 
     class_<announce_entry>("announce_entry", init<std::string const&>())
         .def_readwrite("url", &announce_entry::url)
+        .def_readonly("trackerid", &announce_entry::trackerid)
+        .def_readonly("message", &announce_entry::message)
+        .def_readonly("last_error", &announce_entry::last_error)
+        .add_property("next_announce", &get_next_announce)
+        .add_property("min_announce", &get_min_announce)
+        .def_readonly("scrape_incomplete", &announce_entry::scrape_incomplete)
+        .def_readonly("scrape_complete", &announce_entry::scrape_complete)
+        .def_readonly("scrape_downloaded", &announce_entry::scrape_downloaded)
         .add_property("tier", &get_tier, &set_tier)
         .add_property("fail_limit", &get_fail_limit, &set_fail_limit)
         .add_property("fails", &get_fails)
@@ -317,6 +327,8 @@ void bind_torrent_info()
         .add_property("complete_sent", &get_complete_sent)
         .add_property("send_stats", &get_send_stats)
 
+        .def("next_announce_in", &announce_entry::next_announce_in)
+        .def("min_announce_in", &announce_entry::min_announce_in)
         .def("reset", &announce_entry::reset)
         .def("can_announce", &announce_entry::can_announce)
         .def("is_working", &announce_entry::is_working)

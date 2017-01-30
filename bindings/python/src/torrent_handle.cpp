@@ -245,6 +245,14 @@ list trackers(torrent_handle& h)
     {
         dict d;
         d["url"] = i->url;
+        d["trackerid"] = i->trackerid;
+        d["message"] = i->message;
+        d["last_error"] = i->last_error;
+        d["next_announce"] = i->next_announce;
+        d["min_announce"] = i->min_announce;
+        d["scrape_incomplete"] = i->scrape_incomplete;
+        d["scrape_complete"] = i->scrape_complete;
+        d["scrape_downloaded"] = i->scrape_downloaded;
         d["tier"] = i->tier;
         d["fail_limit"] = i->fail_limit;
         d["fails"] = i->fails;
