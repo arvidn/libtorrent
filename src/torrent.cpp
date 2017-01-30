@@ -9227,7 +9227,7 @@ namespace libtorrent
 
 	void torrent::queue_up()
 	{
-		// fix async position change calls for race conditions on changed torrents
+		// fix race conditions on async position change calls (from handler)
 		if(!m_auto_managed || m_abort || is_finished()) return;
 
 		set_queue_position(queue_position() == 0
@@ -9236,9 +9236,6 @@ namespace libtorrent
 
 	void torrent::queue_down()
 	{
-		// fix async position change calls for race conditions on changed torrents
-		if(!m_auto_managed || m_abort || is_finished()) return;
-
 		set_queue_position(queue_position() + 1);
 	}
 
@@ -9246,7 +9243,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(is_single_thread());
 
-		// fix async position change calls for race conditions on changed torrents
+		// fix race conditions on async position change calls (from handler)
 		if ((!m_auto_managed || m_abort || is_finished()) && p != -1) return;
 
 		TORRENT_ASSERT((p == -1) == is_finished()
