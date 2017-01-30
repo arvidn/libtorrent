@@ -18,6 +18,7 @@
 
 using namespace boost::python;
 using namespace libtorrent;
+namespace lt = libtorrent;
 
 namespace
 {
@@ -126,10 +127,10 @@ namespace
        return result;
     }
 
-    int get_tier(announce_entry const& ae) { return ae.tier; }
-    void set_tier(announce_entry& ae, int v) { ae.tier = v; }
-    int get_fail_limit(announce_entry const& ae) { return ae.fail_limit; }
-    void set_fail_limit(announce_entry& ae, int l) { ae.fail_limit = l; }
+    // Create getters for announce_entry data members with non-trivial types which need converting.
+    lt::time_point get_next_announce(announce_entry const& ae) { return ae.next_announce; }
+    lt::time_point get_min_announce(announce_entry const& ae) { return ae.min_announce; }
+    // announce_entry data member bit-fields.
     int get_fails(announce_entry const& ae) { return ae.fails; }
     int get_source(announce_entry const& ae) { return ae.source; }
     bool get_verified(announce_entry const& ae) { return ae.verified; }
@@ -137,6 +138,11 @@ namespace
     bool get_start_sent(announce_entry const& ae) { return ae.start_sent; }
     bool get_complete_sent(announce_entry const& ae) { return ae.complete_sent; }
     bool get_send_stats(announce_entry const& ae) { return ae.send_stats; }
+    // announce_entry method requires lt::time_point.
+    bool can_announce(announce_entry const& ae, bool is_seed) {
+        lt::time_point now = lt::clock_type::now();
+        return ae.can_announce(now, is_seed);
+    }
 
 #ifndef TORRENT_NO_DEPRECATE
     boost::int64_t get_size(file_entry const& fe) { return fe.size; }
@@ -307,8 +313,16 @@ void bind_torrent_info()
 
     class_<announce_entry>("announce_entry", init<std::string const&>())
         .def_readwrite("url", &announce_entry::url)
-        .add_property("tier", &get_tier, &set_tier)
-        .add_property("fail_limit", &get_fail_limit, &set_fail_limit)
+        .def_readonly("trackerid", &announce_entry::trackerid)
+        .def_readonly("message", &announce_entry::message)
+        .def_readonly("last_error", &announce_entry::last_error)
+        .add_property("next_announce", &get_next_announce)
+        .add_property("min_announce", &get_min_announce)
+        .def_readonly("scrape_incomplete", &announce_entry::scrape_incomplete)
+        .def_readonly("scrape_complete", &announce_entry::scrape_complete)
+        .def_readonly("scrape_downloaded", &announce_entry::scrape_downloaded)
+        .def_readwrite("tier", &announce_entry::tier)
+        .def_readwrite("fail_limit", &announce_entry::fail_limit)
         .add_property("fails", &get_fails)
         .add_property("source", &get_source)
         .add_property("verified", &get_verified)
@@ -317,8 +331,10 @@ void bind_torrent_info()
         .add_property("complete_sent", &get_complete_sent)
         .add_property("send_stats", &get_send_stats)
 
+        .def("next_announce_in", &announce_entry::next_announce_in)
+        .def("min_announce_in", &announce_entry::min_announce_in)
         .def("reset", &announce_entry::reset)
-        .def("can_announce", &announce_entry::can_announce)
+        .def("can_announce", can_announce)
         .def("is_working", &announce_entry::is_working)
         .def("trim", &announce_entry::trim)
         ;
