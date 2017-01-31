@@ -818,8 +818,6 @@ namespace libtorrent
 
 		update_gauge();
 
-		m_file_progress.clear();
-
 		if (m_resume_data)
 		{
 			int pos;
@@ -2632,11 +2630,11 @@ namespace libtorrent
 			int blocks_in_last_piece = ((m_torrent_file->total_size() % m_torrent_file->piece_length())
 				+ block_size() - 1) / block_size();
 			m_picker->init(blocks_per_piece, blocks_in_last_piece, m_torrent_file->num_pieces());
+
+			m_file_progress.clear();
+			m_file_progress.init(picker(), m_torrent_file->files());
 		}
 
-		// file progress is allocated lazily, the first time the client
-		// asks for it
-		m_file_progress.clear();
 
 		// assume that we don't have anything
 		m_files_checked = false;
@@ -8621,6 +8619,7 @@ namespace libtorrent
 			m_picker.reset();
 			m_have_all = true;
 			update_gauge();
+			m_file_progress.clear();
 		}
 	}
 
@@ -8632,9 +8631,6 @@ namespace libtorrent
 
 		set_state(torrent_status::seeding);
 		m_became_seed = m_ses.session_time();
-
-		// no need for this anymore
-		m_file_progress.clear();
 
 		if (!m_announcing) return;
 
@@ -8965,6 +8961,10 @@ namespace libtorrent
 #if TORRENT_USE_INVARIANT_CHECKS
 	void torrent::check_invariant() const
 	{
+		// the piece picker and the file progress states are supposed to be
+		// created in sync
+		TORRENT_ASSERT(has_picker() == !m_file_progress.empty());
+
 		TORRENT_ASSERT(current_stats_state() == m_current_gauge_state + counters::num_checking_torrents
 			|| m_current_gauge_state == no_gauge_state);
 
