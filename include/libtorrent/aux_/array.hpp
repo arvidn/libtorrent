@@ -47,7 +47,7 @@ namespace libtorrent { namespace aux {
 		using underlying_index = typename underlying_index_t<IndexType>::type;
 
 		array() = default;
-		explicit array(std::array<T, Size> arr) : base(arr) {}
+		explicit array(std::array<T, Size>&& arr) : base(arr) {}
 
 		auto operator[](IndexType idx) const -> decltype(this->base::operator[](underlying_index()))
 		{
@@ -63,18 +63,14 @@ namespace libtorrent { namespace aux {
 			return this->base::operator[](std::size_t(static_cast<underlying_index>(idx)));
 		}
 
-#if TORRENT_USE_ASSERTS
+#if !TORRENT_USE_ASSERTS
+		constexpr
+#endif
 		IndexType end_index() const
 		{
 			TORRENT_ASSERT(this->size() <= std::size_t(std::numeric_limits<underlying_index>::max()));
 			return IndexType(static_cast<underlying_index>(this->size()));
 		}
-#else
-		constexpr IndexType end_index() const
-		{
-			return IndexType(static_cast<underlying_index>(this->size()));
-		}
-#endif
 	};
 
 }}

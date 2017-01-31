@@ -127,7 +127,7 @@ int routing_table::bucket_limit(int bucket) const
 {
 	if (!m_settings.extended_routing_table) return m_bucket_size;
 
-	static const aux::array<int, 4> size_exceptions({{16, 8, 4, 2}});
+	static const aux::array<int, 4> size_exceptions{{{16, 8, 4, 2}}};
 	if (bucket < size_exceptions.end_index())
 		return m_bucket_size * size_exceptions[bucket];
 	return m_bucket_size;

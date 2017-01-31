@@ -336,7 +336,7 @@ namespace libtorrent
 		};
 		char const *base32_table = 0 != (flags & string::lowercase) ? base32_table_lowercase : base32_table_canonical;
 
-		static aux::array<int const, 6> input_output_mapping({{0, 2, 4, 5, 7, 8}});
+		static aux::array<int, 6> const input_output_mapping{{{0, 2, 4, 5, 7, 8}}};
 
 		aux::array<std::uint8_t, 5> inbuf;
 		aux::array<std::uint8_t, 8> outbuf;
