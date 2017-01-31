@@ -191,12 +191,6 @@ void dict_to_announce_entry(dict d, announce_entry& ae)
       ae.tier = extract<int>(d["tier"]);
    if (d.has_key("fail_limit"))
       ae.fail_limit = extract<int>(d["fail_limit"]);
-   if (d.has_key("source"))
-      ae.source = extract<int>(d["source"]);
-   if (d.has_key("verified"))
-      ae.verified = extract<bool>(d["verified"]);
-   if (d.has_key("send_stats"))
-      ae.send_stats = extract<bool>(d["send_stats"]);
 }
 
 void replace_trackers(torrent_handle& h, object trackers)
