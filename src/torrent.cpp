@@ -3665,7 +3665,7 @@ namespace libtorrent
 			return;
 		}
 
-		if (int(m_connections.size()) < 10)
+		if (int(m_connections.size() - m_num_connecting) < 10)
 		{
 			// there are too few peers. Be conservative and don't assume it's
 			// well seeded until we can connect to more peers
