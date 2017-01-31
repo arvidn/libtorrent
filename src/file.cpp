@@ -429,9 +429,9 @@ namespace libtorrent
 		}
 
 		s->file_size = ret.st_size;
-		s->atime = ret.st_atime;
-		s->mtime = ret.st_mtime;
-		s->ctime = ret.st_ctime;
+		s->atime = std::uint64_t(ret.st_atime);
+		s->mtime = std::uint64_t(ret.st_mtime);
+		s->ctime = std::uint64_t(ret.st_ctime);
 
 		s->mode = (S_ISREG(ret.st_mode) ? file_status::regular_file : 0)
 			| (S_ISDIR(ret.st_mode) ? file_status::directory : 0)
@@ -708,7 +708,7 @@ namespace libtorrent
 				) ++p;
 			if (p - start > 0)
 			{
-				ret.append(start, p - start);
+				ret.append(start, aux::numeric_cast<std::size_t>(p - start));
 				if (only_first_part) return ret;
 				ret.append(1, '\0');
 			}
@@ -731,12 +731,13 @@ namespace libtorrent
 	{
 		for (int i = int(f.size()) - 1; i >= 0; --i)
 		{
-			if (f[i] == '/') break;
+			std::size_t const idx = std::size_t(i);
+			if (f[idx] == '/') break;
 #ifdef TORRENT_WINDOWS
-			if (f[i] == '\\') break;
+			if (f[idx] == '\\') break;
 #endif
-			if (f[i] != '.') continue;
-			return f.substr(i);
+			if (f[idx] != '.') continue;
+			return f.substr(idx);
 		}
 		return "";
 	}
@@ -750,21 +751,22 @@ namespace libtorrent
 		char const* ext = std::strrchr(f.c_str(), '.');
 		// if we don't have an extension, just return f
 		if (ext == nullptr || ext == &f[0] || (slash != nullptr && ext < slash)) return f;
-		return f.substr(0, ext - &f[0]);
+		return f.substr(0, aux::numeric_cast<std::size_t>(ext - &f[0]));
 	}
 
 	void replace_extension(std::string& f, std::string const& ext)
 	{
 		for (int i = int(f.size()) - 1; i >= 0; --i)
 		{
-			if (f[i] == '/') break;
+			std::size_t const idx = std::size_t(i);
+			if (f[idx] == '/') break;
 #ifdef TORRENT_WINDOWS
-			if (f[i] == '\\') break;
+			if (f[idx] == '\\') break;
 #endif
 
-			if (f[i] != '.') continue;
+			if (f[idx] != '.') continue;
 
-			f.resize(i);
+			f.resize(idx);
 			break;
 		}
 		f += '.';
@@ -813,10 +815,10 @@ namespace libtorrent
 
 		int len = int(f.size()) - 1;
 		// if the last character is / or \ ignore it
-		if (f[len] == '/' || f[len] == '\\') --len;
+		if (f[std::size_t(len)] == '/' || f[std::size_t(len)] == '\\') --len;
 		while (len >= 0)
 		{
-			if (f[len] == '/' || f[len] == '\\')
+			if (f[std::size_t(len)] == '/' || f[std::size_t(len)] == '\\')
 				break;
 			--len;
 		}
@@ -835,16 +837,16 @@ namespace libtorrent
 
 		int len = int(f.size());
 		// if the last character is / or \ ignore it
-		if (f[len-1] == '/' || f[len-1] == '\\') --len;
+		if (f[std::size_t(len - 1)] == '/' || f[std::size_t(len - 1)] == '\\') --len;
 		while (len > 0)
 		{
 			--len;
-			if (f[len] == '/' || f[len] == '\\')
+			if (f[std::size_t(len)] == '/' || f[std::size_t(len)] == '\\')
 				break;
 		}
 
-		if (f[len] == '/' || f[len] == '\\') ++len;
-		return std::string(f.c_str(), len);
+		if (f[std::size_t(len)] == '/' || f[std::size_t(len)] == '\\') ++len;
+		return std::string(f.c_str(), std::size_t(len));
 	}
 
 	char const* filename_cstr(char const* f)
@@ -884,10 +886,10 @@ namespace libtorrent
 					|| *sep == '\\'
 #endif
 					)
-					return std::string(sep + 1, len);
+					return std::string(sep + 1, std::size_t(len));
 				++len;
 			}
-			return std::string(first, len);
+			return std::string(first, std::size_t(len));
 
 		}
 		return std::string(sep + 1);
@@ -930,12 +932,12 @@ namespace libtorrent
 		bool const need_sep = lhs[lhs.size() - 1] != '/';
 #endif
 		std::string ret;
-		int target_size = int(lhs.size() + rhs.size() + 2);
+		std::size_t target_size = lhs.size() + rhs.size() + 2;
 		ret.resize(target_size);
-		target_size = std::snprintf(&ret[0], target_size, "%*s%s%*s"
+		target_size = aux::numeric_cast<std::size_t>(std::snprintf(&ret[0], target_size, "%*s%s%*s"
 			, int(lhs.size()), lhs.data()
 			, (need_sep ? TORRENT_SEPARATOR : "")
-			, int(rhs.size()), rhs.data());
+			, int(rhs.size()), rhs.data()));
 		ret.resize(target_size);
 		return ret;
 	}
@@ -1628,7 +1630,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	bool coalesce_read_buffers(span<iovec_t const>& bufs
 		, iovec_t& tmp)
 	{
-		int const buf_size = bufs_size(bufs);
+		std::size_t const buf_size = aux::numeric_cast<std::size_t>(bufs_size(bufs));
 		char* buf = static_cast<char*>(std::malloc(buf_size));
 		if (!buf) return false;
 		tmp.iov_base = buf;
@@ -1647,7 +1649,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	bool coalesce_write_buffers(span<iovec_t const>& bufs
 		, iovec_t& tmp)
 	{
-		int const buf_size = bufs_size(bufs);
+		std::size_t const buf_size = aux::numeric_cast<std::size_t>(bufs_size(bufs));
 		char* buf = static_cast<char*>(std::malloc(buf_size));
 		if (!buf) return false;
 		gather_copy(bufs, buf);

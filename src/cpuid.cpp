@@ -71,7 +71,7 @@ namespace libtorrent { namespace aux
 		__cpuid((int*)info, type);
 
 #elif defined __GNUC__
-		__get_cpuid(type, &info[0], &info[1], &info[2], &info[3]);
+		__get_cpuid(std::uint32_t(type), &info[0], &info[1], &info[2], &info[3]);
 #else
 		TORRENT_UNUSED(type);
 		// for non-x86 and non-amd64, just return zeroes

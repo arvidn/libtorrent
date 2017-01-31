@@ -198,6 +198,7 @@ nobase_include_HEADERS = \
   aux_/alloca.hpp                   \
   aux_/throw.hpp                    \
   aux_/typed_span.hpp               \
+  aux_/array.hpp                    \
   \
   extensions/smart_ban.hpp          \
   extensions/ut_metadata.hpp        \

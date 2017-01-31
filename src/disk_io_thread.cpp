@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/hasher.hpp"
+#include "libtorrent/aux_/array.hpp"
 
 #include <functional>
 
@@ -3386,7 +3387,7 @@ namespace libtorrent
 		disk_io_job* j = m_completed_jobs.get_all();
 		l.unlock();
 
-		std::array<disk_io_job*, 64> to_delete;
+		aux::array<disk_io_job*, 64> to_delete;
 		int cnt = 0;
 
 		while (j)

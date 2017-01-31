@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_POLICY_HPP_INCLUDED
 
 #include <algorithm>
-#include <deque>
 #include "libtorrent/string_util.hpp" // for allocate_string_copy
 #include "libtorrent/request_blocks.hpp" // for source_rank
 
@@ -47,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/peer_connection_interface.hpp"
+#include "libtorrent/aux_/deque.hpp"
 
 namespace libtorrent
 {
@@ -167,7 +167,7 @@ namespace libtorrent
 
 		int num_peers() const { return int(m_peers.size()); }
 
-		using peers_t = std::deque<torrent_peer*>;
+		using peers_t = aux::deque<torrent_peer*>;
 		using iterator = peers_t::iterator;
 		using const_iterator = peers_t::const_iterator;
 		iterator begin() { return m_peers.begin(); }
