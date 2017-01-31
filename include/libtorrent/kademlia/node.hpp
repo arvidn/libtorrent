@@ -149,6 +149,11 @@ public:
 		, std::function<void(item const&, int)> f
 		, std::function<void(item&)> data_cb);
 
+	void sample_infohashes(udp::endpoint const& ep, sha1_hash const& target
+		, std::function<void(time_duration
+			, int, std::vector<sha1_hash>
+			, std::vector<std::pair<sha1_hash, udp::endpoint>>)> f);
+
 	bool verify_token(string_view token, sha1_hash const& info_hash
 		, udp::endpoint const& addr) const;
 

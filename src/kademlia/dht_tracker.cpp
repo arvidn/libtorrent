@@ -322,6 +322,20 @@ namespace libtorrent { namespace dht {
 			n.second.dht.announce(ih, listen_port, flags, f);
 	}
 
+	void dht_tracker::sample_infohashes(udp::endpoint const& ep, sha1_hash const& target
+		, std::function<void(time_duration
+			, int, std::vector<sha1_hash>
+			, std::vector<std::pair<sha1_hash, udp::endpoint>>)> f)
+	{
+		for (auto& n : m_nodes)
+		{
+			if (ep.protocol() != (n.first->get_external_address().is_v4() ? udp::v4() : udp::v6()))
+				continue;
+			n.second.dht.sample_infohashes(ep, target, f);
+			break;
+		}
+	}
+
 	namespace {
 
 	struct get_immutable_item_ctx

@@ -472,6 +472,8 @@ namespace {
 		METRIC(dht, dht_get_out)
 		METRIC(dht, dht_put_in)
 		METRIC(dht, dht_put_out)
+		METRIC(dht, dht_sample_infohashes_in)
+		METRIC(dht, dht_sample_infohashes_out)
 
 		// the number of failed incoming DHT requests by kind of request
 		METRIC(dht, dht_invalid_announce)
@@ -479,6 +481,7 @@ namespace {
 		METRIC(dht, dht_invalid_find_node)
 		METRIC(dht, dht_invalid_put)
 		METRIC(dht, dht_invalid_get)
+		METRIC(dht, dht_invalid_sample_infohashes)
 
 		// uTP counters. Each counter represents the number of time each event
 		// has occurred.

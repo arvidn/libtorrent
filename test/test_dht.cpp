@@ -246,6 +246,19 @@ struct msg_args
 	msg_args& peers(std::set<tcp::endpoint> const& p)
 	{ if (!p.empty()) a.dict()["values"] = write_peers(p); return *this; }
 
+	msg_args& interval(time_duration interval)
+	{ a["interval"] = total_seconds(interval); return *this; }
+
+	msg_args& num(int num)
+	{ a["num"] = num; return *this; }
+
+	msg_args& samples(std::vector<sha1_hash> const& samples)
+	{
+		a["samples"] = span<char const>(
+			reinterpret_cast<char const*>(samples.data()), samples.size() * 20);
+		return *this;
+	}
+
 	entry a;
 };
 
@@ -598,6 +611,15 @@ dht::key_desc_t const put_mutable_item_desc[] = {
 		{"sig", bdecode_node::string_t, signature::len, 0},
 		{"token", bdecode_node::string_t, 2, 0},
 		{"v", bdecode_node::none_t, 0, key_desc_t::last_child},
+};
+
+dht::key_desc_t const sample_infohashes_desc[] = {
+	{"y", bdecode_node::string_t, 1, 0},
+	{"t", bdecode_node::string_t, 2, 0},
+	{"q", bdecode_node::string_t, 17, 0},
+	{"a", bdecode_node::dict_t, 0, key_desc_t::parse_children},
+		{"id", bdecode_node::string_t, 20, 0},
+		{"target", bdecode_node::string_t, 20, key_desc_t::last_child},
 };
 
 void print_state(std::ostream& os, routing_table const& table)
@@ -3591,6 +3613,74 @@ TORRENT_TEST(dht_state)
 	dht_state const s2 = read_dht_state(n1);
 	TEST_CHECK(s2.nids.empty());
 	TEST_CHECK(s2.nodes.empty());
+}
+
+TORRENT_TEST(sample_infohashes)
+{
+	dht_test_setup t(rand_udp_ep());
+	bdecode_node response;
+
+	g_sent_packets.clear();
+
+	udp::endpoint initial_node = rand_udp_ep();
+	t.dht_node.m_table.add_node(node_entry{initial_node});
+
+	// nodes
+	sha1_hash const h1 = rand_hash();
+	sha1_hash const h2 = rand_hash();
+	udp::endpoint const ep1 = rand_udp_ep(rand_v4);
+	udp::endpoint const ep2 = rand_udp_ep(rand_v4);
+
+	t.dht_node.sample_infohashes(initial_node, items[0].target,
+		[h1, ep1, h2, ep2](time_duration interval, int num
+			, std::vector<sha1_hash> samples
+			, std::vector<std::pair<sha1_hash, udp::endpoint>> const& nodes)
+	{
+		TEST_EQUAL(total_seconds(interval), 10);
+		TEST_EQUAL(num, 2);
+		TEST_EQUAL(samples.size(), 1);
+		TEST_EQUAL(samples[0], to_hash("1000000000000000000000000000000000000001"));
+		TEST_EQUAL(nodes.size(), 2);
+		TEST_EQUAL(nodes[0].first, h1);
+		TEST_EQUAL(nodes[0].second, ep1);
+		TEST_EQUAL(nodes[1].first, h2);
+		TEST_EQUAL(nodes[1].second, ep2);
+	});
+
+	TEST_EQUAL(g_sent_packets.size(), 1);
+	if (g_sent_packets.empty()) return;
+	TEST_EQUAL(g_sent_packets.front().first, initial_node);
+
+	lazy_from_entry(g_sent_packets.front().second, response);
+	bdecode_node sample_infohashes_keys[6];
+	bool const ret = verify_message(response
+		, sample_infohashes_desc, sample_infohashes_keys, t.error_string);
+	if (ret)
+	{
+		TEST_EQUAL(sample_infohashes_keys[0].string_value(), "q");
+		TEST_EQUAL(sample_infohashes_keys[2].string_value(), "sample_infohashes");
+		TEST_EQUAL(sample_infohashes_keys[5].string_value(), items[0].target.to_string());
+	}
+	else
+	{
+		std::printf("   invalid sample_infohashes request: %s\n", print_entry(response).c_str());
+		TEST_ERROR(t.error_string);
+		return;
+	}
+
+	std::vector<node_entry> nodes;
+	nodes.emplace_back(h1, ep1);
+	nodes.emplace_back(h2, ep2);
+
+	g_sent_packets.clear();
+	send_dht_response(t.dht_node, response, initial_node
+		, msg_args()
+			.interval(seconds(10))
+			.num(2)
+			.samples({to_hash("1000000000000000000000000000000000000001")})
+			.nodes(nodes));
+
+	TEST_CHECK(g_sent_packets.empty());
 }
 
 // TODO: test obfuscated_get_peers

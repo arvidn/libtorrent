@@ -235,12 +235,15 @@ namespace libtorrent {
 			dht_get_out,
 			dht_put_in,
 			dht_put_out,
+			dht_sample_infohashes_in,
+			dht_sample_infohashes_out,
 
 			dht_invalid_announce,
 			dht_invalid_get_peers,
 			dht_invalid_find_node,
 			dht_invalid_put,
 			dht_invalid_get,
+			dht_invalid_sample_infohashes,
 
 			// uTP counters.
 			utp_packet_loss,

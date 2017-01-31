@@ -151,6 +151,7 @@ set(kademlia_sources
 	get_peers
 	get_item
 	ed25519
+	sample_infohashes
 )
 
 # -- ed25519 --

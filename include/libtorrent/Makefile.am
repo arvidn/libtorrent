@@ -235,4 +235,5 @@ nobase_include_HEADERS = \
   kademlia/ed25519.hpp              \
   kademlia/item.hpp                 \
   kademlia/get_item.hpp             \
+  kademlia/sample_infohashes.hpp    \
   kademlia/get_peers.hpp
