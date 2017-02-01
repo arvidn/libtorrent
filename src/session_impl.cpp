@@ -2590,7 +2590,8 @@ retry:
 						i->second->disconnect_peers(1, e);
 					}
 
-					m_settings.set_int(settings_pack::connections_limit, m_connections.size());
+					m_settings.set_int(settings_pack::connections_limit
+						, std::max(10, int(m_connections.size())));
 				}
 				// try again, but still alert the user of the problem
 				async_accept(listener, ssl);
@@ -4230,9 +4231,8 @@ retry:
 				// we ran out of memory trying to connect to a peer
 				// lower the global limit to the number of peers
 				// we already have
-				m_settings.set_int(settings_pack::connections_limit, num_connections());
-				if (m_settings.get_int(settings_pack::connections_limit) < 2)
-					m_settings.set_int(settings_pack::connections_limit, 2);
+				m_settings.set_int(settings_pack::connections_limit
+					, std::max(2, num_connections()));
 			}
 
 			++steps_since_last_connect;
@@ -6613,8 +6613,7 @@ retry:
 	{
 		int limit = m_settings.get_int(settings_pack::connections_limit);
 
-		if (limit <= 0)
-			limit = (std::numeric_limits<int>::max)();
+		if (limit <= 0) limit = max_open_files();
 
 		m_settings.set_int(settings_pack::connections_limit, limit);
 
