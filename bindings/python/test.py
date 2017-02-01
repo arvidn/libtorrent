@@ -57,6 +57,20 @@ class test_torrent_handle(unittest.TestCase):
 		self.h.prioritize_pieces([(0, 1)])
 		self.assertEqual(self.h.piece_priorities(), [1])
 
+	def test_replace_trackers(self):
+		self.setup()
+		trackers = []
+		for idx, tracker_url in enumerate(('udp://tracker1.com', 'udp://tracker2.com')):
+			tracker = lt.announce_entry(tracker_url)
+			tracker.tier = idx
+			tracker.fail_limit = 2
+			trackers.append(tracker)
+		self.h.replace_trackers(trackers)
+		new_trackers = self.h.trackers()
+		self.assertEqual(new_trackers[0]['url'], 'udp://tracker1.com')
+		self.assertEqual(new_trackers[1]['tier'], 1)
+		self.assertEqual(new_trackers[1]['fail_limit'], 2)
+
 	def test_file_status(self):
 		self.setup()
 		l = self.h.file_status()
@@ -137,6 +151,12 @@ class test_torrent_info(unittest.TestCase):
 			self.assertEqual(os.path.split(f.path)[1], expected[idx])
 			self.assertEqual(os.path.split(os.path.split(f.path)[0]), ('temp', 'foo'))
 			idx += 1
+
+	def test_announce_entry(self):
+		ae = lt.announce_entry('test')
+		self.assertEquals(ae.can_announce(False), True)
+		self.assertEquals(ae.scrape_incomplete, -1)
+		self.assertEquals(ae.next_announce, None)
 
 class test_alerts(unittest.TestCase):
 
