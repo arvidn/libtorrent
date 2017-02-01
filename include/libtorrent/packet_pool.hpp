@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-#include <boost/pool/pool.hpp>
+#include "libtorrent/aux_/vector.hpp"
 
 namespace libtorrent
 {
@@ -82,7 +82,6 @@ namespace libtorrent
 	// can handle common cases of packet size by 3 pools
 	struct TORRENT_EXTRA_EXPORT packet_pool : single_threaded
 	{
-
 		packet *acquire(std::size_t allocate)
 		{
 			TORRENT_ASSERT(is_single_thread());
@@ -90,26 +89,10 @@ namespace libtorrent
 
 			packet *p;
 
-			// every if block contains less or equal *_size check.
-			// "packet::allocate" field indicates only requested "packet::buf" size.
-			// (which may be less than claimed memory of corresponding slab)
-			if (allocate <= utp_header_size)
-			{
-				p = static_cast<packet*>(m_syn_slabs.malloc());
-			}
-			else if (allocate <= mtu_floor_size)
-			{
-				p = static_cast<packet*>(m_mtu_floor_slabs.malloc());
-			}
-			else if (allocate <= mtu_ceiling_size)
-			{
-				p = static_cast<packet*>(m_mtu_ceiling_slabs.malloc());
-			}
-			else
-			{
-				// fallback for huge packets, no need to use fixed size pool, just ordinary system malloc
-				p = static_cast<packet*>(malloc(sizeof(packet) + allocate));
-			}
+			if (allocate <= m_syn_slab.allocate_size) { p = m_syn_slab.try_alloc(); }
+			else if (allocate <= m_mtu_floor_slab.allocate_size) { p = m_mtu_floor_slab.try_alloc(); }
+			else if (allocate <= m_mtu_ceiling_slab.allocate_size) { p = m_mtu_ceiling_slab.try_alloc(); }
+			else { p = static_cast<packet*>(malloc(sizeof(packet) + allocate)); }
 
 			p->allocated = static_cast<std::uint16_t>(allocate);
 			return p;
@@ -120,39 +103,54 @@ namespace libtorrent
 			TORRENT_ASSERT(is_single_thread());
 
 			if (p == nullptr) return;
-			if (p->allocated <= utp_header_size)
-			{
-				m_syn_slabs.free(p);
-			}
-			else if (p->allocated <= mtu_floor_size)
-			{
-				m_mtu_floor_slabs.free(p);
-			}
-			else if (p->allocated <= mtu_ceiling_size)
-			{
-				m_mtu_ceiling_slabs.free(p);
-			}
-			else
-			{
-				// release huge blocks
-				free(p);
-			}
+			std::size_t allocated = p->allocated;
+
+			if (allocated <= m_syn_slab.allocate_size) { m_syn_slab.try_free(p); }
+			else if (allocated <= m_mtu_floor_slab.allocate_size) { m_mtu_floor_slab.try_free(p); }
+			else if (allocated <= m_mtu_ceiling_slab.allocate_size) { m_mtu_ceiling_slab.try_free(p); }
+			else { free(p); }
 		}
 	private:
 
-		static const std::uint16_t utp_header_size = sizeof(utp_header);
+		template<std::size_t PACKET_LIMIT, std::size_t ALLOCATE_SIZE>
+		struct packet_slab
+		{
+			aux::vector<packet*, std::size_t> m_storage;
+			std::size_t idx{ 0 };
+			static const std::size_t allocate_size{ ALLOCATE_SIZE };
 
-		static const std::uint16_t mtu_floor_size = TORRENT_INET_MIN_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER;
+			packet_slab() : m_storage(PACKET_LIMIT, nullptr) { }
 
-		static const std::uint16_t mtu_ceiling_size = TORRENT_ETHERNET_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER;
+			~packet_slab() { flush(); }
 
-		using malloc_pool = boost::pool<boost::default_user_allocator_malloc_free>;
+			void flush()
+			{
+				while (idx != 0) {
+					free(m_storage[--idx]);
+				}
+			}
 
-		malloc_pool m_syn_slabs{ sizeof(packet) + utp_header_size };
-		malloc_pool m_mtu_floor_slabs{ sizeof(packet) + mtu_floor_size };
-		malloc_pool m_mtu_ceiling_slabs{ sizeof(packet) + mtu_ceiling_size };
+			void try_free(packet *p)
+			{
+				if (idx >= PACKET_LIMIT)
+					free(p);
+				else
+					m_storage[idx++] = p;
+			}
+
+			packet *try_alloc()
+			{
+				if (idx == 0)
+					return static_cast<packet*>(malloc(sizeof(packet) + allocate_size));
+				else
+					return m_storage[--idx];
+			}
+		};
+
+		packet_slab<0x400, sizeof(utp_header)> m_syn_slab;
+		packet_slab<0x200, (TORRENT_INET_MIN_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER)> m_mtu_floor_slab;
+		packet_slab<0x200, (TORRENT_ETHERNET_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER)> m_mtu_ceiling_slab;
 	};
-
 }
 
 #endif // TORRENT_PACKET_POOL_HPP
