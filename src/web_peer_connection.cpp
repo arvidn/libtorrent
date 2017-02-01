@@ -411,7 +411,16 @@ void web_peer_connection::write_request(peer_request const& r)
 			auto redirection = m_web->redirects.find(f.file_index);
 			if (redirection != m_web->redirects.end())
 			{
-				request += redirection->second;
+				auto const& redirect = redirection->second;
+				if (using_proxy && !redirect.empty() && (redirect[0] == '/'))
+				{
+					// request already contains m_url with trailing slash, so let's skip dup slash
+					request.append(redirect, 1, redirect.size() - 1);
+				}
+				else
+				{
+					request += redirect;
+				}
 			}
 			else
 			{
@@ -640,7 +649,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 
 		// add_web_seed won't add duplicates. If we have already added an entry
 		// with this URL, we'll get back the existing entry
-		web_seed_t* web = t->add_web_seed(redirect_base, web_seed_entry::url_seed, m_external_auth, m_extra_headers);
+		web_seed_t* web = t->add_web_seed(redirect_base, web_seed_entry::url_seed, m_external_auth, m_extra_headers, true);
 		web->have_files.resize(t->torrent_file().num_files(), false);
 
 		// the new web seed we're adding only has this file for now
@@ -677,7 +686,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, "LOCATION", "%s", location.c_str());
 #endif
-		t->add_web_seed(location, web_seed_entry::url_seed, m_external_auth, m_extra_headers);
+		t->add_web_seed(location, web_seed_entry::url_seed, m_external_auth, m_extra_headers, true);
 
 		// this web seed doesn't have any files. Don't try to request from it
 		// again this session
