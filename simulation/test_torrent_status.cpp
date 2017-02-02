@@ -96,7 +96,50 @@ TORRENT_TEST(status_timers)
 	TEST_CHECK(ran_to_completion);
 }
 
+TORRENT_TEST(status_timers_last_upload)
+{
+	bool ran_to_completion = false;
 
+	lt::time_point start_time;
+	lt::torrent_handle handle;
+
+	setup_swarm(2, swarm_test::upload
+		// add session
+		, [](lt::settings_pack&) {}
+		// add torrent
+		, [](lt::add_torrent_params&) {}
+		// on alert
+		, [&](lt::alert const* a, lt::session&) {
+			if (auto ta = alert_cast<torrent_added_alert>(a))
+			{
+				TEST_CHECK(!handle.is_valid());
+				start_time = lt::clock_type::now();
+				handle = ta->handle;
+				torrent_status st = handle.status();
+				// test last upload and download state before wo go throgh
+				// torrent states
+				TEST_CHECK(st.last_download == start_time);
+				TEST_CHECK(st.last_upload == start_time);
+			}
+		}
+		// terminate
+		, [&](int ticks, lt::session&) -> bool
+		{
+			if (ticks > 10)
+			{
+				ran_to_completion = true;
+				return true;
+			}
+
+			torrent_status st = handle.status();
+			// uploadtime is 0 seconds behind now
+			TEST_EQUAL(duration_cast<seconds>(st.last_upload - lt::clock_type::now()).count(), 0);
+			// does not download in seeding mode
+			TEST_CHECK(st.last_download == start_time);
+			return false;
+		});
+	TEST_CHECK(ran_to_completion);
+}
 
 TORRENT_TEST(status_timers_time_shift_with_active_torrent)
 {
