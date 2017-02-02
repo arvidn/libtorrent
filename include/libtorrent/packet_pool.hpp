@@ -78,24 +78,62 @@ namespace libtorrent
 		std::uint8_t buf[1];
 	};
 
+
+	struct packet_deleter
+	{
+		void operator()(packet* handle) const
+		{
+			std::free(handle);
+		}
+	};
+
+	using packet_ptr = std::unique_ptr<packet, packet_deleter>;
+
+	template<std::size_t ALLOCATE_SIZE>
+	struct TORRENT_EXTRA_EXPORT packet_slab : private aux::vector<packet_ptr, std::size_t>
+	{
+		static const std::size_t allocate_size{ ALLOCATE_SIZE };
+
+		packet_slab(std::size_t limit) : m_limit(limit) { reserve(m_limit); }
+
+		void try_free(packet_ptr &p)
+		{
+			if (size() < m_limit)
+				push_back(std::move(p));
+		}
+
+		void try_alloc(packet_ptr &p)
+		{
+			if (empty())
+				p.reset(static_cast<packet*>(std::malloc(sizeof(packet) + allocate_size)));
+			else
+			{
+				p = std::move(back());
+				pop_back();
+			}
+		}
+	private:
+		std::size_t m_limit;
+	};
+
 	// single thread packet allocation packet pool
 	// can handle common cases of packet size by 3 pools
-	struct TORRENT_EXTRA_EXPORT packet_pool : single_threaded
+	struct TORRENT_EXTRA_EXPORT packet_pool : private single_threaded
 	{
 		packet *acquire(std::size_t allocate)
 		{
 			TORRENT_ASSERT(is_single_thread());
 			TORRENT_ASSERT(allocate <= std::numeric_limits<std::uint16_t>::max());
 
-			packet *p;
+			packet_ptr p;
 
-			if (allocate <= m_syn_slab.allocate_size) { p = m_syn_slab.try_alloc(); }
-			else if (allocate <= m_mtu_floor_slab.allocate_size) { p = m_mtu_floor_slab.try_alloc(); }
-			else if (allocate <= m_mtu_ceiling_slab.allocate_size) { p = m_mtu_ceiling_slab.try_alloc(); }
-			else { p = static_cast<packet*>(malloc(sizeof(packet) + allocate)); }
+			if (allocate <= m_syn_slab.allocate_size) { m_syn_slab.try_alloc(p); }
+			else if (allocate <= m_mtu_floor_slab.allocate_size) { m_mtu_floor_slab.try_alloc(p); }
+			else if (allocate <= m_mtu_ceiling_slab.allocate_size) { m_mtu_ceiling_slab.try_alloc(p); }
+			else { m_rest_slab.try_alloc(p); }
 
 			p->allocated = static_cast<std::uint16_t>(allocate);
-			return p;
+			return p.release();
 		}
 
 		void release(packet *p)
@@ -103,53 +141,19 @@ namespace libtorrent
 			TORRENT_ASSERT(is_single_thread());
 
 			if (p == nullptr) return;
-			std::size_t allocated = p->allocated;
 
-			if (allocated <= m_syn_slab.allocate_size) { m_syn_slab.try_free(p); }
-			else if (allocated <= m_mtu_floor_slab.allocate_size) { m_mtu_floor_slab.try_free(p); }
-			else if (allocated <= m_mtu_ceiling_slab.allocate_size) { m_mtu_ceiling_slab.try_free(p); }
-			else { free(p); }
+			packet_ptr pp(p); // take ownership and auto free
+			std::size_t allocated = pp->allocated;
+
+			if (allocated <= m_syn_slab.allocate_size) { m_syn_slab.try_free(pp); }
+			else if (allocated <= m_mtu_floor_slab.allocate_size) { m_mtu_floor_slab.try_free(pp); }
+			else if (allocated <= m_mtu_ceiling_slab.allocate_size) { m_mtu_ceiling_slab.try_free(pp); }
 		}
 	private:
-
-		template<std::size_t PACKET_LIMIT, std::size_t ALLOCATE_SIZE>
-		struct packet_slab
-		{
-			aux::vector<packet*, std::size_t> m_storage;
-			std::size_t idx{ 0 };
-			static const std::size_t allocate_size{ ALLOCATE_SIZE };
-
-			packet_slab() : m_storage(PACKET_LIMIT, nullptr) { }
-
-			~packet_slab() { flush(); }
-
-			void flush()
-			{
-				while (idx != 0) {
-					free(m_storage[--idx]);
-				}
-			}
-
-			void try_free(packet *p)
-			{
-				if (idx >= PACKET_LIMIT)
-					free(p);
-				else
-					m_storage[idx++] = p;
-			}
-
-			packet *try_alloc()
-			{
-				if (idx == 0)
-					return static_cast<packet*>(malloc(sizeof(packet) + allocate_size));
-				else
-					return m_storage[--idx];
-			}
-		};
-
-		packet_slab<0x400, sizeof(utp_header)> m_syn_slab;
-		packet_slab<0x200, (TORRENT_INET_MIN_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER)> m_mtu_floor_slab;
-		packet_slab<0x200, (TORRENT_ETHERNET_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER)> m_mtu_ceiling_slab;
+		packet_slab<sizeof(utp_header)> m_syn_slab{ 0x400 };
+		packet_slab<(TORRENT_INET_MIN_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER)> m_mtu_floor_slab{ 0x200 };
+		packet_slab<(TORRENT_ETHERNET_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER)> m_mtu_ceiling_slab{ 0x200 };
+		packet_slab<0> m_rest_slab{ 0 };
 	};
 }
 

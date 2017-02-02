@@ -120,7 +120,7 @@ namespace libtorrent
 		// the counter is the enum from ``counters``.
 		void inc_stats_counter(int counter, int delta = 1);
 
-		packet *acquire_packet(std::uint16_t allocate) { return m_packet_pool.acquire(allocate); }
+		packet *acquire_packet(std::size_t allocate) { return m_packet_pool.acquire(allocate); }
 		void release_packet(packet *p) { m_packet_pool.release(p); }
 
 	private:

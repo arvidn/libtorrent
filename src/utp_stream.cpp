@@ -303,7 +303,7 @@ struct utp_socket_impl
 
 	void set_state(int s);
 
-	packet *acquire_packet(std::uint16_t allocate) { return m_sm->acquire_packet(allocate); }
+	packet *acquire_packet(std::size_t allocate) { return m_sm->acquire_packet(allocate); }
 	void release_packet(packet *p) { m_sm->release_packet(p); }
 
 private:
