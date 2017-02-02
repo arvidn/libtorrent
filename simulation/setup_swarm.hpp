@@ -49,7 +49,7 @@ namespace libtorrent
 
 namespace lt = libtorrent;
 
-enum class swarm_test { download, upload, upload_without_timeout };
+enum class swarm_test { download, upload };
 
 void setup_swarm(int num_nodes
 	, swarm_test type

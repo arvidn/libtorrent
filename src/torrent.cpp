@@ -8868,9 +8868,8 @@ namespace libtorrent
 
 	seconds32 torrent::seeding_time() const
 	{
-		if(!m_upload_mode)
+		if(!is_seed() || is_paused())
 			return m_seeding_time;
-
 		// m_seeding_time does not account for the current "session", just the
 		// time before we last started this torrent. To get the current time, we
 		// need to add the time since we started it

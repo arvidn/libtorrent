@@ -395,14 +395,13 @@ void setup_swarm(int num_nodes
 
 		bool shut_down = terminate(tick, *nodes[0]);
 
-		if (type == swarm_test::upload || type == swarm_test::upload_without_timeout)
+		if (type == swarm_test::upload)
 		{
 			shut_down |= std::all_of(nodes.begin() + 1, nodes.end()
 				, [](std::shared_ptr<lt::session> const& s)
 				{ return is_seed(*s); }) && num_nodes > 1;
 
-			if (tick > 88 * (num_nodes - 1) && !shut_down && num_nodes > 1
-				&& type != swarm_test::upload_without_timeout)
+			if (tick > 88 * (num_nodes - 1) && !shut_down && num_nodes > 1)
 			{
 				TEST_ERROR("seeding failed!");
 				shut_down = true;
