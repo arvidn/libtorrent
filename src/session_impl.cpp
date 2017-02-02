@@ -3024,6 +3024,7 @@ retry:
 		peer_class* pc = m_classes.at(c);
 		if (pc == 0) return;
 		if (limit <= 0) limit = 0;
+		else limit = std::min(limit, std::numeric_limits<int>::max() - 1);
 		pc->channel[channel].throttle(limit);
 	}
 
@@ -4148,8 +4149,9 @@ retry:
 		// TODO: use a lower limit than m_settings.connections_limit
 		// to allocate the to 10% or so of connection slots for incoming
 		// connections
-		int limit = m_settings.get_int(settings_pack::connections_limit)
-			- num_connections();
+		// cap this at max - 1, since we may add one below
+		int const limit = std::min(m_settings.get_int(settings_pack::connections_limit)
+			- num_connections(), std::numeric_limits<int>::max() - 1);
 
 		// this logic is here to smooth out the number of new connection
 		// attempts over time, to prevent connecting a large number of
