@@ -190,7 +190,7 @@ TORRENT_TEST(status_timers_time_shift_with_active_torrent)
 					tick_is_in_active_range = false;
 					break;
 				case 64000:
-					// resum just before we hit the time shift handling
+					// resume just before we hit the time shift handling
 					// this is needed to test what happend if we want to
 					// shift more time then we have active time because
 					// we shift 4 hours and have less then 1 hours active time
