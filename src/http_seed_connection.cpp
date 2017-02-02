@@ -316,7 +316,7 @@ namespace libtorrent
 					}
 
 					// add the redirected url and remove the current one
-					t->add_web_seed(location, web_seed_entry::http_seed, std::string(), web_seed_entry::headers_t(), true);
+					t->add_web_seed(location, web_seed_entry::http_seed);
 					t->remove_web_seed_conn(this, errors::redirecting, op_bittorrent, 2);
 					return;
 				}

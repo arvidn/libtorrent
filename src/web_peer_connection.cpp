@@ -412,15 +412,9 @@ void web_peer_connection::write_request(peer_request const& r)
 			if (redirection != m_web->redirects.end())
 			{
 				auto const& redirect = redirection->second;
-				if (using_proxy && !redirect.empty() && (redirect[0] == '/'))
-				{
-					// request already contains m_url with trailing slash, so let's skip dup slash
-					request.append(redirect, 1, redirect.size() - 1);
-				}
-				else
-				{
-					request += redirect;
-				}
+				// in case of http proxy "request" already contains m_url with trailing slash, so let's skip dup slash
+				bool const trailing_slash = using_proxy && !redirect.empty() && redirect[0] == '/';
+				request.append(redirect, trailing_slash, std::string::npos);
 			}
 			else
 			{
