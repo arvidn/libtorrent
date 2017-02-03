@@ -2938,6 +2938,47 @@ TORRENT_TEST(routing_table_set_id)
 	print_state(std::cout, tbl);
 }
 
+TORRENT_TEST(routing_table_for_each)
+{
+	dht_settings sett = test_settings();
+	obs observer;
+
+	sett.extended_routing_table = false;
+	node_id id = to_hash("1234876923549721020394873245098347598635");
+
+	routing_table tbl(id, udp::v4(), 2, sett, &observer);
+
+	for (int i = 0; i < 32; ++i)
+	{
+		id[4] = i;
+		tbl.node_seen(id, rand_udp_ep(), 20 + (id[19] & 0xff));
+	}
+
+	int nodes;
+	int replacements;
+	std::tie(nodes, replacements, std::ignore) = tbl.size();
+
+	std::printf("num_active_buckets: %d\n", tbl.num_active_buckets());
+	std::printf("live nodes: %d\n", nodes);
+	std::printf("replacements: %d\n", replacements);
+
+	TEST_EQUAL(tbl.num_active_buckets(), 2);
+	TEST_EQUAL(nodes, 2);
+	TEST_EQUAL(replacements, 2);
+
+	print_state(std::cout, tbl);
+
+	std::vector<node_entry> v;
+	tbl.for_each_node(node_push_back, nop, &v);
+	TEST_EQUAL(v.size(), 2);
+	v.clear();
+	tbl.for_each_node(nop, node_push_back, &v);
+	TEST_EQUAL(v.size(), 2);
+	v.clear();
+	tbl.for_each_node(node_push_back, node_push_back, &v);
+	TEST_EQUAL(v.size(), 4);
+}
+
 TORRENT_TEST(node_set_id)
 {
 	dht_test_setup t(udp::endpoint(rand_v4(), 20));

@@ -276,6 +276,7 @@ out:
 	return candidate;
 }
 
+#ifndef TORRENT_NO_DEPRECATE
 void routing_table::replacement_cache(bucket_t& nodes) const
 {
 	for (auto const& b : m_buckets)
@@ -284,6 +285,7 @@ void routing_table::replacement_cache(bucket_t& nodes) const
 			, std::back_inserter(nodes));
 	}
 }
+#endif
 
 routing_table::table_t::iterator routing_table::find_bucket(node_id const& id)
 {
