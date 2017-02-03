@@ -465,7 +465,7 @@ TORRENT_TEST(queue)
 
 		std::vector<char> buf;
 		bencode(std::back_inserter(buf), t.generate());
-		std::shared_ptr<torrent_info> ti = std::make_shared<torrent_info>(&buf[0], buf.size());
+		std::shared_ptr<torrent_info> ti = std::make_shared<torrent_info>(&buf[0], int(buf.size()));
 		add_torrent_params p;
 		p.ti = ti;
 		p.save_path = ".";
