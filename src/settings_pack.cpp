@@ -673,8 +673,8 @@ namespace libtorrent
 		{
 			case string_type_base:
 			{
-				std::pair<boost::uint16_t, std::string> v(name, std::string());
-				std::vector<std::pair<boost::uint16_t, std::string> >::iterator i
+				std::pair<std::uint16_t, std::string> v(name, std::string());
+				std::vector<std::pair<std::uint16_t, std::string> >::iterator i
 					= std::lower_bound(m_strings.begin(), m_strings.end(), v
 						, &compare_first<std::string>);
 				if (i != m_strings.end() && i->first == name) m_strings.erase(i);
@@ -682,8 +682,8 @@ namespace libtorrent
 			}
 			case int_type_base:
 			{
-				std::pair<boost::uint16_t, int> v(name, 0);
-				std::vector<std::pair<boost::uint16_t, int> >::iterator i
+				std::pair<std::uint16_t, int> v(name, 0);
+				std::vector<std::pair<std::uint16_t, int> >::iterator i
 					= std::lower_bound(m_ints.begin(), m_ints.end(), v
 						, &compare_first<int>);
 				if (i != m_ints.end() && i->first == name) m_ints.erase(i);
@@ -691,8 +691,8 @@ namespace libtorrent
 			}
 			case bool_type_base:
 			{
-				std::pair<boost::uint16_t, bool> v(name, false);
-				std::vector<std::pair<boost::uint16_t, bool> >::iterator i
+				std::pair<std::uint16_t, bool> v(name, false);
+				std::vector<std::pair<std::uint16_t, bool> >::iterator i
 					= std::lower_bound(m_bools.begin(), m_bools.end(), v
 					, &compare_first<bool>);
 				if (i != m_bools.end() && i->first == name) m_bools.erase(i);

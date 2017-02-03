@@ -1570,7 +1570,7 @@ namespace libtorrent
 
 		// this is the number of peers that are seeds, and count against
 		// m_num_seeds, but have not yet been connected
-		boost::uint16_t m_num_connecting_seeds = 0;
+		std::uint16_t m_num_connecting_seeds = 0;
 
 		// the timestamp of the last byte uploaded from this torrent specified in
 		// session_time. This is signed because it must be able to represent time
