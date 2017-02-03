@@ -355,6 +355,13 @@ namespace libtorrent
 		async_call(&torrent::queue_down);
 	}
 
+	void torrent_handle::queue_position_set(int p) const
+	{
+		TORRENT_ASSERT_PRECOND(p >= 0);
+		if (p < 0) return;
+		TORRENT_ASYNC_CALL1(set_queue_position, p);
+	}
+
 	void torrent_handle::queue_position_top() const
 	{
 		async_call(&torrent::set_queue_position, 0);

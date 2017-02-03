@@ -45,6 +45,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/invariant_check.hpp"
 #endif
 
+#if TORRENT_USE_INVARIANT_CHECKS
+#include "libtorrent/invariant_check.hpp"
+#include "libtorrent/bitfield.hpp"
+#endif
+
 namespace libtorrent
 {
 class piece_picker;

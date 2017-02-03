@@ -1,14 +1,16 @@
 # this makefile assumes that you have docutils and rst2pdf installed
+# (python-docutils) as well as aafigure (python-aafigure)
 
 ifneq ($(STAGE),)
 WEB_PATH = ~/Documents/rasterbar/web/products/libtorrent
 endif
 
 ifndef RST2HTML
-RST2HTML:=rst2html-3.4.py
+RST2HTML:=rst2html
 endif
 
 REFERENCE_TARGETS = \
+	manual-ref \
 	reference \
 	reference-Core \
 	reference-Plugins \
@@ -22,8 +24,7 @@ REFERENCE_TARGETS = \
 	reference-Filter \
 	reference-Settings \
 	reference-Bdecoding \
-	reference-ed25519 \
-	manual-ref
+	reference-ed25519
 
 TARGETS = index \
 	udp_tracker_protocol \
@@ -45,6 +46,7 @@ TARGETS = index \
 	hacking \
 	streaming \
 	tutorial \
+	single-page-ref \
 	$(REFERENCE_TARGETS)
 
 FIGURES = \
@@ -65,6 +67,9 @@ pdf: $(TARGETS:=.pdf) $(FIGURES:=.eps)
 epub: $(TARGETS:=.epub) $(FIGURES:=.png)
 
 all: html pdf
+
+single-page-ref.rst: $(REFERENCE_TARGETS:=.rst)
+	python join_rst.py $(filter-out reference.rst, $(REFERENCE_TARGETS:=.rst)) >single-page-ref.rst
 
 settings.rst: ../include/libtorrent/settings_pack.hpp
 	python gen_settings_doc.py

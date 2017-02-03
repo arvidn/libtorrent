@@ -153,7 +153,6 @@ namespace libtorrent
 		// if t is nullptr, we better not be connecting, since
 		// we can't decrement the connecting counter
 		TORRENT_ASSERT(t || !m_connecting);
-		if (m_connecting && t) t->inc_num_connecting();
 		m_est_reciprocation_rate = m_settings.get_int(settings_pack::default_est_reciprocation_rate);
 
 		m_channel_state[upload_channel] = peer_info::bw_idle;
@@ -334,6 +333,8 @@ namespace libtorrent
 
 		// if this is an incoming connection, we're done here
 		if (!m_connecting) return;
+
+		if (m_connecting && t) t->inc_num_connecting(m_peer_info);
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::outgoing, "OPEN", "protocol: %s"
@@ -778,7 +779,7 @@ namespace libtorrent
 		if (m_connecting)
 		{
 			m_counters.inc_stats_counter(counters::num_peers_half_open, -1);
-			if (t) t->dec_num_connecting();
+			if (t) t->dec_num_connecting(m_peer_info);
 			m_connecting = false;
 		}
 
@@ -3998,7 +3999,7 @@ namespace libtorrent
 		if (m_connecting)
 		{
 			m_counters.inc_stats_counter(counters::num_peers_half_open, -1);
-			if (t) t->dec_num_connecting();
+			if (t) t->dec_num_connecting(m_peer_info);
 			m_connecting = false;
 		}
 
@@ -4214,7 +4215,7 @@ namespace libtorrent
 		if (m_connecting)
 		{
 			m_counters.inc_stats_counter(counters::num_peers_half_open, -1);
-			if (t) t->dec_num_connecting();
+			if (t) t->dec_num_connecting(m_peer_info);
 			m_connecting = false;
 		}
 
@@ -4646,7 +4647,7 @@ namespace libtorrent
 			if (m_connecting)
 			{
 				m_counters.inc_stats_counter(counters::num_peers_half_open, -1);
-				if (t) t->dec_num_connecting();
+				if (t) t->dec_num_connecting(m_peer_info);
 				m_connecting = false;
 			}
 			disconnect(errors::torrent_aborted, op_bittorrent);
@@ -5960,7 +5961,7 @@ namespace libtorrent
 		if (m_connecting)
 		{
 			m_counters.inc_stats_counter(counters::num_peers_half_open, -1);
-			if (t) t->dec_num_connecting();
+			if (t) t->dec_num_connecting(m_peer_info);
 			m_connecting = false;
 		}
 
@@ -5988,7 +5989,7 @@ namespace libtorrent
 		}
 
 		// if there are outgoing interfaces specified, verify this
-		// peer is correctly bound to on of them
+		// peer is correctly bound to one of them
 		if (!m_settings.get_str(settings_pack::outgoing_interfaces).empty())
 		{
 			if (!m_ses.verify_bound_address(m_local.address()

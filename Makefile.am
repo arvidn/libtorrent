@@ -102,7 +102,8 @@ DOCS_PAGES = \
   docs/reference-Settings.html    \
   docs/reference-Storage.html     \
   docs/reference-Utility.html     \
-  docs/reference.html
+  docs/reference.html             \
+  docs/single-page-ref.html
 
 ED25519_SOURCE = \
   ed25519/readme.md \

@@ -840,6 +840,11 @@ namespace libtorrent
 		void queue_position_top() const;
 		void queue_position_bottom() const;
 
+		// updates the position in the queue for this torrent. The relative order
+		// of all other torrents remain intact but their numerical queue position
+		// shifts to make space for this torrent's new position
+		void queue_position_set(int p) const;
+
 		// For SSL torrents, use this to specify a path to a .pem file to use as
 		// this client's certificate. The certificate must be signed by the
 		// certificate in the .torrent file to be valid.

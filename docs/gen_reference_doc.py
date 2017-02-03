@@ -975,6 +975,8 @@ reference documentation
 
 ''')
 
+out.write('`single-page version`__\n\n__ single-page-ref.html\n\n')
+
 for i in range(4):
 
 	out.write('.. container:: main-toc\n\n')
@@ -992,6 +994,10 @@ for cat in categories:
 	out.write('''
 :Author: Arvid Norberg, arvid@libtorrent.org
 :Version: 1.2.0
+
+`home`__
+
+__ reference.html
 
 %s
 

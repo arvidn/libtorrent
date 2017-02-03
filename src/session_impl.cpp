@@ -2519,7 +2519,8 @@ namespace aux {
 						i->second->disconnect_peers(1, e);
 					}
 
-					m_settings.set_int(settings_pack::connections_limit, int(m_connections.size()));
+					m_settings.set_int(settings_pack::connections_limit
+						, std::max(10, int(m_connections.size())));
 				}
 				// try again, but still alert the user of the problem
 				async_accept(listener, ssl);
@@ -6288,11 +6289,7 @@ namespace aux {
 	{
 		int limit = m_settings.get_int(settings_pack::connections_limit);
 
-		if (limit <= 0)
-			limit = (std::numeric_limits<int>::max)();
-
-		limit = (std::max)(5, (std::min)(limit
-				, max_open_files() - 20 - m_settings.get_int(settings_pack::file_pool_size)));
+		if (limit <= 0) limit = max_open_files();
 
 		m_settings.set_int(settings_pack::connections_limit, limit);
 
