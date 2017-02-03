@@ -472,7 +472,7 @@ TORRENT_TEST(queue)
 		torrents.push_back(ses.add_torrent(p));
 	}
 
-	std::vector<int> pieces(0, torrents[5].torrent_file()->num_pieces());
+	std::vector<int> pieces(torrents[5].torrent_file()->num_pieces(), 0);
 	torrents[5].prioritize_pieces(pieces);
 	torrent_handle finished = torrents[5];
 
