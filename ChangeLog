@@ -1,4 +1,5 @@
 	* updating super seeding would include the torrent in state_update_alert
+	* fix issue where num_seeds could be greater than num_peers in torrent_status
 	* finished non-seed torrents can also be in super-seeding mode
 	* fix issue related to unloading torrents
 	* fixed finished-time calculation

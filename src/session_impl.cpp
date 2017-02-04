@@ -2590,7 +2590,8 @@ retry:
 						i->second->disconnect_peers(1, e);
 					}
 
-					m_settings.set_int(settings_pack::connections_limit, m_connections.size());
+					m_settings.set_int(settings_pack::connections_limit
+						, std::max(10, int(m_connections.size())));
 				}
 				// try again, but still alert the user of the problem
 				async_accept(listener, ssl);
@@ -3023,6 +3024,7 @@ retry:
 		peer_class* pc = m_classes.at(c);
 		if (pc == 0) return;
 		if (limit <= 0) limit = 0;
+		else limit = std::min(limit, std::numeric_limits<int>::max() - 1);
 		pc->channel[channel].throttle(limit);
 	}
 
@@ -4147,8 +4149,9 @@ retry:
 		// TODO: use a lower limit than m_settings.connections_limit
 		// to allocate the to 10% or so of connection slots for incoming
 		// connections
-		int limit = m_settings.get_int(settings_pack::connections_limit)
-			- num_connections();
+		// cap this at max - 1, since we may add one below
+		int const limit = std::min(m_settings.get_int(settings_pack::connections_limit)
+			- num_connections(), std::numeric_limits<int>::max() - 1);
 
 		// this logic is here to smooth out the number of new connection
 		// attempts over time, to prevent connecting a large number of
@@ -4230,9 +4233,8 @@ retry:
 				// we ran out of memory trying to connect to a peer
 				// lower the global limit to the number of peers
 				// we already have
-				m_settings.set_int(settings_pack::connections_limit, num_connections());
-				if (m_settings.get_int(settings_pack::connections_limit) < 2)
-					m_settings.set_int(settings_pack::connections_limit, 2);
+				m_settings.set_int(settings_pack::connections_limit
+					, std::max(2, num_connections()));
 			}
 
 			++steps_since_last_connect;
@@ -6613,8 +6615,7 @@ retry:
 	{
 		int limit = m_settings.get_int(settings_pack::connections_limit);
 
-		if (limit <= 0)
-			limit = (std::numeric_limits<int>::max)();
+		if (limit <= 0) limit = max_open_files();
 
 		m_settings.set_int(settings_pack::connections_limit, limit);
 

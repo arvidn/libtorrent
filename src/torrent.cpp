@@ -269,6 +269,7 @@ namespace libtorrent
 		, m_should_be_loaded(true)
 		, m_last_download((std::numeric_limits<boost::int16_t>::min)())
 		, m_num_seeds(0)
+		, m_num_connecting_seeds(0)
 		, m_last_upload((std::numeric_limits<boost::int16_t>::min)())
 		, m_storage_tick(0)
 		, m_auto_managed(p.flags & add_torrent_params::flag_auto_managed)
@@ -3662,7 +3663,7 @@ namespace libtorrent
 			return;
 		}
 
-		if (int(m_connections.size()) - m_num_connecting < 10)
+		if (int(m_connections.size() - m_num_connecting) < 10)
 		{
 			// there are too few peers. Be conservative and don't assume it's
 			// well seeded until we can connect to more peers
@@ -3673,8 +3674,8 @@ namespace libtorrent
 		// if there are at least 10 seeds, and there are 10 times more
 		// seeds than downloaders, enter sequential download mode
 		// (for performance)
-		int downloaders = num_downloaders();
-		int seeds = num_seeds();
+		int const downloaders = num_downloaders();
+		int const seeds = num_seeds();
 		m_auto_sequential = downloaders * 10 <= seeds
 			&& seeds > 9;
 	}
@@ -9065,6 +9066,8 @@ namespace libtorrent
 
 		int seeds = 0;
 		int num_uploads = 0;
+		int num_connecting = 0;
+		int num_connecting_seeds = 0;
 		std::map<piece_block, int> num_requests;
 		for (const_peer_iterator i = this->begin(); i != this->end(); ++i)
 		{
@@ -9073,6 +9076,11 @@ namespace libtorrent
 			TORRENT_ASSERT(m_ses.has_peer(*i));
 #endif
 			peer_connection const& p = *(*i);
+
+			if (p.is_connecting()) ++num_connecting;
+
+			if (p.is_connecting() && p.peer_info_struct()->seed)
+				++num_connecting_seeds;
 
 			if (p.peer_info_struct() && p.peer_info_struct()->seed)
 				++seeds;
@@ -9096,6 +9104,14 @@ namespace libtorrent
 		}
 		TORRENT_ASSERT(num_uploads == int(m_num_uploads));
 		TORRENT_ASSERT(seeds == int(m_num_seeds));
+		TORRENT_ASSERT(num_connecting == int(m_num_connecting));
+		TORRENT_ASSERT(num_connecting_seeds == int(m_num_connecting_seeds));
+		TORRENT_ASSERT(int(m_num_uploads) <= int(m_connections.size()));
+		TORRENT_ASSERT(int(m_num_seeds) <= int(m_connections.size()));
+		TORRENT_ASSERT(int(m_num_connecting) <= int(m_connections.size()));
+		TORRENT_ASSERT(int(m_num_connecting_seeds) <= int(m_connections.size()));
+		TORRENT_ASSERT(int(m_num_connecting) + int(m_num_seeds) >= int(m_num_connecting_seeds));
+		TORRENT_ASSERT(int(m_num_connecting) + int(m_num_seeds) - int(m_num_connecting_seeds) <= int(m_connections.size()));
 
 		if (has_picker())
 		{
@@ -12246,20 +12262,27 @@ namespace libtorrent
 		m_stats_counters.inc_stats_counter(counters::recv_failed_bytes, b);
 	}
 
+	// the number of connected peers that are seeds
 	int torrent::num_seeds() const
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
-		return m_num_seeds;
+		return int(m_num_seeds) - int(m_num_connecting_seeds);
 	}
 
+	// the number of connected peers that are not seeds
 	int torrent::num_downloaders() const
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
-		return (std::max)(0, int(m_connections.size()) - m_num_seeds - m_num_connecting);
+		int const ret = int(m_connections.size())
+			- m_num_seeds
+			- m_num_connecting
+			+ m_num_connecting_seeds;
+		TORRENT_ASSERT(ret >= 0);
+		return ret;
 	}
 
 	void torrent::tracker_request_error(tracker_request const& r

@@ -1110,12 +1110,26 @@ namespace libtorrent
 		void inc_refcount(char const* purpose);
 		int refcount() const { return m_refcount; }
 
-		void inc_num_connecting()
-		{ ++m_num_connecting; }
-		void dec_num_connecting()
+		void inc_num_connecting(torrent_peer* pp)
+		{
+			++m_num_connecting;
+			TORRENT_ASSERT(m_num_connecting <= int(m_connections.size()));
+			if (pp->seed)
+			{
+				++m_num_connecting_seeds;
+				TORRENT_ASSERT(m_num_connecting_seeds <= int(m_connections.size()));
+			}
+		}
+		void dec_num_connecting(torrent_peer* pp)
 		{
 			TORRENT_ASSERT(m_num_connecting > 0);
 			--m_num_connecting;
+			if (pp->seed)
+			{
+				TORRENT_ASSERT(m_num_connecting_seeds > 0);
+				--m_num_connecting_seeds;
+			}
+			TORRENT_ASSERT(m_num_connecting <= int(m_connections.size()));
 		}
 
 		bool is_ssl_torrent() const { return m_ssl_torrent; }
@@ -1127,7 +1141,7 @@ namespace libtorrent
 		void set_ssl_cert_buffer(std::string const& certificate
 			, std::string const& private_key
 			, std::string const& dh_params);
-		boost::asio::ssl::context* ssl_ctx() const { return m_ssl_ctx.get(); } 
+		boost::asio::ssl::context* ssl_ctx() const { return m_ssl_ctx.get(); }
 #endif
 
 		int num_time_critical_pieces() const
@@ -1645,6 +1659,10 @@ namespace libtorrent
 		// the number of peer connections to seeds. This should be the same as
 		// counting the peer connections that say true for is_seed()
 		boost::uint16_t m_num_seeds;
+
+		// this is the number of peers that are seeds, and count against
+		// m_num_seeds, but have not yet been connected
+		boost::uint16_t m_num_connecting_seeds;
 
 		// the timestamp of the last byte uploaded from this torrent specified in
 		// session_time. This is signed because it must be able to represent time
