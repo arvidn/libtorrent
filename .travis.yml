@@ -3,9 +3,9 @@ language: cpp
 matrix:
   fast_finish: true
   include:
-    - env: variant=test_debug lint=1 tests=1 python=1 toolset=gcc-sanitizer
+    - env: variant=test_debug lint=1 tests=1 toolset=gcc-sanitizer
     - env: variant=test_debug sim=1 ssl=openssl crypto=libcrypto toolset=gcc-sanitizer
-    - env: variant=test_release coverage=1 tests=1 toolset=gcc-coverage
+    - env: variant=test_release coverage=1 tests=1 toolset=gcc-coverage python=1
     - env: autotools=1 toolset=gcc
     - os: osx
       osx_image: xcode6.4
