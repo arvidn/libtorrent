@@ -547,13 +547,8 @@ namespace libtorrent { namespace dht
 	std::vector<udp::endpoint> save_nodes(node const& dht)
 	{
 		std::vector<udp::endpoint> ret;
+		// TODO: refactor for more use of lambda
 		dht.m_table.for_each_node(&add_node_fun, &add_node_fun, &ret);
-		bucket_t cache;
-		dht.replacement_cache(cache);
-		for (auto const& b : cache)
-		{
-			ret.push_back(b.ep());
-		}
 		return ret;
 	}
 

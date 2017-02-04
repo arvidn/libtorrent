@@ -249,8 +249,6 @@ public:
 
 	int num_active_buckets() const { return int(m_buckets.size()); }
 
-	void replacement_cache(bucket_t& nodes) const;
-
 	int bucket_limit(int bucket) const;
 
 #if TORRENT_USE_INVARIANT_CHECKS

@@ -276,15 +276,6 @@ out:
 	return candidate;
 }
 
-void routing_table::replacement_cache(bucket_t& nodes) const
-{
-	for (auto const& b : m_buckets)
-	{
-		std::copy(b.replacements.begin(), b.replacements.end()
-			, std::back_inserter(nodes));
-	}
-}
-
 routing_table::table_t::iterator routing_table::find_bucket(node_id const& id)
 {
 //	TORRENT_ASSERT(id != m_id);
