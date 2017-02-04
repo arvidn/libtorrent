@@ -2666,7 +2666,7 @@ TORRENT_TEST(routing_table_for_each)
 
 	int nodes;
 	int replacements;
-	boost::tie(nodes, replacements, std::ignore) = tbl.size();
+	boost::tie(nodes, replacements, boost::ignore) = tbl.size();
 
 	std::printf("num_active_buckets: %d\n", tbl.num_active_buckets());
 	std::printf("live nodes: %d\n", nodes);
