@@ -3660,6 +3660,8 @@ namespace libtorrent
 
 		m_super_seeding = on;
 
+		state_updated();
+
 		if (m_super_seeding) return;
 
 		// disable super seeding for all peers
