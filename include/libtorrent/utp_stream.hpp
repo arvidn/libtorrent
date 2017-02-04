@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/packet_buffer.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/time.hpp"
+#include "libtorrent/close_reason.hpp"
 
 #include <functional>
 
@@ -190,16 +191,18 @@ void utp_writable(utp_socket_impl* s);
 // will keep the utp_stream object around for.
 // for more details, see utp_socket_impl, which is analogous
 // to the kernel state for a socket. It's defined in utp_stream.cpp
-class TORRENT_EXTRA_EXPORT utp_stream
+struct TORRENT_EXTRA_EXPORT utp_stream
 {
-public:
-
-	typedef utp_stream lowest_layer_type;
-	typedef tcp::socket::endpoint_type endpoint_type;
-	typedef tcp::socket::protocol_type protocol_type;
+	using lowest_layer_type = utp_stream ;
+	using endpoint_type = tcp::socket::endpoint_type;
+	using protocol_type = tcp::socket::protocol_type;
 
 	explicit utp_stream(io_service& io_service);
 	~utp_stream();
+	utp_stream& operator=(utp_stream const&) = delete;
+	utp_stream(utp_stream const&) = delete;
+	utp_stream& operator=(utp_stream&&) = default;
+	utp_stream(utp_stream&&) = default;
 
 	lowest_layer_type& lowest_layer() { return *this; }
 
@@ -245,10 +248,10 @@ public:
 	}
 
 	void close();
-	void close(error_code const& /*ec*/) { close(); }
+	void close(error_code const&) { close(); }
 
-	void set_close_reason(std::uint16_t code);
-	std::uint16_t get_close_reason();
+	void set_close_reason(close_reason_t code);
+	close_reason_t get_close_reason();
 
 	bool is_open() const { return m_open; }
 
@@ -258,7 +261,7 @@ public:
 	static void on_write(void* self, std::size_t bytes_transferred
 		, error_code const& ec, bool kill);
 	static void on_connect(void* self, error_code const& ec, bool kill);
-	static void on_close_reason(void* self, std::uint16_t reason);
+	static void on_close_reason(void* self, close_reason_t reason);
 
 	void add_read_buffer(void* buf, size_t len);
 	void issue_read();
@@ -484,8 +487,6 @@ public:
 	}
 
 private:
-	// explicitly disallow assignment, to silence msvc warning
-	utp_stream& operator=(utp_stream const&);
 
 	void cancel_handlers(error_code const&);
 
@@ -496,7 +497,7 @@ private:
 	io_service& m_io_service;
 	utp_socket_impl* m_impl;
 
-	std::uint16_t m_incoming_close_reason;
+	close_reason_t m_incoming_close_reason = close_reason_t::none;
 
 	// this field requires another 8 bytes (including padding)
 	bool m_open;

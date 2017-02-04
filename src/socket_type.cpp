@@ -329,7 +329,7 @@ namespace libtorrent
 		TORRENT_SOCKTYPE_FORWARD(close(ec))
 	}
 
-	void socket_type::set_close_reason(std::uint16_t code)
+	void socket_type::set_close_reason(close_reason_t code)
 	{
 		switch (m_type)
 		{
@@ -345,7 +345,7 @@ namespace libtorrent
 		}
 	}
 
-	std::uint16_t socket_type::get_close_reason()
+	close_reason_t socket_type::get_close_reason()
 	{
 		switch (m_type)
 		{
@@ -355,7 +355,7 @@ namespace libtorrent
 			case socket_type_int_impl<ssl_stream<utp_stream>>::value:
 				return get<ssl_stream<utp_stream>>()->lowest_layer().get_close_reason();
 #endif
-			default: return 0;
+			default: return close_reason_t::none;
 		}
 	}
 

@@ -2790,7 +2790,7 @@ namespace aux {
 				m_alerts.emplace_alert<peer_disconnected_alert>(torrent_handle(), endp, peer_id()
 						, op_bittorrent, s->type()
 						, error_code(errors::too_many_connections)
-						, close_no_reason);
+						, close_reason_t::none);
 			}
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log())
