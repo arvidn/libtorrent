@@ -196,8 +196,6 @@ public:
 
 	int num_active_buckets() const { return m_buckets.size(); }
 
-	void replacement_cache(bucket_t& nodes) const;
-
 #if defined TORRENT_DEBUG
 	// used for debug and monitoring purposes. This will print out
 	// the state of the routing table to the given stream
