@@ -643,6 +643,14 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 
 		// add_web_seed won't add duplicates. If we have already added an entry
 		// with this URL, we'll get back the existing entry
+
+		// "ephemeral" flag should be set to avoid "web_seed_t" saving in resume data.
+		// E.g. original "web_seed_t" request url points to "http://example1.com/file1" and
+		// web server responses with redirect location "http://example2.com/subpath/file2".
+		// "handle_redirect" process this location to create new "web_seed_t"
+		// with base url=="http://example2.com/" and redirects[0]=="/subpath/file2").
+		// If we try to load resume with such "web_seed_t" then "web_peer_connection" will send
+		// request with wrong path "http://example2.com/file1" (cause "redirects" map is not serialized in resume)
 		web_seed_t* web = t->add_web_seed(redirect_base, web_seed_entry::url_seed, m_external_auth, m_extra_headers, true);
 		web->have_files.resize(t->torrent_file().num_files(), false);
 

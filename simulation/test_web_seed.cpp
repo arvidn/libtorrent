@@ -36,11 +36,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "simulator/http_server.hpp"
+#include "simulator/http_proxy.hpp"
 #include "settings.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "simulator/simulator.hpp"
 #include "setup_swarm.hpp"
 #include "utils.hpp"
+#include "make_proxy_settings.hpp"
 #include "simulator/utils.hpp"
 #include <iostream>
 
@@ -358,6 +360,67 @@ TORRENT_TEST(multi_file_redirect)
 		},
 		[&fs](sim::simulation& sim, lt::session& ses)
 		{
+			// http1 is the root web server that will just redirect requests to
+			// other servers
+			sim::asio::io_service web_server1(sim, address_v4::from_string("2.2.2.2"));
+			sim::http_server http1(web_server1, 8080);
+			// redirect file 1 and file 2 to different servers
+			http1.register_redirect("/foo/1", "http://3.3.3.3:4444/bla/file1");
+			http1.register_redirect("/foo/2", "http://4.4.4.4:9999/bar/file2");
+
+			// server for file 1
+			sim::asio::io_service web_server2(sim, address_v4::from_string("3.3.3.3"));
+			sim::http_server http2(web_server2, 4444);
+			serve_content_for(http2, "/bla/file1", fs, file_index_t(0));
+
+			// server for file 2
+			sim::asio::io_service web_server3(sim, address_v4::from_string("4.4.4.4"));
+			sim::http_server http3(web_server3, 9999);
+			serve_content_for(http3, "/bar/file2", fs, file_index_t(1));
+
+			sim.run();
+		}
+	);
+
+	TEST_EQUAL(seeding, true);
+}
+// test web_seed redirect through proxy
+TORRENT_TEST(multi_file_redirect_through_proxy)
+{
+	using namespace libtorrent;
+	file_storage fs;
+	fs.add_file(combine_path("foo", "1"), 0xc000);
+	fs.add_file(combine_path("foo", "2"), 0xc030);
+	lt::add_torrent_params params = ::create_torrent(fs);
+	params.url_seeds.push_back("http://2.2.2.2:8080/");
+
+	bool seeding = false;
+
+	run_test(
+		[&params](lt::session& ses)
+		{
+			settings_pack pack;
+
+			pack.set_int(settings_pack::proxy_type, settings_pack::http);
+			pack.set_str(settings_pack::proxy_hostname, "50.50.50.50");
+			pack.set_str(settings_pack::proxy_username, "testuser");
+			pack.set_str(settings_pack::proxy_password, "testpass");
+			pack.set_int(settings_pack::proxy_port, 4445);
+			pack.set_bool(settings_pack::proxy_hostnames, true);
+			//TODO: ses.apply_settings(pack);
+
+			ses.async_add_torrent(params);
+		},
+		[&](lt::session& ses, lt::alert const* alert) {
+			if (lt::alert_cast<lt::torrent_finished_alert>(alert)) {
+				seeding = true;
+			}
+		},
+		[&fs](sim::simulation& sim, lt::session& ses)
+		{
+			sim::asio::io_service proxy_ios(sim, address_v4::from_string("50.50.50.50"));
+			sim::http_proxy http_p(proxy_ios, 4445);
+
 			// http1 is the root web server that will just redirect requests to
 			// other servers
 			sim::asio::io_service web_server1(sim, address_v4::from_string("2.2.2.2"));
