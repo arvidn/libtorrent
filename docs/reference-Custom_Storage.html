@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.12: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
 <title>Custom Storage</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;libtorrent.org" />
 <meta name=viewport content="width=device-width, initial-scale=1">
@@ -42,7 +42,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;libtorrent.org">arvid&#64;libtorrent.org</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>1.0.10</td></tr>
+<td>1.0.11</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -67,7 +67,7 @@ the <a class="reference external" href="reference-Session.html#storage">add_torr
 <tt class="docutils literal"><span class="pre">std::map</span></tt>, i.e. in RAM. It's not necessarily very useful in practice, but
 illustrates the basics of implementing a custom storage.</p>
 <pre class="code c++ literal-block">
-<span class="keyword">struct</span> <span class="name label">temp_storage</span> <span class="punctuation">:</span> <span class="name">storage_interface</span>
+<span class="keyword">struct</span> <span class="name">temp_storage</span> <span class="operator">:</span> <span class="name">storage_interface</span>
 <span class="punctuation">{</span>
         <span class="name">temp_storage</span><span class="punctuation">(</span><span class="name">file_storage</span> <span class="keyword">const</span><span class="operator">&amp;</span> <span class="name">fs</span><span class="punctuation">)</span> <span class="operator">:</span> <span class="name">m_files</span><span class="punctuation">(</span><span class="name">fs</span><span class="punctuation">)</span> <span class="punctuation">{}</span>
         <span class="keyword type">void</span> <span class="name">set_file_priority</span><span class="punctuation">(</span><span class="name">std</span><span class="operator">::</span><span class="name">vector</span><span class="operator">&lt;</span><span class="name">boost</span><span class="operator">::</span><span class="keyword type">uint8_t</span><span class="operator">&gt;</span> <span class="keyword">const</span><span class="operator">&amp;</span> <span class="name">prio</span><span class="punctuation">)</span> <span class="punctuation">{}</span>
@@ -114,7 +114,7 @@ illustrates the basics of implementing a custom storage.</p>
 </span>                        <span class="keyword">if</span> <span class="punctuation">(</span><span class="name">data</span><span class="punctuation">.</span><span class="name">size</span><span class="punctuation">()</span> <span class="operator">&lt;</span> <span class="name">piece_size</span><span class="punctuation">)</span> <span class="name">data</span><span class="punctuation">.</span><span class="name">resize</span><span class="punctuation">(</span><span class="name">piece_size</span><span class="punctuation">,</span> <span class="literal number integer">0</span><span class="punctuation">);</span>
                         <span class="name">ph</span><span class="punctuation">.</span><span class="name">h</span><span class="punctuation">.</span><span class="name">update</span><span class="punctuation">(</span><span class="operator">&amp;</span><span class="name">data</span><span class="punctuation">[</span><span class="name">ph</span><span class="punctuation">.</span><span class="name">offset</span><span class="punctuation">],</span> <span class="name">left</span><span class="punctuation">);</span>
                 <span class="punctuation">}</span>
-                <span class="keyword">return</span> <span class="name">ph</span><span class="punctuation">.</span><span class="name">h</span><span class="punctuation">.</span><span class="keyword">final</span><span class="punctuation">();</span>
+                <span class="keyword">return</span> <span class="name">ph</span><span class="punctuation">.</span><span class="name">h</span><span class="punctuation">.</span><span class="name">final</span><span class="punctuation">();</span>
         <span class="punctuation">}</span>
         <span class="keyword">virtual</span> <span class="keyword type">bool</span> <span class="name function">release_files</span><span class="punctuation">()</span> <span class="punctuation">{</span> <span class="keyword">return</span> <span class="name builtin">false</span><span class="punctuation">;</span> <span class="punctuation">}</span>
         <span class="keyword">virtual</span> <span class="keyword type">bool</span> <span class="name function">delete_files</span><span class="punctuation">()</span> <span class="punctuation">{</span> <span class="keyword">return</span> <span class="name builtin">false</span><span class="punctuation">;</span> <span class="punctuation">}</span>

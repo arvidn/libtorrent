@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.12: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.11: http://docutils.sourceforge.net/" />
 <title>Alerts</title>
 <meta name="author" content="Arvid Norberg, arvid&#64;libtorrent.org" />
 <meta name=viewport content="width=device-width, initial-scale=1">
@@ -42,7 +42,7 @@
 <tr><th class="docinfo-name">Author:</th>
 <td>Arvid Norberg, <a class="last reference external" href="mailto:arvid&#64;libtorrent.org">arvid&#64;libtorrent.org</a></td></tr>
 <tr><th class="docinfo-name">Version:</th>
-<td>1.0.10</td></tr>
+<td>1.0.11</td></tr>
 </tbody>
 </table>
 <div class="contents topic" id="table-of-contents">
@@ -194,7 +194,7 @@ order to cast to that <a class="reference external" href="reference-Alerts.html#
 <span class="name">std</span><span class="operator">::</span><span class="name">auto_ptr</span><span class="operator">&lt;</span><span class="name">alert</span><span class="operator">&gt;</span> <span class="name">a</span> <span class="operator">=</span> <span class="name">ses</span><span class="punctuation">.</span><span class="name">pop_alert</span><span class="punctuation">();</span>
 <span class="keyword">switch</span> <span class="punctuation">(</span><span class="name">a</span><span class="operator">-&gt;</span><span class="name">type</span><span class="punctuation">())</span>
 <span class="punctuation">{</span>
-        <span class="keyword">case</span> <span class="name">read_piece_alert</span><span class="operator">::</span><span class="name label">alert_type</span><span class="punctuation">:</span>
+        <span class="keyword">case</span> <span class="name">read_piece_alert</span>:<span class="operator">:</span><span class="name">alert_type</span><span class="operator">:</span>
         <span class="punctuation">{</span>
                 <span class="name">read_piece_alert</span><span class="operator">*</span> <span class="name">p</span> <span class="operator">=</span> <span class="punctuation">(</span><span class="name">read_piece_alert</span><span class="operator">*</span><span class="punctuation">)</span><span class="name">a</span><span class="punctuation">.</span><span class="name">get</span><span class="punctuation">();</span>
                 <span class="keyword">if</span> <span class="punctuation">(</span><span class="name">p</span><span class="operator">-&gt;</span><span class="name">ec</span><span class="punctuation">)</span> <span class="punctuation">{</span>
@@ -204,7 +204,7 @@ order to cast to that <a class="reference external" href="reference-Alerts.html#
                 <span class="comment single">// use p
 </span>                <span class="keyword">break</span><span class="punctuation">;</span>
         <span class="punctuation">}</span>
-        <span class="keyword">case</span> <span class="name">file_renamed_alert</span><span class="operator">::</span><span class="name label">alert_type</span><span class="punctuation">:</span>
+        <span class="keyword">case</span> <span class="name">file_renamed_alert</span>:<span class="operator">:</span><span class="name">alert_type</span><span class="operator">:</span>
         <span class="punctuation">{</span>
                 <span class="comment single">// etc...
 </span>        <span class="punctuation">}</span>

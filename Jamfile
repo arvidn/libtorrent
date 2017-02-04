@@ -23,7 +23,7 @@ if $(BOOST_ROOT)
 	use-project /boost : $(BOOST_ROOT) ;
 }
 
-VERSION = 1.0.10 ;
+VERSION = 1.0.11 ;
 
 rule coverage ( properties * )
 {
