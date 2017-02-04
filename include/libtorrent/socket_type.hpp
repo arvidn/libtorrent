@@ -205,8 +205,8 @@ namespace libtorrent
 		void close(error_code& ec);
 
 		// this is only relevant for uTP connections
-		void set_close_reason(std::uint16_t code);
-		std::uint16_t get_close_reason();
+		void set_close_reason(close_reason_t code);
+		close_reason_t get_close_reason();
 
 		endpoint_type local_endpoint(error_code& ec) const;
 		endpoint_type remote_endpoint(error_code& ec) const;

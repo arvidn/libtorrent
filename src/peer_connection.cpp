@@ -4055,9 +4055,9 @@ namespace libtorrent
 		if (m_disconnecting) return;
 
 		m_socket->set_close_reason(error_to_close_reason(ec));
-		close_reason_t close_reason = close_reason_t(m_socket->get_close_reason());
+		close_reason_t const close_reason = m_socket->get_close_reason();
 #ifndef TORRENT_DISABLE_LOGGING
-		if (close_reason != 0)
+		if (close_reason != close_reason_t::none)
 		{
 			peer_log(peer_log_alert::info, "CLOSE_REASON", "%d", int(close_reason));
 		}

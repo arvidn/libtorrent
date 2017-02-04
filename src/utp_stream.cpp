@@ -306,7 +306,7 @@ struct utp_socket_impl
 	// returns true if there were handlers cancelled
 	// if it returns false, we can detach immediately
 	bool destroy();
-	void set_close_reason(std::uint16_t code);
+	void set_close_reason(close_reason_t code);
 	void detach();
 	void send_syn();
 	void send_fin();
@@ -515,7 +515,7 @@ public:
 	// if this is != 0, it means the upper layer provided a reason for why
 	// the connection is being closed. The reason is indicated by this
 	// non-zero value which is included in a packet header extension
-	std::uint16_t m_close_reason = 0;
+	close_reason_t m_close_reason = close_reason_t::none;
 
 	// port of destination endpoint
 	std::uint16_t m_port = 0;
@@ -796,7 +796,6 @@ int utp_stream::recv_delay() const
 utp_stream::utp_stream(io_service& io_service)
 	: m_io_service(io_service)
 	, m_impl(nullptr)
-	, m_incoming_close_reason(0)
 	, m_open(false)
 {
 }
@@ -806,13 +805,13 @@ utp_socket_impl* utp_stream::get_impl()
 	return m_impl;
 }
 
-void utp_stream::set_close_reason(std::uint16_t code)
+void utp_stream::set_close_reason(close_reason_t code)
 {
 	if (!m_impl) return;
 	m_impl->set_close_reason(code);
 }
 
-std::uint16_t utp_stream::get_close_reason()
+close_reason_t utp_stream::get_close_reason()
 {
 	return m_incoming_close_reason;
 }
@@ -878,14 +877,14 @@ int utp_stream::read_buffer_size() const
 	return m_impl->m_receive_buffer_size;
 }
 
-void utp_stream::on_close_reason(void* self, std::uint16_t close_reason)
+void utp_stream::on_close_reason(void* self, close_reason_t reason)
 {
 	utp_stream* s = static_cast<utp_stream*>(self);
 
 	// it's possible the socket has been unlinked already, in which case m_impl
 	// will be nullptr
 	if (s->m_impl)
-		s->m_incoming_close_reason = close_reason;
+		s->m_incoming_close_reason = reason;
 }
 
 void utp_stream::on_read(void* self, size_t bytes_transferred
@@ -1248,11 +1247,11 @@ void utp_socket_impl::maybe_trigger_send_callback()
 	m_write_buffer.clear();
 }
 
-void utp_socket_impl::set_close_reason(std::uint16_t code)
+void utp_socket_impl::set_close_reason(close_reason_t code)
 {
 #if TORRENT_UTP_LOG
 	UTP_LOGV("%8p: set_close_reason: %d\n"
-		, static_cast<void*>(this), int(m_close_reason));
+		, static_cast<void*>(this), static_cast<int>(m_close_reason));
 #endif
 	m_close_reason = code;
 }
@@ -1459,7 +1458,7 @@ void utp_socket_impl::parse_close_reason(std::uint8_t const* ptr, int size)
 	if (size != 4) return;
 	// skip reserved bytes
 	ptr += 2;
-	std::uint16_t incoming_close_reason = detail::read_uint16(ptr);
+	close_reason_t incoming_close_reason = static_cast<close_reason_t>(detail::read_uint16(ptr));
 
 	UTP_LOGV("%8p: incoming close_reason: %d\n"
 		, static_cast<void*>(this), int(incoming_close_reason));
@@ -1751,7 +1750,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 		if (sack > 32) sack = 32;
 	}
 
-	std::uint32_t const close_reason = m_close_reason;
+	std::uint32_t const close_reason = static_cast<std::uint32_t>(m_close_reason);
 
 	// MTU DISCOVERY
 
@@ -3532,7 +3531,7 @@ void utp_socket_impl::tick(time_point now)
 		// observed that the SSL shutdown sometimes can hang in a state where
 		// there's no outstanding data, and it won't receive any more from the
 		// other end. This catches that case and let the socket time out.
-		if (m_outbuf.size() || m_close_reason != 0)
+		if (m_outbuf.size() || m_close_reason != close_reason_t::none)
 		{
 			++m_num_timeouts;
 			m_sm->inc_stats_counter(counters::utp_timeout);

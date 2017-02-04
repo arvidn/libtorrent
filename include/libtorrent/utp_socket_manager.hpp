@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
-	class utp_stream;
+	struct utp_stream;
 	struct utp_socket_impl;
 	struct counters;
 

@@ -40,114 +40,114 @@ namespace libtorrent
 	// internal: these are all the reasons to disconnect a peer
 	// all reasons caused by the peer sending unexpected data
 	// are 256 and up.
-	enum close_reason_t
+	enum class close_reason_t : std::uint16_t
 	{
 		// no reason specified. Generic close.
-		close_no_reason = 0,
+		none = 0,
 
 		// we're already connected to
-		close_duplicate_peer_id,
+		duplicate_peer_id,
 
 		// this torrent has been removed, paused or stopped from this client.
-		close_torrent_removed,
+		torrent_removed,
 
 		// client failed to allocate necessary memory for this peer connection
-		close_no_memory,
+		no_memory,
 
 		// the source port of this peer is blocked
-		close_port_blocked,
+		port_blocked,
 
 		// the source IP has been blocked
-		close_blocked,
+		blocked,
 
 		// both ends of the connection are upload-only. staying connected would
 		// be redundant
-		close_upload_to_upload,
+		upload_to_upload,
 
 		// connection was closed because the other end is upload only and does
 		// not have any pieces we're interested in
-		close_not_interested_upload_only,
+		not_interested_upload_only,
 
 		// peer connection timed out (generic timeout)
-		close_timeout,
+		timeout,
 
 		// the peers have not been interested in each other for a very long time.
 		// disconnect
-		close_timed_out_interest,
+		timed_out_interest,
 
 		// the peer has not sent any message in a long time.
-		close_timed_out_activity,
+		timed_out_activity,
 
 		// the peer did not complete the handshake in too long
-		close_timed_out_handshake,
+		timed_out_handshake,
 
 		// the peer sent an interested message, but did not send a request
 		// after a very long time after being unchoked.
-		close_timed_out_request,
+		timed_out_request,
 
 		// the encryption mode is blocked
-		close_protocol_blocked,
+		protocol_blocked,
 
 		// the peer was disconnected in the hopes of finding a better peer
 		// in the swarm
-		close_peer_churn,
+		peer_churn,
 
 		// we have too many peers connected
-		close_too_many_connections,
+		too_many_connections,
 
 		// we have too many file-descriptors open
-		close_too_many_files,
+		too_many_files,
 
 		// the encryption handshake failed
-		close_encryption_error = 256,
+		encryption_error = 256,
 
 		// the info hash sent as part of the handshake was not what we expected
-		close_invalid_info_hash,
+		invalid_info_hash,
 
-		close_self_connection,
+		self_connection,
 
 		// the metadata received matched the info-hash, but failed to parse.
 		// this is either someone finding a SHA1 collision, or the author of
 		// the magnet link creating it from an invalid torrent
-		close_invalid_metadata,
+		invalid_metadata,
 
 		// the advertised metadata size
-		close_metadata_too_big,
+		metadata_too_big,
 
 		// invalid bittorrent messages
-		close_message_too_big,
-		close_invalid_message_id,
-		close_invalid_message,
-		close_invalid_piece_message,
-		close_invalid_have_message,
-		close_invalid_bitfield_message,
-		close_invalid_choke_message,
-		close_invalid_unchoke_message,
-		close_invalid_interested_message,
-		close_invalid_not_interested_message,
-		close_invalid_request_message,
-		close_invalid_reject_message,
-		close_invalid_allow_fast_message,
-		close_invalid_extended_message,
-		close_invalid_cancel_message,
-		close_invalid_dht_port_message,
-		close_invalid_suggest_message,
-		close_invalid_have_all_message,
-		close_invalid_dont_have_message,
-		close_invalid_have_none_message,
-		close_invalid_pex_message,
-		close_invalid_metadata_request_message,
-		close_invalid_metadata_message,
-		close_invalid_metadata_offset,
+		message_too_big,
+		invalid_message_id,
+		invalid_message,
+		invalid_piece_message,
+		invalid_have_message,
+		invalid_bitfield_message,
+		invalid_choke_message,
+		invalid_unchoke_message,
+		invalid_interested_message,
+		invalid_not_interested_message,
+		invalid_request_message,
+		invalid_reject_message,
+		invalid_allow_fast_message,
+		invalid_extended_message,
+		invalid_cancel_message,
+		invalid_dht_port_message,
+		invalid_suggest_message,
+		invalid_have_all_message,
+		invalid_dont_have_message,
+		invalid_have_none_message,
+		invalid_pex_message,
+		invalid_metadata_request_message,
+		invalid_metadata_message,
+		invalid_metadata_offset,
 
 		// the peer sent a request while being choked
-		close_request_when_choked,
+		request_when_choked,
 
 		// the peer sent corrupt data
-		close_corrupt_pieces,
+		corrupt_pieces,
 
-		close_pex_message_too_big,
-		close_pex_too_frequent
+		pex_message_too_big,
+		pex_too_frequent
 	};
 
 	close_reason_t error_to_close_reason(error_code const& ec);
