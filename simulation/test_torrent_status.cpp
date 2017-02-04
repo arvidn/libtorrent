@@ -79,24 +79,294 @@ TORRENT_TEST(status_timers)
 			if ((ticks % 3600) == 0)
 			{
 				lt::time_point const now = lt::clock_type::now();
-				auto const since_start = duration_cast<seconds>(now - start_time) - lt::seconds(1);
+				// finish is 1 tick after start
+				auto const since_finish = duration_cast<seconds>(now - start_time) - lt::seconds(1);
 				torrent_status st = handle.status();
-				TEST_CHECK(st.active_duration == since_start);
-				TEST_CHECK(st.seeding_duration == since_start);
-				TEST_CHECK(st.finished_duration == since_start);
-				TEST_CHECK(st.last_upload < start_time);
+				TEST_EQUAL(st.active_duration.count(), since_finish.count());
+				TEST_EQUAL(st.seeding_duration.count(), since_finish.count());
+				TEST_EQUAL(st.finished_duration.count(), since_finish.count());
 
-				// checking the torrent counts as downloading
-				// eventually though, we've forgotten about it and go back to -1
-				if (since_start > lt::seconds(65000))
-				{
-					TEST_CHECK(st.last_download < start_time);
-				}
-				else
-				{
-					// TODO: this should really be a proximity-check
-					TEST_CHECK(st.last_download == start_time + lt::seconds(1));
-				}
+				// does not upload without peers
+				TEST_CHECK(st.last_upload == start_time);
+				// does not download in seeding mode
+				TEST_CHECK(st.last_download == start_time);
+			}
+			return false;
+		});
+	TEST_CHECK(ran_to_completion);
+}
+
+TORRENT_TEST(status_timers_last_upload)
+{
+	bool ran_to_completion = false;
+
+	lt::time_point start_time;
+	lt::torrent_handle handle;
+
+	setup_swarm(2, swarm_test::upload
+		// add session
+		, [](lt::settings_pack&) {}
+		// add torrent
+		, [](lt::add_torrent_params&) {}
+		// on alert
+		, [&](lt::alert const* a, lt::session&) {
+			if (auto ta = alert_cast<torrent_added_alert>(a))
+			{
+				TEST_CHECK(!handle.is_valid());
+				start_time = lt::clock_type::now();
+				handle = ta->handle;
+				torrent_status st = handle.status();
+				// test last upload and download state before wo go throgh
+				// torrent states
+				TEST_CHECK(st.last_download == start_time);
+				TEST_CHECK(st.last_upload == start_time);
+			}
+		}
+		// terminate
+		, [&](int ticks, lt::session&) -> bool
+		{
+			if (ticks > 10)
+			{
+				ran_to_completion = true;
+				return true;
+			}
+
+			torrent_status st = handle.status();
+			// uploadtime is 0 seconds behind now
+			TEST_EQUAL(duration_cast<seconds>(st.last_upload - lt::clock_type::now()).count(), 0);
+			// does not download in seeding mode
+			TEST_CHECK(st.last_download == start_time);
+			return false;
+		});
+	TEST_CHECK(ran_to_completion);
+}
+
+TORRENT_TEST(status_timers_time_shift_with_active_torrent)
+{
+	bool ran_to_completion = false;
+
+	lt::time_point start_time;
+	lt::torrent_handle handle;
+	seconds expected_active_duration = seconds(0);
+	bool tick_is_in_active_range = false;
+	int tick_check_intervall = 1;
+
+	setup_swarm(1, swarm_test::upload
+		// add session
+		, [](lt::settings_pack&) {}
+		// add torrent
+		, [](lt::add_torrent_params&) {}
+		// on alert
+		, [&](lt::alert const* a, lt::session&) {
+			if (auto ta = alert_cast<torrent_added_alert>(a))
+			{
+				TEST_CHECK(!handle.is_valid());
+				start_time = lt::clock_type::now();
+				handle = ta->handle;
+				torrent_status st = handle.status();
+				// test last upload and download state before wo go throgh
+				// torrent states
+				TEST_CHECK(st.last_download == start_time);
+				TEST_CHECK(st.last_upload == start_time);
+			}
+		}
+		// terminate
+		, [&](int ticks, lt::session&) -> bool
+		{
+			if(tick_is_in_active_range){
+				// 1 second per tick
+				expected_active_duration++;
+			}
+
+			switch(ticks)
+			{
+				case 0:
+					// torrent get ready for seeding on first tick, means time +1s
+					tick_is_in_active_range = true;
+					break;
+				case 1:
+					// pause after we did have the first upload tick
+					handle.pause();
+					tick_is_in_active_range = false;
+					break;
+				case 64000:
+					// resume just before we hit the time shift handling
+					// this is needed to test what happend if we want to
+					// shift more time then we have active time because
+					// we shift 4 hours and have less then 1 hours active time
+					handle.resume();
+					tick_is_in_active_range = true;
+					// don't check every tick
+					tick_check_intervall = 600;
+					break;
+				case 68000:
+					// simulate at least 68000 seconds because timestamps are
+					// 16 bits counting seconds
+					ran_to_completion = true;
+					return true;
+			}
+
+			// verify that the timers seem correct
+			if (tick_is_in_active_range && (ticks % tick_check_intervall) == 0)
+			{
+				torrent_status st = handle.status();
+				TEST_EQUAL(st.active_duration.count(), expected_active_duration.count());
+				TEST_EQUAL(st.seeding_duration.count(), expected_active_duration.count());
+				TEST_EQUAL(st.finished_duration.count(), expected_active_duration.count());
+				// does not upload without peers
+				TEST_CHECK(st.last_upload == start_time);
+				// does not download in seeding mode
+				TEST_CHECK(st.last_download == start_time);
+			}
+			return false;
+		});
+	TEST_CHECK(ran_to_completion);
+}
+
+TORRENT_TEST(finish_time_shift_active)
+{
+	bool ran_to_completion = false;
+
+	lt::time_point start_time;
+	lt::torrent_handle handle;
+	seconds expected_active_duration = seconds(0);
+	bool tick_is_in_active_range = false;
+
+	setup_swarm(1, swarm_test::upload
+		// add session
+		, [](lt::settings_pack&) {}
+		// add torrent
+		, [](lt::add_torrent_params&) {}
+		// on alert
+		, [&](lt::alert const* a, lt::session&) {
+			if (auto ta = alert_cast<torrent_added_alert>(a))
+			{
+				TEST_CHECK(!handle.is_valid());
+				start_time = lt::clock_type::now();
+				handle = ta->handle;
+				torrent_status st = handle.status();
+				// test last upload and download state before wo go throgh
+				// torrent states
+				TEST_CHECK(st.last_download == start_time);
+				TEST_CHECK(st.last_upload == start_time);
+			}
+		}
+		// terminate
+		, [&](int ticks, lt::session&) -> bool
+		{
+			if(tick_is_in_active_range){
+				// 1 second per tick
+				expected_active_duration++;
+			}
+
+			switch(ticks)
+			{
+				case 0:
+					// torrent get ready for seeding on first tick, means time +1s
+					tick_is_in_active_range = true;
+					break;
+				case 7000:
+					// pause before 4 hours to get a become finish timestamp which
+					// will be clamped
+					handle.pause();
+					// resume to get an become finish update
+					handle.resume();
+					tick_is_in_active_range = true;
+					break;
+				case 70000:
+					// simulate at least 70000 seconds because timestamps are
+					// 16 bits counting seconds
+					ran_to_completion = true;
+					return true;
+			}
+
+			// verify that the timers seem correct
+			if ((ticks % 3600) == 0)
+			{
+				torrent_status st = handle.status();
+				TEST_EQUAL(st.active_duration.count(), expected_active_duration.count());
+				TEST_EQUAL(st.seeding_duration.count(), expected_active_duration.count());
+				TEST_EQUAL(st.finished_duration.count(), expected_active_duration.count());
+				// does not upload without peers
+				TEST_CHECK(st.last_upload == start_time);
+				// does not download in seeding mode
+				TEST_CHECK(st.last_download == start_time);
+			}
+			return false;
+		});
+	TEST_CHECK(ran_to_completion);
+}
+
+TORRENT_TEST(finish_time_shift_paused)
+{
+	bool ran_to_completion = false;
+
+	lt::time_point start_time;
+	lt::torrent_handle handle;
+	seconds expected_active_duration = seconds(0);
+	bool tick_is_in_active_range = false;
+
+	setup_swarm(1, swarm_test::upload
+		// add session
+		, [](lt::settings_pack&) {}
+		// add torrent
+		, [](lt::add_torrent_params&) {}
+		// on alert
+		, [&](lt::alert const* a, lt::session&) {
+			if (auto ta = alert_cast<torrent_added_alert>(a))
+			{
+				TEST_CHECK(!handle.is_valid());
+				start_time = lt::clock_type::now();
+				handle = ta->handle;
+				torrent_status st = handle.status();
+				// test last upload and download state before wo go throgh
+				// torrent states
+				TEST_CHECK(st.last_download == start_time);
+				TEST_CHECK(st.last_upload == start_time);
+			}
+		}
+		// terminate
+		, [&](int ticks, lt::session&) -> bool
+		{
+			if(tick_is_in_active_range){
+				// 1 second per tick
+				expected_active_duration++;
+			}
+
+			switch(ticks)
+			{
+				case 0:
+					// torrent get ready for seeding on first tick, means time +1s
+					tick_is_in_active_range = true;
+					break;
+				case 7000:
+					// pause before 4 hours to get a become finish timestamp which
+					// will be clamped
+					handle.pause();
+					// resume to get an become finish update
+					handle.resume();
+					// pause to test timeshift in paused state
+					handle.pause();
+					tick_is_in_active_range = false;
+					break;
+				case 70000:
+					// simulate at least 70000 seconds because timestamps are
+					// 16 bits counting seconds
+					ran_to_completion = true;
+					return true;
+			}
+
+			// verify that the timers seem correct
+			if (tick_is_in_active_range && (ticks % 3600) == 0)
+			{
+				torrent_status st = handle.status();
+				TEST_EQUAL(st.active_duration.count(), expected_active_duration.count());
+				TEST_EQUAL(st.seeding_duration.count(), expected_active_duration.count());
+				TEST_EQUAL(st.finished_duration.count(), expected_active_duration.count());
+				// does not upload without peers
+				TEST_CHECK(st.last_upload == start_time);
+				// does not download in seeding mode
+				TEST_CHECK(st.last_download == start_time);
 			}
 			return false;
 		});

@@ -546,7 +546,9 @@ namespace libtorrent
 		// the info-hash for this torrent
 		sha1_hash info_hash;
 
+		// This value is not persistent and get set to session start time.
 		time_point last_upload;
+		// This value is not persistent and get set to session start time.
 		time_point last_download;
 
 		seconds active_duration;
