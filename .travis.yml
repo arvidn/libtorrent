@@ -3,7 +3,7 @@ language: cpp
 matrix:
   fast_finish: true
   include:
-    - env: variant=test_barebones toolset=gcc lint=1 tests=1 tools=1 examples=1
+    - env: variant=test_barebones toolset=gcc lint=1 tests=1 tools=1 examples=1 python=1
     - env: variant=test_debug sim=1 ssl=openssl crypto=libcrypto toolset=gcc-sanitizer
     - env: variant=test_release coverage=1 tests=1 toolset=gcc-coverage
     - env: autotools=1 toolset=gcc
@@ -15,7 +15,7 @@ matrix:
       env: variant=test_debug ssl=openssl tests=1 crypto=libcrypto toolset=darwin
     - os: osx
       osx_image: xcode6.4
-      env: variant=test_barebones tests=1 toolset=darwin
+      env: variant=test_barebones tests=1 toolset=darwin python=1
     - dist: trusty
       env: arch=arm toolset=gcc-arm
 
