@@ -217,27 +217,6 @@ void print_usage(char const* executable)
 		"by -l. If no test is specified, all tests are run\n", executable);
 }
 
-bool change_dir(char const* dir)
-{
-#ifdef TORRENT_WINDOWS
-	if (!SetCurrentDirectoryA(dir))
-	{
-		std::printf("failed to change directory to \"%s\"", dir);
-		return false;
-	}
-#else
-	int ret;
-	ret = chdir(dir);
-	if (ret != 0)
-	{
-		std::printf("failed to change directory to \"%s\": %s"
-			, dir, strerror(errno));
-		return false;
-	}
-#endif
-	return true;
-}
-
 EXPORT int main(int argc, char const* argv[])
 {
 	char const* executable = argv[0];
@@ -336,21 +315,12 @@ EXPORT int main(int argc, char const* argv[])
 #else
 	process_id = getpid();
 #endif
-	char dir[40];
-	std::snprintf(dir, sizeof(dir), "test_tmp_%u", process_id);
-	std::string test_dir = complete(dir);
-	error_code ec;
-	create_directory(test_dir, ec);
-	if (ec)
-	{
-		std::printf("Failed to create test directory: %s\n", ec.message().c_str());
-		return 1;
-	}
-	int ret;
-	if (!change_dir(dir)) return 1;
-	std::printf("test: %s\ncwd = \"%s\"\nrnd: %x\n"
-		, executable, test_dir.c_str(), libtorrent::random(0xffffffff));
+	std::string root_dir = current_working_directory();
+	std::string unit_dir_prefix = combine_path(root_dir, "test_tmp_" + std::to_string(process_id) + "_");
+	std::printf("test: %s\ncwd_prefix = \"%s\"\nrnd: %x\n"
+		, executable, unit_dir_prefix.c_str(), libtorrent::random(0xffffffff));
 
+	std::vector<std::string> unit_dirs;
 	int total_failures = 0;
 
 	if (_g_num_unit_tests == 0)
@@ -368,16 +338,21 @@ EXPORT int main(int argc, char const* argv[])
 		if (filter && tests_to_run.count(_g_unit_tests[i].name) == 0)
 			continue;
 
-		std::snprintf(dir, sizeof(dir), "sub_%i", i);
-		std::string unit_dir = combine_path(current_working_directory(), dir);
+		std::string unit_dir = unit_dir_prefix + std::to_string(i);
 		error_code ec;
 		create_directory(unit_dir, ec);
 		if (ec)
 		{
-			std::printf("Failed to create unit directory: %s\n", ec.message().c_str());
+			std::printf("Failed to create unit test directory: %s\n", ec.message().c_str());
 			return 1;
 		}
-		if (!change_dir(dir)) return 1; // every unit test must have separate sandbox
+		change_directory(unit_dir, ec);
+		if (ec)
+		{
+			std::printf("Failed to change unit test directory: %s\n", ec.message().c_str());
+			return 1;
+		}
+		unit_dirs.push_back(unit_dir);
 
 		unit_test_t& t = _g_unit_tests[i];
 
@@ -461,8 +436,6 @@ EXPORT int main(int argc, char const* argv[])
 
 		if (redirect_stdout && t.output)
 			fclose(t.output);
-
-		if (!change_dir("..")) return 1; // back to test dir
 	}
 
 	if (redirect_stdout) dup2(old_stdout, fileno(stdout));
@@ -495,14 +468,23 @@ EXPORT int main(int argc, char const* argv[])
 	if (redirect_stdout) fflush(stdout);
 	if (redirect_stderr) fflush(stderr);
 
-	ret = print_failures();
-	if (!change_dir("..")) return 1; // allow windows to remove temp dir
+	int ret = print_failures();
+	error_code ec;
+	change_directory(root_dir, ec);
+	if (ec)
+	{
+		std::printf("Failed to change directory: %s\n", ec.message().c_str());
+		return 1;
+	}
 #if !defined TORRENT_LOGGING
 	if (ret == 0 && !keep_files)
 	{
-		remove_all(test_dir, ec);
-		if (ec)
-			std::printf("failed to remove test dir: %s\n", ec.message().c_str());
+		for (auto const &unit_dir : unit_dirs) 
+		{
+			remove_all(unit_dir, ec);
+			if (ec)
+				std::printf("failed to remove test dir: %s\n", ec.message().c_str());
+		}
 	}
 #endif
 
