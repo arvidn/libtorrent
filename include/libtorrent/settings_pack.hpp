@@ -70,6 +70,9 @@ namespace libtorrent
 	TORRENT_EXPORT int setting_by_name(std::string const& name);
 	TORRENT_EXPORT char const* name_for_setting(int s);
 
+	// returns a settings_pack with every setting set to its default value
+	TORRENT_EXPORT settings_pack default_settings();
+
 #ifndef TORRENT_NO_DEPRECATE
 	struct session_settings;
 	settings_pack load_pack_from_struct(aux::session_settings const& current, session_settings const& s);

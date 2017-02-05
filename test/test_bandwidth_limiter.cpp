@@ -158,7 +158,6 @@ void run_test(connections_t& v
 		, boost::bind(&peer_connection::start, _1));
 
 	libtorrent::aux::session_settings s;
-	initialize_default_settings(s);
 	int tick_interval = s.get_int(settings_pack::tick_interval);
 
 	for (int i = 0; i < int(sample_time * 1000 / tick_interval); ++i)
