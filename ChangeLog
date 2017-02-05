@@ -54,6 +54,8 @@
 	* resume data no longer has timestamps of files
 	* require C++11 to build libtorrent
 
+	* add function to get default settings
+	* updating super seeding would include the torrent in state_update_alert
 	* fix issue where num_seeds could be greater than num_peers in torrent_status
 	* finished non-seed torrents can also be in super-seeding mode
 	* fix issue related to unloading torrents

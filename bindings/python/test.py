@@ -447,6 +447,11 @@ class test_example_client(unittest.TestCase):
             + "some configuration does not output errors like missing module members,"
             + "try to call it manually to get the error message\n")
 
+    def test_default_settings(self):
+
+        default = lt.default_settings()
+        print(default)
+
 if __name__ == '__main__':
     print(lt.__version__)
     shutil.copy(os.path.join('..', '..', 'test', 'test_torrents',

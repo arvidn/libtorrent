@@ -467,6 +467,107 @@ TORRENT_TEST(torrent_completed_alert)
 	TEST_EQUAL(num_file_completed, 1);
 }
 
+// template for testing running swarms with edge case settings
+template <typename SettingsFun>
+void test_settings(SettingsFun fun)
+{
+	setup_swarm(2, swarm_test::download
+		// add session
+		, fun
+		// add torrent
+		, [](lt::add_torrent_params& params) {}
+		// on alert
+		, [](lt::alert const* a, lt::session& ses) {}
+		// terminate
+		, [](int ticks, lt::session& ses) -> bool
+		{
+			if (ticks > 80)
+			{
+				TEST_ERROR("timeout");
+				return true;
+			}
+			if (!is_seed(ses)) return false;
+			return true;
+		});
+}
+
+TORRENT_TEST(unlimited_connections)
+{
+	test_settings([](lt::settings_pack& pack) {
+		pack.set_int(settings_pack::connections_limit, std::numeric_limits<int>::max()); }
+	);
+}
+
+TORRENT_TEST(default_connections_limit)
+{
+	test_settings([](lt::settings_pack& pack) {
+		pack.set_int(settings_pack::connections_limit, 0); }
+	);
+}
+
+TORRENT_TEST(redundant_have)
+{
+	test_settings([](lt::settings_pack& pack) {
+		pack.set_bool(settings_pack::send_redundant_have, false); }
+	);
+}
+
+TORRENT_TEST(lazy_bitfields)
+{
+	test_settings([](lt::settings_pack& pack) {
+		pack.set_bool(settings_pack::lazy_bitfields, true); }
+	);
+}
+
+TORRENT_TEST(prioritize_partial_pieces)
+{
+	test_settings([](lt::settings_pack& pack) {
+		pack.set_bool(settings_pack::prioritize_partial_pieces, true); }
+	);
+}
+
+TORRENT_TEST(active_downloads)
+{
+	test_settings([](lt::settings_pack& pack) {
+		pack.set_int(settings_pack::active_downloads, std::numeric_limits<int>::max()); }
+	);
+}
+
+TORRENT_TEST(active_seeds)
+{
+	test_settings([](lt::settings_pack& pack) {
+		pack.set_int(settings_pack::active_seeds, std::numeric_limits<int>::max()); }
+	);
+}
+
+TORRENT_TEST(active_limit)
+{
+	test_settings([](lt::settings_pack& pack) {
+		pack.set_int(settings_pack::active_limit, std::numeric_limits<int>::max()); }
+	);
+}
+
+TORRENT_TEST(upload_rate_limit)
+{
+	test_settings([](lt::settings_pack& pack) {
+		pack.set_int(settings_pack::upload_rate_limit, std::numeric_limits<int>::max()); }
+	);
+}
+
+TORRENT_TEST(download_rate_limit)
+{
+	test_settings([](lt::settings_pack& pack) {
+		pack.set_int(settings_pack::download_rate_limit, std::numeric_limits<int>::max()); }
+	);
+}
+
+TORRENT_TEST(unchoke_slots_limit)
+{
+	test_settings([](lt::settings_pack& pack) {
+		pack.set_int(settings_pack::unchoke_slots_limit, std::numeric_limits<int>::max()); }
+	);
+}
+
 // TODO: add test that makes sure a torrent in graceful pause mode won't make
 // outgoing connections
 // TODO: add test that makes sure a torrent in graceful pause mode won't accept

@@ -60,9 +60,18 @@ namespace libtorrent
 	void bandwidth_channel::update_quota(int dt_milliseconds)
 	{
 		if (m_limit == 0) return;
-		m_quota_left += (m_limit * dt_milliseconds + 500) / 1000;
-		if (m_quota_left > m_limit * 3) m_quota_left = m_limit * 3;
-		distribute_quota = int((std::max)(m_quota_left, std::int64_t(0)));
+
+		// avoid integer overflow
+		if (m_limit >= std::numeric_limits<int>::max() / dt_milliseconds)
+		{
+			m_quota_left = std::numeric_limits<int>::max();
+		}
+		else
+		{
+			m_quota_left += (m_limit * dt_milliseconds + 500) / 1000;
+			if (m_quota_left / 3 > m_limit) m_quota_left = m_limit * 3;
+		}
+		distribute_quota = int(std::max(m_quota_left, std::int64_t(0)));
 	}
 
 	// this is used when connections disconnect with

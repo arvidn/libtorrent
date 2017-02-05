@@ -202,6 +202,11 @@ namespace
 		return make_dict(ret);
 	}
 
+	dict default_settings_wrapper()
+	{
+		return make_dict(default_settings());
+	}
+
 	dict high_performance_seed_wrapper()
 	{
 		settings_pack ret = high_performance_seed();
@@ -935,6 +940,7 @@ void bind_session()
 
     def("high_performance_seed", high_performance_seed_wrapper);
     def("min_memory_usage", min_memory_usage_wrapper);
+    def("default_settings", default_settings_wrapper);
     def("read_resume_data", read_resume_data_wrapper);
 
 	class_<stats_metric>("stats_metric")

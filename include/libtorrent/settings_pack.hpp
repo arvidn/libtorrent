@@ -68,6 +68,9 @@ namespace libtorrent
 	TORRENT_EXPORT int setting_by_name(std::string const& name);
 	TORRENT_EXPORT char const* name_for_setting(int s);
 
+	// returns a settings_pack with every setting set to its default value
+	TORRENT_EXPORT settings_pack default_settings();
+
 	// The ``settings_pack`` struct, contains the names of all settings as
 	// enum values. These values are passed in to the ``set_str()``,
 	// ``set_int()``, ``set_bool()`` functions, to specify the setting to

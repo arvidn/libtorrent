@@ -4361,6 +4361,7 @@ namespace libtorrent
 
 		m_super_seeding = on;
 		set_need_save_resume();
+		state_updated();
 
 		if (m_super_seeding) return;
 
@@ -7467,6 +7468,7 @@ namespace libtorrent
 			{
 				m_super_seeding = false;
 				set_need_save_resume();
+				state_updated();
 			}
 
 			if (is_finished() && m_state != torrent_status::finished)

@@ -55,6 +55,11 @@ namespace {
 		if (i != c.end() && i->first == v.first) i->second = std::move(v.second);
 		else c.emplace(i, std::move(v));
 	}
+
+	// return the string, unless it's null, in which case the empty string is
+	// returned
+	char const* ensure_string(char const* str)
+	{ return str == nullptr ? "" : str; }
 }
 
 namespace libtorrent
@@ -415,8 +420,7 @@ namespace libtorrent
 		// loop over all settings that differ from default
 		for (int i = 0; i < settings_pack::num_string_settings; ++i)
 		{
-			char const* cmp = str_settings[i].default_value == nullptr ? "" : str_settings[i].default_value;
-			if (cmp == s.m_strings[std::size_t(i)]) continue;
+			if (ensure_string(str_settings[i].default_value) == s.m_strings[std::size_t(i)]) continue;
 			sett[str_settings[i].name] = s.m_strings[std::size_t(i)];
 		}
 
@@ -453,6 +457,28 @@ namespace libtorrent
 			s.set_bool(settings_pack::bool_type_base + i, bool_settings[i].default_value);
 			TORRENT_ASSERT(s.get_bool(settings_pack::bool_type_base + i) == bool_settings[i].default_value);
 		}
+	}
+
+	settings_pack default_settings()
+	{
+		settings_pack ret;
+		// TODO: it would be nice to reserve() these vectors up front
+		for (int i = 0; i < settings_pack::num_string_settings; ++i)
+		{
+			if (str_settings[i].default_value == nullptr) continue;
+			ret.set_str(settings_pack::string_type_base + i, str_settings[i].default_value);
+		}
+
+		for (int i = 0; i < settings_pack::num_int_settings; ++i)
+		{
+			ret.set_int(settings_pack::int_type_base + i, int_settings[i].default_value);
+		}
+
+		for (int i = 0; i < settings_pack::num_bool_settings; ++i)
+		{
+			ret.set_bool(settings_pack::bool_type_base + i, bool_settings[i].default_value);
+		}
+		return ret;
 	}
 
 	void apply_pack(settings_pack const* pack, aux::session_settings& sett
