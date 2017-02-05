@@ -86,7 +86,7 @@ class test_torrent_handle(unittest.TestCase):
         # time, wait for next full second to prevent second increment
         time.sleep(1 - datetime.datetime.now().microsecond / 1000000.0)
 
-        sessionStart = datetime.datetime.now().replace(microsecond=0)
+        sessionStart = datetime.datetime.now().replace(microsecond=0) - datetime.timedelta(seconds=1)
         self.setup()
         st = self.h.status()
         # last upload and download times are at session start time
