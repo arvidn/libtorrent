@@ -6946,7 +6946,7 @@ namespace aux {
 
 		void tracker_logger::tracker_request_error(tracker_request const&
 			, int response_code, error_code const& ec, const std::string& str
-			, int retry_interval)
+			, seconds32 const retry_interval)
 		{
 			TORRENT_UNUSED(retry_interval);
 			debug_log("*** tracker error: %d: %s %s"

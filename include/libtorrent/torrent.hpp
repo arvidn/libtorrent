@@ -95,8 +95,6 @@ namespace libtorrent
 	class bt_peer_connection;
 	struct listen_socket_t;
 
-	using seconds32 = std::chrono::duration<std::int32_t>;
-
 	enum class waste_reason
 	{
 		piece_timed_out, piece_cancelled, piece_unknown, piece_seed
@@ -136,7 +134,7 @@ namespace libtorrent
 			, web_seed_entry::headers_t const& extra_headers_ = web_seed_entry::headers_t());
 
 		// if this is > now, we can't reconnect yet
-		time_point retry = aux::time_now();
+		time_point32 retry = aux::time_now32();
 
 		// if the hostname of the web seed has been resolved,
 		// these are its IP addresses
@@ -480,7 +478,7 @@ namespace libtorrent
 
 		void stop_when_ready(bool b);
 
-		time_point started() const { return m_started; }
+		time_point32 started() const { return m_started; }
 		void step_session_time(int seconds);
 		void do_pause(bool clear_disk_cache = true);
 		void do_resume();
@@ -500,7 +498,7 @@ namespace libtorrent
 			// save resume data every 15 minutes regardless, just to
 			// keep stats up to date
 			return m_need_save_resume_data ||
-				aux::time_now() - m_last_saved_resume > minutes(15);
+				aux::time_now32() - m_last_saved_resume > minutes(15);
 		}
 
 		void set_need_save_resume()
@@ -673,7 +671,7 @@ namespace libtorrent
 			, struct tracker_response const& resp) override;
 		virtual void tracker_request_error(tracker_request const& r
 			, int response_code, error_code const& ec, const std::string& msg
-			, int retry_interval) override;
+			, seconds32 retry_interval) override;
 		virtual void tracker_warning(tracker_request const& req
 			, std::string const& msg) override;
 		virtual void tracker_scrape_response(tracker_request const& req
@@ -1038,7 +1036,7 @@ namespace libtorrent
 		// that are not private
 		void lsd_announce();
 
-		void update_last_upload() { m_last_upload = aux::time_now(); }
+		void update_last_upload() { m_last_upload = aux::time_now32(); }
 
 		void set_apply_ip_filter(bool b);
 		bool apply_ip_filter() const { return m_apply_ip_filter; }
@@ -1138,7 +1136,7 @@ namespace libtorrent
 		void update_peer_interest(bool was_finished);
 		void prioritize_udp_trackers();
 
-		void update_tracker_timer(time_point now);
+		void update_tracker_timer(time_point32 now);
 
 		void on_tracker_announce(error_code const& ec);
 
@@ -1318,7 +1316,7 @@ namespace libtorrent
 		// m_num_verified = m_verified.count()
 		std::uint32_t m_num_verified = 0;
 
-		time_point m_last_saved_resume = aux::time_now();
+		time_point32 m_last_saved_resume = aux::time_now32();
 
 		// if this torrent is running, this was the time
 		// when it was started. This is used to have a
@@ -1328,15 +1326,15 @@ namespace libtorrent
 		// in session-time. see session_impl for details.
 		// the reference point is stepped forward every 4
 		// hours to keep the timestamps fit in 16 bits
-		time_point m_started = aux::time_now();
+		time_point32 m_started = aux::time_now32();
 
 		// if we're a seed, this is the session time
 		// timestamp of when we became one
-		time_point m_became_seed = aux::time_now();
+		time_point32 m_became_seed = aux::time_now32();
 
 		// if we're finished, this is the session time
 		// timestamp of when we finished
-		time_point m_became_finished = aux::time_now();
+		time_point32 m_became_finished = aux::time_now32();
 
 		// when checking, this is the first piece we have not
 		// issued a hash job for
@@ -1385,7 +1383,7 @@ namespace libtorrent
 
 		// the session time timestamp of when we entered upload mode
 		// if we're currently in upload-mode
-		time_point m_upload_mode_time = aux::time_now();
+		time_point32 m_upload_mode_time = aux::time_now32();
 
 		// true when this torrent should announce to
 		// trackers
@@ -1564,7 +1562,7 @@ namespace libtorrent
 		// the timestamp of the last piece passed for this torrent specified in
 		// session_time. This is signed because it must be able to represent time
 		// before the session started
-		time_point m_last_download = aux::time_now();
+		time_point32 m_last_download = aux::time_now32();
 
 		// the number of peer connections to seeds. This should be the same as
 		// counting the peer connections that say true for is_seed()
@@ -1577,7 +1575,7 @@ namespace libtorrent
 		// the timestamp of the last byte uploaded from this torrent specified in
 		// session_time. This is signed because it must be able to represent time
 		// before the session started.
-		time_point m_last_upload = aux::time_now();
+		time_point32 m_last_upload = aux::time_now32();
 
 // ----
 

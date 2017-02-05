@@ -128,7 +128,7 @@ namespace libtorrent
 	}
 
 	void udp_tracker_connection::fail(error_code const& ec, int code
-		, char const* msg, int interval, int min_interval)
+		, char const* msg, seconds32 const interval, seconds32 const min_interval)
 	{
 		// m_target failed. remove it from the endpoint list
 		auto const i = std::find(m_endpoints.begin()
@@ -593,8 +593,8 @@ namespace libtorrent
 
 		tracker_response resp;
 
-		resp.interval = aux::read_int32(buf);
-		resp.min_interval = 60;
+		resp.interval = seconds32(aux::read_int32(buf));
+		resp.min_interval = seconds32(60);
 		resp.incomplete = aux::read_int32(buf);
 		resp.complete = aux::read_int32(buf);
 		int const num_peers = int(buf.size()) / 6;
