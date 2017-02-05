@@ -1285,7 +1285,7 @@ namespace libtorrent
 		// the posix time this torrent was added and when
 		// it was completed. If the torrent isn't yet
 		// completed, m_completed_time is 0
-		time_t m_added_time;
+		time_t m_added_time = time(nullptr);
 		time_t m_completed_time = 0;
 
 		// this was the last time _we_ saw a seed in this swarm
@@ -1425,7 +1425,7 @@ namespace libtorrent
 		// paused. specified in seconds. This only track time _before_ we started
 		// the torrent this last time. When the torrent is paused, this counter is
 		// incremented to include this current session.
-		seconds32 m_active_time;
+		seconds32 m_active_time{0};
 
 		// the index to the last tracker that worked
 		std::int8_t m_last_working_tracker = -1;
@@ -1434,7 +1434,7 @@ namespace libtorrent
 
 		// total time we've been finished with this torrent.
 		// does not count when the torrent is stopped or paused.
-		seconds32 m_finished_time;
+		seconds32 m_finished_time{0};
 
 		// in case the piece picker hasn't been constructed
 		// when this settings is set, this variable will keep
@@ -1474,7 +1474,7 @@ namespace libtorrent
 		// accounts for the time prior to the current start of the torrent. When
 		// the torrent is paused, this counter is incremented to account for the
 		// additional seeding time.
-		seconds32 m_seeding_time;
+		seconds32 m_seeding_time{0};
 
 // ----
 

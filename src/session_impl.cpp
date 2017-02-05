@@ -6923,7 +6923,7 @@ namespace aux {
 				"external ip: %s\n"
 				"we connected to: %s\n"
 				"peers:"
-				, resp.interval
+				, resp.interval.count()
 				, print_address(resp.external_ip).c_str()
 				, print_address(tracker_ip).c_str());
 
