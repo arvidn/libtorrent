@@ -74,7 +74,6 @@ int old_stderr = -1;
 bool redirect_stdout = true;
 bool redirect_stderr = false;
 bool keep_files = false;
-std::string root_dir;
 
 extern int _g_test_idx;
 
@@ -248,18 +247,19 @@ struct unit_directory_guard
 	~unit_directory_guard()
 	{
 		error_code ec;
-		change_directory(root_dir, ec); // windows will not allow to remove current dir, so let's change it to root
+		std::string parent_dir{ parent_path(dir) };
+		change_directory(parent_dir, ec); // windows will not allow to remove current dir, so let's change it to root
 		if (ec)
 		{
-			std::printf("Failed to change directory: %s\n", ec.message().c_str());
+			TEST_ERROR("Failed to change directory: " + ec.message());
 			return;
 		}
-		if (_g_test_failures == 0 && !keep_files)
+		if (!keep_files)
 		{
 			error_code ec;
 			remove_all(dir, ec);
 			if (ec)
-				std::printf("Failed to remove unit test directory: %s\n", ec.message().c_str());
+				TEST_ERROR("Failed to remove unit test directory: " + ec.message());
 		}
 	}
 };
@@ -362,8 +362,8 @@ EXPORT int main(int argc, char const* argv[])
 #else
 	process_id = getpid();
 #endif
-	root_dir = current_working_directory();
-	std::string unit_dir_prefix = combine_path(root_dir, "test_tmp_" + std::to_string(process_id) + "_");
+	std::string root_dir { current_working_directory() };
+	std::string unit_dir_prefix { combine_path(root_dir, "test_tmp_" + std::to_string(process_id) + "_") };
 	std::printf("test: %s\ncwd_prefix = \"%s\"\nrnd: %x\n"
 		, executable, unit_dir_prefix.c_str(), libtorrent::random(0xffffffff));
 
