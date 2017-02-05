@@ -43,7 +43,6 @@ using namespace libtorrent::aux;
 TORRENT_TEST(default_settings)
 {
 	aux::session_settings sett;
-	initialize_default_settings(sett);
 
 	entry e;
 	save_settings_to_dict(sett, e.dict());
@@ -57,10 +56,34 @@ TORRENT_TEST(default_settings)
 #endif
 }
 
+TORRENT_TEST(default_settings2)
+{
+	aux::session_settings sett;
+
+	settings_pack def = default_settings();
+
+	for (int i = 0; i < settings_pack::num_string_settings; ++i)
+	{
+		TEST_EQUAL(sett.get_str(settings_pack::string_type_base + i)
+			, def.get_str(settings_pack::string_type_base + i));
+	}
+
+	for (int i = 0; i < settings_pack::num_int_settings; ++i)
+	{
+		TEST_EQUAL(sett.get_int(settings_pack::int_type_base + i)
+			, def.get_int(settings_pack::int_type_base + i));
+	}
+
+	for (int i = 0; i < settings_pack::num_bool_settings; ++i)
+	{
+		TEST_EQUAL(sett.get_bool(settings_pack::bool_type_base + i)
+			, def.get_bool(settings_pack::bool_type_base + i));
+	}
+}
+
 TORRENT_TEST(apply_pack)
 {
 	aux::session_settings sett;
-	initialize_default_settings(sett);
 	settings_pack sp;
 	sp.set_int(settings_pack::max_out_request_queue, 1337);
 

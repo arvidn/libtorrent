@@ -296,7 +296,6 @@ namespace libtorrent
 	TORRENT_EXPORT session_settings min_memory_usage()
 	{
 		aux::session_settings def;
-		initialize_default_settings(def);
 		settings_pack pack;
 		min_memory_usage(pack);
 		apply_pack(&pack, def, 0);
@@ -308,7 +307,6 @@ namespace libtorrent
 	TORRENT_EXPORT session_settings high_performance_seed()
 	{
 		aux::session_settings def;
-		initialize_default_settings(def);
 		settings_pack pack;
 		high_performance_seed(pack);
 		apply_pack(&pack, def, 0);
@@ -421,7 +419,6 @@ namespace libtorrent
 	session_settings::session_settings(std::string const& user_agent_)
 	{
 		aux::session_settings def;
-		initialize_default_settings(def);
 		def.set_str(settings_pack::user_agent, user_agent_);
 		load_struct_from_settings(def, *this);
 	}

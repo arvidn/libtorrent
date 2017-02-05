@@ -267,6 +267,11 @@ class test_session(unittest.TestCase):
 		self.assertTrue('connection_speed' in seed_mode)
 		self.assertTrue('file_pool_size' in seed_mode)
 
+	def test_default_settings(self):
+
+		default = lt.default_settings()
+		print(default)
+
 if __name__ == '__main__':
 	print(lt.__version__)
 	shutil.copy(os.path.join('..', '..', 'test', 'test_torrents', 'url_seed_multi.torrent'), '.')
