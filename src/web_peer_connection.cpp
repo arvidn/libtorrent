@@ -57,17 +57,6 @@ namespace libtorrent
 {
 constexpr int request_size_overhead = 5000;
 
-std::string escape_file_path(const std::string &file_path)
-{
-#ifdef TORRENT_WINDOWS
-	std::string new_path { file_path };
-	convert_path_to_posix(new_path);
-	return escape_path(new_path);
-#else
-	return escape_path(file_path);
-#endif
-}
-
 web_peer_connection::web_peer_connection(peer_connection_args const& pack
 	, web_seed_t& web)
 	: web_connection_base(pack, web)
@@ -118,7 +107,7 @@ web_peer_connection::web_peer_connection(peer_connection_args const& pack
 
 		if (!m_url.empty() && m_url[m_url.size() - 1] == '/')
 		{
-			m_url += escape_file_path(t->torrent_file().files().file_path(file_index_t(0)));
+			m_url += escape_file_path(t->torrent_file().files(), file_index_t(0));
 		}
 	}
 
@@ -131,6 +120,15 @@ web_peer_connection::web_peer_connection(peer_connection_args const& pack
 #ifndef TORRENT_DISABLE_LOGGING
 	peer_log(peer_log_alert::info, "URL", "web_peer_connection %s", m_url.c_str());
 #endif
+}
+
+std::string web_peer_connection::escape_file_path(file_storage const& storage, file_index_t index)
+{
+	std::string new_path { storage.file_path(index) };
+#ifdef TORRENT_WINDOWS
+	convert_path_to_posix(new_path);
+#endif
+	return escape_path(new_path);
 }
 
 void web_peer_connection::on_connected()
@@ -429,7 +427,7 @@ void web_peer_connection::write_request(peer_request const& r)
 					request += m_path;
 				}
 
-				request += escape_file_path(info.orig_files().file_path(f.file_index));
+				request += escape_file_path(info.orig_files(), f.file_index);
 			}
 			request += " HTTP/1.1\r\n";
 			add_headers(request, m_settings, using_proxy);
@@ -667,7 +665,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 			// and further requests will use exclusive range pick logic
 			// which exclude edge pieces file locations.
 
-			std::string original_path = escape_file_path(info.orig_files().file_path(file_index));
+			std::string original_path = escape_file_path(info.orig_files(), file_index);
 			std::size_t redirect_path_idx = redirect_path.rfind(original_path);
 			if (redirect_path_idx != std::string::npos) // we can predict new location
 			{
@@ -680,7 +678,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 					if (web->redirects.find(fi) != web->redirects.end())
 						continue;
 					web->have_files.set_bit(fi);
-					std::string new_path{ redirect_path_prefix + escape_file_path(info.orig_files().file_path(fi)) };
+					std::string new_path{ redirect_path_prefix + escape_file_path(info.orig_files(), fi) };
 					web->redirects[fi] = new_path;
 				}
 			}
