@@ -88,6 +88,7 @@ struct unit_test_t
 extern unit_test_t EXPORT _g_unit_tests[1024];
 extern int EXPORT _g_num_unit_tests;
 extern int EXPORT _g_test_failures;
+extern int EXPORT _g_test_total_failures;
 
 #define TORRENT_TEST(test_name) \
 	static void BOOST_PP_CAT(unit_test_, test_name)(); \

@@ -528,29 +528,6 @@ namespace libtorrent
 #endif
 	}
 
-	void change_directory(std::string const& f, error_code& ec)
-	{
-		ec.clear();
-
-#ifdef TORRENT_WINDOWS
-#if TORRENT_USE_WSTRING
-#define SetCurrentDirectory_ SetCurrentDirectoryW
-		std::wstring n = convert_to_wstring(f);
-#else
-#define SetCurrentDirectory_ SetCurrentDirectoryA
-		std::string const& n = convert_to_native(f);
-#endif // TORRENT_USE_WSTRING
-
-		if (SetCurrentDirectory_(n.c_str()) == 0)
-			ec.assign(GetLastError(), system_category());
-#else
-		std::string n = convert_to_native(f);
-		int ret = ::chdir(n.c_str());
-		if (ret != 0)
-			ec.assign(errno, system_category());
-#endif
-	}
-
 	void hard_link(std::string const& file, std::string const& link
 		, error_code& ec)
 	{

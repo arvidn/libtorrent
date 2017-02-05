@@ -57,6 +57,17 @@ namespace libtorrent
 {
 constexpr int request_size_overhead = 5000;
 
+std::string escape_file_path(const std::string &file_path)
+{
+#ifdef TORRENT_WINDOWS
+	std::string new_path { file_path };
+	convert_path_to_posix(new_path);
+	return escape_path(new_path);
+#else
+	return escape_path(file_path);
+#endif
+}
+
 web_peer_connection::web_peer_connection(peer_connection_args const& pack
 	, web_seed_t& web)
 	: web_connection_base(pack, web)
@@ -107,11 +118,7 @@ web_peer_connection::web_peer_connection(peer_connection_args const& pack
 
 		if (!m_url.empty() && m_url[m_url.size() - 1] == '/')
 		{
-			std::string tmp = t->torrent_file().files().file_path(file_index_t(0));
-#ifdef TORRENT_WINDOWS
-			convert_path_to_posix(tmp);
-#endif
-			m_url += escape_path(tmp);
+			m_url += escape_file_path(t->torrent_file().files().file_path(file_index_t(0)));
 		}
 	}
 
@@ -380,11 +387,8 @@ void web_peer_connection::write_request(peer_request const& r)
 		std::vector<file_slice> files = info.orig_files().map_block(req.piece, req.start
 			, req.length);
 
-		for (std::vector<file_slice>::iterator i = files.begin();
-			i != files.end(); ++i)
+		for (auto const &f : files)
 		{
-			file_slice const& f = *i;
-
 			file_request_t file_req;
 			file_req.file_index = f.file_index;
 			file_req.start = f.offset;
@@ -425,11 +429,7 @@ void web_peer_connection::write_request(peer_request const& r)
 					request += m_path;
 				}
 
-				std::string path = info.orig_files().file_path(f.file_index);
-#ifdef TORRENT_WINDOWS
-				convert_path_to_posix(path);
-#endif
-				request += escape_path(path);
+				request += escape_file_path(info.orig_files().file_path(f.file_index));
 			}
 			request += " HTTP/1.1\r\n";
 			add_headers(request, m_settings, using_proxy);
@@ -660,6 +660,31 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		if (web->have_files.get_bit(file_index) == false)
 		{
 			web->have_files.set_bit(file_index);
+			torrent_info const& info = t->torrent_file();
+
+			// let's try to predict file location names.
+			// we should try to do it cause original request will be dropped
+			// and further requests will use exclusive range pick logic
+			// which exclude edge pieces file locations.
+
+			std::string original_path = escape_file_path(info.orig_files().file_path(file_index));
+			std::size_t redirect_path_idx = redirect_path.rfind(original_path);
+			if (redirect_path_idx != std::string::npos) // we can predict new location
+			{
+				std::string redirect_path_prefix = redirect_path.substr(0, redirect_path_idx);
+				file_storage const& fs = info.files();
+				for (file_index_t fi(0); fi < fs.end_file(); ++fi)
+				{
+					if (info.orig_files().pad_file_at(fi))
+						continue;
+					if (web->redirects.find(fi) != web->redirects.end())
+						continue;
+					web->have_files.set_bit(fi);
+					std::string new_path{ redirect_path_prefix + escape_file_path(info.orig_files().file_path(fi)) };
+					web->redirects[fi] = new_path;
+				}
+			}
+
 			if (web->peer_info.connection != nullptr)
 			{
 				peer_connection* pc = static_cast<peer_connection*>(web->peer_info.connection);
@@ -667,7 +692,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 				// we just learned that this host has this file, and we're currently
 				// connected to it. Make it advertise that it has this file to the
 				// bittorrent engine
-				file_storage const& fs = t->torrent_file().files();
+				file_storage const& fs = info.files();
 				auto const range = aux::file_piece_range_exclusive(fs, file_index);
 				for (piece_index_t i = std::get<0>(range); i < std::get<1>(range); ++i)
 					pc->incoming_have(i);
@@ -791,9 +816,8 @@ void web_peer_connection::on_receive(error_code const& error
 				peer_log(peer_log_alert::info, "STATUS"
 					, "%d %s", m_parser.status_code(), m_parser.message().c_str());
 				std::multimap<std::string, std::string> const& headers = m_parser.headers();
-				for (std::multimap<std::string, std::string>::const_iterator i = headers.begin()
-					, end(headers.end()); i != end; ++i)
-					peer_log(peer_log_alert::info, "STATUS", "   %s: %s", i->first.c_str(), i->second.c_str());
+				for (auto const &i : headers)
+					peer_log(peer_log_alert::info, "STATUS", "   %s: %s", i.first.c_str(), i.second.c_str());
 			}
 #endif
 
