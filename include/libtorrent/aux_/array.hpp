@@ -46,6 +46,9 @@ namespace libtorrent { namespace aux {
 		using base = std::array<T, Size>;
 		using underlying_index = typename underlying_index_t<IndexType>::type;
 
+		static_assert(Size <= std::size_t(std::numeric_limits<underlying_index>::max())
+			, "size is to big for index type");
+
 		array() = default;
 		explicit array(std::array<T, Size>&& arr) : base(arr) {}
 
@@ -63,10 +66,9 @@ namespace libtorrent { namespace aux {
 			return this->base::operator[](std::size_t(static_cast<underlying_index>(idx)));
 		}
 
-		IndexType end_index() const
+		constexpr IndexType end_index() const
 		{
-			TORRENT_ASSERT(this->size() <= std::size_t(std::numeric_limits<underlying_index>::max()));
-			return IndexType(static_cast<underlying_index>(this->size()));
+			return IndexType(static_cast<underlying_index>(Size));
 		}
 	};
 
