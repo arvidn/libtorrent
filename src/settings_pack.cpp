@@ -35,9 +35,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
+#include "libtorrent/aux_/array.hpp"
 
 #include <algorithm>
-#include <array>
 
 namespace {
 
@@ -99,8 +99,8 @@ namespace libtorrent
 
 	using aux::session_impl;
 
-	std::array<str_setting_entry_t, settings_pack::num_string_settings> str_settings =
-	{{
+	aux::array<str_setting_entry_t, settings_pack::num_string_settings> const str_settings
+	({{
 		SET(user_agent, "libtorrent/" LIBTORRENT_VERSION, &session_impl::update_user_agent),
 		SET(announce_ip, nullptr, nullptr),
 		SET(mmap_cache, nullptr, nullptr),
@@ -117,10 +117,10 @@ namespace libtorrent
 		SET(i2p_hostname, "", &session_impl::update_i2p_bridge),
 		SET(peer_fingerprint, "-LT1200-", &session_impl::update_peer_fingerprint),
 		SET(dht_bootstrap_nodes, "dht.libtorrent.org:25401", &session_impl::update_dht_bootstrap_nodes)
-	}};
+	}});
 
-	std::array<bool_setting_entry_t, settings_pack::num_bool_settings> bool_settings =
-	{{
+	aux::array<bool_setting_entry_t, settings_pack::num_bool_settings> const bool_settings
+	({{
 		SET(allow_multiple_connections_per_ip, false, nullptr),
 		DEPRECATED_SET(ignore_limits_on_local_network, true, &session_impl::update_ignore_rate_limits_on_local_network),
 		SET(send_redundant_have, true, nullptr),
@@ -189,10 +189,10 @@ namespace libtorrent
 		SET(proxy_peer_connections, true, nullptr),
 		SET(auto_sequential, true, &session_impl::update_auto_sequential),
 		SET(proxy_tracker_connections, true, nullptr),
-	}};
+	}});
 
-	std::array<int_setting_entry_t, settings_pack::num_int_settings> int_settings =
-	{{
+	aux::array<int_setting_entry_t, settings_pack::num_int_settings> const int_settings
+	({{
 		SET(tracker_completion_timeout, 30, nullptr),
 		SET(tracker_receive_timeout, 10, nullptr),
 		SET(stop_tracker_timeout, 5, nullptr),
@@ -321,7 +321,7 @@ namespace libtorrent
 		SET(proxy_port, 0, &session_impl::update_proxy),
 		SET(i2p_port, 0, &session_impl::update_i2p_bridge),
 		SET(cache_size_volatile, 256, nullptr)
-	}};
+	}});
 
 #undef SET
 #undef SET_DEPRECATED
@@ -330,20 +330,20 @@ namespace libtorrent
 
 	int setting_by_name(std::string const& key)
 	{
-		for (std::size_t k = 0; k < str_settings.size(); ++k)
+		for (int k = 0; k < str_settings.end_index(); ++k)
 		{
 			if (key != str_settings[k].name) continue;
-			return settings_pack::string_type_base + int(k);
+			return settings_pack::string_type_base + k;
 		}
-		for (std::size_t k = 0; k < int_settings.size(); ++k)
+		for (int k = 0; k < int_settings.end_index(); ++k)
 		{
 			if (key != int_settings[k].name) continue;
-			return settings_pack::int_type_base + int(k);
+			return settings_pack::int_type_base + k;
 		}
-		for (std::size_t k = 0; k < bool_settings.size(); ++k)
+		for (int k = 0; k < bool_settings.end_index(); ++k)
 		{
 			if (key != bool_settings[k].name) continue;
-			return settings_pack::bool_type_base + int(k);
+			return settings_pack::bool_type_base + k;
 		}
 		return -1;
 	}
@@ -379,27 +379,27 @@ namespace libtorrent
 				case bdecode_node::int_t:
 				{
 					bool found = false;
-					for (std::size_t k = 0; k < int_settings.size(); ++k)
+					for (int k = 0; k < int_settings.end_index(); ++k)
 					{
 						if (key != int_settings[k].name) continue;
-						pack.set_int(settings_pack::int_type_base + int(k), int(val.int_value()));
+						pack.set_int(settings_pack::int_type_base + k, int(val.int_value()));
 						found = true;
 						break;
 					}
 					if (found) continue;
-					for (std::size_t k = 0; k < bool_settings.size(); ++k)
+					for (int k = 0; k < bool_settings.end_index(); ++k)
 					{
 						if (key != bool_settings[k].name) continue;
-						pack.set_bool(settings_pack::bool_type_base + int(k), val.int_value() != 0);
+						pack.set_bool(settings_pack::bool_type_base + k, val.int_value() != 0);
 						break;
 					}
 				}
 				break;
 			case bdecode_node::string_t:
-				for (std::size_t k = 0; k < str_settings.size(); ++k)
+				for (int k = 0; k < str_settings.end_index(); ++k)
 				{
 					if (key != str_settings[k].name) continue;
-					pack.set_str(settings_pack::string_type_base + int(k), val.string_value().to_string());
+					pack.set_str(settings_pack::string_type_base + k, val.string_value().to_string());
 					break;
 				}
 				break;
@@ -416,20 +416,20 @@ namespace libtorrent
 		for (int i = 0; i < settings_pack::num_string_settings; ++i)
 		{
 			char const* cmp = str_settings[i].default_value == nullptr ? "" : str_settings[i].default_value;
-			if (cmp == s.m_strings[i]) continue;
-			sett[str_settings[i].name] = s.m_strings[i];
+			if (cmp == s.m_strings[std::size_t(i)]) continue;
+			sett[str_settings[i].name] = s.m_strings[std::size_t(i)];
 		}
 
 		for (int i = 0; i < settings_pack::num_int_settings; ++i)
 		{
-			if (int_settings[i].default_value == s.m_ints[i]) continue;
-			sett[int_settings[i].name] = s.m_ints[i];
+			if (int_settings[i].default_value == s.m_ints[std::size_t(i)]) continue;
+			sett[int_settings[i].name] = s.m_ints[std::size_t(i)];
 		}
 
 		for (int i = 0; i < settings_pack::num_bool_settings; ++i)
 		{
-			if (bool_settings[i].default_value == s.m_bools[i]) continue;
-			sett[bool_settings[i].name] = s.m_bools[i];
+			if (bool_settings[i].default_value == s.m_bools[std::size_t(i)]) continue;
+			sett[bool_settings[i].name] = s.m_bools[std::size_t(i)];
 		}
 	}
 
@@ -674,27 +674,24 @@ namespace libtorrent
 			case string_type_base:
 			{
 				std::pair<std::uint16_t, std::string> v(name, std::string());
-				std::vector<std::pair<std::uint16_t, std::string> >::iterator i
-					= std::lower_bound(m_strings.begin(), m_strings.end(), v
-						, &compare_first<std::string>);
+				auto const i = std::lower_bound(m_strings.begin(), m_strings.end()
+					, v, &compare_first<std::string>);
 				if (i != m_strings.end() && i->first == name) m_strings.erase(i);
 				break;
 			}
 			case int_type_base:
 			{
 				std::pair<std::uint16_t, int> v(name, 0);
-				std::vector<std::pair<std::uint16_t, int> >::iterator i
-					= std::lower_bound(m_ints.begin(), m_ints.end(), v
-						, &compare_first<int>);
+				auto const i = std::lower_bound(m_ints.begin(), m_ints.end()
+					, v, &compare_first<int>);
 				if (i != m_ints.end() && i->first == name) m_ints.erase(i);
 				break;
 			}
 			case bool_type_base:
 			{
 				std::pair<std::uint16_t, bool> v(name, false);
-				std::vector<std::pair<std::uint16_t, bool> >::iterator i
-					= std::lower_bound(m_bools.begin(), m_bools.end(), v
-					, &compare_first<bool>);
+				auto const i = std::lower_bound(m_bools.begin(), m_bools.end()
+					, v, &compare_first<bool>);
 				if (i != m_bools.end() && i->first == name) m_bools.erase(i);
 				break;
 			}

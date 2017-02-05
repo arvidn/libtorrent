@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp" // for print_endpoint
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/address.hpp"
+#include "libtorrent/aux_/array.hpp"
 
 using namespace std::placeholders;
 
@@ -126,8 +127,8 @@ int routing_table::bucket_limit(int bucket) const
 {
 	if (!m_settings.extended_routing_table) return m_bucket_size;
 
-	static const int size_exceptions[] = {16, 8, 4, 2};
-	if (bucket < int(sizeof(size_exceptions) / sizeof(size_exceptions[0])))
+	static const aux::array<int, 4> size_exceptions{{{16, 8, 4, 2}}};
+	if (bucket < size_exceptions.end_index())
 		return m_bucket_size * size_exceptions[bucket];
 	return m_bucket_size;
 }
@@ -692,7 +693,7 @@ ip_ok:
 		// the data someone is looking for, make sure there is an affinity
 		// towards having a good spread of node IDs in each bucket
 
-		std::uint32_t mask = bucket_size_limit - 1;
+		int mask = bucket_size_limit - 1;
 		int mask_shift = 0;
 		TORRENT_ASSERT_VAL(mask > 0, mask);
 		while ((mask & 0x80) == 0)
@@ -738,7 +739,7 @@ ip_ok:
 			// have a unique prefix
 
 			// find node entries with duplicate prefixes in O(1)
-			std::vector<bucket_t::iterator> prefix(int(1 << (8 - mask_shift)), b.end());
+			aux::vector<bucket_t::iterator> prefix(aux::numeric_cast<std::size_t>(int(1 << (8 - mask_shift))), b.end());
 			TORRENT_ASSERT(int(prefix.size()) >= bucket_size_limit);
 
 			// the begin iterator from this object is used as a placeholder
@@ -1061,7 +1062,7 @@ void routing_table::find_node(node_id const& target
 	int const bucket_index = int(std::distance(m_buckets.begin(), i));
 	int const bucket_size_limit = bucket_limit(bucket_index);
 
-	l.reserve(bucket_size_limit);
+	l.reserve(aux::numeric_cast<std::size_t>(bucket_size_limit));
 
 	table_t::iterator j = i;
 
@@ -1088,7 +1089,7 @@ void routing_table::find_node(node_id const& target
 				, [&target](node_entry const& lhs, node_entry const& rhs)
 				{ return compare_ref(lhs.id, rhs.id, target); });
 
-			l.resize(count);
+			l.resize(aux::numeric_cast<std::size_t>(count));
 			return;
 		}
 		unsorted_start_idx = int(l.size());
@@ -1127,7 +1128,7 @@ void routing_table::find_node(node_id const& target
 				, [&target](node_entry const& lhs, node_entry const& rhs)
 				{ return compare_ref(lhs.id, rhs.id, target); });
 
-			l.resize(count);
+			l.resize(aux::numeric_cast<std::size_t>(count));
 			return;
 		}
 		unsorted_start_idx = int(l.size());

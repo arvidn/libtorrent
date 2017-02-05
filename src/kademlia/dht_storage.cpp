@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/bloom_filter.hpp>
 #include <libtorrent/session_settings.hpp>
 #include <libtorrent/random.hpp>
+#include <libtorrent/aux_/vector.hpp>
 
 namespace libtorrent {
 namespace dht {
@@ -176,7 +177,7 @@ namespace
 
 	struct infohashes_sample
 	{
-		std::vector<sha1_hash> samples;
+		aux::vector<sha1_hash> samples;
 		time_point created = min_time();
 
 		int count() const { return int(samples.size()); }
@@ -478,7 +479,7 @@ namespace
 
 			refresh_infohashes_sample();
 
-			std::vector<sha1_hash> const& samples = m_infohashes_sample.samples;
+			aux::vector<sha1_hash> const& samples = m_infohashes_sample.samples;
 			item["samples"] = span<char const>(
 				reinterpret_cast<char const*>(samples.data()), samples.size() * 20);
 
@@ -582,7 +583,7 @@ namespace
 				&& m_infohashes_sample.count() >= max_count)
 				return;
 
-			std::vector<sha1_hash>& samples = m_infohashes_sample.samples;
+			aux::vector<sha1_hash>& samples = m_infohashes_sample.samples;
 			samples.clear();
 			samples.reserve(count);
 

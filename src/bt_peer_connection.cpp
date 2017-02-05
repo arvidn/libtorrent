@@ -2166,10 +2166,11 @@ namespace libtorrent
 		if (should_log(peer_log_alert::outgoing_message))
 		{
 			std::string bitfield_string;
-			bitfield_string.resize(num_pieces);
-			for (int k = 0; k < num_pieces; ++k)
+			std::size_t const n_pieces = aux::numeric_cast<std::size_t>(num_pieces);
+			bitfield_string.resize(n_pieces);
+			for (std::size_t k = 0; k < n_pieces; ++k)
 			{
-				if (msg[5 + k / 8] & (0x80 >> (k % 8))) bitfield_string[k] = '1';
+				if (msg[5 + int(k) / 8] & (0x80 >> (k % 8))) bitfield_string[k] = '1';
 				else bitfield_string[k] = '0';
 			}
 			peer_log(peer_log_alert::outgoing_message, "BITFIELD"
@@ -2877,7 +2878,7 @@ namespace libtorrent
 			{
 				// select a crypto method
 				int allowed_encryption = m_settings.get_int(settings_pack::allowed_enc_level);
-				std::uint32_t crypto_select = crypto_field & allowed_encryption;
+				std::uint32_t crypto_select = crypto_field & std::uint32_t(allowed_encryption);
 
 				// when prefer_rc4 is set, keep the most significant bit
 				// otherwise keep the least significant one
@@ -2907,14 +2908,14 @@ namespace libtorrent
 				}
 
 				// write the pe4 step
-				write_pe4_sync(crypto_select);
+				write_pe4_sync(aux::numeric_cast<int>(crypto_select));
 			}
 			else // is_outgoing()
 			{
 				// check if crypto select is valid
 				int allowed_encryption = m_settings.get_int(settings_pack::allowed_enc_level);
 
-				crypto_field &= allowed_encryption;
+				crypto_field &= std::uint32_t(allowed_encryption);
 				if (crypto_field == 0)
 				{
 					// we don't allow any of the offered encryption levels

@@ -34,11 +34,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_PERFORMANCE_COUNTERS_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/aux_/array.hpp"
 
 #include <cstdint>
 #include <atomic>
 #include <mutex>
-#include <array>
 
 namespace libtorrent
 {
@@ -449,15 +449,14 @@ namespace libtorrent
 		// of the counters per thread and collect them at convenient
 		// synchronization points
 #ifdef ATOMIC_LLONG_LOCK_FREE
-		std::array<std::atomic<std::int64_t>, num_counters> m_stats_counter;
+		aux::array<std::atomic<std::int64_t>, num_counters> m_stats_counter;
 #else
 		// if the atomic type is't lock-free, use a single lock instead, for
 		// the whole array
 		mutable std::mutex m_mutex;
-		std::array<std::int64_t, num_counters> m_stats_counter;
+		aux::array<std::int64_t, num_counters> m_stats_counter;
 #endif
 	};
 }
 
 #endif
-

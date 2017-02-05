@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2011-2016, Arvid Norberg
+Copyright (c) 2017, Arvid Norberg, Alden Torres
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,40 +30,49 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_PEER_CLASS_SET_HPP_INCLUDED
-#define TORRENT_PEER_CLASS_SET_HPP_INCLUDED
+#ifndef TORRENT_ARRAY_HPP
+#define TORRENT_ARRAY_HPP
 
-#include "libtorrent/peer_class.hpp"
-#include "libtorrent/aux_/array.hpp"
+#include <array>
 
-namespace libtorrent {
+#include "libtorrent/units.hpp"
+#include "libtorrent/assert.hpp"
 
-	// this represents an object that can have many peer classes applied
-	// to it. Most notably, peer connections and torrents derive from this.
-	struct TORRENT_EXTRA_EXPORT peer_class_set
+namespace libtorrent { namespace aux {
+
+	template <typename T, std::size_t Size, typename IndexType = int>
+	struct array : std::array<T, Size>
 	{
-		peer_class_set() : m_size(0) {}
-		void add_class(peer_class_pool& pool, peer_class_t c);
-		bool has_class(peer_class_t c) const;
-		void remove_class(peer_class_pool& pool, peer_class_t c);
-		int num_classes() const { return m_size; }
-		peer_class_t class_at(int i) const
+		using base = std::array<T, Size>;
+		using underlying_index = typename underlying_index_t<IndexType>::type;
+
+		array() = default;
+		explicit array(std::array<T, Size>&& arr) : base(arr) {}
+
+		auto operator[](IndexType idx) const -> decltype(this->base::operator[](underlying_index()))
 		{
-			TORRENT_ASSERT(i >= 0 && i < int(m_size));
-			return m_class[i];
+			TORRENT_ASSERT(idx >= IndexType(0));
+			TORRENT_ASSERT(idx < end_index());
+			return this->base::operator[](std::size_t(static_cast<underlying_index>(idx)));
 		}
 
-	private:
+		auto operator[](IndexType idx) -> decltype(this->base::operator[](underlying_index()))
+		{
+			TORRENT_ASSERT(idx >= IndexType(0));
+			TORRENT_ASSERT(idx < end_index());
+			return this->base::operator[](std::size_t(static_cast<underlying_index>(idx)));
+		}
 
-		// the number of elements used in the m_class array
-		std::int8_t m_size;
-
-		// if this object belongs to any peer-class, this vector contains all
-		// class IDs. Each ID refers to a an entry in m_ses.m_peer_classes which
-		// holds the metadata about the class. Classes affect bandwidth limits
-		// among other things
-		aux::array<peer_class_t, 15> m_class;
+#if !TORRENT_USE_ASSERTS
+		constexpr
+#endif
+		IndexType end_index() const
+		{
+			TORRENT_ASSERT(this->size() <= std::size_t(std::numeric_limits<underlying_index>::max()));
+			return IndexType(static_cast<underlying_index>(this->size()));
+		}
 	};
-}
 
-#endif // TORRENT_PEER_CLASS_SET_HPP_INCLUDED
+}}
+
+#endif

@@ -57,6 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/escape_string.hpp"
 #include "libtorrent/aux_/max_path.hpp" // for TORRENT_MAX_PATH
 #include "libtorrent/string_util.hpp" // for to_string
+#include "libtorrent/aux_/array.hpp"
 
 namespace libtorrent
 {
@@ -245,7 +246,7 @@ namespace libtorrent
 		// first, strip the file:// part.
 		// On windows, we have
 		// to strip the first / as well
-		int num_to_strip = 7;
+		std::size_t num_to_strip = 7;
 #ifdef TORRENT_WINDOWS
 		if (url[7] == '/' || url[7] == '\\') ++num_to_strip;
 #endif
@@ -279,8 +280,8 @@ namespace libtorrent
 			'4', '5', '6', '7', '8', '9', '+', '/'
 		};
 
-		std::array<std::uint8_t, 3> inbuf;
-		std::array<std::uint8_t, 4> outbuf;
+		aux::array<std::uint8_t, 3> inbuf;
+		aux::array<std::uint8_t, 4> outbuf;
 
 		std::string ret;
 		for (std::string::const_iterator i = s.begin(); i != s.end();)
@@ -335,10 +336,10 @@ namespace libtorrent
 		};
 		char const *base32_table = 0 != (flags & string::lowercase) ? base32_table_lowercase : base32_table_canonical;
 
-		static std::array<int const, 6> input_output_mapping = {{0, 2, 4, 5, 7, 8}};
+		static aux::array<int, 6> const input_output_mapping{{{0, 2, 4, 5, 7, 8}}};
 
-		std::array<std::uint8_t, 5> inbuf;
-		std::array<std::uint8_t, 8> outbuf;
+		aux::array<std::uint8_t, 5> inbuf;
+		aux::array<std::uint8_t, 8> outbuf;
 
 		std::string ret;
 		for (std::string::const_iterator i = s.begin(); i != s.end();)
@@ -383,8 +384,8 @@ namespace libtorrent
 
 	std::string base32decode(std::string const& s)
 	{
-		std::array<std::uint8_t, 8> inbuf;
-		std::array<std::uint8_t, 5> outbuf;
+		aux::array<std::uint8_t, 8> inbuf;
+		aux::array<std::uint8_t, 5> outbuf;
 
 		std::string ret;
 		for (std::string::const_iterator i = s.begin(); i != s.end();)
@@ -400,9 +401,9 @@ namespace libtorrent
 			{
 				char const in = char(std::toupper(*i++));
 				if (in >= 'A' && in <= 'Z')
-					inbuf[j] = in - 'A';
+					inbuf[j] = (in - 'A') & 0xff;
 				else if (in >= '2' && in <= '7')
-					inbuf[j] = in - '2' + ('Z' - 'A') + 1;
+					inbuf[j] = (in - '2' + ('Z' - 'A') + 1) & 0xff;
 				else if (in == '=')
 				{
 					inbuf[j] = 0;

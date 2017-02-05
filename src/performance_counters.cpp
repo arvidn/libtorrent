@@ -50,7 +50,7 @@ namespace libtorrent {
 	counters::counters(counters const& c)
 	{
 #ifdef ATOMIC_LLONG_LOCK_FREE
-		for (std::size_t i = 0; i < m_stats_counter.size(); ++i)
+		for (int i = 0; i < m_stats_counter.end_index(); ++i)
 			m_stats_counter[i].store(
 				c.m_stats_counter[i].load(std::memory_order_relaxed)
 					, std::memory_order_relaxed);
@@ -63,7 +63,7 @@ namespace libtorrent {
 	counters& counters::operator=(counters const& c)
 	{
 #ifdef ATOMIC_LLONG_LOCK_FREE
-		for (std::size_t i = 0; i < m_stats_counter.size(); ++i)
+		for (int i = 0; i < m_stats_counter.end_index(); ++i)
 			m_stats_counter[i].store(
 				c.m_stats_counter[i].load(std::memory_order_relaxed)
 					, std::memory_order_relaxed);
@@ -90,7 +90,7 @@ namespace libtorrent {
 
 	// the argument specifies which counter to
 	// increment or decrement
-	std::int64_t counters::inc_stats_counter(int c, std::int64_t value)
+	std::int64_t counters::inc_stats_counter(int const c, std::int64_t const value)
 	{
 		// if c >= num_stats_counters, it means it's not
 		// a monotonically increasing counter, but a gauge
@@ -110,9 +110,9 @@ namespace libtorrent {
 #endif
 	}
 
-	// ratio is a vaue between 0 and 100 representing the percentage the value
+	// ratio is a value between 0 and 100 representing the percentage the value
 	// is blended in at.
-	void counters::blend_stats_counter(int c, std::int64_t value, int ratio)
+	void counters::blend_stats_counter(int const c, std::int64_t const value, int const ratio)
 	{
 		TORRENT_ASSERT(c >= num_stats_counters);
 		TORRENT_ASSERT(c < num_counters);
@@ -121,21 +121,21 @@ namespace libtorrent {
 
 #ifdef ATOMIC_LLONG_LOCK_FREE
 		std::int64_t current = m_stats_counter[c].load(std::memory_order_relaxed);
-		std::int64_t new_value = (current * (100-ratio) + value * ratio) / 100;
+		std::int64_t new_value = (current * (100 - ratio) + value * ratio) / 100;
 
 		while (!m_stats_counter[c].compare_exchange_weak(current, new_value
 			, std::memory_order_relaxed))
 		{
-			new_value = (current * (100-ratio) + value * ratio) / 100;
+			new_value = (current * (100 - ratio) + value * ratio) / 100;
 		}
 #else
 		std::lock_guard<std::mutex> l(m_mutex);
 		std::int64_t current = m_stats_counter[c];
-		m_stats_counter[c] = (current * (100-ratio) + value * ratio) / 100;
+		m_stats_counter[c] = (current * (100 - ratio) + value * ratio) / 100;
 #endif
 	}
 
-	void counters::set_value(int c, std::int64_t value)
+	void counters::set_value(int const c, std::int64_t const value)
 	{
 		TORRENT_ASSERT(c >= 0);
 		TORRENT_ASSERT(c < num_counters);
