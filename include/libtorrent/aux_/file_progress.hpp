@@ -38,6 +38,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/export.hpp"
 
+#if TORRENT_USE_INVARIANT_CHECKS
+#include "libtorrent/invariant_check.hpp"
+#include "libtorrent/bitfield.hpp"
+#endif
+
 namespace libtorrent
 {
 class piece_picker;
@@ -62,10 +67,6 @@ namespace aux
 		void update(file_storage const& fs, int index
 			, alert_manager* alerts, torrent_handle const& h);
 
-#if TORRENT_USE_INVARIANT_CHECKS
-		void check_invariant(file_storage const& fs) const;
-#endif
-
 	private:
 
 		// this vector contains the number of bytes completely
@@ -74,6 +75,18 @@ namespace aux
 		// the vector is allocated lazily, when file progress
 		// is first queried by the client
 		std::vector<boost::uint64_t> m_file_progress;
+
+#if TORRENT_USE_INVARIANT_CHECKS
+		friend class libtorrent::invariant_access;
+		void check_invariant() const;
+		// this is used to assert we never add the same piece twice
+		bitfield m_have_pieces;
+
+		// to make sure we never say we've downloaded more bytes of a file than
+		// its file size
+		std::vector<std::int64_t> m_file_sizes;
+#endif
+
 	};
 } }
 

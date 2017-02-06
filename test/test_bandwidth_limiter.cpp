@@ -87,7 +87,7 @@ struct peer_connection: bandwidth_socket, boost::enable_shared_from_this<peer_co
 	int m_priority;
 	bool m_ignore_limits;
 	std::string m_name;
-	int m_quota;
+	boost::int64_t m_quota;
 };
 
 void peer_connection::assign_bandwidth(int channel, int amount)
@@ -158,7 +158,6 @@ void run_test(connections_t& v
 		, boost::bind(&peer_connection::start, _1));
 
 	libtorrent::aux::session_settings s;
-	initialize_default_settings(s);
 	int tick_interval = s.get_int(settings_pack::tick_interval);
 
 	for (int i = 0; i < int(sample_time * 1000 / tick_interval); ++i)
@@ -459,36 +458,36 @@ void test_no_starvation(int limit)
 
 TORRENT_TEST(equal_connection)
 {
-	test_equal_connections(2, 20);
-	test_equal_connections(2, 2000);
-	test_equal_connections(2, 20000);
-	test_equal_connections(3, 20000);
-	test_equal_connections(5, 20000);
-	test_equal_connections(7, 20000);
-	test_equal_connections(33, 60000);
-	test_equal_connections(33, 500000);
-	test_equal_connections(1, 100000000);
+	test_equal_connections( 2,      20);
+	test_equal_connections( 2,    2000);
+	test_equal_connections( 2,   20000);
+	test_equal_connections( 3,   20000);
+	test_equal_connections( 5,   20000);
+	test_equal_connections( 7,   20000);
+	test_equal_connections(33,   60000);
+	test_equal_connections(33,  500000);
+	test_equal_connections( 1, 1000000);
 }
 
 TORRENT_TEST(conn_var_rate)
 {
-	test_connections_variable_rate(2, 20, 0);
-	test_connections_variable_rate(5, 20000, 0);
-	test_connections_variable_rate(3, 2000, 6000);
-	test_connections_variable_rate(5, 2000, 30000);
+	test_connections_variable_rate( 2,     20, 0);
+	test_connections_variable_rate( 5,  20000, 0);
+	test_connections_variable_rate( 3,   2000, 6000);
+	test_connections_variable_rate( 5,   2000, 30000);
 	test_connections_variable_rate(33, 500000, 0);
 }
 
 TORRENT_TEST(torrents)
 {
-	test_torrents(2, 400, 400, 0);
-	test_torrents(2, 100, 500, 0);
-	test_torrents(2, 3000, 3000, 6000);
-	test_torrents(1, 40000, 40000, 0);
-	test_torrents(24, 50000, 50000, 0);
-	test_torrents(5, 6000, 6000, 3000);
-	test_torrents(5, 6000, 5000, 4000);
-	test_torrents(5, 20000, 20000, 30000);
+	test_torrents( 2,   400,   400,     0);
+	test_torrents( 2,   100,   500,     0);
+	test_torrents( 2,  3000,  3000,  6000);
+	test_torrents( 1, 40000, 40000,     0);
+	test_torrents(24, 50000, 50000,     0);
+	test_torrents( 5,  6000,  6000,  3000);
+	test_torrents( 5,  6000,  5000,  4000);
+	test_torrents( 5, 20000, 20000, 30000);
 }
 
 TORRENT_TEST(torrent_var_rate)

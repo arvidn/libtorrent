@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_manager.hpp"
 #include "libtorrent/aux_/file_progress.hpp"
 #include "libtorrent/alert_types.hpp"
+#include "libtorrent/invariant_check.hpp"
 
 namespace libtorrent { namespace aux
 {
@@ -47,8 +48,17 @@ namespace libtorrent { namespace aux
 	{
 		if (!m_file_progress.empty()) return;
 
-		int num_pieces = fs.num_pieces();
-		int num_files = fs.num_files();
+		int const num_pieces = fs.num_pieces();
+		int const num_files = fs.num_files();
+
+#if TORRENT_USE_INVARIANT_CHECKS
+		m_have_pieces.clear();
+		m_have_pieces.resize(num_pieces, false);
+		m_file_sizes.clear();
+		m_file_sizes.reserve(num_files);
+		for (int i = 0; i < int(fs.num_files()); ++i)
+			m_file_sizes.push_back(fs.file_size(i));
+#endif
 
 		m_file_progress.resize(num_files, 0);
 		std::fill(m_file_progress.begin(), m_file_progress.end(), 0);
@@ -75,6 +85,9 @@ namespace libtorrent { namespace aux
 
 			if (!picker.have_piece(piece)) continue;
 
+#if TORRENT_USE_INVARIANT_CHECKS
+			m_have_pieces.set_bit(piece);
+#endif
 			int size = (std::min)(boost::uint64_t(piece_size), total_size - off);
 			TORRENT_ASSERT(size >= 0);
 
@@ -108,6 +121,9 @@ namespace libtorrent { namespace aux
 	void file_progress::clear()
 	{
 		std::vector<boost::uint64_t>().swap(m_file_progress);
+#if TORRENT_USE_INVARIANT_CHECKS
+		m_have_pieces.clear();
+#endif
 	}
 
 	// update the file progress now that we just completed downloading piece
@@ -115,6 +131,13 @@ namespace libtorrent { namespace aux
 	void file_progress::update(file_storage const& fs, int index
 		, alert_manager* alerts, torrent_handle const& h)
 	{
+		INVARIANT_CHECK;
+
+#if TORRENT_USE_INVARIANT_CHECKS
+		TORRENT_ASSERT(m_have_pieces.get_bit(index) == false);
+		m_have_pieces.set_bit(index);
+#endif
+
 		if (m_file_progress.empty())
 			return;
 
@@ -153,16 +176,12 @@ namespace libtorrent { namespace aux
 	}
 
 #if TORRENT_USE_INVARIANT_CHECKS
-	void file_progress::check_invariant(file_storage const& fs) const
+	void file_progress::check_invariant() const
 	{
-		if (!m_file_progress.empty())
+		if (m_file_progress.empty()) return;
+		for (int i = 0; i < int(m_file_progress.size()); ++i)
 		{
-			for (std::vector<boost::uint64_t>::const_iterator i = m_file_progress.begin()
-				, end(m_file_progress.end()); i != end; ++i)
-			{
-				int index = i - m_file_progress.begin();
-				TORRENT_ASSERT(*i <= fs.file_size(index));
-			}
+			TORRENT_ASSERT(m_file_progress[i] <= m_file_sizes[i]);
 		}
 	}
 #endif

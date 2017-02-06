@@ -836,6 +836,11 @@ namespace libtorrent
 		void queue_position_top() const;
 		void queue_position_bottom() const;
 
+		// updates the position in the queue for this torrent. The relative order
+		// of all other torrents remain intact but their numerical queue position
+		// shifts to make space for this torrent's new position
+		void queue_position_set(int p) const;
+
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 1.1
 

@@ -174,9 +174,6 @@ public:
 	// bucket is not full.
 	void add_node(udp::endpoint node);
 
-	void replacement_cache(bucket_t& nodes) const
-	{ m_table.replacement_cache(nodes); }
-
 	int branch_factor() const { return m_settings.search_branching; }
 
 	void add_traversal_algorithm(traversal_algorithm* a)

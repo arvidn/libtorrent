@@ -376,16 +376,6 @@ namespace libtorrent { namespace dht
 		{
 			entry nodes(entry::list_t);
 			m_dht.m_table.for_each_node(&add_node_fun, &add_node_fun, &nodes);
-			bucket_t cache;
-			m_dht.replacement_cache(cache);
-			for (bucket_t::iterator i(cache.begin())
-				, end(cache.end()); i != end; ++i)
-			{
-				std::string node;
-				std::back_insert_iterator<std::string> out(node);
-				write_endpoint(i->ep(), out);
-				nodes.list().push_back(entry(node));
-			}
 			if (!nodes.list().empty())
 				ret["nodes"] = nodes;
 		}

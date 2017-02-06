@@ -56,6 +56,11 @@ namespace {
 		if (i != c.end() && i->first == v.first) i->second = v.second;
 		else c.insert(i, v);
 	}
+
+	// return the string, unless it's null, in which case the empty string is
+	// returned
+	char const* ensure_string(char const* str)
+	{ return str == NULL ? "" : str; }
 }
 
 namespace libtorrent
@@ -442,8 +447,7 @@ namespace libtorrent
 		// loop over all settings that differ from default
 		for (int i = 0; i < settings_pack::num_string_settings; ++i)
 		{
-			char const* cmp = str_settings[i].default_value == 0 ? "" : str_settings[i].default_value;
-			if (cmp == s.m_strings[i]) continue;
+			if (ensure_string(str_settings[i].default_value) == s.m_strings[i]) continue;
 			sett[str_settings[i].name] = s.m_strings[i];
 		}
 
@@ -554,7 +558,7 @@ namespace libtorrent
 	{
 		for (int i = 0; i < settings_pack::num_string_settings; ++i)
 		{
-			if (str_settings[i].default_value == 0) continue;
+			if (str_settings[i].default_value == NULL) continue;
 			s.set_str(settings_pack::string_type_base + i, str_settings[i].default_value);
 			TORRENT_ASSERT(s.get_str(settings_pack::string_type_base + i) == str_settings[i].default_value);
 		}
@@ -570,16 +574,28 @@ namespace libtorrent
 			s.set_bool(settings_pack::bool_type_base + i, bool_settings[i].default_value);
 			TORRENT_ASSERT(s.get_bool(settings_pack::bool_type_base + i) == bool_settings[i].default_value);
 		}
+	}
 
-		// this seems questionable...
-/*
-		// Some settings have dynamic defaults depending on the machine
-		// for instance, the disk cache size
+	settings_pack default_settings()
+	{
+		settings_pack ret;
+		// TODO: it would be nice to reserve() these vectors up front
+		for (int i = 0; i < settings_pack::num_string_settings; ++i)
+		{
+			if (str_settings[i].default_value == NULL) continue;
+			ret.set_str(settings_pack::string_type_base + i, str_settings[i].default_value);
+		}
 
-		// by default, set the cahe size to an 8:th of the total amount of physical RAM
-		boost::uint64_t phys_ram = total_physical_ram();
-		if (phys_ram > 0) s.set_int(settings_pack::cache_size, phys_ram / 16 / 1024 / 8);
-*/
+		for (int i = 0; i < settings_pack::num_int_settings; ++i)
+		{
+			ret.set_int(settings_pack::int_type_base + i, int_settings[i].default_value);
+		}
+
+		for (int i = 0; i < settings_pack::num_bool_settings; ++i)
+		{
+			ret.set_bool(settings_pack::bool_type_base + i, bool_settings[i].default_value);
+		}
+		return ret;
 	}
 
 	void apply_pack(settings_pack const* pack, aux::session_settings& sett
