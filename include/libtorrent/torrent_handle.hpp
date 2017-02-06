@@ -77,9 +77,6 @@ namespace libtorrent
 	void TORRENT_NO_RETURN throw_invalid_handle();
 #endif
 
-	using std::shared_ptr;
-	using std::make_shared;
-
 	// holds the state of a block in a piece. Who we requested
 	// it from and how far along we are at downloading it.
 	struct TORRENT_EXPORT block_info
@@ -895,7 +892,7 @@ namespace libtorrent
 		// without metadata only if it was started without a .torrent file, e.g.
 		// by using the libtorrent extension of just supplying a tracker and
 		// info-hash.
-		shared_ptr<const torrent_info> torrent_file() const;
+		std::shared_ptr<const torrent_info> torrent_file() const;
 
 #ifndef TORRENT_NO_DEPRECATE
 

@@ -86,7 +86,7 @@ struct peer_connection: bandwidth_socket, std::enable_shared_from_this<peer_conn
 	int m_priority;
 	bool m_ignore_limits;
 	std::string m_name;
-	boost::int64_t m_quota;
+	std::int64_t m_quota;
 };
 
 void peer_connection::assign_bandwidth(int channel, int amount)
