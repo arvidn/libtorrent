@@ -785,14 +785,19 @@ namespace libtorrent
 		set_proxy(s);
 	}
 
-	void session_handle::set_web_seed_proxy(proxy_settings const& s)
+	void session_handle::set_web_seed_proxy(proxy_settings const&)
 	{
-		set_proxy(s);
+		// NO-OP
 	}
 
 	void session_handle::set_tracker_proxy(proxy_settings const& s)
 	{
-		set_proxy(s);
+		// if the tracker proxy is enabled, set the "proxy_tracker_connections"
+		// setting
+		settings_pack pack;
+		pack.set_bool(settings_pack::proxy_tracker_connections
+			, s.type != aux::proxy_settings::none);
+		apply_settings(pack);
 	}
 
 	proxy_settings session_handle::peer_proxy() const
@@ -807,12 +812,14 @@ namespace libtorrent
 
 	proxy_settings session_handle::tracker_proxy() const
 	{
-		return proxy();
+		settings_pack const sett = get_settings();
+		return sett.get_bool(settings_pack::proxy_tracker_connections)
+			? proxy_settings(sett) : proxy_settings();
 	}
 
-	void session_handle::set_dht_proxy(proxy_settings const& s)
+	void session_handle::set_dht_proxy(proxy_settings const&)
 	{
-		set_proxy(s);
+		// NO-OP
 	}
 
 	proxy_settings session_handle::dht_proxy() const
