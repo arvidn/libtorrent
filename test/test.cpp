@@ -37,10 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 unit_test_t _g_unit_tests[1024];
 int _g_num_unit_tests = 0;
 int _g_test_failures = 0; // flushed at start of every unit
-int _g_test_total_failures = 0;
 int _g_test_idx = 0;
-
-static std::vector<std::string> failure_strings;
 
 int test_counter()
 {
@@ -52,9 +49,7 @@ void report_failure(char const* err, char const* file, int line)
 	char buf[500];
 	std::snprintf(buf, sizeof(buf), "\x1b[41m***** %s:%d \"%s\" *****\x1b[0m\n", file, line, err);
 	std::fprintf(stderr, "\n%s\n", buf);
-	failure_strings.push_back(buf);
 	++_g_test_failures;
-	++_g_test_total_failures;
 }
 
 int print_failures()
@@ -67,6 +62,7 @@ int print_failures()
 	}
 
 	std::printf("\n\n");
+	int total_num_failures { 0 };
 
 	for (int i = 0; i < _g_num_unit_tests; ++i)
 	{
@@ -79,6 +75,7 @@ int print_failures()
 		}
 		else
 		{
+			total_num_failures += _g_unit_tests[i].num_failures;
 			std::printf("\x1b[31m[%-*s] %d FAILURES\n"
 				, longest_name
 				, _g_unit_tests[i].name
@@ -88,8 +85,8 @@ int print_failures()
 
 	std::printf("\x1b[0m");
 
-	if (_g_test_total_failures > 0)
-		std::printf("\n\n\x1b[41m   == %d TEST(S) FAILED ==\x1b[0m\n\n\n", _g_test_total_failures);
-	return _g_test_total_failures;
+	if (total_num_failures > 0)
+		std::printf("\n\n\x1b[41m   == %d TEST(S) FAILED ==\x1b[0m\n\n\n", total_num_failures);
+	return total_num_failures;
 }
 

@@ -511,8 +511,8 @@ EXPORT int main(int argc, char const* argv[])
 	if (redirect_stdout) fflush(stdout);
 	if (redirect_stderr) fflush(stderr);
 
-	print_failures();
+	int total_num_failures = print_failures();
 
-	return _g_test_total_failures ? 333 : 0;
+	return total_num_failures ? 333 : 0;
 }
 
