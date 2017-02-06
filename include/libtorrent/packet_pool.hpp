@@ -91,33 +91,36 @@ namespace libtorrent
 	using packet_ptr = std::unique_ptr<packet, packet_deleter>;
 
 	template<int ALLOCATE_SIZE>
-	struct TORRENT_EXTRA_EXPORT packet_slab : private aux::vector<packet_ptr, std::size_t>
+	struct TORRENT_EXTRA_EXPORT packet_slab
 	{
 		static const int allocate_size{ ALLOCATE_SIZE };
 
-		packet_slab(std::size_t limit) : m_limit(limit) { reserve(m_limit); }
+		explicit packet_slab(std::size_t limit) : m_limit(limit) { m_storage.reserve(m_limit); }
+
+		packet_slab(const packet_slab&) = delete;
 
 		void try_push_back(packet_ptr &p)
 		{
-			if (size() < m_limit)
-				push_back(std::move(p));
+			if (m_storage.size() < m_limit)
+				m_storage.push_back(std::move(p));
 		}
 
 		packet_ptr alloc()
 		{
-			if (empty())
+			if (m_storage.empty())
 				return packet_ptr(static_cast<packet*>(std::malloc(sizeof(packet) + allocate_size)));
 			else
 			{
-				auto ret = std::move(back());
-				pop_back();
+				auto ret = std::move(m_storage.back());
+				m_storage.pop_back();
 				return ret;
 			}
 		}
 
-		void flush() { resize(0); }
+		void flush() { m_storage.resize(0); }
 	private:
 		const std::size_t m_limit;
+		aux::vector<packet_ptr, std::size_t> m_storage;
 	};
 
 	// single thread packet allocation packet pool
