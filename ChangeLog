@@ -1,4 +1,4 @@
-	* slightly improve proxy settings backwards compatibility
+  * slightly improve proxy settings backwards compatibility
 	* add function to get default settings
 	* updating super seeding would include the torrent in state_update_alert
 	* fix issue where num_seeds could be greater than num_peers in torrent_status

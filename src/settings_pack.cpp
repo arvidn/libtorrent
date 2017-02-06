@@ -236,6 +236,7 @@ namespace libtorrent
 		SET(urlseed_pipeline_size, 5, 0),
 		SET_NOPREV(urlseed_max_request_bytes, 16 * 1024 * 1024, 0),
 		SET(urlseed_wait_retry, 30, 0),
+		SET(web_seed_name_lookup_retry_minutes, 30, 0),
 		SET(file_pool_size, 40, 0),
 		SET(max_failcount, 3, &session_impl::update_max_failcount),
 		SET(min_reconnect_time, 60, 0),
