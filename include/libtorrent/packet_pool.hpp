@@ -83,55 +83,55 @@ namespace libtorrent
 	{
 		void operator()(packet* handle) const
 		{
+			handle->~packet();
 			std::free(handle);
 		}
 	};
 
 	using packet_ptr = std::unique_ptr<packet, packet_deleter>;
 
-	template<std::size_t ALLOCATE_SIZE>
+	template<int ALLOCATE_SIZE>
 	struct TORRENT_EXTRA_EXPORT packet_slab : private aux::vector<packet_ptr, std::size_t>
 	{
-		static const std::size_t allocate_size{ ALLOCATE_SIZE };
+		static const int allocate_size{ ALLOCATE_SIZE };
 
 		packet_slab(std::size_t limit) : m_limit(limit) { reserve(m_limit); }
 
-		void try_free(packet_ptr &p)
+		void try_push_back(packet_ptr &p)
 		{
 			if (size() < m_limit)
 				push_back(std::move(p));
 		}
 
-		void try_alloc(packet_ptr &p)
+		packet_ptr alloc()
 		{
 			if (empty())
-				p.reset(static_cast<packet*>(std::malloc(sizeof(packet) + allocate_size)));
+				return packet_ptr(static_cast<packet*>(std::malloc(sizeof(packet) + allocate_size)));
 			else
 			{
-				p = std::move(back());
+				auto ret = std::move(back());
 				pop_back();
+				return ret;
 			}
 		}
+
+		void flush() { resize(0); }
 	private:
-		std::size_t m_limit;
+		const std::size_t m_limit;
 	};
 
 	// single thread packet allocation packet pool
 	// can handle common cases of packet size by 3 pools
 	struct TORRENT_EXTRA_EXPORT packet_pool : private single_threaded
 	{
-		packet *acquire(std::size_t allocate)
+		packet *acquire(int allocate)
 		{
 			TORRENT_ASSERT(is_single_thread());
+			TORRENT_ASSERT(allocate >= 0);
 			TORRENT_ASSERT(allocate <= std::numeric_limits<std::uint16_t>::max());
 
-			packet_ptr p;
-
-			if (allocate <= m_syn_slab.allocate_size) { m_syn_slab.try_alloc(p); }
-			else if (allocate <= m_mtu_floor_slab.allocate_size) { m_mtu_floor_slab.try_alloc(p); }
-			else if (allocate <= m_mtu_ceiling_slab.allocate_size) { m_mtu_ceiling_slab.try_alloc(p); }
-			else { m_rest_slab.try_alloc(p); }
-
+			packet_ptr p{ alloc(allocate) };
+			new (p.get()) packet();
 			p->allocated = static_cast<std::uint16_t>(allocate);
 			return p.release();
 		}
@@ -142,18 +142,35 @@ namespace libtorrent
 
 			if (p == nullptr) return;
 
-			packet_ptr pp(p); // take ownership and auto free
+			packet_ptr pp(p); // takes ownership and may auto free if slab container does not move it
 			std::size_t allocated = pp->allocated;
 
-			if (allocated <= m_syn_slab.allocate_size) { m_syn_slab.try_free(pp); }
-			else if (allocated <= m_mtu_floor_slab.allocate_size) { m_mtu_floor_slab.try_free(pp); }
-			else if (allocated <= m_mtu_ceiling_slab.allocate_size) { m_mtu_ceiling_slab.try_free(pp); }
+			if (allocated <= m_syn_slab.allocate_size) { m_syn_slab.try_push_back(pp); }
+			else if (allocated <= m_mtu_floor_slab.allocate_size) { m_mtu_floor_slab.try_push_back(pp); }
+			else if (allocated <= m_mtu_ceiling_slab.allocate_size) { m_mtu_ceiling_slab.try_push_back(pp); }
 		}
+
+		//TODO: call from utp manager to flush mem
+		void flush()
+		{
+			TORRENT_ASSERT(is_single_thread());
+
+			m_syn_slab.flush();
+			m_mtu_floor_slab.flush();
+			m_mtu_ceiling_slab.flush();
+		}
+
 	private:
-		packet_slab<sizeof(utp_header)> m_syn_slab{ 0x400 };
+		packet_ptr alloc(int allocate)
+		{
+			if (allocate <= m_syn_slab.allocate_size) { return m_syn_slab.alloc(); }
+			else if (allocate <= m_mtu_floor_slab.allocate_size) { return m_mtu_floor_slab.alloc(); }
+			else if (allocate <= m_mtu_ceiling_slab.allocate_size) { return m_mtu_ceiling_slab.alloc(); }
+			return packet_ptr(static_cast<packet*>(std::malloc(sizeof(packet) + allocate)));
+		}
+		packet_slab<sizeof(utp_header)> m_syn_slab{ 0x100 };
 		packet_slab<(TORRENT_INET_MIN_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER)> m_mtu_floor_slab{ 0x200 };
-		packet_slab<(TORRENT_ETHERNET_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER)> m_mtu_ceiling_slab{ 0x200 };
-		packet_slab<0> m_rest_slab{ 0 };
+		packet_slab<(TORRENT_ETHERNET_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER)> m_mtu_ceiling_slab{ 0x100 };
 	};
 }
 

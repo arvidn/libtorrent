@@ -303,7 +303,7 @@ struct utp_socket_impl
 
 	void set_state(int s);
 
-	packet *acquire_packet(std::size_t allocate) { return m_sm->acquire_packet(allocate); }
+	packet *acquire_packet(int allocate) { return m_sm->acquire_packet(allocate); }
 	void release_packet(packet *p) { m_sm->release_packet(p); }
 
 private:
@@ -1814,7 +1814,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 		// need to keep the packet around (in the outbuf)
 		if (payload_size)
 		{
-			p = acquire_packet(std::uint16_t(effective_mtu));
+			p = acquire_packet(effective_mtu);
 			holder.reset(p);
 
 			m_sm->inc_stats_counter(counters::utp_payload_pkts_out);
@@ -2408,7 +2408,7 @@ void utp_socket_impl::incoming(std::uint8_t const* buf, int size, packet* p
 	if (!p)
 	{
 		TORRENT_ASSERT(buf);
-		p = acquire_packet(std::uint16_t(size));
+		p = acquire_packet(size);
 		p->size = std::uint16_t(size);
 		p->header_size = 0;
 		std::memcpy(p->buf, buf, size);
@@ -2544,7 +2544,7 @@ bool utp_socket_impl::consume_incoming_data(
 		}
 
 		// we don't need to save the packet header, just the payload
-		packet* p = acquire_packet(std::uint16_t(payload_size));
+		packet* p = acquire_packet(payload_size);
 		p->size = std::uint16_t(payload_size);
 		p->header_size = 0;
 		p->num_transmissions = 0;
