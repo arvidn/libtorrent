@@ -173,7 +173,7 @@ namespace libtorrent
 			{
 				std::size_t const idx = std::size_t(i);
 				ret.file_priorities[idx] = aux::clamp(
-					file_priority.list_int_value_at(i, default_piece_priority), 0ll, 7ll) & 0xff;
+					file_priority.list_int_value_at(i, default_piece_priority), std::int64_t(0), std::int64_t(7)) & 0xff;
 				// this is suspicious, leave seed mode
 				if (ret.file_priorities[idx] == 0)
 				{
