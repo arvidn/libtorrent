@@ -90,8 +90,8 @@ class test_torrent_handle(unittest.TestCase):
         self.setup()
         st = self.h.status()
         # last upload and download times are at session start time
-        self.assertEqual(st.last_upload, sessionStart)
-        self.assertEqual(st.last_download, sessionStart)
+        self.assertLessEqual(abs(st.last_upload - sessionStart), datetime.timedelta(seconds=1))
+        self.assertLessEqual(abs(st.last_download - sessionStart), datetime.timedelta(seconds=1))
 
     def test_torrent_status(self):
         self.setup()

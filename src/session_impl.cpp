@@ -6923,7 +6923,7 @@ namespace aux {
 				"external ip: %s\n"
 				"we connected to: %s\n"
 				"peers:"
-				, resp.interval
+				, resp.interval.count()
 				, print_address(resp.external_ip).c_str()
 				, print_address(tracker_ip).c_str());
 
@@ -6946,7 +6946,7 @@ namespace aux {
 
 		void tracker_logger::tracker_request_error(tracker_request const&
 			, int response_code, error_code const& ec, const std::string& str
-			, int retry_interval)
+			, seconds32 const retry_interval)
 		{
 			TORRENT_UNUSED(retry_interval);
 			debug_log("*** tracker error: %d: %s %s"

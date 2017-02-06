@@ -52,6 +52,12 @@ using chrono::duration_cast;
 // seconds
 const int duration = 10000;
 
+template <typename Tp1, typename Tp2>
+bool eq(Tp1 const lhs, Tp2 const rhs)
+{
+	return std::abs(lt::duration_cast<seconds>(lhs - rhs).count()) <= 1;
+}
+
 void test_interval(int interval)
 {
 	using sim::asio::ip::address_v4;
@@ -121,14 +127,13 @@ void test_interval(int interval)
 	lt::time_point last_alert = announce_alerts[0];
 	for (int i = 1; i < int(announces.size()); ++i)
 	{
-		// make sure the interval is within 500 ms of what it's supposed to be
-		// (this accounts for network latencies)
-		std::int64_t const actual_interval_ms = duration_cast<lt::milliseconds>(announces[i] - last_announce).count();
-		TEST_CHECK(std::abs(actual_interval_ms - interval * 1000) < 500);
+		// make sure the interval is within 1 second of what it's supposed to be
+		// (this accounts for network latencies, and the second-granularity
+		// timestamps)
+		TEST_CHECK(eq(duration_cast<lt::seconds>(announces[i] - last_announce), lt::seconds(interval)));
 		last_announce = announces[i];
 
-		std::int64_t const alert_interval_ms = duration_cast<lt::milliseconds>(announce_alerts[i] - last_alert).count();
-		TEST_CHECK(std::abs(alert_interval_ms - interval * 1000) < 500);
+		TEST_CHECK(eq(duration_cast<lt::milliseconds>(announce_alerts[i] - last_alert), lt::seconds(interval)));
 		last_alert = announce_alerts[i];
 	}
 }

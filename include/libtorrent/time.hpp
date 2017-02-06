@@ -53,12 +53,18 @@ namespace libtorrent {
 	using time_point = clock_type::time_point;
 	using time_duration = clock_type::duration;
 
+	// 32 bit versions of time_point and duration, with second resolution
+	using seconds32 = std::chrono::duration<std::int32_t>;
+	using minutes32 = std::chrono::duration<std::int32_t, std::ratio<60>>;
+	using time_point32 = std::chrono::time_point<clock_type, seconds32>;
+
 	using std::chrono::seconds;
 	using std::chrono::milliseconds;
 	using std::chrono::microseconds;
 	using std::chrono::minutes;
 	using std::chrono::hours;
 	using std::chrono::duration_cast;
+	using std::chrono::time_point_cast;
 
 	// internal
 	inline time_point min_time() { return (time_point::min)(); }

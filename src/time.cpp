@@ -42,6 +42,7 @@ namespace libtorrent { namespace aux
 		std::atomic<time_point> g_current_time(clock_type::now());
 	}
 	time_point time_now() { return aux::g_current_time.load(); }
+	time_point32 time_now32() { return time_point_cast<seconds32>(clock_type::now()); }
 	void update_time_now() { g_current_time.store(clock_type::now()); }
 
 } }

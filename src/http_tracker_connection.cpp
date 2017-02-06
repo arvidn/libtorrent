@@ -161,7 +161,7 @@ namespace libtorrent
 			{
 				if (tracker_req().i2pconn->local_endpoint().empty())
 				{
-					fail(errors::no_i2p_endpoint, -1, "Waiting for i2p acceptor from SAM bridge", 5);
+					fail(errors::no_i2p_endpoint, -1, "Waiting for i2p acceptor from SAM bridge", seconds32(5));
 					return;
 				}
 				else
@@ -427,10 +427,9 @@ namespace libtorrent
 			return resp;
 		}
 
-		int interval = int(e.dict_find_int_value("interval", 0));
 		// if no interval is specified, default to 30 minutes
-		if (interval == 0) interval = 1800;
-		int min_interval = int(e.dict_find_int_value("min interval", 30));
+		seconds32 interval(e.dict_find_int_value("interval", 1800));
+		seconds32 const min_interval(e.dict_find_int_value("min interval", 30));
 
 		resp.interval = interval;
 		resp.min_interval = min_interval;

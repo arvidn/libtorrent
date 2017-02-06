@@ -155,7 +155,7 @@ namespace libtorrent
 	}
 
 	void tracker_connection::fail(error_code const& ec, int code
-		, char const* msg, int interval, int min_interval)
+		, char const* msg, seconds32 const interval, seconds32 const min_interval)
 	{
 		// we need to post the error to avoid deadlock
 		get_io_service().post(std::bind(&tracker_connection::fail_impl
@@ -163,11 +163,11 @@ namespace libtorrent
 	}
 
 	void tracker_connection::fail_impl(error_code const& ec, int code
-		, std::string msg, int interval, int min_interval)
+		, std::string msg, seconds32 const interval, seconds32 const min_interval)
 	{
 		std::shared_ptr<request_callback> cb = requester();
 		if (cb) cb->tracker_request_error(m_req, code, ec, msg.c_str()
-			, interval == 0 ? min_interval : interval);
+			, interval.count() == 0 ? min_interval : interval);
 		close();
 	}
 
@@ -284,7 +284,7 @@ namespace libtorrent
 		if (std::shared_ptr<request_callback> r = c.lock())
 			ios.post(std::bind(&request_callback::tracker_request_error, r, req
 				, -1, error_code(errors::unsupported_url_protocol)
-				, "", 0));
+				, "", seconds32(0)));
 	}
 
 	bool tracker_manager::incoming_packet(udp::endpoint const& ep

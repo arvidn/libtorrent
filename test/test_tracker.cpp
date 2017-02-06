@@ -183,8 +183,8 @@ TORRENT_TEST(parse_interval)
 	TEST_EQUAL(ec, error_code());
 	TEST_EQUAL(resp.peers.size(), 0);
 	TEST_EQUAL(resp.peers4.size(), 0);
-	TEST_EQUAL(resp.interval, 1042);
-	TEST_EQUAL(resp.min_interval, 10);
+	TEST_EQUAL(resp.interval.count(), 1042);
+	TEST_EQUAL(resp.min_interval.count(), 10);
 }
 
 TORRENT_TEST(parse_warning)

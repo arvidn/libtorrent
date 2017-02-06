@@ -60,7 +60,7 @@ struct time_duration_to_python
 
 struct time_point_to_python
 {
-    static PyObject* convert(lt::time_point pt)
+    static PyObject* convert(lt::time_point const pt)
     {
         using std::chrono::system_clock;
         using std::chrono::duration_cast;

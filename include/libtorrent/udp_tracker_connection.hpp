@@ -95,7 +95,9 @@ namespace libtorrent
 
 		// wraps tracker_connection::fail
 		void fail(error_code const& ec, int code = -1
-			, char const* msg = "", int interval = 0, int min_interval = 0);
+			, char const* msg = ""
+			, seconds32 interval = seconds32(0)
+			, seconds32 min_interval = seconds32(0));
 
 		void send_udp_connect();
 		void send_udp_announce();

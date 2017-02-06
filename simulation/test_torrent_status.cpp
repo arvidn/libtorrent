@@ -40,10 +40,21 @@ using namespace libtorrent;
 using namespace sim;
 namespace lt = libtorrent;
 
+time_point32 time_now()
+{
+	return lt::time_point_cast<seconds32>(lt::clock_type::now());
+}
+
+template <typename Tp1, typename Tp2>
+bool eq(Tp1 const lhs, Tp2 const rhs)
+{
+	return std::abs(lt::duration_cast<seconds>(lhs - rhs).count()) <= 1;
+}
+
 // this is a test for torrent_status time counters are correct
 TORRENT_TEST(status_timers)
 {
-	lt::time_point start_time;
+	lt::time_point32 start_time;
 	lt::torrent_handle handle;
 	bool ran_to_completion = false;
 
@@ -57,7 +68,7 @@ TORRENT_TEST(status_timers)
 			if (auto ta = alert_cast<torrent_added_alert>(a))
 			{
 				TEST_CHECK(!handle.is_valid());
-				start_time = lt::clock_type::now();
+				start_time = time_now();
 				handle = ta->handle;
 			}
 		}
@@ -78,7 +89,7 @@ TORRENT_TEST(status_timers)
 			// once an hour, verify that the timers seem correct
 			if ((ticks % 3600) == 0)
 			{
-				lt::time_point const now = lt::clock_type::now();
+				lt::time_point32 const now = time_now();
 				// finish is 1 tick after start
 				auto const since_finish = duration_cast<seconds>(now - start_time) - lt::seconds(1);
 				torrent_status st = handle.status();
@@ -100,7 +111,7 @@ TORRENT_TEST(status_timers_last_upload)
 {
 	bool ran_to_completion = false;
 
-	lt::time_point start_time;
+	lt::time_point32 start_time;
 	lt::torrent_handle handle;
 
 	setup_swarm(2, swarm_test::upload
@@ -113,7 +124,7 @@ TORRENT_TEST(status_timers_last_upload)
 			if (auto ta = alert_cast<torrent_added_alert>(a))
 			{
 				TEST_CHECK(!handle.is_valid());
-				start_time = lt::clock_type::now();
+				start_time = time_now();
 				handle = ta->handle;
 				torrent_status st = handle.status();
 				// test last upload and download state before wo go throgh
@@ -133,9 +144,9 @@ TORRENT_TEST(status_timers_last_upload)
 
 			torrent_status st = handle.status();
 			// uploadtime is 0 seconds behind now
-			TEST_EQUAL(duration_cast<seconds>(st.last_upload - lt::clock_type::now()).count(), 0);
+			TEST_CHECK(eq(st.last_upload, time_now()));
 			// does not download in seeding mode
-			TEST_CHECK(st.last_download == start_time);
+			TEST_CHECK(eq(st.last_download, start_time));
 			return false;
 		});
 	TEST_CHECK(ran_to_completion);
@@ -145,9 +156,9 @@ TORRENT_TEST(status_timers_time_shift_with_active_torrent)
 {
 	bool ran_to_completion = false;
 
-	lt::time_point start_time;
+	lt::time_point32 start_time;
 	lt::torrent_handle handle;
-	seconds expected_active_duration = seconds(0);
+	seconds expected_active_duration = seconds(1);
 	bool tick_is_in_active_range = false;
 	int tick_check_intervall = 1;
 
@@ -161,7 +172,7 @@ TORRENT_TEST(status_timers_time_shift_with_active_torrent)
 			if (auto ta = alert_cast<torrent_added_alert>(a))
 			{
 				TEST_CHECK(!handle.is_valid());
-				start_time = lt::clock_type::now();
+				start_time = time_now();
 				handle = ta->handle;
 				torrent_status st = handle.status();
 				// test last upload and download state before wo go throgh
@@ -227,9 +238,9 @@ TORRENT_TEST(finish_time_shift_active)
 {
 	bool ran_to_completion = false;
 
-	lt::time_point start_time;
+	lt::time_point32 start_time;
 	lt::torrent_handle handle;
-	seconds expected_active_duration = seconds(0);
+	seconds expected_active_duration = seconds(1);
 	bool tick_is_in_active_range = false;
 
 	setup_swarm(1, swarm_test::upload
@@ -242,7 +253,7 @@ TORRENT_TEST(finish_time_shift_active)
 			if (auto ta = alert_cast<torrent_added_alert>(a))
 			{
 				TEST_CHECK(!handle.is_valid());
-				start_time = lt::clock_type::now();
+				start_time = time_now();
 				handle = ta->handle;
 				torrent_status st = handle.status();
 				// test last upload and download state before wo go throgh
@@ -301,9 +312,9 @@ TORRENT_TEST(finish_time_shift_paused)
 {
 	bool ran_to_completion = false;
 
-	lt::time_point start_time;
+	lt::time_point32 start_time;
 	lt::torrent_handle handle;
-	seconds expected_active_duration = seconds(0);
+	seconds expected_active_duration = seconds(1);
 	bool tick_is_in_active_range = false;
 
 	setup_swarm(1, swarm_test::upload
@@ -316,13 +327,13 @@ TORRENT_TEST(finish_time_shift_paused)
 			if (auto ta = alert_cast<torrent_added_alert>(a))
 			{
 				TEST_CHECK(!handle.is_valid());
-				start_time = lt::clock_type::now();
+				start_time = time_now();
 				handle = ta->handle;
 				torrent_status st = handle.status();
 				// test last upload and download state before wo go throgh
 				// torrent states
-				TEST_CHECK(st.last_download == start_time);
-				TEST_CHECK(st.last_upload == start_time);
+				TEST_CHECK(eq(st.last_download, start_time));
+				TEST_CHECK(eq(st.last_upload, start_time));
 			}
 		}
 		// terminate

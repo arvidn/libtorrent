@@ -83,10 +83,10 @@ namespace libtorrent
 #endif
 
 		// the time of next tracker announce
-		time_point next_announce = min_time();
+		time_point32 next_announce = time_point32::min();
 
 		// no announces before this time
-		time_point min_announce = min_time();
+		time_point32 min_announce = time_point32::min();
 
 		// TODO: include the number of peers received from this tracker, at last
 		// announce
@@ -168,7 +168,7 @@ namespace libtorrent
 
 		// updates the failure counter and time-outs for re-trying.
 		// This is called when the tracker announce fails.
-		void failed(time_duration tracker_backoff, int retry_interval = 0);
+		void failed(int backoff_ratio, seconds32 retry_interval = seconds32(0));
 
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 1.0
