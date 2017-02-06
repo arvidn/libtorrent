@@ -83,4 +83,3 @@ namespace libtorrent
 #endif // !BOOST_NO_STD_WSTRING
 
 #endif
-
