@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
+#include "libtorrent/torrent.hpp" // for default_piece_priority
 
 namespace libtorrent
 {
@@ -166,12 +167,13 @@ namespace libtorrent
 		if (file_priority)
 		{
 			int const num_files = file_priority.list_size();
-			ret.file_priorities.resize(aux::numeric_cast<std::size_t>(num_files), 4);
+			ret.file_priorities.resize(aux::numeric_cast<std::size_t>(num_files)
+				, default_piece_priority);
 			for (int i = 0; i < num_files; ++i)
 			{
 				std::size_t const idx = std::size_t(i);
-				ret.file_priorities[idx] = aux::numeric_cast<std::uint8_t>(
-					file_priority.list_int_value_at(i, 1));
+				ret.file_priorities[idx] = aux::clamp(
+					file_priority.list_int_value_at(i, default_piece_priority), 0ll, 7ll) & 0xff;
 				// this is suspicious, leave seed mode
 				if (ret.file_priorities[idx] == 0)
 				{
@@ -269,9 +271,9 @@ namespace libtorrent
 		{
 			char const* prio_str = piece_priority.string_ptr();
 			ret.piece_priorities.resize(aux::numeric_cast<std::size_t>(piece_priority.string_length()));
-			for (int i = 0; i < int(ret.piece_priorities.size()); ++i)
+			for (std::size_t i = 0; i < ret.piece_priorities.size(); ++i)
 			{
-				ret.piece_priorities[aux::numeric_cast<std::size_t>(i)] = aux::numeric_cast<std::uint8_t>(prio_str[i]);
+				ret.piece_priorities[i] = aux::clamp(int(prio_str[i]), 0, 7) & 0xff;
 			}
 		}
 

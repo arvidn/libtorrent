@@ -95,6 +95,8 @@ namespace libtorrent
 	class bt_peer_connection;
 	struct listen_socket_t;
 
+	constexpr int default_piece_priority = 4;
+
 	enum class waste_reason
 	{
 		piece_timed_out, piece_cancelled, piece_unknown, piece_seed

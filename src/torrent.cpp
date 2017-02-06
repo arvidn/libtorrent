@@ -54,6 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
+#include "libtorrent/torrent.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/torrent_info.hpp"
@@ -124,7 +125,6 @@ namespace libtorrent
 		}
 		return ret;
 	}
-	constexpr int default_piece_priority = 4;
 
 	} // anonymous namespace
 
