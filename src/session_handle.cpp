@@ -814,7 +814,7 @@ namespace libtorrent
 	{
 		settings_pack const sett = get_settings();
 		return sett.get_bool(settings_pack::proxy_tracker_connections)
-			? proxy_settings(sett) : proxy();
+			? proxy_settings(sett) : proxy_settings();
 	}
 
 	void session_handle::set_dht_proxy(proxy_settings const&)
