@@ -340,12 +340,12 @@ namespace libtorrent
 		if (bool(m_finished) != state->is_finished)
 			recalculate_connect_candidates(state);
 
-		int round_robin = random(std::uint32_t(m_peers.size()-1));
+		int round_robin = aux::numeric_cast<int>(random(std::uint32_t(m_peers.size() - 1)));
 
 		int low_watermark = max_peerlist_size * 95 / 100;
 		if (low_watermark == max_peerlist_size) --low_watermark;
 
-		for (int iterations = (std::min)(int(m_peers.size()), 300);
+		for (int iterations = std::min(int(m_peers.size()), 300);
 			iterations > 0; --iterations)
 		{
 			if (int(m_peers.size()) < low_watermark)
@@ -430,20 +430,20 @@ namespace libtorrent
 		// failcount is a 5 bit value
 		if (p->failcount == 31) return;
 
-		const bool was_conn_cand = is_connect_candidate(*p);
+		bool const was_conn_cand = is_connect_candidate(*p);
 		++p->failcount;
 		if (was_conn_cand && !is_connect_candidate(*p))
 			update_connect_candidates(-1);
 	}
 
-	void peer_list::set_failcount(torrent_peer* p, int f)
+	void peer_list::set_failcount(torrent_peer* p, int const f)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
 		TORRENT_ASSERT(p->in_use);
-		const bool was_conn_cand = is_connect_candidate(*p);
-		p->failcount = f;
+		bool const was_conn_cand = is_connect_candidate(*p);
+		p->failcount = aux::numeric_cast<std::uint32_t>(f);
 		if (was_conn_cand != is_connect_candidate(*p))
 		{
 			update_connect_candidates(was_conn_cand ? -1 : 1);
@@ -489,7 +489,7 @@ namespace libtorrent
 		// TODO: 2 it would be nice if there was a way to iterate over these
 		// torrent_peer objects in the order they are allocated in the pool
 		// instead. It would probably be more efficient
-		for (int iterations = (std::min)(int(m_peers.size()), 300);
+		for (int iterations = std::min(int(m_peers.size()), 300);
 			iterations > 0; --iterations)
 		{
 			++state->loop_counter;
@@ -543,7 +543,7 @@ namespace libtorrent
 				peers.resize(candidate_count - 1);
 
 			// insert this candidate sorted into peers
-			std::vector<torrent_peer*>::iterator i = std::lower_bound(peers.begin(), peers.end()
+			auto const i = std::lower_bound(peers.begin(), peers.end()
 				, &pe, std::bind(&peer_list::compare_peer, this, _1, _2, std::cref(external), external_port));
 
 			peers.insert(i, &pe);

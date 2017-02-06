@@ -52,7 +52,7 @@ namespace libtorrent
 			TORRENT_ASSERT_FAIL();
 	}
 
-	int ip_filter::access(address const& addr) const
+	std::uint32_t ip_filter::access(address const& addr) const
 	{
 		if (addr.is_v4())
 			return m_filter4.access(addr.to_v4().to_bytes());
@@ -79,7 +79,7 @@ namespace libtorrent
 		m_filter.add_rule(first, last, flags);
 	}
 
-	int port_filter::access(std::uint16_t port) const
+	std::uint32_t port_filter::access(std::uint16_t port) const
 	{
 		return m_filter.access(port);
 	}
@@ -93,4 +93,3 @@ namespace libtorrent
 	}
 */
 }
-

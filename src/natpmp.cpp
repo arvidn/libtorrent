@@ -55,6 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/aux_/escape_string.hpp"
+#include "libtorrent/aux_/numeric_cast.hpp"
 
 namespace libtorrent {
 
@@ -207,7 +208,7 @@ void natpmp::disable(error_code const& ec)
 	close_impl();
 }
 
-void natpmp::delete_mapping(int index)
+void natpmp::delete_mapping(int const index)
 {
 	TORRENT_ASSERT(is_single_thread());
 
@@ -471,7 +472,7 @@ void natpmp::on_reply(error_code const& e
 	int version = read_uint8(in);
 	int cmd = read_uint8(in);
 	int result = read_uint16(in);
-	int time = read_uint32(in);
+	int time = aux::numeric_cast<int>(read_uint32(in));
 	TORRENT_UNUSED(version);
 	TORRENT_UNUSED(time);
 
@@ -500,7 +501,7 @@ void natpmp::on_reply(error_code const& e
 
 	int const private_port = read_uint16(in);
 	int const public_port = read_uint16(in);
-	int const lifetime = read_uint32(in);
+	int const lifetime = aux::numeric_cast<int>(read_uint32(in));
 
 	portmap_protocol const protocol = (cmd - 128 == 1)
 		? portmap_protocol::udp
@@ -515,7 +516,7 @@ void natpmp::on_reply(error_code const& e
 
 	if (version != 0)
 	{
-		std::snprintf(msg + num_chars, sizeof(msg) - num_chars, "unexpected version: %u"
+		std::snprintf(msg + num_chars, sizeof(msg) - aux::numeric_cast<std::size_t>(num_chars), "unexpected version: %u"
 			, version);
 		log("%s", msg);
 	}
@@ -523,8 +524,7 @@ void natpmp::on_reply(error_code const& e
 
 	mapping_t* m = nullptr;
 	int index = -1;
-	for (std::vector<mapping_t>::iterator i = m_mappings.begin()
-		, end(m_mappings.end()); i != end; ++i)
+	for (auto i = m_mappings.begin(), end(m_mappings.end()); i != end; ++i)
 	{
 		if (private_port != i->local_port) continue;
 		if (protocol != i->protocol) continue;
@@ -538,7 +538,7 @@ void natpmp::on_reply(error_code const& e
 	if (m == nullptr)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		snprintf(msg + num_chars, sizeof(msg) - num_chars, " not found in map table");
+		snprintf(msg + num_chars, sizeof(msg) - aux::numeric_cast<std::size_t>(num_chars), " not found in map table");
 		log("%s", msg);
 #endif
 		return;
@@ -645,7 +645,7 @@ void natpmp::update_expiration_timer()
 	}
 }
 
-void natpmp::mapping_expired(error_code const& e, int i)
+void natpmp::mapping_expired(error_code const& e, int const i)
 {
 	TORRENT_ASSERT(is_single_thread());
 	COMPLETE_ASYNC("natpmp::mapping_expired");

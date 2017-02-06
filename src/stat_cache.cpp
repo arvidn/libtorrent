@@ -56,7 +56,7 @@ namespace libtorrent
 		if (i >= m_stat_cache.end_index())
 			m_stat_cache.resize(static_cast<int>(i) + 1, not_in_cache);
 
-		int error_index = add_error(ec);
+		int const error_index = add_error(ec);
 		m_stat_cache[i].file_size = file_error - error_index;
 	}
 
