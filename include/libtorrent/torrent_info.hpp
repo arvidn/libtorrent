@@ -240,14 +240,13 @@ namespace libtorrent
 
 		// ``add_tracker()`` adds a tracker to the announce-list. The ``tier``
 		// determines the order in which the trackers are to be tried.
-		void add_tracker(std::string const& url, int tier = 0);
-
 		// The ``trackers()`` function will return a sorted vector of
 		// ``announce_entry``. Each announce entry contains a string, which is
 		// the tracker url, and a tier index. The tier index is the high-level
 		// priority. No matter which trackers that works or not, the ones with
 		// lower tier will always be tried before the one with higher tier
 		// number. For more information, see announce_entry_.
+		void add_tracker(std::string const& url, int tier = 0);
 		std::vector<announce_entry> const& trackers() const { return m_urls; }
 
 		// These two functions are related to BEP38_ (mutable torrents). The
@@ -453,8 +452,6 @@ namespace libtorrent
 
 		// ``merkle_tree()`` returns a reference to the merkle tree for this
 		// torrent, if any.
-		std::vector<sha1_hash> const& merkle_tree() const { return m_merkle_tree; }
-
 		// ``set_merkle_tree()`` moves the passed in merkle tree into the
 		// torrent_info object. i.e. ``h`` will not be identical after the call.
 		// You need to set the merkle tree for a torrent that you've just created
@@ -462,6 +459,7 @@ namespace libtorrent
 		// ``create_torrent::merkle_tree()`` function, and need to be saved
 		// separately from the torrent file itself. Once it's added to
 		// libtorrent, the merkle tree will be persisted in the resume data.
+		std::vector<sha1_hash> const& merkle_tree() const { return m_merkle_tree; }
 		void set_merkle_tree(std::vector<sha1_hash>& h)
 		{ TORRENT_ASSERT(h.size() == m_merkle_tree.size() ); m_merkle_tree.swap(h); }
 
