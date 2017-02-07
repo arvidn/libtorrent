@@ -102,6 +102,14 @@ const unsigned long siocgifmtu = SIOCGIFMTU;
 
 namespace libtorrent { namespace
 {
+	bool valid_addr_family(int family)
+	{
+		return (family == AF_INET
+#if TORRENT_USE_IPV6
+			|| family == AF_INET6
+#endif
+		);
+	}
 
 #if !defined TORRENT_BUILD_SIMULATOR
 	address_v4 inaddr_to_address(in_addr const* ina, int const len = 4)
@@ -190,7 +198,7 @@ namespace libtorrent { namespace
 	{
 		rtmsg* rt_msg = reinterpret_cast<rtmsg*>(NLMSG_DATA(nl_hdr));
 
-		if((rt_msg->rtm_family != AF_INET && rt_msg->rtm_family != AF_INET6) || (rt_msg->rtm_table != RT_TABLE_MAIN
+		if (!valid_addr_family(rt_msg->rtm_family) || (rt_msg->rtm_table != RT_TABLE_MAIN
 			&& rt_msg->rtm_table != RT_TABLE_LOCAL))
 			return false;
 
@@ -282,11 +290,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		if (sa == nullptr
 			|| rti_info[RTAX_DST] == nullptr
 			|| rti_info[RTAX_NETMASK] == nullptr
-			|| (sa->sa_family != AF_INET
-#if TORRENT_USE_IPV6
-				&& sa->sa_family != AF_INET6
-#endif
-				))
+			|| !valid_addr_family(sa->sa_family))
 			return false;
 
 		rt_info->gateway = sockaddr_to_address(rti_info[RTAX_GATEWAY]);
@@ -310,13 +314,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 #if TORRENT_USE_IFADDRS && !defined TORRENT_BUILD_SIMULATOR
 	bool iface_from_ifaddrs(ifaddrs *ifa, ip_interface &rv)
 	{
-		int family = ifa->ifa_addr->sa_family;
-
-		if (family != AF_INET
-#if TORRENT_USE_IPV6
-			&& family != AF_INET6
-#endif
-		)
+		if (!valid_addr_family(ifa->ifa_addr->sa_family))
 		{
 			return false;
 		}
@@ -472,12 +470,7 @@ namespace libtorrent
 			if (ifa->ifa_addr == nullptr) continue;
 			if ((ifa->ifa_flags & IFF_UP) == 0) continue;
 
-			int family = ifa->ifa_addr->sa_family;
-			if (family == AF_INET
-#if TORRENT_USE_IPV6
-				|| family == AF_INET6
-#endif
-				)
+			if (valid_addr_family(ifa->ifa_addr->sa_family))
 			{
 				ip_interface iface;
 				if (iface_from_ifaddrs(ifa, iface))
@@ -532,11 +525,7 @@ namespace libtorrent
 
 			if (remaining < current_size) break;
 
-			if (item.ifr_addr.sa_family == AF_INET
-#if TORRENT_USE_IPV6
-				|| item.ifr_addr.sa_family == AF_INET6
-#endif
-				)
+			if (valid_addr_family(item.ifr_addr.sa_family))
 			{
 				ip_interface iface;
 				iface.interface_address = sockaddr_to_address(&item.ifr_addr);
@@ -627,10 +616,11 @@ namespace libtorrent
 				IP_ADAPTER_UNICAST_ADDRESS* unicast = adapter->FirstUnicastAddress;
 				while (unicast)
 				{
-					r.interface_address = sockaddr_to_address(unicast->Address.lpSockaddr);
-
-					ret.push_back(r);
-
+					if (valid_addr_family(unicast->Address.lpSockaddr->sa_family))
+					{
+						r.interface_address = sockaddr_to_address(unicast->Address.lpSockaddr);
+						ret.push_back(r);
+					}
 					unicast = unicast->Next;
 				}
 			}
