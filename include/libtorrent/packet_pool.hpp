@@ -79,7 +79,7 @@ namespace libtorrent
 	};
 
 
-	struct packet_mem_manager
+	struct packet_deleter
 	{
 		// deleter for std::unique_ptr
 		void operator()(packet* p) const
@@ -87,16 +87,16 @@ namespace libtorrent
 			p->~packet();
 			std::free(p);
 		}
-
-		static packet *create_packet(int size)
-		{
-			packet *p = static_cast<packet*>(std::malloc(sizeof(packet) + size));
-			new (p) packet();
-			return p;
-		}
 	};
 
-	using packet_ptr = std::unique_ptr<packet, packet_mem_manager>;
+	static packet *create_packet(int size)
+	{
+		packet *p = static_cast<packet*>(std::malloc(sizeof(packet) + size));
+		new (p) packet();
+		return p;
+	}
+
+	using packet_ptr = std::unique_ptr<packet, packet_deleter>;
 
 	template<int ALLOCATE_SIZE>
 	struct TORRENT_EXTRA_EXPORT packet_slab
@@ -116,7 +116,7 @@ namespace libtorrent
 		packet_ptr alloc()
 		{
 			if (m_storage.empty())
-				return packet_ptr(packet_mem_manager::create_packet(allocate_size));
+				return packet_ptr(create_packet(allocate_size));
 			else
 			{
 				auto ret = std::move(m_storage.back());
@@ -176,11 +176,11 @@ namespace libtorrent
 			if (allocate <= m_syn_slab.allocate_size) { return m_syn_slab.alloc(); }
 			else if (allocate <= m_mtu_floor_slab.allocate_size) { return m_mtu_floor_slab.alloc(); }
 			else if (allocate <= m_mtu_ceiling_slab.allocate_size) { return m_mtu_ceiling_slab.alloc(); }
-			return packet_ptr(packet_mem_manager::create_packet(allocate));
+			return packet_ptr(create_packet(allocate));
 		}
-		packet_slab<sizeof(utp_header)> m_syn_slab{ 100 };
-		packet_slab<(TORRENT_INET_MIN_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER)> m_mtu_floor_slab{ 512 };
-		packet_slab<(TORRENT_ETHERNET_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER)> m_mtu_ceiling_slab{ 256 };
+		packet_slab<sizeof(utp_header)> m_syn_slab{ 50 };
+		packet_slab<(TORRENT_INET_MIN_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER)> m_mtu_floor_slab{ 100 };
+		packet_slab<(TORRENT_ETHERNET_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER)> m_mtu_ceiling_slab{ 50 };
 	};
 }
 
