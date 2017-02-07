@@ -792,7 +792,6 @@ void web_peer_connection::on_receive(error_code const& error
 				if (!m_file_requests.empty())
 				{
 					file_request_t const& file_req = m_file_requests.front();
-					m_web->have_files.resize(t->torrent_file().num_files(), true);
 					m_web->have_files.clear_bit(file_req.file_index);
 				}
 				handle_error(int(recv_buffer.size()));

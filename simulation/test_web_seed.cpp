@@ -518,7 +518,9 @@ TORRENT_TEST(no_close_redudant_webseed)
 				expected = true;
 				char const* extra_headers[4] = { "Content-Range: bytes 0-0/1\r\n", "", "", ""};
 
-				return sim::send_response(206, "Partial Content", 1, extra_headers).append("A").append(sim::send_response(408, "REQUEST TIMEOUT", 0));
+				return sim::send_response(206, "Partial Content", 1, extra_headers).
+					append("A").
+					append(sim::send_response(408, "REQUEST TIMEOUT", 0)); 
 			});
 
 			sim.run();
