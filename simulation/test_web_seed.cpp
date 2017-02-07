@@ -483,3 +483,47 @@ TORRENT_TEST(urlseed_timeout)
 	TEST_EQUAL(timeout, true);
 }
 
+// check for correct handle of unexpected http status response.
+// with disabled "close_redundant_connections" alive web server connection
+// may be closed in such manner.
+TORRENT_TEST(no_close_redudant_webseed)
+{
+	using namespace libtorrent;
+
+	file_storage fs;
+	fs.add_file("file1", 1);
+	lt::add_torrent_params params = ::create_torrent(fs);
+	params.url_seeds.push_back("http://2.2.2.2:8080/");
+
+	bool expected = false;
+	run_test(
+		[&params](lt::session& ses)
+		{
+			lt::settings_pack pack;
+			pack.set_bool(settings_pack::close_redundant_connections, false);
+			ses.apply_settings(pack);
+			ses.async_add_torrent(params);
+		},
+		[](lt::session& ses, lt::alert const* alert) {},
+		[&expected](sim::simulation& sim, lt::session& ses)
+		{
+			sim::asio::io_service web_server(sim, address_v4::from_string("2.2.2.2"));
+			// listen on port 8080
+			sim::http_server http(web_server, 8080);
+
+			http.register_handler("/file1"
+				, [&expected](std::string method, std::string req
+				, std::map<std::string, std::string>&)
+			{
+				expected = true;
+				char const* extra_headers[4] = { "Content-Range: bytes 0-0/1\r\n", "", "", ""};
+
+				return sim::send_response(206, "Partial Content", 1, extra_headers).append("A").append(sim::send_response(408, "REQUEST TIMEOUT", 0));
+			});
+
+			sim.run();
+		}
+	);
+
+	TEST_CHECK(expected);
+}
