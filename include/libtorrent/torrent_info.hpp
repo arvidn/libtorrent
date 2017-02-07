@@ -240,14 +240,14 @@ namespace libtorrent
 
 		// ``add_tracker()`` adds a tracker to the announce-list. The ``tier``
 		// determines the order in which the trackers are to be tried.
-		//
+		void add_tracker(std::string const& url, int tier = 0);
+
 		// The ``trackers()`` function will return a sorted vector of
 		// ``announce_entry``. Each announce entry contains a string, which is
 		// the tracker url, and a tier index. The tier index is the high-level
 		// priority. No matter which trackers that works or not, the ones with
 		// lower tier will always be tried before the one with higher tier
 		// number. For more information, see announce_entry_.
-		void add_tracker(std::string const& url, int tier = 0);
 		std::vector<announce_entry> const& trackers() const { return m_urls; }
 
 		// These two functions are related to BEP38_ (mutable torrents). The
@@ -418,15 +418,16 @@ namespace libtorrent
 		// to peers over anything other than the i2p network.
 		bool is_i2p() const { return (m_flags & i2p) != 0; }
 
+		// returns the piece size of file with ``index``. This will be the same as piece_length(),
+		// except for the last piece, which may be shorter.
 		int piece_size(piece_index_t index) const { return m_files.piece_size(index); }
 
 		// ``hash_for_piece()`` takes a piece-index and returns the 20-bytes
 		// sha1-hash for that piece and ``info_hash()`` returns the 20-bytes
 		// sha1-hash for the info-section of the torrent file.
-		sha1_hash hash_for_piece(piece_index_t index) const;
-
 		// ``hash_for_piece_ptr()`` returns a pointer to the 20 byte sha1 digest
 		// for the piece. Note that the string is not 0-terminated.
+		sha1_hash hash_for_piece(piece_index_t index) const;
 		char const* hash_for_piece_ptr(piece_index_t const index) const
 		{
 			TORRENT_ASSERT(index >= piece_index_t(0));
@@ -465,7 +466,7 @@ namespace libtorrent
 		{ TORRENT_ASSERT(h.size() == m_merkle_tree.size() ); m_merkle_tree.swap(h); }
 
 		// ``name()`` returns the name of the torrent.
-		// Both the name and the comment is UTF-8 encoded strings.
+		// name contains UTF-8 encoded string.
 		const std::string& name() const { return m_files.name(); }
 
 		// ``creation_date()`` returns the creation date of the torrent as time_t
@@ -482,6 +483,7 @@ namespace libtorrent
 
 		// ``comment()`` returns the comment associated with the torrent. If
 		// there's no comment, it will return an empty string.
+		// comment contains UTF-8 encoded string.
 		const std::string& comment() const
 		{ return m_comment; }
 
