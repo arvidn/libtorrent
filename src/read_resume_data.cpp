@@ -38,6 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp" // for read_*_endpoint()
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/torrent_info.hpp"
+#include "libtorrent/aux_/numeric_cast.hpp"
+#include "libtorrent/torrent.hpp" // for default_piece_priority
 
 namespace libtorrent
 {
@@ -165,13 +167,15 @@ namespace libtorrent
 		if (file_priority)
 		{
 			int const num_files = file_priority.list_size();
-			ret.file_priorities.resize(num_files, 4);
+			ret.file_priorities.resize(aux::numeric_cast<std::size_t>(num_files)
+				, default_piece_priority);
 			for (int i = 0; i < num_files; ++i)
 			{
-				ret.file_priorities[i] = std::uint8_t(
-					file_priority.list_int_value_at(i, 1));
+				std::size_t const idx = std::size_t(i);
+				ret.file_priorities[idx] = aux::clamp(
+					file_priority.list_int_value_at(i, default_piece_priority), std::int64_t(0), std::int64_t(7)) & 0xff;
 				// this is suspicious, leave seed mode
-				if (ret.file_priorities[i] == 0)
+				if (ret.file_priorities[idx] == 0)
 				{
 					ret.flags &= ~add_torrent_params::flag_seed_mode;
 				}
@@ -239,9 +243,9 @@ namespace libtorrent
 		bdecode_node mt = rd.dict_find_string("merkle tree");
 		if (mt)
 		{
-			ret.merkle_tree.resize(mt.string_length() / 20);
-			std::memcpy(&ret.merkle_tree[0], mt.string_ptr()
-				, int(ret.merkle_tree.size()) * 20);
+			ret.merkle_tree.resize(aux::numeric_cast<std::size_t>(mt.string_length() / 20));
+			std::memcpy(ret.merkle_tree.data(), mt.string_ptr()
+				, ret.merkle_tree.size() * 20);
 		}
 
 		// some sanity checking. Maybe we shouldn't be in seed mode anymore
@@ -266,10 +270,10 @@ namespace libtorrent
 		if (bdecode_node piece_priority = rd.dict_find_string("piece_priority"))
 		{
 			char const* prio_str = piece_priority.string_ptr();
-			ret.piece_priorities.resize(piece_priority.string_length());
-			for (int i = 0; i < int(ret.piece_priorities.size()); ++i)
+			ret.piece_priorities.resize(aux::numeric_cast<std::size_t>(piece_priority.string_length()));
+			for (std::size_t i = 0; i < ret.piece_priorities.size(); ++i)
 			{
-				ret.piece_priorities[i] = prio_str[i];
+				ret.piece_priorities[i] = aux::clamp(int(prio_str[i]), 0, 7) & 0xff;
 			}
 		}
 

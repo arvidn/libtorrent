@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_util.hpp" // for allocate_string_copy
 #include "libtorrent/file.hpp"
 #include "libtorrent/utf8.hpp"
+#include "libtorrent/aux_/numeric_cast.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/crc.hpp>
@@ -157,7 +158,7 @@ namespace libtorrent
 			, [&] (std::string const& str)
 			{
 				if (int(str.size()) != branch_len) return false;
-				return std::memcmp(str.c_str(), branch_path, branch_len) == 0;
+				return std::memcmp(str.c_str(), branch_path, aux::numeric_cast<std::size_t>(branch_len)) == 0;
 			});
 
 		if (p == m_paths.rend())
@@ -168,7 +169,7 @@ namespace libtorrent
 
 			// poor man's emplace back
 			m_paths.resize(m_paths.size() + 1);
-			m_paths.back().assign(branch_path, branch_len);
+			m_paths.back().assign(branch_path, aux::numeric_cast<std::size_t>(branch_len));
 		}
 		else
 		{
@@ -303,7 +304,7 @@ namespace libtorrent
 		else if (borrow_string)
 		{
 			name = n;
-			name_len = string_len;
+			name_len = aux::numeric_cast<std::uint64_t>(string_len);
 		}
 		else
 		{
@@ -384,7 +385,7 @@ namespace libtorrent
 	{
 		// find the file iterator and file offset
 		internal_file_entry target;
-		target.offset = offset;
+		target.offset = aux::numeric_cast<std::uint64_t>(offset);
 		TORRENT_ASSERT(!compare_file_offset(target, m_files.front()));
 
 		auto file_iter = std::upper_bound(
@@ -405,7 +406,7 @@ namespace libtorrent
 	{
 		// find the file iterator and file offset
 		internal_file_entry target;
-		target.offset = offset;
+		target.offset = aux::numeric_cast<std::uint64_t>(offset);
 		TORRENT_ASSERT(!compare_file_offset(target, m_files.front()));
 
 		auto file_iter = std::upper_bound(
@@ -438,13 +439,13 @@ namespace libtorrent
 
 		// find the file iterator and file offset
 		internal_file_entry target;
-		target.offset = static_cast<int>(piece) * std::int64_t(m_piece_length) + offset;
-		TORRENT_ASSERT_PRECOND(std::int64_t(target.offset + size) <= m_total_size);
+		target.offset = aux::numeric_cast<std::uint64_t>(static_cast<int>(piece) * std::int64_t(m_piece_length) + offset);
+		TORRENT_ASSERT_PRECOND(std::int64_t(target.offset) + size <= m_total_size);
 		TORRENT_ASSERT(!compare_file_offset(target, m_files.front()));
 
 		// in case the size is past the end, fix it up
-		if (std::int64_t(target.offset + size) > m_total_size)
-			size = int(m_total_size - target.offset);
+		if (std::int64_t(target.offset) + size > m_total_size)
+			size = aux::numeric_cast<int>(m_total_size - std::int64_t(target.offset));
 
 		auto file_iter = std::upper_bound(
 			m_files.begin(), m_files.end(), target, compare_file_offset);
@@ -465,7 +466,7 @@ namespace libtorrent
 					+ file_base_deprecated(f.file_index)
 #endif
 					;
-				f.size = std::min(std::uint64_t(file_iter->size) - file_offset, std::uint64_t(size));
+				f.size = std::min(std::int64_t(file_iter->size) - file_offset, std::int64_t(size));
 				TORRENT_ASSERT(f.size <= size);
 				size -= int(f.size);
 				file_offset += f.size;
@@ -581,8 +582,8 @@ namespace libtorrent
 		if (filename)
 			e.set_name(filename, true, filename_len);
 
-		e.size = file_size;
-		e.offset = m_total_size;
+		e.size = aux::numeric_cast<std::uint64_t>(file_size);
+		e.offset = aux::numeric_cast<std::uint64_t>(m_total_size);
 		e.pad_file = (file_flags & file_storage::flag_pad_file) != 0;
 		e.hidden_attribute = (file_flags & file_storage::flag_hidden) != 0;
 		e.executable_attribute = (file_flags & file_storage::flag_executable) != 0;
@@ -638,7 +639,7 @@ namespace libtorrent
 		void process_string_lowercase(CRC& crc, string_view str)
 		{
 			for (char const c : str)
-				crc.process_byte(to_lower(c));
+				crc.process_byte(to_lower(c) & 0xff);
 		}
 
 		template <class CRC>
@@ -652,7 +653,7 @@ namespace libtorrent
 			{
 				if (*str == TORRENT_SEPARATOR)
 					table.insert(crc.checksum());
-				crc.process_byte(to_lower(*str));
+				crc.process_byte(to_lower(*str) & 0xff);
 			}
 			table.insert(crc.checksum());
 		}
@@ -975,7 +976,7 @@ namespace libtorrent
 				{
 					// a file whose size fits the alignment always takes priority,
 					// since it will let us keep placing aligned files
-					if ((k->size % alignment) == 0)
+					if ((k->size % aux::numeric_cast<std::uint64_t>(alignment)) == 0)
 					{
 						best_match = k;
 						break;
@@ -1029,7 +1030,7 @@ namespace libtorrent
 						int cur_index = int(i - m_files.begin());
 						reorder_file(index, cur_index);
 						i = m_files.begin() + cur_index;
-						i->offset = off;
+						i->offset = aux::numeric_cast<std::uint64_t>(off);
 						off += i->size;
 						continue;
 					}
@@ -1049,7 +1050,7 @@ namespace libtorrent
 				TORRENT_ASSERT((off % alignment) == 0);
 				continue;
 			}
-			i->offset = off;
+			i->offset = aux::numeric_cast<std::uint64_t>(off);
 			off += i->size;
 
 			if (tail_padding
@@ -1084,8 +1085,8 @@ namespace libtorrent
 		internal_file_entry& e = m_files.back();
 		// i may have been invalidated, refresh it
 		i = m_files.begin() + cur_index;
-		e.size = size;
-		e.offset = offset;
+		e.size = aux::numeric_cast<std::uint64_t>(size);
+		e.offset = aux::numeric_cast<std::uint64_t>(offset);
 		char name[30];
 		std::snprintf(name, sizeof(name), ".pad" TORRENT_SEPARATOR_STR "%d"
 			, pad_file_counter);

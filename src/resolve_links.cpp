@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/resolve_links.hpp"
 #include "libtorrent/torrent_info.hpp"
+#include "libtorrent/aux_/numeric_cast.hpp"
 
 namespace libtorrent
 {
@@ -45,7 +46,7 @@ resolve_links::resolve_links(std::shared_ptr<torrent_info> ti)
 	int piece_size = ti->piece_length();
 
 	file_storage const& fs = ti->files();
-	m_file_sizes.reserve(fs.num_files());
+	m_file_sizes.reserve(aux::numeric_cast<std::size_t>(fs.num_files()));
 	for (file_index_t i(0); i < fs.end_file(); ++i)
 	{
 		// don't match pad-files, and don't match files that aren't aligned to
@@ -71,7 +72,7 @@ void resolve_links::match(std::shared_ptr<const torrent_info> const& ti
 	int piece_size = ti->piece_length();
 
 	file_storage const& fs = ti->files();
-	m_file_sizes.reserve(fs.num_files());
+	m_file_sizes.reserve(aux::numeric_cast<std::size_t>(fs.num_files()));
 	for (file_index_t i(0); i < fs.end_file(); ++i)
 	{
 		// for every file in the other torrent, see if we have one that match

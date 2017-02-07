@@ -286,7 +286,7 @@ struct TORRENT_EXPORT ip_filter
 	// can currently be 0 or ``ip_filter::blocked``. The complexity of this operation
 	// is O(``log`` n), where n is the minimum number of non-overlapping ranges to describe
 	// the current filter.
-	int access(address const& addr) const;
+	std::uint32_t access(address const& addr) const;
 
 #if TORRENT_USE_IPV6
 	using filter_tuple_t = std::tuple<std::vector<ip_range<address_v4>>
@@ -338,7 +338,7 @@ public:
 	// test the specified port (``port``) for whether it is blocked
 	// or not. The returned value is the flags set for this port.
 	// see access_flags.
-	int access(std::uint16_t port) const;
+	std::uint32_t access(std::uint16_t port) const;
 
 private:
 

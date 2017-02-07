@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/ConvertUTF.h"
 #include "libtorrent/aux_/throw.hpp"
+#include "libtorrent/aux_/numeric_cast.hpp"
 
 
 #ifdef __clang__
@@ -92,7 +93,7 @@ namespace libtorrent
 						, std::back_inserter(wide));
 					return static_cast<utf8_errors::error_code_enum>(ret);
 				}
-				wide.resize(dst_start - wide.c_str());
+				wide.resize(aux::numeric_cast<std::size_t>(dst_start - wide.c_str()));
 				return static_cast<utf8_errors::error_code_enum>(ret);
 			}
 		};
@@ -121,7 +122,7 @@ namespace libtorrent
 						, std::back_inserter(wide));
 					return static_cast<utf8_errors::error_code_enum>(ret);
 				}
-				wide.resize(dst_start - wide.c_str());
+				wide.resize(aux::numeric_cast<std::size_t>(dst_start - wide.c_str()));
 				return static_cast<utf8_errors::error_code_enum>(ret);
 			}
 		};
@@ -156,7 +157,7 @@ namespace libtorrent
 					, reinterpret_cast<UTF8**>(&dst_start)
 					, reinterpret_cast<UTF8*>(dst_start + utf8.size())
 					, lenientConversion);
-				utf8.resize(dst_start - &utf8[0]);
+				utf8.resize(aux::numeric_cast<std::size_t>(dst_start - &utf8[0]));
 				return static_cast<utf8_errors::error_code_enum>(ret);
 			}
 		};
@@ -176,7 +177,7 @@ namespace libtorrent
 					, reinterpret_cast<UTF8**>(&dst_start)
 					, reinterpret_cast<UTF8*>(dst_start + utf8.size())
 					, lenientConversion);
-				utf8.resize(dst_start - &utf8[0]);
+				utf8.resize(aux::numeric_cast<std::size_t>(dst_start - &utf8[0]));
 				return static_cast<utf8_errors::error_code_enum>(ret);
 			}
 		};
@@ -274,4 +275,3 @@ namespace libtorrent
 #endif
 
 #endif
-

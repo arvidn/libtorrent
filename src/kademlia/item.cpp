@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/item.hpp>
 #include <libtorrent/bencode.hpp>
 #include <libtorrent/kademlia/ed25519.hpp>
+#include <libtorrent/aux_/numeric_cast.hpp>
 
 #include <cstdio> // for snprintf
 #include <cinttypes> // for PRId64 et.al.
@@ -61,17 +62,17 @@ namespace
 #endif
 		char* ptr = out.data();
 
-		size_t left = out.size() - (ptr - out.data());
+		std::size_t left = out.size() - aux::numeric_cast<std::size_t>(ptr - out.data());
 		if (salt.size() > 0)
 		{
 			ptr += std::snprintf(ptr, left, "4:salt%d:", int(salt.size()));
-			left = out.size() - (ptr - out.data());
+			left = out.size() - aux::numeric_cast<std::size_t>(ptr - out.data());
 			std::memcpy(ptr, salt.data(), std::min(salt.size(), left));
 			ptr += std::min(salt.size(), left);
-			left = out.size() - (ptr - out.data());
+			left = out.size() - aux::numeric_cast<std::size_t>(ptr - out.data());
 		}
 		ptr += std::snprintf(ptr, left, "3:seqi%" PRId64 "e1:v", seq.value);
-		left = out.size() - (ptr - out.data());
+		left = out.size() - aux::numeric_cast<std::size_t>(ptr - out.data());
 		std::memcpy(ptr, v.data(), std::min(v.size(), left));
 		ptr += std::min(v.size(), left);
 		TORRENT_ASSERT((ptr - out.data()) <= int(out.size()));
@@ -165,7 +166,7 @@ void item::assign(entry v, span<char const> salt
 	char buffer[1000];
 	int bsize = bencode(buffer, v);
 	TORRENT_ASSERT(bsize <= 1000);
-	m_sig = sign_mutable_item(span<char const>(buffer, bsize)
+	m_sig = sign_mutable_item({buffer, aux::numeric_cast<std::size_t>(bsize)}
 		, salt, seq, pk, sk);
 	m_salt.assign(salt.data(), salt.size());
 	m_pk = pk;
