@@ -79,16 +79,24 @@ namespace libtorrent
 	};
 
 
-	struct packet_deleter
+	struct packet_mem_manager
 	{
-		void operator()(packet* handle) const
+		// deleter for std::unique_ptr
+		void operator()(packet* p) const
 		{
-			handle->~packet();
-			std::free(handle);
+			p->~packet();
+			std::free(p);
+		}
+
+		static packet *create_packet(int size)
+		{
+			packet *p = static_cast<packet*>(std::malloc(sizeof(packet) + size));
+			new (p) packet();
+			return p;
 		}
 	};
 
-	using packet_ptr = std::unique_ptr<packet, packet_deleter>;
+	using packet_ptr = std::unique_ptr<packet, packet_mem_manager>;
 
 	template<int ALLOCATE_SIZE>
 	struct TORRENT_EXTRA_EXPORT packet_slab
@@ -108,7 +116,7 @@ namespace libtorrent
 		packet_ptr alloc()
 		{
 			if (m_storage.empty())
-				return packet_ptr(static_cast<packet*>(std::malloc(sizeof(packet) + allocate_size)));
+				return packet_ptr(packet_mem_manager::create_packet(allocate_size));
 			else
 			{
 				auto ret = std::move(m_storage.back());
@@ -117,7 +125,7 @@ namespace libtorrent
 			}
 		}
 
-		void flush() { m_storage.resize(0); }
+		void flush() { m_storage.clear(); }
 	private:
 		const std::size_t m_limit;
 		aux::vector<packet_ptr, std::size_t> m_storage;
@@ -134,7 +142,6 @@ namespace libtorrent
 			TORRENT_ASSERT(allocate <= std::numeric_limits<std::uint16_t>::max());
 
 			packet_ptr p{ alloc(allocate) };
-			new (p.get()) packet();
 			p->allocated = static_cast<std::uint16_t>(allocate);
 			return p.release();
 		}
@@ -169,11 +176,11 @@ namespace libtorrent
 			if (allocate <= m_syn_slab.allocate_size) { return m_syn_slab.alloc(); }
 			else if (allocate <= m_mtu_floor_slab.allocate_size) { return m_mtu_floor_slab.alloc(); }
 			else if (allocate <= m_mtu_ceiling_slab.allocate_size) { return m_mtu_ceiling_slab.alloc(); }
-			return packet_ptr(static_cast<packet*>(std::malloc(sizeof(packet) + allocate)));
+			return packet_ptr(packet_mem_manager::create_packet(allocate));
 		}
-		packet_slab<sizeof(utp_header)> m_syn_slab{ 0x100 };
-		packet_slab<(TORRENT_INET_MIN_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER)> m_mtu_floor_slab{ 0x200 };
-		packet_slab<(TORRENT_ETHERNET_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER)> m_mtu_ceiling_slab{ 0x100 };
+		packet_slab<sizeof(utp_header)> m_syn_slab{ 100 };
+		packet_slab<(TORRENT_INET_MIN_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER)> m_mtu_floor_slab{ 512 };
+		packet_slab<(TORRENT_ETHERNET_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER)> m_mtu_ceiling_slab{ 256 };
 	};
 }
 
