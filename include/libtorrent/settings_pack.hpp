@@ -795,8 +795,7 @@ namespace libtorrent
 			// time to wait until a new retry of a web seed takes place
 			urlseed_wait_retry,
 			
-			// time to wait until a new retry of a web seed name lookup. Default
-			// is 1800 seconds
+			// time to wait until a new retry of a web seed name lookup
 			web_seed_name_lookup_retry,
 			
 			// sets the upper limit on the total number of files this session will
