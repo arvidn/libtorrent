@@ -44,22 +44,24 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace aux
 {
-	int copy_bufs(span<iovec_t const> bufs, int bytes, span<iovec_t> target)
+	int copy_bufs(span<iovec_t const> bufs, int const bytes, span<iovec_t> target)
 	{
 		int size = 0;
 		for (int i = 0;; i++)
 		{
-			target[i] = bufs[i];
-			size += int(bufs[i].iov_len);
+			std::size_t const idx = std::size_t(i);
+			target[idx] = bufs[idx];
+			size += int(bufs[idx].iov_len);
 			if (size >= bytes)
 			{
-				target[i].iov_len -= size - bytes;
+				TORRENT_ASSERT(target[idx].iov_len >= aux::numeric_cast<std::size_t>(size - bytes));
+				target[idx].iov_len -= aux::numeric_cast<std::size_t>(size - bytes);
 				return i + 1;
 			}
 		}
 	}
 
-	span<iovec_t> advance_bufs(span<iovec_t> bufs, int bytes)
+	span<iovec_t> advance_bufs(span<iovec_t> bufs, int const bytes)
 	{
 		int size = 0;
 		for (;;)
@@ -69,7 +71,7 @@ namespace libtorrent { namespace aux
 			{
 				bufs.front().iov_base = reinterpret_cast<char*>(bufs.front().iov_base)
 					+ bufs.front().iov_len - (size - bytes);
-				bufs.front().iov_len = size - bytes;
+				bufs.front().iov_len = aux::numeric_cast<std::size_t>(size - bytes);
 				return bufs;
 			}
 			bufs = bufs.subspan(1);

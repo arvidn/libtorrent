@@ -611,7 +611,7 @@ namespace libtorrent
 	// forces the torrent to stay loaded while the client holds it
 	torrent_info const& torrent_handle::get_torrent_info() const
 	{
-		static std::shared_ptr<const torrent_info> holder[4];
+		static aux::array<std::shared_ptr<const torrent_info>, 4> holder;
 		static int cursor = 0;
 		static std::mutex holder_mutex;
 
@@ -619,7 +619,7 @@ namespace libtorrent
 
 		std::lock_guard<std::mutex> l(holder_mutex);
 		holder[cursor++] = r;
-		cursor = cursor % (sizeof(holder) / sizeof(holder[0]));
+		cursor = cursor % holder.end_index();;
 		return *r;
 	}
 

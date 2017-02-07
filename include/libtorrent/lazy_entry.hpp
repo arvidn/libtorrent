@@ -163,7 +163,7 @@ namespace libtorrent
 			m_data.start = start;
 			m_size = std::uint32_t(length);
 			m_begin = start - 1; // include 'i'
-			m_len = std::uint32_t(length + 2); // include 'e'
+			m_len = length + 2; // include 'e'
 		}
 
 		// requires the type to be an integer. return the integer value
@@ -321,7 +321,7 @@ namespace libtorrent
 		{
 			TORRENT_ASSERT(end > m_begin);
 			TORRENT_ASSERT(end - m_begin < (std::numeric_limits<int>::max)());
-			m_len = std::uint32_t(end - m_begin);
+			m_len = std::int32_t(end - m_begin);
 		}
 
 		// internal
@@ -378,7 +378,7 @@ namespace libtorrent
 
 		// the number of bytes this entry extends in the
 		// bencoded buffer
-		std::uint32_t m_len;
+		std::int32_t m_len;
 
 		// if list or dictionary, the number of items
 		std::uint32_t m_size:29;

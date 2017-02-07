@@ -75,8 +75,8 @@ namespace libtorrent
 		if (end < begin + 96)
 		{
 			int const len = int(end - begin);
-			std::memmove(begin + 96 - len, begin, len);
-			std::memset(begin, 0, 96 - len);
+			std::memmove(begin + 96 - len, begin, aux::numeric_cast<std::size_t>(len));
+			std::memset(begin, 0, aux::numeric_cast<std::size_t>(96 - len));
 		}
 		return ret;
 	}
@@ -143,7 +143,7 @@ namespace libtorrent
 				if (to_process < size)
 				{
 					new (&bufs[i]) span<char>(
-						iovec[i].data(), to_process);
+						iovec[i].data(), aux::numeric_cast<std::size_t>(to_process));
 					to_process = 0;
 				}
 				else
@@ -222,7 +222,8 @@ namespace libtorrent
 			std::tie(consume, produce, packet_size) = m_dec_handler->decrypt(wr_buf);
 			TORRENT_ASSERT(packet_size || produce);
 			TORRENT_ASSERT(packet_size >= 0);
-			bytes_transferred = produce;
+			TORRENT_ASSERT(produce >= 0);
+			bytes_transferred = std::size_t(produce);
 			if (packet_size)
 				recv_buffer.crypto_cut(consume, packet_size);
 		}
@@ -320,7 +321,7 @@ namespace libtorrent
 			TORRENT_ASSERT(pos);
 
 			bytes_processed += len;
-			rc4_encrypt(pos, len, &m_rc4_outgoing);
+			rc4_encrypt(pos, std::uint32_t(len), &m_rc4_outgoing);
 		}
 		return std::make_tuple(bytes_processed, empty);
 	}
@@ -339,7 +340,7 @@ namespace libtorrent
 			TORRENT_ASSERT(pos);
 
 			bytes_processed += len;
-			rc4_encrypt(pos, len, &m_rc4_incoming);
+			rc4_encrypt(pos, std::uint32_t(len), &m_rc4_incoming);
 		}
 		return std::make_tuple(0, bytes_processed, 0);
 	}
@@ -351,7 +352,7 @@ namespace libtorrent
 void rc4_init(const unsigned char* in, unsigned long len, rc4 *state)
 {
 	size_t const key_size = sizeof(state->buf);
-	std::array<std::uint8_t, key_size> key;
+	aux::array<std::uint8_t, key_size> key;
 	std::uint8_t tmp, *s;
 	int keylen, x, y, j;
 
@@ -371,7 +372,7 @@ void rc4_init(const unsigned char* in, unsigned long len, rc4 *state)
 
 	/* make RC4 perm and shuffle */
 	for (x = 0; x < int(key_size); ++x) {
-		s[x] = std::uint8_t(x);
+		s[x] = x & 0xff;
 	}
 
 	for (j = x = y = 0; x < int(key_size); x++) {
