@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/lazy_entry.hpp"
 #include "libtorrent/bdecode.hpp" // for error codes
-#include "libtorrent/aux_/numeric_cast.hpp"
 #include <cstring>
 #include <limits> // for numeric_limits
 #include <cstdio> // for snprintf
@@ -306,9 +305,9 @@ namespace libtorrent
 		TORRENT_ASSERT(m_type == none_t);
 		m_type = string_t;
 		m_data.start = start;
-		m_size = aux::numeric_cast<std::uint32_t>(length);
+		m_size = length;
 		m_begin = start - 1 - num_digits(length);
-		m_len = aux::numeric_cast<std::int32_t>(start - m_begin + length);
+		m_len = std::uint32_t(start - m_begin + length);
 	}
 
 	namespace
@@ -334,8 +333,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_type == dict_t);
 		TORRENT_ASSERT(i < int(m_size));
 		lazy_dict_entry const& e = m_data.dict[i + 1];
-		return std::make_pair(std::string(e.name
-			, aux::numeric_cast<std::size_t>(e.val.m_begin - e.name)), &e.val);
+		return std::make_pair(std::string(e.name, e.val.m_begin - e.name), &e.val);
 	}
 
 	std::string lazy_entry::dict_find_string_value(char const* name) const
@@ -581,7 +579,7 @@ namespace libtorrent
 				ret.append(str + len - 14, 14);
 			}
 			else
-				ret.append(str, aux::numeric_cast<std::size_t>(len));
+				ret.append(str, len);
 			ret += "'";
 			return;
 		}
@@ -606,7 +604,7 @@ namespace libtorrent
 		indent_str[0] = ',';
 		indent_str[1] = '\n';
 		indent_str[199] = 0;
-		if (indent < 197 && indent >= 0) indent_str[indent+2] = 0;
+		if (indent < 197 && indent >= 0) indent_str[indent + 2] = 0;
 		std::string ret;
 		switch (e.type())
 		{
