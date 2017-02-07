@@ -6511,8 +6511,8 @@ namespace libtorrent
 				, web->url.c_str(), e.value(), e.message().c_str());
 #endif
 
-			// unavailable, retry in 30 minutes
-			web->retry = aux::time_now() + minutes(30);
+			// unavailable, retry in `settings_pack::web_seed_name_lookup_retry` seconds
+			web->retry = aux::time_now() + seconds(settings().get_int(settings_pack::web_seed_name_lookup_retry));
 			return;
 		}
 
