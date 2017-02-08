@@ -89,7 +89,7 @@ namespace libtorrent
 		}
 	};
 
-	static packet *create_packet(int size)
+	inline packet *create_packet(int size)
 	{
 		packet *p = static_cast<packet*>(std::malloc(sizeof(packet) + size));
 		new (p) packet();
