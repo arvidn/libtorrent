@@ -89,9 +89,9 @@ namespace libtorrent
 		}
 	};
 
-	inline packet *create_packet(int size)
+	inline packet* create_packet(int size)
 	{
-		packet *p = static_cast<packet*>(std::malloc(sizeof(packet) + size));
+		packet* p = static_cast<packet*>(std::malloc(sizeof(packet) + size));
 		new (p) packet();
 		return p;
 	}
@@ -135,7 +135,7 @@ namespace libtorrent
 	// can handle common cases of packet size by 3 pools
 	struct TORRENT_EXTRA_EXPORT packet_pool : private single_threaded
 	{
-		packet *acquire(int allocate)
+		packet* acquire(int allocate)
 		{
 			TORRENT_ASSERT(is_single_thread());
 			TORRENT_ASSERT(allocate >= 0);
@@ -146,7 +146,7 @@ namespace libtorrent
 			return p.release();
 		}
 
-		void release(packet *p)
+		void release(packet* p)
 		{
 			TORRENT_ASSERT(is_single_thread());
 
