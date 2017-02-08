@@ -102,14 +102,6 @@ const unsigned long siocgifmtu = SIOCGIFMTU;
 
 namespace libtorrent { namespace
 {
-	bool valid_addr_family(int family)
-	{
-		return (family == AF_INET
-#if TORRENT_USE_IPV6
-			|| family == AF_INET6
-#endif
-		);
-	}
 
 #if !defined TORRENT_BUILD_SIMULATOR
 	address_v4 inaddr_to_address(in_addr const* ina, int const len = 4)
@@ -155,6 +147,15 @@ namespace libtorrent { namespace
 		}
 #endif
 		return address();
+	}
+
+	bool valid_addr_family(int family)
+	{
+		return (family == AF_INET
+#if TORRENT_USE_IPV6
+			|| family == AF_INET6
+#endif
+		);
 	}
 
 #if TORRENT_USE_NETLINK
