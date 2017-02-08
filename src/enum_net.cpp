@@ -630,6 +630,13 @@ namespace libtorrent
 				IP_ADAPTER_UNICAST_ADDRESS* unicast = adapter->FirstUnicastAddress;
 				while (unicast)
 				{
+					if (unicast->Address.lpSockaddr->sa_family != AF_INET
+#if TORRENT_USE_IPV6
+						&& unicast->Address.lpSockaddr->sa_family != AF_INET6
+#endif
+					)
+						continue;
+
 					r.interface_address = sockaddr_to_address(unicast->Address.lpSockaddr);
 
 					ret.push_back(r);
