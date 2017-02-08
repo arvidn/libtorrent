@@ -30,14 +30,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <libtorrent/receive_buffer.hpp>
-#include <libtorrent/invariant_check.hpp>
+#include "libtorrent/receive_buffer.hpp"
+#include "libtorrent/invariant_check.hpp"
+#include "libtorrent/aux_/numeric_cast.hpp"
+#include "libtorrent/aux_/typed_span.hpp"
 
 namespace libtorrent {
 
 int receive_buffer::max_receive() const
 {
-	return int(m_recv_buffer.size() - m_recv_end);
+	return int(m_recv_buffer.size()) - m_recv_end;
 }
 
 span<char> receive_buffer::reserve(int const size)
@@ -52,8 +54,8 @@ span<char> receive_buffer::reserve(int const size)
 	if (int(m_recv_buffer.size()) < m_recv_end + size)
 	{
 		int const new_size = std::max(m_recv_end + size, m_packet_size);
-		buffer new_buffer(new_size
-			, span<char const>(m_recv_buffer.data(), m_recv_end));
+		buffer new_buffer(aux::numeric_cast<std::size_t>(new_size)
+			, {m_recv_buffer.data(), aux::numeric_cast<std::size_t>(m_recv_end)});
 		m_recv_buffer = std::move(new_buffer);
 
 		// since we just increased the size of the buffer, reset the watermark to
@@ -61,7 +63,7 @@ span<char> receive_buffer::reserve(int const size)
 		m_watermark = sliding_average<20>();
 	}
 
-	return span<char>(m_recv_buffer).subspan(m_recv_end, size);
+	return aux::typed_span<char>(m_recv_buffer).subspan(m_recv_end, size);
 }
 
 void receive_buffer::grow(int const limit)
@@ -75,8 +77,8 @@ void receive_buffer::grow(int const limit)
 		? m_packet_size : std::min(current_size * 3 / 2, limit);
 
 	// re-allocate the buffer and copy over the part of it that's used
-	buffer new_buffer(new_size
-		, span<char const>(m_recv_buffer.data(), m_recv_end));
+	buffer new_buffer(aux::numeric_cast<std::size_t>(new_size)
+		, {m_recv_buffer.data(), aux::numeric_cast<std::size_t>(m_recv_end)});
 	m_recv_buffer = std::move(new_buffer);
 
 	// since we just increased the size of the buffer, reset the watermark to
@@ -116,7 +118,7 @@ void receive_buffer::cut(int const size, int const packet_size, int const offset
 		{
 			std::memmove(&m_recv_buffer[0] + m_recv_start + offset
 				, &m_recv_buffer[0] + m_recv_start + offset + size
-				, m_recv_end - m_recv_start - size - offset);
+				, aux::numeric_cast<std::size_t>(m_recv_end - m_recv_start - size - offset));
 		}
 
 		m_recv_pos -= size;
@@ -145,14 +147,14 @@ span<char const> receive_buffer::get() const
 	}
 
 	TORRENT_ASSERT(m_recv_start + m_recv_pos <= int(m_recv_buffer.size()));
-	return span<char const>(m_recv_buffer).subspan(m_recv_start, m_recv_pos);
+	return aux::typed_span<char const>(m_recv_buffer).subspan(m_recv_start, m_recv_pos);
 }
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 span<char> receive_buffer::mutable_buffer()
 {
 	INVARIANT_CHECK;
-	return span<char>(m_recv_buffer).subspan(m_recv_start, m_recv_pos);
+	return aux::typed_span<char>(m_recv_buffer).subspan(m_recv_start, m_recv_pos);
 }
 
 span<char> receive_buffer::mutable_buffer(int const bytes)
@@ -161,7 +163,7 @@ span<char> receive_buffer::mutable_buffer(int const bytes)
 	// bytes is the number of bytes we just received, and m_recv_pos has
 	// already been adjusted for these bytes. The receive pos immediately
 	// before we received these bytes was (m_recv_pos - bytes)
-	return span<char>(m_recv_buffer).subspan(m_recv_start + m_recv_pos - bytes, bytes);
+	return aux::typed_span<char>(m_recv_buffer).subspan(m_recv_start + m_recv_pos - bytes, bytes);
 }
 #endif
 
@@ -181,20 +183,19 @@ void receive_buffer::normalize(int const force_shrink)
 	bool const shrink_buffer = int(m_recv_buffer.size()) / 2 > m_watermark.mean()
 		&& m_watermark.mean() > (m_recv_end - m_recv_start);
 
-	span<char const> bytes_to_shift(
-		m_recv_buffer.data() + m_recv_start
-			, m_recv_end - m_recv_start);
+	span<char const> bytes_to_shift(m_recv_buffer.data() + m_recv_start
+		, aux::numeric_cast<std::size_t>(m_recv_end - m_recv_start));
 
 	if (force_shrink)
 	{
 		int const target_size = std::max(std::max(force_shrink
 			, int(bytes_to_shift.size())), m_packet_size);
-		buffer new_buffer(target_size, bytes_to_shift);
+		buffer new_buffer(aux::numeric_cast<std::size_t>(target_size), bytes_to_shift);
 		m_recv_buffer = std::move(new_buffer);
 	}
 	else if (shrink_buffer)
 	{
-		buffer new_buffer(m_watermark.mean(), bytes_to_shift);
+		buffer new_buffer(aux::numeric_cast<std::size_t>(m_watermark.mean()), bytes_to_shift);
 		m_recv_buffer = std::move(new_buffer);
 	}
 	else if (m_recv_end > m_recv_start
@@ -320,7 +321,7 @@ span<char const> crypto_receive_buffer::get() const
 {
 	span<char const> recv_buffer = m_connection_buffer.get();
 	if (m_recv_pos < m_connection_buffer.pos())
-		recv_buffer = recv_buffer.first(m_recv_pos);
+		recv_buffer = recv_buffer.first(aux::numeric_cast<std::size_t>(m_recv_pos));
 	return recv_buffer;
 }
 

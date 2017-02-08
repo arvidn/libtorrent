@@ -41,16 +41,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/fingerprint.hpp"
 #include "libtorrent/string_util.hpp"
+#include "libtorrent/aux_/numeric_cast.hpp"
 
 namespace
 {
 
 	using namespace libtorrent;
 
-	int decode_digit(char c)
+	int decode_digit(std::uint8_t c)
 	{
-		if (is_digit(c)) return c - '0';
-		return unsigned(c) - 'A' + 10;
+		if (is_digit(char(c))) return c - '0';
+		return c - 'A' + 10;
 	}
 
 	// takes a peer id and returns a valid boost::optional
@@ -61,14 +62,14 @@ namespace
 	{
 		fingerprint ret("..", 0, 0, 0, 0);
 
-		if (id[0] != '-' || !is_print(id[1]) || (id[2] < '0')
+		if (id[0] != '-' || !is_print(char(id[1])) || (id[2] < '0')
 			|| (id[3] < '0') || (id[4] < '0')
 			|| (id[5] < '0') || (id[6] < '0')
 			|| id[7] != '-')
 			return boost::optional<fingerprint>();
 
-		ret.name[0] = id[1];
-		ret.name[1] = id[2];
+		ret.name[0] = char(id[1]);
+		ret.name[1] = char(id[2]);
 		ret.major_version = decode_digit(id[3]);
 		ret.minor_version = decode_digit(id[4]);
 		ret.revision_version = decode_digit(id[5]);
@@ -83,10 +84,10 @@ namespace
 	{
 		fingerprint ret("..", 0, 0, 0, 0);
 
-		if (!is_alpha(id[0]) && !is_digit(id[0]))
+		if (!is_alpha(char(id[0])) && !is_digit(char(id[0])))
 			return boost::optional<fingerprint>();
 
-		if (std::equal(id.begin()+4, id.begin()+6, "--"))
+		if (std::equal(id.begin() + 4, id.begin() + 6, "--"))
 		{
 			if ((id[1] < '0') || (id[2] < '0')
 				|| (id[3] < '0'))
@@ -104,7 +105,7 @@ namespace
 			ret.revision_version = id[3];
 		}
 
-		ret.name[0] = id[0];
+		ret.name[0] = char(id[0]);
 		ret.name[1] = 0;
 
 		ret.tag_version = 0;
@@ -327,7 +328,7 @@ namespace
 
 		if (f.tag_version != 0)
 		{
-			std::snprintf(identity + num_chars, sizeof(identity) - num_chars
+			std::snprintf(identity + num_chars, sizeof(identity) - aux::numeric_cast<std::size_t>(num_chars)
 				, ".%u", f.tag_version);
 		}
 
@@ -417,7 +418,7 @@ namespace libtorrent
 		std::string unknown("Unknown [");
 		for (peer_id::const_iterator i = p.begin(); i != p.end(); ++i)
 		{
-			unknown += is_print(char(*i))?*i:'.';
+			unknown += is_print(char(*i)) ? char(*i) : '.';
 		}
 		unknown += "]";
 		return unknown;

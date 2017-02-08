@@ -769,7 +769,7 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 			// the alert pointers stored in m_alerts
-			mutable std::vector<alert*> m_alert_pointers;
+			mutable aux::vector<alert*> m_alert_pointers;
 
 			// if not all the alerts in m_alert_pointers have been delivered to
 			// the client. This is the offset into m_alert_pointers where the next

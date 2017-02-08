@@ -740,7 +740,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(prio >= 0);
 		TORRENT_ASSERT(prio < int(m_priority_boundaries.size()));
-		return prio == 0 ? prio_index_t(0) : m_priority_boundaries[prio-1];
+		return prio == 0 ? prio_index_t(0) : m_priority_boundaries[prio - 1];
 	}
 
 	prio_index_t piece_picker::priority_end(int const prio) const
@@ -754,7 +754,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(prio >= 0);
 		TORRENT_ASSERT(prio < int(m_priority_boundaries.size()));
-		return { priority_begin(prio), priority_end(prio) };
+		return {priority_begin(prio), priority_end(prio)};
 	}
 
 	void piece_picker::add(piece_index_t index)
@@ -776,7 +776,9 @@ namespace libtorrent
 		auto const range = priority_range(priority);
 		prio_index_t new_index = (range.second == range.first)
 			? range.first
-			: prio_index_t(random(static_cast<int>(range.second - range.first)) + static_cast<int>(range.first));
+			: prio_index_t(
+				int(random(aux::numeric_cast<std::uint32_t>(static_cast<int>(range.second - range.first))))
+				+ static_cast<int>(range.first));
 
 #ifdef TORRENT_PICKER_LOG
 		std::cerr << "[" << this << "] " << "add " << index << " (" << priority << ")" << std::endl;
@@ -994,7 +996,9 @@ namespace libtorrent
 		TORRENT_ASSERT(m_piece_map[m_pieces[elem_index]].priority(this) == priority);
 
 		auto const range = priority_range(priority);
-		prio_index_t const other_index(random(static_cast<int>(range.second - range.first) - 1) + static_cast<int>(range.first));
+		prio_index_t const other_index(
+			int(random(aux::numeric_cast<std::uint32_t>(static_cast<int>(range.second - range.first) - 1)))
+			+ static_cast<int>(range.first));
 
 		if (other_index == elem_index) return;
 
@@ -2133,7 +2137,7 @@ namespace libtorrent
 			// we're not using rarest first (only for the first
 			// bucket, since that's where the currently downloading
 			// pieces are)
-			piece_index_t const start_piece = piece_index_t(random(std::uint32_t(m_piece_map.size()-1)));
+			piece_index_t const start_piece = piece_index_t(int(random(aux::numeric_cast<std::uint32_t>(m_piece_map.size() - 1))));
 
 			piece_index_t piece = start_piece;
 			while (num_blocks > 0)
@@ -2307,7 +2311,7 @@ get_out:
 		while (partials_size > 0)
 		{
 			pc.inc_stats_counter(counters::piece_picker_busy_loops);
-			int piece = int(random(partials_size - 1));
+			int piece = int(random(aux::numeric_cast<std::uint32_t>(partials_size - 1)));
 			downloading_piece const* dp = partials[piece];
 			TORRENT_ASSERT(pieces[dp->index]);
 			TORRENT_ASSERT(piece_priority(dp->index) > 0);
@@ -3436,7 +3440,7 @@ get_out:
 		d.clear();
 		int const state = m_piece_map[index].download_queue();
 		int const num_blocks = blocks_in_piece(index);
-		d.reserve(num_blocks);
+		d.reserve(aux::numeric_cast<std::size_t>(num_blocks));
 
 		if (state == piece_pos::piece_open)
 		{

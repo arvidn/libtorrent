@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/deadline_timer.hpp"
+#include "libtorrent/aux_/numeric_cast.hpp"
 
 #include <cstdlib>
 #include <functional>
@@ -192,7 +193,7 @@ int udp_socket::read(span<packet> pkts, error_code& ec)
 		}
 		else
 		{
-			p.data = span<char>(m_buf->data(), len);
+			p.data = {m_buf->data(), aux::numeric_cast<std::size_t>(len)};
 
 			// support packets coming from the SOCKS5 proxy
 			if (m_socks5_connection && m_socks5_connection->active())
@@ -206,7 +207,7 @@ int udp_socket::read(span<packet> pkts, error_code& ec)
 			else if (m_force_proxy) continue;
 		}
 
-		pkts[ret] = p;
+		pkts[aux::numeric_cast<std::size_t>(ret)] = p;
 		++ret;
 
 		// we only have a single buffer for now, so we can only return a
@@ -298,7 +299,7 @@ void udp_socket::wrap(udp::endpoint const& ep, span<char const> p
 	write_endpoint(ep, h);
 
 	std::array<boost::asio::const_buffer, 2> iovec;
-	iovec[0] = boost::asio::const_buffer(header, h - header);
+	iovec[0] = boost::asio::const_buffer(header, aux::numeric_cast<std::size_t>(h - header));
 	iovec[1] = boost::asio::const_buffer(p.data(), p.size());
 
 	// set the DF flag for the socket and clear it again in the destructor
@@ -320,14 +321,14 @@ void udp_socket::wrap(char const* hostname, int const port, span<char const> p
 	write_uint16(0, h); // reserved
 	write_uint8(0, h); // fragment
 	write_uint8(3, h); // atyp
-	int const hostlen = (std::min)(int(strlen(hostname)), 255);
-	write_uint8(std::uint8_t(hostlen), h); // hostname len
+	std::size_t const hostlen = std::min(std::strlen(hostname), std::size_t(255));
+	write_uint8(hostlen, h); // hostname len
 	std::memcpy(h, hostname, hostlen);
 	h += hostlen;
-	write_uint16(std::uint16_t(port), h);
+	write_uint16(port, h);
 
 	std::array<boost::asio::const_buffer, 2> iovec;
-	iovec[0] = boost::asio::const_buffer(header, h - header);
+	iovec[0] = boost::asio::const_buffer(header, aux::numeric_cast<std::size_t>(h - header));
 	iovec[1] = boost::asio::const_buffer(p.data(), p.size());
 
 	// set the DF flag for the socket and clear it again in the destructor
@@ -346,7 +347,7 @@ bool udp_socket::unwrap(udp::endpoint& from, span<char>& buf)
 	using namespace libtorrent::detail;
 
 	// the minimum socks5 header size
-	int const size = int(buf.size());
+	int const size = aux::numeric_cast<int>(buf.size());
 	if (size <= 10) return false;
 
 	char* p = buf.data();
@@ -381,7 +382,7 @@ bool udp_socket::unwrap(udp::endpoint& from, span<char>& buf)
 		from = udp::endpoint(addr, read_uint16(p));
 	}
 
-	buf = span<char>(p, size - (p - buf.data()));
+	buf = {p, aux::numeric_cast<std::size_t>(size - (p - buf.data()))};
 	return true;
 }
 
@@ -561,7 +562,8 @@ void socks5::on_connected(error_code const& e)
 	}
 	TORRENT_ASSERT_VAL(p - m_tmp_buf < int(sizeof(m_tmp_buf)), (p - m_tmp_buf));
 	ADD_OUTSTANDING_ASYNC("socks5::on_handshake1");
-	boost::asio::async_write(m_socks5_sock, boost::asio::buffer(m_tmp_buf, p - m_tmp_buf)
+	boost::asio::async_write(m_socks5_sock, boost::asio::buffer(m_tmp_buf
+		, aux::numeric_cast<std::size_t>(p - m_tmp_buf))
 		, std::bind(&socks5::handshake1, self(), _1));
 }
 
@@ -620,7 +622,8 @@ void socks5::handshake2(error_code const& e)
 		write_string(m_proxy_settings.password, p);
 		TORRENT_ASSERT_VAL(p - m_tmp_buf < int(sizeof(m_tmp_buf)), (p - m_tmp_buf));
 		ADD_OUTSTANDING_ASYNC("socks5::on_handshake3");
-		boost::asio::async_write(m_socks5_sock, boost::asio::buffer(m_tmp_buf, p - m_tmp_buf)
+		boost::asio::async_write(m_socks5_sock
+			, boost::asio::buffer(m_tmp_buf, aux::numeric_cast<std::size_t>(p - m_tmp_buf))
 			, std::bind(&socks5::handshake3, self(), _1));
 	}
 	else
@@ -673,7 +676,8 @@ void socks5::socks_forward_udp()
 	write_uint16(0, p); // :0
 	TORRENT_ASSERT_VAL(p - m_tmp_buf < int(sizeof(m_tmp_buf)), (p - m_tmp_buf));
 	ADD_OUTSTANDING_ASYNC("socks5::connect1");
-	boost::asio::async_write(m_socks5_sock, boost::asio::buffer(m_tmp_buf, p - m_tmp_buf)
+	boost::asio::async_write(m_socks5_sock
+		, boost::asio::buffer(m_tmp_buf, aux::numeric_cast<std::size_t>(p - m_tmp_buf))
 		, std::bind(&socks5::connect1, self(), _1));
 }
 
