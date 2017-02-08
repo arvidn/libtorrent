@@ -60,13 +60,10 @@ struct time_point_to_python
 {
     static PyObject* convert(lt::time_point tpt)
     {
-        using boost::chrono::system_clock;
-        using boost::chrono::duration_cast;
-
         object result;
         if (tpt > lt::min_time()) {
-            time_t const tm = system_clock::to_time_t(system_clock::now()
-                + duration_cast<system_clock::duration>(tpt - lt::clock_type::now()));
+            time_t const tm = boost::chrono::system_clock::to_time_t(boost::chrono::system_clock::now()
+                + boost::chrono::duration_cast<boost::chrono::system_clock::duration>(tpt - lt::clock_type::now()));
 
             std::tm* date = std::localtime(&tm);
             result = datetime_datetime(
