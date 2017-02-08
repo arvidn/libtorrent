@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/hex.hpp" // to_hex
+#include "libtorrent/aux_/numeric_cast.hpp"
 
 #ifndef TORRENT_NO_DEPRECATE
 #include "libtorrent/lazy_entry.hpp"
@@ -238,7 +239,7 @@ namespace libtorrent
 			{
 				// 2 bytes
 				if (element.size() - i < 2
-					|| (element[i+1] & 0xc0) != 0x80)
+					|| (element[i + 1] & 0xc0) != 0x80)
 				{
 					path += '_';
 					last_len = 1;
@@ -261,8 +262,8 @@ namespace libtorrent
 			{
 				// 3 bytes
 				if (element.size() - i < 3
-					|| (element[i+1] & 0xc0) != 0x80
-					|| (element[i+2] & 0xc0) != 0x80
+					|| (element[i + 1] & 0xc0) != 0x80
+					|| (element[i + 2] & 0xc0) != 0x80
 					)
 				{
 					path += '_';
@@ -335,7 +336,7 @@ namespace libtorrent
 				for (int j = int(element.size()) - 1;
 					j > std::max(int(element.size()) - 10, int(i)); --j)
 				{
-					if (element[j] != '.') continue;
+					if (element[aux::numeric_cast<std::size_t>(j)] != '.') continue;
 					dot = j;
 					break;
 				}
@@ -470,7 +471,7 @@ namespace libtorrent
 
 			if (p && p.list_size() > 0)
 			{
-				std::size_t const preallocate = path.size() + path_length(p, ec);
+				std::size_t const preallocate = path.size() + std::size_t(path_length(p, ec));
 				if (ec) return false;
 				path.reserve(preallocate);
 
@@ -515,7 +516,7 @@ namespace libtorrent
 		{
 			if (bdecode_node s_p = dict.dict_find_list("symlink path"))
 			{
-				int const preallocate = path_length(s_p, ec);
+				std::size_t const preallocate = std::size_t(path_length(s_p, ec));
 				if (ec) return false;
 				symlink_path.reserve(preallocate);
 				for (int i = 0, end(s_p.list_size()); i < end; ++i)
@@ -531,8 +532,8 @@ namespace libtorrent
 		}
 
 		if (filename_len > int(path.length())
-			|| path.compare(path.size() - filename_len, filename_len, filename
-				, filename_len) != 0)
+			|| path.compare(path.size() - std::size_t(filename_len), std::size_t(filename_len), filename
+				, std::size_t(filename_len)) != 0)
 		{
 			// if the filename was sanitized and differ, clear it to just use path
 			filename = nullptr;
@@ -549,7 +550,7 @@ namespace libtorrent
 		std::size_t operator()(std::string const& s) const
 		{
 			char const* s1 = s.c_str();
-			size_t ret = 5381;
+			std::size_t ret = 5381;
 			int c;
 
 			for (;;)
@@ -557,7 +558,7 @@ namespace libtorrent
 				c = *s1++;
 				if (c == 0)
 					break;
-				ret = (ret * 33) ^ to_lower(char(c));
+				ret = (ret * 33) ^ std::size_t(to_lower(char(c)));
 			}
 
 			return ret;
@@ -659,7 +660,7 @@ namespace libtorrent
 		TORRENT_ASSERT(m_piece_hashes);
 
 		m_info_section.reset(new char[m_info_section_size]);
-		std::memcpy(m_info_section.get(), t.m_info_section.get(), m_info_section_size);
+		std::memcpy(m_info_section.get(), t.m_info_section.get(), aux::numeric_cast<std::size_t>(m_info_section_size));
 
 		ptrdiff_t offset = m_info_section.get() - t.m_info_section.get();
 
@@ -722,7 +723,7 @@ namespace libtorrent
 		std::unordered_set<std::string, string_hash_no_case, string_eq_no_case> files;
 
 		std::vector<std::string> const& paths = m_files.paths();
-		files.reserve(paths.size() + m_files.num_files());
+		files.reserve(paths.size() + aux::numeric_cast<std::size_t>(m_files.num_files()));
 
 		// insert all directories first, to make sure no files
 		// are allowed to collied with them
@@ -1053,9 +1054,9 @@ namespace libtorrent
 		// copy the info section
 		m_info_section_size = int(section.size());
 		m_info_section.reset(new char[m_info_section_size]);
-		std::memcpy(m_info_section.get(), section.data(), m_info_section_size);
+		std::memcpy(m_info_section.get(), section.data(), aux::numeric_cast<std::size_t>(m_info_section_size));
 		TORRENT_ASSERT(section[0] == 'd');
-		TORRENT_ASSERT(section[m_info_section_size - 1] == 'e');
+		TORRENT_ASSERT(section[aux::numeric_cast<std::size_t>(m_info_section_size - 1)] == 'e');
 
 		// when translating a pointer that points into the 'info' tree's
 		// backing buffer, into a pointer to our copy of the info section,
@@ -1157,7 +1158,7 @@ namespace libtorrent
 				m_files.set_piece_length(0);
 				return false;
 			}
-			if (files.num_pieces() >= std::numeric_limits<int>::max()/2)
+			if (files.num_pieces() >= std::numeric_limits<int>::max() / 2)
 			{
 				ec = errors::too_many_pieces_in_torrent;
 				// mark the torrent as invalid
@@ -1168,7 +1169,7 @@ namespace libtorrent
 			int const num_nodes = merkle_num_nodes(num_leafs);
 			m_merkle_first_leaf = num_nodes - num_leafs;
 			m_merkle_tree.resize(num_nodes);
-			std::memset(&m_merkle_tree[0], 0, num_nodes * 20);
+			std::memset(m_merkle_tree.data(), 0, aux::numeric_cast<std::size_t>(num_nodes * 20));
 			m_merkle_tree[0].assign(root_hash.string_ptr());
 		}
 
@@ -1293,7 +1294,7 @@ namespace libtorrent
 			ret[sibling] = m_merkle_tree[sibling];
 			// we cannot build the tree path if one
 			// of the nodes in the tree is missing
-			TORRENT_ASSERT(m_merkle_tree[sibling] != sha1_hash(nullptr));
+			TORRENT_ASSERT(!m_merkle_tree[sibling].is_all_zeros());
 			n = parent;
 		}
 		return ret;
@@ -1361,7 +1362,7 @@ namespace libtorrent
 				if (str.type() != bdecode_node::string_t) continue;
 
 				m_owned_collections.push_back(std::string(str.string_ptr()
-					, str.string_length()));
+					, aux::numeric_cast<std::size_t>(str.string_length())));
 			}
 		}
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
@@ -1442,7 +1443,7 @@ namespace libtorrent
 		std::int64_t cd = torrent_file.dict_find_int_value("creation date", -1);
 		if (cd >= 0)
 		{
-			m_creation_date = long(cd);
+			m_creation_date = std::time_t(cd);
 		}
 
 		// if there are any url-seeds, extract them
@@ -1606,7 +1607,7 @@ namespace libtorrent
 		ret.reserve(m_collections.size() + m_owned_collections.size());
 
 		for (auto const& c : m_collections)
-			ret.push_back(std::string(c.first, c.second));
+			ret.push_back(std::string(c.first, aux::numeric_cast<std::size_t>(c.second)));
 
 		for (auto const& c : m_owned_collections)
 			ret.push_back(c);

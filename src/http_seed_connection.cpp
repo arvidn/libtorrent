@@ -246,7 +246,8 @@ namespace libtorrent
 				std::tie(payload, protocol) = m_parser.incoming(
 					recv_buffer, parse_error);
 				received_bytes(0, protocol);
-				bytes_transferred -= protocol;
+				TORRENT_ASSERT(bytes_transferred >= aux::numeric_cast<std::size_t>(protocol));
+				bytes_transferred -= aux::numeric_cast<std::size_t>(protocol);
 #if TORRENT_USE_ASSERTS
 				if (payload > front_request.length) payload = front_request.length;
 #endif
@@ -348,7 +349,7 @@ namespace libtorrent
 				m_body_start = m_parser.body_start();
 			}
 
-			recv_buffer = recv_buffer.subspan(m_body_start);
+			recv_buffer = recv_buffer.subspan(aux::numeric_cast<std::size_t>(m_body_start));
 
 			// =========================
 			// === CHUNKED ENCODING  ===
@@ -359,15 +360,15 @@ namespace libtorrent
 			{
 				int header_size = 0;
 				std::int64_t chunk_size = 0;
-				span<char const> chunk_start(recv_buffer.begin() + m_chunk_pos, std::size_t(int(recv_buffer.size()) - m_chunk_pos));
+				span<char const> chunk_start(recv_buffer.begin() + m_chunk_pos, aux::numeric_cast<std::size_t>(int(recv_buffer.size()) - m_chunk_pos));
 				TORRENT_ASSERT(chunk_start[0] == '\r'
 					|| aux::is_hex(chunk_start[0]));
 				bool ret = m_parser.parse_chunk_header(chunk_start, &chunk_size, &header_size);
 				if (!ret)
 				{
-					TORRENT_ASSERT(bytes_transferred >= size_t(chunk_start.size() - m_partial_chunk_header));
-					bytes_transferred -= chunk_start.size() - m_partial_chunk_header;
-					received_bytes(0, int(chunk_start.size() - m_partial_chunk_header));
+					TORRENT_ASSERT(bytes_transferred >= aux::numeric_cast<std::size_t>(int(chunk_start.size()) - m_partial_chunk_header));
+					bytes_transferred -= aux::numeric_cast<std::size_t>(int(chunk_start.size()) - m_partial_chunk_header);
+					received_bytes(0, int(chunk_start.size()) - m_partial_chunk_header);
 					m_partial_chunk_header = int(chunk_start.size());
 					if (bytes_transferred == 0) return;
 					break;
@@ -379,23 +380,23 @@ namespace libtorrent
 						, "parsed chunk: %" PRId64 " header_size: %d"
 						, chunk_size, header_size);
 #endif
-					TORRENT_ASSERT(bytes_transferred >= size_t(header_size - m_partial_chunk_header));
-					bytes_transferred -= header_size - m_partial_chunk_header;
+					TORRENT_ASSERT(bytes_transferred >= aux::numeric_cast<std::size_t>(header_size - m_partial_chunk_header));
+					bytes_transferred -= aux::numeric_cast<std::size_t>(header_size - m_partial_chunk_header);
 
 					received_bytes(0, header_size - m_partial_chunk_header);
 					m_partial_chunk_header = 0;
-					TORRENT_ASSERT(chunk_size != 0 || int(chunk_start.size()) <= header_size || chunk_start[header_size] == 'H');
+					TORRENT_ASSERT(chunk_size != 0 || int(chunk_start.size()) <= header_size || chunk_start[std::size_t(header_size)] == 'H');
 					// cut out the chunk header from the receive buffer
 					TORRENT_ASSERT(m_chunk_pos + m_body_start < INT_MAX);
 					m_recv_buffer.cut(header_size, t->block_size() + 1024, int(m_chunk_pos + m_body_start));
 					recv_buffer = m_recv_buffer.get();
-					recv_buffer = recv_buffer.subspan(m_body_start);
+					recv_buffer = recv_buffer.subspan(aux::numeric_cast<std::size_t>(m_body_start));
 					m_chunk_pos += chunk_size;
 					if (chunk_size == 0)
 					{
 						TORRENT_ASSERT(int(m_recv_buffer.get().size()) < m_chunk_pos + m_body_start + 1
-							|| m_recv_buffer.get()[int(m_chunk_pos + m_body_start)] == 'H'
-							|| (m_parser.chunked_encoding() && m_recv_buffer.get()[int(m_chunk_pos + m_body_start)] == '\r'));
+							|| m_recv_buffer.get()[aux::numeric_cast<std::size_t>(m_chunk_pos + m_body_start)] == 'H'
+							|| (m_parser.chunked_encoding() && m_recv_buffer.get()[aux::numeric_cast<std::size_t>(m_chunk_pos + m_body_start)] == '\r'));
 						m_chunk_pos = -1;
 					}
 				}
@@ -441,13 +442,14 @@ namespace libtorrent
 
 			int size_to_cut = m_body_start + front_request.length;
 			TORRENT_ASSERT(int(m_recv_buffer.get().size()) < size_to_cut + 1
-				|| m_recv_buffer.get()[size_to_cut] == 'H'
-				|| (m_parser.chunked_encoding() && m_recv_buffer.get()[size_to_cut] == '\r'));
+				|| m_recv_buffer.get()[aux::numeric_cast<std::size_t>(size_to_cut)] == 'H'
+				|| (m_parser.chunked_encoding() && m_recv_buffer.get()[aux::numeric_cast<std::size_t>(size_to_cut)] == '\r'));
 
 			m_recv_buffer.cut(size_to_cut, t->block_size() + 1024);
 			if (m_response_left == 0) m_chunk_pos = 0;
 			else m_chunk_pos -= front_request.length;
-			bytes_transferred -= payload;
+			TORRENT_ASSERT(bytes_transferred >= aux::numeric_cast<std::size_t>(payload));
+			bytes_transferred -= aux::numeric_cast<std::size_t>(payload);
 			m_body_start = 0;
 			if (m_response_left > 0) continue;
 			TORRENT_ASSERT(m_response_left == 0);

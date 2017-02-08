@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/buffer.hpp"
+#include "libtorrent/aux_/array.hpp"
 
 #include <list>
 #include <array>
@@ -63,7 +64,7 @@ namespace libtorrent
 	// RC4 state from libtomcrypt
 	struct rc4 {
 		int x, y;
-		std::array<std::uint8_t, 256> buf;
+		aux::array<std::uint8_t, 256> buf;
 	};
 
 	// TODO: 3 dh_key_exchange should probably move into its own file

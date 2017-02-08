@@ -934,7 +934,7 @@ namespace libtorrent
 		// it just serves as a queue to remember what we've sent, to avoid
 		// re-sending suggests for the same piece
 		// i.e. outgoing suggest pieces
-		std::vector<piece_index_t> m_suggest_pieces;
+		aux::vector<piece_index_t> m_suggest_pieces;
 
 		// the pieces we will send to the peer
 		// if requested (regardless of choke state)
@@ -952,7 +952,7 @@ namespace libtorrent
 		// pieces that has been suggested to be downloaded from this peer
 		// i.e. incoming suggestions
 		// TODO: 2 this should really be a circular buffer
-		std::vector<piece_index_t> m_suggested_pieces;
+		aux::vector<piece_index_t> m_suggested_pieces;
 
 		// the time when this peer last saw a complete copy
 		// of this torrent
