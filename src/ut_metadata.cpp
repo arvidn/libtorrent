@@ -123,11 +123,11 @@ namespace libtorrent { namespace
 				TORRENT_ASSERT(hasher(m_metadata.get(), m_metadata_size).final()
 					== m_torrent.torrent_file().info_hash());
 			}
-			return span<char const>(m_metadata.get(), m_metadata_size);
+			return {m_metadata.get(), aux::numeric_cast<std::size_t>(m_metadata_size)};
 		}
 
 		bool received_metadata(ut_metadata_peer_plugin& source
-			, char const* buf, int size, int piece, int total_size);
+			, char const* buf, int const size, int const piece, int const total_size);
 
 		// returns a piece of the metadata that
 		// we should request.
@@ -174,7 +174,7 @@ namespace libtorrent { namespace
 		// this vector keeps track of how many times each metadata
 		// block has been requested and who we ended up getting it from
 		// std::numeric_limits<int>::max() means we have the piece
-		std::vector<metadata_piece> m_requested_metadata;
+		aux::vector<metadata_piece> m_requested_metadata;
 
 		// explicitly disallow assignment, to silence msvc warning
 		ut_metadata_plugin& operator=(ut_metadata_plugin const&);
@@ -382,7 +382,7 @@ namespace libtorrent { namespace
 
 					m_sent_requests.erase(i);
 					entry const* total_size = msg.find_key("total_size");
-					m_tp.received_metadata(*this, body.begin() + len, int(body.size() - len), piece
+					m_tp.received_metadata(*this, body.begin() + len, int(body.size()) - int(len), piece
 						, (total_size && total_size->type() == entry::int_t) ? int(total_size->integer()) : 0);
 					maybe_send_request();
 				}
@@ -500,7 +500,7 @@ namespace libtorrent { namespace
 			i = m_requested_metadata.begin();
 		}
 
-		int piece = int(i - m_requested_metadata.begin());
+		int const piece = int(i - m_requested_metadata.begin());
 
 		// don't request the same block more than once every 3 seconds
 		time_point now = aux::time_now();
@@ -521,7 +521,7 @@ namespace libtorrent { namespace
 
 	bool ut_metadata_plugin::received_metadata(
 		ut_metadata_peer_plugin& source
-		, char const* buf, int size, int piece, int total_size)
+		, char const* buf, int const size, int const piece, int const total_size)
 	{
 		if (m_torrent.valid_metadata())
 		{
@@ -551,7 +551,7 @@ namespace libtorrent { namespace
 			m_metadata_size = total_size;
 		}
 
-		if (piece < 0 || piece >= int(m_requested_metadata.size()))
+		if (piece < 0 || piece >= m_requested_metadata.end_index())
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			source.m_pc.peer_log(peer_log_alert::info, "UT_METADATA"
@@ -577,17 +577,17 @@ namespace libtorrent { namespace
 			return false;
 		}
 
-		std::memcpy(&m_metadata[piece * 16 * 1024], buf, size);
+		std::memcpy(&m_metadata[piece * 16 * 1024], buf, aux::numeric_cast<std::size_t>(size));
 		// mark this piece has 'have'
-		m_requested_metadata[piece].num_requests = (std::numeric_limits<int>::max)();
+		m_requested_metadata[piece].num_requests = std::numeric_limits<int>::max();
 		m_requested_metadata[piece].source = source.shared_from_this();
 
 		bool have_all = std::all_of(m_requested_metadata.begin(), m_requested_metadata.end()
-			, [](metadata_piece const& mp) -> bool { return mp.num_requests == (std::numeric_limits<int>::max)(); });
+			, [](metadata_piece const& mp) { return mp.num_requests == std::numeric_limits<int>::max(); });
 
 		if (!have_all) return false;
 
-		if (!m_torrent.set_metadata({m_metadata.get(), size_t(m_metadata_size)}))
+		if (!m_torrent.set_metadata({m_metadata.get(), aux::numeric_cast<std::size_t>(m_metadata_size)}))
 		{
 			if (!m_torrent.valid_metadata())
 			{
@@ -599,11 +599,10 @@ namespace libtorrent { namespace
 				// if we only have one block, and thus requested it from a single
 				// peer, we bump up the retry time a lot more to try other peers
 				bool single_peer = m_requested_metadata.size() == 1;
-				for (int i = 0; i < int(m_requested_metadata.size()); ++i)
+				for (auto& mp : m_requested_metadata)
 				{
-					m_requested_metadata[i].num_requests = 0;
-					std::shared_ptr<ut_metadata_peer_plugin> peer
-						= m_requested_metadata[i].source.lock();
+					mp.num_requests = 0;
+					auto peer = mp.source.lock();
 					if (!peer) continue;
 
 					peer->failed_hash_check(single_peer ? now + minutes(5) : now);

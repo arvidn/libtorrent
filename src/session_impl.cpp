@@ -1214,7 +1214,7 @@ namespace aux {
 		return m_peer_class_type_filter;
 	}
 
-	void session_impl::set_peer_classes(peer_class_set* s, address const& a, int st)
+	void session_impl::set_peer_classes(peer_class_set* s, address const& a, int const st)
 	{
 		std::uint32_t peer_class_mask = m_peer_class_filter.access(a);
 
@@ -2315,7 +2315,7 @@ namespace aux {
 
 		for (;;)
 		{
-			std::array<udp_socket::packet, 50> p;
+			aux::array<udp_socket::packet, 50> p;
 			error_code err;
 			int const num_packets = s->read(p, err);
 
@@ -3226,8 +3226,8 @@ namespace aux {
 							int total_peers = num_peers[0][i] + num_peers[1][i];
 							// this are 64 bits since it's multiplied by the number
 							// of peers, which otherwise might overflow an int
-							std::uint64_t rate = stat_rate[i];
-							tcp_channel[i].throttle((std::max)(int(rate * num_peers[0][i] / total_peers), lower_limit[i]));
+							std::int64_t rate = stat_rate[i];
+							tcp_channel[i].throttle(std::max(int(rate * num_peers[0][i] / total_peers), lower_limit[i]));
 						}
 					}
 				}
@@ -3274,7 +3274,7 @@ namespace aux {
 		std::printf("\033[2J\033[0;0H");
 #endif
 
-		std::vector<torrent*>& want_tick = m_torrent_lists[torrent_want_tick];
+		aux::vector<torrent*>& want_tick = m_torrent_lists[torrent_want_tick];
 		for (int i = 0; i < int(want_tick.size()); ++i)
 		{
 			torrent& t = *want_tick[i];
@@ -3328,7 +3328,7 @@ namespace aux {
 			--m_auto_scrape_time_scaler;
 			if (m_auto_scrape_time_scaler <= 0)
 			{
-				std::vector<torrent*>& want_scrape = m_torrent_lists[torrent_want_scrape];
+				aux::vector<torrent*>& want_scrape = m_torrent_lists[torrent_want_scrape];
 				m_auto_scrape_time_scaler = m_settings.get_int(settings_pack::auto_scrape_interval)
 					/ (std::max)(1, int(want_scrape.size()));
 				if (m_auto_scrape_time_scaler < m_settings.get_int(settings_pack::auto_scrape_min_interval))
@@ -3462,13 +3462,13 @@ namespace aux {
 
 	void session_impl::received_buffer(int s)
 	{
-		int index = (std::min)(log2(s >> 3), 17);
+		int index = std::min(log2(std::uint32_t(s >> 3)), 17);
 		m_stats_counters.inc_stats_counter(counters::socket_recv_size3 + index);
 	}
 
 	void session_impl::sent_buffer(int s)
 	{
-		int index = (std::min)(log2(s >> 3), 17);
+		int index = std::min(log2(std::uint32_t(s >> 3)), 17);
 		m_stats_counters.inc_stats_counter(counters::socket_send_size3 + index);
 	}
 
@@ -4032,10 +4032,10 @@ namespace aux {
 		// attempts over time, to prevent connecting a large number of
 		// sockets, wait 10 seconds, and then try again
 		if (m_settings.get_bool(settings_pack::smooth_connects) && max_connections > (limit+1) / 2)
-			max_connections = (limit+1) / 2;
+			max_connections = (limit + 1) / 2;
 
-		std::vector<torrent*>& want_peers_download = m_torrent_lists[torrent_want_peers_download];
-		std::vector<torrent*>& want_peers_finished = m_torrent_lists[torrent_want_peers_finished];
+		aux::vector<torrent*>& want_peers_download = m_torrent_lists[torrent_want_peers_download];
+		aux::vector<torrent*>& want_peers_finished = m_torrent_lists[torrent_want_peers_finished];
 
 		// if no torrent want any peers, just return
 		if (want_peers_download.empty() && want_peers_finished.empty()) return;
@@ -4980,10 +4980,10 @@ namespace aux {
 		// local endpoint for this socket is bound to one of the allowed
 		// interfaces. the list can be a mixture of interfaces and IP
 		// addresses.
-		for (int i = 0; i < int(m_outgoing_interfaces.size()); ++i)
+		for (auto const& s : m_outgoing_interfaces)
 		{
 			error_code err;
-			address ip = address::from_string(m_outgoing_interfaces[i].c_str(), err);
+			address ip = address::from_string(s.c_str(), err);
 			if (err) continue;
 			if (ip == addr) return true;
 		}
@@ -4996,9 +4996,9 @@ namespace aux {
 		// if no device was found to have this address, we fail
 		if (device.empty()) return false;
 
-		for (int i = 0; i < int(m_outgoing_interfaces.size()); ++i)
+		for (auto const& s : m_outgoing_interfaces)
 		{
-			if (m_outgoing_interfaces[i] == device) return true;
+			if (s == device) return true;
 		}
 
 		return false;
@@ -5243,7 +5243,7 @@ namespace aux {
 		if (print.size() > 20) print.resize(20);
 
 		// the client's fingerprint
-		std::copy(print.begin(), print.begin() + print.length(), m_peer_id.begin());
+		std::copy(print.begin(), print.begin() + int(print.length()), m_peer_id.begin());
 		if (print.length() < 20)
 		{
 			url_random(m_peer_id.data() + print.length(), m_peer_id.data() + 20);
@@ -6304,10 +6304,10 @@ namespace aux {
 			int to_disconnect = num_connections() - m_settings.get_int(settings_pack::connections_limit);
 
 			int last_average = 0;
-			int average = int(m_settings.get_int(settings_pack::connections_limit) / m_torrents.size());
+			int average = m_settings.get_int(settings_pack::connections_limit) / int(m_torrents.size());
 
 			// the number of slots that are unused by torrents
-			int extra = m_settings.get_int(settings_pack::connections_limit) % m_torrents.size();
+			int extra = m_settings.get_int(settings_pack::connections_limit) % int(m_torrents.size());
 
 			// run 3 iterations of this, then we're probably close enough
 			for (int iter = 0; iter < 4; ++iter)
@@ -6434,7 +6434,7 @@ namespace aux {
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
-	size_t session_impl::set_alert_queue_size_limit(size_t queue_size_limit_)
+	std::size_t session_impl::set_alert_queue_size_limit(std::size_t queue_size_limit_)
 	{
 		m_settings.set_int(settings_pack::alert_queue_size, int(queue_size_limit_));
 		return m_alerts.set_alert_queue_size_limit(int(queue_size_limit_));
@@ -6730,8 +6730,8 @@ namespace aux {
 		TORRENT_ASSERT(is_single_thread());
 
 #ifdef TORRENT_DISABLE_POOL_ALLOCATOR
-		int num_bytes = send_buffer_size();
-		return ses_buffer_holder(*this, static_cast<char*>(malloc(num_bytes)));
+		std::size_t num_bytes = aux::numeric_cast<std::size_t>(send_buffer_size());
+		return ses_buffer_holder(*this, static_cast<char*>(std::malloc(num_bytes)));
 #else
 		return ses_buffer_holder(*this, static_cast<char*>(m_send_buffers.malloc()));
 #endif
@@ -6768,7 +6768,7 @@ namespace aux {
 		}
 
 		int const num_gauges = counters::num_error_torrents - counters::num_checking_torrents + 1;
-		std::array<int, num_gauges> torrent_state_gauges;
+		aux::array<int, num_gauges> torrent_state_gauges;
 		torrent_state_gauges.fill(0);
 
 #if defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
@@ -6792,7 +6792,7 @@ namespace aux {
 				++torrent_state_gauges[state];
 			}
 
-			int pos = t->queue_position();
+			int const pos = t->queue_position();
 			if (pos < 0)
 			{
 				TORRENT_ASSERT(pos == -1);
