@@ -520,7 +520,7 @@ TORRENT_TEST(no_close_redudant_webseed)
 
 				return sim::send_response(206, "Partial Content", 1, extra_headers).
 					append("A").
-					append(sim::send_response(408, "REQUEST TIMEOUT", 0)); 
+					append(sim::send_response(408, "REQUEST TIMEOUT", 0));
 			});
 
 			sim.run();
