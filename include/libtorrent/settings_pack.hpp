@@ -194,6 +194,12 @@ namespace libtorrent
 			// ``[::]:0s`` - will accept SSL connections on a port chosen by the
 			// OS. And not accept non-SSL connections at all.
 			//
+			// Windows OS network adapter device name can be specified with GUID.
+			// It can be obtained from "netsh lan show interfaces" command output.
+			// GUID must be uppercased string embraced in curly brackets.
+			// ``{E4F0B674-0DFC-48BB-98A5-2AA730BDB6D6}::7777`` - will accept
+			// connections on port 7777 on adapter with this GUID.
+			//
 			// .. note::
 			//   The current support for opening arbitrary UDP sockets is limited.
 			//   In this version of libtorrent, there will only ever be two UDP

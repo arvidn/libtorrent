@@ -240,7 +240,6 @@ namespace libtorrent
 
 		// ``add_tracker()`` adds a tracker to the announce-list. The ``tier``
 		// determines the order in which the trackers are to be tried.
-		//
 		// The ``trackers()`` function will return a sorted vector of
 		// ``announce_entry``. Each announce entry contains a string, which is
 		// the tracker url, and a tier index. The tier index is the high-level
@@ -418,12 +417,15 @@ namespace libtorrent
 		// to peers over anything other than the i2p network.
 		bool is_i2p() const { return (m_flags & i2p) != 0; }
 
+		// returns the piece size of file with ``index``. This will be the same as piece_length(),
+		// except for the last piece, which may be shorter.
+		int piece_size(piece_index_t index) const { return m_files.piece_size(index); }
+
 		// ``hash_for_piece()`` takes a piece-index and returns the 20-bytes
 		// sha1-hash for that piece and ``info_hash()`` returns the 20-bytes
 		// sha1-hash for the info-section of the torrent file.
 		// ``hash_for_piece_ptr()`` returns a pointer to the 20 byte sha1 digest
 		// for the piece. Note that the string is not 0-terminated.
-		int piece_size(piece_index_t index) const { return m_files.piece_size(index); }
 		sha1_hash hash_for_piece(piece_index_t index) const;
 		char const* hash_for_piece_ptr(piece_index_t const index) const
 		{
@@ -450,7 +452,6 @@ namespace libtorrent
 
 		// ``merkle_tree()`` returns a reference to the merkle tree for this
 		// torrent, if any.
-		//
 		// ``set_merkle_tree()`` moves the passed in merkle tree into the
 		// torrent_info object. i.e. ``h`` will not be identical after the call.
 		// You need to set the merkle tree for a torrent that you've just created
@@ -463,24 +464,24 @@ namespace libtorrent
 		{ TORRENT_ASSERT(h.size() == m_merkle_tree.size() ); m_merkle_tree.swap(h); }
 
 		// ``name()`` returns the name of the torrent.
-		//
-		// ``comment()`` returns the comment associated with the torrent. If
-		// there's no comment, it will return an empty string.
+		// name contains UTF-8 encoded string.
+		const std::string& name() const { return m_files.name(); }
+
 		// ``creation_date()`` returns the creation date of the torrent as time_t
 		// (`posix time`_). If there's no time stamp in the torrent file, the
 		// optional object will be uninitialized.
-		//
-		// Both the name and the comment is UTF-8 encoded strings.
-		//
-		// ``creator()`` returns the creator string in the torrent. If there is
-		// no creator string it will return an empty string.
-		//
 		// .. _`posix time`: http://www.opengroup.org/onlinepubs/009695399/functions/time.html
-		const std::string& name() const { return m_files.name(); }
 		time_t creation_date() const
 		{ return m_creation_date; }
+
+		// ``creator()`` returns the creator string in the torrent. If there is
+		// no creator string it will return an empty string.
 		const std::string& creator() const
 		{ return m_created_by; }
+
+		// ``comment()`` returns the comment associated with the torrent. If
+		// there's no comment, it will return an empty string.
+		// comment contains UTF-8 encoded string.
 		const std::string& comment() const
 		{ return m_comment; }
 
