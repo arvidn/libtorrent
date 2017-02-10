@@ -52,17 +52,17 @@ before_install:
   - 'if [[ $ssl == "" ]]; then export ssl=off; fi'
   - 'if [[ $crypto == "" ]]; then export crypto=built-in; fi'
   - 'if [[ $TRAVIS_OS_NAME == "osx" && ( "$tests" == "1" || "$sim" == 1 || "$examples" == "1" || "$tools" == "1" || "$python" == "1" ) ]]; then
-    brew update > /dev/null && brew install --quiet ccache boost-build;
+    travis_retry brew update > /dev/null && brew install --quiet ccache boost-build;
     fi'
-  - 'if [[ $TRAVIS_OS_NAME == "osx" && "$python" == "1" ]]; then brew update > /dev/null && brew install --quiet boost-python; fi'
+  - 'if [[ $TRAVIS_OS_NAME == "osx" && "$python" == "1" ]]; then travis_retry brew update > /dev/null && brew install --quiet boost-python; fi'
   - 'if [ "$docs" = "1" ]; then
-    brew install --quiet docutils;
+    travis_retry brew install --quiet docutils;
     mkdir -p /Users/travis/Library/Python/2.7/lib/python/site-packages;
     echo ''import site; site.addsitedir("/usr/local/lib/python2.7/site-packages")'' >> /Users/travis/Library/Python/2.7/lib/python/site-packages/homebrew.pth;
     sudo easy_install Pygments;
     sudo easy_install -U aafigure;
-    brew install --quiet graphviz;
-    brew install --quiet Homebrew/python/pillow;
+    travis_retry brew install --quiet graphviz;
+    travis_retry brew install --quiet Homebrew/python/pillow;
     fi'
 
   - if [ "$coverage" == "1" ]; then
