@@ -1,3 +1,4 @@
+	* strip trailing / from tracker URLs
 	* add web_seed_name_lookup_retry to session_settings
 	* slightly improve proxy settings backwards compatibility
 	* add function to get default settings

@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/extensions.hpp"
+#include "libtorrent/announce_entry.hpp"
 #include "settings.hpp"
 #include <boost/tuple/tuple.hpp>
 #include <boost/make_shared.hpp>
@@ -213,6 +214,22 @@ TORRENT_TEST(total_wanted)
 	TEST_EQUAL(st.total_wanted, 1024);
 	std::cout << "total_wanted_done: " << st.total_wanted_done << " : 0" << std::endl;
 	TEST_EQUAL(st.total_wanted_done, 0);
+}
+
+TORRENT_TEST(add_tracker_duplicates)
+{
+	settings_pack pack = settings();
+	lt::session ses(pack);
+	add_torrent_params params;
+	params.save_path = ".";
+	params.info_hash.assign("                    ");
+	torrent_handle h = ses.add_torrent(params);
+
+	h.add_tracker(announce_entry("http://test.com/announce"));
+	h.add_tracker(announce_entry("http://test.com/announce/"));
+
+	// the second tracker should be treated as duplicate
+	TEST_EQUAL(h.trackers().size(), 1);
 }
 
 TORRENT_TEST(added_peers)
