@@ -56,51 +56,29 @@ add_torrent_params create_torrent(file_storage& fs, bool const pad_files = false
 		, pad_files ? piece_size : -1
 		, pad_files ? create_torrent::optimize_alignment : 0);
 
-	std::vector<char> piece(piece_size);
+	std::vector<char> piece;
+	piece.reserve(fs.piece_length());
 	piece_index_t const num = fs.end_piece();
-	if (pad_files)
+	for (piece_index_t i(0); i < num; ++i)
 	{
-		for (piece_index_t i(0); i < num; ++i)
+		int k = 0;
+		std::vector<file_slice> files = fs.map_block(i, 0, fs.piece_size(i));
+		for (auto& f : files)
 		{
-			std::vector<file_slice> files = fs.map_block(i, 0, fs.piece_size(i));
-			int k = 0;
-			for (auto& f : files)
+			if (fs.pad_file_at(f.file_index))
 			{
-				if (fs.pad_file_at(f.file_index))
-				{
-					for (int j = 0; j < f.size; ++j)
-						piece[k++] = 0;
-				}
-				else
-				{
-					for (int j = 0; j < f.size; ++j, ++k)
-						piece[k] = (k % 26) + 'A';
-				}
+				for (int j = 0; j < f.size; ++j, ++k)
+					piece.push_back('\0');
 			}
-			// the last piece may be shorter. pad with zeroes
-			for (; k < int(piece.size()); ++k)
-				piece[k++] = 0;
-
-			sha1_hash ph = hasher(&piece[0], int(piece.size())).final();
-			t.set_hash(i, ph);
+			else
+			{
+				for (int j = 0; j < f.size; ++j, ++k)
+					piece.push_back((k % 26) + 'A');
+			}
 		}
-	}
-	else
-	{
-		for (int i = 0; i < int(piece.size()); ++i)
-			piece[i] = (i % 26) + 'A';
 
-		// calculate the hash for all pieces
-		sha1_hash ph = hasher(&piece[0], int(piece.size())).final();
-		for (piece_index_t i(0); i < num; ++i)
-			t.set_hash(i, ph);
-	}
-
-	// the last piece may have a different size
-	if ((fs.total_size() % piece_size) > 0)
-	{
-		piece.resize(fs.total_size() % piece_size);
-		t.set_hash(prev(num), hasher(&piece[0], int(piece.size())).final());
+		t.set_hash(i, hasher(piece).final());
+		piece.clear();
 	}
 
 	std::vector<char> tmp;
@@ -246,8 +224,8 @@ std::string generate_content(lt::file_storage const& fs, file_index_t file
 	ret.reserve(len);
 	std::int64_t const file_offset = fs.file_offset(file);
 	int const piece_size = fs.piece_length();
-	for (std::int64_t i = offset; i < offset + len; ++i)
-		ret.push_back((((i + file_offset) % piece_size) % 26) + 'A');
+	for (std::int64_t i = offset + file_offset; i < offset + file_offset + len; ++i)
+		ret.push_back(((i % piece_size) % 26) + 'A');
 	return ret;
 }
 

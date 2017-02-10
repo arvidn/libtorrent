@@ -735,7 +735,7 @@ void web_peer_connection::on_receive(error_code const& error
 				if (should_log(peer_log_alert::info))
 				{
 					peer_log(peer_log_alert::info, "RECEIVE_BYTES"
-						, "%s", std::string(recv_buffer.data(), recv_buffer.size()).c_str());
+						, "%*s", int(recv_buffer.size()), recv_buffer.data());
 				}
 #endif
 				disconnect(errors::http_parse_error, op_bittorrent, 2);
