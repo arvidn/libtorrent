@@ -231,12 +231,21 @@ namespace libtorrent
 		if (!need_encoding(path.c_str(), int(path.size())))
 			return url;
 
-		char msg[TORRENT_MAX_PATH*4];
-		std::snprintf(msg, sizeof(msg), "%s://%s%s%s%s%s%s", protocol.c_str(), auth.c_str()
-			, auth.empty() ? "" : "@", host.c_str()
-			, port == -1 ? "" : ":"
-			, port == -1 ? "" : to_string(port).data()
-			, escape_path(path).c_str());
+		std::string msg { protocol };
+		msg.append("://");
+		if (!auth.empty())
+		{
+			msg.append(auth);
+			msg.append("@");
+		}
+		msg.append(host);
+		if (port != -1)
+		{
+			msg.append(":");
+			msg.append(to_string(port).data());
+		}
+		msg.append(escape_path(path));
+
 		return msg;
 	}
 

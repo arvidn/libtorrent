@@ -175,10 +175,12 @@ namespace libtorrent {
 
 	std::string file_completed_alert::message() const
 	{
-		char msg[200 + TORRENT_MAX_PATH];
-		std::snprintf(msg, sizeof(msg), "%s: file %d finished downloading"
-			, torrent_alert::message().c_str(), static_cast<int>(index));
-		return msg;
+		std::string ret { torrent_alert::message() };
+		char msg[200];
+		std::snprintf(msg, sizeof(msg), ": file %d finished downloading"
+			, static_cast<int>(index));
+		ret.append(msg);
+		return ret;
 	}
 
 	file_renamed_alert::file_renamed_alert(aux::stack_allocator& alloc
@@ -198,10 +200,13 @@ namespace libtorrent {
 
 	std::string file_renamed_alert::message() const
 	{
-		char msg[200 + TORRENT_MAX_PATH * 2];
-		std::snprintf(msg, sizeof(msg), "%s: file %d renamed to %s"
-			, torrent_alert::message().c_str(), static_cast<int>(index), new_name());
-		return msg;
+		std::string ret { torrent_alert::message() };
+		char msg[200];
+		std::snprintf(msg, sizeof(msg), ": file %d renamed to "
+			, static_cast<int>(index));
+		ret.append(msg);
+		ret.append(new_name());
+		return ret;
 	}
 
 	file_rename_failed_alert::file_rename_failed_alert(aux::stack_allocator& alloc
@@ -215,10 +220,12 @@ namespace libtorrent {
 
 	std::string file_rename_failed_alert::message() const
 	{
-		char ret[200 + TORRENT_MAX_PATH * 2];
-		std::snprintf(ret, sizeof(ret), "%s: failed to rename file %d: %s"
-			, torrent_alert::message().c_str(), static_cast<int>(index)
-			, convert_from_native(error.message()).c_str());
+		std::string ret { torrent_alert::message() };
+		char msg[200];
+		std::snprintf(msg, sizeof(msg), ": failed to rename file %d: "
+			, static_cast<int>(index));
+		ret.append(msg);
+		ret.append(convert_from_native(error.message()));
 		return ret;
 	}
 
