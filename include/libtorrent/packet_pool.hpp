@@ -35,7 +35,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
+#include "libtorrent/aux_/throw.hpp"
 #include "libtorrent/aux_/vector.hpp"
+#include "libtorrent/assert.hpp"
 
 namespace libtorrent
 {
@@ -84,15 +86,18 @@ namespace libtorrent
 		// deleter for std::unique_ptr
 		void operator()(packet* p) const
 		{
+			TORRENT_ASSERT(p != nullptr);
 			p->~packet();
 			std::free(p);
 		}
 	};
 
-	inline packet* create_packet(int size)
+	inline packet* create_packet(int const size)
 	{
 		packet* p = static_cast<packet*>(std::malloc(sizeof(packet) + size));
+		if (p == nullptr) aux::throw_ex<std::bad_alloc>();
 		new (p) packet();
+		p->allocated = static_cast<std::uint16_t>(size);
 		return p;
 	}
 
@@ -147,7 +152,6 @@ namespace libtorrent
 			TORRENT_ASSERT(allocate <= std::numeric_limits<std::uint16_t>::max());
 
 			packet_ptr p{ alloc(allocate) };
-			p->allocated = static_cast<std::uint16_t>(allocate);
 			return p.release();
 		}
 
