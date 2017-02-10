@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/throw.hpp"
 #include "libtorrent/aux_/vector.hpp"
+#include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/assert.hpp"
 
 namespace libtorrent
@@ -97,7 +98,7 @@ namespace libtorrent
 		packet* p = static_cast<packet*>(std::malloc(sizeof(packet) + size));
 		if (p == nullptr) aux::throw_ex<std::bad_alloc>();
 		new (p) packet();
-		p->allocated = static_cast<std::uint16_t>(size);
+		p->allocated = aux::numeric_cast<std::uint16_t>(size);
 		return p;
 	}
 
