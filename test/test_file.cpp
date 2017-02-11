@@ -451,13 +451,9 @@ TORRENT_TEST(unc_tests)
 	for (std::string special_name : special_names)
 	{
 		TEST_EQUAL(touch_file(special_name, 10), 0);
-
 		TEST_CHECK(lt::exists(special_name));
-
 		lt::remove(special_name, ec);
-
 		TEST_EQUAL(ec, error_code());
-
 		TEST_CHECK(!lt::exists(special_name));
 	}
 
@@ -476,29 +472,20 @@ TORRENT_TEST(unc_tests)
 		error_code ec;
 
 		lt::create_directory(long_component_name, ec);
-
 		TEST_EQUAL(ec, error_code());
-
 		TEST_CHECK(lt::exists(long_component_name));
-
 		TEST_CHECK(lt::is_directory(long_component_name, ec));
 
 		TEST_EQUAL(touch_file(long_file_name1, 10), 0);
-
 		TEST_CHECK(lt::exists(long_file_name1));
 
 		lt::rename(long_file_name1, long_file_name2, ec);
-
 		TEST_EQUAL(ec, error_code());
-
 		TEST_CHECK(!lt::exists(long_file_name1));
-
 		TEST_CHECK(lt::exists(long_file_name2));
 
 		lt::copy_file(long_file_name2, long_file_name1, ec);
-
 		TEST_EQUAL(ec, error_code());
-
 		TEST_CHECK(lt::exists(long_file_name1));
 
 		std::set<std::string> files;
@@ -512,23 +499,17 @@ TORRENT_TEST(unc_tests)
 		TEST_EQUAL(files.size(), 4);
 
 		lt::remove(long_file_name1, ec);
-
 		TEST_EQUAL(ec, error_code());
-
 		TEST_CHECK(!lt::exists(long_file_name1));
 
 		if (support_hard_links)
 		{
 			lt::hard_link(long_file_name2, long_file_name1, ec);
-
 			TEST_EQUAL(ec, error_code());
-
 			TEST_CHECK(lt::exists(long_file_name1));
 
 			lt::remove(long_file_name1, ec);
-
 			TEST_EQUAL(ec, error_code());
-
 			TEST_CHECK(!lt::exists(long_file_name1));
 		}
 	}

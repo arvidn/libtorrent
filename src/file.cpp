@@ -355,13 +355,6 @@ namespace libtorrent
 		std::string;
 #endif
 
-	void replace_separators(std::string &path)
-	{
-		for (auto& p : path)
-			if (p == '/')
-				p = '\\';
-	}
-
 	win_path_string convert_to_win_path_string(std::string const& path)
 	{
 #if TORRENT_USE_UNC_PATHS
@@ -373,12 +366,12 @@ namespace libtorrent
 		else
 		{
 			std::string sep_path { path };
-			replace_separators(sep_path);
+			std::replace(sep_path.begin(), sep_path.end(), '/', '\\');
 			prepared_path = "\\\\?\\" + (is_complete(sep_path) ? sep_path : combine_path(current_working_directory(), sep_path));
 		}
 #else
 		std::string prepared_path { path };
-		replace_separators(prepared_path);
+		std::replace(prepared_path.begin(), prepared_path.end(), '/', '\\');
 #endif
 
 #if TORRENT_USE_WSTRING
@@ -982,19 +975,18 @@ namespace libtorrent
 #if defined TORRENT_WINDOWS && !defined TORRENT_MINGW
 #if TORRENT_USE_WSTRING
 		wchar_t* cwd { ::_wgetcwd(nullptr, 0) };
-		if (cwd == nullptr) return "";
-		std::string ret { convert_from_wstring(cwd) };
+		std::shared_ptr<wchar_t> holder(cwd, &std::free);
+		std::string ret { cwd == nullptr ? "" : convert_from_wstring(cwd) };
 #else
 		char* cwd { ::_getcwd(nullptr, 0) };
-		if (cwd == nullptr) return "";
-		std::string ret { convert_from_native(cwd) };
+		std::shared_ptr<char> holder(cwd, &std::free);
+		std::string ret { cwd == nullptr ? "" : convert_from_native(cwd) };
 #endif // TORRENT_USE_WSTRING
 #else
 		char* cwd { ::getcwd(nullptr, 0) };
-		if (cwd == nullptr) return "/";
-		std::string ret { convert_from_native(cwd) };
+		std::shared_ptr<char> holder(cwd, &std::free);
+		std::string ret { cwd == nullptr ? "/" : convert_from_native(cwd) };
 #endif
-		std::free(cwd);
 		return ret;
 	}
 

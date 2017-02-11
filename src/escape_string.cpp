@@ -231,7 +231,16 @@ namespace libtorrent
 		if (!need_encoding(path.c_str(), int(path.size())))
 			return url;
 
-		std::string msg { protocol };
+		std::string msg;
+		std::string escaped_path { escape_path(path) };
+		// reserve enough space so further append will
+		// only copy values to existing location
+		msg.reserve(protocol.size() + 3 + // protocol part
+			auth.size() + 1 + // auth part
+			host.size() + // host part
+			1 + 5 + // port part
+			escaped_path.size());
+		msg.append(protocol);
 		msg.append("://");
 		if (!auth.empty())
 		{
@@ -244,7 +253,7 @@ namespace libtorrent
 			msg.append(":");
 			msg.append(to_string(port).data());
 		}
-		msg.append(escape_path(path));
+		msg.append(escaped_path);
 
 		return msg;
 	}
