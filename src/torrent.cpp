@@ -97,23 +97,21 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hex.hpp" // to_hex
 // TODO: factor out cache_status to its own header
 #include "libtorrent/disk_io_thread.hpp" // for cache_status
+#include "libtorrent/aux_/numeric_cast.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/aux_/session_impl.hpp" // for tracker_logger
 #endif
 
 using namespace std::placeholders;
-using std::chrono::duration_cast;
-using std::chrono::seconds;
-using libtorrent::seconds32;
 
 namespace libtorrent
 {
 	namespace {
 
-	int root2(int x)
+	std::uint32_t root2(int x)
 	{
-		int ret = 0;
+		std::uint32_t ret = 0;
 		x >>= 1;
 		while (x > 0)
 		{
@@ -196,7 +194,8 @@ namespace libtorrent
 		, m_super_seeding(false)
 		, m_stop_when_ready((p.flags & add_torrent_params::flag_stop_when_ready) != 0)
 		, m_need_save_resume_data((p.flags & add_torrent_params::flag_need_save_resume) != 0)
-		, m_max_uploads((1<<24)-1)
+		, m_max_uploads((1 << 24) - 1)
+		, m_save_resume_flags(0)
 		, m_num_uploads(0)
 		, m_need_connect_boost(true)
 		, m_lsd_seq(0)
@@ -343,7 +342,7 @@ namespace libtorrent
 				&& std::find(p.have_pieces.begin(), p.have_pieces.end(), false) == p.have_pieces.end();
 
 			m_connections_initialized = true;
-			m_block_size_shift = root2((std::min)(block_size, m_torrent_file->piece_length()));
+			m_block_size_shift = root2(std::min(block_size, m_torrent_file->piece_length()));
 		}
 		else
 		{
@@ -373,7 +372,7 @@ namespace libtorrent
 		m_finished_time = seconds(p.finished_time);
 		m_seeding_time = seconds(p.seeding_time);
 
-		m_added_time = p.added_time ? p.added_time : time(nullptr);
+		m_added_time = p.added_time ? p.added_time : std::time(nullptr);
 		m_completed_time = p.completed_time;
 		if (m_completed_time != 0 && m_completed_time < m_added_time)
 			m_completed_time = m_added_time;
@@ -531,7 +530,7 @@ namespace libtorrent
 		if (new_gauge_state != no_gauge_state)
 			inc_stats_counter(new_gauge_state + counters::num_checking_torrents, 1);
 
-		m_current_gauge_state = new_gauge_state;
+		m_current_gauge_state = aux::numeric_cast<std::uint8_t>(new_gauge_state);
 	}
 
 	void torrent::leave_seed_mode(bool skip_checking)
@@ -861,11 +860,10 @@ namespace libtorrent
 	void torrent::send_share_mode()
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (peer_iterator i = m_connections.begin()
-			, end(m_connections.end()); i != end; ++i)
+		for (auto const pc : m_connections)
 		{
-			if ((*i)->type() != connection_type::bittorrent) continue;
-			bt_peer_connection* p = static_cast<bt_peer_connection*>(*i);
+			if (pc->type() != connection_type::bittorrent) continue;
+			bt_peer_connection* p = static_cast<bt_peer_connection*>(pc);
 			p->write_share_mode();
 		}
 #endif
@@ -1135,7 +1133,7 @@ namespace libtorrent
 		}
 		else
 		{
-			std::memcpy(rp->piece_data.get() + r.start, buffer.get(), r.length);
+			std::memcpy(rp->piece_data.get() + r.start, buffer.get(), aux::numeric_cast<std::size_t>(r.length));
 		}
 
 		if (rp->blocks_left == 0)
@@ -1670,7 +1668,7 @@ namespace libtorrent
 #endif
 		}
 
-		m_block_size_shift = root2((std::min)(block_size(), m_torrent_file->piece_length()));
+		m_block_size_shift = root2(std::min(block_size(), m_torrent_file->piece_length()));
 
 		if (m_torrent_file->num_pieces() > piece_picker::max_pieces)
 		{
@@ -2305,7 +2303,7 @@ namespace libtorrent
 
 				// skip this file by updating m_checking_piece to the first piece following it
 				file_storage const& st = m_torrent_file->files();
-				std::uint64_t file_size = st.file_size(error.file());
+				std::int64_t file_size = st.file_size(error.file());
 				piece_index_t last = st.map_file(error.file(), file_size, 0).piece;
 				if (m_checking_piece < last)
 				{
@@ -2838,7 +2836,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(is_single_thread());
 #ifndef TORRENT_NO_DEPRECATE
-		m_last_scrape = m_ses.session_time();
+		m_last_scrape = std::int16_t(m_ses.session_time());
 #endif
 
 		if (m_trackers.empty()) return;
@@ -2879,7 +2877,7 @@ namespace libtorrent
 	}
 
 	void torrent::tracker_scrape_response(tracker_request const& req
-		, int complete, int incomplete, int downloaded, int /* downloaders */)
+		, int const complete, int const incomplete, int const downloaded, int /* downloaders */)
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -2930,9 +2928,9 @@ namespace libtorrent
 			|| m_incomplete != incomplete
 			|| m_downloaded != downloaded)
 		{
-			m_complete = complete;
-			m_incomplete = incomplete;
-			m_downloaded = downloaded;
+			m_complete = std::uint32_t(complete);
+			m_incomplete = std::uint32_t(incomplete);
+			m_downloaded = std::uint32_t(downloaded);
 
 			update_auto_sequential();
 
@@ -2996,7 +2994,7 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 		if (resp.complete >= 0 && resp.incomplete >= 0)
-			m_last_scrape = m_ses.session_time();
+			m_last_scrape = std::int16_t(m_ses.session_time());
 #endif
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -3393,14 +3391,14 @@ namespace libtorrent
 		piece_index_t const last_piece = prev(m_torrent_file->end_piece());
 
 		std::int64_t total_done
-			= std::uint64_t(m_picker->num_passed()) * m_torrent_file->piece_length();
+			= std::int64_t(m_picker->num_passed()) * m_torrent_file->piece_length();
 
 		// if we have the last piece, we have to correct
 		// the amount we have, since the first calculation
 		// assumed all pieces were of equal size
 		if (m_picker->has_piece_passed(last_piece))
 		{
-			int corr = m_torrent_file->piece_size(last_piece)
+			int const corr = m_torrent_file->piece_size(last_piece)
 				- m_torrent_file->piece_length();
 			total_done += corr;
 		}
@@ -4681,7 +4679,7 @@ namespace libtorrent
 				{
 					// update the average download time and average
 					// download time deviation
-					int dl_time = int(total_milliseconds(aux::time_now() - i->first_requested));
+					int dl_time = aux::numeric_cast<int>(total_milliseconds(aux::time_now() - i->first_requested));
 
 					if (m_average_piece_time == 0)
 					{
@@ -4689,7 +4687,7 @@ namespace libtorrent
 					}
 					else
 					{
-						int diff = abs(int(dl_time - m_average_piece_time));
+						int diff = std::abs(dl_time - m_average_piece_time);
 						if (m_piece_time_deviation == 0) m_piece_time_deviation = diff;
 						else m_piece_time_deviation = (m_piece_time_deviation * 9 + diff) / 10;
 
@@ -5034,7 +5032,7 @@ namespace libtorrent
 		std::int64_t position = 0;
 		// initialize the piece priorities to 0, then only allow
 		// setting higher priorities
-		aux::vector<int, piece_index_t> pieces(m_torrent_file->num_pieces(), 0);
+		aux::vector<int, piece_index_t> pieces(aux::numeric_cast<std::size_t>(m_torrent_file->num_pieces()), 0);
 		file_storage const& fs = m_torrent_file->files();
 		for (file_index_t i(0); i < fs.end_file(); ++i)
 		{
@@ -6024,13 +6022,13 @@ namespace libtorrent
 				piece_struct["piece"] = static_cast<int>(dp.index);
 
 				std::string bitmask;
-				const int num_bitmask_bytes
-					= (std::max)(num_blocks_per_piece / 8, 1);
+				int const num_bitmask_bytes
+					= std::max(num_blocks_per_piece / 8, 1);
 
 				piece_picker::block_info const* info = m_picker->blocks_for_piece(dp);
 				for (int j = 0; j < num_bitmask_bytes; ++j)
 				{
-					unsigned char v = 0;
+					char v = 0;
 					int bits = (std::min)(num_blocks_per_piece - j * 8, 8);
 					for (int k = 0; k < bits; ++k)
 						v |= (info[j * 8 + k].state == piece_picker::block_info::state_finished)
@@ -6098,7 +6096,7 @@ namespace libtorrent
 		if (max_piece > piece_index_t(0))
 		{
 			entry::string_type& pieces = ret["pieces"].string();
-			pieces.resize(static_cast<int>(max_piece));
+			pieces.resize(aux::numeric_cast<std::size_t>(static_cast<int>(max_piece)));
 			if (is_seed())
 			{
 				std::memset(&pieces[0], m_have_all, pieces.size());
@@ -6106,7 +6104,7 @@ namespace libtorrent
 			else if (has_picker())
 			{
 				for (piece_index_t i(0); i < max_piece; ++i)
-					pieces[static_cast<int>(i)] = m_picker->have_piece(i) ? 1 : 0;
+					pieces[std::size_t(static_cast<int>(i))] = m_picker->have_piece(i) ? 1 : 0;
 			}
 
 			if (m_seed_mode)
@@ -6114,7 +6112,7 @@ namespace libtorrent
 				TORRENT_ASSERT(m_verified.size() == int(pieces.size()));
 				TORRENT_ASSERT(m_verifying.size() == int(pieces.size()));
 				for (piece_index_t i(0); i < max_piece; ++i)
-					pieces[static_cast<int>(i)] |= m_verified[i] ? 2 : 0;
+					pieces[std::size_t(static_cast<int>(i))] |= m_verified[i] ? 2 : 0;
 			}
 		}
 
@@ -6275,10 +6273,10 @@ namespace libtorrent
 			if (!default_prio)
 			{
 				entry::string_type& piece_priority = ret["piece_priority"].string();
-				piece_priority.resize(m_torrent_file->num_pieces());
+				piece_priority.resize(aux::numeric_cast<std::size_t>(m_torrent_file->num_pieces()));
 
 				for (piece_index_t i(0); i < fs.end_piece(); ++i)
-					piece_priority[static_cast<int>(i)] = entry::string_type::value_type(m_picker->piece_priority(i));
+					piece_priority[std::size_t(static_cast<int>(i))] = entry::string_type::value_type(m_picker->piece_priority(i));
 			}
 		}
 	}
@@ -6288,7 +6286,7 @@ namespace libtorrent
 		v->clear();
 		if (!m_peer_list) return;
 
-		v->reserve(m_peer_list->num_peers());
+		v->reserve(aux::numeric_cast<std::size_t>(m_peer_list->num_peers()));
 		for (auto p : *m_peer_list)
 		{
 			peer_list_entry e;
@@ -6334,7 +6332,7 @@ namespace libtorrent
 		if (q.empty()) return;
 
 		const int blocks_per_piece = m_picker->blocks_in_piece(piece_index_t(0));
-		blk.resize(q.size() * blocks_per_piece);
+		blk.resize(q.size() * aux::numeric_cast<std::size_t>(blocks_per_piece));
 		// for some weird reason valgrind claims these are uninitialized
 		// unless it's zeroed out here (block_info has a construct that's
 		// supposed to initialize it)
@@ -6351,15 +6349,16 @@ namespace libtorrent
 			pi.writing = int(i->writing);
 			pi.requested = int(i->requested);
 			TORRENT_ASSERT(counter * blocks_per_piece + pi.blocks_in_piece <= int(blk.size()));
-			pi.blocks = &blk[counter * blocks_per_piece];
-			int piece_size = int(torrent_file().piece_size(i->index));
+			pi.blocks = &blk[std::size_t(counter * blocks_per_piece)];
+			int const piece_size = torrent_file().piece_size(i->index);
 			piece_picker::block_info const* info = m_picker->blocks_for_piece(*i);
 			for (int j = 0; j < pi.blocks_in_piece; ++j)
 			{
 				block_info& bi = pi.blocks[j];
 				bi.state = info[j].state;
-				bi.block_size = j < pi.blocks_in_piece - 1 ? block_size()
-					: piece_size - (j * block_size());
+				bi.block_size = j < pi.blocks_in_piece - 1
+					? aux::numeric_cast<std::uint32_t>(block_size())
+					: aux::numeric_cast<std::uint32_t>(piece_size - (j * block_size()));
 				bool complete = bi.state == block_info::writing
 					|| bi.state == block_info::finished;
 				if (info[j].peer == nullptr)
@@ -6381,7 +6380,7 @@ namespace libtorrent
 							auto pbp = peer->downloading_piece_progress();
 							if (pbp.piece_index == i->index && pbp.block_index == j)
 							{
-								bi.bytes_progress = pbp.bytes_downloaded;
+								bi.bytes_progress = aux::numeric_cast<std::uint32_t>(pbp.bytes_downloaded);
 								TORRENT_ASSERT(bi.bytes_progress <= bi.block_size);
 							}
 							else
@@ -6813,11 +6812,11 @@ namespace libtorrent
 		}
 		if (connection_limit_factor == 0) connection_limit_factor = 100;
 
-		std::uint64_t limit = std::uint64_t(m_max_connections) * 100 / connection_limit_factor;
+		std::int64_t const limit = std::int64_t(m_max_connections) * 100 / connection_limit_factor;
 
 		bool maybe_replace_peer = false;
 
-		if (m_connections.size() >= limit)
+		if (m_connections.end_index() >= limit)
 		{
 			// if more than 10% of the connections are outgoing
 			// connection attempts that haven't completed yet,
@@ -7987,13 +7986,13 @@ namespace libtorrent
 		m_ses.set_queue_position(this, p);
 	}
 
-	void torrent::set_max_uploads(int limit, bool state_update)
+	void torrent::set_max_uploads(int limit, bool const state_update)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(limit >= -1);
 		if (limit <= 0) limit = (1 << 24) - 1;
 		if (m_max_uploads != limit && state_update) state_updated();
-		m_max_uploads = limit;
+		m_max_uploads = aux::numeric_cast<std::uint32_t>(limit);
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("*** set-max-uploads: %d", m_max_uploads);
 #endif
@@ -8002,13 +8001,13 @@ namespace libtorrent
 			set_need_save_resume();
 	}
 
-	void torrent::set_max_connections(int limit, bool state_update)
+	void torrent::set_max_connections(int limit, bool const state_update)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(limit >= -1);
 		if (limit <= 0) limit = (1 << 24) - 1;
 		if (m_max_connections != limit && state_update) state_updated();
-		m_max_connections = limit;
+		m_max_connections = aux::numeric_cast<std::uint32_t>(limit);
 		update_want_peers();
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -8342,7 +8341,7 @@ namespace libtorrent
 
 		m_need_save_resume_data = false;
 		m_last_saved_resume = aux::time_now32();
-		m_save_resume_flags = std::uint8_t(flags);
+		m_save_resume_flags = aux::numeric_cast<std::uint8_t>(flags);
 		state_updated();
 
 		if ((flags & torrent_handle::flush_disk_cache) && m_storage)
@@ -9156,8 +9155,8 @@ namespace libtorrent
 			// 90% of the max number of connections). That will
 			// limit our ability to upload. We need more downloaders.
 			// disconnect some seeds so that we don't have more than 50%
-			int to_disconnect = num_seeds - num_peers / 2;
-			std::vector<peer_connection*> seeds;
+			int const to_disconnect = num_seeds - num_peers / 2;
+			aux::vector<peer_connection*> seeds;
 			seeds.reserve(num_seeds);
 			for (auto const p : m_connections)
 			{
@@ -9165,7 +9164,7 @@ namespace libtorrent
 			}
 
 			aux::random_shuffle(seeds.begin(), seeds.end());
-			TORRENT_ASSERT(to_disconnect <= int(seeds.size()));
+			TORRENT_ASSERT(to_disconnect <= seeds.end_index());
 			for (int i = 0; i < to_disconnect; ++i)
 				seeds[i]->disconnect(errors::upload_upload_connection
 					, op_bittorrent);
@@ -9205,7 +9204,7 @@ namespace libtorrent
 		// piece. Go through all pieces, figure out which one is the rarest
 		// and how many peers that has that piece
 
-		std::vector<piece_index_t> rarest_pieces;
+		aux::vector<piece_index_t> rarest_pieces;
 
 		int num_pieces = m_torrent_file->num_pieces();
 		int rarest_rarity = INT_MAX;
@@ -9215,7 +9214,7 @@ namespace libtorrent
 			if (ps.peer_count == 0) continue;
 			if (ps.priority == 0 && (ps.have || ps.downloading))
 			{
-				m_picker->set_piece_priority(i, 1);
+				m_picker->set_piece_priority(i, default_piece_priority);
 				continue;
 			}
 			// don't count pieces we already have or are trying to download
@@ -9246,9 +9245,9 @@ namespace libtorrent
 			return;
 
 		// now, pick one of the rarest pieces to download
-		int const pick = random(std::uint32_t(rarest_pieces.size() - 1));
+		int const pick = int(random(aux::numeric_cast<std::uint32_t>(rarest_pieces.end_index() - 1)));
 		bool const was_finished = is_finished();
-		m_picker->set_piece_priority(rarest_pieces[pick], 1);
+		m_picker->set_piece_priority(rarest_pieces[pick], default_piece_priority);
 		update_gauge();
 		update_peer_interest(was_finished);
 		update_want_peers();
@@ -9649,7 +9648,7 @@ namespace libtorrent
 		// we use this sorted list to determine which peer we should
 		// request a block from. The earlier a peer is in the list,
 		// the sooner we will fully download the block we request.
-		std::vector<peer_connection*> peers;
+		aux::vector<peer_connection*> peers;
 		peers.reserve(m_connections.size());
 
 		// some peers are marked as not being able to request time critical
@@ -9669,8 +9668,8 @@ namespace libtorrent
 
 		// remove the bottom 10% of peers from the candidate set.
 		// this is just to remove outliers that might stall downloads
-		int const new_size = int((peers.size() * 9 + 9) / 10);
-		TORRENT_ASSERT(new_size <= int(peers.size()));
+		int const new_size = (peers.end_index() * 9 + 9) / 10;
+		TORRENT_ASSERT(new_size <= peers.end_index());
 		peers.resize(new_size);
 
 		// remember all the peers we issued requests to, so we can commit them
@@ -10291,12 +10290,12 @@ namespace libtorrent
 
 				if (offset + block > fs.file_offset(file) + fs.file_size(file))
 				{
-					int left_over = int(block_size() - block);
+					std::int64_t left_over = block_size() - block;
 					// split the block on multiple files
 					while (block > 0)
 					{
 						TORRENT_ASSERT(offset <= fs.file_offset(file) + fs.file_size(file));
-						std::int64_t slice = (std::min)(fs.file_offset(file) + fs.file_size(file) - offset
+						std::int64_t const slice = std::min(fs.file_offset(file) + fs.file_size(file) - offset
 							, block);
 						fp[file] += slice;
 						offset += slice;
@@ -10629,7 +10628,7 @@ namespace libtorrent
 		st->current_tracker.clear();
 		if (m_last_working_tracker >= 0)
 		{
-			TORRENT_ASSERT(m_last_working_tracker < int(m_trackers.size()));
+			TORRENT_ASSERT(m_last_working_tracker < m_trackers.end_index());
 			const int i = m_last_working_tracker;
 			st->current_tracker = m_trackers[i].url;
 		}
@@ -10741,23 +10740,24 @@ namespace libtorrent
 		st->last_seen_complete = m_swarm_last_seen_complete;
 	}
 
-	void torrent::add_redundant_bytes(int b, waste_reason reason)
+	void torrent::add_redundant_bytes(int const b, waste_reason const reason)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(b > 0);
+		TORRENT_ASSERT(m_total_redundant_bytes <= std::numeric_limits<std::int32_t>::max() - b);
 		m_total_redundant_bytes += b;
 
-		TORRENT_ASSERT(b > 0);
 		TORRENT_ASSERT(static_cast<int>(reason) >= 0);
 		TORRENT_ASSERT(static_cast<int>(reason) < static_cast<int>(waste_reason::max));
 		m_stats_counters.inc_stats_counter(counters::recv_redundant_bytes, b);
 		m_stats_counters.inc_stats_counter(counters::waste_piece_timed_out + static_cast<int>(reason), b);
 	}
 
-	void torrent::add_failed_bytes(int b)
+	void torrent::add_failed_bytes(int const b)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(b > 0);
+		TORRENT_ASSERT(m_total_failed_bytes <= std::numeric_limits<std::int32_t>::max() - b);
 		m_total_failed_bytes += b;
 		m_stats_counters.inc_stats_counter(counters::recv_failed_bytes, b);
 	}
@@ -10810,7 +10810,7 @@ namespace libtorrent
 					, retry_interval);
 				ae->last_error = ec;
 				ae->message = msg;
-				int tracker_index = int(ae - &m_trackers[0]);
+				int const tracker_index = int(ae - m_trackers.data());
 #ifndef TORRENT_DISABLE_LOGGING
 				debug_log("*** increment tracker fail count [%d]", ae->fails);
 #endif

@@ -112,4 +112,3 @@ namespace libtorrent
 }}
 
 #endif
-

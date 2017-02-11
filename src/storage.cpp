@@ -280,9 +280,9 @@ namespace libtorrent
 		, storage_error& ec)
 	{
 		// extend our file priorities in case it's truncated
-		// the default assumed priority is 1
+		// the default assumed priority is 4 (the default)
 		if (prio.size() > m_file_priority.size())
-			m_file_priority.resize(prio.size(), 1);
+			m_file_priority.resize(prio.size(), default_piece_priority);
 
 		file_storage const& fs = files();
 		for (file_index_t i(0); i < prio.end_index(); ++i)

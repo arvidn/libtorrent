@@ -212,7 +212,7 @@ namespace libtorrent
 		// implementation on Darwin uses significantly less memory to
 		// represent a vector than a set, and this set is typically
 		// relatively small, and it's cheap to copy pointers.
-		std::vector<peer_connection*> m_connections;
+		aux::vector<peer_connection*> m_connections;
 
 		// the scrape data from the tracker response, this
 		// is optional and may be 0xffffff
@@ -1351,15 +1351,15 @@ namespace libtorrent
 		file_index_t m_error_file;
 
 		// the average time it takes to download one time critical piece
-		std::uint32_t m_average_piece_time = 0;
+		std::int32_t m_average_piece_time = 0;
 
 		// the average piece download time deviation
-		std::uint32_t m_piece_time_deviation = 0;
+		std::int32_t m_piece_time_deviation = 0;
 
 		// the number of bytes that has been
 		// downloaded that failed the hash-test
-		std::uint32_t m_total_failed_bytes = 0;
-		std::uint32_t m_total_redundant_bytes = 0;
+		std::int32_t m_total_failed_bytes = 0;
+		std::int32_t m_total_redundant_bytes = 0;
 
 		// the sequence number for this torrent, this is a
 		// monotonically increasing number for each added torrent
@@ -1481,11 +1481,11 @@ namespace libtorrent
 // ----
 
 		// the maximum number of uploads for this torrent
-		unsigned int m_max_uploads:24;
+		std::uint32_t m_max_uploads:24;
 
 		// these are the flags sent in on a call to save_resume_data
 		// we need to save them to check them in write_resume_data
-		std::uint8_t m_save_resume_flags = 0;
+		std::uint32_t m_save_resume_flags:8;
 
 // ----
 
@@ -1603,7 +1603,7 @@ namespace libtorrent
 
 		// the scrape data from the tracker response, this
 		// is optional and may be 0xffffff
-		unsigned int m_downloaded:24;
+		std::uint32_t m_downloaded:24;
 
 #ifndef TORRENT_NO_DEPRECATE
 		// the timestamp of the last scrape request to one of the trackers in
