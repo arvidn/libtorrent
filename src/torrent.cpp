@@ -8342,7 +8342,7 @@ namespace libtorrent
 
 		m_need_save_resume_data = false;
 		m_last_saved_resume = aux::time_now32();
-		m_save_resume_flags = std::uint8_t(flags);
+		m_save_resume_flags = aux::numeric_cast<std::uint8_t>(flags);
 		state_updated();
 
 		if ((flags & torrent_handle::flush_disk_cache) && m_storage)
@@ -9215,7 +9215,7 @@ namespace libtorrent
 			if (ps.peer_count == 0) continue;
 			if (ps.priority == 0 && (ps.have || ps.downloading))
 			{
-				m_picker->set_piece_priority(i, 1);
+				m_picker->set_piece_priority(i, default_piece_priority);
 				continue;
 			}
 			// don't count pieces we already have or are trying to download
@@ -10745,9 +10745,9 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(b > 0);
-		m_total_redundant_bytes += std::uint32_t(b);
+		TORRENT_ASSERT(m_total_redundant_bytes <= std::numeric_limits<std::int32_t>::max() - b);
+		m_total_redundant_bytes += b;
 
-		TORRENT_ASSERT(b > 0);
 		TORRENT_ASSERT(static_cast<int>(reason) >= 0);
 		TORRENT_ASSERT(static_cast<int>(reason) < static_cast<int>(waste_reason::max));
 		m_stats_counters.inc_stats_counter(counters::recv_redundant_bytes, b);
@@ -10758,7 +10758,8 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(b > 0);
-		m_total_failed_bytes += std::uint32_t(b);
+		TORRENT_ASSERT(m_total_failed_bytes <= std::numeric_limits<std::int32_t>::max() - b);
+		m_total_failed_bytes += b;
 		m_stats_counters.inc_stats_counter(counters::recv_failed_bytes, b);
 	}
 
