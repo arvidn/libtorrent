@@ -436,9 +436,9 @@ namespace libtorrent
 	void default_storage::set_file_priority(std::vector<boost::uint8_t> const& prio, storage_error& ec)
 	{
 		// extend our file priorities in case it's truncated
-		// the default assumed priority is 1
+		// the default assumed priority is 4 (the default)
 		if (prio.size() > m_file_priority.size())
-			m_file_priority.resize(prio.size(), 1);
+			m_file_priority.resize(prio.size(), 4);
 
 		file_storage const& fs = files();
 		for (int i = 0; i < int(prio.size()); ++i)
