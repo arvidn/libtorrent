@@ -5589,7 +5589,7 @@ namespace libtorrent
 		std::copy(files.begin(), files.begin() + limit, m_file_priority.begin());
 
 		if (valid_metadata() && m_torrent_file->num_files() > int(m_file_priority.size()))
-			m_file_priority.resize(m_torrent_file->num_files(), 1);
+			m_file_priority.resize(m_torrent_file->num_files(), 4);
 
 		// initialize pad files to priority 0
 		file_storage const& fs = m_torrent_file->files();
@@ -10604,7 +10604,7 @@ namespace libtorrent
 			if (ps.peer_count == 0) continue;
 			if (ps.priority == 0 && (ps.have || ps.downloading))
 			{
-				m_picker->set_piece_priority(i, 1);
+				m_picker->set_piece_priority(i, 4);
 				continue;
 			}
 			// don't count pieces we already have or are trying to download
@@ -10637,7 +10637,7 @@ namespace libtorrent
 		// now, pick one of the rarest pieces to download
 		int pick = random() % rarest_pieces.size();
 		bool was_finished = is_finished();
-		m_picker->set_piece_priority(rarest_pieces[pick], 1);
+		m_picker->set_piece_priority(rarest_pieces[pick], 4);
 		update_gauge();
 		update_peer_interest(was_finished);
 		update_want_peers();
