@@ -35,11 +35,15 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/unique_ptr.hpp"
+#include "libtorrent/packet_pool.hpp" // for packet_ptr/packet_deleter
 #include <cstdint>
 #include <cstddef>
+#include <memory> // for unique_ptr
 
 namespace libtorrent
 {
+	struct packet;
+
 	// this is a circular buffer that automatically resizes
 	// itself as elements are inserted. Elements are indexed
 	// by integers and are assumed to be sequential. Unless the
@@ -67,12 +71,12 @@ namespace libtorrent
 	// whenever the element at the cursor is removed, the
 	// cursor is bumped to the next occupied element
 
-	class TORRENT_EXTRA_EXPORT packet_buffer_impl
+	class TORRENT_EXTRA_EXPORT packet_buffer
 	{
 	public:
-		typedef std::uint32_t index_type;
+		using index_type = std::uint32_t;
 
-		void* insert(index_type idx, void* value);
+		packet_ptr insert(index_type idx, packet_ptr value);
 
 		int size() const
 		{ return m_size; }
@@ -80,9 +84,9 @@ namespace libtorrent
 		int capacity() const
 		{ return m_capacity; }
 
-		void* at(index_type idx) const;
+		packet* at(index_type idx) const;
 
-		void* remove(index_type idx);
+		packet_ptr remove(index_type idx);
 
 		void reserve(int size);
 
@@ -95,7 +99,7 @@ namespace libtorrent
 #endif
 
 	private:
-		aux::unique_ptr<void*[], index_type> m_storage;
+		aux::unique_ptr<packet_ptr[], index_type> m_storage;
 		int m_capacity = 0;
 
 		// this is the total number of elements that are occupied
@@ -106,30 +110,6 @@ namespace libtorrent
 		// last is one passed the last used slot
 		index_type m_first{0};
 		index_type m_last{0};
-	};
-
-	template <typename T>
-	class packet_buffer : packet_buffer_impl
-	{
-	public:
-
-		using packet_buffer_impl::index_type;
-		using packet_buffer_impl::size;
-		using packet_buffer_impl::capacity;
-		using packet_buffer_impl::reserve;
-		using packet_buffer_impl::cursor;
-		using packet_buffer_impl::span;
-
-		T* insert(index_type i, T* p)
-		{
-			return static_cast<T*>(packet_buffer_impl::insert(i, p));
-		}
-
-		T* at(index_type idx) const
-		{ return static_cast<T*>(packet_buffer_impl::at(idx)); }
-
-		T* remove(index_type idx)
-		{ return static_cast<T*>(packet_buffer_impl::remove(idx)); }
 	};
 
 }

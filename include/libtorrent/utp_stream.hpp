@@ -73,20 +73,6 @@ namespace libtorrent
 
 	struct utp_socket_manager;
 
-	// internal: some MTU and protocol header sizes constants
-	enum
-	{
-		TORRENT_IPV4_HEADER = 20,
-		TORRENT_IPV6_HEADER = 40,
-		TORRENT_UDP_HEADER = 8,
-		TORRENT_SOCKS5_HEADER = 6, // plus the size of the destination address
-
-		TORRENT_ETHERNET_MTU = 1500,
-		TORRENT_TEREDO_MTU = 1280,
-		TORRENT_INET_MIN_MTU = 576,
-		TORRENT_INET_MAX_MTU = 0xffff
-	};
-
 	// internal: the point of the bif_endian_int is two-fold
 	// one purpose is to not have any alignment requirements
 	// so that any buffer received from the network can be cast
