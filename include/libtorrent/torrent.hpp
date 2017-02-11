@@ -1485,7 +1485,7 @@ namespace libtorrent
 
 		// these are the flags sent in on a call to save_resume_data
 		// we need to save them to check them in write_resume_data
-		std::uint8_t m_save_resume_flags = 0;
+		std::uint32_t m_save_resume_flags:8;
 
 // ----
 
