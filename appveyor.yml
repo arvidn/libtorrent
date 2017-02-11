@@ -89,7 +89,7 @@ install:
     & copy c:\openssl-1.0.1p-vs2015\lib\libeay32MT.lib c:\openssl-1.0.1p-vs2015\lib\libeay32.lib
   )
 - cd %ROOT_DIRECTORY%
-- set BOOST_ROOT=c:\Libraries\boost
+- set BOOST_ROOT=c:\Libraries\boost_1_63_0
 - set BOOST_BUILD_PATH=%BOOST_ROOT%\tools\build
 - echo %BOOST_ROOT%
 - echo %BOOST_BUILD_PATH%
