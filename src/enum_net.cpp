@@ -627,8 +627,8 @@ namespace libtorrent
 				strncpy(r.name, adapter->AdapterName, sizeof(r.name));
 				r.name[sizeof(r.name)-1] = 0;
 				r.mtu = adapter->Mtu;
-				IP_ADAPTER_UNICAST_ADDRESS* unicast = adapter->FirstUnicastAddress;
-				while (unicast)
+				for (IP_ADAPTER_UNICAST_ADDRESS* unicast = adapter->FirstUnicastAddress;
+					unicast; unicast = unicast->Next)
 				{
 					if (unicast->Address.lpSockaddr->sa_family != AF_INET
 #if TORRENT_USE_IPV6
@@ -640,8 +640,6 @@ namespace libtorrent
 					r.interface_address = sockaddr_to_address(unicast->Address.lpSockaddr);
 
 					ret.push_back(r);
-
-					unicast = unicast->Next;
 				}
 			}
 
