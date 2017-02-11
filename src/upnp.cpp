@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/time.hpp" // for aux::time_now()
 #include "libtorrent/aux_/escape_string.hpp" // for convert_from_native
 #include "libtorrent/debug.hpp"
+#include "libtorrent/aux_/numeric_cast.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/asio/ip/host_name.hpp>
@@ -216,7 +217,7 @@ int upnp::add_mapping(portmap_protocol const p, int const external_port
 		rootdevice& d = const_cast<rootdevice&>(dev);
 		TORRENT_ASSERT(d.magic == 1337);
 
-		if (int(d.mapping.size()) <= mapping_index)
+		if (d.mapping.end_index() <= mapping_index)
 			d.mapping.resize(mapping_index + 1);
 		mapping_t& m = d.mapping[mapping_index];
 
@@ -231,7 +232,7 @@ int upnp::add_mapping(portmap_protocol const p, int const external_port
 	return mapping_index;
 }
 
-void upnp::delete_mapping(int mapping)
+void upnp::delete_mapping(int const mapping)
 {
 	TORRENT_ASSERT(is_single_thread());
 
@@ -252,7 +253,7 @@ void upnp::delete_mapping(int mapping)
 		rootdevice& d = const_cast<rootdevice&>(dev);
 		TORRENT_ASSERT(d.magic == 1337);
 
-		TORRENT_ASSERT(mapping < int(d.mapping.size()));
+		TORRENT_ASSERT(mapping < d.mapping.end_index());
 		d.mapping[mapping].act = mapping_t::action::del;
 
 		if (!d.service_namespace.empty()) update_map(d, mapping);
@@ -393,7 +394,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 
 			for (auto const& iface : m_interfaces)
 			{
-				num_chars += std::snprintf(msg + num_chars, sizeof(msg) - num_chars, "(%s,%s) "
+				num_chars += std::snprintf(msg + num_chars, sizeof(msg) - std::size_t(num_chars), "(%s,%s) "
 					, print_address(iface.interface_address).c_str(), print_address(iface.netmask).c_str());
 				if (num_chars >= int(sizeof(msg))) break;
 			}
@@ -434,7 +435,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 						, print_endpoint(from).c_str());
 					for (auto const& route : routes)
 					{
-						num_chars += std::snprintf(msg + num_chars, sizeof(msg) - num_chars, "(%s,%s) "
+						num_chars += std::snprintf(msg + num_chars, sizeof(msg) - std::size_t(num_chars), "(%s,%s) "
 							, print_address(route.gateway).c_str()
 							, print_address(route.netmask).c_str());
 						if (num_chars >= int(sizeof(msg))) break;
@@ -707,7 +708,7 @@ void upnp::post(upnp::rootdevice const& d, char const* soap
 #endif
 }
 
-void upnp::create_port_mapping(http_connection& c, rootdevice& d, int i)
+void upnp::create_port_mapping(http_connection& c, rootdevice& d, int const i)
 {
 	TORRENT_ASSERT(is_single_thread());
 
@@ -751,7 +752,7 @@ void upnp::create_port_mapping(http_connection& c, rootdevice& d, int i)
 	post(d, soap, soap_action);
 }
 
-void upnp::next(rootdevice& d, int i)
+void upnp::next(rootdevice& d, int const i)
 {
 	TORRENT_ASSERT(is_single_thread());
 	if (i < num_mappings() - 1)
@@ -772,7 +773,7 @@ void upnp::update_map(rootdevice& d, int const i)
 {
 	TORRENT_ASSERT(is_single_thread());
 	TORRENT_ASSERT(d.magic == 1337);
-	TORRENT_ASSERT(i < int(d.mapping.size()));
+	TORRENT_ASSERT(i < d.mapping.end_index());
 	TORRENT_ASSERT(d.mapping.size() == m_mappings.size());
 
 	if (d.upnp_connection) return;
@@ -833,7 +834,7 @@ void upnp::update_map(rootdevice& d, int const i)
 	m.act = mapping_t::action::none;
 }
 
-void upnp::delete_port_mapping(rootdevice& d, int i)
+void upnp::delete_port_mapping(rootdevice& d, int const i)
 {
 	TORRENT_ASSERT(is_single_thread());
 
@@ -873,7 +874,7 @@ namespace
 	void copy_tolower(std::string& dst, char const* src, int len)
 	{
 		dst.clear();
-		dst.reserve(len);
+		dst.reserve(aux::numeric_cast<std::size_t>(len));
 		while (len-- > 0)
 		{
 			dst.push_back(to_lower(*src++));
@@ -881,8 +882,8 @@ namespace
 	}
 }
 
-void find_control_url(int type, char const* string
-	, int str_len, parse_state& state)
+void find_control_url(int const type, char const* string
+	, int const str_len, parse_state& state)
 {
 	if (type == xml_start_tag)
 	{
@@ -907,28 +908,28 @@ void find_control_url(int type, char const* string
 //		std::cout << " " << string << std::endl;}
 		if (!state.in_service && state.top_tags("service", "servicetype"))
 		{
-			std::string name(string, str_len);
+			std::string name(string, aux::numeric_cast<std::size_t>(str_len));
 			if (string_equal_no_case(name.c_str(), "urn:schemas-upnp-org:service:WANIPConnection:1")
 				|| string_equal_no_case(name.c_str(), "urn:schemas-upnp-org:service:WANIPConnection:2")
 				|| string_equal_no_case(name.c_str(), "urn:schemas-upnp-org:service:WANPPPConnection:1"))
 			{
-				state.service_type.assign(string, str_len);
+				state.service_type.assign(string, aux::numeric_cast<std::size_t>(str_len));
 				state.in_service = true;
 			}
 		}
 		else if (state.control_url.empty() && state.in_service
-			&& state.top_tags("service", "controlurl") && strlen(string) > 0)
+			&& state.top_tags("service", "controlurl") && std::strlen(string) > 0)
 		{
 			// default to the first (or only) control url in the router's listing
-			state.control_url.assign(string, str_len);
+			state.control_url.assign(string, aux::numeric_cast<std::size_t>(str_len));
 		}
 		else if (state.model.empty() && state.top_tags("device", "modelname"))
 		{
-			state.model.assign(string, str_len);
+			state.model.assign(string, aux::numeric_cast<std::size_t>(str_len));
 		}
 		else if (state.tag_stack.back() == "urlbase")
 		{
-			state.url_base.assign(string, str_len);
+			state.url_base.assign(string, aux::numeric_cast<std::size_t>(str_len));
 		}
 	}
 }
@@ -1115,33 +1116,33 @@ void upnp::disable(error_code const& ec)
 	m_socket.close();
 }
 
-void find_error_code(int type, char const* string, int str_len, error_code_parse_state& state)
+void find_error_code(int const type, char const* string, int const str_len, error_code_parse_state& state)
 {
 	if (state.exit) return;
-	if (type == xml_start_tag && !std::strncmp("errorCode", string, size_t(str_len)))
+	if (type == xml_start_tag && !std::strncmp("errorCode", string, aux::numeric_cast<std::size_t>(str_len)))
 	{
 		state.in_error_code = true;
 	}
 	else if (type == xml_string && state.in_error_code)
 	{
-		std::string error_code_str(string, str_len);
+		std::string error_code_str(string, aux::numeric_cast<std::size_t>(str_len));
 		state.error_code = std::atoi(error_code_str.c_str());
 		state.exit = true;
 	}
 }
 
-void find_ip_address(int type, char const* string, int str_len, ip_address_parse_state& state)
+void find_ip_address(int const type, char const* string, int const str_len, ip_address_parse_state& state)
 {
 	find_error_code(type, string, str_len, state);
 	if (state.exit) return;
 
-	if (type == xml_start_tag && !std::strncmp("NewExternalIPAddress", string, size_t(str_len)))
+	if (type == xml_start_tag && !std::strncmp("NewExternalIPAddress", string, aux::numeric_cast<std::size_t>(str_len)))
 	{
 		state.in_ip_address = true;
 	}
 	else if (type == xml_string && state.in_ip_address)
 	{
-		state.ip_address.assign(string, str_len);
+		state.ip_address.assign(string, aux::numeric_cast<std::size_t>(str_len));
 		state.exit = true;
 	}
 }
@@ -1307,7 +1308,7 @@ void upnp::on_upnp_get_ip_address_response(error_code const& e
 }
 
 void upnp::on_upnp_map_response(error_code const& e
-	, libtorrent::http_parser const& p, rootdevice& d, int mapping
+	, libtorrent::http_parser const& p, rootdevice& d, int const mapping
 	, http_connection& c)
 {
 	TORRENT_ASSERT(is_single_thread());
@@ -1412,7 +1413,7 @@ void upnp::on_upnp_map_response(error_code const& e
 		// some routers return 501 action failed, instead of 716
 		// The external port conflicts with another mapping
 		// pick a random port
-		m.external_port = 40000 + random(10000);
+		m.external_port = 40000 + int(random(10000));
 		m.act = mapping_t::action::add;
 		++m.failcount;
 		update_map(d, mapping);
@@ -1459,7 +1460,7 @@ void upnp::on_upnp_map_response(error_code const& e
 	next(d, mapping);
 }
 
-void upnp::return_error(int mapping, int code)
+void upnp::return_error(int const mapping, int const code)
 {
 	TORRENT_ASSERT(is_single_thread());
 	int num_errors = sizeof(error_codes) / sizeof(error_codes[0]);
@@ -1482,7 +1483,7 @@ void upnp::return_error(int mapping, int code)
 }
 
 void upnp::on_upnp_unmap_response(error_code const& e
-	, libtorrent::http_parser const& p, rootdevice& d, int mapping
+	, libtorrent::http_parser const& p, rootdevice& d, int const mapping
 	, http_connection& c)
 {
 	TORRENT_ASSERT(is_single_thread());

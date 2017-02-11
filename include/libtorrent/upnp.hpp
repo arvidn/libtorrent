@@ -301,7 +301,7 @@ private:
 		// either the WANIP namespace or the WANPPP namespace
 		std::string service_namespace;
 
-		std::vector<mapping_t> mapping;
+		aux::vector<mapping_t> mapping;
 
 		// this is the hostname, port and path
 		// component of the url or the control_url
