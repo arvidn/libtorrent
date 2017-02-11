@@ -860,11 +860,10 @@ namespace libtorrent
 	void torrent::send_share_mode()
 	{
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		for (peer_iterator i = m_connections.begin()
-			, end(m_connections.end()); i != end; ++i)
+		for (auto const pc : m_connections)
 		{
-			if ((*i)->type() != connection_type::bittorrent) continue;
-			bt_peer_connection* p = static_cast<bt_peer_connection*>(*i);
+			if (pc->type() != connection_type::bittorrent) continue;
+			bt_peer_connection* p = static_cast<bt_peer_connection*>(pc);
 			p->write_share_mode();
 		}
 #endif
@@ -10811,7 +10810,7 @@ namespace libtorrent
 					, retry_interval);
 				ae->last_error = ec;
 				ae->message = msg;
-				int const tracker_index = int(ae - &m_trackers[0]);
+				int const tracker_index = int(ae - m_trackers.data());
 #ifndef TORRENT_DISABLE_LOGGING
 				debug_log("*** increment tracker fail count [%d]", ae->fails);
 #endif
