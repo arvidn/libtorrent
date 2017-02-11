@@ -76,6 +76,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // for convert_to_wstring and convert_to_native
 #include "libtorrent/aux_/escape_string.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/aux_/throw.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -347,13 +348,6 @@ namespace libtorrent
 		// convert to seconds
 		return time_t(ft / 10000000 - posix_time_offset);
 	}
-
-	using win_path_string =
-#if TORRENT_USE_WSTRING
-		std::wstring;
-#else
-		std::string;
-#endif
 
 	win_path_string convert_to_win_path_string(std::string const& path)
 	{
@@ -974,20 +968,28 @@ namespace libtorrent
 	{
 #if defined TORRENT_WINDOWS && !defined TORRENT_MINGW
 #if TORRENT_USE_WSTRING
-		wchar_t* cwd { ::_wgetcwd(nullptr, 0) };
-		std::shared_ptr<wchar_t> holder(cwd, &std::free);
-		std::string ret { cwd == nullptr ? "" : convert_from_wstring(cwd) };
+#define GetCurrentDir_ ::_wgetcwd
+#define PathCharType_ wchar_t
+#define ConvertFrom_ convert_from_wstring
 #else
-		char* cwd { ::_getcwd(nullptr, 0) };
-		std::shared_ptr<char> holder(cwd, &std::free);
-		std::string ret { cwd == nullptr ? "" : convert_from_native(cwd) };
+#define GetCurrentDir_ ::_getcwd
+#define PathCharType_ char
+#define ConvertFrom_ convert_from_native
 #endif // TORRENT_USE_WSTRING
 #else
-		char* cwd { ::getcwd(nullptr, 0) };
-		std::shared_ptr<char> holder(cwd, &std::free);
-		std::string ret { cwd == nullptr ? "/" : convert_from_native(cwd) };
+#define GetCurrentDir_ ::getcwd
+#define PathCharType_ char
+#define ConvertFrom_ convert_from_native
 #endif
+		PathCharType_* cwd { GetCurrentDir_(nullptr, 0) };
+		if (cwd == nullptr)
+			aux::throw_ex<system_error>(error_code(errno, generic_category()));
+		std::shared_ptr<PathCharType_> holder(cwd, &std::free);
+		std::string ret { ConvertFrom_(cwd) };
 		return ret;
+#undef GetCurrentDir_
+#undef PathCharType_
+#undef ConvertFrom_
 	}
 
 #if TORRENT_USE_UNC_PATHS
@@ -1180,10 +1182,8 @@ namespace libtorrent
 		// the path passed to FindFirstFile() must be
 		// a pattern
 		std::string pattern_path{ path };
-		if (!pattern_path.empty() && pattern_path.back() != '\\')
-			pattern_path.append("\\*");
-		else
-			pattern_path.append("*");
+		pattern_path.append(
+			(!pattern_path.empty() && pattern_path.back() != '\\') ? "\\*" : "*");
 
 		win_path_string f = convert_to_win_path_string(pattern_path);
 #if TORRENT_USE_WSTRING
