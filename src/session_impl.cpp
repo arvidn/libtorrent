@@ -3151,6 +3151,11 @@ namespace aux {
 			update_dht_announce_interval();
 #endif
 
+		m_utp_socket_manager.decay();
+#ifdef TORRENT_USE_OPENSSL
+		m_ssl_utp_socket_manager.decay();
+#endif
+
 		int tick_interval_ms = int(total_milliseconds(now - m_last_second_tick));
 		m_last_second_tick = now;
 		m_tick_residual += tick_interval_ms - 1000;

@@ -122,6 +122,7 @@ namespace libtorrent
 
 		packet *acquire_packet(int allocate) { return m_packet_pool.acquire(allocate); }
 		void release_packet(packet *p) { m_packet_pool.release(p); }
+		void decay() { m_packet_pool.decay(); }
 
 	private:
 		// explicitly disallow assignment, to silence msvc warning

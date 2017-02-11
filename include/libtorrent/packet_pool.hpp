@@ -35,7 +35,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
+#include "libtorrent/aux_/throw.hpp"
 #include "libtorrent/aux_/vector.hpp"
+#include "libtorrent/aux_/numeric_cast.hpp"
+#include "libtorrent/assert.hpp"
 
 namespace libtorrent
 {
@@ -84,26 +87,33 @@ namespace libtorrent
 		// deleter for std::unique_ptr
 		void operator()(packet* p) const
 		{
+			TORRENT_ASSERT(p != nullptr);
 			p->~packet();
 			std::free(p);
 		}
 	};
 
-	inline packet* create_packet(int size)
+	inline packet* create_packet(int const size)
 	{
 		packet* p = static_cast<packet*>(std::malloc(sizeof(packet) + size));
+		if (p == nullptr) aux::throw_ex<std::bad_alloc>();
 		new (p) packet();
+		p->allocated = aux::numeric_cast<std::uint16_t>(size);
 		return p;
 	}
 
 	using packet_ptr = std::unique_ptr<packet, packet_deleter>;
 
-	template<int ALLOCATE_SIZE>
 	struct TORRENT_EXTRA_EXPORT packet_slab
 	{
-		static const int allocate_size{ ALLOCATE_SIZE };
+		int const allocate_size;
 
-		explicit packet_slab(std::size_t limit) : m_limit(limit) { m_storage.reserve(m_limit); }
+		explicit packet_slab(std::size_t const limit, int const alloc_size)
+			: allocate_size(alloc_size)
+			, m_limit(limit)
+		{
+			m_storage.reserve(m_limit);
+		}
 
 		packet_slab(const packet_slab&) = delete;
 
@@ -115,17 +125,18 @@ namespace libtorrent
 
 		packet_ptr alloc()
 		{
-			if (m_storage.empty())
-				return packet_ptr(create_packet(allocate_size));
-			else
-			{
-				auto ret = std::move(m_storage.back());
-				m_storage.pop_back();
-				return ret;
-			}
+			if (m_storage.empty()) return packet_ptr(create_packet(allocate_size));
+			auto ret = std::move(m_storage.back());
+			m_storage.pop_back();
+			return ret;
 		}
 
-		void flush() { m_storage.clear(); }
+		void decay()
+		{
+			if (m_storage.empty()) return;
+			m_storage.erase(m_storage.end()-1);
+		}
+
 	private:
 		const std::size_t m_limit;
 		aux::vector<packet_ptr, std::size_t> m_storage;
@@ -142,7 +153,6 @@ namespace libtorrent
 			TORRENT_ASSERT(allocate <= std::numeric_limits<std::uint16_t>::max());
 
 			packet_ptr p{ alloc(allocate) };
-			p->allocated = static_cast<std::uint16_t>(allocate);
 			return p.release();
 		}
 
@@ -153,34 +163,36 @@ namespace libtorrent
 			if (p == nullptr) return;
 
 			packet_ptr pp(p); // takes ownership and may auto free if slab container does not move it
-			std::size_t allocated = pp->allocated;
+			int const allocated = pp->allocated;
 
-			if (allocated <= m_syn_slab.allocate_size) { m_syn_slab.try_push_back(pp); }
-			else if (allocated <= m_mtu_floor_slab.allocate_size) { m_mtu_floor_slab.try_push_back(pp); }
-			else if (allocated <= m_mtu_ceiling_slab.allocate_size) { m_mtu_ceiling_slab.try_push_back(pp); }
+			if (allocated == m_syn_slab.allocate_size) { m_syn_slab.try_push_back(pp); }
+			else if (allocated == m_mtu_floor_slab.allocate_size) { m_mtu_floor_slab.try_push_back(pp); }
+			else if (allocated == m_mtu_ceiling_slab.allocate_size) { m_mtu_ceiling_slab.try_push_back(pp); }
 		}
 
-		//TODO: call from utp manager to flush mem
-		void flush()
+		// periodically free up some of the cached packets
+		void decay()
 		{
 			TORRENT_ASSERT(is_single_thread());
 
-			m_syn_slab.flush();
-			m_mtu_floor_slab.flush();
-			m_mtu_ceiling_slab.flush();
+			m_syn_slab.decay();
+			m_mtu_floor_slab.decay();
+			m_mtu_ceiling_slab.decay();
 		}
 
 	private:
-		packet_ptr alloc(int allocate)
+		packet_ptr alloc(int const allocate)
 		{
 			if (allocate <= m_syn_slab.allocate_size) { return m_syn_slab.alloc(); }
 			else if (allocate <= m_mtu_floor_slab.allocate_size) { return m_mtu_floor_slab.alloc(); }
 			else if (allocate <= m_mtu_ceiling_slab.allocate_size) { return m_mtu_ceiling_slab.alloc(); }
 			return packet_ptr(create_packet(allocate));
 		}
-		packet_slab<sizeof(utp_header)> m_syn_slab{ 50 };
-		packet_slab<(TORRENT_INET_MIN_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER)> m_mtu_floor_slab{ 100 };
-		packet_slab<(TORRENT_ETHERNET_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER)> m_mtu_ceiling_slab{ 50 };
+		static int const mtu_floor_size = TORRENT_INET_MIN_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER;
+		static int const mtu_ceiling_size = TORRENT_ETHERNET_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER;
+		packet_slab m_syn_slab{ 10, sizeof(utp_header) };
+		packet_slab m_mtu_floor_slab{ 10, mtu_floor_size };
+		packet_slab m_mtu_ceiling_slab{ 10 , mtu_ceiling_size };
 	};
 }
 
