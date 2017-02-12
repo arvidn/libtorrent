@@ -330,10 +330,9 @@ void bind_torrent_info()
         .add_property("complete_sent", &get_complete_sent)
 #if !defined TORRENT_NO_DEPRECATE
         .add_property("send_stats", &get_send_stats)
-#endif
-
         .def("next_announce_in", &announce_entry::next_announce_in)
         .def("min_announce_in", &announce_entry::min_announce_in)
+#endif
         .def("reset", &announce_entry::reset)
         .def("can_announce", can_announce)
         .def("is_working", &announce_entry::is_working)
