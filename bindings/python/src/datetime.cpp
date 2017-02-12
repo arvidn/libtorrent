@@ -58,25 +58,42 @@ struct time_duration_to_python
     }
 };
 
+template <typename Tag> struct tag {};
+
+lt::time_point now(tag<lt::time_point>)
+{ return lt::clock_type::now(); }
+
+lt::time_point32 now(tag<lt::time_point32>)
+{ return lt::time_point_cast<lt::seconds32>(lt::clock_type::now()); }
+
+template <typename T>
 struct time_point_to_python
 {
-    static PyObject* convert(lt::time_point const pt)
+    static PyObject* convert(T const pt)
     {
         using std::chrono::system_clock;
         using std::chrono::duration_cast;
-        time_t const tm = system_clock::to_time_t(system_clock::now()
-            + duration_cast<system_clock::duration>(pt - lt::clock_type::now()));
+        object result;
+        if (pt > T())
+        {
+           time_t const tm = system_clock::to_time_t(system_clock::now()
+              + duration_cast<system_clock::duration>(pt - now(tag<T>())));
 
-        std::tm* date = std::localtime(&tm);
-        object result = datetime_datetime(
-            (int)1900 + date->tm_year
-          // tm use 0-11 and we need 1-12
-          , (int)date->tm_mon + 1
-          , (int)date->tm_mday
-          , date->tm_hour
-          , date->tm_min
-          , date->tm_sec
-        );
+           std::tm* date = std::localtime(&tm);
+           result = datetime_datetime(
+              (int)1900 + date->tm_year
+              // tm use 0-11 and we need 1-12
+              , (int)date->tm_mon + 1
+              , (int)date->tm_mday
+              , date->tm_hour
+              , date->tm_min
+              , date->tm_sec
+              );
+        }
+        else
+        {
+            result = object();
+        }
         return incref(result.ptr());
     }
 };
@@ -115,10 +132,16 @@ void bind_datetime()
       , ptime_to_python>();
 
     to_python_converter<lt::time_point
-      , time_point_to_python>();
+      , time_point_to_python<lt::time_point>>();
+
+    to_python_converter<lt::time_point32
+      , time_point_to_python<lt::time_point32>>();
 
     to_python_converter<lt::time_duration
       , chrono_duration_to_python<lt::time_duration>>();
+
+    to_python_converter<lt::seconds32
+      , chrono_duration_to_python<lt::seconds32>>();
 
     to_python_converter<std::chrono::seconds
       , chrono_duration_to_python<std::chrono::seconds>>();

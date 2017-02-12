@@ -197,14 +197,6 @@ void dict_to_announce_entry(dict d, announce_entry& ae)
       ae.tier = extract<int>(d["tier"]);
    if (d.has_key("fail_limit"))
       ae.fail_limit = extract<int>(d["fail_limit"]);
-   if (d.has_key("source"))
-      ae.source = extract<int>(d["source"]);
-   if (d.has_key("verified"))
-      ae.verified = extract<bool>(d["verified"]);
-#ifndef TORRENT_NO_DEPRECATE
-   if (d.has_key("send_stats"))
-      ae.send_stats = extract<bool>(d["send_stats"]);
-#endif
 }
 
 void replace_trackers(torrent_handle& h, object trackers)
@@ -253,6 +245,14 @@ list trackers(torrent_handle& h)
     {
         dict d;
         d["url"] = i->url;
+        d["trackerid"] = i->trackerid;
+        d["message"] = i->message;
+        d["last_error"] = i->last_error;
+        d["next_announce"] = i->next_announce;
+        d["min_announce"] = i->min_announce;
+        d["scrape_incomplete"] = i->scrape_incomplete;
+        d["scrape_complete"] = i->scrape_complete;
+        d["scrape_downloaded"] = i->scrape_downloaded;
         d["tier"] = i->tier;
         d["fail_limit"] = i->fail_limit;
         d["fails"] = i->fails;
