@@ -337,6 +337,29 @@ namespace libtorrent
 		return int(size);
 	}
 
+	template <typename T>
+	std::string convert_from_native_path(T* s);
+
+	template <>
+	std::string convert_from_native_path(char const* s) { return convert_from_native(s); }
+
+	template <>
+	std::string convert_from_native_path(char* s) { return convert_from_native(s); }
+
+#if TORRENT_USE_WSTRING
+	template <>
+	std::string convert_from_native_path(wchar_t const* s) { return convert_from_wstring(s); }
+
+	template <>
+	std::string convert_from_native_path(wchar_t* s) { return convert_from_wstring(s); }
+#endif
+
+	template <typename T>
+	std::unique_ptr<T, decltype(&std::free)> make_free_holder(T* ptr)
+	{
+		return std::unique_ptr<T, decltype(&std::free)>(ptr, &std::free);
+	}
+
 #ifdef TORRENT_WINDOWS
 	time_t file_time_to_posix(FILETIME f)
 	{
@@ -348,9 +371,11 @@ namespace libtorrent
 		// convert to seconds
 		return time_t(ft / 10000000 - posix_time_offset);
 	}
+#endif
 
-	win_path_string convert_to_win_path_string(std::string const& path)
+	native_path_string convert_to_native_path_string(std::string const& path)
 	{
+#ifdef TORRENT_WINDOWS
 #if TORRENT_USE_UNC_PATHS
 		std::string prepared_path;
 		// UNC paths must be absolute
@@ -373,19 +398,19 @@ namespace libtorrent
 #else
 		return convert_to_native(prepared_path);
 #endif
-	}
-
+#else // TORRENT_WINDOWS
+		return convert_to_native(path);
 #endif
+	}
 
 	void stat_file(std::string const& inf, file_status* s
 		, error_code& ec, int const flags)
 	{
 		ec.clear();
+		native_path_string const& f = convert_to_native_path_string(inf);
 #ifdef TORRENT_WINDOWS
 
 		TORRENT_UNUSED(flags);
-
-		win_path_string file_name = convert_to_win_path_string(inf);
 
 #if TORRENT_USE_WSTRING
 #define CreateFile_ CreateFileW
@@ -394,7 +419,7 @@ namespace libtorrent
 #endif
 
 		// in order to open a directory, we need the FILE_FLAG_BACKUP_SEMANTICS
-		HANDLE h = CreateFile_(file_name.c_str(), 0, FILE_SHARE_DELETE | FILE_SHARE_READ
+		HANDLE h = CreateFile_(f.c_str(), 0, FILE_SHARE_DELETE | FILE_SHARE_READ
 			| FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
 #undef CreateFile_
 		if (h == INVALID_HANDLE_VALUE)
@@ -426,8 +451,6 @@ namespace libtorrent
 #else
 
 		// posix version
-
-		std::string const& f = convert_to_native(inf);
 
 		struct stat ret;
 		int retval;
@@ -461,13 +484,8 @@ namespace libtorrent
 	{
 		ec.clear();
 
-#ifdef TORRENT_WINDOWS
-		win_path_string f1 = convert_to_win_path_string(inf);
-		win_path_string f2 = convert_to_win_path_string(newf);
-#else
-		std::string const& f1 = convert_to_native(inf);
-		std::string const& f2 = convert_to_native(newf);
-#endif
+		native_path_string const& f1 = convert_to_native_path_string(inf);
+		native_path_string const& f2 = convert_to_native_path_string(newf);
 
 #if TORRENT_USE_WSTRING && defined TORRENT_WINDOWS
 #define RenameFunction_ _wrename
@@ -502,10 +520,8 @@ namespace libtorrent
 	{
 		ec.clear();
 
+		native_path_string const &n = convert_to_native_path_string(f);
 #ifdef TORRENT_WINDOWS
-
-		win_path_string n = convert_to_win_path_string(f);
-
 #if TORRENT_USE_WSTRING
 #define CreateDirectory_ CreateDirectoryW
 #else
@@ -517,7 +533,6 @@ namespace libtorrent
 			ec.assign(GetLastError(), system_category());
 #undef CreateDirectory_
 #else
-		std::string n = convert_to_native(f);
 		int ret = ::mkdir(n.c_str(), 0777);
 		if (ret < 0 && errno != EEXIST)
 			ec.assign(errno, system_category());
@@ -527,10 +542,9 @@ namespace libtorrent
 	void hard_link(std::string const& file, std::string const& link
 		, error_code& ec)
 	{
+		native_path_string const &n_exist = convert_to_native_path_string(file);
+		native_path_string const &n_link = convert_to_native_path_string(link);
 #ifdef TORRENT_WINDOWS
-
-		win_path_string n_exist = convert_to_win_path_string(file);
-		win_path_string n_link = convert_to_win_path_string(link);
 
 #if TORRENT_USE_WSTRING
 #define CreateHardLink_ CreateHardLinkW
@@ -559,10 +573,6 @@ namespace libtorrent
 		// fall back to making a copy
 
 #else
-
-		std::string n_exist = convert_to_native(file);
-		std::string n_link = convert_to_native(link);
-
 		// assume posix's link() function exists
 		int ret = ::link(n_exist.c_str(), n_link.c_str());
 
@@ -625,11 +635,10 @@ namespace libtorrent
 	void copy_file(std::string const& inf, std::string const& newf, error_code& ec)
 	{
 		ec.clear();
+		native_path_string const &f1 = convert_to_native_path_string(inf);
+		native_path_string const &f2 = convert_to_native_path_string(newf);
+
 #ifdef TORRENT_WINDOWS
-
-		win_path_string f1 = convert_to_win_path_string(inf);
-		win_path_string f2 = convert_to_win_path_string(newf);
-
 #if TORRENT_USE_WSTRING
 #define CopyFile_ CopyFileW
 #else
@@ -641,18 +650,12 @@ namespace libtorrent
 #undef CopyFile_
 
 #elif defined __APPLE__ && defined __MACH__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
-		std::string f1 = convert_to_native(inf);
-		std::string f2 = convert_to_native(newf);
-
 		// this only works on 10.5
 		copyfile_state_t state = copyfile_state_alloc();
 		if (copyfile(f1.c_str(), f2.c_str(), state, COPYFILE_ALL) < 0)
 			ec.assign(errno, system_category());
 		copyfile_state_free(state);
 #else
-		std::string const f1 = convert_to_native(inf);
-		std::string const f2 = convert_to_native(newf);
-
 		int const infd = ::open(f1.c_str(), O_RDONLY);
 		if (infd < 0)
 		{
@@ -969,27 +972,18 @@ namespace libtorrent
 #if defined TORRENT_WINDOWS && !defined TORRENT_MINGW
 #if TORRENT_USE_WSTRING
 #define GetCurrentDir_ ::_wgetcwd
-#define PathCharType_ wchar_t
-#define ConvertFrom_ convert_from_wstring
 #else
 #define GetCurrentDir_ ::_getcwd
-#define PathCharType_ char
-#define ConvertFrom_ convert_from_native
 #endif // TORRENT_USE_WSTRING
 #else
 #define GetCurrentDir_ ::getcwd
-#define PathCharType_ char
-#define ConvertFrom_ convert_from_native
 #endif
-		PathCharType_* cwd { GetCurrentDir_(nullptr, 0) };
+		auto cwd { GetCurrentDir_(nullptr, 0) };
 		if (cwd == nullptr)
 			aux::throw_ex<system_error>(error_code(errno, generic_category()));
-		std::shared_ptr<PathCharType_> holder(cwd, &std::free);
-		std::string ret { ConvertFrom_(cwd) };
-		return ret;
+		auto holder = make_free_holder(cwd);
+		return convert_from_native_path(cwd);
 #undef GetCurrentDir_
-#undef PathCharType_
-#undef ConvertFrom_
 	}
 
 #if TORRENT_USE_UNC_PATHS
@@ -1086,15 +1080,15 @@ namespace libtorrent
 	void remove(std::string const& inf, error_code& ec)
 	{
 		ec.clear();
+		native_path_string f = convert_to_native_path_string(inf);
 
 #ifdef TORRENT_WINDOWS
-		win_path_string file_path = convert_to_win_path_string(inf);
 		// windows does not allow trailing / or \ in
 		// the path when removing files
-		while (!file_path.empty() && (
-			file_path.back() == '/' ||
-			file_path.back() == '\\'
-			)) file_path.pop_back();
+		while (!f.empty() && (
+			f.back() == '/' ||
+			f.back() == '\\'
+			)) f.pop_back();
 #if TORRENT_USE_WSTRING
 #define DeleteFile_ DeleteFileW
 #define RemoveDirectory_ RemoveDirectoryW
@@ -1102,11 +1096,11 @@ namespace libtorrent
 #define DeleteFile_ DeleteFileA
 #define RemoveDirectory_ RemoveDirectoryA
 #endif
-		if (DeleteFile_(file_path.c_str()) == 0)
+		if (DeleteFile_(f.c_str()) == 0)
 		{
 			if (GetLastError() == ERROR_ACCESS_DENIED)
 			{
-				if (RemoveDirectory_(file_path.c_str()) != 0)
+				if (RemoveDirectory_(f.c_str()) != 0)
 					return;
 			}
 			ec.assign(GetLastError(), system_category());
@@ -1115,7 +1109,6 @@ namespace libtorrent
 #undef DeleteFile_
 #undef RemoveDirectory_
 #else // TORRENT_WINDOWS
-		std::string const& f = convert_to_native(inf);
 		if (::remove(f.c_str()) < 0)
 		{
 			ec.assign(errno, system_category());
@@ -1177,15 +1170,24 @@ namespace libtorrent
 		: m_done(false)
 	{
 		ec.clear();
+		std::string p{ path };
+
 #ifdef TORRENT_WINDOWS
-		m_inode = 0;
 		// the path passed to FindFirstFile() must be
 		// a pattern
-		std::string pattern_path{ path };
-		pattern_path.append(
-			(!pattern_path.empty() && pattern_path.back() != '\\') ? "\\*" : "*");
+		p.append((!p.empty() && p.back() != '\\') ? "\\*" : "*");
+#else
+		// the path passed to opendir() may not
+		// end with a /
+		if (!p.empty() && p.back() == '/')
+			p.pop_back();
+#endif
 
-		win_path_string f = convert_to_win_path_string(pattern_path);
+		native_path_string f = convert_to_native_path_string(p);
+
+#ifdef TORRENT_WINDOWS
+		m_inode = 0;
+
 #if TORRENT_USE_WSTRING
 #define FindFirstFile_ FindFirstFileW
 #else
@@ -1204,14 +1206,7 @@ namespace libtorrent
 		std::memset(&m_dirent, 0, sizeof(dirent));
 		m_name[0] = 0;
 
-		// the path passed to opendir() may not
-		// end with a /
-		std::string p = path;
-		if (!path.empty() && path[path.size()-1] == '/')
-			p.resize(path.size()-1);
-
-		p = convert_to_native(p);
-		m_handle = ::opendir(p.c_str());
+		m_handle = ::opendir(f.c_str());
 		if (m_handle == nullptr)
 		{
 			ec.assign(errno, system_category());
@@ -1245,11 +1240,7 @@ namespace libtorrent
 	std::string directory::file() const
 	{
 #ifdef TORRENT_WINDOWS
-#if TORRENT_USE_WSTRING
-		return convert_from_wstring(m_fd.cFileName);
-#else
-		return convert_from_native(m_fd.cFileName);
-#endif
+		return convert_from_native_path(m_fd.cFileName);
 #else
 		return convert_from_native(m_dirent.d_name);
 #endif
@@ -1360,6 +1351,7 @@ namespace libtorrent
 	bool file::open(std::string const& path, int mode, error_code& ec)
 	{
 		close();
+		native_path_string const &file_path = convert_to_native_path_string(path);
 
 #ifdef TORRENT_WINDOWS
 
@@ -1386,8 +1378,6 @@ namespace libtorrent
 			FILE_ATTRIBUTE_NORMAL, // executable
 			FILE_ATTRIBUTE_HIDDEN, // hidden + executable
 		};
-
-		win_path_string file_path = convert_to_win_path_string(path);
 
 #if TORRENT_USE_WSTRING
 #define CreateFile_ CreateFileW
@@ -1460,7 +1450,7 @@ namespace libtorrent
 #endif
 			;
 
-		handle_type handle = ::open(convert_to_native(path).c_str()
+		handle_type handle = ::open(file_path.c_str()
 			, mode_array[mode & rw_mask] | open_mode
 			, permissions);
 
@@ -1472,7 +1462,7 @@ namespace libtorrent
 		{
 			mode &= ~no_atime;
 			open_mode &= ~O_NOATIME;
-			handle = ::open(convert_to_native(path).c_str(), mode_array[mode & rw_mask] | open_mode
+			handle = ::open(file_path.c_str(), mode_array[mode & rw_mask] | open_mode
 				, permissions);
 		}
 #endif

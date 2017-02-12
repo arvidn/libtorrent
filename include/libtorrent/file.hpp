@@ -176,16 +176,16 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT std::string canonicalize_path(string_view f);
 #endif
 
-#ifdef TORRENT_WINDOWS
-// export to be used at unit tests only
-	using win_path_string =
-#if TORRENT_USE_WSTRING
+// internal type alias export should be used at unit tests only
+	using native_path_string =
+#if TORRENT_USE_WSTRING && defined TORRENT_WINDOWS
 		std::wstring;
 #else
 		std::string;
 #endif
-	TORRENT_EXTRA_EXPORT  win_path_string convert_to_win_path_string(std::string const& path);
-#endif
+
+// internal export should be used at unit tests only
+	TORRENT_EXTRA_EXPORT native_path_string convert_to_native_path_string(std::string const& path);
 
 	// TODO: move this into a separate header file, TU pair
 	class TORRENT_EXTRA_EXPORT directory : public boost::noncopyable
