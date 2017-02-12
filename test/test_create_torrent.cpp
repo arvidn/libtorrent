@@ -49,7 +49,7 @@ TORRENT_TEST(create_verbatim_torrent)
 
 	lt::torrent_info info(test_torrent, sizeof(test_torrent) - 1);
 
-	lt::create_torrent t(info);
+	lt::create_torrent t(info, true);
 
 	std::vector<char> buffer;
 	lt::bencode(std::back_inserter(buffer), t.generate());
