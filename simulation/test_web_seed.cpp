@@ -409,7 +409,7 @@ TORRENT_TEST(multi_file_redirect_through_proxy)
 			pack.set_str(settings_pack::proxy_password, "testpass");
 			pack.set_int(settings_pack::proxy_port, 4445);
 			pack.set_bool(settings_pack::proxy_hostnames, true);
-			//TODO: ses.apply_settings(pack);
+			ses.apply_settings(pack);
 
 			ses.async_add_torrent(params);
 		},
