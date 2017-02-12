@@ -346,7 +346,7 @@ namespace libtorrent
 	template <>
 	std::string convert_from_native_path(char* s) { return convert_from_native(s); }
 
-#if TORRENT_USE_WSTRING
+#if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING
 	template <>
 	std::string convert_from_native_path(wchar_t const* s) { return convert_from_wstring(s); }
 
