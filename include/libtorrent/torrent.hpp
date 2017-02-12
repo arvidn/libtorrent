@@ -998,7 +998,7 @@ namespace libtorrent
 		// returns true if the tracker was added, and false if it was already
 		// in the tracker list (in which case the source was added to the
 		// entry in the list)
-		bool add_tracker(announce_entry const& url);
+		bool add_tracker(announce_entry url);
 
 		torrent_handle get_handle();
 

@@ -5951,19 +5951,23 @@ namespace libtorrent
 		}
 	}
 
-	bool torrent::add_tracker(announce_entry const& url)
+	bool torrent::add_tracker(announce_entry e)
 	{
+		// remove trailing slashes from url
+		while (!e.url.empty() && e.url.back() == '/')
+			e.url.pop_back();
+
 		std::vector<announce_entry>::iterator k = std::find_if(m_trackers.begin()
-			, m_trackers.end(), boost::bind(&announce_entry::url, _1) == url.url);
+			, m_trackers.end(), boost::bind(&announce_entry::url, _1) == e.url);
 		if (k != m_trackers.end())
 		{
-			k->source |= url.source;
+			k->source |= e.source;
 			return false;
 		}
-		k = std::upper_bound(m_trackers.begin(), m_trackers.end(), url
+		k = std::upper_bound(m_trackers.begin(), m_trackers.end(), e
 			, boost::bind(&announce_entry::tier, _1) < boost::bind(&announce_entry::tier, _2));
 		if (k - m_trackers.begin() < m_last_working_tracker) ++m_last_working_tracker;
-		k = m_trackers.insert(k, url);
+		k = m_trackers.insert(k, e);
 		if (k->source == 0) k->source = announce_entry::source_client;
 		if (m_allow_peers && !m_trackers.empty()) announce_with_tracker();
 		return true;
