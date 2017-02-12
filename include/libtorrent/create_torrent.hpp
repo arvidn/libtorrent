@@ -172,14 +172,12 @@ namespace libtorrent
 		// ``alignment`` is used when pad files are enabled. This is the size
 		// eligible files are aligned to. The default is -1, which means the
 		// piece size of the torrent.
+		// The ``use_preformatted`` parameter can be set to true to preserve
+		// invalid encoding of the .torrent file.
 		create_torrent(file_storage& fs, int piece_size = 0
 			, int pad_file_limit = -1, int flags = optimize, int alignment = -1);
 		create_torrent(torrent_info const& ti);
-
-		// internal
-		// This is here to provide backwards compatibility before we
-		// produced preformatted nodes in entry
-		create_torrent(torrent_info const& ti, int libtorrent_version = LIBTORRENT_VERSION_NUM);
+		create_torrent(torrent_info const& ti, bool use_preformatted);
 
 		// internal
 		~create_torrent();

@@ -330,10 +330,10 @@ namespace libtorrent
 		, m_include_symlinks(false)
 		, m_calculate_file_hashes(false)
 	{
-		load_from_torrent_info(ti, 0);
+		load_from_torrent_info(ti, false);
 	}
 
-	create_torrent::create_torrent(torrent_info const& ti, int libtorrent_version)
+	create_torrent::create_torrent(torrent_info const& ti, bool const use_preformatted)
 		: m_files(const_cast<file_storage&>(ti.files()))
 		, m_creation_date(time(0))
 		, m_multifile(ti.num_files() > 1)
@@ -343,7 +343,7 @@ namespace libtorrent
 		, m_include_symlinks(false)
 		, m_calculate_file_hashes(false)
 	{
-		load_from_torrent_info(ti, libtorrent_version >= LIBTORRENT_VERSION_NUM);
+		load_from_torrent_info(ti, use_preformatted);
 	}
 
 	void create_torrent::load_from_torrent_info(torrent_info const& ti, bool const use_preformatted)
