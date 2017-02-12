@@ -60,10 +60,10 @@ struct time_duration_to_python
 
 template <typename Tag> struct tag {};
 
-lt::time_point now(tag<lt::time_point>)
+lt::time_point now(::tag<lt::time_point>)
 { return lt::clock_type::now(); }
 
-lt::time_point32 now(tag<lt::time_point32>)
+lt::time_point32 now(::tag<lt::time_point32>)
 { return lt::time_point_cast<lt::seconds32>(lt::clock_type::now()); }
 
 template <typename T>
@@ -77,7 +77,7 @@ struct time_point_to_python
         if (pt > T())
         {
            time_t const tm = system_clock::to_time_t(system_clock::now()
-              + duration_cast<system_clock::duration>(pt - now(tag<T>())));
+              + duration_cast<system_clock::duration>(pt - now(::tag<T>())));
 
            std::tm* date = std::localtime(&tm);
            result = datetime_datetime(
