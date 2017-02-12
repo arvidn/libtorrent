@@ -978,7 +978,7 @@ namespace libtorrent
 #else
 #define GetCurrentDir_ ::getcwd
 #endif
-		auto cwd { GetCurrentDir_(nullptr, 0) };
+		auto cwd = GetCurrentDir_(nullptr, 0);
 		if (cwd == nullptr)
 			aux::throw_ex<system_error>(error_code(errno, generic_category()));
 		auto holder = make_free_holder(cwd);
