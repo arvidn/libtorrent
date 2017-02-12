@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/utf8.hpp"
 #include "libtorrent/allocator.hpp"
 #include "libtorrent/file.hpp" // for combine_path etc.
+#include "libtorrent/version.hpp"
 
 #include <vector>
 #include <string>
@@ -176,6 +177,11 @@ namespace libtorrent
 		create_torrent(torrent_info const& ti);
 
 		// internal
+		// This is here to provide backwards compatibility before we
+		// produced preformatted nodes in entry
+		create_torrent(torrent_info const& ti, int libtorrent_version = LIBTORRENT_VERSION_NUM);
+
+		// internal
 		~create_torrent();
 
 		// This function will generate the .torrent file as a bencode tree. In order to
@@ -289,6 +295,8 @@ namespace libtorrent
 		std::vector<sha1_hash> const& merkle_tree() const { return m_merkle_tree; }
 
 	private:
+
+		void load_from_torrent_info(torrent_info const& ti, bool const use_preformatted);
 
 		file_storage& m_files;
 		// if m_info_dict is initialized, it is 

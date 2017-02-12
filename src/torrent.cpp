@@ -5601,9 +5601,14 @@ namespace libtorrent
 		{
 			if (m_magnet_link || (m_save_resume_flags & torrent_handle::save_info_dict))
 			{
-				boost::shared_array<char> const info = torrent_file().metadata();
-				int const size = torrent_file().metadata_size();
-				ret["info"].preformatted().assign(&info[0], &info[0] + size);
+				ret["info"] = bdecode(&torrent_file().metadata()[0]
+					, &torrent_file().metadata()[0] + torrent_file().metadata_size());
+// TODO: re-enable this code once there's a non-inlined encoder function. Or
+// perhaps this should not be used until saving resume_data via
+// add_torrent_params and a free function, similar to read_resume_data
+//				boost::shared_array<char> const info = torrent_file().metadata();
+//				int const size = torrent_file().metadata_size();
+//				ret["info"].preformatted().assign(&info[0], &info[0] + size);
 			}
 		}
 
