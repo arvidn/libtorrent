@@ -383,6 +383,23 @@ namespace libtorrent
 		, m_include_mtime(false)
 		, m_include_symlinks(false)
 	{
+		load_from_torrent_info(ti, false);
+	}
+
+	create_torrent::create_torrent(torrent_info const& ti, bool const use_preformatted)
+		: m_files(const_cast<file_storage&>(ti.files()))
+		, m_creation_date(time(0))
+		, m_multifile(ti.num_files() > 1)
+		, m_private(ti.priv())
+		, m_merkle_torrent(ti.is_merkle_torrent())
+		, m_include_mtime(false)
+		, m_include_symlinks(false)
+	{
+		load_from_torrent_info(ti, use_preformatted);
+	}
+
+	void create_torrent::load_from_torrent_info(torrent_info const& ti, bool const use_preformatted)
+	{
 		TORRENT_ASSERT(ti.is_valid());
 		TORRENT_ASSERT(ti.num_pieces() > 0);
 		TORRENT_ASSERT(ti.num_files() > 0);
@@ -418,9 +435,16 @@ namespace libtorrent
 		m_piece_hash.resize(m_files.num_pieces());
 		for (int i = 0; i < num_pieces(); ++i) set_hash(i, ti.hash_for_piece(i));
 
-		boost::shared_array<char> const info = ti.metadata();
-		int const size = ti.metadata_size();
-		m_info_dict.preformatted().assign(&info[0], &info[0] + size);
+		if (use_preformatted)
+		{
+			boost::shared_array<char> const info = ti.metadata();
+			int const size = ti.metadata_size();
+			m_info_dict.preformatted().assign(&info[0], &info[0] + size);
+		}
+		else
+		{
+			m_info_dict = bdecode(&ti.metadata()[0], &ti.metadata()[0] + ti.metadata_size());
+		}
 		m_info_hash = ti.info_hash();
 	}
 
