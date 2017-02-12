@@ -17,46 +17,6 @@ ECHO "CXXFLAGS =" $(CXXFLAGS) ;
 ECHO "LDFLAGS =" $(LDFLAGS) ;
 ECHO "OS =" [ os.name ] ;
 
-if $(BOOST_ROOT)
-{
-	ECHO "building boost from source directory: " $(BOOST_ROOT) ;
-
-	use-project /boost : $(BOOST_ROOT) ;
-	alias boost_chrono : /boost/chrono//boost_chrono : : : <include>$(BOOST_ROOT) ;
-	alias boost_system : /boost/system//boost_system : : : <include>$(BOOST_ROOT) ;
-	alias boost_random : /boost/random//boost_random : : : <include>$(BOOST_ROOT) ;
-}
-else
-{
-	local boost-lib-search-path =
-		<search>/opt/local/lib
-		<search>/usr/local/lib
-		<search>/sw/lib
-		<search>/usr/g++/lib
-		;
-
-	local boost-include-path =
-		<include>/opt/local/include
-		<include>/usr/local/include
-		<include>/usr/sfw/include
-	;
-
-	# the names are decorated in MacPorts
-	lib boost_chrono : : <target-os>darwin <name>boost_chrono-mt $(boost-lib-search-path)
-		: : $(boost-include-path) ;
-	lib boost_system : : <target-os>darwin <name>boost_system-mt $(boost-lib-search-path)
-		: : $(boost-include-path) ;
-	lib boost_random : : <target-os>darwin <name>boost_random-mt $(boost-lib-search-path)
-		: : $(boost-include-path) ;
-
-	lib boost_chrono : : <name>boost_chrono $(boost-lib-search-path)
-		: : $(boost-include-path) ;
-	lib boost_system : : <name>boost_system $(boost-lib-search-path)
-		: : $(boost-include-path) ;
-	lib boost_random : : <name>boost_random $(boost-lib-search-path)
-		: : $(boost-include-path) ;
-}
-
 VERSION = 1.1.5 ;
 
 # rule for linking the correct libraries depending
@@ -531,8 +491,6 @@ variant test_barebones : debug
 	;
 
 # required for openssl on windows
-lib ssleay32 : : <name>ssleay32 ;
-lib libeay32 : : <name>libeay32 ;
 lib advapi32 : : <name>advapi32 ;
 lib user32 : : <name>user32 ;
 lib shell32 : : <name>shell32 ;

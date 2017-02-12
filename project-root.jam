@@ -1,0 +1,51 @@
+
+# set up boost-build configurations for external dependencies.
+# this file is overwritten when conan package manager is used
+
+if $(BOOST_ROOT)
+{
+	ECHO "building boost from source directory: " $(BOOST_ROOT) ;
+
+	use-project /boost : $(BOOST_ROOT) ;
+	alias boost_chrono : /boost/chrono//boost_chrono : : : <include>$(BOOST_ROOT) ;
+	alias boost_system : /boost/system//boost_system : : : <include>$(BOOST_ROOT) ;
+	alias boost_random : /boost/random//boost_random : : : <include>$(BOOST_ROOT) ;
+}
+else
+{
+	local boost-lib-search-path =
+		<search>/opt/local/lib
+		<search>/usr/lib
+		<search>/usr/local/lib
+		<search>/sw/lib
+		<search>/usr/g++/lib
+		;
+
+	local boost-include-path =
+		<include>/opt/local/include
+		<include>/usr/local/include
+		<include>/usr/sfw/include
+	;
+
+	# the names are decorated in MacPorts
+	lib boost_chrono : : <target-os>darwin <name>boost_chrono-mt $(boost-lib-search-path)
+		: : $(boost-include-path) ;
+	lib boost_system : : <target-os>darwin <name>boost_system-mt $(boost-lib-search-path)
+		: : $(boost-include-path) ;
+	lib boost_random : : <target-os>darwin <name>boost_random-mt $(boost-lib-search-path)
+		: : $(boost-include-path) ;
+
+	lib boost_chrono : : <name>boost_chrono $(boost-lib-search-path)
+		: : $(boost-include-path) ;
+	lib boost_system : : <name>boost_system $(boost-lib-search-path)
+		: : $(boost-include-path) ;
+	lib boost_random : : <name>boost_random $(boost-lib-search-path)
+		: : $(boost-include-path) ;
+}
+
+lib crypto : : <name>crypto <link>shared <search>/usr/lib <use>z : : <include>/opt/local/include ;
+lib ssl : : <name>ssl <link>shared <use>crypto <search>/opt/local/lib : : <include>/opt/local/include ;
+
+lib ssleay32 : : <name>ssleay32 ;
+lib libeay32 : : <name>libeay32 ;
+
