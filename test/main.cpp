@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/file.hpp"
+#include "libtorrent/aux_/escape_string.hpp"
 #include <signal.h>
 
 #ifdef WIN32
@@ -369,9 +370,7 @@ EXPORT int main(int argc, char const* argv[])
 	process_id = getpid();
 #endif
 	std::string root_dir = current_working_directory();
-	std::snprintf(dir, sizeof(dir), "test_tmp_%u", process_id);
 	std::string unit_dir_prefix = combine_path(root_dir, "test_tmp_" + std::to_string(process_id) + "_");
-	std::string test_dir = complete(dir);
 	std::printf("cwd_prefix = \"%s\"\n", unit_dir_prefix.c_str());
 
 	if (_g_num_unit_tests == 0)
@@ -472,7 +471,6 @@ EXPORT int main(int argc, char const* argv[])
 
 		t.num_failures = _g_test_failures;
 		t.run = true;
-		total_failures += _g_test_failures;
 		++num_run;
 
 		if (redirect_stdout && t.output)
