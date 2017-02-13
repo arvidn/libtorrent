@@ -253,7 +253,7 @@ struct unit_directory_guard
 	~unit_directory_guard()
 	{
 		error_code ec;
-		std::string parent_dir{ parent_path(dir) };
+		std::string parent_dir = parent_path(dir);
 		change_directory(parent_dir, ec); // windows will not allow to remove current dir, so let's change it to root
 		if (ec)
 		{
@@ -370,7 +370,9 @@ EXPORT int main(int argc, char const* argv[])
 	process_id = getpid();
 #endif
 	std::string root_dir = current_working_directory();
-	std::string unit_dir_prefix = combine_path(root_dir, "test_tmp_" + std::to_string(process_id) + "_");
+	char dir[40];
+	snprintf(dir, sizeof(dir), "test_tmp_%u", process_id);
+	std::string unit_dir_prefix = combine_path(root_dir, dir);
 	std::printf("cwd_prefix = \"%s\"\n", unit_dir_prefix.c_str());
 
 	if (_g_num_unit_tests == 0)
@@ -388,7 +390,10 @@ EXPORT int main(int argc, char const* argv[])
 		if (filter && tests_to_run.count(_g_unit_tests[i].name) == 0)
 			continue;
 
-		std::string unit_dir = unit_dir_prefix + std::to_string(i);
+		std::string unit_dir = unit_dir_prefix;
+		char i_str[40];
+		std::snprintf(i_str, sizeof(i_str), "%u", i);
+		unit_dir.append(i_str);
 		error_code ec;
 		create_directory(unit_dir, ec);
 		if (ec)
