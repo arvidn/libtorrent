@@ -1,0 +1,37 @@
+[requires]
+BoostBuildGen/0.1@arvidn/testing
+OpenSSL/1.0.2g@lasote/stable
+Boost/1.63.0@eliaskousk/stable
+
+[generators]
+BoostBuild
+
+[options]
+Boost:without_chrono = False
+Boost:without_system = False
+Boost:without_random = False
+
+Boost:without_atomic = True
+Boost:without_container = True
+Boost:without_context = True
+Boost:without_coroutine = True
+Boost:without_coroutine2 = True
+Boost:without_date_time = True
+Boost:without_exception = True
+Boost:without_filesystem = True
+Boost:without_graph = True
+Boost:without_graph_parallel = True
+Boost:without_iostreams = True
+Boost:without_locale = True
+Boost:without_log = True
+Boost:without_math = True
+Boost:without_mpi = True
+Boost:without_program_options = True
+Boost:without_regex = True
+Boost:without_serialization = True
+Boost:without_signals = True
+Boost:without_test = True
+Boost:without_thread = True
+Boost:without_timer = True
+Boost:without_type_erasure = True
+Boost:without_wave = True
