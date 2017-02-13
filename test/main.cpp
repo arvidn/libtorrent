@@ -392,7 +392,7 @@ EXPORT int main(int argc, char const* argv[])
 
 		std::string unit_dir = unit_dir_prefix;
 		char i_str[40];
-		std::snprintf(i_str, sizeof(i_str), "%u", i);
+		snprintf(i_str, sizeof(i_str), "%u", i);
 		unit_dir.append(i_str);
 		error_code ec;
 		create_directory(unit_dir, ec);
