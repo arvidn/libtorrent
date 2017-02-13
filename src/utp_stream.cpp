@@ -2389,7 +2389,7 @@ bool utp_socket_impl::cancel_handlers(error_code const& ec, bool kill)
 
 bool utp_socket_impl::consume_incoming_data(
 	utp_header const* ph, std::uint8_t const* ptr, int payload_size
-	, time_point now)
+	, time_point const now)
 {
 	INVARIANT_CHECK;
 
@@ -2419,7 +2419,7 @@ bool utp_socket_impl::consume_incoming_data(
 
 	if (ph->seq_nr == ((m_ack_nr + 1) & ACK_MASK))
 	{
-		TORRENT_ASSERT(!m_inbuf.at(m_ack_nr));
+		TORRENT_ASSERT(m_inbuf.at(m_ack_nr) == nullptr);
 
 		if (m_buffered_incoming_bytes + m_receive_buffer_size + payload_size > m_in_buf_size)
 		{
@@ -2447,8 +2447,10 @@ bool utp_socket_impl::consume_incoming_data(
 
 			if (!p) break;
 
-			m_buffered_incoming_bytes -= p->size - p->header_size;
-			incoming(nullptr, p->size - p->header_size, std::move(p), now);
+			TORRENT_ASSERT(p->size >= p->header_size);
+			int const size = p->size - p->header_size;
+			m_buffered_incoming_bytes -= size;
+			incoming(nullptr, size, std::move(p), now);
 
 			m_ack_nr = std::uint16_t(next_ack_nr);
 
