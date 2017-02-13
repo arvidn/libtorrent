@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 unit_test_t _g_unit_tests[1024];
 int _g_num_unit_tests = 0;
-int _g_test_failures = 0;
+int _g_test_failures = 0; // flushed at start of every unit
 int _g_test_idx = 0;
 
 static std::vector<std::string> failure_strings;
@@ -65,6 +65,7 @@ int print_failures()
 	}
 
 	fprintf(stderr, "\n\n");
+	int total_num_failures = 0;
 
 	for (int i = 0; i < _g_num_unit_tests; ++i)
 	{
@@ -77,6 +78,7 @@ int print_failures()
 		}
 		else
 		{
+			total_num_failures += _g_unit_tests[i].num_failures;
 			fprintf(stderr, "\x1b[31m[%-*s] %d FAILURES\n"
 				, longest_name
 				, _g_unit_tests[i].name
@@ -86,8 +88,8 @@ int print_failures()
 
 	fprintf(stderr, "\x1b[0m");
 
-	if (_g_test_failures > 0)
+	if (total_num_failures > 0)
 		fprintf(stderr, "\n\n\x1b[41m   == %d TEST(S) FAILED ==\x1b[0m\n\n\n", _g_test_failures);
-	return _g_test_failures;
+	return total_num_failures;
 }
 
