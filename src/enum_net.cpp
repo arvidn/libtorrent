@@ -698,6 +698,7 @@ namespace libtorrent
 		for (;i != udp::resolver_iterator(); ++i)
 		{
 			iface.interface_address = i->endpoint().address();
+			iface.name[0] = '\0';
 			iface.mtu = 1500;
 			if (iface.interface_address.is_v4())
 				iface.netmask = address_v4::netmask(iface.interface_address.to_v4());
