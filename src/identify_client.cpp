@@ -239,7 +239,7 @@ namespace
 
 	struct generic_map_entry
 	{
-		int offset;
+		int const offset;
 		char const* id;
 		char const* name;
 	};
@@ -290,7 +290,7 @@ namespace
 			|| ((lhs.id[0] == rhs.id[0]) && (lhs.id[1] < rhs.id[1]));
 	}
 
-	std::string lookup(fingerprint const& f)
+	static std::string lookup(fingerprint const& f)
 	{
 		char identity[200];
 
