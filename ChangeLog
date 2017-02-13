@@ -1,3 +1,5 @@
+	* fix ABI compatibility issue introduced with preformatted entry type
+
 1.0.11 release
 
 	* updating super seeding would include the torrent in state_update_alert

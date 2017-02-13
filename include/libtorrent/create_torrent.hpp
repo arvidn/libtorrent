@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/utf8.hpp"
 #include "libtorrent/allocator.hpp"
 #include "libtorrent/file.hpp" // for combine_path etc.
+#include "libtorrent/version.hpp"
 
 #include <vector>
 #include <string>
@@ -171,9 +172,12 @@ namespace libtorrent
 		// ``alignment`` is used when pad files are enabled. This is the size
 		// eligible files are aligned to. The default is -1, which means the
 		// piece size of the torrent.
+		// The ``use_preformatted`` parameter can be set to true to preserve
+		// invalid encoding of the .torrent file.
 		create_torrent(file_storage& fs, int piece_size = 0
 			, int pad_file_limit = -1, int flags = optimize, int alignment = -1);
 		create_torrent(torrent_info const& ti);
+		create_torrent(torrent_info const& ti, bool use_preformatted);
 
 		// internal
 		~create_torrent();
@@ -289,6 +293,8 @@ namespace libtorrent
 		std::vector<sha1_hash> const& merkle_tree() const { return m_merkle_tree; }
 
 	private:
+
+		void load_from_torrent_info(torrent_info const& ti, bool const use_preformatted);
 
 		file_storage& m_files;
 		// if m_info_dict is initialized, it is 
