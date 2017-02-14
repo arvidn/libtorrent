@@ -1714,7 +1714,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 	// congestion window and the advertised receive window from
 	// the other end.
 	if (m_bytes_in_flight + payload_size > std::min(int(m_cwnd >> 16)
-		, aux::numeric_cast<int>(m_adv_wnd) - m_bytes_in_flight))
+		, int(m_adv_wnd - m_bytes_in_flight)))
 	{
 		// this means there's not enough room in the send window for
 		// another packet. We have to hold off sending this data.
@@ -1904,8 +1904,8 @@ bool utp_socket_impl::send_pkt(int const flags)
 	}
 
 	h->timestamp_difference_microseconds = m_reply_micro;
-	h->wnd_size = aux::numeric_cast<std::uint32_t>(std::max(m_in_buf_size - m_buffered_incoming_bytes
-		- m_receive_buffer_size, 0));
+	h->wnd_size = std::max(m_in_buf_size - m_buffered_incoming_bytes
+		- m_receive_buffer_size, std::int32_t(0));
 	h->ack_nr = m_ack_nr;
 
 	// if this is a FIN packet, override the type
