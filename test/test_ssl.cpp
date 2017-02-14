@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "libtorrent/session_status.hpp"
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/hex.hpp" // for to_hex, from_hex
+#include "libtorrent/hex.hpp" // for to_hex
 #include "libtorrent/time.hpp"
 
 #include "test.hpp"
@@ -456,7 +456,7 @@ bool try_connect(libtorrent::session& ses1, int port
 
 	if (flags & valid_sni_hash)
 	{
-		std::string name = to_hex(t->info_hash().to_string());
+		std::string name = aux::to_hex(t->info_hash());
 		std::printf("SNI: %s\n", name.c_str());
 		SSL_set_tlsext_host_name(ssl_sock.native_handle(), name.c_str());
 	}
