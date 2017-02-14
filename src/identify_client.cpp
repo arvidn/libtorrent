@@ -290,7 +290,9 @@ namespace
 			|| ((lhs.id[0] == rhs.id[0]) && (lhs.id[1] < rhs.id[1]));
 	}
 
-	std::string lookup(fingerprint const& f)
+namespace
+{
+	static std::string lookup(fingerprint const& f)
 	{
 		char identity[200];
 
@@ -334,7 +336,7 @@ namespace
 
 		return identity;
 	}
-
+}
 	bool find_string(char const* id, char const* search)
 	{
 		return std::equal(search, search + std::strlen(search), id);

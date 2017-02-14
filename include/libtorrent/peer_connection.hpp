@@ -753,9 +753,9 @@ namespace libtorrent
 		void do_update_interest();
 		void fill_send_buffer();
 		void on_disk_read_complete(disk_buffer_holder disk_block, int flags
-			, storage_error const& error, peer_request r, time_point issue_time);
+			, storage_error const& error, peer_request const& r, time_point issue_time);
 		void on_disk_write_complete(storage_error const& error
-			, peer_request r, std::shared_ptr<torrent> t);
+			, peer_request const &r, std::shared_ptr<torrent> t);
 		void on_seed_mode_hashed(piece_index_t piece
 			, sha1_hash const& piece_hash, storage_error const& error);
 		int request_timeout() const;

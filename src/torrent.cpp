@@ -1119,7 +1119,7 @@ namespace libtorrent
 
 	void torrent::on_disk_read_complete(disk_buffer_holder buffer
 		, int, storage_error const& se
-		, peer_request r, std::shared_ptr<read_piece_struct> rp) try
+		, peer_request const&  r, std::shared_ptr<read_piece_struct> rp) try
 	{
 		// hold a reference until this function returns
 		TORRENT_ASSERT(is_single_thread());
@@ -1261,7 +1261,7 @@ namespace libtorrent
 				, std::bind(&torrent::on_disk_write_complete
 				, shared_from_this(), _1, p));
 
-			piece_block block(piece, i);
+			piece_block const block(piece, i);
 			bool const was_finished = picker().is_piece_finished(p.piece);
 			bool const multi = picker().num_peers(block) > 1;
 
@@ -1281,7 +1281,7 @@ namespace libtorrent
 	}
 
 	void torrent::on_disk_write_complete(storage_error const& error
-		, peer_request p) try
+		, peer_request const& p) try
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -1292,7 +1292,7 @@ namespace libtorrent
 
 		INVARIANT_CHECK;
 		if (m_abort) return;
-		piece_block block_finished(p.piece, p.start / block_size());
+		piece_block const block_finished(p.piece, p.start / block_size());
 
 		if (error)
 		{

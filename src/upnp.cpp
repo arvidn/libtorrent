@@ -407,7 +407,7 @@ void upnp::on_reply(udp::endpoint const& from, char* buffer
 	bool non_router = false;
 	if (m_ignore_non_routers)
 	{
-		std::vector<ip_route> routes = enum_routes(m_io_service, ec);
+		std::vector<ip_route> const routes = enum_routes(m_io_service, ec);
 		if (std::none_of(routes.begin(), routes.end()
 			, [from] (ip_route const& rt) { return rt.gateway == from.address(); }))
 		{

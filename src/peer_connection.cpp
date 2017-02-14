@@ -2947,7 +2947,7 @@ namespace libtorrent
 	}
 
 	void peer_connection::on_disk_write_complete(storage_error const& error
-		, peer_request p, std::shared_ptr<torrent> t)
+		, peer_request const& p, std::shared_ptr<torrent> t)
 	{
 		TORRENT_ASSERT(is_single_thread());
 #ifndef TORRENT_DISABLE_LOGGING
@@ -5199,7 +5199,7 @@ namespace libtorrent
 
 	void peer_connection::on_disk_read_complete(disk_buffer_holder buffer
 		, int const flags, storage_error const& error
-		, peer_request r, time_point issue_time)
+		, peer_request const& r, time_point issue_time)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		// return value:

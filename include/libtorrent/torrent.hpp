@@ -383,7 +383,7 @@ namespace libtorrent
 		enum flags_t { overwrite_existing = 1 };
 		void add_piece(piece_index_t piece, char const* data, int flags = 0);
 		void on_disk_write_complete(storage_error const& error
-			, peer_request p);
+			, peer_request const& p);
 
 		void set_progress_ppm(int p) { m_progress_ppm = std::uint32_t(p); }
 		struct read_piece_struct
@@ -395,7 +395,7 @@ namespace libtorrent
 		};
 		void read_piece(piece_index_t piece);
 		void on_disk_read_complete(disk_buffer_holder block, int flags, storage_error const& se
-			, peer_request r, std::shared_ptr<read_piece_struct> rp);
+			, peer_request const& r, std::shared_ptr<read_piece_struct> rp);
 
 		storage_mode_t storage_mode() const;
 
