@@ -716,7 +716,7 @@ namespace libtorrent
 		{
 			// ``tracker_completion_timeout`` is the number of seconds the tracker
 			// connection will wait from when it sent the request until it
-			// considers the tracker to have timed-out. Default value is 60
+			// considers the tracker to have timed-out. Default value is 30
 			// seconds.
 			tracker_completion_timeout = int_type_base,
 
