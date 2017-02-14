@@ -5831,6 +5831,14 @@ namespace aux {
 		m_dht->announce(info_hash, port, flags, std::bind(&on_dht_get_peers, std::ref(m_alerts), info_hash, _1));
 	}
 
+	void session_impl::dht_live_nodes(sha1_hash const& nid
+		, std::function<bool(sha1_hash const&, udp::endpoint const&)> cb)
+	{
+		if (!m_dht) return;
+		auto nodes = m_dht->live_nodes(nid, cb);
+		m_alerts.emplace_alert<dht_live_nodes_alert>(nid, nodes);
+	}
+
 	void session_impl::dht_direct_request(udp::endpoint ep, entry& e, void* userdata)
 	{
 		if (!m_dht) return;

@@ -2129,4 +2129,62 @@ namespace libtorrent
 		return buf;
 	}
 
+	dht_live_nodes_alert::dht_live_nodes_alert(aux::stack_allocator& alloc
+		, sha1_hash const& nid
+		, std::vector<std::pair<sha1_hash, udp::endpoint>> const& nodes)
+		: node_id(nid)
+		, m_alloc(alloc)
+		, m_num_nodes(int(nodes.size()))
+	{
+		std::size_t total_size = nodes.size(); // num bytes for sizes
+		for (auto const& n : nodes) {
+			total_size += n.first.size() + n.second.size();
+		}
+
+		m_nodes_idx = alloc.allocate(aux::numeric_cast<int>(total_size));
+
+		char *ptr = alloc.ptr(m_nodes_idx);
+		for (auto const& n : nodes) {
+			std::size_t size = n.first.size();
+			std::memcpy(ptr, n.first.data(), size);
+			ptr += size;
+			size = n.second.size();
+			TORRENT_ASSERT(size < 0x100);
+			detail::write_uint8(size, ptr);
+			std::memcpy(ptr, n.second.data(), size);
+			ptr += size;
+		}
+	}
+
+	std::string dht_live_nodes_alert::message() const
+	{
+		char msg[200];
+		std::snprintf(msg, sizeof(msg), "dht live nodes for id: %s, nodes %d"
+			, aux::to_hex(node_id).c_str(), m_num_nodes);
+		return msg;
+	}
+
+	int dht_live_nodes_alert::num_nodes() const
+	{
+		return m_num_nodes;
+	}
+
+	std::vector<std::pair<sha1_hash, udp::endpoint>> dht_live_nodes_alert::nodes() const
+	{
+		std::size_t const num_nodes = aux::numeric_cast<std::size_t>(m_num_nodes);
+		std::vector<std::pair<sha1_hash, udp::endpoint>> nodes(num_nodes);
+
+		const char *ptr = m_alloc.get().ptr(m_nodes_idx);
+		for (std::size_t i = 0; i < num_nodes; i++) {
+			std::size_t size = sha1_hash::size();
+			std::memcpy(nodes[i].first.data(), ptr, size);
+			ptr += size;
+			size = detail::read_uint8(ptr);
+			std::memcpy(nodes[i].second.data(), ptr, size);
+			ptr += size;
+		}
+
+		return nodes;
+	}
+
 } // namespace libtorrent

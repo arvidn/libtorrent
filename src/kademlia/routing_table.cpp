@@ -946,22 +946,20 @@ void routing_table::update_node_id(node_id const& id)
 			add_node(n);
 }
 
-void routing_table::for_each_node(
-	void (*fun1)(void*, node_entry const&)
-	, void (*fun2)(void*, node_entry const&)
-	, void* userdata) const
+void routing_table::for_each_node(std::function<void(node_entry const&)> live_cb
+	, std::function<void(node_entry const&)> replacements_cb) const
 {
 	for (auto const& i : m_buckets)
 	{
-		if (fun1)
+		if (live_cb)
 		{
 			for (auto const& j : i.live_nodes)
-				fun1(userdata, j);
+				live_cb(j);
 		}
-		if (fun2)
+		if (replacements_cb)
 		{
 			for (auto const& j : i.replacements)
-				fun2(userdata, j);
+				replacements_cb(j);
 		}
 	}
 }

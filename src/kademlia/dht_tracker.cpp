@@ -536,19 +536,39 @@ namespace libtorrent { namespace dht
 		return true;
 	}
 
-	namespace {
-
-	void add_node_fun(void* userdata, node_entry const& e)
+	std::vector<std::pair<node_id, udp::endpoint>> dht_tracker::live_nodes(node_id const& nid
+		, std::function<bool(sha1_hash const&, udp::endpoint const&)> cb)
 	{
-		auto v = static_cast<std::vector<udp::endpoint>*>(userdata);
-		v->push_back(e.ep());
+		std::vector<std::pair<node_id, udp::endpoint>> ret;
+
+		// TODO: figure out a better solution when multi-home is implemented
+		node const* dht = m_dht.nid() == nid ? &m_dht
+#if TORRENT_USE_IPV6
+			: m_dht6.nid() == nid ? &m_dht6 : nullptr;
+#else
+			: nullptr
+#endif
+
+		if (dht == nullptr) return ret;
+
+		dht->m_table.for_each_node([&cb, &ret](node_entry const& e)
+		{
+			udp::endpoint const endp = e.endpoint;
+			if (cb(e.id, endp)) ret.emplace_back(e.id, endp);
+		}, nullptr);
+
+		return ret;
 	}
+
+	namespace {
 
 	std::vector<udp::endpoint> save_nodes(node const& dht)
 	{
 		std::vector<udp::endpoint> ret;
-		// TODO: refactor for more use of lambda
-		dht.m_table.for_each_node(&add_node_fun, &add_node_fun, &ret);
+
+		auto cb = [&ret](node_entry const& e) { ret.push_back(e.ep()); };
+
+		dht.m_table.for_each_node(cb, cb);
 		return ret;
 	}
 

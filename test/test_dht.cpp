@@ -106,7 +106,6 @@ void node_push_back(void* userdata, libtorrent::dht::node_entry const& n)
 	nv->push_back(n);
 }
 
-void nop(void* userdata, libtorrent::dht::node_entry const& n) {}
 void nop_node() {}
 
 std::list<std::pair<udp::endpoint, entry>> g_sent_packets;
@@ -1556,7 +1555,7 @@ void test_routing_table(address(&rand_addr)())
 	table.node_failed(tmp, udp::endpoint(node_addr, 4));
 
 	nodes.clear();
-	table.for_each_node(node_push_back, nop, &nodes);
+	table.for_each_node(std::bind(node_push_back, &nodes, _1), nullptr);
 	TEST_EQUAL(nodes.size(), 1);
 	if (!nodes.empty())
 	{
@@ -1569,7 +1568,7 @@ void test_routing_table(address(&rand_addr)())
 	// add the exact same node again, it should set the timeout_count to 0
 	table.node_seen(tmp, udp::endpoint(node_addr, 4), 10);
 	nodes.clear();
-	table.for_each_node(node_push_back, nop, &nodes);
+	table.for_each_node(std::bind(node_push_back, &nodes, _1), nullptr);
 	TEST_EQUAL(nodes.size(), 1);
 	if (!nodes.empty())
 	{
@@ -1631,7 +1630,7 @@ void test_routing_table(address(&rand_addr)())
 
 	print_state(std::cout, table);
 
-	table.for_each_node(node_push_back, nop, &nodes);
+	table.for_each_node(std::bind(node_push_back, &nodes, _1), nullptr);
 
 	std::printf("nodes: %d\n", int(nodes.size()));
 
@@ -2915,7 +2914,8 @@ TORRENT_TEST(routing_table_set_id)
 	TEST_EQUAL(tbl.num_active_buckets(), 6);
 
 	std::set<node_id> original_nodes;
-	tbl.for_each_node(std::bind(&inserter, &original_nodes, _1));
+	tbl.for_each_node(std::bind(&inserter, &original_nodes, _1)
+		, std::bind(&inserter, &original_nodes, _1));
 
 	print_state(std::cout, tbl);
 
@@ -2925,7 +2925,8 @@ TORRENT_TEST(routing_table_set_id)
 
 	TEST_CHECK(tbl.num_active_buckets() <= 4);
 	std::set<node_id> remaining_nodes;
-	tbl.for_each_node(std::bind(&inserter, &remaining_nodes, _1));
+	tbl.for_each_node(std::bind(&inserter, &remaining_nodes, _1)
+		, std::bind(&inserter, &remaining_nodes, _1));
 
 	std::set<node_id> intersection;
 	std::set_intersection(remaining_nodes.begin(), remaining_nodes.end()
@@ -2969,13 +2970,13 @@ TORRENT_TEST(routing_table_for_each)
 	print_state(std::cout, tbl);
 
 	std::vector<node_entry> v;
-	tbl.for_each_node(node_push_back, nop, &v);
+	tbl.for_each_node(std::bind(node_push_back, &v, _1), nullptr);
 	TEST_EQUAL(v.size(), 2);
 	v.clear();
-	tbl.for_each_node(nop, node_push_back, &v);
+	tbl.for_each_node(nullptr, std::bind(node_push_back, &v, _1));
 	TEST_EQUAL(v.size(), 2);
 	v.clear();
-	tbl.for_each_node(node_push_back, node_push_back, &v);
+	tbl.for_each_node(std::bind(node_push_back, &v, _1), std::bind(node_push_back, &v, _1));
 	TEST_EQUAL(v.size(), 4);
 }
 

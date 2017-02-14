@@ -2510,11 +2510,33 @@ namespace libtorrent
 		aux::allocation_slot const m_msg_idx;
 	};
 
+	struct TORRENT_EXPORT dht_live_nodes_alert final : alert
+	{
+		dht_live_nodes_alert(aux::stack_allocator& alloc
+			, sha1_hash const& nid
+			, std::vector<std::pair<sha1_hash, udp::endpoint>> const& nodes);
+
+		TORRENT_DEFINE_ALERT(dht_live_nodes_alert, 91)
+
+		static const int static_category = alert::dht_notification;
+		virtual std::string message() const override;
+
+		sha1_hash const node_id;
+
+		int num_nodes() const;
+		std::vector<std::pair<sha1_hash, udp::endpoint>> nodes() const;
+
+	private:
+		std::reference_wrapper<aux::stack_allocator> m_alloc;
+		int const m_num_nodes;
+		aux::allocation_slot m_nodes_idx;
+	};
+
 #undef TORRENT_DEFINE_ALERT_IMPL
 #undef TORRENT_DEFINE_ALERT
 #undef TORRENT_DEFINE_ALERT_PRIO
 
-	enum { num_alert_types = 91 }; // this enum represents "max_alert_index" + 1
+	enum { num_alert_types = 92 }; // this enum represents "max_alert_index" + 1
 }
 
 #endif

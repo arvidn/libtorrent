@@ -442,6 +442,19 @@ namespace libtorrent
 		void dht_get_peers(sha1_hash const& info_hash);
 		void dht_announce(sha1_hash const& info_hash, int port = 0, int flags = 0);
 
+		// Iterate all the live DHT (identified by ``nid``) nodes and pass the
+		// nodes id and endpoint to the callback ``cb``. If the callback function
+		// returns true, the pair will be returned in the list of nodes in the
+		// alert ``dht_live_nodes_alert``.
+		// Since this alert is a response to an explicit call, it will always be
+		// posted, regardless of the alert mask.
+		//
+		// Given that the function is called from an internal thread of libtorrent,
+		// it's important to not stall or make calls to the public API
+		// that can result in race conditions.
+		void dht_live_nodes(sha1_hash const& nid
+			, std::function<bool(sha1_hash const&, udp::endpoint const&)> cb);
+
 		// Send an arbitrary DHT request directly to the specified endpoint. This
 		// function is intended for use by plugins. When a response is received
 		// or the request times out, a dht_direct_response_alert will be posted
