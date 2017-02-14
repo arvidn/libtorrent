@@ -403,10 +403,7 @@ TORRENT_TEST(stat_file)
 // specificaly UNC tests
 #if TORRENT_USE_UNC_PATHS
 
-int maximum_component_length { 0 };
-bool support_hard_links { false };
-
-bool fill_current_directory_caps()
+std::tuple<int, bool> fill_current_directory_caps()
 {
 #ifdef TORRENT_WINDOWS
 	error_code ec;
@@ -417,13 +414,13 @@ bool fill_current_directory_caps()
 		ec.assign(GetLastError(), system_category());
 		std::printf("GetVolumeInformation: [%s] %s\n"
 			, ec.category().name(), ec.message().c_str());
-		return false;
+		return std::make_tuple(0, false);
 	}
-	maximum_component_length = int(dw_maximum_component_length);
-	support_hard_links = ((dw_file_system_flags & FILE_SUPPORTS_HARD_LINKS) != 0);
-	return maximum_component_length > 0;
+	int maximum_component_length = int(dw_maximum_component_length);
+	bool support_hard_links = ((dw_file_system_flags & FILE_SUPPORTS_HARD_LINKS) != 0);
+	return std::make_tuple(maximum_component_length, support_hard_links);
 #else
-	return false;
+	return std::make_tuple(TORRENT_MAX_PATH, true);
 #endif
 }
 
@@ -457,7 +454,11 @@ TORRENT_TEST(unc_tests)
 		TEST_CHECK(!lt::exists(special_name));
 	}
 
-	if (fill_current_directory_caps())
+	int maximum_component_length;
+	bool support_hard_links;
+	std::tie(maximum_component_length, support_hard_links) = fill_current_directory_caps();
+
+	if (maximum_component_length > 0)
 	{
 		std::string long_component_name;
 		long_component_name.resize(maximum_component_length);

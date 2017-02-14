@@ -337,21 +337,10 @@ namespace libtorrent
 		return int(size);
 	}
 
-	template <typename T>
-	std::string convert_from_native_path(T* s);
-
-	template <>
 	std::string convert_from_native_path(char const* s) { return convert_from_native(s); }
 
-	template <>
-	std::string convert_from_native_path(char* s) { return convert_from_native(s); }
-
 #if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING
-	template <>
 	std::string convert_from_native_path(wchar_t const* s) { return convert_from_wstring(s); }
-
-	template <>
-	std::string convert_from_native_path(wchar_t* s) { return convert_from_wstring(s); }
 #endif
 
 	template <typename T>
@@ -407,7 +396,7 @@ namespace libtorrent
 		, error_code& ec, int const flags)
 	{
 		ec.clear();
-		native_path_string const& f = convert_to_native_path_string(inf);
+		native_path_string f = convert_to_native_path_string(inf);
 #ifdef TORRENT_WINDOWS
 
 		TORRENT_UNUSED(flags);
@@ -484,8 +473,8 @@ namespace libtorrent
 	{
 		ec.clear();
 
-		native_path_string const& f1 = convert_to_native_path_string(inf);
-		native_path_string const& f2 = convert_to_native_path_string(newf);
+		native_path_string f1 = convert_to_native_path_string(inf);
+		native_path_string f2 = convert_to_native_path_string(newf);
 
 #if TORRENT_USE_WSTRING && defined TORRENT_WINDOWS
 #define RenameFunction_ _wrename
@@ -520,7 +509,7 @@ namespace libtorrent
 	{
 		ec.clear();
 
-		native_path_string const &n = convert_to_native_path_string(f);
+		native_path_string n = convert_to_native_path_string(f);
 #ifdef TORRENT_WINDOWS
 #if TORRENT_USE_WSTRING
 #define CreateDirectory_ CreateDirectoryW
@@ -542,8 +531,8 @@ namespace libtorrent
 	void hard_link(std::string const& file, std::string const& link
 		, error_code& ec)
 	{
-		native_path_string const &n_exist = convert_to_native_path_string(file);
-		native_path_string const &n_link = convert_to_native_path_string(link);
+		native_path_string n_exist = convert_to_native_path_string(file);
+		native_path_string n_link = convert_to_native_path_string(link);
 #ifdef TORRENT_WINDOWS
 
 #if TORRENT_USE_WSTRING
@@ -635,8 +624,8 @@ namespace libtorrent
 	void copy_file(std::string const& inf, std::string const& newf, error_code& ec)
 	{
 		ec.clear();
-		native_path_string const &f1 = convert_to_native_path_string(inf);
-		native_path_string const &f2 = convert_to_native_path_string(newf);
+		native_path_string f1 = convert_to_native_path_string(inf);
+		native_path_string f2 = convert_to_native_path_string(newf);
 
 #ifdef TORRENT_WINDOWS
 #if TORRENT_USE_WSTRING
@@ -1351,7 +1340,7 @@ namespace libtorrent
 	bool file::open(std::string const& path, int mode, error_code& ec)
 	{
 		close();
-		native_path_string const &file_path = convert_to_native_path_string(path);
+		native_path_string file_path = convert_to_native_path_string(path);
 
 #ifdef TORRENT_WINDOWS
 
