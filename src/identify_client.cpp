@@ -336,7 +336,7 @@ namespace
 
 		return identity;
 	}
-}	
+}
 	bool find_string(char const* id, char const* search)
 	{
 		return std::equal(search, search + std::strlen(search), id);
