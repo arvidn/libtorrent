@@ -1922,24 +1922,30 @@ namespace libtorrent
 		, std::vector<tcp::endpoint> const& peers)
 		: info_hash(ih)
 		, m_alloc(alloc)
-		, m_num_peers(int(peers.size()))
+		, m_num_peers(aux::numeric_cast<int>(peers.size()))
 	{
-		std::size_t total_size = peers.size(); // num bytes for sizes
+#if TORRENT_USE_IPV6
+		int total_size = m_num_peers; // num bytes for sizes
 		for (auto const& endp : peers)
 		{
-			total_size += endp.size();
+			total_size += endp.protocol() == tcp::v4() ? 6 : 18;
 		}
+#else
+		int total_size = m_num_peers * 6;
+#endif
 
-		m_peers_idx = alloc.allocate(int(total_size));
+		m_peers_idx = alloc.allocate(total_size);
 
-		char *ptr = alloc.ptr(m_peers_idx);
+		char* ptr = alloc.ptr(m_peers_idx);
 		for (auto const& endp : peers)
 		{
-			std::size_t const size = endp.size();
-			TORRENT_ASSERT(size < 0x100);
-			detail::write_uint8(size, ptr);
-			std::memcpy(ptr, endp.data(), size);
-			ptr += size;
+#if TORRENT_USE_IPV6
+			int const size = endp.protocol() == tcp::v4() ? 6 : 18;
+			detail::write_int8(size, ptr);
+			detail::write_endpoint(endp, ptr);
+#else
+			detail::write_endpoint(endp, ptr);
+#endif
 		}
 	}
 
@@ -1965,15 +1971,21 @@ namespace libtorrent
 #endif
 	std::vector<tcp::endpoint> dht_get_peers_reply_alert::peers() const
 	{
-		std::size_t const num_peers = aux::numeric_cast<std::size_t>(m_num_peers);
-		std::vector<tcp::endpoint> peers(num_peers);
+		aux::vector<tcp::endpoint> peers;
+		peers.reserve(m_num_peers);
 
-		const char *ptr = m_alloc.get().ptr(m_peers_idx);
-		for (std::size_t i = 0; i < num_peers; i++)
+		char const* ptr = m_alloc.get().ptr(m_peers_idx);
+		for (int i = 0; i < m_num_peers; i++)
 		{
-			std::size_t const size = detail::read_uint8(ptr);
-			std::memcpy(peers[i].data(), ptr, size);
-			ptr += size;
+#if TORRENT_USE_IPV6
+			int const size = detail::read_int8(ptr);
+			tcp::endpoint const endp = size == 6
+				? detail::read_v4_endpoint<tcp::endpoint>(ptr)
+				: detail::read_v6_endpoint<tcp::endpoint>(ptr);
+#else
+			tcp::endpoint const endp = detail::read_v4_endpoint<tcp::endpoint>(ptr);
+#endif
+			peers.push_back(endp);
 		}
 
 		return peers;
