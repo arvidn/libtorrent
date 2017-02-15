@@ -63,10 +63,9 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 	struct session_status;
+	using user_load_function_t = std::function<void(sha1_hash const&
+		, std::vector<char>&, error_code&)>;
 #endif
-
-	typedef std::function<void(sha1_hash const&, std::vector<char>&
-		, error_code&)> user_load_function_t;
 
 	struct TORRENT_EXPORT session_handle
 	{
