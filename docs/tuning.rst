@@ -23,6 +23,38 @@ computer.
 This document describes techniques to benchmark libtorrent performance
 and how parameters are likely to affect it.
 
+profiling
+=========
+
+libtorrent is instrumented with a number of counters and gauges you can have
+access to via the ``session_stats_alert``. First, enable these alerts in the
+alert mask::
+
+	settings_pack p;
+	p.set_int(settings_mask::alert_mask, alert::stats_notification);
+	ses.apply_settings(p);
+
+Then print alerts to a file::
+
+	std::vector<alert*> alerts;
+	ses.pop_alerts(&alerts);
+
+	for (auto* a : alerts) {
+		std::cout << a->message() << "\n";
+	}
+
+If you want to separate generic alerts from session stats, you can filter on the
+alert category in the alert, ``alert::category()``.
+
+The alerts with data will have the type ``session_stats_alert`` and there is one
+``session_log_alert`` that will be posted on startup containing the column names
+for all metrics. Logging this line will greatly simplify interpreting the output.
+
+The python scrip in ``tools/parse_session_stats.py`` can parse the resulting
+file and produce graphs of relevant stats. It requires gnuplot__.
+
+__ http://www.gnuplot.org
+
 reducing memory footprint
 =========================
 
@@ -145,21 +177,6 @@ all peers. This is the least amount of memory possible for the send buffer.
 You should benchmark your max send rate when adjusting this setting. If you have
 a very fast disk, you are less likely see a performance hit.
 
-optimize hashing for memory usage
----------------------------------
-
-When libtorrent is doing hash checks of a file, or when it re-reads a piece that
-was just completed to verify its hash, there are two options. The default one
-is optimized for speed, which allocates buffers for the entire piece, reads in
-the whole piece in one read call, then hashes it.
-
-The second option is to optimize for memory usage instead, where a single buffer
-is allocated, and the piece is read one block at a time, hashing it as each
-block is read from the file. For low memory environments, this latter approach
-is recommended. Change this by settings ``settings_pack::optimize_hashing_for_speed``
-to false. This will significantly reduce peak memory usage, especially for
-torrents with very large pieces.
-
 reduce executable size
 ----------------------
 
@@ -184,28 +201,6 @@ relied upon, this should be a simple way to eliminate a little bit of code.
 For all available options, see the `building libtorrent`_ secion.
 
 .. _`building libtorrent`: building.html
-
-play nice with the disk
-=======================
-
-When checking a torrent, libtorrent will try to read as fast as possible from the disk.
-The only thing that might hold it back is a CPU that is slow at calculating SHA-1 hashes,
-but typically the file checking is limited by disk read speed. Most operating systems
-today do not prioritize disk access based on the importance of the operation, this means
-that checking a torrent might delay other disk accesses, such as virtual memory swapping
-or just loading file by other (interactive) applications.
-
-In order to play nicer with the disk, and leave some spare time for it to service other
-processes that might be of higher importance to the end-user, you can introduce a sleep
-between the disc accesses. This is a direct tradeoff between how fast you can check a
-torrent and how soft you will hit the disk.
-
-You control this by setting the ``settings_pack::file_checks_delay_per_block`` to greater
-than zero. This number is the number of milliseconds to sleep between each read of 16 kiB.
-
-The sleeps are not necessarily in between each 16 kiB block (it might be read in larger chunks),
-but the number will be multiplied by the number of blocks that were read, to maintain the
-same semantics.
 
 high performance seeding
 ========================
@@ -251,25 +246,6 @@ the read cache is removed immediately. This saves a significant amount of cache 
 which can be used as read-ahead for other peers. To enable volatile read cache, set
 ``settings_pack::volatile_read_cache`` to true.
 
-SSD as level 2 cache
---------------------
-
-It is possible to introduce a second level of cache, below the RAM disk cache. This is done
-by setting ``settings_pack::mmap_cache`` to a file path pointing to the SSD drive, and
-increasing the ``settings_pack::cache_size`` to the number of 16 kiB blocks would fit
-on the drive (or less).
-
-This will allocate disk buffers (for reading and writing) from a memory region that has
-been mapped to the specified file. If the drive this file lives on is not significantly
-faster than the destination drive, performance will be degraded. The point is to take
-advantage primarily of the fast read speed from SSD drives and use it to extend the read
-cache, improving seed performance.
-
-Which parts of the cache that actually live in RAM is determined by the operating system.
-
-Note that when using this feature, any block which ends up being pulled from the mmapped
-file will be considered a cache hit.
-
 uTP-TCP mixed mode
 ------------------
 
@@ -305,8 +281,8 @@ peers
 -----
 
 First of all, in order to allow many connections, set the global connection limit
-high, ``session::set_max_connections()``. Also set the upload rate limit to
-infinite, ``session::set_upload_rate_limit()``, passing 0 means infinite.
+high, ``settings_pack::connections_limit``. Also set the upload rate limit to
+infinite, ``settings_pack::upload_rate_limit``, 0 means infinite.
 
 When dealing with a large number of peers, it might be a good idea to have slightly
 stricter timeouts, to get rid of lingering connections as soon as possible.
@@ -319,9 +295,10 @@ multiple connections from the same IP. That way two people from behind the same 
 can use the service simultaneously. This is controlled by
 ``settings_pack::allow_multiple_connections_per_ip``.
 
-In order to always unchoke peers, turn off automatic unchoke
-``settings_pack::auto_upload_slots`` and set the number of upload slots to a large
-number via ``session::set_max_uploads()``, or use -1 (which means infinite).
+In order to always unchoke peers, turn off automatic unchoke by setting
+``settings_pack::choking_algorithm`` to ``fixed_slot_choker`` and set the number
+of upload slots to a large number via ``settings_pack::unchoke_slots_limit``,
+or use -1 (which means infinite).
 
 torrent limits
 --------------
@@ -356,12 +333,12 @@ the returned vector. If you have a lot of torrents, you might want to update the
 of only certain torrents. For instance, you might only be interested in torrents that
 are being downloaded.
 
-The intended use of these functions is to start off by calling ``get_torrent_status``
-to get a list of all torrents that match your criteria. Then call ``refresh_torrent_status``
+The intended use of these functions is to start off by calling ``get_torrent_status()``
+to get a list of all torrents that match your criteria. Then call ``refresh_torrent_status()``
 on that list. This will only refresh the status for the torrents in your list, and thus
 ignore all other torrents you might be running. This may save a significant amount of
 time, especially if the number of torrents you're interested in is small. In order to
-keep your list of interested torrents up to date, you can either call ``get_torrent_status``
+keep your list of interested torrents up to date, you can either call ``get_torrent_status()``
 from time to time, to include torrents you might have become interested in since the last
 time. In order to stop refreshing a certain torrent, simply remove it from the list.
 
@@ -369,6 +346,9 @@ A more efficient way however, would be to subscribe to status alert notification
 update your list based on these alerts. There are alerts for when torrents are added, removed,
 paused, resumed, completed etc. Doing this ensures that you only query status for the
 minimal set of torrents you are actually interested in.
+
+To get an update with only the torrents that have changed since last time, call
+``session::post_torrent_updates()``.
 
 benchmarking
 ============
@@ -455,7 +435,7 @@ covered here, or if you have improved any of the parser scrips, please consider
 contributing it back to the project.
 
 If you have run tests and found that some algorithm or default value in
-libtorrent is suboptimal, please contribute that knowledge back as well, to
+libtorrent are suboptimal, please contribute that knowledge back as well, to
 allow us to improve the library.
 
 If you have additional suggestions on how to tune libtorrent for any specific
