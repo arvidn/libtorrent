@@ -2379,8 +2379,8 @@ namespace libtorrent
 		int const m_size;
 	};
 
-	struct TORRENT_EXPORT dht_get_peers_reply_alert final : alert {
-
+	struct TORRENT_EXPORT dht_get_peers_reply_alert final : alert
+	{
 		dht_get_peers_reply_alert(aux::stack_allocator& alloc
 			, sha1_hash const& ih
 			, std::vector<tcp::endpoint> const& v);

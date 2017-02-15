@@ -48,7 +48,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/escape_string.hpp" // for convert_from_native
 #include "libtorrent/aux_/max_path.hpp" // for TORRENT_MAX_PATH
 
-namespace libtorrent {
+namespace libtorrent
+{
 
 	alert::alert() : m_timestamp(clock_type::now()) {}
 	alert::~alert() = default;
@@ -63,7 +64,8 @@ namespace libtorrent {
 		if (t)
 		{
 			std::string name_str = t->name();
-			if (!name_str.empty()) {
+			if (!name_str.empty())
+			{
 				m_name_idx = alloc.copy_string(name_str);
 			}
 			else
@@ -1885,7 +1887,7 @@ namespace libtorrent {
 
 	span<char const> dht_pkt_alert::pkt_buf() const
 	{
-		return {m_alloc.get().ptr(m_msg_idx), size_t(m_size)};
+		return {m_alloc.get().ptr(m_msg_idx), std::size_t(m_size)};
 	}
 
 	std::string dht_pkt_alert::message() const
@@ -1916,14 +1918,16 @@ namespace libtorrent {
 		, m_num_peers(int(peers.size()))
 	{
 		std::size_t total_size = peers.size(); // num bytes for sizes
-		for (auto const& endp : peers) {
+		for (auto const& endp : peers)
+		{
 			total_size += endp.size();
 		}
 
 		m_peers_idx = alloc.allocate(int(total_size));
 
 		char *ptr = alloc.ptr(m_peers_idx);
-		for (auto const& endp : peers) {
+		for (auto const& endp : peers)
+		{
 			std::size_t const size = endp.size();
 			TORRENT_ASSERT(size < 0x100);
 			detail::write_uint8(size, ptr);
@@ -1945,18 +1949,21 @@ namespace libtorrent {
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
-	void dht_get_peers_reply_alert::peers(std::vector<tcp::endpoint> &v) const {
+	void dht_get_peers_reply_alert::peers(std::vector<tcp::endpoint> &v) const
+	{
 		std::vector<tcp::endpoint> p(peers());
 		v.reserve(p.size());
 		std::copy(p.begin(), p.end(), std::back_inserter(v));
 	}
 #endif
-	std::vector<tcp::endpoint> dht_get_peers_reply_alert::peers() const {
+	std::vector<tcp::endpoint> dht_get_peers_reply_alert::peers() const
+	{
 		std::size_t const num_peers = aux::numeric_cast<std::size_t>(m_num_peers);
 		std::vector<tcp::endpoint> peers(num_peers);
 
 		const char *ptr = m_alloc.get().ptr(m_peers_idx);
-		for (std::size_t i = 0; i < num_peers; i++) {
+		for (std::size_t i = 0; i < num_peers; i++)
+		{
 			std::size_t const size = detail::read_uint8(ptr);
 			std::memcpy(peers[i].data(), ptr, size);
 			ptr += size;
