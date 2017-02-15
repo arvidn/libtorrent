@@ -187,6 +187,14 @@ namespace libtorrent
 // internal export should be used at unit tests only
 	TORRENT_EXTRA_EXPORT native_path_string convert_to_native_path_string(std::string const& path);
 
+// internal export should be used at unit tests only
+	TORRENT_EXTRA_EXPORT std::string convert_from_native_path(char const* s);
+
+#if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING
+// internal export should be used at unit tests only
+	TORRENT_EXTRA_EXPORT std::string convert_from_native_path(wchar_t const* s);
+#endif
+
 	// TODO: move this into a separate header file, TU pair
 	class TORRENT_EXTRA_EXPORT directory : public boost::noncopyable
 	{
