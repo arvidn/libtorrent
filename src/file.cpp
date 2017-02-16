@@ -958,7 +958,7 @@ namespace libtorrent
 
 	std::string current_working_directory()
 	{
-#if defined TORRENT_WINDOWS && !defined TORRENT_MINGW
+#if defined TORRENT_WINDOWS
 #if TORRENT_USE_WSTRING
 #define GetCurrentDir_ ::_wgetcwd
 #else
