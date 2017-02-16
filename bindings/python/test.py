@@ -7,6 +7,7 @@ import time
 import os
 import shutil
 import binascii
+import inspect
 
 class test_create_torrent(unittest.TestCase):
 
@@ -238,7 +239,18 @@ class test_session(unittest.TestCase):
 	def test_post_session_stats(self):
 		s = lt.session({'alert_mask': lt.alert.category_t.stats_notification, 'enable_dht': False})
 		s.post_session_stats()
-		a = s.wait_for_alert(1000)
+		alerts = []
+		# first the stats headers log line. but not if logging is disabled
+		if 'log_alert' in [i[0] for i in inspect.getmembers(lt)]:
+			s.wait_for_alert(1000)
+			alerts = s.pop_alerts()
+			a = alerts.pop(0)
+			self.assertTrue(isinstance(a, lt.log_alert))
+		# then the actual stats values
+		if len(alerts) == 0:
+			s.wait_for_alert(1000)
+			alerts = s.pop_alerts()
+		a = alerts.pop(0)
 		self.assertTrue(isinstance(a, lt.session_stats_alert))
 		self.assertTrue(isinstance(a.values, dict))
 		self.assertTrue(len(a.values) > 0)

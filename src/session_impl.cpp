@@ -566,7 +566,8 @@ namespace aux {
 		TORRENT_ASSERT(is_single_thread());
 
 #ifndef TORRENT_DISABLE_LOGGING
-		if (m_alerts.should_post<log_alert>())
+		if (m_alerts.should_post<log_alert>()
+			|| m_alerts.should_post<session_stats_alert>())
 		{
 			session_log(" *** session thread init");
 
