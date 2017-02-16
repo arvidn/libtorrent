@@ -53,7 +53,7 @@ for all metrics. Logging this line will greatly simplify interpreting the output
 The python scrip in ``tools/parse_session_stats.py`` can parse the resulting
 file and produce graphs of relevant stats. It requires gnuplot__.
 
-__ http://www.gnuplot.org
+__ http://www.gnuplot.info
 
 reducing memory footprint
 =========================
