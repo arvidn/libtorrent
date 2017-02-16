@@ -1927,8 +1927,10 @@ namespace libtorrent
 		{
 			if (endp.protocol() == tcp::v4())
 				m_v4_num_peers++;
+#if TORRENT_USE_IPV6
 			else
 				m_v6_num_peers++;
+#endif
 		}
 
 		m_v4_peers_idx = alloc.allocate(m_v4_num_peers * 6);
@@ -1940,8 +1942,10 @@ namespace libtorrent
 		{
 			if (endp.protocol() == tcp::v4())
 				detail::write_endpoint(endp, v4_ptr);
+#if TORRENT_USE_IPV6
 			else
 				detail::write_endpoint(endp, v6_ptr);
+#endif
 		}
 	}
 
@@ -1974,10 +1978,11 @@ namespace libtorrent
 		char const* v4_ptr = m_alloc.get().ptr(m_v4_peers_idx);
 		for (int i = 0; i < m_v4_num_peers; i++)
 			peers.push_back(detail::read_v4_endpoint<tcp::endpoint>(v4_ptr));
-
+#if TORRENT_USE_IPV6
 		char const* v6_ptr = m_alloc.get().ptr(m_v6_peers_idx);
 		for (int i = 0; i < m_v6_num_peers; i++)
 			peers.push_back(detail::read_v6_endpoint<tcp::endpoint>(v6_ptr));
+#endif
 
 		return peers;
 	}

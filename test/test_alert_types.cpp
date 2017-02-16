@@ -49,8 +49,13 @@ TORRENT_TEST(dht_get_peers_reply_alert)
 	tcp::endpoint const ep1 = rand_tcp_ep(rand_v4);
 	tcp::endpoint const ep2 = rand_tcp_ep(rand_v4);
 	tcp::endpoint const ep3 = rand_tcp_ep(rand_v4);
+#if TORRENT_USE_IPV6
 	tcp::endpoint const ep4 = rand_tcp_ep(rand_v6);
 	tcp::endpoint const ep5 = rand_tcp_ep(rand_v6);
+#else
+	tcp::endpoint const ep4 = rand_tcp_ep(rand_v4);
+	tcp::endpoint const ep5 = rand_tcp_ep(rand_v4);
+#endif
 	std::vector<tcp::endpoint> const v = {ep1, ep2, ep3, ep4, ep5};
 
 	mgr.emplace_alert<dht_get_peers_reply_alert>(ih, v);
