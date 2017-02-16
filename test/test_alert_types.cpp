@@ -56,7 +56,7 @@ TORRENT_TEST(dht_get_peers_reply_alert)
 	tcp::endpoint const ep4 = rand_tcp_ep(rand_v4);
 	tcp::endpoint const ep5 = rand_tcp_ep(rand_v4);
 #endif
-	std::vector<tcp::endpoint> const v = {ep1, ep2, ep3, ep4, ep5};
+	std::vector<tcp::endpoint> v = {ep1, ep2, ep3, ep4, ep5};
 
 	mgr.emplace_alert<dht_get_peers_reply_alert>(ih, v);
 
@@ -66,7 +66,8 @@ TORRENT_TEST(dht_get_peers_reply_alert)
 	TEST_EQUAL(a->info_hash, ih);
 	TEST_EQUAL(a->num_peers(), 5);
 
-	std::vector<tcp::endpoint> const peers = a->peers();
-	TEST_EQUAL(peers.size(), 5);
-	TEST_CHECK(std::includes(peers.begin(), peers.end(), v.begin(), v.end()));
+	std::vector<tcp::endpoint> peers = a->peers();
+	std::sort(v.begin(), v.end());
+	std::sort(peers.begin(), peers.end());
+	TEST_CHECK(v == peers);
 }

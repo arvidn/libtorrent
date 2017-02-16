@@ -123,7 +123,7 @@ static std::uint16_t g_port = 0;
 
 tcp::endpoint rand_tcp_ep(libtorrent::address(&rand_addr)())
 {
-	// make sure we don't procure the same "random" port twice
+	// make sure we don't produce the same "random" port twice
 	g_port = (g_port + 1) % 14038;
 	return tcp::endpoint(rand_addr(), g_port + 1024);
 }
