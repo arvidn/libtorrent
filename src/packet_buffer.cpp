@@ -45,11 +45,11 @@ namespace libtorrent {
 	void packet_buffer::check_invariant() const
 	{
 		int count = 0;
-		for (int i = 0; i < int(m_capacity); ++i)
+		for (int i = 0; i < m_capacity; ++i)
 		{
-			count += m_storage[i] ? 1 : 0;
+			count += m_storage[aux::numeric_cast<index_type>(i)] ? 1 : 0;
 		}
-		TORRENT_ASSERT(count == int(m_size));
+		TORRENT_ASSERT(count == m_size);
 	}
 #endif
 
@@ -60,6 +60,7 @@ namespace libtorrent {
 		TORRENT_ASSERT_VAL(idx <= 0xffff, idx);
 		// you're not allowed to insert NULLs!
 		TORRENT_ASSERT(value);
+		TORRENT_ASSERT(m_capacity >= 0);
 
 		if (!value) return remove(idx);
 
@@ -72,29 +73,30 @@ namespace libtorrent {
 
 				int free_space = 0;
 
-				for (index_type i = (m_first - 1) & (m_capacity - 1);
-						i != (m_first & (m_capacity - 1)); i = (i - 1) & (m_capacity - 1))
+				index_type const mask = aux::numeric_cast<index_type>(m_capacity - 1);
+				for (index_type i = (m_first - 1) & mask;
+						i != (m_first & mask); i = (i - 1) & mask)
 				{
-					if (m_storage[i & (m_capacity - 1)])
+					if (m_storage[i & mask])
 						break;
 					++free_space;
 				}
 
 				if (((m_first - idx) & 0xffff) > std::uint32_t(free_space))
-					reserve(((m_first - idx) & 0xffff) + m_capacity - free_space);
+					reserve(int((m_first - idx) & 0xffff) + m_capacity - free_space);
 
 				m_first = idx;
 			}
-			else if (idx >= m_first + m_capacity)
+			else if (idx >= m_first + std::uint32_t(m_capacity))
 			{
-				reserve(idx - m_first + 1);
+				reserve(int(idx - m_first + 1));
 			}
 			else if (idx < m_first)
 			{
 				// We have wrapped.
-				if (idx >= ((m_first + m_capacity) & 0xffff) && m_capacity < 0xffff)
+				if (idx >= ((m_first + std::uint32_t(m_capacity)) & 0xffff) && m_capacity < 0xffff)
 				{
-					reserve(m_capacity + (idx + 1 - ((m_first + m_capacity) & 0xffff)));
+					reserve(m_capacity + int(idx + 1 - ((m_first + std::uint32_t(m_capacity)) & 0xffff)));
 				}
 			}
 			if (compare_less_wrap(m_last, (idx + 1) & 0xffff, 0xffff))
@@ -108,8 +110,9 @@ namespace libtorrent {
 
 		if (m_capacity == 0) reserve(16);
 
-		packet_ptr old_value = std::move(m_storage[idx & (m_capacity - 1)]);
-		m_storage[idx & (m_capacity - 1)] = std::move(value);
+		index_type const mask = aux::numeric_cast<index_type>(m_capacity - 1);
+		packet_ptr old_value = std::move(m_storage[idx & mask]);
+		m_storage[idx & mask] = std::move(value);
 
 		if (m_size == 0) m_first = idx;
 		// if we're just replacing an old value, the number
@@ -123,13 +126,14 @@ namespace libtorrent {
 	packet* packet_buffer::at(index_type idx) const
 	{
 		INVARIANT_CHECK;
-		if (idx >= m_first + m_capacity)
+		TORRENT_ASSERT(m_capacity >= 0);
+		if (idx >= m_first + std::uint32_t(m_capacity))
 			return nullptr;
 
 		if (compare_less_wrap(idx, m_first, 0xffff))
 			return nullptr;
 
-		std::size_t const mask = m_capacity - 1;
+		index_type const mask = aux::numeric_cast<index_type>(m_capacity - 1);
 		return m_storage[idx & mask].get();
 	}
 
@@ -137,6 +141,7 @@ namespace libtorrent {
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT_VAL(size <= 0xffff, size);
+		TORRENT_ASSERT(m_capacity >= 0);
 		int new_size = m_capacity == 0 ? 16 : m_capacity;
 
 		while (new_size < size)
@@ -144,8 +149,10 @@ namespace libtorrent {
 
 		aux::unique_ptr<packet_ptr[], index_type> new_storage(new packet_ptr[new_size]);
 
-		for (index_type i = m_first; i < (m_first + m_capacity); ++i)
-			new_storage[i & (new_size - 1)] = std::move(m_storage[i & (m_capacity - 1)]);
+		index_type const mask = aux::numeric_cast<index_type>(m_capacity - 1);
+		for (index_type i = m_first; i < (m_first + std::uint32_t(m_capacity)); ++i)
+			new_storage[i & aux::numeric_cast<index_type>(new_size - 1)]
+				= std::move(m_storage[i & mask]);
 
 		m_storage = std::move(new_storage);
 		m_capacity = new_size;
@@ -154,14 +161,15 @@ namespace libtorrent {
 	packet_ptr packet_buffer::remove(index_type idx)
 	{
 		INVARIANT_CHECK;
+		TORRENT_ASSERT(m_capacity >= 0);
 		// TODO: use compare_less_wrap for this comparison as well
-		if (idx >= m_first + m_capacity)
+		if (idx >= m_first + std::uint32_t(m_capacity))
 			return packet_ptr();
 
 		if (compare_less_wrap(idx, m_first, 0xffff))
 			return packet_ptr();
 
-		std::size_t const mask = m_capacity - 1;
+		index_type const mask = aux::numeric_cast<index_type>(m_capacity - 1);
 		packet_ptr old_value = std::move(m_storage[idx & mask]);
 		m_storage[idx & mask].reset();
 
@@ -192,4 +200,3 @@ namespace libtorrent {
 		return old_value;
 	}
 }
-
