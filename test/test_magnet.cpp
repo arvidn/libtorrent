@@ -395,3 +395,18 @@ TORRENT_TEST(make_magnet_uri2)
 	TEST_CHECK(magnet.find("&ws=http%3a%2f%2ffoo.com%2fbar") != std::string::npos);
 }
 
+TORRENT_TEST(trailing_whitespace)
+{
+	session ses(settings());
+	add_torrent_params p;
+	p.save_path = ".";
+	p.url = "magnet:?xt=urn:btih:abaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n";
+	// invalid hash
+	TEST_THROW(ses.add_torrent(p));
+
+	p.url = "magnet:?xt=urn:btih:abaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+	// now it's valid, because there's no trailing whitespace
+	torrent_handle h = ses.add_torrent(p);
+	TEST_CHECK(h.is_valid());
+}
+

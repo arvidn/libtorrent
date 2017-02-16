@@ -161,5 +161,13 @@ extern int EXPORT _g_test_failures;
 		TEST_ERROR("Exception thrown: " #x); \
 	}
 
+#define TEST_THROW(x) \
+	try \
+	{ \
+		x; \
+		TEST_ERROR("No exception thrown: " #x); \
+	} \
+	catch (...) {}
+
 #endif // TEST_HPP
 
