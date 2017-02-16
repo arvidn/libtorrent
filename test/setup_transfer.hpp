@@ -58,7 +58,7 @@ EXPORT libtorrent::address rand_v4();
 #if TORRENT_USE_IPV6
 EXPORT libtorrent::address rand_v6();
 #endif
-EXPORT libtorrent::tcp::endpoint rand_tcp_ep();
+EXPORT libtorrent::tcp::endpoint rand_tcp_ep(libtorrent::address(&rand_addr)() = rand_v4);
 EXPORT libtorrent::udp::endpoint rand_udp_ep(libtorrent::address(&rand_addr)() = rand_v4);
 
 EXPORT libtorrent::sha1_hash rand_hash();

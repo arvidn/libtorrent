@@ -125,7 +125,7 @@ namespace libtorrent { namespace aux
 		allocation_slot allocate(int const bytes)
 		{
 			if (bytes < 1) return allocation_slot();
-			int const ret = int(m_storage.size());
+			int const ret = m_storage.end_index();
 			m_storage.resize(ret + bytes);
 			return allocation_slot(ret);
 		}

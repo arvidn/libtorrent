@@ -1922,43 +1922,40 @@ namespace libtorrent
 		, std::vector<tcp::endpoint> const& peers)
 		: info_hash(ih)
 		, m_alloc(alloc)
-		, m_num_peers(aux::numeric_cast<int>(peers.size()))
 	{
-#if TORRENT_USE_IPV6
-		int total_size = m_num_peers; // num bytes for sizes
 		for (auto const& endp : peers)
 		{
-			total_size += endp.protocol() == tcp::v4() ? 6 : 18;
+			if (endp.protocol() == tcp::v4())
+				m_v4_num_peers++;
+			else
+				m_v6_num_peers++;
 		}
-#else
-		int total_size = m_num_peers * 6;
-#endif
 
-		m_peers_idx = alloc.allocate(total_size);
+		m_v4_peers_idx = alloc.allocate(m_v4_num_peers * 6);
+		m_v6_peers_idx = alloc.allocate(m_v6_num_peers * 18);
 
-		char* ptr = alloc.ptr(m_peers_idx);
+		char* v4_ptr = alloc.ptr(m_v4_peers_idx);
+		char* v6_ptr = alloc.ptr(m_v6_peers_idx);
 		for (auto const& endp : peers)
 		{
-#if TORRENT_USE_IPV6
-			int const size = endp.protocol() == tcp::v4() ? 6 : 18;
-			detail::write_int8(size, ptr);
-			detail::write_endpoint(endp, ptr);
-#else
-			detail::write_endpoint(endp, ptr);
-#endif
+			if (endp.protocol() == tcp::v4())
+				detail::write_endpoint(endp, v4_ptr);
+			else
+				detail::write_endpoint(endp, v6_ptr);
 		}
 	}
 
 	std::string dht_get_peers_reply_alert::message() const
 	{
 		char msg[200];
-		std::snprintf(msg, sizeof(msg), "incoming dht get_peers reply: %s, peers %d", aux::to_hex(info_hash).c_str(), m_num_peers);
+		std::snprintf(msg, sizeof(msg), "incoming dht get_peers reply: %s, peers %d"
+			, aux::to_hex(info_hash).c_str(), num_peers());
 		return msg;
 	}
 
 	int dht_get_peers_reply_alert::num_peers() const
 	{
-		return m_num_peers;
+		return m_v4_num_peers + m_v6_num_peers;
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -1972,21 +1969,15 @@ namespace libtorrent
 	std::vector<tcp::endpoint> dht_get_peers_reply_alert::peers() const
 	{
 		aux::vector<tcp::endpoint> peers;
-		peers.reserve(m_num_peers);
+		peers.reserve(num_peers());
 
-		char const* ptr = m_alloc.get().ptr(m_peers_idx);
-		for (int i = 0; i < m_num_peers; i++)
-		{
-#if TORRENT_USE_IPV6
-			int const size = detail::read_int8(ptr);
-			tcp::endpoint const endp = size == 6
-				? detail::read_v4_endpoint<tcp::endpoint>(ptr)
-				: detail::read_v6_endpoint<tcp::endpoint>(ptr);
-#else
-			tcp::endpoint const endp = detail::read_v4_endpoint<tcp::endpoint>(ptr);
-#endif
-			peers.push_back(endp);
-		}
+		char const* v4_ptr = m_alloc.get().ptr(m_v4_peers_idx);
+		for (int i = 0; i < m_v4_num_peers; i++)
+			peers.push_back(detail::read_v4_endpoint<tcp::endpoint>(v4_ptr));
+
+		char const* v6_ptr = m_alloc.get().ptr(m_v6_peers_idx);
+		for (int i = 0; i < m_v6_num_peers; i++)
+			peers.push_back(detail::read_v6_endpoint<tcp::endpoint>(v6_ptr));
 
 		return peers;
 	}

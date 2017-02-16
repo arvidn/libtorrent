@@ -35,6 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "setup_transfer.hpp"
 
+#include <algorithm>
+
 using namespace libtorrent;
 
 TORRENT_TEST(dht_get_peers_reply_alert)
@@ -44,9 +46,12 @@ TORRENT_TEST(dht_get_peers_reply_alert)
 	TEST_EQUAL(mgr.should_post<dht_get_peers_reply_alert>(), true);
 
 	sha1_hash const ih = rand_hash();
-	tcp::endpoint const ep1 = rand_tcp_ep();
-	tcp::endpoint const ep2 = rand_tcp_ep();
-	std::vector<tcp::endpoint> const v = {ep1, ep2};
+	tcp::endpoint const ep1 = rand_tcp_ep(rand_v4);
+	tcp::endpoint const ep2 = rand_tcp_ep(rand_v4);
+	tcp::endpoint const ep3 = rand_tcp_ep(rand_v4);
+	tcp::endpoint const ep4 = rand_tcp_ep(rand_v6);
+	tcp::endpoint const ep5 = rand_tcp_ep(rand_v6);
+	std::vector<tcp::endpoint> const v = {ep1, ep2, ep3, ep4, ep5};
 
 	mgr.emplace_alert<dht_get_peers_reply_alert>(ih, v);
 
@@ -54,6 +59,9 @@ TORRENT_TEST(dht_get_peers_reply_alert)
 	TEST_CHECK(a != nullptr);
 
 	TEST_EQUAL(a->info_hash, ih);
-	TEST_EQUAL(a->num_peers(), 2);
-	TEST_CHECK(a->peers() == v);
+	TEST_EQUAL(a->num_peers(), 5);
+
+	std::vector<tcp::endpoint> const peers = a->peers();
+	TEST_EQUAL(peers.size(), 5);
+	TEST_CHECK(std::includes(peers.begin(), peers.end(), v.begin(), v.end()));
 }
