@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/file.hpp"
 #include "libtorrent/random.hpp"
+#include "libtorrent/aux_/escape_string.hpp"
 #include <csignal>
 
 #ifdef _WIN32
@@ -217,6 +218,51 @@ void print_usage(char const* executable)
 		"by -l. If no test is specified, all tests are run\n", executable);
 }
 
+void change_directory(std::string const& f, error_code& ec)
+{
+	ec.clear();
+
+#ifdef TORRENT_WINDOWS
+#if TORRENT_USE_WSTRING
+#define SetCurrentDirectory_ SetCurrentDirectoryW
+	std::wstring n = convert_to_wstring(f);
+#else
+#define SetCurrentDirectory_ SetCurrentDirectoryA
+	std::string const& n = convert_to_native(f);
+#endif // TORRENT_USE_WSTRING
+
+	if (SetCurrentDirectory_(n.c_str()) == 0)
+		ec.assign(GetLastError(), system_category());
+#else
+	std::string n = convert_to_native(f);
+	int ret = ::chdir(n.c_str());
+	if (ret != 0)
+		ec.assign(errno, system_category());
+#endif
+}
+
+struct unit_directory_guard
+{
+	std::string dir;
+	unit_directory_guard(unit_directory_guard const&) = delete;
+	unit_directory_guard& operator=(unit_directory_guard const&) = delete;
+	~unit_directory_guard()
+	{
+		if (keep_files) return;
+		error_code ec;
+		std::string const parent_dir = parent_path(dir);
+		// windows will not allow to remove current dir, so let's change it to root
+		change_directory(parent_dir, ec);
+		if (ec)
+		{
+			TEST_ERROR("Failed to change directory: " + ec.message());
+			return;
+		}
+		remove_all(dir, ec);
+		if (ec) TEST_ERROR("Failed to remove unit test directory: " + ec.message());
+	}
+};
+
 EXPORT int main(int argc, char const* argv[])
 {
 	char const* executable = argv[0];
@@ -315,32 +361,12 @@ EXPORT int main(int argc, char const* argv[])
 #else
 	process_id = getpid();
 #endif
+	std::string root_dir = current_working_directory();
 	char dir[40];
-	std::snprintf(dir, sizeof(dir), "test_tmp_%u", process_id);
-	std::string test_dir = complete(dir);
-	error_code ec;
-	create_directory(test_dir, ec);
-	if (ec)
-	{
-		std::printf("Failed to create test directory: %s\n", ec.message().c_str());
-		return 1;
-	}
-	int ret;
-#ifdef TORRENT_WINDOWS
-	SetCurrentDirectoryA(dir);
-#else
-	ret = chdir(dir);
-	if (ret != 0)
-	{
-		std::printf("failed to change directory to \"%s\": %s"
-			, dir, strerror(errno));
-		return 1;
-	}
-#endif
-	std::printf("test: %s\ncwd = \"%s\"\nrnd: %x\n"
-		, executable, test_dir.c_str(), libtorrent::random(0xffffffff));
-
-	int total_failures = 0;
+	snprintf(dir, sizeof(dir), "test_tmp_%u", process_id);
+	std::string unit_dir_prefix = combine_path(root_dir, dir);
+	std::printf("test: %s\ncwd_prefix = \"%s\"\nrnd = %x\n"
+		, executable, unit_dir_prefix.c_str(), libtorrent::random(0xffffffff));
 
 	if (_g_num_unit_tests == 0)
 	{
@@ -356,6 +382,25 @@ EXPORT int main(int argc, char const* argv[])
 	{
 		if (filter && tests_to_run.count(_g_unit_tests[i].name) == 0)
 			continue;
+
+		std::string unit_dir = unit_dir_prefix;
+		char i_str[40];
+		snprintf(i_str, sizeof(i_str), "%u", i);
+		unit_dir.append(i_str);
+		error_code ec;
+		create_directory(unit_dir, ec);
+		if (ec)
+		{
+			std::printf("Failed to create unit test directory: %s\n", ec.message().c_str());
+			return 1;
+		}
+		unit_directory_guard unit_dir_guard{unit_dir};
+		change_directory(unit_dir, ec);
+		if (ec)
+		{
+			std::printf("Failed to change unit test directory: %s\n", ec.message().c_str());
+			return 1;
+		}
 
 		unit_test_t& t = _g_unit_tests[i];
 
@@ -399,7 +444,6 @@ EXPORT int main(int argc, char const* argv[])
 		try
 		{
 #endif
-
 			_g_test_failures = 0;
 			(*t.fun)();
 #ifndef BOOST_NO_EXCEPTIONS
@@ -434,7 +478,6 @@ EXPORT int main(int argc, char const* argv[])
 
 		t.num_failures = _g_test_failures;
 		t.run = true;
-		total_failures += _g_test_failures;
 		++num_run;
 
 		if (redirect_stdout && t.output)
@@ -471,16 +514,6 @@ EXPORT int main(int argc, char const* argv[])
 	if (redirect_stdout) fflush(stdout);
 	if (redirect_stderr) fflush(stderr);
 
-	ret = print_failures();
-#if !defined TORRENT_LOGGING
-	if (ret == 0 && !keep_files)
-	{
-		remove_all(test_dir, ec);
-		if (ec)
-			std::printf("failed to remove test dir: %s\n", ec.message().c_str());
-	}
-#endif
-
-	return total_failures ? 333 : 0;
+	return print_failures() ? 333 : 0;
 }
 

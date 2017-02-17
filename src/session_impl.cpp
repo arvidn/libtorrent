@@ -588,12 +588,11 @@ namespace aux {
 		TORRENT_ASSERT(is_single_thread());
 
 #ifndef TORRENT_DISABLE_LOGGING
-		// this alert is a bit special. Since it's so verbose it's not only
-		// filtered by its own alert type (log_alert) but also whether session
-		// stats alerts are actually enabled. Without session_stats alerts the
-		// headers aren't very useful anyway
+		// this alert is a bit special. The stats headers aren't very useful
+		// unless session_stats is enabled, sp it's posted in the session_Stats
+		// category as well
 		if (m_alerts.should_post<log_alert>()
-			&& m_alerts.should_post<session_stats_alert>())
+			|| m_alerts.should_post<session_stats_alert>())
 		{
 			session_log(" *** session thread init");
 

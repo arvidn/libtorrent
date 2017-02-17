@@ -251,10 +251,10 @@ namespace libtorrent
 			// in a swarm has the same IP address.
 			allow_multiple_connections_per_ip = bool_type_base,
 
+#ifndef TORRENT_NO_DEPRECATE
 			// if set to true, upload, download and unchoke limits are ignored for
 			// peers on the local network. This option is *DEPRECATED*, please use
 			// set_peer_class_filter() instead.
-#ifndef TORRENT_NO_DEPRECATE
 			ignore_limits_on_local_network,
 #else
 			deprecated1,
@@ -946,7 +946,7 @@ namespace libtorrent
 			//   still allocates all upload capacity, but shuffles it around to
 			//   the best peers first. For this choker to be efficient, you need
 			//   to set a global upload rate limit
-			//   (``session::set_upload_rate_limit()``). For more information
+			//   (``settings_pack::upload_rate_limit``). For more information
 			//   about this choker, see the paper_. This choker is not fully
 			//   implemented nor tested.
 			//
@@ -1179,6 +1179,7 @@ namespace libtorrent
 			// allowed to grow to.
 			max_peer_recv_buffer_size,
 
+#ifndef TORRENT_NO_DEPRECATE
 			// ``file_checks_delay_per_block`` is the number of milliseconds to
 			// sleep in between disk read operations when checking torrents. This
 			// defaults to 0, but can be set to higher numbers to slow down the
@@ -1187,6 +1188,9 @@ namespace libtorrent
 			// bit longer, as long as they leave disk I/O time for other
 			// processes.
 			file_checks_delay_per_block,
+#else
+			deprecated14,
+#endif
 
 			// ``read_cache_line_size`` is the number of blocks to read into the
 			// read cache when a read cache miss occurs. Setting this to 0 is
@@ -1300,20 +1304,11 @@ namespace libtorrent
 			// share_mode_target is set to more than 3, nothing is downloaded.
 			share_mode_target,
 
-			// ``upload_rate_limit``, ``download_rate_limit``,
-			// ``local_upload_rate_limit`` and ``local_download_rate_limit`` sets
+			// ``upload_rate_limit`` and ``download_rate_limit`` sets
 			// the session-global limits of upload and download rate limits, in
-			// bytes per second. The local rates refer to peers on the local
-			// network. By default peers on the local network are not rate
+			// bytes per second. By default peers on the local network are not rate
 			// limited.
-			//
-			// These rate limits are only used for local peers (peers within the
-			// same subnet as the client itself) and it is only used when
-			// ``ignore_limits_on_local_network`` is set to true (which it is by
-			// default). These rate limits default to unthrottled, but can be
-			// useful in case you want to treat local peers preferentially, but
-			// not quite unthrottled.
-			//
+			// 
 			// A value of 0 means unlimited.
 			upload_rate_limit,
 			download_rate_limit,

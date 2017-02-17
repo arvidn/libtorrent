@@ -1558,6 +1558,8 @@ namespace libtorrent
 	// This alert is posted approximately once every second, and it contains
 	// byte counters of most statistics that's tracked for torrents. Each active
 	// torrent posts these alerts regularly.
+	// This alert has been superceded by calling ``post_torrent_updates()``
+	// regularly on the session object. This alert will be removed
 	struct TORRENT_EXPORT stats_alert final : torrent_alert
 	{
 		// internal
@@ -2440,7 +2442,7 @@ namespace libtorrent
 	// this is posted when one or more blocks are picked by the piece picker,
 	// assuming the verbose piece picker logging is enabled (see
 	// picker_log_notification).
-	struct TORRENT_EXPORT picker_log_alert : peer_alert
+	struct TORRENT_EXPORT picker_log_alert final : peer_alert
 	{
 		// internal
 		picker_log_alert(aux::stack_allocator& alloc, torrent_handle const& h

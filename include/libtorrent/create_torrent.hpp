@@ -40,6 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/aux_/vector.hpp"
+#include "libtorrent/file.hpp" // for combine_path etc.
+#include "libtorrent/version.hpp"
 
 #include <vector>
 #include <string>

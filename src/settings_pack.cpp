@@ -262,7 +262,7 @@ namespace libtorrent
 		SET(recv_socket_buffer_size, 0, &session_impl::update_socket_buffer_size),
 		SET(send_socket_buffer_size, 0, &session_impl::update_socket_buffer_size),
 		SET(max_peer_recv_buffer_size, 2 * 1024 * 1024, nullptr),
-		SET(file_checks_delay_per_block, 0, nullptr),
+		DEPRECATED_SET(file_checks_delay_per_block, 0, nullptr),
 		SET(read_cache_line_size, 32, nullptr),
 		SET(write_cache_line_size, 16, nullptr),
 		SET(optimistic_disk_retry, 10 * 60, nullptr),

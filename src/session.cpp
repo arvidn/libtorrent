@@ -79,11 +79,6 @@ namespace libtorrent
 		// connect to 5 peers per second
 		set.set_int(settings_pack::connection_speed, 5);
 
-		// be extra nice on the hard drive when running
-		// on embedded devices. This might slow down
-		// torrent checking
-		set.set_int(settings_pack::file_checks_delay_per_block, 5);
-
 		// only have 4 files open at a time
 		set.set_int(settings_pack::file_pool_size, 4);
 
