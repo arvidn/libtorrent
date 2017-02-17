@@ -1189,7 +1189,7 @@ namespace libtorrent
 			// processes.
 			file_checks_delay_per_block,
 #else
-			deprecated14,
+			deprecated23,
 #endif
 
 			// ``read_cache_line_size`` is the number of blocks to read into the
@@ -1308,7 +1308,7 @@ namespace libtorrent
 			// the session-global limits of upload and download rate limits, in
 			// bytes per second. By default peers on the local network are not rate
 			// limited.
-			// 
+			//
 			// A value of 0 means unlimited.
 			upload_rate_limit,
 			download_rate_limit,

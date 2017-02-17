@@ -80,14 +80,18 @@ namespace libtorrent
 				|| std::is_enum<In>::value>::type>
 		inline void write_impl(In data, OutIt& start)
 		{
-			T val = T(data);
-			TORRENT_ASSERT(data == In(val));
+			T val = static_cast<T>(data);
+			TORRENT_ASSERT(data == static_cast<In>(val));
 			for (int i = int(sizeof(T)) - 1; i >= 0; --i)
 			{
 				*start = static_cast<unsigned char>((val >> (i * 8)) & 0xff);
 				++start;
 			}
 		}
+
+		template <class T, class OutIt>
+		inline void write_impl(bool val, OutIt& start)
+		{ write_impl<std::uint8_t>(val ? 1 : 0, start); }
 
 		// -- adaptors
 

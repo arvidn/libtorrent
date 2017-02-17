@@ -861,10 +861,10 @@ namespace libtorrent
 			return;
 		m_fast_reconnect = r;
 		peer_info_struct()->last_connected = std::uint16_t(m_ses.session_time());
-		int rewind = m_settings.get_int(settings_pack::min_reconnect_time)
+		int const rewind = m_settings.get_int(settings_pack::min_reconnect_time)
 			* m_settings.get_int(settings_pack::max_failcount);
-		if (peer_info_struct()->last_connected < rewind) peer_info_struct()->last_connected = 0;
-		else peer_info_struct()->last_connected -= rewind;
+		if (int(peer_info_struct()->last_connected) < rewind) peer_info_struct()->last_connected = 0;
+		else peer_info_struct()->last_connected -= std::uint16_t(rewind);
 
 		if (peer_info_struct()->fast_reconnects < 15)
 			++peer_info_struct()->fast_reconnects;

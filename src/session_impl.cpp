@@ -3155,9 +3155,10 @@ namespace aux {
 		m_ssl_utp_socket_manager.decay();
 #endif
 
-		int tick_interval_ms = int(total_milliseconds(now - m_last_second_tick));
+		int const tick_interval_ms = aux::numeric_cast<int>(total_milliseconds(now - m_last_second_tick));
 		m_last_second_tick = now;
-		m_tick_residual += tick_interval_ms - 1000;
+		m_tick_residual = aux::numeric_cast<std::int16_t>(m_tick_residual + tick_interval_ms - 1000);
+		TORRENT_ASSERT(m_tick_residual >= 0);
 
 		std::int32_t const stime = session_time();
 		if (stime > 65000)

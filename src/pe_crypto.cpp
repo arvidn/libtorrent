@@ -81,8 +81,8 @@ namespace libtorrent
 		return ret;
 	}
 
-	void rc4_init(const unsigned char* in, unsigned long len, rc4 *state);
-	unsigned long rc4_encrypt(unsigned char *out, unsigned long outlen, rc4 *state);
+	void rc4_init(const unsigned char* in, std::size_t len, rc4 *state);
+	std::size_t rc4_encrypt(unsigned char *out, std::size_t outlen, rc4 *state);
 
 	// Set the prime P and the generator, generate local public key
 	dh_key_exchange::dh_key_exchange()
@@ -349,9 +349,9 @@ namespace libtorrent
 // this library is public domain and has been specially
 // tailored for libtorrent by Arvid Norberg
 
-void rc4_init(const unsigned char* in, unsigned long len, rc4 *state)
+void rc4_init(const unsigned char* in, std::size_t len, rc4 *state)
 {
-	size_t const key_size = sizeof(state->buf);
+	std::size_t const key_size = sizeof(state->buf);
 	aux::array<std::uint8_t, key_size> key;
 	std::uint8_t tmp, *s;
 	int keylen, x, y, j;
@@ -386,10 +386,10 @@ void rc4_init(const unsigned char* in, unsigned long len, rc4 *state)
 	state->y = 0;
 }
 
-unsigned long rc4_encrypt(unsigned char *out, unsigned long outlen, rc4 *state)
+std::size_t rc4_encrypt(unsigned char *out, std::size_t outlen, rc4 *state)
 {
 	std::uint8_t x, y, *s, tmp;
-	unsigned long n;
+	std::size_t n;
 
 	TORRENT_ASSERT(out != nullptr);
 	TORRENT_ASSERT(state != nullptr);
