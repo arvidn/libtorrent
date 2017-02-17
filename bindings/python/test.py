@@ -13,7 +13,7 @@ class test_create_torrent(unittest.TestCase):
 
 	def test_from_torrent_info(self):
 		ti = lt.torrent_info('unordered.torrent')
-		ct = lt.create_torrent(ti)
+		ct = lt.create_torrent(ti, True)
 		entry = ct.generate()
 		content = lt.bencode(entry).strip()
 		with open('unordered.torrent', 'rb') as f:
