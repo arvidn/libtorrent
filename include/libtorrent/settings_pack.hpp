@@ -1189,7 +1189,7 @@ namespace libtorrent
 			// processes.
 			file_checks_delay_per_block,
 #else
-			deprecated14,
+			deprecated23,
 #endif
 
 			// ``read_cache_line_size`` is the number of blocks to read into the
