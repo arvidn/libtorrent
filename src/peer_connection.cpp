@@ -5299,8 +5299,11 @@ namespace libtorrent
 		}
 		else
 		{
-			TORRENT_ASSERT(t->verifying_piece(j->piece));
-			if (t->seed_mode()) t->verified(j->piece);
+			if (t->seed_mode())
+			{
+				TORRENT_ASSERT(t->verifying_piece(j->piece));
+				t->verified(j->piece);
+			}
 
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "SEED_MODE_FILE_HASH"
