@@ -1991,7 +1991,7 @@ namespace libtorrent
 		// only, since they might disconnect immediately when
 		// they have downloaded a single piece, although we'll
 		// make another piece available
-		detail::write_uint8(t->is_upload_only() && !t->super_seeding(), ptr);
+		detail::write_uint8(std::uint8_t(t->is_upload_only() && !t->super_seeding()), ptr);
 		send_buffer(msg, sizeof(msg));
 
 		stats_counters().inc_stats_counter(counters::num_outgoing_extended);
