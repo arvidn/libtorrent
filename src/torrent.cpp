@@ -523,7 +523,7 @@ namespace libtorrent
 		TORRENT_ASSERT(new_gauge_state >= 0);
 		TORRENT_ASSERT(new_gauge_state <= no_gauge_state);
 
-		if (new_gauge_state == m_current_gauge_state) return;
+		if (new_gauge_state == int(m_current_gauge_state)) return;
 
 		if (m_current_gauge_state != no_gauge_state)
 			inc_stats_counter(m_current_gauge_state + counters::num_checking_torrents, -1);
@@ -2919,14 +2919,14 @@ namespace libtorrent
 			downloaded = (std::max)(t.scrape_downloaded, downloaded);
 		}
 
-		if ((complete >= 0 && m_complete != complete)
-			|| (incomplete >= 0 && m_incomplete != incomplete)
-			|| (downloaded >= 0 && m_downloaded != downloaded))
+		if ((complete >= 0 && int(m_complete) != complete)
+			|| (incomplete >= 0 && int(m_incomplete) != incomplete)
+			|| (downloaded >= 0 && int(m_downloaded) != downloaded))
 			state_updated();
 
-		if (m_complete != complete
-			|| m_incomplete != incomplete
-			|| m_downloaded != downloaded)
+		if (int(m_complete) != complete
+			|| int(m_incomplete) != incomplete
+			|| int(m_downloaded) != downloaded)
 		{
 			m_complete = std::uint32_t(complete);
 			m_incomplete = std::uint32_t(incomplete);
@@ -3419,7 +3419,7 @@ namespace libtorrent
 
 		std::vector<file_slice> files = fs.map_block(
 			p.piece_index, offset, (std::min)(piece_size - offset, block_size()));
-		int ret = 0;
+		std::int64_t ret = 0;
 		for (std::vector<file_slice>::iterator i = files.begin()
 			, end(files.end()); i != end; ++i)
 		{
@@ -3427,7 +3427,7 @@ namespace libtorrent
 			ret += i->size;
 		}
 		TORRENT_ASSERT(ret <= (std::min)(piece_size - offset, block_size()));
-		return ret;
+		return aux::numeric_cast<int>(ret);
 	}
 
 	// fills in total_wanted, total_wanted_done and total_done
@@ -5385,8 +5385,8 @@ namespace libtorrent
 
 			TORRENT_ASSERT(pp->prev_amount_upload == 0);
 			TORRENT_ASSERT(pp->prev_amount_download == 0);
-			pp->prev_amount_download += p->statistics().total_payload_download() >> 10;
-			pp->prev_amount_upload += p->statistics().total_payload_upload() >> 10;
+			pp->prev_amount_download += aux::numeric_cast<std::uint32_t>(p->statistics().total_payload_download() >> 10);
+			pp->prev_amount_upload += aux::numeric_cast<std::uint32_t>(p->statistics().total_payload_upload() >> 10);
 
 			if (pp->seed)
 			{
@@ -7997,7 +7997,7 @@ namespace libtorrent
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(limit >= -1);
 		if (limit <= 0) limit = (1 << 24) - 1;
-		if (m_max_uploads != limit && state_update) state_updated();
+		if (int(m_max_uploads)!= limit && state_update) state_updated();
 		m_max_uploads = aux::numeric_cast<std::uint32_t>(limit);
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("*** set-max-uploads: %d", m_max_uploads);
@@ -8012,7 +8012,7 @@ namespace libtorrent
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(limit >= -1);
 		if (limit <= 0) limit = (1 << 24) - 1;
-		if (m_max_connections != limit && state_update) state_updated();
+		if (int(m_max_connections) != limit && state_update) state_updated();
 		m_max_connections = aux::numeric_cast<std::uint32_t>(limit);
 		update_want_peers();
 
@@ -9421,7 +9421,7 @@ namespace libtorrent
 
 			// only allow a single additional request per block, in order
 			// to spread it out evenly across all stalled blocks
-			if (info[k].num_peers > timed_out)
+			if (int(info[k].num_peers) > timed_out)
 				continue;
 
 			busy_blocks[busy_count].peers = info[k].num_peers;

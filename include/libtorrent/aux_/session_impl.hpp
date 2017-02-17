@@ -1194,7 +1194,7 @@ namespace libtorrent
 			// this keeps the timers more accurate over time
 			// as a kind of "leap second" to adjust for the
 			// accumulated error
-			std::uint16_t m_tick_residual = 0;
+			std::int16_t m_tick_residual = 0;
 
 #ifndef TORRENT_DISABLE_LOGGING
 			virtual bool should_log() const override;
