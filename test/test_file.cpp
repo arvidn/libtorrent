@@ -170,15 +170,6 @@ TORRENT_TEST(paths)
 	TEST_EQUAL(combine_path("test1", "test2"), "test1/test2");
 #endif
 
-#if TORRENT_USE_UNC_PATHS
-	TEST_EQUAL(canonicalize_path("c:\\a\\..\\b"), "c:\\b");
-	TEST_EQUAL(canonicalize_path("a\\..\\b"), "b");
-	TEST_EQUAL(canonicalize_path("a\\..\\.\\b"), "b");
-	TEST_EQUAL(canonicalize_path("\\.\\a"), "\\a");
-	TEST_EQUAL(canonicalize_path("\\\\bla\\.\\a"), "\\\\bla\\a");
-	TEST_EQUAL(canonicalize_path("c:\\bla\\a"), "c:\\bla\\a");
-#endif
-
 	TEST_EQUAL(extension("blah"), "");
 	TEST_EQUAL(extension("blah.exe"), ".exe");
 	TEST_EQUAL(extension("blah.foo.bar"), ".bar");
@@ -408,3 +399,121 @@ TORRENT_TEST(stat_file)
 	TEST_CHECK(ec);
 	TEST_EQUAL(ec, boost::system::errc::no_such_file_or_directory);
 }
+
+// specificaly UNC tests
+#if TORRENT_USE_UNC_PATHS
+
+std::tuple<int, bool> fill_current_directory_caps()
+{
+#ifdef TORRENT_WINDOWS
+	error_code ec;
+	DWORD dw_maximum_component_length;
+	DWORD dw_file_system_flags;
+	if (!GetVolumeInformationA(nullptr, nullptr, 0, nullptr, &dw_maximum_component_length, &dw_file_system_flags, nullptr, 0))
+	{
+		ec.assign(GetLastError(), system_category());
+		std::printf("GetVolumeInformation: [%s] %s\n"
+			, ec.category().name(), ec.message().c_str());
+		return std::make_tuple(0, false);
+	}
+	int maximum_component_length = int(dw_maximum_component_length);
+	bool support_hard_links = ((dw_file_system_flags & FILE_SUPPORTS_HARD_LINKS) != 0);
+	return std::make_tuple(maximum_component_length, support_hard_links);
+#else
+	return std::make_tuple(TORRENT_MAX_PATH, true);
+#endif
+}
+
+TORRENT_TEST(unc_tests)
+{
+	TEST_EQUAL(canonicalize_path("c:\\a\\..\\b"), "c:\\b");
+	TEST_EQUAL(canonicalize_path("a\\..\\b"), "b");
+	TEST_EQUAL(canonicalize_path("a\\..\\.\\b"), "b");
+	TEST_EQUAL(canonicalize_path("\\.\\a"), "\\a");
+	TEST_EQUAL(canonicalize_path("\\\\bla\\.\\a"), "\\\\bla\\a");
+	TEST_EQUAL(canonicalize_path("c:\\bla\\a"), "c:\\bla\\a");
+
+	error_code ec;
+
+	std::vector<std::string> special_names
+	{
+		"CON", "PRN", "AUX", "NUL",
+		"COM1", "COM2", "COM3", "COM4",
+		"COM5", "COM6", "COM7", "COM8",
+		"COM9", "LPT1", "LPT2", "LPT3",
+		"LPT4", "LPT5", "LPT6", "LPT7",
+		"LPT8", "LPT9"
+	};
+
+	for (std::string special_name : special_names)
+	{
+		TEST_EQUAL(touch_file(special_name, 10), 0);
+		TEST_CHECK(lt::exists(special_name));
+		lt::remove(special_name, ec);
+		TEST_EQUAL(ec, error_code());
+		TEST_CHECK(!lt::exists(special_name));
+	}
+
+	int maximum_component_length;
+	bool support_hard_links;
+	std::tie(maximum_component_length, support_hard_links) = fill_current_directory_caps();
+
+	if (maximum_component_length > 0)
+	{
+		std::string long_component_name;
+		long_component_name.resize(maximum_component_length);
+		for (int i = 0; i < maximum_component_length; ++i)
+			long_component_name[i] = static_cast<char>((i % 26) + 'A');
+
+		std::string long_file_name1 =  combine_path(long_component_name, long_component_name);
+		long_file_name1.back() = '1';
+		std::string long_file_name2 { long_file_name1 };
+		long_file_name2.back() = '2';
+
+		error_code ec;
+
+		lt::create_directory(long_component_name, ec);
+		TEST_EQUAL(ec, error_code());
+		TEST_CHECK(lt::exists(long_component_name));
+		TEST_CHECK(lt::is_directory(long_component_name, ec));
+
+		TEST_EQUAL(touch_file(long_file_name1, 10), 0);
+		TEST_CHECK(lt::exists(long_file_name1));
+
+		lt::rename(long_file_name1, long_file_name2, ec);
+		TEST_EQUAL(ec, error_code());
+		TEST_CHECK(!lt::exists(long_file_name1));
+		TEST_CHECK(lt::exists(long_file_name2));
+
+		lt::copy_file(long_file_name2, long_file_name1, ec);
+		TEST_EQUAL(ec, error_code());
+		TEST_CHECK(lt::exists(long_file_name1));
+
+		std::set<std::string> files;
+
+		for (lt::directory i(long_component_name, ec); !i.done(); i.next(ec))
+		{
+			std::string f = i.file();
+			files.insert(f);
+		}
+
+		TEST_EQUAL(files.size(), 4);
+
+		lt::remove(long_file_name1, ec);
+		TEST_EQUAL(ec, error_code());
+		TEST_CHECK(!lt::exists(long_file_name1));
+
+		if (support_hard_links)
+		{
+			lt::hard_link(long_file_name2, long_file_name1, ec);
+			TEST_EQUAL(ec, error_code());
+			TEST_CHECK(lt::exists(long_file_name1));
+
+			lt::remove(long_file_name1, ec);
+			TEST_EQUAL(ec, error_code());
+			TEST_CHECK(!lt::exists(long_file_name1));
+		}
+	}
+}
+
+#endif

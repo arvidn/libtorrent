@@ -76,6 +76,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // for convert_to_wstring and convert_to_native
 #include "libtorrent/aux_/escape_string.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/aux_/throw.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -336,14 +337,19 @@ namespace libtorrent
 		return int(size);
 	}
 
-#ifdef TORRENT_WINDOWS
-	std::string convert_separators(std::string p)
+	std::string convert_from_native_path(char const* s) { return convert_from_native(s); }
+
+#if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING
+	std::string convert_from_native_path(wchar_t const* s) { return convert_from_wstring(s); }
+#endif
+
+	template <typename T>
+	std::unique_ptr<T, decltype(&std::free)> make_free_holder(T* ptr)
 	{
-		for (int i = 0; i < int(p.size()); ++i)
-			if (p[i] == '/') p[i] = '\\';
-		return p;
+		return std::unique_ptr<T, decltype(&std::free)>(ptr, &std::free);
 	}
 
+#ifdef TORRENT_WINDOWS
 	time_t file_time_to_posix(FILETIME f)
 	{
 		const std::uint64_t posix_time_offset = 11644473600LL;
@@ -356,34 +362,55 @@ namespace libtorrent
 	}
 #endif
 
+	native_path_string convert_to_native_path_string(std::string const& path)
+	{
+#ifdef TORRENT_WINDOWS
+#if TORRENT_USE_UNC_PATHS
+		std::string prepared_path;
+		// UNC paths must be absolute
+		// network paths are already UNC paths
+		if (path.substr(0,2) == "\\\\")
+			prepared_path = path;
+		else
+		{
+			std::string sep_path { path };
+			std::replace(sep_path.begin(), sep_path.end(), '/', '\\');
+			prepared_path = "\\\\?\\" + (is_complete(sep_path) ? sep_path : combine_path(current_working_directory(), sep_path));
+		}
+#else
+		std::string prepared_path { path };
+		std::replace(prepared_path.begin(), prepared_path.end(), '/', '\\');
+#endif
+
+#if TORRENT_USE_WSTRING
+		return convert_to_wstring(prepared_path);
+#else
+		return convert_to_native(prepared_path);
+#endif
+#else // TORRENT_WINDOWS
+		return convert_to_native(path);
+#endif
+	}
+
 	void stat_file(std::string const& inf, file_status* s
 		, error_code& ec, int const flags)
 	{
 		ec.clear();
+		native_path_string f = convert_to_native_path_string(inf);
 #ifdef TORRENT_WINDOWS
 
 		TORRENT_UNUSED(flags);
 
-		std::string p = convert_separators(inf);
-#if TORRENT_USE_UNC_PATHS
-		// UNC paths must be absolute
-		// network paths are already UNC paths
-		if (inf.substr(0,2) == "\\\\") p = inf;
-		else p = "\\\\?\\" + (is_complete(p) ? p : combine_path(current_working_directory(), p));
-#endif
-
 #if TORRENT_USE_WSTRING
 #define CreateFile_ CreateFileW
-		std::wstring f = convert_to_wstring(p);
 #else
 #define CreateFile_ CreateFileA
-		std::string f = convert_to_native(p);
 #endif
 
 		// in order to open a directory, we need the FILE_FLAG_BACKUP_SEMANTICS
 		HANDLE h = CreateFile_(f.c_str(), 0, FILE_SHARE_DELETE | FILE_SHARE_READ
 			| FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
-
+#undef CreateFile_
 		if (h == INVALID_HANDLE_VALUE)
 		{
 			ec.assign(GetLastError(), system_category());
@@ -413,8 +440,6 @@ namespace libtorrent
 #else
 
 		// posix version
-
-		std::string const& f = convert_to_native(inf);
 
 		struct stat ret;
 		int retval;
@@ -448,19 +473,20 @@ namespace libtorrent
 	{
 		ec.clear();
 
+		native_path_string f1 = convert_to_native_path_string(inf);
+		native_path_string f2 = convert_to_native_path_string(newf);
+
 #if TORRENT_USE_WSTRING && defined TORRENT_WINDOWS
-		std::wstring f1 = convert_to_wstring(inf);
-		std::wstring f2 = convert_to_wstring(newf);
-		if (_wrename(f1.c_str(), f2.c_str()) < 0)
+#define RenameFunction_ _wrename
 #else
-		std::string const& f1 = convert_to_native(inf);
-		std::string const& f2 = convert_to_native(newf);
-		if (::rename(f1.c_str(), f2.c_str()) < 0)
+#define RenameFunction_ ::rename
 #endif
+
+		if (RenameFunction_(f1.c_str(), f2.c_str()) < 0)
 		{
 			ec.assign(errno, generic_category());
-			return;
 		}
+#undef RenameFunction_
 	}
 
 	void create_directories(std::string const& f, error_code& ec)
@@ -483,20 +509,19 @@ namespace libtorrent
 	{
 		ec.clear();
 
+		native_path_string n = convert_to_native_path_string(f);
 #ifdef TORRENT_WINDOWS
 #if TORRENT_USE_WSTRING
 #define CreateDirectory_ CreateDirectoryW
-		std::wstring n = convert_to_wstring(f);
 #else
 #define CreateDirectory_ CreateDirectoryA
-		std::string const& n = convert_to_native(f);
 #endif // TORRENT_USE_WSTRING
 
 		if (CreateDirectory_(n.c_str(), 0) == 0
 			&& GetLastError() != ERROR_ALREADY_EXISTS)
 			ec.assign(GetLastError(), system_category());
+#undef CreateDirectory_
 #else
-		std::string n = convert_to_native(f);
 		int ret = ::mkdir(n.c_str(), 0777);
 		if (ret < 0 && errno != EEXIST)
 			ec.assign(errno, system_category());
@@ -506,16 +531,14 @@ namespace libtorrent
 	void hard_link(std::string const& file, std::string const& link
 		, error_code& ec)
 	{
+		native_path_string n_exist = convert_to_native_path_string(file);
+		native_path_string n_link = convert_to_native_path_string(link);
 #ifdef TORRENT_WINDOWS
 
 #if TORRENT_USE_WSTRING
 #define CreateHardLink_ CreateHardLinkW
-		std::wstring n_exist = convert_to_wstring(file);
-		std::wstring n_link = convert_to_wstring(link);
 #else
 #define CreateHardLink_ CreateHardLinkA
-		std::string n_exist = convert_to_native(file);
-		std::string n_link = convert_to_native(link);
 #endif
 		BOOL ret = CreateHardLink_(n_link.c_str(), n_exist.c_str(), nullptr);
 		if (ret)
@@ -523,7 +546,7 @@ namespace libtorrent
 			ec.clear();
 			return;
 		}
-
+#undef CreateHardLink_
 		// something failed. Does the filesystem not support hard links?
 		// TODO: 3 find out what error code is reported when the filesystem
 		// does not support hard links.
@@ -539,10 +562,6 @@ namespace libtorrent
 		// fall back to making a copy
 
 #else
-
-		std::string n_exist = convert_to_native(file);
-		std::string n_link = convert_to_native(link);
-
 		// assume posix's link() function exists
 		int ret = ::link(n_exist.c_str(), n_link.c_str());
 
@@ -605,32 +624,27 @@ namespace libtorrent
 	void copy_file(std::string const& inf, std::string const& newf, error_code& ec)
 	{
 		ec.clear();
+		native_path_string f1 = convert_to_native_path_string(inf);
+		native_path_string f2 = convert_to_native_path_string(newf);
+
 #ifdef TORRENT_WINDOWS
 #if TORRENT_USE_WSTRING
 #define CopyFile_ CopyFileW
-		std::wstring f1 = convert_to_wstring(inf);
-		std::wstring f2 = convert_to_wstring(newf);
 #else
 #define CopyFile_ CopyFileA
-		std::string const& f1 = convert_to_native(inf);
-		std::string const& f2 = convert_to_native(newf);
 #endif
 
 		if (CopyFile_(f1.c_str(), f2.c_str(), false) == 0)
 			ec.assign(GetLastError(), system_category());
-#elif defined __APPLE__ && defined __MACH__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
-		std::string f1 = convert_to_native(inf);
-		std::string f2 = convert_to_native(newf);
+#undef CopyFile_
 
+#elif defined __APPLE__ && defined __MACH__ && MAC_OS_X_VERSION_MIN_REQUIRED >= 1050
 		// this only works on 10.5
 		copyfile_state_t state = copyfile_state_alloc();
 		if (copyfile(f1.c_str(), f2.c_str(), state, COPYFILE_ALL) < 0)
 			ec.assign(errno, system_category());
 		copyfile_state_free(state);
 #else
-		std::string const f1 = convert_to_native(inf);
-		std::string const f2 = convert_to_native(newf);
-
 		int const infd = ::open(f1.c_str(), O_RDONLY);
 		if (infd < 0)
 		{
@@ -944,23 +958,21 @@ namespace libtorrent
 
 	std::string current_working_directory()
 	{
-#if defined TORRENT_WINDOWS && !defined TORRENT_MINGW
+#if defined TORRENT_WINDOWS
 #if TORRENT_USE_WSTRING
-		wchar_t cwd[TORRENT_MAX_PATH];
-		_wgetcwd(cwd, sizeof(cwd) / sizeof(wchar_t));
+#define GetCurrentDir_ ::_wgetcwd
 #else
-		char cwd[TORRENT_MAX_PATH];
-		_getcwd(cwd, sizeof(cwd));
+#define GetCurrentDir_ ::_getcwd
 #endif // TORRENT_USE_WSTRING
 #else
-		char cwd[TORRENT_MAX_PATH];
-		if (getcwd(cwd, sizeof(cwd)) == nullptr) return "/";
+#define GetCurrentDir_ ::getcwd
 #endif
-#if defined TORRENT_WINDOWS && !defined TORRENT_MINGW && TORRENT_USE_WSTRING
-		return convert_from_wstring(cwd);
-#else
-		return convert_from_native(cwd);
-#endif
+		auto cwd = GetCurrentDir_(nullptr, 0);
+		if (cwd == nullptr)
+			aux::throw_ex<system_error>(error_code(errno, generic_category()));
+		auto holder = make_free_holder(cwd);
+		return convert_from_native_path(cwd);
+#undef GetCurrentDir_
 	}
 
 #if TORRENT_USE_UNC_PATHS
@@ -1057,24 +1069,21 @@ namespace libtorrent
 	void remove(std::string const& inf, error_code& ec)
 	{
 		ec.clear();
+		native_path_string f = convert_to_native_path_string(inf);
 
 #ifdef TORRENT_WINDOWS
 		// windows does not allow trailing / or \ in
 		// the path when removing files
-		std::string pruned;
-		if (inf[inf.size() - 1] == '/'
-			|| inf[inf.size() - 1] == '\\')
-			pruned = inf.substr(0, inf.size() - 1);
-		else
-			pruned = inf;
+		while (!f.empty() && (
+			f.back() == '/' ||
+			f.back() == '\\'
+			)) f.pop_back();
 #if TORRENT_USE_WSTRING
 #define DeleteFile_ DeleteFileW
 #define RemoveDirectory_ RemoveDirectoryW
-		std::wstring f = convert_to_wstring(pruned);
 #else
 #define DeleteFile_ DeleteFileA
 #define RemoveDirectory_ RemoveDirectoryA
-		std::string f = convert_to_native(pruned);
 #endif
 		if (DeleteFile_(f.c_str()) == 0)
 		{
@@ -1086,8 +1095,9 @@ namespace libtorrent
 			ec.assign(GetLastError(), system_category());
 			return;
 		}
+#undef DeleteFile_
+#undef RemoveDirectory_
 #else // TORRENT_WINDOWS
-		std::string const& f = convert_to_native(inf);
 		if (::remove(f.c_str()) < 0)
 		{
 			ec.assign(errno, system_category());
@@ -1149,40 +1159,43 @@ namespace libtorrent
 		: m_done(false)
 	{
 		ec.clear();
+		std::string p{ path };
+
 #ifdef TORRENT_WINDOWS
-		m_inode = 0;
 		// the path passed to FindFirstFile() must be
 		// a pattern
-		std::string f = convert_separators(path);
-		if (!f.empty() && f[f.size()-1] != '\\') f += "\\*";
-		else f += "*";
+		p.append((!p.empty() && p.back() != '\\') ? "\\*" : "*");
+#else
+		// the path passed to opendir() may not
+		// end with a /
+		if (!p.empty() && p.back() == '/')
+			p.pop_back();
+#endif
+
+		native_path_string f = convert_to_native_path_string(p);
+
+#ifdef TORRENT_WINDOWS
+		m_inode = 0;
+
 #if TORRENT_USE_WSTRING
 #define FindFirstFile_ FindFirstFileW
-		std::wstring p = convert_to_wstring(f);
 #else
 #define FindFirstFile_ FindFirstFileA
-		std::string p = convert_to_native(f);
 #endif
-		m_handle = FindFirstFile_(p.c_str(), &m_fd);
+		m_handle = FindFirstFile_(f.c_str(), &m_fd);
 		if (m_handle == INVALID_HANDLE_VALUE)
 		{
 			ec.assign(GetLastError(), system_category());
 			m_done = true;
 			return;
 		}
+#undef FindFirstFile_
 #else
 
 		std::memset(&m_dirent, 0, sizeof(dirent));
 		m_name[0] = 0;
 
-		// the path passed to opendir() may not
-		// end with a /
-		std::string p = path;
-		if (!path.empty() && path[path.size()-1] == '/')
-			p.resize(path.size()-1);
-
-		p = convert_to_native(p);
-		m_handle = ::opendir(p.c_str());
+		m_handle = ::opendir(f.c_str());
 		if (m_handle == nullptr)
 		{
 			ec.assign(errno, system_category());
@@ -1216,11 +1229,7 @@ namespace libtorrent
 	std::string directory::file() const
 	{
 #ifdef TORRENT_WINDOWS
-#if TORRENT_USE_WSTRING
-		return convert_from_wstring(m_fd.cFileName);
-#else
-		return convert_from_native(m_fd.cFileName);
-#endif
+		return convert_from_native_path(m_fd.cFileName);
 #else
 		return convert_from_native(m_dirent.d_name);
 #endif
@@ -1242,6 +1251,7 @@ namespace libtorrent
 			if (err != ERROR_NO_MORE_FILES)
 				ec.assign(err, system_category());
 		}
+#undef FindNextFile_
 		++m_inode;
 #else
 		dirent* dummy;
@@ -1330,6 +1340,7 @@ namespace libtorrent
 	bool file::open(std::string const& path, int mode, error_code& ec)
 	{
 		close();
+		native_path_string file_path = convert_to_native_path_string(path);
 
 #ifdef TORRENT_WINDOWS
 
@@ -1357,20 +1368,10 @@ namespace libtorrent
 			FILE_ATTRIBUTE_HIDDEN, // hidden + executable
 		};
 
-		std::string p = convert_separators(path);
-#if TORRENT_USE_UNC_PATHS
-		// UNC paths must be absolute
-		// network paths are already UNC paths
-		if (path.substr(0,2) == "\\\\") p = path;
-		else p = "\\\\?\\" + (is_complete(p) ? p : combine_path(current_working_directory(), p));
-#endif
-
 #if TORRENT_USE_WSTRING
 #define CreateFile_ CreateFileW
-		std::wstring file_path = convert_to_wstring(p);
 #else
 #define CreateFile_ CreateFileA
-		std::string file_path = convert_to_native(p);
 #endif
 
 		TORRENT_ASSERT((mode & rw_mask) < sizeof(mode_array)/sizeof(mode_array[0]));
@@ -1389,6 +1390,8 @@ namespace libtorrent
 		handle_type handle = CreateFile_(file_path.c_str(), m.rw_mode
 			, (mode & lock_file) ? FILE_SHARE_READ : FILE_SHARE_READ | FILE_SHARE_WRITE
 			, 0, m.create_mode, flags, 0);
+
+#undef CreateFile_
 
 		if (handle == INVALID_HANDLE_VALUE)
 		{
@@ -1436,7 +1439,7 @@ namespace libtorrent
 #endif
 			;
 
-		handle_type handle = ::open(convert_to_native(path).c_str()
+		handle_type handle = ::open(file_path.c_str()
 			, mode_array[mode & rw_mask] | open_mode
 			, permissions);
 
@@ -1448,7 +1451,7 @@ namespace libtorrent
 		{
 			mode &= ~no_atime;
 			open_mode &= ~O_NOATIME;
-			handle = ::open(convert_to_native(path).c_str(), mode_array[mode & rw_mask] | open_mode
+			handle = ::open(file_path.c_str(), mode_array[mode & rw_mask] | open_mode
 				, permissions);
 		}
 #endif
