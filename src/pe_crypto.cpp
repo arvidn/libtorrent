@@ -286,7 +286,7 @@ namespace libtorrent
 	{
 		m_decrypt = true;
 		rc4_init(reinterpret_cast<unsigned char const*>(key.data())
-			, key.size(), &m_rc4_incoming);
+			, static_cast<unsigned long>(key.size()), &m_rc4_incoming);
 		// Discard first 1024 bytes
 		char buf[1024];
 		span<char> vec(buf, sizeof(buf));
@@ -297,7 +297,7 @@ namespace libtorrent
 	{
 		m_encrypt = true;
 		rc4_init(reinterpret_cast<unsigned char const*>(key.data())
-			, key.size(), &m_rc4_outgoing);
+			, static_cast<unsigned long>(key.size()), &m_rc4_outgoing);
 		// Discard first 1024 bytes
 		char buf[1024];
 		span<char> vec(buf, sizeof(buf));
