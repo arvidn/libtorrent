@@ -224,7 +224,7 @@ std::string generate_content(lt::file_storage const& fs, file_index_t file
 	, std::int64_t offset, std::int64_t len)
 {
 	std::string ret;
-	ret.reserve(len);
+	ret.reserve(lt::aux::numeric_cast<std::size_t>(len));
 	std::int64_t const file_offset = fs.file_offset(file);
 	int const piece_size = fs.piece_length();
 	for (std::int64_t i = offset + file_offset; i < offset + file_offset + len; ++i)

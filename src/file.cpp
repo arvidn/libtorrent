@@ -375,7 +375,16 @@ namespace libtorrent
 		{
 			std::string sep_path { path };
 			std::replace(sep_path.begin(), sep_path.end(), '/', '\\');
-			prepared_path = "\\\\?\\" + (is_complete(sep_path) ? sep_path : combine_path(current_working_directory(), sep_path));
+			if (is_complete(sep_path))
+				prepared_path = "\\\\?\\" + sep_path;
+			else
+			{
+				std::string cwd = current_working_directory();
+				// cwd may have already contain UNC path
+				if (cwd.substr(0,2) != "\\\\")
+					prepared_path.append("\\\\?\\");
+				prepared_path.append(combine_path(cwd, sep_path));
+			}
 		}
 #else
 		std::string prepared_path { path };

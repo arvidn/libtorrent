@@ -221,20 +221,18 @@ void print_usage(char const* executable)
 void change_directory(std::string const& f, error_code& ec)
 {
 	ec.clear();
+	native_path_string n = convert_to_native_path_string(f);
 
 #ifdef TORRENT_WINDOWS
 #if TORRENT_USE_WSTRING
 #define SetCurrentDirectory_ SetCurrentDirectoryW
-	std::wstring n = convert_to_wstring(f);
 #else
 #define SetCurrentDirectory_ SetCurrentDirectoryA
-	std::string const& n = convert_to_native(f);
 #endif // TORRENT_USE_WSTRING
-
 	if (SetCurrentDirectory_(n.c_str()) == 0)
 		ec.assign(GetLastError(), system_category());
+#undef SetCurrentDirectory_
 #else
-	std::string n = convert_to_native(f);
 	int ret = ::chdir(n.c_str());
 	if (ret != 0)
 		ec.assign(errno, system_category());
@@ -244,23 +242,22 @@ void change_directory(std::string const& f, error_code& ec)
 struct unit_directory_guard
 {
 	std::string dir;
+	unit_directory_guard(unit_directory_guard const&) = delete;
+	unit_directory_guard& operator=(unit_directory_guard const&) = delete;
 	~unit_directory_guard()
 	{
+		if (keep_files) return;
 		error_code ec;
-		std::string parent_dir{ parent_path(dir) };
-		change_directory(parent_dir, ec); // windows will not allow to remove current dir, so let's change it to root
+		std::string const parent_dir = parent_path(dir);
+		// windows will not allow to remove current dir, so let's change it to root
+		change_directory(parent_dir, ec);
 		if (ec)
 		{
 			TEST_ERROR("Failed to change directory: " + ec.message());
 			return;
 		}
-		if (!keep_files)
-		{
-			error_code ec;
-			remove_all(dir, ec);
-			if (ec)
-				TEST_ERROR("Failed to remove unit test directory: " + ec.message());
-		}
+		remove_all(dir, ec);
+		if (ec) TEST_ERROR("Failed to remove unit test directory: " + ec.message());
 	}
 };
 
@@ -364,7 +361,7 @@ EXPORT int main(int argc, char const* argv[])
 #endif
 	std::string root_dir { current_working_directory() };
 	std::string unit_dir_prefix { combine_path(root_dir, "test_tmp_" + std::to_string(process_id) + "_") };
-	std::printf("test: %s\ncwd_prefix = \"%s\"\nrnd: %x\n"
+	std::printf("test: %s\ncwd_prefix = \"%s\"\nrnd = %x\n"
 		, executable, unit_dir_prefix.c_str(), libtorrent::random(0xffffffff));
 
 	if (_g_num_unit_tests == 0)
@@ -440,7 +437,6 @@ EXPORT int main(int argc, char const* argv[])
 		try
 		{
 #endif
-
 			_g_test_failures = 0;
 			(*t.fun)();
 #ifndef BOOST_NO_EXCEPTIONS
