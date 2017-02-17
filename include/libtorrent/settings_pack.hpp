@@ -1308,7 +1308,7 @@ namespace libtorrent
 			// the session-global limits of upload and download rate limits, in
 			// bytes per second. By default peers on the local network are not rate
 			// limited.
-			// 
+			//
 			// A value of 0 means unlimited.
 			upload_rate_limit,
 			download_rate_limit,
