@@ -1937,7 +1937,9 @@ namespace libtorrent
 		m_v6_peers_idx = alloc.allocate(m_v6_num_peers * 18);
 
 		char* v4_ptr = alloc.ptr(m_v4_peers_idx);
+#if TORRENT_USE_IPV6
 		char* v6_ptr = alloc.ptr(m_v6_peers_idx);
+#endif
 		for (auto const& endp : peers)
 		{
 			if (endp.protocol() == tcp::v4())
