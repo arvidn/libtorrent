@@ -56,6 +56,7 @@
 	* resume data no longer has timestamps of files
 	* require C++11 to build libtorrent
 
+	* fix invalid access when leaving seed-mode with outstanding hash jobs
 	* fix ABI compatibility issue introduced with preformatted entry type
 	* add web_seed_name_lookup_retry to session_settings
 	* slightly improve proxy settings backwards compatibility

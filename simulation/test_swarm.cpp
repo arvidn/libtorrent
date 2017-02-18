@@ -505,6 +505,14 @@ TORRENT_TEST(default_connections_limit)
 	);
 }
 
+TORRENT_TEST(default_connections_limit_negative)
+{
+	test_settings([](lt::settings_pack& pack) {
+		pack.set_int(settings_pack::connections_limit, -1); }
+	);
+}
+
+
 TORRENT_TEST(redundant_have)
 {
 	test_settings([](lt::settings_pack& pack) {
@@ -540,10 +548,24 @@ TORRENT_TEST(active_seeds)
 	);
 }
 
+TORRENT_TEST(active_seeds_negative)
+{
+	test_settings([](lt::settings_pack& pack) {
+		pack.set_int(settings_pack::active_seeds, -1); }
+	);
+}
+
 TORRENT_TEST(active_limit)
 {
 	test_settings([](lt::settings_pack& pack) {
 		pack.set_int(settings_pack::active_limit, std::numeric_limits<int>::max()); }
+	);
+}
+
+TORRENT_TEST(active_limit_negative)
+{
+	test_settings([](lt::settings_pack& pack) {
+		pack.set_int(settings_pack::active_limit, -1); }
 	);
 }
 
@@ -554,6 +576,13 @@ TORRENT_TEST(upload_rate_limit)
 	);
 }
 
+TORRENT_TEST(upload_rate_limit_negative)
+{
+	test_settings([](lt::settings_pack& pack) {
+		pack.set_int(settings_pack::upload_rate_limit, -1); }
+	);
+}
+
 TORRENT_TEST(download_rate_limit)
 {
 	test_settings([](lt::settings_pack& pack) {
@@ -561,11 +590,27 @@ TORRENT_TEST(download_rate_limit)
 	);
 }
 
+TORRENT_TEST(download_rate_limit_negative)
+{
+	test_settings([](lt::settings_pack& pack) {
+		pack.set_int(settings_pack::download_rate_limit, -1); }
+	);
+}
+
+
 TORRENT_TEST(unchoke_slots_limit)
 {
 	test_settings([](lt::settings_pack& pack) {
 		pack.set_int(settings_pack::unchoke_slots_limit, std::numeric_limits<int>::max()); }
 	);
+}
+
+TORRENT_TEST(unchoke_slots_limit_negative)
+{
+	test_settings([](lt::settings_pack& pack) {
+		pack.set_int(settings_pack::unchoke_slots_limit, -1);
+		pack.set_int(settings_pack::choking_algorithm, settings_pack::fixed_slots_choker);
+	});
 }
 
 // TODO: add test that makes sure a torrent in graceful pause mode won't make

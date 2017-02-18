@@ -20,7 +20,6 @@ import inspect
 if os.name != 'nt':
     import pty
 
-
 class test_create_torrent(unittest.TestCase):
 
     def test_from_torrent_info(self):
