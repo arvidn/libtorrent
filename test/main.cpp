@@ -221,18 +221,20 @@ void print_usage(char const* executable)
 void change_directory(std::string const& f, error_code& ec)
 {
 	ec.clear();
-	native_path_string const n = convert_to_native_path_string(f);
 
 #ifdef TORRENT_WINDOWS
 #if TORRENT_USE_WSTRING
 #define SetCurrentDirectory_ SetCurrentDirectoryW
+	native_path_string const n = convert_to_wstring(f);
 #else
 #define SetCurrentDirectory_ SetCurrentDirectoryA
+	native_path_string const n = convert_to_native(f);
 #endif // TORRENT_USE_WSTRING
 	if (SetCurrentDirectory_(n.c_str()) == 0)
 		ec.assign(GetLastError(), system_category());
 #undef SetCurrentDirectory_
 #else
+	native_path_string const n = convert_to_native_path_string(f);
 	int ret = ::chdir(n.c_str());
 	if (ret != 0)
 		ec.assign(errno, system_category());
