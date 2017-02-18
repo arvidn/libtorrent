@@ -57,6 +57,8 @@ namespace libtorrent
 {
 constexpr int request_size_overhead = 5000;
 
+std::string escape_file_path(file_storage const& storage, file_index_t index);
+
 web_peer_connection::web_peer_connection(peer_connection_args const& pack
 	, web_seed_t& web)
 	: web_connection_base(pack, web)
@@ -122,7 +124,7 @@ web_peer_connection::web_peer_connection(peer_connection_args const& pack
 #endif
 }
 
-std::string web_peer_connection::escape_file_path(file_storage const& storage, file_index_t index)
+std::string escape_file_path(file_storage const& storage, file_index_t index)
 {
 	std::string new_path { storage.file_path(index) };
 #ifdef TORRENT_WINDOWS

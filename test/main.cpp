@@ -221,7 +221,7 @@ void print_usage(char const* executable)
 void change_directory(std::string const& f, error_code& ec)
 {
 	ec.clear();
-	native_path_string n = convert_to_native_path_string(f);
+	native_path_string const n = convert_to_native_path_string(f);
 
 #ifdef TORRENT_WINDOWS
 #if TORRENT_USE_WSTRING
@@ -359,8 +359,8 @@ EXPORT int main(int argc, char const* argv[])
 #else
 	process_id = getpid();
 #endif
-	std::string root_dir { current_working_directory() };
-	std::string unit_dir_prefix { combine_path(root_dir, "test_tmp_" + std::to_string(process_id) + "_") };
+	std::string const root_dir = current_working_directory();
+	std::string const unit_dir_prefix = combine_path(root_dir, "test_tmp_" + std::to_string(process_id) + "_");
 	std::printf("test: %s\ncwd_prefix = \"%s\"\nrnd = %x\n"
 		, executable, unit_dir_prefix.c_str(), libtorrent::random(0xffffffff));
 
@@ -379,7 +379,7 @@ EXPORT int main(int argc, char const* argv[])
 		if (filter && tests_to_run.count(_g_unit_tests[i].name) == 0)
 			continue;
 
-		std::string unit_dir = unit_dir_prefix + std::to_string(i);
+		std::string const unit_dir = unit_dir_prefix + std::to_string(i);
 		error_code ec;
 		create_directory(unit_dir, ec);
 		if (ec)
@@ -387,7 +387,7 @@ EXPORT int main(int argc, char const* argv[])
 			std::printf("Failed to create unit test directory: %s\n", ec.message().c_str());
 			return 1;
 		}
-		unit_directory_guard unit_dir_guard { unit_dir };
+		unit_directory_guard unit_dir_guard{unit_dir};
 		change_directory(unit_dir, ec);
 		if (ec)
 		{
@@ -507,8 +507,6 @@ EXPORT int main(int argc, char const* argv[])
 	if (redirect_stdout) fflush(stdout);
 	if (redirect_stderr) fflush(stderr);
 
-	int total_num_failures = print_failures();
-
-	return total_num_failures ? 333 : 0;
+	return print_failures() ? 333 : 0;
 }
 

@@ -98,8 +98,6 @@ namespace libtorrent
 
 		void handle_padfile();
 
-		std::string escape_file_path(file_storage const& storage, file_index_t index);
-
 		// this has one entry per http-request
 		// (might be more than the bt requests)
 		struct file_request_t

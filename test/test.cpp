@@ -39,6 +39,8 @@ int _g_num_unit_tests = 0;
 int _g_test_failures = 0; // flushed at start of every unit
 int _g_test_idx = 0;
 
+static std::vector<std::string> failure_strings;
+
 int test_counter()
 {
 	return _g_test_idx;
@@ -49,6 +51,7 @@ void report_failure(char const* err, char const* file, int line)
 	char buf[500];
 	std::snprintf(buf, sizeof(buf), "\x1b[41m***** %s:%d \"%s\" *****\x1b[0m\n", file, line, err);
 	std::fprintf(stderr, "\n%s\n", buf);
+	failure_strings.push_back(buf);
 	++_g_test_failures;
 }
 
@@ -62,7 +65,7 @@ int print_failures()
 	}
 
 	std::printf("\n\n");
-	int total_num_failures { 0 };
+	int total_num_failures = 0;
 
 	for (int i = 0; i < _g_num_unit_tests; ++i)
 	{
