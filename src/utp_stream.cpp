@@ -281,13 +281,13 @@ struct utp_socket_impl
 	bool send_pkt(int flags = 0);
 	bool resend_packet(packet* p, bool fast_resend = false);
 	void send_reset(utp_header const* ph);
-	void parse_sack(std::uint16_t packet_ack, std::uint8_t const* ptr
-		, int size, int* acked_bytes, time_point const now, std::uint32_t& min_rtt);
+	std::pair<std::uint32_t, int> parse_sack(std::uint16_t packet_ack, std::uint8_t const* ptr
+		, int size, time_point const now);
 	void parse_close_reason(std::uint8_t const* ptr, int size);
 	void write_payload(std::uint8_t* ptr, int size);
 	void maybe_inc_acked_seq_nr();
-	void ack_packet(packet_ptr p, time_point const& receive_time
-		, std::uint32_t& min_rtt, std::uint16_t seq_nr);
+	std::uint32_t ack_packet(packet_ptr p, time_point const& receive_time
+		, std::uint16_t seq_nr);
 	void write_sack(std::uint8_t* buf, int size) const;
 	void incoming(std::uint8_t const* buf, int size, packet_ptr p, time_point now);
 	void do_ledbat(int acked_bytes, int delay, int in_flight);
@@ -1430,12 +1430,13 @@ void utp_socket_impl::parse_close_reason(std::uint8_t const* ptr, int const size
 	utp_stream::on_close_reason(m_userdata, incoming_close_reason);
 }
 
-void utp_socket_impl::parse_sack(std::uint16_t const packet_ack, std::uint8_t const* ptr
-	, int size, int* acked_bytes, time_point const now, std::uint32_t& min_rtt)
+// returns (rtt, acked_bytes)
+std::pair<std::uint32_t, int> utp_socket_impl::parse_sack(std::uint16_t const packet_ack
+	, std::uint8_t const* ptr, int size, time_point const now)
 {
 	INVARIANT_CHECK;
 
-	if (size == 0) return;
+	if (size == 0) return { 0u, 0 };
 
 	// this is the sequence number the current bit represents
 	int ack_nr = (packet_ack + 2) & ACK_MASK;
@@ -1465,6 +1466,9 @@ void utp_socket_impl::parse_sack(std::uint16_t const packet_ack, std::uint8_t co
 	// the sequence number of the last ACKed packet
 	int last_ack = packet_ack;
 
+	int acked_bytes = 0;
+	std::uint32_t min_rtt = std::numeric_limits<std::uint32_t>::max();
+
 	// for each byte
 	for (std::uint8_t const* end = ptr + size; ptr != end; ++ptr)
 	{
@@ -1484,11 +1488,11 @@ void utp_socket_impl::parse_sack(std::uint16_t const packet_ack, std::uint8_t co
 				packet_ptr p = m_outbuf.remove(aux::numeric_cast<packet_buffer::index_type>(ack_nr));
 				if (p)
 				{
-					*acked_bytes += p->size - p->header_size;
+					acked_bytes += p->size - p->header_size;
 					// each ACKed packet counts as a duplicate ack
 					UTP_LOGV("%8p: duplicate_acks:%u fast_resend_seq_nr:%u\n"
 						, static_cast<void*>(this), m_duplicate_acks, m_fast_resend_seq_nr);
-					ack_packet(std::move(p), now, min_rtt, std::uint16_t(ack_nr));
+					min_rtt = std::min(min_rtt, ack_packet(std::move(p), now, std::uint16_t(ack_nr)));
 				}
 				else
 				{
@@ -1528,6 +1532,8 @@ void utp_socket_impl::parse_sack(std::uint16_t const packet_ack, std::uint8_t co
 			if (num_resent >= sack_resend_limit) break;
 		}
 	}
+
+	return { min_rtt, acked_bytes };
 }
 
 // copies data from the write buffer into the packet
@@ -2254,8 +2260,9 @@ void utp_socket_impl::maybe_inc_acked_seq_nr()
 	m_duplicate_acks = 0;
 }
 
-void utp_socket_impl::ack_packet(packet_ptr p, time_point const& receive_time
-	, std::uint32_t& min_rtt, std::uint16_t seq_nr)
+// returns RTT
+std::uint32_t utp_socket_impl::ack_packet(packet_ptr p, time_point const& receive_time
+	, std::uint16_t seq_nr)
 {
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 	INVARIANT_CHECK;
@@ -2299,8 +2306,8 @@ void utp_socket_impl::ack_packet(packet_ptr p, time_point const& receive_time
 		, static_cast<void*>(this), seq_nr, p->size - p->header_size, rtt / 1000);
 
 	m_rtt.add_sample(rtt / 1000);
-	if (rtt < min_rtt) min_rtt = rtt;
 	release_packet(std::move(p));
+	return rtt;
 }
 
 void utp_socket_impl::incoming(std::uint8_t const* buf, int size, packet_ptr p
@@ -2809,7 +2816,8 @@ bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 			if (!p) continue;
 
 			acked_bytes += p->size - p->header_size;
-			ack_packet(std::move(p), receive_time, min_rtt, std::uint16_t(ack_nr));
+			std::uint32_t const rtt = ack_packet(std::move(p), receive_time, std::uint16_t(ack_nr));
+			min_rtt = std::min(min_rtt, rtt);
 		}
 
 		maybe_inc_acked_seq_nr();
@@ -2850,8 +2858,12 @@ bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 		switch(extension)
 		{
 			case utp_sack: // selective ACKs
-				parse_sack(ph->ack_nr, ptr, len, &acked_bytes, receive_time, min_rtt);
+			{
+				std::uint32_t rtt;
+				std::tie(rtt, acked_bytes) = parse_sack(ph->ack_nr, ptr, len, receive_time);
+				min_rtt = std::min(min_rtt, rtt);
 				break;
+			}
 			case utp_close_reason:
 				parse_close_reason(ptr, len);
 				break;
