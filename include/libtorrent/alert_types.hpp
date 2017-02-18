@@ -2528,8 +2528,10 @@ namespace libtorrent
 
 	private:
 		std::reference_wrapper<aux::stack_allocator> m_alloc;
-		int const m_num_nodes;
-		aux::allocation_slot m_nodes_idx;
+		int m_v4_num_nodes = 0;
+		int m_v6_num_nodes = 0;
+		aux::allocation_slot m_v4_nodes_idx;
+		aux::allocation_slot m_v6_nodes_idx;
 	};
 
 #undef TORRENT_DEFINE_ALERT_IMPL

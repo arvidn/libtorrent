@@ -536,8 +536,7 @@ namespace libtorrent { namespace dht
 		return true;
 	}
 
-	std::vector<std::pair<node_id, udp::endpoint>> dht_tracker::live_nodes(node_id const& nid
-		, std::function<bool(sha1_hash const&, udp::endpoint const&)> cb)
+	std::vector<std::pair<node_id, udp::endpoint>> dht_tracker::live_nodes(node_id const& nid)
 	{
 		std::vector<std::pair<node_id, udp::endpoint>> ret;
 
@@ -551,11 +550,8 @@ namespace libtorrent { namespace dht
 
 		if (dht == nullptr) return ret;
 
-		dht->m_table.for_each_node([&cb, &ret](node_entry const& e)
-		{
-			udp::endpoint const endp = e.endpoint;
-			if (cb(e.id, endp)) ret.emplace_back(e.id, endp);
-		}, nullptr);
+		dht->m_table.for_each_node([&ret](node_entry const& e)
+		{ ret.emplace_back(e.id, e.endpoint); }, nullptr);
 
 		return ret;
 	}
@@ -566,9 +562,9 @@ namespace libtorrent { namespace dht
 	{
 		std::vector<udp::endpoint> ret;
 
-		auto cb = [&ret](node_entry const& e) { ret.push_back(e.ep()); };
+		dht.m_table.for_each_node([&ret](node_entry const& e)
+		{ ret.push_back(e.ep()); });
 
-		dht.m_table.for_each_node(cb, cb);
 		return ret;
 	}
 

@@ -125,8 +125,7 @@ namespace libtorrent { namespace dht
 		void incoming_error(error_code const& ec, udp::endpoint const& ep);
 		bool incoming_packet(udp::endpoint const& ep, span<char const> buf);
 
-		std::vector<std::pair<node_id, udp::endpoint>> live_nodes(node_id const& nid
-			, std::function<bool(sha1_hash const&, udp::endpoint const&)> cb);
+		std::vector<std::pair<node_id, udp::endpoint>> live_nodes(node_id const& nid);
 
 	private:
 

@@ -1,3 +1,4 @@
+	* added support for retrieval of DHT live nodes
 	* complete UNC path support
 	* add packets pool allocator
 	* fix last_upload and last_download overflow after 9 hours in past

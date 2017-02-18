@@ -601,14 +601,12 @@ namespace libtorrent
 #endif
 	}
 
-	void session_handle::dht_live_nodes(sha1_hash const& nid
-		, std::function<bool(sha1_hash const&, udp::endpoint const&)> cb)
+	void session_handle::dht_live_nodes(sha1_hash const& nid)
 	{
 #ifndef TORRENT_DISABLE_DHT
-		async_call(&session_impl::dht_live_nodes, nid, std::move(cb));
+		async_call(&session_impl::dht_live_nodes, nid);
 #else
 		TORRENT_UNUSED(nid);
-		TORRENT_UNUSED(cb);
 #endif
 	}
 

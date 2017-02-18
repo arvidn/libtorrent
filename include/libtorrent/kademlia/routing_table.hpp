@@ -227,6 +227,9 @@ public:
 	void for_each_node(std::function<void(node_entry const&)> live_cb
 		, std::function<void(node_entry const&)> replacements_cb) const;
 
+	void for_each_node(std::function<void(node_entry const&)> f) const
+	{ for_each_node(f, f); }
+
 	int bucket_size() const { return m_bucket_size; }
 
 	// returns the number of nodes in the main buckets, number of nodes in the

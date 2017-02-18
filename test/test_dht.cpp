@@ -88,21 +88,19 @@ sequence_number next_seq(sequence_number s)
 	return sequence_number(s.value + 1);
 }
 
-void add_and_replace(libtorrent::dht::node_id& dst, libtorrent::dht::node_id const& add)
+void add_and_replace(node_id& dst, node_id const& add)
 {
 	bool carry = false;
 	for (int k = 19; k >= 0; --k)
 	{
-		int sum = dst[k] + add[k] + (carry?1:0);
+		int sum = dst[k] + add[k] + (carry ? 1 : 0);
 		dst[k] = sum & 255;
 		carry = sum > 255;
 	}
 }
 
-void node_push_back(void* userdata, libtorrent::dht::node_entry const& n)
+void node_push_back(std::vector<node_entry>* nv, node_entry const& n)
 {
-	using namespace libtorrent::dht;
-	std::vector<node_entry>* nv = (std::vector<node_entry>*)userdata;
 	nv->push_back(n);
 }
 
@@ -1677,8 +1675,6 @@ void test_routing_table(address(&rand_addr)())
 		}
 	}
 
-	using namespace libtorrent::dht;
-
 	char const* ips[] = {
 		"124.31.75.21",
 		"21.75.31.124",
@@ -2914,8 +2910,7 @@ TORRENT_TEST(routing_table_set_id)
 	TEST_EQUAL(tbl.num_active_buckets(), 6);
 
 	std::set<node_id> original_nodes;
-	tbl.for_each_node(std::bind(&inserter, &original_nodes, _1)
-		, std::bind(&inserter, &original_nodes, _1));
+	tbl.for_each_node(std::bind(&inserter, &original_nodes, _1));
 
 	print_state(std::cout, tbl);
 
@@ -2925,8 +2920,7 @@ TORRENT_TEST(routing_table_set_id)
 
 	TEST_CHECK(tbl.num_active_buckets() <= 4);
 	std::set<node_id> remaining_nodes;
-	tbl.for_each_node(std::bind(&inserter, &remaining_nodes, _1)
-		, std::bind(&inserter, &remaining_nodes, _1));
+	tbl.for_each_node(std::bind(&inserter, &remaining_nodes, _1));
 
 	std::set<node_id> intersection;
 	std::set_intersection(remaining_nodes.begin(), remaining_nodes.end()
@@ -2976,7 +2970,7 @@ TORRENT_TEST(routing_table_for_each)
 	tbl.for_each_node(nullptr, std::bind(node_push_back, &v, _1));
 	TEST_EQUAL(v.size(), 2);
 	v.clear();
-	tbl.for_each_node(std::bind(node_push_back, &v, _1), std::bind(node_push_back, &v, _1));
+	tbl.for_each_node(std::bind(node_push_back, &v, _1));
 	TEST_EQUAL(v.size(), 4);
 }
 
@@ -3301,9 +3295,6 @@ TORRENT_TEST(dht_verify_node_address)
 
 TORRENT_TEST(generate_prefix_mask)
 {
-	// test node-id functions
-	using namespace libtorrent::dht;
-
 	std::vector<std::pair<int, char const*>> const test = {
 		{   0, "0000000000000000000000000000000000000000" },
 		{   1, "8000000000000000000000000000000000000000" },
