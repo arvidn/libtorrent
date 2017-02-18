@@ -316,6 +316,11 @@ namespace libtorrent
 		METRIC(picker, interesting_piece_picks)
 		METRIC(picker, hash_fail_piece_picks)
 
+		// These gauges indicate how many blocks are currently in use as dirty
+		// disk blocks (``write_cache_blocks``) and read cacje blocks,
+		// respectively. ``read_cache_blocks`` replaces the deprecated
+		// ``cache_status::read_cache_size`` field. The sum of these gauges
+		// replace the deprecated ``cache_status::cache_size`` field.
 		METRIC(disk, write_cache_blocks)
 		METRIC(disk, read_cache_blocks)
 
@@ -323,16 +328,25 @@ namespace libtorrent
 		// peer until we're sending the response back on the socket.
 		METRIC(disk, request_latency)
 
+		// ``disk_blocks_in_use`` indicates how many disk blocks are currently in
+		// use, either as dirty blocks waiting to be written or blocks kept around
+		// in the hope that a peer will request it or in a peer send buffer. This
+		// gauge replaces the deprecated ``cache_status::total_used_buffers`` field.
 		METRIC(disk, pinned_blocks)
 		METRIC(disk, disk_blocks_in_use)
+
+		// ``queued_disk_jobs`` is the number disk jobs currently queued, waiting
+		// to be executed by a disk thread. This replaces the deprecated
+		// ``cache_status::job_queue_length`` field.
 		METRIC(disk, queued_disk_jobs)
 		METRIC(disk, num_running_disk_jobs)
 		METRIC(disk, num_read_jobs)
 		METRIC(disk, num_write_jobs)
 		METRIC(disk, num_jobs)
+		METRIC(disk, blocked_disk_jobs)
+
 		METRIC(disk, num_writing_threads)
 		METRIC(disk, num_running_threads)
-		METRIC(disk, blocked_disk_jobs)
 
 		// the number of bytes we have sent to the disk I/O
 		// thread for writing. Every time we hear back from
@@ -348,8 +362,10 @@ namespace libtorrent
 		METRIC(disk, arc_write_size)
 		METRIC(disk, arc_volatile_size)
 
-		// the number of blocks written and read from disk in total. A block is
-		// 16 kiB.
+		// the number of blocks written and read from disk in total. A block is 16
+		// kiB. ``num_blocks_written`` and ``num_blocks_read`` replaces the
+		// deprecated ``cache_status::blocks_written`` and
+		// ``cahce_status::blocks_read`` respectively.
 		METRIC(disk, num_blocks_written)
 		METRIC(disk, num_blocks_read)
 
@@ -357,10 +373,13 @@ namespace libtorrent
 		METRIC(disk, num_blocks_hashed)
 
 		// the number of blocks read from the disk cache
+		// This replaces the deprecated ``cache_info::blocks_read_hit``.
 		METRIC(disk, num_blocks_cache_hits)
 
 		// the number of disk I/O operation for reads and writes. One disk
 		// operation may transfer more then one block.
+		// these counters replace the deprecated ``cache_status::writes`` and
+		// ``cahce_status::reads``.
 		METRIC(disk, num_write_ops)
 		METRIC(disk, num_read_ops)
 
