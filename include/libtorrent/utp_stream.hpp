@@ -151,7 +151,7 @@ struct utp_socket_impl;
 
 utp_socket_impl* construct_utp_impl(std::uint16_t recv_id
 	, std::uint16_t send_id, void* userdata
-	, utp_socket_manager* sm);
+	, utp_socket_manager& sm);
 void detach_utp_impl(utp_socket_impl* s);
 void delete_utp_impl(utp_socket_impl* s);
 bool should_delete(utp_socket_impl* s);

@@ -338,7 +338,7 @@ namespace libtorrent
 			send_id = std::uint16_t(random(0xffff));
 			recv_id = send_id - 1;
 		}
-		utp_socket_impl* impl = construct_utp_impl(recv_id, send_id, str, this);
+		utp_socket_impl* impl = construct_utp_impl(recv_id, send_id, str, *this);
 		m_utp_sockets.insert(std::make_pair(recv_id, impl));
 		return impl;
 	}
