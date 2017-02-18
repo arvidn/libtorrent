@@ -2404,8 +2404,10 @@ namespace libtorrent
 
 	private:
 		std::reference_wrapper<aux::stack_allocator> m_alloc;
-		int const m_num_peers;
-		aux::allocation_slot m_peers_idx;
+		int m_v4_num_peers = 0;
+		int m_v6_num_peers = 0;
+		aux::allocation_slot m_v4_peers_idx;
+		aux::allocation_slot m_v6_peers_idx;
 	};
 
 	// This is posted exactly once for every call to session_handle::dht_direct_request.

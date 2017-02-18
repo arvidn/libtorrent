@@ -152,6 +152,7 @@ test_primitives_SOURCES = \
   test_identify_client.cpp \
   test_merkle.cpp \
   test_alert_manager.cpp \
+  test_alert_types.cpp \
   test_resolve_links.cpp \
   test_crc32.cpp \
   test_heterogeneous_queue.cpp \

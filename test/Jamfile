@@ -169,6 +169,7 @@ test-suite libtorrent :
 	[ run test_gzip.cpp ]
 	[ run test_receive_buffer.cpp ]
 	[ run test_alert_manager.cpp ]
+	[ run test_alert_types.cpp ]
 	[ run test_magnet.cpp ]
 	[ run test_storage.cpp ]
 	[ run test_session.cpp ]

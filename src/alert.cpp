@@ -1922,37 +1922,46 @@ namespace libtorrent
 		, std::vector<tcp::endpoint> const& peers)
 		: info_hash(ih)
 		, m_alloc(alloc)
-		, m_num_peers(int(peers.size()))
 	{
-		std::size_t total_size = peers.size(); // num bytes for sizes
 		for (auto const& endp : peers)
 		{
-			total_size += endp.size();
+			if (endp.protocol() == tcp::v4())
+				m_v4_num_peers++;
+#if TORRENT_USE_IPV6
+			else
+				m_v6_num_peers++;
+#endif
 		}
 
-		m_peers_idx = alloc.allocate(int(total_size));
+		m_v4_peers_idx = alloc.allocate(m_v4_num_peers * 6);
+		m_v6_peers_idx = alloc.allocate(m_v6_num_peers * 18);
 
-		char *ptr = alloc.ptr(m_peers_idx);
+		char* v4_ptr = alloc.ptr(m_v4_peers_idx);
+#if TORRENT_USE_IPV6
+		char* v6_ptr = alloc.ptr(m_v6_peers_idx);
+#endif
 		for (auto const& endp : peers)
 		{
-			std::size_t const size = endp.size();
-			TORRENT_ASSERT(size < 0x100);
-			detail::write_uint8(size, ptr);
-			std::memcpy(ptr, endp.data(), size);
-			ptr += size;
+			if (endp.protocol() == tcp::v4())
+				detail::write_endpoint(endp, v4_ptr);
+#if TORRENT_USE_IPV6
+			else
+				detail::write_endpoint(endp, v6_ptr);
+#endif
 		}
 	}
 
 	std::string dht_get_peers_reply_alert::message() const
 	{
 		char msg[200];
-		std::snprintf(msg, sizeof(msg), "incoming dht get_peers reply: %s, peers %d", aux::to_hex(info_hash).c_str(), m_num_peers);
+		std::snprintf(msg, sizeof(msg), "incoming dht get_peers reply: %s, peers %d"
+			, aux::to_hex(info_hash).c_str(), num_peers());
 		return msg;
 	}
 
 	int dht_get_peers_reply_alert::num_peers() const
 	{
-		return m_num_peers;
+		return m_v4_num_peers + m_v6_num_peers;
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -1965,16 +1974,17 @@ namespace libtorrent
 #endif
 	std::vector<tcp::endpoint> dht_get_peers_reply_alert::peers() const
 	{
-		std::size_t const num_peers = aux::numeric_cast<std::size_t>(m_num_peers);
-		std::vector<tcp::endpoint> peers(num_peers);
+		aux::vector<tcp::endpoint> peers;
+		peers.reserve(num_peers());
 
-		const char *ptr = m_alloc.get().ptr(m_peers_idx);
-		for (std::size_t i = 0; i < num_peers; i++)
-		{
-			std::size_t const size = detail::read_uint8(ptr);
-			std::memcpy(peers[i].data(), ptr, size);
-			ptr += size;
-		}
+		char const* v4_ptr = m_alloc.get().ptr(m_v4_peers_idx);
+		for (int i = 0; i < m_v4_num_peers; i++)
+			peers.push_back(detail::read_v4_endpoint<tcp::endpoint>(v4_ptr));
+#if TORRENT_USE_IPV6
+		char const* v6_ptr = m_alloc.get().ptr(m_v6_peers_idx);
+		for (int i = 0; i < m_v6_num_peers; i++)
+			peers.push_back(detail::read_v6_endpoint<tcp::endpoint>(v6_ptr));
+#endif
 
 		return peers;
 	}
