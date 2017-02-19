@@ -88,25 +88,22 @@ sequence_number next_seq(sequence_number s)
 	return sequence_number(s.value + 1);
 }
 
-void add_and_replace(libtorrent::dht::node_id& dst, libtorrent::dht::node_id const& add)
+void add_and_replace(node_id& dst, node_id const& add)
 {
 	bool carry = false;
 	for (int k = 19; k >= 0; --k)
 	{
-		int sum = dst[k] + add[k] + (carry?1:0);
+		int sum = dst[k] + add[k] + (carry ? 1 : 0);
 		dst[k] = sum & 255;
 		carry = sum > 255;
 	}
 }
 
-void node_push_back(void* userdata, libtorrent::dht::node_entry const& n)
+void node_push_back(std::vector<node_entry>* nv, node_entry const& n)
 {
-	using namespace libtorrent::dht;
-	std::vector<node_entry>* nv = (std::vector<node_entry>*)userdata;
 	nv->push_back(n);
 }
 
-void nop(void* userdata, libtorrent::dht::node_entry const& n) {}
 void nop_node() {}
 
 std::list<std::pair<udp::endpoint, entry>> g_sent_packets;
@@ -1556,7 +1553,7 @@ void test_routing_table(address(&rand_addr)())
 	table.node_failed(tmp, udp::endpoint(node_addr, 4));
 
 	nodes.clear();
-	table.for_each_node(node_push_back, nop, &nodes);
+	table.for_each_node(std::bind(node_push_back, &nodes, _1), nullptr);
 	TEST_EQUAL(nodes.size(), 1);
 	if (!nodes.empty())
 	{
@@ -1569,7 +1566,7 @@ void test_routing_table(address(&rand_addr)())
 	// add the exact same node again, it should set the timeout_count to 0
 	table.node_seen(tmp, udp::endpoint(node_addr, 4), 10);
 	nodes.clear();
-	table.for_each_node(node_push_back, nop, &nodes);
+	table.for_each_node(std::bind(node_push_back, &nodes, _1), nullptr);
 	TEST_EQUAL(nodes.size(), 1);
 	if (!nodes.empty())
 	{
@@ -1631,7 +1628,7 @@ void test_routing_table(address(&rand_addr)())
 
 	print_state(std::cout, table);
 
-	table.for_each_node(node_push_back, nop, &nodes);
+	table.for_each_node(std::bind(node_push_back, &nodes, _1), nullptr);
 
 	std::printf("nodes: %d\n", int(nodes.size()));
 
@@ -1677,8 +1674,6 @@ void test_routing_table(address(&rand_addr)())
 			duplicates.insert(i->id);
 		}
 	}
-
-	using namespace libtorrent::dht;
 
 	char const* ips[] = {
 		"124.31.75.21",
@@ -2969,13 +2964,13 @@ TORRENT_TEST(routing_table_for_each)
 	print_state(std::cout, tbl);
 
 	std::vector<node_entry> v;
-	tbl.for_each_node(node_push_back, nop, &v);
+	tbl.for_each_node(std::bind(node_push_back, &v, _1), nullptr);
 	TEST_EQUAL(v.size(), 2);
 	v.clear();
-	tbl.for_each_node(nop, node_push_back, &v);
+	tbl.for_each_node(nullptr, std::bind(node_push_back, &v, _1));
 	TEST_EQUAL(v.size(), 2);
 	v.clear();
-	tbl.for_each_node(node_push_back, node_push_back, &v);
+	tbl.for_each_node(std::bind(node_push_back, &v, _1));
 	TEST_EQUAL(v.size(), 4);
 }
 
@@ -3300,9 +3295,6 @@ TORRENT_TEST(dht_verify_node_address)
 
 TORRENT_TEST(generate_prefix_mask)
 {
-	// test node-id functions
-	using namespace libtorrent::dht;
-
 	std::vector<std::pair<int, char const*>> const test = {
 		{   0, "0000000000000000000000000000000000000000" },
 		{   1, "8000000000000000000000000000000000000000" },

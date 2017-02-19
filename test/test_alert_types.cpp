@@ -71,3 +71,46 @@ TORRENT_TEST(dht_get_peers_reply_alert)
 	std::sort(peers.begin(), peers.end());
 	TEST_CHECK(v == peers);
 }
+
+TORRENT_TEST(dht_live_nodes_alert)
+{
+	alert_manager mgr(1, dht_live_nodes_alert::static_category);
+
+	TEST_EQUAL(mgr.should_post<dht_live_nodes_alert>(), true);
+
+	sha1_hash const ih = rand_hash();
+	sha1_hash const h1 = rand_hash();
+	sha1_hash const h2 = rand_hash();
+	sha1_hash const h3 = rand_hash();
+	sha1_hash const h4 = rand_hash();
+	sha1_hash const h5 = rand_hash();
+	udp::endpoint const ep1 = rand_udp_ep(rand_v4);
+	udp::endpoint const ep2 = rand_udp_ep(rand_v4);
+	udp::endpoint const ep3 = rand_udp_ep(rand_v4);
+#if TORRENT_USE_IPV6
+	udp::endpoint const ep4 = rand_udp_ep(rand_v6);
+	udp::endpoint const ep5 = rand_udp_ep(rand_v6);
+#else
+	udp::endpoint const ep4 = rand_udp_ep(rand_v4);
+	udp::endpoint const ep5 = rand_udp_ep(rand_v4);
+#endif
+	std::vector<std::pair<sha1_hash, udp::endpoint>> v;
+	v.emplace_back(h1, ep1);
+	v.emplace_back(h2, ep2);
+	v.emplace_back(h3, ep3);
+	v.emplace_back(h4, ep4);
+	v.emplace_back(h5, ep5);
+
+	mgr.emplace_alert<dht_live_nodes_alert>(ih, v);
+
+	auto const* a = alert_cast<dht_live_nodes_alert>(mgr.wait_for_alert(seconds(0)));
+	TEST_CHECK(a != nullptr);
+
+	TEST_EQUAL(a->node_id, ih);
+	TEST_EQUAL(a->num_nodes(), 5);
+
+	auto nodes = a->nodes();
+	std::sort(v.begin(), v.end());
+	std::sort(nodes.begin(), nodes.end());
+	TEST_CHECK(v == nodes);
+}

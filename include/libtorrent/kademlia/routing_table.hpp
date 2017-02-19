@@ -224,14 +224,11 @@ public:
 		return int(i->live_nodes.size());
 	}
 
-	template <typename F>
-	void for_each_node(F f)
-	{
-		for_each_node(&impl::forwarder<F>, &impl::forwarder<F>, reinterpret_cast<void*>(&f));
-	}
+	void for_each_node(std::function<void(node_entry const&)> live_cb
+		, std::function<void(node_entry const&)> replacements_cb) const;
 
-	void for_each_node(void (*)(void*, node_entry const&)
-		, void (*)(void*, node_entry const&), void* userdata) const;
+	void for_each_node(std::function<void(node_entry const&)> f) const
+	{ for_each_node(f, f); }
 
 	int bucket_size() const { return m_bucket_size; }
 

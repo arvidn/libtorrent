@@ -601,6 +601,15 @@ namespace libtorrent
 #endif
 	}
 
+	void session_handle::dht_live_nodes(sha1_hash const& nid)
+	{
+#ifndef TORRENT_DISABLE_DHT
+		async_call(&session_impl::dht_live_nodes, nid);
+#else
+		TORRENT_UNUSED(nid);
+#endif
+	}
+
 	void session_handle::dht_direct_request(udp::endpoint ep, entry const& e, void* userdata)
 	{
 #ifndef TORRENT_DISABLE_DHT
