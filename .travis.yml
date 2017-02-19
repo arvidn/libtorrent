@@ -19,6 +19,9 @@ matrix:
     - dist: trusty
       env: arch=arm toolset=gcc-arm
 
+notifications:
+  email: false
+
 git:
   submodules: false
   depth: 1
