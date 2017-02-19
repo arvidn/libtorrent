@@ -3,7 +3,7 @@ libtorrent API Documentation
 ============================
 
 :Author: Arvid Norberg, arvid@libtorrent.org
-:Version: 1.1.1
+:Version: 1.1.2
 
 .. contents:: Table of contents
   :depth: 1
