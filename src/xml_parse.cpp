@@ -47,14 +47,12 @@ namespace libtorrent
 		for(;p != end; ++p)
 		{
 			char const* start = p;
-			int token; // TODO: remove this variable
 			// look for tag start
 			for(; p != end && *p != '<'; ++p);
 
 			if (p != start)
 			{
-				token = xml_string;
-				callback(token, {start, std::size_t(p - start)}, {});
+				callback(xml_string, {start, std::size_t(p - start)}, {});
 			}
 
 			if (p == end) break;
@@ -71,13 +69,11 @@ namespace libtorrent
 				// parse error
 				if (p == end)
 				{
-					token = xml_parse_error;
-					callback(token, "unexpected end of file", {});
+					callback(xml_parse_error, "unexpected end of file", {});
 					break;
 				}
 
-				token = xml_string;
-				callback(token, {start, std::size_t(p - start - 2)}, {});
+				callback(xml_string, {start, std::size_t(p - start - 2)}, {});
 				continue;
 			}
 
@@ -92,8 +88,7 @@ namespace libtorrent
 			// parse error
 			if (p == end)
 			{
-				token = xml_parse_error;
-				callback(token, "unexpected end of file", {});
+				callback(xml_parse_error, "unexpected end of file", {});
 				break;
 			}
 
@@ -103,34 +98,29 @@ namespace libtorrent
 			if (*start == '/')
 			{
 				++start;
-				token = xml_end_tag;
-				callback(token, {start, std::size_t(tag_name_end - start)}, {});
+				callback(xml_end_tag, {start, std::size_t(tag_name_end - start)}, {});
 			}
 			else if (*(p - 1) == '/')
 			{
-				token = xml_empty_tag;
-				callback(token, {start, std::size_t(std::min(tag_name_end - start, p - start - 1))}, {});
+				callback(xml_empty_tag, {start, std::size_t(std::min(tag_name_end - start, p - start - 1))}, {});
 				tag_end = p - 1;
 			}
 			else if (*start == '?' && *(p - 1) == '?')
 			{
 				++start;
-				token = xml_declaration_tag;
-				callback(token, {start, std::size_t(std::min(tag_name_end - start, p - start - 1))}, {});
+				callback(xml_declaration_tag, {start, std::size_t(std::min(tag_name_end - start, p - start - 1))}, {});
 				tag_end = p - 1;
 			}
 			else if (start + 5 < p && std::memcmp(start, "!--", 3) == 0 && std::memcmp(p - 2, "--", 2) == 0)
 			{
 				start += 3;
-				token = xml_comment;
-				callback(token, {start, std::size_t(tag_name_end - start - 2)}, {});
+				callback(xml_comment, {start, std::size_t(tag_name_end - start - 2)}, {});
 				tag_end = p - 2;
 				continue;
 			}
 			else
 			{
-				token = xml_start_tag;
-				callback(token, {start, std::size_t(tag_name_end - start)}, {});
+				callback(xml_start_tag, {start, std::size_t(tag_name_end - start)}, {});
 			}
 
 			// parse attributes
@@ -153,8 +143,7 @@ namespace libtorrent
 				// instead of a series of key value pairs
 				if (i == tag_end)
 				{
-					token = xml_tag_content;
-					callback(token, {start, std::size_t(i - start)}, {});
+					callback(xml_tag_content, {start, std::size_t(i - start)}, {});
 					break;
 				}
 
@@ -163,8 +152,7 @@ namespace libtorrent
 				// check for parse error (values must be quoted)
 				if (i == tag_end || (*i != '\'' && *i != '\"'))
 				{
-					token = xml_parse_error;
-					callback(token, "unquoted attribute value", {});
+					callback(xml_parse_error, "unquoted attribute value", {});
 					break;
 				}
 				char quote = *i;
@@ -174,12 +162,10 @@ namespace libtorrent
 				// parse error (missing end quote)
 				if (i == tag_end)
 				{
-					token = xml_parse_error;
-					callback(token, "missing end quote on attribute", {});
+					callback(xml_parse_error, "missing end quote on attribute", {});
 					break;
 				}
-				token = xml_attribute;
-				callback(token, {start, name_len}, {val_start, std::size_t(i - val_start)});
+				callback(xml_attribute, {start, name_len}, {val_start, std::size_t(i - val_start)});
 			}
 		}
 	}

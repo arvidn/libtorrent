@@ -125,18 +125,12 @@ namespace libtorrent
 		return true;
 	}
 
-	bool string_equal_no_case(char const* s1, char const* s2)
+	bool string_equal_no_case(string_view s1, string_view s2)
 	{
-		TORRENT_ASSERT(s1 != nullptr);
-		TORRENT_ASSERT(s2 != nullptr);
-
-		while (to_lower(*s1) == to_lower(*s2))
-		{
-			if (*s1 == 0) return true;
-			++s1;
-			++s2;
-		}
-		return false;
+		if (s1.size() != s2.size()) return false;
+		return std::equal(s1.begin(), s1.end(), s2.begin()
+			, [] (char const c1, char const c2)
+			{ return to_lower(c1) == to_lower(c2); });
 	}
 
 	// generate a url-safe random string

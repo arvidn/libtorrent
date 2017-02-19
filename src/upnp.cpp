@@ -869,30 +869,17 @@ void upnp::delete_port_mapping(rootdevice& d, int const i)
 	post(d, soap, soap_action);
 }
 
-namespace
-{
-	std::string copy_tolower(string_view src)
-	{
-		std::string ret;
-		ret.reserve(src.size());
-		for (char const c : src)
-			ret.push_back(to_lower(c));
-		return ret;
-	}
-}
-
 void find_control_url(int const type, string_view str, parse_state& state)
 {
 	if (type == xml_start_tag)
 	{
-		// TODO: instead of copying the string, compare with string_equal_no_case()
-		state.tag_stack.push_back(copy_tolower(str));
+		state.tag_stack.push_back(str);
 	}
 	else if (type == xml_end_tag)
 	{
 		if (!state.tag_stack.empty())
 		{
-			if (state.in_service && state.tag_stack.back() == "service")
+			if (state.in_service && string_equal_no_case(state.tag_stack.back(), "service"))
 				state.in_service = false;
 			state.tag_stack.pop_back();
 		}
@@ -902,12 +889,11 @@ void find_control_url(int const type, string_view str, parse_state& state)
 		if (state.tag_stack.empty()) return;
 		if (!state.in_service && state.top_tags("service", "servicetype"))
 		{
-			std::string name(str.begin(), str.end());
-			if (string_equal_no_case(name.c_str(), "urn:schemas-upnp-org:service:WANIPConnection:1")
-				|| string_equal_no_case(name.c_str(), "urn:schemas-upnp-org:service:WANIPConnection:2")
-				|| string_equal_no_case(name.c_str(), "urn:schemas-upnp-org:service:WANPPPConnection:1"))
+			if (string_equal_no_case(str, "urn:schemas-upnp-org:service:WANIPConnection:1")
+				|| string_equal_no_case(str, "urn:schemas-upnp-org:service:WANIPConnection:2")
+				|| string_equal_no_case(str, "urn:schemas-upnp-org:service:WANPPPConnection:1"))
 			{
-				state.service_type = std::move(name);
+				state.service_type.assign(str.begin(), str.end());
 				state.in_service = true;
 			}
 		}
@@ -921,7 +907,7 @@ void find_control_url(int const type, string_view str, parse_state& state)
 		{
 			state.model.assign(str.begin(), str.end());
 		}
-		else if (state.tag_stack.back() == "urlbase")
+		else if (string_equal_no_case(state.tag_stack.back(), "urlbase"))
 		{
 			state.url_base.assign(str.begin(), str.end());
 		}

@@ -103,19 +103,19 @@ namespace libtorrent
 struct parse_state
 {
 	bool in_service = false;
-	std::list<std::string> tag_stack;
+	std::vector<string_view> tag_stack;
 	std::string control_url;
 	std::string service_type;
 	std::string model;
 	std::string url_base;
-	bool top_tags(const char* str1, const char* str2)
+	bool top_tags(string_view str1, string_view str2)
 	{
-		std::list<std::string>::reverse_iterator i = tag_stack.rbegin();
+		auto i = tag_stack.rbegin();
 		if (i == tag_stack.rend()) return false;
-		if (!string_equal_no_case(i->c_str(), str2)) return false;
+		if (!string_equal_no_case(*i, str2)) return false;
 		++i;
 		if (i == tag_stack.rend()) return false;
-		if (!string_equal_no_case(i->c_str(), str1)) return false;
+		if (!string_equal_no_case(*i, str1)) return false;
 		return true;
 	}
 };
