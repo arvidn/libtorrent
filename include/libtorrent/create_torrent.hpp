@@ -39,7 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/storage.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/file.hpp" // for combine_path etc.
-#include "libtorrent/version.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
