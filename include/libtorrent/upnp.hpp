@@ -103,19 +103,19 @@ namespace libtorrent
 struct parse_state
 {
 	bool in_service = false;
-	std::list<std::string> tag_stack;
+	std::vector<string_view> tag_stack;
 	std::string control_url;
 	std::string service_type;
 	std::string model;
 	std::string url_base;
-	bool top_tags(const char* str1, const char* str2)
+	bool top_tags(string_view str1, string_view str2)
 	{
-		std::list<std::string>::reverse_iterator i = tag_stack.rbegin();
+		auto i = tag_stack.rbegin();
 		if (i == tag_stack.rend()) return false;
-		if (!string_equal_no_case(i->c_str(), str2)) return false;
+		if (!string_equal_no_case(*i, str2)) return false;
 		++i;
 		if (i == tag_stack.rend()) return false;
-		if (!string_equal_no_case(i->c_str(), str1)) return false;
+		if (!string_equal_no_case(*i, str1)) return false;
 		return true;
 	}
 };
@@ -133,14 +133,13 @@ struct ip_address_parse_state: error_code_parse_state
 	std::string ip_address;
 };
 
-TORRENT_EXTRA_EXPORT void find_control_url(int type, char const* string
-	, int str_len, parse_state& state);
+TORRENT_EXTRA_EXPORT void find_control_url(int type, string_view, parse_state& state);
 
-TORRENT_EXTRA_EXPORT void find_error_code(int type, char const* string
-	, int str_len, error_code_parse_state& state);
+TORRENT_EXTRA_EXPORT void find_error_code(int type, string_view string
+	, error_code_parse_state& state);
 
-TORRENT_EXTRA_EXPORT void find_ip_address(int type, char const* string
-	, int str_len, ip_address_parse_state& state);
+TORRENT_EXTRA_EXPORT void find_ip_address(int type, string_view string
+	, ip_address_parse_state& state);
 
 // TODO: support using the windows API for UPnP operations as well
 struct TORRENT_EXTRA_EXPORT upnp final

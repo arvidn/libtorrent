@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
-#include "libtorrent/span.hpp"
+#include "libtorrent/string_view.hpp"
 
 namespace libtorrent
 {
@@ -62,9 +62,8 @@ namespace libtorrent
 	// val is attribute value
 	// neither string is 0-terminated, but their lengths are specified via
 	// name_len and val_len respectively
-	// TODO: 3 use span<> for the callback
-	TORRENT_EXTRA_EXPORT void xml_parse(span<char const> input
-		, std::function<void(int, char const*, int, char const*, int)> callback);
+	TORRENT_EXTRA_EXPORT void xml_parse(string_view input
+		, std::function<void(int, string_view, string_view)> callback);
 }
 
 

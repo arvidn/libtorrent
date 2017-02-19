@@ -869,35 +869,17 @@ void upnp::delete_port_mapping(rootdevice& d, int const i)
 	post(d, soap, soap_action);
 }
 
-namespace
-{
-	void copy_tolower(std::string& dst, char const* src, int len)
-	{
-		dst.clear();
-		dst.reserve(aux::numeric_cast<std::size_t>(len));
-		while (len-- > 0)
-		{
-			dst.push_back(to_lower(*src++));
-		}
-	}
-}
-
-void find_control_url(int const type, char const* string
-	, int const str_len, parse_state& state)
+void find_control_url(int const type, string_view str, parse_state& state)
 {
 	if (type == xml_start_tag)
 	{
-		std::string tag;
-		copy_tolower(tag, string, str_len);
-		state.tag_stack.push_back(tag);
-//		std::copy(state.tag_stack.begin(), state.tag_stack.end(), std::ostream_iterator<std::string>(std::cout, " "));
-//		std::cout << std::endl;
+		state.tag_stack.push_back(str);
 	}
 	else if (type == xml_end_tag)
 	{
 		if (!state.tag_stack.empty())
 		{
-			if (state.in_service && state.tag_stack.back() == "service")
+			if (state.in_service && string_equal_no_case(state.tag_stack.back(), "service"))
 				state.in_service = false;
 			state.tag_stack.pop_back();
 		}
@@ -905,31 +887,29 @@ void find_control_url(int const type, char const* string
 	else if (type == xml_string)
 	{
 		if (state.tag_stack.empty()) return;
-//		std::cout << " " << string << std::endl;}
 		if (!state.in_service && state.top_tags("service", "servicetype"))
 		{
-			std::string name(string, aux::numeric_cast<std::size_t>(str_len));
-			if (string_equal_no_case(name.c_str(), "urn:schemas-upnp-org:service:WANIPConnection:1")
-				|| string_equal_no_case(name.c_str(), "urn:schemas-upnp-org:service:WANIPConnection:2")
-				|| string_equal_no_case(name.c_str(), "urn:schemas-upnp-org:service:WANPPPConnection:1"))
+			if (string_equal_no_case(str, "urn:schemas-upnp-org:service:WANIPConnection:1")
+				|| string_equal_no_case(str, "urn:schemas-upnp-org:service:WANIPConnection:2")
+				|| string_equal_no_case(str, "urn:schemas-upnp-org:service:WANPPPConnection:1"))
 			{
-				state.service_type.assign(string, aux::numeric_cast<std::size_t>(str_len));
+				state.service_type.assign(str.begin(), str.end());
 				state.in_service = true;
 			}
 		}
 		else if (state.control_url.empty() && state.in_service
-			&& state.top_tags("service", "controlurl") && std::strlen(string) > 0)
+			&& state.top_tags("service", "controlurl") && str.size() > 0)
 		{
 			// default to the first (or only) control url in the router's listing
-			state.control_url.assign(string, aux::numeric_cast<std::size_t>(str_len));
+			state.control_url.assign(str.begin(), str.end());
 		}
 		else if (state.model.empty() && state.top_tags("device", "modelname"))
 		{
-			state.model.assign(string, aux::numeric_cast<std::size_t>(str_len));
+			state.model.assign(str.begin(), str.end());
 		}
-		else if (state.tag_stack.back() == "urlbase")
+		else if (string_equal_no_case(state.tag_stack.back(), "urlbase"))
 		{
-			state.url_base.assign(string, aux::numeric_cast<std::size_t>(str_len));
+			state.url_base.assign(str.begin(), str.end());
 		}
 	}
 }
@@ -985,7 +965,8 @@ void upnp::on_upnp_xml(error_code const& e
 	}
 
 	parse_state s;
-	xml_parse(p.get_body(), std::bind(&find_control_url, _1, _2, _3, std::ref(s)));
+	auto body = p.get_body();
+	xml_parse({body.data(), body.size()}, std::bind(&find_control_url, _1, _2, std::ref(s)));
 	if (s.control_url.empty())
 	{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1116,33 +1097,33 @@ void upnp::disable(error_code const& ec)
 	m_socket.close();
 }
 
-void find_error_code(int const type, char const* string, int const str_len, error_code_parse_state& state)
+void find_error_code(int const type, string_view string, error_code_parse_state& state)
 {
 	if (state.exit) return;
-	if (type == xml_start_tag && !std::strncmp("errorCode", string, aux::numeric_cast<std::size_t>(str_len)))
+	if (type == xml_start_tag && string == "errorCode")
 	{
 		state.in_error_code = true;
 	}
 	else if (type == xml_string && state.in_error_code)
 	{
-		std::string error_code_str(string, aux::numeric_cast<std::size_t>(str_len));
+		std::string error_code_str(string.begin(), string.end());
 		state.error_code = std::atoi(error_code_str.c_str());
 		state.exit = true;
 	}
 }
 
-void find_ip_address(int const type, char const* string, int const str_len, ip_address_parse_state& state)
+void find_ip_address(int const type, string_view string, ip_address_parse_state& state)
 {
-	find_error_code(type, string, str_len, state);
+	find_error_code(type, string, state);
 	if (state.exit) return;
 
-	if (type == xml_start_tag && !std::strncmp("NewExternalIPAddress", string, aux::numeric_cast<std::size_t>(str_len)))
+	if (type == xml_start_tag && string == "NewExternalIPAddress")
 	{
 		state.in_ip_address = true;
 	}
 	else if (type == xml_string && state.in_ip_address)
 	{
-		state.ip_address.assign(string, aux::numeric_cast<std::size_t>(str_len));
+		state.ip_address.assign(string.begin(), string.end());
 		state.exit = true;
 	}
 }
@@ -1282,7 +1263,7 @@ void upnp::on_upnp_get_ip_address_response(error_code const& e
 #endif
 
 	ip_address_parse_state s;
-	xml_parse(body, std::bind(&find_ip_address, _1, _2, _3, std::ref(s)));
+	xml_parse({body.data(), body.size()}, std::bind(&find_ip_address, _1, _2, std::ref(s)));
 #ifndef TORRENT_DISABLE_LOGGING
 	if (s.error_code != -1)
 	{
@@ -1383,7 +1364,7 @@ void upnp::on_upnp_map_response(error_code const& e
 
 	error_code_parse_state s;
 	span<char const> body = p.get_body();
-	xml_parse(body, std::bind(&find_error_code, _1, _2, _3, std::ref(s)));
+	xml_parse({body.data(), body.size()}, std::bind(&find_error_code, _1, _2, std::ref(s)));
 
 	if (s.error_code != -1)
 	{
@@ -1537,7 +1518,8 @@ void upnp::on_upnp_unmap_response(error_code const& e
 	error_code_parse_state s;
 	if (p.header_finished())
 	{
-		xml_parse(p.get_body(), std::bind(&find_error_code, _1, _2, _3, std::ref(s)));
+		span<char const> body = p.get_body();
+		xml_parse({body.data(), body.size()}, std::bind(&find_error_code, _1, _2, std::ref(s)));
 	}
 
 	portmap_protocol const proto = m_mappings[mapping].protocol;
