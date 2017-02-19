@@ -1712,7 +1712,7 @@ namespace libtorrent
 		static const int static_category = alert::dht_notification;
 		virtual std::string message() const override;
 	};
-	
+
 	TORRENT_DEFINE_ALERT_TYPE_SKIP
 
 	// This is posted whenever a torrent is transitioned into the error state.
