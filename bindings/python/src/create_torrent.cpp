@@ -6,6 +6,7 @@
 #include <libtorrent/create_torrent.hpp>
 #include <libtorrent/file_storage.hpp>
 #include "libtorrent/intrusive_ptr_base.hpp"
+#include <libtorrent/version.hpp>
 #include "bytes.hpp"
 
 using namespace boost::python;
