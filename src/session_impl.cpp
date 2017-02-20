@@ -503,7 +503,7 @@ namespace aux {
 	{
 		if (pack.has_val(settings_pack::alert_mask))
 		{
-			m_alerts.set_alert_mask(pack.get_int(settings_pack::alert_mask));
+			m_alerts.set_alert_mask(std::uint32_t(pack.get_int(settings_pack::alert_mask)));
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -5504,18 +5504,18 @@ namespace aux {
 			s.dht_total_allocations = 0;
 		}
 
-		s.utp_stats.packet_loss = m_stats_counters[counters::utp_packet_loss];
-		s.utp_stats.timeout = m_stats_counters[counters::utp_timeout];
-		s.utp_stats.packets_in = m_stats_counters[counters::utp_packets_in];
-		s.utp_stats.packets_out = m_stats_counters[counters::utp_packets_out];
-		s.utp_stats.fast_retransmit = m_stats_counters[counters::utp_fast_retransmit];
-		s.utp_stats.packet_resend = m_stats_counters[counters::utp_packet_resend];
-		s.utp_stats.samples_above_target = m_stats_counters[counters::utp_samples_above_target];
-		s.utp_stats.samples_below_target = m_stats_counters[counters::utp_samples_below_target];
-		s.utp_stats.payload_pkts_in = m_stats_counters[counters::utp_payload_pkts_in];
-		s.utp_stats.payload_pkts_out = m_stats_counters[counters::utp_payload_pkts_out];
-		s.utp_stats.invalid_pkts_in = m_stats_counters[counters::utp_invalid_pkts_in];
-		s.utp_stats.redundant_pkts_in = m_stats_counters[counters::utp_redundant_pkts_in];
+		s.utp_stats.packet_loss = std::uint64_t(m_stats_counters[counters::utp_packet_loss]);
+		s.utp_stats.timeout = std::uint64_t(m_stats_counters[counters::utp_timeout]);
+		s.utp_stats.packets_in = std::uint64_t(m_stats_counters[counters::utp_packets_in]);
+		s.utp_stats.packets_out = std::uint64_t(m_stats_counters[counters::utp_packets_out]);
+		s.utp_stats.fast_retransmit = std::uint64_t(m_stats_counters[counters::utp_fast_retransmit]);
+		s.utp_stats.packet_resend = std::uint64_t(m_stats_counters[counters::utp_packet_resend]);
+		s.utp_stats.samples_above_target = std::uint64_t(m_stats_counters[counters::utp_samples_above_target]);
+		s.utp_stats.samples_below_target = std::uint64_t(m_stats_counters[counters::utp_samples_below_target]);
+		s.utp_stats.payload_pkts_in = std::uint64_t(m_stats_counters[counters::utp_payload_pkts_in]);
+		s.utp_stats.payload_pkts_out = std::uint64_t(m_stats_counters[counters::utp_payload_pkts_out]);
+		s.utp_stats.invalid_pkts_in = std::uint64_t(m_stats_counters[counters::utp_invalid_pkts_in]);
+		s.utp_stats.redundant_pkts_in = std::uint64_t(m_stats_counters[counters::utp_redundant_pkts_in]);
 
 		s.utp_stats.num_idle = int(m_stats_counters[counters::num_utp_idle]);
 		s.utp_stats.num_syn_sent = int(m_stats_counters[counters::num_utp_syn_sent]);
@@ -6365,7 +6365,7 @@ namespace aux {
 
 	void session_impl::update_alert_mask()
 	{
-		m_alerts.set_alert_mask(m_settings.get_int(settings_pack::alert_mask));
+		m_alerts.set_alert_mask(std::uint32_t(m_settings.get_int(settings_pack::alert_mask)));
 	}
 
 	void session_impl::pop_alerts(std::vector<alert*>* alerts)
@@ -6449,7 +6449,7 @@ namespace aux {
 	std::size_t session_impl::set_alert_queue_size_limit(std::size_t queue_size_limit_)
 	{
 		m_settings.set_int(settings_pack::alert_queue_size, int(queue_size_limit_));
-		return m_alerts.set_alert_queue_size_limit(int(queue_size_limit_));
+		return std::size_t(m_alerts.set_alert_queue_size_limit(int(queue_size_limit_)));
 	}
 #endif
 

@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/byteswap.hpp"
 #include "libtorrent/aux_/ffs.hpp"
+#include "libtorrent/aux_/typed_span.hpp"
 
 #if TORRENT_USE_IOSTREAM
 #include <iosfwd>
@@ -52,8 +53,8 @@ namespace libtorrent
 	// TODO: find a better place for these functions
 	namespace aux
 	{
-		TORRENT_EXTRA_EXPORT void bits_shift_left(span<std::uint32_t> number, int n);
-		TORRENT_EXTRA_EXPORT void bits_shift_right(span<std::uint32_t> number, int n);
+		TORRENT_EXTRA_EXPORT void bits_shift_left(typed_span<std::uint32_t> number, int n);
+		TORRENT_EXTRA_EXPORT void bits_shift_right(typed_span<std::uint32_t> number, int n);
 	}
 
 	// This type holds an N digest or any other kind of N bits
@@ -70,7 +71,7 @@ namespace libtorrent
 	public:
 
 		// the size of the hash in bytes
-		static constexpr size_t size() { return N / 8; }
+		static constexpr std::size_t size() { return N / 8; }
 
 		// constructs an all-zero digest
 		digest32() { clear(); }
@@ -122,7 +123,7 @@ namespace libtorrent
 		void assign(span<char const> s)
 		{
 			TORRENT_ASSERT(s.size() >= N / 8);
-			size_t const sl = s.size() < size() ? s.size() : size();
+			std::size_t const sl = s.size() < size() ? s.size() : size();
 			std::memcpy(m_number, s.data(), sl);
 		}
 		void assign(char const* str) { std::memcpy(m_number, str, size()); }

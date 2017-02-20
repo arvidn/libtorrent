@@ -1093,13 +1093,13 @@ namespace libtorrent
 	void session_handle::set_alert_mask(std::uint32_t m)
 	{
 		settings_pack p;
-		p.set_int(settings_pack::alert_mask, m);
+		p.set_int(settings_pack::alert_mask, int(m));
 		apply_settings(std::move(p));
 	}
 
 	std::uint32_t session_handle::get_alert_mask() const
 	{
-		return get_settings().get_int(settings_pack::alert_mask);
+		return std::uint32_t(get_settings().get_int(settings_pack::alert_mask));
 	}
 
 	void session_handle::start_lsd()

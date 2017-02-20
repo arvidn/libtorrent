@@ -62,23 +62,23 @@ namespace libtorrent
 
 namespace aux
 {
-	void bits_shift_left(span<std::uint32_t> number, int n)
+	void bits_shift_left(typed_span<std::uint32_t> number, int n)
 	{
 		TORRENT_ASSERT(n >= 0);
 		int const num_words = n / 32;
-		int const number_size = int(number.size());
+		int const number_size = number.end_index();
 		if (num_words >= number_size)
 		{
-			std::memset(number.data(), 0, number_size * 4);
+			std::memset(number.data(), 0, number.size() * 4);
 			return;
 		}
 
 		if (num_words > 0)
 		{
 			std::memmove(number.data(), number.data() + num_words
-				, (number_size - num_words) * sizeof(std::uint32_t));
+				, std::size_t(number_size - num_words) * sizeof(std::uint32_t));
 			std::memset(number.data() + (number_size - num_words)
-				, 0, num_words * sizeof(std::uint32_t));
+				, 0, std::size_t(num_words) * sizeof(std::uint32_t));
 			n -= num_words * 32;
 		}
 		if (n > 0)
@@ -100,21 +100,21 @@ namespace aux
 		}
 	}
 
-	void bits_shift_right(span<std::uint32_t> number, int n)
+	void bits_shift_right(typed_span<std::uint32_t> number, int n)
 	{
 		TORRENT_ASSERT(n >= 0);
 		int const num_words = n / 32;
-		int const number_size = int(number.size());
+		int const number_size = number.end_index();
 		if (num_words >= number_size)
 		{
-			std::memset(number.data(), 0, number_size * 4);
+			std::memset(number.data(), 0, number.size() * 4);
 			return;
 		}
 		if (num_words > 0)
 		{
 			std::memmove(number.data() + num_words
-				, number.data(), (number_size - num_words) * sizeof(std::uint32_t));
-			std::memset(number.data(), 0, num_words * sizeof(std::uint32_t));
+				, number.data(), std::size_t(number_size - num_words) * sizeof(std::uint32_t));
+			std::memset(number.data(), 0, std::size_t(num_words) * sizeof(std::uint32_t));
 			n -= num_words * 32;
 		}
 		if (n > 0)
