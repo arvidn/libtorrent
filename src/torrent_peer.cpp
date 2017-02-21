@@ -85,10 +85,10 @@ namespace libtorrent
 				swap(e1, e2);
 			std::uint32_t p;
 #if defined BOOST_BIG_ENDIAN
-			p = e1.port() << 16;
+			p = std::uint32_t(e1.port() << 16);
 			p |= e2.port();
 #elif defined BOOST_LITTLE_ENDIAN
-			p = aux::host_to_network(e2.port()) << 16;
+			p = std::uint32_t(aux::host_to_network(e2.port()) << 16);
 			p |= aux::host_to_network(e1.port());
 #else
 #error unsupported endianness
@@ -141,7 +141,7 @@ namespace libtorrent
 		return ret;
 	}
 
-	torrent_peer::torrent_peer(std::uint16_t port_, bool conn, int src)
+	torrent_peer::torrent_peer(std::uint16_t port_, bool conn, int const src)
 		: prev_amount_upload(0)
 		, prev_amount_download(0)
 		, connection(nullptr)
@@ -156,7 +156,7 @@ namespace libtorrent
 		, seed(false)
 		, fast_reconnects(0)
 		, trust_points(0)
-		, source(src)
+		, source(aux::numeric_cast<std::uint8_t>(src))
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		// assume no support in order to
 		// prefer opening non-encrypted
@@ -179,9 +179,7 @@ namespace libtorrent
 #if TORRENT_USE_ASSERTS
 		, in_use(false)
 #endif
-	{
-		TORRENT_ASSERT((src & 0xff) == src);
-	}
+	{}
 
 	std::uint32_t torrent_peer::rank(external_ip const& external, int external_port) const
 	{
@@ -204,7 +202,7 @@ namespace libtorrent
 	}
 #endif
 
-	std::uint64_t torrent_peer::total_download() const
+	std::int64_t torrent_peer::total_download() const
 	{
 		if (connection != nullptr)
 		{
@@ -213,11 +211,11 @@ namespace libtorrent
 		}
 		else
 		{
-			return std::uint64_t(prev_amount_download) << 10;
+			return std::int64_t(prev_amount_download) << 10;
 		}
 	}
 
-	std::uint64_t torrent_peer::total_upload() const
+	std::int64_t torrent_peer::total_upload() const
 	{
 		if (connection != nullptr)
 		{
@@ -226,13 +224,11 @@ namespace libtorrent
 		}
 		else
 		{
-			return std::uint64_t(prev_amount_upload) << 10;
+			return std::int64_t(prev_amount_upload) << 10;
 		}
 	}
 
-	ipv4_peer::ipv4_peer(
-		tcp::endpoint const& ep, bool c, int src
-	)
+	ipv4_peer::ipv4_peer(tcp::endpoint const& ep, bool c, int src)
 		: torrent_peer(ep.port(), c, src)
 		, addr(ep.address().to_v4())
 	{
