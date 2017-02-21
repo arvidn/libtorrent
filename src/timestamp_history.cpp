@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 #include "libtorrent/timestamp_history.hpp"
+#include "libtorrent/aux_/numeric_cast.hpp"
 
 namespace libtorrent {
 
@@ -93,7 +94,7 @@ std::uint32_t timestamp_history::add_sample(std::uint32_t sample, bool step)
 void timestamp_history::adjust_base(int change)
 {
 	TORRENT_ASSERT(initialized());
-	m_base += change;
+	m_base += aux::numeric_cast<std::uint32_t>(change);
 	// make sure this adjustment sticks by updating all history slots
 	for (int i = 0; i < history_size; ++i)
 	{

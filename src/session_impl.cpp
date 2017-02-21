@@ -2913,7 +2913,7 @@ namespace aux {
 		m_peer_id = id;
 	}
 
-	void session_impl::set_key(int key)
+	void session_impl::set_key(std::uint32_t key)
 	{
 		m_key = key;
 	}

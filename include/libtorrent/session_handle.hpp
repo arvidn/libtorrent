@@ -581,7 +581,7 @@ namespace libtorrent
 		// sets the key sent to trackers. If it's not set, it is initialized
 		// by libtorrent. The key may be used by the tracker to identify the
 		// peer potentially across you changing your IP.
-		void set_key(int key);
+		void set_key(std::uint32_t key);
 
 		// built-in peer classes
 		static constexpr peer_class_t global_peer_class_id{0};

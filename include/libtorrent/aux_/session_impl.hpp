@@ -553,7 +553,7 @@ namespace libtorrent
 			void get_cache_info(torrent_handle h, cache_status* ret, int flags) const;
 
 			void set_peer_id(peer_id const& id);
-			void set_key(int key);
+			void set_key(std::uint32_t key);
 			std::uint16_t listen_port() const override;
 			std::uint16_t ssl_listen_port() const override;
 
@@ -875,7 +875,7 @@ namespace libtorrent
 			// the key is an id that is used to identify the
 			// client with the tracker only. It is randomized
 			// at startup
-			int m_key = 0;
+			std::uint32_t m_key = 0;
 
 			// posts a notification when the set of local IPs changes
 			ip_change_notifier m_ip_notifier;

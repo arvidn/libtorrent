@@ -750,7 +750,7 @@ namespace libtorrent
 		return sync_call_ret<peer_id>(&session_impl::get_peer_id);
 	}
 
-	void session_handle::set_key(int key)
+	void session_handle::set_key(std::uint32_t key)
 	{
 		async_call(&session_impl::set_key, key);
 	}

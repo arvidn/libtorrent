@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm> // for copy
 #include <cstring> // for memcpy
 #include <type_traits>
+#include <iterator>
 
 #include "assert.hpp"
 
@@ -80,11 +81,16 @@ namespace libtorrent
 				|| std::is_enum<In>::value>::type>
 		inline void write_impl(In data, OutIt& start)
 		{
+			using OutItT = typename std::iterator_traits<OutIt>::value_type;
+			using Byte = typename std::conditional<
+				std::is_same<OutItT, void>::value, char, OutItT>::type;
+			static_assert(sizeof(Byte) == 1, "wrong iterator or pointer type");
+
 			T val = static_cast<T>(data);
 			TORRENT_ASSERT(data == static_cast<In>(val));
 			for (int i = int(sizeof(T)) - 1; i >= 0; --i)
 			{
-				*start = static_cast<unsigned char>((val >> (i * 8)) & 0xff);
+				*start = static_cast<Byte>((val >> (i * 8)) & 0xff);
 				++start;
 			}
 		}
