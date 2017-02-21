@@ -230,9 +230,9 @@ namespace libtorrent
 		TORRENT_ASSERT(m_type == dict_t || m_type == list_t);
 		if (m_data.list == nullptr) return 0;
 		if (m_type == dict_t)
-			return m_data.dict[0].val.m_len;
+			return int(m_data.dict[0].val.m_len);
 		else
-			return m_data.list[0].m_len;
+			return int(m_data.list[0].m_len);
 	}
 
 	std::int64_t lazy_entry::int_value() const
@@ -255,14 +255,14 @@ namespace libtorrent
 		TORRENT_ASSERT(int(m_size) <= this->capacity());
 		if (m_data.dict == nullptr)
 		{
-			int capacity = lazy_entry_dict_init;
+			int const capacity = lazy_entry_dict_init;
 			m_data.dict = new (std::nothrow) lazy_dict_entry[capacity + 1];
 			if (m_data.dict == nullptr) return nullptr;
-			m_data.dict[0].val.m_len = capacity;
+			m_data.dict[0].val.m_len = std::uint32_t(capacity);
 		}
 		else if (int(m_size) == this->capacity())
 		{
-			int capacity = this->capacity() * lazy_entry_grow_factor / 100;
+			int const capacity = this->capacity() * lazy_entry_grow_factor / 100;
 			lazy_dict_entry* tmp = new (std::nothrow) lazy_dict_entry[capacity + 1];
 			if (tmp == nullptr) return nullptr;
 			std::memcpy(tmp, m_data.dict, sizeof(lazy_dict_entry) * (m_size + 1));
@@ -270,7 +270,7 @@ namespace libtorrent
 
 			delete[] m_data.dict;
 			m_data.dict = tmp;
-			m_data.dict[0].val.m_len = capacity;
+			m_data.dict[0].val.m_len = std::uint32_t(capacity);
 		}
 
 		TORRENT_ASSERT(int(m_size) < this->capacity());
@@ -303,9 +303,10 @@ namespace libtorrent
 	void lazy_entry::construct_string(char const* start, int const length)
 	{
 		TORRENT_ASSERT(m_type == none_t);
+		TORRENT_ASSERT(length >= 0);
 		m_type = string_t;
 		m_data.start = start;
-		m_size = length;
+		m_size = std::uint32_t(length);
 		m_begin = start - 1 - num_digits(length);
 		m_len = std::uint32_t(start - m_begin + length);
 	}
@@ -333,7 +334,8 @@ namespace libtorrent
 		TORRENT_ASSERT(m_type == dict_t);
 		TORRENT_ASSERT(i < int(m_size));
 		lazy_dict_entry const& e = m_data.dict[i + 1];
-		return std::make_pair(std::string(e.name, e.val.m_begin - e.name), &e.val);
+		TORRENT_ASSERT(e.val.m_begin >= e.name);
+		return std::make_pair(std::string(e.name, std::size_t(e.val.m_begin - e.name)), &e.val);
 	}
 
 	std::string lazy_entry::dict_find_string_value(char const* name) const
@@ -424,14 +426,14 @@ namespace libtorrent
 		TORRENT_ASSERT(int(m_size) <= this->capacity());
 		if (m_data.start == nullptr)
 		{
-			int capacity = lazy_entry_list_init;
+			int const capacity = lazy_entry_list_init;
 			m_data.list = new (std::nothrow) lazy_entry[capacity + 1];
 			if (m_data.list == nullptr) return nullptr;
-			m_data.list[0].m_len = capacity;
+			m_data.list[0].m_len = std::uint32_t(capacity);
 		}
 		else if (int(m_size) == this->capacity())
 		{
-			int capacity = this->capacity() * lazy_entry_grow_factor / 100;
+			int const capacity = this->capacity() * lazy_entry_grow_factor / 100;
 			lazy_entry* tmp = new (std::nothrow) lazy_entry[capacity + 1];
 			if (tmp == nullptr) return nullptr;
 			std::memcpy(tmp, m_data.list, sizeof(lazy_entry) * (m_size + 1));
@@ -439,7 +441,7 @@ namespace libtorrent
 
 			delete[] m_data.list;
 			m_data.list = tmp;
-			m_data.list[0].m_len = capacity;
+			m_data.list[0].m_len = std::uint32_t(capacity);
 		}
 
 		TORRENT_ASSERT(int(m_size) < this->capacity());
@@ -561,6 +563,7 @@ namespace libtorrent
 
 	void print_string(std::string& ret, char const* str, int const len, bool single_line)
 	{
+		TORRENT_ASSERT(len >= 0);
 		bool printable = true;
 		for (int i = 0; i < len; ++i)
 		{
@@ -579,7 +582,7 @@ namespace libtorrent
 				ret.append(str + len - 14, 14);
 			}
 			else
-				ret.append(str, len);
+				ret.append(str, std::size_t(len));
 			ret += "'";
 			return;
 		}

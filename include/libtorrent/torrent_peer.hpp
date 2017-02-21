@@ -52,8 +52,8 @@ namespace libtorrent
 	{
 		torrent_peer(std::uint16_t port, bool connectable, int src);
 
-		std::uint64_t total_download() const;
-		std::uint64_t total_upload() const;
+		std::int64_t total_download() const;
+		std::int64_t total_upload() const;
 
 		std::uint32_t rank(external_ip const& external, int external_port) const;
 
