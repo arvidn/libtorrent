@@ -660,30 +660,6 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		if (web->have_files.get_bit(file_index) == false)
 		{
 			web->have_files.set_bit(file_index);
-			torrent_info const& info = t->torrent_file();
-
-			// let's try to predict file location names.
-			// we should try to do it cause original request will be dropped
-			// and further requests will use exclusive range pick logic
-			// which exclude edge pieces file locations.
-
-			std::string original_path = escape_file_path(info.orig_files(), file_index);
-			std::size_t redirect_path_idx = redirect_path.rfind(original_path);
-			if (redirect_path_idx != std::string::npos) // we can predict new location
-			{
-				std::string redirect_path_prefix = redirect_path.substr(0, redirect_path_idx);
-				file_storage const& fs = info.files();
-				for (file_index_t fi(0); fi < fs.end_file(); ++fi)
-				{
-					if (info.orig_files().pad_file_at(fi))
-						continue;
-					if (web->redirects.find(fi) != web->redirects.end())
-						continue;
-					web->have_files.set_bit(fi);
-					std::string new_path{ redirect_path_prefix + escape_file_path(info.orig_files(), fi) };
-					web->redirects[fi] = new_path;
-				}
-			}
 
 			if (web->peer_info.connection != nullptr)
 			{
@@ -692,7 +668,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 				// we just learned that this host has this file, and we're currently
 				// connected to it. Make it advertise that it has this file to the
 				// bittorrent engine
-				file_storage const& fs = info.files();
+				file_storage const& fs = t->torrent_file().files();
 				auto const range = aux::file_piece_range_exclusive(fs, file_index);
 				for (piece_index_t i = std::get<0>(range); i < std::get<1>(range); ++i)
 					pc->incoming_have(i);

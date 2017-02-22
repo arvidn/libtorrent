@@ -448,56 +448,6 @@ TORRENT_TEST(multi_file_redirect_through_proxy)
 	TEST_EQUAL(seeding, true);
 }
 
-// Test location name prediction with unaligned files
-// Without this prediction edge piece of "foo/file1" will be excluded
-// from further original server request by range pick
-// logic of web_peer_connection::on_connected().
-TORRENT_TEST(predict_unaligned_redirect)
-{
-	using namespace libtorrent;
-	file_storage fs;
-	fs.add_file(combine_path("foo", "file1"), piece_size / 2); // piece 0
-	fs.add_file(combine_path("foo", "file2"), piece_size);     // piece 0 & 1
-	fs.add_file(combine_path("foo", "file3"), 0x1000);         // piece 1
-	lt::add_torrent_params params = ::create_torrent(fs);
-	params.url_seeds.push_back("http://2.2.2.2:8080/");
-
-	bool seeding = false;
-
-	run_test(
-		[&params](lt::session& ses)
-		{
-			ses.async_add_torrent(params);
-		},
-		[&](lt::session& ses, lt::alert const* alert) {
-			if (lt::alert_cast<lt::torrent_finished_alert>(alert))
-				seeding = true;
-		},
-		[&fs](sim::simulation& sim, lt::session& ses)
-		{
-			// http1 is the root web server that will just redirect requests to
-			// other servers
-			sim::asio::io_service web_server1(sim, address_v4::from_string("2.2.2.2"));
-			sim::http_server http1(web_server1, 8080);
-			// redirect all files to the same server
-			http1.register_redirect("/foo/file1", "http://3.3.3.3:4444/new/foo/file1");
-			http1.register_redirect("/foo/file2", "http://3.3.3.3:4444/new/foo/file2");
-			http1.register_redirect("/foo/file3", "http://3.3.3.3:4444/new/foo/file3");
-
-			// server for serving the content
-			sim::asio::io_service web_server2(sim, address_v4::from_string("3.3.3.3"));
-			sim::http_server http2(web_server2, 4444);
-			serve_content_for(http2, "/new/foo/file1", fs, file_index_t(0));
-			serve_content_for(http2, "/new/foo/file2", fs, file_index_t(1));
-			serve_content_for(http2, "/new/foo/file3", fs, file_index_t(2));
-
-			sim.run();
-		}
-	);
-
-	TEST_EQUAL(seeding, true);
-}
-
 // this is expected to fail, since the files are not aligned and redirected to
 // separate servers, without pad files
 TORRENT_TEST(multi_file_unaligned_redirect)
