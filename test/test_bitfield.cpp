@@ -195,7 +195,7 @@ TORRENT_TEST(test_assign2)
 	bitfield test1;
 	for (int i = 0; i < 4; ++i)
 	{
-		memset(&b[i], 0xff, 5);
+		std::memset(&b[i], 0xff, 5);
 		b[i + 5] = char(0xc0);
 		test1.assign(&b[i], 32 + 8 + 2);
 		print_bitfield(test1);

@@ -5838,7 +5838,7 @@ namespace aux {
 		m_alerts.emplace_alert<dht_live_nodes_alert>(nid, nodes);
 	}
 
-	void session_impl::dht_direct_request(udp::endpoint ep, entry& e, void* userdata)
+	void session_impl::dht_direct_request(udp::endpoint const& ep, entry& e, void* userdata)
 	{
 		if (!m_dht) return;
 		m_dht->direct_request(ep, e, std::bind(&on_direct_response, std::ref(m_alerts), userdata, _1));
