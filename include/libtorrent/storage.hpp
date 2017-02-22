@@ -151,7 +151,7 @@ namespace libtorrent
 	// but modifies some particular behavior, for instance encrypting the data
 	// before it's written to disk, and decrypting it when it's read again.
 	//
-	// The storage interface is based on pieces. Avery read and write operation
+	// The storage interface is based on pieces. Every read and write operation
 	// happens in the piece-space. Each piece fits 'piece_size' number
 	// of bytes. All access is done by writing and reading whole or partial
 	// pieces.
