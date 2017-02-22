@@ -46,6 +46,7 @@ TORRENT_TEST(alerts_types)
 	TEST_EQUAL(name::alert_type, seq);
 
 	TEST_ALERT_TYPE(dht_get_peers_reply_alert, 87, 0);
+	TEST_ALERT_TYPE(session_error_alert, 90, 0);
 	TEST_ALERT_TYPE(dht_live_nodes_alert, 91, 0);
 
 #undef TEST_ALERT_TYPE
