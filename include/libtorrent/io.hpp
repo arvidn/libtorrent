@@ -81,6 +81,9 @@ namespace libtorrent
 				|| std::is_enum<In>::value>::type>
 		inline void write_impl(In data, OutIt& start)
 		{
+			// Note: the test for [OutItT==void] below is necessary because
+			// in C++11 std::back_insert_iterator::value_type is void.
+			// This could change in C++17 or above
 			using OutItT = typename std::iterator_traits<OutIt>::value_type;
 			using Byte = typename std::conditional<
 				std::is_same<OutItT, void>::value, char, OutItT>::type;
