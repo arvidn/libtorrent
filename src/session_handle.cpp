@@ -59,7 +59,7 @@ namespace libtorrent
 #ifndef BOOST_NO_EXCEPTIONS
 			try {
 #endif
-				(m_impl->*f)(a...);
+				(m_impl->*f)(std::forward<Args>(a)...);
 #ifndef BOOST_NO_EXCEPTIONS
 			} catch (system_error const& e) {
 				m_impl->alerts().emplace_alert<session_error_alert>(e.code(), e.what());
@@ -81,12 +81,12 @@ namespace libtorrent
 		bool done = false;
 
 		std::exception_ptr ex;
-		m_impl->get_io_service().dispatch([=,&done,&ex]() mutable
+		m_impl->get_io_service().dispatch([=, &done, &ex]() mutable
 		{
 #ifndef BOOST_NO_EXCEPTIONS
 			try {
 #endif
-				(m_impl->*f)(a...);
+				(m_impl->*f)(std::forward<Args>(a)...);
 #ifndef BOOST_NO_EXCEPTIONS
 			} catch (...) {
 				ex = std::current_exception();
@@ -110,12 +110,12 @@ namespace libtorrent
 		bool done = false;
 		Ret r;
 		std::exception_ptr ex;
-		m_impl->get_io_service().dispatch([=,&r,&done,&ex]() mutable
+		m_impl->get_io_service().dispatch([=, &r, &done, &ex]() mutable
 		{
 #ifndef BOOST_NO_EXCEPTIONS
 			try {
 #endif
-				r = (m_impl->*f)(a...);
+				r = (m_impl->*f)(std::forward<Args>(a)...);
 #ifndef BOOST_NO_EXCEPTIONS
 			} catch (...) {
 				ex = std::current_exception();
@@ -610,7 +610,7 @@ namespace libtorrent
 #endif
 	}
 
-	void session_handle::dht_direct_request(udp::endpoint ep, entry const& e, void* userdata)
+	void session_handle::dht_direct_request(udp::endpoint const& ep, entry const& e, void* userdata)
 	{
 #ifndef TORRENT_DISABLE_DHT
 		entry copy = e;

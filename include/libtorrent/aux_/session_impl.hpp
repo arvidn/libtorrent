@@ -396,7 +396,7 @@ namespace libtorrent
 
 			void dht_live_nodes(sha1_hash const& nid);
 
-			void dht_direct_request(udp::endpoint ep, entry& e
+			void dht_direct_request(udp::endpoint const& ep, entry& e
 				, void* userdata = nullptr);
 
 #ifndef TORRENT_NO_DEPRECATE

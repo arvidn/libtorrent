@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/dht_observer.hpp>
 #include <libtorrent/kademlia/node.hpp>
 #include <libtorrent/io.hpp>
+#include <libtorrent/performance_counters.hpp>
 
 namespace libtorrent { namespace dht
 {
@@ -85,8 +86,8 @@ bool put_data::invoke(observer_ptr o)
 {
 	if (m_done) return false;
 
-	// TODO: what if o is not an isntance of put_data_observer? This need to be
-	// redesigned for better type saftey.
+	// TODO: what if o is not an instance of put_data_observer? This need to be
+	// redesigned for better type safety.
 	put_data_observer* po = static_cast<put_data_observer*>(o.get());
 
 	entry e;
@@ -105,6 +106,8 @@ bool put_data::invoke(observer_ptr o)
 			a["salt"] = m_data.salt();
 		}
 	}
+
+	m_node.stats_counters().inc_stats_counter(counters::dht_put_out);
 
 	return m_node.m_rpc.invoke(e, o->target_ep(), o);
 }

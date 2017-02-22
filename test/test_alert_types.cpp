@@ -39,6 +39,20 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
+TORRENT_TEST(alerts_types)
+{
+#define TEST_ALERT_TYPE(name, seq, prio) \
+	TEST_EQUAL(name::priority, prio); \
+	TEST_EQUAL(name::alert_type, seq);
+
+	TEST_ALERT_TYPE(dht_get_peers_reply_alert, 87, 0);
+	TEST_ALERT_TYPE(dht_live_nodes_alert, 91, 0);
+
+#undef TEST_ALERT_TYPE
+
+	TEST_EQUAL(num_alert_types, 92);
+}
+
 TORRENT_TEST(dht_get_peers_reply_alert)
 {
 	alert_manager mgr(1, dht_get_peers_reply_alert::static_category);

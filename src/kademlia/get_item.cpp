@@ -31,15 +31,11 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <libtorrent/config.hpp>
-#include <libtorrent/hasher.hpp>
 #include <libtorrent/bdecode.hpp>
 #include <libtorrent/kademlia/get_item.hpp>
 #include <libtorrent/kademlia/node.hpp>
 #include <libtorrent/kademlia/dht_observer.hpp>
-
-#if TORRENT_USE_ASSERTS
-#include <libtorrent/bencode.hpp>
-#endif
+#include <libtorrent/performance_counters.hpp>
 
 namespace libtorrent { namespace dht
 {
@@ -91,7 +87,7 @@ void get_item::got_data(bdecode_node const& v,
 
 		// for get_item, we should call callback when we get data,
 		// even if the date is not authoritative, we can update later.
-		// so caller can get response ASAP without waitting transaction
+		// so caller can get response ASAP without waiting transaction
 		// time-out (15 seconds).
 		// for put_item, the callback function will do nothing
 		// if the data is non-authoritative.
@@ -145,6 +141,8 @@ bool get_item::invoke(observer_ptr o)
 
 	e["q"] = "get";
 	a["target"] = target().to_string();
+
+	m_node.stats_counters().inc_stats_counter(counters::dht_get_out);
 
 	return m_node.m_rpc.invoke(e, o->target_ep(), o);
 }

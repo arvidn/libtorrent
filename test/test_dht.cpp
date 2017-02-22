@@ -2437,7 +2437,7 @@ TORRENT_TEST(traversal_done)
 	std::array<node_entry, 9> nodes = build_nodes(target);
 
 	// invert the ith most significant byte so that the test nodes are
-	// progressivly closer to the target item
+	// progressively closer to the target item
 	for (int i = 0; i < num_test_nodes; ++i)
 		nodes[i].id[i] = ~nodes[i].id[i];
 
