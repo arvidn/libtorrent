@@ -528,7 +528,7 @@ namespace libtorrent
 		}
 		else
 		{
-			file_flags &= ~file_storage::flag_symlink;
+			file_flags &= ~(file_storage::flag_symlink & 0xffffffff);
 		}
 
 		if (filename_len > int(path.length())

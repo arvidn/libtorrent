@@ -285,7 +285,7 @@ namespace libtorrent
 			, std::string const& path, std::int64_t file_size
 			, std::uint32_t file_flags = 0, char const* filehash = 0
 			, std::int64_t mtime = 0, string_view symlink_path = string_view());
-		void add_file(std::string const& path, std::int64_t file_size, int file_flags = 0
+		void add_file(std::string const& path, std::int64_t file_size, std::uint32_t file_flags = 0
 			, std::time_t mtime = 0, string_view symlink_path = string_view());
 
 		// renames the file at ``index`` to ``new_filename``. Keep in mind

@@ -338,7 +338,7 @@ namespace libtorrent
 
 	void file_storage::add_file(file_entry const& fe, char const* filehash)
 	{
-		int flags = 0;
+		std::uint32_t flags = 0;
 		if (fe.pad_file) flags |= file_storage::flag_pad_file;
 		if (fe.hidden_attribute) flags |= file_storage::flag_hidden;
 		if (fe.executable_attribute) flags |= file_storage::flag_executable;
@@ -363,7 +363,7 @@ namespace libtorrent
 	void file_storage::add_file(std::wstring const& file, std::int64_t file_size
 		, int file_flags, std::time_t mtime, string_view symlink_path)
 	{
-		add_file(wchar_utf8(file), file_size, file_flags, mtime, symlink_path);
+		add_file(wchar_utf8(file), file_size, std::uint32_t(file_flags), mtime, symlink_path);
 	}
 
 	void file_storage::rename_file(file_index_t index, std::wstring const& new_filename)
@@ -540,7 +540,7 @@ namespace libtorrent
 	}
 
 	void file_storage::add_file(std::string const& path, std::int64_t file_size
-		, int file_flags, std::time_t mtime, string_view symlink_path)
+		, std::uint32_t file_flags, std::time_t mtime, string_view symlink_path)
 	{
 		add_file_borrow(nullptr, 0, path, file_size, file_flags, nullptr, mtime
 			, symlink_path);
