@@ -234,9 +234,7 @@ namespace libtorrent
 		SET(peer_timeout, 120, 0),
 		SET(urlseed_timeout, 20, 0),
 		SET(urlseed_pipeline_size, 5, 0),
-		SET_NOPREV(urlseed_max_request_bytes, 16 * 1024 * 1024, 0),
 		SET(urlseed_wait_retry, 30, 0),
-		SET_NOPREV(web_seed_name_lookup_retry, 1800, 0),		
 		SET(file_pool_size, 40, 0),
 		SET(max_failcount, 3, &session_impl::update_max_failcount),
 		SET(min_reconnect_time, 60, 0),
@@ -349,7 +347,9 @@ namespace libtorrent
 		SET_NOPREV(proxy_type, settings_pack::none, &session_impl::update_proxy),
 		SET_NOPREV(proxy_port, 0, &session_impl::update_proxy),
 		SET_NOPREV(i2p_port, 0, &session_impl::update_i2p_bridge),
-		SET_NOPREV(cache_size_volatile, 256, 0)
+		SET_NOPREV(cache_size_volatile, 256, 0),
+		SET_NOPREV(urlseed_max_request_bytes, 16 * 1024 * 1024, 0),
+		SET_NOPREV(web_seed_name_lookup_retry, 1800, 0),
 	};
 
 #undef SET

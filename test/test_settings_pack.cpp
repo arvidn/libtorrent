@@ -196,5 +196,33 @@ TORRENT_TEST(duplicates)
 	TEST_EQUAL(p.get_str(settings_pack::peer_fingerprint), "hij");
 }
 
+TORRENT_TEST(settings_pack_abi)
+{
+	// make sure enum values are preserved across libtorrent versions
+	// for ABI compatibility
+	// These values are only allowed to change across major versions
+
+	TEST_EQUAL(settings_pack::string_type_base, 0x0000);
+	TEST_EQUAL(settings_pack::int_type_base, 0x4000);
+	TEST_EQUAL(settings_pack::bool_type_base, 0x8000);
+	TEST_EQUAL(settings_pack::type_mask, 0xc000);
+
+	// strings
+	TEST_EQUAL(settings_pack::outgoing_interfaces, settings_pack::string_type_base + 4);
+	TEST_EQUAL(settings_pack::dht_bootstrap_nodes, settings_pack::string_type_base + 11);
+
+	// bool
+	TEST_EQUAL(settings_pack::lazy_bitfields, settings_pack::bool_type_base + 3);
+	TEST_EQUAL(settings_pack::explicit_read_cache, settings_pack::bool_type_base + 10);
+	TEST_EQUAL(settings_pack::proxy_tracker_connections, settings_pack::bool_type_base + 68);
+
+	// ints
+	TEST_EQUAL(settings_pack::max_suggest_pieces, settings_pack::int_type_base + 66);
+	TEST_EQUAL(settings_pack::connections_slack, settings_pack::int_type_base + 86);
+	TEST_EQUAL(settings_pack::aio_threads, settings_pack::int_type_base + 104);
+	TEST_EQUAL(settings_pack::max_http_recv_buffer_size, settings_pack::int_type_base + 115);
+	TEST_EQUAL(settings_pack::web_seed_name_lookup_retry, settings_pack::int_type_base + 128);
+}
+
 // TODO: load_pack_from_dict
 
