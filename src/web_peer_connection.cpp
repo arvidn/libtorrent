@@ -57,6 +57,8 @@ namespace libtorrent
 {
 constexpr int request_size_overhead = 5000;
 
+std::string escape_file_path(file_storage const& storage, file_index_t index);
+
 web_peer_connection::web_peer_connection(peer_connection_args const& pack
 	, web_seed_t& web)
 	: web_connection_base(pack, web)
@@ -107,11 +109,7 @@ web_peer_connection::web_peer_connection(peer_connection_args const& pack
 
 		if (!m_url.empty() && m_url[m_url.size() - 1] == '/')
 		{
-			std::string tmp = t->torrent_file().files().file_path(file_index_t(0));
-#ifdef TORRENT_WINDOWS
-			convert_path_to_posix(tmp);
-#endif
-			m_url += escape_path(tmp);
+			m_url += escape_file_path(t->torrent_file().files(), file_index_t(0));
 		}
 	}
 
@@ -124,6 +122,15 @@ web_peer_connection::web_peer_connection(peer_connection_args const& pack
 #ifndef TORRENT_DISABLE_LOGGING
 	peer_log(peer_log_alert::info, "URL", "web_peer_connection %s", m_url.c_str());
 #endif
+}
+
+std::string escape_file_path(file_storage const& storage, file_index_t index)
+{
+	std::string new_path { storage.file_path(index) };
+#ifdef TORRENT_WINDOWS
+	convert_path_to_posix(new_path);
+#endif
+	return escape_path(new_path);
 }
 
 void web_peer_connection::on_connected()
@@ -380,11 +387,8 @@ void web_peer_connection::write_request(peer_request const& r)
 		std::vector<file_slice> files = info.orig_files().map_block(req.piece, req.start
 			, req.length);
 
-		for (std::vector<file_slice>::iterator i = files.begin();
-			i != files.end(); ++i)
+		for (auto const &f : files)
 		{
-			file_slice const& f = *i;
-
 			file_request_t file_req;
 			file_req.file_index = f.file_index;
 			file_req.start = f.offset;
@@ -411,7 +415,10 @@ void web_peer_connection::write_request(peer_request const& r)
 			auto redirection = m_web->redirects.find(f.file_index);
 			if (redirection != m_web->redirects.end())
 			{
-				request += redirection->second;
+				auto const& redirect = redirection->second;
+				// in case of http proxy "request" already contains m_url with trailing slash, so let's skip dup slash
+				bool const trailing_slash = using_proxy && !redirect.empty() && redirect[0] == '/';
+				request.append(redirect, trailing_slash, std::string::npos);
 			}
 			else
 			{
@@ -422,11 +429,7 @@ void web_peer_connection::write_request(peer_request const& r)
 					request += m_path;
 				}
 
-				std::string path = info.orig_files().file_path(f.file_index);
-#ifdef TORRENT_WINDOWS
-				convert_path_to_posix(path);
-#endif
-				request += escape_path(path);
+				request += escape_file_path(info.orig_files(), f.file_index);
 			}
 			request += " HTTP/1.1\r\n";
 			add_headers(request, m_settings, using_proxy);
@@ -640,7 +643,15 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 
 		// add_web_seed won't add duplicates. If we have already added an entry
 		// with this URL, we'll get back the existing entry
-		web_seed_t* web = t->add_web_seed(redirect_base, web_seed_entry::url_seed, m_external_auth, m_extra_headers);
+
+		// "ephemeral" flag should be set to avoid "web_seed_t" saving in resume data.
+		// E.g. original "web_seed_t" request url points to "http://example1.com/file1" and
+		// web server responses with redirect location "http://example2.com/subpath/file2".
+		// "handle_redirect" process this location to create new "web_seed_t"
+		// with base url=="http://example2.com/" and redirects[0]=="/subpath/file2").
+		// If we try to load resume with such "web_seed_t" then "web_peer_connection" will send
+		// request with wrong path "http://example2.com/file1" (cause "redirects" map is not serialized in resume)
+		web_seed_t* web = t->add_web_seed(redirect_base, web_seed_entry::url_seed, m_external_auth, m_extra_headers, true);
 		web->have_files.resize(t->torrent_file().num_files(), false);
 
 		// the new web seed we're adding only has this file for now
@@ -649,6 +660,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		if (web->have_files.get_bit(file_index) == false)
 		{
 			web->have_files.set_bit(file_index);
+
 			if (web->peer_info.connection != nullptr)
 			{
 				peer_connection* pc = static_cast<peer_connection*>(web->peer_info.connection);
@@ -677,7 +689,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, "LOCATION", "%s", location.c_str());
 #endif
-		t->add_web_seed(location, web_seed_entry::url_seed, m_external_auth, m_extra_headers);
+		t->add_web_seed(location, web_seed_entry::url_seed, m_external_auth, m_extra_headers, true);
 
 		// this web seed doesn't have any files. Don't try to request from it
 		// again this session
@@ -780,9 +792,8 @@ void web_peer_connection::on_receive(error_code const& error
 				peer_log(peer_log_alert::info, "STATUS"
 					, "%d %s", m_parser.status_code(), m_parser.message().c_str());
 				std::multimap<std::string, std::string> const& headers = m_parser.headers();
-				for (std::multimap<std::string, std::string>::const_iterator i = headers.begin()
-					, end(headers.end()); i != end; ++i)
-					peer_log(peer_log_alert::info, "STATUS", "   %s: %s", i->first.c_str(), i->second.c_str());
+				for (auto const &i : headers)
+					peer_log(peer_log_alert::info, "STATUS", "   %s: %s", i.first.c_str(), i.second.c_str());
 			}
 #endif
 

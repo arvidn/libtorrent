@@ -225,16 +225,16 @@ void change_directory(std::string const& f, error_code& ec)
 #ifdef TORRENT_WINDOWS
 #if TORRENT_USE_WSTRING
 #define SetCurrentDirectory_ SetCurrentDirectoryW
-	std::wstring n = convert_to_wstring(f);
+	native_path_string const n = convert_to_wstring(f);
 #else
 #define SetCurrentDirectory_ SetCurrentDirectoryA
-	std::string const& n = convert_to_native(f);
+	native_path_string const n = convert_to_native(f);
 #endif // TORRENT_USE_WSTRING
-
 	if (SetCurrentDirectory_(n.c_str()) == 0)
 		ec.assign(GetLastError(), system_category());
+#undef SetCurrentDirectory_
 #else
-	std::string n = convert_to_native(f);
+	native_path_string const n = convert_to_native_path_string(f);
 	int ret = ::chdir(n.c_str());
 	if (ret != 0)
 		ec.assign(errno, system_category());
@@ -361,10 +361,8 @@ EXPORT int main(int argc, char const* argv[])
 #else
 	process_id = getpid();
 #endif
-	std::string root_dir = current_working_directory();
-	char dir[40];
-	snprintf(dir, sizeof(dir), "test_tmp_%u", process_id);
-	std::string unit_dir_prefix = combine_path(root_dir, dir);
+	std::string const root_dir = current_working_directory();
+	std::string const unit_dir_prefix = combine_path(root_dir, "test_tmp_" + std::to_string(process_id) + "_");
 	std::printf("test: %s\ncwd_prefix = \"%s\"\nrnd = %x\n"
 		, executable, unit_dir_prefix.c_str(), libtorrent::random(0xffffffff));
 
@@ -383,10 +381,7 @@ EXPORT int main(int argc, char const* argv[])
 		if (filter && tests_to_run.count(_g_unit_tests[i].name) == 0)
 			continue;
 
-		std::string unit_dir = unit_dir_prefix;
-		char i_str[40];
-		snprintf(i_str, sizeof(i_str), "%u", i);
-		unit_dir.append(i_str);
+		std::string const unit_dir = unit_dir_prefix + std::to_string(i);
 		error_code ec;
 		create_directory(unit_dir, ec);
 		if (ec)
