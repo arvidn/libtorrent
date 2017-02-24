@@ -85,7 +85,7 @@ class test_torrent_handle(unittest.TestCase):
 		pickled_trackers = pickle.dumps(tracker_list)
 		unpickled_trackers = pickle.loads(pickled_trackers)
 		self.assertEqual(unpickled_trackers[0]['url'], 'udp://tracker1.com')
-		self.assertEqual(unpickled_trackers[0]['last_error'].value(), 0)
+		self.assertEqual(unpickled_trackers[0]['last_error']['value'], 0)
 
 	def test_file_status(self):
 		self.setup()
@@ -104,6 +104,13 @@ class test_torrent_handle(unittest.TestCase):
 		# make sure we can compare torrent_status objects
 		st2 = self.h.status()
 		self.assertEqual(st2, st)
+
+	def test_serialize_trackers(self):
+		"""Test to ensure the dict contains only python built-in types"""
+		self.setup()
+		self.h.add_tracker({'url':'udp://tracker1.com'})
+		import json
+		print(json.dumps(self.h.trackers()[0]))
 
 	def test_scrape(self):
 		self.setup()
