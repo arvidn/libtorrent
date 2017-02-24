@@ -213,7 +213,7 @@ TORRENT_TEST(settings_pack_abi)
 
 	// bool
 	TEST_EQUAL(settings_pack::lazy_bitfields, settings_pack::bool_type_base + 3);
-	TEST_EQUAL(settings_pack::explicit_read_cache, settings_pack::bool_type_base + 10);
+	TEST_EQUAL(settings_pack::use_read_cache, settings_pack::bool_type_base + 7);
 	TEST_EQUAL(settings_pack::proxy_tracker_connections, settings_pack::bool_type_base + 68);
 
 	// ints
