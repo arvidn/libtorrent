@@ -547,7 +547,7 @@ namespace libtorrent
 		}
 
 		int const num_allowed_pieces = m_settings.get_int(settings_pack::allowed_fast_set_size);
-		if (num_allowed_pieces == 0) return;
+		if (num_allowed_pieces <= 0) return;
 
 		if (!t->valid_metadata()) return;
 
@@ -605,7 +605,8 @@ namespace libtorrent
 			for (int i = 0; i < int(hash.size() / sizeof(std::uint32_t)); ++i)
 			{
 				++loops;
-				piece_index_t const piece(detail::read_uint32(p) % num_pieces);
+				TORRENT_ASSERT(num_pieces > 0);
+				piece_index_t const piece(int(detail::read_uint32(p) % std::uint32_t(num_pieces)));
 				if (std::find(m_accept_fast.begin(), m_accept_fast.end(), piece)
 					!= m_accept_fast.end())
 				{
