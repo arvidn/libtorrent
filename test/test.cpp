@@ -89,7 +89,8 @@ int print_failures()
 	fprintf(stderr, "\x1b[0m");
 
 	if (total_num_failures > 0)
-		fprintf(stderr, "\n\n\x1b[41m   == %d TEST(S) FAILED ==\x1b[0m\n\n\n", _g_test_failures);
+		fprintf(stderr, "\n\n\x1b[41m   == %d TEST(S) FAILED ==\x1b[0m\n\n\n"
+			, total_num_failures);
 	return total_num_failures;
 }
 
