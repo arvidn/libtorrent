@@ -262,7 +262,7 @@ namespace libtorrent
 		SET(disk_io_read_mode, settings_pack::enable_os_cache, 0),
 		SET(outgoing_port, 0, 0),
 		SET(num_outgoing_ports, 0, 0),
-		SET(peer_tos, 0, &session_impl::update_peer_tos),
+		SET(peer_tos, 0x20, &session_impl::update_peer_tos),
 		SET(active_downloads, 3, &session_impl::trigger_auto_manage),
 		SET(active_seeds, 5, &session_impl::trigger_auto_manage),
 		SET_NOPREV(active_checking, 1, &session_impl::trigger_auto_manage),

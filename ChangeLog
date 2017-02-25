@@ -1,5 +1,6 @@
 1.1.2 release
 
+	* default TOS marking to 0x20
 	* fix invalid access when leaving seed-mode with outstanding hash jobs
 	* fix ABI compatibility issue introduced with preformatted entry type
 	* add web_seed_name_lookup_retry to session_settings
