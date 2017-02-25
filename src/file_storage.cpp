@@ -361,9 +361,9 @@ namespace libtorrent
 	}
 
 	void file_storage::add_file(std::wstring const& file, std::int64_t file_size
-		, int file_flags, std::time_t mtime, string_view symlink_path)
+		, std::uint32_t file_flags, std::time_t mtime, string_view symlink_path)
 	{
-		add_file(wchar_utf8(file), file_size, std::uint32_t(file_flags), mtime, symlink_path);
+		add_file(wchar_utf8(file), file_size, file_flags, mtime, symlink_path);
 	}
 
 	void file_storage::rename_file(file_index_t index, std::wstring const& new_filename)
@@ -813,7 +813,7 @@ namespace libtorrent
 		return m_files[index].offset;
 	}
 
-	int file_storage::file_flags(file_index_t const index) const
+	std::uint32_t file_storage::file_flags(file_index_t const index) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
 		internal_file_entry const& fe = m_files[index];

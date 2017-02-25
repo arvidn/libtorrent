@@ -531,7 +531,7 @@ namespace libtorrent
 			file_index_t const first(0);
 			if (m_include_mtime) info["mtime"] = m_files.mtime(first);
 			info["length"] = m_files.file_size(first);
-			int const flags = m_files.file_flags(first);
+			std::uint32_t const flags = m_files.file_flags(first);
 			if (flags & (file_storage::flag_pad_file
 				| file_storage::flag_hidden
 				| file_storage::flag_executable
@@ -582,7 +582,7 @@ namespace libtorrent
 							path_e.list().push_back(entry(e));
 					}
 
-					int const flags = m_files.file_flags(i);
+					std::uint32_t const flags = m_files.file_flags(i);
 					if (flags != 0)
 					{
 						std::string& attr = file_e["attr"].string();
