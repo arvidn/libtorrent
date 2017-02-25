@@ -817,10 +817,10 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
 		internal_file_entry const& fe = m_files[index];
-		return (fe.pad_file ? flag_pad_file : 0)
-			| (fe.hidden_attribute ? flag_hidden : 0)
-			| (fe.executable_attribute ? flag_executable : 0)
-			| (fe.symlink_attribute ? flag_symlink : 0);
+		return (fe.pad_file ? flag_pad_file : 0u)
+			| (fe.hidden_attribute ? flag_hidden : 0u)
+			| (fe.executable_attribute ? flag_executable : 0u)
+			| (fe.symlink_attribute ? flag_symlink : 0u);
 	}
 
 	bool file_storage::file_absolute_path(file_index_t const index) const

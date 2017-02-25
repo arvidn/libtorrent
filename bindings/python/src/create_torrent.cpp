@@ -146,7 +146,7 @@ void bind_create_torrent()
     std::string (file_storage::*file_storage_file_path)(file_index_t, std::string const&) const = &file_storage::file_path;
     std::int64_t (file_storage::*file_storage_file_size)(file_index_t) const = &file_storage::file_size;
     std::int64_t (file_storage::*file_storage_file_offset)(file_index_t) const = &file_storage::file_offset;
-    int (file_storage::*file_storage_file_flags)(file_index_t) const = &file_storage::file_flags;
+    std::uint32_t (file_storage::*file_storage_file_flags)(file_index_t) const = &file_storage::file_flags;
 
 #ifndef TORRENT_NO_DEPRECATE
     file_entry (file_storage::*at)(int) const = &file_storage::at;
