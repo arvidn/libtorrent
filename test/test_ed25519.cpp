@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <memory>
 
-#include <ed25519.hpp>
+#include "libtorrent/ed25519.hpp"
 #include "libtorrent/hex.hpp"
 
 using namespace libtorrent;
