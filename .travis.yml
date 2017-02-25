@@ -5,7 +5,7 @@ matrix:
     - env: variant=test_release lang=cpp11 sim=0 coverage=1 docs=1
     - env: variant=test_debug lang=sanitizer sim=1 coverage=0
     - env: variant=test_debug lang=cpp98 sim=0 coverage=0
-    - env: variant=test_barebones lang=cpp11 sim=0 coverage=0
+    - env: variant=test_barebones lang=cpp11 sim=0 coverage=0 autotools=1
 
     - env: variant=test_debug lang=cpp11 sim=0 coverage=0 target=osx-tests
       os: osx
@@ -112,6 +112,16 @@ script:
     bjam --hash -j3 warnings-as-errors=on debug-iterators=on picker-debugging=on invariant-checks=full variant=$variant $coverage_toolset link=shared bt-get bt-get2;
     fi
   - cd ..
+
+# run through autotools and ./configure to make sure it works
+  - 'if [[ "$autotools" == "1" ]]; then
+      ./autotool.sh &&
+      export CXX=g++-5 &&
+      export CC=gcc-5 &&
+      export CXXFLAGS="-Werror -Wno-deprecated-declarations" &&
+      ./configure --enable-debug --enable-encryption --enable-examples --enable-tests --enable-python-binding &&
+      make -j2;
+    fi'
 
 # build libtorrent separately and install it in a temporary (well known) dir
 # we have to do this because on linux the name of the python module is the same

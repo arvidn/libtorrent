@@ -84,7 +84,7 @@ namespace aux
 
 		// to make sure we never say we've downloaded more bytes of a file than
 		// its file size
-		std::vector<std::int64_t> m_file_sizes;
+		std::vector<boost::int64_t> m_file_sizes;
 #endif
 
 	};

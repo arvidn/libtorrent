@@ -2452,14 +2452,14 @@ namespace libtorrent
 	// picker_log_notification).
 	struct TORRENT_EXPORT picker_log_alert TORRENT_FINAL : peer_alert
 	{
+		TORRENT_DEFINE_ALERT(picker_log_alert, 89)
+
 #ifndef TORRENT_DISABLE_LOGGING
 
 		// internal
 		picker_log_alert(aux::stack_allocator& alloc, torrent_handle const& h
 			, tcp::endpoint const& ep, peer_id const& peer_id, boost::uint32_t flags
 			, piece_block const* blocks, int num_blocks);
-
-		TORRENT_DEFINE_ALERT(picker_log_alert, 89)
 
 		static const int static_category = alert::picker_log_notification;
 		virtual std::string message() const TORRENT_OVERRIDE;
