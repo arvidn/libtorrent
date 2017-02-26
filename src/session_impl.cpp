@@ -2618,7 +2618,7 @@ namespace aux {
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #endif
 		// add the current time to the PRNG, to add more unpredictability
-		std::uint64_t now = clock_type::now().time_since_epoch().count();
+		std::int64_t now = clock_type::now().time_since_epoch().count();
 		// assume 12 bits of entropy (i.e. about 8 milliseconds)
 		RAND_add(&now, 8, 1.5);
 #ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
