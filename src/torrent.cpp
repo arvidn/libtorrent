@@ -10295,11 +10295,14 @@ namespace libtorrent
 		if (m_storage_tick > 0 && is_loaded())
 		{
 			--m_storage_tick;
-			if (m_storage_tick == 0 && m_storage)
+			if (m_storage_tick == 0)
 			{
-				m_ses.disk_thread().async_tick_torrent(&storage()
-					, boost::bind(&torrent::on_disk_tick_done
-						, shared_from_this(), _1));
+				if (m_storage)
+				{
+					m_ses.disk_thread().async_tick_torrent(&storage()
+						, boost::bind(&torrent::on_disk_tick_done
+							, shared_from_this(), _1));
+				}
 				update_want_tick();
 			}
 		}
