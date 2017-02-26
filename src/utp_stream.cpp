@@ -299,7 +299,7 @@ struct utp_socket_impl
 	bool consume_incoming_data(
 		utp_header const* ph, std::uint8_t const* ptr, int payload_size, time_point now);
 	void update_mtu_limits();
-	void experienced_loss(int seq_nr);
+	void experienced_loss(std::uint32_t seq_nr);
 
 	void set_state(int s);
 
@@ -1439,7 +1439,7 @@ std::pair<std::uint32_t, int> utp_socket_impl::parse_sack(std::uint16_t const pa
 	if (size == 0) return { 0u, 0 };
 
 	// this is the sequence number the current bit represents
-	int ack_nr = (packet_ack + 2) & ACK_MASK;
+	std::uint32_t ack_nr = (packet_ack + 2) & ACK_MASK;
 
 #if TORRENT_VERBOSE_UTP_LOG
 	std::string bitmask;
@@ -1464,7 +1464,7 @@ std::pair<std::uint32_t, int> utp_socket_impl::parse_sack(std::uint16_t const pa
 	int dups = 0;
 
 	// the sequence number of the last ACKed packet
-	int last_ack = packet_ack;
+	std::uint32_t last_ack = packet_ack;
 
 	int acked_bytes = 0;
 	std::uint32_t min_rtt = std::numeric_limits<std::uint32_t>::max();
@@ -2181,7 +2181,7 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 	return !m_stalled;
 }
 
-void utp_socket_impl::experienced_loss(int const seq_nr)
+void utp_socket_impl::experienced_loss(std::uint32_t const seq_nr)
 {
 	INVARIANT_CHECK;
 
@@ -2828,7 +2828,7 @@ bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 	int const size = int(buf.size());
 	ptr += sizeof(utp_header);
 
-	unsigned int extension = ph->extension;
+	std::uint8_t extension = ph->extension;
 	while (extension)
 	{
 		// invalid packet. It says it has an extension header
@@ -2839,7 +2839,7 @@ bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 			m_sm.inc_stats_counter(counters::utp_invalid_pkts_in);
 			return true;
 		}
-		int next_extension = *ptr++;
+		std::uint8_t const next_extension = *ptr++;
 		int len = *ptr++;
 		if (len < 0)
 		{
@@ -2848,7 +2848,7 @@ bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 			m_sm.inc_stats_counter(counters::utp_invalid_pkts_in);
 			return true;
 		}
-		if (ptr - buf.data() + len > ptrdiff_t(size))
+		if (ptr - buf.data() + len > size)
 		{
 			UTP_LOG("%8p: ERROR: invalid extension header size:%d packet:%d\n"
 				, static_cast<void*>(this), len, int(ptr - buf.data()));

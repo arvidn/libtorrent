@@ -1421,14 +1421,14 @@ namespace libtorrent
 			ASN1_IA5STRING* domain = gen->d.dNSName;
 			if (domain->type != V_ASN1_IA5STRING || !domain->data || !domain->length) continue;
 			const char* torrent_name = reinterpret_cast<const char*>(domain->data);
-			std::size_t name_length = domain->length;
+			std::size_t name_length = aux::numeric_cast<std::size_t>(domain->length);
 
 #ifndef TORRENT_DISABLE_LOGGING
 			if (i > 1) names += " | n: ";
 			names.append(torrent_name, name_length);
 #endif
-			if (strncmp(torrent_name, "*", name_length) == 0
-				|| strncmp(torrent_name, m_torrent_file->name().c_str(), name_length) == 0)
+			if (std::strncmp(torrent_name, "*", name_length) == 0
+				|| std::strncmp(torrent_name, m_torrent_file->name().c_str(), name_length) == 0)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
 				match = true;
@@ -1454,7 +1454,7 @@ namespace libtorrent
 		if (common_name && common_name->data && common_name->length)
 		{
 			const char* torrent_name = reinterpret_cast<const char*>(common_name->data);
-			std::size_t name_length = common_name->length;
+			std::size_t name_length = aux::numeric_cast<std::size_t>(common_name->length);
 
 #ifndef TORRENT_DISABLE_LOGGING
 			if (!names.empty()) names += " | n: ";
@@ -1488,7 +1488,7 @@ namespace libtorrent
 		// this is needed for openssl < 1.0 to decrypt keys created by openssl 1.0+
 		OpenSSL_add_all_algorithms();
 
-		std::uint64_t const now = clock_type::now().time_since_epoch().count();
+		std::int64_t const now = clock_type::now().time_since_epoch().count();
 		// assume 9 bits of entropy (i.e. about 1 millisecond)
 		RAND_add(&now, 8, 1.125);
 		RAND_add(&info_hash()[0], 20, 3);
