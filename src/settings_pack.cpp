@@ -211,9 +211,7 @@ namespace libtorrent
 		SET(peer_timeout, 120, nullptr),
 		SET(urlseed_timeout, 20, nullptr),
 		SET(urlseed_pipeline_size, 5, nullptr),
-		SET(urlseed_max_request_bytes, 16 * 1024 * 1024, 0),
 		SET(urlseed_wait_retry, 30, nullptr),
-		SET(web_seed_name_lookup_retry, 1800, nullptr),
 		SET(file_pool_size, 40, nullptr),
 		SET(max_failcount, 3, &session_impl::update_max_failcount),
 		SET(min_reconnect_time, 60, nullptr),
@@ -240,7 +238,7 @@ namespace libtorrent
 		SET(disk_io_read_mode, settings_pack::enable_os_cache, nullptr),
 		SET(outgoing_port, 0, nullptr),
 		SET(num_outgoing_ports, 0, nullptr),
-		SET(peer_tos, 0, &session_impl::update_peer_tos),
+		SET(peer_tos, 0x20, &session_impl::update_peer_tos),
 		SET(active_downloads, 3, &session_impl::trigger_auto_manage),
 		SET(active_seeds, 5, &session_impl::trigger_auto_manage),
 		SET(active_checking, 1, &session_impl::trigger_auto_manage),
@@ -326,7 +324,9 @@ namespace libtorrent
 		SET(proxy_type, settings_pack::none, &session_impl::update_proxy),
 		SET(proxy_port, 0, &session_impl::update_proxy),
 		SET(i2p_port, 0, &session_impl::update_i2p_bridge),
-		SET(cache_size_volatile, 256, nullptr)
+		SET(cache_size_volatile, 256, nullptr),
+		SET(urlseed_max_request_bytes, 16 * 1024 * 1024, 0),
+		SET(web_seed_name_lookup_retry, 1800, nullptr),
 	}});
 
 #undef SET

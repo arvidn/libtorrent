@@ -247,7 +247,10 @@ list trackers(torrent_handle& h)
         d["url"] = i->url;
         d["trackerid"] = i->trackerid;
         d["message"] = i->message;
-        d["last_error"] = i->last_error;
+        dict last_error;
+        last_error["value"] = i->last_error.value();
+        last_error["category"] = i->last_error.category().name();
+        d["last_error"] = last_error;
         d["next_announce"] = i->next_announce;
         d["min_announce"] = i->min_announce;
         d["scrape_incomplete"] = i->scrape_incomplete;

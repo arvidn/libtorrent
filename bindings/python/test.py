@@ -14,6 +14,7 @@ import binascii
 import subprocess as sub
 import sys
 import inspect
+import pickle
 
 # include terminal interface for travis parallel executions of scripts which use
 # terminal features: fix multiple stdin assignment at termios.tcgetattr
@@ -88,6 +89,20 @@ class test_torrent_handle(unittest.TestCase):
         self.assertEqual(new_trackers[1]['tier'], 1)
         self.assertEqual(new_trackers[1]['fail_limit'], 2)
 
+    def test_pickle_trackers(self):
+        """Test lt objects convertors are working and trackers can be pickled"""
+        self.setup()
+        tracker = lt.announce_entry('udp://tracker1.com')
+        tracker.tier = 0
+        tracker.fail_limit = 1
+        trackers = [tracker]
+        self.h.replace_trackers(trackers)
+        tracker_list = [tracker for tracker in self.h.trackers()]
+        pickled_trackers = pickle.dumps(tracker_list)
+        unpickled_trackers = pickle.loads(pickled_trackers)
+        self.assertEqual(unpickled_trackers[0]['url'], 'udp://tracker1.com')
+        self.assertEqual(unpickled_trackers[0]['last_error']['value'], 0)
+
     def test_file_status(self):
         self.setup()
         l = self.h.file_status()
@@ -108,6 +123,13 @@ class test_torrent_handle(unittest.TestCase):
         # last upload and download times are at session start time
         self.assertLessEqual(abs(st.last_upload - sessionStart), datetime.timedelta(seconds=1))
         self.assertLessEqual(abs(st.last_download - sessionStart), datetime.timedelta(seconds=1))
+
+    def test_serialize_trackers(self):
+        """Test to ensure the dict contains only python built-in types"""
+        self.setup()
+        self.h.add_tracker({'url':'udp://tracker1.com'})
+        import json
+        print(json.dumps(self.h.trackers()[0]))
 
     def test_torrent_status(self):
         self.setup()
@@ -257,6 +279,7 @@ class test_torrent_info(unittest.TestCase):
         self.assertEquals(ae.can_announce(False), True)
         self.assertEquals(ae.scrape_incomplete, -1)
         self.assertEquals(ae.next_announce, None)
+        self.assertEquals(ae.last_error.value(), 0)
 
 class test_alerts(unittest.TestCase):
 
