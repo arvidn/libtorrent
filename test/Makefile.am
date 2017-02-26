@@ -239,7 +239,7 @@ test_ed25519_SOURCES = test_ed25519.cpp
 LDADD = libtest.la $(top_builddir)/src/libtorrent-rasterbar.la
 
 #AM_CXXFLAGS=-ftemplate-depth-50 -I$(top_srcdir)/include -I$(top_srcdir)/include/libtorrent @DEBUGFLAGS@ @PTHREAD_CFLAGS@
-AM_CPPFLAGS=-ftemplate-depth-50 -I$(top_srcdir)/include @DEBUGFLAGS@
+AM_CPPFLAGS=-ftemplate-depth-50 -I$(top_srcdir)/include @DEBUGFLAGS@ @OPENSSL_INCLUDES@
 
 AM_LDFLAGS=@BOOST_SYSTEM_LIB@ @PTHREAD_LIBS@ @OPENSSL_LDFLAGS@ @OPENSSL_LIBS@ \
 	@BOOST_CHRONO_LIB@
