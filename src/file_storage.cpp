@@ -338,7 +338,7 @@ namespace libtorrent
 
 	void file_storage::add_file(file_entry const& fe, char const* filehash)
 	{
-		int flags = 0;
+		std::uint32_t flags = 0;
 		if (fe.pad_file) flags |= file_storage::flag_pad_file;
 		if (fe.hidden_attribute) flags |= file_storage::flag_hidden;
 		if (fe.executable_attribute) flags |= file_storage::flag_executable;
@@ -361,7 +361,7 @@ namespace libtorrent
 	}
 
 	void file_storage::add_file(std::wstring const& file, std::int64_t file_size
-		, int file_flags, std::time_t mtime, string_view symlink_path)
+		, std::uint32_t file_flags, std::time_t mtime, string_view symlink_path)
 	{
 		add_file(wchar_utf8(file), file_size, file_flags, mtime, symlink_path);
 	}
@@ -540,7 +540,7 @@ namespace libtorrent
 	}
 
 	void file_storage::add_file(std::string const& path, std::int64_t file_size
-		, int file_flags, std::time_t mtime, string_view symlink_path)
+		, std::uint32_t file_flags, std::time_t mtime, string_view symlink_path)
 	{
 		add_file_borrow(nullptr, 0, path, file_size, file_flags, nullptr, mtime
 			, symlink_path);
@@ -813,14 +813,14 @@ namespace libtorrent
 		return m_files[index].offset;
 	}
 
-	int file_storage::file_flags(file_index_t const index) const
+	std::uint32_t file_storage::file_flags(file_index_t const index) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
 		internal_file_entry const& fe = m_files[index];
-		return (fe.pad_file ? flag_pad_file : 0)
-			| (fe.hidden_attribute ? flag_hidden : 0)
-			| (fe.executable_attribute ? flag_executable : 0)
-			| (fe.symlink_attribute ? flag_symlink : 0);
+		return (fe.pad_file ? flag_pad_file : 0u)
+			| (fe.hidden_attribute ? flag_hidden : 0u)
+			| (fe.executable_attribute ? flag_executable : 0u)
+			| (fe.symlink_attribute ? flag_symlink : 0u);
 	}
 
 	bool file_storage::file_absolute_path(file_index_t const index) const

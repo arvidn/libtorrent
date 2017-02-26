@@ -285,7 +285,7 @@ namespace libtorrent
 			, std::string const& path, std::int64_t file_size
 			, std::uint32_t file_flags = 0, char const* filehash = 0
 			, std::int64_t mtime = 0, string_view symlink_path = string_view());
-		void add_file(std::string const& path, std::int64_t file_size, int file_flags = 0
+		void add_file(std::string const& path, std::int64_t file_size, std::uint32_t file_flags = 0
 			, std::time_t mtime = 0, string_view symlink_path = string_view());
 
 		// renames the file at ``index`` to ``new_filename``. Keep in mind
@@ -301,7 +301,7 @@ namespace libtorrent
 		// instead, use the wchar -> utf8 conversion functions
 		// and pass in utf8 strings
 		TORRENT_DEPRECATED
-		void add_file(std::wstring const& p, std::int64_t size, int flags = 0
+		void add_file(std::wstring const& p, std::int64_t size, std::uint32_t flags = 0
 			, std::time_t mtime = 0, string_view s_p = "");
 		TORRENT_DEPRECATED
 		void rename_file(file_index_t index, std::wstring const& new_filename);
@@ -489,7 +489,7 @@ namespace libtorrent
 
 		// flags indicating various attributes for files in
 		// a file_storage.
-		enum file_flags_t
+		enum file_flags_t : std::uint32_t
 		{
 			// this file is a pad file. The creator of the
 			// torrent promises the file is entirely filled with
@@ -515,7 +515,7 @@ namespace libtorrent
 
 		// returns a bitmask of flags from file_flags_t that apply
 		// to file at ``index``.
-		int file_flags(file_index_t index) const;
+		std::uint32_t file_flags(file_index_t index) const;
 
 		// returns true if the file at the specified index has been renamed to
 		// have an absolute path, i.e. is not anchored in the save path of the

@@ -58,7 +58,7 @@ namespace libtorrent
 		inline bool ignore_subdir(std::string const& leaf)
 		{ return leaf == ".." || leaf == "."; }
 
-		int get_file_attributes(std::string const& p)
+		std::uint32_t get_file_attributes(std::string const& p)
 		{
 #ifdef TORRENT_WINDOWS
 			WIN32_FILE_ATTRIBUTE_DATA attr;
@@ -74,8 +74,8 @@ namespace libtorrent
 			return 0;
 #else
 			struct stat s;
-			if (lstat(convert_to_native(p).c_str(), &s) < 0) return 0;
-			int file_attr = 0;
+			if (::lstat(convert_to_native(p).c_str(), &s) < 0) return 0;
+			std::uint32_t file_attr = 0;
 			if (s.st_mode & S_IXUSR)
 				file_attr += file_storage::attribute_executable;
 			if (S_ISLNK(s.st_mode))
@@ -142,7 +142,7 @@ namespace libtorrent
 			else
 			{
 				// #error use the fields from s
-				int file_flags = get_file_attributes(f);
+				std::uint32_t file_flags = get_file_attributes(f);
 
 				// mask all bits to check if the file is a symlink
 				if ((file_flags & file_storage::attribute_symlink)
@@ -531,7 +531,7 @@ namespace libtorrent
 			file_index_t const first(0);
 			if (m_include_mtime) info["mtime"] = m_files.mtime(first);
 			info["length"] = m_files.file_size(first);
-			int const flags = m_files.file_flags(first);
+			std::uint32_t const flags = m_files.file_flags(first);
 			if (flags & (file_storage::flag_pad_file
 				| file_storage::flag_hidden
 				| file_storage::flag_executable
@@ -582,7 +582,7 @@ namespace libtorrent
 							path_e.list().push_back(entry(e));
 					}
 
-					int const flags = m_files.file_flags(i);
+					std::uint32_t const flags = m_files.file_flags(i);
 					if (flags != 0)
 					{
 						std::string& attr = file_e["attr"].string();
