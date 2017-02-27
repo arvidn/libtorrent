@@ -2638,9 +2638,9 @@ bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 		std::uint32_t timestamp = std::uint32_t(total_microseconds(
 			receive_time.time_since_epoch()) & 0xffffffff);
 		m_reply_micro = timestamp - ph->timestamp_microseconds;
-		std::uint32_t prev_base = m_their_delay_hist.initialized() ? m_their_delay_hist.base() : 0;
+		std::uint32_t const prev_base = m_their_delay_hist.initialized() ? m_their_delay_hist.base() : 0;
 		their_delay = m_their_delay_hist.add_sample(m_reply_micro, step);
-		int base_change = int(m_their_delay_hist.base()) - int(prev_base); // TODO: review this sign conversion
+		int const base_change = int(m_their_delay_hist.base() - prev_base);
 		UTP_LOGV("%8p: their_delay::add_sample:%u prev_base:%u new_base:%u\n"
 			, static_cast<void*>(this), m_reply_micro, prev_base, m_their_delay_hist.base());
 
@@ -3042,11 +3042,11 @@ bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 				// sure to clamp it as a sanity check
 				if (delay > min_rtt) delay = min_rtt;
 
-				do_ledbat(acked_bytes, aux::numeric_cast<int>(delay), prev_bytes_in_flight);
-				m_send_delay = aux::numeric_cast<std::int32_t>(delay);
+				do_ledbat(acked_bytes, int(delay), prev_bytes_in_flight);
+				m_send_delay = std::int32_t(delay);
 			}
 
-			m_recv_delay = aux::numeric_cast<std::int32_t>(std::min(their_delay, min_rtt));
+			m_recv_delay = std::int32_t(std::min(their_delay, min_rtt));
 
 			consume_incoming_data(ph, ptr, payload_size, receive_time);
 
