@@ -64,7 +64,7 @@ namespace libtorrent
 	add_torrent_params read_resume_data(bdecode_node const& rd, error_code& ec)
 	{
 		add_torrent_params ret;
-		if (bdecode_node alloc = rd.dict_find_string("allocation"))
+		if (bdecode_node const alloc = rd.dict_find_string("allocation"))
 		{
 			ret.storage_mode = (alloc.string_value() == "allocate"
 				|| alloc.string_value() == "full")
@@ -90,7 +90,7 @@ namespace libtorrent
 		ret.info_hash.assign(info_hash.data());
 
 		// TODO: 4 add unit test for this, and all other fields of the resume data
-		bdecode_node info = rd.dict_find_dict("info");
+		bdecode_node const info = rd.dict_find_dict("info");
 		if (info)
 		{
 			// verify the info-hash of the metadata stored in the resume file matches
@@ -147,7 +147,7 @@ namespace libtorrent
 		ret.uuid = rd.dict_find_string_value("uuid").to_string();
 #endif
 
-		bdecode_node mapped_files = rd.dict_find_list("mapped_files");
+		bdecode_node const mapped_files = rd.dict_find_list("mapped_files");
 		if (mapped_files)
 		{
 			for (int i = 0; i < mapped_files.list_size(); ++i)
@@ -163,7 +163,7 @@ namespace libtorrent
 
 		// load file priorities except if the add_torrent_param file was set to
 		// override resume data
-		bdecode_node file_priority = rd.dict_find_list("file_priority");
+		bdecode_node const file_priority = rd.dict_find_list("file_priority");
 		if (file_priority)
 		{
 			int const num_files = file_priority.list_size();
@@ -182,7 +182,7 @@ namespace libtorrent
 			}
 		}
 
-		bdecode_node trackers = rd.dict_find_list("trackers");
+		bdecode_node const trackers = rd.dict_find_list("trackers");
 		if (trackers)
 		{
 			// it's possible to delete the trackers from a torrent and then save
@@ -194,7 +194,7 @@ namespace libtorrent
 			int tier = 0;
 			for (int i = 0; i < trackers.list_size(); ++i)
 			{
-				bdecode_node tier_list = trackers.list_at(i);
+				bdecode_node const tier_list = trackers.list_at(i);
 				if (!tier_list || tier_list.type() != bdecode_node::list_t)
 					continue;
 
@@ -211,8 +211,8 @@ namespace libtorrent
 		// seeds we loaded from the .torrent file, because we want whatever's in
 		// the resume file to take precedence. If there aren't even any fields in
 		// the resume data though, keep the ones from the torrent
-		bdecode_node url_list = rd.dict_find_list("url-list");
-		bdecode_node httpseeds = rd.dict_find_list("httpseeds");
+		bdecode_node const url_list = rd.dict_find_list("url-list");
+		bdecode_node const httpseeds = rd.dict_find_list("httpseeds");
 		if (url_list || httpseeds)
 		{
 			// since we found http seeds in the resume data, they should replace
@@ -240,7 +240,7 @@ namespace libtorrent
 			}
 		}
 
-		bdecode_node mt = rd.dict_find_string("merkle tree");
+		bdecode_node const mt = rd.dict_find_string("merkle tree");
 		if (mt)
 		{
 			ret.merkle_tree.resize(aux::numeric_cast<std::size_t>(mt.string_length() / 20));
@@ -249,7 +249,7 @@ namespace libtorrent
 		}
 
 		// some sanity checking. Maybe we shouldn't be in seed mode anymore
-		if (bdecode_node pieces = rd.dict_find_string("pieces"))
+		if (bdecode_node const pieces = rd.dict_find_string("pieces"))
 		{
 			char const* pieces_str = pieces.string_ptr();
 			int const pieces_len = pieces.string_length();
@@ -267,7 +267,7 @@ namespace libtorrent
 			}
 		}
 
-		if (bdecode_node piece_priority = rd.dict_find_string("piece_priority"))
+		if (bdecode_node const piece_priority = rd.dict_find_string("piece_priority"))
 		{
 			char const* prio_str = piece_priority.string_ptr();
 			ret.piece_priorities.resize(aux::numeric_cast<std::size_t>(piece_priority.string_length()));
@@ -278,7 +278,7 @@ namespace libtorrent
 		}
 
 		using namespace libtorrent::detail; // for read_*_endpoint()
-		if (bdecode_node peers_entry = rd.dict_find_string("peers"))
+		if (bdecode_node const peers_entry = rd.dict_find_string("peers"))
 		{
 			char const* ptr = peers_entry.string_ptr();
 			for (int i = 0; i < peers_entry.string_length(); i += 6)
@@ -286,7 +286,7 @@ namespace libtorrent
 		}
 
 #if TORRENT_USE_IPV6
-		if (bdecode_node peers_entry = rd.dict_find_string("peers6"))
+		if (bdecode_node const peers_entry = rd.dict_find_string("peers6"))
 		{
 			char const* ptr = peers_entry.string_ptr();
 			for (int i = 0; i < peers_entry.string_length(); i += 18)
@@ -294,7 +294,7 @@ namespace libtorrent
 		}
 #endif
 
-		if (bdecode_node peers_entry = rd.dict_find_string("banned_peers"))
+		if (bdecode_node const peers_entry = rd.dict_find_string("banned_peers"))
 		{
 			char const* ptr = peers_entry.string_ptr();
 			for (int i = 0; i < peers_entry.string_length(); i += 6)
@@ -302,7 +302,7 @@ namespace libtorrent
 		}
 
 #if TORRENT_USE_IPV6
-		if (bdecode_node peers_entry = rd.dict_find_string("banned_peers6"))
+		if (bdecode_node const peers_entry = rd.dict_find_string("banned_peers6"))
 		{
 			char const* ptr = peers_entry.string_ptr();
 			for (int i = 0; i < peers_entry.string_length(); i += 18)
@@ -311,16 +311,16 @@ namespace libtorrent
 #endif
 
 		// parse unfinished pieces
-		if (bdecode_node unfinished_entry = rd.dict_find_list("unfinished"))
+		if (bdecode_node const unfinished_entry = rd.dict_find_list("unfinished"))
 		{
 			for (int i = 0; i < unfinished_entry.list_size(); ++i)
 			{
-				bdecode_node e = unfinished_entry.list_at(i);
+				bdecode_node const e = unfinished_entry.list_at(i);
 				if (e.type() != bdecode_node::dict_t) continue;
 				piece_index_t const piece = piece_index_t(int(e.dict_find_int_value("piece", -1)));
 				if (piece < piece_index_t(0)) continue;
 
-				bdecode_node bitmask = e.dict_find_string("bitmask");
+				bdecode_node const bitmask = e.dict_find_string("bitmask");
 				if (bitmask || bitmask.string_length() == 0) continue;
 				bitfield& bf = ret.unfinished_pieces[piece];
 				bf.assign(bitmask.string_ptr(), bitmask.string_length());

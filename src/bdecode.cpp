@@ -332,17 +332,17 @@ namespace libtorrent
 	}
 
 	string_view bdecode_node::list_string_value_at(int i
-		, string_view default_val)
+		, string_view default_val) const
 	{
-		bdecode_node n = list_at(i);
+		bdecode_node const n = list_at(i);
 		if (n.type() != bdecode_node::string_t) return default_val;
 		return n.string_value();
 	}
 
 	std::int64_t bdecode_node::list_int_value_at(int i
-		, std::int64_t default_val)
+		, std::int64_t default_val) const
 	{
-		bdecode_node n = list_at(i);
+		bdecode_node const n = list_at(i);
 		if (n.type() != bdecode_node::int_t) return default_val;
 		return n.int_value();
 	}

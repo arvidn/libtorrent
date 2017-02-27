@@ -332,14 +332,14 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 		return false;
 	}
 
-	bdecode_node ret_ent = m.message.dict_find_dict("r");
+	bdecode_node const ret_ent = m.message.dict_find_dict("r");
 	if (!ret_ent)
 	{
 		o->timeout();
 		return false;
 	}
 
-	bdecode_node node_id_ent = ret_ent.dict_find_string("id");
+	bdecode_node const node_id_ent = ret_ent.dict_find_string("id");
 	if (!node_id_ent || node_id_ent.string_length() != 20)
 	{
 		o->timeout();

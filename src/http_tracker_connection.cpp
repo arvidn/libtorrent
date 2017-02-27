@@ -434,12 +434,12 @@ namespace libtorrent
 		resp.interval = interval;
 		resp.min_interval = min_interval;
 
-		bdecode_node tracker_id = e.dict_find_string("tracker id");
+		bdecode_node const tracker_id = e.dict_find_string("tracker id");
 		if (tracker_id)
 			resp.trackerid = tracker_id.string_value().to_string();
 
 		// parse the response
-		bdecode_node failure = e.dict_find_string("failure reason");
+		bdecode_node const failure = e.dict_find_string("failure reason");
 		if (failure)
 		{
 			resp.failure_reason = failure.string_value().to_string();
@@ -447,20 +447,20 @@ namespace libtorrent
 			return resp;
 		}
 
-		bdecode_node warning = e.dict_find_string("warning message");
+		bdecode_node const warning = e.dict_find_string("warning message");
 		if (warning)
 			resp.warning_message = warning.string_value().to_string();
 
 		if (0 != (flags & tracker_request::scrape_request))
 		{
-			bdecode_node files = e.dict_find_dict("files");
+			bdecode_node const files = e.dict_find_dict("files");
 			if (!files)
 			{
 				ec = errors::invalid_files_entry;
 				return resp;
 			}
 
-			bdecode_node scrape_data = files.dict_find_dict(
+			bdecode_node const scrape_data = files.dict_find_dict(
 				scrape_ih.to_string());
 
 			if (!scrape_data)
@@ -573,7 +573,7 @@ namespace libtorrent
 			return resp;
 		}
 */
-		bdecode_node ip_ent = e.dict_find_string("external ip");
+		bdecode_node const ip_ent = e.dict_find_string("external ip");
 		if (ip_ent)
 		{
 			char const* p = ip_ent.string_ptr();

@@ -187,15 +187,15 @@ void get_item_observer::reply(msg const& m)
 		return;
 	}
 
-	bdecode_node k = r.dict_find_string("k");
+	bdecode_node const k = r.dict_find_string("k");
 	if (k && k.string_length() == public_key::len)
 		std::memcpy(pk.bytes.data(), k.string_ptr(), public_key::len);
 
-	bdecode_node s = r.dict_find_string("sig");
+	bdecode_node const s = r.dict_find_string("sig");
 	if (s && s.string_length() == signature::len)
 		std::memcpy(sig.bytes.data(), s.string_ptr(), signature::len);
 
-	bdecode_node q = r.dict_find_int("seq");
+	bdecode_node const q = r.dict_find_int("seq");
 	if (q)
 	{
 		seq = sequence_number(q.int_value());

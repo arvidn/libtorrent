@@ -57,7 +57,7 @@ void get_peers_observer::reply(msg const& m)
 	}
 
 	// look for peers
-	bdecode_node n = r.dict_find_list("values");
+	bdecode_node const n = r.dict_find_list("values");
 	if (n)
 	{
 		std::vector<tcp::endpoint> peer_list;
@@ -297,7 +297,7 @@ void obfuscated_get_peers::done()
 
 void obfuscated_get_peers_observer::reply(msg const& m)
 {
-	bdecode_node r = m.message.dict_find_dict("r");
+	bdecode_node const r = m.message.dict_find_dict("r");
 	if (!r)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -308,7 +308,7 @@ void obfuscated_get_peers_observer::reply(msg const& m)
 		return;
 	}
 
-	bdecode_node id = r.dict_find_string("id");
+	bdecode_node const id = r.dict_find_string("id");
 	if (!id || id.string_length() != 20)
 	{
 #ifndef TORRENT_DISABLE_LOGGING

@@ -1240,7 +1240,7 @@ namespace libtorrent
 			std::map<int, sha1_hash> nodes;
 			for (int i = 0; i < hash_list.list_size(); ++i)
 			{
-				bdecode_node e = hash_list.list_at(i);
+				bdecode_node const e = hash_list.list_at(i);
 				if (e.type() != bdecode_node::list_t
 					|| e.list_size() != 2
 					|| e.list_at(0).type() != bdecode_node::int_t
@@ -1795,7 +1795,7 @@ namespace libtorrent
 		if (is_disconnecting()) return;
 
 		// upload_only
-		if (bdecode_node m = root.dict_find_dict("m"))
+		if (bdecode_node const m = root.dict_find_dict("m"))
 		{
 			m_upload_only_id = std::uint8_t(m.dict_find_int_value("upload_only", 0));
 			m_holepunch_id = std::uint8_t(m.dict_find_int_value("ut_holepunch", 0));
