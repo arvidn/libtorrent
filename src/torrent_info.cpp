@@ -381,7 +381,7 @@ namespace libtorrent
 	std::uint32_t get_file_attributes(bdecode_node const& dict)
 	{
 		std::uint32_t file_flags = 0;
-		bdecode_node attr = dict.dict_find_string("attr");
+		bdecode_node const attr = dict.dict_find_string("attr");
 		if (attr)
 		{
 			for (int i = 0; i < attr.string_length(); ++i)
@@ -407,7 +407,7 @@ namespace libtorrent
 		int const len = p.list_size();
 		for (int i = 0; i < len; ++i)
 		{
-			bdecode_node e = p.list_at(i);
+			bdecode_node const e = p.list_at(i);
 			if (e.type() != bdecode_node::string_t)
 			{
 				ec = errors::torrent_invalid_name;
@@ -477,7 +477,7 @@ namespace libtorrent
 
 				for (int i = 0, end(p.list_size()); i < end; ++i)
 				{
-					bdecode_node e = p.list_at(i);
+					bdecode_node const e = p.list_at(i);
 					if (i == end - 1)
 					{
 						filename = e.string_ptr() + info_ptr_diff;
@@ -506,7 +506,7 @@ namespace libtorrent
 		if (path.find("_____padding_file_") != std::string::npos)
 			file_flags = file_storage::flag_pad_file;
 
-		bdecode_node fh = dict.dict_find_string("sha1");
+		bdecode_node const fh = dict.dict_find_string("sha1");
 		char const* filehash = nullptr;
 		if (fh && fh.string_length() == 20)
 			filehash = fh.string_ptr() + info_ptr_diff;
@@ -514,7 +514,7 @@ namespace libtorrent
 		std::string symlink_path;
 		if (file_flags & file_storage::flag_symlink)
 		{
-			if (bdecode_node s_p = dict.dict_find_list("symlink path"))
+			if (bdecode_node const s_p = dict.dict_find_list("symlink path"))
 			{
 				std::size_t const preallocate = std::size_t(path_length(s_p, ec));
 				if (ec) return false;
@@ -1124,8 +1124,8 @@ namespace libtorrent
 		files.set_num_pieces(int((files.total_size() + files.piece_length() - 1)
 			/ files.piece_length()));
 
-		bdecode_node pieces = info.dict_find_string("pieces");
-		bdecode_node root_hash = info.dict_find_string("root hash");
+		bdecode_node const pieces = info.dict_find_string("pieces");
+		bdecode_node const root_hash = info.dict_find_string("root hash");
 		if (!pieces && !root_hash)
 		{
 			ec = errors::torrent_missing_pieces;
@@ -1177,7 +1177,7 @@ namespace libtorrent
 			? private_torrent : 0;
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
-		bdecode_node similar = info.dict_find_list("similar");
+		bdecode_node const similar = info.dict_find_list("similar");
 		if (similar)
 		{
 			for (int i = 0; i < similar.list_size(); ++i)
@@ -1193,12 +1193,12 @@ namespace libtorrent
 			}
 		}
 
-		bdecode_node collections = info.dict_find_list("collections");
+		bdecode_node const collections = info.dict_find_list("collections");
 		if (collections)
 		{
 			for (int i = 0; i < collections.list_size(); ++i)
 			{
-				bdecode_node str = collections.list_at(i);
+				bdecode_node const str = collections.list_at(i);
 
 				if (str.type() != bdecode_node::string_t) continue;
 
@@ -1309,7 +1309,7 @@ namespace libtorrent
 			return false;
 		}
 
-		bdecode_node info = torrent_file.dict_find_dict("info");
+		bdecode_node const info = torrent_file.dict_find_dict("info");
 		if (!info)
 		{
 			bdecode_node link = torrent_file.dict_find_string("magnet-uri");
@@ -1336,7 +1336,7 @@ namespace libtorrent
 		resolve_duplicate_filenames();
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
-		bdecode_node similar = torrent_file.dict_find_list("similar");
+		bdecode_node const similar = torrent_file.dict_find_list("similar");
 		if (similar)
 		{
 			for (int i = 0; i < similar.list_size(); ++i)
@@ -1352,12 +1352,12 @@ namespace libtorrent
 			}
 		}
 
-		bdecode_node collections = torrent_file.dict_find_list("collections");
+		bdecode_node const collections = torrent_file.dict_find_list("collections");
 		if (collections)
 		{
 			for (int i = 0; i < collections.list_size(); ++i)
 			{
-				bdecode_node str = collections.list_at(i);
+				bdecode_node const str = collections.list_at(i);
 
 				if (str.type() != bdecode_node::string_t) continue;
 
@@ -1368,13 +1368,13 @@ namespace libtorrent
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 
 		// extract the url of the tracker
-		bdecode_node announce_node = torrent_file.dict_find_list("announce-list");
+		bdecode_node const announce_node = torrent_file.dict_find_list("announce-list");
 		if (announce_node)
 		{
 			m_urls.reserve(announce_node.list_size());
 			for (int j = 0, end(announce_node.list_size()); j < end; ++j)
 			{
-				bdecode_node tier = announce_node.list_at(j);
+				bdecode_node const tier = announce_node.list_at(j);
 				if (tier.type() != bdecode_node::list_t) continue;
 				for (int k = 0, end2(tier.list_size()); k < end2; ++k)
 				{
@@ -1422,12 +1422,12 @@ namespace libtorrent
 			if (!e.url.empty()) m_urls.push_back(e);
 		}
 
-		bdecode_node nodes = torrent_file.dict_find_list("nodes");
+		bdecode_node const nodes = torrent_file.dict_find_list("nodes");
 		if (nodes)
 		{
 			for (int i = 0, end(nodes.list_size()); i < end; ++i)
 			{
-				bdecode_node n = nodes.list_at(i);
+				bdecode_node const n = nodes.list_at(i);
 				if (n.type() != bdecode_node::list_t
 					|| n.list_size() < 2
 					|| n.list_at(0).type() != bdecode_node::string_t
@@ -1440,14 +1440,14 @@ namespace libtorrent
 		}
 
 		// extract creation date
-		std::int64_t cd = torrent_file.dict_find_int_value("creation date", -1);
+		std::int64_t const cd = torrent_file.dict_find_int_value("creation date", -1);
 		if (cd >= 0)
 		{
 			m_creation_date = std::time_t(cd);
 		}
 
 		// if there are any url-seeds, extract them
-		bdecode_node url_seeds = torrent_file.dict_find("url-list");
+		bdecode_node const url_seeds = torrent_file.dict_find("url-list");
 		if (url_seeds && url_seeds.type() == bdecode_node::string_t
 			&& url_seeds.string_length() > 0)
 		{
@@ -1462,7 +1462,7 @@ namespace libtorrent
 			std::set<std::string> unique;
 			for (int i = 0, end(url_seeds.list_size()); i < end; ++i)
 			{
-				bdecode_node url = url_seeds.list_at(i);
+				bdecode_node const url = url_seeds.list_at(i);
 				if (url.type() != bdecode_node::string_t) continue;
 				if (url.string_length() == 0) continue;
 				web_seed_entry ent(maybe_url_encode(url.string_value().to_string())
@@ -1475,7 +1475,7 @@ namespace libtorrent
 		}
 
 		// if there are any http-seeds, extract them
-		bdecode_node http_seeds = torrent_file.dict_find("httpseeds");
+		bdecode_node const http_seeds = torrent_file.dict_find("httpseeds");
 		if (http_seeds && http_seeds.type() == bdecode_node::string_t
 			&& http_seeds.string_length() > 0)
 		{
@@ -1488,7 +1488,7 @@ namespace libtorrent
 			std::set<std::string> unique;
 			for (int i = 0, end(http_seeds.list_size()); i < end; ++i)
 			{
-				bdecode_node url = http_seeds.list_at(i);
+				bdecode_node const url = http_seeds.list_at(i);
 				if (url.type() != bdecode_node::string_t || url.string_length() == 0) continue;
 				std::string u = maybe_url_encode(url.string_value().to_string());
 				if (unique.count(u)) continue;

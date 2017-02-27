@@ -256,7 +256,7 @@ namespace libtorrent { namespace
 		{
 			m_message_index = 0;
 			if (h.type() != bdecode_node::dict_t) return false;
-			bdecode_node messages = h.dict_find_dict("m");
+			bdecode_node const messages = h.dict_find_dict("m");
 			if (!messages) return false;
 
 			int index = int(messages.dict_find_int_value(extension_name, -1));
@@ -323,7 +323,7 @@ namespace libtorrent { namespace
 			}
 
 			p = pex_msg.dict_find_string("added");
-			bdecode_node pf = pex_msg.dict_find_string("added.f");
+			bdecode_node const pf = pex_msg.dict_find_string("added.f");
 
 #ifndef TORRENT_DISABLE_LOGGING
 			if (p) num_added += p.string_length() / 6;
@@ -378,7 +378,7 @@ namespace libtorrent { namespace
 #ifndef TORRENT_DISABLE_LOGGING
 			if (p6) num_added += p6.string_length() / 18;
 #endif
-			bdecode_node p6f = pex_msg.dict_find("added6.f");
+			bdecode_node const p6f = pex_msg.dict_find("added6.f");
 			if (p6.type() == bdecode_node::string_t
 				&& p6f.type() == bdecode_node::string_t
 				&& p6f.string_length() == p6.string_length() / 18)

@@ -256,7 +256,7 @@ void node::unreachable(udp::endpoint const& ep)
 void node::incoming(msg const& m)
 {
 	// is this a reply?
-	bdecode_node y_ent = m.message.dict_find_string("y");
+	bdecode_node const y_ent = m.message.dict_find_string("y");
 	if (!y_ent || y_ent.string_length() == 0)
 	{
 		// don't respond to this obviously broken messages. We don't
@@ -274,7 +274,7 @@ void node::incoming(msg const& m)
 	// backwards compatibility
 	if (!ext_ip)
 	{
-		bdecode_node r = m.message.dict_find_dict("r");
+		bdecode_node const r = m.message.dict_find_dict("r");
 		if (r)
 			ext_ip = r.dict_find_string("ip");
 	}
@@ -332,7 +332,7 @@ void node::incoming(msg const& m)
 #ifndef TORRENT_DISABLE_LOGGING
 			if (m_observer != nullptr && m_observer->should_log(dht_logger::node))
 			{
-				bdecode_node err = m.message.dict_find_list("e");
+				bdecode_node const err = m.message.dict_find_list("e");
 				if (err && err.list_size() >= 2
 					&& err.list_at(0).type() == bdecode_node::int_t
 					&& err.list_at(1).type() == bdecode_node::string_t)
@@ -577,7 +577,7 @@ struct ping_observer : observer
 	{
 		flags |= flag_done;
 
-		bdecode_node r = m.message.dict_find_dict("r");
+		bdecode_node const r = m.message.dict_find_dict("r");
 		if (!r)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -595,7 +595,7 @@ struct ping_observer : observer
 		udp const protocol = algorithm()->get_node().protocol();
 		int const protocol_size = int(detail::address_size(protocol));
 		char const* nodes_key = algorithm()->get_node().protocol_nodes_key();
-		bdecode_node n = r.dict_find_string(nodes_key);
+		bdecode_node const n = r.dict_find_string(nodes_key);
 		if (n)
 		{
 			char const* nodes = n.string_ptr();

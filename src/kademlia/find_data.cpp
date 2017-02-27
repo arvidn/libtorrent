@@ -57,7 +57,7 @@ void find_data_observer::reply(msg const& m)
 		return;
 	}
 
-	bdecode_node id = r.dict_find_string("id");
+	bdecode_node const id = r.dict_find_string("id");
 	if (!id || id.string_length() != 20)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -67,7 +67,7 @@ void find_data_observer::reply(msg const& m)
 		timeout();
 		return;
 	}
-	bdecode_node token = r.dict_find_string("token");
+	bdecode_node const token = r.dict_find_string("token");
 	if (token)
 	{
 		static_cast<find_data*>(algorithm())->got_write_token(

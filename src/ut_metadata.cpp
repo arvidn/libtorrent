@@ -209,7 +209,7 @@ namespace libtorrent { namespace
 		{
 			m_message_index = 0;
 			if (h.type() != bdecode_node::dict_t) return false;
-			bdecode_node messages = h.dict_find_dict("m");
+			bdecode_node const messages = h.dict_find_dict("m");
 			if (!messages) return false;
 
 			int index = int(messages.dict_find_int_value("ut_metadata", -1));

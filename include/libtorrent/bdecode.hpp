@@ -299,9 +299,9 @@ struct TORRENT_EXPORT bdecode_node
 	// size of the list. ``size()`` returns the size of the list.
 	bdecode_node list_at(int i) const;
 	string_view list_string_value_at(int i
-		, string_view default_val = string_view());
+		, string_view default_val = string_view()) const;
 	std::int64_t list_int_value_at(int i
-		, std::int64_t default_val = 0);
+		, std::int64_t default_val = 0) const;
 	int list_size() const;
 
 	// Functions with the ``dict_`` prefix operates on dictionaries. They are

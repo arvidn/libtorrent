@@ -548,7 +548,7 @@ void traversal_algorithm::status(dht_lookup& l)
 
 void traversal_observer::reply(msg const& m)
 {
-	bdecode_node r = m.message.dict_find_dict("r");
+	bdecode_node const r = m.message.dict_find_dict("r");
 	if (!r)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -566,7 +566,7 @@ void traversal_observer::reply(msg const& m)
 	dht_observer* logger = get_observer();
 	if (logger != nullptr && logger->should_log(dht_logger::traversal))
 	{
-		bdecode_node nid = r.dict_find_string("id");
+		bdecode_node const nid = r.dict_find_string("id");
 		char hex_id[41];
 		aux::to_hex({nid.string_ptr(), 20}, hex_id);
 		logger->log(dht_logger::traversal
@@ -580,7 +580,7 @@ void traversal_observer::reply(msg const& m)
 	udp const protocol = algorithm()->get_node().protocol();
 	int const protocol_size = int(detail::address_size(protocol));
 	char const* nodes_key = algorithm()->get_node().protocol_nodes_key();
-	bdecode_node n = r.dict_find_string(nodes_key);
+	bdecode_node const n = r.dict_find_string(nodes_key);
 	if (n)
 	{
 		char const* nodes = n.string_ptr();
@@ -593,7 +593,7 @@ void traversal_observer::reply(msg const& m)
 		}
 	}
 
-	bdecode_node id = r.dict_find_string("id");
+	bdecode_node const id = r.dict_find_string("id");
 	if (!id || id.string_length() != 20)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
