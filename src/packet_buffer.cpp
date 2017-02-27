@@ -30,8 +30,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <cstdlib> // free and calloc
-#include <new> // for bad_alloc
 #include "libtorrent/packet_buffer.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/invariant_check.hpp"
@@ -45,7 +43,7 @@ namespace libtorrent {
 	void packet_buffer::check_invariant() const
 	{
 		int count = 0;
-		for (int i = 0; i < m_capacity; ++i)
+		for (index_type i = 0; i < m_capacity; ++i)
 		{
 			count += m_storage[i] ? 1 : 0;
 		}
@@ -70,7 +68,7 @@ namespace libtorrent {
 				// Index comes before m_first. If we have room, we can simply
 				// adjust m_first backward.
 
-				int free_space = 0;
+				std::uint32_t free_space = 0;
 
 				for (index_type i = (m_first - 1) & (m_capacity - 1);
 						i != (m_first & (m_capacity - 1)); i = (i - 1) & (m_capacity - 1))
@@ -80,7 +78,7 @@ namespace libtorrent {
 					++free_space;
 				}
 
-				if (((m_first - idx) & 0xffff) > std::uint32_t(free_space))
+				if (((m_first - idx) & 0xffff) > free_space)
 					reserve(((m_first - idx) & 0xffff) + m_capacity - free_space);
 
 				m_first = idx;
@@ -133,11 +131,11 @@ namespace libtorrent {
 		return m_storage[idx & mask].get();
 	}
 
-	void packet_buffer::reserve(int size)
+	void packet_buffer::reserve(std::uint32_t size)
 	{
 		INVARIANT_CHECK;
 		TORRENT_ASSERT_VAL(size <= 0xffff, size);
-		int new_size = m_capacity == 0 ? 16 : m_capacity;
+		std::uint32_t new_size = m_capacity == 0 ? 16 : m_capacity;
 
 		while (new_size < size)
 			new_size <<= 1;
@@ -174,7 +172,7 @@ namespace libtorrent {
 		if (idx == m_first && m_size != 0)
 		{
 			++m_first;
-			for (int i = 0; i < m_capacity; ++i, ++m_first)
+			for (index_type i = 0; i < m_capacity; ++i, ++m_first)
 				if (m_storage[m_first & mask]) break;
 			m_first &= 0xffff;
 		}
@@ -182,7 +180,7 @@ namespace libtorrent {
 		if (((idx + 1) & 0xffff) == m_last && m_size != 0)
 		{
 			--m_last;
-			for (int i = 0; i < m_capacity; ++i, --m_last)
+			for (index_type i = 0; i < m_capacity; ++i, --m_last)
 				if (m_storage[m_last & mask]) break;
 			++m_last;
 			m_last &= 0xffff;

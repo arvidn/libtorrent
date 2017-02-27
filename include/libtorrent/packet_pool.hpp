@@ -42,6 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/debug.hpp" // for single_threaded
 
+#include <cstdlib>
+
 namespace libtorrent
 {
 	// internal: some MTU and protocol header sizes constants
@@ -146,7 +148,7 @@ namespace libtorrent
 		void decay()
 		{
 			if (m_storage.empty()) return;
-			m_storage.erase(m_storage.end()-1);
+			m_storage.erase(m_storage.end() - 1);
 		}
 
 	private:

@@ -1910,8 +1910,8 @@ bool utp_socket_impl::send_pkt(int const flags)
 	}
 
 	h->timestamp_difference_microseconds = m_reply_micro;
-	h->wnd_size = std::max(m_in_buf_size - m_buffered_incoming_bytes
-		- m_receive_buffer_size, std::int32_t(0));
+	h->wnd_size = aux::numeric_cast<std::uint32_t>(std::max(m_in_buf_size - m_buffered_incoming_bytes
+		- m_receive_buffer_size, 0));
 	h->ack_nr = m_ack_nr;
 
 	// if this is a FIN packet, override the type
@@ -2638,9 +2638,9 @@ bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 		std::uint32_t timestamp = std::uint32_t(total_microseconds(
 			receive_time.time_since_epoch()) & 0xffffffff);
 		m_reply_micro = timestamp - ph->timestamp_microseconds;
-		std::uint32_t prev_base = m_their_delay_hist.initialized() ? m_their_delay_hist.base() : 0;
+		std::uint32_t const prev_base = m_their_delay_hist.initialized() ? m_their_delay_hist.base() : 0;
 		their_delay = m_their_delay_hist.add_sample(m_reply_micro, step);
-		int base_change = m_their_delay_hist.base() - prev_base;
+		int const base_change = int(m_their_delay_hist.base() - prev_base);
 		UTP_LOGV("%8p: their_delay::add_sample:%u prev_base:%u new_base:%u\n"
 			, static_cast<void*>(this), m_reply_micro, prev_base, m_their_delay_hist.base());
 
@@ -2840,7 +2840,7 @@ bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 			return true;
 		}
 		std::uint8_t const next_extension = *ptr++;
-		int len = *ptr++;
+		int const len = *ptr++;
 		if (len < 0)
 		{
 			UTP_LOGV("%8p: invalid extension length:%d packet:%d\n"
@@ -3042,11 +3042,11 @@ bool utp_socket_impl::incoming_packet(span<std::uint8_t const> buf
 				// sure to clamp it as a sanity check
 				if (delay > min_rtt) delay = min_rtt;
 
-				do_ledbat(acked_bytes, delay, prev_bytes_in_flight);
-				m_send_delay = delay;
+				do_ledbat(acked_bytes, int(delay), prev_bytes_in_flight);
+				m_send_delay = std::int32_t(delay);
 			}
 
-			m_recv_delay = std::min(their_delay, min_rtt);
+			m_recv_delay = std::int32_t(std::min(their_delay, min_rtt));
 
 			consume_incoming_data(ph, ptr, payload_size, receive_time);
 
@@ -3624,11 +3624,11 @@ void utp_socket_impl::check_receive_buffers() const
 #if TORRENT_USE_INVARIANT_CHECKS
 void utp_socket_impl::check_invariant() const
 {
-	for (int i = m_outbuf.cursor();
-		i != int((m_outbuf.cursor() + m_outbuf.span()) & ACK_MASK);
+	for (packet_buffer::index_type i = m_outbuf.cursor();
+		i != ((m_outbuf.cursor() + m_outbuf.span()) & ACK_MASK);
 		i = (i + 1) & ACK_MASK)
 	{
-		packet* p = m_outbuf.at(aux::numeric_cast<packet_buffer::index_type>(i));
+		packet* p = m_outbuf.at(i);
 		if (!p) continue;
 		if (m_mtu_seq == i && m_mtu_seq != 0)
 		{
