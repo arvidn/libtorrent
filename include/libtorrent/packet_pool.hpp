@@ -42,6 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/debug.hpp" // for single_threaded
 
+#include <cstdlib>
+
 namespace libtorrent
 {
 	// internal: some MTU and protocol header sizes constants
@@ -146,7 +148,7 @@ namespace libtorrent
 		void decay()
 		{
 			if (m_storage.empty()) return;
-			m_storage.erase(m_storage.end()-1);
+			m_storage.erase(m_storage.end() - 1);
 		}
 
 	private:
@@ -198,8 +200,8 @@ namespace libtorrent
 			else if (allocate <= m_mtu_ceiling_slab.allocate_size) { return m_mtu_ceiling_slab.alloc(); }
 			return create_packet(allocate);
 		}
-		static int const mtu_floor_size = TORRENT_INET_MIN_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER;
-		static int const mtu_ceiling_size = TORRENT_ETHERNET_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER;
+		static constexpr int mtu_floor_size = TORRENT_INET_MIN_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER;
+		static constexpr int mtu_ceiling_size = TORRENT_ETHERNET_MTU - TORRENT_IPV4_HEADER - TORRENT_UDP_HEADER;
 		packet_slab m_syn_slab{ TORRENT_UTP_HEADER };
 		packet_slab m_mtu_floor_slab{ mtu_floor_size };
 		packet_slab m_mtu_ceiling_slab{ mtu_ceiling_size };

@@ -81,14 +81,14 @@ namespace libtorrent
 		int size() const
 		{ return m_size; }
 
-		int capacity() const
+		std::uint32_t capacity() const
 		{ return m_capacity; }
 
 		packet* at(index_type idx) const;
 
 		packet_ptr remove(index_type idx);
 
-		void reserve(int size);
+		void reserve(std::uint32_t size);
 
 		index_type cursor() const { return m_first; }
 
@@ -100,7 +100,7 @@ namespace libtorrent
 
 	private:
 		aux::unique_ptr<packet_ptr[], index_type> m_storage;
-		int m_capacity = 0;
+		std::uint32_t m_capacity = 0;
 
 		// this is the total number of elements that are occupied
 		// in the array
