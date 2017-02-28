@@ -1594,6 +1594,15 @@ namespace libtorrent
 			// time to wait until a new retry of a web seed name lookup
 			web_seed_name_lookup_retry,
 
+			// the number of seconds between closing the file opened the longest
+			// ago. 0 means to disable the feature. The purpose of this is to
+			// periodically close files to trigger the operating system flushing
+			// disk cache. Specifically it has been observed to be required on
+			// windows to not have the disk cache grow indefinitely.
+			// This defaults to 120 seconds on windows, and disabled on other
+			// systems.
+			close_file_interval,
+
 			max_int_setting_internal
 		};
 
