@@ -163,11 +163,31 @@ send buffer watermark
 The send buffer watermark controls when libtorrent will ask the disk I/O thread
 to read blocks from disk, and append it to a peer's send buffer.
 
+``settings_pack::send_buffer_low_watermark`` defines the minimum send buffer
+target size (send buffer includes bytes pending being read from disk). For good
+and snappy seeding performance, set this fairly high, to at least fit a few
+blocks. This is essentially the initial window size which will determine how
+fast we can ramp up the send rate
+
 When the send buffer has fewer than or equal number of bytes as
 ``settings_pack::send_buffer_watermark``, the peer will ask the disk I/O thread
 for more data to send. The trade-off here is between wasting memory by having too
 much data in the send buffer, and hurting send rate by starving out the socket,
 waiting for the disk read operation to complete.
+
+The actual watermark may be lower than this in case the upload rate is low,
+``settings_pack::send_buffer_watermark`` defines the upper limit.
+The current upload rate to a peer is multiplied by this factor to get the send buffer
+watermark. The factor is specified as a percentage. i.e. 50 -> 0.5 This product is
+clamped to the ``settings_pack::send_buffer_watermark`` setting to not exceed the
+max. 100 -> factor 1 mean you never allocate more buffer than payload got
+transfered during last second.
+For high speed upload, this should be set to a greater value than 100. For high
+capacity connections, setting this higher can improve upload performance and disk
+throughput. Setting it too high may waste RAM and create a bias towards read jobs
+over write jobs. For example with factor 150 you could put 1.5 seconds worth of data in
+the send buffer this gives the disk I/O more heads-up on disk reads, and can maximize
+throughput.
 
 If your main objective is memory usage and you're not concerned about being able
 to achieve high send rates, you can set the watermark to 9 bytes. This will guarantee
@@ -176,6 +196,11 @@ all peers. This is the least amount of memory possible for the send buffer.
 
 You should benchmark your max send rate when adjusting this setting. If you have
 a very fast disk, you are less likely see a performance hit.
+
+If your main objective is maximum seeding performance you should consider a usecase
+where your harddisk get overloaded by your connection pool size. For example you could
+calculate with 500ms read time and a send rate of 6 MiB/s, the upper limit should be
+3 MiB.
 
 reduce executable size
 ----------------------
@@ -267,15 +292,27 @@ part be squashed by the TCP traffic.
 send buffer low watermark
 -------------------------
 
-libtorrent uses a low watermark for send buffers to determine when a new piece should
+libtorrent uses a watermark for send buffers to determine when a new piece should
 be requested from the disk I/O subsystem, to be appended to the send buffer. The low
-watermark is determined based on the send rate of the socket. It needs to be large
-enough to not draining the socket's send buffer before the disk operation completes.
+watermark needs to be large enough to not draining the socket's send buffer before the
+disk operation completes.
+But by carefull with this setting if you have many connections because it does define
+an absolut part of the memory footprint per connection.
 
-The watermark is bound to a max value, to avoid buffer sizes growing out of control.
-The default max send buffer size might not be enough to sustain very high upload rates,
-and you might have to increase it. It's specified in bytes in
+``settings_pack::send_buffer_watermark_factor`` does raise the minimum memory footprint
+relative to uploading speed by using the product of factor and upload speed as watermark.
+
+The watermark is bound to a max value per connection, to avoid buffer sizes growing out
+of control. The default max send buffer size might not be enough to sustain very high
+upload rates, and you might have to increase it. It's specified in bytes in
 ``settings_pack::send_buffer_watermark``.
+
+It's a little bit difficould to calculate overall maximum possible usage of send buffer.
+Because your low watermark definition does maybe waste memory because you hold more buffer
+than needed by a slow connection. If you don't wast much memory the accumulated send buffer
+would be ``overall payload upload rate * send_buffer_watermark_factor / 100``
+You waste memory if your low watermark is larger then
+``individual payload upload rate * send_buffer_watermark_factor / 100``
 
 peers
 -----
