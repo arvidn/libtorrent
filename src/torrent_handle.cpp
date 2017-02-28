@@ -733,7 +733,7 @@ namespace libtorrent
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t || !t->has_storage()) return;
 		session_impl& ses = static_cast<session_impl&>(t->session());
-		ses.disk_thread().files().get_status(&status, &t->storage());
+		ses.disk_thread().files().get_status(&status, t->get_storage());
 	}
 
 	void torrent_handle::scrape_tracker(int idx) const
