@@ -202,6 +202,9 @@ struct bdecode_token
 
 	int start_offset() const { TORRENT_ASSERT(type == string); return int(header) + 2; }
 
+	// diff between current and next item offset
+	int diff_size() const { bdecode_token const* next(this); ++next; return next->offset - offset; }
+
 	// offset into the bdecoded buffer where this node is
 	std::uint32_t offset:29;
 
