@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/lazy_entry.hpp"
 #include "libtorrent/bdecode.hpp" // for error codes
+#include "libtorrent/string_util.hpp" // for is_digit
 #include <cstring>
 #include <limits> // for numeric_limits
 #include <cstdio> // for snprintf
