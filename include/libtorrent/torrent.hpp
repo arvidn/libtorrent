@@ -1287,15 +1287,15 @@ namespace libtorrent
 		// the posix time this torrent was added and when
 		// it was completed. If the torrent isn't yet
 		// completed, m_completed_time is 0
-		time_t m_added_time = time(nullptr);
-		time_t m_completed_time = 0;
+		std::time_t m_added_time = time(nullptr);
+		std::time_t m_completed_time = 0;
 
 		// this was the last time _we_ saw a seed in this swarm
-		time_t m_last_seen_complete = 0;
+		std::time_t m_last_seen_complete = 0;
 
 		// this is the time last any of our peers saw a seed
 		// in this swarm
-		time_t m_swarm_last_seen_complete = 0;
+		std::time_t m_swarm_last_seen_complete = 0;
 
 		// keep a copy if the info-hash here, so it can be accessed from multiple
 		// threads, and be cheap to access from the client

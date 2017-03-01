@@ -5946,10 +5946,9 @@ namespace libtorrent
 		ret["total_uploaded"] = m_total_uploaded;
 		ret["total_downloaded"] = m_total_downloaded;
 
-		// cast to seconds in case that internal values doesn't have ratio<1>
-		ret["active_time"] = duration_cast<seconds>(active_time()).count();
-		ret["finished_time"] = duration_cast<seconds>(finished_time()).count();
-		ret["seeding_time"] = duration_cast<seconds>(seeding_time()).count();
+		ret["active_time"] = total_seconds(active_time());
+		ret["finished_time"] = total_seconds(finished_time());
+		ret["seeding_time"] = total_seconds(seeding_time());
 		ret["last_seen_complete"] = m_last_seen_complete;
 
 		ret["num_complete"] = m_complete;
@@ -5991,7 +5990,7 @@ namespace libtorrent
 		}
 
 		// blocks per piece
-		int num_blocks_per_piece = torrent_file().piece_length() / block_size();
+		int const num_blocks_per_piece = torrent_file().piece_length() / block_size();
 		ret["blocks per piece"] = num_blocks_per_piece;
 
 		if (m_torrent_file->is_merkle_torrent())
@@ -10565,10 +10564,9 @@ namespace libtorrent
 
 		// activity time
 #ifndef TORRENT_NO_DEPRECATE
-		// cast to seconds in case that internal values doesn't have ratio<1>
-		st->finished_time = int(duration_cast<seconds>(finished_time()).count());
-		st->active_time = int(duration_cast<seconds>(active_time()).count());
-		st->seeding_time = int(duration_cast<seconds>(seeding_time()).count());
+		st->finished_time = int(total_seconds(finished_time()));
+		st->active_time = int(total_seconds(active_time()));
+		st->seeding_time = int(total_seconds(seeding_time()));
 
 		st->time_since_upload = int(total_seconds(aux::time_now()
 			- m_last_upload));
