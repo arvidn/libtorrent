@@ -126,7 +126,7 @@ namespace libtorrent
 
 	template <typename T, typename IndexType = int>
 	aux::vector<T, IndexType> clone(aux::vector<T, IndexType> const& v)
-	{ return {v.begin(), v.end()}; };
+	{ return {v.begin(), v.end()}; }
 
 	} // anonymous namespace
 
