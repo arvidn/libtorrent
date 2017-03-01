@@ -477,22 +477,22 @@ namespace libtorrent
 
 		while (tokens[token].type != bdecode_token::end)
 		{
-			bdecode_token const* t = &tokens[token];
-			TORRENT_ASSERT(t->type == bdecode_token::string);
-			int const size = (t + 1)->offset - t->offset - t->start_offset();
+			bdecode_token const& t = tokens[token];
+			TORRENT_ASSERT(t.type == bdecode_token::string);
+			int const size = (&t)[1].offset - t.offset - t.start_offset();
 			if (int(key.size()) == size
 				&& std::equal(key.data(), key.data() + size, m_buffer
-					+ t->offset + t->start_offset()))
+					+ t.offset + t.start_offset()))
 			{
 				// skip key
-				token += t->next_item;
+				token += t.next_item;
 				TORRENT_ASSERT(tokens[token].type != bdecode_token::end);
 
 				return bdecode_node(tokens, m_buffer, m_buffer_size, token);
 			}
 
 			// skip key
-			token += t->next_item;
+			token += t.next_item;
 			TORRENT_ASSERT(tokens[token].type != bdecode_token::end);
 
 			// skip value
@@ -553,12 +553,12 @@ namespace libtorrent
 	std::int64_t bdecode_node::int_value() const
 	{
 		TORRENT_ASSERT(type() == int_t);
-		bdecode_token const* t = &m_root_tokens[m_token_idx];
-		int size = (t + 1)->offset - t->offset;
-		TORRENT_ASSERT(t->type == bdecode_token::integer);
+		bdecode_token const& t = m_root_tokens[m_token_idx];
+		int size = (&t)[1].offset - t.offset;
+		TORRENT_ASSERT(t.type == bdecode_token::integer);
 
 		// +1 is to skip the 'i'
-		char const* ptr = m_buffer + t->offset + 1;
+		char const* ptr = m_buffer + t.offset + 1;
 		std::int64_t val = 0;
 		bool negative = false;
 		if (*ptr == '-') negative = true;
@@ -573,12 +573,12 @@ namespace libtorrent
 	string_view bdecode_node::string_value() const
 	{
 		TORRENT_ASSERT(type() == string_t);
-		bdecode_token const* t = &m_root_tokens[m_token_idx];
-		std::size_t const size = (t + 1)->offset - t->offset
-			- aux::numeric_cast<std::size_t>(t->start_offset());
-		TORRENT_ASSERT(t->type == bdecode_token::string);
+		bdecode_token const& t = m_root_tokens[m_token_idx];
+		std::size_t const size = (&t)[1].offset - t.offset
+			- aux::numeric_cast<std::size_t>(t.start_offset());
+		TORRENT_ASSERT(t.type == bdecode_token::string);
 
-		return string_view(m_buffer + t->offset + t->start_offset(), size);
+		return string_view(m_buffer + t.offset + t.start_offset(), size);
 	}
 
 	char const* bdecode_node::string_ptr() const
@@ -592,9 +592,9 @@ namespace libtorrent
 	int bdecode_node::string_length() const
 	{
 		TORRENT_ASSERT(type() == string_t);
-		bdecode_token const* t = &m_root_tokens[m_token_idx];
-		TORRENT_ASSERT(t->type == bdecode_token::string);
-		return (t + 1)->offset - t->offset - t->start_offset();
+		bdecode_token const& t = m_root_tokens[m_token_idx];
+		TORRENT_ASSERT(t.type == bdecode_token::string);
+		return (&t)[1].offset - t.offset - t.start_offset();
 	}
 
 	void bdecode_node::reserve(int tokens)
