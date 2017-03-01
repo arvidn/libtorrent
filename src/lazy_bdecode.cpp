@@ -72,8 +72,6 @@ namespace libtorrent
 
 #define TORRENT_FAIL_BDECODE(code) do { ec = make_error_code(code); return fail(error_pos, stack, start, orig_start); } TORRENT_WHILE_0
 
-	bool numeric(char c) { return c >= '0' && c <= '9'; }
-
 	char const* find_char(char const* start, char const* end, char delimiter)
 	{
 		while (start < end && *start != delimiter) ++start;
@@ -127,7 +125,7 @@ namespace libtorrent
 						stack.pop_back();
 						continue;
 					}
-					if (!numeric(t)) TORRENT_FAIL_BDECODE(bdecode_errors::expected_digit);
+					if (!is_digit(t)) TORRENT_FAIL_BDECODE(bdecode_errors::expected_digit);
 					std::int64_t len = t - '0';
 					bdecode_errors::error_code_enum e = bdecode_errors::no_error;
 					start = parse_int(start, end, ':', len, e);
@@ -197,7 +195,7 @@ namespace libtorrent
 				}
 				default:
 				{
-					if (!numeric(t))
+					if (!is_digit(t))
 						TORRENT_FAIL_BDECODE(bdecode_errors::expected_value);
 
 					std::int64_t len = t - '0';

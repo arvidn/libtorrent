@@ -33,6 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/aux_/alloca.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
+#include "libtorrent/string_util.hpp" // for is_digit
 #include <limits>
 #include <cstring> // for memset
 #include <cstdio> // for snprintf
@@ -48,7 +49,6 @@ namespace libtorrent
 
 	namespace
 	{
-	bool numeric(char c) { return c >= '0' && c <= '9'; }
 
 	// finds the end of an integer and verifies that it looks valid this does
 	// not detect all overflows, just the ones that are an order of magnitude
@@ -76,7 +76,7 @@ namespace libtorrent
 		int digits = 0;
 		do
 		{
-			if (!numeric(*start))
+			if (!is_digit(*start))
 			{
 				e = bdecode_errors::expected_digit;
 				break;
@@ -121,7 +121,7 @@ namespace libtorrent
 	{
 		while (start < end && *start != delimiter)
 		{
-			if (!numeric(*start))
+			if (!is_digit(*start))
 			{
 				ec = bdecode_errors::expected_digit;
 				return start;
@@ -686,7 +686,7 @@ namespace libtorrent
 				{
 					// the current parent is a dict and we are parsing a key.
 					// only allow a digit (for a string) or 'e' to terminate
-					if (!numeric(t) && t != 'e')
+					if (!is_digit(t) && t != 'e')
 						TORRENT_FAIL_BDECODE(bdecode_errors::expected_digit);
 				}
 			}
@@ -770,7 +770,7 @@ namespace libtorrent
 				{
 					// this is the case for strings. The start character is any
 					// numeric digit
-					if (!numeric(t))
+					if (!is_digit(t))
 						TORRENT_FAIL_BDECODE(bdecode_errors::expected_value);
 
 					std::int64_t len = t - '0';
