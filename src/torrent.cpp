@@ -124,6 +124,10 @@ namespace libtorrent
 		return ret;
 	}
 
+	template <typename T, typename IndexType = int>
+	aux::vector<T, IndexType> clone(aux::vector<T, IndexType> const& v)
+	{ return v; }
+
 	} // anonymous namespace
 
 	web_seed_t::web_seed_t(web_seed_entry const& wse)
@@ -1715,9 +1719,9 @@ namespace libtorrent
 			// is available
 			// copy the peer list since peers may disconnect and invalidate
 			// m_connections as we initialize them
-			std::vector<peer_connection*> peers = m_connections;
-			for (auto* pc :  peers)
+			for (auto c : clone(m_connections))
 			{
+				auto pc = c->self();
 				if (pc->is_disconnecting()) continue;
 				pc->on_metadata_impl();
 				if (pc->is_disconnecting()) continue;
@@ -3762,7 +3766,7 @@ namespace libtorrent
 		// (unless it has already been announced through predictive_piece_announce
 		// feature).
 		bool announce_piece = true;
-		auto it = std::lower_bound(m_predictive_pieces.begin()
+		auto const it = std::lower_bound(m_predictive_pieces.begin()
 			, m_predictive_pieces.end(), index);
 		if (it != m_predictive_pieces.end() && *it == index)
 		{
@@ -3773,11 +3777,9 @@ namespace libtorrent
 
 		// make a copy of the peer list since peers
 		// may disconnect while looping
-		std::vector<peer_connection*> peers = m_connections;
-
-		for (peer_iterator i = peers.begin(); i != peers.end(); ++i)
+		for (auto c : clone(m_connections))
 		{
-			std::shared_ptr<peer_connection> p = (*i)->self();
+			auto p = c->self();
 
 			// received_piece will check to see if we're still interested
 			// in this peer, and if neither of us is interested in the other,
@@ -3804,13 +3806,10 @@ namespace libtorrent
 		// since this piece just passed, we might have
 		// become uninterested in some peers where this
 		// was the last piece we were interested in
-		for (peer_iterator i = m_connections.begin();
-			i != m_connections.end();)
+		// update_interest may disconnect the peer and
+		// invalidate the iterator
+		for (auto p : clone(m_connections))
 		{
-			peer_connection* p = *i;
-			// update_interest may disconnect the peer and
-			// invalidate the iterator
-			++i;
 			// if we're not interested already, no need to check
 			if (!p->is_interesting()) continue;
 			// if the peer doesn't have the piece we just got, it
