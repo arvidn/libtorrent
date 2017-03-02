@@ -45,10 +45,10 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	using detail::bdecode_token;
-
+	
 	namespace
 	{
-	inline bool numeric(char c) { return c >= '0' && c <= '9'; }
+	bool numeric(char c) { return c >= '0' && c <= '9'; }
 
 	// finds the end of an integer and verifies that it looks valid this does
 	// not detect all overflows, just the ones that are an order of magnitude
