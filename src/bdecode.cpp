@@ -33,7 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/aux_/alloca.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
-#include "libtorrent/string_util.hpp" // for is_digit
 #include <limits>
 #include <cstring> // for memset
 #include <cstdio> // for snprintf
@@ -49,7 +48,6 @@ namespace libtorrent
 
 	namespace
 	{
-
 	inline bool numeric(char c) { return c >= '0' && c <= '9'; }
 
 	// finds the end of an integer and verifies that it looks valid this does
