@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent
 {
 	using detail::bdecode_token;
-	
+
 	namespace
 	{
 	bool numeric(char c) { return c >= '0' && c <= '9'; }
