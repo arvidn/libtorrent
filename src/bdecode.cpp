@@ -194,9 +194,7 @@ namespace libtorrent
 	}
 
 	// diff between current and next item offset
-	int tokens_offset_diff(bdecode_token const* t);
-
-	int tokens_offset_diff(bdecode_token const* t)
+	inline int tokens_offset_diff(bdecode_token const* t)
 	{
 		bdecode_token const* next(t);
 		++next;
