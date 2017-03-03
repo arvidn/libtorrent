@@ -114,10 +114,10 @@ namespace libtorrent
 
 		void* ret;
 #if TORRENT_USE_POSIX_MEMALIGN
-		if (posix_memalign(&ret, page_size(), bytes)
+		if (posix_memalign(&ret, std::size_t(page_size()), std::size_t(bytes))
 			!= 0) ret = nullptr;
 #elif TORRENT_USE_MEMALIGN
-		ret = memalign(page_size(), bytes);
+		ret = memalign(std::size_t(page_size()), std::size_t(bytes));
 #elif defined TORRENT_WINDOWS
 		ret = _aligned_malloc(bytes, page_size());
 #elif defined TORRENT_BEOS

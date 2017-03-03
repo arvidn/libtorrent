@@ -593,7 +593,7 @@ namespace libtorrent
 	{
 		ec.clear();
 		error_code e;
-		file_status s;
+		file_status s = {};
 		stat_file(f, &s, e);
 		if (!e && s.mode & file_status::directory) return true;
 		ec = e;
@@ -675,7 +675,7 @@ namespace libtorrent
 				ec.assign(errno, system_category());
 				break;
 			}
-			int const num_written = int(write(outfd, buffer, num_read));
+			int const num_written = int(write(outfd, buffer, std::size_t(num_read)));
 			if (num_written < num_read)
 			{
 				ec.assign(errno, system_category());
@@ -1041,7 +1041,7 @@ namespace libtorrent
 	std::int64_t file_size(std::string const& f)
 	{
 		error_code ec;
-		file_status s;
+		file_status s = {};
 		stat_file(f, &s, ec);
 		if (ec) return 0;
 		return s.file_size;

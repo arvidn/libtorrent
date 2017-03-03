@@ -106,7 +106,7 @@ namespace libtorrent
 		// than not building
 		int mib[2] = { CTL_HW, HW_PHYSMEM };
 #endif
-		size_t len = sizeof(ret);
+		std::size_t len = sizeof(ret);
 		if (sysctl(mib, 2, &ret, &len, nullptr, 0) != 0)
 			ret = 0;
 #elif defined TORRENT_WINDOWS
@@ -117,8 +117,8 @@ namespace libtorrent
 		else
 			ret = 0;
 #elif defined TORRENT_LINUX
-		ret = sysconf(_SC_PHYS_PAGES);
-		ret *= sysconf(_SC_PAGESIZE);
+		ret = std::uint64_t(sysconf(_SC_PHYS_PAGES));
+		ret *= std::uint64_t(sysconf(_SC_PAGESIZE));
 #elif defined TORRENT_AMIGA
 		ret = AvailMem(MEMF_PUBLIC);
 #endif
@@ -138,4 +138,3 @@ namespace libtorrent
 #endif // TORRENT_BUILD_SIMULATOR
 	}
 }
-

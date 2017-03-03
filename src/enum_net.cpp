@@ -173,16 +173,8 @@ namespace libtorrent { namespace
 
 			nl_hdr = reinterpret_cast<nlmsghdr*>(buf);
 
-#ifdef __clang__
-#pragma clang diagnostic push
-// NLMSG_OK uses signed/unsigned compare in the same expression
-#pragma clang diagnostic ignored "-Wsign-compare"
-#endif
 			if ((NLMSG_OK(nl_hdr, read_len) == 0) || (nl_hdr->nlmsg_type == NLMSG_ERROR))
 				return -1;
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
 
 			if (nl_hdr->nlmsg_type == NLMSG_DONE) break;
 
@@ -205,10 +197,7 @@ namespace libtorrent { namespace
 
 		int if_index = 0;
 		int rt_len = RTM_PAYLOAD(nl_hdr);
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wcast-align"
-#endif
+
 		for (rtattr* rt_attr = reinterpret_cast<rtattr*>(RTM_RTA(rt_msg));
 			RTA_OK(rt_attr,rt_len); rt_attr = RTA_NEXT(rt_attr,rt_len))
 		{
@@ -243,9 +232,6 @@ namespace libtorrent { namespace
 					break;
 			}
 		}
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
 
 		if_indextoname(if_index, rt_info->name);
 		ifreq req = {};
@@ -700,6 +686,7 @@ namespace libtorrent
 	{
 		std::vector<ip_route> ret;
 		TORRENT_UNUSED(ios);
+		TORRENT_UNUSED(ec); // this may be unused depending on configuration
 
 #ifdef TORRENT_BUILD_SIMULATOR
 
@@ -1076,20 +1063,13 @@ namespace libtorrent
 			ec = error_code(errno, system_category());
 			return std::vector<ip_route>();
 		}
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wcast-align"
-// NLMSG_OK uses signed/unsigned compare in the same expression
-#pragma clang diagnostic ignored "-Wsign-compare"
-#endif
+
 		for (; NLMSG_OK(nl_msg, len); nl_msg = NLMSG_NEXT(nl_msg, len))
 		{
 			ip_route r;
 			if (parse_route(s, nl_msg, &r)) ret.push_back(r);
 		}
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
+
 		close(s);
 		close(sock);
 
