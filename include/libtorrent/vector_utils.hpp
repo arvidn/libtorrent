@@ -54,6 +54,29 @@ namespace libtorrent {
 		auto i = std::lower_bound(container.begin(), container.end(), v);
 		container.insert(i, v);
 	}
+
+	namespace aux
+	{
+
+	template <class T>
+	struct reverse_const_wrapper
+	{
+		reverse_const_wrapper(std::vector<T> const& container) : m_container(container) {}
+
+		typename std::vector<T>::const_reverse_iterator begin() const
+		{ return m_container.rbegin(); }
+		typename std::vector<T>::const_reverse_iterator end() const
+		{ return m_container.rend(); }
+
+	private:
+		std::vector<T> const& m_container;
+	};
+
+	template <typename T>
+	reverse_const_wrapper<T> reverse(std::vector<T> const& container)
+	{ return {container}; }
+
+	} // namespace aux
 }
 
 #endif

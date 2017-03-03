@@ -124,9 +124,9 @@ namespace libtorrent
 		return ret;
 	}
 
-	template <typename T, typename IndexType = int>
-	aux::vector<T, IndexType> clone(aux::vector<T, IndexType> const& v)
-	{ return v; }
+	template <typename T, typename IndexType>
+	aux::reverse_const_wrapper<T> safe(aux::vector<T, IndexType> const& v)
+	{ return aux::reverse(v); }
 
 	} // anonymous namespace
 
@@ -880,7 +880,7 @@ namespace libtorrent
 		if (super_seeding()) return;
 
 		// send_not_interested may disconnect the peer
-		for (auto p : clone(m_connections))
+		for (auto p : safe(m_connections))
 		{
 			if (p->type() == connection_type::bittorrent)
 			{
@@ -934,7 +934,7 @@ namespace libtorrent
 		{
 			// clear request queues of all peers
 			// update_interest may disconnect the peer
-			for (auto c : clone(m_connections))
+			for (auto c : safe(m_connections))
 			{
 				auto p = c->self();
 				// we may want to disconnect other upload-only peers
@@ -955,7 +955,7 @@ namespace libtorrent
 
 			// send_block_requests on all peers
 			// update_interest may disconnect the peer
-			for (auto c : clone(m_connections))
+			for (auto c : safe(m_connections))
 			{
 				auto p = c->self();
 				// we may be interested now, or no longer interested
@@ -1085,7 +1085,7 @@ namespace libtorrent
 		// some peers that previously was no longer interesting may
 		// now have become interesting, since we lack this one piece now.
 		// update_interest may disconnect the peer
-		for (auto c : clone(m_connections))
+		for (auto c : safe(m_connections))
 		{
 			auto p = c->self();
 			// no need to do anything with peers that
@@ -1701,7 +1701,7 @@ namespace libtorrent
 			// is available
 			// copy the peer list since peers may disconnect and invalidate
 			// m_connections as we initialize them
-			for (auto c : clone(m_connections))
+			for (auto c : safe(m_connections))
 			{
 				auto pc = c->self();
 				if (pc->is_disconnecting()) continue;
@@ -3759,7 +3759,7 @@ namespace libtorrent
 
 		// make a copy of the peer list since peers
 		// may disconnect while looping
-		for (auto c : clone(m_connections))
+		for (auto c : safe(m_connections))
 		{
 			auto p = c->self();
 
@@ -3790,7 +3790,7 @@ namespace libtorrent
 		// was the last piece we were interested in
 		// update_interest may disconnect the peer and
 		// invalidate the iterator
-		for (auto p : clone(m_connections))
+		for (auto p : safe(m_connections))
 		{
 			// if we're not interested already, no need to check
 			if (!p->is_interesting()) continue;
@@ -3926,7 +3926,7 @@ namespace libtorrent
 		if (i != m_predictive_pieces.end() && *i == index) return;
 
 		// announce_piece may disconnect the peer
-		for (auto p : clone(m_connections))
+		for (auto p : safe(m_connections))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			p->peer_log(peer_log_alert::outgoing, "PREDICTIVE_HAVE", "piece: %d expected in %d ms"
@@ -5057,7 +5057,7 @@ namespace libtorrent
 	void torrent::update_peer_interest(bool was_finished)
 	{
 		// update_interest may disconnect the peer
-		for (auto p : clone(m_connections))
+		for (auto p : safe(m_connections))
 		{
 			p->update_interest();
 		}
@@ -6644,7 +6644,7 @@ namespace libtorrent
 
 		// disconnect redundant peers
 		// disconnect_if_redundant may disconnect the peer
-		for (auto p : clone(m_connections))
+		for (auto p : safe(m_connections))
 		{
 			p->disconnect_if_redundant();
 		}
@@ -7465,7 +7465,7 @@ namespace libtorrent
 		update_want_tick();
 
 		// on_metadata_impl may disconnect the peer
-		for (auto c : clone(m_connections))
+		for (auto c : safe(m_connections))
 		{
 			auto pc = c->self();
 
