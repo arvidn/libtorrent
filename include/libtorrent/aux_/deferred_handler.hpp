@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2016, Arvid Norberg
+Copyright (c) 2017, Arvid Norberg
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,38 +30,45 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_RANGE_HPP
-#define TORRENT_RANGE_HPP
+#ifndef TORRENT_DEFERRED_HANDLER_HPP
+#define TORRENT_DEFERRED_HANDLER_HPP
+
+#include "libtorrent/assert.hpp"
+#include "libtorrent/io_service.hpp"
 
 namespace libtorrent { namespace aux {
 
-	template <typename Iter>
-	struct iterator_range
+template <typename Handler>
+struct handler_wrapper
+{
+	handler_wrapper(bool& in_flight, Handler&& h)
+		: m_handler(std::move(h))
+		, m_in_flight(in_flight) {}
+	template <typename... Args>
+	void operator()(Args&&... a)
 	{
-		Iter _begin, _end;
-		Iter begin() { return _begin; }
-		Iter end() { return _end; }
-	};
-
-	template <typename Iter>
-	iterator_range<Iter> range(Iter begin, Iter end)
-	{ return { begin, end}; }
-
-	template <typename T, typename IndexType>
-	iterator_range<T*> range(vector<T, IndexType>& vec
-		, IndexType begin, IndexType end)
-	{
-		using type = typename underlying_index_t<IndexType>::type;
-		return {vec.data() + static_cast<type>(begin), vec.data() + static_cast<type>(end)};
+		TORRENT_ASSERT(m_in_flight);
+		m_in_flight = false;
+		m_handler(std::forward<Args>(a)...);
 	}
+private:
+	Handler m_handler;
+	bool& m_in_flight;
+};
 
-	template <typename T, typename IndexType>
-	iterator_range<T const*> range(vector<T, IndexType> const& vec
-		, IndexType begin, IndexType end)
+struct deferred_handler
+{
+	template <typename Handler>
+	void post(io_service& ios, Handler&& h)
 	{
-		using type = typename underlying_index_t<IndexType>::type;
-		return {vec.data() + static_cast<type>(begin), vec.data() + static_cast<type>(end)};
+		if (m_in_flight) return;
+		m_in_flight = true;
+		ios.post(handler_wrapper<Handler>(m_in_flight, std::forward<Handler>(h)));
 	}
+private:
+	bool m_in_flight = false;
+};
+
 }}
-
 #endif
+

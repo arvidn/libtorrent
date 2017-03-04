@@ -71,6 +71,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/suggest_piece.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/aux_/vector.hpp"
+#include "libtorrent/aux_/deferred_handler.hpp"
 
 #if TORRENT_COMPLETE_TYPES_REQUIRED
 #include "libtorrent/peer_connection.hpp"
@@ -640,7 +641,7 @@ namespace libtorrent
 		std::pair<peer_list::iterator, peer_list::iterator> find_peers(address const& a);
 
 		// the number of peers that belong to this torrent
-		int num_peers() const { return int(m_connections.size()); }
+		int num_peers() const { return int(m_connections.size() - m_peers_to_disconnect.size()); }
 		int num_seeds() const;
 		int num_downloaders() const;
 
@@ -1105,6 +1106,9 @@ namespace libtorrent
 
 	private:
 
+		// trigger deferred disconnection of peers
+		void on_remove_peers();
+
 		void ip_filter_updated();
 
 		void inc_stats_counter(int c, int value = 1);
@@ -1252,6 +1256,9 @@ namespace libtorrent
 		// verified its hash. If the hash fails, send reject to
 		// peers with outstanding requests, and dont_have to other
 		// peers. This vector is ordered, to make lookups fast.
+
+		// TODO: 3 factor out predictive pieces and all operations on it into a
+		// separate class (to use as memeber here instead)
 		std::vector<piece_index_t> m_predictive_pieces;
 
 		// the performance counters of this session
@@ -1364,6 +1371,10 @@ namespace libtorrent
 		// the sequence number for this torrent, this is a
 		// monotonically increasing number for each added torrent
 		int m_sequence_number;
+
+		// used to post a message to defer disconnecting peers
+		std::vector<peer_connection*> m_peers_to_disconnect;
+		aux::deferred_handler m_deferred_disconnect;
 
 		// for torrents who have a bandwidth limit, this is != 0
 		// and refers to a peer_class in the session.
