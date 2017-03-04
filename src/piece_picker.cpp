@@ -282,7 +282,7 @@ namespace libtorrent
 		*zero_prio = int(m_downloads[piece_pos::piece_zero_prio].size());
 	}
 
-	span<piece_picker::block_info> piece_picker::mutable_blocks_for_piece(
+	aux::typed_span<piece_picker::block_info> piece_picker::mutable_blocks_for_piece(
 		downloading_piece const& dp)
 	{
 		int idx = int(dp.info_idx) * m_blocks_per_piece;
@@ -290,7 +290,7 @@ namespace libtorrent
 		return { &m_block_info[idx], static_cast<std::size_t>(blocks_in_piece(dp.index)) };
 	}
 
-	span<piece_picker::block_info const> piece_picker::blocks_for_piece(
+	aux::typed_span<piece_picker::block_info const> piece_picker::blocks_for_piece(
 		downloading_piece const& dp) const
 	{
 		return const_cast<piece_picker*>(this)->mutable_blocks_for_piece(dp);
@@ -2373,7 +2373,7 @@ get_out:
 
 				for (auto const& l : m_downloads[piece_pos::piece_downloading])
 				{
-					auto const& binfo2 = blocks_for_piece(l);
+					auto const binfo2 = blocks_for_piece(l);
 					std::fprintf(stderr, "%d : ", static_cast<int>(l.index));
 					const int cnt = blocks_in_piece(l.index);
 					for (int m = 0; m < cnt; ++m)

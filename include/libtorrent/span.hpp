@@ -111,13 +111,6 @@ namespace libtorrent
 			return m_ptr[idx];
 		}
 
-		T& operator[](int const idx) const
-		{
-			TORRENT_ASSERT(idx >= 0);
-			TORRENT_ASSERT(static_cast<std::size_t>(idx) < m_len);
-			return m_ptr[static_cast<std::size_t>(idx)];
-		}
-
 	private:
 		T* m_ptr;
 		std::size_t m_len;

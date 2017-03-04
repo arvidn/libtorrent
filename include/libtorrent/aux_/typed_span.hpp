@@ -50,7 +50,7 @@ namespace libtorrent { namespace aux {
 		// pull in constructors from base class
 		using base::base;
 
-		auto operator[](IndexType idx) -> decltype(this->base::operator[](underlying_index()))
+		auto operator[](IndexType idx) const -> decltype(this->base::operator[](underlying_index()))
 		{
 			TORRENT_ASSERT(idx >= IndexType(0));
 			return this->base::operator[](std::size_t(static_cast<underlying_index>(idx)));
@@ -64,13 +64,13 @@ namespace libtorrent { namespace aux {
 
 		template <typename U = underlying_index, typename Cond
 			= typename std::enable_if<std::is_signed<U>::value>::type>
-		typed_span<T> first(underlying_index n)
+		typed_span<T> first(underlying_index n) const
 		{
 			TORRENT_ASSERT(n >= 0);
 			return this->base::first(std::size_t(n));
 		}
 
-		typed_span<T> first(std::size_t n)
+		typed_span<T> first(std::size_t n) const
 		{
 			TORRENT_ASSERT(n <= std::size_t((std::numeric_limits<underlying_index>::max)()));
 			return this->base::first(n);
@@ -78,13 +78,13 @@ namespace libtorrent { namespace aux {
 
 		template <typename U = underlying_index, typename Cond
 			= typename std::enable_if<std::is_signed<U>::value>::type>
-		typed_span<T> last(underlying_index n)
+		typed_span<T> last(underlying_index n) const
 		{
 			TORRENT_ASSERT(n >= 0);
 			return this->base::last(std::size_t(n));
 		}
 
-		typed_span<T> last(std::size_t n)
+		typed_span<T> last(std::size_t n) const
 		{
 			TORRENT_ASSERT(n <= std::size_t((std::numeric_limits<underlying_index>::max)()));
 			return this->base::last(n);
@@ -92,7 +92,7 @@ namespace libtorrent { namespace aux {
 
 		template <typename U = underlying_index, typename Cond
 			= typename std::enable_if<std::is_signed<U>::value>::type>
-		typed_span<T> subspan(underlying_index offset)
+		typed_span<T> subspan(underlying_index offset) const
 		{
 			TORRENT_ASSERT(offset >= 0);
 			return this->base::subspan(std::size_t(offset));
@@ -100,20 +100,20 @@ namespace libtorrent { namespace aux {
 
 		template <typename U = underlying_index, typename Cond
 			= typename std::enable_if<std::is_signed<U>::value>::type>
-		typed_span<T> subspan(underlying_index offset, underlying_index count)
+		typed_span<T> subspan(underlying_index offset, underlying_index count) const
 		{
 			TORRENT_ASSERT(offset >= 0);
 			TORRENT_ASSERT(count >= 0);
 			return this->base::subspan(std::size_t(offset), std::size_t(count));
 		}
 
-		typed_span<T> subspan(std::size_t offset)
+		typed_span<T> subspan(std::size_t offset) const
 		{
 			TORRENT_ASSERT(offset <= std::size_t((std::numeric_limits<underlying_index>::max)()));
 			return this->base::subspan(offset);
 		}
 
-		typed_span<T> subspan(std::size_t offset, std::size_t count)
+		typed_span<T> subspan(std::size_t offset, std::size_t count) const
 		{
 			TORRENT_ASSERT(offset <= std::size_t((std::numeric_limits<underlying_index>::max)()));
 			TORRENT_ASSERT(count <= std::size_t((std::numeric_limits<underlying_index>::max)()));
