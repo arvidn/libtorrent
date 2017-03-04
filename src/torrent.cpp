@@ -1816,7 +1816,7 @@ namespace libtorrent
 
 			for (auto const& p : dq)
 			{
-				int num_blocks = m_picker->blocks_in_piece(p.index);
+				int const num_blocks = m_picker->blocks_in_piece(p.index);
 				if (p.finished < num_blocks) continue;
 				have_pieces.push_back(p.index);
 			}
@@ -1855,30 +1855,25 @@ namespace libtorrent
 			{
 				std::vector<std::shared_ptr<torrent>> ts = m_ses.find_collection(c);
 
-				for (std::vector<std::shared_ptr<torrent>>::iterator k = ts.begin()
-					, end2(ts.end()); k != end2; ++k)
+				for (auto const& t : ts)
 				{
 					// Only attempt to reuse files from torrents that are seeding.
 					// TODO: this could be optimized by looking up which files are
 					// complete and just look at those
-					if (!(*k)->is_seed()) continue;
+					if (!t->is_seed()) continue;
 
-					res.match((*k)->get_torrent_copy(), (*k)->save_path());
+					res.match(t->get_torrent_copy(), t->save_path());
 				}
 			}
 
 			std::vector<resolve_links::link_t> const& l = res.get_links();
 			if (!l.empty())
 			{
-				for (std::vector<resolve_links::link_t>::const_iterator i = l.begin()
-					, end(l.end()); i != end; ++i)
+				for (auto const& i : l)
 				{
-					if (!i->ti) continue;
-
-					torrent_info const& ti = *i->ti;
-					std::string const& save_path = i->save_path;
-					links.push_back(combine_path(save_path
-						, ti.files().file_path(i->file_idx)));
+					if (!i.ti) continue;
+					links.push_back(combine_path(i.save_path
+						, i.ti->files().file_path(i.file_idx)));
 				}
 			}
 		}
@@ -3549,8 +3544,6 @@ namespace libtorrent
 		std::vector<piece_picker::downloading_piece> dl_queue
 			= m_picker->get_download_queue();
 
-		const int blocks_per_piece = (piece_size + block_size() - 1) / block_size();
-
 		// look at all unfinished pieces and add the completed
 		// blocks to our 'done' counter
 		for (auto i = dl_queue.begin(); i != dl_queue.end(); ++i)
@@ -3566,20 +3559,21 @@ namespace libtorrent
 				, [index](piece_picker::downloading_piece const& p) { return p.index == index; }) == 0);
 #endif
 
-			piece_picker::block_info* info = m_picker->blocks_for_piece(*i);
-			for (int j = 0; j < blocks_per_piece; ++j)
+			int idx = -1;
+			for (auto const& info : m_picker->blocks_for_piece(*i))
 			{
+				++idx;
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
-				TORRENT_ASSERT(m_picker->is_finished(piece_block(index, j))
-					== (info[j].state == piece_picker::block_info::state_finished));
+				TORRENT_ASSERT(m_picker->is_finished(piece_block(index, idx))
+					== (info.state == piece_picker::block_info::state_finished));
 #endif
-				if (info[j].state == piece_picker::block_info::state_finished)
+				if (info.state == piece_picker::block_info::state_finished)
 				{
-					corr += block_bytes_wanted(piece_block(index, j));
+					corr += block_bytes_wanted(piece_block(index, idx));
 				}
 				TORRENT_ASSERT(corr >= 0);
-				TORRENT_ASSERT(index != last_piece || j < m_picker->blocks_in_last_piece()
-					|| info[j].state != piece_picker::block_info::state_finished);
+				TORRENT_ASSERT(index != last_piece || idx < m_picker->blocks_in_last_piece()
+					|| info.state != piece_picker::block_info::state_finished);
 			}
 
 			st.total_done += corr;
@@ -3642,10 +3636,9 @@ namespace libtorrent
 			for (auto const& dp : dl_queue)
 			{
 				std::fprintf(stderr, "  %d ", static_cast<int>(dp.index));
-				piece_picker::block_info* info = m_picker->blocks_for_piece(dp);
-				for (int j = 0; j < blocks_per_piece; ++j)
+				for (auto const& info : m_picker->blocks_for_piece(dp))
 				{
-					char const* state = info[j].state
+					char const* state = info.state
 						== piece_picker::block_info::state_finished ? "1" : "0";
 					fputs(state, stderr);
 				}
@@ -6029,7 +6022,7 @@ namespace libtorrent
 				int const num_bitmask_bytes
 					= std::max(num_blocks_per_piece / 8, 1);
 
-				piece_picker::block_info const* info = m_picker->blocks_for_piece(dp);
+				auto const info = m_picker->blocks_for_piece(dp);
 				for (int j = 0; j < num_bitmask_bytes; ++j)
 				{
 					char v = 0;
@@ -6355,24 +6348,25 @@ namespace libtorrent
 			TORRENT_ASSERT(counter * blocks_per_piece + pi.blocks_in_piece <= int(blk.size()));
 			pi.blocks = &blk[std::size_t(counter * blocks_per_piece)];
 			int const piece_size = torrent_file().piece_size(i->index);
-			piece_picker::block_info const* info = m_picker->blocks_for_piece(*i);
-			for (int j = 0; j < pi.blocks_in_piece; ++j)
+			int idx = -1;
+			for (auto const& info : m_picker->blocks_for_piece(*i))
 			{
-				block_info& bi = pi.blocks[j];
-				bi.state = info[j].state;
-				bi.block_size = j < pi.blocks_in_piece - 1
+				++idx;
+				block_info& bi = pi.blocks[idx];
+				bi.state = info.state;
+				bi.block_size = idx < pi.blocks_in_piece - 1
 					? aux::numeric_cast<std::uint32_t>(block_size())
-					: aux::numeric_cast<std::uint32_t>(piece_size - (j * block_size()));
+					: aux::numeric_cast<std::uint32_t>(piece_size - (idx * block_size()));
 				bool complete = bi.state == block_info::writing
 					|| bi.state == block_info::finished;
-				if (info[j].peer == nullptr)
+				if (info.peer == nullptr)
 				{
 					bi.set_peer(tcp::endpoint());
 					bi.bytes_progress = complete ? bi.block_size : 0;
 				}
 				else
 				{
-					torrent_peer* tp = info[j].peer;
+					torrent_peer* tp = info.peer;
 					TORRENT_ASSERT(tp->in_use);
 					if (tp->connection)
 					{
@@ -6382,7 +6376,7 @@ namespace libtorrent
 						if (bi.state == block_info::requested)
 						{
 							auto pbp = peer->downloading_piece_progress();
-							if (pbp.piece_index == i->index && pbp.block_index == j)
+							if (pbp.piece_index == i->index && pbp.block_index == idx)
 							{
 								bi.bytes_progress = aux::numeric_cast<std::uint32_t>(pbp.bytes_downloaded);
 								TORRENT_ASSERT(bi.bytes_progress <= bi.block_size);
@@ -6404,7 +6398,7 @@ namespace libtorrent
 					}
 				}
 
-				pi.blocks[j].num_peers = info[j].num_peers;
+				pi.blocks[idx].num_peers = info.num_peers;
 			}
 			pi.piece_index = i->index;
 			queue->push_back(pi);
@@ -9405,29 +9399,29 @@ namespace libtorrent
 		TORRENT_ALLOCA(busy_blocks, busy_block_t, blocks_in_piece);
 		int busy_count = 0;
 
-		piece_picker::block_info const* info = picker->blocks_for_piece(pi);
-
 		// pick busy blocks from the piece
-		for (int k = 0; k < blocks_in_piece; ++k)
+		int idx = -1;
+		for (auto const& info : picker->blocks_for_piece(pi))
 		{
+			++idx;
 			// only consider blocks that have been requested
 			// and we're still waiting for them
-			if (info[k].state != piece_picker::block_info::state_requested)
+			if (info.state != piece_picker::block_info::state_requested)
 				continue;
 
-			piece_block b(piece, k);
+			piece_block b(piece, idx);
 
 			// only allow a single additional request per block, in order
 			// to spread it out evenly across all stalled blocks
-			if (int(info[k].num_peers) > timed_out)
+			if (int(info.num_peers) > timed_out)
 				continue;
 
-			busy_blocks[busy_count].peers = info[k].num_peers;
-			busy_blocks[busy_count].index = k;
+			busy_blocks[busy_count].peers = info.num_peers;
+			busy_blocks[busy_count].index = idx;
 			++busy_count;
 
 #if TORRENT_DEBUG_STREAMING > 1
-			std::printf(" [%d (%d)]", b.block_index, info[k].num_peers);
+			std::printf(" [%d (%d)]", b.block_index, info.num_peers);
 #endif
 		}
 #if TORRENT_DEBUG_STREAMING > 1
@@ -10249,14 +10243,14 @@ namespace libtorrent
 			std::int64_t offset = std::int64_t(static_cast<int>(dp.index))
 				* m_torrent_file->piece_length();
 			file_index_t file = fs.file_index_at_offset(offset);
-			int num_blocks = m_picker->blocks_in_piece(dp.index);
-			piece_picker::block_info const* info = m_picker->blocks_for_piece(dp);
-			for (int k = 0; k < num_blocks; ++k)
+			int idx = -1;
+			for (auto const& info : m_picker->blocks_for_piece(dp))
 			{
+				++idx;
 				TORRENT_ASSERT(file < fs.end_file());
 				TORRENT_ASSERT(offset == std::int64_t(static_cast<int>(dp.index))
 					* m_torrent_file->piece_length()
-					+ k * block_size());
+					+ idx * block_size());
 				TORRENT_ASSERT(offset < m_torrent_file->total_size());
 				while (offset >= fs.file_offset(file) + fs.file_size(file))
 				{
@@ -10266,21 +10260,21 @@ namespace libtorrent
 
 				std::int64_t block = block_size();
 
-				if (info[k].state == piece_picker::block_info::state_none)
+				if (info.state == piece_picker::block_info::state_none)
 				{
 					offset += block;
 					continue;
 				}
 
-				if (info[k].state == piece_picker::block_info::state_requested)
+				if (info.state == piece_picker::block_info::state_requested)
 				{
 					block = 0;
-					torrent_peer* p = info[k].peer;
+					torrent_peer* p = info.peer;
 					if (p != nullptr && p->connection)
 					{
 						peer_connection* peer = static_cast<peer_connection*>(p->connection);
 						auto pbp = peer->downloading_piece_progress();
-						if (pbp.piece_index == dp.index && pbp.block_index == k)
+						if (pbp.piece_index == dp.index && pbp.block_index == idx)
 							block = pbp.bytes_downloaded;
 						TORRENT_ASSERT(block <= block_size());
 					}
@@ -10318,7 +10312,7 @@ namespace libtorrent
 					offset += left_over;
 					TORRENT_ASSERT(offset == std::int64_t(static_cast<int>(dp.index))
 						* m_torrent_file->piece_length()
-						+ (k + 1) * block_size());
+						+ (idx + 1) * block_size());
 				}
 				else
 				{
