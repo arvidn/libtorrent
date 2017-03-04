@@ -73,7 +73,7 @@ namespace libtorrent
 	// name should be assigned to the torrent. In case it's not, the name is
 	// used for the torrent as long as it doesn't have metadata. See
 	// ``torrent_handle::name``.
-	// 
+	//
 	// The ``add_torrent_params`` is also used when requesting resume data for a
 	// torrent. It can be saved to and restored from a file and added back to a
 	// new session. For serialization and deserialization of
