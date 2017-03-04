@@ -5947,11 +5947,11 @@ namespace libtorrent
 		ret.num_downloaded = m_downloaded;
 
 		ret.flags = 0;
-		ret.flags |= m_sequential_download ? add_torrent_params::flag_sequential_download : 0;
-		ret.flags |= m_seed_mode ? add_torrent_params::flag_seed_mode : 0;
-		ret.flags |= m_super_seeding ? add_torrent_params::flag_super_seeding : 0;
-		ret.flags |= is_torrent_paused() ? add_torrent_params::flag_paused : 0;
-		ret.flags |= m_auto_managed ? add_torrent_params::flag_auto_managed : 0;
+		if (m_sequential_download) ret.flags |= add_torrent_params::flag_sequential_download;
+		if (m_seed_mode ) ret.flags |= add_torrent_params::flag_seed_mode;
+		if (m_super_seeding ) ret.flags |= add_torrent_params::flag_super_seeding;
+		if (is_torrent_paused()) ret.flags |= add_torrent_params::flag_paused;
+		if (m_auto_managed ) ret.flags |= add_torrent_params::flag_auto_managed;
 
 		ret.added_time = m_added_time;
 		ret.completed_time = m_completed_time;
