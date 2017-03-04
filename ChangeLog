@@ -48,7 +48,9 @@
 	* added support for BEP 32, "IPv6 extension for DHT"
 	* overhauled listen socket and UDP socket handling, improving multi-home
 	  support and bind-to-device
-	* added new read_resume_data() function, initializing add_torrent_params
+	* resume data is now communicated via add_torrent_params objects
+	* added new read_resume_data()/write_resume_data functions to write bencoded,
+	  backwards compatible resume files
 	* removed deprecated fields from add_torrent_params
 	* deprecate "resume_data" field in add_torrent_params
 	* improved support for bind-to-device

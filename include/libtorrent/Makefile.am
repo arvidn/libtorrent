@@ -104,6 +104,7 @@ nobase_include_HEADERS = \
   puff.hpp                     \
   random.hpp                   \
   read_resume_data.hpp         \
+  write_resume_data.hpp        \
   receive_buffer.hpp           \
   resolve_links.hpp            \
   resolver.hpp                 \

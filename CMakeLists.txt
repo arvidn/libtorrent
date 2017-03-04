@@ -68,6 +68,7 @@ set(sources
 	random
 	receive_buffer
 	read_resume_data
+	write_resume_data
 	request_blocks
 	resolve_links
 	resolver

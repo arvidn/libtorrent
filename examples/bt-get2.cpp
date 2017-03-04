@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/bencode.hpp>
 #include <libtorrent/torrent_status.hpp>
 #include <libtorrent/read_resume_data.hpp>
+#include <libtorrent/write_resume_data.hpp>
 #include <libtorrent/error_code.hpp>
 
 namespace lt = libtorrent;
@@ -115,8 +116,8 @@ int main(int argc, char const* argv[])
 			if (auto rd = lt::alert_cast<lt::save_resume_data_alert>(a)) {
 				std::ofstream of(".resume_file", std::ios_base::binary);
 				of.unsetf(std::ios_base::skipws);
-				lt::bencode(std::ostream_iterator<char>(of)
-					, *rd->resume_data);
+				auto buf = write_resume_data_buf(rd->params);
+				of.write(buf.data(), buf.size());
 			}
 
 			if (auto st = lt::alert_cast<lt::state_update_alert>(a)) {

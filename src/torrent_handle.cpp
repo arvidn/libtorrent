@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/utf8.hpp"
 #include "libtorrent/announce_entry.hpp"
+#include "libtorrent/write_resume_data.hpp"
 
 #if TORRENT_COMPLETE_TYPES_REQUIRED
 #include "libtorrent/peer_info.hpp" // for peer_list_entry
@@ -625,10 +626,10 @@ namespace libtorrent
 
 	entry torrent_handle::write_resume_data() const
 	{
-		entry ret(entry::dictionary_t);
-		auto retr = std::ref(ret);
+		add_torrent_params params;
+		auto retr = std::ref(params);
 		sync_call(&torrent::write_resume_data, retr);
-		return ret;
+		return libtorrent::write_resume_data(params);
 	}
 
 	std::string torrent_handle::save_path() const

@@ -606,6 +606,7 @@ SOURCES =
 	puff
 	random
 	read_resume_data
+	write_resume_data
 	receive_buffer
 	resolve_links
 	session
