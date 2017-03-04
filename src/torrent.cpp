@@ -5937,9 +5937,9 @@ namespace libtorrent
 		using namespace libtorrent::detail; // for write_*_endpoint()
 
 		// cast to seconds in case that internal values doesn't have ratio<1>
-		ret.active_time = total_seconds(active_time());
-		ret.finished_time = total_seconds(finished_time());
-		ret.seeding_time = total_seconds(seeding_time());
+		ret.active_time = static_cast<int>(total_seconds(active_time()));
+		ret.finished_time = static_cast<int>(total_seconds(finished_time()));
+		ret.seeding_time = static_cast<int>(total_seconds(seeding_time()));
 		ret.last_seen_complete = m_last_seen_complete;
 
 		ret.num_complete = m_complete;
@@ -6170,7 +6170,7 @@ namespace libtorrent
 			if (!default_prio)
 			{
 				ret.piece_priorities.clear();
-				ret.piece_priorities.reserve(m_torrent_file->num_pieces());
+				ret.piece_priorities.reserve(static_cast<std::size_t>(m_torrent_file->num_pieces()));
 
 				for (piece_index_t i(0); i < fs.end_piece(); ++i)
 					ret.piece_priorities.push_back(static_cast<std::uint8_t>(m_picker->piece_priority(i)));
