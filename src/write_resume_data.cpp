@@ -127,14 +127,14 @@ namespace libtorrent
 		{
 			entry::list_type& tr_list = ret["trackers"].list();
 			tr_list.push_back(entry::list_type());
-			int tier = 0;
+			std::size_t tier = 0;
 			auto tier_it = atp.tracker_tiers.begin();
 			for (std::string const& tr : atp.trackers)
 			{
 				if (tier_it != atp.tracker_tiers.end())
-					tier = aux::clamp(*tier_it++, 0, 1024);
+					tier = aux::clamp(std::size_t(*tier_it++), std::size_t{0}, std::size_t{1024});
 
-				if (int(tr_list.size()) <= tier)
+				if (tr_list.size() <= tier)
 					tr_list.resize(tier + 1);
 
 				tr_list[tier].list().push_back(tr);
@@ -156,19 +156,20 @@ namespace libtorrent
 
 		// write have bitmask
 		entry::string_type& pieces = ret["pieces"].string();
-		pieces.resize(aux::numeric_cast<std::size_t>(atp.have_pieces.size()));
+		pieces.resize(aux::numeric_cast<std::size_t>(std::max(
+			atp.have_pieces.size(), atp.verified_pieces.size())));
 
-		piece_index_t piece(0);
+		std::size_t piece(0);
 		for (auto const bit : atp.have_pieces)
 		{
-			pieces[static_cast<int>(piece)] = bit ? 1 : 0;
+			pieces[piece] = bit ? 1 : 0;
 			++piece;
 		}
 
-		piece = piece_index_t(0);
+		piece = 0;
 		for (auto const bit : atp.verified_pieces)
 		{
-			pieces[static_cast<int>(piece)] |= bit ? 2 : 0;
+			pieces[piece] |= bit ? 2 : 0;
 			++piece;
 		}
 
@@ -178,8 +179,9 @@ namespace libtorrent
 			entry::list_type& fl = ret["mapped_files"].list();
 			for (auto const& ent : atp.renamed_files)
 			{
-				if (ent.first >= file_index_t(static_cast<int>(fl.size()))) fl.resize(static_cast<int>(ent.first) + 1);
-				fl[static_cast<int>(ent.first)] = ent.second;
+				std::size_t const idx(static_cast<std::size_t>(static_cast<int>(ent.first)));
+				if (idx >= fl.size()) fl.resize(idx + 1);
+				fl[idx] = ent.second;
 			}
 		}
 
@@ -250,7 +252,7 @@ namespace libtorrent
 			// write piece priorities
 			entry::string_type& prio = ret["piece_priority"].string();
 			for (auto const p : atp.piece_priorities)
-				prio.push_back(p);
+				prio.push_back(static_cast<char>(p));
 		}
 
 		return ret;
