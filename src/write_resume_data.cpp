@@ -196,16 +196,10 @@ namespace libtorrent
 			{
 #if TORRENT_USE_IPV6
 				if (p.address().is_v6())
-				{
-					write_address(p.address().to_v6(), ptr6);
-					write_uint16(p.port(), ptr6);
-				}
+					write_endpoint(p, ptr6);
 				else
 #endif
-				{
-					write_address(p.address().to_v4(), ptr);
-					write_uint16(p.port(), ptr);
-				}
+					write_endpoint(p, ptr);
 			}
 		}
 
@@ -219,16 +213,10 @@ namespace libtorrent
 			{
 #if TORRENT_USE_IPV6
 				if (p.address().is_v6())
-				{
-					write_address(p.address().to_v6(), ptr6);
-					write_uint16(p.port(), ptr6);
-				}
+					write_endpoint(p, ptr6);
 				else
 #endif
-				{
-					write_address(p.address().to_v4(), ptr);
-					write_uint16(p.port(), ptr);
-				}
+					write_endpoint(p, ptr);
 			}
 		}
 

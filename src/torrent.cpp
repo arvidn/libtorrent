@@ -5934,8 +5934,6 @@ namespace libtorrent
 		ret.total_uploaded = m_total_uploaded;
 		ret.total_downloaded = m_total_downloaded;
 
-		using namespace libtorrent::detail; // for write_*_endpoint()
-
 		// cast to seconds in case that internal values doesn't have ratio<1>
 		ret.active_time = static_cast<int>(total_seconds(active_time()));
 		ret.finished_time = static_cast<int>(total_seconds(finished_time()));
