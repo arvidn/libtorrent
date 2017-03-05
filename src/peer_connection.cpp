@@ -3060,7 +3060,7 @@ namespace libtorrent
 			{
 				if (dp.index != block_finished.piece_index) continue;
 				auto const info = picker.blocks_for_piece(dp);
-				TORRENT_ASSERT(info[static_cast<int>(block_finished.block_index)].state
+				TORRENT_ASSERT(info[block_finished.block_index].state
 					== piece_picker::block_info::state_finished);
 			}
 		}
