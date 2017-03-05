@@ -105,7 +105,7 @@ namespace libtorrent
 			return { data() + offset, count };
 		}
 
-		T& operator[](std::size_t const idx)
+		T& operator[](std::size_t const idx) const
 		{
 			TORRENT_ASSERT(idx < m_len);
 			return m_ptr[idx];

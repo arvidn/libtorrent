@@ -207,15 +207,14 @@ namespace libtorrent
 		TORRENT_ASSERT(int(ret.info_idx) * m_blocks_per_piece
 			+ m_blocks_per_piece <= int(m_block_info.size()));
 
-		block_info* info = blocks_for_piece(ret);
-		for (int i = 0; i < m_blocks_per_piece; ++i)
+		for (auto& info : mutable_blocks_for_piece(ret))
 		{
-			info[i].num_peers = 0;
-			info[i].state = block_info::state_none;
-			info[i].peer = nullptr;
+			info.num_peers = 0;
+			info.state = block_info::state_none;
+			info.peer = nullptr;
 #if TORRENT_USE_ASSERTS
-			info[i].piece_index = piece;
-			info[i].peers.clear();
+			info.piece_index = piece;
+			info.peers.clear();
 #endif
 		}
 		downloading_iter = m_downloads[download_state].insert(downloading_iter, ret);
@@ -283,18 +282,18 @@ namespace libtorrent
 		*zero_prio = int(m_downloads[piece_pos::piece_zero_prio].size());
 	}
 
-	piece_picker::block_info* piece_picker::blocks_for_piece(
+	aux::typed_span<piece_picker::block_info> piece_picker::mutable_blocks_for_piece(
 		downloading_piece const& dp)
 	{
 		int idx = int(dp.info_idx) * m_blocks_per_piece;
 		TORRENT_ASSERT(idx + m_blocks_per_piece <= int(m_block_info.size()));
-		return &m_block_info[idx];
+		return { &m_block_info[idx], static_cast<std::size_t>(blocks_in_piece(dp.index)) };
 	}
 
-	piece_picker::block_info const* piece_picker::blocks_for_piece(
+	aux::typed_span<piece_picker::block_info const> piece_picker::blocks_for_piece(
 		downloading_piece const& dp) const
 	{
-		return const_cast<piece_picker*>(this)->blocks_for_piece(dp);
+		return const_cast<piece_picker*>(this)->mutable_blocks_for_piece(dp);
 	}
 
 #if TORRENT_USE_INVARIANT_CHECKS
@@ -313,12 +312,11 @@ namespace libtorrent
 					TORRENT_ASSERT(dp.index < next.index);
 					TORRENT_ASSERT(int(dp.info_idx) * m_blocks_per_piece
 						+ m_blocks_per_piece <= int(m_block_info.size()));
-					block_info const* info = blocks_for_piece(dp);
-					for (int j = 0; j < m_blocks_per_piece; ++j)
+					for (auto const& bl : blocks_for_piece(dp))
 					{
-						if (info[j].peer)
+						if (bl.peer)
 						{
-							torrent_peer* p = info[j].peer;
+							torrent_peer* p = bl.peer;
 							TORRENT_ASSERT(p->in_use);
 							TORRENT_ASSERT(p->connection == nullptr
 								|| static_cast<peer_connection*>(p->connection)->m_in_use);
@@ -440,11 +438,10 @@ namespace libtorrent
 					TORRENT_ASSERT(int(dp.info_idx) * m_blocks_per_piece
 						+ m_blocks_per_piece <= int(m_block_info.size()));
 #if TORRENT_USE_ASSERTS
-					block_info const* info = blocks_for_piece(dp);
-					for (int j = 0; j < m_blocks_per_piece; ++j)
+					for (auto const& bl : blocks_for_piece(dp))
 					{
-						if (!info[j].peer) continue;
-						torrent_peer* p = info[j].peer;
+						if (!bl.peer) continue;
+						torrent_peer* p = bl.peer;
 						TORRENT_ASSERT(p->in_use);
 						TORRENT_ASSERT(p->connection == nullptr
 							|| static_cast<peer_connection*>(p->connection)->m_in_use);
@@ -467,32 +464,31 @@ namespace libtorrent
 				int num_finished = 0;
 				int num_writing = 0;
 				int num_open = 0;
-				block_info const* info = blocks_for_piece(dp);
-				for (int k = 0; k < num_blocks; ++k)
+				for (auto const& bl : blocks_for_piece(dp))
 				{
-					TORRENT_ASSERT(info[k].piece_index == dp.index);
-					TORRENT_ASSERT(info[k].peer == nullptr
-						|| info[k].peer->in_use);
+					TORRENT_ASSERT(bl.piece_index == dp.index);
+					TORRENT_ASSERT(bl.peer == nullptr
+						|| bl.peer->in_use);
 
-					if (info[k].state == block_info::state_finished)
+					if (bl.state == block_info::state_finished)
 					{
 						++num_finished;
-						TORRENT_ASSERT(info[k].num_peers == 0);
+						TORRENT_ASSERT(bl.num_peers == 0);
 					}
-					else if (info[k].state == block_info::state_requested)
+					else if (bl.state == block_info::state_requested)
 					{
 						++num_requested;
-						TORRENT_ASSERT(info[k].num_peers > 0);
+						TORRENT_ASSERT(bl.num_peers > 0);
 					}
-					else if (info[k].state == block_info::state_writing)
+					else if (bl.state == block_info::state_writing)
 					{
 						++num_writing;
-						TORRENT_ASSERT(info[k].num_peers == 0);
+						TORRENT_ASSERT(bl.num_peers == 0);
 					}
-					else if (info[k].state == block_info::state_none)
+					else if (bl.state == block_info::state_none)
 					{
 						++num_open;
-						TORRENT_ASSERT(info[k].num_peers == 0);
+						TORRENT_ASSERT(bl.num_peers == 0);
 					}
 				}
 
@@ -2317,17 +2313,16 @@ get_out:
 			TORRENT_ASSERT(piece_priority(dp->index) > 0);
 			// fill in with blocks requested from other peers
 			// as backups
-			int const num_blocks_in_piece = blocks_in_piece(dp->index);
 			TORRENT_ASSERT(dp->requested > 0);
-			block_info const* binfo = blocks_for_piece(*dp);
-			for (int j = 0; j < num_blocks_in_piece; ++j)
+			int idx = -1;
+			for (auto const& info : blocks_for_piece(*dp))
 			{
-				block_info const& info = binfo[j];
+				++idx;
 				TORRENT_ASSERT(info.peer == nullptr || info.peer->in_use);
 				TORRENT_ASSERT(info.piece_index == dp->index);
 				if (info.state != block_info::state_requested || info.peer == peer)
 					continue;
-				temp.push_back(piece_block(dp->index, j));
+				temp.push_back(piece_block(dp->index, idx));
 			}
 			// are we done?
 			if (!temp.empty())
@@ -2358,15 +2353,14 @@ get_out:
 				&& piece_priority(i.index) != priority_levels - 1)
 				continue;
 
-			const int num_blocks_in_piece = blocks_in_piece(i.index);
-			block_info const* binfo = blocks_for_piece(i);
-			for (int j = 0; j < num_blocks_in_piece; ++j)
+			int idx = -1;
+			for (auto const& info : blocks_for_piece(i))
 			{
-				block_info const& info = binfo[j];
+				++idx;
 				TORRENT_ASSERT(info.piece_index == i.index);
 				if (info.state != block_info::state_none) continue;
 				auto k = std::find(interesting_blocks.begin(), interesting_blocks.end()
-					, piece_block(i.index, j));
+					, piece_block(i.index, idx));
 				if (k != interesting_blocks.end()) continue;
 
 				std::fprintf(stderr, "interesting blocks:\n");
@@ -2379,7 +2373,7 @@ get_out:
 
 				for (auto const& l : m_downloads[piece_pos::piece_downloading])
 				{
-					block_info const* binfo2 = blocks_for_piece(l);
+					auto const binfo2 = blocks_for_piece(l);
 					std::fprintf(stderr, "%d : ", static_cast<int>(l.index));
 					const int cnt = blocks_in_piece(l.index);
 					for (int m = 0; m < cnt; ++m)
@@ -2485,10 +2479,10 @@ get_out:
 		int contiguous_blocks = 0;
 		int max_contiguous = 0;
 		int first_block = 0;
-		block_info const* binfo = blocks_for_piece(p);
-		for (int j = 0; j < num_blocks_in_piece; ++j)
+		int idx = -1;
+		for (auto const& info : blocks_for_piece(p))
 		{
-			piece_picker::block_info const& info = binfo[j];
+			++idx;
 			TORRENT_ASSERT(info.peer == nullptr || info.peer->in_use);
 			TORRENT_ASSERT(info.piece_index == p.index);
 			if (info.state == piece_picker::block_info::state_none)
@@ -2499,7 +2493,7 @@ get_out:
 			if (contiguous_blocks > max_contiguous)
 			{
 				max_contiguous = contiguous_blocks;
-				first_block = j - contiguous_blocks;
+				first_block = idx - contiguous_blocks;
 			}
 			contiguous_blocks = 0;
 			if (info.peer != peer)
@@ -2631,7 +2625,7 @@ get_out:
 		// pieces that only they have downloaded/requested from
 		if ((options & on_parole) && !exclusive) return num_blocks;
 
-		block_info const* binfo = blocks_for_piece(dp);
+		auto const binfo = blocks_for_piece(dp);
 
 		// we prefer whole blocks, but there are other peers
 		// downloading from this piece and there aren't enough contiguous blocks
@@ -2648,7 +2642,7 @@ get_out:
 			for (int j = 0; j < num_blocks_in_piece; ++j)
 			{
 				// ignore completed blocks and already requested blocks
-				int block_idx = (j + first_block) % num_blocks_in_piece;
+				int const block_idx = (j + first_block) % num_blocks_in_piece;
 				block_info const& info = binfo[block_idx];
 				TORRENT_ASSERT(info.piece_index == dp.index);
 				if (info.state != block_info::state_none) continue;
@@ -2660,7 +2654,7 @@ get_out:
 		for (int j = 0; j < num_blocks_in_piece; ++j)
 		{
 			// ignore completed blocks and already requested blocks
-			int block_idx = (j + first_block) % num_blocks_in_piece;
+			int const block_idx = (j + first_block) % num_blocks_in_piece;
 			block_info const& info = binfo[block_idx];
 			TORRENT_ASSERT(info.piece_index == dp.index);
 			if (info.state != block_info::state_none) continue;
@@ -2749,17 +2743,16 @@ get_out:
 		std::vector<downloading_piece>::const_iterator i = find_dl_piece(state, index);
 		TORRENT_ASSERT(i != m_downloads[state].end());
 		TORRENT_ASSERT(int(i->finished) <= m_blocks_per_piece);
-		int max_blocks = blocks_in_piece(index);
+		int const max_blocks = blocks_in_piece(index);
 		if (int(i->finished) + int(i->writing) < max_blocks) return false;
 		TORRENT_ASSERT(int(i->finished) + int(i->writing) == max_blocks);
 
 #if TORRENT_USE_INVARIANT_CHECKS
-		block_info const* info = blocks_for_piece(*i);
-		for (int k = 0; k < max_blocks; ++k)
+		for (auto const& info : blocks_for_piece(*i))
 		{
-			TORRENT_ASSERT(info[k].piece_index == index);
-			TORRENT_ASSERT(info[k].state == block_info::state_finished
-				|| info[k].state == block_info::state_writing);
+			TORRENT_ASSERT(info.piece_index == index);
+			TORRENT_ASSERT(info.state == block_info::state_finished
+				|| info.state == block_info::state_writing);
 		}
 #endif
 
@@ -2905,7 +2898,7 @@ get_out:
 
 		TORRENT_ASSERT(i != m_downloads[state].end());
 
-		block_info const* info = blocks_for_piece(*i);
+		auto const info = blocks_for_piece(*i);
 		TORRENT_ASSERT(info[block.block_index].piece_index == block.piece_index);
 		return info[block.block_index].state == block_info::state_requested;
 	}
@@ -2923,7 +2916,7 @@ get_out:
 			, block.piece_index);
 		TORRENT_ASSERT(i != m_downloads[state].end());
 
-		block_info const* info = blocks_for_piece(*i);
+		auto const info = blocks_for_piece(*i);
 		TORRENT_ASSERT(info[block.block_index].piece_index == block.piece_index);
 		return info[block.block_index].state == block_info::state_finished
 			|| info[block.block_index].state == block_info::state_writing;
@@ -2942,7 +2935,7 @@ get_out:
 			, block.piece_index);
 		TORRENT_ASSERT(i != m_downloads[p.download_queue()].end());
 
-		block_info const* info = blocks_for_piece(*i);
+		auto const info = blocks_for_piece(*i);
 		TORRENT_ASSERT(info[block.block_index].piece_index == block.piece_index);
 		return info[block.block_index].state == block_info::state_finished;
 	}
@@ -2981,7 +2974,7 @@ get_out:
 			if (prio >= 0 && !m_dirty) update(prio, p.index);
 
 			auto const dp = add_download_piece(block.piece_index);
-			block_info* binfo = blocks_for_piece(*dp);
+			auto const binfo = mutable_blocks_for_piece(*dp);
 			block_info& info = binfo[block.block_index];
 			TORRENT_ASSERT(info.piece_index == block.piece_index);
 			info.state = block_info::state_requested;
@@ -3005,7 +2998,7 @@ get_out:
 			std::vector<downloading_piece>::iterator i = find_dl_piece(p.download_queue()
 				, block.piece_index);
 			TORRENT_ASSERT(i != m_downloads[p.download_queue()].end());
-			block_info* binfo = blocks_for_piece(*i);
+			auto const binfo = mutable_blocks_for_piece(*i);
 			block_info& info = binfo[block.block_index];
 			TORRENT_ASSERT(info.piece_index == block.piece_index);
 			if (info.state == block_info::state_writing
@@ -3068,7 +3061,7 @@ get_out:
 			, block.piece_index);
 		TORRENT_ASSERT(i != m_downloads[p.download_queue()].end());
 
-		block_info const* binfo = blocks_for_piece(*i);
+		auto const binfo = blocks_for_piece(*i);
 		block_info const& info = binfo[block.block_index];
 		TORRENT_ASSERT(&info >= &m_block_info[0]);
 		TORRENT_ASSERT(&info < &m_block_info[0] + m_block_info.size());
@@ -3126,7 +3119,7 @@ get_out:
 			if (prio >= 0 && !m_dirty) update(prio, p.index);
 
 			auto const dp = add_download_piece(block.piece_index);
-			block_info* binfo = blocks_for_piece(*dp);
+			auto const binfo = mutable_blocks_for_piece(*dp);
 			block_info& info = binfo[block.block_index];
 			TORRENT_ASSERT(&info >= &m_block_info[0]);
 			TORRENT_ASSERT(&info < &m_block_info[0] + m_block_info.size());
@@ -3146,7 +3139,7 @@ get_out:
 			std::vector<downloading_piece>::iterator i = find_dl_piece(p.download_queue()
 				, block.piece_index);
 			TORRENT_ASSERT(i != m_downloads[p.download_queue()].end());
-			block_info* binfo = blocks_for_piece(*i);
+			auto const binfo = mutable_blocks_for_piece(*i);
 			block_info& info = binfo[block.block_index];
 
 			TORRENT_ASSERT(&info >= &m_block_info[0]);
@@ -3233,7 +3226,7 @@ get_out:
 		std::vector<downloading_piece>::iterator i = find_dl_piece(state, block.piece_index);
 		if (i == m_downloads[state].end()) return;
 
-		block_info* binfo = blocks_for_piece(*i);
+		auto const binfo = mutable_blocks_for_piece(*i);
 		block_info& info = binfo[block.block_index];
 		TORRENT_ASSERT(&info >= &m_block_info[0]);
 		TORRENT_ASSERT(&info < &m_block_info[0] + m_block_info.size());
@@ -3300,7 +3293,7 @@ get_out:
 			, block.piece_index);
 
 		TORRENT_ASSERT(i != m_downloads[p.download_queue()].end());
-		block_info* binfo = blocks_for_piece(*i);
+		auto const binfo = mutable_blocks_for_piece(*i);
 		block_info& info = binfo[block.block_index];
 
 		if (info.state == block_info::state_finished) return;
@@ -3370,7 +3363,7 @@ get_out:
 			if (prio >= 0 && !m_dirty) update(prio, p.index);
 
 			auto const dp = add_download_piece(block.piece_index);
-			block_info* binfo = blocks_for_piece(*dp);
+			auto const binfo = mutable_blocks_for_piece(*dp);
 			block_info& info = binfo[block.block_index];
 			TORRENT_ASSERT(&info >= &m_block_info[0]);
 			TORRENT_ASSERT(&info < &m_block_info[0] + m_block_info.size());
@@ -3392,7 +3385,7 @@ get_out:
 			std::vector<downloading_piece>::iterator i = find_dl_piece(p.download_queue()
 				, block.piece_index);
 			TORRENT_ASSERT(i != m_downloads[p.download_queue()].end());
-			block_info* binfo = blocks_for_piece(*i);
+			auto const binfo = mutable_blocks_for_piece(*i);
 			block_info& info = binfo[block.block_index];
 			TORRENT_ASSERT(info.piece_index == block.piece_index);
 
@@ -3451,7 +3444,7 @@ get_out:
 		std::vector<downloading_piece>::const_iterator i
 			= find_dl_piece(state, index);
 		TORRENT_ASSERT(i != m_downloads[state].end());
-		block_info const* binfo = blocks_for_piece(*i);
+		auto const binfo = blocks_for_piece(*i);
 		for (int j = 0; j != num_blocks; ++j)
 		{
 			TORRENT_ASSERT(binfo[j].peer == nullptr
@@ -3469,7 +3462,7 @@ get_out:
 			, block.piece_index);
 
 		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
-		block_info const* binfo = blocks_for_piece(*i);
+		auto const binfo = blocks_for_piece(*i);
 		TORRENT_ASSERT(binfo[block.block_index].piece_index == block.piece_index);
 		if (binfo[block.block_index].state == block_info::state_none)
 			return nullptr;
@@ -3502,7 +3495,7 @@ get_out:
 			, block.piece_index);
 		TORRENT_ASSERT(i != m_downloads[state].end());
 
-		block_info* binfo = blocks_for_piece(*i);
+		auto const binfo = mutable_blocks_for_piece(*i);
 		block_info& info = binfo[block.block_index];
 		TORRENT_ASSERT(info.peer == nullptr || info.peer->in_use);
 		TORRENT_ASSERT(info.piece_index == block.piece_index);
