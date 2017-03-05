@@ -610,7 +610,10 @@ void bind_alert()
 
     class_<save_resume_data_alert, bases<torrent_alert>, noncopyable>(
         "save_resume_data_alert", no_init)
+        .def_readonly("params", &save_resume_data_alert::params)
+#ifndef TORRENT_NO_DEPRECATE
         .def_readonly("resume_data", &save_resume_data_alert::resume_data)
+#endif
         ;
 
     class_<file_completed_alert, bases<torrent_alert>, noncopyable>(
