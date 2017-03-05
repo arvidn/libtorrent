@@ -2100,7 +2100,7 @@ namespace libtorrent
 
 					need_picker();
 
-					const int num_bits = (std::min)(num_blocks_per_piece, blocks.size());
+					const int num_bits = std::min(num_blocks_per_piece, blocks.size());
 					for (int k = 0; k < num_bits; ++k)
 					{
 						if (blocks.get_bit(k))
@@ -5927,73 +5927,56 @@ namespace libtorrent
 		return m_torrent_file;
 	}
 
-	void torrent::write_resume_data(entry& ret) const
+	void torrent::write_resume_data(add_torrent_params& ret) const
 	{
-		using namespace libtorrent::detail; // for write_*_endpoint()
-		ret["file-format"] = "libtorrent resume file";
-		ret["file-version"] = 1;
-		ret["libtorrent-version"] = LIBTORRENT_VERSION;
-		ret["allocation"] = m_storage_mode == storage_mode_allocate
-			? "allocate" : "sparse";
+		ret.version = LIBTORRENT_VERSION_NUM;
+		ret.storage_mode = storage_mode();
+		ret.total_uploaded = m_total_uploaded;
+		ret.total_downloaded = m_total_downloaded;
 
-		ret["total_uploaded"] = m_total_uploaded;
-		ret["total_downloaded"] = m_total_downloaded;
+		// cast to seconds in case that internal values doesn't have ratio<1>
+		ret.active_time = static_cast<int>(total_seconds(active_time()));
+		ret.finished_time = static_cast<int>(total_seconds(finished_time()));
+		ret.seeding_time = static_cast<int>(total_seconds(seeding_time()));
+		ret.last_seen_complete = m_last_seen_complete;
 
-		ret["active_time"] = total_seconds(active_time());
-		ret["finished_time"] = total_seconds(finished_time());
-		ret["seeding_time"] = total_seconds(seeding_time());
-		ret["last_seen_complete"] = m_last_seen_complete;
+		ret.num_complete = m_complete;
+		ret.num_incomplete = m_incomplete;
+		ret.num_downloaded = m_downloaded;
 
-		ret["num_complete"] = m_complete;
-		ret["num_incomplete"] = m_incomplete;
-		ret["num_downloaded"] = m_downloaded;
+		ret.flags = 0;
+		if (m_sequential_download) ret.flags |= add_torrent_params::flag_sequential_download;
+		if (m_seed_mode ) ret.flags |= add_torrent_params::flag_seed_mode;
+		if (m_super_seeding ) ret.flags |= add_torrent_params::flag_super_seeding;
+		if (is_torrent_paused()) ret.flags |= add_torrent_params::flag_paused;
+		if (m_auto_managed ) ret.flags |= add_torrent_params::flag_auto_managed;
 
-		ret["sequential_download"] = m_sequential_download;
+		ret.added_time = m_added_time;
+		ret.completed_time = m_completed_time;
 
-		ret["seed_mode"] = m_seed_mode;
-		ret["super_seeding"] = m_super_seeding;
-
-		ret["added_time"] = m_added_time;
-		ret["completed_time"] = m_completed_time;
-
-		ret["save_path"] = m_save_path;
+		ret.save_path = m_save_path;
 
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 1.2
-		if (!m_url.empty()) ret["url"] = m_url;
-		if (!m_uuid.empty()) ret["uuid"] = m_uuid;
+		ret.url = m_url;
+		ret.uuid = m_uuid;
 #endif
 
-		const sha1_hash& info_hash = torrent_file().info_hash();
-		ret["info-hash"] = info_hash.to_string();
+		ret.info_hash = torrent_file().info_hash();
 
 		if (valid_metadata())
 		{
 			if (m_magnet_link || (m_save_resume_flags & torrent_handle::save_info_dict))
 			{
-				ret["info"] = bdecode(&torrent_file().metadata()[0]
-					, &torrent_file().metadata()[0] + torrent_file().metadata_size());
-// TODO: re-enable this code once there's a non-inlined encoder function. Or
-// perhaps this should not be used until saving resume_data via
-// add_torrent_params and a free function, similar to read_resume_data
-//				boost::shared_array<char> const info = torrent_file().metadata();
-//				int const size = torrent_file().metadata_size();
-//				ret["info"].preformatted().assign(&info[0], &info[0] + size);
+				ret.ti = m_torrent_file;
 			}
 		}
-
-		// blocks per piece
-		int const num_blocks_per_piece = torrent_file().piece_length() / block_size();
-		ret["blocks per piece"] = num_blocks_per_piece;
 
 		if (m_torrent_file->is_merkle_torrent())
 		{
 			// we need to save the whole merkle hash tree
 			// in order to resume
-			std::string& tree_str = ret["merkle tree"].string();
-			std::vector<sha1_hash> const& tree = m_torrent_file->merkle_tree();
-			tree_str.resize(tree.size() * 20);
-			std::memcpy(&tree_str[0], &tree[0], tree.size() * 20);
+			ret.merkle_tree = m_torrent_file->merkle_tree();
 		}
 
 		// if this torrent is a seed, we won't have a piece picker
@@ -6001,74 +5984,46 @@ namespace libtorrent
 		// in either case; there will be no half-finished pieces.
 		if (has_picker())
 		{
-			std::vector<piece_picker::downloading_piece> q
-				= m_picker->get_download_queue();
+			int const num_blocks_per_piece = torrent_file().piece_length() / block_size();
 
-			// unfinished pieces
-			ret["unfinished"] = entry::list_type();
-			entry::list_type& up = ret["unfinished"].list();
+			std::vector<piece_picker::downloading_piece> const q
+				= m_picker->get_download_queue();
 
 			// info for each unfinished piece
 			for (piece_picker::downloading_piece const& dp : q)
 			{
 				if (dp.finished == 0) continue;
 
-				entry piece_struct(entry::dictionary_t);
-
-				// the unfinished piece's index
-				piece_struct["piece"] = static_cast<int>(dp.index);
-
-				std::string bitmask;
-				int const num_bitmask_bytes
-					= std::max(num_blocks_per_piece / 8, 1);
+				bitfield bitmask;
+				bitmask.resize(num_blocks_per_piece, false);
 
 				auto const info = m_picker->blocks_for_piece(dp);
-				for (int j = 0; j < num_bitmask_bytes; ++j)
+				for (int i = 0; i < num_blocks_per_piece; ++i)
 				{
-					char v = 0;
-					int bits = (std::min)(num_blocks_per_piece - j * 8, 8);
-					for (int k = 0; k < bits; ++k)
-						v |= (info[j * 8 + k].state == piece_picker::block_info::state_finished)
-						? (1 << k) : 0;
-					bitmask.append(1, v);
-					TORRENT_ASSERT(bits == 8 || j == num_bitmask_bytes - 1);
+					if (info[i].state == piece_picker::block_info::state_finished)
+						bitmask.set_bit(i);
 				}
-				piece_struct["bitmask"] = bitmask;
-				// push the struct onto the unfinished-piece list
-				up.push_back(piece_struct);
+				ret.unfinished_pieces.insert({dp.index, std::move(bitmask)});
 			}
 		}
 
 		// save trackers
-		entry::list_type& tr_list = ret["trackers"].list();
-		tr_list.push_back(entry::list_type());
-		int tier = 0;
 		for (announce_entry const& tr : m_trackers)
 		{
-			if (tr.tier == tier)
-			{
-				tr_list.back().list().push_back(tr.url);
-			}
-			else
-			{
-				tr_list.push_back(entry::list_t);
-				tr_list.back().list().push_back(tr.url);
-				tier = tr.tier;
-			}
+			ret.trackers.push_back(tr.url);
+			ret.tracker_tiers.push_back(tr.tier);
 		}
 
 		// save web seeds
 		if (!m_web_seeds.empty())
 		{
-			entry::list_type& url_list = ret["url-list"].list();
-			entry::list_type& httpseed_list = ret["httpseeds"].list();
 			for (web_seed_t const& ws : m_web_seeds)
 			{
 				if (ws.removed || ws.ephemeral) continue;
 				if (ws.type == web_seed_entry::url_seed)
-					url_list.push_back(ws.url);
+					ret.url_seeds.push_back(ws.url);
 				else if (ws.type == web_seed_entry::http_seed)
-					httpseed_list.push_back(ws.url);
+					ret.http_seeds.push_back(ws.url);
 			}
 		}
 
@@ -6092,76 +6047,48 @@ namespace libtorrent
 
 		if (max_piece > piece_index_t(0))
 		{
-			entry::string_type& pieces = ret["pieces"].string();
-			pieces.resize(aux::numeric_cast<std::size_t>(static_cast<int>(max_piece)));
 			if (is_seed())
 			{
-				std::memset(&pieces[0], m_have_all, pieces.size());
+				ret.have_pieces.resize(static_cast<int>(max_piece), m_have_all);
 			}
 			else if (has_picker())
 			{
+				ret.have_pieces.resize(static_cast<int>(max_piece), false);
 				for (piece_index_t i(0); i < max_piece; ++i)
-					pieces[std::size_t(static_cast<int>(i))] = m_picker->have_piece(i) ? 1 : 0;
+				{
+					if (m_picker->have_piece(i)) ret.have_pieces.set_bit(i);
+				}
 			}
 
 			if (m_seed_mode)
-			{
-				TORRENT_ASSERT(m_verified.size() == int(pieces.size()));
-				TORRENT_ASSERT(m_verifying.size() == int(pieces.size()));
-				for (piece_index_t i(0); i < max_piece; ++i)
-					pieces[std::size_t(static_cast<int>(i))] |= m_verified[i] ? 2 : 0;
-			}
+				ret.verified_pieces = m_verified;
 		}
 
 		// write renamed files
 		if (&m_torrent_file->files() != &m_torrent_file->orig_files()
 			&& m_torrent_file->files().num_files() == m_torrent_file->orig_files().num_files())
 		{
-			entry::list_type& fl = ret["mapped_files"].list();
 			file_storage const& fs = m_torrent_file->files();
+			file_storage const& orig_fs = m_torrent_file->orig_files();
 			for (file_index_t i(0); i < fs.end_file(); ++i)
 			{
-				fl.push_back(fs.file_path(i));
+				if (fs.file_path(i) != orig_fs.file_path(i))
+					ret.renamed_files[i] = fs.file_path(i);
 			}
 		}
 
 		// write local peers
-
-		std::back_insert_iterator<entry::string_type> peers(ret["peers"].string());
-		std::back_insert_iterator<entry::string_type> banned_peers(ret["banned_peers"].string());
-#if TORRENT_USE_IPV6
-		std::back_insert_iterator<entry::string_type> peers6(ret["peers6"].string());
-		std::back_insert_iterator<entry::string_type> banned_peers6(ret["banned_peers6"].string());
-#endif
-
-		int num_saved_peers = 0;
-
 		std::vector<torrent_peer const*> deferred_peers;
-
 		if (m_peer_list)
 		{
 			for (auto p : *m_peer_list)
 			{
-				error_code ec;
-				address addr = p->address();
 #if TORRENT_USE_I2P
-				if (p->is_i2p_addr)
-					continue;
+				if (p->is_i2p_addr) continue;
 #endif
 				if (p->banned)
 				{
-#if TORRENT_USE_IPV6
-					if (addr.is_v6())
-					{
-						write_address(addr, banned_peers6);
-						write_uint16(p->port, banned_peers6);
-					}
-					else
-#endif
-					{
-						write_address(addr, banned_peers);
-						write_uint16(p->port, banned_peers);
-					}
+					ret.banned_peers.push_back(p->ip());
 					continue;
 				}
 
@@ -6185,73 +6112,44 @@ namespace libtorrent
 					// we haven't connected to this peer. It might still
 					// be useful to save it, but only save it if we
 					// don't have enough peers that we actually did connect to
-					deferred_peers.push_back(p);
+					if (int(deferred_peers.size()) < 100)
+						deferred_peers.push_back(p);
 					continue;
 				}
 
-#if TORRENT_USE_IPV6
-				if (addr.is_v6())
-				{
-					write_address(addr, peers6);
-					write_uint16(p->port, peers6);
-				}
-				else
-#endif
-				{
-					write_address(addr, peers);
-					write_uint16(p->port, peers);
-				}
-				++num_saved_peers;
+				ret.peers.push_back(p->ip());
 			}
 		}
 
 		// if we didn't save 100 peers, fill in with second choice peers
-		if (num_saved_peers < 100)
+		if (int(ret.peers.size()) < 100)
 		{
 			aux::random_shuffle(deferred_peers.begin(), deferred_peers.end());
-			for (std::vector<torrent_peer const*>::const_iterator i = deferred_peers.begin()
-				, end(deferred_peers.end()); i != end && num_saved_peers < 100; ++i)
+			for (auto const p : deferred_peers)
 			{
-				torrent_peer const* p = *i;
-				address addr = p->address();
-
-#if TORRENT_USE_IPV6
-				if (addr.is_v6())
-				{
-					write_address(addr, peers6);
-					write_uint16(p->port, peers6);
-				}
-				else
-#endif
-				{
-					write_address(addr, peers);
-					write_uint16(p->port, peers);
-				}
-				++num_saved_peers;
+				ret.peers.push_back(p->ip());
+				if (int(ret.peers.size()) >= 100) break;
 			}
 		}
 
-		ret["upload_rate_limit"] = upload_limit();
-		ret["download_rate_limit"] = download_limit();
-		ret["max_connections"] = max_connections();
-		ret["max_uploads"] = max_uploads();
-		ret["paused"] = is_torrent_paused();
-		ret["auto_managed"] = m_auto_managed;
+		ret.upload_limit = upload_limit();
+		ret.download_limit = download_limit();
+		ret.max_connections = max_connections();
+		ret.max_uploads = max_uploads();
 
 		// piece priorities and file priorities are mutually exclusive. If there
 		// are file priorities set, don't save piece priorities.
 		if (!m_file_priority.empty())
 		{
-
 			// when in seed mode (i.e. the client promises that we have all files)
 			// it does not make sense to save file priorities.
 			if (!m_seed_mode)
 			{
 				// write file priorities
-				entry::list_type& file_priority = ret["file_priority"].list();
-				file_priority.clear();
+				ret.file_priorities.clear();
+				ret.file_priorities.reserve(m_file_priority.size());
 				for (auto const prio : m_file_priority)
-					file_priority.push_back(prio);
+					ret.file_priorities.push_back(prio);
 			}
 		}
 		else if (has_picker())
@@ -6269,11 +6167,11 @@ namespace libtorrent
 
 			if (!default_prio)
 			{
-				entry::string_type& piece_priority = ret["piece_priority"].string();
-				piece_priority.resize(aux::numeric_cast<std::size_t>(m_torrent_file->num_pieces()));
+				ret.piece_priorities.clear();
+				ret.piece_priorities.reserve(static_cast<std::size_t>(m_torrent_file->num_pieces()));
 
 				for (piece_index_t i(0); i < fs.end_piece(); ++i)
-					piece_priority[std::size_t(static_cast<int>(i))] = entry::string_type::value_type(m_picker->piece_priority(i));
+					ret.piece_priorities.push_back(static_cast<std::uint8_t>(m_picker->piece_priority(i)));
 			}
 		}
 	}
@@ -8347,9 +8245,9 @@ namespace libtorrent
 
 		state_updated();
 
-		auto rd = std::make_shared<entry>();
-		write_resume_data(*rd);
-		alerts().emplace_alert<save_resume_data_alert>(rd, get_handle());
+		add_torrent_params atp;
+		write_resume_data(atp);
+		alerts().emplace_alert<save_resume_data_alert>(std::move(atp), get_handle());
 	}
 
 	bool torrent::should_check_files() const

@@ -65,6 +65,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/read_resume_data.hpp"
+#include "libtorrent/write_resume_data.hpp"
 
 #include "torrent_view.hpp"
 #include "session_view.hpp"
@@ -826,7 +827,7 @@ void print_alert(libtorrent::alert const* a, std::string& str)
 		std::fprintf(g_log_file, "[%s] %s\n", timestamp(),  a->message().c_str());
 }
 
-int save_file(std::string const& filename, std::vector<char>& v)
+int save_file(std::string const& filename, std::vector<char> const& v)
 {
 	FILE* f = std::fopen(filename.c_str(), "wb");
 	if (f == nullptr)
@@ -1029,21 +1030,16 @@ bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
 	{
 		--num_outstanding_resume_data;
 		torrent_handle h = p->handle;
-		TORRENT_ASSERT(p->resume_data);
-		if (p->resume_data)
+		auto const buf = write_resume_data_buf(p->params);
+		torrent_status st = h.status(torrent_handle::query_save_path);
+		save_file(path_append(st.save_path, path_append(".resume", leaf_path(
+			hash_to_filename[st.info_hash]) + ".resume")), buf);
+		if (h.is_valid()
+			&& non_files.find(h) == non_files.end()
+			&& std::none_of(files.begin(), files.end()
+				, [&h](handles_t::value_type const& hn) { return hn.second == h; }))
 		{
-			std::vector<char> out;
-			bencode(std::back_inserter(out), *p->resume_data);
-			torrent_status st = h.status(torrent_handle::query_save_path);
-			save_file(path_append(st.save_path, path_append(".resume", leaf_path(
-				hash_to_filename[st.info_hash]) + ".resume")), out);
-			if (h.is_valid()
-				&& non_files.find(h) == non_files.end()
-				&& std::none_of(files.begin(), files.end()
-					, [&h](handles_t::value_type const& hn) { return hn.second == h; }))
-			{
-				ses.remove_torrent(h);
-			}
+			ses.remove_torrent(h);
 		}
 	}
 	else if (save_resume_data_failed_alert* p = alert_cast<save_resume_data_failed_alert>(a))

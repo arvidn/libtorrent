@@ -959,7 +959,7 @@ namespace libtorrent
 
 		torrent_handle get_handle();
 
-		void write_resume_data(entry& rd) const;
+		void write_resume_data(add_torrent_params& atp) const;
 
 		void seen_complete() { m_last_seen_complete = time(0); }
 		int time_since_complete() const { return int(time(0) - m_last_seen_complete); }

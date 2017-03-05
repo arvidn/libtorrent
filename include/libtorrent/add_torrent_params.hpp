@@ -61,7 +61,7 @@ namespace libtorrent
 	// * info_hash - when all you have is an info-hash (this is similar to a
 	//   magnet link)
 	//
-	// one of those fields need to be set. Another mandatory field is
+	// one of those fields must be set. Another mandatory field is
 	// ``save_path``. The add_torrent_params object is passed into one of the
 	// ``session::add_torrent()`` overloads or ``session::async_add_torrent()``.
 	//
@@ -74,6 +74,11 @@ namespace libtorrent
 	// used for the torrent as long as it doesn't have metadata. See
 	// ``torrent_handle::name``.
 	//
+	// The ``add_torrent_params`` is also used when requesting resume data for a
+	// torrent. It can be saved to and restored from a file and added back to a
+	// new session. For serialization and deserialization of
+	// ``add_torrent_params`` objects, see read_resume_data() and
+	// write_resume_data().
 	struct TORRENT_EXPORT add_torrent_params
 	{
 		// The constructor can be used to initialize the storage constructor,

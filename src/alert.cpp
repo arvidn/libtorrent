@@ -45,6 +45,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/piece_block.hpp"
 #include "libtorrent/hex.hpp" // to_hex
 
+#ifndef TORRENT_NO_DEPRECATE
+#include "libtorrent/write_resume_data.hpp"
+#endif
+
 #include "libtorrent/aux_/escape_string.hpp" // for convert_from_native
 #include "libtorrent/aux_/max_path.hpp" // for TORRENT_MAX_PATH
 
@@ -696,11 +700,15 @@ namespace libtorrent
 	}
 
 	save_resume_data_alert::save_resume_data_alert(aux::stack_allocator& alloc
-		, std::shared_ptr<entry> const& rd
+		, add_torrent_params p
 		, torrent_handle const& h)
 		: torrent_alert(alloc, h)
-		, resume_data(rd)
-	{}
+		, params(std::move(p))
+	{
+#ifndef TORRENT_NO_DEPRECATE
+		resume_data = std::make_shared<entry>(write_resume_data(params));
+#endif
+	}
 
 	std::string save_resume_data_alert::message() const
 	{
