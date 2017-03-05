@@ -94,10 +94,10 @@ namespace libtorrent
 
 	struct file_status
 	{
-		std::int64_t file_size;
-		std::uint64_t atime;
-		std::uint64_t mtime;
-		std::uint64_t ctime;
+		std::int64_t file_size = 0;
+		std::uint64_t atime = 0;
+		std::uint64_t mtime = 0;
+		std::uint64_t ctime = 0;
 		enum {
 #if defined TORRENT_WINDOWS
 			fifo = 0x1000, // named pipe (fifo)
@@ -114,7 +114,7 @@ namespace libtorrent
 			socket = 0140000  // socket
 #endif
 		} modes_t;
-		int mode;
+		int mode = 0;
 	};
 
 	// internal flags for stat_file

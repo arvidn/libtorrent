@@ -173,8 +173,16 @@ namespace libtorrent { namespace
 
 			nl_hdr = reinterpret_cast<nlmsghdr*>(buf);
 
+#ifdef __clang__
+#pragma clang diagnostic push
+// NLMSG_OK uses signed/unsigned compare in the same expression
+#pragma clang diagnostic ignored "-Wsign-compare"
+#endif
 			if ((NLMSG_OK(nl_hdr, read_len) == 0) || (nl_hdr->nlmsg_type == NLMSG_ERROR))
 				return -1;
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 			if (nl_hdr->nlmsg_type == NLMSG_DONE) break;
 
@@ -196,10 +204,13 @@ namespace libtorrent { namespace
 			return false;
 
 		int if_index = 0;
-		int rt_len = RTM_PAYLOAD(nl_hdr);
-
+		int rt_len = int(RTM_PAYLOAD(nl_hdr));
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-align"
+#endif
 		for (rtattr* rt_attr = reinterpret_cast<rtattr*>(RTM_RTA(rt_msg));
-			RTA_OK(rt_attr,rt_len); rt_attr = RTA_NEXT(rt_attr,rt_len))
+			RTA_OK(rt_attr, rt_len); rt_attr = RTA_NEXT(rt_attr, rt_len))
 		{
 			switch(rt_attr->rta_type)
 			{
@@ -232,10 +243,13 @@ namespace libtorrent { namespace
 					break;
 			}
 		}
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
-		if_indextoname(if_index, rt_info->name);
+		if_indextoname(std::uint32_t(if_index), rt_info->name);
 		ifreq req = {};
-		if_indextoname(if_index, req.ifr_name);
+		if_indextoname(std::uint32_t(if_index), req.ifr_name);
 		ioctl(s, siocgifmtu, &req);
 		rt_info->mtu = req.ifr_mtu;
 //		obviously this doesn't work correctly. How do you get the netmask for a route?
@@ -686,7 +700,6 @@ namespace libtorrent
 	{
 		std::vector<ip_route> ret;
 		TORRENT_UNUSED(ios);
-		TORRENT_UNUSED(ec); // this may be unused depending on configuration
 
 #ifdef TORRENT_BUILD_SIMULATOR
 
@@ -1039,8 +1052,8 @@ namespace libtorrent
 		nl_msg->nlmsg_len = NLMSG_LENGTH(sizeof(rtmsg));
 		nl_msg->nlmsg_type = RTM_GETROUTE;
 		nl_msg->nlmsg_flags = NLM_F_DUMP | NLM_F_REQUEST;
-		nl_msg->nlmsg_seq = seq++;
-		nl_msg->nlmsg_pid = getpid();
+		nl_msg->nlmsg_seq = std::uint32_t(seq++);
+		nl_msg->nlmsg_pid = std::uint32_t(getpid());
 
 		if (send(sock, nl_msg, nl_msg->nlmsg_len, 0) < 0)
 		{
@@ -1063,13 +1076,20 @@ namespace libtorrent
 			ec = error_code(errno, system_category());
 			return std::vector<ip_route>();
 		}
-
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-align"
+// NLMSG_OK uses signed/unsigned compare in the same expression
+#pragma clang diagnostic ignored "-Wsign-compare"
+#endif
 		for (; NLMSG_OK(nl_msg, len); nl_msg = NLMSG_NEXT(nl_msg, len))
 		{
 			ip_route r;
 			if (parse_route(s, nl_msg, &r)) ret.push_back(r);
 		}
-
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 		close(s);
 		close(sock);
 
