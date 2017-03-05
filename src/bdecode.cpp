@@ -112,7 +112,7 @@ namespace libtorrent
 
 	// diff between current and next item offset
 	// should only be called for non last item in array
-	int calc_token_in_array_size(bdecode_token const& t)
+	int token_source_span(bdecode_token const& t)
 	{
 		return (&t)[1].offset - t.offset;
 	}
@@ -486,7 +486,7 @@ namespace libtorrent
 		{
 			bdecode_token const& t = tokens[token];
 			TORRENT_ASSERT(t.type == bdecode_token::string);
-			int const size = calc_token_in_array_size(t) - t.start_offset();
+			int const size = token_source_span(t) - t.start_offset();
 			if (int(key.size()) == size
 				&& std::equal(key.data(), key.data() + size, m_buffer
 					+ t.offset + t.start_offset()))
@@ -561,7 +561,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(type() == int_t);
 		bdecode_token const& t = m_root_tokens[m_token_idx];
-		int const size = calc_token_in_array_size(t);
+		int const size = token_source_span(t);
 		TORRENT_ASSERT(t.type == bdecode_token::integer);
 
 		// +1 is to skip the 'i'
@@ -581,7 +581,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(type() == string_t);
 		bdecode_token const& t = m_root_tokens[m_token_idx];
-		std::size_t const size = aux::numeric_cast<std::size_t>(calc_token_in_array_size(t) - t.start_offset());
+		std::size_t const size = aux::numeric_cast<std::size_t>(token_source_span(t) - t.start_offset());
 		TORRENT_ASSERT(t.type == bdecode_token::string);
 
 		return string_view(m_buffer + t.offset + t.start_offset(), size);
@@ -600,7 +600,7 @@ namespace libtorrent
 		TORRENT_ASSERT(type() == string_t);
 		bdecode_token const& t = m_root_tokens[m_token_idx];
 		TORRENT_ASSERT(t.type == bdecode_token::string);
-		return calc_token_in_array_size(t) - t.start_offset();
+		return token_source_span(t) - t.start_offset();
 	}
 
 	void bdecode_node::reserve(int tokens)
