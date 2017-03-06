@@ -477,7 +477,7 @@ namespace aux {
 	template <typename Fun, typename... Args>
 	void session_impl::wrap(Fun f, Args&&... a)
 #ifndef BOOST_NO_EXCEPTIONS
-		try
+	try
 #endif
 	{
 		(this->*f)(std::forward<Args>(a)...);
@@ -1763,6 +1763,10 @@ namespace aux {
 
 	void session_impl::on_ip_change(error_code const& ec)
 	{
+#ifndef TORRENT_DISABLE_LOGGING
+		session_log("received ip change from internal ip_notifier");
+		if (ec) session_log(" error on_ip_change: %d, %s", ec.value(), ec.message().c_str());
+#endif
 		if (ec || m_abort) return;
 		m_ip_notifier.async_wait([this] (error_code const& e)
 			{ this->wrap(&session_impl::on_ip_change, e); });
@@ -1778,7 +1782,7 @@ namespace aux {
 		TORRENT_ASSERT(is_single_thread());
 
 		TORRENT_ASSERT(!m_abort);
-		int flags = m_settings.get_bool(settings_pack::listen_system_port_fallback)
+		int const flags = m_settings.get_bool(settings_pack::listen_system_port_fallback)
 			? 0 : listen_no_system_port;
 
 		m_stats_counters.set_value(counters::has_incoming_connections, 0);
@@ -1871,7 +1875,7 @@ namespace aux {
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log())
 			{
-				session_log("Closing listen socket for %s on device \"%s\""
+				session_log("closing listen socket for %s on device \"%s\""
 					, print_endpoint(remove_iter->local_endpoint).c_str()
 					, remove_iter->device.c_str());
 			}

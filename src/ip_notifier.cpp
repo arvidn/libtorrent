@@ -91,7 +91,7 @@ namespace libtorrent
 				{ cb(error_code(err, system_category())); });
 		}
 #else
-		TORRENT_UNUSED(cb);
+		cb(make_error_code(boost::system::errc::not_supported));
 #endif
 	}
 
