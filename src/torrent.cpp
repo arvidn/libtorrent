@@ -5443,7 +5443,7 @@ namespace libtorrent
 		TORRENT_ASSERT(!web->resolving);
 		if (web->resolving) return;
 
-		if (num_peers() >= m_max_connections
+		if (num_peers() >= int(m_max_connections)
 			|| m_ses.num_connections() >= settings().get_int(settings_pack::connections_limit))
 			return;
 
@@ -5635,7 +5635,7 @@ namespace libtorrent
 
 		if (m_ses.is_aborted()) return;
 
-		if (num_peers() >= m_max_connections
+		if (num_peers() >= int(m_max_connections)
 			|| m_ses.num_connections() >= settings().get_int(settings_pack::connections_limit))
 			return;
 
@@ -5731,7 +5731,7 @@ namespace libtorrent
 #endif
 		}
 
-		if (num_peers() >= m_max_connections
+		if (num_peers() >= int(m_max_connections)
 			|| m_ses.num_connections() >= settings().get_int(settings_pack::connections_limit))
 			return;
 
@@ -7007,7 +7007,7 @@ namespace libtorrent
 	bool torrent::want_peers() const
 	{
 		// if all our connection slots are taken, we can't connect to more
-		if (num_peers() >= m_max_connections) return false;
+		if (num_peers() >= int(m_max_connections)) return false;
 
 		// if we're paused, obviously we're not connecting to peers
 		if (is_paused() || m_abort || m_graceful_pause_mode) return false;
@@ -9028,7 +9028,7 @@ namespace libtorrent
 
 		// if we have everything we want we don't need to connect to any web-seed
 		if (!is_finished() && !m_web_seeds.empty() && m_files_checked
-			&& num_peers() < m_max_connections
+			&& num_peers() < int(m_max_connections)
 			&& m_ses.num_connections() < settings().get_int(settings_pack::connections_limit))
 		{
 			// keep trying web-seeds if there are any
