@@ -6417,7 +6417,8 @@ namespace libtorrent
 		{
 			// this asserts that we don't have duplicates in the peer_list's peer list
 			peer_iterator i_ = std::find_if(m_connections.begin(), m_connections.end()
-				, [peerinfo] (peer_connection const* p) { return p->remote() == peerinfo->ip(); });
+				, [peerinfo] (peer_connection const* p)
+				{ return !p->is_disconnecting() && p->remote() == peerinfo->ip(); });
 #if TORRENT_USE_I2P
 			TORRENT_ASSERT(i_ == m_connections.end()
 				|| (*i_)->type() != connection_type::bittorrent
@@ -7168,8 +7169,8 @@ namespace libtorrent
 		for (auto p : m_connections)
 			TORRENT_ASSERT(m_ses.has_peer(p));
 #endif
-		std::vector<peer_connection*> to_disconnect;
-		to_disconnect.resize(static_cast<std::size_t>(num));
+		aux::vector<peer_connection*> to_disconnect;
+		to_disconnect.resize(num);
 		auto end = std::partial_sort_copy(m_connections.begin(), m_connections.end()
 			, to_disconnect.begin(), to_disconnect.end(), compare_disconnect_peer);
 		for (auto p : range(to_disconnect.begin(), end))
