@@ -8770,6 +8770,7 @@ namespace libtorrent
 		}
 #endif
 
+		bool const notify_initialized = !m_connections_initialized;
 		m_connections_initialized = true;
 		m_files_checked = true;
 
@@ -8783,7 +8784,7 @@ namespace libtorrent
 
 			// all peer connections have to initialize themselves now that the metadata
 			// is available
-			if (!m_connections_initialized)
+			if (notify_initialized)
 			{
 				if (pc->is_disconnecting()) continue;
 				pc->on_metadata_impl();
