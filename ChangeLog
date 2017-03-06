@@ -1,3 +1,5 @@
+	* fix issue with peers not updated on metadata from magnet links
+
 1.1.2 release
 
 	* default TOS marking to 0x20
