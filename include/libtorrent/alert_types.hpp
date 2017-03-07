@@ -1565,7 +1565,7 @@ namespace libtorrent
 	// This alert is posted approximately once every second, and it contains
 	// byte counters of most statistics that's tracked for torrents. Each active
 	// torrent posts these alerts regularly.
-	// This alert has been superceded by calling ``post_torrent_updates()``
+	// This alert has been superseded by calling ``post_torrent_updates()``
 	// regularly on the session object. This alert will be removed
 	struct TORRENT_EXPORT stats_alert final : torrent_alert
 	{

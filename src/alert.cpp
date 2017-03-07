@@ -1725,12 +1725,12 @@ namespace libtorrent
 
 	namespace
 	{
-		std::array<std::int64_t, counters::num_counters> counters_to_array(counters const& cnt)
+		aux::array<std::int64_t, counters::num_counters> counters_to_array(counters const& cnt)
 		{
-			std::array<std::int64_t, counters::num_counters> arr;
+			aux::array<std::int64_t, counters::num_counters> arr;
 
 			for (int i = 0; i < counters::num_counters; ++i)
-				arr[std::size_t(i)] = cnt[i];
+				arr[i] = cnt[i];
 
 			return arr;
 		}
