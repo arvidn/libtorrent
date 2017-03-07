@@ -124,9 +124,9 @@ namespace libtorrent
 		return ret;
 	}
 
-	template <typename T, typename IndexType = int>
-	aux::vector<T, IndexType> clone(aux::vector<T, IndexType> const& v)
-	{ return v; }
+	template <typename T, typename IndexType>
+	aux::reverse_const_wrapper<T> safe(aux::vector<T, IndexType> const& v)
+	{ return aux::reverse(v); }
 
 	} // anonymous namespace
 
@@ -879,14 +879,9 @@ namespace libtorrent
 		if (share_mode()) return;
 		if (super_seeding()) return;
 
-		int idx = 0;
-		for (peer_iterator i = m_connections.begin();
-			i != m_connections.end(); ++idx)
+		// send_not_interested may disconnect the peer
+		for (auto p : safe(m_connections))
 		{
-			// since the call to disconnect_if_redundant() may
-			// delete the entry from this container, make sure
-			// to increment the iterator early
-			peer_connection* p = *i;
 			if (p->type() == connection_type::bittorrent)
 			{
 				bt_peer_connection* btp = static_cast<bt_peer_connection*>(p);
@@ -896,17 +891,6 @@ namespace libtorrent
 					btp->send_not_interested();
 					btp->write_upload_only();
 				}
-			}
-
-
-			if (p->is_disconnecting())
-			{
-				i = m_connections.begin() + idx;
-				--idx;
-			}
-			else
-			{
-				++i;
 			}
 		}
 #endif
@@ -949,10 +933,10 @@ namespace libtorrent
 		if (m_upload_mode)
 		{
 			// clear request queues of all peers
-			for (peer_iterator i = m_connections.begin()
-				, end(m_connections.end()); i != end; ++i)
+			// update_interest may disconnect the peer
+			for (auto c : safe(m_connections))
 			{
-				peer_connection* p = (*i);
+				auto p = c->self();
 				// we may want to disconnect other upload-only peers
 				if (p->upload_only())
 					p->update_interest();
@@ -970,10 +954,10 @@ namespace libtorrent
 			}
 
 			// send_block_requests on all peers
-			for (peer_iterator i = m_connections.begin()
-				, end(m_connections.end()); i != end; ++i)
+			// update_interest may disconnect the peer
+			for (auto c : safe(m_connections))
 			{
-				peer_connection* p = (*i);
+				auto p = c->self();
 				// we may be interested now, or no longer interested
 				p->update_interest();
 				p->send_block_requests();
@@ -1100,12 +1084,10 @@ namespace libtorrent
 		update_gauge();
 		// some peers that previously was no longer interesting may
 		// now have become interesting, since we lack this one piece now.
-		for (peer_iterator i = begin(); i != end();)
+		// update_interest may disconnect the peer
+		for (auto c : safe(m_connections))
 		{
-			peer_connection* p = *i;
-			// update_interest may disconnect the peer and
-			// invalidate the iterator
-			++i;
+			auto p = c->self();
 			// no need to do anything with peers that
 			// already are interested. Gaining a piece may
 			// only make uninteresting peers interesting again.
@@ -1719,7 +1701,7 @@ namespace libtorrent
 			// is available
 			// copy the peer list since peers may disconnect and invalidate
 			// m_connections as we initialize them
-			for (auto c : clone(m_connections))
+			for (auto c : safe(m_connections))
 			{
 				auto pc = c->self();
 				if (pc->is_disconnecting()) continue;
@@ -3770,7 +3752,7 @@ namespace libtorrent
 
 		// make a copy of the peer list since peers
 		// may disconnect while looping
-		for (auto c : clone(m_connections))
+		for (auto c : safe(m_connections))
 		{
 			auto p = c->self();
 
@@ -3801,7 +3783,7 @@ namespace libtorrent
 		// was the last piece we were interested in
 		// update_interest may disconnect the peer and
 		// invalidate the iterator
-		for (auto p : clone(m_connections))
+		for (auto p : safe(m_connections))
 		{
 			// if we're not interested already, no need to check
 			if (!p->is_interesting()) continue;
@@ -3936,16 +3918,16 @@ namespace libtorrent
 			, m_predictive_pieces.end(), index);
 		if (i != m_predictive_pieces.end() && *i == index) return;
 
-		for (peer_iterator p = m_connections.begin()
-			, end(m_connections.end()); p != end; ++p)
+		// announce_piece may disconnect the peer
+		for (auto p : safe(m_connections))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			(*p)->peer_log(peer_log_alert::outgoing, "PREDICTIVE_HAVE", "piece: %d expected in %d ms"
+			p->peer_log(peer_log_alert::outgoing, "PREDICTIVE_HAVE", "piece: %d expected in %d ms"
 				, static_cast<int>(index), milliseconds);
 #else
 			TORRENT_UNUSED(milliseconds);
 #endif
-			(*p)->announce_piece(index);
+			p->announce_piece(index);
 		}
 
 		m_predictive_pieces.insert(i, index);
@@ -5067,12 +5049,9 @@ namespace libtorrent
 	// updates the interested flag in peers
 	void torrent::update_peer_interest(bool was_finished)
 	{
-		for (peer_iterator i = begin(); i != end();)
+		// update_interest may disconnect the peer
+		for (auto p : safe(m_connections))
 		{
-			peer_connection* p = *i;
-			// update_interest may disconnect the peer and
-			// invalidate the iterator
-			++i;
 			p->update_interest();
 		}
 
@@ -6556,19 +6535,10 @@ namespace libtorrent
 			, m_torrent_file->num_pieces());
 
 		// disconnect redundant peers
-		int idx = 0;
-		for (peer_iterator i = m_connections.begin();
-			i != m_connections.end(); ++idx)
+		// disconnect_if_redundant may disconnect the peer
+		for (auto p : safe(m_connections))
 		{
-			if ((*i)->disconnect_if_redundant())
-			{
-				i = m_connections.begin() + idx;
-				--idx;
-			}
-			else
-			{
-				++i;
-			}
+			p->disconnect_if_redundant();
 		}
 
 		set_need_save_resume();
@@ -7386,11 +7356,10 @@ namespace libtorrent
 
 		update_want_tick();
 
-		for (torrent::peer_iterator i = m_connections.begin();
-			i != m_connections.end();)
+		// on_metadata_impl may disconnect the peer
+		for (auto c : safe(m_connections))
 		{
-			peer_connection* pc = *i;
-			++i;
+			auto pc = c->self();
 
 			// all peer connections have to initialize themselves now that the metadata
 			// is available
