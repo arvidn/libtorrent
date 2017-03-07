@@ -4238,6 +4238,8 @@ namespace libtorrent
 					handle, performance_alert::too_few_outgoing_ports);
 		}
 
+		m_disconnecting = true;
+
 		if (t)
 		{
 			if (ec)
@@ -4293,24 +4295,26 @@ namespace libtorrent
 			check_invariant();
 #endif
 			t->remove_peer(this);
+
+			// we need to do this here to maintain accurate accounting of number of
+			// unhoke slots. Ideally the updating of choked state and the
+			// accounting should be tighter
+			if (!m_choked)
+			{
+				m_choked = true;
+				m_counters.inc_stats_counter(counters::num_peers_up_unchoked_all, -1);
+				if (!ignore_unchoke_slots())
+					m_counters.inc_stats_counter(counters::num_peers_up_unchoked, -1);
+			}
 		}
 		else
 		{
 			TORRENT_ASSERT(m_download_queue.empty());
 			TORRENT_ASSERT(m_request_queue.empty());
+			m_ses.close_connection(this);
 		}
 
-#if defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
-		// since this connection doesn't have a torrent reference
-		// no torrent should have a reference to this connection either
-		TORRENT_ASSERT(!m_ses.any_torrent_has_peer(this));
-#endif
-
-		m_disconnecting = true;
-
 		async_shutdown(*m_socket, m_socket);
-
-		m_ses.close_connection(this, ec);
 	}
 
 	bool peer_connection::ignore_unchoke_slots() const

@@ -977,14 +977,12 @@ namespace aux {
 		session_log(" aborting all connections (%d)", int(m_connections.size()));
 #endif
 		// abort all connections
-		while (!m_connections.empty())
-		{
-#if TORRENT_USE_ASSERTS
-			int conn = int(m_connections.size());
-#endif
-			(*m_connections.begin())->disconnect(errors::stopping_torrent, op_bittorrent);
-			TORRENT_ASSERT_VAL(conn == int(m_connections.size()) + 1, conn);
-		}
+		// keep in mind that connections that are not associated with a torrent
+		// will remove its entry from m_connections immediately, which means we
+		// can't iterate over it here
+		auto conns = m_connections;
+		for (auto const& p : conns)
+			p->disconnect(errors::stopping_torrent, op_bittorrent);
 
 		// we need to give all the sockets an opportunity to actually have their handlers
 		// called and cancelled before we continue the shutdown. This is a bit
@@ -2883,8 +2881,7 @@ namespace aux {
 	// currently expected to be scheduled for a connection
 	// with the connection queue, and should be cancelled
 	// TODO: should this function take a shared_ptr instead?
-	void session_impl::close_connection(peer_connection* p
-		, error_code const& ec)
+	void session_impl::close_connection(peer_connection* p)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		std::shared_ptr<peer_connection> sp(p->self());
@@ -2894,16 +2891,6 @@ namespace aux {
 		// last reference is held by the network thread.
 		if (!sp.unique())
 			m_undead_peers.push_back(sp);
-
-#ifndef TORRENT_DISABLE_LOGGING
-		if (should_log())
-		{
-			session_log(" CLOSING CONNECTION %s : %s"
-				, print_endpoint(p->remote()).c_str(), ec.message().c_str());
-		}
-#else
-		TORRENT_UNUSED(ec);
-#endif
 
 		TORRENT_ASSERT(p->is_disconnecting());
 
@@ -6842,19 +6829,18 @@ namespace aux {
 		int unchokes_all = 0;
 		int num_optimistic = 0;
 		int disk_queue[2] = {0, 0};
-		for (connection_map::const_iterator i = m_connections.begin();
-			i != m_connections.end(); ++i)
+		for (auto const& p : m_connections)
 		{
-			TORRENT_ASSERT(*i);
-			std::shared_ptr<torrent> t = (*i)->associated_torrent().lock();
-			TORRENT_ASSERT(unique_peers.find(i->get()) == unique_peers.end());
-			unique_peers.insert(i->get());
+			TORRENT_ASSERT(p);
+			if (p->is_disconnecting()) continue;
 
-			if ((*i)->m_channel_state[0] & peer_info::bw_disk) ++disk_queue[0];
-			if ((*i)->m_channel_state[1] & peer_info::bw_disk) ++disk_queue[1];
+			std::shared_ptr<torrent> t = p->associated_torrent().lock();
+			TORRENT_ASSERT(unique_peers.find(p.get()) == unique_peers.end());
+			unique_peers.insert(p.get());
 
-			peer_connection* p = i->get();
-			TORRENT_ASSERT(!p->is_disconnecting());
+			if (p->m_channel_state[0] & peer_info::bw_disk) ++disk_queue[0];
+			if (p->m_channel_state[1] & peer_info::bw_disk) ++disk_queue[1];
+
 			if (p->ignore_unchoke_slots())
 			{
 				if (!p->is_choked()) ++unchokes_all;

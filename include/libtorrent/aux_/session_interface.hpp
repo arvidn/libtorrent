@@ -189,7 +189,7 @@ namespace libtorrent { namespace aux
 
 		virtual peer_id const& get_peer_id() const = 0;
 
-		virtual void close_connection(peer_connection* p, error_code const& ec) = 0;
+		virtual void close_connection(peer_connection* p) = 0;
 		virtual int num_connections() const = 0;
 
 		virtual ses_buffer_holder allocate_buffer() = 0;
