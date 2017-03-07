@@ -3390,7 +3390,7 @@ namespace libtorrent
 		std::vector<file_slice> files = fs.map_block(
 			p.piece_index, offset, (std::min)(piece_size - offset, block_size()));
 		std::int64_t ret = 0;
-		for (auto const& i :  files)
+		for (auto const& i : files)
 		{
 			if (fs.pad_file_at(i.file_index)) continue;
 			ret += i.size;
@@ -9492,8 +9492,8 @@ namespace libtorrent
 		// now, iterate over all time critical pieces, in order of importance, and
 		// request them from the peers, in order of responsiveness. i.e. request
 		// the most time critical pieces from the fastest peers.
-		for (auto i = m_time_critical_pieces.begin()
-			, end(m_time_critical_pieces.end()); i != end; ++i)
+		bool non_first_piece{false};
+		for (auto& i : m_time_critical_pieces)
 		{
 #if TORRENT_DEBUG_STREAMING > 1
 			std::printf("considering %d\n", i->piece);
@@ -9510,7 +9510,7 @@ namespace libtorrent
 			// the +1000 is to compensate for the fact that we only call this
 			// function once per second, so if we need to request it 500 ms from
 			// now, we should request it right away
-			if (i != m_time_critical_pieces.begin() && i->deadline > now
+			if (non_first_piece && i.deadline > now
 				+ milliseconds(m_average_piece_time + m_piece_time_deviation * 4 + 1000))
 			{
 				// don't request pieces whose deadline is too far in the future
@@ -9523,35 +9523,36 @@ namespace libtorrent
 #endif
 				break;
 			}
+			non_first_piece = true;
 
 			piece_picker::downloading_piece pi;
-			m_picker->piece_info(i->piece, pi);
+			m_picker->piece_info(i.piece, pi);
 
 			// the number of "times" this piece has timed out.
 			int timed_out = 0;
 
-			int blocks_in_piece = m_picker->blocks_in_piece(i->piece);
+			int blocks_in_piece = m_picker->blocks_in_piece(i.piece);
 
 #if TORRENT_DEBUG_STREAMING > 0
-			i->timed_out = timed_out;
+			i.timed_out = timed_out;
 #endif
 			int free_to_request = blocks_in_piece
 				- pi.finished - pi.writing - pi.requested;
 
 			if (free_to_request == 0)
 			{
-				if (i->last_requested == min_time())
-					i->last_requested = now;
+				if (i.last_requested == min_time())
+					i.last_requested = now;
 
 				// if it's been more than half of the typical download time
 				// of a piece since we requested the last block, allow
 				// one more request per block
 				if (m_average_piece_time > 0)
-					timed_out = int(total_milliseconds(now - i->last_requested)
+					timed_out = int(total_milliseconds(now - i.last_requested)
 						/ (std::max)(int(m_average_piece_time + m_piece_time_deviation / 2), 1));
 
 #if TORRENT_DEBUG_STREAMING > 0
-				i->timed_out = timed_out;
+				i.timed_out = timed_out;
 #endif
 				// every block in this piece is already requested
 				// there's no need to consider this piece, unless it
@@ -9560,7 +9561,7 @@ namespace libtorrent
 				{
 #if TORRENT_DEBUG_STREAMING > 1
 					std::printf("skipping %d (full) [req: %d timed_out: %d ]\n"
-						, i->piece, pi.requested
+						, i.piece, pi.requested
 						, timed_out);
 #endif
 
@@ -9586,7 +9587,7 @@ namespace libtorrent
 			// since it's ordered by download queue time
 			pick_time_critical_block(peers, ignore_peers
 				, peers_with_requests
-				, pi, &*i, m_picker.get()
+				, pi, &i, m_picker.get()
 				, blocks_in_piece, timed_out);
 
 			// put back the peers we ignored into the peer list for the next piece
