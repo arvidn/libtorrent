@@ -1764,8 +1764,10 @@ namespace aux {
 	void session_impl::on_ip_change(error_code const& ec)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		session_log("received ip change from internal ip_notifier");
-		if (ec) session_log(" error on_ip_change: %d, %s", ec.value(), ec.message().c_str());
+		if (!ec)
+			session_log("received ip change from internal ip_notifier");
+		else
+			session_log("received error on_ip_change: %d, %s", ec.value(), ec.message().c_str());
 #endif
 		if (ec || m_abort) return;
 		m_ip_notifier.async_wait([this] (error_code const& e)
