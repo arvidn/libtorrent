@@ -144,7 +144,7 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 			// Alerts on RSS related events, like feeds being updated, feed error
-			// conditions and successful RSS feed updates. Enabling this categoty
+			// conditions and successful RSS feed updates. Enabling this category
 			// will make you receive rss_alert alerts.
 			rss_notification              = 0x1000,
 #endif

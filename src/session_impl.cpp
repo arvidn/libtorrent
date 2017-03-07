@@ -589,7 +589,7 @@ namespace aux {
 
 #ifndef TORRENT_DISABLE_LOGGING
 		// this alert is a bit special. The stats headers aren't very useful
-		// unless session_stats is enabled, sp it's posted in the session_Stats
+		// unless session_stats is enabled, so it's posted in the session_stats
 		// category as well
 		if (m_alerts.should_post<log_alert>()
 			|| m_alerts.should_post<session_stats_alert>())
