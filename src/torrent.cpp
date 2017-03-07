@@ -3976,7 +3976,7 @@ namespace libtorrent
 		std::copy(downloaders.begin(), downloaders.end(), std::inserter(peers, peers.begin()));
 
 #if TORRENT_USE_ASSERTS
-		for (auto const &p : downloaders)
+		for (auto const& p : downloaders)
 		{
 			if (p && p->connection)
 			{
