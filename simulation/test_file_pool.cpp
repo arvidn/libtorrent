@@ -66,8 +66,7 @@ TORRENT_TEST(close_file_interval)
 			}
 
 			torrent_handle h = ses.get_torrents().front();
-			std::vector<pool_file_status> file_status;
-			h.file_status(file_status);
+			std::vector<pool_file_status> file_status = h.file_status();
 			printf("%d: %d files\n", ticks, int(file_status.size()));
 			if (ticks > 0 && ticks < 19)
 			{

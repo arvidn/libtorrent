@@ -520,12 +520,14 @@ TORRENT_TEST(redundant_have)
 	);
 }
 
+#ifndef TORRENT_NO_DEPRECATE
 TORRENT_TEST(lazy_bitfields)
 {
 	test_settings([](lt::settings_pack& pack) {
 		pack.set_bool(settings_pack::lazy_bitfields, true); }
 	);
 }
+#endif
 
 TORRENT_TEST(prioritize_partial_pieces)
 {

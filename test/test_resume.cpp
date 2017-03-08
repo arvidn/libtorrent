@@ -331,7 +331,7 @@ TORRENT_TEST(resume_save_load_deprecated)
 	TEST_CHECK(a);
 	if (a == nullptr) return;
 
-	auto const l = a->params.file_priority;
+	auto const l = a->params.file_priorities;
 
 	TEST_EQUAL(l.size(), 3);
 	TEST_EQUAL(l[0], 1);
@@ -353,7 +353,7 @@ TORRENT_TEST(resume_save_load_resume_deprecated)
 	TEST_CHECK(a);
 	if (a == nullptr) return;
 
-	auto const l = a->params.file_priority;
+	auto const l = a->params.file_priorities;
 
 	TEST_EQUAL(l.size(), 3);
 	TEST_EQUAL(l[0], 1);

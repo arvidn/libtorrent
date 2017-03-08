@@ -803,7 +803,9 @@ TORRENT_TEST(rename_file)
 
 	auto const files = resume.renamed_files;
 	for (auto const& i : files)
+	{
 		TEST_EQUAL(i.second.substr(0, 14), "temp_storage__");
+	}
 }
 
 void test_rename_file_fastresume(bool test_deprecated)
