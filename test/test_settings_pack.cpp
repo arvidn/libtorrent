@@ -243,7 +243,7 @@ TORRENT_TEST(settings_pack_abi)
 	TEST_EQUAL(settings_pack::dht_bootstrap_nodes, settings_pack::string_type_base + 11);
 
 	// bool
-	TEST_EQUAL(settings_pack::lazy_bitfields, settings_pack::bool_type_base + 3);
+	TEST_EQUAL(settings_pack::use_dht_as_fallback, settings_pack::bool_type_base + 4);
 	TEST_EQUAL(settings_pack::use_read_cache, settings_pack::bool_type_base + 7);
 	TEST_EQUAL(settings_pack::proxy_tracker_connections, settings_pack::bool_type_base + 67);
 

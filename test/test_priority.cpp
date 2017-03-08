@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/read_resume_data.hpp"
+#include "libtorrent/write_resume_data.hpp"
 #include <tuple>
 #include <functional>
 
@@ -256,8 +257,7 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 			std::cout << "ses2: " << a->message() << std::endl;
 			if (alert_cast<save_resume_data_alert>(a))
 			{
-				bencode(std::back_inserter(resume_data)
-					, *alert_cast<save_resume_data_alert>(a)->resume_data);
+				resume_data = write_resume_data_buf(alert_cast<save_resume_data_alert>(a)->params);
 				std::printf("saved resume data\n");
 				goto done;
 			}

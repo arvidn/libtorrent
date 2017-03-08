@@ -469,6 +469,7 @@ namespace aux {
 #endif
 		, m_timer(m_io_service)
 		, m_lsd_announce_timer(m_io_service)
+		, m_close_file_timer(m_io_service)
 		, m_host_resolver(m_io_service)
 	{
 		update_time_now();
@@ -900,6 +901,8 @@ namespace aux {
 		// cleanly. i.e. essentially tracker hostname lookups that we're not
 		// about to send event=stopped to
 		m_host_resolver.abort();
+
+		m_close_file_timer.cancel();
 
 		// abort the main thread
 		m_abort = true;
@@ -3436,6 +3439,16 @@ namespace aux {
 //		m_peer_pool.release_memory();
 	}
 
+	void session_impl::on_close_file(error_code const& e)
+	{
+		if (e) return;
+
+		m_disk_thread.files().close_oldest();
+
+		// re-issue the timer
+		update_close_file_interval();
+	}
+
 	namespace {
 	// returns the index of the first set bit.
 	int log2(std::uint32_t v)
@@ -5186,6 +5199,19 @@ namespace aux {
 		{
 			i->second->update_max_failcount();
 		}
+	}
+
+	void session_impl::update_close_file_interval()
+	{
+		int const interval = m_settings.get_int(settings_pack::close_file_interval);
+		if (interval == 0 || m_abort)
+		{
+			m_close_file_timer.cancel();
+			return;
+		}
+		error_code ec;
+		m_close_file_timer.expires_from_now(seconds(interval), ec);
+		m_close_file_timer.async_wait(make_tick_handler(std::bind(&session_impl::on_close_file, this, _1)));
 	}
 
 	void session_impl::update_proxy()

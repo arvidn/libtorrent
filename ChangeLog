@@ -59,6 +59,10 @@
 	* resume data no longer has timestamps of files
 	* require C++11 to build libtorrent
 
+	* add feature to periodically close files (to make windows clear disk cache)
+	* fix bug in torrent_handle::file_status
+	* fix issue with peers not updated on metadata from magnet links
+
 1.1.2 release
 
 	* default TOS marking to 0x20

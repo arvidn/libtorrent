@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/read_resume_data.hpp"
+#include "libtorrent/write_resume_data.hpp"
 
 #include "test.hpp"
 #include "settings.hpp"
@@ -223,15 +224,13 @@ void test_piece_priorities(bool test_deprecated = false)
 	TEST_CHECK(ra);
 	if (ra)
 	{
-		std::printf("%s\n", ra->resume_data->to_string().c_str());
-		entry::string_type prios = (*ra->resume_data)["piece_priority"].string();
+		auto const prios = ra->params.piece_priorities;
 		TEST_EQUAL(int(prios.size()), ti->num_pieces());
 		TEST_EQUAL(prios[0], '\0');
 		TEST_EQUAL(prios[1], '\x04');
 		TEST_EQUAL(prios[ti->num_pieces()-1], '\0');
 
-		std::vector<char> resume_data;
-		bencode(std::back_inserter(resume_data), *ra->resume_data);
+		std::vector<char> resume_data = write_resume_data_buf(ra->params);
 
 #ifndef TORRENT_NO_DEPRECATE
 		if (test_deprecated)
@@ -332,16 +331,12 @@ TORRENT_TEST(resume_save_load_deprecated)
 	TEST_CHECK(a);
 	if (a == nullptr) return;
 
-	TEST_CHECK(a->resume_data);
-
-	entry& e = *a->resume_data;
-	entry::list_type& l = e["file_priority"].list();
-	entry::list_type::iterator i = l.begin();
+	auto const l = a->params.file_priority;
 
 	TEST_EQUAL(l.size(), 3);
-	TEST_EQUAL(*i++, 1);
-	TEST_EQUAL(*i++, 2);
-	TEST_EQUAL(*i++, 3);
+	TEST_EQUAL(l[0], 1);
+	TEST_EQUAL(l[1], 2);
+	TEST_EQUAL(l[2], 3);
 }
 
 TORRENT_TEST(resume_save_load_resume_deprecated)
@@ -358,16 +353,12 @@ TORRENT_TEST(resume_save_load_resume_deprecated)
 	TEST_CHECK(a);
 	if (a == nullptr) return;
 
-	TEST_CHECK(a->resume_data);
-
-	entry& e = *a->resume_data;
-	entry::list_type& l = e["file_priority"].list();
-	entry::list_type::iterator i = l.begin();
+	auto const l = a->params.file_priority;
 
 	TEST_EQUAL(l.size(), 3);
-	TEST_EQUAL(*i++, 1);
-	TEST_EQUAL(*i++, 2);
-	TEST_EQUAL(*i++, 3);
+	TEST_EQUAL(l[0], 1);
+	TEST_EQUAL(l[1], 2);
+	TEST_EQUAL(l[2], 3);
 }
 
 TORRENT_TEST(file_priorities_resume_override_deprecated)
@@ -903,16 +894,12 @@ TORRENT_TEST(resume_save_load)
 	TEST_CHECK(a);
 	if (a == nullptr) return;
 
-	TEST_CHECK(a->resume_data);
-
-	entry& e = *a->resume_data;
-	entry::list_type& l = e["file_priority"].list();
-	entry::list_type::iterator i = l.begin();
+	auto const l = a->params.file_priorities;
 
 	TEST_EQUAL(l.size(), 3);
-	TEST_EQUAL(*i++, 1);
-	TEST_EQUAL(*i++, 2);
-	TEST_EQUAL(*i++, 3);
+	TEST_EQUAL(l[0], 1);
+	TEST_EQUAL(l[1], 2);
+	TEST_EQUAL(l[2], 3);
 }
 
 TORRENT_TEST(resume_save_load_resume)
@@ -929,18 +916,12 @@ TORRENT_TEST(resume_save_load_resume)
 	TEST_CHECK(a);
 	if (a == nullptr) return;
 
-	TEST_CHECK(a->resume_data);
-
-	entry& e = *a->resume_data;
-	entry::list_type& l = e["file_priority"].list();
-	entry::list_type::iterator i = l.begin();
-
-	std::printf("%s\n", e.to_string().c_str());
+	auto const l = a->params.file_priorities;
 
 	TEST_EQUAL(l.size(), 3);
-	TEST_EQUAL(*i++, 1);
-	TEST_EQUAL(*i++, 2);
-	TEST_EQUAL(*i++, 3);
+	TEST_EQUAL(l[0], 1);
+	TEST_EQUAL(l[1], 2);
+	TEST_EQUAL(l[2], 3);
 }
 
 TORRENT_TEST(file_priorities_resume)

@@ -100,6 +100,12 @@ namespace libtorrent
 #define DEPRECATED_SET(name, default_value, fun) { "", nullptr, 0 }
 #endif
 
+#ifdef TORRENT_WINDOWS
+#define CLOSE_FILE_INTERVAL 120
+#else
+#define CLOSE_FILE_INTERVAL 0
+#endif
+
 	namespace {
 
 	using aux::session_impl;
@@ -327,6 +333,7 @@ namespace libtorrent
 		SET(cache_size_volatile, 256, nullptr),
 		SET(urlseed_max_request_bytes, 16 * 1024 * 1024, 0),
 		SET(web_seed_name_lookup_retry, 1800, nullptr),
+		SET(close_file_interval, CLOSE_FILE_INTERVAL, &session_impl::update_close_file_interval),
 	}});
 
 #undef SET

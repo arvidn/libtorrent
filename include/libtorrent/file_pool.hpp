@@ -114,6 +114,12 @@ namespace libtorrent
 		void set_low_prio_io(bool b) { m_low_prio_io = b; }
 		std::vector<pool_file_status> get_status(storage_index_t st) const;
 
+		// close the file that was opened least recently (i.e. not *accessed*
+		// least recently). The purpose is to make the OS (really just windows)
+		// clear and flush its disk cache associated with this file. We don't want
+		// any file to stay open for too long, allowing the disk cache to accrue.
+		void close_oldest();
+
 #if TORRENT_USE_ASSERTS
 		bool assert_idle_files(storage_index_t st) const;
 
@@ -133,7 +139,8 @@ namespace libtorrent
 		struct lru_file_entry
 		{
 			file_handle file_ptr;
-			time_point last_use{aux::time_now()};
+			time_point const opened{aux::time_now()};
+			time_point last_use{opened};
 			int mode = 0;
 		};
 

@@ -98,7 +98,11 @@ namespace libtorrent
 
 	void web_connection_base::start()
 	{
-		set_upload_only(true);
+		// avoid calling torrent::set_seed because it calls torrent::check_invariant
+		// which fails because the m_num_connecting count is not consistent until
+		// after we call peer_connection::start
+		m_upload_only = true;
+		disconnect_if_redundant();
 		if (is_disconnecting()) return;
 		peer_connection::start();
 	}

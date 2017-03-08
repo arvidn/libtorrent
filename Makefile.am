@@ -10,20 +10,16 @@ DOCS_IMAGES = \
   docs/cwnd_thumb.png             \
   docs/delays.png                 \
   docs/delays_thumb.png           \
-  docs/disk_io.png                \
   docs/hacking.html               \
-  docs/im_thumb.jpg               \
   docs/merkle_tree.png            \
   docs/our_delay_base.png         \
   docs/our_delay_base_thumb.png   \
   docs/read_disk_buffers.png      \
   docs/read_disk_buffers.diagram  \
-  docs/session_stats_peers.png    \
   docs/storage.png                \
   docs/todo.html                  \
   docs/write_disk_buffers.png     \
   docs/write_disk_buffers.diagram \
-  docs/ziptorrent_thumb.gif       \
   docs/ip_id_v4.png               \
   docs/ip_id_v6.png               \
   docs/hash_distribution.png      \

@@ -291,4 +291,22 @@ namespace libtorrent
 			remove_oldest(l);
 	}
 
+	void file_pool::close_oldest()
+	{
+		std::unique_lock<std::mutex> l(m_mutex);
+
+		using value_type = decltype(m_files)::value_type;
+		auto const i = std::min_element(m_files.begin(), m_files.end()
+			, [] (value_type const& lhs, value_type const& rhs)
+				{ return lhs.second.opened < rhs.second.opened; });
+		if (i == m_files.end()) return;
+
+		file_handle file_ptr = i->second.file_ptr;
+		m_files.erase(i);
+
+		// closing a file may be long running operation (mac os x)
+		l.unlock();
+		file_ptr.reset();
+		l.lock();
+	}
 }

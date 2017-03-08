@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/read_resume_data.hpp"
+#include "libtorrent/write_resume_data.hpp"
 
 #include <iostream>
 #include <fstream>
@@ -681,7 +682,7 @@ void test_fastresume(bool const test_deprecated)
 		h.save_resume_data();
 		alert const* ra = wait_for_alert(ses, save_resume_data_alert::alert_type);
 		TEST_CHECK(ra);
-		if (ra) resume = *alert_cast<save_resume_data_alert>(ra)->resume_data;
+		if (ra) resume = write_resume_data(alert_cast<save_resume_data_alert>(ra)->params);
 		ses.remove_torrent(h, lt::session::delete_files);
 		alert const* da = wait_for_alert(ses, torrent_deleted_alert::alert_type);
 		TEST_CHECK(da);
@@ -798,15 +799,11 @@ TORRENT_TEST(rename_file)
 	alert const* ra = wait_for_alert(ses, save_resume_data_alert::alert_type);
 	TEST_CHECK(ra);
 	if (!ra) return;
-	entry resume = *alert_cast<save_resume_data_alert>(ra)->resume_data;
+	add_torrent_params resume = alert_cast<save_resume_data_alert>(ra)->params;
 
-	std::cout << resume.to_string() << "\n";
-
-	entry::list_type files = resume.dict().find("mapped_files")->second.list();
-	for (entry::list_type::iterator i = files.begin(); i != files.end(); ++i)
-	{
-		TEST_EQUAL(i->string().substr(0, 14), "temp_storage__");
-	}
+	auto const files = resume.renamed_files;
+	for (auto const& i : files)
+		TEST_EQUAL(i.second.substr(0, 14), "temp_storage__");
 }
 
 void test_rename_file_fastresume(bool test_deprecated)
@@ -825,7 +822,7 @@ void test_rename_file_fastresume(bool test_deprecated)
 	file.close();
 	TEST_CHECK(exists(combine_path(test_path, "tmp2/temporary")));
 
-	entry resume;
+	add_torrent_params resume;
 	{
 		settings_pack pack = settings();
 		lt::session ses(pack);
@@ -853,14 +850,16 @@ void test_rename_file_fastresume(bool test_deprecated)
 		h.save_resume_data();
 		alert const* ra = wait_for_alert(ses, save_resume_data_alert::alert_type);
 		TEST_CHECK(ra);
-		if (ra) resume = *alert_cast<save_resume_data_alert>(ra)->resume_data;
+		if (ra) resume = alert_cast<save_resume_data_alert>(ra)->params;
 		ses.remove_torrent(h);
 	}
 	TEST_CHECK(!exists(combine_path(test_path, "tmp2/temporary")));
 	TEST_CHECK(exists(combine_path(test_path, "tmp2/testing_renamed_files")));
-	TEST_CHECK(resume.dict().find("mapped_files") != resume.dict().end());
+	TEST_CHECK(!resume.renamed_files.empty());
 
-	std::cout << resume.to_string() << "\n";
+	entry resume_ent = write_resume_data(resume);
+
+	std::cout << resume_ent.to_string() << "\n";
 
 	// make sure the fast resume check succeeds, even though we renamed the file
 	{
@@ -869,7 +868,7 @@ void test_rename_file_fastresume(bool test_deprecated)
 
 		add_torrent_params p;
 		std::vector<char> resume_data;
-		bencode(std::back_inserter(resume_data), resume);
+		bencode(std::back_inserter(resume_data), resume_ent);
 
 #ifndef TORRENT_NO_DEPRECATE
 		if (test_deprecated)
@@ -901,12 +900,13 @@ void test_rename_file_fastresume(bool test_deprecated)
 		h.save_resume_data();
 		alert const* ra = wait_for_alert(ses, save_resume_data_alert::alert_type);
 		TEST_CHECK(ra);
-		if (ra) resume = *alert_cast<save_resume_data_alert>(ra)->resume_data;
+		if (ra) resume = alert_cast<save_resume_data_alert>(ra)->params;
 		ses.remove_torrent(h);
 	}
-	TEST_CHECK(resume.dict().find("mapped_files") != resume.dict().end());
+	TEST_CHECK(!resume.renamed_files.empty());
 
-	std::cout << resume.to_string() << "\n";
+	resume_ent = write_resume_data(resume);
+	std::cout << resume_ent.to_string() << "\n";
 
 	remove_all(combine_path(test_path, "tmp2"), ec);
 	if (ec && ec != boost::system::errc::no_such_file_or_directory)

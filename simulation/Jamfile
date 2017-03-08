@@ -50,6 +50,7 @@ alias libtorrent-sims :
 	[ run test_ip_filter.cpp ]
 	[ run test_dht_rate_limit.cpp ]
 	[ run test_fast_extensions.cpp ]
+	[ run test_file_pool.cpp ]
 	[ run test_save_resume.cpp ]
 	;
 
