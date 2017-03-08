@@ -1875,6 +1875,12 @@ namespace libtorrent
 	// calling post_session_stats() on the session object. Its category is
 	// ``status_notification``, but it is not subject to filtering, since it's only
 	// manually posted anyway.
+	//
+	// the ``message()`` member function returns a string representation of the values that
+	// properly match the line returned in ``session_stats_header_alert::message()``.
+	//
+	// this specific output is parsed by tools/parse_session_stats.py
+	// if this is changed, that parser should also be changed
 	struct TORRENT_EXPORT session_stats_alert final : alert
 	{
 		session_stats_alert(aux::stack_allocator& alloc, counters const& cnt);
@@ -2498,7 +2504,7 @@ namespace libtorrent
 
 	// this alert is posted when the session encounters a serious error,
 	// potentially fatal
-	struct TORRENT_EXPORT session_error_alert : alert
+	struct TORRENT_EXPORT session_error_alert final : alert
 	{
 		// internal
 		session_error_alert(aux::stack_allocator& alloc, error_code err
@@ -2541,11 +2547,29 @@ namespace libtorrent
 		aux::allocation_slot m_v6_nodes_idx;
 	};
 
+	// The session_stats_header alert is posted during the init of the
+	// session thread.
+	//
+	// the ``message()`` member function returns a string representation of the
+	// header that properly match the stats values string returned in
+	// ``session_stats_alert::message()``.
+	//
+	// this specific output is parsed by tools/parse_session_stats.py
+	// if this is changed, that parser should also be changed
+	struct TORRENT_EXPORT session_stats_header_alert final : alert
+	{
+		explicit session_stats_header_alert(aux::stack_allocator& alloc);
+		TORRENT_DEFINE_ALERT(session_stats_header_alert, 92)
+
+		static const int static_category = alert::stats_notification;
+		virtual std::string message() const override;
+	};
+
 #undef TORRENT_DEFINE_ALERT_IMPL
 #undef TORRENT_DEFINE_ALERT
 #undef TORRENT_DEFINE_ALERT_PRIO
 
-	enum { num_alert_types = 92 }; // this enum represents "max_alert_index" + 1
+	enum { num_alert_types = 93 }; // this enum represents "max_alert_index" + 1
 }
 
 #endif

@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/stack_allocator.hpp"
 #include "libtorrent/piece_block.hpp"
 #include "libtorrent/hex.hpp" // to_hex
+#include "libtorrent/session_stats.hpp"
 
 #ifndef TORRENT_NO_DEPRECATE
 #include "libtorrent/write_resume_data.hpp"
@@ -1742,8 +1743,6 @@ namespace libtorrent
 
 	std::string session_stats_alert::message() const
 	{
-		// this specific output is parsed by tools/parse_session_stats.py
-		// if this is changed, that parser should also be changed
 		char msg[50];
 		std::snprintf(msg, sizeof(msg), "session stats (%d values): " , int(values.size()));
 		std::string ret = msg;
@@ -2216,6 +2215,27 @@ namespace libtorrent
 #endif
 
 		return nodes;
+	}
+
+	session_stats_header_alert::session_stats_header_alert(aux::stack_allocator&)
+	{}
+
+	std::string session_stats_header_alert::message() const
+	{
+		std::string stats_header = "session stats header: ";
+		std::vector<stats_metric> stats = session_stats_metrics();
+		std::sort(stats.begin(), stats.end()
+			, [] (stats_metric const& lhs, stats_metric const& rhs)
+			{ return lhs.value_index < rhs.value_index; });
+		bool first = true;
+		for (auto const& s : stats)
+		{
+			if (!first) stats_header += ", ";
+			stats_header += s.name;
+			first = false;
+		}
+
+		return stats_header;
 	}
 
 } // namespace libtorrent
