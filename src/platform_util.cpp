@@ -86,16 +86,16 @@ namespace libtorrent
 #endif
 	}
 
-	std::uint64_t total_physical_ram()
+	std::int64_t total_physical_ram()
 	{
 #if defined TORRENT_BUILD_SIMULATOR
-		return std::uint64_t(4) * 1024 * 1024 * 1024;
+		return std::int64_t(4) * 1024 * 1024 * 1024;
 #else
 		// figure out how much physical RAM there is in
 		// this machine. This is used for automatically
 		// sizing the disk cache size when it's set to
 		// automatic.
-		std::uint64_t ret = 0;
+		std::int64_t ret = 0;
 
 #ifdef TORRENT_BSD
 #ifdef HW_MEMSIZE
@@ -113,12 +113,12 @@ namespace libtorrent
 		MEMORYSTATUSEX ms;
 		ms.dwLength = sizeof(MEMORYSTATUSEX);
 		if (GlobalMemoryStatusEx(&ms))
-			ret = ms.ullTotalPhys;
+			ret = int(ms.ullTotalPhys);
 		else
 			ret = 0;
 #elif defined TORRENT_LINUX
-		ret = std::uint64_t(sysconf(_SC_PHYS_PAGES));
-		ret *= std::uint64_t(sysconf(_SC_PAGESIZE));
+		ret = sysconf(_SC_PHYS_PAGES);
+		ret *= sysconf(_SC_PAGESIZE);
 #elif defined TORRENT_AMIGA
 		ret = AvailMem(MEMF_PUBLIC);
 #endif
@@ -129,8 +129,8 @@ namespace libtorrent
 			struct rlimit r;
 			if (getrlimit(rlimit_as, &r) == 0 && r.rlim_cur != rlim_infinity)
 			{
-				if (ret > r.rlim_cur)
-					ret = r.rlim_cur;
+				if (ret > std::int64_t(r.rlim_cur))
+					ret = std::int64_t(r.rlim_cur);
 			}
 		}
 #endif
