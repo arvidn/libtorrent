@@ -9492,7 +9492,7 @@ namespace libtorrent
 		// now, iterate over all time critical pieces, in order of importance, and
 		// request them from the peers, in order of responsiveness. i.e. request
 		// the most time critical pieces from the fastest peers.
-		bool non_first_piece{false};
+		bool first_piece{true};
 		for (auto& i : m_time_critical_pieces)
 		{
 #if TORRENT_DEBUG_STREAMING > 1
@@ -9510,7 +9510,7 @@ namespace libtorrent
 			// the +1000 is to compensate for the fact that we only call this
 			// function once per second, so if we need to request it 500 ms from
 			// now, we should request it right away
-			if (non_first_piece && i.deadline > now
+			if (!first_piece && i.deadline > now
 				+ milliseconds(m_average_piece_time + m_piece_time_deviation * 4 + 1000))
 			{
 				// don't request pieces whose deadline is too far in the future
@@ -9523,7 +9523,7 @@ namespace libtorrent
 #endif
 				break;
 			}
-			non_first_piece = true;
+			first_piece = false;
 
 			piece_picker::downloading_piece pi;
 			m_picker->piece_info(i.piece, pi);
