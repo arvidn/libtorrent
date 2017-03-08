@@ -34,6 +34,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
 
+#include <cstring>
+#include <algorithm>
+
 namespace libtorrent
 {
 
