@@ -1,3 +1,4 @@
+	* fix bug where settings_pack::file_pool_size setting was not being honored
 	* add feature to periodically close files (to make windows clear disk cache)
 	* fix bug in torrent_handle::file_status
 	* fix issue with peers not updated on metadata from magnet links
