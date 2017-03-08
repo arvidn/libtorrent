@@ -73,7 +73,6 @@ const rlim_t rlim_infinity = RLIM_INFINITY;
 #include "libtorrent/peer_connection_handle.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/session_stats.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #ifndef TORRENT_DISABLE_DHT
 #include "libtorrent/kademlia/dht_tracker.hpp"
@@ -589,31 +588,10 @@ namespace aux {
 		TORRENT_ASSERT(is_single_thread());
 
 #ifndef TORRENT_DISABLE_LOGGING
-		// this alert is a bit special. The stats headers aren't very useful
-		// unless session_stats is enabled, so it's posted in the session_stats
-		// category as well
-		if (m_alerts.should_post<log_alert>()
-			|| m_alerts.should_post<session_stats_alert>())
-		{
-			session_log(" *** session thread init");
-
-			// this specific output is parsed by tools/parse_session_stats.py
-			// if this is changed, that parser should also be changed
-			std::vector<stats_metric> stats = session_stats_metrics();
-			std::sort(stats.begin(), stats.end()
-				, [] (stats_metric const& lhs, stats_metric const& rhs)
-				{ return lhs.value_index < rhs.value_index; });
-			std::string stats_header = "session stats header: ";
-			bool first = true;
-			for (auto const& s : stats)
-			{
-				if (!first) stats_header += ", ";
-				stats_header += s.name;
-				first = false;
-			}
-			m_alerts.emplace_alert<log_alert>(stats_header.c_str());
-		}
+		session_log(" *** session thread init");
 #endif
+		if (m_alerts.should_post<session_stats_header_alert>())
+			m_alerts.emplace_alert<session_stats_header_alert>();
 
 		// this is where we should set up all async operations. This
 		// is called from within the network thread as opposed to the

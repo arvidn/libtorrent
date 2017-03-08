@@ -41,17 +41,20 @@ using namespace libtorrent;
 
 TORRENT_TEST(alerts_types)
 {
-#define TEST_ALERT_TYPE(name, seq, prio) \
+#define TEST_ALERT_TYPE(name, seq, prio, cat) \
 	TEST_EQUAL(name::priority, prio); \
-	TEST_EQUAL(name::alert_type, seq);
+	TEST_EQUAL(name::alert_type, seq); \
+	TEST_EQUAL(name::static_category, cat);
 
-	TEST_ALERT_TYPE(dht_get_peers_reply_alert, 87, 0);
-	TEST_ALERT_TYPE(session_error_alert, 90, 0);
-	TEST_ALERT_TYPE(dht_live_nodes_alert, 91, 0);
+	TEST_ALERT_TYPE(session_stats_alert, 70, 1, alert::stats_notification);
+	TEST_ALERT_TYPE(dht_get_peers_reply_alert, 87, 0, alert::dht_operation_notification);
+	TEST_ALERT_TYPE(session_error_alert, 90, 0, alert::error_notification);
+	TEST_ALERT_TYPE(dht_live_nodes_alert, 91, 0, alert::dht_notification);
+	TEST_ALERT_TYPE(session_stats_header_alert, 92, 0, alert::stats_notification);
 
 #undef TEST_ALERT_TYPE
 
-	TEST_EQUAL(num_alert_types, 92);
+	TEST_EQUAL(num_alert_types, 93);
 }
 
 TORRENT_TEST(dht_get_peers_reply_alert)
@@ -128,4 +131,25 @@ TORRENT_TEST(dht_live_nodes_alert)
 	std::sort(v.begin(), v.end());
 	std::sort(nodes.begin(), nodes.end());
 	TEST_CHECK(v == nodes);
+}
+
+TORRENT_TEST(session_stats_alert)
+{
+	alert_manager mgr(1, alert::stats_notification);
+
+	std::vector<alert*> alerts;
+	counters cnt;
+
+	mgr.emplace_alert<session_stats_header_alert>();
+	mgr.emplace_alert<session_stats_alert>(cnt);
+	mgr.get_all(alerts);
+	TEST_EQUAL(alerts.size(), 2);
+
+	auto const* h = alert_cast<session_stats_header_alert>(alerts[0]);
+	TEST_CHECK(h != nullptr);
+	TEST_CHECK(h->message().find("session stats header: ") != std::string::npos);
+
+	auto const* v = alert_cast<session_stats_alert>(alerts[1]);
+	TEST_CHECK(v != nullptr);
+	TEST_CHECK(v->message().find("session stats (") != std::string::npos);
 }
