@@ -58,7 +58,7 @@ TORRENT_TEST(primitives)
 #ifndef TORRENT_NO_DEPRECATE
 		int const delay = ae.next_announce_in();
 #else
-		int const delay = total_seconds(ae.next_announce - clock_type::now());
+		int const delay = static_cast<int>(total_seconds(ae.next_announce - clock_type::now()));
 #endif
 		TEST_CHECK(delay > last);
 		last = delay;

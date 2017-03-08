@@ -35,13 +35,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "utils.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/session.hpp"
+#include "libtorrent/write_resume_data.hpp"
 #include "settings.hpp"
 
 using namespace libtorrent;
 
 TORRENT_TEST(seed_and_suggest_mode)
 {
-	std::shared_ptr<entry> resume_data;
+	add_torrent_params resume_data;
 
 	// with seed mode
 	setup_swarm(2, swarm_test::upload
@@ -59,7 +60,7 @@ TORRENT_TEST(seed_and_suggest_mode)
 			auto* sr = alert_cast<save_resume_data_alert>(a);
 			if (sr == nullptr) return;
 
-			resume_data = sr->resume_data;
+			resume_data = sr->params;
 		}
 		// terminate
 		, [](int ticks, lt::session& ses) -> bool
@@ -73,16 +74,14 @@ TORRENT_TEST(seed_and_suggest_mode)
 			return true;
 		});
 
-	printf("save-resume: %s\n", resume_data->to_string().c_str());
-	TEST_CHECK((*resume_data)["seed_mode"] == 1);
+	printf("save-resume: %s\n", write_resume_data(resume_data).to_string().c_str());
+	TEST_CHECK(resume_data.flags & add_torrent_params::flag_seed_mode);
 
 	// there should not be any pieces in a seed-mode torrent
-	entry const* pieces = resume_data->find_key("pieces");
-	TEST_CHECK(pieces != nullptr);
-	std::string piece_str = pieces->string();
-	for (char c : piece_str)
+	auto const pieces = resume_data.have_pieces;
+	for (bool const c : pieces)
 	{
-		TEST_CHECK(c & 0x1);
+		TEST_CHECK(c);
 	}
 }
 

@@ -497,7 +497,7 @@ variant test_release : release
 	: <asserts>production <debug-symbols>on
 	<invariant-checks>full <boost-link>shared <optimization>off
 	<export-extra>on <debug-iterators>on <threading>multi
-	<inlining>on
+	<inlining>on <deprecated-functions>off
 	;
 variant test_debug : debug
 	: <logging>on
