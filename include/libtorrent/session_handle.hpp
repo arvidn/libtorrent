@@ -268,29 +268,6 @@ namespace libtorrent
 		bool is_paused() const;
 
 #ifndef TORRENT_NO_DEPRECATE
-		// This function enables dynamic-loading-of-torrent-files_. When a
-		// torrent is unloaded but needs to be available in memory, this function
-		// is called **from within the libtorrent network thread**. From within
-		// this thread, you can **not** use any of the public APIs of libtorrent
-		// itself. The info-hash of the torrent is passed in to the function
-		// and it is expected to fill in the passed in ``vector<char>`` with the
-		// .torrent file corresponding to it.
-		//
-		// If there is an error loading the torrent file, the ``error_code``
-		// (``ec``) should be set to reflect the error. In such case, the torrent
-		// itself is stopped and set to an error state with the corresponding
-		// error code.
-		//
-		// Given that the function is called from the internal network thread of
-		// libtorrent, it's important to not stall. libtorrent will not be able
-		// to send nor receive any data until the function call returns.
-		//
-		// The signature of the function to pass in is::
-		//
-		// 	void fun(sha1_hash const& info_hash, std::vector<char>& buf, error_code& ec);
-		TORRENT_DEPRECATED
-		void set_load_function(user_load_function_t fun);
-
 		//  deprecated in libtorrent 1.1, use performance_counters instead
 		// returns session wide-statistics and status. For more information, see
 		// the ``session_status`` struct.
