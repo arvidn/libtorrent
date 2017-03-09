@@ -39,6 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent
 {
+	namespace
+	{
 
 	struct stats_metric_impl
 	{
@@ -550,6 +552,7 @@ namespace libtorrent
 		// ... more
 	}});
 #undef METRIC
+	} // anonymous namespace
 
 	std::vector<stats_metric> session_stats_metrics()
 	{
