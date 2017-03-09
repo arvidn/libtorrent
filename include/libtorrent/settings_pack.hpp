@@ -321,7 +321,9 @@ namespace libtorrent
 
 			// prefer seeding torrents when determining which torrents to give
 			// active slots to, the default is false which gives preference to
-			// downloading torrents
+			// downloading torrents. Be carefull if you want to prefer seeds,
+			// because if you have more seeds than ``active_limit`` you will never
+			// have an active download.
 			auto_manage_prefer_seeds,
 
 			// if ``dont_count_slow_torrents`` is true, torrents without any
@@ -1046,8 +1048,15 @@ namespace libtorrent
 			// torrents.
 			//
 			// ``active_limit`` is a hard limit on the number of active (auto
-			// managed) torrents. This limit also applies to slow torrents.
-			//
+			// managed) torrents. This limit also applies to slow torrents and it
+			// does apply to all announcement protocols as well. If you have a
+			// large amount of seeds, only a limited amount get annonced based on
+			// the seed rank. Use low values if you want to work with
+			// ``seed_time_ratio_limit``, ``seed_time_limit`` or
+			// ``share_ratio_limit`` to controll your active torrents
+			// ``auto_manage_prefer_seeds`` controlls which torrents will drain
+			// this limit value first.
+			// 
 			// ``active_dht_limit`` is the max number of torrents to announce to
 			// the DHT. By default this is set to 88, which is no more than one
 			// DHT announce every 10 seconds.
@@ -1094,7 +1103,9 @@ namespace libtorrent
 
 			// this is the limit on the time a torrent has been an active seed
 			// (specified in seconds) before it is considered having met the seed
-			// limit criteria. See queuing_.
+			// limit criteria. See queuing_. It does not disable the torrent, it
+			// does only move to a lower queue position which may result into an
+			// inactive torrent depending on your active limit definitions
 			seed_time_limit,
 
 			// ``auto_scrape_interval`` is the number of seconds between scrapes
@@ -1504,7 +1515,9 @@ namespace libtorrent
 			// bytes down) or the seed time ratio (seconds as seed / seconds as
 			// downloader) or the seed time limit (seconds as seed) it is
 			// considered done, and it will leave room for other torrents these
-			// are specified as percentages
+			// are specified as percentages. They does not disable the torrent,
+			// they do only controll the queue position which may result into an
+			// inactive torrent depending on your active limit definitions
 			share_ratio_limit,
 			seed_time_ratio_limit,
 
