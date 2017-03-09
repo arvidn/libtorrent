@@ -905,6 +905,7 @@ namespace libtorrent
 			// high capacity connections, setting this higher can improve upload
 			// performance and disk throughput. Setting it too high may waste RAM
 			// and create a bias towards read jobs over write jobs.
+			// Have a look at http://libtorrent.org/tuning.html for more details
 			send_buffer_low_watermark,
 			send_buffer_watermark,
 			send_buffer_watermark_factor,
