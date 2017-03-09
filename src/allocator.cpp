@@ -114,12 +114,12 @@ namespace libtorrent
 
 		void* ret;
 #if TORRENT_USE_POSIX_MEMALIGN
-		if (posix_memalign(&ret, page_size(), bytes)
+		if (posix_memalign(&ret, std::size_t(page_size()), std::size_t(bytes))
 			!= 0) ret = nullptr;
 #elif TORRENT_USE_MEMALIGN
-		ret = memalign(page_size(), bytes);
+		ret = memalign(std::size_t(page_size()), std::size_t(bytes));
 #elif defined TORRENT_WINDOWS
-		ret = _aligned_malloc(bytes, page_size());
+		ret = _aligned_malloc(std::size_t(bytes), std::size_t(page_size()));
 #elif defined TORRENT_BEOS
 		area_id id = create_area("", &ret, B_ANY_ADDRESS
 			, (bytes + page_size() - 1) & (page_size() - 1), B_NO_LOCK, B_READ_AREA | B_WRITE_AREA);

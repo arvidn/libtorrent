@@ -675,7 +675,7 @@ namespace libtorrent
 				ec.assign(errno, system_category());
 				break;
 			}
-			int const num_written = int(write(outfd, buffer, num_read));
+			int const num_written = int(write(outfd, buffer, std::size_t(num_read)));
 			if (num_written < num_read)
 			{
 				ec.assign(errno, system_category());
