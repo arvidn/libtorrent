@@ -194,7 +194,7 @@ namespace libtorrent
 			if (!err)
 			{
 				url += "&ipv6=";
-				url += ip;
+				url += escape_string(ip.c_str(), ip.size());
 			}
 		}
 #endif
