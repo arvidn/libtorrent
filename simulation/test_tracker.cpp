@@ -744,6 +744,9 @@ TORRENT_TEST(tracker_ipv6_argument)
 			std::string::size_type pos = req.find("&ipv6=");
 			TEST_CHECK(pos != std::string::npos);
 			got_ipv6 = pos != std::string::npos;
+			// make sure the IPv6 argument is url encoded
+			TEST_CHECK(req.substr(pos + 6, req.find_first_of(pos + 6, '&'))
+				== "ffff%3a%3a1337");
 			return sim::send_response(200, "OK", 11) + "d5:peers0:e";
 		}
 		, [](torrent_handle h) {}
