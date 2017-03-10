@@ -31,11 +31,16 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/session_stats.hpp" // for stats_metric
-#include "libtorrent/aux_/session_interface.hpp" // for stats counter names
+#include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
+
+#include <cstring>
+#include <algorithm>
 
 namespace libtorrent
 {
+	namespace
+	{
 
 	struct stats_metric_impl
 	{
@@ -44,8 +49,8 @@ namespace libtorrent
 	};
 
 #define METRIC(category, name) { #category "." #name, counters:: name },
-	static const stats_metric_impl metrics[] =
-	{
+	aux::array<stats_metric_impl, counters::num_counters> const metrics
+	({{
 		// ``error_peers`` is the total number of peer disconnects
 		// caused by an error (not initiated by this client) and
 		// disconnected initiated by this client (``disconnected_peers``).
@@ -545,15 +550,15 @@ namespace libtorrent
 		METRIC(sock_bufs, socket_recv_size20)
 
 		// ... more
-	};
+	}});
 #undef METRIC
+	} // anonymous namespace
 
 	std::vector<stats_metric> session_stats_metrics()
 	{
-		std::vector<stats_metric> stats;
-		int const num = sizeof(metrics) / sizeof(metrics[0]);
-		stats.resize(num);
-		for (std::size_t i = 0; i < num; ++i)
+		aux::vector<stats_metric> stats;
+		stats.resize(metrics.size());
+		for (int i = 0; i < metrics.end_index(); ++i)
 		{
 			stats[i].name = metrics[i].name;
 			stats[i].value_index = metrics[i].value_index;
@@ -565,7 +570,7 @@ namespace libtorrent
 
 	int find_metric_idx(char const* name)
 	{
-		stats_metric_impl const* i = std::find_if(std::begin(metrics), std::end(metrics)
+		auto const i = std::find_if(std::begin(metrics), std::end(metrics)
 			, [name](stats_metric_impl const& metr)
 			{ return std::strcmp(metr.name, name) == 0; });
 
@@ -574,4 +579,3 @@ namespace libtorrent
 	}
 
 }
-
