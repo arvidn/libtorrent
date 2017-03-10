@@ -1,3 +1,4 @@
+	* fix default file pool size on windows
 	* fix bug where settings_pack::file_pool_size setting was not being honored
 	* add feature to periodically close files (to make windows clear disk cache)
 	* fix bug in torrent_handle::file_status

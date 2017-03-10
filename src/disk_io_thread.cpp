@@ -163,15 +163,6 @@ namespace libtorrent
 		error_code ec;
 		m_disk_cache.set_settings(m_settings, ec);
 		TORRENT_ASSERT(!ec);
-
-		// deduct some margin for epoll/kqueue, log files,
-		// futexes, shared objects etc.
-		// 80% of the available file descriptors should go to connections
-		// 20% goes towards regular files
-		const int max_files = std::min((std::max)(5
-				, (max_open_files() - 20) * 2 / 10)
-			, m_file_pool.size_limit());
-		m_file_pool.resize(max_files);
 	}
 
 	disk_io_thread::~disk_io_thread()
