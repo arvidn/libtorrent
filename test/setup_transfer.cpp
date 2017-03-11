@@ -264,7 +264,7 @@ void save_file(char const* filename, char const* data, int size)
 
 bool print_alerts(lt::session& ses, char const* name
 	, bool allow_disconnects, bool allow_no_torrents, bool allow_failed_fastresume
-	, bool (*predicate)(libtorrent::alert const*), bool no_output)
+	, boost::function<bool(libtorrent::alert const*)> predicate, bool no_output)
 {
 	bool ret = false;
 	std::vector<torrent_handle> handles = ses.get_torrents();

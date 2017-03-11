@@ -75,7 +75,8 @@ EXPORT bool print_alerts(libtorrent::session& ses, char const* name
 	, bool allow_disconnects = false
 	, bool allow_no_torrents = false
 	, bool allow_failed_fastresume = false
-	, bool (*)(libtorrent::alert const*) = 0
+	, boost::function<bool(libtorrent::alert const*)> predicate
+		= boost::function<bool(libtorrent::alert const*)>()
 	, bool no_output = false);
 
 EXPORT void wait_for_listen(libtorrent::session& ses, char const* name);
