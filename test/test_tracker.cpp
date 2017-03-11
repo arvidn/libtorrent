@@ -340,7 +340,7 @@ void test_udp_tracker(std::string const& iface, address tracker, tcp::endpoint c
 	file.close();
 
 	char tracker_url[200];
-	std::snprintf(tracker_url, sizeof(tracker_url), "udp://%s:%d/announce", iface.c_str(), udp_port);
+	snprintf(tracker_url, sizeof(tracker_url), "udp://%s:%d/announce", iface.c_str(), udp_port);
 	t->add_tracker(tracker_url, 0);
 
 	add_torrent_params addp;
