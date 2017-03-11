@@ -179,29 +179,28 @@ namespace libtorrent
 	std::string print_listen_interfaces(std::vector<listen_interface_t> const& in)
 	{
 		std::string ret;
-		for (std::vector<listen_interface_t>::const_iterator i = in.begin()
-			, end(in.end()); i != end; ++i)
+		for (auto const& i : in)
 		{
-			if (i != in.begin()) ret += ",";
+			if (!ret.empty()) ret += ",";
 
 #if TORRENT_USE_IPV6
 			error_code ec;
-			address_v6::from_string(i->device, ec);
+			address_v6::from_string(i.device, ec);
 			if (!ec)
 			{
 				// IPv6 addresses must be wrapped in square brackets
 				ret += "[";
-				ret += i->device;
+				ret += i.device;
 				ret += "]";
 			}
 			else
 #endif
 			{
-				ret += i->device;
+				ret += i.device;
 			}
 			ret += ":";
-			ret += to_string(i->port).data();
-			if (i->ssl) ret += "s";
+			ret += to_string(i.port).data();
+			if (i.ssl) ret += "s";
 		}
 
 		return ret;

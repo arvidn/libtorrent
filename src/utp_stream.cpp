@@ -936,11 +936,10 @@ void utp_stream::add_write_buffer(void const* buf, size_t len)
 
 #if TORRENT_USE_ASSERTS
 	int write_buffer_size = 0;
-	for (std::vector<utp_socket_impl::iovec_t>::iterator i = m_impl->m_write_buffer.begin()
-		, end(m_impl->m_write_buffer.end()); i != end; ++i)
+	for (auto const& i : m_impl->m_write_buffer)
 	{
-		TORRENT_ASSERT(std::numeric_limits<int>::max() - int(i->len) > write_buffer_size);
-		write_buffer_size += int(i->len);
+		TORRENT_ASSERT(std::numeric_limits<int>::max() - int(i.len) > write_buffer_size);
+		write_buffer_size += int(i.len);
 	}
 	TORRENT_ASSERT(m_impl->m_write_buffer_size == write_buffer_size);
 #endif
@@ -950,11 +949,10 @@ void utp_stream::add_write_buffer(void const* buf, size_t len)
 
 #if TORRENT_USE_ASSERTS
 	write_buffer_size = 0;
-	for (std::vector<utp_socket_impl::iovec_t>::iterator i = m_impl->m_write_buffer.begin()
-		, end(m_impl->m_write_buffer.end()); i != end; ++i)
+	for (auto const& i : m_impl->m_write_buffer)
 	{
-		TORRENT_ASSERT(std::numeric_limits<int>::max() - int(i->len) > write_buffer_size);
-		write_buffer_size += int(i->len);
+		TORRENT_ASSERT(std::numeric_limits<int>::max() - int(i.len) > write_buffer_size);
+		write_buffer_size += int(i.len);
 	}
 	TORRENT_ASSERT(m_impl->m_write_buffer_size == write_buffer_size);
 #endif
@@ -1000,7 +998,7 @@ size_t utp_stream::read_some(bool clear_buffers)
 		return 0;
 	}
 
-	std::vector<utp_socket_impl::iovec_t>::iterator target = m_impl->m_read_buffer.begin();
+	auto target = m_impl->m_read_buffer.begin();
 
 	std::size_t ret = 0;
 
@@ -1544,17 +1542,16 @@ void utp_socket_impl::write_payload(std::uint8_t* ptr, int size)
 
 #if TORRENT_USE_ASSERTS
 	int write_buffer_size = 0;
-	for (std::vector<iovec_t>::iterator i = m_write_buffer.begin()
-		, end(m_write_buffer.end()); i != end; ++i)
+	for (auto const& i : m_write_buffer)
 	{
-		TORRENT_ASSERT(std::numeric_limits<int>::max() - int(i->len) > write_buffer_size);
-		write_buffer_size += int(i->len);
+		TORRENT_ASSERT(std::numeric_limits<int>::max() - int(i.len) > write_buffer_size);
+		write_buffer_size += int(i.len);
 	}
 	TORRENT_ASSERT(m_write_buffer_size == write_buffer_size);
 #endif
 	TORRENT_ASSERT(!m_write_buffer.empty() || size == 0);
 	TORRENT_ASSERT(m_write_buffer_size >= size);
-	std::vector<iovec_t>::iterator i = m_write_buffer.begin();
+	auto i = m_write_buffer.begin();
 
 	if (size == 0) return;
 
@@ -1583,11 +1580,10 @@ void utp_socket_impl::write_payload(std::uint8_t* ptr, int size)
 
 #if TORRENT_USE_ASSERTS
 	write_buffer_size = 0;
-	for (std::vector<iovec_t>::iterator j = m_write_buffer.begin()
-		, end(m_write_buffer.end()); j != end; ++j)
+	for (auto const& j : m_write_buffer)
 	{
-		TORRENT_ASSERT(std::numeric_limits<int>::max() - int(j->len) > write_buffer_size);
-		write_buffer_size += int(j->len);
+		TORRENT_ASSERT(std::numeric_limits<int>::max() - int(j.len) > write_buffer_size);
+		write_buffer_size += int(j.len);
 	}
 	TORRENT_ASSERT(m_write_buffer_size == write_buffer_size);
 #endif

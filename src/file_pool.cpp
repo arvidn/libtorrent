@@ -247,8 +247,9 @@ namespace libtorrent
 		while (begin != end)
 		{
 			to_close.push_back(std::move(begin->second.file_ptr));
-			m_files.erase(begin++);
+			begin++;
 		}
+		m_files.erase(begin, end);
 		l.unlock();
 		// the files are closed here while the lock is not held
 	}

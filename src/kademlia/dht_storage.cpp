@@ -497,7 +497,7 @@ namespace
 				}
 
 				// if there are no more peers, remove the entry altogether
-				m_map.erase(i++);
+				i = m_map.erase(i);
 				m_counters.torrents -= 1;// peers is decreased by purge_peers
 			}
 
@@ -515,7 +515,7 @@ namespace
 					++i;
 					continue;
 				}
-				m_immutable_table.erase(i++);
+				i = m_immutable_table.erase(i);
 				m_counters.immutable_data -= 1;
 			}
 
@@ -526,7 +526,7 @@ namespace
 					++i;
 					continue;
 				}
-				m_mutable_table.erase(i++);
+				i = m_mutable_table.erase(i);
 				m_counters.mutable_data -= 1;
 			}
 		}
