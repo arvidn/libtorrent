@@ -601,7 +601,7 @@ namespace libtorrent
 
 		std::size_t const ip_stride =
 #if TORRENT_USE_IPV6
-			= m_target.address().is_v6() ? 18 :
+			m_target.address().is_v6() ? 18 :
 #endif
 			6;
 
