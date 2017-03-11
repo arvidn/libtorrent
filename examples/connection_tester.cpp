@@ -46,7 +46,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <thread>
 #include <functional>
 #include <iostream>
-#include <thread>
 #include <atomic>
 #include <array>
 
