@@ -820,7 +820,7 @@ void generate_torrent(std::vector<char>& buf, int size, int num_files
 	libtorrent::create_torrent t(fs, piece_size);
 
 	int const num_threads = std::thread::hardware_concurrency()
-		? std::thread::hardware_concurrency() ? 4;
+		? std::thread::hardware_concurrency() : 4;
 	std::printf("hashing in %d threads\n", num_threads);
 
 	std::vector<std::thread> threads;
