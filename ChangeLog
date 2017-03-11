@@ -1,3 +1,4 @@
+	* add support for IPv6 peers from udp trackers
 	* correctly URL encode the IPv6 argument to trackers
 	* fix default file pool size on windows
 	* fix bug where settings_pack::file_pool_size setting was not being honored

@@ -598,8 +598,15 @@ namespace libtorrent
 		resp.min_interval = 60;
 		resp.incomplete = detail::read_int32(buf);
 		resp.complete = detail::read_int32(buf);
-		int num_peers = (size - 20) / 6;
-		if ((size - 20) % 6 != 0)
+
+		std::size_t const ip_stride
+#if TORRENT_USE_IPV6
+			= m_target.address().is_v6() ? 18
+#endif
+			: 6;
+
+		int const num_peers = (size - 20) / ip_stride;
+		if ((size - 20) % ip_stride != 0)
 		{
 			fail(error_code(errors::invalid_tracker_response_length));
 			return false;
@@ -619,14 +626,31 @@ namespace libtorrent
 			return true;
 		}
 
-		resp.peers4.reserve(num_peers);
-		for (int i = 0; i < num_peers; ++i)
+#if TORRENT_USE_IPV6
+		if (m_target.address().is_v6())
 		{
-			ipv4_peer_entry e;
-			memcpy(&e.ip[0], buf, 4);
-			buf += 4;
-			e.port = detail::read_uint16(buf);
-			resp.peers4.push_back(e);
+			resp.peers6.reserve(std::size_t(num_peers));
+			for (int i = 0; i < num_peers; ++i)
+			{
+				ipv6_peer_entry e;
+				std::memcpy(&e.ip[0], buf, 16);
+				buf += 16;
+				e.port = detail::read_uint16(buf);
+				resp.peers6.push_back(e);
+			}
+		}
+		else
+#endif
+		{
+			resp.peers4.reserve(std::size_t(num_peers));
+			for (int i = 0; i < num_peers; ++i)
+			{
+				ipv4_peer_entry e;
+				memcpy(&e.ip[0], buf, 4);
+				buf += 4;
+				e.port = detail::read_uint16(buf);
+				resp.peers4.push_back(e);
+			}
 		}
 
 		std::list<address> ip_list;

@@ -31,9 +31,11 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "test.hpp" // for EXPORT
+#include "libtorrent/address.hpp"
 
 // returns the port the udp tracker is running on
-int EXPORT start_udp_tracker();
+int EXPORT start_udp_tracker(libtorrent::address iface
+	= libtorrent::address_v4::any());
 
 // the number of udp tracker announces received
 int EXPORT num_udp_announces();
