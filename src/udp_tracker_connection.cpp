@@ -599,11 +599,11 @@ namespace libtorrent
 		resp.incomplete = detail::read_int32(buf);
 		resp.complete = detail::read_int32(buf);
 
-		std::size_t const ip_stride
+		std::size_t const ip_stride =
 #if TORRENT_USE_IPV6
-			= m_target.address().is_v6() ? 18
+			= m_target.address().is_v6() ? 18 :
 #endif
-			: 6;
+			6;
 
 		int const num_peers = (size - 20) / ip_stride;
 		if ((size - 20) % ip_stride != 0)
