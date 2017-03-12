@@ -99,6 +99,7 @@ namespace libtorrent
 			, key(0)
 			, num_want(0)
 			, send_stats(true)
+			, private_torrent(false)
 			, triggered_manually(false)
 #ifdef TORRENT_USE_OPENSSL
 			, ssl_ctx(0)
@@ -158,6 +159,10 @@ namespace libtorrent
 		address bind_ip;
 
 		bool send_stats;
+
+		// set to true if the .torrent file this tracker announce is for is marked
+		// as private (i.e. has the "priv": 1 key)
+		bool private_torrent;
 
 		// this is set to true if this request was triggered by a "manual" call to
 		// scrape_tracker() or force_reannounce()

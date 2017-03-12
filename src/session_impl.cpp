@@ -6555,9 +6555,7 @@ retry:
 			return;
 		}
 
-		if (m_upnp)
-			m_upnp->set_user_agent("");
-		m_settings.set_str(settings_pack::user_agent, "");
+		if (m_upnp) m_upnp->set_user_agent("");
 		url_random(m_peer_id.data(), m_peer_id.data() + 20);
 	}
 

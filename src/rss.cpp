@@ -629,9 +629,10 @@ int feed::update_feed()
 			, boost::bind(&feed::on_feed, shared_from_this()
 			, _1, _2, _3, _4)));
 
+	std::string const user_agent = m_ses.settings().get_bool(settings_pack::anonymous_mode)
+		? "" : m_ses.settings().get_str(settings_pack::user_agent);
 	m_updating = true;
-	feed->get(m_settings.url, seconds(30), 0, 0, 5
-		, m_ses.settings().get_str(settings_pack::user_agent));
+	feed->get(m_settings.url, seconds(30), 0, 0, 5, user_agent);
 
 	return 60 + m_failures * m_failures * 60;
 }
