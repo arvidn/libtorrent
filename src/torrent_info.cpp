@@ -727,10 +727,9 @@ namespace libtorrent
 
 		// insert all directories first, to make sure no files
 		// are allowed to collied with them
-		for (std::vector<std::string>::const_iterator i = paths.begin()
-			, end(paths.end()); i != end; ++i)
+		for (auto const& i : paths)
 		{
-			std::string p = combine_path(m_files.name(), *i);
+			std::string p = combine_path(m_files.name(), i);
 			files.insert(p);
 			while (has_parent_path(p))
 			{

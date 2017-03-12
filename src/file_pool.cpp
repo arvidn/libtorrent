@@ -239,16 +239,14 @@ namespace libtorrent
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 
-		auto begin = m_files.lower_bound(std::make_pair(st, file_index_t(0)));
+		auto const begin = m_files.lower_bound(std::make_pair(st, file_index_t(0)));
 		auto const end = m_files.upper_bound(std::make_pair(st
 				, std::numeric_limits<file_index_t>::max()));
 
 		std::vector<file_handle> to_close;
-		while (begin != end)
-		{
-			to_close.push_back(std::move(begin->second.file_ptr));
-			m_files.erase(begin++);
-		}
+		for (auto it = begin; it != end; ++it)
+			to_close.push_back(std::move(it->second.file_ptr));
+		if (!to_close.empty()) m_files.erase(begin, end);
 		l.unlock();
 		// the files are closed here while the lock is not held
 	}

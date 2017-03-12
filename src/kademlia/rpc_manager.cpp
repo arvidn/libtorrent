@@ -403,7 +403,7 @@ time_duration rpc_manager::tick()
 					, print_endpoint(o->target_ep()).c_str());
 			}
 #endif
-			m_transactions.erase(i++);
+			i = m_transactions.erase(i);
 			timeouts.push_back(o);
 			continue;
 		}

@@ -67,23 +67,22 @@ namespace libtorrent
 
 	utp_socket_manager::~utp_socket_manager()
 	{
-		for (socket_map_t::iterator i = m_utp_sockets.begin()
-			, end(m_utp_sockets.end()); i != end; ++i)
+		for (auto& i : m_utp_sockets)
 		{
-			delete_utp_impl(i->second);
+			delete_utp_impl(i.second);
 		}
 	}
 
 	void utp_socket_manager::tick(time_point now)
 	{
-		for (socket_map_t::iterator i = m_utp_sockets.begin()
+		for (auto i = m_utp_sockets.begin()
 			, end(m_utp_sockets.end()); i != end;)
 		{
 			if (should_delete(i->second))
 			{
 				delete_utp_impl(i->second);
 				if (m_last_socket == i->second) m_last_socket = nullptr;
-				m_utp_sockets.erase(i++);
+				i = m_utp_sockets.erase(i);
 				continue;
 			}
 			tick_utp_impl(i->second, now);

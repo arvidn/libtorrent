@@ -781,7 +781,7 @@ void scan_dir(std::string const& dir_path
 		torrent_handle& h = i->second;
 		if (!h.is_valid())
 		{
-			files.erase(i++);
+			i = files.erase(i);
 			continue;
 		}
 
@@ -792,7 +792,7 @@ void scan_dir(std::string const& dir_path
 		h.save_resume_data();
 		++num_outstanding_resume_data;
 
-		files.erase(i++);
+		i = files.erase(i);
 	}
 }
 

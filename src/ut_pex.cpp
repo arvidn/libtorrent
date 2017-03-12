@@ -200,14 +200,13 @@ namespace libtorrent { namespace
 				}
 			}
 
-			for (std::set<tcp::endpoint>::const_iterator i = dropped.begin()
-				, end(dropped.end()); i != end; ++i)
+			for (auto const& i : dropped)
 			{
-				if (i->address().is_v4())
-					detail::write_endpoint(*i, pld_out);
+				if (i.address().is_v4())
+					detail::write_endpoint(i, pld_out);
 #if TORRENT_USE_IPV6
 				else
-					detail::write_endpoint(*i, pld6_out);
+					detail::write_endpoint(i, pld6_out);
 #endif
 				++m_peers_in_message;
 			}
