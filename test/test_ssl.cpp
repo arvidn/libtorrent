@@ -44,7 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/connect.hpp>
 
 #ifdef TORRENT_USE_OPENSSL
-#include <boost/asio/ssl/error.hpp> // for asio::error::get_ssl_category()
 #include <boost/asio/ssl.hpp>
 
 using namespace libtorrent;
