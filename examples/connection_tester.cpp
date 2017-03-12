@@ -46,8 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <thread>
 #include <functional>
 #include <iostream>
+#include <atomic>
 #include <array>
-#include <boost/detail/atomic_count.hpp>
 
 #if BOOST_ASIO_DYN_LINK
 #if BOOST_VERSION >= 104500
@@ -89,7 +89,7 @@ bool test_corruption = false;
 
 // number of seeds we've spawned. The test is terminated
 // when this reaches zero, for dual tests
-static boost::detail::atomic_count num_seeds(0);
+std::atomic<int> num_seeds(0);
 
 // the kind of test to run. Upload sends data to a
 // bittorrent client, download requests data from
@@ -100,10 +100,10 @@ enum test_mode_t{ none, upload_test, download_test, dual_test };
 test_mode_t test_mode = none;
 
 // the number of suggest messages received (total across all peers)
-boost::detail::atomic_count num_suggest(0);
+std::atomic<int> num_suggest(0);
 
 // the number of requests made from suggested pieces
-boost::detail::atomic_count num_suggested_requests(0);
+std::atomic<int> num_suggested_requests(0);
 
 void sleep_ms(int milliseconds)
 {
@@ -816,22 +816,27 @@ void generate_torrent(std::vector<char>& buf, int size, int num_files
 		file_size += 200;
 	}
 
-//	fs.add_file("stress_test_file", total_size);
 	libtorrent::create_torrent t(fs, piece_size);
 
-	// generate the hashes in 4 threads
-	std::thread t1(&hasher_thread, &t, piece_index_t(0), piece_index_t(1 * num_pieces / 4), piece_size, false);
-	std::thread t2(&hasher_thread, &t, piece_index_t(1 * num_pieces / 4), piece_index_t(2 * num_pieces / 4), piece_size, false);
-	std::thread t3(&hasher_thread, &t, piece_index_t(2 * num_pieces / 4), piece_index_t(3 * num_pieces / 4), piece_size, false);
-	std::thread t4(&hasher_thread, &t, piece_index_t(3 * num_pieces / 4), piece_index_t(4 * num_pieces / 4), piece_size, true);
+	int const num_threads = std::thread::hardware_concurrency()
+		? std::thread::hardware_concurrency() : 4;
+	std::printf("hashing in %d threads\n", num_threads);
 
-	t1.join();
-	t2.join();
-	t3.join();
-	t4.join();
+	std::vector<std::thread> threads;
+	threads.reserve(num_threads);
+	for (int i = 0; i < num_threads; ++i)
+	{
+		threads.emplace_back(&hasher_thread, &t
+			, piece_index_t(i * num_pieces / num_threads)
+			, piece_index_t((i + 1) * num_pieces / num_threads)
+			, piece_size
+			, i == 0);
+	}
+
+	for (auto& i : threads)
+		i.join();
 
 	std::back_insert_iterator<std::vector<char>> out(buf);
-
 	bencode(out, t.generate());
 }
 
