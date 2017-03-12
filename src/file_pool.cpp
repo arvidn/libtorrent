@@ -240,7 +240,6 @@ namespace libtorrent
 		std::unique_lock<std::mutex> l(m_mutex);
 
 		auto const begin = m_files.lower_bound(std::make_pair(st, file_index_t(0)));
-		auto current = begin;
 		auto const end = m_files.upper_bound(std::make_pair(st
 				, std::numeric_limits<file_index_t>::max()));
 
