@@ -1364,6 +1364,7 @@ namespace libtorrent
 		if (m_file_progress.empty())
 		{
 			TORRENT_ASSERT(has_picker());
+			if (!need_loaded()) return;
 			m_file_progress.init(picker(), m_torrent_file->files());
 		}
 
