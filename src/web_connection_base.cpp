@@ -145,28 +145,34 @@ namespace libtorrent
 		request += "Host: ";
 		request += m_host;
 		if ((m_first_request || m_settings.get_bool(settings_pack::always_send_user_agent))
-			&& !m_settings.get_bool(settings_pack::anonymous_mode)) {
+			&& !m_settings.get_bool(settings_pack::anonymous_mode))
+		{
 			request += "\r\nUser-Agent: ";
 			request += m_settings.get_str(settings_pack::user_agent);
 		}
-		if (!m_external_auth.empty()) {
+		if (!m_external_auth.empty())
+		{
 			request += "\r\nAuthorization: ";
 			request += m_external_auth;
-		} else if (!m_basic_auth.empty()) {
+		}
+		else if (!m_basic_auth.empty())
+		{
 			request += "\r\nAuthorization: Basic ";
 			request += m_basic_auth;
 		}
-		if (sett.get_int(settings_pack::proxy_type) == settings_pack::http_pw) {
+		if (sett.get_int(settings_pack::proxy_type) == settings_pack::http_pw)
+		{
 			request += "\r\nProxy-Authorization: Basic ";
 			request += base64encode(sett.get_str(settings_pack::proxy_username)
 				+ ":" + sett.get_str(settings_pack::proxy_password));
 		}
 		for (web_seed_entry::headers_t::const_iterator it = m_extra_headers.begin();
-		     it != m_extra_headers.end(); ++it) {
-		  request += "\r\n";
-		  request += it->first;
-		  request += ": ";
-		  request += it->second;
+			it != m_extra_headers.end(); ++it)
+		{
+			request += "\r\n";
+			request += it->first;
+			request += ": ";
+			request += it->second;
 		}
 		if (using_proxy) {
 			request += "\r\nProxy-Connection: keep-alive";

@@ -813,6 +813,61 @@ TORRENT_TEST(tracker_ipv6_argument_privacy_mode)
 	TEST_EQUAL(got_ipv6, false);
 }
 
+TORRENT_TEST(tracker_user_agent_privacy_mode_public_torrent)
+{
+	bool got_announce = false;
+	tracker_test(
+		[](lt::add_torrent_params& p, lt::session& ses)
+		{
+			settings_pack pack;
+			pack.set_bool(settings_pack::anonymous_mode, true);
+			pack.set_str(settings_pack::user_agent, "test_agent/1.2.3");
+			ses.apply_settings(pack);
+			p.ti = make_torrent(false);
+			return 60;
+		},
+		[&](std::string method, std::string req
+			, std::map<std::string, std::string>& headers)
+		{
+			got_announce = true;
+
+			// in anonymous mode we should not send a user agent
+			TEST_CHECK(headers["user-agent"] == "");
+			return sim::send_response(200, "OK", 11) + "d5:peers0:e";
+		}
+		, [](torrent_handle h) {}
+		, [](torrent_handle h) {});
+	TEST_EQUAL(got_announce, true);
+}
+
+TORRENT_TEST(tracker_user_agent_privacy_mode_private_torrent)
+{
+	bool got_announce = false;
+	tracker_test(
+		[](lt::add_torrent_params& p, lt::session& ses)
+		{
+			settings_pack pack;
+			pack.set_bool(settings_pack::anonymous_mode, true);
+			pack.set_str(settings_pack::user_agent, "test_agent/1.2.3");
+			ses.apply_settings(pack);
+			p.ti = make_torrent(true);
+			return 60;
+		},
+		[&](std::string method, std::string req
+			, std::map<std::string, std::string>& headers)
+		{
+			got_announce = true;
+
+			// in anonymous mode we should still send the user agent for private
+			// torrents (since private trackers sometimes require it)
+			TEST_CHECK(headers["user-agent"] == "test_agent/1.2.3");
+			return sim::send_response(200, "OK", 11) + "d5:peers0:e";
+		}
+		, [](torrent_handle h) {}
+		, [](torrent_handle h) {});
+	TEST_EQUAL(got_announce, true);
+}
+
 // TODO: test external IP
 // TODO: test with different queuing settings
 // TODO: test when a torrent transitions from downloading to finished and
