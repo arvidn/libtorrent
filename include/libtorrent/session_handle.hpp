@@ -259,6 +259,9 @@ namespace libtorrent
 		void resume();
 		bool is_paused() const;
 
+		// *the feature of dynamically loading/unloading torrents is deprecated
+		// and discouraged*
+		//
 		// This function enables dynamic-loading-of-torrent-files_. When a
 		// torrent is unloaded but needs to be availabe in memory, this function
 		// is called **from within the libtorrent network thread**. From within

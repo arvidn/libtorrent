@@ -641,20 +641,6 @@ void signal_handler(int signo)
 	quit = true;
 }
 
-void load_torrent(libtorrent::sha1_hash const& ih, std::vector<char>& buf, libtorrent::error_code& ec)
-{
-	files_t::iterator i = hash_to_filename.find(ih);
-	if (i == hash_to_filename.end())
-	{
-		// for magnet links and torrents downloaded via
-		// URL, the metadata is saved in the resume file
-		// TODO: pick up metadata from the resume file
-		ec.assign(boost::system::errc::no_such_file_or_directory, boost::system::generic_category());
-		return;
-	}
-	load_file(i->second, buf, ec);
-}
-
 // if non-empty, a peer that will be added to all torrents
 std::string peer;
 
@@ -1586,7 +1572,6 @@ int main(int argc, char* argv[])
 	}
 
 	ses.set_ip_filter(loaded_ip_filter);
-	ses.set_load_function(&load_torrent);
 
 	error_code ec;
 
