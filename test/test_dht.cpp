@@ -1523,15 +1523,17 @@ void test_routing_table(address(&rand_addr)())
 
 	address node_addr;
 	address node_near_addr;
-	if (t.source.protocol() == udp::v4())
-	{
-		node_addr = addr4("4.4.4.4");
-		node_near_addr = addr4("4.4.4.5");
-	}
-	else
+#if TORRENT_USE_IPV6
+	if (t.source.protocol() == udp::v6())
 	{
 		node_addr = addr6("2001:1111:1111:1111:1111:1111:1111:1111");
 		node_near_addr = addr6("2001:1111:1111:1111:eeee:eeee:eeee:eeee");
+	}
+	else
+#endif
+	{
+		node_addr = addr4("4.4.4.4");
+		node_near_addr = addr4("4.4.4.5");
 	}
 
 	// test a node with the same IP:port changing ID
@@ -2500,6 +2502,7 @@ TORRENT_TEST(traversal_done)
 	g_put_count = 0;
 }
 
+#if TORRENT_USE_IPV6
 TORRENT_TEST(dht_dual_stack)
 {
 	// TODO: 3 use dht_test_setup class to simplify the node setup
@@ -2629,6 +2632,7 @@ TORRENT_TEST(dht_dual_stack)
 		TEST_ERROR(error_string);
 	}
 }
+#endif
 
 TORRENT_TEST(signing_test1)
 {

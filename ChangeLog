@@ -59,6 +59,12 @@
 	* resume data no longer has timestamps of files
 	* require C++11 to build libtorrent
 
+	* document deprecation of dynamic loading/unloading of torrents
+	* include user-agent in tracker announces in anonymous_mode for private torrents
+	* add support for IPv6 peers from udp trackers
+	* correctly URL encode the IPv6 argument to trackers
+	* fix default file pool size on windows
+	* fix bug where settings_pack::file_pool_size setting was not being honored
 	* add feature to periodically close files (to make windows clear disk cache)
 	* fix bug in torrent_handle::file_status
 	* fix issue with peers not updated on metadata from magnet links

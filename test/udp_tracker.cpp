@@ -131,8 +131,29 @@ struct udp_tracker
 				detail::write_uint32(1800, ptr); // interval
 				detail::write_uint32(1, ptr); // incomplete
 				detail::write_uint32(1, ptr); // complete
-				// 0 peers
-				m_socket.send_to(boost::asio::buffer(buffer, 20), *from, 0, e);
+				// 1 peers
+#if TORRENT_USE_IPV6
+				if (from->address().is_v6())
+				{
+					detail::write_uint32(0, ptr);
+					detail::write_uint32(0, ptr);
+					detail::write_uint32(0, ptr);
+					detail::write_uint8(1, ptr);
+					detail::write_uint8(3, ptr);
+					detail::write_uint8(3, ptr);
+					detail::write_uint8(7, ptr);
+					detail::write_uint16(1337, ptr);
+				}
+				else
+#endif
+				{
+					detail::write_uint8(1, ptr);
+					detail::write_uint8(3, ptr);
+					detail::write_uint8(3, ptr);
+					detail::write_uint8(7, ptr);
+					detail::write_uint16(1337, ptr);
+				}
+				m_socket.send_to(boost::asio::buffer(buffer, ptr - buffer), *from, 0, e);
 				if (e) std::printf("%s: UDP send_to failed. ERROR: %s\n"
 					, time_now_string(), e.message().c_str());
 				else std::printf("%s: UDP sent response to: %s\n"
@@ -153,21 +174,21 @@ struct udp_tracker
 			, std::bind(&udp_tracker::on_udp_receive, this, _1, _2, from, buffer, size));
 	}
 
-	udp_tracker()
+	udp_tracker(address iface)
 		: m_udp_announces(0)
 		, m_socket(m_ios)
 		, m_port(0)
 		, m_abort(false)
 	{
 		error_code ec;
-		m_socket.open(udp::v4(), ec);
+		m_socket.open(iface.is_v4() ? udp::v4() : udp::v6(), ec);
 		if (ec)
 		{
 			std::printf("UDP Error opening listen UDP tracker socket: %s\n", ec.message().c_str());
 			return;
 		}
 
-		m_socket.bind(udp::endpoint(address_v4::any(), 0), ec);
+		m_socket.bind(udp::endpoint(iface, 0), ec);
 		if (ec)
 		{
 			std::printf("UDP Error binding UDP tracker socket to port 0: %s\n", ec.message().c_str());
@@ -187,6 +208,7 @@ struct udp_tracker
 
 	void stop()
 	{
+		std::printf("%s: UDP tracker, stop\n", time_now_string());
 		m_abort = true;
 		m_socket.cancel();
 		m_socket.close();
@@ -233,9 +255,9 @@ struct udp_tracker
 
 std::shared_ptr<udp_tracker> g_udp_tracker;
 
-int start_udp_tracker()
+int start_udp_tracker(address iface)
 {
-	g_udp_tracker.reset(new udp_tracker);
+	g_udp_tracker.reset(new udp_tracker(iface));
 	return g_udp_tracker->port();
 }
 

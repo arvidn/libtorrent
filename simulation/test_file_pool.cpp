@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_stats.hpp"
 #include "libtorrent/file.hpp"
+#include "libtorrent/torrent_info.hpp"
 
 using namespace libtorrent;
 
@@ -80,6 +81,58 @@ TORRENT_TEST(close_file_interval)
 			}
 			return false;
 		});
+	TEST_CHECK(ran_to_completion);
+}
+
+TORRENT_TEST(file_pool_size)
+{
+	bool ran_to_completion = false;
+	int max_files = 0;
+
+	setup_swarm(2, swarm_test::download
+		// add session
+		, [](lt::settings_pack& pack)
+		{
+			pack.set_int(lt::settings_pack::file_pool_size, 5);
+		}
+		// add torrent
+		, [](lt::add_torrent_params& atp) {
+			// we need a torrent with lots of files in it, to hit the
+			// file_size_limit we set.
+			file_storage fs;
+			for (int i = 0; i < 0x10 * 9; ++i)
+			{
+				char filename[50];
+				snprintf(filename, sizeof(filename), "root/file-%d", i);
+				fs.add_file(filename, 0x400);
+			}
+			atp.ti = std::make_shared<torrent_info>(*atp.ti);
+			atp.ti->remap_files(fs);
+		}
+		// on alert
+		, [&](lt::alert const* a, lt::session&)
+		{}
+		// terminate
+		, [&](int ticks, lt::session& ses) -> bool
+		{
+			if (ticks > 80)
+			{
+				TEST_ERROR("timeout");
+				return true;
+			}
+
+			std::vector<pool_file_status> status;
+			ses.get_torrents().at(0).file_status(status);
+			printf("open files: %d\n", int(status.size()));
+			max_files = std::max(max_files, int(status.size()));
+			if (!is_seed(ses)) return false;
+			printf("completed in %d ticks\n", ticks);
+			ran_to_completion = true;
+			return true;
+		});
+
+	TEST_CHECK(max_files <= 5);
+	TEST_CHECK(max_files >= 4);
 	TEST_CHECK(ran_to_completion);
 }
 

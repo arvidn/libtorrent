@@ -48,13 +48,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/asio/ip/v6_only.hpp>
 
-#if TORRENT_USE_RLIMIT
-
-#include <sys/resource.h>
-// capture this here where warnings are disabled (the macro generates warnings)
-const rlim_t rlim_infinity = RLIM_INFINITY;
-#endif // TORRENT_USE_RLIMIT
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/aux_/openssl.hpp"
@@ -555,13 +548,13 @@ namespace aux {
 #endif // TORRENT_DISABLE_LOGGING
 
 		// ---- auto-cap max connections ----
-		int max_files = max_open_files();
+		int const max_files = max_open_files();
 		// deduct some margin for epoll/kqueue, log files,
 		// futexes, shared objects etc.
 		// 80% of the available file descriptors should go to connections
-		m_settings.set_int(settings_pack::connections_limit, (std::min)(
+		m_settings.set_int(settings_pack::connections_limit, std::min(
 			m_settings.get_int(settings_pack::connections_limit)
-			, (std::max)(5, (max_files - 20) * 8 / 10)));
+			, std::max(5, (max_files - 20) * 8 / 10)));
 		// 20% goes towards regular files (see disk_io_thread)
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
@@ -3620,6 +3613,7 @@ namespace aux {
 			else
 			{
 				t->resume();
+				if (!t->should_check_files()) continue;
 				t->start_checking();
 				--limit;
 			}
@@ -6202,9 +6196,7 @@ namespace aux {
 			return;
 		}
 
-		if (m_upnp)
-			m_upnp->set_user_agent("");
-		m_settings.set_str(settings_pack::user_agent, "");
+		if (m_upnp) m_upnp->set_user_agent("");
 		url_random(m_peer_id.data(), m_peer_id.data() + 20);
 	}
 

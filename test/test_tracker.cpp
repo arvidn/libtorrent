@@ -321,17 +321,25 @@ TORRENT_TEST(extract_peer_missing_port)
 		, errors::invalid_tracker_response, false);
 }
 
-TORRENT_TEST(udp_tracker)
+bool connect_alert(libtorrent::alert const* a, tcp::endpoint& ep)
 {
-	int http_port = start_web_server();
-	int udp_port = start_udp_tracker();
+	if (peer_connect_alert const* pc = alert_cast<peer_connect_alert>(a))
+		ep = pc->endpoint;
+	return true;
+}
+
+void test_udp_tracker(std::string const& iface, address tracker, tcp::endpoint const& expected_peer)
+{
+	using namespace std::placeholders;
+
+	int const udp_port = start_udp_tracker(tracker);
 
 	int prev_udp_announces = num_udp_announces();
 
 	settings_pack pack = settings();
 	pack.set_bool(settings_pack::announce_to_all_trackers, true);
 	pack.set_bool(settings_pack::announce_to_all_tiers, true);
-	pack.set_str(settings_pack::listen_interfaces, "0.0.0.0:48875");
+	pack.set_str(settings_pack::listen_interfaces, iface + ":48875");
 
 	std::unique_ptr<lt::session> s(new lt::session(pack));
 
@@ -343,11 +351,8 @@ TORRENT_TEST(udp_tracker)
 	file.close();
 
 	char tracker_url[200];
-	std::snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce", http_port);
+	std::snprintf(tracker_url, sizeof(tracker_url), "udp://%s:%d/announce", iface.c_str(), udp_port);
 	t->add_tracker(tracker_url, 0);
-
-	std::snprintf(tracker_url, sizeof(tracker_url), "udp://127.0.0.1:%d/announce", udp_port);
-	t->add_tracker(tracker_url, 1);
 
 	add_torrent_params addp;
 	addp.flags &= ~add_torrent_params::flag_paused;
@@ -357,9 +362,11 @@ TORRENT_TEST(udp_tracker)
 	addp.save_path = "tmp1_tracker";
 	torrent_handle h = s->add_torrent(addp);
 
+	tcp::endpoint peer_ep;
 	for (int i = 0; i < 50; ++i)
 	{
-		print_alerts(*s, "s");
+		print_alerts(*s, "s", false, false, false, std::bind(&connect_alert, _1, std::ref(peer_ep)));
+
 		if (num_udp_announces() == prev_udp_announces + 1)
 			break;
 
@@ -379,7 +386,7 @@ TORRENT_TEST(udp_tracker)
 
 	for (int i = 0; i < 50; ++i)
 	{
-		print_alerts(*s, "s", true, true);
+		print_alerts(*s, "s", true, true, false, std::bind(&connect_alert, _1, std::ref(peer_ep)));
 		if (num_udp_announces() == prev_udp_announces + 2)
 			break;
 
@@ -388,13 +395,27 @@ TORRENT_TEST(udp_tracker)
 			, int(prev_udp_announces) + 1);
 	}
 
+	TEST_CHECK(peer_ep == expected_peer);
 	std::printf("destructing session\n");
+
 	s.reset();
 	std::printf("done\n");
 
 	// we should have announced the stopped event now
 	TEST_EQUAL(num_udp_announces(), prev_udp_announces + 2);
 }
+
+TORRENT_TEST(udp_tracker_v4)
+{
+	test_udp_tracker("127.0.0.1", address_v4::any(), ep("1.3.3.7", 1337));
+}
+
+#if TORRENT_USE_IPV6
+TORRENT_TEST(udp_tracker_v6)
+{
+	test_udp_tracker("[::1]", address_v6::any(), ep("::1.3.3.7", 1337));
+}
+#endif
 
 TORRENT_TEST(http_peers)
 {

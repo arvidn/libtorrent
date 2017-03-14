@@ -189,7 +189,7 @@ namespace libtorrent
 			if (!err)
 			{
 				url += "&ipv6=";
-				url += ip;
+				url += escape_string(ip);
 			}
 		}
 #endif
@@ -204,9 +204,15 @@ namespace libtorrent
 #endif
 			);
 
-		int const timeout = tracker_req().event==tracker_request::stopped
+		int const timeout = tracker_req().event == tracker_request::stopped
 			? settings.get_int(settings_pack::stop_tracker_timeout)
 			: settings.get_int(settings_pack::tracker_completion_timeout);
+
+		// in anonymous mode we omit the user agent to mitigate fingerprinting of
+		// the client. Private torrents is an exception because some private
+		// trackers may requre the user agent
+		std::string const user_agent = settings.get_bool(settings_pack::anonymous_mode)
+			&& !tracker_req().private_torrent ? "" : settings.get_str(settings_pack::user_agent);
 
 		// when sending stopped requests, prefer the cached DNS entry
 		// to avoid being blocked for slow or failing responses. Chances
@@ -216,9 +222,7 @@ namespace libtorrent
 		m_tracker_connection->get(url, seconds(timeout)
 			, tracker_req().event == tracker_request::stopped ? 2 : 1
 			, ps.proxy_tracker_connections ? &ps : nullptr
-			, 5, settings.get_bool(settings_pack::anonymous_mode)
-				? "" : settings.get_str(settings_pack::user_agent)
-			, bind_interface()
+			, 5, user_agent, bind_interface()
 			, tracker_req().event == tracker_request::stopped
 				? resolver_interface::prefer_cache
 				: resolver_interface::abort_on_shutdown

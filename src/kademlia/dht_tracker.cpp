@@ -545,7 +545,7 @@ namespace libtorrent { namespace dht
 #if TORRENT_USE_IPV6
 			: m_dht6.nid() == nid ? &m_dht6 : nullptr;
 #else
-			: nullptr
+			: nullptr;
 #endif
 
 		if (dht == nullptr) return ret;

@@ -802,9 +802,7 @@ namespace libtorrent
 			// for viruses. deferring the closing of the files will be the
 			// difference between a usable system and a completely hogged down
 			// system. Most operating systems also has a limit on the total number
-			// of file descriptors a process may have open. It is usually a good
-			// idea to find this limit and set the number of connections and the
-			// number of files limits so their sum is slightly below it.
+			// of file descriptors a process may have open.
 			file_pool_size,
 
 			// ``max_failcount`` is the maximum times we try to connect to a peer

@@ -55,10 +55,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <functional>
 
-#if TORRENT_USE_RLIMIT
-#include <sys/resource.h>
-#endif
-
 #define DEBUG_DISK_THREAD 0
 
 #if DEBUG_DISK_THREAD
@@ -203,15 +199,6 @@ namespace libtorrent
 	{
 		ADD_OUTSTANDING_ASYNC("disk_io_thread::work");
 		m_disk_cache.set_settings(m_settings);
-
-		// deduct some margin for epoll/kqueue, log files,
-		// futexes, shared objects etc.
-		// 80% of the available file descriptors should go to connections
-		// 20% goes towards regular files
-		const int max_files = std::min(std::max(5
-			, (max_open_files() - 20) * 2 / 10)
-			, m_file_pool.size_limit());
-		m_file_pool.resize(max_files);
 	}
 
 	storage_interface* disk_io_thread::get_torrent(storage_index_t const storage)
@@ -296,6 +283,7 @@ namespace libtorrent
 		std::unique_lock<std::mutex> l(m_cache_mutex);
 		apply_pack(pack, m_settings);
 		m_disk_cache.set_settings(m_settings);
+		m_file_pool.resize(m_settings.get_int(settings_pack::file_pool_size));
 
 		int const num_threads = m_settings.get_int(settings_pack::aio_threads);
 		// add one hasher thread for every three generic threads
