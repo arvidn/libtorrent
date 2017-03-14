@@ -174,7 +174,7 @@ struct udp_tracker
 			, std::bind(&udp_tracker::on_udp_receive, this, _1, _2, from, buffer, size));
 	}
 
-	udp_tracker(address iface)
+	explicit udp_tracker(address iface)
 		: m_udp_announces(0)
 		, m_socket(m_ios)
 		, m_port(0)
