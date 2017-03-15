@@ -475,10 +475,7 @@ TORRENT_TEST(http_peers)
 	expected_peers.insert(ep("65.65.65.65", 16962));
 	expected_peers.insert(ep("67.67.67.67", 17476));
 #if TORRENT_USE_IPV6
-	if (supports_ipv6())
-	{
-		expected_peers.insert(ep("4545:4545:4545:4545:4545:4545:4545:4545", 17990));
-	}
+	expected_peers.insert(ep("4545:4545:4545:4545:4545:4545:4545:4545", 17990));
 #endif
 
 	TEST_EQUAL(peers.size(), expected_peers.size());
