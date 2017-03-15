@@ -403,6 +403,8 @@ void test_udp_tracker(std::string const& iface, address tracker, tcp::endpoint c
 
 	// we should have announced the stopped event now
 	TEST_EQUAL(num_udp_announces(), prev_udp_announces + 2);
+
+	stop_udp_tracker();
 }
 
 TORRENT_TEST(udp_tracker_v4)
@@ -413,7 +415,10 @@ TORRENT_TEST(udp_tracker_v4)
 #if TORRENT_USE_IPV6
 TORRENT_TEST(udp_tracker_v6)
 {
-	test_udp_tracker("[::1]", address_v6::any(), ep("::1.3.3.7", 1337));
+	if (supports_ipv6())
+	{
+		test_udp_tracker("[::1]", address_v6::any(), ep("::1.3.3.7", 1337));
+	}
 }
 #endif
 
@@ -470,10 +475,7 @@ TORRENT_TEST(http_peers)
 	expected_peers.insert(ep("65.65.65.65", 16962));
 	expected_peers.insert(ep("67.67.67.67", 17476));
 #if TORRENT_USE_IPV6
-	if (supports_ipv6())
-	{
-		expected_peers.insert(ep("4545:4545:4545:4545:4545:4545:4545:4545", 17990));
-	}
+	expected_peers.insert(ep("4545:4545:4545:4545:4545:4545:4545:4545", 17990));
 #endif
 
 	TEST_EQUAL(peers.size(), expected_peers.size());

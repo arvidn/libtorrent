@@ -146,6 +146,8 @@ namespace libtorrent
 		tcp::socket test(ios);
 		error_code ec;
 		test.open(tcp::v6(), ec);
+		if (ec) return false;
+		test.bind(tcp::endpoint(address_v6::from_string("::1"), 0), ec);
 		return !bool(ec);
 #endif
 	}
