@@ -263,8 +263,9 @@ namespace libtorrent { namespace aux
 			// files moved out to absolute paths are not moved
 			if (f.file_absolute_path(i)) continue;
 
-			std::string const old_path = combine_path(save_path, f.file_path(i));
-			std::string const new_path = combine_path(new_save_path, f.file_path(i));
+			std::string cur_file_path{ f.file_path(i) };
+			std::string const old_path = combine_path(save_path, cur_file_path);
+			std::string const new_path = combine_path(new_save_path, cur_file_path);
 
 			if (flags == dont_replace && exists(new_path))
 			{
@@ -325,8 +326,9 @@ namespace libtorrent { namespace aux
 				// roll-back
 				if (copied_files[i]) continue;
 
-				std::string const old_path = combine_path(save_path, f.file_path(i));
-				std::string const new_path = combine_path(new_save_path, f.file_path(i));
+				std::string cur_file_path{ f.file_path(i) };
+				std::string const old_path = combine_path(save_path, cur_file_path);
+				std::string const new_path = combine_path(new_save_path, cur_file_path);
 
 				// ignore errors when rolling back
 				error_code ignore;
@@ -355,7 +357,8 @@ namespace libtorrent { namespace aux
 			// need to delete the source.
 			if (copied_files[i] == false) continue;
 
-			std::string const old_path = combine_path(save_path, f.file_path(i));
+			std::string cur_file_path{ f.file_path(i) };
+			std::string const old_path = combine_path(save_path, cur_file_path);
 
 			// we may still have some files in old save_path
 			// eg. if (flags == dont_replace && exists(new_path))

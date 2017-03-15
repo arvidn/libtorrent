@@ -1029,8 +1029,11 @@ namespace libtorrent
 		if (error.ec == boost::system::errc::not_enough_memory)
 		{
 			if (alerts().should_post<file_error_alert>())
+			{
+				std::string cur_file_name{ resolve_filename(error.file()) };
 				alerts().emplace_alert<file_error_alert>(error.ec
-					, resolve_filename(error.file()), error.operation_str(), get_handle());
+					, cur_file_name, error.operation_str(), get_handle());
+			}
 			if (c) c->disconnect(errors::no_memory, op_file);
 			return;
 		}
@@ -1039,8 +1042,11 @@ namespace libtorrent
 
 		// notify the user of the error
 		if (alerts().should_post<file_error_alert>())
+		{
+			std::string cur_file_name{ resolve_filename(error.file()) };
 			alerts().emplace_alert<file_error_alert>(error.ec
-				, resolve_filename(error.file()), error.operation_str(), get_handle());
+				, cur_file_name, error.operation_str(), get_handle());
+		}
 
 		// if a write operation failed, and future writes are likely to
 		// fail, while reads may succeed, just set the torrent to upload mode
@@ -1981,9 +1987,10 @@ namespace libtorrent
 			&& !m_add_torrent_params->have_pieces.empty()
 			&& m_ses.alerts().should_post<fastresume_rejected_alert>())
 		{
+			std::string cur_file_name{ resolve_filename(error.file()) };
 			m_ses.alerts().emplace_alert<fastresume_rejected_alert>(get_handle()
 				, error.ec
-				, resolve_filename(error.file())
+				, cur_file_name
 				, error.operation_str());
 		}
 
@@ -2295,8 +2302,11 @@ namespace libtorrent
 				m_checking_piece = piece_index_t{0};
 				m_num_checked_pieces = piece_index_t{0};
 				if (m_ses.alerts().should_post<file_error_alert>())
+				{
+					std::string cur_file_name{ resolve_filename(error.file()) };
 					m_ses.alerts().emplace_alert<file_error_alert>(error.ec,
-						resolve_filename(error.file()), error.operation_str(), get_handle());
+						cur_file_name, error.operation_str(), get_handle());
+				}
 
 #ifndef TORRENT_DISABLE_LOGGING
 				if (should_log())
@@ -7489,8 +7499,11 @@ namespace libtorrent
 		else
 		{
 			if (alerts().should_post<storage_moved_failed_alert>())
+			{
+				std::string cur_file_name{ resolve_filename(error.file()) };
 				alerts().emplace_alert<storage_moved_failed_alert>(get_handle(), error.ec
-					, resolve_filename(error.file()), error.operation_str());
+					, cur_file_name, error.operation_str());
+			}
 		}
 	}
 	catch (...) { handle_exception(); }
@@ -7979,7 +7992,8 @@ namespace libtorrent
 		if (m_storage && file >= file_index_t(0))
 		{
 			file_storage const& st = m_torrent_file->files();
-			return combine_path(m_save_path, st.file_path(file));
+			std::string cur_file_path{ st.file_path(file) };
+			return combine_path(m_save_path, cur_file_path);
 		}
 		else
 		{
@@ -7996,8 +8010,11 @@ namespace libtorrent
 		update_gauge();
 
 		if (alerts().should_post<torrent_error_alert>())
+		{
+			std::string cur_file_name{ resolve_filename(error_file) };
 			alerts().emplace_alert<torrent_error_alert>(get_handle(), ec
-				, resolve_filename(error_file));
+				, cur_file_name);
+		}
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (ec)

@@ -464,8 +464,8 @@ namespace libtorrent
 				return resp;
 			}
 
-			bdecode_node const scrape_data = files.dict_find_dict(
-				scrape_ih.to_string());
+			std::string find_str{ scrape_ih.to_string() };
+			bdecode_node const scrape_data = files.dict_find_dict(find_str);
 
 			if (!scrape_data)
 			{

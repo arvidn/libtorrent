@@ -375,7 +375,12 @@ namespace libtorrent
 		{
 			std::string sep_path { path };
 			std::replace(sep_path.begin(), sep_path.end(), '/', '\\');
-			prepared_path = "\\\\?\\" + (is_complete(sep_path) ? sep_path : combine_path(current_working_directory(), sep_path));
+			if (!is_complete(sep_path))
+			{
+				std::string cwd_path { current_working_directory() };
+				sep_path = combine_path(cwd_path, sep_path);
+			}
+			prepared_path = "\\\\?\\" + sep_path;
 		}
 #else
 		std::string prepared_path { path };
@@ -1131,8 +1136,9 @@ namespace libtorrent
 	std::string complete(string_view f)
 	{
 		if (is_complete(f)) return f.to_string();
-		if (f == ".") return current_working_directory();
-		return combine_path(current_working_directory(), f);
+		std::string cwd{ current_working_directory() };
+		if (f == ".") return cwd;
+		return combine_path(cwd, f);
 	}
 
 	bool is_complete(string_view f)
