@@ -52,14 +52,24 @@ namespace libtorrent { namespace aux {
 		array() = default;
 		explicit array(std::array<T, Size>&& arr) : base(arr) {}
 
-		auto operator[](IndexType idx) const -> decltype(this->base::operator[](underlying_index()))
+		auto operator[](IndexType idx) const ->
+#if TORRENT_AUTO_RETURN_TYPES
+			decltype(auto)
+#else
+			decltype(this->base::operator[](underlying_index()))
+#endif
 		{
 			TORRENT_ASSERT(idx >= IndexType(0));
 			TORRENT_ASSERT(idx < end_index());
 			return this->base::operator[](std::size_t(static_cast<underlying_index>(idx)));
 		}
 
-		auto operator[](IndexType idx) -> decltype(this->base::operator[](underlying_index()))
+		auto operator[](IndexType idx) ->
+#if TORRENT_AUTO_RETURN_TYPES
+			decltype(auto)
+#else
+			decltype(this->base::operator[](underlying_index()))
+#endif
 		{
 			TORRENT_ASSERT(idx >= IndexType(0));
 			TORRENT_ASSERT(idx < end_index());
