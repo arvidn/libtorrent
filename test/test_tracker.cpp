@@ -403,6 +403,8 @@ void test_udp_tracker(std::string const& iface, address tracker, tcp::endpoint c
 
 	// we should have announced the stopped event now
 	TEST_EQUAL(num_udp_announces(), prev_udp_announces + 2);
+
+	stop_udp_tracker();
 }
 
 TORRENT_TEST(udp_tracker_v4)

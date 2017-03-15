@@ -201,14 +201,15 @@ struct udp_tracker
 			return;
 		}
 
-		std::printf("%s: UDP tracker initialized on port %d\n", time_now_string(), m_port);
+		std::printf("%s: UDP tracker [%p] initialized on port %d\n"
+			, time_now_string(), this, m_port);
 
 		m_thread = std::make_shared<std::thread>(&udp_tracker::thread_fun, this);
 	}
 
 	void stop()
 	{
-		std::printf("%s: UDP tracker, stop\n", time_now_string());
+		std::printf("%s: UDP tracker [%p], stop\n", time_now_string(), this);
 		m_abort = true;
 		m_socket.cancel();
 		m_socket.close();
@@ -216,6 +217,8 @@ struct udp_tracker
 
 	~udp_tracker()
 	{
+		std::printf("%s: UDP tracker [%p], ~udp_tracker\n"
+			, time_now_string(), this);
 		m_ios.post(std::bind(&udp_tracker::stop, this));
 		if (m_thread) m_thread->join();
 	}
@@ -223,13 +226,6 @@ struct udp_tracker
 	int port() const { return m_port; }
 
 	int num_hits() const { return m_udp_announces; }
-
-	static void incoming_packet(error_code const& ec, size_t bytes_transferred, size_t *ret, error_code* error, bool* done)
-	{
-		*ret = bytes_transferred;
-		*error = ec;
-		*done = true;
-	}
 
 	void thread_fun()
 	{
@@ -249,7 +245,7 @@ struct udp_tracker
 			return;
 		}
 
-		std::printf("UDP exiting UDP tracker thread\n");
+		std::printf("UDP exiting UDP tracker [%p] thread\n", this);
 	}
 };
 
@@ -257,6 +253,7 @@ std::shared_ptr<udp_tracker> g_udp_tracker;
 
 int start_udp_tracker(address iface)
 {
+	TORRENT_ASSERT(!g_udp_tracker);
 	g_udp_tracker.reset(new udp_tracker(iface));
 	return g_udp_tracker->port();
 }
