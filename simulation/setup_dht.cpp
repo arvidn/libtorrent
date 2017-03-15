@@ -89,17 +89,18 @@ struct dht_node final : lt::dht::udp_socket_interface
 		, m_socket(m_io_service)
 		, m_dht((flags & dht_network::bind_ipv6) ? udp::v6() : udp::v4()
 			, this, sett, id_from_addr(m_io_service.get_ips().front())
-			, nullptr, cnt, std::map<std::string, lt::dht::node*>(), *m_dht_storage)
+			, nullptr, cnt, m_nodes, *m_dht_storage)
 #else
 		, m_socket(new asio::ip::udp::socket(m_io_service))
 		, m_dht(new lt::dht::node((flags & dht_network::bind_ipv6) ? udp::v6() : udp::v4()
 			, this, sett, id_from_addr(m_io_service.get_ips().front())
-			, nullptr, cnt, std::map<std::string, lt::dht::node*>(), *m_dht_storage))
+			, nullptr, cnt, m_nodes, *m_dht_storage))
 #endif
 		, m_add_dead_nodes((flags & dht_network::add_dead_nodes) != 0)
 		, m_ipv6((flags & dht_network::bind_ipv6) != 0)
 	{
 		m_dht_storage->update_node_ids({id_from_addr(m_io_service.get_ips().front())});
+		m_nodes.insert(std::make_pair(dht().protocol_family_name(), &dht()));
 		error_code ec;
 		sock().open(m_ipv6 ? asio::ip::udp::v6() : asio::ip::udp::v4());
 		sock().bind(asio::ip::udp::endpoint(
@@ -257,6 +258,7 @@ struct dht_node final : lt::dht::udp_socket_interface
 private:
 	asio::io_service m_io_service;
 	std::shared_ptr<dht::dht_storage_interface> m_dht_storage;
+	std::map<std::string, lt::dht::node*> m_nodes;
 #if LIBSIMULATOR_USE_MOVE
 	lt::udp::socket m_socket;
 	lt::udp::socket& sock() { return m_socket; }
