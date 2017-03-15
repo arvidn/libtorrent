@@ -413,7 +413,10 @@ TORRENT_TEST(udp_tracker_v4)
 #if TORRENT_USE_IPV6
 TORRENT_TEST(udp_tracker_v6)
 {
-	test_udp_tracker("[::1]", address_v6::any(), ep("::1.3.3.7", 1337));
+	if (supports_ipv6())
+	{
+		test_udp_tracker("[::1]", address_v6::any(), ep("::1.3.3.7", 1337));
+	}
 }
 #endif
 
