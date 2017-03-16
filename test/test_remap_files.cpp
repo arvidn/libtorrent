@@ -106,7 +106,7 @@ void test_remap_files(storage_mode_t storage_mode = storage_mode_sparse)
 	}
 
 	// wait for all alerts to come back and verify the data against the expected
-	// piece adata
+	// piece data
 	aux::vector<bool, piece_index_t> pieces(fs.num_pieces(), false);
 	aux::vector<bool, piece_index_t> passed(fs.num_pieces(), false);
 	aux::vector<bool, file_index_t> files(fs.num_files(), false);
@@ -200,4 +200,3 @@ TORRENT_TEST(remap_files)
 {
 	test_remap_files();
 }
-

@@ -558,4 +558,3 @@ namespace libtorrent { namespace aux
 	}
 
 }}
-
