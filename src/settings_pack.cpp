@@ -334,6 +334,7 @@ namespace libtorrent
 		SET(urlseed_max_request_bytes, 16 * 1024 * 1024, 0),
 		SET(web_seed_name_lookup_retry, 1800, nullptr),
 		SET(close_file_interval, CLOSE_FILE_INTERVAL, &session_impl::update_close_file_interval),
+		SET(max_web_seed_connections, 3, nullptr),
 	}});
 
 #undef SET

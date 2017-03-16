@@ -201,6 +201,7 @@ namespace libtorrent
 	{
 		ipv4_peer(tcp::endpoint const& ip, bool connectable, int src);
 		ipv4_peer(ipv4_peer const& p);
+		ipv4_peer& operator=(ipv4_peer const& p);
 
 		address_v4 addr;
 	};
@@ -209,7 +210,7 @@ namespace libtorrent
 	struct TORRENT_EXTRA_EXPORT i2p_peer : torrent_peer
 	{
 		i2p_peer(char const* destination, bool connectable, int src);
-		i2p_peer(const i2p_peer&);
+		i2p_peer(i2p_peer const&);
 		~i2p_peer();
 		i2p_peer& operator=(i2p_peer const&);
 
@@ -221,6 +222,7 @@ namespace libtorrent
 	struct TORRENT_EXTRA_EXPORT ipv6_peer : torrent_peer
 	{
 		ipv6_peer(tcp::endpoint const& ip, bool connectable, int src);
+		ipv6_peer(ipv6_peer const& p);
 
 		const address_v6::bytes_type addr;
 	};
@@ -229,7 +231,7 @@ namespace libtorrent
 	struct peer_address_compare
 	{
 		bool operator()(
-				torrent_peer const* lhs, libtorrent::address const& rhs) const
+			torrent_peer const* lhs, libtorrent::address const& rhs) const
 		{
 			return lhs->address() < rhs;
 		}

@@ -1,3 +1,4 @@
+	* add limit for number of web seed connections
 	* added support for retrieval of DHT live nodes
 	* complete UNC path support
 	* add packets pool allocator
