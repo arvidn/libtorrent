@@ -937,6 +937,20 @@ namespace libtorrent
 		branch.append(leaf.data(), leaf.size());
 	}
 
+	std::string combine_path(std::string const& ls, std::string const& rs)
+	{
+		string_view lhs{ls};
+		string_view rhs{rs};
+		return combine_path(lhs, rhs);
+	}
+
+	std::string combine_path(char const* ls, char const* rs)
+	{
+		string_view lhs{ls};
+		string_view rhs{rs};
+		return combine_path(lhs, rhs);
+	}
+
 	std::string combine_path(string_view lhs, string_view rhs)
 	{
 		TORRENT_ASSERT(!is_complete(rhs));

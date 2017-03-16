@@ -165,6 +165,10 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT std::string filename(std::string const& f);
 	TORRENT_EXTRA_EXPORT std::string combine_path(string_view lhs
 		, string_view rhs);
+	TORRENT_EXTRA_EXPORT std::string combine_path(std::string const& ls
+		, std::string const& rs);
+	TORRENT_EXTRA_EXPORT std::string combine_path(char const* ls
+		, char const* rs);
 	TORRENT_EXTRA_EXPORT void append_path(std::string& branch
 		, string_view leaf);
 
