@@ -46,6 +46,7 @@ TORRENT_TEST(alerts_types)
 	TEST_EQUAL(name::alert_type, seq); \
 	TEST_EQUAL(name::static_category, cat);
 
+	TEST_ALERT_TYPE(dht_bootstrap_alert, 62, 0, alert::dht_notification);
 	TEST_ALERT_TYPE(session_stats_alert, 70, 1, alert::stats_notification);
 	TEST_ALERT_TYPE(dht_get_peers_reply_alert, 87, 0, alert::dht_operation_notification);
 	TEST_ALERT_TYPE(session_error_alert, 90, 0, alert::error_notification);

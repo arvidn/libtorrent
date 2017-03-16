@@ -69,6 +69,14 @@ namespace libtorrent { namespace dht
 		c.inc_stats_counter(counters::dht_allocated_observers, allocated_observers);
 	}
 
+	std::vector<udp::endpoint> concat(std::vector<udp::endpoint> const& v1
+		, std::vector<udp::endpoint> const& v2)
+	{
+		std::vector<udp::endpoint> r = v1;
+		r.insert(r.end(), v2.begin(), v2.end());
+		return r;
+	}
+
 	} // anonymous namespace
 
 	// class that puts the networking and the kademlia node in a single
@@ -155,9 +163,10 @@ namespace libtorrent { namespace dht
 		m_refresh_timer.expires_from_now(seconds(5), ec);
 		m_refresh_timer.async_wait(std::bind(&dht_tracker::refresh_timeout, self(), _1));
 
-		m_dht.bootstrap(m_state.nodes, f);
+		// bootstrap with mix of IP protocols via want/nodes/nodes6
+		m_dht.bootstrap(concat(m_state.nodes, m_state.nodes6), f);
 #if TORRENT_USE_IPV6
-		m_dht6.bootstrap(m_state.nodes6, f);
+		m_dht6.bootstrap(concat(m_state.nodes6, m_state.nodes), f);
 #endif
 		m_state.clear();
 	}

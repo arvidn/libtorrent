@@ -220,7 +220,10 @@ void node::bootstrap(std::vector<udp::endpoint> const& nodes
 
 	for (auto const& n : nodes)
 	{
-		if (n.protocol() != protocol()) continue;
+#if !TORRENT_USE_IPV6
+		if (n.protocol() == udp::v6()) continue;
+#endif
+
 #ifndef TORRENT_DISABLE_LOGGING
 		++count;
 #endif
