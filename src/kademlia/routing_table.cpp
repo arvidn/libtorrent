@@ -198,7 +198,7 @@ std::int64_t routing_table::num_global_nodes() const
 	int deepest_size = 0;
 	for (auto const& i : m_buckets)
 	{
-		deepest_size = int(i.live_nodes.size()); // + i.replacements.size();
+		deepest_size = i.live_nodes.end_index(); // + i.replacements.size();
 		if (deepest_size < m_bucket_size) break;
 		// this bucket is full
 		++deepest_bucket;

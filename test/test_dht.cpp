@@ -1824,6 +1824,75 @@ TORRENT_TEST(bootstrap_v6)
 }
 #endif
 
+#if TORRENT_USE_IPV6
+void test_bootstrap_want(address(&rand_addr)())
+{
+	dht_test_setup t(udp::endpoint(rand_addr(), 20));
+	bdecode_node response;
+	bool ret;
+
+	dht::key_desc_t const find_node_desc[] = {
+		{"y", bdecode_node::string_t, 1, 0},
+		{"t", bdecode_node::string_t, 2, 0},
+		{"q", bdecode_node::string_t, 9, 0},
+		{"a", bdecode_node::dict_t, 0, key_desc_t::parse_children},
+			{"id", bdecode_node::string_t, 20, 0},
+			{"target", bdecode_node::string_t, 20, key_desc_t::optional},
+			{"info_hash", bdecode_node::string_t, 20, key_desc_t::optional},
+			{"want", bdecode_node::list_t, 0, key_desc_t::last_child},
+	};
+
+	bdecode_node find_node_keys[8];
+
+	g_sent_packets.clear();
+
+	std::vector<udp::endpoint> nodesv;
+	if (t.source.address().is_v4())
+		nodesv.push_back(rand_udp_ep(rand_v6));
+	else
+		nodesv.push_back(rand_udp_ep(rand_v4));
+
+	t.dht_node.bootstrap(nodesv, std::bind(&nop_node));
+
+	TEST_EQUAL(g_sent_packets.size(), 1);
+	TEST_EQUAL(g_sent_packets.front().first, nodesv[0]);
+
+	lazy_from_entry(g_sent_packets.front().second, response);
+	ret = verify_message(response, find_node_desc, find_node_keys, t.error_string);
+	if (ret)
+	{
+		TEST_EQUAL(find_node_keys[0].string_value(), "q");
+		TEST_CHECK(find_node_keys[2].string_value() == "find_node"
+			|| find_node_keys[2].string_value() == "get_peers");
+
+		TEST_EQUAL(find_node_keys[7].list_size(), 1);
+		if (t.source.address().is_v4())
+		{
+			TEST_EQUAL(find_node_keys[7].list_string_value_at(0), "n4");
+		}
+		else
+		{
+			TEST_EQUAL(find_node_keys[7].list_string_value_at(0), "n6");
+		}
+	}
+	else
+	{
+		std::printf("   invalid find_node request: %s\n", print_entry(response).c_str());
+		TEST_ERROR(t.error_string);
+	}
+}
+
+TORRENT_TEST(bootstrap_want_v4)
+{
+	test_bootstrap_want(rand_v4);
+}
+
+TORRENT_TEST(bootstrap_want_v6)
+{
+	test_bootstrap_want(rand_v6);
+}
+#endif
+
 // test that the node ignores a nodes entry which is too short
 void test_short_nodes(address(&rand_addr)())
 {
