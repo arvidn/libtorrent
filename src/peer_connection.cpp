@@ -5242,12 +5242,9 @@ namespace libtorrent
 			write_dont_have(r.piece);
 			write_reject_request(r);
 			if (t->alerts().should_post<file_error_alert>())
-			{
-				std::string cur_file_name{ t->resolve_filename(error.file()) };
 				t->alerts().emplace_alert<file_error_alert>(error.ec
-					, cur_file_name
+					, make_sv(t->resolve_filename(error.file()))
 					, error.operation_str(), t->get_handle());
-			}
 
 			++m_disk_read_failures;
 			if (m_disk_read_failures > 100) disconnect(error.ec, op_file_read);

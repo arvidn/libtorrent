@@ -75,8 +75,7 @@ namespace libtorrent
 			}
 			else
 			{
-				std::string hash_str{ aux::to_hex(t->info_hash()) };
-				m_name_idx = alloc.copy_string(hash_str);
+				m_name_idx = alloc.copy_string(make_sv(aux::to_hex(t->info_hash())));
 			}
 		}
 		else
