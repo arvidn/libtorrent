@@ -64,13 +64,13 @@ namespace libtorrent { namespace aux {
 
 		template <typename U = underlying_index, typename Cond
 			= typename std::enable_if<std::is_signed<U>::value>::type>
-		typed_span<T, IndexType> first(underlying_index n) const
+		typed_span first(underlying_index n) const
 		{
 			TORRENT_ASSERT(n >= 0);
 			return this->base::first(std::size_t(n));
 		}
 
-		typed_span<T, IndexType> first(std::size_t n) const
+		typed_span first(std::size_t n) const
 		{
 			TORRENT_ASSERT(n <= std::size_t((std::numeric_limits<underlying_index>::max)()));
 			return this->base::first(n);
@@ -78,13 +78,13 @@ namespace libtorrent { namespace aux {
 
 		template <typename U = underlying_index, typename Cond
 			= typename std::enable_if<std::is_signed<U>::value>::type>
-		typed_span<T, IndexType> last(underlying_index n) const
+		typed_span last(underlying_index n) const
 		{
 			TORRENT_ASSERT(n >= 0);
 			return this->base::last(std::size_t(n));
 		}
 
-		typed_span<T, IndexType> last(std::size_t n) const
+		typed_span last(std::size_t n) const
 		{
 			TORRENT_ASSERT(n <= std::size_t((std::numeric_limits<underlying_index>::max)()));
 			return this->base::last(n);
@@ -92,7 +92,7 @@ namespace libtorrent { namespace aux {
 
 		template <typename U = underlying_index, typename Cond
 			= typename std::enable_if<std::is_signed<U>::value>::type>
-		typed_span<T, IndexType> subspan(underlying_index offset) const
+		typed_span subspan(underlying_index offset) const
 		{
 			TORRENT_ASSERT(offset >= 0);
 			return this->base::subspan(std::size_t(offset));
@@ -100,20 +100,20 @@ namespace libtorrent { namespace aux {
 
 		template <typename U = underlying_index, typename Cond
 			= typename std::enable_if<std::is_signed<U>::value>::type>
-		typed_span<T, IndexType> subspan(underlying_index offset, underlying_index count) const
+		typed_span subspan(underlying_index offset, underlying_index count) const
 		{
 			TORRENT_ASSERT(offset >= 0);
 			TORRENT_ASSERT(count >= 0);
 			return this->base::subspan(std::size_t(offset), std::size_t(count));
 		}
 
-		typed_span<T, IndexType> subspan(std::size_t offset) const
+		typed_span subspan(std::size_t offset) const
 		{
 			TORRENT_ASSERT(offset <= std::size_t((std::numeric_limits<underlying_index>::max)()));
 			return this->base::subspan(offset);
 		}
 
-		typed_span<T, IndexType> subspan(std::size_t offset, std::size_t count) const
+		typed_span subspan(std::size_t offset, std::size_t count) const
 		{
 			TORRENT_ASSERT(offset <= std::size_t((std::numeric_limits<underlying_index>::max)()));
 			TORRENT_ASSERT(count <= std::size_t((std::numeric_limits<underlying_index>::max)()));
