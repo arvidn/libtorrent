@@ -5790,8 +5790,8 @@ namespace libtorrent
 			return;
 		}
 
-		bool const is_ip = is_ip_address(hostname.c_str());
-		if (is_ip) a.address(address::from_string(hostname.c_str(), ec));
+		bool const is_ip = is_ip_address(hostname);
+		if (is_ip) a.address(address::from_string(hostname, ec));
 		bool const proxy_hostnames = settings().get_bool(settings_pack::proxy_hostnames)
 			&& !is_ip;
 
