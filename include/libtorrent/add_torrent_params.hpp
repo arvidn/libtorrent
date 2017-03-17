@@ -105,6 +105,7 @@ namespace libtorrent
 		{
 		}
 
+#ifndef TORRENT_NO_DEPRECATE
 		TORRENT_DEPRECATED
 		void update_flags() const
 		{
@@ -122,6 +123,8 @@ namespace libtorrent
 			if (duplicate_is_error) f |= flag_duplicate_is_error;
 			if (merge_resume_trackers) f |= flag_merge_resume_trackers;
 		}
+#endif
+
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 		// values for the ``flags`` field

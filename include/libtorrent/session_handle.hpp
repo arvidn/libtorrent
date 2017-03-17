@@ -971,6 +971,8 @@ namespace libtorrent
 		void set_alert_notify(boost::function<void()> const& fun);
 
 #ifndef TORRENT_NO_DEPRECATE
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 		TORRENT_DEPRECATED
 		void set_severity_level(alert::severity_t s);
 
@@ -990,11 +992,6 @@ namespace libtorrent
 		TORRENT_DEPRECATED
 		boost::uint32_t get_alert_mask() const;
 
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-
 		// This sets a function to be called (from within libtorrent's netowrk
 		// thread) every time an alert is posted. Since the function (``fun``) is
 		// run in libtorrent's internal thread, it may not block.
@@ -1007,9 +1004,7 @@ namespace libtorrent
 		void set_alert_dispatch(
 			boost::function<void(std::auto_ptr<alert>)> const& fun);
 
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 		// Starts and stops Local Service Discovery. This service will broadcast
 		// the infohashes of all the non-private torrents on the local network to
