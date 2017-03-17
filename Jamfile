@@ -27,7 +27,6 @@ if $(BOOST_ROOT)
 else
 {
 	local boost-lib-search-path =
-		<search>/usr/lib
 		<search>/usr/local/lib
 		;
 
