@@ -1255,11 +1255,6 @@ int main(int argc, char* argv[])
 			"  -^ <limit>            Set the max number of active seeds\n"
 			"\n NETWORK OPTIONS\n"
 			"  -p <port>             sets the listen port\n"
-#ifndef TORRENT_NO_DEPRECATE
-			"  -o <limit>            limits the number of simultaneous\n"
-			"                        half-open TCP connections to the\n"
-			"                        given number.\n"
-#endif
 			"  -w <seconds>          sets the retry time for failed web seeds\n"
 			"  -x <file>             loads an emule IP-filter file\n"
 			"  -P <host:port>        Use the specified SOCKS5 proxy\n"
@@ -1353,7 +1348,6 @@ int main(int argc, char* argv[])
 				p.flags |= add_torrent_params::flag_paused;
 				p.flags &= ~add_torrent_params::flag_duplicate_is_error;
 				p.flags |= add_torrent_params::flag_auto_managed;
-				p.flags |= add_torrent_params::flag_pinned;
 				magnet_links.push_back(p);
 				continue;
 			}
@@ -1370,9 +1364,6 @@ int main(int argc, char* argv[])
 		switch (argv[i][1])
 		{
 			case 'f': g_log_file = fopen(arg, "w+"); break;
-#ifndef TORRENT_NO_DEPRECATE
-			case 'o': settings.set_int(settings_pack::half_open_limit, atoi(arg)); break;
-#endif
 			case 'h': settings.set_bool(settings_pack::allow_multiple_connections_per_ip, true); --i; break;
 			case 'p': listen_port = atoi(arg); break;
 			case 'k': high_performance_seed(settings); --i; break;
