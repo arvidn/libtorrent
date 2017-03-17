@@ -63,7 +63,7 @@ namespace libtorrent
 			std::memset(&m_sockaddr, 0, sizeof(sockaddr_nl));
 			m_sockaddr.nl_family = AF_NETLINK;
 			m_sockaddr.nl_groups = group;
-			m_sockaddr.nl_pid = pid;
+			m_sockaddr.nl_pid = std::uint32_t(pid);
 		}
 
 		basic_nl_endpoint(basic_nl_endpoint const& other)

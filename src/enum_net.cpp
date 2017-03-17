@@ -160,7 +160,7 @@ namespace libtorrent { namespace
 
 #if TORRENT_USE_NETLINK
 
-	int read_nl_sock(int sock, char *buf, int bufsize, int const seq, int const pid)
+	int read_nl_sock(int sock, char *buf, int bufsize, std::uint32_t const seq, int const pid)
 	{
 		nlmsghdr* nl_hdr;
 
@@ -168,7 +168,7 @@ namespace libtorrent { namespace
 
 		do
 		{
-			int read_len = int(recv(sock, buf, bufsize - msg_len, 0));
+			int read_len = int(recv(sock, buf, std::size_t(bufsize - msg_len), 0));
 			if (read_len < 0) return -1;
 
 			nl_hdr = reinterpret_cast<nlmsghdr*>(buf);
@@ -191,7 +191,7 @@ namespace libtorrent { namespace
 
 			if ((nl_hdr->nlmsg_flags & NLM_F_MULTI) == 0) break;
 
-		} while((int(nl_hdr->nlmsg_seq) != seq) || (int(nl_hdr->nlmsg_pid) != pid));
+		} while((nl_hdr->nlmsg_seq != seq) || (int(nl_hdr->nlmsg_pid) != pid));
 		return msg_len;
 	}
 
@@ -1044,7 +1044,7 @@ namespace libtorrent
 			return std::vector<ip_route>();
 		}
 
-		int seq = 0;
+		std::uint32_t seq = 0;
 
 		char msg[BUFSIZE] = {};
 		nlmsghdr* nl_msg = reinterpret_cast<nlmsghdr*>(msg);
