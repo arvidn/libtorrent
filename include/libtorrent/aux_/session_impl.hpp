@@ -462,8 +462,13 @@ namespace libtorrent
 			int rate_limit(peer_class_t c, int channel) const;
 
 			bool preemptive_unchoke() const TORRENT_OVERRIDE;
+
+			// deprecated, use stats counters ``num_peers_up_unchoked`` instead
 			int num_uploads() const TORRENT_OVERRIDE
 			{ return int(m_stats_counters[counters::num_peers_up_unchoked]); }
+
+			// deprecated, use stats counters ``num_peers_connected`` +
+			// ``num_peers_half_open`` instead.
 			int num_connections() const TORRENT_OVERRIDE { return int(m_connections.size()); }
 
 			int peak_up_rate() const { return m_peak_up_rate; }
