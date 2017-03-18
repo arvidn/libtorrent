@@ -274,7 +274,7 @@ namespace libtorrent
 			ws.push_back(web_seed_t(e, web_seed_entry::http_seed));
 
 		aux::random_shuffle(ws.begin(), ws.end());
-		for (auto& w : ws) m_web_seeds.push_back(std::move(w));
+		for (auto& w : ws) m_web_seeds.emplace_back(std::move(w));
 
 		// --- TRACKERS ---
 

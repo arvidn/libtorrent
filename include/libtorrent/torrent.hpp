@@ -183,6 +183,31 @@ namespace libtorrent
 		// if this bitfield is non-empty, it represents the files this web server
 		// has.
 		typed_bitfield<file_index_t> have_files;
+#if defined __GNUC__ && defined _GLIBCXX_DEBUG
+		// this works around a bug in libstdc++'s checked iterators
+		// http://stackoverflow.com/questions/22915325/avoiding-self-assignment-in-stdshuffle
+		web_seed_t& operator=(web_seed_t&& rhs)
+		{
+			if (&rhs == this) return *this;
+
+			web_seed_entry::operator=(std::move(rhs));
+			retry = std::move(rhs.retry);
+			endpoints = std::move(rhs.endpoints);
+			peer_info = std::move(rhs.peer_info);
+			supports_keepalive = std::move(rhs.supports_keepalive);
+			resolving = std::move(rhs.resolving);
+			removed = std::move(rhs.removed);
+			ephemeral = std::move(rhs.ephemeral);
+			restart_request = std::move(rhs.restart_request);
+			restart_piece = std::move(rhs.restart_piece);
+			redirects = std::move(rhs.redirects);
+			have_files = std::move(rhs.have_files);
+			return *this;
+		}
+
+		web_seed_t& operator=(web_seed_t const&) = default;
+		web_seed_t(web_seed_t const&) = default;
+#endif
 	};
 
 	struct TORRENT_EXTRA_EXPORT torrent_hot_members
