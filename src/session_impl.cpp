@@ -5528,6 +5528,12 @@ namespace aux {
 	{
 		INVARIANT_CHECK;
 
+#ifndef TORRENT_DISABLE_LOGGING
+		session_log("about to start DHT, running: %s, router lookups: %d, aborting: %s"
+			, m_dht ? "true" : "false", m_outstanding_router_lookups
+			, m_abort ? "true" : "false");
+#endif
+
 		stop_dht();
 
 		// postpone starting the DHT if we're still resolving the DHT router
@@ -5569,6 +5575,10 @@ namespace aux {
 
 	void session_impl::stop_dht()
 	{
+#ifndef TORRENT_DISABLE_LOGGING
+		session_log("about to stop DHT, running: %s", m_dht ? "true" : "false");
+#endif
+
 		if (m_dht)
 		{
 			m_dht->stop();
