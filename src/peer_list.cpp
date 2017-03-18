@@ -1006,6 +1006,7 @@ namespace libtorrent
 	}
 
 #if TORRENT_USE_I2P
+	// TODO: 3 use string_view for destination
 	torrent_peer* peer_list::add_i2p_peer(char const* destination, int src, char flags, torrent_state* state)
 	{
 		TORRENT_ASSERT(is_single_thread());

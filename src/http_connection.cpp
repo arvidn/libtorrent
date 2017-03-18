@@ -281,7 +281,7 @@ void http_connection::start(std::string const& hostname, int port
 #if TORRENT_USE_I2P
 		bool is_i2p = false;
 		char const* top_domain = strrchr(hostname.c_str(), '.');
-		if (top_domain && strcmp(top_domain, ".i2p") == 0 && i2p_conn)
+		if (top_domain && top_domain == ".i2p"_sv && i2p_conn)
 		{
 			// this is an i2p name, we need to use the sam connection
 			// to do the name lookup

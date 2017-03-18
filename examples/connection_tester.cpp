@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/file_pool.hpp"
+#include "libtorrent/string_view.hpp"
 #include <random>
 #include <cstring>
 #include <thread>
@@ -948,7 +949,7 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	if (strcmp(command, "gen-torrent") == 0)
+	if (command == "gen-torrent"_sv)
 	{
 		std::vector<char> tmp;
 		std::string name = leaf_path(torrent_file);
@@ -958,7 +959,7 @@ int main(int argc, char* argv[])
 			, name.c_str());
 
 		FILE* output = stdout;
-		if (strcmp("-", torrent_file) != 0)
+		if ("-"_sv != torrent_file)
 		{
 			if( (output = std::fopen(torrent_file, "wb+")) == nullptr)
 			{
@@ -974,7 +975,7 @@ int main(int argc, char* argv[])
 
 		return 0;
 	}
-	else if (strcmp(command, "gen-data") == 0)
+	else if (command == "gen-data"_sv)
 	{
 		error_code ec;
 		torrent_info ti(torrent_file, ec);
@@ -986,7 +987,7 @@ int main(int argc, char* argv[])
 		generate_data(data_path, ti);
 		return 0;
 	}
-	else if (strcmp(command, "gen-test-torrents") == 0)
+	else if (command == "gen-test-torrents"_sv)
 	{
 		std::vector<char> buf;
 		for (int i = 0; i < num_torrents; ++i)
@@ -1030,15 +1031,15 @@ int main(int argc, char* argv[])
 		}
 		return 0;
 	}
-	else if (strcmp(command, "upload") == 0)
+	else if (command == "upload"_sv)
 	{
 		test_mode = upload_test;
 	}
-	else if (strcmp(command, "download") == 0)
+	else if (command == "download"_sv)
 	{
 		test_mode = download_test;
 	}
-	else if (strcmp(command, "dual") == 0)
+	else if (command == "dual"_sv)
 	{
 		test_mode = dual_test;
 	}

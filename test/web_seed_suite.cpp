@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/announce_entry.hpp"
+#include "libtorrent/string_view.hpp"
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -283,7 +284,7 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed
 	save_path += proxy_name[proxy];
 
 	error_code ec;
-	int const port = start_web_server(strcmp(protocol, "https") == 0, chunked_encoding, keepalive);
+	int const port = start_web_server(protocol == "https"_sv, chunked_encoding, keepalive);
 
 	std::vector<torrent_args> test_cases;
 

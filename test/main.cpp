@@ -273,13 +273,13 @@ EXPORT int main(int argc, char const* argv[])
 	// pick up options
 	while (argc > 0 && argv[0][0] == '-')
 	{
-		if (strcmp(argv[0], "-h") == 0 || strcmp(argv[0], "--help") == 0)
+		if (argv[0] == "-h"_sv || argv[0] == "--help"_sv)
 		{
 			print_usage(executable);
 			return 0;
 		}
 
-		if (strcmp(argv[0], "-l") == 0 || strcmp(argv[0], "--list") == 0)
+		if (argv[0] == "-l"_sv || argv[0] == "--list"_sv)
 		{
 			std::printf("TESTS:\n");
 			for (int i = 0; i < _g_num_unit_tests; ++i)
@@ -289,17 +289,17 @@ EXPORT int main(int argc, char const* argv[])
 			return 0;
 		}
 
-		if (strcmp(argv[0], "-n") == 0 || strcmp(argv[0], "--no-redirect") == 0)
+		if (argv[0] == "-n"_sv || argv[0] == "--no-redirect"_sv)
 		{
 			redirect_stdout = false;
 		}
 
-		if (strcmp(argv[0], "--stderr-redirect") == 0)
+		if (argv[0] == "--stderr-redirect"_sv)
 		{
 			redirect_stderr = true;
 		}
 
-		if (strcmp(argv[0], "-k") == 0 || strcmp(argv[0], "--keep") == 0)
+		if (argv[0] == "-k"_sv || argv[0] == "--keep"_sv)
 		{
 			keep_files = true;
 		}

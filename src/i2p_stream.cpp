@@ -312,39 +312,42 @@ namespace libtorrent
 			, i2p_category());
 
 		// 0-terminate the string and parse it
+		// TODO: 3 once we've transitioned to string_view, remove the
+		// 0-termination
 		m_buffer.push_back(0);
 		char* ptr = m_buffer.data();
 		char* next = ptr;
 
-		char const* expect1 = nullptr;
-		char const* expect2 = nullptr;
+		string_view expect1;
+		string_view expect2;
 
 		switch (m_state)
 		{
 			case read_hello_response:
-				expect1 = "HELLO";
-				expect2 = "REPLY";
+				expect1 = "HELLO"_sv;
+				expect2 = "REPLY"_sv;
 				break;
 			case read_connect_response:
 			case read_accept_response:
-				expect1 = "STREAM";
-				expect2 = "STATUS";
+				expect1 = "STREAM"_sv;
+				expect2 = "STATUS"_sv;
 				break;
 			case read_session_create_response:
-				expect1 = "SESSION";
-				expect2 = "STATUS";
+				expect1 = "SESSION"_sv;
+				expect2 = "STATUS"_sv;
 				break;
 			case read_name_lookup_response:
-				expect1 = "NAMING";
-				expect2 = "REPLY";
+				expect1 = "NAMING"_sv;
+				expect2 = "REPLY"_sv;
 				break;
 		}
 
+		// TODO: 3 make string_tokenize return string_views instead
 		ptr = string_tokenize(next, ' ', &next);
-		if (ptr == nullptr || expect1 == nullptr || std::strcmp(expect1, ptr) != 0)
+		if (ptr == nullptr || expect1.empty() || expect1 != ptr)
 		{ handle_error(invalid_response, h); return; }
 		ptr = string_tokenize(next, ' ', &next);
-		if (ptr == nullptr || expect2 == nullptr || std::strcmp(expect2, ptr) != 0)
+		if (ptr == nullptr || expect2.empty() || expect2 != ptr)
 		{ handle_error(invalid_response, h); return; }
 
 		int result = 0;
@@ -356,38 +359,38 @@ namespace libtorrent
 			char const* const ptr2 = string_tokenize(next, ' ', &next);
 			if (ptr2 == nullptr) { handle_error(invalid_response, h); return; }
 
-			if (std::strcmp("RESULT", name) == 0)
+			if ("RESULT"_sv == name)
 			{
-				if (std::strcmp("OK", ptr2) == 0)
+				if ("OK"_sv == ptr2)
 					result = i2p_error::no_error;
-				else if (std::strcmp("CANT_REACH_PEER", ptr2) == 0)
+				else if ("CANT_REACH_PEER"_sv == ptr2)
 					result = i2p_error::cant_reach_peer;
-				else if (std::strcmp("I2P_ERROR", ptr2) == 0)
+				else if ("I2P_ERROR"_sv == ptr2)
 					result = i2p_error::i2p_error;
-				else if (std::strcmp("INVALID_KEY", ptr2) == 0)
+				else if ("INVALID_KEY"_sv == ptr2)
 					result = i2p_error::invalid_key;
-				else if (std::strcmp("INVALID_ID", ptr2) == 0)
+				else if ("INVALID_ID"_sv == ptr2)
 					result = i2p_error::invalid_id;
-				else if (std::strcmp("TIMEOUT", ptr2) == 0)
+				else if ("TIMEOUT"_sv == ptr2)
 					result = i2p_error::timeout;
-				else if (std::strcmp("KEY_NOT_FOUND", ptr2) == 0)
+				else if ("KEY_NOT_FOUND"_sv == ptr2)
 					result = i2p_error::key_not_found;
-				else if (std::strcmp("DUPLICATED_ID", ptr2) == 0)
+				else if ("DUPLICATED_ID"_sv == ptr2)
 					result = i2p_error::duplicated_id;
 				else
 					result = i2p_error::num_errors; // unknown error
 			}
-			/*else if (std::strcmp("MESSAGE", name) == 0)
+			/*else if ("MESSAGE" == name)
 			{
 			}
-			else if (std::strcmp("VERSION", name) == 0)
+			else if ("VERSION"_sv == name)
 			{
 			}*/
-			else if (std::strcmp("VALUE", name) == 0)
+			else if ("VALUE"_sv == name)
 			{
 				m_name_lookup = ptr2;
 			}
-			else if (std::strcmp("DESTINATION", name) == 0)
+			else if ("DESTINATION"_sv == name)
 			{
 				m_dest = ptr2;
 			}

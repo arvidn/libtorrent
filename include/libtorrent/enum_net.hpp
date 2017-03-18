@@ -100,6 +100,7 @@ namespace libtorrent
 	// verify the local endpoint of the socket once the connection is established.
 	// the returned address is the ip the socket was bound to (or address_v4::any()
 	// in case SO_BINDTODEVICE succeeded and we don't need to verify it).
+	// TODO: 3 use string_view for device_name
 	template <class Socket>
 	address bind_socket_to_device(io_service& ios, Socket& sock
 		, boost::asio::ip::tcp const& protocol
