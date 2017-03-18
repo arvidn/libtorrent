@@ -666,7 +666,7 @@ namespace libtorrent
 		// these are callbacks called by the tracker_connection instance
 		// (either http_tracker_connection or udp_tracker_connection)
 		// when this torrent got a response from its tracker request
-		// or when a failure occured
+		// or when a failure occurred
 		virtual void tracker_response(
 			tracker_request const& r
 			, address const& tracker_ip

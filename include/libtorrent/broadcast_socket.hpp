@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/string_view.hpp"
 
 #include <memory>
 #include <list>
@@ -49,7 +50,7 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT bool is_loopback(address const& addr);
 	TORRENT_EXTRA_EXPORT bool is_any(address const& addr);
 	TORRENT_EXTRA_EXPORT bool is_teredo(address const& addr);
-	bool is_ip_address(char const* host);
+	TORRENT_EXTRA_EXPORT bool is_ip_address(std::string const& host);
 
 	// determines if the operating system supports IPv6
 	TORRENT_EXTRA_EXPORT bool supports_ipv6();

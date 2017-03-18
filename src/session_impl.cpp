@@ -633,9 +633,7 @@ namespace aux {
 		update_dht();
 		update_peer_fingerprint();
 		update_dht_bootstrap_nodes();
-#ifndef TORRENT_DISABLE_DHT
 		update_dht_announce_interval();
-#endif
 	}
 
 	void session_impl::async_resolve(std::string const& host, int flags
@@ -3525,23 +3523,22 @@ namespace aux {
 		TORRENT_ASSERT(m_dht);
 
 		// announce to DHT every 15 minutes
-		int delay = (std::max)(m_settings.get_int(settings_pack::dht_announce_interval)
-			/ (std::max)(int(m_torrents.size()), 1), 1);
+		int delay = std::max(m_settings.get_int(settings_pack::dht_announce_interval)
+			/ std::max(int(m_torrents.size()), 1), 1);
 
 		if (!m_dht_torrents.empty())
 		{
 			// we have prioritized torrents that need
 			// an initial DHT announce. Don't wait too long
 			// until we announce those.
-			delay = (std::min)(4, delay);
+			delay = std::min(4, delay);
 		}
 
 		ADD_OUTSTANDING_ASYNC("session_impl::on_dht_announce");
 		error_code ec;
 		m_dht_announce_timer.expires_from_now(seconds(delay), ec);
-		m_dht_announce_timer.async_wait([this](error_code const& err) {
-				this->wrap(&session_impl::on_dht_announce, err); }
-			);
+		m_dht_announce_timer.async_wait([this](error_code const& err)
+			{ this->wrap(&session_impl::on_dht_announce, err); });
 
 		if (!m_dht_torrents.empty())
 		{
@@ -6189,8 +6186,8 @@ namespace aux {
 
 		ADD_OUTSTANDING_ASYNC("session_impl::on_dht_announce");
 		error_code ec;
-		int delay = (std::max)(m_settings.get_int(settings_pack::dht_announce_interval)
-			/ (std::max)(int(m_torrents.size()), 1), 1);
+		int delay = std::max(m_settings.get_int(settings_pack::dht_announce_interval)
+			/ std::max(int(m_torrents.size()), 1), 1);
 		m_dht_announce_timer.expires_from_now(seconds(delay), ec);
 		m_dht_announce_timer.async_wait([this](error_code const& e) {
 			this->wrap(&session_impl::on_dht_announce, e); });

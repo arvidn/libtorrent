@@ -56,7 +56,7 @@ using namespace std::placeholders;
 
 namespace libtorrent
 {
-	bool is_ip_address(char const* host)
+	bool is_ip_address(std::string const& host)
 	{
 		error_code ec;
 		address::from_string(host, ec);

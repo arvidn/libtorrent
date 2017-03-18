@@ -101,3 +101,13 @@ TORRENT_TEST(match_addr_mask)
 	TEST_CHECK(!ec);
 }
 
+TORRENT_TEST(is_ip_address)
+{
+	TEST_EQUAL(is_ip_address("1.2.3.4"), true);
+	TEST_EQUAL(is_ip_address("a.b.c.d"), false);
+	TEST_EQUAL(is_ip_address("a:b:b:c"), false);
+#if TORRENT_USE_IPV6
+	TEST_EQUAL(is_ip_address("::1"), true);
+	TEST_EQUAL(is_ip_address("2001:db8:85a3:0:0:8a2e:370:7334"), true);
+#endif
+}

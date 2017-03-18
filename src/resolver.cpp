@@ -36,8 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <functional>
 
-using namespace std::placeholders;
-
 namespace libtorrent
 {
 	resolver::resolver(io_service& ios)
@@ -88,10 +86,10 @@ namespace libtorrent
 		}
 	}
 
-	void resolver::async_resolve(std::string const& host, int flags
+	void resolver::async_resolve(std::string const& host, int const flags
 		, resolver_interface::callback_t const& h)
 	{
-		cache_t::iterator i = m_cache.find(host);
+		auto const i = m_cache.find(host);
 		if (i != m_cache.end())
 		{
 			// keep cache entries valid for m_timeout seconds
@@ -107,7 +105,7 @@ namespace libtorrent
 		// special handling for raw IP addresses. There's no need to get in line
 		// behind actual lookups if we can just resolve it immediately.
 		error_code ec;
-		address ip = address::from_string(host.c_str(), ec);
+		address const ip = address::from_string(host, ec);
 		if (!ec)
 		{
 			std::vector<address> addresses;
@@ -117,8 +115,9 @@ namespace libtorrent
 		}
 
 		// the port is ignored
-		tcp::resolver::query q(host, "80");
+		tcp::resolver::query const q(host, "80");
 
+		using namespace std::placeholders;
 		ADD_OUTSTANDING_ASYNC("resolver::on_lookup");
 		if (flags & resolver_interface::abort_on_shutdown)
 		{
@@ -137,4 +136,3 @@ namespace libtorrent
 		m_resolver.cancel();
 	}
 }
-

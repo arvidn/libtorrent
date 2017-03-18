@@ -40,4 +40,3 @@ char const* version()
 }
 
 }
-
