@@ -57,7 +57,7 @@ namespace libtorrent
 
 		basic_nl_endpoint() : basic_nl_endpoint(protocol_type(), 0, 0) {}
 
-		basic_nl_endpoint(protocol_type netlink_family, std::uint32_t group, ::pid_t pid = 0)
+		basic_nl_endpoint(protocol_type netlink_family, std::uint32_t group, std::uint32_t pid = 0)
 			: m_proto(netlink_family)
 		{
 			std::memset(&m_sockaddr, 0, sizeof(sockaddr_nl));
