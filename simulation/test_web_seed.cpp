@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "make_proxy_settings.hpp"
 #include "simulator/utils.hpp"
 #include <iostream>
+#include <numeric>
 
 using namespace sim;
 using namespace libtorrent;
@@ -105,7 +106,8 @@ add_torrent_params create_torrent(file_storage& fs, bool const pad_files = false
 template <typename Setup, typename HandleAlerts, typename Test>
 void run_test(Setup const& setup
 	, HandleAlerts const& on_alert
-	, Test const& test)
+	, Test const& test
+	, lt::seconds const timeout = lt::seconds{100})
 {
 	// setup the simulation
 	sim::default_config network_cfg;
@@ -127,7 +129,7 @@ void run_test(Setup const& setup
 
 	// set up a timer to fire later, to verify everything we expected to happen
 	// happened
-	sim::timer t(sim, lt::seconds(100), [&](boost::system::error_code const& ec)
+	sim::timer t(sim, timeout, [&](boost::system::error_code const& ec)
 	{
 		std::printf("shutting down\n");
 		// shut down
@@ -572,3 +574,65 @@ TORRENT_TEST(no_close_redudant_webseed)
 
 	TEST_CHECK(expected);
 }
+
+// make sure the max_web_seed_connections limit is honored
+TORRENT_TEST(web_seed_connection_limit)
+{
+	using namespace libtorrent;
+
+	file_storage fs;
+	fs.add_file("file1", 1);
+	lt::add_torrent_params params = ::create_torrent(fs);
+	params.url_seeds.push_back("http://2.2.2.1:8080/");
+	params.url_seeds.push_back("http://2.2.2.2:8080/");
+	params.url_seeds.push_back("http://2.2.2.3:8080/");
+	params.url_seeds.push_back("http://2.2.2.4:8080/");
+
+	std::array<int, 4> expected = {};
+	run_test(
+		[&params](lt::session& ses)
+		{
+			lt::settings_pack pack;
+			pack.set_int(settings_pack::max_web_seed_connections, 2);
+			ses.apply_settings(pack);
+			ses.async_add_torrent(params);
+		},
+		[](lt::session& ses, lt::alert const* alert) {},
+		[&expected](sim::simulation& sim, lt::session& ses)
+		{
+			using ios = sim::asio::io_service;
+			ios web_server1{sim, address_v4::from_string("2.2.2.1")};
+			ios web_server2{sim, address_v4::from_string("2.2.2.2")};
+			ios web_server3{sim, address_v4::from_string("2.2.2.3")};
+			ios web_server4{sim, address_v4::from_string("2.2.2.4")};
+
+			// listen on port 8080
+			using ws = sim::http_server;
+			ws http1{web_server1, 8080};
+			ws http2{web_server2, 8080};
+			ws http3{web_server3, 8080};
+			ws http4{web_server4, 8080};
+
+			auto const handler = [&expected](std::string method, std::string req
+				, std::map<std::string, std::string>&, int idx)
+			{
+				++expected[idx];
+				// deliberately avoid sending the content, to cause a hang
+				return sim::send_response(206, "Partial Content", 1);
+			};
+
+			using namespace std::placeholders;
+			http1.register_handler("/file1", std::bind(handler, _1, _2, _3, 0));
+			http2.register_handler("/file1", std::bind(handler, _1, _2, _3, 1));
+			http3.register_handler("/file1", std::bind(handler, _1, _2, _3, 2));
+			http4.register_handler("/file1", std::bind(handler, _1, _2, _3, 3));
+
+			sim.run();
+		},
+		lt::seconds(15)
+	);
+
+	// make sure we only connected to 2 of the web seeds, since that's the limit
+	TEST_CHECK(std::accumulate(expected.begin(), expected.end(), 0) == 2);
+}
+

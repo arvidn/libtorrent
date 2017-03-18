@@ -250,10 +250,11 @@ namespace libtorrent
 
 		// if override web seed flag is set, don't load any web seeds from the
 		// torrent file.
+		std::vector<web_seed_t> ws;
 		if ((p.flags & add_torrent_params::flag_override_web_seeds) == 0)
 		{
-			std::vector<web_seed_entry> const& web_seeds = m_torrent_file->web_seeds();
-			m_web_seeds.insert(m_web_seeds.end(), web_seeds.begin(), web_seeds.end());
+			for (auto const& e : m_torrent_file->web_seeds())
+				ws.emplace_back(e);
 		}
 
 		// add web seeds from add_torrent_params
@@ -262,17 +263,18 @@ namespace libtorrent
 
 		for (auto const& u : p.url_seeds)
 		{
-			m_web_seeds.push_back(web_seed_t(u, web_seed_entry::url_seed));
+			ws.emplace_back(web_seed_t(u, web_seed_entry::url_seed));
 
 			// correct URLs to end with a "/" for multi-file torrents
-			std::string& url = m_web_seeds.back().url;
+			std::string& url = ws.back().url;
 			if (multi_file && url[url.size()-1] != '/') url += '/';
 		}
 
 		for (auto const& e : p.http_seeds)
-		{
-			m_web_seeds.push_back(web_seed_t(e, web_seed_entry::http_seed));
-		}
+			ws.push_back(web_seed_t(e, web_seed_entry::http_seed));
+
+		aux::random_shuffle(ws.begin(), ws.end());
+		for (auto& w : ws) m_web_seeds.emplace_back(std::move(w));
 
 		// --- TRACKERS ---
 
@@ -470,7 +472,9 @@ namespace libtorrent
 
 		// add the web seeds from the .torrent file
 		std::vector<web_seed_entry> const& web_seeds = m_torrent_file->web_seeds();
-		m_web_seeds.insert(m_web_seeds.end(), web_seeds.begin(), web_seeds.end());
+		std::vector<web_seed_t> ws(web_seeds.begin(), web_seeds.end());
+		aux::random_shuffle(ws.begin(), ws.end());
+		for (auto& w : ws) m_web_seeds.push_back(std::move(w));
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 		static char const req2[4] = {'r', 'e', 'q', '2'};
@@ -8897,28 +8901,45 @@ namespace libtorrent
 	}
 	catch (...) { handle_exception(); }
 
+	namespace {
+		int zero_or(int const val, int const def_val)
+		{ return (val <= 0) ? def_val : val; }
+	}
+
 	void torrent::maybe_connect_web_seeds()
 	{
 		if (m_abort) return;
 
 		// if we have everything we want we don't need to connect to any web-seed
-		if (!is_finished() && !m_web_seeds.empty() && m_files_checked
-			&& num_peers() < int(m_max_connections)
-			&& m_ses.num_connections() < settings().get_int(settings_pack::connections_limit))
+		if (m_web_seeds.empty()
+			|| is_finished()
+			|| !m_files_checked
+			|| num_peers() >= int(m_max_connections)
+			|| m_ses.num_connections() >= settings().get_int(settings_pack::connections_limit))
 		{
-			// keep trying web-seeds if there are any
-			// first find out which web seeds we are connected to
-			for (std::list<web_seed_t>::iterator i = m_web_seeds.begin();
-				i != m_web_seeds.end();)
-			{
-				std::list<web_seed_t>::iterator w = i++;
-				if (w->peer_info.connection) continue;
-				if (w->retry > aux::time_now()) continue;
-				if (w->resolving) continue;
-				if (w->removed) continue;
+			return;
+		}
 
-				connect_to_url_seed(w);
-			}
+		// when set to unlimited, use 100 as the limit
+		int limit = zero_or(settings().get_int(settings_pack::max_web_seed_connections)
+			, 100);
+
+		auto const now = aux::time_now();
+
+		// keep trying web-seeds if there are any
+		// first find out which web seeds we are connected to
+		for (std::list<web_seed_t>::iterator i = m_web_seeds.begin();
+			i != m_web_seeds.end() && limit > 0;)
+		{
+			std::list<web_seed_t>::iterator w = i++;
+			if (w->removed || w->retry > now)
+				continue;
+
+			--limit;
+			if (w->peer_info.connection || w->resolving)
+				continue;
+
+			connect_to_url_seed(w);
 		}
 	}
 

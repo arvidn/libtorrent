@@ -1625,6 +1625,10 @@ namespace libtorrent
 			// systems.
 			close_file_interval,
 
+			// the max number of web seeds to have connected per torrent at any
+			// given time.
+			max_web_seed_connections,
+
 			max_int_setting_internal
 		};
 

@@ -241,6 +241,7 @@ namespace libtorrent
 	}
 
 	ipv4_peer::ipv4_peer(ipv4_peer const&) = default;
+	ipv4_peer& ipv4_peer::operator=(ipv4_peer const& p) = default;
 
 #if TORRENT_USE_I2P
 	i2p_peer::i2p_peer(char const* dest, bool connectable, int src)
@@ -281,6 +282,8 @@ namespace libtorrent
 		is_i2p_addr = false;
 #endif
 	}
+
+	ipv6_peer::ipv6_peer(ipv6_peer const&) = default;
 
 #endif // TORRENT_USE_IPV6
 
