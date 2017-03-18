@@ -34,7 +34,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_PEER_CLASS_SET_HPP_INCLUDED
 
 #include "libtorrent/peer_class.hpp"
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/array.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
 

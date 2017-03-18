@@ -96,15 +96,15 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 			,
-			save_as_map =       0x040,
+			save_as_map TORRENT_DEPRECATED_ENUM =       0x040,
 			// saves RSS feeds
-			save_feeds =        0x080,
-			save_proxy =        0x008,
-			save_i2p_proxy =    0x010,
-			save_dht_proxy = save_proxy,
-			save_peer_proxy = save_proxy,
-			save_web_proxy = save_proxy,
-			save_tracker_proxy = save_proxy
+			save_feeds TORRENT_DEPRECATED_ENUM =        0x080,
+			save_proxy TORRENT_DEPRECATED_ENUM =        0x008,
+			save_i2p_proxy TORRENT_DEPRECATED_ENUM =    0x010,
+			save_dht_proxy TORRENT_DEPRECATED_ENUM = save_proxy,
+			save_peer_proxy TORRENT_DEPRECATED_ENUM = save_proxy,
+			save_web_proxy TORRENT_DEPRECATED_ENUM = save_proxy,
+			save_tracker_proxy TORRENT_DEPRECATED_ENUM = save_proxy
 #endif
 		};
 
@@ -728,8 +728,8 @@ namespace libtorrent
 		enum listen_on_flags_t
 		{
 			// this is always on starting with 0.16.2
-			listen_reuse_address = 0x01,
-			listen_no_system_port = 0x02
+			listen_reuse_address TORRENT_DEPRECATED_ENUM = 0x01,
+			listen_no_system_port TORRENT_DEPRECATED_ENUM = 0x02
 		};
 
 		// deprecated in 0.16
@@ -971,6 +971,8 @@ namespace libtorrent
 		void set_alert_notify(boost::function<void()> const& fun);
 
 #ifndef TORRENT_NO_DEPRECATE
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 		TORRENT_DEPRECATED
 		void set_severity_level(alert::severity_t s);
 
@@ -990,11 +992,6 @@ namespace libtorrent
 		TORRENT_DEPRECATED
 		boost::uint32_t get_alert_mask() const;
 
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-
 		// This sets a function to be called (from within libtorrent's netowrk
 		// thread) every time an alert is posted. Since the function (``fun``) is
 		// run in libtorrent's internal thread, it may not block.
@@ -1007,9 +1004,7 @@ namespace libtorrent
 		void set_alert_dispatch(
 			boost::function<void(std::auto_ptr<alert>)> const& fun);
 
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 		// Starts and stops Local Service Discovery. This service will broadcast
 		// the infohashes of all the non-private torrents on the local network to

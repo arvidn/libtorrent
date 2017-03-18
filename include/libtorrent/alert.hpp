@@ -89,7 +89,7 @@ namespace libtorrent {
 
 #ifndef TORRENT_NO_DEPRECATE
 		// only here for backwards compatibility
-		enum severity_t { debug, info, warning, critical, fatal, none };
+		enum TORRENT_DEPRECATED severity_t { debug, info, warning, critical, fatal, none };
 #endif
 
 		// these are bits for the alert_mask used by the session. See
@@ -154,7 +154,7 @@ namespace libtorrent {
 			// Alerts on RSS related events, like feeds being updated, feed error
 			// conditions and successful RSS feed updates. Enabling this categoty
 			// will make you receive rss_alert alerts.
-			rss_notification              = 0x1000,
+			rss_notification TORRENT_DEPRECATED_ENUM = 0x1000,
 #endif
 
 			// Enables debug logging alerts. These are available unless libtorrent
@@ -255,10 +255,7 @@ namespace libtorrent {
 
 #ifndef TORRENT_NO_DEPRECATE
 
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 		// determines whether or not an alert is allowed to be discarded
 		// when the alert queue is full. There are a few alerts which may not be discared,
@@ -279,9 +276,7 @@ namespace libtorrent {
 
 		virtual std::auto_ptr<alert> clone_impl() const = 0;
 
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #endif // TORRENT_NO_DEPRECATE
 

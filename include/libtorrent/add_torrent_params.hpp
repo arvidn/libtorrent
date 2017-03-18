@@ -68,6 +68,7 @@ namespace libtorrent
 	// used for the torrent as long as it doesn't have metadata. See
 	// ``torrent_handle::name``.
 	//
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 	struct TORRENT_EXPORT add_torrent_params
 	{
 		// The constructor can be used to initialize the storage constructor,
@@ -105,6 +106,7 @@ namespace libtorrent
 		}
 
 #ifndef TORRENT_NO_DEPRECATE
+		TORRENT_DEPRECATED
 		void update_flags() const
 		{
 			if (flags != (flag_ignore_flags | default_flags)) return;
@@ -122,6 +124,8 @@ namespace libtorrent
 			if (merge_resume_trackers) f |= flag_merge_resume_trackers;
 		}
 #endif
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 		// values for the ``flags`` field
 		enum flags_t
@@ -276,7 +280,7 @@ namespace libtorrent
 			default_flags = flag_pinned | flag_update_subscribe | flag_auto_managed | flag_paused | flag_apply_ip_filter
 
 #ifndef TORRENT_NO_DEPRECATE
-			, flag_ignore_flags = 0x80000000
+			, flag_ignore_flags TORRENT_DEPRECATED_ENUM = 0x80000000
 #endif
 		};
 
@@ -288,7 +292,7 @@ namespace libtorrent
 		boost::shared_ptr<torrent_info> ti;
 
 #ifndef TORRENT_NO_DEPRECATE
-		char const* tracker_url;
+		char const* TORRENT_DEPRECATED_MEMBER tracker_url;
 #endif
 		// If the torrent doesn't have a tracker, but relies on the DHT to find
 		// peers, the ``trackers`` can specify tracker URLs for the torrent.
@@ -408,15 +412,15 @@ namespace libtorrent
 		int download_limit;
 
 #ifndef TORRENT_NO_DEPRECATE
-		bool seed_mode;
-		bool override_resume_data;
-		bool upload_mode;
-		bool share_mode;
-		bool apply_ip_filter;
-		bool paused;
-		bool auto_managed;
-		bool duplicate_is_error;
-		bool merge_resume_trackers;
+		bool TORRENT_DEPRECATED_MEMBER seed_mode;
+		bool TORRENT_DEPRECATED_MEMBER override_resume_data;
+		bool TORRENT_DEPRECATED_MEMBER upload_mode;
+		bool TORRENT_DEPRECATED_MEMBER share_mode;
+		bool TORRENT_DEPRECATED_MEMBER apply_ip_filter;
+		bool TORRENT_DEPRECATED_MEMBER paused;
+		bool TORRENT_DEPRECATED_MEMBER auto_managed;
+		bool TORRENT_DEPRECATED_MEMBER duplicate_is_error;
+		bool TORRENT_DEPRECATED_MEMBER merge_resume_trackers;
 #endif
 
 	};
