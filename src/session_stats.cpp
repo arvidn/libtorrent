@@ -568,6 +568,7 @@ namespace libtorrent
 		return stats;
 	}
 
+	// TODO: 3 use string_view for name
 	int find_metric_idx(char const* name)
 	{
 		auto const i = std::find_if(std::begin(metrics), std::end(metrics)

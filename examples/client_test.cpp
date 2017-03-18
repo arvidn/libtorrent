@@ -66,6 +66,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/read_resume_data.hpp"
 #include "libtorrent/write_resume_data.hpp"
+#include "libtorrent/string_view.hpp"
 
 #include "torrent_view.hpp"
 #include "session_view.hpp"
@@ -1228,7 +1229,7 @@ int main(int argc, char* argv[])
 			continue;
 		}
 
-		if (std::strcmp(argv[i], "--list-settings") == 0)
+		if (argv[i] == "--list-settings"_sv)
 		{
 			// print all libtorrent settings and exit
 			print_settings(settings_pack::string_type_base
@@ -1265,8 +1266,7 @@ int main(int argc, char* argv[])
 					settings.set_str(sett_name, value);
 					break;
 				case settings_pack::bool_type_base:
-					if (std::strcmp(value, "0") == 0
-						|| std::strcmp(value, "1") == 0)
+					if (value == "0"_sv || value == "1"_sv)
 					{
 						settings.set_bool(sett_name, atoi(value) != 0);
 					}

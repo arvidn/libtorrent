@@ -41,7 +41,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "fake_peer.hpp"
 #include "setup_transfer.hpp" // for ep()
 #include "simulator/utils.hpp"
+#include "libtorrent/string_view.hpp"
 
+using namespace libtorrent::literals;
 namespace lt = libtorrent;
 
 template <typename Sett, typename Alert>
@@ -120,7 +122,7 @@ TORRENT_TEST(allow_fast)
 			}
 			else if (auto l = lt::alert_cast<lt::peer_log_alert>(a))
 			{
-				if (strcmp(l->event_type, "ALLOWED_FAST") != 0) return;
+				if (l->event_type != "ALLOWED_FAST"_sv) return;
 
 				int const piece = atoi(l->log_message());
 				// make sure we don't get the same allowed piece more than once
@@ -182,7 +184,7 @@ TORRENT_TEST(allow_fast_stress)
 		}
 		else if (auto l = lt::alert_cast<lt::peer_log_alert>(a))
 		{
-			if (strcmp(l->event_type, "ALLOWED_FAST") != 0) return;
+			if (l->event_type != "ALLOWED_FAST"_sv) return;
 
 			int const piece = atoi(l->log_message());
 

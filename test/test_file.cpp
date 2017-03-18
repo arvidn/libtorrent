@@ -32,8 +32,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/file.hpp"
 #include "libtorrent/string_util.hpp" // for split_string
+#include "libtorrent/string_view.hpp"
 #include "test.hpp"
-#include <cstring> // for std::strcmp
 #include <vector>
 #include <set>
 #include <thread>
@@ -252,16 +252,16 @@ TORRENT_TEST(split_string)
 	int ret = split_string(tags, 10, tags_str);
 
 	TEST_CHECK(ret == 10);
-	TEST_CHECK(std::strcmp(tags[0], "this") == 0);
-	TEST_CHECK(std::strcmp(tags[1], "is") == 0);
-	TEST_CHECK(std::strcmp(tags[2], "a") == 0);
-	TEST_CHECK(std::strcmp(tags[3], "test") == 0);
-	TEST_CHECK(std::strcmp(tags[4], "string") == 0);
-	TEST_CHECK(std::strcmp(tags[5], "to") == 0);
-	TEST_CHECK(std::strcmp(tags[6], "be") == 0);
-	TEST_CHECK(std::strcmp(tags[7], "split") == 0);
-	TEST_CHECK(std::strcmp(tags[8], "and") == 0);
-	TEST_CHECK(std::strcmp(tags[9], "it") == 0);
+	TEST_CHECK(tags[0] == "this"_sv);
+	TEST_CHECK(tags[1] == "is"_sv);
+	TEST_CHECK(tags[2] == "a"_sv);
+	TEST_CHECK(tags[3] == "test"_sv);
+	TEST_CHECK(tags[4] == "string"_sv);
+	TEST_CHECK(tags[5] == "to"_sv);
+	TEST_CHECK(tags[6] == "be"_sv);
+	TEST_CHECK(tags[7] == "split"_sv);
+	TEST_CHECK(tags[8] == "and"_sv);
+	TEST_CHECK(tags[9] == "it"_sv);
 
 	// replace_extension
 	std::string test = "foo.bar";
@@ -303,7 +303,7 @@ TORRENT_TEST(file)
 	if (ec)
 		std::printf("readv failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_EQUAL(ec, error_code());
-	TEST_CHECK(std::strcmp(test_buf, "test") == 0);
+	TEST_CHECK(test_buf == "test"_sv);
 	f.close();
 }
 
@@ -347,7 +347,7 @@ TORRENT_TEST(hard_link)
 	if (ec)
 		std::printf("readv failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
 	TEST_EQUAL(ec, error_code());
-	TEST_CHECK(std::strcmp(test_buf, "abcdefghijklmnopqrstuvwxyz") == 0);
+	TEST_CHECK(test_buf == "abcdefghijklmnopqrstuvwxyz"_sv);
 	f.close();
 
 	remove("original_file", ec);
@@ -386,8 +386,8 @@ TORRENT_TEST(coalesce_buffer)
 			, ec.category().name(), ec.message().c_str());
 	}
 	TEST_EQUAL(ec, error_code());
-	TEST_CHECK(std::strcmp(test_buf1, "test") == 0);
-	TEST_CHECK(std::strcmp(test_buf2, "foobar") == 0);
+	TEST_CHECK(test_buf1 == "test"_sv);
+	TEST_CHECK(test_buf2 == "foobar"_sv);
 	f.close();
 }
 

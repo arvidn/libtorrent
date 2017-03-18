@@ -251,7 +251,7 @@ int main(int argc, char* argv[])
 
 	if (argc < 1) usage();
 
-	if (strcmp(argv[0], "dump-key") == 0)
+	if (argv[0] == "dump-key"_sv)
 	{
 		++argv;
 		--argc;
@@ -260,7 +260,7 @@ int main(int argc, char* argv[])
 		return dump_key(argv[0]);
 	}
 
-	if (strcmp(argv[0], "gen-key") == 0)
+	if (argv[0] == "gen-key"_sv)
 	{
 		++argv;
 		--argc;
@@ -279,7 +279,7 @@ int main(int argc, char* argv[])
 
 	load_dht_state(s);
 
-	if (strcmp(argv[0], "get") == 0)
+	if (argv[0] == "get"_sv)
 	{
 		++argv;
 		--argc;
@@ -311,7 +311,7 @@ int main(int argc, char* argv[])
 		std::string str = item->item.to_string();
 		std::printf("%s", str.c_str());
 	}
-	else if (strcmp(argv[0], "put") == 0)
+	else if (argv[0] == "put"_sv)
 	{
 		++argv;
 		--argc;
@@ -329,7 +329,7 @@ int main(int argc, char* argv[])
 		dht_put_alert* pa = alert_cast<dht_put_alert>(a);
 		std::printf("%s\n", pa->message().c_str());
 	}
-	else if (strcmp(argv[0], "mput") == 0)
+	else if (argv[0] == "mput"_sv)
 	{
 		++argv;
 		--argc;
@@ -365,7 +365,7 @@ int main(int argc, char* argv[])
 		dht_put_alert* pa = alert_cast<dht_put_alert>(a);
 		std::printf("%s\n", pa->message().c_str());
 	}
-	else if (strcmp(argv[0], "mget") == 0)
+	else if (argv[0] == "mget"_sv)
 	{
 		++argv;
 		--argc;

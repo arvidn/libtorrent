@@ -51,6 +51,14 @@ using wstring_view = boost::wstring_view;
 }
 #endif
 
+namespace libtorrent {
+inline namespace literals {
+	constexpr string_view operator""_sv(char const* str, std::size_t len)
+	{ return string_view(str, len); }
+}
+}
+
+
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #endif

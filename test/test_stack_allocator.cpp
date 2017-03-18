@@ -32,9 +32,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 #include "libtorrent/stack_allocator.hpp"
+#include "libtorrent/string_view.hpp"
 
 using libtorrent::aux::stack_allocator;
 using libtorrent::aux::allocation_slot;
+using namespace libtorrent::literals;
 
 TORRENT_TEST(copy_string)
 {
@@ -46,8 +48,8 @@ TORRENT_TEST(copy_string)
 
 	allocation_slot const idx2 = a.copy_string(std::string("foobar"));
 
-	TEST_CHECK(strcmp(a.ptr(idx1), "testing") == 0);
-	TEST_CHECK(strcmp(a.ptr(idx2), "foobar") == 0);
+	TEST_CHECK(a.ptr(idx1) == "testing"_sv);
+	TEST_CHECK(a.ptr(idx2) == "foobar"_sv);
 }
 
 TORRENT_TEST(copy_buffer)
@@ -58,7 +60,7 @@ TORRENT_TEST(copy_buffer)
 	// attempt to trigger a reallocation
 	a.allocate(100000);
 
-	TEST_CHECK(strcmp(a.ptr(idx1), "testing") == 0);
+	TEST_CHECK(a.ptr(idx1) == "testing"_sv);
 
 	// attempt zero size allocation
 	allocation_slot const idx2 = a.copy_buffer({});
@@ -101,7 +103,7 @@ TORRENT_TEST(swap)
 
 	a1.swap(a2);
 
-	TEST_CHECK(strcmp(a1.ptr(idx2), "foobar") == 0);
-	TEST_CHECK(strcmp(a2.ptr(idx1), "testing") == 0);
+	TEST_CHECK(a1.ptr(idx2) == "foobar"_sv);
+	TEST_CHECK(a2.ptr(idx1) == "testing"_sv);
 }
 

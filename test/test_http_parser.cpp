@@ -50,7 +50,7 @@ std::tuple<int, int, bool> feed_bytes(http_parser& parser, char const* str)
 		span<char const> recv_buf(str, 0);
 		for (;;)
 		{
-			int chunk_size = (std::min)(chunks, int(strlen(recv_buf.end())));
+			int chunk_size = std::min(chunks, int(strlen(recv_buf.end())));
 			if (chunk_size == 0) break;
 			recv_buf = span<char const>(recv_buf.data(), recv_buf.size() + chunk_size);
 			int payload, protocol;
