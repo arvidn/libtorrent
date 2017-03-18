@@ -630,10 +630,26 @@ namespace aux {
 		update_upnp();
 		update_natpmp();
 		update_lsd();
-		update_dht();
 		update_peer_fingerprint();
-		update_dht_bootstrap_nodes();
-		update_dht_announce_interval();
+
+#ifndef TORRENT_DISABLE_DHT
+		// setup DHT
+		if (m_outstanding_router_lookups == 0)
+		{
+			// this can happens because either the setting value was untouched
+			// or the value in the initial settings is empty
+			if (m_settings.get_str(settings_pack::dht_bootstrap_nodes).empty())
+			{
+				update_dht();
+				update_dht_announce_interval();
+			}
+			else
+			{
+				// eventually update_dht() is called when all resolves are done
+				update_dht_bootstrap_nodes();
+			}
+		}
+#endif
 	}
 
 	void session_impl::async_resolve(std::string const& host, int flags
