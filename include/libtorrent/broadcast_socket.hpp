@@ -50,7 +50,7 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT bool is_loopback(address const& addr);
 	TORRENT_EXTRA_EXPORT bool is_any(address const& addr);
 	TORRENT_EXTRA_EXPORT bool is_teredo(address const& addr);
-	TORRENT_EXTRA_EXPORT bool is_ip_address(string_view host);
+	TORRENT_EXTRA_EXPORT bool is_ip_address(std::string const& host);
 
 	// determines if the operating system supports IPv6
 	TORRENT_EXTRA_EXPORT bool supports_ipv6();
