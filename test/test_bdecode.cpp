@@ -201,8 +201,7 @@ TORRENT_TEST(dict_null_key)
 	int ret = bdecode(b, b + sizeof(b)-1, e, ec);
 	TEST_EQUAL(ret, 0);
 	TEST_CHECK(e.dict_size() == 1);
-	std::string find_str("a\0b", 3);
-	bdecode_node d = e.dict_find(find_str);
+	bdecode_node d = e.dict_find(string_view("a\0b", 3));
 	TEST_EQUAL(d.type(), bdecode_node::int_t);
 	TEST_EQUAL(d.int_value(), 1);
 }
