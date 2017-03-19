@@ -87,6 +87,8 @@ namespace libtorrent
 
 		// TODO: 2 the ip filter should probably be saved here too
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 		// flags that determines which aspects of the session should be
 		// saved when calling save_state().
 		enum save_state_flags_t
@@ -115,6 +117,8 @@ namespace libtorrent
 			save_tracker_proxy TORRENT_DEPRECATED_ENUM = save_proxy
 #endif
 		};
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 		// loads and saves all session settings, including dht_settings,
 		// encryption settings and proxy settings. ``save_state`` writes all keys

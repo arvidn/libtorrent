@@ -82,7 +82,6 @@ namespace libtorrent
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 	struct TORRENT_EXPORT add_torrent_params
 	{
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 		// The constructor can be used to initialize the storage constructor,
 		// which determines the storage mechanism for the downloaded or seeding
 		// data for the torrent. For more information, see the ``storage`` field.
@@ -260,8 +259,6 @@ namespace libtorrent
 			flag_merge_resume_http_seeds TORRENT_DEPRECATED_ENUM = 0x100000,
 #endif
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 			// internal
 			default_flags = flag_update_subscribe
 				| flag_auto_managed | flag_paused | flag_apply_ip_filter
@@ -271,9 +268,9 @@ namespace libtorrent
 				| flag_merge_resume_http_seeds
 				| flag_merge_resume_trackers
 #endif
+		};
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
-		};
 
 		// filled in by the constructor and should be left untouched. It is used
 		// for forward binary compatibility.
