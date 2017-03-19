@@ -132,7 +132,7 @@ void observer::set_id(node_id const& id)
 {
 	if (m_id == id) return;
 	m_id = id;
-	if (m_algorithm) m_algorithm->resort_results();
+	if (m_algorithm) m_algorithm->resort_result(this);
 }
 
 using observer_storage = aux::aligned_union<1

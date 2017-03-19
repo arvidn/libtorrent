@@ -106,6 +106,8 @@ void node_push_back(std::vector<node_entry>* nv, node_entry const& n)
 
 void nop_node() {}
 
+// TODO: 3 make the mock_socket hold a reference to the list of where to record
+// packets instead of having a global variable
 std::list<std::pair<udp::endpoint, entry>> g_sent_packets;
 
 struct mock_socket final : udp_socket_interface
@@ -3203,6 +3205,53 @@ TORRENT_TEST(invalid_error_msg)
 	}
 
 	TEST_EQUAL(found, true);
+}
+
+struct test_algo : dht::traversal_algorithm
+{
+	test_algo(node& dht_node, node_id const& target)
+		: traversal_algorithm(dht_node, target)
+	{}
+
+	std::vector<observer_ptr> const& results() const { return m_results; };
+
+	using traversal_algorithm::num_sorted_results;
+};
+
+TORRENT_TEST(unsorted_traversal_results)
+{
+	// make sure the handling of an unsorted tail of nodes is correct in the
+	// traversal algorithm. Initial nodes (that we bootstrap from) remain
+	// unsorted, since we don't know their node IDs
+
+	dht_test_setup t(udp::endpoint(rand_v4(), 20));
+
+	node_id const our_id = t.dht_node.nid();
+	auto algo = std::make_shared<test_algo>(t.dht_node, our_id);
+
+	std::vector<udp::endpoint> eps;
+	for (int i = 0; i < 10; ++i)
+	{
+		eps.push_back(rand_udp_ep(rand_v4));
+		algo->add_entry(node_id(), eps.back(), observer::flag_initial);
+	}
+
+	// we should have 10 unsorted nodes now
+	TEST_CHECK(algo->num_sorted_results() == 0);
+	auto results = algo->results();
+	TEST_CHECK(results.size() == eps.size());
+	for (int i = 0; i < int(eps.size()); ++i)
+		TEST_CHECK(eps[i] == results[i]->target_ep());
+
+	// setting the node ID, regardless of what we set it to, should cause this
+	// observer to become sorted. i.e. be moved to the beginning of the restult
+	// list.
+	results[5]->set_id(node_id("abababababababababab"));
+
+	TEST_CHECK(algo->num_sorted_results() == 1);
+	results = algo->results();
+	TEST_CHECK(results.size() == eps.size());
+	TEST_CHECK(eps[5] == results[0]->target_ep());
 }
 
 TORRENT_TEST(rpc_invalid_error_msg)
