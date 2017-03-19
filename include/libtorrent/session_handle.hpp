@@ -106,13 +106,13 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 			,
-			save_as_map =       0x040,
-			save_proxy =        0x008,
-			save_i2p_proxy =    0x010,
-			save_dht_proxy = save_proxy,
-			save_peer_proxy = save_proxy,
-			save_web_proxy = save_proxy,
-			save_tracker_proxy = save_proxy
+			save_as_map TORRENT_DEPRECATED_ENUM =       0x040,
+			save_proxy TORRENT_DEPRECATED_ENUM =        0x008,
+			save_i2p_proxy TORRENT_DEPRECATED_ENUM =    0x010,
+			save_dht_proxy TORRENT_DEPRECATED_ENUM = save_proxy,
+			save_peer_proxy TORRENT_DEPRECATED_ENUM = save_proxy,
+			save_web_proxy TORRENT_DEPRECATED_ENUM = save_proxy,
+			save_tracker_proxy TORRENT_DEPRECATED_ENUM = save_proxy
 #endif
 		};
 
@@ -712,8 +712,8 @@ namespace libtorrent
 		enum listen_on_flags_t
 		{
 			// this is always on starting with 0.16.2
-			listen_reuse_address = 0x01,
-			listen_no_system_port = 0x02
+			listen_reuse_address TORRENT_DEPRECATED_ENUM = 0x01,
+			listen_no_system_port TORRENT_DEPRECATED_ENUM = 0x02
 		};
 
 		// deprecated in 0.16
@@ -934,8 +934,12 @@ namespace libtorrent
 		void set_alert_notify(std::function<void()> const& fun);
 
 #ifndef TORRENT_NO_DEPRECATE
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 		TORRENT_DEPRECATED
 		void set_severity_level(alert::severity_t s);
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 		// use the setting instead
 		TORRENT_DEPRECATED

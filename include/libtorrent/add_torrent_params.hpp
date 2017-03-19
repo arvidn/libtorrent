@@ -79,8 +79,10 @@ namespace libtorrent
 	// new session. For serialization and deserialization of
 	// ``add_torrent_params`` objects, see read_resume_data() and
 	// write_resume_data().
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 	struct TORRENT_EXPORT add_torrent_params
 	{
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 		// The constructor can be used to initialize the storage constructor,
 		// which determines the storage mechanism for the downloaded or seeding
 		// data for the torrent. For more information, see the ``storage`` field.
@@ -192,7 +194,7 @@ namespace libtorrent
 			// indicates that this torrent should never be unloaded from RAM, even
 			// if unloading torrents are allowed in general. Setting this makes
 			// the torrent exempt from loading/unloading management.
-			flag_pinned = 0x1000,
+			flag_pinned TORRENT_DEPRECATED_ENUM = 0x1000,
 #endif
 
 			// the stop when ready flag. Setting this flag is equivalent to calling
@@ -231,7 +233,7 @@ namespace libtorrent
 			// resume data, which has its own flag (for historic reasons).
 			// If this flag is set, but file_priorities is empty, file priorities
 			// are still loaded from the resume data, if present.
-			flag_override_resume_data = 0x20000,
+			flag_override_resume_data TORRENT_DEPRECATED_ENUM = 0x20000,
 
 			// defaults to on and specifies whether tracker URLs loaded from
 			// resume data should be added to the trackers in the torrent or
@@ -240,12 +242,12 @@ namespace libtorrent
 			// replaced by any trackers in the resume data. The default behavior is
 			// to have the resume data override the .torrent file _and_ the
 			// trackers added in add_torrent_params.
-			flag_merge_resume_trackers = 0x40000,
+			flag_merge_resume_trackers TORRENT_DEPRECATED_ENUM = 0x40000,
 
 			// if this flag is set, the save path from the resume data file, if
 			// present, is honored. This defaults to not being set, in which
 			// case the save_path specified in add_torrent_params is always used.
-			flag_use_resume_save_path = 0x80000,
+			flag_use_resume_save_path TORRENT_DEPRECATED_ENUM = 0x80000,
 
 			// defaults to on and specifies whether web seed URLs loaded from
 			// resume data should be added to the ones in the torrent file or
@@ -255,8 +257,10 @@ namespace libtorrent
 			// add_torrent_params are also replaced. The default behavior is to
 			// have any web seeds in the resume data take precedence over whatever
 			// is passed in here as well as the .torrent file.
-			flag_merge_resume_http_seeds = 0x100000,
+			flag_merge_resume_http_seeds TORRENT_DEPRECATED_ENUM = 0x100000,
 #endif
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 			// internal
 			default_flags = flag_update_subscribe
@@ -267,6 +271,8 @@ namespace libtorrent
 				| flag_merge_resume_http_seeds
 				| flag_merge_resume_trackers
 #endif
+
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 		};
 
 		// filled in by the constructor and should be left untouched. It is used
@@ -475,7 +481,7 @@ namespace libtorrent
 		// torrent is already running with the same UUID as the one being added,
 		// it will be considered a duplicate. This is mainly useful for RSS feed
 		// items which has UUIDs specified.
-		std::string uuid;
+		std::string TORRENT_DEPRECATED_MEMBER uuid;
 
 		// The optional parameter, ``resume_data`` can be given if up to date
 		// fast-resume data is available. The fast-resume data can be acquired
@@ -483,7 +489,7 @@ namespace libtorrent
 		// torrent_handle. See fast-resume_. The ``vector`` that is passed in
 		// will be swapped into the running torrent instance with
 		// ``std::vector::swap()``.
-		std::vector<char> resume_data;
+		std::vector<char> TORRENT_DEPRECATED_MEMBER resume_data;
 
 		// to support the deprecated use case of reading the resume data into
 		// resume_data field and getting a reject alert, any parse failure is

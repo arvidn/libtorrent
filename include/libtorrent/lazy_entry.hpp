@@ -82,18 +82,14 @@ namespace libtorrent
 	// in case the function fails. ``error_pos`` is an optional pointer to an int,
 	// which will be set to the byte offset into the buffer where an error occurred,
 	// in case the function fails.
-	TORRENT_DEPRECATED
-	TORRENT_EXPORT int lazy_bdecode(char const* start, char const* end
+	TORRENT_DEPRECATED_EXPORT int lazy_bdecode(char const* start, char const* end
 		, lazy_entry& ret, error_code& ec, int* error_pos = 0
 		, int depth_limit = 1000, int item_limit = 1000000);
 
-#ifndef TORRENT_NO_DEPRECATE
 	// for backwards compatibility, does not report error code
 	// deprecated in 0.16
-	TORRENT_DEPRECATED
-	TORRENT_EXPORT int lazy_bdecode(char const* start, char const* end
+	TORRENT_DEPRECATED_EXPORT int lazy_bdecode(char const* start, char const* end
 		, lazy_entry& ret, int depth_limit = 1000, int item_limit = 1000000);
-#endif
 
 	// this is a string that is not 0-terminated. Instead it
 	// comes with a length, specified in bytes. This is particularly
@@ -102,7 +98,7 @@ namespace libtorrent
 	// would require copying the string.
 	//
 	// see lazy_entry::string_pstr().
-	struct TORRENT_EXPORT pascal_string
+	struct TORRENT_DEPRECATED_EXPORT pascal_string
 	{
 		// construct a string pointing to the characters at ``p``
 		// of length ``l`` characters. No 0-termination is required.
@@ -137,7 +133,7 @@ namespace libtorrent
 	//
 	// There is also a ``none`` type, which is used for uninitialized
 	// lazy_entries.
-	struct TORRENT_EXPORT lazy_entry
+	struct TORRENT_DEPRECATED_EXPORT lazy_entry
 	{
 		// The different types a lazy_entry can have
 		enum entry_type_t
@@ -390,7 +386,7 @@ namespace libtorrent
 		lazy_entry const& operator=(lazy_entry const&);
 	};
 
-	struct lazy_dict_entry
+	struct TORRENT_DEPRECATED lazy_dict_entry
 	{
 		char const* name;
 		lazy_entry val;
@@ -398,11 +394,11 @@ namespace libtorrent
 
 	// print the bencoded structure in a human-readable format to a string
 	// that's returned.
-	TORRENT_DEPRECATED
-	TORRENT_EXPORT std::string print_entry(lazy_entry const& e
+	TORRENT_DEPRECATED_EXPORT std::string print_entry(lazy_entry const& e
 		, bool single_line = false, int indent = 0);
 
 	// defined in bdecode.cpp
+	TORRENT_DEPRECATED
 	TORRENT_EXTRA_EXPORT char const* parse_int(char const* start
 		, char const* end, char delimiter, std::int64_t& val
 		, bdecode_errors::error_code_enum& ec);

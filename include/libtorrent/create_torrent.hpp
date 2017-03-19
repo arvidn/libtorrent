@@ -108,7 +108,7 @@ namespace libtorrent
 			optimize_alignment = 1,
 #ifndef TORRENT_NO_DEPRECATE
 			// same as optimize_alignment, for backwards compatibility
-			optimize = 1,
+			optimize TORRENT_DEPRECATED_ENUM = 1,
 #endif
 
 			// This will create a merkle hash tree torrent. A merkle torrent cannot
@@ -432,16 +432,16 @@ namespace libtorrent
 	// and pass in utf8 strings
 #ifndef TORRENT_NO_DEPRECATE
 
-	TORRENT_DEPRECATED
-	TORRENT_EXPORT void add_files(file_storage& fs, std::wstring const& wfile
+	TORRENT_DEPRECATED_EXPORT
+	void add_files(file_storage& fs, std::wstring const& wfile
 		, std::function<bool(std::string)> p, std::uint32_t flags = 0);
 
-	TORRENT_DEPRECATED
-	TORRENT_EXPORT void add_files(file_storage& fs, std::wstring const& wfile
+	TORRENT_DEPRECATED_EXPORT
+	void add_files(file_storage& fs, std::wstring const& wfile
 		, std::uint32_t flags = 0);
 
-	TORRENT_DEPRECATED
-	TORRENT_EXPORT void set_piece_hashes(create_torrent& t, std::wstring const& p
+	TORRENT_DEPRECATED_EXPORT
+	void set_piece_hashes(create_torrent& t, std::wstring const& p
 		, std::function<void(int)> f, error_code& ec);
 
 	TORRENT_EXPORT void set_piece_hashes_deprecated(create_torrent& t

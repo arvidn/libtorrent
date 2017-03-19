@@ -50,7 +50,7 @@ namespace libtorrent
 {
 #ifndef TORRENT_NO_DEPRECATE
 	// information about a file in a file_storage
-	struct TORRENT_EXPORT file_entry
+	struct TORRENT_DEPRECATED_EXPORT file_entry
 	{
 		// hidden
 		file_entry();

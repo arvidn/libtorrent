@@ -87,7 +87,7 @@ namespace libtorrent
 		char const* torrent_name() const;
 
 #ifndef TORRENT_NO_DEPRECATE
-		std::string name;
+		std::string TORRENT_DEPRECATED_MEMBER name;
 #endif
 
 	protected:
@@ -141,7 +141,7 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 		// The tracker URL
-		std::string url;
+		std::string TORRENT_DEPRECATED_MEMBER url;
 #endif
 	private:
 		aux::allocation_slot const m_url_idx;
@@ -260,7 +260,7 @@ namespace libtorrent
 		static const int static_category = alert::storage_notification;
 		virtual std::string message() const override;
 #ifndef TORRENT_NO_DEPRECATE
-		std::string name;
+		std::string TORRENT_DEPRECATED_MEMBER name;
 #endif
 
 		char const* new_name() const;
@@ -435,7 +435,7 @@ namespace libtorrent
 		int const status_code;
 		error_code const error;
 #ifndef TORRENT_NO_DEPRECATE
-		std::string msg;
+		std::string TORRENT_DEPRECATED_MEMBER msg;
 #endif
 
 		// the message associated with this error
@@ -461,7 +461,7 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 		// contains the warning message from the tracker.
-		std::string msg;
+		std::string TORRENT_DEPRECATED_MEMBER msg;
 #endif
 
 		// the message associated with this warning
@@ -506,7 +506,7 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 		// contains a message describing the error.
-		std::string msg;
+		std::string TORRENT_DEPRECATED_MEMBER msg;
 #endif
 
 		// the error itself. This may indicate that the tracker sent an error
@@ -659,7 +659,7 @@ namespace libtorrent
 		error_code const error;
 
 #ifndef TORRENT_NO_DEPRECATE
-		std::string msg;
+		std::string TORRENT_DEPRECATED_MEMBER msg;
 #endif
 	};
 
@@ -707,7 +707,7 @@ namespace libtorrent
 		close_reason_t const reason;
 
 #ifndef TORRENT_NO_DEPRECATE
-		std::string msg;
+		std::string TORRENT_DEPRECATED_MEMBER msg;
 #endif
 	};
 
@@ -841,7 +841,7 @@ namespace libtorrent
 		virtual std::string message() const override;
 
 #ifndef TORRENT_NO_DEPRECATE
-		char const* peer_speedmsg;
+		char const* TORRENT_DEPRECATED_MEMBER peer_speedmsg;
 #endif
 		int const block_index;
 		piece_index_t const piece_index;
@@ -880,7 +880,7 @@ namespace libtorrent
 		virtual std::string message() const override;
 
 #ifndef TORRENT_NO_DEPRECATE
-		std::string path;
+		std::string TORRENT_DEPRECATED_MEMBER path;
 #endif
 
 		// the path the torrent was moved to
@@ -908,7 +908,7 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 		// If the error happened for a specific file, ``file`` is its path.
-		std::string file;
+		std::string TORRENT_DEPRECATED_MEMBER file;
 #endif
 
 		// If the error happened for a specific file, this returns its path.
@@ -965,7 +965,7 @@ namespace libtorrent
 		sha1_hash const info_hash;
 
 #ifndef TORRENT_NO_DEPRECATE
-		std::string msg;
+		std::string TORRENT_DEPRECATED_MEMBER msg;
 #endif
 	};
 
@@ -1012,7 +1012,7 @@ namespace libtorrent
 		error_code const error;
 
 #ifndef TORRENT_NO_DEPRECATE
-		std::string msg;
+		std::string TORRENT_DEPRECATED_MEMBER msg;
 #endif
 	};
 
@@ -1072,10 +1072,10 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 		// the HTTP seed that failed
-		std::string url;
+		std::string TORRENT_DEPRECATED_MEMBER url;
 
 		// the error message, potentially from the server
-		std::string msg;
+		std::string TORRENT_DEPRECATED_MEMBER msg;
 #endif
 
 		// the error the web seed encountered. If this is not set, the server
@@ -1111,7 +1111,7 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 		// the path to the file that was accessed when the error occurred.
-		std::string file;
+		std::string TORRENT_DEPRECATED_MEMBER file;
 #endif
 
 		// the error code describing the error.
@@ -1122,7 +1122,7 @@ namespace libtorrent
 		char const* filename() const;
 
 #ifndef TORRENT_NO_DEPRECATE
-		std::string msg;
+		std::string TORRENT_DEPRECATED_MEMBER msg;
 #endif
 	private:
 		aux::allocation_slot const m_file_idx;
@@ -1386,7 +1386,7 @@ namespace libtorrent
 		// tells you what failed.
 		error_code const error;
 #ifndef TORRENT_NO_DEPRECATE
-		std::string msg;
+		std::string TORRENT_DEPRECATED_MEMBER msg;
 #endif
 	};
 
@@ -1443,7 +1443,7 @@ namespace libtorrent
 		int const map_type;
 
 #ifndef TORRENT_NO_DEPRECATE
-		std::string msg;
+		std::string TORRENT_DEPRECATED_MEMBER msg;
 #endif
 
 		// the message associated with this log line
@@ -1477,7 +1477,7 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 		// If the error happened to a specific file, ``file`` is the path to it.
-		std::string file;
+		std::string TORRENT_DEPRECATED_MEMBER file;
 #endif
 
 		// If the error happened to a specific file, this returns the path to it.
@@ -1488,7 +1488,7 @@ namespace libtorrent
 		char const* operation;
 
 #ifndef TORRENT_NO_DEPRECATE
-		std::string msg;
+		std::string TORRENT_DEPRECATED_MEMBER msg;
 #endif
 	private:
 		aux::allocation_slot const m_path_idx;
@@ -1586,16 +1586,16 @@ namespace libtorrent
 			download_protocol,
 			upload_ip_protocol,
 #ifndef TORRENT_NO_DEPRECATE
-			upload_dht_protocol,
-			upload_tracker_protocol,
+			upload_dht_protocol TORRENT_DEPRECATED_ENUM,
+			upload_tracker_protocol TORRENT_DEPRECATED_ENUM,
 #else
 			deprecated1,
 			deprecated2,
 #endif
 			download_ip_protocol,
 #ifndef TORRENT_NO_DEPRECATE
-			download_dht_protocol,
-			download_tracker_protocol,
+			download_dht_protocol TORRENT_DEPRECATED_ENUM,
+			download_tracker_protocol TORRENT_DEPRECATED_ENUM,
 #else
 			deprecated3,
 			deprecated4,
@@ -1687,7 +1687,7 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 		// The tracker ID returned by the tracker
-		std::string trackerid;
+		std::string TORRENT_DEPRECATED_MEMBER trackerid;
 #endif
 
 		// The tracker ID returned by the tracker
@@ -1726,7 +1726,7 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 		// the filename (or object) the error occurred on.
-		std::string error_file;
+		std::string TORRENT_DEPRECATED_MEMBER error_file;
 #endif
 
 		// the filename (or object) the error occurred on.

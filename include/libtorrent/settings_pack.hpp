@@ -147,7 +147,7 @@ namespace libtorrent
 			//
 			// This feature requires the ``mmap`` system call, on systems that
 			// don't have ``mmap`` this setting is ignored.
-			mmap_cache,
+			mmap_cache TORRENT_DEPRECATED_ENUM,
 #else
 			deprecated21,
 #endif
@@ -255,7 +255,7 @@ namespace libtorrent
 			// if set to true, upload, download and unchoke limits are ignored for
 			// peers on the local network. This option is *DEPRECATED*, please use
 			// set_peer_class_filter() instead.
-			ignore_limits_on_local_network,
+			ignore_limits_on_local_network TORRENT_DEPRECATED_ENUM,
 #else
 			deprecated1,
 #endif
@@ -270,7 +270,7 @@ namespace libtorrent
 			// client is seed, a few bits will be set to 0, and later filled in
 			// with have messages. This is to prevent certain ISPs from stopping
 			// people from seeding.
-			lazy_bitfields,
+			lazy_bitfields TORRENT_DEPRECATED_ENUM,
 #else
 			deprecated12,
 #endif
@@ -302,12 +302,12 @@ namespace libtorrent
 			// pieces.
 			use_read_cache,
 #ifndef TORRENT_NO_DEPRECATE
-			use_write_cache,
+			use_write_cache TORRENT_DEPRECATED_ENUM,
 
 			// this will make the disk cache never flush a write piece if it would
 			// cause is to have to re-read it once we want to calculate the piece
 			// hash
-			dont_flush_write_cache,
+			dont_flush_write_cache TORRENT_DEPRECATED_ENUM,
 #else
 			deprecated11,
 			deprecated22,
@@ -379,7 +379,7 @@ namespace libtorrent
 			// will be locked in physical RAM, never to be swapped out. Every time
 			// a disk buffer is allocated and freed, there will be the extra
 			// overhead of a system call.
-			lock_disk_cache,
+			lock_disk_cache TORRENT_DEPRECATED_ENUM,
 #else
 			deprecated10,
 #endif
@@ -405,7 +405,7 @@ namespace libtorrent
 			// overall responsiveness of the system while downloading in the
 			// background. For high-performance server setups, this might not be
 			// desirable.
-			low_prio_disk,
+			low_prio_disk TORRENT_DEPRECATED_ENUM,
 #else
 			deprecated17,
 #endif
@@ -424,7 +424,7 @@ namespace libtorrent
 			// are sending to that peer. The intention is to optimize the RAM
 			// usage of the cache, to read ahead further for peers that you're
 			// sending faster to.
-			guided_read_cache,
+			guided_read_cache TORRENT_DEPRECATED_ENUM,
 #else
 			deprecated13,
 #endif
@@ -488,7 +488,7 @@ namespace libtorrent
 			// if your network is faster than your disk, and it would be faster to
 			// redownload potentially missed pieces than to go through the whole
 			// storage to look for them.
-			ignore_resume_timestamps,
+			ignore_resume_timestamps TORRENT_DEPRECATED_ENUM,
 #else
 			// hidden
 			deprecated8,
@@ -526,7 +526,7 @@ namespace libtorrent
 #ifndef TORRENT_NO_DEPRECATE
 			// set to true if uTP connections should be rate limited This option
 			// is *DEPRECATED*, please use set_peer_class_filter() instead.
-			rate_limit_utp,
+			rate_limit_utp TORRENT_DEPRECATED_ENUM,
 #else
 			deprecated2,
 #endif
@@ -536,7 +536,7 @@ namespace libtorrent
 			// otherwise specified) will be set to the intermediate IP address if
 			// the user is double NATed. If the user is not double NATed, this
 			// option does not have an affect
-			announce_double_nat,
+			announce_double_nat TORRENT_DEPRECATED_ENUM,
 #else
 			deprecated18,
 #endif
@@ -578,7 +578,7 @@ namespace libtorrent
 			// ``use_disk_read_ahead`` defaults to true and will attempt to
 			// optimize disk reads by giving the operating system heads up of disk
 			// read requests as they are queued in the disk job queue.
-			use_disk_read_ahead,
+			use_disk_read_ahead TORRENT_DEPRECATED_ENUM,
 #else
 			deprecated19,
 #endif
@@ -603,7 +603,7 @@ namespace libtorrent
 			// higher performance. When this is enabled, it will only be used when
 			// seeding to peers, since that's when it provides performance
 			// improvements.
-			contiguous_recv_buffer,
+			contiguous_recv_buffer TORRENT_DEPRECATED_ENUM,
 #else
 			deprecated15,
 #endif
@@ -1080,7 +1080,7 @@ namespace libtorrent
 			// unloading torrents is not enabled, this setting have no effect. If
 			// this limit is set to 0, it means unlimited. For more information,
 			// see dynamic-loading-of-torrent-files_.
-			active_loaded_limit,
+			active_loaded_limit TORRENT_DEPRECATED_ENUM,
 #else
 			deprecated20,
 #endif
@@ -1167,7 +1167,7 @@ namespace libtorrent
 			// be useful for background tasks that doesn't matter if they take a
 			// bit longer, as long as they leave disk I/O time for other
 			// processes.
-			file_checks_delay_per_block,
+			file_checks_delay_per_block TORRENT_DEPRECATED_ENUM,
 #else
 			deprecated23,
 #endif
@@ -1226,7 +1226,7 @@ namespace libtorrent
 			// bound on the time a cache line stays in the cache is an attempt
 			// to avoid swapping the same pieces in and out of the cache in case
 			// there is a shortage of spare cache space.
-			default_cache_min_age,
+			default_cache_min_age TORRENT_DEPRECATED_ENUM,
 #else
 			deprecated16,
 #endif
@@ -1293,8 +1293,8 @@ namespace libtorrent
 			upload_rate_limit,
 			download_rate_limit,
 #ifndef TORRENT_NO_DEPRECATE
-			local_upload_rate_limit,
-			local_download_rate_limit,
+			local_upload_rate_limit TORRENT_DEPRECATED_ENUM,
+			local_download_rate_limit TORRENT_DEPRECATED_ENUM,
 #else
 			deprecated3,
 			deprecated4,
@@ -1305,7 +1305,7 @@ namespace libtorrent
 			// specified in bytes per second and defaults to 4000. For busy boxes
 			// with lots of torrents that requires more DHT traffic, this should
 			// be raised.
-			dht_upload_rate_limit,
+			dht_upload_rate_limit TORRENT_DEPRECATED_ENUM,
 #else
 			deprecated7,
 #endif
@@ -1327,7 +1327,7 @@ namespace libtorrent
 			// have no limit. When limiting the number of simultaneous connection
 			// attempts, peers will be put in a queue waiting for their turn to
 			// get connected.
-			half_open_limit,
+			half_open_limit TORRENT_DEPRECATED_ENUM,
 #else
 			deprecated5,
 #endif
@@ -1384,7 +1384,7 @@ namespace libtorrent
 			utp_num_resends,
 			utp_connect_timeout,
 #ifndef TORRENT_NO_DEPRECATE
-			utp_delayed_ack,
+			utp_delayed_ack TORRENT_DEPRECATED_ENUM,
 #else
 			deprecated6,
 #endif
@@ -1439,7 +1439,7 @@ namespace libtorrent
 			// higher than the number of CPU cores would presumably not provide
 			// any benefit of setting it to the number of cores. If it's set to 0,
 			// hashing is done in the disk thread.
-			hashing_threads,
+			hashing_threads TORRENT_DEPRECATED_ENUM,
 #else
 			deprecated14,
 #endif
@@ -1480,7 +1480,7 @@ namespace libtorrent
 			// opened on this port. This setting is only taken into account when
 			// opening the regular listen port, and won't re-open the listen
 			// socket simply by changing this setting.
-			ssl_listen,
+			ssl_listen TORRENT_DEPRECATED_ENUM,
 #else
 			// hidden
 			deprecated9,
@@ -1659,7 +1659,7 @@ namespace libtorrent
 		{
 			enable_os_cache = 0,
 #ifndef TORRENT_NO_DEPRECATE
-			disable_os_cache_for_aligned_files = 2,
+			disable_os_cache_for_aligned_files TORRENT_DEPRECATED_ENUM = 2,
 #else
 			deprecated = 1,
 #endif

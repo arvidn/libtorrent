@@ -345,18 +345,42 @@ namespace libtorrent
 			num_ssl_http_proxy_peers,
 			num_ssl_utp_peers,
 
+			// the number of peer connections that are half-open (i.e. in the
+			// process of completing a connection attempt) and fully connected.
+			// These states are mutually exclusive (a connection cannot be in both
+			// states simultaneously).
 			num_peers_half_open,
 			num_peers_connected,
+
+			// the number of peers interested in us (``up_interested``) and peers
+			// we are interested in (``down_interested``).
 			num_peers_up_interested,
 			num_peers_down_interested,
+
+			// the total number of unchoked peers (``up_unchoked_all``), the number
+			// of peers unchoked via the optimistic unchoke
+			// (``up_unchoked_optimistic``) and peers unchoked via the
+			// reciprocation (regular) unchoke mechanism (``up_unchoked``).
+			// and the number of peers that have unchoked us (``down_unchoked).
 			num_peers_up_unchoked_all,
 			num_peers_up_unchoked_optimistic,
 			num_peers_up_unchoked,
 			num_peers_down_unchoked,
+
+			// the number of peers with at least one piece request pending,
+			// downloading (``down_requests``) or uploading (``up_requests``)
 			num_peers_up_requests,
 			num_peers_down_requests,
+
+			// the number of peers that have at least one outstanding disk request,
+			// either reading (``up_disk``) or writing (``down_disk``).
 			num_peers_up_disk,
 			num_peers_down_disk,
+
+			// the number of peers in end-game mode. End game mode is where there
+			// are no blocks that we have not sent any requests to download. In ths
+			// mode, blocks are allowed to be requested from more than one peer at
+			// at time.
 			num_peers_end_game,
 
 			write_cache_blocks,

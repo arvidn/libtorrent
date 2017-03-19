@@ -189,9 +189,6 @@ std::vector<libtorrent::dht_lookup> dht_active_requests;
 std::vector<libtorrent::dht_routing_bucket> dht_routing_table;
 #endif
 
-torrent_view view;
-session_view ses_view;
-
 std::string to_hex(lt::sha1_hash const& s)
 {
 	std::stringstream ret;
@@ -844,7 +841,8 @@ int save_file(std::string const& filename, std::vector<char> const& v)
 
 // returns true if the alert was handled (and should not be printed to the log)
 // returns false if the alert was not handled
-bool handle_alert(libtorrent::session& ses, libtorrent::alert* a
+bool handle_alert(torrent_view& view, session_view& ses_view
+	, libtorrent::session& ses, libtorrent::alert* a
 	, handles_t& files, std::set<libtorrent::torrent_handle>& non_files)
 {
 	using namespace libtorrent;
@@ -1194,6 +1192,9 @@ int main(int argc, char* argv[])
 
 	using namespace libtorrent;
 	namespace lt = libtorrent;
+
+	torrent_view view;
+	session_view ses_view;
 
 	settings_pack settings;
 	settings.set_int(settings_pack::cache_size, cache_size);
@@ -1775,7 +1776,7 @@ int main(int argc, char* argv[])
 		{
 			try
 			{
-				if (!::handle_alert(ses, *i, files, non_files))
+				if (!::handle_alert(view, ses_view, ses, *i, files, non_files))
 				{
 					// if we didn't handle the alert, print it to the log
 					std::string event_string;
@@ -2138,7 +2139,7 @@ int main(int argc, char* argv[])
 		for (std::vector<alert*>::iterator i = alerts.begin()
 			, end(alerts.end()); i != end; ++i)
 		{
-			if (!::handle_alert(ses, *i, files, non_files))
+			if (!::handle_alert(view, ses_view, ses, *i, files, non_files))
 			{
 				// if we didn't handle the alert, print it to the log
 				std::string event_string;
