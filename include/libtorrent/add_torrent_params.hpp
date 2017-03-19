@@ -89,6 +89,8 @@ namespace libtorrent
 		explicit add_torrent_params(storage_constructor_type sc = default_storage_constructor)
 			: storage(sc) {}
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+
 		// values for the ``flags`` field
 		enum flags_t : std::uint64_t
 		{
@@ -260,8 +262,6 @@ namespace libtorrent
 			flag_merge_resume_http_seeds TORRENT_DEPRECATED_ENUM = 0x100000,
 #endif
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 			// internal
 			default_flags = flag_update_subscribe
 				| flag_auto_managed | flag_paused | flag_apply_ip_filter
@@ -271,9 +271,9 @@ namespace libtorrent
 				| flag_merge_resume_http_seeds
 				| flag_merge_resume_trackers
 #endif
+		};
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
-		};
 
 		// filled in by the constructor and should be left untouched. It is used
 		// for forward binary compatibility.
