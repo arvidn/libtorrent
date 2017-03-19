@@ -82,14 +82,11 @@ namespace libtorrent
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 	struct TORRENT_EXPORT add_torrent_params
 	{
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 		// The constructor can be used to initialize the storage constructor,
 		// which determines the storage mechanism for the downloaded or seeding
 		// data for the torrent. For more information, see the ``storage`` field.
 		explicit add_torrent_params(storage_constructor_type sc = default_storage_constructor)
 			: storage(sc) {}
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
 
 		// values for the ``flags`` field
 		enum flags_t : std::uint64_t
