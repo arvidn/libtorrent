@@ -68,7 +68,7 @@ struct TORRENT_EXTRA_EXPORT traversal_algorithm : boost::noncopyable
 
 	node_id const& target() const { return m_target; }
 
-	void resort_results();
+	void resort_result(observer*);
 	void add_entry(node_id const& id, udp::endpoint const& addr, unsigned char flags);
 
 	traversal_algorithm(node& dht_node, node_id const& target);
@@ -104,15 +104,27 @@ protected:
 	int num_timeouts() const { return m_timeouts; }
 
 	node& m_node;
+
+	// this vector is sorted by node-id distance from our node id. Closer nodes
+	// are earlier in the vector. However, not the entire vector is necessarily
+	// sorted, the tail of the vector may contain nodes out-of-order. This is
+	// used when bootstrapping. The ``m_sorted_results`` member indicates how
+	// many of the first elements are sorted.
 	std::vector<observer_ptr> m_results;
+
+	int num_sorted_results() const { return m_sorted_results; }
 
 private:
 
 	node_id const m_target;
-	std::int16_t m_invoke_count = 0;
-	std::int16_t m_branch_factor = 3;
+	std::int8_t m_invoke_count = 0;
+	std::int8_t m_branch_factor = 3;
+	// the number of elements at the beginning of m_results that are sorted by
+	// node_id.
+	std::int8_t m_sorted_results = 0;
 	std::int16_t m_responses = 0;
 	std::int16_t m_timeouts = 0;
+
 #ifndef TORRENT_DISABLE_LOGGING
 	// this is a unique ID for this specific traversal_algorithm instance,
 	// just used for logging
