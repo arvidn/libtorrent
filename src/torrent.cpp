@@ -92,6 +92,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/file_progress.hpp"
 #include "libtorrent/aux_/has_block.hpp"
 #include "libtorrent/alert_manager.hpp"
+#include "libtorrent/string_view.hpp"
 #include "libtorrent/disk_interface.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for is_ip_address
 #include "libtorrent/hex.hpp" // to_hex
@@ -1852,7 +1853,7 @@ namespace libtorrent
 				{
 					if (!i.ti) continue;
 					links.push_back(combine_path(i.save_path
-						, i.ti->files().file_path(i.file_idx)));
+						, make_sv(i.ti->files().file_path(i.file_idx))));
 				}
 			}
 		}

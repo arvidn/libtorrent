@@ -46,6 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/preprocessor/cat.hpp>
 
 #include "libtorrent/config.hpp"
+#include "libtorrent/string_view.hpp"
+#include "libtorrent/file.hpp"
 
 // tests are expected to even test deprecated functionality. There is no point
 // in warning about deprecated use in any of the tests.
@@ -73,6 +75,8 @@ POSSIBILITY OF SUCH DAMAGE.
 void EXPORT report_failure(char const* err, char const* file, int line);
 int EXPORT print_failures();
 int EXPORT test_counter();
+std::string EXPORT combine_path(std::string const& ls, std::string const& rs);
+std::string EXPORT combine_path(char const* ls, char const* rs);
 
 typedef void (*unit_test_fun_t)();
 

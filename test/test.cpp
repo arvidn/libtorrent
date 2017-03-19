@@ -94,3 +94,15 @@ int print_failures()
 	return total_num_failures;
 }
 
+std::string combine_path(std::string const& ls, std::string const& rs)
+{
+	return libtorrent::combine_path(libtorrent::make_sv(ls), libtorrent::make_sv(rs));
+}
+
+std::string combine_path(char const* ls, char const* rs)
+{
+	libtorrent::string_view lhs{ls};
+	libtorrent::string_view rhs{rs};
+	return libtorrent::combine_path(lhs, rhs);
+}
+
