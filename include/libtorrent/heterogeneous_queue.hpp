@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 
 #include "libtorrent/assert.hpp"
+#include "libtorrent/aux_/throw.hpp"
 
 namespace libtorrent {
 
@@ -204,6 +205,9 @@ namespace libtorrent {
 			std::unique_ptr<char, aux::free_deleter> new_storage(
 				static_cast<char*>(std::malloc(std::size_t(m_capacity + amount_to_grow)))
 				, aux::free_deleter());
+
+			if (new_storage.get() == nullptr)
+				aux::throw_ex<std::bad_alloc>();
 
 			char* src = m_storage.get();
 			char* dst = new_storage.get();
