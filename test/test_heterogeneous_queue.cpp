@@ -205,6 +205,7 @@ TORRENT_TEST(emplace_back_over_aligned)
 	std::vector<A*> ptrs;
 	q.get_pointers(ptrs);
 
+	TEST_EQUAL(alignof(G), 128);
 	TEST_EQUAL(int(ptrs.size()), q.size());
 	TEST_EQUAL(ptrs.size(), 3);
 	TEST_EQUAL(ptrs[0]->type(), 3);
