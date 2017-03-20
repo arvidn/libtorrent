@@ -136,6 +136,13 @@ private:
 	F& operator=(F const& f);
 };
 
+struct alignas(128) G : A
+{
+	G(int base, int v) : A(base), g(v) {}
+	int type() override { return 3; }
+	int g;
+};
+
 // test emplace_back of heterogeneous types
 // and retrieval of their pointers
 TORRENT_TEST(emplace_back)
@@ -184,6 +191,31 @@ TORRENT_TEST(emplace_back)
 
 	TEST_EQUAL(static_cast<C*>(ptrs[5])->a, 10);
 	TEST_EQUAL(static_cast<C*>(ptrs[5])->c[0], 11);
+}
+
+TORRENT_TEST(emplace_back_over_aligned)
+{
+	using namespace libtorrent;
+
+	heterogeneous_queue<A> q;
+	q.emplace_back<G>(1, 2);
+	q.emplace_back<G>(3, 4);
+	q.emplace_back<B>(5, 6);
+
+	std::vector<A*> ptrs;
+	q.get_pointers(ptrs);
+
+	TEST_EQUAL(int(ptrs.size()), q.size());
+	TEST_EQUAL(ptrs.size(), 3);
+	TEST_EQUAL(ptrs[0]->type(), 3);
+	TEST_EQUAL(static_cast<G*>(ptrs[0])->a, 1);
+	TEST_EQUAL(static_cast<G*>(ptrs[0])->g, 2);
+	TEST_EQUAL(ptrs[1]->type(), 3);
+	TEST_EQUAL(static_cast<G*>(ptrs[1])->a, 3);
+	TEST_EQUAL(static_cast<G*>(ptrs[1])->g, 4);
+	TEST_EQUAL(ptrs[2]->type(), 1);
+	TEST_EQUAL(static_cast<B*>(ptrs[2])->a, 5);
+	TEST_EQUAL(static_cast<B*>(ptrs[2])->b, 6);
 }
 
 // test swap
