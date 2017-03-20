@@ -632,23 +632,42 @@ namespace aux {
 		update_lsd();
 		update_peer_fingerprint();
 
+		init_dht();
+	}
+
+	void session_impl::init_dht()
+	{
+		// the need of this elaborated logic is because if the value
+		// of settings_pack::dht_bootstrap_nodes is not the default,
+		// then update_dht_bootstrap_nodes is called. For this reason,
+		// three different cases should be considered.
+		// 1-) dht_bootstrap_nodes setting not touched
+		// 2-) dht_bootstrap_nodes changed but not empty
+		// 3-) dht_bootstrap_nodes set to empty ("")
+		// TODO: find a solution and refactor to avoid potentially stalling
+		// for minutes due to the name resolution
+
 #ifndef TORRENT_DISABLE_DHT
-		// setup DHT
 		if (m_outstanding_router_lookups == 0)
 		{
 			// this can happens because either the setting value was untouched
 			// or the value in the initial settings is empty
 			if (m_settings.get_str(settings_pack::dht_bootstrap_nodes).empty())
 			{
+				// case 3)
 				update_dht();
 				update_dht_announce_interval();
 			}
 			else
 			{
+				// case 1)
 				// eventually update_dht() is called when all resolves are done
 				update_dht_bootstrap_nodes();
 			}
 		}
+		// else is case 2)
+		// in this case the call to update_dht_bootstrap_nodes() by the apply settings
+		// will eventually call update_dht() when all resolves are done
 #endif
 	}
 

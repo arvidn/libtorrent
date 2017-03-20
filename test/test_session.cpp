@@ -394,3 +394,73 @@ TORRENT_TEST(save_state_peer_id)
 	TEST_CHECK(pid3[5] == 'r');
 }
 
+TORRENT_TEST(init_dht)
+{
+	auto count_dht_inits = [](session& ses)
+	{
+		int count = 0;
+		int num = 70; // this number is adjusted per version, an estimate
+		time_point const end_time = clock_type::now() + seconds(15);
+		while (true)
+		{
+			time_point const now = clock_type::now();
+			if (now > end_time) return count;
+
+			ses.wait_for_alert(end_time - now);
+			std::vector<alert*> alerts;
+			ses.pop_alerts(&alerts);
+			for (auto a : alerts)
+			{
+				std::printf("%d: [%s] %s\n", num, a->what(), a->message().c_str());
+				if (a->type() == log_alert::alert_type)
+				{
+					std::string const msg = a->message();
+					if (msg.find("about to start DHT") != std::string::npos)
+						count++;
+				}
+				num--;
+			}
+			if (num <= 0) return count;
+		}
+		return count;
+	};
+
+	{
+		settings_pack p = settings();
+		p.set_bool(settings_pack::enable_dht, true);
+		p.set_int(settings_pack::alert_mask, alert::all_categories);
+		// default value
+		p.set_str(settings_pack::dht_bootstrap_nodes, "dht.libtorrent.org:25401");
+
+		lt::session s(p);
+
+		int const count = count_dht_inits(s);
+		TEST_EQUAL(count, 1);
+	}
+
+	{
+		settings_pack p = settings();
+		p.set_bool(settings_pack::enable_dht, true);
+		p.set_int(settings_pack::alert_mask, alert::all_categories);
+		// no default value
+		p.set_str(settings_pack::dht_bootstrap_nodes, "test.libtorrent.org:25401:8888");
+
+		lt::session s(p);
+
+		int const count = count_dht_inits(s);
+		TEST_EQUAL(count, 1);
+	}
+
+	{
+		settings_pack p = settings();
+		p.set_bool(settings_pack::enable_dht, true);
+		p.set_int(settings_pack::alert_mask, alert::all_categories);
+		// empty value
+		p.set_str(settings_pack::dht_bootstrap_nodes, "");
+
+		lt::session s(p);
+
+		int const count = count_dht_inits(s);
+		TEST_EQUAL(count, 1);
+	}
+}
