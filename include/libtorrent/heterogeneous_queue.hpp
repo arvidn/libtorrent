@@ -80,6 +80,12 @@ namespace libtorrent {
 			static_assert(alignof(U) <= 256
 				, "heterogeneous_queue does not support types with alignment requirements > 256");
 
+			// if this assert triggers, the type being added to the queue has
+			// alignment requirements stricter than what malloc() returns. This is
+			// not supported
+			TORRENT_ASSERT((reinterpret_cast<std::uintptr_t>(m_storage.get())
+				& (alignof(U) - 1)) == 0);
+
 			// make sure the current position in the storage is aligned for
 			// creating a heder_t object
 			TORRENT_ASSERT((reinterpret_cast<std::uintptr_t>(ptr)
@@ -93,7 +99,7 @@ namespace libtorrent {
 			hdr->len = static_cast<std::uint16_t>(sizeof(U)
 				+ aux::calculate_pad_bytes(ptr + sizeof(U),  alignof(header_t)));
 
-			// make sure ptr is correctly asligned for the object we're about to
+			// make sure ptr is correctly aligned for the object we're about to
 			// create there
 			TORRENT_ASSERT((reinterpret_cast<std::uintptr_t>(ptr)
 				& (alignof(U) - 1)) == 0);
@@ -208,14 +214,15 @@ namespace libtorrent {
 				new (dst) header_t(*src_hdr);
 				src += sizeof(header_t) + src_hdr->pad_bytes;
 				dst += sizeof(header_t) + src_hdr->pad_bytes;
-				TORRENT_ASSERT(src + src_hdr->len <= end);
+				int const len = src_hdr->len;
+				TORRENT_ASSERT(src + len <= end);
 				// TODO: if this throws, we should technically destruct the elements
 				// we've constructed so far, but maybe we should just disallow
 				// throwing move instead.
 				src_hdr->move(dst, src);
-				src += src_hdr->len;
-				dst += src_hdr->len;
 				src_hdr->~header_t();
+				src += len ;
+				dst += len;
 			}
 
 			m_storage.swap(new_storage);
@@ -226,6 +233,9 @@ namespace libtorrent {
 		static void move(char* dst, char* src)
 		{
 			U& rhs = *reinterpret_cast<U*>(src);
+
+			TORRENT_ASSERT((reinterpret_cast<std::uintptr_t>(dst) & (alignof(U) - 1)) == 0);
+
 			new (dst) U(std::move(rhs));
 			rhs.~U();
 		}

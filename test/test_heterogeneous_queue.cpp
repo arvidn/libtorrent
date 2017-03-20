@@ -136,7 +136,7 @@ private:
 	F& operator=(F const& f);
 };
 
-struct alignas(128) G : A
+struct alignas(16) G : A
 {
 	G(int base, int v) : A(base), g(v) {}
 	int type() override { return 3; }
@@ -205,7 +205,10 @@ TORRENT_TEST(emplace_back_over_aligned)
 	std::vector<A*> ptrs;
 	q.get_pointers(ptrs);
 
-	TEST_EQUAL(alignof(G), 128);
+	// this test is a bit unfortunate. It will fail if malloc() does not
+	// guarantee to return memory aligned to 16 bytes, even if the system doesn't
+	// have any types with such alignment requirements
+	TEST_EQUAL(alignof(G), 16);
 	TEST_EQUAL(int(ptrs.size()), q.size());
 	TEST_EQUAL(ptrs.size(), 3);
 	TEST_EQUAL(ptrs[0]->type(), 3);
