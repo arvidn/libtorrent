@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 #include <cstdlib> // for malloc
 #include <type_traits>
+#include <memory>
 
 #include "libtorrent/assert.hpp"
 
@@ -103,7 +104,7 @@ namespace libtorrent {
 			// if we constructed the object without throwing any exception
 			// update counters to indicate the new item is in there
 			++m_num_items;
-			m_size += sizeof(header_t) + pad_bytes + hdr->len;
+			m_size += int(sizeof(header_t) + pad_bytes + hdr->len);
 			return *ret;
 		}
 
