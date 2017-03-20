@@ -138,7 +138,7 @@ namespace libtorrent {
 		// the alert_manager is allowed to use right now. This is swapped when
 		// the client calls get_all(), at which point all of the alert objects
 		// passed to the client will be owned by libtorrent again, and reset.
-		int m_generation;
+		int m_generation = 0;
 
 		// this is where all alerts are queued up. There are two heterogeneous
 		// queues to double buffer the thread access. The std::mutex in the alert

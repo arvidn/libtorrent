@@ -35,62 +35,96 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 #include <cstdint>
+#include <cstdlib> // for malloc
 #include <type_traits>
+#include <memory>
 
 #include "libtorrent/assert.hpp"
+#include "libtorrent/aux_/throw.hpp"
 
 namespace libtorrent {
+
+	namespace aux {
+		struct free_deleter
+		{ void operator()(char* ptr) { return std::free(ptr); } };
+
+		inline std::size_t calculate_pad_bytes(char* inptr, std::size_t alignment)
+		{
+			std::uintptr_t const ptr = reinterpret_cast<std::uintptr_t>(inptr);
+			std::uintptr_t const offset = ptr & (alignment - 1);
+			return (alignment - offset) & (alignment - 1);
+		}
+	}
 
 	template <class T>
 	struct heterogeneous_queue
 	{
-		heterogeneous_queue()
-			: m_storage(nullptr)
-			, m_capacity(0)
-			, m_size(0)
-			, m_num_items(0)
-		{}
+		heterogeneous_queue() : m_storage(nullptr, aux::free_deleter()) {}
+		heterogeneous_queue(heterogeneous_queue const&) = delete;
+		heterogeneous_queue& operator=(heterogeneous_queue const&) = delete;
 
 		template <class U, typename... Args>
 		typename std::enable_if<std::is_base_of<T, U>::value, U&>::type
 		emplace_back(Args&&... args)
 		{
-			// the size of the type rounded up to pointer alignment
-			const int object_size = (sizeof(U) + sizeof(*m_storage) - 1)
-				/ sizeof(*m_storage);
+			// make the conservative assumption that we'll need the maximum padding
+			// for this object, just for purposes of growing the storage
+			if (std::size_t(m_size) + sizeof(header_t) + alignof(U) + sizeof(U) > std::size_t(m_capacity))
+				grow_capacity(sizeof(header_t) + alignof(U) + sizeof(U));
 
-			// +1 for the length prefix
-			if (m_size + object_size + header_size > m_capacity)
-				grow_capacity(object_size);
+			char* ptr = m_storage.get() + m_size;
 
-			uintptr_t* ptr = m_storage + m_size;
+			std::size_t const pad_bytes = aux::calculate_pad_bytes(ptr + sizeof(header_t), alignof(U));
+
+			// pad_bytes is only 8 bits in the header, so types that need more than
+			// 256 byte alignment may not be suppored
+			static_assert(alignof(U) <= 256
+				, "heterogeneous_queue does not support types with alignment requirements > 256");
+
+			// if this assert triggers, the type being added to the queue has
+			// alignment requirements stricter than what malloc() returns. This is
+			// not supported
+			TORRENT_ASSERT((reinterpret_cast<std::uintptr_t>(m_storage.get())
+				& (alignof(U) - 1)) == 0);
+
+			// make sure the current position in the storage is aligned for
+			// creating a heder_t object
+			TORRENT_ASSERT((reinterpret_cast<std::uintptr_t>(ptr)
+				& (alignof(header_t) - 1)) == 0);
 
 			// length prefix
-			header_t* hdr = reinterpret_cast<header_t*>(ptr);
-			hdr->len = object_size;
+			header_t* hdr = new (ptr) header_t;
+			hdr->pad_bytes = static_cast<std::uint8_t>(pad_bytes);
 			hdr->move = &move<U>;
-			ptr += header_size;
+			ptr += sizeof(header_t) + pad_bytes;
+			hdr->len = static_cast<std::uint16_t>(sizeof(U)
+				+ aux::calculate_pad_bytes(ptr + sizeof(U),  alignof(header_t)));
+
+			// make sure ptr is correctly aligned for the object we're about to
+			// create there
+			TORRENT_ASSERT((reinterpret_cast<std::uintptr_t>(ptr)
+				& (alignof(U) - 1)) == 0);
 
 			// construct in-place
-			new (ptr) U(std::forward<Args>(args)...);
+			U* const ret = new (ptr) U(std::forward<Args>(args)...);
 
 			// if we constructed the object without throwing any exception
 			// update counters to indicate the new item is in there
 			++m_num_items;
-			m_size += header_size + object_size;
-			return *reinterpret_cast<U*>(ptr);
+			m_size += int(sizeof(header_t) + pad_bytes + hdr->len);
+			return *ret;
 		}
 
 		void get_pointers(std::vector<T*>& out)
 		{
 			out.clear();
 
-			uintptr_t* ptr = m_storage;
-			uintptr_t const* const end = m_storage + m_size;
+			char* ptr = m_storage.get();
+			char const* const end = m_storage.get() + m_size;
 			while (ptr < end)
 			{
 				header_t* hdr = reinterpret_cast<header_t*>(ptr);
-				ptr += header_size;
+				ptr += sizeof(header_t) + hdr->pad_bytes;
 				TORRENT_ASSERT(ptr + hdr->len <= end);
 				out.push_back(reinterpret_cast<T*>(ptr));
 				ptr += hdr->len;
@@ -110,16 +144,17 @@ namespace libtorrent {
 
 		void clear()
 		{
-			uintptr_t* ptr = m_storage;
-			uintptr_t const* const end = m_storage + m_size;
+			char* ptr = m_storage.get();
+			char const* const end = m_storage.get() + m_size;
 			while (ptr < end)
 			{
 				header_t* hdr = reinterpret_cast<header_t*>(ptr);
-				ptr += header_size;
+				ptr += sizeof(header_t) + hdr->pad_bytes;
 				TORRENT_ASSERT(ptr + hdr->len <= end);
 				T* a = reinterpret_cast<T*>(ptr);
 				a->~T();
 				ptr += hdr->len;
+				hdr->~header_t();
 			}
 			m_size = 0;
 			m_num_items = 0;
@@ -130,81 +165,92 @@ namespace libtorrent {
 			if (m_size == 0) return nullptr;
 
 			TORRENT_ASSERT(m_size > 1);
-			uintptr_t* ptr = m_storage;
-			TORRENT_ASSERT(reinterpret_cast<header_t*>(ptr)->len <= m_size);
-			ptr += header_size;
+			char* ptr = m_storage.get();
+			header_t* hdr = reinterpret_cast<header_t*>(ptr);
+			TORRENT_ASSERT(sizeof(header_t) + hdr->pad_bytes + hdr->len
+				<= std::size_t(m_size));
+			ptr += sizeof(header_t) + hdr->pad_bytes;
 			return reinterpret_cast<T*>(ptr);
 		}
 
-		~heterogeneous_queue()
-		{
-			clear();
-			delete[] m_storage;
-		}
+		~heterogeneous_queue() { clear(); }
 
 	private:
 
-		// non-copyable
-		heterogeneous_queue(heterogeneous_queue const&);
-		heterogeneous_queue& operator=(heterogeneous_queue const&);
-
 		// this header is put in front of every element. It tells us
-		// how many uintptr_t's it's using for its allocation, and it
+		// how many bytes it's using for its allocation, and it
 		// also tells us how to move this type if we need to grow our
 		// allocation.
 		struct header_t
 		{
-			int len;
-			void (*move)(uintptr_t* dst, uintptr_t* src);
-		};
+			// the size of the object. From the start of the object, skip this many
+			// bytes to get to the next header. Meaning this includes sufficient
+			// padding to have the next entry be appropriately aligned for header_t
+			std::uint16_t len;
 
-		static int const header_size = (sizeof(header_t) + sizeof(uintptr_t)
-			- 1) / sizeof(uintptr_t);
+			// the number of pad bytes between the end of this
+			// header and the start of the object. This supports allocating types with
+			// stricter alignment requirements
+			std::uint8_t pad_bytes;
+
+			void (*move)(char* dst, char* src);
+		};
 
 		void grow_capacity(int const size)
 		{
-			int const amount_to_grow = (std::max)(size + header_size
+			int const amount_to_grow = (std::max)(size
 				, (std::max)(m_capacity * 3 / 2, 128));
 
-			uintptr_t* new_storage = new uintptr_t[m_capacity + amount_to_grow];
+			// we use malloc() to guarantee alignment
+			std::unique_ptr<char, aux::free_deleter> new_storage(
+				static_cast<char*>(std::malloc(std::size_t(m_capacity + amount_to_grow)))
+				, aux::free_deleter());
 
-			uintptr_t* src = m_storage;
-			uintptr_t* dst = new_storage;
-			uintptr_t const* const end = m_storage + m_size;
+			if (new_storage.get() == nullptr)
+				aux::throw_ex<std::bad_alloc>();
+
+			char* src = m_storage.get();
+			char* dst = new_storage.get();
+			char const* const end = m_storage.get() + m_size;
 			while (src < end)
 			{
 				header_t* src_hdr = reinterpret_cast<header_t*>(src);
-				header_t* dst_hdr = reinterpret_cast<header_t*>(dst);
-				*dst_hdr = *src_hdr;
-				src += header_size;
-				dst += header_size;
-				TORRENT_ASSERT(src + src_hdr->len <= end);
-				// TODO: if this throws, should we do anything?
+				new (dst) header_t(*src_hdr);
+				src += sizeof(header_t) + src_hdr->pad_bytes;
+				dst += sizeof(header_t) + src_hdr->pad_bytes;
+				int const len = src_hdr->len;
+				TORRENT_ASSERT(src + len <= end);
+				// TODO: if this throws, we should technically destruct the elements
+				// we've constructed so far, but maybe we should just disallow
+				// throwing move instead.
 				src_hdr->move(dst, src);
-				src += src_hdr->len;
-				dst += src_hdr->len;
+				src_hdr->~header_t();
+				src += len ;
+				dst += len;
 			}
 
-			delete[] m_storage;
-			m_storage = new_storage;
+			m_storage.swap(new_storage);
 			m_capacity += amount_to_grow;
 		}
 
 		template <class U>
-		static void move(uintptr_t* dst, uintptr_t* src)
+		static void move(char* dst, char* src)
 		{
 			U& rhs = *reinterpret_cast<U*>(src);
-			new (dst) U(static_cast<U&&>(rhs));
+
+			TORRENT_ASSERT((reinterpret_cast<std::uintptr_t>(dst) & (alignof(U) - 1)) == 0);
+
+			new (dst) U(std::move(rhs));
 			rhs.~U();
 		}
 
-		uintptr_t* m_storage;
-		// number of uintptr_t's allocated under m_storage
-		int m_capacity;
-		// the number of uintptr_t's used under m_storage
-		int m_size;
-		// the number of objects allocated under m_storage
-		int m_num_items;
+		std::unique_ptr<char, aux::free_deleter> m_storage;
+		// number of bytes of storage allocated
+		int m_capacity = 0;
+		// the number of bytes used under m_storage
+		int m_size = 0;
+		// the number of objects allocated in m_storage
+		int m_num_items = 0;
 	};
 }
 
