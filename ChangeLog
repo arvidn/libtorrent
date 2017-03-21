@@ -1,3 +1,4 @@
+	* fix minor robustness issue in DHT bootstrap logic
 	* fix issue where torrent_status::num_seeds could be negative
 	* document deprecation of dynamic loading/unloading of torrents
 	* include user-agent in tracker announces in anonymous_mode for private torrents
