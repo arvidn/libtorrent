@@ -4604,8 +4604,8 @@ namespace aux {
 		}
 		TORRENT_ASSERT(params->ti->is_valid());
 		TORRENT_ASSERT(params->ti->num_files() > 0);
-		add_torrent(*params, ec);
 		params->url.clear();
+		add_torrent(*params, ec);
 	}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
