@@ -256,6 +256,14 @@ class test_sha1hash(unittest.TestCase):
 		s = lt.sha1_hash(binascii.unhexlify(h))
 		self.assertEqual(h, str(s))
 
+class test_magnet_link(unittest.TestCase):
+
+	def test_parse_magnet_uri(self):
+		ses = lt.session()
+		magnet = 'magnet:?xt=urn:btih:C6EIF4CCYDBTIJVG3APAGM7M4NDONCTI'
+		p = lt.parse_magnet_uri(magnet)
+		p['save_path'] = '.'
+		h = ses.add_torrent(p)
 
 class test_session(unittest.TestCase):
 
