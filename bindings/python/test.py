@@ -259,7 +259,7 @@ class test_sha1hash(unittest.TestCase):
 class test_magnet_link(unittest.TestCase):
 
 	def test_parse_magnet_uri(self):
-		ses = lt.session()
+		ses = lt.session({})
 		magnet = 'magnet:?xt=urn:btih:C6EIF4CCYDBTIJVG3APAGM7M4NDONCTI'
 		p = lt.parse_magnet_uri(magnet)
 		p['save_path'] = '.'
