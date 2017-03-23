@@ -1468,7 +1468,7 @@ namespace libtorrent
 #endif
 	}
 
-	void torrent::init_ssl(std::string const& cert)
+	void torrent::init_ssl(string_view cert)
 	{
 		using boost::asio::ssl::context;
 
@@ -1537,7 +1537,7 @@ namespace libtorrent
 
 		// wrap the PEM certificate in a BIO, for openssl to read
 		BIO* bp = BIO_new_mem_buf(
-			const_cast<void*>(static_cast<void const*>(cert.c_str()))
+			const_cast<void*>(static_cast<void const*>(cert.data()))
 			, int(cert.size()));
 
 		// parse the certificate into OpenSSL's internal
@@ -1646,7 +1646,7 @@ namespace libtorrent
 		if (int(m_file_priority.size()) > m_torrent_file->num_files())
 			m_file_priority.resize(m_torrent_file->num_files());
 
-		std::string cert = m_torrent_file->ssl_cert();
+		auto cert = m_torrent_file->ssl_cert();
 		if (!cert.empty())
 		{
 			m_ssl_torrent = true;

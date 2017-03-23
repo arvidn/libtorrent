@@ -400,7 +400,7 @@ namespace libtorrent
 		// Returns the SSL root certificate for the torrent, if it is an SSL
 		// torrent. Otherwise returns an empty string. The certificate is
 		// the the public certificate in x509 format.
-		std::string ssl_cert() const;
+		string_view ssl_cert() const;
 
 		// returns true if this torrent_info object has a torrent loaded.
 		// This is primarily used to determine if a magnet link has had its
@@ -643,7 +643,11 @@ namespace libtorrent
 			// domain in its hostname. This means the DHT and LSD
 			// features are disabled for this torrent (unless the
 			// settings allows mixing i2p peers with regular peers)
-			i2p = 4
+			i2p = 4,
+
+			// this flag is set if we found an ssl-cert field in the info
+			// dictionary
+			ssl_torrent = 8,
 		};
 
 		// any combination of values from flags_t enum

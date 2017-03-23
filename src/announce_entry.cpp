@@ -46,8 +46,8 @@ namespace libtorrent
 		minutes32 constexpr tracker_retry_delay_max{60};
 	}
 
-	announce_entry::announce_entry(std::string u)
-		: url(std::move(u))
+	announce_entry::announce_entry(string_view u)
+		: url(u.to_string())
 		, fails(0)
 		, updating(false)
 		, source(0)

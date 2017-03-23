@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/string_view.hpp"
 
 #include <string>
 #include <cstdint>
@@ -47,7 +48,7 @@ namespace libtorrent
 	struct TORRENT_EXPORT announce_entry
 	{
 		// constructs a tracker announce entry with ``u`` as the URL.
-		explicit announce_entry(std::string u);
+		explicit announce_entry(string_view u);
 		announce_entry();
 		~announce_entry();
 		announce_entry(announce_entry const&) = default;
