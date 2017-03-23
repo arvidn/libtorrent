@@ -209,21 +209,30 @@ namespace libtorrent
 	storage_holder disk_io_thread::new_torrent(std::unique_ptr<storage_interface> storage)
 	{
 		TORRENT_ASSERT(storage);
-		auto it = std::find(m_torrents.begin(), m_torrents.end()
-			, std::shared_ptr<storage_interface>());
-		storage_index_t const idx((it == m_torrents.end())
-			? m_torrents.end_index()
-			: storage_index_t(std::uint32_t(it - m_torrents.begin())));
-		storage->set_storage_index(idx);
-		if (it == m_torrents.end()) m_torrents.emplace_back(std::move(storage));
-		else m_torrents[idx] = std::move(storage);
-		return storage_holder(idx, *this);
+		if (m_free_slots.empty())
+		{
+			storage_index_t const idx = m_torrents.end_index();
+			m_torrents.emplace_back(std::move(storage));
+			m_torrents.back()->set_storage_index(idx);
+			return storage_holder(idx, *this);
+		}
+		else
+		{
+			storage_index_t const idx = m_free_slots.back();
+			m_free_slots.pop_back();
+			(m_torrents[idx] = std::move(storage))->set_storage_index(idx);
+			return storage_holder(idx, *this);
+		}
 	}
 
 	void disk_io_thread::remove_torrent(storage_index_t const idx)
 	{
 		auto& pos = m_torrents[idx];
-		if (pos->dec_refcount() == 0) pos.reset();
+		if (pos->dec_refcount() == 0)
+		{
+			pos.reset();
+			m_free_slots.push_back(idx);
+		}
 	}
 
 	disk_io_thread::~disk_io_thread()
