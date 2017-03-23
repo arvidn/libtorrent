@@ -64,8 +64,11 @@ namespace libtorrent
 	// it will be encoded
 	TORRENT_EXTRA_EXPORT std::string maybe_url_encode(std::string const& url);
 
+#ifndef TORRENT_NO_DEPRECATE
+	// deprecated in 1.2
 	// convert a file://-URL to a proper path
 	TORRENT_EXTRA_EXPORT std::string resolve_file_url(std::string const& url);
+#endif
 
 	// returns true if the given string (not 0-terminated) contains
 	// characters that would need to be escaped if used in a URL

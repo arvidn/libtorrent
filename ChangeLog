@@ -1,3 +1,4 @@
+	* deprecated (undocumented) file:// urls, added torrent_file_path alternative
 	* add limit for number of web seed connections
 	* added support for retrieval of DHT live nodes
 	* complete UNC path support

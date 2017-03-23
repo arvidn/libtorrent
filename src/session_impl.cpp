@@ -4605,7 +4605,15 @@ namespace aux {
 	{
 		std::unique_ptr<add_torrent_params> holder(params);
 
-		if (string_begins_no_case("file://", params->url.c_str()) && !params->ti)
+#ifndef TORRENT_NO_DEPRECATE
+		if (!params->ti && string_begins_no_case("file://", params->url.c_str()))
+		{
+			params->torrent_file_path = resolve_file_url(params->url);
+			params->url.clear();
+		}
+#endif
+
+		if (!params->ti && !params->torrent_file_path.empty())
 		{
 			if (!m_torrent_load_thread)
 				m_torrent_load_thread.reset(new work_thread_t());
@@ -4614,7 +4622,7 @@ namespace aux {
 			{
 				std::unique_ptr<add_torrent_params> holder2(params);
 				error_code ec;
-				params->ti = std::make_shared<torrent_info>(resolve_file_url(params->url), ec);
+				params->ti = std::make_shared<torrent_info>(params->torrent_file_path, ec);
 				this->m_io_service.post(std::bind(&session_impl::on_async_load_torrent
 					, this, params, ec));
 				holder2.release();
@@ -4783,9 +4791,7 @@ namespace aux {
 	}
 
 	std::pair<std::shared_ptr<torrent>, bool>
-	session_impl::add_torrent_impl(
-		add_torrent_params& params
-		, error_code& ec)
+	session_impl::add_torrent_impl(add_torrent_params& params, error_code& ec)
 	{
 		TORRENT_ASSERT(!params.save_path.empty());
 
@@ -4796,14 +4802,23 @@ namespace aux {
 			parse_magnet_uri(params.url, params, ec);
 			if (ec) return std::make_pair(ptr_t(), false);
 			params.url.clear();
+			params.torrent_file_path.clear();
 		}
 
-		if (string_begins_no_case("file://", params.url.c_str()) && !params.ti)
+#ifndef TORRENT_NO_DEPRECATE
+		if (!params.ti && string_begins_no_case("file://", params.url.c_str()))
 		{
-			std::string const filename = resolve_file_url(params.url);
-			auto t = std::make_shared<torrent_info>(filename, std::ref(ec), 0);
+			params.torrent_file_path = resolve_file_url(params.url);
+			params.url.clear();
+		}
+#endif
+
+		if (!params.ti && !params.torrent_file_path.empty())
+		{
+			auto t = std::make_shared<torrent_info>(params.torrent_file_path, std::ref(ec), 0);
 			if (ec) return std::make_pair(ptr_t(), false);
 			params.url.clear();
+			params.torrent_file_path.clear();
 			params.ti = t;
 		}
 

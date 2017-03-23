@@ -261,6 +261,7 @@ TORRENT_TEST(path)
 	convert_path_to_posix(path);
 	TEST_EQUAL(path, "a/b/c");
 
+#ifndef TORRENT_NO_DEPRECATE
 	// resolve_file_url
 
 #ifdef TORRENT_WINDOWS
@@ -273,6 +274,7 @@ TORRENT_TEST(path)
 #else
 	TEST_EQUAL(resolve_file_url("file:///c/blah/foo/bar"), "/c/blah/foo/bar");
 	TEST_EQUAL(resolve_file_url("file:///c/b%3fah/foo/bar"), "/c/b?ah/foo/bar");
+#endif
 #endif
 }
 
