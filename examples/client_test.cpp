@@ -576,48 +576,6 @@ void signal_handler(int)
 // if non-empty, a peer that will be added to all torrents
 std::string peer;
 
-std::string path_to_url(std::string f)
-{
-	std::string ret = "file://"
-#ifdef TORRENT_WINDOWS
-		"/"
-#endif
-		;
-	static char const hex_chars[] = "0123456789abcdef";
-	static const char unreserved[] =
-		"/-_!.~*()ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-		"0123456789";
-
-	// make sure the path is an absolute path
-	if (!is_absolute_path(f))
-	{
-		char cwd[TORRENT_MAX_PATH];
-#if defined TORRENT_WINDOWS && !defined TORRENT_MINGW
-		_getcwd(cwd, sizeof(cwd));
-#else
-		char const* ret = getcwd(cwd, sizeof(cwd));
-		(void)ret; // best effort
-#endif
-		f = path_append(cwd, f);
-	}
-
-	for (int i = 0; i < int(f.size()); ++i)
-	{
-#ifdef TORRENT_WINDOWS
-		if (f[i] == '\\') ret.push_back('/');
-		else
-#endif
-		if (std::strchr(unreserved, f[i]) != nullptr) ret.push_back(f[i]);
-		else
-		{
-			ret.push_back('%');
-			ret.push_back(hex_chars[std::uint8_t(f[i]) >> 4]);
-			ret.push_back(hex_chars[std::uint8_t(f[i]) & 0xf]);
-		}
-	}
-	return ret;
-}
-
 void print_settings(int const start, int const num
 	, char const* const fmt)
 {
@@ -656,7 +614,7 @@ void add_torrent(libtorrent::session& ses
 	if (disable_storage) p.storage = disabled_storage_constructor;
 	if (share_mode) p.flags |= add_torrent_params::flag_share_mode;
 
-	p.url = path_to_url(torrent);
+	p.torrent_file_path = torrent;
 	p.save_path = save_path;
 	p.storage_mode = (storage_mode_t)allocation_mode;
 	p.flags &= ~add_torrent_params::flag_duplicate_is_error;

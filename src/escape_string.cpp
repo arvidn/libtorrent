@@ -258,6 +258,7 @@ namespace libtorrent
 		return msg;
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	std::string resolve_file_url(std::string const& url)
 	{
 		TORRENT_ASSERT(url.substr(0, 7) == "file://");
@@ -283,6 +284,7 @@ namespace libtorrent
 
 		return unescaped;
 	}
+#endif
 
 	std::string base64encode(const std::string& s)
 	{

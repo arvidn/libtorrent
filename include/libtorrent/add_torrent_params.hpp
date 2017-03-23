@@ -56,10 +56,12 @@ namespace libtorrent
 	// The add_torrent_params is a parameter pack for adding torrents to a
 	// session. The key fields when adding a torrent are:
 	//
-	// * ti - when you have a .torrent file
+	// * ti - when you have loaded a .torrent file into a torrent_info object
 	// * url - when you have a magnet link
 	// * info_hash - when all you have is an info-hash (this is similar to a
 	//   magnet link)
+	// * torrent_file_path - when you have the path to a .torrent file and want
+	//   libtorrent to load it. (This is especially useful with async_add_torrent)
 	//
 	// one of those fields must be set. Another mandatory field is
 	// ``save_path``. The add_torrent_params object is passed into one of the
@@ -345,12 +347,22 @@ namespace libtorrent
 		// instead of this.
 		std::string trackerid;
 
-		// If you specify a ``url``, the torrent will be set in
-		// ``downloading_metadata`` state until the .torrent file has been
-		// downloaded. If there's any error while downloading, the torrent will
-		// be stopped and the torrent error state (``torrent_status::error``)
-		// will indicate what went wrong. The ``url`` may be set to a magnet link.
+		// ``url`` can be set to a magnet link, in order to download the .torrent
+		// file (also known as the metadata), specifically the info-dictionary,
+		// from the bittorrent swarm. This may require access to the DHT, in case
+		// the magnet link does not come with trackers.
+		//
+		// In earlier versions of libtorrent, the URL could be an HTTP or file://
+		// url. These uses are deprecated and discouraged. When adding a torrent
+		// by magnet link, it will be set to the ``downloading_metadata`` state
+		// until the .torrent file has been downloaded. If there is any error
+		// while downloading, the torrent will be stopped and the torrent error
+		// state (``torrent_status::error``) will indicate what went wrong.
 		std::string url;
+
+		// if you specify a ``torrent_file_path``, libtorrent will attempt to load
+		// a .torrent file from the file at the given path.
+		std::string torrent_file_path;
 
 		// flags controlling aspects of this torrent and how it's added. See
 		// flags_t for details.
