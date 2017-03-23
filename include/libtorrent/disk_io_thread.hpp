@@ -579,6 +579,9 @@ namespace libtorrent
 
 		aux::vector<std::shared_ptr<storage_interface>, storage_index_t> m_torrents;
 
+		// indices into m_torrents to empty slots
+		std::vector<storage_index_t> m_free_slots;
+
 #if TORRENT_USE_ASSERTS
 		int m_magic = 0x1337;
 		std::atomic<bool> m_jobs_aborted{false};
