@@ -737,6 +737,7 @@ namespace libtorrent
 			peer_class_pool m_classes;
 
 			void init(std::shared_ptr<settings_pack> pack);
+			void init_dht();
 
 			void submit_disk_jobs();
 
