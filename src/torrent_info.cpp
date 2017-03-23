@@ -1017,18 +1017,22 @@ namespace libtorrent
 		swap(m_flags, ti.m_flags);
 	}
 
-	std::string torrent_info::ssl_cert() const
+	string_view torrent_info::ssl_cert() const
 	{
+		if ((m_flags & ssl_torrent) == 0) return "";
+
 		// this is parsed lazily
 		if (!m_info_dict)
 		{
 			error_code ec;
 			bdecode(m_info_section.get(), m_info_section.get()
 				+ m_info_section_size, m_info_dict, ec);
+			TORRENT_ASSERT(!ec);
 			if (ec) return "";
 		}
+		TORRENT_ASSERT(m_info_dict.type() == bdecode_node::dict_t);
 		if (m_info_dict.type() != bdecode_node::dict_t) return "";
-		return m_info_dict.dict_find_string_value("ssl-cert").to_string();
+		return m_info_dict.dict_find_string_value("ssl-cert");
 	}
 
 	bool torrent_info::parse_info_section(bdecode_node const& info
@@ -1206,6 +1210,9 @@ namespace libtorrent
 			}
 		}
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
+
+		if (info.dict_find_string("ssl-cert"))
+			m_flags |= ssl_torrent;
 
 		// now, commit the files structure we just parsed out
 		// into the torrent_info object.
@@ -1411,7 +1418,7 @@ namespace libtorrent
 
 		if (m_urls.empty())
 		{
-			announce_entry e(torrent_file.dict_find_string_value("announce").to_string());
+			announce_entry e(torrent_file.dict_find_string_value("announce"));
 			e.fail_limit = 0;
 			e.source = announce_entry::source_torrent;
 			e.trim();
