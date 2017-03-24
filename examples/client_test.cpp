@@ -623,8 +623,31 @@ void add_torrent(libtorrent::session& ses
 	files.insert(std::pair<const std::string, torrent_handle>(torrent, torrent_handle()));
 }
 
+std::string make_absolute_path(char const* p)
+{
+	std::string ret;
+#if defined TORRENT_WINDOWS
+	if (p[0] != '\0' && !(p[1] == ':' && p[2] == '\\'))
+	{
+		char* cwd = ::_getcwd(nullptr, 0);
+		ret = path_append(cwd, p);
+		std::free(cwd);
+	}
+	else ret = p;
+#else
+	if (p[0] != '/')
+	{
+		char* cwd = ::getcwd(nullptr, 0);
+		ret = path_append(cwd, p);
+		std::free(cwd);
+	}
+	else ret = p;
+#endif
+	return ret;
+}
+
 std::vector<std::string> list_dir(std::string path
-	, bool (*filter_fun)(std::string const&)
+	, bool (*filter_fun)(lt::string_view)
 	, libtorrent::error_code& ec)
 {
 	std::vector<std::string> ret;
@@ -642,7 +665,7 @@ std::vector<std::string> list_dir(std::string path
 
 	do
 	{
-		std::string p = fd.cFileName;
+		lt::string_view p = fd.cFileName;
 		if (filter_fun(p))
 			ret.push_back(p);
 
@@ -666,32 +689,21 @@ std::vector<std::string> list_dir(std::string path
 	{
 		if (dummy == nullptr) break;
 
-		std::string p = de.d_name;
+		lt::string_view p(de.d_name);
 		if (filter_fun(p))
-			ret.push_back(p);
+			ret.push_back(p.to_string());
 	}
 	closedir(handle);
 #endif
 	return ret;
 }
 
-bool filter_fun(std::string const& p)
+bool filter_fun(lt::string_view p)
 {
-	for (int i = int(p.size()) - 1; i >= 0; --i)
-	{
-		if (p[i] == '/') break;
-#ifdef TORRENT_WINDOWS
-		if (p[i] == '\\') break;
-#endif
-		if (p[i] != '.') continue;
-		return p.compare(i, 8, ".torrent") == 0;
-	}
-	return false;
+	return p.size() > 8 && p.substr(p.size() - 8) == ".torrent";
 }
 
-void scan_dir(std::string const& dir_path
-	, libtorrent::session& ses
-	, handles_t& files)
+void scan_dir(std::string const& dir_path, libtorrent::session& ses, handles_t& files)
 {
 	std::set<std::string> valid;
 
@@ -706,10 +718,9 @@ void scan_dir(std::string const& dir_path
 		return;
 	}
 
-	for (std::vector<std::string>::iterator i = ents.begin()
-		, end(ents.end()); i != end; ++i)
+	for (auto const& e : ents)
 	{
-		std::string file = path_append(dir_path, *i);
+		std::string const file = path_append(dir_path, e);
 
 		handles_t::iterator k = files.find(file);
 		if (k != files.end())
@@ -1253,10 +1264,10 @@ int main(int argc, char* argv[])
 			case 'f': g_log_file = std::fopen(arg, "w+"); break;
 			case 'k': settings = high_performance_seed(); --i; break;
 			case 'G': seed_mode = true; --i; break;
-			case 's': save_path = arg; break;
+			case 's': save_path = make_absolute_path(arg); break;
 			case 'U': torrent_upload_limit = atoi(arg) * 1000; break;
 			case 'D': torrent_download_limit = atoi(arg) * 1000; break;
-			case 'm': monitor_dir = arg; break;
+			case 'm': monitor_dir = make_absolute_path(arg); break;
 			case 'Q': share_mode = true; --i; break;
 			case 't': poll_interval = atoi(arg); break;
 			case 'F': refresh_delay = atoi(arg); break;
