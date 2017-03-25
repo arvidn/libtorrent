@@ -667,7 +667,7 @@ std::vector<std::string> list_dir(std::string path
 	{
 		lt::string_view p = fd.cFileName;
 		if (filter_fun(p))
-			ret.push_back(p);
+			ret.push_back(p.to_string());
 
 	} while (FindNextFileA(handle, &fd));
 	FindClose(handle);
