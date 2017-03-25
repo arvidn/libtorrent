@@ -317,6 +317,11 @@ namespace libtorrent { namespace aux
 		virtual counters& stats_counters() = 0;
 		virtual void received_buffer(int size) = 0;
 		virtual void sent_buffer(int size) = 0;
+
+#if TORRENT_USE_ASSERTS
+		virtual bool verify_queue_position(torrent const*, int) = 0;
+#endif
+
 	protected:
 		~session_interface() {}
 	};

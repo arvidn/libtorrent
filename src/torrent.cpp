@@ -163,7 +163,6 @@ namespace libtorrent
 	torrent::torrent(
 		aux::session_interface& ses
 		, int const block_size
-		, int const seq
 		, bool const session_paused
 		, add_torrent_params const& p
 		, sha1_hash const& info_hash)
@@ -181,7 +180,7 @@ namespace libtorrent
 		, m_storage_constructor(p.storage)
 		, m_info_hash(info_hash)
 		, m_error_file(torrent_status::error_file_none)
-		, m_sequence_number(seq)
+		, m_sequence_number(-1)
 		, m_announce_to_trackers((p.flags & add_torrent_params::flag_paused) == 0)
 		, m_announce_to_lsd((p.flags & add_torrent_params::flag_paused) == 0)
 		, m_has_incoming(false)
@@ -7520,6 +7519,9 @@ namespace libtorrent
 		TORRENT_ASSERT(current_stats_state() == int(m_current_gauge_state + counters::num_checking_torrents)
 			|| m_current_gauge_state == no_gauge_state);
 
+		TORRENT_ASSERT(m_sequence_number == -1
+			|| m_ses.verify_queue_position(this, m_sequence_number));
+
 		for (auto const& i : m_time_critical_pieces)
 		{
 			TORRENT_ASSERT(!is_seed());
@@ -7808,7 +7810,8 @@ namespace libtorrent
 
 		TORRENT_ASSERT((p == -1) == is_finished()
 			|| (!m_auto_managed && p == -1)
-			|| (m_abort && p == -1));
+			|| (m_abort && p == -1)
+			|| (!m_added && p == -1));
 		if (p == m_sequence_number) return;
 
 		TORRENT_ASSERT(p >= -1);

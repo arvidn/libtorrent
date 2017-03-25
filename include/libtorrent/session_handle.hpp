@@ -771,6 +771,13 @@ namespace libtorrent
 		// there is no guarantee that adding the same torrent immediately after
 		// it was removed will not throw a system_error exception. Once
 		// the torrent is deleted, a torrent_deleted_alert is posted.
+		//
+		// Note that when a queued or downloading torrent is removed, its position
+		// in the download queue is vacated and avery subsequent torrent in the
+		// queue has their queue positions updated. This can potentially cause a
+		// large state_update to be posted. When removing all torrents, it is
+		// adviced to remove them from the back of the queue, to minimize the
+		// shifting.
 		void remove_torrent(const torrent_handle& h, int options = 0);
 
 #ifndef TORRENT_NO_DEPRECATE
