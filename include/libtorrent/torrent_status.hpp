@@ -56,6 +56,8 @@ namespace libtorrent
 		~torrent_status();
 		torrent_status(torrent_status const&);
 		torrent_status& operator=(torrent_status const&);
+		torrent_status(torrent_status&&);
+		torrent_status& operator=(torrent_status&&);
 
 		// compares if the torrent status objects come from the same torrent. i.e.
 		// only the torrent_handle field is compared.

@@ -312,7 +312,7 @@ namespace libtorrent
 			query_accurate_download_counters = 2,
 			// includes ``last_seen_complete``.
 			query_last_seen_complete = 4,
-			// includes ``pieces``.
+			// populate the ``pieces`` field in torrent_status.
 			query_pieces = 8,
 			// includes ``verified_pieces`` (only applies to torrents in *seed
 			// mode*).
@@ -1257,11 +1257,11 @@ namespace libtorrent
 		// comparison operators. The order of the torrents is unspecified
 		// but stable.
 		bool operator==(const torrent_handle& h) const
-		{ return m_torrent.lock() == h.m_torrent.lock(); }
+		{ return !m_torrent.owner_before(h.m_torrent) && !h.m_torrent.owner_before(m_torrent); }
 		bool operator!=(const torrent_handle& h) const
-		{ return m_torrent.lock() != h.m_torrent.lock(); }
+		{ return m_torrent.owner_before(h.m_torrent) || h.m_torrent.owner_before(m_torrent); }
 		bool operator<(const torrent_handle& h) const
-		{ return m_torrent.lock() < h.m_torrent.lock(); }
+		{ return m_torrent.owner_before(h.m_torrent); }
 
 		std::uint32_t id() const
 		{
