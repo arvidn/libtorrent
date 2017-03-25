@@ -5050,8 +5050,7 @@ namespace aux {
 		// this torrent might be filed under the URL-hash
 		if (i == m_torrents.end() && !tptr->url().empty())
 		{
-			std::string const& url = tptr->url();
-			i = m_torrents.find(hasher(url).final());
+			i = m_torrents.find(hasher(tptr->url()).final());
 		}
 #endif
 

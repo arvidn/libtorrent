@@ -10531,20 +10531,23 @@ namespace libtorrent
 #endif
 		}
 
-		int num_pieces = m_torrent_file->num_pieces();
-		if (has_picker() && (flags & torrent_handle::query_pieces))
+		if (flags & torrent_handle::query_pieces)
 		{
-			st->pieces.resize(num_pieces, false);
-			for (piece_index_t i(0); i < piece_index_t(num_pieces); ++i)
-				if (m_picker->has_piece_passed(i)) st->pieces.set_bit(i);
-		}
-		else if (m_have_all)
-		{
-			st->pieces.resize(num_pieces, true);
-		}
-		else
-		{
-			st->pieces.resize(num_pieces, false);
+			int const num_pieces = m_torrent_file->num_pieces();
+			if (has_picker())
+			{
+				st->pieces.resize(num_pieces, false);
+				for (piece_index_t i(0); i < piece_index_t(num_pieces); ++i)
+					if (m_picker->has_piece_passed(i)) st->pieces.set_bit(i);
+			}
+			else if (m_have_all)
+			{
+				st->pieces.resize(num_pieces, true);
+			}
+			else
+			{
+				st->pieces.resize(num_pieces, false);
+			}
 		}
 		st->num_pieces = num_have();
 		st->num_seeds = num_seeds() - int(m_num_connecting_seeds);
