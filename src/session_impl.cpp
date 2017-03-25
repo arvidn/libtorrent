@@ -2988,6 +2988,11 @@ namespace aux {
 			if (pe.second->has_peer(p)) return true;
 		return false;
 	}
+
+	bool session_impl::verify_queue_position(torrent const* t, int pos)
+	{
+		return m_download_queue.end_index() > pos && m_download_queue[pos] == t;
+	}
 #endif
 
 	void session_impl::sent_bytes(int bytes_payload, int bytes_protocol)
@@ -4315,76 +4320,61 @@ namespace aux {
 
 	void session_impl::set_queue_position(torrent* me, int p)
 	{
-		// TODO: Maybe the queue position should be maintained as a vector of
-		// torrent pointers. Maybe this logic could be simplified
-		if (p >= 0 && me->queue_position() == -1)
+		int const current_pos = me->queue_position();
+		if (current_pos == p) return;
+
+		if (p >= 0 && current_pos == -1)
 		{
-			for (auto& i : m_torrents)
+			// we're inserting the torrent into the download queue
+			int const last = m_download_queue.end_index();
+			if (p >= last)
 			{
-				torrent* t = i.second.get();
-				if (t->queue_position() >= p)
-				{
-					t->set_queue_position_impl(t->queue_position()+1);
-					t->state_updated();
-				}
-				if (t->queue_position() >= p) t->set_queue_position_impl(t->queue_position()+1);
+				m_download_queue.push_back(me);
+				me->set_queue_position_impl(last);
+				return;
 			}
-			++m_max_queue_pos;
-			me->set_queue_position_impl((std::min)(m_max_queue_pos, p));
+
+			m_download_queue.insert(m_download_queue.begin() + p, me);
+			for (int i = p; i < m_download_queue.end_index(); ++i)
+			{
+				m_download_queue[i]->set_queue_position_impl(i);
+			}
 		}
 		else if (p < 0)
 		{
-			TORRENT_ASSERT(me->queue_position() >= 0);
+			// we're removing the torrent from the download queue
+			TORRENT_ASSERT(current_pos >= 0);
 			TORRENT_ASSERT(p == -1);
-			for (auto& i : m_torrents)
+			TORRENT_ASSERT(m_download_queue[current_pos] == me);
+			m_download_queue.erase(m_download_queue.begin() + current_pos);
+			me->set_queue_position_impl(-1);
+			for (int i = current_pos; i < m_download_queue.end_index(); ++i)
 			{
-				torrent* t = i.second.get();
-				if (t == me) continue;
-				if (t->queue_position() == -1) continue;
-				if (t->queue_position() >= me->queue_position())
-				{
-					t->set_queue_position_impl(t->queue_position()-1);
-					t->state_updated();
-				}
+				m_download_queue[i]->set_queue_position_impl(i);
 			}
-			--m_max_queue_pos;
-			me->set_queue_position_impl(p);
 		}
-		else if (p < me->queue_position())
+		else if (p < current_pos)
 		{
-			for (auto& i : m_torrents)
+			// we're moving the torrent up the queue
+			torrent* tmp = me;
+			for (int i = p; i <= current_pos; ++i)
 			{
-				torrent* t = i.second.get();
-				if (t == me) continue;
-				if (t->queue_position() == -1) continue;
-				if (t->queue_position() >= p
-					&& t->queue_position() < me->queue_position())
-				{
-					t->set_queue_position_impl(t->queue_position()+1);
-					t->state_updated();
-				}
+				std::swap(m_download_queue[i], tmp);
+				m_download_queue[i]->set_queue_position_impl(i);
 			}
-			me->set_queue_position_impl(p);
+			TORRENT_ASSERT(tmp == me);
 		}
-		else if (p > me->queue_position())
+		else if (p > current_pos)
 		{
-			for (auto& i : m_torrents)
+			// we're moving the torrent down the queue
+			p = std::min(p, m_download_queue.end_index() - 1);
+			for (int i = current_pos; i < p; ++i)
 			{
-				torrent* t = i.second.get();
-				int pos = t->queue_position();
-				if (t == me) continue;
-				if (pos == -1) continue;
-
-				if (pos <= p
-						&& pos > me->queue_position()
-						&& pos != -1)
-				{
-					t->set_queue_position_impl(t->queue_position()-1);
-					t->state_updated();
-				}
-
+				m_download_queue[i] = m_download_queue[i + 1];
+				m_download_queue[i]->set_queue_position_impl(i);
 			}
-			me->set_queue_position_impl((std::min)(m_max_queue_pos, p));
+			m_download_queue[p] = me;
+			me->set_queue_position_impl(p);
 		}
 
 		trigger_auto_manage();
@@ -4904,11 +4894,10 @@ namespace aux {
 			return std::make_pair(ptr_t(), false);
 		}
 
-		int queue_pos = ++m_max_queue_pos;
-
 		torrent_ptr = std::make_shared<torrent>(*this
-			, 16 * 1024, queue_pos, m_paused
+			, 16 * 1024, m_paused
 			, params, params.info_hash);
+		torrent_ptr->set_queue_position(m_download_queue.end_index());
 
 		return std::make_pair(torrent_ptr, true);
 	}
@@ -5027,7 +5016,6 @@ namespace aux {
 		remove_torrent_impl(tptr, options);
 
 		tptr->abort();
-		tptr->set_queue_position(-1);
 	}
 
 	void session_impl::remove_torrent_impl(std::shared_ptr<torrent> tptr
@@ -5884,7 +5872,6 @@ namespace aux {
 	{
 		// this is not allowed to be the network thread!
 //		TORRENT_ASSERT(is_not_thread());
-
 // TODO: asserts that no outstanding async operations are still in flight
 
 #if defined TORRENT_ASIO_DEBUGGING
@@ -6793,6 +6780,13 @@ namespace aux {
 			for (auto const& i : list)
 			{
 				TORRENT_ASSERT(i->m_links[l].in_list());
+			}
+
+			int idx = 0;
+			for (auto t : m_download_queue)
+			{
+				TORRENT_ASSERT(t->queue_position() == idx);
+				++idx;
 			}
 		}
 

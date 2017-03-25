@@ -273,6 +273,7 @@ namespace libtorrent
 			// this is set while the session is building the
 			// torrent status update message
 			bool m_posting_torrent_updates = false;
+			bool verify_queue_position(torrent const* t, int pos) override;
 #endif
 
 			void on_exception(std::exception const& e) override;
@@ -822,6 +823,10 @@ namespace libtorrent
 			tracker_manager m_tracker_manager;
 			torrent_map m_torrents;
 
+			// all torrents that are downloading or queued,
+			// ordered by their queue position
+			aux::vector<torrent*> m_download_queue;
+
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 			// this maps obfuscated hashes to torrents. It's only
 			// used when encryption is enabled
@@ -872,12 +877,6 @@ namespace libtorrent
 
 			// the peer id that is generated at the start of the session
 			peer_id m_peer_id;
-
-			// this is the highest queue position of any torrent
-			// in this session. queue positions are packed (i.e. there
-			// are no gaps). If there are no torrents with queue positions
-			// this is -1.
-			int m_max_queue_pos = -1;
 
 			// the key is an id that is used to identify the
 			// client with the tracker only. It is randomized

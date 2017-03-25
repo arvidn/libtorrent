@@ -2068,28 +2068,26 @@ int main(int argc, char* argv[])
 
 	ses.pause();
 	std::printf("saving resume data\n");
-	std::vector<torrent_status> temp;
-	ses.get_torrent_status(&temp, &yes, 0);
-	for (std::vector<torrent_status>::iterator i = temp.begin();
-		i != temp.end(); ++i)
-	{
-		torrent_status& st = *i;
-		if (!st.handle.is_valid())
-		{
-			std::printf("  skipping, invalid handle\n");
-			continue;
-		}
-		if (!st.has_metadata)
-		{
-			std::printf("  skipping %s, no metadata\n", st.name.c_str());
-			continue;
-		}
-		if (!st.need_save_resume)
-		{
-			std::printf("  skipping %s, resume file up-to-date\n", st.name.c_str());
-			continue;
-		}
 
+	// get all the torrent handles that we need to save resume data for
+	std::vector<torrent_status> temp;
+	ses.get_torrent_status(&temp, [](torrent_status const& st)
+	{
+		if (!st.handle.is_valid()) return false;
+		if (!st.has_metadata) return false;
+		if (!st.need_save_resume) return false;
+		return true;
+	}, 0);
+
+	// sort them by queue position. We want to remove them from the back of the
+	// queue, so save higher queue positions first
+	std::sort(temp.begin(), temp.end(), [](torrent_status const& lhs, torrent_status const& rhs)
+	{
+		return lhs.queue_position > rhs.queue_position;
+	});
+
+	for (auto const& st : temp)
+	{
 		// save_resume_data will generate an alert when it's done
 		st.handle.save_resume_data();
 		++num_outstanding_resume_data;
