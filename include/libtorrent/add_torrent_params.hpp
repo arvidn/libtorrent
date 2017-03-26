@@ -87,6 +87,10 @@ namespace libtorrent
 		// data for the torrent. For more information, see the ``storage`` field.
 		explicit add_torrent_params(storage_constructor_type sc = default_storage_constructor)
 			: storage(sc) {}
+		add_torrent_params(add_torrent_params&&) = default;
+		add_torrent_params& operator=(add_torrent_params&&) = default;
+		add_torrent_params(add_torrent_params const&) = default;
+		add_torrent_params& operator=(add_torrent_params const&) = default;
 
 		// values for the ``flags`` field
 		enum flags_t : std::uint64_t

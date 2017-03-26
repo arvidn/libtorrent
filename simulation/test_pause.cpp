@@ -80,7 +80,7 @@ void run_test(Setup const& setup, Torrent const& torrent
 	lt::add_torrent_params params = create_torrent(0, false);
 	params.flags &= ~lt::add_torrent_params::flag_auto_managed;
 	params.flags &= ~lt::add_torrent_params::flag_paused;
-	ses->async_add_torrent(params);
+	ses->async_add_torrent(std::move(params));
 
 	lt::torrent_handle h;
 	print_alerts(*ses, [&](lt::session& ses, lt::alert const* a) {

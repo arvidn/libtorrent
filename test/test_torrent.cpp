@@ -208,7 +208,7 @@ TORRENT_TEST(total_wanted)
 
 	p.ti = info;
 
-	torrent_handle h = ses.add_torrent(p);
+	torrent_handle h = ses.add_torrent(std::move(p));
 
 	torrent_status st = h.status();
 	std::cout << "total_wanted: " << st.total_wanted << " : " << 1024 << std::endl;
@@ -240,7 +240,7 @@ TORRENT_TEST(added_peers)
 	p.save_path = ".";
 	p.url = "magnet:?xt=urn:btih:abababababababababababababababababababab&x.pe=127.0.0.1:48081&x.pe=127.0.0.2:48082";
 
-	torrent_handle h = ses.add_torrent(p);
+	torrent_handle h = ses.add_torrent(std::move(p));
 
 	std::vector<peer_list_entry> v;
 	h.native_handle()->get_full_peer_list(&v);
@@ -359,7 +359,7 @@ TORRENT_TEST(duplicate_is_not_error)
 
 	lt::session ses(settings());
 	ses.async_add_torrent(p);
-	ses.async_add_torrent(p);
+	ses.async_add_torrent(std::move(p));
 
 	wait_for_downloading(ses, "ses");
 
@@ -427,7 +427,7 @@ TORRENT_TEST(async_load_deprecated)
 
 	p.url = "file://" + combine_path(combine_path(dir, "test_torrents"), "base.torrent");
 	p.save_path = ".";
-	ses.async_add_torrent(p);
+	ses.async_add_torrent(std::move(p));
 
 	alert const* a = wait_for_alert(ses, add_torrent_alert::alert_type);
 	TEST_CHECK(a);
@@ -471,7 +471,7 @@ TORRENT_TEST(queue)
 		add_torrent_params p;
 		p.ti = ti;
 		p.save_path = ".";
-		torrents.push_back(ses.add_torrent(p));
+		torrents.push_back(ses.add_torrent(std::move(p)));
 	}
 
 	std::vector<int> pieces(torrents[5].torrent_file()->num_pieces(), 0);

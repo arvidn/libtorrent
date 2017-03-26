@@ -157,7 +157,7 @@ TORRENT_TEST(load_empty_file)
 	atp.ti = std::make_shared<torrent_info>("", 0, std::ref(ignore_errors));
 	atp.save_path = ".";
 	error_code ec;
-	torrent_handle h = ses.add_torrent(atp, ec);
+	torrent_handle h = ses.add_torrent(std::move(atp), ec);
 
 	TEST_CHECK(!h.is_valid());
 	TEST_CHECK(ec == error_code(errors::no_metadata))
@@ -189,7 +189,7 @@ TORRENT_TEST(paused_session)
 	ps.flags = lt::add_torrent_params::flag_paused;
 	ps.save_path = ".";
 
-	torrent_handle h = s.add_torrent(ps);
+	torrent_handle h = s.add_torrent(std::move(ps));
 
 	std::this_thread::sleep_for(lt::milliseconds(2000));
 	h.resume();

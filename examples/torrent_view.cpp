@@ -96,18 +96,17 @@ lt::torrent_handle torrent_view::get_active_handle() const
 	return m_filtered_handles[m_active_torrent]->handle;
 }
 
-void torrent_view::update_torrents(std::vector<lt::torrent_status> const& st)
+void torrent_view::update_torrents(std::vector<lt::torrent_status> st)
 {
 	std::set<lt::torrent_handle> updates;
 	bool need_filter_update = false;
-	for (std::vector<lt::torrent_status>::const_iterator i = st.begin();
-		i != st.end(); ++i)
+	for (lt::torrent_status& t : st)
 	{
-		auto j = m_all_handles.find(*i);
+		auto j = m_all_handles.find(t);
 		// add new entries here
 		if (j == m_all_handles.end())
 		{
-			j = m_all_handles.insert(*i).first;
+			j = m_all_handles.insert(std::move(t)).first;
 			if (show_torrent(*j))
 			{
 				m_filtered_handles.push_back(&*j);
@@ -116,12 +115,12 @@ void torrent_view::update_torrents(std::vector<lt::torrent_status> const& st)
 		}
 		else
 		{
-			bool prev_show = show_torrent(*j);
-			((lt::torrent_status&)*j) = *i;
+			bool const prev_show = show_torrent(*j);
+			const_cast<lt::torrent_status&>(*j) = std::move(t);
 			if (prev_show != show_torrent(*j))
 				need_filter_update = true;
 			else
-				updates.insert(i->handle);
+				updates.insert(j->handle);
 		}
 	}
 	if (need_filter_update)
@@ -132,19 +131,16 @@ void torrent_view::update_torrents(std::vector<lt::torrent_status> const& st)
 	else
 	{
 		int torrent_index = 0;
-		for (std::vector<lt::torrent_status const*>::iterator i
-			= m_filtered_handles.begin();
-			i != m_filtered_handles.end(); ++torrent_index)
+		for (auto i = m_filtered_handles.begin();
+			i != m_filtered_handles.end(); ++torrent_index, ++i)
 		{
 			if (torrent_index < m_scroll_position
 				|| torrent_index >= m_scroll_position + m_height - header_size)
 			{
-				++i;
 				continue;
 			}
 
 			lt::torrent_status const& s = **i;
-			++i;
 
 			if (!s.handle.is_valid())
 				continue;

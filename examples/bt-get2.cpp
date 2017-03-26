@@ -89,7 +89,7 @@ int main(int argc, char const* argv[])
 	lt::add_torrent_params atp = lt::read_resume_data(&buf[0], int(buf.size()), ec);
 	atp.url = argv[1];
 	atp.save_path = "."; // save in current dir
-	ses.async_add_torrent(atp);
+	ses.async_add_torrent(std::move(atp));
 
 	// this is the handle we'll set once we get the notification of it being
 	// added

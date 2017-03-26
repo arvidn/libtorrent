@@ -474,7 +474,7 @@ namespace libtorrent
 				std::shared_ptr<torrent> const& torrent_ptr, void* userdata);
 #endif
 
-			torrent_handle add_torrent(add_torrent_params const&, error_code& ec);
+			torrent_handle add_torrent(add_torrent_params, error_code& ec);
 			// second return value is true if the torrent was added and false if an
 			// existing one was found.
 			std::pair<std::shared_ptr<torrent>, bool>

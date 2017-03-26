@@ -654,7 +654,7 @@ void test_fastresume(bool const test_deprecated)
 		p.ti = std::make_shared<torrent_info>(std::cref(*t));
 		p.save_path = combine_path(test_path, "tmp1");
 		p.storage_mode = storage_mode_sparse;
-		torrent_handle h = ses.add_torrent(p, ec);
+		torrent_handle h = ses.add_torrent(std::move(p), ec);
 		TEST_CHECK(exists(combine_path(p.save_path, "temporary")));
 		if (!exists(combine_path(p.save_path, "temporary")))
 			return;
@@ -719,7 +719,7 @@ void test_fastresume(bool const test_deprecated)
 		p.ti = std::make_shared<torrent_info>(std::cref(*t));
 		p.save_path = combine_path(test_path, "tmp1");
 		p.storage_mode = storage_mode_sparse;
-		torrent_handle h = ses.add_torrent(p, ec);
+		torrent_handle h = ses.add_torrent(std::move(p), ec);
 
 		std::printf("expecting fastresume to be rejected becase the files were removed");
 		alert const* a = wait_for_alert(ses, fastresume_rejected_alert::alert_type
@@ -771,7 +771,7 @@ TORRENT_TEST(rename_file)
 	p.ti = info;
 	p.save_path = ".";
 	error_code ec;
-	torrent_handle h = ses.add_torrent(p, ec);
+	torrent_handle h = ses.add_torrent(std::move(p), ec);
 
 	// make it a seed
 	std::vector<char> tmp(info->piece_length());
@@ -833,7 +833,7 @@ void test_rename_file_fastresume(bool test_deprecated)
 		p.ti = std::make_shared<torrent_info>(std::cref(*t));
 		p.save_path = combine_path(test_path, "tmp2");
 		p.storage_mode = storage_mode_sparse;
-		torrent_handle h = ses.add_torrent(p, ec);
+		torrent_handle h = ses.add_torrent(std::move(p), ec);
 
 		h.rename_file(file_index_t(0), "testing_renamed_files");
 		std::cout << "renaming file" << std::endl;
@@ -886,7 +886,7 @@ void test_rename_file_fastresume(bool test_deprecated)
 		p.ti = std::make_shared<torrent_info>(std::cref(*t));
 		p.save_path = combine_path(test_path, "tmp2");
 		p.storage_mode = storage_mode_sparse;
-		torrent_handle h = ses.add_torrent(p, ec);
+		torrent_handle h = ses.add_torrent(std::move(p), ec);
 
 		torrent_status stat;
 		for (int i = 0; i < 50; ++i)
