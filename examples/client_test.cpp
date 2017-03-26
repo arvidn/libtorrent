@@ -1514,8 +1514,8 @@ int main(int argc, char* argv[])
 					char url[4096];
 					url[0] = '\0';
 					puts("Enter magnet link:\n");
-					std::scanf("%4095s", url);
-					add_magnet(ses, url);
+					if (std::scanf("%4095s", url) == 1) add_magnet(ses, url);
+					else std::printf("failed to read magnet link\n");
 				}
 
 				if (c == 'q') break;
