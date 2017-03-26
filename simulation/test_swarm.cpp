@@ -195,7 +195,7 @@ void test_stop_start_download(swarm_test type, bool graceful)
 		// on alert
 		, [&](lt::alert const* a, lt::session& ses) {
 
-			if (lt::alert_cast<lt::torrent_added_alert>(a))
+			if (lt::alert_cast<lt::add_torrent_alert>(a))
 				add_extra_peers(ses);
 
 			if (auto tp = lt::alert_cast<lt::torrent_paused_alert>(a))

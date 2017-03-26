@@ -54,7 +54,7 @@ TORRENT_TEST(status_timers)
 		, [](lt::add_torrent_params& params) {}
 		// on alert
 		, [&](lt::alert const* a, lt::session& ses) {
-			if (auto ta = alert_cast<torrent_added_alert>(a))
+			if (auto ta = alert_cast<add_torrent_alert>(a))
 			{
 				TEST_CHECK(!handle.is_valid());
 				start_time = lt::clock_type::now();
