@@ -480,7 +480,10 @@ namespace libtorrent
 			std::pair<std::shared_ptr<torrent>, bool>
 			add_torrent_impl(add_torrent_params& p, error_code& ec);
 			void async_add_torrent(add_torrent_params* params);
+
+#ifndef TORRENT_NO_DEPRECATE
 			void on_async_load_torrent(add_torrent_params* params, error_code ec);
+#endif
 
 			void remove_torrent(torrent_handle const& h, int options) override;
 			void remove_torrent_impl(std::shared_ptr<torrent> tptr, int options) override;
@@ -1091,6 +1094,7 @@ namespace libtorrent
 			std::shared_ptr<upnp> m_upnp;
 			std::shared_ptr<lsd> m_lsd;
 
+#ifndef TORRENT_NO_DEPRECATE
 			struct work_thread_t
 			{
 				work_thread_t()
@@ -1110,6 +1114,7 @@ namespace libtorrent
 				std::thread thread;
 			};
 			std::unique_ptr<work_thread_t> m_torrent_load_thread;
+#endif
 
 			// mask is a bitmask of which protocols to remap on:
 			// 1: NAT-PMP

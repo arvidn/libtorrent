@@ -440,31 +440,6 @@ TORRENT_TEST(async_load_deprecated)
 }
 #endif
 
-TORRENT_TEST(async_load)
-{
-	settings_pack pack = settings();
-	lt::session ses(pack);
-
-	add_torrent_params p;
-	p.flags &= ~add_torrent_params::flag_paused;
-	p.flags &= ~add_torrent_params::flag_auto_managed;
-	std::string dir = parent_path(current_working_directory());
-
-	p.torrent_file_path = combine_path(combine_path(dir, "test_torrents"), "base.torrent");
-	p.save_path = ".";
-	ses.async_add_torrent(p);
-
-	alert const* a = wait_for_alert(ses, add_torrent_alert::alert_type);
-	TEST_CHECK(a);
-	if (a == nullptr) return;
-	auto const* ta = alert_cast<add_torrent_alert const>(a);
-	TEST_CHECK(ta);
-	if (ta == nullptr) return;
-	TEST_CHECK(!ta->error);
-	TEST_CHECK(ta->params.ti->name() == "temp");
-}
-
-
 TORRENT_TEST(torrent_status)
 {
 	TEST_EQUAL(static_cast<int>(torrent_status::error_file_none), -1);

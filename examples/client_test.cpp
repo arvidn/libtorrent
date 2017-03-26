@@ -325,6 +325,22 @@ std::string path_append(std::string const& lhs, std::string const& rhs)
 	return lhs + (need_sep?TORRENT_SEPARATOR:"") + rhs;
 }
 
+std::string make_absolute_path(std::string const& p)
+{
+	if (is_absolute_path(p)) return p;
+	std::string ret;
+#if defined TORRENT_WINDOWS
+	char* cwd = ::_getcwd(nullptr, 0);
+	ret = path_append(cwd, p);
+	std::free(cwd);
+#else
+	char* cwd = ::getcwd(nullptr, 0);
+	ret = path_append(cwd, p);
+	std::free(cwd);
+#endif
+	return ret;
+}
+
 bool is_hex(char const *in, int len)
 {
 	for (char const* end = in + len; in < end; ++in)
@@ -587,9 +603,46 @@ void print_settings(int const start, int const num
 	}
 }
 
-void add_torrent(libtorrent::session& ses
-	, handles_t& files
-	, std::string torrent)
+std::string resume_file(lt::sha1_hash const& info_hash)
+{
+	return path_append(save_path, path_append(".resume"
+		, to_hex(info_hash) + ".resume"));
+}
+
+void add_magnet(lt::session& ses, lt::string_view uri)
+{
+	lt::add_torrent_params p;
+	lt::error_code ec;
+	lt::parse_magnet_uri(uri.to_string(), p, ec);
+
+	if (ec)
+	{
+		std::printf("invalid magnet link \"%s\": %s\n"
+			, uri.to_string().c_str(), ec.message().c_str());
+		return;
+	}
+
+	std::vector<char> resume_data;
+	load_file(resume_file(p.info_hash), resume_data, ec);
+	if (!ec)
+	{
+		p = lt::read_resume_data(&resume_data[0], int(resume_data.size()), ec);
+		if (ec) std::printf("  failed to load resume data: %s\n", ec.message().c_str());
+		parse_magnet_uri(uri.to_string(), p, ec);
+	}
+	ec.clear();
+
+	if (seed_mode) p.flags |= lt::add_torrent_params::flag_seed_mode;
+	if (disable_storage) p.storage = lt::disabled_storage_constructor;
+	if (share_mode) p.flags |= lt::add_torrent_params::flag_share_mode;
+	p.save_path = save_path;
+	p.storage_mode = static_cast<lt::storage_mode_t>(allocation_mode);
+
+	std::printf("adding magnet: %s\n", uri.to_string().c_str());
+	ses.async_add_torrent(p);
+}
+
+void add_torrent(libtorrent::session& ses, handles_t& files, std::string torrent)
 {
 	using namespace libtorrent;
 	static int counter = 0;
@@ -597,15 +650,21 @@ void add_torrent(libtorrent::session& ses
 	std::printf("[%d] %s\n", counter++, torrent.c_str());
 
 	error_code ec;
+	auto ti = std::make_shared<torrent_info>(torrent, ec);
+	if (ec)
+	{
+		std::printf("failed to load torrent \"%s\": %s\n"
+			, torrent.c_str(), ec.message().c_str());
+		return;
+	}
+
 	add_torrent_params p;
 
 	std::vector<char> resume_data;
-	std::string filename = path_append(save_path, path_append(".resume"
-		, leaf_path(torrent) + ".resume"));
-	load_file(filename, resume_data, ec);
+	load_file(resume_file(ti->info_hash()), resume_data, ec);
 	if (!ec)
 	{
-		p = read_resume_data(&resume_data[0], int(resume_data.size()), ec);
+		p = lt::read_resume_data(&resume_data[0], int(resume_data.size()), ec);
 		if (ec) std::printf("  failed to load resume data: %s\n", ec.message().c_str());
 	}
 	ec.clear();
@@ -614,36 +673,13 @@ void add_torrent(libtorrent::session& ses
 	if (disable_storage) p.storage = disabled_storage_constructor;
 	if (share_mode) p.flags |= add_torrent_params::flag_share_mode;
 
-	p.torrent_file_path = torrent;
+	p.ti = ti;
 	p.save_path = save_path;
 	p.storage_mode = (storage_mode_t)allocation_mode;
 	p.flags &= ~add_torrent_params::flag_duplicate_is_error;
 	p.userdata = static_cast<void*>(new std::string(torrent));
 	ses.async_add_torrent(p);
 	files.insert(std::pair<const std::string, torrent_handle>(torrent, torrent_handle()));
-}
-
-std::string make_absolute_path(char const* p)
-{
-	std::string ret;
-#if defined TORRENT_WINDOWS
-	if (p[0] != '\0' && !(p[1] == ':' && p[2] == '\\'))
-	{
-		char* cwd = ::_getcwd(nullptr, 0);
-		ret = path_append(cwd, p);
-		std::free(cwd);
-	}
-	else ret = p;
-#else
-	if (p[0] != '/')
-	{
-		char* cwd = ::getcwd(nullptr, 0);
-		ret = path_append(cwd, p);
-		std::free(cwd);
-	}
-	else ret = p;
-#endif
-	return ret;
 }
 
 std::vector<std::string> list_dir(std::string path
@@ -1000,8 +1036,7 @@ bool handle_alert(torrent_view& view, session_view& ses_view
 		torrent_handle h = p->handle;
 		auto const buf = write_resume_data_buf(p->params);
 		torrent_status st = h.status(torrent_handle::query_save_path);
-		save_file(path_append(st.save_path, path_append(".resume", leaf_path(
-			hash_to_filename[st.info_hash]) + ".resume")), buf);
+		save_file(resume_file(st.info_hash), buf);
 		if (h.is_valid()
 			&& non_files.find(h) == non_files.end()
 			&& std::none_of(files.begin(), files.end()
@@ -1186,9 +1221,7 @@ int main(int argc, char* argv[])
 	std::set<torrent_handle> non_files;
 
 	// load the torrents given on the commandline
-
-	std::vector<add_torrent_params> magnet_links;
-	std::vector<std::string> torrents;
+	std::vector<lt::string_view> torrents;
 	ip_filter loaded_ip_filter;
 
 	for (int i = 1; i < argc; ++i)
@@ -1362,52 +1395,16 @@ int main(int argc, char* argv[])
 	}
 #endif
 
-	for (auto const& magnet : magnet_links)
-		ses.async_add_torrent(magnet);
-
 	for (auto const& i : torrents)
 	{
-		if (std::strstr(i.c_str(), "http://") == i.c_str()
-			|| std::strstr(i.c_str(), "https://") == i.c_str()
-			|| std::strstr(i.c_str(), "magnet:") == i.c_str())
+		if (i.substr(0, 7) == "magnet:")
 		{
-			add_torrent_params p;
-
-			if (std::strstr(i.c_str(), "magnet:") == i.c_str())
-			{
-				add_torrent_params tmp;
-				ec.clear();
-				parse_magnet_uri(i, tmp, ec);
-
-				if (ec) continue;
-
-				std::string filename = path_append(save_path, path_append(".resume"
-					, to_hex(tmp.info_hash) + ".resume"));
-
-				std::vector<char> resume_data;
-				load_file(filename, resume_data, ec);
-				if (!ec)
-				{
-					p = read_resume_data(&resume_data[0], int(resume_data.size()), ec);
-					if (ec) std::printf("  failed to load resume data: %s\n", ec.message().c_str());
-				}
-				ec.clear();
-			}
-
-			if (seed_mode) p.flags |= add_torrent_params::flag_seed_mode;
-			if (disable_storage) p.storage = disabled_storage_constructor;
-			if (share_mode) p.flags |= add_torrent_params::flag_share_mode;
-			p.save_path = save_path;
-			p.storage_mode = (storage_mode_t)allocation_mode;
-			p.url = i;
-
-			std::printf("adding URL: %s\n", i.c_str());
-			ses.async_add_torrent(p);
-			continue;
+			add_magnet(ses, i);
 		}
-
-		// if it's a torrent file, open it as usual
-		add_torrent(ses, files, i.c_str());
+		else
+		{
+			add_torrent(ses, files, i.to_string());
+		}
 	}
 
 	// main loop
@@ -1515,39 +1512,10 @@ int main(int argc, char* argv[])
 				if (c == 'm')
 				{
 					char url[4096];
+					url[0] = '\0';
 					puts("Enter magnet link:\n");
-					int ret = std::scanf("%4095s", url);
-
-					add_torrent_params p;
-					if (ret == 1 && std::strstr(url, "magnet:") == url)
-					{
-						add_torrent_params tmp;
-						parse_magnet_uri(url, tmp, ec);
-
-						if (ec) continue;
-
-						std::string filename = path_append(save_path, path_append(".resume"
-								, to_hex(tmp.info_hash) + ".resume"));
-
-						std::vector<char> resume_data;
-						load_file(filename, resume_data, ec);
-						if (!ec)
-						{
-							p = read_resume_data(&resume_data[0], int(resume_data.size()), ec);
-							if (ec) std::printf("  failed to load resume data: %s\n", ec.message().c_str());
-						}
-						ec.clear();
-					}
-
-					if (seed_mode) p.flags |= add_torrent_params::flag_seed_mode;
-					if (disable_storage) p.storage = disabled_storage_constructor;
-					if (share_mode) p.flags |= add_torrent_params::flag_share_mode;
-					p.save_path = save_path;
-					p.storage_mode = (storage_mode_t)allocation_mode;
-					p.url = url;
-
-					std::printf("adding URL: %s\n", url);
-					ses.async_add_torrent(p);
+					std::scanf("%4095s", url);
+					add_magnet(ses, url);
 				}
 
 				if (c == 'q') break;
