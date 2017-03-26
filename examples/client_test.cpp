@@ -561,6 +561,11 @@ void add_magnet(lt::session& ses, lt::string_view uri)
 	}
 	ec.clear();
 
+	p.max_connections = max_connections_per_torrent;
+	p.max_uploads = -1;
+	p.upload_limit = torrent_upload_limit;
+	p.download_limit = torrent_download_limit;
+
 	if (seed_mode) p.flags |= lt::add_torrent_params::flag_seed_mode;
 	if (disable_storage) p.storage = lt::disabled_storage_constructor;
 	if (share_mode) p.flags |= lt::add_torrent_params::flag_share_mode;
@@ -603,6 +608,10 @@ bool add_torrent(libtorrent::session& ses, std::string torrent)
 	if (disable_storage) p.storage = disabled_storage_constructor;
 	if (share_mode) p.flags |= add_torrent_params::flag_share_mode;
 
+	p.max_connections = max_connections_per_torrent;
+	p.max_uploads = -1;
+	p.upload_limit = torrent_upload_limit;
+	p.download_limit = torrent_download_limit;
 	p.ti = ti;
 	p.save_path = save_path;
 	p.storage_mode = (storage_mode_t)allocation_mode;
@@ -848,13 +857,7 @@ bool handle_alert(torrent_view& view, session_view& ses_view
 		{
 			torrent_handle h = p->handle;
 
-			// TODO: why aren't these set in the add_torrent_params
-			h.set_max_connections(max_connections_per_torrent);
-			h.set_max_uploads(-1);
-			h.set_upload_limit(torrent_upload_limit);
-			h.set_download_limit(torrent_download_limit);
-
-			h.save_resume_data(torrent_handle::save_info_dict);
+			h.save_resume_data(torrent_handle::save_info_dict | torrent_handle::only_if_modified);
 			++num_outstanding_resume_data;
 
 			// if we have a peer specified, connect to it
@@ -895,12 +898,9 @@ bool handle_alert(torrent_view& view, session_view& ses_view
 	else if (save_resume_data_failed_alert* p = alert_cast<save_resume_data_failed_alert>(a))
 	{
 		--num_outstanding_resume_data;
-		torrent_handle h = p->handle;
-		if (h.is_valid())
-		{
-			std::fprintf(stderr, "FAILED TO SAVE RESUME DATA: %s\n"
-				, h.status().name.c_str());
-		}
+		// don't print the error if it was just that we didn't need to save resume
+		// data. Returning true means "handled" and not printed to the log
+		return p->error == lt::errors::resume_data_not_modified;
 	}
 	else if (torrent_paused_alert* p = alert_cast<torrent_paused_alert>(a))
 	{
@@ -1188,9 +1188,11 @@ MAGNETURL is a magnet link
 #else
 	int ret = mkdir(path_append(save_path, ".resume").c_str(), 0777);
 #endif
-	if (ret < 0)
+	if (ret < 0 && errno != EEXIST)
+	{
 		std::fprintf(stderr, "failed to create resume file directory: (%d) %s\n"
 			, errno, strerror(errno));
+	}
 
 	settings.set_str(settings_pack::user_agent, "client_test/" LIBTORRENT_VERSION);
 	settings.set_int(settings_pack::alert_mask, alert::all_categories
@@ -1273,6 +1275,10 @@ MAGNETURL is a magnet link
 					, file.c_str(), ec.message().c_str());
 				continue;
 			}
+
+			// we're loading this torrent from resume data. There's no need to
+			// re-save the resume data immediately.
+			p.flags &= ~add_torrent_params::flag_need_save_resume;
 
 			ses.async_add_torrent(std::move(p));
 		}

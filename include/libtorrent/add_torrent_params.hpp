@@ -220,7 +220,7 @@ namespace libtorrent
 			// if this flag is set (which it is by default) the torrent will be
 			// considered needing to save its resume data immediately as it's
 			// added. New torrents that don't have any resume data should do that.
-			// This flag is cleared by a successful call to read_resume_data()
+			// This flag is cleared by a successful call to save_resume_data()
 			flag_need_save_resume = 0x10000,
 
 #ifndef TORRENT_NO_DEPRECATE
