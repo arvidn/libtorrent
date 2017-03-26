@@ -1213,7 +1213,7 @@ int main(int argc, char* argv[])
 
 	if (argc == 1)
 	{
-		fprintf(stderr, "usage: client_test [OPTIONS] [TORRENT|MAGNETURL|URL]\n\n"
+		fprintf(stderr, "usage: client_test [OPTIONS] [TORRENT|MAGNETURL]\n\n"
 			"OPTIONS:\n"
 			"\n CLIENT OPTIONS\n"
 			"  -f <log file>         logs all events to the given file\n"
@@ -1590,9 +1590,7 @@ int main(int argc, char* argv[])
 	for (std::vector<std::string>::iterator i = torrents.begin()
 		, end(torrents.end()); i != end; ++i)
 	{
-		if (std::strstr(i->c_str(), "http://") == i->c_str()
-			|| std::strstr(i->c_str(), "https://") == i->c_str()
-			|| std::strstr(i->c_str(), "magnet:") == i->c_str())
+		if (std::strstr(i->c_str(), "magnet:") == i->c_str())
 		{
 			add_torrent_params p;
 			if (seed_mode) p.flags |= add_torrent_params::flag_seed_mode;
@@ -1603,19 +1601,16 @@ int main(int argc, char* argv[])
 			p.url = *i;
 
 			std::vector<char> buf;
-			if (std::strstr(i->c_str(), "magnet:") == i->c_str())
-			{
-				add_torrent_params tmp;
-				ec.clear();
-				parse_magnet_uri(*i, tmp, ec);
+			add_torrent_params tmp;
+			ec.clear();
+			parse_magnet_uri(*i, tmp, ec);
 
-				if (ec) continue;
+			if (ec) continue;
 
-				std::string filename = path_append(save_path, path_append(".resume"
-					, to_hex(tmp.info_hash.to_string()) + ".resume"));
+			std::string filename = path_append(save_path, path_append(".resume"
+				, to_hex(tmp.info_hash.to_string()) + ".resume"));
 
-				load_file(filename, p.resume_data, ec);
-			}
+			load_file(filename, p.resume_data, ec);
 
 			printf("adding URL: %s\n", i->c_str());
 			ses.async_add_torrent(p);
