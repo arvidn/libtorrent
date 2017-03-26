@@ -1430,7 +1430,7 @@ MAGNETURL is a magnet link
 						else
 						{
 							std::printf("failed to delete torrent, invalid handle: %s\n"
-								, h.name().c_str());
+								, st.name.c_str());
 						}
 					}
 				}
