@@ -1,5 +1,5 @@
 	* optimize download queue management
-	* deprecated (undocumented) file:// urls, added torrent_file_path alternative
+	* deprecated (undocumented) file:// urls
 	* add limit for number of web seed connections
 	* added support for retrieval of DHT live nodes
 	* complete UNC path support

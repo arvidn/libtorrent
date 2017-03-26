@@ -60,8 +60,6 @@ namespace libtorrent
 	// * url - when you have a magnet link
 	// * info_hash - when all you have is an info-hash (this is similar to a
 	//   magnet link)
-	// * torrent_file_path - when you have the path to a .torrent file and want
-	//   libtorrent to load it. (This is especially useful with async_add_torrent)
 	//
 	// one of those fields must be set. Another mandatory field is
 	// ``save_path``. The add_torrent_params object is passed into one of the
@@ -359,10 +357,6 @@ namespace libtorrent
 		// while downloading, the torrent will be stopped and the torrent error
 		// state (``torrent_status::error``) will indicate what went wrong.
 		std::string url;
-
-		// if you specify a ``torrent_file_path``, libtorrent will attempt to load
-		// a .torrent file from the file at the given path.
-		std::string torrent_file_path;
 
 		// flags controlling aspects of this torrent and how it's added. See
 		// flags_t for details.

@@ -4598,21 +4598,17 @@ namespace aux {
 #ifndef TORRENT_NO_DEPRECATE
 		if (!params->ti && string_begins_no_case("file://", params->url.c_str()))
 		{
-			params->torrent_file_path = resolve_file_url(params->url);
-			params->url.clear();
-		}
-#endif
-
-		if (!params->ti && !params->torrent_file_path.empty())
-		{
 			if (!m_torrent_load_thread)
 				m_torrent_load_thread.reset(new work_thread_t());
 
 			m_torrent_load_thread->ios.post([params, this]
 			{
+				std::string const torrent_file_path = resolve_file_url(params->url);
+				params->url.clear();
+
 				std::unique_ptr<add_torrent_params> holder2(params);
 				error_code ec;
-				params->ti = std::make_shared<torrent_info>(params->torrent_file_path, ec);
+				params->ti = std::make_shared<torrent_info>(torrent_file_path, ec);
 				this->m_io_service.post(std::bind(&session_impl::on_async_load_torrent
 					, this, params, ec));
 				holder2.release();
@@ -4620,11 +4616,13 @@ namespace aux {
 			holder.release();
 			return;
 		}
+#endif
 
 		error_code ec;
 		add_torrent(*params, ec);
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	void session_impl::on_async_load_torrent(add_torrent_params* params, error_code ec)
 	{
 		std::unique_ptr<add_torrent_params> holder(params);
@@ -4640,6 +4638,7 @@ namespace aux {
 		params->url.clear();
 		add_torrent(*params, ec);
 	}
+#endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	void session_impl::add_extensions_to_torrent(
@@ -4792,25 +4791,20 @@ namespace aux {
 			parse_magnet_uri(params.url, params, ec);
 			if (ec) return std::make_pair(ptr_t(), false);
 			params.url.clear();
-			params.torrent_file_path.clear();
 		}
 
 #ifndef TORRENT_NO_DEPRECATE
 		if (!params.ti && string_begins_no_case("file://", params.url.c_str()))
 		{
-			params.torrent_file_path = resolve_file_url(params.url);
+			std::string const torrent_file_path = resolve_file_url(params.url);
 			params.url.clear();
+			auto t = std::make_shared<torrent_info>(torrent_file_path, std::ref(ec), 0);
+			if (ec) return std::make_pair(ptr_t(), false);
+			params.url.clear();
+			params.ti = t;
 		}
 #endif
 
-		if (!params.ti && !params.torrent_file_path.empty())
-		{
-			auto t = std::make_shared<torrent_info>(params.torrent_file_path, std::ref(ec), 0);
-			if (ec) return std::make_pair(ptr_t(), false);
-			params.url.clear();
-			params.torrent_file_path.clear();
-			params.ti = t;
-		}
 
 		if (params.ti && !params.ti->is_valid())
 		{

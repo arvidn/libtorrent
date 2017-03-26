@@ -167,7 +167,7 @@ namespace libtorrent
 #endif // BOOST_NO_EXCEPTIONS
 #endif // TORRENT_NO_DEPRECATE
 
-	// TODO: 3 take string_ref here instead
+	// TODO: 3 take string_view here instead
 	void parse_magnet_uri(std::string const& uri, add_torrent_params& p, error_code& ec)
 	{
 		ec.clear();
