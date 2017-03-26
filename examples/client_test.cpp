@@ -924,6 +924,23 @@ bool handle_alert(torrent_view& view, session_view& ses_view
 
 }
 
+void pop_alerts(torrent_view& view, session_view& ses_view
+	, libtorrent::session& ses, std::deque<std::string> events)
+{
+	std::vector<lt::alert*> alerts;
+	ses.pop_alerts(&alerts);
+	for (auto a : alerts)
+	{
+		if (::handle_alert(view, ses_view, ses, a)) continue;
+
+		// if we didn't handle the alert, print it to the log
+		std::string event_string;
+		print_alert(a, event_string);
+		events.push_back(event_string);
+		if (events.size() >= 20) events.pop_front();
+	}
+}
+
 void print_piece(libtorrent::partial_piece_info const* pp
 	, libtorrent::cached_piece_info const* cs
 	, std::vector<libtorrent::peer_info> const& peers
@@ -1256,6 +1273,7 @@ MAGNETURL is a magnet link
 	}
 	else
 	{
+		int idx = 0;
 		for (auto const& e : ents)
 		{
 			std::string const file = path_append(resume_dir, e);
@@ -1281,6 +1299,14 @@ MAGNETURL is a magnet link
 			p.flags &= ~add_torrent_params::flag_need_save_resume;
 
 			ses.async_add_torrent(std::move(p));
+
+			++idx;
+			if ((idx % 32) == 0)
+			{
+				// regularly, pop and handle alerts, to avoid the alert queue from
+				// filling up with add_torrent_alerts
+				pop_alerts(view, ses_view, ses, events);
+			}
 		}
 	}
 
@@ -1580,20 +1606,7 @@ MAGNETURL is a magnet link
 			if (c == 'q') break;
 		}
 
-		// loop through the alert queue to see if anything has happened.
-		std::vector<alert*> alerts;
-		ses.pop_alerts(&alerts);
-		for (auto i : alerts)
-		{
-			if (::handle_alert(view, ses_view, ses, i)) continue;
-
-			// if we didn't handle the alert, print it to the log
-			std::string event_string;
-			print_alert(i, event_string);
-			events.push_back(event_string);
-			if (events.size() >= 20) events.pop_front();
-		}
-		alerts.clear();
+		pop_alerts(view, ses_view, ses, events);
 
 		std::string out;
 
@@ -1913,12 +1926,18 @@ MAGNETURL is a magnet link
 		return true;
 	}, 0);
 
+	int idx = 0;
 	for (auto const& st : temp)
 	{
 		// save_resume_data will generate an alert when it's done
 		st.handle.save_resume_data(torrent_handle::save_info_dict);
 		++num_outstanding_resume_data;
-		std::printf("\r%d  ", num_outstanding_resume_data);
+		++idx;
+		if ((idx % 32) == 0)
+		{
+			std::printf("\r%d  ", num_outstanding_resume_data);
+			pop_alerts(view, ses_view, ses, events);
+		}
 	}
 	std::printf("\nwaiting for resume data [%d]\n", num_outstanding_resume_data);
 
@@ -1926,16 +1945,7 @@ MAGNETURL is a magnet link
 	{
 		alert const* a = ses.wait_for_alert(seconds(10));
 		if (a == nullptr) continue;
-
-		std::vector<alert*> alerts;
-		ses.pop_alerts(&alerts);
-		for (auto i : alerts)
-		{
-			if (::handle_alert(view, ses_view, ses, i)) continue;
-			// if we didn't handle the alert, print it to the log
-			std::string event_string;
-			print_alert(i, event_string);
-		}
+		pop_alerts(view, ses_view, ses, events);
 	}
 
 	if (g_log_file) std::fclose(g_log_file);

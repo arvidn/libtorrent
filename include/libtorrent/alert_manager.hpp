@@ -68,7 +68,15 @@ namespace libtorrent {
 			// for high priority alerts, double the upper limit
 			if (m_alerts[m_generation].size() >= m_queue_size_limit
 				* (1 + T::priority))
+			{
+//				if (T::priority > 0)
+//				{
+					// TODO: there should be a way for the client to detect that an
+					// alert was dropped. Maybe add a flag to each m_alerts
+					// generation
+//				}
 				return;
+			}
 
 			T& alert = m_alerts[m_generation].emplace_back<T>(
 				m_allocations[m_generation], std::forward<Args>(args)...);
