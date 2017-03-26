@@ -110,7 +110,7 @@ void run_test(
 
 	// only monitor alerts for session 0 (the downloader)
 	print_alerts(*ses[0], [=](lt::session& ses, lt::alert const* a) {
-		if (auto ta = alert_cast<lt::torrent_added_alert>(a))
+		if (auto ta = alert_cast<lt::add_torrent_alert>(a))
 		{
 			ta->handle.connect_peer(lt::tcp::endpoint(
 				(flags & connect_socks) ? proxy : peer1, 6881));

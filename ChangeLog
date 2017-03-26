@@ -1,3 +1,4 @@
+	* deprecate torrent_added_alert (in favor of add_torrent_alert)
 	* fix python binding for parse_magnet_uri
 	* fix minor robustness issue in DHT bootstrap logic
 	* fix issue where torrent_status::num_seeds could be negative

@@ -243,9 +243,11 @@ void bind_alert()
         .def("tracker_url", &tracker_alert::tracker_url)
         ;
 
+#ifndef TORRENT_NO_DEPRECATE
     class_<torrent_added_alert, bases<torrent_alert>, noncopyable>(
         "torrent_added_alert", no_init)
         ;
+#endif
 
     class_<torrent_removed_alert, bases<torrent_alert>, noncopyable>(
         "torrent_removed_alert", no_init)
