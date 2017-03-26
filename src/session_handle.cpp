@@ -342,11 +342,14 @@ namespace libtorrent
 		return sync_call_ret<torrent_handle>(&session_impl::add_torrent, p, ecr);
 	}
 
-	void session_handle::async_add_torrent(add_torrent_params const& params)
+	void session_handle::async_add_torrent(add_torrent_params params)
 	{
 		TORRENT_ASSERT_PRECOND(!params.save_path.empty());
 
-		add_torrent_params* p = new add_torrent_params(params);
+		// we cannot capture a unique_ptr into a lambda in c++11, so we use a raw
+		// pointer for now. async_call uses a lambda expression to post the call
+		// to the main thread
+		add_torrent_params* p = new add_torrent_params(std::move(params));
 		p->save_path = complete(p->save_path);
 
 #ifndef TORRENT_NO_DEPRECATE

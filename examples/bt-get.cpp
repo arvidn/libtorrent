@@ -51,7 +51,7 @@ int main(int argc, char const* argv[])
 	lt::add_torrent_params atp;
 	atp.url = argv[1];
 	atp.save_path = "."; // save in current dir
-	lt::torrent_handle h = ses.add_torrent(atp);
+	lt::torrent_handle h = ses.add_torrent(std::move(atp));
 
 	for (;;) {
 		std::vector<lt::alert*> alerts;

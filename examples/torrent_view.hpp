@@ -36,7 +36,7 @@ struct torrent_view
 	lt::torrent_status const& get_active_torrent() const;
 	lt::torrent_handle get_active_handle() const;
 
-	void update_torrents(std::vector<lt::torrent_status> const& st);
+	void update_torrents(std::vector<lt::torrent_status> st);
 
 	int height() const;
 

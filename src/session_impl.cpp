@@ -4619,7 +4619,7 @@ namespace aux {
 #endif
 
 		error_code ec;
-		add_torrent(*params, ec);
+		add_torrent(std::move(*params), ec);
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
@@ -4636,7 +4636,7 @@ namespace aux {
 		TORRENT_ASSERT(params->ti->is_valid());
 		TORRENT_ASSERT(params->ti->num_files() > 0);
 		params->url.clear();
-		add_torrent(*params, ec);
+		add_torrent(std::move(*params), ec);
 	}
 #endif
 
@@ -4653,11 +4653,10 @@ namespace aux {
 	}
 #endif
 
-	torrent_handle session_impl::add_torrent(add_torrent_params const& p
+	torrent_handle session_impl::add_torrent(add_torrent_params params
 		, error_code& ec)
 	{
 		// params is updated by add_torrent_impl()
-		add_torrent_params params = p;
 		std::shared_ptr<torrent> torrent_ptr;
 
 		// in case there's an error, make sure to abort the torrent before leaving
@@ -4665,6 +4664,8 @@ namespace aux {
 		auto abort_torrent = aux::scope_end([&]{ if (torrent_ptr) torrent_ptr->abort(); });
 
 		bool added;
+		// TODO: 3 perhaps params could be moved into the torrent object, instead
+		// of it being copied by the torrent constructor
 		std::tie(torrent_ptr, added) = add_torrent_impl(params, ec);
 
 		torrent_handle const handle(torrent_ptr);

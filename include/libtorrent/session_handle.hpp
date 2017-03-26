@@ -232,7 +232,7 @@ namespace libtorrent
 		torrent_handle add_torrent(add_torrent_params const& params);
 #endif
 		torrent_handle add_torrent(add_torrent_params const& params, error_code& ec);
-		void async_add_torrent(add_torrent_params const& params);
+		void async_add_torrent(add_torrent_params params);
 
 #ifndef BOOST_NO_EXCEPTIONS
 #ifndef TORRENT_NO_DEPRECATE

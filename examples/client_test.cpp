@@ -568,7 +568,7 @@ void add_magnet(lt::session& ses, lt::string_view uri)
 	p.storage_mode = static_cast<lt::storage_mode_t>(allocation_mode);
 
 	std::printf("adding magnet: %s\n", uri.to_string().c_str());
-	ses.async_add_torrent(p);
+	ses.async_add_torrent(std::move(p));
 }
 
 // return false on failure
@@ -608,7 +608,7 @@ bool add_torrent(libtorrent::session& ses, std::string torrent)
 	p.storage_mode = (storage_mode_t)allocation_mode;
 	p.flags &= ~add_torrent_params::flag_duplicate_is_error;
 	p.userdata = static_cast<void*>(new std::string(torrent));
-	ses.async_add_torrent(p);
+	ses.async_add_torrent(std::move(p));
 	return true;
 }
 
@@ -913,7 +913,7 @@ bool handle_alert(torrent_view& view, session_view& ses_view
 	}
 	else if (state_update_alert* p = alert_cast<state_update_alert>(a))
 	{
-		view.update_torrents(p->status);
+		view.update_torrents(std::move(p->status));
 		return true;
 	}
 	return false;
@@ -1274,7 +1274,7 @@ MAGNETURL is a magnet link
 				continue;
 			}
 
-			ses.async_add_torrent(p);
+			ses.async_add_torrent(std::move(p));
 		}
 	}
 

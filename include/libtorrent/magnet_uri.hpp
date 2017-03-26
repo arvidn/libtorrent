@@ -65,13 +65,13 @@ namespace libtorrent
 	// deprecated in 0.16. Instead, pass in the magnet link as add_torrent_params::url
 	TORRENT_DEPRECATED
 	torrent_handle TORRENT_EXPORT add_magnet_uri(session& ses, std::string const& uri
-		, add_torrent_params const& p);
+		, add_torrent_params p);
 #endif
 
 	// deprecated in 0.16. Instead, pass in the magnet link as add_torrent_params::url
 	TORRENT_DEPRECATED
 	torrent_handle TORRENT_EXPORT add_magnet_uri(session& ses, std::string const& uri
-		, add_torrent_params const& p, error_code& ec);
+		, add_torrent_params p, error_code& ec);
 
 #endif
 
