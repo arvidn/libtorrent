@@ -3,6 +3,7 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt
 
 #include "boost_python.hpp"
+#include "bytes.hpp"
 #include <libtorrent/session.hpp>
 #include <libtorrent/torrent.hpp>
 #include <libtorrent/magnet_uri.hpp>
@@ -55,9 +56,9 @@ namespace {
 
 		list nodes_list;
 		for (auto const& i : p.dht_nodes)
-			tracker_list.append(boost::python::make_tuple(i.first, i.second));
+			nodes_list.append(boost::python::make_tuple(i.first, i.second));
 		ret["dht_nodes"] =  nodes_list;
-		ret["info_hash"] = p.info_hash.to_string();
+		ret["info_hash"] = bytes(p.info_hash.to_string());
 		ret["name"] = p.name;
 		ret["save_path"] = p.save_path;
 		ret["storage_mode"] = p.storage_mode;
