@@ -44,13 +44,12 @@ namespace libtorrent
 
 struct TORRENT_EXTRA_EXPORT resolver_interface
 {
-	typedef std::function<void(error_code const&, std::vector<address> const&)>
-		callback_t;
+	using callback_t = std::function<void(error_code const&, std::vector<address> const&)>;
 
 	enum flags_t
 	{
 		// this flag will make async_resolve() always use the cache if we have an
-		// entry, regardless of how old it is. This is usefull when completing the
+		// entry, regardless of how old it is. This is useful when completing the
 		// lookup quickly is more important than accuracy
 		prefer_cache = 1,
 
@@ -70,4 +69,3 @@ protected:
 }
 
 #endif
-

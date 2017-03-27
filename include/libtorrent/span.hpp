@@ -33,9 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SPAN_HPP_INCLUDED
 #define TORRENT_SPAN_HPP_INCLUDED
 
-#include <vector>
 #include <array>
-#include <type_traits> // for std::is_convertible
+#include <type_traits>
 #include "libtorrent/assert.hpp"
 
 namespace libtorrent

@@ -51,8 +51,8 @@ namespace libtorrent
 		explicit announce_entry(string_view u);
 		announce_entry();
 		~announce_entry();
-		announce_entry(announce_entry const&) = default;
-		announce_entry& operator=(announce_entry const&) = default;
+		announce_entry(announce_entry const&);
+		announce_entry& operator=(announce_entry const&);
 
 		// tracker URL as it appeared in the torrent file
 		std::string url;

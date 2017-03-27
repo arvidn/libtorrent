@@ -63,6 +63,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 #include <list>
 #include <string>
+#include <vector>
 #include <stdexcept>
 #include <cstdint>
 #if TORRENT_USE_IOSTREAM
