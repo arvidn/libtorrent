@@ -230,9 +230,6 @@ void node::bootstrap(std::vector<udp::endpoint> const& nodes
 		r->add_entry(node_id(), n, observer::flag_initial);
 	}
 
-	// make us start as far away from our node ID as possible
-	r->trim_seed_nodes();
-
 #ifndef TORRENT_DISABLE_LOGGING
 	if (m_observer != nullptr)
 		m_observer->log(dht_logger::node, "bootstrapping with %d nodes", count);

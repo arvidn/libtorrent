@@ -51,8 +51,6 @@ public:
 	observer_ptr new_observer(udp::endpoint const& ep
 		, node_id const& id);
 
-	void trim_seed_nodes();
-
 protected:
 
 	virtual bool invoke(observer_ptr o);

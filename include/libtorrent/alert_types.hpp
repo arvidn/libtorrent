@@ -161,11 +161,14 @@ namespace libtorrent
 #define TORRENT_DEFINE_ALERT_PRIO(name, seq) \
 	TORRENT_DEFINE_ALERT_IMPL(name, seq, 1)
 
+#ifndef TORRENT_NO_DEPRECATE
 	// The ``torrent_added_alert`` is posted once every time a torrent is successfully
 	// added. It doesn't contain any members of its own, but inherits the torrent handle
 	// from its base class.
 	// It's posted when the ``status_notification`` bit is set in the alert_mask.
-	struct TORRENT_EXPORT torrent_added_alert final : torrent_alert
+	// deprecated in 1.1.3
+	// use add_torrent_alert instead
+	struct TORRENT_DEPRECATED_EXPORT torrent_added_alert final : torrent_alert
 	{
 		// internal
 		torrent_added_alert(aux::stack_allocator& alloc, torrent_handle const& h);
@@ -174,6 +177,7 @@ namespace libtorrent
 		static const int static_category = alert::status_notification;
 		virtual std::string message() const override;
 	};
+#endif
 
 	// The ``torrent_removed_alert`` is posted whenever a torrent is removed. Since
 	// the torrent handle in its base class will always be invalid (since the torrent

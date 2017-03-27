@@ -84,7 +84,7 @@ void run_test(Setup const& setup, Torrent const& torrent
 
 	lt::torrent_handle h;
 	print_alerts(*ses, [&](lt::session& ses, lt::alert const* a) {
-		auto at = lt::alert_cast<torrent_added_alert>(a);
+		auto at = lt::alert_cast<add_torrent_alert>(a);
 		if (at == nullptr) return;
 		h = at->handle;
 

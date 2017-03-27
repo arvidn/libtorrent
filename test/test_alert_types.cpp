@@ -58,7 +58,11 @@ TORRENT_TEST(alerts_types)
 	TEST_EQUAL(count_alert_types, seq); \
 	count_alert_types++;
 
+#ifndef TORRENT_NO_DEPRECATE
 	TEST_ALERT_TYPE(torrent_added_alert, 3, 0, alert::status_notification);
+#else
+	++count_alert_types;
+#endif
 	TEST_ALERT_TYPE(torrent_removed_alert, 4, 1, alert::status_notification);
 	TEST_ALERT_TYPE(read_piece_alert, 5, 1, alert::storage_notification);
 	TEST_ALERT_TYPE(file_completed_alert, 6, 0, alert::progress_notification);

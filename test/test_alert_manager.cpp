@@ -53,7 +53,7 @@ TORRENT_TEST(limit)
 	// try add 600 torrent_add_alert to make sure we honor the limit of 500
 	// alerts.
 	for (int i = 0; i < 600; ++i)
-		mgr.emplace_alert<torrent_added_alert>(torrent_handle());
+		mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
 
 	TEST_EQUAL(mgr.pending(), true);
 
@@ -69,7 +69,7 @@ TORRENT_TEST(limit)
 	mgr.set_alert_queue_size_limit(200);
 
 	for (int i = 0; i < 600; ++i)
-		mgr.emplace_alert<torrent_added_alert>(torrent_handle());
+		mgr.emplace_alert<torrent_finished_alert>(torrent_handle());
 
 	TEST_EQUAL(mgr.pending(), true);
 
@@ -87,7 +87,7 @@ TORRENT_TEST(priority_limit)
 
 	// this should only add 100 because of the limit
 	for (int i = 0; i < 200; ++i)
-		mgr.emplace_alert<torrent_added_alert>(torrent_handle());
+		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code());
 
 	// the limit is twice as high for priority alerts
 	for (file_index_t i(0); i < file_index_t(200); ++i)
@@ -115,7 +115,7 @@ TORRENT_TEST(notify_function)
 	TEST_EQUAL(mgr.pending(), false);
 
 	for (int i = 0; i < 20; ++i)
-		mgr.emplace_alert<torrent_added_alert>(torrent_handle());
+		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code());
 
 	TEST_EQUAL(mgr.pending(), true);
 
@@ -129,7 +129,7 @@ TORRENT_TEST(notify_function)
 	// subsequent posted alerts will not cause an edge (because there are
 	// already alerts queued)
 	for (int i = 0; i < 20; ++i)
-		mgr.emplace_alert<torrent_added_alert>(torrent_handle());
+		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code());
 
 	TEST_EQUAL(mgr.pending(), true);
 	TEST_EQUAL(cnt, 1);
@@ -142,7 +142,7 @@ TORRENT_TEST(notify_function)
 	TEST_EQUAL(mgr.pending(), false);
 
 	for (int i = 0; i < 20; ++i)
-		mgr.emplace_alert<torrent_added_alert>(torrent_handle());
+		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code());
 
 	TEST_EQUAL(mgr.pending(), true);
 	TEST_EQUAL(cnt, 2);
@@ -174,14 +174,14 @@ TORRENT_TEST(extensions)
 	mgr.add_extension(std::make_shared<test_plugin>(2));
 
 	for (int i = 0; i < 53; ++i)
-		mgr.emplace_alert<torrent_added_alert>(torrent_handle());
+		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code());
 
 	TEST_EQUAL(plugin_alerts[0], 53);
 	TEST_EQUAL(plugin_alerts[1], 53);
 	TEST_EQUAL(plugin_alerts[2], 53);
 
 	for (int i = 0; i < 17; ++i)
-		mgr.emplace_alert<torrent_added_alert>(torrent_handle());
+		mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code());
 
 	TEST_EQUAL(plugin_alerts[0], 70);
 	TEST_EQUAL(plugin_alerts[1], 70);
@@ -192,7 +192,7 @@ TORRENT_TEST(extensions)
 void post_torrent_added(alert_manager* mgr)
 {
 	std::this_thread::sleep_for(lt::milliseconds(10));
-	mgr->emplace_alert<torrent_added_alert>(torrent_handle());
+	mgr->emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code());
 }
 
 TORRENT_TEST(wait_for_alert)
@@ -210,7 +210,7 @@ TORRENT_TEST(wait_for_alert)
 	TEST_CHECK(end - start > milliseconds(900));
 	TEST_CHECK(end - start < milliseconds(1100));
 
-	mgr.emplace_alert<torrent_added_alert>(torrent_handle());
+	mgr.emplace_alert<add_torrent_alert>(torrent_handle(), add_torrent_params(), error_code());
 
 	start = clock_type::now();
 	a = mgr.wait_for_alert(seconds(1));
@@ -218,7 +218,7 @@ TORRENT_TEST(wait_for_alert)
 
 	std::printf("delay: %d ms\n", int(total_milliseconds(end - start)));
 	TEST_CHECK(end - start < milliseconds(1));
-	TEST_CHECK(a->type() == torrent_added_alert::alert_type);
+	TEST_CHECK(a->type() == add_torrent_alert::alert_type);
 
 	std::vector<alert*> alerts;
 	mgr.get_all(alerts);
@@ -231,7 +231,7 @@ TORRENT_TEST(wait_for_alert)
 
 	std::printf("delay: %d ms\n", int(total_milliseconds(end - start)));
 	TEST_CHECK(end - start < milliseconds(500));
-	TEST_CHECK(a->type() == torrent_added_alert::alert_type);
+	TEST_CHECK(a->type() == add_torrent_alert::alert_type);
 
 	posting_thread.join();
 }
@@ -240,12 +240,12 @@ TORRENT_TEST(alert_mask)
 {
 	alert_manager mgr(100, 0xffffffff);
 
-	TEST_CHECK(mgr.should_post<torrent_added_alert>());
+	TEST_CHECK(mgr.should_post<add_torrent_alert>());
 	TEST_CHECK(mgr.should_post<torrent_paused_alert>());
 
 	mgr.set_alert_mask(0);
 
-	TEST_CHECK(!mgr.should_post<torrent_added_alert>());
+	TEST_CHECK(!mgr.should_post<add_torrent_alert>());
 	TEST_CHECK(!mgr.should_post<torrent_paused_alert>());
 }
 

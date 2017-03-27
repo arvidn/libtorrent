@@ -65,7 +65,7 @@ TORRENT_TEST(status_timers)
 		, [](lt::add_torrent_params&) {}
 		// on alert
 		, [&](lt::alert const* a, lt::session&) {
-			if (auto ta = alert_cast<torrent_added_alert>(a))
+			if (auto ta = alert_cast<add_torrent_alert>(a))
 			{
 				TEST_CHECK(!handle.is_valid());
 				start_time = time_now();
@@ -121,7 +121,7 @@ TORRENT_TEST(status_timers_last_upload)
 		, [](lt::add_torrent_params&) {}
 		// on alert
 		, [&](lt::alert const* a, lt::session&) {
-			if (auto ta = alert_cast<torrent_added_alert>(a))
+			if (auto ta = alert_cast<add_torrent_alert>(a))
 			{
 				TEST_CHECK(!handle.is_valid());
 				start_time = time_now();
@@ -169,7 +169,7 @@ TORRENT_TEST(status_timers_time_shift_with_active_torrent)
 		, [](lt::add_torrent_params&) {}
 		// on alert
 		, [&](lt::alert const* a, lt::session&) {
-			if (auto ta = alert_cast<torrent_added_alert>(a))
+			if (auto ta = alert_cast<add_torrent_alert>(a))
 			{
 				TEST_CHECK(!handle.is_valid());
 				start_time = time_now();
@@ -250,7 +250,7 @@ TORRENT_TEST(finish_time_shift_active)
 		, [](lt::add_torrent_params&) {}
 		// on alert
 		, [&](lt::alert const* a, lt::session&) {
-			if (auto ta = alert_cast<torrent_added_alert>(a))
+			if (auto ta = alert_cast<add_torrent_alert>(a))
 			{
 				TEST_CHECK(!handle.is_valid());
 				start_time = time_now();
@@ -324,7 +324,7 @@ TORRENT_TEST(finish_time_shift_paused)
 		, [](lt::add_torrent_params&) {}
 		// on alert
 		, [&](lt::alert const* a, lt::session&) {
-			if (auto ta = alert_cast<torrent_added_alert>(a))
+			if (auto ta = alert_cast<add_torrent_alert>(a))
 			{
 				TEST_CHECK(!handle.is_valid());
 				start_time = time_now();

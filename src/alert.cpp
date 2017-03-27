@@ -1273,6 +1273,7 @@ namespace libtorrent
 		return m_alloc.get().ptr(m_file_idx);
 	}
 
+#ifndef TORRENT_NO_DEPRECATE
 	torrent_added_alert::torrent_added_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h)
 		: torrent_alert(alloc, h)
@@ -1282,6 +1283,7 @@ namespace libtorrent
 	{
 		return torrent_alert::message() + " added";
 	}
+#endif
 
 	torrent_removed_alert::torrent_removed_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h, sha1_hash const& ih)

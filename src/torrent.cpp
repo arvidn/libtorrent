@@ -10553,7 +10553,7 @@ namespace libtorrent
 			}
 		}
 		st->num_pieces = num_have();
-		st->num_seeds = num_seeds() - int(m_num_connecting_seeds);
+		st->num_seeds = num_seeds();
 		if ((flags & torrent_handle::query_distributed_copies) && m_picker.get())
 		{
 			std::tie(st->distributed_full_copies, st->distributed_fraction) =

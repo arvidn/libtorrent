@@ -4684,8 +4684,10 @@ namespace aux {
 		}
 #endif
 
+#ifndef TORRENT_NO_DEPRECATE
 		if (m_alerts.should_post<torrent_added_alert>())
 			m_alerts.emplace_alert<torrent_added_alert>(handle);
+#endif
 
 		// if this was an existing torrent, we can't start it again, or add
 		// another set of plugins etc. we're done

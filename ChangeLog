@@ -62,6 +62,10 @@
 	* resume data no longer has timestamps of files
 	* require C++11 to build libtorrent
 
+	* deprecate torrent_added_alert (in favor of add_torrent_alert)
+	* fix python binding for parse_magnet_uri
+	* fix minor robustness issue in DHT bootstrap logic
+	* fix issue where torrent_status::num_seeds could be negative
 	* document deprecation of dynamic loading/unloading of torrents
 	* include user-agent in tracker announces in anonymous_mode for private torrents
 	* add support for IPv6 peers from udp trackers
