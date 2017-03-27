@@ -147,7 +147,6 @@ namespace boost
 
 	POLY(torrent_alert)
 	POLY(tracker_alert)
-	POLY(torrent_added_alert)
 	POLY(torrent_removed_alert)
 	POLY(read_piece_alert)
 	POLY(peer_alert)
@@ -220,6 +219,7 @@ namespace boost
 	POLY(dht_get_peers_reply_alert)
 
 #ifndef TORRENT_NO_DEPRECATE
+	POLY(torrent_added_alert)
 	POLY(torrent_update_alert)
 #endif
 
