@@ -34,13 +34,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_RESOLVER_HPP_INCLUDE
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <boost/asio/ip/tcp.hpp>
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <unordered_map>
-#include <functional>
 #include <vector>
 
 #include "libtorrent/error_code.hpp"
@@ -73,8 +70,7 @@ private:
 		std::vector<address> addresses;
 	};
 
-	using cache_t = std::unordered_map<std::string, dns_cache_entry>;
-	cache_t m_cache;
+	std::unordered_map<std::string, dns_cache_entry> m_cache;
 	io_service& m_ios;
 
 	// all lookups in this resolver are aborted on shutdown.

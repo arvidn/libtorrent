@@ -34,8 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 #include "libtorrent/aux_/time.hpp"
 
-#include <functional>
-
 namespace libtorrent
 {
 	resolver::resolver(io_service& ios)
@@ -73,9 +71,8 @@ namespace libtorrent
 		// oldest entries
 		if (int(m_cache.size()) > m_max_size)
 		{
-			cache_t::iterator oldest = m_cache.begin();
-			for (cache_t::iterator k = m_cache.begin();
-				k != m_cache.end(); ++k)
+			auto oldest = m_cache.begin();
+			for (auto k = m_cache.begin(); k != m_cache.end(); ++k)
 			{
 				if (k->second.last_seen < oldest->second.last_seen)
 					oldest = k;

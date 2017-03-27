@@ -68,6 +68,8 @@ namespace libtorrent
 	{}
 
 	announce_entry::~announce_entry() = default;
+	announce_entry::announce_entry(announce_entry const&) = default;
+	announce_entry& announce_entry::operator=(announce_entry const&) = default;
 
 #ifndef TORRENT_NO_DEPRECATE
 	int announce_entry::next_announce_in() const

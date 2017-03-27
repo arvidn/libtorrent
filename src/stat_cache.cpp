@@ -35,12 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/file.hpp"
 
-#include <string>
-
 namespace libtorrent
 {
-	class file_storage;
-
 	stat_cache::stat_cache() {}
 	stat_cache::~stat_cache() = default;
 

@@ -63,6 +63,4 @@ namespace libtorrent { namespace aux
 #endif
 	}
 
-
 }}
-
