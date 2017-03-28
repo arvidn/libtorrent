@@ -1,3 +1,4 @@
+	* deprecate add_torrent_params::url field. use parse_magnet_uri instead
 	* optimize download queue management
 	* deprecated (undocumented) file:// urls
 	* add limit for number of web seed connections

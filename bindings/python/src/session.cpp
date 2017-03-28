@@ -324,11 +324,13 @@ namespace
                 p.trackerid = extract<std::string>(value);
                 continue;
             }
+#ifndef TORRENT_NO_DEPRECATE
             else if(key == "url")
             {
                 p.url = extract<std::string>(value);
                 continue;
             }
+#endif
             else if(key == "renamed_files")
             {
                 p.renamed_files =
@@ -662,7 +664,6 @@ void bind_session()
 //        .def_readwrite("storage", &add_torrent_params::storage)
         .add_property("file_priorities", PROP(&add_torrent_params::file_priorities))
         .def_readwrite("trackerid", &add_torrent_params::trackerid)
-        .def_readwrite("url", &add_torrent_params::url)
         .def_readwrite("flags", &add_torrent_params::flags)
         .def_readwrite("info_hash", &add_torrent_params::info_hash)
         .def_readwrite("max_uploads", &add_torrent_params::max_uploads)
@@ -692,6 +693,7 @@ void bind_session()
         .add_property("renamed_files", PROP(&add_torrent_params::renamed_files))
 
 #ifndef TORRENT_NO_DEPRECATE
+        .def_readwrite("url", &add_torrent_params::url)
         .def_readwrite("uuid", &add_torrent_params::uuid)
         .def_readwrite("resume_data", &add_torrent_params::resume_data)
 #endif

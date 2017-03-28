@@ -61,8 +61,8 @@ namespace {
 		ret["name"] = p.name;
 		ret["save_path"] = p.save_path;
 		ret["storage_mode"] = p.storage_mode;
-		ret["url"] = p.url;
 #ifndef TORRENT_NO_DEPRECATE
+		ret["url"] = p.url;
 		ret["uuid"] = p.uuid;
 #endif
 		ret["flags"] = p.flags;

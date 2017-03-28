@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 namespace lt = libtorrent;
 
+#ifndef TORRENT_NO_DEPRECATE
 void test_remove_url(std::string url)
 {
 	lt::session s(settings());
@@ -67,7 +68,6 @@ TORRENT_TEST(remove_url)
 	test_remove_url("magnet:?xt=urn:btih:0123456789abcdef0123456789abcdef01234567");
 }
 
-#ifndef TORRENT_NO_DEPRECATE
 TORRENT_TEST(remove_url2)
 {
 	test_remove_url("http://non-existent.com/test.torrent");
@@ -111,18 +111,20 @@ TORRENT_TEST(magnet)
 	s->save_state(session_state);
 
 	// test magnet link parsing
-	add_torrent_params p;
-	p.flags &= ~add_torrent_params::flag_paused;
-	p.flags &= ~add_torrent_params::flag_auto_managed;
-	p.save_path = ".";
+	add_torrent_params model;
+	model.flags &= ~add_torrent_params::flag_paused;
+	model.flags &= ~add_torrent_params::flag_auto_managed;
+	model.save_path = ".";
 	error_code ec;
-	p.url = "magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+	add_torrent_params p = model;
+	parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
 		"&tr=http://1"
 		"&tr=http://2"
 		"&tr=http://3"
 		"&tr=http://3"
 		"&dn=foo"
-		"&dht=127.0.0.1:43";
+		"&dht=127.0.0.1:43", p, ec);
+	TEST_CHECK(!ec);
 	torrent_handle t = s->add_torrent(p, ec);
 	TEST_CHECK(!ec);
 	if (ec) std::printf("%s\n", ec.message().c_str());
@@ -138,12 +140,14 @@ TORRENT_TEST(magnet)
 	TEST_CHECK(trackers_set.count("http://2") == 1);
 	TEST_CHECK(trackers_set.count("http://3") == 1);
 
-	p.url = "magnet:"
+	p = model;
+	parse_magnet_uri("magnet:"
 		"?tr=http://1"
 		"&tr=http://2"
 		"&dn=foo"
 		"&dht=127.0.0.1:43"
-		"&xt=urn:btih:c352cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd";
+		"&xt=urn:btih:c352cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd", p, ec);
+	TEST_CHECK(!ec);
 	torrent_handle t2 = s->add_torrent(p, ec);
 	TEST_CHECK(!ec);
 	if (ec) std::printf("%s\n", ec.message().c_str());
@@ -153,12 +157,14 @@ TORRENT_TEST(magnet)
 	TEST_EQUAL(trackers[0].tier, 0);
 	TEST_EQUAL(trackers[1].tier, 1);
 
-	p.url = "magnet:"
+	p = model;
+	parse_magnet_uri("magnet:"
 		"?tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80"
 		"&tr=udp%3A%2F%2Ftracker.publicbt.com%3A80"
 		"&tr=udp%3A%2F%2Ftracker.ccc.de%3A80"
 		"&xt=urn:btih:a38d02c287893842a32825aa866e00828a318f07"
-		"&dn=Ubuntu+11.04+%28Final%29";
+		"&dn=Ubuntu+11.04+%28Final%29", p, ec);
+	TEST_CHECK(!ec);
 	torrent_handle t3 = s->add_torrent(p, ec);
 	TEST_CHECK(!ec);
 	if (ec) std::printf("%s\n", ec.message().c_str());
@@ -415,11 +421,15 @@ TORRENT_TEST(trailing_whitespace)
 	session ses(settings());
 	add_torrent_params p;
 	p.save_path = ".";
-	p.url = "magnet:?xt=urn:btih:abaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n";
+	error_code ec;
+	parse_magnet_uri("magnet:?xt=urn:btih:abaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n", p, ec);
 	// invalid hash
+	TEST_CHECK(ec);
 	TEST_THROW(ses.add_torrent(p));
 
-	p.url = "magnet:?xt=urn:btih:abaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+	ec.clear();
+	parse_magnet_uri("magnet:?xt=urn:btih:abaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", p, ec);
+	TEST_CHECK(!ec);
 	// now it's valid, because there's no trailing whitespace
 	torrent_handle h = ses.add_torrent(p);
 	TEST_CHECK(h.is_valid());

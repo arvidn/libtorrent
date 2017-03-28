@@ -100,7 +100,9 @@ void run_metadata_test(int flags)
 		// add torrent
 		, [](lt::add_torrent_params& params) {
 			// we want to add the torrent via magnet link
-			params.url = lt::make_magnet_uri(*params.ti);
+			error_code ec;
+			parse_magnet_uri(lt::make_magnet_uri(*params.ti), params, ec);
+			TEST_CHECK(!ec);
 			params.ti.reset();
 			params.flags &= ~add_torrent_params::flag_upload_mode;
 		}

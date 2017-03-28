@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/file.hpp" // for combine_path, current_working_directory
+#include "libtorrent/magnet_uri.hpp"
 #include "settings.hpp"
 #include <tuple>
 #include <iostream>
@@ -238,7 +239,9 @@ TORRENT_TEST(added_peers)
 	add_torrent_params p;
 	p.ti = info;
 	p.save_path = ".";
-	p.url = "magnet:?xt=urn:btih:abababababababababababababababababababab&x.pe=127.0.0.1:48081&x.pe=127.0.0.2:48082";
+	parse_magnet_uri("magnet:?xt=urn:btih:abababababababababababababababababababab&x.pe=127.0.0.1:48081&x.pe=127.0.0.2:48082"
+		, p, ec);
+	TEST_CHECK(!ec);
 
 	torrent_handle h = ses.add_torrent(std::move(p));
 
