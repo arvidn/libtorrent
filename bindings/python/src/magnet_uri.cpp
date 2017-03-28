@@ -7,6 +7,7 @@
 #include <libtorrent/torrent.hpp>
 #include <libtorrent/magnet_uri.hpp>
 #include "gil.hpp"
+#include "bytes.hpp"
 
 using namespace boost::python;
 using namespace libtorrent;
@@ -56,9 +57,9 @@ namespace {
 		list nodes_list;
 		for (std::vector<std::pair<std::string, int> >::const_iterator i = p.dht_nodes.begin()
 			, end(p.dht_nodes.end()); i != end; ++i)
-			tracker_list.append(boost::python::make_tuple(i->first, i->second));
+			nodes_list.append(boost::python::make_tuple(i->first, i->second));
 		ret["dht_nodes"] =  nodes_list;
-		ret["info_hash"] = p.info_hash.to_string();
+		ret["info_hash"] = bytes(p.info_hash.to_string());
 		ret["name"] = p.name;
 		ret["save_path"] = p.save_path;
 		ret["storage_mode"] = p.storage_mode;
