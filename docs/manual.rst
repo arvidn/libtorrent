@@ -815,6 +815,64 @@ Custom peer classes can be assigned to torrents, with the ??? call, in which
 case all its peers will belong to the class. They can also be assigned based on
 the peer's IP address. See set_peer_class_filter() for more information.
 
+peer class examples
+-------------------
+
+Here are a few examples of common peer class operations.
+
+To make the global rate limit apply to local peers as well, update the IP-filter
+based peer class assignment:
+
+.. code:: c++
+
+		std::uint32_t const mask = 1 << lt::session::global_peer_class_id;
+		ip_filter f;
+
+		// for every IPv4 address, assign the global peer class
+		f.add_rule(address_v4::from_string("0.0.0.0")
+			, address_v4::from_string("255.255.255.255")
+			, mask);
+
+		// for every IPv6 address, assign the global peer class
+		f.add_rule(address_v6::from_string("::")
+			, address_v6::from_string("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff")
+			, mask);
+		ses.set_peer_class_filter(f);
+
+To make uTP sockets exempt from rate limiting:
+
+.. code:: c++
+
+	peer_class_type_filter flt;
+	// filter out the global and local peer class for uTP sockets, if these
+	// classes are set by the IP filter
+	flt.disallow(peer_class_type_filter::utp_socket, session::global_peer_class_id);
+	flt.disallow(peer_class_type_filter::utp_socket, session::local_peer_class_id);
+
+	// this filter should not add the global or local peer class to utp sockets
+	flt.remove(peer_class_type_filter::utp_socket, session::global_peer_class_id);
+	flt.remove(peer_class_type_filter::utp_socket, session::local_peer_class_id);
+
+	ses.set_peer_class_type_filter(flt);
+
+To make all peers on the internal network unthrottled:
+
+.. code:: c++
+
+		std::uint32_t const mask = 1 << lt::session::global_peer_class_id;
+		ip_filter f;
+
+		// for every IPv4 address, assign the global peer class
+		f.add_rule(address_v4::from_string("0.0.0.0")
+			, address_v4::from_string("255.255.255.255")
+			, mask);
+
+		// for every address on the local metwork, set the mastk to 0
+		f.add_rule(address_v4::from_string("10.0.0.0")
+			, address_v4::from_string("10.255.255.255")
+			, 0);
+		ses.set_peer_class_filter(f);
+
 SSL torrents
 ============
 
