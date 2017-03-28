@@ -368,7 +368,6 @@ namespace aux {
 #if TORRENT_USE_I2P
 		, m_i2p_conn(m_io_service)
 #endif
-		, m_socks_listen_port(0)
 		, m_interface_index(0)
 		, m_unchoke_time_scaler(0)
 		, m_auto_manage_time_scaler(0)
@@ -1110,12 +1109,6 @@ namespace aux {
 			TORRENT_ASSERT(!ec);
 		}
 		m_listen_sockets.clear();
-		if (m_socks_listen_socket && m_socks_listen_socket->is_open())
-		{
-			m_socks_listen_socket->close(ec);
-			TORRENT_ASSERT(!ec);
-		}
-		m_socks_listen_socket.reset();
 
 #if TORRENT_USE_I2P
 		if (m_i2p_listen_socket && m_i2p_listen_socket->is_open())
@@ -2223,7 +2216,6 @@ retry:
 			, end(m_listen_sockets.end()); i != end; ++i)
 			async_accept(i->sock, i->ssl);
 
-		open_new_incoming_socks_connection();
 #if TORRENT_USE_I2P
 		open_new_incoming_i2p_connection();
 #endif
@@ -2268,93 +2260,6 @@ retry:
 				, ssl_port, ssl_port);
 #endif
 		}
-	}
-
-	void session_impl::open_new_incoming_socks_connection()
-	{
-		int const proxy_type = m_settings.get_int(settings_pack::proxy_type);
-
-		if (proxy_type != settings_pack::socks5
-			&& proxy_type != settings_pack::socks5_pw
-			&& proxy_type != settings_pack::socks4)
-			return;
-
-		if (m_socks_listen_socket) return;
-
-		m_socks_listen_socket = boost::make_shared<socket_type>(boost::ref(m_io_service));
-		bool const ret = instantiate_connection(m_io_service, proxy()
-			, *m_socks_listen_socket, NULL, NULL, false, false);
-		TORRENT_ASSERT_VAL(ret, ret);
-		TORRENT_UNUSED(ret);
-
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("session_impl::on_socks_listen");
-#endif
-		socks5_stream& s = *m_socks_listen_socket->get<socks5_stream>();
-
-		m_socks_listen_port = m_listen_interface.port();
-		if (m_socks_listen_port == 0) m_socks_listen_port = 2000 + random() % 60000;
-		s.async_listen(tcp::endpoint(address_v4::any(), m_socks_listen_port)
-			, boost::bind(&session_impl::on_socks_listen, this
-				, m_socks_listen_socket, _1));
-	}
-
-	void session_impl::on_socks_listen(boost::shared_ptr<socket_type> const& sock
-		, error_code const& e)
-	{
-#if defined TORRENT_ASIO_DEBUGGING
-		complete_async("session_impl::on_socks_listen");
-#endif
-
-		TORRENT_ASSERT(sock == m_socks_listen_socket || !m_socks_listen_socket);
-
-		if (e)
-		{
-			m_socks_listen_socket.reset();
-			if (e == boost::asio::error::operation_aborted) return;
-			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.emplace_alert<listen_failed_alert>("socks5"
-					, -1, listen_failed_alert::accept, e
-					, listen_failed_alert::socks5);
-			return;
-		}
-
-		error_code ec;
-		tcp::endpoint ep = sock->local_endpoint(ec);
-		TORRENT_ASSERT(!ec);
-		TORRENT_UNUSED(ec);
-
-		if (m_alerts.should_post<listen_succeeded_alert>())
-			m_alerts.emplace_alert<listen_succeeded_alert>(
-				ep, listen_succeeded_alert::socks5);
-
-#if defined TORRENT_ASIO_DEBUGGING
-		add_outstanding_async("session_impl::on_socks_accept");
-#endif
-		socks5_stream& s = *m_socks_listen_socket->get<socks5_stream>();
-		s.async_accept(boost::bind(&session_impl::on_socks_accept, this
-				, m_socks_listen_socket, _1));
-	}
-
-	void session_impl::on_socks_accept(boost::shared_ptr<socket_type> const& s
-		, error_code const& e)
-	{
-#if defined TORRENT_ASIO_DEBUGGING
-		complete_async("session_impl::on_socks_accept");
-#endif
-		TORRENT_ASSERT(s == m_socks_listen_socket || !m_socks_listen_socket);
-		m_socks_listen_socket.reset();
-		if (e == boost::asio::error::operation_aborted) return;
-		if (e)
-		{
-			if (m_alerts.should_post<listen_failed_alert>())
-				m_alerts.emplace_alert<listen_failed_alert>("socks5"
-					, -1, listen_failed_alert::accept, e
-					, listen_failed_alert::socks5);
-			return;
-		}
-		open_new_incoming_socks_connection();
-		incoming_connection(s);
 	}
 
 	void session_impl::update_i2p_bridge()
@@ -5467,9 +5372,6 @@ retry:
 
 	void session_impl::update_proxy()
 	{
-		// in case we just set a socks proxy, we might have to
-		// open the socks incoming connection
-		if (!m_socks_listen_socket) open_new_incoming_socks_connection();
 		m_udp_socket.set_proxy_settings(proxy());
 
 #ifdef TORRENT_USE_OPENSSL
@@ -5561,12 +5463,6 @@ retry:
 
 	boost::uint16_t session_impl::listen_port() const
 	{
-		// if peer connections are set up to be received over a socks
-		// proxy, and it's the same one as we're using for the tracker
-		// just tell the tracker the socks5 port we're listening on
-		if (m_socks_listen_socket && m_socks_listen_socket->is_open())
-			return m_socks_listen_socket->local_endpoint().port();
-
 		// if not, don't tell the tracker anything if we're in force_proxy
 		// mode. We don't want to leak our listen port since it can
 		// potentially identify us if it is leaked elsewere
@@ -5578,12 +5474,6 @@ retry:
 	boost::uint16_t session_impl::ssl_listen_port() const
 	{
 #ifdef TORRENT_USE_OPENSSL
-		// if peer connections are set up to be received over a socks
-		// proxy, and it's the same one as we're using for the tracker
-		// just tell the tracker the socks5 port we're listening on
-		if (m_socks_listen_socket && m_socks_listen_socket->is_open())
-			return m_socks_listen_port;
-
 		// if not, don't tell the tracker anything if we're in force_proxy
 		// mode. We don't want to leak our listen port since it can
 		// potentially identify us if it is leaked elsewere
