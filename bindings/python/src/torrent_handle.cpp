@@ -231,6 +231,21 @@ void add_tracker(torrent_handle& h, dict d)
    h.add_tracker(ae);
 }
 
+namespace
+{
+#if defined BOOST_ASIO_HAS_STD_CHRONO
+   using std::chrono::system_clock;
+#else
+   using boost::chrono::system_clock;
+#endif
+
+   time_t to_ptime(time_point tpt)
+   {
+      return system_clock::to_time_t(system_clock::now()
+         + duration_cast<system_clock::duration>(tpt - clock_type::now()));
+   }
+}
+
 list trackers(torrent_handle& h)
 {
     list ret;
@@ -245,8 +260,18 @@ list trackers(torrent_handle& h)
         last_error["value"] = i->last_error.value();
         last_error["category"] = i->last_error.category().name();
         d["last_error"] = last_error;
-        d["next_announce"] = i->next_announce;
-        d["min_announce"] = i->min_announce;
+        if (i->next_announce > min_time()) {
+           d["next_announce"] = to_ptime(i->next_announce);
+        }
+        else {
+           d["next_announce"] = object();
+        }
+        if (i->min_announce > min_time()) {
+           d["min_announce"] = to_ptime(i->min_announce);
+        }
+        else {
+           d["min_announce"] = object();
+        }
         d["scrape_incomplete"] = i->scrape_incomplete;
         d["scrape_complete"] = i->scrape_complete;
         d["scrape_downloaded"] = i->scrape_downloaded;
