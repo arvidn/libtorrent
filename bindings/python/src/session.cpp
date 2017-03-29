@@ -559,7 +559,7 @@ namespace
     add_torrent_params read_resume_data_wrapper(bytes const& b)
     {
         error_code ec;
-        add_torrent_params p = read_resume_data(&b.arr[0], int(b.arr.size()), ec);
+        add_torrent_params p = read_resume_data(b.arr, ec);
 #ifndef BOOST_NO_EXCEPTIONS
         if (ec) throw system_error(ec);
 #endif
