@@ -1,3 +1,4 @@
+	* restore announce_entry's timestamp fields to posix time in python binding
 	* deprecate torrent_added_alert (in favor of add_torrent_alert)
 	* fix python binding for parse_magnet_uri
 	* fix minor robustness issue in DHT bootstrap logic
