@@ -87,7 +87,12 @@ int main(int argc, char const* argv[])
 
 	lt::error_code ec;
 	lt::add_torrent_params atp = lt::read_resume_data(&buf[0], int(buf.size()), ec);
-	atp.url = argv[1];
+	error_code ec;
+	lt::parse_magnet_uri(argv[1], atp, ec);
+	if (ec) {
+		std::cerr << "invalid magnet URI: " << ec.message() << std::endl;
+		return 1;
+	}
 	atp.save_path = "."; // save in current dir
 	ses.async_add_torrent(std::move(atp));
 
