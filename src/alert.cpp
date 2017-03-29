@@ -1351,7 +1351,9 @@ namespace libtorrent
 		char const* torrent_name = info_hash;
 		if (params.ti) torrent_name = params.ti->name().c_str();
 		else if (!params.name.empty()) torrent_name = params.name.c_str();
+#ifndef TORRENT_NO_DEPRECATE
 		else if (!params.url.empty()) torrent_name = params.url.c_str();
+#endif
 		else aux::to_hex(params.info_hash, info_hash);
 
 		if (error)

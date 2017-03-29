@@ -57,9 +57,8 @@ namespace libtorrent
 	// session. The key fields when adding a torrent are:
 	//
 	// * ti - when you have loaded a .torrent file into a torrent_info object
-	// * url - when you have a magnet link
-	// * info_hash - when all you have is an info-hash (this is similar to a
-	//   magnet link)
+	// * info_hash - when you don't have the metadata (.torrent file) but. This
+	//   is set when adding a magnet link.
 	//
 	// one of those fields must be set. Another mandatory field is
 	// ``save_path``. The add_torrent_params object is passed into one of the
@@ -280,7 +279,7 @@ namespace libtorrent
 		// for forward binary compatibility.
 		int version = LIBTORRENT_VERSION_NUM;
 
-		// torrent_info object with the torrent to add. Unless the url or
+		// torrent_info object with the torrent to add. Unless the
 		// info_hash is set, this is required to be initialized.
 		std::shared_ptr<torrent_info> ti;
 
@@ -349,19 +348,6 @@ namespace libtorrent
 		// instead of this.
 		std::string trackerid;
 
-		// ``url`` can be set to a magnet link, in order to download the .torrent
-		// file (also known as the metadata), specifically the info-dictionary,
-		// from the bittorrent swarm. This may require access to the DHT, in case
-		// the magnet link does not come with trackers.
-		//
-		// In earlier versions of libtorrent, the URL could be an HTTP or file://
-		// url. These uses are deprecated and discouraged. When adding a torrent
-		// by magnet link, it will be set to the ``downloading_metadata`` state
-		// until the .torrent file has been downloaded. If there is any error
-		// while downloading, the torrent will be stopped and the torrent error
-		// state (``torrent_status::error``) will indicate what went wrong.
-		std::string url;
-
 		// flags controlling aspects of this torrent and how it's added. See
 		// flags_t for details.
 		//
@@ -375,6 +361,8 @@ namespace libtorrent
 		// set this to the info hash of the torrent to add in case the info-hash
 		// is the only known property of the torrent. i.e. you don't have a
 		// .torrent file nor a magnet link.
+		// To add a magnet link, use parse_magnet_uri() to populatefields in the
+		// add_torrent_params object.
 		sha1_hash info_hash;
 
 		// ``max_uploads``, ``max_connections``, ``upload_limit``,
@@ -484,6 +472,20 @@ namespace libtorrent
 
 #ifndef TORRENT_NO_DEPRECATE
 		// deprecated in 1.2
+
+		// ``url`` can be set to a magnet link, in order to download the .torrent
+		// file (also known as the metadata), specifically the info-dictionary,
+		// from the bittorrent swarm. This may require access to the DHT, in case
+		// the magnet link does not come with trackers.
+		//
+		// In earlier versions of libtorrent, the URL could be an HTTP or file://
+		// url. These uses are deprecated and discouraged. When adding a torrent
+		// by magnet link, it will be set to the ``downloading_metadata`` state
+		// until the .torrent file has been downloaded. If there is any error
+		// while downloading, the torrent will be stopped and the torrent error
+		// state (``torrent_status::error``) will indicate what went wrong.
+		std::string TORRENT_DEPRECATED_MEMBER url;
+
 		// if ``uuid`` is specified, it is used to find duplicates. If another
 		// torrent is already running with the same UUID as the one being added,
 		// it will be considered a duplicate. This is mainly useful for RSS feed
@@ -506,6 +508,7 @@ namespace libtorrent
 #else
 		// hidden
 		// to maintain ABI compatibility
+		std::string deprecated5;
 		std::string deprecated1;
 		std::string deprecated2;
 		std::vector<char> deprecated3;

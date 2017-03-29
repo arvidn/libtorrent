@@ -4789,6 +4789,7 @@ namespace aux {
 
 		using ptr_t = std::shared_ptr<torrent>;
 
+#ifndef TORRENT_NO_DEPRECATE
 		if (string_begins_no_case("magnet:", params.url.c_str()))
 		{
 			parse_magnet_uri(params.url, params, ec);
@@ -4796,7 +4797,6 @@ namespace aux {
 			params.url.clear();
 		}
 
-#ifndef TORRENT_NO_DEPRECATE
 		if (!params.ti && string_begins_no_case("file://", params.url.c_str()))
 		{
 			std::string const torrent_file_path = resolve_file_url(params.url);
@@ -4807,7 +4807,6 @@ namespace aux {
 			params.ti = t;
 		}
 #endif
-
 
 		if (params.ti && !params.ti->is_valid())
 		{
