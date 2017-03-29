@@ -82,7 +82,12 @@ int main(int argc, char const* argv[])
 	ifs.unsetf(std::ios_base::skipws);
 	atp.resume_data.assign(std::istream_iterator<char>(ifs)
 		, std::istream_iterator<char>());
-	atp.url = argv[1];
+	error_code ec;
+	lt::parse_magnet_uri(argv[1], atp, ec);
+	if (ec) {
+		std::cerr << "invalid magnet URI: " << ec.message() << std::endl;
+		return 1;
+	}
 	atp.save_path = "."; // save in current dir
 	ses.async_add_torrent(atp);
 
