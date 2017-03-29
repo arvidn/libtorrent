@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/read_resume_data.hpp>
 #include <libtorrent/write_resume_data.hpp>
 #include <libtorrent/error_code.hpp>
+#include <libtorrent/magnet_uri.hpp>
 
 namespace lt = libtorrent;
 using clk = std::chrono::steady_clock;
@@ -87,7 +88,10 @@ int main(int argc, char const* argv[])
 
 	lt::error_code ec;
 	lt::add_torrent_params atp = lt::read_resume_data(&buf[0], int(buf.size()), ec);
-	error_code ec;
+	if (ec) {
+		std::cerr << "failed to read resume data: " << ec.message() << std::endl;
+		return 1;
+	}
 	lt::parse_magnet_uri(argv[1], atp, ec);
 	if (ec) {
 		std::cerr << "invalid magnet URI: " << ec.message() << std::endl;
