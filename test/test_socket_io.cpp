@@ -115,7 +115,23 @@ TORRENT_TEST(parse_invalid_ipv4_endpoint)
 	TEST_CHECK(ec);
 	ec.clear();
 
+	endp = parse_endpoint("127.0.0.1:-4", ec);
+	TEST_CHECK(ec);
+	ec.clear();
+
+	endp = parse_endpoint("127.0.0.1:66000", ec);
+	TEST_CHECK(ec);
+	ec.clear();
+
+	endp = parse_endpoint("127.0.0.1:abc", ec);
+	TEST_CHECK(ec);
+	ec.clear();
+
 	endp = parse_endpoint("127.0.0.1", ec);
+	TEST_CHECK(ec);
+	ec.clear();
+
+	endp = parse_endpoint("127.0.0:123", ec);
 	TEST_CHECK(ec);
 	ec.clear();
 
@@ -130,6 +146,16 @@ TORRENT_TEST(parse_invalid_ipv4_endpoint)
 	endp = parse_endpoint("127.0.0.1:4", ec);
 	TEST_CHECK(!ec);
 	TEST_EQUAL(endp, ep("127.0.0.1", 4));
+	ec.clear();
+
+	endp = parse_endpoint("\t 127.0.0.1:4 \n", ec);
+	TEST_CHECK(!ec);
+	TEST_EQUAL(endp, ep("127.0.0.1", 4));
+	ec.clear();
+
+	endp = parse_endpoint("127.0.0.1:23", ec);
+	TEST_CHECK(!ec);
+	TEST_EQUAL(endp, ep("127.0.0.1", 23));
 	ec.clear();
 }
 
@@ -155,9 +181,42 @@ TORRENT_TEST(parse_invalid_ipv6_endpoint)
 	TEST_CHECK(ec);
 	ec.clear();
 
+	endp = parse_endpoint("[::1", ec);
+	TEST_CHECK(ec == errors::expected_close_bracket_in_address);
+	ec.clear();
+
+	parse_endpoint("[ff::1:5", ec);
+	TEST_EQUAL(ec, error_code(errors::expected_close_bracket_in_address));
+	ec.clear();
+
+	endp = parse_endpoint("[abcd]:123", ec);
+	TEST_CHECK(ec);
+	ec.clear();
+
 	endp = parse_endpoint("[::1]:4", ec);
 	TEST_CHECK(!ec);
 	TEST_EQUAL(endp, ep("::1", 4));
 	ec.clear();
+
+	endp = parse_endpoint(" \t[ff::1]:1214 \r", ec);
+	TEST_CHECK(!ec);
+	TEST_EQUAL(endp, ep("ff::1", 1214));
+	ec.clear();
+
+	endp = parse_endpoint("[ff::1]", ec);
+	TEST_EQUAL(ec, error_code(errors::invalid_port));
+	ec.clear();
 }
 #endif
+
+TORRENT_TEST(trim)
+{
+	TEST_EQUAL(trim(" a"), "a");
+	TEST_EQUAL(trim(" a "), "a");
+	TEST_EQUAL(trim("\t \na \t\r"), "a");
+	TEST_EQUAL(trim(" \t \ta"), "a");
+	TEST_EQUAL(trim("a "), "a");
+	TEST_EQUAL(trim("a \t"), "a");
+	TEST_EQUAL(trim("a \t\n \tb"), "a \t\n \tb");
+}
+

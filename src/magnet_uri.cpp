@@ -140,12 +140,12 @@ namespace libtorrent
 		else params.flags &= ~add_torrent_params::flag_paused;
 
 		error_code ec;
-		std::string display_name = url_has_argument(uri, "dn");
-		if (!display_name.empty()) params.name = unescape_string(display_name.c_str(), ec);
-		std::string tracker_string = url_has_argument(uri, "tr");
-		if (!tracker_string.empty()) params.trackers.push_back(unescape_string(tracker_string.c_str(), ec));
+		string_view display_name = url_has_argument(uri, "dn");
+		if (!display_name.empty()) params.name = unescape_string(display_name, ec);
+		string_view tracker_string = url_has_argument(uri, "tr");
+		if (!tracker_string.empty()) params.trackers.push_back(unescape_string(tracker_string, ec));
 
-		std::string btih = url_has_argument(uri, "xt");
+		string_view btih = url_has_argument(uri, "xt");
 		if (btih.empty()) return torrent_handle();
 
 		if (btih.compare(0, 9, "urn:btih:") != 0) return torrent_handle();
@@ -167,21 +167,20 @@ namespace libtorrent
 #endif // BOOST_NO_EXCEPTIONS
 #endif // TORRENT_NO_DEPRECATE
 
-	// TODO: 3 take string_view here instead
-	void parse_magnet_uri(std::string const& uri, add_torrent_params& p, error_code& ec)
+	void parse_magnet_uri(string_view uri, add_torrent_params& p, error_code& ec)
 	{
 		ec.clear();
 		std::string name;
 
 		{
 			error_code e;
-			std::string display_name = url_has_argument(uri, "dn");
-			if (!display_name.empty()) name = unescape_string(display_name.c_str(), e);
+			string_view display_name = url_has_argument(uri, "dn");
+			if (!display_name.empty()) name = unescape_string(display_name, e);
 		}
 
 		// parse trackers out of the magnet link
-		std::string::size_type pos = std::string::npos;
-		std::string url = url_has_argument(uri, "tr", &pos);
+		auto pos = std::string::npos;
+		string_view url = url_has_argument(uri, "tr", &pos);
 		int tier = 0;
 		while (pos != std::string::npos)
 		{
@@ -191,9 +190,9 @@ namespace libtorrent
 				p.tracker_tiers.resize(p.trackers.size(), 0);
 
 			error_code e;
-			url = unescape_string(url, e);
+			std::string tracker = unescape_string(url, e);
 			if (e) continue;
-			p.trackers.push_back(url);
+			p.trackers.push_back(std::move(tracker));
 			p.tracker_tiers.push_back(tier++);
 			pos = uri.find("&tr=", pos);
 			if (pos == std::string::npos) break;
@@ -207,16 +206,16 @@ namespace libtorrent
 		while (pos != std::string::npos)
 		{
 			error_code e;
-			url = unescape_string(url, e);
+			std::string webseed = unescape_string(url, e);
 			if (e) continue;
-			p.url_seeds.push_back(url);
+			p.url_seeds.push_back(std::move(webseed));
 			pos = uri.find("&ws=", pos);
 			if (pos == std::string::npos) break;
 			pos += 4;
 			url = uri.substr(pos, uri.find('&', pos) - pos);
 		}
 
-		std::string btih = url_has_argument(uri, "xt");
+		string_view btih = url_has_argument(uri, "xt");
 		if (btih.empty())
 		{
 			ec = errors::missing_info_hash_in_uri;
@@ -230,7 +229,7 @@ namespace libtorrent
 		}
 
 		std::string::size_type peer_pos = std::string::npos;
-		std::string peer = url_has_argument(uri, "x.pe", &peer_pos);
+		string_view peer = url_has_argument(uri, "x.pe", &peer_pos);
 		while (!peer.empty())
 		{
 			error_code e;
@@ -246,15 +245,15 @@ namespace libtorrent
 
 #ifndef TORRENT_DISABLE_DHT
 		std::string::size_type node_pos = std::string::npos;
-		std::string node = url_has_argument(uri, "dht", &node_pos);
+		string_view node = url_has_argument(uri, "dht", &node_pos);
 		while (!node.empty())
 		{
 			std::string::size_type divider = node.find_last_of(':');
 			if (divider != std::string::npos)
 			{
-				int port = atoi(node.c_str() + divider + 1);
+				int port = atoi(node.substr(divider + 1).to_string().c_str());
 				if (port != 0)
-					p.dht_nodes.push_back(std::make_pair(node.substr(0, divider), port));
+					p.dht_nodes.push_back(std::make_pair(node.substr(0, divider).to_string(), port));
 			}
 
 			node_pos = uri.find("&dht=", node_pos);
