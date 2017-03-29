@@ -38,6 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/add_torrent_params.hpp>
 #include <libtorrent/torrent_handle.hpp>
 #include <libtorrent/alert_types.hpp>
+#include <libtorrent/magnet_uri.hpp>
+#include <libtorrent/error_code.hpp>
 
 namespace lt = libtorrent;
 int main(int argc, char const* argv[])
@@ -49,7 +51,7 @@ int main(int argc, char const* argv[])
 	lt::session ses;
 
 	lt::add_torrent_params atp;
-	error_code ec;
+	lt::error_code ec;
 	lt::parse_magnet_uri(argv[1], atp, ec);
 	if (ec) {
 		std::cerr << "invalid magnet URI: " << ec.message() << std::endl;
