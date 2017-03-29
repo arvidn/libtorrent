@@ -555,7 +555,7 @@ void add_magnet(lt::session& ses, lt::string_view uri)
 	load_file(resume_file(p.info_hash), resume_data, ec);
 	if (!ec)
 	{
-		p = lt::read_resume_data(&resume_data[0], int(resume_data.size()), ec);
+		p = lt::read_resume_data(resume_data, ec);
 		if (ec) std::printf("  failed to load resume data: %s\n", ec.message().c_str());
 		parse_magnet_uri(uri.to_string(), p, ec);
 	}
@@ -599,7 +599,7 @@ bool add_torrent(libtorrent::session& ses, std::string torrent)
 	load_file(resume_file(ti->info_hash()), resume_data, ec);
 	if (!ec)
 	{
-		p = lt::read_resume_data(&resume_data[0], int(resume_data.size()), ec);
+		p = lt::read_resume_data(resume_data, ec);
 		if (ec) std::printf("  failed to load resume data: %s\n", ec.message().c_str());
 	}
 	ec.clear();
@@ -1286,7 +1286,7 @@ MAGNETURL is a magnet link
 					, file.c_str(), ec.message().c_str());
 				continue;
 			}
-			add_torrent_params p = lt::read_resume_data(&resume_data[0], int(resume_data.size()), ec);
+			add_torrent_params p = lt::read_resume_data(resume_data, ec);
 			if (ec)
 			{
 				std::printf("  failed to parse resume data \"%s\": %s\n"

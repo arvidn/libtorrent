@@ -87,7 +87,7 @@ int main(int argc, char const* argv[])
 		, std::istream_iterator<char>()};
 
 	lt::error_code ec;
-	lt::add_torrent_params atp = lt::read_resume_data(&buf[0], int(buf.size()), ec);
+	lt::add_torrent_params atp = lt::read_resume_data(buf, ec);
 	if (ec) {
 		std::cerr << "failed to read resume data: " << ec.message() << std::endl;
 		return 1;

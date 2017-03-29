@@ -200,7 +200,7 @@ namespace libtorrent
 
 			error_code ec;
 			add_torrent_params resume_data
-				= read_resume_data(&atp.resume_data[0], int(atp.resume_data.size()), ec);
+				= read_resume_data(atp.resume_data, ec);
 
 			resume_data.internal_resume_data_error = ec;
 			if (ec) return;

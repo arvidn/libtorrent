@@ -332,10 +332,9 @@ namespace libtorrent
 		return ret;
 	}
 
-	add_torrent_params read_resume_data(char const* buffer, int size, error_code& ec)
+	add_torrent_params read_resume_data(span<char const> buffer, error_code& ec)
 	{
-		bdecode_node rd;
-		bdecode(buffer, buffer + size, rd, ec);
+		bdecode_node rd = bdecode(buffer, ec);
 		if (ec) return add_torrent_params();
 
 		return read_resume_data(rd, ec);
