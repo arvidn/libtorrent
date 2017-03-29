@@ -77,7 +77,7 @@ TORRENT_TEST(read_resume)
 	bencode(std::back_inserter(resume_data), rd);
 
 	error_code ec;
-	add_torrent_params atp = read_resume_data(&resume_data[0], int(resume_data.size()), ec);
+	add_torrent_params atp = read_resume_data(resume_data, ec);
 
 	TEST_CHECK(!ec);
 
@@ -123,7 +123,7 @@ TORRENT_TEST(read_resume_missing_info_hash)
 	bencode(std::back_inserter(resume_data), rd);
 
 	error_code ec;
-	add_torrent_params atp = read_resume_data(&resume_data[0], int(resume_data.size()), ec);
+	add_torrent_params atp = read_resume_data(resume_data, ec);
 	TEST_EQUAL(ec, error_code(errors::missing_info_hash));
 }
 
@@ -139,7 +139,7 @@ TORRENT_TEST(read_resume_missing_file_format)
 	bencode(std::back_inserter(resume_data), rd);
 
 	error_code ec;
-	add_torrent_params atp = read_resume_data(&resume_data[0], int(resume_data.size()), ec);
+	add_torrent_params atp = read_resume_data(resume_data, ec);
 	TEST_EQUAL(ec, error_code(errors::invalid_file_tag));
 }
 
@@ -161,7 +161,7 @@ TORRENT_TEST(read_resume_mismatching_torrent)
 	// the info-hash field does not match the torrent in the "info" field, so it
 	// will be ignored
 	error_code ec;
-	add_torrent_params atp = read_resume_data(&resume_data[0], int(resume_data.size()), ec);
+	add_torrent_params atp = read_resume_data(resume_data, ec);
 	TEST_CHECK(!ec);
 	TEST_CHECK(!atp.ti);
 }
@@ -207,7 +207,7 @@ TORRENT_TEST(read_resume_torrent)
 	// the info-hash field does not match the torrent in the "info" field, so it
 	// will be ignored
 	error_code ec;
-	add_torrent_params atp = read_resume_data(&resume_data[0], int(resume_data.size()), ec);
+	add_torrent_params atp = read_resume_data(resume_data, ec);
 	TEST_CHECK(!ec);
 	TEST_CHECK(atp.ti);
 

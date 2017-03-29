@@ -247,11 +247,13 @@ struct bdecode_token
 // There are 5 different types of nodes, see type_t.
 struct TORRENT_EXPORT bdecode_node
 {
-	// TODO: 3 make this take span<char const> for buffer, and make it return a
-	// bdecode_node
+	// TODO: 3 deprecate this overload
 	TORRENT_EXPORT friend int bdecode(char const* start, char const* end, bdecode_node& ret
 		, error_code& ec, int* error_pos, int depth_limit
 		, int token_limit);
+
+	TORRENT_EXPORT friend bdecode_node bdecode(span<char const> buffer
+		, error_code& ec, int* error_pos, int depth_limit, int token_limit);
 
 	// creates a default constructed node, it will have the type ``none_t``.
 	bdecode_node();
@@ -260,6 +262,8 @@ struct TORRENT_EXPORT bdecode_node
 	// underlying buffer remains the same.
 	bdecode_node(bdecode_node const&);
 	bdecode_node& operator=(bdecode_node const&);
+	bdecode_node(bdecode_node&&);
+	bdecode_node& operator=(bdecode_node&&);
 
 	// the types of bdecoded nodes
 	enum type_t
@@ -419,6 +423,9 @@ TORRENT_EXPORT std::string print_entry(bdecode_node const& e
 // produced by this function does not copy any data out of the buffer, but
 // simply produces references back into it.
 TORRENT_EXPORT int bdecode(char const* start, char const* end, bdecode_node& ret
+	, error_code& ec, int* error_pos = nullptr, int depth_limit = 100
+	, int token_limit = 1000000);
+TORRENT_EXPORT bdecode_node bdecode(span<char const> buffer
 	, error_code& ec, int* error_pos = nullptr, int depth_limit = 100
 	, int token_limit = 1000000);
 

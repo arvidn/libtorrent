@@ -295,7 +295,7 @@ done:
 #endif
 	{
 		error_code ec;
-		p = read_resume_data(&resume_data[0], int(resume_data.size()), ec);
+		p = read_resume_data(resume_data, ec);
 		TEST_CHECK(!ec);
 	}
 	p.flags &= ~add_torrent_params::flag_paused;

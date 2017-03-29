@@ -243,6 +243,9 @@ namespace libtorrent
 		return *this;
 	}
 
+	bdecode_node::bdecode_node(bdecode_node&&) = default;
+	bdecode_node& bdecode_node::operator=(bdecode_node&&) = default;
+
 	bdecode_node::bdecode_node(bdecode_token const* tokens, char const* buf
 		, int len, int idx)
 		: m_root_tokens(tokens)
@@ -647,14 +650,21 @@ namespace libtorrent
 	int bdecode(char const* start, char const* end, bdecode_node& ret
 		, error_code& ec, int* error_pos, int const depth_limit, int token_limit)
 	{
-		ec.clear();
-		ret.clear();
+		ret = bdecode({start, static_cast<size_t>(end - start)}, ec, error_pos, depth_limit, token_limit);
+		return ec ? -1 : 0;
+	}
 
-		if (end - start > bdecode_token::max_offset)
+	bdecode_node bdecode(span<char const> buffer
+		, error_code& ec, int* error_pos, int depth_limit, int token_limit)
+	{
+		bdecode_node ret;
+		ec.clear();
+
+		if (buffer.size() > bdecode_token::max_offset)
 		{
 			if (error_pos) *error_pos = 0;
 			ec = bdecode_errors::limit_exceeded;
-			return -1;
+			return ret;
 		}
 
 		// this is the stack of bdecode_token indices, into m_tokens.
@@ -662,6 +672,9 @@ namespace libtorrent
 		int sp = 0;
 		TORRENT_ALLOCA(stack, stack_frame, depth_limit);
 
+		// TODO: 2 attempt to simplify this implementation by embracing the span
+		char const* start = buffer.data();
+		char const* end = start + buffer.size();
 		char const* const orig_start = start;
 
 		if (start == end)
@@ -853,7 +866,7 @@ done:
 		ret.m_buffer_size = int(start - orig_start);
 		ret.m_root_tokens = ret.m_tokens.data();
 
-		return ec ? -1 : 0;
+		return ret;
 	}
 
 	namespace {

@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/export.hpp"
+#include "libtorrent/span.hpp"
 
 namespace libtorrent
 {
@@ -51,8 +52,8 @@ namespace libtorrent
 	// data but before adding the torrent.
 	TORRENT_EXPORT add_torrent_params read_resume_data(bdecode_node const& rd
 		, error_code& ec);
-	TORRENT_EXPORT add_torrent_params read_resume_data(char const* buffer
-		, int size, error_code& ec);
+	TORRENT_EXPORT add_torrent_params read_resume_data(span<char const> buffer
+		, error_code& ec);
 }
 
 #endif

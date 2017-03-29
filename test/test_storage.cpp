@@ -710,7 +710,7 @@ void test_fastresume(bool const test_deprecated)
 		else
 #endif
 		{
-			p = read_resume_data(&resume_data[0], int(resume_data.size()), ec);
+			p = read_resume_data(resume_data, ec);
 			TEST_CHECK(!ec);
 		}
 
@@ -880,7 +880,7 @@ void test_rename_file_fastresume(bool test_deprecated)
 		else
 #endif
 		{
-			p = read_resume_data(&resume_data[0], int(resume_data.size()), ec);
+			p = read_resume_data(resume_data, ec);
 			TEST_CHECK(!ec);
 		}
 		p.ti = std::make_shared<torrent_info>(std::cref(*t));
