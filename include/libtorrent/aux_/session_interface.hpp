@@ -148,13 +148,6 @@ namespace libtorrent { namespace aux
 		virtual io_service& get_io_service() = 0;
 		virtual resolver_interface& get_resolver() = 0;
 
-		typedef std::function<void(error_code const&, std::vector<address> const&)>
-			callback_t;
-
-		// TODO: 2 remove this. There's already get_resolver()
-		virtual void async_resolve(std::string const& host, int flags
-			, callback_t const& h) = 0;
-
 		virtual bool has_connection(peer_connection* p) const = 0;
 		virtual void insert_peer(std::shared_ptr<peer_connection> const& c) = 0;
 

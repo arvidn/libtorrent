@@ -45,9 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include <boost/asio/ip/v6_only.hpp>
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/aux_/openssl.hpp"
@@ -671,13 +669,7 @@ namespace aux {
 #endif
 	}
 
-	void session_impl::async_resolve(std::string const& host, int flags
-		, session_interface::callback_t const& h)
-	{
-		m_host_resolver.async_resolve(host, flags, h);
-	}
-
-	void session_impl::save_state(entry* eptr, std::uint32_t flags) const
+	void session_impl::save_state(entry* eptr, std::uint32_t const flags) const
 	{
 		TORRENT_ASSERT(is_single_thread());
 
