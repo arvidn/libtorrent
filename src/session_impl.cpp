@@ -423,6 +423,7 @@ namespace aux {
 		, m_disk_thread(m_io_service, m_stats_counters)
 		, m_download_rate(peer_connection::download_channel)
 		, m_upload_rate(peer_connection::upload_channel)
+		, m_host_resolver(m_io_service)
 		, m_tracker_manager(
 			std::bind(&session_impl::send_udp_packet, this, false, _1, _2, _3, _4)
 			, std::bind(&session_impl::send_udp_packet_hostname, this, _1, _2, _3, _4, _5)
@@ -462,7 +463,6 @@ namespace aux {
 		, m_timer(m_io_service)
 		, m_lsd_announce_timer(m_io_service)
 		, m_close_file_timer(m_io_service)
-		, m_host_resolver(m_io_service)
 	{
 		update_time_now();
 	}
