@@ -8,6 +8,7 @@
 #include <libtorrent/torrent.hpp>
 #include <libtorrent/magnet_uri.hpp>
 #include "gil.hpp"
+#include "bytes.hpp"
 
 using namespace boost::python;
 using namespace libtorrent;

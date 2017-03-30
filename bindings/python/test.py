@@ -128,6 +128,11 @@ class test_torrent_handle(unittest.TestCase):
         """Test to ensure the dict contains only python built-in types"""
         self.setup()
         self.h.add_tracker({'url':'udp://tracker1.com'})
+        tr = self.h.trackers()[0]
+        # wait a bit until a valid timestamp appears
+        while tr['next_announce'] == None:
+            time.sleep(0.1)
+            tr = self.h.trackers()[0]
         import json
         print(json.dumps(self.h.trackers()[0]))
 

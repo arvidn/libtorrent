@@ -1228,9 +1228,8 @@ MAGNETURL is a magnet link
 	if (rate_limit_locals)
 	{
 		ip_filter pcf;
-		// 1 is the global peer class. This should be done properly in the future
 		pcf.add_rule(address_v4::from_string("0.0.0.0")
-			, address_v4::from_string("255.255.255.255"), 1);
+			, address_v4::from_string("255.255.255.255"), 1 << lt::session::global_peer_class_id);
 #if TORRENT_USE_IPV6
 		pcf.add_rule(address_v6::from_string("::")
 			, address_v6::from_string("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"), 1);

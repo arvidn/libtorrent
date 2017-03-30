@@ -309,10 +309,6 @@ namespace libtorrent
 			void async_accept(std::shared_ptr<tcp::acceptor> const& listener, bool ssl);
 			void on_accept_connection(std::shared_ptr<socket_type> const& s
 				, std::weak_ptr<tcp::acceptor> listener, error_code const& e, bool ssl);
-			void on_socks_listen(std::shared_ptr<socket_type> const& s
-				, error_code const& e);
-			void on_socks_accept(std::shared_ptr<socket_type> const& s
-				, error_code const& e);
 
 			void incoming_connection(std::shared_ptr<socket_type> const& s);
 
@@ -918,15 +914,8 @@ namespace libtorrent
 			void ssl_handshake(error_code const& ec, std::shared_ptr<socket_type> s);
 #endif
 
-			// when as a socks proxy is used for peers, also
-			// listen for incoming connections on a socks connection
-			std::shared_ptr<socket_type> m_socks_listen_socket;
-			std::uint16_t m_socks_listen_port = 0;
-
 			// round-robin index into m_outgoing_interfaces
 			mutable std::uint8_t m_interface_index = 0;
-
-			void open_new_incoming_socks_connection();
 
 			enum listen_on_flags_t
 			{

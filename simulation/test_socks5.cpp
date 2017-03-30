@@ -101,143 +101,6 @@ void run_test(Setup const& setup
 	test(sim, *ses, params.ti);
 }
 
-TORRENT_TEST(socks5_tcp_accept)
-{
-	using namespace libtorrent;
-	bool incoming_connection = false;
-	run_test(
-		[](lt::session& ses)
-		{
-			set_proxy(ses, settings_pack::socks5);
-		},
-		[&](lt::session&, lt::alert const* alert) {
-			if (auto* a = lt::alert_cast<lt::incoming_connection_alert>(alert))
-			{
-				TEST_EQUAL(a->socket_type, 2);
-				incoming_connection = true;
-			}
-		},
-		[](sim::simulation& sim, lt::session&
-			, std::shared_ptr<lt::torrent_info> ti)
-		{
-			// test connecting to the client via its socks5 listen port
-		// TODO: maybe we could use peer_conn here instead
-			fake_peer peer1(sim, "60.0.0.0");
-			fake_peer peer2(sim, "60.0.0.1");
-
-			sim::timer t1(sim, lt::seconds(2), [&](boost::system::error_code const&)
-			{
-				peer1.connect_to(tcp::endpoint(addr("50.50.50.50"), 6881), ti->info_hash());
-			});
-
-			sim::timer t2(sim, lt::seconds(3), [&](boost::system::error_code const&)
-			{
-				peer2.connect_to(tcp::endpoint(addr("50.50.50.50"), 6881), ti->info_hash());
-			});
-
-			sim.run();
-		}
-	);
-
-	TEST_EQUAL(incoming_connection, true);
-}
-
-TORRENT_TEST(socks4_tcp_accept)
-{
-	using namespace libtorrent;
-	bool incoming_connection = false;
-	run_test(
-		[](lt::session& ses)
-		{
-			set_proxy(ses, settings_pack::socks4);
-		},
-		[&](lt::session&, lt::alert const* alert) {
-			if (auto* a = lt::alert_cast<lt::incoming_connection_alert>(alert))
-			{
-				TEST_EQUAL(a->socket_type, 2);
-				TEST_EQUAL(a->endpoint.address(), addr("60.0.0.0"))
-				incoming_connection = true;
-			}
-		},
-		[](sim::simulation& sim, lt::session&
-			, std::shared_ptr<lt::torrent_info> ti)
-		{
-			fake_peer peer1(sim, "60.0.0.0");
-
-			sim::timer t1(sim, lt::seconds(2), [&](boost::system::error_code const&)
-			{
-				peer1.connect_to(tcp::endpoint(addr("50.50.50.50"), 6881), ti->info_hash());
-			});
-
-			sim.run();
-		}
-	);
-
-	TEST_EQUAL(incoming_connection, true);
-}
-
-// make sure a listen_succeeded_alert is issued when successfully listening on
-// incoming connections via a socks5 proxy
-TORRENT_TEST(socks4_tcp_listen_alert)
-{
-	using namespace libtorrent;
-	bool listen_alert = false;
-	run_test(
-		[](lt::session& ses)
-		{
-			set_proxy(ses, settings_pack::socks4);
-		},
-		[&](lt::session&, lt::alert const* alert) {
-			if (auto* a = lt::alert_cast<lt::listen_succeeded_alert>(alert))
-			{
-				if (a->socket_type == socket_type_t::socks5)
-				{
-					TEST_EQUAL(a->address, addr("50.50.50.50"));
-					TEST_EQUAL(a->port, 6881);
-					listen_alert = true;
-				}
-			}
-		},
-		[](sim::simulation& sim, lt::session&
-			, std::shared_ptr<lt::torrent_info> ti)
-		{
-			sim.run();
-		}
-	);
-
-	TEST_EQUAL(listen_alert, true);
-}
-
-TORRENT_TEST(socks5_tcp_listen_alert)
-{
-	using namespace libtorrent;
-	bool listen_alert = false;
-	run_test(
-		[](lt::session& ses)
-		{
-			set_proxy(ses, settings_pack::socks5);
-		},
-		[&](lt::session&, lt::alert const* alert) {
-			if (auto* a = lt::alert_cast<lt::listen_succeeded_alert>(alert))
-			{
-				if (a->socket_type == socket_type_t::socks5)
-				{
-					TEST_EQUAL(a->address, addr("50.50.50.50"));
-					TEST_EQUAL(a->port, 6881);
-					listen_alert = true;
-				}
-			}
-		},
-		[](sim::simulation& sim, lt::session&
-			, std::shared_ptr<lt::torrent_info> ti)
-		{
-			sim.run();
-		}
-	);
-
-	TEST_EQUAL(listen_alert, true);
-}
-
 TORRENT_TEST(socks5_tcp_announce)
 {
 	using namespace libtorrent;
@@ -257,7 +120,7 @@ TORRENT_TEST(socks5_tcp_announce)
 		[&alert_port](lt::session&, lt::alert const* alert) {
 			if (auto* a = lt::alert_cast<lt::listen_succeeded_alert>(alert))
 			{
-				if (a->socket_type == socket_type_t::socks5)
+				if (a->socket_type == socket_type_t::udp)
 				{
 					alert_port = a->port;
 				}
@@ -291,7 +154,8 @@ TORRENT_TEST(socks5_tcp_announce)
 		}
 	);
 
-	TEST_EQUAL(alert_port, tracker_port);
+	// since force_proxy is enabled, don't send the port
+	TEST_EQUAL(tracker_port, 0);
 	TEST_CHECK(alert_port != -1);
 	TEST_CHECK(tracker_port != -1);
 }

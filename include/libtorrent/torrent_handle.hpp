@@ -1088,6 +1088,8 @@ namespace libtorrent
 		//
 		// ``upload_limit`` and ``download_limit`` will return the current limit
 		// setting, for upload and download, respectively.
+		//
+		// Local peers are not rate limited by default. see peer-classes_.
 		void set_upload_limit(int limit) const;
 		int upload_limit() const;
 		void set_download_limit(int limit) const;

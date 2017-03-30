@@ -756,7 +756,7 @@ TORRENT_TEST(tracker_ipv6_argument)
 			TEST_CHECK(pos != std::string::npos || stop_event);
 			got_ipv6 |= pos != std::string::npos;
 			// make sure the IPv6 argument is url encoded
-			TEST_CHECK(req.substr(pos + 6, req.find_first_of('&', pos + 6))
+			TEST_CHECK(req.substr(pos + 6, req.substr(pos + 6).find_first_of('&'))
 				== "ffff%3a%3a1337");
 			return sim::send_response(200, "OK", 11) + "d5:peers0:e";
 		}

@@ -80,56 +80,6 @@ namespace libtorrent
 		return cat;
 	}
 
-	namespace
-	{
-		// parse out the endpoint from a SOCKS response
-		tcp::endpoint parse_endpoint(std::vector<char> const& buffer
-			, int const version)
-		{
-			using namespace libtorrent::detail;
-			char const* p = &buffer[0];
-			p += 2; // version & response code
-			if (version == 5)
-			{
-				++p; // reserved byte
-				int const atyp = read_uint8(p);
-
-				if (atyp == 1)
-				{
-					tcp::endpoint ret;
-					ret.address(read_v4_address(p));
-					ret.port(read_uint16(p));
-					return ret;
-				}
-				else if (atyp == 3)
-				{
-					// we don't support resolving the endpoint address
-					// if we receive a domain name, just set the remote
-					// endpoint to INADDR_ANY
-					return tcp::endpoint();
-				}
-				else if (atyp == 4)
-				{
-					tcp::endpoint ret;
-#if TORRENT_USE_IPV6
-					ret.address(read_v6_address(p));
-					ret.port(read_uint16(p));
-#endif
-					return ret;
-				}
-			}
-			else if (version == 4)
-			{
-				tcp::endpoint ret;
-				ret.port(read_uint16(p));
-				ret.address(read_v4_address(p));
-				return ret;
-			}
-			TORRENT_ASSERT_FAIL();
-			return tcp::endpoint();
-		}
-	}
-
 	void socks5_stream::name_lookup(error_code const& e, tcp::resolver::iterator i
 		, handler_type& h)
 	{
@@ -301,7 +251,7 @@ namespace libtorrent
 				:(m_remote_endpoint.address().is_v4()?4:16)));
 			char* p = &m_buffer[0];
 			write_uint8(5, p); // SOCKS VERSION 5
-			write_uint8(std::uint8_t(m_command), p); // CONNECT/BIND command
+			write_uint8(std::uint8_t(m_command), p); // CONNECT command
 			write_uint8(0, p); // reserved
 			if (!m_dst_name.empty())
 			{
@@ -314,8 +264,7 @@ namespace libtorrent
 			else
 			{
 				// we either need a hostname or a valid endpoint
-				TORRENT_ASSERT(m_command == socks5_bind
-					|| m_remote_endpoint.address() != address());
+				TORRENT_ASSERT(m_remote_endpoint.address() != address());
 
 				write_uint8(m_remote_endpoint.address().is_v4()?1:4, p); // address type
 				write_address(m_remote_endpoint.address(), p);
@@ -333,7 +282,7 @@ namespace libtorrent
 			m_buffer.resize(m_user.size() + 9);
 			char* p = &m_buffer[0];
 			write_uint8(4, p); // SOCKS VERSION 4
-			write_uint8(std::uint8_t(m_command), p); // CONNECT/BIND command
+			write_uint8(std::uint8_t(m_command), p); // CONNECT command
 			write_uint16(m_remote_endpoint.port(), p);
 			write_uint32(m_remote_endpoint.address().to_v4().to_ulong(), p);
 			std::copy(m_user.begin(), m_user.end(), p);
@@ -406,25 +355,8 @@ namespace libtorrent
 			// on address type)
 			if (atyp == 1)
 			{
-				if (m_command == socks5_bind)
-				{
-					if (m_listen == 0)
-					{
-						m_local_endpoint = parse_endpoint(m_buffer, m_version);
-						m_listen = 1;
-					}
-					else
-					{
-						m_remote_endpoint = parse_endpoint(m_buffer, m_version);
-					}
-					std::vector<char>().swap(m_buffer);
-					h(e);
-				}
-				else
-				{
-					std::vector<char>().swap(m_buffer);
-					h(e);
-				}
+				std::vector<char>().swap(m_buffer);
+				h(e);
 				return;
 			}
 			std::size_t extra_bytes = 0;
@@ -461,25 +393,8 @@ namespace libtorrent
 			// access granted
 			if (response == 90)
 			{
-				if (m_command == socks5_bind)
-				{
-					if (m_listen == 0)
-					{
-						m_local_endpoint = parse_endpoint(m_buffer, m_version);
-						m_listen = 1;
-					}
-					else
-					{
-						m_remote_endpoint = parse_endpoint(m_buffer, m_version);
-					}
-					std::vector<char>().swap(m_buffer);
-					h(e);
-				}
-				else
-				{
-					std::vector<char>().swap(m_buffer);
-					h(e);
-				}
+				std::vector<char>().swap(m_buffer);
+				h(e);
 				return;
 			}
 
@@ -501,18 +416,6 @@ namespace libtorrent
 
 		if (handle_error(e, h)) return;
 
-		if (m_command == socks5_bind)
-		{
-			if (m_listen == 0)
-			{
-				m_local_endpoint = parse_endpoint(m_buffer, m_version);
-				m_listen = 1;
-			}
-			else
-			{
-				m_remote_endpoint = parse_endpoint(m_buffer, m_version);
-			}
-		}
 		std::vector<char>().swap(m_buffer);
 		h(e);
 	}

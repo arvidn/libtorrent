@@ -52,8 +52,6 @@ using namespace sim;
 
 namespace lt = libtorrent;
 
-const int connect_socks = 2;
-
 std::string make_ep_string(char const* address, bool const is_v6
 	, char const* port)
 {
@@ -125,8 +123,7 @@ void run_test(
 	print_alerts(*ses[0], [=](lt::session& ses, lt::alert const* a) {
 		if (auto ta = alert_cast<lt::add_torrent_alert>(a))
 		{
-			ta->handle.connect_peer(lt::tcp::endpoint(
-				(flags & connect_socks) ? proxy : peer1, 6881));
+			ta->handle.connect_peer(lt::tcp::endpoint(peer1, 6881));
 		}
 		on_alert(ses, a);
 	});
@@ -191,26 +188,6 @@ TORRENT_TEST(socks5_tcp_connect)
 		}
 	);
 }
-
-TORRENT_TEST(socks5_tcp_accept)
-{
-	using namespace libtorrent;
-	run_test(
-		[](lt::session& ses0, lt::session& ses1)
-		{
-			// this time, the session accepting the connection is listening on a
-			// socks5 BIND session
-			set_proxy(ses1, settings_pack::socks5);
-			filter_ips(ses0);
-		},
-		[](lt::session&, lt::alert const*) {},
-		[](std::shared_ptr<lt::session> ses[2]) {
-			TEST_EQUAL(is_seed(*ses[0]), true);
-		},
-		connect_socks
-	);
-}
-
 
 TORRENT_TEST(encryption_tcp)
 {

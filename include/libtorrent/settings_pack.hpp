@@ -1290,6 +1290,9 @@ namespace libtorrent
 			// limited.
 			//
 			// A value of 0 means unlimited.
+			// 
+			// For fine grained control over rate limits, including making them apply
+			// to local peers, see peer-classes_.
 			upload_rate_limit,
 			download_rate_limit,
 #ifndef TORRENT_NO_DEPRECATE
