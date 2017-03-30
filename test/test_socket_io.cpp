@@ -132,9 +132,12 @@ TORRENT_TEST(parse_invalid_ipv4_endpoint)
 	TEST_CHECK(ec);
 	ec.clear();
 
+#ifndef TORRENT_WINDOWS
+	// it appears windows siliently accepts truncated IP addresses
 	endp = parse_endpoint("127.0.0:123", ec);
 	TEST_CHECK(ec);
 	ec.clear();
+#endif
 
 	endp = parse_endpoint("127.0.0.1:", ec);
 	TEST_CHECK(ec);
@@ -143,20 +146,21 @@ TORRENT_TEST(parse_invalid_ipv4_endpoint)
 	endp = parse_endpoint("127.0.0.1X", ec);
 	TEST_CHECK(ec);
 	ec.clear();
+}
 
-	endp = parse_endpoint("127.0.0.1:4", ec);
+TORRENT_TEST(parse_valid_ip4_endpoint)
+{
+	error_code ec;
+	TEST_EQUAL(parse_endpoint("127.0.0.1:4", ec), ep("127.0.0.1", 4));
 	TEST_CHECK(!ec);
-	TEST_EQUAL(endp, ep("127.0.0.1", 4));
 	ec.clear();
 
-	endp = parse_endpoint("\t 127.0.0.1:4 \n", ec);
+	TEST_EQUAL(parse_endpoint("\t 127.0.0.1:4 \n", ec), ep("127.0.0.1", 4));
 	TEST_CHECK(!ec);
-	TEST_EQUAL(endp, ep("127.0.0.1", 4));
 	ec.clear();
 
-	endp = parse_endpoint("127.0.0.1:23", ec);
+	TEST_EQUAL(parse_endpoint("127.0.0.1:23", ec), ep("127.0.0.1", 23));
 	TEST_CHECK(!ec);
-	TEST_EQUAL(endp, ep("127.0.0.1", 23));
 	ec.clear();
 }
 
@@ -194,18 +198,20 @@ TORRENT_TEST(parse_invalid_ipv6_endpoint)
 	TEST_CHECK(ec);
 	ec.clear();
 
-	endp = parse_endpoint("[::1]:4", ec);
-	TEST_CHECK(!ec);
-	TEST_EQUAL(endp, ep("::1", 4));
-	ec.clear();
-
-	endp = parse_endpoint(" \t[ff::1]:1214 \r", ec);
-	TEST_CHECK(!ec);
-	TEST_EQUAL(endp, ep("ff::1", 1214));
-	ec.clear();
-
 	endp = parse_endpoint("[ff::1]", ec);
 	TEST_EQUAL(ec, error_code(errors::invalid_port));
+	ec.clear();
+}
+
+TORRENT_TEST(parse_valid_ipv6_endpoint)
+{
+	error_code ec;
+	TEST_EQUAL(parse_endpoint("[::1]:4", ec), ep("::1", 4));
+	TEST_CHECK(!ec);
+	ec.clear();
+
+	TEST_EQUAL(parse_endpoint(" \t[ff::1]:1214 \r", ec), ep("ff::1", 1214));
+	TEST_CHECK(!ec);
 	ec.clear();
 }
 #endif
