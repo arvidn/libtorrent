@@ -50,7 +50,6 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT std::string print_endpoint(tcp::endpoint const& ep);
 	TORRENT_EXTRA_EXPORT std::string print_endpoint(udp::endpoint const& ep);
 	TORRENT_EXTRA_EXPORT tcp::endpoint parse_endpoint(string_view str, error_code& ec);
-	TORRENT_EXTRA_EXPORT string_view trim(string_view);
 
 	TORRENT_EXTRA_EXPORT std::string address_to_bytes(address const& a);
 	TORRENT_EXTRA_EXPORT std::string endpoint_to_bytes(udp::endpoint const& ep);

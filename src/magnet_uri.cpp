@@ -148,7 +148,7 @@ namespace libtorrent
 		string_view btih = url_has_argument(uri, "xt");
 		if (btih.empty()) return torrent_handle();
 
-		if (btih.compare(0, 9, "urn:btih:") != 0) return torrent_handle();
+		if (btih.substr(0, 9) != "urn:btih:") return torrent_handle();
 
 		if (btih.size() == 40 + 9) aux::from_hex({&btih[9], 40}, params.info_hash.data());
 		else params.info_hash.assign(base32decode(btih.substr(9)).c_str());
@@ -194,10 +194,10 @@ namespace libtorrent
 			if (e) continue;
 			p.trackers.push_back(std::move(tracker));
 			p.tracker_tiers.push_back(tier++);
-			pos = uri.find("&tr=", pos);
+			pos = find(uri, "&tr=", pos);
 			if (pos == std::string::npos) break;
 			pos += 4;
-			url = uri.substr(pos, uri.find('&', pos) - pos);
+			url = uri.substr(pos, find(uri, "&", pos) - pos);
 		}
 
 		// parse web seeds out of the magnet link
@@ -209,10 +209,10 @@ namespace libtorrent
 			std::string webseed = unescape_string(url, e);
 			if (e) continue;
 			p.url_seeds.push_back(std::move(webseed));
-			pos = uri.find("&ws=", pos);
+			pos = find(uri, "&ws=", pos);
 			if (pos == std::string::npos) break;
 			pos += 4;
-			url = uri.substr(pos, uri.find('&', pos) - pos);
+			url = uri.substr(pos, find(uri, "&", pos) - pos);
 		}
 
 		string_view btih = url_has_argument(uri, "xt");
@@ -222,7 +222,7 @@ namespace libtorrent
 			return;
 		}
 
-		if (btih.compare(0, 9, "urn:btih:") != 0)
+		if (btih.substr(0, 9) != "urn:btih:")
 		{
 			ec = errors::missing_info_hash_in_uri;
 			return;
@@ -237,10 +237,10 @@ namespace libtorrent
 			if (!e)
 				p.peers.push_back(endp);
 
-			peer_pos = uri.find("&x.pe=", peer_pos);
+			peer_pos = find(uri, "&x.pe=", peer_pos);
 			if (peer_pos == std::string::npos) break;
 			peer_pos += 6;
-			peer = uri.substr(peer_pos, uri.find('&', peer_pos) - peer_pos);
+			peer = uri.substr(peer_pos, find(uri, "&", peer_pos) - peer_pos);
 		}
 
 #ifndef TORRENT_DISABLE_DHT
@@ -256,10 +256,10 @@ namespace libtorrent
 					p.dht_nodes.push_back(std::make_pair(node.substr(0, divider).to_string(), port));
 			}
 
-			node_pos = uri.find("&dht=", node_pos);
+			node_pos = find(uri, "&dht=", node_pos);
 			if (node_pos == std::string::npos) break;
 			node_pos += 5;
-			node = uri.substr(node_pos, uri.find('&', node_pos) - node_pos);
+			node = uri.substr(node_pos, find(uri, "&", node_pos) - node_pos);
 		}
 #endif
 

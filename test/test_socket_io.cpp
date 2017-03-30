@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/aux_/escape_string.hpp" // for trim
 
 #include <string>
 

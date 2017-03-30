@@ -459,6 +459,20 @@ namespace libtorrent
 		return ret;
 	}
 
+	string_view trim(string_view str)
+	{
+		auto const first = str.find_first_not_of(" \t\n\r");
+		auto const last = str.find_last_not_of(" \t\n\r");
+		return str.substr(first, last - first + 1);
+	}
+
+	string_view::size_type find(string_view haystack, string_view needle, string_view::size_type pos)
+	{
+		auto const p = haystack.substr(pos).find(needle);
+		if (p == string_view::npos) return p;
+		return pos + p;
+	}
+
 	string_view url_has_argument(
 		string_view url, std::string argument, std::string::size_type* out_pos)
 	{
@@ -468,18 +482,18 @@ namespace libtorrent
 
 		argument += '=';
 
-		if (url.compare(i, argument.size(), argument) == 0)
+		if (url.substr(i, argument.size()) == argument)
 		{
 			auto pos = i + argument.size();
 			if (out_pos) *out_pos = pos;
-			return url.substr(pos, url.find('&', pos) - pos);
+			return url.substr(pos, url.substr(pos).find('&'));
 		}
 		argument.insert(0, "&");
-		i = url.find(argument, i);
+		i = find(url, argument, i);
 		if (i == std::string::npos) return {};
 		auto pos = i + argument.size();
 		if (out_pos) *out_pos = pos;
-		return url.substr(pos, url.find('&', pos) - pos);
+		return url.substr(pos, find(url, "&", pos) - pos);
 	}
 
 #if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING

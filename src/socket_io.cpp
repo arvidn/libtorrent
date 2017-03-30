@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/io.hpp" // for write_uint16
 #include "libtorrent/hasher.hpp" // for hasher
+#include "libtorrent/aux_/escape_string.hpp" // for trim
 
 namespace libtorrent
 {
@@ -85,13 +86,6 @@ namespace libtorrent
 	std::string print_endpoint(udp::endpoint const& ep)
 	{
 		return print_endpoint(ep.address(), ep.port());
-	}
-
-	string_view trim(string_view str)
-	{
-		auto const first = str.find_first_not_of(" \t\n\r");
-		auto const last = str.find_last_not_of(" \t\n\r");
-		return str.substr(first, last - first + 1);
 	}
 
 	tcp::endpoint parse_endpoint(string_view str, error_code& ec)
