@@ -66,12 +66,12 @@ namespace libtorrent
 		extern const char hex_chars[];
 	}
 
-	std::string unescape_string(std::string const& s, error_code& ec)
+	std::string unescape_string(string_view s, error_code& ec)
 	{
 		std::string ret;
-		for (std::string::const_iterator i = s.begin(); i != s.end(); ++i)
+		for (auto i = s.begin(); i != s.end(); ++i)
 		{
-			if(*i == '+')
+			if (*i == '+')
 			{
 				ret += ' ';
 			}
@@ -89,9 +89,9 @@ namespace libtorrent
 				}
 
 				int high;
-				if(*i >= '0' && *i <= '9') high = *i - '0';
-				else if(*i >= 'A' && *i <= 'F') high = *i + 10 - 'A';
-				else if(*i >= 'a' && *i <= 'f') high = *i + 10 - 'a';
+				if (*i >= '0' && *i <= '9') high = *i - '0';
+				else if (*i >= 'A' && *i <= 'F') high = *i + 10 - 'A';
+				else if (*i >= 'a' && *i <= 'f') high = *i + 10 - 'a';
 				else
 				{
 					ec = errors::invalid_escaped_string;
@@ -338,7 +338,7 @@ namespace libtorrent
 		return ret;
 	}
 
-	std::string base32encode(std::string const& s, int flags)
+	std::string base32encode(string_view s, int flags)
 	{
 		static char const base32_table_canonical[] =
 		{
@@ -362,7 +362,7 @@ namespace libtorrent
 		aux::array<std::uint8_t, 8> outbuf;
 
 		std::string ret;
-		for (std::string::const_iterator i = s.begin(); i != s.end();)
+		for (auto i = s.begin(); i != s.end();)
 		{
 			int available_input = std::min(int(inbuf.size()), int(s.end()-i));
 
@@ -402,13 +402,13 @@ namespace libtorrent
 		return ret;
 	}
 
-	std::string base32decode(std::string const& s)
+	std::string base32decode(string_view s)
 	{
 		aux::array<std::uint8_t, 8> inbuf;
 		aux::array<std::uint8_t, 5> outbuf;
 
 		std::string ret;
-		for (std::string::const_iterator i = s.begin(); i != s.end();)
+		for (auto i = s.begin(); i != s.end();)
 		{
 			int available_input = std::min(int(inbuf.size()), int(s.end() - i));
 
@@ -459,27 +459,41 @@ namespace libtorrent
 		return ret;
 	}
 
-	std::string url_has_argument(
-		std::string const& url, std::string argument, std::string::size_type* out_pos)
+	string_view trim(string_view str)
 	{
-		size_t i = url.find('?');
-		if (i == std::string::npos) return std::string();
+		auto const first = str.find_first_not_of(" \t\n\r");
+		auto const last = str.find_last_not_of(" \t\n\r");
+		return str.substr(first, last - first + 1);
+	}
+
+	string_view::size_type find(string_view haystack, string_view needle, string_view::size_type pos)
+	{
+		auto const p = haystack.substr(pos).find(needle);
+		if (p == string_view::npos) return p;
+		return pos + p;
+	}
+
+	string_view url_has_argument(
+		string_view url, std::string argument, std::string::size_type* out_pos)
+	{
+		auto i = url.find('?');
+		if (i == std::string::npos) return {};
 		++i;
 
 		argument += '=';
 
-		if (url.compare(i, argument.size(), argument) == 0)
+		if (url.substr(i, argument.size()) == argument)
 		{
-			size_t pos = i + argument.size();
+			auto pos = i + argument.size();
 			if (out_pos) *out_pos = pos;
-			return url.substr(pos, url.find('&', pos) - pos);
+			return url.substr(pos, url.substr(pos).find('&'));
 		}
 		argument.insert(0, "&");
-		i = url.find(argument, i);
-		if (i == std::string::npos) return std::string();
-		size_t pos = i + argument.size();
+		i = find(url, argument, i);
+		if (i == std::string::npos) return {};
+		auto pos = i + argument.size();
 		if (out_pos) *out_pos = pos;
-		return url.substr(pos, url.find('&', pos) - pos);
+		return url.substr(pos, find(url, "&", pos) - pos);
 	}
 
 #if defined TORRENT_WINDOWS && TORRENT_USE_WSTRING

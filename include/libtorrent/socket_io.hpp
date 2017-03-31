@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/sha1_hash.hpp"
+#include "libtorrent/string_view.hpp"
 #include <string>
 
 namespace libtorrent
@@ -48,7 +49,7 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT std::string print_endpoint(address const& addr, int port);
 	TORRENT_EXTRA_EXPORT std::string print_endpoint(tcp::endpoint const& ep);
 	TORRENT_EXTRA_EXPORT std::string print_endpoint(udp::endpoint const& ep);
-	TORRENT_EXTRA_EXPORT tcp::endpoint parse_endpoint(std::string str, error_code& ec);
+	TORRENT_EXTRA_EXPORT tcp::endpoint parse_endpoint(string_view str, error_code& ec);
 
 	TORRENT_EXTRA_EXPORT std::string address_to_bytes(address const& a);
 	TORRENT_EXTRA_EXPORT std::string endpoint_to_bytes(udp::endpoint const& ep);

@@ -54,8 +54,7 @@ namespace libtorrent
 
 	}
 
-	// TODO: 3 this should probably take a string_ref
-	TORRENT_EXTRA_EXPORT std::string unescape_string(std::string const& s, error_code& ec);
+	TORRENT_EXTRA_EXPORT std::string unescape_string(string_view s, error_code& ec);
 	// replaces all disallowed URL characters by their %-encoding
 	TORRENT_EXTRA_EXPORT std::string escape_string(string_view str);
 	// same as escape_string but does not encode '/'
@@ -63,6 +62,9 @@ namespace libtorrent
 	// if the url does not appear to be encoded, and it contains illegal url characters
 	// it will be encoded
 	TORRENT_EXTRA_EXPORT std::string maybe_url_encode(std::string const& url);
+
+	TORRENT_EXTRA_EXPORT string_view trim(string_view);
+	TORRENT_EXTRA_EXPORT string_view::size_type find(string_view haystack, string_view needle, string_view::size_type pos);
 
 #ifndef TORRENT_NO_DEPRECATE
 	// deprecated in 1.2
@@ -77,11 +79,11 @@ namespace libtorrent
 	// encodes a string using the base64 scheme
 	TORRENT_EXTRA_EXPORT std::string base64encode(std::string const& s);
 	// encodes a string using the base32 scheme
-	TORRENT_EXTRA_EXPORT std::string base32encode(std::string const& s, int flags=0);
-	TORRENT_EXTRA_EXPORT std::string base32decode(std::string const& s);
+	TORRENT_EXTRA_EXPORT std::string base32encode(string_view s, int flags = 0);
+	TORRENT_EXTRA_EXPORT std::string base32decode(string_view s);
 
-	TORRENT_EXTRA_EXPORT std::string url_has_argument(
-		std::string const& url, std::string argument, std::string::size_type* out_pos = 0);
+	TORRENT_EXTRA_EXPORT string_view url_has_argument(
+		string_view url, std::string argument, std::string::size_type* out_pos = 0);
 
 	// replaces \ with /
 	TORRENT_EXTRA_EXPORT void convert_path_to_posix(std::string& path);

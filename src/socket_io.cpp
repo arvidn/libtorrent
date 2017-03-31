@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/io.hpp" // for write_uint16
 #include "libtorrent/hasher.hpp" // for hasher
+#include "libtorrent/aux_/escape_string.hpp" // for trim
 
 namespace libtorrent
 {
@@ -87,35 +88,41 @@ namespace libtorrent
 		return print_endpoint(ep.address(), ep.port());
 	}
 
-	tcp::endpoint parse_endpoint(std::string str, error_code& ec)
+	tcp::endpoint parse_endpoint(string_view str, error_code& ec)
 	{
 		tcp::endpoint ret;
 
-		std::string::iterator start = str.begin();
-		std::string::iterator port_pos;
-		// remove white spaces in front of the string
-		while (start != str.end() && is_space(*start))
-			++start;
+		str = trim(str);
+
+		string_view addr;
+		string_view port;
+
+		if (str.empty())
+		{
+			ec = errors::invalid_port;
+			return ret;
+		}
 
 		// this is for IPv6 addresses
-		if (start != str.end() && *start == '[')
+		if (str.front() == '[')
 		{
-			++start;
-			port_pos = std::find(start, str.end(), ']');
-			if (port_pos == str.end())
+			auto const close_bracket = str.find_first_of(']');
+			if (close_bracket == string_view::npos)
 			{
 				ec = errors::expected_close_bracket_in_address;
 				return ret;
 			}
-			*port_pos = '\0';
-			++port_pos;
-			if (port_pos == str.end() || *port_pos != ':')
+			addr = str.substr(1, close_bracket - 1);
+			port = str.substr(close_bracket + 1);
+			if (port.empty() || port.front() != ':')
 			{
 				ec = errors::invalid_port;
 				return ret;
 			}
+			// shave off the ':'
+			port = port.substr(1);
 #if TORRENT_USE_IPV6
-			ret.address(address_v6::from_string(&*start, ec));
+			ret.address(address_v6::from_string(addr.to_string(), ec));
 #else
 			ec = boost::asio::error::address_family_not_supported;
 #endif
@@ -123,25 +130,31 @@ namespace libtorrent
 		}
 		else
 		{
-			port_pos = std::find(start, str.end(), ':');
-			if (port_pos == str.end())
+			auto const port_pos = str.find_first_of(':');
+			if (port_pos == string_view::npos)
 			{
 				ec = errors::invalid_port;
 				return ret;
 			}
-			*port_pos = '\0';
-			ret.address(address_v4::from_string(&*start, ec));
+			addr = str.substr(0, port_pos);
+			port = str.substr(port_pos + 1);
+			ret.address(address_v4::from_string(addr.to_string(), ec));
 			if (ec) return ret;
 		}
 
-		++port_pos;
-		if (port_pos == str.end())
+		if (port.empty())
 		{
 			ec = errors::invalid_port;
 			return ret;
 		}
 
-		ret.port(std::uint16_t(std::atoi(&*port_pos)));
+		int const port_num = std::atoi(port.to_string().c_str());
+		if (port_num <= 0 || port_num > std::numeric_limits<std::uint16_t>::max())
+		{
+			ec = errors::invalid_port;
+			return ret;
+		}
+		ret.port(static_cast<std::uint16_t>(port_num));
 		return ret;
 	}
 
