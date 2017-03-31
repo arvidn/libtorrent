@@ -773,6 +773,8 @@ namespace libtorrent
 			// peer class for local peers
 			peer_class_t m_local_peer_class;
 
+			resolver m_host_resolver;
+
 			tracker_manager m_tracker_manager;
 			torrent_map m_torrents;
 
@@ -1123,8 +1125,6 @@ namespace libtorrent
 			// object. This closes the file that's been opened the longest every
 			// time it's called, to force the windows disk cache to be flushed
 			deadline_timer m_close_file_timer;
-
-			resolver m_host_resolver;
 
 			// the index of the torrent that will be offered to
 			// connect to a peer next time on_tick is called.

@@ -355,6 +355,7 @@ namespace aux {
 		, m_global_class(0)
 		, m_tcp_peer_class(0)
 		, m_local_peer_class(0)
+		, m_host_resolver(m_io_service)
 		, m_tracker_manager(m_udp_socket, m_stats_counters, m_host_resolver
 			, m_settings
 #if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
@@ -408,7 +409,6 @@ namespace aux {
 		, m_timer(m_io_service)
 		, m_lsd_announce_timer(m_io_service)
 		, m_close_file_timer(m_io_service)
-		, m_host_resolver(m_io_service)
 		, m_next_downloading_connect_torrent(0)
 		, m_next_finished_connect_torrent(0)
 		, m_download_connect_attempts(0)
