@@ -99,10 +99,6 @@ namespace libtorrent
 	// in strict ansi mode
 	char* allocate_string_copy(char const* str);
 
-	// returns p + x such that the pointer is 8 bytes aligned
-	// x cannot be greater than 7
-	void* align_pointer(void* p);
-
 	// searches for separator in the string 'last'. the pointer last points to
 	// is set to point to the first character following the separator.
 	// returns a pointer to a 0-terminated string starting at last, ending

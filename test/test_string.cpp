@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_util.hpp"
 #include <iostream>
 #include <cstring> // for strcmp
+#include "libtorrent/aux_/escape_string.hpp" // for trim
 
 using namespace libtorrent;
 
@@ -385,6 +386,19 @@ TORRENT_TEST(tokenize)
 
 	TEST_EQUAL(convert_to_native("foobar")
 		, convert_to_native("foo") + convert_to_native("bar"));
+}
+
+TORRENT_TEST(trim)
+{
+	TEST_EQUAL(trim(""), "");
+	TEST_EQUAL(trim("\t "), "");
+	TEST_EQUAL(trim(" a"), "a");
+	TEST_EQUAL(trim(" a "), "a");
+	TEST_EQUAL(trim("\t \na \t\r"), "a");
+	TEST_EQUAL(trim(" \t \ta"), "a");
+	TEST_EQUAL(trim("a "), "a");
+	TEST_EQUAL(trim("a \t"), "a");
+	TEST_EQUAL(trim("a \t\n \tb"), "a \t\n \tb");
 }
 
 #if TORRENT_USE_I2P

@@ -162,20 +162,6 @@ namespace libtorrent
 		return tmp;
 	}
 
-	// 8-byte align pointer
-	void* align_pointer(void* p)
-	{
-		int offset = uintptr_t(p) & 0x7;
-		// if we're already aligned, don't do anything
-		if (offset == 0) return p;
-
-		// offset is how far passed the last aligned address
-		// we are. We need to go forward to the next aligned
-		// one. Since aligned addresses are 8 bytes apart, add
-		// 8 - offset.
-		return static_cast<char*>(p) + (8 - offset);
-	}
-
 	std::string print_listen_interfaces(std::vector<listen_interface_t> const& in)
 	{
 		std::string ret;

@@ -34,7 +34,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp"
 #include "libtorrent/socket_io.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/aux_/escape_string.hpp" // for trim
 
 #include <string>
 
@@ -111,6 +110,14 @@ TORRENT_TEST(parse_invalid_ipv4_endpoint)
 {
 	error_code ec;
 	tcp::endpoint endp;
+
+	endp = parse_endpoint("", ec);
+	TEST_CHECK(ec);
+	ec.clear();
+
+	endp = parse_endpoint("\n\t ", ec);
+	TEST_CHECK(ec);
+	ec.clear();
 
 	endp = parse_endpoint("127.0.0.1-4", ec);
 	TEST_CHECK(ec);
@@ -215,15 +222,4 @@ TORRENT_TEST(parse_valid_ipv6_endpoint)
 	ec.clear();
 }
 #endif
-
-TORRENT_TEST(trim)
-{
-	TEST_EQUAL(trim(" a"), "a");
-	TEST_EQUAL(trim(" a "), "a");
-	TEST_EQUAL(trim("\t \na \t\r"), "a");
-	TEST_EQUAL(trim(" \t \ta"), "a");
-	TEST_EQUAL(trim("a "), "a");
-	TEST_EQUAL(trim("a \t"), "a");
-	TEST_EQUAL(trim("a \t\n \tb"), "a \t\n \tb");
-}
 
