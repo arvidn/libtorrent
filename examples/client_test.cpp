@@ -1230,7 +1230,7 @@ MAGNETURL is a magnet link
 		ip_filter pcf;
 		pcf.add_rule(address_v4::from_string("0.0.0.0")
 			, address_v4::from_string("255.255.255.255")
-			, 1 << static_cast<int>(lt::session::global_peer_class_id));
+			, 1 << static_cast<std::uint32_t>(lt::session::global_peer_class_id));
 #if TORRENT_USE_IPV6
 		pcf.add_rule(address_v6::from_string("::")
 			, address_v6::from_string("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"), 1);
