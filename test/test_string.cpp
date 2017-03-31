@@ -143,6 +143,7 @@ TORRENT_TEST(base64)
 	TEST_CHECK(base64encode("foobar") == "Zm9vYmFy");
 }
 
+#if TORRENT_USE_I2P
 TORRENT_TEST(base32)
 {
 	// base32 test vectors from http://www.faqs.org/rfcs/rfc4648.html
@@ -159,6 +160,7 @@ TORRENT_TEST(base32)
 	TEST_CHECK(base32encode("fo", string::no_padding) == "MZXQ");
 	TEST_CHECK(base32encode("foob", string::i2p) == "mzxw6yq");
 	TEST_CHECK(base32encode("foobar", string::lowercase) == "mzxw6ytboi======");
+#endif // TORRENT_USE_I2P
 
 	TEST_CHECK(base32decode("") == "");
 	TEST_CHECK(base32decode("MY======") == "f");

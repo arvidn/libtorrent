@@ -338,6 +338,7 @@ namespace libtorrent
 		return ret;
 	}
 
+#if TORRENT_USE_I2P
 	std::string base32encode(string_view s, int flags)
 	{
 		static char const base32_table_canonical[] =
@@ -401,6 +402,7 @@ namespace libtorrent
 		}
 		return ret;
 	}
+#endif // TORRENT_USE_I2P
 
 	std::string base32decode(string_view s)
 	{
