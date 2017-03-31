@@ -45,7 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/resolver_interface.hpp"
 #include "libtorrent/address.hpp"
-#include "libtorrent/time.hpp"
 
 namespace libtorrent
 {
@@ -58,6 +57,8 @@ struct TORRENT_EXTRA_EXPORT resolver final : resolver_interface
 		, callback_t const& h) override;
 
 	virtual void abort() override;
+
+	virtual void set_cache_timeout(seconds timeout) override;
 
 private:
 

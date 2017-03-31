@@ -625,6 +625,7 @@ namespace aux {
 		update_connections_limit();
 		update_unchoke_limit();
 		update_disk_threads();
+		update_resolver_cache_timeout();
 		update_upnp();
 		update_natpmp();
 		update_lsd();
@@ -5085,6 +5086,12 @@ namespace aux {
 		error_code ec;
 		m_close_file_timer.expires_from_now(seconds(interval), ec);
 		m_close_file_timer.async_wait(make_tick_handler(std::bind(&session_impl::on_close_file, this, _1)));
+	}
+
+	void session_impl::update_resolver_cache_timeout()
+	{
+		int const timeout = m_settings.get_int(settings_pack::resolver_cache_timeout);
+		m_host_resolver.set_cache_timeout(seconds(timeout));
 	}
 
 	void session_impl::update_proxy()

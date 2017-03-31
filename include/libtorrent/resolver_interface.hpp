@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/address.hpp"
+#include "libtorrent/time.hpp"
 
 namespace libtorrent
 {
@@ -62,6 +63,9 @@ struct TORRENT_EXTRA_EXPORT resolver_interface
 		, callback_t const& h) = 0;
 
 	virtual void abort() = 0;
+
+	virtual void set_cache_timeout(seconds timeout) = 0;
+
 protected:
 	~resolver_interface() {}
 };
