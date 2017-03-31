@@ -78,8 +78,10 @@ namespace libtorrent
 
 	// encodes a string using the base64 scheme
 	TORRENT_EXTRA_EXPORT std::string base64encode(std::string const& s);
+#if TORRENT_USE_I2P
 	// encodes a string using the base32 scheme
 	TORRENT_EXTRA_EXPORT std::string base32encode(string_view s, int flags = 0);
+#endif
 	TORRENT_EXTRA_EXPORT std::string base32decode(string_view s);
 
 	TORRENT_EXTRA_EXPORT string_view url_has_argument(
