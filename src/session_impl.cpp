@@ -979,7 +979,7 @@ namespace aux {
 
 		// we need to give all the sockets an opportunity to actually have their handlers
 		// called and cancelled before we continue the shutdown. This is a bit
-		// complicated, if there are no "undead" peers, it's safe tor resume the
+		// complicated, if there are no "undead" peers, it's safe to resume the
 		// shutdown, but if there are, we have to wait for them to be cleared out
 		// first. In session_impl::on_tick() we check them periodically. If we're
 		// shutting down and we remove the last one, we'll initiate
