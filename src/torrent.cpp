@@ -44,15 +44,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdio> // for snprintf
 #include <functional>
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #ifdef TORRENT_USE_OPENSSL
 #include "libtorrent/ssl_stream.hpp"
+#include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/asio/ssl/context.hpp>
 #include <boost/asio/ssl/verify_context.hpp>
-#endif // TORRENT_USE_OPENSSL
-
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
+#endif // TORRENT_USE_OPENSSL
 
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/torrent_handle.hpp"
@@ -3051,9 +3049,8 @@ namespace libtorrent
 #endif
 			{
 				ADD_OUTSTANDING_ASYNC("torrent::on_peer_name_lookup");
-				m_ses.async_resolve(i.hostname, resolver_interface::abort_on_shutdown
-					, std::bind(&torrent::on_peer_name_lookup
-						, shared_from_this(), _1, _2, i.port));
+				m_ses.get_resolver().async_resolve(i.hostname, resolver_interface::abort_on_shutdown
+					, std::bind(&torrent::on_peer_name_lookup, shared_from_this(), _1, _2, i.port));
 			}
 		}
 
@@ -5546,8 +5543,8 @@ namespace libtorrent
 
 			// use proxy
 			web->resolving = true;
-			m_ses.async_resolve(ps.hostname, resolver_interface::abort_on_shutdown
-				, [self,web,proxy_port](error_code const& e, std::vector<address> const& addrs)
+			m_ses.get_resolver().async_resolve(ps.hostname, resolver_interface::abort_on_shutdown
+				, [self, web, proxy_port](error_code const& e, std::vector<address> const& addrs)
 				{
 					self->wrap(&torrent::on_proxy_name_lookup, e, addrs, web, proxy_port);
 				});
@@ -5557,7 +5554,7 @@ namespace libtorrent
 				|| ps.type == settings_pack::socks5_pw)
 			&& ps.proxy_peer_connections)
 		{
-			connect_web_seed(web, tcp::endpoint(address(), std::uint16_t(port)));
+			connect_web_seed(web, {address(), std::uint16_t(port)});
 		}
 		else
 		{
@@ -5568,8 +5565,8 @@ namespace libtorrent
 			auto self = shared_from_this();
 			web->resolving = true;
 
-			m_ses.async_resolve(hostname, resolver_interface::abort_on_shutdown
-				, [self,web,port](error_code const& e, std::vector<address> const& addrs)
+			m_ses.get_resolver().async_resolve(hostname, resolver_interface::abort_on_shutdown
+				, [self, web, port](error_code const& e, std::vector<address> const& addrs)
 				{
 					self->wrap(&torrent::on_name_lookup, e, addrs, port, web);
 				});
@@ -5653,7 +5650,7 @@ namespace libtorrent
 
 		auto self = shared_from_this();
 		web->resolving = true;
-		m_ses.async_resolve(hostname, resolver_interface::abort_on_shutdown
+		m_ses.get_resolver().async_resolve(hostname, resolver_interface::abort_on_shutdown
 			, [self, web, port](error_code const& err, std::vector<address> const& addr)
 			{
 				self->wrap(&torrent::on_name_lookup, err, addr, port, web);

@@ -287,8 +287,6 @@ namespace libtorrent
 
 			io_service& get_io_service() override { return m_io_service; }
 			resolver_interface& get_resolver() override { return m_host_resolver; }
-			void async_resolve(std::string const& host, int flags
-				, callback_t const& h) override;
 
 			aux::vector<torrent*>& torrent_list(int i) override
 			{
