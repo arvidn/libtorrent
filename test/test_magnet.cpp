@@ -319,14 +319,17 @@ TORRENT_TEST(parse_dht_node)
 	error_code ec;
 	add_torrent_params p;
 	parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
-		"&dn=foo&dht=127.0.0.1:43", p, ec);
+		"&dn=foo&dht=127.0.0.1:43&dht=10.0.0.1:1337", p, ec);
 	TEST_CHECK(!ec);
 	if (ec) std::printf("%s\n", ec.message().c_str());
 	ec.clear();
 
-	TEST_EQUAL(p.dht_nodes.size(), 1);
+	TEST_EQUAL(p.dht_nodes.size(), 2);
 	TEST_EQUAL(p.dht_nodes[0].first, "127.0.0.1");
 	TEST_EQUAL(p.dht_nodes[0].second, 43);
+
+	TEST_EQUAL(p.dht_nodes[1].first, "10.0.0.1");
+	TEST_EQUAL(p.dht_nodes[1].second, 1337);
 }
 #endif
 

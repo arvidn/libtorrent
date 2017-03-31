@@ -463,7 +463,7 @@ namespace libtorrent
 	{
 		auto const first = str.find_first_not_of(" \t\n\r");
 		auto const last = str.find_last_not_of(" \t\n\r");
-		return str.substr(first, last - first + 1);
+		return str.substr(first == string_view::npos ? str.size() : first, last - first + 1);
 	}
 
 	string_view::size_type find(string_view haystack, string_view needle, string_view::size_type pos)
