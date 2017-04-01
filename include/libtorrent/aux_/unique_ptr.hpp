@@ -39,7 +39,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/units.hpp"
 #include "libtorrent/assert.hpp"
 
-namespace lt { namespace aux {
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace aux {
 
 	template <typename T, typename IndexType = int>
 	struct unique_ptr;
@@ -65,6 +67,6 @@ namespace lt { namespace aux {
 		}
 	};
 
-}}
+}}}
 
 #endif

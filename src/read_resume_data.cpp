@@ -41,8 +41,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/torrent.hpp" // for default_piece_priority
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	namespace
 	{
 		void apply_flag(std::uint64_t& current_flags
@@ -339,4 +339,4 @@ namespace lt
 
 		return read_resume_data(rd, ec);
 	}
-}
+}}

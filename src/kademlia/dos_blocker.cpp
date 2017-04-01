@@ -37,7 +37,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/dht_observer.hpp" // for dht_logger
 #endif
 
-namespace lt { namespace dht
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace dht
 {
 	dos_blocker::dos_blocker()
 		: m_message_rate_limit(5)
@@ -109,4 +111,4 @@ namespace lt { namespace dht
 		}
 		return true;
 	}
-}}
+}}}

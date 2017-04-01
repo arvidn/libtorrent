@@ -61,8 +61,8 @@ extern "C" {
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	using sha512_hash = digest32<512>;
 
 	// this is a SHA-512 hash class.
@@ -121,6 +121,6 @@ namespace lt
 #endif
 	};
 
-}
+}}
 
 #endif // TORRENT_HASHER512_HPP_INCLUDED

@@ -43,8 +43,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #define DLOG(...) do {} while (false)
 #endif
 
-namespace lt { namespace aux
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace aux {
 	disk_job_fence::disk_job_fence() {}
 
 	int disk_job_fence::job_complete(disk_io_job* j, tailqueue<disk_io_job>& jobs)
@@ -233,5 +234,5 @@ namespace lt { namespace aux
 		return m_has_fence > 1 ? fence_post_none : fence_post_flush;
 	}
 
-}}
+}}}
 

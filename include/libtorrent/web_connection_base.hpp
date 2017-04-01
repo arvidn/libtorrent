@@ -45,8 +45,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/http_parser.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	class torrent;
 
 	class TORRENT_EXTRA_EXPORT web_connection_base
@@ -132,6 +132,6 @@ namespace lt
 		// current read cursor is.
 		int m_body_start;
 	};
-}
+}}
 
 #endif // TORRENT_WEB_CONNECTION_BASE_HPP_INCLUDED

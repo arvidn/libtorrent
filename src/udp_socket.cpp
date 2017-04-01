@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 using namespace std::placeholders;
 
@@ -750,4 +751,4 @@ void socks5::close()
 	m_timer.cancel();
 }
 
-}
+}}

@@ -46,8 +46,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 // TODO: hide this declaration when deprecated functions are disabled, and
 // remove its internal use
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+
 	// these functions don't really need to be public. This mechanism of
 	// advertising client software and version is also out-dated.
 
@@ -91,6 +92,6 @@ namespace lt
 
 #endif // TORRENT_NO_DEPRECATE
 
-}
+}}
 
 #endif // TORRENT_IDENTIFY_CLIENT_HPP_INCLUDED

@@ -76,8 +76,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/aux_/aligned_union.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 #ifndef TORRENT_NO_DEPRECATE
 	struct lazy_entry;
 	// backwards compatibility
@@ -357,6 +357,6 @@ namespace lt
 	}
 #endif
 
-}
+}}
 
 #endif // TORRENT_ENTRY_HPP_INCLUDED

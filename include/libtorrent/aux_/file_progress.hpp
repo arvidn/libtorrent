@@ -50,8 +50,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bitfield.hpp"
 #endif
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 class piece_picker;
 class file_storage;
 class alert_manager;
@@ -95,6 +95,6 @@ namespace aux
 		vector<std::int64_t, file_index_t> m_file_sizes;
 #endif
 	};
-} }
+}}}
 
 #endif

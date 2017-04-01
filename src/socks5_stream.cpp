@@ -35,8 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	namespace socks_error
 	{
@@ -419,4 +419,4 @@ namespace lt
 		std::vector<char>().swap(m_buffer);
 		h(e);
 	}
-}
+}}

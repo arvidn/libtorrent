@@ -34,8 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 resolve_links::resolve_links(std::shared_ptr<torrent_info> ti)
@@ -132,4 +132,4 @@ void resolve_links::match(std::shared_ptr<const torrent_info> const& ti
 }
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 
-} // namespace lt
+}} // namespace lt

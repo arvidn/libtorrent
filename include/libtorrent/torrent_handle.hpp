@@ -54,8 +54,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/units.hpp"
 #include "libtorrent/aux_/vector.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	namespace aux
 	{
 		struct session_impl;
@@ -1296,7 +1296,7 @@ namespace lt
 
 	};
 
-}
+}}
 
 namespace std
 {

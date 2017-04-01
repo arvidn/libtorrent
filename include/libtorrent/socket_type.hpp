@@ -129,8 +129,8 @@ POSSIBILITY OF SUCH DAMAGE.
 		default: TORRENT_ASSERT_FAIL(); return def; \
 	}
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	template <class S>
 	struct socket_type_int_impl
@@ -333,6 +333,6 @@ namespace lt
 
 	// properly shuts down SSL sockets. holder keeps s alive
 	void async_shutdown(socket_type& s, std::shared_ptr<void> holder);
-}
+}}
 
 #endif

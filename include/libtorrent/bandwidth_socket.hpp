@@ -35,14 +35,14 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/export.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	struct TORRENT_EXTRA_EXPORT bandwidth_socket
 	{
 		virtual void assign_bandwidth(int channel, int amount) = 0;
 		virtual bool is_disconnecting() const = 0;
 		virtual ~bandwidth_socket() {}
 	};
-}
+}}
 
 #endif // TORRENT_BANDWIDTH_SOCKET_HPP_INCLUDED

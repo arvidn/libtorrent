@@ -59,8 +59,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/auxv.h>
 #endif
 
-namespace lt { namespace aux
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace aux {
 	namespace {
 
 #if TORRENT_HAS_SSE
@@ -142,4 +143,4 @@ namespace lt { namespace aux
 	bool const mmx_support = supports_mmx();
 	bool const arm_neon_support = supports_arm_neon();
 	bool const arm_crc32c_support = supports_arm_crc32c();
-} }
+}}}

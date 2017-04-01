@@ -40,9 +40,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #if BOOST_VERSION < 106100
 #include <boost/utility/string_ref.hpp>
 namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 using string_view = boost::string_ref;
 using wstring_view = boost::wstring_ref;
-}
+}}
 #else
 #include <boost/utility/string_view.hpp>
 namespace lt {

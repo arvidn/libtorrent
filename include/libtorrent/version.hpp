@@ -35,9 +35,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/export.hpp"
 
+#include <boost/preprocessor/cat.hpp>
+
 #define LIBTORRENT_VERSION_MAJOR 1
 #define LIBTORRENT_VERSION_MINOR 2
 #define LIBTORRENT_VERSION_TINY 0
+#define LIBTORRENT_ABI_VERSION 0
 
 // the format of this version is: MMmmtt
 // M = Major version, m = minor version, t = tiny version
@@ -46,11 +49,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #define LIBTORRENT_VERSION "1.2.0.0"
 #define LIBTORRENT_REVISION "62cdec8"
 
+#define LIBTORRENT_VERSION_NAMESPACE_NAME BOOST_PP_CAT(v, LIBTORRENT_ABI_VERSION)
+#define LIBTORRENT_VERSION_NAMESPACE inline namespace BOOST_PP_CAT(v, LIBTORRENT_ABI_VERSION)
+
 namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	// returns the libtorrent version as string form in this format:
 	// "<major>.<minor>.<tiny>.<tag>"
 	TORRENT_EXPORT char const* version();
-}
+}}
 
 // for backwards compatibility
 namespace libtorrent = lt;

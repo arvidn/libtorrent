@@ -48,8 +48,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_connection_interface.hpp"
 #include "libtorrent/aux_/deque.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	struct ip_filter;
 	class port_filter;
 	struct torrent_peer_allocator_interface;
@@ -271,6 +271,6 @@ namespace lt
 		int m_max_failcount;
 	};
 
-}
+}}
 
 #endif // TORRENT_POLICY_HPP_INCLUDED

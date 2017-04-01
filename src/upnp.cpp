@@ -56,6 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace std::placeholders;
 
 namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 using namespace aux;
 
@@ -1606,4 +1607,4 @@ void upnp::close()
 	}
 }
 
-}
+}}

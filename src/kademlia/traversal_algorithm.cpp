@@ -46,7 +46,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace lt { namespace dht
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace dht
 {
 
 #if TORRENT_USE_ASSERTS
@@ -611,4 +613,4 @@ void traversal_observer::reply(msg const& m)
 	set_id(node_id(id.string_ptr()));
 }
 
-} } // namespace lt::dht
+}}} // namespace lt::dht

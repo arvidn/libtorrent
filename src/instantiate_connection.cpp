@@ -36,8 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/utp_socket_manager.hpp"
 #include "libtorrent/instantiate_connection.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	// TODO: 2 peer_connection and tracker_connection should probably be flags
 	// TODO: 2 move this function into libtorrent::aux namespace
 	bool instantiate_connection(io_service& ios
@@ -144,4 +144,4 @@ namespace lt
 		return true;
 	}
 
-}
+}}

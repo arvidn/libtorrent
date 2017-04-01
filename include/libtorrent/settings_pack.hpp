@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/entry.hpp"
 #include "libtorrent/string_view.hpp"
+#include "libtorrent/version.hpp"
 
 #include <vector>
 #include <memory>
@@ -53,8 +54,9 @@ POSSIBILITY OF SUCH DAMAGE.
 // that will be sent to the tracker. The user-agent will also be used to identify the
 // client with other peers.
 //
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+
 	namespace aux { struct session_impl; struct session_settings; }
 
 	struct settings_pack;
@@ -1759,6 +1761,6 @@ namespace lt
 		std::vector<std::pair<std::uint16_t, int>> m_ints;
 		std::vector<std::pair<std::uint16_t, bool>> m_bools;
 	};
-}
+}}
 
 #endif

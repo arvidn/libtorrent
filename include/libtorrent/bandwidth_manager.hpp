@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 
 namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 struct TORRENT_EXTRA_EXPORT bandwidth_manager
 {
@@ -86,6 +87,6 @@ private:
 	bool m_abort;
 };
 
-}
+}}
 
 #endif

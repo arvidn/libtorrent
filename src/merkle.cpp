@@ -32,8 +32,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/merkle.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	int merkle_get_parent(int tree_node)
 	{
 		// node 0 doesn't have a parent
@@ -65,5 +65,5 @@ namespace lt
 		return ret;
 	}
 
-}
+}}
 

@@ -37,7 +37,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/dht_observer.hpp>
 #include <libtorrent/performance_counters.hpp>
 
-namespace lt { namespace dht
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace dht
 {
 
 void get_item::got_data(bdecode_node const& v,
@@ -215,4 +217,4 @@ void get_item_observer::reply(msg const& m)
 	find_data_observer::reply(m);
 }
 
-} } // namespace lt::dht
+}}} // namespace lt::dht

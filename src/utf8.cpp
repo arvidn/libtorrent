@@ -50,8 +50,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma clang diagnostic ignored "-Wunused-member-function"
 #endif
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	namespace
 	{
 		// ==== utf-8 -> wide ===
@@ -268,7 +268,7 @@ namespace lt
 		if (ec) aux::throw_ex<system_error>(ec);
 		return ret;
 	}
-}
+}}
 
 #ifdef __clang__
 #pragma clang diagnostic pop

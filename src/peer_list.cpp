@@ -112,8 +112,9 @@ namespace
 
 }
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+
 	peer_list::peer_list()
 		: m_locked_peer(nullptr)
 		, m_num_seeds(0)
@@ -1390,4 +1391,5 @@ namespace lt
 		if (lhs_peer_rank > rhs_peer_rank) return true;
 		return false;
 	}
-}
+}}
+

@@ -38,8 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	TORRENT_EXTRA_EXPORT void inflate_gzip(
 		char const* in, int size
@@ -119,7 +119,7 @@ namespace lt
 		TORRENT_EXPORT boost::system::error_code make_error_code(error_code_enum e);
 	}
 
-}
+}}
 
 namespace boost { namespace system {
 

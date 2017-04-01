@@ -39,8 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/deadline_timer.hpp"
 #include "libtorrent/aux_/lsd.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 class lsd : public std::enable_shared_from_this<lsd>
 {
@@ -94,6 +94,6 @@ private:
 #endif
 };
 
-}
+}}
 
 #endif

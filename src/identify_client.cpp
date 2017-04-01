@@ -343,8 +343,8 @@ namespace
 	}
 }
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 #ifndef TORRENT_NO_DEPRECATE
 
@@ -425,5 +425,5 @@ namespace lt
 		unknown += "]";
 		return unknown;
 	}
-}
+}}
 

@@ -57,8 +57,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/i2p_stream.hpp"
 #include "libtorrent/aux_/vector.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 struct http_connection;
 struct resolver_interface;
@@ -243,6 +243,6 @@ private:
 	bool m_connecting;
 };
 
-}
+}}
 
 #endif

@@ -34,8 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_OPERATIONS_HPP_INCLUDED
 #define TORRENT_OPERATIONS_HPP_INCLUDED
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	// these constants are used to identify the operation that failed, causing a
 	// peer to disconnect
 	enum operation_t
@@ -102,7 +102,7 @@ namespace lt
 		op_unknown,
 	};
 
-}
+}}
 
 #endif // TORRENT_OPERATIONS_HPP_INCLUDED
 

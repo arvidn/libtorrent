@@ -33,8 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_io_job.hpp"
 #include "libtorrent/block_cache.hpp" // for cached_piece_entry
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	struct buffer_allocator_interface;
 
 	namespace {
@@ -138,4 +138,4 @@ namespace lt
 		// were successfully written to disk. This job is complete
 		return true;
 	}
-}
+}}

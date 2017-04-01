@@ -40,8 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/error_code.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	// returns protocol, auth, hostname, port, path
 	TORRENT_EXTRA_EXPORT std::tuple<std::string, std::string
@@ -51,6 +51,6 @@ namespace lt
 	// split a URL in its base and path parts
 	TORRENT_EXTRA_EXPORT std::tuple<std::string, std::string>
 		split_url(std::string url, error_code& ec);
-}
+}}
 
 #endif

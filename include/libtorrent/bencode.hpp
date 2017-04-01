@@ -77,8 +77,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp" // for write_string
 #include "libtorrent/string_util.hpp" // for is_digit
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 #ifndef TORRENT_NO_DEPRECATE
 	using invalid_encoding = system_error;
@@ -439,6 +439,6 @@ namespace lt
 		if (err) return entry();
 		return e;
 	}
-}
+}}
 
 #endif // TORRENT_BENCODE_HPP_INCLUDED

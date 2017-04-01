@@ -32,20 +32,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "simulator/simulator.hpp"
 #include "libtorrent/address.hpp"
+#include "libtorrent/alert.hpp"
+#include "libtorrent/session.hpp"
+#include "libtorrent/settings_pack.hpp"
+#include "libtorrent/torrent_handle.hpp"
+#include "libtorrent/torrent_status.hpp"
+
 #include <functional>
 
 #ifndef TORRENT_SETUP_SWARM_HPP_INCLUDED
 #define TORRENT_SETUP_SWARM_HPP_INCLUDED
-
-namespace lt
-{
-	class alert;
-	class session;
-	struct add_torrent_params;
-	struct settings_pack;
-	struct torrent_handle;
-	struct torrent_status;
-}
 
 enum class swarm_test { download, upload };
 

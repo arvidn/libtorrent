@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <climits>
 
 namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 struct TORRENT_EXTRA_EXPORT receive_buffer
 {
@@ -217,6 +218,6 @@ private:
 };
 #endif // TORRENT_DISABLE_ENCRYPTION
 
-} // namespace lt
+}} // namespace lt
 
 #endif // #ifndef TORRENT_RECEIVE_BUFFER_HPP_INCLUDED

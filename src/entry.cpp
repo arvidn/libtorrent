@@ -45,8 +45,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_util.hpp"
 #include "libtorrent/aux_/throw.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	namespace detail
 	{
 		char const* integer_to_str(char* buf, int size
@@ -716,4 +716,4 @@ namespace lt
 			out += "<uninitialized>\n";
 		}
 	}
-}
+}}

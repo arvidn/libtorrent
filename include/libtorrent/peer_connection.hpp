@@ -75,8 +75,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <array>
 #include <cstdint>
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	class torrent;
 	struct torrent_peer;
 	struct disk_interface;
@@ -1219,6 +1219,6 @@ namespace lt
 		bool m_need_uncork = false;
 	};
 
-}
+}}
 
 #endif // TORRENT_PEER_CONNECTION_HPP_INCLUDED

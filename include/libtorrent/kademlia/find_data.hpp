@@ -43,7 +43,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <map>
 
-namespace lt { namespace dht
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace dht
 {
 
 class node;
@@ -85,6 +87,6 @@ struct find_data_observer : traversal_observer
 	virtual void reply(msg const&);
 };
 
-} } // namespace lt::dht
+}}} // namespace lt::dht
 
 #endif // FIND_DATA_050323_HPP

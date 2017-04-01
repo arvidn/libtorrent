@@ -42,8 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstring> // for memset and memcpy
 #include <cstdint> // uint32_t
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	// The bitfield type stores any number of bits as a bitfield
 	// in a heap allocated array.
 	struct TORRENT_EXPORT bitfield
@@ -276,6 +276,6 @@ namespace lt
 		IndexType end_index() const { return IndexType(this->size()); }
 	};
 
-}
+}}
 
 #endif // TORRENT_BITFIELD_HPP_INCLUDED

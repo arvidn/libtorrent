@@ -44,8 +44,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstdlib>
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	// internal: some MTU and protocol header sizes constants
 	constexpr int TORRENT_IPV4_HEADER = 20;
 	constexpr int TORRENT_IPV6_HEADER = 40;
@@ -206,6 +206,6 @@ namespace lt
 		packet_slab m_mtu_floor_slab{ mtu_floor_size };
 		packet_slab m_mtu_ceiling_slab{ mtu_ceiling_size };
 	};
-}
+}}
 
 #endif // TORRENT_PACKET_POOL_HPP

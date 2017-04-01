@@ -58,8 +58,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	http_tracker_connection::http_tracker_connection(
 		io_service& ios
 		, tracker_manager& man
@@ -591,4 +591,4 @@ namespace lt
 
 		return resp;
 	}
-}
+}}

@@ -58,6 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/numeric_cast.hpp"
 
 namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 using namespace aux;
 using namespace std::placeholders;
@@ -683,4 +684,4 @@ void natpmp::close_impl()
 	update_mapping(0);
 }
 
-} // namespace lt
+}} // namespace lt

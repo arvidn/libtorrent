@@ -36,7 +36,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/io.hpp>
 #include <libtorrent/performance_counters.hpp>
 
-namespace lt { namespace dht
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace dht
 {
 
 put_data::put_data(node& dht_node, put_callback const& callback)
@@ -112,4 +114,4 @@ bool put_data::invoke(observer_ptr o)
 	return m_node.m_rpc.invoke(e, o->target_ep(), o);
 }
 
-} } // namespace lt::dht
+}}} // namespace lt::dht

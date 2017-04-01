@@ -59,6 +59,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace std::placeholders;
 
 namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 class torrent;
 
@@ -324,15 +325,13 @@ namespace
 		smart_ban_plugin& operator=(smart_ban_plugin const&);
 	};
 
-} }
+} // anonymous namespace
 
-namespace lt
-{
 	std::shared_ptr<torrent_plugin> create_smart_ban_plugin(torrent_handle const& th, void*)
 	{
 		torrent* t = th.native_handle().get();
 		return std::make_shared<smart_ban_plugin>(*t);
 	}
-}
+}}
 
 #endif

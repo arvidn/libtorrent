@@ -32,11 +32,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/session_settings.hpp"
 
-namespace lt { namespace aux
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace aux {
 	session_settings::session_settings()
 	{
 		initialize_default_settings(*this);
 	}
-} }
+}}}
 

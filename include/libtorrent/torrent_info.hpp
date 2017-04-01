@@ -55,8 +55,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/announce_entry.hpp"
 #endif
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+
 	class peer_connection;
 	class entry;
 	struct announce_entry;
@@ -654,6 +655,6 @@ namespace lt
 		std::uint8_t m_flags = 0;
 	};
 
-}
+}}
 
 #endif // TORRENT_TORRENT_INFO_HPP_INCLUDED

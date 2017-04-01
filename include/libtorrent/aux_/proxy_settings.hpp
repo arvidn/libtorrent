@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 struct settings_pack;
 namespace aux {
 
@@ -136,6 +137,6 @@ namespace aux {
 	};
 
 
-}}
+}}}
 
 #endif

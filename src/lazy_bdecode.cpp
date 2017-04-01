@@ -48,8 +48,8 @@ namespace
 	const int lazy_entry_list_init = 5;
 }
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	namespace
 	{
@@ -660,6 +660,6 @@ namespace lt
 		}
 		return ret;
 	}
-}
+}}
 
 #endif // TORRENT_NO_DEPRECATE

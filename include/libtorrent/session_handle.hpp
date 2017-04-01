@@ -51,8 +51,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <deque>
 #endif
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	struct plugin;
 	struct torrent_plugin;
 	class torrent;
@@ -1038,6 +1038,6 @@ namespace lt
 		aux::session_impl* m_impl;
 	};
 
-} // namespace lt
+}} // namespace lt
 
 #endif // TORRENT_SESSION_HANDLE_HPP_INCLUDED

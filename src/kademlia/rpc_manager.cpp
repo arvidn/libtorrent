@@ -59,7 +59,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace lt { namespace dht
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace dht
 {
 
 // TODO: 3 move this into it's own .cpp file
@@ -506,4 +508,4 @@ observer::~observer()
 #endif
 }
 
-} } // namespace lt::dht
+}}} // namespace lt::dht

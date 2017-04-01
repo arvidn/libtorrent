@@ -46,8 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <arm_acle.h>
 #endif
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	std::uint32_t crc32c_32(std::uint32_t v)
 	{
 #if TORRENT_HAS_SSE
@@ -145,4 +145,4 @@ namespace lt
 		crc.process_bytes(buf, std::size_t(num_words * 8));
 		return crc.checksum();
 	}
-}
+}}

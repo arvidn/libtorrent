@@ -44,9 +44,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/error.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	namespace error = boost::asio::error;
-}
+}}
 
 #endif

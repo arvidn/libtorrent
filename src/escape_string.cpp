@@ -59,8 +59,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_util.hpp" // for to_string
 #include "libtorrent/aux_/array.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	// defined in hex.cpp
 	namespace aux {
 		extern const char hex_chars[];
@@ -645,4 +645,4 @@ namespace lt
 
 #endif
 
-}
+}}

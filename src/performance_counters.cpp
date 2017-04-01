@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstring> // for memset
 
 namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 
 	counters::counters()
@@ -153,4 +154,4 @@ namespace lt {
 #endif
 	}
 
-}
+}}

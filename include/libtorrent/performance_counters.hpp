@@ -40,8 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <atomic>
 #include <mutex>
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	struct TORRENT_EXTRA_EXPORT counters
 	{
 		// TODO: move this out of counters
@@ -481,6 +481,6 @@ namespace lt
 		aux::array<std::int64_t, num_counters> m_stats_counter;
 #endif
 	};
-}
+}}
 
 #endif

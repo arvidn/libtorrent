@@ -43,8 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <array>
 #include <memory>
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	struct socks5;
 
 	class TORRENT_EXTRA_EXPORT udp_socket : single_threaded
@@ -160,6 +160,6 @@ namespace lt
 		int m_magic;
 #endif
 	};
-}
+}}
 
 #endif

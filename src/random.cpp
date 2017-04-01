@@ -54,8 +54,8 @@ extern "C" {
 #include "libtorrent/aux_/dev_random.hpp"
 #endif
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	namespace aux
 	{
 		std::mt19937& random_engine()
@@ -106,4 +106,4 @@ namespace lt
 	{
 		return std::uniform_int_distribution<std::uint32_t>(0, max)(aux::random_engine());
 	}
-}
+}}

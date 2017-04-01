@@ -47,16 +47,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/time.hpp>
 #include <libtorrent/aux_/vector.hpp>
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+
 #ifndef TORRENT_NO_DEPRECATE
 	struct session_status;
 #endif
 	struct dht_routing_bucket;
-}
 
-namespace lt { namespace dht
-{
+namespace dht {
+
 struct dht_logger;
 
 typedef aux::vector<node_entry> bucket_t;
@@ -327,6 +327,6 @@ private:
 	int const m_bucket_size;
 };
 
-} } // namespace lt::dht
+}}} // namespace lt::dht
 
 #endif // ROUTING_TABLE_HPP

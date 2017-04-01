@@ -173,6 +173,7 @@ namespace boost {
 #endif
 
 namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 #if defined TORRENT_ASIO_DEBUGGING
 	std::map<std::string, async_t> _async_ops;
@@ -6866,4 +6867,4 @@ namespace aux {
 			va_end(v);
 		}
 #endif // TORRENT_DISABLE_LOGGING
-}}
+}}}

@@ -44,8 +44,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/i2p_stream.hpp"
 #include "libtorrent/error_code.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	struct http_connection;
 	class entry;
@@ -99,6 +99,6 @@ namespace lt
 
 	TORRENT_EXTRA_EXPORT bool extract_peer_info(bdecode_node const& info
 		, peer_entry& ret, error_code& ec);
-}
+}}
 
 #endif // TORRENT_HTTP_TRACKER_CONNECTION_HPP_INCLUDED

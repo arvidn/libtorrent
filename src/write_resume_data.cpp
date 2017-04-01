@@ -42,8 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp" // for default_piece_priority
 #include "libtorrent/aux_/numeric_cast.hpp" // for clamp
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	entry write_resume_data(add_torrent_params const& atp)
 	{
 		entry ret;
@@ -253,5 +253,5 @@ namespace lt
 		bencode(std::back_inserter(ret), rd);
 		return ret;
 	}
-}
+}}
 

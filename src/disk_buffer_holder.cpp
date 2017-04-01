@@ -34,8 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/storage.hpp" // for storage_interface
 #include "libtorrent/aux_/block_cache_reference.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	disk_buffer_holder::disk_buffer_holder(buffer_allocator_interface& alloc, char* buf) noexcept
 		: m_allocator(&alloc), m_buf(buf)
@@ -84,5 +84,5 @@ namespace lt
 	}
 
 	disk_buffer_holder::~disk_buffer_holder() { reset(); }
-}
+}}
 

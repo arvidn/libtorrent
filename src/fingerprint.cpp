@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 
 namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	namespace {
 
 	char version_to_char(int const v)
@@ -96,5 +97,5 @@ namespace lt {
 	}
 #endif // TORRENT_NO_DEPRECATE
 
-}
+}}
 

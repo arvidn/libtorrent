@@ -42,8 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #define BOOST_SYSTEM_NOEXCEPT throw()
 #endif
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	using detail::bdecode_token;
 
 	namespace
@@ -1041,4 +1041,4 @@ done:
 		}
 		return ret;
 	}
-}
+}}

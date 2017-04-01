@@ -40,8 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <memory>
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	struct disk_io_thread;
 	struct disk_observer;
 	struct disk_buffer_holder;
@@ -116,6 +116,6 @@ namespace lt
 		aux::block_cache_reference m_ref;
 	};
 
-}
+}}
 
 #endif

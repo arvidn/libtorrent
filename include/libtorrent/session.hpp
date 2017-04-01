@@ -49,8 +49,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdio> // for snprintf
 #endif
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	struct plugin;
 
 	// The default values of the session settings are set for a regular
@@ -375,6 +375,6 @@ namespace lt
 		std::shared_ptr<aux::session_impl> m_impl;
 	};
 
-}
+}}
 
 #endif // TORRENT_SESSION_HPP_INCLUDED

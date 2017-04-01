@@ -43,8 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/portmap.hpp"
 #include "libtorrent/aux_/vector.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 struct TORRENT_EXTRA_EXPORT natpmp
 	: std::enable_shared_from_this<natpmp>
@@ -157,6 +157,6 @@ private:
 	bool m_abort = false;
 };
 
-}
+}}
 
 #endif

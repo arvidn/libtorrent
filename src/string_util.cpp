@@ -41,8 +41,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdlib> // for malloc
 #include <cstring> // for memmov/strcpy/strlen
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	// lexical_cast's result depends on the locale. We need
 	// a well defined result
@@ -417,4 +417,4 @@ namespace lt
 
 #endif
 
-}
+}}

@@ -39,8 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 #include <string>
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	struct TORRENT_EXPORT storage_interface;
 	class file_storage;
 	struct file_pool;
@@ -118,6 +118,6 @@ namespace lt
 	TORRENT_EXPORT storage_interface* disabled_storage_constructor(storage_params const&);
 
 	TORRENT_EXPORT storage_interface* zero_storage_constructor(storage_params const&);
-}
+}}
 
 #endif

@@ -53,8 +53,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 #include <vector>
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	class alert;
 	struct add_torrent_params;
 	struct counters;
@@ -587,6 +587,6 @@ namespace lt
 		std::atomic<bool> m_jobs_aborted{false};
 #endif
 	};
-}
+}}
 
 #endif

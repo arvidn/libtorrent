@@ -22,8 +22,8 @@ changelog at the end of the file.
 typedef std::uint32_t u32;
 typedef std::uint8_t u8;
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 namespace
 {
@@ -236,7 +236,7 @@ void SHA1_final(u8* digest, sha1_ctx* context)
 	}
 }
 
-} // libtorrent namespace
+}} // libtorrent namespace
 
 /************************************************************
 

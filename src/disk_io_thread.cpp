@@ -66,8 +66,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #define DLOG(...) do {} while(false)
 #endif
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 #if TORRENT_USE_ASSERTS
 
@@ -3409,4 +3409,4 @@ namespace lt
 
 		if (cnt > 0) free_jobs(to_delete.data(), cnt);
 	}
-}
+}}

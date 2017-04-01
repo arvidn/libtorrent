@@ -47,8 +47,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/units.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	class torrent_info;
 	struct torrent_plugin;
 	struct torrent_handle;
@@ -519,6 +519,6 @@ namespace lt
 #endif
 
 	};
-}
+}}
 
 #endif

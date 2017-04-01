@@ -55,7 +55,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace lt { namespace dht
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace dht
 {
 namespace
 {
@@ -1184,4 +1186,4 @@ void routing_table::log_node_failed(node_id const& nid, node_entry const& ne) co
 }
 #endif
 
-} } // namespace lt::dht
+}}} // namespace lt::dht

@@ -34,8 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp" // for time_duration
 #include <vector>
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	namespace aux { struct session_settings; }
 	class peer_connection;
 
@@ -49,4 +49,4 @@ namespace lt
 		, int max_upload_rate, time_duration unchoke_interval
 		, aux::session_settings const& sett);
 
-}
+}}

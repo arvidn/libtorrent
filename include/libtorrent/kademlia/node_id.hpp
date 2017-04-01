@@ -39,7 +39,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/sha1_hash.hpp>
 #include <libtorrent/address.hpp>
 
-namespace lt { namespace dht
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace dht
 {
 
 using node_id = libtorrent::sha1_hash;
@@ -70,6 +72,6 @@ TORRENT_EXTRA_EXPORT bool verify_id(node_id const& nid, address const& source_ip
 TORRENT_EXTRA_EXPORT bool matching_prefix(node_id const& nid, int mask, int prefix, int offset);
 TORRENT_EXTRA_EXPORT node_id generate_prefix_mask(int bits);
 
-} } // namespace lt::dht
+}}} // namespace lt::dht
 
 #endif // NODE_ID_HPP

@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 
 namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 // timestamp history keeps a history of the lowest timestamps we've
 // seen in the last 20 minutes
@@ -79,7 +80,7 @@ private:
 	std::uint16_t m_num_samples;
 };
 
-}
+}}
 
 #endif
 

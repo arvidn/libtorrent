@@ -42,8 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	int source_rank(int source_bitmask)
 	{
 		int ret = 0;
@@ -302,5 +302,5 @@ namespace lt
 		return true;
 	}
 
-}
+}}
 

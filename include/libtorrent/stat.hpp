@@ -40,8 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	class TORRENT_EXTRA_EXPORT stat_channel
 	{
 	public:
@@ -280,6 +280,6 @@ namespace lt
 		stat_channel m_stat[num_channels];
 	};
 
-}
+}}
 
 #endif // TORRENT_STAT_HPP_INCLUDED

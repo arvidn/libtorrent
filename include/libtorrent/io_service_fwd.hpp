@@ -45,13 +45,13 @@ namespace boost { namespace asio {
 }}
 #endif
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 #if defined TORRENT_BUILD_SIMULATOR
 	typedef sim::asio::io_service io_service;
 #else
 	typedef boost::asio::io_service io_service;
 #endif
-}
+}}
 
 #endif

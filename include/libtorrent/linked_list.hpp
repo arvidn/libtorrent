@@ -35,8 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/assert.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	template <typename T>
 	struct list_node
 	{
@@ -151,6 +151,6 @@ namespace lt
 		T* m_last;
 		int m_size;
 	};
-}
+}}
 
 #endif // LINKED_LIST_HPP

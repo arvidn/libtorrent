@@ -38,14 +38,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <functional>
 
-namespace lt { namespace aux {
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace aux {
 
 void blocking_call();
 void dump_call_profile();
 
 void torrent_wait(bool& done, aux::session_impl& ses);
 
-} } // namespace aux namespace lt
+}}} // namespace aux namespace lt
 
 #endif // TORRENT_SESSION_CALL_HPP_INCLUDED
 

@@ -38,8 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <intrin.h>
 #endif
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	bool bitfield::all_set() const
 	{
 		if(size() == 0) return false;
@@ -213,4 +213,4 @@ namespace lt
 			? (num - 1) * 32 + ext
 			: size - (aux::count_trailing_ones({&m_buf[1], std::size_t(num - 1)}) + ext);
 	}
-}
+}}

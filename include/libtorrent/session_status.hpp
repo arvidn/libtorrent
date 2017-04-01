@@ -41,8 +41,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #endif
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 #ifndef TORRENT_NO_DEPRECATE
 	// holds counters and gauges for the uTP sockets
@@ -227,7 +227,7 @@ namespace lt
 	};
 #endif // TORRENT_NO_DEPRECATE
 
-}
+}}
 
 #endif // TORRENT_SESSION_STATUS_HPP_INCLUDED
 

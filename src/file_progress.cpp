@@ -37,8 +37,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/invariant_check.hpp"
 
-namespace lt { namespace aux
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace aux {
 
 	file_progress::file_progress()
 	{
@@ -195,4 +196,4 @@ namespace lt { namespace aux
 		}
 	}
 #endif
-} }
+}}}

@@ -35,8 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/units.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	struct TORRENT_EXTRA_EXPORT piece_block
 	{
 		static const piece_block invalid;
@@ -63,5 +63,5 @@ namespace lt
 		bool operator!=(piece_block const& b) const
 		{ return piece_index != b.piece_index || block_index != b.block_index; }
 	};
-}
+}}
 #endif

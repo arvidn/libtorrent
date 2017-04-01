@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/numeric_cast.hpp"
 
 namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 constexpr std::uint32_t TIME_MASK = 0xffffffff;
 
@@ -103,4 +104,4 @@ void timestamp_history::adjust_base(int change)
 	}
 }
 
-}
+}}

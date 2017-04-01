@@ -38,7 +38,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/assert.hpp"
 
-namespace lt { namespace dht
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace dht
 {
 
 	struct dht_logger;
@@ -89,6 +91,6 @@ namespace lt { namespace dht
 
 		node_ban_entry m_ban_nodes[num_ban_nodes];
 	};
-}}
+}}}
 
 #endif

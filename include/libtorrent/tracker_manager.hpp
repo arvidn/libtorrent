@@ -63,8 +63,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 #include "libtorrent/error_code.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	struct request_callback;
 	class tracker_manager;
 	struct timeout_handler;
@@ -410,6 +410,6 @@ namespace lt
 		aux::session_logger& m_ses;
 #endif
 	};
-}
+}}
 
 #endif // TORRENT_TRACKER_MANAGER_HPP_INCLUDED

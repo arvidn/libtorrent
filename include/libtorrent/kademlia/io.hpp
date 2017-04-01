@@ -36,7 +36,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/socket_io.hpp"
 
-namespace lt { namespace dht {
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace dht {
 
 	struct node_endpoint
 	{
@@ -62,6 +64,6 @@ namespace lt { namespace dht {
 		return ep;
 	}
 
-}}
+}}}
 
 #endif

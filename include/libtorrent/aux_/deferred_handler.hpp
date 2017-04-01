@@ -36,7 +36,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/io_service.hpp"
 
-namespace lt { namespace aux {
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace aux {
 
 template <typename Handler>
 struct handler_wrapper
@@ -69,6 +71,6 @@ private:
 	bool m_in_flight = false;
 };
 
-}}
+}}}
 #endif
 

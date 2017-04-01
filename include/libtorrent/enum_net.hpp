@@ -51,8 +51,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	struct socket_type;
 
 	// the interface should not have a netmask
@@ -170,6 +170,6 @@ namespace lt
 	TORRENT_EXTRA_EXPORT std::string device_for_address(address addr
 		, io_service& ios, error_code& ec);
 
-}
+}}
 
 #endif

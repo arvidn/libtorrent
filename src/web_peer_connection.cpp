@@ -53,8 +53,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/http_parser.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 constexpr int request_size_overhead = 5000;
 
 std::string escape_file_path(file_storage const& storage, file_index_t index);
@@ -1180,4 +1180,4 @@ void web_peer_connection::handle_padfile()
 	}
 }
 
-} // libtorrent namespace
+}} // libtorrent namespace

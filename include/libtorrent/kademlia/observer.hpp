@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/address.hpp>
 
 namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 namespace dht {
 
 struct dht_observer;
@@ -161,6 +162,6 @@ public:
 
 typedef std::shared_ptr<observer> observer_ptr;
 
-} }
+}}}
 
 #endif

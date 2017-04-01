@@ -42,8 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 #ifndef TORRENT_NO_DEPRECATE
 
@@ -265,6 +265,6 @@ namespace lt
 	};
 #endif // TORRENT_NO_DEPRECATE
 
-}
+}}
 
 #endif

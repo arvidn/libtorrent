@@ -39,8 +39,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <memory>
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+
 	struct torrent_plugin;
 	struct torrent_handle;
 
@@ -54,7 +55,7 @@ namespace lt
 	// This can either be passed in the add_torrent_params::extensions field, or
 	// via torrent_handle::add_extension().
 	TORRENT_EXPORT std::shared_ptr<torrent_plugin> create_ut_metadata_plugin(torrent_handle const&, void*);
-}
+}}
 
 #endif // TORRENT_DISABLE_EXTENSIONS
 #endif // TORRENT_UT_METADATA_HPP_INCLUDED

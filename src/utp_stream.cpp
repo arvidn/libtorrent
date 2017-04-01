@@ -55,6 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 #if TORRENT_UTP_LOG
 
@@ -3640,4 +3641,4 @@ void utp_socket_impl::check_invariant() const
 	}
 }
 #endif
-}
+}}

@@ -44,17 +44,19 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/span.hpp>
 #include <libtorrent/io_service.hpp>
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	struct counters;
 	struct dht_settings;
 #ifndef TORRENT_NO_DEPRECATE
 	struct session_status;
 #endif
-}
+}}
 
-namespace lt { namespace dht
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace dht {
+
 	struct TORRENT_EXTRA_EXPORT dht_tracker final
 		: udp_socket_interface
 		, std::enable_shared_from_this<dht_tracker>
@@ -178,6 +180,6 @@ namespace lt { namespace dht
 		int m_send_quota;
 		time_point m_last_tick;
 	};
-}}
+}}}
 
 #endif

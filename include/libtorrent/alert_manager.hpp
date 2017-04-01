@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <atomic>
 
 namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	struct plugin;
@@ -163,6 +164,6 @@ namespace lt {
 		std::list<std::shared_ptr<plugin>> m_ses_extensions;
 #endif
 	};
-}
+}}
 
 #endif

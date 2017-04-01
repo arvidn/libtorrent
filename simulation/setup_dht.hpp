@@ -37,15 +37,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include "libtorrent/session_settings.hpp" // for dht_settings
 #include "libtorrent/performance_counters.hpp" // for counters
+#include "libtorrent/kademlia/routing_table.hpp" // for dht_routing_bucket
 
 namespace sim
 {
 	struct simulation;
-}
-
-namespace lt
-{
-	struct dht_routing_bucket;
 }
 
 struct dht_node;

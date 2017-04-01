@@ -43,8 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <mutex>
 #include <atomic>
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	struct disk_io_thread_pool;
 
 	struct pool_thread_interface
@@ -139,6 +139,6 @@ namespace lt
 		// timer to check for and reap idle threads
 		deadline_timer m_idle_timer;
 	};
-} // namespace lt
+}} // namespace lt
 
 #endif

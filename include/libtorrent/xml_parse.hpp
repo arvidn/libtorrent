@@ -39,8 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/string_view.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	enum
 	{
 		xml_start_tag,
@@ -64,7 +64,7 @@ namespace lt
 	// name_len and val_len respectively
 	TORRENT_EXTRA_EXPORT void xml_parse(string_view input
 		, std::function<void(int, string_view, string_view)> callback);
-}
+}}
 
 
 #endif

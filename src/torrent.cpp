@@ -104,8 +104,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	namespace {
 
 	std::uint32_t root2(int x)
@@ -10702,4 +10702,4 @@ namespace lt
 	}
 #endif
 
-}
+}}

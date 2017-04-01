@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <tuple>
 
 namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 namespace dht
 {
 
@@ -99,6 +100,6 @@ namespace dht
 	TORRENT_EXPORT std::array<char, 32> ed25519_key_exchange(
 		public_key const& pk, secret_key const& sk);
 
-}}
+}}}
 
 #endif // LIBTORRENT_ED25519_HPP

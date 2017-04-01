@@ -37,8 +37,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/export.hpp"
 #include "libtorrent/span.hpp"
 
-namespace lt { namespace aux
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace aux {
+
 	// For a general reference of the problems these routines are about
 	// see http://en.wikipedia.org/wiki/Find_first_set
 
@@ -61,6 +63,6 @@ namespace lt { namespace aux
 	// this function statically determines if hardware or software is used
 	// and expect the range to be in big-endian byte order
 	TORRENT_EXTRA_EXPORT int count_trailing_ones(span<std::uint32_t const> buf);
-}}
+}}}
 
 #endif // TORRENT_FFS_HPP_INCLUDE

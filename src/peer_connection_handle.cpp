@@ -37,8 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdarg> // for va_start, va_end
 #endif
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 connection_type peer_connection_handle::type() const
 {
@@ -340,4 +340,4 @@ std::shared_ptr<bt_peer_connection> bt_peer_connection_handle::native_handle() c
 		peer_connection_handle::native_handle());
 }
 
-} // namespace lt
+}} // namespace lt

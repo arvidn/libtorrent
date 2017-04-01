@@ -41,8 +41,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_util.hpp" // for allocate_string_copy
 #include "libtorrent/aux_/escape_string.hpp" // for read_until
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	bool is_ok_status(int http_status)
 	{
@@ -572,4 +572,4 @@ restart_response:
 		size = int(write_ptr - buffer);
 		return size;
 	}
-}
+}}

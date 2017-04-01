@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	namespace ssl {
 #if defined TORRENT_BUILD_SIMULATOR
@@ -323,7 +324,7 @@ private:
 	ssl::stream<Stream> m_sock;
 };
 
-}
+}}
 
 #endif // TORRENT_USE_OPENSSL
 

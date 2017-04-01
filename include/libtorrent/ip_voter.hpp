@@ -38,8 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bloom_filter.hpp"
 #include "libtorrent/time.hpp" // for time_point
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	// this is an object that keeps the state for a single external IP
 	// based on peoples votes
 	struct TORRENT_EXTRA_EXPORT ip_voter
@@ -132,6 +132,6 @@ namespace lt
 		address m_addresses[2][2];
 	};
 
-}
+}}
 
 #endif

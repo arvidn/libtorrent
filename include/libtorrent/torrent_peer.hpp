@@ -37,8 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/socket.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	struct peer_connection_interface;
 	struct external_ip;
 
@@ -266,7 +266,7 @@ namespace lt
 			return lhs->address() < rhs->address();
 		}
 	};
-}
+}}
 
 #endif
 

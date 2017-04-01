@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 namespace aux {
 
 // these need to be within the disabled warnings because on OSX
@@ -67,8 +68,7 @@ inline std::uint16_t host_to_network(std::uint16_t x)
 inline std::uint16_t network_to_host(std::uint16_t x)
 { return ntohs(x); }
 
-}
-}
+}}}
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 

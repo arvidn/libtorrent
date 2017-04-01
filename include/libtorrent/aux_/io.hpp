@@ -38,8 +38,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <type_traits>
 #include "libtorrent/span.hpp"
 
-namespace lt { namespace aux
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace aux {
 	template <class T> struct type {};
 
 	// reads an integer from a byte stream
@@ -175,6 +176,6 @@ namespace lt { namespace aux
 		return int(len);
 	}
 
-}}
+}}}
 
 #endif // TORRENT_AUX_IO_HPP_INCLUDED

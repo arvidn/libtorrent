@@ -36,8 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	struct union_address
 	{
 		union_address() { *this = address(); }
@@ -124,6 +124,6 @@ namespace lt
 		union_address addr;
 		std::uint16_t port;
 	};
-}
+}}
 
 #endif

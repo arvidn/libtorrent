@@ -60,8 +60,8 @@ const rlim_t rlim_infinity = RLIM_INFINITY;
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	int max_open_files()
 	{
@@ -137,4 +137,4 @@ namespace lt
 		return ret;
 #endif // TORRENT_BUILD_SIMULATOR
 	}
-}
+}}

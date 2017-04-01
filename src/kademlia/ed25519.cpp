@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/ed25519.hpp>
 
 namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 namespace dht
 {
 
@@ -125,4 +126,4 @@ namespace dht
 		return secret;
 	}
 
-}}
+}}}

@@ -51,8 +51,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 #include <functional>
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	struct storage_interface;
 	struct cached_piece_entry;
 	class torrent_info;
@@ -239,6 +239,6 @@ namespace lt
 #endif
 	};
 
-}
+}}
 
 #endif // TORRENT_DISK_IO_JOB_HPP

@@ -34,8 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 #include "libtorrent/aux_/time.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	resolver::resolver(io_service& ios)
 		: m_ios(ios)
 		, m_resolver(ios)
@@ -132,4 +132,4 @@ namespace lt
 	{
 		m_resolver.cancel();
 	}
-}
+}}

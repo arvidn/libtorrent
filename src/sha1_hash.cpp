@@ -38,8 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iomanip>
 #endif // TORRENT_USE_IOSTREAM
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 #if TORRENT_USE_IOSTREAM
 
 	// print a sha1_hash object to an ostream as 40 hexadecimal digits
@@ -137,4 +137,4 @@ namespace aux
 		}
 	}
 }
-}
+}}

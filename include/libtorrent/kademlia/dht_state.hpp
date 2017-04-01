@@ -41,14 +41,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 
-namespace lt
-{
-	struct bdecode_node;
-}
-
 namespace lt {
-namespace dht
-{
+LIBTORRENT_VERSION_NAMESPACE {
+
+struct bdecode_node;
+
+namespace dht {
+
 	// This structure helps to store and load the state
 	// of the ``dht_tracker``.
 	// At this moment the library is only a dual stack
@@ -72,6 +71,6 @@ namespace dht
 
 	TORRENT_EXTRA_EXPORT dht_state read_dht_state(bdecode_node const& e);
 	TORRENT_EXTRA_EXPORT entry save_dht_state(dht_state const& state);
-}}
+}}}
 
 #endif // LIBTORRENT_DHT_STATE_HPP

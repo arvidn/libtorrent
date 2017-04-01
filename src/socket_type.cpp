@@ -42,8 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/debug.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	bool is_ssl(socket_type const& s)
 	{
@@ -396,4 +396,4 @@ namespace lt
 	{ TORRENT_SOCKTYPE_FORWARD_RET(available(), 0) }
 #endif
 
-}
+}}

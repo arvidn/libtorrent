@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/aux_/numeric_cast.hpp>
 
 namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 namespace dht {
 namespace
 {
@@ -621,4 +622,4 @@ std::unique_ptr<dht_storage_interface> dht_default_storage_constructor(
 	return std::unique_ptr<dht_default_storage>(new dht_default_storage(settings));
 }
 
-} } // namespace lt::dht
+}}} // namespace lt::dht

@@ -42,8 +42,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdio> // for vsnprintf
 #include <cstring>
 
-namespace lt { namespace aux
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace aux {
 	struct allocation_slot
 	{
 		allocation_slot() : m_idx(-1) {}
@@ -159,6 +160,6 @@ namespace lt { namespace aux
 		vector<char> m_storage;
 	};
 
-} }
+}}}
 
 #endif

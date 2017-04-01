@@ -38,8 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	void http_stream::name_lookup(error_code const& e, tcp::resolver::iterator i
 		, handler_type& h)
@@ -151,4 +151,4 @@ namespace lt
 			, std::bind(&http_stream::handshake2, this, _1, std::move(h)));
 	}
 
-}
+}}

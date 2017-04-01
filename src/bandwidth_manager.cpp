@@ -36,8 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <climits>
 #endif
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	bandwidth_manager::bandwidth_manager(int channel)
 		: m_queued_bytes(0)
@@ -219,4 +219,4 @@ namespace lt
 			tm.pop_back();
 		}
 	}
-}
+}}

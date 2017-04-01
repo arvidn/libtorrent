@@ -60,10 +60,12 @@ namespace {
 	// returned
 	char const* ensure_string(char const* str)
 	{ return str == nullptr ? "" : str; }
-}
 
-namespace lt
-{
+} // anonymous namespace
+
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+
 	struct str_setting_entry_t
 	{
 		// the name of this setting. used for serialization and deserialization
@@ -101,9 +103,9 @@ namespace lt
 #endif
 
 #ifdef TORRENT_WINDOWS
-#define CLOSE_FILE_INTERVAL 120
+	int const close_file_interval_s = 120;
 #else
-#define CLOSE_FILE_INTERVAL 0
+	int const close_file_interval_s = 0;
 #endif
 
 	namespace {
@@ -333,7 +335,7 @@ namespace lt
 		SET(cache_size_volatile, 256, nullptr),
 		SET(urlseed_max_request_bytes, 16 * 1024 * 1024, 0),
 		SET(web_seed_name_lookup_retry, 1800, nullptr),
-		SET(close_file_interval, CLOSE_FILE_INTERVAL, &session_impl::update_close_file_interval),
+		SET(close_file_interval, close_file_interval_s, &session_impl::update_close_file_interval),
 		SET(max_web_seed_connections, 3, nullptr),
 	}});
 
@@ -732,4 +734,4 @@ namespace lt
 			}
 		}
 	}
-}
+}}

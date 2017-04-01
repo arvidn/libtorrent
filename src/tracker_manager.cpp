@@ -42,8 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	timeout_handler::timeout_handler(io_service& ios)
 		: m_start_time(clock_type::now())
 		, m_read_time(m_start_time)
@@ -442,4 +442,4 @@ namespace lt
 		TORRENT_ASSERT(is_single_thread());
 		return int(m_http_conns.size() + m_udp_conns.size());
 	}
-}
+}}

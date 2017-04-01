@@ -38,8 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/aux_/session_call.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	settings_pack min_memory_usage()
 	{
 		settings_pack set;
@@ -422,4 +422,4 @@ namespace lt
 		, dht_storage_constructor(dht::dht_default_storage_constructor)
 #endif
 	{}
-}
+}}

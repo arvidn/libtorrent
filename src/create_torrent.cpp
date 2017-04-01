@@ -49,8 +49,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	namespace
 	{
 		inline bool default_pred(std::string const&) { return true; }
@@ -726,4 +726,4 @@ namespace lt
 		if (str == nullptr) m_created_by.clear();
 		else m_created_by = str;
 	}
-}
+}}

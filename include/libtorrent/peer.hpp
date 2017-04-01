@@ -38,8 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/address.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	struct TORRENT_EXTRA_EXPORT peer_entry
 	{
@@ -68,6 +68,6 @@ namespace lt
 	};
 #endif
 
-}
+}}
 
 #endif // TORRENT_PEER_HPP_INCLUDED

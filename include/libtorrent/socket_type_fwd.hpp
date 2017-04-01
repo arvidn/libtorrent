@@ -33,10 +33,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SOCKET_TYPE_FWD_HPP
 #define TORRENT_SOCKET_TYPE_FWD_HPP
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	struct socket_type;
-}
+}}
 
 #endif
 

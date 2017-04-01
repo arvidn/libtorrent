@@ -42,8 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	ip_change_notifier::ip_change_notifier(io_service& ios)
 #if defined TORRENT_BUILD_SIMULATOR
 #elif TORRENT_USE_NETLINK
@@ -124,4 +124,4 @@ namespace lt
 		else
 			cb(ec);
 	}
-}
+}}

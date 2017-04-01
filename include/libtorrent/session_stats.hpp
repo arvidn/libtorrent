@@ -37,8 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	// describes one statistics metric from the session. For more information,
 	// see the session-statistics_ section.
@@ -62,6 +62,6 @@ namespace lt
 	// values array returned by session_stats_alert.
 	TORRENT_EXPORT int find_metric_idx(char const* name);
 
-}
+}}
 
 #endif

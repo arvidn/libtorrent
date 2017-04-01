@@ -42,8 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	struct TORRENT_EXTRA_EXPORT torrent_peer_allocator_interface
 	{
@@ -97,7 +97,7 @@ namespace lt
 		// the number of currently live allocations
 		int m_live_allocations;
 	};
-}
+}}
 
 #endif
 

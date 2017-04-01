@@ -35,8 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/error_code.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	// internal: these are all the reasons to disconnect a peer
 	// all reasons caused by the peer sending unexpected data
 	// are 256 and up.
@@ -151,6 +151,6 @@ namespace lt
 	};
 
 	close_reason_t error_to_close_reason(error_code const& ec);
-}
+}}
 
 #endif

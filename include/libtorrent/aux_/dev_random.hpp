@@ -39,7 +39,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <fcntl.h>
 
-namespace lt { namespace aux {
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace aux {
 
 	struct dev_random
 	{
@@ -68,7 +70,7 @@ namespace lt { namespace aux {
 	private:
 		int m_fd;
 	};
-}}
+}}}
 
 #endif
 

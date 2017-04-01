@@ -35,7 +35,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/piece_block.hpp"
 
-namespace lt { namespace aux {
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace aux {
 	struct has_block
 	{
 		has_block(has_block const&) = default;
@@ -49,7 +51,7 @@ namespace lt { namespace aux {
 		has_block& operator=(has_block const&);
 	};
 
-}}
+}}}
 
 #endif
 

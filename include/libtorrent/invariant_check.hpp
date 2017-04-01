@@ -11,8 +11,8 @@
 
 #if TORRENT_USE_INVARIANT_CHECKS
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	class invariant_access
 	{
@@ -76,7 +76,7 @@ namespace lt
 	{
 		return invariant_checker_impl<T>(x);
 	}
-}
+}}
 
 #define INVARIANT_CHECK \
 	invariant_checker const& _invariant_check = make_invariant_checker(*this); \

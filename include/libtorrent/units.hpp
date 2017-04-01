@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 
 namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 namespace aux {
 
 	template <typename Tag>
@@ -131,7 +132,7 @@ namespace aux {
 	// this type represents an index to a file in a torrent
 	using file_index_t = aux::strong_typedef<std::int32_t, aux::file_index_tag>;
 
-} // namespace lt
+}} // namespace lt
 
 namespace std {
 

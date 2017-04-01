@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 
 namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 namespace aux
 {
 	// TODO: move this for a better place and integrate it with
@@ -68,6 +69,6 @@ namespace aux
 	protected:
 		~portmap_callback() {}
 	};
-}}
+}}}
 
 #endif // LIBTORRENT_PORTMAP_HPP

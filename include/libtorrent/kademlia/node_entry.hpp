@@ -39,7 +39,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/union_endpoint.hpp"
 #include "libtorrent/time.hpp" // for time_point
 
-namespace lt { namespace dht
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace dht
 {
 
 struct TORRENT_EXTRA_EXPORT node_entry
@@ -79,6 +81,6 @@ struct TORRENT_EXTRA_EXPORT node_entry
 	std::uint8_t timeout_count;
 };
 
-} } // namespace lt::dht
+}}} // namespace lt::dht
 
 #endif

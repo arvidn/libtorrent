@@ -43,13 +43,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif // SIMULATOR
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 #if defined TORRENT_BUILD_SIMULATOR
 	typedef sim::asio::high_resolution_timer deadline_timer;
 #else
 	typedef boost::asio::high_resolution_timer deadline_timer;
 #endif
-}
+}}
 
 #endif // TORRENT_DEADLINE_TIMER_HPP_INCLUDED

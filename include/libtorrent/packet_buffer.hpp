@@ -40,8 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstddef>
 #include <memory> // for unique_ptr
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	struct packet;
 
 	// this is a circular buffer that automatically resizes
@@ -112,6 +112,6 @@ namespace lt
 		index_type m_last{0};
 	};
 
-}
+}}
 
 #endif // TORRENT_PACKET_BUFFER_HPP_INCLUDED

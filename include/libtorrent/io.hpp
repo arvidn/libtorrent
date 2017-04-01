@@ -42,8 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "assert.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	namespace detail
 	{
 		template <class T> struct type {};
@@ -185,6 +185,6 @@ namespace lt
 			return int(val.length());
 		}
 	}
-}
+}}
 
 #endif // TORRENT_IO_HPP_INCLUDED

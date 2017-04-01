@@ -40,7 +40,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp" // for hasher
 #include "libtorrent/crc32c.hpp" // for crc32c
 
-namespace lt { namespace dht
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace dht
 {
 
 // returns the distance between the two nodes
@@ -215,4 +217,4 @@ node_id generate_prefix_mask(int const bits)
 	return mask;
 }
 
-} }  // namespace lt::dht
+}}}  // namespace lt::dht

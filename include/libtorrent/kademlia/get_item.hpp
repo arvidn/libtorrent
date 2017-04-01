@@ -38,7 +38,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <memory>
 
-namespace lt { namespace dht
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace dht
 {
 
 class get_item : public find_data
@@ -89,6 +91,6 @@ public:
 	virtual void reply(msg const&);
 };
 
-} } // namespace lt::dht
+}}} // namespace lt::dht
 
 #endif // LIBTORRENT_GET_ITEM_HPP

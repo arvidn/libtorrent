@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_util.hpp" // for to_string
 
 namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 namespace socks_error {
 
 	// SOCKS5 error values. If an error_code has the
@@ -188,7 +189,7 @@ private:
 	int m_command;
 };
 
-}
+}}
 
 namespace boost { namespace system {
 

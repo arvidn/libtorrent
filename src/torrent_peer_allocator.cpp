@@ -35,8 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/torrent_peer_allocator.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	torrent_peer_allocator::torrent_peer_allocator()
 		: m_ipv4_peer_pool(sizeof(libtorrent::ipv4_peer), 500)
@@ -130,4 +130,4 @@ namespace lt
 		--m_live_allocations;
 	}
 
-}
+}}

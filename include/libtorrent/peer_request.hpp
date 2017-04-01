@@ -35,8 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/units.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	// represents a byte range within a piece. Internally this is
 	// is used for incoming piece requests.
@@ -54,6 +54,6 @@ namespace lt
 		bool operator==(peer_request const& r) const
 		{ return piece == r.piece && start == r.start && length == r.length; }
 	};
-}
+}}
 
 #endif // TORRENT_PEER_REQUEST_HPP_INCLUDED

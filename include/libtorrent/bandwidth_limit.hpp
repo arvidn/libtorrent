@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 
 namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 // member of peer_connection
 struct TORRENT_EXTRA_EXPORT bandwidth_channel
@@ -95,6 +96,6 @@ private:
 	std::int64_t m_limit;
 };
 
-}
+}}
 
 #endif

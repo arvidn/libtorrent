@@ -43,8 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/span.hpp"
 #include "libtorrent/packet_pool.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	struct utp_stream;
 	struct utp_socket_impl;
 	struct counters;
@@ -196,6 +196,6 @@ namespace lt
 
 		packet_pool m_packet_pool;
 	};
-}
+}}
 
 #endif

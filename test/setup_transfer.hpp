@@ -37,12 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <tuple>
 #include "test.hpp"
 #include "libtorrent/units.hpp"
-
-namespace lt
-{
-	class alert;
-	struct add_torrent_params;
-}
+#include "libtorrent/alert.hpp"
+#include "libtorrent/add_torrent_params.hpp"
 
 EXPORT int print_failures();
 EXPORT unsigned char random_byte();

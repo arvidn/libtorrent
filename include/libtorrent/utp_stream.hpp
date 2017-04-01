@@ -49,8 +49,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 #ifndef TORRENT_UTP_LOG_ENABLE
 	#define TORRENT_UTP_LOG 0
 	#define TORRENT_VERBOSE_UTP_LOG 0
@@ -489,6 +489,6 @@ private:
 	bool m_open;
 };
 
-}
+}}
 
 #endif

@@ -34,8 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error.hpp"
 #include "libtorrent/assert.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	close_reason_t error_to_close_reason(error_code const& ec)
 	{
@@ -164,4 +164,4 @@ namespace lt
 
 		return close_reason_t::none;
 	}
-}
+}}

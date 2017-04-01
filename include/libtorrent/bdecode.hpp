@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/string_view.hpp"
+#include "libtorrent/version.hpp"
 
 /*
 
@@ -99,6 +100,7 @@ example layout:
 */
 
 namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 TORRENT_EXPORT boost::system::error_category& bdecode_category();
 
@@ -139,7 +141,7 @@ namespace bdecode_errors
 	// hidden
 	TORRENT_EXPORT boost::system::error_code make_error_code(error_code_enum e);
 }
-} // namespace lt
+}} // namespace lt
 
 namespace boost { namespace system {
 
@@ -149,8 +151,9 @@ namespace boost { namespace system {
 } }
 
 namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
-	typedef boost::system::error_code error_code;
+	using error_code = boost::system::error_code;
 
 TORRENT_EXTRA_EXPORT char const* parse_int(char const* start
 	, char const* end, char delimiter, std::int64_t& val
@@ -429,6 +432,6 @@ TORRENT_EXPORT bdecode_node bdecode(span<char const> buffer
 	, error_code& ec, int* error_pos = nullptr, int depth_limit = 100
 	, int token_limit = 1000000);
 
-}
+}}
 
 #endif // TORRENT_BDECODE_HPP

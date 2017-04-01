@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <mutex>
 
 namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 struct disk_io_job;
 struct counters;
@@ -111,7 +112,7 @@ namespace aux
 	};
 
 
-}}
+}}}
 
 #endif
 

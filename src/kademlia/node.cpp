@@ -66,7 +66,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace lt { namespace dht
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace dht
 {
 
 namespace {
@@ -1191,4 +1193,4 @@ node::protocol_descriptor const& node::map_protocol_to_descriptor(udp protocol)
 	aux::throw_ex<std::out_of_range>("unknown protocol");
 }
 
-} } // namespace lt::dht
+}}} // namespace lt::dht

@@ -73,8 +73,8 @@ namespace
 	{ return (n + 1023) & ~0x3ff; }
 }
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	part_file::part_file(std::string const& path, std::string const& name
 		, int num_pieces, int piece_size)
 		: m_path(path)
@@ -412,4 +412,4 @@ namespace lt
 		iovec_t b = {header.get(), std::size_t(m_header_size)};
 		m_file.writev(0, b, ec);
 	}
-}
+}}

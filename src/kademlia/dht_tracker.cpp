@@ -51,7 +51,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace lt { namespace dht
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace dht
 {
 	namespace {
 
@@ -660,4 +662,4 @@ namespace lt { namespace dht
 		return true;
 	}
 
-}}
+}}}

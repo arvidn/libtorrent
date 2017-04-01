@@ -85,8 +85,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	namespace {
 
@@ -6530,4 +6530,4 @@ namespace lt
 		disconnect_if_redundant();
 	}
 
-}
+}}

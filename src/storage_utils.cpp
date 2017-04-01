@@ -42,8 +42,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #include <string>
 
-namespace lt { namespace aux
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace aux {
 	int copy_bufs(span<iovec_t const> bufs, int const bytes, span<iovec_t> target)
 	{
 		int size = 0;
@@ -557,4 +558,4 @@ namespace lt { namespace aux
 		return true;
 	}
 
-}}
+}}}

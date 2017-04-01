@@ -44,8 +44,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 // #define TORRENT_DEBUG_MTU 1135
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	using namespace lt::aux;
 
 	utp_socket_manager::utp_socket_manager(
@@ -341,4 +341,4 @@ namespace lt
 		m_utp_sockets.insert(std::make_pair(recv_id, impl));
 		return impl;
 	}
-}
+}}

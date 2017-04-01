@@ -37,8 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstring>
 #include <algorithm>
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	namespace
 	{
 
@@ -579,4 +579,4 @@ namespace lt
 		return i->value_index;
 	}
 
-}
+}}

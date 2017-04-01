@@ -37,8 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <random>
 #include <algorithm>
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	namespace aux
 	{
 		TORRENT_EXTRA_EXPORT std::mt19937& random_engine();
@@ -60,4 +60,4 @@ namespace lt
 	}
 
 	TORRENT_EXTRA_EXPORT std::uint32_t random(std::uint32_t max);
-}
+}}

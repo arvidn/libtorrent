@@ -39,8 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	namespace aux {
 
 	TORRENT_EXTRA_EXPORT int hex_to_int(char in);
@@ -77,6 +77,6 @@ namespace lt
 	inline bool from_hex(char const *in, int len, char* out)
 	{ return aux::from_hex({in, static_cast<size_t>(len)}, out); }
 #endif
-}
+}}
 
 #endif // TORRENT_HEX_HPP_INCLUDED

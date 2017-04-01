@@ -36,8 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstddef>
 #include "libtorrent/config.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	TORRENT_EXTRA_EXPORT int page_size();
 
@@ -53,6 +53,6 @@ namespace lt
 #endif
 	};
 
-}
+}}
 
 #endif

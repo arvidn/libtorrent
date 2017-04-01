@@ -34,8 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm> // for find
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	void peer_class_set::add_class(peer_class_pool& pool, peer_class_t c)
 	{
 		if (std::find(m_class.begin(), m_class.begin() + m_size, c)
@@ -69,4 +69,4 @@ namespace lt
 		--m_size;
 		pool.decref(c);
 	}
-}
+}}

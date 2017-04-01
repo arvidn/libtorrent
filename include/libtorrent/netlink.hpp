@@ -46,8 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/basic_raw_socket.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	template <typename Protocol>
 	class basic_nl_endpoint
 	{
@@ -191,7 +191,7 @@ namespace lt
 		int m_nl_family;
 	};
 
-}
+}}
 
 #endif // TORRENT_USE_NETLINK
 

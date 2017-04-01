@@ -36,8 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp" // for random()
 #include "libtorrent/aux_/time.hpp" // for aux::time_now()
 
-namespace lt
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	ip_voter::ip_voter()
 		: m_total_votes(0)
 		, m_valid_external(false)
@@ -193,4 +193,4 @@ namespace lt
 #endif
 		return ext;
 	}
-}
+}}

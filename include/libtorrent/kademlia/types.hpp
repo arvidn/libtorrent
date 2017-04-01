@@ -35,8 +35,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstdint>
 
-namespace lt { namespace dht
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace dht {
+
 	struct public_key
 	{
 		public_key() = default;
@@ -90,6 +92,6 @@ namespace lt { namespace dht
 		std::int64_t value;
 	};
 
-}}
+}}}
 
 #endif // LIBTORRENT_TYPES_HPP

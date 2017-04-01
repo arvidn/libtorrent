@@ -40,7 +40,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/sliding_average.hpp"
 #include "libtorrent/aux_/vector.hpp"
 
-namespace lt { namespace aux {
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace aux {
 
 
 struct suggest_piece
@@ -123,6 +125,6 @@ private:
 	sliding_average<30> m_availability;
 };
 
-}}
+}}}
 
 #endif
