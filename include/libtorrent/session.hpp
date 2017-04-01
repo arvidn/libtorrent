@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <thread>
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/build_config.hpp"
 #include "libtorrent/io_service.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/session_handle.hpp"
@@ -86,12 +85,6 @@ LIBTORRENT_VERSION_NAMESPACE {
 	inline void high_performance_seed(settings_pack& set)
 	{ set = high_performance_seed(); }
 #endif
-
-#ifndef TORRENT_CFG
-#error TORRENT_CFG is not defined!
-#endif
-
-	void TORRENT_EXPORT TORRENT_CFG();
 
 	namespace aux
 	{
@@ -186,7 +179,6 @@ LIBTORRENT_VERSION_NAMESPACE {
 		explicit session(session_params params = session_params())
 			: session_handle(nullptr)
 		{
-			TORRENT_CFG();
 			start(std::move(params), nullptr);
 		}
 
@@ -206,7 +198,6 @@ LIBTORRENT_VERSION_NAMESPACE {
 		session(session_params params, io_service& ios)
 			: session_handle(nullptr)
 		{
-			TORRENT_CFG();
 			start(std::move(params), &ios);
 		}
 
@@ -225,7 +216,6 @@ LIBTORRENT_VERSION_NAMESPACE {
 			, int flags = start_default_features | add_default_plugins)
 			: session_handle(nullptr)
 		{
-			TORRENT_CFG();
 			start(flags, std::move(pack), nullptr);
 		}
 
@@ -255,7 +245,6 @@ LIBTORRENT_VERSION_NAMESPACE {
 			, int flags = start_default_features | add_default_plugins)
 			: session_handle(nullptr)
 		{
-			TORRENT_CFG();
 			start(flags, std::move(pack), &ios);
 		}
 
@@ -278,7 +267,6 @@ LIBTORRENT_VERSION_NAMESPACE {
 			, std::uint32_t alert_mask = alert::error_notification)
 			: session_handle(nullptr)
 		{
-			TORRENT_CFG();
 			settings_pack pack;
 			pack.set_int(settings_pack::alert_mask, int(alert_mask));
 			pack.set_str(settings_pack::peer_fingerprint, print.to_string());
@@ -301,7 +289,6 @@ LIBTORRENT_VERSION_NAMESPACE {
 			, int alert_mask = alert::error_notification)
 			: session_handle(nullptr)
 		{
-			TORRENT_CFG();
 			TORRENT_ASSERT(listen_port_range.first > 0);
 			TORRENT_ASSERT(listen_port_range.first <= listen_port_range.second);
 
