@@ -58,7 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace libtorrent
+namespace lt
 {
 	http_tracker_connection::http_tracker_connection(
 		io_service& ios

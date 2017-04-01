@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif // SIMULATOR
 
-namespace libtorrent
+namespace lt
 {
 #if defined TORRENT_BUILD_SIMULATOR
 	using address = sim::asio::ip::address;

@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdarg> // for va_start, va_end
 #endif
 
-namespace libtorrent
+namespace lt
 {
 
 connection_type peer_connection_handle::type() const
@@ -340,4 +340,4 @@ std::shared_ptr<bt_peer_connection> bt_peer_connection_handle::native_handle() c
 		peer_connection_handle::native_handle());
 }
 
-} // namespace libtorrent
+} // namespace lt

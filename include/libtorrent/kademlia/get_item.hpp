@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <memory>
 
-namespace libtorrent { namespace dht
+namespace lt { namespace dht
 {
 
 class get_item : public find_data
@@ -89,6 +89,6 @@ public:
 	virtual void reply(msg const&);
 };
 
-} } // namespace libtorrent::dht
+} } // namespace lt::dht
 
 #endif // LIBTORRENT_GET_ITEM_HPP

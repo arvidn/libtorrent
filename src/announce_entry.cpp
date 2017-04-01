@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 
-namespace libtorrent
+namespace lt
 {
 	namespace {
 		// wait at least 5 seconds before retrying a failed tracker

@@ -54,7 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_CPP98_DEQUE 0
 #endif
 
-namespace libtorrent
+namespace lt
 {
 	// TODO: 2 this type should probably be renamed to send_buffer
 	struct TORRENT_EXTRA_EXPORT chained_buffer : private single_threaded

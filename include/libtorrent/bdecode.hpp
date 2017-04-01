@@ -98,7 +98,7 @@ example layout:
 
 */
 
-namespace libtorrent {
+namespace lt {
 
 TORRENT_EXPORT boost::system::error_category& bdecode_category();
 
@@ -139,7 +139,7 @@ namespace bdecode_errors
 	// hidden
 	TORRENT_EXPORT boost::system::error_code make_error_code(error_code_enum e);
 }
-} // namespace libtorrent
+} // namespace lt
 
 namespace boost { namespace system {
 
@@ -148,7 +148,7 @@ namespace boost { namespace system {
 
 } }
 
-namespace libtorrent {
+namespace lt {
 
 	typedef boost::system::error_code error_code;
 

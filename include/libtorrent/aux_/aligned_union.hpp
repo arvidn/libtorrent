@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <type_traits>
 
-namespace libtorrent { namespace aux {
+namespace lt { namespace aux {
 
 #if defined __GNUC__ && __GNUC__ < 5
 

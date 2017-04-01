@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-namespace libtorrent { namespace aux
+namespace lt { namespace aux
 {
 	template <typename T, typename... Args>
 	void TORRENT_NO_RETURN throw_ex(Args&&... args)

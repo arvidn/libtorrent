@@ -44,9 +44,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 // #define TORRENT_DEBUG_MTU 1135
 
-namespace libtorrent
+namespace lt
 {
-	using namespace libtorrent::aux;
+	using namespace lt::aux;
 
 	utp_socket_manager::utp_socket_manager(
 		send_fun_t const& send_fun

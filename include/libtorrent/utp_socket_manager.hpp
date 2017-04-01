@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/span.hpp"
 #include "libtorrent/packet_pool.hpp"
 
-namespace libtorrent
+namespace lt
 {
 	struct utp_stream;
 	struct utp_socket_impl;

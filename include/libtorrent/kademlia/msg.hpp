@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/span.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 struct bdecode_node;
 

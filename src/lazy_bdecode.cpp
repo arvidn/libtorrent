@@ -48,7 +48,7 @@ namespace
 	const int lazy_entry_list_init = 5;
 }
 
-namespace libtorrent
+namespace lt
 {
 
 	namespace

@@ -41,12 +41,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 
-namespace libtorrent
+namespace lt
 {
 	struct bdecode_node;
 }
 
-namespace libtorrent {
+namespace lt {
 namespace dht
 {
 	// This structure helps to store and load the state

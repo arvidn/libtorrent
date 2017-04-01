@@ -62,7 +62,7 @@ namespace {
 	{ return str == nullptr ? "" : str; }
 }
 
-namespace libtorrent
+namespace lt
 {
 	struct str_setting_entry_t
 	{

@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/torrent_status.hpp"
 
-namespace libtorrent
+namespace lt
 {
 	file_index_t constexpr torrent_status::error_file_none;
 	file_index_t constexpr torrent_status::error_file_url;

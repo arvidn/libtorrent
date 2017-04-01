@@ -59,7 +59,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/auxv.h>
 #endif
 
-namespace libtorrent { namespace aux
+namespace lt { namespace aux
 {
 	namespace {
 

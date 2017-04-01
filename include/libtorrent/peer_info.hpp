@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/units.hpp"
 
-namespace libtorrent
+namespace lt
 {
 	// holds information and statistics about one peer
 	// that libtorrent is connected to

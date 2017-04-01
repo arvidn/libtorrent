@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/proxy_base.hpp"
 
-namespace libtorrent
+namespace lt
 {
 
 	proxy_base::proxy_base(io_service& io_service)

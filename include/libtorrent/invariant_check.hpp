@@ -11,7 +11,7 @@
 
 #if TORRENT_USE_INVARIANT_CHECKS
 
-namespace libtorrent
+namespace lt
 {
 
 	class invariant_access

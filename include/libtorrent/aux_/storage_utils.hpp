@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/uio.h> // for iovec
 #endif
 
-namespace libtorrent
+namespace lt
 {
 	class file_storage;
 	struct part_file;

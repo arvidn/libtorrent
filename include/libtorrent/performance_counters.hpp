@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <atomic>
 #include <mutex>
 
-namespace libtorrent
+namespace lt
 {
 	struct TORRENT_EXTRA_EXPORT counters
 	{

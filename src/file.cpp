@@ -327,7 +327,7 @@ static_assert((libtorrent::file::sparse & libtorrent::file::attribute_mask) == 0
 
 #endif // TORRENT_WINDOWS
 
-namespace libtorrent
+namespace lt
 {
 	int bufs_size(span<iovec_t const> bufs)
 	{

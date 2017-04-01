@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/stat.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 void stat_channel::second_tick(int tick_interval_ms)
 {

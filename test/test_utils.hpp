@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 
-namespace libtorrent
+namespace lt
 {
 	EXPORT char const* time_now_string();
 }

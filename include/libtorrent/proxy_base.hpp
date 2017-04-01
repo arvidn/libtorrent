@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/error_code.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 class proxy_base
 {

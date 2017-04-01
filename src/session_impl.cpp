@@ -172,7 +172,7 @@ namespace boost {
 }
 #endif
 
-namespace libtorrent {
+namespace lt {
 
 #if defined TORRENT_ASIO_DEBUGGING
 	std::map<std::string, async_t> _async_ops;

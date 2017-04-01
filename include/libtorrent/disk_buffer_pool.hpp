@@ -56,7 +56,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp" // for iovec_t
 #include "libtorrent/span.hpp"
 
-namespace libtorrent
+namespace lt
 {
 	namespace aux { struct session_settings; }
 	class alert;

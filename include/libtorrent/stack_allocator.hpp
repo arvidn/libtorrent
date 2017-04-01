@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdio> // for vsnprintf
 #include <cstring>
 
-namespace libtorrent { namespace aux
+namespace lt { namespace aux
 {
 	struct allocation_slot
 	{

@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/version.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 char const* version()
 {

@@ -20,7 +20,6 @@
 
 using namespace boost::python;
 using namespace libtorrent;
-namespace lt = libtorrent;
 
 namespace
 {

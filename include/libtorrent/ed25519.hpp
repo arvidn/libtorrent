@@ -4,7 +4,7 @@
 #include "libtorrent/export.hpp" // for TORRENT_EXPORT
 #include <stddef.h> // for size_t
 
-namespace libtorrent
+namespace lt
 {
 enum
 {

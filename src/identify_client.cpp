@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace
 {
 
-	using namespace libtorrent;
+	using namespace lt;
 
 	int decode_digit(std::uint8_t c)
 	{
@@ -343,7 +343,7 @@ namespace
 	}
 }
 
-namespace libtorrent
+namespace lt
 {
 
 #ifndef TORRENT_NO_DEPRECATE

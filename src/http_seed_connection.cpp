@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/hex.hpp" // for is_hex
 
-namespace libtorrent
+namespace lt
 {
 	http_seed_connection::http_seed_connection(peer_connection_args const& pack
 		, web_seed_t& web)

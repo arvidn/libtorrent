@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <mutex>
 #include <atomic>
 
-namespace libtorrent
+namespace lt
 {
 	struct disk_io_thread_pool;
 
@@ -139,6 +139,6 @@ namespace libtorrent
 		// timer to check for and reap idle threads
 		deadline_timer m_idle_timer;
 	};
-} // namespace libtorrent
+} // namespace lt
 
 #endif

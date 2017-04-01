@@ -51,7 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 
-namespace libtorrent
+namespace lt
 {
 	struct socket_type;
 

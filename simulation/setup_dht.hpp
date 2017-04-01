@@ -38,14 +38,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_settings.hpp" // for dht_settings
 #include "libtorrent/performance_counters.hpp" // for counters
 
-namespace lt = libtorrent;
-
 namespace sim
 {
 	struct simulation;
 }
 
-namespace libtorrent
+namespace lt
 {
 	struct dht_routing_bucket;
 }

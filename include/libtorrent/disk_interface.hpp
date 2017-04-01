@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/export.hpp"
 #include "libtorrent/storage_defs.hpp"
 
-namespace libtorrent
+namespace lt
 {
 	struct storage_interface;
 	struct peer_request;

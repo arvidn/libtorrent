@@ -50,7 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <arpa/inet.h>
 #endif
 
-namespace libtorrent {
+namespace lt {
 namespace aux {
 
 // these need to be within the disabled warnings because on OSX

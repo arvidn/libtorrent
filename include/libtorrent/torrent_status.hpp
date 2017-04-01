@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <ctime>
 
-namespace libtorrent
+namespace lt
 {
 	// holds a snapshot of the status of a torrent, as queried by
 	// torrent_handle::status().

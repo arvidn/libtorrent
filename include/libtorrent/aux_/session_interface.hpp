@@ -52,7 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
 
-namespace libtorrent
+namespace lt
 {
 	class peer_connection;
 	class torrent;
@@ -89,7 +89,7 @@ namespace libtorrent
 #endif
 }
 
-namespace libtorrent { namespace aux
+namespace lt { namespace aux
 {
 	struct proxy_settings;
 	struct session_settings;

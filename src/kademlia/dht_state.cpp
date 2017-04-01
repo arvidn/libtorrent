@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/bdecode.hpp>
 #include <libtorrent/socket_io.hpp>
 
-namespace libtorrent {
+namespace lt {
 namespace dht
 {
 namespace

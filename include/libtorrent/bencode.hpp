@@ -77,7 +77,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp" // for write_string
 #include "libtorrent/string_util.hpp" // for is_digit
 
-namespace libtorrent
+namespace lt
 {
 
 #ifndef TORRENT_NO_DEPRECATE

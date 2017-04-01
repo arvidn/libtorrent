@@ -8,8 +8,6 @@
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/torrent_status.hpp"
 
-namespace lt = libtorrent;
-
 struct torrent_view
 {
 	torrent_view();

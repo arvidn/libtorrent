@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/ip_filter.hpp"
 
-namespace libtorrent
+namespace lt
 {
 	void ip_filter::add_rule(address first, address last, std::uint32_t flags)
 	{

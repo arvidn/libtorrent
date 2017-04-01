@@ -66,7 +66,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace libtorrent { namespace dht
+namespace lt { namespace dht
 {
 
 namespace {
@@ -1191,4 +1191,4 @@ node::protocol_descriptor const& node::map_protocol_to_descriptor(udp protocol)
 	aux::throw_ex<std::out_of_range>("unknown protocol");
 }
 
-} } // namespace libtorrent::dht
+} } // namespace lt::dht

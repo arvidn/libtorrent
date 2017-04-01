@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <climits>
 #endif
 
-namespace libtorrent
+namespace lt
 {
 
 	bandwidth_manager::bandwidth_manager(int channel)

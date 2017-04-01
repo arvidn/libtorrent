@@ -6,7 +6,7 @@
 #include "ge.h"
 #include "sc.h"
 
-namespace libtorrent
+namespace lt
 {
 
 /* see http://crypto.stackexchange.com/a/6215/4697 */

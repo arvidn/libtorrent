@@ -619,4 +619,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #endif // TORRENT_HAS_ARM_CRC32
 
+namespace lt {};
+
+// for backwards compatibility
+namespace libtorrent = lt;
+
 #endif // TORRENT_CONFIG_HPP_INCLUDED

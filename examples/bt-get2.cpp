@@ -46,7 +46,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/error_code.hpp>
 #include <libtorrent/magnet_uri.hpp>
 
-namespace lt = libtorrent;
 using clk = std::chrono::steady_clock;
 
 // return the name of a torrent status enum

@@ -58,7 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/typed_span.hpp"
 
-namespace libtorrent
+namespace lt
 {
 
 	class torrent;

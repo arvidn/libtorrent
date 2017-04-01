@@ -42,13 +42,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp" // for default_piece_priority
 #include "libtorrent/aux_/numeric_cast.hpp" // for clamp
 
-namespace libtorrent
+namespace lt
 {
 	entry write_resume_data(add_torrent_params const& atp)
 	{
 		entry ret;
 
-		using namespace libtorrent::detail; // for write_*_endpoint()
+		using namespace lt::detail; // for write_*_endpoint()
 		ret["file-format"] = "libtorrent resume file";
 		ret["file-version"] = 1;
 		ret["libtorrent-version"] = LIBTORRENT_VERSION;

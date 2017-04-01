@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/assert.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 // member of peer_connection
 struct TORRENT_EXTRA_EXPORT bandwidth_channel

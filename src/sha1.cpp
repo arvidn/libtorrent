@@ -22,7 +22,7 @@ changelog at the end of the file.
 typedef std::uint32_t u32;
 typedef std::uint8_t u8;
 
-namespace libtorrent
+namespace lt
 {
 
 namespace

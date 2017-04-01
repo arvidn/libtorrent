@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <intrin.h>
 #endif
 
-namespace libtorrent
+namespace lt
 {
 	bool bitfield::all_set() const
 	{

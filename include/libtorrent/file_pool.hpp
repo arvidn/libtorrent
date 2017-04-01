@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/units.hpp"
 #include "libtorrent/storage_defs.hpp"
 
-namespace libtorrent
+namespace lt
 {
 	class file_storage;
 

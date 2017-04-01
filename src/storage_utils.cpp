@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #include <string>
 
-namespace libtorrent { namespace aux
+namespace lt { namespace aux
 {
 	int copy_bufs(span<iovec_t const> bufs, int const bytes, span<iovec_t> target)
 	{

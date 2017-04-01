@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstring>
 #include <algorithm>
 
-namespace libtorrent
+namespace lt
 {
 	namespace
 	{

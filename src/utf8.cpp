@@ -50,7 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma clang diagnostic ignored "-Wunused-member-function"
 #endif
 
-namespace libtorrent
+namespace lt
 {
 	namespace
 	{

@@ -60,7 +60,7 @@ extern "C" {
 #endif
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace libtorrent
+namespace lt
 {
 	// this is a SHA-1 hash class.
 	//

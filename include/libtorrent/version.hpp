@@ -46,12 +46,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #define LIBTORRENT_VERSION "1.2.0.0"
 #define LIBTORRENT_REVISION "62cdec8"
 
-namespace libtorrent {
-
+namespace lt {
 	// returns the libtorrent version as string form in this format:
 	// "<major>.<minor>.<tiny>.<tag>"
 	TORRENT_EXPORT char const* version();
-
 }
+
+// for backwards compatibility
+namespace libtorrent = lt;
 
 #endif

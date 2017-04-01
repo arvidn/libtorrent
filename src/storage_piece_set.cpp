@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/block_cache.hpp"
 #include "libtorrent/storage.hpp" // for storage_interface
 
-namespace libtorrent { namespace aux
+namespace lt { namespace aux
 {
 	void storage_piece_set::add_piece(cached_piece_entry* p)
 	{

@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <wincrypt.h>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace libtorrent { namespace aux
+namespace lt { namespace aux
 {
 
 	inline HCRYPTPROV crypt_acquire_provider(DWORD provider_type)
@@ -138,6 +138,6 @@ namespace libtorrent { namespace aux
 	};
 
 } // namespace aux
-} // namespace libtorrent
+} // namespace lt
 
 #endif

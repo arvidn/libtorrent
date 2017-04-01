@@ -53,7 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/http_parser.hpp"
 
-namespace libtorrent
+namespace lt
 {
 constexpr int request_size_overhead = 5000;
 

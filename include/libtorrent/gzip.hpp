@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 
-namespace libtorrent
+namespace lt
 {
 
 	TORRENT_EXTRA_EXPORT void inflate_gzip(

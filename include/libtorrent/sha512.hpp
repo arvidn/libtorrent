@@ -4,7 +4,7 @@
 #include "libtorrent/config.hpp"
 #include <cstdint>
 
-namespace libtorrent
+namespace lt
 {
 
 	struct sha512_ctx

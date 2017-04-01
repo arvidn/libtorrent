@@ -59,7 +59,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace libtorrent
+namespace lt
 {
 	// TODO: find a better place for this
 	const piece_block piece_block::invalid(

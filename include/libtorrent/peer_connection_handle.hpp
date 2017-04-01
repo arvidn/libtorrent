@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_connection.hpp" // for connection_type
 #include "libtorrent/error_code.hpp"
 
-namespace libtorrent
+namespace lt
 {
 
 class bt_peer_connection;
@@ -147,6 +147,6 @@ struct TORRENT_EXPORT bt_peer_connection_handle : public peer_connection_handle
 	std::shared_ptr<bt_peer_connection> native_handle() const;
 };
 
-} // namespace libtorrent
+} // namespace lt
 
 #endif // TORRENT_PEER_CONNECTION_HANDLE_HPP_INCLUDED

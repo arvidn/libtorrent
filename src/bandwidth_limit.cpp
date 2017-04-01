@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bandwidth_limit.hpp"
 #include <algorithm>
 
-namespace libtorrent
+namespace lt
 {
 	bandwidth_channel::bandwidth_channel()
 		: tmp(0)

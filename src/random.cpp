@@ -54,7 +54,7 @@ extern "C" {
 #include "libtorrent/aux_/dev_random.hpp"
 #endif
 
-namespace libtorrent
+namespace lt
 {
 	namespace aux
 	{

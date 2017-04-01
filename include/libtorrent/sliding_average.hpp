@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 #include <cstdlib> // for std::abs
 
-namespace libtorrent
+namespace lt
 {
 
 // an exponential moving average accumulator. Add samples to it and it keeps

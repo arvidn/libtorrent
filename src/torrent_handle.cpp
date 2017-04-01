@@ -55,7 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using libtorrent::aux::session_impl;
 
-namespace libtorrent
+namespace lt
 {
 
 #ifndef BOOST_NO_EXCEPTIONS

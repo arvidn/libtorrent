@@ -4,7 +4,7 @@
 #include "libtorrent/ed25519.hpp"
 #include "fe.h"
 
-namespace libtorrent
+namespace lt
 {
 
 void ed25519_key_exchange(unsigned char *shared_secret

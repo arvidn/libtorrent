@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <libtorrent/io.hpp>
 
-namespace libtorrent { namespace dht
+namespace lt { namespace dht
 {
 
 observer_ptr bootstrap::new_observer(udp::endpoint const& ep
@@ -105,4 +105,4 @@ void bootstrap::done()
 	get_peers::done();
 }
 
-} } // namespace libtorrent::dht
+} } // namespace lt::dht

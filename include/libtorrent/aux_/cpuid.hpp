@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-namespace libtorrent { namespace aux
+namespace lt { namespace aux
 {
 	// initialized by static initializers (in cpuid.cpp)
 	TORRENT_EXTRA_EXPORT extern bool const sse42_support;

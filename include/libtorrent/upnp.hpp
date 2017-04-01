@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 #include <set>
 
-namespace libtorrent
+namespace lt
 {
 
 	namespace upnp_errors

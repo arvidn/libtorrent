@@ -49,7 +49,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp"
 
 using namespace libtorrent;
-namespace lt = libtorrent;
 
 void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_size)
 {

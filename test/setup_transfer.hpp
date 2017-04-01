@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "libtorrent/units.hpp"
 
-namespace libtorrent
+namespace lt
 {
 	class alert;
 	struct add_torrent_params;

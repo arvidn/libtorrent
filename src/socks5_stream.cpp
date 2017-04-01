@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace libtorrent
+namespace lt
 {
 
 	namespace socks_error
@@ -105,7 +105,7 @@ namespace libtorrent
 		COMPLETE_ASYNC("socks5_stream::connected");
 		if (handle_error(e, h)) return;
 
-		using namespace libtorrent::detail;
+		using namespace lt::detail;
 		if (m_version == 5)
 		{
 			// send SOCKS5 authentication methods
@@ -153,7 +153,7 @@ namespace libtorrent
 		COMPLETE_ASYNC("socks5_stream::handshake2");
 		if (handle_error(e, h)) return;
 
-		using namespace libtorrent::detail;
+		using namespace lt::detail;
 
 		char* p = &m_buffer[0];
 		int version = read_uint8(p);
@@ -217,7 +217,7 @@ namespace libtorrent
 		COMPLETE_ASYNC("socks5_stream::handshake4");
 		if (handle_error(e, h)) return;
 
-		using namespace libtorrent::detail;
+		using namespace lt::detail;
 
 		char* p = &m_buffer[0];
 		int version = read_uint8(p);
@@ -241,7 +241,7 @@ namespace libtorrent
 
 	void socks5_stream::socks_connect(handler_type h)
 	{
-		using namespace libtorrent::detail;
+		using namespace lt::detail;
 
 		if (m_version == 5)
 		{
@@ -320,7 +320,7 @@ namespace libtorrent
 		COMPLETE_ASYNC("socks5_stream::connect2");
 		if (handle_error(e, h)) return;
 
-		using namespace libtorrent::detail;
+		using namespace lt::detail;
 
 		char const* p = &m_buffer[0];
 		int const version = read_uint8(p);
@@ -412,7 +412,7 @@ namespace libtorrent
 	void socks5_stream::connect3(error_code const& e, handler_type& h)
 	{
 		COMPLETE_ASYNC("socks5_stream::connect3");
-		using namespace libtorrent::detail;
+		using namespace lt::detail;
 
 		if (handle_error(e, h)) return;
 

@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_util.hpp"
 #include "libtorrent/aux_/throw.hpp"
 
-namespace libtorrent
+namespace lt
 {
 	namespace detail
 	{

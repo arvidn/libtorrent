@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 
-namespace libtorrent
+namespace lt
 {
 	namespace aux {
 

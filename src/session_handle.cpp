@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using libtorrent::aux::session_impl;
 
-namespace libtorrent
+namespace lt
 {
 
 	peer_class_t constexpr session_handle::global_peer_class_id;
@@ -1158,4 +1158,4 @@ namespace libtorrent
 		async_call(&session_impl::delete_port_mapping, handle);
 	}
 
-} // namespace libtorrent
+} // namespace lt

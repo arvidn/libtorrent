@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <atomic>
 #include <mutex>
 
-namespace libtorrent {
+namespace lt {
 
 struct disk_io_job;
 struct counters;

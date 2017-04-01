@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SETUP_SWARM_HPP_INCLUDED
 #define TORRENT_SETUP_SWARM_HPP_INCLUDED
 
-namespace libtorrent
+namespace lt
 {
 	class alert;
 	class session;
@@ -46,8 +46,6 @@ namespace libtorrent
 	struct torrent_handle;
 	struct torrent_status;
 }
-
-namespace lt = libtorrent;
 
 enum class swarm_test { download, upload };
 

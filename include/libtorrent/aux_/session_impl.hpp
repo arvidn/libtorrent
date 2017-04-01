@@ -100,7 +100,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdarg> // for va_start, va_end
 #include <unordered_map>
 
-namespace libtorrent
+namespace lt
 {
 
 	struct plugin;

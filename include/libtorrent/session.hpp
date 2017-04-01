@@ -49,7 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdio> // for snprintf
 #endif
 
-namespace libtorrent
+namespace lt
 {
 	struct plugin;
 

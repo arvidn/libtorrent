@@ -4,8 +4,6 @@
 #include "libtorrent/session_stats.hpp"
 #include <cstdint>
 
-namespace lt = libtorrent;
-
 struct session_view
 {
 	session_view();

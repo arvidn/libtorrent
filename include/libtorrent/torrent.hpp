@@ -82,7 +82,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // logic
 #define TORRENT_DEBUG_STREAMING 0
 
-namespace libtorrent
+namespace lt
 {
 	class http_parser;
 

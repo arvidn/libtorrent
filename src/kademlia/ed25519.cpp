@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/random.hpp>
 #include <libtorrent/ed25519.hpp>
 
-namespace libtorrent {
+namespace lt {
 namespace dht
 {
 

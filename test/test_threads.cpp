@@ -40,7 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "libtorrent/time.hpp"
 
-namespace lt = libtorrent;
 using namespace libtorrent;
 
 void fun(std::condition_variable* s, std::mutex* m, int* waiting, int i)

@@ -46,8 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/noncopyable.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace libtorrent { struct dht_lookup; }
-namespace libtorrent { namespace dht
+namespace lt { struct dht_lookup; }
+namespace lt { namespace dht
 {
 
 class node;
@@ -142,6 +142,6 @@ struct traversal_observer : observer
 	virtual void reply(msg const&);
 };
 
-} } // namespace libtorrent::dht
+} } // namespace lt::dht
 
 #endif // TRAVERSAL_ALGORITHM_050324_HPP

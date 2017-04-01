@@ -54,7 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp"
 #endif
 
-namespace libtorrent {
+namespace lt {
 
 #if TORRENT_UTP_LOG
 

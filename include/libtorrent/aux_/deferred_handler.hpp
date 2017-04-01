@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/io_service.hpp"
 
-namespace libtorrent { namespace aux {
+namespace lt { namespace aux {
 
 template <typename Handler>
 struct handler_wrapper

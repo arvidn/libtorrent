@@ -47,7 +47,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 using namespace libtorrent;
-namespace lt = libtorrent;
 
 TORRENT_TEST(session)
 {

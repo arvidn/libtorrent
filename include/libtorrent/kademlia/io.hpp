@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/socket_io.hpp"
 
-namespace libtorrent { namespace dht {
+namespace lt { namespace dht {
 
 	struct node_endpoint
 	{

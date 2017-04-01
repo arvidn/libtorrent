@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <random>
 #include <algorithm>
 
-namespace libtorrent
+namespace lt
 {
 	namespace aux
 	{

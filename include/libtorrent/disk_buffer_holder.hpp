@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <memory>
 
-namespace libtorrent
+namespace lt
 {
 	struct disk_io_thread;
 	struct disk_observer;

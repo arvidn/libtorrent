@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <utility>
 
-namespace libtorrent { namespace aux {
+namespace lt { namespace aux {
 
 	template <typename Fun>
 	struct scope_end_impl

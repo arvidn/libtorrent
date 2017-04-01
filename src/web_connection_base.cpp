@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/peer_info.hpp"
 
-namespace libtorrent
+namespace lt
 {
 	web_connection_base::web_connection_base(
 		peer_connection_args const& pack

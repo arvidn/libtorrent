@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <algorithm>
 
-namespace libtorrent {
+namespace lt {
 
 	template <typename Container, typename T>
 	auto sorted_find(Container& container, T const& v)

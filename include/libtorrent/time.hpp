@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "simulator/simulator.hpp"
 #endif
 
-namespace libtorrent {
+namespace lt {
 
 #if defined TORRENT_BUILD_SIMULATOR
 	using clock_type = sim::chrono::high_resolution_clock;

@@ -12,7 +12,6 @@
 
 using namespace boost::python;
 using namespace libtorrent;
-namespace lt = libtorrent;
 
 extern void dict_to_add_torrent_params(dict params, add_torrent_params& p);
 

@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 #include <memory>
 
-namespace libtorrent {
+namespace lt {
 
 	namespace aux {
 		struct peer_class_tag;

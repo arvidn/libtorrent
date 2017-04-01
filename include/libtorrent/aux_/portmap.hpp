@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-namespace libtorrent {
+namespace lt {
 namespace aux
 {
 	// TODO: move this for a better place and integrate it with

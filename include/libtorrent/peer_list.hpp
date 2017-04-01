@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_connection_interface.hpp"
 #include "libtorrent/aux_/deque.hpp"
 
-namespace libtorrent
+namespace lt
 {
 	struct ip_filter;
 	class port_filter;

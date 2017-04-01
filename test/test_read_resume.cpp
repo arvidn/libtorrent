@@ -43,7 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/read_resume_data.hpp"
 
 using namespace libtorrent;
-namespace lt = libtorrent;
 
 TORRENT_TEST(read_resume)
 {

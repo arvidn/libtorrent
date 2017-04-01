@@ -49,7 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 	namespace ssl {
 #if defined TORRENT_BUILD_SIMULATOR

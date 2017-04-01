@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/units.hpp"
 
-namespace libtorrent
+namespace lt
 {
 	struct piece_block_progress
 	{

@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/proxy_base.hpp"
 #include "libtorrent/string_util.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 class http_stream : public proxy_base
 {

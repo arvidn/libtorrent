@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/export.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 struct cached_piece_entry;
 

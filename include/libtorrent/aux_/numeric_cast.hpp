@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/assert.hpp"
 
-namespace libtorrent { namespace aux {
+namespace lt { namespace aux {
 
 	template <class T, class In, typename Cond = typename std::enable_if<
 		std::is_integral<T>::value && std::is_integral<In>::value>::type>

@@ -44,7 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <tuple>
 
 using namespace libtorrent;
-namespace lt = libtorrent;
 using std::ignore;
 
 bool all_of(std::vector<bool> const& v)

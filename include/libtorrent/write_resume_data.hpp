@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/export.hpp"
 #include "libtorrent/bencode.hpp"
 
-namespace libtorrent
+namespace lt
 {
 	struct add_torrent_params;
 	class entry;

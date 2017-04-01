@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/assert.hpp"
 
-namespace libtorrent
+namespace lt
 {
 	template <typename T>
 	struct tailqueue_node

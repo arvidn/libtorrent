@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/units.hpp"
 
-namespace libtorrent
+namespace lt
 {
 	struct TORRENT_EXTRA_EXPORT piece_block
 	{

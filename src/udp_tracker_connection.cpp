@@ -50,7 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp"
 #endif
 
-namespace libtorrent
+namespace lt
 {
 
 	std::map<address, udp_tracker_connection::connection_cache_entry>

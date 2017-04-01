@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/torrent_peer_allocator.hpp"
 
-namespace libtorrent
+namespace lt
 {
 
 	torrent_peer_allocator::torrent_peer_allocator()

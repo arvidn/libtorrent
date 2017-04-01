@@ -129,7 +129,7 @@ POSSIBILITY OF SUCH DAMAGE.
 		default: TORRENT_ASSERT_FAIL(); return def; \
 	}
 
-namespace libtorrent
+namespace lt
 {
 
 	template <class S>

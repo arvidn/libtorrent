@@ -55,7 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace libtorrent {
+namespace lt {
 
 using namespace aux;
 

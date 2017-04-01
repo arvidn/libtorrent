@@ -47,7 +47,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 
 using namespace libtorrent;
-namespace lt = libtorrent;
 
 char const* proxy_name[] = {
 	"none",

@@ -45,9 +45,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/node_id.hpp>
 #include <libtorrent/kademlia/observer.hpp>
 
-namespace libtorrent { struct dht_settings; class entry; }
+namespace lt { struct dht_settings; class entry; }
 
-namespace libtorrent { namespace dht
+namespace lt { namespace dht
 {
 
 struct dht_logger;
@@ -130,6 +130,6 @@ private:
 	std::uint32_t m_destructing:1;
 };
 
-} } // namespace libtorrent::dht
+} } // namespace lt::dht
 
 #endif

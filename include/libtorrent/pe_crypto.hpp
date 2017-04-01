@@ -53,7 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <array>
 #include <cstdint>
 
-namespace libtorrent
+namespace lt
 {
 	namespace mp = boost::multiprecision;
 
@@ -157,7 +157,7 @@ namespace libtorrent
 		bool m_decrypt;
 	};
 
-} // namespace libtorrent
+} // namespace lt
 
 #endif // TORRENT_PE_CRYPTO_HPP_INCLUDED
 #endif // TORRENT_DISABLE_ENCRYPTION

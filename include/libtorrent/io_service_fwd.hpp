@@ -45,7 +45,7 @@ namespace boost { namespace asio {
 }}
 #endif
 
-namespace libtorrent
+namespace lt
 {
 #if defined TORRENT_BUILD_SIMULATOR
 	typedef sim::asio::io_service io_service;

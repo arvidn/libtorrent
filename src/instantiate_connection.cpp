@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/utp_socket_manager.hpp"
 #include "libtorrent/instantiate_connection.hpp"
 
-namespace libtorrent
+namespace lt
 {
 	// TODO: 2 peer_connection and tracker_connection should probably be flags
 	// TODO: 2 move this function into libtorrent::aux namespace

@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/export.hpp"
 
-namespace libtorrent
+namespace lt
 {
 	struct TORRENT_EXTRA_EXPORT bandwidth_socket
 	{

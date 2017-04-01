@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bandwidth_socket.hpp"
 #include "libtorrent/time.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 struct TORRENT_EXTRA_EXPORT bandwidth_manager
 {

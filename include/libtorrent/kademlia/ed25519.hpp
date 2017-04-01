@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <array>
 #include <tuple>
 
-namespace libtorrent {
+namespace lt {
 namespace dht
 {
 

@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/span.hpp>
 #include <libtorrent/io_service.hpp>
 
-namespace libtorrent
+namespace lt
 {
 	struct counters;
 	struct dht_settings;
@@ -53,7 +53,7 @@ namespace libtorrent
 #endif
 }
 
-namespace libtorrent { namespace dht
+namespace lt { namespace dht
 {
 	struct TORRENT_EXTRA_EXPORT dht_tracker final
 		: udp_socket_interface

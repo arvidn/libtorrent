@@ -6,7 +6,7 @@
 #include "ge.h"
 #include "sc.h"
 
-namespace libtorrent
+namespace lt
 {
 
 static int consttime_equal(const unsigned char *x, const unsigned char *y) {

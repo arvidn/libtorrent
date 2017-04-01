@@ -88,7 +88,7 @@ POSSIBILITY OF SUCH DAMAGE.
 //	ofstream out("my_torrent.torrent", std::ios_base::binary);
 //	bencode(std::ostream_iterator<char>(out), t.generate());
 //
-namespace libtorrent
+namespace lt
 {
 	class torrent_info;
 

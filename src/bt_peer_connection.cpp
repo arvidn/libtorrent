@@ -73,7 +73,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #endif
 
-namespace libtorrent
+namespace lt
 {
 	namespace mp = boost::multiprecision;
 

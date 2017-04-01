@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/string_view.hpp"
 
-namespace libtorrent
+namespace lt
 {
 	enum
 	{

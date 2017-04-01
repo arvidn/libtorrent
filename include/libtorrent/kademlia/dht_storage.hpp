@@ -43,13 +43,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/span.hpp>
 #include <libtorrent/string_view.hpp>
 
-namespace libtorrent
+namespace lt
 {
 	struct dht_settings;
 	class entry;
 }
 
-namespace libtorrent {
+namespace lt {
 namespace dht
 {
 	// This structure hold the relevant counters for the storage
@@ -240,6 +240,6 @@ namespace dht
 	TORRENT_EXPORT std::unique_ptr<dht_storage_interface>
 		dht_default_storage_constructor(dht_settings const& settings);
 
-} } // namespace libtorrent::dht
+} } // namespace lt::dht
 
 #endif //TORRENT_DHT_STORAGE_HPP

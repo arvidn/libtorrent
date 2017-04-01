@@ -53,7 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 #include <vector>
 
-namespace libtorrent
+namespace lt
 {
 	class alert;
 	struct add_torrent_params;

@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstring> // for memset
 #include <cstdint>
 
-namespace libtorrent
+namespace lt
 {
 
 	// ``peer_class_type_filter`` is a simple container for rules for adding and subtracting

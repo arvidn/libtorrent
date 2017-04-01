@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 
-namespace libtorrent { namespace dht
+namespace lt { namespace dht
 {
 struct msg;
 class node;
@@ -83,6 +83,6 @@ struct put_data_observer : traversal_observer
 	std::string m_token;
 };
 
-} } // namespace libtorrent::dht
+} } // namespace lt::dht
 
 #endif // TORRENT_PUT_DATA_HPP

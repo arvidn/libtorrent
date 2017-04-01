@@ -76,7 +76,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/aux_/aligned_union.hpp"
 
-namespace libtorrent
+namespace lt
 {
 #ifndef TORRENT_NO_DEPRECATE
 	struct lazy_entry;

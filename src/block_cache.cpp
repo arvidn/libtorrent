@@ -168,7 +168,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #endif // cplusplus
 
-namespace libtorrent {
+namespace lt {
 
 #if DEBUG_CACHE
 void log_refcounts(cached_piece_entry const* pe)

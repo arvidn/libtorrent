@@ -54,7 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace libtorrent
+namespace lt
 {
 	file_storage::file_storage()
 		: m_piece_length(0)

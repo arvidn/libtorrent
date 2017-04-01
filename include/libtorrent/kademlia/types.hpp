@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstdint>
 
-namespace libtorrent { namespace dht
+namespace lt { namespace dht
 {
 	struct public_key
 	{

@@ -100,7 +100,7 @@ const unsigned long siocgifmtu = SIOCGIFMTU;
 #define IF_NAMESIZE IFNAMSIZ
 #endif
 
-namespace libtorrent { namespace
+namespace lt { namespace
 {
 
 #if !defined TORRENT_BUILD_SIMULATOR
@@ -336,7 +336,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 
 }} // <anonymous>
 
-namespace libtorrent
+namespace lt
 {
 
 	// return (a1 & mask) == (a2 & mask)

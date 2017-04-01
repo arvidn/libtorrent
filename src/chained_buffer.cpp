@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstring> // for memcpy
 
-namespace libtorrent
+namespace lt
 {
 	void chained_buffer::pop_front(int bytes_to_pop)
 	{

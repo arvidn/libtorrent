@@ -46,7 +46,6 @@ using namespace sim;
 using namespace libtorrent;
 
 const int num_torrents = 10;
-namespace lt = libtorrent;
 
 using sim::asio::ip::address_v4;
 

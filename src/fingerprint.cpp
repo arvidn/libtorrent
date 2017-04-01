@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/fingerprint.hpp"
 #include "libtorrent/assert.hpp"
 
-namespace libtorrent {
+namespace lt {
 	namespace {
 
 	char version_to_char(int const v)

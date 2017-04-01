@@ -63,7 +63,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #include <ctime>
 
-namespace libtorrent
+namespace lt
 {
 
 	namespace {

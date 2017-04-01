@@ -34,13 +34,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/socket.hpp"
 
-namespace libtorrent
+namespace lt
 {
 	class session;
 	class alert;
 }
-
-namespace lt = libtorrent;
 
 void utp_only(lt::session& ses);
 void enable_enc(lt::session& ses);

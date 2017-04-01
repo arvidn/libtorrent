@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstddef>
 #include <memory> // for unique_ptr
 
-namespace libtorrent
+namespace lt
 {
 	struct packet;
 

@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/web_connection_base.hpp"
 #include "libtorrent/piece_block_progress.hpp"
 
-namespace libtorrent
+namespace lt
 {
 	class torrent;
 	struct peer_request;

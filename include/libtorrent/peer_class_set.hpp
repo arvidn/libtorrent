@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_class.hpp"
 #include "libtorrent/aux_/array.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 	// this represents an object that can have many peer classes applied
 	// to it. Most notably, peer connections and torrents derive from this.

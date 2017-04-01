@@ -63,7 +63,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <openssl/safestack.h> // for sk_GENERAL_NAME_value
 #include <openssl/x509v3.h> // for GENERAL_NAME
 
-namespace libtorrent {
+namespace lt {
 namespace aux {
 
 inline void openssl_set_tlsext_hostname(SSL* s, char const* name)

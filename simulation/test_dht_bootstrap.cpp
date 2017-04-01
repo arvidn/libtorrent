@@ -39,7 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/deadline_timer.hpp"
 #include "setup_transfer.hpp" // for addr()
 
-namespace lt = libtorrent;
 using namespace sim;
 
 struct sim_config : sim::default_config

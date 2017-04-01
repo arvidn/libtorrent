@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdlib> // for malloc
 #include <cstring> // for memmov/strcpy/strlen
 
-namespace libtorrent
+namespace lt
 {
 
 	// lexical_cast's result depends on the locale. We need

@@ -62,7 +62,7 @@ const mach_msg_type_number_t task_events_info_count = TASK_EVENTS_INFO_COUNT;
 
 std::string demangle(char const* name);
 
-namespace libtorrent
+namespace lt
 {
 	struct async_t
 	{
@@ -173,7 +173,7 @@ namespace libtorrent
 
 #endif // TORRENT_ASIO_DEBUGGING
 
-namespace libtorrent
+namespace lt
 {
 #if TORRENT_USE_ASSERTS
 	struct TORRENT_EXTRA_EXPORT single_threaded

@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 
-namespace libtorrent
+namespace lt
 {
 	class TORRENT_EXTRA_EXPORT stat_channel
 	{

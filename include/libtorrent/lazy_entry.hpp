@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/bdecode.hpp" // for error codes
 
-namespace libtorrent
+namespace lt
 {
 	struct lazy_entry;
 

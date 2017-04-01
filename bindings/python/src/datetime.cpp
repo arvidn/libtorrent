@@ -10,7 +10,6 @@
 #include <ctime>
 
 using namespace boost::python;
-namespace lt = libtorrent;
 
 #if BOOST_VERSION < 103400
 

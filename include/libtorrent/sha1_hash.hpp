@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iosfwd>
 #endif // TORRENT_USE_IOSTREAM
 
-namespace libtorrent
+namespace lt
 {
 	// TODO: find a better place for these functions
 	namespace aux

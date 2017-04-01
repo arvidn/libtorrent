@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/aux_/vector.hpp"
 
-namespace libtorrent
+namespace lt
 {
 #ifndef TORRENT_NO_DEPRECATE
 	// information about a file in a file_storage
@@ -649,6 +649,6 @@ namespace libtorrent
 	file_piece_range_inclusive(file_storage const& fs, file_index_t file);
 
 } // namespace aux
-} // namespace libtorrent
+} // namespace lt
 
 #endif // TORRENT_FILE_STORAGE_HPP_INCLUDED

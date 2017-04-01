@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <libtorrent/kademlia/find_data.hpp>
 
-namespace libtorrent { namespace dht
+namespace lt { namespace dht
 {
 
 struct get_peers : find_data
@@ -108,6 +108,6 @@ struct obfuscated_get_peers_observer : traversal_observer
 	virtual void reply(msg const&);
 };
 
-} } // namespace libtorrent::dht
+} } // namespace lt::dht
 
 #endif // LIBTORRENT_GET_PEERS_HPP

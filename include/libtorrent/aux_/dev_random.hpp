@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <fcntl.h>
 
-namespace libtorrent { namespace aux {
+namespace lt { namespace aux {
 
 	struct dev_random
 	{

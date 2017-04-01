@@ -51,7 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 #include <functional>
 
-namespace libtorrent
+namespace lt
 {
 	struct storage_interface;
 	struct cached_piece_entry;

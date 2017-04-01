@@ -53,7 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/escape_string.hpp" // for convert_from_native
 #include "libtorrent/aux_/max_path.hpp" // for TORRENT_MAX_PATH
 
-namespace libtorrent
+namespace lt
 {
 
 	alert::alert() : m_timestamp(clock_type::now()) {}
@@ -2271,4 +2271,4 @@ namespace libtorrent
 		return stats_header;
 	}
 
-} // namespace libtorrent
+} // namespace lt

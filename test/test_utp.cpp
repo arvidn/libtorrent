@@ -45,7 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 
 using namespace libtorrent;
-namespace lt = libtorrent;
 using std::ignore;
 
 void test_transfer()

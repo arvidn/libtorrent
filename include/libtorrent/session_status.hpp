@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #endif
 
-namespace libtorrent
+namespace lt
 {
 
 #ifndef TORRENT_NO_DEPRECATE

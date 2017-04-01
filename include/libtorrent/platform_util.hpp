@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-namespace libtorrent
+namespace lt
 {
 	int max_open_files();
 

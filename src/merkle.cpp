@@ -32,7 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/merkle.hpp"
 
-namespace libtorrent
+namespace lt
 {
 	int merkle_get_parent(int tree_node)
 	{

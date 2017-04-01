@@ -58,7 +58,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace libtorrent {
+namespace lt {
 
 class torrent;
 
@@ -326,7 +326,7 @@ namespace
 
 } }
 
-namespace libtorrent
+namespace lt
 {
 	std::shared_ptr<torrent_plugin> create_smart_ban_plugin(torrent_handle const& th, void*)
 	{

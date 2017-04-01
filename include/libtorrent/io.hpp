@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "assert.hpp"
 
-namespace libtorrent
+namespace lt
 {
 	namespace detail
 	{

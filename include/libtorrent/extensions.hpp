@@ -168,7 +168,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/error_code.hpp"
 
-namespace libtorrent
+namespace lt
 {
 	struct peer_plugin;
 	struct peer_request;

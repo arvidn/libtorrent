@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/string_util.hpp"
 
-namespace libtorrent
+namespace lt
 {
 
 	// returns protocol, auth, hostname, port, path

@@ -50,7 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace sim;
 
-namespace lt = libtorrent;
 
 std::string make_ep_string(char const* address, bool const is_v6
 	, char const* port)

@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm> // for find
 
-namespace libtorrent
+namespace lt
 {
 	void peer_class_set::add_class(peer_class_pool& pool, peer_class_t c)
 	{

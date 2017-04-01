@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-namespace libtorrent { namespace aux
+namespace lt { namespace aux
 {
 	template <typename Library>
 	HMODULE get_library_handle()
@@ -79,6 +79,6 @@ namespace libtorrent { namespace aux
 	};
 
 } // namespace aux
-} // namespace libtorrent
+} // namespace lt
 
 #endif

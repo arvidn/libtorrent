@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/span.hpp"
 
-namespace libtorrent
+namespace lt
 {
 	class TORRENT_EXTRA_EXPORT udp_tracker_connection: public tracker_connection
 	{

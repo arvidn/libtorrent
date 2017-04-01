@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/detail/endian.hpp> // for BIG_ENDIAN and LITTLE_ENDIAN macros
 
-namespace libtorrent
+namespace lt
 {
 	namespace {
 

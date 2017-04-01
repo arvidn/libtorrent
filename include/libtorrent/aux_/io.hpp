@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <type_traits>
 #include "libtorrent/span.hpp"
 
-namespace libtorrent { namespace aux
+namespace lt { namespace aux
 {
 	template <class T> struct type {};
 

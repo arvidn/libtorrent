@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/time.hpp>
 #include <libtorrent/address.hpp>
 
-namespace libtorrent {
+namespace lt {
 namespace dht {
 
 struct dht_observer;

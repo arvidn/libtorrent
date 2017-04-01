@@ -50,7 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bitfield.hpp"
 #endif
 
-namespace libtorrent
+namespace lt
 {
 class piece_picker;
 class file_storage;

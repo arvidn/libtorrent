@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <climits>
 
-namespace libtorrent {
+namespace lt {
 
 struct TORRENT_EXTRA_EXPORT receive_buffer
 {
@@ -217,6 +217,6 @@ private:
 };
 #endif // TORRENT_DISABLE_ENCRYPTION
 
-} // namespace libtorrent
+} // namespace lt
 
 #endif // #ifndef TORRENT_RECEIVE_BUFFER_HPP_INCLUDED

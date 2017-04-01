@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/sliding_average.hpp"
 #include "libtorrent/aux_/vector.hpp"
 
-namespace libtorrent { namespace aux {
+namespace lt { namespace aux {
 
 
 struct suggest_piece

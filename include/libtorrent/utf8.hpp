@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/error_code.hpp"
 
-namespace libtorrent
+namespace lt
 {
 
 	namespace utf8_errors

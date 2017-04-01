@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace libtorrent { namespace dht
+namespace lt { namespace dht
 {
 
 #if TORRENT_USE_ASSERTS
@@ -611,4 +611,4 @@ void traversal_observer::reply(msg const& m)
 	set_id(node_id(id.string_ptr()));
 }
 
-} } // namespace libtorrent::dht
+} } // namespace lt::dht

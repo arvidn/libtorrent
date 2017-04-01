@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/throw.hpp"
 
-namespace libtorrent {
+namespace lt {
 
 	namespace aux {
 		struct free_deleter

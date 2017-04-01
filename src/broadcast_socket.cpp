@@ -54,7 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace libtorrent
+namespace lt
 {
 	bool is_ip_address(std::string const& host)
 	{

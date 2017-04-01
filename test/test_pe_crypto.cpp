@@ -45,8 +45,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 
-namespace lt = libtorrent;
-
 void test_enc_handler(libtorrent::crypto_plugin& a, libtorrent::crypto_plugin& b)
 {
 	int const repcount = 128;

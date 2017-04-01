@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <arm_acle.h>
 #endif
 
-namespace libtorrent
+namespace lt
 {
 	std::uint32_t crc32c_32(std::uint32_t v)
 	{

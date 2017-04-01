@@ -72,7 +72,7 @@ struct alloc_header
 
 #endif
 
-namespace libtorrent
+namespace lt
 {
 
 	int page_size()

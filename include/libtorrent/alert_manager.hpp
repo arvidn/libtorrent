@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <condition_variable>
 #include <atomic>
 
-namespace libtorrent {
+namespace lt {
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	struct plugin;

@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/vector.hpp"
 
-namespace libtorrent
+namespace lt
 {
 	struct link
 	{

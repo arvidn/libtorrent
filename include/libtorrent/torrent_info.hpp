@@ -55,7 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/announce_entry.hpp"
 #endif
 
-namespace libtorrent
+namespace lt
 {
 	class peer_connection;
 	class entry;

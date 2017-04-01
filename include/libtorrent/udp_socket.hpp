@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <array>
 #include <memory>
 
-namespace libtorrent
+namespace lt
 {
 	struct socks5;
 

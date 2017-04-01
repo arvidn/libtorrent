@@ -50,7 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace libtorrent {
+namespace lt {
 
 http_connection::http_connection(io_service& ios
 	, resolver_interface& resolver

@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test_utils.hpp"
 #include "libtorrent/time.hpp"
 
-namespace libtorrent
+namespace lt
 {
 	char const* time_now_string()
 	{

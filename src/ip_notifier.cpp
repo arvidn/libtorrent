@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace libtorrent
+namespace lt
 {
 	ip_change_notifier::ip_change_notifier(io_service& ios)
 #if defined TORRENT_BUILD_SIMULATOR

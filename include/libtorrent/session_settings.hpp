@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 
-namespace libtorrent
+namespace lt
 {
 
 #ifndef TORRENT_NO_DEPRECATE

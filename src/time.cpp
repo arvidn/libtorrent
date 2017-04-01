@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/time.hpp"
 #include <atomic>
 
-namespace libtorrent { namespace aux
+namespace lt { namespace aux
 {
 	// used to cache the current time regularly (update_time_now() is called by
 	// the session_impl main thread). This is cheaper than a system call and can

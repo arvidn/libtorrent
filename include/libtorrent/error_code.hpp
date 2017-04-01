@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #include "libtorrent/units.hpp"
 
-namespace libtorrent
+namespace lt
 {
 
 	namespace errors

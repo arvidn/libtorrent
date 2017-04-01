@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 
-namespace libtorrent
+namespace lt
 {
 
 	// describes one statistics metric from the session. For more information,

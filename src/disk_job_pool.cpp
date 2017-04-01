@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_job_pool.hpp"
 #include "libtorrent/disk_io_job.hpp"
 
-namespace libtorrent
+namespace lt
 {
 	disk_job_pool::disk_job_pool()
 		: m_jobs_in_use(0)

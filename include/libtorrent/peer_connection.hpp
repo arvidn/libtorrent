@@ -75,7 +75,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <array>
 #include <cstdint>
 
-namespace libtorrent
+namespace lt
 {
 	class torrent;
 	struct torrent_peer;

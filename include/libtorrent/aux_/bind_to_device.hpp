@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <netinet/in.h>
 #endif
 
-namespace libtorrent { namespace aux {
+namespace lt { namespace aux {
 
 #if defined SO_BINDTODEVICE
 
