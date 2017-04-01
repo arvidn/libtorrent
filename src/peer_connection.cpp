@@ -4297,7 +4297,7 @@ namespace libtorrent
 			t->remove_peer(this);
 
 			// we need to do this here to maintain accurate accounting of number of
-			// unhoke slots. Ideally the updating of choked state and the
+			// unchoke slots. Ideally the updating of choked state and the
 			// accounting should be tighter
 			if (!m_choked)
 			{

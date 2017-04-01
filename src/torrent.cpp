@@ -5288,12 +5288,36 @@ namespace libtorrent
 		TORRENT_ASSERT(std::count(m_peers_to_disconnect.begin()
 			, m_peers_to_disconnect.end(), p) == 0);
 
-		std::weak_ptr<torrent> weak_t = shared_from_this();
-		m_peers_to_disconnect.push_back(p);
-		m_deferred_disconnect.post(m_ses.get_io_service(), [=]() {
-			std::shared_ptr<torrent> t = weak_t.lock();
-			if (t) t->on_remove_peers();
-		});
+		// only schedule the peer for actual removal if in fact
+		// we can be sure peer_connection will be kept alive until
+		// the deferred function is called. If a peer_connection
+		// has not associated torrent, the session_impl object may
+		// remove it at any time, which may be while the non-owning
+		// pointer in m_peers_to_disconnect (if added to it) is
+		// waiting for the deferred function to be called.
+		//
+		// one example of this situation is if for example, this
+		// function is called from the attach_peer path and fail to
+		// do so because of too many connections.
+		if (p->associated_torrent().lock().get() == this)
+		{
+			std::weak_ptr<torrent> weak_t = shared_from_this();
+			m_peers_to_disconnect.push_back(p);
+			m_deferred_disconnect.post(m_ses.get_io_service(), [=]()
+			{
+				std::shared_ptr<torrent> t = weak_t.lock();
+				if (t) t->on_remove_peers();
+			});
+		}
+		else
+		{
+			// if the peer was inserted in m_connections but instructed to
+			// be removed from this torrent, just remove it from it, see
+			// attach_peer logic.
+			auto const i = sorted_find(m_connections, p);
+			if (i != m_connections.end())
+				m_connections.erase(i);
+		}
 
 		torrent_peer* pp = p->peer_info_struct();
 		if (ready_for_connections())
@@ -5361,9 +5385,10 @@ namespace libtorrent
 
 		std::vector<peer_connection*> peers;
 		m_peers_to_disconnect.swap(peers);
-		for (peer_connection* p : peers)
+		for (auto p : peers)
 		{
 			TORRENT_ASSERT(p != nullptr);
+			TORRENT_ASSERT(p->associated_torrent().lock().get() == this);
 
 			auto const i = sorted_find(m_connections, p);
 			if (i != m_connections.end())
@@ -6766,7 +6791,7 @@ namespace libtorrent
 			// TODO: 2 if peer is a really good peer, maybe we shouldn't disconnect it
 			// perhaps this logic should be disabled if we have too many idle peers
 			// (with some definition of idle)
-			if (peer && peer->peer_rank() < p->peer_rank())
+			if (peer != nullptr && peer->peer_rank() < p->peer_rank())
 			{
 #ifndef TORRENT_DISABLE_LOGGING
 				if (should_log())
@@ -6794,7 +6819,7 @@ namespace libtorrent
 				}
 #endif
 				p->disconnect(errors::too_many_connections, op_bittorrent);
-				// we have to do this here because from the peer's point of
+				// we have to do this here because from the peer's point of view
 				// it wasn't really attached to the torrent, but we do need
 				// to let peer_list know we're removing it
 				remove_peer(p);
