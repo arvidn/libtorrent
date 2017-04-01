@@ -33,23 +33,19 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef SETUP_TRANSFER_HPP
 #define SETUP_TRANSFER_HPP
 
-#include "libtorrent/session.hpp"
 #include <tuple>
 #include "test.hpp"
+#include "libtorrent/session.hpp"
 #include "libtorrent/units.hpp"
-
-namespace libtorrent
-{
-	class alert;
-	struct add_torrent_params;
-}
+#include "libtorrent/span.hpp"
+#include "libtorrent/alert.hpp"
+#include "libtorrent/add_torrent_params.hpp"
 
 EXPORT int print_failures();
 EXPORT unsigned char random_byte();
 
 EXPORT int load_file(std::string const& filename, std::vector<char>& v
 	, libtorrent::error_code& ec, int limit = 8000000);
-EXPORT void save_file(char const* filename, char const* data, int size);
 
 EXPORT void report_failure(char const* err, char const* file, int line);
 
@@ -75,7 +71,6 @@ EXPORT void print_ses_rate(float time
 	, libtorrent::torrent_status const* st3 = NULL);
 
 EXPORT bool print_alerts(libtorrent::session& ses, char const* name
-	, bool allow_disconnects = false
 	, bool allow_no_torrents = false
 	, bool allow_failed_fastresume = false
 	, std::function<bool(libtorrent::alert const*)> predicate

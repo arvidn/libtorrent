@@ -83,11 +83,12 @@ std::shared_ptr<libtorrent::torrent_info> make_test_torrent(
 		entry::list_type& files = info["files"].list();
 		for (int i = 0; i < int(args.m_files.size()); ++i)
 		{
-			int file_size = atoi(args.m_files[i].c_str());
+			auto const idx = static_cast<std::size_t>(i);
+			int file_size = atoi(args.m_files[idx].c_str());
 
 			files.push_back(entry());
 			entry::dictionary_type& file_entry = files.back().dict();
-			std::string const& ent = args.m_files[i];
+			std::string const& ent = args.m_files[idx];
 			if (ent.find("padfile") != std::string::npos)
 			{
 				file_entry["attr"].string() += "p";
@@ -181,13 +182,13 @@ void generate_files(libtorrent::torrent_info const& ti, std::string const& path
 	for (piece_index_t i(0); i < fs.end_piece(); ++i)
 	{
 		int const piece_size = ti.piece_size(i);
-		buffer.resize(ti.piece_length());
+		buffer.resize(static_cast<std::size_t>(ti.piece_length()));
 
-		std::uint8_t const data = std::uint8_t((alternate_data
+		char const data = static_cast<char>((alternate_data
 			? 255 - static_cast<int>(i) : static_cast<int>(i)) & 0xff);
 		for (int o = 0; o < piece_size; ++o)
 		{
-			memcpy(&buffer[o], &data, 1);
+			buffer[static_cast<std::size_t>(o)] = data;
 		}
 
 		iovec_t b = { &buffer[0], size_t(piece_size) };

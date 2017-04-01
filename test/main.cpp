@@ -67,6 +67,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 
+namespace {
+
 // these are global so we can restore them on abnormal exits and print stuff
 // out, such as the log
 int old_stdout = -1;
@@ -74,8 +76,6 @@ int old_stderr = -1;
 bool redirect_stdout = true;
 bool redirect_stderr = false;
 bool keep_files = false;
-
-extern int _g_test_idx;
 
 // the current tests file descriptor
 unit_test_t* current_test = nullptr;
@@ -96,9 +96,9 @@ void output_test_log_to_terminal()
 	fseek(current_test->output, 0, SEEK_SET);
 	std::printf("\x1b[1m[%s]\x1b[0m\n\n", current_test->name);
 	char buf[4096];
-	int size = 0;
+	std::size_t size = 0;
 	do {
-		size = int(fread(buf, 1, sizeof(buf), current_test->output));
+		size = fread(buf, 1, sizeof(buf), current_test->output);
 		if (size > 0) fwrite(buf, 1, size, stdout);
 	} while (size > 0);
 }
@@ -158,7 +158,7 @@ LONG WINAPI seh_exception_handler(LPEXCEPTION_POINTERS p)
 
 #else
 
-void sig_handler(int sig)
+void TORRENT_NO_RETURN sig_handler(int sig)
 {
 	char stack_text[10000];
 
@@ -240,6 +240,8 @@ void change_directory(std::string const& f, error_code& ec)
 		ec.assign(errno, system_category());
 #endif
 }
+
+} // anonymous namespace
 
 struct unit_directory_guard
 {

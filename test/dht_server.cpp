@@ -40,13 +40,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "dht_server.hpp"
 #include "test_utils.hpp"
 
-#include <boost/detail/atomic_count.hpp>
-
 #if TORRENT_USE_IOSTREAM
 #include <iostream>
 #endif
 
 #include <thread>
+#include <atomic>
 #include <functional>
 #include <memory>
 
@@ -57,7 +56,7 @@ struct dht_server
 {
 
 	libtorrent::io_service m_ios;
-	boost::detail::atomic_count m_dht_requests;
+	std::atomic<int> m_dht_requests;
 	udp::socket m_socket;
 	int m_port;
 
@@ -158,7 +157,9 @@ struct dht_server
 	}
 };
 
+namespace {
 std::shared_ptr<dht_server> g_dht;
+}
 
 int start_dht()
 {

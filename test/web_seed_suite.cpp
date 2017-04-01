@@ -111,7 +111,7 @@ void test_transfer(lt::session& ses, std::shared_ptr<torrent_info> torrent_file
 		pack.set_str(settings_pack::proxy_hostname, "127.0.0.1");
 		pack.set_str(settings_pack::proxy_username, "testuser");
 		pack.set_str(settings_pack::proxy_password, "testpass");
-		pack.set_int(settings_pack::proxy_type, (settings_pack::proxy_type_t)proxy);
+		pack.set_int(settings_pack::proxy_type, proxy);
 		pack.set_int(settings_pack::proxy_port, proxy_port);
 		pack.set_bool(settings_pack::proxy_peer_connections, proxy_peers);
 		ses.apply_settings(pack);
@@ -166,7 +166,7 @@ void test_transfer(lt::session& ses, std::shared_ptr<torrent_info> torrent_file
 		cnt = get_counters(ses);
 
 		print_ses_rate(i / 10.f, &s, nullptr);
-		print_alerts(ses, "  >>  ses", test_ban, false, false, &on_alert);
+		print_alerts(ses, "  >>  ses", false, false, &on_alert);
 
 		if (test_ban && th.url_seeds().empty() && th.http_seeds().empty())
 		{
@@ -255,7 +255,7 @@ void test_transfer(lt::session& ses, std::shared_ptr<torrent_info> torrent_file
 	// synchronize to make sure the files have been created on disk
 	wait_for_alert(ses, cache_flushed_alert::alert_type, "ses");
 
-	print_alerts(ses, "  >>  ses", true, true, false, &on_alert, true);
+	print_alerts(ses, "  >>  ses", true, false, &on_alert, true);
 
 	if (!test_ban)
 	{
@@ -291,7 +291,7 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed
 	if (test_url_seed)
 	{
 		char url[512];
-		std::snprintf(url, sizeof(url), ("%s://127.0.0.1:%d/" + save_path).c_str(), protocol, port);
+		std::snprintf(url, sizeof(url), "%s://127.0.0.1:%d/%s", protocol, port, save_path.c_str());
 		std::printf("testing: %s\n", url);
 
 		create_directories(combine_path(save_path, "torrent_dir"), ec);
@@ -354,7 +354,8 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed
 			.name("torrent_dir")
 			.url_seed(url));
 
-		std::snprintf(url, sizeof(url), ("%s://127.0.0.1:%d/" + save_path + "/test-single-file").c_str(), protocol, port);
+		std::snprintf(url, sizeof(url), "%s://127.0.0.1:%d/%s/test-single-file"
+			, protocol, port, save_path.c_str());
 
 		// test case 6 (single file torrent)
 		test_cases.push_back(torrent_args()
@@ -373,11 +374,12 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed
 			.http_seed(url));
 	}
 
-	for (int a = 0; a < int(test_cases.size()); ++a)
+	int idx = 0;
+	for (auto const& c : test_cases)
 	{
-		std::printf("\n\n ====  test case %d ====\n\n\n", a);
+		std::printf("\n\n ====  test case %d ====\n\n\n", idx++);
 
-		std::shared_ptr<torrent_info> torrent_file = make_test_torrent(test_cases[a]);
+		std::shared_ptr<torrent_info> torrent_file = make_test_torrent(c);
 
 		// if test_ban is true, we create the files with alternate content (that
 		// doesn't match the hashes in the .torrent file)

@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/broadcast_socket.hpp" // for supports_ipv6()
 #include "libtorrent/hex.hpp" // to_hex
+#include "libtorrent/aux_/vector.hpp"
 
 #include "test.hpp"
 #include "test_utils.hpp"
@@ -65,10 +66,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <csignal>
 #endif
 
-#define DEBUG_WEB_SERVER 0
-
-#define DLOG if (DEBUG_WEB_SERVER) std::fprintf
-
 using namespace libtorrent;
 namespace lt = libtorrent;
 
@@ -76,7 +73,9 @@ namespace lt = libtorrent;
 #include <conio.h>
 #endif
 
-std::uint32_t g_addr = 0x92343023;
+namespace {
+	std::uint32_t g_addr = 0x92343023;
+}
 
 void init_rand_address()
 {
@@ -98,14 +97,14 @@ sha1_hash rand_hash()
 {
 	sha1_hash ret;
 	for (int i = 0; i < 20; ++i)
-		ret[i] = std::uint8_t(lt::random(0xff));
+		ret[static_cast<std::size_t>(i)] = std::uint8_t(lt::random(0xff));
 	return ret;
 }
 
 sha1_hash to_hash(char const* s)
 {
 	sha1_hash ret;
-	aux::from_hex({s, 40}, (char*)&ret[0]);
+	aux::from_hex({s, 40}, ret.data());
 	return ret;
 }
 
@@ -114,7 +113,7 @@ address rand_v6()
 {
 	address_v6::bytes_type bytes;
 	for (int i = 0; i < int(bytes.size()); ++i)
-		bytes[i] = std::uint8_t(lt::random(0xff));
+		bytes[static_cast<std::size_t>(i)] = std::uint8_t(lt::random(0xff));
 	return address_v6(bytes);
 }
 #endif
@@ -150,8 +149,8 @@ std::map<std::string, std::int64_t> get_counters(libtorrent::session& s)
 	if (!sa) return ret;
 
 	static std::vector<stats_metric> metrics = session_stats_metrics();
-	for (int i = 0; i < int(metrics.size()); ++i)
-		ret[metrics[i].name] = sa->values[metrics[i].value_index];
+	for (auto const& m : metrics)
+		ret[m.name] = sa->values[static_cast<std::size_t>(m.value_index)];
 	return ret;
 }
 namespace {
@@ -203,7 +202,6 @@ alert const* wait_for_alert(lt::session& ses, int type, char const* name, int nu
 		}
 		if (num == 0) return ret;
 	}
-	return nullptr;
 }
 
 int load_file(std::string const& filename, std::vector<char>& v
@@ -246,7 +244,7 @@ int load_file(std::string const& filename, std::vector<char>& v
 		return -1;
 	}
 
-	v.resize(s);
+	v.resize(static_cast<std::size_t>(s));
 	if (s == 0)
 	{
 		fclose(f);
@@ -268,29 +266,8 @@ int load_file(std::string const& filename, std::vector<char>& v
 	return 0;
 }
 
-void save_file(char const* filename, char const* data, int size)
-{
-	error_code ec;
-	file out(filename, file::write_only, ec);
-	TEST_CHECK(!ec);
-	if (ec)
-	{
-		std::printf("ERROR opening file '%s': %s\n", filename, ec.message().c_str());
-		return;
-	}
-	iovec_t b = { (void*)data, size_t(size) };
-	out.writev(0, b, ec);
-	TEST_CHECK(!ec);
-	if (ec)
-	{
-		std::printf("ERROR writing file '%s': %s\n", filename, ec.message().c_str());
-		return;
-	}
-
-}
-
 bool print_alerts(lt::session& ses, char const* name
-	, bool allow_disconnects, bool allow_no_torrents, bool allow_failed_fastresume
+	, bool allow_no_torrents, bool allow_failed_fastresume
 	, std::function<bool(libtorrent::alert const*)> predicate, bool no_output)
 {
 	bool ret = false;
@@ -314,24 +291,6 @@ bool print_alerts(lt::session& ses, char const* name
 		}
 
 		TEST_CHECK(alert_cast<fastresume_rejected_alert>(a) == nullptr || allow_failed_fastresume);
-/*
-		peer_error_alert const* pea = alert_cast<peer_error_alert>(a);
-		if (pea)
-		{
-			std::printf("%s: peer error: %s\n", time_now_string(), pea->error.message().c_str());
-			TEST_CHECK((!handles.empty() && h.status().is_seeding)
-				|| pea->error.message() == "connecting to peer"
-				|| pea->error.message() == "closing connection to ourself"
-				|| pea->error.message() == "duplicate connection"
-				|| pea->error.message() == "duplicate peer-id"
-				|| pea->error.message() == "upload to upload connection"
-				|| pea->error.message() == "stopping torrent"
-				|| (allow_disconnects && pea->error.message() == "Broken pipe")
-				|| (allow_disconnects && pea->error.message() == "Connection reset by peer")
-				|| (allow_disconnects && pea->error.message() == "no shared cipher")
-				|| (allow_disconnects && pea->error.message() == "End of file."));
-		}
-*/
 
 		invalid_request_alert const* ira = alert_cast<invalid_request_alert>(a);
 		if (ira)
@@ -343,22 +302,21 @@ bool print_alerts(lt::session& ses, char const* name
 	return ret;
 }
 
-bool listen_done = false;
-bool listen_alert(libtorrent::alert const* a)
-{
-	if (alert_cast<listen_failed_alert>(a)
-		|| alert_cast<listen_succeeded_alert>(a))
-		listen_done = true;
-	return true;
-}
-
 void wait_for_listen(lt::session& ses, char const* name)
 {
-	listen_done = false;
+	bool listen_done = false;
 	alert const* a = nullptr;
 	do
 	{
-		print_alerts(ses, name, true, true, true, &listen_alert, false);
+		print_alerts(ses, name, true, true, [&listen_done](libtorrent::alert const* al)
+			{
+				if (alert_cast<listen_failed_alert>(al)
+					|| alert_cast<listen_succeeded_alert>(al))
+				{
+					listen_done = true;
+				}
+				return true;
+			}, false);
 		if (listen_done) break;
 		a = ses.wait_for_alert(milliseconds(500));
 	} while (a);
@@ -366,23 +324,20 @@ void wait_for_listen(lt::session& ses, char const* name)
 	TEST_CHECK(listen_done);
 }
 
-bool downloading_done = false;
-bool downloading_alert(libtorrent::alert const* a)
-{
-	state_changed_alert const* sc = alert_cast<state_changed_alert>(a);
-	if (sc && sc->state == torrent_status::downloading)
-		downloading_done = true;
-	return true;
-}
-
 void wait_for_downloading(lt::session& ses, char const* name)
 {
 	time_point start = clock_type::now();
-	downloading_done = false;
+	bool downloading_done = false;
 	alert const* a = nullptr;
 	do
 	{
-		print_alerts(ses, name, true, true, true, &downloading_alert, false);
+		print_alerts(ses, name, true, true, [&downloading_done](libtorrent::alert const* al)
+			{
+				state_changed_alert const* sc = alert_cast<state_changed_alert>(al);
+				if (sc && sc->state == torrent_status::downloading)
+					downloading_done = true;
+				return true;
+			}, false);
 		if (downloading_done) break;
 		if (total_seconds(clock_type::now() - start) > 10) break;
 		a = ses.wait_for_alert(seconds(2));
@@ -395,14 +350,14 @@ void wait_for_downloading(lt::session& ses, char const* name)
 	}
 }
 
-void print_ses_rate(float time
+void print_ses_rate(float const time
 	, libtorrent::torrent_status const* st1
 	, libtorrent::torrent_status const* st2
 	, libtorrent::torrent_status const* st3)
 {
 	if (st1)
 	{
-		std::printf("%3.1fs | %dkB/s %dkB/s %d%% %d cc:%d%s", time
+		std::printf("%3.1fs | %dkB/s %dkB/s %d%% %d cc:%d%s", static_cast<double>(time)
 			, int(st1->download_payload_rate / 1000)
 			, int(st1->upload_payload_rate / 1000)
 			, int(st1->progress * 100)
@@ -411,7 +366,7 @@ void print_ses_rate(float time
 			, st1->errc ? (" [" + st1->errc.message() + "]").c_str() : "");
 	}
 	if (st2)
-		std::printf(" : %3.1fs | %dkB/s %dkB/s %d%% %d cc:%d%s", time
+		std::printf(" : %3.1fs | %dkB/s %dkB/s %d%% %d cc:%d%s", static_cast<double>(time)
 			, int(st2->download_payload_rate / 1000)
 			, int(st2->upload_payload_rate / 1000)
 			, int(st2->progress * 100)
@@ -419,7 +374,7 @@ void print_ses_rate(float time
 			, st2->connect_candidates
 			, st2->errc ? (" [" + st1->errc.message() + "]").c_str() : "");
 	if (st3)
-		std::printf(" : %3.1fs | %dkB/s %dkB/s %d%% %d cc:%d%s", time
+		std::printf(" : %3.1fs | %dkB/s %dkB/s %d%% %d cc:%d%s", static_cast<double>(time)
 			, int(st3->download_payload_rate / 1000)
 			, int(st3->upload_payload_rate / 1000)
 			, int(st3->progress * 100)
@@ -453,6 +408,8 @@ void stop_proxy(int port)
 	// they're closed at the end of main() by
 	// calling stop_all_proxies().
 }
+
+namespace {
 
 // returns 0 on failure, otherwise pid
 pid_type async_run(char const* cmdline)
@@ -519,6 +476,8 @@ void stop_process(pid_type p)
 #endif
 }
 
+} // anonymous namespace
+
 void stop_all_proxies()
 {
 	std::map<int, proxy_t> proxies = running_proxies;
@@ -541,7 +500,7 @@ int start_proxy(int proxy_type)
 		if (i->second.type == proxy_type) { return i->first; }
 	}
 
-	int port = 2000 + lt::random(6000);
+	int port = 2000 + static_cast<int>(lt::random(6000));
 	error_code ec;
 	io_service ios;
 
@@ -608,15 +567,15 @@ std::shared_ptr<T> clone_ptr(std::shared_ptr<T> const& ptr)
 	return std::make_shared<T>(*ptr);
 }
 
-unsigned char random_byte()
-{ return lt::random(0xff); }
+std::uint8_t random_byte()
+{ return static_cast<std::uint8_t>(lt::random(0xff)); }
 
 std::vector<char> generate_piece(piece_index_t const idx, int const piece_size)
 {
 	using namespace libtorrent;
-	std::vector<char> ret(piece_size);
+	std::vector<char> ret(static_cast<std::size_t>(piece_size));
 
-	std::mt19937 rng(static_cast<int>(idx));
+	std::mt19937 rng(static_cast<std::uint32_t>(static_cast<int>(idx)));
 	std::uniform_int_distribution<int> rand(-128, 127);
 	for (char& c : ret)
 	{
@@ -672,10 +631,10 @@ std::shared_ptr<lt::torrent_info> make_torrent(const int file_sizes[]
 void create_random_files(std::string const& path, const int file_sizes[], int num_files)
 {
 	error_code ec;
-	char* random_data = (char*)malloc(300000);
+	aux::vector<char> random_data(300000);
 	for (int i = 0; i != num_files; ++i)
 	{
-		std::generate(random_data, random_data + 300000, random_byte);
+		std::generate(random_data.begin(), random_data.end(), random_byte);
 		char filename[200];
 		std::snprintf(filename, sizeof(filename), "test%d", i);
 		char dirname[200];
@@ -692,8 +651,8 @@ void create_random_files(std::string const& path, const int file_sizes[], int nu
 		std::int64_t offset = 0;
 		while (to_write > 0)
 		{
-			int s = (std::min)(to_write, 300000);
-			iovec_t b = { random_data, size_t(s)};
+			int const s = std::min(to_write, static_cast<int>(random_data.size()));
+			iovec_t b = { random_data.data(), size_t(s)};
 			f.writev(offset, b, ec);
 			if (ec) std::printf("failed to write file \"%s\": (%d) %s\n"
 				, full_path.c_str(), ec.value(), ec.message().c_str());
@@ -701,7 +660,6 @@ void create_random_files(std::string const& path, const int file_sizes[], int nu
 			to_write -= s;
 		}
 	}
-	free(random_data);
 }
 
 std::shared_ptr<torrent_info> create_torrent(std::ostream* file
@@ -739,7 +697,7 @@ std::shared_ptr<torrent_info> create_torrent(std::ostream* file
 		}
 	}
 
-	std::vector<char> piece(piece_size);
+	aux::vector<char> piece(static_cast<std::size_t>(piece_size));
 	for (int i = 0; i < int(piece.size()); ++i)
 		piece[i] = (i % 26) + 'A';
 
@@ -752,8 +710,8 @@ std::shared_ptr<torrent_info> create_torrent(std::ostream* file
 	{
 		while (total_size > 0)
 		{
-			file->write(&piece[0], (std::min)(int(piece.size()), total_size));
-			total_size -= int(piece.size());
+			file->write(&piece[0], std::min(piece.end_index(), total_size));
+			total_size -= piece.end_index();
 		}
 	}
 
@@ -910,7 +868,6 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 	{
 		wait_for_downloading(*ses2, "ses2");
 
-		error_code ec;
 		int port = 0;
 		if (use_ssl_ports)
 		{
@@ -960,11 +917,13 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 	return std::make_tuple(tor1, tor2, tor3);
 }
 
+namespace {
 pid_type web_server_pid = 0;
+}
 
 int start_web_server(bool ssl, bool chunked_encoding, bool keepalive)
 {
-	int port = 2000 + lt::random(6000);
+	int port = 2000 + static_cast<int>(lt::random(6000));
 	error_code ec;
 	io_service ios;
 

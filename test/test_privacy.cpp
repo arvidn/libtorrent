@@ -177,7 +177,7 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 
 	for (int i = 0; i < timeout; ++i)
 	{
-		print_alerts(*s, "s", false, false, false, &alert_predicate);
+		print_alerts(*s, "s", false, false, &alert_predicate);
 		std::this_thread::sleep_for(lt::milliseconds(100));
 
 		if (num_udp_announces() >= prev_udp_announces + 1
