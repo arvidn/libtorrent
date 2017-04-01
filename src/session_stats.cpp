@@ -37,8 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstring>
 #include <algorithm>
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	namespace
 	{
 
@@ -579,4 +579,4 @@ namespace libtorrent
 		return i->value_index;
 	}
 
-}
+}}

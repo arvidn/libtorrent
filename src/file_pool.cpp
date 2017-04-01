@@ -43,8 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <limits>
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	file_pool::file_pool(int size) : m_size(size) {}
 	file_pool::~file_pool() = default;
 
@@ -307,4 +307,4 @@ namespace libtorrent
 		file_ptr.reset();
 		l.lock();
 	}
-}
+}}

@@ -35,7 +35,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <type_traits>
 
-namespace libtorrent { namespace aux {
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace aux {
 
 #if defined __GNUC__ && __GNUC__ < 5
 
@@ -66,6 +68,6 @@ using std::aligned_union;
 
 #endif
 
-}}
+}}}
 
 #endif

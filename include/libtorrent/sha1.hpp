@@ -16,8 +16,8 @@ changelog at the end of sha1.cpp
 #include "libtorrent/config.hpp"
 #include <cstdint>
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	struct sha1_ctx
 	{
@@ -31,6 +31,6 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT void SHA1_update(sha1_ctx* context
 		, std::uint8_t const* data, size_t len);
 	TORRENT_EXTRA_EXPORT void SHA1_final(std::uint8_t* digest, sha1_ctx* context);
-}
+}}
 
 #endif

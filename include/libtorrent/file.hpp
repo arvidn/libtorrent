@@ -84,8 +84,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/time.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 #ifdef TORRENT_WINDOWS
 	using handle_type = HANDLE;
 #else
@@ -321,6 +321,6 @@ namespace libtorrent
 
 	TORRENT_EXTRA_EXPORT int bufs_size(span<iovec_t const> bufs);
 
-}
+}}
 
 #endif // TORRENT_FILE_HPP_INCLUDED

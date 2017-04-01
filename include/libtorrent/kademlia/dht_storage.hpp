@@ -43,15 +43,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/span.hpp>
 #include <libtorrent/string_view.hpp>
 
-namespace libtorrent
-{
-	struct dht_settings;
-	class entry;
-}
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
-namespace libtorrent {
-namespace dht
-{
+struct dht_settings;
+class entry;
+
+namespace dht {
+
 	// This structure hold the relevant counters for the storage
 	struct TORRENT_EXPORT dht_storage_counters
 	{
@@ -240,6 +239,6 @@ namespace dht
 	TORRENT_EXPORT std::unique_ptr<dht_storage_interface>
 		dht_default_storage_constructor(dht_settings const& settings);
 
-} } // namespace libtorrent::dht
+}}} // namespace lt::dht
 
 #endif //TORRENT_DHT_STORAGE_HPP

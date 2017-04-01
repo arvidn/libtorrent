@@ -48,8 +48,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iosfwd>
 #endif // TORRENT_USE_IOSTREAM
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+
 	// TODO: find a better place for these functions
 	namespace aux
 	{
@@ -287,7 +288,7 @@ namespace libtorrent
 	TORRENT_EXPORT std::istream& operator>>(std::istream& is, sha1_hash& peer);
 
 #endif // TORRENT_USE_IOSTREAM
-}
+}}
 
 namespace std
 {

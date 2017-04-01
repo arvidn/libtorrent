@@ -47,8 +47,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	struct i2p_error_category : boost::system::error_category
 	{
@@ -495,6 +495,6 @@ namespace libtorrent
 		async_write(m_sock, boost::asio::buffer(cmd, std::size_t(size))
 			, std::bind(&i2p_stream::start_read_line, this, _1, std::move(h)));
 	}
-}
+}}
 
 #endif

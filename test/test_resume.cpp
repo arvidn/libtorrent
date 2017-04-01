@@ -47,7 +47,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "settings.hpp"
 
 using namespace libtorrent;
-namespace lt = libtorrent;
 
 std::shared_ptr<torrent_info> generate_torrent()
 {

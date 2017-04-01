@@ -41,17 +41,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <array>
 #include <bitset>
 
-namespace libtorrent
-{
-	TORRENT_EXTRA_EXPORT void initialize_default_settings(aux::session_settings& s);
-}
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
-namespace libtorrent { namespace aux
-{
+TORRENT_EXTRA_EXPORT void initialize_default_settings(aux::session_settings& s);
+
+namespace aux {
 
 	struct TORRENT_EXTRA_EXPORT session_settings
 	{
-		friend TORRENT_EXTRA_EXPORT void libtorrent::save_settings_to_dict(
+		friend TORRENT_EXTRA_EXPORT void lt::LIBTORRENT_VERSION_NAMESPACE_NAME::save_settings_to_dict(
 			aux::session_settings const& s, entry::dictionary_type& sett);
 
 		void set_str(int name, std::string value)
@@ -99,6 +98,6 @@ namespace libtorrent { namespace aux
 		std::bitset<settings_pack::num_bool_settings> m_bools;
 	};
 
-} }
+}}}
 
 #endif

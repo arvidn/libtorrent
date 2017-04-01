@@ -63,8 +63,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #include <ctime>
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	namespace {
 
@@ -1649,4 +1649,4 @@ namespace libtorrent
 	}
 #endif
 
-}
+}}

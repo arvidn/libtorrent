@@ -44,8 +44,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/export.hpp"
 #include "libtorrent/storage_defs.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	struct storage_interface;
 	struct peer_request;
 	struct disk_observer;
@@ -174,6 +174,6 @@ namespace libtorrent
 		storage_index_t m_idx{0};
 	};
 
-}
+}}
 
 #endif

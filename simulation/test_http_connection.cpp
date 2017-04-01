@@ -52,7 +52,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 using namespace sim;
-namespace lt = libtorrent;
 namespace io = lt::detail;
 
 using chrono::duration_cast;

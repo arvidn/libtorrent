@@ -50,7 +50,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace libtorrent {
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 http_connection::http_connection(io_service& ios
 	, resolver_interface& resolver
@@ -899,4 +900,4 @@ void http_connection::rate_limit(int limit)
 	m_rate_limit = limit;
 }
 
-}
+}}

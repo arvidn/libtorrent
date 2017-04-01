@@ -70,7 +70,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define DLOG if (DEBUG_WEB_SERVER) std::fprintf
 
 using namespace libtorrent;
-namespace lt = libtorrent;
 
 #if defined TORRENT_WINDOWS
 #include <conio.h>
@@ -136,7 +135,6 @@ udp::endpoint rand_udp_ep(libtorrent::address(&rand_addr)())
 
 std::map<std::string, std::int64_t> get_counters(libtorrent::session& s)
 {
-	using namespace libtorrent;
 	s.post_session_stats();
 
 	std::map<std::string, std::int64_t> ret;
@@ -533,8 +531,6 @@ void stop_all_proxies()
 // returns a port on success and -1 on failure
 int start_proxy(int proxy_type)
 {
-	using namespace libtorrent;
-
 	std::map<int, proxy_t> :: iterator i = running_proxies.begin();
 	for (; i != running_proxies.end(); ++i)
 	{
@@ -600,8 +596,6 @@ int start_proxy(int proxy_type)
 	return port;
 }
 
-using namespace libtorrent;
-
 template <class T>
 std::shared_ptr<T> clone_ptr(std::shared_ptr<T> const& ptr)
 {
@@ -613,7 +607,6 @@ unsigned char random_byte()
 
 std::vector<char> generate_piece(piece_index_t const idx, int const piece_size)
 {
-	using namespace libtorrent;
 	std::vector<char> ret(piece_size);
 
 	std::mt19937 rng(static_cast<int>(idx));
@@ -628,7 +621,6 @@ std::vector<char> generate_piece(piece_index_t const idx, int const piece_size)
 lt::file_storage make_file_storage(const int file_sizes[], int num_files
 	, int const piece_size, std::string base_name)
 {
-	using namespace libtorrent;
 	file_storage fs;
 	for (int i = 0; i != num_files; ++i)
 	{
@@ -651,7 +643,6 @@ lt::file_storage make_file_storage(const int file_sizes[], int num_files
 std::shared_ptr<lt::torrent_info> make_torrent(const int file_sizes[]
 	, int const num_files, int const piece_size)
 {
-	using namespace libtorrent;
 	file_storage fs = make_file_storage(file_sizes, num_files, piece_size);
 
 	libtorrent::create_torrent ct(fs, piece_size, 0x4000

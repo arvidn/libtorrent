@@ -6,8 +6,8 @@
 #include "ge.h"
 #include "sc.h"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 /* see http://crypto.stackexchange.com/a/6215/4697 */
 void ed25519_add_scalar(unsigned char *public_key, unsigned char *private_key, const unsigned char *scalar) {
@@ -72,4 +72,4 @@ void ed25519_add_scalar(unsigned char *public_key, unsigned char *private_key, c
     }
 }
 
-}
+}}

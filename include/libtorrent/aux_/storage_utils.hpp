@@ -44,8 +44,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/uio.h> // for iovec
 #endif
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	class file_storage;
 	struct part_file;
 	struct storage_error;
@@ -109,6 +109,6 @@ namespace libtorrent
 		, stat_cache& stat
 		, std::string const& save_path
 		, storage_error& ec);
-}}
+}}}
 
 #endif

@@ -38,8 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/string_view.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	namespace string
 	{
 		enum flags_t
@@ -110,6 +110,6 @@ namespace libtorrent
 	// internal
 	inline std::string const& convert_from_native(std::string const& s) { return s; }
 #endif
-}
+}}
 
 #endif // TORRENT_ESCAPE_STRING_HPP_INCLUDED

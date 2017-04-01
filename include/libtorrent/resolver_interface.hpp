@@ -39,8 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/address.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 struct TORRENT_EXTRA_EXPORT resolver_interface
 {
@@ -66,6 +66,6 @@ protected:
 	~resolver_interface() {}
 };
 
-}
+}}
 
 #endif

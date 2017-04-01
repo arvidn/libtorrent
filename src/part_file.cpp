@@ -73,8 +73,8 @@ namespace
 	{ return (n + 1023) & ~0x3ff; }
 }
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	part_file::part_file(std::string const& path, std::string const& name
 		, int num_pieces, int piece_size)
 		: m_path(path)
@@ -101,7 +101,7 @@ namespace libtorrent
 
 			// we don't have a full header. consider the file empty
 			if (n < m_header_size) return;
-			using namespace libtorrent::detail;
+			using namespace lt::detail;
 
 			char* ptr = reinterpret_cast<char*>(header.get());
 			// we have a header. Parse it
@@ -393,7 +393,7 @@ namespace libtorrent
 
 		std::unique_ptr<std::uint32_t[]> header(new std::uint32_t[m_header_size]);
 
-		using namespace libtorrent::detail;
+		using namespace lt::detail;
 
 		char* ptr = reinterpret_cast<char*>(header.get());
 
@@ -412,4 +412,4 @@ namespace libtorrent
 		iovec_t b = {header.get(), std::size_t(m_header_size)};
 		m_file.writev(0, b, ec);
 	}
-}
+}}

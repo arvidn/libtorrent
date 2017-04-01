@@ -41,8 +41,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/torrent.hpp" // for default_piece_priority
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	namespace
 	{
 		void apply_flag(std::uint64_t& current_flags
@@ -277,7 +277,7 @@ namespace libtorrent
 			}
 		}
 
-		using namespace libtorrent::detail; // for read_*_endpoint()
+		using namespace lt::detail; // for read_*_endpoint()
 		if (bdecode_node const peers_entry = rd.dict_find_string("peers"))
 		{
 			char const* ptr = peers_entry.string_ptr();
@@ -339,4 +339,4 @@ namespace libtorrent
 
 		return read_resume_data(rd, ec);
 	}
-}
+}}

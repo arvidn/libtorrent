@@ -33,8 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_class.hpp"
 #include "libtorrent/peer_connection.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	void peer_class::set_upload_limit(int limit)
 	{
 		TORRENT_ASSERT(limit >= -1);
@@ -122,4 +122,4 @@ namespace libtorrent
 		if (c >= m_peer_classes.end_index() || !m_peer_classes[c].in_use) return nullptr;
 		return &m_peer_classes[c];
 	}
-}
+}}

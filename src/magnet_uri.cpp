@@ -40,8 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hex.hpp" // to_hex, from_hex
 #include "libtorrent/socket_io.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	std::string make_magnet_uri(torrent_handle const& handle)
 	{
 		if (!handle.is_valid()) return "";
@@ -284,4 +284,4 @@ namespace libtorrent
 		p.info_hash = info_hash;
 		if (!name.empty()) p.name = name;
 	}
-}
+}}

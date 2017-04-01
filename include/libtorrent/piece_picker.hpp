@@ -58,8 +58,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/typed_span.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	class torrent;
 	class peer_connection;
@@ -783,6 +783,6 @@ namespace libtorrent
 		enum { max_pieces = (std::numeric_limits<int>::max)() - 1 };
 
 	};
-}
+}}
 
 #endif // TORRENT_PIECE_PICKER_HPP_INCLUDED

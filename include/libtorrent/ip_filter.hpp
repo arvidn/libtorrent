@@ -45,8 +45,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/assert.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 // hidden
 inline bool operator<=(address const& lhs
@@ -346,6 +346,6 @@ private:
 
 };
 
-}
+}}
 
 #endif

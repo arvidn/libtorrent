@@ -35,8 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/socket_type.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	namespace aux {
 		struct proxy_settings;
 	}
@@ -51,6 +51,6 @@ namespace libtorrent
 		, utp_socket_manager* sm
 		, bool peer_connection
 		, bool tracker_connection);
-}
+}}
 
 #endif

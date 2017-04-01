@@ -35,8 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	struct TORRENT_EXTRA_EXPORT disk_observer
 	{
 		// called when the disk cache size has dropped
@@ -46,7 +46,7 @@ namespace libtorrent
 	protected:
 		~disk_observer() {}
 	};
-}
+}}
 
 #endif
 

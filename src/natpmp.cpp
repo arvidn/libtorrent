@@ -57,7 +57,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/escape_string.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 
-namespace libtorrent {
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 using namespace aux;
 using namespace std::placeholders;
@@ -141,7 +142,7 @@ void natpmp::start()
 void natpmp::send_get_ip_address_request()
 {
 	TORRENT_ASSERT(is_single_thread());
-	using namespace libtorrent::detail;
+	using namespace lt::detail;
 
 	char buf[2];
 	char* out = buf;
@@ -343,7 +344,7 @@ void natpmp::update_mapping(int const i)
 void natpmp::send_map_request(int const i)
 {
 	TORRENT_ASSERT(is_single_thread());
-	using namespace libtorrent::detail;
+	using namespace lt::detail;
 
 	TORRENT_ASSERT(m_currently_mapping == -1
 		|| m_currently_mapping == i);
@@ -422,7 +423,7 @@ void natpmp::on_reply(error_code const& e
 
 	COMPLETE_ASYNC("natpmp::on_reply");
 
-	using namespace libtorrent::detail;
+	using namespace lt::detail;
 	if (e)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -683,4 +684,4 @@ void natpmp::close_impl()
 	update_mapping(0);
 }
 
-} // namespace libtorrent
+}} // namespace lt

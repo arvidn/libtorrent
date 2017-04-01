@@ -54,8 +54,8 @@ namespace
 
 }
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	struct gzip_error_category : boost::system::error_category
 	{
 		const char* name() const BOOST_SYSTEM_NOEXCEPT override;
@@ -275,5 +275,5 @@ namespace libtorrent
 		buffer.resize(destlen);
 	}
 
-}
+}}
 

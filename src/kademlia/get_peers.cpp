@@ -40,7 +40,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/hex.hpp> // to_hex
 #endif
 
-namespace libtorrent { namespace dht
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace dht
 {
 
 void get_peers_observer::reply(msg const& m)
@@ -324,4 +326,4 @@ void obfuscated_get_peers_observer::reply(msg const& m)
 	done();
 }
 
-} } // namespace libtorrent::dht
+}}} // namespace lt::dht

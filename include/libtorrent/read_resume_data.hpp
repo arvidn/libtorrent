@@ -37,8 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/export.hpp"
 #include "libtorrent/span.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	struct add_torrent_params;
 	struct bdecode_node;
 
@@ -54,6 +54,6 @@ namespace libtorrent
 		, error_code& ec);
 	TORRENT_EXPORT add_torrent_params read_resume_data(span<char const> buffer
 		, error_code& ec);
-}
+}}
 
 #endif

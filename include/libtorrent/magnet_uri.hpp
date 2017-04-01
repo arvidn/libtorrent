@@ -39,8 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/string_view.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	struct torrent_handle;
 	class session;
 
@@ -79,6 +79,6 @@ namespace libtorrent
 	// This function parses out information from the magnet link and populates the
 	// add_torrent_params object.
 	TORRENT_EXPORT void parse_magnet_uri(string_view uri, add_torrent_params& p, error_code& ec);
-}
+}}
 
 #endif

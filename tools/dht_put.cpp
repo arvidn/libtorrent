@@ -47,7 +47,6 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace libtorrent;
 using namespace libtorrent::dht;
 using namespace std::placeholders;
-namespace lt = libtorrent;
 
 // TODO: don't use internal functions to libtorrent
 using libtorrent::aux::from_hex;

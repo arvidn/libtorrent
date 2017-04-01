@@ -75,8 +75,8 @@ POSSIBILITY OF SUCH DAMAGE.
 // for convert_to_wstring and convert_to_native
 #include "libtorrent/aux_/escape_string.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	void clear_bufs(span<iovec_t const> bufs)
 	{
 		for (auto buf : bufs)
@@ -839,4 +839,4 @@ namespace libtorrent
 		return new zero_storage;
 	}
 
-} // namespace libtorrent
+}} // namespace lt

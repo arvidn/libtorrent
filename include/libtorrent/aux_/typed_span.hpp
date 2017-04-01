@@ -39,7 +39,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/span.hpp"
 #include "libtorrent/assert.hpp"
 
-namespace libtorrent { namespace aux {
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace aux {
 
 	template <typename T, typename IndexType = int>
 	struct typed_span : span<T>
@@ -126,6 +128,6 @@ namespace libtorrent { namespace aux {
 		}
 	};
 
-}}
+}}}
 
 #endif

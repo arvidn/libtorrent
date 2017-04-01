@@ -42,8 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/web_connection_base.hpp"
 #include "libtorrent/piece_block_progress.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	class torrent;
 	struct peer_request;
 
@@ -107,6 +107,6 @@ namespace libtorrent
 		// from the next chunk header we're waiting for
 		int m_partial_chunk_header;
 	};
-}
+}}
 
 #endif // TORRENT_WEB_PEER_CONNECTION_HPP_INCLUDED

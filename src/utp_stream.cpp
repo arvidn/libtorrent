@@ -54,7 +54,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp"
 #endif
 
-namespace libtorrent {
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 #if TORRENT_UTP_LOG
 
@@ -3640,4 +3641,4 @@ void utp_socket_impl::check_invariant() const
 	}
 }
 #endif
-}
+}}

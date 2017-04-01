@@ -54,8 +54,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	bool is_ip_address(std::string const& host)
 	{
 		error_code ec;
@@ -359,4 +359,4 @@ namespace libtorrent
 		m_abort = true;
 		maybe_abort();
 	}
-}
+}}

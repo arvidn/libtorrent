@@ -46,8 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/operations.hpp" // for operation_t enum
 #include "libtorrent/aux_/vector.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	class TORRENT_EXTRA_EXPORT web_peer_connection
 		: public web_connection_base
 	{
@@ -140,6 +140,6 @@ namespace libtorrent
 		// this connection
 		int m_num_responses;
 	};
-}
+}}
 
 #endif // TORRENT_WEB_PEER_CONNECTION_HPP_INCLUDED

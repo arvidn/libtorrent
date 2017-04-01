@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 using namespace sim;
-namespace lt = libtorrent;
 
 time_point32 time_now()
 {

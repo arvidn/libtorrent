@@ -43,8 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <array>
 #include <memory>
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	struct socks5;
 
 	class TORRENT_EXTRA_EXPORT udp_socket : single_threaded
@@ -160,6 +160,6 @@ namespace libtorrent
 		int m_magic;
 #endif
 	};
-}
+}}
 
 #endif

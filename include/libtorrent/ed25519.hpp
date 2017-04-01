@@ -2,10 +2,11 @@
 #define ED25519_HPP
 
 #include "libtorrent/export.hpp" // for TORRENT_EXPORT
+#include "libtorrent/version.hpp"
 #include <stddef.h> // for size_t
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 enum
 {
 	ed25519_seed_size = 32,
@@ -22,6 +23,6 @@ int TORRENT_EXTRA_EXPORT ed25519_verify(const unsigned char *signature, const un
 void TORRENT_EXTRA_EXPORT ed25519_add_scalar(unsigned char *public_key, unsigned char *private_key, const unsigned char *scalar);
 void TORRENT_EXTRA_EXPORT ed25519_key_exchange(unsigned char *shared_secret, const unsigned char *public_key, const unsigned char *private_key);
 
-}
+}}
 
 #endif // ED25519_HPP

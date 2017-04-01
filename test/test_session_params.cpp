@@ -43,7 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 using namespace libtorrent::dht;
-namespace lt = libtorrent;
 
 namespace
 {

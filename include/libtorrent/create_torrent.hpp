@@ -88,8 +88,8 @@ POSSIBILITY OF SUCH DAMAGE.
 //	ofstream out("my_torrent.torrent", std::ios_base::binary);
 //	bencode(std::ostream_iterator<char>(out), t.generate());
 //
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	class torrent_info;
 
 	// This class holds state for creating a torrent. After having added
@@ -476,6 +476,6 @@ namespace libtorrent
 #endif // TORRENT_NO_DEPRECATE
 #endif // TORRENT_USE_WSTRING
 
-}
+}}
 
 #endif

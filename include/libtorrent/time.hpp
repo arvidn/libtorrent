@@ -42,7 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "simulator/simulator.hpp"
 #endif
 
-namespace libtorrent {
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 #if defined TORRENT_BUILD_SIMULATOR
 	using clock_type = sim::chrono::high_resolution_clock;
@@ -84,6 +85,6 @@ namespace libtorrent {
 	std::int64_t total_microseconds(T td)
 	{ return duration_cast<microseconds>(td).count(); }
 
-}
+}}
 
 #endif // TORRENT_TIME_HPP_INCLUDED

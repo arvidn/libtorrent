@@ -45,7 +45,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <condition_variable>
 #include <atomic>
 
-namespace libtorrent {
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	struct plugin;
@@ -163,6 +164,6 @@ namespace libtorrent {
 		std::list<std::shared_ptr<plugin>> m_ses_extensions;
 #endif
 	};
-}
+}}
 
 #endif

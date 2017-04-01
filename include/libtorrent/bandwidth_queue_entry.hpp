@@ -38,7 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bandwidth_limit.hpp"
 #include "libtorrent/bandwidth_socket.hpp"
 
-namespace libtorrent {
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 struct TORRENT_EXTRA_EXPORT bw_request
 {
@@ -68,6 +69,6 @@ struct TORRENT_EXTRA_EXPORT bw_request
 	bandwidth_channel* channel[max_bandwidth_channels];
 };
 
-}
+}}
 
 #endif

@@ -53,7 +53,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 using namespace std::placeholders;
-namespace lt = libtorrent;
 
 void log(char const* fmt, ...)
 {

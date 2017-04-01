@@ -39,7 +39,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/span.hpp>
 #include <libtorrent/kademlia/types.hpp>
 
-namespace libtorrent { namespace dht
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace dht
 {
 
 // calculate the target hash for an immutable item.
@@ -122,6 +124,6 @@ private:
 	bool m_mutable;
 };
 
-} } // namespace libtorrent::dht
+}}} // namespace lt::dht
 
 #endif // LIBTORRENT_ITEM_HPP

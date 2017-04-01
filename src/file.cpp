@@ -327,8 +327,8 @@ static_assert((libtorrent::file::sparse & libtorrent::file::attribute_mask) == 0
 
 #endif // TORRENT_WINDOWS
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	int bufs_size(span<iovec_t const> bufs)
 	{
 		std::size_t size = 0;
@@ -2173,4 +2173,4 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		return start;
 #endif
 	}
-}
+}}

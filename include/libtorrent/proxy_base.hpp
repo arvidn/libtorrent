@@ -39,7 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/error_code.hpp"
 
-namespace libtorrent {
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 class proxy_base
 {
@@ -258,6 +259,6 @@ protected:
 	tcp::resolver m_resolver;
 };
 
-}
+}}
 
 #endif

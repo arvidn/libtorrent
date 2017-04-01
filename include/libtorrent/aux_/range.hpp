@@ -33,7 +33,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_RANGE_HPP
 #define TORRENT_RANGE_HPP
 
-namespace libtorrent { namespace aux {
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace aux {
 
 	template <typename Iter>
 	struct iterator_range
@@ -62,6 +64,6 @@ namespace libtorrent { namespace aux {
 		using type = typename underlying_index_t<IndexType>::type;
 		return {vec.data() + static_cast<type>(begin), vec.data() + static_cast<type>(end)};
 	}
-}}
+}}}
 
 #endif

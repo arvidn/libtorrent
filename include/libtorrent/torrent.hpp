@@ -82,8 +82,8 @@ POSSIBILITY OF SUCH DAMAGE.
 // logic
 #define TORRENT_DEBUG_STREAMING 0
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	class http_parser;
 
 	struct storage_interface;
@@ -1666,6 +1666,6 @@ namespace libtorrent
 		bool m_outstanding_check_files = false;
 #endif
 	};
-}
+}}
 
 #endif // TORRENT_TORRENT_HPP_INCLUDED

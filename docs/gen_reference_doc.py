@@ -622,10 +622,6 @@ for filename in files:
 			lno = consume_block(lno, lines)
 			continue
 
-		if 'TORRENT_CFG' in l:
-			blanks += 1
-			if verbose: print 'xx    %s' % l
-			continue
 		if 'TORRENT_DEPRECATED' in l:
 			if ('class ' in l or 'struct ' in l) and not ';' in l:
 				lno = consume_block(lno - 1, lines)

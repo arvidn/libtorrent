@@ -36,8 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/units.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	struct piece_block_progress
 	{
 		constexpr static piece_index_t invalid_index{-1};
@@ -54,6 +54,6 @@ namespace libtorrent
 		// the number of bytes in the block
 		int full_block_bytes;
 	};
-}
+}}
 
 #endif // TORRENT_PIECE_BLOCK_PROGRESS_HPP_INCLUDED

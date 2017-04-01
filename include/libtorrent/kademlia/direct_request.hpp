@@ -36,7 +36,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/kademlia/msg.hpp>
 #include <libtorrent/kademlia/traversal_algorithm.hpp>
 
-namespace libtorrent { namespace dht
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace dht
 {
 
 struct direct_traversal : traversal_algorithm
@@ -89,6 +91,6 @@ struct direct_observer : observer
 	}
 };
 
-}} // namespace libtorrent::dht
+}}} // namespace lt::dht
 
 #endif //TORRENT_DIRECT_REQUEST_HPP

@@ -35,8 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/assert.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	template <typename T>
 	struct tailqueue_node
 	{
@@ -181,6 +181,6 @@ namespace libtorrent
 		T* m_last;
 		int m_size;
 	};
-}
+}}
 
 #endif // TAILQUEUE_HPP

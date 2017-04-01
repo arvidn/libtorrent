@@ -50,7 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 using namespace libtorrent;
-namespace lt = libtorrent;
 
 using std::ignore;
 

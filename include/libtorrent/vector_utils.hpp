@@ -36,7 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <algorithm>
 
-namespace libtorrent {
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	template <typename Container, typename T>
 	auto sorted_find(Container& container, T const& v)
@@ -54,6 +55,6 @@ namespace libtorrent {
 		auto i = std::lower_bound(container.begin(), container.end(), v);
 		container.insert(i, v);
 	}
-}
+}}
 
 #endif

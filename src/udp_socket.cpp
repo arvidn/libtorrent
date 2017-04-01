@@ -47,7 +47,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/asio/ip/v6_only.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace libtorrent {
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 using namespace std::placeholders;
 
@@ -288,7 +289,7 @@ void udp_socket::wrap(udp::endpoint const& ep, span<char const> p
 	, error_code& ec, int const flags)
 {
 	TORRENT_UNUSED(flags);
-	using namespace libtorrent::detail;
+	using namespace lt::detail;
 
 	char header[25];
 	char* h = header;
@@ -313,7 +314,7 @@ void udp_socket::wrap(char const* hostname, int const port, span<char const> p
 	, error_code& ec, int const flags)
 {
 	TORRENT_UNUSED(flags);
-	using namespace libtorrent::detail;
+	using namespace lt::detail;
 
 	char header[270];
 	char* h = header;
@@ -344,7 +345,7 @@ void udp_socket::wrap(char const* hostname, int const port, span<char const> p
 // forwarded packet
 bool udp_socket::unwrap(udp::endpoint& from, span<char>& buf)
 {
-	using namespace libtorrent::detail;
+	using namespace lt::detail;
 
 	// the minimum socks5 header size
 	int const size = aux::numeric_cast<int>(buf.size());
@@ -543,7 +544,7 @@ void socks5::on_connected(error_code const& e)
 	// we failed to connect to the proxy
 	if (e) return;
 
-	using namespace libtorrent::detail;
+	using namespace lt::detail;
 
 	// send SOCKS5 authentication methods
 	char* p = &m_tmp_buf[0];
@@ -585,7 +586,7 @@ void socks5::handshake2(error_code const& e)
 
 	if (e) return;
 
-	using namespace libtorrent::detail;
+	using namespace lt::detail;
 
 	char* p = &m_tmp_buf[0];
 	int version = read_uint8(p);
@@ -651,7 +652,7 @@ void socks5::handshake4(error_code const& e)
 	if (m_abort) return;
 	if (e) return;
 
-	using namespace libtorrent::detail;
+	using namespace lt::detail;
 
 	char* p = &m_tmp_buf[0];
 	int version = read_uint8(p);
@@ -664,7 +665,7 @@ void socks5::handshake4(error_code const& e)
 
 void socks5::socks_forward_udp()
 {
-	using namespace libtorrent::detail;
+	using namespace lt::detail;
 
 	// send SOCKS5 UDP command
 	char* p = &m_tmp_buf[0];
@@ -699,7 +700,7 @@ void socks5::connect2(error_code const& e)
 	if (m_abort) return;
 	if (e) return;
 
-	using namespace libtorrent::detail;
+	using namespace lt::detail;
 
 	char* p = &m_tmp_buf[0];
 	int version = read_uint8(p); // VERSION
@@ -750,4 +751,4 @@ void socks5::close()
 	m_timer.cancel();
 }
 
-}
+}}

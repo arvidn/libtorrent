@@ -36,8 +36,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <unordered_set>
 
 #include "libtorrent/export.hpp"
+#include "libtorrent/version.hpp"
 
-namespace libtorrent {
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 struct cached_piece_entry;
 
@@ -59,6 +61,6 @@ namespace aux {
 		// these are cached pieces belonging to this storage
 		std::unordered_set<cached_piece_entry*> m_cached_pieces;
 	};
-}}
+}}}
 
 #endif

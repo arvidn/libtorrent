@@ -65,8 +65,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 #if defined TORRENT_BUILD_SIMULATOR
 	using sim::asio::ip::udp;
@@ -189,6 +189,6 @@ namespace libtorrent
 		int m_value;
 	};
 #endif // TORRENT_HAS_DONT_FRAGMENT
-}
+}}
 
 #endif // TORRENT_SOCKET_HPP_INCLUDED

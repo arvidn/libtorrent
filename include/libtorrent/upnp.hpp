@@ -48,8 +48,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 #include <set>
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	namespace upnp_errors
 	{
@@ -393,7 +393,7 @@ private:
 	mutable time_point m_last_if_update;
 };
 
-}
+}}
 
 namespace boost { namespace system {
 

@@ -43,7 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions/ut_metadata.hpp"
 
 using namespace libtorrent;
-namespace lt = libtorrent;
 
 enum flags_t
 {

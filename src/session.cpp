@@ -38,8 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/aux_/session_call.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	settings_pack min_memory_usage()
 	{
 		settings_pack set;
@@ -245,16 +245,6 @@ namespace libtorrent
 		return set;
 	}
 
-#ifndef TORRENT_CFG
-#error TORRENT_CFG is not defined!
-#endif
-
-	// this is a dummy function that's exported and named based
-	// on the configuration. The session.hpp file will reference
-	// it and if the library and the client are built with different
-	// configurations this will give a link error
-	void TORRENT_CFG() {}
-
 	session_params read_session_params(bdecode_node const& e, std::uint32_t const flags)
 	{
 		session_params params;
@@ -422,4 +412,4 @@ namespace libtorrent
 		, dht_storage_constructor(dht::dht_default_storage_constructor)
 #endif
 	{}
-}
+}}

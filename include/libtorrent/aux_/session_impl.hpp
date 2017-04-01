@@ -100,8 +100,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdarg> // for va_start, va_end
 #include <unordered_map>
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	struct plugin;
 	struct upnp;
@@ -1271,6 +1271,6 @@ namespace libtorrent
 #endif
 
 	}
-}
+}}
 
 #endif

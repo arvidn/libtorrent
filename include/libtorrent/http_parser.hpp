@@ -43,8 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/buffer.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	// return true if the status code is 200, 206, or in the 300-400 range
 	TORRENT_EXTRA_EXPORT bool is_ok_status(int http_status);
 
@@ -164,6 +164,6 @@ namespace libtorrent
 		bool m_finished = false;
 	};
 
-}
+}}
 
 #endif // TORRENT_HTTP_PARSER_HPP_INCLUDED

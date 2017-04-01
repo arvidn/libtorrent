@@ -33,7 +33,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_NON_OWNING_HANDLE_HPP_INCLUDED
 #define TORRENT_NON_OWNING_HANDLE_HPP_INCLUDED
 
-namespace libtorrent { namespace aux {
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace aux {
 
 	// internal
 	struct non_owning_handle
@@ -44,6 +46,6 @@ namespace libtorrent { namespace aux {
 		char* m_buf;
 	};
 
-}}
+}}}
 
 #endif

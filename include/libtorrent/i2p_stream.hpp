@@ -47,7 +47,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_util.hpp"
 #include "libtorrent/aux_/vector.hpp"
 
-namespace libtorrent {
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	namespace i2p_error {
 
@@ -222,7 +223,7 @@ private:
 	io_service& m_io_service;
 };
 
-}
+}}
 
 namespace boost { namespace system {
 

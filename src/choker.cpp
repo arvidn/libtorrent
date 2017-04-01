@@ -40,8 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	namespace {
 
@@ -417,4 +417,4 @@ namespace libtorrent
 		return upload_slots;
 	}
 
-}
+}}

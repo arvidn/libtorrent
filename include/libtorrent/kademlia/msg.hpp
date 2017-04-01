@@ -36,7 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/span.hpp"
 
-namespace libtorrent {
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 struct bdecode_node;
 
@@ -95,6 +96,6 @@ bool verify_message(bdecode_node const& msg, key_desc_t const (&desc)[Size]
 	return verify_message_impl(msg, desc, ret, error);
 }
 
-} }
+}}}
 
 #endif

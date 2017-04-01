@@ -6,8 +6,8 @@
 #include "ge.h"
 #include "sc.h"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 static int consttime_equal(const unsigned char *x, const unsigned char *y) {
     unsigned char r = 0;
@@ -81,4 +81,4 @@ int ed25519_verify(const unsigned char *signature, const unsigned char *message,
     return 1;
 }
 
-}
+}}

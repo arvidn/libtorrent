@@ -35,8 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/vector.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	struct link
 	{
 		link() : index(-1) {}
@@ -73,6 +73,6 @@ namespace libtorrent
 			index = int(list.size()) - 1;
 		}
 	};
-}
+}}
 
 #endif

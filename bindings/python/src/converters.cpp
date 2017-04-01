@@ -15,7 +15,6 @@
 
 using namespace boost::python;
 namespace bp = boost::python;
-namespace lt = libtorrent;
 
 template<class T>
 struct endpoint_to_tuple

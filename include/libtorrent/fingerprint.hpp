@@ -40,8 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/export.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	// This is a utility function to produce a client ID fingerprint formatted to
 	// the most common convention.
@@ -95,7 +95,7 @@ namespace libtorrent
 		int tag_version;
 	};
 
-}
+}}
 
 #endif // TORRENT_FINGERPRINT_HPP_INCLUDED
 

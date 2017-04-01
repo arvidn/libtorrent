@@ -43,8 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 #include <list>
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	// TODO: 2 factor these functions out
 	TORRENT_EXTRA_EXPORT bool is_local(address const& a);
 	TORRENT_EXTRA_EXPORT bool is_loopback(address const& addr);
@@ -143,6 +143,6 @@ namespace libtorrent
 		// the handler object
 		bool m_abort;
 	};
-}
+}}
 
 #endif

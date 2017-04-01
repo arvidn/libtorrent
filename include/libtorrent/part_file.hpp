@@ -44,8 +44,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/units.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	struct slot_index_tag_t {};
 	using slot_index_t = aux::strong_typedef<int, slot_index_tag_t>;
 
@@ -117,6 +117,6 @@ namespace libtorrent
 		// this is the file handle to the part file
 		file m_file;
 	};
-}
+}}
 
 #endif

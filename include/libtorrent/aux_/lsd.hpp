@@ -35,7 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-namespace libtorrent {
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 namespace aux
 {
 	struct TORRENT_EXTRA_EXPORT lsd_callback
@@ -49,6 +50,6 @@ namespace aux
 	protected:
 		~lsd_callback() {}
 	};
-}}
+}}}
 
 #endif // LIBTORRENT_LSD_HPP

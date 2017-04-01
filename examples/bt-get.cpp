@@ -40,7 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/alert_types.hpp>
 #include <libtorrent/magnet_uri.hpp>
 
-namespace lt = libtorrent;
 int main(int argc, char const* argv[])
 {
 	if (argc != 2) {

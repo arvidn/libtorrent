@@ -36,8 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp"
 #include <fstream>
 
-namespace lt = libtorrent;
-
 std::string save_path(int idx)
 {
 	int const swarm_id = test_counter();

@@ -168,8 +168,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/error_code.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	struct peer_plugin;
 	struct peer_request;
 	class entry;
@@ -507,7 +507,7 @@ namespace libtorrent
 		// advance the next step of decryption. default is 0
 		virtual std::tuple<int, int, int> decrypt(span<span<char>> /*receive_vec*/) = 0;
 	};
-}
+}}
 
 #endif
 

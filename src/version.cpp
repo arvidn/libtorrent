@@ -32,11 +32,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/version.hpp"
 
-namespace libtorrent {
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 char const* version()
 {
 	return LIBTORRENT_VERSION;
 }
 
-}
+}}

@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #include <thread>
 
-namespace lt = libtorrent;
 using namespace libtorrent;
 
 int touch_file(std::string const& filename, int size)

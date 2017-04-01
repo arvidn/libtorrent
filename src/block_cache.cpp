@@ -168,7 +168,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #endif // cplusplus
 
-namespace libtorrent {
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 #if DEBUG_CACHE
 void log_refcounts(cached_piece_entry const* pe)
@@ -1855,4 +1856,4 @@ cached_piece_entry* block_cache::find_piece(storage_interface* st, piece_index_t
 	return const_cast<cached_piece_entry*>(&*i);
 }
 
-}
+}}

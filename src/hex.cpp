@@ -32,8 +32,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/hex.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	namespace aux {
 
@@ -102,4 +102,4 @@ namespace libtorrent
 
 	} // aux namespace
 
-}
+}}

@@ -53,8 +53,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/vector.hpp"
 #endif
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	struct disk_io_job;
 	struct storage_interface;
 	struct cache_status;
@@ -526,6 +526,6 @@ namespace libtorrent
 		int m_pinned_blocks;
 	};
 
-}
+}}
 
 #endif // TORRENT_BLOCK_CACHE

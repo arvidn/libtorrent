@@ -36,7 +36,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/units.hpp"
 #include "libtorrent/storage_defs.hpp"
 
-namespace libtorrent { namespace aux {
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace aux {
 
 	struct block_cache_reference
 	{
@@ -48,6 +50,6 @@ namespace libtorrent { namespace aux {
 		std::int32_t cookie = none;
 	};
 
-}}
+}}}
 
 #endif

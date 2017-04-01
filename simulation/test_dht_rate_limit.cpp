@@ -48,7 +48,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cmath>
 
 using namespace libtorrent;
-namespace lt = libtorrent;
 using namespace sim;
 using namespace std::placeholders;
 

@@ -77,7 +77,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/lsd.hpp"
 #include "libtorrent/instantiate_connection.hpp"
 #include "libtorrent/peer_info.hpp"
-#include "libtorrent/build_config.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
@@ -172,7 +171,8 @@ namespace boost {
 }
 #endif
 
-namespace libtorrent {
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 #if defined TORRENT_ASIO_DEBUGGING
 	std::map<std::string, async_t> _async_ops;
@@ -538,8 +538,7 @@ namespace aux {
 
 #ifndef TORRENT_DISABLE_LOGGING
 
-		session_log("config: %s version: %s revision: %s"
-			, TORRENT_CFG_STRING
+		session_log("version: %s revision: %s"
 			, LIBTORRENT_VERSION
 			, LIBTORRENT_REVISION);
 
@@ -6866,4 +6865,4 @@ namespace aux {
 			va_end(v);
 		}
 #endif // TORRENT_DISABLE_LOGGING
-}}
+}}}

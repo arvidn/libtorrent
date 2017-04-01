@@ -54,8 +54,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/pe_crypto.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	class torrent;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -476,6 +476,6 @@ namespace libtorrent
 #endif
 
 	};
-}
+}}
 
 #endif // TORRENT_BT_PEER_CONNECTION_HPP_INCLUDED

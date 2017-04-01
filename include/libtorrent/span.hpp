@@ -37,8 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <type_traits>
 #include "libtorrent/assert.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	template <typename T>
 	struct span
 	{
@@ -114,6 +114,6 @@ namespace libtorrent
 		T* m_ptr;
 		std::size_t m_len;
 	};
-}
+}}
 
 #endif // TORRENT_SPAN_HPP_INCLUDED

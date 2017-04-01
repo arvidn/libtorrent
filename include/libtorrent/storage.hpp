@@ -127,8 +127,8 @@ POSSIBILITY OF SUCH DAMAGE.
 //	{
 //		return new temp_storage(*params.files);
 //	}
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	class session;
 	struct file_pool;
 	namespace aux { struct session_settings; }
@@ -447,6 +447,6 @@ namespace libtorrent
 		bool m_allocate_files;
 	};
 
-}
+}}
 
 #endif // TORRENT_STORAGE_HPP_INCLUDED

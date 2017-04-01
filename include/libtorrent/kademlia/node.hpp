@@ -49,14 +49,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/socket.hpp> // for udp::endpoint
 #include <libtorrent/string_view.hpp>
 
-namespace libtorrent {
-	struct counters;
-	struct dht_routing_bucket;
-	struct dht_settings;
-}
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
-namespace libtorrent { namespace dht
-{
+struct counters;
+struct dht_routing_bucket;
+struct dht_settings;
+
+namespace dht {
 
 struct traversal_algorithm;
 struct dht_observer;
@@ -266,6 +266,6 @@ private:
 #endif
 };
 
-} } // namespace libtorrent::dht
+}}} // namespace lt::dht
 
 #endif // NODE_HPP

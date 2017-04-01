@@ -42,8 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <limits>
 #include <array> // for std::array
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	TORRENT_EXTRA_EXPORT bool is_alpha(char c);
 
 	TORRENT_EXTRA_EXPORT
@@ -114,6 +114,6 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT bool is_i2p_url(std::string const& url);
 
 #endif
-}
+}}
 
 #endif

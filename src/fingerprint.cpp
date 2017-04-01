@@ -33,7 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/fingerprint.hpp"
 #include "libtorrent/assert.hpp"
 
-namespace libtorrent {
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	namespace {
 
 	char version_to_char(int const v)
@@ -96,5 +97,5 @@ namespace libtorrent {
 	}
 #endif // TORRENT_NO_DEPRECATE
 
-}
+}}
 

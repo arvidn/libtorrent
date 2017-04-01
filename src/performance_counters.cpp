@@ -34,7 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include <cstring> // for memset
 
-namespace libtorrent {
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 
 	counters::counters()
@@ -153,4 +154,4 @@ namespace libtorrent {
 #endif
 	}
 
-}
+}}

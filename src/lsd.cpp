@@ -46,8 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 namespace {
 
 int render_lsd_packet(char* dst, int const len, int const listen_port
@@ -304,4 +304,4 @@ void lsd::close()
 #endif
 }
 
-} // libtorrent namespace
+}} // libtorrent namespace

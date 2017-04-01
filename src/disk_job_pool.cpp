@@ -33,8 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_job_pool.hpp"
 #include "libtorrent/disk_io_job.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	disk_job_pool::disk_job_pool()
 		: m_jobs_in_use(0)
 		, m_read_jobs(0)
@@ -106,4 +106,4 @@ namespace libtorrent
 		for (int i = 0; i < num; ++i)
 			m_job_pool.free(j[i]);
 	}
-}
+}}

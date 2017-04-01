@@ -50,8 +50,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	struct ip_change_notifier
 	{
 		explicit ip_change_notifier(io_service& ios);
@@ -79,6 +79,6 @@ namespace libtorrent
 		boost::asio::windows::object_handle m_hnd;
 #endif
 	};
-}
+}}
 
 #endif

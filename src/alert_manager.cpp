@@ -38,8 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions.hpp"
 #endif
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	alert_manager::alert_manager(int const queue_limit, std::uint32_t const alert_mask)
 		: m_alert_mask(alert_mask)
@@ -147,4 +147,4 @@ namespace libtorrent
 		std::swap(m_queue_size_limit, queue_size_limit_);
 		return queue_size_limit_;
 	}
-}
+}}

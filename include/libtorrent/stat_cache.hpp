@@ -43,8 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/units.hpp"
 #include "libtorrent/aux_/vector.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	struct TORRENT_EXTRA_EXPORT stat_cache
 	{
 		stat_cache();
@@ -97,6 +97,6 @@ namespace libtorrent
 		// that had an error, refers to an index into this vector.
 		std::vector<error_code> m_errors;
 	};
-}
+}}
 
 #endif // TORRENT_STAT_CACHE_HPP

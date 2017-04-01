@@ -44,7 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 
 using namespace libtorrent;
-namespace lt = libtorrent;
 
 char const* pe_policy(std::uint8_t policy)
 {

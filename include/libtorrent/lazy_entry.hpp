@@ -46,8 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/bdecode.hpp" // for error codes
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	struct lazy_entry;
 
 	// This function decodes bencoded_ data.
@@ -403,7 +403,7 @@ namespace libtorrent
 		, char const* end, char delimiter, std::int64_t& val
 		, bdecode_errors::error_code_enum& ec);
 
-}
+}}
 
 #endif // TORRENT_NO_DEPRECATE
 

@@ -37,7 +37,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/kademlia/msg.hpp"
 
-namespace libtorrent { namespace dht
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace dht
 {
 	struct TORRENT_EXTRA_EXPORT dht_logger
 	{
@@ -82,6 +84,6 @@ namespace libtorrent { namespace dht
 	protected:
 		~dht_observer() {}
 	};
-}}
+}}}
 
 #endif

@@ -42,7 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/throw.hpp"
 
-namespace libtorrent {
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	namespace aux {
 		struct free_deleter
@@ -252,7 +253,7 @@ namespace libtorrent {
 		// the number of objects allocated in m_storage
 		int m_num_items = 0;
 	};
-}
+}}
 
 #endif
 

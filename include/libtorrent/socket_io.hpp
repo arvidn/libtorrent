@@ -43,8 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_view.hpp"
 #include <string>
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	TORRENT_EXTRA_EXPORT std::string print_address(address const& addr);
 	TORRENT_EXTRA_EXPORT std::string print_endpoint(address const& addr, int port);
 	TORRENT_EXTRA_EXPORT std::string print_endpoint(tcp::endpoint const& ep);
@@ -151,6 +151,6 @@ namespace libtorrent
 		}
 	} // namespace detail
 
-}
+}}
 
 #endif

@@ -48,7 +48,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "setup_dht.hpp"
 
-namespace lt = libtorrent;
 using namespace sim;
 using namespace libtorrent;
 

@@ -51,7 +51,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 using namespace libtorrent;
-namespace lt = libtorrent;
 
 const int piece_size = 16 * 1024 * 16;
 const int half = piece_size / 2;

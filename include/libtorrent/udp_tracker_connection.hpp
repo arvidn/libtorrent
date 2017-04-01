@@ -46,8 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/span.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	class TORRENT_EXTRA_EXPORT udp_tracker_connection: public tracker_connection
 	{
 	friend class tracker_manager;
@@ -129,6 +129,6 @@ namespace libtorrent
 		bool m_abort;
 	};
 
-}
+}}
 
 #endif // TORRENT_UDP_TRACKER_CONNECTION_HPP_INCLUDED

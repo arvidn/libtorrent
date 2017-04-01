@@ -42,8 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/units.hpp"
 #include "libtorrent/storage_defs.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	class file_storage;
 
 	struct pool_file_status
@@ -152,6 +152,6 @@ namespace libtorrent
 #endif
 		mutable std::mutex m_mutex;
 	};
-}
+}}
 
 #endif

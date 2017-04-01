@@ -46,8 +46,6 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace sim;
 using namespace libtorrent;
 
-namespace lt = libtorrent;
-
 using sim::asio::ip::address_v4;
 
 // this is the general template for these tests. create the session with custom

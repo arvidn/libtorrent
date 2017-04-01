@@ -43,8 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif // SIMULATOR
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 #if defined TORRENT_BUILD_SIMULATOR
 	using address = sim::asio::ip::address;
 	using address_v4 = sim::asio::ip::address_v4;
@@ -58,6 +58,6 @@ namespace libtorrent
 	using address_v6 = boost::asio::ip::address_v6;
 #endif
 #endif // SIMULATOR
-}
+}}
 
 #endif

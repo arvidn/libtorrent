@@ -64,8 +64,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/config.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	// The ``alert`` class is the base class that specific messages are derived from.
 	// alert types are not copyable, and cannot be constructed by the client. The
@@ -294,6 +294,6 @@ template <class T> T const* alert_cast(alert const* a)
 	return nullptr;
 }
 
-} // namespace libtorrent
+}} // namespace lt
 
 #endif // TORRENT_ALERT_HPP_INCLUDED

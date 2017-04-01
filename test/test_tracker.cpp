@@ -50,7 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 
 using namespace libtorrent;
-namespace lt = libtorrent;
 
 // TODO: test scrape requests
 // TODO: test parse peers6

@@ -47,8 +47,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/time.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 struct TORRENT_EXTRA_EXPORT resolver final : resolver_interface
 {
@@ -86,6 +86,6 @@ private:
 	time_duration m_timeout;
 };
 
-}
+}}
 
 #endif

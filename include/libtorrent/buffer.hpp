@@ -51,7 +51,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <malloc/malloc.h>
 #endif
 
-namespace libtorrent {
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 // the buffer is allocated once and cannot be resized. The size() may be
 // larger than requested, in case the underlying allocator over allocated. In
@@ -155,6 +156,6 @@ private:
 	std::size_t m_size = 0;
 };
 
-}
+}}
 
 #endif // BTORRENT_BUFFER_HPP_INCLUDED

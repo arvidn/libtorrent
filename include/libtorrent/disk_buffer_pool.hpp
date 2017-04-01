@@ -56,8 +56,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file.hpp" // for iovec_t
 #include "libtorrent/span.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	namespace aux { struct session_settings; }
 	class alert;
 	struct disk_observer;
@@ -176,6 +176,6 @@ namespace libtorrent
 #endif
 	};
 
-}
+}}
 
 #endif // TORRENT_DISK_BUFFER_POOL_HPP

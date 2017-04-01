@@ -47,7 +47,6 @@ enum flags_t
 void test_read_piece(int flags)
 {
 	using namespace libtorrent;
-	namespace lt = libtorrent;
 
 	std::printf("==== TEST READ PIECE =====\n");
 

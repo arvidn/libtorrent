@@ -45,8 +45,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/error_code.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	namespace utf8_errors
 	{
@@ -79,7 +79,7 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT std::wstring utf8_wchar(string_view utf8);
 	TORRENT_EXTRA_EXPORT std::string wchar_utf8(wstring_view wide, error_code& ec);
 	TORRENT_EXTRA_EXPORT std::string wchar_utf8(wstring_view wide);
-}
+}}
 #endif // !BOOST_NO_STD_WSTRING
 
 #endif

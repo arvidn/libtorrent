@@ -38,7 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/proxy_base.hpp"
 #include "libtorrent/string_util.hpp"
 
-namespace libtorrent {
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 class http_stream : public proxy_base
 {
@@ -115,6 +116,6 @@ private:
 	bool m_no_connect;
 };
 
-}
+}}
 
 #endif

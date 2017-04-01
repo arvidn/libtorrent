@@ -59,7 +59,6 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace std::placeholders;
 using namespace libtorrent;
 using std::ignore;
-namespace lt = libtorrent;
 
 int const alert_mask = alert::all_categories
 & ~alert::progress_notification

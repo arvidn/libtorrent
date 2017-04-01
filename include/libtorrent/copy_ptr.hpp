@@ -33,8 +33,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_COPY_PTR
 #define TORRENT_COPY_PTR
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+
 	template <class T>
 	struct copy_ptr
 	{
@@ -64,7 +65,7 @@ namespace libtorrent
 	private:
 		T* m_ptr;
 	};
-}
+}}
 
 #endif // TORRENT_COPY_PTR
 

@@ -33,7 +33,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/node_entry.hpp"
 #include "libtorrent/aux_/time.hpp" // for aux::time_now()
 
-namespace libtorrent { namespace dht
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace dht
 {
 
 	node_entry::node_entry(node_id const& id_, udp::endpoint const& ep
@@ -82,4 +84,4 @@ namespace libtorrent { namespace dht
 		else rtt = std::uint16_t(int(rtt) * 2 / 3 + new_rtt / 3);
 	}
 
-}}
+}}}

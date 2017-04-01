@@ -42,7 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 using namespace libtorrent;
-namespace lt = libtorrent;
 
 TORRENT_TEST(utp)
 {

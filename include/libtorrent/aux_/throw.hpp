@@ -37,8 +37,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-namespace libtorrent { namespace aux
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace aux {
 	template <typename T, typename... Args>
 	void TORRENT_NO_RETURN throw_ex(Args&&... args)
 	{
@@ -48,6 +49,6 @@ namespace libtorrent { namespace aux
 		throw T(std::forward<Args>(args)...);
 #endif
 	}
-}}
+}}}
 
 #endif

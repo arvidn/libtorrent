@@ -50,8 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace sim;
 using namespace libtorrent;
 
-namespace lt = libtorrent;
-
 int const piece_size = 0x4000;
 
 add_torrent_params create_torrent(file_storage& fs, bool const pad_files = false)

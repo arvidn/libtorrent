@@ -38,7 +38,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/units.hpp"
 #include "libtorrent/assert.hpp"
 
-namespace libtorrent { namespace aux {
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+namespace aux {
 
 	template <typename T, std::size_t Size, typename IndexType = int>
 	struct array : std::array<T, Size>
@@ -82,6 +84,6 @@ namespace libtorrent { namespace aux {
 		}
 	};
 
-}}
+}}}
 
 #endif

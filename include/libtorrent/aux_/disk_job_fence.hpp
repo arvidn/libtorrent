@@ -39,7 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <atomic>
 #include <mutex>
 
-namespace libtorrent {
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 struct disk_io_job;
 struct counters;
@@ -111,7 +112,7 @@ namespace aux
 	};
 
 
-}}
+}}}
 
 #endif
 

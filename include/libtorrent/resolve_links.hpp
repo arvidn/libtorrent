@@ -43,8 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/units.hpp"
 #include "libtorrent/aux_/vector.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	class torrent_info;
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
@@ -82,6 +82,6 @@ namespace libtorrent
 	};
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 
-}
+}}
 
 #endif

@@ -57,8 +57,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/shared_array.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	// maps an operation id (from peer_error_alert and peer_disconnected_alert)
 	// to its name. See peer_connection for the constants
 	TORRENT_EXPORT char const* operation_name(int op);
@@ -2574,6 +2574,6 @@ namespace libtorrent
 #undef TORRENT_DEFINE_ALERT_PRIO
 
 	enum { num_alert_types = 93 }; // this enum represents "max_alert_index" + 1
-}
+}}
 
 #endif

@@ -41,13 +41,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif // SIMULATOR
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 #if defined TORRENT_BUILD_SIMULATOR
 	using sim::asio::io_service;
 #else
 	using boost::asio::io_service;
 #endif
-}
+}}
 
 #endif

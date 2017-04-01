@@ -55,8 +55,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using libtorrent::aux::session_impl;
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 #ifndef BOOST_NO_EXCEPTIONS
 	void TORRENT_NO_RETURN throw_invalid_handle()
@@ -744,4 +744,4 @@ namespace libtorrent
 		// for expired weak_ptrs. So, we're left with a hack
 		return std::size_t(*reinterpret_cast<void* const*>(&th.m_torrent));
 	}
-}
+}}

@@ -40,7 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 #include <thread>
 
-namespace lt = libtorrent;
 using namespace libtorrent;
 
 TORRENT_TEST(limit)

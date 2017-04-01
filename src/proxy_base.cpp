@@ -32,8 +32,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/proxy_base.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	proxy_base::proxy_base(io_service& io_service)
 		: m_sock(io_service)
@@ -51,4 +51,4 @@ namespace libtorrent
 		close(ec);
 		return true;
 	}
-}
+}}

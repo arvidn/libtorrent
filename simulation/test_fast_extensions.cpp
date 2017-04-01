@@ -44,7 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_view.hpp"
 
 using namespace libtorrent::literals;
-namespace lt = libtorrent;
 
 template <typename Sett, typename Alert>
 void run_fake_peer_test(

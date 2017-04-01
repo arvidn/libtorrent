@@ -72,8 +72,8 @@ struct alloc_header
 
 #endif
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	int page_size()
 	{
@@ -207,4 +207,4 @@ namespace libtorrent
 	}
 #endif
 
-}
+}}

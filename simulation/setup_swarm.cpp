@@ -49,7 +49,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "utils.hpp"
 #include "simulator/queue.hpp"
 
-namespace lt = libtorrent;
 using namespace sim;
 
 namespace {

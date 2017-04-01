@@ -38,8 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	void http_stream::name_lookup(error_code const& e, tcp::resolver::iterator i
 		, handler_type& h)
@@ -54,7 +54,7 @@ namespace libtorrent
 	{
 		if (handle_error(e, h)) return;
 
-		using namespace libtorrent::detail;
+		using namespace lt::detail;
 
 		if (m_no_connect)
 		{
@@ -151,4 +151,4 @@ namespace libtorrent
 			, std::bind(&http_stream::handshake2, this, _1, std::move(h)));
 	}
 
-}
+}}

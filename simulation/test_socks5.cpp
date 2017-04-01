@@ -50,8 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 using namespace sim;
 using namespace libtorrent;
 
-namespace lt = libtorrent;
-
 // this is the general template for these tests. create the session with custom
 // settings (Settings), set up the test, by adding torrents with certain
 // arguments (Setup), run the test and verify the end state (Test)

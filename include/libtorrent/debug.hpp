@@ -62,8 +62,8 @@ const mach_msg_type_number_t task_events_info_count = TASK_EVENTS_INFO_COUNT;
 
 std::string demangle(char const* name);
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	struct async_t
 	{
 		async_t() : refs(0) {}
@@ -161,7 +161,7 @@ namespace libtorrent
 		}
 		return ret;
 	}
-}
+}}
 
 #define ADD_OUTSTANDING_ASYNC(x) add_outstanding_async(x)
 #define COMPLETE_ASYNC(x) complete_async(x)
@@ -173,8 +173,7 @@ namespace libtorrent
 
 #endif // TORRENT_ASIO_DEBUGGING
 
-namespace libtorrent
-{
+namespace lt {
 #if TORRENT_USE_ASSERTS
 	struct TORRENT_EXTRA_EXPORT single_threaded
 	{

@@ -33,8 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_REQUEST_BLOCKS_HPP_INCLUDED
 #define TORRENT_REQUEST_BLOCKS_HPP_INCLUDED
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	class torrent;
 	class peer_connection;
 
@@ -49,7 +49,7 @@ namespace libtorrent
 	// problems when our peer list is diluted by stale peers from
 	// the resume data for instance
 	int source_rank(int source_bitmask);
-}
+}}
 
 #endif
 

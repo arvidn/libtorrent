@@ -36,8 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstring> // for memset
 #include <cstdint>
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	// ``peer_class_type_filter`` is a simple container for rules for adding and subtracting
 	// peer-classes from peers. It is applied *after* the peer class filter is applied (which
@@ -131,6 +131,6 @@ namespace libtorrent
 		std::uint32_t m_peer_class_type[5];
 	};
 
-}
+}}
 
 #endif

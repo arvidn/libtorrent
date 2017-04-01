@@ -36,8 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/bandwidth_queue_entry.hpp"
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	bw_request::bw_request(std::shared_ptr<bandwidth_socket> const& pe
 		, int blk, int prio)
 		: peer(pe)
@@ -71,5 +71,5 @@ namespace libtorrent
 		TORRENT_ASSERT(assigned <= request_size);
 		return quota;
 	}
-}
+}}
 

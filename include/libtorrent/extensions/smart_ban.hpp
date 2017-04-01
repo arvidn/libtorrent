@@ -39,8 +39,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <memory>
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
+
 	struct torrent_plugin;
 	struct torrent_handle;
 
@@ -51,7 +52,7 @@ namespace libtorrent
 	// This function can either be passed in the add_torrent_params::extensions
 	// field, or via torrent_handle::add_extension().
 	TORRENT_EXPORT std::shared_ptr<torrent_plugin> create_smart_ban_plugin(torrent_handle const&, void*);
-}
+}}
 
 #endif // TORRENT_DISABLE_EXTENSIONS
 

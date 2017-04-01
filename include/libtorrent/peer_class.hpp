@@ -44,7 +44,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 #include <memory>
 
-namespace libtorrent {
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 
 	namespace aux {
 		struct peer_class_tag;
@@ -155,6 +156,6 @@ namespace libtorrent {
 		// indices in m_peer_classes that are no longer used
 		std::vector<peer_class_t> m_free_list;
 	};
-}
+}}
 
 #endif // TORRENT_PEER_CLASS_HPP_INCLUDED

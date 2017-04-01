@@ -59,8 +59,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace libtorrent
-{
+namespace lt {
+LIBTORRENT_VERSION_NAMESPACE {
 	// TODO: find a better place for this
 	const piece_block piece_block::invalid(
 		std::numeric_limits<piece_index_t>::max()
@@ -3561,4 +3561,4 @@ get_out:
 		return counter;
 	}
 
-}
+}}
