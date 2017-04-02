@@ -338,7 +338,7 @@ namespace libtorrent
 	}});
 
 #undef SET
-#undef SET_DEPRECATED
+#undef DEPRECATED_SET
 
 	} // anonymous namespace
 
