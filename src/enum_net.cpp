@@ -440,13 +440,13 @@ namespace libtorrent
 
 		std::vector<address> ips = ios.get_ips();
 
-		for (int i = 0; i < int(ips.size()); ++i)
+		for (auto const& ip : ips)
 		{
 			ip_interface wan;
-			wan.interface_address = ips[i];
+			wan.interface_address = ip;
 			wan.netmask = address_v4::from_string("255.255.255.255");
 			strcpy(wan.name, "eth0");
-			wan.mtu = ios.sim().config().path_mtu(ips[i], ips[i]);
+			wan.mtu = ios.sim().config().path_mtu(ip, ip);
 			ret.push_back(wan);
 		}
 
@@ -707,14 +707,14 @@ namespace libtorrent
 
 		std::vector<address> ips = ios.get_ips();
 
-		for (int i = 0; i < int(ips.size()); ++i)
+		for (auto const& ip : ips)
 		{
 			ip_route r;
-			if (ips[i].is_v4())
+			if (ip.is_v4())
 			{
 				r.destination = address_v4();
 				r.netmask = address_v4::from_string("255.255.255.0");
-				address_v4::bytes_type b = ips[i].to_v4().to_bytes();
+				address_v4::bytes_type b = ip.to_v4().to_bytes();
 				b[3] = 1;
 				r.gateway = address_v4(b);
 			}
@@ -722,12 +722,12 @@ namespace libtorrent
 			{
 				r.destination = address_v6();
 				r.netmask = address_v6::from_string("FFFF:FFFF:FFFF:FFFF::0");
-				address_v6::bytes_type b = ips[i].to_v6().to_bytes();
+				address_v6::bytes_type b = ip.to_v6().to_bytes();
 				b[14] = 1;
 				r.gateway = address_v6(b);
 			}
 			strcpy(r.name, "eth0");
-			r.mtu = ios.sim().config().path_mtu(ips[i], ips[i]);
+			r.mtu = ios.sim().config().path_mtu(ip, ip);
 			ret.push_back(r);
 		}
 
