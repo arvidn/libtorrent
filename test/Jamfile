@@ -63,11 +63,7 @@ lib libtorrent_test
 	<target-os>windows:<library>advapi32
 	<library>/torrent//torrent
 	<export-extra>on
-	<toolset>darwin:<cflags>-Wno-unused-command-line-argument
-# disable warning C4275: non DLL-interface classkey 'identifier' used as base for DLL-interface classkey 'identifier'
-	<toolset>msvc:<cflags>/wd4275
-# disable warning C4373: virtual function overrides, previous versions of the compiler did not override when parameters only differed by const/volatile qualifiers
-	<toolset>msvc:<cflags>/wd4373
+	<conditional>@warnings
 
 	: # default build
 	<link>shared

@@ -42,10 +42,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "udp_tracker.hpp"
 #include "test_utils.hpp"
 
-#include <boost/detail/atomic_count.hpp>
-
 #include <functional>
 #include <thread>
+#include <atomic>
 #include <memory>
 
 using namespace libtorrent;
@@ -55,14 +54,15 @@ struct udp_tracker
 {
 
 	libtorrent::io_service m_ios;
-	boost::detail::atomic_count m_udp_announces;
-	udp::socket m_socket;
-	int m_port;
-	bool m_abort;
+	std::atomic<int> m_udp_announces{0};
+	udp::socket m_socket{m_ios};
+	int m_port = 0;
+	bool m_abort = false;
 
 	std::shared_ptr<std::thread> m_thread;
 
-	void on_udp_receive(error_code const& ec, size_t bytes_transferred, udp::endpoint* from, char* buffer, int size)
+	void on_udp_receive(error_code const& ec, size_t const bytes_transferred
+		, udp::endpoint* from, char* buffer, std::size_t const size)
 	{
 		if (ec)
 		{
@@ -153,7 +153,8 @@ struct udp_tracker
 					detail::write_uint8(7, ptr);
 					detail::write_uint16(1337, ptr);
 				}
-				m_socket.send_to(boost::asio::buffer(buffer, ptr - buffer), *from, 0, e);
+				m_socket.send_to(boost::asio::buffer(buffer
+					, static_cast<std::size_t>(ptr - buffer)), *from, 0, e);
 				if (e) std::printf("%s: UDP send_to failed. ERROR: %s\n"
 					, time_now_string(), e.message().c_str());
 				else std::printf("%s: UDP sent response to: %s\n"
@@ -175,10 +176,6 @@ struct udp_tracker
 	}
 
 	explicit udp_tracker(address iface)
-		: m_udp_announces(0)
-		, m_socket(m_ios)
-		, m_port(0)
-		, m_abort(false)
 	{
 		error_code ec;
 		m_socket.open(iface.is_v4() ? udp::v4() : udp::v6(), ec);
@@ -202,14 +199,15 @@ struct udp_tracker
 		}
 
 		std::printf("%s: UDP tracker [%p] initialized on port %d\n"
-			, time_now_string(), this, m_port);
+			, time_now_string(), static_cast<void*>(this), m_port);
 
 		m_thread = std::make_shared<std::thread>(&udp_tracker::thread_fun, this);
 	}
 
 	void stop()
 	{
-		std::printf("%s: UDP tracker [%p], stop\n", time_now_string(), this);
+		std::printf("%s: UDP tracker [%p], stop\n", time_now_string()
+			, static_cast<void*>(this));
 		m_abort = true;
 		m_socket.cancel();
 		m_socket.close();
@@ -218,7 +216,7 @@ struct udp_tracker
 	~udp_tracker()
 	{
 		std::printf("%s: UDP tracker [%p], ~udp_tracker\n"
-			, time_now_string(), this);
+			, time_now_string(), static_cast<void*>(this));
 		m_ios.post(std::bind(&udp_tracker::stop, this));
 		if (m_thread) m_thread->join();
 	}
@@ -245,11 +243,13 @@ struct udp_tracker
 			return;
 		}
 
-		std::printf("UDP exiting UDP tracker [%p] thread\n", this);
+		std::printf("UDP exiting UDP tracker [%p] thread\n", static_cast<void*>(this));
 	}
 };
 
+namespace {
 std::shared_ptr<udp_tracker> g_udp_tracker;
+}
 
 int start_udp_tracker(address iface)
 {

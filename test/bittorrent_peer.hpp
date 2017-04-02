@@ -41,15 +41,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "test.hpp" // for EXPORT
 #include <functional>
-
-using namespace libtorrent;
+#include <array>
 
 struct EXPORT peer_conn
 {
-	enum peer_mode_t
+	enum class peer_mode_t
 	{ uploader, downloader, idle };
 
-	peer_conn(io_service& ios
+	peer_conn(libtorrent::io_service& ios
 		, std::function<void(int, char const*, int)> on_msg
 		, libtorrent::torrent_info const& ti
 		, libtorrent::tcp::endpoint const& ep
@@ -57,17 +56,17 @@ struct EXPORT peer_conn
 
 	void start_conn();
 
-	void on_connect(error_code const& ec);
-	void on_handshake(char* h, error_code const& ec, size_t bytes_transferred);
-	void on_handshake2(error_code const& ec, size_t bytes_transferred);
+	void on_connect(libtorrent::error_code const& ec);
+	void on_handshake(char* h, libtorrent::error_code const& ec, size_t bytes_transferred);
+	void on_handshake2(libtorrent::error_code const& ec, size_t bytes_transferred);
 	void write_have_all();
-	void on_have_all_sent(error_code const& ec, size_t bytes_transferred);
+	void on_have_all_sent(libtorrent::error_code const& ec, size_t bytes_transferred);
 	bool write_request();
-	void on_req_sent(char* m, error_code const& ec, size_t bytes_transferred);
-	void close(char const* fmt, error_code const& ec);
+	void on_req_sent(char* m, libtorrent::error_code const& ec, size_t bytes_transferred);
+	void close(char const* fmt, libtorrent::error_code const& ec);
 	void work_download();
-	void on_msg_length(error_code const& ec, size_t bytes_transferred);
-	void on_message(error_code const& ec, size_t bytes_transferred);
+	void on_msg_length(libtorrent::error_code const& ec, size_t bytes_transferred);
+	void on_message(libtorrent::error_code const& ec, size_t bytes_transferred);
 	bool verify_piece(int piece, int start, char const* ptr, int size);
 	void write_piece(int piece, int start, int length);
 	void write_have(int piece);
@@ -76,42 +75,35 @@ struct EXPORT peer_conn
 
 private:
 
-	tcp::socket s;
-	char write_buf_proto[100];
-	std::uint32_t write_buffer[17*1024/4];
-	std::uint32_t buffer[17*1024/4];
+	libtorrent::tcp::socket s;
+	std::array<char, 100> write_buf_proto;
+	std::array<std::uint32_t, 17 * 1024 / 4> write_buffer;
+	std::array<char, 17 * 1024> buffer;
 
-	peer_mode_t m_mode;
-	torrent_info const& m_ti;
+	peer_mode_t const m_mode;
+	libtorrent::torrent_info const& m_ti;
 
-	int read_pos;
+	int read_pos = 0;
 
 	std::function<void(int, char const*, int)> m_on_msg;
 
-	enum state_t
-	{
-		handshaking,
-		sending_request,
-		receiving_message
-	};
-	int state;
 	std::vector<int> pieces;
 	std::vector<int> suggested_pieces;
 	std::vector<int> allowed_fast;
-	bool choked;
-	int current_piece; // the piece we're currently requesting blocks from
-	bool m_current_piece_is_allowed;
-	int block;
+	bool choked = true;
+	int current_piece = -1; // the piece we're currently requesting blocks from
+	bool m_current_piece_is_allowed = false;
+	int block = 0;
 	int const m_blocks_per_piece;
-	int outstanding_requests;
+	int outstanding_requests = 0;
 	// if this is true, this connection is a seed
-	bool fast_extension;
-	int blocks_received;
-	int blocks_sent;
-	time_point start_time;
-	time_point end_time;
-	tcp::endpoint endpoint;
-	bool restarting;
+	bool fast_extension = false;
+	int blocks_received = 0;
+	int blocks_sent = 0;
+	libtorrent::time_point start_time = libtorrent::clock_type::now();
+	libtorrent::time_point end_time;
+	libtorrent::tcp::endpoint endpoint;
+	bool restarting = false;
 };
 
 #endif

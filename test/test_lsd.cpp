@@ -74,8 +74,8 @@ void test_lsd()
 
 	for (int i = 0; i < 30; ++i)
 	{
-		print_alerts(ses1, "ses1", true);
-		print_alerts(ses2, "ses2", true);
+		print_alerts(ses1, "ses1");
+		print_alerts(ses2, "ses2");
 
 		torrent_status st1 = tor1.status();
 		torrent_status st2 = tor2.status();

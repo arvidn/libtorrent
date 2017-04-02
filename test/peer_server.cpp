@@ -41,10 +41,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "peer_server.hpp"
 #include "test_utils.hpp"
 
-#include <boost/detail/atomic_count.hpp>
-
 #include <functional>
 #include <thread>
+#include <atomic>
 #include <condition_variable>
 #include <memory>
 
@@ -53,18 +52,14 @@ using namespace std::placeholders;
 
 struct peer_server
 {
-
 	libtorrent::io_service m_ios;
-	boost::detail::atomic_count m_peer_requests;
-	tcp::acceptor m_acceptor;
-	int m_port;
+	std::atomic<int> m_peer_requests{0};
+	tcp::acceptor m_acceptor{m_ios};
+	int m_port = 0;
 
 	std::shared_ptr<std::thread> m_thread;
 
 	peer_server()
-		: m_peer_requests(0)
-		, m_acceptor(m_ios)
-		, m_port(0)
 	{
 		error_code ec;
 		m_acceptor.open(tcp::v4(), ec);
@@ -147,7 +142,11 @@ struct peer_server
 	}
 };
 
+namespace {
+
 std::shared_ptr<peer_server> g_peer;
+
+}
 
 int start_peer()
 {

@@ -365,7 +365,7 @@ void test_udp_tracker(std::string const& iface, address tracker, tcp::endpoint c
 	tcp::endpoint peer_ep;
 	for (int i = 0; i < 50; ++i)
 	{
-		print_alerts(*s, "s", false, false, false, std::bind(&connect_alert, _1, std::ref(peer_ep)));
+		print_alerts(*s, "s", false, false, std::bind(&connect_alert, _1, std::ref(peer_ep)));
 
 		if (num_udp_announces() == prev_udp_announces + 1)
 			break;
@@ -386,7 +386,7 @@ void test_udp_tracker(std::string const& iface, address tracker, tcp::endpoint c
 
 	for (int i = 0; i < 50; ++i)
 	{
-		print_alerts(*s, "s", true, true, false, std::bind(&connect_alert, _1, std::ref(peer_ep)));
+		print_alerts(*s, "s", true, false, std::bind(&connect_alert, _1, std::ref(peer_ep)));
 		if (num_udp_announces() == prev_udp_announces + 2)
 			break;
 

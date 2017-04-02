@@ -148,8 +148,8 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 
 	for (int i = 0; i < 200; ++i)
 	{
-		print_alerts(ses1, "ses1", true, true, true, &on_alert);
-		print_alerts(ses2, "ses2", true, true, true, &on_alert);
+		print_alerts(ses1, "ses1", true, true, &on_alert);
+		print_alerts(ses2, "ses2", true, true, &on_alert);
 
 		torrent_status st1 = tor1.status();
 		torrent_status st2 = tor2.status();
@@ -211,8 +211,8 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 	torrent_status st2;
 	for (int i = 0; i < 50; ++i)
 	{
-		print_alerts(ses1, "ses1", true, true, true, &on_alert);
-		print_alerts(ses2, "ses2", true, true, true, &on_alert);
+		print_alerts(ses1, "ses1", true, true, &on_alert);
+		print_alerts(ses2, "ses2", true, true, &on_alert);
 
 		st2 = tor2.status();
 		if (i % 10 == 0)
@@ -313,8 +313,8 @@ done:
 	torrent_status st1;
 	for (int i = 0; i < 5; ++i)
 	{
-		print_alerts(ses1, "ses1", true, true, true, &on_alert);
-		print_alerts(ses2, "ses2", true, true, true, &on_alert);
+		print_alerts(ses1, "ses1", true, true, &on_alert);
+		print_alerts(ses2, "ses2", true, true, &on_alert);
 
 		st1 = tor1.status();
 		st2 = tor2.status();
@@ -340,8 +340,8 @@ done:
 	std::cout << std::endl;
 
 	// drain alerts
-	print_alerts(ses1, "ses1", true, true, true, &on_alert);
-	print_alerts(ses2, "ses2", true, true, true, &on_alert);
+	print_alerts(ses1, "ses1", true, true, &on_alert);
+	print_alerts(ses2, "ses2", true, true, &on_alert);
 
 	peer_disconnects = 0;
 
@@ -352,8 +352,8 @@ done:
 	st2 = tor2.status();
 	for (int i = 0; i < 130; ++i)
 	{
-		print_alerts(ses1, "ses1", true, true, true, &on_alert);
-		print_alerts(ses2, "ses2", true, true, true, &on_alert);
+		print_alerts(ses1, "ses1", true, true, &on_alert);
+		print_alerts(ses2, "ses2", true, true, &on_alert);
 
 		st1 = tor1.status();
 		st2 = tor2.status();

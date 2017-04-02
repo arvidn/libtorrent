@@ -49,6 +49,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <memory>
 
+using namespace libtorrent;
+
 struct choke_state
 {
 	choke_state() : unchoke_duration(lt::seconds(0)), choked(true) {}
@@ -137,7 +139,7 @@ TORRENT_TEST(optimistic_unchoke)
 				}
 				, *atp.ti
 				, tcp::endpoint(addr("50.1.0.0"), 6881)
-				, peer_conn::idle));
+				, peer_conn::peer_mode_t::idle));
 		}
 	});
 

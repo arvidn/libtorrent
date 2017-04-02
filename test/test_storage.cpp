@@ -840,7 +840,7 @@ void test_rename_file_fastresume(bool test_deprecated)
 		bool renamed = false;
 		for (int i = 0; i < 30; ++i)
 		{
-			if (print_alerts(ses, "ses", true, true, true, &got_file_rename_alert)) renamed = true;
+			if (print_alerts(ses, "ses", true, true, &got_file_rename_alert)) renamed = true;
 			torrent_status s = h.status();
 			if (s.state == torrent_status::seeding && renamed) break;
 			std::this_thread::sleep_for(lt::milliseconds(100));

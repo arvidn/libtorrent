@@ -239,8 +239,8 @@ void test_ssl(int test_idx, bool use_utp)
 	const int timeout = 40;
 	for (int i = 0; i < timeout; ++i)
 	{
-		print_alerts(ses1, "ses1", true, true, true, &on_alert);
-		print_alerts(ses2, "ses2", true, true, true, &on_alert);
+		print_alerts(ses1, "ses1", true, true, &on_alert);
+		print_alerts(ses2, "ses2", true, true, &on_alert);
 
 		torrent_status st1 = tor1.status();
 		torrent_status st2 = tor2.status();
@@ -444,7 +444,7 @@ bool try_connect(libtorrent::session& ses1, int port
 	std::printf("connecting 127.0.0.1:%d\n", port);
 	ssl_sock.lowest_layer().connect(tcp::endpoint(
 		address_v4::from_string("127.0.0.1"), port), ec);
-	print_alerts(ses1, "ses1", true, true, true, &on_alert);
+	print_alerts(ses1, "ses1", true, true, &on_alert);
 
 	if (ec)
 	{
@@ -475,7 +475,7 @@ bool try_connect(libtorrent::session& ses1, int port
 	std::printf("SSL handshake\n");
 	ssl_sock.handshake(boost::asio::ssl::stream_base::client, ec);
 
-	print_alerts(ses1, "ses1", true, true, true, &on_alert);
+	print_alerts(ses1, "ses1", true, true, &on_alert);
 	if (ec)
 	{
 		std::printf("Failed SSL handshake: %s\n"
@@ -505,7 +505,7 @@ bool try_connect(libtorrent::session& ses1, int port
 
 	std::printf("bittorrent handshake\n");
 	boost::asio::write(ssl_sock, boost::asio::buffer(handshake, (sizeof(handshake) - 1)), ec);
-	print_alerts(ses1, "ses1", true, true, true, &on_alert);
+	print_alerts(ses1, "ses1", true, true, &on_alert);
 	if (ec)
 	{
 		std::printf("failed to write bittorrent handshake: %s\n"
@@ -516,7 +516,7 @@ bool try_connect(libtorrent::session& ses1, int port
 	char buf[68];
 	std::printf("read bittorrent handshake\n");
 	boost::asio::read(ssl_sock, boost::asio::buffer(buf, sizeof(buf)), ec);
-	print_alerts(ses1, "ses1", true, true, true, &on_alert);
+	print_alerts(ses1, "ses1", true, true, &on_alert);
 	if (ec)
 	{
 		std::printf("failed to read bittorrent handshake: %s\n"

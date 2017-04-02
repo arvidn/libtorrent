@@ -108,8 +108,8 @@ void test_transfer()
 
 	for (int i = 0; i < timeout; ++i)
 	{
-		print_alerts(ses1, "ses1", true, true, true);
-		print_alerts(ses2, "ses2", true, true, true);
+		print_alerts(ses1, "ses1", true, true);
+		print_alerts(ses2, "ses2", true, true);
 
 		std::this_thread::sleep_for(lt::milliseconds(500));
 

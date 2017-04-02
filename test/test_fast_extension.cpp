@@ -70,7 +70,7 @@ void log(char const* fmt, ...)
 
 void print_session_log(lt::session& ses)
 {
-	print_alerts(ses, "ses", true, true);
+	print_alerts(ses, "ses", true);
 }
 
 int read_message(tcp::socket& s, char* buffer, int max_size)

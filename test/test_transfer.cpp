@@ -264,8 +264,8 @@ void test_transfer(int proxy_type, settings_pack const& sett
 		torrent_status st1 = tor1.status();
 		torrent_status st2 = tor2.status();
 
-		print_alerts(ses1, "ses1", true, true, true, &on_alert);
-		print_alerts(ses2, "ses2", true, true, true, &on_alert);
+		print_alerts(ses1, "ses1", true, true, &on_alert);
+		print_alerts(ses2, "ses2", true, true, &on_alert);
 
 		if (i % 10 == 0)
 		{
@@ -298,8 +298,8 @@ void test_transfer(int proxy_type, settings_pack const& sett
 
 			// then we need to drain the alert queue, so the peer_disconnects
 			// counter doesn't get incremented by old alerts
-			print_alerts(ses1, "ses1", true, true, true, &on_alert);
-			print_alerts(ses2, "ses2", true, true, true, &on_alert);
+			print_alerts(ses1, "ses1", true, true, &on_alert);
+			print_alerts(ses2, "ses2", true, true, &on_alert);
 
 			lt::error_code err = tor2.status().errc;
 			std::printf("error: \"%s\"\n", err.message().c_str());

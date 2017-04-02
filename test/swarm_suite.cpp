@@ -98,9 +98,9 @@ void test_swarm(int flags)
 	// this is to avoid everything finish from a single peer
 	// immediately. To make the swarm actually connect all
 	// three peers before finishing.
-	float rate_limit = 100000;
+	float const rate_limit = 100000;
 
-	int port = lt::random(100);
+	int const port = static_cast<int>(lt::random(100));
 	char iface[50];
 	std::snprintf(iface, sizeof(iface), "0.0.0.0:480%02d", port);
 	pack.set_int(settings_pack::upload_rate_limit, int(rate_limit));

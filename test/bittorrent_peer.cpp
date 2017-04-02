@@ -51,27 +51,15 @@ peer_conn::peer_conn(io_service& ios
 	, std::function<void(int, char const*, int)> on_msg
 	, torrent_info const& ti
 	, tcp::endpoint const& ep
-	, peer_mode_t mode)
+	, peer_mode_t const mode)
 	: s(ios)
 	, m_mode(mode)
 	, m_ti(ti)
-	, read_pos(0)
 	, m_on_msg(std::move(on_msg))
-	, state(handshaking)
-	, choked(true)
-	, current_piece(-1)
-	, m_current_piece_is_allowed(false)
-	, block(0)
 	, m_blocks_per_piece((m_ti.piece_length() + 0x3fff) / 0x4000)
-	, outstanding_requests(0)
-	, fast_extension(false)
-	, blocks_received(0)
-	, blocks_sent(0)
-	, start_time(clock_type::now())
 	, endpoint(ep)
-	, restarting(false)
 {
-	pieces.reserve(m_ti.num_pieces());
+	pieces.reserve(static_cast<std::size_t>(m_ti.num_pieces()));
 	start_conn();
 }
 
@@ -93,13 +81,13 @@ void peer_conn::on_connect(error_code const& ec)
 		"                    " // space for info-hash
 		"aaaaaaaaaaaaaaaaaaaa" // peer-id
 		"\0\0\0\x01\x02"; // interested
-	char* h = (char*)malloc(sizeof(handshake));
+	char* h = static_cast<char*>(malloc(sizeof(handshake)));
 	memcpy(h, handshake, sizeof(handshake));
 	std::memcpy(h + 28, m_ti.info_hash().data(), 20);
 	std::generate(h + 48, h + 68, &rand);
 	// for seeds, don't send the interested message
 	boost::asio::async_write(s, boost::asio::buffer(h, (sizeof(handshake) - 1)
-		- (m_mode == uploader ? 5 : 0))
+		- (m_mode == peer_mode_t::uploader ? 5 : 0))
 		, std::bind(&peer_conn::on_handshake, this, h, _1, _2));
 }
 
@@ -113,7 +101,7 @@ void peer_conn::on_handshake(char* h, error_code const& ec, size_t)
 	}
 
 	// read handshake
-	boost::asio::async_read(s, boost::asio::buffer((char*)buffer, 68)
+	boost::asio::async_read(s, boost::asio::buffer(buffer.data(), 68)
 		, std::bind(&peer_conn::on_handshake2, this, _1, _2));
 }
 
@@ -128,9 +116,9 @@ void peer_conn::on_handshake2(error_code const& ec, size_t)
 	// buffer is the full 68 byte handshake
 	// look at the extension bits
 
-	fast_extension = (((char*)buffer)[27] & 4) != 0;
+	fast_extension = (buffer[27] & 4) != 0;
 
-	if (m_mode == uploader)
+	if (m_mode == peer_mode_t::uploader)
 	{
 		write_have_all();
 	}
@@ -146,7 +134,7 @@ void peer_conn::write_have_all()
 
 	if (fast_extension)
 	{
-		char* ptr = write_buf_proto;
+		char* ptr = write_buf_proto.data();
 		// have_all
 		write_uint32(1, ptr);
 		write_uint8(0xe, ptr);
@@ -154,23 +142,25 @@ void peer_conn::write_have_all()
 		write_uint32(1, ptr);
 		write_uint8(1, ptr);
 		error_code ec;
-		boost::asio::async_write(s, boost::asio::buffer(write_buf_proto, ptr - write_buf_proto)
+		boost::asio::async_write(s, boost::asio::buffer(write_buf_proto.data()
+			, static_cast<std::size_t>(ptr - write_buf_proto.data()))
 			, std::bind(&peer_conn::on_have_all_sent, this, _1, _2));
 	}
 	else
 	{
 		// bitfield
 		int len = (m_ti.num_pieces() + 7) / 8;
-		char* ptr = (char*)buffer;
+		char* ptr = buffer.data();
 		write_uint32(len + 1, ptr);
 		write_uint8(5, ptr);
-		memset(ptr, 255, len);
+		std::fill(ptr, ptr + len, 255);
 		ptr += len;
 		// unchoke
 		write_uint32(1, ptr);
 		write_uint8(1, ptr);
 		error_code ec;
-		boost::asio::async_write(s, boost::asio::buffer((char*)buffer, len + 10)
+		boost::asio::async_write(s, boost::asio::buffer(buffer.data()
+			, static_cast<std::size_t>(len + 10))
 			, std::bind(&peer_conn::on_have_all_sent, this, _1, _2));
 	}
 }
@@ -184,7 +174,7 @@ void peer_conn::on_have_all_sent(error_code const& ec, size_t)
 	}
 
 	// read message
-	boost::asio::async_read(s, boost::asio::buffer((char*)buffer, 4)
+	boost::asio::async_read(s, boost::asio::buffer(buffer.data(), 4)
 		, std::bind(&peer_conn::on_msg_length, this, _1, _2));
 }
 
@@ -228,8 +218,8 @@ bool peer_conn::write_request()
 		"    " // piece
 		"    " // offset
 		"    "; // length
-	char* m = (char*)malloc(sizeof(msg));
-	memcpy(m, msg, sizeof(msg));
+	char* m = static_cast<char*>(malloc(sizeof(msg)));
+	std::copy(msg, msg + sizeof(msg), m);
 	char* ptr = m + 5;
 	write_uint32(current_piece, ptr);
 	write_uint32(block * 16 * 1024, ptr);
@@ -265,11 +255,19 @@ void peer_conn::close(char const* fmt, error_code const& ec)
 {
 	end_time = clock_type::now();
 	char tmp[1024];
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wformat-nonliteral"
+#endif
 	std::snprintf(tmp, sizeof(tmp), fmt, ec.message().c_str());
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 	int time = int(total_milliseconds(end_time - start_time));
 	if (time == 0) time = 1;
-	float up = (std::int64_t(blocks_sent) * 0x4000) / time / 1000.f;
-	float down = (std::int64_t(blocks_received) * 0x4000) / time / 1000.f;
+	double const up = (std::int64_t(blocks_sent) * 0x4000) / time / 1000.0;
+	double const down = (std::int64_t(blocks_received) * 0x4000) / time / 1000.0;
 	error_code e;
 
 	char ep_str[200];
@@ -305,7 +303,7 @@ void peer_conn::work_download()
 	}
 
 	// read message
-	boost::asio::async_read(s, boost::asio::buffer((char*)buffer, 4)
+	boost::asio::async_read(s, boost::asio::buffer(buffer.data(), 4)
 		, std::bind(&peer_conn::on_msg_length, this, _1, _2));
 }
 
@@ -325,9 +323,9 @@ void peer_conn::on_msg_length(error_code const& ec, size_t)
 		close("ERROR RECEIVE MESSAGE PREFIX: %s", ec);
 		return;
 	}
-	char* ptr = (char*)buffer;
+	char* ptr = buffer.data();
 	unsigned int length = read_uint32(ptr);
-	if (length > sizeof(buffer))
+	if (length > buffer.size())
 	{
 		std::printf("len: %u\n", length);
 		close("ERROR RECEIVE MESSAGE PREFIX: packet too big", error_code());
@@ -336,12 +334,12 @@ void peer_conn::on_msg_length(error_code const& ec, size_t)
 	if (length == 0)
 	{
 		// keep-alive messate. read another length prefix
-		boost::asio::async_read(s, boost::asio::buffer((char*)buffer, 4)
+		boost::asio::async_read(s, boost::asio::buffer(buffer.data(), 4)
 			, std::bind(&peer_conn::on_msg_length, this, _1, _2));
 	}
 	else
 	{
-		boost::asio::async_read(s, boost::asio::buffer((char*)buffer, length)
+		boost::asio::async_read(s, boost::asio::buffer(buffer.data(), length)
 			, std::bind(&peer_conn::on_message, this, _1, _2));
 	}
 }
@@ -362,14 +360,14 @@ void peer_conn::on_message(error_code const& ec, size_t bytes_transferred)
 		close("ERROR RECEIVE MESSAGE: %s", ec);
 		return;
 	}
-	char* ptr = (char*)buffer;
+	char* ptr = buffer.data();
 	int msg = read_uint8(ptr);
 
 	m_on_msg(msg, ptr, int(bytes_transferred));
 
 	switch (m_mode)
 	{
-	case peer_conn::uploader:
+	case peer_mode_t::uploader:
 		if (msg == 6)
 		{
 			if (bytes_transferred != 13)
@@ -390,28 +388,28 @@ void peer_conn::on_message(error_code const& ec, size_t bytes_transferred)
 		else
 		{
 			// read another message
-			boost::asio::async_read(s, boost::asio::buffer(buffer, 4)
+			boost::asio::async_read(s, boost::asio::buffer(buffer.data(), 4)
 				, std::bind(&peer_conn::on_msg_length, this, _1, _2));
 		}
 		break;
-	case peer_conn::downloader:
+	case peer_mode_t::downloader:
 		if (msg == 0xe) // have_all
 		{
 			// build a list of all pieces and request them all!
-			pieces.resize(m_ti.num_pieces());
+			pieces.clear();
 			for (int i = 0; i < int(pieces.size()); ++i)
-				pieces[i] = i;
+				pieces.push_back(i);
 			aux::random_shuffle(pieces.begin(), pieces.end());
 		}
 		else if (msg == 4) // have
 		{
 			int piece = detail::read_int32(ptr);
 			if (pieces.empty()) pieces.push_back(piece);
-			else pieces.insert(pieces.begin() + (rand() % pieces.size()), piece);
+			else pieces.insert(pieces.begin() + static_cast<int>(libtorrent::random(static_cast<std::uint32_t>(pieces.size()))), piece);
 		}
 		else if (msg == 5) // bitfield
 		{
-			pieces.reserve(m_ti.num_pieces());
+			pieces.reserve(static_cast<std::size_t>(m_ti.num_pieces()));
 			int piece = 0;
 			for (int i = 0; i < int(bytes_transferred); ++i)
 			{
@@ -440,10 +438,10 @@ void peer_conn::on_message(error_code const& ec, size_t bytes_transferred)
 */
 			++blocks_received;
 			--outstanding_requests;
-			int piece = detail::read_int32(ptr);
-			int start = detail::read_int32(ptr);
+			int const piece = detail::read_int32(ptr);
+			int const start = detail::read_int32(ptr);
 
-			if (int((start + bytes_transferred) / 0x4000) == m_blocks_per_piece)
+			if ((start + int(bytes_transferred)) / 0x4000 == m_blocks_per_piece)
 			{
 				write_have(piece);
 				return;
@@ -504,9 +502,9 @@ void peer_conn::on_message(error_code const& ec, size_t bytes_transferred)
 		}
 		work_download();
 		break;
-	case peer_conn::idle:
+	case peer_mode_t::idle:
 		// read another message
-		boost::asio::async_read(s, boost::asio::buffer(buffer, 4)
+		boost::asio::async_read(s, boost::asio::buffer(buffer.data(), 4)
 			, std::bind(&peer_conn::on_msg_length, this, _1, _2));
 		break;
 	}
@@ -534,15 +532,15 @@ void peer_conn::write_piece(int piece, int start, int length)
 
 //	generate_block(write_buffer, piece, start, length);
 
-	char* ptr = write_buf_proto;
+	char* ptr = write_buf_proto.data();
 	write_uint32(9 + length, ptr);
 	TORRENT_ASSERT(length == 0x4000);
 	write_uint8(7, ptr);
 	write_uint32(piece, ptr);
 	write_uint32(start, ptr);
 	std::array<boost::asio::const_buffer, 2> vec;
-	vec[0] = boost::asio::buffer(write_buf_proto, ptr - write_buf_proto);
-	vec[1] = boost::asio::buffer(write_buffer, length);
+	vec[0] = boost::asio::buffer(write_buf_proto.data(), static_cast<std::size_t>(ptr - write_buf_proto.data()));
+	vec[1] = boost::asio::buffer(write_buffer.data(), static_cast<std::size_t>(length));
 	boost::asio::async_write(s, vec, std::bind(&peer_conn::on_have_all_sent, this, _1, _2));
 	++blocks_sent;
 }
@@ -551,11 +549,11 @@ void peer_conn::write_have(int piece)
 {
 	using namespace libtorrent::detail;
 
-	char* ptr = write_buf_proto;
+	char* ptr = write_buf_proto.data();
 	write_uint32(5, ptr);
 	write_uint8(4, ptr);
 	write_uint32(piece, ptr);
-	boost::asio::async_write(s, boost::asio::buffer(write_buf_proto, 9)
+	boost::asio::async_write(s, boost::asio::buffer(write_buf_proto.data(), 9)
 		, std::bind(&peer_conn::on_have_all_sent, this, _1, _2));
 }
 

@@ -37,12 +37,7 @@ namespace boost
 
 #include "gil.hpp"
 #include "bytes.hpp"
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-
 #include "boost_python.hpp"
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #ifdef _MSC_VER
 #pragma warning(push)
