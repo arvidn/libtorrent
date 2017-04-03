@@ -132,11 +132,16 @@ struct dict_to_map
         dict o(borrowed(x));
         std::map<T1, T2> m;
 
-        list iterkeys = (list)o.keys();
-        int const len = int(boost::python::len(iterkeys));
-        for (int i = 0; i < len; i++)
+        const object dictkeys = o.keys();
+        const size_t len = size_t(boost::python::len(dictkeys));
+        const object dictkeys_iter = dictkeys.attr("__iter__")();
+        for (size_t i = 0; i < len; i++)
         {
-            object key = iterkeys[i];
+#if PY_VERSION_HEX >= 0x03000000
+            object key = dictkeys_iter.attr("__next__")();
+#else
+            object key = dictkeys_iter.attr("next")();
+#endif
             m[extract<T1>(key)] = extract<T2>(o[key]);
         }
         new (storage) std::map<T1, T2>(m);
