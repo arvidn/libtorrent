@@ -102,19 +102,30 @@ bool sleep_and_input(int* c, int sleep)
 
 struct set_keypress
 {
-	set_keypress()
+	enum terminal_mode {
+		echo = 1,
+		canonical = 2
+	};
+
+	explicit set_keypress(std::uint8_t const mode = 0)
 	{
 		termios new_settings;
-		tcgetattr(0,&stored_settings);
+		tcgetattr(0, &stored_settings);
 		new_settings = stored_settings;
 		// Disable canonical mode, and set buffer size to 1 byte
 		// and disable echo
-		new_settings.c_lflag &= ~(ICANON | ECHO);
+		if (mode & echo) new_settings.c_lflag |= ECHO;
+		else new_settings.c_lflag &= ~ECHO;
+
+		if (mode & canonical) new_settings.c_lflag |= ICANON;
+		else new_settings.c_lflag &= ~ICANON;
+
 		new_settings.c_cc[VTIME] = 0;
 		new_settings.c_cc[VMIN] = 1;
 		tcsetattr(0,TCSANOW,&new_settings);
 	}
-	~set_keypress() { tcsetattr(0,TCSANOW,&stored_settings); }
+	~set_keypress() { tcsetattr(0, TCSANOW, &stored_settings); }
+private:
 	termios stored_settings;
 };
 
@@ -1417,11 +1428,20 @@ MAGNETURL is a magnet link
 					char url[4096];
 					url[0] = '\0';
 					puts("Enter magnet link:\n");
+
+#ifndef _WIN32
+					// enable terminal echo temporarily
+					set_keypress s(set_keypress::echo | set_keypress::canonical);
+#endif
 					if (std::scanf("%4095s", url) == 1) add_magnet(ses, url);
 					else std::printf("failed to read magnet link\n");
 				}
 
-				if (c == 'q') break;
+				if (c == 'q')
+				{
+					quit = true;
+					break;
+				}
 
 				if (c == 'W' && h.is_valid())
 				{
@@ -1445,6 +1465,10 @@ MAGNETURL is a magnet link
 					torrent_status const& st = view.get_active_torrent();
 					std::printf("\n\nARE YOU SURE YOU WANT TO DELETE THE FILES FOR '%s'. THIS OPERATION CANNOT BE UNDONE. (y/N)"
 						, st.name.c_str());
+#ifndef _WIN32
+					// enable terminal echo temporarily
+					set_keypress s(set_keypress::echo | set_keypress::canonical);
+#endif
 					char response = 'n';
 					int ret = std::scanf("%c", &response);
 					if (ret == 1 && response == 'y')
