@@ -704,6 +704,7 @@ namespace libtorrent
 			void update_auto_sequential();
 			void update_max_failcount();
 			void update_close_file_interval();
+			void update_resolver_cache_timeout();
 
 			void update_upnp();
 			void update_natpmp();

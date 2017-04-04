@@ -1632,6 +1632,11 @@ namespace libtorrent
 			// given time.
 			max_web_seed_connections,
 
+			// the number of seconds before the internal host name resolver
+			// considers a cache value timed out, negative values are interpreted
+			// as zero.
+			resolver_cache_timeout,
+
 			max_int_setting_internal
 		};
 

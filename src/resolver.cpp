@@ -132,4 +132,12 @@ namespace libtorrent
 	{
 		m_resolver.cancel();
 	}
+
+	void resolver::set_cache_timeout(seconds timeout)
+	{
+		if (timeout >= seconds(0))
+			m_timeout = timeout;
+		else
+			m_timeout = seconds(0);
+	}
 }

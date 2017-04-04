@@ -1,3 +1,4 @@
+	* added resolver_cache_timeout setting for internal host name resolver
 	* make parse_magnet_uri take a string_view instead of std::string
 	* deprecate add_torrent_params::url field. use parse_magnet_uri instead
 	* optimize download queue management

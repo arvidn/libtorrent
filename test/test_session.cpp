@@ -58,6 +58,7 @@ TORRENT_TEST(session)
 	settings_pack sett = settings();
 	sett.set_int(settings_pack::num_optimistic_unchoke_slots, 10);
 	sett.set_int(settings_pack::unchoke_slots_limit, 10);
+	sett.set_int(settings_pack::resolver_cache_timeout, 1000);
 
 	ses.apply_settings(sett);
 
@@ -89,6 +90,11 @@ TORRENT_TEST(session)
 	sett.set_int(settings_pack::unchoke_slots_limit, 8);
 	ses.apply_settings(sett);
 	TEST_CHECK(ses.get_settings().get_int(settings_pack::unchoke_slots_limit) == 8);
+
+	TEST_EQUAL(ses.get_settings().get_int(settings_pack::resolver_cache_timeout), 1000);
+	sett.set_int(settings_pack::resolver_cache_timeout, 1001);
+	ses.apply_settings(sett);
+	TEST_EQUAL(ses.get_settings().get_int(settings_pack::resolver_cache_timeout), 1001);
 
 	// make sure the destructor waits properly
 	// for the asynchronous call to set the alert
