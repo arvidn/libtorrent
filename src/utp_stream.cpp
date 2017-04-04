@@ -158,7 +158,7 @@ enum
 // into account. if lhs is close to UINT_MAX and rhs
 // is close to 0, lhs is assumed to have wrapped and
 // considered smaller
-TORRENT_EXTRA_EXPORT bool compare_less_wrap(std::uint32_t lhs
+bool compare_less_wrap(std::uint32_t lhs
 	, std::uint32_t rhs, std::uint32_t mask)
 {
 	// distance walking from lhs to rhs, downwards

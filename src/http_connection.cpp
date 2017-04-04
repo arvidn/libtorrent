@@ -246,7 +246,7 @@ void http_connection::start(std::string const& hostname, int port
 	m_read_timeout = seconds(5);
 	if (m_read_timeout < timeout / 5) m_read_timeout = timeout / 5;
 	error_code ec;
-	m_timer.expires_from_now((std::min)(
+	m_timer.expires_from_now(std::min(
 		m_read_timeout, m_completion_timeout), ec);
 	ADD_OUTSTANDING_ASYNC("http_connection::on_timeout");
 	m_timer.async_wait(std::bind(&http_connection::on_timeout
@@ -449,7 +449,7 @@ void http_connection::on_timeout(std::weak_ptr<http_connection> p
 
 	ADD_OUTSTANDING_ASYNC("http_connection::on_timeout");
 	error_code ec;
-	c->m_timer.expires_at((std::min)(
+	c->m_timer.expires_at(std::min(
 		c->m_last_receive + c->m_read_timeout
 		, c->m_start_time + c->m_completion_timeout), ec);
 	c->m_timer.async_wait(std::bind(&http_connection::on_timeout, p, _1));

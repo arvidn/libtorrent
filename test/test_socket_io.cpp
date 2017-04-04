@@ -140,7 +140,7 @@ TORRENT_TEST(parse_invalid_ipv4_endpoint)
 	ec.clear();
 
 #ifndef TORRENT_WINDOWS
-	// it appears windows siliently accepts truncated IP addresses
+	// it appears windows silently accepts truncated IP addresses
 	endp = parse_endpoint("127.0.0:123", ec);
 	TEST_CHECK(ec);
 	ec.clear();

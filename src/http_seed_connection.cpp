@@ -79,7 +79,7 @@ namespace libtorrent
 	}
 
 	void http_seed_connection::disconnect(error_code const& ec
-		, operation_t op, int error)
+		, operation_t const op, int const error)
 	{
 		if (is_disconnecting()) return;
 
@@ -155,7 +155,7 @@ namespace libtorrent
 		{
 			int request_offset = r.start + r.length - size;
 			pr.start = request_offset % piece_size;
-			pr.length = (std::min)(block_size, size);
+			pr.length = std::min(block_size, size);
 			pr.piece = piece_index_t(static_cast<int>(r.piece) + request_offset / piece_size);
 			m_requests.push_back(pr);
 			size -= pr.length;

@@ -63,8 +63,7 @@ namespace libtorrent
 		std::string const& header(char const* key) const
 		{
 			static std::string empty;
-			std::multimap<std::string, std::string>::const_iterator i
-				= m_header.find(key);
+			auto const i = m_header.find(key);
 			if (i == m_header.end()) return empty;
 			return i->second;
 		}
