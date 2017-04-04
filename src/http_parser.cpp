@@ -122,7 +122,7 @@ namespace libtorrent
 			// however, we may still need to insert a '/' in case neither side
 			// has one. We know the location doesn't start with a / already.
 			// so, if the referrer doesn't end with one, add it.
-			if ((url.empty() || url[url.size()-1] != '/'))
+			if (url.empty() || url[url.size() - 1] != '/')
 				url += '/';
 			url += location;
 		}
@@ -262,7 +262,7 @@ restart_response:
 
 				if (name == "content-length")
 				{
-					m_content_length = strtoll(value.c_str(), nullptr, 10);
+					m_content_length = std::strtoll(value.c_str(), nullptr, 10);
 					if (m_content_length < 0)
 					{
 						m_state = error_state;
@@ -285,7 +285,7 @@ restart_response:
 					// start immediately
 					if (string_begins_no_case("bytes ", ptr)) ptr += 6;
 					char* end;
-					m_range_start = strtoll(ptr, &end, 10);
+					m_range_start = std::strtoll(ptr, &end, 10);
 					if (m_range_start < 0)
 					{
 						m_state = error_state;
@@ -297,7 +297,7 @@ restart_response:
 					else
 					{
 						ptr = end + 1;
-						m_range_end = strtoll(ptr, &end, 10);
+						m_range_end = std::strtoll(ptr, &end, 10);
 						if (m_range_end < 0)
 						{
 							m_state = error_state;
@@ -454,7 +454,7 @@ restart_response:
 		// empty line
 
 		// first, read the chunk length
-		*chunk_size = strtoll(pos, nullptr, 16);
+		*chunk_size = std::strtoll(pos, nullptr, 16);
 		if (*chunk_size < 0) return true;
 
 		if (*chunk_size != 0)

@@ -8177,7 +8177,7 @@ namespace libtorrent
 	// TODO: add a flag to ignore stats, and only care about resume data for
 	// content. For unchanged files, don't trigger a load of the metadata
 	// just to save an empty resume data file
-	void torrent::save_resume_data(int flags)
+	void torrent::save_resume_data(int const flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;

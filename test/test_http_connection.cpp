@@ -60,10 +60,9 @@ void print_http_header(http_parser const& p)
 {
 	std::cout << time_now_string() << " < " << p.status_code() << " " << p.message() << std::endl;
 
-	for (std::multimap<std::string, std::string>::const_iterator i
-		= p.headers().begin(), end(p.headers().end()); i != end; ++i)
+	for (auto const& i : p.headers())
 	{
-		std::cout << time_now_string() << " < " << i->first << ": " << i->second << std::endl;
+		std::cout << time_now_string() << " < " << i.first << ": " << i.second << std::endl;
 	}
 }
 
