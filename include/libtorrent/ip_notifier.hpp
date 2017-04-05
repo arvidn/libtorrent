@@ -50,7 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
 
-namespace libtorrent
+namespace libtorrent { namespace aux
 {
 	struct ip_change_notifier
 	{
@@ -79,6 +79,8 @@ namespace libtorrent
 		boost::asio::windows::object_handle m_hnd;
 #endif
 	};
-}
+
+	TORRENT_EXTRA_EXPORT std::unique_ptr<ip_change_notifier> create_ip_notifier(io_service& ios);
+}}
 
 #endif

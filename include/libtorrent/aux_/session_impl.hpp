@@ -884,7 +884,7 @@ namespace libtorrent
 			std::uint32_t m_key = 0;
 
 			// posts a notification when the set of local IPs changes
-			ip_change_notifier m_ip_notifier;
+			std::unique_ptr<ip_change_notifier> m_ip_notifier;
 
 			// the addresses or device names of the interfaces we are supposed to
 			// listen on. if empty, it means that we should let the os decide
