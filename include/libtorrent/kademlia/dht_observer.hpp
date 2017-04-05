@@ -72,6 +72,8 @@ namespace libtorrent { namespace dht {
 		virtual address get_external_address() = 0;
 		virtual address get_local_address() = 0;
 
+		dht_socket& operator=(dht_socket const&) = default;
+
 	protected:
 		~dht_socket() {}
 	};

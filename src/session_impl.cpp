@@ -1966,8 +1966,10 @@ namespace {
 
 		while (remove_iter != m_listen_sockets.end())
 		{
+#ifndef TORRENT_DISABLE_DHT
 			if (m_dht)
 				m_dht->delete_socket(&*remove_iter);
+#endif
 
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log())
@@ -1994,8 +1996,10 @@ namespace {
 			{
 				m_listen_sockets.push_back(s);
 
+#ifndef TORRENT_DISABLE_DHT
 				if (m_dht)
 					m_dht->new_socket(&m_listen_sockets.back());
+#endif
 			}
 		}
 
@@ -2384,9 +2388,11 @@ namespace {
 
 		s->write_blocked = false;
 
+#ifdef TORRENT_USE_OPENSSL
 		std::list<listen_socket_t>::iterator i = std::find_if(
 			m_listen_sockets.begin(), m_listen_sockets.end()
 			, [&s] (listen_socket_t const& ls) { return ls.udp_sock == s; });
+#endif
 
 		// notify the utp socket manager it can start sending on the socket again
 		struct utp_socket_manager& mgr =

@@ -2711,11 +2711,10 @@ namespace libtorrent {
 
 			// update the endpoint list by adding entries for new listen sockets
 			// and removing entries for non-existent ones
-			int valid_endpoints = 0;
+			std::vector<announce_endpoint>::size_type valid_endpoints = 0;
 			m_ses.for_each_listen_socket([&](aux::session_listen_socket* s) {
-				for (int i = 0; i < int(ae.endpoints.size()); i++)
+				for (auto& aep : ae.endpoints)
 				{
-					auto& aep = ae.endpoints[i];
 					if (aep.socket != s) continue;
 					std::swap(ae.endpoints[valid_endpoints], aep);
 					valid_endpoints++;
@@ -3047,6 +3046,8 @@ namespace libtorrent {
 			}
 #endif
 		}
+#else
+		TORRENT_UNUSED(tracker_ips);
 #endif
 
 		// for each of the peers we got from the tracker

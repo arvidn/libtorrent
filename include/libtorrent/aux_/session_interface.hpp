@@ -97,6 +97,8 @@ namespace libtorrent { namespace aux {
 	struct session_listen_socket
 	{
 		virtual address get_local_address() = 0;
+	protected:
+		~session_listen_socket() {}
 	};
 
 #if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS

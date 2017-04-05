@@ -53,6 +53,8 @@ namespace libtorrent {
 	struct TORRENT_EXTRA_EXPORT utp_socket_interface
 	{
 		virtual udp::endpoint local_endpoint() = 0;
+	protected:
+		~utp_socket_interface() {}
 	};
 
 	struct utp_socket_manager final

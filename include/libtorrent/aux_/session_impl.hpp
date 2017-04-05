@@ -121,8 +121,9 @@ namespace dht {
 	{
 		explicit session_udp_socket(io_service& ios)
 			: sock(ios) {}
+		virtual ~session_udp_socket() {}
 
-		virtual udp::endpoint local_endpoint() override { return sock.local_endpoint(); }
+		udp::endpoint local_endpoint() override { return sock.local_endpoint(); }
 
 		udp_socket sock;
 
@@ -133,7 +134,7 @@ namespace dht {
 		bool write_blocked = false;
 	};
 
-	struct outgoing_udp_socket : session_udp_socket
+	struct outgoing_udp_socket final : session_udp_socket
 	{
 		explicit outgoing_udp_socket(io_service& ios)
 			: session_udp_socket(ios) {}
@@ -143,12 +144,12 @@ namespace dht {
 		std::string device;
 	};
 
-	struct listen_socket_t : dht::dht_socket, aux::session_listen_socket
+	struct listen_socket_t final : dht::dht_socket, aux::session_listen_socket
 	{
-		virtual address get_external_address() override
+		address get_external_address() override
 		{ return external_address.external_address(); }
 
-		virtual address get_local_address() override
+		address get_local_address() override
 		{ return local_endpoint.address(); }
 
 		listen_socket_t()
