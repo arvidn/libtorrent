@@ -1193,16 +1193,6 @@ namespace libtorrent
 			void received_buffer(int size) override;
 			void sent_buffer(int size) override;
 
-			// each second tick the timer takes a little
-			// bit longer than one second to trigger. The
-			// extra time it took is accumulated into this
-			// counter. Every time it exceeds 1000, torrents
-			// will tick their timers 2 seconds instead of one.
-			// this keeps the timers more accurate over time
-			// as a kind of "leap second" to adjust for the
-			// accumulated error
-			std::int16_t m_tick_residual = 0;
-
 #ifndef TORRENT_DISABLE_LOGGING
 			virtual bool should_log() const override;
 			virtual void session_log(char const* fmt, ...) const override TORRENT_FORMAT(2,3);
