@@ -31,6 +31,8 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/ip_notifier.hpp"
+#include "libtorrent/aux_/throw.hpp"
+#include "libtorrent/assert.hpp"
 
 #if defined TORRENT_WINDOWS && !defined TORRENT_BUILD_SIMULATOR
 #include "libtorrent/aux_/disable_warnings_push.hpp"
@@ -38,17 +40,160 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
 
-#include "libtorrent/aux_/throw.hpp"
-
-using namespace std::placeholders;
-
 namespace libtorrent
 {
+	namespace
+	{
+#if TORRENT_USE_SYSTEMCONFIGURATION && !defined TORRENT_BUILD_SIMULATOR
+	// based on code from https://developer.apple.com/library/content/technotes/tn1145/_index.html
+
+	OSStatus MoreSCErrorBoolean(Boolean success)
+	{
+		OSStatus err;
+		int scErr;
+
+		err = noErr;
+		if (!success)
+		{
+			scErr = SCError();
+			if (scErr == kSCStatusOK)
+			{
+				scErr = kSCStatusFailed;
+			}
+			// Return an SCF error directly as an OSStatus.
+			err = scErr;
+		}
+		return err;
+	}
+
+	OSStatus MoreSCError(const void *value)
+	{
+		return MoreSCErrorBoolean(value != nullptr);
+	}
+
+	// Maps Core Foundation error indications (such as they
+	// are) to the OSStatus domain.
+	OSStatus CFQError(CFTypeRef cf)
+	{
+		OSStatus err;
+
+		err = noErr;
+		if (cf == nullptr)
+		{
+			err = -1;//coreFoundationUnknownErr
+		}
+		return err;
+	}
+
+	// A version of CFRelease that's tolerant of NULL.
+	void CFQRelease(CFTypeRef cf)
+	{
+		if (cf != nullptr)
+		{
+			CFRelease(cf);
+		}
+	}
+
+	// Create a SCF dynamic store reference and a
+	// corresponding CFRunLoop source. If you add the
+	// run loop source to your run loop then the supplied
+	// callback function will be called when local IP
+	// address list changes.
+	OSStatus CreateIPAddressListChangeCallbackSCF(SCDynamicStoreCallBack callback
+		, void *context_info, SCDynamicStoreRef *store, CFRunLoopSourceRef *source)
+	{
+		OSStatus err;
+		SCDynamicStoreContext context = {0, nullptr, nullptr, nullptr, nullptr};
+		SCDynamicStoreRef ref = nullptr;
+		CFStringRef patterns[2] = {nullptr, nullptr};
+		CFArrayRef pattern_list = nullptr;
+		CFRunLoopSourceRef rls = nullptr;
+
+		TORRENT_ASSERT(callback != nullptr);
+		TORRENT_ASSERT(store != nullptr);
+		TORRENT_ASSERT(*store == nullptr);
+		TORRENT_ASSERT(source != nullptr);
+		TORRENT_ASSERT(*source == nullptr);
+
+		// Create a connection to the dynamic store, then create
+		// a search pattern for IPv4 and IPv6.
+
+		context.info = context_info;
+		ref = SCDynamicStoreCreate(nullptr, CFSTR("AddIPAddressListChangeCallbackSCF")
+			, callback, &context);
+		err = MoreSCError(ref);
+		if (err == noErr)
+		{
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdisabled-macro-expansion"
+#endif
+			// "State:/Network/Service/[^/]+/IPv4".
+			patterns[0] = SCDynamicStoreKeyCreateNetworkServiceEntity(nullptr
+				, kSCDynamicStoreDomainState, kSCCompAnyRegex, kSCEntNetIPv4);
+			err = MoreSCError(patterns[0]);
+			if (err == noErr)
+			{
+				// "State:/Network/Service/[^/]+/IPv6".
+				patterns[1] = SCDynamicStoreKeyCreateNetworkServiceEntity(nullptr
+					, kSCDynamicStoreDomainState, kSCCompAnyRegex, kSCEntNetIPv6);
+				err = MoreSCError(patterns[1]);
+			}
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+		}
+
+		// Create a pattern list containing the patterns,
+		// then tell SCF that we want to watch changes in keys
+		// that match that pattern list, then create our run loop
+		// source.
+
+		if (err == noErr)
+		{
+			pattern_list = CFArrayCreate(nullptr
+				, reinterpret_cast<const void **>(&patterns), 2, &kCFTypeArrayCallBacks);
+			err = CFQError(pattern_list);
+		}
+		if (err == noErr)
+		{
+			err = MoreSCErrorBoolean(SCDynamicStoreSetNotificationKeys(ref
+				, nullptr, pattern_list));
+		}
+		if (err == noErr)
+		{
+			rls = SCDynamicStoreCreateRunLoopSource(nullptr, ref, 0);
+			err = MoreSCError(rls);
+		}
+
+		// Clean up.
+
+		CFQRelease(patterns[0]);
+		CFQRelease(patterns[1]);
+		CFQRelease(pattern_list);
+		if (err != noErr)
+		{
+			CFQRelease(ref);
+			ref = nullptr;
+		}
+		*store = ref;
+		*source = rls;
+
+		TORRENT_ASSERT((err == noErr) == (*store != nullptr));
+		TORRENT_ASSERT((err == noErr) == (*source != nullptr));
+
+		return err;
+	}
+#endif
+	}
+
 	ip_change_notifier::ip_change_notifier(io_service& ios)
 #if defined TORRENT_BUILD_SIMULATOR
 #elif TORRENT_USE_NETLINK
 		: m_socket(ios
 			, netlink::endpoint(netlink(NETLINK_ROUTE), RTMGRP_IPV4_IFADDR | RTMGRP_IPV6_IFADDR))
+#elif TORRENT_USE_SYSTEMCONFIGURATION
+		: m_ios(ios)
 #elif defined TORRENT_WINDOWS
 		: m_hnd(ios, WSACreateEvent())
 #endif
@@ -65,7 +210,10 @@ namespace libtorrent
 
 	ip_change_notifier::~ip_change_notifier()
 	{
-#if defined TORRENT_WINDOWS && !defined TORRENT_BUILD_SIMULATOR
+#if defined TORRENT_BUILD_SIMULATOR
+#elif TORRENT_USE_SYSTEMCONFIGURATION
+		cancel();
+#elif defined TORRENT_WINDOWS
 		cancel();
 		m_hnd.close();
 #endif
@@ -74,10 +222,29 @@ namespace libtorrent
 	void ip_change_notifier::async_wait(std::function<void(error_code const&)> cb)
 	{
 #if defined TORRENT_BUILD_SIMULATOR
-		TORRENT_UNUSED(cb);
+		// TODO: simulator support
+		cb(make_error_code(boost::system::errc::not_supported));
 #elif TORRENT_USE_NETLINK
+		using namespace std::placeholders;
 		m_socket.async_receive(boost::asio::buffer(m_buf)
 			, std::bind(&ip_change_notifier::on_notify, this, _1, _2, cb));
+#elif TORRENT_USE_SYSTEMCONFIGURATION
+		m_cb = std::move(cb);
+		if (m_source != nullptr) return; // already setup
+		auto on_notify_cb = [](SCDynamicStoreRef /*store*/, CFArrayRef /*changedKeys*/, void *info)
+		{
+			ip_change_notifier* obj = static_cast<ip_change_notifier*>(info);
+			obj->m_ios.post([obj]() { obj->m_cb(error_code()); });
+		};
+		OSStatus err = CreateIPAddressListChangeCallbackSCF(on_notify_cb, this, &m_store, &m_source);
+		if (err == noErr)
+		{
+			CFRunLoopAddSource(CFRunLoopGetMain(), m_source, kCFRunLoopDefaultMode);
+		}
+		else
+		{
+			m_ios.post([this, err]() { m_cb(error_code(err, system_category())); });
+		}
 #elif defined TORRENT_WINDOWS
 		HANDLE hnd;
 		DWORD err = NotifyAddrChange(&hnd, &m_ovl);
@@ -87,7 +254,7 @@ namespace libtorrent
 		}
 		else
 		{
-			m_hnd.get_io_service().post([this, cb, err]()
+			m_hnd.get_io_service().post([cb, err]()
 				{ cb(error_code(err, system_category())); });
 		}
 #else
@@ -100,6 +267,15 @@ namespace libtorrent
 #if defined TORRENT_BUILD_SIMULATOR
 #elif TORRENT_USE_NETLINK
 		m_socket.cancel();
+#elif TORRENT_USE_SYSTEMCONFIGURATION
+		m_cb = nullptr;
+		if (m_source != nullptr)
+		{
+			CFRetain(m_source); // to prevent internal memory release
+			CFRunLoopRemoveSource(CFRunLoopGetMain(), m_source, kCFRunLoopDefaultMode);
+		}
+		CFQRelease(m_store);
+		CFQRelease(m_source);
 #elif defined TORRENT_WINDOWS
 		CancelIPChangeNotify(&m_ovl);
 		m_hnd.cancel();

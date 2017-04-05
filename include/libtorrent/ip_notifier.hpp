@@ -44,6 +44,8 @@ POSSIBILITY OF SUCH DAMAGE.
 // TODO: simulator support
 #elif TORRENT_USE_NETLINK
 #include "libtorrent/netlink.hpp"
+#elif TORRENT_USE_SYSTEMCONFIGURATION
+#include <SystemConfiguration/SystemConfiguration.h>
 #elif defined TORRENT_WINDOWS
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/asio/windows/object_handle.hpp>
@@ -74,6 +76,11 @@ namespace libtorrent
 #elif TORRENT_USE_NETLINK
 		netlink::socket m_socket;
 		std::array<char, 4096> m_buf;
+#elif TORRENT_USE_SYSTEMCONFIGURATION
+		io_service& m_ios;
+		std::function<void(error_code const&)> m_cb = nullptr;
+		SCDynamicStoreRef m_store = nullptr;
+		CFRunLoopSourceRef m_source = nullptr;
 #elif defined TORRENT_WINDOWS
 		OVERLAPPED m_ovl = {};
 		boost::asio::windows::object_handle m_hnd;

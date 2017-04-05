@@ -160,6 +160,12 @@ rule linking ( properties * )
 		result += <library>libsocket <library>libnsl ;
 	}
 
+	if <target-os>darwin in $(properties)
+	{
+		# for ip_notifier
+		result += <framework>CoreFoundation <framework>SystemConfiguration ;
+	}
+
 	if <iconv>on in $(properties)
 	{
 		result += <library>libiconv ;
