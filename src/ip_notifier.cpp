@@ -30,7 +30,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/ip_notifier.hpp"
+#include "libtorrent/aux_/ip_notifier.hpp"
 
 #if defined TORRENT_WINDOWS && !defined TORRENT_BUILD_SIMULATOR
 #include "libtorrent/aux_/disable_warnings_push.hpp"

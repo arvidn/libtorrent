@@ -69,7 +69,6 @@ nobase_include_HEADERS = \
   io_service.hpp               \
   io_service_fwd.hpp           \
   ip_filter.hpp                \
-  ip_notifier.hpp              \
   ip_voter.hpp                 \
   lazy_entry.hpp               \
   link.hpp                     \
@@ -202,6 +201,7 @@ nobase_include_HEADERS = \
   aux_/throw.hpp                    \
   aux_/typed_span.hpp               \
   aux_/array.hpp                    \
+  aux_/ip_notifier.hpp              \
   \
   extensions/smart_ban.hpp          \
   extensions/ut_metadata.hpp        \
