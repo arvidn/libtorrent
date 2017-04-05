@@ -123,7 +123,7 @@ struct mock_socket final : socket_manager
 struct mock_dht_socket final : dht_socket
 {
 	mock_dht_socket() : m_external_address(addr4("236.0.0.1")), m_local_address(addr4("192.168.4.1")) {}
-	mock_dht_socket(address ep) : m_external_address(ep), m_local_address(ep) {}
+	explicit mock_dht_socket(address ep) : m_external_address(ep), m_local_address(ep) {}
 
 	address get_external_address() override { return m_external_address; }
 	address get_local_address() override { return m_local_address; }

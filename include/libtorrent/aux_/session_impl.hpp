@@ -119,7 +119,7 @@ namespace dht {
 
 	struct session_udp_socket : utp_socket_interface
 	{
-		session_udp_socket(io_service& ios)
+		explicit session_udp_socket(io_service& ios)
 			: sock(ios) {}
 
 		virtual udp::endpoint local_endpoint() override { return sock.local_endpoint(); }
@@ -135,7 +135,7 @@ namespace dht {
 
 	struct outgoing_udp_socket : session_udp_socket
 	{
-		outgoing_udp_socket(io_service& ios)
+		explicit outgoing_udp_socket(io_service& ios)
 			: session_udp_socket(ios) {}
 
 		// the name of the device the socket is bound to, may be empty

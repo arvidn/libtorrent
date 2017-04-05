@@ -396,7 +396,7 @@ namespace libtorrent { namespace dht {
 	void dht_tracker::get_item(sha1_hash const& target
 		, std::function<void(item const&)> cb)
 	{
-		auto ctx = std::make_shared<get_immutable_item_ctx>(m_nodes.size());
+		auto ctx = std::make_shared<get_immutable_item_ctx>(int(m_nodes.size()));
 		for (auto& n : m_nodes)
 			n.second.dht.get_item(target, std::bind(&get_immutable_item_callback, _1, ctx, cb));
 	}
@@ -407,7 +407,7 @@ namespace libtorrent { namespace dht {
 		, std::function<void(item const&, bool)> cb
 		, std::string salt)
 	{
-		auto ctx = std::make_shared<get_mutable_item_ctx>(m_nodes.size());
+		auto ctx = std::make_shared<get_mutable_item_ctx>(int(m_nodes.size()));
 		for (auto& n : m_nodes)
 			n.second.dht.get_item(key, salt, std::bind(&get_mutable_item_callback, _1, _2, ctx, cb));
 	}
@@ -419,7 +419,7 @@ namespace libtorrent { namespace dht {
 		bencode(std::back_inserter(flat_data), data);
 		sha1_hash const target = item_target_id(flat_data);
 
-		auto ctx = std::make_shared<put_item_ctx>(m_nodes.size());
+		auto ctx = std::make_shared<put_item_ctx>(int(m_nodes.size()));
 		for (auto& n : m_nodes)
 			n.second.dht.put_item(target, data, std::bind(&put_immutable_item_callback
 			, _1, ctx, cb));
@@ -429,7 +429,7 @@ namespace libtorrent { namespace dht {
 		, std::function<void(item const&, int)> cb
 		, std::function<void(item&)> data_cb, std::string salt)
 	{
-		auto ctx = std::make_shared<put_item_ctx>(m_nodes.size());
+		auto ctx = std::make_shared<put_item_ctx>(int(m_nodes.size()));
 		for (auto& n : m_nodes)
 			n.second.dht.put_item(key, salt, std::bind(&put_mutable_item_callback
 				, _1, _2, ctx, cb), data_cb);

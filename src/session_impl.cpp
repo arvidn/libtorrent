@@ -1194,7 +1194,7 @@ namespace {
 		if (m_key) req.key = m_key;
 
 #ifdef TORRENT_USE_OPENSSL
-		bool use_ssl = req.ssl_ctx;
+		bool use_ssl = req.ssl_ctx != nullptr;
 		req.ssl_ctx = &m_ssl_ctx;
 #endif
 
@@ -5392,7 +5392,7 @@ namespace {
 		// potentially identify us if it is leaked elsewhere
 		if (m_settings.get_bool(settings_pack::force_proxy)) return 0;
 		if (m_listen_sockets.empty()) return 0;
-		if (sock) return sock->tcp_external_port;
+		if (sock) return std::uint16_t(sock->tcp_external_port);
 		return std::uint16_t(m_listen_sockets.front().tcp_external_port);
 	}
 
@@ -5406,7 +5406,7 @@ namespace {
 	std::uint16_t session_impl::ssl_listen_port(listen_socket_t* sock) const
 	{
 #ifdef TORRENT_USE_OPENSSL
-		if (sock) return sock->tcp_external_port;
+		if (sock) return std::uint16_t(sock->tcp_external_port);
 
 		// if not, don't tell the tracker anything if we're in force_proxy
 		// mode. We don't want to leak our listen port since it can
