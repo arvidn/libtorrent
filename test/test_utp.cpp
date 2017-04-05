@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/file.hpp"
+#include "libtorrent/utp_stream.hpp"
 #include <tuple>
 #include <functional>
 
@@ -46,7 +47,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace libtorrent;
 namespace lt = libtorrent;
-using std::ignore;
 
 void test_transfer()
 {
@@ -101,7 +101,7 @@ void test_transfer()
 //	atp.storage = &disabled_storage_constructor;
 
 	// test using piece sizes smaller than 16kB
-	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, nullptr
+	std::tie(tor1, tor2, std::ignore) = setup_transfer(&ses1, &ses2, nullptr
 		, true, false, true, "_utp", 0, &t, false, &atp);
 
 	const int timeout = 16;
@@ -135,11 +135,19 @@ void test_transfer()
 
 TORRENT_TEST(utp)
 {
-	using namespace libtorrent;
-
 	test_transfer();
 
 	error_code ec;
 	remove_all("./tmp1_utp", ec);
 	remove_all("./tmp2_utp", ec);
+}
+
+TORRENT_TEST(compare_less_wrap)
+{
+	TEST_CHECK(compare_less_wrap(1, 2, 0xffff));
+	TEST_CHECK(!compare_less_wrap(2, 1, 0xffff));
+	TEST_CHECK(compare_less_wrap(100, 200, 0xffff));
+	TEST_CHECK(!compare_less_wrap(200, 100, 0xffff));
+	TEST_CHECK(compare_less_wrap(0xfff0, 0x000f, 0xffff)); // wrap
+	TEST_CHECK(!compare_less_wrap(0xfff0, 0xff00, 0xffff));
 }
