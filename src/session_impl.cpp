@@ -433,7 +433,7 @@ namespace aux {
 #endif
 			)
 		, m_work(new io_service::work(m_io_service))
-		, m_ip_notifier(m_io_service)
+		, m_ip_notifier(create_ip_notifier(m_io_service))
 #if TORRENT_USE_I2P
 		, m_i2p_conn(m_io_service)
 #endif
@@ -609,7 +609,7 @@ namespace aux {
 		session_log(" done starting session");
 #endif
 
-		m_ip_notifier.async_wait([this](error_code const& e)
+		m_ip_notifier->async_wait([this](error_code const& e)
 			{ this->wrap(&session_impl::on_ip_change, e); });
 
 		apply_settings_pack_impl(*pack, true);
@@ -905,7 +905,7 @@ namespace aux {
 		m_abort = true;
 		error_code ec;
 
-		m_ip_notifier.cancel();
+		m_ip_notifier->cancel();
 
 #if TORRENT_USE_I2P
 		m_i2p_conn.close(ec);
@@ -1758,7 +1758,7 @@ namespace aux {
 			session_log("received error on_ip_change: %d, %s", ec.value(), ec.message().c_str());
 #endif
 		if (ec || m_abort) return;
-		m_ip_notifier.async_wait([this] (error_code const& e)
+		m_ip_notifier->async_wait([this] (error_code const& e)
 			{ this->wrap(&session_impl::on_ip_change, e); });
 		reopen_listen_sockets();
 	}
