@@ -34,50 +34,21 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_IP_NOTIFIER_HPP_INCLUDED
 
 #include <functional>
-#include <array>
+#include <memory>
 
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/address.hpp"
 #include "libtorrent/io_service.hpp"
-
-#if defined TORRENT_BUILD_SIMULATOR
-// TODO: simulator support
-#elif TORRENT_USE_NETLINK
-#include "libtorrent/netlink.hpp"
-#elif defined TORRENT_WINDOWS
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/asio/windows/object_handle.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-#endif
 
 namespace libtorrent { namespace aux
 {
-	struct ip_change_notifier
+	struct TORRENT_EXTRA_EXPORT ip_change_notifier
 	{
-		explicit ip_change_notifier(io_service& ios);
-		~ip_change_notifier();
-		ip_change_notifier(ip_change_notifier const&) = delete;
-		ip_change_notifier& operator=(ip_change_notifier const&) = delete;
-
 		// cb will be invoked  when a change is detected in the
 		// system's IP addresses
-		void async_wait(std::function<void(error_code const&)> cb);
-		void cancel();
+		virtual void async_wait(std::function<void(error_code const&)> cb) = 0;
+		virtual void cancel() = 0;
 
-	private:
-		void on_notify(error_code const& error
-			, std::size_t bytes_transferred
-			, std::function<void(error_code const&)> cb);
-
-#if defined TORRENT_BUILD_SIMULATOR
-		// TODO: simulator support
-#elif TORRENT_USE_NETLINK
-		netlink::socket m_socket;
-		std::array<char, 4096> m_buf;
-#elif defined TORRENT_WINDOWS
-		OVERLAPPED m_ovl = {};
-		boost::asio::windows::object_handle m_hnd;
-#endif
+		virtual ~ip_change_notifier() {}
 	};
 
 	TORRENT_EXTRA_EXPORT std::unique_ptr<ip_change_notifier> create_ip_notifier(io_service& ios);
