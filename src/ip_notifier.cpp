@@ -31,12 +31,15 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/aux_/ip_notifier.hpp"
+#include "libtorrent/assert.hpp"
 
 #if defined TORRENT_BUILD_SIMULATOR
 // TODO: simulator support
 #elif TORRENT_USE_NETLINK
 #include "libtorrent/netlink.hpp"
 #include <array>
+#elif TORRENT_USE_SYSTEMCONFIGURATION
+#include <SystemConfiguration/SystemConfiguration.h>
 #elif defined TORRENT_WINDOWS
 #include "libtorrent/aux_/throw.hpp"
 #include "libtorrent/aux_/disable_warnings_push.hpp"
@@ -55,11 +58,105 @@ namespace
 	// TODO: ip_change_notifier_sim
 #elif TORRENT_USE_NETLINK
 	// TODO: ip_change_notifier_nl
+#elif TORRENT_USE_SYSTEMCONFIGURATION
+// see https://developer.apple.com/library/content/technotes/tn1145/_index.html
+
+CFArrayRef create_keys_array()
+{
+	CFMutableArrayRef keys = CFArrayCreateMutable(nullptr
+		, 0, &kCFTypeArrayCallBacks);
+	CFStringRef key;
+
+	// "State:/Network/Interface/[^/]+/IPv4"
+	key = SCDynamicStoreKeyCreateNetworkInterfaceEntity(nullptr
+		, kSCDynamicStoreDomainState, kSCCompAnyRegex, kSCEntNetIPv4);
+	CFArrayAppendValue(keys, key);
+	CFRelease(key);
+
+	// NOTE: for IPv6, you can replicate the above setup with kSCEntNetIPv6
+	// but due to the current state of most common configurations, where
+	// IPv4 is used alongside with IPv6, you will end up with twice the
+	// notifications for the same change
+
+	return keys;
+}
+
+SCDynamicStoreRef create_dynamic_store(SCDynamicStoreCallBack callback, void* context_info)
+{
+	TORRENT_ASSERT(callback != nullptr);
+
+	SCDynamicStoreContext context = {0, nullptr, nullptr, nullptr, nullptr};
+	context.info = context_info;
+	SCDynamicStoreRef store = SCDynamicStoreCreate(nullptr
+		, CFSTR("libtorrent.IPChangeNotifierStore"), callback, &context);
+	if (store == nullptr)
+		return nullptr;
+
+	CFArrayRef keys = create_keys_array();
+	bool success = SCDynamicStoreSetNotificationKeys(store, nullptr, keys);
+	CFRelease(keys);
+
+	return success ? store : nullptr;
+}
+
+struct ip_change_notifier_macos final : ip_change_notifier
+{
+	explicit ip_change_notifier_macos(io_service& ios)
+		: m_ios(ios)
+	{
+		m_queue = dispatch_queue_create("libtorrent.IPChangeNotifierQueue", nullptr);
+		m_store = create_dynamic_store(
+			[](SCDynamicStoreRef /*store*/, CFArrayRef /*changedKeys*/, void *info)
+			{
+				auto obj = static_cast<ip_change_notifier_macos*>(info);
+				obj->m_ios.post([obj]() { if (obj->m_cb) obj->m_cb(error_code()); });
+			}, this);
+
+		if (m_queue == nullptr || m_store == nullptr
+			|| !SCDynamicStoreSetDispatchQueue(m_store, m_queue))
+			cancel();
+	}
+
+	// noncopyable
+	ip_change_notifier_macos(ip_change_notifier_macos const&) = delete;
+	ip_change_notifier_macos& operator=(ip_change_notifier_macos const&) = delete;
+
+	~ip_change_notifier_macos() override
+	{ cancel(); }
+
+	void async_wait(std::function<void(error_code const&)> cb) override
+	{
+		if (m_queue != nullptr)
+			m_cb = std::move(cb);
+		else
+			m_ios.post([cb]()
+			{ cb(make_error_code(boost::system::errc::not_supported)); });
+	}
+
+	void cancel() override
+	{
+		if (m_store != nullptr)
+			SCDynamicStoreSetDispatchQueue(m_store, nullptr);
+
+		m_cb = nullptr;
+		m_store = nullptr;
+		m_queue = nullptr;
+	}
+
+private:
+	io_service& m_ios;
+	dispatch_queue_t m_queue;
+	SCDynamicStoreRef m_store;
+	std::function<void(error_code const&)> m_cb = nullptr;
+};
 #elif defined TORRENT_WINDOWS
 	// TODO: ip_change_notifier_win
+#else
+	// TODO: ip_change_notifier_default
 #endif
 
 	// TODO: to remove when separated per platform
+#if defined TORRENT_BUILD_SIMULATOR || TORRENT_USE_NETLINK || defined TORRENT_WINDOWS
 	struct ip_change_notifier_impl final : ip_change_notifier
 	{
 		explicit ip_change_notifier_impl(io_service& ios);
@@ -170,11 +267,28 @@ namespace
 		else
 			cb(ec);
 	}
+#endif // defined TORRENT_BUILD_SIMULATOR || TORRENT_USE_NETLINK || defined TORRENT_WINDOWS
 
 } // anonymous namespace
 
 	std::unique_ptr<ip_change_notifier> create_ip_notifier(io_service& ios)
 	{
-		return std::unique_ptr<ip_change_notifier>(new ip_change_notifier_impl(ios));
+		return std::unique_ptr<ip_change_notifier>(
+#if defined TORRENT_BUILD_SIMULATOR
+			// ip_change_notifier_sim
+			new ip_change_notifier_impl(ios)
+#elif TORRENT_USE_NETLINK
+			// ip_change_notifier_nl
+			new ip_change_notifier_impl(ios)
+#elif TORRENT_USE_SYSTEMCONFIGURATION
+			new ip_change_notifier_macos(ios)
+#elif defined TORRENT_WINDOWS
+			// ip_change_notifier_win
+			new ip_change_notifier_impl(ios)
+#else
+			// ip_change_notifier_default
+			new ip_change_notifier_impl(ios)
+#endif
+		);
 	}
 }}

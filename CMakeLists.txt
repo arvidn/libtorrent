@@ -300,6 +300,11 @@ if (WIN32)
 	endif()
 endif()
 
+if(APPLE)
+	# for ip_notifier
+	target_link_libraries(torrent-rasterbar "-framework CoreFoundation" "-framework SystemConfiguration")
+endif (APPLE)
+
 if (encryption)
 	target_link_libraries(torrent-rasterbar ${OPENSSL_LIBRARIES})
 endif()
