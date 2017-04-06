@@ -293,7 +293,8 @@ namespace libtorrent
 
 		void abort(bool wait);
 
-		storage_holder new_torrent(std::unique_ptr<storage_interface> storage) override;
+		storage_holder new_torrent(storage_constructor_type sc
+			, storage_params p, std::shared_ptr<void> const&) override;
 		void remove_torrent(storage_index_t) override;
 
 		void async_read(storage_index_t storage, peer_request const& r

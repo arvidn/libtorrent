@@ -241,15 +241,16 @@ namespace libtorrent
 		int const m_flags;
 	};
 
-	default_storage::default_storage(storage_params const& params)
-		: m_files(*params.files)
-		, m_pool(*params.pool)
+	default_storage::default_storage(storage_params const& params
+		, file_pool& pool)
+		: storage_interface(*params.files)
+		, m_pool(pool)
 		, m_allocate_files(params.mode == storage_mode_allocate)
 	{
 		if (params.mapped_files) m_mapped_files.reset(new file_storage(*params.mapped_files));
 		if (params.priorities) m_file_priority = *params.priorities;
 
-		TORRENT_ASSERT(m_files.num_files() > 0);
+		TORRENT_ASSERT(files().num_files() > 0);
 		m_save_path = complete(params.path);
 		m_part_file_name = "." + (params.info
 			? aux::to_hex(params.info->info_hash())
@@ -272,7 +273,7 @@ namespace libtorrent
 
 		m_part_file.reset(new part_file(
 			m_save_path, m_part_file_name
-			, m_files.num_pieces(), m_files.piece_length()));
+			, files().num_pieces(), files().piece_length()));
 	}
 
 	void default_storage::set_file_priority(
@@ -544,7 +545,7 @@ namespace libtorrent
 		// in our file_storage, so that when it is created
 		// it will get the new name
 		if (!m_mapped_files)
-		{ m_mapped_files.reset(new file_storage(m_files)); }
+		{ m_mapped_files.reset(new file_storage(files())); }
 		m_mapped_files->rename_file(index, new_filename);
 	}
 
@@ -736,9 +737,10 @@ namespace libtorrent
 		return false;
 	}
 
-	storage_interface* default_storage_constructor(storage_params const& params)
+	storage_interface* default_storage_constructor(storage_params const& params
+		, file_pool& pool)
 	{
-		return new default_storage(params);
+		return new default_storage(params, pool);
 	}
 
 	// -- disabled_storage --------------------------------------------------
@@ -756,6 +758,8 @@ namespace libtorrent
 		class disabled_storage final : public storage_interface
 		{
 		public:
+			explicit disabled_storage(file_storage const& fs) : storage_interface(fs) {}
+
 			bool has_any_file(storage_error&) override { return false; }
 			void set_file_priority(aux::vector<std::uint8_t, file_index_t> const&
 				, storage_error&) override {}
@@ -782,10 +786,9 @@ namespace libtorrent
 		};
 	}
 
-	storage_interface* disabled_storage_constructor(storage_params const& params)
+	storage_interface* disabled_storage_constructor(storage_params const& params, file_pool&)
 	{
-		TORRENT_UNUSED(params);
-		return new disabled_storage;
+		return new disabled_storage(*params.files);
 	}
 
 	// -- zero_storage ------------------------------------------------------
@@ -796,6 +799,7 @@ namespace libtorrent
 		// anything written to it
 		struct zero_storage final : storage_interface
 		{
+			explicit zero_storage(file_storage const& fs) : storage_interface(fs) {}
 			void initialize(storage_error&) override {}
 
 			int readv(span<iovec_t const> bufs
@@ -834,9 +838,9 @@ namespace libtorrent
 		};
 	}
 
-	storage_interface* zero_storage_constructor(storage_params const&)
+	storage_interface* zero_storage_constructor(storage_params const& params, file_pool&)
 	{
-		return new zero_storage;
+		return new zero_storage(*params.files);
 	}
 
 } // namespace libtorrent

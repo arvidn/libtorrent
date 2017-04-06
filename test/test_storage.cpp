@@ -157,10 +157,9 @@ std::shared_ptr<default_storage> setup_torrent(file_storage& fs
 
 	storage_params p;
 	p.files = &fs;
-	p.pool = &fp;
 	p.path = test_path;
 	p.mode = storage_mode_allocate;
-	std::shared_ptr<default_storage> s(new default_storage(p));
+	std::shared_ptr<default_storage> s(new default_storage(p, fp));
 	s->m_settings = &set;
 
 	// allocate the files and create the directories
@@ -227,9 +226,8 @@ void run_storage_tests(std::shared_ptr<torrent_info> info
 	storage_params p;
 	p.path = test_path;
 	p.files = &fs;
-	p.pool = &fp;
 	p.mode = storage_mode;
-	std::unique_ptr<storage_interface> s(new default_storage(p));
+	std::unique_ptr<storage_interface> s(new default_storage(p, fp));
 	s->m_settings = &set;
 
 	storage_error ec;
@@ -472,12 +470,10 @@ void test_check_files(std::string const& test_path
 	storage_params p;
 	p.files = &fs;
 	p.path = test_path;
-	p.pool = &fp;
 	p.mode = storage_mode;
 
-	std::unique_ptr<storage_interface> pm(new default_storage(p));
-	pm->set_files(&fs);
-	auto st = io.new_torrent(std::move(pm));
+	auto st = io.new_torrent(default_storage_constructor, std::move(p)
+		, std::shared_ptr<void>());
 	std::mutex lock;
 
 	bool done = false;

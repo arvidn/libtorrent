@@ -71,8 +71,8 @@ bool on_alert(alert const* a)
 // simulate a full disk
 struct test_storage : default_storage
 {
-	explicit test_storage(storage_params const& params)
-		: default_storage(params)
+	explicit test_storage(storage_params const& params, file_pool& pool)
+		: default_storage(params, pool)
 		, m_written(0)
 		, m_limit(16 * 1024 * 2)
 	{}
@@ -115,9 +115,9 @@ struct test_storage : default_storage
 	std::mutex m_mutex;
 };
 
-storage_interface* test_storage_constructor(storage_params const& params)
+storage_interface* test_storage_constructor(storage_params const& params, file_pool& pool)
 {
-	return new test_storage(params);
+	return new test_storage(params, pool);
 }
 
 void test_transfer(int proxy_type, settings_pack const& sett

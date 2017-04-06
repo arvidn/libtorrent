@@ -1593,19 +1593,14 @@ namespace libtorrent
 			params.mapped_files = nullptr;
 		}
 		params.path = m_save_path;
-		params.pool = &m_ses.disk_thread().files();
 		params.mode = static_cast<storage_mode_t>(m_storage_mode);
 		params.priorities = &m_file_priority;
 		params.info = m_torrent_file.get();
 
 		TORRENT_ASSERT(m_storage_constructor);
 
-		std::unique_ptr<storage_interface> storage(m_storage_constructor(params));
-		storage->set_files(&m_torrent_file->files());
-		// the shared_from_this() will create an intentional
-		// cycle of ownership, se the hpp file for description.
-		storage->set_owner(shared_from_this());
-		m_storage = m_ses.disk_thread().new_torrent(std::move(storage));
+		m_storage = m_ses.disk_thread().new_torrent(m_storage_constructor
+			, params, shared_from_this());
 	}
 
 	peer_connection* torrent::find_lowest_ranking_peer() const

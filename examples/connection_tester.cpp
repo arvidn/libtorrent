@@ -851,10 +851,9 @@ void generate_data(char const* path, torrent_info const& ti)
 	params.files = &const_cast<file_storage&>(fs);
 	params.mapped_files = nullptr;
 	params.path = path;
-	params.pool = &fp;
 	params.mode = storage_mode_sparse;
 
-	std::unique_ptr<storage_interface> st(default_storage_constructor(params));
+	std::unique_ptr<storage_interface> st(default_storage_constructor(params, fp));
 
 	{
 		storage_error error;
