@@ -46,6 +46,7 @@ using namespace libtorrent;
 
 struct test_storage_impl : storage_interface
 {
+	explicit test_storage_impl(file_storage const& fs) : storage_interface(fs) {}
 	void initialize(storage_error& ec) override {}
 
 	int readv(span<iovec_t const> bufs
@@ -97,8 +98,7 @@ static void nop() {}
 	fs.set_piece_length(0x8000); \
 	fs.set_num_pieces(5); \
 	std::shared_ptr<storage_interface> pm \
-		= std::make_shared<test_storage_impl>(); \
-	pm->set_files(&fs); \
+		= std::make_shared<test_storage_impl>(fs); \
 	bc.set_settings(sett); \
 	pm->m_settings = &sett; \
 	disk_io_job rj; \

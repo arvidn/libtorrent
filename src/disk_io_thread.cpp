@@ -206,8 +206,12 @@ namespace libtorrent
 		return m_torrents[storage].get();
 	}
 
-	storage_holder disk_io_thread::new_torrent(std::unique_ptr<storage_interface> storage)
+	storage_holder disk_io_thread::new_torrent(storage_constructor_type sc
+		, storage_params p, std::shared_ptr<void> const& owner)
 	{
+		std::unique_ptr<storage_interface> storage(sc(p, m_file_pool));
+		storage->set_owner(owner);
+
 		TORRENT_ASSERT(storage);
 		if (m_free_slots.empty())
 		{

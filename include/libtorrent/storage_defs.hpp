@@ -92,32 +92,29 @@ namespace libtorrent
 		dont_replace
 	};
 
-	// see default_storage::default_storage()
 	struct TORRENT_EXPORT storage_params
 	{
-		storage_params(): files(nullptr), mapped_files(nullptr), pool(nullptr)
-			, mode(storage_mode_sparse), priorities(nullptr), info(nullptr) {}
-		file_storage const* files;
-		file_storage const* mapped_files; // optional
+		file_storage const* files = nullptr;
+		file_storage const* mapped_files = nullptr; // optional
 		std::string path;
-		file_pool* pool;
-		storage_mode_t mode;
-		aux::vector<std::uint8_t, file_index_t> const* priorities; // optional
-		torrent_info const* info; // optional
+		storage_mode_t mode{storage_mode_sparse};
+		aux::vector<std::uint8_t, file_index_t> const* priorities = nullptr; // optional
+		torrent_info const* info = nullptr; // optional
 	};
 
-	using storage_constructor_type = std::function<storage_interface*(storage_params const& params)>;
+	using storage_constructor_type = std::function<storage_interface*(storage_params const& params, file_pool&)>;
 
 	// the constructor function for the regular file storage. This is the
 	// default value for add_torrent_params::storage.
-	TORRENT_EXPORT storage_interface* default_storage_constructor(storage_params const&);
+	TORRENT_EXPORT storage_interface* default_storage_constructor(storage_params const&
+		, file_pool& p);
 
 	// the constructor function for the disabled storage. This can be used for
 	// testing and benchmarking. It will throw away any data written to
 	// it and return garbage for anything read from it.
-	TORRENT_EXPORT storage_interface* disabled_storage_constructor(storage_params const&);
+	TORRENT_EXPORT storage_interface* disabled_storage_constructor(storage_params const&, file_pool&);
 
-	TORRENT_EXPORT storage_interface* zero_storage_constructor(storage_params const&);
+	TORRENT_EXPORT storage_interface* zero_storage_constructor(storage_params const&, file_pool&);
 }
 
 #endif

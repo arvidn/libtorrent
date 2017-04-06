@@ -72,7 +72,7 @@ POSSIBILITY OF SUCH DAMAGE.
 //
 //	struct temp_storage : storage_interface
 //	{
-//		temp_storage(file_storage const& fs) : m_files(fs) {}
+//		temp_storage(file_storage const& fs) : storage_interface(fs) {}
 //		virtual bool initialize(storage_error& se) { return false; }
 //		virtual bool has_any_file() { return false; }
 //		virtual int read(char* buf, int piece, int offset, int size)
@@ -99,7 +99,7 @@ POSSIBILITY OF SUCH DAMAGE.
 //			, std::vector<std::string> const* links
 //			, storage_error& error) { return false; }
 //		virtual std::int64_t physical_offset(int piece, int offset)
-//		{ return piece * m_files.piece_length() + offset; };
+//		{ return piece * files().piece_length() + offset; };
 //		virtual sha1_hash hash_for_slot(int piece, partial_hash& ph, int piece_size)
 //		{
 //			int left = piece_size - ph.offset;
@@ -120,7 +120,6 @@ POSSIBILITY OF SUCH DAMAGE.
 //		virtual bool delete_files() { return false; }
 //
 //		std::map<int, std::vector<char>> m_file_data;
-//		file_storage m_files;
 //	};
 //
 //	storage_interface* temp_storage_constructor(storage_params const& params)
@@ -169,6 +168,7 @@ namespace libtorrent
 		, public aux::storage_piece_set
 		, boost::noncopyable
 	{
+		explicit storage_interface(file_storage const& fs) : m_files(fs) {}
 
 		// This function is called when the storage is to be initialized. The
 		// default storage will create directories and empty files at this point.
@@ -304,7 +304,7 @@ namespace libtorrent
 		// off again.
 		virtual bool tick() { return false; }
 
-		file_storage const* files() const { return m_files; }
+		file_storage const* files() const { return &m_files; }
 
 		bool set_need_tick()
 		{
@@ -319,7 +319,6 @@ namespace libtorrent
 			tick();
 		}
 
-		void set_files(file_storage const* f) { m_files = f; }
 		void set_owner(std::shared_ptr<void> const& tor) { m_torrent = tor; }
 
 		// access global session_settings
@@ -343,7 +342,7 @@ namespace libtorrent
 	private:
 
 		bool m_need_tick = false;
-		file_storage const* m_files = nullptr;
+		file_storage const& m_files;
 
 		// the reason for this to be a void pointer
 		// is to avoid creating a dependency on the
@@ -378,7 +377,7 @@ namespace libtorrent
 		// an empty vector. Any file whose index is not represented by the vector
 		// (because the vector is too short) are assumed to have priority 1.
 		// this is used to treat files with priority 0 slightly differently.
-		explicit default_storage(storage_params const& params);
+		explicit default_storage(storage_params const& params, file_pool&);
 
 		// hidden
 		~default_storage();
@@ -405,7 +404,10 @@ namespace libtorrent
 
 		// if the files in this storage are mapped, returns the mapped
 		// file_storage, otherwise returns the original file_storage object.
-		file_storage const& files() const { return m_mapped_files ? *m_mapped_files : m_files; }
+		file_storage const& files() const
+		{
+			return m_mapped_files ? *m_mapped_files : *storage_interface::files();
+		}
 
 	private:
 
@@ -414,7 +416,6 @@ namespace libtorrent
 		void need_partfile();
 
 		std::unique_ptr<file_storage> m_mapped_files;
-		file_storage const& m_files;
 
 		// in order to avoid calling stat() on each file multiple times
 		// during startup, cache the results in here, and clear it all
@@ -429,9 +430,8 @@ namespace libtorrent
 		aux::vector<std::uint8_t, file_index_t> m_file_priority;
 		std::string m_save_path;
 		std::string m_part_file_name;
-		// the file pool is typically stored in
-		// the session, to make all storage
-		// instances use the same pool
+		// the file pool is a member of the disk_io_thread
+		// to make all storage instances share the pool
 		file_pool& m_pool;
 
 		// used for skipped files

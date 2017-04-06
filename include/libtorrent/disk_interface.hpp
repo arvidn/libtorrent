@@ -74,7 +74,8 @@ namespace libtorrent
 			volatile_read = 0x10,
 		};
 
-		virtual storage_holder new_torrent(std::unique_ptr<storage_interface> storage) = 0;
+		virtual storage_holder new_torrent(storage_constructor_type sc
+			, storage_params p, std::shared_ptr<void> const&) = 0;
 		virtual void remove_torrent(storage_index_t) = 0;
 		virtual storage_interface* get_torrent(storage_index_t) = 0;
 

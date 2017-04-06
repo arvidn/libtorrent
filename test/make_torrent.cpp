@@ -173,9 +173,8 @@ void generate_files(libtorrent::torrent_info const& ti, std::string const& path
 	storage_params params;
 	params.files = &ti.files();
 	params.path = path;
-	params.pool = &fp;
 
-	default_storage st(params);
+	default_storage st(params, fp);
 
 	file_storage const& fs = ti.files();
 	std::vector<char> buffer;
