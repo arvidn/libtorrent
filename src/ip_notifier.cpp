@@ -32,19 +32,63 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/ip_notifier.hpp"
 
-#if defined TORRENT_WINDOWS && !defined TORRENT_BUILD_SIMULATOR
+#if defined TORRENT_BUILD_SIMULATOR
+// TODO: simulator support
+#elif TORRENT_USE_NETLINK
+#include "libtorrent/netlink.hpp"
+#include <array>
+#elif defined TORRENT_WINDOWS
+#include "libtorrent/aux_/throw.hpp"
 #include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/asio/windows/object_handle.hpp>
 #include <iphlpapi.h>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
-
-#include "libtorrent/aux_/throw.hpp"
 
 using namespace std::placeholders;
 
 namespace libtorrent { namespace aux
 {
-	ip_change_notifier::ip_change_notifier(io_service& ios)
+namespace
+{
+#if defined TORRENT_BUILD_SIMULATOR
+	// TODO: ip_change_notifier_sim
+#elif TORRENT_USE_NETLINK
+	// TODO: ip_change_notifier_nl
+#elif defined TORRENT_WINDOWS
+	// TODO: ip_change_notifier_win
+#endif
+
+	// TODO: to remove when separated per platform
+	struct ip_change_notifier_impl final : ip_change_notifier
+	{
+		explicit ip_change_notifier_impl(io_service& ios);
+		~ip_change_notifier_impl() override;
+		ip_change_notifier_impl(ip_change_notifier_impl const&) = delete;
+		ip_change_notifier_impl& operator=(ip_change_notifier_impl const&) = delete;
+
+		// cb will be invoked  when a change is detected in the
+		// system's IP addresses
+		void async_wait(std::function<void(error_code const&)> cb) override;
+		void cancel() override;
+
+	private:
+		void on_notify(error_code const& error
+			, std::size_t bytes_transferred
+			, std::function<void(error_code const&)> cb);
+
+#if defined TORRENT_BUILD_SIMULATOR
+		// TODO: simulator support
+#elif TORRENT_USE_NETLINK
+		netlink::socket m_socket;
+		std::array<char, 4096> m_buf;
+#elif defined TORRENT_WINDOWS
+		OVERLAPPED m_ovl = {};
+		boost::asio::windows::object_handle m_hnd;
+#endif
+	};
+
+	ip_change_notifier_impl::ip_change_notifier_impl(io_service& ios)
 #if defined TORRENT_BUILD_SIMULATOR
 #elif TORRENT_USE_NETLINK
 		: m_socket(ios
@@ -63,7 +107,7 @@ namespace libtorrent { namespace aux
 #endif
 	}
 
-	ip_change_notifier::~ip_change_notifier()
+	ip_change_notifier_impl::~ip_change_notifier_impl()
 	{
 #if defined TORRENT_WINDOWS && !defined TORRENT_BUILD_SIMULATOR
 		cancel();
@@ -71,13 +115,14 @@ namespace libtorrent { namespace aux
 #endif
 	}
 
-	void ip_change_notifier::async_wait(std::function<void(error_code const&)> cb)
+	void ip_change_notifier_impl::async_wait(std::function<void(error_code const&)> cb)
 	{
 #if defined TORRENT_BUILD_SIMULATOR
+		TORRENT_UNUSED(&ip_change_notifier_impl::on_notify);
 		TORRENT_UNUSED(cb);
 #elif TORRENT_USE_NETLINK
 		m_socket.async_receive(boost::asio::buffer(m_buf)
-			, std::bind(&ip_change_notifier::on_notify, this, _1, _2, cb));
+			, std::bind(&ip_change_notifier_impl::on_notify, this, _1, _2, cb));
 #elif defined TORRENT_WINDOWS
 		HANDLE hnd;
 		DWORD err = NotifyAddrChange(&hnd, &m_ovl);
@@ -91,11 +136,12 @@ namespace libtorrent { namespace aux
 				{ cb(error_code(err, system_category())); });
 		}
 #else
+		TORRENT_UNUSED(&ip_change_notifier_impl::on_notify);
 		cb(make_error_code(boost::system::errc::not_supported));
 #endif
 	}
 
-	void ip_change_notifier::cancel()
+	void ip_change_notifier_impl::cancel()
 	{
 #if defined TORRENT_BUILD_SIMULATOR
 #elif TORRENT_USE_NETLINK
@@ -106,7 +152,7 @@ namespace libtorrent { namespace aux
 #endif
 	}
 
-	void ip_change_notifier::on_notify(error_code const& ec
+	void ip_change_notifier_impl::on_notify(error_code const& ec
 		, std::size_t bytes_transferred
 		, std::function<void(error_code const&)> cb)
 	{
@@ -125,8 +171,10 @@ namespace libtorrent { namespace aux
 			cb(ec);
 	}
 
+} // anonymous namespace
+
 	std::unique_ptr<ip_change_notifier> create_ip_notifier(io_service& ios)
 	{
-		return std::unique_ptr<ip_change_notifier>(new ip_change_notifier(ios));
+		return std::unique_ptr<ip_change_notifier>(new ip_change_notifier_impl(ios));
 	}
 }}
