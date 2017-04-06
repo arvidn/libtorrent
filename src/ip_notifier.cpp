@@ -118,6 +118,7 @@ namespace
 	void ip_change_notifier_impl::async_wait(std::function<void(error_code const&)> cb)
 	{
 #if defined TORRENT_BUILD_SIMULATOR
+		TORRENT_UNUSED(&ip_change_notifier_impl::on_notify);
 		TORRENT_UNUSED(cb);
 #elif TORRENT_USE_NETLINK
 		m_socket.async_receive(boost::asio::buffer(m_buf)
@@ -135,6 +136,7 @@ namespace
 				{ cb(error_code(err, system_category())); });
 		}
 #else
+		TORRENT_UNUSED(&ip_change_notifier_impl::on_notify);
 		cb(make_error_code(boost::system::errc::not_supported));
 #endif
 	}
