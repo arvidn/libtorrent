@@ -1,5 +1,6 @@
 tool_programs =  \
-  fuzz_torrent
+  fuzz_torrent   \
+  session_log_alerts
 
 if ENABLE_EXAMPLES
 bin_PROGRAMS = $(tool_programs)
@@ -20,6 +21,7 @@ EXTRA_DIST = Jamfile     \
   parse_utp_log.py
 
 fuzz_torrent_SOURCES = fuzz_torrent.cpp
+session_log_alerts_SOURCES = session_log_alerts.cpp
 
 LDADD = $(top_builddir)/src/libtorrent-rasterbar.la
 
