@@ -614,7 +614,7 @@ cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, std::uint1
 	cached_piece_entry* p = find_piece(j);
 	if (p == nullptr)
 	{
-		int const piece_size = j->storage->files()->piece_size(j->piece);
+		int const piece_size = j->storage->files().piece_size(j->piece);
 		int const blocks_in_piece = (piece_size + block_size() - 1) / block_size();
 
 		cached_piece_entry pe;
@@ -1280,7 +1280,7 @@ void block_cache::insert_blocks(cached_piece_entry* pe, int block, span<iovec_t 
 	{
 		// each iovec buffer has to be the size of a block (or the size of the last block)
 		TORRENT_PIECE_ASSERT(int(buf.iov_len) == std::min(block_size()
-			, pe->storage->files()->piece_size(pe->piece) - block * block_size()), pe);
+			, pe->storage->files().piece_size(pe->piece) - block * block_size()), pe);
 
 		// no nullptrs allowed
 		TORRENT_ASSERT(buf.iov_base != nullptr);
@@ -1471,7 +1471,7 @@ void block_cache::free_piece(cached_piece_entry* pe)
 
 int block_cache::drain_piece_bufs(cached_piece_entry& p, std::vector<char*>& buf)
 {
-	int const piece_size = p.storage->files()->piece_size(p.piece);
+	int const piece_size = p.storage->files().piece_size(p.piece);
 	int const blocks_in_piece = (piece_size + block_size() - 1) / block_size();
 	int ret = 0;
 
@@ -1716,7 +1716,7 @@ int block_cache::copy_from_piece(cached_piece_entry* const pe
 	int const start_block = block;
 
 #if TORRENT_USE_ASSERTS
-	int const piece_size = j->storage->files()->piece_size(j->piece);
+	int const piece_size = j->storage->files().piece_size(j->piece);
 	int const blocks_in_piece = (piece_size + block_size() - 1) / block_size();
 	TORRENT_PIECE_ASSERT(start_block < blocks_in_piece, pe);
 #endif
@@ -1745,7 +1745,7 @@ int block_cache::copy_from_piece(cached_piece_entry* const pe
 
 		// make sure it didn't wrap
 		TORRENT_PIECE_ASSERT(pe->refcount > 0, pe);
-		int const blocks_per_piece = (j->storage->files()->piece_length() + block_size() - 1) / block_size();
+		int const blocks_per_piece = (j->storage->files().piece_length() + block_size() - 1) / block_size();
 		j->d.io.ref.storage = j->storage->storage_index();
 		j->d.io.ref.cookie = static_cast<int>(pe->piece) * blocks_per_piece + start_block;
 		j->buffer.disk_block = bl.buf + (j->d.io.offset & (block_size() - 1));
@@ -1789,7 +1789,7 @@ int block_cache::copy_from_piece(cached_piece_entry* const pe
 
 void block_cache::reclaim_block(storage_interface* st, aux::block_cache_reference const& ref)
 {
-	int const blocks_per_piece = (st->files()->piece_length() + block_size() - 1) / block_size();
+	int const blocks_per_piece = (st->files().piece_length() + block_size() - 1) / block_size();
 	piece_index_t const piece(ref.cookie / blocks_per_piece);
 	int const block(ref.cookie % blocks_per_piece);
 

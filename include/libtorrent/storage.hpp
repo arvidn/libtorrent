@@ -304,7 +304,7 @@ namespace libtorrent
 		// off again.
 		virtual bool tick() { return false; }
 
-		file_storage const* files() const { return &m_files; }
+		file_storage const& files() const { return m_files; }
 
 		bool set_need_tick()
 		{
@@ -406,7 +406,7 @@ namespace libtorrent
 		// file_storage, otherwise returns the original file_storage object.
 		file_storage const& files() const
 		{
-			return m_mapped_files ? *m_mapped_files : *storage_interface::files();
+			return m_mapped_files ? *m_mapped_files : storage_interface::files();
 		}
 
 	private:
