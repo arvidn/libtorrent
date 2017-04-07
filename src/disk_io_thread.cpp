@@ -384,7 +384,7 @@ namespace libtorrent
 		// piece range
 		piece_index_t const range_start((static_cast<int>(p->piece) / cont_pieces) * cont_pieces);
 		piece_index_t const range_end(std::min(static_cast<int>(range_start)
-			+ cont_pieces, p->storage->files()->num_pieces()));
+			+ cont_pieces, p->storage->files().num_pieces()));
 
 		// look through all the pieces in this range to see if
 		// they are ready to be flushed. If so, flush them all,
@@ -582,7 +582,7 @@ namespace libtorrent
 		TORRENT_PIECE_ASSERT(start < end, pe);
 		end = (std::min)(end, int(pe->blocks_in_piece));
 
-		int piece_size = pe->storage->files()->piece_size(pe->piece);
+		int piece_size = pe->storage->files().piece_size(pe->piece);
 		TORRENT_PIECE_ASSERT(piece_size > 0, pe);
 
 		std::size_t iov_len = 0;
@@ -1246,7 +1246,7 @@ namespace libtorrent
 	status_t disk_io_thread::do_read(disk_io_job* j, jobqueue_t& completed_jobs)
 	{
 		int const block_size = m_disk_cache.block_size();
-		int const piece_size = j->storage->files()->piece_size(j->piece);
+		int const piece_size = j->storage->files().piece_size(j->piece);
 		int const blocks_in_piece = (piece_size + block_size - 1) / block_size;
 		int const iov_len = m_disk_cache.pad_job(j, blocks_in_piece
 			, m_settings.get_int(settings_pack::read_cache_line_size));
@@ -1701,7 +1701,7 @@ namespace libtorrent
 		{
 			cached_piece_entry const& p = *i;
 			int bs = m_disk_cache.block_size();
-			int piece_size = p.storage->files()->piece_size(p.piece);
+			int piece_size = p.storage->files().piece_size(p.piece);
 			int blocks_in_piece = (piece_size + bs - 1) / bs;
 			for (int k = 0; k < blocks_in_piece; ++k)
 				TORRENT_PIECE_ASSERT(p.blocks[k].buf != j->buffer.disk_block, &p);
@@ -1777,7 +1777,7 @@ namespace libtorrent
 		j->flags = flags;
 		j->requester = requester;
 
-		int piece_size = j->storage->files()->piece_size(piece);
+		int piece_size = j->storage->files().piece_size(piece);
 
 		// first check to see if the hashing is already done
 		std::unique_lock<std::mutex> l(m_cache_mutex);
@@ -2024,7 +2024,7 @@ namespace libtorrent
 		if (!pe->hash) return;
 		if (pe->hashing) return;
 
-		int const piece_size = pe->storage->files()->piece_size(pe->piece);
+		int const piece_size = pe->storage->files().piece_size(pe->piece);
 		partial_hash* ph = pe->hash.get();
 
 		// are we already done?
@@ -2139,7 +2139,7 @@ namespace libtorrent
 		// just read straight from the file
 		TORRENT_ASSERT(m_magic == 0x1337);
 
-		int const piece_size = j->storage->files()->piece_size(j->piece);
+		int const piece_size = j->storage->files().piece_size(j->piece);
 		int const block_size = m_disk_cache.block_size();
 		int const blocks_in_piece = (piece_size + block_size - 1) / block_size;
 		int const file_flags = file_flags_for_job(j
@@ -2186,7 +2186,7 @@ namespace libtorrent
 
 	status_t disk_io_thread::do_hash(disk_io_job* j, jobqueue_t& /* completed_jobs */ )
 	{
-		int const piece_size = j->storage->files()->piece_size(j->piece);
+		int const piece_size = j->storage->files().piece_size(j->piece);
 		int const file_flags = file_flags_for_job(j
 			, m_settings.get_bool(settings_pack::coalesce_reads));
 
@@ -2488,7 +2488,7 @@ namespace libtorrent
 		// torrent. The storage must create hard links (or copy) those files. If
 		// any file does not exist or is inaccessible, the disk job must fail.
 
-		TORRENT_ASSERT(j->storage->files()->piece_length() > 0);
+		TORRENT_ASSERT(j->storage->files().piece_length() > 0);
 
 		// if we don't have any resume data, return
 		// or if error is set and return value is 'no_error' or 'need_full_check'
@@ -2895,7 +2895,7 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
 
-		TORRENT_ASSERT(!j->storage || j->storage->files()->is_valid());
+		TORRENT_ASSERT(!j->storage || j->storage->files().is_valid());
 		TORRENT_ASSERT(j->next == nullptr);
 		// if this happens, it means we started to shut down
 		// the disk threads too early. We have to post all jobs
