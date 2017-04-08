@@ -657,7 +657,7 @@ namespace libtorrent
 			+ seconds(duration.total_seconds()), -1);
 	}
 
-	void torrent_handle::file_status(std::vector<pool_file_status>& status) const
+	void torrent_handle::file_status(std::vector<open_file_state>& status) const
 	{
 		status.clear();
 
@@ -680,7 +680,7 @@ namespace libtorrent
 		async_call(&torrent::force_tracker_request, aux::time_now() + seconds(s), idx);
 	}
 
-	std::vector<pool_file_status> torrent_handle::file_status() const
+	std::vector<open_file_state> torrent_handle::file_status() const
 	{
 		std::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t || !t->has_storage()) return {};

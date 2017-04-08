@@ -1835,9 +1835,9 @@ MAGNETURL is a magnet link
 			{
 				std::vector<std::int64_t> file_progress;
 				h.file_progress(file_progress);
-				std::vector<pool_file_status> file_status = h.file_status();
+				std::vector<open_file_state> file_status = h.file_status();
 				std::vector<int> file_prio = h.file_priorities();
-				std::vector<pool_file_status>::iterator f = file_status.begin();
+				auto f = file_status.begin();
 				std::shared_ptr<const torrent_info> ti = h.torrent_file();
 
 				int p = 0; // this is horizontal position
