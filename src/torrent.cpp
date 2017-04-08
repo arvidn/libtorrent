@@ -2726,8 +2726,8 @@ namespace libtorrent {
 				valid_endpoints++;
 			});
 
-			TORRENT_ASSERT(valid_endpoints <= int(ae.endpoints.size()));
-			ae.endpoints.erase(ae.endpoints.begin() + valid_endpoints, ae.endpoints.end());
+			TORRENT_ASSERT(valid_endpoints <= ae.endpoints.size());
+			ae.endpoints.erase(ae.endpoints.begin() + int(valid_endpoints), ae.endpoints.end());
 
 			if (settings().get_bool(settings_pack::force_proxy))
 			{

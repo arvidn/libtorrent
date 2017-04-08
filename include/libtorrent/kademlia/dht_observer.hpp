@@ -64,7 +64,7 @@ namespace libtorrent { namespace dht {
 #endif
 
 	protected:
-		~dht_logger() {}
+		~dht_logger() = default;
 	};
 
 	struct TORRENT_EXTRA_EXPORT dht_socket
@@ -72,10 +72,12 @@ namespace libtorrent { namespace dht {
 		virtual address get_external_address() = 0;
 		virtual address get_local_address() = 0;
 
+		dht_socket() = default;
+		dht_socket(dht_socket const&) = default;
 		dht_socket& operator=(dht_socket const&) = default;
 
 	protected:
-		~dht_socket() {}
+		~dht_socket() = default;
 	};
 
 	struct TORRENT_EXTRA_EXPORT dht_observer : dht_logger
@@ -90,7 +92,7 @@ namespace libtorrent { namespace dht {
 			, dht::msg const& request, entry& response) = 0;
 
 	protected:
-		~dht_observer() {}
+		~dht_observer() = default;
 	};
 }}
 

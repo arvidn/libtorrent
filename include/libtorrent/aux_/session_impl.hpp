@@ -236,6 +236,12 @@ namespace aux {
 			std::vector<listen_endpoint_t>& eps
 			, std::list<listen_socket_t>& sockets);
 
+		// same as above but for outgoing sockets
+		TORRENT_EXTRA_EXPORT std::vector<std::shared_ptr<outgoing_udp_socket>>::iterator
+		partition_outgoing_sockets(
+			std::vector<listen_endpoint_t>& eps
+			, std::vector<std::shared_ptr<outgoing_udp_socket>>& sockets);
+
 		// this is the link between the main thread and the
 		// thread started to run the main downloader loop
 		struct TORRENT_EXTRA_EXPORT session_impl final
