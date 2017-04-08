@@ -9,7 +9,7 @@ matrix:
     - env: autotools=1 toolset=gcc
     - os: osx
       osx_image: xcode7.3
-      env: variant=test_release docs=1 tests=1 toolset=darwin
+      env: variant=test_release docs=1 tests=1 toolset=darwin iphone=1
     - os: osx
       osx_image: xcode7.3
       env: variant=test_debug ssl=openssl tests=1 crypto=libcrypto toolset=darwin
@@ -108,6 +108,19 @@ install:
   - 'echo "using python : 2.7 ;" >> ~/user-config.jam'
   - if [ "$docs" == "1" ]; then rst2html.py --version; fi
   - 'if [ "$lint" == "1" ]; then curl "https://raw.githubusercontent.com/google/styleguide/71ec7f1e524969c19ce33cfc72e8e023f2b98ee2/cpplint/cpplint.py" >~/cpplint.py; fi'
+  - 'if [ "$iphone" == "1" ]; then
+      echo "using darwin : x86_64~iphonesim
+      : /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang++
+      : <striper>/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip
+        <root>/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk
+        <compileflags>\"-arch x86_64\"
+        <compileflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk\"
+        <compileflags>-miphoneos-version-min=9.3
+        <cxxflags>-std=c++11
+        <architecture>x86
+        <address-model>64
+        <target-os>iphone ;" >>~/user-config.jam;
+    fi'
 
   - ccache -V
   - ccache --show-stats
@@ -205,3 +218,9 @@ script:
       bjam arm-tests warnings-as-errors=on ssl=$ssl crypto=$crypto variant=test_arm $toolset target-os=linux link=static testing.launcher="sudo cp -R bin rootfs/; sudo chroot rootfs";
     fi'
   - cd ..
+
+# test build for iOS, using x86_64 to avoid the need to build boost from source for arm
+  - 'if [ "$iphone" == "1" ]; then
+      brew upgrade boost;
+      bjam -j3 variant=test_debug warnings-as-errors=on asserts=on toolset=darwin-x86_64~iphonesim link=static;
+    fi'
