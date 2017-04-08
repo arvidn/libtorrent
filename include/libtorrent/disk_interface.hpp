@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/export.hpp"
 #include "libtorrent/storage_defs.hpp"
 #include "libtorrent/time.hpp"
+#include "libtorrent/sha1_hash.hpp"
 
 namespace libtorrent
 {

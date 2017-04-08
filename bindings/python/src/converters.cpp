@@ -7,10 +7,10 @@
 #include "libtorrent/address.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/session_stats.hpp" // for stats_metric
-#include "libtorrent/file_pool.hpp" // for pool_file_status
 #include "libtorrent/time.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/sha1_hash.hpp"
+#include "libtorrent/disk_interface.hpp" // for open_file_state
 #include <vector>
 
 using namespace boost::python;
@@ -240,7 +240,7 @@ void bind_converters()
     to_python_converter<std::pair<std::string, int>, pair_to_tuple<std::string, int>>();
 
     to_python_converter<std::vector<lt::stats_metric>, vector_to_list<lt::stats_metric>>();
-    to_python_converter<std::vector<lt::pool_file_status>, vector_to_list<lt::pool_file_status>>();
+    to_python_converter<std::vector<lt::open_file_state>, vector_to_list<lt::open_file_state>>();
     to_python_converter<std::vector<lt::sha1_hash>, vector_to_list<lt::sha1_hash>>();
     to_python_converter<std::vector<std::string>, vector_to_list<std::string>>();
     to_python_converter<std::vector<int>, vector_to_list<int>>();

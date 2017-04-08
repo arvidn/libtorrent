@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/storage_defs.hpp"
+#include "libtorrent/disk_interface.hpp" // for open_file_state
 
 namespace libtorrent
 {

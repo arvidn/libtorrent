@@ -659,7 +659,7 @@ namespace libtorrent
 #endif
 
 		int const file_flags = m_settings.get_bool(settings_pack::coalesce_writes)
-			? file::coalesce_buffers : 0;
+			? file::coalesce_buffers : static_cast<file::open_mode_t>(0);
 
 		// issue the actual write operation
 		auto iov_start = iov;

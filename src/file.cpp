@@ -1337,7 +1337,7 @@ namespace libtorrent
 		close();
 	}
 
-	bool file::open(std::string const& path, std::uint32_t const mode, error_code& ec)
+	bool file::open(std::string const& path, std::uint32_t mode, error_code& ec)
 	{
 		close();
 		native_path_string file_path = convert_to_native_path_string(path);
