@@ -37,7 +37,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/kademlia/msg.hpp"
 
-namespace libtorrent { namespace dht {
+namespace libtorrent {
+
+namespace aux { struct session_listen_socket; }
+
+namespace dht {
 
 	struct TORRENT_EXTRA_EXPORT dht_logger
 	{
@@ -67,22 +71,9 @@ namespace libtorrent { namespace dht {
 		~dht_logger() = default;
 	};
 
-	struct TORRENT_EXTRA_EXPORT dht_socket
-	{
-		virtual address get_external_address() = 0;
-		virtual address get_local_address() = 0;
-
-		dht_socket() = default;
-		dht_socket(dht_socket const&) = default;
-		dht_socket& operator=(dht_socket const&) = default;
-
-	protected:
-		~dht_socket() = default;
-	};
-
 	struct TORRENT_EXTRA_EXPORT dht_observer : dht_logger
 	{
-		virtual void set_external_address(dht_socket* iface
+		virtual void set_external_address(aux::session_listen_socket* iface
 			, address const& addr, address const& source) = 0;
 		virtual void get_peers(sha1_hash const& ih) = 0;
 		virtual void outgoing_get_peers(sha1_hash const& target

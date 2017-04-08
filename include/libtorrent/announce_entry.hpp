@@ -47,12 +47,14 @@ namespace libtorrent {
 
 	namespace aux { struct session_listen_socket; }
 
+	// announces are sent to each tracker using every listen socket
+	// this class holds information about one listen socket for one tracker
 	struct TORRENT_EXPORT announce_endpoint
 	{
-		explicit announce_endpoint(aux::session_listen_socket* s)
-			: socket(s), fails(0), updating(false) {}
-		//announce_endpoint(announce_endpoint const&) = default;
-		//announce_endpoint& operator=(announce_endpoint const&) = default;
+		friend class torrent;
+
+		// internal
+		explicit announce_endpoint(aux::session_listen_socket* s);
 
 		// if this tracker has returned an error or warning message
 		// that message is stored here
@@ -62,8 +64,14 @@ namespace libtorrent {
 		// this error code specifies what error occurred
 		error_code last_error;
 
+		// the local address of the listen interface associated with this endpoint
+		address local_address;
+
+	private:
+		// internal
 		aux::session_listen_socket* socket;
 
+	public:
 		// the number of times in a row we have failed to announce to this
 		// tracker.
 		std::uint8_t fails : 7;

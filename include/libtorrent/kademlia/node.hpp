@@ -54,6 +54,7 @@ namespace libtorrent {
 	struct counters;
 	struct dht_routing_bucket;
 	struct dht_settings;
+	namespace aux { struct session_listen_socket; }
 }
 
 namespace libtorrent { namespace dht {
@@ -61,7 +62,6 @@ namespace libtorrent { namespace dht {
 struct traversal_algorithm;
 struct dht_observer;
 struct msg;
-struct dht_socket;
 
 TORRENT_EXTRA_EXPORT entry write_nodes_entry(std::vector<node_entry> const& nodes);
 
@@ -79,7 +79,7 @@ public:
 struct socket_manager
 {
 	virtual bool has_quota() = 0;
-	virtual bool send_packet(dht_socket* s, entry& e, udp::endpoint const& addr) = 0;
+	virtual bool send_packet(aux::session_listen_socket* s, entry& e, udp::endpoint const& addr) = 0;
 protected:
 	~socket_manager() {}
 };
@@ -90,7 +90,7 @@ using get_foreign_node_t = std::function<node*(node_id const&, std::string const
 class TORRENT_EXTRA_EXPORT node : boost::noncopyable
 {
 public:
-	node(dht_socket* sock, socket_manager* sock_man
+	node(aux::session_listen_socket* sock, socket_manager* sock_man
 		, libtorrent::dht_settings const& settings
 		, node_id const& nid
 		, dht_observer* observer, counters& cnt
@@ -261,7 +261,7 @@ private:
 	std::uint32_t m_secret[2];
 
 	socket_manager* m_sock_man;
-	dht_socket* m_sock;
+	aux::session_listen_socket* m_sock;
 	counters& m_counters;
 
 	dht_storage_interface& m_storage;

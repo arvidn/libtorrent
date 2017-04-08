@@ -177,6 +177,7 @@ nobase_include_HEADERS = \
   aux_/merkle.hpp                   \
   aux_/session_call.hpp             \
   aux_/session_impl.hpp             \
+  aux_/session_listen_socket.hpp    \
   aux_/session_settings.hpp         \
   aux_/proxy_settings.hpp           \
   aux_/session_interface.hpp        \

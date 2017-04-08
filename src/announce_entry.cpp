@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_util.hpp" // for is_space
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
+#include "libtorrent/aux_/session_listen_socket.hpp"
 
 namespace libtorrent {
 
@@ -45,6 +46,10 @@ namespace libtorrent {
 		// never wait more than 60 minutes to retry a tracker
 		minutes32 constexpr tracker_retry_delay_max{60};
 	}
+
+	announce_endpoint::announce_endpoint(aux::session_listen_socket* s)
+		: local_address(s ? s->get_local_address() : address())
+		, socket(s), fails(0), updating(false) {}
 
 	announce_entry::announce_entry(string_view u)
 		: url(u.to_string())

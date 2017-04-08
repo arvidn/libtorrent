@@ -144,7 +144,7 @@ namespace dht {
 		std::string device;
 	};
 
-	struct listen_socket_t final : dht::dht_socket, aux::session_listen_socket
+	struct listen_socket_t final : aux::session_listen_socket
 	{
 		address get_external_address() override
 		{ return external_address.external_address(); }
@@ -667,7 +667,7 @@ namespace aux {
 			int send_buffer_size() const override { return send_buffer_size_impl; }
 
 			// implements dht_observer
-			virtual void set_external_address(dht::dht_socket* iface
+			virtual void set_external_address(aux::session_listen_socket* iface
 				, address const& ip, address const& source) override;
 			virtual void get_peers(sha1_hash const& ih) override;
 			virtual void announce(sha1_hash const& ih, address const& addr, int port) override;

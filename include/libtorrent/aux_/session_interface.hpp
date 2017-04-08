@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/socket.hpp" // for tcp::endpoint
 #include "libtorrent/aux_/vector.hpp"
+#include "libtorrent/aux_/session_listen_socket.hpp"
 
 #include <functional>
 #include <memory>
@@ -93,18 +94,6 @@ namespace libtorrent { namespace aux {
 
 	struct proxy_settings;
 	struct session_settings;
-
-	struct session_listen_socket
-	{
-		virtual address get_local_address() = 0;
-
-		session_listen_socket() = default;
-		session_listen_socket(session_listen_socket const&) = default;
-		session_listen_socket& operator=(session_listen_socket const&) = default;
-
-	protected:
-		~session_listen_socket() {}
-	};
 
 #if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 	// This is the basic logging and debug interface offered by the session.

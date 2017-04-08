@@ -5693,7 +5693,7 @@ namespace {
 		m_dht = std::make_shared<dht::dht_tracker>(
 			static_cast<dht::dht_observer*>(this)
 			, m_io_service
-			, [=](dht::dht_socket* sock
+			, [=](aux::session_listen_socket* sock
 				, udp::endpoint const& ep
 				, span<char const> p
 				, error_code& ec
@@ -6704,7 +6704,7 @@ namespace {
 	}
 
 	// this is the DHT observer version. DHT is the implied source
-	void session_impl::set_external_address(dht::dht_socket* iface, address const& ip
+	void session_impl::set_external_address(aux::session_listen_socket* iface, address const& ip
 		, address const& source)
 	{
 		TORRENT_ASSERT(iface);

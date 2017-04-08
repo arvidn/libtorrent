@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/random.hpp"
 #include <libtorrent/assert.hpp>
+#include "libtorrent/aux_/session_listen_socket.hpp"
 #include <libtorrent/aux_/time.hpp>
 #include "libtorrent/aux_/throw.hpp"
 #include "libtorrent/alert_types.hpp" // for dht_lookup
@@ -72,7 +73,7 @@ namespace {
 
 void nop() {}
 
-node_id calculate_node_id(node_id const& nid, dht_socket* sock)
+node_id calculate_node_id(node_id const& nid, aux::session_listen_socket* sock)
 {
 	address external_address;
 	external_address = sock->get_external_address();
@@ -101,7 +102,7 @@ void incoming_error(entry& e, char const* msg, int error_code = 203)
 
 } // anonymous namespace
 
-node::node(dht_socket* sock, socket_manager* sock_man
+node::node(aux::session_listen_socket* sock, socket_manager* sock_man
 	, dht_settings const& settings
 	, node_id const& nid
 	, dht_observer* observer

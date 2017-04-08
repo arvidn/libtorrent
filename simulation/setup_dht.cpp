@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/crc32c.hpp"
 #include "libtorrent/alert_types.hpp" // for dht_routing_bucket
+#include "libtorrent/aux_/session_listen_socket.hpp"
 
 #include "setup_dht.hpp"
 
@@ -78,7 +79,7 @@ namespace {
 
 } // anonymous namespace
 
-struct dht_node final : lt::dht::socket_manager, lt::dht::dht_socket
+struct dht_node final : lt::dht::socket_manager, lt::aux::session_listen_socket
 {
 	dht_node(sim::simulation& sim, lt::dht_settings const& sett, lt::counters& cnt
 		, int const idx, std::uint32_t const flags)
@@ -170,7 +171,7 @@ struct dht_node final : lt::dht::socket_manager, lt::dht::dht_socket
 	}
 
 	bool has_quota() override { return true; }
-	bool send_packet(lt::dht::dht_socket* s, entry& e, udp::endpoint const& addr) override
+	bool send_packet(lt::aux::session_listen_socket* s, entry& e, udp::endpoint const& addr) override
 	{
 		// since the simulaton is single threaded, we can get away with allocating
 		// just a single send buffer

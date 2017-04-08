@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bloom_filter.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/aux_/time.hpp"
+#include "libtorrent/aux_/session_listen_socket.hpp"
 
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/routing_table.hpp"
@@ -111,7 +112,7 @@ std::list<std::pair<udp::endpoint, entry>> g_sent_packets;
 struct mock_socket final : socket_manager
 {
 	bool has_quota() override { return true; }
-	bool send_packet(dht_socket* s, entry& msg, udp::endpoint const& ep) override
+	bool send_packet(aux::session_listen_socket* s, entry& msg, udp::endpoint const& ep) override
 	{
 		// TODO: 3 ideally the mock_socket would contain this queue of packets, to
 		// make tests independent
@@ -120,7 +121,7 @@ struct mock_socket final : socket_manager
 	}
 };
 
-struct mock_dht_socket final : dht_socket
+struct mock_dht_socket final : aux::session_listen_socket
 {
 	mock_dht_socket() : m_external_address(addr4("236.0.0.1")), m_local_address(addr4("192.168.4.1")) {}
 	explicit mock_dht_socket(address ep) : m_external_address(ep), m_local_address(ep) {}
@@ -132,7 +133,7 @@ struct mock_dht_socket final : dht_socket
 	address m_local_address;
 };
 
-struct mock_dht_socket6 final : dht_socket
+struct mock_dht_socket6 final : aux::session_listen_socket
 {
 	address get_external_address() override { return m_external_address; }
 	address get_local_address() override { return m_local_address; }
@@ -494,7 +495,7 @@ void put_immutable_item_cb(int num, int expect)
 
 struct obs : dht::dht_observer
 {
-	void set_external_address(dht_socket* s, address const& addr
+	void set_external_address(aux::session_listen_socket* s, address const& addr
 		, address const& source) override
 	{
 		static_cast<mock_dht_socket*>(s)->m_external_address = addr;

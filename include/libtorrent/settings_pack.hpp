@@ -199,11 +199,6 @@ namespace libtorrent {
 			// GUID must be uppercased string embraced in curly brackets.
 			// ``{E4F0B674-0DFC-48BB-98A5-2AA730BDB6D6}::7777`` - will accept
 			// connections on port 7777 on adapter with this GUID.
-			//
-			// .. note::
-			//   The current support for opening arbitrary UDP sockets is limited.
-			//   In this version of libtorrent, there will only ever be two UDP
-			//   sockets, one for IPv4 and one for IPv6.
 			listen_interfaces,
 
 			// when using a poxy, this is the hostname where the proxy is running

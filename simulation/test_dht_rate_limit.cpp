@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "simulator/simulator.hpp"
 
+#include "libtorrent/aux_/session_listen_socket.hpp"
 #include "libtorrent/udp_socket.hpp"
 #include "libtorrent/kademlia/dht_tracker.hpp"
 #include "libtorrent/kademlia/dht_state.hpp"
@@ -56,7 +57,7 @@ using namespace std::placeholders;
 
 struct obs : dht::dht_observer
 {
-	void set_external_address(dht::dht_socket*, address const& /* addr */
+	void set_external_address(lt::aux::session_listen_socket*, address const& /* addr */
 		, address const& /* source */) override
 	{}
 	void get_peers(sha1_hash const&) override {}
@@ -84,7 +85,7 @@ struct obs : dht::dht_observer
 #endif
 };
 
-struct mock_socket : dht::dht_socket
+struct mock_socket : lt::aux::session_listen_socket
 {
 	address get_external_address() override
 	{
@@ -97,7 +98,7 @@ struct mock_socket : dht::dht_socket
 	}
 };
 
-void send_packet(lt::udp_socket& sock, dht::dht_socket*, udp::endpoint const& ep
+void send_packet(lt::udp_socket& sock, lt::aux::session_listen_socket*, udp::endpoint const& ep
 	, span<char const> p, error_code& ec, int flags)
 {
 	sock.send(ep, p, ec, flags);

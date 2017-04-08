@@ -105,7 +105,7 @@ namespace libtorrent { namespace dht {
 		m_blocker.set_rate_limit(m_settings.block_ratelimit);
 	}
 
-	void dht_tracker::update_node_id(dht_socket* s)
+	void dht_tracker::update_node_id(aux::session_listen_socket* s)
 	{
 		auto n = m_nodes.find(s);
 		if (n != m_nodes.end())
@@ -113,7 +113,7 @@ namespace libtorrent { namespace dht {
 		update_storage_node_ids();
 	}
 
-	void dht_tracker::new_socket(dht_socket* s)
+	void dht_tracker::new_socket(aux::session_listen_socket* s)
 	{
 		address local_address = s->get_local_address();
 #if TORRENT_USE_IPV6
@@ -152,7 +152,7 @@ namespace libtorrent { namespace dht {
 		}
 	}
 
-	void dht_tracker::delete_socket(dht_socket* s)
+	void dht_tracker::delete_socket(aux::session_listen_socket* s)
 	{
 		m_nodes.erase(s);
 	}
@@ -536,7 +536,7 @@ namespace libtorrent { namespace dht {
 	}
 
 	dht_tracker::tracker_node::tracker_node(io_service& ios
-		, dht_socket* s, socket_manager* sock
+		, aux::session_listen_socket* s, socket_manager* sock
 		, libtorrent::dht_settings const& settings
 		, node_id const& nid
 		, dht_observer* observer, counters& cnt
@@ -620,7 +620,7 @@ namespace libtorrent { namespace dht {
 		return m_send_quota > 0;
 	}
 
-	bool dht_tracker::send_packet(dht_socket* s, entry& e, udp::endpoint const& addr)
+	bool dht_tracker::send_packet(aux::session_listen_socket* s, entry& e, udp::endpoint const& addr)
 	{
 		static char const version_str[] = {'L', 'T'
 			, LIBTORRENT_VERSION_MAJOR, LIBTORRENT_VERSION_MINOR};
