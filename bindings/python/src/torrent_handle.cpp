@@ -518,14 +518,6 @@ void bind_torrent_handle()
         .value("locked", file_open_mode::locked)
     ;
 
-#ifndef TORRENT_NO_DEPRECATE
-    class_<open_file_state>("pool_file_status")
-       .add_property("file_index", make_getter((&open_file_state::file_index), by_value()))
-       .def_readonly("last_use", &open_file_state::last_use)
-       .def_readonly("open_mode", &open_file_state::open_mode)
-    ;
-#endif
-
     enum_<torrent_handle::file_progress_flags_t>("file_progress_flags")
         .value("piece_granularity", torrent_handle::piece_granularity)
     ;

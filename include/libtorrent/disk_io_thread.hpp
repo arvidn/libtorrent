@@ -299,7 +299,7 @@ namespace libtorrent
 
 		void async_read(storage_index_t storage, peer_request const& r
 			, std::function<void(disk_buffer_holder block
-				, int flags, storage_error const& se)> handler, void* requester, std::uint8_t flags = 0) override;
+				, std::uint32_t flags, storage_error const& se)> handler, void* requester, std::uint8_t flags = 0) override;
 		bool async_write(storage_index_t storage, peer_request const& r
 			, char const* buf, std::shared_ptr<disk_observer> o
 			, std::function<void(storage_error const&)> handler
@@ -462,7 +462,7 @@ namespace libtorrent
 		void kick_hasher(cached_piece_entry* pe, std::unique_lock<std::mutex>& l);
 
 		// flags to pass in to flush_cache()
-		enum flush_flags_t
+		enum flush_flags_t : std::uint32_t
 		{
 			// only flush read cache (this is cheap)
 			flush_read_cache = 1,
@@ -475,9 +475,9 @@ namespace libtorrent
 			// used for asserts and only applies for fence jobs
 			flush_expect_clear = 8
 		};
-		void flush_cache(storage_interface* storage, int flags, jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l);
+		void flush_cache(storage_interface* storage, std::uint32_t flags, jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l);
 		void flush_expired_write_blocks(jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l);
-		void flush_piece(cached_piece_entry* pe, int flags, jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l);
+		void flush_piece(cached_piece_entry* pe, std::uint32_t flags, jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l);
 
 		int try_flush_hashed(cached_piece_entry* p, int cont_blocks, jobqueue_t& completed_jobs, std::unique_lock<std::mutex>& l);
 

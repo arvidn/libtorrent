@@ -71,7 +71,7 @@ bool on_alert(alert const* a)
 // simulate a full disk
 struct test_storage : default_storage
 {
-	explicit test_storage(storage_params const& params, file_pool& pool)
+	test_storage(storage_params const& params, file_pool& pool)
 		: default_storage(params, pool)
 		, m_written(0)
 		, m_limit(16 * 1024 * 2)
@@ -90,7 +90,7 @@ struct test_storage : default_storage
 		span<iovec_t const> bufs
 		, piece_index_t piece_index
 		, int offset
-		, int flags
+		, std::uint32_t const flags
 		, storage_error& se) override
 	{
 		std::unique_lock<std::mutex> l(m_mutex);

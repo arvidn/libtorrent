@@ -119,7 +119,7 @@ namespace libtorrent
 
 	struct TORRENT_EXTRA_EXPORT disk_interface
 	{
-		enum flags_t
+		enum flags_t : std::uint8_t
 		{
 			sequential_access = 0x1,
 
@@ -137,7 +137,7 @@ namespace libtorrent
 		virtual storage_interface* get_torrent(storage_index_t) = 0;
 
 		virtual void async_read(storage_index_t storage, peer_request const& r
-			, std::function<void(disk_buffer_holder block, int flags, storage_error const& se)> handler
+			, std::function<void(disk_buffer_holder block, std::uint32_t flags, storage_error const& se)> handler
 			, void* requester, std::uint8_t flags = 0) = 0;
 		virtual bool async_write(storage_index_t storage, peer_request const& r
 			, char const* buf, std::shared_ptr<disk_observer> o
