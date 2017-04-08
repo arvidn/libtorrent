@@ -206,6 +206,11 @@ namespace libtorrent
 		return m_torrents[storage].get();
 	}
 
+	std::vector<open_file_state> disk_io_thread::get_status(storage_index_t const st) const
+	{
+		return m_file_pool.get_status(st);
+	}
+
 	storage_holder disk_io_thread::new_torrent(storage_constructor_type sc
 		, storage_params p, std::shared_ptr<void> const& owner)
 	{
@@ -3087,6 +3092,20 @@ namespace libtorrent
 					std::shared_ptr<storage_interface> st = m_need_tick.front().second.lock();
 					m_need_tick.erase(m_need_tick.begin());
 					if (st) st->tick();
+				}
+
+				if (now > m_next_close_oldest_file)
+				{
+					seconds const interval(m_settings.get_int(settings_pack::close_file_interval));
+					if (interval <= seconds(0))
+					{
+						m_next_close_oldest_file = max_time();
+					}
+					else
+					{
+						m_next_close_oldest_file = now + interval;
+						m_file_pool.close_oldest();
+					}
 				}
 			}
 

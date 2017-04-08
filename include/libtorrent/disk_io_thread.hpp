@@ -344,6 +344,8 @@ namespace libtorrent
 			, bool no_pieces, bool session) const override;
 		storage_interface* get_torrent(storage_index_t) override;
 
+		std::vector<open_file_state> get_status(storage_index_t) const override;
+
 		// this submits all queued up jobs to the thread
 		void submit_jobs();
 
@@ -353,8 +355,6 @@ namespace libtorrent
 		bool is_disk_buffer(char* buffer) const override
 		{ return m_disk_cache.is_disk_buffer(buffer); }
 #endif
-
-		virtual file_pool& files() override { return m_file_pool; }
 
 		int prep_read_job_impl(disk_io_job* j, bool check_fence = true);
 
@@ -522,6 +522,10 @@ namespace libtorrent
 
 		// the last time we expired write blocks from the cache
 		time_point m_last_cache_expiry = min_time();
+
+		// we call close_oldest_file on the file_pool regularly. This is the next
+		// time we should call it
+		time_point m_next_close_oldest_file = min_time();
 
 		// LRU cache of open files
 		file_pool m_file_pool{40};

@@ -214,7 +214,7 @@ namespace libtorrent
 		return int(m_file.readv(slot_offset + offset, bufs, ec));
 	}
 
-	void part_file::open_file(int mode, error_code& ec)
+	void part_file::open_file(std::uint32_t const mode, error_code& ec)
 	{
 		if (m_file.is_open()
 			&& ((m_file.open_mode() & file::rw_mask) == mode

@@ -229,11 +229,11 @@ namespace libtorrent
 
 	using file_handle = std::shared_ptr<file>;
 
-	struct TORRENT_EXTRA_EXPORT file: boost::noncopyable
+	struct TORRENT_EXTRA_EXPORT file : boost::noncopyable
 	{
 		// the open mode for files. Used for the file constructor or
 		// file::open().
-		enum open_mode_t
+		enum open_mode_t : std::uint32_t
 		{
 			// open the file for reading only
 			read_only = 0,
@@ -286,20 +286,20 @@ namespace libtorrent
 		};
 
 		file();
-		file(std::string const& p, int m, error_code& ec);
+		file(std::string const& p, std::uint32_t m, error_code& ec);
 		~file();
 
-		bool open(std::string const& p, int m, error_code& ec);
+		bool open(std::string const& p, std::uint32_t m, error_code& ec);
 		bool is_open() const;
 		void close();
 		bool set_size(std::int64_t size, error_code& ec);
 
-		int open_mode() const { return m_open_mode; }
+		std::uint32_t open_mode() const { return m_open_mode; }
 
 		std::int64_t writev(std::int64_t file_offset, span<iovec_t const> bufs
-			, error_code& ec, int flags = 0);
+			, error_code& ec, std::uint32_t flags = 0);
 		std::int64_t readv(std::int64_t file_offset, span<iovec_t const> bufs
-			, error_code& ec, int flags = 0);
+			, error_code& ec, std::uint32_t flags = 0);
 
 		std::int64_t get_size(error_code& ec) const;
 
@@ -313,7 +313,7 @@ namespace libtorrent
 
 		handle_type m_file_handle;
 
-		int m_open_mode;
+		std::uint32_t m_open_mode;
 #if defined TORRENT_WINDOWS
 		static bool has_manage_volume_privs;
 #endif

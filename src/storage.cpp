@@ -85,7 +85,7 @@ namespace libtorrent
 
 	struct write_fileop final : aux::fileop
 	{
-		write_fileop(default_storage& st, int flags)
+		write_fileop(default_storage& st, std::uint32_t const flags)
 			: m_storage(st)
 			, m_flags(flags)
 		{}
@@ -160,12 +160,12 @@ namespace libtorrent
 		}
 	private:
 		default_storage& m_storage;
-		int m_flags;
+		std::uint32_t const m_flags;
 	};
 
 	struct read_fileop final : aux::fileop
 	{
-		read_fileop(default_storage& st, int const flags)
+		read_fileop(default_storage& st, std::uint32_t const flags)
 			: m_storage(st)
 			, m_flags(flags)
 		{}
@@ -238,7 +238,7 @@ namespace libtorrent
 
 	private:
 		default_storage& m_storage;
-		int const m_flags;
+		std::uint32_t const m_flags;
 	};
 
 	default_storage::default_storage(storage_params const& params
@@ -616,7 +616,7 @@ namespace libtorrent
 	int default_storage::readv(span<iovec_t const> bufs
 		, piece_index_t const piece, int offset, int flags, storage_error& ec)
 	{
-		read_fileop op(*this, flags);
+		read_fileop op(*this, static_cast<std::uint32_t>(flags));
 
 #ifdef TORRENT_SIMULATE_SLOW_READ
 		std::this_thread::sleep_for(seconds(1));
@@ -627,12 +627,12 @@ namespace libtorrent
 	int default_storage::writev(span<iovec_t const> bufs
 		, piece_index_t const piece, int offset, int flags, storage_error& ec)
 	{
-		write_fileop op(*this, flags);
+		write_fileop op(*this, static_cast<std::uint32_t>(flags));
 		return readwritev(files(), bufs, piece, offset, op, ec);
 	}
 
-	file_handle default_storage::open_file(file_index_t const file, int mode
-		, storage_error& ec) const
+	file_handle default_storage::open_file(file_index_t const file
+		, std::uint32_t mode, storage_error& ec) const
 	{
 		file_handle h = open_file_impl(file, mode, ec.ec);
 		if (((mode & file::rw_mask) != file::read_only)
@@ -692,10 +692,10 @@ namespace libtorrent
 		return h;
 	}
 
-	file_handle default_storage::open_file_impl(file_index_t file, int mode
+	file_handle default_storage::open_file_impl(file_index_t file, std::uint32_t mode
 		, error_code& ec) const
 	{
-		bool lock_files = m_settings ? settings().get_bool(settings_pack::lock_files) : false;
+		bool const lock_files = m_settings ? settings().get_bool(settings_pack::lock_files) : false;
 		if (lock_files) mode |= file::lock_file;
 
 		if (!m_allocate_files) mode |= file::sparse;

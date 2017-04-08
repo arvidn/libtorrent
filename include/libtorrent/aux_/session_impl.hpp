@@ -703,7 +703,6 @@ namespace libtorrent
 			void update_privileged_ports();
 			void update_auto_sequential();
 			void update_max_failcount();
-			void update_close_file_interval();
 			void update_resolver_cache_timeout();
 
 			void update_upnp();
@@ -975,7 +974,6 @@ namespace libtorrent
 			int m_peak_down_rate = 0;
 
 			void on_tick(error_code const& e);
-			void on_close_file(error_code const& e);
 
 			void try_connect_more_peers();
 			void auto_manage_checking_torrents(std::vector<torrent*>& list

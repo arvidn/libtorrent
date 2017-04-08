@@ -664,7 +664,7 @@ namespace libtorrent
 		std::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t || !t->has_storage()) return;
 		session_impl& ses = static_cast<session_impl&>(t->session());
-		status = ses.disk_thread().files().get_status(t->storage());
+		status = ses.disk_thread().get_status(t->storage());
 	}
 #endif
 
@@ -685,7 +685,7 @@ namespace libtorrent
 		std::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t || !t->has_storage()) return {};
 		session_impl& ses = static_cast<session_impl&>(t->session());
-		return ses.disk_thread().files().get_status(t->storage());
+		return ses.disk_thread().get_status(t->storage());
 	}
 
 	void torrent_handle::scrape_tracker(int idx) const

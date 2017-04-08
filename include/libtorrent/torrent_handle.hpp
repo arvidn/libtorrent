@@ -62,7 +62,7 @@ namespace libtorrent
 	}
 
 	class entry;
-	struct pool_file_status;
+	struct open_file_state;
 	struct announce_entry;
 	class torrent_info;
 	struct torrent_plugin;
@@ -415,7 +415,7 @@ namespace libtorrent
 #endif
 
 		TORRENT_DEPRECATED
-		void file_status(std::vector<pool_file_status>& status) const;
+		void file_status(std::vector<open_file_state>& status) const;
 #endif
 
 		// flags to be passed in file_progress().
@@ -451,8 +451,8 @@ namespace libtorrent
 		// the vector is empty when returning, if none of the files in the
 		// torrent are currently open.
 		//
-		// see pool_file_status.
-		std::vector<pool_file_status> file_status() const;
+		// see open_file_state
+		std::vector<open_file_state> file_status() const;
 
 		// If the torrent is in an error state (i.e. ``torrent_status::error`` is
 		// non-empty), this will clear the error and start the torrent again.

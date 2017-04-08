@@ -1875,12 +1875,12 @@ MAGNETURL is a magnet link
 					if (f != file_status.end() && f->file_index == i)
 					{
 						title += " [ ";
-						if ((f->open_mode & file::rw_mask) == file::read_write) title += "read/write ";
-						else if ((f->open_mode & file::rw_mask) == file::read_only) title += "read ";
-						else if ((f->open_mode & file::rw_mask) == file::write_only) title += "write ";
-						if (f->open_mode & file::random_access) title += "random_access ";
-						if (f->open_mode & file::lock_file) title += "locked ";
-						if (f->open_mode & file::sparse) title += "sparse ";
+						if ((f->open_mode & file_open_mode::rw_mask) == file::read_write) title += "read/write ";
+						else if ((f->open_mode & file_open_mode::rw_mask) == file::read_only) title += "read ";
+						else if ((f->open_mode & file_open_mode::rw_mask) == file::write_only) title += "write ";
+						if (f->open_mode & file_open_mode::random_access) title += "random_access ";
+						if (f->open_mode & file_open_mode::locked) title += "locked ";
+						if (f->open_mode & file_open_mode::sparse) title += "sparse ";
 						title += "]";
 						++f;
 					}
