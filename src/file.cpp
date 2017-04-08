@@ -1323,7 +1323,7 @@ namespace libtorrent
 		, m_open_mode(0)
 	{}
 
-	file::file(std::string const& path, int mode, error_code& ec)
+	file::file(std::string const& path, std::uint32_t const mode, error_code& ec)
 		: m_file_handle(INVALID_HANDLE_VALUE)
 		, m_open_mode(0)
 	{
@@ -1337,7 +1337,7 @@ namespace libtorrent
 		close();
 	}
 
-	bool file::open(std::string const& path, int mode, error_code& ec)
+	bool file::open(std::string const& path, std::uint32_t mode, error_code& ec)
 	{
 		close();
 		native_path_string file_path = convert_to_native_path_string(path);
@@ -1571,7 +1571,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		// if this file is open for writing, has the sparse
 		// flag set, but there are no sparse regions, unset
 		// the flag
-		int rw_mode = m_open_mode & rw_mask;
+		std::uint32_t rw_mode = m_open_mode & rw_mask;
 		if ((rw_mode != read_only)
 			&& (m_open_mode & sparse)
 			&& !is_sparse(native_handle()))
@@ -1770,7 +1770,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	// this has to be thread safe and atomic. i.e. on posix systems it has to be
 	// turned into a series of pread() calls
 	std::int64_t file::readv(std::int64_t file_offset, span<iovec_t const> bufs
-		, error_code& ec, int flags)
+		, error_code& ec, std::uint32_t flags)
 	{
 		if (m_file_handle == INVALID_HANDLE_VALUE)
 		{
@@ -1824,7 +1824,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	// that means, on posix this has to be turned into a series of
 	// pwrite() calls
 	std::int64_t file::writev(std::int64_t file_offset, span<iovec_t const> bufs
-		, error_code& ec, int flags)
+		, error_code& ec, std::uint32_t flags)
 	{
 		if (m_file_handle == INVALID_HANDLE_VALUE)
 		{

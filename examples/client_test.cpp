@@ -1835,9 +1835,9 @@ MAGNETURL is a magnet link
 			{
 				std::vector<std::int64_t> file_progress;
 				h.file_progress(file_progress);
-				std::vector<pool_file_status> file_status = h.file_status();
+				std::vector<open_file_state> file_status = h.file_status();
 				std::vector<int> file_prio = h.file_priorities();
-				std::vector<pool_file_status>::iterator f = file_status.begin();
+				auto f = file_status.begin();
 				std::shared_ptr<const torrent_info> ti = h.torrent_file();
 
 				int p = 0; // this is horizontal position
@@ -1875,12 +1875,12 @@ MAGNETURL is a magnet link
 					if (f != file_status.end() && f->file_index == i)
 					{
 						title += " [ ";
-						if ((f->open_mode & file::rw_mask) == file::read_write) title += "read/write ";
-						else if ((f->open_mode & file::rw_mask) == file::read_only) title += "read ";
-						else if ((f->open_mode & file::rw_mask) == file::write_only) title += "write ";
-						if (f->open_mode & file::random_access) title += "random_access ";
-						if (f->open_mode & file::lock_file) title += "locked ";
-						if (f->open_mode & file::sparse) title += "sparse ";
+						if ((f->open_mode & file_open_mode::rw_mask) == file::read_write) title += "read/write ";
+						else if ((f->open_mode & file_open_mode::rw_mask) == file::read_only) title += "read ";
+						else if ((f->open_mode & file_open_mode::rw_mask) == file::write_only) title += "write ";
+						if (f->open_mode & file_open_mode::random_access) title += "random_access ";
+						if (f->open_mode & file_open_mode::locked) title += "locked ";
+						if (f->open_mode & file_open_mode::sparse) title += "sparse ";
 						title += "]";
 						++f;
 					}

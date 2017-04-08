@@ -41,43 +41,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/storage_defs.hpp"
+#include "libtorrent/disk_interface.hpp" // for open_file_state
 
 namespace libtorrent
 {
 	class file_storage;
-
-	struct pool_file_status
-	{
-		// the index of the file this entry refers to into the ``file_storage``
-		// file list of this torrent. This starts indexing at 0.
-		file_index_t file_index;
-
-		// ``open_mode`` is a bitmask of the file flags this file is currently opened with. These
-		// are the flags used in the ``file::open()`` function. This enum is defined as a member
-		// of the ``file`` class.
-		//
-		// ::
-		//
-		// 	enum
-		// 	{
-		// 		read_only = 0,
-		// 		write_only = 1,
-		// 		read_write = 2,
-		// 		rw_mask = 3,
-		// 		no_buffer = 4,
-		// 		sparse = 8,
-		// 		no_atime = 16,
-		// 		random_access = 32,
-		// 		lock_file = 64,
-		// 	};
-		//
-		// Note that the read/write mode is not a bitmask. The two least significant bits are used
-		// to represent the read/write mode. Those bits can be masked out using the ``rw_mask`` constant.
-		int open_mode;
-
-		// a (high precision) timestamp of when the file was last used.
-		time_point last_use;
-	};
+	struct open_file_state;
 
 	// this is an internal cache of open file handles. It's primarily used by
 	// storage_interface implementations. It provides semi weak guarantees of
@@ -95,7 +64,8 @@ namespace libtorrent
 		// file_storage ``fs`` opened at save path ``p``. ``m`` is the
 		// file open mode (see file::open_mode_t).
 		file_handle open_file(storage_index_t st, std::string const& p
-			, file_index_t file_index, file_storage const& fs, int m, error_code& ec);
+			, file_index_t file_index, file_storage const& fs, std::uint32_t m
+			, error_code& ec);
 		// release all files belonging to the specified storage_interface (``st``)
 		// the overload that takes ``file_index`` releases only the file with
 		// that index in storage ``st``.
@@ -112,7 +82,7 @@ namespace libtorrent
 
 		// internal
 		void set_low_prio_io(bool b) { m_low_prio_io = b; }
-		std::vector<pool_file_status> get_status(storage_index_t st) const;
+		std::vector<open_file_state> get_status(storage_index_t st) const;
 
 		// close the file that was opened least recently (i.e. not *accessed*
 		// least recently). The purpose is to make the OS (really just windows)
@@ -141,7 +111,7 @@ namespace libtorrent
 			file_handle file_ptr;
 			time_point const opened{aux::time_now()};
 			time_point last_use{opened};
-			int mode = 0;
+			std::uint32_t mode = 0;
 		};
 
 		// maps storage pointer, file index pairs to the

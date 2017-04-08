@@ -12,7 +12,7 @@
 #include <libtorrent/peer_info.hpp>
 #include "libtorrent/announce_entry.hpp"
 #include <libtorrent/storage.hpp>
-#include <libtorrent/file_pool.hpp>
+#include <libtorrent/disk_interface.hpp>
 #include <boost/lexical_cast.hpp>
 #include "gil.hpp"
 
@@ -391,7 +391,7 @@ void bind_torrent_handle()
     void (torrent_handle::*rename_file1)(file_index_t, std::wstring const&) const = &torrent_handle::rename_file;
 #endif
 
-	std::vector<pool_file_status> (torrent_handle::*file_status0)() const = &torrent_handle::file_status;
+	std::vector<open_file_state> (torrent_handle::*file_status0)() const = &torrent_handle::file_status;
 
 #define _ allow_threads
 
@@ -501,11 +501,30 @@ void bind_torrent_handle()
 #endif
         ;
 
-    class_<pool_file_status>("pool_file_status")
-       .add_property("file_index", make_getter((&pool_file_status::file_index), by_value()))
-       .def_readonly("last_use", &pool_file_status::last_use)
-       .def_readonly("open_mode", &pool_file_status::open_mode)
+    class_<open_file_state>("open_file_state")
+       .add_property("file_index", make_getter((&open_file_state::file_index), by_value()))
+       .def_readonly("last_use", &open_file_state::last_use)
+       .def_readonly("open_mode", &open_file_state::open_mode)
     ;
+
+    enum_<file_open_mode>("file_open_mode")
+        .value("read_only", file_open_mode::read_only)
+        .value("write_only", file_open_mode::write_only)
+        .value("read_write", file_open_mode::read_write)
+        .value("rw_mask", file_open_mode::rw_mask)
+        .value("sparse", file_open_mode::sparse)
+        .value("no_atime", file_open_mode::no_atime)
+        .value("random_access", file_open_mode::random_access)
+        .value("locked", file_open_mode::locked)
+    ;
+
+#ifndef TORRENT_NO_DEPRECATE
+    class_<open_file_state>("pool_file_status")
+       .add_property("file_index", make_getter((&open_file_state::file_index), by_value()))
+       .def_readonly("last_use", &open_file_state::last_use)
+       .def_readonly("open_mode", &open_file_state::open_mode)
+    ;
+#endif
 
     enum_<torrent_handle::file_progress_flags_t>("file_progress_flags")
         .value("piece_granularity", torrent_handle::piece_granularity)

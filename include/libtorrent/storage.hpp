@@ -424,8 +424,8 @@ namespace libtorrent
 		mutable stat_cache m_stat_cache;
 
 		// helper function to open a file in the file pool with the right mode
-		file_handle open_file(file_index_t file, int mode, storage_error& ec) const;
-		file_handle open_file_impl(file_index_t file, int mode, error_code& ec) const;
+		file_handle open_file(file_index_t file, std::uint32_t mode, storage_error& ec) const;
+		file_handle open_file_impl(file_index_t file, std::uint32_t mode, error_code& ec) const;
 
 		aux::vector<std::uint8_t, file_index_t> m_file_priority;
 		std::string m_save_path;

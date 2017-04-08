@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/units.hpp"
+#include "libtorrent/disk_interface.hpp"
 #ifdef TORRENT_WINDOWS
 #include "libtorrent/aux_/win_util.hpp"
 #endif
@@ -96,7 +97,8 @@ namespace libtorrent
 #endif // TORRENT_WINDOWS
 
 	file_handle file_pool::open_file(storage_index_t st, std::string const& p
-		, file_index_t const file_index, file_storage const& fs, int m, error_code& ec)
+		, file_index_t const file_index, file_storage const& fs
+		, std::uint32_t const m, error_code& ec)
 	{
 		// potentially used to hold a reference to a file object that's
 		// about to be destructed. If we have such object we assign it to
@@ -177,9 +179,36 @@ namespace libtorrent
 		return file_ptr;
 	}
 
-	std::vector<pool_file_status> file_pool::get_status(storage_index_t const st) const
+	namespace {
+
+	std::uint32_t to_file_open_mode(std::uint32_t const mode)
 	{
-		std::vector<pool_file_status> ret;
+		std::uint32_t ret = 0;
+		switch (mode & file::rw_mask)
+		{
+			case file::read_only:
+				ret = file_open_mode::read_only;
+				break;
+			case file::write_only:
+				ret = file_open_mode::write_only;
+				break;
+			case file::read_write:
+				ret = file_open_mode::read_write;
+				break;
+		}
+
+		if (mode & file::sparse) ret |= file_open_mode::sparse;
+		if (mode & file::no_atime) ret |= file_open_mode::no_atime;
+		if (mode & file::random_access) ret |= file_open_mode::random_access;
+		if (mode & file::lock_file) ret |= file_open_mode::locked;
+		return ret;
+	}
+
+	}
+
+	std::vector<open_file_state> file_pool::get_status(storage_index_t const st) const
+	{
+		std::vector<open_file_state> ret;
 		{
 			std::unique_lock<std::mutex> l(m_mutex);
 
@@ -188,7 +217,10 @@ namespace libtorrent
 				, std::numeric_limits<file_index_t>::max()));
 
 			for (auto i = start; i != end; ++i)
-				ret.push_back({i->first.second, i->second.mode, i->second.last_use});
+			{
+				ret.push_back({i->first.second, to_file_open_mode(i->second.mode)
+					, i->second.last_use});
+			}
 		}
 		return ret;
 	}
