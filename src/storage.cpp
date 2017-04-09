@@ -614,9 +614,10 @@ namespace libtorrent
 	}
 
 	int default_storage::readv(span<iovec_t const> bufs
-		, piece_index_t const piece, int offset, int flags, storage_error& ec)
+		, piece_index_t const piece, int const offset
+		, std::uint32_t const flags, storage_error& ec)
 	{
-		read_fileop op(*this, static_cast<std::uint32_t>(flags));
+		read_fileop op(*this, flags);
 
 #ifdef TORRENT_SIMULATE_SLOW_READ
 		std::this_thread::sleep_for(seconds(1));
@@ -625,9 +626,10 @@ namespace libtorrent
 	}
 
 	int default_storage::writev(span<iovec_t const> bufs
-		, piece_index_t const piece, int offset, int flags, storage_error& ec)
+		, piece_index_t const piece, int const offset
+		, std::uint32_t const flags, storage_error& ec)
 	{
-		write_fileop op(*this, static_cast<std::uint32_t>(flags));
+		write_fileop op(*this, flags);
 		return readwritev(files(), bufs, piece, offset, op, ec);
 	}
 
@@ -770,12 +772,12 @@ namespace libtorrent
 			status_t move_storage(std::string const&, int, storage_error&) override { return status_t::no_error; }
 
 			int readv(span<iovec_t const> bufs
-				, piece_index_t, int, int, storage_error&) override
+				, piece_index_t, int, std::uint32_t, storage_error&) override
 			{
 				return bufs_size(bufs);
 			}
 			int writev(span<iovec_t const> bufs
-				, piece_index_t, int, int, storage_error&) override
+				, piece_index_t, int, std::uint32_t, storage_error&) override
 			{
 				return bufs_size(bufs);
 			}
@@ -803,7 +805,7 @@ namespace libtorrent
 			void initialize(storage_error&) override {}
 
 			int readv(span<iovec_t const> bufs
-				, piece_index_t, int, int, storage_error&) override
+				, piece_index_t, int, std::uint32_t, storage_error&) override
 			{
 				int ret = 0;
 				for (auto const& b : bufs)
@@ -814,7 +816,7 @@ namespace libtorrent
 				return 0;
 			}
 			int writev(span<iovec_t const> bufs
-				, piece_index_t, int, int, storage_error&) override
+				, piece_index_t, int, std::uint32_t, storage_error&) override
 			{
 				int ret = 0;
 				for (auto const& b : bufs)
