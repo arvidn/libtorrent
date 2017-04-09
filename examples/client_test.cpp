@@ -895,7 +895,7 @@ bool handle_alert(torrent_view& view, session_view& ses_view
 		// the alert handler for save_resume_data_alert
 		// will save it to disk
 		torrent_handle h = p->handle;
-		h.save_resume_data();
+		h.save_resume_data(torrent_handle::save_info_dict);
 		++num_outstanding_resume_data;
 	}
 	else if (save_resume_data_alert* p = alert_cast<save_resume_data_alert>(a))
@@ -919,7 +919,7 @@ bool handle_alert(torrent_view& view, session_view& ses_view
 		// the alert handler for save_resume_data_alert
 		// will save it to disk
 		torrent_handle h = p->handle;
-		h.save_resume_data();
+		h.save_resume_data(torrent_handle::save_info_dict);
 		++num_outstanding_resume_data;
 	}
 	else if (state_update_alert* p = alert_cast<state_update_alert>(a))
@@ -936,7 +936,7 @@ bool handle_alert(torrent_view& view, session_view& ses_view
 }
 
 void pop_alerts(torrent_view& view, session_view& ses_view
-	, libtorrent::session& ses, std::deque<std::string> events)
+	, libtorrent::session& ses, std::deque<std::string>& events)
 {
 	std::vector<lt::alert*> alerts;
 	ses.pop_alerts(&alerts);
@@ -1860,10 +1860,11 @@ MAGNETURL is a magnet link
 						continue;
 					}
 
-					int progress = ti->files().file_size(i) > 0
+					int const progress = ti->files().file_size(i) > 0
 						? int(file_progress[idx] * 1000 / ti->files().file_size(i)) : 1000;
+					assert(file_progress[idx] <= ti->files().file_size(i));
 
-					bool complete = file_progress[idx] == ti->files().file_size(i);
+					bool const complete = file_progress[idx] == ti->files().file_size(i);
 
 					std::string title = ti->files().file_name(i).to_string();
 					if (!complete)

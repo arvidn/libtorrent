@@ -5994,7 +5994,7 @@ namespace libtorrent
 				bitmask.resize(num_blocks_per_piece, false);
 
 				auto const info = m_picker->blocks_for_piece(dp);
-				for (int i = 0; i < num_blocks_per_piece; ++i)
+				for (int i = 0; i < int(info.size()); ++i)
 				{
 					if (info[i].state == piece_picker::block_info::state_finished)
 						bitmask.set_bit(i);
