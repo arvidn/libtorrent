@@ -128,7 +128,7 @@ namespace libtorrent
 			mach_msg_type_number_t t_info_count = task_events_info_count;
 			task_info(mach_task_self(), TASK_EVENTS_INFO,
 				reinterpret_cast<task_info_t>(&teinfo), &t_info_count);
-			w.context_switches = teinfo.csw;
+			w.context_switches = static_cast<std::uint64_t>(teinfo.csw);
 #else
 			w.context_switches = 0;
 #endif

@@ -5741,10 +5741,9 @@ namespace aux {
 			std::uint64_t prev_csw = 0;
 			if (!_wakeups.empty()) prev_csw = _wakeups[0].context_switches;
 			std::fprintf(f, "abs. time\trel. time\tctx switch\tidle-wakeup\toperation\n");
-			for (int i = 0; i < _wakeups.size(); ++i)
+			for (wakeup_t const& w : _wakeups)
 			{
-				wakeup_t const& w = _wakeups[i];
-				bool idle_wakeup = w.context_switches > prev_csw;
+				bool const idle_wakeup = w.context_switches > prev_csw;
 				std::fprintf(f, "%" PRId64 "\t%" PRId64 "\t%" PRId64 "\t%c\t%s\n"
 					, total_microseconds(w.timestamp - m)
 					, total_microseconds(w.timestamp - prev)
