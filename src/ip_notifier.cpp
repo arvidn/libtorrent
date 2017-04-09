@@ -54,11 +54,29 @@ namespace libtorrent { namespace aux
 {
 namespace
 {
+template <typename...>
+struct ip_change_notifier_none final : ip_change_notifier
+{
+	explicit ip_change_notifier_none(io_service& ios) : m_ios(ios) {}
+
+	void async_wait(std::function<void(error_code const&)> cb) override
+	{
+		m_ios.post([cb]()
+		{ cb(make_error_code(boost::system::errc::not_supported)); });
+	}
+
+	void cancel() override {}
+
+private:
+	io_service& m_ios;
+};
+
 #if defined TORRENT_BUILD_SIMULATOR
-	// TODO: ip_change_notifier_sim
+using ip_change_notifier_sim = ip_change_notifier_none<>;
 #elif TORRENT_USE_NETLINK
 	// TODO: ip_change_notifier_nl
 #elif TORRENT_USE_SYSTEMCONFIGURATION
+#if !TARGET_OS_IPHONE
 // see https://developer.apple.com/library/content/technotes/tn1145/_index.html
 
 template <typename T> void CFRefRetain(T h) { CFRetain(h); }
@@ -183,14 +201,17 @@ private:
 	CFRef<SCDynamicStoreRef> m_store;
 	std::function<void(error_code const&)> m_cb = nullptr;
 };
+#else
+using ip_change_notifier_macos = ip_change_notifier_none<>;
+#endif // !TARGET_OS_IPHONE
 #elif defined TORRENT_WINDOWS
 	// TODO: ip_change_notifier_win
 #else
-	// TODO: ip_change_notifier_default
+using ip_change_notifier_default = ip_change_notifier_none<>;
 #endif
 
 	// TODO: to remove when separated per platform
-#if defined TORRENT_BUILD_SIMULATOR || TORRENT_USE_NETLINK || defined TORRENT_WINDOWS
+#if !defined TORRENT_BUILD_SIMULATOR && (TORRENT_USE_NETLINK || defined TORRENT_WINDOWS)
 	struct ip_change_notifier_impl final : ip_change_notifier
 	{
 		explicit ip_change_notifier_impl(io_service& ios);
@@ -309,8 +330,7 @@ private:
 	{
 		return std::unique_ptr<ip_change_notifier>(
 #if defined TORRENT_BUILD_SIMULATOR
-			// ip_change_notifier_sim
-			new ip_change_notifier_impl(ios)
+			new ip_change_notifier_sim(ios)
 #elif TORRENT_USE_NETLINK
 			// ip_change_notifier_nl
 			new ip_change_notifier_impl(ios)
@@ -320,8 +340,7 @@ private:
 			// ip_change_notifier_win
 			new ip_change_notifier_impl(ios)
 #else
-			// ip_change_notifier_default
-			new ip_change_notifier_impl(ios)
+			new ip_change_notifier_default(ios)
 #endif
 		);
 	}
