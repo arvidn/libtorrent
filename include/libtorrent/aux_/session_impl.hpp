@@ -36,6 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
+#include "libtorrent/aux_/session_udp_sockets.hpp"
 #include "libtorrent/linked_list.hpp"
 #include "libtorrent/torrent_peer.hpp"
 #include "libtorrent/torrent_peer_allocator.hpp"
@@ -117,33 +118,6 @@ namespace dht {
 		class item;
 	}
 
-	struct session_udp_socket : utp_socket_interface
-	{
-		explicit session_udp_socket(io_service& ios)
-			: sock(ios) {}
-		virtual ~session_udp_socket() {}
-
-		udp::endpoint local_endpoint() override { return sock.local_endpoint(); }
-
-		udp_socket sock;
-
-		// this is true when the udp socket send() has failed with EAGAIN or
-		// EWOULDBLOCK. i.e. we're currently waiting for the socket to become
-		// writeable again. Once it is, we'll set it to false and notify the utp
-		// socket manager
-		bool write_blocked = false;
-	};
-
-	struct outgoing_udp_socket final : session_udp_socket
-	{
-		explicit outgoing_udp_socket(io_service& ios)
-			: session_udp_socket(ios) {}
-
-		// the name of the device the socket is bound to, may be empty
-		// if the socket is not bound to a device
-		std::string device;
-	};
-
 	struct listen_socket_t final : aux::session_listen_socket
 	{
 		address get_external_address() override
@@ -199,7 +173,7 @@ namespace dht {
 		// These must be shared_ptr to avoid a dangling reference if an
 		// incoming packet is in the event queue when the socket is erased
 		std::shared_ptr<tcp::acceptor> sock;
-		std::shared_ptr<session_udp_socket> udp_sock;
+		std::shared_ptr<aux::session_udp_socket> udp_sock;
 	};
 
 namespace aux {
@@ -235,12 +209,6 @@ namespace aux {
 		partition_listen_sockets(
 			std::vector<listen_endpoint_t>& eps
 			, std::list<listen_socket_t>& sockets);
-
-		// same as above but for outgoing sockets
-		TORRENT_EXTRA_EXPORT std::vector<std::shared_ptr<outgoing_udp_socket>>::iterator
-		partition_outgoing_sockets(
-			std::vector<listen_endpoint_t>& eps
-			, std::vector<std::shared_ptr<outgoing_udp_socket>>& sockets);
 
 		// this is the link between the main thread and the
 		// thread started to run the main downloader loop
@@ -948,15 +916,11 @@ namespace aux {
 			// socket fails.
 			std::vector<std::string> m_outgoing_interfaces;
 
-			// sockets used for outoing utp connections
-			// sockets are created for each device name or IP address in
-			// m_outgoing_interfaces
-			// they are used in a round-robin fashion
-			std::vector<std::shared_ptr<outgoing_udp_socket>> m_outgoing_sockets;
-
 			// since we might be listening on multiple interfaces
 			// we might need more than one listen socket
 			std::list<listen_socket_t> m_listen_sockets;
+
+			outgoing_sockets m_outgoing_sockets;
 
 #if TORRENT_USE_I2P
 			i2p_connection m_i2p_conn;
@@ -971,9 +935,6 @@ namespace aux {
 
 			// round-robin index into m_outgoing_interfaces
 			mutable std::uint8_t m_interface_index = 0;
-			// round-robin index into m_outgoing_sockets
-			mutable std::uint8_t m_socket_index4 = 0;
-			mutable std::uint8_t m_socket_index6 = 0;
 
 			enum listen_on_flags_t
 			{

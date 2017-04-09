@@ -291,36 +291,6 @@ namespace aux {
 		});
 	}
 
-	std::vector<std::shared_ptr<outgoing_udp_socket>>::iterator
-	partition_outgoing_sockets(
-		std::vector<listen_endpoint_t>& eps
-		, std::vector<std::shared_ptr<outgoing_udp_socket>>& sockets)
-	{
-		return std::partition(sockets.begin(), sockets.end()
-			, [&eps](std::shared_ptr<outgoing_udp_socket> const& sock)
-		{
-			auto match = std::find_if(eps.begin(), eps.end()
-				, [&sock](listen_endpoint_t const& ep)
-			{
-				return ep.device == sock->device
-					&& ep.addr == sock->sock.local_endpoint().address();
-			});
-
-			if (match != eps.end())
-			{
-				// remove the matched endpoint so that another socket can't match it
-				// this also signals to the caller that it doesn't need to create a
-				// socket for the endpoint
-				eps.erase(match);
-				return true;
-			}
-			else
-			{
-				return false;
-			}
-		});
-	}
-
 	void session_impl::init_peer_class_filter(bool unlimited_local)
 	{
 		// set the default peer_class_filter to use the local peer class
@@ -973,10 +943,7 @@ namespace aux {
 			}
 		}
 
-		for (auto const& l : m_outgoing_sockets)
-		{
-			l->sock.close();
-		}
+		m_outgoing_sockets.close();
 
 #if TORRENT_USE_I2P
 		if (m_i2p_listen_socket && m_i2p_listen_socket->is_open())
@@ -2092,9 +2059,9 @@ namespace {
 #endif
 		}
 
-		auto remove_iter = partition_outgoing_sockets(eps, m_outgoing_sockets);
+		auto remove_iter = m_outgoing_sockets.partition_outgoing_sockets(eps);
 
-		for (auto i = remove_iter; i != m_outgoing_sockets.end(); ++i)
+		for (auto i = remove_iter; i != m_outgoing_sockets.sockets.end(); ++i)
 		{
 			auto& remove_sock = *i;
 			m_utp_socket_manager.remove_udp_socket(remove_sock);
@@ -2110,7 +2077,7 @@ namespace {
 			remove_sock->sock.close();
 		}
 
-		m_outgoing_sockets.erase(remove_iter, m_outgoing_sockets.end());
+		m_outgoing_sockets.sockets.erase(remove_iter, m_outgoing_sockets.sockets.end());
 
 		// open new sockets on any endpoints that didn't match with
 		// an existing socket
@@ -2186,7 +2153,7 @@ namespace {
 
 			if (!ec && udp_sock)
 			{
-				m_outgoing_sockets.push_back(udp_sock);
+				m_outgoing_sockets.sockets.push_back(udp_sock);
 			}
 		}
 	}
@@ -5029,26 +4996,9 @@ namespace {
 
 		if (is_utp(s))
 		{
-			TORRENT_ASSERT(!m_outgoing_sockets.empty());
-
-			auto& index = remote_address.is_v4() ? m_socket_index4 : m_socket_index6;
-			auto const index_begin = index;
-
-			for (;;)
-			{
-				if (++index >= m_outgoing_sockets.size())
-					index = 0;
-
-				if (m_outgoing_sockets[index]->local_endpoint().address().is_v4() != remote_address.is_v4())
-				{
-					if (index == index_begin) break;
-					continue;
-				}
-
-				utp_init_socket(s.get<utp_stream>()->get_impl(), m_outgoing_sockets[index]);
-				auto udp_ep = m_outgoing_sockets[index]->local_endpoint();
-				return tcp::endpoint(udp_ep.address(), udp_ep.port());
-			}
+			auto ep = m_outgoing_sockets.bind(s, remote_address);
+			if (ep.port() != 0)
+				return ep;
 		}
 
 		if (!m_outgoing_interfaces.empty())
@@ -5313,8 +5263,7 @@ namespace {
 	{
 		for (auto& i : m_listen_sockets)
 			i.udp_sock->sock.set_proxy_settings(proxy());
-		for (auto const& i : m_outgoing_sockets)
-			i->sock.set_proxy_settings(proxy());
+		m_outgoing_sockets.update_proxy(proxy());
 	}
 
 	void session_impl::update_upnp()
