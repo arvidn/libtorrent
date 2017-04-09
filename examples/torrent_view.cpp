@@ -372,7 +372,7 @@ void torrent_view::update_filtered_torrents()
 	if (m_active_torrent < 0) m_active_torrent = 0;
 	TORRENT_ASSERT(m_active_torrent >= 0);
 	std::sort(m_filtered_handles.begin(), m_filtered_handles.end(), &compare_torrent);
-	if (m_scroll_position + m_height - header_size > m_filtered_handles.size())
+	if (m_scroll_position + m_height - header_size > int(m_filtered_handles.size()))
 	{
 		m_scroll_position = std::max(0, int(m_filtered_handles.size()) - m_height + header_size);
 	}
