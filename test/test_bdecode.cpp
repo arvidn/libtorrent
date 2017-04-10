@@ -201,7 +201,7 @@ TORRENT_TEST(dict_null_key)
 	int ret = bdecode(b, b + sizeof(b)-1, e, ec);
 	TEST_EQUAL(ret, 0);
 	TEST_CHECK(e.dict_size() == 1);
-	bdecode_node d = e.dict_find(std::string("a\0b", 3));
+	bdecode_node d = e.dict_find(string_view("a\0b", 3));
 	TEST_EQUAL(d.type(), bdecode_node::int_t);
 	TEST_EQUAL(d.int_value(), 1);
 }
@@ -848,9 +848,12 @@ TORRENT_TEST(dict_find_funs)
 	TEST_CHECK(!e.dict_find_dict("c"));
 
 	// variants taking std::string
-	TEST_EQUAL(e.dict_find_dict(std::string("d")).dict_find_int_value("x"), 1);
-	TEST_CHECK(!e.dict_find_dict(std::string("c")));
-	TEST_CHECK(!e.dict_find_dict(std::string("x")));
+	std::string d_str("d");
+	std::string c_str("c");
+	std::string x_str("x");
+	TEST_EQUAL(e.dict_find_dict(d_str).dict_find_int_value("x"), 1);
+	TEST_CHECK(!e.dict_find_dict(c_str));
+	TEST_CHECK(!e.dict_find_dict(x_str));
 
 	TEST_EQUAL(e.dict_size(), 4);
 	TEST_EQUAL(e.dict_size(), 4);
@@ -949,7 +952,8 @@ TORRENT_TEST(dict_find_funs2)
 
 	// try finding the last item in a dict (to skip all the other ones)
 	TEST_EQUAL(e.dict_find("d").type(), bdecode_node::dict_t);
-	TEST_EQUAL(e.dict_find(std::string("d")).type(), bdecode_node::dict_t);
+	std::string d_str("d");
+	TEST_EQUAL(e.dict_find(d_str).type(), bdecode_node::dict_t);
 }
 
 // print_entry

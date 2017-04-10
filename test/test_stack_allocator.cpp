@@ -46,7 +46,7 @@ TORRENT_TEST(copy_string)
 	// attempt to trigger a reallocation
 	a.allocate(100000);
 
-	allocation_slot const idx2 = a.copy_string(std::string("foobar"));
+	allocation_slot const idx2 = a.copy_string("foobar");
 
 	TEST_CHECK(a.ptr(idx1) == "testing"_sv);
 	TEST_CHECK(a.ptr(idx2) == "foobar"_sv);

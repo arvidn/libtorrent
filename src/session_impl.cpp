@@ -2428,7 +2428,8 @@ namespace aux {
 			if (m_alerts.should_post<listen_failed_alert>())
 			{
 				error_code err;
-				m_alerts.emplace_alert<listen_failed_alert>(ep.address().to_string(err)
+				std::string iface_str{ ep.address().to_string(err) };
+				m_alerts.emplace_alert<listen_failed_alert>(iface_str
 					, ep, listen_failed_alert::accept, e
 					, ssl ? socket_type_t::tcp_ssl : socket_type_t::tcp);
 			}

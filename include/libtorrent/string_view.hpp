@@ -61,4 +61,8 @@ inline namespace literals {
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
+namespace libtorrent {
+inline string_view make_sv(std::string const& str) { return string_view(str);}
+inline wstring_view make_wsv(std::wstring const& str) { return wstring_view(str);}
+}
 #endif
