@@ -133,16 +133,16 @@ CFRef<SCDynamicStoreRef> create_dynamic_store(SCDynamicStoreCallBack callback, v
 		? store : CFRef<SCDynamicStoreRef>();
 }
 
-struct ip_change_notifier_macos final : ip_change_notifier
+struct ip_change_notifier_impl final : ip_change_notifier
 {
-	explicit ip_change_notifier_macos(io_service& ios)
+	explicit ip_change_notifier_impl(io_service& ios)
 		: m_ios(ios)
 	{
 		m_queue = dispatch_queue_create("libtorrent.IPChangeNotifierQueue", nullptr);
 		m_store = create_dynamic_store(
 			[](SCDynamicStoreRef /*store*/, CFArrayRef /*changedKeys*/, void *info)
 			{
-				auto obj = static_cast<ip_change_notifier_macos*>(info);
+				auto obj = static_cast<ip_change_notifier_impl*>(info);
 				obj->m_ios.post([obj]() { if (obj->m_cb) obj->m_cb(error_code()); });
 			}, this);
 
@@ -152,10 +152,10 @@ struct ip_change_notifier_macos final : ip_change_notifier
 	}
 
 	// noncopyable
-	ip_change_notifier_macos(ip_change_notifier_macos const&) = delete;
-	ip_change_notifier_macos& operator=(ip_change_notifier_macos const&) = delete;
+	ip_change_notifier_impl(ip_change_notifier_impl const&) = delete;
+	ip_change_notifier_impl& operator=(ip_change_notifier_impl const&) = delete;
 
-	~ip_change_notifier_macos() override
+	~ip_change_notifier_impl() override
 	{ cancel(); }
 
 	void async_wait(std::function<void(error_code const&)> cb) override
@@ -307,22 +307,6 @@ private:
 
 	std::unique_ptr<ip_change_notifier> create_ip_notifier(io_service& ios)
 	{
-		return std::unique_ptr<ip_change_notifier>(
-#if defined TORRENT_BUILD_SIMULATOR
-			// ip_change_notifier_sim
-			new ip_change_notifier_impl(ios)
-#elif TORRENT_USE_NETLINK
-			// ip_change_notifier_nl
-			new ip_change_notifier_impl(ios)
-#elif TORRENT_USE_SYSTEMCONFIGURATION
-			new ip_change_notifier_macos(ios)
-#elif defined TORRENT_WINDOWS
-			// ip_change_notifier_win
-			new ip_change_notifier_impl(ios)
-#else
-			// ip_change_notifier_default
-			new ip_change_notifier_impl(ios)
-#endif
-		);
+		return std::unique_ptr<ip_change_notifier>(new ip_change_notifier_impl(ios));
 	}
 }}
