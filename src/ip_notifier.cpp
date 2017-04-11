@@ -59,7 +59,6 @@ namespace
 #elif TORRENT_USE_NETLINK
 	// TODO: ip_change_notifier_nl
 #elif TORRENT_USE_SYSTEMCONFIGURATION
-// see https://developer.apple.com/library/content/technotes/tn1145/_index.html
 
 template <typename T> void CFRefRetain(T h) { CFRetain(h); }
 template <typename T> void CFRefRelease(T h) { CFRelease(h); }
@@ -99,6 +98,80 @@ void CFDispatchRetain(dispatch_queue_t q) { dispatch_retain(q); }
 void CFDispatchRelease(dispatch_queue_t q) { dispatch_release(q); }
 using CFDispatchRef = CFRef<dispatch_queue_t, CFDispatchRetain, CFDispatchRelease>;
 
+#if TARGET_OS_IPHONE || defined TORRENT_FORCE_IOS_IP_NOTIFIER
+CFRef<SCNetworkReachabilityRef> create_reachability(SCNetworkReachabilityCallBack callback
+	, void* context_info)
+{
+	TORRENT_ASSERT(callback != nullptr);
+
+	sockaddr_in addr = {};
+	addr.sin_len = sizeof(addr);
+	addr.sin_family = AF_INET;
+
+	CFRef<SCNetworkReachabilityRef> reach{SCNetworkReachabilityCreateWithAddress(nullptr
+		, reinterpret_cast<sockaddr const*>(&addr))};
+	if (!reach)
+		return CFRef<SCNetworkReachabilityRef>();
+
+	SCNetworkReachabilityContext context = {0, nullptr, nullptr, nullptr, nullptr};
+	context.info = context_info;
+
+	return SCNetworkReachabilitySetCallback(reach.get(), callback, &context)
+		? reach : CFRef<SCNetworkReachabilityRef>();
+}
+
+struct ip_change_notifier_impl final : ip_change_notifier
+{
+	explicit ip_change_notifier_impl(io_service& ios)
+		: m_ios(ios)
+	{
+		m_queue = dispatch_queue_create("libtorrent.IPChangeNotifierQueue", nullptr);
+		m_reach = create_reachability(
+			[](SCNetworkReachabilityRef /*target*/, SCNetworkReachabilityFlags /*flags*/, void *info)
+			{
+				auto obj = static_cast<ip_change_notifier_impl*>(info);
+				obj->m_ios.post([obj]() { if (obj->m_cb) obj->m_cb(error_code()); });
+			}, this);
+
+		if (!m_queue || !m_reach
+			|| !SCNetworkReachabilitySetDispatchQueue(m_reach.get(), m_queue.get()))
+			cancel();
+	}
+
+	// noncopyable
+	ip_change_notifier_impl(ip_change_notifier_impl const&) = delete;
+	ip_change_notifier_impl& operator=(ip_change_notifier_impl const&) = delete;
+
+	~ip_change_notifier_impl() override
+	{ cancel(); }
+
+	void async_wait(std::function<void(error_code const&)> cb) override
+	{
+		if (m_queue)
+			m_cb = std::move(cb);
+		else
+			m_ios.post([cb]()
+			{ cb(make_error_code(boost::system::errc::not_supported)); });
+	}
+
+	void cancel() override
+	{
+		if (m_reach)
+			SCNetworkReachabilitySetDispatchQueue(m_reach.get(), nullptr);
+
+		m_cb = nullptr;
+		m_reach = nullptr;
+		m_queue = nullptr;
+	}
+
+private:
+	io_service& m_ios;
+	CFDispatchRef m_queue;
+	CFRef<SCNetworkReachabilityRef> m_reach;
+	std::function<void(error_code const&)> m_cb = nullptr;
+};
+#else
+// see https://developer.apple.com/library/content/technotes/tn1145/_index.html
 CFRef<CFMutableArrayRef> create_keys_array()
 {
 	CFRef<CFMutableArrayRef> keys{CFArrayCreateMutable(nullptr
@@ -183,6 +256,8 @@ private:
 	CFRef<SCDynamicStoreRef> m_store;
 	std::function<void(error_code const&)> m_cb = nullptr;
 };
+#endif // TARGET_OS_IPHONE
+
 #elif defined TORRENT_WINDOWS
 	// TODO: ip_change_notifier_win
 #else
