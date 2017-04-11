@@ -44,7 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/crc32c.hpp"
 #include "libtorrent/alert_types.hpp" // for dht_routing_bucket
-#include "libtorrent/file.hpp"
 
 #include "setup_dht.hpp"
 

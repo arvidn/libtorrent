@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/resolve_links.hpp"
-#include "libtorrent/file.hpp" // for combine_path
+#include "libtorrent/aux_/path.hpp" // for combine_path
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/create_torrent.hpp"
 

@@ -65,6 +65,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/vector.hpp"
+#include "libtorrent/aux_/path.hpp"
 
 namespace
 {

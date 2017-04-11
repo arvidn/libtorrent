@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/extensions.hpp"
-#include "libtorrent/file.hpp" // for combine_path, current_working_directory
+#include "libtorrent/aux_/path.hpp" // for combine_path, current_working_directory
 #include "libtorrent/magnet_uri.hpp"
 #include "settings.hpp"
 #include <tuple>

@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/alert_manager.hpp"
-#include "libtorrent/file.hpp" // for combine_path etc.
+#include "libtorrent/aux_/path.hpp"
 
 #include <sys/types.h>
 #include <sys/stat.h>

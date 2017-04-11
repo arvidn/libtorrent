@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "libtorrent/file.hpp"
+#include "libtorrent/aux_/path.hpp"
 #include "libtorrent/string_util.hpp" // for split_string
 #include "libtorrent/string_view.hpp"
 #include "test.hpp"

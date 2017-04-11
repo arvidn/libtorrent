@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/time.hpp"
-#include "libtorrent/file.hpp"
+#include "libtorrent/aux_/path.hpp"
 #include "libtorrent/error_code.hpp"
 #include <tuple>
 #include <functional>

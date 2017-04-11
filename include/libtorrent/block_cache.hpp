@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/tailqueue.hpp"
 #include "libtorrent/linked_list.hpp"
 #include "libtorrent/disk_buffer_pool.hpp"
-#include "libtorrent/file.hpp" // for iovec_t
+#include "libtorrent/aux_/storage_utils.hpp" // for iovec_t
 #include "libtorrent/disk_io_job.hpp"
 #include "libtorrent/aux_/unique_ptr.hpp"
 #if TORRENT_USE_ASSERTS

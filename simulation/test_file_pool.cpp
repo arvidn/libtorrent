@@ -37,7 +37,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_stats.hpp"
-#include "libtorrent/file.hpp"
 #include "libtorrent/torrent_info.hpp"
 
 using namespace libtorrent;

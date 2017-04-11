@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp" // print_endpoint
 #include "test.hpp"
 #include "setup_transfer.hpp"
-#include "libtorrent/file.hpp"
+#include "libtorrent/aux_/path.hpp"
 #include <fstream>
 #include <functional>
 #include <iostream>

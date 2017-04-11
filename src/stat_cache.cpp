@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/stat_cache.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/file.hpp"
+#include "libtorrent/aux_/path.hpp"
 
 namespace libtorrent
 {

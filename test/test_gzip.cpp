@@ -30,11 +30,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "libtorrent/file.hpp"
 #include "test.hpp"
 #include "libtorrent/gzip.hpp"
 #include "setup_transfer.hpp" // for load_file
-#include "libtorrent/file.hpp" // for combine_path
+#include "libtorrent/aux_/path.hpp" // for combine_path
 
 using namespace libtorrent;
 

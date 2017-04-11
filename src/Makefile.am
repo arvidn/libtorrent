@@ -74,6 +74,7 @@ libtorrent_rasterbar_la_SOURCES = \
   error_code.cpp                  \
   escape_string.cpp               \
   file.cpp                        \
+  path.cpp                        \
   file_pool.cpp                   \
   file_storage.cpp                \
   fingerprint.cpp                 \

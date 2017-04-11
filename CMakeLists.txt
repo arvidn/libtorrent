@@ -35,6 +35,7 @@ set(sources
 	escape_string
 	string_util
 	file
+	path
 	fingerprint
 	gzip
 	hasher

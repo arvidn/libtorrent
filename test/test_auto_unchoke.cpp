@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/ip_filter.hpp"
-#include "libtorrent/file.hpp"
+#include "libtorrent/aux_/path.hpp"
 #include <tuple>
 #include <iostream>
 

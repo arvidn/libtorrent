@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/hex.hpp" // to_hex
+#include "libtorrent/aux_/path.hpp"
 
 enum flags_t
 {
