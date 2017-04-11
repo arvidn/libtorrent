@@ -48,8 +48,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
 
-using namespace std::placeholders;
-
 namespace libtorrent { namespace aux
 {
 namespace
@@ -57,7 +55,49 @@ namespace
 #if defined TORRENT_BUILD_SIMULATOR
 	// TODO: ip_change_notifier_sim
 #elif TORRENT_USE_NETLINK
-	// TODO: ip_change_notifier_nl
+struct ip_change_notifier_impl final : ip_change_notifier
+{
+	explicit ip_change_notifier_impl(io_service& ios)
+		: m_socket(ios
+			, netlink::endpoint(netlink(NETLINK_ROUTE), RTMGRP_IPV4_IFADDR | RTMGRP_IPV6_IFADDR))
+	{}
+
+	// noncopyable
+	ip_change_notifier_impl(ip_change_notifier_impl const&) = delete;
+	ip_change_notifier_impl& operator=(ip_change_notifier_impl const&) = delete;
+
+	void async_wait(std::function<void(error_code const&)> cb) override
+	{
+		using namespace std::placeholders;
+		m_socket.async_receive(boost::asio::buffer(m_buf)
+			, std::bind(&ip_change_notifier_impl::on_notify, this, _1, _2, std::move(cb)));
+	}
+
+	void cancel() override
+	{ m_socket.cancel();}
+
+private:
+	netlink::socket m_socket;
+	std::array<char, 4096> m_buf;
+
+	void on_notify(error_code const& ec, std::size_t bytes_transferred
+		, std::function<void(error_code const&)> const& cb)
+	{
+		TORRENT_UNUSED(bytes_transferred);
+
+		// on linux we could parse the message to get information about the
+		// change but Windows requires the application to enumerate the
+		// interfaces after a notification so do that for Linux as well to
+		// minimize the difference between platforms
+
+		// Linux can generate ENOBUFS if the socket's buffers are full
+		// don't treat it as an error
+		if (ec.value() == boost::system::errc::no_buffer_space)
+			cb(error_code());
+		else
+			cb(ec);
+	}
+};
 #elif TORRENT_USE_SYSTEMCONFIGURATION
 
 template <typename T> void CFRefRetain(T h) { CFRetain(h); }
@@ -277,7 +317,7 @@ private:
 #endif
 
 	// TODO: to remove when separated per platform
-#if defined TORRENT_BUILD_SIMULATOR || TORRENT_USE_NETLINK || defined TORRENT_WINDOWS
+#if defined TORRENT_BUILD_SIMULATOR || defined TORRENT_WINDOWS
 	struct ip_change_notifier_impl final : ip_change_notifier
 	{
 		explicit ip_change_notifier_impl(io_service& ios);
@@ -339,6 +379,7 @@ private:
 		TORRENT_UNUSED(&ip_change_notifier_impl::on_notify);
 		TORRENT_UNUSED(cb);
 #elif TORRENT_USE_NETLINK
+		using namespace std::placeholders;
 		m_socket.async_receive(boost::asio::buffer(m_buf)
 			, std::bind(&ip_change_notifier_impl::on_notify, this, _1, _2, cb));
 #elif defined TORRENT_WINDOWS
