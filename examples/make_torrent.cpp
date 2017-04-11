@@ -33,11 +33,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/file.hpp"
 #include "libtorrent/storage.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/create_torrent.hpp"
-#include "libtorrent/file.hpp"
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/aux_/max_path.hpp" // for TORRENT_MAX_PATH
 

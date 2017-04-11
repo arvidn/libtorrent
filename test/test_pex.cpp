@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions/ut_pex.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/torrent_status.hpp"
-#include "libtorrent/file.hpp"
+#include "libtorrent/aux_/path.hpp"
 #include <tuple>
 
 #include "setup_transfer.hpp"

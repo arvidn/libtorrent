@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/system/system_error.hpp>
 
 #include "libtorrent/assert.hpp"
-#include "libtorrent/file.hpp"
+#include "libtorrent/aux_/path.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/aux_/escape_string.hpp"
 #include <csignal>

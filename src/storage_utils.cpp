@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/storage_utils.hpp"
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/aux_/alloca.hpp"
-#include "libtorrent/file.hpp" // for count_bufs
+#include "libtorrent/aux_/path.hpp" // for count_bufs
 #include "libtorrent/part_file.hpp"
 #include "libtorrent/session.hpp" // for session::delete_files
 #include "libtorrent/stat_cache.hpp"

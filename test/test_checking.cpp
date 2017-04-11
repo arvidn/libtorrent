@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/torrent_status.hpp"
 #include "libtorrent/hex.hpp" // to_hex
+#include "libtorrent/aux_/path.hpp"
 
 static const int file_sizes[] =
 { 5, 16 - 5, 16000, 17, 10, 8000, 8000, 1,1,1,1,1,100,1,1,1,1,100,1,1,1,1,1,1

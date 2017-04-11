@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp" // for supports_ipv6()
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/aux_/vector.hpp"
+#include "libtorrent/aux_/path.hpp"
 
 #include "test.hpp"
 #include "test_utils.hpp"

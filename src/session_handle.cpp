@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/aux_/session_call.hpp"
 #include "libtorrent/aux_/throw.hpp"
+#include "libtorrent/aux_/path.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/lazy_entry.hpp"
 #include "libtorrent/peer_class.hpp"

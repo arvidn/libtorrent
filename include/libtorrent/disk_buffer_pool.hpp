@@ -53,8 +53,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 
 #include "libtorrent/io_service_fwd.hpp"
-#include "libtorrent/file.hpp" // for iovec_t
 #include "libtorrent/span.hpp"
+#include "libtorrent/aux_/storage_utils.hpp" // for iovec_t
 
 namespace libtorrent
 {
@@ -62,10 +62,12 @@ namespace libtorrent
 	class alert;
 	struct disk_observer;
 
-	struct TORRENT_EXTRA_EXPORT disk_buffer_pool : boost::noncopyable
+	struct TORRENT_EXTRA_EXPORT disk_buffer_pool
 	{
 		disk_buffer_pool(int block_size, io_service& ios
 			, std::function<void()> const& trigger_trim);
+		disk_buffer_pool(disk_buffer_pool const&) = delete;
+		disk_buffer_pool& operator=(disk_buffer_pool const&) = delete;
 		~disk_buffer_pool();
 
 #if TORRENT_USE_ASSERTS
