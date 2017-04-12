@@ -8,7 +8,7 @@
 void bind_fingerprint()
 {
     using namespace boost::python;
-    using namespace libtorrent;
+    using namespace lt;
 
     def("generate_fingerprint", &generate_fingerprint);
 

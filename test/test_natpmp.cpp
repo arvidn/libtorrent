@@ -37,9 +37,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <memory>
 
-using namespace libtorrent;
+using namespace lt;
 
-using libtorrent::aux::portmap_protocol;
+using lt::aux::portmap_protocol;
 
 namespace
 {

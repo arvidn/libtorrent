@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "libtorrent/tailqueue.hpp"
 
-using namespace libtorrent;
+using namespace lt;
 
 struct test_node : tailqueue_node<test_node>
 {

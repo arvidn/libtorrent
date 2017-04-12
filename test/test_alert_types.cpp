@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 
-using namespace libtorrent;
+using namespace lt;
 
 TORRENT_TEST(alerts_types)
 {

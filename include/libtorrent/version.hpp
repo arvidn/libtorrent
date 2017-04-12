@@ -54,4 +54,6 @@ namespace libtorrent {
 
 }
 
+namespace lt = libtorrent;
+
 #endif

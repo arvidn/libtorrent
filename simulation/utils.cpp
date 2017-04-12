@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_service.hpp"
 #include "setup_swarm.hpp"
 
-using namespace libtorrent;
+using namespace lt;
 
 void utp_only(lt::session& ses)
 {

@@ -49,15 +49,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <numeric>
 
 using namespace sim;
-using namespace libtorrent;
+using namespace lt;
 
-namespace lt = libtorrent;
 
 int const piece_size = 0x4000;
 
 add_torrent_params create_torrent(file_storage& fs, bool const pad_files = false)
 {
-	libtorrent::create_torrent t(fs, piece_size
+	lt::create_torrent t(fs, piece_size
 		, pad_files ? piece_size : -1
 		, pad_files ? create_torrent::optimize_alignment : 0);
 
@@ -143,7 +142,7 @@ void run_test(Setup const& setup
 
 TORRENT_TEST(single_file)
 {
-	using namespace libtorrent;
+	using namespace lt;
 
 	file_storage fs;
 	fs.add_file("abc'abc", 0x8000); // this filename will have to be escaped
@@ -181,7 +180,7 @@ TORRENT_TEST(single_file)
 
 TORRENT_TEST(multi_file)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	file_storage fs;
 	fs.add_file(combine_path("foo", "abc'abc"), 0x8000); // this filename will have to be escaped
 	fs.add_file(combine_path("foo", "bar"), 0x3000);
@@ -247,7 +246,7 @@ void serve_content_for(sim::http_server& http, std::string const& path
 // second redirect is added to the same web-seed entry as the first one
 TORRENT_TEST(unaligned_file_redirect)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	file_storage fs;
 	fs.add_file(combine_path("foo", "1"), 0xc030);
 	fs.add_file(combine_path("foo", "2"), 0xc030);
@@ -291,7 +290,7 @@ TORRENT_TEST(unaligned_file_redirect)
 // test redirecting *unaligned* but padded files to separate servers
 TORRENT_TEST(multi_file_redirect_pad_files)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	file_storage fs_;
 	fs_.add_file(combine_path("foo", "1"), 0xc030);
 	fs_.add_file(combine_path("foo", "2"), 0xc030);
@@ -344,7 +343,7 @@ TORRENT_TEST(multi_file_redirect_pad_files)
 // they are piece aligned)
 TORRENT_TEST(multi_file_redirect)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	file_storage fs;
 	fs.add_file(combine_path("foo", "1"), 0xc000);
 	fs.add_file(combine_path("foo", "2"), 0xc030);
@@ -392,7 +391,7 @@ TORRENT_TEST(multi_file_redirect)
 // test web_seed redirect through proxy
 TORRENT_TEST(multi_file_redirect_through_proxy)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	file_storage fs;
 	fs.add_file(combine_path("foo", "1"), 0xc000);
 	fs.add_file(combine_path("foo", "2"), 0xc030);
@@ -455,7 +454,7 @@ TORRENT_TEST(multi_file_redirect_through_proxy)
 // separate servers, without pad files
 TORRENT_TEST(multi_file_unaligned_redirect)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	file_storage fs;
 	fs.add_file(combine_path("foo", "1"), 0xc030);
 	fs.add_file(combine_path("foo", "2"), 0xc030);
@@ -534,7 +533,7 @@ TORRENT_TEST(urlseed_timeout)
 // may be closed in such manner.
 TORRENT_TEST(no_close_redudant_webseed)
 {
-	using namespace libtorrent;
+	using namespace lt;
 
 	file_storage fs;
 	fs.add_file("file1", 1);
@@ -579,7 +578,7 @@ TORRENT_TEST(no_close_redudant_webseed)
 // make sure the max_web_seed_connections limit is honored
 TORRENT_TEST(web_seed_connection_limit)
 {
-	using namespace libtorrent;
+	using namespace lt;
 
 	file_storage fs;
 	fs.add_file("file1", 1);

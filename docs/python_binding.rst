@@ -83,7 +83,7 @@ asio::tcp::endpoint
 	The endpoint type is represented as a tuple of a string (as the address) and an int for
 	the port number. E.g. ``('127.0.0.1', 6881)`` represents the localhost port 6881.
 
-libtorrent::time_duration
+lt::time_duration
 	The time duration is represented as a number of seconds in a regular integer.
 
 The following functions takes a reference to a container that is filled with

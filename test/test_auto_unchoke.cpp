@@ -44,8 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 void test_swarm()
 {
-	using namespace libtorrent;
-	namespace lt = libtorrent;
+	using namespace lt;
 
 	// these are declared before the session objects
 	// so that they are destructed last. This enables
@@ -136,7 +135,7 @@ void test_swarm()
 
 TORRENT_TEST(auto_unchoke)
 {
-	using namespace libtorrent;
+	using namespace lt;
 
 	// in case the previous run was t r catch (std::exception&) {}erminated
 	error_code ec;

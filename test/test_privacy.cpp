@@ -46,8 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <fstream>
 
-using namespace libtorrent;
-namespace lt = libtorrent;
+using namespace lt;
 
 char const* proxy_name[] = {
 	"none",
@@ -61,7 +60,7 @@ char const* proxy_name[] = {
 
 std::vector<std::string> rejected_trackers;
 
-bool alert_predicate(libtorrent::alert const* a)
+bool alert_predicate(lt::alert const* a)
 {
 	anonymous_mode_alert const* am = alert_cast<anonymous_mode_alert>(a);
 	if (am == nullptr) return false;
@@ -119,10 +118,10 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, int flags)
 
 	// since multiple sessions may exist simultaneously (because of the
 	// pipelining of the tests) they actually need to use different ports
-	static int listen_port = 10000 + libtorrent::random(50000);
+	static int listen_port = 10000 + lt::random(50000);
 	char iface[200];
 	std::snprintf(iface, sizeof(iface), "127.0.0.1:%d", listen_port);
-	listen_port += libtorrent::random(10) + 1;
+	listen_port += lt::random(10) + 1;
 	sett.set_str(settings_pack::listen_interfaces, iface);
 
 	// if we don't do this, the peer connection test

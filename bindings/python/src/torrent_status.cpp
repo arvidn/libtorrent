@@ -8,7 +8,7 @@
 #include <libtorrent/bitfield.hpp>
 
 using namespace boost::python;
-using namespace libtorrent;
+using namespace lt;
 
 object bitfield_to_list(bitfield const& bf)
 {

@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstring> // for strcmp
 #include "libtorrent/aux_/escape_string.hpp" // for trim
 
-using namespace libtorrent;
+using namespace lt;
 
 TORRENT_TEST(maybe_url_encode)
 {

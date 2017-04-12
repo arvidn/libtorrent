@@ -46,7 +46,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace sim;
 
-namespace lt = libtorrent;
 
 template <typename Setup, typename HandleAlerts, typename Test>
 void run_test(Setup const& setup

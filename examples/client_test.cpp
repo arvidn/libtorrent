@@ -72,7 +72,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "session_view.hpp"
 #include "print.hpp"
 
-using libtorrent::total_milliseconds;
+using lt::total_milliseconds;
 
 #ifdef _WIN32
 
@@ -131,7 +131,7 @@ private:
 
 bool sleep_and_input(int* c, int sleep)
 {
-	libtorrent::time_point const start = libtorrent::clock_type::now();
+	lt::time_point const start = lt::clock_type::now();
 	int ret = 0;
 retry:
 	fd_set set;
@@ -146,7 +146,7 @@ retry:
 	}
 	if (errno == EINTR)
 	{
-		if (total_milliseconds(libtorrent::clock_type::now() - start) < sleep)
+		if (total_milliseconds(lt::clock_type::now() - start) < sleep)
 			goto retry;
 		return false;
 	}
@@ -185,8 +185,8 @@ bool print_disk_stats = false;
 int num_outstanding_resume_data = 0;
 
 #ifndef TORRENT_DISABLE_DHT
-std::vector<libtorrent::dht_lookup> dht_active_requests;
-std::vector<libtorrent::dht_routing_bucket> dht_routing_table;
+std::vector<lt::dht_lookup> dht_active_requests;
+std::vector<lt::dht_routing_bucket> dht_routing_table;
 #endif
 
 std::string to_hex(lt::sha1_hash const& s)
@@ -197,7 +197,7 @@ std::string to_hex(lt::sha1_hash const& s)
 }
 
 int load_file(std::string const& filename, std::vector<char>& v
-	, libtorrent::error_code& ec, int limit = 8000000)
+	, lt::error_code& ec, int limit = 8000000)
 {
 	ec.clear();
 	FILE* f = std::fopen(filename.c_str(), "rb");
@@ -309,9 +309,9 @@ std::string make_absolute_path(std::string const& p)
 	return ret;
 }
 
-std::string print_endpoint(libtorrent::tcp::endpoint const& ep)
+std::string print_endpoint(lt::tcp::endpoint const& ep)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	error_code ec;
 	char buf[200];
 	address const& addr = ep.address();
@@ -324,13 +324,13 @@ std::string print_endpoint(libtorrent::tcp::endpoint const& ep)
 	return buf;
 }
 
-using libtorrent::torrent_status;
+using lt::torrent_status;
 
 FILE* g_log_file = nullptr;
 
-int peer_index(libtorrent::tcp::endpoint addr, std::vector<libtorrent::peer_info> const& peers)
+int peer_index(lt::tcp::endpoint addr, std::vector<lt::peer_info> const& peers)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	std::vector<peer_info>::const_iterator i = std::find_if(peers.begin(), peers.end()
 		, [&addr](peer_info const& pi) { return pi.ip == addr; });
 	if (i == peers.end()) return -1;
@@ -340,9 +340,9 @@ int peer_index(libtorrent::tcp::endpoint addr, std::vector<libtorrent::peer_info
 
 // returns the number of lines printed
 int print_peer_info(std::string& out
-	, std::vector<libtorrent::peer_info> const& peers, int max_lines)
+	, std::vector<lt::peer_info> const& peers, int max_lines)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	int pos = 0;
 	if (print_ip) out += "IP                             ";
 	out += "progress        down     (total | peak   )  up      (total | peak   ) sent-req tmo bsy rcv flags         dn  up  source  ";
@@ -508,7 +508,7 @@ int print_peer_info(std::string& out
 	return pos;
 }
 
-int allocation_mode = libtorrent::storage_mode_sparse;
+int allocation_mode = lt::storage_mode_sparse;
 std::string save_path(".");
 int torrent_upload_limit = 0;
 int torrent_download_limit = 0;
@@ -537,7 +537,7 @@ void print_settings(int const start, int const num
 {
 	for (int i = start; i < start + num; ++i)
 	{
-		char const* name = libtorrent::name_for_setting(i);
+		char const* name = lt::name_for_setting(i);
 		if (!name || name[0] == '\0') continue;
 		std::printf(fmt, name);
 	}
@@ -588,9 +588,9 @@ void add_magnet(lt::session& ses, lt::string_view uri)
 }
 
 // return false on failure
-bool add_torrent(libtorrent::session& ses, std::string torrent)
+bool add_torrent(lt::session& ses, std::string torrent)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	static int counter = 0;
 
 	std::printf("[%d] %s\n", counter++, torrent.c_str());
@@ -634,7 +634,7 @@ bool add_torrent(libtorrent::session& ses, std::string torrent)
 
 std::vector<std::string> list_dir(std::string path
 	, bool (*filter_fun)(lt::string_view)
-	, libtorrent::error_code& ec)
+	, lt::error_code& ec)
 {
 	std::vector<std::string> ret;
 #ifdef TORRENT_WINDOWS
@@ -684,9 +684,9 @@ std::vector<std::string> list_dir(std::string path
 	return ret;
 }
 
-void scan_dir(std::string const& dir_path, libtorrent::session& ses)
+void scan_dir(std::string const& dir_path, lt::session& ses)
 {
-	using namespace libtorrent;
+	using namespace lt;
 
 	error_code ec;
 	std::vector<std::string> ents = list_dir(dir_path
@@ -723,9 +723,9 @@ char const* timestamp()
 	return str;
 }
 
-void print_alert(libtorrent::alert const* a, std::string& str)
+void print_alert(lt::alert const* a, std::string& str)
 {
-	using namespace libtorrent;
+	using namespace lt;
 
 	if (a->category() & alert::error_notification)
 	{
@@ -762,9 +762,9 @@ int save_file(std::string const& filename, std::vector<char> const& v)
 // returns true if the alert was handled (and should not be printed to the log)
 // returns false if the alert was not handled
 bool handle_alert(torrent_view& view, session_view& ses_view
-	, libtorrent::session& ses, libtorrent::alert* a)
+	, lt::session& ses, lt::alert* a)
 {
-	using namespace libtorrent;
+	using namespace lt;
 
 	if (session_stats_alert* s = alert_cast<session_stats_alert>(a))
 	{
@@ -936,7 +936,7 @@ bool handle_alert(torrent_view& view, session_view& ses_view
 }
 
 void pop_alerts(torrent_view& view, session_view& ses_view
-	, libtorrent::session& ses, std::deque<std::string>& events)
+	, lt::session& ses, std::deque<std::string>& events)
 {
 	std::vector<lt::alert*> alerts;
 	ses.pop_alerts(&alerts);
@@ -952,12 +952,12 @@ void pop_alerts(torrent_view& view, session_view& ses_view
 	}
 }
 
-void print_piece(libtorrent::partial_piece_info const* pp
-	, libtorrent::cached_piece_info const* cs
-	, std::vector<libtorrent::peer_info> const& peers
+void print_piece(lt::partial_piece_info const* pp
+	, lt::cached_piece_info const* cs
+	, std::vector<lt::peer_info> const& peers
 	, std::string& out)
 {
-	using namespace libtorrent;
+	using namespace lt;
 
 	char str[1024];
 	assert(pp == nullptr || cs == nullptr || cs->piece == pp->piece_index);
@@ -1073,8 +1073,7 @@ MAGNETURL is a magnet link
 		return 0;
 	}
 
-	using namespace libtorrent;
-	namespace lt = libtorrent;
+	using namespace lt;
 
 	torrent_view view;
 	session_view ses_view;
@@ -1175,8 +1174,8 @@ MAGNETURL is a magnet link
 			case 't': poll_interval = atoi(arg); break;
 			case 'F': refresh_delay = atoi(arg); break;
 			case 'a': allocation_mode = (arg == std::string("sparse"))
-				? libtorrent::storage_mode_sparse
-				: libtorrent::storage_mode_allocate;
+				? lt::storage_mode_sparse
+				: lt::storage_mode_allocate;
 				break;
 			case 'x':
 				{
@@ -1234,7 +1233,7 @@ MAGNETURL is a magnet link
 		+ alert::picker_log_notification
 		));
 
-	libtorrent::session ses(settings);
+	lt::session ses(settings);
 
 	if (rate_limit_locals)
 	{

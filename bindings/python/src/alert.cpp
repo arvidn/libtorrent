@@ -11,7 +11,7 @@
 #include "bytes.hpp"
 
 using namespace boost::python;
-using namespace libtorrent;
+using namespace lt;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -143,7 +143,7 @@ namespace boost
 	// types are indeed polymorphic, no need to derive from
 	// them.
 #define POLY(x) template<> \
-	struct is_polymorphic<libtorrent:: x > : boost::mpl::true_ {};
+	struct is_polymorphic<lt:: x > : boost::mpl::true_ {};
 
 	POLY(torrent_alert)
 	POLY(tracker_alert)

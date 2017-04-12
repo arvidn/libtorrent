@@ -39,8 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/ed25519.hpp"
 #include "libtorrent/hex.hpp"
 
-using namespace libtorrent;
-using namespace libtorrent::dht;
+using namespace lt;
+using namespace lt::dht;
 
 namespace
 {

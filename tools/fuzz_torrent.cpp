@@ -39,7 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/error_code.hpp"
 
-using libtorrent::bdecode_node;
+using lt::bdecode_node;
 using std::mt19937;
 using std::uniform_int_distribution;
 
@@ -242,7 +242,7 @@ void render_variant(std::string& out, bdecode_node const& e)
 			print_dict(out);
 			for (int i = 0; i < e.dict_size(); ++i)
 			{
-				std::pair<libtorrent::string_view, bdecode_node> item = e.dict_at(i);
+				std::pair<lt::string_view, bdecode_node> item = e.dict_at(i);
 				const bool duplicate = g_seed == 1;
 				const bool skipped = g_seed == 2;
 				g_seed -= 2;
@@ -288,7 +288,7 @@ void render_variant(std::string& out, bdecode_node const& e)
 }
 
 int load_file(std::string const& filename, std::vector<char>& v
-	, libtorrent::error_code& ec, int limit = 8000000)
+	, lt::error_code& ec, int limit = 8000000)
 {
 	ec.clear();
 	FILE* f = fopen(filename.c_str(), "rb");
@@ -352,7 +352,7 @@ int load_file(std::string const& filename, std::vector<char>& v
 int main(int argc, char const* argv[])
 {
 	std::vector<char> buf;
-	libtorrent::error_code ec;
+	lt::error_code ec;
 
 	if (argc < 2)
 	{
@@ -388,8 +388,8 @@ int main(int argc, char const* argv[])
 			test_buffer.clear();
 			render_variant(test_buffer, e);
 
-			libtorrent::error_code ec;
-			libtorrent::torrent_info t(test_buffer.c_str(), int(test_buffer.size()), ec);
+			lt::error_code ec;
+			lt::torrent_info t(test_buffer.c_str(), int(test_buffer.size()), ec);
 
 			// TODO: add option to save to file unconditionally (to test other clients)
 			/*

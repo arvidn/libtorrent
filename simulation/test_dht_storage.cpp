@@ -47,8 +47,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 #include <sstream>
 
-using namespace libtorrent;
-using namespace libtorrent::dht;
+using namespace lt;
+using namespace lt::dht;
 using namespace sim;
 using namespace sim::chrono;
 using namespace sim::asio;
@@ -83,7 +83,7 @@ void timer_tick(dht_storage_interface* s
 	, dht_storage_counters const& c
 	, boost::system::error_code const&)
 {
-	libtorrent::aux::update_time_now();
+	lt::aux::update_time_now();
 	s->tick();
 
 	TEST_EQUAL(s->counters().peers, c.peers);
@@ -199,7 +199,7 @@ TORRENT_TEST(dht_storage_infohashes_sample)
 	timer.expires_from_now(hours(1)); // expiration of torrents
 	timer.async_wait([&s](boost::system::error_code const& ec)
 	{
-		libtorrent::aux::update_time_now();
+		lt::aux::update_time_now();
 		// tick here to trigger the torrents expiration
 		s->tick();
 

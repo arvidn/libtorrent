@@ -17,7 +17,7 @@
 #include "gil.hpp"
 
 using namespace boost::python;
-using namespace libtorrent;
+using namespace lt;
 
 #ifdef _MSC_VER
 #pragma warning(push)

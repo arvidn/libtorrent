@@ -41,8 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hex.hpp" // to_hex
 #include "settings.hpp"
 
-using namespace libtorrent;
-namespace lt = libtorrent;
+using namespace lt;
 
 #ifndef TORRENT_NO_DEPRECATE
 void test_remove_url(std::string url)

@@ -53,8 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/variant/get.hpp>
 
 using namespace std::placeholders;
-using namespace libtorrent;
-namespace lt = libtorrent;
+using namespace lt;
 
 const int piece_size = 16 * 1024 * 16;
 const int half = piece_size / 2;
@@ -130,7 +129,7 @@ std::shared_ptr<torrent_info> setup_torrent_info(file_storage& fs
 	fs.add_file(combine_path("temp_storage", combine_path("folder2", "test3.tmp")), 0);
 	fs.add_file(combine_path("temp_storage", combine_path("_folder3", "test4.tmp")), 0);
 	fs.add_file(combine_path("temp_storage", combine_path("_folder3", combine_path("subfolder", "test5.tmp"))), 8);
-	libtorrent::create_torrent t(fs, 4, -1, 0);
+	lt::create_torrent t(fs, 4, -1, 0);
 
 	char buf_[4] = {0, 0, 0, 0};
 	sha1_hash h = hasher(buf_).final();
@@ -189,7 +188,7 @@ std::vector<char> new_piece(int size)
 void run_storage_tests(std::shared_ptr<torrent_info> info
 	, file_storage& fs
 	, std::string const& test_path
-	, libtorrent::storage_mode_t storage_mode
+	, lt::storage_mode_t storage_mode
 	, bool unbuffered)
 {
 	TORRENT_ASSERT(fs.num_files() > 0);
@@ -419,7 +418,7 @@ void test_rename(std::string const& test_path)
 }
 
 void test_check_files(std::string const& test_path
-	, libtorrent::storage_mode_t storage_mode
+	, lt::storage_mode_t storage_mode
 	, bool unbuffered)
 {
 	std::shared_ptr<torrent_info> info;
@@ -438,7 +437,7 @@ void test_check_files(std::string const& test_path
 	std::vector<char> piece0 = new_piece(piece_size);
 	std::vector<char> piece2 = new_piece(piece_size);
 
-	libtorrent::create_torrent t(fs, piece_size, -1, 0);
+	lt::create_torrent t(fs, piece_size, -1, 0);
 	t.set_hash(piece_index_t(0), hasher(piece0).final());
 	t.set_hash(piece_index_t(1), sha1_hash(nullptr));
 	t.set_hash(piece_index_t(2), sha1_hash(nullptr));
@@ -528,7 +527,7 @@ void run_test(bool unbuffered)
 	// |                           |                           |                           |                           |
 	// | piece 0                   | piece 1                   | piece 2                   | piece 3                   |
 
-	libtorrent::create_torrent t(fs, piece_size, -1, 0);
+	lt::create_torrent t(fs, piece_size, -1, 0);
 	TEST_CHECK(t.num_pieces() == 4);
 	t.set_hash(piece_index_t(0), hasher(piece0).final());
 	t.set_hash(piece_index_t(1), hasher(piece1).final());
@@ -573,7 +572,7 @@ void run_test(bool unbuffered)
 	error_code ec;
 	file_storage fs;
 	fs.add_file(combine_path("temp_storage", "test1.tmp"), 3 * piece_size);
-	libtorrent::create_torrent t(fs, piece_size, -1, 0);
+	lt::create_torrent t(fs, piece_size, -1, 0);
 	TEST_CHECK(fs.file_path(file_index_t(0)) == combine_path("temp_storage", "test1.tmp"));
 	t.set_hash(piece_index_t(0), hasher(piece0).final());
 	t.set_hash(piece_index_t(1), hasher(piece1).final());
@@ -748,8 +747,8 @@ TORRENT_TEST(fastresume_deprecated)
 
 bool got_file_rename_alert(alert const* a)
 {
-	return alert_cast<libtorrent::file_renamed_alert>(a)
-		|| alert_cast<libtorrent::file_rename_failed_alert>(a);
+	return alert_cast<lt::file_renamed_alert>(a)
+		|| alert_cast<lt::file_rename_failed_alert>(a);
 }
 
 TORRENT_TEST(rename_file)

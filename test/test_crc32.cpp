@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 TORRENT_TEST(crc32)
 {
-	using namespace libtorrent;
+	using namespace lt;
 
 	std::uint32_t out;
 

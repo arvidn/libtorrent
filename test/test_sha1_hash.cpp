@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/hex.hpp" // from_hex
 
-using namespace libtorrent;
+using namespace lt;
 
 static sha1_hash to_hash(char const* s)
 {

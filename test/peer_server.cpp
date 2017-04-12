@@ -47,12 +47,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <condition_variable>
 #include <memory>
 
-using namespace libtorrent;
+using namespace lt;
 using namespace std::placeholders;
 
 struct peer_server
 {
-	libtorrent::io_service m_ios;
+	lt::io_service m_ios;
 	std::atomic<int> m_peer_requests{0};
 	tcp::acceptor m_acceptor{m_ios};
 	int m_port = 0;

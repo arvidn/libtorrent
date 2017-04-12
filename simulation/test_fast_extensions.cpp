@@ -43,8 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "simulator/utils.hpp"
 #include "libtorrent/string_view.hpp"
 
-using namespace libtorrent::literals;
-namespace lt = libtorrent;
+using namespace lt::literals;
 
 template <typename Sett, typename Alert>
 void run_fake_peer_test(

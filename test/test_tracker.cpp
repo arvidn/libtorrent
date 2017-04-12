@@ -49,8 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <fstream>
 
-using namespace libtorrent;
-namespace lt = libtorrent;
+using namespace lt;
 
 // TODO: test scrape requests
 // TODO: test parse peers6
@@ -321,7 +320,7 @@ TORRENT_TEST(extract_peer_missing_port)
 		, errors::invalid_tracker_response, false);
 }
 
-bool connect_alert(libtorrent::alert const* a, tcp::endpoint& ep)
+bool connect_alert(lt::alert const* a, tcp::endpoint& ep)
 {
 	if (peer_connect_alert const* pc = alert_cast<peer_connect_alert>(a))
 		ep = pc->endpoint;
@@ -456,7 +455,7 @@ TORRENT_TEST(http_peers)
 	addp.save_path = "tmp2_tracker";
 	torrent_handle h = s->add_torrent(addp);
 
-	libtorrent::torrent_status status = h.status();
+	lt::torrent_status status = h.status();
 	TEST_CHECK(status.current_tracker.empty());
 
 	// wait to hit the tracker
@@ -529,7 +528,7 @@ TORRENT_TEST(current_tracker)
 	addp.save_path = "tmp3_tracker";
 	torrent_handle h = s->add_torrent(addp);
 
-	libtorrent::torrent_status status = h.status();
+	lt::torrent_status status = h.status();
 	TEST_CHECK(status.current_tracker.empty());
 
 	// wait to hit the tracker announce

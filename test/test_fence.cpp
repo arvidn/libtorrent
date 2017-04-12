@@ -37,9 +37,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <atomic>
 
-using namespace libtorrent;
+using namespace lt;
 
-using libtorrent::aux::disk_job_fence;
+using lt::aux::disk_job_fence;
 
 TORRENT_TEST(empty_fence)
 {

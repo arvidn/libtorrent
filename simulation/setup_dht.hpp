@@ -38,7 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_settings.hpp" // for dht_settings
 #include "libtorrent/performance_counters.hpp" // for counters
 
-namespace lt = libtorrent;
 
 namespace sim
 {

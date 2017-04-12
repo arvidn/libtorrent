@@ -40,7 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstring>
 
-namespace lt = libtorrent;
 
 // make sure creating a torrent from an existing handle preserves the
 // info-dictionary verbatim, so as to not alter the info-hash

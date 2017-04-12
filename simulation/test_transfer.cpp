@@ -50,7 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace sim;
 
-namespace lt = libtorrent;
 
 std::string make_ep_string(char const* address, bool const is_v6
 	, char const* port)
@@ -71,7 +70,7 @@ void run_test(
 	, Test const& test
 	, int flags = 0)
 {
-	using namespace libtorrent;
+	using namespace lt;
 
 	const bool use_ipv6 = flags & ipv6;
 
@@ -159,7 +158,7 @@ void run_test(
 
 TORRENT_TEST(socks4_tcp)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	run_test(
 		[](lt::session& ses0, lt::session& ses1)
 		{
@@ -175,7 +174,7 @@ TORRENT_TEST(socks4_tcp)
 
 TORRENT_TEST(socks5_tcp_connect)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	run_test(
 		[](lt::session& ses0, lt::session& ses1)
 		{
@@ -191,7 +190,7 @@ TORRENT_TEST(socks5_tcp_connect)
 
 TORRENT_TEST(encryption_tcp)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	run_test(
 		[](lt::session& ses0, lt::session& ses1)
 		{ enable_enc(ses0); enable_enc(ses1); },
@@ -204,7 +203,7 @@ TORRENT_TEST(encryption_tcp)
 
 TORRENT_TEST(no_proxy_tcp_ipv6)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	run_test(
 		[](lt::session&, lt::session&) {},
 		[](lt::session&, lt::alert const*) {},
@@ -217,7 +216,7 @@ TORRENT_TEST(no_proxy_tcp_ipv6)
 
 TORRENT_TEST(no_proxy_utp_ipv6)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	run_test(
 		[](lt::session&, lt::session&) {},
 		[](lt::session&, lt::alert const*) {},
@@ -232,7 +231,7 @@ TORRENT_TEST(no_proxy_utp_ipv6)
 /*
 TORRENT_TEST(socks5_tcp_ipv6)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	run_test(
 		[](lt::session& ses0, lt::session& ses1)
 		{
@@ -250,7 +249,7 @@ TORRENT_TEST(socks5_tcp_ipv6)
 
 TORRENT_TEST(no_proxy_tcp)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	run_test(
 		[](lt::session&, lt::session&) {},
 		[](lt::session&, lt::alert const*) {},
@@ -262,7 +261,7 @@ TORRENT_TEST(no_proxy_tcp)
 
 TORRENT_TEST(no_proxy_utp)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	run_test(
 		[](lt::session&, lt::session&) {},
 		[](lt::session&, lt::alert const*) {},
@@ -275,7 +274,7 @@ TORRENT_TEST(no_proxy_utp)
 // TOD: 3 figure out why this test is failing
 TORRENT_TEST(encryption_utp)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	run_test(
 		[](lt::session& ses0, lt::session& ses1)
 		{ enable_enc(ses0); enable_enc(ses1); utp_only(ses0); },
@@ -291,7 +290,7 @@ TORRENT_TEST(encryption_utp)
 /*
 TORRENT_TEST(socks5_utp)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	run_test(
 		[](lt::session& ses0, lt::session& ses1)
 		{
@@ -312,7 +311,7 @@ TORRENT_TEST(socks5_utp)
 // directly to each other, all other tests in here may be broken.
 TORRENT_TEST(no_proxy_tcp_banned)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	run_test(
 		[](lt::session&, lt::session& ses1) { filter_ips(ses1); },
 		[](lt::session&, lt::alert const*) {},
@@ -324,7 +323,7 @@ TORRENT_TEST(no_proxy_tcp_banned)
 
 TORRENT_TEST(no_proxy_utp_banned)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	run_test(
 		[](lt::session&, lt::session& ses1) { filter_ips(ses1); },
 		[](lt::session&, lt::alert const*) {},
@@ -336,7 +335,7 @@ TORRENT_TEST(no_proxy_utp_banned)
 
 TORRENT_TEST(auto_disk_cache_size)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	run_test(
 		[](lt::session& ses0, lt::session&) { set_cache_size(ses0, -1); },
 		[](lt::session&, lt::alert const*) {},
@@ -353,7 +352,7 @@ TORRENT_TEST(auto_disk_cache_size)
 
 TORRENT_TEST(disable_disk_cache)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	run_test(
 		[](lt::session& ses0, lt::session&) { set_cache_size(ses0, 0); },
 		[](lt::session&, lt::alert const*) {},

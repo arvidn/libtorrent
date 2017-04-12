@@ -49,7 +49,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "utils.hpp"
 #include "simulator/queue.hpp"
 
-namespace lt = libtorrent;
 using namespace sim;
 
 namespace {
@@ -159,7 +158,7 @@ int completed_pieces(lt::session& ses)
 namespace {
 bool should_print(lt::alert* a)
 {
-	using namespace libtorrent;
+	using namespace lt;
 
 #ifndef TORRENT_DISABLE_LOGGING
 	if (auto pla = alert_cast<peer_log_alert>(a))
@@ -182,7 +181,7 @@ bool should_print(lt::alert* a)
 
 void utp_only(lt::settings_pack& p)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	p.set_bool(settings_pack::enable_outgoing_tcp, false);
 	p.set_bool(settings_pack::enable_incoming_tcp, false);
 	p.set_bool(settings_pack::enable_outgoing_utp, true);
@@ -191,7 +190,7 @@ void utp_only(lt::settings_pack& p)
 
 void enable_enc(lt::settings_pack& p)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	p.set_bool(settings_pack::prefer_rc4, true);
 	p.set_int(settings_pack::in_enc_policy, settings_pack::pe_forced);
 	p.set_int(settings_pack::out_enc_policy, settings_pack::pe_forced);

@@ -43,7 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <boost/optional.hpp>
 
-using namespace libtorrent;
+using namespace lt;
 
 io_service ios;
 resolver res(ios);

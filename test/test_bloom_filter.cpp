@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/sha1_hash.hpp"
 #include <cstdint>
 
-using namespace libtorrent;
+using namespace lt;
 
 void test_set_and_get()
 {

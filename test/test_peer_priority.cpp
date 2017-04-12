@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 
-using namespace libtorrent;
+using namespace lt;
 
 std::uint32_t hash_buffer(char const* buf, int len)
 {

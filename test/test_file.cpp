@@ -39,12 +39,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #include <thread>
 
-namespace lt = libtorrent;
-using namespace libtorrent;
+using namespace lt;
 
 int touch_file(std::string const& filename, int size)
 {
-	using namespace libtorrent;
+	using namespace lt;
 
 	std::vector<char> v;
 	v.resize(size);

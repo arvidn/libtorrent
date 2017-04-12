@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/entry.hpp"
 
-using namespace libtorrent;
+using namespace lt;
 
 // test integer
 TORRENT_TEST(integer)

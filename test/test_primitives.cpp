@@ -40,11 +40,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "setup_transfer.hpp"
 
-using namespace libtorrent;
+using namespace lt;
 
 TORRENT_TEST(primitives)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	error_code ec;
 
 	// make sure the retry interval keeps growing

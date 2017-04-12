@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cinttypes>
 #include <cstdlib>
 
-using namespace libtorrent;
+using namespace lt;
 
 int main(int argc, char* argv[])
 {

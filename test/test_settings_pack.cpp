@@ -38,8 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bdecode.hpp"
 #include <iostream>
 
-using namespace libtorrent;
-using namespace libtorrent::aux;
+using namespace lt;
+using namespace lt::aux;
 
 TORRENT_TEST(default_settings)
 {

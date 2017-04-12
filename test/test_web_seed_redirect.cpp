@@ -37,11 +37,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/torrent_info.hpp"
 
-using namespace libtorrent;
+using namespace lt;
 
 TORRENT_TEST(web_seed_redirect)
 {
-	using namespace libtorrent;
+	using namespace lt;
 
 	error_code ec;
 
@@ -66,7 +66,7 @@ TORRENT_TEST(web_seed_redirect)
 
 	// generate a torrent with pad files to make sure they
 	// are not requested web seeds
-	libtorrent::create_torrent t(fs, piece_size, 0x4000);
+	lt::create_torrent t(fs, piece_size, 0x4000);
 
 	char tmp[512];
 	std::snprintf(tmp, sizeof(tmp), "http://127.0.0.1:%d/redirect", port);
@@ -92,7 +92,7 @@ TORRENT_TEST(web_seed_redirect)
 		settings_pack p = settings();
 		p.set_int(settings_pack::max_queued_disk_bytes, 256 * 1024);
 		p.set_int(settings_pack::alert_mask, ~(alert::progress_notification | alert::stats_notification));
-		libtorrent::session ses(p);
+		lt::session ses(p);
 
 		// disable keep-alive because otherwise the test will choke on seeing
 		// the disconnect (from the redirect)

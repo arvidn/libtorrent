@@ -44,8 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <tuple>
 
-using namespace libtorrent;
-namespace lt = libtorrent;
+using namespace lt;
 using std::ignore;
 
 bool all_of(std::vector<bool> const& v)
@@ -55,7 +54,7 @@ bool all_of(std::vector<bool> const& v)
 
 void test_remap_files(storage_mode_t storage_mode = storage_mode_sparse)
 {
-	using namespace libtorrent;
+	using namespace lt;
 
 	// in case the previous run was terminated
 	error_code ec;

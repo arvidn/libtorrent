@@ -34,10 +34,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/packet_buffer.hpp"
 #include "libtorrent/packet_pool.hpp"
 
-using libtorrent::packet_buffer;
-using libtorrent::packet_ptr;
-using libtorrent::packet_pool;
-using libtorrent::packet;
+using lt::packet_buffer;
+using lt::packet_ptr;
+using lt::packet_pool;
+using lt::packet;
 
 packet_ptr make_pkt(packet_pool& pool, int const val)
 {

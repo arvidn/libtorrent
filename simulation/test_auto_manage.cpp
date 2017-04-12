@@ -43,10 +43,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 using namespace sim;
-using namespace libtorrent;
+using namespace lt;
 
 const int num_torrents = 10;
-namespace lt = libtorrent;
 
 using sim::asio::ip::address_v4;
 

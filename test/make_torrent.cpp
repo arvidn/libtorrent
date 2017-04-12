@@ -40,9 +40,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_pool.hpp"
 #include "libtorrent/storage_defs.hpp"
 
-using namespace libtorrent;
+using namespace lt;
 
-std::shared_ptr<libtorrent::torrent_info> make_test_torrent(
+std::shared_ptr<lt::torrent_info> make_test_torrent(
 	torrent_args const& args)
 {
 	entry e;
@@ -165,7 +165,7 @@ std::shared_ptr<libtorrent::torrent_info> make_test_torrent(
 	return std::make_shared<torrent_info>(&tmp[0], int(tmp.size()));
 }
 
-void generate_files(libtorrent::torrent_info const& ti, std::string const& path
+void generate_files(lt::torrent_info const& ti, std::string const& path
 	, bool alternate_data)
 {
 	file_pool fp;

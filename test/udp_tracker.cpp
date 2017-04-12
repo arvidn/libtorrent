@@ -47,13 +47,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <atomic>
 #include <memory>
 
-using namespace libtorrent;
+using namespace lt;
 using namespace std::placeholders;
 
 struct udp_tracker
 {
 
-	libtorrent::io_service m_ios;
+	lt::io_service m_ios;
 	std::atomic<int> m_udp_announces{0};
 	udp::socket m_socket{m_ios};
 	int m_port = 0;

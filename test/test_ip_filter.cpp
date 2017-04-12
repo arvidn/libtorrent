@@ -49,7 +49,7 @@ also works for IPv6.
 
 */
 
-using namespace libtorrent;
+using namespace lt;
 
 template <class Addr>
 bool compare(ip_range<Addr> const& lhs
@@ -90,7 +90,7 @@ void test_rules_invariant(std::vector<ip_range<T>> const& r, ip_filter const& f)
 
 TORRENT_TEST(session_get_ip_filter)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	session ses(settings());
 	ip_filter const& ipf = ses.get_ip_filter();
 #if TORRENT_USE_IPV6
@@ -102,7 +102,7 @@ TORRENT_TEST(session_get_ip_filter)
 
 TORRENT_TEST(ip_filter)
 {
-	using namespace libtorrent;
+	using namespace lt;
 
 	std::vector<ip_range<address_v4>> range;
 	error_code ec;

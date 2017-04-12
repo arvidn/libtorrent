@@ -36,9 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/settings_pack.hpp"
 
-using namespace libtorrent;
+using namespace lt;
 using namespace sim;
-namespace lt = libtorrent;
 
 time_point32 time_now()
 {

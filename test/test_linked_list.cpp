@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "libtorrent/linked_list.hpp"
 
-using namespace libtorrent;
+using namespace lt;
 
 struct test_node : list_node<test_node>
 {

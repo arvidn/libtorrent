@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "libtorrent/receive_buffer.hpp"
 
-using namespace libtorrent;
+using namespace lt;
 
 TORRENT_TEST(recv_buffer_init)
 {

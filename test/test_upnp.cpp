@@ -41,10 +41,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <memory>
 
-namespace lt = libtorrent;
-using namespace libtorrent;
+using namespace lt;
 
-using libtorrent::aux::portmap_protocol;
+using lt::aux::portmap_protocol;
 
 broadcast_socket* sock = nullptr;
 int g_port = 0;
@@ -147,7 +146,7 @@ namespace
 
 void run_upnp_test(char const* root_filename, char const* router_model, char const* control_name, int igd_version)
 {
-	libtorrent::io_service ios;
+	lt::io_service ios;
 
 	g_port = start_web_server();
 

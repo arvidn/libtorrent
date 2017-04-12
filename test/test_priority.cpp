@@ -48,8 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 #include <iostream>
 
-using namespace libtorrent;
-namespace lt = libtorrent;
+using namespace lt;
 using std::ignore;
 
 const int mask = alert::all_categories & ~(alert::performance_warning | alert::stats_notification);
@@ -381,7 +380,7 @@ done:
 
 TORRENT_TEST(priority)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	settings_pack p = settings();
 	test_transfer(p);
 	cleanup();
@@ -390,7 +389,7 @@ TORRENT_TEST(priority)
 #ifndef TORRENT_NO_DEPRECATE
 TORRENT_TEST(priority_deprecated)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	settings_pack p;
 	test_transfer(p, true);
 	cleanup();

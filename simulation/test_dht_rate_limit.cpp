@@ -48,8 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdarg>
 #include <cmath>
 
-using namespace libtorrent;
-namespace lt = libtorrent;
+using namespace lt;
 using namespace sim;
 using namespace std::placeholders;
 

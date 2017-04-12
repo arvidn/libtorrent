@@ -40,10 +40,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket_io.hpp" // for print_endpoint
 #include <cstdarg>
 
-using namespace libtorrent;
+using namespace lt;
 
 #ifndef TORRENT_DISABLE_LOGGING
-struct log_t : libtorrent::dht::dht_logger
+struct log_t : lt::dht::dht_logger
 {
 	bool should_log(module_t) const override { return true; }
 
@@ -59,8 +59,8 @@ struct log_t : libtorrent::dht::dht_logger
 	void log_packet(message_direction_t dir, span<char const> pkt
 		, udp::endpoint const& node) override
 	{
-		libtorrent::bdecode_node print;
-		libtorrent::error_code ec;
+		lt::bdecode_node print;
+		lt::error_code ec;
 		int ret = bdecode(pkt.data(), pkt.data() + int(pkt.size()), print, ec, nullptr, 100, 100);
 		TEST_EQUAL(ret, 0);
 
@@ -78,7 +78,7 @@ TORRENT_TEST(dos_blocker)
 {
 #ifndef TORRENT_DISABLE_LOGGING
 #ifndef TORRENT_DISABLE_DHT
-	using namespace libtorrent::dht;
+	using namespace lt::dht;
 
 	log_t l;
 	dos_blocker b;

@@ -7,7 +7,7 @@
 #include "bytes.hpp"
 
 using namespace boost::python;
-using namespace libtorrent;
+using namespace lt;
 
 struct entry_to_python
 {
@@ -172,7 +172,7 @@ struct entry_from_python
 
 void bind_entry()
 {
-    to_python_converter<std::shared_ptr<libtorrent::entry>, entry_to_python>();
+    to_python_converter<std::shared_ptr<lt::entry>, entry_to_python>();
     to_python_converter<entry, entry_to_python>();
     entry_from_python();
 }

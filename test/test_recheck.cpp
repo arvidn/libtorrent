@@ -47,8 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 #include <iostream>
 
-using namespace libtorrent;
-namespace lt = libtorrent;
+using namespace lt;
 
 const int mask = alert::all_categories & ~(alert::performance_warning | alert::stats_notification);
 

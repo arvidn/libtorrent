@@ -47,8 +47,7 @@ enum flags_t
 
 void test_read_piece(int flags)
 {
-	using namespace libtorrent;
-	namespace lt = libtorrent;
+	using namespace lt;
 
 	std::printf("==== TEST READ PIECE =====\n");
 
@@ -76,7 +75,7 @@ void test_read_piece(int flags)
 		, file_sizes, 2);
 
 	add_files(fs, combine_path("tmp1_read_piece", "test_torrent"));
-	libtorrent::create_torrent t(fs, piece_size, 0x4000);
+	lt::create_torrent t(fs, piece_size, 0x4000);
 
 	// calculate the hash for all pieces
 	set_piece_hashes(t, "tmp1_read_piece", ec);

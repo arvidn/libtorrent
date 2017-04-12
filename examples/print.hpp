@@ -36,7 +36,7 @@ enum { progress_invert = 1};
 std::string const& progress_bar(int progress, int width, color_code c = col_green
 	, char fill = '#', char bg = '-', std::string caption = "", int flags = 0);
 
-std::string const& piece_bar(libtorrent::bitfield const& p, int width);
+std::string const& piece_bar(lt::bitfield const& p, int width);
 
 void set_cursor_pos(int x, int y);
 
@@ -45,7 +45,7 @@ void clear_screen();
 void clear_rows(int y1, int y2);
 
 void terminal_size(int* terminal_width, int* terminal_height);
-std::string piece_matrix(libtorrent::bitfield const& p, int width, int* height);
+std::string piece_matrix(lt::bitfield const& p, int width, int* height);
 
 void print(char const* str);
 

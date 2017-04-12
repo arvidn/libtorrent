@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <tuple>
 
-using namespace libtorrent;
+using namespace lt;
 
 // TODO: 3 use span here instead of zero-terminated string
 std::tuple<int, int, bool> feed_bytes(http_parser& parser, char const* str)

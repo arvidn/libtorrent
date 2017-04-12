@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <functional>
 
-using namespace libtorrent;
+using namespace lt;
 using namespace std::placeholders;
 
 struct test_torrent_t
@@ -148,8 +148,8 @@ TORRENT_TEST(range_lookup_duplicated_files)
 	fs2.add_file("test_resolve_links_dir/tmp1", 1024);
 	fs2.add_file("test_resolve_links_dir/tmp2", 1024);
 
-	libtorrent::create_torrent t1(fs1, 1024);
-	libtorrent::create_torrent t2(fs2, 1024);
+	lt::create_torrent t1(fs1, 1024);
+	lt::create_torrent t2(fs2, 1024);
 
 	t1.set_hash(piece_index_t{0}, sha1_hash::max());
 

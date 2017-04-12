@@ -14,7 +14,7 @@ long get_hash(boost::python::object o)
     return long(PyObject_Hash(str(o).ptr()));
 }
 
-using namespace libtorrent;
+using namespace lt;
 
 bytes sha1_hash_bytes(const sha1_hash& bn) {
     return bytes(bn.to_string());
@@ -23,7 +23,7 @@ bytes sha1_hash_bytes(const sha1_hash& bn) {
 void bind_sha1_hash()
 {
     using namespace boost::python;
-    using namespace libtorrent;
+    using namespace lt;
 
     class_<sha1_hash>("sha1_hash")
         .def(self == self)

@@ -57,9 +57,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 using namespace std::placeholders;
-using namespace libtorrent;
+using namespace lt;
 using std::ignore;
-namespace lt = libtorrent;
 
 int const alert_mask = alert::all_categories
 & ~alert::progress_notification
@@ -160,7 +159,7 @@ void test_ssl(int test_idx, bool use_utp)
 	// if a peer fails once, don't try it again
 	sett.set_int(settings_pack::max_failcount, 1);
 
-	libtorrent::session ses1(sett, 0);
+	lt::session ses1(sett, 0);
 
 	// this +20 is here to use a different port as ses1
 	port += 20;
@@ -173,7 +172,7 @@ void test_ssl(int test_idx, bool use_utp)
 
 	sett.set_str(settings_pack::listen_interfaces, listen_iface);
 
-	libtorrent::session ses2(sett, 0);
+	lt::session ses2(sett, 0);
 
 	wait_for_listen(ses1, "ses1");
 	wait_for_listen(ses2, "ses2");
@@ -345,7 +344,7 @@ attack_t attacks[] =
 
 const int num_attacks = sizeof(attacks)/sizeof(attacks[0]);
 
-bool try_connect(libtorrent::session& ses1, int port
+bool try_connect(lt::session& ses1, int port
 	, std::shared_ptr<torrent_info> const& t, std::uint32_t flags)
 {
 	using boost::asio::ssl::context;
@@ -560,7 +559,7 @@ void test_malicious_peer()
 	sett.set_bool(settings_pack::enable_upnp, false);
 	sett.set_bool(settings_pack::enable_natpmp, false);
 
-	libtorrent::session ses1(sett, 0);
+	lt::session ses1(sett, 0);
 	wait_for_listen(ses1, "ses1");
 
 	// create torrent

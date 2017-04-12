@@ -48,9 +48,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 
 using namespace sim;
-using namespace libtorrent;
+using namespace lt;
 
-namespace lt = libtorrent;
 
 // this is the general template for these tests. create the session with custom
 // settings (Settings), set up the test, by adding torrents with certain
@@ -103,7 +102,7 @@ void run_test(Setup const& setup
 
 TORRENT_TEST(socks5_tcp_announce)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	int tracker_port = -1;
 	int alert_port = -1;
 	run_test(
@@ -162,7 +161,7 @@ TORRENT_TEST(socks5_tcp_announce)
 
 TORRENT_TEST(udp_tracker)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	bool tracker_alert = false;
 	bool connected = false;
 	bool announced = false;
@@ -194,7 +193,7 @@ TORRENT_TEST(udp_tracker)
 			udp_server tracker(sim, "2.2.2.2", 8080,
 			[&](char const* msg, int size)
 			{
-				using namespace libtorrent::detail;
+				using namespace lt::detail;
 				std::vector<char> ret;
 				TEST_CHECK(size >= 16);
 

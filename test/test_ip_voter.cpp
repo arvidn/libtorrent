@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp" // for supports_ipv6()
 #include "setup_transfer.hpp" // for rand_v4
 
-using namespace libtorrent;
+using namespace lt;
 
 bool cast_vote(ip_voter& ipv, address ext_ip, address voter)
 {

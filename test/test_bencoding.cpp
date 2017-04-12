@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 
-using namespace libtorrent;
+using namespace lt;
 
 // test vectors from bittorrent protocol description
 // http://www.bittorrent.com/protocol.html

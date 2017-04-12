@@ -8,7 +8,7 @@
 #include "bytes.hpp"
 
 using namespace boost::python;
-using namespace libtorrent;
+using namespace lt;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -91,7 +91,7 @@ void bind_utility()
     bytes_from_python();
 
 #ifndef TORRENT_NO_DEPRECATE
-    def("identify_client", &libtorrent::identify_client);
+    def("identify_client", &lt::identify_client);
     def("client_fingerprint", &client_fingerprint_);
 #endif
     def("bdecode", &bdecode_);

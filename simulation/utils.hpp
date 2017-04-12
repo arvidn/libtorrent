@@ -40,8 +40,6 @@ namespace libtorrent
 	class alert;
 }
 
-namespace lt = libtorrent;
-
 void utp_only(lt::session& ses);
 void enable_enc(lt::session& ses);
 void filter_ips(lt::session& ses);

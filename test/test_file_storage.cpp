@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/aux_/path.hpp"
 
-using namespace libtorrent;
+using namespace lt;
 
 void setup_test_storage(file_storage& st)
 {

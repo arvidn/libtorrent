@@ -47,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <memory> // for shared_ptr
 #include <cstdarg>
 
-using namespace libtorrent;
+using namespace lt;
 
 struct mock_torrent;
 
@@ -86,7 +86,7 @@ struct mock_peer_connection
 	bool was_disconnected() const { return m_disconnect_called; }
 	void set_local_ep(tcp::endpoint const& ep) { m_local = ep; }
 
-	libtorrent::stat m_stat;
+	lt::stat m_stat;
 	bool m_choked;
 	bool m_outgoing;
 	torrent_peer* m_tp;
@@ -111,7 +111,7 @@ struct mock_peer_connection
 	bool fast_reconnect() const override { return true; }
 	bool is_choked() const override { return m_choked; }
 	bool failed() const override { return false; }
-	libtorrent::stat const& statistics() const override { return m_stat; }
+	lt::stat const& statistics() const override { return m_stat; }
 };
 
 struct mock_torrent
@@ -372,7 +372,7 @@ TORRENT_TEST(update_peer_port_collide)
 	st.erased.clear();
 }
 
-std::shared_ptr<mock_peer_connection> shared_from_this(libtorrent::peer_connection_interface* p)
+std::shared_ptr<mock_peer_connection> shared_from_this(lt::peer_connection_interface* p)
 {
 	return std::static_pointer_cast<mock_peer_connection>(
 		static_cast<mock_peer_connection*>(p)->shared_from_this());
