@@ -311,13 +311,60 @@ private:
 #endif // TORRENT_USE_SC_NETWORK_REACHABILITY
 
 #elif defined TORRENT_WINDOWS
-	// TODO: ip_change_notifier_win
-#else
-	// TODO: ip_change_notifier_default
+struct ip_change_notifier_impl final : ip_change_notifier
+{
+	explicit ip_change_notifier_impl(io_service& ios)
+		: m_hnd(ios, WSACreateEvent())
+	{
+		if (!m_hnd.is_open()) aux::throw_ex<system_error>(WSAGetLastError(), system_category());
+		m_ovl.hEvent = m_hnd.native_handle();
+	}
+
+	// noncopyable
+	ip_change_notifier_impl(ip_change_notifier_impl const&) = delete;
+	ip_change_notifier_impl& operator=(ip_change_notifier_impl const&) = delete;
+
+	~ip_change_notifier_impl() override
+	{
+		cancel();
+		// the reason to call close() here is because the
+		// object_handle destructor doesn't close the handle
+		m_hnd.close();
+	}
+
+	void async_wait(std::function<void(error_code const&)> cb) override
+	{
+		HANDLE hnd;
+		DWORD err = NotifyAddrChange(&hnd, &m_ovl);
+		if (err == ERROR_IO_PENDING)
+		{
+			m_hnd.async_wait([cb](error_code const& ec)
+			{
+				// call CancelIPChangeNotify here?
+				cb(ec);
+			});
+		}
+		else
+		{
+			m_hnd.get_io_service().post([cb, err]()
+			{ cb(error_code(err, system_category())); });
+		}
+	}
+
+	void cancel() override
+	{
+		CancelIPChangeNotify(&m_ovl);
+		m_hnd.cancel();
+	}
+
+private:
+	OVERLAPPED m_ovl = {};
+	boost::asio::windows::object_handle m_hnd;
+};
 #endif
 
 	// TODO: to remove when separated per platform
-#if defined TORRENT_BUILD_SIMULATOR || defined TORRENT_WINDOWS
+#if defined TORRENT_BUILD_SIMULATOR
 	struct ip_change_notifier_impl final : ip_change_notifier
 	{
 		explicit ip_change_notifier_impl(io_service& ios);
