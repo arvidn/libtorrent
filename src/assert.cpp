@@ -262,7 +262,7 @@ TORRENT_EXPORT void print_backtrace(char* out, int len, int max_depth
 TORRENT_EXPORT void print_backtrace(char* out, int len, int /*max_depth*/, void* /* ctx */)
 {
 	out[0] = 0;
-	strncat(out, "<not supported>", len);
+	std::strncat(out, "<not supported>", std::size_t(len));
 }
 
 #endif

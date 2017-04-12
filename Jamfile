@@ -161,6 +161,7 @@ rule linking ( properties * )
 	}
 
 	if <target-os>darwin in $(properties)
+		|| <target-os>iphone in $(properties)
 	{
 		# for ip_notifier
 		result += <framework>CoreFoundation <framework>SystemConfiguration ;

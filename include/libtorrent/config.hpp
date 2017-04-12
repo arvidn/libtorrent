@@ -153,6 +153,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #  define TORRENT_USE_LOCALE 0
 # endif
 #include <AvailabilityMacros.h>
+#include <TargetConditionals.h>
 
 #if MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
 // on OSX, use the built-in common crypto for built-in
@@ -167,6 +168,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #define TORRENT_USE_SYSTEMCONFIGURATION 1
+
+#if TARGET_OS_IPHONE
+#define TORRENT_USE_SC_NETWORK_REACHABILITY 1
+#endif
 
 #else // __APPLE__
 // FreeBSD has a reasonable iconv signature
@@ -440,6 +445,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_USE_SYSTEMCONFIGURATION
 #define TORRENT_USE_SYSTEMCONFIGURATION 0
+#endif
+
+#ifndef TORRENT_USE_SC_NETWORK_REACHABILITY
+#define TORRENT_USE_SC_NETWORK_REACHABILITY 0
 #endif
 
 #ifndef TORRENT_USE_CRYPTOAPI
