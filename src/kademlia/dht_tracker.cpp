@@ -51,8 +51,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace libtorrent { namespace dht
-{
+namespace libtorrent { namespace dht {
+
 	namespace {
 
 	// generate a new write token key every 5 minutes

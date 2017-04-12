@@ -46,8 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 // TODO: hide this declaration when deprecated functions are disabled, and
 // remove its internal use
-namespace libtorrent
-{
+namespace libtorrent {
+
 	// these functions don't really need to be public. This mechanism of
 	// advertising client software and version is also out-dated.
 

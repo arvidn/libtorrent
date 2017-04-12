@@ -37,8 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <type_traits>
 #include "libtorrent/assert.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	template <typename T>
 	struct span
 	{

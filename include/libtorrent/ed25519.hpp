@@ -4,8 +4,8 @@
 #include "libtorrent/export.hpp" // for TORRENT_EXPORT
 #include <stddef.h> // for size_t
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 enum
 {
 	ed25519_seed_size = 32,

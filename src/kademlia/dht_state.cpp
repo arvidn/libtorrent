@@ -35,11 +35,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/bdecode.hpp>
 #include <libtorrent/socket_io.hpp>
 
-namespace libtorrent {
-namespace dht
-{
-namespace
-{
+namespace libtorrent { namespace dht {
+namespace {
+
 	node_id extract_node_id(bdecode_node const& e, string_view key)
 	{
 		if (e.type() != bdecode_node::dict_t) return node_id();

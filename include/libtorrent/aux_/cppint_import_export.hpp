@@ -8,6 +8,7 @@
 
 
 namespace boost {
+
    namespace multiprecision {
 
       namespace detail {

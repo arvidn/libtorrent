@@ -37,8 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <string>
 
-namespace
-{
+namespace {
+
 	enum
 	{
 		FTEXT = 0x01,
@@ -54,8 +54,8 @@ namespace
 
 }
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	struct gzip_error_category : boost::system::error_category
 	{
 		const char* name() const BOOST_SYSTEM_NOEXCEPT override;
@@ -109,8 +109,8 @@ namespace libtorrent
 		}
 	}
 
-	namespace
-	{
+namespace {
+
 	// returns -1 if gzip header is invalid or the header size in bytes
 	int gzip_header(const char* buf, int size)
 	{

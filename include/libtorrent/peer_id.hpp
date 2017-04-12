@@ -35,8 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/sha1_hash.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	using peer_id = sha1_hash;
 }
 

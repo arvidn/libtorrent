@@ -34,8 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 #include "libtorrent/aux_/time.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	resolver::resolver(io_service& ios)
 		: m_ios(ios)
 		, m_resolver(ios)

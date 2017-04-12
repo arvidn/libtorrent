@@ -33,8 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_SOCKET_TYPE_FWD_HPP
 #define TORRENT_SOCKET_TYPE_FWD_HPP
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	struct socket_type;
 }
 

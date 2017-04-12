@@ -36,8 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	TORRENT_EXTRA_EXPORT int merkle_num_leafs(int);
 	TORRENT_EXTRA_EXPORT int merkle_num_nodes(int);
 	TORRENT_EXTRA_EXPORT int merkle_get_parent(int);

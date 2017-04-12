@@ -32,8 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/proxy_base.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 	proxy_base::proxy_base(io_service& io_service)
 		: m_sock(io_service)

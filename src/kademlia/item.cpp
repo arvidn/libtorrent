@@ -44,11 +44,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bdecode.hpp"
 #endif
 
-namespace libtorrent { namespace dht
-{
+namespace libtorrent { namespace dht {
 
-namespace
-{
+namespace {
+
 	int canonical_string(span<char const> v
 		, sequence_number const seq
 		, span<char const> salt

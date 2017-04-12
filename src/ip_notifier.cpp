@@ -48,10 +48,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
 
-namespace libtorrent { namespace aux
-{
-namespace
-{
+namespace libtorrent { namespace aux {
+
+namespace {
+
 #if defined TORRENT_BUILD_SIMULATOR
 	// TODO: ip_change_notifier_sim
 #elif TORRENT_USE_NETLINK

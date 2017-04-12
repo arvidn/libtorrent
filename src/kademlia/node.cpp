@@ -66,8 +66,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace libtorrent { namespace dht
-{
+namespace libtorrent { namespace dht {
 
 namespace {
 
@@ -354,8 +353,8 @@ void node::incoming(msg const& m)
 	}
 }
 
-namespace
-{
+namespace {
+
 	void announce_fun(std::vector<std::pair<node_entry, std::string>> const& v
 		, node& node, int const listen_port, sha1_hash const& ih, int const flags)
 	{

@@ -40,8 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp" // for hasher
 #include "libtorrent/crc32c.hpp" // for crc32c
 
-namespace libtorrent { namespace dht
-{
+namespace libtorrent { namespace dht {
 
 // returns the distance between the two nodes
 // using the kademlia XOR-metric

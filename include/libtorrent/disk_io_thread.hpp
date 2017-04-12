@@ -53,15 +53,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 #include <vector>
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	class alert;
 	struct add_torrent_params;
 	struct counters;
 	class alert_manager;
 
-	namespace aux
-	{
+namespace aux {
+
 		struct block_cache_reference;
 	}
 

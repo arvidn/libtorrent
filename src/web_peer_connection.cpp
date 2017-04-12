@@ -53,8 +53,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/http_parser.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 constexpr int request_size_overhead = 5000;
 
 std::string escape_file_path(file_storage const& storage, file_index_t index);

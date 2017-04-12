@@ -45,8 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using libtorrent::aux::session_impl;
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 	peer_class_t constexpr session_handle::global_peer_class_id;
 	peer_class_t constexpr session_handle::tcp_peer_class_id;
@@ -190,8 +189,8 @@ namespace libtorrent
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
-	namespace
-	{
+namespace {
+
 		void handle_backwards_compatible_resume_data(add_torrent_params& atp)
 		{
 			// if there's no resume data set, there's nothing to do. It's either

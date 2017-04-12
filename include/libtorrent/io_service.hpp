@@ -41,8 +41,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif // SIMULATOR
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 #if defined TORRENT_BUILD_SIMULATOR
 	using sim::asio::io_service;
 #else

@@ -34,9 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 
-namespace libtorrent {
-namespace aux {
-
+namespace libtorrent { namespace aux {
 proxy_settings::proxy_settings()
 	: type(0)
 	, port(0)

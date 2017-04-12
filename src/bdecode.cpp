@@ -42,12 +42,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #define BOOST_SYSTEM_NOEXCEPT throw()
 #endif
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	using detail::bdecode_token;
 
-	namespace
-	{
+namespace {
+
 	bool numeric(char c) { return c >= '0' && c <= '9'; }
 
 	// finds the end of an integer and verifies that it looks valid this does

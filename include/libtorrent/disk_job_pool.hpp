@@ -40,8 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/pool/pool.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	struct disk_io_job;
 
 	struct TORRENT_EXTRA_EXPORT disk_job_pool

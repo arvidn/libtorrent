@@ -39,8 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/io_service.hpp"
 
-namespace libtorrent { namespace aux
-{
+namespace libtorrent { namespace aux {
+
 	struct TORRENT_EXTRA_EXPORT ip_change_notifier
 	{
 		// cb will be invoked  when a change is detected in the

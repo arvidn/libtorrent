@@ -76,8 +76,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/aux_/aligned_union.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 #ifndef TORRENT_NO_DEPRECATE
 	struct lazy_entry;
 	// backwards compatibility
@@ -85,8 +85,8 @@ namespace libtorrent
 #endif
 	struct bdecode_node;
 
-	namespace aux
-	{
+namespace aux {
+
 #if (__cplusplus > 201103) || (defined _MSC_VER && _MSC_VER >= 1900)
 		// this enables us to compare a string_view against the std::string that's
 		// held by the std::map
@@ -342,8 +342,8 @@ namespace libtorrent
 		mutable std::uint8_t m_type_queried:1;
 	};
 
-	namespace detail
-	{
+namespace detail {
+
 		TORRENT_EXPORT char const* integer_to_str(char* buf, int size
 			, entry::integer_type val);
 	}

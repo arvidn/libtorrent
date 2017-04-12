@@ -55,10 +55,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace libtorrent { namespace dht
-{
-namespace
-{
+namespace libtorrent { namespace dht {
+
+namespace {
+
 	template <typename T, typename K>
 	void erase_one(T& container, K const& key)
 	{

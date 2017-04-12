@@ -38,8 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/aux_/session_call.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	settings_pack min_memory_usage()
 	{
 		settings_pack set;
@@ -331,8 +331,8 @@ namespace libtorrent
 		}
 	}
 
-	namespace
-	{
+namespace {
+
 		std::vector<std::shared_ptr<plugin>> default_plugins(
 			bool empty = false)
 		{

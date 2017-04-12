@@ -36,8 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/bandwidth_queue_entry.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	bw_request::bw_request(std::shared_ptr<bandwidth_socket> const& pe
 		, int blk, int prio)
 		: peer(pe)

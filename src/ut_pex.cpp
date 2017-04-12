@@ -46,8 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
-namespace libtorrent { namespace
-{
+namespace libtorrent {namespace {
+
 	static const char extension_name[] = "ut_pex";
 
 	enum
@@ -646,8 +646,8 @@ namespace libtorrent { namespace
 	}
 } }
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	std::shared_ptr<torrent_plugin> create_ut_pex_plugin(torrent_handle const& th, void*)
 	{
 		torrent* t = th.native_handle().get();

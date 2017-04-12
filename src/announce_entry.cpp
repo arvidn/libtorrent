@@ -36,8 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	namespace {
 		// wait at least 5 seconds before retrying a failed tracker
 		seconds32 constexpr tracker_retry_delay_min{5};

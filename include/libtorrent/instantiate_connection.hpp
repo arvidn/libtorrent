@@ -35,9 +35,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/socket_type.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	namespace aux {
+
 		struct proxy_settings;
 	}
 

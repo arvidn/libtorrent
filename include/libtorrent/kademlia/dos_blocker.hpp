@@ -38,8 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/assert.hpp"
 
-namespace libtorrent { namespace dht
-{
+namespace libtorrent { namespace dht {
 
 	struct dht_logger;
 

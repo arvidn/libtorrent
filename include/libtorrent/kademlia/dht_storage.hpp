@@ -43,15 +43,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/span.hpp>
 #include <libtorrent/string_view.hpp>
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	struct dht_settings;
 	class entry;
 }
 
-namespace libtorrent {
-namespace dht
-{
+namespace libtorrent { namespace dht {
 	// This structure hold the relevant counters for the storage
 	struct TORRENT_EXPORT dht_storage_counters
 	{

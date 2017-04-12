@@ -75,8 +75,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <array>
 #include <cstdint>
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	class torrent;
 	struct torrent_peer;
 	struct disk_interface;
@@ -85,8 +85,8 @@ namespace libtorrent
 	struct peer_plugin;
 #endif
 
-	namespace aux
-	{
+namespace aux {
+
 		struct session_interface;
 	}
 

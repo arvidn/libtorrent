@@ -50,9 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <arpa/inet.h>
 #endif
 
-namespace libtorrent {
-namespace aux {
-
+namespace libtorrent { namespace aux {
 // these need to be within the disabled warnings because on OSX
 // the htonl and ntohl macros cause lots of old-style case warnings
 inline std::uint32_t host_to_network(std::uint32_t x)

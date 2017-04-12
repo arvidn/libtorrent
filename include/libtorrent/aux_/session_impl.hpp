@@ -100,8 +100,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdarg> // for va_start, va_end
 #include <unordered_map>
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 	struct plugin;
 	struct upnp;
@@ -112,8 +111,8 @@ namespace libtorrent
 	struct cache_info;
 	struct torrent_handle;
 
-	namespace dht
-	{
+namespace dht {
+
 		struct dht_tracker;
 		class item;
 	}
@@ -176,8 +175,8 @@ namespace libtorrent
 		std::shared_ptr<udp_socket> udp_sock;
 	};
 
-	namespace aux
-	{
+namespace aux {
+
 		struct session_impl;
 		struct session_settings;
 

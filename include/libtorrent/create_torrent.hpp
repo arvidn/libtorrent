@@ -88,8 +88,8 @@ POSSIBILITY OF SUCH DAMAGE.
 //	ofstream out("my_torrent.torrent", std::ios_base::binary);
 //	bencode(std::ostream_iterator<char>(out), t.generate());
 //
-namespace libtorrent
-{
+namespace libtorrent {
+
 	class torrent_info;
 
 	// This class holds state for creating a torrent. After having added
@@ -366,8 +366,8 @@ namespace libtorrent
 		bool m_include_symlinks:1;
 	};
 
-	namespace detail
-	{
+namespace detail {
+
 		inline void nop(piece_index_t) {}
 	}
 

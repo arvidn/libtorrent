@@ -43,8 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/units.hpp"
 #include "libtorrent/aux_/vector.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	class torrent_info;
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS

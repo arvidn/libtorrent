@@ -42,8 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace libtorrent { namespace aux
-{
+namespace libtorrent { namespace aux {
+
 	int count_leading_zeros_sw(span<std::uint32_t const> buf)
 	{
 		int const num = int(buf.size());

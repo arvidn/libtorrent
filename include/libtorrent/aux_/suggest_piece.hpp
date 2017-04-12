@@ -42,7 +42,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace aux {
 
-
 struct suggest_piece
 {
 	// pick at most n piece indices that are _not_ in p (which represents

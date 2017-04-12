@@ -33,8 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/node_entry.hpp"
 #include "libtorrent/aux_/time.hpp" // for aux::time_now()
 
-namespace libtorrent { namespace dht
-{
+namespace libtorrent { namespace dht {
 
 	node_entry::node_entry(node_id const& id_, udp::endpoint const& ep
 		, int roundtriptime

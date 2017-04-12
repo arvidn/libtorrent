@@ -37,10 +37,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstring>
 #include <algorithm>
 
-namespace libtorrent
-{
-	namespace
-	{
+namespace libtorrent {
+
+namespace {
+
 
 	struct stats_metric_impl
 	{

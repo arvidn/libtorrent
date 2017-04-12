@@ -39,8 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <boost/detail/endian.hpp> // for BIG_ENDIAN and LITTLE_ENDIAN macros
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	namespace {
 
 		void apply_mask(std::uint8_t* b, std::uint8_t const* mask, int size)

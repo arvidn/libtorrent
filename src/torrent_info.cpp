@@ -65,8 +65,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <set>
 #include <ctime>
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 	namespace {
 
@@ -1533,8 +1532,8 @@ namespace libtorrent
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
-	namespace
-	{
+namespace {
+
 		struct filter_web_seed_type
 		{
 			explicit filter_web_seed_type(web_seed_entry::type_t t_) : t(t_) {}

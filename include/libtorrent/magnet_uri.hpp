@@ -39,8 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/string_view.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	struct torrent_handle;
 	class session;
 

@@ -34,8 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/string_util.hpp" // for to_string()
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	struct libtorrent_error_category : boost::system::error_category
 	{
 		const char* name() const BOOST_SYSTEM_NOEXCEPT override;

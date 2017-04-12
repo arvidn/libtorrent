@@ -40,8 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/time.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 struct TORRENT_EXTRA_EXPORT resolver_interface
 {

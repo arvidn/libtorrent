@@ -43,8 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/buffer.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	// return true if the status code is 200, 206, or in the 300-400 range
 	TORRENT_EXTRA_EXPORT bool is_ok_status(int http_status);
 

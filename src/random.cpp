@@ -54,10 +54,8 @@ extern "C" {
 #include "libtorrent/aux_/dev_random.hpp"
 #endif
 
-namespace libtorrent
-{
-	namespace aux
-	{
+namespace libtorrent { namespace aux {
+
 		std::mt19937& random_engine()
 		{
 #ifdef TORRENT_BUILD_SIMULATOR

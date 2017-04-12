@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_util.hpp" // for to_string
 
 namespace libtorrent {
+
 namespace socks_error {
 
 	// SOCKS5 error values. If an error_code has the

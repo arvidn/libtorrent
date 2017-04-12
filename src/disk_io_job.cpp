@@ -33,8 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_io_job.hpp"
 #include "libtorrent/block_cache.hpp" // for cached_piece_entry
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	struct buffer_allocator_interface;
 
 	namespace {

@@ -39,8 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/sha1_hash.hpp>
 #include <libtorrent/address.hpp>
 
-namespace libtorrent { namespace dht
-{
+namespace libtorrent { namespace dht {
 
 using node_id = libtorrent::sha1_hash;
 

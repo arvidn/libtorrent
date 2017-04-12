@@ -35,9 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
-namespace libtorrent {
-namespace aux
-{
+namespace libtorrent { namespace aux {
 	struct TORRENT_EXTRA_EXPORT lsd_callback
 	{
 		virtual void on_lsd_peer(tcp::endpoint const& peer, sha1_hash const& ih) = 0;

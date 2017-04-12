@@ -36,8 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/time.hpp"
 
-namespace libtorrent { namespace aux
-{
+namespace libtorrent { namespace aux {
+
 	// returns the current time, as represented by time_point. The
 	// resolution of this timer is about 100 ms.
 	TORRENT_EXTRA_EXPORT time_point time_now();

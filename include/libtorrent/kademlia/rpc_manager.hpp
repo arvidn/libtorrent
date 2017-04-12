@@ -47,8 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { struct dht_settings; class entry; }
 
-namespace libtorrent { namespace dht
-{
+namespace libtorrent { namespace dht {
 
 struct dht_logger;
 struct udp_socket_interface;

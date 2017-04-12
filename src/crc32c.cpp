@@ -46,8 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <arm_acle.h>
 #endif
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	std::uint32_t crc32c_32(std::uint32_t v)
 	{
 #if TORRENT_HAS_SSE

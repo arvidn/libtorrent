@@ -42,10 +42,9 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "assert.hpp"
 
-namespace libtorrent
-{
-	namespace detail
-	{
+namespace libtorrent {
+
+namespace detail {
 		template <class T> struct type {};
 
 		// reads an integer from a byte stream

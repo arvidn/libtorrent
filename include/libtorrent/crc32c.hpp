@@ -36,8 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdint>
 #include "libtorrent/export.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	// this is the crc32c (Castagnoli) polynomial
 	TORRENT_EXTRA_EXPORT std::uint32_t crc32c_32(std::uint32_t v);
 	TORRENT_EXTRA_EXPORT std::uint32_t crc32c(std::uint64_t const* v

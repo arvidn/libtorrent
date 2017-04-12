@@ -116,8 +116,8 @@ extern "C" {
 GCRY_THREAD_OPTION_PTHREAD_IMPL;
 }
 
-namespace
-{
+namespace {
+
 	// libgcrypt requires this to initialize the library
 	struct gcrypt_setup
 	{
@@ -139,8 +139,8 @@ namespace
 #include <openssl/crypto.h>
 #include <openssl/rand.h>
 
-namespace
-{
+namespace {
+
 	// openssl requires this to clean up internal
 	// structures it allocates
 	struct openssl_cleanup
@@ -167,6 +167,7 @@ using namespace std::placeholders;
 
 #ifdef BOOST_NO_EXCEPTIONS
 namespace boost {
+
 	void throw_exception(std::exception const& e) { ::abort(); }
 }
 #endif
@@ -1060,8 +1061,8 @@ namespace aux {
 		return m_port_filter;
 	}
 
-	namespace
-	{
+namespace {
+
 
 	template <class Socket>
 	void set_socket_buffer_size(Socket& s, session_settings const& sett, error_code& ec)
@@ -4969,8 +4970,8 @@ namespace aux {
 	}
 
 #ifndef TORRENT_NO_DEPRECATE
-	namespace
-	{
+namespace {
+
 		listen_interface_t set_ssl_flag(listen_interface_t in)
 		{
 			in.ssl = true;

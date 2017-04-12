@@ -46,8 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/sha1_hash.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	struct storage_interface;
 	struct peer_request;
 	struct disk_observer;

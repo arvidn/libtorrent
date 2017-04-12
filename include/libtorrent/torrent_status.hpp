@@ -45,8 +45,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <ctime>
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	// holds a snapshot of the status of a torrent, as queried by
 	// torrent_handle::status().
 	struct TORRENT_EXPORT torrent_status

@@ -38,8 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/extensions.hpp"
 #endif
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 	alert_manager::alert_manager(int const queue_limit, std::uint32_t const alert_mask)
 		: m_alert_mask(alert_mask)

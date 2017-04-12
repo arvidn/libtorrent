@@ -35,8 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/export.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	struct TORRENT_EXTRA_EXPORT bandwidth_socket
 	{
 		virtual void assign_bandwidth(int channel, int amount) = 0;

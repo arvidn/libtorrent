@@ -84,8 +84,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/time.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	struct file_status
 	{
 		std::int64_t file_size = 0;

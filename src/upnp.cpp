@@ -1128,8 +1128,8 @@ void find_ip_address(int const type, string_view string, ip_address_parse_state&
 	}
 }
 
-namespace
-{
+namespace {
+
 	struct error_code_t
 	{
 		int code;

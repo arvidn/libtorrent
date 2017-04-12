@@ -50,13 +50,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/string_view.hpp>
 
 namespace libtorrent {
+
 	struct counters;
 	struct dht_routing_bucket;
 	struct dht_settings;
 }
 
-namespace libtorrent { namespace dht
-{
+namespace libtorrent { namespace dht {
 
 struct traversal_algorithm;
 struct dht_observer;

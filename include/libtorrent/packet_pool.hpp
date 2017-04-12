@@ -44,8 +44,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstdlib>
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	// internal: some MTU and protocol header sizes constants
 	constexpr int TORRENT_IPV4_HEADER = 20;
 	constexpr int TORRENT_IPV6_HEADER = 40;

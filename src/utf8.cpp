@@ -50,10 +50,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #pragma clang diagnostic ignored "-Wunused-member-function"
 #endif
 
-namespace libtorrent
-{
-	namespace
-	{
+namespace libtorrent {
+
+namespace {
+
 		// ==== utf-8 -> wide ===
 		template<int width>
 		struct convert_to_wide

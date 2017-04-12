@@ -51,8 +51,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <deque>
 #endif
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	struct plugin;
 	struct torrent_plugin;
 	class torrent;

@@ -105,8 +105,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	namespace {
 
 	std::uint32_t root2(int x)
@@ -10182,8 +10182,8 @@ namespace libtorrent
 		if (m_peer_list) m_peer_list->clear_peer_prio();
 	}
 
-	namespace
-	{
+namespace {
+
 		bool is_downloading_state(int st)
 		{
 			switch (st)

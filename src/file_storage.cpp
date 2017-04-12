@@ -54,8 +54,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	file_storage::file_storage()
 		: m_piece_length(0)
 		, m_num_pieces(0)
@@ -92,8 +92,8 @@ namespace libtorrent
 			return piece_length();
 	}
 
-	namespace
-	{
+namespace {
+
 		bool compare_file_offset(internal_file_entry const& lhs
 			, internal_file_entry const& rhs)
 		{
@@ -633,8 +633,8 @@ namespace libtorrent
 		return m_mtime[index];
 	}
 
-	namespace
-	{
+namespace {
+
 		template <class CRC>
 		void process_string_lowercase(CRC& crc, string_view str)
 		{
@@ -1105,8 +1105,7 @@ namespace libtorrent
 		if (index != cur_index) reorder_file(index, cur_index);
 	}
 
-	namespace aux
-	{
+namespace aux {
 
 	std::tuple<piece_index_t, piece_index_t>
 	file_piece_range_exclusive(file_storage const& fs, file_index_t const file)

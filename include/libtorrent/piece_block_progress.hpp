@@ -36,8 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/units.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	struct piece_block_progress
 	{
 		constexpr static piece_index_t invalid_index{-1};

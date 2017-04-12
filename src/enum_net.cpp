@@ -100,8 +100,8 @@ const unsigned long siocgifmtu = SIOCGIFMTU;
 #define IF_NAMESIZE IFNAMSIZ
 #endif
 
-namespace libtorrent { namespace
-{
+namespace libtorrent {namespace {
+
 
 #if !defined TORRENT_BUILD_SIMULATOR
 	address_v4 inaddr_to_address(in_addr const* ina, int const len = 4)
@@ -336,8 +336,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 
 }} // <anonymous>
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 	// return (a1 & mask) == (a2 & mask)
 	bool match_addr_mask(address const& a1, address const& a2, address const& mask)

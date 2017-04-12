@@ -52,8 +52,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #endif
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	class peer_connection;
 	class torrent;
 #ifndef TORRENT_NO_DEPRECATE
@@ -82,15 +82,15 @@ namespace libtorrent
 	struct resolver_interface;
 
 #ifndef TORRENT_DISABLE_DHT
-	namespace dht
-	{
+namespace dht {
+
 		struct dht_tracker;
 	}
 #endif
 }
 
-namespace libtorrent { namespace aux
-{
+namespace libtorrent { namespace aux {
+
 	struct proxy_settings;
 	struct session_settings;
 

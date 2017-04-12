@@ -39,8 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	namespace aux {
 
 	TORRENT_EXTRA_EXPORT int hex_to_int(char in);

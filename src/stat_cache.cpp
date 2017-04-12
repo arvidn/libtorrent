@@ -35,8 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/path.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	stat_cache::stat_cache() {}
 	stat_cache::~stat_cache() = default;
 

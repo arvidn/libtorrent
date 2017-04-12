@@ -38,8 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <memory>
 
-namespace libtorrent { namespace dht
-{
+namespace libtorrent { namespace dht {
 
 class get_item : public find_data
 {

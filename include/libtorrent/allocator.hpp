@@ -36,8 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstddef>
 #include "libtorrent/config.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 	TORRENT_EXTRA_EXPORT int page_size();
 

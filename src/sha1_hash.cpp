@@ -38,8 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iomanip>
 #endif // TORRENT_USE_IOSTREAM
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 #if TORRENT_USE_IOSTREAM
 
 	// print a sha1_hash object to an ostream as 40 hexadecimal digits
@@ -60,8 +60,8 @@ namespace libtorrent
 
 #endif // TORRENT_USE_IOSTREAM
 
-namespace aux
-{
+namespace aux {
+
 	void bits_shift_left(typed_span<std::uint32_t> number, int n)
 	{
 		TORRENT_ASSERT(n >= 0);

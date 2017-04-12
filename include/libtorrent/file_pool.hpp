@@ -43,8 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/storage_defs.hpp"
 #include "libtorrent/disk_interface.hpp" // for open_file_state
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	class file_storage;
 	struct open_file_state;
 

@@ -32,8 +32,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/torrent_status.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	file_index_t constexpr torrent_status::error_file_none;
 	file_index_t constexpr torrent_status::error_file_url;
 	file_index_t constexpr torrent_status::error_file_ssl_ctx;

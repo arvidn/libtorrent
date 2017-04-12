@@ -64,8 +64,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/config.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 	// The ``alert`` class is the base class that specific messages are derived from.
 	// alert types are not copyable, and cannot be constructed by the client. The

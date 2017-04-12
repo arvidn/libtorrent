@@ -38,8 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <intrin.h>
 #endif
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	bool bitfield::all_set() const
 	{
 		if(size() == 0) return false;

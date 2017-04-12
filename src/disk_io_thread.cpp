@@ -66,8 +66,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define DLOG(...) do {} while(false)
 #endif
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 #if TORRENT_USE_ASSERTS
 

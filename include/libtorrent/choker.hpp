@@ -34,8 +34,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp" // for time_duration
 #include <vector>
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	namespace aux { struct session_settings; }
 	class peer_connection;
 

@@ -35,8 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/units.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 	// represents a byte range within a piece. Internally this is
 	// is used for incoming piece requests.

@@ -41,8 +41,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <cstdint>
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	// this class holds information about one bittorrent tracker, as it
 	// relates to a specific torrent.
 	struct TORRENT_EXPORT announce_entry

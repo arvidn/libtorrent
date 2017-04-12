@@ -38,8 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <type_traits>
 #include "libtorrent/span.hpp"
 
-namespace libtorrent { namespace aux
-{
+namespace libtorrent { namespace aux {
+
 	template <class T> struct type {};
 
 	// reads an integer from a byte stream

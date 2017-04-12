@@ -33,8 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bloom_filter.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	bool has_bits(std::uint8_t const* k, std::uint8_t const* bits, int const len)
 	{
 		std::uint32_t idx1 = std::uint32_t(k[0]) | (std::uint32_t(k[1]) << 8);

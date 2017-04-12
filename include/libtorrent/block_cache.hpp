@@ -53,14 +53,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/vector.hpp"
 #endif
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	struct disk_io_job;
 	struct storage_interface;
 	struct cache_status;
 	struct counters;
-	namespace aux
-	{
+namespace aux {
+
 		struct session_settings;
 		struct block_cache_reference;
 	}

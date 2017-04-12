@@ -49,10 +49,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace libtorrent
-{
-	namespace
-	{
+namespace libtorrent {
+
+namespace {
+
 		inline bool default_pred(std::string const&) { return true; }
 
 		inline bool ignore_subdir(std::string const& leaf)

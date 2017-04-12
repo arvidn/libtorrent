@@ -40,8 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_connection.hpp" // for connection_type
 #include "libtorrent/error_code.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 class bt_peer_connection;
 struct torrent_handle;

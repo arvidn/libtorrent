@@ -40,8 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 
-namespace libtorrent { namespace dht
-{
+namespace libtorrent { namespace dht {
+
 struct msg;
 class node;
 

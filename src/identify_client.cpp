@@ -43,8 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_util.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 
-namespace
-{
+namespace {
+
 
 	using namespace libtorrent;
 
@@ -290,8 +290,8 @@ namespace
 			|| ((lhs.id[0] == rhs.id[0]) && (lhs.id[1] < rhs.id[1]));
 	}
 
-namespace
-{
+namespace {
+
 	static std::string lookup(fingerprint const& f)
 	{
 		char identity[200];
@@ -343,8 +343,7 @@ namespace
 	}
 }
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 #ifndef TORRENT_NO_DEPRECATE
 

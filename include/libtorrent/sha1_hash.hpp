@@ -48,11 +48,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iosfwd>
 #endif // TORRENT_USE_IOSTREAM
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	// TODO: find a better place for these functions
-	namespace aux
-	{
+namespace aux {
+
 		TORRENT_EXTRA_EXPORT void bits_shift_left(typed_span<std::uint32_t> number, int n);
 		TORRENT_EXTRA_EXPORT void bits_shift_right(typed_span<std::uint32_t> number, int n);
 	}

@@ -46,8 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/resolver_interface.hpp"
 #include "libtorrent/address.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 struct TORRENT_EXTRA_EXPORT resolver final : resolver_interface
 {

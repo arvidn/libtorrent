@@ -145,8 +145,8 @@ static_assert(sizeof(lseek(0, 0, 0)) >= 8, "64 bit file operations are required"
 
 #if TORRENT_USE_PREADV
 # if defined TORRENT_WINDOWS
-namespace
-{
+namespace {
+
 	// wrap the windows function in something that looks
 	// like preadv() and pwritev()
 
@@ -328,8 +328,8 @@ static_assert((libtorrent::file::sparse & libtorrent::file::attribute_mask) == 0
 
 #endif // TORRENT_WINDOWS
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	template <typename T>
 	std::unique_ptr<T, decltype(&std::free)> make_free_holder(T* ptr)
 	{

@@ -37,8 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/invariant_check.hpp"
 
-namespace libtorrent { namespace aux
-{
+namespace libtorrent { namespace aux {
 
 	file_progress::file_progress()
 	{
