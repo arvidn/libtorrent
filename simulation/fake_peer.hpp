@@ -49,7 +49,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace sim;
 
-namespace lt = libtorrent;
 
 struct fake_peer
 {

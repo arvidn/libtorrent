@@ -44,7 +44,7 @@ int samples[] =  {
 67, 51, 66, 52, 48, 57, 30, 51, 72, 65, 78, 56, 74, 68, 49, 66,
 63, 57, 61, 62, 64, 62, 61, 52, 67, 64, 59, 61, 69, 60, 54, 69 };
 
-using namespace libtorrent;
+using namespace lt;
 
 // make sure we react quickly for the first few samples
 TORRENT_TEST(reaction_time)

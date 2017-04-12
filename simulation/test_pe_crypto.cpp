@@ -43,8 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)
 
-using namespace libtorrent;
-namespace lt = libtorrent;
+using namespace lt;
 
 char const* pe_policy(std::uint8_t policy)
 {
@@ -54,7 +53,7 @@ char const* pe_policy(std::uint8_t policy)
 	return "unknown";
 }
 
-void display_pe_settings(libtorrent::settings_pack const& s)
+void display_pe_settings(lt::settings_pack const& s)
 {
 	std::printf("out_enc_policy - %s\tin_enc_policy - %s\n"
 		, pe_policy(s.get_int(settings_pack::out_enc_policy))

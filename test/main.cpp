@@ -65,7 +65,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #endif
 
-using namespace libtorrent;
+using namespace lt;
 
 namespace {
 
@@ -366,7 +366,7 @@ EXPORT int main(int argc, char const* argv[])
 	std::string const root_dir = current_working_directory();
 	std::string const unit_dir_prefix = combine_path(root_dir, "test_tmp_" + std::to_string(process_id) + "_");
 	std::printf("test: %s\ncwd_prefix = \"%s\"\nrnd = %x\n"
-		, executable, unit_dir_prefix.c_str(), libtorrent::random(0xffffffff));
+		, executable, unit_dir_prefix.c_str(), lt::random(0xffffffff));
 
 	if (_g_num_unit_tests == 0)
 	{

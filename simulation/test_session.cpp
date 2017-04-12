@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "settings.hpp"
 #include "create_torrent.hpp"
 
-using namespace libtorrent;
+using namespace lt;
 
 TORRENT_TEST(seed_mode)
 {

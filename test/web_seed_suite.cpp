@@ -53,8 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 
-using namespace libtorrent;
-namespace lt = libtorrent;
+using namespace lt;
 
 namespace {
 
@@ -79,7 +78,7 @@ void test_transfer(lt::session& ses, std::shared_ptr<torrent_info> torrent_file
 	, int proxy, char const* protocol, bool url_seed
 	, bool chunked_encoding, bool test_ban, bool keepalive, bool proxy_peers)
 {
-	using namespace libtorrent;
+	using namespace lt;
 
 	TORRENT_ASSERT(torrent_file->web_seeds().size() > 0);
 
@@ -278,7 +277,7 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed
 	, bool chunked_encoding, bool test_ban, bool keepalive, bool test_rename
 	, bool proxy_peers)
 {
-	using namespace libtorrent;
+	using namespace lt;
 
 	std::string save_path = "web_seed";
 	save_path += proxy_name[proxy];
@@ -408,7 +407,7 @@ int EXPORT run_http_suite(int proxy, char const* protocol, bool test_url_seed
 			pack.set_bool(settings_pack::enable_natpmp, false);
 			pack.set_bool(settings_pack::enable_upnp, false);
 			pack.set_bool(settings_pack::enable_dht, false);
-			libtorrent::session ses(pack, 0);
+			lt::session ses(pack, 0);
 
 			test_transfer(ses, torrent_file, proxy, protocol, test_url_seed
 				, chunked_encoding, test_ban, keepalive, proxy_peers);

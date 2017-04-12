@@ -49,7 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 struct torrent;
 struct peer_connection;
 
-using namespace libtorrent;
+using namespace lt;
 using namespace std::placeholders;
 
 const float sample_time = 20.f; // seconds
@@ -156,7 +156,7 @@ void run_test(connections_t& v
 	std::for_each(v.begin(), v.end()
 		, std::bind(&peer_connection::start, _1));
 
-	libtorrent::aux::session_settings s;
+	lt::aux::session_settings s;
 	int tick_interval = s.get_int(settings_pack::tick_interval);
 
 	for (int i = 0; i < int(sample_time * 1000 / tick_interval); ++i)

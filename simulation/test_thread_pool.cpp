@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_io_thread_pool.hpp"
 #include <condition_variable>
 
-namespace lt = libtorrent;
 
 struct test_threads : lt::pool_thread_interface
 {

@@ -31,7 +31,6 @@ For example:
 	#include <libtorrent/torrent_handle.hpp>
 	#include <libtorrent/magnet_uri.hpp>
 
-	namespace lt = libtorrent;
 	int main(int argc, char const* argv[])
 	{
 		if (argc != 2) {

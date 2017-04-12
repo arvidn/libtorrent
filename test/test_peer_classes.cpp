@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_class_type_filter.hpp"
 #include "libtorrent/aux_/path.hpp"
 
-using namespace libtorrent;
+using namespace lt;
 
 std::string class_name(peer_class_t id, peer_class_pool const& p)
 {
@@ -90,24 +90,24 @@ TORRENT_TEST(peer_class)
 
 	for (int i = 0; i < 5; ++i)
 	{
-		TEST_CHECK(filter.apply((libtorrent::peer_class_type_filter::socket_type_t)i
+		TEST_CHECK(filter.apply((lt::peer_class_type_filter::socket_type_t)i
 			, 0xffffffff) == 0xffffffff);
 	}
 
-	filter.disallow((libtorrent::peer_class_type_filter::socket_type_t)0, peer_class_t{0});
-	TEST_CHECK(filter.apply((libtorrent::peer_class_type_filter::socket_type_t)0
+	filter.disallow((lt::peer_class_type_filter::socket_type_t)0, peer_class_t{0});
+	TEST_CHECK(filter.apply((lt::peer_class_type_filter::socket_type_t)0
 		, 0xffffffff) == 0xfffffffe);
-	TEST_CHECK(filter.apply((libtorrent::peer_class_type_filter::socket_type_t)1
+	TEST_CHECK(filter.apply((lt::peer_class_type_filter::socket_type_t)1
 		, 0xffffffff) == 0xffffffff);
-	filter.allow((libtorrent::peer_class_type_filter::socket_type_t)0, peer_class_t{0});
-	TEST_CHECK(filter.apply((libtorrent::peer_class_type_filter::socket_type_t)0
+	filter.allow((lt::peer_class_type_filter::socket_type_t)0, peer_class_t{0});
+	TEST_CHECK(filter.apply((lt::peer_class_type_filter::socket_type_t)0
 		, 0xffffffff) == 0xffffffff);
 
-	TEST_CHECK(filter.apply((libtorrent::peer_class_type_filter::socket_type_t)0, 0) == 0);
-	filter.add((libtorrent::peer_class_type_filter::socket_type_t)0, peer_class_t{0});
-	TEST_CHECK(filter.apply((libtorrent::peer_class_type_filter::socket_type_t)0, 0) == 1);
-	filter.remove((libtorrent::peer_class_type_filter::socket_type_t)0, peer_class_t{0});
-	TEST_CHECK(filter.apply((libtorrent::peer_class_type_filter::socket_type_t)0, 0) == 0);
+	TEST_CHECK(filter.apply((lt::peer_class_type_filter::socket_type_t)0, 0) == 0);
+	filter.add((lt::peer_class_type_filter::socket_type_t)0, peer_class_t{0});
+	TEST_CHECK(filter.apply((lt::peer_class_type_filter::socket_type_t)0, 0) == 1);
+	filter.remove((lt::peer_class_type_filter::socket_type_t)0, peer_class_t{0});
+	TEST_CHECK(filter.apply((lt::peer_class_type_filter::socket_type_t)0, 0) == 0);
 
 	pool.decref(id2);
 	pool.decref(id1);

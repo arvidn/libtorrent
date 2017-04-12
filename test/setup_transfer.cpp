@@ -67,8 +67,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <csignal>
 #endif
 
-using namespace libtorrent;
-namespace lt = libtorrent;
+using namespace lt;
 
 #if defined TORRENT_WINDOWS
 #include <conio.h>
@@ -121,22 +120,22 @@ address rand_v6()
 
 static std::uint16_t g_port = 0;
 
-tcp::endpoint rand_tcp_ep(libtorrent::address(&rand_addr)())
+tcp::endpoint rand_tcp_ep(lt::address(&rand_addr)())
 {
 	// make sure we don't produce the same "random" port twice
 	g_port = (g_port + 1) % 14038;
 	return tcp::endpoint(rand_addr(), g_port + 1024);
 }
 
-udp::endpoint rand_udp_ep(libtorrent::address(&rand_addr)())
+udp::endpoint rand_udp_ep(lt::address(&rand_addr)())
 {
 	g_port = (g_port + 1) % 14037;
 	return udp::endpoint(rand_addr(), g_port + 1024);
 }
 
-std::map<std::string, std::int64_t> get_counters(libtorrent::session& s)
+std::map<std::string, std::int64_t> get_counters(lt::session& s)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	s.post_session_stats();
 
 	std::map<std::string, std::int64_t> ret;
@@ -177,7 +176,7 @@ bool should_print(lt::alert* a)
 }
 alert const* wait_for_alert(lt::session& ses, int type, char const* name, int num)
 {
-	time_point end_time = libtorrent::clock_type::now() + seconds(10);
+	time_point end_time = lt::clock_type::now() + seconds(10);
 	while (true)
 	{
 		time_point now = clock_type::now();
@@ -206,7 +205,7 @@ alert const* wait_for_alert(lt::session& ses, int type, char const* name, int nu
 }
 
 int load_file(std::string const& filename, std::vector<char>& v
-	, libtorrent::error_code& ec, int limit)
+	, lt::error_code& ec, int limit)
 {
 	ec.clear();
 	FILE* f = fopen(filename.c_str(), "rb");
@@ -269,7 +268,7 @@ int load_file(std::string const& filename, std::vector<char>& v
 
 bool print_alerts(lt::session& ses, char const* name
 	, bool allow_no_torrents, bool allow_failed_fastresume
-	, std::function<bool(libtorrent::alert const*)> predicate, bool no_output)
+	, std::function<bool(lt::alert const*)> predicate, bool no_output)
 {
 	bool ret = false;
 	std::vector<torrent_handle> handles = ses.get_torrents();
@@ -309,7 +308,7 @@ void wait_for_listen(lt::session& ses, char const* name)
 	alert const* a = nullptr;
 	do
 	{
-		print_alerts(ses, name, true, true, [&listen_done](libtorrent::alert const* al)
+		print_alerts(ses, name, true, true, [&listen_done](lt::alert const* al)
 			{
 				if (alert_cast<listen_failed_alert>(al)
 					|| alert_cast<listen_succeeded_alert>(al))
@@ -332,7 +331,7 @@ void wait_for_downloading(lt::session& ses, char const* name)
 	alert const* a = nullptr;
 	do
 	{
-		print_alerts(ses, name, true, true, [&downloading_done](libtorrent::alert const* al)
+		print_alerts(ses, name, true, true, [&downloading_done](lt::alert const* al)
 			{
 				state_changed_alert const* sc = alert_cast<state_changed_alert>(al);
 				if (sc && sc->state == torrent_status::downloading)
@@ -352,9 +351,9 @@ void wait_for_downloading(lt::session& ses, char const* name)
 }
 
 void print_ses_rate(float const time
-	, libtorrent::torrent_status const* st1
-	, libtorrent::torrent_status const* st2
-	, libtorrent::torrent_status const* st3)
+	, lt::torrent_status const* st1
+	, lt::torrent_status const* st2
+	, lt::torrent_status const* st3)
 {
 	if (st1)
 	{
@@ -493,7 +492,7 @@ void stop_all_proxies()
 // returns a port on success and -1 on failure
 int start_proxy(int proxy_type)
 {
-	using namespace libtorrent;
+	using namespace lt;
 
 	std::map<int, proxy_t> :: iterator i = running_proxies.begin();
 	for (; i != running_proxies.end(); ++i)
@@ -560,7 +559,7 @@ int start_proxy(int proxy_type)
 	return port;
 }
 
-using namespace libtorrent;
+using namespace lt;
 
 template <class T>
 std::shared_ptr<T> clone_ptr(std::shared_ptr<T> const& ptr)
@@ -573,7 +572,7 @@ std::uint8_t random_byte()
 
 std::vector<char> generate_piece(piece_index_t const idx, int const piece_size)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	std::vector<char> ret(static_cast<std::size_t>(piece_size));
 
 	std::mt19937 rng(static_cast<std::uint32_t>(static_cast<int>(idx)));
@@ -588,7 +587,7 @@ std::vector<char> generate_piece(piece_index_t const idx, int const piece_size)
 lt::file_storage make_file_storage(const int file_sizes[], int num_files
 	, int const piece_size, std::string base_name)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	file_storage fs;
 	for (int i = 0; i != num_files; ++i)
 	{
@@ -611,11 +610,11 @@ lt::file_storage make_file_storage(const int file_sizes[], int num_files
 std::shared_ptr<lt::torrent_info> make_torrent(const int file_sizes[]
 	, int const num_files, int const piece_size)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	file_storage fs = make_file_storage(file_sizes, num_files, piece_size);
 
-	libtorrent::create_torrent ct(fs, piece_size, 0x4000
-		, libtorrent::create_torrent::optimize_alignment);
+	lt::create_torrent ct(fs, piece_size, 0x4000
+		, lt::create_torrent::optimize_alignment);
 
 	for (piece_index_t i(0); i < fs.end_piece(); ++i)
 	{
@@ -674,7 +673,7 @@ std::shared_ptr<torrent_info> create_torrent(std::ostream* file
 	file_storage fs;
 	int total_size = piece_size * num_pieces;
 	fs.add_file(name, total_size);
-	libtorrent::create_torrent t(fs, piece_size);
+	lt::create_torrent t(fs, piece_size);
 	if (add_tracker)
 	{
 		t.add_tracker(invalid_tracker_url);
@@ -977,7 +976,7 @@ udp::endpoint uep(char const* ip, int port)
 	return ret;
 }
 
-libtorrent::address addr(char const* ip)
+lt::address addr(char const* ip)
 {
 	lt::error_code ec;
 	auto ret = lt::address::from_string(ip, ec);
@@ -985,7 +984,7 @@ libtorrent::address addr(char const* ip)
 	return ret;
 }
 
-libtorrent::address_v4 addr4(char const* ip)
+lt::address_v4 addr4(char const* ip)
 {
 	lt::error_code ec;
 	auto ret = lt::address_v4::from_string(ip, ec);
@@ -994,7 +993,7 @@ libtorrent::address_v4 addr4(char const* ip)
 }
 
 #if TORRENT_USE_IPV6
-libtorrent::address_v6 addr6(char const* ip)
+lt::address_v6 addr6(char const* ip)
 {
 	lt::error_code ec;
 	auto ret = lt::address_v6::from_string(ip, ec);

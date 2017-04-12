@@ -44,7 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 #include <utility>
 
-using namespace libtorrent;
+using namespace lt;
 using namespace std::placeholders;
 
 peer_conn::peer_conn(io_service& ios
@@ -130,7 +130,7 @@ void peer_conn::on_handshake2(error_code const& ec, size_t)
 
 void peer_conn::write_have_all()
 {
-	using namespace libtorrent::detail;
+	using namespace lt::detail;
 
 	if (fast_extension)
 	{
@@ -180,7 +180,7 @@ void peer_conn::on_have_all_sent(error_code const& ec, size_t)
 
 bool peer_conn::write_request()
 {
-	using namespace libtorrent::detail;
+	using namespace lt::detail;
 
 	// if we're choked (and there are no allowed-fast pieces left)
 	if (choked && allowed_fast.empty() && !m_current_piece_is_allowed) return false;
@@ -309,7 +309,7 @@ void peer_conn::work_download()
 
 void peer_conn::on_msg_length(error_code const& ec, size_t)
 {
-	using namespace libtorrent::detail;
+	using namespace lt::detail;
 
 	if ((ec == boost::asio::error::operation_aborted || ec == boost::asio::error::bad_descriptor)
 		&& restarting)
@@ -346,7 +346,7 @@ void peer_conn::on_msg_length(error_code const& ec, size_t)
 
 void peer_conn::on_message(error_code const& ec, size_t bytes_transferred)
 {
-	using namespace libtorrent::detail;
+	using namespace lt::detail;
 
 	if ((ec == boost::asio::error::operation_aborted || ec == boost::asio::error::bad_descriptor)
 		&& restarting)
@@ -405,7 +405,7 @@ void peer_conn::on_message(error_code const& ec, size_t bytes_transferred)
 		{
 			int piece = detail::read_int32(ptr);
 			if (pieces.empty()) pieces.push_back(piece);
-			else pieces.insert(pieces.begin() + static_cast<int>(libtorrent::random(static_cast<std::uint32_t>(pieces.size()))), piece);
+			else pieces.insert(pieces.begin() + static_cast<int>(lt::random(static_cast<std::uint32_t>(pieces.size()))), piece);
 		}
 		else if (msg == 5) // bitfield
 		{
@@ -528,7 +528,7 @@ bool peer_conn::verify_piece(int piece, int start, char const* ptr, int size)
 */
 void peer_conn::write_piece(int piece, int start, int length)
 {
-	using namespace libtorrent::detail;
+	using namespace lt::detail;
 
 //	generate_block(write_buffer, piece, start, length);
 
@@ -547,7 +547,7 @@ void peer_conn::write_piece(int piece, int start, int length)
 
 void peer_conn::write_have(int piece)
 {
-	using namespace libtorrent::detail;
+	using namespace lt::detail;
 
 	char* ptr = write_buf_proto.data();
 	write_uint32(5, ptr);

@@ -43,9 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/torrent_info.hpp"
 
-using namespace libtorrent;
+using namespace lt;
 using namespace sim;
-namespace lt = libtorrent;
 
 using chrono::duration_cast;
 

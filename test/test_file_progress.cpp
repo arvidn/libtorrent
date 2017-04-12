@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/piece_picker.hpp"
 
-using namespace libtorrent;
+using namespace lt;
 
 TORRENT_TEST(init)
 {

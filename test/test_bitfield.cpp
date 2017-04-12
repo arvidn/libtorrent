@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/cpuid.hpp"
 #include <cstdlib>
 
-using namespace libtorrent;
+using namespace lt;
 
 void print_bitfield(bitfield const& b)
 {

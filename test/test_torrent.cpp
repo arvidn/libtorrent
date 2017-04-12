@@ -48,8 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "setup_transfer.hpp"
 
-using namespace libtorrent;
-namespace lt = libtorrent;
+using namespace lt;
 
 void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_size)
 {
@@ -186,7 +185,7 @@ TORRENT_TEST(total_wanted)
 	fs.add_file("test_torrent_dir4/tmp3", 1024);
 	fs.add_file("test_torrent_dir4/tmp4", 1024);
 
-	libtorrent::create_torrent t(fs, 1024);
+	lt::create_torrent t(fs, 1024);
 	std::vector<char> tmp;
 	bencode(std::back_inserter(tmp), t.generate());
 	error_code ec;
@@ -224,7 +223,7 @@ TORRENT_TEST(added_peers)
 
 	fs.add_file("test_torrent_dir4/tmp1", 1024);
 
-	libtorrent::create_torrent t(fs, 1024);
+	lt::create_torrent t(fs, 1024);
 	std::vector<char> tmp;
 	bencode(std::back_inserter(tmp), t.generate());
 	error_code ec;
@@ -261,7 +260,7 @@ TORRENT_TEST(torrent)
 		fs.add_file("test_torrent_dir2/tmp1", file_size);
 		fs.add_file("test_torrent_dir2/tmp2", file_size);
 		fs.add_file("test_torrent_dir2/tmp3", file_size);
-		libtorrent::create_torrent t(fs, 128 * 1024);
+		lt::create_torrent t(fs, 128 * 1024);
 		t.add_tracker("http://non-existing.com/announce");
 
 		std::vector<char> piece(128 * 1024);
@@ -289,7 +288,7 @@ TORRENT_TEST(torrent)
 		file_storage fs;
 
 		fs.add_file("test_torrent_dir2/tmp1", 1024);
-		libtorrent::create_torrent t(fs, 128 * 1024, 6);
+		lt::create_torrent t(fs, 128 * 1024, 6);
 
 		std::vector<char> piece(128 * 1024);
 		for (int i = 0; i < int(piece.size()); ++i)
@@ -311,13 +310,13 @@ TORRENT_TEST(torrent)
 }
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-struct test_plugin : libtorrent::torrent_plugin {};
+struct test_plugin : lt::torrent_plugin {};
 
 struct plugin_creator
 {
 	explicit plugin_creator(int& c) : m_called(c) {}
 
-	std::shared_ptr<libtorrent::torrent_plugin>
+	std::shared_ptr<lt::torrent_plugin>
 	operator()(torrent_handle const&, void*)
 	{
 		++m_called;
@@ -332,7 +331,7 @@ TORRENT_TEST(duplicate_is_not_error)
 	file_storage fs;
 
 	fs.add_file("test_torrent_dir2/tmp1", 1024);
-	libtorrent::create_torrent t(fs, 128 * 1024, 6);
+	lt::create_torrent t(fs, 128 * 1024, 6);
 
 	std::vector<char> piece(128 * 1024);
 	for (int i = 0; i < int(piece.size()); ++i)
@@ -381,7 +380,7 @@ TORRENT_TEST(torrent_total_size_zero)
 	TEST_CHECK(fs.total_size() == 0);
 
 	ec.clear();
-	libtorrent::create_torrent t1(fs);
+	lt::create_torrent t1(fs);
 	set_piece_hashes(t1, ".", ec);
 	TEST_CHECK(ec);
 
@@ -390,7 +389,7 @@ TORRENT_TEST(torrent_total_size_zero)
 	TEST_CHECK(fs.total_size() == 0);
 
 	ec.clear();
-	libtorrent::create_torrent t2(fs);
+	lt::create_torrent t2(fs);
 	set_piece_hashes(t2, ".", ec);
 	TEST_CHECK(ec);
 }
@@ -401,7 +400,7 @@ TORRENT_TEST(rename_file)
 
 	fs.add_file("test3/tmp1", 20);
 	fs.add_file("test3/tmp2", 20);
-	libtorrent::create_torrent t(fs, 128 * 1024, 6);
+	lt::create_torrent t(fs, 128 * 1024, 6);
 
 	std::vector<char> tmp;
 	std::back_insert_iterator<std::vector<char>> out(tmp);
@@ -466,7 +465,7 @@ TORRENT_TEST(queue)
 		std::stringstream file_path;
 		file_path << "test_torrent_dir4/queue" << i;
 		fs.add_file(file_path.str(), 1024);
-		libtorrent::create_torrent t(fs, 128 * 1024, 6);
+		lt::create_torrent t(fs, 128 * 1024, 6);
 
 		std::vector<char> buf;
 		bencode(std::back_inserter(buf), t.generate());

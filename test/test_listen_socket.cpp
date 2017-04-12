@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 
-using namespace libtorrent;
+using namespace lt;
 
 namespace
 {

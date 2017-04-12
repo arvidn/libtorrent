@@ -49,7 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <memory>
 
-using namespace libtorrent;
+using namespace lt;
 
 struct choke_state
 {
@@ -63,7 +63,7 @@ TORRENT_TEST(optimistic_unchoke)
 {
 	int const num_nodes = 20;
 	lt::time_duration const test_duration
-		= libtorrent::seconds(num_nodes * 90);
+		= lt::seconds(num_nodes * 90);
 
 	dsl_config network_cfg;
 	sim::simulation sim{network_cfg};
@@ -71,7 +71,7 @@ TORRENT_TEST(optimistic_unchoke)
 	io_service ios(sim, addr("50.1.0.0"));
 	lt::time_point start_time(lt::clock_type::now());
 
-	libtorrent::add_torrent_params atp = create_torrent(0);
+	lt::add_torrent_params atp = create_torrent(0);
 	atp.flags &= ~add_torrent_params::flag_auto_managed;
 	atp.flags &= ~add_torrent_params::flag_paused;
 

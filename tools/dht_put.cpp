@@ -44,14 +44,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cinttypes> // for PRId64 et.al.
 #include <cstdlib>
 
-using namespace libtorrent;
-using namespace libtorrent::dht;
+using namespace lt;
+using namespace lt::dht;
 using namespace std::placeholders;
-namespace lt = libtorrent;
 
 // TODO: don't use internal functions to libtorrent
-using libtorrent::aux::from_hex;
-using libtorrent::aux::to_hex;
+using lt::aux::from_hex;
+using lt::aux::to_hex;
 
 #ifdef TORRENT_DISABLE_DHT
 
@@ -121,7 +120,7 @@ void put_string(entry& e, std::array<char, 64>& sig
 	, std::array<char, 64> const& sk
 	, char const* str)
 {
-	using libtorrent::dht::sign_mutable_item;
+	using lt::dht::sign_mutable_item;
 
 	e = std::string(str);
 	std::vector<char> buf;

@@ -37,13 +37,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm> // for std::max
 
-namespace lt = libtorrent;
-
 session_view::session_view()
 	: m_position(0)
 	, m_print_utp_stats(false)
 {
-	using libtorrent::find_metric_idx;
+	using lt::find_metric_idx;
 
 	m_width = 128;
 

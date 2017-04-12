@@ -52,7 +52,7 @@ namespace boost
 #include "boost_python.hpp"
 
 using namespace boost::python;
-using namespace libtorrent;
+using namespace lt;
 using boost::system::error_category;
 
 namespace {
@@ -86,17 +86,17 @@ namespace {
 			int const value = extract<int>(state[0]);
 			std::string const category = extract<std::string>(state[1]);
 			if (category == "system")
-				ec.assign(value, libtorrent::system_category());
+				ec.assign(value, lt::system_category());
 			else if (category == "generic")
-				ec.assign(value, libtorrent::generic_category());
+				ec.assign(value, lt::generic_category());
 			else if (category == "libtorrent")
-				ec.assign(value, libtorrent::libtorrent_category());
+				ec.assign(value, lt::libtorrent_category());
 			else if (category == "http error")
-				ec.assign(value, libtorrent::http_category());
+				ec.assign(value, lt::http_category());
 			else if (category == "UPnP error")
-				ec.assign(value, libtorrent::upnp_category());
+				ec.assign(value, lt::upnp_category());
 			else if (category == "bdecode error")
-				ec.assign(value, libtorrent::bdecode_category());
+				ec.assign(value, lt::bdecode_category());
 			else if (category == "asio.netdb")
 				ec.assign(value, boost::asio::error::get_netdb_category());
 			else if (category == "asio.addinfo")

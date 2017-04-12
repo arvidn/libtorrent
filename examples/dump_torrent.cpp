@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/magnet_uri.hpp"
 
 int load_file(std::string const& filename, std::vector<char>& v
-	, libtorrent::error_code& ec, int limit = 8000000)
+	, lt::error_code& ec, int limit = 8000000)
 {
 	ec.clear();
 	FILE* f = std::fopen(filename.c_str(), "rb");
@@ -104,7 +104,7 @@ int load_file(std::string const& filename, std::vector<char>& v
 
 int main(int argc, char* argv[])
 {
-	using namespace libtorrent;
+	using namespace lt;
 
 	if (argc < 2 || argc > 4)
 	{

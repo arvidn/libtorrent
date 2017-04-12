@@ -48,8 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 void test_pex()
 {
-	using namespace libtorrent;
-	namespace lt = libtorrent;
+	using namespace lt;
 
 	// these are declared before the session objects
 	// so that they are destructed last. This enables
@@ -151,7 +150,7 @@ void test_pex()
 TORRENT_TEST(pex)
 {
 #ifndef TORRENT_DISABLE_EXTENSIONS
-	using namespace libtorrent;
+	using namespace lt;
 
 	// in case the previous run was terminated
 	error_code ec;

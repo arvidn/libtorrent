@@ -49,13 +49,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 #include <memory>
 
-using namespace libtorrent;
+using namespace lt;
 using namespace std::placeholders;
 
 struct dht_server
 {
 
-	libtorrent::io_service m_ios;
+	lt::io_service m_ios;
 	std::atomic<int> m_dht_requests;
 	udp::socket m_socket;
 	int m_port;

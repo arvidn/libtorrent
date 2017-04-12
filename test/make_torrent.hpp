@@ -59,9 +59,9 @@ struct torrent_args
 	std::string m_http_seed;
 };
 
-EXPORT std::shared_ptr<libtorrent::torrent_info>
+EXPORT std::shared_ptr<lt::torrent_info>
 	make_test_torrent(torrent_args const& args);
 
-EXPORT void generate_files(libtorrent::torrent_info const& ti, std::string const& path, bool random = false);
+EXPORT void generate_files(lt::torrent_info const& ti, std::string const& path, bool random = false);
 
 #endif

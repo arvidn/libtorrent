@@ -634,4 +634,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #endif // TORRENT_HAS_ARM_CRC32
 
+namespace libtorrent {}
+
+// create alias
+namespace lt = libtorrent;
+
 #endif // TORRENT_CONFIG_HPP_INCLUDED

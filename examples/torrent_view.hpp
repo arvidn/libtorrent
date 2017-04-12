@@ -40,7 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/fwd.hpp"
 #include "libtorrent/torrent_status.hpp"
 
-namespace lt = libtorrent;
 
 struct torrent_view
 {

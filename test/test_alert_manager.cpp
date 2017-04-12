@@ -40,8 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 #include <thread>
 
-namespace lt = libtorrent;
-using namespace libtorrent;
+using namespace lt;
 
 TORRENT_TEST(limit)
 {
@@ -151,7 +150,7 @@ TORRENT_TEST(notify_function)
 #ifndef TORRENT_DISABLE_EXTENSIONS
 int plugin_alerts[3] = { 0, 0, 0 };
 
-struct test_plugin : libtorrent::plugin
+struct test_plugin : lt::plugin
 {
 	explicit test_plugin(int index) : m_index(index) {}
 	void on_alert(alert const* a) override

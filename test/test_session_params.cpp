@@ -41,9 +41,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "setup_transfer.hpp"
 
-using namespace libtorrent;
-using namespace libtorrent::dht;
-namespace lt = libtorrent;
+using namespace lt;
+using namespace lt::dht;
 
 namespace
 {

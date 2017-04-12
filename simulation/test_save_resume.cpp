@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/write_resume_data.hpp"
 #include "settings.hpp"
 
-using namespace libtorrent;
+using namespace lt;
 
 TORRENT_TEST(seed_and_suggest_mode)
 {

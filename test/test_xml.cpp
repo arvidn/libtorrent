@@ -263,7 +263,7 @@ char upnp_xml4[] =
 "</s:Body>"
 "</s:Envelope>";
 
-using namespace libtorrent;
+using namespace lt;
 using namespace std::placeholders;
 
 void parser_callback(std::string& out, int token, string_view s

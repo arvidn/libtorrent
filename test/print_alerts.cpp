@@ -36,10 +36,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "print_alerts.hpp"
 
-void print_alerts(libtorrent::session* ses, libtorrent::time_point start_time)
+void print_alerts(lt::session* ses, lt::time_point start_time)
 {
-	using namespace libtorrent;
-	namespace lt = libtorrent;
+	using namespace lt;
 
 	if (ses == nullptr) return;
 

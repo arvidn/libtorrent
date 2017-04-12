@@ -50,9 +50,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <boost/crc.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-using namespace libtorrent;
+using namespace lt;
 using namespace sim;
-namespace lt = libtorrent;
 namespace io = lt::detail;
 
 using chrono::duration_cast;

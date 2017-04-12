@@ -48,7 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <direct.h> // for _getcwd
 #endif
 
-using namespace libtorrent;
+using namespace lt;
 using namespace std::placeholders;
 
 std::vector<char> load_file(std::string const& filename)
@@ -162,7 +162,7 @@ void print_usage()
 
 int main(int argc, char* argv[])
 {
-	using namespace libtorrent;
+	using namespace lt;
 
 	std::string creator_str = "libtorrent";
 	std::string comment_str;

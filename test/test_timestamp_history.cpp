@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 TORRENT_TEST(timestamp_history)
 {
-	using namespace libtorrent;
+	using namespace lt;
 
 	timestamp_history h;
 	TEST_EQUAL(h.add_sample(0x32, false), 0);

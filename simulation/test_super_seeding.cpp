@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/settings_pack.hpp"
 #include "test.hpp"
 
-using namespace libtorrent;
+using namespace lt;
 
 TORRENT_TEST(super_seeding)
 {

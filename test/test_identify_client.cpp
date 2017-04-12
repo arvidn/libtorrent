@@ -33,7 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test.hpp"
 #include "libtorrent/identify_client.hpp"
 
-using namespace libtorrent;
+using namespace lt;
 
 TORRENT_TEST(identify_client)
 {

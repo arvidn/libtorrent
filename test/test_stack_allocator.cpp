@@ -34,9 +34,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/stack_allocator.hpp"
 #include "libtorrent/string_view.hpp"
 
-using libtorrent::aux::stack_allocator;
-using libtorrent::aux::allocation_slot;
-using namespace libtorrent::literals;
+using lt::aux::stack_allocator;
+using lt::aux::allocation_slot;
+using namespace lt::literals;
 
 TORRENT_TEST(copy_string)
 {
@@ -55,7 +55,7 @@ TORRENT_TEST(copy_string)
 TORRENT_TEST(copy_buffer)
 {
 	stack_allocator a;
-	allocation_slot const idx1 = a.copy_buffer(libtorrent::span<char const>("testing"));
+	allocation_slot const idx1 = a.copy_buffer(lt::span<char const>("testing"));
 
 	// attempt to trigger a reallocation
 	a.allocate(100000);

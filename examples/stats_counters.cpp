@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdio> // for snprintf
 #include <cinttypes> // for PRId64 et.al.
 
-using namespace libtorrent;
+using namespace lt;
 
 int main()
 {

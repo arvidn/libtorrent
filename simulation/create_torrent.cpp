@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/path.hpp"
 #include <fstream>
 
-namespace lt = libtorrent;
 
 std::string save_path(int idx)
 {

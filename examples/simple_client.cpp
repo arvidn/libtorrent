@@ -38,8 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 int main(int argc, char* argv[])
 {
-	using namespace libtorrent;
-	namespace lt = libtorrent;
+	using namespace lt;
 
 	if (argc != 2)
 	{

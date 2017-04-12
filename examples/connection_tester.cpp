@@ -58,8 +58,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 #endif
 
-using namespace libtorrent;
-using namespace libtorrent::detail; // for write_* and read_*
+using namespace lt;
+using namespace lt::detail; // for write_* and read_*
 
 using namespace std::placeholders;
 
@@ -770,7 +770,7 @@ void print_usage()
 	exit(1);
 }
 
-void hasher_thread(libtorrent::create_torrent* t, piece_index_t const start_piece
+void hasher_thread(lt::create_torrent* t, piece_index_t const start_piece
 	, piece_index_t const end_piece, int piece_size, bool print)
 {
 	if (print) std::fprintf(stderr, "\n");
@@ -817,7 +817,7 @@ void generate_torrent(std::vector<char>& buf, int size, int num_files
 		file_size += 200;
 	}
 
-	libtorrent::create_torrent t(fs, piece_size);
+	lt::create_torrent t(fs, piece_size);
 
 	int const num_threads = std::thread::hardware_concurrency()
 		? std::thread::hardware_concurrency() : 4;
@@ -1003,7 +1003,7 @@ int main(int argc, char* argv[])
 			}
 			// 1 MiB piece size
 			const int piece_size = 1024 * 1024;
-			libtorrent::create_torrent t(fs, piece_size);
+			lt::create_torrent t(fs, piece_size);
 			sha1_hash zero(nullptr);
 			for (piece_index_t k(0); k < fs.end_piece(); ++k)
 				t.set_hash(k, zero);

@@ -64,8 +64,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "setup_transfer.hpp"
 
-using namespace libtorrent;
-using namespace libtorrent::dht;
+using namespace lt;
+using namespace lt::dht;
 using namespace std::placeholders;
 
 namespace {
@@ -179,7 +179,7 @@ entry write_peers(std::set<tcp::endpoint> const& peers)
 	{
 		std::string endpoint(18, '\0');
 		std::string::iterator out = endpoint.begin();
-		libtorrent::detail::write_endpoint(p, out);
+		lt::detail::write_endpoint(p, out);
 		endpoint.resize(out - endpoint.begin());
 		pe.push_back(entry(endpoint));
 	}

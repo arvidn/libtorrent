@@ -47,7 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "test.hpp"
 
-using namespace libtorrent;
+using namespace lt;
 using namespace std::placeholders;
 
 const int blocks_per_piece = 4;

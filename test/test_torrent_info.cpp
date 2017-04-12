@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 
-using namespace libtorrent;
+using namespace lt;
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 TORRENT_TEST(mutable_torrents)
@@ -50,7 +50,7 @@ TORRENT_TEST(mutable_torrents)
 
 	fs.add_file("test/temporary.txt", 0x4000);
 
-	libtorrent::create_torrent t(fs, 0x4000);
+	lt::create_torrent t(fs, 0x4000);
 
 	// calculate the hash for all pieces
 	sha1_hash ph;
@@ -89,7 +89,7 @@ struct test_torrent_t
 	char const* file;
 };
 
-using namespace libtorrent;
+using namespace lt;
 
 static test_torrent_t test_torrents[] =
 {
@@ -799,7 +799,7 @@ void test_resolve_duplicates(int test_case)
 			break;
 	}
 
-	libtorrent::create_torrent t(fs, 0x4000);
+	lt::create_torrent t(fs, 0x4000);
 
 	// calculate the hash for all pieces
 	sha1_hash ph;
@@ -883,7 +883,7 @@ TORRENT_TEST(empty_file2)
 
 TORRENT_TEST(copy)
 {
-	using namespace libtorrent;
+	using namespace lt;
 
 	std::shared_ptr<torrent_info> a = std::make_shared<torrent_info>(
 		combine_path(parent_path(current_working_directory())

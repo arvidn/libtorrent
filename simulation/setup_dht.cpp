@@ -48,9 +48,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "setup_dht.hpp"
 
-namespace lt = libtorrent;
 using namespace sim;
-using namespace libtorrent;
+using namespace lt;
 
 #ifndef TORRENT_DISABLE_DHT
 
@@ -150,8 +149,8 @@ struct dht_node final : lt::dht::socket_manager, lt::aux::session_listen_socket
 	{
 		if (ec) return;
 
-		using libtorrent::entry;
-		using libtorrent::bdecode;
+		using lt::entry;
+		using lt::bdecode;
 
 		int pos;
 		error_code err;
@@ -164,7 +163,7 @@ struct dht_node final : lt::dht::socket_manager, lt::aux::session_listen_socket
 
 		if (msg.type() != bdecode_node::dict_t) return;
 
-		libtorrent::dht::msg m(msg, m_ep);
+		lt::dht::msg m(msg, m_ep);
 		dht().incoming(m);
 
 		sock().async_receive_from(asio::mutable_buffers_1(m_buffer, sizeof(m_buffer))

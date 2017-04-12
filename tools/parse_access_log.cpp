@@ -40,8 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdio>
 #include <cinttypes> // for PRId64 et.al.
 
-using namespace libtorrent;
-using namespace libtorrent::detail; // for write_* and read_*
+using namespace lt;
+using namespace lt::detail; // for write_* and read_*
 
 void print_usage()
 {

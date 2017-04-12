@@ -49,8 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 #include <iostream>
 
-using namespace libtorrent;
-namespace lt = libtorrent;
+using namespace lt;
 
 using std::ignore;
 
@@ -358,7 +357,7 @@ void cleanup()
 #ifndef TORRENT_NO_DEPRECATE
 TORRENT_TEST(no_contiguous_buffers)
 {
-	using namespace libtorrent;
+	using namespace lt;
 
 	// test no contiguous_recv_buffers
 	settings_pack p;
@@ -372,28 +371,28 @@ TORRENT_TEST(no_contiguous_buffers)
 	// test with all kinds of proxies
 TORRENT_TEST(socks5_pw)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	test_transfer(settings_pack::socks5_pw, settings_pack());
 	cleanup();
 }
 
 TORRENT_TEST(http)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	test_transfer(settings_pack::http, settings_pack());
 	cleanup();
 }
 
 TORRENT_TEST(http_pw)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	test_transfer(settings_pack::http_pw, settings_pack());
 	cleanup();
 }
 /*
 TORRENT_TEST(i2p)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	test_transfer(settings_pack::i2p_proxy, settings_pack());
 	cleanup();
 }
@@ -401,7 +400,7 @@ TORRENT_TEST(i2p)
 // this test is too flaky. Move it to a sim
 TORRENT_TEST(disk_full)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	// test with a (simulated) full disk
 	test_transfer(0, settings_pack(), true);
 
@@ -411,7 +410,7 @@ TORRENT_TEST(disk_full)
 
 TORRENT_TEST(allow_fast)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	// test allowed fast
 	settings_pack p;
 	p.set_int(settings_pack::allowed_fast_set_size, 2000);
@@ -422,7 +421,7 @@ TORRENT_TEST(allow_fast)
 
 TORRENT_TEST(coalesce_reads)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	// test allowed fast
 	settings_pack p;
 	p.set_int(settings_pack::read_cache_line_size, 16);
@@ -434,7 +433,7 @@ TORRENT_TEST(coalesce_reads)
 
 TORRENT_TEST(coalesce_writes)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	// test allowed fast
 	settings_pack p;
 	p.set_bool(settings_pack::coalesce_writes, true);
@@ -446,7 +445,7 @@ TORRENT_TEST(coalesce_writes)
 
 TORRENT_TEST(allocate)
 {
-	using namespace libtorrent;
+	using namespace lt;
 	// test storage_mode_allocate
 	std::printf("full allocation mode\n");
 	test_transfer(0, settings_pack(), false, storage_mode_allocate);

@@ -10,7 +10,7 @@
 #include "bytes.hpp"
 
 using namespace boost::python;
-using namespace libtorrent;
+using namespace lt;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -65,16 +65,16 @@ namespace
 
     struct FileIter
     {
-        typedef libtorrent::file_entry value_type;
-        typedef libtorrent::file_entry reference;
-        typedef libtorrent::file_entry* pointer;
+        typedef lt::file_entry value_type;
+        typedef lt::file_entry reference;
+        typedef lt::file_entry* pointer;
         typedef int difference_type;
         typedef std::forward_iterator_tag iterator_category;
 
         FileIter(file_storage const& fs, file_index_t i) : m_fs(&fs), m_i(i) {}
         FileIter(FileIter const&) = default;
         FileIter() : m_fs(nullptr), m_i(0) {}
-        libtorrent::file_entry operator*() const
+        lt::file_entry operator*() const
         { return m_fs->at(m_i); }
 
         FileIter operator++() { m_i++; return *this; }
@@ -200,7 +200,7 @@ void bind_create_torrent()
         .def(init<file_storage&>())
         .def(init<torrent_info const&>(arg("ti")))
         .def(init<file_storage&, int, int, int>((arg("storage"), arg("piece_size") = 0
-            , arg("pad_file_limit") = -1, arg("flags") = int(libtorrent::create_torrent::optimize_alignment))))
+            , arg("pad_file_limit") = -1, arg("flags") = int(lt::create_torrent::optimize_alignment))))
 
         .def("generate", &create_torrent::generate)
 

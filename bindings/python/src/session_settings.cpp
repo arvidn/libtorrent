@@ -6,7 +6,7 @@
 #include <libtorrent/session.hpp>
 
 using namespace boost::python;
-using namespace libtorrent;
+using namespace lt;
 
 void bind_session_settings()
 {

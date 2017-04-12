@@ -50,7 +50,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace sim;
 
-namespace lt = libtorrent;
 
 std::string make_ep_string(char const* address, bool const is_v6
 	, char const* port)
@@ -67,7 +66,7 @@ std::string make_ep_string(char const* address, bool const is_v6
 template <typename HandleAlerts, typename Test>
 void run_test(HandleAlerts const& on_alert, Test const& test)
 {
-	using namespace libtorrent;
+	using namespace lt;
 
 	using asio::ip::address;
 	address const peer0 = addr("50.0.0.1");
@@ -165,7 +164,7 @@ TORRENT_TEST(no_proxy_tcp)
 		try
 		{
 			g_alloc_counter = 100 + i;
-			using namespace libtorrent;
+			using namespace lt;
 			run_test(
 				[](lt::session&, lt::alert const*) {},
 				[](std::shared_ptr<lt::session> ses[2]) {}

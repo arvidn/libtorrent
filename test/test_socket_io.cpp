@@ -37,8 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <string>
 
-using namespace libtorrent;
-using namespace libtorrent::detail;
+using namespace lt;
+using namespace lt::detail;
 
 TORRENT_TEST(address_to_bytes)
 {

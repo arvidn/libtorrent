@@ -34,7 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "test.hpp"
 
-using namespace libtorrent;
+using namespace lt;
 
 TORRENT_TEST(stat_cache)
 {

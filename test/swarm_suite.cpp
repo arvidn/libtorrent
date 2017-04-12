@@ -52,8 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 void test_swarm(int flags)
 {
-	using namespace libtorrent;
-	namespace lt = libtorrent;
+	using namespace lt;
 
 	std::printf("\n\n ==== TEST SWARM === %s%s%s%s%s ===\n\n\n"
 		, (flags & super_seeding) ? "super-seeding ": ""

@@ -33,5 +33,5 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/settings_pack.hpp"
 #include "test.hpp"
 
-libtorrent::settings_pack EXPORT settings();
+lt::settings_pack EXPORT settings();
 

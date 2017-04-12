@@ -42,7 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 #include <memory>
 
-using namespace libtorrent;
+using namespace lt;
 
 struct test_storage_impl : storage_interface
 {

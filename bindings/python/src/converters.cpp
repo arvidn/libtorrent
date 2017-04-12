@@ -15,7 +15,6 @@
 
 using namespace boost::python;
 namespace bp = boost::python;
-namespace lt = libtorrent;
 
 template<class T>
 struct endpoint_to_tuple
@@ -73,9 +72,9 @@ struct pair_to_tuple
 
 struct address_to_tuple
 {
-    static PyObject* convert(libtorrent::address const& addr)
+    static PyObject* convert(lt::address const& addr)
     {
-        libtorrent::error_code ec;
+        lt::error_code ec;
         return incref(bp::object(addr.to_string(ec)).ptr());
     }
 };

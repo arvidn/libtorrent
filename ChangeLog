@@ -1,3 +1,4 @@
+	* introduce "lt" namespace alias
 	* need_save_resume_data() will no longer return true every 15 minutes
 	* make the file_status interface explicitly public types
 	* added resolver_cache_timeout setting for internal host name resolver

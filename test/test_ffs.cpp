@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/ffs.hpp"
 #include "libtorrent/aux_/byteswap.hpp"
 
-using namespace libtorrent;
+using namespace lt;
 
 static void to_binary(char const* s, std::uint32_t* buf)
 {

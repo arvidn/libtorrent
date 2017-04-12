@@ -41,7 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent_info.hpp"
 #include "settings.hpp"
 
-using namespace libtorrent;
+using namespace lt;
 
 TORRENT_TEST(seed_mode)
 {

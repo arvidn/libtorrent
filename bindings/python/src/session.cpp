@@ -27,8 +27,8 @@
 namespace boost
 {
 	// this fixes mysterious link error on msvc
-	libtorrent::alert const volatile*
-	get_pointer(libtorrent::alert const volatile* p)
+	lt::alert const volatile*
+	get_pointer(lt::alert const volatile* p)
 	{
 		return p;
 	}
@@ -45,8 +45,7 @@ namespace boost
 #endif
 
 using namespace boost::python;
-using namespace libtorrent;
-namespace lt = libtorrent;
+using namespace lt;
 
 namespace
 {
@@ -523,7 +522,7 @@ namespace
         , std::string const& salt, std::string pk, std::string sk
         , std::string data)
     {
-        using libtorrent::dht::sign_mutable_item;
+        using lt::dht::sign_mutable_item;
 
         e = data;
         std::vector<char> buf;

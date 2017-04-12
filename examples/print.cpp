@@ -128,13 +128,13 @@ std::string const& progress_bar(int progress, int width, color_code c
 	return bar;
 }
 
-int get_piece(libtorrent::bitfield const& p, int index)
+int get_piece(lt::bitfield const& p, int index)
 {
 	if (index < 0 || index >= p.size()) return 0;
 	return p.get_bit(index) ? 1 : 0;
 }
 
-std::string const& piece_bar(libtorrent::bitfield const& p, int width)
+std::string const& piece_bar(lt::bitfield const& p, int width)
 {
 #ifdef _WIN32
 	int const table_size = 5;
@@ -207,7 +207,7 @@ std::string const& piece_bar(libtorrent::bitfield const& p, int width)
 // this function uses the block characters that splits up the glyph in 4
 // segments and provide all combinations of a segment lit or not. This allows us
 // to print 4 pieces per character.
-std::string piece_matrix(libtorrent::bitfield const& p, int width, int* height)
+std::string piece_matrix(lt::bitfield const& p, int width, int* height)
 {
 	// print two rows of pieces at a time
 	int piece = 0;
@@ -257,7 +257,7 @@ std::string piece_matrix(libtorrent::bitfield const& p, int width, int* height)
 #else
 // on MS-DOS terminals, we only have block characters for upper half and lower
 // half. This lets us print two pieces per character.
-std::string piece_matrix(libtorrent::bitfield const& p, int width, int* height)
+std::string piece_matrix(lt::bitfield const& p, int width, int* height)
 {
 	// print two rows of pieces at a time
 	int piece = 0;

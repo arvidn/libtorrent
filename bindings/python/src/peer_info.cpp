@@ -8,7 +8,7 @@
 #include <boost/python/iterator.hpp>
 
 using namespace boost::python;
-using namespace libtorrent;
+using namespace lt;
 
 std::int64_t get_last_active(peer_info const& pi)
 {

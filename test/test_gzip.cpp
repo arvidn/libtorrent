@@ -35,7 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp" // for load_file
 #include "libtorrent/aux_/path.hpp" // for combine_path
 
-using namespace libtorrent;
+using namespace lt;
 
 TORRENT_TEST(zeroes)
 {

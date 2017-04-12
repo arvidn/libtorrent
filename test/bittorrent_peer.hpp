@@ -48,25 +48,25 @@ struct EXPORT peer_conn
 	enum class peer_mode_t
 	{ uploader, downloader, idle };
 
-	peer_conn(libtorrent::io_service& ios
+	peer_conn(lt::io_service& ios
 		, std::function<void(int, char const*, int)> on_msg
-		, libtorrent::torrent_info const& ti
-		, libtorrent::tcp::endpoint const& ep
+		, lt::torrent_info const& ti
+		, lt::tcp::endpoint const& ep
 		, peer_mode_t mode);
 
 	void start_conn();
 
-	void on_connect(libtorrent::error_code const& ec);
-	void on_handshake(char* h, libtorrent::error_code const& ec, size_t bytes_transferred);
-	void on_handshake2(libtorrent::error_code const& ec, size_t bytes_transferred);
+	void on_connect(lt::error_code const& ec);
+	void on_handshake(char* h, lt::error_code const& ec, size_t bytes_transferred);
+	void on_handshake2(lt::error_code const& ec, size_t bytes_transferred);
 	void write_have_all();
-	void on_have_all_sent(libtorrent::error_code const& ec, size_t bytes_transferred);
+	void on_have_all_sent(lt::error_code const& ec, size_t bytes_transferred);
 	bool write_request();
-	void on_req_sent(char* m, libtorrent::error_code const& ec, size_t bytes_transferred);
-	void close(char const* fmt, libtorrent::error_code const& ec);
+	void on_req_sent(char* m, lt::error_code const& ec, size_t bytes_transferred);
+	void close(char const* fmt, lt::error_code const& ec);
 	void work_download();
-	void on_msg_length(libtorrent::error_code const& ec, size_t bytes_transferred);
-	void on_message(libtorrent::error_code const& ec, size_t bytes_transferred);
+	void on_msg_length(lt::error_code const& ec, size_t bytes_transferred);
+	void on_message(lt::error_code const& ec, size_t bytes_transferred);
 	bool verify_piece(int piece, int start, char const* ptr, int size);
 	void write_piece(int piece, int start, int length);
 	void write_have(int piece);
@@ -75,13 +75,13 @@ struct EXPORT peer_conn
 
 private:
 
-	libtorrent::tcp::socket s;
+	lt::tcp::socket s;
 	std::array<char, 100> write_buf_proto;
 	std::array<std::uint32_t, 17 * 1024 / 4> write_buffer;
 	std::array<char, 17 * 1024> buffer;
 
 	peer_mode_t const m_mode;
-	libtorrent::torrent_info const& m_ti;
+	lt::torrent_info const& m_ti;
 
 	int read_pos = 0;
 
@@ -100,9 +100,9 @@ private:
 	bool fast_extension = false;
 	int blocks_received = 0;
 	int blocks_sent = 0;
-	libtorrent::time_point start_time = libtorrent::clock_type::now();
-	libtorrent::time_point end_time;
-	libtorrent::tcp::endpoint endpoint;
+	lt::time_point start_time = lt::clock_type::now();
+	lt::time_point end_time;
+	lt::tcp::endpoint endpoint;
 	bool restarting = false;
 };
 

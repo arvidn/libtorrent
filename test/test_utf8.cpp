@@ -38,7 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 
-using namespace libtorrent;
+using namespace lt;
 
 void verify_transforms(char const* utf8_source, int utf8_source_len = -1)
 {

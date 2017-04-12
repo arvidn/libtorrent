@@ -147,7 +147,7 @@ struct G : A
 // and retrieval of their pointers
 TORRENT_TEST(emplace_back)
 {
-	using namespace libtorrent;
+	using namespace lt;
 
 	heterogeneous_queue<A> q;
 	q.emplace_back<B>(0, 1);
@@ -195,7 +195,7 @@ TORRENT_TEST(emplace_back)
 
 TORRENT_TEST(emplace_back_over_aligned)
 {
-	using namespace libtorrent;
+	using namespace lt;
 
 	heterogeneous_queue<A> q;
 	q.emplace_back<G>(1, 2);
@@ -221,7 +221,7 @@ TORRENT_TEST(emplace_back_over_aligned)
 // test swap
 TORRENT_TEST(swap)
 {
-	using namespace libtorrent;
+	using namespace lt;
 
 	heterogeneous_queue<A> q1;
 	heterogeneous_queue<A> q2;
@@ -270,7 +270,7 @@ TORRENT_TEST(swap)
 // test destruction
 TORRENT_TEST(destruction)
 {
-	using namespace libtorrent;
+	using namespace lt;
 
 	heterogeneous_queue<D> q;
 	TEST_EQUAL(D::instances, 0);
@@ -292,7 +292,7 @@ TORRENT_TEST(destruction)
 // test copy/move
 TORRENT_TEST(copy_move)
 {
-	using namespace libtorrent;
+	using namespace lt;
 
 	heterogeneous_queue<F> q;
 
@@ -318,7 +318,7 @@ TORRENT_TEST(copy_move)
 
 TORRENT_TEST(nontrivial)
 {
-	using namespace libtorrent;
+	using namespace lt;
 
 	heterogeneous_queue<E> q;
 	for (int i = 0; i < 10000; ++i)

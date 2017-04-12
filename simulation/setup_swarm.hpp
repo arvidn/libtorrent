@@ -47,7 +47,6 @@ namespace libtorrent
 	struct torrent_status;
 }
 
-namespace lt = libtorrent;
 
 enum class swarm_test { download, upload };
 

@@ -6,7 +6,7 @@
 #include "boost_python.hpp"
 
 using namespace boost::python;
-using libtorrent::version;
+using lt::version;
 
 void bind_version()
 {
