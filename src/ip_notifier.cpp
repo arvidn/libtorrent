@@ -98,7 +98,7 @@ void CFDispatchRetain(dispatch_queue_t q) { dispatch_retain(q); }
 void CFDispatchRelease(dispatch_queue_t q) { dispatch_release(q); }
 using CFDispatchRef = CFRef<dispatch_queue_t, CFDispatchRetain, CFDispatchRelease>;
 
-#if TARGET_OS_IPHONE || defined TORRENT_FORCE_IOS_IP_NOTIFIER
+#if TORRENT_USE_SC_NETWORK_REACHABILITY
 CFRef<SCNetworkReachabilityRef> create_reachability(SCNetworkReachabilityCallBack callback
 	, void* context_info)
 {
@@ -130,7 +130,11 @@ struct ip_change_notifier_impl final : ip_change_notifier
 			[](SCNetworkReachabilityRef /*target*/, SCNetworkReachabilityFlags /*flags*/, void *info)
 			{
 				auto obj = static_cast<ip_change_notifier_impl*>(info);
-				obj->m_ios.post([obj]() { if (obj->m_cb) obj->m_cb(error_code()); });
+				if (!obj->m_cb) return;
+
+				auto cb = std::move(obj->m_cb);
+				obj->m_cb = nullptr;
+				obj->m_ios.post([cb]() { cb(error_code()); });
 			}, this);
 
 		if (!m_queue || !m_reach
@@ -216,7 +220,11 @@ struct ip_change_notifier_impl final : ip_change_notifier
 			[](SCDynamicStoreRef /*store*/, CFArrayRef /*changedKeys*/, void *info)
 			{
 				auto obj = static_cast<ip_change_notifier_impl*>(info);
-				obj->m_ios.post([obj]() { if (obj->m_cb) obj->m_cb(error_code()); });
+				if (!obj->m_cb) return;
+
+				auto cb = std::move(obj->m_cb);
+				obj->m_cb = nullptr;
+				obj->m_ios.post([cb]() { cb(error_code()); });
 			}, this);
 
 		if (!m_queue || !m_store
@@ -256,7 +264,7 @@ private:
 	CFRef<SCDynamicStoreRef> m_store;
 	std::function<void(error_code const&)> m_cb = nullptr;
 };
-#endif // TARGET_OS_IPHONE
+#endif // TORRENT_USE_SC_NETWORK_REACHABILITY
 
 #elif defined TORRENT_WINDOWS
 	// TODO: ip_change_notifier_win
