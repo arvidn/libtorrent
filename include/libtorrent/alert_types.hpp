@@ -1856,7 +1856,7 @@ namespace libtorrent
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
-	struct TORRENT_DEPRECATED TORRENT_EXPORT mmap_cache_alert final : alert
+	struct TORRENT_DEPRECATED_EXPORT mmap_cache_alert final : alert
 	{
 		mmap_cache_alert(aux::stack_allocator& alloc
 			, error_code const& ec);
@@ -1923,7 +1923,7 @@ namespace libtorrent
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
-	struct TORRENT_DEPRECATED TORRENT_EXPORT torrent_update_alert final : torrent_alert
+	struct TORRENT_DEPRECATED_EXPORT torrent_update_alert final : torrent_alert
 	{
 		// internal
 		torrent_update_alert(aux::stack_allocator& alloc, torrent_handle h
