@@ -121,8 +121,6 @@ def print_peer_info(console, peers):
             id = 'waiting for handshake'
         elif p.flags & lt.peer_info.connecting:
             id =  'connecting to peer'
-        elif p.flags & lt.peer_info.queued:
-            id =  'queued'
         else:
             id = p.client
 
