@@ -49,84 +49,76 @@ namespace libtorrent {
 
 	announce_endpoint::announce_endpoint(aux::session_listen_socket* s)
 		: local_address(s ? s->get_local_address() : address())
-		, socket(s), fails(0), updating(false) {}
-
-	announce_entry::announce_entry(string_view u)
-		: url(u.to_string())
-		, source(0)
-		, verified(false)
+		, socket(s)
+		, fails(0)
+		, updating(false)
 		, start_sent(false)
 		, complete_sent(false)
 		, triggered_manually(false)
 	{}
 
+	announce_entry::announce_entry(string_view u)
+		: url(u.to_string())
+		, source(0)
+		, verified(false)
+	{}
+
 	announce_entry::announce_entry()
 		: source(0)
 		, verified(false)
-		, start_sent(false)
-		, complete_sent(false)
-		, triggered_manually(false)
 	{}
 
 	announce_entry::~announce_entry() = default;
 	announce_entry::announce_entry(announce_entry const&) = default;
 	announce_entry& announce_entry::operator=(announce_entry const&) = default;
 
-#ifndef TORRENT_NO_DEPRECATE
-	int announce_entry::next_announce_in() const
-	{ return int(total_seconds(next_announce - aux::time_now())); }
-
-	int announce_entry::min_announce_in() const
-	{ return int(total_seconds(min_announce - aux::time_now())); }
-#endif
-
-	void announce_entry::reset()
+	void announce_endpoint::reset()
 	{
 		start_sent = false;
 		next_announce = time_point32::min();
 		min_announce = time_point32::min();
 	}
 
-	void announce_entry::failed(announce_endpoint& aep, int const backoff_ratio, seconds32 const retry_interval)
+	void announce_endpoint::failed(int const backoff_ratio, seconds32 const retry_interval)
 	{
-		++aep.fails;
+		++fails;
 		// the exponential back-off ends up being:
 		// 7, 15, 27, 45, 95, 127, 165, ... seconds
 		// with the default tracker_backoff of 250
-		int const fail_square = int(aep.fails) * int(aep.fails);
+		int const fail_square = int(fails) * int(fails);
 		seconds32 const delay = std::max(retry_interval
 			, std::min(duration_cast<seconds32>(tracker_retry_delay_max)
 				, tracker_retry_delay_min
 					+ fail_square * tracker_retry_delay_min * backoff_ratio / 100
 			));
 		if (!is_working()) next_announce = aux::time_now32() + delay;
-		aep.updating = false;
+		updating = false;
 	}
 
-	bool announce_entry::can_announce(time_point now, bool is_seed) const
+	bool announce_endpoint::can_announce(time_point now, bool is_seed, std::uint8_t fail_limit) const
 	{
 		// if we're a seed and we haven't sent a completed
 		// event, we need to let this announce through
 		bool const need_send_complete = is_seed && !complete_sent;
 
-		int min_fails = std::numeric_limits<int>::max();
-
-		for (auto& aep : endpoints)
-		{
-			if (aep.updating) return false;
-			if (aep.fails < min_fails) min_fails = aep.fails;
-		}
-
 		return now >= next_announce
 			&& (now >= min_announce || need_send_complete)
-			&& (min_fails < fail_limit || fail_limit == 0);
+			&& (fails < fail_limit || fail_limit == 0)
+			&& !updating;
 	}
 
-	bool announce_entry::is_working() const
+	void announce_entry::reset()
 	{
-		for (auto const& aep : endpoints)
-			if (aep.fails == 0) return true;
-		return false;
+		for (auto& aep : endpoints)
+			aep.reset();
+	}
+
+	announce_endpoint* announce_entry::find_endpoint(aux::session_listen_socket* s)
+	{
+		auto aep = std::find_if(endpoints.begin(), endpoints.end()
+			, [&](announce_endpoint const& a) { return a.socket == s; });
+		if (aep != endpoints.end()) return &*aep;
+		else return nullptr;
 	}
 
 	void announce_entry::trim()

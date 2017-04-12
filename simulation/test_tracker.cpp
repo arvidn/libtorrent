@@ -92,6 +92,10 @@ void test_interval(int interval)
 	std::vector<lt::time_point> announce_alerts;
 
 	lt::settings_pack default_settings = settings();
+	// since the test tracker is only listening on IPv4 we need to configure the
+	// client to do the same so that the number of tracker_announce_alerts matches
+	// the number of announces seen by the tracker
+	default_settings.set_str(settings_pack::listen_interfaces, "0.0.0.0:6881");
 	lt::add_torrent_params default_add_torrent;
 
 	setup_swarm(1, swarm_test::upload, sim, default_settings, default_add_torrent
@@ -513,10 +517,10 @@ TORRENT_TEST(test_error)
 		}
 		, [](announce_entry const& ae)
 		{
-			TEST_EQUAL(ae.is_working(), false);
 			TEST_EQUAL(ae.url, "http://tracker.com:8080/announce");
 			for (auto const& aep : ae.endpoints)
 			{
+				TEST_EQUAL(aep.is_working(), false);
 				TEST_EQUAL(aep.message, "test");
 				TEST_EQUAL(aep.last_error, error_code(errors::tracker_failure));
 				TEST_EQUAL(aep.fails, 1);
@@ -538,10 +542,10 @@ TORRENT_TEST(test_warning)
 		}
 		, [](announce_entry const& ae)
 		{
-			TEST_EQUAL(ae.is_working(), true);
 			TEST_EQUAL(ae.url, "http://tracker.com:8080/announce");
 			for (auto const& aep : ae.endpoints)
 			{
+				TEST_EQUAL(aep.is_working(), true);
 				TEST_EQUAL(aep.message, "test2");
 				TEST_EQUAL(aep.last_error, error_code());
 				TEST_EQUAL(aep.fails, 0);
@@ -564,17 +568,17 @@ TORRENT_TEST(test_scrape_data_in_announce)
 		}
 		, [](announce_entry const& ae)
 		{
-			TEST_EQUAL(ae.is_working(), true);
 			TEST_EQUAL(ae.url, "http://tracker.com:8080/announce");
 			for (auto const& aep : ae.endpoints)
 			{
+				TEST_EQUAL(aep.is_working(), true);
 				TEST_EQUAL(aep.message, "");
 				TEST_EQUAL(aep.last_error, error_code());
 				TEST_EQUAL(aep.fails, 0);
+				TEST_EQUAL(aep.scrape_complete, 1);
+				TEST_EQUAL(aep.scrape_incomplete, 2);
+				TEST_EQUAL(aep.scrape_downloaded, 3);
 			}
-			TEST_EQUAL(ae.scrape_complete, 1);
-			TEST_EQUAL(ae.scrape_incomplete, 2);
-			TEST_EQUAL(ae.scrape_downloaded, 3);
 		});
 }
 
@@ -601,9 +605,12 @@ TORRENT_TEST(test_scrape)
 
 			TEST_EQUAL(tr.size(), 1);
 			announce_entry const& ae = tr[0];
-			TEST_EQUAL(ae.scrape_incomplete, 2);
-			TEST_EQUAL(ae.scrape_complete, 1);
-			TEST_EQUAL(ae.scrape_downloaded, 3);
+			for (auto const& aep : ae.endpoints)
+			{
+				TEST_EQUAL(aep.scrape_incomplete, 2);
+				TEST_EQUAL(aep.scrape_complete, 1);
+				TEST_EQUAL(aep.scrape_downloaded, 3);
+			}
 		}
 		, "/scrape");
 }
@@ -619,10 +626,10 @@ TORRENT_TEST(test_http_status)
 		}
 		, [](announce_entry const& ae)
 		{
-			TEST_EQUAL(ae.is_working(), false);
 			TEST_EQUAL(ae.url, "http://tracker.com:8080/announce");
 			for (auto const& aep : ae.endpoints)
 			{
+				TEST_EQUAL(aep.is_working(), false);
 				TEST_EQUAL(aep.message, "Not A Tracker");
 				TEST_EQUAL(aep.last_error, error_code(410, http_category()));
 				TEST_EQUAL(aep.fails, 1);
@@ -644,10 +651,10 @@ TORRENT_TEST(test_interval)
 		}
 		, [](announce_entry const& ae)
 		{
-			TEST_EQUAL(ae.is_working(), true);
 			TEST_EQUAL(ae.url, "http://tracker.com:8080/announce");
 			for (auto const& aep : ae.endpoints)
 			{
+				TEST_EQUAL(aep.is_working(), true);
 				TEST_EQUAL(aep.message, "");
 				TEST_EQUAL(aep.last_error, error_code());
 				TEST_EQUAL(aep.fails, 0);
@@ -671,10 +678,10 @@ TORRENT_TEST(test_invalid_bencoding)
 		}
 		, [](announce_entry const& ae)
 		{
-			TEST_EQUAL(ae.is_working(), false);
 			TEST_EQUAL(ae.url, "http://tracker.com:8080/announce");
 			for (auto const& aep : ae.endpoints)
 			{
+				TEST_EQUAL(aep.is_working(), false);
 				TEST_EQUAL(aep.message, "");
 				TEST_EQUAL(aep.last_error, error_code(bdecode_errors::expected_value
 					, bdecode_category()));

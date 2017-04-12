@@ -2569,6 +2569,28 @@ namespace libtorrent {
 
 #endif
 
+	namespace
+	{
+		struct announce_state
+		{
+			explicit announce_state(aux::session_listen_socket* s)
+				: socket(s) {}
+
+			aux::session_listen_socket* socket;
+
+			// the tier is kept as INT_MAX until we find the first
+			// tracker that works, then it's set to that tracker's
+			// tier.
+			int tier = INT_MAX;
+
+			// have we sent an announce in this tier yet?
+			bool sent_announce = false;
+
+			// have we finished sending announces on this listen socket?
+			bool done = false;
+		};
+	}
+
 	void torrent::announce_with_tracker(std::uint8_t e)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -2654,61 +2676,12 @@ namespace libtorrent {
 
 		time_point32 const now = aux::time_now32();
 
-		// the tier is kept as INT_MAX until we find the first
-		// tracker that works, then it's set to that tracker's
-		// tier.
-		int tier = INT_MAX;
-
-		// have we sent an announce in this tier yet?
-		bool sent_announce = false;
+		// each listen socket gets it's own announce state
+		// so that each one should get at least one announce
+		std::vector<announce_state> listen_socket_states;
 
 		for (auto& ae : m_trackers)
 		{
-#ifndef TORRENT_DISABLE_LOGGING
-			if (should_log())
-			{
-				debug_log("*** tracker: \"%s\" "
-					"[ tiers: %d trackers: %d"
-					" i->tier: %d tier: %d"
-					" working: %d limit: %d"
-					" can: %d sent: %d ]"
-					, ae.url.c_str(), settings().get_bool(settings_pack::announce_to_all_tiers)
-					, settings().get_bool(settings_pack::announce_to_all_trackers)
-					, ae.tier, tier, ae.is_working(), ae.fail_limit
-					, ae.can_announce(now, is_seed()), sent_announce);
-			}
-#endif
-			if (settings().get_bool(settings_pack::announce_to_all_tiers)
-				&& !settings().get_bool(settings_pack::announce_to_all_trackers)
-				&& sent_announce
-				&& ae.tier <= tier
-				&& tier != INT_MAX)
-				continue;
-
-			// if trackerid is not specified for tracker use default one, probably set explicitly
-			req.trackerid = ae.trackerid.empty() ? m_trackerid : ae.trackerid;
-
-			if (ae.tier > tier && sent_announce
-				&& !settings().get_bool(settings_pack::announce_to_all_tiers)) break;
-			if (ae.is_working()) { tier = ae.tier; sent_announce = false; }
-			if (!ae.can_announce(now, is_seed()))
-			{
-				// this counts
-				if (ae.is_working()) sent_announce = true;
-				continue;
-			}
-
-			req.url = ae.url;
-			req.event = e;
-			if (req.event == tracker_request::none)
-			{
-				if (!ae.start_sent) req.event = tracker_request::started;
-				else if (!ae.complete_sent && is_seed()) req.event = tracker_request::completed;
-			}
-
-			req.triggered_manually = ae.triggered_manually;
-			ae.triggered_manually = false;
-
 			// update the endpoint list by adding entries for new listen sockets
 			// and removing entries for non-existent ones
 			std::vector<announce_endpoint>::size_type valid_endpoints = 0;
@@ -2729,6 +2702,65 @@ namespace libtorrent {
 			TORRENT_ASSERT(valid_endpoints <= ae.endpoints.size());
 			ae.endpoints.erase(ae.endpoints.begin() + int(valid_endpoints), ae.endpoints.end());
 
+			// if trackerid is not specified for tracker use default one, probably set explicitly
+			req.trackerid = ae.trackerid.empty() ? m_trackerid : ae.trackerid;
+			req.url = ae.url;
+
+			for (auto& aep : ae.endpoints)
+			{
+				auto aep_state_iter = std::find_if(listen_socket_states.begin(), listen_socket_states.end()
+					, [&](announce_state const& s) { return s.socket == aep.socket; });
+				if (aep_state_iter == listen_socket_states.end())
+				{
+					listen_socket_states.emplace_back(aep.socket);
+					aep_state_iter = listen_socket_states.end() - 1;
+				}
+				announce_state& state = *aep_state_iter;
+
+				if (state.done) continue;
+
+#ifndef TORRENT_DISABLE_LOGGING
+			if (should_log())
+			{
+				debug_log("*** tracker: \"%s\" "
+					"[ tiers: %d trackers: %d"
+					" i->tier: %d tier: %d"
+					" working: %d limit: %d"
+					" can: %d sent: %d ]"
+					, ae.url.c_str(), settings().get_bool(settings_pack::announce_to_all_tiers)
+					, settings().get_bool(settings_pack::announce_to_all_trackers)
+					, ae.tier, state.tier, aep.is_working(), ae.fail_limit
+					, aep.can_announce(now, is_seed(), ae.fail_limit), state.sent_announce);
+			}
+#endif
+
+			if (settings().get_bool(settings_pack::announce_to_all_tiers)
+				&& !settings().get_bool(settings_pack::announce_to_all_trackers)
+				&& state.sent_announce
+				&& ae.tier <= state.tier
+				&& state.tier != INT_MAX)
+				continue;
+
+			if (ae.tier > state.tier && state.sent_announce
+				&& !settings().get_bool(settings_pack::announce_to_all_tiers)) break;
+			if (aep.is_working()) { state.tier = ae.tier; state.sent_announce = false; }
+			if (!aep.can_announce(now, is_seed(), ae.fail_limit))
+			{
+				// this counts
+				if (aep.is_working()) state.sent_announce = true;
+				continue;
+			}
+
+			req.event = e;
+			if (req.event == tracker_request::none)
+			{
+				if (!aep.start_sent) req.event = tracker_request::started;
+				else if (!aep.complete_sent && is_seed()) req.event = tracker_request::completed;
+			}
+
+			req.triggered_manually = aep.triggered_manually;
+			aep.triggered_manually = false;
+
 			if (settings().get_bool(settings_pack::force_proxy))
 			{
 				// in force_proxy mode we don't talk directly to trackers
@@ -2742,7 +2774,7 @@ namespace libtorrent {
 				if ((protocol == "http" || protocol == "https")
 					&& proxy_type == settings_pack::none)
 				{
-					ae.next_announce = now + minutes32(10);
+					aep.next_announce = now + minutes32(10);
 					if (m_ses.alerts().should_post<anonymous_mode_alert>()
 						|| req.triggered_manually)
 					{
@@ -2760,7 +2792,7 @@ namespace libtorrent {
 					&& proxy_type != settings_pack::socks5_pw
 					&& proxy_type != settings_pack::i2p_proxy)
 				{
-					ae.next_announce = now + minutes32(10);
+					aep.next_announce = now + minutes32(10);
 					if (m_ses.alerts().should_post<anonymous_mode_alert>()
 						|| req.triggered_manually)
 					{
@@ -2782,13 +2814,6 @@ namespace libtorrent {
 				req.kind |= tracker_request::i2p;
 			}
 #endif
-
-			ae.next_announce = now + seconds32(20);
-			ae.min_announce = now + seconds32(10);
-
-			for (auto& aep : ae.endpoints)
-			{
-				if (aep.updating) continue;
 
 				req.outgoing_socket = aep.socket;
 
@@ -2815,18 +2840,26 @@ namespace libtorrent {
 				}
 
 				aep.updating = true;
-				sent_announce = true;
+				aep.next_announce = now + seconds32(20);
+				aep.min_announce = now + seconds32(10);
+
+				if (m_ses.alerts().should_post<tracker_announce_alert>())
+				{
+					m_ses.alerts().emplace_alert<tracker_announce_alert>(
+						get_handle(), req.url, req.event);
+				}
+
+				state.sent_announce = true;
+				if (aep.is_working()
+					&& !settings().get_bool(settings_pack::announce_to_all_trackers)
+					&& !settings().get_bool(settings_pack::announce_to_all_tiers))
+				{
+					state.done = true;
+				}
 			}
 
-			if (m_ses.alerts().should_post<tracker_announce_alert>())
-			{
-				m_ses.alerts().emplace_alert<tracker_announce_alert>(
-					get_handle(), req.url, req.event);
-			}
-
-			if (ae.is_working()
-				&& !settings().get_bool(settings_pack::announce_to_all_trackers)
-				&& !settings().get_bool(settings_pack::announce_to_all_tiers))
+			if (std::all_of(listen_socket_states.begin(), listen_socket_states.end()
+				, [](announce_state const& s) { return s.done; }))
 				break;
 		}
 		update_tracker_timer(now);
@@ -2893,11 +2926,15 @@ namespace libtorrent {
 		announce_entry* ae = find_tracker(req.url);
 		if (ae)
 		{
-			if (incomplete >= 0) ae->scrape_incomplete = incomplete;
-			if (complete >= 0) ae->scrape_complete = complete;
-			if (downloaded >= 0) ae->scrape_downloaded = downloaded;
+			announce_endpoint* aep = ae->find_endpoint(req.outgoing_socket);
+			if (aep)
+			{
+				if (incomplete >= 0) aep->scrape_incomplete = incomplete;
+				if (complete >= 0) aep->scrape_complete = complete;
+				if (downloaded >= 0) aep->scrape_downloaded = downloaded;
 
-			update_scrape_state();
+				update_scrape_state();
+			}
 		}
 
 		// if this was triggered manually we need to post this unconditionally,
@@ -2920,9 +2957,12 @@ namespace libtorrent {
 		int downloaded = -1;
 		for (auto const& t : m_trackers)
 		{
-			complete = (std::max)(t.scrape_complete, complete);
-			incomplete = (std::max)(t.scrape_incomplete, incomplete);
-			downloaded = (std::max)(t.scrape_downloaded, downloaded);
+			for (auto const& aep : t.endpoints)
+			{
+				complete = (std::max)(aep.scrape_complete, complete);
+				incomplete = (std::max)(aep.scrape_incomplete, incomplete);
+				downloaded = (std::max)(aep.scrape_downloaded, downloaded);
+			}
 		}
 
 		if ((complete >= 0 && int(m_complete) != complete)
@@ -2972,35 +3012,34 @@ namespace libtorrent {
 		announce_entry* ae = find_tracker(r.url);
 		if (ae)
 		{
-			if (resp.incomplete >= 0) ae->scrape_incomplete = resp.incomplete;
-			if (resp.complete >= 0) ae->scrape_complete = resp.complete;
-			if (resp.downloaded >= 0) ae->scrape_downloaded = resp.downloaded;
-			if (!ae->start_sent && r.event == tracker_request::started)
-				ae->start_sent = true;
-			if (!ae->complete_sent && r.event == tracker_request::completed)
-				ae->complete_sent = true;
-			ae->verified = true;
-			ae->next_announce = now + interval;
-			ae->min_announce = now + resp.min_interval;
-			for (auto& aep : ae->endpoints)
+			announce_endpoint* aep = ae->find_endpoint(r.outgoing_socket);
+			if (aep)
 			{
-				if (aep.socket != r.outgoing_socket) continue;
-				aep.updating = false;
-				aep.fails = 0;
-				break;
-			}
-			int tracker_index = int(ae - &m_trackers[0]);
-			m_last_working_tracker = std::int8_t(prioritize_tracker(tracker_index));
+				if (resp.incomplete >= 0) aep->scrape_incomplete = resp.incomplete;
+				if (resp.complete >= 0) aep->scrape_complete = resp.complete;
+				if (resp.downloaded >= 0) aep->scrape_downloaded = resp.downloaded;
+				if (!aep->start_sent && r.event == tracker_request::started)
+					aep->start_sent = true;
+				if (!aep->complete_sent && r.event == tracker_request::completed)
+					aep->complete_sent = true;
+				ae->verified = true;
+				aep->next_announce = now + interval;
+				aep->min_announce = now + resp.min_interval;
+				aep->updating = false;
+				aep->fails = 0;
+				int tracker_index = int(ae - &m_trackers[0]);
+				m_last_working_tracker = std::int8_t(prioritize_tracker(tracker_index));
 
-			if ((!resp.trackerid.empty()) && (ae->trackerid != resp.trackerid))
-			{
-				ae->trackerid = resp.trackerid;
-				if (m_ses.alerts().should_post<trackerid_alert>())
-					m_ses.alerts().emplace_alert<trackerid_alert>(get_handle()
-						, r.url, resp.trackerid);
-			}
+				if ((!resp.trackerid.empty()) && (ae->trackerid != resp.trackerid))
+				{
+					ae->trackerid = resp.trackerid;
+					if (m_ses.alerts().should_post<trackerid_alert>())
+						m_ses.alerts().emplace_alert<trackerid_alert>(get_handle()
+							, r.url, resp.trackerid);
+				}
 
-			update_scrape_state();
+				update_scrape_state();
+			}
 		}
 		update_tracker_timer(now);
 
@@ -3235,9 +3274,12 @@ namespace libtorrent {
 		{
 			for (auto& e : m_trackers)
 			{
-				e.next_announce = std::max(time_point_cast<seconds32>(t)
-					, e.min_announce) + seconds(1);
-				e.triggered_manually = true;
+				for (auto& aep : e.endpoints)
+				{
+					aep.next_announce = std::max(time_point_cast<seconds32>(t)
+						, aep.min_announce) + seconds(1);
+					aep.triggered_manually = true;
+				}
 			}
 		}
 		else
@@ -3245,9 +3287,12 @@ namespace libtorrent {
 			if (tracker_idx < 0 || tracker_idx >= int(m_trackers.size()))
 				return;
 			announce_entry& e = m_trackers[tracker_idx];
-			e.next_announce = std::max(time_point_cast<seconds32>(t)
-				, e.min_announce) + seconds32(1);
-			e.triggered_manually = true;
+			for (auto& aep : e.endpoints)
+			{
+				aep.next_announce = std::max(time_point_cast<seconds32>(t)
+					, aep.min_announce) + seconds32(1);
+				aep.triggered_manually = true;
+			}
 		}
 		update_tracker_timer(aux::time_now32());
 	}
@@ -5050,7 +5095,8 @@ namespace libtorrent {
 		for (auto& t : m_trackers)
 		{
 			if (t.source == 0) t.source = announce_entry::source_client;
-			t.complete_sent = is_seed();
+			for (auto& aep : t.endpoints)
+				aep.complete_sent = is_seed();
 		}
 
 		if (settings().get_bool(settings_pack::prefer_udp_trackers))
@@ -7208,9 +7254,12 @@ namespace libtorrent {
 		time_point32 const now = aux::time_now32();
 		for (auto& t : m_trackers)
 		{
-			if (t.complete_sent) continue;
-			t.next_announce = now;
-			t.min_announce = now;
+			for (auto& aep : t.endpoints)
+			{
+				if (aep.complete_sent) continue;
+				aep.next_announce = now;
+				aep.min_announce = now;
+			}
 		}
 		announce_with_tracker();
 	}
@@ -7315,7 +7364,8 @@ namespace libtorrent {
 		else
 		{
 			for (auto& t : m_trackers)
-				t.complete_sent = true;
+				for (auto& aep : t.endpoints)
+					aep.complete_sent = true;
 
 			if (m_state != torrent_status::finished
 				&& m_state != torrent_status::seeding)
@@ -8534,6 +8584,21 @@ namespace libtorrent {
 		do_connect_boost();
 	}
 
+	namespace
+	{
+		struct timer_state
+		{
+			explicit timer_state(aux::session_listen_socket* s)
+				: socket(s) {}
+
+			aux::session_listen_socket* socket;
+
+			int tier = INT_MAX;
+			bool found_working = false;
+			bool done = false;
+		};
+	}
+
 	void torrent::update_tracker_timer(time_point32 const now)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -8546,53 +8611,68 @@ namespace libtorrent {
 		}
 
 		time_point32 next_announce = time_point32::max();
-		int tier = INT_MAX;
 
-		bool found_working = false;
+		std::vector<timer_state> listen_socket_states;
 
 		for (auto const& t : m_trackers)
 		{
+			for (auto const& aep : t.endpoints)
+			{
+				auto aep_state_iter = std::find_if(listen_socket_states.begin(), listen_socket_states.end()
+					, [&](timer_state const& s) { return s.socket == aep.socket; });
+				if (aep_state_iter == listen_socket_states.end())
+				{
+					listen_socket_states.emplace_back(aep.socket);
+					aep_state_iter = listen_socket_states.end() - 1;
+				}
+				timer_state& state = *aep_state_iter;
+
+				if (state.done) continue;
+
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log())
 			{
 				debug_log("*** tracker: \"%s\" "
 					"[ tiers: %d trackers: %d"
 					" found: %d i->tier: %d tier: %d"
-					" working: %d limit: %d ]"
+					" working: %d fails: %d limit: %d upd: %d ]"
 					, t.url.c_str(), settings().get_bool(settings_pack::announce_to_all_tiers)
-					, settings().get_bool(settings_pack::announce_to_all_trackers), found_working
-					, t.tier, tier, t.is_working(), t.fail_limit);
+					, settings().get_bool(settings_pack::announce_to_all_trackers), state.found_working
+					, t.tier, state.tier, aep.is_working(), aep.fails, t.fail_limit
+					, aep.updating);
 			}
 #endif
+
 			if (settings().get_bool(settings_pack::announce_to_all_tiers)
-				&& found_working
-				&& t.tier <= tier
-				&& tier != INT_MAX)
+				&& state.found_working
+				&& t.tier <= state.tier
+				&& state.tier != INT_MAX)
 				continue;
 
-			if (t.tier > tier && !settings().get_bool(settings_pack::announce_to_all_tiers)) break;
-			if (t.is_working()) { tier = t.tier; found_working = false; }
-			bool is_updating = false;
-			for (auto& aep : t.endpoints)
+			if (t.tier > state.tier && !settings().get_bool(settings_pack::announce_to_all_tiers)) break;
+			if (aep.is_working()) { state.tier = t.tier; state.found_working = false; }
+			if (aep.fails >= t.fail_limit && t.fail_limit != 0) continue;
+			if (aep.updating)
 			{
-				if (aep.fails >= t.fail_limit && t.fail_limit != 0) continue;
-				if (aep.updating)
-				{
-					found_working = true;
-					is_updating = true;
-					break;
-				}
+				state.found_working = true;
 			}
-			if (!is_updating && (!found_working || t.is_working()))
+			else
 			{
-				time_point32 next_tracker_announce = std::max(t.next_announce, t.min_announce);
-				if (next_tracker_announce < next_announce)
+				time_point32 next_tracker_announce = std::max(aep.next_announce, aep.min_announce);
+				if (next_tracker_announce < next_announce
+					&& (!state.found_working || aep.is_working()))
 					next_announce = next_tracker_announce;
 			}
-			if (t.is_working()) found_working = true;
-			if (found_working
-				&& !settings().get_bool(settings_pack::announce_to_all_trackers)
-				&& !settings().get_bool(settings_pack::announce_to_all_tiers)) break;
+				if (aep.is_working()) state.found_working = true;
+				if (state.found_working
+					&& !settings().get_bool(settings_pack::announce_to_all_trackers)
+					&& !settings().get_bool(settings_pack::announce_to_all_tiers))
+					state.done = true;
+			}
+
+			if (std::all_of(listen_socket_states.begin(), listen_socket_states.end()
+				, [](timer_state const& s) { return s.done; }))
+				break;
 		}
 
 		if (next_announce <= now) next_announce = now;
@@ -8694,8 +8774,11 @@ namespace libtorrent {
 		time_point32 const now = aux::time_now32();
 		for (auto& t : m_trackers)
 		{
-			t.next_announce = now;
-			t.min_announce = now;
+			for (auto& aep : t.endpoints)
+			{
+				aep.next_announce = now;
+				aep.min_announce = now;
+			}
 		}
 		announce_with_tracker(tracker_request::stopped);
 	}
@@ -10657,7 +10740,7 @@ namespace {
 				for (auto& aep : ae->endpoints)
 				{
 					if (aep.socket != r.outgoing_socket) continue;
-					ae->failed(aep, settings().get_int(settings_pack::tracker_backoff)
+					aep.failed(settings().get_int(settings_pack::tracker_backoff)
 						, retry_interval);
 					aep.last_error = ec;
 					aep.message = msg;
