@@ -1760,6 +1760,8 @@ namespace {
 		if (ec || m_abort) return;
 		m_ip_notifier->async_wait([this] (error_code const& e)
 			{ this->wrap(&session_impl::on_ip_change, e); });
+		if (m_settings.get_bool(settings_pack::clear_resolver_cache_on_ip_change))
+			m_host_resolver.clear();
 		reopen_listen_sockets();
 	}
 

@@ -709,6 +709,11 @@ namespace libtorrent {
 			// any.
 			proxy_tracker_connections,
 
+			// if true, when an IP routing table change is detected, and this is
+			// a feature not necessarily supported in all operating systems, the
+			// internal host name resolver will clear all entries from the cache.
+			clear_resolver_cache_on_ip_change,
+
 			max_bool_setting_internal
 		};
 

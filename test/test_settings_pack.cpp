@@ -246,6 +246,7 @@ TORRENT_TEST(settings_pack_abi)
 	TEST_EQUAL(settings_pack::use_dht_as_fallback, settings_pack::bool_type_base + 4);
 	TEST_EQUAL(settings_pack::use_read_cache, settings_pack::bool_type_base + 7);
 	TEST_EQUAL(settings_pack::proxy_tracker_connections, settings_pack::bool_type_base + 67);
+	TEST_EQUAL(settings_pack::clear_resolver_cache_on_ip_change, settings_pack::bool_type_base + 68);
 
 	// ints
 	TEST_EQUAL(settings_pack::max_suggest_pieces, settings_pack::int_type_base + 66);
