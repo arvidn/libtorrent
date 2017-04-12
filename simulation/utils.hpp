@@ -33,12 +33,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 #include "libtorrent/address.hpp"
 #include "libtorrent/socket.hpp"
-
-namespace libtorrent
-{
-	class session;
-	class alert;
-}
+#include "libtorrent/fwd.hpp"
 
 namespace lt = libtorrent;
 

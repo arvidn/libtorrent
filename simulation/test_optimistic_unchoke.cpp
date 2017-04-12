@@ -71,7 +71,7 @@ TORRENT_TEST(optimistic_unchoke)
 	io_service ios(sim, addr("50.1.0.0"));
 	lt::time_point start_time(lt::clock_type::now());
 
-	libtorrent::add_torrent_params atp = create_torrent(0);
+	libtorrent::add_torrent_params atp = ::create_torrent(0);
 	atp.flags &= ~add_torrent_params::flag_auto_managed;
 	atp.flags &= ~add_torrent_params::flag_paused;
 
