@@ -45,10 +45,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_util.hpp"
 #include "libtorrent/aux_/throw.hpp"
 
-namespace libtorrent
-{
-	namespace detail
-	{
+namespace libtorrent {
+
+namespace detail {
 		char const* integer_to_str(char* buf, int size
 			, entry::integer_type val)
 		{
@@ -70,8 +69,8 @@ namespace libtorrent
 		}
 	}
 
-	namespace
-	{
+namespace {
+
 		inline void TORRENT_NO_RETURN throw_error()
 		{ aux::throw_ex<system_error>(errors::invalid_entry_type); }
 

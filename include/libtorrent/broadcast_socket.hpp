@@ -43,8 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 #include <list>
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	// TODO: 2 factor these functions out
 	TORRENT_EXTRA_EXPORT bool is_local(address const& a);
 	TORRENT_EXTRA_EXPORT bool is_loopback(address const& addr);

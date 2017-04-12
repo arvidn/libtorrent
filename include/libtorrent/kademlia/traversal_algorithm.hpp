@@ -47,8 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent { struct dht_lookup; }
-namespace libtorrent { namespace dht
-{
+namespace libtorrent { namespace dht {
 
 class node;
 

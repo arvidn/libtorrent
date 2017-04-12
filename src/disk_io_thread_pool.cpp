@@ -35,13 +35,13 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <algorithm>
 
-namespace
-{
+namespace {
+
 	constexpr std::chrono::seconds reap_idle_threads_interval(60);
 }
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	disk_io_thread_pool::disk_io_thread_pool(pool_thread_interface& thread_iface
 		, io_service& ios)
 		: m_thread_iface(thread_iface)

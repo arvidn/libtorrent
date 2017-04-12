@@ -34,9 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/random.hpp>
 #include <libtorrent/ed25519.hpp>
 
-namespace libtorrent {
-namespace dht
-{
+namespace libtorrent { namespace dht {
 
 	std::array<char, 32> ed25519_create_seed()
 	{

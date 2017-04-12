@@ -59,8 +59,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/auxv.h>
 #endif
 
-namespace libtorrent { namespace aux
-{
+namespace libtorrent { namespace aux {
+
 	namespace {
 
 #if TORRENT_HAS_SSE

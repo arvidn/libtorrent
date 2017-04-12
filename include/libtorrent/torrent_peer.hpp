@@ -37,8 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/address.hpp"
 #include "libtorrent/socket.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	struct peer_connection_interface;
 	struct external_ip;
 

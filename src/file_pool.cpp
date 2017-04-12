@@ -45,8 +45,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <limits>
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	file_pool::file_pool(int size) : m_size(size) {}
 	file_pool::~file_pool() = default;
 

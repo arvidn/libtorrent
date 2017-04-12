@@ -54,8 +54,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/aux_/non_owning_handle.hpp"
 
-namespace libtorrent { namespace
-{
+namespace libtorrent {namespace {
+
 	enum
 	{
 		// this is the max number of bytes we'll
@@ -625,8 +625,8 @@ namespace libtorrent { namespace
 
 } }
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	std::shared_ptr<torrent_plugin> create_ut_metadata_plugin(torrent_handle const& th, void*)
 	{
 		torrent* t = th.native_handle().get();

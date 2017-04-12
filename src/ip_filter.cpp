@@ -32,8 +32,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/ip_filter.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	void ip_filter::add_rule(address first, address last, std::uint32_t flags)
 	{
 		if (first.is_v4())

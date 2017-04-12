@@ -59,8 +59,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace libtorrent { namespace dht
-{
+namespace libtorrent { namespace dht {
 
 // TODO: 3 move this into it's own .cpp file
 dht_observer* observer::get_observer() const

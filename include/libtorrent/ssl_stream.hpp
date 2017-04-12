@@ -52,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 	namespace ssl {
+
 #if defined TORRENT_BUILD_SIMULATOR
 	using sim::asio::ssl::context;
 	using sim::asio::ssl::stream_base;

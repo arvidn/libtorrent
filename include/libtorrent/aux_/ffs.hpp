@@ -37,8 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/export.hpp"
 #include "libtorrent/span.hpp"
 
-namespace libtorrent { namespace aux
-{
+namespace libtorrent { namespace aux {
+
 	// For a general reference of the problems these routines are about
 	// see http://en.wikipedia.org/wiki/Find_first_set
 

@@ -43,8 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <array>
 #include <memory>
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	struct socks5;
 
 	class TORRENT_EXTRA_EXPORT udp_socket : single_threaded

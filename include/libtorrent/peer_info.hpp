@@ -41,8 +41,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/units.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	// holds information and statistics about one peer
 	// that libtorrent is connected to
 	struct TORRENT_EXPORT peer_info

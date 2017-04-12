@@ -49,8 +49,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdio> // for snprintf
 #endif
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	struct plugin;
 
 	// The default values of the session settings are set for a regular
@@ -93,8 +93,8 @@ namespace libtorrent
 
 	void TORRENT_EXPORT TORRENT_CFG();
 
-	namespace aux
-	{
+namespace aux {
+
 		struct session_impl;
 	}
 

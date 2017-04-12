@@ -22,11 +22,10 @@ changelog at the end of the file.
 typedef std::uint32_t u32;
 typedef std::uint8_t u8;
 
-namespace libtorrent
-{
+namespace libtorrent {
 
-namespace
-{
+namespace {
+
 	union CHAR64LONG16
 	{
 		u8 c[64];

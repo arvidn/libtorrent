@@ -39,8 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <type_traits>
 
-namespace libtorrent { namespace aux
-{
+namespace libtorrent { namespace aux {
+
 	// this is meant to provide the actual storage for the handler allocator.
 	// There's only a single slot, so the allocator is only supposed to be used
 	// for handlers where there's only a single outstanding operation at a time,

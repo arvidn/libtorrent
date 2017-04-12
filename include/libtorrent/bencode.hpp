@@ -77,15 +77,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io.hpp" // for write_string
 #include "libtorrent/string_util.hpp" // for is_digit
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 #ifndef TORRENT_NO_DEPRECATE
 	using invalid_encoding = system_error;
 #endif
 
-	namespace detail
-	{
+namespace detail {
+
 		template <class OutIt, class In, typename Cond
 			= typename std::enable_if<std::is_integral<In>::value>::type>
 		int write_integer(OutIt& out, In data)

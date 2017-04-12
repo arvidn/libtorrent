@@ -82,8 +82,8 @@ POSSIBILITY OF SUCH DAMAGE.
 // logic
 #define TORRENT_DEBUG_STREAMING 0
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	class http_parser;
 
 	struct storage_interface;

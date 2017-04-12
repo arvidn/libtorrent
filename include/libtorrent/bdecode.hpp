@@ -156,8 +156,8 @@ TORRENT_EXTRA_EXPORT char const* parse_int(char const* start
 	, char const* end, char delimiter, std::int64_t& val
 	, bdecode_errors::error_code_enum& ec);
 
-namespace detail
-{
+namespace detail {
+
 // internal
 struct bdecode_token
 {

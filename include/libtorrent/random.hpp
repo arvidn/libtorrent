@@ -37,10 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <random>
 #include <algorithm>
 
-namespace libtorrent
-{
-	namespace aux
-	{
+namespace libtorrent { namespace aux {
+
 		TORRENT_EXTRA_EXPORT std::mt19937& random_engine();
 
 		template<class RandomIt>

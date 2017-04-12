@@ -42,8 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/debug.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 	bool is_ssl(socket_type const& s)
 	{

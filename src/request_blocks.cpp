@@ -42,8 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	int source_rank(int source_bitmask)
 	{
 		int ret = 0;

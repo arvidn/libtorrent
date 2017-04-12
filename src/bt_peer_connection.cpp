@@ -73,8 +73,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp"
 #endif
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	namespace mp = boost::multiprecision;
 
 #if !defined(TORRENT_DISABLE_ENCRYPTION) && !defined(TORRENT_DISABLE_EXTENSIONS)

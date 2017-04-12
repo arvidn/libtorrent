@@ -43,8 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_view.hpp"
 #include <string>
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	TORRENT_EXTRA_EXPORT std::string print_address(address const& addr);
 	TORRENT_EXTRA_EXPORT std::string print_endpoint(address const& addr, int port);
 	TORRENT_EXTRA_EXPORT std::string print_endpoint(tcp::endpoint const& ep);
@@ -55,8 +55,8 @@ namespace libtorrent
 	TORRENT_EXTRA_EXPORT std::string endpoint_to_bytes(udp::endpoint const& ep);
 	TORRENT_EXTRA_EXPORT sha1_hash hash_address(address const& ip);
 
-	namespace detail
-	{
+namespace detail {
+
 		template <class Proto>
 		size_t address_size(Proto p)
 		{

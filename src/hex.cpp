@@ -32,8 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/hex.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 	namespace aux {
 

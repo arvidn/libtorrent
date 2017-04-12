@@ -43,8 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <map>
 
-namespace libtorrent { namespace dht
-{
+namespace libtorrent { namespace dht {
 
 class node;
 

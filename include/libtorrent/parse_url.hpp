@@ -40,8 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/error_code.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 	// returns protocol, auth, hostname, port, path
 	TORRENT_EXTRA_EXPORT std::tuple<std::string, std::string

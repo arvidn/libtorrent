@@ -33,8 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifndef TORRENT_REQUEST_BLOCKS_HPP_INCLUDED
 #define TORRENT_REQUEST_BLOCKS_HPP_INCLUDED
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	class torrent;
 	class peer_connection;
 

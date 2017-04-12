@@ -44,8 +44,8 @@ namespace libtorrent {
 struct disk_io_job;
 struct counters;
 
-namespace aux
-{
+namespace aux {
+
 	// implements the disk I/O job fence used by the storage_interface
 	// to provide to the disk thread. Whenever a disk job needs
 	// exclusive access to the storage for that torrent, it raises

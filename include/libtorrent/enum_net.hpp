@@ -51,8 +51,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	struct socket_type;
 
 	// the interface should not have a netmask

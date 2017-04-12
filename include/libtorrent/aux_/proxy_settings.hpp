@@ -38,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 
 namespace libtorrent {
+
 struct settings_pack;
 namespace aux {
 

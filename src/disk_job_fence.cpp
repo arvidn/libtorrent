@@ -43,8 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #define DLOG(...) do {} while (false)
 #endif
 
-namespace libtorrent { namespace aux
-{
+namespace libtorrent { namespace aux {
+
 	disk_job_fence::disk_job_fence() {}
 
 	int disk_job_fence::job_complete(disk_io_job* j, tailqueue<disk_io_job>& jobs)

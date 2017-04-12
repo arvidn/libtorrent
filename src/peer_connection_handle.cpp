@@ -37,8 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdarg> // for va_start, va_end
 #endif
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 connection_type peer_connection_handle::type() const
 {

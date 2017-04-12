@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 
 namespace libtorrent {
+
 	namespace {
 
 	char version_to_char(int const v)

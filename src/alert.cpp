@@ -53,8 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/escape_string.hpp" // for convert_from_native
 #include "libtorrent/aux_/max_path.hpp" // for TORRENT_MAX_PATH
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 	alert::alert() : m_timestamp(clock_type::now()) {}
 	alert::~alert() = default;
@@ -762,8 +761,8 @@ namespace libtorrent
 		return torrent_alert::message() + " checked";
 	}
 
-	namespace
-	{
+namespace {
+
 		int sock_type_idx(socket_type_t type)
 		{
 			int idx =
@@ -1114,8 +1113,8 @@ namespace libtorrent
 		return msg;
 	}
 
-	namespace
-	{
+namespace {
+
 		std::array<int, stats_alert::num_channels> stat_to_array(stat const& s)
 		{
 			std::array<int, stats_alert::num_channels> arr;
@@ -1728,8 +1727,8 @@ namespace libtorrent
 		return "Local Service Discovery error: " + convert_from_native(error.message());
 	}
 
-	namespace
-	{
+namespace {
+
 		aux::array<std::int64_t, counters::num_counters> counters_to_array(counters const& cnt)
 		{
 			aux::array<std::int64_t, counters::num_counters> arr;
@@ -2140,8 +2139,8 @@ namespace libtorrent
 		return buf;
 	}
 
-	namespace
-	{
+namespace {
+
 	using nodes_slot = std::tuple<int, aux::allocation_slot, int, aux::allocation_slot>;
 
 	nodes_slot write_nodes(aux::stack_allocator& alloc

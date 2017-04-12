@@ -36,8 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	struct union_address
 	{
 		union_address() { *this = address(); }

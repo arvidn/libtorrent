@@ -42,8 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 	struct TORRENT_EXTRA_EXPORT torrent_peer_allocator_interface
 	{

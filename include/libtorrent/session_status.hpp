@@ -41,8 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #endif
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 #ifndef TORRENT_NO_DEPRECATE
 	// holds counters and gauges for the uTP sockets

@@ -42,8 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/torrent.hpp" // for default_piece_priority
 #include "libtorrent/aux_/numeric_cast.hpp" // for clamp
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	entry write_resume_data(add_torrent_params const& atp)
 	{
 		entry ret;

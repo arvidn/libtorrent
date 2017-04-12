@@ -36,8 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/io.hpp>
 #include <libtorrent/performance_counters.hpp>
 
-namespace libtorrent { namespace dht
-{
+namespace libtorrent { namespace dht {
 
 put_data::put_data(node& dht_node, put_callback const& callback)
 	: traversal_algorithm(dht_node, (node_id::min)())

@@ -35,8 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstdint>
 
-namespace libtorrent { namespace dht
-{
+namespace libtorrent { namespace dht {
+
 	struct public_key
 	{
 		public_key() = default;

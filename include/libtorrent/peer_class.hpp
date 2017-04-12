@@ -47,6 +47,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 	namespace aux {
+
 		struct peer_class_tag;
 	}
 

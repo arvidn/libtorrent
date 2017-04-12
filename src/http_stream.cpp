@@ -38,8 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 	void http_stream::name_lookup(error_code const& e, tcp::resolver::iterator i
 		, handler_type& h)

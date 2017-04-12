@@ -42,8 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	timeout_handler::timeout_handler(io_service& ios)
 		: m_start_time(clock_type::now())
 		, m_read_time(m_start_time)

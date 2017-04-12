@@ -55,8 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using libtorrent::aux::session_impl;
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 #ifndef BOOST_NO_EXCEPTIONS
 	void TORRENT_NO_RETURN throw_invalid_handle()

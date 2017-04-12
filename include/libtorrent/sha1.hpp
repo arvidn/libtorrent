@@ -16,8 +16,7 @@ changelog at the end of sha1.cpp
 #include "libtorrent/config.hpp"
 #include <cstdint>
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 	struct sha1_ctx
 	{

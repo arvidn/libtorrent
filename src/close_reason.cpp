@@ -34,8 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error.hpp"
 #include "libtorrent/assert.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 	close_reason_t error_to_close_reason(error_code const& ec)
 	{

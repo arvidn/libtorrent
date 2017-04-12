@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 	namespace aux {
+
 		struct free_deleter
 		{ void operator()(char* ptr) { return std::free(ptr); } };
 

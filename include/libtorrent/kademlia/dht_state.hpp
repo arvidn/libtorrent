@@ -41,14 +41,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	struct bdecode_node;
 }
 
-namespace libtorrent {
-namespace dht
-{
+namespace libtorrent { namespace dht {
 	// This structure helps to store and load the state
 	// of the ``dht_tracker``.
 	// At this moment the library is only a dual stack

@@ -48,10 +48,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/aux_/vector.hpp>
 #include <libtorrent/aux_/numeric_cast.hpp>
 
-namespace libtorrent {
-namespace dht {
-namespace
-{
+namespace libtorrent { namespace dht {
+namespace {
+
 	// this is the entry for every peer
 	// the timestamp is there to make it possible
 	// to remove stale peers

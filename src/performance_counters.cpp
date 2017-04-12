@@ -36,7 +36,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-
 	counters::counters()
 	{
 #ifdef ATOMIC_LLONG_LOCK_FREE

@@ -37,16 +37,18 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if defined TORRENT_BUILD_SIMULATOR
 namespace sim { namespace asio {
+
 	struct io_service;
 }}
 #else
 namespace boost { namespace asio {
+
 	class io_service;
 }}
 #endif
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 #if defined TORRENT_BUILD_SIMULATOR
 	typedef sim::asio::io_service io_service;
 #else

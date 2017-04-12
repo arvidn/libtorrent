@@ -33,8 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_class.hpp"
 #include "libtorrent/peer_connection.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	void peer_class::set_upload_limit(int limit)
 	{
 		TORRENT_ASSERT(limit >= -1);

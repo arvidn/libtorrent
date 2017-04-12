@@ -39,8 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional>
 #include <string>
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	struct TORRENT_EXPORT storage_interface;
 	class file_storage;
 	struct file_pool;

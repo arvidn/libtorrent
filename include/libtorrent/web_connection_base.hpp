@@ -45,8 +45,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/http_parser.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	class torrent;
 
 	class TORRENT_EXTRA_EXPORT web_connection_base

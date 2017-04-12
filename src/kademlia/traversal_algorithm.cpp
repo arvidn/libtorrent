@@ -46,8 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace libtorrent { namespace dht
-{
+namespace libtorrent { namespace dht {
 
 #if TORRENT_USE_ASSERTS
 template <class It, class Cmp>

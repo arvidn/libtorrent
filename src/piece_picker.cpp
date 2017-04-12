@@ -59,8 +59,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	// TODO: find a better place for this
 	const piece_block piece_block::invalid(
 		std::numeric_limits<piece_index_t>::max()
@@ -1772,8 +1772,8 @@ namespace libtorrent
 		}
 	}
 
-	namespace
-	{
+namespace {
+
 		int append_blocks(std::vector<piece_block>& dst, std::vector<piece_block>& src
 			, int const num_blocks)
 		{

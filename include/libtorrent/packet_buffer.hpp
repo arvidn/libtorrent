@@ -40,8 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstddef>
 #include <memory> // for unique_ptr
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	struct packet;
 
 	// this is a circular buffer that automatically resizes

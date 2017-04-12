@@ -41,18 +41,17 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdio> // for snprintf
 #include <cinttypes> // for PRId64 et.al.
 
-namespace
-{
+namespace {
+
 	const int lazy_entry_grow_factor = 150; // percent
 	const int lazy_entry_dict_init = 5;
 	const int lazy_entry_list_init = 5;
 }
 
-namespace libtorrent
-{
+namespace libtorrent {
 
-	namespace
-	{
+namespace {
+
 		int fail(int* error_pos
 			, std::vector<lazy_entry*>& stack
 			, char const* start
@@ -283,8 +282,8 @@ namespace libtorrent
 		if (m_size > 0) --m_size;
 	}
 
-	namespace
-	{
+namespace {
+
 		// the number of decimal digits needed
 		// to represent the given value
 		int num_digits(int val)
@@ -310,8 +309,8 @@ namespace libtorrent
 		m_len = std::uint32_t(start - m_begin + length);
 	}
 
-	namespace
-	{
+namespace {
+
 		// str1 is 0-terminated
 		// str2 is not, str2 is len2 chars
 		bool string_equal(char const* str1, char const* str2, int len2)

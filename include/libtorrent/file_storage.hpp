@@ -46,8 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/aux_/vector.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 #ifndef TORRENT_NO_DEPRECATE
 	// information about a file in a file_storage
 	struct TORRENT_DEPRECATED_EXPORT file_entry

@@ -40,19 +40,23 @@ POSSIBILITY OF SUCH DAMAGE.
 #if BOOST_VERSION < 106100
 #include <boost/utility/string_ref.hpp>
 namespace libtorrent {
+
 using string_view = boost::string_ref;
 using wstring_view = boost::wstring_ref;
 }
 #else
 #include <boost/utility/string_view.hpp>
 namespace libtorrent {
+
 using string_view = boost::string_view;
 using wstring_view = boost::wstring_view;
 }
 #endif
 
 namespace libtorrent {
+
 inline namespace literals {
+
 	constexpr string_view operator""_sv(char const* str, std::size_t len)
 	{ return string_view(str, len); }
 }

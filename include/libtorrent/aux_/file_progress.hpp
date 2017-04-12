@@ -50,15 +50,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bitfield.hpp"
 #endif
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 class piece_picker;
 class file_storage;
 class alert_manager;
 struct torrent_handle;
 
-namespace aux
-{
+namespace aux {
+
 	struct TORRENT_EXTRA_EXPORT file_progress
 	{
 		file_progress();

@@ -36,8 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_util.hpp"
 #include "libtorrent/string_view.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 	TORRENT_EXTRA_EXPORT void xml_parse(string_view input
 		, std::function<void(int, string_view, string_view)> callback)

@@ -41,8 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_util.hpp" // for allocate_string_copy
 #include "libtorrent/aux_/escape_string.hpp" // for read_until
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 	bool is_ok_status(int http_status)
 	{

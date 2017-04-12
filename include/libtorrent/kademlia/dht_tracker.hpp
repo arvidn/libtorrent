@@ -44,8 +44,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/span.hpp>
 #include <libtorrent/io_service.hpp>
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	struct counters;
 	struct dht_settings;
 #ifndef TORRENT_NO_DEPRECATE
@@ -53,8 +53,8 @@ namespace libtorrent
 #endif
 }
 
-namespace libtorrent { namespace dht
-{
+namespace libtorrent { namespace dht {
+
 	struct TORRENT_EXTRA_EXPORT dht_tracker final
 		: udp_socket_interface
 		, std::enable_shared_from_this<dht_tracker>

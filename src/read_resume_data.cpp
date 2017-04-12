@@ -41,10 +41,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/torrent.hpp" // for default_piece_priority
 
-namespace libtorrent
-{
-	namespace
-	{
+namespace libtorrent {
+
+namespace {
+
 		void apply_flag(std::uint64_t& current_flags
 			, bdecode_node const& n
 			, char const* name

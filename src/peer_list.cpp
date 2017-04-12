@@ -59,8 +59,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace
-{
+namespace {
+
 	using namespace libtorrent;
 
 	struct match_peer_endpoint
@@ -112,8 +112,8 @@ namespace
 
 }
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	peer_list::peer_list()
 		: m_locked_peer(nullptr)
 		, m_num_seeds(0)

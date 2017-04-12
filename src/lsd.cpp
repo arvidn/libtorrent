@@ -46,8 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 namespace {
 
 int render_lsd_packet(char* dst, int const len, int const listen_port

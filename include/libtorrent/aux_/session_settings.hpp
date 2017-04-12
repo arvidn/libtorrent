@@ -41,13 +41,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <array>
 #include <bitset>
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	TORRENT_EXTRA_EXPORT void initialize_default_settings(aux::session_settings& s);
 }
 
-namespace libtorrent { namespace aux
-{
+namespace libtorrent { namespace aux {
 
 	struct TORRENT_EXTRA_EXPORT session_settings
 	{

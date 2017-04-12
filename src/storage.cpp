@@ -75,8 +75,8 @@ POSSIBILITY OF SUCH DAMAGE.
 // for convert_to_wstring and convert_to_native
 #include "libtorrent/aux_/escape_string.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	void clear_bufs(span<iovec_t const> bufs)
 	{
 		for (auto buf : bufs)
@@ -747,8 +747,8 @@ namespace libtorrent
 
 	// -- disabled_storage --------------------------------------------------
 
-	namespace
-	{
+namespace {
+
 		// this storage implementation does not write anything to disk
 		// and it pretends to read, and just leaves garbage in the buffers
 		// this is useful when simulating many clients on the same machine
@@ -795,8 +795,8 @@ namespace libtorrent
 
 	// -- zero_storage ------------------------------------------------------
 
-	namespace
-	{
+namespace {
+
 		// this storage implementation always reads zeroes, and always discards
 		// anything written to it
 		struct zero_storage final : storage_interface

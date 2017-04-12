@@ -60,8 +60,7 @@ const rlim_t rlim_infinity = RLIM_INFINITY;
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 	int max_open_files()
 	{

@@ -35,8 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/string_util.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 	// returns protocol, auth, hostname, port, path
 	std::tuple<std::string, std::string, std::string, int, std::string>

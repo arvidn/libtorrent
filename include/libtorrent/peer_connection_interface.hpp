@@ -38,8 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/operations.hpp" // for operation_t enum
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	struct torrent_peer;
 	class stat;
 	struct peer_info;

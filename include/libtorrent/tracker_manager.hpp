@@ -63,8 +63,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 #include "libtorrent/error_code.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	struct request_callback;
 	class tracker_manager;
 	struct timeout_handler;

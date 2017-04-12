@@ -62,8 +62,8 @@ namespace {
 	{ return str == nullptr ? "" : str; }
 }
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	struct str_setting_entry_t
 	{
 		// the name of this setting. used for serialization and deserialization

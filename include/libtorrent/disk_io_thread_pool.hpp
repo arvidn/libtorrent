@@ -43,8 +43,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <mutex>
 #include <atomic>
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	struct disk_io_thread_pool;
 
 	struct pool_thread_interface

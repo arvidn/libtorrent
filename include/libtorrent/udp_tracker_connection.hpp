@@ -46,8 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/span.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	class TORRENT_EXTRA_EXPORT udp_tracker_connection: public tracker_connection
 	{
 	friend class tracker_manager;

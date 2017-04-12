@@ -54,8 +54,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std::placeholders;
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	bool is_ip_address(std::string const& host)
 	{
 		error_code ec;

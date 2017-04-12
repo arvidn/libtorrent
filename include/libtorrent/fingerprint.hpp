@@ -40,8 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/export.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 	// This is a utility function to produce a client ID fingerprint formatted to
 	// the most common convention.

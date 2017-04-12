@@ -38,8 +38,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/string_view.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	namespace string
 	{
 		enum flags_t

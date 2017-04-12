@@ -54,8 +54,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/pe_crypto.hpp"
 #include "libtorrent/hasher.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	namespace mp = boost::multiprecision;
 
 	namespace {

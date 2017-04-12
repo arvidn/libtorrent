@@ -39,8 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/span.hpp>
 #include <libtorrent/kademlia/types.hpp>
 
-namespace libtorrent { namespace dht
-{
+namespace libtorrent { namespace dht {
 
 // calculate the target hash for an immutable item.
 TORRENT_EXTRA_EXPORT sha1_hash item_target_id(span<char const> v);

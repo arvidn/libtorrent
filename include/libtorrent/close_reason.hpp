@@ -35,8 +35,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/error_code.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	// internal: these are all the reasons to disconnect a peer
 	// all reasons caused by the peer sending unexpected data
 	// are 256 and up.

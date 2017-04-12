@@ -44,8 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/i2p_stream.hpp"
 #include "libtorrent/error_code.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 	struct http_connection;
 	class entry;

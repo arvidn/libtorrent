@@ -67,15 +67,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/path.hpp"
 
-namespace
-{
+namespace {
+
 	// round up to even kilobyte
 	int round_up(int n)
 	{ return (n + 1023) & ~0x3ff; }
 }
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	part_file::part_file(std::string const& path, std::string const& name
 		, int num_pieces, int piece_size)
 		: m_path(path)

@@ -42,8 +42,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <limits>
 #include <array> // for std::array
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	TORRENT_EXTRA_EXPORT bool is_alpha(char c);
 
 	TORRENT_EXTRA_EXPORT

@@ -36,8 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <climits>
 #endif
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 	bandwidth_manager::bandwidth_manager(int channel)
 		: m_queued_bytes(0)

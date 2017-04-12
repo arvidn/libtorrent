@@ -40,8 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hasher.hpp" // for hasher
 #include "libtorrent/aux_/escape_string.hpp" // for trim
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 	std::string print_address(address const& addr)
 	{

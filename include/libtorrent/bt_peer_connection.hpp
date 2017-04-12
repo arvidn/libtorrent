@@ -54,8 +54,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/pe_crypto.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	class torrent;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS

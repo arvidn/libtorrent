@@ -25,8 +25,7 @@ using i32 = std::int32_t;
 #define UINT64_C(x) x ## LL
 #endif
 
-namespace libtorrent
-{
+namespace libtorrent {
 
 /* the K array */
 static const u64 K[80] = {

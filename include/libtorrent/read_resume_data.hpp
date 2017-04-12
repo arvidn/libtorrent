@@ -37,8 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/export.hpp"
 #include "libtorrent/span.hpp"
 
-namespace libtorrent
-{
+namespace libtorrent {
+
 	struct add_torrent_params;
 	struct bdecode_node;
 
