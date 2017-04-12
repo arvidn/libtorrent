@@ -37,6 +37,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma clang diagnostic ignored "-Wattributes"
+#endif
+
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wattributes"
+#endif
 
 // include/libtorrent/add_torrent_params.hpp
 struct TORRENT_EXPORT add_torrent_params;
@@ -258,6 +268,14 @@ struct TORRENT_DEPRECATED_EXPORT pascal_string;
 struct TORRENT_DEPRECATED_EXPORT lazy_entry;
 
 #endif // TORRENT_NO_DEPRECATE
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 }
 

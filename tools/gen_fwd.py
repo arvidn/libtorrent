@@ -42,9 +42,27 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma clang diagnostic ignored "-Wattributes"
+#endif
+
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wattributes"
+#endif
 '''
 
 file_footer = '''
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 }
 
