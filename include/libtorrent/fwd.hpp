@@ -156,7 +156,7 @@ struct cache_status;
 class entry;
 
 // include/libtorrent/error_code.hpp
-struct libtorrent_exception:;
+struct libtorrent_exception;
 struct storage_error;
 
 // include/libtorrent/extensions.hpp
@@ -202,7 +202,7 @@ struct feed_handle;
 
 // include/libtorrent/session.hpp
 class session_proxy;
-class session:;
+class session;
 
 // include/libtorrent/session_handle.hpp
 struct session_handle;

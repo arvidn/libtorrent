@@ -155,7 +155,7 @@ namespace libtorrent
 	// the settings to be set and pass it in to ``session::apply_settings()``.
 	// 
 	// see apply_settings().
-	class TORRENT_EXPORT session: public boost::noncopyable, public session_handle
+	class TORRENT_EXPORT session : public boost::noncopyable, public session_handle
 	{
 	public:
 
