@@ -53,7 +53,22 @@ namespace libtorrent { namespace aux
 namespace
 {
 #if defined TORRENT_BUILD_SIMULATOR
-	// TODO: ip_change_notifier_sim
+struct ip_change_notifier_impl final : ip_change_notifier
+{
+	explicit ip_change_notifier_impl(io_service& ios)
+		: m_ios(ios) {}
+
+	void async_wait(std::function<void(error_code const&)> cb) override
+	{
+		m_ios.post([cb]()
+		{ cb(make_error_code(boost::system::errc::not_supported)); });
+	}
+
+	void cancel() override {}
+
+private:
+	io_service& m_ios;
+};
 #elif TORRENT_USE_NETLINK
 struct ip_change_notifier_impl final : ip_change_notifier
 {
@@ -362,121 +377,6 @@ private:
 	boost::asio::windows::object_handle m_hnd;
 };
 #endif
-
-	// TODO: to remove when separated per platform
-#if defined TORRENT_BUILD_SIMULATOR
-	struct ip_change_notifier_impl final : ip_change_notifier
-	{
-		explicit ip_change_notifier_impl(io_service& ios);
-		~ip_change_notifier_impl() override;
-		ip_change_notifier_impl(ip_change_notifier_impl const&) = delete;
-		ip_change_notifier_impl& operator=(ip_change_notifier_impl const&) = delete;
-
-		// cb will be invoked  when a change is detected in the
-		// system's IP addresses
-		void async_wait(std::function<void(error_code const&)> cb) override;
-		void cancel() override;
-
-	private:
-		void on_notify(error_code const& error
-			, std::size_t bytes_transferred
-			, std::function<void(error_code const&)> cb);
-
-#if defined TORRENT_BUILD_SIMULATOR
-		// TODO: simulator support
-#elif TORRENT_USE_NETLINK
-		netlink::socket m_socket;
-		std::array<char, 4096> m_buf;
-#elif defined TORRENT_WINDOWS
-		OVERLAPPED m_ovl = {};
-		boost::asio::windows::object_handle m_hnd;
-#endif
-	};
-
-	ip_change_notifier_impl::ip_change_notifier_impl(io_service& ios)
-#if defined TORRENT_BUILD_SIMULATOR
-#elif TORRENT_USE_NETLINK
-		: m_socket(ios
-			, netlink::endpoint(netlink(NETLINK_ROUTE), RTMGRP_IPV4_IFADDR | RTMGRP_IPV6_IFADDR))
-#elif defined TORRENT_WINDOWS
-		: m_hnd(ios, WSACreateEvent())
-#endif
-	{
-#if defined TORRENT_BUILD_SIMULATOR
-		TORRENT_UNUSED(ios);
-#elif defined TORRENT_WINDOWS
-		if (!m_hnd.is_open()) aux::throw_ex<system_error>(WSAGetLastError(), system_category());
-		m_ovl.hEvent = m_hnd.native_handle();
-#elif !TORRENT_USE_NETLINK
-		TORRENT_UNUSED(ios);
-#endif
-	}
-
-	ip_change_notifier_impl::~ip_change_notifier_impl()
-	{
-#if defined TORRENT_WINDOWS && !defined TORRENT_BUILD_SIMULATOR
-		cancel();
-		m_hnd.close();
-#endif
-	}
-
-	void ip_change_notifier_impl::async_wait(std::function<void(error_code const&)> cb)
-	{
-#if defined TORRENT_BUILD_SIMULATOR
-		TORRENT_UNUSED(&ip_change_notifier_impl::on_notify);
-		TORRENT_UNUSED(cb);
-#elif TORRENT_USE_NETLINK
-		using namespace std::placeholders;
-		m_socket.async_receive(boost::asio::buffer(m_buf)
-			, std::bind(&ip_change_notifier_impl::on_notify, this, _1, _2, cb));
-#elif defined TORRENT_WINDOWS
-		HANDLE hnd;
-		DWORD err = NotifyAddrChange(&hnd, &m_ovl);
-		if (err == ERROR_IO_PENDING)
-		{
-			m_hnd.async_wait([this, cb](error_code const& ec) { on_notify(ec, 0, cb); });
-		}
-		else
-		{
-			m_hnd.get_io_service().post([this, cb, err]()
-				{ cb(error_code(err, system_category())); });
-		}
-#else
-		TORRENT_UNUSED(&ip_change_notifier_impl::on_notify);
-		cb(make_error_code(boost::system::errc::not_supported));
-#endif
-	}
-
-	void ip_change_notifier_impl::cancel()
-	{
-#if defined TORRENT_BUILD_SIMULATOR
-#elif TORRENT_USE_NETLINK
-		m_socket.cancel();
-#elif defined TORRENT_WINDOWS
-		CancelIPChangeNotify(&m_ovl);
-		m_hnd.cancel();
-#endif
-	}
-
-	void ip_change_notifier_impl::on_notify(error_code const& ec
-		, std::size_t bytes_transferred
-		, std::function<void(error_code const&)> cb)
-	{
-		TORRENT_UNUSED(bytes_transferred);
-
-		// on linux we could parse the message to get information about the
-		// change but Windows requires the application to enumerate the
-		// interfaces after a notification so do that for Linux as well to
-		// minimize the difference between platforms
-
-		// Linux can generate ENOBUFS if the socket's buffers are full
-		// don't treat it as an error
-		if (ec.value() == boost::system::errc::no_buffer_space)
-			cb(error_code());
-		else
-			cb(ec);
-	}
-#endif // defined TORRENT_BUILD_SIMULATOR || TORRENT_USE_NETLINK || defined TORRENT_WINDOWS
 
 } // anonymous namespace
 
