@@ -130,11 +130,13 @@ struct ip_change_notifier_impl final : ip_change_notifier
 			[](SCNetworkReachabilityRef /*target*/, SCNetworkReachabilityFlags /*flags*/, void *info)
 			{
 				auto obj = static_cast<ip_change_notifier_impl*>(info);
-				if (!obj->m_cb) return;
-
-				auto cb = std::move(obj->m_cb);
-				obj->m_cb = nullptr;
-				obj->m_ios.post([cb]() { cb(error_code()); });
+				obj->m_ios.post([obj]()
+				{
+					if (!obj->m_cb) return;
+					auto cb = std::move(obj->m_cb);
+					obj->m_cb = nullptr;
+					cb(error_code());
+				});
 			}, this);
 
 		if (!m_queue || !m_reach
@@ -220,11 +222,13 @@ struct ip_change_notifier_impl final : ip_change_notifier
 			[](SCDynamicStoreRef /*store*/, CFArrayRef /*changedKeys*/, void *info)
 			{
 				auto obj = static_cast<ip_change_notifier_impl*>(info);
-				if (!obj->m_cb) return;
-
-				auto cb = std::move(obj->m_cb);
-				obj->m_cb = nullptr;
-				obj->m_ios.post([cb]() { cb(error_code()); });
+				obj->m_ios.post([obj]()
+				{
+					if (!obj->m_cb) return;
+					auto cb = std::move(obj->m_cb);
+					obj->m_cb = nullptr;
+					cb(error_code());
+				});
 			}, this);
 
 		if (!m_queue || !m_store
