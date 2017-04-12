@@ -37,245 +37,226 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma clang diagnostic ignored "-Wattributes"
-#endif
-
-
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wattributes"
-#endif
-
 // include/libtorrent/add_torrent_params.hpp
-struct TORRENT_EXPORT add_torrent_params;
+struct add_torrent_params;
 
 // include/libtorrent/alert.hpp
-class TORRENT_EXPORT alert;
+class alert;
 
 // include/libtorrent/alert_types.hpp
-struct TORRENT_EXPORT torrent_alert;
-struct TORRENT_EXPORT peer_alert;
-struct TORRENT_EXPORT tracker_alert;
-struct TORRENT_EXPORT torrent_removed_alert;
-struct TORRENT_EXPORT read_piece_alert;
-struct TORRENT_EXPORT file_completed_alert;
-struct TORRENT_EXPORT file_renamed_alert;
-struct TORRENT_EXPORT file_rename_failed_alert;
-struct TORRENT_EXPORT performance_alert;
-struct TORRENT_EXPORT state_changed_alert;
-struct TORRENT_EXPORT tracker_error_alert;
-struct TORRENT_EXPORT tracker_warning_alert;
-struct TORRENT_EXPORT scrape_reply_alert;
-struct TORRENT_EXPORT scrape_failed_alert;
-struct TORRENT_EXPORT tracker_reply_alert;
-struct TORRENT_EXPORT dht_reply_alert;
-struct TORRENT_EXPORT tracker_announce_alert;
-struct TORRENT_EXPORT hash_failed_alert;
-struct TORRENT_EXPORT peer_ban_alert;
-struct TORRENT_EXPORT peer_unsnubbed_alert;
-struct TORRENT_EXPORT peer_snubbed_alert;
-struct TORRENT_EXPORT peer_error_alert;
-struct TORRENT_EXPORT peer_connect_alert;
-struct TORRENT_EXPORT peer_disconnected_alert;
-struct TORRENT_EXPORT invalid_request_alert;
-struct TORRENT_EXPORT torrent_finished_alert;
-struct TORRENT_EXPORT piece_finished_alert;
-struct TORRENT_EXPORT request_dropped_alert;
-struct TORRENT_EXPORT block_timeout_alert;
-struct TORRENT_EXPORT block_finished_alert;
-struct TORRENT_EXPORT block_downloading_alert;
-struct TORRENT_EXPORT unwanted_block_alert;
-struct TORRENT_EXPORT storage_moved_alert;
-struct TORRENT_EXPORT storage_moved_failed_alert;
-struct TORRENT_EXPORT torrent_deleted_alert;
-struct TORRENT_EXPORT torrent_delete_failed_alert;
-struct TORRENT_EXPORT save_resume_data_alert;
-struct TORRENT_EXPORT save_resume_data_failed_alert;
-struct TORRENT_EXPORT torrent_paused_alert;
-struct TORRENT_EXPORT torrent_resumed_alert;
-struct TORRENT_EXPORT torrent_checked_alert;
-struct TORRENT_EXPORT url_seed_alert;
-struct TORRENT_EXPORT file_error_alert;
-struct TORRENT_EXPORT metadata_failed_alert;
-struct TORRENT_EXPORT metadata_received_alert;
-struct TORRENT_EXPORT udp_error_alert;
-struct TORRENT_EXPORT external_ip_alert;
-struct TORRENT_EXPORT listen_failed_alert;
-struct TORRENT_EXPORT listen_succeeded_alert;
-struct TORRENT_EXPORT portmap_error_alert;
-struct TORRENT_EXPORT portmap_alert;
-struct TORRENT_EXPORT portmap_log_alert;
-struct TORRENT_EXPORT fastresume_rejected_alert;
-struct TORRENT_EXPORT peer_blocked_alert;
-struct TORRENT_EXPORT dht_announce_alert;
-struct TORRENT_EXPORT dht_get_peers_alert;
-struct TORRENT_EXPORT stats_alert;
-struct TORRENT_EXPORT cache_flushed_alert;
-struct TORRENT_EXPORT anonymous_mode_alert;
-struct TORRENT_EXPORT lsd_peer_alert;
-struct TORRENT_EXPORT trackerid_alert;
-struct TORRENT_EXPORT dht_bootstrap_alert;
-struct TORRENT_EXPORT torrent_error_alert;
-struct TORRENT_EXPORT torrent_need_cert_alert;
-struct TORRENT_EXPORT incoming_connection_alert;
-struct TORRENT_EXPORT add_torrent_alert;
-struct TORRENT_EXPORT state_update_alert;
-struct TORRENT_EXPORT session_stats_alert;
-struct TORRENT_EXPORT dht_error_alert;
-struct TORRENT_EXPORT dht_immutable_item_alert;
-struct TORRENT_EXPORT dht_mutable_item_alert;
-struct TORRENT_EXPORT dht_put_alert;
-struct TORRENT_EXPORT i2p_alert;
-struct TORRENT_EXPORT dht_outgoing_get_peers_alert;
-struct TORRENT_EXPORT log_alert;
-struct TORRENT_EXPORT torrent_log_alert;
-struct TORRENT_EXPORT peer_log_alert;
-struct TORRENT_EXPORT lsd_error_alert;
-struct TORRENT_EXPORT dht_lookup;
-struct TORRENT_EXPORT dht_routing_bucket;
-struct TORRENT_EXPORT dht_stats_alert;
-struct TORRENT_EXPORT incoming_request_alert;
-struct TORRENT_EXPORT dht_log_alert;
-struct TORRENT_EXPORT dht_pkt_alert;
-struct TORRENT_EXPORT dht_get_peers_reply_alert;
-struct TORRENT_EXPORT dht_direct_response_alert;
-struct TORRENT_EXPORT picker_log_alert;
-struct TORRENT_EXPORT session_error_alert;
-struct TORRENT_EXPORT dht_live_nodes_alert;
-struct TORRENT_EXPORT session_stats_header_alert;
+struct torrent_alert;
+struct peer_alert;
+struct tracker_alert;
+struct torrent_removed_alert;
+struct read_piece_alert;
+struct file_completed_alert;
+struct file_renamed_alert;
+struct file_rename_failed_alert;
+struct performance_alert;
+struct state_changed_alert;
+struct tracker_error_alert;
+struct tracker_warning_alert;
+struct scrape_reply_alert;
+struct scrape_failed_alert;
+struct tracker_reply_alert;
+struct dht_reply_alert;
+struct tracker_announce_alert;
+struct hash_failed_alert;
+struct peer_ban_alert;
+struct peer_unsnubbed_alert;
+struct peer_snubbed_alert;
+struct peer_error_alert;
+struct peer_connect_alert;
+struct peer_disconnected_alert;
+struct invalid_request_alert;
+struct torrent_finished_alert;
+struct piece_finished_alert;
+struct request_dropped_alert;
+struct block_timeout_alert;
+struct block_finished_alert;
+struct block_downloading_alert;
+struct unwanted_block_alert;
+struct storage_moved_alert;
+struct storage_moved_failed_alert;
+struct torrent_deleted_alert;
+struct torrent_delete_failed_alert;
+struct save_resume_data_alert;
+struct save_resume_data_failed_alert;
+struct torrent_paused_alert;
+struct torrent_resumed_alert;
+struct torrent_checked_alert;
+struct url_seed_alert;
+struct file_error_alert;
+struct metadata_failed_alert;
+struct metadata_received_alert;
+struct udp_error_alert;
+struct external_ip_alert;
+struct listen_failed_alert;
+struct listen_succeeded_alert;
+struct portmap_error_alert;
+struct portmap_alert;
+struct portmap_log_alert;
+struct fastresume_rejected_alert;
+struct peer_blocked_alert;
+struct dht_announce_alert;
+struct dht_get_peers_alert;
+struct stats_alert;
+struct cache_flushed_alert;
+struct anonymous_mode_alert;
+struct lsd_peer_alert;
+struct trackerid_alert;
+struct dht_bootstrap_alert;
+struct torrent_error_alert;
+struct torrent_need_cert_alert;
+struct incoming_connection_alert;
+struct add_torrent_alert;
+struct state_update_alert;
+struct session_stats_alert;
+struct dht_error_alert;
+struct dht_immutable_item_alert;
+struct dht_mutable_item_alert;
+struct dht_put_alert;
+struct i2p_alert;
+struct dht_outgoing_get_peers_alert;
+struct log_alert;
+struct torrent_log_alert;
+struct peer_log_alert;
+struct lsd_error_alert;
+struct dht_lookup;
+struct dht_routing_bucket;
+struct dht_stats_alert;
+struct incoming_request_alert;
+struct dht_log_alert;
+struct dht_pkt_alert;
+struct dht_get_peers_reply_alert;
+struct dht_direct_response_alert;
+struct picker_log_alert;
+struct session_error_alert;
+struct dht_live_nodes_alert;
+struct session_stats_header_alert;
 
 // include/libtorrent/announce_entry.hpp
-struct TORRENT_EXPORT announce_entry;
+struct announce_entry;
 
 // include/libtorrent/bdecode.hpp
-struct TORRENT_EXPORT bdecode_node;
+struct bdecode_node;
 
 // include/libtorrent/bitfield.hpp
-struct TORRENT_EXPORT bitfield;
+struct bitfield;
 
 // include/libtorrent/create_torrent.hpp
-struct TORRENT_EXPORT create_torrent;
+struct create_torrent;
 
 // include/libtorrent/disk_interface.hpp
-struct TORRENT_EXPORT open_file_state;
+struct open_file_state;
 
 // include/libtorrent/disk_io_thread.hpp
-struct TORRENT_EXPORT cache_status;
+struct cache_status;
 
 // include/libtorrent/entry.hpp
-class TORRENT_EXPORT entry;
+class entry;
 
 // include/libtorrent/error_code.hpp
-struct TORRENT_EXPORT storage_error;
+struct storage_error;
 
 // include/libtorrent/extensions.hpp
-struct TORRENT_EXPORT plugin;
-struct TORRENT_EXPORT torrent_plugin;
-struct TORRENT_EXPORT peer_plugin;
-struct TORRENT_EXPORT crypto_plugin;
+struct plugin;
+struct torrent_plugin;
+struct peer_plugin;
+struct crypto_plugin;
 
 // include/libtorrent/file_pool.hpp
-struct TORRENT_EXPORT file_pool;
+struct file_pool;
 
 // include/libtorrent/file_storage.hpp
-struct TORRENT_EXPORT file_slice;
-class TORRENT_EXPORT file_storage;
+struct file_slice;
+class file_storage;
 
 // include/libtorrent/hasher.hpp
-class TORRENT_EXPORT hasher;
+class hasher;
 
 // include/libtorrent/hasher512.hpp
-class TORRENT_EXPORT hasher512;
+class hasher512;
 
 // include/libtorrent/ip_filter.hpp
-struct TORRENT_EXPORT ip_filter;
-class TORRENT_EXPORT port_filter;
+struct ip_filter;
+class port_filter;
 
 // include/libtorrent/kademlia/dht_state.hpp
-struct TORRENT_EXPORT dht_state;
+struct dht_state;
 
 // include/libtorrent/kademlia/dht_storage.hpp
-struct TORRENT_EXPORT dht_storage_counters;
-struct TORRENT_EXPORT dht_storage_interface;
+struct dht_storage_counters;
+struct dht_storage_interface;
 
 // include/libtorrent/peer_connection_handle.hpp
-struct TORRENT_EXPORT peer_connection_handle;
-struct TORRENT_EXPORT bt_peer_connection_handle;
+struct peer_connection_handle;
+struct bt_peer_connection_handle;
 
 // include/libtorrent/peer_info.hpp
-struct TORRENT_EXPORT peer_info;
+struct peer_info;
 
 // include/libtorrent/peer_request.hpp
-struct TORRENT_EXPORT peer_request;
+struct peer_request;
 
 // include/libtorrent/session.hpp
-class TORRENT_EXPORT session_proxy;
-struct TORRENT_EXPORT session_params;
-class TORRENT_EXPORT session;
+class session_proxy;
+struct session_params;
+class session;
 
 // include/libtorrent/session_handle.hpp
-struct TORRENT_EXPORT session_handle;
+struct session_handle;
 
 // include/libtorrent/session_settings.hpp
-struct TORRENT_EXPORT dht_settings;
-struct TORRENT_EXPORT pe_settings;
+struct dht_settings;
+struct pe_settings;
 
 // include/libtorrent/session_stats.hpp
-struct TORRENT_EXPORT stats_metric;
+struct stats_metric;
 
 // include/libtorrent/session_status.hpp
-struct TORRENT_EXPORT utp_status;
-struct TORRENT_EXPORT session_status;
+struct utp_status;
+struct session_status;
 
 // include/libtorrent/settings_pack.hpp
-struct TORRENT_EXPORT settings_pack;
+struct settings_pack;
 
 // include/libtorrent/storage.hpp
-struct TORRENT_EXPORT storage_interface;
-class TORRENT_EXPORT default_storage;
+struct storage_interface;
+class default_storage;
 
 // include/libtorrent/storage_defs.hpp
-struct TORRENT_EXPORT storage_interface;
-struct TORRENT_EXPORT storage_params;
+struct storage_interface;
+struct storage_params;
 
 // include/libtorrent/torrent_handle.hpp
-struct TORRENT_EXPORT block_info;
-struct TORRENT_EXPORT partial_piece_info;
-struct TORRENT_EXPORT torrent_handle;
+struct block_info;
+struct partial_piece_info;
+struct torrent_handle;
 
 // include/libtorrent/torrent_info.hpp
-struct TORRENT_EXPORT web_seed_entry;
-class TORRENT_EXPORT torrent_info;
+struct web_seed_entry;
+class torrent_info;
 
 // include/libtorrent/torrent_status.hpp
-struct TORRENT_EXPORT torrent_status;
+struct torrent_status;
 
 #ifndef TORRENT_NO_DEPRECATE
 
 // include/libtorrent/alert_types.hpp
-struct TORRENT_DEPRECATED_EXPORT torrent_added_alert;
-struct TORRENT_DEPRECATED_EXPORT mmap_cache_alert;
-struct TORRENT_DEPRECATED_EXPORT torrent_update_alert;
+struct torrent_added_alert;
+struct mmap_cache_alert;
+struct torrent_update_alert;
 
 // include/libtorrent/file_storage.hpp
-struct TORRENT_DEPRECATED_EXPORT file_entry;
-struct TORRENT_DEPRECATED_EXPORT internal_file_entry;
+struct file_entry;
+struct internal_file_entry;
 
 // include/libtorrent/lazy_entry.hpp
-struct TORRENT_DEPRECATED_EXPORT pascal_string;
-struct TORRENT_DEPRECATED_EXPORT lazy_entry;
+struct pascal_string;
+struct lazy_entry;
 
 #endif // TORRENT_NO_DEPRECATE
-
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
-
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
 
 }
 

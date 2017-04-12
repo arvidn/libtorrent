@@ -41,28 +41,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/export.hpp"
 
 namespace libtorrent {
-
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma clang diagnostic ignored "-Wattributes"
-#endif
-
-
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wattributes"
-#endif
 '''
 
 file_footer = '''
-
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
-
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
 
 }
 
@@ -93,7 +74,7 @@ def filter_classes(classes, keyword):
 		if this_file != current_file:
 			ret += '\n// ' + this_file + '\n'
 		current_file = this_file;
-		decl = ' '.join(decl[0:3])
+		decl = decl[0] + ' ' + decl[2]
 		if not decl.endswith(';'): decl += ';'
 		ret += decl + '\n'
 	return ret
