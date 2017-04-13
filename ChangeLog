@@ -1,3 +1,4 @@
+	* forward declaring libtorrent types is discouraged. a new fwd.hpp header is provided
 	* make the file_status interface explicitly public types
 	* added resolver_cache_timeout setting for internal host name resolver
 	* make parse_magnet_uri take a string_view instead of std::string

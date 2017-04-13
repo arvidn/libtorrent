@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include "libtorrent/session_settings.hpp" // for dht_settings
 #include "libtorrent/performance_counters.hpp" // for counters
+#include "libtorrent/fwd.hpp"
 
 namespace lt = libtorrent;
 
@@ -44,12 +45,6 @@ namespace sim
 {
 	struct simulation;
 }
-
-namespace libtorrent
-{
-	struct dht_routing_bucket;
-}
-
 struct dht_node;
 
 void print_routing_table(std::vector<lt::dht_routing_bucket> const& rt);

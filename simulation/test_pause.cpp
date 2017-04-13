@@ -77,7 +77,7 @@ void run_test(Setup const& setup, Torrent const& torrent
 	std::array<fake_peer*, 3> test_peers = {{ &p1, &p2, &p3 }};
 
 	// add torrent
-	lt::add_torrent_params params = create_torrent(0, false);
+	lt::add_torrent_params params = ::create_torrent(0, false);
 	params.flags &= ~lt::add_torrent_params::flag_auto_managed;
 	params.flags &= ~lt::add_torrent_params::flag_paused;
 	ses->async_add_torrent(std::move(params));
