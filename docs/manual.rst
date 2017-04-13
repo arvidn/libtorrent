@@ -46,8 +46,15 @@ For a description on how to create torrent files, see create_torrent.
 
 .. _make_torrent: make_torrent.html
 
-things to keep in mind
-======================
+forward declarations
+====================
+
+Forward declaring types from the libtorrent namespace is discouraged as it may
+break in future releases. Instead include ``libtorrent/fwd.hpp`` for forward
+declarations of all public types in libtorrent.
+
+trouble shooting
+================
 
 A common problem developers are facing is torrents stopping without explanation.
 Here is a description on which conditions libtorrent will stop your torrents,
@@ -72,6 +79,11 @@ mode, trying to write things to the disk again. This means torrent will recover
 from certain disk errors if the problem is resolved. If the torrent is not
 auto managed, you have to call set_upload_mode() to turn
 downloading back on again.
+
+For a more detailed guide on how to trouble shoot performance issues, see
+troubleshooting_
+
+.. _troubleshooting: troubleshooting.html
 
 network primitives
 ==================

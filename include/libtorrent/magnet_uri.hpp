@@ -49,14 +49,14 @@ namespace libtorrent {
 	//
 	// For more information about magnet links, see magnet-links_.
 	//
-	std::string TORRENT_EXPORT make_magnet_uri(torrent_handle const& handle);
-	std::string TORRENT_EXPORT make_magnet_uri(torrent_info const& info);
+	TORRENT_EXPORT std::string make_magnet_uri(torrent_handle const& handle);
+	TORRENT_EXPORT std::string make_magnet_uri(torrent_info const& info);
 
 #ifndef TORRENT_NO_DEPRECATE
 #ifndef BOOST_NO_EXCEPTIONS
 	// deprecated in 0.14
-	TORRENT_DEPRECATED
-	torrent_handle TORRENT_EXPORT add_magnet_uri(session& ses, std::string const& uri
+	TORRENT_DEPRECATED_EXPORT
+	torrent_handle add_magnet_uri(session& ses, std::string const& uri
 		, std::string const& save_path
 		, storage_mode_t storage_mode = storage_mode_sparse
 		, bool paused = false
@@ -64,14 +64,14 @@ namespace libtorrent {
 		, void* userdata = 0);
 
 	// deprecated in 0.16. Instead, pass in the magnet link as add_torrent_params::url
-	TORRENT_DEPRECATED
-	torrent_handle TORRENT_EXPORT add_magnet_uri(session& ses, std::string const& uri
+	TORRENT_DEPRECATED_EXPORT
+	torrent_handle add_magnet_uri(session& ses, std::string const& uri
 		, add_torrent_params p);
 #endif
 
 	// deprecated in 0.16. Instead, pass in the magnet link as add_torrent_params::url
-	TORRENT_DEPRECATED
-	torrent_handle TORRENT_EXPORT add_magnet_uri(session& ses, std::string const& uri
+	TORRENT_DEPRECATED_EXPORT
+	torrent_handle add_magnet_uri(session& ses, std::string const& uri
 		, add_torrent_params p, error_code& ec);
 
 #endif

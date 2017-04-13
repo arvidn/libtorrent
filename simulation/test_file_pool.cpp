@@ -69,7 +69,7 @@ TORRENT_TEST(close_file_interval)
 			}
 
 			torrent_handle h = ses.get_torrents().front();
-			std::vector<pool_file_status> const file_status = h.file_status();
+			std::vector<open_file_state> const file_status = h.file_status();
 			printf("%d: %d files\n", ticks, int(file_status.size()));
 			if (ticks > 0 && ticks < 19)
 			{
@@ -124,7 +124,7 @@ TORRENT_TEST(file_pool_size)
 				return true;
 			}
 
-			std::vector<pool_file_status> const status = ses.get_torrents().at(0).file_status();
+			std::vector<open_file_state> const status = ses.get_torrents().at(0).file_status();
 			printf("open files: %d\n", int(status.size()));
 			max_files = std::max(max_files, int(status.size()));
 			if (!is_seed(ses)) return false;

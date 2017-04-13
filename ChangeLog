@@ -66,6 +66,11 @@
 	* resume data no longer has timestamps of files
 	* require C++11 to build libtorrent
 
+
+	* forward declaring libtorrent types is discouraged. a new fwd.hpp header is provided
+
+1.1.3 release
+
 	* removed (broken) support for incoming connections over socks5
 	* restore announce_entry's timestamp fields to posix time in python binding
 	* deprecate torrent_added_alert (in favor of add_torrent_alert)
