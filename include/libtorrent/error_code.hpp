@@ -500,7 +500,7 @@ namespace libtorrent
 #endif
 
 #ifndef BOOST_NO_EXCEPTIONS
-	struct TORRENT_EXPORT libtorrent_exception: std::exception
+	struct TORRENT_EXPORT libtorrent_exception : std::exception
 	{
 		libtorrent_exception(error_code const& s): m_error(s), m_msg(0) {}
 		virtual const char* what() const TORRENT_EXCEPTION_THROW_SPECIFIER;

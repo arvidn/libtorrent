@@ -1885,7 +1885,7 @@ namespace libtorrent
 	};
 
 #ifndef TORRENT_NO_DEPRECATE
-	struct TORRENT_DEPRECATED TORRENT_EXPORT mmap_cache_alert TORRENT_FINAL : alert
+	struct TORRENT_DEPRECATED_EXPORT mmap_cache_alert TORRENT_FINAL : alert
 	{
 		mmap_cache_alert(aux::stack_allocator& alloc
 			, error_code const& ec);
