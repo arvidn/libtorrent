@@ -288,7 +288,7 @@ static_assert(sizeof(job_action_name)/sizeof(job_action_name[0])
 				, pe->cache_state < cached_piece_entry::num_lrus ? cache_state[pe->cache_state] : ""
 				, int(pe->outstanding_flush), int(pe->piece), int(pe->num_dirty)
 				, int(pe->num_blocks), int(pe->blocks_in_piece), int(pe->hashing_done)
-				, int(pe->marked_for_deletion), int(pe->need_readback), pe->hash_passes
+				, int(pe->marked_for_eviction), int(pe->need_readback), pe->hash_passes
 				, int(pe->read_jobs.size()), int(pe->jobs.size()));
 			for (int i = 0; i < pe->piece_log.size(); ++i)
 			{
@@ -325,6 +325,7 @@ cached_piece_entry::cached_piece_entry()
 	, piece_refcount(0)
 	, outstanding_flush(0)
 	, outstanding_read(0)
+	, marked_for_eviction(false)
 	, pinned(0)
 	, refcount(0)
 #if TORRENT_USE_ASSERTS
@@ -468,12 +469,10 @@ void block_cache::cache_hit(cached_piece_entry* p, void* requester, bool volatil
 	if (p->cache_state == cached_piece_entry::read_lru1_ghost)
 	{
 		m_last_cache_op = ghost_hit_lru1;
-		p->storage->add_piece(p);
 	}
 	else if (p->cache_state == cached_piece_entry::read_lru2_ghost)
 	{
 		m_last_cache_op = ghost_hit_lru2;
-		p->storage->add_piece(p);
 	}
 
 	// move into L2 (frequently used)
@@ -548,11 +547,11 @@ void block_cache::try_evict_one_volatile()
 
 	for (list_iterator<cached_piece_entry> i = piece_list->iterate(); i.get();)
 	{
-		cached_piece_entry* pe = reinterpret_cast<cached_piece_entry*>(i.get());
+		cached_piece_entry* pe = i.get();
 		TORRENT_PIECE_ASSERT(pe->in_use, pe);
 		i.next();
 
-		if (pe->ok_to_evict())
+		if (pe->ok_to_evict() && pe->num_blocks == 0)
 		{
 #ifdef TORRENT_DEBUG
 			for (int j = 0; j < pe->blocks_in_piece; ++j)
@@ -595,7 +594,7 @@ void block_cache::try_evict_one_volatile()
 			--m_volatile_size;
 		}
 
-		if (pe->ok_to_evict())
+		if (pe->ok_to_evict() && pe->num_blocks == 0)
 		{
 #ifdef TORRENT_DEBUG
 			for (int j = 0; j < pe->blocks_in_piece; ++j)
@@ -679,7 +678,7 @@ cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, int cache_
 		TORRENT_PIECE_ASSERT(p->in_use, p);
 
 		// we want to retain the piece now
-		p->marked_for_deletion = false;
+		p->marked_for_eviction = false;
 
 		// only allow changing the cache state downwards. i.e. turn a ghost
 		// piece into a non-ghost, or a read piece into a write piece
@@ -690,16 +689,6 @@ cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, int cache_
 			// into the read cache, but fails and is cleared (into the ghost list)
 			// then we want to add new dirty blocks to it and we need to move
 			// it back into the write cache
-
-			// it also happens when pulling a ghost piece back into the proper cache
-
-			if (p->cache_state == cached_piece_entry::read_lru1_ghost
-				|| p->cache_state == cached_piece_entry::read_lru2_ghost)
-			{
-				// since it used to be a ghost piece, but no more,
-				// we need to add it back to the storage
-				p->storage->add_piece(p);
-			}
 			m_lru[p->cache_state].erase(p);
 			p->cache_state = cache_state;
 			m_lru[p->cache_state].push_back(p);
@@ -757,7 +746,7 @@ cached_piece_entry* block_cache::add_dirty_block(disk_io_job* j)
 
 	TORRENT_PIECE_ASSERT(block < pe->blocks_in_piece, pe);
 	TORRENT_PIECE_ASSERT(j->piece == pe->piece, pe);
-	TORRENT_PIECE_ASSERT(!pe->marked_for_deletion, pe);
+	TORRENT_PIECE_ASSERT(!pe->marked_for_eviction, pe);
 
 	TORRENT_PIECE_ASSERT(pe->blocks[block].refcount == 0, pe);
 
@@ -828,6 +817,7 @@ void block_cache::blocks_flushed(cached_piece_entry* pe, int const* flushed, int
 	pe->num_dirty -= num_flushed;
 
 	update_cache_state(pe);
+	maybe_free_piece(pe);
 }
 
 std::pair<block_cache::iterator, block_cache::iterator> block_cache::all_pieces() const
@@ -872,7 +862,8 @@ void block_cache::free_block(cached_piece_entry* pe, int block)
 	b.buf = NULL;
 }
 
-bool block_cache::evict_piece(cached_piece_entry* pe, tailqueue<disk_io_job>& jobs)
+bool block_cache::evict_piece(cached_piece_entry* pe, tailqueue<disk_io_job>& jobs
+	, eviction_mode const mode)
 {
 	INVARIANT_CHECK;
 
@@ -913,7 +904,7 @@ bool block_cache::evict_piece(cached_piece_entry* pe, tailqueue<disk_io_job>& jo
 
 	if (num_to_delete) free_multiple_buffers(to_delete, num_to_delete);
 
-	if (pe->ok_to_evict(true))
+	if (pe->ok_to_evict(true) && pe->num_blocks == 0)
 	{
 		delete pe->hash;
 		pe->hash = NULL;
@@ -922,11 +913,13 @@ bool block_cache::evict_piece(cached_piece_entry* pe, tailqueue<disk_io_job>& jo
 		jobs.append(pe->jobs);
 		TORRENT_ASSERT(pe->jobs.size() == 0);
 
-		if (pe->cache_state == cached_piece_entry::read_lru1_ghost
-			|| pe->cache_state == cached_piece_entry::read_lru2_ghost)
+		if (mode == allow_ghost
+			&& (pe->cache_state == cached_piece_entry::read_lru1_ghost
+			|| pe->cache_state == cached_piece_entry::read_lru2_ghost))
 			return true;
 
-		if (pe->cache_state == cached_piece_entry::write_lru
+		if (mode == disallow_ghost
+			|| pe->cache_state == cached_piece_entry::write_lru
 			|| pe->cache_state == cached_piece_entry::volatile_read_lru)
 			erase_piece(pe);
 		else
@@ -937,7 +930,8 @@ bool block_cache::evict_piece(cached_piece_entry* pe, tailqueue<disk_io_job>& jo
 	return false;
 }
 
-void block_cache::mark_for_deletion(cached_piece_entry* p)
+void block_cache::mark_for_eviction(cached_piece_entry* p
+	, eviction_mode const mode)
 {
 	INVARIANT_CHECK;
 
@@ -946,9 +940,10 @@ void block_cache::mark_for_deletion(cached_piece_entry* p)
 
 	TORRENT_PIECE_ASSERT(p->jobs.empty(), p);
 	tailqueue<disk_io_job> jobs;
-	if (!evict_piece(p, jobs))
+	if (!evict_piece(p, jobs, mode))
 	{
-		p->marked_for_deletion = true;
+		p->marked_for_eviction = true;
+		p->marked_for_deletion = mode == disallow_ghost;
 	}
 }
 
@@ -966,9 +961,7 @@ void block_cache::erase_piece(cached_piece_entry* pe)
 		delete pe->hash;
 		pe->hash = NULL;
 	}
-	if (pe->cache_state != cached_piece_entry::read_lru1_ghost
-		&& pe->cache_state != cached_piece_entry::read_lru2_ghost)
-		pe->storage->remove_piece(pe);
+	pe->storage->remove_piece(pe);
 	lru_list->erase(pe);
 	m_pieces.erase(*pe);
 }
@@ -1043,14 +1036,14 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 		// weren't in this list
 		for (list_iterator<cached_piece_entry> i = lru_list[end]->iterate(); i.get() && num > 0;)
 		{
-			cached_piece_entry* pe = reinterpret_cast<cached_piece_entry*>(i.get());
+			cached_piece_entry* pe = i.get();
 			TORRENT_PIECE_ASSERT(pe->in_use, pe);
 			i.next();
 
 			if (pe == ignore)
 				continue;
 
-			if (pe->ok_to_evict())
+			if (pe->ok_to_evict() && pe->num_blocks == 0)
 			{
 #ifdef TORRENT_DEBUG
 				for (int j = 0; j < pe->blocks_in_piece; ++j)
@@ -1090,7 +1083,7 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 				m_volatile_size -= removed;
 			}
 
-			if (pe->ok_to_evict())
+			if (pe->ok_to_evict() && pe->num_blocks == 0)
 			{
 #ifdef TORRENT_DEBUG
 				for (int j = 0; j < pe->blocks_in_piece; ++j)
@@ -1115,7 +1108,7 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 		{
 			for (list_iterator<cached_piece_entry> i = m_lru[cached_piece_entry::write_lru].iterate(); i.get() && num > 0;)
 			{
-				cached_piece_entry* pe = reinterpret_cast<cached_piece_entry*>(i.get());
+				cached_piece_entry* pe = i.get();
 				TORRENT_PIECE_ASSERT(pe->in_use, pe);
 
 				i.next();
@@ -1123,7 +1116,7 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 				if (pe == ignore)
 					continue;
 
-				if (pe->ok_to_evict())
+				if (pe->ok_to_evict() && pe->num_blocks == 0)
 				{
 #ifdef TORRENT_DEBUG
 					for (int j = 0; j < pe->blocks_in_piece; ++j)
@@ -1169,7 +1162,7 @@ int block_cache::try_evict_blocks(int num, cached_piece_entry* ignore)
 					m_volatile_size -= removed;
 				}
 
-				if (pe->ok_to_evict())
+				if (pe->ok_to_evict() && pe->num_blocks == 0)
 				{
 #ifdef TORRENT_DEBUG
 					for (int j = 0; j < pe->blocks_in_piece; ++j)
@@ -1259,7 +1252,6 @@ void block_cache::move_to_ghost(cached_piece_entry* pe)
 		erase_piece(p);
 	}
 
-	pe->storage->remove_piece(pe);
 	m_lru[pe->cache_state].erase(pe);
 	pe->cache_state += 1;
 	ghost_list->push_back(pe);
@@ -1589,7 +1581,7 @@ void block_cache::check_invariant() const
 
 		for (list_iterator<cached_piece_entry> p = m_lru[i].iterate(); p.get(); p.next())
 		{
-			cached_piece_entry* pe = static_cast<cached_piece_entry*>(p.get());
+			cached_piece_entry* pe = p.get();
 			TORRENT_PIECE_ASSERT(pe->cache_state == i, pe);
 			if (pe->num_dirty > 0)
 				TORRENT_PIECE_ASSERT(i == cached_piece_entry::write_lru, pe);
@@ -1607,18 +1599,18 @@ void block_cache::check_invariant() const
 			if (i != cached_piece_entry::read_lru1_ghost
 				&& i != cached_piece_entry::read_lru2_ghost)
 			{
-				TORRENT_PIECE_ASSERT(pe->storage->has_piece(pe), pe);
 				TORRENT_PIECE_ASSERT(pe->expire >= timeout, pe);
 				timeout = pe->expire;
 				TORRENT_PIECE_ASSERT(pe->in_storage, pe);
-				TORRENT_PIECE_ASSERT(pe->storage->has_piece(pe), pe);
 			}
 			else
 			{
 				// pieces in the ghost lists should never have any blocks
 				TORRENT_PIECE_ASSERT(pe->num_blocks == 0, pe);
-				TORRENT_PIECE_ASSERT(pe->storage->has_piece(pe) == false, pe);
 			}
+			// pieces in the ghost list are still in the storage's list of pieces,
+			// because we need to be able to evict them when stopping a torrent
+			TORRENT_PIECE_ASSERT(pe->storage->has_piece(pe), pe);
 
 			storages.insert(pe->storage.get());
 		}
@@ -1647,19 +1639,7 @@ void block_cache::check_invariant() const
 		int num_pending = 0;
 		int num_refcount = 0;
 
-		bool in_storage = p.storage->has_piece(&p);
-		switch (p.cache_state)
-		{
-			case cached_piece_entry::write_lru:
-			case cached_piece_entry::volatile_read_lru:
-			case cached_piece_entry::read_lru1:
-			case cached_piece_entry::read_lru2:
-				TORRENT_ASSERT(in_storage == true);
-				break;
-			default:
-				TORRENT_ASSERT(in_storage == false);
-				break;
-		}
+		TORRENT_ASSERT(p.storage->has_piece(&p));
 
 		for (int k = 0; k < p.blocks_in_piece; ++k)
 		{
@@ -1779,6 +1759,7 @@ int block_cache::copy_from_piece(cached_piece_entry* const pe
 	{
 		TORRENT_ASSERT(!expect_no_fail);
 		dec_block_refcount(pe, start_block, ref_reading);
+		maybe_free_piece(pe);
 		return -1;
 	}
 
@@ -1803,6 +1784,7 @@ int block_cache::copy_from_piece(cached_piece_entry* const pe
 	// TODO: create a holder for refcounts that automatically decrement
 	dec_block_refcount(pe, start_block, ref_reading);
 	if (blocks_to_read == 2) dec_block_refcount(pe, start_block + 1, ref_reading);
+	maybe_free_piece(pe);
 	return j->d.io.buffer_size;
 }
 
@@ -1826,17 +1808,18 @@ void block_cache::reclaim_block(block_cache_reference const& ref)
 bool block_cache::maybe_free_piece(cached_piece_entry* pe)
 {
 	if (!pe->ok_to_evict()
-		|| !pe->marked_for_deletion
+		|| !pe->marked_for_eviction
 		|| !pe->jobs.empty())
 		return false;
 
 	DLOG(stderr, "[%p] block_cache maybe_free_piece "
-		"piece: %d refcount: %d marked_for_deletion: %d\n"
+		"piece: %d refcount: %d marked_for_eviction: %d\n"
 		, static_cast<void*>(this)
-		, int(pe->piece), int(pe->refcount), int(pe->marked_for_deletion));
+		, int(pe->piece), int(pe->refcount), int(pe->marked_for_eviction));
 
 	tailqueue<disk_io_job> jobs;
-	bool removed = evict_piece(pe, jobs);
+	bool removed = evict_piece(pe, jobs
+		, pe->marked_for_deletion ? disallow_ghost : allow_ghost);
 	TORRENT_UNUSED(removed); // suppress warning
 	TORRENT_PIECE_ASSERT(removed, pe);
 	TORRENT_PIECE_ASSERT(jobs.empty(), pe);
