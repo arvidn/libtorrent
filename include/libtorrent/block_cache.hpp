@@ -181,7 +181,6 @@ namespace libtorrent
 		{
 			return refcount == 0
 				&& piece_refcount == 0
-				&& num_blocks == 0
 				&& !hashing
 				&& read_jobs.size() == 0
 				&& outstanding_read == 0
@@ -247,7 +246,8 @@ namespace libtorrent
 		boost::uint32_t hashing_done:1;
 
 		// if this is true, whenever refcount hits 0,
-		// this piece should be deleted
+		// this piece should be deleted from the cache
+		// (not just demoted)
 		boost::uint32_t marked_for_deletion:1;
 
 		// this is set to true once we flush blocks past
@@ -310,8 +310,13 @@ namespace libtorrent
 		// read job queue (read_jobs).
 		boost::uint32_t outstanding_read:1;
 
+		// this is set when the piece should be evicted as soon as there
+		// no longer are any references to it. Evicted here means demoted
+		// to a ghost list
+		boost::uint32_t marked_for_eviction:1;
+
 		// the number of blocks that have >= 1 refcount
-		boost::uint32_t pinned:16;
+		boost::uint32_t pinned:15;
 
 		// ---- 32 bit boundary ---
 
@@ -367,15 +372,22 @@ namespace libtorrent
 
 		int num_write_lru_pieces() const { return int(m_lru[cached_piece_entry::write_lru].size()); }
 
+		enum eviction_mode
+		{
+			allow_ghost,
+			disallow_ghost
+		};
+
 		// mark this piece for deletion. If there are no outstanding
 		// requests to this piece, it's removed immediately, and the
 		// passed in iterator will be invalidated
-		void mark_for_deletion(cached_piece_entry* p);
+		void mark_for_eviction(cached_piece_entry* p, eviction_mode mode);
 
-		// similar to mark_for_deletion, except for actually marking the
+		// similar to mark_for_eviction, except for actually marking the
 		// piece for deletion. If the piece was actually deleted,
 		// the function returns true
-		bool evict_piece(cached_piece_entry* p, tailqueue<disk_io_job>& jobs);
+		bool evict_piece(cached_piece_entry* p, tailqueue<disk_io_job>& jobs
+			, eviction_mode mode);
 
 		// if this piece is in L1 or L2 proper, move it to
 		// its respective ghost list
