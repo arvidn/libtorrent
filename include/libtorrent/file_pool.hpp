@@ -126,7 +126,7 @@ namespace libtorrent
 
 	private:
 
-		void remove_oldest(mutex::scoped_lock& l);
+		file_handle remove_oldest(mutex::scoped_lock&);
 
 		int m_size;
 		bool m_low_prio_io;
