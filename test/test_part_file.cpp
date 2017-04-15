@@ -112,10 +112,16 @@ TORRENT_TEST(part_file)
 
 		std::string output_filename = combine_path(combine_path(cwd, "partfile_test_dir")
 			, "part_file_test_export");
-		file output(output_filename, file::read_write, ec);
-		if (ec) std::printf("export open file: %s\n", ec.message().c_str());
 
-		pf.export_file(output, 10 * piece_size, 1024, ec);
+		pf.export_file([](std::int64_t file_offset, span<char> buf)
+		{
+			for (char i : buf)
+			{
+				// make sure we got the bytes we expected
+				TEST_CHECK(i == static_cast<char>(file_offset));
+				++file_offset;
+			}
+		}, 10 * piece_size, 1024, ec);
 		if (ec) std::printf("export_file: %s\n", ec.message().c_str());
 
 		pf.free_piece(piece_index_t(10));
@@ -128,20 +134,6 @@ TORRENT_TEST(part_file)
 		TEST_CHECK(!exists(combine_path(combine_path(cwd, "partfile_test_dir2"), "partfile.parts"), ec));
 		TEST_CHECK(!ec);
 		if (ec) std::printf("exists: %s\n", ec.message().c_str());
-
-		output.close();
-
-		// verify that the exported file is what we expect it to be
-		output.open(output_filename, file::read_only, ec);
-		if (ec) std::printf("exported file open: %s\n", ec.message().c_str());
-
-		memset(buf, 0, sizeof(buf));
-
-		output.readv(0, v, ec);
-		if (ec) std::printf("exported file read: %s\n", ec.message().c_str());
-
-		for (int i = 0; i < 1024; ++i)
-			TEST_CHECK(buf[i] == char(i));
 	}
 }
 

@@ -65,8 +65,11 @@ namespace libtorrent {
 
 		void move_partfile(std::string const& path, error_code& ec);
 
-		void import_file(file& f, std::int64_t offset, std::int64_t size, error_code& ec);
-		void export_file(file& f, std::int64_t offset, std::int64_t size, error_code& ec);
+		// the function is called for every block of data belonging to the
+		// specified range that's in the part_file. The first parameter is the
+		// offset within the range
+		void export_file(std::function<void(std::int64_t, span<char>)> f
+			, std::int64_t offset, std::int64_t size, error_code& ec);
 
 		// flush the metadata
 		void flush_metadata(error_code& ec);
@@ -92,7 +95,7 @@ namespace libtorrent {
 		std::vector<slot_index_t> m_free_slots;
 
 		// this is the number of slots allocated
-		slot_index_t m_num_allocated;
+		slot_index_t m_num_allocated{0};
 
 		// the max number of pieces in the torrent this part file is
 		// backing
@@ -109,7 +112,7 @@ namespace libtorrent {
 		// if this is true, the metadata in memory has changed since
 		// we last saved or read it from disk. It means that we
 		// need to flush the metadata before closing the file
-		bool m_dirty_metadata;
+		bool m_dirty_metadata = false;
 
 		// maps a piece index to the part-file slot it is stored in
 		std::unordered_map<piece_index_t, slot_index_t> m_piece_map;

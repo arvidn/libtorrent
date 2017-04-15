@@ -67,6 +67,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/path.hpp"
 
+#include <functional> // for std::function
+#include <cstdint>
+
 namespace {
 
 	// round up to even kilobyte
@@ -77,14 +80,12 @@ namespace {
 namespace libtorrent {
 
 	part_file::part_file(std::string const& path, std::string const& name
-		, int num_pieces, int piece_size)
+		, int const num_pieces, int const piece_size)
 		: m_path(path)
 		, m_name(name)
-		, m_num_allocated(0)
 		, m_max_pieces(num_pieces)
 		, m_piece_size(piece_size)
 		, m_header_size(round_up((2 + num_pieces) * 4))
-		, m_dirty_metadata(false)
 	{
 		TORRENT_ASSERT(num_pieces > 0);
 		TORRENT_ASSERT(m_piece_size > 0);
@@ -92,56 +93,55 @@ namespace libtorrent {
 		error_code ec;
 		std::string fn = combine_path(m_path, m_name);
 		m_file.open(fn, file::read_only, ec);
-		if (!ec)
+		if (ec) return;
+
+		// parse header
+		std::unique_ptr<std::uint32_t[]> header(new std::uint32_t[m_header_size]);
+		iovec_t b = {header.get(), std::size_t(m_header_size)};
+		int n = int(m_file.readv(0, b, ec));
+		if (ec) return;
+
+		// we don't have a full header. consider the file empty
+		if (n < m_header_size) return;
+		using namespace libtorrent::detail;
+
+		char* ptr = reinterpret_cast<char*>(header.get());
+		// we have a header. Parse it
+		int const num_pieces_ = int(read_uint32(ptr));
+		int const piece_size_ = int(read_uint32(ptr));
+
+		// if there is a mismatch in number of pieces or piece size
+		// consider the file empty and overwrite anything in there
+		if (num_pieces != num_pieces_ || m_piece_size != piece_size_) return;
+
+		// this is used to determine which slots are free, and how many
+		// slots are allocated
+		aux::vector<bool, slot_index_t> free_slots;
+		free_slots.resize(num_pieces, true);
+
+		for (piece_index_t i = piece_index_t(0); i < piece_index_t(num_pieces); ++i)
 		{
-			// parse header
-			std::unique_ptr<std::uint32_t[]> header(new std::uint32_t[m_header_size]);
-			iovec_t b = {header.get(), std::size_t(m_header_size)};
-			int n = int(m_file.readv(0, b, ec));
-			if (ec) return;
+			slot_index_t const slot(read_int32(ptr));
+			if (static_cast<int>(slot) < 0) continue;
 
-			// we don't have a full header. consider the file empty
-			if (n < m_header_size) return;
-			using namespace libtorrent::detail;
+			// invalid part-file
+			TORRENT_ASSERT(slot < slot_index_t(num_pieces));
+			if (slot >= slot_index_t(num_pieces)) continue;
 
-			char* ptr = reinterpret_cast<char*>(header.get());
-			// we have a header. Parse it
-			int const num_pieces_ = int(read_uint32(ptr));
-			int const piece_size_ = int(read_uint32(ptr));
+			if (slot >= m_num_allocated)
+				m_num_allocated = next(slot);
 
-			// if there is a mismatch in number of pieces or piece size
-			// consider the file empty and overwrite anything in there
-			if (num_pieces != num_pieces_ || m_piece_size != piece_size_) return;
-
-			// this is used to determine which slots are free, and how many
-			// slots are allocated
-			aux::vector<bool, slot_index_t> free_slots;
-			free_slots.resize(num_pieces, true);
-
-			for (piece_index_t i = piece_index_t(0); i < piece_index_t(num_pieces); ++i)
-			{
-				slot_index_t const slot(read_int32(ptr));
-				if (static_cast<int>(slot) < 0) continue;
-
-				// invalid part-file
-				TORRENT_ASSERT(slot < slot_index_t(num_pieces));
-				if (slot >= slot_index_t(num_pieces)) continue;
-
-				if (slot >= m_num_allocated)
-					m_num_allocated = next(slot);
-
-				free_slots[slot] = false;
-				m_piece_map[i] = slot;
-			}
-
-			// now, populate the free_list with the "holes"
-			for (slot_index_t i(0); i < m_num_allocated; ++i)
-			{
-				if (free_slots[i]) m_free_slots.push_back(i);
-			}
-
-			m_file.close();
+			free_slots[slot] = false;
+			m_piece_map[i] = slot;
 		}
+
+		// now, populate the free_list with the "holes"
+		for (slot_index_t i(0); i < m_num_allocated; ++i)
+		{
+			if (free_slots[i]) m_free_slots.push_back(i);
+		}
+
+		m_file.close();
 	}
 
 	part_file::~part_file()
@@ -281,21 +281,8 @@ namespace libtorrent {
 		m_path = path;
 	}
 
-	void part_file::import_file(file& f, std::int64_t offset
-		, std::int64_t size, error_code& ec)
-	{
-		TORRENT_UNUSED(f);
-		TORRENT_UNUSED(offset);
-		TORRENT_UNUSED(size);
-		TORRENT_UNUSED(ec);
-
-		// not implemented
-		TORRENT_ASSERT_FAIL();
-		ec.assign(boost::system::errc::operation_not_supported
-			, boost::system::generic_category());
-	}
-
-	void part_file::export_file(file& f, std::int64_t const offset, std::int64_t size, error_code& ec)
+	void part_file::export_file(std::function<void(std::int64_t, span<char>)> f
+		, std::int64_t const offset, std::int64_t size, error_code& ec)
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 
@@ -330,9 +317,7 @@ namespace libtorrent {
 				TORRENT_ASSERT(!ec);
 				if (ec || v.iov_len == 0) return;
 
-				std::int64_t const ret = f.writev(file_offset, v, ec);
-				TORRENT_ASSERT(ec || ret == std::int64_t(v.iov_len));
-				if (ec || ret != std::int64_t(v.iov_len)) return;
+				f(file_offset, {buf.get(), std::size_t(block_to_copy)});
 
 				// we're done with the disk I/O, grab the lock again to update
 				// the slot map
