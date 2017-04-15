@@ -135,7 +135,7 @@ void natpmp::start()
 	for (std::vector<mapping_t>::iterator i = m_mappings.begin()
 		, end(m_mappings.end()); i != end; ++i)
 	{
-		if (i->protocol != none
+		if (i->protocol == none
 			|| i->action != mapping_t::action_none)
 			continue;
 		i->action = mapping_t::action_add;
