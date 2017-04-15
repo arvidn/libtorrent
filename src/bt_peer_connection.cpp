@@ -366,7 +366,7 @@ namespace libtorrent {
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::outgoing_message, "HAVE_ALL");
 #endif
-		char msg[] = {0,0,0,1, msg_have_all};
+		const char msg[] = {0,0,0,1, msg_have_all};
 		send_buffer(msg, sizeof(msg));
 
 		stats_counters().inc_stats_counter(counters::num_outgoing_have_all);
@@ -380,7 +380,7 @@ namespace libtorrent {
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::outgoing_message, "HAVE_NONE");
 #endif
-		char msg[] = {0,0,0,1, msg_have_none};
+		const char msg[] = {0,0,0,1, msg_have_none};
 		send_buffer(msg, sizeof(msg));
 
 		stats_counters().inc_stats_counter(counters::num_outgoing_have_none);
@@ -2026,7 +2026,7 @@ namespace libtorrent {
 		// for the metadata extension.
 		TORRENT_ASSERT(m_sent_handshake);
 
-		char msg[] = {0,0,0,0};
+        const char msg[] = {0,0,0,0};
 		send_buffer(msg, sizeof(msg));
 	}
 
@@ -2306,7 +2306,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(m_sent_bitfield);
 
 		if (is_choked()) return;
-		char msg[] = {0,0,0,1,msg_choke};
+        const char msg[] = {0,0,0,1,msg_choke};
 		send_buffer(msg, sizeof(msg));
 
 		stats_counters().inc_stats_counter(counters::num_outgoing_choke);
@@ -2319,7 +2319,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(m_sent_handshake);
 		TORRENT_ASSERT(m_sent_bitfield);
 
-		char msg[] = {0,0,0,1,msg_unchoke};
+        const char msg[] = {0,0,0,1,msg_unchoke};
 		send_buffer(msg, sizeof(msg));
 
 		stats_counters().inc_stats_counter(counters::num_outgoing_unchoke);
@@ -2339,7 +2339,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(m_sent_handshake);
 		TORRENT_ASSERT(m_sent_bitfield);
 
-		char msg[] = {0,0,0,1,msg_interested};
+        const char msg[] = {0,0,0,1,msg_interested};
 		send_buffer(msg, sizeof(msg));
 
 		stats_counters().inc_stats_counter(counters::num_outgoing_interested);
@@ -2352,7 +2352,7 @@ namespace libtorrent {
 		TORRENT_ASSERT(m_sent_handshake);
 		TORRENT_ASSERT(m_sent_bitfield);
 
-		char msg[] = {0,0,0,1,msg_not_interested};
+        const char msg[] = {0,0,0,1,msg_not_interested};
 		send_buffer(msg, sizeof(msg));
 
 		stats_counters().inc_stats_counter(counters::num_outgoing_not_interested);

@@ -3385,11 +3385,11 @@ namespace libtorrent {
 	int torrent::block_bytes_wanted(piece_block const& p) const
 	{
 		file_storage const& fs = m_torrent_file->files();
-		int piece_size = m_torrent_file->piece_size(p.piece_index);
-		int offset = p.block_index * block_size();
+		int const piece_size = m_torrent_file->piece_size(p.piece_index);
+		int const offset = p.block_index * block_size();
 		if (m_padding == 0) return (std::min)(piece_size - offset, block_size());
 
-		std::vector<file_slice> files = fs.map_block(
+		std::vector<file_slice> const files = fs.map_block(
 			p.piece_index, offset, (std::min)(piece_size - offset, block_size()));
 		std::int64_t ret = 0;
 		for (auto const& i : files)
