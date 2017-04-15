@@ -261,34 +261,90 @@ list trackers(torrent_handle& h)
         dict d;
         d["url"] = i->url;
         d["trackerid"] = i->trackerid;
-        d["message"] = i->message;
-        dict last_error;
-        last_error["value"] = i->last_error.value();
-        last_error["category"] = i->last_error.category().name();
-        d["last_error"] = last_error;
-        if (i->next_announce > min_time()) {
-           d["next_announce"] = to_ptime(i->next_announce);
-        }
-        else {
-           d["next_announce"] = object();
-        }
-        if (i->min_announce > min_time()) {
-           d["min_announce"] = to_ptime(i->min_announce);
-        }
-        else {
-           d["min_announce"] = object();
-        }
-        d["scrape_incomplete"] = i->scrape_incomplete;
-        d["scrape_complete"] = i->scrape_complete;
-        d["scrape_downloaded"] = i->scrape_downloaded;
-        d["tier"] = i->tier;
-        d["fail_limit"] = i->fail_limit;
-        d["fails"] = i->fails;
-        d["source"] = i->source;
-        d["verified"] = i->verified;
-        d["updating"] = i->updating;
-        d["start_sent"] = i->start_sent;
-        d["complete_sent"] = i->complete_sent;
+		d["tier"] = i->tier;
+		d["fail_limit"] = i->fail_limit;
+		d["source"] = i->source;
+
+#ifndef TORRENT_NO_DEPRECATE
+		if (!i->endpoints.empty())
+		{
+			announce_endpoint const& aep = i->endpoints.front();
+			d["message"] = aep.message;
+			dict last_error;
+			last_error["value"] = aep.last_error.value();
+			last_error["category"] = aep.last_error.category().name();
+			d["last_error"] = last_error;
+			if (aep.next_announce > min_time()) {
+				d["next_announce"] = to_ptime(aep.next_announce);
+			}
+			else {
+				d["next_announce"] = object();
+			}
+			if (aep.min_announce > min_time()) {
+				d["min_announce"] = to_ptime(aep.min_announce);
+			}
+			else {
+				d["min_announce"] = object();
+			}
+			d["scrape_incomplete"] = aep.scrape_incomplete;
+			d["scrape_complete"] = aep.scrape_complete;
+			d["scrape_downloaded"] = aep.scrape_downloaded;
+			d["fails"] = aep.fails;
+			d["verified"] = aep.verified;
+			d["updating"] = aep.updating;
+			d["start_sent"] = aep.start_sent;
+			d["complete_sent"] = aep.complete_sent;
+		}
+		else
+		{
+			d["message"] = string();
+			d["last_error"] = dict();
+			d["next_announce"] = object();
+			d["min_announce"] = object();
+			d["scrape_incomplete"] = 0;
+			d["scrape_complete"] = 0;
+			d["scrape_downloaded"] = 0;
+			d["fails"] = 0;
+			d["verified"] = false;
+			d["updating"] = false;
+			d["start_sent"] = false;
+			d["complete_sent"] = false;
+		}
+#endif
+
+		list aeps;
+		for (auto const& aep : i->endpoints)
+		{
+			dict e;
+			e["message"] = aep.message;
+			dict last_error;
+			last_error["value"] = aep.last_error.value();
+			last_error["category"] = aep.last_error.category().name();
+			e["last_error"] = last_error;
+			if (aep.next_announce > min_time()) {
+				e["next_announce"] = to_ptime(aep.next_announce);
+			}
+			else {
+				e["next_announce"] = object();
+			}
+			if (aep.min_announce > min_time()) {
+				e["min_announce"] = to_ptime(aep.min_announce);
+			}
+			else {
+				e["min_announce"] = object();
+			}
+			e["scrape_incomplete"] = aep.scrape_incomplete;
+			e["scrape_complete"] = aep.scrape_complete;
+			e["scrape_downloaded"] = aep.scrape_downloaded;
+			e["fails"] = aep.fails;
+			e["verified"] = aep.verified;
+			e["updating"] = aep.updating;
+			e["start_sent"] = aep.start_sent;
+			e["complete_sent"] = aep.complete_sent;
+			aeps.append(e);
+		}
+		d["endpoints"] = aeps;
+
 #ifndef TORRENT_NO_DEPRECATE
         d["send_stats"] = i->send_stats;
 #endif
