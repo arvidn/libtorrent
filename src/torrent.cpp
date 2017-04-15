@@ -1473,12 +1473,6 @@ namespace libtorrent {
 		// this is needed for openssl < 1.0 to decrypt keys created by openssl 1.0+
 		OpenSSL_add_all_algorithms();
 
-		std::int64_t const now = clock_type::now().time_since_epoch().count();
-		// assume 9 bits of entropy (i.e. about 1 millisecond)
-		RAND_add(&now, 8, 1.125);
-		RAND_add(&info_hash()[0], 20, 3);
-		// entropy is also added on incoming and completed connection attempts
-
 		TORRENT_ASSERT(RAND_status() == 1);
 
 		// create the SSL context for this torrent. We need to

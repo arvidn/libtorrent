@@ -5945,20 +5945,6 @@ namespace libtorrent {
 		}
 #endif
 
-#ifdef TORRENT_USE_OPENSSL
-#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#endif
-		// add this RTT to the PRNG seed, to add more unpredictability
-		std::int64_t now = total_microseconds(completed - m_connect);
-		// assume 12 bits of entropy (i.e. about 8 milliseconds)
-		RAND_add(&now, 8, 1.5);
-#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
-#pragma clang diagnostic pop
-#endif
-#endif
-
 		// if t is nullptr, we better not be connecting, since
 		// we can't decrement the connecting counter
 		std::shared_ptr<torrent> t = m_torrent.lock();

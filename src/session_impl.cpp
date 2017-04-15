@@ -2513,20 +2513,6 @@ namespace {
 	{
 		TORRENT_ASSERT(is_single_thread());
 
-#ifdef TORRENT_USE_OPENSSL
-#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#endif
-		// add the current time to the PRNG, to add more unpredictability
-		std::int64_t now = clock_type::now().time_since_epoch().count();
-		// assume 12 bits of entropy (i.e. about 8 milliseconds)
-		RAND_add(&now, 8, 1.5);
-#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
-#pragma clang diagnostic pop
-#endif
-#endif // TORRENT_USE_OPENSSL
-
 		if (m_paused)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
