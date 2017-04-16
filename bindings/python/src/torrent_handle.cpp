@@ -298,7 +298,10 @@ list trackers(torrent_handle& h)
 		else
 		{
 			d["message"] = std::string();
-			d["last_error"] = dict();
+			dict last_error;
+			last_error["value"] = 0;
+			last_error["category"] = "";
+			d["last_error"] = last_error;
 			d["next_announce"] = object();
 			d["min_announce"] = object();
 			d["scrape_incomplete"] = 0;

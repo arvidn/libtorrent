@@ -142,7 +142,8 @@ namespace
 	{ return ae.endpoints.empty() ? false : ae.endpoints.front().complete_sent; }
 	// announce_entry method requires lt::time_point.
 	bool can_announce(announce_entry const& ae, bool is_seed) {
-		if (ae.endpoints.empty()) return false;
+		// an entry without endpoints implies it has never been announced so it can be now
+		if (ae.endpoints.empty()) return true;
 		lt::time_point now = lt::clock_type::now();
 		return ae.endpoints.front().can_announce(now, is_seed, ae.fail_limit);
 	}
