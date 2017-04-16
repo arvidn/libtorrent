@@ -7410,7 +7410,7 @@ namespace libtorrent {
 		return m_save_path;
 	}
 
-	void torrent::rename_file(file_index_t const index, std::string const& name)
+	void torrent::rename_file(file_index_t const index, std::string name)
 	{
 		INVARIANT_CHECK;
 
@@ -7428,7 +7428,7 @@ namespace libtorrent {
 			return;
 		}
 
-		m_ses.disk_thread().async_rename_file(m_storage, index, name
+		m_ses.disk_thread().async_rename_file(m_storage, index, std::move(name)
 			, std::bind(&torrent::on_file_renamed, shared_from_this(), _1, _2, _3));
 		return;
 	}
@@ -7462,9 +7462,9 @@ namespace libtorrent {
 #if TORRENT_USE_UNC_PATHS
 			std::string path = canonicalize_path(save_path);
 #else
-			std::string const& path = save_path;
+			std::string path = save_path;
 #endif
-			m_ses.disk_thread().async_move_storage(m_storage, path, std::uint8_t(flags)
+			m_ses.disk_thread().async_move_storage(m_storage, std::move(path), std::uint8_t(flags)
 				, std::bind(&torrent::on_storage_moved, shared_from_this(), _1, _2, _3));
 			m_moving_storage = true;
 		}

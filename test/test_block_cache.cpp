@@ -74,6 +74,24 @@ struct test_storage_impl : storage_interface
 	void delete_files(int, storage_error& ec) override {}
 };
 
+struct allocator : buffer_allocator_interface
+{
+	allocator(block_cache& bc, storage_interface* st)
+		: m_cache(bc), m_storage(st) {}
+
+	void free_disk_buffer(char* b) override
+	{ m_cache.free_buffer(b); }
+
+	void reclaim_blocks(span<aux::block_cache_reference> refs) override
+	{
+		for (auto ref : refs)
+			m_cache.reclaim_block(m_storage, ref);
+	}
+private:
+	block_cache& m_cache;
+	storage_interface* m_storage;
+};
+
 static void nop() {}
 
 #if TORRENT_USE_ASSERTS
@@ -99,6 +117,7 @@ static void nop() {}
 	fs.set_num_pieces(5); \
 	std::shared_ptr<storage_interface> pm \
 		= std::make_shared<test_storage_impl>(fs); \
+	allocator alloc(bc, pm.get()); \
 	bc.set_settings(sett); \
 	pm->m_settings = &sett; \
 	disk_io_job rj; \
@@ -120,7 +139,7 @@ static void nop() {}
 	wj.d.io.offset = (b) * 0x4000; \
 	wj.d.io.buffer_size = 0x4000; \
 	wj.piece = piece_index_t(p); \
-	wj.buffer.disk_block = bc.allocate_buffer("write-test"); \
+	wj.argument = disk_buffer_holder(alloc, bc.allocate_buffer("write-test")); \
 	pe = bc.add_dirty_block(&wj)
 
 #define READ_BLOCK(p, b, r) \
@@ -130,13 +149,8 @@ static void nop() {}
 	rj.piece = piece_index_t(p); \
 	rj.storage = pm; \
 	rj.requester = (void*)(r); \
-	rj.buffer.disk_block = 0; \
-	ret = bc.try_read(&rj)
-
-#define RETURN_BUFFER \
-	if (rj.d.io.ref.cookie != aux::block_cache_reference::none) bc.reclaim_block(pm.get(), rj.d.io.ref); \
-	else if (rj.buffer.disk_block) bc.free_buffer(rj.buffer.disk_block); \
-	rj.d.io.ref.cookie = aux::block_cache_reference::none
+	rj.argument = disk_buffer_holder(alloc, nullptr); \
+	ret = bc.try_read(&rj, alloc)
 
 #define FLUSH(flushing) \
 	for (int i = 0; i < int(sizeof(flushing)/sizeof((flushing)[0])); ++i) \
@@ -183,7 +197,8 @@ void test_write()
 	TEST_CHECK(ret >= 0);
 
 	// return the reference to the buffer we just read
-	RETURN_BUFFER;
+	rj.argument = 0;
+
 	TEST_EQUAL(bc.pinned_blocks(), 0);
 	bc.update_stats_counters(c);
 	TEST_EQUAL(c[counters::pinned_blocks], 0);
@@ -197,9 +212,7 @@ void test_write()
 	bc.update_stats_counters(c);
 	TEST_EQUAL(c[counters::pinned_blocks], 0);
 
-	// just in case it wasn't we're supposed to return the reference
-	// to the buffer
-	RETURN_BUFFER;
+	rj.argument = 0;
 
 	tailqueue<disk_io_job> jobs;
 	bc.clear(jobs);
@@ -322,7 +335,7 @@ void test_arc_promote()
 	// it's supposed to be a cache hit
 	TEST_CHECK(ret >= 0);
 	// return the reference to the buffer we just read
-	RETURN_BUFFER;
+	rj.argument = 0;
 
 	bc.update_stats_counters(c);
 	TEST_EQUAL(c[counters::write_cache_blocks], 0);
@@ -343,7 +356,7 @@ void test_arc_promote()
 	// it's supposed to be a cache hit
 	TEST_CHECK(ret >= 0);
 	// return the reference to the buffer we just read
-	RETURN_BUFFER;
+	rj.argument = 0;
 
 	bc.update_stats_counters(c);
 	TEST_EQUAL(c[counters::write_cache_blocks], 0);
@@ -433,8 +446,8 @@ void test_unaligned_read()
 	rj.piece = piece_index_t(0);
 	rj.storage = pm;
 	rj.requester = (void*)1;
-	rj.buffer.disk_block = nullptr;
-	ret = bc.try_read(&rj);
+	rj.argument = disk_buffer_holder(alloc, nullptr);
+	ret = bc.try_read(&rj, alloc);
 
 	// unaligned reads copies the data into a new buffer
 	// rather than
@@ -446,7 +459,7 @@ void test_unaligned_read()
 	// it's supposed to be a cache hit
 	TEST_CHECK(ret >= 0);
 	// return the reference to the buffer we just read
-	RETURN_BUFFER;
+	rj.argument = 0;
 
 	tailqueue<disk_io_job> jobs;
 	bc.clear(jobs);

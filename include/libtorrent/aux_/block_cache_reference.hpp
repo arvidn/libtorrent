@@ -40,6 +40,10 @@ namespace libtorrent { namespace aux {
 
 	struct block_cache_reference
 	{
+		block_cache_reference() = default;
+		block_cache_reference(storage_index_t const idx, std::int32_t const c)
+			: storage(idx), cookie(c) {}
+
 		// if the cookie is set to this value, it doesn't refer to anything in the
 		// cache (and the buffer is mutable)
 		constexpr static std::int32_t none = 0x7fffffff;

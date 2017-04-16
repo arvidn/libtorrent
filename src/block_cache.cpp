@@ -44,6 +44,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/block_cache_reference.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 
+#include <boost/variant/get.hpp>
+
 /*
 
 	The disk cache mimics ARC (adaptive replacement cache).
@@ -354,11 +356,12 @@ block_cache::block_cache(int block_size, io_service& ios
 // returns:
 // -1: not in cache
 // -2: no memory
-int block_cache::try_read(disk_io_job* j, bool expect_no_fail)
+int block_cache::try_read(disk_io_job* j, buffer_allocator_interface& allocator
+	, bool expect_no_fail)
 {
 	INVARIANT_CHECK;
 
-	TORRENT_ASSERT(j->buffer.disk_block == nullptr);
+	TORRENT_ASSERT(!boost::get<disk_buffer_holder>(j->argument));
 
 	cached_piece_entry* p = find_piece(j);
 
@@ -374,7 +377,7 @@ int block_cache::try_read(disk_io_job* j, bool expect_no_fail)
 #endif
 	cache_hit(p, j->requester, (j->flags & disk_interface::volatile_read) != 0);
 
-	ret = copy_from_piece(p, j, expect_no_fail);
+	ret = copy_from_piece(p, j, allocator, expect_no_fail);
 	if (ret < 0) return ret;
 
 	ret = j->d.io.buffer_size;
@@ -711,13 +714,13 @@ cached_piece_entry* block_cache::allocate_piece(disk_io_job const* j, std::uint1
 cached_piece_entry* block_cache::add_dirty_block(disk_io_job* j)
 {
 #if !defined TORRENT_DISABLE_POOL_ALLOCATOR
-	TORRENT_ASSERT(is_disk_buffer(j->buffer.disk_block));
+	TORRENT_ASSERT(is_disk_buffer(boost::get<disk_buffer_holder>(j->argument).get()));
 #endif
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 	INVARIANT_CHECK;
 #endif
 
-	TORRENT_ASSERT(j->buffer.disk_block);
+	TORRENT_ASSERT(boost::get<disk_buffer_holder>(j->argument));
 	TORRENT_ASSERT(m_write_cache_size + m_read_cache_size + 1 <= in_use());
 
 	cached_piece_entry* pe = allocate_piece(j, cached_piece_entry::write_lru);
@@ -747,26 +750,25 @@ cached_piece_entry* block_cache::add_dirty_block(disk_io_job* j)
 
 	cached_block_entry& b = pe->blocks[block];
 
-	TORRENT_PIECE_ASSERT(b.buf != j->buffer.disk_block, pe);
+	TORRENT_PIECE_ASSERT(b.buf != boost::get<disk_buffer_holder>(j->argument).get(), pe);
 
 	// we might have a left-over read block from
 	// hash checking
 	// we might also have a previous dirty block which
 	// we're still waiting for to be written
-	if (b.buf != nullptr && b.buf != j->buffer.disk_block)
+	if (b.buf != nullptr && b.buf != boost::get<disk_buffer_holder>(j->argument).get())
 	{
 		TORRENT_PIECE_ASSERT(b.refcount == 0 && !b.pending, pe);
 		free_block(pe, block);
 		TORRENT_PIECE_ASSERT(b.dirty == 0, pe);
 	}
 
-	b.buf = j->buffer.disk_block;
+	b.buf = boost::get<disk_buffer_holder>(j->argument).release();
 
 	b.dirty = true;
 	++pe->num_blocks;
 	++pe->num_dirty;
 	++m_write_cache_size;
-	j->buffer.disk_block = nullptr;
 	TORRENT_PIECE_ASSERT(j->piece == pe->piece, pe);
 	TORRENT_PIECE_ASSERT(j->flags & disk_io_job::in_progress, pe);
 	TORRENT_PIECE_ASSERT(j->piece == pe->piece, pe);
@@ -1697,13 +1699,13 @@ void block_cache::check_invariant() const
 // -2: out of memory
 
 int block_cache::copy_from_piece(cached_piece_entry* const pe
-	, disk_io_job* const j
+	, disk_io_job* const j, buffer_allocator_interface& allocator
 	, bool const expect_no_fail)
 {
 	INVARIANT_CHECK;
 	TORRENT_UNUSED(expect_no_fail);
 
-	TORRENT_PIECE_ASSERT(j->buffer.disk_block == nullptr, pe);
+	TORRENT_PIECE_ASSERT(!boost::get<disk_buffer_holder>(j->argument).get(), pe);
 	TORRENT_PIECE_ASSERT(pe->in_use, pe);
 
 	// copy from the cache and update the last use timestamp
@@ -1746,9 +1748,10 @@ int block_cache::copy_from_piece(cached_piece_entry* const pe
 		// make sure it didn't wrap
 		TORRENT_PIECE_ASSERT(pe->refcount > 0, pe);
 		int const blocks_per_piece = (j->storage->files().piece_length() + block_size() - 1) / block_size();
-		j->d.io.ref.storage = j->storage->storage_index();
-		j->d.io.ref.cookie = static_cast<int>(pe->piece) * blocks_per_piece + start_block;
-		j->buffer.disk_block = bl.buf + (j->d.io.offset & (block_size() - 1));
+		j->argument = disk_buffer_holder(allocator
+			, aux::block_cache_reference{ j->storage->storage_index()
+				, static_cast<int>(pe->piece) * blocks_per_piece + start_block}
+			, bl.buf + (j->d.io.offset & (block_size() - 1)));
 		j->storage->inc_refcount();
 
 		++m_send_buffer_blocks;
@@ -1763,15 +1766,17 @@ int block_cache::copy_from_piece(cached_piece_entry* const pe
 		return -1;
 	}
 
-	j->buffer.disk_block = allocate_buffer("send buffer");
-	if (j->buffer.disk_block == nullptr) return -2;
+	j->argument = disk_buffer_holder(allocator
+		, allocate_buffer("send buffer"));
+	if (!boost::get<disk_buffer_holder>(j->argument)) return -2;
 
 	while (size > 0)
 	{
 		TORRENT_PIECE_ASSERT(pe->blocks[block].buf, pe);
 		int to_copy = (std::min)(block_size()
 			- block_offset, size);
-		std::memcpy(j->buffer.disk_block + buffer_offset
+		std::memcpy(boost::get<disk_buffer_holder>(j->argument).get()
+				+ buffer_offset
 			, pe->blocks[block].buf + block_offset
 			, aux::numeric_cast<std::size_t>(to_copy));
 		size -= to_copy;

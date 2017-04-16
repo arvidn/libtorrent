@@ -50,6 +50,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <fstream>
 
+#include <boost/variant/get.hpp>
+
 using namespace std::placeholders;
 using namespace libtorrent;
 namespace lt = libtorrent;
@@ -67,7 +69,8 @@ void on_read_piece(int ret, disk_io_job const& j, char const* data, int size)
 {
 	std::cout << time_now_string() << " on_read_piece piece: " << j.piece << std::endl;
 	TEST_EQUAL(ret, size);
-	if (ret > 0) TEST_CHECK(std::equal(j.buffer.disk_block, j.buffer.disk_block + ret, data));
+	auto& buffer = boost::get<disk_buffer_holder>(j.argument);
+	if (ret > 0) TEST_CHECK(std::equal(buffer.get(), buffer.get() + ret, data));
 }
 
 void on_check_resume_data(status_t const status, storage_error const& error, bool* done)
