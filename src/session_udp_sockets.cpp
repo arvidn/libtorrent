@@ -81,7 +81,14 @@ namespace libtorrent { namespace aux {
 				continue;
 			}
 
-			utp_init_socket(s.get<utp_stream>()->get_impl(), sockets[index]);
+			utp_socket_impl* impl = nullptr;
+#ifdef TORRENT_USE_OPENSSL
+			if (s.get<ssl_stream<utp_stream>>() != nullptr)
+				impl = s.get<ssl_stream<utp_stream>>()->get_next_layer()->get_impl();
+			else
+#endif
+				impl = s.get<utp_stream>()->get_impl();
+			utp_init_socket(impl, sockets[index]);
 			auto udp_ep = sockets[index]->local_endpoint();
 			return tcp::endpoint(udp_ep.address(), udp_ep.port());
 		}
