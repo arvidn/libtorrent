@@ -84,7 +84,7 @@ namespace libtorrent { namespace aux {
 			utp_socket_impl* impl = nullptr;
 #ifdef TORRENT_USE_OPENSSL
 			if (s.get<ssl_stream<utp_stream>>() != nullptr)
-				impl = s.get<ssl_stream<utp_stream>>()->get_next_layer()->get_impl();
+				impl = s.get<ssl_stream<utp_stream>>()->next_layer().get_impl();
 			else
 #endif
 				impl = s.get<utp_stream>()->get_impl();

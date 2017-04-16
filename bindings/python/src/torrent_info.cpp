@@ -128,14 +128,12 @@ namespace
 #ifndef TORRENT_NO_DEPRECATE
     // Create getters for announce_entry data members with non-trivial types which need converting.
     lt::time_point get_next_announce(announce_entry const& ae)
-	{ return ae.endpoints.empty() ? lt::time_point() : ae.endpoints.front().next_announce; }
+	{ return ae.endpoints.empty() ? lt::time_point() : lt::time_point(ae.endpoints.front().next_announce); }
     lt::time_point get_min_announce(announce_entry const& ae)
-	{ return ae.endpoints.empty() ? lt::time_point() : ae.endpoints.front().min_announce; }
+	{ return ae.endpoints.empty() ? lt::time_point() : lt::time_point(ae.endpoints.front().min_announce); }
     // announce_entry data member bit-fields.
     int get_fails(announce_entry const& ae)
 	{ return ae.endpoints.empty() ? 0 : ae.endpoints.front().fails; }
-	bool get_verified(announce_entry const& ae)
-	{ return ae.endpoints.empty() ? false : ae.endpoints.front().verified; }
 	bool get_updating(announce_entry const& ae)
 	{ return ae.endpoints.empty() ? false : ae.endpoints.front().updating; }
 	bool get_start_sent(announce_entry const& ae)
@@ -146,17 +144,18 @@ namespace
 	bool can_announce(announce_entry const& ae, bool is_seed) {
 		if (ae.endpoints.empty()) return false;
 		lt::time_point now = lt::clock_type::now();
-		return ae.endpoints.front.can_announce(now, is_seed, ae.fail_limit);
+		return ae.endpoints.front().can_announce(now, is_seed, ae.fail_limit);
 	}
 	bool is_working(announce_entry const& ae)
 	{ return ae.endpoints.empty() ? false : ae.endpoints.front().is_working(); }
 #endif
     int get_source(announce_entry const& ae) { return ae.source; }
+	bool get_verified(announce_entry const& ae) { return ae.verified; }
 
 #ifndef TORRENT_NO_DEPRECATE
 	std::string get_message(announce_entry const& ae)
 	{ return ae.endpoints.empty() ? "" : ae.endpoints.front().message; }
-	error_core get_last_error(announce_entry const& ae)
+	error_code get_last_error(announce_entry const& ae)
 	{ return ae.endpoints.empty() ? error_code() : ae.endpoints.front().last_error; }
 	int get_scrape_incomplete(announce_entry const& ae)
 	{ return ae.endpoints.empty() ? 0 : ae.endpoints.front().scrape_incomplete; }
@@ -349,9 +348,9 @@ void bind_torrent_info()
         .def_readwrite("tier", &announce_entry::tier)
         .def_readwrite("fail_limit", &announce_entry::fail_limit)
         .add_property("source", &get_source)
+		.add_property("verified", &get_verified)
 #if !defined TORRENT_NO_DEPRECATE
         .add_property("fails", &get_fails)
-        .add_property("verified", &get_verified)
         .add_property("updating", &get_updating)
         .add_property("start_sent", &get_start_sent)
         .add_property("complete_sent", &get_complete_sent)

@@ -264,6 +264,7 @@ list trackers(torrent_handle& h)
 		d["tier"] = i->tier;
 		d["fail_limit"] = i->fail_limit;
 		d["source"] = i->source;
+		d["verified"] = i->verified;
 
 #ifndef TORRENT_NO_DEPRECATE
 		if (!i->endpoints.empty())
@@ -290,14 +291,13 @@ list trackers(torrent_handle& h)
 			d["scrape_complete"] = aep.scrape_complete;
 			d["scrape_downloaded"] = aep.scrape_downloaded;
 			d["fails"] = aep.fails;
-			d["verified"] = aep.verified;
 			d["updating"] = aep.updating;
 			d["start_sent"] = aep.start_sent;
 			d["complete_sent"] = aep.complete_sent;
 		}
 		else
 		{
-			d["message"] = string();
+			d["message"] = std::string();
 			d["last_error"] = dict();
 			d["next_announce"] = object();
 			d["min_announce"] = object();
@@ -305,7 +305,6 @@ list trackers(torrent_handle& h)
 			d["scrape_complete"] = 0;
 			d["scrape_downloaded"] = 0;
 			d["fails"] = 0;
-			d["verified"] = false;
 			d["updating"] = false;
 			d["start_sent"] = false;
 			d["complete_sent"] = false;
@@ -337,7 +336,6 @@ list trackers(torrent_handle& h)
 			e["scrape_complete"] = aep.scrape_complete;
 			e["scrape_downloaded"] = aep.scrape_downloaded;
 			e["fails"] = aep.fails;
-			e["verified"] = aep.verified;
 			e["updating"] = aep.updating;
 			e["start_sent"] = aep.start_sent;
 			e["complete_sent"] = aep.complete_sent;
