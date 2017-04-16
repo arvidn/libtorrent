@@ -32,22 +32,23 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/disk_io_job.hpp"
 #include "libtorrent/block_cache.hpp" // for cached_piece_entry
+#include "libtorrent/disk_buffer_holder.hpp"
+
+#include <boost/variant/get.hpp>
 
 namespace libtorrent {
-
-	struct buffer_allocator_interface;
 
 	namespace {
 		struct caller_visitor : boost::static_visitor<>
 		{
-			explicit caller_visitor(buffer_allocator_interface& alloc, disk_io_job& j)
-				: m_job(j), m_alloc(alloc) {}
+			explicit caller_visitor(disk_io_job& j)
+				: m_job(j) {}
 
 			void operator()(disk_io_job::read_handler& h) const
 			{
 				if (!h) return;
-				disk_buffer_holder block(m_alloc, m_job.d.io.ref, m_job.buffer.disk_block);
-				h(std::move(block), m_job.flags, m_job.error);
+				h(std::move(boost::get<disk_buffer_holder>(m_job.argument))
+					, m_job.flags, m_job.error);
 			}
 
 			void operator()(disk_io_job::write_handler& h) const
@@ -65,7 +66,8 @@ namespace libtorrent {
 			void operator()(disk_io_job::move_handler& h) const
 			{
 				if (!h) return;
-				h(m_job.ret, std::string(m_job.buffer.string), m_job.error);
+				h(m_job.ret, std::move(boost::get<std::string>(m_job.argument))
+					, m_job.error);
 			}
 
 			void operator()(disk_io_job::release_handler& h) const
@@ -83,7 +85,8 @@ namespace libtorrent {
 			void operator()(disk_io_job::rename_handler& h) const
 			{
 				if (!h) return;
-				h(m_job.buffer.string, m_job.file_index, m_job.error);
+				h(std::move(boost::get<std::string>(m_job.argument))
+					, m_job.file_index, m_job.error);
 			}
 
 			void operator()(disk_io_job::clear_piece_handler& h) const
@@ -94,29 +97,21 @@ namespace libtorrent {
 
 		private:
 			disk_io_job& m_job;
-			buffer_allocator_interface& m_alloc;
 		};
 	}
 
 	disk_io_job::disk_io_job()
-		: piece(0)
+		: argument(0)
+		, piece(0)
 		, action(read)
 	{
-		buffer.disk_block = nullptr;
 		d.io.offset = 0;
 		d.io.buffer_size = 0;
-		d.io.ref.cookie = aux::block_cache_reference::none;
 	}
 
-	disk_io_job::~disk_io_job()
+	void disk_io_job::call_callback()
 	{
-		if (action == rename_file || action == move_storage)
-			free(buffer.string);
-	}
-
-	void disk_io_job::call_callback(buffer_allocator_interface& alloc)
-	{
-		boost::apply_visitor(caller_visitor(alloc, *this), callback);
+		boost::apply_visitor(caller_visitor(*this), callback);
 	}
 
 	bool disk_io_job::completed(cached_piece_entry const* pe, int block_size)

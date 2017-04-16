@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 	disk_buffer_holder::disk_buffer_holder(buffer_allocator_interface& alloc, char* buf) noexcept
-		: m_allocator(&alloc), m_buf(buf)
+		: m_allocator(&alloc), m_buf(buf), m_ref()
 	{}
 
 	disk_buffer_holder& disk_buffer_holder::operator=(disk_buffer_holder&& h) noexcept

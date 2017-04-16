@@ -306,7 +306,7 @@ namespace aux {
 			, std::uint8_t flags = 0) override;
 		void async_hash(storage_index_t storage, piece_index_t piece, std::uint8_t flags
 			, std::function<void(piece_index_t, sha1_hash const&, storage_error const&)> handler, void* requester) override;
-		void async_move_storage(storage_index_t storage, std::string const& p, std::uint8_t flags
+		void async_move_storage(storage_index_t storage, std::string p, std::uint8_t flags
 			, std::function<void(status_t, std::string const&, storage_error const&)> handler) override;
 		void async_release_files(storage_index_t storage
 			, std::function<void()> handler = std::function<void()>()) override;
@@ -316,14 +316,14 @@ namespace aux {
 			, add_torrent_params const* resume_data
 			, aux::vector<std::string, file_index_t>& links
 			, std::function<void(status_t, storage_error const&)> handler) override;
-		void async_rename_file(storage_index_t storage, file_index_t index, std::string const& name
+		void async_rename_file(storage_index_t storage, file_index_t index, std::string name
 			, std::function<void(std::string const&, file_index_t, storage_error const&)> handler) override;
 		void async_stop_torrent(storage_index_t storage
 			, std::function<void()> handler) override;
 		void async_flush_piece(storage_index_t storage, piece_index_t piece
 			, std::function<void()> handler = std::function<void()>()) override;
 		void async_set_file_priority(storage_index_t storage
-			, aux::vector<std::uint8_t, file_index_t> const& prio
+			, aux::vector<std::uint8_t, file_index_t> prio
 			, std::function<void(storage_error const&)> handler) override;
 
 		void async_clear_piece(storage_index_t storage, piece_index_t index

@@ -57,7 +57,6 @@ namespace libtorrent {
 	struct cached_piece_entry;
 	class torrent_info;
 	struct add_torrent_params;
-	struct buffer_allocator_interface;
 
 	// disk_io_jobs are allocated in a pool allocator in disk_io_thread
 	// they are always allocated from the network thread, posted
@@ -74,11 +73,10 @@ namespace libtorrent {
 	struct TORRENT_EXTRA_EXPORT disk_io_job : tailqueue_node<disk_io_job>
 	{
 		disk_io_job();
-		~disk_io_job();
 		disk_io_job(disk_io_job const&) = delete;
 		disk_io_job& operator=(disk_io_job const&) = delete;
 
-		void call_callback(buffer_allocator_interface&);
+		void call_callback();
 
 		enum action_t : std::uint8_t
 		{
@@ -126,21 +124,14 @@ namespace libtorrent {
 		// unique identifier for the peer when reading
 		void* requester = nullptr;
 
-		// for write, this points to the data to write,
-		// for read, the data read is returned here
+		// for read and write, this is the disk_buffer_holder
 		// for other jobs, it may point to other job-specific types
-		// for move_storage and rename_file this is a string allocated
-		// with malloc()
-		// for get_cache_info this points to a cache_status object which
-		// is filled in
-		union
-		{
-			char* disk_block;
-			char* string;
-			add_torrent_params const* check_resume_data;
-			aux::vector<std::uint8_t, file_index_t>* priorities;
-			int delete_options;
-		} buffer;
+		// for move_storage and rename_file this is a string
+		boost::variant<disk_buffer_holder
+			, std::string
+			, add_torrent_params const*
+			, aux::vector<std::uint8_t, file_index_t>
+			, int> argument;
 
 		// the disk storage this job applies to (if applicable)
 		std::shared_ptr<storage_interface> storage;
@@ -184,16 +175,6 @@ namespace libtorrent {
 
 			struct io_args
 			{
-			// if this is set, the read operation is required to
-			// release the block references once it's done sending
-			// the buffer. For aligned block requests (by far the
-			// most common) the buffers are not actually copied
-			// into the send buffer, but simply referenced. When this
-			// is set in a response to a read, the buffer needs to
-			// be de-referenced by sending a reclaim_block message
-			// back to the disk thread
-			aux::block_cache_reference ref;
-
 			// for read and write, the offset into the piece
 			// the read or write should start
 			// for hash jobs, this is the first block the hash
