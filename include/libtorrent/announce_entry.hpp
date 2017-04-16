@@ -37,7 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/string_view.hpp"
-#include "libtorrent/address.hpp"
+#include "libtorrent/socket.hpp"
 
 #include <string>
 #include <cstdint>
@@ -65,8 +65,8 @@ namespace libtorrent {
 		// this error code specifies what error occurred
 		error_code last_error;
 
-		// the local address of the listen interface associated with this endpoint
-		address local_address;
+		// the local endpoint of the listen interface associated with this endpoint
+		tcp::endpoint local_endpoint;
 
 		// the time of next tracker announce
 		time_point32 next_announce = time_point32::min();

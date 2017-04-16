@@ -89,12 +89,12 @@ struct mock_socket : lt::aux::session_listen_socket
 {
 	address get_external_address() override
 	{
-		return get_local_address();
+		return get_local_endpoint().address();
 	}
 
-	address get_local_address() override
+	tcp::endpoint get_local_endpoint() override
 	{
-		return address_v4::from_string("40.30.20.10");
+		return tcp::endpoint(address_v4::from_string("40.30.20.10"), 8888);
 	}
 };
 

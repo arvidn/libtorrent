@@ -173,7 +173,7 @@ namespace libtorrent {
 
 	address tracker_connection::bind_interface() const
 	{
-		return m_req.outgoing_socket->get_local_address();
+		return m_req.outgoing_socket->get_local_endpoint().address();
 	}
 
 	void tracker_connection::sent_bytes(int bytes)

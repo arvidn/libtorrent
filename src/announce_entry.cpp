@@ -48,7 +48,7 @@ namespace libtorrent {
 	}
 
 	announce_endpoint::announce_endpoint(aux::session_listen_socket* s)
-		: local_address(s ? s->get_local_address() : address())
+		: local_endpoint(s ? s->get_local_endpoint() : tcp::endpoint())
 		, socket(s)
 		, fails(0)
 		, updating(false)

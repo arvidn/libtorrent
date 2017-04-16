@@ -137,7 +137,7 @@ namespace libtorrent { namespace aux {
 			source_router = 8
 		};
 
-		virtual void set_external_address(address const& local_address
+		virtual void set_external_address(tcp::endpoint const& local_endpoint
 			, address const& ip
 			, int source_type, address const& source) = 0;
 		virtual external_ip external_address() const = 0;

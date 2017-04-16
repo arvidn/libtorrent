@@ -123,8 +123,8 @@ namespace dht {
 		address get_external_address() override
 		{ return external_address.external_address(); }
 
-		address get_local_address() override
-		{ return local_endpoint.address(); }
+		tcp::endpoint get_local_endpoint() override
+		{ return local_endpoint; }
 
 		listen_socket_t()
 		{
@@ -660,7 +660,7 @@ namespace aux {
 			virtual bool on_dht_request(string_view query
 				, dht::msg const& request, entry& response) override;
 
-			void set_external_address(address const& local_address
+			void set_external_address(tcp::endpoint const& local_endpoint
 				, address const& ip
 				, int source_type, address const& source) override;
 			virtual external_ip external_address() const override;

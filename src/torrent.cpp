@@ -3000,7 +3000,7 @@ namespace libtorrent {
 		// out external IP counter (and pass along the IP of the tracker to know
 		// who to attribute this vote to)
 		if (resp.external_ip != address() && !is_any(tracker_ip))
-			m_ses.set_external_address(r.outgoing_socket->get_local_address()
+			m_ses.set_external_address(r.outgoing_socket->get_local_endpoint()
 				, resp.external_ip
 				, aux::session_interface::source_tracker, tracker_ip);
 

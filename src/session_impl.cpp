@@ -6755,12 +6755,12 @@ namespace {
 	}
 
 	void session_impl::set_external_address(
-		address const& local_address, address const& ip
+		tcp::endpoint const& local_endpoint, address const& ip
 		, int const source_type, address const& source)
 	{
 		for (auto& sock : m_listen_sockets)
 		{
-			if (sock.local_endpoint.address() == local_address)
+			if (sock.local_endpoint == local_endpoint)
 			{
 				set_external_address(sock, ip, source_type, source);
 				break;

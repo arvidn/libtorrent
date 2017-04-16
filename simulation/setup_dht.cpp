@@ -187,14 +187,14 @@ struct dht_node final : lt::dht::socket_manager, lt::aux::session_listen_socket
 
 	address get_external_address() override
 	{
-		return get_local_address();
+		return get_local_endpoint().address();
 	}
 
-	address get_local_address() override
+	tcp::endpoint get_local_endpoint() override
 	{
-		if (sock().is_open()) return sock().local_endpoint().address();
-		if (m_ipv6) return address_v6();
-		return address_v4();
+		if (sock().is_open()) return tcp::endpoint(sock().local_endpoint().address(), sock().local_endpoint().port());
+		if (m_ipv6) return tcp::endpoint(address_v6(), 0);
+		return tcp::endpoint(address_v4(), 0);
 	}
 
 	// the node_id and IP address of this node

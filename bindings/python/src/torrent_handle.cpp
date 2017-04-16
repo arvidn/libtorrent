@@ -319,6 +319,7 @@ list trackers(torrent_handle& h)
 		{
 			dict e;
 			e["message"] = aep.message;
+			e["local_address"] = boost::python::make_tuple(aep.local_endpoint.address().to_string(), aep.local_endpoint.port());
 			dict last_error;
 			last_error["value"] = aep.last_error.value();
 			last_error["category"] = aep.last_error.category().name();

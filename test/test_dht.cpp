@@ -123,23 +123,23 @@ struct mock_socket final : socket_manager
 
 struct mock_dht_socket final : aux::session_listen_socket
 {
-	mock_dht_socket() : m_external_address(addr4("236.0.0.1")), m_local_address(addr4("192.168.4.1")) {}
-	explicit mock_dht_socket(address ep) : m_external_address(ep), m_local_address(ep) {}
+	mock_dht_socket() : m_external_address(addr4("236.0.0.1")), m_local_endpoint(addr4("192.168.4.1"), 6881) {}
+	explicit mock_dht_socket(address ep) : m_external_address(ep), m_local_endpoint(ep, 6881) {}
 
 	address get_external_address() override { return m_external_address; }
-	address get_local_address() override { return m_local_address; }
+	tcp::endpoint get_local_endpoint() override { return m_local_endpoint; }
 
 	address m_external_address;
-	address m_local_address;
+	tcp::endpoint m_local_endpoint;
 };
 
 struct mock_dht_socket6 final : aux::session_listen_socket
 {
 	address get_external_address() override { return m_external_address; }
-	address get_local_address() override { return m_local_address; }
+	tcp::endpoint get_local_endpoint() override { return m_local_endpoint; }
 
 	address m_external_address = addr6("2002::1");
-	address m_local_address = addr6("2002::1");
+	tcp::endpoint m_local_endpoint = tcp::endpoint(addr6("2002::1"), 6881);
 };
 
 node* get_foreign_node_stub(node_id const&, std::string const&)

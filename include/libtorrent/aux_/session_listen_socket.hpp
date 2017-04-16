@@ -34,6 +34,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_SESSION_LISTEN_SOCKET_HPP_INCLUDED
 
 #include "libtorrent/address.hpp"
+#include "libtorrent/socket.hpp" // for tcp::endpoint
 
 namespace libtorrent { namespace aux {
 
@@ -44,7 +45,7 @@ namespace libtorrent { namespace aux {
 	struct TORRENT_EXTRA_EXPORT session_listen_socket
 	{
 		virtual address get_external_address() = 0;
-		virtual address get_local_address() = 0;
+		virtual tcp::endpoint get_local_endpoint() = 0;
 
 		session_listen_socket() = default;
 		session_listen_socket(session_listen_socket const&) = default;

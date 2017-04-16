@@ -115,7 +115,7 @@ namespace libtorrent { namespace dht {
 
 	void dht_tracker::new_socket(aux::session_listen_socket* s)
 	{
-		address local_address = s->get_local_address();
+		address local_address = s->get_local_endpoint().address();
 #if TORRENT_USE_IPV6
 		// don't try to start dht nodes on non-global addresses
 		if (local_address.is_v6()
@@ -169,7 +169,7 @@ namespace libtorrent { namespace dht {
 			n.second.connection_timer.async_wait(
 				std::bind(&dht_tracker::connection_timeout, self(), std::ref(n.second), _1));
 #if TORRENT_USE_IPV6
-			if (n.first->get_local_address().is_v6())
+			if (n.first->get_local_endpoint().protocol() == tcp::v6())
 				n.second.dht.bootstrap(concat(m_state.nodes6, m_state.nodes), f);
 			else
 #endif
@@ -584,7 +584,7 @@ namespace libtorrent { namespace dht {
 		{
 			// use the local rather than external address because if the user is behind NAT
 			// we won't know the external IP on startup
-			ret.nids.push_back(std::make_pair(n.first->get_local_address(), n.second.dht.nid()));
+			ret.nids.push_back(std::make_pair(n.first->get_local_endpoint().address(), n.second.dht.nid()));
 			auto nodes = save_nodes(n.second.dht);
 			ret.nodes.insert(ret.nodes.end(), nodes.begin(), nodes.end());
 		}
@@ -635,7 +635,7 @@ namespace libtorrent { namespace dht {
 		m_send_quota -= int(m_send_buf.size());
 
 		error_code ec;
-		if (s->get_local_address().is_v4() != addr.address().is_v4())
+		if (s->get_local_endpoint().protocol().family() != addr.protocol().family())
 		{
 			// the node is trying to send a packet to a different address family
 			// than its socket, this can happen during bootstrap
@@ -643,7 +643,7 @@ namespace libtorrent { namespace dht {
 			bool found = false;
 			for (auto& node : m_nodes)
 			{
-				if (node.first->get_local_address().is_v4() == addr.address().is_v4())
+				if (node.first->get_local_endpoint().protocol().family() == addr.protocol().family())
 				{
 					m_send_fun(node.first, addr, m_send_buf, ec, 0);
 					found = true;
