@@ -405,7 +405,7 @@ namespace libtorrent {
 	void bt_peer_connection::write_have_all()
 	{
 		INVARIANT_CHECK;
-		TORRENT_ASSERT(m_sent_handshake);
+
 		m_sent_bitfield = true;
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::outgoing_message, "HAVE_ALL");
