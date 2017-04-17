@@ -4427,6 +4427,19 @@ namespace {
 		m_stats_counters.set_value(counters::limiter_down_bytes
 			, m_download_rate.queued_bytes());
 
+		m_stats_counters.set_value(counters::total_download_rate
+				, m_stat.download_rate());
+		m_stats_counters.set_value(counters::total_upload_rate
+				, m_stat.upload_rate());
+		m_stats_counters.set_value(counters::payload_download_rate
+				, m_stat.transfer_rate(stat::download_payload));
+		m_stats_counters.set_value(counters::payload_upload_rate
+				, m_stat.transfer_rate(stat::upload_payload));
+		m_stats_counters.set_value(counters::ip_overhead_download_rate
+				, m_stat.transfer_rate(stat::download_ip_protocol));
+		m_stats_counters.set_value(counters::ip_overhead_upload_rate
+				, m_stat.transfer_rate(stat::upload_ip_protocol));
+
 		m_alerts.emplace_alert<session_stats_alert>(m_stats_counters);
 	}
 

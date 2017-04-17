@@ -435,6 +435,13 @@ namespace libtorrent {
 
 			has_incoming_connections,
 
+			total_download_rate,
+			total_upload_rate,
+			payload_download_rate,
+			payload_upload_rate,
+			ip_overhead_download_rate,
+			ip_overhead_upload_rate,
+
 			limiter_up_queue,
 			limiter_down_queue,
 			limiter_up_bytes,

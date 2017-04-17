@@ -204,6 +204,13 @@ namespace {
 		// NAT or not.
 		METRIC(net, has_incoming_connections)
 
+		METRIC(net, total_download_rate)
+		METRIC(net, total_upload_rate)
+		METRIC(net, payload_download_rate)
+		METRIC(net, payload_upload_rate)
+		METRIC(net, ip_overhead_download_rate)
+		METRIC(net, ip_overhead_upload_rate)
+
 		// these gauges count the number of torrents in
 		// different states. Each torrent only belongs to
 		// one of these states. For torrents that could
