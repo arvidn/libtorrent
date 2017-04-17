@@ -7443,11 +7443,13 @@ namespace libtorrent
 	{
 		TORRENT_ASSERT(m_ses.is_network_thread());
 		bool checking_files = should_check_files();
-		m_error = ec;
 		m_error_file = error_file;
 
-		if (alerts().should_post<torrent_error_alert>())
+		if (m_error != ec && alerts().should_post<torrent_error_alert>())
+		{
+			m_error = ec;
 			alerts().post_alert(torrent_error_alert(get_handle(), ec));
+		}
 
 #if defined TORRENT_VERBOSE_LOGGING || defined TORRENT_ERROR_LOGGING || defined TORRENT_LOGGING
 		if (ec)
