@@ -358,9 +358,8 @@ namespace libtorrent {
 		stats_counters().inc_stats_counter(counters::num_outgoing_dht_port);
 	}
 
-	void bt_peer_connection::send_piece_message(message_type const type,
-			counters::stats_counter_t const counter,
-			piece_index_t const index)
+	void bt_peer_connection::send_piece_message(message_type const type
+		, counters::stats_counter_t const counter, piece_index_t const index)
 	{
 		char msg[] = { 0,0,0,5, static_cast<char>(type), 0, 0, 0, 0 };
 		char* ptr = msg + 5;
@@ -370,8 +369,8 @@ namespace libtorrent {
 		stats_counters().inc_stats_counter(counter);
 	}
 
-	void bt_peer_connection::send_simple_message(message_type const type,
-			counters::stats_counter_t const counter)
+	void bt_peer_connection::send_simple_message(message_type const type
+		, counters::stats_counter_t const counter)
 	{
 		TORRENT_ASSERT(m_sent_handshake);
 		TORRENT_ASSERT(m_sent_bitfield);
@@ -382,10 +381,8 @@ namespace libtorrent {
 		stats_counters().inc_stats_counter(counter);
 	}
 
-	void bt_peer_connection::send_request_message(message_type const type,
-			counters::stats_counter_t const counter,
-			peer_request const& r,
-			int const flag)
+	void bt_peer_connection::send_request_message(message_type const type
+		, counters::stats_counter_t const counter, peer_request const& r, int const flag)
 	{
 		TORRENT_ASSERT(m_sent_handshake);
 		TORRENT_ASSERT(m_sent_bitfield);
@@ -437,18 +434,8 @@ namespace libtorrent {
 			, "piece: %d | s: %d | l: %d", static_cast<int>(r.piece)
 			, r.start, r.length);
 #endif
-		TORRENT_ASSERT(m_sent_handshake);
-		TORRENT_ASSERT(m_sent_bitfield);
-		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
 
-		char msg[] = {0,0,0,13, msg_reject_request,0,0,0,0, 0,0,0,0, 0,0,0,0};
-		char* ptr = msg + 5;
-		detail::write_int32(static_cast<int>(r.piece), ptr); // index
-		detail::write_int32(r.start, ptr); // begin
-		detail::write_int32(r.length, ptr); // length
-		send_buffer(msg, sizeof(msg));
-
-		stats_counters().inc_stats_counter(counters::num_outgoing_reject);
+		send_request_message(msg_reject_request, counters::num_outgoing_reject, r, 0);
 	}
 
 	void bt_peer_connection::write_allow_fast(piece_index_t const piece)
