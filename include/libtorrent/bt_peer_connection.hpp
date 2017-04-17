@@ -273,6 +273,13 @@ namespace libtorrent {
 
 	private:
 		void write_dht_port();
+		void send_simple_message(message_type type,
+			counters::stats_counter_t counter);
+		void send_piece_message(message_type type,
+			counters::stats_counter_t counter, piece_index_t index);
+		void send_request_message(message_type type,
+			counters::stats_counter_t counter, peer_request const& r,
+			int flag);
 
 		bool dispatch_message(int received);
 		// returns the block currently being

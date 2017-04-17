@@ -358,32 +358,69 @@ namespace libtorrent {
 		stats_counters().inc_stats_counter(counters::num_outgoing_dht_port);
 	}
 
+	void bt_peer_connection::send_piece_message(message_type const type
+		, counters::stats_counter_t const counter, piece_index_t const index)
+	{
+		TORRENT_ASSERT(m_sent_handshake);
+		TORRENT_ASSERT(m_sent_bitfield);
+
+		char msg[] = { 0,0,0,5, static_cast<char>(type), 0, 0, 0, 0 };
+		char* ptr = msg + 5;
+		detail::write_int32(static_cast<int>(index), ptr);
+		send_buffer(msg, sizeof(msg));
+
+		stats_counters().inc_stats_counter(counter);
+	}
+
+	void bt_peer_connection::send_simple_message(message_type const type
+		, counters::stats_counter_t const counter)
+	{
+		TORRENT_ASSERT(m_sent_handshake);
+		TORRENT_ASSERT(m_sent_bitfield);
+
+		char msg[] = { 0,0,0,1,static_cast<char>(type) };
+		send_buffer(msg, sizeof(msg));
+
+		stats_counters().inc_stats_counter(counter);
+	}
+
+	void bt_peer_connection::send_request_message(message_type const type
+		, counters::stats_counter_t const counter, peer_request const& r, int const flag)
+	{
+		TORRENT_ASSERT(m_sent_handshake);
+		TORRENT_ASSERT(m_sent_bitfield);
+		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
+
+		char msg[17] = { 0,0,0,13, static_cast<char>(type) };
+		char* ptr = msg + 5;
+
+		detail::write_int32(static_cast<int>(r.piece), ptr); // index
+		detail::write_int32(r.start, ptr); // begin
+		detail::write_int32(r.length, ptr); // length
+		send_buffer(msg, sizeof(msg), flag);
+
+		stats_counters().inc_stats_counter(counter);
+	}
+
 	void bt_peer_connection::write_have_all()
 	{
 		INVARIANT_CHECK;
-		TORRENT_ASSERT(m_sent_handshake);
+
 		m_sent_bitfield = true;
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::outgoing_message, "HAVE_ALL");
 #endif
-		static const char msg[] = {0,0,0,1, msg_have_all};
-		send_buffer(msg, sizeof(msg));
-
-		stats_counters().inc_stats_counter(counters::num_outgoing_have_all);
+		send_simple_message(msg_have_all, counters::num_outgoing_have_all);
 	}
 
 	void bt_peer_connection::write_have_none()
 	{
 		INVARIANT_CHECK;
-		TORRENT_ASSERT(m_sent_handshake);
 		m_sent_bitfield = true;
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::outgoing_message, "HAVE_NONE");
 #endif
-		static const char msg[] = {0,0,0,1, msg_have_none};
-		send_buffer(msg, sizeof(msg));
-
-		stats_counters().inc_stats_counter(counters::num_outgoing_have_none);
+		send_simple_message(msg_have_none, counters::num_outgoing_have_none);
 	}
 
 	void bt_peer_connection::write_reject_request(peer_request const& r)
@@ -399,18 +436,8 @@ namespace libtorrent {
 			, "piece: %d | s: %d | l: %d", static_cast<int>(r.piece)
 			, r.start, r.length);
 #endif
-		TORRENT_ASSERT(m_sent_handshake);
-		TORRENT_ASSERT(m_sent_bitfield);
-		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
 
-		char msg[] = {0,0,0,13, msg_reject_request,0,0,0,0, 0,0,0,0, 0,0,0,0};
-		char* ptr = msg + 5;
-		detail::write_int32(static_cast<int>(r.piece), ptr); // index
-		detail::write_int32(r.start, ptr); // begin
-		detail::write_int32(r.length, ptr); // length
-		send_buffer(msg, sizeof(msg));
-
-		stats_counters().inc_stats_counter(counters::num_outgoing_reject);
+		send_request_message(msg_reject_request, counters::num_outgoing_reject, r, 0);
 	}
 
 	void bt_peer_connection::write_allow_fast(piece_index_t const piece)
@@ -424,16 +451,9 @@ namespace libtorrent {
 			, static_cast<int>(piece));
 #endif
 
-		TORRENT_ASSERT(m_sent_handshake);
-		TORRENT_ASSERT(m_sent_bitfield);
 		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
 
-		char msg[] = {0,0,0,5, msg_allowed_fast, 0, 0, 0, 0};
-		char* ptr = msg + 5;
-		detail::write_int32(static_cast<int>(piece), ptr);
-		send_buffer(msg, sizeof(msg));
-
-		stats_counters().inc_stats_counter(counters::num_outgoing_allowed_fast);
+		send_piece_message(msg_allowed_fast, counters::num_outgoing_allowed_fast, piece);
 	}
 
 	void bt_peer_connection::write_suggest(piece_index_t const piece)
@@ -441,9 +461,6 @@ namespace libtorrent {
 		INVARIANT_CHECK;
 
 		if (!m_supports_fast) return;
-
-		TORRENT_ASSERT(m_sent_handshake);
-		TORRENT_ASSERT(m_sent_bitfield);
 
 		std::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
@@ -458,12 +475,7 @@ namespace libtorrent {
 		}
 #endif
 
-		char msg[] = {0,0,0,5, msg_suggest_piece, 0, 0, 0, 0};
-		char* ptr = msg + 5;
-		detail::write_int32(static_cast<int>(piece), ptr);
-		send_buffer(msg, sizeof(msg));
-
-		stats_counters().inc_stats_counter(counters::num_outgoing_suggest);
+		send_piece_message(msg_suggest_piece, counters::num_outgoing_suggest, piece);
 	}
 
 	void bt_peer_connection::get_specific_peer_info(peer_info& p) const
@@ -2034,18 +2046,7 @@ namespace libtorrent {
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(m_sent_handshake);
-		TORRENT_ASSERT(m_sent_bitfield);
-		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
-
-		char msg[17] = {0,0,0,13, msg_cancel};
-		char* ptr = msg + 5;
-		detail::write_int32(static_cast<int>(r.piece), ptr); // index
-		detail::write_int32(r.start, ptr); // begin
-		detail::write_int32(r.length, ptr); // length
-		send_buffer(msg, sizeof(msg));
-
-		stats_counters().inc_stats_counter(counters::num_outgoing_cancel);
+		send_request_message(msg_cancel, counters::num_outgoing_cancel, r, 0);
 
 		if (!m_supports_fast)
 			incoming_reject_request(r);
@@ -2055,19 +2056,7 @@ namespace libtorrent {
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(m_sent_handshake);
-		TORRENT_ASSERT(m_sent_bitfield);
-		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
-
-		char msg[17] = {0,0,0,13, msg_request};
-		char* ptr = msg + 5;
-
-		detail::write_int32(static_cast<int>(r.piece), ptr); // index
-		detail::write_int32(r.start, ptr); // begin
-		detail::write_int32(r.length, ptr); // length
-		send_buffer(msg, sizeof(msg), message_type_request);
-
-		stats_counters().inc_stats_counter(counters::num_outgoing_request);
+		send_request_message(msg_request, counters::num_outgoing_request, r, message_type_request);
 	}
 
 	void bt_peer_connection::write_bitfield()
@@ -2302,27 +2291,15 @@ namespace libtorrent {
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(m_sent_handshake);
-		TORRENT_ASSERT(m_sent_bitfield);
-
 		if (is_choked()) return;
-		static const char msg[] = {0,0,0,1,msg_choke};
-		send_buffer(msg, sizeof(msg));
-
-		stats_counters().inc_stats_counter(counters::num_outgoing_choke);
+		send_simple_message(msg_choke, counters::num_outgoing_choke);
 	}
 
 	void bt_peer_connection::write_unchoke()
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(m_sent_handshake);
-		TORRENT_ASSERT(m_sent_bitfield);
-
-		static const char msg[] = {0,0,0,1,msg_unchoke};
-		send_buffer(msg, sizeof(msg));
-
-		stats_counters().inc_stats_counter(counters::num_outgoing_unchoke);
+		send_simple_message(msg_unchoke, counters::num_outgoing_unchoke);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (auto const& e : m_extensions)
@@ -2336,26 +2313,14 @@ namespace libtorrent {
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(m_sent_handshake);
-		TORRENT_ASSERT(m_sent_bitfield);
-
-		static const char msg[] = {0,0,0,1,msg_interested};
-		send_buffer(msg, sizeof(msg));
-
-		stats_counters().inc_stats_counter(counters::num_outgoing_interested);
+		send_simple_message(msg_interested, counters::num_outgoing_interested);
 	}
 
 	void bt_peer_connection::write_not_interested()
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(m_sent_handshake);
-		TORRENT_ASSERT(m_sent_bitfield);
-
-		static const char msg[] = {0,0,0,1,msg_not_interested};
-		send_buffer(msg, sizeof(msg));
-
-		stats_counters().inc_stats_counter(counters::num_outgoing_not_interested);
+		send_simple_message(msg_not_interested, counters::num_outgoing_not_interested);
 	}
 
 	void bt_peer_connection::write_have(piece_index_t index)
@@ -2364,18 +2329,12 @@ namespace libtorrent {
 		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
 		TORRENT_ASSERT(index >= piece_index_t(0));
 		TORRENT_ASSERT(index < associated_torrent().lock()->torrent_file().end_piece());
-		TORRENT_ASSERT(m_sent_handshake);
 
 		// if we haven't sent the bitfield yet, this piece should be included in
 		// there instead
 		if (!m_sent_bitfield) return;
 
-		char msg[] = {0,0,0,5,msg_have,0,0,0,0};
-		char* ptr = msg + 5;
-		detail::write_int32(static_cast<int>(index), ptr);
-		send_buffer(msg, sizeof(msg));
-
-		stats_counters().inc_stats_counter(counters::num_outgoing_have);
+		send_piece_message(msg_have, counters::num_outgoing_have, index);
 	}
 
 	void bt_peer_connection::write_dont_have(piece_index_t const index)
