@@ -1473,8 +1473,6 @@ namespace libtorrent {
 		// this is needed for openssl < 1.0 to decrypt keys created by openssl 1.0+
 		OpenSSL_add_all_algorithms();
 
-		TORRENT_ASSERT(RAND_status() == 1);
-
 		// create the SSL context for this torrent. We need to
 		// inject the root certificate, and no other, to
 		// verify other peers against
