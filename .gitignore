@@ -56,3 +56,5 @@ libtorrent_logs*
 *.pyc
 dist
 *.egg-info
+
+CMakeLists.txt.user
