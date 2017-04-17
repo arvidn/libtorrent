@@ -2291,9 +2291,6 @@ namespace libtorrent {
 	{
 		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(m_sent_handshake);
-		TORRENT_ASSERT(m_sent_bitfield);
-
 		if (is_choked()) return;
 		send_simple_message(msg_choke, counters::num_outgoing_choke);
 	}
