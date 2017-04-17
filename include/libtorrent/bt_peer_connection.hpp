@@ -280,7 +280,6 @@ namespace libtorrent {
 		void send_request_message(message_type const type,
 			counters::stats_counter_t const counter, peer_request const& r,
 			int const flag);
-		
 
 		bool dispatch_message(int received);
 		// returns the block currently being
