@@ -757,12 +757,12 @@ namespace libtorrent
 		--pe->piece_refcount;
 		iovec_flushed(pe, flushing, iov_len, 0, error, completed_jobs);
 
+		m_disk_cache.maybe_free_piece(pe);
+
 		// if the cache is under high pressure, we need to evict
 		// the blocks we just flushed to make room for more write pieces
 		int evict = m_disk_cache.num_to_evict(0);
 		if (evict > 0) m_disk_cache.try_evict_blocks(evict);
-
-		m_disk_cache.maybe_free_piece(pe);
 
 		return iov_len;
 	}
