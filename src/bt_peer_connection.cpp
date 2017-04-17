@@ -358,7 +358,9 @@ namespace libtorrent {
 		stats_counters().inc_stats_counter(counters::num_outgoing_dht_port);
 	}
 
-	void bt_peer_connection::send_piece_message(message_type const type, counters::stats_counter_t const counter, piece_index_t const index)
+	void bt_peer_connection::send_piece_message(message_type const type,
+			counters::stats_counter_t const counter,
+			piece_index_t const index)
 	{
 		char msg[] = { 0,0,0,5, static_cast<char>(type), 0, 0, 0, 0 };
 		char* ptr = msg + 5;
@@ -368,7 +370,8 @@ namespace libtorrent {
 		stats_counters().inc_stats_counter(counter);
 	}
 
-	void bt_peer_connection::send_simple_message(message_type const type, counters::stats_counter_t const counter)
+	void bt_peer_connection::send_simple_message(message_type const type,
+			counters::stats_counter_t const counter)
 	{
 		TORRENT_ASSERT(m_sent_handshake);
 		TORRENT_ASSERT(m_sent_bitfield);
@@ -379,7 +382,10 @@ namespace libtorrent {
 		stats_counters().inc_stats_counter(counter);
 	}
 
-	void bt_peer_connection::send_request_message(message_type const type, counters::stats_counter_t const counter, peer_request const& r, int const flag)
+	void bt_peer_connection::send_request_message(message_type const type,
+			counters::stats_counter_t const counter,
+			peer_request const& r,
+			int const flag)
 	{
 		TORRENT_ASSERT(m_sent_handshake);
 		TORRENT_ASSERT(m_sent_bitfield);
