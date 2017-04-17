@@ -358,9 +358,12 @@ namespace libtorrent {
 		stats_counters().inc_stats_counter(counters::num_outgoing_dht_port);
 	}
 
-	void bt_peer_connection::send_piece_message(message_type const type
-		, counters::stats_counter_t const counter, piece_index_t const index)
+	void bt_peer_connection::send_piece_message(message_type type
+		, counters::stats_counter_t counter, piece_index_t index)
 	{
+		TORRENT_ASSERT(m_sent_handshake);
+		TORRENT_ASSERT(m_sent_bitfield);
+
 		char msg[] = { 0,0,0,5, static_cast<char>(type), 0, 0, 0, 0 };
 		char* ptr = msg + 5;
 		detail::write_int32(static_cast<int>(index), ptr);
@@ -369,8 +372,8 @@ namespace libtorrent {
 		stats_counters().inc_stats_counter(counter);
 	}
 
-	void bt_peer_connection::send_simple_message(message_type const type
-		, counters::stats_counter_t const counter)
+	void bt_peer_connection::send_simple_message(message_type type
+		, counters::stats_counter_t counter)
 	{
 		TORRENT_ASSERT(m_sent_handshake);
 		TORRENT_ASSERT(m_sent_bitfield);
@@ -381,8 +384,8 @@ namespace libtorrent {
 		stats_counters().inc_stats_counter(counter);
 	}
 
-	void bt_peer_connection::send_request_message(message_type const type
-		, counters::stats_counter_t const counter, peer_request const& r, int const flag)
+	void bt_peer_connection::send_request_message(message_type type
+		, counters::stats_counter_t counter, peer_request const& r, int flag)
 	{
 		TORRENT_ASSERT(m_sent_handshake);
 		TORRENT_ASSERT(m_sent_bitfield);
@@ -397,7 +400,6 @@ namespace libtorrent {
 		send_buffer(msg, sizeof(msg), flag);
 
 		stats_counters().inc_stats_counter(counter);
-
 	}
 
 	void bt_peer_connection::write_have_all()
@@ -449,8 +451,6 @@ namespace libtorrent {
 			, static_cast<int>(piece));
 #endif
 
-		TORRENT_ASSERT(m_sent_handshake);
-		TORRENT_ASSERT(m_sent_bitfield);
 		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
 
 		send_piece_message(msg_allowed_fast, counters::num_outgoing_allowed_fast, piece);
@@ -461,9 +461,6 @@ namespace libtorrent {
 		INVARIANT_CHECK;
 
 		if (!m_supports_fast) return;
-
-		TORRENT_ASSERT(m_sent_handshake);
-		TORRENT_ASSERT(m_sent_bitfield);
 
 		std::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
@@ -2335,7 +2332,6 @@ namespace libtorrent {
 		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
 		TORRENT_ASSERT(index >= piece_index_t(0));
 		TORRENT_ASSERT(index < associated_torrent().lock()->torrent_file().end_piece());
-		TORRENT_ASSERT(m_sent_handshake);
 
 		// if we haven't sent the bitfield yet, this piece should be included in
 		// there instead
