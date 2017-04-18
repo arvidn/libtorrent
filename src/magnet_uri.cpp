@@ -215,7 +215,7 @@ namespace libtorrent {
 			url = uri.substr(pos, find(uri, "&", pos) - pos);
 		}
 
-		string_view btih = unescape_string(url_has_argument(uri, "xt"), ec);
+		std::string btih = unescape_string(url_has_argument(uri, "xt"), ec);
 		if (ec)
 		{
 			return;
