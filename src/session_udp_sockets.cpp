@@ -67,29 +67,35 @@ namespace libtorrent { namespace aux {
 	{
 		TORRENT_ASSERT(!sockets.empty());
 
-		auto& index = remote_address.is_v4() ? index4 : index6;
-		auto const index_begin = index;
+		utp_socket_impl* impl = nullptr;
+		bool ssl = false;
+#ifdef TORRENT_USE_OPENSSL
+		if (s.get<ssl_stream<utp_stream>>() != nullptr)
+		{
+			impl = s.get<ssl_stream<utp_stream>>()->next_layer().get_impl();
+			ssl = true;
+		}
+		else
+#endif
+			impl = s.get<utp_stream>()->get_impl();
+
+		auto& idx = index[remote_address.is_v4() ? 0 : 1][ssl ? 1 : 0];
+		auto const index_begin = idx;
 
 		for (;;)
 		{
-			if (++index >= sockets.size())
-				index = 0;
+			if (++idx >= sockets.size())
+				idx = 0;
 
-			if (sockets[index]->local_endpoint().address().is_v4() != remote_address.is_v4())
+			if (sockets[idx]->local_endpoint().address().is_v4() != remote_address.is_v4()
+				|| sockets[idx]->ssl != ssl)
 			{
-				if (index == index_begin) break;
+				if (idx == index_begin) break;
 				continue;
 			}
 
-			utp_socket_impl* impl = nullptr;
-#ifdef TORRENT_USE_OPENSSL
-			if (s.get<ssl_stream<utp_stream>>() != nullptr)
-				impl = s.get<ssl_stream<utp_stream>>()->next_layer().get_impl();
-			else
-#endif
-				impl = s.get<utp_stream>()->get_impl();
-			utp_init_socket(impl, sockets[index]);
-			auto udp_ep = sockets[index]->local_endpoint();
+			utp_init_socket(impl, sockets[idx]);
+			auto udp_ep = sockets[idx]->local_endpoint();
 			return tcp::endpoint(udp_ep.address(), udp_ep.port());
 		}
 

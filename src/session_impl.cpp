@@ -2047,6 +2047,9 @@ namespace {
 		for (auto const& iface : m_outgoing_interfaces)
 		{
 			interface_to_endpoints(iface, 0, false, eps);
+#ifdef TORRENT_USE_OPENSSL
+			interface_to_endpoints(iface, 0, true, eps);
+#endif
 		}
 
 		// if no outgoing interfaces are specified, create sockets to use
@@ -2056,6 +2059,12 @@ namespace {
 			eps.emplace_back(address_v4(), 0, "", false);
 #if TORRENT_USE_IPV6
 			eps.emplace_back(address_v6(), 0, "", false);
+#endif
+#ifdef TORRENT_USE_OPENSSL
+			eps.emplace_back(address_v4(), 0, "", true);
+#if TORRENT_USE_IPV6
+			eps.emplace_back(address_v6(), 0, "", true);
+#endif
 #endif
 		}
 
@@ -2086,7 +2095,7 @@ namespace {
 			error_code ec;
 			udp::endpoint const udp_bind_ep(ep.addr, 0);
 
-			auto udp_sock = std::make_shared<outgoing_udp_socket>(m_io_service);
+			auto udp_sock = std::make_shared<outgoing_udp_socket>(m_io_service, ep.device, ep.ssl);
 			udp_sock->sock.open(udp_bind_ep.protocol(), ec);
 			if (ec)
 			{
@@ -2149,7 +2158,7 @@ namespace {
 			// TODO: 2 use a handler allocator here
 			ADD_OUTSTANDING_ASYNC("session_impl::on_udp_packet");
 			udp_sock->sock.async_read(std::bind(&session_impl::on_udp_packet
-				, this, udp_sock, false, _1));
+				, this, udp_sock, ep.ssl, _1));
 
 			if (!ec && udp_sock)
 			{
