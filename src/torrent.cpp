@@ -2733,7 +2733,7 @@ namespace libtorrent {
 				}
 
 				// for UDP, only socks5 and i2p proxies will work.
-				// if we're not using one of those proxues with a UDP
+				// if we're not using one of those proxies with a UDP
 				// tracker, skip it
 				if (protocol == "udp"
 					&& proxy_type != settings_pack::socks5

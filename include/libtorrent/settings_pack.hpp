@@ -716,8 +716,7 @@ namespace libtorrent {
 		{
 			// ``tracker_completion_timeout`` is the number of seconds the tracker
 			// connection will wait from when it sent the request until it
-			// considers the tracker to have timed-out. Default value is 60
-			// seconds.
+			// considers the tracker to have timed-out.
 			tracker_completion_timeout = int_type_base,
 
 			// ``tracker_receive_timeout`` is the number of seconds to wait to
@@ -727,9 +726,9 @@ namespace libtorrent {
 			// occur.
 			tracker_receive_timeout,
 
-			// the time to wait when sending a stopped message before considering
-			// a tracker to have timed out. this is usually shorter, to make the
-			// client quit faster
+			// ``stop_tracker_timeout`` is the number of seconds to wait when
+			// sending a stopped message before considering a tracker to have
+			// timed out. This is usually shorter, to make the client quit faster.
 			stop_tracker_timeout,
 
 			// this is the maximum number of bytes in a tracker response. If a
