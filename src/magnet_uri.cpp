@@ -215,8 +215,12 @@ namespace libtorrent {
 			url = uri.substr(pos, find(uri, "&", pos) - pos);
 		}
 
-		string_view btih = url_has_argument(uri, "xt");
-		if (btih.empty())
+		string_view btih = unescape_string(url_has_argument(uri, "xt"), ec);
+		if (ec)
+		{
+			return;
+		}
+		else if (btih.empty())
 		{
 			ec = errors::missing_info_hash_in_uri;
 			return;
