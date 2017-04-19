@@ -53,6 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/piece_block_progress.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/pe_crypto.hpp"
+#include "libtorrent/io.hpp"
 
 namespace libtorrent {
 
@@ -125,7 +126,7 @@ namespace libtorrent {
 
 		enum message_type
 		{
-	// standard messages
+			// standard messages
 			msg_choke = 0,
 			msg_unchoke,
 			msg_interested,
@@ -272,14 +273,30 @@ namespace libtorrent {
 #endif
 
 	private:
+
+		template <typename... Args>
+		void send_message(message_type const type
+			, counters::stats_counter_t const counter
+			, std::uint32_t flags
+			, Args... args)
+		{
+			TORRENT_ASSERT(m_sent_handshake);
+			TORRENT_ASSERT(m_sent_bitfield);
+
+			char msg[5 + sizeof...(Args) * 4]
+				= { 0,0,0,1 + sizeof...(Args) * 4, static_cast<char>(type) };
+			char* ptr = msg + 5;
+			TORRENT_UNUSED(ptr);
+
+			int tmp[] = {0, (detail::write_int32(args, ptr), 0)...};
+			TORRENT_UNUSED(tmp);
+
+			send_buffer(msg, sizeof(msg), flags);
+
+			stats_counters().inc_stats_counter(counter);
+		}
+
 		void write_dht_port();
-		void send_simple_message(message_type type,
-			counters::stats_counter_t counter);
-		void send_piece_message(message_type type,
-			counters::stats_counter_t counter, piece_index_t index);
-		void send_request_message(message_type type,
-			counters::stats_counter_t counter, peer_request const& r,
-			int flag);
 
 		bool dispatch_message(int received);
 		// returns the block currently being

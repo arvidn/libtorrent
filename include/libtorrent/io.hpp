@@ -75,10 +75,11 @@ namespace detail {
 			return static_cast<std::int8_t>(*start++);
 		}
 
-		template <class T, class In, class OutIt, typename Cond
-			= typename std::enable_if<std::is_integral<In>::value
-				|| std::is_enum<In>::value>::type>
-		inline void write_impl(In data, OutIt& start)
+		template <class T, class In, class OutIt>
+		typename std::enable_if<(std::is_integral<In>::value
+			&& !std::is_same<In, bool>::value)
+			|| std::is_enum<In>::value, void>::type
+		write_impl(In data, OutIt& start)
 		{
 			// Note: the test for [OutItT==void] below is necessary because
 			// in C++11 std::back_insert_iterator::value_type is void.
@@ -97,9 +98,10 @@ namespace detail {
 			}
 		}
 
-		template <class T, class OutIt>
-		inline void write_impl(bool val, OutIt& start)
-		{ write_impl<std::uint8_t>(val ? 1 : 0, start); }
+		template <class T, class Val, class OutIt>
+		typename std::enable_if<std::is_same<Val, bool>::value, void>::type
+		write_impl(Val val, OutIt& start)
+		{ write_impl<T>(val ? 1 : 0, start); }
 
 		// -- adaptors
 
