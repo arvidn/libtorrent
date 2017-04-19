@@ -93,7 +93,7 @@ namespace libtorrent { namespace aux {
 		std::vector<std::shared_ptr<outgoing_udp_socket>> sockets;
 		// round-robin index into sockets
 		// one dimention for IPv4/IPv6 and a second for SSL/non-SSL
-		mutable std::uint8_t index[2][2] = {0};
+		mutable std::uint8_t index[2][2] = { {0, 0}, {0, 0} };
 	};
 
 } }
