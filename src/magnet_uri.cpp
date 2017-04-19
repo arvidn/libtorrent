@@ -215,21 +215,23 @@ namespace libtorrent {
 			url = uri.substr(pos, find(uri, "&", pos) - pos);
 		}
 
-		std::string btih = unescape_string(url_has_argument(uri, "xt"), ec);
-		if (ec)
-		{
-			return;
-		}
-		else if (btih.empty())
+		string_view btih = url_has_argument(uri, "xt");
+		std::string unescaped_btih;
+		if (btih.empty())
 		{
 			ec = errors::missing_info_hash_in_uri;
 			return;
 		}
-
-		if (btih.substr(0, 9) != "urn:btih:")
+		else if (btih.substr(0, 9) != "urn:btih:")
 		{
-			ec = errors::missing_info_hash_in_uri;
-			return;
+			unescaped_btih = unescape_string(btih, ec);
+			if (ec) return;
+			else if (unescaped_btih.substr(0, 9) != "urn:btih:")
+			{
+				ec = errors::missing_info_hash_in_uri;
+				return;
+			}
+			else btih = unescaped_btih;
 		}
 
 		std::string::size_type peer_pos = std::string::npos;
