@@ -5655,7 +5655,7 @@ namespace libtorrent {
 		return piece_block_progress();
 	}
 
-	void peer_connection::send_buffer(char const* buf, int size, int flags)
+	void peer_connection::send_buffer(char const* buf, int size, std::uint32_t flags)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_UNUSED(flags);

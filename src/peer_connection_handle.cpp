@@ -265,7 +265,7 @@ bool peer_connection_handle::in_handshake() const
 	return pc->in_handshake();
 }
 
-void peer_connection_handle::send_buffer(char const* begin, int size, int flags)
+void peer_connection_handle::send_buffer(char const* begin, int size, std::uint32_t flags)
 {
 	std::shared_ptr<peer_connection> pc = native_handle();
 	TORRENT_ASSERT(pc);
