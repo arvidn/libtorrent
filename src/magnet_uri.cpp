@@ -216,12 +216,18 @@ namespace libtorrent {
 		}
 
 		string_view btih = url_has_argument(uri, "xt");
+		std::string unescaped_btih;
 		if (btih.empty())
 		{
 			ec = errors::missing_info_hash_in_uri;
 			return;
 		}
-
+		if (btih.find('%') != string_view::npos)
+		{
+			unescaped_btih = unescape_string(btih, ec);
+			if (ec) return;
+			btih = unescaped_btih;
+		}
 		if (btih.substr(0, 9) != "urn:btih:")
 		{
 			ec = errors::missing_info_hash_in_uri;
