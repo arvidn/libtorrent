@@ -417,6 +417,10 @@ namespace libtorrent
 		bool is_sequential_download() const
 		{ return m_sequential_download || m_auto_sequential; }
 
+		void set_keep_redundant_connections(bool keep);
+		bool keep_redundant_connections() const;
+		void maybe_close_redundant_connections();
+
 		void queue_up();
 		void queue_down();
 		void set_queue_position(int p);
@@ -1512,6 +1516,8 @@ namespace libtorrent
 		// there's mostly seeds in the swarm, download the files sequentially
 		// for improved disk I/O performance.
 		bool m_auto_sequential:1;
+
+		bool m_keep_redundant_connections:1;
 
 		// this means we haven't verified the file content
 		// of the files we're seeding. the m_verified bitfield
