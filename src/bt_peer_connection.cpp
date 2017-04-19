@@ -1906,7 +1906,7 @@ namespace libtorrent
 		// if we're finished and this peer is uploading only
 		// disconnect it
 		if (t->is_finished() && upload_only()
-			&& m_settings.get_bool(settings_pack::close_redundant_connections)
+			&& !t->keep_redundant_connections()
 			&& !t->share_mode())
 			disconnect(errors::upload_upload_connection, op_bittorrent);
 
@@ -2006,7 +2006,7 @@ namespace libtorrent
 		// if we send upload-only, the other end is very likely to disconnect
 		// us, at least if it's a seed. If we don't want to close redundant
 		// connections, don't sent upload-only
-		if (!m_settings.get_bool(settings_pack::close_redundant_connections)) return;
+		if (t->keep_redundant_connections()) return;
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::outgoing_message, "UPLOAD_ONLY", "%d"

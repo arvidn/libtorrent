@@ -413,6 +413,11 @@ namespace libtorrent
 		TORRENT_ASYNC_CALL1(set_sequential_download, sd);
 	}
 
+	void torrent_handle::set_keep_redundant_connections(bool keep) const
+	{
+		TORRENT_ASYNC_CALL1(set_keep_redundant_connections, keep);
+	}
+
 	void torrent_handle::piece_availability(std::vector<int>& avail) const
 	{
 		TORRENT_SYNC_CALL1(piece_availability, boost::ref(avail));
@@ -510,6 +515,12 @@ namespace libtorrent
 	bool torrent_handle::is_sequential_download() const
 	{
 		TORRENT_SYNC_CALL_RET(bool, false, is_sequential_download);
+		return r;
+	}
+
+	bool torrent_handle::keep_redundant_connections() const
+	{
+		TORRENT_SYNC_CALL_RET(bool, false, keep_redundant_connections);
 		return r;
 	}
 

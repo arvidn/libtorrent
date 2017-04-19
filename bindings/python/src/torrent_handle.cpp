@@ -510,6 +510,8 @@ void bind_torrent_handle()
         .def("set_download_limit", _(&torrent_handle::set_download_limit))
         .def("download_limit", _(&torrent_handle::download_limit))
         .def("set_sequential_download", _(&torrent_handle::set_sequential_download))
+        .def("set_keep_redundant_connections", _(&torrent_handle::set_keep_redundant_connections))
+        .def("keep_redundant_connections", _(&torrent_handle::keep_redundant_connections))
 #ifndef TORRENT_NO_DEPRECATE
         .def("set_peer_upload_limit", &set_peer_upload_limit)
         .def("set_peer_download_limit", &set_peer_download_limit)

@@ -2160,10 +2160,11 @@ namespace libtorrent
 
 		// we cannot disconnect in a constructor
 		TORRENT_ASSERT(m_in_constructor == false);
-		if (!m_settings.get_bool(settings_pack::close_redundant_connections)) return false;
 
 		boost::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t) return false;
+
+		if (t->keep_redundant_connections()) return false;
 
 		// if we don't have the metadata yet, don't disconnect
 		// also, if the peer doesn't have metadata we shouldn't
@@ -6700,8 +6701,7 @@ namespace libtorrent
 			TORRENT_ASSERT(t->torrent_file().num_pieces() == int(m_have_piece.size()));
 
 		// in share mode we don't close redundant connections
-		if (m_settings.get_bool(settings_pack::close_redundant_connections)
-			&& !t->share_mode())
+		if (!t->keep_redundant_connections() && !t->share_mode())
 		{
 			bool const ok_to_disconnect =
 				can_disconnect(errors::upload_upload_connection)
@@ -6732,7 +6732,7 @@ namespace libtorrent
 		}
 
 		if (!m_disconnect_started && m_initialized
-			&& m_settings.get_bool(settings_pack::close_redundant_connections))
+			&& !t->keep_redundant_connections())
 		{
 			// none of this matters if we're disconnecting anyway
 			if (t->is_upload_only() && !m_need_interest_update)

@@ -90,6 +90,12 @@ class test_torrent_handle(unittest.TestCase):
 		self.assertEqual(len(torrents), 1)
 		self.assertEqual(torrents[self.h], 'bar')
 
+	def test_redundant_connections(self):
+		self.setup()
+		self.assertFalse(self.h.keep_redundant_connections())
+		self.h.set_keep_redundant_connections(True)
+		self.assertTrue(self.h.keep_redundant_connections())
+
 	def test_replace_trackers(self):
 		self.setup()
 		trackers = []

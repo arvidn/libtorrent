@@ -1186,6 +1186,20 @@ namespace libtorrent
 		void connect_peer(tcp::endpoint const& adr, int source = 0
 			, int flags = 0x1 + 0x4 + 0x8) const;
 
+		// ``set_keep_redundant_connections()`` specifies whether we should keep
+		// open any connections where both ends have no utility in keeping the
+		// connections open. For instance if both ends have completed their
+		// downloads, there's no point in keeping them open. This can be useful if
+		// a partial set of pieces are requested, and all have been downloaded, but
+		// you know that you may request more soon.
+		//
+		// This acts as a per-torrent override to
+		// ``settings_pack::close_redundant_connections``.
+		//
+		// ``keep_redundant_connections()`` returns the current setting.
+		void set_keep_redundant_connections(bool keep) const;
+		bool keep_redundant_connections() const;
+
 		// ``set_max_uploads()`` sets the maximum number of peers that's unchoked
 		// at the same time on this torrent. If you set this to -1, there will be
 		// no limit. This defaults to infinite. The primary setting controlling

@@ -236,6 +236,7 @@ namespace libtorrent
 		, m_finished_time(0)
 		, m_sequential_download(false)
 		, m_auto_sequential(false)
+		, m_keep_redundant_connections(false)
 		, m_seed_mode(false)
 		, m_super_seeding(false)
 		, m_override_resume_data((p.flags & add_torrent_params::flag_override_resume_data) != 0)
@@ -6955,6 +6956,9 @@ namespace {
 			int sequential_ = rd.dict_find_int_value("sequential_download", -1);
 			if (sequential_ != -1) set_sequential_download(sequential_ != 0);
 
+			int keep_redundant_ = rd.dict_find_int_value("keep_redundant_connections", -1);
+			if (keep_redundant_ != -1) set_keep_redundant_connections(keep_redundant_ != 0);
+
 			int paused_ = rd.dict_find_int_value("paused", -1);
 			if (paused_ != -1)
 			{
@@ -7234,6 +7238,8 @@ namespace {
 		ret["num_downloaded"] = m_downloaded;
 
 		ret["sequential_download"] = m_sequential_download;
+
+		ret["keep_redundant_connections"] = m_keep_redundant_connections;
 
 		ret["seed_mode"] = m_seed_mode;
 		ret["super_seeding"] = m_super_seeding;
@@ -8583,30 +8589,7 @@ namespace {
 			m_completed_time = time(0);
 
 		// disconnect all seeds
-		if (settings().get_bool(settings_pack::close_redundant_connections))
-		{
-			// TODO: 1 should disconnect all peers that have the pieces we have
-			// not just seeds. It would be pretty expensive to check all pieces
-			// for all peers though
-			std::vector<peer_connection*> seeds;
-			for (peer_iterator i = m_connections.begin();
-				i != m_connections.end(); ++i)
-			{
-				TORRENT_INCREMENT(m_iterating_connections);
-				peer_connection* p = *i;
-				TORRENT_ASSERT(p->associated_torrent().lock().get() == this);
-				if (p->upload_only())
-				{
-#ifndef TORRENT_DISABLE_LOGGING
-					p->peer_log(peer_log_alert::info, "SEED", "CLOSING CONNECTION");
-#endif
-					seeds.push_back(p);
-				}
-			}
-			std::for_each(seeds.begin(), seeds.end()
-				, boost::bind(&peer_connection::disconnect, _1, errors::torrent_finished
-				, op_bittorrent, 0));
-		}
+		maybe_close_redundant_connections();
 
 		if (m_abort) return;
 
@@ -8625,6 +8608,33 @@ namespace {
 		// update auto-manage torrents in that case
 		if (m_auto_managed)
 			m_ses.trigger_auto_manage();
+	}
+
+	void torrent::maybe_close_redundant_connections()
+	{
+		if (keep_redundant_connections()) return;
+
+		// TODO: 1 should disconnect all peers that have the pieces we have
+		// not just seeds. It would be pretty expensive to check all pieces
+		// for all peers though
+		std::vector<peer_connection*> seeds;
+		for (peer_iterator i = m_connections.begin();
+			i != m_connections.end(); ++i)
+		{
+			TORRENT_INCREMENT(m_iterating_connections);
+			peer_connection* p = *i;
+			TORRENT_ASSERT(p->associated_torrent().lock().get() == this);
+			if (p->upload_only())
+			{
+#ifndef TORRENT_DISABLE_LOGGING
+				p->peer_log(peer_log_alert::info, "SEED", "CLOSING CONNECTION");
+#endif
+				seeds.push_back(p);
+			}
+		}
+		std::for_each(seeds.begin(), seeds.end()
+			, boost::bind(&peer_connection::disconnect, _1, errors::torrent_finished
+			, op_bittorrent, 0));
 	}
 
 	// this is called when we were finished, but some files were
@@ -9307,6 +9317,23 @@ namespace {
 
 		set_need_save_resume();
 
+		state_updated();
+	}
+
+	bool torrent::keep_redundant_connections() const
+	{
+		return m_keep_redundant_connections ||
+			!settings().get_bool(settings_pack::close_redundant_connections);
+	}
+
+	void torrent::set_keep_redundant_connections(bool keep)
+	{
+		if (m_keep_redundant_connections == keep) return;
+		m_keep_redundant_connections = keep;
+
+		maybe_close_redundant_connections();
+
+		set_need_save_resume();
 		state_updated();
 	}
 
