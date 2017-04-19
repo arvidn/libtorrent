@@ -233,6 +233,15 @@ TORRENT_TEST(parse_escaped_hash_parameter)
 	TEST_EQUAL(aux::to_hex(p.info_hash), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
 }
 
+TORRENT_TEST(parse_escaped_hash_parameter_in_hex)
+{
+	error_code ec;
+	add_torrent_params p;
+	parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdc%64", p, ec);
+	TEST_CHECK(!ec);
+	TEST_EQUAL(aux::to_hex(p.info_hash), "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
+}
+
 TORRENT_TEST(parse_invalid_escaped_hash_parameter)
 {
 	error_code ec;

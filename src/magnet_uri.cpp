@@ -222,16 +222,16 @@ namespace libtorrent {
 			ec = errors::missing_info_hash_in_uri;
 			return;
 		}
-		else if (btih.substr(0, 9) != "urn:btih:")
+		if (btih.find('%') != string_view::npos)
 		{
 			unescaped_btih = unescape_string(btih, ec);
 			if (ec) return;
-			else if (unescaped_btih.substr(0, 9) != "urn:btih:")
-			{
-				ec = errors::missing_info_hash_in_uri;
-				return;
-			}
-			else btih = unescaped_btih;
+			btih = unescaped_btih;
+		}
+		if (btih.substr(0, 9) != "urn:btih:")
+		{
+			ec = errors::missing_info_hash_in_uri;
+			return;
 		}
 
 		std::string::size_type peer_pos = std::string::npos;
