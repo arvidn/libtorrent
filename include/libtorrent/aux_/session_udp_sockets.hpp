@@ -62,8 +62,8 @@ namespace libtorrent { namespace aux {
 
 	struct outgoing_udp_socket final : session_udp_socket
 	{
-		explicit outgoing_udp_socket(io_service& ios, std::string const& dev, bool ssl)
-			: session_udp_socket(ios), device(dev), ssl(ssl) {}
+		explicit outgoing_udp_socket(io_service& ios, std::string const& dev, bool ssl_)
+			: session_udp_socket(ios), device(dev), ssl(ssl_) {}
 
 		// the name of the device the socket is bound to, may be empty
 		// if the socket is not bound to a device
