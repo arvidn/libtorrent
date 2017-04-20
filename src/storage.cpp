@@ -301,7 +301,10 @@ namespace libtorrent {
 				m_part_file->export_file([&f, &ec](std::int64_t file_offset, span<char> buf)
 				{
 					iovec_t const v = {buf.data(), buf.size()};
-					std::int64_t const ret = f->writev(file_offset, v, ec.ec);
+#if TORRENT_USE_ASSERTS
+					std::int64_t const ret =
+#endif
+					f->writev(file_offset, v, ec.ec);
 					TORRENT_ASSERT(ec || ret == std::int64_t(v.iov_len));
 				}, fs.file_offset(i), fs.file_size(i), ec.ec);
 
