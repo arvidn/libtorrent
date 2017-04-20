@@ -104,7 +104,8 @@ DOCS_PAGES = \
   docs/reference-String.html      \
   docs/reference-Time.html        \
   docs/reference-Utility.html     \
-  docs/reference.html
+  docs/reference.html             \
+  docs/makefile
 
 ED25519_SOURCE = \
 	ed25519/readme.md \
