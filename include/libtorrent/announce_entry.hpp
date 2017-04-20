@@ -127,7 +127,7 @@ namespace libtorrent {
 		{
 			// the tracker was part of the .torrent file
 			source_torrent = 1,
-			// the tracker was added programatically via the add_troacker()_ function
+			// the tracker was added programatically via the add_tracker()_ function
 			source_client = 2,
 			// the tracker was part of a magnet link
 			source_magnet_link = 4,

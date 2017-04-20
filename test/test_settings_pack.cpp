@@ -248,6 +248,9 @@ TORRENT_TEST(settings_pack_abi)
 	TEST_EQUAL(settings_pack::proxy_tracker_connections, settings_pack::bool_type_base + 67);
 
 	// ints
+	TEST_EQUAL(settings_pack::tracker_completion_timeout, settings_pack::int_type_base + 0);
+	TEST_EQUAL(settings_pack::tracker_receive_timeout, settings_pack::int_type_base + 1);
+	TEST_EQUAL(settings_pack::stop_tracker_timeout, settings_pack::int_type_base + 2);
 	TEST_EQUAL(settings_pack::max_suggest_pieces, settings_pack::int_type_base + 66);
 	TEST_EQUAL(settings_pack::connections_slack, settings_pack::int_type_base + 86);
 	TEST_EQUAL(settings_pack::aio_threads, settings_pack::int_type_base + 104);

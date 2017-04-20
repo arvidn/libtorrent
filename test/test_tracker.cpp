@@ -619,3 +619,82 @@ TORRENT_TEST(tracker_proxy)
 	test_proxy(true);
 }
 
+void test_stop_tracker_timeout(bool nostop)
+{
+	int port = start_web_server();
+
+	auto count_stopped_events = [](session& ses)
+	{
+		int count = 0;
+		int num = 70; // this number is adjusted per version, an estimate
+		time_point const end_time = clock_type::now() + seconds(15);
+		while (true)
+		{
+			time_point const now = clock_type::now();
+			if (now > end_time) return count;
+
+			ses.wait_for_alert(end_time - now);
+			std::vector<alert*> alerts;
+			ses.pop_alerts(&alerts);
+			for (auto a : alerts)
+			{
+				std::printf("%d: [%s] %s\n", num, a->what(), a->message().c_str());
+				if (a->type() == log_alert::alert_type)
+				{
+					std::string const msg = a->message();
+					if (msg.find("&event=stopped") != std::string::npos)
+						count++;
+				}
+				num--;
+			}
+			if (num <= 0) return count;
+		}
+		return count;
+	};
+
+	settings_pack p = settings();
+	p.set_bool(settings_pack::announce_to_all_trackers, true);
+	p.set_bool(settings_pack::announce_to_all_tiers, true);
+	p.set_int(settings_pack::alert_mask, alert::all_categories);
+	if (nostop)
+		p.set_int(settings_pack::stop_tracker_timeout, 0);
+
+	lt::session s(p);
+
+	error_code ec;
+	remove_all("tmp4_tracker", ec);
+	create_directory("tmp4_tracker", ec);
+	std::ofstream file(combine_path("tmp4_tracker", "temporary").c_str());
+	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
+	file.close();
+
+	add_torrent_params tp;
+	tp.flags &= ~add_torrent_params::flag_paused;
+	tp.flags &= ~add_torrent_params::flag_auto_managed;
+	tp.flags |= add_torrent_params::flag_seed_mode;
+	tp.ti = t;
+	tp.save_path = "tmp4_tracker";
+	torrent_handle h = s.add_torrent(tp);
+
+	char tracker_url[200];
+	std::snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce", port);
+	announce_entry ae{tracker_url};
+	// trick to avoid use of tracker immediately
+	ae.next_announce = aux::time_now32() + seconds32(1);
+	ae.min_announce = aux::time_now32() + seconds32(1);
+	h.add_tracker(ae);
+
+	s.remove_torrent(h);
+
+	int const count = count_stopped_events(s);
+	TEST_EQUAL(count, nostop ? 0 : 1);
+}
+
+TORRENT_TEST(stop_tracker_timeout)
+{
+	std::printf("\n\nexpect to get ONE request with &event=stopped\n\n");
+	test_stop_tracker_timeout(false);
+
+	std::printf("\n\nexpect to NOT get a request with &event=stopped\n\n");
+	test_stop_tracker_timeout(true);
+}
